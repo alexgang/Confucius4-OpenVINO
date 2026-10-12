@@ -1,0 +1,26 @@
+audio_input=stdin format=s16le rate=16000 channels=1
+partial_text=Where
+partial_text= is
+partial_text= that distributed
+partial_text= AI layer
+partial_text=? Where
+partial_text= is
+partial_text= even the
+partial_text= hybrid
+partial_text= AI
+partial_text= layer
+partial_text= that
+partial_text= the
+partial_text= industry is
+partial_text= talking
+partial_text= about
+partial_text=? There is
+partial_text= Nvidia very
+partial_text= you
+partial_text= know
+partial_text= strongly going
+partial_text= into
+family=confucius4_r2t2
+task=asr
+mode=streaming
+text_output=Where is that distributed AI layer? Where is even the hybrid AI layer that the industry is talking about? There is Nvidia very you know strongly going into the hybrid and the routing policies.

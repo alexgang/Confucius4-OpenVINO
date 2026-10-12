@@ -1,0 +1,16 @@
+{
+  "mode": "cache_fixed_no_reset",
+  "wall_s": 1964.657623599982,
+  "audio_dur_s": 3671.1893125,
+  "overall_rtf": 0.5351556284255177,
+  "n_segs": 226,
+  "n_chunks_total": 5849,
+  "total_words": 12281,
+  "n3_repeat": 1971,
+  "n4_repeat": 1184,
+  "n_segs_with_resets": 0,
+  "total_resets": 0,
+  "seg_rtf_p50": 0.5265107503084083,
+  "seg_rtf_p95": 0.6010469597471055,
+  "seg_rtf_max": 0.6645939615567539
+}

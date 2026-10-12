@@ -1,0 +1,27 @@
+audio_input=stdin format=s16le rate=16000 channels=1
+partial_text=The
+partial_text= thing that
+partial_text= is
+partial_text= tough, that
+partial_text= is
+partial_text= a big
+partial_text= change for Intel
+partial_text=,
+partial_text= is
+partial_text= some
+partial_text= of the training
+partial_text= and documents.
+partial_text= So if
+partial_text= you
+partial_text= look at Intel
+partial_text='s Developer Zone,
+partial_text= I don
+partial_text='t know how
+partial_text= many people
+partial_text= have
+partial_text= looked
+partial_text= at
+family=confucius4_r2t2
+task=asr
+mode=streaming
+text_output=The thing that is tough, that is a big change for Intel, is some of the training and documents. So if you look at Intel's Developer Zone, I don't know how many people have looked at Intel's Developer Zone page.

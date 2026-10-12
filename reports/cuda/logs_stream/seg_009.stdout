@@ -1,0 +1,26 @@
+audio_input=stdin format=s16le rate=16000 channels=1
+partial_text=And power
+partial_text=.
+partial_text= That does
+partial_text= not
+partial_text= mean
+partial_text= we won
+partial_text='t use external
+partial_text= options
+partial_text= where we
+partial_text= gotta
+partial_text= augment our
+partial_text= business
+partial_text=.
+partial_text= That
+partial_text= could be
+partial_text= in
+partial_text= situations like
+partial_text= chip
+partial_text=sets
+partial_text= where
+partial_text= we use
+family=confucius4_r2t2
+task=asr
+mode=streaming
+text_output=And power. That does not mean we won't use external options where we gotta augment our business. That could be in situations like chipsets where we use Samsung technology or Wi-Fi

@@ -1,0 +1,5 @@
+audio_input=stdin format=s16le rate=16000 channels=1
+family=confucius4_r2t2
+task=asr
+mode=streaming
+text_output=

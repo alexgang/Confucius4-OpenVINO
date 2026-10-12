@@ -1,0 +1,27 @@
+audio_input=stdin format=s16le rate=16000 channels=1
+partial_text=And as we
+partial_text= go
+partial_text= through
+partial_text= that
+partial_text=,
+partial_text= that can
+partial_text= translate into
+partial_text= localized
+partial_text= C
+partial_text=PM
+partial_text= actions
+partial_text= that each
+partial_text= business
+partial_text= leader
+partial_text= has
+partial_text= to
+partial_text= go take
+partial_text= through and
+partial_text= plan
+partial_text= for
+partial_text=.
+partial_text= Right?
+family=confucius4_r2t2
+task=asr
+mode=streaming
+text_output=And as we go through that, that can translate into localized CPM actions that each business leader has to go take through and plan for. Right? There is no broad-based one.

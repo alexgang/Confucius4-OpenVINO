@@ -1,0 +1,122 @@
+[
+  {
+    "seg_idx": 172,
+    "start": 2812.32,
+    "end": 2827.66,
+    "dur": 15.34,
+    "n_words": 165,
+    "n4_repeat": 105,
+    "n4_max": 54,
+    "n3_repeat": 106,
+    "n3_max": 54,
+    "text": "Intel has a cultural history of coming late to the game when it comes to these kinds of markets and then eventually giving up or pivoting to a subset "
+  },
+  {
+    "seg_idx": 124,
+    "start": 2025.0,
+    "end": 2042.22,
+    "dur": 17.22,
+    "n_words": 101,
+    "n4_repeat": 58,
+    "n4_max": 4,
+    "n3_repeat": 60,
+    "n3_max": 4,
+    "text": "Nvidia is a very heavy one that's still going to be very far in front of us until we get to be very far in front of us until we get that traction thro"
+  },
+  {
+    "seg_idx": 212,
+    "start": 3439.38,
+    "end": 3458.15,
+    "dur": 18.77,
+    "n_words": 99,
+    "n4_repeat": 32,
+    "n4_max": 2,
+    "n3_repeat": 33,
+    "n3_max": 2,
+    "text": "aic plus agent worklog. Yeah, that's a good question. We're engaging with Microsoft on that. You know, they showed us some great demos recently that s"
+  },
+  {
+    "seg_idx": 197,
+    "start": 3198.01,
+    "end": 3214.99,
+    "dur": 16.98,
+    "n_words": 84,
+    "n4_repeat": 30,
+    "n4_max": 3,
+    "n3_repeat": 32,
+    "n3_max": 3,
+    "text": "Entirely with the memories. I get my answer. Lisa can chime in. So there are no plans to do today a discrete GPU that's targeted for what we've done i"
+  },
+  {
+    "seg_idx": 213,
+    "start": 3458.15,
+    "end": 3477.7,
+    "dur": 19.55,
+    "n_words": 106,
+    "n4_repeat": 30,
+    "n4_max": 3,
+    "n3_repeat": 31,
+    "n3_max": 3,
+    "text": "So most of the time to move slow or Copilot Plus wasn't as successful. So we are partnering with them. We hope to do a co engineering, but we'll have "
+  },
+  {
+    "seg_idx": 23,
+    "start": 372.68,
+    "end": 386.72,
+    "dur": 14.04,
+    "n_words": 64,
+    "n4_repeat": 22,
+    "n4_max": 2,
+    "n3_repeat": 23,
+    "n3_max": 2,
+    "text": "Edge strategy accelerate revenue growth. You gotta remember for Edge today we have a great foundation in that our valuation edge is very high. So the "
+  },
+  {
+    "seg_idx": 163,
+    "start": 2656.8,
+    "end": 2675.94,
+    "dur": 19.14,
+    "n_words": 90,
+    "n4_repeat": 22,
+    "n4_max": 3,
+    "n3_repeat": 24,
+    "n3_max": 3,
+    "text": "to a reference stack like the microservices that we mentioned. So what are the reasons for that? You definitely don't want to be tackled with contract"
+  },
+  {
+    "seg_idx": 161,
+    "start": 2622.19,
+    "end": 2640.45,
+    "dur": 18.26,
+    "n_words": 82,
+    "n4_repeat": 21,
+    "n4_max": 3,
+    "n3_repeat": 23,
+    "n3_max": 3,
+    "text": "And Supercloud is basically leveraging a base from OpenCode, which is similar OpenCL, of trying to have a solution that's more tuned or more unique fo"
+  },
+  {
+    "seg_idx": 81,
+    "start": 1313.34,
+    "end": 1328.93,
+    "dur": 15.59,
+    "n_words": 81,
+    "n4_repeat": 20,
+    "n4_max": 2,
+    "n3_repeat": 21,
+    "n3_max": 2,
+    "text": "And so those are some of the areas that we'll be talking for robotics. And then on edge, some people were saying like gosh, edge, what is business? We"
+  },
+  {
+    "seg_idx": 152,
+    "start": 2476.95,
+    "end": 2491.42,
+    "dur": 14.47,
+    "n_words": 75,
+    "n4_repeat": 19,
+    "n4_max": 2,
+    "n3_repeat": 21,
+    "n3_max": 3,
+    "text": "But as you look at those layers above, orchestration other things, there's going to be a lot of partnerships for sure. I think we have to be clear wha"
+  }
+]

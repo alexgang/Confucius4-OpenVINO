@@ -1,0 +1,2277 @@
+{
+  "audio_file": "test_audio/260902_SPE_audio.wav",
+  "audio_dur_s": 3671.1893125,
+  "wall_s": 2193.752201800002,
+  "rtf": 0.5975589965710878,
+  "peak_rss_gb": 4.16766357421875,
+  "n_segs": 226,
+  "n_chunks": 5849,
+  "rtf_p50": 0.586705219750401,
+  "rtf_p95": 0.6969915050771637,
+  "rtf_max": 1.1256703791454796,
+  "strategy": "vad",
+  "min_segment_sec": 12.0,
+  "max_segment_sec": 20.0,
+  "segments": [
+    {
+      "seg_idx": 0,
+      "start_s": 0.0,
+      "end_s": 13.68,
+      "duration_s": 13.68,
+      "n_chunks": 22,
+      "wall_s": 7.1611592000117525,
+      "rtf": 0.5234765497084615,
+      "text": "Good morning everyone. Morning, let's get started and welcome to Q326, yes, and gentlemen, today we'll talk about Q"
+    },
+    {
+      "seg_idx": 1,
+      "start_s": 13.68,
+      "end_s": 30.4,
+      "duration_s": 16.72,
+      "n_chunks": 27,
+      "wall_s": 9.685331600019708,
+      "rtf": 0.5792662440203176,
+      "text": "One, I want to share our engineering strategy to realize the vision that Alex spoke about in his video. Alex, our engineering strategy, vision, and then we should join the show"
+    },
+    {
+      "seg_idx": 2,
+      "start_s": 30.4,
+      "end_s": 42.83,
+      "duration_s": 12.43,
+      "n_chunks": 20,
+      "wall_s": 8.410810200002743,
+      "rtf": 0.6766540788417331,
+      "text": "Who I think is probably one of the largest pivots to do to go enable the growth of the animals that are to enable the time for human in"
+    },
+    {
+      "seg_idx": 3,
+      "start_s": 42.83,
+      "end_s": 58.63,
+      "duration_s": 15.8,
+      "n_chunks": 25,
+      "wall_s": 9.268492100003641,
+      "rtf": 0.5866134240508634,
+      "text": "Okay, so you recall Alex's book about business growth, about client agenda and physicality. So the goal of this slide is to describe how we as an organization need to grow."
+    },
+    {
+      "seg_idx": 4,
+      "start_s": 58.63,
+      "end_s": 76.7,
+      "duration_s": 18.07,
+      "n_chunks": 29,
+      "wall_s": 10.987345200002892,
+      "rtf": 0.6080434532375701,
+      "text": "We are the scale function that will drive growth for all of these businesses. So the way to look at this kind of stuff is just to describe what the kind of value and strategy are. We will need to know if the company is profitable"
+    },
+    {
+      "seg_idx": 5,
+      "start_s": 76.7,
+      "end_s": 92.96,
+      "duration_s": 16.26,
+      "n_chunks": 26,
+      "wall_s": 11.036662500002421,
+      "rtf": 0.6787615313654625,
+      "text": "And it's a simplified view, but one thing that's very important to understand is it's not about the morality, it's about the one layer of all of us, it's looking at the whole time and bringing that on to your shelves."
+    },
+    {
+      "seg_idx": 6,
+      "start_s": 92.96,
+      "end_s": 108.9,
+      "duration_s": 15.94,
+      "n_chunks": 25,
+      "wall_s": 8.991272300016135,
+      "rtf": 0.564069780427612,
+      "text": "Like as an example, silicon by itself for example for value alone, it's not enough. So stacking the value, cross the value, our strategy will have the right"
+    },
+    {
+      "seg_idx": 7,
+      "start_s": 108.9,
+      "end_s": 126.03,
+      "duration_s": 17.13,
+      "n_chunks": 27,
+      "wall_s": 9.671097199985525,
+      "rtf": 0.5645707647393768,
+      "text": "So working closely with TD on how we can optimize for performance, for cost, and for power, I would say it's struggling to be more efficient. All of you, we do need to know that we are not only struggling"
+    },
+    {
+      "seg_idx": 8,
+      "start_s": 126.03,
+      "end_s": 142.19,
+      "duration_s": 16.16,
+      "n_chunks": 26,
+      "wall_s": 11.650807600002736,
+      "rtf": 0.7209658168318525,
+      "text": "You contrast that to what we're going to do in Harrow, and I'll show them the road map later on. World one hundred and seventy, and that's the final word. The final word, the final word, the final word, the final word, the final word, the final word, the final word, the final word, the final word, the final word, the final word, the final word, the final word, the final word, the final word, the final word, the final word, the final word, the final word, the final word, the final word, the final word, the final word, the"
+    },
+    {
+      "seg_idx": 9,
+      "start_s": 142.19,
+      "end_s": 154.56,
+      "duration_s": 12.37,
+      "n_chunks": 20,
+      "wall_s": 7.362473499990301,
+      "rtf": 0.5951878334672839,
+      "text": "and power. That does not mean we want to use external powers or we get all the credit. That can be strange, like ships that we use to get around the world, or like"
+    },
+    {
+      "seg_idx": 10,
+      "start_s": 154.56,
+      "end_s": 173.3,
+      "duration_s": 18.74,
+      "n_chunks": 30,
+      "wall_s": 11.112661999999546,
+      "rtf": 0.5929915688366887,
+      "text": "or if we need to do a dual drive because we have limitations, the primary drive is the drive that we have, good friend, good off, good friend, sitting above the silver mountain, good friend, good off, good friend"
+    },
+    {
+      "seg_idx": 11,
+      "start_s": 173.3,
+      "end_s": 190.3,
+      "duration_s": 17.0,
+      "n_chunks": 27,
+      "wall_s": 10.256717699987348,
+      "rtf": 0.6033363352933734,
+      "text": "Right and the scale is very important. We see the man of the day even in the show. The scale is palpable, palpable, palpable, and the water is palpable, palpable, palpable"
+    },
+    {
+      "seg_idx": 12,
+      "start_s": 190.3,
+      "end_s": 203.41,
+      "duration_s": 13.11,
+      "n_chunks": 21,
+      "wall_s": 7.747046900010901,
+      "rtf": 0.590926536995492,
+      "text": "Very successful execution of cat and wild cat and novel and a derivative model we can see now as a result of multiple times in your fictional"
+    },
+    {
+      "seg_idx": 13,
+      "start_s": 203.41,
+      "end_s": 219.87,
+      "duration_s": 16.46,
+      "n_chunks": 26,
+      "wall_s": 8.352082600002177,
+      "rtf": 0.5074169258810557,
+      "text": "I'll actually show you guys a visual of all of this"
+    },
+    {
+      "seg_idx": 14,
+      "start_s": 219.87,
+      "end_s": 239.09,
+      "duration_s": 19.22,
+      "n_chunks": 31,
+      "wall_s": 11.76728020000155,
+      "rtf": 0.6122414255984158,
+      "text": "Reference designs, how we bring leadership reference designs to market, how we innovate, how we and then we use our name as a brand to reach people, reach people, reach people, reach people"
+    },
+    {
+      "seg_idx": 15,
+      "start_s": 239.09,
+      "end_s": 255.69,
+      "duration_s": 16.6,
+      "n_chunks": 26,
+      "wall_s": 9.77412440002081,
+      "rtf": 0.5888026747000488,
+      "text": "over to customers building leadership teams. So this is our strategy. We will always keep this in mind as we make decisions and doing this from the end to end point view to be able to influence."
+    },
+    {
+      "seg_idx": 16,
+      "start_s": 255.69,
+      "end_s": 275.1,
+      "duration_s": 19.41,
+      "n_chunks": 31,
+      "wall_s": 11.54618879998452,
+      "rtf": 0.5948577434304235,
+      "text": "Okay, next slide. Alex shared this and he talked about the business strategy for growth of CPG. I just want to spend time dissecting what we want to be, what we want to be, what we want to be. So our business strategy is a business"
+    },
+    {
+      "seg_idx": 17,
+      "start_s": 275.1,
+      "end_s": 292.77,
+      "duration_s": 17.67,
+      "n_chunks": 28,
+      "wall_s": 10.583154699997976,
+      "rtf": 0.598933486134577,
+      "text": "When the gentle can cure and the grow can connect, the connectivities that are wired and wireless, what does that mean for us? No change in our reality, no one, no one, right? It's the only one, and that's shared and that's shared."
+    },
+    {
+      "seg_idx": 18,
+      "start_s": 292.77,
+      "end_s": 309.33,
+      "duration_s": 16.56,
+      "n_chunks": 26,
+      "wall_s": 9.524649300001329,
+      "rtf": 0.5751599818841383,
+      "text": "It's been lack of performance desktop solutions. Novel solution problem. We can solve it. We need leadership. We need number five. We need number six. We need number seven."
+    },
+    {
+      "seg_idx": 19,
+      "start_s": 309.33,
+      "end_s": 324.2,
+      "duration_s": 14.87,
+      "n_chunks": 24,
+      "wall_s": 9.237447599996813,
+      "rtf": 0.6212136919970958,
+      "text": "But then we quickly come up with Griffin, Colvin, and Rayzel, which puts back in leadership, yeah, some greater shoes you know, like the way you share and the performance, that's all order in the show, wow, the way you share and the"
+    },
+    {
+      "seg_idx": 20,
+      "start_s": 324.2,
+      "end_s": 343.76,
+      "duration_s": 19.56,
+      "n_chunks": 31,
+      "wall_s": 12.313145099993562,
+      "rtf": 0.6295063957051924,
+      "text": "Great structure. If you recall, the waterfall. All right, please from tankly down. So there's a lot of competition. They play in that space. Old ships. You see, we have great construction. So they are going to share. We just have to get over it. It's the only way."
+    },
+    {
+      "seg_idx": 21,
+      "start_s": 343.76,
+      "end_s": 358.23,
+      "duration_s": 14.47,
+      "n_chunks": 23,
+      "wall_s": 7.965184200002113,
+      "rtf": 0.5504619350381557,
+      "text": "The second category then is pantral volatility, which has exceeded all expectations, involvement, and volatility. We can see that volatility is rising."
+    },
+    {
+      "seg_idx": 22,
+      "start_s": 358.23,
+      "end_s": 372.68,
+      "duration_s": 14.45,
+      "n_chunks": 23,
+      "wall_s": 7.426737800007686,
+      "rtf": 0.5139610934261375,
+      "text": "And then the last thing we got to win in what we call a new infrastructure and a new kind of technology called the"
+    },
+    {
+      "seg_idx": 23,
+      "start_s": 372.68,
+      "end_s": 386.72,
+      "duration_s": 14.04,
+      "n_chunks": 22,
+      "wall_s": 8.044035200000508,
+      "rtf": 0.5729369800570162,
+      "text": "Edge strategy accelerate revenue growth. Year for edge, we have a great company now. All of the innovation, the best, the best, the best. The best is how we do it. We have an edge from the start."
+    },
+    {
+      "seg_idx": 24,
+      "start_s": 386.72,
+      "end_s": 402.42,
+      "duration_s": 15.7,
+      "n_chunks": 25,
+      "wall_s": 12.281446600012714,
+      "rtf": 0.7822577452237398,
+      "text": "which have already been deployed. We need to increase the scale of which we do that with these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these, these,"
+    },
+    {
+      "seg_idx": 25,
+      "start_s": 402.42,
+      "end_s": 420.07,
+      "duration_s": 17.65,
+      "n_chunks": 28,
+      "wall_s": 10.410094599996228,
+      "rtf": 0.5898070594898713,
+      "text": "We've added that to our roadmap, right? So that's something we've done intentionally to help drive the growth, and then physically, and the look of physicality, the look of humanizing the world, and the world's structure, and the look of the world"
+    },
+    {
+      "seg_idx": 26,
+      "start_s": 420.07,
+      "end_s": 433.09,
+      "duration_s": 13.02,
+      "n_chunks": 21,
+      "wall_s": 8.933251600014046,
+      "rtf": 0.686117634409681,
+      "text": "And so we got to look at the market of there's a lot of lawns which are too long and machines that we don't want to clean, then there's the few states that human law will allow"
+    },
+    {
+      "seg_idx": 27,
+      "start_s": 433.09,
+      "end_s": 446.67,
+      "duration_s": 13.58,
+      "n_chunks": 22,
+      "wall_s": 7.7347403000167105,
+      "rtf": 0.5695685051558697,
+      "text": "And so for us we get taxably dropped and we're twelvey with no way to win or to lose, and we win or we lose it's tax and we're stuck and we're stuck"
+    },
+    {
+      "seg_idx": 28,
+      "start_s": 446.67,
+      "end_s": 460.12,
+      "duration_s": 13.45,
+      "n_chunks": 22,
+      "wall_s": 7.399893600028008,
+      "rtf": 0.5501779628273612,
+      "text": "The second thing is working with Dan's team is how do we get access to additional powers, health care, understanding, and we understand everything"
+    },
+    {
+      "seg_idx": 29,
+      "start_s": 460.12,
+      "end_s": 479.01,
+      "duration_s": 18.89,
+      "n_chunks": 30,
+      "wall_s": 11.813958200014895,
+      "rtf": 0.6254080571738959,
+      "text": "It's different than clients, and as we go into the engagement, we need to look at the mindset of there's things we know, there's things we don't, how do we engage? And as we go into the engagement, there's things we know, and things we don't."
+    },
+    {
+      "seg_idx": 30,
+      "start_s": 479.01,
+      "end_s": 496.28,
+      "duration_s": 17.27,
+      "n_chunks": 27,
+      "wall_s": 11.542437199997948,
+      "rtf": 0.6683518934567428,
+      "text": "Customer enabling is how we will win. Turning up the silicon on the roadmap, we will win. Turning up the sulfur on the silicon, we will win. And then the last thing we would tell all of you is, and I mean this is important, is as we roll, there it is, we will win"
+    },
+    {
+      "seg_idx": 31,
+      "start_s": 496.28,
+      "end_s": 509.66,
+      "duration_s": 13.38,
+      "n_chunks": 21,
+      "wall_s": 8.205340999993496,
+      "rtf": 0.6132541853507844,
+      "text": "We don't fully understand all the future technology needs that this mark will go through. We don't know what's going to come next. We don't know where we are. That's a positive thing. Nobody wants to stop."
+    },
+    {
+      "seg_idx": 32,
+      "start_s": 509.66,
+      "end_s": 526.49,
+      "duration_s": 16.83,
+      "n_chunks": 27,
+      "wall_s": 9.47963190000155,
+      "rtf": 0.5632579857398426,
+      "text": "But in order to move forward, there are going to be capabilities we simply don't have to keep doing what we're doing today. How do we cure the disease? Pick up the wrong number and not be able to talk."
+    },
+    {
+      "seg_idx": 33,
+      "start_s": 526.49,
+      "end_s": 541.03,
+      "duration_s": 14.54,
+      "n_chunks": 23,
+      "wall_s": 8.826457499992102,
+      "rtf": 0.6070465955978063,
+      "text": "I did want to share a couple of quick updates and then things ahead for the rest of the quarter. So if you look out through twenty seven to twenty nine, we have a way we have a way we have a way to find what we need to get the crown."
+    },
+    {
+      "seg_idx": 34,
+      "start_s": 541.03,
+      "end_s": 556.54,
+      "duration_s": 15.51,
+      "n_chunks": 25,
+      "wall_s": 8.599322399997618,
+      "rtf": 0.5544372920694789,
+      "text": "There is clarity around what those programs are. There is clarity on the metrics and they're all running and everything is okay. How are we going to be free from the world of money and materialism?"
+    },
+    {
+      "seg_idx": 35,
+      "start_s": 556.54,
+      "end_s": 570.82,
+      "duration_s": 14.28,
+      "n_chunks": 23,
+      "wall_s": 8.031184399995254,
+      "rtf": 0.5624078711481271,
+      "text": "and the foundry side as we move to a simplified architecture we move to a simplified architecture so we have all of that out of the way. We also had to consider a streamlined"
+    },
+    {
+      "seg_idx": 36,
+      "start_s": 570.82,
+      "end_s": 587.35,
+      "duration_s": 16.53,
+      "n_chunks": 26,
+      "wall_s": 9.946991600008914,
+      "rtf": 0.6017538777984823,
+      "text": "And I'll do one click down later on what that means, but this is where we're going to have the president out, which is a dangerous situation as that's where we're going to have all of our enemies."
+    },
+    {
+      "seg_idx": 37,
+      "start_s": 587.35,
+      "end_s": 606.99,
+      "duration_s": 19.64,
+      "n_chunks": 31,
+      "wall_s": 13.29122980000102,
+      "rtf": 0.6767428615071802,
+      "text": "and think of the usage for us in time and is the pair that we like know like yes for like how we like the way we like the way now how we like the way we like the way is to be so nice to be so nice"
+    },
+    {
+      "seg_idx": 38,
+      "start_s": 606.99,
+      "end_s": 624.02,
+      "duration_s": 17.03,
+      "n_chunks": 27,
+      "wall_s": 9.763610099995276,
+      "rtf": 0.5733182677624942,
+      "text": "What we need to do is encapsulate that with a reference design for client and enable sort of creation of that into the user interface for client. So that's the important thing for you is what is you need to do now"
+    },
+    {
+      "seg_idx": 39,
+      "start_s": 624.02,
+      "end_s": 641.13,
+      "duration_s": 17.11,
+      "n_chunks": 27,
+      "wall_s": 9.533178200013936,
+      "rtf": 0.5571699707781377,
+      "text": "And then we'll follow one. What explorer island is, and how does that represent what we need? Right, the new story we have is still exploring and how we can and how we can"
+    },
+    {
+      "seg_idx": 40,
+      "start_s": 641.13,
+      "end_s": 654.58,
+      "duration_s": 13.45,
+      "n_chunks": 22,
+      "wall_s": 9.16242389997933,
+      "rtf": 0.6812211078051548,
+      "text": "And then you'll see on here this this big white ball is that is just really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really"
+    },
+    {
+      "seg_idx": 41,
+      "start_s": 654.58,
+      "end_s": 669.75,
+      "duration_s": 15.17,
+      "n_chunks": 24,
+      "wall_s": 8.165607800008729,
+      "rtf": 0.5382734212266795,
+      "text": "Can that satisfy physical AI requirements? Is it a super set? How's the pressure? Long questions. We don't know yet. And the family is in."
+    },
+    {
+      "seg_idx": 42,
+      "start_s": 669.75,
+      "end_s": 687.15,
+      "duration_s": 17.4,
+      "n_chunks": 28,
+      "wall_s": 9.815262899996014,
+      "rtf": 0.5640955689652882,
+      "text": "Okay, I'm not going to go through this line by line, but you talk about scale and you talk about showing the world here, showing the visual here, showing all of the values. This is everything."
+    },
+    {
+      "seg_idx": 43,
+      "start_s": 687.15,
+      "end_s": 705.62,
+      "duration_s": 18.47,
+      "n_chunks": 29,
+      "wall_s": 10.327764999994542,
+      "rtf": 0.5591643205194663,
+      "text": "Few observations with this. One, we would need to see how long how long how long how long it takes for the eye to see that it is one and now"
+    },
+    {
+      "seg_idx": 44,
+      "start_s": 705.62,
+      "end_s": 720.39,
+      "duration_s": 14.77,
+      "n_chunks": 24,
+      "wall_s": 16.626151499978732,
+      "rtf": 1.1256703791454796,
+      "text": "The second thing you see the little yellow dot. That's where we are today. If you look to the right of that, the number here is three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three, three,"
+    },
+    {
+      "seg_idx": 45,
+      "start_s": 720.39,
+      "end_s": 732.84,
+      "duration_s": 12.45,
+      "n_chunks": 20,
+      "wall_s": 12.297700399998575,
+      "rtf": 0.9877671004014921,
+      "text": "But we're making good progress. Just last week we powered our 22000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "seg_idx": 46,
+      "start_s": 732.84,
+      "end_s": 750.48,
+      "duration_s": 17.64,
+      "n_chunks": 28,
+      "wall_s": 12.16650110000046,
+      "rtf": 0.6897109467120441,
+      "text": "So that's the broad based sampling going with a lot of our customers. Never like coming here, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really"
+    },
+    {
+      "seg_idx": 47,
+      "start_s": 750.48,
+      "end_s": 763.78,
+      "duration_s": 13.3,
+      "n_chunks": 21,
+      "wall_s": 7.805540300003486,
+      "rtf": 0.5868827293235703,
+      "text": "And you know, you know, my thanks to everyone working this because I know it's growing, I know there's a lot of issues in working through the problems and the extremes, and we are in"
+    },
+    {
+      "seg_idx": 48,
+      "start_s": 763.78,
+      "end_s": 777.08,
+      "duration_s": 13.3,
+      "n_chunks": 21,
+      "wall_s": 7.1028053000045475,
+      "rtf": 0.5340455112785374,
+      "text": "Right, which is incredible with that to be able to go for something which is so just incredible. So just gotta maintain the focus every day and every year. I'm going to be ready."
+    },
+    {
+      "seg_idx": 49,
+      "start_s": 777.08,
+      "end_s": 793.5,
+      "duration_s": 16.42,
+      "n_chunks": 26,
+      "wall_s": 9.06140440001036,
+      "rtf": 0.5518516686973423,
+      "text": "Next, click down on dues and originate. First of all, fully knowledge doesn't build building out. What does it mean? What's the word? We go."
+    },
+    {
+      "seg_idx": 50,
+      "start_s": 793.5,
+      "end_s": 810.64,
+      "duration_s": 17.14,
+      "n_chunks": 27,
+      "wall_s": 9.688110999995843,
+      "rtf": 0.5652340140020912,
+      "text": "that are very powerful that they cause problems with them while they're trying to get into the soul. Incredibly powerful, they will follow you and then follow you and then follow"
+    },
+    {
+      "seg_idx": 51,
+      "start_s": 810.64,
+      "end_s": 830.64,
+      "duration_s": 20.0,
+      "n_chunks": 32,
+      "wall_s": 12.146979299985105,
+      "rtf": 0.6073489649992553,
+      "text": "If you look at the graph here, it is all about scaling your x,y,z,p and p and then the graphs have the y and you see the way all the x,y,z"
+    },
+    {
+      "seg_idx": 52,
+      "start_s": 830.64,
+      "end_s": 844.81,
+      "duration_s": 14.17,
+      "n_chunks": 23,
+      "wall_s": 7.840005600010045,
+      "rtf": 0.5532819760063546,
+      "text": "An mpu memory bandwidth is double. Nox is crazy and is still one of the"
+    },
+    {
+      "seg_idx": 53,
+      "start_s": 844.81,
+      "end_s": 863.7,
+      "duration_s": 18.89,
+      "n_chunks": 30,
+      "wall_s": 10.934245299984468,
+      "rtf": 0.5788377607191354,
+      "text": "Right, because today we have nx in the market, we have the industry in the market, you get to see all these accounts like what they're working with and how they're doing things, like people who are beautiful and they are, you know, just like right, right, right, challenges just to get to"
+    },
+    {
+      "seg_idx": 54,
+      "start_s": 863.7,
+      "end_s": 881.09,
+      "duration_s": 17.39,
+      "n_chunks": 28,
+      "wall_s": 10.094601599994348,
+      "rtf": 0.5804831282342926,
+      "text": "We've shared this view with all of our audience and all of our partners, and in general, the industry is working true in what the real world wants to achieve, what the world wants to accomplish, and what the world wants"
+    },
+    {
+      "seg_idx": 55,
+      "start_s": 881.09,
+      "end_s": 898.73,
+      "duration_s": 17.64,
+      "n_chunks": 28,
+      "wall_s": 9.61506849998841,
+      "rtf": 0.545071910430182,
+      "text": "Right and the orchestration of economics of that is a problem everyone solves because running everything on cloud is not the way to be right and so now I have and now I know"
+    },
+    {
+      "seg_idx": 56,
+      "start_s": 898.73,
+      "end_s": 913.97,
+      "duration_s": 15.24,
+      "n_chunks": 24,
+      "wall_s": 13.232133300014539,
+      "rtf": 0.868250216536387,
+      "text": "the strength we have is we have an offering that will support on the silicon and then these will grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and grow and"
+    },
+    {
+      "seg_idx": 57,
+      "start_s": 913.97,
+      "end_s": 928.21,
+      "duration_s": 14.24,
+      "n_chunks": 23,
+      "wall_s": 6.788078799989307,
+      "rtf": 0.4766909269655412,
+      "text": "Congratulations"
+    },
+    {
+      "seg_idx": 58,
+      "start_s": 928.21,
+      "end_s": 945.97,
+      "duration_s": 17.76,
+      "n_chunks": 28,
+      "wall_s": 8.9632442999864,
+      "rtf": 0.5046871790532882,
+      "text": "It's late. So seriously, the challenge for all of us is how the hell do we celebrate?"
+    },
+    {
+      "seg_idx": 59,
+      "start_s": 945.97,
+      "end_s": 965.34,
+      "duration_s": 19.37,
+      "n_chunks": 31,
+      "wall_s": 11.588364399998682,
+      "rtf": 0.5982635209085535,
+      "text": "And as close as we can hold us in to release them, release them, the terror of the mind that holds so long, it's just the struggle, it's the struggle, and all the struggle that's right in you, and you"
+    },
+    {
+      "seg_idx": 60,
+      "start_s": 965.34,
+      "end_s": 983.62,
+      "duration_s": 18.28,
+      "n_chunks": 29,
+      "wall_s": 10.355159500002628,
+      "rtf": 0.5664748085340606,
+      "text": "and then giving a present to Ireland as a celebration, that whole story coming together in a lot of interest, we've got a lot of stories and stories and stories and stories and stories and stories"
+    },
+    {
+      "seg_idx": 61,
+      "start_s": 983.62,
+      "end_s": 999.32,
+      "duration_s": 15.7,
+      "n_chunks": 25,
+      "wall_s": 10.863862600002903,
+      "rtf": 0.6919657707008219,
+      "text": "Last question slide before I hand it to Lisa, just quick update on coral, the situation. So three crown, 14, 182, so no way, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time, no time,"
+    },
+    {
+      "seg_idx": 62,
+      "start_s": 999.32,
+      "end_s": 1018.28,
+      "duration_s": 18.96,
+      "n_chunks": 30,
+      "wall_s": 15.958451000013156,
+      "rtf": 0.8416904535871917,
+      "text": "We'll have Razeric power on coming up here soon. We need to nail that and we need to show people these full forms, full cards, no, no, no, initially, and no, initially, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no,"
+    },
+    {
+      "seg_idx": 63,
+      "start_s": 1018.28,
+      "end_s": 1034.07,
+      "duration_s": 15.79,
+      "n_chunks": 25,
+      "wall_s": 8.970806500001345,
+      "rtf": 0.5681321405953987,
+      "text": "that up and down seesaw critical for us to execute too, and we're also going to raise our cube and pull on the and copper shot now and raise our cube and pull"
+    },
+    {
+      "seg_idx": 64,
+      "start_s": 1034.07,
+      "end_s": 1051.46,
+      "duration_s": 17.39,
+      "n_chunks": 28,
+      "wall_s": 9.90465569999651,
+      "rtf": 0.5695604197812829,
+      "text": "Schedules reset, team is making good progress and is now going to pull this through for the new 40 days of training and then beyond that is now how we use the second time of training and then beyond that is now how we use the third time"
+    },
+    {
+      "seg_idx": 65,
+      "start_s": 1051.46,
+      "end_s": 1070.16,
+      "duration_s": 18.7,
+      "n_chunks": 30,
+      "wall_s": 10.180696499999613,
+      "rtf": 0.5444222727272521,
+      "text": "That's where we add s t"
+    },
+    {
+      "seg_idx": 66,
+      "start_s": 1070.16,
+      "end_s": 1086.29,
+      "duration_s": 16.13,
+      "n_chunks": 26,
+      "wall_s": 9.559941000014078,
+      "rtf": 0.5926807811540036,
+      "text": "And with that, I'll hand it to you, son. Thank you. So as Mike talked about, we have a huge challenge trying to go from a team that was maybe not as vertical, right, as very vertical, to a team"
+    },
+    {
+      "seg_idx": 67,
+      "start_s": 1086.29,
+      "end_s": 1102.43,
+      "duration_s": 16.14,
+      "n_chunks": 26,
+      "wall_s": 10.174531099997694,
+      "rtf": 0.6303922614620627,
+      "text": "On edge, there was a lot of vertical enablement, but not really in the sense of where these new businesses are going to be expecting to deliver. So we thought we shared a little bit today about, you know, maybe the first slide of what we're talking about, what we're building, that where we are in this kind of building over time."
+    },
+    {
+      "seg_idx": 68,
+      "start_s": 1102.43,
+      "end_s": 1116.82,
+      "duration_s": 14.39,
+      "n_chunks": 23,
+      "wall_s": 8.616422899998724,
+      "rtf": 0.5987785198053318,
+      "text": "And so if you look at, we built this originally for the board act. It was trying to describe what the approach. So one thing in it is, everything that's going to be built is very solid execution, right?"
+    },
+    {
+      "seg_idx": 69,
+      "start_s": 1116.82,
+      "end_s": 1129.56,
+      "duration_s": 12.74,
+      "n_chunks": 20,
+      "wall_s": 7.542068099981407,
+      "rtf": 0.5919990659326064,
+      "text": "We've had these stacks hardened for the last 10 years of sale. I'm including the app for every platform. There's a lot of tension, maybe on this top piece, but we're going to be doing a lot more of these segments."
+    },
+    {
+      "seg_idx": 70,
+      "start_s": 1129.56,
+      "end_s": 1148.67,
+      "duration_s": 19.11,
+      "n_chunks": 30,
+      "wall_s": 11.826132899994263,
+      "rtf": 0.6188452590263874,
+      "text": "But overall, every single vertical we're going to be delivering is built on this base. If not, it would not be affordable, right? If we're trying to just go in there and robotics and building it from scratch, there's no way it would be affordable for us. So that's a good thing. And the overall principle, overall, means all this."
+    },
+    {
+      "seg_idx": 71,
+      "start_s": 1148.67,
+      "end_s": 1167.9,
+      "duration_s": 19.23,
+      "n_chunks": 31,
+      "wall_s": 13.435361599986209,
+      "rtf": 0.6986667498692776,
+      "text": "And so if you look at the verticals that we're building in a pc client, we're all used to that old business around these things, right? Those OS that we're still changing, the PC is coming out, the web is coming out, with support that I don't believe that as a vertical"
+    },
+    {
+      "seg_idx": 72,
+      "start_s": 1167.9,
+      "end_s": 1185.63,
+      "duration_s": 17.73,
+      "n_chunks": 28,
+      "wall_s": 9.92689239999163,
+      "rtf": 0.5598924083469616,
+      "text": "And what's different about the three on the right is in the past we've always done enabling stuff, but really the final product packaging was done by our vendors by customers. We're delivering the product, but"
+    },
+    {
+      "seg_idx": 73,
+      "start_s": 1185.63,
+      "end_s": 1201.19,
+      "duration_s": 15.56,
+      "n_chunks": 25,
+      "wall_s": 9.67615260000457,
+      "rtf": 0.6218607069411678,
+      "text": "Everything that's new there, they expect us to do reference samples, os packaging, so it really appears as if it's custom built for them. So that'll be a stress for us. We're automation critical, but let's talk a bit about what we need to do."
+    },
+    {
+      "seg_idx": 74,
+      "start_s": 1201.19,
+      "end_s": 1215.07,
+      "duration_s": 13.88,
+      "n_chunks": 22,
+      "wall_s": 7.96096349999425,
+      "rtf": 0.5735564481263868,
+      "text": "So on a quantum compute where we're trying to build a quantum box and those capabilities, the first thing that is very interesting is here validation teams struggle with is no longer any of this right"
+    },
+    {
+      "seg_idx": 75,
+      "start_s": 1215.07,
+      "end_s": 1231.95,
+      "duration_s": 16.88,
+      "n_chunks": 27,
+      "wall_s": 10.035701399989193,
+      "rtf": 0.5945320734590754,
+      "text": "The end user is an agent, and so how do we enable those agents with the right security frameworks, the right orchestration, and making sure we can tune it so that that includes agent, model, harness, framework, all to complete that use case."
+    },
+    {
+      "seg_idx": 76,
+      "start_s": 1231.95,
+      "end_s": 1248.56,
+      "duration_s": 16.61,
+      "n_chunks": 26,
+      "wall_s": 10.531683300010627,
+      "rtf": 0.6340567910903449,
+      "text": "I think Mike had talked about the GitHub coders, and we'll talk about it today. We talked about a lot of things, Mike, this meeting, Google meeting, about what their target for the day is. And so that's a very targeted usage for each segment of employment, respectively, target there."
+    },
+    {
+      "seg_idx": 77,
+      "start_s": 1248.56,
+      "end_s": 1268.35,
+      "duration_s": 19.79,
+      "n_chunks": 31,
+      "wall_s": 13.34580960002495,
+      "rtf": 0.6743713794858489,
+      "text": "And that's where they're going to be really turning on models at a very rapid speed. So we'll be tracking, you know, top 100 models, how can they get functional, and they're always functional, and then get to what we're always thinking. Yeah, I really talk about this a lot. So those are some of the metrics that we're looking at in there."
+    },
+    {
+      "seg_idx": 78,
+      "start_s": 1268.35,
+      "end_s": 1285.32,
+      "duration_s": 16.97,
+      "n_chunks": 27,
+      "wall_s": 9.666748599993298,
+      "rtf": 0.5696375132582969,
+      "text": "If you look at physically, that's where it's far more unique for us in requirements than these other steps. And so if you look at robotics, you know, overall aspects of sensor fusion, emotional, functional safety."
+    },
+    {
+      "seg_idx": 79,
+      "start_s": 1285.32,
+      "end_s": 1299.57,
+      "duration_s": 14.25,
+      "n_chunks": 23,
+      "wall_s": 8.524281999998493,
+      "rtf": 0.5981952280700696,
+      "text": "It's a unique robotic awes right? So those are things that they leverage the base, there's a huge amount of effort that will be required to be successful in that space. And we'll start now where today in Silicon Valley, people"
+    },
+    {
+      "seg_idx": 80,
+      "start_s": 1299.57,
+      "end_s": 1313.34,
+      "duration_s": 13.77,
+      "n_chunks": 22,
+      "wall_s": 8.052991100004874,
+      "rtf": 0.5848214306466866,
+      "text": "Doing training, right? We're not in that market, and so it's going to be critical that we can enable the data and the models, the development of the data to be pulled over to our pipeline to simulate and roll out a full solution."
+    },
+    {
+      "seg_idx": 81,
+      "start_s": 1313.34,
+      "end_s": 1328.93,
+      "duration_s": 15.59,
+      "n_chunks": 25,
+      "wall_s": 9.517857200000435,
+      "rtf": 0.6105104041052235,
+      "text": "And so those are some of the areas that we're tracking for robotics. And then on edge, some people were saying that edge is better than that, old edge, we're trying to grow that business, but it is a different strategy. They have one out for help, where you have to first take some of that approach."
+    },
+    {
+      "seg_idx": 82,
+      "start_s": 1328.93,
+      "end_s": 1343.83,
+      "duration_s": 14.9,
+      "n_chunks": 24,
+      "wall_s": 8.55329900002107,
+      "rtf": 0.5740469127530919,
+      "text": "So there is six verticals within edge, even though we draw just one here to simplify. And as you look at all those verticals, so there's no arrow and directional indication before we were labeling them. I would say individual bars"
+    },
+    {
+      "seg_idx": 83,
+      "start_s": 1343.83,
+      "end_s": 1363.33,
+      "duration_s": 19.5,
+      "n_chunks": 31,
+      "wall_s": 12.19581819997984,
+      "rtf": 0.6254265743579405,
+      "text": "And the whole goal, you hear a lot of folks talk about the open edge software stack pieces, is packaging now, sand apps, you know, making it more of a full solution and making it more of a full solution and making that reference scale across all these different forms of life and individual needs. One really great thing"
+    },
+    {
+      "seg_idx": 84,
+      "start_s": 1363.33,
+      "end_s": 1380.97,
+      "duration_s": 17.64,
+      "n_chunks": 28,
+      "wall_s": 11.959903100010706,
+      "rtf": 0.6779990419507202,
+      "text": "So that's you know an overall picture of these verticals, and we built this for the boards for for engineers, but some points, things didn't just work, and we don't have ten parts across the day, and that will have the right feedback loop that will know that we're now"
+    },
+    {
+      "seg_idx": 85,
+      "start_s": 1380.97,
+      "end_s": 1400.72,
+      "duration_s": 19.75,
+      "n_chunks": 31,
+      "wall_s": 11.63369000001694,
+      "rtf": 0.5890475949375666,
+      "text": "And these initial releases going out the door, so we focus on gender for a minute. This was this outline for I think to work with humans and really that from the left side of media just for the link to the differences in the blue side which is the important we love"
+    },
+    {
+      "seg_idx": 86,
+      "start_s": 1400.72,
+      "end_s": 1420.1,
+      "duration_s": 19.38,
+      "n_chunks": 31,
+      "wall_s": 11.48290740000084,
+      "rtf": 0.5925132817337895,
+      "text": "And in yellow is everything that's you know common, community effort that we deliver into, and for Jen it is critical that everything in the top part of the stack is made, frameworks, made, staff, and optimization of the resources below that, right? And"
+    },
+    {
+      "seg_idx": 87,
+      "start_s": 1420.1,
+      "end_s": 1437.16,
+      "duration_s": 17.06,
+      "n_chunks": 27,
+      "wall_s": 10.179945199983194,
+      "rtf": 0.5967142555675964,
+      "text": "As we go and develop this stack, most of these have existed for some time. The new areas are in bold here, which may or may not be easy to see in this chart. And then to browse security solutions, make sure and use some of the sandbox tools to access to"
+    },
+    {
+      "seg_idx": 88,
+      "start_s": 1437.16,
+      "end_s": 1449.71,
+      "duration_s": 12.55,
+      "n_chunks": 20,
+      "wall_s": 7.152949599985732,
+      "rtf": 0.5699561434251579,
+      "text": "But then that upper layer, kernel development, you know, and overall load has been there for a long time, and even though most people don't code anymore, right, extraction"
+    },
+    {
+      "seg_idx": 89,
+      "start_s": 1449.71,
+      "end_s": 1467.41,
+      "duration_s": 17.7,
+      "n_chunks": 28,
+      "wall_s": 10.451087199995527,
+      "rtf": 0.5904569039545495,
+      "text": "There's a lot of CUDA and cutlass kernels out there. It's critical that we have a way to port them and have them execute in our products. And so a project we've been going on for some time now called Kernel Factory, and Kernel Factory is a way to generate workloads based on"
+    },
+    {
+      "seg_idx": 90,
+      "start_s": 1467.41,
+      "end_s": 1484.98,
+      "duration_s": 17.57,
+      "n_chunks": 28,
+      "wall_s": 10.301446500001475,
+      "rtf": 0.5863088503131175,
+      "text": "Create optimized port kernels to our microarchitecture and to our microarchitecture. And so the idea is you can take something from today's map cycle, which we are stuck, cycle, put it here because cycle reuse heavily relies on the cache, heavily relies"
+    },
+    {
+      "seg_idx": 91,
+      "start_s": 1484.98,
+      "end_s": 1497.41,
+      "duration_s": 12.43,
+      "n_chunks": 20,
+      "wall_s": 7.32487390001188,
+      "rtf": 0.5892899356405374,
+      "text": "We need to have it more optimal. It needs to work out of the box. Colonel's plan is a way to take the circle and be solution to the circle, and even take some of our existing libraries of knowledge."
+    },
+    {
+      "seg_idx": 92,
+      "start_s": 1497.41,
+      "end_s": 1512.39,
+      "duration_s": 14.98,
+      "n_chunks": 24,
+      "wall_s": 8.555899900005898,
+      "rtf": 0.5711548664890452,
+      "text": "and actually do that more optimal without kind of manual tuning because there's no way we can go and let all those go to pull over the signal through manual and then you know in the middle you know we need to pray more"
+    },
+    {
+      "seg_idx": 93,
+      "start_s": 1512.39,
+      "end_s": 1530.69,
+      "duration_s": 18.3,
+      "n_chunks": 29,
+      "wall_s": 16.045922100020107,
+      "rtf": 0.8768263442633938,
+      "text": "So it is absolutely our initial target for everything that I did. We'll be starting with the framework, openVM, openVM, a really simple app mind where that's not possible. My brain, my brain, baby, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please, please,"
+    },
+    {
+      "seg_idx": 94,
+      "start_s": 1530.69,
+      "end_s": 1550.11,
+      "duration_s": 19.42,
+      "n_chunks": 31,
+      "wall_s": 11.836776100011775,
+      "rtf": 0.6095147322354157,
+      "text": "And then the new piece on top is the microservices. So overall, this is going to be a mechanism to make sure people can build agents, utilize things effectively. So if you look at the microservices, this is the second row here. So three, three, three, three, three"
+    },
+    {
+      "seg_idx": 95,
+      "start_s": 1550.11,
+      "end_s": 1569.35,
+      "duration_s": 19.24,
+      "n_chunks": 31,
+      "wall_s": 11.84904080000706,
+      "rtf": 0.6158545114348785,
+      "text": "These will be things that we are exposing as a reference to be able to have an agent utilize those in our plot. So in one case it could be demonstrating performance, you could utilize Microsoft case, they're going to be doing something right, maybe he's a partner on the one to one moment"
+    },
+    {
+      "seg_idx": 96,
+      "start_s": 1569.35,
+      "end_s": 1582.36,
+      "duration_s": 13.01,
+      "n_chunks": 21,
+      "wall_s": 7.825102600007085,
+      "rtf": 0.6014683013072317,
+      "text": "But on Linux is a huge opportunity for us to bring those services forward to actually packaging with an Linux solution. There's a lot of discussion going on there with the EU about how we want to bring that to life, and this company here"
+    },
+    {
+      "seg_idx": 97,
+      "start_s": 1582.36,
+      "end_s": 1597.13,
+      "duration_s": 14.77,
+      "n_chunks": 24,
+      "wall_s": 8.278529399976833,
+      "rtf": 0.56049623561116,
+      "text": "The yellow is similar to last page of things in the community, dark blue things we've always developed, you know, into led sort of projects and the purple, light purple means"
+    },
+    {
+      "seg_idx": 98,
+      "start_s": 1597.13,
+      "end_s": 1614.62,
+      "duration_s": 17.49,
+      "n_chunks": 28,
+      "wall_s": 10.08344620000571,
+      "rtf": 0.5765263693542431,
+      "text": "is reference solution. So our agent services as reference today will be deciding whether we productize, have we productized as we get feedback from customers. Now the bottom right, you can see a lot of people ask the reference solution window across the island."
+    },
+    {
+      "seg_idx": 99,
+      "start_s": 1614.62,
+      "end_s": 1634.1,
+      "duration_s": 19.48,
+      "n_chunks": 31,
+      "wall_s": 11.936345399997663,
+      "rtf": 0.6127487371662045,
+      "text": "As of today, I think in the EC we hope to make that official POR, but for Crescent Island, the MCM is a purely driver for Crescent, versus the typical DVDN driver that is never in the POR. Crescent Island, the MCM is definitely a struggle to make that fully"
+    },
+    {
+      "seg_idx": 100,
+      "start_s": 1634.1,
+      "end_s": 1647.15,
+      "duration_s": 13.05,
+      "n_chunks": 21,
+      "wall_s": 7.5123487999953795,
+      "rtf": 0.5756589118770405,
+      "text": "mcbm driver for Crescent Island, but we're going to be restricting some of those features and functions. All right, so one of the key things"
+    },
+    {
+      "seg_idx": 101,
+      "start_s": 1647.15,
+      "end_s": 1664.14,
+      "duration_s": 16.99,
+      "n_chunks": 27,
+      "wall_s": 10.370395799982361,
+      "rtf": 0.6103823307817753,
+      "text": "We can do all the stuff, but if our developers can't be onboarded, if they don't work well into the product, it's kind of for nothing, right? So that's the start of the pipeline, and this was the page that we just now, if we were to ask ourselves, uh, is the world intel tolerant, but now also very big"
+    },
+    {
+      "seg_idx": 102,
+      "start_s": 1664.14,
+      "end_s": 1683.16,
+      "duration_s": 19.02,
+      "n_chunks": 30,
+      "wall_s": 11.442826699989382,
+      "rtf": 0.6016207518396101,
+      "text": "ccpg challenged to get developers on board easy and so how well can they you know get used to our architecture get ramped up on the dev environment how well can they attain an instinct to go work and do on platform development and"
+    },
+    {
+      "seg_idx": 103,
+      "start_s": 1683.16,
+      "end_s": 1699.87,
+      "duration_s": 16.71,
+      "n_chunks": 27,
+      "wall_s": 10.326867299998412,
+      "rtf": 0.618005224416422,
+      "text": "that you know x86 is not the challenge here, right? Intel's the challenge for a long time, they've got lots of tools, great AI center, developer, that's also very important to you, there's a lot to be improved, and this one, how we can bring this to the world, what to be"
+    },
+    {
+      "seg_idx": 104,
+      "start_s": 1699.87,
+      "end_s": 1717.89,
+      "duration_s": 18.02,
+      "n_chunks": 29,
+      "wall_s": 11.442140600003768,
+      "rtf": 0.6349689567149704,
+      "text": "If you look at it, the ones in bold are probably our biggest vocabularies, our more model, yeah, talk about kernel boundary. And if you look at being able to work kernel, they should have to be some of our more main models to get right."
+    },
+    {
+      "seg_idx": 105,
+      "start_s": 1717.89,
+      "end_s": 1732.12,
+      "duration_s": 14.23,
+      "n_chunks": 23,
+      "wall_s": 8.517156300018542,
+      "rtf": 0.5985352283920268,
+      "text": "If you look at performance, the microservices would be a way to effectively use our staff without having to know so much direct, right? So all the projects that we have are tuned to make communication better."
+    },
+    {
+      "seg_idx": 106,
+      "start_s": 1732.12,
+      "end_s": 1744.5,
+      "duration_s": 12.38,
+      "n_chunks": 20,
+      "wall_s": 6.956734100007452,
+      "rtf": 0.5619332875611834,
+      "text": "The thing that is tough is the training for Intel. Some of the training in documents. So if you look at Intel Developer Zone, I don't know how many people look at Intel Developer Zone page."
+    },
+    {
+      "seg_idx": 107,
+      "start_s": 1744.5,
+      "end_s": 1763.09,
+      "duration_s": 18.59,
+      "n_chunks": 30,
+      "wall_s": 11.299911299982341,
+      "rtf": 0.6078489133933481,
+      "text": "You know, I try not to speak of it because you know it's really bad. And so Essie has been trying to do a lot of improvement there. I need to just see random teams throwing a crap on a page, you know, so that's just a little bit of a thing. It's really difficult for me."
+    },
+    {
+      "seg_idx": 108,
+      "start_s": 1763.09,
+      "end_s": 1777.69,
+      "duration_s": 14.6,
+      "n_chunks": 23,
+      "wall_s": 9.855987099988852,
+      "rtf": 0.6750676095882775,
+      "text": "And so it's important that you know agents can interpret and digest all that information, but if you look into the whole person, into ways that you know sort of try to document the friendliness for example, but one you know"
+    },
+    {
+      "seg_idx": 109,
+      "start_s": 1777.69,
+      "end_s": 1793.04,
+      "duration_s": 15.35,
+      "n_chunks": 24,
+      "wall_s": 8.800538599985885,
+      "rtf": 0.5733249902270935,
+      "text": "Right, so it's a very different type engagement that we need to go and do, and so we're working through all of that, that all of these pieces need to come together to be successful. And look at the areas, the big challenge for this whole team is that we're"
+    },
+    {
+      "seg_idx": 110,
+      "start_s": 1793.04,
+      "end_s": 1811.98,
+      "duration_s": 18.94,
+      "n_chunks": 30,
+      "wall_s": 11.53678840000066,
+      "rtf": 0.6091229355860961,
+      "text": "People enter into this workflow, so we've always been focused on the far right, AIPC, and trying to deploy models on a certain product, and so it's about you know memory, time, compile time, you know, a little bit of performance, but it looks at the agents to be much different."
+    },
+    {
+      "seg_idx": 111,
+      "start_s": 1811.98,
+      "end_s": 1825.41,
+      "duration_s": 13.43,
+      "n_chunks": 21,
+      "wall_s": 9.128299700008938,
+      "rtf": 0.6796946909909857,
+      "text": "type of engagement so they're swapping models out very fast. They're going to be jumping on things when they come into stores. They're trying to educate their agents over and over again to be a very kind of to bring some more engagement."
+    },
+    {
+      "seg_idx": 112,
+      "start_s": 1825.41,
+      "end_s": 1837.9,
+      "duration_s": 12.49,
+      "n_chunks": 20,
+      "wall_s": 7.48674329998903,
+      "rtf": 0.5994189991984812,
+      "text": "Much earlier than what we're used to in that pipeline, but then of course physically I'm very different. People are going to want to model, want to really make it work in that solution, and so they're going to be trying to find that model that might be earlier."
+    },
+    {
+      "seg_idx": 113,
+      "start_s": 1837.9,
+      "end_s": 1855.68,
+      "duration_s": 17.78,
+      "n_chunks": 28,
+      "wall_s": 11.508294500003103,
+      "rtf": 0.6472606580429191,
+      "text": "in the development flow. So we're trying to figure out how we're going to go and scale and do this model in the development. So we're trying to take things we've talked about widening the pipe over time, right? We can just go and say everyone in their model, so we're going to try and figure out what's the most optimal design."
+    },
+    {
+      "seg_idx": 114,
+      "start_s": 1855.68,
+      "end_s": 1873.77,
+      "duration_s": 18.09,
+      "n_chunks": 29,
+      "wall_s": 12.089157200010959,
+      "rtf": 0.6682784521841326,
+      "text": "Which are the ones that give us feedback of the stack we're building is going to win and help us through that. So this was just so empowering to go and make sure all the actions that are required to improve the situation are shown in the book. So engineering"
+    },
+    {
+      "seg_idx": 115,
+      "start_s": 1873.77,
+      "end_s": 1888.01,
+      "duration_s": 14.24,
+      "n_chunks": 23,
+      "wall_s": 8.355989500007126,
+      "rtf": 0.5867970154499387,
+      "text": "You know, getting our community frameworks up to snuff, the limit stack improvements we talked before about soliding all of our limit stack to make sure we have a strong limit stack running across. Open, you know, overall more integration"
+    },
+    {
+      "seg_idx": 116,
+      "start_s": 1888.01,
+      "end_s": 1907.67,
+      "duration_s": 19.66,
+      "n_chunks": 31,
+      "wall_s": 11.589996199996676,
+      "rtf": 0.5895216785349275,
+      "text": "Now for the developer relations, this is between Todd Lewand's team at SSG, we're freshing it well for the page, making it easier to have developers going on our platforms, to be developer cloud, to get in to get the press on easy, and then for to get the press on easy"
+    },
+    {
+      "seg_idx": 117,
+      "start_s": 1907.67,
+      "end_s": 1925.44,
+      "duration_s": 17.77,
+      "n_chunks": 28,
+      "wall_s": 10.469254399999045,
+      "rtf": 0.5891533145750729,
+      "text": "But then on the external partnerships, this is one where we still a little bit stuck and still trying to get off the ground, so we're trying to get a careful, early engagement model that works for really seasoned. So for our core, we're seeing the end of the zero model."
+    },
+    {
+      "seg_idx": 118,
+      "start_s": 1925.44,
+      "end_s": 1939.54,
+      "duration_s": 14.1,
+      "n_chunks": 23,
+      "wall_s": 8.709663699992234,
+      "rtf": 0.6177066453895201,
+      "text": "We should be months and months in advance of that, working with a lot of discussion with the team, and this is where Alex is very very helpful. How do we go and get this off the ground? How do we get the recent high place face in India"
+    },
+    {
+      "seg_idx": 119,
+      "start_s": 1939.54,
+      "end_s": 1959.54,
+      "duration_s": 20.0,
+      "n_chunks": 32,
+      "wall_s": 12.240803000022424,
+      "rtf": 0.6120401500011212,
+      "text": "But these are the things that we need to go and make sure we swarm. So all three of these are critical to really going into the result. All right, and this is what I view we created. Trying to just show where we're trying to turn this all into a lot in like zero minutes."
+    },
+    {
+      "seg_idx": 120,
+      "start_s": 1959.54,
+      "end_s": 1977.73,
+      "duration_s": 18.19,
+      "n_chunks": 29,
+      "wall_s": 10.665051600022707,
+      "rtf": 0.5863139967027327,
+      "text": "We clubbed AIBC and traditional edge together, plus we're rural and so from the board. While we are behind in some areas with the admin tools and the rewards, you know, we just don't feel like it's very important."
+    },
+    {
+      "seg_idx": 121,
+      "start_s": 1977.73,
+      "end_s": 1994.29,
+      "duration_s": 16.56,
+      "n_chunks": 26,
+      "wall_s": 9.585104700003285,
+      "rtf": 0.5788106702900535,
+      "text": "The challenge is on agentic, and some folks were surprised we graded ourselves red versus a and b on agentic, and a key part of that is also momentum. So if we see for a and b in being with the community now for some time."
+    },
+    {
+      "seg_idx": 122,
+      "start_s": 1994.29,
+      "end_s": 2011.01,
+      "duration_s": 16.72,
+      "n_chunks": 27,
+      "wall_s": 10.33069400000386,
+      "rtf": 0.6178644736844414,
+      "text": "They have been heavily focused on giving their rock and stuff clean, giving them able to source and then upstream, and we can see that now holding true as they're building, you know, and it's like the lines are moving, right, having large supply numbers because they're all in, so they're"
+    },
+    {
+      "seg_idx": 123,
+      "start_s": 2011.01,
+      "end_s": 2025.0,
+      "duration_s": 13.99,
+      "n_chunks": 22,
+      "wall_s": 8.146142300014617,
+      "rtf": 0.5822832237322814,
+      "text": "They really have a momentum that we can see hitting now very quickly and carrying over to the space. That'll be our biggest challenge, I think, with the areas that are outlined by the timing to and to present the stories into"
+    },
+    {
+      "seg_idx": 124,
+      "start_s": 2025.0,
+      "end_s": 2042.22,
+      "duration_s": 17.22,
+      "n_chunks": 27,
+      "wall_s": 9.539068500016583,
+      "rtf": 0.553952874565423,
+      "text": "Nvidia is a very heavy one that's still going to be very far in front of us and we get absolutely and then physically you know Nvidia is definitely the one most one here with one support we need going through"
+    },
+    {
+      "seg_idx": 125,
+      "start_s": 2042.22,
+      "end_s": 2058.14,
+      "duration_s": 15.92,
+      "n_chunks": 25,
+      "wall_s": 9.241615099977935,
+      "rtf": 0.5805034610538904,
+      "text": "We didn't list AMD. It's not really as active there. We want to get some comparison probably to Qualcomm to sort of compare. But overall, customers in the US where we are, as we get these stacks going, we look at their broader"
+    },
+    {
+      "seg_idx": 126,
+      "start_s": 2058.14,
+      "end_s": 2074.89,
+      "duration_s": 16.75,
+      "n_chunks": 27,
+      "wall_s": 9.9563552000036,
+      "rtf": 0.5944092656718567,
+      "text": "And then this too much text for here, but this was our execution plan that we're working to get more into. We plan. If you look at it, the first one, get your act together on the basics, right? We need models, couple of hundred always functional, always performant, hardware compliant"
+    },
+    {
+      "seg_idx": 127,
+      "start_s": 2074.89,
+      "end_s": 2092.42,
+      "duration_s": 17.53,
+      "n_chunks": 28,
+      "wall_s": 10.927914800005965,
+      "rtf": 0.6233836166574994,
+      "text": "That's the key part of the focus, learning kernel boundary, make it easier for things to get up and running. The second section about getting ready to set up, getting your maintenance services out, getting that blue. What do we need to do? How do we organize things? What is going to be the process of getting ready?"
+    },
+    {
+      "seg_idx": 128,
+      "start_s": 2092.42,
+      "end_s": 2107.78,
+      "duration_s": 15.36,
+      "n_chunks": 24,
+      "wall_s": 8.834370999975363,
+      "rtf": 0.5751543619775628,
+      "text": "And then the last ones on the physically I work low and the help needed here. This is when we're just praising and appreciating. All right, thank you everybody for where we are and we're going to be closing the services with the microservices"
+    },
+    {
+      "seg_idx": 129,
+      "start_s": 2107.78,
+      "end_s": 2122.23,
+      "duration_s": 14.45,
+      "n_chunks": 23,
+      "wall_s": 8.138688299979549,
+      "rtf": 0.563231024220038,
+      "text": "Some of the demos, the demos are not fun and interesting as watching an agent go and act on some sort of platform. So you see those things, those, those demos that we're doing, really trying to find the right actors ready."
+    },
+    {
+      "seg_idx": 130,
+      "start_s": 2122.23,
+      "end_s": 2135.93,
+      "duration_s": 13.7,
+      "n_chunks": 22,
+      "wall_s": 7.8886782999907155,
+      "rtf": 0.5758159343058916,
+      "text": "that we're ready to engage with Microsoft in co engineering, or ready to talk with Google, and that's really sense of where we are. But the major of the team, the team we're doing huge projects, large projects, we're trying to utilize"
+    },
+    {
+      "seg_idx": 131,
+      "start_s": 2135.93,
+      "end_s": 2149.39,
+      "duration_s": 13.46,
+      "n_chunks": 22,
+      "wall_s": 7.754788899997948,
+      "rtf": 0.5761358766714672,
+      "text": "Our efficiency, we're getting through AI, you know, trying to just really question everything that we do to shift some of our investment higher than that. So the story then drives down or the demand and minimal above."
+    },
+    {
+      "seg_idx": 132,
+      "start_s": 2149.39,
+      "end_s": 2161.77,
+      "duration_s": 12.38,
+      "n_chunks": 20,
+      "wall_s": 6.700858099997276,
+      "rtf": 0.5412647899836249,
+      "text": "But now it's table stakes, so everything for frameworks is probably going to be, you know, ruling a lot of our lives. So that's it. Thank you."
+    },
+    {
+      "seg_idx": 133,
+      "start_s": 2161.77,
+      "end_s": 2176.63,
+      "duration_s": 14.86,
+      "n_chunks": 24,
+      "wall_s": 8.634946599981049,
+      "rtf": 0.5810865814253734,
+      "text": "We're going to move right over to Q&A. Thank you, Lisa. What's the question online for while we're doing that for the room, please just set that to the side. Okay, adorable, adorable."
+    },
+    {
+      "seg_idx": 134,
+      "start_s": 2176.63,
+      "end_s": 2194.96,
+      "duration_s": 18.33,
+      "n_chunks": 29,
+      "wall_s": 11.035213699971791,
+      "rtf": 0.6020302073088812,
+      "text": "So there were a couple of questions, related questions in in reaction to what you were presenting, so I'll start with those so you can help provide some clarity. What are strategies for improving the clarity of your slides for videos, interviews, slides, no"
+    },
+    {
+      "seg_idx": 135,
+      "start_s": 2194.96,
+      "end_s": 2214.18,
+      "duration_s": 19.22,
+      "n_chunks": 31,
+      "wall_s": 12.056039899995085,
+      "rtf": 0.627265343392044,
+      "text": "versus integrated designs that provide lower cost. I can't really pick that. Can we afford to do that?"
+    },
+    {
+      "seg_idx": 136,
+      "start_s": 2214.18,
+      "end_s": 2227.24,
+      "duration_s": 13.06,
+      "n_chunks": 21,
+      "wall_s": 7.444733600015752,
+      "rtf": 0.5700408575816043,
+      "text": "Doing a two chip solution for wild graphics, the integrated graphics, the class of the world thing, is a more achievable thing than doing a 2080 or a 1"
+    },
+    {
+      "seg_idx": 137,
+      "start_s": 2227.24,
+      "end_s": 2244.26,
+      "duration_s": 17.02,
+      "n_chunks": 27,
+      "wall_s": 9.295395099994494,
+      "rtf": 0.5461454230314039,
+      "text": "So I think you're going to see a range of options. We should view this segregation as an act and where we draw the lines, where we draw the lines"
+    },
+    {
+      "seg_idx": 138,
+      "start_s": 2244.26,
+      "end_s": 2263.23,
+      "duration_s": 18.97,
+      "n_chunks": 30,
+      "wall_s": 10.910640000016429,
+      "rtf": 0.5751523458100385,
+      "text": "And you might see different answers. Are we always biased in things similar? Yes, like how we're always going to be very careful with our friends."
+    },
+    {
+      "seg_idx": 139,
+      "start_s": 2263.23,
+      "end_s": 2281.19,
+      "duration_s": 17.96,
+      "n_chunks": 29,
+      "wall_s": 10.570348800014472,
+      "rtf": 0.5885494877513625,
+      "text": "So again, I view it as it's a set of tools we have that we can use to help our people to achieve their goals. Would we ever swing on something that is not a problem? You know, there's technology that is necessary"
+    },
+    {
+      "seg_idx": 140,
+      "start_s": 2281.19,
+      "end_s": 2298.84,
+      "duration_s": 17.65,
+      "n_chunks": 28,
+      "wall_s": 10.362717699987115,
+      "rtf": 0.5871228158632927,
+      "text": "I don't see anybody in the room just yet, please I do encourage you to go and pick up the mic so we can ask questions in the room as well. All right, two questions, I think. So the first one is, um, what is P L E T E"
+    },
+    {
+      "seg_idx": 141,
+      "start_s": 2298.84,
+      "end_s": 2317.45,
+      "duration_s": 18.61,
+      "n_chunks": 30,
+      "wall_s": 10.214620700018713,
+      "rtf": 0.548878060183703,
+      "text": "And I think this is also part of this question in terms of is there a time when"
+    },
+    {
+      "seg_idx": 142,
+      "start_s": 2317.45,
+      "end_s": 2330.42,
+      "duration_s": 12.97,
+      "n_chunks": 21,
+      "wall_s": 7.7148683999839704,
+      "rtf": 0.5948240863518867,
+      "text": "what your budget is. So we're just starting there. I will require the least ambition, doing more of you, doing more of you, the people, the people, like me, we know"
+    },
+    {
+      "seg_idx": 143,
+      "start_s": 2330.42,
+      "end_s": 2349.83,
+      "duration_s": 19.41,
+      "n_chunks": 31,
+      "wall_s": 10.974497299990617,
+      "rtf": 0.5654042916017834,
+      "text": "So that's the typical calendar, initial budgets, board reviews, talk up, talk up, show the final budget, the fantasy, there is just there is no more days, yeah, talk up, talk up, yes,"
+    },
+    {
+      "seg_idx": 144,
+      "start_s": 2349.83,
+      "end_s": 2367.29,
+      "duration_s": 17.46,
+      "n_chunks": 28,
+      "wall_s": 10.319917199987685,
+      "rtf": 0.5910605498274734,
+      "text": "Right, but to be transparent, guys, every business leader always will have a little bit of this and that, but the truth is, you are the truth, and you are the truth, and you are the truth, and you are the"
+    },
+    {
+      "seg_idx": 145,
+      "start_s": 2367.29,
+      "end_s": 2379.66,
+      "duration_s": 12.37,
+      "n_chunks": 20,
+      "wall_s": 6.687397500005318,
+      "rtf": 0.5406141875509554,
+      "text": "And as we go through that, that can translate into low glycemic index that is later and there is"
+    },
+    {
+      "seg_idx": 146,
+      "start_s": 2379.66,
+      "end_s": 2393.46,
+      "duration_s": 13.8,
+      "n_chunks": 22,
+      "wall_s": 7.59368269998231,
+      "rtf": 0.5502668623175586,
+      "text": "But I also want to be open that I don't have an ongoing basis. We'll always do it out of any ways because it's going to be just too hard to get it out."
+    },
+    {
+      "seg_idx": 147,
+      "start_s": 2393.46,
+      "end_s": 2413.08,
+      "duration_s": 19.62,
+      "n_chunks": 31,
+      "wall_s": 11.30231939998339,
+      "rtf": 0.5760611314976243,
+      "text": "Okay sure you can ask me all the questions all day. Lisa thinks it was a great presentation, good review. I apologize for my long question, but I think we are so much more prepared today than we have been for years. We are on that"
+    },
+    {
+      "seg_idx": 148,
+      "start_s": 2413.08,
+      "end_s": 2430.85,
+      "duration_s": 17.77,
+      "n_chunks": 28,
+      "wall_s": 10.67268150000018,
+      "rtf": 0.600601097355103,
+      "text": "train and we are not solving the problem of tomorrow. What I see is this created you, lion and x and this created when x and the by one."
+    },
+    {
+      "seg_idx": 149,
+      "start_s": 2430.85,
+      "end_s": 2443.81,
+      "duration_s": 12.96,
+      "n_chunks": 21,
+      "wall_s": 7.274092999985442,
+      "rtf": 0.5612726080235679,
+      "text": "Where is that distributed AI layer? Where is even the hybrid AI layer that the industry is talking about? Very, very, very strongly going to the hybrid."
+    },
+    {
+      "seg_idx": 150,
+      "start_s": 2443.81,
+      "end_s": 2458.26,
+      "duration_s": 14.45,
+      "n_chunks": 23,
+      "wall_s": 7.880503399996087,
+      "rtf": 0.5453635570931549,
+      "text": "would love to see that in this film. Yeah, I mean I think overall don't mistake that over drawing the customer birds means they're suffering, right? They first were trying to learn and calm the customer birds"
+    },
+    {
+      "seg_idx": 151,
+      "start_s": 2458.26,
+      "end_s": 2476.95,
+      "duration_s": 18.69,
+      "n_chunks": 30,
+      "wall_s": 11.885802499979036,
+      "rtf": 0.635944489030446,
+      "text": "The key was making sure our technology is reused. We're not building things in isolation. That's actually where we're coming used to be. So you know, when we realize where we are as a company, we're trying to act better. We have to be real about where we are as a company. We're trying to act better. We have to know how to perform. Right, so all these things are coming back to where we are."
+    },
+    {
+      "seg_idx": 152,
+      "start_s": 2476.95,
+      "end_s": 2491.42,
+      "duration_s": 14.47,
+      "n_chunks": 23,
+      "wall_s": 8.803270699980203,
+      "rtf": 0.608380836211486,
+      "text": "But as you look at those layers above, orchestration of things, this is going to be a lot of partnerships for sure. I think we have to be clear what us versus what others. I think we're still working through that. Right, just one of the different games we're playing."
+    },
+    {
+      "seg_idx": 153,
+      "start_s": 2491.42,
+      "end_s": 2507.78,
+      "duration_s": 16.36,
+      "n_chunks": 26,
+      "wall_s": 9.378835500014247,
+      "rtf": 0.5732784535461032,
+      "text": "You know a lot of those are very heavy initial data center engagements, client coming in. We need to pay that, but yeah, relate to the market. That's the reality. And that's how we build that. So that engagement, that story,"
+    },
+    {
+      "seg_idx": 154,
+      "start_s": 2507.78,
+      "end_s": 2524.26,
+      "duration_s": 16.48,
+      "n_chunks": 26,
+      "wall_s": 8.559559800021816,
+      "rtf": 0.5193907645644306,
+      "text": "I think will also be an Intel story. It is yeah, definitely."
+    },
+    {
+      "seg_idx": 155,
+      "start_s": 2524.26,
+      "end_s": 2539.27,
+      "duration_s": 15.01,
+      "n_chunks": 24,
+      "wall_s": 8.952018699987093,
+      "rtf": 0.5964036442363153,
+      "text": "So something to bring also to the surface and bring it, yeah, good, yeah, and just real nice to get it back, and bring it, you know, with the story, and every time you see how you how you how you how you how you"
+    },
+    {
+      "seg_idx": 156,
+      "start_s": 2539.27,
+      "end_s": 2552.3,
+      "duration_s": 13.03,
+      "n_chunks": 21,
+      "wall_s": 6.74836920000962,
+      "rtf": 0.5179101458180829,
+      "text": "What's the business model for that? Because do you think cloud service providers are suddenly more expensive?"
+    },
+    {
+      "seg_idx": 157,
+      "start_s": 2552.3,
+      "end_s": 2571.18,
+      "duration_s": 18.88,
+      "n_chunks": 30,
+      "wall_s": 11.058905900019454,
+      "rtf": 0.5857471345349288,
+      "text": "from different partners, but that continuum is a constant thread. I think you're just showing how you make, how you work, how you make it simple, and how you're very human. The more valuable to humans, the more valuable to stay holding and speaking."
+    },
+    {
+      "seg_idx": 158,
+      "start_s": 2571.18,
+      "end_s": 2587.63,
+      "duration_s": 16.45,
+      "n_chunks": 26,
+      "wall_s": 9.437965899996925,
+      "rtf": 0.573736528875193,
+      "text": "Right, the most valuable token today is not chatbots, right? And so they're coming out from where is the value? How do I solve the value? And how do I extract the value? She's all over and what's the value?"
+    },
+    {
+      "seg_idx": 159,
+      "start_s": 2587.63,
+      "end_s": 2607.28,
+      "duration_s": 19.65,
+      "n_chunks": 31,
+      "wall_s": 11.576058499980718,
+      "rtf": 0.5891123918565251,
+      "text": "In the context of security and privacy that satisfies. Thanks so much, this is very helpful. Thank you. Please, I'm going to ask you to stand up. Sure. All right, all right. In the sixth section, I'm going to be talking about security."
+    },
+    {
+      "seg_idx": 160,
+      "start_s": 2607.28,
+      "end_s": 2622.19,
+      "duration_s": 14.91,
+      "n_chunks": 24,
+      "wall_s": 8.879558299988275,
+      "rtf": 0.5955438162299312,
+      "text": "Given the significant investment and development effort behind Supercloud, how should we interpret the fact that Supercloud is considered part of a long-term strategy and what does it mean for us? Yes, good question. So we learned a lot of it now."
+    },
+    {
+      "seg_idx": 161,
+      "start_s": 2622.19,
+      "end_s": 2640.45,
+      "duration_s": 18.26,
+      "n_chunks": 29,
+      "wall_s": 10.595922600012273,
+      "rtf": 0.5802805366928955,
+      "text": "And superquad was basically leveraging a base from open code, which is similar to open quad, of trying to have a solution that could be two-dimensional for into the pop form, and then there's some reality of where we are, right, and the need for something that's a better base for all the things that you do"
+    },
+    {
+      "seg_idx": 162,
+      "start_s": 2640.45,
+      "end_s": 2656.8,
+      "duration_s": 16.35,
+      "n_chunks": 26,
+      "wall_s": 9.748511999991024,
+      "rtf": 0.5962392660544968,
+      "text": "And we need to make sure if we're stepping into something, we're thinking about what do we own versus what do we need the community to do. And so we tend to pivot with a super concrete way to go from something that was a product and maybe to revenue."
+    },
+    {
+      "seg_idx": 163,
+      "start_s": 2656.8,
+      "end_s": 2675.94,
+      "duration_s": 19.14,
+      "n_chunks": 30,
+      "wall_s": 11.63368990001618,
+      "rtf": 0.6078207889245653,
+      "text": "to a reference stack like the microservices that we mentioned. So what are the reasons for that? You definitely don't want to be shackled with contracts and commitments if you want to move fast and man, something simple and quick. So we don't want to be a boy. We don't want to run into issues making a platform."
+    },
+    {
+      "seg_idx": 164,
+      "start_s": 2675.94,
+      "end_s": 2692.69,
+      "duration_s": 16.75,
+      "n_chunks": 27,
+      "wall_s": 9.78890839999076,
+      "rtf": 0.5844124417904931,
+      "text": "We're definitely here always, I think sometimes there's confusion about trying to do AI or self service services in general for the company. The party is making intel base aps grow, market segment grow, right? To pick software, software, revenue for"
+    },
+    {
+      "seg_idx": 165,
+      "start_s": 2692.69,
+      "end_s": 2711.96,
+      "duration_s": 19.27,
+      "n_chunks": 31,
+      "wall_s": 12.09162349998951,
+      "rtf": 0.6274843539174629,
+      "text": "Not at the expense of the first. The first is you know we live and die by that, right? So I think it was trying to make that pivot so that we're not confused about the approach for something like super pop. And so with that we wanted to try something that's a little bit really on a website to open the door"
+    },
+    {
+      "seg_idx": 166,
+      "start_s": 2711.96,
+      "end_s": 2725.15,
+      "duration_s": 13.19,
+      "n_chunks": 21,
+      "wall_s": 7.882172999990871,
+      "rtf": 0.5975870356323633,
+      "text": "And the releases posted in that open repo. We want to make sure that we're using the microservices that we're developing that we're giving our customers to go do in any kind of reference stack like Supablocks, so all of those are underway."
+    },
+    {
+      "seg_idx": 167,
+      "start_s": 2725.15,
+      "end_s": 2743.58,
+      "duration_s": 18.43,
+      "n_chunks": 29,
+      "wall_s": 10.558196099998895,
+      "rtf": 0.5728809603906074,
+      "text": "I think there was trying to change the direction, probably created a little bit of confusion between the S and the B, so trying to work through that and trying to be awesome with our microservices and try to come out with a full product that is definitely you know pretty close."
+    },
+    {
+      "seg_idx": 168,
+      "start_s": 2743.58,
+      "end_s": 2756.65,
+      "duration_s": 13.07,
+      "n_chunks": 21,
+      "wall_s": 7.681255200004671,
+      "rtf": 0.5877012394800819,
+      "text": "Great go. All right, another question for you. What is the plan to dog food the dead? Some proof inside, especially for people who are internal users that seem to be right for me."
+    },
+    {
+      "seg_idx": 169,
+      "start_s": 2756.65,
+      "end_s": 2776.65,
+      "duration_s": 20.0,
+      "n_chunks": 32,
+      "wall_s": 11.917138699995121,
+      "rtf": 0.595856934999756,
+      "text": "I think we need to figure out a better dog fooding strategy starting now. You know how we get everyone to plug in the laptops of the day. No one loves a dog more than me. Yeah, it's like the loudest thing. Yeah, we need to get it."
+    },
+    {
+      "seg_idx": 170,
+      "start_s": 2776.65,
+      "end_s": 2795.97,
+      "duration_s": 19.32,
+      "n_chunks": 31,
+      "wall_s": 12.797517300001346,
+      "rtf": 0.6623973757764672,
+      "text": "our tools, everything about it, it's actually a good idea for that. Maybe it's something we should also be doing our sng documentation, like all the type through for evolution, and you know, we've done some of that, so it's actually a little bit better here, but I don't know, it's just like, it's like a fun, fun, fun, fun, fun"
+    },
+    {
+      "seg_idx": 171,
+      "start_s": 2795.97,
+      "end_s": 2812.32,
+      "duration_s": 16.35,
+      "n_chunks": 26,
+      "wall_s": 9.266534600028535,
+      "rtf": 0.566760525995629,
+      "text": "Alright, thanks Lisa. Alright, move over to our question. We are constantly hearing about Intel Silicon being adopted and designed into robotics applications. Is there a time that you could just tell me here that you have a word in common"
+    },
+    {
+      "seg_idx": 172,
+      "start_s": 2812.32,
+      "end_s": 2827.66,
+      "duration_s": 15.34,
+      "n_chunks": 24,
+      "wall_s": 8.589780900016194,
+      "rtf": 0.5599596414612904,
+      "text": "Intel has a cultural history of coming late to the game when it comes to these kinds of markets and then eventually giving up or giving to some of them. How is it going to be?"
+    },
+    {
+      "seg_idx": 173,
+      "start_s": 2827.66,
+      "end_s": 2844.93,
+      "duration_s": 17.27,
+      "n_chunks": 27,
+      "wall_s": 9.298208899999736,
+      "rtf": 0.5384023682686587,
+      "text": "We actually have a very strong team in China who are deeply engaged already in China, already in China, and and we have this social media in China, this kind of role model in China"
+    },
+    {
+      "seg_idx": 174,
+      "start_s": 2844.93,
+      "end_s": 2861.37,
+      "duration_s": 16.44,
+      "n_chunks": 26,
+      "wall_s": 9.270521099999314,
+      "rtf": 0.5639003102189364,
+      "text": "Fix function amr high volume opportunity versus the humanizer of the future, right? So you look at 123, that is the extreme, extreme, extreme, extreme, extreme, extreme"
+    },
+    {
+      "seg_idx": 175,
+      "start_s": 2861.37,
+      "end_s": 2875.22,
+      "duration_s": 13.85,
+      "n_chunks": 22,
+      "wall_s": 7.425600599992322,
+      "rtf": 0.5361444476528753,
+      "text": "So today we have solutions that can provide and we need strength and we need to know what the right answer is"
+    },
+    {
+      "seg_idx": 176,
+      "start_s": 2875.22,
+      "end_s": 2888.95,
+      "duration_s": 13.73,
+      "n_chunks": 22,
+      "wall_s": 7.957613400008995,
+      "rtf": 0.5795785433364162,
+      "text": "But the other benefit of having your team in China locally do that is establishing those relationships and the point is made here about the pace of innovation in China is long, the pace of innovation is slow"
+    },
+    {
+      "seg_idx": 177,
+      "start_s": 2888.95,
+      "end_s": 2905.32,
+      "duration_s": 16.37,
+      "n_chunks": 26,
+      "wall_s": 9.04487149999477,
+      "rtf": 0.5525272755036511,
+      "text": "And being part of that, so you learn, you know, you build the muscle that you is critical even if it's not as important to all of us."
+    },
+    {
+      "seg_idx": 178,
+      "start_s": 2905.32,
+      "end_s": 2921.14,
+      "duration_s": 15.82,
+      "n_chunks": 25,
+      "wall_s": 8.32822429999942,
+      "rtf": 0.5264364285713918,
+      "text": "That's China, but we also need to do that with"
+    },
+    {
+      "seg_idx": 179,
+      "start_s": 2921.14,
+      "end_s": 2936.99,
+      "duration_s": 15.85,
+      "n_chunks": 25,
+      "wall_s": 8.191796999977669,
+      "rtf": 0.5168326182951211,
+      "text": "Right, are there likely to be additional client die beyond Razor Lake U added for the 14B?"
+    },
+    {
+      "seg_idx": 180,
+      "start_s": 2936.99,
+      "end_s": 2954.07,
+      "duration_s": 17.08,
+      "n_chunks": 27,
+      "wall_s": 9.220929700008128,
+      "rtf": 0.5398670784548085,
+      "text": "It's fully satisfied with a t n p and n t three and would target with a b e n o d e s t a m e s t a m e s t a m e s"
+    },
+    {
+      "seg_idx": 181,
+      "start_s": 2954.07,
+      "end_s": 2973.67,
+      "duration_s": 19.6,
+      "n_chunks": 31,
+      "wall_s": 13.781953700003214,
+      "rtf": 0.7031609030613885,
+      "text": "The first thing is the current definition technology, which is just extremely large and very big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big, big"
+    },
+    {
+      "seg_idx": 182,
+      "start_s": 2973.67,
+      "end_s": 2989.72,
+      "duration_s": 16.05,
+      "n_chunks": 26,
+      "wall_s": 9.244921600009548,
+      "rtf": 0.5760075763245823,
+      "text": "And then for computes, one of the things we are working with foundry is there still are some problems going on with the find today, find 3545, and we are going to solve"
+    },
+    {
+      "seg_idx": 183,
+      "start_s": 2989.72,
+      "end_s": 3006.69,
+      "duration_s": 16.97,
+      "n_chunks": 27,
+      "wall_s": 9.313877600012347,
+      "rtf": 0.5488437006489303,
+      "text": "So no nothing ahead of surf lake, but on surf lake we do plan to transition towards a more efficient process, we would like to transition towards a more efficient process"
+    },
+    {
+      "seg_idx": 184,
+      "start_s": 3006.69,
+      "end_s": 3021.49,
+      "duration_s": 14.8,
+      "n_chunks": 24,
+      "wall_s": 8.779888000019128,
+      "rtf": 0.593235675676968,
+      "text": "I'm going to key off of you around for its same foundry. Hammerlake is expected to be entirely on Silicon. Well, no lake. What's all supposed to really happen on Silicon? What if our time ended to be almost entirely on Silicon"
+    },
+    {
+      "seg_idx": 185,
+      "start_s": 3021.49,
+      "end_s": 3034.12,
+      "duration_s": 12.63,
+      "n_chunks": 20,
+      "wall_s": 6.742954799992731,
+      "rtf": 0.5338839904982368,
+      "text": "With that history, what is different about Hammer Lake and the Foundry Partnership that gives us confidence that we will truly be a huge part of the community?"
+    },
+    {
+      "seg_idx": 186,
+      "start_s": 3034.12,
+      "end_s": 3049.38,
+      "duration_s": 15.26,
+      "n_chunks": 24,
+      "wall_s": 8.11140720002004,
+      "rtf": 0.5315469986906972,
+      "text": "Like all decisions get made at the point in time you make those decisions, it's always easy to regret the decision you made. There are no decisions made at the point in time"
+    },
+    {
+      "seg_idx": 187,
+      "start_s": 3049.38,
+      "end_s": 3063.3,
+      "duration_s": 13.92,
+      "n_chunks": 22,
+      "wall_s": 7.341855500009842,
+      "rtf": 0.5274321479892128,
+      "text": "n2p performance versus a cpu had a considerable time to compute so we made a decision to do dry a lot of our cpu on n2p"
+    },
+    {
+      "seg_idx": 188,
+      "start_s": 3063.3,
+      "end_s": 3077.3,
+      "duration_s": 14.0,
+      "n_chunks": 22,
+      "wall_s": 7.1245370999968145,
+      "rtf": 0.5088955071426297,
+      "text": "As 18ap has progressed out in time, the performance gets smaller and smaller and bigger and smaller and smaller and now it makes a difference"
+    },
+    {
+      "seg_idx": 189,
+      "start_s": 3077.3,
+      "end_s": 3093.21,
+      "duration_s": 15.91,
+      "n_chunks": 25,
+      "wall_s": 7.541524399974151,
+      "rtf": 0.47401159019322125,
+      "text": "In the context of"
+    },
+    {
+      "seg_idx": 190,
+      "start_s": 3093.21,
+      "end_s": 3110.55,
+      "duration_s": 17.34,
+      "n_chunks": 28,
+      "wall_s": 10.076002699992387,
+      "rtf": 0.5810843540941399,
+      "text": "Continuously improving. There's still work to do, like we just wouldn't have to worry about uh, long distance communication, and then for us, the camera is a problem, and we see each other"
+    },
+    {
+      "seg_idx": 191,
+      "start_s": 3110.55,
+      "end_s": 3126.12,
+      "duration_s": 15.57,
+      "n_chunks": 25,
+      "wall_s": 10.606156499998178,
+      "rtf": 0.6811918111752202,
+      "text": "Alright, so since six years we are hearing about Intel Labs getting profitable. What is the time line that we need for this? Intel Labs are the invention Intel, and what is the time line of doing this?"
+    },
+    {
+      "seg_idx": 192,
+      "start_s": 3126.12,
+      "end_s": 3144.37,
+      "duration_s": 18.25,
+      "n_chunks": 29,
+      "wall_s": 9.564038699987577,
+      "rtf": 0.5240569150678125,
+      "text": "And in the future, if the fab earns external revenue profit, will return back all the investments in the day"
+    },
+    {
+      "seg_idx": 193,
+      "start_s": 3144.37,
+      "end_s": 3157.62,
+      "duration_s": 13.25,
+      "n_chunks": 21,
+      "wall_s": 10.514282599993749,
+      "rtf": 0.7935307622636791,
+      "text": "extreme view to do. My understanding is the founder is very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very"
+    },
+    {
+      "seg_idx": 194,
+      "start_s": 3157.62,
+      "end_s": 3172.62,
+      "duration_s": 15.0,
+      "n_chunks": 24,
+      "wall_s": 8.687812599993777,
+      "rtf": 0.5791875066662517,
+      "text": "All I can do is go back to what I just said. Do we see rise progress in technology, defense, yield, performance, power, ability, efficiency, the things we're making better now"
+    },
+    {
+      "seg_idx": 195,
+      "start_s": 3172.62,
+      "end_s": 3185.25,
+      "duration_s": 12.63,
+      "n_chunks": 20,
+      "wall_s": 6.517043800005922,
+      "rtf": 0.5159971338088616,
+      "text": "Right, obviously right now in in product is the customer in the family, so us making decisions like shifting a lot of our value to our families will help us."
+    },
+    {
+      "seg_idx": 196,
+      "start_s": 3185.25,
+      "end_s": 3198.01,
+      "duration_s": 12.76,
+      "n_chunks": 20,
+      "wall_s": 7.107740300009027,
+      "rtf": 0.5570329388721809,
+      "text": "Alright, thanks Mike. Okay, this may be a question that will go to Lisa, but I'll direct it to you first. Is there any chance we'll see flexible uh consumer consumer behavior views or habits in the future?"
+    },
+    {
+      "seg_idx": 197,
+      "start_s": 3198.01,
+      "end_s": 3214.99,
+      "duration_s": 16.98,
+      "n_chunks": 27,
+      "wall_s": 9.325037500006147,
+      "rtf": 0.5491777090698555,
+      "text": "entirely with the memory. I get my answer at least a good try and there are no plans today. P p p p p p p p"
+    },
+    {
+      "seg_idx": 198,
+      "start_s": 3214.99,
+      "end_s": 3231.5,
+      "duration_s": 16.51,
+      "n_chunks": 26,
+      "wall_s": 9.853261799988104,
+      "rtf": 0.5968056814044884,
+      "text": "So that is the plan and our strategy has been heavily going down into grids, into power grids, into electricity, into electricity, into electricity"
+    },
+    {
+      "seg_idx": 199,
+      "start_s": 3231.5,
+      "end_s": 3249.09,
+      "duration_s": 17.59,
+      "n_chunks": 28,
+      "wall_s": 10.050357800006168,
+      "rtf": 0.5713676975557799,
+      "text": "Well, maybe just one thing to add. I think the questions are a lot. You know, we did describe the journey to pave the path for a large migration. Right, it was all about the poor."
+    },
+    {
+      "seg_idx": 200,
+      "start_s": 3249.09,
+      "end_s": 3262.46,
+      "duration_s": 13.37,
+      "n_chunks": 21,
+      "wall_s": 7.745061599998735,
+      "rtf": 0.5792865818996811,
+      "text": "We had so many games that would just be infinito graphics just end, right? They wouldn't even launch. The first out was like 20 minutes of games even ran, right? And it's clear that past to see now and play"
+    },
+    {
+      "seg_idx": 201,
+      "start_s": 3262.46,
+      "end_s": 3281.07,
+      "duration_s": 18.61,
+      "n_chunks": 30,
+      "wall_s": 11.347879000008106,
+      "rtf": 0.6097731864593287,
+      "text": "And so it did its purpose, and the idea of the pivot last year, obviously Intel was also going through tough times, right, had to make choices, but now pivot could be right for an end of its strategy. And that's precedent. So I would say I know a lot of people talk about you know two being in three"
+    },
+    {
+      "seg_idx": 202,
+      "start_s": 3281.07,
+      "end_s": 3295.9,
+      "duration_s": 14.83,
+      "n_chunks": 24,
+      "wall_s": 8.808962900016923,
+      "rtf": 0.5939961496977021,
+      "text": "It's not like it's a beautiful market with great margins to go after, and so large integrated and like product that's worth that, and so I think now it's a great part to shake and move."
+    },
+    {
+      "seg_idx": 203,
+      "start_s": 3295.9,
+      "end_s": 3313.2,
+      "duration_s": 17.3,
+      "n_chunks": 28,
+      "wall_s": 10.338765599997714,
+      "rtf": 0.5976165086703881,
+      "text": "and have integrated graphics. So, but how Crescent Island was developed is such that you could have, you know, free added back in to that. So I think the option now is always business, business, business, more workable, and you just really should put that in."
+    },
+    {
+      "seg_idx": 204,
+      "start_s": 3313.2,
+      "end_s": 3326.58,
+      "duration_s": 13.38,
+      "n_chunks": 21,
+      "wall_s": 7.158814399997937,
+      "rtf": 0.5350384454408024,
+      "text": "Alright, with the recent reporting on AI models hacking websites exploiting unidentifiable vulnerabilities, we are not far away from these models security vulnerabilities in hardware."
+    },
+    {
+      "seg_idx": 205,
+      "start_s": 3326.58,
+      "end_s": 3342.01,
+      "duration_s": 15.43,
+      "n_chunks": 25,
+      "wall_s": 7.959986399975605,
+      "rtf": 0.515877278028231,
+      "text": "We could have unidentified vulnerabilities in our hardware, identified vulnerabilities with vulnerable fixes, wondering what integrity could be at risk."
+    },
+    {
+      "seg_idx": 206,
+      "start_s": 3342.01,
+      "end_s": 3356.48,
+      "duration_s": 14.47,
+      "n_chunks": 23,
+      "wall_s": 7.798027500015451,
+      "rtf": 0.5389099861793677,
+      "text": "You'd expect it to happen as we talk to Oli and the others, and this right, how many days in a row, how many days in a row, in a day"
+    },
+    {
+      "seg_idx": 207,
+      "start_s": 3356.48,
+      "end_s": 3372.43,
+      "duration_s": 15.95,
+      "n_chunks": 25,
+      "wall_s": 8.608572800003458,
+      "rtf": 0.5397224326020977,
+      "text": "That's a huge advantage for Intel because what's a brick mission enterprise scale security so you know every street can stop someone downloading a free email and then getting hacked to the world"
+    },
+    {
+      "seg_idx": 208,
+      "start_s": 3372.43,
+      "end_s": 3388.84,
+      "duration_s": 16.41,
+      "n_chunks": 26,
+      "wall_s": 8.730462500010617,
+      "rtf": 0.5320208714205129,
+      "text": "the economics and the realities that surround the in general for security policy that's a big, a big difference. There's actually a lot of work to be done."
+    },
+    {
+      "seg_idx": 209,
+      "start_s": 3388.84,
+      "end_s": 3407.25,
+      "duration_s": 18.41,
+      "n_chunks": 29,
+      "wall_s": 11.59396930001094,
+      "rtf": 0.6297647637159663,
+      "text": "But that model can expose security vulnerabilities, you know, and the past few weeks we have discovered issues that we can work to fix on that model."
+    },
+    {
+      "seg_idx": 210,
+      "start_s": 3407.25,
+      "end_s": 3424.0,
+      "duration_s": 16.75,
+      "n_chunks": 27,
+      "wall_s": 9.049351099994965,
+      "rtf": 0.5402597671638785,
+      "text": "Doesn't mean that trip won't be there in the future. The world of age is really not even close to the world of"
+    },
+    {
+      "seg_idx": 211,
+      "start_s": 3424.0,
+      "end_s": 3439.38,
+      "duration_s": 15.38,
+      "n_chunks": 25,
+      "wall_s": 8.996291499992367,
+      "rtf": 0.5849344278278522,
+      "text": "I think that will take time to give us a big value, so most of the end users still prefer a Windows based and plus a big window, so I just want to know what the advantage is of Windows"
+    },
+    {
+      "seg_idx": 212,
+      "start_s": 3439.38,
+      "end_s": 3458.15,
+      "duration_s": 18.77,
+      "n_chunks": 30,
+      "wall_s": 10.777776200004155,
+      "rtf": 0.574202248268735,
+      "text": "Yeah ipc plus a general welcome yeah that's a good question. I'm not in the show so great that was really surprising that how much the thought through and then and then when it's made and how you know what's really hard to make that all the solution. What was surprising to me"
+    },
+    {
+      "seg_idx": 213,
+      "start_s": 3458.15,
+      "end_s": 3477.7,
+      "duration_s": 19.55,
+      "n_chunks": 31,
+      "wall_s": 11.659232900012285,
+      "rtf": 0.5963801994891194,
+      "text": "So I'm most just able to move slow or co pilot plus wasn't successful so we are partnering with them in order to do engagement. I'd love to see where it goes. So we got initial demo, but it will take some time to see if it's possible. We can enable"
+    },
+    {
+      "seg_idx": 214,
+      "start_s": 3477.7,
+      "end_s": 3497.01,
+      "duration_s": 19.31,
+      "n_chunks": 31,
+      "wall_s": 15.86741490001441,
+      "rtf": 0.8217200880380326,
+      "text": "What Intel needs to do to enable that? Well, I mean one of the key things is having performance solutions that can be utilized so that they can enjoy the one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one, one"
+    },
+    {
+      "seg_idx": 215,
+      "start_s": 3497.01,
+      "end_s": 3515.74,
+      "duration_s": 18.73,
+      "n_chunks": 30,
+      "wall_s": 11.436778400006006,
+      "rtf": 0.6106128350243463,
+      "text": "You know the highest memory configs of 12 BCE is really if they're going to do something serious for like coding, you know probably doesn't cut it. Right, the pushing things with the cloud and engaging with that, so a lot of back and forth is very, very, very important. I would say less sure and more likely."
+    },
+    {
+      "seg_idx": 216,
+      "start_s": 3515.74,
+      "end_s": 3530.69,
+      "duration_s": 14.95,
+      "n_chunks": 24,
+      "wall_s": 9.423094900004799,
+      "rtf": 0.6303073511708895,
+      "text": "So we need to make sure, we're doing those like microservices to make sure our sex ready, so when they engage with us, we can run. It's not like we're in a pipeline where they're ready with models for a long time to run. So we need to make sure we're ready."
+    },
+    {
+      "seg_idx": 217,
+      "start_s": 3530.69,
+      "end_s": 3550.69,
+      "duration_s": 20.0,
+      "n_chunks": 32,
+      "wall_s": 11.890872999996645,
+      "rtf": 0.5945436499998322,
+      "text": "So that means we will have a microservice based on windows or we totally rely on microservice. We would expect we would go through microservice, right? Maybe all that space they don't have any, they can do much better to be in that environment. We would do it our microservice things like that."
+    },
+    {
+      "seg_idx": 218,
+      "start_s": 3550.69,
+      "end_s": 3566.22,
+      "duration_s": 15.53,
+      "n_chunks": 25,
+      "wall_s": 8.838027499994496,
+      "rtf": 0.5690938506113649,
+      "text": "to them. Too early to tell today. Okay, could you please just share with us the ways that you feel about this? Yeah, oh, that's the kiss."
+    },
+    {
+      "seg_idx": 219,
+      "start_s": 3566.22,
+      "end_s": 3583.15,
+      "duration_s": 16.93,
+      "n_chunks": 27,
+      "wall_s": 8.414838499971665,
+      "rtf": 0.4970371234478243,
+      "text": "We don't officially support in PUA."
+    },
+    {
+      "seg_idx": 220,
+      "start_s": 3583.15,
+      "end_s": 3602.77,
+      "duration_s": 19.62,
+      "n_chunks": 31,
+      "wall_s": 10.943262099986896,
+      "rtf": 0.5577605555548877,
+      "text": "In your view, what are the top three bets or catalysts that will drive the bull market?"
+    },
+    {
+      "seg_idx": 221,
+      "start_s": 3602.77,
+      "end_s": 3622.5,
+      "duration_s": 19.73,
+      "n_chunks": 31,
+      "wall_s": 11.99773269999423,
+      "rtf": 0.6080959300554603,
+      "text": "Even if you capture 10% of that market, do the math. Right? But I don't have a 10% goal. Right? It's a huge thing. So how do we get huge? How do we get across the gap? And how do we get there? You know, it is huge. Yes, you know, huge."
+    },
+    {
+      "seg_idx": 222,
+      "start_s": 3622.5,
+      "end_s": 3641.39,
+      "duration_s": 18.89,
+      "n_chunks": 30,
+      "wall_s": 11.211199599987594,
+      "rtf": 0.5934991847531813,
+      "text": "Unity and in CCPG I think Galax aligns really well with the PC, which you can share on with the PC, which you can carry in with the PC, which you can carry on with the PC, which you can carry on, and then in the PC, which you can carry on"
+    },
+    {
+      "seg_idx": 223,
+      "start_s": 3641.39,
+      "end_s": 3658.0,
+      "duration_s": 16.61,
+      "n_chunks": 26,
+      "wall_s": 8.627767900004983,
+      "rtf": 0.5194321432874764,
+      "text": "We have, I mean, I think we haven't been able to say this for a while."
+    },
+    {
+      "seg_idx": 224,
+      "start_s": 3658.0,
+      "end_s": 3670.58,
+      "duration_s": 12.58,
+      "n_chunks": 20,
+      "wall_s": 6.7745210000139195,
+      "rtf": 0.5385151828309952,
+      "text": "Thank you so much Mike and thank you everybody for joining"
+    },
+    {
+      "seg_idx": 225,
+      "start_s": 3670.58,
+      "end_s": 3671.1893125,
+      "duration_s": 0.6093125,
+      "n_chunks": 1,
+      "wall_s": 0.4410715000121854,
+      "rtf": 0.7238838855467193,
+      "text": ""
+    }
+  ]
+}

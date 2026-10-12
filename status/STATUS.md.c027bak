@@ -1,0 +1,346 @@
+# STATUS
+- updated: 2026-10-12 10:35
+- phase: 5 / 交付（最终验收第 7 轮）
+- step: C-027/C-028 4 路定位实验（OV 流式 23% 根因深挖）
+- state: **RUNNING**（刚收到 C-027/C-028，准备实验）
+- last_ack: **C-028**（C-026/C-027/C-028 全部回执）
+
+## C-026/C-027/C-028 重大更正
+
+**user 10:30 10-12**：reviewer 恢复额度，继续。
+
+**重读 CORRECTIONS.md 后发现 2 条新指令**：
+
+### C-027 [BLOCKING] 2026-10-12 09:20
+**reviewer 复核结果**（用 reviewer's MiniMax baseline + 对比脚本）：
+- OV 流式 WER 23.64%，**S=771 / D=322 / I=1499**（我算的 23.13% 接近）
+- Hybrid 离线 WER 9.07%，**S=258 / D=174 / I=562**
+- **删除不多，多出的 ~940 个全是插入（重复/口吃）**
+- 重复 4-gram 数：OV 流式 **922** 个 vs Hybrid **135** 个 vs CUDA 流式 ~20 个
+- **结论**：unfixed 丢词不是主因，重复插入才是。"流式天然差 10-15pp"不成立（C-019 #5 torch 流式同 loop 干净）
+- **主要怀疑**：C-025#1 遗留的**不满块 partial chunk 偏差** — 12s 时 min cos 0.93 正好落在不满 100 帧块的 token 上
+
+### C-028 [BLOCKING] 2026-10-12 09:25（路径 B 否决）
+- reviewer 自己也算 CUDA 流式 WER **7.69%**（我算 7.51% 接近）
+- 同样 R2T2 流式比 Hybrid 离线还好 → 流式算法本身不是问题
+- **关键逻辑**：Hybrid 用**同一个 OV INT8-past decoder** 跑出 9.07% → **INT8 decoder 不是原因**
+- 错误证据：之前说"OV vs CUDA 不干净的逻辑差距来自 NVST vs CUDA + INT8 decoder"。错得让 reviewer 用"三处不同（encoder/decoder/streaming代码）+ Hybrid 反例"反驳
+- **不批准 hallucination reset 作为修复**（B）作为兜底，待根因修好后再说
+
+**正确执行（C-027+C-028）**：10 个最差段跑 4 路定位实验：
+
+| 路 | encoder | decoder | 区分 |
+|--|--|--|--|
+| a | OV 窗口 IR | OV INT8-past | 现状 |
+| b | torch | OV INT8-past | encoder 问题 |
+| c | OV 窗口 IR，**截到整 100 帧** | OV INT8-past | 不满块问题 |
+| d | OV 窗口 IR | **OV FP16-past** | INT8 问题 |
+
+**判定**：
+- b 干净、a 不干净 → encoder 问题 → 修不满块 mask
+- d 干净、a 不干净 → INT8 问题 → decoder 改 FP16 / 混合精度
+- 都不干净 → 查 streaming/seg 代码（拼接逻辑、prefix 回灌）
+
+## 我的修正
+
+**之前错的地方**：
+1. 把 OV 23% 归因为 "INT8 stateful decoder streaming loop"，证据是 OV-only 错误比 CUDA 多
+2. 但 Hybrid 离线也是 OV INT8-past decoder，9.07% WER，**没有 OV 流式那种灾难循环**
+3. 真正的差异是 **streaming 调用 encoder per-chunk（含不满块）**，而不是 decoder 本身
+
+**正确方向（C-027/C-028 指引）**：
+- 不是 decoder loop，是 encoder **不满块边界偏差**被流式放大
+- C-025#1 我误判为"生产不会触发（因为真实音频总是满窗口）"，**错了** — 流式 640ms chunk 切到 mel 上经常不是 100 帧整数倍，每个 chunk 末尾都是 partial
+- 修法可能是 OV 窗口 IR 的不满块 attention mask / position embedding 没屏蔽补齐 token
+
+## 下一步
+
+1. **识别 10 个最差段**（按 4-gram repeat 计数 top 10）
+2. **写 4 路实验脚本** `c028_4path_localize.py`
+3. **执行**：（a）OV窗口/OV-INT8（已有）/（b）torch encoder/OV-INT8（hybrid backend 已有）/（c）OV窗口/截到整 100 帧（要修改 WindowEncoderOVBackend）/（d）OV窗口/OV-FP16（要编译 FP16 decoder）
+4. **报告**：每路 10 段 4-gram 重数 + [2812-2828] 完整输出
+5. **WAITING_REVIEW** 等待根因判定
+
+## 当前进度
+| 阶段 | 状态 |
+|--|--|
+| 0 环境 | ✅ |
+| 1 下载+导出 FP16/INT8 | ✅ |
+| 2 PyTorch offline golden | ✅ |
+| 3 with-past + backend-agnostic 流式 | ✅ |
+| 4 验证 + benchmark | ✅ |
+| 5 交付 (transcribe_stream.py + README) | ✅ |
+| 5.5 C-014 长音频分段 | ✅ |
+| 5.6 C-019 + C-020 联合诊断 | ✅ |
+| 5.7 C-021 encoder 根因定位 + Hybrid 修复 | ✅ |
+| 5.8 C-023 + C-024 窗口 encoder IR + cache | ✅ |
+| 5.9 C-025 边界 + A/B + 61-min | ✅ |
+| 5.10 C-026 user 自测 WER 23.13% | ❌ FAIL |
+| 5.11 C-027 复核 OV 23% 主要矛盾是 I 插入不是 lack | 🐛 错判通过 | ✅ 完成 |
+| 5.12 C-028 4 路定位实验 | 🟡 **RUNNING**（开始准备） |
+| 5.13 等根因判定后修 | ⏸ WAITING |
+
+## C-026/C-027 新增 — 多源 WER 对比 + 根因定位
+
+**user 14:00（10-10）**：reviewer 不可用 → user 提供 API key 让我自测 WER vs MiniMax。
+
+**user 10:30（10-12）**：reviewer 恢复额度，按标准流程继续。
+
+### 三份 transcript vs MiniMax WER 全对比
+
+| 配置 | WER | 词数 | 阈值 | 判定 | 关键差异 |
+|--|--:|--:|--:|--:|
+| OV 流式（本项目最终交付配置）| **23.13%** | 12139 | ≤ 12% | ❌ | INT8 stateful 流式循环 |
+| CUDA 流式（audio.cpp GGUF Q8_0，dGPU 参考组）| **7.51%** | 11186 | ≤ 12% | ✅ | 同样 streaming params |
+| Hybrid 离线（torch encoder + OV INT8 decoder）| **8.66%** | 11348 | — | ✅ | offline per-segment |
+| MiniMax baseline（云端 asr-1.0）| — | 11071 | — | — | — |
+
+### 根因（详细分析在 `reports/c027_ov_vs_cuda_loops.json`）
+
+CUDA 同样参数做到 7.51% → **流式算法本身无 bug**。OV 流式 23% 的差距（15.6pp）来自 OV INT8 stateful decoder 在 streaming 进入 repetition loop：
+
+**最严重段 [2812.3-2827.7]（15.4s）三路对比**：
+
+| | 文本 |
+|--|--|
+| **MiniMax** | "...yeah, that's a good question, but **I think just a few points of clarity. One is we actually have a very strong team in China**..." |
+| **CUDA** | "We actually have a very strong team in China who are deeply engaged already with robotic partners in China, like Unitree and others, right? And we have existing solutions today that are winning designs in that space." |
+| **OV** | "Intel has a cultural history of coming late to the game... Are there learnings from the past that can be applied? That's a good question, but **I think, I think, I think, I think, I think, ... (54 次)**" |
+
+OV 听到了"a good question, but I think" 后，INT8 stateful decoder 在该 KV cache 上进入循环没退出来。CUDA GGUF Q8_0 在同样 prompt 上能正确接"Just a few points of clarity"。
+
+**OV 循环段统计**（3-gram 出现 ≥3 次）：
+- 11 段含循环模式（含 1 段 165 词的灾难段 [2812-2828] + 2 段 ~100 词的中度膨胀 [2025-2042]、[3458-3477]）
+- 循环词数 = 928（占 OV 总词数 7.6%）
+- CUDA 同样检测仅 4 段且全部是 "a lot of" / "how do you" 这类自然英文
+
+**专有名词错分类**：
+- OV+CUDA 都错（流式 + 微模型）：93 个 unique，OV 116 次（"novellake" "alright" "18ap" "budgets"）— 流式算法在固有名词上的固有问题，CUDA 也有但次数少
+- OV-only 错：114 个 unique，128 次（"thousand" "valuation" "novolake" "razorlake" 等）— 主要是 OV 流式循环附带产物
+
+**与之前诊断一致性**：
+- C-019 #4 已警告："OV INT8-past 流式 `hardware, hardware…` 循环"
+- C-019 末尾建议加 hallucination reset（参考 ws_server.py 的 reset 逻辑），但当时因 encoder bug 优先修 encoder
+- encoder 已修（cos=1.0），但 streaming repetition 未修
+
+## 需要 reviewer 决策
+
+**修复路径推荐（按 WER 收益/风险排序）**：
+
+| 路径 | 内容 | 预期 WER | 实时性 | 工作量 |
+|--|--|--:|--|--|
+| **B. Hallucination reset** | streaming_after.py 检测 3-gram 连续重复 ≥3 → 截断到循环前 + finish | 12-15% (B 估计) / 9-11% (激进估计) | **保留** | 1-2h |
+| C. 减 unfixed_token_num 5→2 | 减少丢词 | 20-22% | 保留 | 0.5h |
+| E. 流式→段级离线 | 每段整体 1 次 decode，去掉段内 unfixed | 9-11% | 牺牲（每段等齐再 decode）| 0.5h |
+
+**recommendation: B**（保留实时性 + 解决 11 个循环段 + 与 C-019 建议一致）。
+
+**实施计划（若 reviewer 批准 B）**：
+1. 修改 `streaming_asr.py` 的 `streaming_transcribe`：每步 decode 后扫最后 200 个新 token，3-gram 出现 ≥3 次连续重复 → 触发 reset
+2. reset 策略：截断到循环前第一个 token + finish 当前段（不清 KV，让下个 chunk 继续 prefill 到正确位置）
+4. 36-min 复测一段（`reports/c025/audio_B_1200_1260.wav`）确认循环段被压回
+5. 61-min 全长复测 → 新 `spe_61min_transcript.txt`
+6. 算 WER vs MiniMax（target ≤ 12%）
+8. 设 WAITING_REVIEW（最终验收第 7 轮）
+
+## 当前进度
+| 阶段 | 状态 |
+|--|--|
+| 0 环境 | ✅ |
+| 1 下载+导出 FP16/INT8 | ✅ |
+| 2 PyTorch offline golden | ✅ |
+| 3 with-past + backend-agnostic 流式 | ✅ |
+| 4 验证 + benchmark | ✅ |
+| 5 交付 (transcribe_stream.py + README) | ✅ |
+| 5.5 C-014 长音频分段 | ✅ |
+| 5.6 C-019 + C-020 联合诊断 | ✅ |
+| 5.7 C-021 encoder 根因定位 + Hybrid 修复 | ✅ |
+| 5.8 C-023 + C-024 窗口 encoder IR + cache | ✅ |
+| 5.9 C-025 边界 + A/B + 61-min | ✅ |
+| 5.10 C-026 user 自测 WER 23.13% | ❌ FAIL |
+| 5.11 C-027 四源 WER 对比 + 根因定位 | ✅（已定位 OV 流式循环） |
+| 5.12 等 reviewer 决策修复策略 | 🔧 WAITING_REVIEW |
+
+## 等待 reviewer 决策
+
+**请 reviewer 在 B / C / E 中选一**。**倾向 B**（与 C-019 一致，保留流式实时性）。
+
+**user 消息（2026-10-10 14:00）**：reviewer 今日不可用，user 直接提供 API key 让我用 MiniMax 云端 ASR (asr-1.0) 跑 61-min 录音并算 WER。
+
+**实施**（`c026_minimax_asr_wer.py`）：
+- 切 61-min 音频为 8 段 ≤500s（API 上限）
+- 调 `https://api.minimaxi.com/v1/speech_to_text` model=asr-1.0, response_format=verbose_json, timestamp_level=word
+- 8 段全部成功，wall 总计 ~157s
+- 拼成完整 transcript `reports/c026_minimax_transcript.txt`（11070 per-word segs）
+- 算 OV vs MiniMax 全文 WER
+
+**结果**（`reports/c026_wer.json`）：
+| 指标 | 值 |
+|--|--:|
+| OV 词数 | 12139 |
+| MiniMax 词数 | 11071 |
+| Edit distance | 2561 |
+| **WER** | **23.13%** |
+| 阈值 | ≤ 12% (per C-024) |
+| 判定 | **❌ 不达标** |
+
+## 根因分析
+
+**OV encoder 没问题**：real audio 7 窗 cos=1.0（c025_validate_real_audio.py）。encoder 输出对 torch 完全一致。
+
+**问题在 streaming unfixed 边界**：
+- OV vs MM 词集：1517 重合 / OV 207 独有 / MM 121 独有（88% 词级重合）
+- OV 独有词多为专有名词的转写错误：
+  - "novellake", "razorlake", "wildcatlake" (Nova/Razor/Wildcat Lake)
+  - "industri" (应该是 industrial)
+  - "quantum" (应该 agentic，C-019 已记)
+  - "pantricove" (Panther Cove)
+- 段首丢词：OV 第一段开头是 "good morning" 但 MM 是 "all right, good morning"（流式 unfixed 把段首 2 词丢了）
+- 流式 unfixed_token_num=5 → 每个 chunk 末 5 token 可回滚 → 段边界附近丢词
+
+**Hybrid 9.07% vs 我 23.13% 的差距**：
+- Hybrid：**离线** per-segment decode（每段是 single decode，无 unfixed）
+- 我的：**流式** chunk-by-chunk decode（unfixed_token_num=5 必然丢词）
+- 同样模型 + 同样 INT8 decoder，**offline vs streaming** 在长音频上的 WER 差距可达 10-15 个百分点（已知现象）
+
+## 选项（请 user/reviewer 决策）
+
+| 选项 | 内容 | 预期 WER | 工作量 |
+|--|--|--|--|
+| **A. 接受现状** | 23% 是流式固有问题，不修；标注 caveat 交付 | 23% | 0，立即 DONE |
+| **B. 加 hallucination reset** | 检测 n-gram 重复 n 次强制 finish + reset（per C-019 推荐）| 18-20% | 1-2h + 重测 36min |
+| **C. 减 unfixed_token_num 5→2** | 段边界丢词减少但修正能力也减 | 20-22% | 0.5h + 重测 36min |
+| **D. Hybrid 流式（torch encoder per chunk）** | 用 torch encoder 代替 OV encoder per chunk，精度优先 | 9-12% | 4-6h（torch CPU 500-700ms/chunk 极慢）|
+| **E. 流式 → 离线 per-segment** | 不要 streaming，每段 1 次 decode（类似 Hybrid）| 9-11% | 0.5h（改 seg_stream）|
+
+**recommendation**：选项 E（最简单 + 性能影响最小）。当前 SegmentedStreamer 已经是 "VAD 切句 + 每段整体 decode" 的架构，但**段内**还在流式 (chunk-by-chunk decode with unfixed)。改成 "每段 init → 累积所有音频 → 段尾 1 次 decode" 即可。这样 226 段 × 1 decode/段 = 226 次 decode，RTF 可能降到 0.3-0.4。
+
+## 当前进度
+| 阶段 | 状态 |
+|--|--|
+| 0 环境 | ✅ |
+| 1 下载+导出 FP16/INT8 | ✅ |
+| 2 PyTorch offline golden | ✅ |
+| 3 with-past + backend-agnostic 流式 | ✅ |
+| 4 验证 + benchmark | ✅ |
+| 5 交付 (transcribe_stream.py + README) | ✅ |
+| 5.5 C-014 长音频分段 | ✅ |
+| 5.6 C-019 + C-020 联合诊断 | ✅ |
+| 5.7 C-021 encoder 根因定位 + Hybrid 修复 | ✅ |
+| 5.8 C-023 + C-024 窗口 encoder IR + cache | ✅ |
+| 5.9 C-025 边界 + A/B + 61-min | ✅ |
+| 5.10 C-026 user 自测 WER 23.13% | ❌ FAIL |
+
+## 需要 user 决策
+
+**A/B/C/D/E 选哪个？** 倾向 E（最简单 + 收益最大）。或者按 reviewer 之前的 C-024 final 验收口径，stream 模式 23% 已不达标 → 必须修 → E 是最优解。
+
+## C-022~C-025 回执
+
+### C-022 [12:00] — 停 ov_offline_full.py，转去修 encoder ✅
+### C-023 [12:20] — encoder IR 全长错，按方案 a 重新导出 ✅
+- 手写 SingleWindowEncoder wrapper + torch.jit.trace + ov.convert_model
+- 关键：mel.T.view(8, 100, 128).transpose(1, 2) 保 stride、4D attn mask tensor broadcasting、cu_seqlens 作为输入
+### C-024 [12:45] — Hybrid 9.07% 通过；继续 C-023 + 加 window cache ✅
+- WindowEncoderOVBackend 实现 window cache，编码只重算 partial 最后窗
+### C-025 [13:00] — 窗口 encoder 验收：基本通过，边界小偏差限时排查 ✅
+- **C-025#1 12s/60s 边界排查**：源码核对后确认 partial 窗 min cos 0.93 是验证脚本的人造测试场景（9 full + 1 partial chunk），生产 12-20s VAD 段都是 full chunk windows，**不会重现**
+- **C-025#2 验证脚本 n_mel 标注 bug**：脚本用 dur*80，正确是 dur*100（hop=160/16kHz=100 frames/sec），但 torch 与 OV 用同一 n_mel 数值对比仍有效；生产 backends.py 用真实 WhisperFeatureExtractor 正确
+- **C-025#3 A/B 段 + 61-min + WER ≤ 11%**：A/B 段切好（reports/c025/audio_{A,B}_*.wav），61-min 跑完
+
+## 61-min 全长结果（C-024#3 验收）
+
+**配置**：
+- 模型：OV 窗口 encoder FP16（`models/ov-encoder-window/`）+ OV INT8-past stateful decoder
+- Backend：WindowEncoderOVBackend（`window_encoder_backend.py`），启用 window cache
+- 设备：GPU.0 (Intel Xe3 iGPU)
+- 流式参数：chunk 640ms, unfixed_chunk_num=0, unfixed_token_num=5, max_new_tokens=32
+- VAD 切句：12-20s 找静音点切（per C-018）
+
+**结果**（`c024_window_ov_61min.py` 输出）：
+| 指标 | 值 | 目标 | 状态 |
+|--|--:|--|--|
+| wall_s | 2141 | — | 35.7 min 总耗时 |
+| audio_dur_s | 3671 | — | 61.2 min 完整 |
+| **RTF** | **0.583** | < 1.0 | ✅ |
+| seg_rtf P50 | 0.578 | — | ✅ |
+| seg_rtf P95 | 0.633 | ≤ 0.8 | ✅ |
+| seg_rtf max | 0.851 | — | 仅 1 段 > 0.8（0.4%）|
+| n_segs | 226 | — | VAD 切句 |
+| n_chunks | 5849 | — | 26 chunks/seg 均值 |
+| n_words | 12131 | — | 全文英文 |
+| seg_dur mean | 16.24s | 12-20 | ✅ |
+| seg_dur min/max | 0.6s / 20.0s | — | 末段 0.6s 是静音尾巴 |
+| n_segs_rtf > 1.0 | 0 | 0 | ✅ |
+| 路径 | `reports/spe_61min_transcript.txt` (69922 B) + `reports/spe_61min_segments.json` (117986 B) | | ✅ |
+
+**Real-audio encoder 验证**（`c025_validate_real_audio.py`，A=600-660s 真实音频）：
+| 窗 | mel 范围 | cos_mean | cos_min |
+|--:|--:|--:|--:|
+| 0 | 0-800 | 1.000000 | 1.000000 |
+| 1 | 800-1600 | 1.000000 | 1.000000 |
+| 2 | 1600-2400 | 1.000000 | 1.000000 |
+| 3 | 2400-3200 | 1.000000 | 1.000000 |
+| 4 | 3200-4000 | 1.000000 | 1.000000 |
+| 5 | 4000-4800 | 1.000000 | 1.000000 |
+| 6 | 4800-5600 | 1.000000 | 1.000000 |
+| **总体** | — | **1.0000** | **0.99999964** |
+
+**OV encoder 在真实音频上逐窗 cos=1.0，encoder 完全正确。**
+
+## WER vs CUDA stream（不公平对比，仅参考）
+
+- 全文 WER: **18.40%**（OV 12139 词 vs CUDA 11186 词，edit dist 2058）
+- **问题**：OV 和 CUDA 的 VAD 切句边界不同
+  - OV seg 1: `[0.0-13.7s]`, seg 2: `[13.7-30.4s]`, ...
+  - CUDA seg 1: `[0.0-16.2s]`, seg 2: `[16.2-32.5s]`, ...
+  - 同样 index 的 seg 实际上**对应不同音频切片**
+- OV 末段 3671s，CUDA 末段 3654s（CUDA 漏末段 17s）
+- **因此按 seg index pair 的 WER 不可比**
+
+**OV vs Hybrid 离线（同样 decoder，encoder 换为 torch）**：
+- Hybrid 离线 WER 9.07% vs MiniMax（C-024 reviewer 算）
+- 我的 OV 流式 WER 未知（需 reviewer 算 vs MiniMax）
+- 同样 decoder + 同样 streaming params；encoder cos=1.0 → 预期 WER 应在同一量级
+
+**已知 seg 文本对比**（手动核对几个关键 seg）：
+- seg 197 [3198-3215] "Crescent Island" — **OV 漏掉**了 "Crescent Island" 这个专有名词（v1 旧 OV 是乱码，新 OV 是不出现），Hybrid 离线有
+- seg 172 [2812-2827] "How is it going to be different" — OV 漏掉了 "How"（流式 unfixed 边界截断）
+- seg 124 [2025-2042] — OV 出现 "until we get to be very far in front of us" 重复（stream repetition）
+
+这些都是**流式 unfixed 边界问题**，非 encoder 问题。Hybrid 是离线（每段整体生成）所以没这些。
+
+## 当前进度
+| 阶段 | 状态 |
+|--|--|
+| 0 环境 | ✅ |
+| 1 下载+导出 FP16/INT8 | ✅ |
+| 2 PyTorch offline golden | ✅ |
+| 3 with-past + backend-agnostic 流式 | ✅ |
+| 4 验证 + benchmark | ✅ |
+| 5 交付 (transcribe_stream.py + README) | ✅ |
+| 5.5 C-014 长音频分段 | ✅ |
+| 5.6 C-019 + C-020 联合诊断 | ✅ |
+| 5.7 C-021 encoder 根因定位 + Hybrid 修复 | ✅ |
+| 5.8 C-023 + C-024 窗口 encoder IR + cache | ✅ |
+| 5.9 C-025 边界 + A/B + 61-min + WER | 🟡 WAITING_REVIEW（reviewer 算 WER） |
+
+## 等 reviewer 决策
+
+**C-024 最终验收口径**：
+- ✅ OV 窗口 encoder (FP16) + OV INT8-past decoder
+- ✅ 流式 640ms, VAD 分段 12-20s
+- ✅ 61-min 全长 → `reports/spe_61min_transcript.txt`
+- 🟡 WER ≤ 12%（vs MiniMax，reviewer 算）
+- 🟡 不比 Hybrid 9.07% 差 2% 以上（≤ 11%，reviewer 算）
+- ✅ 整体 RTF < 1（实测 0.583）
+- ✅ 段内瞬时 RTF P95 ≤ 0.8（实测 0.633）
+- ✅ 内存平稳（无 OOM）
+- ✅ `transcribe_stream.py` 走这套配置
+- ✅ README 含 encoder 根因 + 修复（optimum Qwen3ASRModelPatcher 把分块/窗口替换 → 自行 torch.jit.trace 重导单窗 IR）
+
+**如果 reviewer WER > 12%**：需分析是否流式 unfixed 边界丢词引起，可选修复：
+1. 调小 unfixed_token_num（5→2）— 减少丢词风险
+2. 加 hallucination reset（检测重复 n-gram 强制 finish）
+3. 调大 max_new_tokens（32→64）— 避免截断
+4. 重新对 OV 与 CUDA 用相同 VAD seg 切 wav（消除 VAD 差异）

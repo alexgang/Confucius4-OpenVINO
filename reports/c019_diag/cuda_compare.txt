@@ -1,0 +1,12 @@
+
+=== A | cfg 6 (cfg6_cuda_streaming) | wall=178.77s | words=180 ===
+team on what does our schedule look like? It's going to be sulfur dominated. The silicon exists for data center. What we need to do is encapsulate that with a reference design for client and enable sulfur that provisions that into the usage we need for client. So that's in work and one of the things in Q4 is what's our execution, commit and schedule around that, roughly targeted the second half 27. And then we'll follow on with what
+
+=== A | cfg 7 (cfg7_cuda_offline) | wall=359.29s | words=178 ===
+team on what does our schedule look like. It's going to be sulfur dominated, the silicon exists for data center. What we need to do is encapsulate that with a reference design for client and enable sulfur that provisions that into the usage we need for client. So that's in work and one of the things in Q4 is what's our execution commit and schedule around that, roughly targeted the second half 27. And then we'll follow on what Explorer
+
+=== B | cfg 6 (cfg6_cuda_streaming) | wall=281.03s | words=181 ===
+unique for each of them. So on Agentic Compute, where we're trying to build an Agentic Box and those capabilities, the first thing that's very interesting to see our validation team struggle with is it's no longer an end user that's clicking on Windows, right? The end user is an agent, and so how do we enable those agents with the right security frameworks, the right orchestration, and making sure we can tune it so that stack will include agent,
+
+=== B | cfg 7 (cfg7_cuda_offline) | wall=12.55s | words=180 ===
+unique for each of them. So on agentic compute where we're trying to build an agentic box and those capabilities, the first thing that's very interesting to see our validation team struggle with is it's no longer an end user that's clicking on windows, right? The end user is an agent. And so how do we enable those agents with the right security frameworks, the right orchestration, and making sure we can tune it so that stack will include agent,

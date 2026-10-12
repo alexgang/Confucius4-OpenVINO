@@ -1,0 +1,26 @@
+audio_input=stdin format=s16le rate=16000 channels=1
+partial_text=But we
+partial_text='re
+partial_text= making
+partial_text= good
+partial_text= progress
+partial_text=.
+partial_text= Just last
+partial_text= week we powered
+partial_text= on
+partial_text= our 
+partial_text=5
+partial_text=2
+partial_text= core
+partial_text= BLL
+partial_text=C
+partial_text= B
+partial_text=0
+partial_text=,
+partial_text= big milestone in
+partial_text= that our
+partial_text= 2
+family=confucius4_r2t2
+task=asr
+mode=streaming
+text_output=But we're making good progress. Just last week we powered on our 52 core BLLC B0, big milestone in that our 28 core has now hit QS

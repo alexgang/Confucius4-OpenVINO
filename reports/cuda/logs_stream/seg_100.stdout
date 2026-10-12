@@ -1,0 +1,24 @@
+audio_input=stdin format=s16le rate=16000 channels=1
+partial_text=m
+partial_text=cdm driver
+partial_text= for Crescent Island,
+partial_text= but
+partial_text= we
+partial_text='re going
+partial_text= to
+partial_text= be restricting
+partial_text= some
+partial_text= of
+partial_text= those features
+partial_text= and functions
+partial_text= to make
+partial_text= that possible
+partial_text= on the first
+partial_text= gen
+partial_text=.
+partial_text= All right
+partial_text=,
+family=confucius4_r2t2
+task=asr
+mode=streaming
+text_output=mcdm driver for Crescent Island, but we're going to be restricting some of those features and functions to make that possible on the first gen. All right, so one of the key things

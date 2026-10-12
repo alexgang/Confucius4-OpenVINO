@@ -1,0 +1,25 @@
+audio_input=stdin format=s16le rate=16000 channels=1
+partial_text=Extreme view to
+partial_text= do
+partial_text=.
+partial_text= Like my understanding
+partial_text= is
+partial_text= the Foundry
+partial_text= is targeting
+partial_text= 2
+partial_text=7,
+partial_text= right
+partial_text=,
+partial_text= for break
+partial_text= even
+partial_text= positive
+partial_text=. I
+partial_text='m not
+partial_text= knowledgeable
+partial_text= at
+partial_text= all
+partial_text= of the
+family=confucius4_r2t2
+task=asr
+mode=streaming
+text_output=Extreme view to do. Like my understanding is the Foundry is targeting 27, right, for break even positive. I'm not knowledgeable at all of the factors that contribute into that

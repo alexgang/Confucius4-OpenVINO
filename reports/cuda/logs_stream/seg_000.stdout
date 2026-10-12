@@ -1,0 +1,22 @@
+audio_input=stdin format=s16le rate=16000 channels=1
+partial_text=Good
+partial_text= morning, everyone.
+partial_text= Good
+partial_text= morning.
+partial_text= Let
+partial_text='s
+partial_text= get
+partial_text= started
+partial_text=. So
+partial_text= welcome to our
+partial_text= Q3 
+partial_text=2
+partial_text=6
+partial_text= Q
+partial_text=GS agenda topics
+partial_text= today
+partial_text=.
+family=confucius4_r2t2
+task=asr
+mode=streaming
+text_output=Good morning, everyone. Good morning. Let's get started. So welcome to our Q3 26 QGS agenda topics today. We'll talk about three

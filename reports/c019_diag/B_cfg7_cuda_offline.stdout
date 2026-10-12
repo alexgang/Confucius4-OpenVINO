@@ -1,0 +1,14 @@
+family=confucius4_r2t2
+task=asr
+mode=offline
+text_output=unique for each of them. So on agentic compute where we're trying to build an agentic box and those capabilities, the first thing that's very interesting to see our validation team struggle with is it's no longer an end user that's clicking on windows, right? The end user is an agent. And so how do we enable those agents with the right security frameworks, the right orchestration, and making sure we can tune it so that stack will include agent, model, harness, frameworks, all specifically to that usage. I think Mike had talked about the GitHub coders, maybe we didn't talk about it today. We've been talking about it a lot after the Microsoft meeting, Google meetings about what's their target for an agentic box. And so that's a very targeted usage for each segment or deployment we expect a customer to target there. And that's where they're going to be really churning on models at a very rapid speed. So we'll be tracking, you know, top 100 models, how can they get functional and they're always functional and then
+metrics.wall_ms=6960.53
+metrics.memory.peak_rss_mb=2689
+metrics.memory.peak_footprint_mb=5840
+metrics.memory.peak_footprint_source=windows_commit
+metrics.audio_duration_ms=60000
+metrics.rtf=0.116009
+metrics.x_realtime=8.62003
+metrics.audio_duration_source=input
+metrics.sample_rate=16000
+metrics.channels=1

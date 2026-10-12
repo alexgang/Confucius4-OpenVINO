@@ -1,0 +1,27 @@
+audio_input=stdin format=s16le rate=16000 channels=1
+partial_text=But
+partial_text= I
+partial_text= also
+partial_text= want to be
+partial_text= open
+partial_text= that on
+partial_text= an ongoing basis,
+partial_text= we
+partial_text='ll always
+partial_text= do that evaluation, but
+partial_text= it
+partial_text='s
+partial_text= going
+partial_text= to
+partial_text= be specific
+partial_text= to targeted problems
+partial_text= that we
+partial_text= need
+partial_text= to go
+partial_text= solve
+partial_text=. Hi
+partial_text=,
+family=confucius4_r2t2
+task=asr
+mode=streaming
+text_output=But I also want to be open that on an ongoing basis, we'll always do that evaluation, but it's going to be specific to targeted problems that we need to go solve. Hi, my question is for Lisa

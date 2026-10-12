@@ -1,0 +1,18 @@
+c031 g-path (cache + hallucination reset, user 10:26 fallback)
+a TOTAL n4_repeat: 183
+e TOTAL n4_repeat: 230
+g TOTAL n4_repeat: 4
+g TOTAL resets triggered: 9
+
+label                     a_n4  e_n4  g_n4  resets
+seg38_607_624                0     0     0       0
+seg39_624_641                4    11     0       1
+seg172_2812_2828            13     0     4       1
+seg124_2025_2042             8    62     0       1
+seg212_3439_3458            33    47     0       1
+seg197_3198_3215            39     3     0       1
+seg213_3458_3477            14    14     0       1
+seg23_372_386               23    23     0       1
+seg163_2656_2676            22    20     0       1
+seg161_2622_2640            27    50     0       1
+seg81_1313_1329              0     0     0       0

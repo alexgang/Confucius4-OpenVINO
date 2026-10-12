@@ -1,0 +1,25 @@
+audio_input=stdin format=s16le rate=16000 channels=1
+partial_text=Alright
+partial_text=,
+partial_text= with
+partial_text= recent
+partial_text= reporting
+partial_text= on
+partial_text= AI
+partial_text= models
+partial_text= hacking websites
+partial_text= exploiting
+partial_text= unidentified vulnerabilities
+partial_text=,
+partial_text= we may
+partial_text= not
+partial_text= be
+partial_text= far
+partial_text= away
+partial_text= from
+partial_text= these
+partial_text= models going after
+family=confucius4_r2t2
+task=asr
+mode=streaming
+text_output=Alright, with recent reporting on AI models hacking websites exploiting unidentified vulnerabilities, we may not be far away from these models going after security vulnerabilities in hardware.

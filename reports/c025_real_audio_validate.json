@@ -1,0 +1,69 @@
+{
+  "summary": {
+    "audio": "reports/c025/audio_A_600_660.wav",
+    "n_real_mel": 6000,
+    "N_audio": 780,
+    "n_windows": 7,
+    "cos_mean_avg": 1.0,
+    "cos_min_overall": 0.9999996423721313,
+    "n_windows_with_below_99": 0
+  },
+  "rows": [
+    {
+      "window": 0,
+      "start_mel": 0,
+      "end_mel": 800,
+      "cos_mean": 1.0,
+      "cos_min": 0.9999997615814209,
+      "n_low_99": 0
+    },
+    {
+      "window": 1,
+      "start_mel": 800,
+      "end_mel": 1600,
+      "cos_mean": 1.0,
+      "cos_min": 0.9999997615814209,
+      "n_low_99": 0
+    },
+    {
+      "window": 2,
+      "start_mel": 1600,
+      "end_mel": 2400,
+      "cos_mean": 1.0,
+      "cos_min": 0.9999997615814209,
+      "n_low_99": 0
+    },
+    {
+      "window": 3,
+      "start_mel": 2400,
+      "end_mel": 3200,
+      "cos_mean": 1.0,
+      "cos_min": 0.9999997615814209,
+      "n_low_99": 0
+    },
+    {
+      "window": 4,
+      "start_mel": 3200,
+      "end_mel": 4000,
+      "cos_mean": 1.0,
+      "cos_min": 0.9999996423721313,
+      "n_low_99": 0
+    },
+    {
+      "window": 5,
+      "start_mel": 4000,
+      "end_mel": 4800,
+      "cos_mean": 1.0,
+      "cos_min": 0.9999997615814209,
+      "n_low_99": 0
+    },
+    {
+      "window": 6,
+      "start_mel": 4800,
+      "end_mel": 5600,
+      "cos_mean": 1.0,
+      "cos_min": 0.9999998211860657,
+      "n_low_99": 0
+    }
+  ]
+}

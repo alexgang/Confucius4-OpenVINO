@@ -1,0 +1,8 @@
+{
+  "c038_v2": {
+    "full_800_mel_cos_mean": 1.0,
+    "full_800_mel_cos_min": 0.9999997615814209,
+    "partial_320_mel_cos_mean": 1.0,
+    "partial_320_mel_cos_min": 0.9999998807907104
+  }
+}

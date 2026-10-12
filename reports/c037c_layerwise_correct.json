@@ -1,0 +1,192 @@
+{
+  "n_mel": 960,
+  "window_a": 800,
+  "after_conv2d1": {
+    "shape_a": [
+      10,
+      480,
+      64,
+      50
+    ],
+    "shape_b": [
+      8,
+      480,
+      64,
+      50
+    ],
+    "n_rows_a": 307200,
+    "n_rows_b": 245760,
+    "n_compared": 245760,
+    "cos_mean": 1.0,
+    "cos_min": 0.9999995827674866,
+    "abs_diff_max": 0.0
+  },
+  "after_conv2d2": {
+    "shape_a": [
+      10,
+      480,
+      32,
+      25
+    ],
+    "shape_b": [
+      8,
+      480,
+      32,
+      25
+    ],
+    "n_rows_a": 153600,
+    "n_rows_b": 122880,
+    "n_compared": 122880,
+    "cos_mean": 1.0,
+    "cos_min": 0.9999996423721313,
+    "abs_diff_max": 0.0
+  },
+  "after_conv2d3": {
+    "shape_a": [
+      10,
+      480,
+      16,
+      13
+    ],
+    "shape_b": [
+      8,
+      480,
+      16,
+      13
+    ],
+    "n_rows_a": 76800,
+    "n_rows_b": 61440,
+    "n_compared": 61440,
+    "cos_mean": 1.0,
+    "cos_min": 0.9999995827674866,
+    "abs_diff_max": 0.0
+  },
+  "after_conv_out": {
+    "shape_a": [
+      10,
+      13,
+      1024
+    ],
+    "shape_b": [
+      8,
+      13,
+      1024
+    ],
+    "n_rows_a": 130,
+    "n_rows_b": 104,
+    "n_compared": 104,
+    "cos_mean": 1.0,
+    "cos_min": 0.9999997615814209,
+    "abs_diff_max": 1.1920928955078125e-06
+  },
+  "after_layer0": {
+    "shape_a": [
+      125,
+      1024
+    ],
+    "shape_b": [
+      104,
+      1024
+    ],
+    "n_rows_a": 125,
+    "n_rows_b": 104,
+    "n_compared": 104,
+    "cos_mean": 0.9999570846557617,
+    "cos_min": 0.9999384880065918,
+    "abs_diff_max": 0.0546269416809082
+  },
+  "after_layer11": {
+    "shape_a": [
+      125,
+      1024
+    ],
+    "shape_b": [
+      104,
+      1024
+    ],
+    "n_rows_a": 125,
+    "n_rows_b": 104,
+    "n_compared": 104,
+    "cos_mean": 0.9976298213005066,
+    "cos_min": 0.9239157438278198,
+    "abs_diff_max": 1.5681554079055786
+  },
+  "after_layer23": {
+    "shape_a": [
+      125,
+      1024
+    ],
+    "shape_b": [
+      104,
+      1024
+    ],
+    "n_rows_a": 125,
+    "n_rows_b": 104,
+    "n_compared": 104,
+    "cos_mean": 0.99379962682724,
+    "cos_min": 0.8104894757270813,
+    "abs_diff_max": 4.882717132568359
+  },
+  "after_ln_post": {
+    "shape_a": [
+      125,
+      1024
+    ],
+    "shape_b": [
+      104,
+      1024
+    ],
+    "n_rows_a": 125,
+    "n_rows_b": 104,
+    "n_compared": 104,
+    "cos_mean": 0.9765459299087524,
+    "cos_min": 0.16871172189712524,
+    "abs_diff_max": 1.1436216831207275
+  },
+  "after_proj1": {
+    "shape_a": [
+      125,
+      1024
+    ],
+    "shape_b": [
+      104,
+      1024
+    ],
+    "n_rows_a": 125,
+    "n_rows_b": 104,
+    "n_compared": 104,
+    "cos_mean": 0.9798573851585388,
+    "cos_min": 0.08490908890962601,
+    "abs_diff_max": 0.4171079993247986
+  },
+  "after_proj2": {
+    "shape_a": [
+      125,
+      2048
+    ],
+    "shape_b": [
+      104,
+      2048
+    ],
+    "n_rows_a": 125,
+    "n_rows_b": 104,
+    "n_compared": 104,
+    "cos_mean": 0.9874492883682251,
+    "cos_min": 0.2957727015018463,
+    "abs_diff_max": 0.05705177038908005
+  },
+  "final_cos": {
+    "shape_a": [
+      125,
+      2048
+    ],
+    "shape_b": [
+      104,
+      2048
+    ],
+    "cos_mean": 0.9874492883682251,
+    "cos_min": 0.2957727015018463,
+    "cos_argmin": 103
+  },
+  "first_divergence_layer": "after_layer11"
+}

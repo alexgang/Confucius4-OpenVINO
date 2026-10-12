@@ -1,0 +1,38 @@
+[
+  {
+    "seg": "A",
+    "cfg": 6,
+    "cfg_name": "cfg6_cuda_streaming",
+    "text": "team on what does our schedule look like? It's going to be sulfur dominated. The silicon exists for data center. What we need to do is encapsulate that with a reference design for client and enable sulfur that provisions that into the usage we need for client. So that's in work and one of the things in Q4 is what's our execution, commit and schedule around that, roughly targeted the second half 27. And then we'll follow on with what Explorer Island is and how does that represent what we need in client. Right? So that's a new swimlane that we've added, still discovery and understanding how we can best benefit from that, having conversations with our customers about what that means for them. And then you'll see on here this big white box called ax2, that is just starting early definition with Jeff's team and is basically what is that? Like what's the next class of ax we need to go build? Can that satisfy physical AI requirements? Is it a superset? How does it play the rest of",
+    "text_first_80w": "team on what does our schedule look like? It's going to be sulfur dominated. The silicon exists for data center. What we need to do is encapsulate that with a reference design for client and enable sulfur that provisions that into the usage we need for client. So that's in work and one of the things in Q4 is what's our execution, commit and schedule around that, roughly targeted the second half 27. And then we'll follow on with what",
+    "text_words": 180,
+    "wall_s": 178.76859169997624
+  },
+  {
+    "seg": "A",
+    "cfg": 7,
+    "cfg_name": "cfg7_cuda_offline",
+    "text": "team on what does our schedule look like. It's going to be sulfur dominated, the silicon exists for data center. What we need to do is encapsulate that with a reference design for client and enable sulfur that provisions that into the usage we need for client. So that's in work and one of the things in Q4 is what's our execution commit and schedule around that, roughly targeted the second half 27. And then we'll follow on what Explorer Island is and how does that represent what we need in right so that's a new swimlane that we've added, still discovery and understanding how we can best benefit from that, having conversations with our customers about what that means for them. And then you'll see on here this big white box called ax2, that is just starting early definition with Jeff's team and is basically what is that? Like what's the next class of ax we need to go build? Can that satisfy physical ai requirements? Is it a superset? How does it play the rest of",
+    "text_first_80w": "team on what does our schedule look like. It's going to be sulfur dominated, the silicon exists for data center. What we need to do is encapsulate that with a reference design for client and enable sulfur that provisions that into the usage we need for client. So that's in work and one of the things in Q4 is what's our execution commit and schedule around that, roughly targeted the second half 27. And then we'll follow on what Explorer",
+    "text_words": 178,
+    "wall_s": 359.28735739999684
+  },
+  {
+    "seg": "B",
+    "cfg": 6,
+    "cfg_name": "cfg6_cuda_streaming",
+    "text": "unique for each of them. So on Agentic Compute, where we're trying to build an Agentic Box and those capabilities, the first thing that's very interesting to see our validation team struggle with is it's no longer an end user that's clicking on Windows, right? The end user is an agent, and so how do we enable those agents with the right security frameworks, the right orchestration, and making sure we can tune it so that stack will include agent, model, harness, frameworks, all tuned specifically to that usage. I think Mike had talked about the GitHub coders, maybe we didn't talk about it today, we've been talking about it a lot after the Microsoft meeting, Google meetings about what's their target for an Agentic Box. And so that's a very targeted usage for each segment or deployment we expect a customer to target there. And that's where they're going to be really churning on models at a very rapid speed. So we'll be tracking, you know, top 100 models, how can they get functional, and they're always functional, and then",
+    "text_first_80w": "unique for each of them. So on Agentic Compute, where we're trying to build an Agentic Box and those capabilities, the first thing that's very interesting to see our validation team struggle with is it's no longer an end user that's clicking on Windows, right? The end user is an agent, and so how do we enable those agents with the right security frameworks, the right orchestration, and making sure we can tune it so that stack will include agent,",
+    "text_words": 181,
+    "wall_s": 281.02836199998274
+  },
+  {
+    "seg": "B",
+    "cfg": 7,
+    "cfg_name": "cfg7_cuda_offline",
+    "text": "unique for each of them. So on agentic compute where we're trying to build an agentic box and those capabilities, the first thing that's very interesting to see our validation team struggle with is it's no longer an end user that's clicking on windows, right? The end user is an agent. And so how do we enable those agents with the right security frameworks, the right orchestration, and making sure we can tune it so that stack will include agent, model, harness, frameworks, all specifically to that usage. I think Mike had talked about the GitHub coders, maybe we didn't talk about it today. We've been talking about it a lot after the Microsoft meeting, Google meetings about what's their target for an agentic box. And so that's a very targeted usage for each segment or deployment we expect a customer to target there. And that's where they're going to be really churning on models at a very rapid speed. So we'll be tracking, you know, top 100 models, how can they get functional and they're always functional and then",
+    "text_first_80w": "unique for each of them. So on agentic compute where we're trying to build an agentic box and those capabilities, the first thing that's very interesting to see our validation team struggle with is it's no longer an end user that's clicking on windows, right? The end user is an agent. And so how do we enable those agents with the right security frameworks, the right orchestration, and making sure we can tune it so that stack will include agent,",
+    "text_words": 180,
+    "wall_s": 12.548616800020682
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "hyp_words": 12139,
+  "ref_words": 11186,
+  "edit_dist": 2058,
+  "wer": 0.18397997496871088,
+  "target_wer": 0.12,
+  "pass": false,
+  "per_seg_wer_median": 0.11215932914046121,
+  "per_seg_wer_p95": 0.4878048780487805,
+  "per_seg_wer_max": 0.6785714285714286,
+  "n_segs_wer_gt_30pct": 42,
+  "n_segs_wer_gt_50pct": 10
+}

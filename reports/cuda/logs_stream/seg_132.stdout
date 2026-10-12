@@ -1,0 +1,26 @@
+audio_input=stdin format=s16le rate=16000 channels=1
+partial_text=But
+partial_text= now it
+partial_text='s
+partial_text= table
+partial_text= stakes
+partial_text=, so
+partial_text= everything for
+partial_text= frameworks is
+partial_text= probably
+partial_text= what's going
+partial_text= to be
+partial_text=, you know
+partial_text=,
+partial_text= ruling
+partial_text= a lot of
+partial_text= our
+partial_text= investment going
+partial_text= forward.
+partial_text= So that's
+partial_text= it. Thank
+partial_text= you.
+family=confucius4_r2t2
+task=asr
+mode=streaming
+text_output=But now it's table stakes, so everything for frameworks is probably what's going to be, you know, ruling a lot of our investment going forward. So that's it. Thank you. Thank you, Lisa. All right.

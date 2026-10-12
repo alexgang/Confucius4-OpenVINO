@@ -1,0 +1,18 @@
+c033 11-segment: a-old (broken cache) vs a-fix (cache fixed) vs a-fix+reset (new reset)
+a-old TOTAL n4: 183
+a-fix TOTAL n4: 1
+a-fix+reset TOTAL n4: 2
+a-fix+reset force_finishes: 1
+
+label                    a_old a_fix a_f+r  resets
+seg38_607_624                0     0     0       0
+seg39_624_641                4     1     1       0
+seg172_2812_2828            13     0     0       0
+seg124_2025_2042             8     0     0       0
+seg212_3439_3458            33     0     0       1
+seg197_3198_3215            39     0     0       0
+seg213_3458_3477            14     0     0       0
+seg23_372_386               23     0     0       0
+seg163_2656_2676            22     0     1       0
+seg161_2622_2640            27     0     0       0
+seg81_1313_1329              0     0     0       0

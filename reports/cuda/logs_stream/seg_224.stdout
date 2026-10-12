@@ -1,0 +1,12 @@
+audio_input=stdin format=s16le rate=16000 channels=1
+partial_text=Thank you
+partial_text= so much
+partial_text=, Mike
+partial_text=, and
+partial_text= thanks everybody for joining.
+partial_text= Thank
+partial_text= you,
+family=confucius4_r2t2
+task=asr
+mode=streaming
+text_output=Thank you so much, Mike, and thanks everybody for joining. Thank you, guys, appreciate it.
