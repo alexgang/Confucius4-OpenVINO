@@ -1,0 +1,11 @@
+openvino>=2025.4
+openvino-tokenizers
+openvino-genai
+optimum-intel[openvino]>=2.0
+nncf
+transformers>=4.53,<5
+qwen-asr
+torch>=2.1
+soundfile
+numpy
+huggingface-hub
