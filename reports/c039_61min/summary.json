@@ -1,0 +1,19 @@
+{
+  "mode": "c039_segment_global_no_reset",
+  "backend": "SegmentEncoderOVBackend",
+  "encoder_dir": "models/ov-encoder-segment-reviewer",
+  "decoder_dir": "models/ov-int8-past",
+  "wall_s": 2146.9427147000097,
+  "audio_dur_s": 3671.1893125,
+  "overall_rtf": 0.5848084999021715,
+  "n_segs": 226,
+  "n_chunks_total": 5849,
+  "total_words": 12297,
+  "n3_repeat": 1983,
+  "n4_repeat": 1207,
+  "n_segs_with_resets": 0,
+  "total_resets": 0,
+  "seg_rtf_p50": 0.5758322764795268,
+  "seg_rtf_p95": 0.6458505642646096,
+  "seg_rtf_max": 0.9555715390073188
+}

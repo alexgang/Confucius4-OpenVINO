@@ -1,0 +1,2189 @@
+{
+  "label": "seg67",
+  "start": 1086.3,
+  "end": 1102.4,
+  "dur": 16.100000000000136,
+  "n_chunks": 26,
+  "first_divergence": {
+    "chunk": 1,
+    "int8_gen": [
+      1052,
+      572,
+      264,
+      2696,
+      315,
+      91,
+      151645
+    ],
+    "fp16_gen": [
+      1052,
+      572,
+      264,
+      2696,
+      315,
+      151645
+    ],
+    "torch_gen": [
+      1052,
+      572,
+      264,
+      2696,
+      315,
+      151645
+    ],
+    "int8_prefix_len": 5,
+    "fp16_prefix_len": 5,
+    "torch_prefix_len": 5,
+    "int8_top5": [
+      1052,
+      11,
+      13,
+      2619,
+      26
+    ],
+    "fp16_top5": [
+      1052,
+      11,
+      13,
+      2619,
+      26
+    ],
+    "torch_top5": [
+      1052,
+      11,
+      13,
+      2619,
+      26
+    ],
+    "int8_top5_vals": [
+      51.342559814453125,
+      50.11664962768555,
+      42.999107360839844,
+      37.3705940246582,
+      32.815555572509766
+    ],
+    "fp16_top5_vals": [
+      49.56893539428711,
+      48.81360626220703,
+      41.65443801879883,
+      36.34485626220703,
+      32.163936614990234
+    ],
+    "torch_top5_vals": [
+      49.57248306274414,
+      48.810943603515625,
+      41.65116500854492,
+      36.363773345947266,
+      32.15586471557617
+    ]
+  },
+  "int8": {
+    "final_text": "language None<asr_text>on edge  there was a lot of|         vertical enablement, but not really in the sense of where these new businesses are going to be expecting us to  deliver.  So with  thought we share a little|   bit today about you know,|   maybe the first|  slide about|   what we're|  telling|  us to deliver.   So we thought we'd share a little bit today about you know maybe the first slide of what we're telling the board of what we're building.   But then where|   we're at  and how does this|  business|  deliver.   So we thought we'd share a little bit today about you know maybe the first slide of what we're telling the board of what we're building.  But  then where are we at and how does this plan build out over time.",
+    "n_chunks": 26
+  },
+  "fp16": {
+    "final_text": "language None<asr_text>on edge  there was a lot of  vertical and  enablement , but not really in  the sense of where  these new  businesses are going  to be   expecting us to  deliver .  So with  thought we share a little   bit today about   you know  maybe the first  slide  of what we're  telling us to deliver .         ",
+    "n_chunks": 26
+  },
+  "torch": {
+    "final_text": "language None<asr_text>on edge  there was a lot of  vertical and  enablement , but not really in  the sense of where  these new  businesses are going  to be   expecting us to  deliver .  So with  thought we share a little   bit today about   you know  maybe the first  slide  of what we're  telling us to deliver .         ",
+    "n_chunks": 26
+  },
+  "chunks_int8": [
+    {
+      "chunk": 0,
+      "prefix_len": 0,
+      "prefix_text_tail": "",
+      "gen_ids": [
+        11528,
+        2240,
+        151704,
+        263,
+        6821,
+        151645
+      ],
+      "gen_text": "language None<asr_text>on edge",
+      "logits_top5": [
+        11528,
+        1994,
+        56193,
+        42824,
+        2718
+      ],
+      "logits_top5_vals": [
+        38.0606575012207,
+        23.646381378173828,
+        23.35503387451172,
+        23.340024948120117,
+        23.309131622314453
+      ]
+    },
+    {
+      "chunk": 1,
+      "prefix_len": 5,
+      "prefix_text_tail": "language None<asr_text>on edge",
+      "gen_ids": [
+        1052,
+        572,
+        264,
+        2696,
+        315,
+        91,
+        151645
+      ],
+      "gen_text": " there was a lot of|",
+      "logits_top5": [
+        1052,
+        11,
+        13,
+        2619,
+        26
+      ],
+      "logits_top5_vals": [
+        51.342559814453125,
+        50.11664962768555,
+        42.999107360839844,
+        37.3705940246582,
+        32.815555572509766
+      ]
+    },
+    {
+      "chunk": 2,
+      "prefix_len": 12,
+      "prefix_text_tail": "anguage None<asr_text>on edge  there was a lot of|",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        151643,
+        11,
+        131530,
+        33486
+      ],
+      "logits_top5_vals": [
+        27.377653121948242,
+        20.415061950683594,
+        15.206645011901855,
+        13.649038314819336,
+        13.196061134338379
+      ]
+    },
+    {
+      "chunk": 3,
+      "prefix_len": 13,
+      "prefix_text_tail": "nguage None<asr_text>on edge  there was a lot of| ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        151643,
+        151661,
+        9973,
+        151660
+      ],
+      "logits_top5_vals": [
+        30.84450912475586,
+        20.774015426635742,
+        16.363340377807617,
+        16.088361740112305,
+        14.7838773727417
+      ]
+    },
+    {
+      "chunk": 4,
+      "prefix_len": 13,
+      "prefix_text_tail": "guage None<asr_text>on edge  there was a lot of|  ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        12140,
+        151643,
+        16202,
+        760
+      ],
+      "logits_top5_vals": [
+        32.78943634033203,
+        28.24440574645996,
+        26.654870986938477,
+        23.368967056274414,
+        23.25784683227539
+      ]
+    },
+    {
+      "chunk": 5,
+      "prefix_len": 13,
+      "prefix_text_tail": "uage None<asr_text>on edge  there was a lot of|   ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        12140,
+        151643,
+        760,
+        1154
+      ],
+      "logits_top5_vals": [
+        29.6053409576416,
+        28.9034423828125,
+        25.848783493041992,
+        25.771875381469727,
+        24.445993423461914
+      ]
+    },
+    {
+      "chunk": 6,
+      "prefix_len": 13,
+      "prefix_text_tail": "age None<asr_text>on edge  there was a lot of|    ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        12140,
+        760,
+        151643,
+        1154
+      ],
+      "logits_top5_vals": [
+        29.796030044555664,
+        29.376684188842773,
+        26.408672332763672,
+        26.334571838378906,
+        25.30851173400879
+      ]
+    },
+    {
+      "chunk": 7,
+      "prefix_len": 13,
+      "prefix_text_tail": "ge None<asr_text>on edge  there was a lot of|     ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        12140,
+        151643,
+        760,
+        1154
+      ],
+      "logits_top5_vals": [
+        30.081663131713867,
+        28.461515426635742,
+        26.233491897583008,
+        25.927278518676758,
+        25.283754348754883
+      ]
+    },
+    {
+      "chunk": 8,
+      "prefix_len": 13,
+      "prefix_text_tail": "e None<asr_text>on edge  there was a lot of|      ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        12140,
+        760,
+        151643,
+        1154
+      ],
+      "logits_top5_vals": [
+        30.358497619628906,
+        28.502477645874023,
+        26.16507911682129,
+        25.592660903930664,
+        24.294239044189453
+      ]
+    },
+    {
+      "chunk": 9,
+      "prefix_len": 13,
+      "prefix_text_tail": " None<asr_text>on edge  there was a lot of|       ",
+      "gen_ids": [
+        12140,
+        7283,
+        478,
+        11,
+        714,
+        537,
+        2167,
+        304,
+        279,
+        5530,
+        315,
+        1380,
+        1493,
+        501,
+        9675,
+        525,
+        2087,
+        311,
+        387,
+        22331,
+        601,
+        311,
+        151645
+      ],
+      "gen_text": " vertical enablement, but not really in the sense of where these new businesses are going to be expecting us to",
+      "logits_top5": [
+        12140,
+        151645,
+        760,
+        315,
+        151643
+      ],
+      "logits_top5_vals": [
+        29.209510803222656,
+        28.52078628540039,
+        26.660688400268555,
+        24.78506088256836,
+        24.62228012084961
+      ]
+    },
+    {
+      "chunk": 10,
+      "prefix_len": 35,
+      "prefix_text_tail": "ese new businesses are going to be expecting us to",
+      "gen_ids": [
+        6359,
+        13,
+        151645
+      ],
+      "gen_text": " deliver.",
+      "logits_top5": [
+        6359,
+        91,
+        220,
+        198,
+        13
+      ],
+      "logits_top5_vals": [
+        41.706573486328125,
+        32.50944900512695,
+        29.316104888916016,
+        28.432151794433594,
+        28.231393814086914
+      ]
+    },
+    {
+      "chunk": 11,
+      "prefix_len": 38,
+      "prefix_text_tail": "sinesses are going to be expecting us to  deliver.",
+      "gen_ids": [
+        2055,
+        448,
+        151645
+      ],
+      "gen_text": " So with",
+      "logits_top5": [
+        2055,
+        220,
+        773,
+        256,
+        262
+      ],
+      "logits_top5_vals": [
+        42.35475158691406,
+        37.57722854614258,
+        34.67259216308594,
+        31.052791595458984,
+        30.236478805541992
+      ]
+    },
+    {
+      "chunk": 12,
+      "prefix_len": 41,
+      "prefix_text_tail": "are going to be expecting us to  deliver.  So with",
+      "gen_ids": [
+        3381,
+        582,
+        4332,
+        264,
+        2632,
+        91,
+        151645
+      ],
+      "gen_text": " thought we share a little|",
+      "logits_top5": [
+        3381,
+        91,
+        60565,
+        582,
+        429
+      ],
+      "logits_top5_vals": [
+        32.21256637573242,
+        30.793254852294922,
+        27.637340545654297,
+        27.556381225585938,
+        27.46889305114746
+      ]
+    },
+    {
+      "chunk": 13,
+      "prefix_len": 48,
+      "prefix_text_tail": " to  deliver.  So with  thought we share a little|",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        260,
+        220,
+        286,
+        257
+      ],
+      "logits_top5_vals": [
+        27.599411010742188,
+        27.041929244995117,
+        26.555124282836914,
+        25.828720092773438,
+        25.62333106994629
+      ]
+    },
+    {
+      "chunk": 14,
+      "prefix_len": 49,
+      "prefix_text_tail": "to  deliver.  So with  thought we share a little| ",
+      "gen_ids": [
+        2699,
+        3351,
+        911,
+        498,
+        1414,
+        11,
+        91,
+        151645
+      ],
+      "gen_text": " bit today about you know,|",
+      "logits_top5": [
+        2699,
+        760,
+        293,
+        264,
+        911
+      ],
+      "logits_top5_vals": [
+        34.83551788330078,
+        27.60761260986328,
+        26.42037582397461,
+        26.371923446655273,
+        26.241031646728516
+      ]
+    },
+    {
+      "chunk": 15,
+      "prefix_len": 56,
+      "prefix_text_tail": "ht we share a little|   bit today about you know,|",
+      "gen_ids": [
+        220,
+        7196,
+        279,
+        1156,
+        91,
+        220,
+        14983,
+        911,
+        91,
+        151645
+      ],
+      "gen_text": "  maybe the first|  slide about|",
+      "logits_top5": [
+        220,
+        257,
+        7196,
+        256,
+        262
+      ],
+      "logits_top5_vals": [
+        28.941768646240234,
+        28.17789077758789,
+        28.066368103027344,
+        27.820180892944336,
+        27.598960876464844
+      ]
+    },
+    {
+      "chunk": 16,
+      "prefix_len": 65,
+      "prefix_text_tail": " about you know,|   maybe the first|  slide about|",
+      "gen_ids": [
+        220,
+        1128,
+        582,
+        2299,
+        91,
+        220,
+        11629,
+        91,
+        220,
+        601,
+        311,
+        6359,
+        13,
+        151645
+      ],
+      "gen_text": "  what we're|  telling|  us to deliver.",
+      "logits_top5": [
+        220,
+        1128,
+        256,
+        262,
+        760
+      ],
+      "logits_top5_vals": [
+        30.286073684692383,
+        28.579219818115234,
+        28.48903465270996,
+        26.714445114135742,
+        26.529621124267578
+      ]
+    },
+    {
+      "chunk": 17,
+      "prefix_len": 78,
+      "prefix_text_tail": "ide about|   what we're|  telling|  us to deliver.",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        220,
+        1205,
+        91
+      ],
+      "logits_top5_vals": [
+        31.675785064697266,
+        29.49155616760254,
+        29.364839553833008,
+        26.6359806060791,
+        25.85302734375
+      ]
+    },
+    {
+      "chunk": 18,
+      "prefix_len": 79,
+      "prefix_text_tail": "de about|   what we're|  telling|  us to deliver. ",
+      "gen_ids": [
+        2055,
+        582,
+        3381,
+        582,
+        4172,
+        4332,
+        264,
+        2632,
+        2699,
+        3351,
+        911,
+        498,
+        1414,
+        7196,
+        279,
+        1156,
+        14983,
+        315,
+        1128,
+        582,
+        2299,
+        11629,
+        279,
+        4479,
+        315,
+        1128,
+        582,
+        2299,
+        4752,
+        13,
+        151645
+      ],
+      "gen_text": " So we thought we'd share a little bit today about you know maybe the first slide of what we're telling the board of what we're building.",
+      "logits_top5": [
+        2055,
+        151645,
+        1205,
+        3555,
+        576
+      ],
+      "logits_top5_vals": [
+        30.56456756591797,
+        28.590801239013672,
+        28.483675003051758,
+        28.054330825805664,
+        27.944242477416992
+      ]
+    },
+    {
+      "chunk": 19,
+      "prefix_len": 109,
+      "prefix_text_tail": "at we're telling the board of what we're building.",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        220,
+        2055,
+        91,
+        1205
+      ],
+      "logits_top5_vals": [
+        32.076786041259766,
+        26.529109954833984,
+        25.219785690307617,
+        25.20132064819336,
+        24.983577728271484
+      ]
+    },
+    {
+      "chunk": 20,
+      "prefix_len": 110,
+      "prefix_text_tail": "t we're telling the board of what we're building. ",
+      "gen_ids": [
+        1988,
+        1221,
+        1380,
+        91,
+        151645
+      ],
+      "gen_text": " But then where|",
+      "logits_top5": [
+        1988,
+        714,
+        1597,
+        2055,
+        760
+      ],
+      "logits_top5_vals": [
+        34.096553802490234,
+        28.885982513427734,
+        27.876798629760742,
+        27.34663200378418,
+        27.236360549926758
+      ]
+    },
+    {
+      "chunk": 21,
+      "prefix_len": 114,
+      "prefix_text_tail": "he board of what we're building.   But then where|",
+      "gen_ids": [
+        220,
+        582,
+        2299,
+        518,
+        151645
+      ],
+      "gen_text": "  we're at",
+      "logits_top5": [
+        220,
+        151645,
+        256,
+        582,
+        525
+      ],
+      "logits_top5_vals": [
+        28.464555740356445,
+        27.73508644104004,
+        27.274078369140625,
+        26.360187530517578,
+        25.59530258178711
+      ]
+    },
+    {
+      "chunk": 22,
+      "prefix_len": 118,
+      "prefix_text_tail": " what we're building.   But then where|   we're at",
+      "gen_ids": [
+        323,
+        1246,
+        1558,
+        419,
+        91,
+        220,
+        2562,
+        91,
+        220,
+        6359,
+        13,
+        151645
+      ],
+      "gen_text": " and how does this|  business|  deliver.",
+      "logits_top5": [
+        323,
+        11,
+        91,
+        30,
+        13
+      ],
+      "logits_top5_vals": [
+        33.79400634765625,
+        32.02792739868164,
+        31.52225685119629,
+        30.430870056152344,
+        30.0968017578125
+      ]
+    },
+    {
+      "chunk": 23,
+      "prefix_len": 130,
+      "prefix_text_tail": " we're at  and how does this|  business|  deliver.",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        220,
+        2055,
+        256,
+        1205
+      ],
+      "logits_top5_vals": [
+        31.48749351501465,
+        28.841102600097656,
+        27.23711585998535,
+        25.951732635498047,
+        25.758529663085938
+      ]
+    },
+    {
+      "chunk": 24,
+      "prefix_len": 131,
+      "prefix_text_tail": "we're at  and how does this|  business|  deliver. ",
+      "gen_ids": [
+        2055,
+        582,
+        3381,
+        582,
+        4172,
+        4332,
+        264,
+        2632,
+        2699,
+        3351,
+        911,
+        498,
+        1414,
+        7196,
+        279,
+        1156,
+        14983,
+        315,
+        1128,
+        582,
+        2299,
+        11629,
+        279,
+        4479,
+        315,
+        1128,
+        582,
+        2299,
+        4752,
+        13,
+        220,
+        1988
+      ],
+      "gen_text": " So we thought we'd share a little bit today about you know maybe the first slide of what we're telling the board of what we're building.  But",
+      "logits_top5": [
+        2055,
+        9680,
+        7854,
+        1205,
+        1597
+      ],
+      "logits_top5_vals": [
+        30.657459259033203,
+        28.547452926635742,
+        28.25751495361328,
+        27.63275146484375,
+        27.583723068237305
+      ]
+    },
+    {
+      "chunk": 25,
+      "prefix_len": 163,
+      "prefix_text_tail": "'re telling the board of what we're building.  But",
+      "gen_ids": [
+        1221,
+        1380,
+        525,
+        582,
+        518,
+        323,
+        1246,
+        1558,
+        419,
+        3119,
+        1936,
+        700,
+        916,
+        882,
+        13,
+        151645
+      ],
+      "gen_text": " then where are we at and how does this plan build out over time.",
+      "logits_top5": [
+        1221,
+        91,
+        220,
+        5005,
+        1380
+      ],
+      "logits_top5_vals": [
+        37.51350402832031,
+        32.323978424072266,
+        30.391231536865234,
+        27.8155517578125,
+        27.284177780151367
+      ]
+    }
+  ],
+  "chunks_fp16": [
+    {
+      "chunk": 0,
+      "prefix_len": 0,
+      "prefix_text_tail": "",
+      "gen_ids": [
+        11528,
+        2240,
+        151704,
+        263,
+        6821,
+        151645
+      ],
+      "gen_text": "language None<asr_text>on edge",
+      "logits_top5": [
+        11528,
+        14484,
+        5205,
+        56193,
+        29021
+      ],
+      "logits_top5_vals": [
+        37.78096008300781,
+        22.696704864501953,
+        22.60747718811035,
+        22.492862701416016,
+        22.375499725341797
+      ]
+    },
+    {
+      "chunk": 1,
+      "prefix_len": 5,
+      "prefix_text_tail": "language None<asr_text>on edge",
+      "gen_ids": [
+        1052,
+        572,
+        264,
+        2696,
+        315,
+        151645
+      ],
+      "gen_text": " there was a lot of",
+      "logits_top5": [
+        1052,
+        11,
+        13,
+        2619,
+        26
+      ],
+      "logits_top5_vals": [
+        49.56893539428711,
+        48.81360626220703,
+        41.65443801879883,
+        36.34485626220703,
+        32.163936614990234
+      ]
+    },
+    {
+      "chunk": 2,
+      "prefix_len": 11,
+      "prefix_text_tail": "language None<asr_text>on edge  there was a lot of",
+      "gen_ids": [
+        12140,
+        323,
+        151645
+      ],
+      "gen_text": " vertical and",
+      "logits_top5": [
+        12140,
+        15292,
+        16202,
+        35463,
+        18612
+      ],
+      "logits_top5_vals": [
+        52.07453918457031,
+        33.98313522338867,
+        33.136085510253906,
+        31.700963973999023,
+        30.363130569458008
+      ]
+    },
+    {
+      "chunk": 3,
+      "prefix_len": 14,
+      "prefix_text_tail": "asr_text>on edge  there was a lot of  vertical and",
+      "gen_ids": [
+        7283,
+        478,
+        151645
+      ],
+      "gen_text": " enablement",
+      "logits_top5": [
+        7283,
+        1114,
+        478,
+        12552,
+        151643
+      ],
+      "logits_top5_vals": [
+        28.080215454101562,
+        26.76264762878418,
+        26.738014221191406,
+        25.567975997924805,
+        25.387399673461914
+      ]
+    },
+    {
+      "chunk": 4,
+      "prefix_len": 17,
+      "prefix_text_tail": "edge  there was a lot of  vertical and  enablement",
+      "gen_ids": [
+        11,
+        714,
+        537,
+        2167,
+        304,
+        151645
+      ],
+      "gen_text": ", but not really in",
+      "logits_top5": [
+        11,
+        714,
+        220,
+        1154,
+        1988
+      ],
+      "logits_top5_vals": [
+        44.617034912109375,
+        43.362979888916016,
+        42.21485900878906,
+        35.4947509765625,
+        31.199047088623047
+      ]
+    },
+    {
+      "chunk": 5,
+      "prefix_len": 22,
+      "prefix_text_tail": "t of  vertical and  enablement , but not really in",
+      "gen_ids": [
+        279,
+        5530,
+        315,
+        1380,
+        151645
+      ],
+      "gen_text": " the sense of where",
+      "logits_top5": [
+        279,
+        220,
+        256,
+        264,
+        1782
+      ],
+      "logits_top5_vals": [
+        52.312679290771484,
+        42.699607849121094,
+        34.25808334350586,
+        33.653892517089844,
+        32.42055130004883
+      ]
+    },
+    {
+      "chunk": 6,
+      "prefix_len": 27,
+      "prefix_text_tail": "enablement , but not really in  the sense of where",
+      "gen_ids": [
+        1493,
+        501,
+        151645
+      ],
+      "gen_text": " these new",
+      "logits_top5": [
+        1493,
+        220,
+        256,
+        4220,
+        262
+      ],
+      "logits_top5_vals": [
+        51.9080810546875,
+        49.121219635009766,
+        39.7025146484375,
+        36.59040069580078,
+        35.90813446044922
+      ]
+    },
+    {
+      "chunk": 7,
+      "prefix_len": 30,
+      "prefix_text_tail": ", but not really in  the sense of where  these new",
+      "gen_ids": [
+        9675,
+        525,
+        2087,
+        151645
+      ],
+      "gen_text": " businesses are going",
+      "logits_top5": [
+        9675,
+        220,
+        2562,
+        256,
+        262
+      ],
+      "logits_top5_vals": [
+        41.09785842895508,
+        38.46866226196289,
+        31.736658096313477,
+        30.96588706970215,
+        29.637712478637695
+      ]
+    },
+    {
+      "chunk": 8,
+      "prefix_len": 34,
+      "prefix_text_tail": "he sense of where  these new  businesses are going",
+      "gen_ids": [
+        311,
+        387,
+        220,
+        151645
+      ],
+      "gen_text": " to be ",
+      "logits_top5": [
+        311,
+        220,
+        387,
+        256,
+        262
+      ],
+      "logits_top5_vals": [
+        38.59787368774414,
+        35.531227111816406,
+        31.034534454345703,
+        27.195127487182617,
+        26.07413101196289
+      ]
+    },
+    {
+      "chunk": 9,
+      "prefix_len": 38,
+      "prefix_text_tail": " of where  these new  businesses are going  to be ",
+      "gen_ids": [
+        22331,
+        601,
+        311,
+        151645
+      ],
+      "gen_text": " expecting us to",
+      "logits_top5": [
+        22331,
+        1720,
+        32085,
+        17119,
+        1154
+      ],
+      "logits_top5_vals": [
+        40.30013656616211,
+        29.72966766357422,
+        29.594898223876953,
+        27.391143798828125,
+        26.800756454467773
+      ]
+    },
+    {
+      "chunk": 10,
+      "prefix_len": 41,
+      "prefix_text_tail": "new  businesses are going  to be   expecting us to",
+      "gen_ids": [
+        6359,
+        659,
+        151645
+      ],
+      "gen_text": " deliver .",
+      "logits_top5": [
+        6359,
+        220,
+        256,
+        262,
+        9691
+      ],
+      "logits_top5_vals": [
+        36.941287994384766,
+        35.36355209350586,
+        30.914459228515625,
+        28.600299835205078,
+        28.000944137573242
+      ]
+    },
+    {
+      "chunk": 11,
+      "prefix_len": 44,
+      "prefix_text_tail": "sses are going  to be   expecting us to  deliver .",
+      "gen_ids": [
+        2055,
+        448,
+        151645
+      ],
+      "gen_text": " So with",
+      "logits_top5": [
+        2055,
+        220,
+        773,
+        4416,
+        704
+      ],
+      "logits_top5_vals": [
+        37.86335754394531,
+        35.03809356689453,
+        34.68061447143555,
+        32.224937438964844,
+        29.47534942626953
+      ]
+    },
+    {
+      "chunk": 12,
+      "prefix_len": 47,
+      "prefix_text_tail": "going  to be   expecting us to  deliver .  So with",
+      "gen_ids": [
+        3381,
+        582,
+        4332,
+        264,
+        2632,
+        151645
+      ],
+      "gen_text": " thought we share a little",
+      "logits_top5": [
+        3381,
+        220,
+        429,
+        151643,
+        582
+      ],
+      "logits_top5_vals": [
+        31.110279083251953,
+        30.839601516723633,
+        28.208982467651367,
+        27.07897186279297,
+        27.032176971435547
+      ]
+    },
+    {
+      "chunk": 13,
+      "prefix_len": 53,
+      "prefix_text_tail": " to  deliver .  So with  thought we share a little",
+      "gen_ids": [
+        220,
+        2699,
+        3351,
+        911,
+        220,
+        151645
+      ],
+      "gen_text": "  bit today about ",
+      "logits_top5": [
+        220,
+        2699,
+        256,
+        1154,
+        659
+      ],
+      "logits_top5_vals": [
+        35.187522888183594,
+        34.86928176879883,
+        28.007577896118164,
+        27.143606185913086,
+        26.65098762512207
+      ]
+    },
+    {
+      "chunk": 14,
+      "prefix_len": 58,
+      "prefix_text_tail": "with  thought we share a little   bit today about ",
+      "gen_ids": [
+        498,
+        1414,
+        151645
+      ],
+      "gen_text": " you know",
+      "logits_top5": [
+        498,
+        1154,
+        1446,
+        1414,
+        659
+      ],
+      "logits_top5_vals": [
+        39.888450622558594,
+        34.30481719970703,
+        31.749252319335938,
+        31.52788543701172,
+        29.887847900390625
+      ]
+    },
+    {
+      "chunk": 15,
+      "prefix_len": 60,
+      "prefix_text_tail": "ght we share a little   bit today about   you know",
+      "gen_ids": [
+        7196,
+        279,
+        1156,
+        220,
+        14983,
+        151645
+      ],
+      "gen_text": " maybe the first  slide",
+      "logits_top5": [
+        7196,
+        220,
+        1154,
+        256,
+        11
+      ],
+      "logits_top5_vals": [
+        37.5007209777832,
+        35.534671783447266,
+        34.26992416381836,
+        32.77366638183594,
+        32.4703483581543
+      ]
+    },
+    {
+      "chunk": 16,
+      "prefix_len": 66,
+      "prefix_text_tail": "bit today about   you know  maybe the first  slide",
+      "gen_ids": [
+        315,
+        1128,
+        582,
+        2299,
+        220,
+        11629,
+        601,
+        311,
+        6359,
+        659,
+        151645
+      ],
+      "gen_text": " of what we're  telling us to deliver .",
+      "logits_top5": [
+        315,
+        220,
+        256,
+        262,
+        1128
+      ],
+      "logits_top5_vals": [
+        40.821861267089844,
+        37.27811050415039,
+        33.39903259277344,
+        30.55386734008789,
+        30.204509735107422
+      ]
+    },
+    {
+      "chunk": 17,
+      "prefix_len": 77,
+      "prefix_text_tail": "rst  slide  of what we're  telling us to deliver .",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        91,
+        220,
+        151643
+      ],
+      "logits_top5_vals": [
+        32.98713302612305,
+        26.18787956237793,
+        25.9412784576416,
+        25.62247657775879,
+        23.72945785522461
+      ]
+    },
+    {
+      "chunk": 18,
+      "prefix_len": 78,
+      "prefix_text_tail": "st  slide  of what we're  telling us to deliver . ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        1205,
+        773,
+        3555
+      ],
+      "logits_top5_vals": [
+        32.17527389526367,
+        28.513431549072266,
+        25.527700424194336,
+        25.28449249267578,
+        25.274492263793945
+      ]
+    },
+    {
+      "chunk": 19,
+      "prefix_len": 78,
+      "prefix_text_tail": "t  slide  of what we're  telling us to deliver .  ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        1205,
+        3555,
+        773
+      ],
+      "logits_top5_vals": [
+        32.4664421081543,
+        27.86234474182129,
+        26.268386840820312,
+        26.014150619506836,
+        25.45929527282715
+      ]
+    },
+    {
+      "chunk": 20,
+      "prefix_len": 78,
+      "prefix_text_tail": "  slide  of what we're  telling us to deliver .   ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        1988,
+        714,
+        1205
+      ],
+      "logits_top5_vals": [
+        32.410377502441406,
+        27.283449172973633,
+        26.71805191040039,
+        25.06052017211914,
+        24.989744186401367
+      ]
+    },
+    {
+      "chunk": 21,
+      "prefix_len": 78,
+      "prefix_text_tail": " slide  of what we're  telling us to deliver .    ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        1988,
+        3555,
+        714
+      ],
+      "logits_top5_vals": [
+        32.058597564697266,
+        27.690603256225586,
+        27.617456436157227,
+        25.84446144104004,
+        25.721790313720703
+      ]
+    },
+    {
+      "chunk": 22,
+      "prefix_len": 78,
+      "prefix_text_tail": "slide  of what we're  telling us to deliver .     ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        1988,
+        714,
+        3555
+      ],
+      "logits_top5_vals": [
+        31.89336395263672,
+        27.420419692993164,
+        27.094558715820312,
+        25.647680282592773,
+        25.41419219970703
+      ]
+    },
+    {
+      "chunk": 23,
+      "prefix_len": 78,
+      "prefix_text_tail": "lide  of what we're  telling us to deliver .      ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        1988,
+        714,
+        773
+      ],
+      "logits_top5_vals": [
+        31.86880874633789,
+        28.66372299194336,
+        27.721126556396484,
+        26.085233688354492,
+        25.965003967285156
+      ]
+    },
+    {
+      "chunk": 24,
+      "prefix_len": 78,
+      "prefix_text_tail": "ide  of what we're  telling us to deliver .       ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        1988,
+        714,
+        3555
+      ],
+      "logits_top5_vals": [
+        30.809711456298828,
+        29.36895751953125,
+        28.787046432495117,
+        27.23713493347168,
+        26.952512741088867
+      ]
+    },
+    {
+      "chunk": 25,
+      "prefix_len": 78,
+      "prefix_text_tail": "de  of what we're  telling us to deliver .        ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        1988,
+        3555,
+        714
+      ],
+      "logits_top5_vals": [
+        30.678430557250977,
+        28.745025634765625,
+        28.72475814819336,
+        27.53489112854004,
+        27.311384201049805
+      ]
+    }
+  ],
+  "chunks_torch": [
+    {
+      "chunk": 0,
+      "prefix_len": 0,
+      "prefix_text_tail": "",
+      "gen_ids": [
+        11528,
+        2240,
+        151704,
+        263,
+        6821,
+        151645
+      ],
+      "gen_text": "language None<asr_text>on edge",
+      "logits_top5": [
+        11528,
+        14484,
+        5205,
+        56193,
+        29021
+      ],
+      "logits_top5_vals": [
+        37.725276947021484,
+        22.648502349853516,
+        22.558998107910156,
+        22.481456756591797,
+        22.37056541442871
+      ]
+    },
+    {
+      "chunk": 1,
+      "prefix_len": 5,
+      "prefix_text_tail": "language None<asr_text>on edge",
+      "gen_ids": [
+        1052,
+        572,
+        264,
+        2696,
+        315,
+        151645
+      ],
+      "gen_text": " there was a lot of",
+      "logits_top5": [
+        1052,
+        11,
+        13,
+        2619,
+        26
+      ],
+      "logits_top5_vals": [
+        49.57248306274414,
+        48.810943603515625,
+        41.65116500854492,
+        36.363773345947266,
+        32.15586471557617
+      ]
+    },
+    {
+      "chunk": 2,
+      "prefix_len": 11,
+      "prefix_text_tail": "language None<asr_text>on edge  there was a lot of",
+      "gen_ids": [
+        12140,
+        323,
+        151645
+      ],
+      "gen_text": " vertical and",
+      "logits_top5": [
+        12140,
+        15292,
+        16202,
+        35463,
+        18612
+      ],
+      "logits_top5_vals": [
+        52.07634735107422,
+        34.00093078613281,
+        33.141845703125,
+        31.712064743041992,
+        30.384801864624023
+      ]
+    },
+    {
+      "chunk": 3,
+      "prefix_len": 14,
+      "prefix_text_tail": "asr_text>on edge  there was a lot of  vertical and",
+      "gen_ids": [
+        7283,
+        478,
+        151645
+      ],
+      "gen_text": " enablement",
+      "logits_top5": [
+        7283,
+        1114,
+        478,
+        12552,
+        151643
+      ],
+      "logits_top5_vals": [
+        28.045286178588867,
+        26.701404571533203,
+        26.662010192871094,
+        25.532093048095703,
+        25.429162979125977
+      ]
+    },
+    {
+      "chunk": 4,
+      "prefix_len": 17,
+      "prefix_text_tail": "edge  there was a lot of  vertical and  enablement",
+      "gen_ids": [
+        11,
+        714,
+        537,
+        2167,
+        304,
+        151645
+      ],
+      "gen_text": ", but not really in",
+      "logits_top5": [
+        11,
+        714,
+        220,
+        1154,
+        1988
+      ],
+      "logits_top5_vals": [
+        44.639915466308594,
+        43.36619186401367,
+        42.21220779418945,
+        35.500572204589844,
+        31.205799102783203
+      ]
+    },
+    {
+      "chunk": 5,
+      "prefix_len": 22,
+      "prefix_text_tail": "t of  vertical and  enablement , but not really in",
+      "gen_ids": [
+        279,
+        5530,
+        315,
+        1380,
+        151645
+      ],
+      "gen_text": " the sense of where",
+      "logits_top5": [
+        279,
+        220,
+        256,
+        264,
+        1782
+      ],
+      "logits_top5_vals": [
+        52.31034851074219,
+        42.705135345458984,
+        34.26741027832031,
+        33.62004852294922,
+        32.41510772705078
+      ]
+    },
+    {
+      "chunk": 6,
+      "prefix_len": 27,
+      "prefix_text_tail": "enablement , but not really in  the sense of where",
+      "gen_ids": [
+        1493,
+        501,
+        151645
+      ],
+      "gen_text": " these new",
+      "logits_top5": [
+        1493,
+        220,
+        256,
+        4220,
+        262
+      ],
+      "logits_top5_vals": [
+        51.923404693603516,
+        49.14238739013672,
+        39.71883773803711,
+        36.573341369628906,
+        35.922813415527344
+      ]
+    },
+    {
+      "chunk": 7,
+      "prefix_len": 30,
+      "prefix_text_tail": ", but not really in  the sense of where  these new",
+      "gen_ids": [
+        9675,
+        525,
+        2087,
+        151645
+      ],
+      "gen_text": " businesses are going",
+      "logits_top5": [
+        9675,
+        220,
+        2562,
+        256,
+        262
+      ],
+      "logits_top5_vals": [
+        41.0250358581543,
+        38.43690490722656,
+        31.705141067504883,
+        30.946311950683594,
+        29.612842559814453
+      ]
+    },
+    {
+      "chunk": 8,
+      "prefix_len": 34,
+      "prefix_text_tail": "he sense of where  these new  businesses are going",
+      "gen_ids": [
+        311,
+        387,
+        220,
+        151645
+      ],
+      "gen_text": " to be ",
+      "logits_top5": [
+        311,
+        220,
+        387,
+        256,
+        262
+      ],
+      "logits_top5_vals": [
+        38.61013412475586,
+        35.54856872558594,
+        31.044437408447266,
+        27.22031021118164,
+        26.089921951293945
+      ]
+    },
+    {
+      "chunk": 9,
+      "prefix_len": 38,
+      "prefix_text_tail": " of where  these new  businesses are going  to be ",
+      "gen_ids": [
+        22331,
+        601,
+        311,
+        151645
+      ],
+      "gen_text": " expecting us to",
+      "logits_top5": [
+        22331,
+        1720,
+        32085,
+        17119,
+        1154
+      ],
+      "logits_top5_vals": [
+        40.29214859008789,
+        29.699743270874023,
+        29.556055068969727,
+        27.389888763427734,
+        26.772422790527344
+      ]
+    },
+    {
+      "chunk": 10,
+      "prefix_len": 41,
+      "prefix_text_tail": "new  businesses are going  to be   expecting us to",
+      "gen_ids": [
+        6359,
+        659,
+        151645
+      ],
+      "gen_text": " deliver .",
+      "logits_top5": [
+        6359,
+        220,
+        256,
+        262,
+        9691
+      ],
+      "logits_top5_vals": [
+        36.948524475097656,
+        35.380252838134766,
+        30.914520263671875,
+        28.6027774810791,
+        28.007326126098633
+      ]
+    },
+    {
+      "chunk": 11,
+      "prefix_len": 44,
+      "prefix_text_tail": "sses are going  to be   expecting us to  deliver .",
+      "gen_ids": [
+        2055,
+        448,
+        151645
+      ],
+      "gen_text": " So with",
+      "logits_top5": [
+        2055,
+        220,
+        773,
+        4416,
+        704
+      ],
+      "logits_top5_vals": [
+        37.82703399658203,
+        34.98989486694336,
+        34.65796661376953,
+        32.19640350341797,
+        29.45321273803711
+      ]
+    },
+    {
+      "chunk": 12,
+      "prefix_len": 47,
+      "prefix_text_tail": "going  to be   expecting us to  deliver .  So with",
+      "gen_ids": [
+        3381,
+        582,
+        4332,
+        264,
+        2632,
+        151645
+      ],
+      "gen_text": " thought we share a little",
+      "logits_top5": [
+        3381,
+        220,
+        429,
+        151643,
+        582
+      ],
+      "logits_top5_vals": [
+        31.119672775268555,
+        30.820560455322266,
+        28.161989212036133,
+        27.083911895751953,
+        27.009809494018555
+      ]
+    },
+    {
+      "chunk": 13,
+      "prefix_len": 53,
+      "prefix_text_tail": " to  deliver .  So with  thought we share a little",
+      "gen_ids": [
+        220,
+        2699,
+        3351,
+        911,
+        220,
+        151645
+      ],
+      "gen_text": "  bit today about ",
+      "logits_top5": [
+        220,
+        2699,
+        256,
+        1154,
+        659
+      ],
+      "logits_top5_vals": [
+        35.167152404785156,
+        34.87291717529297,
+        28.0350284576416,
+        27.136653900146484,
+        26.673694610595703
+      ]
+    },
+    {
+      "chunk": 14,
+      "prefix_len": 58,
+      "prefix_text_tail": "with  thought we share a little   bit today about ",
+      "gen_ids": [
+        498,
+        1414,
+        151645
+      ],
+      "gen_text": " you know",
+      "logits_top5": [
+        498,
+        1154,
+        1446,
+        1414,
+        659
+      ],
+      "logits_top5_vals": [
+        39.942054748535156,
+        34.31333541870117,
+        31.78238868713379,
+        31.560792922973633,
+        29.904409408569336
+      ]
+    },
+    {
+      "chunk": 15,
+      "prefix_len": 60,
+      "prefix_text_tail": "ght we share a little   bit today about   you know",
+      "gen_ids": [
+        7196,
+        279,
+        1156,
+        220,
+        14983,
+        151645
+      ],
+      "gen_text": " maybe the first  slide",
+      "logits_top5": [
+        7196,
+        220,
+        1154,
+        256,
+        11
+      ],
+      "logits_top5_vals": [
+        37.55103302001953,
+        35.54700469970703,
+        34.28659439086914,
+        32.780704498291016,
+        32.49241638183594
+      ]
+    },
+    {
+      "chunk": 16,
+      "prefix_len": 66,
+      "prefix_text_tail": "bit today about   you know  maybe the first  slide",
+      "gen_ids": [
+        315,
+        1128,
+        582,
+        2299,
+        220,
+        11629,
+        601,
+        311,
+        6359,
+        659,
+        151645
+      ],
+      "gen_text": " of what we're  telling us to deliver .",
+      "logits_top5": [
+        315,
+        220,
+        256,
+        262,
+        1128
+      ],
+      "logits_top5_vals": [
+        40.706485748291016,
+        37.21741485595703,
+        33.36603546142578,
+        30.525104522705078,
+        30.147321701049805
+      ]
+    },
+    {
+      "chunk": 17,
+      "prefix_len": 77,
+      "prefix_text_tail": "rst  slide  of what we're  telling us to deliver .",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        91,
+        220,
+        151643
+      ],
+      "logits_top5_vals": [
+        32.9679069519043,
+        26.23413848876953,
+        25.942596435546875,
+        25.65175437927246,
+        23.734853744506836
+      ]
+    },
+    {
+      "chunk": 18,
+      "prefix_len": 78,
+      "prefix_text_tail": "st  slide  of what we're  telling us to deliver . ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        1205,
+        3555,
+        773
+      ],
+      "logits_top5_vals": [
+        32.184844970703125,
+        28.51145362854004,
+        25.541545867919922,
+        25.304115295410156,
+        25.26259422302246
+      ]
+    },
+    {
+      "chunk": 19,
+      "prefix_len": 78,
+      "prefix_text_tail": "t  slide  of what we're  telling us to deliver .  ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        1205,
+        3555,
+        773
+      ],
+      "logits_top5_vals": [
+        32.43791580200195,
+        27.786483764648438,
+        26.233041763305664,
+        26.04452133178711,
+        25.38535499572754
+      ]
+    },
+    {
+      "chunk": 20,
+      "prefix_len": 78,
+      "prefix_text_tail": "  slide  of what we're  telling us to deliver .   ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        1988,
+        714,
+        1205
+      ],
+      "logits_top5_vals": [
+        32.404151916503906,
+        27.34084701538086,
+        26.73931121826172,
+        25.07599449157715,
+        25.061086654663086
+      ]
+    },
+    {
+      "chunk": 21,
+      "prefix_len": 78,
+      "prefix_text_tail": " slide  of what we're  telling us to deliver .    ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        1988,
+        3555,
+        714
+      ],
+      "logits_top5_vals": [
+        32.06285858154297,
+        27.673147201538086,
+        27.578720092773438,
+        25.814002990722656,
+        25.702293395996094
+      ]
+    },
+    {
+      "chunk": 22,
+      "prefix_len": 78,
+      "prefix_text_tail": "slide  of what we're  telling us to deliver .     ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        1988,
+        714,
+        3555
+      ],
+      "logits_top5_vals": [
+        31.873159408569336,
+        27.526920318603516,
+        27.18846321105957,
+        25.736492156982422,
+        25.461978912353516
+      ]
+    },
+    {
+      "chunk": 23,
+      "prefix_len": 78,
+      "prefix_text_tail": "lide  of what we're  telling us to deliver .      ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        1988,
+        714,
+        3555
+      ],
+      "logits_top5_vals": [
+        31.852781295776367,
+        28.618684768676758,
+        27.80200958251953,
+        26.14798355102539,
+        25.977622985839844
+      ]
+    },
+    {
+      "chunk": 24,
+      "prefix_len": 78,
+      "prefix_text_tail": "ide  of what we're  telling us to deliver .       ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        1988,
+        714,
+        3555
+      ],
+      "logits_top5_vals": [
+        30.921268463134766,
+        29.258150100708008,
+        28.588817596435547,
+        27.046539306640625,
+        26.738773345947266
+      ]
+    },
+    {
+      "chunk": 25,
+      "prefix_len": 78,
+      "prefix_text_tail": "de  of what we're  telling us to deliver .        ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        2055,
+        1988,
+        3555,
+        714
+      ],
+      "logits_top5_vals": [
+        30.692729949951172,
+        28.77470588684082,
+        28.73859405517578,
+        27.527923583984375,
+        27.30510711669922
+      ]
+    }
+  ]
+}

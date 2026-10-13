@@ -1,0 +1,1905 @@
+{
+  "label": "seg118",
+  "start": 1925.4,
+  "end": 1939.5,
+  "dur": 14.099999999999909,
+  "n_chunks": 23,
+  "first_divergence": {
+    "chunk": 4,
+    "int8_gen": [
+      1105,
+      13,
+      151645
+    ],
+    "fp16_gen": [
+      1105,
+      151645
+    ],
+    "torch_gen": [
+      1105,
+      151645
+    ],
+    "int8_prefix_len": 18,
+    "fp16_prefix_len": 18,
+    "torch_prefix_len": 18,
+    "int8_top5": [
+      1105,
+      220,
+      48718,
+      151643,
+      198
+    ],
+    "fp16_top5": [
+      1105,
+      220,
+      151643,
+      48718,
+      198
+    ],
+    "torch_top5": [
+      1105,
+      220,
+      151643,
+      48718,
+      198
+    ],
+    "int8_top5_vals": [
+      44.867835998535156,
+      32.95293045043945,
+      27.551572799682617,
+      26.793397903442383,
+      25.659706115722656
+    ],
+    "fp16_top5_vals": [
+      40.24690628051758,
+      29.592998504638672,
+      28.32623863220215,
+      25.253599166870117,
+      24.71365737915039
+    ],
+    "torch_top5_vals": [
+      40.3393440246582,
+      29.63166046142578,
+      28.319339752197266,
+      25.311767578125,
+      24.738401412963867
+    ]
+  },
+  "int8": {
+    "final_text": "language None<asr_text>We should be  months and months and  advance of that  working with  them.   There's a lot of discussion with  the BU team.   And this is  where Alex  has also been very  very  helpful of how  do we go and get  this.   off the ground .  Obviously,  obviously,|   a little tricky with the recent news on the ground.   Obviously, a little tricky with the recent news on hugging place.    With Nvidia. ",
+    "n_chunks": 23
+  },
+  "fp16": {
+    "final_text": "language None<asr_text>We should be  months and months and  advance of that  working with  them   There's a lot of discussion with  the BU team   and this is  where Alex  has also been very  very  helpful of how  do we go and get  this  off the ground .  Obviously,|   a little tricky with the recent  news on  Hugging Face  with  Nvidia ",
+    "n_chunks": 23
+  },
+  "torch": {
+    "final_text": "language None<asr_text>We should be  months and months and  advance of that  working with  them   There's a lot of discussion with  the BU team   and this is  where Alex  has also been very  very  helpful of how  do we go and get this   off the ground .  Obviously, going to be  a little tricky with the BU team    with the recent news on Hugging Face  with Nvidia ",
+    "n_chunks": 23
+  },
+  "chunks_int8": [
+    {
+      "chunk": 0,
+      "prefix_len": 0,
+      "prefix_text_tail": "",
+      "gen_ids": [
+        11528,
+        2240,
+        151704,
+        1654,
+        1265,
+        387,
+        151645
+      ],
+      "gen_text": "language None<asr_text>We should be",
+      "logits_top5": [
+        11528,
+        1994,
+        56193,
+        23037,
+        31211
+      ],
+      "logits_top5_vals": [
+        38.969398498535156,
+        25.296144485473633,
+        25.218477249145508,
+        25.095050811767578,
+        24.16524887084961
+      ]
+    },
+    {
+      "chunk": 1,
+      "prefix_len": 6,
+      "prefix_text_tail": "language None<asr_text>We should be",
+      "gen_ids": [
+        3951,
+        323,
+        3951,
+        323,
+        151645
+      ],
+      "gen_text": " months and months and",
+      "logits_top5": [
+        3951,
+        5555,
+        49714,
+        51346,
+        2254
+      ],
+      "logits_top5_vals": [
+        48.074440002441406,
+        30.981197357177734,
+        30.291399002075195,
+        29.409940719604492,
+        28.265275955200195
+      ]
+    },
+    {
+      "chunk": 2,
+      "prefix_len": 11,
+      "prefix_text_tail": " None<asr_text>We should be  months and months and",
+      "gen_ids": [
+        11912,
+        315,
+        429,
+        151645
+      ],
+      "gen_text": " advance of that",
+      "logits_top5": [
+        11912,
+        304,
+        10847,
+        29903,
+        3951
+      ],
+      "logits_top5_vals": [
+        36.492095947265625,
+        35.6961555480957,
+        32.362876892089844,
+        31.657005310058594,
+        31.612472534179688
+      ]
+    },
+    {
+      "chunk": 3,
+      "prefix_len": 15,
+      "prefix_text_tail": " should be  months and months and  advance of that",
+      "gen_ids": [
+        3238,
+        448,
+        151645
+      ],
+      "gen_text": " working with",
+      "logits_top5": [
+        3238,
+        11,
+        13,
+        220,
+        22150
+      ],
+      "logits_top5_vals": [
+        48.090614318847656,
+        43.81798553466797,
+        36.28496170043945,
+        35.28232192993164,
+        35.13016891479492
+      ]
+    },
+    {
+      "chunk": 4,
+      "prefix_len": 18,
+      "prefix_text_tail": "nths and months and  advance of that  working with",
+      "gen_ids": [
+        1105,
+        13,
+        151645
+      ],
+      "gen_text": " them.",
+      "logits_top5": [
+        1105,
+        220,
+        48718,
+        151643,
+        198
+      ],
+      "logits_top5_vals": [
+        44.867835998535156,
+        32.95293045043945,
+        27.551572799682617,
+        26.793397903442383,
+        25.659706115722656
+      ]
+    },
+    {
+      "chunk": 5,
+      "prefix_len": 21,
+      "prefix_text_tail": "d months and  advance of that  working with  them.",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        151643,
+        1096,
+        2619,
+        91
+      ],
+      "logits_top5_vals": [
+        35.917232513427734,
+        25.692285537719727,
+        25.413801193237305,
+        25.297630310058594,
+        24.586139678955078
+      ]
+    },
+    {
+      "chunk": 6,
+      "prefix_len": 22,
+      "prefix_text_tail": " months and  advance of that  working with  them. ",
+      "gen_ids": [
+        2619,
+        594,
+        264,
+        2696,
+        315,
+        10219,
+        448,
+        151645
+      ],
+      "gen_text": " There's a lot of discussion with",
+      "logits_top5": [
+        2619,
+        1052,
+        3862,
+        374,
+        350
+      ],
+      "logits_top5_vals": [
+        44.50974655151367,
+        39.13018798828125,
+        34.07714080810547,
+        33.07541275024414,
+        30.403837203979492
+      ]
+    },
+    {
+      "chunk": 7,
+      "prefix_len": 29,
+      "prefix_text_tail": "ing with  them.   There's a lot of discussion with",
+      "gen_ids": [
+        279,
+        54029,
+        2083,
+        13,
+        151645
+      ],
+      "gen_text": " the BU team.",
+      "logits_top5": [
+        279,
+        220,
+        256,
+        262,
+        576
+      ],
+      "logits_top5_vals": [
+        43.844764709472656,
+        39.538307189941406,
+        32.38615036010742,
+        30.184619903564453,
+        29.440635681152344
+      ]
+    },
+    {
+      "chunk": 8,
+      "prefix_len": 34,
+      "prefix_text_tail": ".   There's a lot of discussion with  the BU team.",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        151643,
+        220,
+        91,
+        4710
+      ],
+      "logits_top5_vals": [
+        36.14772033691406,
+        25.936458587646484,
+        21.949888229370117,
+        20.873443603515625,
+        18.713848114013672
+      ]
+    },
+    {
+      "chunk": 9,
+      "prefix_len": 35,
+      "prefix_text_tail": "   There's a lot of discussion with  the BU team. ",
+      "gen_ids": [
+        1597,
+        419,
+        374,
+        151645
+      ],
+      "gen_text": " And this is",
+      "logits_top5": [
+        1597,
+        323,
+        1096,
+        151645,
+        3036
+      ],
+      "logits_top5_vals": [
+        40.14531707763672,
+        37.894168853759766,
+        33.08034896850586,
+        26.76255226135254,
+        26.367353439331055
+      ]
+    },
+    {
+      "chunk": 10,
+      "prefix_len": 38,
+      "prefix_text_tail": "lot of discussion with  the BU team.   And this is",
+      "gen_ids": [
+        1380,
+        8515,
+        151645
+      ],
+      "gen_text": " where Alex",
+      "logits_top5": [
+        1380,
+        220,
+        256,
+        10967,
+        262
+      ],
+      "logits_top5_vals": [
+        50.99805450439453,
+        44.59678268432617,
+        35.38144302368164,
+        34.29834747314453,
+        32.0213508605957
+      ]
+    },
+    {
+      "chunk": 11,
+      "prefix_len": 41,
+      "prefix_text_tail": "ssion with  the BU team.   And this is  where Alex",
+      "gen_ids": [
+        702,
+        1083,
+        1012,
+        1602,
+        220,
+        1602,
+        151645
+      ],
+      "gen_text": " has also been very  very",
+      "logits_top5": [
+        702,
+        220,
+        256,
+        262,
+        374
+      ],
+      "logits_top5_vals": [
+        42.955650329589844,
+        38.138450622558594,
+        31.373825073242188,
+        30.032875061035156,
+        28.89999008178711
+      ]
+    },
+    {
+      "chunk": 12,
+      "prefix_len": 48,
+      "prefix_text_tail": " And this is  where Alex  has also been very  very",
+      "gen_ids": [
+        10950,
+        315,
+        1246,
+        151645
+      ],
+      "gen_text": " helpful of how",
+      "logits_top5": [
+        10950,
+        220,
+        5390,
+        1492,
+        256
+      ],
+      "logits_top5_vals": [
+        37.27058410644531,
+        33.23955154418945,
+        28.103923797607422,
+        27.76517677307129,
+        27.2449951171875
+      ]
+    },
+    {
+      "chunk": 13,
+      "prefix_len": 52,
+      "prefix_text_tail": "ere Alex  has also been very  very  helpful of how",
+      "gen_ids": [
+        653,
+        582,
+        728,
+        323,
+        633,
+        220,
+        419,
+        13,
+        151645
+      ],
+      "gen_text": " do we go and get  this.",
+      "logits_top5": [
+        653,
+        220,
+        582,
+        256,
+        1521
+      ],
+      "logits_top5_vals": [
+        43.195457458496094,
+        40.83222579956055,
+        35.945068359375,
+        32.0549201965332,
+        30.43665313720703
+      ]
+    },
+    {
+      "chunk": 14,
+      "prefix_len": 61,
+      "prefix_text_tail": "ery  very  helpful of how  do we go and get  this.",
+      "gen_ids": [
+        220,
+        1007,
+        279,
+        4910,
+        151645
+      ],
+      "gen_text": "  off the ground",
+      "logits_top5": [
+        220,
+        1007,
+        151645,
+        4114,
+        151643
+      ],
+      "logits_top5_vals": [
+        30.500288009643555,
+        30.268665313720703,
+        29.823307037353516,
+        27.787431716918945,
+        25.90364646911621
+      ]
+    },
+    {
+      "chunk": 15,
+      "prefix_len": 65,
+      "prefix_text_tail": "l of how  do we go and get  this.   off the ground",
+      "gen_ids": [
+        13,
+        151645
+      ],
+      "gen_text": ".",
+      "logits_top5": [
+        13,
+        30,
+        151645,
+        11,
+        659
+      ],
+      "logits_top5_vals": [
+        34.160465240478516,
+        32.3433837890625,
+        31.528718948364258,
+        30.00894546508789,
+        28.74542808532715
+      ]
+    },
+    {
+      "chunk": 16,
+      "prefix_len": 66,
+      "prefix_text_tail": "of how  do we go and get  this.   off the ground .",
+      "gen_ids": [
+        35430,
+        11,
+        220,
+        13900,
+        11,
+        91,
+        151645
+      ],
+      "gen_text": " Obviously,  obviously,|",
+      "logits_top5": [
+        35430,
+        220,
+        256,
+        48214,
+        262
+      ],
+      "logits_top5_vals": [
+        33.34537124633789,
+        32.31243896484375,
+        30.33414077758789,
+        28.813749313354492,
+        28.152915954589844
+      ]
+    },
+    {
+      "chunk": 17,
+      "prefix_len": 73,
+      "prefix_text_tail": " this.   off the ground .  Obviously,  obviously,|",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        220,
+        11,
+        151643,
+        264
+      ],
+      "logits_top5_vals": [
+        32.24017333984375,
+        23.99395751953125,
+        22.923158645629883,
+        22.87447166442871,
+        21.38062858581543
+      ]
+    },
+    {
+      "chunk": 18,
+      "prefix_len": 74,
+      "prefix_text_tail": "this.   off the ground .  Obviously,  obviously,| ",
+      "gen_ids": [
+        264,
+        2632,
+        33453,
+        448,
+        279,
+        3213,
+        3669,
+        389,
+        279,
+        4910,
+        13,
+        151645
+      ],
+      "gen_text": " a little tricky with the recent news on the ground.",
+      "logits_top5": [
+        264,
+        151645,
+        2632,
+        362,
+        760
+      ],
+      "logits_top5_vals": [
+        29.88897132873535,
+        27.029142379760742,
+        25.09129524230957,
+        24.904525756835938,
+        24.5200252532959
+      ]
+    },
+    {
+      "chunk": 19,
+      "prefix_len": 85,
+      "prefix_text_tail": " little tricky with the recent news on the ground.",
+      "gen_ids": [
+        220,
+        35430,
+        11,
+        264,
+        2632,
+        33453,
+        448,
+        279,
+        3213,
+        3669,
+        389,
+        305,
+        35268,
+        1992,
+        13,
+        151645
+      ],
+      "gen_text": "  Obviously, a little tricky with the recent news on hugging place.",
+      "logits_top5": [
+        220,
+        35430,
+        151645,
+        256,
+        91
+      ],
+      "logits_top5_vals": [
+        30.273168563842773,
+        28.860973358154297,
+        28.635177612304688,
+        25.975570678710938,
+        25.78536033630371
+      ]
+    },
+    {
+      "chunk": 20,
+      "prefix_len": 100,
+      "prefix_text_tail": "ttle tricky with the recent news on hugging place.",
+      "gen_ids": [
+        220,
+        151645
+      ],
+      "gen_text": " ",
+      "logits_top5": [
+        220,
+        3085,
+        18596,
+        256,
+        10771
+      ],
+      "logits_top5_vals": [
+        30.339139938354492,
+        28.450355529785156,
+        28.332666397094727,
+        27.771533966064453,
+        27.49184226989746
+      ]
+    },
+    {
+      "chunk": 21,
+      "prefix_len": 101,
+      "prefix_text_tail": "le tricky with the recent news on hugging place.  ",
+      "gen_ids": [
+        3085,
+        61367,
+        13,
+        151645
+      ],
+      "gen_text": " With Nvidia.",
+      "logits_top5": [
+        3085,
+        18596,
+        448,
+        3579,
+        10771
+      ],
+      "logits_top5_vals": [
+        31.147449493408203,
+        31.05109977722168,
+        30.81208038330078,
+        30.312965393066406,
+        29.751306533813477
+      ]
+    },
+    {
+      "chunk": 22,
+      "prefix_len": 104,
+      "prefix_text_tail": " the recent news on hugging place.    With Nvidia.",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        220,
+        659,
+        91,
+        256
+      ],
+      "logits_top5_vals": [
+        32.47081756591797,
+        25.810083389282227,
+        23.148313522338867,
+        22.95182228088379,
+        22.822050094604492
+      ]
+    }
+  ],
+  "chunks_fp16": [
+    {
+      "chunk": 0,
+      "prefix_len": 0,
+      "prefix_text_tail": "",
+      "gen_ids": [
+        11528,
+        2240,
+        151704,
+        1654,
+        1265,
+        387,
+        151645
+      ],
+      "gen_text": "language None<asr_text>We should be",
+      "logits_top5": [
+        11528,
+        31211,
+        56193,
+        1994,
+        23037
+      ],
+      "logits_top5_vals": [
+        38.67409896850586,
+        24.206438064575195,
+        23.97210693359375,
+        23.620637893676758,
+        23.586078643798828
+      ]
+    },
+    {
+      "chunk": 1,
+      "prefix_len": 6,
+      "prefix_text_tail": "language None<asr_text>We should be",
+      "gen_ids": [
+        3951,
+        323,
+        3951,
+        323,
+        151645
+      ],
+      "gen_text": " months and months and",
+      "logits_top5": [
+        3951,
+        5555,
+        49714,
+        51346,
+        2254
+      ],
+      "logits_top5_vals": [
+        48.18705749511719,
+        30.915483474731445,
+        30.4252872467041,
+        29.48874855041504,
+        28.5368709564209
+      ]
+    },
+    {
+      "chunk": 2,
+      "prefix_len": 11,
+      "prefix_text_tail": " None<asr_text>We should be  months and months and",
+      "gen_ids": [
+        11912,
+        315,
+        429,
+        151645
+      ],
+      "gen_text": " advance of that",
+      "logits_top5": [
+        11912,
+        304,
+        3951,
+        10847,
+        29903
+      ],
+      "logits_top5_vals": [
+        36.68572235107422,
+        35.41395950317383,
+        33.05781936645508,
+        32.34181213378906,
+        31.74091148376465
+      ]
+    },
+    {
+      "chunk": 3,
+      "prefix_len": 15,
+      "prefix_text_tail": " should be  months and months and  advance of that",
+      "gen_ids": [
+        3238,
+        448,
+        151645
+      ],
+      "gen_text": " working with",
+      "logits_top5": [
+        3238,
+        11,
+        220,
+        13,
+        22150
+      ],
+      "logits_top5_vals": [
+        46.87869644165039,
+        42.35527038574219,
+        36.08828353881836,
+        35.68569564819336,
+        34.71278762817383
+      ]
+    },
+    {
+      "chunk": 4,
+      "prefix_len": 18,
+      "prefix_text_tail": "nths and months and  advance of that  working with",
+      "gen_ids": [
+        1105,
+        151645
+      ],
+      "gen_text": " them",
+      "logits_top5": [
+        1105,
+        220,
+        151643,
+        48718,
+        198
+      ],
+      "logits_top5_vals": [
+        40.24690628051758,
+        29.592998504638672,
+        28.32623863220215,
+        25.253599166870117,
+        24.71365737915039
+      ]
+    },
+    {
+      "chunk": 5,
+      "prefix_len": 20,
+      "prefix_text_tail": "nd months and  advance of that  working with  them",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        13,
+        91,
+        56270,
+        151643
+      ],
+      "logits_top5_vals": [
+        35.20375442504883,
+        32.27465057373047,
+        29.178577423095703,
+        28.5698299407959,
+        26.274547576904297
+      ]
+    },
+    {
+      "chunk": 6,
+      "prefix_len": 21,
+      "prefix_text_tail": "d months and  advance of that  working with  them ",
+      "gen_ids": [
+        2619,
+        594,
+        264,
+        2696,
+        315,
+        10219,
+        448,
+        151645
+      ],
+      "gen_text": " There's a lot of discussion with",
+      "logits_top5": [
+        2619,
+        1052,
+        374,
+        659,
+        1576
+      ],
+      "logits_top5_vals": [
+        38.649627685546875,
+        37.01734161376953,
+        33.285255432128906,
+        32.32615280151367,
+        31.64617919921875
+      ]
+    },
+    {
+      "chunk": 7,
+      "prefix_len": 28,
+      "prefix_text_tail": "king with  them   There's a lot of discussion with",
+      "gen_ids": [
+        279,
+        54029,
+        2083,
+        151645
+      ],
+      "gen_text": " the BU team",
+      "logits_top5": [
+        279,
+        220,
+        256,
+        576,
+        262
+      ],
+      "logits_top5_vals": [
+        42.26323699951172,
+        38.060916900634766,
+        31.188949584960938,
+        29.588489532470703,
+        29.031896591186523
+      ]
+    },
+    {
+      "chunk": 8,
+      "prefix_len": 32,
+      "prefix_text_tail": "em   There's a lot of discussion with  the BU team",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        13,
+        11,
+        91,
+        659
+      ],
+      "logits_top5_vals": [
+        34.32831954956055,
+        30.568960189819336,
+        27.177270889282227,
+        26.87265968322754,
+        26.559738159179688
+      ]
+    },
+    {
+      "chunk": 9,
+      "prefix_len": 33,
+      "prefix_text_tail": "m   There's a lot of discussion with  the BU team ",
+      "gen_ids": [
+        323,
+        419,
+        374,
+        151645
+      ],
+      "gen_text": " and this is",
+      "logits_top5": [
+        323,
+        1597,
+        1154,
+        659,
+        52477
+      ],
+      "logits_top5_vals": [
+        47.055091857910156,
+        35.037269592285156,
+        33.13918685913086,
+        31.812891006469727,
+        30.59578514099121
+      ]
+    },
+    {
+      "chunk": 10,
+      "prefix_len": 36,
+      "prefix_text_tail": " lot of discussion with  the BU team   and this is",
+      "gen_ids": [
+        1380,
+        8515,
+        151645
+      ],
+      "gen_text": " where Alex",
+      "logits_top5": [
+        1380,
+        220,
+        256,
+        10967,
+        262
+      ],
+      "logits_top5_vals": [
+        46.16656494140625,
+        41.398773193359375,
+        34.01229476928711,
+        33.109718322753906,
+        30.684223175048828
+      ]
+    },
+    {
+      "chunk": 11,
+      "prefix_len": 39,
+      "prefix_text_tail": "ussion with  the BU team   and this is  where Alex",
+      "gen_ids": [
+        702,
+        1083,
+        1012,
+        1602,
+        220,
+        1602,
+        151645
+      ],
+      "gen_text": " has also been very  very",
+      "logits_top5": [
+        702,
+        220,
+        256,
+        262,
+        257
+      ],
+      "logits_top5_vals": [
+        39.514583587646484,
+        36.9739875793457,
+        32.853660583496094,
+        30.733919143676758,
+        28.600831985473633
+      ]
+    },
+    {
+      "chunk": 12,
+      "prefix_len": 46,
+      "prefix_text_tail": " and this is  where Alex  has also been very  very",
+      "gen_ids": [
+        10950,
+        315,
+        1246,
+        151645
+      ],
+      "gen_text": " helpful of how",
+      "logits_top5": [
+        10950,
+        220,
+        5390,
+        1492,
+        256
+      ],
+      "logits_top5_vals": [
+        35.706871032714844,
+        31.898958206176758,
+        27.215654373168945,
+        27.08080291748047,
+        26.975854873657227
+      ]
+    },
+    {
+      "chunk": 13,
+      "prefix_len": 50,
+      "prefix_text_tail": "ere Alex  has also been very  very  helpful of how",
+      "gen_ids": [
+        653,
+        582,
+        728,
+        323,
+        633,
+        220,
+        419,
+        151645
+      ],
+      "gen_text": " do we go and get  this",
+      "logits_top5": [
+        653,
+        220,
+        582,
+        256,
+        1521
+      ],
+      "logits_top5_vals": [
+        41.335567474365234,
+        39.024269104003906,
+        34.00051498413086,
+        31.625394821166992,
+        29.639999389648438
+      ]
+    },
+    {
+      "chunk": 14,
+      "prefix_len": 58,
+      "prefix_text_tail": "very  very  helpful of how  do we go and get  this",
+      "gen_ids": [
+        1007,
+        279,
+        4910,
+        151645
+      ],
+      "gen_text": " off the ground",
+      "logits_top5": [
+        1007,
+        220,
+        256,
+        389,
+        4114
+      ],
+      "logits_top5_vals": [
+        44.89447784423828,
+        39.77518844604492,
+        33.7896614074707,
+        32.572669982910156,
+        31.4642391204834
+      ]
+    },
+    {
+      "chunk": 15,
+      "prefix_len": 62,
+      "prefix_text_tail": "ful of how  do we go and get  this  off the ground",
+      "gen_ids": [
+        13,
+        151645
+      ],
+      "gen_text": ".",
+      "logits_top5": [
+        13,
+        151645,
+        30,
+        220,
+        11
+      ],
+      "logits_top5_vals": [
+        32.801185607910156,
+        32.03824996948242,
+        31.77566146850586,
+        30.068767547607422,
+        29.05734634399414
+      ]
+    },
+    {
+      "chunk": 16,
+      "prefix_len": 63,
+      "prefix_text_tail": "l of how  do we go and get  this  off the ground .",
+      "gen_ids": [
+        35430,
+        11,
+        91,
+        151645
+      ],
+      "gen_text": " Obviously,|",
+      "logits_top5": [
+        35430,
+        220,
+        48214,
+        13900,
+        151643
+      ],
+      "logits_top5_vals": [
+        31.766054153442383,
+        30.23539924621582,
+        27.824214935302734,
+        26.922435760498047,
+        26.245512008666992
+      ]
+    },
+    {
+      "chunk": 17,
+      "prefix_len": 67,
+      "prefix_text_tail": "we go and get  this  off the ground .  Obviously,|",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        220,
+        151643,
+        264,
+        11
+      ],
+      "logits_top5_vals": [
+        32.768760681152344,
+        24.554622650146484,
+        24.2499942779541,
+        23.594867706298828,
+        23.247262954711914
+      ]
+    },
+    {
+      "chunk": 18,
+      "prefix_len": 68,
+      "prefix_text_tail": "e go and get  this  off the ground .  Obviously,| ",
+      "gen_ids": [
+        264,
+        2632,
+        33453,
+        448,
+        279,
+        3213,
+        220,
+        3669,
+        389,
+        151645
+      ],
+      "gen_text": " a little tricky with the recent  news on",
+      "logits_top5": [
+        264,
+        151645,
+        760,
+        362,
+        2632
+      ],
+      "logits_top5_vals": [
+        30.944408416748047,
+        26.60184669494629,
+        26.383005142211914,
+        26.081527709960938,
+        25.481996536254883
+      ]
+    },
+    {
+      "chunk": 19,
+      "prefix_len": 77,
+      "prefix_text_tail": "ously,|   a little tricky with the recent  news on",
+      "gen_ids": [
+        472,
+        35268,
+        18596,
+        151645
+      ],
+      "gen_text": " Hugging Face",
+      "logits_top5": [
+        472,
+        305,
+        220,
+        37364,
+        30333
+      ],
+      "logits_top5_vals": [
+        34.0920295715332,
+        32.80039978027344,
+        28.471040725708008,
+        26.115690231323242,
+        25.570825576782227
+      ]
+    },
+    {
+      "chunk": 20,
+      "prefix_len": 81,
+      "prefix_text_tail": "ttle tricky with the recent  news on  Hugging Face",
+      "gen_ids": [
+        448,
+        151645
+      ],
+      "gen_text": " with",
+      "logits_top5": [
+        448,
+        91,
+        220,
+        11,
+        13
+      ],
+      "logits_top5_vals": [
+        30.068479537963867,
+        29.819311141967773,
+        28.806726455688477,
+        28.674819946289062,
+        28.421844482421875
+      ]
+    },
+    {
+      "chunk": 21,
+      "prefix_len": 83,
+      "prefix_text_tail": "ricky with the recent  news on  Hugging Face  with",
+      "gen_ids": [
+        61367,
+        151645
+      ],
+      "gen_text": " Nvidia",
+      "logits_top5": [
+        61367,
+        220,
+        33561,
+        451,
+        91
+      ],
+      "logits_top5_vals": [
+        32.864288330078125,
+        32.757938385009766,
+        31.968717575073242,
+        27.84784698486328,
+        27.828035354614258
+      ]
+    },
+    {
+      "chunk": 22,
+      "prefix_len": 85,
+      "prefix_text_tail": "th the recent  news on  Hugging Face  with  Nvidia",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        659,
+        13,
+        91,
+        56270
+      ],
+      "logits_top5_vals": [
+        31.997783660888672,
+        30.422069549560547,
+        30.283308029174805,
+        26.970365524291992,
+        26.778093338012695
+      ]
+    }
+  ],
+  "chunks_torch": [
+    {
+      "chunk": 0,
+      "prefix_len": 0,
+      "prefix_text_tail": "",
+      "gen_ids": [
+        11528,
+        2240,
+        151704,
+        1654,
+        1265,
+        387,
+        151645
+      ],
+      "gen_text": "language None<asr_text>We should be",
+      "logits_top5": [
+        11528,
+        31211,
+        56193,
+        1994,
+        23037
+      ],
+      "logits_top5_vals": [
+        38.6604118347168,
+        24.222644805908203,
+        23.969432830810547,
+        23.58878517150879,
+        23.568632125854492
+      ]
+    },
+    {
+      "chunk": 1,
+      "prefix_len": 6,
+      "prefix_text_tail": "language None<asr_text>We should be",
+      "gen_ids": [
+        3951,
+        323,
+        3951,
+        323,
+        151645
+      ],
+      "gen_text": " months and months and",
+      "logits_top5": [
+        3951,
+        5555,
+        49714,
+        51346,
+        2254
+      ],
+      "logits_top5_vals": [
+        48.18062973022461,
+        30.909677505493164,
+        30.41651153564453,
+        29.490718841552734,
+        28.533384323120117
+      ]
+    },
+    {
+      "chunk": 2,
+      "prefix_len": 11,
+      "prefix_text_tail": " None<asr_text>We should be  months and months and",
+      "gen_ids": [
+        11912,
+        315,
+        429,
+        151645
+      ],
+      "gen_text": " advance of that",
+      "logits_top5": [
+        11912,
+        304,
+        3951,
+        10847,
+        29903
+      ],
+      "logits_top5_vals": [
+        36.670082092285156,
+        35.43067932128906,
+        33.06855773925781,
+        32.348751068115234,
+        31.74736213684082
+      ]
+    },
+    {
+      "chunk": 3,
+      "prefix_len": 15,
+      "prefix_text_tail": " should be  months and months and  advance of that",
+      "gen_ids": [
+        3238,
+        448,
+        151645
+      ],
+      "gen_text": " working with",
+      "logits_top5": [
+        3238,
+        11,
+        220,
+        13,
+        22150
+      ],
+      "logits_top5_vals": [
+        46.84243392944336,
+        42.3457145690918,
+        36.09847640991211,
+        35.69225311279297,
+        34.68947982788086
+      ]
+    },
+    {
+      "chunk": 4,
+      "prefix_len": 18,
+      "prefix_text_tail": "nths and months and  advance of that  working with",
+      "gen_ids": [
+        1105,
+        151645
+      ],
+      "gen_text": " them",
+      "logits_top5": [
+        1105,
+        220,
+        151643,
+        48718,
+        198
+      ],
+      "logits_top5_vals": [
+        40.3393440246582,
+        29.63166046142578,
+        28.319339752197266,
+        25.311767578125,
+        24.738401412963867
+      ]
+    },
+    {
+      "chunk": 5,
+      "prefix_len": 20,
+      "prefix_text_tail": "nd months and  advance of that  working with  them",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        13,
+        91,
+        56270,
+        151643
+      ],
+      "logits_top5_vals": [
+        35.19459915161133,
+        32.28833770751953,
+        29.166244506835938,
+        28.56293296813965,
+        26.30800437927246
+      ]
+    },
+    {
+      "chunk": 6,
+      "prefix_len": 21,
+      "prefix_text_tail": "d months and  advance of that  working with  them ",
+      "gen_ids": [
+        2619,
+        594,
+        264,
+        2696,
+        315,
+        10219,
+        448,
+        151645
+      ],
+      "gen_text": " There's a lot of discussion with",
+      "logits_top5": [
+        2619,
+        1052,
+        374,
+        659,
+        1576
+      ],
+      "logits_top5_vals": [
+        38.72001266479492,
+        37.12417984008789,
+        33.27143478393555,
+        32.30417251586914,
+        31.6766357421875
+      ]
+    },
+    {
+      "chunk": 7,
+      "prefix_len": 28,
+      "prefix_text_tail": "king with  them   There's a lot of discussion with",
+      "gen_ids": [
+        279,
+        54029,
+        2083,
+        151645
+      ],
+      "gen_text": " the BU team",
+      "logits_top5": [
+        279,
+        220,
+        256,
+        576,
+        262
+      ],
+      "logits_top5_vals": [
+        42.28888702392578,
+        38.08763122558594,
+        31.197769165039062,
+        29.608680725097656,
+        29.03244400024414
+      ]
+    },
+    {
+      "chunk": 8,
+      "prefix_len": 32,
+      "prefix_text_tail": "em   There's a lot of discussion with  the BU team",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        13,
+        11,
+        91,
+        659
+      ],
+      "logits_top5_vals": [
+        34.338279724121094,
+        30.55463981628418,
+        27.159725189208984,
+        26.858749389648438,
+        26.569217681884766
+      ]
+    },
+    {
+      "chunk": 9,
+      "prefix_len": 33,
+      "prefix_text_tail": "m   There's a lot of discussion with  the BU team ",
+      "gen_ids": [
+        323,
+        419,
+        374,
+        151645
+      ],
+      "gen_text": " and this is",
+      "logits_top5": [
+        323,
+        1597,
+        1154,
+        659,
+        52477
+      ],
+      "logits_top5_vals": [
+        47.18663787841797,
+        35.11771011352539,
+        33.20036315917969,
+        31.85125732421875,
+        30.659893035888672
+      ]
+    },
+    {
+      "chunk": 10,
+      "prefix_len": 36,
+      "prefix_text_tail": " lot of discussion with  the BU team   and this is",
+      "gen_ids": [
+        1380,
+        8515,
+        151645
+      ],
+      "gen_text": " where Alex",
+      "logits_top5": [
+        1380,
+        220,
+        256,
+        10967,
+        262
+      ],
+      "logits_top5_vals": [
+        46.19997024536133,
+        41.422882080078125,
+        34.028526306152344,
+        33.140506744384766,
+        30.6823673248291
+      ]
+    },
+    {
+      "chunk": 11,
+      "prefix_len": 39,
+      "prefix_text_tail": "ussion with  the BU team   and this is  where Alex",
+      "gen_ids": [
+        702,
+        1083,
+        1012,
+        1602,
+        220,
+        1602,
+        151645
+      ],
+      "gen_text": " has also been very  very",
+      "logits_top5": [
+        702,
+        220,
+        256,
+        262,
+        257
+      ],
+      "logits_top5_vals": [
+        39.505836486816406,
+        36.950889587402344,
+        32.81359100341797,
+        30.694908142089844,
+        28.560462951660156
+      ]
+    },
+    {
+      "chunk": 12,
+      "prefix_len": 46,
+      "prefix_text_tail": " and this is  where Alex  has also been very  very",
+      "gen_ids": [
+        10950,
+        315,
+        1246,
+        151645
+      ],
+      "gen_text": " helpful of how",
+      "logits_top5": [
+        10950,
+        220,
+        5390,
+        1492,
+        256
+      ],
+      "logits_top5_vals": [
+        35.75615692138672,
+        31.962291717529297,
+        27.271120071411133,
+        27.10594940185547,
+        27.010887145996094
+      ]
+    },
+    {
+      "chunk": 13,
+      "prefix_len": 50,
+      "prefix_text_tail": "ere Alex  has also been very  very  helpful of how",
+      "gen_ids": [
+        653,
+        582,
+        728,
+        323,
+        633,
+        419,
+        151645
+      ],
+      "gen_text": " do we go and get this",
+      "logits_top5": [
+        653,
+        220,
+        582,
+        256,
+        1521
+      ],
+      "logits_top5_vals": [
+        41.332969665527344,
+        39.0233039855957,
+        33.99311828613281,
+        31.631650924682617,
+        29.65094566345215
+      ]
+    },
+    {
+      "chunk": 14,
+      "prefix_len": 57,
+      "prefix_text_tail": " very  very  helpful of how  do we go and get this",
+      "gen_ids": [
+        220,
+        1007,
+        279,
+        4910,
+        151645
+      ],
+      "gen_text": "  off the ground",
+      "logits_top5": [
+        220,
+        1007,
+        256,
+        389,
+        315
+      ],
+      "logits_top5_vals": [
+        37.800533294677734,
+        37.78105163574219,
+        31.194746017456055,
+        29.538936614990234,
+        27.876489639282227
+      ]
+    },
+    {
+      "chunk": 15,
+      "prefix_len": 61,
+      "prefix_text_tail": "ful of how  do we go and get this   off the ground",
+      "gen_ids": [
+        13,
+        151645
+      ],
+      "gen_text": ".",
+      "logits_top5": [
+        13,
+        30,
+        151645,
+        220,
+        11
+      ],
+      "logits_top5_vals": [
+        32.879798889160156,
+        31.92726707458496,
+        31.39154624938965,
+        30.42767906188965,
+        29.231082916259766
+      ]
+    },
+    {
+      "chunk": 16,
+      "prefix_len": 62,
+      "prefix_text_tail": "l of how  do we go and get this   off the ground .",
+      "gen_ids": [
+        35430,
+        11,
+        2087,
+        311,
+        387,
+        151645
+      ],
+      "gen_text": " Obviously, going to be",
+      "logits_top5": [
+        35430,
+        220,
+        48214,
+        13900,
+        256
+      ],
+      "logits_top5_vals": [
+        32.29431915283203,
+        30.607805252075195,
+        28.431852340698242,
+        27.1984920501709,
+        27.010723114013672
+      ]
+    },
+    {
+      "chunk": 17,
+      "prefix_len": 68,
+      "prefix_text_tail": "et this   off the ground .  Obviously, going to be",
+      "gen_ids": [
+        264,
+        2632,
+        33453,
+        448,
+        279,
+        54029,
+        2083,
+        151645
+      ],
+      "gen_text": " a little tricky with the BU team",
+      "logits_top5": [
+        264,
+        220,
+        33453,
+        2632,
+        256
+      ],
+      "logits_top5_vals": [
+        33.20433044433594,
+        32.00127029418945,
+        31.659122467041016,
+        29.16213607788086,
+        27.877267837524414
+      ]
+    },
+    {
+      "chunk": 18,
+      "prefix_len": 76,
+      "prefix_text_tail": "sly, going to be  a little tricky with the BU team",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        13,
+        11,
+        659,
+        220
+      ],
+      "logits_top5_vals": [
+        30.168447494506836,
+        28.844209671020508,
+        27.693904876708984,
+        27.43079376220703,
+        26.47433090209961
+      ]
+    },
+    {
+      "chunk": 19,
+      "prefix_len": 77,
+      "prefix_text_tail": "ly, going to be  a little tricky with the BU team ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        448,
+        323,
+        389,
+        1576
+      ],
+      "logits_top5_vals": [
+        29.062885284423828,
+        26.793216705322266,
+        26.647245407104492,
+        26.486583709716797,
+        24.88033103942871
+      ]
+    },
+    {
+      "chunk": 20,
+      "prefix_len": 77,
+      "prefix_text_tail": "y, going to be  a little tricky with the BU team  ",
+      "gen_ids": [
+        448,
+        279,
+        3213,
+        3669,
+        389,
+        472,
+        35268,
+        18596,
+        151645
+      ],
+      "gen_text": " with the recent news on Hugging Face",
+      "logits_top5": [
+        448,
+        151645,
+        323,
+        1576,
+        714
+      ],
+      "logits_top5_vals": [
+        28.122596740722656,
+        27.927400588989258,
+        26.461421966552734,
+        26.083024978637695,
+        25.227083206176758
+      ]
+    },
+    {
+      "chunk": 21,
+      "prefix_len": 85,
+      "prefix_text_tail": "he BU team    with the recent news on Hugging Face",
+      "gen_ids": [
+        448,
+        61367,
+        151645
+      ],
+      "gen_text": " with Nvidia",
+      "logits_top5": [
+        448,
+        11,
+        220,
+        151645,
+        13
+      ],
+      "logits_top5_vals": [
+        30.814613342285156,
+        29.094852447509766,
+        28.79027557373047,
+        27.762189865112305,
+        26.42278289794922
+      ]
+    },
+    {
+      "chunk": 22,
+      "prefix_len": 88,
+      "prefix_text_tail": " with the recent news on Hugging Face  with Nvidia",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        659,
+        13,
+        11,
+        220
+      ],
+      "logits_top5_vals": [
+        31.719947814941406,
+        29.88918113708496,
+        29.8382568359375,
+        26.532602310180664,
+        26.2011775970459
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+c039 11-segment segment encoder (global attention, no reset)
+vs a-old (broken window cache) baseline n4_repeat: 183
+vs a-fix (cache bug fixed)    baseline n4_repeat: 2
+seg (global attention)        TOTAL n4_repeat: 0
+
+label                     a_old_n4  a_fix_n4    seg_n4
+seg38_607_624                    0         0         0
+seg39_624_641                    4         1         0
+seg172_2812_2828                13         0         0
+seg124_2025_2042                 8         0         0
+seg212_3439_3458                33         0         0
+seg197_3198_3215                39         0         0
+seg213_3458_3477                14         0         0
+seg23_372_386                   23         0         0
+seg163_2656_2676                22         1         0
+seg161_2622_2640                27         0         0
+seg81_1313_1329                  0         0         0

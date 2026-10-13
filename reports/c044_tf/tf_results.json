@@ -1,0 +1,26 @@
+{
+  "fp16": {
+    "top1_rate": 1.0,
+    "n_steps": 629,
+    "n_eos_steps": 82,
+    "eos_rate": 1.0
+  },
+  "int8": {
+    "top1_rate": 0.9411764705882353,
+    "n_steps": 629,
+    "n_eos_steps": 82,
+    "eos_rate": 0.6341463414634146
+  },
+  "int8lmfp16": {
+    "top1_rate": 0.9379968203497615,
+    "n_steps": 629,
+    "n_eos_steps": 82,
+    "eos_rate": 0.5975609756097561
+  },
+  "int4lmfp16": {
+    "top1_rate": 0.8426073131955485,
+    "n_steps": 629,
+    "n_eos_steps": 82,
+    "eos_rate": 0.4146341463414634
+  }
+}
