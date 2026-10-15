@@ -1,8 +1,9 @@
 # STATUS
-- updated: **2026-10-15 11:07**
-- phase: 5 / 交付收尾（执行 **C-049**）
-- step: ①回执 ✅ ②文档重写 ✅ ③finish 预算受控实验 ✅ → ④推送 + WAITING_REVIEW
-- state: **RUNNING**（收尾最后一步）
+- updated: **2026-10-15 11:10**
+- phase: 5 / 交付（**等待最终交付确认**）
+- step: C-049 收尾全部完成，已合并推送远端
+- state: **WAITING_REVIEW**（按 C-049 第 5 项，等待最终交付确认）
+- 远端: `origin/c038-v2-ir` @ **`5187d05`**
 - 远端: `origin/c038-v2-ir` @ `7d42aad`
 - 交付: WER **7.88%**（reviewer 复核 8.17%）/ RTF **0.639** / 单遍无延迟（验收线 ≤11% 已满足）
 - ⚠️ **上轮结论已推翻**：18.21% WER 的瓶颈不是 INT8 量化，而是 `max_new_tokens`
@@ -122,6 +123,36 @@ CUDA 长音频上限 → 已证伪路径 → 已知限制 → 文件索引 → �
 ⚠️ **给 reviewer 的提示**：本条结果说明 8.17% 与 CUDA 7.69% 之间的残差
 **不是** finish 预算造成的。结合第 3 条（baseline 在 Q&A 段漏转约 269 词），
 残差的来源更可能是 baseline 自身的缺口，而非我们与官方的又一处语义偏差。
+
+---
+
+## C-049 收尾完成 → WAITING_REVIEW（2026-10-15 11:10）
+
+**已推送** `origin/c038-v2-ir` @ `5187d05`（快进，无历史改写），10 个文件。
+
+| C-049 项 | 状态 | 交付物 |
+|---|---|---|
+| 第 4 项 finish 预算受控实验 | ✅ **已完成，结论"无改善"** | `transcript_finish_first.txt`、`summary.json`、`status/logs/c049_finish_first.log` |
+| 5.1 `transcribe_stream.py` 默认不变 | ✅ 保持 segment encoder + INT8 + adaptive（finish 仍为 `max(64,...)`） | — |
+| 5.2 README / PROJECT_REPORT | ✅ 全篇重写 | `reports/PROJECT_REPORT.md`、`README.md` |
+| 5.3 量化路径标注为已证伪 | ✅ 已从默认路径移除、报告保留结论 | PROJECT_REPORT §6；README 项目结构与 `--decoder-dir` 注释 |
+| 5.4 合并推送 + WAITING_REVIEW | ✅ | commit `5187d05` |
+
+### 待 reviewer 确认的三个点
+1. **口径**：最终交付数以 7.88%（本机口径）还是 8.17%（reviewer 口径）为准。
+   报告里两者并列写明；定稿时请指定以哪个为准。
+2. **finish 预算结论是否接受**：本机实测 8.41%（更差），故未改。如果你认为
+   sample 仍不足，可以增加 `--decoder-dir ov-fp16-past` 下的一组对照
+   （FP16 更容易收敛，first=8 的负面影响可能变小）。
+3. **下一步**：是否进入 C-050 的中英混合测试（我方测试集任务改记 **C-051**，
+   `test_data/sets/en_60min` 已就绪 60.13 min / 449 段 / 9673 词；中文部分待
+   AISHELL 解压后构建），还是先冻结当前状态做最终交付。
+
+### 备注
+- `.gitignore` 已排除 `.workbuddy/` 与 `test_data/`（15 GB 语料不入库）。
+- 配套的 reviewer 交接简报在 `reports/REVIEWER_BRIEF_2026-10-15.md`，
+  但因 CORRECTIONS C-049 已给出明确结论，**主报告以后者的口径为准**
+  （PROJECT_REPORT 已按 C-049 重写）。
 
 ## 给 reviewer 的三个问题（详见 REVIEWER_BRIEF）
 1. **报告按 7.88% 定稿，还是先补 CUDA 全长对照等验证？**
