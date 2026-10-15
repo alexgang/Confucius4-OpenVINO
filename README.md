@@ -11,15 +11,17 @@
 |--|--|--|
 | 设备 | Intel Xe3 iGPU (Panther Lake) | `GPU.0`，`FULL_DEVICE_NAME` 启动断言 Intel |
 | 精度 | **INT8**（NNCF 权重量化）| 2.0 GB；57 ReadValue/Assign，stateful |
-| chunk | **640 ms** | `unfixed_chunk_num=0, unfixed_token_num=5, max_new_tokens=32` |
+| chunk | **640 ms** | `unfixed_chunk_num=0, unfixed_token_num=5, adaptive_budget=True` |
 | **RTF (6.74s 测试音频)** | **0.444** | 11 chunks, wall=2.99s |
 | **RTF (28.5s 长音频)** | **0.730** | 45 chunks, wall=20.76s |
-| **RTF (61.19 min 英文)** | **~0.6** | 226 段 (VAD 切), wall ~37 min |
+| **RTF (61.19 min 英文)** | **0.639** | 226 段 (VAD 切), wall=2348s |
+| **WER (61.19 min, MiniMax 参考)** | **7.88%** | C-047 自适应生成长度（原 17.87%） |
 | decode ms/token | **33 ms** | vs FP16 64 ms（1.9× speedup）|
 | 与 torch golden 文本对比（去标点 CER）| **0%** | 内容字完全一致；INT8 自然输出 `。` |
 | 末段文本（短音频）| `之前有顾客自己带酒水也没加收钱或者不让喝。` | 与 CUDA baseline（Q8_0）一致 |
 
 > 详细报告见 `status/STATUS.md`，原始日志在 `reports/`。
+> WER 与根因分析见 `reports/C047_CUDA_PARITY.md`（C-047）。
 
 ## 长音频 / OOM（C-014 关键修复）
 
@@ -51,34 +53,63 @@
   - `reports/spe_61min_transcript.txt`（每段一行 `[起始秒-结束秒] 文本`）
   - `reports/spe_61min_segments.json`（每段 start/end/text/chunks/wall/rtf）
 
-### `transcribe_stream.py` 默认行为
+### `transcribe_stream.py` 默认行为（C-047 起为交付配置）
 
 | 场景 | 行为 |
 |--|--|
+| 默认 | `SegmentEncoderOVBackend`（`ov-encoder-segment-reviewer` 整段全局注意力 encoder + `ov-int8-past` weight-only INT8 stateful decoder）|
 | 短音频（≤ 20 s）| VAD 切成 1-2 段，行为与单段流式几乎一致 |
 | 长音频（> 20 s）| VAD 在 12-20 s 内找静音切，226 段 ≈ 60 min |
-| `--no-seg` | 关闭分段，恢复旧单段（短音频用；长音频会撞 120 s encoder 上限） |
+| 生成长度 | **C-047 自适应**（默认开启）：每 chunk 按官方负反馈动态决定，base=8 / floor=16，取代固定 `max_new_tokens=32` |
+| `--no-adaptive-budget` | 退回固定 `max_new_tokens=32`（仅复现历史行为；WER 17.87%）|
+| `--no-seg` | 关闭分段，恢复单段（短音频 < 24 s 用；更长会撞 segment encoder 2400 帧硬上限） |
 | `--strategy rolling` | 按 `max_segment_sec` 等分硬切（fallback） |
 | `--strategy vad_roll` | VAD 优先，超过 max 强制切 |
+| `--decoder-dir` | 切换 decoder IR（如 `models/ov-mix4-past` 等 C-045 量化变体）|
+| `--backend window` | 旧窗口 encoder 路径（仅复现历史行为用，非交付配置）|
+
+> **C-045 变更说明**：旧默认是 `OVBackend` + optimum encoder IR（`models/ov-int8-past` 的 encoder 部分）
+> + rolling 30 s。C-021 已实测该 encoder IR 全长度都错（4 s cos 0.64），已废弃。
+> 现默认与 C-039 61-min 验收配置的 encoder/decoder 完全一致。
+
+> **C-047 变更说明（重要）**：`max_new_tokens` 从固定 32 改为**自适应生成长度**。
+> 这是 C-033 移植 R2T2 官方流式时漏掉的机制（见
+> `third_party/Confucius4-R2T2/example.py:118-155`）。固定 32 会让单次自回归失控
+> 直接写满冻结前缀，造成重复复读（61-min 实测 n3 重复 1983 次、插入错误 1025 词）。
+> 61-min 全量集：**WER 17.87% → 7.88%，RTF 0.687 → 0.639**。
+> 7.88% 已持平 C-045 的离线/两遍式 7.84%，**故两遍式方案不再需要**
+> （省 3 秒段尾延迟 + 二次计算）。详见 `reports/C047_CUDA_PARITY.md`。
 
 ## 项目结构
 
 ```
 confucius4-openvino/
-├── transcribe_stream.py         # 部署入口（默认 INT8 / 640ms / GPU.0 / VAD 切句）
+├── transcribe_stream.py         # 部署入口（segment encoder + INT8 / 640ms / GPU.0 / VAD 12-20s / 自适应预算）
 ├── seg_stream.py                # C-014 分段驱动（VAD 找静音 + max 硬切）
 ├── backends.py                  # OVBackend + TorchBackend + ASRBackend 接口
-├── streaming_asr.py             # backend-agnostic LSP 主循环（抄自 r2t2 官方源码）
-├── verify_seg_v2.py             # C-016 61 min 验收脚本
-├── monitored_stream.py          # C-014 #1 OOM 复现监控脚本
+├── segment_encoder_backend.py   # C-039 整段全局注意力 encoder backend（交付路径）
+├── window_encoder_backend.py    # C-023 窗口 encoder backend（历史/对照）
+├── streaming_asr.py             # backend-agnostic LSP 主循环 + C-047 自适应生成长度
+├── c045_export_variants.py      # C-045 decoder 量化候选导出（mix4/mix8/INT4+AWQ）
+├── c045_teacher_force.py        # C-045 候选确定性评估（top-1 / EOS / RTF）
+├── c045_61min.py                # C-045 61-min 全长验证（可指定 decoder）
+├── c045_two_pass.py             # C-045 两遍式第二遍（C-047 后已非必需，保留作对照）
+├── c046_diag_stream.py          # C-046 流式 WER 差距根因取证（5 变体扫描）
+├── c046_stream_fix.py           # C-046 LocalAgreement 共识提交修复（备选方案）
+├── c046_loop_guard.py           # C-046 严格循环守卫（替代误报的 _detect_any_loop）
+├── c047_cuda_parity.py          # C-047 CUDA/OV 流式逐项对齐对比（定位错误引入点）
+├── c048_61min.py                # C-047 61-min 全量集双配置验证
+├── wer_check.py / wer_breakdown.py  # 真实 WER / S-D-I 误差分解（验收口径）
 ├── benchmark_int8_step.py       # C-013 分项 benchmark
 ├── diff_int8.py                 # INT8 vs torch 逐 chunk 对比 + CER
 ├── test_fe.py / test_decode_no_ehs.py  # 30s padding / tiny ehs 验证
 ├── test_audio/<redacted>.wav     # 61.19 min 英文真实录音（C-016 验收样本）
 ├── models/
 │   ├── hf/                      # 原始 HF checkpoint
-│   ├── ov-fp16-past/            # FP16 stateful IR（参考用，3.9 GB）
-│   └── ov-int8-past/            # INT8 stateful IR（部署用，2.0 GB）
+│   ├── ov-encoder-segment-reviewer/  # C-039 整段全局注意力 encoder IR（交付用）
+│   ├── ov-fp16-past/            # FP16 stateful decoder IR（参考用，3.9 GB）
+│   ├── ov-int8-past/            # INT8 stateful decoder IR（交付用，2.0 GB）
+│   └── ov-mix4-past/ ...        # C-045 per-layer 混合精度 decoder 变体
 ├── reports/                     # benchmark CSV/log + 流式输出 + transcript
 ├── status/                      # 与 reviewer 通信：STATUS + history + CORRECTIONS
 └── third_party/Confucius4-R2T2/ # 官方 r2t2 源码参考
@@ -90,14 +121,20 @@ confucius4-openvino/
 # 1. 装环境（首次）
 .venv/Scripts/python.exe -m pip install -r requirements.txt
 
-# 2. 跑流式（默认 INT8 / 640ms / GPU.0 / VAD 切句）
+# 2. 跑流式（默认 segment encoder + INT8 / 640ms / GPU.0 / VAD 12-20s / 自适应生成长度）
 .venv/Scripts/python.exe transcribe_stream.py path\to.wav
 
 # 自定义参数
 .venv/Scripts/python.exe transcribe_stream.py path\to.wav --chunk-ms 320 --max-new-tokens 32
 
-# 关闭分段（短音频用）
+# 退回固定 max_new_tokens=32（C-047 前的历史行为，WER 17.87%）
+.venv/Scripts/python.exe transcribe_stream.py path\to.wav --no-adaptive-budget
+
+# 关闭分段（短音频 < 24 s 用）
 .venv/Scripts/python.exe transcribe_stream.py path\to.wav --no-seg
+
+# 换 decoder IR（C-045 量化变体）
+.venv/Scripts/python.exe transcribe_stream.py path\to.wav --decoder-dir models/ov-mix4-past
 
 # 强制等分硬切（fallback，不推荐；会切到词中间）
 .venv/Scripts/python.exe transcribe_stream.py path\to.wav --strategy rolling --max-segment-sec 20

@@ -120,6 +120,7 @@ class SegmentedStreamer:
                  unfixed_token_num: int = 5,
                  chunk_size_sec: float = 0.32,
                  max_new_tokens: int = 32,
+                 adaptive_budget: bool = False,
                  vad_silence_db: float = -40.0,
                  vad_min_silence_ms: int = 300,
                  enable_hallucination_reset: bool = True):
@@ -133,6 +134,9 @@ class SegmentedStreamer:
         self.unfixed_token_num = unfixed_token_num
         self.chunk_size_sec = chunk_size_sec
         self.max_new_tokens = max_new_tokens
+        # C-047: True 时按官方负反馈动态决定每 chunk 生成长度（1..floor），
+        # 避免固定 32 让单次自回归失控写满冻结前缀。
+        self.adaptive_budget = adaptive_budget
         self.vad_silence_db = vad_silence_db
         self.vad_min_silence_ms = vad_min_silence_ms
         self.enable_hallucination_reset = enable_hallucination_reset
@@ -194,6 +198,7 @@ class SegmentedStreamer:
                 max_new_tokens=self.max_new_tokens,
                 rollback_punctuation=False,
                 enable_hallucination_reset=self.enable_hallucination_reset,
+                adaptive_budget=self.adaptive_budget,
             )
             # C-031#5 / user 10:26 fallback: hallucination reset 触发后 finish 当前段
             if getattr(state, '_force_finish', False):

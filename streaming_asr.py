@@ -183,13 +183,57 @@ def _detect_prefix_overlap(gen_text: str, prefix: str, min_words: int = 6, max_w
     return False
 
 
+# ── C-047: 自适应生成长度（复刻 R2T2 官方 example.py:118-155）────────────
+def _is_last_token_chinese(text: str) -> bool:
+    """判断文本末字符是否为中文（对应官方 is_last_token_chinese）。"""
+    t = str(text).rstrip()
+    if not t:
+        return False
+    for ch in t[-1]:
+        if '\u4e00' <= ch <= '\u9fff':
+            return True
+    return False
+
+
+def _adaptive_budget_init(state, chunk_size_sec: float, lookahead_sec: float = 0.0):
+    """按官方公式计算基准/上限，挂在 state 上（每段首次解码时初始化）。
+
+    base  = max(1, int((step + lookahead) / 1280))     # 1280 samples ≈ 80 ms
+    floor = min(32, max(4, 2 * int(step / 1280)))
+    """
+    step = int(round(chunk_size_sec * SAMPLE_RATE))
+    look = int(round(lookahead_sec * SAMPLE_RATE))
+    state._adp_base = max(1, int((step + look) / 1280))
+    state._adp_floor = min(32, max(4, 2 * int(step / 1280)))
+    state._adp_cur = state._adp_base
+    state._adp_first = state._adp_base
+    state._adp_last_len = 0
+
+
+def _adaptive_budget_update(state, text_len: int, is_chinese: bool) -> int:
+    """官方负反馈：文本增长 → 收紧到 base；停滞 → 放宽；中文 → 翻倍。"""
+    if text_len > state._adp_last_len:
+        state._adp_cur = state._adp_base
+    else:
+        if not is_chinese:
+            state._adp_cur = state._adp_cur + 1
+        else:
+            state._adp_cur = state._adp_base
+    if is_chinese:
+        state._adp_cur = 2 * state._adp_cur
+    state._adp_cur = min(state._adp_floor, state._adp_cur)
+    state._adp_last_len = text_len
+    return state._adp_cur
+
+
 # ── 主循环（抄自 r2t2 第 302-578 行） ─────────────────────────────────
 def streaming_transcribe(backend: ASRBackend,
                          pcm16k: np.ndarray,
                          state: ASRStreamingState,
                          max_new_tokens: int = None,
                          rollback_punctuation: bool = False,
-                         enable_hallucination_reset: bool = True) -> tuple[str, str]:
+                         enable_hallucination_reset: bool = True,
+                         adaptive_budget: bool = False) -> tuple[str, str]:
     x = np.asarray(pcm16k)
     if x.ndim != 1:
         x = x.reshape(-1)
@@ -241,9 +285,18 @@ def streaming_transcribe(backend: ASRBackend,
                 k += 1
         prefix = prefix.split("|")[0]
 
+        # ── C-047: 自适应生成长度（复刻官方 example.py:118-155）──
+        # 固定 max_new_tokens 会让单次自回归失控直接写满冻结前缀（实测 n3=106）。
+        # 官方按"文本是否还在增长"做负反馈：增长→收紧，停滞→放宽，上限 floor。
+        _budget = max_new_tokens
+        if adaptive_budget:
+            if not hasattr(state, '_adp_base'):
+                _adaptive_budget_init(state, state.chunk_size_sec)
+            _budget = state._adp_cur
+
         # ── backend generate ──
         gen_text = backend.generate_with_prefix(
-            state, state.audio_accum, prefix, max_new_tokens,
+            state, state.audio_accum, prefix, _budget,
         )
         gen_text = _normalize_punct_by_context(gen_text).replace('\ufffd', '')
         state._raw_decoded = (prefix + gen_text) if prefix else gen_text
@@ -258,6 +311,10 @@ def streaming_transcribe(backend: ASRBackend,
             )
 
         lang, txt = parse_asr_output(state._raw_decoded, user_language=state.force_language)
+
+        # C-047: 用本轮全文长度更新下一次预算（负反馈）
+        if adaptive_budget:
+            _adaptive_budget_update(state, len(txt), _is_last_token_chinese(txt))
 
         has_tag = _ASR_TEXT_TAG in state._raw_decoded
         if has_tag:
