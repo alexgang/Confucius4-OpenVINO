@@ -1,14 +1,16 @@
 """c048_61min.py — C-047/C-048: 61-min 全量集验证自适应生成长度
 
-对比两个配置（同验收口径：segment encoder + VAD 12-20s + no reset）：
-  baseline   : max_new_tokens=32 固定（当前生产）
-  adaptive   : 自适应 1..floor（复刻 R2T2 官方 example.py:118-155）
-
-C-047 已在 5 段测试集上定位错误引入点为固定 max_new_tokens=32
-（40.27% → 4.36%），本脚本在全量集上验证该结论是否成立，并测 RTF 代价。
+对比以下配置（同验收口径：segment encoder + VAD 12-20s + no reset）：
+  baseline     : max_new_tokens=32 固定（当前生产）
+  adaptive     : 自适应 1..floor（复刻 R2T2 官方 example.py:118-155），
+                 段尾 flush 预算 max(64, 32)=64（C-047 现状）
+  finish_first : 同上，但段尾 flush 用官方 first_max_new_tokens
+                 = max(1, int(chunk_samples/1280))，640 ms → 8
+                 （C-049 遗留项受控实验，只改这一个量）
 
 用法:
   .venv python c048_61min.py --variants baseline,adaptive
+  .venv python c048_61min.py --variants finish_first      # C-049 受控实验
 """
 import os, sys, time, json, re, argparse
 os.environ.setdefault('PYTHONIOENCODING', 'utf-8')
@@ -52,15 +54,19 @@ def ngram_stats(text, n_list=(3, 4)):
     return out
 
 
-def run_variant(backend, audio, adaptive, audio_dur):
-    name = 'adaptive' if adaptive else 'baseline'
-    print(f'\n[c048] === {name} ===', flush=True)
+def run_variant(backend, audio, adaptive, audio_dur, finish_budget='max64',
+                name=None):
+    """跑一个变体。C-049 起支持 finish_budget 口径（max64 现状 / first 官方）。"""
+    if name is None:
+        name = 'adaptive' if adaptive else 'baseline'
+    print(f'\n[c048] === {name} (finish_budget={finish_budget}) ===', flush=True)
     streamer = SegmentedStreamer(
         backend, strategy='vad',
         min_segment_sec=12.0, max_segment_sec=20.0,
         chunk_size_sec=0.64,
         unfixed_chunk_num=0, unfixed_token_num=5, max_new_tokens=32,
         adaptive_budget=adaptive,
+        finish_budget=finish_budget,
         enable_hallucination_reset=False,
     )
     t0 = time.perf_counter()
@@ -85,7 +91,7 @@ def run_variant(backend, audio, adaptive, audio_dur):
         json.dump(segs, f, ensure_ascii=False, indent=2)
 
     return {
-        'name': name, 'adaptive': adaptive,
+        'name': name, 'adaptive': adaptive, 'finish_budget': finish_budget,
         'wall_s': round(wall, 1), 'overall_rtf': round(wall / audio_dur, 3),
         'n_segs': len(segs),
         'n_chunks_total': sum(s['n_chunks'] for s in segs),
@@ -125,7 +131,17 @@ def main():
 
     results = []
     for v in args.variants.split(','):
-        results.append(run_variant(backend, audio, v.strip() == 'adaptive', audio_dur))
+        v = v.strip()
+        if v == 'baseline':
+            kw = dict(adaptive=False, finish_budget='max64', name='baseline')
+        elif v == 'adaptive':
+            kw = dict(adaptive=True, finish_budget='max64', name='adaptive')
+        elif v == 'finish_first':
+            # C-049 受控实验：只改段尾 flush 预算为官方 first_max_new_tokens
+            kw = dict(adaptive=True, finish_budget='first', name='finish_first')
+        else:
+            raise SystemExit(f'unknown variant: {v}')
+        results.append(run_variant(backend, audio, audio_dur=audio_dur, **kw))
 
     sp = os.path.join(OUT_DIR, 'summary.json')
     with open(sp, 'w', encoding='utf-8') as f:

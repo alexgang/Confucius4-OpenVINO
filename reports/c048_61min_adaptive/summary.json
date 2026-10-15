@@ -1,34 +1,19 @@
 [
   {
-    "name": "baseline",
-    "adaptive": false,
-    "wall_s": 2521.5,
-    "overall_rtf": 0.687,
-    "n_segs": 226,
-    "n_chunks_total": 5849,
-    "total_words": 12297,
-    "n3_repeat": 1983,
-    "n4_repeat": 1207,
-    "n3_max": 41,
-    "n4_max": 22,
-    "seg_rtf_p50": 0.677,
-    "seg_rtf_p95": 0.755,
-    "seg_rtf_max": 1.133
-  },
-  {
-    "name": "adaptive",
+    "name": "finish_first",
     "adaptive": true,
-    "wall_s": 2347.5,
-    "overall_rtf": 0.639,
+    "finish_budget": "first",
+    "wall_s": 2278.0,
+    "overall_rtf": 0.62,
     "n_segs": 226,
     "n_chunks_total": 5849,
-    "total_words": 11248,
-    "n3_repeat": 981,
-    "n4_repeat": 262,
+    "total_words": 11066,
+    "n3_repeat": 908,
+    "n4_repeat": 217,
     "n3_max": 39,
-    "n4_max": 16,
-    "seg_rtf_p50": 0.636,
-    "seg_rtf_p95": 0.675,
-    "seg_rtf_max": 0.727
+    "n4_max": 15,
+    "seg_rtf_p50": 0.617,
+    "seg_rtf_p95": 0.657,
+    "seg_rtf_max": 0.693
   }
 ]

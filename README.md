@@ -21,7 +21,27 @@
 | 末段文本（短音频）| `之前有顾客自己带酒水也没加收钱或者不让喝。` | 与 CUDA baseline（Q8_0）一致 |
 
 > 详细报告见 `status/STATUS.md`，原始日志在 `reports/`。
+> **最终报告：`reports/PROJECT_REPORT.md`**（精度基线为 MiniMax 云端 asr-1.0，非 CUDA）
 > WER 与根因分析见 `reports/C047_CUDA_PARITY.md`（C-047）。
+
+## 三个根因与修复顺序（详见 `reports/PROJECT_REPORT.md` §3）
+
+| # | 根因 | 怎么发现的 | 修复 | 61-min WER |
+|---|---|---|---|---|
+| ① | optimum-intel 导出的 audio encoder **丢失了原模型的全局注意力**（参考实现的 `_prepare_attention_mask` 定义了但从未被调用） | torch 逐层对比：4 s 时逐 token cosine 只有 0.64，60 s 0.29 | 用 reviewer 的整段 encoder（`ov-encoder-segment-reviewer`，固定 `[1,128,2400]` + `n_valid`，全局注意力） | 23.5% → 17.9%<br>（与 ② 合计） |
+| ② | 窗口编码器把**不满窗当成满窗**：`n_full_windows` 按块数向上取整而非按帧数向下取整，补的零帧被当有效音频编码且被永久缓存 | 逐 chunk 增长日志里 N_audio 与公式值不符（7.68 s：应是 100，实为 104） | `n_full_windows = mel_len // 800` | 同上（11 个最差段重复 4-gram 183 → 1） |
+| ③ | **`max_new_tokens` 固定成 32，错译了官方的自适应生成预算**（1–4 token 负反馈） | 与 CUDA 官方 `example.py:118-155` 逐项对齐的 8 变体受控实验：只改这一项，5 段 40.27% → 4.36%；改 chunk/k/lookahead 全部无效 | `_adaptive_budget_init/update` + 中文分支，默认开启 | **17.87% → 7.88%** |
+
+必须知道的两个耦合约束：
+
+- **自适应必须配 `unfixed_token_num=5`** —— k=1 + 自适应在 640 ms 下退化到 29.19%（比固定 32 更差）。
+  `transcribe_stream.py` 在检测到该组合时会打印告警。
+- **不要照搬 CUDA 的 160 ms chunk** —— 实测换来 3.2 倍墙钟、WER 几乎无变化。
+- **段尾 flush 预算保持 `max(64, ...)`** —— 官方段尾用 `first_max_new_tokens`（640 ms 时为 8），
+  但 61-min 受控实验证明改过去会**截断段尾**：D 从 54 涨到 153，WER 7.88% → 8.41%（更差）。
+  原因是 OV 的流式过程未必在最后一个 chunk 收敛。实验开关保留为
+  `SegmentedStreamer(finish_budget='first')`，不作默认。
+
 
 ## 长音频 / OOM（C-014 关键修复）
 
@@ -42,6 +62,21 @@
 - 切点必须走 `finish_streaming_transcribe` flush 尾巴（修了 C-015 #3 丢字）
 - 新段 `unfixed_chunk_num=0`（per 官方 ws_server）
 - 简单能量 VAD（100 ms 帧，最低 RMS 段中点）；无静音则硬切到 `max_segment_sec`
+
+### CUDA（audio.cpp）不分段也有同样的上限
+
+这不是 OV 独有的问题，是**同一份 HF 模型架构的固有上限**：
+
+| 输入长度（不分段流式，Q8_0 + RTX 5050） | 结果 |
+|---|---|
+| 3 min / 4 min | ✅ 文本正确（RTF 1.37 / 1.64） |
+| **5 min / 10 min** | ❌ `audio encoder token count exceeds max_source_positions` |
+
+- CUDA 不分段触发阈值 **240–300 s**；OV 旧 IR 是 **120 s**（`max_source_positions=1500`）
+- 结论：**CUDA 与 OV 都需要调用方自己做 VAD 切句**，audio.cpp 本身不支持长音频
+- 按同一套 VAD 切段（226 段）跑完整 61 min，CUDA 流式是干净的：**WER 7.62%**（本机口径）/
+  7.69%（reviewer 口径）。它是同一算法的 dGPU 参照，**不是本项目的验收基线**
+  —— 验收基线是 MiniMax 云端 asr-1.0
 
 ### 验证（61.19 min 英文录音）
 
@@ -65,7 +100,7 @@
 | `--no-seg` | 关闭分段，恢复单段（短音频 < 24 s 用；更长会撞 segment encoder 2400 帧硬上限） |
 | `--strategy rolling` | 按 `max_segment_sec` 等分硬切（fallback） |
 | `--strategy vad_roll` | VAD 优先，超过 max 强制切 |
-| `--decoder-dir` | 切换 decoder IR（如 `models/ov-mix4-past` 等 C-045 量化变体）|
+| `--decoder-dir` | 切换 decoder IR。**C-043/C-044 的混合精度变体已证伪**，默认 `ov-int8-past` 即为达成 7.88% 的配置 |
 | `--backend window` | 旧窗口 encoder 路径（仅复现历史行为用，非交付配置）|
 
 > **C-045 变更说明**：旧默认是 `OVBackend` + optimum encoder IR（`models/ov-int8-past` 的 encoder 部分）
@@ -98,7 +133,8 @@ confucius4-openvino/
 ├── c046_stream_fix.py           # C-046 LocalAgreement 共识提交修复（备选方案）
 ├── c046_loop_guard.py           # C-046 严格循环守卫（替代误报的 _detect_any_loop）
 ├── c047_cuda_parity.py          # C-047 CUDA/OV 流式逐项对齐对比（定位错误引入点）
-├── c048_61min.py                # C-047 61-min 全量集双配置验证
+├── c048_61min.py                # C-047/C-049 61-min 全量验证（baseline/adaptive/finish_first）
+├── c045_wer.py                  # WER + S/D/I 分解（本机口径，与 c026 MiniMax baseline 对齐）
 ├── wer_check.py / wer_breakdown.py  # 真实 WER / S-D-I 误差分解（验收口径）
 ├── benchmark_int8_step.py       # C-013 分项 benchmark
 ├── diff_int8.py                 # INT8 vs torch 逐 chunk 对比 + CER
@@ -109,8 +145,11 @@ confucius4-openvino/
 │   ├── ov-encoder-segment-reviewer/  # C-039 整段全局注意力 encoder IR（交付用）
 │   ├── ov-fp16-past/            # FP16 stateful decoder IR（参考用，3.9 GB）
 │   ├── ov-int8-past/            # INT8 stateful decoder IR（交付用，2.0 GB）
-│   └── ov-mix4-past/ ...        # C-045 per-layer 混合精度 decoder 变体
+│   └── ov-mix4-past/ ...        # [已证伪，非交付路径] C-043/C-044 混合精度 decoder 变体
+│                                #   lm_head-FP16 / per-group / per-layer 敏感度
+│                                #   → C-047 证明 WER 瓶颈不在量化，这些产物仅存档
 ├── reports/                     # benchmark CSV/log + 流式输出 + transcript
+│   └── PROJECT_REPORT.md        # 最终交付报告（精度基线 = MiniMax 云端 asr-1.0）
 ├── status/                      # 与 reviewer 通信：STATUS + history + CORRECTIONS
 └── third_party/Confucius4-R2T2/ # 官方 r2t2 源码参考
 ```
@@ -133,8 +172,9 @@ confucius4-openvino/
 # 关闭分段（短音频 < 24 s 用）
 .venv/Scripts/python.exe transcribe_stream.py path\to.wav --no-seg
 
-# 换 decoder IR（C-045 量化变体）
-.venv/Scripts/python.exe transcribe_stream.py path\to.wav --decoder-dir models/ov-mix4-past
+# 换 decoder IR（注意：C-043/C-044 的混合精度变体已证伪，
+# 7.88% 就是在默认 ov-int8-past 上达成的，混合精度不再更优）
+.venv/Scripts/python.exe transcribe_stream.py path\to.wav --decoder-dir models/ov-int8-past
 
 # 强制等分硬切（fallback，不推荐；会切到词中间）
 .venv/Scripts/python.exe transcribe_stream.py path\to.wav --strategy rolling --max-segment-sec 20
