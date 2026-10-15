@@ -1,9 +1,19 @@
 # STATUS
-- updated: 2026-10-13 01:30
-- phase: 5 / 交付（reviewer 即将上线）
-- step: 13-日活动：GitHub 同步 + 报告生成 + **CUDA OOM 验证** + 报告 vs CUDA 数据纠错
-- state: **WAITING_REVIEW**（reviewer 即将上线，重要发现已记录）
+- updated: **2026-10-15 09:25**
+- phase: 5 / 交付（**等待 reviewer 上线**）
+- step: C-045~C-048 完成；自适应生成长度已落地并设为默认；代码已同步远端
+- state: **WAITING_REVIEW** → 📄 **先读 `reports/REVIEWER_BRIEF_2026-10-15.md`**
+- 远端: `origin/c038-v2-ir` @ `7d42aad`
+- 交付: WER **7.88%** / RTF **0.639** / 单遍无延迟（验收线 ≤11% 已满足）
+- ⚠️ **上轮结论已推翻**：18.21% WER 的瓶颈不是 INT8 量化，而是 `max_new_tokens`
+  被固定成 32（CUDA 官方是自适应 1–4）。量化路线（C-043/C-044）必要性已证伪。
+  详见 `reports/C047_CUDA_PARITY.md`
 - last_ack: **C-037**（撤销 C-029 约束；GitHub 推送 SSH 走 `github_backup_ed25519`）
+
+## 给 reviewer 的三个问题（详见 REVIEWER_BRIEF）
+1. **报告按 7.88% 定稿，还是先补 CUDA 全长对照等验证？**
+2. **量化路线（C-043/C-044）关闭吗？**
+3. **交付含中文吗？** 自适应预算的中文分支未实测过（验证集为英文）
 
 ## 4-path 实验结果（reports/c028_4path/results.json，log: status/logs/c028_4path_v4.log）
 
