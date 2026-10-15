@@ -1,0 +1,278 @@
+[
+ {
+  "set": "mix_60min",
+  "overall": {
+   "S": 185,
+   "D": 455,
+   "I": 113,
+   "mer": 7.7797293108792225,
+   "n_ref": 9679
+  },
+  "n4_repeat": 348,
+  "n3_repeat": 609,
+  "total_units": 9679,
+  "dominant_counts": {
+   "zh": 81,
+   "mixed": 44,
+   "en": 97
+  },
+  "zh_segments": {
+   "S": 119,
+   "D": 34,
+   "I": 97,
+   "mer": 6.7677314564158095,
+   "n_ref": 3694
+  },
+  "en_segments": {
+   "S": 194,
+   "D": 325,
+   "I": 79,
+   "mer": 14.054054054054054,
+   "n_ref": 4255
+  },
+  "rtf": {
+   "overall": 0.6007297569602035,
+   "p50": 0.5978225111862464,
+   "p95": 0.6458253738905568,
+   "max": 0.7717623918706057
+  },
+  "diag": {
+   "segments_with_diag": 225,
+   "total_chunks": 5519,
+   "lang_flips_total": 0,
+   "lang_flips_per_seg_max": 0,
+   "zh_chunk_ratio": 20.221054538865737,
+   "budget_mean_zh": 13.311827956989248,
+   "budget_mean_en": 9.319327731092438,
+   "budget_max_seen": 16,
+   "multi_lang_segments": 0
+  },
+  "variant": "adaptive",
+  "wall_s": 2166.166466200011,
+  "n_segs": 225
+ },
+ {
+  "set": "zh_60min",
+  "overall": {
+   "S": 189,
+   "D": 6,
+   "I": 141,
+   "mer": 3.1827223643080425,
+   "n_ref": 10557
+  },
+  "n4_repeat": 903,
+  "n3_repeat": 1523,
+  "total_units": 10557,
+  "dominant_counts": {
+   "zh": 226
+  },
+  "zh_segments": {
+   "S": 189,
+   "D": 6,
+   "I": 141,
+   "mer": 3.1827223643080425,
+   "n_ref": 10557
+  },
+  "rtf": {
+   "overall": 0.5895373087848111,
+   "p50": 0.585315140325592,
+   "p95": 0.6345163735628983,
+   "max": 0.6691413544675235
+  },
+  "diag": {
+   "segments_with_diag": 227,
+   "total_chunks": 5517,
+   "lang_flips_total": 0,
+   "lang_flips_per_seg_max": 0,
+   "zh_chunk_ratio": 49.57404386441907,
+   "budget_mean_zh": 13.30018281535649,
+   "budget_mean_en": 11.211358734723222,
+   "budget_max_seen": 16,
+   "multi_lang_segments": 0
+  },
+  "variant": "adaptive",
+  "wall_s": 2125.4477190000034,
+  "n_segs": 227
+ },
+ {
+  "set": "en_60min",
+  "overall": {
+   "S": 175,
+   "D": 171,
+   "I": 150,
+   "mer": 5.12767497157035,
+   "n_ref": 9673
+  },
+  "n4_repeat": 146,
+  "n3_repeat": 311,
+  "total_units": 9673,
+  "dominant_counts": {
+   "en": 220
+  },
+  "en_segments": {
+   "S": 175,
+   "D": 171,
+   "I": 150,
+   "mer": 5.12767497157035,
+   "n_ref": 9673
+  },
+  "rtf": {
+   "overall": 0.5987884342517621,
+   "p50": 0.5967296260995657,
+   "p95": 0.6369387969030265,
+   "max": 0.6719024871056699
+  },
+  "diag": {
+   "segments_with_diag": 226,
+   "total_chunks": 5532,
+   "lang_flips_total": 1,
+   "lang_flips_per_seg_max": 1,
+   "zh_chunk_ratio": 0.0,
+   "budget_mean_zh": 0.0,
+   "budget_mean_en": 8.146240057845263,
+   "budget_max_seen": 11,
+   "multi_lang_segments": 1
+  },
+  "variant": "adaptive",
+  "wall_s": 2161.002062600004,
+  "n_segs": 226
+ },
+ {
+  "set": "mix_60min",
+  "overall": {
+   "S": 174,
+   "D": 459,
+   "I": 95,
+   "mer": 7.5214381650997,
+   "n_ref": 9679
+  },
+  "n4_repeat": 319,
+  "n3_repeat": 578,
+  "total_units": 9679,
+  "dominant_counts": {
+   "zh": 81,
+   "mixed": 44,
+   "en": 97
+  },
+  "zh_segments": {
+   "S": 119,
+   "D": 38,
+   "I": 97,
+   "mer": 6.876015159718463,
+   "n_ref": 3694
+  },
+  "en_segments": {
+   "S": 183,
+   "D": 325,
+   "I": 61,
+   "mer": 13.372502937720329,
+   "n_ref": 4255
+  },
+  "rtf": {
+   "overall": 0.580133679809606,
+   "p50": 0.5771236357988828,
+   "p95": 0.6166061385573575,
+   "max": 0.7663595826596392
+  },
+  "diag": {
+   "segments_with_diag": 225,
+   "total_chunks": 5519,
+   "lang_flips_total": 0,
+   "lang_flips_per_seg_max": 0,
+   "zh_chunk_ratio": 20.221054538865737,
+   "budget_mean_zh": 13.311827956989248,
+   "budget_mean_en": 9.319327731092438,
+   "budget_max_seen": 16,
+   "multi_lang_segments": 0
+  },
+  "variant": "finish_first",
+  "wall_s": 2091.9750392000133,
+  "n_segs": 225
+ },
+ {
+  "set": "en_60min",
+  "overall": {
+   "S": 158,
+   "D": 173,
+   "I": 53,
+   "mer": 3.9698128812157547,
+   "n_ref": 9673
+  },
+  "n4_repeat": 34,
+  "n3_repeat": 194,
+  "total_units": 9673,
+  "dominant_counts": {
+   "en": 220
+  },
+  "en_segments": {
+   "S": 158,
+   "D": 173,
+   "I": 53,
+   "mer": 3.9698128812157547,
+   "n_ref": 9673
+  },
+  "rtf": {
+   "overall": 0.5970575912915447,
+   "p50": 0.5955007345356844,
+   "p95": 0.6282290918370934,
+   "max": 0.6514441237647015
+  },
+  "diag": {
+   "segments_with_diag": 226,
+   "total_chunks": 5532,
+   "lang_flips_total": 1,
+   "lang_flips_per_seg_max": 1,
+   "zh_chunk_ratio": 0.0,
+   "budget_mean_zh": 0.0,
+   "budget_mean_en": 8.146240057845263,
+   "budget_max_seen": 11,
+   "multi_lang_segments": 1
+  },
+  "variant": "finish_first",
+  "wall_s": 2154.7536039999977,
+  "n_segs": 226
+ },
+ {
+  "set": "zh_60min",
+  "overall": {
+   "S": 189,
+   "D": 6,
+   "I": 141,
+   "mer": 3.1827223643080425,
+   "n_ref": 10557
+  },
+  "n4_repeat": 903,
+  "n3_repeat": 1523,
+  "total_units": 10557,
+  "dominant_counts": {
+   "zh": 226
+  },
+  "zh_segments": {
+   "S": 189,
+   "D": 6,
+   "I": 141,
+   "mer": 3.1827223643080425,
+   "n_ref": 10557
+  },
+  "rtf": {
+   "overall": 0.5702652479946294,
+   "p50": 0.5688489858634136,
+   "p95": 0.6039199652975078,
+   "max": 0.6303584652404702
+  },
+  "diag": {
+   "segments_with_diag": 227,
+   "total_chunks": 5517,
+   "lang_flips_total": 0,
+   "lang_flips_per_seg_max": 0,
+   "zh_chunk_ratio": 49.57404386441907,
+   "budget_mean_zh": 13.30018281535649,
+   "budget_mean_en": 11.211358734723222,
+   "budget_max_seen": 16,
+   "multi_lang_segments": 0
+  },
+  "variant": "finish_first",
+  "wall_s": 2055.7926410999935,
+  "n_segs": 227
+ }
+]
