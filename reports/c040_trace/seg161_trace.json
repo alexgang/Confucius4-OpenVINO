@@ -1,0 +1,2496 @@
+{
+  "label": "seg161",
+  "start": 2622.2,
+  "end": 2640.4,
+  "dur": 18.200000000000273,
+  "n_chunks": 29,
+  "first_divergence": {
+    "chunk": 1,
+    "int8_gen": [
+      437,
+      2256,
+      91,
+      151645
+    ],
+    "fp16_gen": [
+      437,
+      2256,
+      151645
+    ],
+    "torch_gen": [
+      437,
+      2256,
+      151645
+    ],
+    "int8_prefix_len": 3,
+    "fp16_prefix_len": 3,
+    "torch_prefix_len": 3,
+    "int8_top5": [
+      437,
+      3036,
+      323,
+      33108,
+      1597
+    ],
+    "fp16_top5": [
+      437,
+      3036,
+      323,
+      33108,
+      1597
+    ],
+    "torch_top5": [
+      437,
+      3036,
+      323,
+      33108,
+      1597
+    ],
+    "int8_top5_vals": [
+      53.640018463134766,
+      51.01641845703125,
+      42.3430290222168,
+      36.51211929321289,
+      36.10087203979492
+    ],
+    "fp16_top5_vals": [
+      54.772464752197266,
+      49.45531463623047,
+      42.67280197143555,
+      36.015419006347656,
+      35.50958251953125
+    ],
+    "torch_top5_vals": [
+      54.78584289550781,
+      49.4272346496582,
+      42.65066146850586,
+      36.0106086730957,
+      35.47817611694336
+    ]
+  },
+  "int8": {
+    "final_text": "language None<asr_text> and super|    cloud is basically leveraging|     a base from  open|     code which is similar |     open|     claw of  trying to have a|     solution  that could be|    |     tuned or|      more|     unique for|     Intel 's|     platforms  and|   there's|      some|     reality  of|     kind of|     where|     we |     are|      right|     you|     know|      the|     the|     the |     key|     for|     Intel|      is|     getting|     a|     solution|      that|     could|     be|     tuned|     or|     more|     unique|     for|     Intel|     's|      platforms|  and there's some reality of kind of where we are right you know the key for Intel is getting a better base for all these things to execute on ",
+    "n_chunks": 29
+  },
+  "fp16": {
+    "final_text": "language None<asr_text> and super quad was basically  ��� leveraging leveraging  a base from  open source  code which is similar  to open  claw  of trying to have a solution  that could be  tuned or  more unique for Intel 's platforms  and   there's  some   reality  of  kind of where we  are  right  you  know the the  key for Intel  is getting  a  solution  that could be tuned or more unique for Intel's platforms   and there's some reality of kind of where we are right you know the key for Intel is getting a better base for all these things to execute on ",
+    "n_chunks": 29
+  },
+  "torch": {
+    "final_text": "language None<asr_text> and super quad was basically  ��� leveraging leveraging  a base from  open source  code which is similar  to open  claw  of trying to have a solution  that could be  tuned or  more unique for Intel 's platforms  and   there's  some   reality  of  kind of where we  are  right  you  know the the  key for Intel  is getting  a  solution  that could be tuned or more unique for Intel's platforms   and there's some reality of kind of where we are right you know the key for Intel is getting a better base for all these things to execute on ",
+    "n_chunks": 29
+  },
+  "chunks_int8": [
+    {
+      "chunk": 0,
+      "prefix_len": 0,
+      "prefix_text_tail": "",
+      "gen_ids": [
+        11528,
+        2240,
+        151704,
+        151645
+      ],
+      "gen_text": "language None<asr_text>",
+      "logits_top5": [
+        11528,
+        1994,
+        56193,
+        27710,
+        11817
+      ],
+      "logits_top5_vals": [
+        37.01938247680664,
+        26.28215217590332,
+        25.86732292175293,
+        25.01316261291504,
+        24.743114471435547
+      ]
+    },
+    {
+      "chunk": 1,
+      "prefix_len": 3,
+      "prefix_text_tail": "language None<asr_text>",
+      "gen_ids": [
+        437,
+        2256,
+        91,
+        151645
+      ],
+      "gen_text": "and super|",
+      "logits_top5": [
+        437,
+        3036,
+        323,
+        33108,
+        1597
+      ],
+      "logits_top5_vals": [
+        53.640018463134766,
+        51.01641845703125,
+        42.3430290222168,
+        36.51211929321289,
+        36.10087203979492
+      ]
+    },
+    {
+      "chunk": 2,
+      "prefix_len": 6,
+      "prefix_text_tail": "language None<asr_text> and super|",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        151643,
+        80,
+        64621,
+        66
+      ],
+      "logits_top5_vals": [
+        26.68381118774414,
+        21.09383201599121,
+        18.179040908813477,
+        16.13387107849121,
+        15.978044509887695
+      ]
+    },
+    {
+      "chunk": 3,
+      "prefix_len": 7,
+      "prefix_text_tail": "language None<asr_text> and super| ",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        151643,
+        9973,
+        20,
+        19
+      ],
+      "logits_top5_vals": [
+        26.04846954345703,
+        18.166656494140625,
+        18.07515525817871,
+        17.964799880981445,
+        17.548980712890625
+      ]
+    },
+    {
+      "chunk": 4,
+      "prefix_len": 7,
+      "prefix_text_tail": "language None<asr_text> and super|  ",
+      "gen_ids": [
+        9437,
+        374,
+        13221,
+        76482,
+        91,
+        151645
+      ],
+      "gen_text": " cloud is basically leveraging|",
+      "logits_top5": [
+        9437,
+        6335,
+        760,
+        13428,
+        151643
+      ],
+      "logits_top5_vals": [
+        27.20598793029785,
+        26.630313873291016,
+        26.328521728515625,
+        24.314905166625977,
+        24.14423942565918
+      ]
+    },
+    {
+      "chunk": 5,
+      "prefix_len": 12,
+      "prefix_text_tail": "text> and super|    cloud is basically leveraging|",
+      "gen_ids": [
+        262,
+        264,
+        2331,
+        504,
+        151645
+      ],
+      "gen_text": "    a base from",
+      "logits_top5": [
+        262,
+        220,
+        264,
+        256,
+        257
+      ],
+      "logits_top5_vals": [
+        33.56366729736328,
+        30.108205795288086,
+        29.91436195373535,
+        29.531965255737305,
+        28.1705379486084
+      ]
+    },
+    {
+      "chunk": 6,
+      "prefix_len": 16,
+      "prefix_text_tail": "    cloud is basically leveraging|     a base from",
+      "gen_ids": [
+        1787,
+        91,
+        151645
+      ],
+      "gen_text": " open|",
+      "logits_top5": [
+        1787,
+        5264,
+        91,
+        5002,
+        220
+      ],
+      "logits_top5_vals": [
+        44.22686767578125,
+        41.82484436035156,
+        37.7960319519043,
+        31.437503814697266,
+        30.919965744018555
+      ]
+    },
+    {
+      "chunk": 7,
+      "prefix_len": 19,
+      "prefix_text_tail": "ud is basically leveraging|     a base from  open|",
+      "gen_ids": [
+        262,
+        2038,
+        892,
+        374,
+        4428,
+        151645
+      ],
+      "gen_text": "    code which is similar",
+      "logits_top5": [
+        262,
+        257,
+        220,
+        2038,
+        1851
+      ],
+      "logits_top5_vals": [
+        31.24627113342285,
+        30.276119232177734,
+        29.813257217407227,
+        29.634971618652344,
+        29.618942260742188
+      ]
+    },
+    {
+      "chunk": 8,
+      "prefix_len": 24,
+      "prefix_text_tail": "|     a base from  open|     code which is similar",
+      "gen_ids": [
+        91,
+        257,
+        1787,
+        91,
+        151645
+      ],
+      "gen_text": "|     open|",
+      "logits_top5": [
+        91,
+        1787,
+        220,
+        311,
+        11
+      ],
+      "logits_top5_vals": [
+        35.38051223754883,
+        33.894920349121094,
+        31.464229583740234,
+        31.31954574584961,
+        28.727819442749023
+      ]
+    },
+    {
+      "chunk": 9,
+      "prefix_len": 28,
+      "prefix_text_tail": " from  open|     code which is similar |     open|",
+      "gen_ids": [
+        262,
+        56490,
+        315,
+        151645
+      ],
+      "gen_text": "    claw of",
+      "logits_top5": [
+        262,
+        257,
+        220,
+        256,
+        414
+      ],
+      "logits_top5_vals": [
+        32.015167236328125,
+        31.90262794494629,
+        28.809614181518555,
+        28.03616714477539,
+        27.853647232055664
+      ]
+    },
+    {
+      "chunk": 10,
+      "prefix_len": 31,
+      "prefix_text_tail": "     code which is similar |     open|     claw of",
+      "gen_ids": [
+        4460,
+        311,
+        614,
+        264,
+        91,
+        257,
+        6291,
+        151645
+      ],
+      "gen_text": " trying to have a|     solution",
+      "logits_top5": [
+        4460,
+        91,
+        220,
+        760,
+        1430
+      ],
+      "logits_top5_vals": [
+        38.75203323364258,
+        36.656497955322266,
+        31.591367721557617,
+        30.984872817993164,
+        29.46571159362793
+      ]
+    },
+    {
+      "chunk": 11,
+      "prefix_len": 39,
+      "prefix_text_tail": " open|     claw of  trying to have a|     solution",
+      "gen_ids": [
+        429,
+        1410,
+        387,
+        91,
+        257,
+        91,
+        151645
+      ],
+      "gen_text": " that could be|    |",
+      "logits_top5": [
+        429,
+        91,
+        220,
+        760,
+        256
+      ],
+      "logits_top5_vals": [
+        42.783287048339844,
+        38.787254333496094,
+        35.37765884399414,
+        32.572147369384766,
+        30.611839294433594
+      ]
+    },
+    {
+      "chunk": 12,
+      "prefix_len": 46,
+      "prefix_text_tail": "rying to have a|     solution  that could be|    |",
+      "gen_ids": [
+        262,
+        32419,
+        476,
+        91,
+        151645
+      ],
+      "gen_text": "    tuned or|",
+      "logits_top5": [
+        262,
+        83,
+        220,
+        257,
+        32419
+      ],
+      "logits_top5_vals": [
+        28.999984741210938,
+        28.85513687133789,
+        28.411588668823242,
+        27.910140991210938,
+        27.614147186279297
+      ]
+    },
+    {
+      "chunk": 13,
+      "prefix_len": 50,
+      "prefix_text_tail": "a|     solution  that could be|    |     tuned or|",
+      "gen_ids": [
+        257,
+        803,
+        91,
+        257,
+        4911,
+        369,
+        91,
+        257,
+        15611,
+        151645
+      ],
+      "gen_text": "     more|     unique for|     Intel",
+      "logits_top5": [
+        257,
+        262,
+        220,
+        256,
+        760
+      ],
+      "logits_top5_vals": [
+        32.12321090698242,
+        32.00969696044922,
+        29.9531192779541,
+        29.0060977935791,
+        28.322370529174805
+      ]
+    },
+    {
+      "chunk": 14,
+      "prefix_len": 59,
+      "prefix_text_tail": "    tuned or|      more|     unique for|     Intel",
+      "gen_ids": [
+        594,
+        91,
+        257,
+        15409,
+        151645
+      ],
+      "gen_text": "'s|     platforms",
+      "logits_top5": [
+        594,
+        91,
+        70831,
+        4605,
+        39829
+      ],
+      "logits_top5_vals": [
+        39.88092803955078,
+        35.12727737426758,
+        31.0275821685791,
+        30.350927352905273,
+        29.52687644958496
+      ]
+    },
+    {
+      "chunk": 15,
+      "prefix_len": 64,
+      "prefix_text_tail": " more|     unique for|     Intel 's|     platforms",
+      "gen_ids": [
+        323,
+        91,
+        151645
+      ],
+      "gen_text": " and|",
+      "logits_top5": [
+        323,
+        91,
+        220,
+        13,
+        11
+      ],
+      "logits_top5_vals": [
+        36.884376525878906,
+        34.391937255859375,
+        33.83323669433594,
+        33.53667068481445,
+        31.838481903076172
+      ]
+    },
+    {
+      "chunk": 16,
+      "prefix_len": 67,
+      "prefix_text_tail": "     unique for|     Intel 's|     platforms  and|",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        257,
+        262,
+        220,
+        414
+      ],
+      "logits_top5_vals": [
+        29.617164611816406,
+        27.211639404296875,
+        27.165685653686523,
+        26.891889572143555,
+        25.980558395385742
+      ]
+    },
+    {
+      "chunk": 17,
+      "prefix_len": 68,
+      "prefix_text_tail": "    unique for|     Intel 's|     platforms  and| ",
+      "gen_ids": [
+        1052,
+        594,
+        91,
+        151645
+      ],
+      "gen_text": " there's|",
+      "logits_top5": [
+        1052,
+        2619,
+        760,
+        807,
+        279
+      ],
+      "logits_top5_vals": [
+        35.6781120300293,
+        32.93909454345703,
+        30.599163055419922,
+        30.127824783325195,
+        28.721099853515625
+      ]
+    },
+    {
+      "chunk": 18,
+      "prefix_len": 71,
+      "prefix_text_tail": " for|     Intel 's|     platforms  and|   there's|",
+      "gen_ids": [
+        257,
+        1045,
+        91,
+        257,
+        8729,
+        151645
+      ],
+      "gen_text": "     some|     reality",
+      "logits_top5": [
+        257,
+        262,
+        220,
+        256,
+        414
+      ],
+      "logits_top5_vals": [
+        30.980636596679688,
+        30.95014190673828,
+        30.896638870239258,
+        30.018695831298828,
+        28.813032150268555
+      ]
+    },
+    {
+      "chunk": 19,
+      "prefix_len": 76,
+      "prefix_text_tail": " platforms  and|   there's|      some|     reality",
+      "gen_ids": [
+        315,
+        91,
+        257,
+        3093,
+        315,
+        91,
+        257,
+        1380,
+        91,
+        257,
+        582,
+        151645
+      ],
+      "gen_text": " of|     kind of|     where|     we",
+      "logits_top5": [
+        315,
+        91,
+        220,
+        760,
+        256
+      ],
+      "logits_top5_vals": [
+        36.66029739379883,
+        35.607730865478516,
+        33.1181526184082,
+        29.135774612426758,
+        28.067092895507812
+      ]
+    },
+    {
+      "chunk": 20,
+      "prefix_len": 88,
+      "prefix_text_tail": "e|     reality  of|     kind of|     where|     we",
+      "gen_ids": [
+        91,
+        257,
+        525,
+        91,
+        151645
+      ],
+      "gen_text": "|     are|",
+      "logits_top5": [
+        91,
+        525,
+        220,
+        760,
+        796
+      ],
+      "logits_top5_vals": [
+        34.68739700317383,
+        33.67057418823242,
+        30.997114181518555,
+        28.463895797729492,
+        27.67655372619629
+      ]
+    },
+    {
+      "chunk": 21,
+      "prefix_len": 92,
+      "prefix_text_tail": "ity  of|     kind of|     where|     we |     are|",
+      "gen_ids": [
+        257,
+        1290,
+        91,
+        257,
+        498,
+        91,
+        257,
+        1414,
+        91,
+        151645
+      ],
+      "gen_text": "     right|     you|     know|",
+      "logits_top5": [
+        257,
+        220,
+        262,
+        1290,
+        414
+      ],
+      "logits_top5_vals": [
+        31.725873947143555,
+        30.863658905029297,
+        30.471824645996094,
+        30.36815643310547,
+        30.167194366455078
+      ]
+    },
+    {
+      "chunk": 22,
+      "prefix_len": 101,
+      "prefix_text_tail": "|     we |     are|      right|     you|     know|",
+      "gen_ids": [
+        257,
+        279,
+        91,
+        257,
+        279,
+        91,
+        257,
+        279,
+        151645
+      ],
+      "gen_text": "     the|     the|     the",
+      "logits_top5": [
+        257,
+        262,
+        220,
+        414,
+        279
+      ],
+      "logits_top5_vals": [
+        31.2805118560791,
+        30.096410751342773,
+        29.83200454711914,
+        29.70865821838379,
+        29.480676651000977
+      ]
+    },
+    {
+      "chunk": 23,
+      "prefix_len": 109,
+      "prefix_text_tail": "ght|     you|     know|      the|     the|     the",
+      "gen_ids": [
+        91,
+        257,
+        1376,
+        91,
+        257,
+        369,
+        91,
+        257,
+        15611,
+        91,
+        151645
+      ],
+      "gen_text": "|     key|     for|     Intel|",
+      "logits_top5": [
+        91,
+        1376,
+        220,
+        760,
+        792
+      ],
+      "logits_top5_vals": [
+        33.967002868652344,
+        31.889419555664062,
+        28.97808265686035,
+        27.282503128051758,
+        26.248836517333984
+      ]
+    },
+    {
+      "chunk": 24,
+      "prefix_len": 119,
+      "prefix_text_tail": "e|     the|     the |     key|     for|     Intel|",
+      "gen_ids": [
+        257,
+        374,
+        91,
+        257,
+        3709,
+        91,
+        257,
+        264,
+        91,
+        257,
+        6291,
+        91,
+        151645
+      ],
+      "gen_text": "     is|     getting|     a|     solution|",
+      "logits_top5": [
+        257,
+        262,
+        414,
+        220,
+        374
+      ],
+      "logits_top5_vals": [
+        33.60647964477539,
+        31.610774993896484,
+        31.244157791137695,
+        30.57126235961914,
+        29.399019241333008
+      ]
+    },
+    {
+      "chunk": 25,
+      "prefix_len": 131,
+      "prefix_text_tail": " Intel|      is|     getting|     a|     solution|",
+      "gen_ids": [
+        257,
+        429,
+        91,
+        257,
+        1410,
+        91,
+        257,
+        387,
+        91,
+        257,
+        32419,
+        91,
+        257,
+        476,
+        91,
+        257,
+        803,
+        91,
+        257,
+        4911,
+        91,
+        257,
+        369,
+        91,
+        257,
+        15611,
+        91,
+        257,
+        364,
+        82,
+        91,
+        257
+      ],
+      "gen_text": "     that|     could|     be|     tuned|     or|     more|     unique|     for|     Intel|     's|    ",
+      "logits_top5": [
+        257,
+        414,
+        220,
+        262,
+        760
+      ],
+      "logits_top5_vals": [
+        29.903085708618164,
+        28.572824478149414,
+        28.53036880493164,
+        28.492389678955078,
+        28.492355346679688
+      ]
+    },
+    {
+      "chunk": 26,
+      "prefix_len": 163,
+      "prefix_text_tail": " more|     unique|     for|     Intel|     's|    ",
+      "gen_ids": [
+        15409,
+        91,
+        151645
+      ],
+      "gen_text": " platforms|",
+      "logits_top5": [
+        15409,
+        760,
+        5339,
+        91,
+        95109
+      ],
+      "logits_top5_vals": [
+        34.17839813232422,
+        29.937061309814453,
+        28.02018928527832,
+        27.404211044311523,
+        26.740516662597656
+      ]
+    },
+    {
+      "chunk": 27,
+      "prefix_len": 165,
+      "prefix_text_tail": "nique|     for|     Intel|     's|      platforms|",
+      "gen_ids": [
+        323,
+        1052,
+        594,
+        1045,
+        8729,
+        315,
+        3093,
+        315,
+        1380,
+        582,
+        525,
+        1290,
+        498,
+        1414,
+        279,
+        1376,
+        369,
+        15611,
+        374,
+        3709,
+        264,
+        2664,
+        2331,
+        369,
+        678,
+        1493,
+        2513,
+        311,
+        9026,
+        389,
+        151645
+      ],
+      "gen_text": " and there's some reality of kind of where we are right you know the key for Intel is getting a better base for all these things to execute on",
+      "logits_top5": [
+        323,
+        151645,
+        220,
+        257,
+        414
+      ],
+      "logits_top5_vals": [
+        28.514488220214844,
+        28.326322555541992,
+        28.232547760009766,
+        27.884788513183594,
+        27.612184524536133
+      ]
+    },
+    {
+      "chunk": 28,
+      "prefix_len": 196,
+      "prefix_text_tail": "g a better base for all these things to execute on",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        13,
+        91,
+        11,
+        323
+      ],
+      "logits_top5_vals": [
+        31.80112075805664,
+        29.73224639892578,
+        29.021326065063477,
+        27.087722778320312,
+        26.748916625976562
+      ]
+    }
+  ],
+  "chunks_fp16": [
+    {
+      "chunk": 0,
+      "prefix_len": 0,
+      "prefix_text_tail": "",
+      "gen_ids": [
+        11528,
+        2240,
+        151704,
+        151645
+      ],
+      "gen_text": "language None<asr_text>",
+      "logits_top5": [
+        11528,
+        56193,
+        1994,
+        13575,
+        11817
+      ],
+      "logits_top5_vals": [
+        39.142887115478516,
+        25.4747314453125,
+        25.06941795349121,
+        23.535863876342773,
+        23.4597110748291
+      ]
+    },
+    {
+      "chunk": 1,
+      "prefix_len": 3,
+      "prefix_text_tail": "language None<asr_text>",
+      "gen_ids": [
+        437,
+        2256,
+        151645
+      ],
+      "gen_text": "and super",
+      "logits_top5": [
+        437,
+        3036,
+        323,
+        33108,
+        1597
+      ],
+      "logits_top5_vals": [
+        54.772464752197266,
+        49.45531463623047,
+        42.67280197143555,
+        36.015419006347656,
+        35.50958251953125
+      ]
+    },
+    {
+      "chunk": 2,
+      "prefix_len": 5,
+      "prefix_text_tail": "language None<asr_text> and super",
+      "gen_ids": [
+        31610,
+        572,
+        13221,
+        151645
+      ],
+      "gen_text": "quad was basically",
+      "logits_top5": [
+        31610,
+        12361,
+        19862,
+        446,
+        9437
+      ],
+      "logits_top5_vals": [
+        30.095144271850586,
+        29.68250846862793,
+        27.114355087280273,
+        27.0872802734375,
+        25.103757858276367
+      ]
+    },
+    {
+      "chunk": 3,
+      "prefix_len": 8,
+      "prefix_text_tail": "nguage None<asr_text> and super quad was basically",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        91,
+        151643,
+        1406,
+        271
+      ],
+      "logits_top5_vals": [
+        37.463951110839844,
+        31.406373977661133,
+        29.756423950195312,
+        25.07492446899414,
+        22.838594436645508
+      ]
+    },
+    {
+      "chunk": 4,
+      "prefix_len": 9,
+      "prefix_text_tail": "guage None<asr_text> and super quad was basically ",
+      "gen_ids": [
+        57332,
+        76482,
+        76482,
+        151645
+      ],
+      "gen_text": "��� leveraging leveraging",
+      "logits_top5": [
+        57332,
+        76482,
+        9973,
+        151645,
+        151661
+      ],
+      "logits_top5_vals": [
+        20.150293350219727,
+        19.66029167175293,
+        19.343643188476562,
+        19.241533279418945,
+        18.24237060546875
+      ]
+    },
+    {
+      "chunk": 5,
+      "prefix_len": 13,
+      "prefix_text_tail": "uper quad was basically  ��� leveraging leveraging",
+      "gen_ids": [
+        264,
+        2331,
+        504,
+        151645
+      ],
+      "gen_text": " a base from",
+      "logits_top5": [
+        264,
+        220,
+        2331,
+        64,
+        11323
+      ],
+      "logits_top5_vals": [
+        46.99393081665039,
+        34.88032531738281,
+        30.313907623291016,
+        30.136688232421875,
+        30.09234619140625
+      ]
+    },
+    {
+      "chunk": 6,
+      "prefix_len": 17,
+      "prefix_text_tail": " basically  ��� leveraging leveraging  a base from",
+      "gen_ids": [
+        1787,
+        2530,
+        151645
+      ],
+      "gen_text": " open source",
+      "logits_top5": [
+        1787,
+        5264,
+        220,
+        115462,
+        5002
+      ],
+      "logits_top5_vals": [
+        42.64948654174805,
+        40.24220657348633,
+        34.473670959472656,
+        28.84514617919922,
+        28.490583419799805
+      ]
+    },
+    {
+      "chunk": 7,
+      "prefix_len": 20,
+      "prefix_text_tail": "�� leveraging leveraging  a base from  open source",
+      "gen_ids": [
+        2038,
+        892,
+        374,
+        4428,
+        151645
+      ],
+      "gen_text": " code which is similar",
+      "logits_top5": [
+        2038,
+        11,
+        892,
+        220,
+        6119
+      ],
+      "logits_top5_vals": [
+        35.10190963745117,
+        34.95017623901367,
+        34.3408088684082,
+        29.312049865722656,
+        27.216947555541992
+      ]
+    },
+    {
+      "chunk": 8,
+      "prefix_len": 25,
+      "prefix_text_tail": "g  a base from  open source  code which is similar",
+      "gen_ids": [
+        311,
+        1787,
+        151643
+      ],
+      "gen_text": " to open",
+      "logits_top5": [
+        311,
+        1787,
+        220,
+        5264,
+        11
+      ],
+      "logits_top5_vals": [
+        32.54800033569336,
+        32.248504638671875,
+        31.950275421142578,
+        29.326152801513672,
+        28.441701889038086
+      ]
+    },
+    {
+      "chunk": 9,
+      "prefix_len": 28,
+      "prefix_text_tail": " from  open source  code which is similar  to open",
+      "gen_ids": [
+        56490,
+        151645
+      ],
+      "gen_text": " claw",
+      "logits_top5": [
+        56490,
+        27082,
+        220,
+        564,
+        1185
+      ],
+      "logits_top5_vals": [
+        31.480356216430664,
+        28.948158264160156,
+        28.482473373413086,
+        26.490798950195312,
+        25.893857955932617
+      ]
+    },
+    {
+      "chunk": 10,
+      "prefix_len": 30,
+      "prefix_text_tail": " open source  code which is similar  to open  claw",
+      "gen_ids": [
+        315,
+        4460,
+        311,
+        614,
+        264,
+        6291,
+        151645
+      ],
+      "gen_text": " of trying to have a solution",
+      "logits_top5": [
+        315,
+        11,
+        220,
+        1154,
+        13
+      ],
+      "logits_top5_vals": [
+        37.44247817993164,
+        35.55352783203125,
+        34.42237854003906,
+        29.99683952331543,
+        29.33295249938965
+      ]
+    },
+    {
+      "chunk": 11,
+      "prefix_len": 37,
+      "prefix_text_tail": "milar  to open  claw  of trying to have a solution",
+      "gen_ids": [
+        429,
+        1410,
+        387,
+        151645
+      ],
+      "gen_text": " that could be",
+      "logits_top5": [
+        429,
+        220,
+        760,
+        256,
+        91
+      ],
+      "logits_top5_vals": [
+        36.641807556152344,
+        35.0108642578125,
+        25.88755989074707,
+        25.693248748779297,
+        25.638124465942383
+      ]
+    },
+    {
+      "chunk": 12,
+      "prefix_len": 41,
+      "prefix_text_tail": " claw  of trying to have a solution  that could be",
+      "gen_ids": [
+        32419,
+        476,
+        151645
+      ],
+      "gen_text": " tuned or",
+      "logits_top5": [
+        32419,
+        220,
+        11460,
+        25240,
+        259
+      ],
+      "logits_top5_vals": [
+        37.37929153442383,
+        34.85881423950195,
+        30.716548919677734,
+        30.240156173706055,
+        29.963172912597656
+      ]
+    },
+    {
+      "chunk": 13,
+      "prefix_len": 44,
+      "prefix_text_tail": "trying to have a solution  that could be  tuned or",
+      "gen_ids": [
+        803,
+        4911,
+        369,
+        15611,
+        151645
+      ],
+      "gen_text": " more unique for Intel",
+      "logits_top5": [
+        803,
+        220,
+        256,
+        4313,
+        6384
+      ],
+      "logits_top5_vals": [
+        39.208396911621094,
+        36.06940841674805,
+        28.72462272644043,
+        27.404827117919922,
+        26.934741973876953
+      ]
+    },
+    {
+      "chunk": 14,
+      "prefix_len": 49,
+      "prefix_text_tail": "on  that could be  tuned or  more unique for Intel",
+      "gen_ids": [
+        594,
+        15409,
+        151645
+      ],
+      "gen_text": "'s platforms",
+      "logits_top5": [
+        594,
+        220,
+        364,
+        274,
+        6
+      ],
+      "logits_top5_vals": [
+        36.273197174072266,
+        28.40896224975586,
+        27.57759666442871,
+        27.378358840942383,
+        27.28643798828125
+      ]
+    },
+    {
+      "chunk": 15,
+      "prefix_len": 52,
+      "prefix_text_tail": "d be  tuned or  more unique for Intel 's platforms",
+      "gen_ids": [
+        323,
+        151645
+      ],
+      "gen_text": " and",
+      "logits_top5": [
+        323,
+        220,
+        13,
+        151645,
+        11
+      ],
+      "logits_top5_vals": [
+        32.44171142578125,
+        31.77230453491211,
+        31.762914657592773,
+        30.989620208740234,
+        29.278121948242188
+      ]
+    },
+    {
+      "chunk": 16,
+      "prefix_len": 54,
+      "prefix_text_tail": " tuned or  more unique for Intel 's platforms  and",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        91,
+        151643,
+        13,
+        220
+      ],
+      "logits_top5_vals": [
+        34.77103805541992,
+        27.219791412353516,
+        26.690160751342773,
+        25.995851516723633,
+        25.261878967285156
+      ]
+    },
+    {
+      "chunk": 17,
+      "prefix_len": 55,
+      "prefix_text_tail": "tuned or  more unique for Intel 's platforms  and ",
+      "gen_ids": [
+        1052,
+        594,
+        220,
+        1045,
+        151645
+      ],
+      "gen_text": " there's  some",
+      "logits_top5": [
+        1052,
+        151645,
+        2619,
+        807,
+        498
+      ],
+      "logits_top5_vals": [
+        32.60572052001953,
+        27.990829467773438,
+        27.366220474243164,
+        27.112937927246094,
+        26.579694747924805
+      ]
+    },
+    {
+      "chunk": 18,
+      "prefix_len": 59,
+      "prefix_text_tail": "unique for Intel 's platforms  and   there's  some",
+      "gen_ids": [
+        220,
+        8729,
+        151645
+      ],
+      "gen_text": "  reality",
+      "logits_top5": [
+        220,
+        8729,
+        256,
+        1931,
+        49346
+      ],
+      "logits_top5_vals": [
+        33.547550201416016,
+        33.394073486328125,
+        27.611764907836914,
+        27.594377517700195,
+        26.82600975036621
+      ]
+    },
+    {
+      "chunk": 19,
+      "prefix_len": 61,
+      "prefix_text_tail": " Intel 's platforms  and   there's  some   reality",
+      "gen_ids": [
+        315,
+        220,
+        3093,
+        315,
+        1380,
+        582,
+        151645
+      ],
+      "gen_text": " of  kind of where we",
+      "logits_top5": [
+        315,
+        220,
+        256,
+        262,
+        257
+      ],
+      "logits_top5_vals": [
+        35.49310302734375,
+        35.40194320678711,
+        30.938554763793945,
+        28.015104293823242,
+        25.910106658935547
+      ]
+    },
+    {
+      "chunk": 20,
+      "prefix_len": 68,
+      "prefix_text_tail": "nd   there's  some   reality  of  kind of where we",
+      "gen_ids": [
+        525,
+        151645
+      ],
+      "gen_text": " are",
+      "logits_top5": [
+        525,
+        220,
+        256,
+        796,
+        262
+      ],
+      "logits_top5_vals": [
+        35.000450134277344,
+        34.36912155151367,
+        29.52360725402832,
+        28.04763412475586,
+        27.494462966918945
+      ]
+    },
+    {
+      "chunk": 21,
+      "prefix_len": 70,
+      "prefix_text_tail": "there's  some   reality  of  kind of where we  are",
+      "gen_ids": [
+        1290,
+        220,
+        498,
+        151645
+      ],
+      "gen_text": " right  you",
+      "logits_top5": [
+        1290,
+        11,
+        220,
+        1154,
+        13
+      ],
+      "logits_top5_vals": [
+        34.19025421142578,
+        34.134395599365234,
+        34.023292541503906,
+        31.637983322143555,
+        31.154983520507812
+      ]
+    },
+    {
+      "chunk": 22,
+      "prefix_len": 74,
+      "prefix_text_tail": "e   reality  of  kind of where we  are  right  you",
+      "gen_ids": [
+        1414,
+        279,
+        279,
+        151645
+      ],
+      "gen_text": " know the the",
+      "logits_top5": [
+        1414,
+        220,
+        256,
+        262,
+        151643
+      ],
+      "logits_top5_vals": [
+        34.23111343383789,
+        32.95199966430664,
+        28.57154083251953,
+        26.155691146850586,
+        25.695693969726562
+      ]
+    },
+    {
+      "chunk": 23,
+      "prefix_len": 78,
+      "prefix_text_tail": "f  kind of where we  are  right  you  know the the",
+      "gen_ids": [
+        1376,
+        369,
+        15611,
+        151645
+      ],
+      "gen_text": " key for Intel",
+      "logits_top5": [
+        1376,
+        220,
+        256,
+        262,
+        257
+      ],
+      "logits_top5_vals": [
+        36.09073257446289,
+        34.63319396972656,
+        29.844104766845703,
+        27.45499610900879,
+        26.78792381286621
+      ]
+    },
+    {
+      "chunk": 24,
+      "prefix_len": 82,
+      "prefix_text_tail": "e we  are  right  you  know the the  key for Intel",
+      "gen_ids": [
+        374,
+        3709,
+        220,
+        264,
+        220,
+        6291,
+        151645
+      ],
+      "gen_text": " is getting  a  solution",
+      "logits_top5": [
+        374,
+        220,
+        256,
+        262,
+        364
+      ],
+      "logits_top5_vals": [
+        36.959861755371094,
+        36.109493255615234,
+        30.870882034301758,
+        28.393978118896484,
+        28.122543334960938
+      ]
+    },
+    {
+      "chunk": 25,
+      "prefix_len": 89,
+      "prefix_text_tail": "ow the the  key for Intel  is getting  a  solution",
+      "gen_ids": [
+        429,
+        1410,
+        387,
+        32419,
+        476,
+        803,
+        4911,
+        369,
+        15611,
+        594,
+        15409,
+        151645
+      ],
+      "gen_text": " that could be tuned or more unique for Intel's platforms",
+      "logits_top5": [
+        429,
+        220,
+        151645,
+        448,
+        13
+      ],
+      "logits_top5_vals": [
+        29.63039779663086,
+        29.185941696166992,
+        28.753475189208984,
+        26.55186653137207,
+        26.064008712768555
+      ]
+    },
+    {
+      "chunk": 26,
+      "prefix_len": 101,
+      "prefix_text_tail": "ould be tuned or more unique for Intel's platforms",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        323,
+        220,
+        13,
+        11
+      ],
+      "logits_top5_vals": [
+        32.483497619628906,
+        30.313474655151367,
+        28.864871978759766,
+        27.884174346923828,
+        27.724853515625
+      ]
+    },
+    {
+      "chunk": 27,
+      "prefix_len": 102,
+      "prefix_text_tail": "uld be tuned or more unique for Intel's platforms ",
+      "gen_ids": [
+        323,
+        1052,
+        594,
+        1045,
+        8729,
+        315,
+        3093,
+        315,
+        1380,
+        582,
+        525,
+        1290,
+        498,
+        1414,
+        279,
+        1376,
+        369,
+        15611,
+        374,
+        3709,
+        264,
+        2664,
+        2331,
+        369,
+        678,
+        1493,
+        2513,
+        311,
+        9026,
+        389,
+        151645
+      ],
+      "gen_text": " and there's some reality of kind of where we are right you know the key for Intel is getting a better base for all these things to execute on",
+      "logits_top5": [
+        323,
+        151645,
+        1052,
+        1290,
+        773
+      ],
+      "logits_top5_vals": [
+        31.249460220336914,
+        30.426706314086914,
+        26.22095489501953,
+        25.867708206176758,
+        25.32790756225586
+      ]
+    },
+    {
+      "chunk": 28,
+      "prefix_len": 132,
+      "prefix_text_tail": "g a better base for all these things to execute on",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        13,
+        91,
+        220,
+        151643
+      ],
+      "logits_top5_vals": [
+        33.3740234375,
+        27.852970123291016,
+        26.636070251464844,
+        25.40740966796875,
+        25.145875930786133
+      ]
+    }
+  ],
+  "chunks_torch": [
+    {
+      "chunk": 0,
+      "prefix_len": 0,
+      "prefix_text_tail": "",
+      "gen_ids": [
+        11528,
+        2240,
+        151704,
+        151645
+      ],
+      "gen_text": "language None<asr_text>",
+      "logits_top5": [
+        11528,
+        56193,
+        1994,
+        13575,
+        11817
+      ],
+      "logits_top5_vals": [
+        39.07659149169922,
+        25.457286834716797,
+        25.075523376464844,
+        23.53598403930664,
+        23.43638801574707
+      ]
+    },
+    {
+      "chunk": 1,
+      "prefix_len": 3,
+      "prefix_text_tail": "language None<asr_text>",
+      "gen_ids": [
+        437,
+        2256,
+        151645
+      ],
+      "gen_text": "and super",
+      "logits_top5": [
+        437,
+        3036,
+        323,
+        33108,
+        1597
+      ],
+      "logits_top5_vals": [
+        54.78584289550781,
+        49.4272346496582,
+        42.65066146850586,
+        36.0106086730957,
+        35.47817611694336
+      ]
+    },
+    {
+      "chunk": 2,
+      "prefix_len": 5,
+      "prefix_text_tail": "language None<asr_text> and super",
+      "gen_ids": [
+        31610,
+        572,
+        13221,
+        151645
+      ],
+      "gen_text": "quad was basically",
+      "logits_top5": [
+        31610,
+        12361,
+        19862,
+        446,
+        9437
+      ],
+      "logits_top5_vals": [
+        30.099365234375,
+        29.68478775024414,
+        27.11983299255371,
+        27.09031867980957,
+        25.09515953063965
+      ]
+    },
+    {
+      "chunk": 3,
+      "prefix_len": 8,
+      "prefix_text_tail": "nguage None<asr_text> and super quad was basically",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        91,
+        151643,
+        1406,
+        271
+      ],
+      "logits_top5_vals": [
+        37.458770751953125,
+        31.40888786315918,
+        29.752656936645508,
+        25.078371047973633,
+        22.855670928955078
+      ]
+    },
+    {
+      "chunk": 4,
+      "prefix_len": 9,
+      "prefix_text_tail": "guage None<asr_text> and super quad was basically ",
+      "gen_ids": [
+        57332,
+        76482,
+        76482,
+        151645
+      ],
+      "gen_text": "��� leveraging leveraging",
+      "logits_top5": [
+        57332,
+        76482,
+        9973,
+        151645,
+        151661
+      ],
+      "logits_top5_vals": [
+        20.132993698120117,
+        19.696199417114258,
+        19.328144073486328,
+        19.251480102539062,
+        18.255224227905273
+      ]
+    },
+    {
+      "chunk": 5,
+      "prefix_len": 13,
+      "prefix_text_tail": "uper quad was basically  ��� leveraging leveraging",
+      "gen_ids": [
+        264,
+        2331,
+        504,
+        151645
+      ],
+      "gen_text": " a base from",
+      "logits_top5": [
+        264,
+        220,
+        2331,
+        64,
+        11323
+      ],
+      "logits_top5_vals": [
+        46.9985466003418,
+        34.856361389160156,
+        30.312450408935547,
+        30.12948989868164,
+        30.08482551574707
+      ]
+    },
+    {
+      "chunk": 6,
+      "prefix_len": 17,
+      "prefix_text_tail": " basically  ��� leveraging leveraging  a base from",
+      "gen_ids": [
+        1787,
+        2530,
+        151645
+      ],
+      "gen_text": " open source",
+      "logits_top5": [
+        1787,
+        5264,
+        220,
+        115462,
+        5002
+      ],
+      "logits_top5_vals": [
+        42.70387268066406,
+        40.294921875,
+        34.62099075317383,
+        28.879934310913086,
+        28.535757064819336
+      ]
+    },
+    {
+      "chunk": 7,
+      "prefix_len": 20,
+      "prefix_text_tail": "�� leveraging leveraging  a base from  open source",
+      "gen_ids": [
+        2038,
+        892,
+        374,
+        4428,
+        151645
+      ],
+      "gen_text": " code which is similar",
+      "logits_top5": [
+        2038,
+        11,
+        892,
+        220,
+        6119
+      ],
+      "logits_top5_vals": [
+        35.107181549072266,
+        34.945838928222656,
+        34.342655181884766,
+        29.35755157470703,
+        27.214147567749023
+      ]
+    },
+    {
+      "chunk": 8,
+      "prefix_len": 25,
+      "prefix_text_tail": "g  a base from  open source  code which is similar",
+      "gen_ids": [
+        311,
+        1787,
+        151643
+      ],
+      "gen_text": " to open",
+      "logits_top5": [
+        311,
+        1787,
+        220,
+        5264,
+        11
+      ],
+      "logits_top5_vals": [
+        32.539520263671875,
+        32.265838623046875,
+        31.957441329956055,
+        29.33273696899414,
+        28.444232940673828
+      ]
+    },
+    {
+      "chunk": 9,
+      "prefix_len": 28,
+      "prefix_text_tail": " from  open source  code which is similar  to open",
+      "gen_ids": [
+        56490,
+        151645
+      ],
+      "gen_text": " claw",
+      "logits_top5": [
+        56490,
+        27082,
+        220,
+        564,
+        1185
+      ],
+      "logits_top5_vals": [
+        31.527935028076172,
+        28.996658325195312,
+        28.488906860351562,
+        26.471174240112305,
+        25.90874481201172
+      ]
+    },
+    {
+      "chunk": 10,
+      "prefix_len": 30,
+      "prefix_text_tail": " open source  code which is similar  to open  claw",
+      "gen_ids": [
+        315,
+        4460,
+        311,
+        614,
+        264,
+        6291,
+        151645
+      ],
+      "gen_text": " of trying to have a solution",
+      "logits_top5": [
+        315,
+        11,
+        220,
+        1154,
+        13
+      ],
+      "logits_top5_vals": [
+        37.42086410522461,
+        35.55501174926758,
+        34.408485412597656,
+        30.01108169555664,
+        29.355670928955078
+      ]
+    },
+    {
+      "chunk": 11,
+      "prefix_len": 37,
+      "prefix_text_tail": "milar  to open  claw  of trying to have a solution",
+      "gen_ids": [
+        429,
+        1410,
+        387,
+        151645
+      ],
+      "gen_text": " that could be",
+      "logits_top5": [
+        429,
+        220,
+        760,
+        256,
+        91
+      ],
+      "logits_top5_vals": [
+        36.632904052734375,
+        35.010013580322266,
+        25.869922637939453,
+        25.6720027923584,
+        25.63131332397461
+      ]
+    },
+    {
+      "chunk": 12,
+      "prefix_len": 41,
+      "prefix_text_tail": " claw  of trying to have a solution  that could be",
+      "gen_ids": [
+        32419,
+        476,
+        151645
+      ],
+      "gen_text": " tuned or",
+      "logits_top5": [
+        32419,
+        220,
+        11460,
+        25240,
+        259
+      ],
+      "logits_top5_vals": [
+        37.37431335449219,
+        34.840187072753906,
+        30.70319366455078,
+        30.255321502685547,
+        29.96454429626465
+      ]
+    },
+    {
+      "chunk": 13,
+      "prefix_len": 44,
+      "prefix_text_tail": "trying to have a solution  that could be  tuned or",
+      "gen_ids": [
+        803,
+        4911,
+        369,
+        15611,
+        151645
+      ],
+      "gen_text": " more unique for Intel",
+      "logits_top5": [
+        803,
+        220,
+        256,
+        4313,
+        6384
+      ],
+      "logits_top5_vals": [
+        39.1070556640625,
+        36.007850646972656,
+        28.669992446899414,
+        27.387102127075195,
+        26.879060745239258
+      ]
+    },
+    {
+      "chunk": 14,
+      "prefix_len": 49,
+      "prefix_text_tail": "on  that could be  tuned or  more unique for Intel",
+      "gen_ids": [
+        594,
+        15409,
+        151645
+      ],
+      "gen_text": "'s platforms",
+      "logits_top5": [
+        594,
+        220,
+        364,
+        274,
+        6
+      ],
+      "logits_top5_vals": [
+        36.216007232666016,
+        28.41339111328125,
+        27.606128692626953,
+        27.359596252441406,
+        27.293630599975586
+      ]
+    },
+    {
+      "chunk": 15,
+      "prefix_len": 52,
+      "prefix_text_tail": "d be  tuned or  more unique for Intel 's platforms",
+      "gen_ids": [
+        323,
+        151645
+      ],
+      "gen_text": " and",
+      "logits_top5": [
+        323,
+        220,
+        13,
+        151645,
+        11
+      ],
+      "logits_top5_vals": [
+        32.52607727050781,
+        31.87376594543457,
+        31.86068344116211,
+        30.89985466003418,
+        29.375629425048828
+      ]
+    },
+    {
+      "chunk": 16,
+      "prefix_len": 54,
+      "prefix_text_tail": " tuned or  more unique for Intel 's platforms  and",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        91,
+        151643,
+        13,
+        220
+      ],
+      "logits_top5_vals": [
+        34.770503997802734,
+        27.22881507873535,
+        26.707103729248047,
+        26.020816802978516,
+        25.243022918701172
+      ]
+    },
+    {
+      "chunk": 17,
+      "prefix_len": 55,
+      "prefix_text_tail": "tuned or  more unique for Intel 's platforms  and ",
+      "gen_ids": [
+        1052,
+        594,
+        220,
+        1045,
+        151645
+      ],
+      "gen_text": " there's  some",
+      "logits_top5": [
+        1052,
+        151645,
+        2619,
+        807,
+        498
+      ],
+      "logits_top5_vals": [
+        32.64041519165039,
+        27.969011306762695,
+        27.360597610473633,
+        27.086896896362305,
+        26.589229583740234
+      ]
+    },
+    {
+      "chunk": 18,
+      "prefix_len": 59,
+      "prefix_text_tail": "unique for Intel 's platforms  and   there's  some",
+      "gen_ids": [
+        220,
+        8729,
+        151645
+      ],
+      "gen_text": "  reality",
+      "logits_top5": [
+        220,
+        8729,
+        256,
+        1931,
+        49346
+      ],
+      "logits_top5_vals": [
+        33.54570770263672,
+        33.376136779785156,
+        27.597774505615234,
+        27.58946990966797,
+        26.78333854675293
+      ]
+    },
+    {
+      "chunk": 19,
+      "prefix_len": 61,
+      "prefix_text_tail": " Intel 's platforms  and   there's  some   reality",
+      "gen_ids": [
+        315,
+        220,
+        3093,
+        315,
+        1380,
+        582,
+        151645
+      ],
+      "gen_text": " of  kind of where we",
+      "logits_top5": [
+        315,
+        220,
+        256,
+        262,
+        257
+      ],
+      "logits_top5_vals": [
+        35.49961853027344,
+        35.36622619628906,
+        30.876710891723633,
+        27.969161987304688,
+        25.86998748779297
+      ]
+    },
+    {
+      "chunk": 20,
+      "prefix_len": 68,
+      "prefix_text_tail": "nd   there's  some   reality  of  kind of where we",
+      "gen_ids": [
+        525,
+        151645
+      ],
+      "gen_text": " are",
+      "logits_top5": [
+        525,
+        220,
+        256,
+        796,
+        262
+      ],
+      "logits_top5_vals": [
+        34.99934387207031,
+        34.38920211791992,
+        29.511295318603516,
+        28.050430297851562,
+        27.486452102661133
+      ]
+    },
+    {
+      "chunk": 21,
+      "prefix_len": 70,
+      "prefix_text_tail": "there's  some   reality  of  kind of where we  are",
+      "gen_ids": [
+        1290,
+        220,
+        498,
+        151645
+      ],
+      "gen_text": " right  you",
+      "logits_top5": [
+        1290,
+        11,
+        220,
+        1154,
+        13
+      ],
+      "logits_top5_vals": [
+        34.18449783325195,
+        34.12883377075195,
+        34.01243209838867,
+        31.618366241455078,
+        31.163288116455078
+      ]
+    },
+    {
+      "chunk": 22,
+      "prefix_len": 74,
+      "prefix_text_tail": "e   reality  of  kind of where we  are  right  you",
+      "gen_ids": [
+        1414,
+        279,
+        279,
+        151645
+      ],
+      "gen_text": " know the the",
+      "logits_top5": [
+        1414,
+        220,
+        256,
+        262,
+        151643
+      ],
+      "logits_top5_vals": [
+        34.22175216674805,
+        32.98135757446289,
+        28.60384178161621,
+        26.168668746948242,
+        25.677358627319336
+      ]
+    },
+    {
+      "chunk": 23,
+      "prefix_len": 78,
+      "prefix_text_tail": "f  kind of where we  are  right  you  know the the",
+      "gen_ids": [
+        1376,
+        369,
+        15611,
+        151645
+      ],
+      "gen_text": " key for Intel",
+      "logits_top5": [
+        1376,
+        220,
+        256,
+        262,
+        257
+      ],
+      "logits_top5_vals": [
+        36.125118255615234,
+        34.65255355834961,
+        29.860490798950195,
+        27.463525772094727,
+        26.792505264282227
+      ]
+    },
+    {
+      "chunk": 24,
+      "prefix_len": 82,
+      "prefix_text_tail": "e we  are  right  you  know the the  key for Intel",
+      "gen_ids": [
+        374,
+        3709,
+        220,
+        264,
+        220,
+        6291,
+        151645
+      ],
+      "gen_text": " is getting  a  solution",
+      "logits_top5": [
+        374,
+        220,
+        256,
+        262,
+        364
+      ],
+      "logits_top5_vals": [
+        36.98748016357422,
+        36.12113952636719,
+        30.887012481689453,
+        28.422847747802734,
+        28.08864974975586
+      ]
+    },
+    {
+      "chunk": 25,
+      "prefix_len": 89,
+      "prefix_text_tail": "ow the the  key for Intel  is getting  a  solution",
+      "gen_ids": [
+        429,
+        1410,
+        387,
+        32419,
+        476,
+        803,
+        4911,
+        369,
+        15611,
+        594,
+        15409,
+        151645
+      ],
+      "gen_text": " that could be tuned or more unique for Intel's platforms",
+      "logits_top5": [
+        429,
+        220,
+        151645,
+        448,
+        13
+      ],
+      "logits_top5_vals": [
+        29.640995025634766,
+        29.195316314697266,
+        28.694387435913086,
+        26.54677391052246,
+        26.108423233032227
+      ]
+    },
+    {
+      "chunk": 26,
+      "prefix_len": 101,
+      "prefix_text_tail": "ould be tuned or more unique for Intel's platforms",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        323,
+        220,
+        13,
+        11
+      ],
+      "logits_top5_vals": [
+        32.4701042175293,
+        30.341083526611328,
+        28.94199562072754,
+        27.9639949798584,
+        27.77538299560547
+      ]
+    },
+    {
+      "chunk": 27,
+      "prefix_len": 102,
+      "prefix_text_tail": "uld be tuned or more unique for Intel's platforms ",
+      "gen_ids": [
+        323,
+        1052,
+        594,
+        1045,
+        8729,
+        315,
+        3093,
+        315,
+        1380,
+        582,
+        525,
+        1290,
+        498,
+        1414,
+        279,
+        1376,
+        369,
+        15611,
+        374,
+        3709,
+        264,
+        2664,
+        2331,
+        369,
+        678,
+        1493,
+        2513,
+        311,
+        9026,
+        389,
+        151645
+      ],
+      "gen_text": " and there's some reality of kind of where we are right you know the key for Intel is getting a better base for all these things to execute on",
+      "logits_top5": [
+        323,
+        151645,
+        1052,
+        1290,
+        773
+      ],
+      "logits_top5_vals": [
+        31.159460067749023,
+        30.415006637573242,
+        26.138675689697266,
+        25.825334548950195,
+        25.29706382751465
+      ]
+    },
+    {
+      "chunk": 28,
+      "prefix_len": 132,
+      "prefix_text_tail": "g a better base for all these things to execute on",
+      "gen_ids": [
+        151645
+      ],
+      "gen_text": "",
+      "logits_top5": [
+        151645,
+        13,
+        91,
+        220,
+        151643
+      ],
+      "logits_top5_vals": [
+        33.34989547729492,
+        27.931629180908203,
+        26.621639251708984,
+        25.43750762939453,
+        25.1641845703125
+      ]
+    }
+  ]
+}

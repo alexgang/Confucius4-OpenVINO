@@ -486,3 +486,126 @@ reviewer 读了 `window_encoder_backend.py`、`streaming_asr.py` 和 `backends.p
      - 如果 c023 导出脚本依赖其它本地文件（自写的 helper 模块等），在 STATUS 里列出文件名，reviewer 会一起拉取。
 - 第 1 点修完后，跑 11 个最差段（不带 reset）报告重复 4-gram 总数，再跑 61 分钟 → `spe_61min_transcript_noreset.txt`。reviewer 定位出不满块的 bug 后会给出具体修改，再出最终版。
 ## C-037 [BLOCKING] 2026-10-12 14:10 — user 决定：撤销 C-029「不改系统网络/代理」约束，本机可改 ~/.gitconfig 局部代理 / 直连 github.com 以推送代码
+
+## C-039 [BLOCKING] 2026-10-13 09:20 — 根因已确认：参考实现的 encoder 是**全局注意力**，不是 104-token 窗口；改用 reviewer 验证过的整段 encoder
+（编号跳过 C-038，避免与你分支名 `c038-v2-ir` 混淆。）先回执 C-038(跳过)/C-039。
+
+**根因**（reviewer 本机用 torch 逐行核对源码 + 数值验证；你 10-12 晚用 torch 跑的 c037c/c037d 也与此一致）：
+- `modeling_qwen3_asr.py` 的 `Qwen3ASRAudioEncoder.forward`（第 727-733 行）调用每一层时是 `encoder_layer(hidden_states, cu_seqlens)`，**没有传 attention_mask**；构造窗口 mask 的 `_prepare_attention_mask`（第 649 行）**定义了但从未被调用**。在 eager/sdpa 下 `cu_seqlens` 被忽略，所以参考实现对**输入里的所有音频 token 做全局注意力**。只有 flash-attention-2 路径才会按 104-token 窗口切。
+- 你的 c037c 已经显示：conv / conv_out / 位置编码**全部 1.000000**，偏差是从 attention 层开始、随层数放大的（layer0 0.99996 → layer11 0.92 → 输出 0.30）。c037d 去掉 mask 后仍是 0.29，是因为两个窗口还是**分两次调用**，跨窗口根本无法互相注意。不是不满块或 padding 的问题。
+- reviewer 实测（seg172 真实音频）：窗口版在 >800 帧时 min cos 降到 **0.005-0.09**；全局版在 0.64-23.9 s **所有长度 cos mean 1.000000 / min ≥ 0.999996**。
+- 这也解释了现象：流式时最新的音频总落在一个很短的尾窗里，只能注意它自己，于是模型“听不清最新的词”就去重说 prefix。cache bug 修好后 11 个最差段从 183 降到 1，但 61 分钟全长（c033 noreset）仍是 **WER 18.32%、重复 4-gram 967**，循环只是换了地方 —— 结构性原因就是窗口注意力。
+
+**reviewer 已交付**（`reviewer/` 和 `models/ov-encoder-segment-reviewer/`）：
+- `reviewer/export_segment_encoder.py`：整段 encoder。固定输入 `input_features [1,128,2400]`（24 个 100 帧块，覆盖 ≤23.9 s 的段）+ `n_valid [1] int32`；输出 `[1,312,2048]`，取前 n_valid 行。分块卷积 + 块内位置编码与原版相同，注意力为**全局**、只屏蔽补齐的 key。
+- `models/ov-encoder-segment-reviewer/`：reviewer 本机导出并验证过的 IR（FP16 权重压缩；CPU FP32 推理对比 torch 全部 ≥ 0.999996）。你也可以在本机用该脚本重新导出：`python reviewer/export_segment_encoder.py models/hf models/ov-encoder-segment test_audio/260902_SPE_audio.wav`（脚本自带 9 个长度的验证）。
+
+**执行**：
+1. 新建 `SegmentEncoderOVBackend`（**不要**在 window backend 上改）：每个 chunk 对整段 `audio_accum` 提特征 → 补零到 2400 帧 → 一次调用 → 取前 `n_valid = aftercnn_len(frames)` 行。**不做任何窗口缓存**（全局注意力下无法复用）。帧数 > 2400 时报错（分段 max 20 s，加 flush 也够）。
+2. GPU.0 上用 FP16 推理复跑脚本自带的 9 长度验证（与 torch 比较），报告 cos mean/min（FP16 预期 ≥ 0.999 / ≥ 0.99）和每次 encoder 耗时（静态 shape，记得 reshape 成 [1,128,2400] / [1]）。
+3. 11 个最差段（不带 reset）→ 报告重复 4-gram 总数；然后 **61 分钟全长、不带 reset** → `spe_61min_transcript.txt`（当前同名文件改名为 `_v2_window_stream`），附 RTF P50/P95/max。验收：WER ≤ 11%、RTF < 1、P95 ≤ 0.8。
+4. `ov-encoder-window*`、`c038-v2-ir`（per-chunk）都作废，不再使用。
+
+**对 10-13 凌晨报告的更正**：
+- “CUDA 61-min 从未跑过、7.5% 来自 60 s 短音频”——**不对**。`reports/cuda/spe_cuda_stream.txt` 是 226 个 VAD 段、覆盖完整 61 分钟的 CUDA 流式结果，reviewer 用 MiniMax baseline 算出 **7.69%**；它没崩溃是因为每段 ≤ 20 s。
+- 你的 CUDA 不分段 OOM 测试（240-300 s 处报 `exceeds max_source_positions`）很有价值，与 OV 在 120 s 撞到 1500 上限是同一类问题，回答了用户最初关于 CUDA 长音频 OOM 的反馈。请保留，写进最终报告。
+- README / PROJECT_REPORT 暂不改（选 M2），等最终结果出来一次性更新。
+
+## C-040 [BLOCKING] 2026-10-13 10:00 — encoder 已修好（替换错误 771→335），但插入仍有 1510：第二个根因在 decoder/流式这一侧，用 torch 逐层隔离
+**reviewer 判定**（`spe_61min_transcript.txt` 09:45 版，对比 MiniMax）：WER **18.21%**，S=**335** / D=**152** / I=**1510**，重复 4-gram **991**，51 段 rep≥5。RTF P50 0.576 / P95 0.646 / max 0.956（性能达标）。
+- 对比 cache 修复版（18.32%，S=351/D=159/I=1499）和窗口版（S=771）：**全局 encoder 把替换错误降到了正常水平，但插入一点没变** → encoder 这一层已经解决，剩下的是**另一个独立的根因**。
+- 现象有两类（各举一例，请都用来测）：
+  - **整句重放**：seg 67 [1086-1102]：`…but then where these new businesses are going to be expecting us to deliver. So we thought we'd share…`（约 40 个词重新出现一遍）；seg 163 [2657-2676]、seg 161 [2622-2640] 同类。
+  - **短语循环**：seg 118 [1925-1940]：`Obviously, go and get this off the ground.` ×约 20。
+- 同一个 OV INT8 decoder 在 hybrid **离线**（一次解码，无 prefix）时这些段都很干净；CUDA 流式（Q8_0）和 torch 流式（C-019 #5）也干净。所以问题只出在 **OV decoder + 带 prefix 的流式**。
+
+**执行**（torch 现在在目标机可用）：
+1. 选 rep≥5 的 51 段里最差的 15 段（包含 67/118/161/163），全部用**同一个全局 encoder 的 ehs**，跑三种流式 decoder：
+   - (i) OV INT8-past（现状）
+   - (ii) OV FP16-past
+   - (iii) **torch FP32 decoder**（qwen_asr 的 thinker，喂入相同的 ehs 和完全相同的 prompt token id，greedy，同样的 max_new_tokens）
+   报告每种的重复 4-gram 总数。
+2. **逐 chunk 对比**：对 seg 67 和 seg 118，把 (i) 和 (iii) 每个 chunk 的 `prefix_ids`（完整 token id 列表）、`gen_ids`、`raw_decoded`、`fixed_text` 都存下来，找到**第一个分叉的 chunk**：
+   - 如果该 chunk 的输入 token id 完全相同、输出不同 → OV decoder 的数值或状态问题。请在该 chunk 上比较 (i)/(ii)/(iii) 第一步的 logits top-5 及 margin；同时确认每次 prefill 前都 `reset_state()` 了，`beam_idx` 正确，以及 prefill 后的第一步 decode 的 position 是否等于 prompt 长度（stateful 模型内部的 position/attention_mask 是怎么推出来的？optimum 的 Qwen3-ASR decoder 是否需要显式传 `attention_mask` / `position_ids`？长 prompt + prefix 时是否有截断或溢出）。
+   - 如果该 chunk 的输入 token id 就不同 → 问题在 prefix 构造或文本拼接（例如 rollback 后 decode→encode 不可逆、`_normalize_punct_by_context` 改了文本），请贴出两边的差异。
+3. 根据结论修复，**不允许用 reset 或改参数（unfixed_token_num 等）来掩盖**。修好后 15 段复测 → 61 分钟全长 noreset → `spe_61min_transcript.txt`（当前文件改名 `_v3_segenc_int8`）。
+4. 完成第 2 步就在 STATUS 里写结论，不用等 reviewer，直接进入第 3 步。
+
+## C-041 [BLOCKING] 2026-10-13 10:20 — 主因定位：**61 分钟长跑脚本里存在跨段状态泄漏**（同样的段单独跑是干净的）
+reviewer 对比 c040_3dec.log（单段独立跑）和 09:45 的 61 分钟全长结果（同一个全局 encoder + 同一个 INT8 decoder）：
+| 段 | 61 分钟全长 rep4 | 单独跑 INT8 | 单独跑 FP16 | 单独跑 torch |
+|--|--:|--:|--:|--:|
+| seg118 | **162** | 0 | 0 | 0 |
+| seg67  | **38**  | 0 | 0 | 0 |
+| seg163 | **40**  | 0 | 1 | 1 |
+| seg161 | **36**  | 26 | 0 | 0 |
+音频、encoder、decoder 都一样，**每段从干净状态开始时就不循环，在长跑里连续处理时才循环** → 主因是长跑脚本（seg_stream / c039 61-min runner）在段与段之间带过去了某些状态。decoder 精度只是次要问题（见第 4 条）。
+
+**执行**：
+1. **复现**：用 61 分钟的 runner 只跑 seg 110-120（从 seg110 的起点连续处理到 seg120 结束），确认 seg118 会循环；再把 runner 改成“每段都像 3dec 脚本那样独立构造”，确认 seg118 恢复干净。
+2. **找出泄漏的状态**：对比两个脚本在每段开始时的全部输入状态并打印出来，重点检查：
+   - `state.buffer`：上一段没凑满一个 chunk 的剩余采样，是否被拼到了下一段开头（这样新段一开始就带着上一段的音频）；
+   - `audio_accum`、`_raw_decoded`、`state.text`、`chunk_id`、`last_fixed_text` 是否都在 `init_streaming_state` 时清空；
+   - `context`（system prompt）里是否放进了之前的转写文本；官方 ws_server 只放热词；
+   - 段切点的样本偏移：新段的音频起点是否等于上一段的终点（不重叠、不遗漏），时间戳是否和 segments.json 一致；
+   - decoder 的 `reset_state()` 是否在每次 prefill 前都调用了；encoder / decoder 的 infer request 是否被两个 backend 实例共用。
+3. 修复后：seg 110-120 连续跑复测 → 61 分钟全长 noreset → `spe_61min_transcript.txt`（当前文件改名为 `_v3_segenc_leak`）。
+4. **INT8 精度（次要，修完第 2 步之后再做）**：FP16 与 torch 基本逐 token 一致，INT8 在 seg161 偏离；但 FP16 单段 RTF 约 1.04，不能直接用。请评估：
+   - NNCF 数据感知 INT8（AWQ / scale estimation，用这段录音的一部分做校准）；
+   - INT8 但 `lm_head` 和首尾各 2 层保留 FP16。
+   用这 15 段比较“与 FP16 输出逐 token 的一致率”和 RTF，选 RTF ≤ 0.8 里一致率最高的方案。
+
+## C-042 [NORMAL] 2026-10-13 10:35 — C-041 补充：reviewer 已审查代码，未发现明显的跨段泄漏；先做两个更便宜的检查
+reviewer 读了 `c039_61min.py`、`seg_stream.py`（run / _run_one_segment）、`segment_encoder_backend.py`、`c040_3decoder_test.py`：
+- 长跑每段都新建 state，`context` 为空，每段都 finish；backend 除了每次 prefill 前 `reset_state()` 外不持有跨段状态；3dec 测试用的是同一个 SegmentedStreamer、同一个 GPU.0 / f16 配置。
+- 所以“泄漏”可能不是原因，另有两种解释。请**在做 C-041 第 2 步之前**先查这两项（各约 5 分钟）：
+  1. **确定性**：同一个脚本把 seg118 单独跑 3 次（INT8，GPU.0），比较 3 次输出的 token id 是否完全一致。不一致 → GPU 推理不确定，INT8 在临界点附近会随机翻转，这就是为什么同一段时好时坏。
+  2. **输入是否真的相同**：打印 61 分钟 runner 里 seg118 实际切出的采样区间 `[s, e)`，与 3dec 测试切 seg118 时用的区间比较，必须逐样本相同。再对两边送进 encoder 的 mel 求 max abs diff。
+- 结论分流：
+  - 输入不同 → 修切段/时间戳的不一致，然后按 C-041 第 3 步重跑。
+  - 输入相同、多次输出不同 → 根因是 INT8 decoder 在 GPU 上的数值脆弱性，**C-041 第 4 步（精度方案）升为主任务**：在 seg118/161/163/67 等 15 段上，比较各精度方案与 FP16 的逐 token 一致率，以及每种方案 3 次运行之间是否一致；同时试一下 decoder 用 `INFERENCE_PRECISION_HINT=f32`（INT8 权重、FP32 激活）的 RTF。
+  - 输入相同、输出也确定 → 那才是真的状态泄漏，按 C-041 第 2 步排查。
+
+## C-043 [BLOCKING] 2026-10-13 10:45 — 第二个根因：INT8 decoder 的输出层（lm_head）量化误差；保留 lm_head 为 FP16，其余 INT8
+请先回执 C-040~C-043（last_ack 还是 C-039）。
+
+**来自你的 c040_trace.log（seg118）**，第一个分叉点 chunk 4，同样的输入：
+| | top-1 logit | top-2 | top-3 token |
+|--|--:|--:|--|
+| torch FP32 | 40.34 | 29.63 | 151643（结束） |
+| OV FP16 | 40.25 | 29.59 | 151643，与 torch 一致 |
+| **OV INT8** | **44.87** | **32.95** | 48718，排序变了 |
+- INT8 的 logits **整体放大约 11%**，候选排序也变了。这不是随机噪声，是**输出投影的系统性尺度误差**。该模型 `tie_word_embeddings=true`，lm_head 与词嵌入共享同一个 151936×2048 的矩阵，导出时一起被压成了 INT8_ASYM per-channel。
+- 后果：结束判定翻转（INT8 在 chunk 4 输出 "." 再结束，FP16 和 torch 直接结束），之后 prefix 偏移，就进入循环。INT8 处在判定边界附近，所以同一段有时干净、有时循环（你在 3dec 里 seg118 是 0，在 trace 里又出现 `Obviously, obviously,` —— 正是这种脆弱性）。FP16 与 torch 的 logits 差在 0.1 以内，说明其余部分没有问题。
+- C-042 的确定性检查可以简化：只需确认同一输入下 INT8 多次运行是否一致，**不影响**本条结论。
+
+**执行**：
+1. **导出“INT8 + FP16 lm_head”的 decoder**（输出到新目录 `models/ov-int8-lmfp16-past/`）：
+   - 从 `models/ov-fp16-past`（或 hf 重新导出的 FP16 with-past IR）出发，用 NNCF：`nncf.compress_weights(ov_model, mode=CompressWeightsMode.INT8_ASYM, ignored_scope=nncf.IgnoredScope(names=[<lm_head 的 MatMul 节点名>]))`。先打印 IR 中最后一个 `MatMul`（输出维度 151936）的名称并填进去。
+   - **注意权重共享**：如果 IR 里 lm_head 的 MatMul 和 embedding 的 Gather 共用同一个常量，ignored_scope 可能对 Gather 也生效，也可能两者都不生效。导出后检查：lm_head 的 MatMul 输入权重必须是 f16，embedding 可以是 INT8。必要时先把共享常量复制一份，分别给 MatMul 和 Gather。
+2. **验证**：在 seg118 chunk 4（以及你 trace 里的其它分叉点）上，比较新 decoder 与 FP16 的 top-5 logits，要求 top-1 logit 相差 < 0.5、top-5 排序一致；再在 15 段上统计与 FP16 输出逐 token 一致率，以及每段 RTF。
+3. **如果 RTF > 0.8**（lm_head FP16 每个 token 多读约 300 MB），再试：lm_head 用 INT8_SYM **per-group（group_size=128）**，或 INT4 主干 + FP16 lm_head。目标是在 RTF ≤ 0.8 的前提下，与 FP16 的一致率最高。
+4. 选定后：61 分钟全长 noreset → `spe_61min_transcript.txt`（当前文件改名为 `_v3_segenc_int8`）。验收：WER ≤ 11%、RTF < 1、P95 ≤ 0.8。
+5. C-041 的“跨段泄漏”排查**暂停**：reviewer 审查代码未发现泄漏，而 logits 证据已能解释“同一段时好时坏”。如果第 4 步之后长跑与单段仍有系统性差异，再恢复排查。
+
+## C-044 [NORMAL] 2026-10-13 11:15 — lm_head-FP16 不够（top-1 差 1.89，误差也来自主干）；改用确定性指标选量化方案
+**结论认可**：C-043#2 表明误差不只在 lm_head，28 层主干也有贡献。正在跑的 61 分钟让它跑完（作为该方案的数据点，文件名注明 `_int8lmfp16`）。
+
+**方法问题**：纯 INT8 在同样 15 段上，C-040 是 n4=29，C-043 是 n4=3。**单次运行的 n4 计数噪声比方案之间的差异还大**，不能拿来选方案。请改用**确定性的 teacher-forcing 指标**：
+- 对 15 段，先用 **FP16 decoder** 跑一遍流式，记录每个 chunk 送进 decoder 的完整 `full_ids`（prompt + prefix）以及 FP16 逐步生成的 token 序列；
+- 对每个候选 decoder，用**同样的 full_ids + 同样的 FP16 token 序列**做 teacher forcing（一次 prefill 整个序列，取每一步的 logits），统计：
+  1. **top-1 一致率**（候选的 argmax 是否等于 FP16 的 token），
+  2. 每步 **logit 的 max abs diff 和 KL(FP16‖候选)** 的均值和 P99，
+  3. **EOS 判定一致率**（FP16 生成 EOS 的那一步，候选是否也是 EOS）——循环正是从这里开始的。
+- 这个指标与 GPU 的随机翻转无关，每种方案只需跑一次，几分钟就能出结果。
+
+**候选方案**（都从 `models/ov-fp16-past` 出发，用 NNCF，输出到各自的新目录）：
+- (a) INT8_ASYM per-channel（现状，作为基准）
+- (b) **INT8_SYM per-group，group_size=128**
+- (c) **INT8_ASYM per-group，group_size=64**
+- (d) (b) + lm_head FP16 + 第 0、1、26、27 层 FP16
+- (e) 按层敏感度：逐层只把一层恢复成 FP16，测 top-1 一致率的提升，挑出提升最大的 k 层（k 控制在总权重 ≤ 20% 以内）保留 FP16，其余用 (b)
+每种都报告：top-1 一致率、EOS 一致率、KL P99、IR 大小，以及单段 RTF（seg118 / seg161 / seg163 平均）。
+
+**选择规则**：在 **RTF ≤ 0.8** 的方案中选 top-1 一致率和 EOS 一致率最高的；目标 top-1 ≥ 99.5%、EOS ≥ 99%。选定后跑 61 分钟全长 noreset → `spe_61min_transcript.txt`。
+如果所有方案都达不到、只有 FP16 能达到，就把各方案的 RTF / 一致率表写进 STATUS，并设为 WAITING_REVIEW（这时要由用户在“精度”和“实时余量”之间做取舍）。
