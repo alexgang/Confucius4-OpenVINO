@@ -1,0 +1,194 @@
+{
+  "base_k5": {
+    "wer": 40.27,
+    "totals": {
+      "ref": 298,
+      "hyp": 381,
+      "S": 19,
+      "D": 9,
+      "I": 92,
+      "n3": 106
+    },
+    "per_seg": {
+      "seg118_c040flip": {
+        "ref": 60,
+        "hyp": 55,
+        "S": 0,
+        "D": 5,
+        "I": 0,
+        "wer": 8.33,
+        "n3": 0,
+        "text": "We should be months and months in advance of that working with them. There's a lot of discussion with the BU team, and this is where Alex has also been very helpful. How do we go and get this off the ground? Obviously, a little tricky with the recent news on hugging face with Nvidia."
+      },
+      "seg161_c040flip": {
+        "ref": 61,
+        "hyp": 113,
+        "S": 4,
+        "D": 2,
+        "I": 55,
+        "wer": 100.0,
+        "n3": 52,
+        "text": "And Supercloud is basically leveraging a base from OpenCode, which is similar Openclaw, of trying to have a solution that could be tuned or more unique for Intel's platforms. And there's some reality of kind of where we are, right? You know, there's some reality of kind of where we are, right? You know, there's some reality of kind of where we are, right? You know, the key for Intel is getting a solution that could be tuned or more unique for Intel's platforms. And there's some reality of kind of where we are, right? You know, the key for Intel is getting a better base for all these things to execute on."
+      },
+      "seg163_c040flip": {
+        "ref": 69,
+        "hyp": 98,
+        "S": 14,
+        "D": 0,
+        "I": 28,
+        "wer": 60.87,
+        "n3": 42,
+        "text": "to a reference stack like the microservices that we mentioned. So what are the reasons for that? You definitely don't want to be shackled with contracts and production commitments if you want to move fast in AI. So those things don't go hand in hand. So we don't want to be shackled with contracts and production commitments if you want to move fast in AI. So those things don't go hand in hand. So we don't want to be at a point where we're shackled with contracts and production commitments if you want to move fast in AI."
+      },
+      "seg5": {
+        "ref": 45,
+        "hyp": 53,
+        "S": 0,
+        "D": 1,
+        "I": 9,
+        "wer": 22.22,
+        "n3": 7,
+        "text": "And it's a simplified view, but one thing that's very important to understand is it's not about optimizing one layer above all else. It's looking at optimizing one layer above all else. It's looking at this whole stack end to end to bring a platform leadership at scale with quality and predictable execution."
+      },
+      "seg60": {
+        "ref": 63,
+        "hyp": 62,
+        "S": 1,
+        "D": 1,
+        "I": 0,
+        "wer": 3.17,
+        "n3": 5,
+        "text": "and then giving him crescent island as a scale up option that whole story is coming together, getting a lot of interest. We've done a lot of discussions and discovery with customers over the last few weeks, a lot of interest, a lot of interest in it. We just need to prove it exists, right? And now we're proving it does exist."
+      }
+    },
+    "wall_s": 65.3
+  },
+  "fix_a2_s30": {
+    "wer": 14.09,
+    "totals": {
+      "ref": 298,
+      "hyp": 314,
+      "S": 4,
+      "D": 10,
+      "I": 28,
+      "n3": 34
+    },
+    "per_seg": {
+      "seg118_c040flip": {
+        "ref": 60,
+        "hyp": 55,
+        "S": 0,
+        "D": 5,
+        "I": 0,
+        "wer": 8.33,
+        "n3": 0,
+        "text": "We should be months and months in advance of that working with them. There's a lot of discussion with the BU team and this is where Alex has also been very helpful. How do we go and get this off the ground? Obviously a little tricky with the recent news on hugging face with Nvidia."
+      },
+      "seg161_c040flip": {
+        "ref": 61,
+        "hyp": 87,
+        "S": 4,
+        "D": 0,
+        "I": 28,
+        "wer": 52.46,
+        "n3": 27,
+        "text": "And Superclaw was basically leveraging a base from OpenCL, which is similar OpenCL, of trying to have a solution that could be tuned or more unique for Intel's platforms. And there's some reality of kind of where we are, right? You know, the key for Intel is getting a better base for all these things to execute on. And there's some reality of kind of where we are, right? You know, the key for Intel is getting a better base for all these things to execute on."
+      },
+      "seg163_c040flip": {
+        "ref": 69,
+        "hyp": 68,
+        "S": 0,
+        "D": 1,
+        "I": 0,
+        "wer": 1.45,
+        "n3": 2,
+        "text": "to a reference stack like the microservices that we mentioned. So what are the reasons for that? You definitely don't want to be shackled with contracts and production commitments if you want to move fast in AI. So those things don't go hand in hand. So we don't want to be at a point where we can't go and run and pivot quick to make the platform shine."
+      },
+      "seg5": {
+        "ref": 45,
+        "hyp": 44,
+        "S": 0,
+        "D": 1,
+        "I": 0,
+        "wer": 2.22,
+        "n3": 0,
+        "text": "And it's a simplified view, but one thing that's very important to understand is it's not about optimizing one layer above all else. It's looking at this whole stack end to end to bring a platform leadership at scale with quality and predictable execution."
+      },
+      "seg60": {
+        "ref": 63,
+        "hyp": 60,
+        "S": 0,
+        "D": 3,
+        "I": 0,
+        "wer": 4.76,
+        "n3": 5,
+        "text": "and then giving them Crescent Island as a scale up option, that whole story is coming together, getting a lot of interest. We've done a lot of discussions and discovery with customers over the last few weeks, a lot of interest, a lot of interest. We just need to prove it exists, right? And now we're proving it does exist."
+      }
+    },
+    "wall_s": 79.6
+  },
+  "fix_notail": {
+    "wer": 11.41,
+    "totals": {
+      "ref": 298,
+      "hyp": 295,
+      "S": 25,
+      "D": 9,
+      "I": 0,
+      "n3": 6
+    },
+    "per_seg": {
+      "seg118_c040flip": {
+        "ref": 60,
+        "hyp": 55,
+        "S": 4,
+        "D": 5,
+        "I": 0,
+        "wer": 15.0,
+        "n3": 0,
+        "text": "We should be months and months  in advance of that working wiht them. There's a lot of discussion wth the BU team and this is whe Alex has also been very helpful. How do we go and get this off the ground? Obviously a little tricky wit the recent news on hugging face with Nvidia."
+      },
+      "seg161_c040flip": {
+        "ref": 61,
+        "hyp": 61,
+        "S": 6,
+        "D": 1,
+        "I": 0,
+        "wer": 11.48,
+        "n3": 0,
+        "text": "And  supercloud is basically leveraging a base from open  code, which is similar open claw, of trying to have a solution that could be tuned or more unique for Intel's platforms. And there's  some reality of kind of where we are, right? You know, the  key for Intel is getting a  better base for all these thi  s to execute on."
+      },
+      "seg163_c040flip": {
+        "ref": 69,
+        "hyp": 69,
+        "S": 4,
+        "D": 1,
+        "I": 0,
+        "wer": 7.25,
+        "n3": 2,
+        "text": "to a reference stack like the microservices that we mentioned. So what are the reasons for that? You definitely don't want to be shackled with contracts and production commitment if you want to move fast in A. I. So those things don't go hand in hand. So we don't want to be at a poin where we can't go and run and pivot quick to make the platform shine."
+      },
+      "seg5": {
+        "ref": 45,
+        "hyp": 44,
+        "S": 2,
+        "D": 1,
+        "I": 0,
+        "wer": 6.67,
+        "n3": 0,
+        "text": "and  it's a simplified view, but one thing that's very important to understand is it's not an optimiizing one layer above all else. It's looking at this whole stack  end to end to bring  a platform leadership at scale with quality and predictable execution"
+      },
+      "seg60": {
+        "ref": 63,
+        "hyp": 66,
+        "S": 9,
+        "D": 1,
+        "I": 0,
+        "wer": 15.87,
+        "n3": 4,
+        "text": "and then giving them crescent island as a scale up optiон that whole story is coming  together, getting a lot of in terest. We've done a lot of discussio ns and discovery with custome rs over the last few weeks. A lot of interest, a lot of interest in it. We just need to prove it exis ts, right? And now we're proving it does exist."
+      }
+    },
+    "wall_s": 65.2
+  }
+}

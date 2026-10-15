@@ -1,0 +1,10 @@
+{
+  "mode": "c045_two_pass_offline_ov-int8-past",
+  "decoder_dir": "models/ov-int8-past",
+  "segments_json": "reports/spe_61min_segments_ov-mix12-past.json",
+  "n_segs": 226,
+  "audio_dur_s": 3671.1893125000006,
+  "wall_s": 498.5131638000021,
+  "offline_rtf": 0.13579064476534047,
+  "transcript": "reports/spe_61min_offline_ov-int8-past.txt"
+}

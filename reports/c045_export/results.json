@@ -1,0 +1,14 @@
+[
+  {
+    "variant": "mix12",
+    "desc": "INT8_ASYM + 12 层 FP16 (0-5, 22-27)",
+    "ir_mb": 2218.4,
+    "wall_s": 11.0
+  },
+  {
+    "variant": "mix16",
+    "desc": "INT8_ASYM + 16 层 FP16 (0-7, 20-27)",
+    "ir_mb": 2410.1,
+    "wall_s": 9.2
+  }
+]

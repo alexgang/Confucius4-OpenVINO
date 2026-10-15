@@ -41,3 +41,6 @@ desktop.ini
 .env
 .env.local
 secrets/
+
+# WorkBuddy agent memory (local only)
+.workbuddy/

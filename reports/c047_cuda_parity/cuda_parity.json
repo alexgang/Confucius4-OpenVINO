@@ -1,0 +1,7325 @@
+{
+  "A_ov_prod": {
+    "desc": "OV 生产: 640ms/k=5/固定32",
+    "wer": 40.27,
+    "totals": {
+      "ref": 298,
+      "hyp": 381,
+      "S": 19,
+      "D": 9,
+      "I": 92,
+      "n3": 106
+    },
+    "per_seg": {
+      "seg118_c040flip": {
+        "ref": 60,
+        "hyp": 55,
+        "S": 0,
+        "D": 5,
+        "I": 0,
+        "wer": 8.33,
+        "n3": 0,
+        "text": "We should be months and months in advance of that working with them. There's a lot of discussion with the BU team, and this is where Alex has also been very helpful. How do we go and get this off the ground? Obviously, a little tricky with the recent news on hugging face with Nvidia."
+      },
+      "seg161_c040flip": {
+        "ref": 61,
+        "hyp": 113,
+        "S": 4,
+        "D": 2,
+        "I": 55,
+        "wer": 100.0,
+        "n3": 52,
+        "text": "And Supercloud is basically leveraging a base from OpenCode, which is similar Openclaw, of trying to have a solution that could be tuned or more unique for Intel's platforms. And there's some reality of kind of where we are, right? You know, there's some reality of kind of where we are, right? You know, there's some reality of kind of where we are, right? You know, the key for Intel is getting a solution that could be tuned or more unique for Intel's platforms. And there's some reality of kind of where we are, right? You know, the key for Intel is getting a better base for all these things to execute on."
+      },
+      "seg163_c040flip": {
+        "ref": 69,
+        "hyp": 98,
+        "S": 14,
+        "D": 0,
+        "I": 28,
+        "wer": 60.87,
+        "n3": 42,
+        "text": "to a reference stack like the microservices that we mentioned. So what are the reasons for that? You definitely don't want to be shackled with contracts and production commitments if you want to move fast in AI. So those things don't go hand in hand. So we don't want to be shackled with contracts and production commitments if you want to move fast in AI. So those things don't go hand in hand. So we don't want to be at a point where we're shackled with contracts and production commitments if you want to move fast in AI."
+      },
+      "seg5": {
+        "ref": 45,
+        "hyp": 53,
+        "S": 0,
+        "D": 1,
+        "I": 9,
+        "wer": 22.22,
+        "n3": 7,
+        "text": "And it's a simplified view, but one thing that's very important to understand is it's not about optimizing one layer above all else. It's looking at optimizing one layer above all else. It's looking at this whole stack end to end to bring a platform leadership at scale with quality and predictable execution."
+      },
+      "seg60": {
+        "ref": 63,
+        "hyp": 62,
+        "S": 1,
+        "D": 1,
+        "I": 0,
+        "wer": 3.17,
+        "n3": 5,
+        "text": "and then giving him crescent island as a scale up option that whole story is coming together, getting a lot of interest. We've done a lot of discussions and discovery with customers over the last few weeks, a lot of interest, a lot of interest in it. We just need to prove it exists, right? And now we're proving it does exist."
+      }
+    },
+    "wall_s": 67.0
+  },
+  "B_k1": {
+    "desc": "只改k: 5->1",
+    "wer": 37.92,
+    "totals": {
+      "ref": 298,
+      "hyp": 369,
+      "S": 35,
+      "D": 7,
+      "I": 71,
+      "n3": 90
+    },
+    "per_seg": {
+      "seg118_c040flip": {
+        "ref": 60,
+        "hyp": 54,
+        "S": 5,
+        "D": 4,
+        "I": 1,
+        "wer": 16.67,
+        "n3": 2,
+        "text": "We should be months and months in advance of that working with them. There's a lot of discussion with the BU team and this is where Alex has also been very helpful of how do we go and get this off the ground. Obviously, obviously a little tricky with the BU team with Nvidia"
+      },
+      "seg161_c040flip": {
+        "ref": 61,
+        "hyp": 100,
+        "S": 3,
+        "D": 1,
+        "I": 40,
+        "wer": 72.13,
+        "n3": 33,
+        "text": "and supercloud was basically leveraging a base from open code, which is similar open claw of trying to have a solution that could be tuned or more unique for intel's platforms and there's there's some reality of kind of where we are right, you know there's some reality of kind of where we are right, you know the key for intel is getting a tuning or more unique for intel's platforms and there's some reality of kind of where we are right, you know the key for intel is getting a better base for all these things to execute on"
+      },
+      "seg163_c040flip": {
+        "ref": 69,
+        "hyp": 98,
+        "S": 14,
+        "D": 0,
+        "I": 28,
+        "wer": 60.87,
+        "n3": 42,
+        "text": "to a reference stack like the microservices that we mentioned. So what are the reasons for that? You definitely don't want to be shackled with contracts and production commitments if you want to move fast in AI. So those things don't go hand in hand. So we don't want to be shackled with contracts and production commitments if you want to move fast in AI. So those things don't go hand in hand. So we don't want to be at a point where we're shackled with contracts and production commitments if you want to move fast in AI."
+      },
+      "seg5": {
+        "ref": 45,
+        "hyp": 53,
+        "S": 12,
+        "D": 1,
+        "I": 0,
+        "wer": 28.89,
+        "n3": 7,
+        "text": "and to a simplified view, but one thing that's very important to understand is it's not an optimizing one layer above all else. It's looking at optimizing one layer above all else. It's looking at this whole stack end to end to bring a platform leadership at scale with quality and predictible execution."
+      },
+      "seg60": {
+        "ref": 63,
+        "hyp": 64,
+        "S": 1,
+        "D": 1,
+        "I": 2,
+        "wer": 6.35,
+        "n3": 6,
+        "text": "and then giving them crescent island as a scale up option. That whole story is coming together, getting a lot of interest. We've done a lot of interest and discussions with discovery with customers over the last few weeks. A lot of interest, a lot of interest in it. We just need to prove it exists, right? And now we're proving it does exist."
+      }
+    },
+    "wall_s": 47.9
+  },
+  "C_chunk160": {
+    "desc": "只改 chunk: 640->160ms",
+    "wer": 39.26,
+    "totals": {
+      "ref": 298,
+      "hyp": 378,
+      "S": 45,
+      "D": 8,
+      "I": 64,
+      "n3": 108
+    },
+    "per_seg": {
+      "seg118_c040flip": {
+        "ref": 60,
+        "hyp": 55,
+        "S": 0,
+        "D": 5,
+        "I": 0,
+        "wer": 8.33,
+        "n3": 0,
+        "text": "We should be months and months in advance of that working with them. There's a lot of discussion with the BU team, and this is where Alex has also been very helpful. How do we go and get this off the ground? Obviously, a little tricky with the recent news on hugging face with Nvidia."
+      },
+      "seg161_c040flip": {
+        "ref": 61,
+        "hyp": 115,
+        "S": 4,
+        "D": 1,
+        "I": 55,
+        "wer": 98.36,
+        "n3": 52,
+        "text": "And supercloud is basically leveraging a base from open code, which is similar open claw, of trying to have a solution that could be tuned or more unique for Intel's platforms. And there's some reality of kind of where we are, right? You know, there's some reality of kind of where we are, right? You know, there's some reality of kind of where we are, right? You know, the key for Intel is getting a solution that could be tuned or more unique for Intel's platforms. And there's some reality of kind of where we are, right? You know, the key for Intel is getting a better base for all these things to execute on."
+      },
+      "seg163_c040flip": {
+        "ref": 69,
+        "hyp": 93,
+        "S": 40,
+        "D": 0,
+        "I": 0,
+        "wer": 57.97,
+        "n3": 44,
+        "text": "to a reference stack like the microservices that we mentioned. So what are the reasons for that? You definitely don't want to be shackled with contracts and production commitments if you want to move fast in AI. So those things don't go hand in hand. So we don't want to be shackled with contracts and production commitments if you want to move fast in AI. So those things don't go hand in hand. So we don't want to be shackled with contracts and production commitments if you want to move fast in AI."
+      },
+      "seg5": {
+        "ref": 45,
+        "hyp": 53,
+        "S": 0,
+        "D": 1,
+        "I": 9,
+        "wer": 22.22,
+        "n3": 7,
+        "text": "And it's a simplified view, but one thing that's very important to understand is it's not about optimizing one layer above all else. It's looking at optimizing one layer above all else. It's looking at this whole stack end to end to bring a platform leadership at scale with quality and predictable execution."
+      },
+      "seg60": {
+        "ref": 63,
+        "hyp": 62,
+        "S": 1,
+        "D": 1,
+        "I": 0,
+        "wer": 3.17,
+        "n3": 5,
+        "text": "and then giving him crescent island as a scale up option. That whole story is coming together, getting a lot of interest. We've done a lot of discussions and discovery with customers over the last few weeks. A lot of interest, a lot of interest in it. We just need to prove it exists, right? And now we're proving it does exist."
+      }
+    },
+    "wall_s": 218.9
+  },
+  "D_lookahead": {
+    "desc": "只加 first-chunk lookahead",
+    "wer": 40.27,
+    "totals": {
+      "ref": 298,
+      "hyp": 381,
+      "S": 19,
+      "D": 9,
+      "I": 92,
+      "n3": 106
+    },
+    "per_seg": {
+      "seg118_c040flip": {
+        "ref": 60,
+        "hyp": 55,
+        "S": 0,
+        "D": 5,
+        "I": 0,
+        "wer": 8.33,
+        "n3": 0,
+        "text": "We should be months and months in advance of that working with them. There's a lot of discussion with the BU team, and this is where Alex has also been very helpful. How do we go and get this off the ground? Obviously, a little tricky with the recent news on hugging face with Nvidia."
+      },
+      "seg161_c040flip": {
+        "ref": 61,
+        "hyp": 113,
+        "S": 4,
+        "D": 2,
+        "I": 55,
+        "wer": 100.0,
+        "n3": 52,
+        "text": "And Supercloud is basically leveraging a base from OpenCode, which is similar Openclaw, of trying to have a solution that could be tuned or more unique for Intel's platforms. And there's some reality of kind of where we are, right? You know, there's some reality of kind of where we are, right? You know, there's some reality of kind of where we are, right? You know, the key for Intel is getting a solution that could be tuned or more unique for Intel's platforms. And there's some reality of kind of where we are, right? You know, the key for Intel is getting a better base for all these things to execute on."
+      },
+      "seg163_c040flip": {
+        "ref": 69,
+        "hyp": 98,
+        "S": 14,
+        "D": 0,
+        "I": 28,
+        "wer": 60.87,
+        "n3": 42,
+        "text": "to a reference stack like the microservices that we mentioned. So what are the reasons for that? You definitely don't want to be shackled with contracts and production commitments if you want to move fast in AI. So those things don't go hand in hand. So we don't want to be shackled with contracts and production commitments if you want to move fast in AI. So those things don't go hand in hand. So we don't want to be at a point where we're shackled with contracts and production commitments if you want to move fast in AI."
+      },
+      "seg5": {
+        "ref": 45,
+        "hyp": 53,
+        "S": 0,
+        "D": 1,
+        "I": 9,
+        "wer": 22.22,
+        "n3": 7,
+        "text": "And it's a simplified view, but one thing that's very important to understand is it's not about optimizing one layer above all else. It's looking at optimizing one layer above all else. It's looking at this whole stack end to end to bring a platform leadership at scale with quality and predictable execution."
+      },
+      "seg60": {
+        "ref": 63,
+        "hyp": 62,
+        "S": 1,
+        "D": 1,
+        "I": 0,
+        "wer": 3.17,
+        "n3": 5,
+        "text": "and then giving him crescent island as a scale up option that whole story is coming together, getting a lot of interest. We've done a lot of discussions and discovery with customers over the last few weeks, a lot of interest, a lot of interest in it. We just need to prove it exists, right? And now we're proving it does exist."
+      }
+    },
+    "wall_s": 65.0
+  },
+  "E_adapt_only": {
+    "desc": "只开自适应预算(640ms/k=5/无lookahead)",
+    "wer": 4.36,
+    "totals": {
+      "ref": 298,
+      "hyp": 289,
+      "S": 4,
+      "D": 9,
+      "I": 0,
+      "n3": 7
+    },
+    "per_seg": {
+      "seg118_c040flip": {
+        "ref": 60,
+        "hyp": 55,
+        "S": 0,
+        "D": 5,
+        "I": 0,
+        "wer": 8.33,
+        "n3": 0,
+        "text": "We should be months and months in advance of that working with them. There's a lot of discussion with the BU team and this is where Alex has also been very helpful. How do we go and get this off the ground? Obviously a little tricky with the recent news on hugging face with Nvidia."
+      },
+      "seg161_c040flip": {
+        "ref": 61,
+        "hyp": 60,
+        "S": 4,
+        "D": 1,
+        "I": 0,
+        "wer": 8.2,
+        "n3": 0,
+        "text": "And Supercloud is basically leveraging a base from Open Code, which is similar Open Claw, of trying to have a solution that could be tuned or more unique for Intel's platforms. And there's some reality of kind of where we are, right? You know, the key for Intel is getting a better base for all these things to execute on."
+      },
+      "seg163_c040flip": {
+        "ref": 69,
+        "hyp": 68,
+        "S": 0,
+        "D": 1,
+        "I": 0,
+        "wer": 1.45,
+        "n3": 2,
+        "text": "to a reference stack like the microservices that we mentioned. So what are the reasons for that? You definitely don't want to be shackled with contracts and production commitments if you want to move fast in AI. So those things don't go hand in hand. So we don't want to be at a point where we can't go and run and pivot quick to make the platform shine."
+      },
+      "seg5": {
+        "ref": 45,
+        "hyp": 44,
+        "S": 0,
+        "D": 1,
+        "I": 0,
+        "wer": 2.22,
+        "n3": 0,
+        "text": "And it's a simplified view, but one thing that's very important to understand is it's not about optimizing one layer above all else. It's looking at this whole stack end to end to bring a platform leadership at scale with quality and predictable execution."
+      },
+      "seg60": {
+        "ref": 63,
+        "hyp": 62,
+        "S": 0,
+        "D": 1,
+        "I": 0,
+        "wer": 1.59,
+        "n3": 5,
+        "text": "and then giving them Crescent Island as a scale up option, that whole story is coming together, getting a lot of interest. We've done a lot of discussions and discovery with customers over the last few weeks, a lot of interest, a lot of interest in it. We just need to prove it exists, right? And now we're proving it does exist."
+      }
+    },
+    "wall_s": 58.9,
+    "budget_log": [
+      {
+        "seg": "seg118_c040flip",
+        "log": [
+          {
+            "budget": 8,
+            "words": 3,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 5,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 5,
+            "eos": false
+          },
+          {
+            "budget": 9,
+            "words": 6,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 9,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 12,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 14,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 16,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 19,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 22,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 24,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 28,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 31,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 34,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 36,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 39,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 42,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 44,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 47,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 50,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 52,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 55,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 55,
+            "eos": true
+          }
+        ]
+      },
+      {
+        "seg": "seg161_c040flip",
+        "log": [
+          {
+            "budget": 8,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 9,
+            "words": 2,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 4,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 4,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 4,
+            "eos": false
+          },
+          {
+            "budget": 9,
+            "words": 5,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 8,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 9,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 12,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 16,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 18,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 21,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 24,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 27,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 30,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 31,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 32,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 34,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 35,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 38,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 41,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 42,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 44,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 47,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 50,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 53,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 56,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 59,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 60,
+            "eos": true
+          }
+        ]
+      },
+      {
+        "seg": "seg163_c040flip",
+        "log": [
+          {
+            "budget": 8,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 3,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 4,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 5,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 5,
+            "eos": false
+          },
+          {
+            "budget": 9,
+            "words": 6,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 8,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 10,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 13,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 16,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 18,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 20,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 23,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 25,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 27,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 29,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 32,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 35,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 37,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 38,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 41,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 43,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 45,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 48,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 50,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 53,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 56,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 58,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 61,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 64,
+            "eos": false
+          }
+        ]
+      },
+      {
+        "seg": "seg5",
+        "log": [
+          {
+            "budget": 8,
+            "words": 1,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 3,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 4,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 4,
+            "eos": false
+          },
+          {
+            "budget": 9,
+            "words": 5,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 7,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 9,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 12,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 15,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 17,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 19,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 21,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 23,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 25,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 28,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 29,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 32,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 32,
+            "eos": true
+          },
+          {
+            "budget": 9,
+            "words": 36,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 36,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 37,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 39,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 41,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 43,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 44,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 44,
+            "eos": true
+          }
+        ]
+      },
+      {
+        "seg": "seg60",
+        "log": [
+          {
+            "budget": 8,
+            "words": 2,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 5,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 5,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 5,
+            "eos": false
+          },
+          {
+            "budget": 9,
+            "words": 6,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 8,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 11,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 14,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 17,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 18,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 21,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 22,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 24,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 27,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 30,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 32,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 35,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 37,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 40,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 41,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 44,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 47,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 49,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 52,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 54,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 56,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 58,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 61,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 62,
+            "eos": true
+          }
+        ]
+      }
+    ]
+  },
+  "F_cuda_full": {
+    "desc": "CUDA 全套: 160ms/k=1/自适应/first-lookahead",
+    "wer": 13.76,
+    "totals": {
+      "ref": 298,
+      "hyp": 258,
+      "S": 1,
+      "D": 40,
+      "I": 0,
+      "n3": 7
+    },
+    "per_seg": {
+      "seg118_c040flip": {
+        "ref": 60,
+        "hyp": 55,
+        "S": 0,
+        "D": 5,
+        "I": 0,
+        "wer": 8.33,
+        "n3": 0,
+        "text": "We should be months and months in advance of that working with them. There's a lot of discussion with the BU team and this is where Alex has also been very helpful. How do we go and get this off the ground? Obviously a little tricky with the recent news on hugging face with Nvidia."
+      },
+      "seg161_c040flip": {
+        "ref": 61,
+        "hyp": 54,
+        "S": 1,
+        "D": 7,
+        "I": 0,
+        "wer": 13.11,
+        "n3": 0,
+        "text": "And superclaw was basically leveraging a base from open code, which is similar to opencl, of trying to have a solution that could be tuned or more unique for intel's platforms. And there's some reality of kind of where we are, right? You know, the key for intel is getting a better base for"
+      },
+      "seg163_c040flip": {
+        "ref": 69,
+        "hyp": 52,
+        "S": 0,
+        "D": 17,
+        "I": 0,
+        "wer": 24.64,
+        "n3": 2,
+        "text": "to a reference stack like the microservices that we mentioned. So what are the reasons for that? You definitely don't want to be shackled with contracts and production commitments if you want to move fast in AI. So those things don't go hand in hand. So we don't want to be at"
+      },
+      "seg5": {
+        "ref": 45,
+        "hyp": 44,
+        "S": 0,
+        "D": 1,
+        "I": 0,
+        "wer": 2.22,
+        "n3": 0,
+        "text": "And it's a simplified view, but one thing that's very important to understand is it's not about optimizing one layer above all else. It's looking at this whole stack end to end to bring a platform leadership at scale with quality and predictable execution."
+      },
+      "seg60": {
+        "ref": 63,
+        "hyp": 53,
+        "S": 0,
+        "D": 10,
+        "I": 0,
+        "wer": 15.87,
+        "n3": 5,
+        "text": "and then giving them Crescent Island as a scale up option, that whole story is coming together, getting a lot of interest. We've done a lot of discussions and discovery with customers over the last few weeks, a lot of interest, a lot of interest. We just need to prove it exists, right"
+      }
+    },
+    "wall_s": 141.1,
+    "budget_log": [
+      {
+        "seg": "seg118_c040flip",
+        "log": [
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          }
+        ]
+      },
+      {
+        "seg": "seg161_c040flip",
+        "log": [
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          }
+        ]
+      },
+      {
+        "seg": "seg163_c040flip",
+        "log": [
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          }
+        ]
+      },
+      {
+        "seg": "seg5",
+        "log": [
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          }
+        ]
+      },
+      {
+        "seg": "seg60",
+        "log": [
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 2,
+            "eos": false
+          },
+          {
+            "budget": 2,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 3,
+            "words": 0,
+            "eos": false
+          }
+        ]
+      }
+    ]
+  },
+  "G_cuda_noadapt": {
+    "desc": "CUDA 但关自适应预算",
+    "wer": 11.74,
+    "totals": {
+      "ref": 298,
+      "hyp": 265,
+      "S": 6,
+      "D": 29,
+      "I": 0,
+      "n3": 7
+    },
+    "per_seg": {
+      "seg118_c040flip": {
+        "ref": 60,
+        "hyp": 55,
+        "S": 0,
+        "D": 5,
+        "I": 0,
+        "wer": 8.33,
+        "n3": 0,
+        "text": "We should be months and months in advance of that working with them. There's a lot of discussion with the BU team and this is where Alex has also been very helpful. How do we go and get this off the ground? Obviously a little tricky with the recent news on hugging face with Nvidia."
+      },
+      "seg161_c040flip": {
+        "ref": 61,
+        "hyp": 54,
+        "S": 1,
+        "D": 7,
+        "I": 0,
+        "wer": 13.11,
+        "n3": 0,
+        "text": "And superclaw was basically leveraging a base from open code, which is similar to opencl, of trying to have a solution that could be tuned or more unique for intel's platforms. And there's some reality of kind of where we are, right? You know, the key for intel is getting a better base for"
+      },
+      "seg163_c040flip": {
+        "ref": 69,
+        "hyp": 56,
+        "S": 0,
+        "D": 13,
+        "I": 0,
+        "wer": 18.84,
+        "n3": 2,
+        "text": "to a reference stack like the microservices that we mentioned. So what are the reasons for that? You definitely don't want to be shackled with contracts and production commitments if you want to move fast in AI. So those things don't go hand in hand. So we don't want to be at a point where we"
+      },
+      "seg5": {
+        "ref": 45,
+        "hyp": 44,
+        "S": 0,
+        "D": 1,
+        "I": 0,
+        "wer": 2.22,
+        "n3": 0,
+        "text": "And it's a simplified view, but one thing that's very important to understand is it's not about optimizing one layer above all else. It's looking at this whole stack end to end to bring a platform leadership at scale with quality and predictable execution."
+      },
+      "seg60": {
+        "ref": 63,
+        "hyp": 56,
+        "S": 5,
+        "D": 3,
+        "I": 0,
+        "wer": 12.7,
+        "n3": 5,
+        "text": "and then giving them Crescent Island as a scale up option, that whole story is coming together, getting a lot of interest. We've done a lot of discussions and discovery with customers over the last few weeks, a lot of interest, a lot of interest. We just need to prove it exists, right? And now we"
+      }
+    },
+    "wall_s": 161.2,
+    "budget_log": [
+      {
+        "seg": "seg118_c040flip",
+        "log": [
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          }
+        ]
+      },
+      {
+        "seg": "seg161_c040flip",
+        "log": [
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          }
+        ]
+      },
+      {
+        "seg": "seg163_c040flip",
+        "log": [
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          }
+        ]
+      },
+      {
+        "seg": "seg5",
+        "log": [
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          }
+        ]
+      },
+      {
+        "seg": "seg60",
+        "log": [
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 0,
+            "eos": true
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          },
+          {
+            "budget": 4,
+            "words": 1,
+            "eos": false
+          }
+        ]
+      }
+    ]
+  },
+  "H_cuda_640": {
+    "desc": "CUDA 但 chunk=640ms",
+    "wer": 29.19,
+    "totals": {
+      "ref": 298,
+      "hyp": 354,
+      "S": 12,
+      "D": 8,
+      "I": 67,
+      "n3": 59
+    },
+    "per_seg": {
+      "seg118_c040flip": {
+        "ref": 60,
+        "hyp": 54,
+        "S": 5,
+        "D": 4,
+        "I": 1,
+        "wer": 16.67,
+        "n3": 2,
+        "text": "We should be months and months in advance of that working with them. There's a lot of discussion with the BU team and this is where Alex has also been very helpful of how do we go and get this off the ground. Obviously, obviously a little tricky with the BU team with Nvidia"
+      },
+      "seg161_c040flip": {
+        "ref": 61,
+        "hyp": 88,
+        "S": 3,
+        "D": 1,
+        "I": 28,
+        "wer": 52.46,
+        "n3": 17,
+        "text": "and supercloud was basically leveraging a base from open code, which is similar open claw of trying to have a solution that could be tuned or more unique for intel's platforms and there's there's some reality of kind of where we are right, you know there's the key for intel's getting a tuning or more unique for intel's platforms and there's some reality of kind of where we are right, you know the key for intel is getting a better base for all these things to execute on"
+      },
+      "seg163_c040flip": {
+        "ref": 69,
+        "hyp": 96,
+        "S": 0,
+        "D": 1,
+        "I": 28,
+        "wer": 42.03,
+        "n3": 30,
+        "text": "to a reference stack like the microservices that we mentioned. So what are the reasons for that? You definitely don't want to be shackled with contracts and production commitments if you want to move fast in AI. So those things don't go hand in hand. So we don't want to be shackled with contracts and production commitments if you want to move fast in AI. So those things don't go hand in hand. So we don't want to be at a point where we can't go and run and pivot quick to make the platform shine."
+      },
+      "seg5": {
+        "ref": 45,
+        "hyp": 54,
+        "S": 3,
+        "D": 1,
+        "I": 10,
+        "wer": 31.11,
+        "n3": 5,
+        "text": "and to a simplified view, but one thing that's very important to understand is it's not an optimizing one layer above all else. It's looking at optimizing this whole stack above all else. It's looking at this whole stack end to end to bring a platform leadership at scale with quality and predictible execution."
+      },
+      "seg60": {
+        "ref": 63,
+        "hyp": 62,
+        "S": 1,
+        "D": 1,
+        "I": 0,
+        "wer": 3.17,
+        "n3": 5,
+        "text": "and then giving them crescent island as a scale up option. That whole story is coming together, getting a lot of interest. We've done a lot of discussion and discovery with customers over the last few weeks. A lot of interest, a lot of interest in it. We just need to prove it exists, right? And now we're proving it does exist."
+      }
+    },
+    "wall_s": 45.4,
+    "budget_log": [
+      {
+        "seg": "seg118_c040flip",
+        "log": [
+          {
+            "budget": 16,
+            "words": 7,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 10,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 12,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 13,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 13,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 19,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 22,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 22,
+            "eos": true
+          },
+          {
+            "budget": 9,
+            "words": 25,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 27,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 32,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 34,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 40,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 43,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 43,
+            "eos": true
+          },
+          {
+            "budget": 9,
+            "words": 45,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 52,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 52,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 52,
+            "eos": true
+          },
+          {
+            "budget": 9,
+            "words": 52,
+            "eos": true
+          },
+          {
+            "budget": 10,
+            "words": 54,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 54,
+            "eos": true
+          }
+        ]
+      },
+      {
+        "seg": "seg161_c040flip",
+        "log": [
+          {
+            "budget": 16,
+            "words": 2,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 4,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 4,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 6,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 8,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 10,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 13,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 15,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 16,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 21,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 24,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 26,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 30,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 31,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 32,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 32,
+            "eos": true
+          },
+          {
+            "budget": 9,
+            "words": 34,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 36,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 41,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 42,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 48,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 47,
+            "eos": true
+          },
+          {
+            "budget": 9,
+            "words": 51,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 57,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 59,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 59,
+            "eos": true
+          },
+          {
+            "budget": 9,
+            "words": 59,
+            "eos": true
+          },
+          {
+            "budget": 10,
+            "words": 67,
+            "eos": false
+          }
+        ]
+      },
+      {
+        "seg": "seg163_c040flip",
+        "log": [
+          {
+            "budget": 16,
+            "words": 3,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 4,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 7,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 9,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 11,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 11,
+            "eos": true
+          },
+          {
+            "budget": 9,
+            "words": 15,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 17,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 18,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 23,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 23,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 24,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 25,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 27,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 29,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 34,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 37,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 37,
+            "eos": true
+          },
+          {
+            "budget": 9,
+            "words": 38,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 42,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 45,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 47,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 53,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 60,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 65,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 71,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 76,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 83,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 89,
+            "eos": false
+          }
+        ]
+      },
+      {
+        "seg": "seg5",
+        "log": [
+          {
+            "budget": 16,
+            "words": 3,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 6,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 9,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 13,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 14,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 14,
+            "eos": true
+          },
+          {
+            "budget": 9,
+            "words": 18,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 18,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 18,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 19,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 21,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 23,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 28,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 29,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 33,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 33,
+            "eos": true
+          },
+          {
+            "budget": 9,
+            "words": 33,
+            "eos": true
+          },
+          {
+            "budget": 10,
+            "words": 33,
+            "eos": true
+          },
+          {
+            "budget": 11,
+            "words": 33,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 33,
+            "eos": true
+          },
+          {
+            "budget": 9,
+            "words": 40,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 47,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 53,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 54,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 54,
+            "eos": true
+          }
+        ]
+      },
+      {
+        "seg": "seg60",
+        "log": [
+          {
+            "budget": 16,
+            "words": 5,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 6,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 8,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 11,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 11,
+            "eos": true
+          },
+          {
+            "budget": 9,
+            "words": 13,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 16,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 17,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 18,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 22,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 22,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 28,
+            "eos": false
+          },
+          {
+            "budget": 8,
+            "words": 28,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 30,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 32,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 35,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 37,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 40,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 41,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 47,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 51,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 54,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 55,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 56,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 58,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 62,
+            "eos": true
+          },
+          {
+            "budget": 8,
+            "words": 62,
+            "eos": true
+          },
+          {
+            "budget": 9,
+            "words": 62,
+            "eos": true
+          }
+        ]
+      }
+    ]
+  }
+}
