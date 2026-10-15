@@ -185,6 +185,71 @@ confucius4-openvino/
 # [transcribe] strategy=vad max_segment_sec=20.0 segments=226 chunks=...
 ```
 
+---
+
+## 实时麦克风应用（`mic_asr_app.py`）
+
+把上面这套流式 ASR 包装成桌面应用：采集本机麦克风 → 逐 chunk 增量解码 →
+窗口实时显示识别文本。模型和参数与离线 `transcribe_stream.py` 完全一致，
+所以显示质量与 61-min 验收口径一致。
+
+```powershell
+# 装依赖（仅首次；sounddevice 用于麦克风采集）
+.venv/Scripts/python.exe -m pip install sounddevice
+
+# 启动 GUI（默认走系统默认输入设备）
+.venv/Scripts/python.exe mic_asr_app.py
+
+# 列出可用输入设备
+.venv/Scripts/python.exe mic_asr_app.py --list-devices
+
+# 指定设备
+.venv/Scripts/python.exe mic_asr_app.py --device 1
+
+# 终端模式（无窗口，边说边打印，Ctrl-C 结束）
+.venv/Scripts/python.exe mic_asr_app.py --cli
+
+# 用音频文件按实时速度回放（无麦克风时自测用）
+.venv/Scripts/python.exe mic_asr_app.py --cli --file test_audio/<redacted>.wav
+```
+
+界面自上而下：麦克风电平条 → 已定稿文本（黑色）→ 当前段临时结果（灰色斜体）→
+状态/RTF 仪表。点「开始识别」开始采集，再点停止会 flush 残留音频。
+
+### 与离线的差异：在线分段
+
+离线路径是「先看完整段音频再规划切点」，实时下做不到，改成**边来边切**：
+
+- 累积到 12 s 后开始盯着最近 3 s 的静音，有静音就切（说完整句再切）
+- 到 20 s 硬切（segment encoder 上限 ≈24.3 s，不能超）
+- **切点只落在 chunk 边界**（640 ms），不切在 chunk 内部
+
+最后一条是关键。曾经把切点设在静音中点，结果切点后的音频**已经参与过本段的
+encoder**、又被当作 carry 喂给下一段，同一段音频被识别两遍，段尾段首出现重复短语
+（实测输出 `...for performance, for cost.` 后接 `Cost and for power...`）。
+对齐 chunk 边界后，carry 恒等于 `state.buffer`，是一段从未解码过的干净残余。
+
+段收尾也不能直接用 `finish_streaming_transcribe`：它看到非空 buffer 就会把 buffer
+拼进 `audio_accum` 再生成一次，等于吞掉要留给下一段的音频。所以 `_finalize()`
+自己走一遍收尾生成，只用 `audio_accum`、不动 buffer。
+停止时（没有下一段了）才用官方 `finish` 收尾。
+
+### 参数
+
+| 参数 | 默认 | 说明 |
+|---|---|---|
+| `--device N` | 系统默认 | 输入设备序号，`--list-devices` 查看 |
+| `--file WAV` | — | 用文件按实时速度回放，便于无麦克风自测 |
+| `--cli` | 关 | 终端模式，不弹窗口 |
+| `--encoder-dir` | `models/ov-encoder-segment-reviewer` | encoder IR |
+| `--decoder-dir` | `models/ov-int8-past` | decoder IR |
+| `--device-target` | `GPU.0` | OpenVINO 推理设备 |
+| `--no-adaptive-budget` | 关 | 退回固定 32（历史行为，WER 17.87%） |
+| `--no-seam-dedup` | 关 | 关掉段接缝的 1 词去重 |
+
+`force_language` 恒为 `None`（自动）：中英混合场景下模型逐 chunk 自行判语言，
+强制单一语言会破坏另一种语言的输出。
+
 ## 关键技术修复（cumulative 12 步）
 
 | 步骤 | 修复 | 效果 |

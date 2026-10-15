@@ -1,13 +1,60 @@
 # STATUS
-- updated: **2026-10-15 16:00**
-- phase: 5 / 交付（**C-050 中英混合测试已完成**，含 finish 预算对照）
-- step: 三套 adaptive + finish 预算对照（C-050 第 8 项）全部跑完
+- updated: **2026-10-15 16:30**
+- phase: 5 / 交付（C-050 完成 + **实时麦克风应用已交付**）
+- step: 新增 `mic_asr_app.py`：麦克风实时采集 + 增量解码 + GUI 实时显示
 - state: **WAITING_REVIEW**（等 MiniMax baseline + 报告口径定夺）
 - last_ack: **C-050**（含 C-039~C-049，回执见下一节）
 - ⚠️ **上轮结论已推翻**：18.21% WER 的瓶颈不是 INT8 量化，而是 `max_new_tokens`
   被固定成 32（CUDA 官方是自适应 1–4）。量化路线（C-043/C-044）必要性已证伪。
   详见 `reports/C047_CUDA_PARITY.md`
 - last_ack: **C-050**（含 C-039~C-049，回执见下一节）
+
+## 实时麦克风应用 `mic_asr_app.py`（2026-10-15 16:10 交付）
+
+把仓库流式 ASR 包装成桌面应用：麦克风采集 → 逐 chunk 增量解码 → 窗口实时显示。
+**模型与参数同 `transcribe_stream.py`（adaptive_budget 默认开），质量对齐 61-min 验收口径。**
+
+```powershell
+.venv/Scripts/python.exe -m pip install sounddevice   # 仅首次
+.venv/Scripts/python.exe mic_asr_app.py               # GUI，默认输入设备
+.venv/Scripts/python.exe mic_asr_app.py --list-devices
+.venv/Scripts/python.exe mic_asr_app.py --device 1
+.venv/Scripts/python.exe mic_asr_app.py --cli        # 终端模式
+.venv/Scripts/python.exe mic_asr_app.py --cli --file test_audio/<redacted>.wav
+```
+
+界面：麦克风电平条 → 已定稿文本（黑色）→ 当前段临时结果（灰色斜体）→ 状态/RTF 仪表。
+按钮：开始/停止、清空、保存 transcript。
+
+### 关键设计：切点必须对齐 chunk 边界
+
+实时下无法"先看完整段再规划切点"，改成边来边切：
+累积到 12 s 后盯最近 3 s 的静音，有静音就切；到 20 s 硬切（encoder 上限 ≈24.3 s）。
+
+**踩过的坑**：最初把切点设在静音中点，结果切点后的音频**已经参与过本段的
+encoder**、又被当 carry 喂给下一段 —— 同一段音频识别两遍，段尾段首出现重复短语
+（实测 `...for performance, for cost.` 后接 `Cost and for power...`）。
+
+两个连带修正：
+1. 切点只落在 chunk 边界（640 ms）→ carry 恒等于 `state.buffer`，是一段
+   **从未解码过**的干净残余
+2. 段收尾**不能直接用 `finish_streaming_transcribe`** —— 它看到非空 buffer 会把
+   buffer 拼进 `audio_accum` 再生成一次，等于吞掉要留给下一段的音频。
+   改为自己写 `_finalize()`：只用 `audio_accum`、不动 buffer。
+   仅停止时（没有下一段了）才用官方 `finish` 收尾。
+
+另加**接缝去重**：段边界处偶发 1–3 词重叠（一个词横跨 chunk 边界时两头都吐）。
+规则：下一段首 n 词 == 上一段尾 n 词（归一化+小写）则删掉首 n 词，n ∈ {3,2}。
+**不取 n=1**，避免误伤合法的单词重复（"that that"、"very very"）。
+开关 `--no-seam-dedup`。`force_language` 恒为 None（自动判语言）。
+
+### 验证
+- 麦克风采集：10 块 / 16000 样本 / 峰值 RMS 0.17，无异常（默认设备「麦克风阵列」）
+- GUI 全流程（加载→采集→推理→渲染→仪表）通过
+- CLI 60 s 回放：5 段定稿，文本连贯无重复，RTF 0.650，93 chunks
+
+### 依赖
+新增 `sounddevice`（含 PortAudio）。已装入项目 venv。
 
 ## C-050 中英混合测试（2026-10-15 12:20 起执行）
 
