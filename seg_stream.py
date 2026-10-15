@@ -121,6 +121,7 @@ class SegmentedStreamer:
                  chunk_size_sec: float = 0.32,
                  max_new_tokens: int = 32,
                  adaptive_budget: bool = False,
+                 finish_budget: str = 'max64',
                  vad_silence_db: float = -40.0,
                  vad_min_silence_ms: int = 300,
                  enable_hallucination_reset: bool = True):
@@ -137,6 +138,9 @@ class SegmentedStreamer:
         # C-047: True 时按官方负反馈动态决定每 chunk 生成长度（1..floor），
         # 避免固定 32 让单次自回归失控写满冻结前缀。
         self.adaptive_budget = adaptive_budget
+        # C-049：段尾 flush 预算口径。'first' = 官方 first_max_new_tokens
+        # (example.py:118-119) = max(1, int(chunk_samples/1280))，640 ms → 8
+        self.finish_budget = finish_budget
         self.vad_silence_db = vad_silence_db
         self.vad_min_silence_ms = vad_min_silence_ms
         self.enable_hallucination_reset = enable_hallucination_reset
@@ -207,8 +211,12 @@ class SegmentedStreamer:
                 break
             feed_pos = end
         # C-018：切点必须走 finish_streaming_transcribe 把尾巴 flush 出来
-        # 如果是 hallucination reset 触发的提前 finish, 仍要 flush (max_new_tokens 减小避免再次循环)
-        flush_max = max(16, self.max_new_tokens // 2) if n_hallucination_resets > 0 else max(64, self.max_new_tokens)
+        # 如果是 hallucination reset 触发的提前 finish, 仍要 flush (预算减半避免再次循环)
+        # C-049：正常 finish 的预算口径可切换（max64 现状 / first 官方）
+        if n_hallucination_resets > 0:
+            flush_max = max(16, self.max_new_tokens // 2)
+        else:
+            flush_max = self.finish_max_new_tokens()
         final = finish_streaming_transcribe(
             self.backend, state,
             max_new_tokens=flush_max,
@@ -216,6 +224,14 @@ class SegmentedStreamer:
         # 记录 reset 次数到 state
         state._n_resets_in_seg = n_hallucination_resets
         return final
+
+    def finish_max_new_tokens(self) -> int:
+        """段尾 flush 的生成预算，按 self.finish_budget 口径返回。"""
+        if self.finish_budget == 'first':
+            # 官方 first_max_new_tokens = max(1, int((step+lookhead)/1280))
+            step = int(round(self.chunk_size_sec * 16000))
+            return max(1, int(step / 1280))
+        return max(64, self.max_new_tokens)
 
     # ── 整段主循环 ──────────────────────────────────────
     def run(self, audio: np.ndarray, *, progress: bool = False):

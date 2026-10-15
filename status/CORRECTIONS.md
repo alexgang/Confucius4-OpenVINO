@@ -609,3 +609,55 @@ reviewer 读了 `c039_61min.py`、`seg_stream.py`（run / _run_one_segment）、
 
 **选择规则**：在 **RTF ≤ 0.8** 的方案中选 top-1 一致率和 EOS 一致率最高的；目标 top-1 ≥ 99.5%、EOS ≥ 99%。选定后跑 61 分钟全长 noreset → `spe_61min_transcript.txt`。
 如果所有方案都达不到、只有 FP16 能达到，就把各方案的 RTF / 一致率表写进 STATUS，并设为 WAITING_REVIEW（这时要由用户在“精度”和“实时余量”之间做取舍）。
+
+## C-049 [NORMAL] 2026-10-15 09:40 — C-045~C-048 验收通过：根因与修复均已独立复核
+reviewer 已在本机独立复核（不依赖目标机的计算结果），结论：**修复正确，验收通过**。
+
+**1. 根因属实**。我对照本机的官方源码副本 `Confucius4-R2T2-master/example.py:118-155` 逐行核对，确认自适应预算机制存在且与你的描述一致：
+- `max_new_tokens = max(1, int((step+lookhead)/1280))`（约每 80 ms 音频 1 个 token）
+- `max_new_tokens_floor = min(32, max(4, 2*int(step/1280)))`
+- 有新内容则收紧、无新增则 +1，中文 token 再翻倍
+- `finish_streaming_transcribe(state, first_max_new_tokens)`
+固定 32 让每个 chunk 的生成预算远超新音频所能支撑的内容，模型只能靠重述 prefix 填满预算 —— 这解释了此前全部现象：插入高达 1510 而替换正常、hybrid 离线干净（整段一次解码不存在超预算）、CUDA 干净（本来就是自适应）、INT8 与 FP16 差异不大（从来就不是量化问题）。C-043/C-044 的量化路线确属证伪，这个判断是对的。
+
+**2. 指标独立复核**（我用自己的 MiniMax baseline 和对比脚本重算 `transcript_adaptive.txt`）：
+| 指标 | 我的复核值 | 你的报告 | 验收线 | 结果 |
+|---|--:|--:|--:|---|
+| WER | **8.17%** | 7.88% | ≤ 11% | ✅ |
+| 替换 S | 282 | — | — | ✅（baseline 18.21% 时是 335）|
+| 删除 D | 151 | — | — | ✅ 与修复前的 152 持平，**没有丢词** |
+| 插入 I | **463** | — | — | ✅（修复前 1510）|
+| 重复 4-gram | **50** | 262(n4) | — | ✅（修复前 991；CUDA 20，hybrid 135）|
+| 整体 RTF | 0.639 | 0.639 | < 1 | ✅ |
+| 段 RTF P95 | 0.675 | 0.675 | ≤ 0.8 | ✅ |
+WER 的 0.29pp 差异只是归一化口径不同（我按小写去标点、数字保留原样）。`transcript_baseline.txt` 我复算是 18.21%，与我此前对 `spe_61min_transcript_v3_segenc_int8.txt` 的测量完全一致，说明两边是同口径对比。
+另已确认 `c048_61min.py:64` 为 `enable_hallucination_reset=False` —— **该结果未使用 reset 兜底**，符合 C-036 的要求。
+
+**3. 真实质量还要更好**。最差的两个窗口（36 分 62%、46 分 57.5%）是 S=4/D=6/I=132 与 S=7/D=6/I=137，几乎纯插入、替换和删除都接近零，与 hybrid 离线在同一窗口的数字（S=4/D=6/I=132）完全一致 —— 这是 MiniMax baseline 在 Q&A 段漏转，不是你的错误。扣除这两处约 269 个 baseline 缺口后，等效 WER 约 5.7%。
+
+**4. 一处遗留偏差（非阻塞，但请处理）**：`seg_stream.py:211` 的 finish 预算仍是 `max(64, max_new_tokens)=64`，而官方是 `first_max_new_tokens`（160 ms 时 1-2，640 ms 时约 8）。这是 C-047 表格里你自己列出的差异项，看起来没有一并改。它可能正是 8.17% 与 CUDA 7.69% 之间残差的一部分。请做一次受控实验：只改 finish 预算为 `first_max_new_tokens` 口径，其余不动，跑 61 分钟，报告 WER / 插入 / RTF。若有改善就设为默认；若无改善，在报告里写明"已验证无影响"即可。
+
+**5. 收尾任务**：
+- `transcribe_stream.py` 默认已是 segment encoder + INT8 + adaptive（已确认），保持。
+- 更新 `README.md` / `PROJECT_REPORT.md`：精度表改为与 **MiniMax 云端 asr-1.0** 对比（不是 CUDA），写明三个根因及其修复顺序（① optimum 导出的 encoder 丢失全局注意力；② 窗口计数 bug；③ `max_new_tokens` 固定 32 错译了官方自适应预算），并保留 CUDA 不分段 240-300 s 撞 `max_source_positions` 的 OOM 验证结论（这回答了用户最初的反馈：CUDA 和 OV 都需要 VAD 切句）。
+- C-043/C-044 的量化产物（`ov-int8-lmfp16-past`、`ov-int4-lmfp16-past`、`ov-mix*-past`）标注为已证伪的探索路径，可从默认路径移除，报告中保留结论。
+- 完成后合并到 `origin/c038-v2-ir`，设 WAITING_REVIEW 做最终交付确认。
+
+## C-050 [NORMAL] 2026-10-15 10:05 — 中英混合音频测试：口径、已知风险与必查项
+用户正在准备一段中英文混合音频做双语识别测试。在跑之前请注意以下几点。
+
+**1. 音频与放置**：16 kHz 单声道 wav，放 `test_audio/`。把时长、采样率、以及中英大致比例写进 STATUS。如果源文件不是 16 kHz 单声道，用 ffmpeg 转换并保留原始文件。
+
+**2. 语言参数**：`force_language` 必须保持 **None（自动）**，不要设成 Chinese 或 English。混合音频里模型会逐 chunk 自己判定语言，强制单一语言会破坏另一种语言的输出。
+
+**3. 自适应预算的中文分支（重点）**：我已确认你在 `streaming_asr.py:213-224` 实现了 `_is_last_token_chinese` 和中文预算翻倍，与官方 `example.py` 一致 —— 这一点做对了，而且对本次测试至关重要：中文每秒的字数远多于英文每秒的词数，预算不翻倍会导致中文段被截断（表现为删除错误 D 升高，而不是之前的重复插入）。请在跑测试时**记录中文分支的触发次数**，以及中英段各自的平均生成预算，写进报告。如果中文段的 D 明显高于英文段，就是预算仍然不够，届时报告数据即可，先不要自行改参数。
+
+**4. 语言标签抖动**：官方逻辑里 `raw_decoded` 带 `language XXX<asr_text>` 前缀，中英切换处模型给出的语言标签可能在 chunk 之间翻转。请记录每个 chunk 解析出的 `lang` 值，统计翻转次数；如果翻转伴随文本回退或重复，这是混合场景特有的新问题，需要单独报告（不要用 reset 掩盖）。
+
+**5. 中文去空格分支**：`streaming_asr.py:308` 的 `if state.force_language == "Chinese" or lang == "Chinese"` 会触发那条去空格正则。该正则只删除**两个中文字之间**的空格，英文词间空格不受影响 —— 逻辑上是安全的。但请在混合段落上实际抽查几句，确认英文单词没有被粘连。
+
+**6. 评分口径**：我这边的对比脚本已改为**中文按字、英文按词**（混合错误率 MER）。改之前整段中文会被当成一个 token，错误率毫无意义；改后英文结果完全不变（adaptive 仍是 8.17%、CUDA 仍是 7.69%），所以历史对比依然有效。**不要用英文那条 ≤11% 的线直接套用到混合音频**：这是不同的音频、不同的 baseline，没有可比性。请分别报告：整体 MER、中文为主的段、英文为主的段、重复 4-gram、RTF（P50/P95/max）。
+
+**7. baseline 由 reviewer 生成**：音频下载好后告诉我路径，我用 MiniMax asr-1.0 跑一份独立 baseline 再算 MER（混合音频我不会传 language header，走自动识别）。**你不需要自己调 MiniMax**。
+
+**8. 与 C-049 的关系**：中英混合测试属于**额外验证**，不替代 C-049 的收尾项。特别是第 ① 项（finish 预算 `max(64,...)` vs 官方 `first_max_new_tokens`）在中文下可能影响更大 —— 中文预算翻倍后，段尾 64 的固定预算超发更严重。建议把这个受控实验**在英文和中英混合两段音频上各做一次**，一并报告。

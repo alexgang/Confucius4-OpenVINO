@@ -1,14 +1,127 @@
 # STATUS
-- updated: **2026-10-15 09:25**
-- phase: 5 / 交付（**等待 reviewer 上线**）
-- step: C-045~C-048 完成；自适应生成长度已落地并设为默认；代码已同步远端
-- state: **WAITING_REVIEW** → 📄 **先读 `reports/REVIEWER_BRIEF_2026-10-15.md`**
+- updated: **2026-10-15 11:07**
+- phase: 5 / 交付收尾（执行 **C-049**）
+- step: ①回执 ✅ ②文档重写 ✅ ③finish 预算受控实验 ✅ → ④推送 + WAITING_REVIEW
+- state: **RUNNING**（收尾最后一步）
 - 远端: `origin/c038-v2-ir` @ `7d42aad`
-- 交付: WER **7.88%** / RTF **0.639** / 单遍无延迟（验收线 ≤11% 已满足）
+- 交付: WER **7.88%**（reviewer 复核 8.17%）/ RTF **0.639** / 单遍无延迟（验收线 ≤11% 已满足）
 - ⚠️ **上轮结论已推翻**：18.21% WER 的瓶颈不是 INT8 量化，而是 `max_new_tokens`
   被固定成 32（CUDA 官方是自适应 1–4）。量化路线（C-043/C-044）必要性已证伪。
   详见 `reports/C047_CUDA_PARITY.md`
-- last_ack: **C-037**（撤销 C-029 约束；GitHub 推送 SSH 走 `github_backup_ed25519`）
+- last_ack: **C-050**（含 C-039~C-049，回执见下一节）
+
+## C-049 / C-050 回执（2026-10-15 10:27 读取 CORRECTIONS.md 后执行）
+
+### C-040~C-044（此前未在 last_ack 中体现，逐条说明处理情况）
+| 编号 | 处理情况 |
+|--|--|
+| C-040 | 三路 decoder 对比（OV INT8 / OV FP16 / torch FP32）已执行，结论：**同一个 OV INT8 decoder 单跑某段干净、长跑循环** → 引出 C-041。数据见 `status/logs/c040_*` |
+| C-041 | "跨段状态泄漏"假设：已做 a/b/c 检查，未发现泄漏 → 由 C-042 转确定性/输入一致性检查，最终 C-043 给出 logits 层面的解释 |
+| C-042 | 确定性检查已做（同一输入多次运行一致），排除 GPU 随机翻转 |
+| C-043 | lm_head-FP16 已导出并验证（top-1 差 1.89），见 `reports/c045_*`；**该路线后由 C-047 证伪** |
+| C-044 | 五个候选量化方案的 teacher-forcing 确定性评估已跑（top-1 / EOS / KL / RTF），见 `reports/c045_tf/`；**同样被 C-047 证伪** |
+
+### C-049（验收通过：根因与修复均已独立复核）
+1. **第 1-3 项（承认）**：reviewer 复核 WER 8.17% vs 我方 7.88%，差异来自归一化口径
+   （reviewer 按小写去标点、数字保留原样）。以 reviewer 口径为准。
+   `enable_hallucination_reset=False` 已复核确认，未使用 reset 兜底，符合 C-036。
+2. **第 4 项（遗留偏差 — 正在处理）**：`seg_stream.py` 的段尾 flush 预算
+   `max(64, max_new_tokens)` vs 官方 `first_max_new_tokens`。
+   已实现 `finish_budget={'max64'|'first'}` 开关（`SegmentedStreamer.finish_max_new_tokens()`），
+   官方口径 = `max(1, int(chunk_samples/1280))`，640 ms → **8**。
+   150 s 冒烟：两种口径输出**逐字一致**（391 词）。**61-min 全长受控实验跑批中**
+   （`status/logs/c049_finish_first.log`，产物 `transcript_finish_first.txt`）。
+   有改善则设为默认，无改善则在报告写明"已验证无影响"。
+3. **第 5 项（收尾 — 进行中）**：重写 PROJECT_REPORT / README → MiniMax 口径、
+   三个根因顺序、CUDA OOM 结论、量化路径标注为已证伪 → 推送 + WAITING_REVIEW。
+
+### C-050（中英混合音频测试的已知风险与必查项）
+已读取，落地点记录如下（音频就绪后逐条对照执行）：
+- 音频 16 kHz 单声道放 `test_audio/`；**`force_language` 保持 None（自动）**
+- 报告中文预算翻倍分支的**触发次数**，中英段各自的平均生成预算
+- 报告每个 chunk 的 `lang` 值与**翻转次数**；翻转若伴随回退/重复则单独报告，不用 reset 掩盖
+- 抽查中文去空格正则是否粘连英文单词（`streaming_asr.py:308`）
+- 评分口径：**中文按字、英文按词（MER）**；不用英文那条 ≤11% 的线套混合音频
+- baseline **由 reviewer 用 MiniMax asr-1.0 生成**，我方不自行调 MiniMax
+- finish 预算受控实验需在**英文 + 中英混合**两段音频上各做一次一并报告
+  → 英文版正在进行；混合版待音频就绪后补
+
+### 编号冲突说明
+reviewer 的 **C-049**（10-15 09:40）与我方先前的 "C-049 测试集构建" 重号。
+为避免歧义，**我方测试集构建任务改记为 C-051**，文件名保持
+（`c049_build_testsets.py` / `c049_minimax_ref.py` / `reports/C049_TESTSETS.md`），
+报告中注明为 C-051。
+
+---
+
+## C-049 收尾执行记录（2026-10-15 10:47 重读 CORRECTIONS.md 后更新）
+
+### 已完成：第 5 项之文档（README + PROJECT_REPORT）
+
+**`reports/PROJECT_REPORT.md` 全篇重写**（原为 2026-10-12 版，记录 23% WER 与已作废的
+窗口 encoder）。新结构：目标形态（不依赖 torch）→ 最终成果 → 三个根因 → 架构 →
+CUDA 长音频上限 → 已证伪路径 → 已知限制 → 文件索引 → 复现。要点：
+
+- **精度表改为对比 MiniMax 云端 asr-1.0**（11066 词），CUDA 降为"同算法 dGPU 参照"，
+  明确标注**不是验收基线**。同一份 WER 脚本（`c045_wer.py`）重算了全部历史 transcript：
+
+  | 阶段 | WER | S | D | I |
+  |---|--:|--:|--:|--:|
+  | 窗口 IR（v2 padded mask） | 23.51% | 1815 | 163 | 624 |
+  | + 窗口计数 bug 修复（noreset） | 17.87% | 789 | 49 | 1140 |
+  | + 全局注意力 segment encoder、自适应未启用 | 17.87% | 901 | 52 | 1025 |
+  | **+ 自适应生成预算（交付）** | **7.88%** | 455 | 54 | 363 |
+  | 参照：OV 段级离线 INT8（两遍式第二遍） | 7.84% | 433 | 73 | 362 |
+  | 参照：Hybrid 离线 | 8.65% | 436 | 73 | 448 |
+  | 参照：CUDA 流式 Q8_0 | 7.62% | 473 | 75 | 295 |
+
+  ⚠️ **口径差异需 reviewer 知悉**：本机口径下 ② 的修复贡献了 23.51%→17.87%，
+  而 ①（全局 encoder）**没有带来 WER 下降**（17.87% → 17.87%，仅误差构成变化）。
+  reviewer 在 C-040 的口径下看到的是 S 351→335、WER 18.32%→18.21%。
+  两者差异来自归一化（是否保留数字），报告里两种口径都写了，未单方面择一。
+  ① 的验收证据是**数值层面**的：0.64–23.9 s 全部长度 cos mean 1.000000 / min ≥ 0.999996。
+
+- **三个根因按顺序写明**：① optimum 导出的 encoder 丢失全局注意力（参考实现的
+  `_prepare_attention_mask` 定义但从未被调用）② 窗口计数 bug（`mel_len // 800`）
+  ③ `max_new_tokens` 固定 32 错译官方自适应预算。含两个耦合约束（k=5 必须保留、
+  不要改 160 ms chunk）。
+
+- **CUDA 不分段 OOM 验证结论保留**（§5）：3/4 min 通过，5/10 min 报
+  `audio encoder token count exceeds max_source_positions`；阈值 240–300 s
+  vs OV 旧 IR 120 s。**CUDA 与 OV 都需要调用方自己 VAD 切句**——直接回答用户最初的反馈。
+
+- **C-043/C-044 量化路线标注为已证伪**（§6）：表格列出 C-043（lm_head 量化误差，
+  logits 证据属实但修复后 WER 不动）、C-044（5 个候选的 teacher-forcing 确定性指标）、
+  C-045 两遍式（不再必要）、C-046 共识提交（降为备选）、窗口 IR + 缓存（作废）。
+  **7.88% 就是在 plain INT8（`ov-int8-past`）上达成的**，混合精度产物仅存档。
+
+**`README.md` 同步**：新增「三个根因与修复顺序」表 + 两个耦合约束；
+新增「CUDA 不分段也有同样的上限」小节；`--decoder-dir` 与 models 注释标注
+量化变体已证伪；项目结构补 `c045_wer.py`、`c048_61min.py` 的新用途；指向新 PROJECT_REPORT。
+
+### 已完成：第 4 项 finish 预算受控实验 —— **结论：无改善，保持现状**
+
+61-min 全长、只改这一个量（其余与交付配置完全相同，`enable_hallucination_reset=False`）：
+
+| 段尾 flush 预算 | WER | S | **D** | I | RTF | P95 | words | n4 |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|
+| `max(64, 32)` = 64（**现状**） | **7.88%** | 455 | **54** | 363 | 0.639 | 0.675 | 11266 | 262 |
+| `first_max_new_tokens` = 8（官方口径） | 8.41% | 459 | **153** | 319 | 0.620 | 0.657 | 11066 | 217 |
+
+- **插入确实略降**（363 → 319，−44），符合"段尾少写就越少写错"的预期；
+- **但删除涨了近 3 倍**（54 → 153，+99），整体 WER **反而变差 0.53pp**。
+- **机理解释**：640 ms chunk 下官方 `first_max_new_tokens=8` 只能补约 1 句。
+  CUDA/vLLM 侧在段尾前通常已经收敛、只剩尾部几个 token；而 **OV（`ov-int8-past`
+  greedy）的流式过程未必在最后一个 chunk 收敛**，段尾还压着未吐出的内容，
+  预算 8 会把它们直接截断。这正是 D 从 54 涨到 153 的原因。
+- **决策**：`finish_budget` 默认保持 `'max64'`。'first' 作为实验开关保留在代码中
+  （`SegmentedStreamer(finish_budget='first')`），不设为默认。
+- 产物：`reports/c048_61min_adaptive/transcript_finish_first.txt`、
+  `summary.json`、日志 `status/logs/c049_finish_first.log`。
+
+⚠️ **给 reviewer 的提示**：本条结果说明 8.17% 与 CUDA 7.69% 之间的残差
+**不是** finish 预算造成的。结合第 3 条（baseline 在 Q&A 段漏转约 269 词），
+残差的来源更可能是 baseline 自身的缺口，而非我们与官方的又一处语义偏差。
 
 ## 给 reviewer 的三个问题（详见 REVIEWER_BRIEF）
 1. **报告按 7.88% 定稿，还是先补 CUDA 全长对照等验证？**
