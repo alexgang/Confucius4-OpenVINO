@@ -313,8 +313,20 @@ def streaming_transcribe(backend: ASRBackend,
         lang, txt = parse_asr_output(state._raw_decoded, user_language=state.force_language)
 
         # C-047: 用本轮全文长度更新下一次预算（负反馈）
+        _is_zh = _is_last_token_chinese(txt)
         if adaptive_budget:
-            _adaptive_budget_update(state, len(txt), _is_last_token_chinese(txt))
+            _budget_next = _adaptive_budget_update(state, len(txt), _is_zh)
+        else:
+            _budget_next = _budget
+
+        # C-050：中英混合场景诊断。state.diag_log 由 SegmentedStreamer
+        # 在 enable_diag=True 时挂上，记录了每 chunk 的语言标签与生成预算，
+        # 用于统计语言翻转次数和中文分支触发率。
+        _dlg = getattr(state, 'diag_log', None)
+        if _dlg is not None:
+            _dlg.append({'chunk': state.chunk_id, 'lang': lang,
+                         'budget': _budget, 'budget_next': _budget_next,
+                         'is_chinese': bool(_is_zh), 'txt_len': len(txt)})
 
         has_tag = _ASR_TEXT_TAG in state._raw_decoded
         if has_tag:

@@ -48,10 +48,21 @@ OUT_ROOT = os.path.join(TESTDATA, 'sets')
 
 
 # ── 语料加载 ────────────────────────────────────────────────────────────
-def load_aishell(splits=('test',), limit_sec=None):
-    """AISHELL-1: wav/S<spk>.tar.gz 内含 <spk>.wav, 转写在 transcript txt。
+# AISHELL-1 官方 test 集说话人（20 人 / 7176 条，与官方 test 集规模一致）。
+# OpenSLR 的 data_aishell.tgz 不含 train/dev/test 划分，这是社区通用的划分方式，
+# 由 speaker id 顺序确定；已在 C-051 中核对 utterance 条数 = 7176。
+AISHELL_TEST_SPK = [
+    'S0764', 'S0765', 'S0766', 'S0767', 'S0768', 'S0769', 'S0770',
+    'S0901', 'S0902', 'S0903', 'S0904', 'S0905', 'S0906', 'S0907', 'S0908',
+    'S0912', 'S0913', 'S0914', 'S0915', 'S0916',
+]
 
-    转写文件格式: BAC009S0002W0112 中午 天气 ...
+
+def load_aishell(splits=('test',), limit_sec=None):
+    """AISHELL-1: wav/S<spk>.tar.gz 解压为 wav/S<spk>/test/.../*.wav。
+
+    转写文件格式: BAC009S0002W0112 中午 天气 ... （人工标注，已按词/字空格分隔）
+    utterance id 形如 BAC009S0764W0123 -> 说话人 = id[6:11]
     """
     tdir = os.path.join(TESTDATA, 'data_aishell', 'transcript')
     tpath = None
@@ -61,13 +72,18 @@ def load_aishell(splits=('test',), limit_sec=None):
     if not tpath:
         raise SystemExit('AISHELL transcript 未找到, 先解压 data_aishell/')
 
-    # spk_id -> split
-    split_of = {}
-    for sp in ['train', 'dev', 'test']:
-        d = os.path.join(TESTDATA, 'data_aishell', 'wav', sp)
-        if os.path.isdir(d):
-            for p in glob.glob(os.path.join(d, '*.tar.gz')):
-                split_of[os.path.basename(p).split('.')[0]] = sp
+    want = set(AISHELL_TEST_SPK)
+
+    # 已解压的 wav 索引: utt_id -> path（解压后目录层级不固定，用一次性索引）
+    index = {}
+    for spk in sorted(want):
+        base = os.path.join(TESTDATA, 'data_aishell', 'wav', spk)
+        if not os.path.isdir(base):
+            continue
+        for root, _dirs, files in os.walk(base):
+            for fn in files:
+                if fn.endswith('.wav'):
+                    index[fn[:-4]] = os.path.join(root, fn)
 
     items = []
     for line in open(tpath, encoding='utf-8'):
@@ -78,13 +94,10 @@ def load_aishell(splits=('test',), limit_sec=None):
         if len(parts) != 2:
             continue
         utt, text = parts[0], parts[1].strip()
-        spk = utt.split('S')[1][:4]
-        spk_full = 'S' + spk
-        if split_of.get(spk_full) not in splits:
+        if utt[6:11] not in want:
             continue
-        wdir = os.path.join(TESTDATA, 'data_aishell', 'wav', split_of[spk_full])
-        wav = os.path.join(wdir, f'{spk_full}.wav', utt + '.wav')
-        if os.path.exists(wav):
+        wav = index.get(utt)
+        if wav:
             items.append({'wav': wav, 'text': text, 'id': utt, 'lang': 'zh'})
     return items
 
@@ -192,13 +205,38 @@ def build(items, out_dir, target_min, inter_seg_sec=0.35, max_items=None):
 
 
 # ── 混合集: 中英按段交替 ─────────────────────────────────────────────────
-def interleave(zh, en, target_min):
-    """中英交替。取较长的一方的数量, 逐个配对。"""
-    n = min(len(zh), len(en))
+def make_blocks(items, block_sec=25.0):
+    """把同语言的 utterance 连续打包成 ~block_sec 一个的语言块。
+
+    真实中英混合演讲是「连续说一段中文，再连续说一段英文」，
+    而不是每句话都切换。逐句交替会产生每 3 秒一次的极端语码切换，
+    既不符合真实场景，也会让每个 VAD 段都横跨两种语言。
+    """
+    blocks, cur, cur_dur = [], [], 0.0
+    for it in items:
+        cur.append(it)
+        try:
+            dur = sf.info(it['wav']).duration
+        except Exception:
+            dur = 0.0
+        cur_dur += dur
+        if cur_dur >= block_sec:
+            blocks.append(cur)
+            cur, cur_dur = [], 0.0
+    if cur:
+        blocks.append(cur)
+    return blocks
+
+
+def interleave(zh, en, block_sec=25.0):
+    """中英语言块交替（zh 块、en 块轮流），块内连续同种语言。"""
+    zb, eb = make_blocks(zh, block_sec), make_blocks(en, block_sec)
     out = []
-    for i in range(n):
-        out.append(zh[i])
-        out.append(en[i % len(en)])
+    for i in range(max(len(zb), len(eb))):
+        if i < len(zb):
+            out.extend(zb[i])
+        if i < len(eb):
+            out.extend(eb[i])
     return out
 
 
@@ -207,9 +245,11 @@ def main():
     ap.add_argument('--lang', choices=['zh', 'en', 'mix'], default='mix')
     ap.add_argument('--target-min', type=float, default=60.0)
     ap.add_argument('--out', default=None)
+    ap.add_argument('--block-sec', type=float, default=25.0,
+                    help='mix 集中每种语言连续说话的块长度(秒)')
     args = ap.parse_args()
 
-    print(f'=== C-049 构建测试集: lang={args.lang} target={args.target_min}min ===')
+    print(f'=== C-051 构建测试集: lang={args.lang} target={args.target_min}min ===')
 
     if args.lang in ('zh', 'mix'):
         zh = load_aishell()
@@ -223,13 +263,8 @@ def main():
     elif args.lang == 'en':
         items, name = en, 'en_60min'
     else:
-        # 混合: 中英各占一半时长 → 各取一半段数后交替
-        half = int(args.target_min * 30)
-        items, name = interleave(zh, en, half), 'mix_60min'
-
-    # 混合集时长会翻倍(中英各半), 按需截断到 target
-    if args.lang == 'mix':
-        items = items[:]
+        # 混合: 中英语言块交替, 块内连续同种语言
+        items, name = interleave(zh, en, args.block_sec), 'mix_60min'
 
     out_dir = args.out or os.path.join(OUT_ROOT, name)
     print(f'→ {out_dir}')
