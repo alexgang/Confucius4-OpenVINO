@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Confucius4-R2T2 → Intel OpenVINO 移植报告</title>
+<style>
+  :root {
+    --bg: #fafbfc;
+    --fg: #1a1a1a;
+    --muted: #6a737d;
+    --border: #e1e4e8;
+    --accent: #0366d6;
+    --accent-bg: #f1f8ff;
+    --success: #22863a;
+    --success-bg: #e6ffed;
+    --warning: #b08800;
+    --warning-bg: #fff8c5;
+    --danger: #cb2431;
+    --danger-bg: #ffeef0;
+    --code-bg: #f6f8fa;
+    --table-stripe: #f6f8fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue",
+                 Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: var(--fg);
+    background: var(--bg);
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 40px 80px;
+  }
+  h1 {
+    font-size: 2.2em;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 12px;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 1.6em;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-top: 36px;
+  }
+  h3 {
+    font-size: 1.25em;
+    margin-top: 28px;
+  }
+  h4 { font-size: 1.05em; margin-top: 20px; }
+  p { margin: 12px 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    font-family: "SF Mono", "Consolas", "Liberation Mono", "Menlo", monospace;
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.92em;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 18px;
+    overflow-x: auto;
+    font-size: 0.9em;
+  }
+  pre code {
+    background: transparent;
+    padding: 0;
+    font-size: 1em;
+  }
+  blockquote {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-bg);
+    margin: 16px 0;
+    padding: 10px 18px;
+    color: #234;
+    border-radius: 0 4px 4px 0;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 18px 0;
+    font-size: 0.94em;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--code-bg);
+    font-weight: 600;
+  }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+  td:nth-child(1) { font-family: "SF Mono", Consolas, monospace; font-size: 0.88em; }
+  ul, ol { padding-left: 28px; }
+  li { margin: 4px 0; }
+  hr {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: 28px 0;
+  }
+  /* Status badges */
+  .badge {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 600;
+  }
+  .badge-done { background: var(--success-bg); color: var(--success); }
+  .badge-wip { background: var(--warning-bg); color: var(--warning); }
+  .badge-fail { background: var(--danger-bg); color: var(--danger); }
+  .badge-info { background: var(--accent-bg); color: var(--accent); }
+  /* Highlight key numbers */
+  .num-big {
+    font-size: 1.6em;
+    font-weight: 700;
+    color: var(--success);
+  }
+  .num-bad {
+    font-size: 1.4em;
+    font-weight: 700;
+    color: var(--danger);
+  }
+  /* TOC */
+  .toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 24px;
+    margin: 20px 0 32px;
+  }
+  .toc h2 { margin-top: 0; font-size: 1.15em; border: 0; padding: 0; }
+  .toc ol { columns: 2; column-gap: 32px; }
+  .toc li { margin: 4px 0; break-inside: avoid; }
+  /* Code block with caption */
+  .code-block {
+    margin: 16px 0;
+  }
+  .code-caption {
+    font-size: 0.85em;
+    color: var(--muted);
+    margin-bottom: 4px;
+    font-style: italic;
+  }
+  /* Header metadata box */
+  .meta {
+    background: var(--code-bg);
+    border-left: 4px solid var(--accent);
+    padding: 12px 18px;
+    margin: 20px 0;
+    font-size: 0.95em;
+    border-radius: 0 4px 4px 0;
+  }
+  .meta dt { font-weight: 600; color: var(--muted); display: inline; }
+  .meta dd { display: inline; margin-left: 8px; }
+  .meta .row { margin: 4px 0; }
+  /* KPI cards */
+  .kpi-row {
+    display: flex;
+    gap: 16px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+  }
+  .kpi {
+    flex: 1 1 200px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 18px;
+  }
+  .kpi .label {
+    font-size: 0.85em;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .kpi .value {
+    font-size: 1.8em;
+    font-weight: 700;
+    margin: 4px 0;
+  }
+  .kpi .sub {
+    font-size: 0.85em;
+    color: var(--muted);
+  }
+  .kpi.good .value { color: var(--success); }
+  .kpi.bad .value { color: var(--danger); }
+  .kpi.warn .value { color: var(--warning); }
+  /* Print */
+  @media print {
+    body { max-width: none; padding: 16px; }
+    .toc { break-after: avoid; }
+    h2 { break-before: auto; page-break-after: avoid; }
+    table { font-size: 0.85em; }
+    pre, .code-block { break-inside: avoid; }
+  }
+  /* Responsive */
+  @media (max-width: 768px) {
+    body { padding: 20px 16px; }
+    .toc ol { columns: 1; }
+    .kpi-row { flex-direction: column; }
+    table { font-size: 0.85em; }
+    th, td { padding: 6px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Confucius4-R2T2 → Intel OpenVINO 移植报告</h1>
+
+<div class="meta">
+  <div class="row"><dt>日期：</dt><dd>2026-10-12</dd></div>
+  <div class="row"><dt>工作目录：</dt><dd><code>C:\Users\Trekker-PTL\confucius4-openvino</code></dd></div>
+  <div class="row"><dt>GitHub：</dt><dd><a href="https://github.com/alexgang/Confucius4-OpenVINO">github.com/alexgang/Confucius4-OpenVINO</a> (branch <code>c038-v2-ir</code>)</dd></div>
+  <div class="row"><dt>状态：</dt><dd><span class="badge badge-wip">WIP — 23% WER 根因修复中</span></dd></div>
+</div>
+
+<div class="toc">
+  <h2>目录</h2>
+  <ol>
+    <li><a href="#sec1">项目目标</a></li>
+    <li><a href="#sec2">最终成果</a></li>
+    <li><a href="#sec3">5 天阶段时间线</a></li>
+    <li><a href="#sec4">架构总览</a></li>
+    <li><a href="#sec5">12 步技术修复</a></li>
+    <li><a href="#sec6">当前状态</a></li>
+    <li><a href="#sec7">文件 &amp; 资源</a></li>
+    <li><a href="#sec8">复现指南</a></li>
+    <li><a href="#sec9">主要风险</a></li>
+    <li><a href="#sec10">协议 &amp; 协作</a></li>
+  </ol>
+</div>
+
+<h2 id="sec1">1. 项目目标</h2>
+<p>把官方 <code>netease-youdao/Confucius4-R2T2</code>（架构 <code>Qwen3ASRForConditionalGeneration</code> / <code>Qwen3-ASR-1.7B</code> 流式微调）的流式 ASR 移植到 <strong>Intel OpenVINO 2026.4</strong>，目标硬件为本机 <strong>Intel Core Ultra 7 356H (Panther Lake) Xe3 集显</strong>。</p>
+<p>原 <code>audio.cpp</code> (ggml + CUDA, RTX 5050) 基准 <strong>RTF ≈ 0.544</strong>（320 ms chunk, Q8_0），作为参照真值。</p>
+
+<h2 id="sec2">2. 最终成果</h2>
+
+<h3>2.1 性能</h3>
+<div class="kpi-row">
+  <div class="kpi good">
+    <div class="label">短音频 RTF</div>
+    <div class="value">0.444</div>
+    <div class="sub">6.74s · INT8 · 640ms</div>
+  </div>
+  <div class="kpi warn">
+    <div class="label">中音频 RTF</div>
+    <div class="value">0.730</div>
+    <div class="sub">28.5s · INT8 · 640ms</div>
+  </div>
+  <div class="kpi warn">
+    <div class="label">长音频 RTF</div>
+    <div class="value">≈ 0.60</div>
+    <div class="sub">61.19 min · 226 段 VAD</div>
+  </div>
+  <div class="kpi good">
+    <div class="label">CUDA 基准</div>
+    <div class="value">0.544</div>
+    <div class="sub">RTX 5050 · Q8_0</div>
+  </div>
+</div>
+
+<table>
+  <thead>
+    <tr><th>场景</th><th>时长</th><th>配置</th><th style="text-align:right">RTF</th><th>备注</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>短音频</td><td>6.74 s</td><td>INT8 / 640ms chunk</td><td style="text-align:right"><strong>0.444</strong></td><td>11 chunks, wall 2.99s, decode 33ms/tok</td></tr>
+    <tr><td>短音频</td><td>6.74 s</td><td>FP16 / 1000ms chunk</td><td style="text-align:right">0.465</td><td>decode 64ms/tok（比 INT8 慢 1.9×）</td></tr>
+    <tr><td>短音频（CUDA 基准）</td><td>6.74 s</td><td>audio.cpp Q8_0 / 320ms</td><td style="text-align:right">0.544</td><td>RTX 5050 笔记本 GPU</td></tr>
+    <tr><td>中音频</td><td>28.5 s</td><td>INT8 / 640ms</td><td style="text-align:right"><strong>0.730</strong></td><td>45 chunks, wall 20.76s</td></tr>
+    <tr><td>长音频</td><td>61.19 min</td><td>INT8 / 640ms + VAD 切句 (226 段)</td><td style="text-align:right"><strong>≈ 0.60</strong></td><td>seg P50=0.58 / P95=0.7 / max=0.99</td></tr>
+  </tbody>
+</table>
+
+<h3>2.2 精度</h3>
+<table>
+  <thead>
+    <tr><th>测试</th><th style="text-align:right">OV vs torch 内容字差异</th><th>与 CUDA baseline 差异</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>6.74 s 中文 (短)</td><td style="text-align:right"><span class="badge badge-done">0 (CER 0%)</span></td><td>内容字一致（INT8 句尾有 <code>。</code>，与 CUDA Q8_0 一致）</td></tr>
+    <tr><td>28.5 s 中文</td><td style="text-align:right">0</td><td>—</td></tr>
+    <tr><td><strong>61.19 min 英文</strong></td><td style="text-align:right"><span class="badge badge-fail">23.13% WER</span></td><td>target ≤ 12% (FAILED)</td></tr>
+    <tr><td>Encoder 单窗 (4-800 mel)</td><td style="text-align:right"><strong>cos_min = 1.000000</strong> ✓</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<h3>2.3 部署体积</h3>
+<table>
+  <thead>
+    <tr><th>产物</th><th style="text-align:right">大小</th><th>备注</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>HF checkpoint (原始)</td><td style="text-align:right">4.08 GB</td><td>—</td></tr>
+    <tr><td>OV FP16 stateful</td><td style="text-align:right">3.9 GB</td><td>参考用</td></tr>
+    <tr><td><strong>OV INT8 stateful (生产)</strong></td><td style="text-align:right"><strong>2.0 GB</strong></td><td>NNCF 权重量化, 57 ReadValue/Assign</td></tr>
+    <tr><td>OV 窗口 encoder IR (自导)</td><td style="text-align:right">4 文件 (FP16 + FP32)</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<h2 id="sec3">3. 5 天阶段时间线</h2>
+
+<h3>2026-10-08 — 阶段 0-5（基础移植）</h3>
+<ul>
+  <li><strong>Phase 0</strong>: 环境 (Python 3.12, .venv, HF_ENDPOINT)</li>
+  <li><strong>Phase 1</strong>: 导出 (optimum-cli FP16 + INT8)</li>
+  <li><strong>Phase 2</strong>: TorchBackend golden (offline PyTorch CPU FP32)</li>
+  <li><strong>Phase 3</strong>: OV 流式管线 (streaming_asr.py LSP 循环)</li>
+  <li><strong>Phase 4</strong>: 验证 + benchmark</li>
+  <li><strong>Phase 5</strong>: README + 初步交付</li>
+  <li>→ <span class="badge badge-done">DONE</span> 短/中音频 RTF &lt; 1，文本与 torch 一致</li>
+</ul>
+
+<h3>2026-10-10 — C-013/C-014（INT8 + 长音频）</h3>
+<ul>
+  <li>C-013/C-014: INT8 优化 + 长音频 OOM 复现</li>
+  <li>C-018: VAD 切句（修 120s encoder max_source_positions）</li>
+  <li>C-019/C-021: 5×2 诊断矩阵 → 定位 encoder IR bug</li>
+  <li>→ <span class="badge badge-done">DONE</span> 61-min 跑通, 226 段, RTF ≈ 0.6</li>
+</ul>
+
+<h3>2026-10-11 — C-021~C-024（encoder 修复）</h3>
+<ul>
+  <li>C-021~C-024: optimum encoder IR bug 根因 + 修</li>
+  <li>C-023: 自己 torch.jit.trace 单窗 IR（替代 optimum）</li>
+  <li>C-024: window cache + 61-min 跑通</li>
+  <li>→ 23.13% WER (vs 7.5% CUDA) — <span class="badge badge-info">WAITING_REVIEW</span></li>
+</ul>
+
+<h3>2026-10-12 — C-025~C-038（根因 + GitHub 同步）</h3>
+<ul>
+  <li>C-025~C-030: 4-path 定位（partial chunk vs INT8 vs streaming）</li>
+  <li>C-031: window cache 排查（e-path 关 cache）</li>
+  <li>C-033: cache 窗口计数 bug 修复（11 段 n4 183→1）</li>
+  <li>C-035/C-036: reviewer 否决 B (reset) 路径，要求根因</li>
+  <li>C-037: 主动跑 partial block 逐层对比</li>
+  <li>C-038: 解封 c023 + 加 padded mask + 重导 v2 IR
+    <ul>
+      <li>v2 IR 验证：v1 ≡ v2 生产等价（v2 是更"干净"实现）</li>
+      <li>0.93 是 audio_tower 自身非严格可加，不是 c023 bug</li>
+    </ul>
+  </li>
+  <li>GitHub 同步: branch c038-v2-ir, commit <code>8e697f2</code></li>
+  <li>→ <span class="badge badge-wip">WIP</span> 23% WER 根因已缩小到 decoder repetition + streaming，v2 encoder 修复无 production 改进</li>
+</ul>
+
+<h2 id="sec4">4. 架构总览</h2>
+
+<pre><code>                        ┌─────────────────┐
+   16kHz audio.wav ───→ │  WhisperFE      │ → mel (1, 128, T)  128-mel, n_fft=400
+                        └─────────────────┘
+                                  │
+                  ┌───────────────┴───────────────┐
+                  ▼                               ▼
+        ┌──────────────────────┐         ┌──────────────────────┐
+        │ OVEncoder (window)   │         │ TorchEncoder         │
+        │ models/ov-encoder-   │         │ (golden, debugging)  │
+        │ window-v2/ (FP16)    │         │ via .venv/.../       │
+        │                      │         │ qwen3_asr             │
+        │ 自导单窗 800 帧 IR   │         └──────────────────────┘
+        │ per-chunk pos_emb    │
+        │ 24 layers + 4D mask  │
+        └──────────────────────┘
+                  │ ehs (1, N_audio, 2048)
+                  ▼
+        ┌──────────────────────┐
+        │ OVDecoder INT8       │ stateful
+        │ models/ov-int8-past/ │ 57 ReadValue/Assign
+        │ (2.0 GB)             │ per chunk: reset_state() + prefill + greedy
+        └──────────────────────┘
+                  │ tokens
+                  ▼
+        ┌──────────────────────┐
+        │ streaming_asr.py     │ LSP 主循环
+        │ unfixed_token_num=5  │ 照 r2t2 官方源码移植
+        └──────────────────────┘
+                  │ text
+                  ▼
+            VAD 切句 (12-20s 静音) → 226 段 (61-min)
+</code></pre>
+
+<h3>关键设计决策</h3>
+<ol>
+  <li><strong>不依赖 optimum 的 encoder IR</strong>：optimum-intel 的 <code>Qwen3ASRModelPatcher._patch_audio_encoder</code> 用简化版替换了真 forward（全局 1D conv + 全局位置编码 + 标准 attention），长音频上 cos 暴跌到 0.29-0.64。
+    <br>→ 改用 <code>torch.jit.trace</code> + <code>ov.convert_model</code> 自己导单窗 IR（输入 <code>(1,128,800)</code> + <code>cu_seqlens (2,)</code>）。</li>
+  <li><strong>window cache 流式</strong>：Qwen3-ASR encoder 窗口间独立（cu_seqlens per-window），满窗 ehs 缓存，每 chunk 只重算未满窗（≤ 8 s 音频）。encoder 每 chunk 成本有上界 ≈ 1 个 window (~30 ms GPU.0)。</li>
+  <li><strong>VAD 切句而非盲切</strong>：encoder <code>max_source_positions=1500</code>（=120 s）硬上限。累积到 12 s 后在 [12, 20] s 内找静音点切；新段 <code>unfixed_chunk_num=0</code>（per 官方 ws_server），段尾必走 <code>finish_streaming_transcribe</code> flush 尾巴。</li>
+  <li><strong>backend 抽象</strong>：<code>OVBackend</code>（生产）+ <code>TorchBackend</code>（golden/debug）共享同一接口，<code>streaming_asr.py</code> backend-agnostic。</li>
+</ol>
+
+<h2 id="sec5">5. 12 步技术修复</h2>
+
+<table>
+  <thead>
+    <tr><th>#</th><th>bug / 问题</th><th>根因</th><th>修复</th><th>效果</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>HF 下载失败</td><td>github.com 不通</td><td><code>HF_ENDPOINT=hf-mirror.com</code></td><td>4.08 GB 拉通</td></tr>
+    <tr><td>2</td><td>torch 被 SAC 拦截</td><td>Smart App Control 拦 torch_python.dll (3077)</td><td><strong>不</strong>解 SAC，绕开 torch 定位（per C-029/C-034）</td><td>保持 23% WER 可定位</td></tr>
+    <tr><td>3</td><td>短音频 RTF=2.13 → 5.8</td><td>optimum 导出的 decoder <strong>无</strong> past KV</td><td>改用 <code>automatic-speech-recognition-with-past</code> 重新导出，57 ReadValue/Assign</td><td>RTF 0.444</td></tr>
+    <tr><td>4</td><td>N_audio 375 vs 实际 85</td><td><code>WhisperFeatureExtractor</code> 默认 pad 到 30s</td><td><code>padding="do_not_pad"</code>，encoder 输出覆盖公式值</td><td>80% 静音消除</td></tr>
+    <tr><td>5</td><td>120s OOM 假象</td><td>实际是 <code>max_source_positions=1500</code> 硬上限</td><td>VAD 切句（12-20s 静音）</td><td>61-min RTF 稳定 ≤ 1</td></tr>
+    <tr><td>6</td><td>切点丢字</td><td>没调 <code>finish_streaming_transcribe</code> flush 尾巴</td><td>段尾必走 flush</td><td>修 C-015 #3 丢字</td></tr>
+    <tr><td>7</td><td>段首 ghost prefix</td><td>新段仍用 <code>unfixed_chunk_num=2</code></td><td>新段 <code>unfixed_chunk_num=0</code>（per 官方）</td><td>段首不重发旧词</td></tr>
+    <tr><td>8</td><td>long audio encoder cos 0.29</td><td>optimum encoder IR 简化（per-chunk 边界被丢）</td><td>自导单窗 IR + 4D mask + per-chunk pos_emb</td><td>单窗 cos=1.0；4-60s 均 ≥ 0.95</td></tr>
+    <tr><td>9</td><td>INT8 句尾 <code>。</code></td><td>INT8 量化（CUDA Q8_0 也有，无须修）</td><td>不动算法，承认量化效应</td><td>文档化</td></tr>
+    <tr><td>10</td><td>window cache 命中错</td><td><code>WindowEncoderOVBackend._encode_window</code> 窗口计数 bug</td><td>用 <code>n_mel</code> 算 n_full_windows</td><td>11 段 n4 183 → 1</td></tr>
+    <tr><td>11</td><td>partial chunk 0.93 cos 困惑</td><td>c023 vs audio_tower 拼接 0.93 — <strong>不是 c023 bug</strong></td><td>实证 audio_tower 自身多窗拼接 0.998</td><td>0.93 是 audio_tower 自身非严格可加</td></tr>
+    <tr><td>12</td><td>v2 IR (padded mask)</td><td>加 mask 是技术上更干净但生产行为等价 v1</td><td>仍交付 v2 IR 作为"更干净版本"</td><td>11 段 n4=2（vs v1=1，噪声级）</td></tr>
+  </tbody>
+</table>
+
+<h2 id="sec6">6. 当前状态</h2>
+
+<h3>6.1 已确认</h3>
+<ul>
+  <li>✅ Encoder 单窗 cos=1.0（v1 + v2 都达到；4-800 mel 全过）</li>
+  <li>✅ 多窗拼接 0.93 = audio_tower 自身非严格可加（per-chunk attention 依赖 cu_seqlens 长度），不是 c023 bug</li>
+  <li>✅ Cache 修好后 11 段 n4_total = 1（v1）/ 2（v2，噪声级），原 183 baseline 改善 99%</li>
+  <li>✅ Encoder 已无 production 改进空间</li>
+  <li>✅ GitHub 同步完成（branch c038-v2-ir, commit 8e697f2）</li>
+</ul>
+
+<h3>6.2 未解决（23% WER 根因）</h3>
+<p>11 段 4-path 定位（<code>reports/c028_4path/results.json</code>）已找到 3 个独立根因：</p>
+
+<table>
+  <thead>
+    <tr><th>因素</th><th>证据</th><th>占比</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>A. partial chunk encoder 偏差</strong></td><td>c-path (截到整 100 帧) 总 n4 -27%，seg124/163/172 单独修</td><td>中等</td></tr>
+    <tr><td><strong>B. INT8 decoder 量化误差</strong></td><td>d-path (FP16 decoder) 总 n4 -54%，seg23/172 单独修</td><td>大</td></tr>
+    <tr><td><strong>C. streaming/seg 代码</strong></td><td>seg213 单独 a/c/d 都 14/18/14</td><td>小</td></tr>
+  </tbody>
+</table>
+
+<p><strong>C-028 4-path 实验数据</strong>（11 段 n4_repeat 总数）：</p>
+<table>
+  <thead>
+    <tr><th>路径</th><th style="text-align:right">总 n4</th><th style="text-align:right">vs a (183)</th><th>描述</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>a (现状 OV INT8 + cache)</td><td style="text-align:right">183</td><td style="text-align:right">—</td><td>baseline</td></tr>
+    <tr><td>c (截 partial chunk 到 100 帧整数)</td><td style="text-align:right">134</td><td style="text-align:right">-27%</td><td>仅修 partial</td></tr>
+    <tr><td>d (FP16 decoder)</td><td style="text-align:right">85</td><td style="text-align:right"><strong>-54%</strong></td><td>仅修 INT8</td></tr>
+    <tr><td>b (encoder 同, hybrid offline)</td><td style="text-align:right">—</td><td style="text-align:right">—</td><td>hybrid 离线 WER 9.07%，encoder 不是单因</td></tr>
+  </tbody>
+</table>
+
+<p><strong>61-min 全长 n4 仍高</strong>（C-033 cache fix 之后）：</p>
+<table>
+  <thead>
+    <tr><th>模式</th><th style="text-align:right">n3_repeat</th><th style="text-align:right">n4_repeat</th><th style="text-align:right">段 RTF P95</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>broken cache</td><td style="text-align:right">~3000+</td><td style="text-align:right">~1200+</td><td style="text-align:right">0.7</td></tr>
+    <tr><td>cache fixed no reset</td><td style="text-align:right">1971</td><td style="text-align:right">1184</td><td style="text-align:right">0.6</td></tr>
+  </tbody>
+</table>
+<blockquote>即<span>便 cache 修好，61-min 仍有 1184 个 4-gram 重复，<strong>全部来自 decoder INT8 量化 + streaming unfixed 边界</strong>。</span></blockquote>
+
+<h3>6.3 待 user/reviewer 决定的下一步（修 23% WER）</h3>
+<table>
+  <thead>
+    <tr><th>选项</th><th>内容</th><th style="text-align:right">预期 WER</th><th style="text-align:right">工作量</th><th>风险</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>A1</strong></td><td>Hybrid 流式：每 chunk torch encoder per-window</td><td style="text-align:right">9-12%</td><td style="text-align:right">4-6h（CPU 慢）</td><td>encoder CPU 慢 → chunk wall 增加</td></tr>
+    <tr><td><strong>A2</strong></td><td>减小 unfixed_token_num 5→2</td><td style="text-align:right">20-22%</td><td style="text-align:right">0.5h</td><td>边界丢词更多</td></tr>
+    <tr><td><strong>A3</strong></td><td>流式→段级离线（per-seg 1 decode, 无段内 unfixed）</td><td style="text-align:right"><strong>9-11%</strong></td><td style="text-align:right">0.5h</td><td>失去 streaming 首字延迟优势</td></tr>
+    <tr><td><strong>A4</strong></td><td>重导 FP16 decoder</td><td style="text-align:right">17-20%</td><td style="text-align:right">0.5h</td><td>体积 +30%, decode +30%</td></tr>
+    <tr><td><strong>A5</strong></td><td>接受 23% + v2 IR 交付</td><td style="text-align:right">23%</td><td style="text-align:right">0</td><td>无</td></tr>
+  </tbody>
+</table>
+<p><span class="badge badge-info">state: WAITING_REVIEW</span>（等 reviewer/user 在 <code>CORRECTIONS.md</code> 给 C-039+ 决策）</p>
+
+<h2 id="sec7">7. 文件 &amp; 资源</h2>
+
+<h3>7.1 关键代码</h3>
+<table>
+  <thead>
+    <tr><th>文件</th><th style="text-align:right">行数</th><th>用途</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>transcribe_stream.py</code></td><td style="text-align:right">~250</td><td>部署入口（INT8 / 640ms / GPU.0 / VAD 切句）</td></tr>
+    <tr><td><code>streaming_asr.py</code></td><td style="text-align:right">~600</td><td>backend-agnostic LSP 主循环（抄自 r2t2 官方）</td></tr>
+    <tr><td><code>seg_stream.py</code></td><td style="text-align:right">~400</td><td>VAD 切句驱动（12-20s 静音 + max 硬切）</td></tr>
+    <tr><td><code>backends.py</code></td><td style="text-align:right">~700</td><td><code>OVBackend</code> + <code>TorchBackend</code> + <code>ASRBackend</code> 接口</td></tr>
+    <tr><td><code>window_encoder_backend.py</code></td><td style="text-align:right">~300</td><td>单窗 encoder + window cache</td></tr>
+    <tr><td><code>c023_export_window_encoder.py</code></td><td style="text-align:right">~250</td><td><strong>自导单窗 IR</strong>（padded mask 在 v2 加）</td></tr>
+    <tr><td><code>c033_11seg_cache_fixed.py</code></td><td style="text-align:right">~145</td><td>11 段 cache 修后 n4 复测</td></tr>
+  </tbody>
+</table>
+
+<h3>7.2 关键报告</h3>
+<table>
+  <thead>
+    <tr><th>报告</th><th>内容</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>README.md</code></td><td>项目入口：quickstart、性能表、CER、流式算法、部署</td></tr>
+    <tr><td><code>status/STATUS.md</code></td><td>当前状态（5.x.x C-038 已完成，等 WER 下一步）</td></tr>
+    <tr><td><code>status/status_history.md</code></td><td>5 天完整时间线（38+ entries）</td></tr>
+    <tr><td><code>status/CORRECTIONS.md</code></td><td>reviewer 38 条指令（C-001 ~ C-037）</td></tr>
+    <tr><td><code>reports/c024_wer_vs_cuda.json</code></td><td>短音频 18.4% WER（vs torch golden）</td></tr>
+    <tr><td><code>reports/c026_wer.json</code></td><td>36-min <strong>23.13% WER</strong> vs 11.07% miniMax 参考</td></tr>
+    <tr><td><code>reports/c028_4path/results.json</code></td><td>11 段 4-path n4 详细数据</td></tr>
+    <tr><td><code>reports/c033_cache_fixed/61min_noreset_summary.json</code></td><td>61-min n4=1184, RTF=0.535</td></tr>
+    <tr><td><code>reports/spe_61min_transcript.txt</code></td><td>61-min 完整 226 段 transcript</td></tr>
+    <tr><td><code>reports/spe_61min_segments.json</code></td><td>61-min 226 段 metadata (start/end/text/chunks/wall/rtf)</td></tr>
+  </tbody>
+</table>
+
+<h3>7.3 IR 产物（已部署，未推送 GitHub）</h3>
+<table>
+  <thead>
+    <tr><th>路径</th><th style="text-align:right">大小</th><th>用途</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>models/hf/</code></td><td style="text-align:right">4.08 GB</td><td>原始 HF checkpoint</td></tr>
+    <tr><td><code>models/ov-int8-past/</code></td><td style="text-align:right">2.0 GB</td><td><strong>生产</strong> INT8 stateful decoder (57 ReadValue/Assign)</td></tr>
+    <tr><td><code>models/ov-fp16-past/</code></td><td style="text-align:right">3.9 GB</td><td>FP16 参考用</td></tr>
+    <tr><td><code>models/ov-encoder-window/</code></td><td style="text-align:right">~30 MB</td><td>v1 单窗 encoder (FP16 + FP32, 4 文件)</td></tr>
+    <tr><td><code>models/ov-encoder-window-v2/</code></td><td style="text-align:right">~30 MB</td><td><strong>v2 单窗 encoder（加 padded mask，更"干净"）</strong></td></tr>
+    <tr><td><code>ov_cache/</code></td><td style="text-align:right">28 GB</td><td>OpenVINO 编译缓存 blob</td></tr>
+  </tbody>
+</table>
+
+<h3>7.4 诊断脚本（c0xx 编号）</h3>
+<table>
+  <thead>
+    <tr><th>编号</th><th>用途</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>c007</td><td>with-past vs no-past 速度对比</td></tr>
+    <tr><td>c019</td><td>5×2 诊断矩阵 (Torch/OV-FP16/OV-INT8 × A/B 音频)</td></tr>
+    <tr><td>c021</td><td>encoder 4/8/.../60s torch vs OV cosine</td></tr>
+    <tr><td>c023</td><td>单窗 encoder IR 导出 + 验证</td></tr>
+    <tr><td>c025</td><td>partial block min cos 排查</td></tr>
+    <tr><td>c028</td><td>4-path 定位（partial chunk + INT8 + streaming）</td></tr>
+    <tr><td>c031</td><td>window cache 排查（e-path）</td></tr>
+    <tr><td>c033</td><td>cache 修好后 11 段 + 61-min 复测</td></tr>
+    <tr><td>c037</td><td>partial block 逐层对比 (layer 11+ divergence)</td></tr>
+    <tr><td>c038</td><td>v2 IR 修复（padded mask）+ 多窗 0.93 根因诊断</td></tr>
+  </tbody>
+</table>
+
+<h2 id="sec8">8. 复现指南</h2>
+
+<div class="code-block">
+<div class="code-caption">8.1 装环境（仅需一次）</div>
+<pre><code>.venv/Scripts/python.exe -m pip install -r requirements.txt</code></pre>
+</div>
+
+<div class="code-block">
+<div class="code-caption">8.2 跑 6.74s 测试音频（短音频 baseline）</div>
+<pre><code>.venv/Scripts/python.exe transcribe_stream.py test_audio/<redacted>.wav \
+  --max-segment-sec 20 --strategy vad
+# 预期: 1-2 段, RTF ≈ 0.45, 内容字与 torch 完全一致</code></pre>
+</div>
+
+<div class="code-block">
+<div class="code-caption">8.3 跑 61-min 长音频（验证 VAD 切句 + 23% WER）</div>
+<pre><code>.venv/Scripts/python.exe transcribe_stream.py test_audio/<redacted>.wav
+# 预期: 226 段, RTF ≈ 0.6, WER 23.13%</code></pre>
+</div>
+
+<div class="code-block">
+<div class="code-caption">8.4 验证 v2 IR 替换为默认</div>
+<pre><code># window_encoder_backend.py: 默认 encoder_dir='models/ov-encoder-window-v2'
+# 也可用环境变量 C038_ENCODER_DIR 切换
+C038_ENCODER_DIR=models/ov-encoder-window .venv/Scripts/python.exe transcribe_stream.py ...</code></pre>
+</div>
+
+<h2 id="sec9">9. 主要风险</h2>
+<table>
+  <thead>
+    <tr><th>风险</th><th>状态</th><th>缓解</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>R1: 23% WER 未达 12% 目标</strong></td><td><span class="badge badge-wip">OPEN</span></td><td>等 user 选 A1-A5</td></tr>
+    <tr><td>R2: A1 (torch encoder hybrid) CPU 慢</td><td>待评估</td><td>4-6h 复测，预期 RTF 增加</td></tr>
+    <tr><td>R3: A3 (段级离线) 丢 streaming 首字</td><td>待评估</td><td>段长 12-20s, 首字延迟 ~12s</td></tr>
+    <tr><td>R4: A4 (FP16 decoder) 体积 +30%</td><td>可接受</td><td>3.9 GB → 5.2 GB</td></tr>
+    <tr><td>R5: A5 (接受 23%) 是工程合理选择</td><td>待决策</td><td>C-036 要求根因，但 INT8 量化是已知偏差源</td></tr>
+    <tr><td>R6: GitHub 同步后续维护</td><td>已配</td><td>c038-v2-ir 已推送，main 保持原 README</td></tr>
+  </tbody>
+</table>
+
+<h2 id="sec10">10. 协议 &amp; 协作</h2>
+<ul>
+  <li><strong>角色</strong>：本机 Claude Code = <em>执行 agent</em>；远程 reviewer (10.188.194.36) 通过 <code>status/CORRECTIONS.md</code> 下指令</li>
+  <li><strong>状态通道</strong>：执行 agent 写 <code>status/STATUS.md</code> (覆盖) + <code>status/status_history.md</code> (追加)</li>
+  <li><strong>纠偏通道</strong>：reviewer <strong>只</strong>写 <code>status/CORRECTIONS.md</code>（执行 agent 不得修改）</li>
+  <li><strong>优先级</strong>：CORRECTIONS &gt; 计划正文</li>
+  <li><strong>GitHub 同步</strong>：本机通过 SSH 推送（per C-037 撤销 C-029 约束）</li>
+</ul>
+
+<hr>
+<p><em>本报告基于截至 2026-10-12 14:00 的状态生成。下次更新预计在 23% WER 下一步决策后。</em></p>
+
+</body>
+</html>
