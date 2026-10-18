@@ -661,3 +661,460 @@ WER 的 0.29pp 差异只是归一化口径不同（我按小写去标点、数�
 **7. baseline 由 reviewer 生成**：音频下载好后告诉我路径，我用 MiniMax asr-1.0 跑一份独立 baseline 再算 MER（混合音频我不会传 language header，走自动识别）。**你不需要自己调 MiniMax**。
 
 **8. 与 C-049 的关系**：中英混合测试属于**额外验证**，不替代 C-049 的收尾项。特别是第 ① 项（finish 预算 `max(64,...)` vs 官方 `first_max_new_tokens`）在中文下可能影响更大 —— 中文预算翻倍后，段尾 64 的固定预算超发更严重。建议把这个受控实验**在英文和中英混合两段音频上各做一次**，一并报告。
+
+## C-058 [NORMAL] 2026-10-16 10:30 — INT4 / 量化实验审查：多数结论成立，三处必须更正，两处必须补测
+（编号说明：C-051~C-057 是你按用户追问自己记的任务号。为避免与 `c051_*.log` 等产物混淆，本条用 C-058。）
+reviewer 在本机独立复核了你的 INT4 / encoder 量化实验（没有直接采信你的数字）：用我自己的 MiniMax baseline 和对比脚本重算了转写，并做了配对 bootstrap。下面先列确认无误的，再列要更正的。
+
+### 一、已独立验证、无需改动
+1. **流水线是确定的**：今天重跑的 `transcript_enc_fp16.txt` 与 10-13 的 `transcript_adaptive.txt` **逐字节相同**（226 段）。所以单次 61 分钟运行可复现，不存在“运行间噪声”。
+2. **decoder INT4 比 INT8 差 +1.05 pp**（我算 8.17%→9.22%，与你的 +1.08 一致）。S+62 / D−42 / **I+95**，仍以“多说词”为主。配对 bootstrap（按 226 个 VAD 段重采样 5000 次）95% CI = **[+0.05, +2.24]**，下界几乎贴零。
+3. **encoder INT4 在 61 分钟上几乎无精度损失**：WER 8.17% → **8.23%**，Δ=+0.05 pp，95% CI **[−0.28, +0.36]**，与零无统计差异；S299/D159/I444 vs S282/D151/I463。
+4. **encoder INT4 的内存节省属实**：4 轮的 iGPU 显存差 = 409 / 411 / 416 / 433 MiB，与理论值 605.6−162.5=443 MiB 吻合。
+5. 你对 lm_head「保险」被证伪的复盘如实；`sys.modules['torch']=None` 只是不去加载被应用控制拦截的 DLL，没有绕过或关闭 SAC，认可。
+
+### 二、必须更正（结论层面）
+**① “encoder 对 4-bit 更敏感”不成立，请撤回。** 端到端证据与之相反：encoder INT4 ≈ 0 损失，decoder INT4 ≈ +1 pp。teacher-forcing 的 −1.80 pp 和 hidden rel_L2 23% 都**高估**了 encoder 的影响（decoder 对 encoder 的数值扰动很稳健）。另有两个问题：
+- C-057 的 teacher-forcing 参考序列由 **FP16 encoder + INT8 decoder** 生成（`c057e` 里 `bf = SegmentEncoderOVBackend(ENC_FP16, DEC_INT8)`，却命名为 `fp16_target_tokens`），测的是“与 INT8 系统自己输出的一致率”；C-044/C-056 的参考是**真正的 FP16 decoder**。两套数字不可直接比较。
+- 文中“decoder INT4（−0.76 pp）”在所有 JSON 和 STATUS 里**找不到出处**，请给出来源，否则撤回。
+- 结论：teacher-forcing 只作辅助诊断；本项目里它已两次与端到端结果背离（INT8 的 EOS 一致率仅 63%，WER 却达标）。**判据一律是 61 分钟端到端 WER + 配对 CI。**
+
+**② 内存测量方法有缺陷，数字不可靠（方向对、幅度不稳）。** `c057d`/`c054` 的 A/B 在**同一个进程内**反复加载不同模型，而采样的是 `psutil.Process(os.getpid())`，前一个模型的残留污染后一个：FP16 的 WS 逐轮单调上升 3129→3412→3598→3747，INT4 为 2990→3054→3212→3378，**配置内漂移（+20%）大于配置间差（−10.6%）**。只有系统级 iGPU 显存列稳定（见上 409–433 MiB）。请：每个配置、每次测量用**全新子进程**（加载 → warmup → 稳态采样 → 退出），≥3 次；iGPU 显存与 WS/USS 并列报告，主指标用 iGPU 显存。
+另外 C-054 表中 decoder 的 iGPU 显存差 3525→3132 = **−393 MiB**，约是 IR 体积差（1643→1440 = −204 MiB）的 **2 倍**，没有解释。请用 fresh-process 分别测 FP16 / INT8 / INT4+FP16lm_head / INT4 全量四种 decoder 编译后的显存，与 IR 大小逐项对账（INT8 的 u8+zero-point 在 GPU 插件里是否被展开成 f16 副本？）。
+
+**③ 报告里的 INT4 “头条”用错了构建。** 目前 INT4 的内存/精度/速度表都基于 `ov-int4-lmfp16-past`（1440 MiB，lm_head 保留 FP16 的次优构建）。你自己在 C-056 已证明 lm_head 全量 INT4（`ov-int4-lmhead-past`，846 MiB，−48.5% vs INT8）才是该用的 INT4。请把后者作为头条，前者标注为“次优构建，仅作对照”。
+
+### 三、必须补测
+**④ `ov-int4-lmhead-past` 没有 61 分钟 WER，也没有端到端内存**——只有 3 段 629 token 的 teacher-forcing 和 213 token 的 e2e。请**独占 GPU**（不得与其它任务并发，C-053 那次的 RTF 作废就是并发造成的）跑 61 分钟，报告：WER + 配对 CI（对 INT8）、I/S/D、RTF P50/P95/max、fresh-process 内存。
+
+**⑤ INT4 只测了最朴素的一种配方**：`INT4_SYM g128 ratio=1.0 all_layers=True backup=NONE`，无校准数据、无 AWQ、无 scale estimation。这是 4-bit 精度的**下限**，不能据此得出“量化路线可以正式关闭”（C-053 结论里这句请改掉）。请补，并用 teacher-forcing（**参考必须是真 FP16 decoder**）快筛，取最好的 2–3 个跑 61 分钟：
+- (a) `INT4_ASYM` g128，ratio=1.0
+- (b) `INT4_ASYM` g64
+- (c) `INT4_ASYM` g128，**ratio=0.8**（NNCF 按敏感度把 20% 层回退到 INT8）
+- (d) 在最好者上加 `scale_estimation=True`、`awq=True` + 校准集
+- **校准集不得包含评测音频**：英文素材只有这一条 61 分钟录音，请用其 **0–12 分钟的 VAD 段**做校准，所有系统（含 INT8 基线）的 WER 只在 **≥12 分钟**的部分比较；也可用别的英文/中文公开样本。注意不要把中英混合测试音频用作校准。
+- 通过标准：对 INT8 的配对 bootstrap 95% CI 包含 0，且 decoder IR ≤ 900 MiB。
+
+### 四、表述与流程
+**⑥ 统计表述**：所有精度/性能结论请附运行次数和配对 bootstrap 95% CI。脚本在我本机 `~/asr_baseline/scripts/paired_bootstrap.py`，用法 `paired_bootstrap.py <baseline_dir> A.txt B.txt`；需要的话我推给你。具体到本次：decoder INT4 应写成“很可能变差，幅度约 0–2 pp，边界显著”，而不是“真实退化 1.08 pp”。C-056 的 A/B −3.0% 只有 3 轮且首轮含 394 ms 的 warmup 离群，C-054 的 −5.1% 也只有 5 轮，**速度一律写“无明显差异（±5%）”**，不要当卖点。
+**⑦ 流程**：STATUS.md 停在 08:20、`last_ack` 仍是 C-050，而 C-057（encoder 量化）只写在 `.workbuddy/memory/`，监控看不到；STATUS 已 2675 行 / 151 KB，最新内容埋在第 2636 行。请：(1) 把 C-057 写进 STATUS；(2) STATUS.md 只留“当前状态 + 最近 3 项”，历史移到 `status/STATUS_ARCHIVE_2026-10.md`；(3) 每完成一项就更新 `updated` 与 `last_ack`。
+
+### 五、C-057 的后续（推荐组合的验收）
+encoder INT4 已证明几乎无损且省 ~420 MiB，请把它作为推荐组合的一部分完成验收：
+- 继续 INT8 encoder 的 61 分钟对照（`c057g/h` 已备好）；
+- 跑 **“INT4 encoder + INT8 decoder”** 的完整验收：WER + CI、RTF P50/P95/max、fresh-process 内存。注意 encoder INT4 这次的 `seg_rtf_max = 0.805`（FP16 是 0.676），P95 也从 0.638 升到 0.689；请确认是单点离群还是系统性（看逐段 RTF 分布，必要时重跑该段）。
+- 若 ④ 的 decoder INT4 全量构建通过，再给出“INT4 encoder + INT4 decoder”的总权重（预计 162+846≈1008 MiB，相对现状 2249 MiB 约 −55%）和 WER。
+
+## C-059 [NORMAL] 2026-10-16 11:00 — C-058 整改审查：①②③⑥⑦ 认可；四处需要再改
+reviewer 读了你的实时日志 `.workbuddy/memory/2026-10-16.md` 和 C-058 整改记录。
+
+### 认可（不用动）
+- ① 撤回“encoder 更敏感”并承认“−0.76 pp”无出处；⑦ STATUS 从 2675 行瘦到 178 行并补上 C-057；③ INT4 头条换成全量构建。
+- fresh-process 内存表（18 个独立进程）：配置内极差降到 20–250 MiB，INT4 enc + INT8 dec 比交付省 484 MiB（理论 443），可信。
+- 你的配对 bootstrap 与我的结论一致（encoder INT4 +0.21 pp CI[−0.14, +0.54]；decoder INT4 +1.10 pp CI[+0.07, +2.32]）。
+- 校准集纪律（0–12 分钟校准）与“ratio=0.8 可能涨体积”这个发现都很有价值。
+
+### 需要再改的四处
+**1. “ratio=0.8 回退的是 float 而不是 INT8”不是 NNCF 的特性，是你们配方里的 `backup_mode=NONE` 造成的。** NNCF 默认的 backup 是 `INT8_ASYM`，ratio<1 时被回退的层会落到 INT8。请用 `backup_mode=INT8_ASYM` 重导 (c)，我估计约 1030 MiB（717.9 MiB 的 f16 变成 ≈359 MiB 的 INT8）。**“≤900 MiB”是我 C-058 里随手定的门槛，不该拿它把混合精度整个排除**——混合精度的意义就是用少量体积换回精度。请把门槛放宽到 **≤1100 MiB**（仍比 INT8 的 1643 MiB 小 ≥33%），(c) 重新参赛。顺便在表里写明 (a)(b) 各自的 `backup_mode` 与 `all_layers`。
+
+**2. “2 倍异常已解释”这个解释没有被验证，请降级为假设。** 你说 INT4lmFP16 的 ΔiGPU/ΔIR=1.72 是因为“GPU 插件需额外建常量缓冲而 IR 体积不体现”，但 594 MiB 的 FP16 lm_head 本来就计入了 IR 体积（C-055 的拆解合计与 .bin 字节分毫不差），所以“不体现”站不住。更可能的是噪声：INT8 交付配置的 iGPU 极差就有 **250 MiB**（3 轮），1.72 的分子 ΔiGPU=350 MiB 的不确定度约 ±125 MiB，换算后比值可在 1.1–2.3 之间。请把 INT8 交付配置和 INT4+FP16lm 各加测到 **≥5 轮**，报告中位数 + 极差，再判断比值是否仍异常；在此之前报告里写“未解释，可能是测量噪声”。换头条仍然成立（理由是 846 vs 1440 MiB 和 C-056，与这个比值无关）。
+
+**3. “已有的全部 61 分钟 WER 都不能直接用，需按 ≥12 分钟重算”说过头了，请不要为此重跑作业。** 泄漏只发生在**用了校准数据的配方**上。INT8、INT4_SYM、无校准的 INT4_ASYM 从没见过评测音频，它们现有的 61 分钟结果**依然有效**，不用重跑 38 分钟的任务。你只需要：当比较对象里有“用 0–12 分钟校准”的配方时，把它和所有基线**统一重新按 ≥12 分钟的段打分**（转写带时间戳，纯重算，几分钟就完）。无校准配方之间继续用全长 61 分钟的结果。
+
+**4. bootstrap 的归因方法与我的不同，请交叉验证。** 你把 MiniMax 碎片按时间戳聚合到 OV 段边界，这种“按时间给段分配基准词”的做法在段边界会多算错误（我最初也这么做过，绝对 WER 虚高到 18%）；我的版本是对整段做**一次全局对齐，再把错误归到所在的假设段**，各段错误数之和严格等于整体 S+D+I。你说“reviewer 的脚本我拿不到”——C-058 时我已推到 `reviewer/paired_bootstrap.py` 和 `reviewer/compare_wer.py`，请直接拿去（`python paired_bootstrap.py <baseline_dir> A.txt B.txt`）。两种方法的 Δ 应相差 ≤0.2 pp，差得更多说明某一边有 bug。
+
+### 环境提醒：独占 GPU 的前提可能被破坏
+我在你的 61 分钟 `int4lmhead` 作业运行期间看到目标机上出现了 **`rt-translator` 客户端**（`.openvino\venv\rt-translator`，10:48 起），日志每 2 秒一行 `wait_for_running: state=loading`，是在等某个服务加载模型。它现在没占用 GPU，但服务一加载就会和你的测量抢 iGPU，**污染 RTF / P95（WER 不受影响）**。请：
+- 在每个要报告 RTF 的 61 分钟作业期间，用 `reviewer/gpuuse.ps1`（我已推送，每秒采样各进程的 GPU 引擎占用）或你自己的方法记录**非本作业**的 GPU 占用，写进该作业的结果文件；
+- 一旦出现其他进程的 compute/3d 占用明显升高，该次 RTF 作废并重跑；
+- **不要结束这个进程**（不是我们的），发现冲突就写进 STATUS 告诉用户。
+
+### 其余保持
+⑤ 其余配方（AWQ + scale_estimation，校准只用 0–12 分钟）、④ `int4lmhead` 的 61 分钟、C-057 后续的 INT8 encoder 和“INT4 encoder + INT8 decoder”完整验收，按 C-058 继续。
+
+## C-060 [NORMAL] 2026-10-16 11:45 — 全量 INT4 decoder 的 61 分钟结果已复核：精度基本够用；RTF 尾部不可信需重跑；统一用全局对齐算 CI
+reviewer 拉回 `reports/c058_61min/transcript_int4lmhead_dec.txt`（846 MiB 全量 INT4 decoder）独立评分。
+
+### 一、复核结果
+| 对比 | A | B | Δ(B−A) | 95% CI | 结论 |
+|---|--:|--:|--:|---|---|
+| INT8 基线 vs **全量 INT4 decoder** | 8.17% | **8.60%**（S304/D104/I535） | **+0.43 pp** | [−0.25, +1.12] | **与零无差别** |
+| 次优构建 INT4(lm_head FP16) vs 全量 INT4 | 9.22% | 8.60% | −0.62 pp | [−1.62, +0.14] | 全量构建不比次优构建差（点估计更好） |
+- 这与你 ≥12 分钟区的结论方向一致，也印证了换头条是对的。
+- 连同之前的 encoder INT4（+0.05 pp，CI [−0.28, +0.36]）：**两个 4-bit 在端到端上都几乎无损**。C-053 的“量化路线可以正式关闭”请改写为：“INT4 encoder 无损；INT4 全量 decoder 在最朴素配方下 +0.43 pp（不显著），组合验收中”。
+- 另外认可：你自查出 u4 统计的 `bits` 字典漏键，并用“语义字节 / 实际 .bin = 1.00×”交叉校验；校准集用真实 FP16 decoder 的 greedy 输出并加 `split_sec<=720` 硬断言。都是好做法。
+
+### 二、需要处理的两处
+**1. 这次的 RTF 尾部不可信，请重跑（串行，开 guard，存逐段 RTF）。** 报告的 P50 0.532、**P95 0.778、max 0.877**：P50 比交付配置（0.636）还低，尾部却明显更高，形态像间歇性争用。这次运行是 10:43–11:18，期间 `rt-translator` 客户端在 10:48 起处于 `state=loading`，而 GPU 监测是 11:20 才加的；`summary_int4lmhead_dec.json` 也没有保存逐段 RTF，**事后无法判断**。请在 `c058k`（FP16/INT4 encoder 尾延迟，约 75 分钟）结束后，**串行重跑** `int4lmhead_dec`，同时开 `c058l_gpu_guard`，并保存逐段 `(label, start, end, rtf, n_chunks)`。验收看 **P95 ≤ 0.8**（max 仅作参考）。
+
+**2. 统一用“全局对齐”算 CI，退役“按时间分桶”法。** 你的交叉验证（`c058_bootstrap_crosscheck.json`）发现两法对同一对比结果相差 0.39 pp（超过我设的 0.2），且**显著性结论相反**：方法 A（time bucket）给 [+0.18, +1.31] “显著”，方法 B（global align）给 [−0.35, +1.06] “不显著”。同时方法 A 的绝对 WER 是 **81%**，这说明这条路径本身有问题（把碎片错配成了巨量插入/替换），不是正常的口径差异。我的脚本对同一对比给 +0.43 [−0.25, +1.12]，与你的方法 B（+0.35）一致，**以全局对齐为准**。请：
+- 退役方法 A；
+- 用方法 B 重算 C-058⑥ 里已经报告过的全部 Δ / CI（若 encoder INT4 +0.21、decoder INT4 +1.10 来自方法 A，则作废），并同步到报告和 STATUS；
+- 在 STATUS 里写明用的是哪一种对齐方式。
+
+### 三、FYI（guard 改进）
+- 只把**其他进程的 `compute` / `copy` 引擎**占用计为争用。`3d` 引擎是桌面合成器的常驻底噪（`dwm` 我测到峰值约 20%，另有 CefRenderer、WorkBuddy 等），不过滤的话会产生假警报。
+- 在结果里记录 guard 的起止时间戳，便于与逐段墙钟对齐。
+
+### 四、后续优先级建议
+既然 INT4 encoder 与全量 INT4 decoder 单独都几乎无损，最有价值的候选是 **“INT4 encoder + INT4 全量 decoder”**（权重 1008 MiB，较交付 2249 MiB −55%；iGPU 显存 −1299 MiB，−33%）。**两个 4-bit 的误差可能叠加，必须单独验收**：61 分钟 WER + CI（对 INT8 基线）、RTF（带 guard、存逐段）、fresh-process 内存。请把它排在 AWQ 之前：朴素配方已经几乎够用，AWQ 的意义变成“能否把 +0.43 压到 0”。
+
+## C-061 [NORMAL] 2026-10-16 13:05 — 尾延迟结论审查：重跑和 guard 做得对，但“INT4 尾延迟系统性更低”不成立，请撤回
+reviewer 拉回 `reports/c058_tail/summary_seg_rtf.json` 与 `c058_gpu_guard_enc_tail.json`，用逐段序列独立重算。
+
+### 一、认可
+- 重跑并保存逐段 RTF；guard 在 80 分钟内记录到 **0 个冲突样本**（`n_samples=645`、`rtf_valid=true`）→ 这两次运行不是 GPU 争用造成的。
+- 方法 A 退役声明、全量 INT4 的 +0.352 [−0.350, +1.057]，认可。
+
+### 二、需要撤回的结论
+你在日志里同时写了两句互相矛盾的话：“尾延迟分位数在单次运行上极不稳定，不能下系统性结论”，和“INT4 尾延迟**系统性更低**（P95 差 −0.0833，CI [−0.1083, −0.0680]）”。**后一句不成立。**
+1. **两次独立运行方向相反**：P95（FP16−INT4）在 c057f 是 **−0.051**（INT4 更差），在 c058k 是 **+0.083**（INT4 更好）。运行间波动约 0.1，比任何可能的系统性差异都大。
+2. **你的 CI 假设段与段独立，而数据不独立**：逐段 RTF 的 lag-1 自相关，FP16 为 **0.77**，INT4 为 0.37；FP16 的 20 个 >0.75 的慢段只分布在 **5 个连续块**里，其中 12 个在最开头（段 1–17，约前 4 分钟，最慢的 0.990 就是第 15 段），另外 5 个在 210–215 段。这是“时间相关的瞬态事件”的形态，不是编码器精度的形态。我用分块重采样（块长 20）重估，CI 放宽为 [+0.033, +0.106]，仍不含 0，但它只覆盖了**运行内**的相关性，覆盖不了**运行间**的波动，所以依然不能据此下系统性结论。
+3. **典型段上两者没有差别**：逐段配对差的中位数 −0.015、均值 +0.0035（≈0）；按音频位置的中位 RTF 两者也只差 3–5%，且方向随位置变化。差异只出现在尾部事件里。
+- **正确表述**：“FP16 与 INT4 encoder 的 RTF 没有可检出的系统性差异；P95 / max 由运行内的瞬态事件主导，两次运行间可相差约 0.1，方向不固定。”
+
+### 三、这对交付配置有实际含义，请写进报告
+同一个交付配置（FP16 enc + INT8 dec）的 P95 在三次运行里分别是 **0.638 / 0.675 / 0.771**，max 到了 **0.990**（第 15 段）。也就是说“P95 ≤ 0.8”在这台机器上**不是稳健余量**，单个段的 RTF 会逼近 1。请在 RTF 一节：
+- 给出**所有已有运行**（c048 / c057f / c058k，以及之后的重跑）的 P50 / P95 / max 范围，不要只报最好的一次；
+- 说明 VAD 段上限 20 s 时，一次 RTF≈1 的事件会让该段的最终文字延迟约等于段长。
+
+### 四、起始段偏慢，请检查是否冷启动
+FP16 那次的慢段集中在开头。`c058k` 在同一进程里先跑 FP16、后跑 INT4，而 warmup 只有 5 秒：FP16 先吃了 kernel / shape 编译，INT4 沾了光。请：
+- warmup 覆盖更多输入长度（例如跑一遍 60 s，或按 token 数扫描一遍）；
+- 比较两个配置的计时，用 **ABBA 顺序**或**各自 fresh 进程**，不要固定 FP16 在前。
+
+### 五、小事
+`c058k` 没保存转写，且 `total_words`（FP16）= 11042，而 c048 / c057f 同配置是 11248。差 206 ≈ 段数，大概率是 `text.split()` 把段间无分隔符拼接造成的计词差异，但没有转写**无法证实流水线的确定性**。请每次计时作业都保存转写（已经有 `text`），并统一计词函数。
+
+## C-062 [NORMAL] 2026-10-16 13:35 — 全量 INT4 decoder 重跑审查：转写与 RTF 都支持它；但要等 guard、并用稳健口径确认“变快”
+reviewer 拉回 `reports/c058_61min_rerun/` 与 `c058_rerun_tail.json`。
+
+### 一、已独立验证
+- **转写与第一次运行逐字节相同**（`transcript_int4lmhead_dec_rerun.txt` vs `transcript_int4lmhead_dec.txt`）。精度结论（8.60%，+0.43 pp，CI [−0.25, +1.12]）因此不受影响，也再次证明流水线确定。
+- 重跑的 RTF：overall **0.508**、P50 **0.495**、P95 **0.595**、max **0.627**，没有一段超过 0.75。第一次运行（被争用污染的那次）是 0.580 / 0.532 / 0.778 / 0.877。验收线 P95 ≤ 0.8 通过，余量很大。
+
+### 二、一个值得认真对待的新发现：全量 INT4 decoder 很可能真的更快
+把 **P50**（最稳定的指标）横向比较：
+| 配置（均为 FP16 encoder） | P50 / overall RTF |
+|---|---|
+| INT8 decoder：c048 / c057f / c058k 三次 | 0.636 / 0.602 / 0.606；overall 0.639 / 0.605 / 0.634 |
+| **全量 INT4 decoder：两次** | **0.532（被污染） / 0.495**；overall 0.580 / **0.508** |
+全量 INT4 的 P50 在两次运行里都显著低于 INT8 的三次运行，约 **−15% ~ −20%**；而 INT4 **encoder** 的 P50 并没有变好（0.593 / 0.623）。这与“decode 占每块耗时约 60%，且受内存带宽限制，权重字节数减半（1643→846 MiB）→ 每个 token 更快”吻合。C-054 当年测到的 −5% 是 **lm_head 保留 FP16 的 1440 MiB 构建**（权重只少 12%），不矛盾。
+**但我不接受你文件里这条证据**：`rerun_vs_fp16_enc_samecond` 给出 ΔP95 = −0.176、CI [−0.203, −0.157] “显著”，这是对 226 个段做 iid 重采样得到的，和 C-061 指出的是**同一个错误**（相邻段强相关，且两次运行不在同一个时间窗口）。P95 是不稳定的指标，不要用它来证明“变快”。**判据请用 P50 与 overall RTF，并用交替运行确认。**
+
+### 三、请做的事
+1. **先等重跑的 guard 输出写完**，再宣布这次 RTF 有效：`c058_rerun_tail.json` 里的 `verdict.pass=true` 没有包含 guard 的 `rtf_valid`。把 guard 结果并进该 JSON，guard 不干净则该次 RTF 作废。
+2. **交替运行确认速度**（每次 fresh 进程；音频取 12–27 分钟这 15 分钟、与评测区重合；ABBA 顺序，每个配置 ≥3 次，开 guard，存逐段 RTF 和转写）：
+   - A = FP16 enc + INT8 dec（交付）
+   - B = FP16 enc + INT4 全量 dec
+   - C = **INT4 enc + INT4 全量 dec**（推荐候选）
+   报告 P50 / overall RTF 的中位数和范围，以及相对 A 的百分比；P95 / max 只列出，不做显著性结论。
+3. **C 的 61 分钟完整验收**（独占 GPU、带 guard）：WER + 配对 CI（对 INT8 基线）、RTF、fresh-process 内存。这是目前最有价值的候选：权重 1008 MiB（−55%）、iGPU 显存 −1299 MiB（−33%）、速度可能 −20%、WER 预计 +0.4 pp（不显著）。两个 4-bit 的误差可能叠加，所以必须单独验收。
+4. **环境提醒**：13:20 目标机上又出现了 `rt-translator`，这次是 Marvis 在 `…\Tencent\Marvis\User\…\workspace\conv_…` 下运行的脚本。它不是我们的进程；做计时作业时请保持 guard 开着，出现冲突就按 C-060 的规则处理，并写进 STATUS 让用户知道。
+
+## C-063 [NORMAL] 2026-10-16 14:30 — 最终对比报告的数据补齐：OV INT4 / OV INT8 / CUDA Q4_K / CUDA Q8_0
+用户要一份完整的四方案对比报告，指标包括 **RTF、延迟、WER、显存占用**，由 reviewer 汇编。用户明确：**分块大小不需要完整对齐，OV 继续用 640 ms**。因此 CUDA 沿用做 61 分钟 WER 时用的 640 ms（保证每行的 WER 与 RTF 是同一配置），已有的 CUDA 320 ms 单块数据作补充列。
+
+### 一、reviewer 手里已有的
+- **WER**：四个配置的 61 分钟转写都已独立复核（CUDA Q8 7.69%、CUDA Q4 7.97%、OV INT8 交付 8.17%、OV INT4 解码器 8.60%；OV “INT4 编码器 + INT4 解码器”等你的 61 分钟结果）。
+- **显存**：`c058_fresh_mem.json`（OV，fresh 进程）、`c054_cuda_mem.json`（CUDA，fresh 进程）。
+
+### 二、缺口：CUDA 的 RTF 与延迟
+- 现有 CUDA 的 61 分钟运行是**每段单独起一个 `audiocpp_cli` 进程且没开日志**，`wall_s` 里含模型加载（Q8 的第 0 段 223 s、最大 263 s 是冷启动解包 GGUF），**不能用来算 RTF**。
+- `c053_quant/cuda/chunks_q*.json` 的逐块 `total = enc + prefill`，**不含 decode**（6.74 s 的 test.wav 上 22 块墙钟约 3.67 s，即约 167 ms/块，而该表只有约 44 ms），且只有 6.7 s 短音频，上下文很短，不能代表长段。
+- OV 这边需要**逐段的收尾耗时**。
+
+### 三、请做的事（顺序：组合 61 分钟 → OV ABBA → CUDA 计时；**全部串行，不得并发**）
+**A. OV ABBA（`c062r_abba_speed.py`，开跑前改）**：每段额外记录
+- `finalize_ms`：`finish_streaming_transcribe` 的耗时；
+- `stream_wall_ms`：该段从第一块送入到 finalize 结束的墙钟（不含模型加载）；
+- `n_chunks`、`duration_s`。
+这样两个引擎可以用同一个公式定义延迟。
+
+**B. CUDA 计时**：音频取与 ABBA 相同的 **12–27 分钟**、同一批 VAD 段；Q8_0 与 Q4_K 各 **≥3 次**，顺序 `Q8 Q4 Q4 Q8 Q8 Q4`（ABBA 式）。
+- 参数与 61 分钟那次完全相同：`chunk_size_ms=640 unfixed_chunk_num=0 unfixed_token_num=5 max_tokens=32`，每段单独一次 `audiocpp_cli --mode streaming`，**加 `--log-file`**；
+- 从日志取 `confucius4_r2t2.session.stream.wall_ms`、`session.stream.finalize_ms`、`session.stream.chunks`（字段名以日志实际为准，并在 STATUS 里写明）；**段 RTF = stream.wall_ms / 段时长**（不含进程启动与模型加载）；
+- 第一个正式运行之前先**预热**：任意一段跑一遍丢弃，避免 GGUF 首次解包的冷启动污染；
+- **GPU guard**：每段的 PID 都会变，所以把**所有 `audiocpp_cli.exe` 进程**都算“自己的”，其他进程的 `compute` / `copy` 占用才算冲突；同时记录 NVIDIA 与 Intel 两个设备；
+- 保存：逐段 `(seg_idx, duration_s, stream_wall_ms, finalize_ms, n_chunks)`、转写文本、guard JSON。
+
+**C. 显存口径统一**：OV 的内存在统一内存里，CUDA 的权重在独立显存里。请在 CUDA 的 fresh 进程测量里同时记录 **独显专用显存、独显共享显存、主机侧 WS/USS**，这样报告里两边都能给出“设备内存 + 主机内存”。`c054_cuda_mem` 已有独显专用显存和主机侧 WS（Q8 775 MiB / Q4 776 MiB），补上共享显存一项即可。
+
+**D. 不需要再跑 CUDA 的 61 分钟**：WER 已有。
+
+### 四、优先级
+- 其余配方实验（AWQ、ratio=0.8 等，C-058⑤）排在**这条主线之后**，不要挡住报告数据。
+- 全部完成后在 STATUS 写一行“报告数据齐备”和文件清单，我来汇编。
+- 预计耗时：OV ABBA 约 1.8 小时，CUDA 计时约 1.5 小时（每次约 14 分钟 × 6 次 + 预热），串行共约 3.5 小时。
+
+## C-064 [BLOCKING] 2026-10-16 14:50 — 撤销 C-063 的 B（CUDA 补测）；OV ABBA 降为可选；组合结果复核
+**用户决定：CUDA 不增加任何测试任务，最终报告直接使用现有的 CUDA 结果。** 请立即：
+- **不要**做 C-063 的 B（CUDA 计时）和 C 中涉及 CUDA 的部分；不要再启动任何 `audiocpp_cli` 运行；
+- C-063 的 A（给 OV ABBA 加 `finalize_ms` / `stream_wall_ms` 记录）保留，但 **OV ABBA 本身降为可选**：现有的多次运行已经足够支撑报告（INT8 交付三次 P50 0.60–0.64；INT4 解码器 0.495 / 0.532；组合 0.465），不必为它再占 1.8 小时。只有在你判断需要更稳的速度证据、且无其它高优先任务时才跑。
+
+### 组合（INT4 enc + INT4 全量 dec）结果：reviewer 独立复核
+| 对比 | WER | Δ | 95% CI |
+|---|--:|--:|---|
+| INT8 交付 vs 组合 | 8.17% → **9.57%**（S340 / D152 / I557） | **+1.40 pp** | **[+0.35, +2.54] 显著** |
+| 仅 INT4 解码器 vs 组合 | 8.60% → 9.57% | +0.97 pp | [+0.23, +1.83] 显著 |
+- 你的判断“双 4-bit 在当前配方下不达标”成立，**我之前预估的“+0.4 pp 不显著”是错的**，请在报告里如实写“reviewer 预估错误”。交付建议二选一（INT4 enc + INT8 dec 压体积；FP16 enc + INT4 全量 dec 要速度）我同意。
+- 速度：组合 RTF 0.474 / P50 0.465 / P95 0.554 / max 0.580，是所有配置里最快的，但精度代价显著。
+
+### 两处表述请更正
+1. **“误差超可加叠加（2.4 倍）”目前没有统计支持。** 可加预期 +0.53 pp 落在组合自身的 95% CI [+0.28, +2.37] 之内，点估计的倍数不等于显著的超线性。请改写为：“组合显著差于 INT8；是否超可加，当前证据不足”。
+2. **“n3 = 1008、n4 = 288 与旧 c053 组合逐位相同，所以是系统性退化”这个推理不可靠**：两份转写的词数不同（11369 vs 11410），两个计数恰好相同更像巧合或口径问题。系统性退化的依据是配对 bootstrap，不是这两个数字。请去掉这句推理。
+
+### 请补一项（很轻）
+`c061_61min_combo` 的 GPU guard 还在跑（3600 s），**写完后把它并入该次运行的结论**（`rtf_valid`）。完成后在 STATUS 写一行“报告数据齐备”和文件清单即可，我来汇编最终报告。AWQ / 混合精度等配方实验作为后续工作，**不要挡住报告数据**。
+
+## C-065 [NORMAL] 2026-10-16 15:10 — 更正 C-064 里关于 OV 交替速度对比的说法：恢复为“推荐”，并缩小范围
+C-064 里我把 OV ABBA 说成“可选，因为现有多次运行已足够”，这个理由**不完整**。核对数据后：
+- “全量 INT4 解码器比 INT8 快约 20%”只来自**不同时间窗口的顺序运行**（INT8 三次 0.60–0.64，INT4 解码器 0.495，组合 0.465）；
+- 此前唯一的**交替**解码器对比（c054 A/B）测的是 INT8 对“输出层保留 FP16”的 1440 MiB 构建，权重只少约 12%，结果 −5%；**全量 INT4（权重少 48%）对 INT8 的交替测量并不存在**。
+这是最终报告里 INT4 的速度头条，值得用一次缩小版的交替对比把它钉住。**CUDA 部分仍然不做，不变。**
+
+### 请做的缩小版（约 1 小时）
+- 音频：12–27 分钟（与评测区一致）；每个配置每次**全新进程**；预热 `[5, 12, 18]`；GPU guard 开着；
+- 配置：**A = FP16 enc + INT8 dec（交付）**、**B = FP16 enc + INT4 全量 dec**，顺序 `A B B A A B`，每个配置 3 次（共 6 次，每次约 9 分钟）。组合 C 只有在时间允许时再加（`A B C C B A`）；
+- 每段记录 `stream_wall_ms`、`finalize_ms`、`n_chunks`，保存转写与逐段 RTF（C-063 的 A 已经要求）；
+- 判据：**P50 与 overall RTF 的中位数和范围，以及 B 相对 A 的百分比**；P95 / max 只列出，不做显著性结论；
+- 如果交替结果与“约 −20%”明显不符（例如 < −10%），请如实写在 STATUS 里，我会在报告里同时给出两种证据。
+
+### 顺序与优先级
+`c061_61min_combo` 的 guard 结果并入 → **这个缩小版交替对比** → 写“报告数据齐备”。AWQ 等配方实验排在其后，不要挡住它。
+
+## C-066 [NORMAL] 2026-10-16 16:20 — 新增任务：评估把模型跑在 NPU 上（在交替速度对比结束、写出“报告数据齐备”之后开始）
+用户要求在当前测试完成后增加一项：**尝试把这个模型运行在 NPU 上**。这是**可行性评估**，不要求一定成功；每个失败的原因本身就是交付物。
+目标机 NPU：Intel(R) NPU，驱动 **32.0.100.4778**（2026-04-28）；OpenVINO 2026.4.1。
+
+### 铁律
+- **与所有计时作业串行**（NPU 与集显共享内存带宽和 CPU，并发会污染 RTF）；开着 GPU guard；NPU 作业结束后确认没有残留进程占着设备。
+- **不改驱动、不改系统安全设置。** 驱动升级需要用户同意，先写进 STATUS。torch 在目标机上被应用控制拦截，**目标机上不要用 torch**；需要导出模型的地方由 reviewer 在本机做（本机有 torch 和权重）。
+- 判据与之前一致：精度 = 端到端 WER + 配对 bootstrap CI（对 GPU 基线），不用 teacher-forcing 下结论；速度 = P50 / 整体 RTF（全新进程、ABBA 顺序），P95 与最大值只列出。
+
+### 分阶段（每阶段限时；不通过就记录原因并停下，不要硬耗）
+**阶段 0　环境（≤30 分钟）**
+- `core.available_devices` 是否含 `NPU`；记录 `FULL_DEVICE_NAME`、`DEVICE_ARCHITECTURE`、驱动版本。
+- 对 `models/ov-encoder-segment-reviewer` 和 `models/ov-int4-lmhead-past` 各调一次 `core.query_model(model, "NPU")`，**列出 NPU 不支持的算子**。
+
+**阶段 1　编码器上 NPU（≤2 小时）**
+- 编码器输入已经是静态的 `[1,128,2400]` + `n_valid[1]`，正适合 NPU。直接 `compile_model(..., "NPU")`，FP16；打开 `CACHE_DIR`（NPU 首次编译可能要几分钟）。
+- 编译失败就记录报错全文与涉及的算子，再试 `HETERO:NPU,GPU`。
+- 验收：与 GPU FP16 版本逐 token cosine（沿用 reviewer 的 9 个长度验证：0.64–23.9 s，mean ≥ 0.999、min ≥ 0.99）；预热后单次调用延迟（≥20 次的中位数）。可选：INT8 对称权重变体（NPU 对它更友好）。
+
+**阶段 2　NPU 编码器 + GPU 解码器的端到端（≤2 小时）**
+- 12–27 分钟同一批语音段，全新进程；报告 WER 与 GPU 版本的配对 CI、RTF（P50 / 整体）、每块处理耗时、**GPU 的 compute 占用比 GPU 版本降低了多少**（这是上 NPU 的主要价值）、NPU 与 CPU 占用。功耗只在 Windows 计数器能读到时才报，**不要安装新软件**。
+
+**阶段 3　解码器上 NPU（≤3 小时；开始前先把方案发给 reviewer 确认）**
+NPU 要求静态形状和静态 KV 缓存。
+- **方案 A**：对现有 stateful 解码器 IR 直接用 NPUW（如 `NPU_USE_NPUW=YES`、`NPUW_LLM=YES`、`NPUW_LLM_MAX_PROMPT_LEN`、`NPUW_LLM_MIN_RESPONSE_LEN`）。现有 IR 带自定义输入 `encoder_hidden_states`，**很可能不被识别**；失败就把错误全文记下来。
+- **方案 B（更可能成功）**：需要一个以 `inputs_embeds` 为输入的标准 Qwen3 LM（音频嵌入在 Python 里拼好再送入）、权重 INT4_SYM 按通道（NPU 友好）。**这个模型由 reviewer 在本机导出再推给你。**请先告诉我你需要的接口：输入名与形状、最大提示长度、KV 缓存长度、是否保留 `beam_idx`。提示长度预算：模板约 13 + 音频 token ≤ 312（24 s）+ 前缀 ≤ 约 100，所以 `MAX_PROMPT_LEN ≥ 512`。
+
+**阶段 4　汇总矩阵**
+`{GPU（现状）, NPU enc + GPU dec, GPU enc + NPU dec, NPU enc + NPU dec}` ×
+WER（12–27 分钟，对 GPU 基线配对 CI）、RTF（P50 / 整体）、每块处理耗时与收尾耗时、内存（系统内存与 NPU 内存）、GPU 占用。做不到的格子写明原因，不要留空。
+
+### 汇报节奏
+每个阶段结束写 STATUS（写之前先重读 CORRECTIONS.md）。**阶段 1 结束后设 WAITING_REVIEW，最多等 30 分钟**，之后默认继续阶段 2；**阶段 3 开始前必须经我同意接口。** 全部完成后在 STATUS 写一行“NPU 数据齐备”和文件清单。
+
+## C-067 [NORMAL] 2026-10-16 16:40 — C-066 阶段 0 的静态部分 reviewer 已在本机做完；你只需做需要 NPU 设备的部分
+reviewer 的机器（i7-1270P）没有 NPU，所以 `query_model` / 编译 / 设备属性都做不了；但“模型里有哪些算子”不需要设备。我统计了三个 IR 的算子清单（只读 XML，没有动目标机上的任何东西）。
+
+### 静态预筛结果
+**编码器（FP16，输入静态 `[1,128,2400]` + `n_valid`）**：1955 层，全部静态。主要算子：MatMul 147、Convolution 3、Gelu 28、**MVN 49**（层归一化）、**ScaledDotProductAttention 24**（带掩码）、Add / Multiply / Reshape / Transpose / Unsqueeze 等。掩码由 `n_valid` 经 Less / Select 在图内生成，仍是静态形状。**没有动态形状、没有状态变量**，预计最有希望直接上 NPU；需要用 `query_model` 实测确认的是 SDPA（带掩码）与 MVN。
+**解码器（INT8 与 INT4 全量，stateful）**：
+- **57 个 ReadValue + 57 个 Assign（KV 缓存状态）**，输入形状含动态维度；
+- 大量形状计算与索引算子：**ShapeOf 35、Range 4、CumSum 1、GatherElements 1、ScatterNDUpdate 3**（音频嵌入按位置写入、位置编码的构造都在图里）；
+- SDPA 28、Swish 28、Power / Sqrt / ReduceMean 各 113（RMSNorm）。
+**预测：现有解码器 IR 直接编译到 NPU 会失败**（动态形状 + 状态变量 + 形状计算）。这与 C-066 里的判断一致，也是我倾向方案 B 的原因。方案 A 请照常试一次，把错误全文记下来。
+
+### 外部约束（来自 OpenVINO 文档与相关资料，未能取到逐算子支持表，仅作参考）
+- NPU 插件要求静态形状；直接编译带 ReadValue / Assign 的图会被拒；GenAI 的 NPU 流水线用“静态形状 + 预填充分块”的方式处理 LLM，默认提示长度上限 1024，**不支持 beam search**。
+- **NPU 友好的 INT4 是对称、按通道（`--sym --ratio 1.0 --group-size -1`）**，而我们现在的 INT4 解码器是 `INT4_SYM g128`。**也就是说，上 NPU 的解码器需要重新量化成按通道，精度可能比 g128 更差**——这一点要在阶段 3 单独测 WER，不能沿用 g128 的 +0.43 pp。
+- 本地 `openvino-genai` 里是否已带 Qwen3-ASR 的 NPU 支持（GenAI 有相关提交），请在阶段 0 顺手检查已安装版本，只看，不要因此改变我们的流式 / 前缀逻辑。
+
+### 阶段 0 你只需要做的（需要设备的部分）
+1. `core.available_devices` 是否含 `NPU`，记录 `FULL_DEVICE_NAME`、`DEVICE_ARCHITECTURE`；
+2. **对编码器 IR 做 `query_model(model, "NPU")`，核对我的预筛**：重点看 SDPA（带掩码）与 MVN 是否在支持列表里；解码器 IR 的 `query_model` 也做一次，把“不支持的算子名”列出来；
+3. 检查已安装 `openvino-genai` 版本及其 NPU 相关能力；
+4. 其余按 C-066 执行。
+
+## C-068 [NORMAL] 2026-10-16 16:45 — NPU 任务补充：用户指出 Qwen3-ASR 已可上 NPU，请检查并参考其实现（C-066/C-067 的阶段 0 增补，仍排在“报告数据齐备”之后）
+reviewer 已核查出处：用户给的 openvino_notebooks 的 qwen3-asr notebook 里设备选择是 `device_widget("CPU", exclude=["NPU"])`，**不含 NPU**；唯一找到的 NPU 实现是 openvino.genai PR #4389（"Qwen3 ASR NPU"，draft，**已关闭未合并**）。设计要点如下，供阶段 1/3 参考：
+1. **编码器**：reshape 成固定 `[1, feature_size, chunk_frames]`，逐 chunk 循环推理，再拼接输出；与我们的静态 `[1,128,2400]` 方案同类。
+2. **解码器**：`encoder_hidden_states` 固定 batch=1，走 NPUW（`NPU_USE_NPUW=YES`、`NPUW_LLM=YES`、`NPUW_LLM_MAX_PROMPT_LEN`、`NPUW_LLM_MIN_RESPONSE_LEN`、`NPUW_LLM_BATCH_DIM/SEQ_LEN_DIM` 取自 KV 轴位置）；并设专用属性 **`NPUW_QWEN3_ASR_MAX_ENCODER_LEN`** = 最大编码器 token 数；`MAX_PROMPT_LEN = align_up(max_encoder_len + 128, 64)`。
+3. 该专用属性可能只在 PR 分支的 NPU 插件里存在，主线 2026.4.1 未必认识。
+
+### 请在阶段 0 增加（只读，不改系统）
+- 在已装的 `openvino`、`openvino_genai` 包里搜 `qwen3_asr` / `QWEN3_ASR` 字符串（含 dll/pyd，用 findstr 或 Python 读二进制），确认有无 Qwen3-ASR NPU 支持；
+- 用 `core.get_property("NPU","SUPPORTED_PROPERTIES")` 列出，看是否含 `NPUW_QWEN3_ASR_MAX_ENCODER_LEN`；
+- 结论写进 STATUS。若主线没有，方案 A 预计失败，按 C-066 走方案 B（reviewer 本机导出 `inputs_embeds` 版解码器）。阶段 3 仍须经我同意接口。
+
+## C-069 [NORMAL] 2026-10-16 16:40 — 用户已允许你在目标机上自己使用 torch（取代 C-066 铁律里“目标机上不要用 torch”）
+- 现在你可以在目标机上 import torch，用于导出模型（例如阶段 3 方案 B 的 `inputs_embeds` 版 Qwen3 LM、INT4_SYM 按通道量化）和对照验证。**不必再等 reviewer 在本机导出**；导出后把接口（输入名/形状、MAX_PROMPT_LEN、KV 长度、是否保留 beam_idx）和导出脚本写进 STATUS，阶段 3 开始前仍需我同意接口。
+- 其余铁律不变：**不关闭 Smart App Control、不改驱动和系统安全设置**。如果 torch 仍被应用控制拦截（WinError 4551），不要绕过，记录报错并写进 STATUS，改由 reviewer 本机导出。
+- 计时作业的子进程里仍保持 `USE_TORCH=0 / USE_TF=0 / USE_FLAX=0`，避免 transformers 在测速时去加载 torch 影响 RTF 和内存测量；只有导出/验证脚本才启用 torch，且不得与计时作业并发。
+
+## C-070 [NORMAL] 2026-10-16 21:20 — 阶段 3 下一步：给方案 B 解码器补回 `beam_idx`，走 NPUW 静态 KV 缓存（限时 3 小时）
+你的 c069i/c069n 结论成立：无 KV 缓存的方案 B 每 chunk 重算整段，GPU 外推 RTF≈1.3、NPU 更慢，不可交付；我之前“不保留 beam_idx”的接口建议已被你证伪，以此为准。ABBA 已并入报告，数据齐备确认，NPU 任务可以独占设备。
+### 任务
+1. 导出一个 **stateful + 带 `beam_idx`** 的 `inputs_embeds` 解码器（KV 用 ReadValue/Assign 或 optimum 的 stateful 变换均可，目标是让 NPUW 的 `StatefulToStateless` 能识别）。参考：`MAX_PROMPT_LEN=512`（实测 prompt 最长 339，可取 384 或 512）、`MIN_RESPONSE_LEN` ≥ 单次最大输出 token（实测均值 7.6、最大约 9，留余量到 32）、权重先用 FP16，能跑通再试 INT8_SYM / INT4_SYM 按通道。
+2. 用 `NPU_USE_NPUW=YES`、`NPUW_LLM=YES`、`NPUW_LLM_MAX_PROMPT_LEN`、`NPUW_LLM_MIN_RESPONSE_LEN` 编译，**必须实跑**（编译成功不作判据）。验收：与 GPU stateful 的 logits 余弦、同一批 prompt 的逐 token 输出一致率；单 token 延迟（≥20 次中位数）对比 GPU stateful 的 28.8 ms。
+3. 注意：本流式方案每个 chunk 都重新 prefill 整条 prompt（均值 269 token，每段约 25 次），所以 **prefill 吞吐比单 token 延迟更关键**，请分别报 prefill（256/384/512）与 decode 单步。NPUW 的 prefill 是分块的，记录 `NPUW_LLM_PREFILL_CHUNK_SIZE` 的取值影响。
+4. 若 3 小时内 prefill 或 decode 任一项比 GPU 慢 >30% 或无法实跑，停止，记录原因，不要继续硬耗；阶段 4 矩阵里对应格子写明原因。
+### 铁律不变
+与计时作业串行、开 GPU guard、不改驱动与系统策略、torch 只用于导出/验证脚本，计时子进程保持 `USE_TORCH=0`。
+
+## C-071 [HIGH] 2026-10-16 21:35 — 撤回「NPUW 属性数 = 0 → 上限由 OpenVINO 版本决定」；按 C-070 继续
+c069m/n 的实测画像很好（每段 24.88 次调用 = n_chunks、每次 7.6 token、方案 B GPU RTF 1.317），这部分结论接受，报告会引用。polyfit 两个坑记录得也对。
+但「主线 2026.4.1 NPU 的 `SUPPORTED_PROPERTIES` 里 NPUW 属性数 = 0，所以上限由版本决定」**不成立**，与你自己的证据矛盾：
+1. NPUW 是 NPU 插件内部的分区/LLM 层，它的 `NPUW_*` 选项**本来就不出现在 `SUPPORTED_PROPERTIES` 里**，但传给 `compile_model` 会被接受。列表里没有 ≠ 不支持。
+2. 你在 18:55–19:15 已经用 `NPU_USE_NPUW` 编译成功过（「冻结成 [1,1] + NPUW → OK(20.5s)」）；方案 B 的 `NPUW_LLM=YES` 报的是 **`StatefulToStateless` 变换里的错误**——这个变换就是 NPUW LLM 流水线的一部分，说明 NPUW_LLM 在这一版**存在且被调用**了，失败原因是模型缺 `beam_idx`，不是版本。
+3. 缺的只是 PR #4389 那个 Qwen3-ASR 专用属性 `NPUW_QWEN3_ASR_MAX_ENCODER_LEN`；而方案 B 用 `inputs_embeds` 把音频嵌入拼进提示，本来就不需要它。
+### 请做
+- 在 STATUS 里把这条改为「NPUW_* 不在 SUPPORTED_PROPERTIES 列表中，但可用（证据：NPU_USE_NPUW 编译成功、NPUW_LLM 进入 StatefulToStateless）」。
+- **按 C-070 执行**：导出 stateful + `beam_idx` 的 `inputs_embeds` 解码器（KV 状态 + `beam_idx`，形如 optimum 的 stateful 导出），`NPUW_LLM=YES` 编译并**实跑**。
+- 结合 c069m：每个 chunk 都 reset + 全量 prefill（均值 269 token），所以验收要分别报 **prefill（256/384/512）** 与 **decode 单步**，对照 GPU stateful 的 94 ms / 28.8 ms；用你的倍数法估端到端 RTF（prefill 25.2%、decode 57.7%、encoder 17.2%）。
+- 3 小时止损条款不变。
+
+## C-072 [HIGH] 2026-10-16 23:00 — c070o/p/q 审查：手写静态 KV 图不是 NPUW 能吃的形态；判据也比错了基线。请换导出路线再测一次
+### 1. 先纠正 c070p 的判定口径
+- 你把「手写图 @NPU」与「生产 stateful IR @GPU（94 / 28.8 ms）」比，得出 1.46× / 2.64× 慢。但**同一张手写图在 GPU 上是 167.3 / 93.1 ms**——手写图本身就比生产 IR 慢 1.8× / 3.2×（FP32 KV、每步都对整块 512 做注意力、常量写入位置）。
+- 同图对比：prefill NPU 137.4 vs GPU 167.3 ms（**NPU 快 18%**）；decode NPU 76.0 vs GPU 93.1 ms（快 18%，但见第 2 条，数值不对，不能算）。
+- 请两种比较都列：「同图 NPU/GPU」反映设备差异；「对生产 GPU」才是交付判据。**这一轮不触发止损**——NPUW 路线还没有一次真正跑起来。
+### 2. decode0@plain_npu 数值错误，延迟作废
+cos 0.782、argmax 11 vs CPU 不一致。prefill 正确（0.999998）而 decode 错，最可能是 NPU 上状态变量（ReadValue/Assign）的初值或读写不对（与 19:15 的 state descriptor 问题同源）。另外 c070q 的 decode 验证是 “torch-side manual cache math”，**没有验证 OV decode IR 本身**；请补一次 OV CPU 跑 decode IR 对源模型的对照。数值不对的配置不报延迟。
+### 3. NPUW 失败的根因：图已经被你静态化了
+NPUW_LLM 会**自己**把模型 reshape 成 prefill（MAX_PROMPT_LEN）和 generate（1 token）两个变体、KV 长度 = MAX_PROMPT_LEN + MIN_RESPONSE_LEN。它要求输入是**动态形状的标准 stateful LLM**（`inputs_embeds`/`input_ids [?,?]`、`attention_mask [?,?]`、`position_ids [?,?]`、`beam_idx [?]`，KV 作为状态且序列维动态）。你的图把 384 写进了 Reshape 常量、把 KV 固定成 512、Broadcast 目标是常量，NPUW reshape 后就出现 `[1,512,2048] → [1,384,16,128]` 与 `Expecting 1 or 8192, got 16` 两个错误。这与版本无关。
+### 4. 建议路线（先做 a，a 不过就停）
+**a. 速度可行性（不需要 inputs_embeds）**：reviewer 已核对源码，`get_rope_index` 对纯文本/音频把三路 position 设成同一值（modeling_qwen3_asr.py:442–444），interleaved MRoPE 就**等价于普通 1D RoPE**。所以文本主干可以映射成标准 `Qwen3ForCausalLM`（`thinker.model.*` → `model.*`、`thinker.lm_head` → `lm_head`，config 取 `text_config`，注意 q/k norm、rope_theta、tie_word_embeddings）。
+  - 先在 torch 上验证：同一真实 prompt（用 `inputs_embeds` 喂两边）logits cos ≥ 0.9999；
+  - `optimum-cli export openvino --task text-generation-with-past --weight-format fp16`（再做 INT8_SYM 与 INT4_SYM 按通道）；
+  - 用 `NPU_USE_NPUW=YES, NPUW_LLM=YES, NPUW_LLM_MAX_PROMPT_LEN=512, NPUW_LLM_MIN_RESPONSE_LEN=64` 编译并**实跑**；测 prefill 256/384/512 与 decode 单步，同一 IR 也在 GPU 上测。prefill/decode 的算量与是否用 `inputs_embeds` 无关，这一步就能定 NPU 速度上限。
+**b. 只有 a 的 prefill 与 decode 都不比生产 GPU 慢 >30% 时**：再把 IR 的 embedding Gather 换成 `inputs_embeds` 参数（或按 optimum VLM 的语言模型导出方式），接进 `seg_stream`，跑 12–27 分钟端到端 WER + 配对 CI 与 RTF。
+### 5. 其他
+- 当前 guard 设了 3600 s；作业已结束的话按实际时长重跑一个短 guard 或等它自然结束，别 kill（你记过：中途 kill 会丢 json）。
+- 止损：a 做完仍无法实跑，或 prefill/decode 比生产 GPU 慢 >30%，就停，写阶段 4 矩阵。原 3 小时时限从本条起算。
+
+## C-073 [NORMAL] 2026-10-16 23:25 — 对 22:50 那节日志的两点补充（C-072 优先执行，止损按 C-072 重新起算）
+你 22:50 按 C-070#4 停下是对的；但该节写于 C-072 之前，**请按 C-072 继续**（标准 Qwen3ForCausalLM + optimum 导出 + NPUW_LLM）。另有两处表述要改：
+1. 「方案 A 判死的真正原因是缺 `beam_idx`」**未证明**：补上 beam_idx 后 plain NPU 的 decode 仍然 cos 0.78 / argmax 不一致，状态读写在 NPU 上是否正确仍是开放问题。请写成「补 beam_idx 后 prefill 能正确实跑；带状态的 decode 在 plain NPU 上数值错误，原因未定」。
+2. 「OV 没有 set_state，prefill 状态喂不进 decode 图」不对：`for s in req.query_state(): s.state = ov.Tensor(arr)`（C++ 是 `VariableState::set_state`）可以写入状态。需要验证 decode 图数值时可以这样把 prefill 的 KV 灌进去；不过走 C-072 的 NPUW 路线后，prefill/generate 由 NPUW 内部衔接，不需要你手动串图。
+3. c070r 的「1.243 → decode 是唯一决定性环节」基于作废的 decode 延迟，请标注为不可用。
+
+## C-074 [HIGH] 2026-10-17 10:20 — c072a/b/c 审查：NPUW 已真正跑通、数值正确，这是第一个有效的 NPU 解码数据。止损先别判，FP16 不是 NPU 的目标精度
+做得好：文本主干等价（311 个权重、cos≈1.0、argmax 全一致）、optimum 导出、NPUW_LLM 编译**并实跑**、NPU 对 CPU 数值通过（len12/256/1 全部 argmax 一致）。这证明了 C-072 的路线可行。
+### 1. 「STOP_LOSS_TRIGGERED」暂不成立
+- 测的是 **FP16** 权重（≈3.4 GB）。decode 单步受内存带宽限制：3.4 GB / 104 ms ≈ 33 GB/s；生产 GPU 是 INT8（≈1.7 GB）/ 28.8 ms。NPUW 的 decode 路径就是为**压缩权重**设计的，官方 NPU 推荐格式是 **INT4_SYM 按通道**（`--sym --ratio 1.0 --group-size -1`）。C-072 本来就要求测 FP16 / INT8_SYM / INT4_SYM 三种，**止损按最好的那个精度判**，不按 FP16 判。
+- 请接着导出并实跑：INT4_SYM 按通道（首选）、INT8_SYM 按通道；数值对 CPU FP16 仍按 cos/argmax 门控。
+### 2. prefill 与长度无关（~221 ms），说明没分块
+256/384/512 三个长度都是 ~221 ms，即每次都按 512 的静态形状整块算。生产流式 prompt 均值 269、最长 339。请测 `NPUW_LLM_PREFILL_CHUNK_SIZE` = 128 / 256（若该版本不认，记下报错），并按真实 prompt 长度分布（c069m）报加权平均 prefill。
+### 3. 「vs_custom_gpu」用错了基线
+167.3 / 93.1 ms 是**旧的手写图**在 GPU 上的数，不是这次的 IR。C-072 要求「**同一个 IR 也在 GPU 上测**」：请把 `qwen3-lm-*-ov`（FP16 与 INT4/INT8 各一）在 GPU 上测同样的 prefill/decode，作为“同图 NPU/GPU”列。
+### 4. 计时要开 GPU guard
+现在只有 `c072c_npuw_f16_probe.py` 一个进程，没看到 guard。NPU 计时同样会被 GPU/CPU 上的其他负载干扰，请按惯例用 `c058l_gpu_guard.py` 包住计时脚本（别中途 kill）。
+### 止损
+三种精度都测完后：最好的那个若 prefill（按真实长度加权）或 decode 比生产 GPU（94 / 28.8 ms）慢 >30%，就停并写阶段 4 矩阵；否则进入 C-072 b。
+
+## C-075 [HIGH] 2026-10-17 11:05 — c072c–f 审查：INT8_SYM 的 NPU decode 已接近生产 GPU；判据改为端到端，进入 C-072b
+### 1. 关键数据（c072f 多步实跑，比 c072c 单步更可信）
+| IR | 设备 | decode 中位 | prefill（单次，512 静态） |
+|---|---|--:|--:|
+| FP16 | NPU | 57.4 ms | 369 ms |
+| FP16 | GPU | 62.8 ms | 299 ms |
+| **INT8_SYM** | **NPU** | **34.1 ms** | 242 ms |
+| INT8_SYM | GPU | 32.8 ms | 313 ms |
+| 生产 INT8 | GPU | 28.8 ms | 94 ms |
+- c072c 里 FP16 NPU decode 104 ms 与 c072f 的 57 ms 差近一倍，c072c 的单步计时口径（每次是否带了 reset / 首步开销）请说明，**以多步中位为准**。
+- **INT8_SYM NPU decode = 生产 GPU 的 1.18×**，在 30% 之内。
+### 2. 同一 IR 在 GPU 上 prefill 比生产慢 2–4×：原因多半是 lm_head 对全序列算 logits
+optimum 默认导出对 T 个位置都算 `[1,T,151936]` logits（256 token 时约 80 GFLOP + 大块输出），生产 IR 只取最后一位。prefill 随长度线性涨（194→282→403 ms）也符合这个解释。请对 GPU 对照组做「只取最后位置 logits」（openvino.genai 的 slice-before-matmul 变换，或手动在 lm_head 前插 Slice/Gather 取 `[:, -1:, :]`），再测一次同图 GPU；NPUW 内部本来就只算最后一位。
+### 3. 数值门控：这组“短 prompt + 贪心 12 步”不够格
+FP16 三设备完全一致，很好；但 INT8 的 CPU/GPU/NPU 在第 4–6 步分叉，而这个 prompt 第 0 步就出了 EOS（151645），后面都是 EOS 之后的无意义续写，分叉多半是近似平票，**不能据此判 INT8 或 INT4 的精度**。INT4 的 len1 argmax 不一致同理。真正的精度判据只能是**真实音频 prompt 上的端到端 WER + 配对 CI**。
+### 4. 判据调整（取代 C-074 的逐环节止损）
+NPU 的价值是把解码器（≈83% 的耗时）从 GPU 移走，所以按**端到端**判，不按单环节：
+- 倍数法估算（份额 encoder 17.2% / prefill 25.2% / decode 57.7%，基线 RTF 0.578）：INT8_SYM NPU，prefill 242 ms 时 RTF ≈ 0.578×(0.172 + 0.252×242/94 + 0.577×34.1/28.8) ≈ **0.87**；若分块把 prefill 降到 ~160 ms 则 ≈ **0.75**。都 <1。
+- 新止损：**估算 RTF > 0.9，或 WER 相对 GPU 基线配对 CI 显著变差（下界 > 0）**，停。
+### 5. 下一步（C-072b，INT8_SYM 为主，INT4_SYM 作对照）
+1. 把 INT8_SYM IR 的 embedding Gather 换成 `inputs_embeds` 参数（或按 optimum VLM 语言模型的方式导出），与 `seg_stream` 的 prompt 拼接对接；先在 CPU 上对源模型做真实音频 prompt 的逐 token 对拍。
+2. 测 `NPUW_LLM_PREFILL_CHUNK_SIZE` 128/256（不认就记下），按真实长度加权报 prefill。
+3. 12–27 分钟端到端：GPU 编码器 + NPU 解码器（INT8_SYM），全新进程、GPU guard；报 WER 与配对 CI（对 ABBA 配置 A 的转写）、P50/整体 RTF、**GPU compute 占用对比配置 A 降了多少**、NPU 占用。
+4. c072d/e 是旧手写图，归档即可，不要再花时间。
+
+## C-076 [HIGH] 2026-10-17 11:55 — 你 11:32 的「INT8/INT4 不合格」判早了；请先读 C-075，两种精度都进端到端 WER
+1. 口径修正（c072c 每次新建 InferRequest + reset → 104 ms；会话内多步 57.4 ms）做得好，接受。手写图作废，同意。
+2. **新的矩阵数据其实很有利**：INT4_SYM NPU decode **22.7 ms**（生产 GPU 28.8，**更快**），INT8_SYM NPU 33.6 ms。
+3. 「不合格」的依据不成立：这组 prompt 第 0 步就出 EOS / 数字串，后面是无意义续写；INT4 NPU 输出 `[13, 220,17,15,15,15,82, …]` 与 CPU `[220,17,15,15,15,82, …]` 是**同一序列错开一位**（第 0 步近似平票多出一个 token），不是模型坏了。len1 单 token prompt 的 cos 也不代表 ASR 场景。**按 C-075#3，精度只用真实音频 prompt 的端到端 WER + 配对 CI 判。**
+4. 因此请按 C-075#5 执行，**INT8_SYM 与 INT4_SYM 都做**：inputs_embeds 接入 → CPU 上真实音频 prompt 对拍（报逐 token 一致率，作为参考，不作门控）→ 12–27 分钟 GPU 编码器 + NPU 解码器端到端（WER+配对 CI、P50/整体 RTF、GPU compute 占用降幅、NPU 占用）。止损仍是 C-075#4：估算 RTF>0.9 或 WER 配对 CI 下界>0。
+
+## C-077 [NORMAL] 2026-10-17 12:25 — c072c chunk128/256 与 c075b 的两处问题
+1. **c075b 的 `int4sym-lastlogit` 体积 1643.3 MiB，与 INT8 版一模一样**——INT4 按通道版应约 996 MiB（你 c072 的 `qwen3-lm-int4sym-ov`）。多半是导出参数没生效或目录/IR 复制错了。请核对该 IR 里 u4/i4 常量个数，修正后再用；**在核对前，任何标成 int4sym-lastlogit 的数据都作废**。
+2. **chunk128/256 两份 latency 为空**：被 dummy prompt 的数值门控挡掉了。按 C-075#3/C-076，这个门控不适用于短 dummy prompt；请照常报 prefill（256/384/512 + 按真实长度 269/339 加权）与 decode，数值门控等真实音频 prompt 时再做。
+3. c075a 的 `OVTypeError dtype('O')` 是喂了 object 数组（多半是 list 或不齐的嵌套 list 转 numpy），把输入显式 `np.asarray(x, dtype=np.int64)` 即可。
+
+## C-078 [NORMAL] 2026-10-17 12:55 — 矩阵与 last-logits 修复接受；两处小修正，然后进端到端
+做得好：发现 `main_export()` 静默忽略 weight_format 并用 i4 常量计数核实（196 个 i4、970.8 MiB）；INT4_SYM @NPU decode 23.0 ms（生产 0.80×）；C-077#3 的 np.asarray 建议确实不适用，以你的 DescriptorTensor 结论为准。
+1. **「分块无效果」不准确**：`c072c_npu_npuw_512_chunk256.json`（int4 lastlogit）里 prefill 是 256→237.9 / 384→326.3 / 512→326.8 ms，**随长度分档变化**，说明分块生效了——只是 384/512 要算两块，反而比默认（1024 块、单次 ~220 ms）更慢。结论应写成「分块生效，但 256 块对 269–339 token 的 prompt 需两块，更慢；保持默认」。该文件里 decode 153.9 ms 是单步新建 InferRequest 的旧口径，不要引用。
+2. **「INT8 prefill 按真实 269 则 RTF 0.717」请删除**：NPUW 默认 prefill 是静态整块，与真实长度无关（你自己测到 ~220–242 ms 恒定），不能按 269/512 缩放。INT8 @NPU 取 0.862，INT4 @NPU 取 0.707。
+3. 下一步按 C-075#5 / C-076：INT8_SYM 与 INT4_SYM（lastlogit 版）换 inputs_embeds → CPU 真实音频 prompt 对拍 → 12–27 分钟 GPU 编码器 + NPU 解码器端到端（WER+配对 CI、P50/整体 RTF、GPU compute 占用降幅、NPU 占用）。
+
+## C-079 [HIGH] 2026-10-17 15:40 — inputs_embeds 全 0：先别关路线，再试两个更可能的原因（各 ≤45 分钟）
+你的隔离实验很漂亮（`gather + (p − p)` 正常、真正覆盖就全 0），结论「NPUW 依赖 embed Gather 的路径」可信。但「NPUW_LLM 强制按 input_ids 查表」只是一种解释，还有两种更具体、可验证的原因：
+### 1. NPUW 的 host gather 优化
+NPUW 默认会把词表 embedding 的 Gather **挪到主机侧执行**（`NPUW_HOST_GATHER`，默认开），把结果直接喂给 NPU 子图的入口。图里的 Gather 被你断开/置零后，这个优化仍可能按 `input_ids` 在主机算 embedding 并写到那个入口，或者写到已断开的位置，于是 NPU 收到的不是你的 `inputs_embeds`。
+- 在方案 A（切断 Gather）和方案 B（Select）上加 `NPUW_HOST_GATHER=NO` 再跑；如果这个版本不认这个键，就记下报错。
+- 另外用 `get_property('NPU', ...)` 读出所有 `NPUW_*` 的默认值并贴出来，你之前已经能读到 `NPUW_LLM_*` 系列。
+### 2. 端口布局不像 VLM 语言模型
+openvino.genai 的 VLMPipeline 能在 NPU 上跑，它的语言模型 IR **没有 `input_ids` 端口**，只有 `inputs_embeds [?,?,H]`、`attention_mask`、`position_ids`、`beam_idx`。NPUW_LLM 很可能按「有没有 `inputs_embeds` 端口、有没有 `input_ids`」来选走哪条路径。你的几个变体都还保留了 `input_ids`（「4 端口 + ie」），这会让它走 token 路径。
+- 做一个**干净的 4 端口 IR**：切断 Gather 后**删除 `input_ids` Parameter**（`model.remove_parameter`），端口名用 `inputs_embeds`，形状设成 `[1, 1..512, 2048]`（你已经验证过 512 这个上界在 CPU 和 NPU 两边都能用），再用 NPUW_LLM 实跑。
+- 也可以照 optimum 导出 VLM 时语言模型那一半的做法去导出。
+- 顺带核实：在已装的 `openvino_genai` 包里查 `VLMPipeline` 文档或源码里的 NPU 支持说明，以及 `inputs_embeds` 这个端口名的用法，注意 pyd/dll 字符串可能是 UTF-16。
+### 3. 若 1、2 都失败
+就把「NPUW_LLM 在 2026.4.1 下不接受外部 embedding」作为结论写进阶段 4 矩阵：
+- **NPU 解码器：** 技术上可用，但必须走 token 路径，所以不适用于 ASR。
+- **方案 A「编码器融入同一 NPUW 图」：** 不做，工作量和风险都超出评估范围。
+- **方案 B「扩 embedding 表」：** 不可行，因为 embedding 表是常量，没法每次调用写入不同的音频嵌入。
+### 4. 两处数据标注
+- 「last-logits 修复从未生效」：c072c、c072f 里所有 **GPU 同图**的 prefill 都是在全序列 logits 下测的，请在 STATUS 和矩阵里标出来。NPU 的数字不受影响。
+- `qwen3-lm-int4sym-ie-ov` 是整目录复制出来的，凡是用了它的结论都作废，请重导出后再测。
+
+## C-080 [HIGH] 2026-10-17 18:35 — clean-ie 路线接受；立即开始端到端（不用再等确认）
+c079c 接受：删掉 `input_ids` 后，ie 真正进入 NPU；prefill CPU/NPU cos 0.99991（INT8）/ 0.99973（INT4），首 token 一致。dummy prompt 后续分叉照旧不作判据。找 DLL 契约字符串这个方法很好。你建的每小时巡检也很好。
+**现在按 C-075#5 执行端到端，INT4_SYM 先跑（估算 RTF 0.716），INT8_SYM 后跑：**
+1. 把 `models/qwen3-lm-{int4sym,int8sym}-cleanie-ov` 接进 `seg_stream`。prompt 拼接（模板 token 的 embedding + 音频嵌入 + 前缀 token 的 embedding）在 Python 里完成，embedding 表从 HF 权重的 `embed_tokens` 取，f32。`position_ids` 按 0..T−1 给（MRoPE ≡ 1D，已验证）。
+2. 每个 chunk 照生产逻辑 reset + 全量 prefill，用 `reset_state()`，不要每次新建 InferRequest。自适应 max_new_tokens 与 EOS 规则与生产完全一致。
+3. 12–27 分钟切片，全新进程，GPU 编码器 + NPU 解码器，开 GPU guard，计时子进程 `USE_TORCH=0`。报告：
+   - WER 与配对 CI：对 ABBA 配置 A 的同一切片转写，用 paired_bootstrap 5000 次。
+   - P50 / 整体 RTF，每块耗时中的 prefill 与 decode 分项。
+   - **GPU compute 占用对配置 A 的降幅**，以及 NPU 占用。
+4. 止损不变：实测 RTF > 0.9，或 WER 配对 CI 下界 > 0，就停在该精度。
+5. 转写文件放到 `reports/c080_e2e/`，命名为 `transcript_{int4,int8}_npu.txt`，reviewer 会独立复核。
+
+## C-081 [HIGH] 2026-10-17 20:05 — c080i「GPU 占用反而升 15%」几乎可以肯定是计数口径错：NPU 也挂在 GPU Engine 计数器下
+c080g/c080b 接受：INT8_SYM cleanie @NPU + GPU 编码器，12–27 分钟实测 RTF 0.853，WER Δ +0.72 pp CI[−0.38, +1.91] 不显著（reviewer 独立复核 +0.54 pp [−0.62, +1.74]，同结论）。INT4 × NPUW 真实音频乱码、按止损不跑，同意。
+### 问题
+c080i 显示 NPU 方案 GPU compute 均值 73.7%，高于全 GPU 的 63.9%。这与你自己的分项矛盾：NPU 方案里 GPU 只跑编码器，1491 次 × ~75 ms ≈ 112 s / 767 s wall ≈ **15%**，不可能 74%。
+最可能的原因：**Windows 的 `\GPU Engine(...engtype_Compute)` 计数器也包含 NPU**（NPU 在 WDDM 里注册成一个计算适配器，有自己的 LUID）。只按 PID 过滤、不按 LUID 过滤，就把 NPU 的占用算成了“GPU”。目标机上现在能看到两个带 Compute 引擎的 LUID：`0x00012E84` 和 `0x000144F0`。
+### 请做
+1. 用 `core.get_property("GPU.0","DEVICE_LUID")` 和 `core.get_property("NPU","DEVICE_LUID")` 拿到两者的 LUID（或用 `Get-CimInstance Win32_VideoController` / 适配器名对照），确认哪个 LUID 是 iGPU、哪个是 NPU。
+2. c080i 重算：**只统计 iGPU LUID** 的 Compute（以及 Copy）引擎，NPU LUID 单独列为“NPU 占用”。A 与 cleanie 各跑一次，同一 3 分钟切片、全新进程。
+3. 同时检查 `c058l_gpu_guard.py` 是否也有同样问题（它过滤的是“其它进程”，NPU 上的其它进程占用也会被算成 GPU 冲突；目前影响不大，但请注明）。
+4. 日志里「NPU 方案降载在当前瓶颈结构下不成立」先撤回，等第 2 步数据。
+
+## C-082 [NORMAL] 2026-10-17 21:10 — C-081 接受；NPU 评估收尾
+c081a/b 接受：iGPU LUID 0x12E84、NPU LUID 0x144F0；按 LUID 拆分后集显 compute 均值 67.7% → 7.4%（−89%），NPU 67.7%。c080i 的“GPU 占用反而升高”撤回。c081t 的切片口径说明也接受，引用 WER 时一律带上切片范围。
+reviewer 已经把 NPU 章节写进最终报告（§7）。
+### 收尾
+1. 在 STATUS 写阶段 4 矩阵（{GPU 现状, NPU enc + GPU dec, GPU enc + NPU dec INT8, GPU enc + NPU dec INT4, NPU enc + NPU dec}）。每格写 RTF / WER CI / 集显占用，做不到的格子写原因：
+   - NPU 编码器：慢 1.5 倍，没有收益；
+   - INT4 @NPU：真实音频输出乱码；
+   - 全 NPU：没跑，因为编码器在 NPU 上更慢，没有理由跑。
+2. 写一行「NPU 数据齐备」和文件清单。
+3. **不要继续追 INT4 × NPUW 的根因**，除非用户另行要求。
+4. 收尾后检查一遍：`models/` 下中间产物（手写图、ie 复制目录等）占了多少空间，列出可删清单写进 STATUS，**不要自己删**。
+
+## C-083 [NORMAL] 2026-10-17 22:25 — 阶段 4 矩阵与最终报告 §7 对齐：三处修正（只改 STATUS 文字，不用重测）
+「NPU 数据齐备」与可删清单接受，清单写得很清楚，删不删由用户决定。
+1. **RTF 混用了两个切片**：矩阵里 WER 是 12–27 分钟切片，RTF 却用了 c081b 的 3 分钟切片（0.6246 / 0.8651，×1.385）。主数据请统一为 **12–27 分钟**：A 取 ABBA 配置 A 的 **0.578**，cleanie 取 c080b 的 **0.853**（×1.475）。3 分钟切片的 RTF 只作为“集显占用测量时的伴随值”另列。报告 §7 用的就是 0.853 对 0.578。
+2. **「编码器只占 RTF 0.33%」已经过时**，而且和你自己的 c069m（17.2%）、c080h（15.2%）矛盾，请删掉。NPU 编码器那一格的理由改为：编码器约占流式耗时的 15–17%，在 NPU 上慢 1.5 倍，RTF 约再增加 0.05 个点；集显上能省的也只有剩下这约 7% 的占用，所以没有收益。
+3. **INT4 那一格的归因**：同一个 INT4 cleanie IR 在 CPU 上转写正确（c080e/c080f），所以问题在「INT4 权重 × NPU 执行」这个组合，不在 INT4 权重本身，请改成这个表述。

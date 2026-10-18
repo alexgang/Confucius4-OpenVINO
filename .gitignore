@@ -47,3 +47,6 @@ secrets/
 
 # C-049 测试语料（原始包数十GB + 生成的长音频，脚本可重建）
 test_data/
+
+# OpenVINO/NPU 编译缓存（C-085/C-086/C-087 的 NPU CACHE_DIR，约 53 GiB，可重建）
+reports/npu_cache/

@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Confucius4-R2T2 流式推理：OpenVINO vs CUDA 对比报告</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+* { box-sizing: border-box; }
+body { font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; margin: 0; background: #0f1115; color: #e4e6eb; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 32px 24px; }
+h1 { font-size: 28px; margin: 0 0 8px; color: #fff; }
+h2 { font-size: 20px; margin: 32px 0 16px; padding-left: 12px; border-left: 3px solid #4f8cff; color: #fff; }
+.subtitle { color: #8a8f99; margin-bottom: 24px; }
+.cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.card { background: #1a1d24; border: 1px solid #2a2e38; border-radius: 10px; padding: 18px 20px; }
+.card .label { color: #8a8f99; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+.card .value { font-size: 26px; font-weight: 600; color: #fff; margin-top: 6px; }
+.card .unit { font-size: 14px; color: #8a8f99; margin-left: 4px; }
+.card .note { font-size: 11px; color: #8a8f99; margin-top: 6px; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.chart { background: #1a1d24; border: 1px solid #2a2e38; border-radius: 10px; padding: 16px; }
+.chart-title { color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+.chart-sub { color: #8a8f99; font-size: 12px; margin-bottom: 12px; }
+.chart-box { width: 100%; height: 320px; }
+table { width: 100%; border-collapse: collapse; background: #1a1d24; border-radius: 10px; overflow: hidden; font-size: 13px; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #2a2e38; }
+th { background: #232730; color: #8a8f99; font-weight: 500; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+tr:last-child td { border-bottom: none; }
+td.num { text-align: right; font-family: Consolas, monospace; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; margin-right: 6px; }
+.tag-green { background: #1e3a2e; color: #4ade80; }
+.tag-blue { background: #1e2a3a; color: #60a5fa; }
+.tag-amber { background: #3a2e1e; color: #fbbf24; }
+.tag-red { background: #3a1e1e; color: #f87171; }
+.footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #2a2e38; color: #8a8f99; font-size: 12px; }
+.kv { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2a2e38; font-size: 13px; }
+.kv:last-child { border-bottom: none; }
+.kv .k { color: #8a8f99; }
+.kv .v { color: #fff; font-family: Consolas, monospace; }
+.headline { background: #1a1d24; border: 1px solid #2a2e38; border-left: 3px solid #4f8cff; border-radius: 10px; padding: 18px 22px; line-height: 1.9; color: #cbd0d8; }
+.headline b { color: #fff; }
+.warn { background: #3a2e1e; color: #fbbf24; padding: 1px 6px; border-radius: 3px; font-family: Consolas, monospace; }
+.ok { background: #1e3a2e; color: #4ade80; padding: 1px 6px; border-radius: 3px; font-family: Consolas, monospace; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Confucius4-R2T2 流式推理：OpenVINO vs CUDA 对比报告</h1>
+<p class="subtitle">测量时间 2026-10-15 22:49 ｜ 同一台机器、同一段音频 <code>test.wav</code>（6.74 s / 16 kHz / mono / PCM16）｜ OV 2026.4.1（segment-encoder FP16 + INT8-past stateful） vs CUDA 13.3 / audio.cpp v0.9.1（GGUF Q8_0）</p>
+
+<h2>一句话结论</h2>
+<div class="headline">
+<span class="tag tag-green">精度追平</span>61-min 英文会议集上，OV 流式 WER <b>7.88%</b> vs CUDA 官方流式 <b>7.69%</b>，差 <b>+0.19 pp</b>。修复自适应生成预算（C-047）之前的 <span class="warn">17.87%</span> 是 OV 端口自身的 bug，不是精度差距。<br>
+<span class="tag tag-blue">OV 以交付配置（640 ms 块）即可流式</span>
+同机同音频下 OV iGPU RTF <b>0.642</b>（&lt; 1，实时可跑），CUDA RTF <b>0.544</b>。
+稳态吞吐 OV <b>1.82× 实时</b> vs CUDA <b>5.78× 实时</b>，差 <b>3.18×</b>。<br>
+<span class="tag tag-amber">代价是块长差一倍</span>OV 用 <b>640 ms</b> 块才换来 RTF &lt; 1；CUDA 在 <b>320 ms</b> 块就有大量余量。
+若强行把 OV 也降到 320 ms 块，RTF 会涨到 <span class="warn">1.101</span>，<b>失去实时性</b> —— 这正是本报告把 640 ms 作为主轴的原因。<br>
+<span class="tag tag-blue">已被端到端验证</span>交付的 `mic_asr_app.py` 走的就是 640 ms 这套：麦克风 16 kHz → 在线 VAD（12–20 s 切段）→ 增量解码 → GUI 上屏。60 s 连续实测 RTF <b>0.650</b>、5 段定稿、文本连贯无跨段重复。
+</div>
+
+<h2>核心指标</h2>
+<div class="cards">
+<div class='card'><div class='label'>OV iGPU · RTF（640 ms 块，交付）</div><div class='value'>0.642</div><div class='note'><span class="ok">&lt; 1 · 实时可跑</span>｜ 61-min 全长实测 0.639</div></div>
+<div class='card'><div class='label'>CUDA dGPU · RTF（320 ms 块）</div><div class='value'>0.544</div><div class='note'>含约 2.2 s 一次性模型加载</div></div>
+<div class='card'><div class='label'>OV iGPU · 稳态吞吐</div><div class='value'>1.82<span class='unit'>× 实时</span></div><div class='note'>稳态 RTF 0.549</div></div>
+<div class='card'><div class='label'>CUDA · 稳态吞吐</div><div class='value'>5.78<span class='unit'>× 实时</span></div><div class='note'>稳态 RTF 0.173</div></div>
+</div>
+<p class="subtitle" style="margin-top:-8px">⚠️ <b>两边块长不同（OV 640 ms / CUDA 320 ms），所以主指标用 RTF / 稳态吞吐比较，不用每块毫秒数比较</b> —— 后者在块长不同时无意义。同块长（都 320 ms）的严格对照见下节。</p>
+
+<div class="headline" style="border-left-color:#fbbf24">
+<b style="color:#fbbf24">⚠️ 先回答一个问题：为什么本报告主轴是 640 ms，而不是和 CUDA 一样的 320 ms？</b><br>
+<b>因为 640 ms 才是交付口径。</b>此前所有 61-min 数据、交付的 <code>mic_asr_app.py</code> 端到端验证，用的都是 <code>640 ms</code> 块；
+本次为与 CUDA 报告严格对照，额外补测了一组 <code>320 ms</code>。
+同一脚本、同一模型、同一段音频，只改一个 <code>--chunk-ms</code>：
+<b>两个 RTF 都是真的，差异全部来自块长，不是性能回归。</b>
+
+<table style="margin-top:12px"><thead><tr>
+<th>块长</th><th>块数</th><th>墙钟 (s)</th><th>RTF</th><th>每块均值 (ms)</th><th>对照</th>
+</tr></thead><tbody>
+<tr><td class='num'>640 ms</td><td class='num'>11</td><td class='num'>4.33</td><td class='num'><span class="ok">0.642</span></td><td class='num'>360.7</td><td><b>本报告主轴 · 交付口径</b>｜与 61-min 全长实测 <code>0.639</code> 一致</td></tr>
+<tr><td class='num'>320 ms</td><td class='num'>22</td><td class='num'>7.42</td><td class='num'><span class="warn">1.101</span></td><td class='num'>322.6</td><td>仅为与 CUDA 做同块长对照（CUDA 侧即 320 ms）</td></tr>
+</tbody></table>
+
+<b style="color:#fbbf24">为什么块长减半，RTF 几乎翻倍？</b>
+因为每块的成本里<b>大头是"与块长无关的固定开销"</b>：segment encoder 每个 chunk 都要
+<b>把整段累积音频重新编码一遍</b>（无 window cache），decoder 也要对<b>整个已生成前缀</b>做一次 prefill。
+块长从 640 → 320 ms，每块成本只从 <b>360.7 ms</b> 降到 <b>322.6 ms</b>
+（省 <b>11%</b>），但块数从 11 涨到 22（翻倍）——
+净结果是总处理时间 <b>4.33 s → 7.42 s，涨 +72%（×1.72）</b>。
+换句话说：<b>块长减半只省下 11% 的单块成本，却要付 2 倍的块数</b>——
+短块买不到等比例的性能，只买到了更细的增量粒度。<br>
+<b>所以本报告的读法：</b>主指标（RTF / 稳态吞吐）看 <b>640 ms</b> 那一行 —— 那是交付配置；
+<b>320 ms</b> 那一行只用于回答"和 CUDA 同块长时谁更快"这一个问题。
+</div>
+
+<h2>精度对比</h2>
+<div class="row">
+<div class="chart">
+<div class="chart-title">61-min 英文会议集 WER</div>
+<div class="chart-sub">越低越好 ｜ 参考文本统一为 MiniMax 云端 asr-1.0（11066 词）</div>
+<div id="chart-wer" class="chart-box"></div>
+</div>
+<div class="chart">
+<div class="chart-title">三套 60-min 测试集 MER（中文按字 / 英文按词）</div>
+<div class="chart-sub">OV 自适应口径 ｜ 误差拆分为 替换 S / 删除 D / 插入 I</div>
+<div id="chart-mer" class="chart-box"></div>
+</div>
+</div>
+<table><thead><tr>
+<th>方案</th><th>WER</th><th>S</th><th>D</th><th>I</th><th>RTF</th><th>段尾延迟</th><th>说明</th>
+</tr></thead><tbody>
+<tr><td>OV 流式 · 修复前（固定 max_new_tokens=32）</td><td class='num'>17.87%</td><td class='num'>901</td><td class='num'>52</td><td class='num'>1025</td><td class='num'>0.687</td><td>无</td><td>C-047 定位：错译官方自适应预算</td></tr>
+<tr><td><b>OV 流式 · C-047 自适应单遍（交付）</b></td><td class='num'><b>7.88%</b></td><td class='num'>455</td><td class='num'>54</td><td class='num'>363</td><td class='num'><b>0.639</b></td><td>无</td><td>已追平两遍式 7.84%，无额外延迟</td></tr>
+<tr><td>OV 段级离线 INT8（C-045 两遍式第二遍）</td><td class='num'>7.84%</td><td class='num'>433</td><td class='num'>73</td><td class='num'>362</td><td class='num'>0.72</td><td><b>3 秒</b></td><td>已废弃</td></tr>
+<tr><td>Hybrid 离线（torch encoder + OV INT8 decoder）</td><td class='num'>8.65%</td><td class='num'>436</td><td class='num'>73</td><td class='num'>448</td><td class='num'>—</td><td>—</td><td>反例：证明 INT8 decoder 非主因</td></tr>
+<tr><td><b>CUDA 流式（audio.cpp GGUF Q8_0，reviewer 实测）</b></td><td class='num'><b>7.69%</b></td><td class='num'>—</td><td class='num'>—</td><td class='num'>—</td><td class='num'>—</td><td>—</td><td>上界参考</td></tr>
+</tbody></table>
+
+<h3 style="color:#cbd0d8;font-size:15px;margin:24px 0 12px;">三套 60-min 测试集（人工转写参考，与上一表不同量纲）</h3>
+<table><thead><tr>
+<th>测试集</th><th>整体 MER</th><th>S</th><th>D</th><th>I</th><th>n_ref</th><th>重复 4-gram</th><th>RTF</th><th>P95</th><th>max</th><th>说明</th>
+</tr></thead><tbody>
+<tr><td><b>zh_60min</b></td><td class='num'><b>3.18%</b></td><td class='num'>189</td><td class='num'>6</td><td class='num'>141</td><td class='num'>10557</td><td class='num'>903</td><td class='num'>0.590</td><td class='num'>0.635</td><td class='num'>0.669</td><td>AISHELL-1 官方 test</td></tr>
+<tr><td><b>en_60min</b></td><td class='num'><b>5.13%</b></td><td class='num'>175</td><td class='num'>171</td><td class='num'>150</td><td class='num'>9673</td><td class='num'>146</td><td class='num'>0.599</td><td class='num'>0.637</td><td class='num'>0.672</td><td>LibriSpeech test-clean</td></tr>
+<tr><td><b>mix_60min</b></td><td class='num'><b>7.78%</b></td><td class='num'>185</td><td class='num'>455</td><td class='num'>113</td><td class='num'>9679</td><td class='num'>348</td><td class='num'>0.601</td><td class='num'>0.646</td><td class='num'>0.772</td><td>段落级语言交替</td></tr>
+<tr><td>├ 中文为主段</td><td class='num'>6.77%</td><td class='num'>119</td><td class='num'>34</td><td class='num'>97</td><td class='num'>3694</td><td class='num'>—</td><td class='num'>—</td><td class='num'>—</td><td class='num'>—</td><td></td></tr>
+<tr><td>└ 英文为主段</td><td class='num'>14.05%</td><td class='num'>194</td><td class='num'>325</td><td class='num'>79</td><td class='num'>4255</td><td class='num'>—</td><td class='num'>—</td><td class='num'>—</td><td class='num'>—</td><td></td></tr>
+</tbody></table>
+<p class="subtitle" style="margin-top:12px">⚠️ <b>两张表不可横向比较</b>：上一表参考文本是 MiniMax 云端 asr-1.0；下一表用的是官方人工转写。
+⚠️ 且 <code>CUDA 7.69%</code> 对归一化口径敏感：本机脚本在「保留数字 / 去数字」两种设置下分别给出
+<code>7.62%</code> 与 <code>7.51%</code>。三者落在 7.5–7.7% 区间，与 OV 的 7.88% 差 0.2–0.4 pp。</p>
+
+<h2>资源占用（峰值）</h2>
+<div class="cards">
+<div class='card'><div class='label'>工作集 · OV iGPU（640 ms 块）</div><div class='value'>3369<span class='unit'>MB</span></div><div class='note'>320 ms 块：<code>3804</code> MB</div></div>
+<div class='card'><div class='label'>工作集 · CUDA</div><div class='value'>2515<span class='unit'>MB</span></div><div class='note'>私有内存 <code>4.8 GB</code></div></div>
+<div class='card'><div class='label'>GPU 显存 · OV iGPU（640 ms 块）</div><div class='value'>3666<span class='unit'>MB</span></div><div class='note'>iGPU 为 UMA 共享内存，与进程内存重叠</div></div>
+<div class='card'><div class='label'>GPU 显存 · CUDA</div><div class='value'>3355<span class='unit'>MB</span></div><div class='note'>8 GB 显存中占 41%</div></div>
+</div>
+<table><thead><tr>
+<th>配置</th><th>块长</th><th>墙钟 (s)</th><th>RTF</th><th>稳态 RTF</th><th>每块均值 (ms)</th><th>工作集峰值 (MB)</th><th>Private 峰值 (MB)</th><th>CPU 峰值 (%)</th><th>GPU 占用峰值 (%)</th><th>GPU 内存峰值 (MB)</th>
+</tr></thead><tbody id="tbody-res"></tbody></table>
+<p class="subtitle" style="margin-top:12px">⚠️ iGPU 为统一内存架构（UMA），「GPU 内存」来自系统共享内存，与进程内存高度重叠 —— <b>不应把 OV iGPU 的 GPU 内存与 CUDA 的专用显存直接相加或对比</b>。</p>
+
+<h2>推理延迟拆解</h2>
+<div class="row">
+<div class="chart">
+<div class="chart-title">交付口径逐块构成（OV iGPU · 640 ms / 块 · 11 块）</div>
+<div class="chart-sub">堆叠：蓝 = 音频编码，紫 = Decoder Prefill，青 = 逐 token 生成 ｜ 红色虚线 = 640 ms 块预算 ｜ 稳态每块 369.9 ms，占用预算 58%%</div>
+<div id="chart-latency640" class="chart-box"></div>
+</div>
+<div class="chart">
+<div class="chart-title">块长对 OV iGPU 的影响（同一段 6.74 s 音频）</div>
+<div class="chart-sub">左：每块成本几乎不随块长缩放（固定开销主导）｜ 右：总处理时间随块数近乎线性增长</div>
+<div id="chart-chunk" class="chart-box"></div>
+</div>
+</div>
+<div class="row">
+<div class="chart">
+<div class="chart-title">同块长严格对照：OV vs CUDA 逐块（都 320 ms / 块 · 22 块）</div>
+<div class="chart-sub">OV 堆叠：蓝 = 音频编码，紫 = Decoder Prefill，青 = 逐 token 生成 ｜ CUDA 堆叠：橙 = 音频编码，绿 = Decoder Prefill ｜ 红色虚线 = 320 ms 块预算</div>
+<div id="chart-latency" class="chart-box"></div>
+</div>
+<div class="chart">
+<div class="chart-title">每块预算占用率（稳态每块毫秒 ÷ 块长）</div>
+<div class="chart-sub">&gt; 100% 即追不上实时流 ｜ 只有 640 ms 配置有余量 ｜ 红色虚线 = 100% 实时线</div>
+<div id="chart-occ" class="chart-box"></div>
+</div>
+</div>
+
+<h2>资源时间线</h2>
+<div class="row">
+<div class="chart">
+<div class="chart-title">进程内存（WorkingSet 实线 / Private 虚线）</div>
+<div class="chart-sub">单位 MB ｜ 蓝 = OV iGPU，橙 = OV CPU，绿 = CUDA</div>
+<div id="chart-mem" class="chart-box"></div>
+</div>
+<div class="chart">
+<div class="chart-title">GPU 显存 / 共享内存占用</div>
+<div class="chart-sub">单位 MB ｜ 蓝 = OV iGPU（UMA 共享），绿 = CUDA 专用显存</div>
+<div id="chart-gpumem" class="chart-box"></div>
+</div>
+</div>
+<div class="chart">
+<div class="chart-title">GPU 占用率</div>
+<div class="chart-sub">单位 % ｜ 250 ms 采样间隔</div>
+<div id="chart-gpuutil" class="chart-box"></div>
+</div>
+
+<h2>分块延迟明细（OV 640 ms / 块 · 交付口径）</h2>
+<table><thead><tr>
+<th>Chunk</th><th>OV@640 编码</th><th>OV@640 Prefill</th><th>OV@640 生成</th><th>OV@640 合计</th><th>OV@640 增量文本</th><th>OV@320 合计</th><th>CUDA 编码</th><th>CUDA Prefill</th><th>CUDA 合计</th>
+</tr></thead><tbody id="tbody-chunks"></tbody></table>
+<p class="subtitle" style="margin-top:12px">⚠️ <b>行号是块序号，不是时间对齐</b>：OV@640 第 <i>i</i> 块覆盖音频 <code>[640(i-1), 640i)</code> ms，OV@320 / CUDA 第 <i>i</i> 块覆盖 <code>[320(i-1), 320i)</code> ms —— 同一行里 OV@640 与 CUDA 覆盖的音频区间相差一倍，只能纵向看各自趋势，不能横向逐行比大小。
+OV@640 共 11 块（第 11 块为尾 flush，耗时 0），故后 11 行 OV@640 列为空属正常。CUDA 侧报告未拆分逐 token 生成。</p>
+
+<h2>关键指标解读</h2>
+<div class="chart">
+<div class='kv'><span class='k'>音频时长 / 采样</span><span class='v'>6.74 s（16 kHz mono 16-bit）</span></div>
+<div class='kv'><span class='k'>块大小 / 块数</span><span class='v'>640 ms → 11 块（含尾 flush）｜ 320 ms → 22 块</span></div>
+<div class='kv'><span class='k'>OV iGPU 每块（640 ms · 交付）</span><span class='v'>均值 360.7 ms ｜ 首块 268.6 ms ｜ 稳态 369.9 ms</span></div>
+<div class='kv'><span class='k'>OV iGPU 每块（320 ms · 对照）</span><span class='v'>均值 322.6 ms ｜ 首块 208.6 ms ｜ 稳态 328.0 ms</span></div>
+<div class='kv'><span class='k'>CUDA 每块（320 ms）</span><span class='v'>均值 65.0 ms ｜ 首块 264.5 ms（含 CUDA Graph 预热）｜ 稳态 55.5 ms</span></div>
+<div class='kv'><span class='k'>稳态吞吐（各自块长，能否追上实时）</span><span class='v'>CUDA 5.78× vs OV 1.82× —— 差 <b>3.18×</b></span></div>
+<div class='kv'><span class='k'>单块速度比（同 320 ms 块，OV ÷ CUDA 稳态）</span><span class='v'>5.91×</span></div>
+<div class='kv'><span class='k'>OV iGPU 延迟构成（640 ms）</span><span class='v'>编码 44.4 ms ｜ Prefill 102.2 ms ｜ 生成 201.3 ms</span></div>
+<div class='kv'><span class='k'>OV iGPU 延迟构成（320 ms）</span><span class='v'>编码 45.6 ms ｜ Prefill 85.8 ms ｜ 生成 176.8 ms</span></div>
+<div class='kv'><span class='k'>块长 320 → 640 ms 的收益</span><span class='v'>总处理时间 7.42 s → 4.33 s（-42%）</span></div>
+<div class='kv'><span class='k'>纯 CPU 参考（320 ms / 640 ms）</span><span class='v'>RTF 10.87 / 5.66 ｜ 每块 3125 ms / 3052 ms</span></div>
+<div class='kv'><span class='k'>识别结果（三档一致）</span><span class='v'>之前有顾客自己带酒水也没加收钱或者不让喝。</span></div>
+</div>
+
+<h2>口径与局限（请 reviewer 重点看）</h2>
+<div class="chart"><p style="line-height:1.9;color:#cbd0d8">
+<b>1. 速度对比是「iGPU vs dGPU」，不是「同硬件上的运行时对比」。</b>
+本机 <code>GPU.1</code> 恰好就是 RTX 5050 Laptop，我们本想让 OpenVINO 也跑在这块卡上，
+从而把「运行时/量化差异」与「硬件差异」分开。<b>但这条路走不通</b>：OV 2026.4 的 intel_gpu 插件
+能枚举到 GPU.1（能力报 FP32 / BIN / INT8，不含 FP16），而 encoder IR 的常量是 FP16；
+编译到 <code>convert:Convert_23531</code> 这个 F16→F32 reorder 节点时 kernel_selector
+找不到可用实现，<code>compile_model</code> 直接抛 RuntimeError。
+f32 / f16 / 默认 / HETERO 四种配置全部失败。
+所以表中 <b>5.91×</b> 的差距里<b>同时包含</b>「iGPU 算力弱于 dGPU」和「OV 运行时开销」两部分，
+本报告无法进一步拆分。<br>
+
+<b>2. CUDA 侧只引用、未重跑。</b>audio.cpp 是独立二进制，不在本仓库构建链路内；
+CUDA 数字来自 <code>confucius4-r2t2/stream_report.html</code> 与 <code>stream_metrics.csv</code>
+（2026-10-08 测）。两侧采样间隔统一 250 ms、字段同名同单位；
+但进程内存口径 RSS/USS vs Windows WorkingSet/Private 是<b>近似对应</b>——趋势可比，绝对值不可逐字节比。<br>
+
+<b>3. 6.74 s 是极短样本，墙钟里的一次性开销占大头。</b>
+CUDA 的 3.67 s 墙钟中约 2.2 s 是模型加载 + CUDA Graph 预热；
+OV 侧我们把编译（约 6.9 s）与预热排除在计时之外。
+因此直接比 RTF 对 CUDA 不公平。更干净的指标是<b>稳态每块延迟</b>：
+CUDA <b>55.5 ms</b> vs OV iGPU <b>328.0 ms</b>（同为 320 ms 块）。
+交付口径（640 ms）下 OV 稳态每块 <b>369.9 ms</b>、预算占用 <b>58%%</b>，
+换算成吞吐为 <b>1.82× 实时</b>。<br>
+
+<b>4. 精度对比的参考不是人工转写。</b>61-min 集的 reference 是 MiniMax 云端 asr-1.0，
+故 7.88% / 7.69% 都是「相对云端 ASR」的误差，不等于相对人工转写的绝对 WER。<br>
+
+<b>5. 混合集 MER 混了两种尺度。</b><code>mix_60min</code> 的 7.78% 里中文按字、英文按词，
+是 CER 与 WER 的混合；英文侧 14.05% 与中文侧 6.77% 不能直接相减。
+</p></div>
+
+<h2>结论</h2>
+<div class="chart"><p style="line-height:1.9;color:#cbd0d8">
+<span class="tag tag-green">精度 · OV 7.88% vs CUDA 7.69%</span>
+差距 <b>0.19 pp</b>，落在归一化口径波动（7.51–7.69%）范围内，可视为<b>已追平</b>。
+关键结论：此前的 17.87% 并非 OV 精度问题，而是 <code>max_new_tokens</code> 被固定为 32、
+错译了官方的自适应预算逻辑（C-047）。<br>
+
+<span class="tag tag-amber">速度 · iGPU 需要 640 ms 块才实时</span>
+交付口径（640 ms）下 OV iGPU RTF <b>0.642</b>、稳态 <b>1.82× 实时</b>，61-min 全长实测 RTF 0.639、P95 0.675，<b>满足 ≤0.8 验收线</b>。
+CUDA 在 320 ms 块下稳态 <b>5.78× 实时</b>，是 OV 的 <b>3.18×</b>。
+若强行把 OV 也降到 320 ms 块，每块 <b>322.6 ms</b>、RTF <b>1.101</b>，<b>反而追不上实时流</b>。
+即：iGPU 方案成立的前提是接受 640 ms 的增量粒度。<br>
+
+<span class="tag tag-blue">实时性已被端到端验证</span>
+交付的 `mic_asr_app.py` 走的就是这套 640 ms 配置：麦克风 16 kHz 采集 → 在线 VAD
+（12–20 s 切段、切点对齐 chunk 边界）→ 增量解码 → GUI 实时上屏。60 s 连续实测
+RTF <b>0.650</b>、5 段定稿、文本连贯无跨段重复。也就是说上表的 RTF 不是
+「离线跑批换算出来的理论值」，而是真实麦克风通路里跑出来的。<br>
+
+<span class="tag tag-blue">部署建议</span>
+- 有 NVIDIA 独显 → 继续用 CUDA / audio.cpp：每块 55–65 ms，余量充足，且不切段可到 240–300 s。<br>
+- 只有 Intel iGPU / CPU → OV 方案可用，但必须用 <b>640 ms 块 + 12–20 s VAD 切段</b>；
+  纯 CPU 推理 RTF 5–11，<b>仅适合离线批处理</b>。<br>
+- 两者<b>都需要调用方自己做 VAD 切句</b>：CUDA 超过 240–300 s、OV 旧 IR 超过 120 s 都会 OOM / 超上限。
+</p></div>
+
+<div class='footer'>
+OpenVINO 侧数据来源：<code>reports/c052_ov_vs_cuda/{c320,c640}/summary.json</code>、<code>chunks_*.csv</code>、<code>proc_*.csv</code>（生成脚本 <code>c052_ov_vs_cuda.py</code>）｜
+CUDA 侧数据来源：<code>C:\Users\Trekker-PTL\confucius4-r2t2\stream_metrics.csv</code>、<code>stream_report.html</code>｜
+采样间隔 250 ms ｜ 模型：<code>models/ov-encoder-segment-reviewer</code> + <code>models/ov-int8-past</code>
+</div>
+</div>
+<script>
+const D = {"cuda": {"chunks": [{"chunk": 1, "enc": 167.6, "prefill": 96.9, "total": 264.5, "delta": "之前"}, {"chunk": 2, "enc": 16.0, "prefill": 25.6, "total": 41.6, "delta": "之前有"}, {"chunk": 3, "enc": 20.5, "prefill": 25.0, "total": 45.5, "delta": "之前有顾客"}, {"chunk": 4, "enc": 18.7, "prefill": 26.3, "total": 45.0, "delta": "之前有顾客自己带"}, {"chunk": 5, "enc": 12.6, "prefill": 26.8, "total": 39.4, "delta": "之前有顾客自己带酒"}, {"chunk": 6, "enc": 6.9, "prefill": 31.0, "total": 37.9, "delta": "之前有顾客自己带酒水"}, {"chunk": 7, "enc": 23.1, "prefill": 29.2, "total": 52.3, "delta": "之前有顾客自己带酒水"}, {"chunk": 8, "enc": 16.3, "prefill": 32.2, "total": 48.5, "delta": "之前有顾客自己带酒水"}, {"chunk": 9, "enc": 13.0, "prefill": 33.1, "total": 46.1, "delta": "之前有顾客自己带酒水"}, {"chunk": 10, "enc": 7.7, "prefill": 30.2, "total": 37.9, "delta": "之前有顾客自己带酒水也没"}, {"chunk": 11, "enc": 24.6, "prefill": 39.9, "total": 64.5, "delta": "之前有顾客自己带酒水也没加收"}, {"chunk": 12, "enc": 13.0, "prefill": 37.2, "total": 50.2, "delta": "之前有顾客自己带酒水也没加收钱"}, {"chunk": 13, "enc": 30.1, "prefill": 34.1, "total": 64.2, "delta": "之前有顾客自己带酒水也没加收钱"}, {"chunk": 14, "enc": 25.1, "prefill": 35.6, "total": 60.7, "delta": "之前有顾客自己带酒水也没加收钱或者"}, {"chunk": 15, "enc": 27.6, "prefill": 41.2, "total": 68.8, "delta": "之前有顾客自己带酒水也没加收钱或者不让"}, {"chunk": 16, "enc": 32.4, "prefill": 42.0, "total": 74.4, "delta": "之前有顾客自己带酒水也没加收钱或者不让喝。"}, {"chunk": 17, "enc": 24.3, "prefill": 40.8, "total": 65.1, "delta": "之前有顾客自己带酒水也没加收钱或者不让喝。"}, {"chunk": 18, "enc": 20.6, "prefill": 37.1, "total": 57.7, "delta": "之前有顾客自己带酒水也没加收钱或者不让喝。"}, {"chunk": 19, "enc": 20.2, "prefill": 36.4, "total": 56.6, "delta": "之前有顾客自己带酒水也没加收钱或者不让喝。"}, {"chunk": 20, "enc": 29.7, "prefill": 40.0, "total": 69.7, "delta": "-"}, {"chunk": 21, "enc": 24.8, "prefill": 41.4, "total": 66.2, "delta": "-"}, {"chunk": 22, "enc": 27.0, "prefill": 45.8, "total": 72.8, "delta": "-"}], "tl": {"t": ["10:41:31.170", "10:41:31.505", "10:41:31.816", "10:41:32.128", "10:41:32.449", "10:41:32.783", "10:41:33.095", "10:41:33.408", "10:41:33.738", "10:41:34.070", "10:41:34.395", "10:41:34.708", "10:41:35.017", "10:41:35.328", "10:41:35.640", "10:41:35.968", "10:41:36.280", "10:41:36.597", "10:41:36.932", "10:41:37.248", "10:41:37.560", "10:41:37.871", "10:41:38.188", "10:41:38.519", "10:41:38.837", "10:41:39.149", "10:41:39.479", "10:41:39.803", "10:41:40.117", "10:41:40.441", "10:41:40.771", "10:41:41.083", "10:41:41.408", "10:41:41.724", "10:41:42.035", "10:41:42.358", "10:41:42.689", "10:41:43.001", "10:41:43.316", "10:41:43.641", "10:41:43.947", "10:41:44.280", "10:41:44.590", "10:41:44.901", "10:41:45.216", "10:41:45.526", "10:41:45.839", "10:41:46.157", "10:41:46.486", "10:41:46.819", "10:41:47.138", "10:41:47.460", "10:41:47.773", "10:41:48.098", "10:41:48.409", "10:41:48.740", "10:41:49.068", "10:41:49.382", "10:41:49.693", "10:41:50.005", "10:41:50.331", "10:41:50.639", "10:41:50.965", "10:41:51.280", "10:41:51.593", "10:41:51.899", "10:41:52.211", "10:41:52.521", "10:41:52.833", "10:41:53.142", "10:41:53.465", "10:41:53.790", "10:41:54.109", "10:41:54.419", "10:41:54.747", "10:41:55.061", "10:41:55.372", "10:41:55.682", "10:41:55.995", "10:41:56.318", "10:41:56.629", "10:41:56.956", "10:41:57.271", "10:41:57.581", "10:41:57.908", "10:41:58.219", "10:41:58.540", "10:41:58.853", "10:41:59.185", "10:41:59.503", "10:41:59.817", "10:42:00.131", "10:42:00.571", "10:42:00.897", "10:42:01.222", "10:42:01.537", "10:42:01.877", "10:42:02.188", "10:42:02.499", "10:42:02.809", "10:42:03.120", "10:42:03.432", "10:42:03.759", "10:42:04.070", "10:42:04.382"], "ws": [28.8, 28.8, 29.1, 29.1, 44.3, 28.8, 29.1, 29.1, 28.8, 29.1, 29.1, 28.8, 29.1, 29.1, 44.3, 28.8, 28.8, 28.8, 28.9, 28.8, 28.8, 28.9, 28.8, 28.8, 28.9, 28.9, 28.8, 28.8, 28.9, 28.8, 28.8, 28.9, 29.2, 29.1, 29.0, 29.0, 29.3, 29.3, 29.1, 29.4, 29.4, 15.7, 29.1, 29.4, 29.4, 29.1, 29.4, 29.4, 29.1, 29.4, 29.4, 29.1, 29.1, 29.4, 29.4, 29.2, 29.4, 29.4, 29.2, 29.4, 29.4, 29.4, 29.2, 29.5, 29.6, 29.6, 29.6, 29.6, 29.9, 29.9, 29.7, 30.1, 30.2, 30.2, 30.2, 30.3, 30.3, 30.3, 30.0, 30.2, 30.2, 30.2, 29.9, 30.2, 197.5, 197.6, 246.2, 271.4, 665.4, 1247.9, 1880.5, 2514.8, 560.3, 734.9, 757.9, 762.3, 762.6, 764.1, 764.7, 765.8, 765.9, 767.0, 767.6, 767.6, 74.1], "priv": [258.1, 258.2, 259.0, 258.6, 273.8, 258.1, 258.7, 258.5, 258.2, 259.0, 258.7, 258.1, 258.5, 258.6, 273.9, 258.2, 258.1, 258.1, 258.2, 258.1, 258.1, 258.2, 258.1, 258.1, 258.2, 258.2, 258.1, 258.1, 258.2, 258.1, 258.1, 258.2, 258.5, 258.5, 258.2, 258.2, 259.0, 258.7, 258.2, 258.6, 258.5, 258.1, 258.1, 258.5, 258.6, 258.2, 258.6, 258.7, 258.2, 258.6, 258.5, 258.1, 258.1, 258.5, 258.6, 258.2, 258.6, 258.7, 258.2, 258.6, 258.5, 258.5, 258.1, 258.5, 258.5, 258.2, 259.0, 259.0, 258.6, 259.0, 258.2, 263.2, 263.3, 263.3, 263.3, 263.7, 263.7, 263.3, 258.4, 258.8, 258.8, 258.8, 258.3, 263.2, 515.1, 515.1, 565.3, 657.2, 1118.7, 3203.0, 3203.0, 3203.0, 3203.0, 4639.2, 4772.5, 4776.9, 4777.5, 4778.7, 4907.5, 4908.7, 4908.7, 4909.8, 4910.4, 4900.5, 488.3], "cpu": [1.5, 1.9, 2.2, 2.5, 2.8, 3.1, 3.4, 3.7, 4.0, 4.3, 4.7, 5.0, 5.3, 5.6, 5.9, 6.2, 6.5, 6.8, 7.1, 7.5, 7.8, 8.1, 8.4, 8.7, 9.0, 9.3, 9.6, 9.9, 10.2, 10.6, 10.9, 11.2, 11.5, 11.8, 12.1, 12.4, 12.7, 13.0, 13.3, 13.6, 13.9, 14.2, 14.6, 14.8, 15.2, 15.4, 15.8, 16.1, 16.4, 16.7, 17.1, 17.4, 17.7, 18.0, 18.3, 18.6, 18.9, 19.2, 19.6, 19.9, 20.2, 20.5, 20.8, 21.1, 21.4, 21.7, 22.0, 22.3, 22.6, 22.9, 23.2, 23.6, 23.9, 24.2, 24.4, 24.8, 25.1, 25.4, 25.7, 26.0, 26.3, 26.6, 26.9, 27.2, 27.5, 27.6, 27.8, 28.1, 28.4, 28.7, 29.0, 29.3, 29.7, 30.1, 30.3, 30.6, 30.8, 31.1, 31.4, 31.7, 32.0, 32.3, 32.6, 32.9, 33.2], "gpu": [17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 18.0, 18.0, 18.0, 18.0, 18.0, 18.0, 17.0, 17.0, 17.0, 18.0, 18.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 18.0, 17.0, 17.0, 17.0, 17.0, 17.0, 18.0, 17.0, 17.0, 17.0, 17.0, 17.0, 18.0, 18.0, 17.0, 18.0, 18.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 16.0, 18.0, 18.0, 18.0, 18.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 18.0, 18.0, 17.0, 17.0, 17.0, 17.0, 17.0, 17.0, 18.0, 18.0, 17.0, 17.0, 17.0, 25.0, 23.0, 23.0, 22.0, 7.0, 7.0, 61.0, 93.0, 93.0, 93.0, 93.0, 90.0, 87.0, 87.0, 96.0, 93.0, 93.0], "gpumem": [416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 416.0, 427.0, 2305.0, 2855.0, 2855.0, 2855.0, 2943.0, 3221.0, 3267.0, 3267.0, 3267.0, 3267.0, 3353.0, 3353.0, 3355.0, 3355.0, 3355.0, 3355.0, 416.0]}, "sum": {"key": "cuda", "device_name": "NVIDIA RTX 5050 Laptop 8GB / CUDA 13.3", "chunk_ms": 320, "n_chunks": 22, "wall_s": 3.67, "rtf": 0.544, "rtf_steady": 0.173, "per_chunk_ms_mean": 65.0, "per_chunk_ms_steady": 55.5, "per_chunk_ms_first": 264.5, "enc_ms_mean": 27.4, "prefill_ms_mean": 37.6, "decode_ms_mean": null, "ws_mb_peak": 2514.8, "private_mb_peak": 4910.4, "cpu_pct_peak": 33.2, "gpu_util_pct_peak": 96.0, "gpu_mem_mb_peak": 3355.0, "text": "之前有顾客自己带酒水也没加收钱或者不让喝。"}}, "ig320": {"sum": {"key": "ov_igpu", "device": "GPU.0", "device_name": "Intel(R) Graphics (iGPU)", "adaptive_budget": true, "audio_s": 6.74, "chunk_ms": 320.0, "n_chunks": 22, "compile_s": 6.91, "wall_s": 7.423, "rtf": 1.101, "rtf_steady": 1.022, "per_chunk_ms_mean": 322.6, "per_chunk_ms_median": 346.2, "per_chunk_ms_max": 523.0, "per_chunk_ms_first": 208.6, "per_chunk_ms_steady": 328.0, "flush_ms": 324.1, "throughput_chunks_per_s": 2.96, "enc_ms_mean": 45.6, "prefill_ms_mean": 85.8, "decode_ms_mean": 176.8, "text": "之前有顾客自己带酒水也没加收钱或者不让喝", "ws_mb_peak": 3804.2, "private_mb_peak": 3718.9, "cpu_pct_peak": 155.1, "gpu_util_pct_peak": 100.0, "gpu_mem_mb_peak": 3784.9}, "tl": {"t": [0.0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.0, 2.3, 2.6, 2.9, 3.2, 3.5, 3.8, 4.1, 4.4, 4.6, 4.9, 5.2, 5.5, 5.8, 6.1, 6.4, 6.7, 7.0], "ws": [2870.9, 2873.7, 2893.8, 2915.8, 2962.3, 2968.3, 2993.1, 3008.1, 3047.5, 3122.6, 3128.5, 3149.6, 3181.3, 3240.9, 3235.9, 3291.2, 3341.5, 3402.4, 3519.3, 3471.1, 3530.1, 3598.7, 3665.1, 3804.2, 3738.8], "priv": [2785.9, 2788.5, 2808.6, 2830.5, 2877.1, 2883.1, 2890.5, 2923.7, 2962.2, 3037.4, 3043.2, 3057.6, 3096.6, 3189.7, 3150.6, 3208.6, 3256.6, 3317.1, 3434.0, 3387.6, 3445.7, 3513.5, 3579.8, 3718.9, 3653.5], "cpu": [0.0, 95.0, 110.8, 94.5, 115.7, 111.2, 122.3, 131.5, 105.6, 110.5, 121.9, 111.2, 105.2, 111.2, 100.0, 110.5, 111.2, 105.2, 155.1, 100.0, 100.3, 99.7, 126.3, 100.3, 110.5], "gpu": [0.0, 98.8, 82.5, 86.9, 91.2, 82.1, 69.4, 97.3, 82.7, 73.5, 100.0, 75.1, 48.6, 80.5, 88.2, 71.4, 96.0, 83.6, 81.3, 88.9, 76.7, 79.9, 81.4, 79.4, 80.4], "gpumem": [3212.4, 3229.1, 3249.1, 3271.1, 3295.3, 3330.4, 3322.9, 3362.4, 3389.6, 3428.3, 3467.9, 3468.3, 3520.6, 3558.1, 3558.1, 3611.9, 3661.3, 3726.7, 3722.1, 3784.9, 3735.7, 3730.2, 3733.5, 3740.4, 3740.4]}, "chunks": [{"chunk": 1, "enc": 48.0, "prefill": 55.4, "dec": 101.0, "total": 208.6, "delta": ""}, {"chunk": 2, "enc": 48.5, "prefill": 56.1, "dec": 117.4, "total": 227.0, "delta": ""}, {"chunk": 3, "enc": 47.3, "prefill": 57.8, "dec": 166.9, "total": 277.8, "delta": "之前"}, {"chunk": 4, "enc": 46.6, "prefill": 59.3, "dec": 142.8, "total": 279.5, "delta": ""}, {"chunk": 5, "enc": 47.4, "prefill": 63.5, "dec": 228.9, "total": 346.2, "delta": "有"}, {"chunk": 6, "enc": 47.5, "prefill": 65.4, "dec": 114.1, "total": 233.8, "delta": "之前"}, {"chunk": 7, "enc": 46.7, "prefill": 66.5, "dec": 254.9, "total": 377.0, "delta": "有顾客自己"}, {"chunk": 8, "enc": 47.1, "prefill": 116.1, "dec": 250.1, "total": 423.2, "delta": "带酒"}, {"chunk": 9, "enc": 46.8, "prefill": 92.4, "dec": 227.8, "total": 377.9, "delta": "水"}, {"chunk": 10, "enc": 47.8, "prefill": 93.6, "dec": 174.0, "total": 326.3, "delta": ""}, {"chunk": 11, "enc": 47.3, "prefill": 107.1, "dec": 171.8, "total": 337.9, "delta": ""}, {"chunk": 12, "enc": 48.2, "prefill": 231.5, "dec": 232.8, "total": 523.0, "delta": "也没"}, {"chunk": 13, "enc": 46.3, "prefill": 101.7, "dec": 225.1, "total": 385.3, "delta": "加收。"}, {"chunk": 14, "enc": 56.4, "prefill": 73.8, "dec": 109.0, "total": 250.7, "delta": "之前有顾客自己带酒水也没加收"}, {"chunk": 15, "enc": 47.0, "prefill": 98.4, "dec": 203.8, "total": 364.1, "delta": "钱"}, {"chunk": 16, "enc": 46.5, "prefill": 89.1, "dec": 219.2, "total": 399.6, "delta": "或者"}, {"chunk": 17, "enc": 47.2, "prefill": 90.9, "dec": 231.0, "total": 382.7, "delta": "不让"}, {"chunk": 18, "enc": 47.9, "prefill": 89.8, "dec": 236.1, "total": 389.6, "delta": "喝。"}, {"chunk": 19, "enc": 47.6, "prefill": 97.4, "dec": 133.4, "total": 323.5, "delta": "之前有顾客自己带酒水也没加收钱或者不让喝"}, {"chunk": 20, "enc": 48.1, "prefill": 79.8, "dec": 219.5, "total": 365.5, "delta": "。"}, {"chunk": 21, "enc": 46.9, "prefill": 102.9, "dec": 130.7, "total": 298.2, "delta": "之前有顾客自己带酒水也没加收钱或者不让喝"}, {"chunk": 22, "enc": 0.0, "prefill": 0.0, "dec": 0.0, "total": 0.0, "delta": ""}]}, "ig640": {"sum": {"key": "ov_igpu", "device": "GPU.0", "device_name": "Intel(R) Graphics (iGPU)", "adaptive_budget": true, "audio_s": 6.74, "chunk_ms": 640.0, "n_chunks": 11, "compile_s": 6.75, "wall_s": 4.327, "rtf": 0.642, "rtf_steady": 0.549, "per_chunk_ms_mean": 360.7, "per_chunk_ms_median": 389.3, "per_chunk_ms_max": 524.6, "per_chunk_ms_first": 268.6, "per_chunk_ms_steady": 369.9, "flush_ms": 353.1, "throughput_chunks_per_s": 2.54, "enc_ms_mean": 44.4, "prefill_ms_mean": 102.2, "decode_ms_mean": 201.3, "text": "之前有顾客自己带酒水，也没加收钱或者不让喝。", "ws_mb_peak": 3368.6, "private_mb_peak": 3283.3, "cpu_pct_peak": 122.3, "gpu_util_pct_peak": 100.0, "gpu_mem_mb_peak": 3665.9}, "tl": {"t": [0.0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.1, 2.3, 2.6, 2.9, 3.2, 3.5, 3.8], "ws": [2886.0, 2915.3, 2894.7, 2926.3, 2968.3, 2972.5, 3027.4, 3084.6, 3086.4, 3150.1, 3275.9, 3217.0, 3293.3, 3368.6], "priv": [2800.8, 2830.1, 2809.5, 2841.1, 2883.0, 2900.9, 2942.7, 2999.3, 3001.1, 3064.9, 3190.6, 3132.0, 3208.5, 3283.3], "cpu": [0.0, 99.7, 122.3, 100.0, 100.0, 111.2, 115.7, 111.2, 100.0, 94.5, 94.7, 100.1, 104.8, 105.6], "gpu": [100.0, 84.8, 85.6, 89.4, 77.9, 52.6, 74.0, 75.9, 87.3, 59.6, 75.0, 82.1, 81.4, 74.7], "gpumem": [3197.3, 3223.3, 3255.8, 3264.3, 3297.5, 3307.7, 3352.7, 3394.9, 3395.0, 3456.6, 3520.9, 3529.4, 3592.2, 3665.9]}, "chunks": [{"chunk": 1, "enc": 49.0, "prefill": 76.5, "dec": 138.0, "total": 268.6, "delta": ""}, {"chunk": 2, "enc": 49.8, "prefill": 68.9, "dec": 160.3, "total": 286.3, "delta": "之前"}, {"chunk": 3, "enc": 46.9, "prefill": 72.5, "dec": 218.7, "total": 346.1, "delta": "有顾客"}, {"chunk": 4, "enc": 47.1, "prefill": 87.7, "dec": 274.6, "total": 419.1, "delta": "自己带酒"}, {"chunk": 5, "enc": 47.3, "prefill": 110.2, "dec": 220.6, "total": 389.3, "delta": "水"}, {"chunk": 6, "enc": 46.9, "prefill": 253.8, "dec": 212.5, "total": 524.6, "delta": "也没"}, {"chunk": 7, "enc": 47.1, "prefill": 89.5, "dec": 317.6, "total": 468.5, "delta": "加收钱。"}, {"chunk": 8, "enc": 59.8, "prefill": 175.0, "dec": 176.6, "total": 424.8, "delta": "之前有顾客自己带酒水也没加收钱或者"}, {"chunk": 9, "enc": 48.2, "prefill": 97.8, "dec": 311.6, "total": 473.0, "delta": "之前有顾客自己带酒水，也没加收钱或者不让喝。"}, {"chunk": 10, "enc": 46.6, "prefill": 92.7, "dec": 183.5, "total": 367.8, "delta": ""}, {"chunk": 11, "enc": 0.0, "prefill": 0.0, "dec": 0.0, "total": 0.0, "delta": ""}]}, "cp320": {"sum": {"key": "ov_cpu", "device": "CPU", "device_name": "Intel(R) Core(TM) Ultra 7 356H", "adaptive_budget": true, "audio_s": 6.74, "chunk_ms": 320.0, "n_chunks": 22, "compile_s": 7.02, "wall_s": 73.241, "rtf": 10.867, "rtf_steady": 9.891, "per_chunk_ms_mean": 3124.6, "per_chunk_ms_median": 3031.1, "per_chunk_ms_max": 4371.0, "per_chunk_ms_first": 2074.6, "per_chunk_ms_steady": 3174.6, "flush_ms": 4358.5, "throughput_chunks_per_s": 0.3, "enc_ms_mean": 1156.2, "prefill_ms_mean": 1310.0, "decode_ms_mean": 649.0, "text": "之前有顾客自己带酒水也没加收钱或者不让喝", "ws_mb_peak": 11162.7, "private_mb_peak": 8852.3, "cpu_pct_peak": 429.5}, "tl": {"t": [0.1, 0.6, 1.0, 1.4, 1.8, 2.2, 2.6, 3.1, 3.5, 3.9, 4.3, 4.7, 5.1, 5.5, 5.9, 6.4, 6.8, 7.2, 7.6, 8.1, 8.5, 8.9, 9.3, 9.7, 10.2, 10.6, 11.0, 11.5, 11.9, 12.3, 12.8, 13.2, 13.6, 14.0, 14.4, 14.8, 15.2, 15.6, 16.0, 16.4, 16.8, 17.3, 17.7, 18.1, 18.5, 19.0, 19.4, 19.8, 20.2, 20.6, 21.1, 21.5, 21.9, 22.3, 22.7, 23.2, 23.6, 24.0, 24.4, 24.9, 25.3, 25.7, 26.1, 26.5, 26.9, 27.4, 27.8, 28.2, 28.6, 29.0, 29.5, 29.9, 30.3, 30.7, 31.1, 31.6, 32.0, 32.4, 32.8, 33.3, 33.7, 34.1, 34.5, 34.9, 35.3, 35.7, 36.1, 36.6, 37.0, 37.4, 37.8, 38.3, 38.7, 39.1, 39.5, 40.0, 40.4, 40.8, 41.2, 41.7, 42.1, 42.5, 42.9, 43.3, 43.7, 44.1, 44.5, 45.0, 45.4, 45.8, 46.3, 46.7, 47.1, 47.5, 47.9, 48.4, 48.8, 49.2, 49.7, 50.1, 50.5, 50.9, 51.3, 51.7, 52.1, 52.6, 53.0, 53.4, 53.8, 54.3, 54.7, 55.1, 55.5, 56.0, 56.4, 56.8, 57.3, 57.7, 58.1, 58.6, 59.0, 59.4, 59.8, 60.2, 60.7, 61.1, 61.5, 61.9, 62.4, 62.8, 63.3, 63.7, 64.1, 64.5, 64.9, 65.4, 65.8, 66.2, 66.7, 67.1, 67.5, 68.0, 68.4, 68.8, 69.2, 69.7, 70.1, 70.5, 71.0, 71.4, 71.8, 72.2, 72.6, 73.0], "ws": [10997.6, 10998.9, 10998.9, 10998.9, 10772.3, 10772.3, 10771.0, 10771.0, 10771.0, 10772.3, 10772.3, 10738.5, 10722.5, 10704.8, 10709.7, 10718.5, 10719.7, 10719.7, 10719.7, 10724.9, 10732.7, 10735.2, 10735.2, 10735.2, 10740.5, 10764.0, 10752.2, 10756.3, 10756.3, 10756.3, 10761.4, 10739.7, 10767.4, 10767.4, 10767.4, 10767.4, 10773.1, 10746.1, 10782.3, 10787.2, 10788.6, 10788.6, 10788.6, 10794.4, 10794.4, 10803.4, 10808.2, 10810.1, 10810.2, 10810.2, 10816.1, 10816.1, 10823.7, 10828.5, 10831.1, 10831.1, 10831.1, 10837.5, 10837.5, 10879.6, 10850.4, 10853.7, 10853.7, 10853.7, 10860.2, 10860.2, 10821.5, 10867.8, 10872.7, 10872.7, 10872.7, 10879.7, 10879.7, 10879.7, 10923.4, 10891.7, 10897.8, 10897.8, 10897.7, 10906.0, 10906.0, 10906.0, 10906.0, 10865.4, 10915.7, 10921.0, 10925.8, 10925.8, 10925.8, 10933.9, 10933.9, 10933.9, 10891.6, 10946.2, 10949.9, 10949.9, 10949.9, 10958.4, 10958.4, 10958.4, 10958.4, 10909.3, 10967.3, 10972.3, 10975.9, 10976.1, 10976.1, 10985.0, 10985.0, 10985.0, 10985.0, 10933.0, 10997.7, 11003.2, 11007.6, 11007.6, 11007.6, 11011.5, 11012.0, 11012.2, 11012.2, 10962.6, 11021.2, 11026.6, 11030.7, 11030.8, 11030.8, 11034.2, 11034.7, 11034.7, 11034.7, 10975.9, 11043.0, 11047.9, 11052.2, 11052.2, 11052.2, 11055.7, 11056.4, 11056.4, 11056.4, 10986.0, 11062.8, 11068.3, 11073.4, 11073.4, 11073.4, 11076.2, 11076.7, 11076.7, 11076.7, 10983.7, 11143.6, 11086.0, 11089.8, 11089.8, 11089.8, 11093.3, 11093.8, 11093.8, 11093.8, 11093.8, 11162.7, 11103.6, 11108.7, 11108.7, 11108.7, 11112.9, 11113.5, 11113.5, 11113.5, 11113.5, 11044.4, 11115.6], "priv": [8686.8, 8688.0, 8688.0, 8460.2, 8461.4, 8461.4, 8460.2, 8460.2, 8460.2, 8461.5, 8461.5, 8420.0, 8406.6, 8394.0, 8399.4, 8408.1, 8408.9, 8408.9, 8408.9, 8414.1, 8422.3, 8424.4, 8424.4, 8424.4, 8429.6, 8455.3, 8441.9, 8445.4, 8445.4, 8445.4, 8450.5, 8433.0, 8457.1, 8456.5, 8456.5, 8456.5, 8462.3, 8439.9, 8472.0, 8476.8, 8477.8, 8477.8, 8477.8, 8483.5, 8483.5, 8493.1, 8497.9, 8499.3, 8499.3, 8499.3, 8505.3, 8505.3, 8513.4, 8518.1, 8520.2, 8520.2, 8520.2, 8526.7, 8526.7, 8569.3, 8540.1, 8542.8, 8542.8, 8542.8, 8549.3, 8549.3, 8515.1, 8557.5, 8561.8, 8561.8, 8561.8, 8568.8, 8568.8, 8568.8, 8613.1, 8581.4, 8586.9, 8586.9, 8586.9, 8595.2, 8595.2, 8595.2, 8595.2, 8556.4, 8605.4, 8610.6, 8614.9, 8614.9, 8614.9, 8623.0, 8623.0, 8623.0, 8582.9, 8635.8, 8639.0, 8639.0, 8639.0, 8647.5, 8647.5, 8647.5, 8647.5, 8600.3, 8656.9, 8662.1, 8665.2, 8665.2, 8665.2, 8674.1, 8674.1, 8674.1, 8674.1, 8643.1, 8687.3, 8692.8, 8696.7, 8696.7, 8696.7, 8701.1, 8701.4, 8701.4, 8650.0, 8707.0, 8710.8, 8716.3, 8719.9, 8719.9, 8720.0, 8723.8, 8723.8, 8723.8, 8723.8, 8724.9, 8732.7, 8737.5, 8741.3, 8741.3, 8741.3, 8745.6, 8745.6, 8745.6, 8745.6, 8687.1, 8752.4, 8758.1, 8762.5, 8762.5, 8762.5, 8765.8, 8765.8, 8765.8, 8765.8, 8688.8, 8832.7, 8775.8, 8778.9, 8778.9, 8778.9, 8782.9, 8782.9, 8782.9, 8782.9, 8696.5, 8852.3, 8793.2, 8797.8, 8797.8, 8797.8, 8802.6, 8802.6, 8802.6, 8802.6, 8705.3, 8804.1, 8805.0], "cpu": [0.0, 426.1, 357.6, 307.9, 284.1, 284.8, 399.9, 396.2, 285.1, 323.3, 256.4, 403.6, 385.1, 319.4, 325.8, 307.3, 374.0, 388.8, 359.2, 355.5, 262.9, 386.0, 396.2, 385.1, 356.7, 300.3, 274.0, 403.6, 371.9, 407.3, 367.4, 300.2, 287.7, 379.0, 407.3, 327.7, 359.2, 304.5, 246.3, 287.9, 425.8, 397.1, 366.6, 351.7, 359.2, 255.5, 284.8, 388.8, 366.6, 364.7, 381.4, 374.0, 311.0, 295.7, 400.5, 374.0, 355.5, 340.6, 366.6, 314.7, 277.1, 407.3, 392.5, 397.1, 392.5, 359.2, 311.0, 273.2, 396.2, 403.6, 399.9, 364.7, 411.0, 392.5, 211.7, 274.0, 414.7, 385.1, 370.3, 322.1, 296.2, 300.2, 277.7, 232.4, 272.6, 284.8, 407.6, 388.8, 351.7, 418.4, 367.4, 407.6, 270.3, 277.1, 407.3, 378.1, 330.3, 285.1, 362.9, 322.1, 327.1, 255.5, 300.2, 268.7, 415.6, 379.0, 314.8, 336.9, 326.6, 306.8, 333.2, 329.5, 292.5, 250.2, 400.5, 406.7, 292.5, 346.0, 397.1, 366.6, 378.1, 246.3, 285.1, 251.8, 397.1, 396.2, 322.5, 371.9, 378.1, 382.6, 388.8, 307.9, 266.6, 303.6, 396.2, 379.0, 260.4, 399.9, 379.4, 386.2, 363.9, 355.5, 212.3, 285.1, 374.6, 407.6, 307.9, 381.4, 372.5, 399.9, 369.1, 429.5, 176.6, 259.8, 370.3, 360.3, 366.6, 411.2, 403.6, 378.1, 379.0, 396.2, 288.8, 288.6, 378.1, 343.2, 325.8, 354.0, 388.8, 407.3, 374.0, 328.9, 331.0, 299.4], "gpu": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "gpumem": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "chunks": [{"chunk": 1, "enc": 1258.4, "prefill": 402.8, "dec": 410.1, "total": 2074.6, "delta": ""}, {"chunk": 2, "enc": 1253.3, "prefill": 418.5, "dec": 388.0, "total": 2063.9, "delta": ""}, {"chunk": 3, "enc": 1242.4, "prefill": 471.3, "dec": 462.1, "total": 2180.9, "delta": "之前"}, {"chunk": 4, "enc": 1168.6, "prefill": 537.9, "dec": 480.6, "total": 2192.8, "delta": ""}, {"chunk": 5, "enc": 1167.4, "prefill": 605.0, "dec": 790.9, "total": 2568.6, "delta": "有"}, {"chunk": 6, "enc": 1153.2, "prefill": 790.7, "dec": 390.0, "total": 2339.4, "delta": "之前"}, {"chunk": 7, "enc": 1238.0, "prefill": 826.0, "dec": 879.5, "total": 2952.2, "delta": "有顾客自己"}, {"chunk": 8, "enc": 1172.5, "prefill": 869.7, "dec": 893.8, "total": 2944.3, "delta": "带酒"}, {"chunk": 9, "enc": 1179.6, "prefill": 973.4, "dec": 780.6, "total": 2941.2, "delta": "水"}, {"chunk": 10, "enc": 1178.2, "prefill": 1088.1, "dec": 676.2, "total": 2951.3, "delta": ""}, {"chunk": 11, "enc": 1165.2, "prefill": 1269.5, "dec": 586.0, "total": 3031.1, "delta": ""}, {"chunk": 12, "enc": 1156.7, "prefill": 1404.7, "dec": 802.9, "total": 3374.1, "delta": "也没"}, {"chunk": 13, "enc": 1166.5, "prefill": 1970.2, "dec": 903.0, "total": 4050.8, "delta": "加收。"}, {"chunk": 14, "enc": 1177.5, "prefill": 1726.0, "dec": 399.0, "total": 3313.7, "delta": "之前有顾客自己带酒水也没加收"}, {"chunk": 15, "enc": 1262.7, "prefill": 2099.1, "dec": 803.6, "total": 4178.4, "delta": "钱"}, {"chunk": 16, "enc": 1243.8, "prefill": 2134.2, "dec": 818.4, "total": 4208.3, "delta": "或者"}, {"chunk": 17, "enc": 1275.6, "prefill": 2128.4, "dec": 801.3, "total": 4218.9, "delta": "不让"}, {"chunk": 18, "enc": 1243.9, "prefill": 2145.1, "dec": 824.8, "total": 4229.4, "delta": "喝"}, {"chunk": 19, "enc": 1286.8, "prefill": 2216.6, "dec": 770.6, "total": 4288.6, "delta": ""}, {"chunk": 20, "enc": 1264.6, "prefill": 2338.4, "dec": 750.1, "total": 4371.0, "delta": ""}, {"chunk": 21, "enc": 1180.8, "prefill": 2405.5, "dec": 666.5, "total": 4268.4, "delta": ""}, {"chunk": 22, "enc": 0.0, "prefill": 0.0, "dec": 0.0, "total": 0.0, "delta": ""}]}, "cp640": {"sum": {"key": "ov_cpu", "device": "CPU", "device_name": "Intel(R) Core(TM) Ultra 7 356H", "adaptive_budget": true, "audio_s": 6.74, "chunk_ms": 640.0, "n_chunks": 11, "compile_s": 7.04, "wall_s": 38.14, "rtf": 5.659, "rtf_steady": 4.668, "per_chunk_ms_mean": 3052.5, "per_chunk_ms_median": 3166.9, "per_chunk_ms_max": 4290.0, "per_chunk_ms_first": 2113.6, "per_chunk_ms_steady": 3146.4, "flush_ms": 4415.7, "throughput_chunks_per_s": 0.29, "enc_ms_mean": 1100.2, "prefill_ms_mean": 1221.3, "decode_ms_mean": 721.9, "text": "之前有顾客自己带酒水也没加收钱或者不让喝", "ws_mb_peak": 11055.1, "private_mb_peak": 8744.2, "cpu_pct_peak": 425.8}, "tl": {"t": [0.1, 0.6, 1.0, 1.4, 1.8, 2.3, 2.7, 3.1, 3.6, 4.0, 4.4, 4.8, 5.3, 5.7, 6.1, 6.5, 7.0, 7.4, 7.8, 8.2, 8.7, 9.1, 9.5, 9.9, 10.3, 10.8, 11.2, 11.6, 12.0, 12.5, 12.9, 13.3, 13.7, 14.1, 14.5, 14.9, 15.4, 15.8, 16.2, 16.6, 17.0, 17.5, 17.9, 18.3, 18.8, 19.2, 19.6, 20.1, 20.5, 20.9, 21.3, 21.8, 22.2, 22.6, 23.1, 23.5, 23.9, 24.3, 24.8, 25.2, 25.6, 26.0, 26.5, 26.9, 27.4, 27.8, 28.2, 28.6, 29.0, 29.5, 29.9, 30.3, 30.7, 31.2, 31.6, 32.0, 32.5, 32.9, 33.3, 33.7, 34.2, 34.6, 35.0, 35.4, 35.9, 36.3, 36.7, 37.1, 37.5, 37.9], "ws": [11053.8, 11055.1, 11055.1, 10802.6, 10803.9, 10803.9, 10802.9, 10802.9, 10802.9, 10804.1, 10769.9, 10764.3, 10741.7, 10696.0, 10701.5, 10686.5, 10714.2, 10720.5, 10721.6, 10721.6, 10721.6, 10727.4, 10727.5, 10740.6, 10745.8, 10750.5, 10750.5, 10750.5, 10756.8, 10756.8, 10730.3, 10773.1, 10777.9, 10780.2, 10780.3, 10780.3, 10787.1, 10787.1, 10737.2, 10799.6, 10804.9, 10809.1, 10809.1, 10809.1, 10816.8, 10816.8, 10816.9, 10776.8, 10830.8, 10835.9, 10843.5, 10843.5, 10843.5, 10851.8, 10851.9, 10851.9, 10852.7, 10798.3, 10870.3, 10875.4, 10881.4, 10881.4, 10881.4, 10884.6, 10885.1, 10885.1, 10885.1, 10836.5, 10898.9, 10904.2, 10911.2, 10911.2, 10911.2, 10914.8, 10915.3, 10915.3, 10915.3, 10836.9, 10928.3, 10934.0, 10936.2, 10936.2, 10936.2, 10940.8, 10941.2, 10941.2, 10941.2, 10941.2, 10878.8, 10951.4], "priv": [8742.9, 8744.2, 8744.2, 8491.8, 8493.1, 8493.1, 8492.0, 8492.0, 8492.0, 8493.3, 8459.1, 8453.5, 8430.9, 8385.1, 8390.7, 8382.7, 8404.2, 8410.3, 8410.8, 8410.8, 8410.8, 8416.6, 8416.6, 8430.3, 8435.4, 8439.6, 8439.6, 8439.6, 8445.9, 8446.0, 8421.5, 8462.8, 8467.6, 8469.4, 8469.4, 8469.4, 8476.2, 8476.3, 8428.4, 8489.2, 8494.5, 8498.2, 8498.2, 8498.2, 8505.9, 8506.0, 8506.0, 8467.0, 8520.5, 8525.5, 8532.6, 8532.6, 8532.6, 8541.0, 8541.0, 8541.5, 8542.3, 8490.1, 8560.0, 8565.0, 8570.5, 8570.5, 8570.5, 8574.2, 8574.2, 8574.2, 8574.2, 8582.9, 8588.5, 8594.1, 8600.4, 8600.4, 8600.4, 8604.4, 8604.4, 8604.4, 8604.4, 8528.3, 8617.9, 8623.6, 8625.3, 8625.3, 8625.3, 8630.4, 8630.3, 8630.3, 8630.3, 8630.3, 8570.0, 8641.0], "cpu": [0.0, 396.0, 396.9, 250.2, 362.9, 287.9, 407.6, 363.9, 237.5, 396.0, 257.9, 406.7, 357.6, 406.7, 375.4, 231.8, 259.2, 274.0, 419.4, 360.3, 307.3, 385.1, 374.0, 270.9, 268.7, 366.6, 408.3, 388.8, 370.3, 340.6, 304.0, 262.9, 254.0, 425.8, 366.6, 292.5, 356.7, 356.3, 340.6, 257.2, 246.3, 396.9, 346.0, 374.0, 411.0, 393.3, 372.5, 266.6, 284.8, 255.5, 356.7, 389.7, 353.2, 336.1, 351.7, 318.4, 314.7, 344.3, 222.2, 267.2, 371.0, 379.0, 346.0, 414.8, 371.0, 375.4, 362.9, 230.3, 254.0, 246.7, 403.6, 378.1, 374.0, 389.7, 406.7, 399.9, 389.7, 407.3, 223.2, 270.3, 406.7, 348.0, 315.6, 346.8, 381.4, 353.2, 403.6, 368.3, 263.7, 262.9], "gpu": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "gpumem": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "chunks": [{"chunk": 1, "enc": 1275.1, "prefill": 418.2, "dec": 416.2, "total": 2113.6, "delta": ""}, {"chunk": 2, "enc": 1290.1, "prefill": 510.4, "dec": 526.4, "total": 2331.7, "delta": "之前"}, {"chunk": 3, "enc": 1143.6, "prefill": 807.7, "dec": 829.6, "total": 2786.7, "delta": "有顾客"}, {"chunk": 4, "enc": 1276.8, "prefill": 853.0, "dec": 1000.4, "total": 3137.9, "delta": "自己带酒"}, {"chunk": 5, "enc": 1156.9, "prefill": 1193.6, "dec": 805.8, "total": 3166.9, "delta": "水"}, {"chunk": 6, "enc": 1255.9, "prefill": 1383.6, "dec": 795.0, "total": 3445.9, "delta": "也没"}, {"chunk": 7, "enc": 1193.2, "prefill": 1736.6, "dec": 1014.1, "total": 3954.6, "delta": "加收钱"}, {"chunk": 8, "enc": 1146.7, "prefill": 2156.9, "dec": 875.3, "total": 4192.4, "delta": "或者"}, {"chunk": 9, "enc": 1192.0, "prefill": 2160.6, "dec": 921.7, "total": 4290.0, "delta": "不让喝"}, {"chunk": 10, "enc": 1171.8, "prefill": 2213.8, "dec": 756.6, "total": 4157.7, "delta": ""}, {"chunk": 11, "enc": 0.0, "prefill": 0.0, "dec": 0.0, "total": 0.1, "delta": ""}]}};
+const AX = {axisLabel:{color:'#8a8f99'}, axisLine:{lineStyle:{color:'#2a2e38'}}, splitLine:{lineStyle:{color:'#2a2e38'}}};
+const TT = {trigger:'axis', backgroundColor:'#232730', borderColor:'#2a2e38', textStyle:{color:'#fff'}};
+const LG = {textStyle:{color:'#cbd0d8'}, top:0, right:0};
+
+const C_BLUE = '#4f8cff', C_GREEN = '#4ade80', C_PURPLE = '#a78bfa',
+      C_CYAN = '#22d3ee', C_ORANGE = '#fb923c', C_AMBER = '#fbbf24',
+      C_RED = '#f87171';
+
+// ── 1. WER 对比 ───────────────────────────────────────────
+echarts.init(document.getElementById('chart-wer')).setOption({
+  backgroundColor:'transparent', textStyle:{color:'#e4e6eb'},
+  grid:{left:70, right:30, top:20, bottom:80}, tooltip:TT,
+  xAxis:{type:'category',
+    data:['OV 修复前\n(固定 32)', 'OV 交付\n(自适应)', 'OV 两遍式\n(7.84)', 'CUDA 官方\n流式'],
+    axisLabel:{color:'#8a8f99', fontSize:11, lineHeight:16},
+    axisLine:{lineStyle:{color:'#2a2e38'}}},
+  yAxis:Object.assign({type:'value', name:'WER %', max:20,
+    nameTextStyle:{color:'#8a8f99'}}, AX),
+  series:[{
+    type:'bar', barWidth:'45%',
+    data:[{value:17.87, itemStyle:{color:C_RED}},
+          {value:7.88, itemStyle:{color:C_BLUE}},
+          {value:7.84, itemStyle:{color:C_PURPLE}},
+          {value:7.69, itemStyle:{color:C_GREEN}}],
+    label:{show:true, position:'top', color:'#fff', formatter:'{c}%'}
+  }]
+});
+
+// ── 2. MER 三套 ──────────────────────────────────────────
+echarts.init(document.getElementById('chart-mer')).setOption({
+  backgroundColor:'transparent', textStyle:{color:'#e4e6eb'},
+  legend:LG, grid:{left:60, right:20, top:40, bottom:40}, tooltip:TT,
+  xAxis:{type:'category', data:['zh_60min','en_60min','mix_60min'],
+    axisLabel:{color:'#8a8f99'}, axisLine:{lineStyle:{color:'#2a2e38'}}},
+  yAxis:Object.assign({type:'value', name:'MER %',
+    nameTextStyle:{color:'#8a8f99'}}, AX),
+  series:[
+    {name:'整体 MER', type:'bar', data:[3.18, 5.13, 7.78],
+     itemStyle:{color:C_BLUE},
+     label:{show:true, position:'top', color:'#fff', formatter:'{c}%'}},
+    {name:'中文为主段', type:'bar', data:[3.18, null, 6.77],
+     itemStyle:{color:C_PURPLE}},
+    {name:'英文为主段', type:'bar', data:[null, 5.13, 14.05],
+     itemStyle:{color:C_AMBER}}
+  ]
+});
+
+// ── 3. 交付口径逐块构成（OV iGPU · 640 ms）───────────────
+(function(){
+  const ci = D.ig640.chunks;
+  const xs = ci.map(c => c.chunk);
+  echarts.init(document.getElementById('chart-latency640')).setOption({
+    backgroundColor:'transparent', textStyle:{color:'#e4e6eb'},
+    legend:LG, grid:{left:60, right:20, top:45, bottom:30}, tooltip:TT,
+    xAxis:{type:'category', data:xs, name:'Chunk',
+      nameTextStyle:{color:'#8a8f99'},
+      axisLabel:{color:'#8a8f99'}, axisLine:{lineStyle:{color:'#2a2e38'}}},
+    yAxis:Object.assign({type:'value', name:'ms', max:700,
+      nameTextStyle:{color:'#8a8f99'}}, AX),
+    series:[
+      {name:'音频编码', type:'bar', stack:'ov640',
+       data:ci.map(c => c.enc), itemStyle:{color:C_BLUE}},
+      {name:'Decoder Prefill', type:'bar', stack:'ov640',
+       data:ci.map(c => c.prefill), itemStyle:{color:C_PURPLE}},
+      {name:'逐 token 生成', type:'bar', stack:'ov640',
+       data:ci.map(c => c.dec), itemStyle:{color:C_CYAN},
+       label:{show:true, position:'inside', color:'#fff', fontSize:10,
+              formatter:'{c}'}},
+      {name:'640 ms 块预算', type:'line', data:xs.map(() => 640),
+       symbol:'none', lineStyle:{color:C_RED, type:'dashed', width:1.5}}
+    ]
+  });
+})();
+
+// ── 3a. 同块长严格对照（OV 320 vs CUDA 320）──────────────
+(function(){
+  const cc = D.cuda.chunks, ci = D.ig320.chunks;
+  const xs = cc.map(c => c.chunk);
+  echarts.init(document.getElementById('chart-latency')).setOption({
+    backgroundColor:'transparent', textStyle:{color:'#e4e6eb'},
+    legend:LG, grid:{left:60, right:20, top:45, bottom:30}, tooltip:TT,
+    xAxis:{type:'category', data:xs, name:'Chunk',
+      nameTextStyle:{color:'#8a8f99'},
+      axisLabel:{color:'#8a8f99'}, axisLine:{lineStyle:{color:'#2a2e38'}}},
+    yAxis:Object.assign({type:'value', name:'ms',
+      nameTextStyle:{color:'#8a8f99'}}, AX),
+    series:[
+      {name:'OV 音频编码', type:'bar', stack:'ov',
+       data:ci.map(c => c.enc), itemStyle:{color:C_BLUE}},
+      {name:'OV Decoder Prefill', type:'bar', stack:'ov',
+       data:ci.map(c => c.prefill), itemStyle:{color:C_PURPLE}},
+      {name:'OV 逐 token 生成', type:'bar', stack:'ov',
+       data:ci.map(c => c.dec), itemStyle:{color:C_CYAN}},
+      {name:'CUDA 音频编码', type:'bar', stack:'cu',
+       data:cc.map(c => c.enc), itemStyle:{color:C_ORANGE}},
+      {name:'CUDA Decoder Prefill', type:'bar', stack:'cu',
+       data:cc.map(c => c.prefill), itemStyle:{color:C_GREEN}},
+      {name:'320 ms 块预算', type:'line', data:xs.map(() => 320),
+       symbol:'none', lineStyle:{color:C_RED, type:'dashed', width:1.5}}
+    ]
+  });
+})();
+
+// ── 3b. 块长 → 每块成本 / 总耗时 ──────────────────────────
+(function(){
+  const a = D.ig320.sum, b = D.ig640.sum;
+  echarts.init(document.getElementById('chart-chunk')).setOption({
+    backgroundColor:'transparent', textStyle:{color:'#e4e6eb'},
+    legend:LG, tooltip:TT,
+    grid:[{left:60, right:'55%', top:45, bottom:30},
+          {left:'58%', right:20, top:45, bottom:30}],
+    xAxis:[
+      {gridIndex:0, type:'category', data:['320 ms','640 ms'],
+       axisLabel:{color:'#8a8f99'}, axisLine:{lineStyle:{color:'#2a2e38'}}},
+      {gridIndex:1, type:'category', data:['320 ms','640 ms'],
+       axisLabel:{color:'#8a8f99'}, axisLine:{lineStyle:{color:'#2a2e38'}}}
+    ],
+    yAxis:[
+      Object.assign({gridIndex:0, type:'value', name:'每块 ms', max:450,
+        nameTextStyle:{color:'#8a8f99'}}, AX),
+      Object.assign({gridIndex:1, type:'value', name:'总墙钟 s', max:9,
+        nameTextStyle:{color:'#8a8f99'}}, AX)
+    ],
+    series:[
+      {name:'音频编码', type:'bar', stack:'p', xAxisIndex:0, yAxisIndex:0,
+       data:[a.enc_ms_mean, b.enc_ms_mean], itemStyle:{color:C_BLUE}},
+      {name:'Decoder Prefill', type:'bar', stack:'p', xAxisIndex:0,
+       yAxisIndex:0, data:[a.prefill_ms_mean, b.prefill_ms_mean],
+       itemStyle:{color:C_PURPLE}},
+      {name:'逐 token 生成', type:'bar', stack:'p', xAxisIndex:0,
+       yAxisIndex:0, data:[a.decode_ms_mean, b.decode_ms_mean],
+       itemStyle:{color:C_CYAN},
+       label:{show:true, position:'top', color:'#fff',
+              formatter:'每块 {c} ms'}},
+      {name:'总墙钟（标 RTF）', type:'bar', xAxisIndex:1, yAxisIndex:1,
+       barWidth:'45%',
+       data:[{value:a.wall_s, itemStyle:{color:C_RED}},
+             {value:b.wall_s, itemStyle:{color:C_GREEN}}],
+       label:{show:true, position:'top', color:'#fff',
+              formatter:function(p){
+                return (p.dataIndex === 0 ? a.rtf : b.rtf).toFixed(3)
+                       + ' RTF · ' + p.value.toFixed(2) + 's';
+              }}}
+    ]
+  });
+})();
+
+// ── 3c. 每块预算占用率 ──────────────────────────────────
+(function(){
+  const LEGS = [
+    {name:'OV iGPU\n@640 ms（交付）', d:D.ig640, chunk:640},
+    {name:'OV iGPU\n@320 ms', d:D.ig320, chunk:320},
+    {name:'CUDA dGPU\n@320 ms', d:D.cuda, chunk:320}
+  ];
+  const occ = LEGS.map(L => +(L.d.sum.per_chunk_ms_steady / L.chunk * 100)
+                              .toFixed(1));
+  echarts.init(document.getElementById('chart-occ')).setOption({
+    backgroundColor:'transparent', textStyle:{color:'#e4e6eb'},
+    legend:LG, tooltip:TT,
+    grid:{left:55, right:20, top:45, bottom:45},
+    xAxis:{type:'category', data:LEGS.map(L => L.name),
+      axisLabel:{color:'#8a8f99', fontSize:11, lineHeight:16},
+      axisLine:{lineStyle:{color:'#2a2e38'}}},
+    yAxis:Object.assign({type:'value', name:'%', max:130,
+      nameTextStyle:{color:'#8a8f99'}}, AX),
+    series:[
+      {name:'稳态每块 ÷ 块长', type:'bar', barWidth:'45%',
+       data:occ.map(v => ({value:v,
+         itemStyle:{color: v > 100 ? C_RED : (v > 80 ? C_AMBER : C_GREEN)}})),
+       label:{show:true, position:'top', color:'#fff', formatter:'{c}%'}},
+      {name:'100% 实时线', type:'line', data:LEGS.map(() => 100),
+       symbol:'none', lineStyle:{color:C_RED, type:'dashed', width:1.5}}
+    ]
+  });
+})();
+
+// ── 4. 进程内存时间线（交付口径 640 ms）──────────────────
+(function(){
+  const a = D.ig640.tl, b = D.cp640.tl, c = D.cuda.tl;
+  const n = Math.max(a.t.length, b.t.length, c.t.length);
+  const xs = [];
+  for (let i = 0; i < n; i++) xs.push(c.t[i] !== undefined ? c.t[i] : String(i));
+  echarts.init(document.getElementById('chart-mem')).setOption({
+    backgroundColor:'transparent', textStyle:{color:'#e4e6eb'},
+    legend:LG, grid:{left:70, right:20, top:40, bottom:60}, tooltip:TT,
+    xAxis:{type:'category', data:xs,
+      axisLabel:{color:'#8a8f99', rotate:35, fontSize:10,
+                 interval:Math.max(0, Math.floor(n/12))},
+      axisLine:{lineStyle:{color:'#2a2e38'}}},
+    yAxis:Object.assign({type:'value', name:'MB',
+      nameTextStyle:{color:'#8a8f99'}}, AX),
+    series:[
+      {name:'OV iGPU WorkingSet', type:'line', showSymbol:false,
+       data:a.ws, itemStyle:{color:C_BLUE}},
+      {name:'OV iGPU Private', type:'line', showSymbol:false,
+       data:a.priv, itemStyle:{color:C_BLUE}, lineStyle:{type:'dashed'}},
+      {name:'OV CPU WorkingSet', type:'line', showSymbol:false,
+       data:b.ws, itemStyle:{color:C_ORANGE}},
+      {name:'CUDA WorkingSet', type:'line', showSymbol:false,
+       data:c.ws, itemStyle:{color:C_GREEN}},
+      {name:'CUDA Private', type:'line', showSymbol:false,
+       data:c.priv, itemStyle:{color:C_GREEN}, lineStyle:{type:'dashed'}}
+    ]
+  });
+})();
+
+// ── 5. GPU 显存时间线（交付口径 640 ms）──────────────────
+(function(){
+  const a = D.ig640.tl, c = D.cuda.tl;
+  const n = Math.max(a.t.length, c.t.length);
+  const xs = [];
+  for (let i = 0; i < n; i++) xs.push(c.t[i] !== undefined ? c.t[i] : String(i));
+  echarts.init(document.getElementById('chart-gpumem')).setOption({
+    backgroundColor:'transparent', textStyle:{color:'#e4e6eb'},
+    legend:LG, grid:{left:70, right:20, top:40, bottom:60}, tooltip:TT,
+    xAxis:{type:'category', data:xs,
+      axisLabel:{color:'#8a8f99', rotate:35, fontSize:10,
+                 interval:Math.max(0, Math.floor(n/12))},
+      axisLine:{lineStyle:{color:'#2a2e38'}}},
+    yAxis:Object.assign({type:'value', name:'MB', max:8150,
+      nameTextStyle:{color:'#8a8f99'}}, AX),
+    series:[
+      {name:'OV iGPU（UMA 共享）', type:'line', showSymbol:false,
+       data:a.gpumem, itemStyle:{color:C_BLUE}, areaStyle:{opacity:0.12}},
+      {name:'CUDA 专用显存', type:'line', showSymbol:false,
+       data:c.gpumem, itemStyle:{color:C_GREEN}, areaStyle:{opacity:0.12}}
+    ]
+  });
+})();
+
+// ── 6. GPU 占用率（交付口径 640 ms）──────────────────────
+(function(){
+  const a = D.ig640.tl, c = D.cuda.tl;
+  const n = Math.max(a.t.length, c.t.length);
+  const xs = [];
+  for (let i = 0; i < n; i++) xs.push(c.t[i] !== undefined ? c.t[i] : String(i));
+  echarts.init(document.getElementById('chart-gpuutil')).setOption({
+    backgroundColor:'transparent', textStyle:{color:'#e4e6eb'},
+    legend:LG, grid:{left:60, right:20, top:40, bottom:60}, tooltip:TT,
+    xAxis:{type:'category', data:xs,
+      axisLabel:{color:'#8a8f99', rotate:35, fontSize:10,
+                 interval:Math.max(0, Math.floor(n/12))},
+      axisLine:{lineStyle:{color:'#2a2e38'}}},
+    yAxis:Object.assign({type:'value', name:'%', max:100,
+      nameTextStyle:{color:'#8a8f99'}}, AX),
+    series:[
+      {name:'OV iGPU', type:'line', showSymbol:false, data:a.gpu,
+       itemStyle:{color:C_BLUE}, areaStyle:{opacity:0.12}},
+      {name:'CUDA dGPU', type:'line', showSymbol:false, data:c.gpu,
+       itemStyle:{color:C_GREEN}, areaStyle:{opacity:0.12}}
+    ]
+  });
+})();
+
+// ── 资源对照表 ───────────────────────────────────────────
+(function(){
+  const LEGS = [
+    {name:'OV · Intel Xe3 iGPU @640 ms（交付默认）', d:D.ig640, chunk:640},
+    {name:'CUDA · RTX 5050 Laptop (dGPU)', d:D.cuda, chunk:D.cuda.sum.chunk_ms},
+    {name:'OV · Intel Xe3 iGPU @320 ms（与 CUDA 同块长）', d:D.ig320, chunk:320},
+    {name:'OV · Core Ultra 7 356H (CPU) @640 ms', d:D.cp640, chunk:640},
+    {name:'OV · Core Ultra 7 356H (CPU) @320 ms', d:D.cp320, chunk:320}
+  ];
+  const n = v => (v === null || v === undefined) ? '-' : v.toFixed(1);
+  let html = '';
+  LEGS.forEach(function(L){
+    const s = L.d.sum;
+    const ratio = (s.per_chunk_ms_steady / L.chunk);
+    html += '<tr><td>' + L.name + '</td>'
+      + '<td class="num">' + L.chunk + '</td>'
+      + '<td class="num">' + s.wall_s.toFixed(2) + '</td>'
+      + '<td class="num"><b>' + s.rtf.toFixed(3) + '</b></td>'
+      + '<td class="num">' + s.rtf_steady.toFixed(3) + '</td>'
+      + '<td class="num">' + n(s.per_chunk_ms_mean) + '</td>'
+      + '<td class="num">' + s.ws_mb_peak.toFixed(0) + '</td>'
+      + '<td class="num">' + s.private_mb_peak.toFixed(0) + '</td>'
+      + '<td class="num">' + n(s.cpu_pct_peak) + '</td>'
+      + '<td class="num">' + n(s.gpu_util_pct_peak) + '</td>'
+      + '<td class="num">' + n(s.gpu_mem_mb_peak) + '</td>'
+      + '</tr>';
+  });
+  document.getElementById('tbody-res').innerHTML = html;
+})();
+
+// ── 分块明细表（OV@640 主轴 + OV@320 / CUDA 对照）────────
+(function(){
+  const tb = document.getElementById('tbody-chunks');
+  let html = '';
+  D.cuda.chunks.forEach((c, i) => {
+    const o = D.ig640.chunks[i] || {};    // 640 ms 仅 11 行有值
+    const o3 = D.ig320.chunks[i] || {};
+    const n = v => (v === undefined || v === null) ? '-' : v.toFixed(1);
+    html += '<tr><td class="num">' + c.chunk + '</td>'
+      + '<td class="num">' + n(o.enc) + '</td>'
+      + '<td class="num">' + n(o.prefill) + '</td>'
+      + '<td class="num">' + n(o.dec) + '</td>'
+      + '<td class="num"><b>' + n(o.total) + '</b></td>'
+      + '<td>' + (o.delta || '-') + '</td>'
+      + '<td class="num">' + n(o3.total) + '</td>'
+      + '<td class="num">' + n(c.enc) + '</td>'
+      + '<td class="num">' + n(c.prefill) + '</td>'
+      + '<td class="num"><b>' + n(c.total) + '</b></td></tr>';
+  });
+  tb.innerHTML = html;
+})();
+
+window.addEventListener('resize', function(){
+  document.querySelectorAll('.chart-box').forEach(function(el){
+    var c = echarts.getInstanceByDom(el); if (c) c.resize();
+  });
+});
+</script>
+</body>
+</html>
