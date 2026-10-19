@@ -236,13 +236,22 @@ class NPUEmbedsDecoderBackend(SegmentEncoderOVBackend):
 
 
 def _load_embed_table() -> np.ndarray:
-    """从 HF 权重取 embed_tokens（f32）。
+    """取 embed_tokens（f32）。
 
-    优先用 safetensors 直读（不 import torch 时也能走），
-    否则回退到 torch。
+    C-088#3-1：交付形态**优先**读 `models/qwen3-lm-int8sym-cleanie-ov/embed_tokens_f16.npy`
+    （0.58 GiB，独立于 HF 权重目录）。这样 C-083 tier4 删掉
+    `models/hf-qwen3-lm-lastlogit` 时不会弄坏全 NPU 路径。
+
+    npy 缺失时回退到旧的 HF safetensors 路径（开发/复现历史实验用）。
     """
-    d = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                     "models", "hf-qwen3-lm-lastlogit")
+    models = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
+
+    npy = os.path.join(models, "qwen3-lm-int8sym-cleanie-ov",
+                       "embed_tokens_f16.npy")
+    if os.path.exists(npy):
+        return np.asarray(np.load(npy), dtype=np.float32)
+
+    d = os.path.join(models, "hf-qwen3-lm-lastlogit")
     idx = os.path.join(d, "model.safetensors.index.json")
     if os.path.exists(idx):
         from safetensors import safe_open
@@ -261,4 +270,6 @@ def _load_embed_table() -> np.ndarray:
     for k in sd:
         if k.endswith("embed_tokens.weight"):
             return sd[k].detach().to(torch.float32).numpy()
-    raise FileNotFoundError(d)
+    raise FileNotFoundError(
+        f"embed table not found: neither {npy} nor {d}. "
+        "Run c088a_export_embed_npy.py to produce the standalone .npy.")

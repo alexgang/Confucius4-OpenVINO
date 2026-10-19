@@ -2282,7 +2282,9 @@ NPU 评估到此收尾。**一句话结论：NPU 在本模型上的价值是「�
 
 原始数据：`reports/c083b_cpu_decode_micro.json`（LM 侧）、`reports/c083c_encoder_devices.json`（encoder 侧）、`reports/c083d_no_gpu_deployment.json`（汇总）
 
-**本机就是「无独显 + NPU」的同构形态**（HP OmniBook 7，Core Ultra 7 356H 16 核，GPU 仅集显，Intel NPU 正常），故实测可直接外推到同档台式机。
+**本机是「无独显 + NPU」形态**（HP OmniBook 7，Core Ultra 7 356H 16 核，GPU 仅集显，Intel NPU 正常）。
+
+> ⚠️ **C-088#2.2 撤回外推**：原文写「故实测可直接外推到同档台式机」，**这是错的，已撤回**。本机 NPU 是 `DEVICE_ARCHITECTURE=5010`，即**第 5 代 NPU（Panther Lake，约 50 TOPS）**；而主流台式机 Arrow Lake-S（Core Ultra 200S）用的是 **NPU 3，约 13 TOPS**，算力差约 4×。流式每 chunk 都要整块 prefill，**prefill 正是算力瓶颈**，NPU 3 上可能慢好几倍、RTF 可能超 1。正确表述只能是「**本机 NPU 5 实测**可实时」；**台式机能不能用必须在目标机上实测，不能外推**。
 
 **决定性数据（同一 cleanie INT8 IR，prompt 193，会话内中位）**
 
@@ -2306,18 +2308,20 @@ NPU 评估到此收尾。**一句话结论：NPU 在本模型上的价值是「�
 |---|---:|---|
 | **纯 CPU**（enc@CPU + dec@CPU） | **≈ 2.06** | ❌ **比音频慢一倍，不可用**。prefill 1029.6 ms/chunk，chunk 只有 640 ms。端到端实测佐证：40 s 切片跑 >20 min 未完。 |
 | **enc@CPU + dec@NPU** | ≈ 1.3+ | ❌ 也不成立。encoder 在 CPU 上慢 16.67×，搬离集显省不到多少 CPU，却把 encoder 拖成 647 ms。 |
-| **enc@NPU + dec@NPU**（全 NPU） | 预计 0.87–0.90 | ⚠️ **技术上可行，且完全不占 GPU** —— 但 RTF 与 cleanie 同量级，无速度优势。**未实测端到端。** |
+| **enc@NPU + dec@NPU**（全 NPU） | 预计 0.87–0.90 | ⚠️ **技术上可行，且完全不占 GPU** —— 但 RTF 与 cleanie 同量级，无速度优势。**未实测端到端。**（C-085 实测 0.7782；⚠️ C-088#2.2：数字仅对 **NPU 5** 成立） |
+
+> ⚠️ **C-088#2.1 撤回「NPU encoder 慢 1.23×」这行**：上表 encoder 一栏测的是**单输入 prod IR**（`models/ov-int8-past`），而**流式实际用的是双输入 `ov-encoder-segment-reviewer`**。c069d ABBA 显示双输入 IR 在 NPU 上**反而更快**（34.8 ms vs 集显 45.3 ms，**NPU/GPU = 0.769**）。故上表 encoder 绝对值不能用于流式外推，详见 C-085 第 2 节与 C-088#2.1。
 
 **核心洞察：「无 GPU」不等于「无加速器」**
 
-1. 无独显台式机**仍有集显**，而集显在本项目里是最快的执行单元（encoder 比 CPU 快 16.67×、比 NPU 还快）。
+1. 无独显台式机**仍有集显**，而集显在本项目里是最快的执行单元（CPU 慢 16.67×；流式双输入 encoder IR 下集显也比 CPU 快一个量级）。
 2. **NPU 的价值始终是「卸载 CPU/GPU」，不是「加速」** —— 单 token decode CPU 反而更快（35.9 vs 50.4 ms，16 核吃满），但流式每 chunk 都要整块 prefill，NPU 的 prefill 优势（5.8×）才让它有用。
 3. **「NPU + CPU」拼装跑不动这个模型**，因为 prefill 在 CPU 上是 1 s 级。要做 CPU-only，得换更小的模型或等更强的 CPU，不是靠 NPU 补。
 
 ### 2. 因此分两种情况回答「台式机」
 
-- **无独显、只有集显（绝大多数台式机）**：**可以，推荐的正是已实测的 cleanie** —— enc@集显 + dec@NPU，**RTF 0.853**，WER 不显著退化（Δ +0.72 pp，CI [−0.38, +1.91]），集显 compute 只剩 7.37%。本机就是这个形态，已跑通。
-- **严格「无任何 GPU，只有 CPU + NPU」**：**不推荐**，纯 CPU 侧 RTF ≈ 2.06，实时性不成立。若仍要做，可选全 NPU（预计 RTF ≈ 0.87–0.90），但需实测端到端 + WER 才能交付。
+- **无独显、只有集显（绝大多数台式机）**：**可以，推荐的正是已实测的 cleanie** —— enc@集显 + dec@NPU，**RTF 0.853**，WER 不显著退化（Δ +0.72 pp，CI [−0.38, +1.91]），集显 compute 只剩 7.37%。本机就是这个形态，已跑通。（⚠️ C-088#2.2：此处的 decoder 跑在集显上、只有 encoder 用 NPU，**对 NPU 代际不敏感**，故此结论外推到台式机风险较低；全 NPU 则不然。）
+- **严格「无任何 GPU，只有 CPU + NPU」**：**不推荐**，纯 CPU 侧 RTF ≈ 2.06，实时性不成立。若仍要做，可选全 NPU（C-085/C-086 在**本机 NPU 5** 上实测 RTF 0.778 / 0.772），但**台式机 NPU 3 上未测、不能外推**。
 
 **⚠️ 这修正了 C-083 阶段 4 矩阵里「全 NPU 不跑」的理由**：那条结论的成立前提是「机器有集显、所以省 GPU 的上界只有 7.37 pp」。**若目标机真的一个 GPU 都没有，「完全不占 GPU」本身就变成收益，全 NPU 需要重新评估。**
 
@@ -2328,7 +2332,7 @@ NPU 评估到此收尾。**一句话结论：NPU 在本模型上的价值是「�
 - **AMD Ryzen 9000（Zen 5）桌面版**：**砍掉了 NPU**。
 - AMD Ryzen 8000G：有 XDNA NPU，约 16–39 TOPS。
 
-好消息是：**NPU 代际不是本项目的阻塞项** —— 本机 NPU 同为 NPU 3 代，cleanie 已在其上实测通过。
+⚠️ **C-088#2.2 撤回原文「NPU 代际不是本项目的阻塞项 —— 本机 NPU 同为 NPU 3 代，cleanie 已在其上实测通过」**：本机 NPU **不是** NPU 3，而是 **NPU 5（`DEVICE_ARCHITECTURE=5010`，约 50 TOPS）**。NPU 代际恰恰**是**台式机路径的头号风险：13 TOPS vs 50 TOPS 差约 4×，而 prefill 是算力瓶颈，**RTF 可能从 0.77 直接变成大于 1**。**结论只能是「本机 NPU 5 实测可实时」，台式机必须实测。**
 
 ### 4. 本轮踩的坑（勿重复）
 
@@ -2381,11 +2385,31 @@ C-082/C-083 矩阵把「全 NPU」标为「不跑」，理由是「省 GPU 上�
 | cleanie（集显 enc + NPU dec） | 0.8525 | 6.679% | +0.718 | [−0.376, +1.909] | 集显 7.37% |
 | **全 NPU（NPU enc + NPU dec）** | **0.7782** | **6.643%** | **+0.682** | **[−0.399, +1.862]** | **0** |
 
-**⚠️ 与预判相反的一点，值得记住：全 NPU 比 cleanie 快 8.7%（0.7782 vs 0.8525）。**
+**⚠️ 与预判相反的一点：全 NPU 比 cleanie 快 8.7%（0.7782 vs 0.8525）。**
 
-- 集显 encoder **单次**确实更快（38.8 ms vs NPU 57.2 ms），但它在生产路径里每个 640 ms chunk 被**反复调用 1491 次**；
-- encoder 与 decoder 共处同一设备后，省掉了**跨设备的 host 传输与调度开销**；
-- 单次优势 × 1491 次调用 < 跨设备往返成本，所以端到端反而是全 NPU 更优。
+> **【C-088#2.1 已修正归因】** 下面这段的**现象成立（RTF 数字不变），但原先给出的解释是错的，已撤回**：
+>
+> ~~集显 encoder 单次确实更快（38.8 ms vs NPU 57.2 ms），但它被反复调用 1491 次；
+> 同设备省掉了跨设备 host 传输与调度开销，所以端到端反而是全 NPU 更优。~~
+>
+> **真实原因是编码器 IR 搞混了**：
+> - 流式生产路径用的是**双输入**的 `ov-encoder-segment-reviewer`；`c069d`（ABBA 3 轮）显示它在
+>   **NPU 上反而更快：34.83 ms，集显 45.32 ms，NPU/GPU = 0.769**。
+> - 「NPU 编码器慢 1.5×」测的是**单输入**的 prod IR（`ov-fp16-past` / `ov-int8-past`），
+>   **流式根本不用它**。
+> - `c083c` 虽在报告里标注 `encoder_ir: ov-encoder-segment-reviewer`，实际代码
+>   （`c083c_encoder_devices.py:71`）跑的是 `OVBackend(model_dir='models/ov-int8-past')` ——
+>   **标注错误**。c083c 的 38.8 ms 与 c080h 的 78.0 ms「数据打架 2×」也源于此（两者不是同一个 IR）。
+> - **定量核对**：`(0.8525 − 0.7782) × 900 s ÷ 1491 次 ≈ 45 ms/次`，与
+>   「cleanie 里集显编码器 78 ms（c080h）− NPU 编码器约 35 ms ≈ 43 ms」吻合 ——
+>   **不需要「跨设备开销」这个假设**。
+>
+> **撤回的教训**：「单组件延迟差不能直接外推到端到端」这条**推论方向对但机制解释错了** ——
+> 正确的教训是：**做单组件外推前，必须先确认该组件在生产路径里用的是哪个 IR/哪个变体**。
+> 若当时用的是流式真实 IR，根本不会得出「NPU 编码器更慢」这个错误前提。
+>
+> 同时撤回 reviewer 在 C-082/C-083 中接受的「NPU 编码器慢 1.5 倍，全 NPU 不必跑」——
+> 那同样基于 prod IR，对流式场景不成立。
 - **WER 实质完全等价**（6.643% vs 6.679%，差 −0.036 pp），两者 CI 都不显著。
 
 **一句话：全 NPU 是三格里唯一「完全不占 GPU + RTF < 1 + WER 无显著退化」的方案，对无 GPU 的目标机是最优解。**
@@ -2427,8 +2451,10 @@ be.enc = core.compile_model(frozen, 'NPU', {'CACHE_DIR': './reports/npu_cache'})
 
 - C-084 章节的「全 NPU 预计 RTF 0.87–0.90」是**未实测外推**，现以实测 **0.7782** 取代。
 - C-082/C-083 阶段 4 矩阵的「全 NPU：不跑（没有理由跑）」一格**理由作废**，改为已实测。
-- 此前「NPU encoder 慢 1.5×，所以全 NPU 更慢」的推论**在端到端层面不成立** —— 单组件结论不能直接外推
-  到端到端（跨设备开销被单组件测量掩盖了）。
+  （**C-088#2.1 补充**：该「不跑」理由本身「NPU 编码器慢 1.5×」也基于 prod IR，对流式不成立，一并撤回。）
+- **【C-088#2.1 更正】**此前「NPU encoder 慢 1.5×，所以全 NPU 更慢」的推论，
+  **前提就是错的**：1.5× 测的是单输入 prod IR，而流式用的是双输入 IR（那个在 NPU 上反而快 0.769×）。
+  不是「单组件结论不能外推」，而是**测错了 IR**。详见上文第 2 节的更正。
 
 ### 6. 新增文件
 
@@ -2549,13 +2575,19 @@ C-085 的 12–27 min（15 min）RTF **0.7782** vs 本轮全长（61 min）**0.7
 ### 9. 结论
 
 **全 NPU 在 61 min 全长真实音频上：RTF 0.7722（实时）、WER 7.952%、相对参照 A 仅 +0.154 pp
-且 CI95 [−0.288, +0.584] 含 0、GPU 占用 0。可作为无 GPU 桌面机的交付口径。**
+且 CI95 [−0.288, +0.584] 含 0、GPU 占用 0。**
+
+> ⚠️ **C-088#2.2 限定**：以上是「**本机 NPU 5**（`DEVICE_ARCHITECTURE=5010`，约 50 TOPS）」的实测结果，**不能外推到台式机**。Arrow Lake-S 台式机是 NPU 3（约 13 TOPS），prefill 是算力瓶颈，RTF 可能超 1。原文「可作为无 GPU 桌面机的交付口径」**已撤回**，改为「**可作为本机 NPU 5 的交付口径；台式机必须实测**」。
 
 C-085 的 12–27 min 数据仍有效，但**精度证据强度低于本轮全长口径**，交付引用建议改用本轮。
 
 ---
 
-## C-087 [2026-10-18 13:55] — 🔴 **回答「NPU 能否跑 INT4」：不能。编译通过、RTF 更快，但输出全错**
+## C-087 [2026-10-18 13:55] — 🔴 **「这版按通道 INT4 IR 不可用」：NPU 上 WER 110%，CPU 上也有 40%**
+
+> **【C-088#2.3 已改写标题与结论】** 原文标题写的是「NPU 不能跑 INT4」，**说得太满，已按reviewer 要求改写**。
+> 改写原因见下方第 3 节与第 8 节：① 同配方在 CPU 上 WER 也 40%，说明**配方本身已坏**，
+> 不能只归咎 NPU；② `OPTIMIZATION_CAPABILITIES` 不可当作「NPU 不支持 INT4」的证据。
 
 **触发**：用户提问「npu能否跑Int4？」
 
@@ -2593,25 +2625,34 @@ C-081 已据dummy prompt 的 token 分叉把 INT4@NPU 排除，但那**不满足
 总词数 1680 但**字符数只有 8600（参照 14895）** → 产出的「词」极短且大量重复，**信息量崩塌**。
 与 C-080f 的 dummy prompt 观察完全吻合，且 C-080f 已证明这是**确定性**的（3/3 次输出逐位一致）。
 
-### 3. 静态证据（设备能力层，最直接）
+### 3. 静态证据（IR 结构层）—— **⚠️ C-088#2.3：原先对 NPU 能力的解读是错的**
 
-| 证据 | 内容 |
-|---|---|
-| **NPU 声明的优化能力** | `OPTIMIZATION_CAPABILITIES = ['FP16', 'INT8', 'EXPORT_IMPORT']` → **不含 INT4/u4/i4** |
-| **INT4 IR 张量类型** | 含 **392 个 `int4_t`** |
-| **INT8 IR 张量类型** | 含 **394 个 `int8_t`** |
-| **两者其余类型计数** | float32 6471 / int64 2321 / int32 436 / char 21 —— **完全一致** |
+| 证据 | 内容 | 解读是否成立 |
+|---|---|---|
+| NPU `OPTIMIZATION_CAPABILITIES` | `['FP16', 'INT8', 'EXPORT_IMPORT']` | ❌ **不可用作「NPU 不支持 INT4」的证据**（见下） |
+| INT4 IR 张量类型 | 含 **392 个 `int4_t`** | ✅ 确实压成了 INT4 |
+| INT8 IR 张量类型 | 含 **394 个 `int8_t`** | ✅ |
+| 两者其余类型计数 | float32 6471 / int64 2321 / int32 436 / char 21 —— **完全一致** | ✅ 两 IR 结构同构 |
 
-**两份 IR 结构几乎同构，唯一差别就是 i4 权重 ↔ i8 权重**。而设备能力列表里没有 INT4。
+**两份 IR 结构同构，唯一差别是 i4 权重 ↔ i8 权重** —— 这条仍然成立，说明图结构没问题。
 
-### 4. 为什么不是我们的接线问题（三个条件交叉定位）
+> **【C-088#2.3 更正】** 原文由「能力列表不含 INT4」推出「设备不支持 INT4 权重」，**这个推论撤回**：
+> `OPTIMIZATION_CAPABILITIES` 描述的是**计算精度**（推理时用什么数值类型算），**不是权重压缩格式**。
+> **NPU 跑 INT4 权重的 LLM 恰恰是 Intel 官方推荐路径**，不能拿这个属性当反证。
 
-1. INT8 在 NPU 上正常（WER 6.643%，与 C-085 精确一致）→ **端口形态与接线是对的**（C-079 的 `inputs_embeds` 结论保留）；
-2. **同一份 INT4 IR 在 CPU 上能出正常人话** → IR 本身没坏；
-3. 两份 IR 的非权重张量类型计数完全一致 → 图结构同构，差异只在 i4 权重。
+### 4. 归因（**C-088#2.3 已放宽**）
 
-→ 三者交叉，失败点唯一地落在 **NPUW 对 i4 常量的处理** 上，即
-**「INT4 权重 × NPUW 执行」这个组合**（C-083 的修订表述），**不是 INT4 权重本身的问题**。
+原文写「同一份 INT4 IR 在 CPU 上能出正常人话 → IR 本身没坏」—— **这条已被本轮自己的数据推翻**：
+
+1. INT8 在 NPU 上正常（WER 6.643%，与 C-085 精确一致）→ **端口形态与接线是对的**（C-079 结论保留）；
+2. 两份 IR 的非权重张量类型计数完全一致 → 图结构同构，差异只在 i4 权重；
+3. ⚠️ **但同一份 INT4 IR 在 CPU 上 WER 也有 40.323%**（第 6 节）→ **配方本身就是坏的**，
+   不是「IR 没坏、只有 NPU 执行有问题」。
+
+**修正后的归因**：现有 `qwen3-lm-int4sym-cleanie-ov` 是
+**INT4_SYM 按通道 + 无校准 + 约 18% 的层回退成 INT8_ASYM**，这个配方**在 CPU 上就已经不可用**；
+放到 NPU 上更糟（WER 110%）。所以本轮**无法区分**「配方问题」与「NPU 对 INT4 的处理问题」——
+这正是 C-089 要用更好的配方（g128 / AWQ + scale estimation、回退改 INT8_SYM）重做的原因。
 
 ### 5. ⚠️ 一个容易误导的点：INT4@NPU 的 RTF 0.5355 比 INT8 快 30%，但这个优势没有意义
 
@@ -2627,9 +2668,14 @@ WER **40.323%**、Δ +33.7 pp、CI [+23.1, +44.0] **显著**。形态：
 - **7/55 段以 `language English` 开头**（INT8 参照为 0）。
 
 **不是单段退化造成的**：剔除最严重的第 1 段后重算，int4_cpu 仍是 **40.323%**（参照同步变8.546%）→ 退化散布在多段上。
-这与 C-082 记录的「INT4 全量 decoder 在 GPU 上 +0.352 pp 不显著」不同 —— 本轮是 INT4_SYM cleanie
-在 CPU 上跑到 RTF 1.77 的**慢路径，长生成暴露了更多退化**。
-**如果考虑把 INT4 放 CPU 上用，WER 40% 是不可接受的。**
+
+> **【C-088#2.3 解释更正】** 原文写「本轮是 CPU 慢路径（RTF 1.77）长生成暴露了更多退化」——
+> **这个解释撤回**：生成预算是**自适应**的，**与设备快慢无关**，慢路径不会「暴露更多退化」。
+> 正确解释是**配方本身的问题**（无校准按通道量化 + INT8_ASYM 回退）。
+> reviewer 独立复核给出 Δ +32.1 pp、95% CI [+21.1, +44.4]，与我的 +33.7 pp 同结论。
+>
+> **这一条改变了整章的定性**：既然 CPU 上也坏，就**不能**把问题归到「NPU 跑不了 INT4」，
+> 只能说「**这版按通道 INT4 IR 在 CPU 和 NPU 上都不可用，NPU 上更差**」。
 
 ### 7. 本轮作废的两个自己的中间产物（判据教训）
 
@@ -2646,12 +2692,16 @@ WER **40.323%**、Δ +33.7 pp、CI [+23.1, +44.0] **显著**。形态：
 
 ### 8. 结论与建议
 
-**NPU 不能跑 INT4。** 无 GPU 桌面机应使用 **INT8_SYM cleanie 全 NPU**
-（RTF 0.7722 全长 / 0.7657 切片，WER 7.952% 全长 / 6.643% 切片，GPU 占用 0）。
+**【C-088#2.3 改写后的结论】** 原文写「NPU 不能跑 INT4」**说得太满，改为**：
 
-按Reviewer 的 C-082#3，本项目已决定**不追 INT4 × NPUW 根因**，除非另行要求。
-若要追，方向是：查 `NPUW_*` 里与 i4/低比特相关的属性键、NPUW 对 i4 常量的对齐方式、
-或在新版 OpenVINO / 驱动上复测。
+> **这版按通道 INT4 IR 不可用：CPU 上 WER 40%、NPU 上 110%，NPU 上更差。**
+> **换更好的 INT4 配方（如 g128，或 AWQ + scale estimation，校准只用 0–12 分钟）在 NPU 上的表现未测。**
+
+无 GPU 桌面机当前应使用 **INT8_SYM cleanie 全 NPU**
+（RTF 0.7722 全长 / 0.7657 切片，WER 7.952% 全长 / 6.643% 切片）。
+
+「是否再试更好的 INT4 配方」由用户决定 —— Reviewer 已在 **C-089** 中明确要求做这件事
+（R0–R3 配方矩阵，目标：WER 与 INT8 全 NPU 无显著差异且更快；总止损 4 小时）。
 
 ### 9. 新增文件
 
@@ -2662,3 +2712,337 @@ WER **40.323%**、Δ +33.7 pp、CI [+23.1, +44.0] **显著**。形态：
 | `c087d_int4_npu_wer_900s.py` / `reports/c087_int4_npu_900s/wer.json` | **WER + CI + 参照自校验** |
 | `reports/c087d_int4_npu_verdict.json` | 汇总：三方对照 + 静态证据 + 作废声明 |
 | ~~`c087a_int4_npu_check.py`~~ / ~~`c087b_int4_wer.py`~~ | 判据作废，文件保留作过程记录 |
+
+---
+
+## R-088（C-088 执行记录）— 三处结论修正 + 全 NPU 交付形态齐备
+
+写入前复核：`status/CORRECTIONS.md` MD5 = **`4140ef6dea30a4b177bea6532727eed9`**（与本轮开工时一致，未变）。
+
+### 1. 三处结论修正（纯改写 + 报告同步，无重测）
+
+Reviewer 的三条纠偏**已逐条核实为事实正确**，全部照办：
+
+| # | Reviewer 要求 | 核实结果 | 已改位置 |
+|---|---|---|---|
+| 2.1 | 撤回「全 NPU 比 cleanie 快是因为省了跨设备传输」；真正原因是**编码器 IR 搞混了** | ✅ 成立。c069d ABBA：双输入 `ov-encoder-segment-reviewer` 在 NPU 上 **34.83 ms** vs 集显 **45.32 ms**，**NPU/GPU = 0.769（更快）**；c083c 标注 `ov-encoder-segment-reviewer` 但 `c083c_encoder_devices.py:71` 实跑 `OVBackend(model_dir='models/ov-int8-past')`（单输入 prod IR）。定量核对 `(0.8525−0.7782)×900÷1491 ≈ 45 ms/次`，吻合「78−35」 | STATUS C-084/C-085 章节；`reports/c083c_encoder_devices.json`（新增 `encoder_ir_LABEL_WAS_WRONG` / `encoder_ir_ACTUALLY_USED` / `streaming_encoder_npu_faster_evidence`） |
+| 2.2 | 撤回「本机 NPU 与台式机同为 NPU 3，可直接外推」 | ✅ 成立。本机 Core Ultra 7 356H（Panther Lake）NPU `DEVICE_ARCHITECTURE=5010` = **第 5 代，约 50 TOPS**；Arrow Lake-S 台式机 = **NPU 3，约 13 TOPS**。prefill 是算力瓶颈，NPU 3 上 RTF 可能超 1 | STATUS C-084 第 3 节（原文「好消息是 NPU 代际不是阻塞项」**整段撤回**）、C-084 第 1/2 节、C-086 第 9 节；`reports/c083d_no_gpu_deployment.json`、`c085d_all_npu_matrix.json`、`c086d_full61_all_npu_matrix.json` |
+| 2.3 | 「NPU 不能跑 INT4」说得太满 | ✅ 成立。同配方在 **CPU 上 WER 40.323%**（Δ +32.1 pp，CI [+21.1, +44.4]）→ **配方本身已坏**，不是「CPU 慢路径生成更长」（生成预算自适应，与设备快慢无关）；`OPTIMIZATION_CAPABILITIES` 列的是**计算精度**不是权重压缩格式，**不能**当反证 | STATUS C-087 标题、第 3/4/6/8 节（全部标 C-088#2.3 改写块） |
+
+**新的口径**（三条都写进了 STATUS 与报告）：
+
+- 编码器教训：原「单组件延迟差不能直接外推到端到端」方向对但**机制解释错了**。正确教训是「**做单组件外推前必须先确认该组件在生产路径里用的是哪个 IR / 哪个变体**」—— 流式用双输入 IR，我测的是单输入 prod IR。同理，Reviewer 在 C-082/C-083 接受的「NPU 编码器慢 1.5 倍，全 NPU 不必跑」这条**前提就错了，一并撤回**。
+- 硬件口径：全 NPU 的 RTF 0.77 **只对本机 NPU 5 成立**，不能外推台式机。「可作为无 GPU 桌面机的交付口径」已删除，改为「**可作为本机 NPU 5 的交付口径；台式机必须实测**」。注意 cleanie 混合路径（enc@集显 + dec@NPU）风险较低，因为 decoder 在集显上、只 encoder 用 NPU。
+- INT4 口径：改为「**这版按通道 INT4 IR 不可用：CPU 上 WER 40%、NPU 上 110%，NPU 上更差。换更好的 INT4 配方（如 g128，或 AWQ + scale estimation，校准只用 0–12 分钟）在 NPU 上的表现未测。**」
+
+### 2. 交付形态修复 1：embed_tokens 导出独立 `.npy`
+
+**问题**：`npu_embeds_backend._load_embed_table()` 一直读 `models/hf-qwen3-lm-lastlogit` 的 safetensors，而 C-083 的 tier4 可删清单把它列为可删（依据是「0 脚本引用」—— **漏看了这个被 import 的依赖**）。删掉会直接 `FileNotFoundError` 弄坏全 NPU 路径。
+
+**已做**：
+
+| 项 | 值 |
+|---|---|
+| 新文件 | `models/qwen3-lm-int8sym-cleanie-ov/embed_tokens_f16.npy` |
+| 形状 / dtype | (151936, 2048) float16 |
+| 体积 | 622,329,984 B = **0.5796 GiB** |
+| f32→f16 最大相对差 | **9.84e-08** |
+| 源 shard | `model-00001-of-00002.safetensors` |
+| 代码 | `npu_embeds_backend._load_embed_table()` 优先读 npy，缺失才回退旧 HF 路径；报错信息提示跑 `c088a_export_embed_npy.py` |
+| 清单更正 | `reports/c082b_models_inventory.json` tier4 从「16.1 GiB 全可删」改为「**仅 `hf-qwen3-lm-lastlogit`（约 6.5 GiB）无运行时依赖**」；另两个（`-inputembeds` / `hf-qwen3-lm`）保留供重新 optimum-cli 导出 |
+
+**注意**：f16 相对 f32 的差是 f16 尾数截断（eps ≈ 9.8e-4 的量级下这次实测 9.8e-8，因为 embedding 值域小）。**f16 表的端到端 WER 需重跑确认**——C-085 的 6.643% 是用 f32 表测的。本轮 c088b 的 3 min smoke 已用 f16 表跑通且转写是人话（见下），但正式判据仍应重跑。
+
+### 3. 交付形态修复 2：不编译 aux 解码器
+
+**问题**：`make_all_npu_backend()` 先调父类 `SegmentEncoderOVBackend.__init__()` 拿 tokenizer/特征器/模板，而父类构造里**顺手在 CPU 上编译了 `models/ov-int8-past` 的 cross-attention 解码器**，随后子类替换了 `be.dec` 但 **`be.dec_infer` 仍指向那个 aux 解码器**（约 1.7 GiB 权重常驻）。NPU 子类**自己覆写了** `greedy_decode_with_prefix()`（走 `inputs_embeds`），从来不用 `self.dec_infer` —— 纯浪费。
+
+**已做**：新建 `npu_delivery_backend.make_delivery_all_npu_backend()`，完全不调父类 `__init__`：
+
+- 只从 `models/ov-int8-past` 读**小文件**（tokenizer.json / tokenizer_config.json / config.json / preprocessor_config.json / chat_template.jinja，几 MB），该目录的 `.xml/.bin` 一概不加载；
+- encoder 冻结双端口 → 编 NPU（**一次**）；
+- decoder（cleanie）编 NPU（**一次**）；
+- `be.dec_infer = None`（明确置空）；断言 `greedy_decode_with_prefix` 仍是 NPU 子类实现（**不能**覆盖，那是 inputs_embeds 版本，正是流式要用的）。
+
+结果：NPU 编译从 **3 次降到 2 次**（aux@CPU + enc@NPU + dec@NPU → enc@NPU + dec@NPU），不再加载 1.7 GiB 无用权重。实测 backend init **18.4 s**（enc 0.3 s / dec 10.1 s）。
+
+### 4. 交付形态修复 3：资源占用实测（3 min 切片 / fresh process）
+
+**为什么要实测**：此前 STATUS 里的「GPU 占用 0」是**推断**——代码把设备写成 `'NPU'` 就断言不碰 GPU。但 Windows `\GPU Engine(*)` 计数器**同时覆盖集显和 NPU**，只要有任一处跑在 GPU 上就有值。必须按 **LUID** 分桶。
+
+原始数据：`reports/c088b_resource_usage.json`（脚本 `c088b_resource_usage.py`，531 个采样点 / 136.55 s）
+
+| 指标 | 值 |
+|---|---|
+| 切片 / 段数 | 0–180 s（3 min 真实音频）/ 12 段 |
+| **RTF** | **0.7586** |
+| **Working Set 峰值** | **4643.6 MiB**（mean 4592.1） |
+| **Private Bytes 峰值** | **3423.1 MiB**（mean 3415.1） |
+| **CPU 平均占用** | **609.9% of one core = 6.1 核**（16 逻辑核，CPU 时间 831.31 s / 墙钟 136.31 s） |
+| **集显 LUID `0x00012E84`** | **peak 0.0% / mean 0.0% / p95 0.0%** —— 7 个 engtype（3D / Compute / Copy / GSC / VideoDecode / VideoProcessing / unknown）**逐个都是 0.0** |
+| **NPU LUID `0x000144F0`** | **peak 100.0% / mean 79.37% / p95 88.2%**，engtype 仅 `Compute` |
+| 对照：另一 LUID `0x00013386` | peak 0.0%（9 个 engtype 全 0） |
+| OV 设备 LUID | GPU.0 `842e010000000000`、GPU.1 `8633010000000000`、**NPU `f044010000000000`**；NPU 名 = `Intel(R) AI Boost` |
+
+**「GPU 占用 0」现在是实测结论，不再是推断**：集显 7 个 engtype 逐个为 0，NPU `Compute` 打满到 100%。CPU 6.1 核主要用于 mel 特征提取、VAD 分段与 tokenize/文本处理，**不是**矩阵运算。
+
+### 5. 全 NPU 交付形态齐备 —— 文件清单
+
+| 文件 | 作用 | 状态 |
+|---|---|---|
+| `models/ov-encoder-segment-reviewer/` | encoder IR（流式双输入，生产窗口 encoder） | 保留 |
+| `models/qwen3-lm-int8sym-cleanie-ov/` | **INT8_SYM cleanie decoder IR**（NPU 可用方案）+ `embed_tokens_f16.npy` | 保留 |
+| `models/ov-int8-past/` | **只读 tokenizer/特征器/模板小文件，不再编译其 IR** | 保留（小文件，可精简） |
+| `npu_delivery_backend.py` | **交付形态 backend 工厂**（本轮新建） | 新增 |
+| `npu_embeds_backend.py` | `_load_embed_table()` 改读独立 npy（本轮改） | 改 |
+| `c088a_export_embed_npy.py` / `reports/c088a_embed_npy.json` | embed npy 导出 + 校验报告 | 新增 |
+| `c088b_resource_usage.py` / `reports/c088b_resource_usage.json` | 资源占用实测（按 LUID 分桶） | 新增 |
+| ~~`models/hf-qwen3-lm-lastlogit/`~~ | **已无运行时依赖，修好后可删（约 6.5 GiB）** | 待用户确认后删 |
+
+**新入口用法**：
+
+```python
+from npu_delivery_backend import make_delivery_all_npu_backend
+be = make_delivery_all_npu_backend()
+```
+
+**交付形态已齐备**，但请注意 §1 的限定：**本机 NPU 5 实测**，台式机（NPU 3）必须自行实测。
+
+
+## R-089（C-089 / C-095 执行记录）— INT4@NPU 配方矩阵：**交付仍用 INT8_SYM cleanie**
+
+> 本章回应 Reviewer 的 **C-090 ～ C-095**（CORRECTIONS.md md5 `30685cba065b1bd2afb62d772f4d44d5`，1294 行）。
+> 写本章节前已再次复核该 MD5 未变。
+
+### 1. 一句话结论
+
+**试过的 5 个 INT4 配方（R0–R4）没有一个达到 INT8 的精度。交付继续用 `models/qwen3-lm-int8sym-cleanie-ov`（INT8_SYM cleanie）。**
+
+同时纠正 C-087 的一个过强结论：**「NPU 不支持 INT4」彻底不成立**。同样是按通道（`group_size=-1`），校准前是乱码（R0，WER 110.99%），AWQ 校准后是**能正常输出的转写**（R2 10.84%、R4 8.04%）。**失败的根源在量化配方，不在 NPU 本身。**
+
+### 2. 最终结论表（C-095#3 要求）
+
+12–27 分钟切片口径，参照 = INT8 全 NPU（c085，md5 `8682554d…`，WER 6.643%）。
+WER 用 method_b（全局 SequenceMatcher 对齐 + 按 owner 归因）+ 配对 bootstrap 5000 次。
+
+| 配方 | 配置 | i4 常量 | i8 常量 | IR 体积 | 构建 | RTF | prefill 中位 | decode 中位 | WER | Δ pp | CI95 | 判定 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **R0** | 按通道，无校准 | 196 | 1 | 973.1 MiB | 12.2 s | 0.6098 | 159.2 ms | 65.8 ms | — | — | — | **失败（乱码）**，评分脚本按 C-092 断言拒绝出结论 |
+| **R1** | g128，无校准 | 196 | 1 | 993.2 MiB | 10.7 s | **2.9526** | **1596.1 ms** | 180.8 ms | 11.095% | +4.452 | [−0.241, +11.305] | **太慢，不可交付**（RTF > 1） |
+| **R2** | 按通道 + AWQ + scale est. | 196 | 1 | 973.1 MiB | 647.8 s | 0.6214 | 145.6 ms | 166.3 ms | 10.844% | +4.201 | **[+2.140, +6.391]** | 能跑但**显著变差** |
+| **R3** | g128 + AWQ + scale est. | 196 | 1 | 993.2 MiB | 628.0 s | 2.7642 | 1593.5 ms | 40.0 ms | 94.722% | +88.079 | [+12.492, +187.635] | **太慢 + 乱码** |
+| **R4** | R2 + ratio 0.8 + HESSIAN_INPUT_ACT. | **144** | **53** | 1111.1 MiB | 533.5 s | 0.6366 | 146.9 ms | 177.5 ms | 8.043% | +1.400 | [−0.880, +3.755] | 切片 CI 含 0，但**全长显著变差**，见 §3 |
+| **INT8 参照** | cleanie（交付用） | 0 | 197 | 3291.6 MiB | — | 0.7782 | — | — | 6.643% | 0 | — | 交付基线 |
+
+> R0 的绝对 WER（110.99%，输出 `yay`、土耳其语重复）不再作为 CI 结论列出 —— 修好后的 `c089d` 按 C-092 要求**拒绝出结论**（段数 203 对 55，且部分行没有时间戳）。
+> R3 照实记录（C-095#3 要求）：g128，乱码，prefill 1.6 s。
+
+**R4 全长（61 分钟，3671.19 s）**：见 §3。
+
+### 3. ★ 撤回我此前「R4 通过」的结论（C-095 的核心）
+
+我上一轮报告「R4 通过，CI [−0.880, +3.755] 含 0，两条判据都满足」—— **这个结论是错的**。Reviewer 的复核完全正确：
+
+| 对比（全长，两边都完整的 0–3658 s，224 段，10964 参考词） | WER | 差值，95% CI |
+|---|---|---|
+| R4 对 INT8 全 NPU（c086） | 10.24% 对 8.14% | **+2.11 pp [+1.04, +3.28]，显著变差** |
+| R4 对全 GPU（c048） | 10.24% 对 8.04% | +2.21 pp [+1.09, +3.37]，显著 |
+| INT8 全 NPU 对全 GPU（对照） | 8.14% 对 8.04% | +0.10 pp [−0.41, +0.55] |
+
+**根因有两处，都是我的评分脚本缺陷：**
+
+1. **CI [0,0] 退化**。上一轮全长跑出候选 225 段 / 参照 226 段，段数不同时 bootstrap 无法配对，旧 `c089d` 跳过计算却用 `0.0` 占位，于是 `ci95: [0,0]` + `ci_contains_zero: true` —— **看起来像「与 INT8 无显著差异」，实际是「判据根本没跑」**。这与 C-092 抓到的 R0 问题是**同一个 bug**，只是这次发生在全长模式。
+2. **音频被按整分钟截断**。旧 `FULL_END = 3660`，而音频真实时长是 **3671.1893125 s**（58 739 029 采样点 @ 16 kHz）。最后 10.6 s 被切掉，末段 `3658.00–3670.60` 被截成 `3658.00–3660.00`，缺的约 11 s 全被算成**删除错误**。
+
+**教训（已写进脚本注释）**：12–27 分钟只有 55 段，统计功效不足，1–2 pp 的真实差异会被 CI 吞掉。**切片 CI 含 0 绝不能当作通过**。候选配方必须跑 61 min 全长复核 —— 这条已硬编码进 `c089d` 的判定输出。
+
+### 4. 已修的脚本缺陷（C-092 / C-095#1）
+
+**`c089d_score_wer.py` 重写**，加**三道断言**，任一不满足就**报错退出、不出结论**（退出码 3）：
+
+1. 候选段数 == 参照段数，且**逐段时间戳**在 0.7 s 容差内一致；
+2. bootstrap 的 **CI 宽度 > 0**；
+3. **参照自身 WER 复现**（切片 6.643% / 全长 7.798%，容差 0.35 pp）。
+
+**结构性改动：脚本再也不会输出 `ci95: [0,0]`**。退化情形写 `aborted: true` + `abort_reason` + 断言明细，并返回非零退出码。验证：
+
+```
+$ python c089d_score_wer.py reports/c089_int4/transcript_R0_npu_1227.txt --recipe R0
+  [OK ] 参照 WER 复现  6.643% vs 期望 6.643%（|Δ|=0.000）
+  [OK ] 参照段数       55 段，期望 55
+  [FAIL] 段结构对齐    段数不一致：参照 55 段 / 候选 203 段（差 +148）；…
+✗ 断言未通过 —— 按 C-092 要求**不出结论**。   EXIT=3
+```
+
+修好后**重算 R1–R4，数值与原先逐位一致**（R2 +4.201 [+2.140, +6.391]、R4 +1.400 [−0.880, +3.755]），确认断言没有改变任何有效判据，只拦住了退化和乱码两类。
+
+**`c089c_eval_recipe.py` 修复**：
+* `FULL_END`：3660 → **3671.1893125**（精确到采样点，不再按整分钟取整）；
+* 切片索引改为 `int(round(SR*lo))`（分数秒会直接抛 `TypeError`）；
+* **逐段日志**（C-093#2）：包 `generate_with_prefix`（不是 `greedy_decode_with_prefix` —— 后者返回 token id 列表，取不到文本），配合 `python -u` + `status/logs/c089c_R4_full.log`；
+* **20 分钟墙钟上限**（C-093）：超时抛 `TimeoutError`，记录已完成段数并**拒绝产出 WER 判据**；
+* **同时段重负载检测**（C-091）：`heavy_peers()` 扫描其它 CPU > 200% 的进程，写进报告的 `concurrent_heavy_peers`，RTF 被污染时可见；
+* 清理残留的 `from nncf_stub import props_for` 占位分支，改为真正编译 CPU 解码器。
+
+### 5. C-092#1 的核实结论：f16 embed 表**无损**
+
+Reviewer 的判断已逐字复现：
+
+* `transcript_int8_selfcheck.txt` 原来**没有 `[t0-t1]` 时间戳行**，55 段文字被直接拼成一行，段间连空格都没有（`QS.So`、`well.And`，共 **40 处**粘词）。已按 c085 规范格式重写，md5 = `8682554da20255041f4672f192a57d19`，**与参照逐位相同**。
+* 此前 selfcheck 报的 **7.074% 是假差异** —— 纯粹由边界粘词造成，不是精度问题。
+* → **f16 embed 表无损，INT8 交付后端与 c085 等价。**（未重跑推理，只重写文件，符合 C-092#1 的要求。）
+
+`c089c --selfcheck` 现在会**比转写 md5**（C-092#4），不一致直接返回退出码 5 并提示先查格式。
+
+### 6. C-090#2 / C-095#4：IR 已移出 `reports/`（提交前确认）
+
+R0–R4 的 IR（各约 1 GiB 的 `.bin`）+ 校准 npz（108.1 MiB）已从 `reports/c089_int4/` 移到 **`models/c089_int4/`**（`models/` 已在 `.gitignore`）：
+
+* `reports/c089_int4/`：5152 MiB → **1 MiB**（只剩报告与转写）；
+* `models/c089_int4/`：5152 MiB（R0–R4 + `calib_0_12min.npz`）。
+
+**双保险**：`.gitignore` 追加 `reports/**/*.bin`、`reports/**/*.xml`。已用 `git ls-files --others --exclude-standard` 验证 —— **待提交的最大文件是 68 KB 的转写文本，没有任何 IR 会进仓库**。
+
+`c089b_build_recipe.py` 的 `OUT_ROOT` 已切到 `models/c089_int4`，报告 JSON 仍写 `reports/c089_int4/`（新增 `OUT_REPORTS`）。
+
+### 7. 两条决定性发现
+
+1. **`group_size=128` 在 NPU 上不可用。** prefill 从 ~150 ms 涨到 **1596 ms（10×）**，RTF 2.76–2.95 —— 比音频本身还慢 3 倍。NPUW 上分组反量化走了慢路径。**按通道（`group_size=-1`）是 NPU 上唯一可行的 INT4 布局。**
+2. **C-087「按通道 INT4 配方本身已坏」只对了一半。** 坏的是**没做 data-aware 校准**：
+   * R0（按通道，无校准）→ 110.99%，乱码；
+   * R2（+ AWQ + scale estimation）→ 10.84%；
+   * R4（+ ratio 0.8 + HESSIAN）→ 8.043%。
+   
+   校准数据：0–12 分钟真实 prefill，1147 次调用，T ∈ [21, 268]，按长度分 8 桶抽 **128 条**（`models/c089_int4/calib_0_12min.npz`，108.1 MiB）。
+3. **R4 的 Hessian 判据反直觉**：52 层被判定敏感而退回 INT8_SYM backup（144 i4 + 53 i8），**IR 反而从 973 MiB 涨到 1111 MiB**。留 20% 敏感层的代价是体积变大，收益只是把切片 WER 从 10.84% 拉到 8.04% —— 仍不足以追平 INT8。
+
+### 8. 交付结论
+
+| | 配方 | 理由 |
+|---|---|---|
+| **交付** | `models/qwen3-lm-int8sym-cleanie-ov`（INT8_SYM cleanie） | 全长 RTF 0.7782、WER 6.643%（切片）/ 7.798%（全长），无显著差异 |
+| 不交付 | R4（最好的 INT4） | 全长 WER **显著差 2.11 pp [+1.04, +3.28]**，换来约 19% RTF |
+| 不交付 | R1 / R3（g128） | prefill 1.6 s，RTF 2.76–2.95 |
+| 不交付 | R0 | 乱码 |
+
+**INT4 在本机 NPU 5 + OpenVINO 2026.4.1 上「能跑」已经证明，但「跑得对」需要 AWQ 级校准，而校准后仍比 INT8 差约 2 pp。** 除非用户明确要求用 19% 的速度换 2 pp 的精度损失，**交付口径维持 INT8_SYM cleanie**。
+
+**是否继续做 R5（如 `ratio=0.6`）留给用户决定**（C-095#2）。若做，判据**直接用全长** —— 12–27 分钟这道门槛已被证明区分不了 1–2 pp 的差异。
+
+### 9. 产物清单
+
+| 文件 | 说明 |
+|---|---|
+| `models/c089_int4/R0 … R4/` | 5 个 INT4 IR（5152 MiB，已被 .gitignore 忽略） |
+| `models/c089_int4/calib_0_12min.npz` | 校准集，128 条真实 prefill |
+| `reports/c089_int4/R{n}_build.json` | 构建报告（i4/i8 常量校验、体积、耗时） |
+| `reports/c089_int4/R{n}_npu_1227.json` | 12–27 分钟评测（RTF、prefill/decode 中位） |
+| `reports/c089_int4/R{n}_npu_1227_wer.json` | 切片 WER + CI（含 `assertions` 明细） |
+| `reports/c089_int4/transcript_R{n}_npu_1227.txt` | 切片转写（带时间戳） |
+| `reports/c089_int4/R4_npu_full.json` / `R4_npu_full_wer.json` | R4 全长 |
+| `reports/c089_int4/final_matrix_rows.json` | §2 结论表的机器可读版 |
+| `c089a_collect_calib.py` / `c089b_build_recipe.py` / `c089c_eval_recipe.py` / `c089d_score_wer.py` / `c089e_cpu_attribution.py` | 校准 / 构建 / 评测 / 评分 / CPU 归因 |
+
+
+---
+
+## R-096（C-096 执行记录）— 两份 `R4 --full` 并行污染 RTF；已加单实例守卫并重跑
+
+> 回应 **C-096 [HIGH] 2026-10-18 20:05**。写本节前复核 CORRECTIONS.md
+> md5 = `77035c6e8ed02cf2766d0dedd649eab1`（1305 行，新增 C-096）。
+
+### 1. 指控核实：成立，且污染比我原先意识到的更严重
+
+Reviewer 指出 19:41:06（PID 28688）与 19:43:01（PID 17440）两份 `c089c_eval_recipe.py R4 --full` 并行。核对结果：
+
+| 时间 | 我启动的 | 结局 |
+|---|---|---|
+| 19:39:45 | 第 1 份 | 1 分钟内崩（`TypeError`：分数秒切片索引） |
+| 19:41:00 | 第 2 份 | 1 分钟内崩（`AttributeError`：日志钩子取文本失败） |
+| 19:43 | 第 3 份 | 跑完全程 |
+
+我原先以为「崩了就等于没跑」，**这是错的**。Reviewer 从进程层面看到的两份确实并存，而**唯一跑完的那份也是被污染的** —— 证据在日志里：
+
+* `status/logs/c089c_R4_full.log` 有 **8757 行**，但**只有一处** `backend init`；
+* `[seg N]` 序号**从 2637 起大量重复**（`uniq -d` 命中上千个）—— 两份进程的输出
+  **交错写进了同一个文件**，后半段互相覆盖。
+
+污染前后对比：
+
+| | RTF | prefill 中位 | decode 中位 | 段数 |
+|---|---|---|---|---|
+| **污染** | **0.9929** | **257.2 ms** | **283.8 ms** | 226 |
+| **干净重跑** | **0.6109** | **147.1 ms** | **169.7 ms** | 226 |
+| 差异 | **+63%** | **+75%** | **+67%** |
+
+→ 污染版的 RTF / prefill / decode **全部作废**。已归档到
+`reports/c089_int8_r4full_polluted_C096/`（**未删除**，含日志与全部 json）。
+
+### 2. 为什么 `heavy_peers()` 没拦住（C-096 明确要求我查）
+
+两个原因，都不是「写得不够多」而是**判据选错了**：
+
+1. **过滤阈值太高**：按 CPU > 200% 筛，但刚启动的另一份还在 NPU 编译阶段
+   （约 10 s，单核 ~100%），等它热起来时本份早已开跑；
+2. **只扫本进程**：`heavy_peers()` 读的是本机的 psutil 视图，把**别人**的
+   `python c089c_eval_recipe.py` 当成普通进程名 `python.exe`，从未与
+   「自己是不是同类评测」比对过。
+
+### 3. 已补：同名实例拒绝启动
+
+新增两个函数，在 `main()` 的**任何耗时动作之前**执行：
+
+* **`guard_single_instance()`** —— 按 **`argv[1]` 精确等于 `c089c_eval_recipe.py`**
+  匹配（不能用「命令行里包含脚本名」：我自己的探测脚本
+  `python -c "...c089c..."` 会被误判，结果把自己锁死，实测踩过）；
+* **`acquire_lock(tag)`** —— `reports/c089_int4/_locks/{tag}.lock` 独占创建
+  （`O_CREAT|O_EXCL`），持锁进程已死时自动回收陈旧锁。
+
+命中冲突时**拒绝启动并返回退出码 6**，打印对方 PID。实测：
+
+```
+✗ 拒绝启动：已有 1 份 c089c_eval_recipe.py 在运行（PID [10760]）。
+  C-096：两份并行会互抢 NPU/CPU，两份的 RTF、prefill、decode 全部无效，
+  且可能互相覆盖输出。
+```
+
+### 4. R4 全长最终结果（干净，三道断言全过）
+
+| | WER | Δ pp | CI95 | 判定 |
+|---|---|---|---|---|
+| **R4 全长（3671.19 s，225 段）** | **9.795%** | **+1.997** | **[+0.950, +3.095]** | **显著变差** |
+| Reviewer 复核（0–3658 s，224 段） | 10.24% | +2.11 | [+1.04, +3.28] | 显著变差 |
+| 参照（c048 adaptive） | 7.798% | 0 | — | — |
+
+**两条独立路径（我全程 3671.19 s / Reviewer 截到 3658 s）结论一致：R4 显著变差约 2 pp。**
+
+RTF 0.6109，prefill 中位 147.1 ms，decode 中位 169.7 ms，`concurrent_heavy_peers: null`。
+
+**附带确认一件事**：污染版与干净版的**转写 md5 完全相同**（`b618b9184d18e492934a296fe00f34b4`），
+WER 也逐位相同（9.795%）。→ **WER 是确定性流水线的产物，不受 CPU 争用影响；
+只有 RTF / prefill / decode 受影响。** 这与 C-091 的判断一致。
+
+### 5. 修掉一个会让全长判据永久失效的坑（参照空尾段）
+
+参照 `reports/c048_61min_adaptive/transcript_adaptive.txt` 的第 226 行是
+`[ 3670.6- 3671.2] ` —— **空文本**（尾音，无词）。而 `c089c` 的 `write_transcript`
+本来就跳过空段，于是**候选恒定比参照少一段**，三道断言会以「段数不一致」误报，
+全长模式将永远无法出结论。
+
+修法：`segs()` **丢弃空文本段**（对 WER 贡献 0 词，归一化后无影响）。
+修好后 225 段对 225 段，逐段时间戳全部在 0.7 s 内 —— 末段 `3658.00–3670.58`
+对参照 `3658.00–3670.60`，**实质完全对齐**。
+
+> 这也解释了 C-095 看到的「225 对 226」：**音频截断与空尾段两个原因叠在一起**。
+> 截断已修（§4），空尾段本节已修。
+
+### 6. C-096 收尾项确认
+
+* ✅ 三道断言已落地（切片 + 全长都跑）
+* ✅ f16 嵌入表无损，md5 已与 c085 逐位一致
+* ✅ IR 已移到 `models/`，`.gitignore` 已加 `reports/**/*.bin`、`reports/**/*.xml`
+* ✅ 结论「按通道是 NPU 上唯一可行的 INT4 布局；坏的是配方，不是 NPU」接受
+* ✅ **R4 全长行已补进 `reports/c089_int4/final_matrix_rows.json`**（原先只有切片数据），
+  同时在 R4 行上冗余了 `full_rtf` / `full_wer` / `full_delta` / `full_ci` 便于直接引用
+
+**最终交付口径不变：`models/qwen3-lm-int8sym-cleanie-ov`（INT8_SYM cleanie）。**
