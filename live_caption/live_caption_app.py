@@ -27,9 +27,10 @@ CUDA 后端每段起一个 audiocpp_cli 流式进程（stdin 喂 PCM，stdout �
 
 ASR 与翻译的设备/量化各自独立选择（C-098 阶段 B，实测结论见 hy_bench\STATUS_hy.md）：
   --engine   决定 ASR 跑哪张卡/哪种量化；--mt-engine 决定翻译跑哪张卡/哪种量化。
-  python live_caption_app.py --engine npu_int8  --translate zh --mt-engine gpu_int4
+  python live_caption_app.py --engine npu_int8  --translate zh --mt-engine gpu_int4cw
   python live_caption_app.py --engine gpu_int8  --translate zh --mt-engine npu_int4cw
-  # 翻译后端：auto(默认) | gpu_int4 | gpu_int4cw | npu_int4cw | npu_int8cw
+  # 翻译后端：auto(默认) | gpu_int4cw | npu_int4cw | npu_int8cw
+  #   （下拉里只列出本机真实存在的模型；旧的 int4_asym 只在包内 models/ 有副本时才出现）
 """
 import argparse
 import gc
@@ -1064,6 +1065,10 @@ def run_cli(args):
               f'P95 {f(sm["lat_p95"])} ms  TTFT {f(sm["ttft_med"])} ms  '
               f'{f(sm["tok_s"])} tok/s', flush=True)
     if args.out:
+        # 输出目录可能还没建：--out 指向的父目录不存在时直接崩掉会丢掉前面所有结果
+        _outdir = os.path.dirname(os.path.abspath(args.out))
+        if _outdir:
+            os.makedirs(_outdir, exist_ok=True)
         with open(args.out, 'w', encoding='utf-8') as f:
             f.write('\n'.join(finals) + '\n')
         if mt.active:

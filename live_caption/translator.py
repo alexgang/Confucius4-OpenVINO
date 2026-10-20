@@ -21,15 +21,41 @@ from collections import OrderedDict
 import numpy as np
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
-# 翻译用的 per-channel 量化产物放在 hy_bench\ov\（export2.py + quantize.py 导出）。
-# hy_bench 是用户目录下的兄弟工程，与 confucius4-openvino 同级：<用户目录>\hy_bench\ov。
-# 也可用环境变量 LIVECAP_MT_CW_ROOT 覆盖（客户机上 hy_bench 可能不在）。
+# 包目录结构 / package layout: <root>/app/*.py  <root>/models/...
+ROOT = os.path.dirname(APP_DIR)
+MODELS = os.environ.get('LIVECAP_MODELS', os.path.join(ROOT, 'models'))
+
+
+def _first_existing(*candidates):
+    """返回第一个存在的目录；全都不存在就返回第一个（用于给出可读的报错路径）。"""
+    for c in candidates:
+        if c and os.path.isdir(c):
+            return c
+    return candidates[0] if candidates else None
+
+
+# 翻译模型目录的查找顺序（先客户包，再开发机）：
+#   1) 环境变量 LIVECAP_MT_MODEL / LIVECAP_MT_CW_ROOT（显式覆盖，最高优先级）
+#   2) 客户包内 <root>/models/mt-int4sym-cw-q 等（发布包自带）
+#   3) 开发机 <用户目录>\hy_bench\ov\<name>（本仓库导出产物）
+#   4) 开发机 <用户目录>\.openvino\models\Hunyuan-1.8B-Instruct-ov-int4
+# 模型目录只读；找不到时 MT_ENGINES 里的路径仍然保留，GUI 会标注「缺模型」。
 _HY_ROOT = os.environ.get(
     'LIVECAP_MT_CW_ROOT',
-    os.path.join(os.path.dirname(os.path.dirname(APP_DIR)), 'hy_bench', 'ov'))
+    _first_existing(
+        os.path.join(MODELS, 'mt'),                 # 客户包：models/mt/int4sym-cw-q
+        os.path.join(os.path.dirname(os.path.dirname(APP_DIR)), 'hy_bench', 'ov'),
+        os.path.join(ROOT, 'hy_bench', 'ov'),
+    ))
 DEFAULT_MODEL = os.environ.get(
     'LIVECAP_MT_MODEL',
-    r'C:\Users\Trekker-PTL\.openvino\models\Hunyuan-1.8B-Instruct-ov-int4')
+    _first_existing(
+        os.path.join(MODELS, 'mt', 'int4sym-cw-q'),  # 客户包自带（per-channel，GPU/NPU 通吃）
+        os.path.join(MODELS, 'mt-int4sym-cw-q'),
+        os.path.join(MODELS, 'Hunyuan-1.8B-Instruct-ov-int4'),
+        os.path.join(os.path.expanduser('~'), '.openvino', 'models',
+                     'Hunyuan-1.8B-Instruct-ov-int4'),
+    ))
 
 # 目标语言下拉：off 表示不翻译
 TARGETS = OrderedDict([
@@ -43,36 +69,63 @@ TARGET_LABELS = OrderedDict([
 
 # ── A3 翻译后端：设备 × 量化 ───────────────────────────────────────────
 # model=None 表示「跟随环境变量 / 用默认目录」；device=None 表示「用 --mt-device」。
-MT_ENGINES = OrderedDict([
-    ('auto', dict(
-        label='自动 · 现有 INT4 模型', device=None, model=None,
-        note='模型目录取 LIVECAP_MT_MODEL（或默认目录），设备取 --mt-device（默认 GPU.0）')),
-    ('gpu_int4', dict(
-        label='Intel GPU · INT4（现有）', device='GPU.0', model=DEFAULT_MODEL,
-        note='Hunyuan int4_asym g128。GPU 上 TTFT 最快（20–122 ms）；NPU 上不可用')),
-    ('gpu_int4cw', dict(
-        label='Intel GPU · INT4-CW', device='GPU.0',
-        model=os.path.join(_HY_ROOT, 'int4sym-cw-q'),
-        note='INT4_SYM 按通道。49.4 tok/s，加载比现有模型快（11.0→5.4 s）；GPU/NPU 通吃')),
-    ('npu_int4cw', dict(
-        label='Intel NPU · INT4-CW', device='NPU',
-        model=os.path.join(_HY_ROOT, 'int4sym-cw-q'),
-        note='NPU 推荐：42.7 tok/s、零乱码，993 MB。ASR 请留在 GPU/NPU 另一侧以免争抢')),
-    ('npu_int8cw', dict(
-        label='Intel NPU · INT8-CW', device='NPU',
-        model=os.path.join(_HY_ROOT, 'int8sym-cw-q'),
-        note='NPU 备用：27.6 tok/s、1.7 GB，质量与 INT4 持平但慢 35%')),
-])
+
+def _cw_model(name):
+    """按通道量化产物的目录解析：客户包 models/mt/<name> → 开发机 hy_bench/ov/<name>。"""
+    return _first_existing(
+        os.path.join(MODELS, 'mt', name),
+        os.path.join(MODELS, 'mt-' + name),
+        os.path.join(_HY_ROOT, name),
+    )
+
+
+# 旧的 int4_asym g128 产物：GPU 上 TTFT 最快，但 NPU 上不可用（乱码 + 慢 100 倍）。
+# 客户包不带它（per-channel 版本 GPU/NPU 通吃且更小）。
+# 只认「包内 models/」下的一份 —— 客户机上不该出现指向开发机目录的项。
+_LEGACY_INT4 = None
+for _cand in (os.path.join(MODELS, 'mt', 'Hunyuan-1.8B-Instruct-ov-int4'),
+              os.path.join(MODELS, 'Hunyuan-1.8B-Instruct-ov-int4')):
+    if os.path.isdir(_cand):
+        _LEGACY_INT4 = _cand
+        break
+
+# 候选翻译后端：(key, label, device, 模型目录解析结果, 说明)
+# 只有**本机真实存在**的模型才进下拉 —— 客户机上不该出现「缺模型」的项。
+# int8sym-cw-q 备用件开发机有、客户包不带（1.7 GB），客户机上会自动消失。
+_MT_CANDIDATES = [
+    ('gpu_int4cw', 'Intel GPU · INT4-CW', 'GPU.0', 'int4sym-cw-q',
+     'INT4_SYM 按通道，约 993 MB。49.4 tok/s，加载比旧模型快（11.0→5.4 s）；GPU/NPU 通吃'),
+    ('npu_int4cw', 'Intel NPU · INT4-CW', 'NPU', 'int4sym-cw-q',
+     'NPU 推荐：42.7 tok/s、零乱码，约 993 MB。ASR 请留在 GPU/NPU 另一侧以免争抢'),
+    ('npu_int8cw', 'Intel NPU · INT8-CW', 'NPU', 'int8sym-cw-q',
+     'NPU 备用：27.6 tok/s、1.7 GB，质量与 INT4 持平但慢 35%'),
+]
+
+MT_ENGINES = OrderedDict()
+MT_ENGINES['auto'] = dict(
+    label='自动 · INT4-CW 模型', device=None, model=None,
+    note='模型目录取 LIVECAP_MT_MODEL（或包内自带模型），设备取 --mt-device（默认 GPU.0）')
+for _k, _label, _dev, _name, _note in _MT_CANDIDATES:
+    _m = _cw_model(_name)
+    if os.path.isdir(_m):
+        MT_ENGINES[_k] = dict(label=_label, device=_dev, model=_m, note=_note)
+if _LEGACY_INT4:
+    MT_ENGINES['gpu_int4'] = dict(
+        label='Intel GPU · INT4（旧）', device='GPU.0', model=_LEGACY_INT4,
+        note='Hunyuan int4_asym g128。GPU 上 TTFT 最快（20–122 ms）；NPU 上不可用')
 MT_DEFAULT = 'auto'
 
 
 def mt_available(key):
-    """模型目录是否在本机存在（GUI 里据此把不可用的项标出来）。"""
+    """模型目录是否在本机存在（GUI 里据此把不可用的项标出来）。
+
+    'auto' 的 model=None 表示「用默认目录」，所以要单独查 DEFAULT_MODEL 是否存在。
+    """
     cfg = MT_ENGINES.get(key)
     if not cfg:
         return False
-    m = cfg.get('model')
-    return True if not m else os.path.isdir(m)
+    m = cfg.get('model') or DEFAULT_MODEL
+    return os.path.isdir(m)
 
 # ── 分句与语言判别 ──────────────────────────────────────────────────────
 _SENT_END = '.?!。？！；;…'
@@ -173,7 +226,11 @@ class HunyuanTranslator:
         self.og = og
         self.model_dir = model_dir or DEFAULT_MODEL
         self.device = device
-        cache_dir = cache_dir or os.path.join(APP_DIR, 'mt_cache')
+        # 编译缓存放用户可写目录：客户机上 App 可能装在 Program Files（只读）。
+        # 实测这个缓存能长到 2.4 GB，不能放包里。
+        if not cache_dir:
+            cache_root = os.environ.get('LOCALAPPDATA') or os.path.expanduser('~')
+            cache_dir = os.path.join(cache_root, 'Confucius4LiveCaption', 'mt_cache')
         os.makedirs(cache_dir, exist_ok=True)
         on_log(f'加载翻译模型（{device}）…')
         t0 = time.perf_counter()
