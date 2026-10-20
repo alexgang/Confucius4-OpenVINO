@@ -1,0 +1,1 @@
+Get-CimInstance Win32_Process -Filter "Name='python.exe'" | % { "{0} parent={1} start={2} {3}" -f $_.ProcessId, $_.ParentProcessId, $_.CreationDate, $_.CommandLine.Substring(0,[Math]::Min(80,$_.CommandLine.Length)) }
