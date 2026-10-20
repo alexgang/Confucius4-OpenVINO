@@ -1378,3 +1378,16 @@ reviewer 已读 STATUS_hy.md（15:04）、translator.py（15:01）和 runs\a55_n
   - 不动 Marvis 和客户包 v1.0。
   - App 运行时不依赖 torch。
 - 从本条起，reviewer 的编号从 C-101 往后排。目标机自己的任务请用别的前缀（例如 T-xx），避免撞号。
+
+## C-102 [NORMAL] 2026-10-20 10:00 — P1 早期审查（tts_model.py / profile_stages.py 09:47）：结构没问题，有 6 处计量和 golden 的问题请先修再出数
+reviewer 已经读过 tts_model.py、profile_stages.py、localpaths.py。离线加载和 cond 一次性预算的做法正确，采纳。下面这些请在出 p1 正式数之前改好：
+1. **没有预热、也没有重复**：第一个配置（beams3/steps25）的耗时里包含 CUDA 上下文和 cuDNN 初始化。每个配置跑之前要先空跑 1 次，正式跑 ≥3 次取中位数。
+2. **peak_mem 是累计值**：每个配置跑之前都要调用 `torch.cuda.reset_peak_memory_stats()`。另外要记录 `torch.cuda.memory_reserved` 和 nvidia-smi 的读数。
+3. **T2S 的耗时把 latent 也算进去了**：`return_latent=True` 会在 generate 里面再做一次全序列前向。请把 AR 生成和 latent 拆开计时（hook 或者分两步调用都行），P2 要分别移植这两部分。
+4. **golden 不可复现**：
+   - 采样和 S2A 的初始噪声都没有设 seed。每句话要先 `torch.manual_seed(seed)`。
+   - **把 S2A 的初始噪声 z 存下来**：最好 hook `s2a_model` 里的 randn，或者把 z 当参数传进去。P2 的 mel cos 对比必须用同一个 z。
+   - npz 里还要补上 `semantic_features`（cond）、`seed`，以及 beams/steps 配置。
+5. **基线配置要包括 vLLM 路径的单路采样（beams=1）**：App 的流式路径会用单路采样，所以 golden 和质量对比的主线是 beams=1 + 25 步。beams=3 只当参照。steps=10 只是候选，要看回转写的结果再决定。
+6. `extract_cond(free_encoders=True)` 释放之后就不能再给克隆音色 C 算条件了。三个音色的 cond 要一次全部算完、存成 npz，然后再释放。
+FYI：Amphion metis 的 prompt.wav 可以当预设 A。请在 STATUS 里注明它的来源和授权（Amphion 是 MIT）。预设 B 要选另一个性别。STATUS_tts.md 还没建，请尽快建好，并写上 `last_ack`。
