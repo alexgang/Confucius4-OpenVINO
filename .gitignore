@@ -49,3 +49,9 @@ live_caption/selftest/
 live_caption/runs/
 live_caption/out_*.txt
 *.bak_*
+
+# WorkBuddy agent memory (local only)
+.workbuddy/
+
+# C-049 测试语料（原始包数十GB + 生成的长音频，脚本可重建）
+test_data/

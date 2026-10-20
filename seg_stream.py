@@ -96,6 +96,30 @@ def find_silence_in_range(audio: np.ndarray, *, start_sample: int, end_sample: i
     return start_sample + cut_sample_in_seg
 
 
+def _summarize_diag(log: list) -> dict:
+    """C-050：把一段的逐 chunk 诊断汇总。
+
+    关注三件事：
+      1) lang 翻转次数 —— 语言标签在 chunk 之间切换了多少次
+      2) 中文分支触发率 —— _adaptive_budget_update(is_chinese=True) 的比例
+      3) 中文 chunk 与英文 chunk 各自的平均生成预算
+    """
+    langs = [e['lang'] for e in log if e.get('lang')]
+    flips = sum(1 for i in range(1, len(langs)) if langs[i] != langs[i - 1])
+    zh = [e for e in log if e.get('is_chinese')]
+    en = [e for e in log if not e.get('is_chinese')]
+    return {
+        'n_chunks_logged': len(log),
+        'lang_flips': flips,
+        'lang_values': langs[:1] if len(set(langs)) == 1 else sorted(set(langs)),
+        'n_zh_chunks': len(zh),
+        'n_en_chunks': len(en),
+        'budget_mean_zh': (sum(e['budget'] for e in zh) / len(zh)) if zh else 0.0,
+        'budget_mean_en': (sum(e['budget'] for e in en) / len(en)) if en else 0.0,
+        'budget_max': max((e['budget'] for e in log), default=0),
+    }
+
+
 # ── 主入口：分段的流式 ─────────────────────────────────────────
 class SegmentedStreamer:
     """按策略把长音频切段喂给 backend 的 LSP 流式。
@@ -120,9 +144,12 @@ class SegmentedStreamer:
                  unfixed_token_num: int = 5,
                  chunk_size_sec: float = 0.32,
                  max_new_tokens: int = 32,
+                 adaptive_budget: bool = False,
+                 finish_budget: str = 'max64',
                  vad_silence_db: float = -40.0,
                  vad_min_silence_ms: int = 300,
-                 enable_hallucination_reset: bool = True):
+                 enable_hallucination_reset: bool = True,
+                 enable_diag: bool = False):
         self.backend = backend
         self.strategy = strategy
         self.min_segment_sec = min_segment_sec
@@ -133,9 +160,19 @@ class SegmentedStreamer:
         self.unfixed_token_num = unfixed_token_num
         self.chunk_size_sec = chunk_size_sec
         self.max_new_tokens = max_new_tokens
+        # C-047: True 时按官方负反馈动态决定每 chunk 生成长度（1..floor），
+        # 避免固定 32 让单次自回归失控写满冻结前缀。
+        self.adaptive_budget = adaptive_budget
+        # C-049：段尾 flush 预算口径。'first' = 官方 first_max_new_tokens
+        # (example.py:118-119) = max(1, int(chunk_samples/1280))，640 ms → 8
+        self.finish_budget = finish_budget
         self.vad_silence_db = vad_silence_db
         self.vad_min_silence_ms = vad_min_silence_ms
         self.enable_hallucination_reset = enable_hallucination_reset
+
+        # C-050：混合语言场景的诊断统计（lang 翻转 / 中文分支触发 / 每 chunk 预算）
+        self.enable_diag = enable_diag
+        self.diag_segments = []      # 每段一条汇总
 
     # ── 切段策略 ─────────────────────────────────────────
     def _plan_segments(self, audio: np.ndarray) -> list[tuple[int, int]]:
@@ -194,6 +231,7 @@ class SegmentedStreamer:
                 max_new_tokens=self.max_new_tokens,
                 rollback_punctuation=False,
                 enable_hallucination_reset=self.enable_hallucination_reset,
+                adaptive_budget=self.adaptive_budget,
             )
             # C-031#5 / user 10:26 fallback: hallucination reset 触发后 finish 当前段
             if getattr(state, '_force_finish', False):
@@ -202,8 +240,12 @@ class SegmentedStreamer:
                 break
             feed_pos = end
         # C-018：切点必须走 finish_streaming_transcribe 把尾巴 flush 出来
-        # 如果是 hallucination reset 触发的提前 finish, 仍要 flush (max_new_tokens 减小避免再次循环)
-        flush_max = max(16, self.max_new_tokens // 2) if n_hallucination_resets > 0 else max(64, self.max_new_tokens)
+        # 如果是 hallucination reset 触发的提前 finish, 仍要 flush (预算减半避免再次循环)
+        # C-049：正常 finish 的预算口径可切换（max64 现状 / first 官方）
+        if n_hallucination_resets > 0:
+            flush_max = max(16, self.max_new_tokens // 2)
+        else:
+            flush_max = self.finish_max_new_tokens()
         final = finish_streaming_transcribe(
             self.backend, state,
             max_new_tokens=flush_max,
@@ -211,6 +253,14 @@ class SegmentedStreamer:
         # 记录 reset 次数到 state
         state._n_resets_in_seg = n_hallucination_resets
         return final
+
+    def finish_max_new_tokens(self) -> int:
+        """段尾 flush 的生成预算，按 self.finish_budget 口径返回。"""
+        if self.finish_budget == 'first':
+            # 官方 first_max_new_tokens = max(1, int((step+lookhead)/1280))
+            step = int(round(self.chunk_size_sec * 16000))
+            return max(1, int(step / 1280))
+        return max(64, self.max_new_tokens)
 
     # ── 整段主循环 ──────────────────────────────────────
     def run(self, audio: np.ndarray, *, progress: bool = False):
@@ -235,6 +285,9 @@ class SegmentedStreamer:
                 force_language=self.force_language,
                 context=self.context,
             )
+            if self.enable_diag:
+                # C-050：collect per-chunk language / budget diagnostics
+                state.diag_log = []
             t0 = time.perf_counter()
             final_text = self._run_one_segment(seg_audio, state)
             wall = time.perf_counter() - t0
@@ -250,6 +303,8 @@ class SegmentedStreamer:
                 'text': final_text,
                 'n_resets': getattr(state, '_n_resets_in_seg', 0),
             })
+            if self.enable_diag:
+                results[-1]['diag'] = _summarize_diag(getattr(state, 'diag_log', []))
             full_text += final_text
             if progress and (idx % 5 == 0 or idx == len(segs) - 1):
                 elapsed = time.perf_counter() - wall_start

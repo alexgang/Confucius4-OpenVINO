@@ -1,9 +1,322 @@
 # STATUS
-- updated: 2026-10-13 01:30
-- phase: 5 / 交付（reviewer 即将上线）
-- step: 13-日活动：GitHub 同步 + 报告生成 + **CUDA OOM 验证** + 报告 vs CUDA 数据纠错
-- state: **WAITING_REVIEW**（reviewer 即将上线，重要发现已记录）
-- last_ack: **C-037**（撤销 C-029 约束；GitHub 推送 SSH 走 `github_backup_ed25519`）
+- updated: **2026-10-15 16:30**
+- phase: 5 / 交付（C-050 完成 + **实时麦克风应用已交付**）
+- step: 新增 `mic_asr_app.py`：麦克风实时采集 + 增量解码 + GUI 实时显示
+- state: **WAITING_REVIEW**（等 MiniMax baseline + 报告口径定夺）
+- last_ack: **C-050**（含 C-039~C-049，回执见下一节）
+- ⚠️ **上轮结论已推翻**：18.21% WER 的瓶颈不是 INT8 量化，而是 `max_new_tokens`
+  被固定成 32（CUDA 官方是自适应 1–4）。量化路线（C-043/C-044）必要性已证伪。
+  详见 `reports/C047_CUDA_PARITY.md`
+- last_ack: **C-050**（含 C-039~C-049，回执见下一节）
+
+## 实时麦克风应用 `mic_asr_app.py`（2026-10-15 16:10 交付）
+
+把仓库流式 ASR 包装成桌面应用：麦克风采集 → 逐 chunk 增量解码 → 窗口实时显示。
+**模型与参数同 `transcribe_stream.py`（adaptive_budget 默认开），质量对齐 61-min 验收口径。**
+
+```powershell
+.venv/Scripts/python.exe -m pip install sounddevice   # 仅首次
+.venv/Scripts/python.exe mic_asr_app.py               # GUI，默认输入设备
+.venv/Scripts/python.exe mic_asr_app.py --list-devices
+.venv/Scripts/python.exe mic_asr_app.py --device 1
+.venv/Scripts/python.exe mic_asr_app.py --cli        # 终端模式
+.venv/Scripts/python.exe mic_asr_app.py --cli --file test_audio/<redacted>.wav
+```
+
+界面：麦克风电平条 → 已定稿文本（黑色）→ 当前段临时结果（灰色斜体）→ 状态/RTF 仪表。
+按钮：开始/停止、清空、保存 transcript。
+
+### 关键设计：切点必须对齐 chunk 边界
+
+实时下无法"先看完整段再规划切点"，改成边来边切：
+累积到 12 s 后盯最近 3 s 的静音，有静音就切；到 20 s 硬切（encoder 上限 ≈24.3 s）。
+
+**踩过的坑**：最初把切点设在静音中点，结果切点后的音频**已经参与过本段的
+encoder**、又被当 carry 喂给下一段 —— 同一段音频识别两遍，段尾段首出现重复短语
+（实测 `...for performance, for cost.` 后接 `Cost and for power...`）。
+
+两个连带修正：
+1. 切点只落在 chunk 边界（640 ms）→ carry 恒等于 `state.buffer`，是一段
+   **从未解码过**的干净残余
+2. 段收尾**不能直接用 `finish_streaming_transcribe`** —— 它看到非空 buffer 会把
+   buffer 拼进 `audio_accum` 再生成一次，等于吞掉要留给下一段的音频。
+   改为自己写 `_finalize()`：只用 `audio_accum`、不动 buffer。
+   仅停止时（没有下一段了）才用官方 `finish` 收尾。
+
+另加**接缝去重**：段边界处偶发 1–3 词重叠（一个词横跨 chunk 边界时两头都吐）。
+规则：下一段首 n 词 == 上一段尾 n 词（归一化+小写）则删掉首 n 词，n ∈ {3,2}。
+**不取 n=1**，避免误伤合法的单词重复（"that that"、"very very"）。
+开关 `--no-seam-dedup`。`force_language` 恒为 None（自动判语言）。
+
+### 验证
+- 麦克风采集：10 块 / 16000 样本 / 峰值 RMS 0.17，无异常（默认设备「麦克风阵列」）
+- GUI 全流程（加载→采集→推理→渲染→仪表）通过
+- CLI 60 s 回放：5 段定稿，文本连贯无重复，RTF 0.650，93 chunks
+
+### 依赖
+新增 `sounddevice`（含 PortAudio）。已装入项目 venv。
+
+## C-050 中英混合测试（2026-10-15 12:20 起执行）
+
+### 测试集（C-050 第 1 项：规格已写入 STATUS）
+未放 `test_audio/`（三套共 346 MB wav，不该入库），路径如下：
+| 集 | 路径 | 时长 | 采样率/声道 | 段数 | 中英时长占比 |
+|---|---|---|---|---|---|
+| mix | `test_data/sets/mix_60min/audio.wav` | 60.08 min | 16 kHz / mono / PCM_16 | 543 | 中 44% / 英 51%（其余为段间静音） |
+| zh | `test_data/sets/zh_60min/audio.wav` | 60.06 min | 16 kHz / mono / PCM_16 | 721 | 中 93% |
+| en | `test_data/sets/en_60min/audio.wav` | 60.13 min | 16 kHz / mono / PCM_16 | 449 | 英 96% |
+
+参考文本在同目录 `ref_official.txt`（**语料官方人工转写**），`manifest.json` 记录每段来源。
+
+**语料来源**：中文 AISHELL-1（OpenSLR SLR33，Apache 2.0，官方 test 集
+20 位说话人 / 7176 条）；英文 LibriSpeech test-clean（SLR12，CC BY 4.0）。
+
+**构造方式的诚实说明**：公开语料都是单语，**做不出「句子内部夹英文词」的
+code-mixing**。因此混合集是**段落级语言交替**（每 ~25 s 切换一次），
+近似真实演讲/会议的语言切换。这一限制会削弱外推到真实 code-mixing 场景的结论强度。
+
+### 已按 C-050 落实的口径
+- **第 2 项**：`force_language` 保持 **None（自动）**，脚本内有 assert 断言
+- **第 3 项**：新增逐 chunk 诊断 —— lang 值、是否命中中文分支、实际生成预算；
+  汇总 lang 翻转次数 / 中文 chunk 占比 / 中英平均预算
+- **第 4 项**：lang 翻转次数按段统计（`segments_*.json` 的 `diag.lang_flips`）
+- **第 6 项**：评分改为 **MER（中文按字、英文按词）**；分别报告整体 /
+  中文为主的段 / 英文为主的段 / 重复 4-gram / RTF(P50/P95/max)。
+  **不用 ≤11% 那条英文线套用到混合音频**（不同音频、不同 baseline）
+- **第 7 项**：**未自行调 MiniMax**，等 reviewer 用 asr-1.0 出独立 baseline
+
+### 实现
+- `c049_build_testsets.py`：新增 `--block-sec`（语言块长度）、AISHELL 官方
+  test 说话人表；修正 AISHELL 解压后的目录索引
+- `seg_stream.py`：`SegmentedStreamer(enable_diag=True)` 逐 chunk 记录诊断
+- `streaming_asr.py`：每 chunk 记录 lang / budget / 中文分支
+- `c051_mix_eval.py`：跑批 + MER 评分 + 诊断汇总
+
+### 主结果（adaptive 口径，全局对齐，与 c045_wer.py 历史同口径）
+
+| 集 | 整体 MER | S | D | I | n_ref | 重复 4-gram | RTF | P95 | max |
+|---|---:|--:|--:|--:|--:|--:|--:|--:|--:|
+| **zh_60min** | **3.18%** | 189 | **6** | 141 | 10557 | 903 | 0.590 | 0.635 | 0.669 |
+| **en_60min** | **5.13%** | 175 | 171 | 150 | 9673 | 146 | 0.599 | 0.637 | 0.672 |
+| **mix_60min** | **7.78%** | 185 | 455 | 113 | 9679 | 348 | 0.601 | 0.646 | 0.772 |
+| ├ 中文为主段 | 6.77% | 119 | 34 | 97 | 3694 | | | | |
+| └ 英文为主段 | 14.05% | 194 | 325 | 79 | 4255 | | | | |
+
+诊断覆盖的 VAD 段数：mix 225 / zh 227 / en 226。
+
+### 必查项结论
+
+**① C-050 第 3 项的担忧没有发生。** C-050 预判「中文每秒字数多，预算不翻倍会让中文段截断，
+表现为 **D 升高**」。实测 `zh_60min` **D = 6**（ MER 3.18%），中文 budget 均值 13.30
+（英文 11.21，640 ms chunk 下上限 16）。**自适应预算的中文分支是够用的**。
+
+**② 语言标签零抖动。** 三套的 `diag.lang_flips` 全部为 **0**，没有任何 chunk 间的语言翻转。
+C-050 第 4 项担心的「翻转伴随文本回退/重复」未观察到。
+
+**③ 混合确实有代价，但代价落在英文侧：** 纯英文 5.13% → 混合英文段 14.05%（约 2.7 倍）；
+纯中文 3.18% → 混合中文段 6.77%（约 2 倍）。
+
+**④ 发现一个评测方法论问题（需要 reviewer 判断口径）——段级输出延迟错位。**
+传统的"整份 transcript 一次性对齐"（全局对齐）会掩盖相邻段之间的内容错位：
+
+| 集 | 全局 MER | 逐段独立对齐 MER | 差 | \|ref-hyp\|>20 的段数 |
+|---|---:|--:|--:|--:|
+| zh_60min | 3.18% | 3.18% | **0.00pp** | **0** |
+| en_60min | 5.13% | 20.39% | +15.26pp | 23 |
+| mix_60min | 7.78% | 19.27% | +11.49pp | 21 |
+
+相邻段成对出现 -32 / +32 的反向偏差，是**流式输出滞后**造成的跨段错位（内容没丢，
+只是跨到相邻段输出了），不是内容丢失。
+
+**关键：错位在纯英文集（23 段）比混合集（21 段）更严重，中文集完全没有。**
+说明根因是**英文长句（LibriSpeech 7–10 s）遇 VAD 硬切**，与混合无关。
+中文 utterance 短（~3.5 s），VAD 容易在语间静音处落刀。
+
+**待 reviewer 决策**：报告主口径用哪个？
+- **全局对齐（7.78%）**：与本仓库历史全部 WER 口径一致，反映"用户拿到的完整文本"质量
+- **逐段对齐**：更严格，但会被流式错位污染，且错位幅度取决于 VAD 运气
+我在报告里两者并列列出。
+
+**⑤ 不要用 ≤11% 那条英文线套用本结果** —— 不同音频、不同 baseline，无可比性。
+
+### C-050 第 8 项：finish 预算对照（三套全跑）
+
+| 集 | `max(64,32)`=64（现状） | `first`=8（官方） | ΔMER | ΔI | Δ重复4-gram | ΔD |
+|---|---:|--:|---:|---:|---:|---:|
+| **en_60min** | 5.13% | **3.97%** | **−1.16pp** | 150→53（−65%） | 146→34（**−77%**） | +2 |
+| **mix_60min** | 7.78% | **7.52%** | −0.26pp | 113→95（−16%） | 348→319（−8%） | +4 |
+| **zh_60min** | 3.18% | **3.18%** | **0.00pp** | 141→141（0） | 903→903（0） | 0 |
+
+**① 修正了 C-049 的判断。**
+C-049 在原会议音频上测得 first 更差（8.41% vs 7.88%，D 54→153 段尾截断）；
+本测试在 LibriSpeech 上方向**相反**（3.97% vs 5.13%，D 几乎不动）。
+根因是**音频在段尾是否还有未输出内容**：连续长篇发言会被预算 8 截断，
+朗读短句不会。**所以段尾预算没有普适最优值，取决于音频形态。**
+
+**② 推翻了 C-050 第 8 项的推测。**
+C-050 推测「中文预算翻倍后段尾 64 超发更严重」—— **实测方向相反**：
+真正受益于收紧段尾预算的是**英文**（−1.16pp，重复 4-gram −77%），
+中文**完全无反应**（S/D/I/n4 逐项一个不差）。
+说明中文那份 903 的重复**不来自段尾超发**，另有来源
+（可能是中文 utterance 短密 + `unfixed_token_num=5` 回滚粒度偏粗）。
+
+**③ 暂不改默认。** `first` 已保留为开关 `SegmentedStreamer(finish_budget='first')`，
+等 reviewer 的 MiniMax baseline 确认绝对误差量级后再定。
+
+### 进度
+- ✅ 三套测试集构建完成
+- ✅ 三套 adaptive 全长评测完成
+- ✅ C-050 第 8 项：finish 预算对照在 **zh / en / mix 三套**上各做一次
+- ⬜ 等 reviewer 用 MiniMax asr-1.0 出独立 baseline（**我未自行调用**）
+
+## C-049 / C-050 回执（2026-10-15 10:27 读取 CORRECTIONS.md 后执行）
+
+### C-040~C-044（此前未在 last_ack 中体现，逐条说明处理情况）
+| 编号 | 处理情况 |
+|--|--|
+| C-040 | 三路 decoder 对比（OV INT8 / OV FP16 / torch FP32）已执行，结论：**同一个 OV INT8 decoder 单跑某段干净、长跑循环** → 引出 C-041。数据见 `status/logs/c040_*` |
+| C-041 | "跨段状态泄漏"假设：已做 a/b/c 检查，未发现泄漏 → 由 C-042 转确定性/输入一致性检查，最终 C-043 给出 logits 层面的解释 |
+| C-042 | 确定性检查已做（同一输入多次运行一致），排除 GPU 随机翻转 |
+| C-043 | lm_head-FP16 已导出并验证（top-1 差 1.89），见 `reports/c045_*`；**该路线后由 C-047 证伪** |
+| C-044 | 五个候选量化方案的 teacher-forcing 确定性评估已跑（top-1 / EOS / KL / RTF），见 `reports/c045_tf/`；**同样被 C-047 证伪** |
+
+### C-049（验收通过：根因与修复均已独立复核）
+1. **第 1-3 项（承认）**：reviewer 复核 WER 8.17% vs 我方 7.88%，差异来自归一化口径
+   （reviewer 按小写去标点、数字保留原样）。以 reviewer 口径为准。
+   `enable_hallucination_reset=False` 已复核确认，未使用 reset 兜底，符合 C-036。
+2. **第 4 项（遗留偏差 — 正在处理）**：`seg_stream.py` 的段尾 flush 预算
+   `max(64, max_new_tokens)` vs 官方 `first_max_new_tokens`。
+   已实现 `finish_budget={'max64'|'first'}` 开关（`SegmentedStreamer.finish_max_new_tokens()`），
+   官方口径 = `max(1, int(chunk_samples/1280))`，640 ms → **8**。
+   150 s 冒烟：两种口径输出**逐字一致**（391 词）。**61-min 全长受控实验跑批中**
+   （`status/logs/c049_finish_first.log`，产物 `transcript_finish_first.txt`）。
+   有改善则设为默认，无改善则在报告写明"已验证无影响"。
+3. **第 5 项（收尾 — 进行中）**：重写 PROJECT_REPORT / README → MiniMax 口径、
+   三个根因顺序、CUDA OOM 结论、量化路径标注为已证伪 → 推送 + WAITING_REVIEW。
+
+### C-050（中英混合音频测试的已知风险与必查项）
+已读取，落地点记录如下（音频就绪后逐条对照执行）：
+- 音频 16 kHz 单声道放 `test_audio/`；**`force_language` 保持 None（自动）**
+- 报告中文预算翻倍分支的**触发次数**，中英段各自的平均生成预算
+- 报告每个 chunk 的 `lang` 值与**翻转次数**；翻转若伴随回退/重复则单独报告，不用 reset 掩盖
+- 抽查中文去空格正则是否粘连英文单词（`streaming_asr.py:308`）
+- 评分口径：**中文按字、英文按词（MER）**；不用英文那条 ≤11% 的线套混合音频
+- baseline **由 reviewer 用 MiniMax asr-1.0 生成**，我方不自行调 MiniMax
+- finish 预算受控实验需在**英文 + 中英混合**两段音频上各做一次一并报告
+  → 英文版正在进行；混合版待音频就绪后补
+
+### 编号冲突说明
+reviewer 的 **C-049**（10-15 09:40）与我方先前的 "C-049 测试集构建" 重号。
+为避免歧义，**我方测试集构建任务改记为 C-051**，文件名保持
+（`c049_build_testsets.py` / `c049_minimax_ref.py` / `reports/C049_TESTSETS.md`），
+报告中注明为 C-051。
+
+---
+
+## C-049 收尾执行记录（2026-10-15 10:47 重读 CORRECTIONS.md 后更新）
+
+### 已完成：第 5 项之文档（README + PROJECT_REPORT）
+
+**`reports/PROJECT_REPORT.md` 全篇重写**（原为 2026-10-12 版，记录 23% WER 与已作废的
+窗口 encoder）。新结构：目标形态（不依赖 torch）→ 最终成果 → 三个根因 → 架构 →
+CUDA 长音频上限 → 已证伪路径 → 已知限制 → 文件索引 → 复现。要点：
+
+- **精度表改为对比 MiniMax 云端 asr-1.0**（11066 词），CUDA 降为"同算法 dGPU 参照"，
+  明确标注**不是验收基线**。同一份 WER 脚本（`c045_wer.py`）重算了全部历史 transcript：
+
+  | 阶段 | WER | S | D | I |
+  |---|--:|--:|--:|--:|
+  | 窗口 IR（v2 padded mask） | 23.51% | 1815 | 163 | 624 |
+  | + 窗口计数 bug 修复（noreset） | 17.87% | 789 | 49 | 1140 |
+  | + 全局注意力 segment encoder、自适应未启用 | 17.87% | 901 | 52 | 1025 |
+  | **+ 自适应生成预算（交付）** | **7.88%** | 455 | 54 | 363 |
+  | 参照：OV 段级离线 INT8（两遍式第二遍） | 7.84% | 433 | 73 | 362 |
+  | 参照：Hybrid 离线 | 8.65% | 436 | 73 | 448 |
+  | 参照：CUDA 流式 Q8_0 | 7.62% | 473 | 75 | 295 |
+
+  ⚠️ **口径差异需 reviewer 知悉**：本机口径下 ② 的修复贡献了 23.51%→17.87%，
+  而 ①（全局 encoder）**没有带来 WER 下降**（17.87% → 17.87%，仅误差构成变化）。
+  reviewer 在 C-040 的口径下看到的是 S 351→335、WER 18.32%→18.21%。
+  两者差异来自归一化（是否保留数字），报告里两种口径都写了，未单方面择一。
+  ① 的验收证据是**数值层面**的：0.64–23.9 s 全部长度 cos mean 1.000000 / min ≥ 0.999996。
+
+- **三个根因按顺序写明**：① optimum 导出的 encoder 丢失全局注意力（参考实现的
+  `_prepare_attention_mask` 定义但从未被调用）② 窗口计数 bug（`mel_len // 800`）
+  ③ `max_new_tokens` 固定 32 错译官方自适应预算。含两个耦合约束（k=5 必须保留、
+  不要改 160 ms chunk）。
+
+- **CUDA 不分段 OOM 验证结论保留**（§5）：3/4 min 通过，5/10 min 报
+  `audio encoder token count exceeds max_source_positions`；阈值 240–300 s
+  vs OV 旧 IR 120 s。**CUDA 与 OV 都需要调用方自己 VAD 切句**——直接回答用户最初的反馈。
+
+- **C-043/C-044 量化路线标注为已证伪**（§6）：表格列出 C-043（lm_head 量化误差，
+  logits 证据属实但修复后 WER 不动）、C-044（5 个候选的 teacher-forcing 确定性指标）、
+  C-045 两遍式（不再必要）、C-046 共识提交（降为备选）、窗口 IR + 缓存（作废）。
+  **7.88% 就是在 plain INT8（`ov-int8-past`）上达成的**，混合精度产物仅存档。
+
+**`README.md` 同步**：新增「三个根因与修复顺序」表 + 两个耦合约束；
+新增「CUDA 不分段也有同样的上限」小节；`--decoder-dir` 与 models 注释标注
+量化变体已证伪；项目结构补 `c045_wer.py`、`c048_61min.py` 的新用途；指向新 PROJECT_REPORT。
+
+### 已完成：第 4 项 finish 预算受控实验 —— **结论：无改善，保持现状**
+
+61-min 全长、只改这一个量（其余与交付配置完全相同，`enable_hallucination_reset=False`）：
+
+| 段尾 flush 预算 | WER | S | **D** | I | RTF | P95 | words | n4 |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|
+| `max(64, 32)` = 64（**现状**） | **7.88%** | 455 | **54** | 363 | 0.639 | 0.675 | 11266 | 262 |
+| `first_max_new_tokens` = 8（官方口径） | 8.41% | 459 | **153** | 319 | 0.620 | 0.657 | 11066 | 217 |
+
+- **插入确实略降**（363 → 319，−44），符合"段尾少写就越少写错"的预期；
+- **但删除涨了近 3 倍**（54 → 153，+99），整体 WER **反而变差 0.53pp**。
+- **机理解释**：640 ms chunk 下官方 `first_max_new_tokens=8` 只能补约 1 句。
+  CUDA/vLLM 侧在段尾前通常已经收敛、只剩尾部几个 token；而 **OV（`ov-int8-past`
+  greedy）的流式过程未必在最后一个 chunk 收敛**，段尾还压着未吐出的内容，
+  预算 8 会把它们直接截断。这正是 D 从 54 涨到 153 的原因。
+- **决策**：`finish_budget` 默认保持 `'max64'`。'first' 作为实验开关保留在代码中
+  （`SegmentedStreamer(finish_budget='first')`），不设为默认。
+- 产物：`reports/c048_61min_adaptive/transcript_finish_first.txt`、
+  `summary.json`、日志 `status/logs/c049_finish_first.log`。
+
+⚠️ **给 reviewer 的提示**：本条结果说明 8.17% 与 CUDA 7.69% 之间的残差
+**不是** finish 预算造成的。结合第 3 条（baseline 在 Q&A 段漏转约 269 词），
+残差的来源更可能是 baseline 自身的缺口，而非我们与官方的又一处语义偏差。
+
+---
+
+## C-049 收尾完成 → WAITING_REVIEW（2026-10-15 11:10）
+
+**已推送** `origin/c038-v2-ir`（快进，无历史改写）：
+内容提交 `5187d05`（10 个文件）+ 本状态提交 `5c8318a`。
+
+| C-049 项 | 状态 | 交付物 |
+|---|---|---|
+| 第 4 项 finish 预算受控实验 | ✅ **已完成，结论"无改善"** | `transcript_finish_first.txt`、`summary.json`、`status/logs/c049_finish_first.log` |
+| 5.1 `transcribe_stream.py` 默认不变 | ✅ 保持 segment encoder + INT8 + adaptive（finish 仍为 `max(64,...)`） | — |
+| 5.2 README / PROJECT_REPORT | ✅ 全篇重写 | `reports/PROJECT_REPORT.md`、`README.md` |
+| 5.3 量化路径标注为已证伪 | ✅ 已从默认路径移除、报告保留结论 | PROJECT_REPORT §6；README 项目结构与 `--decoder-dir` 注释 |
+| 5.4 合并推送 + WAITING_REVIEW | ✅ | commit `5187d05` |
+
+### 待 reviewer 确认的三个点
+1. **口径**：最终交付数以 7.88%（本机口径）还是 8.17%（reviewer 口径）为准。
+   报告里两者并列写明；定稿时请指定以哪个为准。
+2. **finish 预算结论是否接受**：本机实测 8.41%（更差），故未改。如果你认为
+   sample 仍不足，可以增加 `--decoder-dir ov-fp16-past` 下的一组对照
+   （FP16 更容易收敛，first=8 的负面影响可能变小）。
+3. **下一步**：是否进入 C-050 的中英混合测试（我方测试集任务改记 **C-051**，
+   `test_data/sets/en_60min` 已就绪 60.13 min / 449 段 / 9673 词；中文部分待
+   AISHELL 解压后构建），还是先冻结当前状态做最终交付。
+
+### 备注
+- `.gitignore` 已排除 `.workbuddy/` 与 `test_data/`（15 GB 语料不入库）。
+- 配套的 reviewer 交接简报在 `reports/REVIEWER_BRIEF_2026-10-15.md`，
+  但因 CORRECTIONS C-049 已给出明确结论，**主报告以后者的口径为准**
+  （PROJECT_REPORT 已按 C-049 重写）。
+
+## 给 reviewer 的三个问题（详见 REVIEWER_BRIEF）
+1. **报告按 7.88% 定稿，还是先补 CUDA 全长对照等验证？**
+2. **量化路线（C-043/C-044）关闭吗？**
+3. **交付含中文吗？** 自适应预算的中文分支未实测过（验证集为英文）
 
 ## 4-path 实验结果（reports/c028_4path/results.json，log: status/logs/c028_4path_v4.log）
 
@@ -1862,3 +2175,287 @@ C-044 明确说: "如果所有方案都达不到、只有 FP16 能达到, 就把
 - [ ] reviewer 决策: (a) 接受 18.21% WER 作为最终; (b) 手工实现 INT8 per-group; (c) 等 NNCF 升级
 - [ ] 若接受现状: 写 PROJECT_REPORT.md 总结根因 + 修复过程, 确认 transcribe_stream.py 默认 backend 切到 segment encoder + plain INT8
 - [ ] 若手工 per-group: 预估 4-8h, 期望 top-1 提升 2-3pp, 仍可能不达 99.5%
+
+---
+
+# C-045 — per-layer 混合精度 decoder + 两遍式（2026-10-13 下午）
+
+## 背景修正（本轮实测确认的事实）
+1. **`models/ov-int8-past` 本身已是 weight-only INT8**（IR 内 0 个 FakeQuantize，激活/KV 全FP16）。
+   所以 "weight-only" 不是新方向；INT8 剩余 5.9pp top-1 差距纯来自权重量化。
+2. **C-044 的"per-layer FP16 / per-layer 敏感度做不到"结论有误**：那只对 `nncf.quantize`成立。
+   `nncf.compress_weights(ignored_scope=IgnoredScope(patterns=[...]))` 可以按正则挑层保 FP16
+   （语义 = `re.match`，锚定开头；层名 `__module.model.thinker.model.layers.{i}.*`，28 层 × 7 MatMul）。
+3. **NNCF 3.4 对 INT8 的硬限制**（实测报错原文）：
+   - `all_layers` / `awq`+dataset / `gptq`+dataset / `ratio` / `group_size` 在 INT8 模式下**全部报错**。
+   - → INT8 唯一可用手段 = per-channel 压缩 + ignored_scope 挑层。这正是本轮采用的方案。
+
+## 关键发现：量化敏感度集中在网络前部（teacher-forcing，与 C-044 同口径，int8 基线精确复现 94.12/63.41）
+
+| 变体 | FP16 层 | IR(MB) | top-1 | EOS |
+|---|---|---:|---:|---:|
+| int8（当前交付） | 无 | 1643 | 0.9412 | 0.6341 |
+| 后 4 层 | 24-27 | 1835 | 0.9459 | 0.6341 |
+| 前 4 层 | 0-3 | 1835 | **0.9618** | **0.7683** |
+| 后 8 层 | 20-27 | 2027 | 0.9475 | 0.6829 |
+| 前 8 层 | 0-7 | 2027 | 0.9698 | 0.8171 |
+| 前4+后4 | 0-3,24-27 | 2027 | 0.9714 | 0.8171 |
+| **前6+后6 (mix12)** | 0-5,22-27 | 2218 | **0.9777** | **0.8780** |
+| 前8+后8 (mix16) | 0-7,20-27 | 2410 | 0.9777 | 0.8659 |
+
+- 同体积"前 4 层"比"后 4 层"EOS 高 **13.4 pp**；后部层基本无效（mix8 里的后 4 层只贡献 +0.16pp top-1）。
+- **EOS 一致率才是 WER 的主开关**（它决定"该不该停"）；EOS 63% → 约 1/3 chunk 不停 → 重复循环 → I=1025。
+- 收益递减：mix16 比 mix12 多 192 MB 但 top-1 不涨 → **mix12 是性价比拐点**。
+- lm_head FP16 / INT4（C-043）再次被证无效（EOS 41.46%，比 int8 更差）。
+
+## 待决：精度 vs 实时（RTF）
+- mix12 的 61-min 实测 RTF≈0.90（int8 为 0.585），**P95 预计 ~1.0，超过 0.8 验收线但总体仍 <1**。
+- RTF 安全折中：**mixf4**（1835 MB，top-1 0.9618 / EOS 0.7683，预计 RTF≈0.70、P95≈0.78）。
+- 另一条更彻底的路：**两遍式**。数据依据——同一 INT8 decoder 离线逐段 8.65% vs 流式 17.87%
+  （`reports/spe_hybrid_offline.txt`），CUDA 流式 7.62%。说明流式增量解码把 ~6% token 翻转
+  放大成重复循环，解码策略的影响 > 量化本身。脚本 `c045_two_pass.py` 已就绪。
+
+## 受阻
+- **INT4 + AWQ 导出进程被硬杀**（无Python 异常，疑似内存耗尽）。NNCF 只在 INT4 上支持 AWQ，
+  若换大内存机器值得再试（INT4+AWQ 精度可能超 mix12 且 RTF 更低）。
+
+## 本轮产出
+- `reports/C045_RESULTS.md`（完整报告）、`c045_export_variants.py` / `c045_teacher_force.py` /
+  `c045_61min.py` / `c045_two_pass.py` / `c045_wer.py`
+- 新 decoder IR：`models/ov-{mixf2,mixl2,mixf4,mixl4,mixf8,mixl8,mix4,mix8,mix12,mix16}-past/`
+- `transcribe_stream.py` 已对齐验收配置（segment encoder + INT8 + VAD 12-20s + unfixed_chunk_num=0）
+
+## C-045 最终结果（61-min 全长实测，WER 口径 = reports/c045_wer.py）
+
+| 方案 | WER | S | D | I | RTF |
+|---|---:|---:|---:|---:|---:|
+| A. int8 流式（C-039 当前交付） | 17.87% | 789 | 49 | 1140 | 0.585 |
+| B. mix12 流式 | 12.04% | 542 | 47 | 743 | 0.809（P95 0.884 超 0.8 线） |
+| C. **int8 两遍式**（流式 + 段尾离线重解） | **7.84%** | 433 | 73 | 362 | 0.585 + 0.136 = **0.72** |
+| D. mix12 两遍式 | **7.68%** | 446 | 69 | 335 | 0.585 + 0.176 = **0.76** |
+| 参考：CUDA 流式 | 7.62% | | | | |
+| 参考：torch encoder + int8 离线（旧 hybrid） | 8.65% | 436 | 73 | 448 | |
+
+### 归因结论（与 C-043/C-044 的判断不同，请reviewer 重点看）
+1. **主因是"流式增量解码的误差放大"，不是权重量化。** 同一 decoder 离线逐段解码：
+   int8 7.84% vs mix12 7.68%，**只差 0.16 pp**；而流式下两者差 5.8 pp（17.87% vs 12.04%）。
+   即量化误差本身很小（~0.16 pp），但流式的"逐 chunk 重生成 + prefix 回灌"会把这点差异
+   放大成重复循环（插入词 362→743）。
+2. **C-043/C-044 走的量化路线（lm_head FP16 / INT4 / AWQ）是在解一个只值 0.16 pp 的问题。**
+   真正的解法是架构性的：**两遍式**（也就是 STATUS 选项表里从未跑过的 A3）。
+3. **per-layer 混合精度仍然值得做，但收益只在流式那一遍**：EOS 63.41%→87.80%，
+   流式 WER -5.8 pp；用于第二遍则只赚 0.16 pp。若选C 方案（int8 两遍式），
+   **无需任何新 IR**，直接复用现有 models/ov-int8-past。
+4. **模板残留坑**：离线解码会输出 `language None<asr_text>` 前缀（流式路径有
+   `parse_asr_output` 剥离）。不剥离 → 226 段每段多 3-4 个垃圾词 → WER 虚增约 3.7 pp
+   （11.40% vs 7.68%）。新增解码路径务必走 `parse_asr_output`。
+
+### 建议交付
+- **默认：C（int8 两遍式）** —— WER 7.84%（验收线 ≤11%），总 RTF 0.72，不需新 IR，改动最小。
+- 若要榨最后 0.16 pp 且 IR 预算允许：D（pass 1 用 int8 + pass 2 用 mix12），RTF 0.76。
+- 不建议单独交付 B（mix12 流式）：P95 0.884 超线，且质量仍比两遍式差 4.4 pp。
+
+---
+
+## C-046：流式 WER 差距的根因定位与修复（2026-10-13）
+
+详见 `reports/C046_STREAM_GAP_ROOTCAUSE.md`。本节修正 C-045 的归因方向。
+
+### 根因（已实验锁定）
+**流式循环中「前缀提交过早」把偶发解码错误永久冻结，放大成重复循环。**
+`unfixed_token_num=5` 意味着每 chunk 只有最后 5 个 token 可改写，其余永久锁定。
+音频在增长，但错误前缀也在增长且不可逆 → 错词成为自回归陷阱起点 →
+贪心解码复读高概率 token → 插入错误激增。
+
+### 决定性证据（5 变体扫描，5 段/ref=298 词）
+| 变体 | k | max_new | WER | I | n3 重复 |
+|---|---|---|---|---|---|
+| V0（生产） | 5 | 32 | 39.60% | 92 | 106 |
+| V1 | 5 | 128 | 38.93% | 64 | 108 |
+| V2 | 30 | 32 | 16.78% | 0 | 7 |
+| V3 | ∞ | 32 | 59.73% | 0 | 0 |
+| V4 | ∞ | 128 | 14.09% | 28 | 34 |
+
+- **量化只值 0.29 pp**（int8 离线 7.84% vs fp16 离线 7.55%），不是 10 pp 差距的主因
+- k=5→30 使重复 106→7、插入 92→0，**模型权重一个字节没变**
+- 排除生成长度截断（V0/V1 在 seg161 上逐项相同）、排除解码器/编码器状态残留
+
+### 修复：自适应共识提交（LocalAgreement）
+`c046_stream_fix.py::run_fix` —— 只提交连续 2 轮一致的 token，模型改口则退回未冻结区。
+一次性猜测因此无法被永久锁死。附标点锚定 + 严格循环守卫。
+
+| 变体 | WER | S | D | I | n3 | 墙钟 |
+|---|---|---|---|---|---|---|
+| base_k5（生产） | 40.27% | 19 | 9 | 92 | 106 | 65s |
+| **fix_notail（纯共识提交）** | **11.41%** | 25 | 9 | **0** | 6 | **65s** |
+| k30 | 16.78% | 5 | 45 | 0 | 7 | 139s |
+| V4（纯离线重解） | 14.09% | 4 | 10 | 28 | 34 | 341s |
+
+**-28.9 pp，插入归零，墙钟不变，单遍流式。** seg161 从 100%（I=55/n3=52）
+降到 11.48%（I=0/n3=0），而同段纯离线重解仍是 52.46% —— 共识提交本身即重复抑制器。
+
+### 对 C-045 结论的修正
+- C-045 说"两遍式是解法"是对的，但**它绕开了问题而非解决问题**。
+  C-046 证明单遍流式也能达到 11.41%（优于纯离线重解的 14.09%）。
+- `fix + 段尾重解`的输出与纯离线**逐项完全一致** → 该组合本质上就是两遍式，
+  既然共识提交单遍更优，**不采用 tail_flush**。
+- 交付选项更新：
+  - **新增推荐 C-046（单遍共识提交）**：WER 11.41%，RTF 与现有流式持平，无段尾延迟
+  - C（C-045 两遍式）7.84%仍是质量最优，但需 3 秒延迟 + 二次计算
+  - 两者按延迟要求二选一
+
+### 附带发现：C-027 循环守卫 `_detect_any_loop` 系统性误报
+在**完全正确**的转写文本上误报：seg60 离线正确输出 60 词，在第 103 字符处被判循环，
+截断后仅 18 词（D=45）。根因：`_detect_ngram_loop` 只要求 3-gram 全文出现 ≥3 次
+（**位置可不连续**），把演讲里 `a lot of interest` 这类合法复现当成复读。
+已实现 `c046_loop_guard.py` 严格守卫（要求连续紧邻）替代，误报归零、召回保持。
+**影响范围**：`c045_two_pass.py` 与 `transcribe_stream.py` 均不调用该守卫，
+C-045 的 7.84% 结论不受影响。
+
+### 待办
+- 共识提交需在 61-min 全量集验证（整体 WER + P95 RTF）
+- 验证通过后接入 `transcribe_stream.py` 部署入口
+
+---
+
+## C-047：与 CUDA 官方流式对齐，定位 OV 的错误引入点（2026-10-13）
+
+详见 `reports/C047_CUDA_PARITY.md`。
+
+### 结论
+**错误引入点：`max_new_tokens` 被固定为 32，而 CUDA 官方是自适应生成长度（1–4 token，带输出增长负反馈）。**
+
+受控实验（只改这一个参数，其余全同，5 段 ref=298 词）：
+| 配置 | WER | 插入 | 重复 |
+|---|---|---|---|
+| A：640ms/k=5/**固定 32**（OV 生产） | 40.27% | 92 | 106 |
+| **E：640ms/k=5/自适应（仅改预算）** | **4.36%** | **0** | 7 |
+
+**一个参数 40.27% → 4.36%。** 其他 CUDA 差异项单独改**全部无效**：
+chunk 160ms → 39.26%；k=1 → 37.92%；first-lookahead → 40.27%（逐项完全相同）。
+
+### 源码级差异（`third_party/Confucius4-R2T2/example.py` vs `transcribe_stream.py`）
+| 参数 | CUDA 官方 | OV 当前 |
+|---|---|---|
+| `chunk_size_ms` | 160 | 640 |
+| `unfixed_token_num` | 1 | 5 |
+| `max_new_tokens` | **自适应 1–4** | **固定 32** ← 主因 |
+| first-chunk lookahead | 160ms | **无实现** |
+| finish 预算 | 1–2 | max(64,32)=64 |
+
+### CUDA 机制（`example.py:118-155`）
+负反馈控制器：文本在增长 → 收紧到 1 token；文本停滞 → 放宽（+1，中文×2）；上限 4。
+**上限 4 的意义**：单次自回归失控最多写入 4 个 token，不会像 32 那样让一次复读
+直接污染整个冻结前缀。
+
+### 完整变体结果
+| 变体 | 配置 | WER | I | n3 | 墙钟 |
+|---|---|---|---|---|---|
+| A_ov_prod | 640ms k=5 固定32 | 40.27% | 92 | 106 | 67s |
+| B_k1 | 640ms k=1 固定32 | 37.92% | 71 | 90 | 48s |
+| C_chunk160 | 160ms k=5 固定32 | 39.26% | 64 | 108 | 219s |
+| D_lookahead | +first lookahead | 40.27% | 92 | 106 | 65s |
+| **E_adapt_only** | **640ms k=5 自适应** | **4.36%** | **0** | 7 | 59s |
+| F_cuda_full | 160ms k=1 自适应+look | 13.76% | 0 | 7 | 141s |
+| G_cuda_noadapt | 160ms k=1 固定+look | 11.74% | 0 | 7 | 161s |
+| H_cuda_640 | 640ms k=1 自适应 | 29.19% | 67 | 59 | 45s |
+
+**自适应必须配合 k=5**（H 证明 k=1+自适应退化到 29.19%）。
+**chunk 改 160ms 只换来 3.2 倍墙钟、零收益。**
+
+### 与 C-046 的关系
+两者解决同一根因（错误 token 被永久冻结），路径不同：
+- C-046 LocalAgreement 共识提交：提交侧补救，WER 11.41%
+- C-047 自适应生成长度：**生成侧限制**，WER **4.36%**
+
+**C-047 更优**：完全对齐官方语义、改动面小、效果好于共识提交。
+C-046 共识提交降级为备选方案。
+
+### 落地建议
+优先采用 E 配置，改动限于 `seg_stream.py::_run_one_segment` 的 max_new_tokens 计算：
+1. **保持 `unfixed_token_num=5`**（H 证明 k=1+自适应会退化）
+2. **保持 chunk 640ms**（改 160ms 无收益、墙钟×3.2）
+3. 需移植 `is_last_token_chinese`（OV 侧无此函数）
+4. finish 保持 `max(64,...)`，**不要**照搬 CUDA 的 first_max_new_tokens
+   （实测 1–2 token 收尾在 OV 上截断尾巴，D≈293）
+
+### 待办
+- 61-min 全量集验证 E 配置
+- 若 4.36% 可复现，**可取消 C-045 两遍式**（省 3 秒段尾延迟）
+
+---
+
+## C-047 全量集验证完成：单遍流式达到离线质量（2026-10-13 20:50）
+
+### 61-min 全量集结果（226 段，同验收口径）
+| 指标 | baseline（固定32） | **adaptive（自适应）** | 变化 |
+|---|---|---|---|
+| **WER** | 17.87% | **7.88%** | **-9.99 pp** |
+| 替换 S | 901 | 455 | -49.5% |
+| 删除 D | 52 | 54 | 持平 |
+| **插入 I** | 1025 | 363 | **-64.6%** |
+| n3 重复 | 1983 | 981 | -50.5% |
+| n4 重复 | 1207 | 262 | **-78.3%** |
+| RTF | 0.687 | **0.639** | 更快 |
+| 段 RTF P95 | 0.755 | 0.675 | -10.6% |
+| 段 RTF max | 1.133 | 0.727 | -35.8% |
+
+### 关键结论：**C-045 的两遍式方案可以取消**
+7.88% 与 C-045 的离线/两遍式 7.84% 基本持平（差 0.04pp），且：
+- 无 3 秒段尾延迟
+- RTF 0.639 反而低于两遍式的 0.72
+- 只改一个参数，不动模型、不动 IR
+
+方案对比（同口径同参考）：
+| 方案 | WER | RTF | 段尾延迟 |
+|---|---|---|---|
+| 生产现状（固定32 单遍） | 17.87% | 0.687 | 无 |
+| C-045 int8 两遍式 | 7.84% | 0.72 | 3 秒 |
+| **C-047 自适应单遍** | **7.88%** | **0.639** | **无** ← 推荐 |
+| C-046 共识提交单遍 | 11.41%(5段) | 持平 | 无 | 备选 |
+
+验收线 ≤11% 已满足且有余量。
+
+### 已落地（默认关闭，不影响现有行为）
+- `streaming_asr.py`: 新增 `_is_last_token_chinese` / `_adaptive_budget_init` /
+  `_adaptive_budget_update`；`streaming_transcribe(..., adaptive_budget=False)`
+- `seg_stream.py`: `SegmentedStreamer(..., adaptive_budget=False)` 透传
+- `transcribe_stream.py`: 新增 `--adaptive-budget` 开关
+- 640ms chunk 下标定：base=8，floor=16（公式随 chunk 线性缩放，≈每80ms 1 token）
+
+用法：
+```bash
+.venv python transcribe_stream.py <wav> --adaptive-budget
+```
+
+### 踩坑记录
+- `strategy='off'` 单段模式跑 60s 会撞 segment encoder 2400 帧上限
+  （≈24.3s），长音频必须用 VAD 分段
+- 全量集最后一小段（0.61s）VAD 切出空文本，属正常尾段行为
+
+### 复现
+```bash
+.venv python c048_61min.py --variants baseline,adaptive
+.venv python c045_wer.py \
+  reports/c048_61min_adaptive/transcript_adaptive.txt \
+  reports/c048_61min_adaptive/transcript_baseline.txt
+```
+
+---
+
+## C-047 落地完成：adaptive_budget 已设为默认（2026-10-13 21:10）
+
+- `transcribe_stream.py`：`DEFAULT_ADAPTIVE_BUDGET = True`，开关改为
+  `--no-adaptive-budget`（显式关闭才退回固定 32）
+- 新增参数组合告警：`adaptive_budget=True` 但 `unfixed_token_num != 5` 时打印 WARN
+  （H 变体实测该组合退化到 WER 29.19%）
+- 已用 30s 音频端到端冒烟：默认配置输出与显式 `--adaptive-budget` 完全一致
+- README 已同步：验收表（WER 7.88% / RTF 0.639）、默认行为表、项目结构、部署示例，
+  并说明 C-045 两遍式已非必需
+- `c045_two_pass.py` 保留作历史对照，不再是推荐交付路径
+
+**当前推荐交付配置（默认即最优）**：
+```
+.venv/Scripts/python.exe transcribe_stream.py path\to.wav
+```
+WER 7.88% / RTF 0.639 / 无段尾延迟 / 验收线 ≤11% 已满足。
