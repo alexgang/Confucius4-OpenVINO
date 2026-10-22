@@ -14,6 +14,7 @@ A3  MT_ENGINES：翻译侧的「设备 × 量化」可选项，与 App 里 ASR �
 
 模型目录只读；可用环境变量 LIVECAP_MT_MODEL 覆盖 'auto' 用的模型目录。
 """
+import json
 import os
 import queue
 import re
@@ -468,14 +469,60 @@ _TRANSLATE_CTX_INSTR = ('[Background Information]\n{ctx}\n\n'
 _TAG_RE = re.compile(r'<\|[^<>]{0,60}\|>')
 CTX_MAX_CHARS = 160          # 上下文截断长度（控制 prompt 长度，避免延迟涨太多）
 
+# ── H-003 术语表（--mt-glossary）────────────────────────────────────────
+# 走 MT2 官方 **Terminology 模板**（README 第 76 行）：先给「参考译法」，再下翻译指令。
+# 默认表是芯片/硬件会议场景的术语 —— 起因是「QS」被两个模型都译错（QS =
+# Qualification Sample 资格样品，不是 QPS；也不是「击打」）。
+GLOSSARY = {
+    'QS': '资格样品（QS）',
+    'ES': '工程样品（ES）',
+    'power on': '点亮',
+    'power-on': '点亮',
+    'tape-out': '流片',
+    'tapeout': '流片',
+    'go to market': '推向市场',
+    'share': '市场份额',
+    'silicon': '芯片',
+    'milestone': '里程碑',
+}
+_GLOSSARY_FILE = os.environ.get('LIVECAP_MT_GLOSSARY', '')
+if _GLOSSARY_FILE and os.path.isfile(_GLOSSARY_FILE):
+    try:
+        GLOSSARY.update(json.load(open(_GLOSSARY_FILE, encoding='utf-8')))
+    except Exception:
+        pass
+_TRANSLATE_TERM_INSTR = ('Reference the following translations:\n{terms}\n\n'
+                         'Translate the following text into {dst}. Note that you must '
+                         'ONLY output the translated result without any additional '
+                         'explanation:\n\n{text}')
+_TRANSLATE_TERM_CTX_INSTR = ('Reference the following translations:\n{terms}\n\n'
+                             '[Background Information]\n{ctx}\n\n'
+                             'Translate the following text into {dst}, taking the provided '
+                             'background information into consideration. Output ONLY the '
+                             'translated text without any additional explanation.\n\n'
+                             '[Source Text]\n{text}')
 
-def build_messages(text, tgt, src=None, ctx=None):
-    """渲染成 messages。MT2 无 system prompt：指令与待翻译文本都在 user 消息里。"""
+
+def build_messages(text, tgt, src=None, ctx=None, glossary=None):
+    """渲染成 messages。MT2 无 system prompt：指令与待翻译文本都在 user 消息里。
+
+    glossary：{原文术语: 指定译法} 字典，非空时走官方 Terminology 模板（H-003）。
+    """
+    terms = ''
+    if glossary:
+        terms = '\n'.join(f'{k} translates to {v}' for k, v in glossary.items())
     if ctx:
         ctx = ' '.join((ctx or '').split())[:CTX_MAX_CHARS]
-        user = _TRANSLATE_CTX_INSTR.format(ctx=ctx, dst=_LANG_NAME[tgt], text=text)
+        if terms:
+            user = _TRANSLATE_TERM_CTX_INSTR.format(terms=terms, ctx=ctx,
+                                                    dst=_LANG_NAME[tgt], text=text)
+        else:
+            user = _TRANSLATE_CTX_INSTR.format(ctx=ctx, dst=_LANG_NAME[tgt], text=text)
     else:
-        user = _TRANSLATE_INSTR.format(dst=_LANG_NAME[tgt], text=text)
+        if terms:
+            user = _TRANSLATE_TERM_INSTR.format(terms=terms, dst=_LANG_NAME[tgt], text=text)
+        else:
+            user = _TRANSLATE_INSTR.format(dst=_LANG_NAME[tgt], text=text)
     return [{'role': 'user', 'content': user}]
 
 
@@ -580,18 +627,18 @@ class HunyuanTranslator:
         self.load_s = time.perf_counter() - t0
         self.n_calls = 0
 
-    def render(self, text, tgt, src=None, ctx=None):
+    def render(self, text, tgt, src=None, ctx=None, glossary=None):
         # MT2 的 chat template 不引用 enable_thinking，不传该 kwarg（与旧 Instruct 不同）
         return self.tok.apply_chat_template(
-            build_messages(text, tgt, src, ctx=ctx), tokenize=False,
+            build_messages(text, tgt, src, ctx=ctx, glossary=glossary), tokenize=False,
             add_generation_prompt=True)
 
-    def translate(self, text, tgt, on_token=None, ctx=None):
+    def translate(self, text, tgt, on_token=None, ctx=None, glossary=None):
         """返回 dict(text, lat_ms, ttft_ms, n_in, n_out, skipped)。"""
         src = detect_lang(text)
         if tgt != 'off' and src and src == tgt:
             return dict(text=text, lat_ms=0.0, ttft_ms=0.0, n_in=0, n_out=0, skipped=True)
-        prompt = self.render(text, tgt, src, ctx=ctx)
+        prompt = self.render(text, tgt, src, ctx=ctx, glossary=glossary)
         try:
             n_in = len(self.tok(prompt, add_special_tokens=False).input_ids)
         except Exception:
@@ -665,7 +712,7 @@ class TranslationService:
     CACHE_MAX = 400            # 译文缓存条数上限（FIFO）
 
     def __init__(self, target='off', device='GPU.0', model_dir=None, on_log=print,
-                 auto=True, engine_key=None, use_ctx=False, draft=None):
+                 auto=True, engine_key=None, use_ctx=False, draft=None, glossary=False):
         """auto=False 时不立刻起加载线程（GUI 用它等 ASR 引擎就绪后再加载，
         避免两个模型在同一 GPU 上并行编译——实测会把 GUI 卡死）。
 
@@ -701,6 +748,9 @@ class TranslationService:
         self.seg_keys = {}                 # 段序号 -> 该段提交的句子 key 列表
         self.seg_carry = {}                # 段序号 -> 是否有半句并入/挂起
         self.use_ctx = use_ctx             # C-099② 是否带上一句原文做上下文
+        # H-003：术语表开关（--mt-glossary）。开时走官方 Terminology 模板，
+        # prompt 变长（约 +200 token），延迟会涨，故默认关。
+        self.glossary_on = bool(glossary)
         self._last_src = ''                # 上一句原文（上下文用）
         self._seen = set()                 # 已提交过的句子（避免重复入队）
         self._busy = 0                     # 已出队、正在翻译中的任务数
@@ -1032,7 +1082,9 @@ def _run_jobs(svc, tr):
         try:
             # C-099②：带上一句原文做上下文（关掉时 ctx=None，行为与之前一致）
             ctx = svc._last_src if svc.use_ctx else None
-            r = tr.translate(job.text, svc.target, ctx=ctx)
+            # H-003：术语表（关掉时 glossary=None，行为与之前一致）
+            gl = GLOSSARY if svc.glossary_on else None
+            r = tr.translate(job.text, svc.target, ctx=ctx, glossary=gl)
         except Exception as e:
             svc.err = f'{type(e).__name__}: {e}'
             svc._busy -= 1

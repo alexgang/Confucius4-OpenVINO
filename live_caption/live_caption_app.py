@@ -787,6 +787,7 @@ class App:
         self.mt = TranslationService(
             target=args.translate, device=args.mt_device, auto=False,
             engine_key=args.mt_engine, use_ctx=getattr(args, 'mt_ctx', False),
+            glossary=getattr(args, 'mt_glossary', False),
             draft=_init_draft_flag(args),
             on_log=self._ui_log)
 
@@ -1521,6 +1522,7 @@ def run_cli(args):
           f'识别语种 {asr_lang or "自动检测"}', flush=True)
     mt = TranslationService(target=args.translate, device=args.mt_device,
                             engine_key=args.mt_engine, use_ctx=args.mt_ctx,
+                            glossary=args.mt_glossary,
                             draft=_init_draft_flag(args),
                             on_log=lambda m: print(f'  [翻译] {m}', flush=True))
     finals = []
@@ -1852,6 +1854,9 @@ def main():
                     help='翻译后端（设备 × 量化）；auto = 用 --mt-device + LIVECAP_MT_MODEL')
     ap.add_argument('--mt-ctx', action='store_true',
                     help='翻译时带上一句原文做上下文（C-099②，减少术语/指代错误）')
+    ap.add_argument('--mt-glossary', action='store_true',
+                    help='H-003：翻译时带上芯片/硬件术语表（官方 Terminology 模板，'
+                         'QS→资格样品等）；prompt 变长约 +200 token，延迟会涨')
     ap.add_argument('--mt-draft', action='store_true',
                     help='开启草稿译文：除定稿文本外，还实时翻译还没定稿的那句'
                          '（界面上的浅蓝色预览）。默认关闭 —— 只翻译已定稿的文本；'
