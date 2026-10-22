@@ -94,9 +94,13 @@ def main():
     a = make_case(voice_s=4.0, tail_sil=0.0, rng=rng)
     check('2 段尾无静音 不切', seg._silence_tail(a), False)
 
-    # 3. 尾静音不足 1.2s
-    a = make_case(voice_s=4.0, tail_sil=0.8, rng=rng)
-    check('3 尾静音不足1.2s 不切', seg._silence_tail(a), False)
+    # 3. 尾静音不足门槛（★ C-108：门槛由 1.2s 降到 0.8s，用例随之改）
+    a = make_case(voice_s=4.0, tail_sil=0.5, rng=rng)
+    check('3 尾静音不足门槛(0.8s) 不切', seg._silence_tail(a), False)
+
+    # 3b. ★ C-108：尾静音刚过 0.8s 门槛 → 应能切
+    a = make_case(voice_s=4.0, tail_sil=1.0, rng=rng)
+    check('3b 尾静音过0.8s门槛 可切', seg._silence_tail(a), True)
 
     # 4. 绝对判据放行（probe 明显高于 -40dB）
     a = make_case(voice_db=-20.0, sil_db=-70.0, tail_sil=1.5, rng=rng)
@@ -140,6 +144,41 @@ def main():
     check('7b 低语音电平段被准入门槛拦住', seg._silence_tail(a), False)
     print(f'        （该用例段内语音电平 {speech:.1f}dB，门槛 '
           f'{L.GUARD_REL_MIN_SPEECH_DB:.1f}dB）')
+
+    print('\n=== 10. ★ C-108 空段守卫 ===')
+    # 守卫：段内必须存在「连续 ≥200ms 的语音帧（>-35dB）」才允许切段。
+    # 典型空段（真实录音 [41.60, 42.88]）：只有 9 帧零星噪声突发，
+    # 最长连续语音 < 120ms → 必须被拦住。
+    check('10 默认守卫阈值', L.SEG_MIN_SPEECH_RUN_MS, 200)
+
+    # 10a. 纯静音段（无任何语音帧）→ 守卫必须拦下
+    a = make_case(voice_db=-70.0, sil_db=-70.0, noise_db=-70.0,
+                  tail_sil=1.5, voice_s=2.0, rng=rng)
+    check('10a 纯静音段被守卫拦住', seg._has_speech(a), False)
+
+    # 10b. 只有零星噪声突发（< 200ms 连续）→ 必须被拦下
+    #     构造：静音里塞几段 60ms 的 -30dB 突发
+    rng2 = np.random.default_rng(99)
+    burst = make_case(voice_db=-30.0, sil_db=-70.0, noise_db=-70.0,
+                      tail_sil=0.0, voice_s=0.06, rng=rng2).astype(np.float64)
+    base = np.full(int(2.0 * SR), 10 ** (-70 / 20) * rng2.standard_normal(int(2.0 * SR)))
+    seg_b = np.concatenate([base, burst, base[:int(0.4 * SR)]])
+    check('10b 零星噪声突发被守卫拦住', seg._has_speech(seg_b.astype(np.float32)), False)
+
+    # 10c. 有成段连续语音（≥ 200ms）→ 必须放行
+    a = make_case(voice_db=-25.0, sil_db=-70.0, tail_sil=1.5, rng=rng)
+    check('10c 成段连续语音放行', seg._has_speech(a), True)
+
+    # 10d. 守卫关闭（阈值 0）→ 恒放行（回退开关）
+    os.environ['LIVECAP_MIN_SPEECH_RUN_MS'] = '0'
+    importlib.reload(L)
+    seg_noguard = L.Segmenter()
+    check('10d 守卫关闭后恒放行', seg_noguard._has_speech(
+        make_case(voice_db=-70.0, sil_db=-70.0, noise_db=-70.0,
+                  tail_sil=1.5, rng=rng)), True)
+    os.environ['LIVECAP_MIN_SPEECH_RUN_MS'] = '200'
+    importlib.reload(L)
+    seg = L.Segmenter()
 
     print('\n=== 9. 「绝对 ∪ 相对」只放宽不收紧 ===')
     print('    对所有随机样本，rel=1 的放行集合必须包含 rel=0 的放行集合')

@@ -41,26 +41,32 @@ SR = 16000
 STEP = 1600          # 100 ms
 
 
-def run_once(L, audio, cut_sec, force_language, rel='1'):
+def run_once(L, audio, cut_sec, force_language, rel='1', guard_ms=None):
     os.environ['LIVECAP_SILENCE_CUT_SEC'] = str(cut_sec)
     os.environ['LIVECAP_GUARD_REL'] = rel
+    if guard_ms is not None:
+        os.environ['LIVECAP_MIN_SPEECH_RUN_MS'] = str(guard_ms)
     importlib.reload(L)
     eng = L.make_engine('gpu_int8', on_log=lambda m: None,
                         force_language=force_language)
-    finals, stamps = [], []
+    finals, stamps, apos = [], [], []
     t0 = time.perf_counter()
     for i in range(0, len(audio), STEP):
         r = eng.feed(audio[i:i + STEP], time.perf_counter())
         if r:
             finals.append(r)
             stamps.append(time.perf_counter() - t0)
+            # 该段覆盖的**音频**结束时刻（秒）—— 与墙钟无关，
+            # 用来算「音频 t 的内容在音频 t+Δ 才定稿」的白字延迟。
+            apos.append((i + STEP) / 16000.0)
     tail = eng.flush()
     if tail:
         finals.append(tail)
         stamps.append(time.perf_counter() - t0)
+        apos.append(len(audio) / 16000.0)
     wall = time.perf_counter() - t0
     eng.close()
-    return finals, stamps, wall
+    return finals, stamps, apos, wall
 
 
 def norm_words(text):
@@ -100,6 +106,9 @@ def main():
         force_language = args[args.index('--lang') + 1]
     if '--cuts' in args:
         cuts = [float(x) for x in args[args.index('--cuts') + 1].split(',')]
+    guard_ms = None
+    if '--guard' in args:
+        guard_ms = int(args[args.index('--guard') + 1])
     if '--out' in args:
         outdir = os.path.abspath(args[args.index('--out') + 1])
     if outdir is None:
@@ -123,16 +132,19 @@ def main():
     runs = {}
     for cut in cuts:
         print(f'\n── SILENCE_CUT_SEC={cut} ──', flush=True)
-        finals, stamps, wall = run_once(L, d, cut, force_language)
+        finals, stamps, apos, wall = run_once(L, d, cut, force_language,
+                                              guard_ms=guard_ms)
         fn = os.path.join(outdir, f'cut{cut}.json')
         with open(fn, 'w', encoding='utf-8') as f:
-            json.dump(dict(cut=cut, wall=wall, stamps=stamps, finals=finals),
+            json.dump(dict(cut=cut, guard_ms=guard_ms, wall=wall,
+                           stamps=stamps, apos=apos, finals=finals),
                       f, ensure_ascii=False, indent=1)
         words = [w for x in finals for w in norm_words(x)]
         print(f'   段数={len(finals)}  词数={len(words)}  墙钟={wall:.1f}s  '
               f'末段定稿 @{stamps[-1] if stamps else 0:.1f}s', flush=True)
         print(f'   → {fn}', flush=True)
-        runs[cut] = dict(finals=finals, stamps=stamps, wall=wall, words=words)
+        runs[cut] = dict(finals=finals, stamps=stamps, apos=apos,
+                         wall=wall, words=words)
 
     # ── 逐对比对（以第一个门槛为基准） ──
     base_cut = cuts[0]
@@ -159,17 +171,17 @@ def main():
         if gain:
             print(f'   多出词明细: {gain[:15]}')
 
-        # 白字时机
+        # 白字时机（★ 用音频时间轴 apos，不用墙钟 stamps）
         def curve(r):
-            st, fin = r['stamps'], r['finals']
+            ap, fin = r['apos'], r['finals']
             out = []
             cw = 0
-            for i in range(len(st)):
+            for i in range(len(ap)):
                 cw += len(norm_words(fin[i]))
-                out.append((st[i], cw))
+                out.append((ap[i], cw))
             return out
         cA, cB = curve(base), curve(o)
-        print(f'   累计可见字数对比:')
+        print(f'   累计可见字数对比（★ 按**音频时间轴**，不受机器漂移影响）:')
         for T in (60, 120, 240, 360, 480, 600, 720):
             def at(c):
                 v = 0
@@ -178,8 +190,33 @@ def main():
                         v = w
                 return v
             va, vb = at(cA), at(cB)
-            print(f'      @{T:>4}s  基准 {va:>5} 字   新 {vb:>5} 字   '
+            print(f'      音频@{T:>4}s  基准 {va:>5} 字   新 {vb:>5} 字   '
                   f'差 {vb-va:+5}')
+
+        # ── 音频时间轴口径的「白字延迟」──
+        # 定义：音频时刻 t 的内容，在音频时刻 t+lag 才定稿（转白）。
+        # 用每个段的「覆盖到的音频末尾」→ 定稿时点来算，与墙钟无关。
+        def lag_curve(r):
+            out = []
+            for a_end in r['apos']:
+                out.append(a_end)
+            return out
+
+        def visible_at_audio(r, T):
+            """音频时刻 T 时，已经定稿的内容覆盖到音频时刻多少。"""
+            ap = r['apos']
+            best = 0.0
+            for a_end in ap:
+                if a_end <= T:
+                    best = max(best, a_end)
+            return best
+
+        print(f'   ★ 白字延迟（音频时间轴口径：音频 t 的内容在音频 t+lag 定稿）:')
+        for T in (60, 120, 240, 360, 480, 600):
+            la = T - visible_at_audio(base, T)
+            lb = T - visible_at_audio(o, T)
+            print(f'      音频@{T:>4}s  基准延迟 {la:>5.2f}s   '
+                  f'新延迟 {lb:>5.2f}s   改善 {la-lb:+.2f}s')
 
 
 if __name__ == '__main__':
