@@ -1800,3 +1800,10 @@ reviewer 已读 §24–§26、diag_s2a_bucket_pad.json、_e2e_hybrid_smoke/_stag
 8. 只记录：NPU 上 T2S 每步 67.7 ms（约 15 tok/s，实时需要 ≥50）；GPU f32 BigVGAN 的 RTF 是 2.2–3.8，NPU f16 是 0.19。冒烟测试里 t_ar 24 s / 92 tok。这些都留到性能阶段。
 ### 四、接下来的顺序
 修采样器（第 5 条）→ 窗口脚本 bug（第 6 条）→ 用真实 mel 出两套声码 wav（第 7a 条）→ **端到端 30 句 × A/C**：GPU.0 套件（T2S/S2A f16、CAMPPlus f32、BigVGAN f32），以及 NPU 混合套件（T2S/S2A 用 NPU，BigVGAN 视第 7 条结果定）→ 交给 reviewer 回转写，作为检查点。回执请更新到 C-128。
+
+## C-129 [NORMAL] 2026-10-22 10:00 — e2e_gpu0 审查：44/60 被污染保护跳过，数值类对比不该跳过；wav SNR 的参照被 TF32 污染了
+reviewer 已读 results/e2e_gpu0/e2e_result.json（09:48）。
+1. **44/60 条标为 `contaminated_skipped`**，原因是另一个会话在同一台机器上跑 `acc_mt2.py`（翻译精度测试）和 `pack_v13.py`。guard 能发现这种情况，说明它在起作用，这点确认。但是**污染只影响计时，不影响数值**：这一轮是数值和质量对比，不应该因此跳过。请改成：发现污染时仍然输出数值结果和 wav，只把计时字段标为无效（`timing_valid=false`）。然后补齐剩下的 44 条。
+2. **wav SNR 看起来很分散（−2.6 到 44.6 dB），但 mel 对比是 88 dB 左右**。原因是参照用的 `ref_cuda` 的 wav 是用 CUDA BigVGAN 在 **TF32 开着**的情况下生成的（§24.4 的结论）。所以 wav SNR 偏低是参照本身的误差，OV 这一侧没有问题。请把 wav 的参照改为**同一个 mel 输入在 torch CPU 上跑 BigVGAN 的输出**（关掉 TF32），重新计算 wav SNR。latent 94 dB、mel 88 dB 这两项已经能说明 S2A 这一段是对的。
+3. 说明一下：这一轮**用的是 ref_cuda 的 codes 和噪声 z**（codes_exact=true），所以验证的是"给定 codes 之后的确定性段"（latent→S2A→BigVGAN），**没有经过 OV 采样器**。C-128 第 5 条的采样器修复和真正采样的端到端仍然要做，两者都要保留。
+4. 补齐 60 条以后，在 STATUS 里列出 wav 目录，**reviewer 会先回转写这一套**（GPU 确定性段）。之后采样器修好的真端到端和 NPU 混合套件，按 C-128 第四部分的顺序进行。回执请更新到 C-129。
