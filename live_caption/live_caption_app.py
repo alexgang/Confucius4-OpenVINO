@@ -86,6 +86,37 @@ SILENCE_TAIL_GUARD_SEC = float(os.environ.get('LIVECAP_SILENCE_GUARD_SEC', '0.35
 # 静音判定阈值（dBFS），与 seg_stream.find_silence_in_range 的默认值一致。
 SILENCE_DB = -40.0
 
+# ── 保护期判据（C-105：改用相对阈值）────────────────────────────
+# 保护期本来是防「刚开口的爆破音（/b/ /p/）能量低，被静音检测误判成
+# 静音」而设的。旧判据是**绝对阈值** probe_db > SILENCE_DB(-40dB)，
+# 在真实录音里会大面积失效：
+#
+#   真实演讲 <redacted>.wav 实测 —— 30 处 ≥1.2s 静音里，
+#   现状判据拦截了 24 处（80%）。原因底噪本身就接近 -40dB
+#   （中位 -56dB 但 p10 到 -65dB），说话收尾时能量渐弱，
+#   句末 0.35s 的能量中位只有 -42.4dB，低于 -40dB → 判「不是说完」
+#   → 规则2（静音超时切段）形同虚设，只能等规则1 的 12s 下限，
+#   白等 1~2s，用户看到白字明显偏慢。
+#
+# 改法：把判据锚定到**这一段自己的语音电平**，而不是全局绝对值。
+#   放行条件 = 绝对判据 或 相对判据（取并集，绝不收紧现状）
+#     绝对：probe_db > SILENCE_DB(-40dB)              ← 现状，一票通过
+#     相对：probe_db > 段内语音电平(p90) - DROP_DB     ← 新增，低能量句末
+# 语音电平用段内 30ms 帧能量的 90 分位（代表「这一段说话时的响度」）：
+#   * 底噪高/尾音渐弱时，相对阈值同步下移 → 不再误杀正常收尾；
+#   * 刚开口的爆破音仍远低于段内语音电平 → 保护依然有效。
+#
+# 实测（61 分钟真实演讲，离线切段模拟 A/B，drop=18dB）：
+#   规则2 触发 11 → 18 段；新增 7 个切点**全部落在词间隙**（0 危险）；
+#   白字提前量中位 5.76s、最大 12.8s，61 分钟累计提前 42.2s。
+#   drop 必须 ≥15：drop≤12 时相对判据比绝对判据更严，会**丢掉**
+#   基线本来能切的点（实测丢 2~9 个），反而更慢。
+GUARD_REL_ENABLED = os.environ.get('LIVECAP_GUARD_REL', '1') == '1'
+# 允许句末能量比段内语音电平低多少 dB 仍算「说完了」。
+GUARD_REL_DROP_DB = float(os.environ.get('LIVECAP_GUARD_REL_DROP', '18'))
+# 段内语音电平低于此绝对值时，说明这段基本是噪声，不用相对判据。
+GUARD_REL_MIN_SPEECH_DB = float(os.environ.get('LIVECAP_GUARD_REL_MIN_SPEECH', '-45'))
+
 # ── 路径解析（全部相对包根目录，不依赖任何开发机绝对路径）─────────────
 # 模型目录放在包根的 models/ 下：<包根>/models/<子目录>
 # 这里用**相对路径**定位，不写死盘符/用户名，压缩包解压到任意目录都能跑。
@@ -235,6 +266,32 @@ def _init_draft_flag(args):
     return os.environ.get('LIVECAP_DRAFT') == '1'
 
 
+def _frame_db_series(x, frame_ms=30, hop_ms=10):
+    """逐帧 RMS→dB 序列（与 seg_stream._frame_rms 同参数）。
+
+    C-105 的相对阈值保护期要用「段内语音电平」，需要帧级能量序列。
+    这里独立实现（而不是 import seg_stream），是为了让 live_caption_app
+    的判据不依赖 seg_stream 的内部实现细节。
+    """
+    if x is None or x.size == 0:
+        return np.zeros((0,), dtype=np.float64)
+    n = int(frame_ms * SR / 1000)
+    h = int(hop_ms * SR / 1000)
+    if n <= 0 or h <= 0:
+        return np.zeros((0,), dtype=np.float64)
+    if x.shape[0] < n:
+        pad = np.zeros(n - x.shape[0], dtype=x.dtype)
+        x = np.concatenate([x, pad])
+    nf = (x.shape[0] - n) // h + 1
+    sq = x.astype(np.float64) ** 2
+    cs = np.concatenate(([0.0], np.cumsum(sq)))
+    out = np.empty(nf, dtype=np.float64)
+    for i in range(nf):
+        s = i * h
+        out[i] = 20.0 * np.log10(np.sqrt((cs[s + n] - cs[s]) / n + 1e-12) + 1e-7)
+    return out
+
+
 
 def _norm_word(w):
     return str(w).strip('.,!?;:，。！？；：').lower()
@@ -302,6 +359,12 @@ class Segmenter:
 
         注意保护期是相对**静音起点**算的，不是相对音频末尾 —— 末尾本来
         就是静音的。
+
+        保护期的判据（C-105）—— **绝对 ∪ 相对**，取并集：
+          * 绝对：probe_db > SILENCE_DB(-40dB)  ← 旧判据，一票通过
+          * 相对：probe_db > 段内语音电平(p90) - GUARD_REL_DROP_DB
+        取并集是为了**只放宽、不收紧**：相对判据单独用会比绝对判据更严
+        （实测 drop≤12 会丢掉基线本来能切的切点），必须以绝对判据兜底。
         """
         n = acc.shape[0]
         if n < int(SR * 0.5):
@@ -325,7 +388,20 @@ class Segmenter:
             return False
         rms = float(np.sqrt(float(np.mean(probe.astype(np.float64) ** 2)) + 1e-12))
         db = 20.0 * float(np.log10(rms + 1e-7))
-        return db > SILENCE_DB
+        # 绝对判据（旧行为，保留）
+        if db > SILENCE_DB:
+            return True
+        if not GUARD_REL_ENABLED:
+            return False
+        # 相对判据：把阈值锚定到「这一段自己的说话响度」。
+        # 段内语音电平取静音起点之前的 30ms 帧能量 90 分位。
+        seg_db = _frame_db_series(acc[:sil_start])
+        if seg_db.size == 0:
+            return False
+        speech_db = float(np.percentile(seg_db, 90))
+        if speech_db < GUARD_REL_MIN_SPEECH_DB:
+            return False                      # 这段基本是噪声，不放行
+        return db > speech_db - GUARD_REL_DROP_DB
 
 
 def stitch(prev_words, text):
