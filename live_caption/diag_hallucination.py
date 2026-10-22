@@ -53,7 +53,7 @@ def loop_stats(text):
     return None
 
 
-def run(cut, audio, guard=False, max_seconds=180.0):
+def run(cut, audio, guard=False, max_seconds=180.0, force_language=None):
     os.environ['LIVECAP_SILENCE_CUT_SEC'] = str(cut)
     import importlib
     import live_caption_app as L
@@ -67,7 +67,6 @@ def run(cut, audio, guard=False, max_seconds=180.0):
         if patched == src:
             print('  ⚠️ 没找到 enable_hallucination_reset=False，未改动')
         else:
-            import tempfile
             tmp = os.path.join(os.path.dirname(L.__file__), '_hc_patch.py')
             with open(tmp, 'w', encoding='utf-8') as f:
                 f.write(patched)
@@ -77,7 +76,11 @@ def run(cut, audio, guard=False, max_seconds=180.0):
             spec.loader.exec_module(mod)
             L = mod
 
-    eng = L.make_engine('gpu_int8', on_log=lambda m: None)
+    # 语种必须在建 state 时注入（与 diag_cut_quality.py 完全一致的口径）——
+    # 用 set_force_language() 事后改会重建 state，行为与建 state 时注入不同，
+    # 两次实验就不可比了。
+    eng = L.make_engine('gpu_int8', on_log=lambda m: None,
+                        force_language=force_language)
     finals = []
     t0 = time.perf_counter()
     fed = 0
@@ -103,22 +106,27 @@ def main():
     repeats = 2
     max_seconds = 180.0
     guard = '--guard' in args
+    force_language = None
     if '--cut' in args:
         cut = float(args[args.index('--cut') + 1])
     if '--repeats' in args:
         repeats = int(args[args.index('--repeats') + 1])
     if '--max-seconds' in args:
         max_seconds = float(args[args.index('--max-seconds') + 1])
+    if '--lang' in args:
+        force_language = args[args.index('--lang') + 1]
 
     d, sr = sf.read(wav, dtype='float32')
     if d.ndim > 1:
         d = d[:, 0]
     d = d[:int(max_seconds * sr)]
     print(f'音频 {os.path.basename(wav)} {len(d)/SR:.1f}s  cut={cut}  '
-          f'guard={guard}  repeats={repeats}\n', flush=True)
+          f'lang={force_language or "自动"}  guard={guard}  repeats={repeats}\n',
+          flush=True)
 
     for rep in range(repeats):
-        finals, wall = run(cut, d, guard=guard, max_seconds=max_seconds)
+        finals, wall = run(cut, d, guard=guard, max_seconds=max_seconds,
+                           force_language=force_language)
         bad = []
         for i, f in enumerate(finals):
             st = loop_stats(f)
