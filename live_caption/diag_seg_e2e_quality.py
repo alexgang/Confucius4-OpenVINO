@@ -41,9 +41,12 @@ SR = 16000
 STEP = 1600          # 100 ms
 
 
-def run_once(L, audio, cut_sec, force_language, rel='1', guard_ms=None):
+def run_once(L, audio, cut_sec, force_language, rel='1', guard_ms=None,
+             min_seg=None):
     os.environ['LIVECAP_SILENCE_CUT_SEC'] = str(cut_sec)
     os.environ['LIVECAP_GUARD_REL'] = rel
+    if min_seg is not None:
+        os.environ['LIVECAP_MIN_SEG_SEC'] = str(min_seg)
     if guard_ms is not None:
         os.environ['LIVECAP_MIN_SPEECH_RUN_MS'] = str(guard_ms)
     importlib.reload(L)
@@ -109,6 +112,12 @@ def main():
     guard_ms = None
     if '--guard' in args:
         guard_ms = int(args[args.index('--guard') + 1])
+    # ★ C-109：支持扫「最短段门槛」维度。
+    #   --min-segs 12,6  → 依次跑 (min_seg=12, cut=cuts[0])、
+    #                       (min_seg=6,  cut=cuts[0])，逐组内部再比 cuts。
+    min_segs = None
+    if '--min-segs' in args:
+        min_segs = [float(x) for x in args[args.index('--min-segs') + 1].split(',')]
     if '--out' in args:
         outdir = os.path.abspath(args[args.index('--out') + 1])
     if outdir is None:
@@ -129,49 +138,59 @@ def main():
           f'语种={force_language}')
     print('=' * 78, flush=True)
 
-    runs = {}
-    for cut in cuts:
-        print(f'\n── SILENCE_CUT_SEC={cut} ──', flush=True)
+    # 配置列表：每个是 (min_seg, cut)
+    if min_segs:
+        configs = [(ms, cuts[0]) for ms in min_segs]
+    else:
+        configs = [(None, c) for c in cuts]
+
+    all_runs = []
+    for min_seg, cut in configs:
+        print(f'\n{"=" * 74}', flush=True)
+        print(f'── 配置 MIN_SEG_SEC={min_seg if min_seg is not None else "默认"} '
+              f'SILENCE_CUT_SEC={cut} ──', flush=True)
         finals, stamps, apos, wall = run_once(L, d, cut, force_language,
-                                              guard_ms=guard_ms)
-        fn = os.path.join(outdir, f'cut{cut}.json')
+                                              guard_ms=guard_ms, min_seg=min_seg)
+        tag = f'min{min_seg if min_seg is not None else "def"}_cut{cut}'
+        fn = os.path.join(outdir, f'{tag}.json')
         with open(fn, 'w', encoding='utf-8') as f:
-            json.dump(dict(cut=cut, guard_ms=guard_ms, wall=wall,
-                           stamps=stamps, apos=apos, finals=finals),
+            json.dump(dict(min_seg=min_seg, cut=cut, guard_ms=guard_ms,
+                           wall=wall, stamps=stamps, apos=apos, finals=finals),
                       f, ensure_ascii=False, indent=1)
         words = [w for x in finals for w in norm_words(x)]
         print(f'   段数={len(finals)}  词数={len(words)}  墙钟={wall:.1f}s  '
               f'末段定稿 @{stamps[-1] if stamps else 0:.1f}s', flush=True)
         print(f'   → {fn}', flush=True)
-        runs[cut] = dict(finals=finals, stamps=stamps, apos=apos,
-                         wall=wall, words=words)
+        all_runs.append(dict(min_seg=min_seg, cut=cut, finals=finals,
+                             stamps=stamps, apos=apos, wall=wall, words=words))
 
-    # ── 逐对比对（以第一个门槛为基准） ──
-    base_cut = cuts[0]
-    base = runs[base_cut]
+    # ── 逐配置两两比对：以第一个配置为基准 ──
+    base = all_runs[0]
     print('\n' + '=' * 78)
-    print(f'【质量比对】基准 = SILENCE_CUT_SEC {base_cut}')
+    print(f'【质量比对】基准 = MIN_SEG_SEC='
+          f'{base["min_seg"] if base["min_seg"] is not None else "默认"} '
+          f'SILENCE_CUT_SEC={base["cut"]}')
     print('=' * 78)
-    for cut in cuts[1:]:
-        o = runs[cut]
+    for o in all_runs[1:]:
         same, sub, only_b, only_a, rate = align(base['words'], o['words'])
-        print(f'\n── {base_cut} vs {cut} ──')
+        print(f'\n── 基准(min={base["min_seg"]},cut={base["cut"]}) vs '
+              f'新(min={o["min_seg"]},cut={o["cut"]}) ──')
+        print(f'   段数 {len(base["finals"])} vs {len(o["finals"])}')
         print(f'   词数 {len(base["words"])} vs {len(o["words"])}')
         print(f'   完全相同词: {same}')
         print(f'   替换(同音等): {sub}')
-        print(f'   ★ 仅基准有（真丢失）: {only_a}  '
-              f'{[w for w,_ in Counter(base["words"]).most_common() if False] or ""}')
+        print(f'   ★ 仅基准有（真丢失）: {only_a}')
         print(f'   ★ 仅新有（真多出）  : {only_b}')
         print(f'   对齐率: {rate*100:.2f}%')
         ca, cb = Counter(base['words']), Counter(o['words'])
-        lost = [(w, ca[w]-cb[w]) for w in ca if ca[w] > cb[w]]
-        gain = [(w, cb[w]-ca[w]) for w in cb if cb[w] > ca[w]]
+        lost = [(w, ca[w] - cb[w]) for w in ca if ca[w] > cb[w]]
+        gain = [(w, cb[w] - ca[w]) for w in cb if cb[w] > ca[w]]
         if lost:
             print(f'   丢失词明细: {lost[:15]}')
         if gain:
             print(f'   多出词明细: {gain[:15]}')
 
-        # 白字时机（★ 用音频时间轴 apos，不用墙钟 stamps）
+        # 白字时机（音频时间轴口径）
         def curve(r):
             ap, fin = r['apos'], r['finals']
             out = []
@@ -180,9 +199,10 @@ def main():
                 cw += len(norm_words(fin[i]))
                 out.append((ap[i], cw))
             return out
+
         cA, cB = curve(base), curve(o)
         print(f'   累计可见字数对比（★ 按**音频时间轴**，不受机器漂移影响）:')
-        for T in (60, 120, 240, 360, 480, 600, 720):
+        for T in (60, 120, 240, 360, 480, 600):
             def at(c):
                 v = 0
                 for t, w in c:
@@ -193,30 +213,7 @@ def main():
             print(f'      音频@{T:>4}s  基准 {va:>5} 字   新 {vb:>5} 字   '
                   f'差 {vb-va:+5}')
 
-        # ── 音频时间轴口径的「白字延迟」──
-        # 定义：音频时刻 t 的内容，在音频时刻 t+lag 才定稿（转白）。
-        # 用每个段的「覆盖到的音频末尾」→ 定稿时点来算，与墙钟无关。
-        def lag_curve(r):
-            out = []
-            for a_end in r['apos']:
-                out.append(a_end)
-            return out
-
-        def visible_at_audio(r, T):
-            """音频时刻 T 时，已经定稿的内容覆盖到音频时刻多少。"""
-            ap = r['apos']
-            best = 0.0
-            for a_end in ap:
-                if a_end <= T:
-                    best = max(best, a_end)
-            return best
-
-        print(f'   ★ 白字延迟（音频时间轴口径：音频 t 的内容在音频 t+lag 定稿）:')
-        for T in (60, 120, 240, 360, 480, 600):
-            la = T - visible_at_audio(base, T)
-            lb = T - visible_at_audio(o, T)
-            print(f'      音频@{T:>4}s  基准延迟 {la:>5.2f}s   '
-                  f'新延迟 {lb:>5.2f}s   改善 {la-lb:+.2f}s')
+    return
 
 
 if __name__ == '__main__':
