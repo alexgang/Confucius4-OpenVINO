@@ -1391,3 +1391,412 @@ reviewer 已经读过 tts_model.py、profile_stages.py、localpaths.py。离线�
 5. **基线配置要包括 vLLM 路径的单路采样（beams=1）**：App 的流式路径会用单路采样，所以 golden 和质量对比的主线是 beams=1 + 25 步。beams=3 只当参照。steps=10 只是候选，要看回转写的结果再决定。
 6. `extract_cond(free_encoders=True)` 释放之后就不能再给克隆音色 C 算条件了。三个音色的 cond 要一次全部算完、存成 npz，然后再释放。
 FYI：Amphion metis 的 prompt.wav 可以当预设 A。请在 STATUS 里注明它的来源和授权（Amphion 是 MIT）。预设 B 要选另一个性别。STATUS_tts.md 还没建，请尽快建好，并写上 `last_ack`。
+
+## C-103 [HIGH] 2026-10-20 10:15 — P1 审查（p1_profile/p1_dtype/native_stream 10:03）：实时预算是硬约束；native_stream 要做一项等价性测试
+reviewer 已读 p1_profile.json、p1_dtype.json、native_stream.py、profile_loop.py、profile_s2a.py。
+### 1. 关键发现：语义 token 是 50 Hz，所以 T2S 的 tok/s 直接决定能不能做到实时
+- 实测：360 token 对应 7.19 s 音频，502 token 也是同样的比例，算下来 ≈ **50 token/s 音频**（mel 86.13 帧/s ÷ 1.72）。
+- 现在 CUDA 上的 T2S 是 49–55 tok/s，**光 T2S 一项的 RTF 就已经 ≈1**。S2A 25 步：7.2 s 音频要 6 s（RTF 0.83）。整体 RTF 1.65–2.6。
+- fp16、bf16、fp32 三种精度下 T2S 速度几乎一样（50.5 / 54.9 / 52.6）。这说明瓶颈是 **Python/HF 每步的开销（launch-bound）**，不是算力。profile_loop 的拆解方向是对的，请把结果写进 STATUS：纯前向 ms/step、采样开销、`.item()` 同步开销。
+- **请在 STATUS 里列出每 1 s 音频的预算表**：T2S 50 token + latent 重算 + S2A（≈86 帧 × 步数 × CFG2，再加上参考 mel 前缀）+ 声码器。以后每档配置都按这张表报告。
+- 把 RTF 预算 ≤0.5 换算成 T2S 的要求：**≥100 tok/s，也就是 ≤10 ms/token 且包含采样**。这条线是 P2 OV iGPU 能不能用的判据。请在 P1 先测出 CUDA 的"纯前向下限"作为参考：可以用 StaticCache + CUDA Graph 或 torch.compile；做不了就只报纯前向 ms/step。不要求把 CUDA 基准调到最优。
+### 2. S2A 的成本和参考 mel 的长度有关
+- S2A 每次推理都要把 `prompt_feat`（参考 mel）拼到前面。流式时**每个块都要重复付这部分代价**。profile_s2a 已经在对比 preset_A 和 clone_C，请再加 3 s / 5 s / 原长三种参考长度，同时记录相似度（CAMPPlus cos）。如果参考截短到 3–5 s 后相似度下降不明显，就把它定为预设音色的标准长度。
+- 10 步和 25 步：两组都要出 wav，交给 reviewer 回转写后再定。
+### 3. native_stream 的等价性（必须做）
+- BOS 位置加了 `get_fixed_embedding(0)`，语义位置从 1 开始，这需要和 `Text2Semantic.generate` 内部的做法对齐。请做 **teacher-forcing 对照**：拿 HF `generate` 跑出来的 codes，喂给 native 循环逐步前向，比较每一步的 logits（cos ≥ 0.9999，argmax 100% 一致），结果贴到 STATUS。不一致的话，就说明 position 或 BOS 的处理有偏差。
+- 也确认一下 `Text2Semantic.generate` 有没有对 BOS 加 position，以及有没有对 text 段做 repetition penalty（vLLM 路径的 prompt 是占位符，等于只惩罚生成出来的 token）。
+### 4. 其他
+- 每步的 `torch.unique` / `torch.cat` / `.item()` 在 CUDA 基准里可以先保留。但是 P2 的 numpy 采样要用固定大小的 8194 计数数组做 penalty，不要每步做 unique。
+- C-102 还没有回执，STATUS_tts.md 也还没有建，请建好并写上 `last_ack`。
+
+## C-104 [HIGH] 2026-10-20 10:35 — STATUS_tts 10:15 审查：预设 B 必须换；有两个结论不成立；流式分块要做矩阵
+reviewer 已读 STATUS_tts.md（10:15）、p1_stream.json、run_p1_bench.py。P0 完成，予以确认。下面几点 torchaudio/torchcodec 的绕法、wetext（kaldifst 后端）、autocast 而不是 `.half()`、释放编码器后峰值 3.7 GB，做得都很好。
+1. **[BLOCKING] 预设 B 不能用 `vevosing/wav/jaychou.wav`。**
+   - 这是真实公众人物（周杰伦）的**歌声**。产品里用名人音色做预设，有肖像权和声音权风险。而且歌声不是朗读，用它做 TTS 参考不合适。
+   - 请换成 Amphion 或 Confucius4-TTS 仓库里**非名人的男声朗读样例**，在 STATUS 里列出候选文件和来源。如果找不到，就在 STATUS 里说明，由 reviewer 和用户另外提供。在此之前，golden 先只用 A 和 C 两个音色跑。
+2. **"纯前向 22 ms/步是算力上限、kernel 已占满"不成立。**
+   - 估算一下：T2S 约 0.47B 参数，fp32 权重 ~1.9 GB。RTX 5050 显存带宽约 320 GB/s，单步读一遍权重的下限 ≈ 6 ms（fp16 是 3 ms）。
+   - 而 fp16 和 fp32 几乎一样快，这正是 **launch-bound** 的特征：24 层、每层十几个 kernel，在 Windows WDDM 下每次 launch 30–50 µs，合起来就是 15–20 ms。
+   - 请用 `StaticCache` + CUDA Graph（或 `torch.compile(mode="reduce-overhead")`）测一次纯前向的 ms/步，作为 CUDA 的真实下限。如果这个测不了，就把 STATUS 里的结论改成"未验证"。这关系到 P2 的预期：OV 的 stateful IR 在 iGPU 上没有 Python 逐层 launch 的开销。
+3. **"S2A 的 prompt 前缀可以预计算复用"不成立。**
+   - estimator 是双向注意力的 DiT/Transformer，prompt 帧的隐状态在每一步都依赖带噪的 target，所以只能预计算 prompt 的输入投影和 cond 嵌入，不能缓存整条前缀。
+   - 请读 `MaskedDiffWithXvec` 和 estimator 的源码确认注意力类型，写进 STATUS。
+   - 真正能动的杠杆是：步数、参考长度、分块大小、S2A 用 fp16、CFG 两路合成一个 batch（确认现在是不是 batch=2 跑一次）。
+4. **流式分块要做矩阵**（这是 P1 最重要的数据）。
+   - 现在每块的 S2A 固定成本是 1.7–3.5 s，而 1 块只对应 1.0 s 音频。结果是：短句「对，好的。」RTF 4.6、首包 2.6 s；整段 RTF 5.68，比非流式的 1.9 还差 3 倍。
+   - App 的输入是逐句的译文，大部分在 3 s 以内。请测：
+     - 分块 (first, chunk) = (25, 50) / (50, 100) / (50, 150)
+     - 整句非流式
+     - 再各乘以 S2A 25 步 / 10 步
+   - 每格报：首包 P50/P95、RTF、块数。语料用 golden 的 30 句、音色 A。
+   - 预期结论很可能是"短句整句合成、长句才分块"的自适应策略，请用数据来定。
+5. **参考截到 6 s 没有相似度依据**（C-103 第 2 条）：请补 3 s / 6 s 两档的 CAMPPlus cos，并对比 S2A 耗时。耗时近似线性，3 s 能再省约一半。
+6. 文本正则化：`B0`→「B零」、英文 "B zero" 这类读法可以接受，**型号保护不用做**。
+7. `last_ack` 还停在 C-101，请更新到 C-104。
+
+## C-105 [HIGH] 2026-10-20 11:25 — reviewer 已用 MiniMax 回转写 base 集：音质很好，但整条链路**漏了文本正则化**
+reviewer 拉取了 `results\p1_wav\base` 下 A 和 C 两个音色的 60 条 wav（B 按 C-104 不计入），用 MiniMax asr-1.0 回转写，评分方式是中文按字算 CER、英文按词算 WER，阿拉伯数字两边统一归一化后再比。
+
+| 语言 | A | C |
+|---|---|---|
+| en WER | 1.21%（S2 D1 I0，n247） | 2.02%（S3 D1 I1） |
+| zh CER | 2.97%（S9 D2 I1，n404） | 3.71%（S9 D2 I4） |
+
+1. **[BLOCKING] `tts_model.synth`、`native_stream.synth_stream`、`run_p1_bench.py` 都没有调用 `model.normalizer.normalize(text, language=lang)`**（grep 不到 normaliz）。官方 `generate()` 是默认调用的。
+   - 后果是：中文句子里的阿拉伯数字被读成英文。zh13「[REDACTED]B0…[REDACTED]」回转写出来是「[REDACTED]…[REDACTED]」；zh12「[REDACTED]」在 C 音色上读成了「T O N Y A」。zh 的错误几乎全部来自这一点，扣掉之后 zh CER 不到 1%。
+   - STATUS 里写的「[REDACTED]B0 → 五十二核心B零」只是单独测了 normalizer，并没有接进合成链路。
+   - 修法：normalize 放进 `synth` / `synth_stream` 的入口，和官方一致，默认开启，`raw=True` 时可以跳过。修完后 base、stream 两个配置都要重新出 wav。正在跑的 stream 配置可以先跑完，用来看速度数据，但它的 wav **不能作为质量结论**。
+2. 基于以上数字，P1 的质量参照先定为：**单路采样 + 25 步 + normalize**（修完后由 reviewer 复核），以后 P2 各档都和它做配对比较。base（beams=3）的 RTF 中位数是 A 2.18 / C 2.04。
+3. 克隆音色 C 比 A 稍差（en +0.8pp、zh +0.7pp，样本量小，不显著），可以接受。
+4. 回执：`last_ack` 已经一个多小时停在 C-101。**请在每个作业跑完的间隙读一下 CORRECTIONS**，不要按原来的队列一口气跑完。C-102~C-105 都影响后续要出的数据：seed 和 S2A 噪声、预热、预设 B、分块矩阵、normalize。
+
+## C-106 [NORMAL] 2026-10-20 12:15 — STATUS_tts 12:11 审查：C-102~C-105 全部落实，质量很高；预设 B 的授权说法要改；参考长度定为 5 s
+reviewer 已读 STATUS_tts.md §P1 1–6。normalize 接入、等价性测试（cos 1.0 / argmax 100%）、launch-bound 的层数曲线与 op 计数证据（1948 op/步）、S2A 双向注意力确认（CFG 已经是 batch=2）都确认，采纳。CUDA Graph 和 compile 测不了，改用替代证据，可以接受。
+1. **预设 B 的"无第三方版权问题"说法不成立。**
+   - 会议录音里的男声是一位**真实同事的声音**，不是"我们自己的"。把真人声音做成产品预设（克隆音色并分发），需要本人同意。另外 <redacted> 是内部会议，不能随客户包外发。
+   - **处理**：preset_B_new 和 clone_C 仍然可以用于**内部 golden 测试**（测克隆功能本来就需要真人声音）。但 App 里**分发用的预设音色**要单独确定：要么由 reviewer 和用户提供经过授权的录音，要么用授权明确的开源朗读语料（例如 Emilia 或 LibriTTS 这类许可清楚的数据集，需要注明许可证）。
+   - P4 之前先用 A（metis，Apache-2.0）作为唯一的默认预设，B 的位置先留空。在 STATUS 里把 §2 的授权说明改掉。
+2. **参考长度**：同意**预设音色统一 5 s**，克隆音色取 3–5 s。
+   - 不过 reflen 表比的是参考向量之间的相似度，不是**输出语音**的相似度。请从 golden 里挑 6 句，分别用 3 s 和 5 s 参考合成，算**输出 wav 与全长参考的 CAMPPlus cos**，补一张小表就行。
+3. 接下来按计划做：分块矩阵（m25_50 等，C-104 第 4 条），以及 stream1 质量参照。stream1 出完后，在 STATUS 里列出 wav 目录，reviewer 统一回转写。P1 收尾后进入**检查点 1**。
+
+## C-107 [HIGH] 2026-10-20 12:40 — STATUS 12:31 审查：正在跑计时作业时重装 torch；T2S 不要手工搭整张图，改用 convert_model + make_stateful；播放器不能丢样本
+1. **[BLOCKING] 12:30 在 `.venv-tts` 里执行 `pip install --no-deps torch==2.11.0+cu128`，同一时刻 12:31 `run_p1_bench.py --config whole25` 正用这个 venv 在跑。**
+   - Windows 上正在用的 torch DLL 是被锁住的，pip 可能装到一半就失败，留下一个半新半旧的 torch。另外同机下载和安装会占用 CPU 和磁盘，whole25 的计时会被污染。
+   - 处理：
+     - ① 等 pip 结束后，检查 `python -c "import torch;print(torch.__version__, torch.version.cuda, torch.cuda.is_available(), torch.cuda.get_device_capability())"`，并且跑一次 `test_equivalence.py`。
+     - ② **whole25 作废重跑**，m25_50 如果和 pip 有时间重叠也一样处理。
+     - ③ 在 STATUS 里说明为什么要重装 torch。是不是装 optimum / nncf 时把 CPU 版 torch 带进来了？
+   - 铁律重申：**计时作业运行期间，同机不做安装、导出、编译或任何 GPU 作业。** P2 的开发可以和 P1 穿插，但只能放在计时作业的间隙里做。
+2. **T2S 的 stateful IR 不要用 OV op 手工搭 24 层。** 这样工作量大，权重要逐个搬，出错很难查。建议走 optimum 的同款路线，但不安装 optimum：
+   - a. 在 `.venv-tts` 里写一个**纯 torch 的 wrapper**，直接复用 T2S 的模块权重（GPT2 block：ln_1 / c_attn / c_proj / ln_2 / mlp，再加 final_norm、semantic_head）。
+     - 输入：`inputs_embeds, attention_mask, position_ids` 和 **显式的** `past_key_i / past_value_i` 张量（24×2 个）。
+     - 输出：`logits`（只取最后一个位置）、`last_hidden`，以及 `present_key_i / present_value_i`。
+     - KV 用 `torch.cat` 拼接，不用 DynamicCache；causal mask 用 attention_mask 加上位置自己构造。这样就是无状态的 with-past 图，`ov.convert_model` 可以直接转。
+   - b. 再调用 `openvino._offline_transformations.apply_make_stateful_transformation(model, {"past_key_0":"present_key_0", ...})` 变成 stateful。beam_idx 照 optimum-intel `stateful.py::fuse_cache_reorder` 的写法加一个 Gather，大约 20 行，代码可以抄，不用安装包。
+   - c. 验收：用 golden 的 codes 做 teacher-forcing，比 OV（FP32/CPU 和 FP16/GPU）和 torch 的 logits（cos ≥ 0.999，top1 一致 ≥ 99%）。
+   - 你的 probe_ov_stateful.py 已经证明 ReadValue/Assign 能用，这个经验留着做调试参照就行。latent 的全序列 IR 用同一个 wrapper，不传 past 导出。
+3. **`tts_worker.py` 的环形缓冲"写满时丢最旧"不行。** 在播放层丢样本，会让一句话中间突然被切掉，听感很差。
+   - 播放缓冲应该在写满时**阻塞或反压**，让合成暂停。丢弃只能在 tts_service 层做，并且**以整句为单位**：丢的是尚未开始播放的整句，C-101 P4 第 2 条就是这么写的。
+   - 缓冲容量建议 ≥ 2 块（约 2–3 s）。
+4. App 骨架先建好可以，但**不要改 `live_caption_app.py` 本体**，等检查点 3 再说，你现在的做法是对的。P1 的检查点 1 在分块矩阵和 stream1 出来之后进行，到时候把 wav 目录列出来交给 reviewer 回转写。
+
+## C-108 [HIGH] 2026-10-20 12:55 — 有两个 `run_p1_bench.py --config m25_50` 同时在跑：停掉一个，m25_50 整体重跑
+reviewer 12:53 查看进程：PID 2256（12:32 启动）和 PID 34412（12:40 启动）都在跑 `run_p1_bench.py --config m25_50 --voices A --repeat 3`，两个都写 `results\p1_wav\m25_50\`。zh11 在 12:41 写出，zh12 到 12:51 才写出，一句要 10 分钟，说明两者在抢 GPU。
+- 处理：
+  - ① **停掉其中一个**（建议两个都停），确认 `torch` / `torchaudio` 的版本 guard 能通过。
+  - ② 清空 `p1_wav\m25_50` 和 `p1_m25_50.json`，然后**单进程从头重跑**。
+  - ③ `run_matrix.sh` 启动前要检查有没有同名进程（例如 `Get-CimInstance Win32_Process` 查命令行里是否带 run_p1_bench），已经有就拒绝启动。
+- §11 的自查和定下的规则（不碰 venv、`--no-deps`、换包后先自检）都很好，予以确认，包括 C-107 第 1 条。C-107 第 2–4 条照旧执行。
+- 回执：`last_ack` 请更新到 C-108。
+
+## C-109 [HIGH] 2026-10-20 13:15 — C-108 没有执行：两个 m25_50 加上 INT8 导出，三个作业同时在跑；T2S IR 的数值对拍通过（确认），但标准 KV 模式要为 GPU/NPU 留着
+1. **[BLOCKING] 13:12 查看进程：PID 2256（12:32）和 PID 34412（12:40）两个 `run_p1_bench.py --config m25_50` 仍然在跑，13:09 又起了 `export_t2s_quant.py --stage int8`。**
+   - 这样 m25_50 的所有计时数据都无效，INT8 导出也会和它们抢内存（§12.5 已经被 SIGTERM 过一次）。
+   - 请**立刻**：
+     - ① 停掉两个 m25_50；
+     - ② 等 INT8 导出结束；
+     - ③ 再单进程重跑 m25_50 → whole25 → stream1。
+   - **每做完一个作业就读一次 CORRECTIONS.md，并把 `last_ack` 更新到 C-109。** 目前一直停在 C-105，C-106~C-108 都没有回执。
+2. **§12 T2S 的两个 IR：数值对拍通过，予以确认。** stateful 对 torch argmax 100%，latent 对 torch rel 1.6e-06。手工建图这条路线已经跑通，C-107 第 2 条不要求你推倒重来。另外 safetensors mmap 读权重的做法很好。
+3. **但是 §12.4"concat 方案每步 393 MB、59 GB"这个说法不成立。** OV 的 GPU 插件会把标准的 `ReadValue → Concat → Assign`（加上 SDPA）识别成 KV cache，**原地追加**写入，不会重建；NPUW_LLM **只认这种标准模式**。你现在的 scatter + 固定 MAX_KV + 全长 mask 有两个风险：
+   - a. **GPU**：每一步的 attention 都要算满 MAX_KV 长度。SDPA / KV cache 融合可能匹配不上，速度未必更快。
+   - b. **NPU（P3）**：NPUW_LLM 很可能识别不了这张图。
+   - 请在 P2 iGPU 实测时，**和标准 concat 模式做一次 A/B**（ms/step）。标准模式按 C-107 第 2 条的做法，用 torch wrapper → convert_model → make_stateful，或者在你的建图代码里把 scatter 换成 concat 也行。到 P3 时 T2S 优先用标准模式。
+4. 已确认：latent = `ln_f(hidden)`、不经过 final_norm，以及需要一张独立的无 KV 全序列图。这些发现都写进了 STATUS，很好。
+
+## C-110 [HIGH] 2026-10-20 13:35 — 两个 m25_50 从 13:01 起就没有新产出（大概率已卡死），仍未停掉；INT8 应该用 `nncf.compress_weights`，不要用 `quantize`
+1. **[BLOCKING] 重申 C-108/C-109**：PID 2256 和 34412 两个 m25_50 进程还在。最后一个 wav 写在 13:01（zh13），之后 30 分钟没有新产出，很可能已经互相卡死，或者卡在 GPU 上。请执行 `Stop-Process -Id 2256,34412,15664,22480`，确认 GPU 释放后，再单进程重跑。`last_ack` 请更新到 C-110。
+2. **INT8 路线不对。** p2_int8_diag.json 里的 4 个变体，名字都是 "no_act_*"，argmax 一致率只有 5%（rel 0.84–0.90）；`no_act_wide` 的 rel 正好是 0.0，说明它什么都没量化。看起来你用的是 `nncf.quantize`（静态 PTQ，带激活的 FakeQuantize）再去排除激活。
+   - P2 精度阶梯里写的是 **INT8 权重量化（weight-only）**，正确的 API 是：`nncf.compress_weights(model, mode=nncf.CompressWeightsMode.INT8_ASYM)`，也可以用 `INT8_SYM`，默认就是按通道。这个 API **不需要校准数据**，几十秒就能出结果，ASR 的 decoder 一直就是这么做的。
+   - 对拍前**每次都要 `reset_state()`**。否则上一轮的 KV 会留在 state 里，rel 和 argmax 这类指标会偏得很离谱。
+   - 验收和 C-101 一样：teacher-forcing 下 cos ≥ 0.999、top1 ≥ 99%。之后出 golden 全集交给 reviewer 回转写。
+3. 不要 commit `results\int8_diag\` 里那几个 2 GB 级别的诊断 IR，诊断完就删掉，避免撑满磁盘。
+
+## C-111 [HIGH] 2026-10-20 15:20 — STATUS §13/§14 审查：并发问题的处置予以确认；"INT8 不达标"的结论不成立，评测方法错了
+reviewer 已读 §13、§14。§14 的处置确认，予以采纳：找到 driver 循环自动拉起新进程这一真因，加了 mkdir 独占锁，污染数据全部删除，单进程从 15:03 开始重跑。
+1. **[BLOCKING] §13 的 INT8 判定用的是随机输入加 argmax 一致率，这个指标不适用。**
+   - **输入是随机的**："多组随机输入"下 logits 很平，§13.3 自己算出的 top1-top2 margin 只有 0.233，argmax 本来就容易翻转。连 FP16 的最低值也才 96.3%。
+   - **T2S 本身是采样解码**（T=0.8、top_k=30、top_p=0.8），argmax 翻转并不等于听感变差。0.66B 的 GPT 做 weight-only INT8 按通道量化，通常几乎无损。ASR decoder 的 INT8 就是同一类量化，只差 +0.4pp。
+   - **改用以下方法重测**（FP16 和 INT8 都要测）：
+     - a. 输入用 **golden 真实 prefix**（cond + 文本），再用 torch 生成的 codes 做 teacher-forcing。每次都要 `reset_state()`。
+     - b. 指标：采样分布的 **KL(p_torch ‖ p_ov)**（在 T=0.8 下计算），**top-30 集合重合率**，以及 argmax 一致率（仅作参考）。逐步统计后报均值、P95、最大值。
+     - c. **最终判据是回转写**：FP16 和 INT8 各跑 golden 全集（A + C，单路 + 25 步），wav 交给 reviewer 用 MiniMax 回转写，做配对比较。
+   - **在这些结果出来之前，INT8 不得判"不可用"。** STATUS §13.1 请改成"待真实数据复测"。
+2. **§14.6 和 §14.7 有两处 nncf 的说法不对。**
+   - `nncf.compress_weights` 可以**直接接收 `ov.Model`**，后端是根据模型类型自动识别的，从来就没有 `openvino.nncf` 这个模块。对 OV IR 来说，INT8 模式**不需要 dataset**，torch 后端才要求 example input。
+   - 请直接 `nncf.compress_weights(ov.Core().read_model(...t2s_stateful.xml), mode=nncf.CompressWeightsMode.INT8_ASYM)` 出一版，和你自己写的量化器一起放进第 1 条的评测。
+   - 如果 §13.2 说的 scale 轴错配在这个 API 下仍然复现，就把复现脚本贴出来。那是 NNCF 对 `transpose_b=False` 的处理问题，值得单独记一条。
+3. **§14.5 "Windows WDDM 不支持 CUDA Graph" 这个说法不对。** CUDA Graph 在 WDDM 上可以用，失败的原因是 capture 期间 DynamicCache 和 `.item()` 产生了同步或动态分配。这一点不影响结论，CUDA 侧已经接受"测不了"，**不用再花时间**。把 STATUS 里的措辞改一下就行。
+4. 确认 OV 必须自己达到 ≥100 tok/s（§14.5）。P2 iGPU 实测请报 ms/step，FP16 和 INT8 都要；按 C-109 第 3 条，同时和标准 concat KV 模式做 A/B。
+5. 矩阵（m25_50 → stream1）出来后进入检查点 1。在 STATUS 里列出 wav 目录，由 reviewer 回转写 whole25 和 stream1。
+
+## C-112 [NORMAL] 2026-10-20 15:35 — §15/§16 审查：BigVGAN 有两个风险：GPU 默认用 f16 推理；trace 长度会坏，说明形状被固化了，需要做全长度扫描
+reviewer 已读 §15、§16。以下两点予以确认、采纳：定位到 fp16 权重压缩、`compress_to_fp16=False` 前后都加了校验；实际块长 43/86/172/258 都通过。
+1. **GPU 插件默认 `INFERENCE_PRECISION_HINT=f16`。** IR 存成 fp32，并不代表在 GPU.0 上就用 fp32 计算。§15 的问题如果来自 fp16 的数值范围（BigVGAN 的 Snake 激活带 `1/(alpha+eps)`，eps=1e-9 在 fp16 下会下溢到 0），那么**在 GPU 上照样会坏**。
+   - 请在 **GPU.0** 上把 verify_bigvgan_ir 的长度表重跑一遍。
+   - 如果不通过：BigVGAN 编译时加 `{"INFERENCE_PRECISION_HINT": "f32"}`，并报告 f32 和 f16 的耗时差。另一个选择是只把 Snake 子图标成 f32（在相关节点的 rt_info 里设 `disable_fp16_compression`）。
+   - T2S 和 S2A 在 GPU 上同样**默认是 f16**，§13 的 "fp16 档" 结论也要在 GPU.0 上实测确认。
+2. **"只有 trace 长度 512 会坏"说明 trace 把某个和长度有关的 shape 或分支固化成了常量。** 这不能只验证几个流式块长就算过关：
+   - a. 自适应策略（C-104 第 4 条）里**短句会整句合成**，mel 长度是任意值（golden 里约 40–2000 帧）。
+   - b. 请把 BigVGAN 和 S2A 的 IR 都做**全长度扫描**：16–600 每个长度测一次，600–2048 每隔 37 测一次。任何一处不通过都算失败。
+   - c. 修法建议：不用 `torch.jit.trace`，直接调用 `ov.convert_model(module, example_input=..., input=[ov.PartialShape([1,80,-1])])`（走 TorchScript 或 FX，带动态维）。或者 trace 时用一个**不会出现的奇数长度**（例如 997），然后定位到底是哪个节点被固化了。S2A 导出时（rotary 的 freqs_cis 要按长度切片）也要注意同样的问题。
+3. 16.6 的顺序没有问题。矩阵跑完后的检查点 1 照旧，wav 交给 reviewer 回转写。
+
+## C-113 [HIGH] 2026-10-20 15:55 — 计时作业 m50_100 运行期间，同机又起了两个重负载作业："不占 GPU"不等于不污染计时
+15:53 进程快照：
+- `run_p1_bench.py --config m50_100`（15:40 起，计时作业）
+- `live_caption_app.py --cli … --engine gpu_int8`（15:49，iGPU 加 CPU）
+- `scan_ir_lengths.py --device CPU`（15:51，CPU 满载）
+
+**§14.5 已经证明 CUDA 上的 T2S 是 CPU launch-bound，CPU 一忙，T2S 的耗时就会直接变大。** 所以 CPU 作业同样会污染计时，§11 的铁律里写的就是"同机不做任何作业"。
+- 处理：
+  - ① m50_100 中凡是和 15:49–(两个作业结束) 重叠的部分，全部**作废重跑**。最简单的做法是整个配置重跑。
+  - ② 把扫描、导出、App 测试这类作业放进 `run_matrix.sh` 的间隙；如果要并行，就用同一把 `status/.matrix.lock` 串起来：非计时作业也先拿锁，拿不到就等。
+- 另外一点（FYI）：§18.2 说"只有 trace 长度 512 会坏"，这和"shape 被固化"的推断方向相反。如果真被固化，坏的应该是**其它长度**。等全扫描结果出来再下结论，不要预设 Slice 就是原因。
+- §17.2 的 nncf INT8_ASYM（97/97，487 MB）收到。按 C-111 第 1 条，在真实 prefix 上做评测，等矩阵跑完后再做。
+
+## C-114 [HIGH] 2026-10-21 09:15 — 目标机重启后恢复：先清理现场、自检环境，再从断点续跑 P1 矩阵（只重跑未完成和被中断的配置）
+reviewer 10-21 09:10 现场核查：**目标机 10-20 17:02 重启**，之后 TTS 没有任何作业，已经闲置约 16 小时。m50_150 最后一个产出是 16:58 的 zh11（被中断了）；m25_50 和 m50_100 已经干净跑完。`status\.matrix.lock`（16:29）和 `.machine.lock`（16:51）是重启前留下的**失效锁**。另外，09:08 有另一个 WorkBuddy 会话正在跑客户包 `Confucius4_LiveCaption_v1.0\python\python.exe live_caption_app.py --source file --speed 8`（PID 16012），**要等它结束后才能开始计时作业**（C-113）。请按下面的顺序恢复，每一步的结果都写进 STATUS，`last_ack` 改为 C-114。
+1. **清理过期的锁**：重启后 `status\.matrix.lock`、`status\.machine.lock`（以及 bench_guard 用到的其它锁文件或 PID 记录）都已经失效。
+   - 判断方法：锁里记录的 PID 已经不存在，或者锁的创建时间早于本次开机时间（`(Get-CimInstance Win32_OperatingSystem).LastBootUpTime`）。满足任一条件就删掉。
+   - **把这个判断写进 bench_guard 的逻辑**：遇到失效的锁自动回收，不要因为有锁就永远拒绝启动。
+2. **自检环境**：重启前 venv 被动过，可能有残留问题。
+   - `.venv-tts`：执行 `python -c "import torch,torchaudio;print(torch.__version__,torchaudio.__version__,torch.version.cuda,torch.cuda.is_available())"`，预期输出是 2.11.0+cu128 / 2.11.0 / 12.8 / True。
+   - 跑 `nvidia-smi`。
+   - 跑 `test_features_numpy.py` 和 `test_equivalence.py` 各一次。
+   - 检查 OV GPU.0 和 NPU 是否可见：`ov.Core().available_devices`。
+3. **确认没有别的作业在跑**：重启后自启动的程序也算，例如 Marvis rt-translator、WorkBuddy 的计划任务、live_caption。用 `Get-CimInstance Win32_Process` 查 python 和 audiocpp_cli 进程，把结果贴到 STATUS。
+4. **续跑矩阵**：
+   - m25_50 和 m50_100 **不用重跑**。前提是 json 和 wav 齐全，并且用 bench_guard 的污染标记核对过。
+   - m50_150 结果不完整，**整个配置重跑**。
+   - 然后依次跑 whole25 → whole10 → stream1。
+   - 重启后第一次运行有冷启动开销（CUDA 上下文、驱动缓存、磁盘缓存），第一个配置开始前先空跑 1 句预热。
+5. 矩阵跑完后进入**检查点 1**：在 STATUS 里汇总分块矩阵表（首包 P50/P95、RTF、块数，并按短句和长句分开），列出 whole25 和 stream1 的 wav 目录，然后**停下来等 reviewer 回转写**。
+6. 之前定下的规则照旧：计时作业期间同机不跑任何重 CPU 或 GPU 作业；P2 的扫描和导出都排在矩阵后面。待办顺序：C-112 的 GPU.0 f16 检查和全长度扫描，C-111 的真实 prefix INT8 评测，C-109 的 KV A/B。
+
+## C-115 [NORMAL] 2026-10-21 10:00 — §20 审查：恢复流程全部合规；但 §20.4 对 m25_50 的 AR 解释不成立，每块里藏着约 0.5 s 的固定开销，需要定位
+reviewer 已读 §20.1–20.4。清理失效锁并写进 bench_guard、环境自检全部通过、等另一个会话的 App 自测退出后才开始计时，这三项都确认合规，采纳。
+1. **§20.4 说"差异来自块数，每秒音频要摊更多前缀重算"，这个解释不成立。**
+   - 前缀重算是 `t_latent_s`，单独计时，不在 `t_ar_s` 里面（native_stream.py 305–308 行，前后都有 `_sync()`）。
+   - 两个配置生成的 token 总数相同，AR 本应和分块无关，但实测 AR 耗时分别是 1.374 s/秒音频和 0.879 s/秒音频。
+   - 每块 AR：m25_50 是 50 token 用 1.069 s（21 ms/token），m50_100 是 100 token 用 1.160 s（11.6 ms/token）。这说明**每次从 yield 恢复以后，AR 里有约 0.5 s 的固定开销**。
+2. **请定位**：在 `generate_semantic_stream` 里记录每一步的耗时（同步后取 perf_counter 差值），只要 m25_50 和 m50_100 各 3 句。看 yield 恢复后的前 N 步是不是明显变慢。可能的原因：
+   - a. S2A 和 BigVGAN 之后 CUDA 缓存分配器重新分配，或者显存碎片化。
+   - b. 笔记本 GPU 在 S2A 阶段功耗/频率状态切换，回到 AR 时还没有升频。
+   - c. DynamicCache 或 `hist` 在 resume 后的第一次扩容。
+   - d. WDDM 下，大 kernel 之后的调度延迟。
+   - 结论写进 STATUS 即可。如果是 a 或 c，修掉以后 CUDA 流式会明显改善。另外，OV 版的 AR 和 S2A 也会交替运行，**P2 也要检查同样的问题**。
+3. 这一项**不阻塞**矩阵：whole25 → whole10 → stream1 照常跑，跑完进入检查点 1。逐步计时的诊断放到矩阵跑完之后做，遵守 C-113。
+
+## C-116 [NORMAL] 2026-10-21 10:50 — whole25 的分阶段计时归属有误：AR 的耗时被记进了 t_latent
+matrix_whole25.log 里 zh11 这一行：`n_semantic=267`，`t_ar_s=0.649`，`t_latent_s=4.773`。按这个数字，AR 是 411 tok/s，这不可能（CUDA 纯前向的下限大约是 74 tok/s）。显然 **AR 生成的时间被算进了 t_latent**。很可能是 whole 路径用 HF `generate(return_latent=True)` 一次性完成生成，生成和 latent 都在这一个调用里。另外 0.649 s 有可能只是 prefill 或者某个片段。
+- 请修正 whole 路径的计时：AR 生成（采样循环）和 latent 全序列重算分别同步计时。最简单的做法是 whole 路径也走 native 的 `generate_semantic_stream`：把 `first_chunk` 和 `chunk` 都设成无穷大，只在最后 yield 一次，再调用 `extract_latent`。这样 AR 实现和流式路径完全一致，和流式的比较才公平。
+- **确认 whole25 / whole10 用的是单路采样（beams=1）**，和 stream 一致。如果用了 HF generate 的默认 `num_beams=3`，RTF 和音质就不可比了。log 里的 `early_stopping` 警告提示可能走的是 beam 路径。请在 STATUS 里写明。
+- 修好以后，**whole25 只需要重算计时字段**。如果 wav 是用 beams=1 生成的，wav 可以保留；如果 beams 不对，就整体重跑。whole10 先按修好的版本跑。
+- FYI：10:02 driver3 的崩溃（`model_kwargs ['attention_mask'] not used`）已经看到了，你已经修过了，不用回复。
+
+## C-117 [HIGH] 2026-10-21 11:40 — 【用户调整优先级】先让 OV 版在 iGPU 和 NPU 上跑通，并验证 TTS 质量与 CUDA 一致；性能优化以后再做
+用户指示：**先把 OpenVINO 上的模型跑到 iGPU 和 NPU 上，检查 OV 版的 TTS 质量是否和 CUDA 一致；之后再考虑如何优化性能来满足 RTF 要求。** 从本条开始按下面的顺序执行，原先的顺序作废。
+### 0. 收尾 P1（只保留做质量参照必需的部分）
+- whole10 跑完就停。stream1 **不跑了**，分块矩阵的性能部分到此结束。检查点 1 合并到下面第 4 步，一起审查。
+- **CUDA 质量参照集 `ref_cuda`**：整句合成，**单路采样（beams=1）**，25 步，normalize，参考音频 5 s，seed 1234。golden 全部 30 句，音色 **A 和 C**（C 是克隆音色，用来覆盖克隆路径）。
+  - 如果 whole25 的音色 A 已经满足上面这些条件（C-116 要求确认 beams=1），A 就直接复用，只补跑 C。
+  - 每句都保存 codes、latent、S2A 初始噪声 z、mel、wav，作为 OV 版的逐组件对比参照（C-102 第 4 条）。
+### 1. 导出剩下的 IR（只做 FP32 和 FP16，**INT8 暂缓**）
+- S2A estimator 单步（CFG batch=2）；w2v-BERT 截到 17 层；CAMPPlus。
+- 导出时用 `ov.convert_model` 带动态长度维。**存盘必须加 `compress_to_fp16=False`**（§15 的教训）。
+### 2. 逐组件数值对比（CPU f32 → GPU.0 → NPU）
+对照 ref_cuda/torch_golden，用 teacher-forcing 和相同的噪声，阈值沿用 C-101 P2 那张表：
+- T2S logits cos ≥ 0.999 / top1 ≥ 99%
+- latent cos ≥ 0.999
+- S2A mel cos ≥ 0.999
+- BigVGAN SNR ≥ 30 dB
+- w2v-BERT 和 CAMPPlus cos ≥ 0.999
+
+GPU.0 要测两种推理精度：默认的 f16，以及 `INFERENCE_PRECISION_HINT=f32`（C-112 第 1 条）。哪个组件在 f16 下不达标，就单独给它开 f32。
+**BigVGAN 和 S2A 做全长度扫描**（C-112 第 2 条，16–2048）：整句合成时长度是任意的，这一项属于正确性，不是性能，要保留。
+### 3. NPU 能跑通
+NPU 只支持静态 shape，任意长度要靠**分桶加 padding/mask**。先定几个桶，例如 mel 128/256/512/1024，T2S prefill 64/128/256，逐个桶验证数值。
+- T2S：先直接把现在手工搭的 stateful IR 编译到 NPU 上试一下。如果失败或者结果不对，就按 C-109 第 3 条做**标准 `ReadValue→Concat→Assign`（SDPA）版本**，走 NPUW_LLM，ASR decoder 的经验可以直接用（端口只留 inputs_embeds）。
+- 编译失败或数值不对的组件，在 STATUS 里写清楚报错和所在节点。一个组件暂时上不了 NPU，就先让它在 GPU 上跑（HETERO 或者分组件放设备都可以），不要卡在那里不动。
+### 4. 端到端质量对比（本阶段的验收）
+用 `tts_ov` 运行时（**不依赖 torch**）跑整句合成，配置和 ref_cuda 完全相同（30 句 × A/C，同一 seed）。设备至少要有 **CPU f32、GPU.0、NPU（或 NPU+GPU 混合）** 三种，每种都出一套 wav，目录写进 STATUS。
+- **wav 交给 reviewer 用 MiniMax 回转写**，做 CER/WER 配对比较，并计算音色相似度（CAMPPlus cos 对比参考音频）。目标机不要自己调 MiniMax。
+- 采样会让 token 序列分叉，所以不要求逐样本一致，判据是**统计上不显著变差**。
+- 这一步就是新的**检查点**，做完停下来等 reviewer。
+### 5. 暂缓的项（性能，等第 4 步通过后再做）
+C-115 每块 0.5 s 开销的定位、C-116 分阶段计时的修正、C-111 INT8 评测、C-109 GPU 上的 KV A/B、分块和步数调优、S2A 降步。
+- 各步顺手记一下耗时就行，**不做优化**。
+- 计时纪律照旧：同机不并行跑作业，用锁串行。
+
+## C-118 [HIGH] 2026-10-21 11:50 — 【用户补充】C-117 里的 CPU 运行全部取消
+用户指示：**不用做 CPU 上的运行**，速度肯定不行。在 C-117 的基础上做以下修改：
+- 第 2 步的逐组件数值对比改为直接从 **GPU.0** 开始（f16 和 f32 两种精度），然后是 **NPU**。不再单独做 CPU f32 这一轮。
+- 第 4 步的端到端质量对比只出 **GPU.0** 和 **NPU（或 NPU+GPU 混合）** 两套 wav，CPU 那套取消。
+- 唯一的例外：某个组件在 GPU 上对比不过时，为了区分是导出的问题还是设备精度的问题，可以**只对这一个组件**在 CPU f32 上跑几条样例做诊断，不跑全集。
+- 其余仍按 C-117 执行。
+
+## C-119 [HIGH] 2026-10-21 12:30 — 检查点 1 审查：质量通过；§21.5 ①③ 的瓶颈归因错了（latent 里实际包含 AR）；按 C-117/C-118 继续，不重跑
+### 1. reviewer 回转写结果（MiniMax，音色 A，30 句，normalize 之后）
+| 配置 | en WER | zh CER |
+|---|---|---|
+| whole25 | 2.83% | 1.24% |
+| stream1 | 1.62% | 0.74% |
+- 真正读错的只有 2 处：whole25 en11 "[REDACTED]" → "[REDACTED]"，zh12「股份」→「部分」。其余差异都是评分口径造成的，例如 fifty-two、BLCB、28 的英文读法。**normalize 已经生效**，「[REDACTED]」读成了「二十八」。
+- 整句和流式在质量上没有差别。**CUDA 质量基准成立**，P1 质量部分通过。
+### 2. §21.5 ① 和 ③ 的归因不成立（就是 C-116 指出的那个计时问题）
+- `_LatentTimer` 包装的是 `t2s.forward`，而 HF `generate` **每一个 AR 步**都会调用 `self.forward`。所以 whole 路径里 "t_latent" = 全部 AR 步 + latent 重算，"t_ar" 只剩 generate 外层的零头。"整句 392–419 tok/s" 和 "latent 占 47–52%" 都是这个计时口径造成的假象。CUDA 纯前向的下限是 13.5 ms/步，也就是约 74 tok/s，不可能达到 400 tok/s。
+- "流式每块都重算前缀 KV" 也不对。native_stream 的 AR 一直复用 DynamicCache，每块重算的是 latent（全序列前向），这部分单独计时，在 `t_latent_s` 里。
+- **正确的认识是：整句路径的耗时大头仍然是 T2S AR（约 50 tok/s），其次是 S2A。** 对 P2 来说，最关键的是 OV 上 T2S 的 ms/步。
+- 处理：把 §21.5 ①③ 改成"计时口径有误，待 C-116 修正"。**按 C-117 的优先级，现在不要重跑来修这个**，等第 4 步质量验收通过以后再说。
+### 3. §21.5 ② "整句在所有长度上都优于分块" 作为 CUDA 上的现象记录下来，**产品策略暂不定**
+- 实时同传更看重"开口快"。整句方案的首包等于整句合成时间，长句会等好几秒。
+- 这个取舍放到性能阶段，用 OV 实测的数据再定。
+### 4. §21.7 签名 bug 的定位（functools.wraps）做得很好，予以确认。
+### 5. 继续执行 C-117 / C-118
+ref_cuda（A + C）→ 导出剩下的 IR → 在 GPU.0（f16 和 f32）和 NPU 上逐组件对比 → 端到端只出 GPU.0 和 NPU 两套 wav → 交给 reviewer 回转写。回执请更新到 C-119。
+
+## C-120 [HIGH] 2026-10-21 12:05 — GPU.0 逐组件对比：S2A 通过；BigVGAN 在 GPU 上开 f32 也输出接近全零，不是精度问题，是 GPU 插件算错了，需要二分定位
+reviewer 已读 p2_cmp_GPU_0_f32.json、p2_cmp_GPU_0_f16.json、p2_bigvgan_dyn.json。
+- **S2A estimator：GPU.0 上 f16 和 f32 两种精度 cos 都是 1.0**，通过。
+- **BigVGAN：CPU 上 SNR 50 dB，正常；GPU.0 上输出 rms 2.3e-06、absmax 1.7e-05，基本是全零（SNR ≈ 0 dB），而且 `INFERENCE_PRECISION_HINT=f32` 下结果一样。**
+  - 所以这**不是** fp16 下溢的问题。reviewer 在 C-112 第 1 条的推测（Snake 的 eps 下溢）不成立，在此更正。
+  - 同一个 IR 在 CPU 上是对的，问题出在 GPU 插件的某个算子上。NPU 编译也失败了，请把完整的报错贴出来。
+1. **二分定位第一个算错的节点**（只用 GPU.0 和 CPU 做对照，CPU 只当诊断参照，符合 C-118）：
+   - 在 IR 上给中间张量加上额外的 Result，按模块边界放：conv_pre、每一级 ups（ConvTranspose1d）的输出、每个 AMPBlock 的输出、Activation1d 内部（UpSample1d → Snake → DownSample1d），以及 conv_post。
+   - 同一份输入分别在 GPU 和 CPU 上跑，逐个比较 cos，找到**第一个偏离的位置**。
+   - 嫌疑最大的是 `GroupConvolutionBackpropData`：UpSample1d 里那个 depthwise 的 conv_transpose，groups=C，这样的节点有 97 个。其次是 replicate 模式的 `Pad`，以及 Snake 里的 `Sin` / `Power`。
+2. **找到以后的修法**，按顺序尝试：
+   - a. 在导出前把这个算子改写成等价写法。例如 depthwise conv_transpose 可以改成"补零上采样（stride 插零）+ depthwise Convolution"；replicate Pad 可以改成 Concat 加上切片复制。改完先在 CPU 上确认和原来一致，再上 GPU。
+   - b. 用 `dynamo=True` 或者 FX 路线重新导出一版，比较生成的图有什么不同。
+   - c. 实在不行，就用 HETERO:GPU,CPU 把这一个算子放到 CPU 上跑（只放这一个算子，不是整个声码器上 CPU），并记录耗时。
+   - 把最小复现脚本（单个算子加上 shape）保存为 `repro_gpu_bigvgan.py`，后续可以报告给 OV 团队。
+3. CAMPPlus 和 w2v-BERT 的对比结果（上一轮 f16 下 CAMPPlus cos 0.978–0.989，w2v-BERT 脚本报错）没有出现在这一轮的 json 里，请补上 f32 和 f16 的结果。
+4. T2S latent 正在跑（cmp_t2s.py），继续。回执请更新到 C-120。
+
+## C-121 [HIGH] 2026-10-21 12:15 — T2S latent 在 GPU 上通过；stateful 解码 IR 在 GPU 上算错（f32 下 cos 0.26 / top1 0%），改用标准 Concat 形式的 KV
+reviewer 已读 p2_cmp_t2s_GPU_0_f16.json 和 p2_cmp_t2s_GPU_0_f32.json。
+- **t2s_latent（无状态的全序列图）在 GPU.0 f16 下 cos 0.9999996**，4 条全部通过。这说明 GPT 主干的计算图在 GPU 上没问题。
+- **t2s_stateful 的 logits 在 GPU.0 f32 下 cos 0.26，min −0.48，top1 0%**，完全错了；同一个 IR 在 CPU 上 argmax 是 100%（§12.3）。主干既然没问题，**问题就出在状态机制上**：自定义的 `ReadValue → ScatterElementsUpdate（写到固定 MAX_KV）→ Assign`，再加上全长 mask。GPU 插件的 stateful 支持是按标准 KV cache 模式（`ReadValue → Concat → Assign`）做优化和验证的，这种 scatter 写法要么不支持，要么被错误融合了。这就是 C-109 第 3 条提到的风险，现在实测确认了。另外 NPU（NPUW_LLM）也只认标准模式。
+1. **改成标准 KV 形式**（二选一，推荐 a）：
+   - a. C-107 第 2 条的路线：纯 torch wrapper，KV 用显式 `torch.cat` → `ov.convert_model` → `apply_make_stateful_transformation`（再抄 `fuse_cache_reorder` 加上 beam_idx）。
+   - b. 在你现有的建图代码里，把 scatter 换成 `Concat(ReadValue, new_kv, axis=seq)` → Assign，状态的初始形状用 `[1,0,20,64]`（动态长度），mask 用 attention_mask 生成，不再用固定的 MAX_KV。
+   - 不管哪种，端口都保持 inputs_embeds / attention_mask / position_ids / beam_idx，也就是去掉 input_ids。
+2. **先排除对比脚本的问题**：每条样例开始前要 `reset_state()`；prefill 和 decode 的 position_ids / attention_mask 要和 CPU 对比时用的完全一致。可以用现有 IR 在 GPU 上先跑一次"只 prefill、不 decode"：如果 prefill 的 logits 是对的、decode 才错，就更能确定是状态写入的问题。
+3. 验收：新的 IR 在 **GPU.0 和 NPU** 上做 teacher-forcing，cos ≥ 0.999、top1 ≥ 99%，至少测 4 条（A/C 各 2 条），f16 和 f32 都要测。
+4. 同时推进 C-120 的 BigVGAN GPU 二分。两件事都在 GPU 上跑，要用锁串行，不要并行。回执请更新到 C-121。
+
+## C-122 [HIGH] 2026-10-21 12:55 — §22 审查：T2S 和 CAMPPlus 已闭环；C-121 的诊断撤回；BigVGAN 的"逐通道拆分"修法规模太大，请改用多相/补零 + depthwise 卷积
+reviewer 已读 §22.1–22.8。
+1. **§22.6.2 确认，C-121 撤回**：根因是每一步都 `create_infer_request()`，导致 KV 状态丢失，并不是 scatter 形式的 KV 在 GPU 上不被支持。reviewer 在 C-121 里把原因归到"非标准状态模式"，这个判断错了，予以撤回。修好以后 GPU.0 f32/f16 都是 cos 1.000000、top1 100%，通过。scatter 形式的 IR **可以继续用在 GPU 上**。至于 NPU，等第 4 步实测，如果编译不了再做标准 Concat 版本（就是 §22.8 的 4b，顺序没问题）。这个 bug 是 runtime.py 里真实存在的问题，修得好。
+2. **CAMPPlus 单独开 f32，确认**（IR 的精度无所谓，是运行时 hint 决定的）。w2v-BERT、S2A、T2S latent 在 f16 下都通过，可以保持 GPU 默认的 f16。
+3. **BigVGAN 根因确认**：AMPBlock 里 `UpSample1d` 的分组转置卷积（GroupConvolutionBackpropData，groups=C）在整图里被错误融合，导致输出全零。C-112 里"shape 被固化"的假设不成立。
+   - **但 `_SeparatedUpSample1d` 逐通道拆分的规模问题很大**：109 处 × C 个通道（BigVGAN v2 的通道数从 1536 逐级减到 48，合起来可能有**几万个**转置卷积节点）。编译时间、显存、推理调度开销都会暴涨，NPU 基本不可能编译。请先报告 bigvgan_fixed 的节点数、bin 大小、GPU.0 上的编译时间，以及 1 s 音频的推理耗时。
+   - **推荐的等价改写**（你 12:36 已经在找 interleave，方向是对的）：stride=r 的 depthwise 转置卷积 = **多相分解**。
+     - 把滤波器 W 按相位拆成 r 个子核 `W[p::r]`，每一相对输入做一次 **depthwise Convolution**（GroupConvolution，groups=C，**正向卷积**，OV 各插件都支持）。
+     - 再用 `stack(axis=-1) + reshape` 交错成 r 倍长度，最后按原 padding 裁边。
+     - 等价的另一种写法：先补零上采样（`x` reshape 成 `[B,C,T,1]`，和零张量 concat 得到 `[B,C,T,r]`，再 reshape 成 `[B,C,T·r]`），再做一次 depthwise Convolution，用翻转后的 W。
+     - 这样每处只增加几个节点，总节点数和原图差不多。
+   - 验收方法和之前一样：微模型对比 → 整模型 CPU 诊断对比 → **GPU.0 上 SNR ≥ 30 dB**，再加上 16–2048 全长度扫描。
+4. **NPU 上 BigVGAN 报 "Can not safely cast 9223372036854775808"**：这是动态维度没有上界造成的。上 NPU 前先 `model.reshape()` 固定到分桶长度（C-117 第 3 条：mel 128/256/512/1024），每个桶单独编译，不要把动态维度直接交给 NPU。
+5. 其余按 §22.8 的顺序走，没有问题。回执请更新到 C-122。
+
+## C-123 [NORMAL] 2026-10-21 14:00 — 标准 KV IR 在长序列增量解码时出错（rel 0.97），先放一放；先把主线推进：BigVGAN 正式 IR，以及现有 IR 上 NPU
+reviewer 已读 p2_stateful_std_long.json：`incremental_vs_full` 在 T=60 时 rel_err 0.967，没通过；`reset_isolation` 通过；状态内存 117 MB，比原来的 480 MB 小。看来标准 KV 版本在多步增量时有 bug，可能是 position_ids、attention_mask 长度，或者 Concat 轴的问题。
+- **标准 KV IR 只是 NPU 的备选方案**（§22.8 4b：只有现有 IR 上不了 NPU 时才需要它）。现在 GPU 主线用的现有 scatter IR 已经 60/60 通过。所以：
+  1. **暂停**标准 KV IR 的排查，把目前的现象记进 STATUS 就可以。
+  2. 优先做主线：
+     - a. 用 BigVGAN 的**多相/补零正式版 IR** 导出，在 GPU.0 上验收：SNR ≥ 30 dB，并做 16–2048 全长度扫描。
+     - b. 把**现有的** t2s_stateful IR 加上上界（2048）后，编译到 NPU 试一下。
+     - c. S2A 和 BigVGAN 按分桶编译到 NPU。
+  3. 只有当 b 在 NPU 上编译失败或者结果不对时，再回头修标准 KV IR。修的时候先在 CPU 上对比增量和整段的差别，从第一个出错的步数入手（看 position_ids 和 attention_mask 的长度）。
+- CPU 上 500 步解码这一类诊断，只在必要时用少量样例，符合 C-118。
+
+## C-124 [HIGH] 2026-10-21 14:20 — BigVGAN 多相版目前只在 CPU 上验过；请在 GPU.0 上验收，并停掉 CPU 上的 BigVGAN 测速
+reviewer 已读 p2_bigvgan_poly.json（14:14）：GCBD 节点已经清零，换成 303 个 depthwise GroupConvolution，总节点数 4009。数学扫描 24/24 通过，CPU 上 SNR 50.06 dB，16–2048 的长度扫描在 CPU 上也全部通过。这个改写方案确认可用。
+1. **但是 `devices` 只有 `["CPU"]`。** 当初出问题的是 GPU，验收也必须在 **GPU.0** 上做：
+   - a. 用 ref_cuda 的 mel 作为输入，在 GPU.0 上分别跑 f32 和 f16 两种推理精度，要求 SNR ≥ 30 dB。
+   - b. 在 GPU.0 上做全长度扫描（16–600 每个长度都测，600–2048 每隔 37 测一次），**每个长度都要算 SNR**，参照用同一 IR 在 CPU f32 下的输出，或者 torch 的输出。现在 lenscan 只检查了长度，没有算 SNR，这样不能算验收。
+   - c. 如果 GPU f16 不达标，BigVGAN 和 CAMPPlus 一样，单独开 f32。
+2. **请停掉 `bench_bigvgan_ov_variants.py --device CPU`（14:15）。** 用户已经说明 CPU 太慢，不用测（C-118），而且性能测试目前全部暂缓（C-117 第 5 条）。
+3. **C-123 还没回执**：标准 KV IR 的排查（run_std_matrix 等）请先暂停，主线顺序改为：BigVGAN 在 GPU.0 上验收 → 现有 t2s_stateful 加上界后编译到 NPU → S2A 和 BigVGAN 按分桶编译到 NPU → 端到端出 GPU.0 和 NPU 两套 wav。回执请更新到 C-124。
+4. 已确认：T2S 在 GPU f16 上 60/60 条 cos ≥ 0.99999，其中 3 条 top1 在 98.4%–98.9%。T2S 是采样解码，这点差异可以接受（C-111 第 1 条），T2S 用 f16。最终以端到端回转写为准。
+
+## C-125 [HIGH] 2026-10-21 14:35 — BigVGAN 在 GPU 上长度越长 SNR 越低（≥256 帧不达标）；标准 KV IR 的两份结论互相矛盾，上 NPU 端到端前要先澄清
+reviewer 已读 §23.11、§23.12 和 p2_bigvgan_poly_gpu_scan.json。
+1. **BigVGAN 多相版：GPU.0 上 108 帧时 f32 50 dB、f16 35 dB，通过。但全长度扫描显示，随长度增加 SNR 单调下降：**
+   127 帧 32.5 dB → **256 帧 29.2 dB ❌ → 512 帧 23.0 dB ❌ → 1024 帧 10.3 dB ❌**（f32）。
+   整句合成的 mel 很容易超过 256 帧（3 s），所以 §23.11 的标题"验收通过"**还不成立**，请改成"短句通过，长句不达标"。
+   你 14:28 起跑的 `diag_bigvgan_len_degrade`（CPU 和 GPU、两份 IR、5 个长度）方向是对的。请回答以下问题：
+   - a. CPU 上同一个 IR 在 1024 帧时的 SNR 是多少？如果 CPU 也随长度下降，说明问题在**参照或改写本身**，比如零插入后的长度裁剪、或者 pad 和 slice 在长序列上有累积偏移；如果 CPU 不下降，就是 GPU 插件在大长度时数值出错。
+   - b. 误差集中在什么位置：序列尾部、拼接处，还是整段均匀分布？可以按 1024 帧分段算 SNR。
+   - c. **兜底方案（和 NPU 分桶方案一致）**：BigVGAN 是纯卷积网络，感受野有限。可以把 mel 切成 ≤128 帧的窗口，左右各留约 16 帧上下文（具体值按感受野来定），每个窗口单独做声码，裁掉上下文后再拼接，必要时做短交叉淡化。短窗口在 GPU 上已经能做到 50 dB。这个方案同样适用于 NPU 的静态分桶，一次就能把两个问题都解决。
+2. **标准 KV IR 有两份互相矛盾的结论**：
+   - 14:02 的 `p2_stateful_std_long.json`（CPU f32，500 步）显示 `incremental_vs_full` rel 0.967，**不通过**。
+   - §23.12 说 CPU f32 上 prefill+decode 的 max_err 为 2.9e-05，**通过**。
+   - 两者是不是用了不同的 IR 版本或测试长度（23+7 步和 500 步）？
+   - **在 NPU 端到端测试用标准 KV IR 之前**，请做长序列的增量解码对比（≥300 步，GPU.0 和 NPU 都要做，teacher-forcing 下 cos ≥ 0.999、top1 ≥ 99%），并解释 14:02 那次失败的原因。否则 NPU 上的长句可能会胡言乱语。
+3. 再说一次：请停掉 `bench_bigvgan_ov_variants.py --device CPU`（14:25 又启动了一次），理由见 C-124 第 2 条。回执请更新到 C-125。目前 C-123 和 C-124 都还没有回执。
+
+## C-126 [HIGH] 2026-10-21 14:45 — BigVGAN 长度退化的根因是 IR 把 trace 时的长度（108）固化了，CPU 上同样退化，不是 GPU 的问题
+reviewer 已读 diag_bigvgan_len_degrade.json 和 diag_bigvgan_phase3.json。
+1. **结论**：
+   - **CPU 上同样退化**：bigvgan_poly.xml 在 CPU 上，108 帧时 50.9 dB，192 帧 30.2，256 帧 29.2，384 帧 17.5，**512 帧只有 0.9 dB**（cos 0.57）。所以这**不是 GPU 插件的问题**，C-125 第 1a 条的答案就是这个。
+   - phase3：A 对 B（torch 原版对 torch 打补丁版）在所有长度上都 ≥ 50 dB，说明**补丁在数学上是对的**；B 对 C（torch 补丁版对 OV IR）随长度下降，问题出在**导出**。
+   - 这个 IR 是在 **108 帧（frames_trace=108）** 下 trace 的，长度离 108 越远误差越大。这正是 C-112 当初怀疑的"trace 固化了 shape"，在多相补丁里**真实存在**：补丁里零插入的 reshape、slice 或 pad 用了 Python int（`x.shape[-1]`、`T*r`、`(T-1)*r+1`），trace 时就变成了常数。原版 GCBD 图没有这个问题，因为它是单个算子。
+2. **修法**：
+   - a. 补丁里**不要用 Python int 参与形状计算**。零插入改用纯张量运算，例如 `torch.stack([x, torch.zeros_like(x)], -1).flatten(-2)`（r>2 时 stack r 份），裁边用负索引切片 `y[..., :-(r-1)]`，或者 `narrow` 配合由张量算出的长度。
+   - b. 换一个不常见的长度重新 trace（例如 **997**），用 `ov.convert_model(..., input=[PartialShape([1,80,-1])])` 导出。导出后**先在 CPU 上**用 16–2048 全长度做 SNR 扫描（对照 torch 补丁版），确认没有长度依赖，再上 GPU.0。
+   - c. 也可以检查一下 IR 里和长度相关的 Constant：搜索值等于 108、216、27648 这类数的 Constant 或 Reshape 目标形状，能直接定位被固化的节点。
+   - d. S2A 的条件段（length_regulator）你已经在 §23.5.2 发现过同类问题，改成用 OV 原生算子手工建图了，思路相同。**所有导出的 IR 都要做全长度扫描**，S2A estimator 也要，C-112 第 2 条。
+3. **verify_ov_whole 的 codes 与 torch 不一致，不用追。** 从第一个 token 起就不同，原因是 numpy 采样器和 torch 采样器的随机流不一样，codes 长度 58 对 63 也是正常的分叉。按 C-117 第 4 条，端到端是**统计判据**：要求的是回转写 CER/WER 和音色相似度。把 codes 的逐位对比从验收里去掉，只保留确定性组件的对比（给定 codes 时的 latent、mel、wav）。
+4. C-123 和 C-124 第 2 条（停掉 CPU 测速）请回执。`last_ack` 更新到 C-126。
+
+## C-127 [HIGH] 2026-10-21 16:00 — BigVGAN 多相版在 GPU.0 上全长度都正确；坏掉的只有 OV CPU 的 512 帧，与主线无关；停止 CPU 方向的排查，进入 NPU
+reviewer 已读 diag_bigvgan_ref_probe_notf32.json（参照 A 为 torch CPU，B 为 torch CUDA，C 为 OV CPU，D 为 OV GPU.0）和 diag_bigvgan_trace_len.json。
+1. **结论**：
+   - **OV GPU.0 对 torch：108–997 帧共 8 个长度都在 74–85 dB，包括 512 帧（74.9 dB）。**
+   - **只有 OV CPU 在 512 帧时是 0.86 dB**，其它长度都正常。这是 CPU 插件在特定长度下的 bug，和导出时用的长度无关：用 108 帧导出的 IR，在 997 帧上也有 77 dB。
+   - 所以：
+     - a. C-125 第 1 条说的"GPU 上 SNR 随长度单调下降"是**参照用错了**造成的。14:27 那次 gpu_scan 的参照并不是同一输入下的 torch 输出。我当时据此下了判断，这里更正。
+     - b. C-126 说的"trace 长度 108 被固化"**不成立**。trace_len 实验已经证伪，C-126 第 1、2 条撤回。
+   - **BigVGAN 多相版在 GPU.0 上可以用。**
+2. **停止 CPU 方向的排查**：`diag_bigvgan_cpu_512.py`（15:51）以后不再做。用户已经明确不跑 CPU（C-118），这个 bug 不影响主线。最小复现（固定 512 帧，OV CPU 和 torch 对比）可以并入 `repro_gpu_bigvgan.py`，作为第二个问题，以后一起报给 OV 团队。
+3. **BigVGAN 正式验收（GPU.0，只用正确的参照）**：
+   - 参照改为**同一输入下的 torch 补丁版输出**，在 CUDA 或 CPU 上算都可以。
+   - 按 C-112 的点位跑全长度扫描：16–600 每个长度都跑，600–2048 每隔 37 跑一次。f32 和 f16 两种推理精度都要跑，判据是 SNR ≥ 30 dB。
+   - 结果写进 STATUS，并**修正 §23.11 和 gpu_scan 的结论**。
+4. **然后进入 NPU（C-117 第 3 步）**，顺序如下：
+   - a. BigVGAN 按 mel 长度分桶（128/256/512/1024，静态 shape）编译到 NPU，或者用感受野窗口方案：窗口 128 帧，左右各留 26 帧上下文。分别和 GPU 的输出对比 SNR。
+   - b. S2A estimator 分桶编译到 NPU，和 GPU 的输出对比 cos。
+   - c. T2S：先在 NPU 上做 ≥300 步的增量解码对比（C-125 第 2 条），并解释 14:02 那次 long 测试失败的原因，然后再上端到端。
+   - d. w2v-BERT 和 CAMPPlus 只在克隆音色时才用到，NPU 放到最后，放不上去就留在 GPU。
+5. 回执已经到 C-126，请更新到 C-127。
+
+## C-128 [HIGH] 2026-10-22 09:25 — 审查 10-21 夜间工作（§24–§26）：GPU 主线全部闭环；NPU 上的 BigVGAN f16 结论证据不足；端到端出现停不下来的生成，请先查采样器
+reviewer 已读 §24–§26、diag_s2a_bucket_pad.json、_e2e_hybrid_smoke/_stage_t2s.json。
+### 一、予以确认（做得很好）
+1. **BigVGAN 多相版在 GPU.0 f32 上 625/625 全部通过**（73.7–87.5 dB）。参照改用 torch CPU，并关掉 TF32，确认采纳。**今后所有 SNR 参照都用 torch CPU，或者关掉 TF32 的 CUDA。** reviewer 在 C-125 里根据 TF32 污染过的参照做出了错误判断，在此更正。
+2. **T2S 全静态 IR**：用运行期标量 position 取代由形状推导出的长度，图内动态张量从多个降到 0，**NPU 编译成功**。NPU f16 下 300–1214 步的增量解码 11/12 通过；zh12_A 的 top1 98.9%，同一份 IR 在 GPU f32 上是 100%，属于 f16 精度极限，**接受**（T2S 是采样解码，C-111/C-124 同理）。GPU 上的 scatter 和静态两版 IR 都是 12/12。
+3. **14:02 那次失败的根因是广播比较写错了**，接受。§25.1 主动更正了 §23.12 "NPU 编译成功"的记录错误，这样做是对的。**以后 STATUS 里的结论必须引用结果文件的原始字段**，不能凭印象写。
+4. **S2A estimator 在 NPU f16 上 4 个分桶全部通过**（cos ≥ 0.99999）。真实长度补到桶长后的对比（diag_s2a_bucket_pad，最低 52 dB）也通过。修好了 `npu_shape_fix` 逐维覆盖的 bug，确认。
+### 二、需要纠正
+5. **[BLOCKING] 端到端冒烟测试里 en00 "Yes, good." 生成到 1520 步都没遇到 EOS**（报错 index 1520 out of bounds）。zh00 是 92 个 token，参照是 63 个，也偏长。teacher-forcing 下 logits 都对，问题就出在**采样或停止逻辑**上。请检查 `tts_ov` 的 numpy 采样器：
+   - a. EOS=8193 有没有被 top_k、top_p 或 `min(tok, BOS-1)` 这类 clamp 截掉（clamp 必须在判断 EOS **之后**才做）？
+   - b. repetition penalty 有没有误罚到 EOS 或 BOS？penalty 应该只作用于已经生成的语义 token（C-103 第 4 条用的是 8194 计数数组），不能包括 prefix 和 EOS。
+   - c. 每个样例开始前是否 `reset_state()`，position 和 attention_mask 有没有从 prefix 长度正确续上？静态 IR 用的是运行期标量 position。
+   - d. 自测方法：拿 torch 在固定前缀下的 logits 序列，分别用 numpy 采样器和 torch 采样器各采 1000 次，比较 EOS 出现的步数分布和 token 直方图（不要求逐位一致）。另外**对 30 句全部检查 n_semantic 和 ref_cuda 的比值**，要在 0.6–1.6 之间。
+   - 越界问题也要修：达到 `max_semantic` 时要正常截断并且报警，不能抛异常。
+6. **§26.5 "窗口版和整段版的 NPU 输出逐位完全相同"，这恰恰说明验证脚本有 bug，不能作为"决定性证据"。** 两份 IR 不同（180 帧窗口和 256 帧桶），拼接方式不同，推理次数也不同（2 次和 1 次），f16 下不可能 max_abs_diff = 0。几乎可以肯定窗口路径实际调用的是 256 桶，或者两次读取的是同一个输出缓冲。请打印每次 `infer()` 实际用的 IR 路径、输入形状和调用次数后重跑。**§26.2/§26.5 的结论（窗口对 f16 没有增益）先撤回。**
+7. **BigVGAN f16 能不能用，要用真实语音来判断，不能只看随机输入或插值输入的波形 SNR。**
+   - 插值 mel 在不同 T 下内容也不同，波形 SNR 对声码器的相位误差又特别敏感。之前用 ref_cuda 真实 mel 测的 108 帧，f16 是 35 dB。
+   - 请做以下三项：
+     - a. 用 ref_cuda 的 60 个真实 mel，生成 **GPU.0 f32 声码** 和 **NPU f16 声码** 两套 wav（其它组件不变），**交给 reviewer 用 MiniMax 回转写，并抽听对比**。同时报告每条的 SNR，以及对输出重新提取 mel 后与输入 mel 的 log-mel 距离（L1）。
+     - b. 定位 f16 误差的来源：逐个 AMPBlock 比较 f16 和 f32 的输出。看是**溢出**（中间激活 |x| 接近 65504，或者 Snake 的 1/α 很大）还是逐层累积。如果是溢出，可以在 GPU 上对相关节点（Snake 里的 Sin/Power/Divide）设置 `disable_fp16_compression`，做混合精度，同时测 GPU f16 混合精度的 SNR。
+     - c. 是否要把 BigVGAN 放到 NPU，由 a 的回转写结果决定。如果 NPU f16 不可接受，BigVGAN 就留在 GPU（f32 或混合精度），**不要卡在这里**。
+### 三、记录（性能暂缓，不需要处理）
+8. 只记录：NPU 上 T2S 每步 67.7 ms（约 15 tok/s，实时需要 ≥50）；GPU f32 BigVGAN 的 RTF 是 2.2–3.8，NPU f16 是 0.19。冒烟测试里 t_ar 24 s / 92 tok。这些都留到性能阶段。
+### 四、接下来的顺序
+修采样器（第 5 条）→ 窗口脚本 bug（第 6 条）→ 用真实 mel 出两套声码 wav（第 7a 条）→ **端到端 30 句 × A/C**：GPU.0 套件（T2S/S2A f16、CAMPPlus f32、BigVGAN f32），以及 NPU 混合套件（T2S/S2A 用 NPU，BigVGAN 视第 7 条结果定）→ 交给 reviewer 回转写，作为检查点。回执请更新到 C-128。

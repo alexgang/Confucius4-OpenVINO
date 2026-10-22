@@ -9,3 +9,7 @@ torch>=2.1
 soundfile
 numpy
 huggingface-hub
+# 实时字幕 App（live_caption/）的三种音频输入
+sounddevice          # 麦克风采集
+soundcard            # 系统声音（WASAPI 回环）；纯 cffi，无需 ffmpeg
+av                   # PyAV：m4a/mp4 等 libsndfile 不支持的音频容器

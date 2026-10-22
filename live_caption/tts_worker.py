@@ -1,0 +1,605 @@
+"""tts_worker.py — TTS 独立子进程（C-101 / P4）。
+
+## 为什么独立进程
+
+1. **不抢 GIL**：TTS 的重活是 numpy 特征提取 + numpy 采样 + S2A 的 25 步 Euler
+   循环 + BigVGAN。这些都在主进程的话，会把 ASR / MT 饿死，字幕会卡。
+2. **崩溃隔离**：worker 挂了只影响语音输出，字幕翻译照常（C-101 的硬要求）。
+
+## 进程内协议
+
+主进程 → worker（stdin，每行一个 JSON）：
+    {"cmd": "synth", "id": 3, "text": "..."}
+    {"cmd": "clone", "pcm": "<base64 float32 16k>"}     # 克隆说话人（可选）
+    {"cmd": "quit"}
+
+worker → 主进程（stdout，每行一个 JSON）：
+    {"kind": "ready", "device": "GPU.0", "voice": "A"}
+    {"kind": "first_packet", "latency_s": 0.83}
+    {"kind": "played", "id": 3}
+    {"kind": "error", "message": "..."}
+    {"kind": "log", "message": "..."}
+
+非 JSON 的行当作普通日志转发。
+
+## 播放
+
+`sounddevice.OutputStream`（22050 Hz、单声道、float32）+ 环形缓冲。
+合成线程把波形塞进环形缓冲，音频回调线程从中取数据播。
+缓冲满时丢弃**最旧**的音频（宁可开头少一句，也不能让实时性崩掉）。
+
+合成用**流式**路径（`native_stream.synth_stream`）：首块 25 token，之后每 50 token，
+overlap 10，交叉淡化。这样第一包能早出来。
+"""
+from __future__ import annotations
+
+import argparse
+import base64
+import json
+import os
+import sys
+import threading
+import time
+from collections import deque
+from typing import Optional
+
+SR = 22050
+CHUNK_SAMPLES = 1024          # 音频回调每次取多少采样
+
+
+def emit(obj: dict):
+    """往 stdout 发一行 JSON（立刻 flush，主进程要实时看到状态）。"""
+    sys.stdout.write(json.dumps(obj, ensure_ascii=False) + '\n')
+    sys.stdout.flush()
+
+
+def log(msg: str):
+    sys.stdout.write(str(msg) + '\n')
+    sys.stdout.flush()
+
+
+class RingBuffer:
+    """线程安全的 float32 环形缓冲（**整句原子写入 + 写满时阻塞**）。
+
+    ## 语义（C-101 第 3 条）
+
+    原实现是「写满时丢最旧的样本」—— **不行**：
+    在播放层丢样本会让一句话中间突然被切掉，听感很差。
+
+    现在的语义：
+    1. **整句原子写入**：`write()` 要么整句进去，要么整句不进（不会出现半句）。
+    2. **写满时阻塞（反压）**：调用方（合成线程）被 `write()` 阻塞住，
+       合成自然暂停，音频播放追上来后写入继续。
+       这就是「缓冲容量 ≥ 2 块」的意义：宁可合成慢，不要播放断句。
+    3. **丢弃不在这一层做**：整句级丢弃由 `tts_service` 层负责
+       （丢的是**尚未开始播放**的整句），见 C-101 P4 第 2 条。
+
+    实现：用 `threading.Condition` 做生产者-消费者同步。
+    """
+
+    def __init__(self, capacity: int = SR * 30, timeout_s: float = 30.0):
+        self._cap = capacity
+        self._buf = [None] * capacity
+        self._w = 0
+        self._r = 0
+        self._count = 0
+        self._cv = threading.Condition()
+        self._closed = False
+        self.timeout_s = timeout_s
+        self.n_written = 0
+        self.n_blocks = 0            # 因写满而阻塞的次数
+
+    def write(self, data):
+        """整句写入。缓冲不足时**阻塞**直到有空位（反压）。
+
+        `data` 是一个 list/array（整句音频）。要么整句写入，要么抛
+        `TimeoutError`（等待超时）或 `RuntimeError`（缓冲已关闭）。
+        """
+        n = len(data)
+        if n == 0:
+            return
+        with self._cv:
+            if self._closed:
+                raise RuntimeError('环形缓冲已关闭')
+            deadline = time.monotonic() + self.timeout_s
+            while self._count + n > self._cap:
+                # 缓冲装不下整句 ⇒ 等播放消费
+                if self._closed:
+                    raise RuntimeError('环形缓冲已关闭')
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError(
+                        f'环形缓冲写入超时（容量 {self._cap}，'
+                        f'已有 {self._count}，待写 {n}）')
+                self.n_blocks += 1
+                self._cv.wait(timeout=min(remaining, 0.5))
+
+            for i in range(n):
+                self._buf[self._w] = data[i]
+                self._w = (self._w + 1) % self._cap
+            self._count += n
+            self.n_written += n
+            self._cv.notify_all()
+
+    def read(self, n) -> list:
+        with self._cv:
+            out = []
+            for _ in range(min(n, self._count)):
+                out.append(self._buf[self._r])
+                self._buf[self._r] = None
+                self._r = (self._r + 1) % self._cap
+                self._count -= 1
+            self._cv.notify_all()
+            return out
+
+    def level(self) -> int:
+        with self._cv:
+            return self._count
+
+    def close(self):
+        with self._cv:
+            self._closed = True
+            self._cv.notify_all()
+
+
+class Player:
+    """sounddevice 输出流 + 环形缓冲。
+
+    音频回调在独立线程里跑（sounddevice 自己开线程），从环形缓冲取数据。
+    缓冲欠载时补静音（不补静音会爆音）。
+    """
+
+    def __init__(self, device=None, sr: int = SR):
+        import sounddevice as sd
+        self.sr = sr
+        # 容量 ≥ 2 块（约 2–3 s）：写满时靠阻塞反压，不靠丢样本
+        # （C-101 第 3 条：播放层丢样本会让一句话中间被切断）。
+        self.ring = RingBuffer(capacity=sr * 3, timeout_s=30.0)
+        self._sd = sd
+        self._stream = None
+        self._lock = threading.Lock()
+        try:
+            self._stream = sd.OutputStream(
+                samplerate=sr, channels=1, dtype='float32',
+                device=device, blocksize=CHUNK_SAMPLES,
+                callback=self._cb)
+            self._stream.start()
+        except Exception as e:
+            log(f'[tts_worker] 播放设备打开失败：{e}')
+            emit({'kind': 'error', 'message': f'播放设备打开失败：{e}'})
+            self._stream = None
+
+    def _cb(self, outdata, frames, time_info, status):
+        if status:
+            log(f'[tts_worker] 播放状态：{status}')
+        data = self.ring.read(frames)
+        if len(data) < frames:
+            data = data + [0.0] * (frames - len(data))
+        outdata[:, 0] = data
+
+    def write(self, wav):
+        self.ring.write(wav)
+
+    def close(self):
+        with self._lock:
+            if self._stream is not None:
+                try:
+                    self._stream.stop()
+                    self._stream.close()
+                except Exception:
+                    pass
+                self._stream = None
+
+
+class TTSWorker:
+    def __init__(self, device='GPU.0', voice='A', out_device=None, model_dir=None,
+                 clone=False, bigvgan_ir=None):
+        self.device = device
+        self.voice = voice
+        self.out_device = out_device
+        self.model_dir = model_dir
+        self.clone_mode = clone
+        self.model = None
+        self.ov_rt = None            # OV 运行时（非 torch 路径）
+        self.bigvgan_ir = bigvgan_ir  # 指定 BigVGAN IR（多相分解版）
+        self.conds = {}
+        self.player = None
+        self._clone_pcm = None       # 克隆说话人的 16 kHz PCM
+        self._synth_lock = threading.Lock()
+        self._stop = threading.Event()
+        self._cancel_lock = threading.Lock()
+        self._cancelled: set = set()  # 被主进程丢弃的句子 id
+
+    # -- 模型加载 --------------------------------------------------------
+    def load(self):
+        t0 = time.perf_counter()
+
+        # 导入 tts_ov 运行时包（如果 P2 移植已完成，优先用 OV 版本）
+        ov_rt = self._try_load_ov()
+
+        if ov_rt is None:
+            # ── 回落：torch 参考实现 ──
+            log('[tts_worker] 使用 torch 参考实现（OpenVINO 版本尚未就绪）')
+            import tts_model
+            import native_stream as NS
+            self.tts_model = tts_model
+            self.NS = NS
+            self.model = tts_model.load_model(
+                device='cuda' if self.device.upper() in ('GPU.0', 'GPU.1', 'GPU') else self.device,
+                config=self.model_dir)
+        else:
+            # ── OV 路径：**不 import torch** ──
+            self.ov_rt = ov_rt
+            self.model = ov_rt          # 合成的调用方按 OV 路径走
+            log(f'[tts_worker] OpenVINO 运行时已加载，设备 {self.device}')
+
+        # 音色条件
+        self.conds = self._load_conds()
+        log(f'[tts_worker] 模型加载完成 {time.perf_counter() - t0:.1f}s')
+        emit({'kind': 'ready', 'device': self.device, 'voice': self.voice})
+
+    def _try_load_ov(self):
+        """尝试加载 OpenVINO 版运行时包（tts_ov）。失败则回落到 torch。
+
+        ⚠️ **OV 路径下绝不 import torch**（C-101 铁律）。
+        """
+        try:
+            tts_dir = os.environ.get('LIVECAP_TTS_DIR', '').strip()
+            candidates = [p for p in [tts_dir, r'C:\Users\Trekker-PTL\confucius4-tts'] if p]
+            for d in candidates:
+                if os.path.isdir(os.path.join(d, 'tts_ov')):
+                    if d not in sys.path:
+                        sys.path.insert(0, d)
+                    from tts_ov import runtime
+                    return runtime.load(self.device)
+        except Exception as e:
+            log(f'[tts_worker] OpenVINO 运行时不可用（{e}），用 torch 回落')
+        return None
+
+    def _load_conds(self):
+        """加载音色条件。
+
+        **优先从 npz 加载**（C-101 P4 第 3 条：预设音色的 conditioning 预先算好，
+        存为 `live_caption\\voices\\*.npz`，运行时直接加载）。
+        这样 App 运行时**完全不需要 torch**（C-101 铁律），也省掉 w2v-BERT +
+        CAMPPlus 的前向（w2v-BERT 是 17 层 transformer，CPU 上要几秒）。
+
+        npz 的键（与 `tts_model.py::extract_cond` 对齐）：
+            semantic_features  (1, T_feat, 1024)  float32
+            style_embedding    (1, 192)          float32
+            reference_mel      (1, T_mel, 80)    float32
+
+        没有 npz 时才回落到「用 torch 从 wav 现场算」。
+        """
+        import numpy as np
+
+        out = {}
+        base = os.environ.get('LIVECAP_TTS_DIR', '').strip() or \
+            r'C:\Users\Trekker-PTL\confucius4-tts'
+        vdir = os.path.join(_HERE, 'voices')
+
+        # ① npz 优先（无需 torch）
+        for key, fn in (('A', 'preset_A.npz'), ('B', 'preset_B.npz'),
+                        ('clone', 'clone_C.npz')):
+            p = os.path.join(vdir, fn)
+            if not os.path.exists(p):
+                continue
+            try:
+                z = np.load(p)
+                out[key] = {
+                    'semantic_features': z['semantic_features'].astype(np.float32),
+                    'style_embedding': z['style_embedding'].astype(np.float32),
+                    'reference_mel': z['reference_mel'].astype(np.float32),
+                }
+                log(f'[tts_worker] 音色 {key} 条件就绪（npz，'
+                    f'semantic{out[key]["semantic_features"].shape}）')
+            except Exception as e:
+                log(f'[tts_worker] 音色 {key} npz 加载失败：{e}')
+
+        if out:
+            return out
+
+        # ② 回落：现场从 wav 算（需要 torch）
+        log('[tts_worker] 没有找到 voices/*.npz，回落到现场计算（需要 torch）')
+        vdir_wav = os.path.join(base, 'golden', 'voices')
+        presets = {
+            'A': os.path.join(vdir_wav, 'preset_A.wav'),
+            'B': os.path.join(vdir_wav, 'preset_B_new.wav'),
+        }
+        for k, p in presets.items():
+            if not os.path.exists(p):
+                log(f'[tts_worker] 缺少音色文件：{p}')
+                continue
+            try:
+                out[k] = self.tts_model.extract_cond(self.model, p)
+                log(f'[tts_worker] 音色 {k} 条件就绪')
+            except Exception as e:
+                log(f'[tts_worker] 音色 {k} 条件提取失败：{e}')
+        # 克隆 C：会议录音里截的干净人声
+        clone_wav = os.path.join(vdir_wav, 'clone_C.wav')
+        if os.path.exists(clone_wav):
+            try:
+                out['clone'] = self.tts_model.extract_cond(self.model, clone_wav)
+                log('[tts_worker] 克隆音色 C 条件就绪')
+            except Exception as e:
+                log(f'[tts_worker] 克隆音色 C 条件提取失败：{e}')
+        return out
+
+    # -- 合成 ------------------------------------------------------------
+    def synth(self, jid: int, text: str):
+        """合成一句并播放。
+
+        OV 路径（`self.ov_rt` 存在）**完全不碰 torch**；
+        否则回落到 torch 的 `native_stream.synth_stream`。
+        """
+        import numpy as np
+
+        key = self.voice
+        if key not in self.conds:
+            emit({'kind': 'error', 'message': f'没有可用的音色：{key}'})
+            return
+
+        t_submit = time.perf_counter()
+        cond = self.conds[key]
+        lang = self._guess_lang(text)
+
+        # 主进程可能已经因为积压超限丢弃了这一句（C-101 P4 第 2 条）
+        if self._is_cancelled(jid):
+            log(f'[tts_worker] 句子 id={jid} 已被丢弃，跳过合成')
+            return
+
+        try:
+            with self._synth_lock:
+                if self._is_cancelled(jid):
+                    return
+                if self.ov_rt is not None:
+                    chunks = self._synth_ov(text, lang, cond)
+                else:
+                    chunks = self._synth_torch(text, lang, cond)
+        except Exception as e:
+            import traceback
+            log('[tts_worker] 合成失败：' + traceback.format_exc())
+            emit({'kind': 'error', 'message': f'合成失败：{e}'})
+            return
+
+        if self._is_cancelled(jid):
+            log(f'[tts_worker] 句子 id={jid} 合成完成但已被丢弃，不播放')
+            return
+
+        if not chunks:
+            emit({'kind': 'played', 'id': jid})
+            return
+
+        # 首包延迟：从收到指令到第一块音频可用
+        latency = time.perf_counter() - t_submit
+        emit({'kind': 'first_packet', 'latency_s': round(latency, 3), 'id': jid})
+
+        # 播放：把整句的波形一次性塞进环形缓冲
+        wav = np.concatenate(chunks) if len(chunks) > 1 else chunks[0]
+        if self.player is not None:
+            try:
+                self.player.write(wav.tolist())
+            except TimeoutError as e:
+                # 缓冲写满 ⇒ 播放跟不上（C-101 P4 第 2 条：这种情况由
+                # tts_service 层做整句级丢弃，这里只记录）
+                log(f'[tts_worker] 播放缓冲写满，阻塞超时：{e}')
+                emit({'kind': 'error', 'message': f'播放缓冲写满：{e}',
+                      'id': jid, 'dropped': True})
+                return
+            except Exception as e:
+                log(f'[tts_worker] 播放写入失败：{e}')
+                emit({'kind': 'error', 'message': f'播放写入失败：{e}', 'id': jid})
+                return
+        emit({'kind': 'played', 'id': jid,
+              'dur_s': round(len(wav) / SR, 3),
+              'latency_s': round(latency, 3)})
+
+    def _synth_ov(self, text: str, lang: str, cond: dict):
+        """OV 整句合成（不依赖 torch）。返回 list[np.ndarray]（22050 Hz）。"""
+        import numpy as np
+
+        rt = self.ov_rt
+        # OV 整句合成入口（tts_ov/synth_ov.py，由 P2 移植提供）
+        try:
+            from tts_ov import synth_ov
+        except Exception as e:
+            raise RuntimeError(f'OV 整句合成不可用：{e}')
+
+        res = synth_ov.synth_whole(
+            rt, text, lang, cond,
+            seed=1234, n_timesteps=25, cfg_rate=0.7,
+            bigvgan_ir=self.bigvgan_ir,
+        )
+        wav = np.asarray(res['wav'], dtype=np.float32).reshape(-1)
+        return [wav]
+
+    def _synth_torch(self, text: str, lang: str, cond: dict):
+        """torch 回落路径（流式）。"""
+        import numpy as np
+
+        gen = self.NS.make_generator(seed=1234, device='cuda')
+        chunks = []
+        for c in self.NS.synth_stream(
+                self.model, text, lang, cond,
+                first_chunk_size=25, chunk_size=50, overlap_tokens=10,
+                n_timesteps=25, inference_cfg_rate=0.7, gen=gen):
+            chunks.append(c)
+            if self._stop.is_set():
+                break
+        return chunks
+
+    @staticmethod
+    def _guess_lang(text: str) -> str:
+        """粗判语言：CJK 字符占比高就是 zh，否则 en。"""
+        cjk = sum(1 for ch in text if '\u4e00' <= ch <= '\u9fff')
+        return 'zh' if cjk * 4 >= len(text) else 'en'
+
+    def _is_cancelled(self, jid) -> bool:
+        with self._cancel_lock:
+            return jid in self._cancelled
+
+    # -- 主循环 ----------------------------------------------------------
+    def run(self):
+        # 先起播放流，再加载模型（模型加载要几秒，播放流要先开好）
+        try:
+            self.player = Player(device=self.out_device)
+        except Exception as e:
+            log(f'[tts_worker] 播放流创建失败：{e}')
+            self.player = None
+
+        # 模型加载放到后台线程，主线程立刻开始收指令（避免主进程等太久）
+        th = threading.Thread(target=self._safe_load, daemon=True)
+        th.start()
+
+        for line in sys.stdin:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                msg = json.loads(line)
+            except Exception:
+                continue
+            cmd = msg.get('cmd')
+            if cmd == 'quit':
+                break
+            elif cmd == 'synth':
+                jid = msg.get('id')
+                text = msg.get('text', '')
+                t = threading.Thread(target=self.synth, args=(jid, text), daemon=True)
+                t.start()
+            elif cmd == 'cancel':
+                # 主进程判定积压超限，丢弃这一句（整句为单位，C-101 P4 第 2 条）
+                jid = msg.get('id')
+                with self._cancel_lock:
+                    self._cancelled.add(jid)
+                log(f'[tts_worker] 收到丢弃指令 id={jid}')
+                emit({'kind': 'dropped', 'id': jid, 'count': 1})
+            elif cmd == 'clone':
+                # 克隆说话人：更新最近 ≥3 s 的 16 kHz PCM 的条件
+                try:
+                    import base64
+                    import numpy as np
+                    pcm = np.frombuffer(base64.b64decode(msg.get('pcm', '')),
+                                        dtype=np.float32)
+                    self._update_clone(pcm)
+                except Exception as e:
+                    log(f'[tts_worker] 克隆更新失败：{e}')
+
+        self._stop.set()
+        if self.player is not None:
+            self.player.close()
+
+    def _safe_load(self):
+        try:
+            self.load()
+        except Exception as e:
+            import traceback
+            log('[tts_worker] 加载失败：' + traceback.format_exc())
+            emit({'kind': 'error', 'message': f'模型加载失败：{e}'})
+
+    def _update_clone(self, pcm):
+        """用最近的 16 kHz PCM 更新克隆音色条件。
+
+        优先走 **npz 路线**（不需要 torch）：
+        把 PCM 写到临时 wav → 用已有的 OV 编码器（w2v-BERT / CAMPPlus）算条件
+        → 存成 `voices/clone_C.npz`（原子替换）。
+
+        如果 OV 编码器不可用，才回落到 torch 的 `extract_cond`。
+        """
+        import numpy as np
+
+        if len(pcm) < 16000 * 3:      # 至少 3 s
+            return
+        pcm = pcm[-16000 * 10:]        # 最多留 10 s
+
+        # ── 路线 1：OV 编码器（无 torch）──
+        if getattr(self, 'ov_rt', None) is not None:
+            try:
+                cond = self._extract_cond_ov(pcm)
+                if cond is not None:
+                    out = os.path.join(_HERE, 'voices', 'clone_C.npz')
+                    os.makedirs(os.path.dirname(out), exist_ok=True)
+                    tmp = out + '.tmp.npz'
+                    np.savez(tmp, **cond)
+                    os.replace(tmp, out)     # 原子替换
+                    self.conds['clone'] = cond
+                    log(f'[tts_worker] 克隆音色已更新（OV，{len(pcm)/16000:.1f}s）')
+                    return
+            except Exception as e:
+                log(f'[tts_worker] OV 克隆更新失败（回落 torch）：{e}')
+
+        # ── 路线 2：torch ──
+        if self.model is None or not hasattr(self, 'tts_model'):
+            return
+        import soundfile as sf
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
+            path = f.name
+        sf.write(path, pcm, 16000)
+        try:
+            self.conds['clone'] = self.tts_model.extract_cond(self.model, path)
+            log(f'[tts_worker] 克隆音色已更新（torch，{len(pcm)/16000:.1f}s）')
+        except Exception as e:
+            log(f'[tts_worker] 克隆音色更新失败：{e}')
+        finally:
+            try:
+                os.unlink(path)
+            except Exception:
+                pass
+
+    def _extract_cond_ov(self, pcm):
+        """用 OV 运行时算音色条件（w2v-BERT + CAMPPlus + 参考 mel）。
+
+        返回 dict（numpy），结构与 npz 一致。不可用时返回 None。
+        """
+        import numpy as np
+        rt = getattr(self, 'ov_rt', None)
+        if rt is None:
+            return None
+        if not (rt.has('w2vbert_17') and rt.has('campplus')):
+            return None
+
+        # 16 kHz PCM → 特征
+        from tts_ov import features as F
+        feats = F.seamless_m4t_features(pcm, 16000)
+        if feats.ndim == 3:
+            feats = feats[0]
+        feats = feats[None, ...].astype(np.float32)      # (1, T_feat, 160)
+        mask = np.ones((1, feats.shape[1]), dtype=np.float32)
+
+        sem = rt.w2v(feats, mask)                        # (1, T, 1024)
+        sem = np.asarray(sem, dtype=np.float32)
+
+        # CAMPPlus 吃 kaldi fbank
+        fb = F.kaldi_fbank(pcm, 16000)                   # (T, 80)
+        style = np.asarray(rt.campplus(fb[None, ...].astype(np.float32)),
+                            dtype=np.float32)
+
+        # 参考 mel（22.05 kHz）
+        wav22 = F.resample(pcm, 16000, 22050)
+        mel = F.mel_spectrogram(wav22, 22050)            # (80, T)
+        mel = mel.T[None, ...].astype(np.float32)        # (1, T, 80)
+
+        return dict(semantic_features=sem, style_embedding=style,
+                    reference_mel=mel)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--device', default='GPU.0')
+    ap.add_argument('--voice', default='A', choices=['A', 'B', 'clone'])
+    ap.add_argument('--out-device', default=None)
+    ap.add_argument('--model-dir', default=None)
+    ap.add_argument('--clone', action='store_true')
+    ap.add_argument('--bigvgan-ir', default=None,
+                    help='指定 BigVGAN IR 路径（多相分解版）')
+    args = ap.parse_args()
+
+    w = TTSWorker(device=args.device, voice=args.voice, out_device=args.out_device,
+                   model_dir=args.model_dir, clone=args.clone,
+                   bigvgan_ir=args.bigvgan_ir)
+    w.run()
+
+
+if __name__ == '__main__':
+    main()

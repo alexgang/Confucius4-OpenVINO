@@ -247,8 +247,395 @@ encoder**、又被当作 carry 喂给下一段，同一段音频被识别两遍�
 | `--no-adaptive-budget` | 关 | 退回固定 32（历史行为，WER 17.87%） |
 | `--no-seam-dedup` | 关 | 关掉段接缝的 1 词去重 |
 
-`force_language` 恒为 `None`（自动）：中英混合场景下模型逐 chunk 自行判语言，
-强制单一语言会破坏另一种语言的输出。
+`force_language` 默认 `None`（自动）：中英混合场景下模型逐 chunk 自行判语言。
+需要锁定单一语言时可用 `--asr-lang`（见下）或界面里的「识别语种」下拉 ——
+强制单一语言会让另一种语言的输出变差，所以只在确实只说一种语言时用。
+
+---
+
+## 实时字幕应用（`live_caption/live_caption_app.py`）
+
+比 `mic_asr_app.py` 更完整的实时字幕台：多后端切换、实时翻译、屏幕置顶字幕条、
+译文保存。**音频输入支持三种**，在界面「音频来源」下拉里切换：
+
+| 来源 | 采集内容 | 典型场景 |
+|---|---|---|
+| **麦克风** | 系统默认或指定的输入设备 | 自己对着麦克风说话 |
+| **系统声音** | WASAPI 回环，采集**正在播放的输出设备**的混音 | 给会议软件 / 浏览器视频 / 播放器做字幕 |
+| **音频文件** | 用户上传的本地音频文件 | 复现某个片段、离线跑批 |
+
+「系统声音」这一路是给会议和视频场景准备的：麦克风会把本地声音、对方声音和
+房间噪音一起录进来，而回环只取输出混音，信噪比明显更好，也不会占用麦克风。
+
+### 识别语种（可手动指定）
+
+界面「识别语种 Language」下拉框可指定 ASR 的识别语种，默认「自动检测」。
+可选模型内置的 30 种语言（`Chinese` / `English` / `Japanese` / `Korean` …，
+取自 `models/hf/config.json` 的 `support_languages`），语种名用**模型的英文名**。
+命令行等价参数 `--asr-lang English`。
+
+```powershell
+# 终端模式：指定识别语种
+.venv/Scripts/python.exe live_caption/live_caption_app.py --cli --source file \
+    --file live_caption/test_en_60s.wav --speed 0 --asr-lang English
+```
+
+**实现要点（踩过的坑）**：语种提示是以 prompt 后缀 `language {lang}<asr_text>`
+注入的 —— 但**不能**只写进 `state.prompt_raw`。三个 backend 实际喂给模型的是
+**预构建的静态 prompt 模板**（`ids_left + audio_pad*N + ids_right`），
+`ids_right` 来自不含语种的模板，语种提示根本没进模型输入。后果是模型仍自动
+判语种，而解析层按 `force_language` 处理，输出被 `language None<asr_text>`
+之类的元信息污染（实测强制 English 时整段文本前堆了 16 个该前缀）。
+
+修法：新增 `_build_prompt_template_ids_for(force_language)`，把语种后缀
+**编码进 `ids_right` 末尾**（语种后缀落在模板右半部分，即 assistant 起始之后）；
+NPU 走 embedding 路线，对应地在 `build_inputs_embeds` 里把语种后缀的
+embedding 插在 `emb_right` 之后、`prefix` 之前。
+
+验证：同一段英文录音，强制 `Chinese` 时模型输出「但我们正在取得进展」，
+强制 `English` 时输出英文 —— 证明语种提示确实进了模型。
+
+### 草稿译文（默认关闭，可选）
+
+「草稿译文」指**还没定稿的那半句**的实时翻译预览（界面里浅蓝色的「〔译〕」行）。
+v1.2 起**默认关闭** —— 默认只翻译**已经定稿**的文本。
+
+- GUI：界面「翻译后端」那一行右侧有「**草稿译文 Draft**」复选框，**可运行时开关**
+  （不用重启程序）；关掉时残留的预览会立刻清掉。
+- CLI：`--mt-draft` 开启（默认不开）。
+- 环境变量：`LIVECAP_DRAFT=1` 开启（脚本 / CI 场景）。
+  原来的 `LIVECAP_NO_DRAFT=1` 语义随「默认关闭」已失效，不再读取。
+
+实现上，`TranslationService.DRAFT_ON` 类常量改为**实例属性 `draft_on`**，
+并新增 `set_draft(on)`（关闭时清空 `self.draft` 与 `self._draft_key`）。
+`maybe_draft()` 在 `draft_on` 为假时直接返回，翻译队列不受影响。
+
+为什么默认关：草稿每次要翻近一整句 partial，是 GUI 下 ASR 积压的主要来源。
+实测矩阵（gpu_int8 ASR + GPU 翻译，60s ABBA 各 2 次）：
+
+| 草稿配置 | RTF 增量 | 积压增量 |
+|---|---|---|
+| 间隔 0.8s 无暂停 | +0.274 | +0.30s |
+| 间隔 0.8s + 积压暂停 | +0.246 | +0.60s |
+| 间隔 1.5s + 积压暂停（打开时的配置） | +0.144 | +0.25s |
+| 草稿全关（**默认**） | +0.042 | +0.05s（噪声级） |
+
+### 屏幕字幕（overlay）的四行
+
+屏幕底部的置顶字幕条是**四行**：
+
+| 行 | 内容 | 颜色 | 出现条件 |
+|---|---|---|---|
+| 1 | 最近定稿的英文原文 | 白 | 始终 |
+| 2 | 正在识别的实时文本 | 黄 | 有 partial 时 |
+| 3 | **定稿文本的译文** | 青 | 翻译开着且该段已译完 |
+| 4 | 草稿译文预览 | 浅蓝 | 勾选了「草稿译文」且有预览 |
+
+★ **关掉草稿译文，第 3 行仍然要显示译文** —— 草稿只影响第 4 行。
+译文取最近 3 段的译文拼接。
+
+> 这里曾有个缺陷：算 overlay 译文时写的是 `for b in self.blocks[-3:]`，
+> 迭代出的是**原文文本**，而 `_mt_of(seg)` 要的是**段序号**（blocks 的下标），
+> 查 `seg_keys` 自然查不到 —— 结果是屏幕字幕的译文行**永远为空**
+> （主文本区的译文正常，所以很难发现）。现已改为按下标取。
+> 另有一处：原来用 `mt_tail or draft`，定稿译文一出现就把草稿预览顶掉了，
+> 现在草稿单独占第 4 行。
+
+验证：`verify_overlay.py`（18 项，无 Tk 模拟）+ GUI 自测截图。
+
+### 翻译后端（设备 × 量化）
+
+`translator.MT_ENGINES` 是翻译侧的「设备 × 量化」可选项，与 ASR 的 `ENGINES` 同构。
+候选项定义在 `_MT_CANDIDATES`，**只有本机真实存在模型目录的才进下拉**，
+所以客户机上不会出现「缺模型」的项。
+
+| key | 设备 | 量化 | 模型目录 | 实测 tok/s | TTFT 中位 | 加载 | 随包 |
+|---|---|---|---|---|---|---|---|
+| `gpu_int4cw` | GPU.0 | INT4_SYM cw | `mt2-int4sym-cw-q`（993 MB） | 57.9 | 35 ms | 6.9 s | ✅ |
+| `gpu_int8cw` | GPU.0 | INT8_SYM cw | `mt2-int8sym-cw-q`（1.7 GB） | 37.5 | 44 ms | — | ❌ |
+| `npu_int4cw` | NPU | INT4_SYM cw | `mt2-int4sym-cw-q`（993 MB） | 44.0 | 292 ms | 15.7 s | ✅ |
+| `npu_int8cw` | NPU | INT8_SYM cw | `mt2-int8sym-cw-q`（1.7 GB） | 29.6 | 300 ms | — | ❌ |
+
+（实测数据来自 `hy_bench/bench_mt2.py`，7 句 × 3 次取中位。）
+
+> **v1.3 客户包只附带 INT4**（INT8 1.7 GB 已移除，包体少约 1.8 GB）。
+> 理由：INT8 与 INT4 的译文差异仅为同义改写（相似度中位 0.966），
+> 却多占约 700 MB 显存、慢约 33%，对客户机没有实际收益。
+> 开发机 `hy_bench/ov/` 下仍保留 INT8 产物供对比测试。
+>
+> 代码上用 `_MT_CANDIDATES` 的 **bundled 标记**区分「本包不附带」与「本机缺模型」：
+> `--check` 对前者显示 `[ — ]（本包不附带该量化版本）`，不会让客户误判为安装故障；
+> GUI 下拉本身无需改动（模型目录不存在时该项自动不出现）。
+
+翻译侧是 `og.LLMPipeline(model_dir, device)`，**GPU 与 NPU 走同一条代码路径**，
+没有 NPU 专属分支 —— 所以加一个新设备×量化组合只需往 `_MT_CANDIDATES`
+加一行 + 放好模型目录，不用改推理逻辑。
+
+**v1.3 翻译模型由 Hunyuan-1.8B-Instruct 换成 Hy-MT2-1.8B**：
+旧模型是通用指令模型而非翻译模型，遇专业术语会乱译、偶尔输出解释性文字。
+Hy-MT2-1.8B（`tencent/Hy-MT2-1.8B`，架构同为 `hunyuan_v1_dense`）是翻译专用模型，
+换过去后**译文质量明显提升，且速度不降反升**（INT4 57.9 vs 49.4 tok/s）。
+
+配套改动（`live_caption/translator.py`）：
+- prompt 改用官方 Default Translation 指令模板 —— **无 system prompt**，指令与待译文本同放 user 消息；
+- 带上下文的分支改用官方 Structured Data 模板的简化版（`[Background Information]` + `[Source Text]`）；
+- `generation config` 去掉旧 Instruct 专用的 `</answer>` stop_strings（MT2 直接输出译文正文，EOS 自停）；
+- 模型目录解析全部指向 `mt2-*`（客户包 `models/mt/mt2-*` → 开发机 `hy_bench/ov/mt2-*`）。
+
+> ⚠️ **Hy-MT2-1.8B 与 Hunyuan-1.8B-Instruct 的 `config.json` 几乎完全相同**
+> （同 `HunYuanDenseV1ForCausalLM` / `hunyuan_v1_dense` / 32 层 / hidden 2048 / 16 头 /
+> vocab 120818 / ctx 262144），**光看 config.json 无法区分两者**。
+> 判别要看 `chat_template.jinja` 与实际输出行为。
+
+**v1.2 新增 `gpu_int8cw`（Intel GPU · INT8-CW）**：
+INT8 量化比 INT4 多占约 700 MB 显存、慢约 35%，但翻译质量与 INT4 持平且无乱码。
+ASR 默认也在集显上，两个模型会争抢显存和算力 —— 已在选项说明文字里提示。
+机器吃紧时优先用 INT4-CW。
+
+```powershell
+# 装依赖（仅首次）
+#   sounddevice  麦克风采集
+#   soundfile    音频文件解码
+#   av (PyAV)    m4a/mp4 等 libsndfile 不支持的容器
+#   soundcard    WASAPI 回环（系统声音），纯 cffi 实现，不需要 ffmpeg
+.venv/Scripts/python.exe -m pip install sounddevice soundfile av soundcard
+
+# 启动 GUI
+.venv/Scripts/python.exe live_caption/live_caption_app.py
+
+# 列出麦克风 + 可回环的系统输出设备
+.venv/Scripts/python.exe live_caption/live_caption_app.py --list-devices
+
+# 终端模式：麦克风
+.venv/Scripts/python.exe live_caption/live_caption_app.py --cli --source mic
+
+# 终端模式：系统声音（采集正在播放的内容）
+.venv/Scripts/python.exe live_caption/live_caption_app.py --cli --source system
+
+# 终端模式：音频文件（--speed 0 = 全速跑批，1.0 = 实时回放）
+.venv/Scripts/python.exe live_caption/live_caption_app.py --cli --source file \
+    --file live_caption/test_en_60s.wav --speed 0
+```
+
+### 环境检查（`--check`）
+
+客户包里的 `Diagnose.bat` 会调 `live_caption_app.py --check`，输出一份体检报告：
+
+```
+── 依赖 ──                          numpy / openvino / openvino_genai / transformers / 音频库
+── OpenVINO 设备 ──                 CPU / Intel 集显 / NPU / 独显，并单独给「集显可用」「NPU 可用」结论
+── ASR 后端（识别）──               6 个后端各自的模型文件是否齐全、设备是否匹配
+── 翻译后端（Hunyuan-1.8B）──        5 个「设备 × 量化」后端的模型是否在本机
+── 音频设备 ──                       可用麦克风 + 可回环的系统输出设备
+```
+
+每一项前面是 `[ OK ]`（可用）或 `[缺 ]`（不可用）；缺项在括号里给原因
+（`缺 audio.cpp（audiocpp_cli.exe），本包不自带` / `缺模型` / `本机没有该设备`）。
+
+**注意不检查 torch** —— 本程序刻意 `USE_TORCH=0` 不依赖它，客户包也不带 torch，
+列成「缺」只会误导客户。
+
+### 相对路径（不依赖安装位置）
+
+`live_caption_app.py` / `translator.py` 里**不写死盘符和用户名**，全部相对包根推导：
+
+```
+APP_DIR   = <代码所在目录>            # live_caption/ 或客户包的 app/
+PKG_ROOT  = dirname(APP_DIR)         # 包根
+MODELS    = <包根>/models             # 可用 LIVECAP_MODELS_DIR 覆盖
+```
+
+客户包把开发机的模型目录**重命名并重组**过（权重逐个 md5 一致，只是目录名不同），
+所以额外有一层解析：
+
+- `_MODEL_ALIASES`：逻辑名 → 客户包目录名列表（`ov-int8-past` → `decoder-gpu-int8`）
+- `_model_path(name)`：先查别名，再回退开发版原名；分隔符统一按 `/` 处理
+  （`ENGINES` 里写的 `c089_int4\R4` 和别名表的 `c089_int4/R4` 都能命中）
+- 散落文件（如 NPU 用的 `embed_tokens_f16.npy`，包内被提到 `models/` 根）
+  走「别名 + 文件名」两级回退
+
+其它路径：
+
+| 用途 | 查找顺序 | 环境变量 |
+|---|---|---|
+| 翻译模型 | `models/mt/<name>` → `hy_bench/ov/<name>` → `~/.openvino/models/...` | `LIVECAP_MT_MODEL` / `LIVECAP_MT_CW_ROOT` |
+| CUDA 运行包 | `<包根>/cuda/` → `~/confucius4-r2t2`（须有 `audio.cpp/audiocpp_cli.exe`） | `LIVECAP_CUDA_DIR` |
+| 编译缓存 | `~/.openvino/models/...` → `<代码目录>/<name>` | — |
+
+编译缓存放用户目录而不是包内，是因为包可能装在 `Program Files`（只读）。
+
+实测：整包复制到带空格与中文的全新路径后，ASR 与翻译端到端均正常。
+
+### 三种输入的实现要点
+
+三种来源最终都归一到 **16 kHz 单声道 float32**，差异全部封在
+`live_caption/audio_source.py` 里：
+
+- **麦克风**（`sounddevice`）：走设备原生采样率（44.1/48 kHz 都有），
+  在下游重采样。插值刻意不放在 PortAudio 的实时回调里 —— 回调线程做
+  numpy 插值会挤占实时线程，丢帧的风险比音质损失大。
+- **系统声音**（`soundcard`）：向 WASAPI 设备**直接要 16 kHz**，由 Windows 的
+  SRC（重采样器）负责降采样，比自己插值干净。输出设备没有声音时 WASAPI
+  **不产生任何帧**，直接等会卡住流水线，所以这里改成「超时补静音」，
+  让下游的 VAD / 切段能正常看到一段静音。
+- **音频文件**（`soundfile` + `av`）：先用 libsndfile 解（WAV/FLAC/OGG/MP3），
+  失败再回退 PyAV（m4a/mp4/aac 等）。解码后按实时速度回放，
+  `--speed 0` 则是全速跑批（跑批时积压会很大，注意看指标栏）。
+
+### 两个坑（改代码前先读）
+
+1. **COM 公寓**：WASAPI 是 COM 组件，规矩是「每个线程都要自己 `CoInitializeEx`」。
+   `soundcard` 自己在 **import 时** 初始化 COM，而设备枚举和采集发生在
+   别的线程上。顺序弄错的表现是系统声音模式一启动就报
+   `Error 0x100000001`。`audio_source._co_prepare_thread()` 处理了这件事：
+   soundcard 没 import 过就让它自己初始化（我们不再插手），import 过了
+   才由当前线程自己初始化并配对 `CoUninitialize`。
+2. **队列要复用**：`Session` 必须用音源自己的 `out_q`。另建一个队列的话，
+   音频永远进不来，表现为「音频 0.0s、队列空、界面不动」。
+
+### 音源自测
+
+```powershell
+# 不加载 ASR 引擎，只验证三种音源都能稳定产出 PCM
+.venv/Scripts/python.exe live_caption/selftest_audio_sources.py
+```
+
+### 切段规则（定稿时机）
+
+`live_caption_app.Segmenter` 有两条切段规则，任一满足即切段并定稿：
+
+1. **常规规则**：段长 ≥ `MIN_SEG_SEC`（12 s）后，最近 `SIL_LOOKBACK_SEC`（3 s）
+   内有 ≥300 ms 静音；段长 ≥ `MAX_SEG_SEC`（20 s）硬切。
+2. **静音超时规则**：段尾出现连续 ≥ `SILENCE_CUT_SEC`（1.2 s）的静音就立即切段，
+   不管段长够不够 12 s。
+
+**为什么加第 2 条**：原规则只在段长 ≥12 s 后才去看静音。短语音（会议里一句
+「好的」大约 1–3 秒）说完后，用户要干等到累积满 12 秒才能看到定稿，
+字幕不转白、译文也跟着卡住。实测修复前 3 秒语音要等 5.8 s、5 秒语音等 5.2 s；
+修复后分别是 1.3 s 和 1.0 s。
+
+**不会损失识别质量**：切段点落在静音区，音频内容已经解码完，提前收尾得到的
+文本与等满 12 秒的结果**逐字相同**（`diag_early_cut.py` 对比 cut=1.0/1.5/2.0/3.0 s）。
+
+**保护期** `SILENCE_TAIL_GUARD_SEC`（0.35 s）：刚开口的第一个音节（尤其爆破音
+/b/ /p/）本身能量低，可能被静音检测当成静音。保护期内的静音不足以切段，
+避免把第一个字切到下一段。保护期是相对**静音起点**算的，不是相对音频末尾。
+
+判定「段尾静音」用的是 `seg_stream.find_trailing_silence()` —— 它找的是
+**紧贴音频末尾**的那段连续静音。已有的 `find_silence_in_range()` 找的是范围内
+**最长**的静音段，静音持续久了以后最长段会从窗口左边界外开始，算出来的起点
+是假的，不能用于这个场景。
+
+阈值可用环境变量微调：
+
+| 环境变量 | 默认 | 说明 |
+|---|---|---|
+| `LIVECAP_SILENCE_CUT_SEC` | 1.2 | 段尾连续静音多久就切段 |
+| `LIVECAP_SILENCE_TAIL_GUARD_SEC` | 0.35 | 静音起点前的语音保护期 |
+
+### 断句（送翻译前）
+
+定稿文本不是整段丢给翻译模型的 —— `translator.split_sentences()` 会先切成
+句子，每句单独送翻。断句质量直接决定译文质量。
+
+**依据**：业界实时语音翻译的通行做法（ACL N13-1023《Segmentation Strategies
+for Streaming Speech Translation》、EMNLP 2020《Direct Segmentation Models
+for Streaming Speech Translation》）：
+
+| 业界结论 | 本项目做法 |
+|---|---|
+| 标点预测是 BLEU 最高的策略（`pred-punct`） | 按句末标点切（标点来自 ASR 模型输出） |
+| 最优平均段长 **8–12 词**（与 MT 训练分布一致） | 目标区间 `TARGET_SEG_WORDS=(8,12)` |
+| 固定长度窗口会**破坏语义上下文** | 超限时**优先在从句边界（逗号/顿号）断开**，而非机械按词数硬切 |
+| 断句要区分「句末」与「词中」 | 小数点、缩写点不切（见下） |
+
+**为什么不能「见到 . 就切」**：ASR 输出里的小数点、缩写点、版本号点都会把句子
+切碎，切碎会**直接产出错误译文**。改造前实测：
+
+| 原文 | 改造前（错误） | 改造后（正确） |
+|---|---|---|
+| `It cost 1.5 million dollars.` | 「1.5万美元。」+「1.」+「500万美元。」 | 「花费了150万美元。」 |
+| `The U.S. economy grew 3.5 percent.` | 「美国」+「经济增长率为3%。」+「百分之五。」 | 「美国经济增长率提高了3.5个百分点。」 |
+| `Dr. Smith joined at 9 a.m. today.` | 「医生」+「史密斯于上午9点加入。」+「今天是。」 | 「史密斯医生今天上午9点加入。」 |
+| `Prof. Wang will present at 3 p.m.` | 「教授」+「王将在下午3点出席。」 | 「王教授将于下午3点进行报告。」 |
+
+**判定规则**（`translator._is_decimal_point` / `_is_abbrev_boundary`）：
+
+- **小数点**：两侧都是数字 → 不切（`1.5`、`3.14`、`1.2.3`、`v1.0`）
+- **缩写点**：整个**点分链**（`U.S.`、`a.m.`）作为一个单位，任一个点都不切
+- **已知缩写**：`Dr.` `Prof.` `Mr.` `Jan.` 等称谓/月份/星期
+- **守卫**：缩写点后面必须是「空白 + 大写字母」（下一句开头），否则按句末处理。
+  这条防止 `We shipped no.` `The max.` 这类普通词结尾的句号被误当缩写，
+  导致**该断的句子断不开**
+
+**段长控制**：`MAX_SEG_WORDS = 20` 词 / `MAX_SEG_CHARS = 60` 字（中文没有词
+边界，按字符数控制）。超限时优先在逗号/顿号处断 —— 真实案例：
+
+```
+改造前：...our 28 core has now | hit qs.        <- 切出孤立片段
+        译文：「击打。」（模型把 qs 当拼写错误）
+改造后：...[REDACTED], | big milestone in that our 28 core has now hit qs.
+        译文：「我们的28个核心模块已经达到了里程碑。」
+```
+
+**验证**：`verify_segmentation.py`（51 项）、`verify_segmentation_e2e.py`
+（真实模型对比改造前后译文）。
+
+### 延迟回归
+
+```powershell
+# 量化「说话结束后多久定稿」：喂语音 → 喂静音 → 记录定稿时刻
+.venv/Scripts/python.exe live_caption/diag_final_delay.py gpu_int8 3 25
+# 期望输出：结论：说话结束 → 定稿耗时 1.3s
+```
+
+### 翻译加载的两个坑（v1.2 修复）
+
+「翻译一直显示 GPU.0 加载中…」有两个独立成因，都在 `translator.py`：
+
+**坑 1：transformers 延迟导入的并发竞态**
+
+transformers 4.57 用的是 lazy import（真正 import 某个类时才执行子模块 `__init__`）。
+ASR 引擎加载线程（`backends.py`）和翻译加载线程（`translator.py`）都会 import
+transformers，**同时**首次导入时必有一方失败：
+
+```
+ImportError: cannot import name 'AutoTokenizer' from 'transformers'
+```
+
+实测 8 线程并发首次导入有 2 个失败。
+
+对策：
+- `translator.import_transformers_auto_tokenizer()` —— 模块级锁把 import 串行化，
+  失败重试 4 次（每次间隔 0.2 s，等前一次 import 收尾）
+- `translator.prewarm_transformers()` —— 在 GUI **主线程**、引擎加载**之前**调用，
+  后台线程再 import 时模块早已就绪（主线程做的，用户还没法操作）
+- GUI 启动日志会打一行 `prewarm transformers 2.4s`
+
+**坑 2：线程死掉后状态卡在 loading**
+
+`TranslationService` 用 `self.th` 持有工作线程。加载失败时线程会退出，但
+`self.th` 仍指向那个**已死**的线程对象：
+
+```python
+if not self.active or self.th is None:   # ← 旧代码：死线程不是 None，判断不出来
+    return True
+self.state = 'loading'                    # ← 置成 loading，但没有线程会去加载
+```
+
+于是用户切换一次翻译后端，状态就变成 `loading` 且**永远不会变** ——
+表现就是「翻译 GPU.0 加载中…」一直不变。
+
+对策：
+- `TranslationService._thread_alive()` —— 用 `self.th.is_alive()` 判断，
+  `set_target()` / `set_engine()` 都改用它
+- `set_engine()` 在线程已死时**真的重启**（`_start()`），而不只是保持状态
+- `TranslationService.restart()` —— 强制重启（旧线程先停掉再起新的），
+  GUI 的「↻ 重试翻译 Retry」按钮调它
+
+**顺带改进的可见性**：状态栏的「加载中…」会显示已等待秒数（>30 s 提示首次编译慢，
+>90 s 提示可能卡住）；失败时只显示错误摘要（完整堆栈写进 `live_caption.log` 的
+`mt load failed` 行）；失败时亮出重试按钮。
 
 ## 关键技术修复（cumulative 12 步）
 

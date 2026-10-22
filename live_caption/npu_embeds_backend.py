@@ -141,17 +141,28 @@ class NPUEmbedsDecoderBackend(SegmentEncoderOVBackend):
 
     # ── prompt 拼接 ────────────────────────────────────────────────
     def build_inputs_embeds(self, ehs: np.ndarray,
-                            prefix_ids: List[int]) -> np.ndarray:
-        """emb(模板左) + 音频嵌入 + emb(模板右) + emb(前缀)。
+                            prefix_ids: List[int],
+                            force_language=None) -> np.ndarray:
+        """emb(模板左) + 音频嵌入 + emb(模板右) + emb(语种提示) + emb(前缀)。
 
         音频段直接用 encoder 输出的 `ehs[0]`（N_audio, 2048），不做任何变换，
         这与 `masked_scatter(audio_mask, audio_features)` 的语义完全一致：
         audio_mask 覆盖的位置 embedding 被 audio_features 整体替换。
+
+        force_language：语种提示必须进模型输入，所以这里把语种后缀的
+        embedding 插在「模板右」之后、「前缀」之前 —— 与 token 路线
+        （ids_left + audio + ids_right+语种 + prefix）顺序一致。
         """
         audio = np.asarray(ehs[0], dtype=np.float32)
         assert audio.ndim == 2 and audio.shape[1] == HIDDEN, audio.shape
         # 顺序必须是 left + audio + right + prefix（与生产 input_ids 拼接一致）
         parts = [self._emb_left, audio, self._emb_right]
+        if force_language:
+            lang_ids = self.tokenizer.encode(
+                f"language {force_language}<asr_text>", add_special_tokens=False)
+            if lang_ids:
+                parts.append(np.ascontiguousarray(self._W[list(lang_ids)],
+                                                  dtype=np.float32))
         if prefix_ids:
             parts.append(np.ascontiguousarray(self._W[list(prefix_ids)],
                                               dtype=np.float32))
@@ -165,7 +176,8 @@ class NPUEmbedsDecoderBackend(SegmentEncoderOVBackend):
     # ── NPU 解码 ───────────────────────────────────────────────────
     def greedy_decode_with_prefix(self, encoder_hidden_states: np.ndarray,
                                   prefix_ids: List[int],
-                                  max_new_tokens: int) -> List[int]:
+                                  max_new_tokens: int,
+                                  force_language=None) -> List[int]:
         """reset_state → 全量 prefill → 逐步 decode，全部在一个 InferRequest 内。
 
         返回 out_ids（含可能的 EOS，与生产一致：生产把首 token 也放进
@@ -174,7 +186,8 @@ class NPUEmbedsDecoderBackend(SegmentEncoderOVBackend):
         import time
 
         W = self._W
-        emb = self.build_inputs_embeds(encoder_hidden_states, prefix_ids)
+        emb = self.build_inputs_embeds(encoder_hidden_states, prefix_ids,
+                                       force_language=force_language)
         T = int(emb.shape[1])
         self.probe['prompt_len'].append(T)
         self.probe['n_audio'].append(int(encoder_hidden_states.shape[1]))

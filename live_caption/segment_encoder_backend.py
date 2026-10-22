@@ -122,6 +122,29 @@ class SegmentEncoderOVBackend(ASRBackend):
         ids_right = self.tokenizer.encode(text_right, add_special_tokens=False)
         return ids_left, ids_right
 
+    def _build_prompt_template_ids_for(self, force_language: Optional[str]
+                                       ) -> Tuple[List[int], List[int]]:
+        """按语种构造 prompt 模板 ids。
+
+        **为什么需要这个**：语种提示是拼在 prompt **末尾**的
+        （``text + "language {lang}<asr_text>"``），而 audio 占位符
+        (``<|audio_start|><|audio_pad|><|audio_end|>``) 在 user 段中间。
+        所以语种后缀落在「模板右半部分」的末尾，也就是 assistant 起始之后。
+
+        之前 ids_right 来自**不含语种**的静态模板，导致 state.prompt_raw
+        里的语种提示根本没进模型输入 —— 模型仍然自动判定语种，而解析层
+        却按 force_language 处理，输出被 ``language None<asr_text>`` 之类的
+        元信息污染（实测强制 English 时整段文本前面堆了 16 个该前缀）。
+
+        这里把语种后缀直接编码进 ids_right，保证它真的进入模型。
+        """
+        ids_left, ids_right = self._build_prompt_template_ids()
+        if not force_language:
+            return ids_left, ids_right
+        suffix = self.tokenizer.encode(
+            f"language {force_language}<asr_text>", add_special_tokens=False)
+        return ids_left, list(ids_right) + list(suffix)
+
     def _get_audio_pad_id(self) -> int:
         vocab = self.tokenizer.get_vocab()
         return vocab.get("<|audio_pad|>", vocab.get("<|audio_bos|>", 151646))
@@ -189,11 +212,19 @@ class SegmentEncoderOVBackend(ASRBackend):
 
     def greedy_decode_with_prefix(self, encoder_hidden_states: np.ndarray,
                                   prefix_ids: List[int],
-                                  max_new_tokens: int) -> List[int]:
-        """OV stateful decoder：reset_state → prefill → 1 token/step"""
+                                  max_new_tokens: int,
+                                  force_language: Optional[str] = None) -> List[int]:
+        """OV stateful decoder：reset_state → prefill → 1 token/step
+
+        force_language：语种提示要进模型输入，所以这里按语种取 prompt 模板
+        （语种后缀编码在 ids_right 末尾）。None = 自动检测，用静态模板。
+        """
         self.dec_infer.reset_state()
 
-        ids_left, ids_right = self._prompt_template_ids
+        if force_language:
+            ids_left, ids_right = self._build_prompt_template_ids_for(force_language)
+        else:
+            ids_left, ids_right = self._prompt_template_ids
         N_audio = encoder_hidden_states.shape[1]
         # 拼 [left + audio_pad*N + right + prefix]
         audio_pad_ids = [self._audio_pad_id] * N_audio
@@ -240,5 +271,7 @@ class SegmentEncoderOVBackend(ASRBackend):
             extra_prefix_ids = prefix_ids[len(raw_ids):]
         else:
             extra_prefix_ids = []
-        out_ids = self.greedy_decode_with_prefix(ehs, extra_prefix_ids, max_new_tokens)
+        out_ids = self.greedy_decode_with_prefix(
+            ehs, extra_prefix_ids, max_new_tokens,
+            force_language=state.force_language)
         return self.tokenizer.decode(out_ids, skip_special_tokens=True)

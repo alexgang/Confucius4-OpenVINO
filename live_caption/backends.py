@@ -174,6 +174,22 @@ class TorchBackend(ASRBackend):
         return (self.tokenizer.encode(tl, add_special_tokens=False),
                 self.tokenizer.encode(tr, add_special_tokens=False))
 
+    def _build_prompt_template_ids_for(self, force_language):
+        """按语种构造 prompt 模板 ids。
+
+        语种提示是拼在 prompt 末尾的（``text + "language {lang}<asr_text>"``），
+        而 audio 占位符在 user 段中间，所以语种后缀落在模板右半部分末尾
+        （assistant 起始之后）。不把它编码进 ids_right 的话，语种提示根本
+        进不了模型输入 —— 模型照样自动判语种，解析层却按 force_language 处理，
+        输出会被 ``language None<asr_text>`` 之类的元信息污染。
+        """
+        ids_left, ids_right = self._build_prompt_template_ids()
+        if not force_language:
+            return ids_left, ids_right
+        suffix = self.tokenizer.encode(
+            f"language {force_language}<asr_text>", add_special_tokens=False)
+        return ids_left, list(ids_right) + list(suffix)
+
     def init_streaming_state(self, *, context: str = "",
                              language: Optional[str] = None,
                              unfixed_chunk_num: int,
@@ -224,7 +240,9 @@ class TorchBackend(ASRBackend):
         )
 
         # 2) 构造展开 audio_pad 的 prompt_ids
-        ids_l, ids_r = self._prompt_template_ids
+        # 语种提示要进模型输入，所以按语种取模板（语种后缀编码在 ids_right 末尾）
+        ids_l, ids_r = self._build_prompt_template_ids_for(
+            getattr(state, 'force_language', None))
         prefix_ids = self.tokenizer.encode(prefix_text, add_special_tokens=False) if prefix_text else []
         full_ids = list(ids_l) + [AUDIO_PAD] * N_audio + list(ids_r) + list(prefix_ids)
         prompt_ids = torch.tensor([full_ids], dtype=torch.long)
@@ -342,14 +360,18 @@ class OVBackend(ASRBackend):
 
     def greedy_decode_with_prefix(self, encoder_hidden_states: np.ndarray,
                                   prefix_ids: List[int],
-                                  max_new_tokens: int) -> List[int]:
+                                  max_new_tokens: int,
+                                  force_language=None) -> List[int]:
         """stateful decoder：reset_state → prefill 整条 prompt → 1 token/step。
 
         C-009 #2：stateful decoder cross-attention 在 prefill 时已把 ehs 存到 past 状态；
         decode 步可以传任意形状的 ehs（IR 端口要求存在），但实际不参与计算。实测
         `tiny ehs (1,1,2048)` 与 full ehs 输出完全一致，且 ~5% 速度优势。
+
+        force_language：语种提示要进模型输入，所以按语种取 prompt 模板
+        （语种后缀编码在 ids_right 末尾）。None = 自动检测，用静态模板。
         """
-        ids_left, ids_right = self._prompt_template_ids
+        ids_left, ids_right = self._build_prompt_template_ids_for(force_language)
         N_audio = int(encoder_hidden_states.shape[1])
         full_ids = list(ids_left) + [AUDIO_PAD] * N_audio + list(ids_right) + list(prefix_ids)
 
@@ -390,7 +412,9 @@ class OVBackend(ASRBackend):
                              max_new_tokens: int) -> str:
         ehs, n_real, N_audio = self.encode_audio(audio_accum)
         prefix_ids = self.tokenizer.encode(prefix_text, add_special_tokens=False) if prefix_text else []
-        out_ids = self.greedy_decode_with_prefix(ehs, prefix_ids, max_new_tokens)
+        out_ids = self.greedy_decode_with_prefix(
+            ehs, prefix_ids, max_new_tokens,
+            force_language=getattr(state, 'force_language', None))
         gen_text = self.tokenizer.decode(out_ids, skip_special_tokens=True)
         return gen_text
 
@@ -480,9 +504,14 @@ class HybridBackend(ASRBackend):
 
     def greedy_decode_with_prefix(self, encoder_hidden_states: np.ndarray,
                                   prefix_ids: List[int],
-                                  max_new_tokens: int) -> List[int]:
-        """OV stateful decoder：与 OVBackend 相同实现。"""
-        ids_left, ids_right = self._prompt_template_ids
+                                  max_new_tokens: int,
+                                  force_language=None) -> List[int]:
+        """OV stateful decoder：与 OVBackend 相同实现。
+
+        force_language：语种提示要进模型输入，所以按语种取 prompt 模板
+        （语种后缀编码在 ids_right 末尾）。None = 自动检测，用静态模板。
+        """
+        ids_left, ids_right = self._build_prompt_template_ids_for(force_language)
         N_audio = int(encoder_hidden_states.shape[1])
         full_ids = list(ids_left) + [AUDIO_PAD] * N_audio + list(ids_right) + list(prefix_ids)
 
@@ -518,7 +547,9 @@ class HybridBackend(ASRBackend):
                              max_new_tokens: int) -> str:
         ehs, n_real, N_audio = self.encode_audio(audio_accum)
         prefix_ids = self.tokenizer.encode(prefix_text, add_special_tokens=False) if prefix_text else []
-        out_ids = self.greedy_decode_with_prefix(ehs, prefix_ids, max_new_tokens)
+        out_ids = self.greedy_decode_with_prefix(
+            ehs, prefix_ids, max_new_tokens,
+            force_language=getattr(state, 'force_language', None))
         gen_text = self.tokenizer.decode(out_ids, skip_special_tokens=True)
         return gen_text
 

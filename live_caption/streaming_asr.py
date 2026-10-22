@@ -442,7 +442,7 @@ def finish_streaming_transcribe(backend: ASRBackend,
 
 # ── 跑入口 ────────────────────────────────────────────────────────────
 def run_streaming(backend: ASRBackend,
-                  wav_path: str = 'C:/Users/Trekker-PTL/confucius4-r2t2/test.wav',
+                  wav_path: str = 'input.wav',
                   chunk_size_sec: float = 0.32,
                   unfixed_chunk_num: int = 2,
                   unfixed_token_num: int = 5,
@@ -564,7 +564,7 @@ if __name__ == '__main__':
     p.add_argument('--unfixed-chunk-num', type=int, default=2)
     p.add_argument('--unfixed-token-num', type=int, default=5)
     p.add_argument('--max-new-tokens', type=int, default=32)
-    p.add_argument('--wav', default='C:/Users/Trekker-PTL/confucius4-r2t2/test.wav')
+    p.add_argument('--wav', default='input.wav')
     p.add_argument('--out-log', default='reports/stream_backend.log')
     p.add_argument('--out-csv', default='reports/stream_chunks.csv')
     args = p.parse_args()

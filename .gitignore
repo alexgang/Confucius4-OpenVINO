@@ -55,3 +55,15 @@ live_caption/out_*.txt
 
 # C-049 测试语料（原始包数十GB + 生成的长音频，脚本可重建）
 test_data/
+
+# C-102/TTS 运行产物（勿提交）
+# npu_cache 是 OpenVINO NPU 编译缓存，实测 644 MB
+live_caption/npu_cache/
+# selftest_out 是 GUI 自测的截图/日志
+live_caption/selftest_out/
+# voices/*.npz 是 TTS 声线克隆的运行时导出物（可用 tts_worker 重建）
+live_caption/voices/
+
+# 客户包构建产物（不入库）
+*.zip
+Confucius4_LiveCaption_v*/

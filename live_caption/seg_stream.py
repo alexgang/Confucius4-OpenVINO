@@ -51,6 +51,46 @@ def _frame_rms(x: np.ndarray, frame_ms: int = 30, hop_ms: int = 10) -> np.ndarra
     return out
 
 
+def find_trailing_silence(audio: np.ndarray, *, start_sample: int, end_sample: int,
+                          silence_db: float = -40.0,
+                          min_silence_ms: int = 300,
+                          frame_ms: int = 30, hop_ms: int = 10) -> tuple[int, int] | None:
+    """找**紧贴末尾**的那段连续静音，返回 (起点, 终点) sample。
+
+    与 :func:`find_silence_in_range`（找最长静音段）的区别很关键：
+
+    * ``find_silence_in_range`` 找的是范围内**最长**的静音段。段尾静音
+      持续久了以后，最长段会从窗口左边界之外开始，算出来的「起点」是假的。
+    * 这里找的是**紧贴 end_sample** 的那段连续静音 —— 也就是「从什么时候
+      开始就没声音了」。这正是「静音超时切段」需要的语义。
+
+    Returns
+    -------
+    tuple[int, int] | None
+        (静音段起点 sample, 静音段终点 sample)；末尾不是静音时返回 None。
+    """
+    if end_sample <= start_sample:
+        return None
+    seg = audio[start_sample:end_sample]
+    rms = _frame_rms(seg, frame_ms=frame_ms, hop_ms=hop_ms)
+    if rms.shape[0] == 0:
+        return None
+    db = 20.0 * np.log10(rms + 1e-7)
+    n = int(hop_ms * SAMPLE_RATE / 1000)
+    is_sil = db < silence_db
+    min_sil_frames = max(1, int(min_silence_ms / hop_ms))
+
+    # 从末尾往前找连续静音的起点
+    i = is_sil.shape[0] - 1
+    while i >= 0 and is_sil[i]:
+        i -= 1
+    run_len = is_sil.shape[0] - 1 - i
+    if run_len < min_sil_frames:
+        return None
+    start_frame = i + 1
+    return (start_sample + start_frame * n, end_sample)
+
+
 def find_silence_in_range(audio: np.ndarray, *, start_sample: int, end_sample: int,
                           silence_db: float = -40.0,
                           min_silence_ms: int = 300,
