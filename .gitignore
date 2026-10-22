@@ -67,3 +67,12 @@ live_caption/voices/
 # 客户包构建产物（不入库）
 *.zip
 Confucius4_LiveCaption_v*/
+
+# OpenVINO/NPU 编译缓存（C-085/C-086/C-087 的 NPU CACHE_DIR，约 53 GiB，可重建）
+reports/npu_cache/
+
+# C-090#2 / C-095#4：OpenVINO IR 权重（.bin 可达 GiB 级，绝不能进仓库）。
+# R0–R4 的 INT4 IR 已移到 models/c089_int4/；这里再加一道兜底，
+# 防止以后有人把 IR 输出到 reports/ 下。
+reports/**/*.bin
+reports/**/*.xml

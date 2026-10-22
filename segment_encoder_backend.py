@@ -66,13 +66,18 @@ class SegmentEncoderOVBackend(ASRBackend):
                  decoder_dir: str = "models/ov-int8-past",
                  device: str = "GPU.0",
                  precision: str = "f16",
-                 cache_dir: str = "./ov_cache"):
+                 cache_dir: str = "./ov_cache",
+                 strict_intel: bool = True):
         from transformers import AutoTokenizer, WhisperFeatureExtractor
 
-        # 设备 Intel 断言
+        # 设备 Intel 断言（C-002）
+        # strict_intel=False 仅供 C-052「同卡对照」实验使用：本机 GPU.1 是
+        # NVIDIA RTX 5050 Laptop，OpenVINO 也能在上面跑，用来把「运行时差异」
+        # 和「硬件差异」分开。交付路径不受影响（默认仍要求 Intel）。
         core = ov.Core()
         full_name = core.get_property(device, "FULL_DEVICE_NAME")
-        assert "Intel" in full_name, f"device {device} not Intel: {full_name}"
+        if strict_intel:
+            assert "Intel" in full_name, f"device {device} not Intel: {full_name}"
         core.set_property({"CACHE_DIR": cache_dir})
         prop = {"PERFORMANCE_HINT": "LATENCY", "INFERENCE_PRECISION_HINT": precision}
 
