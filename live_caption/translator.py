@@ -474,8 +474,11 @@ CTX_MAX_CHARS = 160          # 上下文截断长度（控制 prompt 长度，�
 # 默认表是芯片/硬件会议场景的术语 —— 起因是「QS」被两个模型都译错（QS =
 # Qualification Sample 资格样品，不是 QPS；也不是「击打」）。
 GLOSSARY = {
+    # 大小写都要给：ASR 出来的文本里 QS 常常是小写（"hit qs"），只写 'QS' 匹配不上
     'QS': '资格样品（QS）',
+    'qs': '资格样品（QS）',
     'ES': '工程样品（ES）',
+    'es': '工程样品（ES）',
     'power on': '点亮',
     'power-on': '点亮',
     'tape-out': '流片',
