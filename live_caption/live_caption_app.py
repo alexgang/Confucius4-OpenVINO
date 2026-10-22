@@ -115,7 +115,21 @@ GUARD_REL_ENABLED = os.environ.get('LIVECAP_GUARD_REL', '1') == '1'
 # 允许句末能量比段内语音电平低多少 dB 仍算「说完了」。
 GUARD_REL_DROP_DB = float(os.environ.get('LIVECAP_GUARD_REL_DROP', '18'))
 # 段内语音电平低于此绝对值时，说明这段基本是噪声，不用相对判据。
-GUARD_REL_MIN_SPEECH_DB = float(os.environ.get('LIVECAP_GUARD_REL_MIN_SPEECH', '-45'))
+#
+# ⚠️ C-106：此值由 -45 收紧到 -40。原因是 -45 会让相对判据**切出空段**：
+#   61 分钟真实演讲上，520.96s 处多切了一刀**只有 1.92s 的段**，
+#   而该段语音帧(>-35dB)占比只有 **1%**（前后正常段是 50%/46%），是一段纯静音。
+#   ASR 会对它产出一句无意义内容，还打乱后续切点节奏
+#   （规则1 从 520.96s 重新起算，+1.28s 逐段累积 → 端到端末段看起来晚了 56.8s）。
+#   判别特征不是「probe 与 speech 的差值」，而是 **speech 本身**：
+#     合法救回点 speech=-26.4dB（真在说话）；误切空段 speech=-40.4dB（就是噪声底）。
+#   门槛扫描（61 分钟，diag_guard_speech_gate2.py，只比 rule2 切点）：
+#     -45dB → 新增 7 个、其中 2 个空段
+#     -40dB → 新增 6 个、空段 1 个（**唯一空段是基线原有的**）、**合法点一个没丢**
+#     -30dB → 新增 5 个（白白丢掉 speech=-31dB 的合法救回点）
+#     -26dB → 新增 2 个（丢掉 4 个合法点，太严）
+#   → 取 -40dB：区间 -40~-32dB 结果完全相同，取上沿 = 最宽松、收益最大。
+GUARD_REL_MIN_SPEECH_DB = float(os.environ.get('LIVECAP_GUARD_REL_MIN_SPEECH', '-40'))
 
 # ── 路径解析（全部相对包根目录，不依赖任何开发机绝对路径）─────────────
 # 模型目录放在包根的 models/ 下：<包根>/models/<子目录>

@@ -82,7 +82,7 @@ def main():
     seg = L.Segmenter()
     check('rel=1 默认常量', L.GUARD_REL_ENABLED, True)
     check('默认 drop', L.GUARD_REL_DROP_DB, 18.0)
-    check('默认 min_speech', L.GUARD_REL_MIN_SPEECH_DB, -45.0)
+    check('默认 min_speech', L.GUARD_REL_MIN_SPEECH_DB, -40.0)
 
     rng = np.random.default_rng(11)
 
@@ -121,12 +121,25 @@ def main():
                   tail_sil=1.5, rng=rng)
     check('6 保护期拦截（相对也不通过）', seg._silence_tail(a), False)
 
-    # 7. 纯噪声段（语音电平 < -45dB）→ 退回绝对判据
+    # 7. 纯噪声段（语音电平 < 门槛）→ 退回绝对判据
     a = make_case(voice_db=-60.0, sil_db=-70.0, tail_sil=1.5, rng=rng)
     segdb = L._frame_db_series(a[:int(len(a) - 1.5 * SR)])
     speech = float(np.percentile(segdb, 90))
     print(f'        （该用例段内语音电平 {speech:.1f}dB）')
     check('7 纯噪声段退回绝对判据(不切)', seg._silence_tail(a), False)
+
+    # 7b. ★ C-106：低语音电平的「伪语音段」必须被语音准入门槛挡住
+    #     真实缺陷：61 分钟演讲上 520.96s 处多切了一刀 1.92s 的纯静音段，
+    #     该段段内语音电平 p90 = -40.4dB（就是噪声底），probe = -44.2dB。
+    #     旧门槛 -45dB 会放行它 → 产生空段 + 后续切点整体漂移。
+    #     这里构造 speech ≈ -41dB（< -40dB 门槛）→ 必须不切。
+    a = make_case(voice_db=-41.0, sil_db=-52.0, noise_db=-52.0,
+                  tail_sil=1.4, rng=rng)
+    segdb = L._frame_db_series(a[:int(len(a) - 1.4 * SR)])
+    speech = float(np.percentile(segdb, 90))
+    check('7b 低语音电平段被准入门槛拦住', seg._silence_tail(a), False)
+    print(f'        （该用例段内语音电平 {speech:.1f}dB，门槛 '
+          f'{L.GUARD_REL_MIN_SPEECH_DB:.1f}dB）')
 
     print('\n=== 9. 「绝对 ∪ 相对」只放宽不收紧 ===')
     print('    对所有随机样本，rel=1 的放行集合必须包含 rel=0 的放行集合')
