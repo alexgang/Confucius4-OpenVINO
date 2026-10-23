@@ -2625,7 +2625,7 @@ $ python pack_v13.py --pkg "C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4" --
 | 机器锁 | **未创建**（全程被 TTS 模块占用）⇒ 无遗留锁 |
 | 未提交 | `CORRECTIONS_APP.md`（reviewer 独占）、`audio_source.py` / `translator.py` / `tts_service.py` / `device_config.py` / `live_caption_app.py` / `pack_v13.py` / `pkg_exclude.py` / `status/CORRECTIONS.md` 及全部 `diag_c111_*` 脚本 ⇒ **留给各自模块会话** |
 
-## §17 无新纠偏条目巡检 + v1.4 客户包**真正交付闭环**（zip 内容级校验 PASS + 12.73 GB zip 落盘 + FTP 重建）+ App 侧改动入库（2026-10-24 03:16）
+## §17 无新纠偏条目巡检 + v1.4 客户包**真正交付闭环**（zip 内容级校验 PASS + 11.22 GB zip 落盘 + FTP 重建）+ App 侧改动入库（2026-10-24 03:16）
 
 ### §17.0 巡检结论：**仍无新 reviewer 纠偏条目**
 
