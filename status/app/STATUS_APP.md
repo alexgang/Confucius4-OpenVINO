@@ -1,10 +1,11 @@
 # STATUS_APP
 last_ack: APP-003
-更新时间: 2026-10-23 11:24
-当前任务: APP-003 ①②③④ 全部落地（§6 内部内容隔离 / §8 默认 MT 改 INT8-CW / CORRECTIONS 只由 reviewer 写 / 时间戳更正）；§8.7 CLI 回放等锁排队中
+更新时间: 2026-10-23 11:33
+当前任务: APP-003 ①②③④ 全部落地且**已验证**（§6 内部内容隔离 / §8 默认 MT 改 INT8-CW + §8.7 CLI 回放 ABBA 4/4 exit=0 / CORRECTIONS 只由 reviewer 写 / 时间戳更正）
 阻塞 / 待用户决定: ① 是否重打包并重建 FTP 硬链接（现在**必须**重打才能交付 INT8 默认 + results/ + C-106~109 + 瘦身）；② **TTS IR 交付形态**（INT8_SYM ≈1.4 GB vs 原版 2.54 GB）；③ babelvox 依赖随包附还是 pip 装；④ 参考音频接口（ASR 缓冲导出）；⑤ **是否剔除 INT4-CW**（可再省 0.97 GB，但低配机失去可选项）
 
 ## 最近更新
+- 11:33 §8.7 **CLI 回放已完成**：ABBA 4/4 `exit=0`（锁 11:23:11 → 11:28:10），翻译 28 句全出译文、INT8-CW 29.6~41.7 tok/s、翻译对 ASR RTF 无可测影响；含 3 条踩坑（`tasklist` 转义坑曾误回收 TTS 活锁）
 - 11:24 **APP-003 全部落地**：① results/ 内部会议内容已隔离（11 文件移至 `pkg_internal_quarantine/`，dry-run 0 残留）；② 默认翻译改 **INT8-CW**（IR 12/12 SHA256 核对一致，客户包 `DEFAULT_MODEL` 实测指向 INT8）；③ CORRECTIONS 第 23 行原自写「APP-002」改为「[目标机工作记录·非纠偏]」并把正文迁至 §7；④ **更正 §4 的时间戳**（见 §9）
 - 11:20 §8：默认 MT 改 INT8-CW 的代码/IR/文档改动全表 + 包体积变化（8.28 → 9.97 GB，+1.69 GB）
 - 11:10 §5 实测：客户包 Python 3.12 **能直接跑** Qwen3-TTS；最小依赖集 **297 MB**（可裁 numpy/sklearn）+ IR **2542 MB**；现有 7 个 app 模块在 numpy 2.5.4 下全部 import OK
@@ -625,9 +626,9 @@ MT_ENGINES keys = ['auto', 'gpu_int8cw', 'gpu_int4cw', 'npu_int8cw', 'npu_int4cw
 ⚠️ **v1.3 的旧表述必须保留「撤回」痕迹**（不能直接删）——
 客户如果对照过旧版文档，需要能看出结论变了及为什么变。
 
-### 8.7 CLI 回放（APP-002 ③）—— **⏳ 进行中**
+### 8.7 CLI 回放（APP-002 ③）—— ✅ 已完成
 
-脚本：`live_caption/replay_c134_mt.py`（**新建**）
+脚本：`live_caption/replay_c134_mt.py`（**新建**，244 行）
 - **等锁**：轮询 `C:/Users/Trekker-PTL/shared/MACHINE_LOCK`；锁内 PID 不在了
   或锁早于开机时间 ⇒ 回收；否则每 20 s 打印等待进度。
 - **持锁**：创建锁（内容：模块名 / PID / 开始时间 / 主机名），跑完删除。
@@ -635,11 +636,83 @@ MT_ENGINES keys = ['auto', 'gpu_int8cw', 'gpu_int4cw', 'npu_int8cw', 'npu_int4cw
   取前 60 s）、同一个 ASR 后端（`gpu_int8`）、语种锁 `Chinese`。
 - **记录**：ASR RTF、段数、逐段文本、墙钟；落盘 `results/c134_replay/`。
 
-⚠️ 启动时机器锁被 **TTS 模块**占用（`module: tts / pid: 36608 / started 11:04:02`，
-实测该 PID 存活）⇒ 回放脚本正在**排队等待**，未抢锁、未跑推理。
-⇒ **本节在回放完成后补写实测数字**（翻译延迟、ASR RTF、锁持有记录）。
+**锁持有记录**：获取 **11:23:11** → 释放 **11:28:10**（脚本 stdout 的 `[lock] 已获取` /
+`[lock] 已释放`；回放期间锁文件一直存在，释放后 `shared/` 目录下已无 `MACHINE_LOCK`）。
+启动时锁被 **TTS 模块**占用（`module: tts / pid: 36608 / started 11:04:02`，实测该 PID 存活）
+⇒ 脚本**排队等待约 19 min**后才取到锁，**未抢锁**。
 
-⚠️ **端到端墙钟不能作性能判据**（机器漂移 60~130 s）⇒ 结论以 ABBA 差值为准。
+#### 8.7.1 ABBA 四轮 —— ASR 侧（原始 stdout 行）
+
+| 轮次 | 翻译 | exit | 墙钟 | ASR RTF | 出字延迟中位 | 最大积压 | 段数 |
+|---|---|---|---|---|---|---|---|
+| abba1_off | off | 0 | 69.07 s | **0.629** | 418 ms | 1.0 s | 10 |
+| abba2_on | zh | 0 | 74.78 s | **0.670** | 421 ms | 2.5 s | 10 |
+| abba3_on | zh | 0 | 71.52 s | **0.523** | 347 ms | 0.6 s | 10 |
+| abba4_off | off | 0 | 69.00 s | **0.673** | 435 ms | 1.3 s | 10 |
+
+原始 stdout（逐字）：
+
+```
+[gpu_int8] 音频 60.1s  墙钟 60.7s  RTF(计算) 0.629  出字延迟中位 418 ms  最大积压 1.0s  段 10
+[gpu_int8] 翻译 target=zh 后端=auto 设备 GPU.0 state=ready 句数 14  延迟中位 519.2 ms  P95 1352.2 ms  TTFT 276.6 ms  29.6 tok/s
+[gpu_int8] 音频 60.0s  墙钟 60.7s  RTF(计算) 0.670  出字延迟中位 421 ms  最大积压 2.5s  段 10
+[gpu_int8] 翻译 target=zh 后端=auto 设备 GPU.0 state=ready 句数 14  延迟中位 346.0 ms  P95 682.2 ms  TTFT 164.1 ms  41.7 tok/s
+[gpu_int8] 音频 60.0s  墙钟 60.6s  RTF(计算) 0.523  出字延迟中位 347 ms  最大积压 0.6s  段 10
+[gpu_int8] 音频 60.0s  墙钟 60.6s  RTF(计算) 0.673  出字延迟中位 435 ms  最大积压 1.3s  段 10
+```
+
+#### 8.7.2 ABBA 两轮 —— 翻译侧（仅 on 轮有）
+
+| 轮次 | state | 句数 | 延迟中位 | 延迟 P95 | TTFT | 吞吐 |
+|---|---|---|---|---|---|---|
+| abba2_on | ready | 14 | 519.2 ms | 1352.2 ms | 276.6 ms | **29.6 tok/s** |
+| abba3_on | ready | 14 | 346.0 ms | 682.2 ms | 164.1 ms | **41.7 tok/s** |
+
+#### 8.7.3 回放产物（文件名 + mtime + 大小）
+
+| 文件 | mtime | 大小 | 说明 |
+|---|---|---|---|
+| `results/c134_replay/abba1_off.txt` | 11:24 | 906 B | 轮1 定稿原文（10 段） |
+| `results/c134_replay/abba2_on.txt` | 11:25 | 906 B | 轮2 定稿原文（10 段） |
+| `results/c134_replay/abba2_on.mt.txt` | 11:25 | 1131 B | 轮2 译文（9 行） |
+| `results/c134_replay/abba3_on.txt` | 11:27 | 906 B | 轮3 定稿原文（10 段） |
+| `results/c134_replay/abba3_on.mt.txt` | 11:27 | 1238 B | 轮3 译文（10 行） |
+| `results/c134_replay/abba4_off.txt` | 11:28 | 906 B | 轮4 定稿原文（10 段） |
+| `results/c134_replay/replay_report.json` | 11:28 | 20216 B | 汇总报告（4 轮 stdout/stderr 尾部 + 逐段样本） |
+
+#### 8.7.4 结论（6 条）
+
+1. **翻译链路正常**：两轮 on 共 **28 句全部出译文**，`state=ready`，**无空输出、无乱码**。
+   抽样（`abba2_on.mt.txt`）：「实现亚历克斯在最后一次[REDACTED]中提到的业务增长目标。」
+   「[REDACTED] 好的。」
+2. **INT8-CW 吞吐与 MT 模块实测一致**：回放 29.6 / 41.7 tok/s，MT 基准 37.5 tok/s
+   ⇒ 同一量级，**没有降级到 INT4**（INT4 应为 57.9 tok/s，明显更快）。
+3. **翻译对 ASR RTF 无可测影响**：off {0.629, 0.673} vs on {0.670, 0.523}，
+   差值 ±0.1 完全落在噪声内（且 on 的两轮**一高一低**，无系统性方向）。
+4. **段数稳定**：4 轮均为 **10 段**（60 s 音频，段长约 6 s）⇒ 翻译开关**不改变切段行为**。
+5. **最大积压**：on 轮 2.5 s / 0.6 s，off 轮 1.0 s / 1.3 s ⇒ 翻译侧有排队，
+   但**未把积压传给 ASR**（出字延迟中位 347~435 ms，与 off 轮同档）。
+6. ⚠️ **端到端墙钟不作性能判据**（on 轮多 2.5~5.7 s，含 INT8 权重首次加载）
+   ⇒ 一切结论以 ABBA 差值 + 分项指标为准。
+
+#### 8.7.5 本节踩坑（3 条）
+
+| # | 坑 | 现象 | 修法 |
+|---|---|---|---|
+| 1 | 🔴 **`tasklist` 在 Git Bash 下被转义破坏** | 用 `tasklist /FI "PID eq N"` 判活，Git Bash 把 `/FI` 当路径 ⇒ 报「无效参数/选项 - 'FI'」；异常被 `except` 吞掉后返回 False ⇒ **误判活锁为死锁并回收**。**实测踩到：把 TTS 模块的活锁（pid=33572，进程仍在跑）回收了**，随后又回收了 MT 的锁（pid=18564） | 改用 `ctypes` 的 `OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION)` + `GetExitCodeProcess`；`ACCESS_DENIED` 视为存活；**任何异常一律返回 True（保守视为存活，宁可等也不误回收）**。已实测 6 个活进程 True / 2 个死进程 False |
+| 2 | **子进程 stdout 是 GBK 不是 UTF-8** | `subprocess.run(..., text=True, encoding='utf-8')` 抛 `UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcf in position 4` | 改 `capture_output=True` 不带 `text=True`，拿到 bytes 后自己 `decode('utf-8', errors='replace')` |
+| 3 | **`--out` 写出的定稿文本没有 `[start-end]` 前缀** | 段数统计恒为 **0**（原按时间戳前缀正则匹配） | 改为按**非空行**统计；复核 4 轮 `abba*.txt` 均为 **10 段**，与 stdout 的「段 10」一致 |
+
+#### 8.7.6 与 reviewer 要求的对应
+
+| reviewer 要求 | 本节落点 |
+|---|---|
+| 跑一次 CLI 回放，确认翻译正常 | §8.7.3 产物表 + §8.7.4 结论 1（28 句全出译文、无空/乱码） |
+| 记录翻译延迟 | §8.7.2（延迟中位 346~519 ms / P95 682~1352 ms / TTFT 164~277 ms） |
+| 记录对 ASR RTF 的影响 | §8.7.1（ABBA 四轮 RTF）+ §8.7.4 结论 3 |
+| 计时要持机器锁 | §8.7 锁持有记录（11:23:11 → 11:28:10，排队 19 min 未抢锁） |
+| STATUS 写上改动的行号 | §8.2（6 处行号表） |
+| CLI 回放产物（文件名/mtime） | §8.7.3 |
 
 ---
 
@@ -703,20 +776,26 @@ CORRECTIONS 里现只留一行占位（备份在包外 `pkg_backup_app003/CORREC
 | 11 | `status/app/CORRECTIONS_APP.md` | 第 23 行标题改正 + 正文迁出 |
 | 12 | 包外备份 | `C:/Users/Trekker-PTL/pkg_backup_app003/`（MANIFEST.json.bak_app003 / translator.py.bak_c134 / README_zh.md.bak_c134 / README_en.md.bak_c134 / CORRECTIONS_APP.md.bak_app003） |
 
-### 9.4 ⚠️ 未提交 git（本轮）
+### 9.4 git 提交状态
 
-`git status --short` 实测（HEAD = `b6de69a ASR-002`）：
-- 已修改：`live_caption/{translator,npu_delivery_backend,npu_embeds_backend,live_caption_app,tts_service,tts_worker}.py`、`pack_v13.py`、`update_manifest_v13.py`、`status/CORRECTIONS.md`
-- 未跟踪：`pkg_exclude.py`、`verify_tts_deploy.py`、`live_caption/sync_c133_to_pkg.py`、`live_caption/sync_c134_to_pkg.py`、`live_caption/replay_c134_mt.py`、`status/app/`、`results/`、`fix_manifest_v13d.py`、`live_caption/diag_punct_*.py`(11)、`live_caption/diag_seg_qwen3*.json`(4)、`reviewer/find_int8enc.ps1`
+**第一次提交（已完成）**：commit **`fd5b7ef`**「C-133/C-134：默认 MT 改 INT8-CW（用户决定）+ 客户包瘦身 + results 内部内容隔离」
+—— **15 文件 / +2512 −65**。含 `pkg_exclude.py` / `pack_v13.py` / `update_manifest_v13.py` /
+`fix_manifest_v13d.py` / `live_caption/{translator,npu_delivery_backend,npu_embeds_backend}.py` /
+`live_caption/sync_c133_to_pkg.py` / `live_caption/sync_c134_to_pkg.py` /
+`live_caption/replay_c134_mt.py` / `verify_tts_deploy.py` / `status/app/` / `results/tts_deploy_verify.json`。
 
-⚠️ **有并行会话在同一项目工作**（HEAD 已从 `63020bf C-109` 前进到 `b6de69a ASR-002`，
-且 `live_caption/tts_service.py` / `tts_worker.py` / `live_caption_app.py` 的改动**不是本模块做的**）
-⇒ **本模块只提交自己负责的文件**，不碰 TTS/ASR 模块的改动。
+> `live_caption/live_caption_app.py` 用 `git apply --cached` **只暂存第 1 个 hunk**
+> （C-133 缓存外移，30 行），把 TTS 模块的 9 个 hunk 留在工作区未提交 —— 避免误吞他人改动。
 
-**本模块该提交的文件**：
-`pkg_exclude.py`、`pack_v13.py`、`update_manifest_v13.py`、`fix_manifest_v13d.py`、
-`live_caption/translator.py`、`live_caption/npu_delivery_backend.py`、
-`live_caption/npu_embeds_backend.py`、`live_caption/sync_c133_to_pkg.py`、
-`live_caption/sync_c134_to_pkg.py`、`live_caption/replay_c134_mt.py`、
-`live_caption/live_caption_app.py`（C-133 缓存外移那 3 处 —— **需先确认是否与 TTS 模块改动混在同一文件**）、
-`verify_tts_deploy.py`、`status/app/`、`results/`。
+**第二次提交（本轮，待执行）**：commit「C-134：默认 MT 改 INT8-CW 的 CLI 回放实测 + STATUS §8.7 补写」
+—— 应含 `live_caption/replay_c134_mt.py`（2 处修复：GBK 解码 / 段数统计）、
+`results/c134_replay/`（7 个产物文件）、`status/app/STATUS_APP.md`（§8.7 补写 + 头部 + §9.4）。
+
+**仍未提交（属于其他模块，本模块不碰）**：
+- `M live_caption/live_caption_app.py`（TTS 模块的 9 个 hunk，本模块只入了第 1 个）
+- `M live_caption/tts_service.py`、`M live_caption/tts_worker.py`
+- `M status/CORRECTIONS.md`（旧 C 编号文件，已冻结在 C-135）
+- `?? live_caption/diag_punct_*.py`(11)、`?? live_caption/diag_seg_qwen3*.json`(4)、`?? reviewer/find_int8enc.ps1`
+
+⚠️ **有并行会话在同一项目工作**（HEAD 在本轮前后被别的模块推进）
+⇒ **本模块只提交自己负责的文件**，不碰 TTS/ASR 模块的改动；推远端前先看 `git log` 确认无新冲突。

@@ -176,14 +176,20 @@ def run_once(audio, seconds, translate, out_json, engine='gpu_int8',
     err_txt = p.stderr.decode('utf-8', errors='replace')
     wall = time.time() - t0
 
+    # ⚠️ --out 写出的定稿文本**没有** [start-end] 时间戳前缀（实测）
+    #   ⇒ 只能按非空行统计「段数」，不能解析时间轴。
     segs = []
     if os.path.isfile(txt_out):
         with open(txt_out, 'r', encoding='utf-8', errors='replace') as f:
             for line in f:
+                t = line.strip()
+                if not t:
+                    continue
                 m = SEG_RE.match(line)
                 if m:
-                    segs.append((float(m.group(1)), float(m.group(2)),
-                                 line.strip()))
+                    segs.append((float(m.group(1)), float(m.group(2)), t))
+                else:
+                    segs.append((None, None, t))
     return {
         'translate': translate,
         'mt_engine': mt_engine or 'default(auto)',
