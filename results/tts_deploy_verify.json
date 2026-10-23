@@ -1,0 +1,120 @@
+{
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.3",
+  "pkg_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.3\\python\\python.exe",
+  "target": "C:/Users/TREKKE~1/AppData/Local/Temp/bvx_test/target",
+  "export_dir": "C:/Users/Trekker-PTL/.cache/huggingface/hub/models--djwarf--babelvox-openvino-int8/snapshots/763aa640e1594a99c1a66e3055f5aeeb88f80783",
+  "checked_at": "2026-10-23 11:03:25",
+  "pkg_native_versions": {
+    "transformers": "4.57.6",
+    "numpy": "2.4.6",
+    "huggingface_hub": "0.36.2",
+    "openvino": "2026.4.1",
+    "openvino_genai": "2026.4.1.0"
+  },
+  "target_mb": 384.0,
+  "target_top": [
+    {
+      "mb": 116.2,
+      "name": "llvmlite"
+    },
+    {
+      "mb": 109.2,
+      "name": "scipy"
+    },
+    {
+      "mb": 40.6,
+      "name": "sklearn"
+    },
+    {
+      "mb": 31.1,
+      "name": "numpy"
+    },
+    {
+      "mb": 26.1,
+      "name": "numba"
+    },
+    {
+      "mb": 20.2,
+      "name": "numpy.libs"
+    },
+    {
+      "mb": 19.3,
+      "name": "scipy.libs"
+    },
+    {
+      "mb": 4.5,
+      "name": "narwhals"
+    },
+    {
+      "mb": 2.3,
+      "name": "_soundfile_data"
+    },
+    {
+      "mb": 2.2,
+      "name": "librosa"
+    },
+    {
+      "mb": 1.8,
+      "name": "joblib"
+    }
+  ],
+  "ir_mb": {
+    "int8": 1672.8,
+    "weights": 869.5,
+    "total": 2542.3
+  },
+  "runtime": {
+    "numpy": "2.5.4",
+    "transformers": "4.57.6",
+    "import_babelvox": "OK",
+    "load_s": 10.0,
+    "load_ok": true,
+    "stream_chunks": 3,
+    "stream_chunk_sizes": [
+      23040,
+      23040,
+      15360
+    ],
+    "stream_sr": 24000,
+    "stream_total_s": 2.56,
+    "stream_s": 10.8
+  },
+  "runtime_stdout_tail": [
+    "{\"numpy\": \"2.5.4\", \"transformers\": \"4.57.6\", \"import_babelvox\": \"OK\", \"load_s\": 10.0, \"load_ok\": true, \"stream_chunks\": 3, \"stream_chunk_sizes\": [23040, 23040, 15360], \"stream_sr\": 24000, \"stream_total_s\": 2.56, \"stream_s\": 10.8}"
+  ],
+  "app_compat": {
+    "stdout": [
+      "numpy 2.5.4",
+      "OK audio_source",
+      "OK seg_stream",
+      "OK segment_encoder_backend",
+      "OK npu_delivery_backend",
+      "OK npu_embeds_backend",
+      "OK translator",
+      "OK backends"
+    ],
+    "returncode": 0
+  },
+  "minimal_set": {
+    "target_dir": "/tmp/bvx_test/target3",
+    "size_mb": 297,
+    "packages": "babelvox==1.7.1 librosa==1.0.0 scipy==1.18.1 soundfile soxr lazy_loader joblib pooch audioread decorator msgpack num2words defusedxml cloudpickle numba==0.68.0 llvmlite==0.50.0 platformdirs requests certifi idna urllib3 charset_normalizer packaging",
+    "numpy": "NOT installed (用客户包原生 2.4.6)",
+    "sklearn": "NOT installed (babelvox 不需要)",
+    "verified": "端到端跑通：3 chunks / sr=24000 / numpy 2.4.6 未被顶高"
+  },
+  "full_set": {
+    "target_dir": "/tmp/bvx_test/target",
+    "size_mb": 384.0,
+    "note": "pip 默认全量解算，装了 numpy 2.5.4 + scikit-learn；比最小集多 87 MB 且顶高 numpy"
+  },
+  "saving_mb": 87.0,
+  "ir_options": {
+    "current_int8": {
+      "int8_mb": 1672.8,
+      "weights_mb": 869.5,
+      "total_mb": 2542.3,
+      "note": "djwarf/babelvox-openvino-int8 原版"
+    }
+  }
+}

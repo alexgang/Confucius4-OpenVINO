@@ -56,7 +56,14 @@ DEFAULT_DECODER_DIR = 'models/qwen3-lm-int8sym-cleanie-ov'
 # **完全不加载该目录下的 IR**。与父类行为一致（父类也是从 aux_dir 读这些文件），
 # 但父类顺手把该目录的 cross-attention 解码器编到 CPU，约 1.7 GiB 常驻 —— 那部分被去掉了。
 DEFAULT_TOKENIZER_DIR = 'models/ov-int8-past'
-DEFAULT_NPU_CACHE = './reports/npu_cache'
+# C-133 / APP-002：编译缓存**绝不写包内**（包可能装在 Program Files 只读；
+# 且包内缓存跨机器/跨 OV 版本基本不命中）。与 live_caption_app._cache()、
+# translator.py 的 mt_cache 保持同一根目录。
+# 说明：正常路径由 live_caption_app.py 显式传 npu_cache=_cache('npu_cache')，
+# 这里只是**死代码兜底**，改它是为了防止未来误用时在包内生成 reports/。
+DEFAULT_NPU_CACHE = os.path.join(
+    os.environ.get('LOCALAPPDATA') or os.path.expanduser('~'),
+    'Confucius4LiveCaption', 'npu_cache')
 
 
 def _freeze_encoder_for_npu(core, model, max_frames: int):

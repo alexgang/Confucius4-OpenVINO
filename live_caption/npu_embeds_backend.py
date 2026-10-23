@@ -93,10 +93,21 @@ class NPUEmbedsDecoderBackend(SegmentEncoderOVBackend):
                  precision: str = "f16",
                  npu_max_prompt_len: int = MAX_PROMPT_TOK,
                  npu_min_response_len: int = 64,
-                 cache_dir: str = "./reports/npu_cache",
+                 cache_dir: str = None,
                  strict_intel: bool = True):
         import openvino as ov
         from transformers import AutoTokenizer, WhisperFeatureExtractor
+
+        # C-133 / APP-002：编译缓存**绝不写包内**（原默认 "./reports/npu_cache"
+        # 是 WORK 相对路径 ⇒ 在客户包里会解析到 <包根>/app/reports/npu_cache，
+        # 污染包目录）。缺省改为用户可写目录。
+        if not cache_dir:
+            cache_root = os.environ.get('LOCALAPPDATA') or os.path.expanduser('~')
+            cache_dir = os.path.join(cache_root, 'Confucius4LiveCaption', 'npu_cache')
+            try:
+                os.makedirs(cache_dir, exist_ok=True)
+            except OSError:
+                pass
 
         # ── 父类只负责 encoder + tokenizer/特征提取器 ────────────────
         # decoder_dir 指向生产 ASR 目录（含 preprocessor_config.json /

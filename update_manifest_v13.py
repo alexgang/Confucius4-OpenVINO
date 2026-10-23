@@ -2,12 +2,21 @@
 
 只改 version / files / bytes 三个标量字段，notes 保留原有全部历史说明（不删），
 在最前面插入 v1.3 段落。packages 列表不动（依赖未变）。
+
+C-133 / APP-002：files/bytes 的统计口径改为与 `pack_v13.py` **完全一致**
+（`pkg_exclude.package_stats`），消除此前「源目录口径 vs zip 内容口径」的漂移。
+MANIFEST 自身**不计入**（否则自引用：它写的 bytes 会改变它自己的长度）。
 """
 import json
 import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import pkg_exclude  # noqa: E402
 
 PKG = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.3'
 MANIFEST = os.path.join(PKG, 'app', 'MANIFEST.json')
+MANIFEST_REL = 'app/MANIFEST.json'
 
 V13_NOTE = (
     "v1.3 翻译模型替换（C-102）：翻译模型由通用指令模型 Hunyuan-1.8B-Instruct "
@@ -37,19 +46,8 @@ def main():
     with open(MANIFEST, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
-    # files / bytes 重算（与 v1.2 口径一致：包根下所有普通文件）
-    n_files = 0
-    n_bytes = 0
-    for dirpath, _dirnames, filenames in os.walk(PKG):
-        for fn in filenames:
-            p = os.path.join(dirpath, fn)
-            if os.path.islink(p) and not os.path.exists(p):
-                continue
-            try:
-                n_bytes += os.path.getsize(p)
-                n_files += 1
-            except OSError:
-                pass
+    # files / bytes 重算 —— 与 pack_v13.py 打包**同一口径**（排除编译缓存等）
+    n_files, n_bytes = pkg_exclude.package_stats(PKG, skip=(MANIFEST_REL,))
 
     old_ver = data.get('version')
     old_files = data.get('files')

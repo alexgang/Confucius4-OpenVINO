@@ -270,13 +270,37 @@ CUDA_CLI = os.path.join(CUDA_DIR, 'audio.cpp', 'audiocpp_cli.exe') \
 
 
 # 编译缓存：放在**用户可写目录**（压缩包可能装在 Program Files，只读）。
-# 不用开发机路径；开发机上会沿用已有的缓存目录以省编译时间。
+# C-133 / APP-002：编译缓存**绝不写包内** —— 包内缓存对客户机基本无用，
+# 却是实打实的体积（开发机实测长到 4.1 GB）。
 def _cache(name):
-    """编译缓存目录。优先复用开发机已有缓存，其次用包内目录。"""
-    shared = os.path.join(
-        os.path.expanduser('~'), '.openvino', 'models',
-        'reports' if name == 'npu_cache' else '', name)
-    return shared if os.path.isdir(shared) else os.path.join(APP_DIR, name)
+    """编译缓存目录：**用户可写目录**，绝不写包内。
+
+    C-133 / APP-002（客户包瘦身）—— 为什么不能放包里：
+    - 包内缓存对客户机**基本无用**：GPU blob 头写死 ie_version
+      （实测 "2026.4.1-22982-e213a147257-release"），oneDNN kernel 缓存
+      绑 CPU 微架构 ⇒ 换机器 / 换 OV 版本基本不命中；
+    - 但它是**实打实的体积**：开发机实测长到 4.1 GB（其中单个 decoder
+      blob 1.65 GB），压缩率只有 88%（已编译二进制），删比压划算；
+    - 包可能装在 Program Files（只读）⇒ 写不进去 ⇒ 每次启动都重编译
+      （实测首次多约 19 s）。
+
+    与 translator.py 的 mt_cache 保持同一根目录，便于用户一次性清理。
+
+    不可写时**回落包内**（不致命）：已实测只读 CACHE_DIR 不崩，
+    OpenVINO 会静默跳过写缓存，只影响编译速度。
+    """
+    root = os.environ.get('LOCALAPPDATA') or os.path.expanduser('~')
+    d = os.path.join(root, 'Confucius4LiveCaption', name)
+    try:
+        os.makedirs(d, exist_ok=True)
+        # Windows 上目录可能存在但 ACL 拒绝写入，此时 makedirs 不报错，
+        # 而后续 OpenVINO 写缓存会失败 ⇒ 必须显式探测写权限。
+        if not os.access(d, os.W_OK):
+            raise OSError(f'not writable: {d}')
+        return d
+    except Exception as e:
+        print(f'[warn] 编译缓存目录不可用（{e}），回落包内 {name}/')
+        return os.path.join(APP_DIR, name)
 
 
 ENGINES = {
