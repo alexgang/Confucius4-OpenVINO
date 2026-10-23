@@ -1,12 +1,23 @@
 # STATUS_ASR
-last_ack: ASR-001
-更新时间: 2026-10-23 12:00
-当前任务: C-111 已实现 + 三套验证通过 + 已提交（ebc6107）+ 客户包已同步；切段规则未动（用户决策）；下一步 = 持共享机器锁重跑真实翻译模型端到端（当前被 TTS 模块持锁排队中）
-阻塞 / 待用户决定: ① C-111 的**翻译层**改动按模块划分属 MT 模块（b Hy-MT2），需与 MT reviewer 对接是否移交；② 共享机器锁当前被 TTS 模块持有（PID 36608 存活）⇒ 端到端测速作业排队等待中；③ 交付基线「GPU INT8 8.17%」仍未找到对应 json（RTF 0.772 / WER 7.95% 已定位到 `reports/c086d_full61_all_npu_matrix.json`），请指认产物路径
+last_ack: ASR-002
+更新时间: 2026-10-23 11:20
+当前任务: **待命**（ASR-002 第 4 条）。C-111 已按 ASR-002 移交 MT/app 模块，ASR 线程不再推进；§1 基线已按 ASR-002 改为两列口径
+阻塞 / 待用户决定: ① C-111 的 git 提交（`ebc6107`/`3ce0919`/`6f05815`）与客户包同步**已在 ASR-002 到达前完成**，reviewer 要求的「保持现状不提交不同步」是针对移交前状态 —— **已发生的事实需主会话裁决如何处理**（保留 / 回退 / 归入 MT 提交）；② 「GPU INT8 8.17%」属 reviewer 计分器，产物在 reviewer 本机（`~/asr_baseline/report/data/npu.json`），本仓库无对应 json（按 ASR-002 不补测）
 
 ## 最近更新
-- 12:00 C-111 已提交（`ebc6107`，8 文件 +1686/-56）；客户包已同步；交付基线 RTF/WER 产物已定位（`reports/c086d_full61_all_npu_matrix.json`），仅「GPU INT8 8.17%」待指认
+- 11:20 收到 ASR-002：① §1 基线改为**两列口径**（目标机 7.798/7.952/0.7722 vs reviewer 8.17/8.27），并撤回上一版两处归因错误；② **C-111 归属 MT + app 模块**，ASR 线程不再推进，已停掉 e2e 等待任务；③ C-110 结论 reviewer 认可，记录在案不擅自改
+- 11:16 C-111 客户包行为验证通过（客户包代码上 `half`/`fix` 语义实测生效）；新增等锁自动跑 e2e 的排队脚本（**已按 ASR-002 停用**）
+- 11:15 C-111 已提交（`ebc6107`，8 文件 +1686/-56）；客户包已同步；交付基线 RTF/WER 产物已定位到 `reports/c086d_full61_all_npu_matrix.json`
 - 11:35 C-111 客户包已同步（`Confucius4_LiveCaption_v1.3/app`，translator.py 整文件复制 + app 5 处定点替换，备份在包外 `_backup_c111/`）；e2e 脚本已加机器锁自持 + fix-key 检查
+- 11:05 建 STATUS_ASR.md（ASR-001 启动单）；C-111 翻译层改动完成，段归属对照：覆盖率 84.1%→100%、推迟词 100→0、段尾半句归本段 3/29→29/29
+- 10:56 收到 ASR-001 启动单（模块拆分 + 共享机器锁 + 证据规则）；本模块范围=R2T2 enabling/精度/量化/摆放/流式切段/RTF
+- 08:56 C-110 落档：标点切句**不可行**（四策略真实 ASR 对照），推荐改翻译层挂起时机 → 用户批准
+- 07:39 C-110 四策略真实 ASR 对照（P0 现状 109 段 / P1 标点辅助 105 段 / P2 纯标点 164 段 / P3 标点+静音 72 段但段长 p95 达 18.15s）
+- 07:24 C-110 发现：ASR 句末标点 ≠ 语音结束位置（260 个真句号处尾部静音 p50 仅 0.04s，标点后 1s 内仍在讲话时间占比 p50=0.54）
+- 07:24 C-110 发现：句末标点跨 chunk 确认率仅 26.2%（192/260 次被 prefix 回退抹掉，根因 `rollback_punctuation=False` → `unfixed_token_num(5)` 恒定回退末 5 token）
+- 07:20 C-110 发现：现状规则1 切点本身就不在静音里（16 个切点里 14 个尾部静音 = 0.00s）⇒ 不能用「切点是否落在静音」评价新规则
+- 22:00 前一晚 C-109：MIN_SEG_SEC 12s→6s（用户决策），产物 `runs/c109_minseg6/min6.0_cut0.8.json`（72 段 / wall 329.0s）
+- 22:00 前一晚 C-108：按 Qwen3-ASR-Flash-Realtime 方案改造定稿规则（提交 c7d7ef1）
 - 11:30 C-111 fix-key 回归（假引擎 + 真实 72 段）ALL PASS：fix 25 次 / 唯一 key 25 个，事件序列全部合法 ⇒ 证实「半句链闭合后 `_half` 未清空」已修复
 - 11:25 C-111 归属对照重跑：覆盖率仍 100%（缺失词 0 / 推迟词 0 / 段尾半句归本段 29/29）；状态机 10 用例仍 ALL PASS
 - 11:05 建 STATUS_ASR.md（ASR-001 启动单）；C-111 翻译层改动完成，段归属对照：覆盖率 84.1%→100%、推迟词 100→0、段尾半句归本段 3/29→29/29
@@ -21,25 +32,44 @@ last_ack: ASR-001
 
 ---
 
-## §1 交付基线（ASR-001 指定，判定时用全长 61 分钟、全局对齐加分段配对 bootstrap）
+## §1 交付基线（ASR-001 指定；**按 ASR-002 修正为两列口径**）
 
-| 指标 | 基线 | 产物 | 状态 |
-|---|---|---|---|
-| 全 NPU INT8 cleanie RTF | 0.772 | `reports/c086d_full61_all_npu_matrix.json` → `verdict.rtf=0.7722`、`results_full61min.rtf=0.7722` | ✅ **已定位**（文件 mtime 2026-10-22 09:35） |
-| 全 NPU INT8 WER | 7.95% | 同上 → `verdict.wer_pct=7.952`、`results_full61min.wer_pct=7.952`、`slice_consistency_check.full61min.all_npu=7.952` | ✅ **已定位** |
-| GPU INT8 WER | 8.17% | — | ❌ **仍未找到对应 json** |
+⚠️ **口径警告（ASR-002）**：8.17% / 7.95% / 0.772 **来自两套不同计分器，不能放在同一列比较**。
+以后做判定时，**Δ 只和同一计分器的基线比较**。
 
-> ⚠️ **仍待 reviewer 指认**：「GPU INT8 WER 8.17%」这一项，我在 `reports/` 全目录
-> 递归搜过（含 `reports/**/**/*.json`），**没有找到 WER = 8.17 的产物**。
-> 搜索命中的 12 个文件里，`8.17` 全部是**别的字段**（例如
-> `reports/c031_epath/results_g_hallucination_reset.json` 的 `wall_s=8.170…`、
-> `reports/c086_full61/probe_raw.json` 的时间戳）⇒ 不能当作 WER 证据。
-> 该产物可能不在 `reports/` 下（例如在 `runs/` 或客户包旁的验证目录），
-> 请 reviewer 指认路径，或允许我在下轮补测落盘。
+### 1.1 目标机计分器（R4 json 用的同一套；全局对齐 + 分段配对 bootstrap）
+
+| 指标 | 数值 | 产物 / 出处 |
+|---|---|---|
+| GPU INT8 参照 WER | **7.798%** | `reports/c086d_full61_all_npu_matrix.json` → `results_full61min.wer_A_pct=7.798`；同族 `reports/c089_int4/R4_npu_full_wer.json` 的 `ref_wer_pct=7.798` |
+| 全 NPU INT8 cleanie WER | **7.952%** | 同上 → `results_full61min.wer_pct=7.952`、`verdict.wer_pct=7.952`、`slice_consistency_check.full61min.all_npu=7.952` |
+| 全 NPU vs GPU Δ | **+0.154 pp**，`ci95=[-0.288, +0.584]`，`significant_vs_A=false` | 同上 → `results_full61min.delta_pp_vs_A=0.154` / `ci95` / `significant_vs_A` |
+| 全 NPU 61 分钟 RTF | **0.7722**（`seg_rtf_p50=0.7718` / `p95=0.7942` / `max=0.8152`） | 同上 → `results_full61min.rtf=0.7722`、`seg_rtf_p50/p95/max`；`wall_s=2834.59`（47.24 min）/ `audio_sec=3671.0`（61.19 min）/ `n_segs=226` / `paired_n_segs=226` / `ref_words=11067` |
+| 配方 | `enc@NPU + dec@NPU (cleanie INT8_SYM)` | 同上 → `config.name`（encoder/decoder 均 NPU） |
+
+> 📎 **R4 INT4 配方的处置**（目标机口径，判定用）：
+> `reports/c089_int4/R4_npu_full_wer.json` — `wer_pct=9.795`、`ref_wer_pct=7.798`、
+> `delta_pp=1.997`、`ci95=[0.95, 3.095]`、`significantly_worse=true`、`ci_contains_zero=false`
+> ⇒ **R4 INT4 在 NPU 上显著劣化，不可用**（这条结论口径一致、成立）。
+
+### 1.2 reviewer 计分器（reviewer 本机 compare_wer.py + paired_bootstrap.py，MiniMax baseline）
+
+| 指标 | 数值 | 出处 |
+|---|---|---|
+| GPU INT8（enc FP16 + dec INT8）WER | **8.17%** | reviewer 本机 `~/asr_baseline/report/data/npu.json` 与 `OV_vs_CUDA_INT4_INT8_report.md`（**产物在 reviewer 本机，不在本仓库**） |
+| 全 NPU WER | **8.27%** | 同上 |
+| 全 NPU vs GPU Δ | **+0.10 pp**，`[-0.41, +0.56]` | 同上 |
+| 全 NPU 61 分钟 RTF | P50 **0.7722** / P95 0.7942 / max 0.8152 | 同一次全长运行，226 段（与 1.1 的目标机 RTF 数值一致） |
+
+> ✅ **本仓库 `reports/` 下没有 reviewer 口径的 WER 产物**（`8.17` / `8.27` 搜不到），
+> 按 ASR-002「找不到就如实写『产物缺失』，**不需要为此补测**」—— 此处如实标注为
+> **产物在 reviewer 本机**，不是本仓库的缺失。
 >
-> 📎 **旁证（同族参照，非该基线本身）**：`reports/c089_int4/R4_npu_full_wer.json` —
-> `wer_pct=9.795`、`ref_wer_pct=7.798`、`delta_pp=1.997`、`ci95=[0.95, 3.095]`、
-> `significantly_worse=true` ⇒ R4 INT4 配方在 NPU 上显著劣化，**不可用**。
+> 🔴 **修正记录（ASR-002 指出）**：本节上一版把「8.17%」的产物写成
+> `reports/c089_int4/R4_npu_full_wer.json`、并把「全 NPU 7.95%」写成该 json 的
+> `ref_wer_pct` —— **两处都错**：
+> ① R4 json 里只有 **7.798** 这个**目标机口径的 GPU 参照**，没有 8.17；
+> ② `ref_wer_pct=7.798` 是 **GPU** 参照，**不是 NPU**（NPU 是 `wer_pct=7.952`）。
 
 ## §2 最近一周的结论摘要（均引用产物）
 
@@ -84,7 +114,7 @@ last_ack: ASR-001
 
 **标点口径（用户 2026-10-23 正式定义）**：只认 `.` `!` `?` `。` `！` `？` 为句末；`;`/`；`/冒号/引号/逗号/顿号**不算**。`translator._SENT_END = '.?!。？！；;…'` 与该口径**唯一不一致的是分号**（分句边界是既有设计，本轮未动）。
 
-## §4 C-111 翻译层「段尾半句当段即翻」（**实现中，属 MT 模块边界，待 reviewer 裁决**）
+## §4 C-111 翻译层「段尾半句当段即翻」（**已实现；按 ASR-002 归属 MT + app 模块，已移交 —— 详见 §6**）
 
 ### 4.1 用户决策（本轮）
 - 同意**不动切段规则**，改**翻译层**的挂起时机；
@@ -259,3 +289,86 @@ half | Agenda topics today.
 | `live_caption/diag_c111_{half,own,e2e,fixkey}.py` | 全部（验证脚本） |
 | `live_caption/sync_c111_to_pkg.py` | 全部（客户包同步） |
 | **不提交** | `npu_delivery_backend.py` / `npu_embeds_backend.py` / `pack_v13.py` / `update_manifest_v13.py` / `tts_service.py` / `tts_worker.py` / `status/CORRECTIONS.md`（均属 app / TTS 线程） |
+
+---
+
+## §6 ASR-002 回执：§1 口径修正 + C-111 移交 MT/app（2026-10-23 11:20）
+
+> `last_ack: ASR-002`。本节只追加，不回头改旧章节；上一版的错误归因在 §1 的「修正记录」里点明。
+
+### 6.1 §1 基线：改为两列口径（ASR-002 第 1 条，已执行）
+- §1 已重写为 **1.1 目标机计分器** / **1.2 reviewer 计分器** 两张表。
+- **目标机口径**（产物在本仓库 `reports/c086d_full61_all_npu_matrix.json`）：
+  GPU INT8 参照 **7.798%**（`results_full61min.wer_A_pct`）、全 NPU INT8 cleanie **7.952%**
+  （`results_full61min.wer_pct`）、Δ **+0.154 pp**（`delta_pp_vs_A`，`ci95=[-0.288,+0.584]`，
+  `significant_vs_A=false`）、RTF **0.7722**（`rtf`；`seg_rtf_p50=0.7718` / `p95=0.7942` /
+  `max=0.8152`；`wall_s=2834.59` / `audio_sec=3671.0` / `n_segs=226` / `paired_n_segs=226` /
+  `ref_words=11067`）、配方 `config.name = enc@NPU + dec@NPU (cleanie INT8_SYM)`。
+- **reviewer 口径**（产物在 reviewer 本机）：GPU INT8 **8.17%**、全 NPU **8.27%**、
+  Δ **+0.10 pp** `[-0.41,+0.56]`，出自 `~/asr_baseline/report/data/npu.json` 与
+  `OV_vs_CUDA_INT4_INT8_report.md`；RTF P50 0.7722 / P95 0.7942 / max 0.8152（226 段，
+  与目标机数值一致）。
+- **撤回上一版的两处归因错误**（ASR-002 指出，均为我方错误）：
+  ① 上一版把「GPU INT8 8.17%」的产物写成 `reports/c089_int4/R4_npu_full_wer.json`
+     —— **错**，该 json 里只有目标机口径的 GPU 参照 **7.798**，没有 8.17；
+  ② 上一版把「全 NPU 7.95%」写成该 json 的 `ref_wer_pct` —— **错**，
+     `ref_wer_pct=7.798` 是 **GPU** 参照，NPU 是 `wer_pct=7.952`。
+- ✅ 遵守「**不需要为此补测**」：本仓库 `reports/` 下确实没有 reviewer 口径的 WER 产物
+  （8.17 / 8.27 都搜不到），§1 如实标注其**产物在 reviewer 本机**，不写成"本仓库缺失"。
+- 📌 **判定规则（已写入 §1 表头警示）**：以后做判定时，**Δ 只和同一计分器的基线比较**。
+
+### 6.2 C-111 移交（ASR-002 第 2 条）—— 移交说明
+**归属**：翻译层（`translator.py`）⇒ **MT 模块**；App 的 outbox 消费
+（`live_caption_app.py`）⇒ **app 模块**；**均不属于 ASR**。
+reviewer 已上报主会话协调移交；**ASR 线程自此不再推进 C-111**（§4/§5 保留原样作档案）。
+
+**改动文件清单**
+| 文件 | 归属 | 改动 |
+|---|---|---|
+| `live_caption/translator.py` | MT | `_carry`（挂起）→ `_half`（当段即翻）；`_Job.kind` 扩展 `final`/`half`/`fix`/`draft`；`submit()` 重写；半句闭合**原地覆盖**重翻；`flush()` 只标记不再重翻；`seg_half` 字典 |
+| `live_caption/live_caption_app.py` | app | outbox 消费（`half` 只显示不朗读、`final`/`fix` 朗读 ⇒ 同一句不念两遍）；`clear()` 清 `seg_half`；文案「（半句，接续下一段）」→「（译文生成中…）」 |
+| `live_caption/diag_c111_half.py` | MT | 状态机 10 用例（假引擎，秒级） |
+| `live_caption/diag_c111_own.py` | MT | 段归属对照（真实 72 段） |
+| `live_caption/diag_c111_fixkey.py` | MT | fix-key 回归（本轮新建） |
+| `live_caption/diag_c111_e2e.py` | MT | 真实翻译模型 e2e（**已加机器锁自持**） |
+| `live_caption/sync_c111_to_pkg.py` | app | 客户包同步（translator 整文件复制带 SHA256 安全闸 + app 5 处定点替换，幂等） |
+| `live_caption/wait_and_run_e2e.py` | MT | 等锁自动跑 e2e 的排队脚本（**已按 ASR-002 停用并终止**） |
+
+**两个诊断脚本怎么跑**（接手方直接可用，均**不需要 GPU、不需要模型、不需要机器锁**）
+```bat
+cd C:/Users/Trekker-PTL/confucius4-openvino
+.venv\Scripts\python.exe live_caption\diag_c111_half.py     :: 状态机 10 用例，秒级，末尾输出 ALL PASS
+.venv\Scripts\python.exe live_caption\diag_c111_own.py      :: 段归属对照，读 hy_bench\runs\c109_minseg6\min6.0_cut0.8.json
+.venv\Scripts\python.exe live_caption\diag_c111_fixkey.py  :: fix-key 回归（同上输入）
+```
+- 共同前置：仓库 `.venv`（Python 3.12.10，含 numpy）；假引擎 = 输出 `ZH:`+原文的 `FakeTr`。
+- `diag_c111_e2e.py`（真实翻译模型）**需持共享机器锁**，脚本自带
+  `acquire_lock()`/`release_lock()`：锁被别的模块持有 ⇒ **直接退出不抢**；
+  孤儿锁（PID 已不在 / 早于开机时间）才回收。
+
+**产物位置**
+| 产物 | 路径 | 内容 |
+|---|---|---|
+| 段归属对照 | `C:/Users/Trekker-PTL/hy_bench/runs/c111_half/c111_ownership.json` | 覆盖率 100%（1405/1405）、缺失词 0、推迟词 0、段尾半句归本段 29/29 |
+| fix-key 回归 | `C:/Users/Trekker-PTL/hy_bench/runs/c111_half/c111_fixkey.json` | fix 25 次 / 唯一 key 25 个、事件序列全部合法 |
+| 真实模型 e2e | `C:/Users/Trekker-PTL/hy_bench/runs/c111_half/c111_e2e.json` | ⚠️ **`timing_valid=false`**（未持锁且与 app 模块并行占 GPU），且含 §5.1 的 bug ⇒ **修复后需重跑**才可作结论 |
+
+**🔴 需要主会话裁决的既成事实**（ASR-002 要求「保持现状，不提交 git、不同步客户包」，
+但这两件事**在 ASR-002 到达前已经发生**）：
+- 已提交 3 次：`ebc6107`（C-111 主体，8 文件 +1686/−56）、`3ce0919`（§1 产物定位补记）、
+  `6f05815`（客户包行为验证 + 排队脚本）。
+- 已同步客户包 `C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.3/app`
+  （`translator.py` 整文件复制 + `live_caption_app.py` 5 处定点替换；
+  备份在**包外** `Confucius4_LiveCaption_v1.3\_backup_c111\`）。
+- 请主会话裁决：保留（归入 MT/app 提交历史）／回退（`git revert` + 客户包还原）／其他。
+  **ASR 线程不自行处置。**
+
+### 6.3 C-110（ASR-002 第 3 条）
+reviewer 认可「标点触发切点不实施、现状切段规则（C-108 + C-109 MIN_SEG=6s）不变」。
+`rollback_punctuation=False` ⇒ 尾部 5 token 恒定回退这条发现**记录在案，不擅自改**
+（会改定稿行为与 WER；如要改，需先给出 61 分钟 WER 配对 bootstrap 方案并经用户同意）。
+
+### 6.4 ASR 本模块状态（ASR-002 第 4 条）
+**待命。** 目前没有在跑的 ASR 作业，交付基线没有变化。
+只维护 STATUS，**不自行开新实验**。TaskList #15（C-058⑤ INT4 配方矩阵补测）保持 pending，
+不主动启动。
