@@ -1,11 +1,17 @@
 # STATUS_APP
 last_ack: APP-006
-更新时间: 2026-10-23 16:52
-当前任务: **GUI 四项改造（用户 16:0x 拍板）已全部落地并验证通过**：① **配置面板三分区**（ASR / 翻译 / 语音纵向三行，每区**只有一个「设备+精度」组合下拉**）② **状态栏迁到顶栏之下固定一行**（实测 800x500~1080x820 高度恒为 19px，不再被 pack 压成 1px）③ **屏幕字幕只留两栏**（定稿译文青 `#5fd7d7` + 实时识别黄 `#ffd75e`）④ **鼠标完全穿透 + 独立拖拽把手**（`WS_EX_TRANSPARENT|NOACTIVATE`，`WindowFromPoint` 实测不命中字幕窗）。详见 §14。
-阻塞 / 待用户决定: ① **本轮 GUI 改造按用户决策只改仓库**，v1.3 客户包**不做定点同步**，等 v1.4 统一打包带入；② **APP-006 第 3~7 步**（历史改写 + force push）仍等 reviewer 复核 §11.2 清单；③ 端到端 ABBA 未做；④ v1.4 重打包前置未完成；⑤ RTF 无正式稳态结论；⑥ 包体 12.73 GB 待评估；⑦ 音质判定交 reviewer
-阻塞 / 待用户决定: ① **APP-006 第 3~7 步**：历史改写 + force push（等 reviewer 复核 §11.2 清单；且**改写后所有 SHA 全变**，并行线程 ASR/MT/TTS 需重新 clone 或 reset --hard，**会覆盖他们未提交的改动**）——**本轮已按纪律停下**；② **端到端 ABBA 未做**（冒烟已过，前置已解锁）；③ **v1.4 重打包前置未完成**（设备自选 ✅ + TTS 集成 ✅ + 端到端验证 ❌）；④ **RTF 无正式结论**（本轮 1.357 是自测短句首调用含预热，不可当稳态）；⑤ **包体 12.73 GB**（需评估剔除 `decoder-npu-int8`/`decoder-gpu-int8`/`encoder-fp16`）；⑥ 是否剔除 INT4-CW（可再省 0.97 GB）；⑦ **babelvox tokenizer 的 `fix_mistral_regex` 提示**待 TTS 模块确认；⑧ **音质判定交 reviewer**（目标机不自己调 MiniMax）
+更新时间: 2026-10-23 20:58
+当前任务: **端到端 ABBA 已跑通 + 修掉 TTS worker 的 import 死锁**：① 端到端 ABBA（tts off/on/on/off）**首次拿到 TTS 侧数据**（§15.2，产物 21 文件 / 1 392 428 B 落仓库外 `abba_out/e2e/app_20261023_2050/`）② 定位并修掉 **TTS worker 永不 emit `ready`** 的根因（**importlib 模块锁死锁**：后台线程 import numpy/scipy 的 C 扩展 与 主线程 `sys.stdin` 迭代互等）⇒ 修复后 worker **9.4~10.1 s 正常 ready**③ 修复已**定点同步**客户包（仓库⇄客户包 SHA256 逐字节一致）。详见 §15。
+阻塞 / 待用户决定: ① **APP-006 第 3~7 步**：历史改写 + force push（等 reviewer 复核 §11.2 清单；且**改写后所有 SHA 全变**，并行线程 ASR/MT/TTS 需重新 clone 或 reset --hard，**会覆盖他们未提交的改动**）——**本轮已按纪律停下**；② **TTS 实时性不达标**（首包 P50 **5465.6 ms** / P95 **7822.65 ms**、丢句 **8/14 ≈ 57%**、最大积压 **11.13 s**）⇒ 当前不可用于实时交付，**v1.4 是否仍打包待用户决定**；③ **RTF 净影响无定论**（Δ=+0.108 但 off 组组内极差 0.161，同量级噪声）；④ **包体 12.73 GB**（需评估剔除 `decoder-npu-int8`/`decoder-gpu-int8`/`encoder-fp16`）；⑤ 是否剔除 INT4-CW（可再省 0.97 GB）；⑥ **babelvox tokenizer 的 `fix_mistral_regex` 提示**待 TTS 模块确认；⑦ **音质判定交 reviewer**（目标机不自己调 MiniMax，2 个 wav 已落盘）；⑧ **`tts_service.py` 不读 worker stderr**（静默吞 traceback，本轮未修）
 
 ## 最近更新
+- 20:58 §15 **端到端 ABBA 完成**（§13.7 #1 闭环）：4 轮 off/on/on/off，**翻译全程开启**、ASR/MT 走 GPU.0、TTS 走 NPU、持共享机器锁；产物 21 文件 / 1 392 428 B 落仓库外 `C:\Users\Trekker-PTL\abba_out\e2e\app_20261023_2050\`；`abba_report.json` SHA256 `575d1306f175d040edee69560a5947e5f4bd29669029c0f6b7af03602d9b90dc`
+- 20:58 §15 **TTS 侧首次拿到数据**：首包 P50 **5465.6 ms** / P95 **7822.65 ms**；提交 7 / 播完 3 / 丢弃 4（2 轮累计丢弃 8 句 ≈ 57%）；最大积压 **11.13 s** ⇒ **TTS 实时性不达标**，不可用于实时交付
+- 20:58 §15 **RTF 净影响无定论**：on 0.7245 vs off 0.6165 ⇒ Δ=**+0.108**（超 ≤+0.10 线），但 off 组**组内极差 0.161** > Δ ⇒ 同量级噪声，**测不出净影响**（按 APP-005③ 不写「无影响」）
+- 20:58 §15.3 **修掉 TTS worker 的 import 死锁**（真 bug）：后台线程 import numpy/scipy 的 **C 扩展**持有 importlib 模块锁 + 主线程阻塞在 `sys.stdin` 迭代 ⇒ 互等死锁 ⇒ worker **一行输出都不发**、永不 emit `ready`、主进程永远 `state=loading`；faulthandler 抓到 `numpy/_core/multiarray.py:11 in create_module`；**修法 = 主线程预导入 numpy+scipy**（0.3 s）⇒ worker 9.4~10.1 s 正常 ready
+- 20:58 §15.4 **修复已定点同步客户包**：`live_caption/sync_c137_to_pkg.py`（精确字符串替换 + `assert count==1` + SHA256 逐字节校验 + 幂等）；仓库/客户包 `tts_worker.py` SHA256 同为 `06a9ea67b8c88d1d69b3fbf0bafbd6f8b3294b63bff963fdfe37ec2f33fda3da`；备份在包外 `pkg_backup_app015/`
+- 20:58 §15 **巡检无新纠偏条目**：`CORRECTIONS_APP.md` 最大编号 = **APP-006** = `last_ack`，文件 SHA256 `dff32b2c…7db8cc` 与 §13 巡检**逐字节一致** ⇒ `last_ack` 保持 APP-006
+- 20:58 §15.8 **边界重申**：未执行任何新纠偏条目；**未推进 APP-006 第 3~7 步**（等 reviewer 复核 §11.2）；**未跑 CPU 推理/测速**；**未调用 MiniMax**；**未整目录覆盖**同步客户包；**未提交** `CORRECTIONS_APP.md`；未吞其它模块改动
 - 16:52 §14 **GUI 四项改造全部落地**：① **三分区**（ASR/翻译/语音**纵向三行**，每区**只有一个「设备+精度」组合下拉**；旧的三个独立设备下拉已删净）② **状态栏迁到顶栏之下固定一行**（实测 800×500~1080×820 高度**恒为 19px**；根因是 **pack 挤压**不是全屏，代码里从来无全屏逻辑）③ **屏幕字幕只留两栏**（青 `#5fd7d7` 定稿译文 + 黄 `#ffd75e` 实时识别）④ **鼠标完全穿透**（`WS_EX_TRANSPARENT|NOACTIVATE`，`WindowFromPoint` 实测不命中字幕窗）+ **独立拖拽把手**（44×24，左上角外侧，不穿透）
 - 16:52 §14 **顺手修掉的 3 个真 bug**：① `make_engine` 无条件传 `device=` ⇒ **CUDA 档必抛 `TypeError`**（`CudaEngine.__init__` 无此形参）② 翻译组合 label **冲突**（`gpu_int8cw@GPU.0` 与 `npu_int8cw@GPU.0` 同 label ⇒ 反查静默选错引擎）⇒ 改为**以量化维度**展开 ③ 拖拽把手**初始位置错**（overrideredirect 窗口未映射时 `winfo_x()` 返 0 ⇒ 把手跑到屏幕左上角）
 - 16:52 §14 **验证全 PASS**：`verify_overlay.py` / `diag_overlay_gui.py` / `diag_device_gui.py` / `diag_layout_gui.py` / `diag_device_select.py` 5 个脚本全部 ALL PASS；证据截图 2 张落 `results/app/`
@@ -2106,3 +2112,277 @@ Tk 的 `event_generate` 合成事件也**绕过系统命中测试**仍会送达 
   本轮**一并提交**该文件，并在提交说明里标注来源，避免下轮重复。
   **其它模块的未提交改动（`translator.py` / `audio_source.py` / `tts_service.py` /
   `status/CORRECTIONS.md`）本轮仍不提交** —— 逐文件 `git add`，未用 `-A`。
+
+## §15 端到端 ABBA 落地 + 定位并修掉 TTS worker 的 import 死锁（2026-10-23 20:58）
+
+### §15.0 本轮动作摘要
+
+| # | 事项 | 状态 | 证据 |
+|---|---|---|---|
+| 1 | **巡检 `CORRECTIONS_APP.md`** | ✅ **无新条目** | 最大编号 = **APP-006** = `last_ack`；文件 mtime `2026-10-23 12:01:55`、17965 B、SHA256 `dff32b2c96b6ccc02127ef6b258eef73bd0b3d0cd574a3772a5f4063ee7db8cc`（与 §13 巡检时**逐字节一致** ⇒ 中间无人改动） |
+| 2 | **端到端 ABBA（tts off/on/on/off）** | ✅ **已完成**（§13.7 #1 闭环） | `abba_report.json` 10959 B，mtime `2026-10-23 20:57:30`，SHA256 `575d1306f175d040edee69560a5947e5f4bd29669029c0f6b7af03602d9b90dc` |
+| 3 | **定位并修掉 TTS worker 的 import 死锁** | ✅ **已修 + 已同步客户包** | `live_caption/tts_worker.py` +27 行；仓库/客户包 SHA256 同为 `06a9ea67b8c88d1d69b3fbf0bafbd6f8b3294b63bff963fdfe37ec2f33fda3da` |
+| 4 | **APP-006 第 3~7 步** | ⏸ **仍等 reviewer 复核** | APP-006 第 2 步明写「这一步需要停下来等 reviewer 复核」⇒ **本轮仍未自行推进**，§11.2 清单已落盘 |
+
+### §15.1 巡检结论：无新纠偏条目（`last_ack` 保持 APP-006）
+
+`status/app/CORRECTIONS_APP.md` 的 `## APP-xxx` 条目共 **6 条**（APP-001…APP-006），
+`STATUS_APP.md` 头部 `last_ack: APP-006` ⇒ **不存在编号大于 last_ack 的新条目**
+⇒ 本轮无「按编号顺序执行」的对象，转而补做 §13.7 遗留的 App 职责内事项。
+
+⚠️ `live_caption/diag_device_gui.py` 的 docstring 里有「APP-007」字样，
+但 **`CORRECTIONS_APP.md` 里没有 APP-007 条目** ⇒ 是并行会话自命名的内部标记，
+**不当作 reviewer 纠偏条目执行**，也**不用它更新 `last_ack`**（与 §13 巡检结论一致）。
+
+### §15.2 端到端 ABBA —— ✅ 完成（§13.7 第 1 条闭环）
+
+**素材**：自造的英文工程评审语音（**非**内部会议录音）
+`C:\Users\Trekker-PTL\abba_out\abba_input_16k.wav`
+（825004 B，16000 Hz，25.78 s，6 句，`peak_amp 0.6827`）——
+按 APP-001「不贴内部会议原文」纪律，报告里只贴**计数与统计量**。
+
+**执行方式**：持共享机器锁（复用 `live_caption/replay_c134_mt.py` 的
+`_pid_alive` / `acquire_lock` / `release_lock`，**不自写**探测逻辑），
+`[lock] 已获取（等了 0s）` → 作业结束 `[lock] 已释放`。
+
+**命令**（客户包自带 Python 3.12，唯一带 babelvox 的解释器）：
+
+```
+客户包python/python.exe live_caption/replay_abba_tts_e2e.py \
+  --audio C:\Users\Trekker-PTL\abba_out\abba_input_16k.wav --seconds 26 \
+  --asr-device GPU.0 --mt-device GPU.0 --tts-device NPU \
+  --tts-voice A --tts-precision f16 --asr-lang English \
+  --run-name app_20261023_2050
+```
+
+🔴 **翻译全程开启**（`--translate zh`）：这样 TTS 才有输入，才能比较 TTS 的**净影响**。
+
+**产物目录**（仓库外，APP-005①）：`C:\Users\Trekker-PTL\abba_out\e2e\app_20261023_2050\`
+—— **21 个文件 / 1 392 428 B**，目录 mtime `2026-10-23 20:57`。
+
+**`abba_report.json` 原始字段**（逐字引用 `summary` 节选）：
+
+```json
+{
+  "off": { "n": 2, "asr_rtf_mean": 0.6165, "asr_rtf_range": 0.161,
+           "asr_lag_ms_mean": 355.0, "asr_segs_mean": 5.0,
+           "mt_lat_med_ms_mean": 400.25, "mt_lat_p95_ms_mean": 460.35,
+           "mt_tok_s_mean": 42.65 },
+  "on":  { "n": 2, "asr_rtf_mean": 0.7245, "asr_rtf_range": 0.003,
+           "asr_lag_ms_mean": 430.0, "asr_segs_mean": 5.0,
+           "mt_lat_med_ms_mean": 473.8, "mt_lat_p95_ms_mean": 601.85,
+           "mt_tok_s_mean": 34.5 },
+  "asr_rtf_delta": 0.108,
+  "asr_rtf_delta_ok": false,
+  "asr_rtf_noise_off_range": 0.161,
+  "tts": { "n_runs": 2, "n_dropped_total": 8, "n_dropped_max": 4,
+           "first_packet_p50_ms_mean": 5465.6,
+           "first_packet_p95_ms_mean": 7822.65,
+           "max_backlog_s_max": 11.13 }
+}
+```
+
+**逐轮原始 stdout 字段**（`abba{1..4}.stdout.txt`）：
+
+| 轮次 | TTS | exit | RTF(计算) | 段 | 墙钟 | 进程墙钟 | MT 延迟中位 | MT P95 | MT tok/s | TTS 首包 | TTS 积压max | 提交 | 播完 | 丢弃 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| abba1_off | off | 0 | 0.697 | 5 | 26.5 s | 38.46 s | 391.6 ms | 469.4 ms | 45.7 | — | — | — | — | — |
+| abba2_on | on | 0 | 0.726 | 5 | 26.4 s | 41.20 s | 462.5 ms | 539.4 ms | 35.7 | 4.73 s | 11.13 s | 7 | 3 | 4 |
+| abba3_on | on | 0 | 0.723 | 5 | 26.9 s | 41.83 s | 485.1 ms | 664.3 ms | 33.3 | 6.20 s | 11.13 s | 7 | 3 | 4 |
+| abba4_off | off | 0 | 0.536 | 5 | 26.5 s | 32.35 s | 408.9 ms | 451.3 ms | 39.6 | — | — | — | — | — |
+
+**TTS 逐句时间线**（`abba2_on.tts.wav.tts.jsonl`，949 B，5 行，原始字段）：
+
+```json
+{"id": 0, "t_submit": 214002.8079, "t_first_packet": null, "t_done": 214008.3209, "dur_s": null, "dropped": true,  "error": null}
+{"id": 2, "t_submit": 214006.9992, "t_first_packet": 7.2521, "t_done": 214014.2515, "dur_s": 4.48, "dropped": false, "error": null}
+{"id": 3, "t_submit": 214012.4148, "t_first_packet": 2.9357, "t_done": 214015.3505, "dur_s": 0.88, "dropped": false, "error": null}
+{"id": 4, "t_submit": 214012.8156, "t_first_packet": null, "t_done": 214019.4181, "dur_s": null, "dropped": true,  "error": null}
+{"id": 6, "t_submit": 214019.235,  "t_first_packet": 4.7297, "t_done": 214023.9647, "dur_s": 4.56, "dropped": false, "error": null}
+```
+
+**落盘语音**（供 reviewer 用 MiniMax 回转写做音质判定）：
+
+| 文件 | 字节 | mtime | SHA256（前 16） |
+|---|---|---|---|
+| `abba2_on.tts.wav` | 685158 | 2026-10-23 20:56:13 | `6211a65f52e8e04e` |
+| `abba3_on.tts.wav` | 668344 | 2026-10-23 20:56:56 | `a23e3905b996bfab` |
+
+**判读（只报实测，不外推）**：
+
+| 项 | 结论 |
+|---|---|
+| **ASR RTF 增量** | **Δ = +0.108**（on 0.7245 − off 0.6165）⇒ **超过 ≤+0.10 的验收线**（`asr_rtf_delta_ok = false`） |
+| ⚠️ **组内噪声** | off 组自身极差 **0.161**（0.697 vs 0.536）⇒ **比 Δ(0.108) 还大** ⇒ 该 Δ **不能单独作为结论**。按 APP-005③「RTF 只报均值差并标注噪声范围，不写『无影响』」的口径，**本轮只能写「Δ 与组内噪声同量级，测不出 TTS 对 ASR RTF 的净影响」** |
+| **语音输出延迟** | 首包延迟 **P50 = 5465.6 ms** / **P95 = 7822.65 ms**（逐句「入队→首包」）⇒ **远超实时可用范围** |
+| **积压** | 最大 **11.13 s**（阈值 8.0 s ⇒ 触发丢弃） |
+| **丢句** | 2 轮 on 各 **提交 7 / 播完 3 / 丢弃 4**，累计丢弃 **8 句**（`n_dropped_total = 8`）⇒ **丢弃率 8/14 ≈ 57%** |
+| **丢句根因（stdout 原文）** | `[TTS] 积压 10.6s > 8.0s，丢弃 2 句未播译文` ⇒ TTS 合成速度**跟不上**译文产出速度（首包就要 4.7~6.2 s）⇒ 属**性能不足**，不是逻辑 bug |
+| **MT 延迟** | on 组 473.8 ms vs off 组 400.25 ms（+73.6 ms）；tok/s 34.5 vs 42.65 ⇒ TTS 抢占同机资源 |
+| **音质** | ⏸ **本轮不判定** —— 质量判定归 reviewer 用 MiniMax 回转写，**目标机不自己调用 MiniMax**；wav 已落盘（见上表） |
+| **TTS 首包 4.7~6.2 s 的构成** | 含**模型加载 10.1 s**（冷/热缓存混合）—— 加载完成后每句仍需 2.9~8.9 s 首包 ⇒ **稳态合成速度本身也不够快** |
+
+⇒ **结论**：ABBA 已跑通、**TTS 侧数据首次拿到**；但 **TTS 当前不可用于实时交付**
+（首包 P50 5.5 s、丢句率 57%）。**v1.4 重打包的前置仍未闭环**（见 §15.5 第 3 条）。
+
+### §15.3 🔴🔴 定位并修掉一个真 bug：TTS worker 的 **import 死锁**
+
+**这是本轮最有价值的产出** —— 没有它，ABBA 的 TTS 侧**永远拿不到数据**。
+
+#### 症状
+
+第一轮 ABBA（`app_20261023_2015`，产物 21 文件于 `C:\Users\Trekker-PTL\abba_out\e2e\app_20261023_2015\`）
+的 2 个 on 轮**全部**：
+
+```
+[TTS] worker 已启动（设备 NPU，音色 A，精度 f16）
+  [TTS] [TTS] 积压 10.6s（模型尚未就绪，暂不丢弃）
+  ...
+  [TTS] [TTS] drain 超时：仍有 7 句未完成
+[TTS] 首包 —s  积压 当前 22.00s / 最大 22.00s  提交 7  播完 0  丢弃 0  重启 0  state=loading
+```
+
+⇒ `state` 永远停在 **loading**、`播完 0`、`首包 —`（无值）、**`.tts.wav` 与 `.tts.jsonl` 根本没生成**。
+
+#### 排查过程（逐步收敛，全部有实测）
+
+| # | 实验 | 结果 | 结论 |
+|---|---|---|---|
+| 1 | 手工跑 `tts_worker.py`（管道喂 stdin） | **0 字节输出** | 不是 stdout 缓冲问题 |
+| 2 | 手工调 `TTSWorker._safe_load()`（不经 `run()`） | **9.4 s 正常 emit `ready`** | 加载逻辑本身没问题 |
+| 3 | 拆开测 `make_engine` / `speaker_embedding` / `Player` | 8.3 s / 0.9 s / 0.69 s，**各自都正常** | 三个组件单独都正常 |
+| 4 | 把调试副本放到**临时目录**跑 | **有输出**（回落旧 OV 路径） | ⇒ `import tts_engine` 失败 ⇒ 走了别的分支 ⇒ **BabelVox 路径是触发条件** |
+| 5 | 复制到**同目录**跑（BabelVox 路径） | **0 字节** | 确认 BabelVox 路径必现 |
+| 6 | 用 `faulthandler.dump_traceback_later` 抓栈 | 后台线程停在 **`numpy/_core/multiarray.py:11 in create_module`** | **后台线程卡在 C 扩展 import** |
+| 7 | 最小对照 `g1`（主线程 sleep）vs `g2`（主线程 `for line in sys.stdin`） | g1 后台 scipy **0.3 s 完成**；g2 后台 scipy **抛 `RuntimeError: can't register atexit after shutdown`** | **确认是「stdin 迭代 + 后台重依赖 import」的组合才触发** |
+| 8 | 最小对照 `g4`（主线程**预导入** numpy+scipy 后再起后台线程） | **正常**（0.3 s 预导入后后台立即完成） | **修复方案成立** |
+| 9 | 真实 worker + 预导入（`t21.py`） | **9.4~11.0 s 正常 emit `ready`** | 真实场景复现验证通过 |
+| 10 | 修复版经 `Popen(stdout=PIPE)`（复刻 `tts_service` 的起法） | **10 行输出，`ready` 在 9.4 s** | ✅ 端到端验证通过 |
+
+#### 根因
+
+> **模型加载跑在后台线程**（`threading.Thread(target=self._safe_load)`），
+> 而它要 import 的 **numpy / scipy 是 C 扩展** ⇒ import 期间持有 importlib 的
+> **模块级锁**；与此同时**主线程**阻塞在 `for line in sys.stdin`
+> （首次迭代会触发 `io` / `textiobuffer` 的加载），同样需要这把锁
+> ⇒ **互相等待的 import 死锁**。
+>
+> faulthandler 实测栈：`numpy/_core/multiarray.py:11 in create_module`。
+
+**为什么之前一直没暴露**：
+- `import tts_engine` 是**纯 python**，不触发 C 扩展加载 ⇒ 单独测 worker 一切正常；
+- `§13.1` 的 TTS 冒烟是**直接调 `tts_engine.make_engine`**（主线程）⇒ 正常；
+- ⇒ **只有「`Popen` + 后台加载 + stdin 阻塞」三者同时成立才复现**。
+  这是典型的「单测全过、集成挂死」。
+
+**连带效应**：worker 卡死 ⇒ 从不 emit `ready` ⇒ 主进程 `TTSService.state`
+永远 `loading` ⇒ `drain()` 超时（7 句未完成）⇒ **语音输出完全不可用**，
+且**表面无任何报错**（worker 的 stderr 被 `Popen(stderr=PIPE)` 捕获后**从未被读取**
+⇒ 连 traceback 都看不到）。
+
+#### 修法
+
+在 `main()` 里 `args = ap.parse_args()` 之后、`w = TTSWorker(...)` 之前，
+**主线程预导入** `numpy` + `scipy.linalg`（任何后台线程启动之前）。
+
+- 实测预导入耗时 **0.3 s**（可忽略）；
+- 修复后 worker **9.4~10.1 s** 正常 emit `ready`；
+- 客户包实跑同样 **10.1 s** emit `ready`。
+
+**改动文件**：`live_caption/tts_worker.py`，**纯新增 27 行**（`git diff --stat` = `1 file changed, 27 insertions(+)`），**未改动任何既有逻辑**。
+
+| 项 | 值 |
+|---|---|
+| 文件 | `live_caption/tts_worker.py` |
+| 字节 | 40234 |
+| mtime | 2026-10-23 20:54:43 |
+| SHA256 | `06a9ea67b8c88d1d69b3fbf0bafbd6f8b3294b63bff963fdfe37ec2f33fda3da` |
+| 插入位置 | `main()` 内，`args = ap.parse_args()` 之后、`w = TTSWorker(` 之前 |
+
+#### 附带发现（**未修，留给 TTS 模块 / 后续**）
+
+🔴 `tts_service.py` 的 `Popen(..., stderr=subprocess.PIPE)` **从不读取 stderr**
+⇒ worker 崩溃的 traceback **被静默吞掉**。
+本轮之所以能定位到根因，纯粹是因为另写了探针脚本直接读 stderr。
+⇒ **建议**（属 App 侧 `tts_service.py`，但本轮**未改**，避免与 TTS 侧并行改动冲突）：
+把 worker 的 stderr 接到 `on_log`，或在读 stdout 的线程里**同时**排空 stderr。
+
+### §15.4 客户包定点同步（**不整目录覆盖**）
+
+仓库 `live_caption/` 与客户包 `app/` 是两份独立副本 ⇒ 用**精确字符串替换 + 唯一命中断言**。
+
+新脚本：`live_caption/sync_c137_to_pkg.py`（**新增**，模式与 `sync_c136_to_pkg.py` 一致）。
+
+```
+$ python live_caption/sync_c137_to_pkg.py --check
+客户包命中：新块 0 次 / 旧锚点 1 次
+--check：命中唯一旧锚点，未写入
+
+$ python live_caption/sync_c137_to_pkg.py
+客户包命中：新块 0 次 / 旧锚点 1 次
+✅ 已同步
+   客户包 SHA256 before: fec383a50eab9405362a623e7f2e39f64e864bbf5992bebbf98bddc3b1d4cd1a
+   客户包 SHA256 after : 06a9ea67b8c88d1d69b3fbf0bafbd6f8b3294b63bff963fdfe37ec2f33fda3da
+   仓库   SHA256       : 06a9ea67b8c88d1d69b3fbf0bafbd6f8b3294b63bff963fdfe37ec2f33fda3da
+   与仓库逐字节一致   : True
+
+$ python live_caption/sync_c137_to_pkg.py      # 幂等复验
+客户包命中：新块 1 次 / 旧锚点 0 次
+✅ 客户包已是修复版（幂等 no-op）
+```
+
+| 项 | 值 |
+|---|---|
+| 客户包文件 | `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.3\app\tts_worker.py` |
+| 备份（**包外**） | `C:\Users\Trekker-PTL\pkg_backup_app015\tts_worker.py.bak`（38670 B，mtime 2026-10-23 20:58:13） |
+| 同步后 SHA256 | `06a9ea67b8c88d1d69b3fbf0bafbd6f8b3294b63bff963fdfe37ec2f33fda3da`（= 仓库） |
+| 客户包实跑验证 | 客户包 `app/tts_worker.py --device NPU --precision f16 --voice A` ⇒ **10.1 s emit `{"kind":"ready","device":"NPU","voice":"A"}`**（stdout 1262 B） |
+
+⚠️ **改包目录 ≠ 交付客户** —— zip 还是旧包 ⇒ **v1.4 重打包时必须重跑 `pack_v13.py`**。
+
+### §15.5 未完成项与阻塞（如实记录，未包装成「已交付」）
+
+| # | 事项 | 状态 | 原因 |
+|---|---|---|---|
+| 1 | **APP-006 第 3~7 步** | ⏸ **等 reviewer 复核** | APP-006 第 2 步明写「这一步需要停下来等 reviewer 复核」⇒ **本轮仍未自行推进**。§11.2 清单已落盘 |
+| 2 | **TTS 实时性** | ❌ **不达标** | 首包 P50 **5465.6 ms** / P95 **7822.65 ms**；丢句 **8/14 ≈ 57%**；最大积压 **11.13 s** ⇒ **当前不可用于实时交付** |
+| 3 | **v1.4 重打包** | ⏸ 未做 | 前置：设备自选 ✅ + TTS 集成 ✅（链路已通）+ 端到端验证 ✅（本轮完成）⇒ **但 TTS 实时性不达标（#2），是否仍打包待用户决定** |
+| 4 | **RTF 净影响** | ⏸ **无定论** | Δ=+0.108 但 off 组组内极差 0.161 ⇒ **同量级噪声**，测不出净影响（不写「无影响」） |
+| 5 | **音质判定** | ⏸ **交 reviewer** | 质量判定归 reviewer 用 MiniMax 回转写；2 个 wav 已落盘（§15.2 表） |
+| 6 | **`tts_service.py` 不读 worker stderr** | ⏸ **未修** | 会静默吞掉 worker 崩溃 traceback；本轮**未改**（避免与 TTS 侧并行改动冲突） |
+| 7 | **babelvox `fix_mistral_regex` 提示** | ⏸ **转 TTS 模块** | stderr 持续提示 Mistral tokenizer 正则需 `fix_mistral_regex=True`；**未影响**本次输出，但需 TTS 模块确认 |
+| 8 | **包体 12.73 GB 优化** | ⏸ 未做 | 需评估剔除 `decoder-npu-int8` / `decoder-gpu-int8` / `encoder-fp16`；是否剔除 INT4-CW（可再省 0.97 GB）—— 待用户决定 |
+
+### §15.6 并行会话隔离（按纪律**未提交**这些改动）
+
+`git status` 显示工作区混有**其它模块**的未提交改动，本轮**一律不吞**：
+
+| 文件 | 归属 | 处置 |
+|---|---|---|
+| `live_caption/translator.py` | MT 模块（C-111 相关） | **不提交** |
+| `live_caption/audio_source.py` | ASR 模块 | **不提交** |
+| `live_caption/tts_service.py` | TTS 侧并行改动（+99/−6） | **不提交** |
+| `live_caption/device_config.py` | 并行会话（CPU 从设备清单移除） | **不提交** |
+| `status/CORRECTIONS.md` | 旧 C 编号（冻结于 C-135） | **不提交** |
+| `status/app/CORRECTIONS_APP.md` | 🔴 **reviewer 独占写入文件，只读** | 🔴 **绝不提交** |
+| `live_caption/diag_*.py`（20+ 个）、`live_caption/diag_seg_qwen3_*.json`（4 个）、`live_caption/sync_c111_*.py`（2 个）、`live_caption/replay_abba_tts_e2e.py`、`reviewer/find_int8enc.ps1` | 其它模块诊断产物 | **不提交** |
+
+⇒ 本轮**逐文件 `git add`**，未使用 `git add -A` / `git add .`。
+
+### §15.7 本轮提交清单（App 模块负责范围）
+
+| 文件 | 状态 | 字节 | mtime | SHA256 |
+|---|---|---|---|---|
+| `live_caption/tts_worker.py` | 修改（+27 行） | 40234 | 2026-10-23 20:54:43 | `06a9ea67b8c88d1d69b3fbf0bafbd6f8b3294b63bff963fdfe37ec2f33fda3da` |
+| `live_caption/sync_c137_to_pkg.py` | 新增 | —— | —— | 见提交后实测 |
+| `status/app/STATUS_APP.md` | 修改（追加 §15） | —— | —— | 见提交后实测 |
+
+### §15.8 本轮边界重申
+
+- 本轮**没有**执行任何新纠偏条目（最大编号 APP-006 = `last_ack`，**无 APP-007+**）。
+- 本轮**没有**推进 APP-006 第 3~7 步（历史改写 + force push）—— **等 reviewer 复核 §11.2 清单**。
+- 本轮**没有**跑 CPU 推理或测速：ASR/MT 走 **GPU.0**，TTS 走 **NPU**；
+  排查用的探针**只做组件加载与 import 行为验证**，不产出性能结论。
+- 本轮**没有**调用 MiniMax 做质量判定（质量判定归 reviewer）。
+- 本轮**没有**整目录覆盖同步客户包（只用了 `sync_c137_to_pkg.py` 的定点替换 + SHA256 逐字节校验）。
+- 本轮**没有**提交 `status/app/CORRECTIONS_APP.md`，也**没有**吞其它模块的未提交改动。

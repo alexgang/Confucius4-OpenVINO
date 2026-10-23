@@ -878,6 +878,33 @@ def main():
     ap.add_argument('--cfg-rate', type=float, default=0.7)
     args = ap.parse_args()
 
+    # 🔴🔴 [APP-FIX-20261023] 主线程**预导入**重依赖（numpy / scipy.linalg）
+    #
+    # 症状：worker 经 `tts_service.TTSService`（`Popen(stdout=PIPE)`）起时
+    #      **stdout 一行都不输出**，主进程永远停在 `state=loading`，
+    #      drain 超时、0 句播完（见 status/app/STATUS_APP.md §15）。
+    #
+    # 根因：模型加载跑在**后台线程**（`threading.Thread(target=self._safe_load)`），
+    #      而它要 import 的 numpy / scipy 是 **C 扩展** ⇒ import 期间持有
+    #      importlib 的**模块级锁**；与此同时主线程正阻塞在
+    #      `for line in sys.stdin`（首次迭代会触发 io/textiobuffer 的加载），
+    #      同样需要这把锁 ⇒ **互相等待的 import 死锁**。
+    #      faulthandler 实测栈：后台线程停在
+    #      `numpy/_core/multiarray.py:11 in create_module`。
+    #
+    # 为什么之前没暴露：`import tts_engine`（纯 python）不触发 C 扩展加载，
+    #      单独测 worker 一切正常 ⇒ 只有「Popen + 后台加载 + stdin 阻塞」
+    #      三者同时成立才复现。
+    #
+    # 修法：把重依赖的 import 提到**主线程**、且在**任何后台线程启动之前**。
+    #      实测预导入耗时 0.3 s，修复后 worker 9.4 s 正常 emit `ready`。
+    try:
+        import numpy  # noqa: F401
+        import scipy.linalg  # noqa: F401
+    except Exception:
+        # 预导入失败不致命：退回旧行为（下游仍会在 import 处报错，但有 traceback）
+        pass
+
     w = TTSWorker(device=args.device, voice=args.voice, out_device=args.out_device,
                   model_dir=args.model_dir, clone=args.clone,
                   bigvgan_ir=args.bigvgan_ir, precision=args.precision,
