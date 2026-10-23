@@ -1,10 +1,11 @@
 # STATUS_ASR
 last_ack: ASR-001
-更新时间: 2026-10-23 11:35
-当前任务: C-111 翻译层「段尾半句当段即翻」已实现 + 三套验证通过（状态机 / 归属对照 / fix-key 回归）+ 客户包已同步；切段规则未动（用户决策）；下一步 = 持共享机器锁重跑真实翻译模型端到端 + git 提交
-阻塞 / 待用户决定: ① C-111 的**翻译层**改动按模块划分属 MT 模块（b Hy-MT2），需与 MT reviewer 对接是否移交；② 共享机器锁当前被 TTS 模块持有（PID 36608 存活）⇒ 端到端测速作业排队等待中；③ 交付基线「GPU INT8 8.17% / NPU INT8 RTF 0.772」在 reports/ 下未找到对应 json，请指认产物路径
+更新时间: 2026-10-23 12:00
+当前任务: C-111 已实现 + 三套验证通过 + 已提交（ebc6107）+ 客户包已同步；切段规则未动（用户决策）；下一步 = 持共享机器锁重跑真实翻译模型端到端（当前被 TTS 模块持锁排队中）
+阻塞 / 待用户决定: ① C-111 的**翻译层**改动按模块划分属 MT 模块（b Hy-MT2），需与 MT reviewer 对接是否移交；② 共享机器锁当前被 TTS 模块持有（PID 36608 存活）⇒ 端到端测速作业排队等待中；③ 交付基线「GPU INT8 8.17%」仍未找到对应 json（RTF 0.772 / WER 7.95% 已定位到 `reports/c086d_full61_all_npu_matrix.json`），请指认产物路径
 
 ## 最近更新
+- 12:00 C-111 已提交（`ebc6107`，8 文件 +1686/-56）；客户包已同步；交付基线 RTF/WER 产物已定位（`reports/c086d_full61_all_npu_matrix.json`），仅「GPU INT8 8.17%」待指认
 - 11:35 C-111 客户包已同步（`Confucius4_LiveCaption_v1.3/app`，translator.py 整文件复制 + app 5 处定点替换，备份在包外 `_backup_c111/`）；e2e 脚本已加机器锁自持 + fix-key 检查
 - 11:30 C-111 fix-key 回归（假引擎 + 真实 72 段）ALL PASS：fix 25 次 / 唯一 key 25 个，事件序列全部合法 ⇒ 证实「半句链闭合后 `_half` 未清空」已修复
 - 11:25 C-111 归属对照重跑：覆盖率仍 100%（缺失词 0 / 推迟词 0 / 段尾半句归本段 29/29）；状态机 10 用例仍 ALL PASS
@@ -22,17 +23,23 @@ last_ack: ASR-001
 
 ## §1 交付基线（ASR-001 指定，判定时用全长 61 分钟、全局对齐加分段配对 bootstrap）
 
-| 指标 | 基线 | 产物 |
-|---|---|---|
-| GPU INT8 WER | 8.17% | `reports/c089_int4/R4_npu_full_wer.json`（同族参照 `ref_wer_pct=7.798`，delta_pp=1.997，ci95=[0.95, 3.095]） |
-| 全 NPU INT8 cleanie RTF | 0.772 | 见 §2.2 |
-| 全 NPU INT8 WER | 7.95% | 同上 `ref_wer_pct` 字段 |
+| 指标 | 基线 | 产物 | 状态 |
+|---|---|---|---|
+| 全 NPU INT8 cleanie RTF | 0.772 | `reports/c086d_full61_all_npu_matrix.json` → `verdict.rtf=0.7722`、`results_full61min.rtf=0.7722` | ✅ **已定位**（文件 mtime 2026-10-22 09:35） |
+| 全 NPU INT8 WER | 7.95% | 同上 → `verdict.wer_pct=7.952`、`results_full61min.wer_pct=7.952`、`slice_consistency_check.full61min.all_npu=7.952` | ✅ **已定位** |
+| GPU INT8 WER | 8.17% | — | ❌ **仍未找到对应 json** |
 
-> ⚠️ **待 reviewer 确认**：上表「GPU INT8 8.17 / NPU INT8 7.95 / RTF 0.772」三个数值来自
-> ASR-001 启动单的正文，我在仓库里**只找到 WER 侧的产物**
-> （`reports/c089_int4/R4_npu_full_wer.json` 的 `ref_wer_pct=7.798`、`wer_pct=9.795`）。
-> 「8.17%」与「RTF 0.772」在 `reports/` 下**没有找到对应 json**，
-> 我不会把它们当成已验证结论 —— 请 reviewer 指认产物路径，或允许我在下轮补测落盘。
+> ⚠️ **仍待 reviewer 指认**：「GPU INT8 WER 8.17%」这一项，我在 `reports/` 全目录
+> 递归搜过（含 `reports/**/**/*.json`），**没有找到 WER = 8.17 的产物**。
+> 搜索命中的 12 个文件里，`8.17` 全部是**别的字段**（例如
+> `reports/c031_epath/results_g_hallucination_reset.json` 的 `wall_s=8.170…`、
+> `reports/c086_full61/probe_raw.json` 的时间戳）⇒ 不能当作 WER 证据。
+> 该产物可能不在 `reports/` 下（例如在 `runs/` 或客户包旁的验证目录），
+> 请 reviewer 指认路径，或允许我在下轮补测落盘。
+>
+> 📎 **旁证（同族参照，非该基线本身）**：`reports/c089_int4/R4_npu_full_wer.json` —
+> `wer_pct=9.795`、`ref_wer_pct=7.798`、`delta_pp=1.997`、`ci95=[0.95, 3.095]`、
+> `significantly_worse=true` ⇒ R4 INT4 配方在 NPU 上显著劣化，**不可用**。
 
 ## §2 最近一周的结论摘要（均引用产物）
 
@@ -201,8 +208,33 @@ half | Agenda topics today.
 ### 5.7 下一步计划
 1. **持共享机器锁重跑 e2e**（`python live_caption/diag_c111_e2e.py`）—— 确认修复后
    翻译次数、事件构成、`fix` key 不再重复；这次 `timing_valid=true`。
-2. **git 提交**（只提本线程的改动，见 §5.8 的 hunk 边界）。
-3. **等 reviewer 裁决**模块边界（C-111 属 ASR 还是 MT）与交付基线的产物路径。
+   （脚本已自带锁逻辑：锁被别的模块持有时**直接退出不抢**；孤儿锁可回收。）
+2. ~~**git 提交**（只提本线程的改动，见 §5.8 的 hunk 边界）~~ → **已完成**，见 §5.9。
+3. **等 reviewer 裁决**模块边界（C-111 属 ASR 还是 MT）与「GPU INT8 8.17%」的产物路径。
+
+### 5.9 提交（已完成，2026-10-23 12:00）
+提交 `ebc6107`「C-111：翻译层『段尾半句当段即翻 + 补全后修正』」，**8 文件 +1686 / -56**：
+
+| 文件 | 状态 | 说明 |
+|---|---|---|
+| `live_caption/translator.py` | M | 全部 224 增 / 48 删，逐行核对过**全部属 C-111**（删除行全是旧挂起机制 `_carry`） |
+| `live_caption/live_caption_app.py` | M | **仅 C-111 的 5 处**（`clear()` 的 `seg_half.clear()`、GUI 文案、CLI 两处 outbox 消费、CLI 落盘文案）⇒ **不含任何 TTS 代码** |
+| `live_caption/diag_c111_half.py` | A | 状态机 10 用例 |
+| `live_caption/diag_c111_own.py` | A | 段归属对照 |
+| `live_caption/diag_c111_e2e.py` | A | 真实翻译模型 e2e（含机器锁自持 + fix-key 检查） |
+| `live_caption/diag_c111_fixkey.py` | A | fix-key 回归（本轮新建） |
+| `live_caption/sync_c111_to_pkg.py` | A | 客户包同步（本轮新建） |
+| `status/asr/STATUS_ASR.md` | A | 本模块状态文件 |
+
+**做法**：工作区含 app/TTS 线程的未完成改动（`npu_delivery_backend.py` /
+`npu_embeds_backend.py` / `pack_v13.py` / `update_manifest_v13.py` / `tts_service.py` /
+`tts_worker.py` / `status/CORRECTIONS.md` + `live_caption_app.py` 的 TTS 面板 hunk），
+**不能整文件提交** ⇒ 对 `live_caption_app.py` 用「HEAD 版 + C-111 的 5 处定点替换」
+构造**独立可运行**的版本再 stage（`git hash-object -w` + `git update-index --cacheinfo`）。
+- 关键前提：**HEAD 版 `live_caption_app.py` 里没有 `tts` 变量** ⇒ C-111 的 app 改动
+  若带上 `tts.submit` 引用会造成 NameError，故必须剥离。
+- 已验证 staged 版本 `py_compile` 通过（app + translator）。
+- **未提交**、留给 app/TTS 线程的文件一律保持工作区原样，未做任何改动。
 
 ### 5.8 待提交内容与 hunk 边界（工作区含他人未完成改动，不能整文件提交）
 | 文件 | 提交范围 |
