@@ -1,17 +1,17 @@
 # STATUS_APP
 last_ack: APP-006
-更新时间: 2026-10-24 05:56
-当前任务: **巡检无新纠偏条目（最大编号 APP-006 = `last_ack`）+ 修掉 `tts_service.py`「worker stderr 从不被读」**：① 🔴 **死锁隐患确认**（旧行为 worker 卡在 `write(stderr)`，60 s 不发 ready，进程仍存活 ⇒ 症状与 §15 import 死锁无法区分）；② 修复 = **新增 stderr 独立读者线程** + `_read_loop`/`_read_stderr_loop` **显式接收 `proc`**（消除重启后读错管道的隐患）；③ 仓库自测 **9/9 PASS** + **旧行为反证死锁** + **客户包内单独跑 6/6 PASS**；④ 客户包**定点替换**同步（`sync_c140_to_pkg.py`，唯一命中断言 + 幂等）；⑤ 🔴 **重打 v1.4 zip**（持共享机器锁，13 978 文件内容级 PASS）并**重发 FTP 副本**（SHA 与源一致）。
+更新时间: 2026-10-24 07:33
+当前任务: **巡检无新纠偏条目（最大编号 APP-006 = `last_ack`，第 7 次同一口径复核）+ 修掉 `tts_service.py` 两个真实生命周期 bug**：① 🔴🔴 **孤儿 worker 进程泄漏**（`close()` 把 `state='idle'` 放在 `p.wait()` 之后 ⇒ stdout 一关闭 `_read_loop` 就判定「崩溃」⇒ 自动重启 ⇒ `close()` 返回后 `self.proc` 指向**永远收不到 quit 的新进程**；实测 close() 后多起 1 个 worker 且**仍存活**；GUI 的 quit/停 TTS/换设备/换音色 **4 条路径**都会漏）；② 🔴🔴 **C-101「崩溃自动重启一次」从未真正生效**（`start()` 开头 `if self.proc.poll() is None: return` —— Windows 上进程刚死 `poll()` 仍返 `None` ⇒ 重启被**静默跳过**；实测 worker 实例启动次数 = 1；后果更糟：`state` 停在 `ready` ⇒ `submit()` 把句子写进**死进程 stdin** ⇒ **语音输出静默消失**，不报错不掉状态）；③ 修复 = `_closing` 闸门 + 重排 `close()` 顺序 + **摘掉死 proc** 才让重启真正发生 + `wait()` 取真实 `rc`；④ 验收 **9/9 + 9/9 + 3/3 PASS**，且用 `git show HEAD:` 做**修复前/后并排对照**证明 ② 是**既存 bug 而非回归**；⑤ 客户包**定点替换**同步（`sync_c141_to_pkg.py`，5 块唯一命中 + 幂等）+ 重打 zip（13 978 文件内容级 PASS）+ 新增 `publish_ftp.py` 持锁重发 FTP。
 阻塞 / 待用户决定: ① **APP-006 第 3~7 步**：历史改写 + force push（等 reviewer 复核 §11.2 清单；§16.6.2 已复查确认远端仍有 **85 个**会议转写载体；且**改写后所有 SHA 全变** ⇒ 并行线程需重新 `clone --reset --hard`，会覆盖未提交改动 ⇒ **不可自行推进**）；② **v1.4 TTS 实时性不达标**（首包 P50 **5465.6 ms** / P95 **7822.65 ms**、丢句 **8/14**、最大积压 **11.13 s**）—— 需 TTS 模块答复；③ **V7 残句代价**待用户确认（链首段半句残句 12 段语料 5 行/58 字 ⇒ 需 App 做「同段二选一」，MT 已备 `mt_fix_of()`）；④ **包体 10.45 GiB** 优化（可评估剔除 `decoder-npu-int8`/`decoder-gpu-int8`/`encoder-fp16`，INT4-CW 约 0.97 GB）；⑤ `fix_mistral_regex` 的**实际处置在 MT 侧**（App 已撤回错误结论，不代改）。
 
 ## 最近更新
 
-- 05:56 §20 **巡检无新纠偏条目**：`CORRECTIONS_APP.md` SHA256 `dff32b2c…7db8cc` / 17 965 B / mtime `2026-10-23 12:01:55`，`## APP-xxx` **6** 条（最大 **APP-006** = `last_ack`）⇒ 本轮需执行 **0** 条；与 §13/§15/§16/§17/§18/§19 **逐字节一致**（第 6 次同一口径复核）。
-- 05:56 §20 🔴🔴 **修掉 `tts_service.py`「worker stderr 从不被读」**（18 184 B / `05:39:51` / `9ece6694…`）：旧代码 `Popen(stderr=PIPE)` 但**从不读** ⇒ ① 静默吞掉 worker 崩溃原因；② **管道写满 ⇒ worker 假死**。修复 = **新增 stderr 独立读者线程** + `_read_loop`/`_read_stderr_loop` **显式接收 `proc`**。
-- 05:56 §20 ✅ **验收三连**：仓库自测 **9/9 PASS**（`results/app/test_tts_stderr.txt`）+ **旧行为反证死锁**（`results/app/test_tts_stderr_old_behavior.txt`：worker 写 >512 KB 后 **60.1 s 不发 ready**、进程仍存活）+ **客户包内单独跑 6/6 PASS**（`results/app/test_tts_stderr_pkg.txt`）。
-- 05:56 §20 ✅ **客户包定点同步**：`live_caption/sync_c140_to_pkg.py`（10 010 B / `1f223620…`）—— 精确字符串替换 + `assert count == 1` + SHA256 幂等（复跑 `already_synced`）；备份在**包外** `pkg_backup_app014/`；包内 SHA `84775a1d…` → `9ece6694…`。
-- 05:56 §20 🔴 **重打 v1.4 zip + 重发 FTP**（铁律「改包目录 ≠ 交付客户」）：`pack_v13.py` 持锁（`app-pack` pid 41296）⇒ 13 978 文件 / 11 216 035 801 B / 压缩率 82.1% / 531 s / 内容级 **PASS**；`verify_pkg_zip.py` 独立复核 **PASS**（zip⇄包目录 13 978 逐字节一致、仓库⇄包目录 16/16）；zip⇄包目录⇄仓库 `tts_service.py` **三方 SHA256 一致**；FTP 副本 SHA `4a2d943f…` → **`cd78a292…`**（与源一致，持锁 `app-ftppub`）。
-- 05:56 §20 ✅ **未推进 APP-006 第 3~7 步**（等 reviewer 复核）；✅ **未跑推理/测速**（自测全用假 worker）；✅ **未改** `status/app/CORRECTIONS_APP.md`；✅ **未吞** MT 的 `translator.py` / `diag_c111_*` / `diag_punct_*` 等并行会话改动。
+- 07:35 §21 **巡检无新纠偏条目**：`CORRECTIONS_APP.md` SHA256 `dff32b2c…7db8cc` / 17 965 B / mtime `2026-10-23 12:01:55`，`## APP-xxx` **6** 条（最大 **APP-006** = `last_ack`）⇒ 本轮需执行 **0** 条；与 §13/§15/§16/§17/§18/§19/§20 **逐字节一致**（**第 7 次**同一口径复核）⇒ `last_ack` 保持 **APP-006**。
+- 07:35 §21 🔴🔴 **修掉「孤儿 worker 进程泄漏」**（`close()` 顺序错 ⇒ stdout 一关就被判「崩溃」⇒ 自动重启 ⇒ 留一个杀不掉的 TTS 进程）：实测 close() 后多起 1 个 worker 且**仍存活**；GUI **4 条**路径（quit/停 TTS/换设备/换音色）都会漏。
+- 07:35 §21 🔴🔴 **修掉「C-101 崩溃自动重启从未生效」**（`start()` 的 `poll() is None` 守卫把重启**静默跳过**；Windows 上进程刚死 `poll()` 仍返 `None`）：实测 worker 实例启动次数 **1**（应为 2）；后果 = `state` 停在 `ready` ⇒ `submit()` 写进**死进程 stdin** ⇒ **语音输出静默消失**。
+- 07:35 §21 ✅ **验收**：仓库 **9/9**（`test_tts_restart_regression.py`）+ **3/3**（`test_tts_close_leak.py`）+ **PASS**（`test_tts_close_orphan.py` 无孤儿 / `test_tts_restart_nop.py` 启动次数=2）+ **客户包内单独跑 9/9**（`test_tts_lifecycle_pkg.py`）+ §20 stderr **9/9** 未受影响；并用 `git show HEAD:` 做**修复前/后并排对照** ⇒ 证明第 ② 条是**既存 bug**、非本轮回归。
+- 07:35 §21 ✅ **客户包定点同步 + 重打 + 重发**：`sync_c141_to_pkg.py`（17 961 B / `b9321810…`）5 块唯一命中 + 幂等 ⇒ 包内 SHA `9ece6694…` → `c4e5e7ff…`；重打 zip（13 978 文件 / 11 216 037 274 B / 597 s / 内容级 **PASS**）；`verify_pkg_zip.py` 独立复核 **PASS**；新增 `publish_ftp.py` 持锁重发 FTP（源⇄副本 SHA `fef91755…` 一致）。
+- 07:35 §21 ✅ **未推进 APP-006 第 3~7 步**（等 reviewer 复核）；✅ **未跑推理/测速**（自测全用桩 worker）；✅ **未改** `status/app/CORRECTIONS_APP.md`；✅ **未吞** MT 的 `translator.py` / `diag_c111_*` / `diag_punct_*` 等并行会话改动。
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -3400,3 +3400,162 @@ zip 内文本断言：`含 _read_stderr_loop: True` / `含 [TTS][stderr] 前缀:
   `live_caption/sync_c140_to_pkg.py`、`results/app/test_tts_stderr*.py/.txt`、
   `results/app/sync_c140_report.json`、`results/app/pack_v14_c140.log`、
   `results/app/verify_pkg_zip_c140.txt`。
+
+## §21 (2026-10-24 07:35) — 巡检无新纠偏条目 + 修掉 `tts_service.py` 两个**真实**生命周期 bug（孤儿 worker 泄漏 + C-101「崩溃自动重启」从未生效）
+
+### 21.0 巡检结论（无新纠偏条目）
+
+- `status/app/CORRECTIONS_APP.md`：`## APP-xxx` 共 **6** 条，最大编号 **APP-006**；
+  SHA256 `dff32b2c96b6ccc02127ef6b258eef73bd0b3d0cd574a3772a5f4063ee7db8cc`（`dff32b2c…7db8cc`）、
+  **17 965 B**、mtime `2026-10-23 12:01:55.742320600 +0800`
+  ⇒ 与 §13/§15/§16/§17/§18/§19/§20 **逐字节一致**（**第 7 次**同一口径复核）。
+- `STATUS_APP.md` 头部 `last_ack: APP-006` ⇒ **本轮需执行 0 条新纠偏条目**；
+  `last_ack` **保持 APP-006 不变**（**没有新条目可 ack**）。
+- 本轮按「巡检无新条目 ⇒ 把遗留的 App 职责内事项补做」执行，闭环了一个**真实承重 bug**（见 21.2）。
+
+### 21.1 🔴🔴 本轮发现并修掉两个**真实**的 `tts_service.py` 生命周期 bug
+
+> 这两个 bug 都在 **App 管辖文件** `live_caption/tts_service.py` 里，
+> 且**都直接影响客户机上的语音输出可用性**。
+> 根因都不是「写得糙」，而是**状态机与进程生命周期的竞态**。
+
+#### ① 孤儿 worker 进程泄漏（`close()` 之后留下一个杀不掉的 TTS 进程）
+
+- **证据（修复前，HEAD = `14d7f28`）**：`results/app/test_tts_cmp_orig.py` 的对照输出
+  —— `[修复前] close() 后实例启动次数=2  n_restart=1`；
+  `results/app/test_tts_close_orphan.py` 的实测输出
+  —— `close() 后新起的 worker 数 = 1`、**`其中仍存活的孤儿 = [25392]`**（`alive=True`）。
+- **根因**（旧 `close()` 的语句顺序错了）：
+  1. `close()` 先发 quit，再 `p.wait(timeout=3)`；
+  2. `p.wait()` 一返回，worker 的 **stdout 就已关闭** ⇒ `_read_loop` 线程立刻醒来；
+  3. 而 `self.state = 'idle'` 写在 `p.wait()` **之后** ⇒ 线程醒来时 `self.state` **仍是 'ready'**
+     ⇒ 判定为「worker 崩溃」⇒ 走 `_on_worker_exit()` ⇒ **自动重启一次**；
+  4. `close()` 返回后 `self.proc` 指向**新起的进程**，它**永远收不到 quit**
+     ⇒ **孤儿 worker 进程**（占着 GPU/NPU + 音频输出流，且没人能再关它）。
+- **危害面**：`live_caption_app.py` 有 **4 条**路径会调 `close()`
+  —— `quit()`（L2417）、`_on_tts_toggled()` 停 TTS（L2253）、
+  `_restart_tts_on_device()` 换设备（L2232）、`_on_tts_voice_changed()` 换音色（L2287）
+  ⇒ **每走一次漏一个孤儿**。用户反复开关语音输出 / 换音色 ⇒ 孤儿越积越多。
+
+#### ② C-101「worker 崩溃自动重启一次」**从未真正生效**（比 ① 更隐蔽、更严重）
+
+- **证据（修复前）**：`results/app/test_tts_restart_nop.py` 输出
+  —— `worker 实例启动次数 = 1`（**期望 ≥2**，即「真的重启了」）
+  —— `「自动重启」真的发生了吗：NO —— 重启被静默跳过`
+  —— `self.proc.poll() = 7`（进程**确实死了**）但 `state = ready`。
+- **根因**：`_on_worker_exit()` 调 `self.start()`，而 `start()` 开头是
+  `if self.proc is not None and self.proc.poll() is None: return`
+  —— Windows 上进程刚死时 **`poll()` 仍返回 `None`**（退出码还没回填）
+  ⇒ `start()` 认为「旧 worker 还活着」⇒ **直接 return ⇒ 重启被静默跳过**。
+- **危害（比 ① 更严重）**：
+  - `state` 停在 **'ready'** ⇒ App / GUI 以为 TTS 一切正常，**底栏不报错**；
+  - 之后每一句 `submit()` 都写进**死进程的 stdin**（`submit()` 不抛异常）
+    ⇒ **语音输出静默消失**，既不报错也不掉状态；
+  - 这与 §15（import 死锁）、§20（stderr 假死）的现象**高度吻合**
+    ⇒ 很可能就是「语音输出偶发失效」类投诉的根因之一。
+
+#### 修复（`live_caption/tts_service.py`，+94 / −15 行）
+
+- **新增 `_closing` 闸门**：`close()` 期间 `_closing=True` ⇒
+  ① `start()` 拒绝起 worker（消除退出竞态）；② `_read_loop` 的
+  `if self.state != 'idle' and not self._closing:` 拦住「主动 close 被当成崩溃」。
+- **重排 `close()` 顺序**：① `_closing=True` → ② `state='idle'` → ③ 发 quit/等/kill
+  → ④ **等 reader 线程收尾**（`join(timeout=1.0)`）⇒ **不再重启、不再留孤儿**。
+- **修 ② 的根因**：`_on_worker_exit(rc, dead_proc)` 里**先把死掉的 proc 从 `self.proc` 摘掉**
+  （`self.proc = None`）⇒ `start()` 的「旧 proc 还活着」判断不再成立 ⇒ **重启真正发生**；
+  同时 `start()` 里补「旧 proc 已死 ⇒ 先 `kill()` 回收管道」。
+- **`rc` 取真值**：`_read_loop` 末尾改用 `proc.wait(timeout=2)` 拿真实退出码
+  （旧代码 `proc.poll()` 常返回 `None` ⇒ 日志里长期是误导性的 `rc=None`）。
+- ⚠️ **未改 C-101 的语义**：「重启一次，再崩就进 error」保持不变（21.3 场景 C 验证）。
+
+### 21.2 ✅ 验收证据（全部用**桩 worker**，不在 CPU 上跑推理）
+
+| 产物 | 大小 | SHA256 | 结论 |
+|---|---|---|---|
+| `results/app/test_tts_close_leak.py` | 2 908 B | `0e653d249e280e57…` | 修复后 **3/3 PASS**（`n_restart=0` / `proc=None` / `state=idle`） |
+| `results/app/test_tts_close_orphan.py` | 2 503 B | `5cb28da4c2af1672…` | 修复后 **PASS —— 无孤儿**（孤儿列表 `[]`，启动次数 = 1） |
+| `results/app/test_tts_restart_nop.py` | 3 234 B | `6406e5c221ef04ae…` | 修复后 **PASS**（实例启动次数 = **2**，`state='error'`，`rc=7` 真值） |
+| `results/app/test_tts_restart_regression.py` | 5 488 B | `f808904dfcc0fadb…` | **9/9 PASS**（A 崩溃⇒重启 / B 闸门复位 / C 连崩⇒error） |
+| `results/app/test_tts_cmp_orig.py` | 4 097 B | `38dbeb2bd4e7eb23…` | **修复前 vs 修复后对照**：D 场景启动次数 **2 → 1**、`n_restart` **1 → 0**；C 场景修复前**同样错**（证明 ② 是**既存 bug**，非本轮引入） |
+| `results/app/test_tts_lifecycle_pkg.py` | 5 636 B | `15ac6b23afc8404f…` | **客户包内那份单独跑** L1~L5 **9/9 PASS** |
+| `results/app/test_tts_stderr.py`（§20 回归） | — | — | **9/9 PASS**（§20 的 stderr 修复**未受影响**） |
+
+- **对照实验设计**：`test_tts_cmp_orig.py` 用 `git show HEAD:live_caption/tts_service.py`
+  取出**修复前**的模块，与修复后的模块**并排跑同一套桩 worker 场景**
+  ⇒ 证明「D 场景（孤儿）是本轮修掉的」，而「C 场景（重启被跳过）**修复前也一样错**」
+  ⇒ ② 是**独立既存 bug**，本轮一并修掉，**不是回归**。
+
+### 21.3 ✅ 客户包定点同步（**定点替换 + 唯一命中断言**，禁整目录覆盖）
+
+- 新增 `live_caption/sync_c141_to_pkg.py`（**17 961 B** / `07:13` / SHA `b93218105c003aa3…`）：
+  **5 个定点替换块**（`P1-init-closing-gate` / `P2-start-guard` / `P3-reader-threads` /
+  `P4-read-loop-wait-rc` / `P5-close-order`），每个都 **唯一命中（`count == 1`）**才替换；
+  备份在**包外** `C:\Users\Trekker-PTL\pkg_backup_app014\`
+  （`Confucius4_LiveCaption_v1.4_tts_service.py.20261024_071336.bak`）。
+- 同步结果（`results/app/sync_c141_report.json`）：
+  包内 SHA `9ece6694b7065f8e…` → **`c4e5e7ff99d5a9b0…`**，
+  字节 18 184 → **23 055**，mtime `07:13:36`；
+  `与仓库逐字相同(归一化换行): **True**`。
+- **幂等性**：复跑 ⇒ `already_synced`（5 块全部 `already`）。
+  ⚠️ 踩坑并修掉：某些 OLD 块是 NEW 的**子串**（追加型）⇒ 不能用「OLD 不在包里」判幂等
+  ⇒ 改为**逐块判定、NEW 优先**。
+- **仓库 ⇄ 包目录 16/16 代码等价**（`diff <(tr -d '\r' …)` 归一化换行后逐文件比对）。
+- `tts_service.py` 三方 SHA256 **完全一致**：
+  仓库 `c4e5e7ff99d5a9b0…` = 包目录 `c4e5e7ff99d5a9b0…` = **交付 zip 内** `c4e5e7ff99d5a9b0…`（23 055 B）。
+
+### 21.4 ✅ 重打 v1.4 zip + 重发 FTP（铁律「改包目录 ≠ 交付客户」）
+
+- `--dry-run` 先跑（**不持锁**，只读）：内部素材闸门 **0 个命中** ⇒ `结论：PASS（dry-run，未写 zip）`。
+- 正式打包（**持共享机器锁** `app-pack` pid 38296 / started `2026-10-24 07:16:07`）：
+  - **文件数 13 978**、原始字节 **13 667 879 625**、压缩后 **11 216 037 274**（10.45 GB）、压缩率 **82.1%**、耗时 **597 s**；
+  - `testzip()` ⇒ `Everything is Ok`；
+  - MANIFEST `version = 1.4` / `files = 13977` / `bytes = 13667862463`
+    （zip 条目 13 977 = MANIFEST files 13 977；原始体积 = MANIFEST bytes + MANIFEST 自身 17 162）；
+  - **内容一致性校验 PASS**（zip ⇄ 包目录逐文件 SHA256，比对 13 978 个文件全部逐字节一致），
+    `md5=35cae2f6217f9e6b22cbb411be948e91`；
+  - 产物：`results/app/pack_v14_c141.log`。
+- **独立复核**（`live_caption/verify_pkg_zip.py --pkg …`，`--pkg` 必填）：
+  `results/app/verify_pkg_zip_c141.txt` ⇒
+  `[1] zip ⇄ 包目录：比对 13978 个文件 → ✓ 全部逐字节一致`、
+  `[2] 仓库 ⇄ 包目录：一致 16 / 不一致 0` ⇒ **结论：PASS**。
+- 🔴 **FTP 副本是独立副本**（inode 不同、link count = 1，**非硬链接**）⇒ 必须**重新复制**。
+  本轮新增 `publish_ftp.py`（**7 104 B** / `07:31` / SHA `41eb012d3ee5a3d5…`）做这件事：
+  **持共享机器锁**（`app-ftppub`）⇒ 流式复制到**临时名再原子改名**（FTP 端不会看到半截文件）
+  ⇒ **复制后双向 SHA256 校验**。
+  - 复制：11 216 037 274 B / **9.4 s**（1 133.3 MB/s）；
+  - 源 SHA `fef91755f86ca750…` = 副本 SHA `fef91755f86ca750…` ⇒ **PASS**；
+  - 复跑 `--check` ⇒ **PASS —— FTP 副本与源一致**；
+  - 产物：`results/app/publish_ftp_c141.log`。
+
+### 21.5 🔴 顺带说明本轮新增 `publish_ftp.py` 的动机
+
+- 长期记忆铁律写的是「FTP_Share 里的 v1.4 zip 是独立副本 ⇒ 源 zip 重打后**必须重新复制**」，
+  但**仓库里没有任何脚本干这件事** ⇒ 前几轮都是手工 `cp`（不可复现、无校验、不持锁）。
+- 本轮把它脚本化：**持锁 + 自动发现最大版本 + 流式复制 + 原子改名 + SHA256 双向校验**。
+  ⇒ 以后「重打 zip ⇒ 发布 FTP」是一条**可复现、有证据**的固定动作。
+
+### 21.6 本轮纪律声明
+
+- ✅ **未执行任何新纠偏条目**（最大编号 APP-006 = `last_ack`）⇒ **`last_ack` 保持 APP-006**。
+- ✅ **未推进 APP-006 第 3~7 步**（历史改写 + force push）—— §11.2 清单仍**等 reviewer 复核**，
+  **本轮按纪律停下**（该条明确写了「这一步需要停下来等 reviewer」）。
+- ✅ **未在 CPU 上跑推理/测速** —— 本轮全部自测都用**桩 worker**（纯 stdio），
+  **没有起真 TTS worker**，更没有跑 NPU/GPU 推理。
+  ⚠️ 唯一的机器锁使用是**打包**（`app-pack`）与 **FTP 复制**（`app-ftppub`）两个长时重活。
+- ✅ **未调用 MiniMax**（质量判定仍交 reviewer）。
+- ✅ **未整目录覆盖**同步客户包 —— 只用 `sync_c141_to_pkg.py` 的**定点替换 + 唯一命中断言**。
+- ✅ **未修改 `status/app/CORRECTIONS_APP.md`**（reviewer 独占，只读）。
+- ✅ **未吞**其它模块的改动：工作区里 `live_caption/translator.py`（**MT 管辖**）、
+  `status/CORRECTIONS.md`（C 编号已冻结）、`status/app/CORRECTIONS_APP.md`（reviewer 独占）
+  **均未入库**；`live_caption/diag_c111_*.py`、`live_caption/diag_punct_*.py`（**MT 会话产物**）
+  **未入库**。
+- 🔴 **并发会话**：本轮期间工作区持续有并行会话产物（`live_caption/diag_c111_*`、
+  `live_caption/diag_punct_*`、`results/app/tr_*.patch` 等）⇒ 提交时**逐文件 `git add`**，不用 `-A`。
+- ⚠️ **本轮新增的未跟踪文件**（App 职责内，本轮入库）：
+  `live_caption/sync_c141_to_pkg.py`、`publish_ftp.py`、
+  `results/app/test_tts_close_leak.py`、`results/app/test_tts_close_orphan.py`、
+  `results/app/test_tts_restart_regression.py`、`results/app/test_tts_restart_nop.py`、
+  `results/app/test_tts_cmp_orig.py`、`results/app/test_tts_lifecycle_pkg.py`、
+  `results/app/sync_c141_report.json`、`results/app/pack_v14_c141.log`、
+  `results/app/verify_pkg_zip_c141.txt`、`results/app/publish_ftp_c141.log`。
+  （`results/app/_orig_mod/` 是对照实验的**临时产物**，已随脚本清理，不入库。）

@@ -82,6 +82,17 @@ class TTSService:
         self.err = None
         self.n_restart = 0             # worker 崩溃重启次数（C-101：最多 1 次）
         self._restarted = False
+        # 🔴 2026-10-24 §21 修：`_closing` 闸门 —— `close()` 期间**禁止重启 worker**。
+        #   起因：旧 `close()` 把 `self.state = 'idle'` 放在 `p.wait()` **之后**，
+        #   而 `p.wait()` 一返回，stdout 就已关闭 ⇒ `_read_loop` 线程醒来时
+        #   `self.state` 仍是 'ready' ⇒ 走 `_on_worker_exit()` ⇒ **自动重启一次**
+        #   ⇒ `close()` 返回后 `self.proc` 指向**新进程**，它永远收不到 quit
+        #   ⇒ **孤儿 worker 进程泄漏**（占着 GPU/NPU + 音频输出流）。
+        #   实测（`results/app/test_tts_close_orphan.py`）：close() 后多起 1 个
+        #   worker 且**仍存活**。GUI 的 quit / 停 TTS / 换设备 / 换音色 4 条路径
+        #   都会调 `close()` ⇒ 每次都漏一个孤儿。
+        self._closing = False
+        self._reader_threads: List = []
 
         # 统计
         self.first_packet_s: Optional[float] = None   # 首包延迟
@@ -110,8 +121,21 @@ class TTSService:
     def start(self):
         """起 worker 进程。"""
         with self.lock:
+            # 🔴 §21：`close()` 期间（`_closing=True`）**不允许起 worker**。
+            #   否则 close() 与退出竞态时会把刚起的 worker 立刻丢掉 ⇒ 又一个孤儿。
+            if self._closing:
+                self.on_log('[TTS] 正在关闭，跳过 worker 启动')
+                return
             if self.proc is not None and self.proc.poll() is None:
                 return
+            # 🔴 §21：旧 proc 已死（poll 有退出码）⇒ 必须先回收它的管道，
+            #   否则它的 reader 线程还挂着（daemon 线程会一直占着 fd）。
+            if self.proc is not None:
+                try:
+                    self.proc.kill()
+                except Exception:
+                    pass
+                self.proc = None
             self.state = 'loading'
             self.err = None
             env = dict(os.environ)
@@ -159,6 +183,7 @@ class TTSService:
         #      而 stdout 的行是稀疏的 ⇒ stderr 会一直堵着没人读。
         t2 = threading.Thread(target=self._read_stderr_loop, args=(proc,), daemon=True)
         t2.start()
+        self._reader_threads = [t, t2]
 
     def _read_stderr_loop(self, proc):
         """把 worker 的 stderr 逐行转给 `on_log`（不再静默丢弃）。"""
@@ -193,40 +218,94 @@ class TTSService:
         except Exception:
             pass
         # stdout 关闭 = worker 退出
-        rc = proc.poll()
-        if self.state != 'idle':
-            self._on_worker_exit(rc)
+        # 🔴 §21：`poll()` 在进程刚死时可能仍返回 None（Windows 上退出码还没回填）
+        #   ⇒ 旧代码把 `rc=None` 记进日志，且**判断不到「真的死了」**。
+        #   这里显式 `wait()` 拿到真实退出码。
+        try:
+            rc = proc.wait(timeout=2)
+        except Exception:
+            rc = proc.poll()
+        # 🔴 §21：只有「**不是**主动 close 导致的退出」才走重启路径。
+        #   主动 close 时 `_closing=True` ⇒ 不重启（否则就是孤儿泄漏）。
+        if self.state != 'idle' and not self._closing:
+            self._on_worker_exit(rc, proc)
 
-    def _on_worker_exit(self, rc):
+    def _on_worker_exit(self, rc, dead_proc=None):
         """worker 崩溃：C-101 要求自动重启一次；再崩就报错（不影响字幕翻译）。"""
         if self._restarted:
             self.state = 'error'
             self.err = RuntimeError(f'TTS worker 退出（rc={rc}），已重启过一次仍失败')
             self.on_log(f'[TTS] worker 再次退出（rc={rc}），不再重启；语音输出已停用')
             return
+        # 🔴🔴 §21：**必须先把死掉的 proc 从 `self.proc` 上摘掉**，否则
+        #   `start()` 开头那句
+        #       if self.proc is not None and self.proc.poll() is None: return
+        #   会看到「旧 proc 还活着」（Windows 上 poll 还没更新）⇒ **直接 return**
+        #   ⇒ C-101 要求的「崩溃自动重启一次」**从未真正生效**（实测：
+        #   `results/app/test_tts_restart_nop.py` ⇒ worker 实例启动次数 = 1）。
+        #   后果更糟：`state` 停在 'ready' ⇒ App 以为 TTS 正常
+        #   ⇒ 之后每句 `submit()` 都写进**死进程的 stdin** ⇒ **语音输出静默消失**，
+        #   不报错、不掉状态（与 §15/§20 的现象高度吻合）。
+        with self.lock:
+            if dead_proc is not None and self.proc is dead_proc:
+                self.proc = None
         self._restarted = True
         self.n_restart += 1
         self.on_log(f'[TTS] worker 退出（rc={rc}），自动重启一次')
         self.start()
 
     def close(self):
+        """关闭 TTS worker（**必须真正关掉，不留孤儿进程**）。
+
+        🔴 2026-10-24 §21 修（**孤儿 worker 进程泄漏**）：
+        旧实现的顺序错了 —— `self.state = 'idle'` 放在 `p.wait()` **之后**，
+        而 `p.wait()` 一返回，stdout 已关闭 ⇒ `_read_loop` 线程醒来时
+        `self.state` 仍是 'ready' ⇒ 判定为「worker 崩溃」⇒ `_on_worker_exit()`
+        ⇒ **自动重启一次** ⇒ `close()` 返回后 `self.proc` 指向**新进程**，
+        它永远收不到 quit ⇒ **孤儿进程**（占 GPU/NPU + 音频输出流）。
+        实测：`results/app/test_tts_close_orphan.py` ⇒ close() 后多起 1 个
+        worker 且**仍存活**。GUI 有 4 条路径会调 `close()`（quit / 停 TTS /
+        换设备 / 换音色）⇒ 每走一次漏一个孤儿。
+
+        新顺序：
+          ① `_closing = True`（闸门：禁止 `start()` 重启）；
+          ② `state = 'idle'`（让 `_read_loop` 的 `state != 'idle'` 判断为假）；
+          ③ 发 quit → 等 → kill；
+          ④ **再等 reader 线程收尾**（避免它们还持有旧 proc 的管道）。
+        """
         with self.lock:
+            self._closing = True
             p = self.proc
             self.proc = None
-        if p is not None:
-            try:
-                p.stdin.write(json.dumps({'cmd': 'quit'}) + '\n')
-                p.stdin.flush()
-            except Exception:
-                pass
-            try:
-                p.wait(timeout=3)
-            except Exception:
+            self.state = 'idle'
+        try:
+            if p is not None:
                 try:
-                    p.kill()
+                    p.stdin.write(json.dumps({'cmd': 'quit'}) + '\n')
+                    p.stdin.flush()
                 except Exception:
                     pass
-        self.state = 'idle'
+                try:
+                    p.wait(timeout=3)
+                except Exception:
+                    try:
+                        p.kill()
+                    except Exception:
+                        pass
+                    try:
+                        p.wait(timeout=2)
+                    except Exception:
+                        pass
+            # 等 reader 线程收尾（它们读的是旧 proc 的管道）
+            for th in list(self._reader_threads):
+                try:
+                    th.join(timeout=1.0)
+                except Exception:
+                    pass
+            self._reader_threads = []
+        finally:
+            with self.lock:
+                self._closing = False
 
     # -- 提交 ------------------------------------------------------------
     def submit(self, text: str, seg: Optional[int] = None):
