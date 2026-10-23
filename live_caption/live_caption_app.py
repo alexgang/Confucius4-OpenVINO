@@ -68,6 +68,7 @@ PKG_ROOT = os.path.dirname(APP_DIR)
 from translator import (MT_DEFAULT, MT_ALL_CANDIDATES, MT_ENGINES, TARGETS,
                         TARGET_LABELS, TranslationService, mt_available,
                         prewarm_transformers, split_sentences)
+import device_config
 import audio_source
 from audio_source import (BLOCK_MS, SR, default_output_device_id,
                           list_input_devices, list_output_devices, make_source,
@@ -145,6 +146,87 @@ SILENCE_DB = -40.0
 # 阈值 200ms：30ms 帧 + 10ms hop → 20 帧。低于此值的「语音」是噪声突发。
 SEG_SPEECH_FRAME_DB = -35.0
 SEG_MIN_SPEECH_RUN_MS = int(os.environ.get('LIVECAP_MIN_SPEECH_RUN_MS', '200'))
+
+# ── 相对判据（2026-10-23 §10）─────────────────────────────────────
+# 背景：上面两个阈值（静音 -40dBFS、语音 -35dBFS）都是**绝对 dBFS**，
+# 与实际输入电平/背景声无关。实测有**两种**失效模式：
+#
+#   (a) 电平偏低（麦克风）：帧能量整体低 → 语音守卫恒 False
+#       → 在 due() 最前面短路 → 只剩 20s 硬切（实测 20.48s 一段）。
+#   (b) 持续背景声（视频回环）：噪声把底噪撑到 -40dBFS 以上
+#       → 永远「没有静音」→ 规则2/规则1 都不触发 → 只剩 20s 硬切。
+#
+# 用户实测场景是 (b)：WASAPI 回环采 B 站视频，帧 dB p50=-21.8 / p90=-13.9，
+# 低于 -40dB 的帧只占 12.2%，逐 2 秒窗口最长连续静音 0.00~0.43s
+# ⇒ 绝对 -40dBFS 永远判不出静音 ⇒ 定稿间隔恒为 20.48s。
+#
+# 改法：判据**相对化** —— 锚定到「这一段自己的说话电平」（段内 30ms 帧
+# 能量 p90），而不是全局绝对值。真实回环 120s 上离线模拟：
+#   绝对 -40dBFS（现状）  8 段 4 硬切 p50=17.28 >12s 62.5%
+#   相对 p90-12dB         16 段 0 硬切 p50= 6.40 >12s  6.2%   ← 采用
+#   相对 p90-18dB         12 段 1 硬切 p50= 7.04 >12s 25.0%
+# 真实演讲 12 分钟交叉验证不劣化：
+#   现状   108 段 0 硬切 0 空段 p50=6.40 max=11.52 >12s 0%
+#   相对   110 段 0 硬切 0 空段 p50=6.40 max=10.88 >12s 0%
+#
+# ⚠️ 否定结论（§9.4 实测）：「绝对 ∪ 相对（取 min）」在回环上**无效**
+#   —— 绝对 -40dBFS 恒比相对值更严格，取 min 仍等于绝对 ⇒ 必须**只取相对**。
+#   所以下面 SIL_REL 是**替换**关系，不是 C-105 保护期那种「并集放宽」。
+SIL_REL_ENABLED = os.environ.get('LIVECAP_SIL_REL', '1') == '1'
+# 静音门限比段内语音电平低多少 dB 仍算「静音」。
+SIL_REL_DROP_DB = float(os.environ.get('LIVECAP_SIL_REL_DROP', '12'))
+# 段内 p90 低于此绝对值时说明这段基本是噪声/数字静音，
+# 相对判据不可用 ⇒ 退回绝对阈值（防止回环无播放时的全零被误判成静音）。
+SIL_REL_MIN_SPEECH_DB = float(os.environ.get('LIVECAP_SIL_REL_MIN_SPEECH', '-60'))
+# 静音门限的组合方式：
+#   'max' —— 取 max(相对, 绝对)，即**取更宽松**的那个门限（门限越高越多帧算静音）。
+#            安静输入（段内 p90 低）时绝对 -40dBFS 更宽松 ⇒ 旧行为不变；
+#            背景声输入（段内 p90 高）时相对门限更高 ⇒ 相对判据生效。
+#   'rel' —— 只用相对门限（严格按 §9.4 实测结论）。
+#   'abs' —— 只用绝对门限（= 关闭相对化，用于 A/B 回退）。
+SIL_REL_MODE = os.environ.get('LIVECAP_SIL_REL_MODE', 'max').lower()
+
+# 语音守卫的相对分支（解决失效模式 (a)：麦克风电平偏低）。
+# 绝对分支（> -35dBFS 连续 200ms）保留为**一票通过**，相对分支与之**取并集**
+# —— 只放宽不收紧，保证基线行为不退化。
+SPK_REL_ENABLED = os.environ.get('LIVECAP_SPK_REL', '1') == '1'
+# 语音帧比段内 p90 低多少 dB 仍算「语音」。
+SPK_REL_DROP_DB = float(os.environ.get('LIVECAP_SPK_REL_DROP', '18'))
+# 同上：段内 p90 低于此值就不用相对分支（纯噪声/数字静音段）。
+SPK_REL_MIN_SPEECH_DB = float(os.environ.get('LIVECAP_SPK_REL_MIN_SPEECH', '-60'))
+# 相对分支的**绝对地板**：语音帧还必须高于此 dBFS，
+# 否则纯噪声段（全零回环 / 数字静音）会被相对判据当成语音而误放行。
+SPK_REL_FLOOR_DB = float(os.environ.get('LIVECAP_SPK_REL_FLOOR', '-70'))
+
+# 「空段拒切」的**相对**语音覆盖率下限。
+#
+# 为什么需要（2026-10-23 §10 实测发现）：
+#   静音门限相对化后门限被**抬高**（真实演讲上从绝对 -40dBFS 抬到 -35~-39dB），
+#   会把「安静但连续」的一小段提前切出来 ——
+#   实测 12 分钟真实演讲：基线空段 0，新判据空段 2
+#   （典型段：1.28s，其中 1.08s 是静音、只有 3 帧超过 -35dBFS）。
+#   ASR 会对这种段产出一句无意义内容（C-106 记录过同类问题）。
+#
+# 为什么用**相对**覆盖率（帧 > 段内 p90 − SPK_REL_DROP_DB 的占比）
+# 而不是 C-108 的绝对口径（帧 > -35dBFS 的占比）：
+#
+#   绝对口径在低电平麦克风场景**不可用** —— 实测 gain=0.3 的正常说话段
+#   绝对语音占比只有 0.8%~6%（那**是真的说话**），用它拒切会把低电平
+#   场景打死（实测 >12s 从 0% 退化到 23.4%）。
+#   「静音占比」（帧 ≤ -40dBFS）同样是绝对口径，低电平时底噪本身就在
+#   -40dBFS 以下 ⇒ 会被误判成全静音 ⇒ 同样出问题。
+#
+#   ⇒ 绝对电平口径**在原理上**无法区分「轻声说话」与「安静」：
+#      把增益调低 10dB 后二者不可分辨。相对口径则与电平无关。
+#
+# 实测区分度（12 分钟真实演讲，真实 due() 产生的段）：
+#   真空段（gain=1.0，2 个）：相对覆盖率 0.317 / 0.379
+#   正常段 gain=1.0/0.5/0.3/0.1：全部 ≥ 0.425
+#   ⇒ 阈值 0.40 能干净分开。
+#
+# 附加放行：段内 p90 ≤ SPK_REL_MIN_SPEECH_DB(-60dBFS) ⇒ 整段极弱
+#   （纯底噪 / 数字静音 / 回环无播放时的全零）→ 不拒切。
+SEG_MIN_REL_COVER = float(os.environ.get('LIVECAP_MIN_REL_COVER', '0.40'))
 
 # ── 保护期判据（C-105：改用相对阈值）────────────────────────────
 # 保护期本来是防「刚开口的爆破音（/b/ /p/）能量低，被静音检测误判成
@@ -323,7 +405,135 @@ ENGINES = {
 }
 
 
-# ── ASR 识别语种（用户可选）──────────────────────────────────────────
+# ── 「设备 + 精度」组合选项（APP-007：三个分区各一个下拉）────────────
+# 用户决策：每个分区**只保留一个「设备+精度」组合下拉**，不再有独立的
+# 设备下拉（原来的「推理设备」行把三个下拉挤在一行，且 ASR/MT 的后端下拉
+# 标签里本来就含设备名 ⇒ 语义重叠）。
+#
+# 选项 id 约定：ASR/翻译 = '{engine_key}@{device}'，语音 = '{device}@{precision}'
+# ⇒ id 唯一可反查；label 供人读。
+# ⚠️ label 必须**全局唯一**（GUI 靠 label 反查 engine/device）。
+ASR_PRECISION = {
+    'gpu_int8': 'INT8', 'gpu_int4': 'INT4',
+    'npu_int8': 'INT8', 'npu_int4': 'INT4',
+    'cuda_q8': 'Q8_0', 'cuda_q4': 'Q4_K',
+}
+MT_PRECISION = {
+    'gpu_int8cw': 'INT8-CW', 'gpu_int4cw': 'INT4-CW',
+    'npu_int8cw': 'INT8-CW', 'npu_int4cw': 'INT4-CW',
+}
+# ⚠️ TTS 的 precision 是 **OV 推理精度 f32/f16**，不是量化位宽
+#    （见 tts_service.py::TTSService.precision）。
+TTS_PRECISIONS = ('f32', 'f16')
+
+
+def _asr_ir_ready(cfg):
+    """该 ASR 档的 IR（编码器 + 解码器）在本机是否齐全。
+
+    ⚠️ 这是「选了 CPU 但只有 INT8 IR」这类过滤的依据：
+       本机没有 INT4 的 IR ⇒ **不出现 INT4 选项**（而不是选完再报错）。
+    """
+    try:
+        return (os.path.isdir(_model_path(cfg['enc']))
+                and os.path.isdir(_model_path(cfg['dec'])))
+    except Exception:
+        return False
+
+
+def build_asr_options(devices):
+    """ASR 分区的「设备+精度」组合选项。
+
+    返回 ``[{'id','label','engine','device','precision','note','fixed'}]``。
+
+    ⚠️ 三种 kind 的处理**完全不同**（这是本设计最易错的地方）：
+    - kind=='ov'（gpu_int8/gpu_int4）：设备**可覆盖** ⇒ 与本机可用设备
+      求交集逐个生成；但 **排除 NPU**（NPU 由 kind=='npu' 的 all-NPU
+      交付后端承担，两条路会争用设备）。
+    - kind=='npu'（npu_int8/npu_int4）：**设备写死 NPU**，不可覆盖
+      （make_engine 注释明确「不接受覆盖」）。
+    - kind=='cuda'（cuda_q8/cuda_q4）：另一种 kind（audio.cpp），
+      设备概念不同 ⇒ 单列一条，标注 CUDA。
+    """
+    out = []
+    for key, cfg in ENGINES.items():
+        prec = ASR_PRECISION.get(key, 'INT8')
+        note = cfg.get('note', '')
+        if cfg['kind'] == 'cuda':
+            out.append(dict(id=f'{key}@CUDA',
+                            label=f'NVIDIA GPU（CUDA） · {prec}',
+                            engine=key, device='CUDA', precision=prec,
+                            fixed=True, note=note))
+            continue
+        if not _asr_ir_ready(cfg):
+            continue                       # 本机缺该精度的 IR ⇒ 不出现
+        if cfg['kind'] == 'npu':
+            out.append(dict(id=f'{key}@NPU',
+                            label=f'Intel NPU · {prec}',
+                            engine=key, device='NPU', precision=prec,
+                            fixed=True, note=note))
+            continue
+        for dev in devices:
+            if str(dev).upper() == 'NPU':
+                continue                   # NPU 归 kind=='npu' 那条路
+            out.append(dict(id=f'{key}@{dev}',
+                            label=f'{device_config.device_label(dev)} · {prec}',
+                            engine=key, device=dev, precision=prec,
+                            fixed=False, note=note))
+    return out
+
+
+def build_mt_options(devices):
+    """翻译分区的「设备+量化」组合选项。
+
+    翻译模型（Hy-MT2 INT8/INT4-CW）**GPU / NPU 通吃**（per-channel 产物，
+    见 translator.py 的实测结论）⇒ 设备可自由选，与量化组合成笛卡尔积。
+
+    🔴 **label 必须全局唯一**（GUI 靠 label 反查 engine/device）。
+    MT_ENGINES 里 ``gpu_int8cw`` 与 ``npu_int8cw`` 指的是**同一个模型目录**
+    （mt2-int8sym-cw-q），只是 engine 默认设备不同 ⇒ 若按 engine × device
+    展开，``gpu_int8cw@GPU.0`` 与 ``npu_int8cw@GPU.0`` 会得到**同一个 label**
+    「Intel GPU（集显） · INT8-CW」⇒ 反查会取错引擎。
+    ⇒ **以「量化」为维度**展开（INT8-CW / INT4-CW 两档），
+    engine key 取该档里已注册（模型目录在本机）的那个。
+    ``set_engine`` 会把 device 重置成 engine 默认值，随后 ``set_device``
+    再纠正回用户选的设备（顺序铁律，见 ``App._on_mt_combo_changed``）。
+
+    ⚠️ **'auto' 不出现在下拉里**（用户决策）：'auto' 的 device 是 None，
+    语义上不是「某个设备 × 某个量化」。启动时把 auto **解析成实际模型键**
+    （见 ``App._resolve_mt_engine_key``）再显示。
+    """
+    out = []
+    for dev in devices:
+        for quant, engines in (('INT8-CW', ('gpu_int8cw', 'npu_int8cw')),
+                               ('INT4-CW', ('gpu_int4cw', 'npu_int4cw'))):
+            key = next((k for k in engines if k in MT_ENGINES), None)
+            if key is None:
+                continue                   # 该量化的模型目录不在本机 ⇒ 不出现
+            cfg = MT_ENGINES[key]
+            out.append(dict(id=f'{quant}@{dev}',
+                            label=f'{device_config.device_label(dev)} · {quant}',
+                            engine=key, device=dev, precision=quant,
+                            fixed=False, note=cfg.get('note', '')))
+    return out
+
+
+def build_tts_options(devices):
+    """语音分区的「设备+精度」组合选项。
+
+    ⚠️ 这里的 precision 是 **OV 推理精度 f32/f16**，不是量化位宽。
+    过滤规则：``device_config.check_precision`` —— **NPU 不支持 f32**
+    （PRECISION_UNSUPPORTED = {'NPU': ('f32',)}）。
+    """
+    out = []
+    for dev in devices:
+        for prec in TTS_PRECISIONS:
+            if device_config.check_precision(dev, prec):
+                continue                   # 例如 NPU + f32 ⇒ 不出现
+            out.append(dict(id=f'{dev}@{prec}',
+                            label=f'{device_config.device_label(dev)} · {prec.upper()}',
+                            device=dev, precision=prec, fixed=False, note=''))
+    return out
+
 # Qwen3-ASR 模型内置 support_languages（见 models/hf/config.json），
 # 这里列出全部 30 种。值必须是模型认识的**英文名**（不是 ISO 代码），
 # 因为它会被拼进 prompt 后缀「language {name}<asr_text>」。
@@ -445,20 +655,108 @@ class Segmenter:
         if not self._has_speech(acc):
             return False
         # 规则 2：静音超时（优先判定，短段靠它出定稿）
+        # ★ 2026-10-23 §10：加一道「空段拒切」防护 —— 静音门限抬高会切出
+        # 「安静但连续」的短段（实测 1.28s 段里 1.08s 是静音）
+        # ⇒ ASR 会产出一句无意义内容。拒切后段继续累积，仍可走规则1。
         if self._silence_tail(acc):
-            return True
+            if self._speech_ratio_ok(acc):
+                return True
         # 规则 1：常规规则
         if dur < MIN_SEG_SEC:
             return False
+        if not self._speech_ratio_ok(acc):
+            return False
         start = max(0, int((dur - SIL_LOOKBACK_SEC) * SR))
+        # ★ 2026-10-23 §10：静音门限**相对化**（原来这里是硬编码 -40.0）
+        sil_db = self._silence_threshold(acc)
         return self._find(acc, start_sample=start, end_sample=n,
-                          silence_db=-40.0, min_silence_ms=300) is not None
+                          silence_db=sil_db, min_silence_ms=300) is not None
+
+    # ── 相对门限（2026-10-23 §10）────────────────────────────────
+    def _speech_ratio_ok(self, acc):
+        """空段拒切：这一段是否含有**足够的语音覆盖**（§10，相对口径）。
+
+        判据（**相对**，与输入电平无关）：
+          * 语音门限 = 段内 p90 − ``SPK_REL_DROP_DB``(18dB)
+          * 语音覆盖率 = 帧 > 该门限的占比
+          * 覆盖率 ≥ ``SEG_MIN_REL_COVER``(40%) → 放行
+          * 段内 p90 ≤ ``SPK_REL_MIN_SPEECH_DB``(-60dBFS)
+            ⇒ 整段极弱（纯底噪 / 数字静音）→ 放行
+          * 否则拒切（段继续累积）
+
+        为什么必须相对化：绝对电平口径**在原理上**无法区分
+        「轻声说话」与「安静」——把增益调低 10dB 后二者不可分辨。
+        实测绝对语音占比在 gain=0.3 的正常段只有 0.8%~6%，
+        用它拒切会把麦克风场景打死（>12s 从 0% 退化到 23.4%）。
+
+        实测区分度（12 分钟真实演讲，真实 due() 产生的段）：
+          真空段（gain=1.0，2 个）：相对覆盖率 0.317 / 0.379
+          正常段（gain=1.0 / 0.5 / 0.3 / 0.1）：全部 ≥ 0.425
+        ⇒ 阈值 0.40 能干净分开。
+        """
+        if SEG_MIN_REL_COVER <= 0:
+            return True
+        f = _frame_db_series(acc)
+        if f.size == 0:
+            return True
+        p90 = float(np.percentile(f, 90))
+        if p90 <= SPK_REL_MIN_SPEECH_DB:
+            return True                    # 整段极弱 → 放行
+        thr = max(p90 - SPK_REL_DROP_DB, SPK_REL_FLOOR_DB)
+        cover = float((f > thr).mean())
+        return cover >= SEG_MIN_REL_COVER
+
+    def _silence_threshold(self, acc):
+        """本段的静音门限（dBFS），锚定到「这一段自己的说话电平」。
+
+        旧行为是常量 ``SILENCE_DB``(-40dBFS)，**绝对**阈值。它在两种
+        场景下失效（实测见 STATUS §9）：
+
+        * 持续背景声（视频回环）：底噪被撑到 -40dBFS 以上 ⇒ 永远
+          判不出静音 ⇒ 规则1/规则2 都不触发 ⇒ 只剩 20s 硬切。
+        * 电平偏低（麦克风）：见 ``_has_speech``。
+
+        新判据：``silence_db = 段内 30ms 帧能量 p90 - SIL_REL_DROP_DB``
+        （默认 -12dB）。
+
+        ⚠️ 与 C-105 保护期的「绝对 ∪ 相对」**方向相反**：那里是
+        「只放宽不收紧」，这里必须**只取相对** —— 因为绝对 -40dBFS
+        恒比相对值更严格，取 min/取严 会退回绝对判据、在回环上完全
+        无效（实测 62.5% 的间隔仍 >12s，与现状逐位相同）。
+        """
+        if not SIL_REL_ENABLED:
+            return SILENCE_DB
+        f = _frame_db_series(acc)
+        if f.size == 0:
+            return SILENCE_DB
+        p90 = float(np.percentile(f, 90))
+        if p90 < SIL_REL_MIN_SPEECH_DB:
+            # 数字静音（回环无播放时全零，帧 dB max=-119dB）或纯噪声段
+            # → 相对判据不可用，退回绝对阈值。
+            return SILENCE_DB
+        rel = p90 - SIL_REL_DROP_DB
+        if SIL_REL_MODE == 'max':
+            # 混合模式：取两者中**更宽松**（门限更高 = 更多帧算静音）。
+            # 安静输入（p90 低）时绝对判据更宽松 → 保留旧行为；
+            # 背景声输入时相对判据更宽松 → 相对判据生效。
+            return max(rel, SILENCE_DB)
+        return rel
 
     def _has_speech(self, acc):
-        """段内是否存在「成段的连续语音」（C-108 空段守卫）。
+        """段内是否存在「成段的连续语音」（C-108 空段守卫 + §10 相对分支）。
 
-        判据：30ms 帧能量连续 ≥ ``SEG_MIN_SPEECH_RUN_MS``(200ms) 的帧
+        **绝对分支**（旧行为，保留为**一票通过**）：
+        30ms 帧能量连续 ≥ ``SEG_MIN_SPEECH_RUN_MS``(200ms) 的帧
         都高于 ``SEG_SPEECH_FRAME_DB``(-35dB)。
+
+        **相对分支**（2026-10-23 §10 新增）：解决「电平偏低」失效模式 ——
+        麦克风电平整体偏低时（如增益 0.3），绝对阈值 -35dBFS 永远达不到
+        ⇒ 守卫恒 False ⇒ 在 ``due()`` 最前面短路 ⇒ 只剩 20s 硬切
+        （实测 100% 的间隔 = 20.48s）。相对分支把判据锚定到段内 p90：
+        ``v > p90 - SPK_REL_DROP_DB``（默认 -18dB），且帧还要高于
+        ``SPK_REL_FLOOR_DB``（绝对地板，防止纯噪声被当成语音）。
+
+        两分支取**并集**（只放宽不收紧）⇒ 基线行为不会退化。
 
         为什么要连续而不是看电平：单个噪声突发（9 帧连续 -36dB）就能把
         「段内 p90 电平」拉到 -40dB 以上，让基于电平的判据误放行；
@@ -470,9 +768,25 @@ class Segmenter:
         if f.size == 0:
             return False
         need = max(1, SEG_MIN_SPEECH_RUN_MS // 10)   # hop 10ms
+        # 绝对分支（一票通过）
         run = 0
         for v in f:
             if v > SEG_SPEECH_FRAME_DB:
+                run += 1
+                if run >= need:
+                    return True
+            else:
+                run = 0
+        # 相对分支
+        if not SPK_REL_ENABLED:
+            return False
+        p90 = float(np.percentile(f, 90))
+        if p90 < SPK_REL_MIN_SPEECH_DB:
+            return False                      # 数字静音/纯噪声段
+        thr = max(p90 - SPK_REL_DROP_DB, SPK_REL_FLOOR_DB)
+        run = 0
+        for v in f:
+            if v > thr:
                 run += 1
                 if run >= need:
                     return True
@@ -509,8 +823,10 @@ class Segmenter:
         # 窗口要比判定阈值再宽一点，保证「末尾静音」完整落在窗口里
         win = int(SR * (SILENCE_CUT_SEC + SILENCE_TAIL_GUARD_SEC + 0.5))
         start = max(0, n - win)
+        # ★ 2026-10-23 §10：静音门限相对化（与 due() 规则1 共用同一门限）
+        sil_db = self._silence_threshold(acc)
         span = self._trail(acc, start_sample=start, end_sample=n,
-                           silence_db=SILENCE_DB,
+                           silence_db=sil_db,
                            min_silence_ms=int(SILENCE_CUT_SEC * 1000))
         if span is None:
             return False
@@ -559,11 +875,15 @@ def stitch(prev_words, text):
 class OVEngine:
     """把 streaming_transcribe 包装成增量引擎（逻辑同 mic_asr_app.StreamingEngine）。"""
 
-    def __init__(self, key, on_log=print, force_language=None):
+    def __init__(self, key, on_log=print, force_language=None, device=None):
         from seg_stream import _make_segment_state
         from streaming_asr import (streaming_transcribe, finish_streaming_transcribe,
                                    parse_asr_output, _normalize_punct_by_context)
         self.key, self.cfg = key, ENGINES[key]
+        # 用户显式选的设备优先（APP-004 第 3 条）；NPU 档忽略（all-NPU 后端写死）。
+        if device and self.cfg['kind'] == 'ov':
+            self.cfg = dict(self.cfg)
+            self.cfg['device'] = device
         self._st, self._finish = streaming_transcribe, finish_streaming_transcribe
         self._parse, self._norm = parse_asr_output, _normalize_punct_by_context
         self._make_state = _make_segment_state
@@ -835,14 +1155,29 @@ class CudaEngine:
             p.kill()
 
 
-def make_engine(key, on_log=print, force_language=None):
+def make_engine(key, on_log=print, force_language=None, device=None):
     """创建推理引擎。
 
     force_language：ASR 识别语种（模型认识的英文名，如 'Chinese'/'English'）；
     None = 自动检测。传进来后会在建 state / 起进程时生效。
+
+    device：用户显式选的推理设备（APP-004 第 3 条）。None = 用后端表里的默认值。
+    ⚠️ **NPU 档（kind='npu'）设备是写死在后端实现里的**，不接受覆盖 ——
+    那条路径走的是 all-NPU 交付后端，换设备会让模型与后端不匹配。
+
+    🔴 **只有 kind=='ov' 才接受 device 参数**：
+       - kind=='cuda' → ``CudaEngine.__init__`` 没有 device 形参，
+         无条件传会抛 ``TypeError: CudaEngine.__init__() got an
+         unexpected keyword argument 'device'``（APP-007 实测）；
+       - kind=='npu' → 设备写死 NPU，OVEngine 内部自己忽略。
     """
-    cls = CudaEngine if ENGINES[key]['kind'] == 'cuda' else OVEngine
-    return cls(key, on_log=on_log, force_language=force_language)
+    kind = ENGINES[key]['kind']
+    if kind == 'cuda':
+        return CudaEngine(key, on_log=on_log, force_language=force_language)
+    if device and kind == 'ov':
+        return OVEngine(key, on_log=on_log, force_language=force_language,
+                        device=device)
+    return OVEngine(key, on_log=on_log, force_language=force_language)
 
 
 # ── 会话（音频源 + 引擎）────────────────────────────────────────────────
@@ -905,13 +1240,34 @@ class Session:
 
 # ── GUI ────────────────────────────────────────────────────────────────
 class CaptionOverlay:
-    """屏幕底部的置顶半透明字幕条（可拖动）：
-    第一行最近定稿（白），第二行正在识别（黄），第三行译文（青），
-    第四行草稿译文预览（浅蓝，仅在勾选「草稿译文」且有预览时出现）。"""
+    """屏幕底部的置顶半透明字幕条（**鼠标穿透**，靠独立把手拖动）。
 
-    def __init__(self, root, font_size=26):
+    两行（APP-007 用户决策）：
+      第一行 定稿译文（青 #5fd7d7）
+      第二行 实时识别（黄 #ffd75e）
+    ⚠️ 已删除：定稿原文（白 #f2f2f2）、草稿译文预览（浅蓝 #7aa7d0）。
+    定稿原文仍在**主文本区**与**保存的 txt**里，只是不再上屏幕字幕。
+
+    鼠标穿透（APP-007 第 4 项）：
+      主窗口设 ``WS_EX_LAYERED|WS_EX_TRANSPARENT|WS_EX_NOACTIVATE``
+      ⇒ **完全穿透**，其后方的桌面元素照常点击/拖拽；
+      另建一个**不穿透**的小 Toplevel「拖拽把手」（44×24）贴在左上角，
+      拖它就同步移动主窗口。
+
+    🔴 为什么要有把手：Windows 上加了 ``WS_EX_TRANSPARENT`` 之后窗口
+    **收不到鼠标消息** ⇒ 老式的「直接拖字幕」必然失效。
+    把手不穿透，是唯一的拖拽入口（也是关掉字幕的入口）。
+    """
+
+    HANDLE_W = 44
+    HANDLE_H = 24
+    HANDLE_BG = '#2b6cb0'
+
+    def __init__(self, root, font_size=26, click_through=True):
         import tkinter as tk
         import tkinter.font as tkfont
+        self.root = root
+        self.on_close = None            # 把手右键菜单「关闭屏幕字幕」的回调
         self.win = tk.Toplevel(root)
         self.win.overrideredirect(True)
         self.win.attributes('-topmost', True)
@@ -923,31 +1279,145 @@ class CaptionOverlay:
         sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
         self.w = int(sw * 0.8)
         line = self.font.metrics('linespace')
-        # 4 行：定稿 / 实时 / 译文 / 草稿预览
-        h = 4 * line + 34
+        # 2 行：定稿译文 / 实时识别
+        h = 2 * line + 30
         self.win.geometry(f'{self.w}x{h}+{(sw - self.w) // 2}+{sh - h - int(sh * 0.07)}')
         self.win.configure(bg='#111111')
-        self.final = tk.Label(self.win, text='', fg='#f2f2f2', bg='#111111',
-                              font=self.font, anchor='w')
-        self.partial = tk.Label(self.win, text='', fg='#ffd75e', bg='#111111',
-                                font=self.font, anchor='w')
+        # ── 两行 Label（顺序即显示顺序：译文在上，实时在下）──
         self.mt = tk.Label(self.win, text='', fg='#5fd7d7', bg='#111111',
                            font=self.font, anchor='w')
-        self.draft = tk.Label(self.win, text='', fg='#7aa7d0', bg='#111111',
-                              font=self.font, anchor='w')
-        self.final.pack(fill='x', padx=20, pady=(10, 0))
+        self.partial = tk.Label(self.win, text='', fg='#ffd75e', bg='#111111',
+                                font=self.font, anchor='w')
+        self.mt.pack(fill='x', padx=20, pady=(10, 0))
         self.partial.pack(fill='x', padx=20)
-        self.mt.pack(fill='x', padx=20)
-        self.draft.pack(fill='x', padx=20)
-        for wdg in (self.win, self.final, self.partial, self.mt):
+        # 兜底拖动：**穿透失败时**（降级路径）字幕窗口本身仍可直接拖。
+        for wdg in (self.win, self.mt, self.partial):
             wdg.bind('<ButtonPress-1>', self._press)
             wdg.bind('<B1-Motion>', self._drag)
 
+        # ── 独立拖拽把手（**不穿透** ⇒ 唯一能接到鼠标的地方）──
+        self.handle = tk.Toplevel(root)
+        self.handle.overrideredirect(True)
+        self.handle.attributes('-topmost', True)
+        self.handle.configure(bg=self.HANDLE_BG)
+        self.handle_lbl = tk.Label(self.handle, text='≡', bg=self.HANDLE_BG,
+                                   fg='#ffffff', font=('Consolas', 12))
+        self.handle_lbl.pack(fill='both', expand=True)
+        for wdg in (self.handle, self.handle_lbl):
+            wdg.bind('<ButtonPress-1>', self._press_handle)
+            wdg.bind('<B1-Motion>', self._drag_handle)
+        self.handle.bind('<Button-3>', self._handle_menu)
+        self.handle_lbl.bind('<Button-3>', self._handle_menu)
+        # 把手相对字幕窗口左上角的偏移（拖动时保持不变）
+        # ⚠️ 把手放在字幕窗**左上角外侧**（-HANDLE_W-6, -HANDLE_H-6），
+        #    不放在内侧。理由：字幕窗是 **WS_EX_LAYERED**（带 alpha 0.86），
+        #    Layered 窗口在屏幕截图/合成时可能不绘出被它覆盖的区域 ⇒
+        #    放在内侧的话把手会「看不见」（实测截图里消失）。
+        #    放外侧同时保证字幕第一行不被挡。
+        self._h_off = (-self.HANDLE_W - 6, -self.HANDLE_H - 6)
+        self._grab = None
+
+        # ── 鼠标穿透 ──
+        # ⚠️ 必须在窗口**已映射**之后做（Tk 的 overrideredirect 窗口在
+        #    update_idletasks() 之前还没真正创建），否则样式会丢。
+        self.click_through = False
+        try:
+            self.win.update_idletasks()
+        except Exception:
+            pass
+        if click_through:
+            try:
+                import win_clickthrough as wct
+                self.click_through = wct.enable_click_through(self.win)
+            except Exception:
+                self.click_through = False
+
+        # ⚠️ **必须在字幕窗映射之后再摆把手**：overrideredirect 的 Toplevel
+        #    在 update_idletasks() 之前还没真正创建 ⇒ 此时 ``win.winfo_x()``
+        #    返回 0（相对 root 的原点）⇒ 把手会被放到屏幕左上角，
+        #    看起来「把手不见了」。实测初始位置 (12,8)，应是 (205+12, 1069+8)。
+        self._place_handle()
+
+    # -- 位置 ------------------------------------------------------------
+    def _place_handle(self, x=None, y=None):
+        """把手贴到字幕窗口左上角（跟随移动）。
+
+        ⚠️ **不能依赖 ``winfo_x()``**：``geometry('+x+y')`` 之后要等事件循环
+        刷新，``winfo_x()`` 立刻读到的还是**旧坐标** ⇒ 把手会掉队。
+        ⇒ 调用方把目标坐标传进来。
+        """
+        try:
+            if x is None or y is None:
+                # ⚠️ 用 winfo_rootx/y（屏幕坐标）。winfo_x/y 是相对父容器的，
+                #    对 overrideredirect 的 Toplevel 在未映射时返回 0。
+                x, y = self.win.winfo_rootx(), self.win.winfo_rooty()
+            hx = int(x) + self._h_off[0]
+            hy = int(y) + self._h_off[1]
+            self.handle.geometry(f'{self.HANDLE_W}x{self.HANDLE_H}+{hx}+{hy}')
+        except Exception:
+            pass
+
+    def move_to(self, x, y):
+        """移动字幕窗口 + 把手（两者绑定）。"""
+        x, y = int(x), int(y)
+        self.win.geometry(f'+{x}+{y}')
+        self._place_handle(x, y)
+
+    # -- 拖动（兜底：字幕窗口本身）---------------------------------------
     def _press(self, e):
         self._dx, self._dy = e.x_root - self.win.winfo_x(), e.y_root - self.win.winfo_y()
 
     def _drag(self, e):
-        self.win.geometry(f'+{e.x_root - self._dx}+{e.y_root - self._dy}')
+        self.move_to(e.x_root - self._dx, e.y_root - self._dy)
+
+    # -- 拖动（把手：主路径）---------------------------------------------
+    def _press_handle(self, e):
+        """记录把手按下时的锚点（鼠标根坐标 + 字幕窗口原点）。"""
+        self._grab = (e.x_root, e.y_root,
+                      self.win.winfo_x(), self.win.winfo_y())
+
+    def _drag_handle(self, e):
+        """拖把手 ⇒ 字幕窗口跟着走（把手与窗口的相对位置保持不变）。"""
+        if not self._grab:
+            self._press_handle(e)
+            return
+        mx, my, ox, oy = self._grab
+        self.move_to(ox + (e.x_root - mx), oy + (e.y_root - my))
+
+    # -- 把手右键菜单 ----------------------------------------------------
+    def _handle_menu(self, e):
+        """右键菜单：切换穿透 / 关闭字幕。
+
+        🔴 穿透之后鼠标**点不到字幕窗口** ⇒ 必须有别的入口关掉它。
+        """
+        import tkinter as tk
+        m = tk.Menu(self.handle, tearoff=0)
+        m.add_command(
+            label='鼠标穿透：开（拖我移动字幕）' if self.click_through
+            else '鼠标穿透：关',
+            command=self._toggle_click_through)
+        m.add_command(label='关闭屏幕字幕', command=self._request_close)
+        try:
+            m.tk_popup(e.x_root, e.y_root)
+        finally:
+            m.grab_release()
+
+    def _toggle_click_through(self):
+        """开/关穿透。返回是否切换成功（失败保持原状）。"""
+        try:
+            import win_clickthrough as wct
+            if self.click_through:
+                self.click_through = not wct.disable_click_through(self.win)
+            else:
+                self.click_through = wct.enable_click_through(self.win)
+        except Exception:
+            self.click_through = False
+
+    def _request_close(self):
+        """通知 App 关闭字幕（穿透后鼠标点不到窗口 ⇒ 走回调）。"""
+        cb = getattr(self, 'on_close', None)
+        if cb:
+            cb()
 
     def _tail_fit(self, text):
         """取能在一行内放下的最长结尾部分（按实际字体宽度量）。"""
@@ -964,16 +1434,24 @@ class CaptionOverlay:
                 lo = mid + 1
         return '…' + text[lo:].lstrip()
 
-    def show(self, final_tail, partial, mt='', draft=''):
-        self.final.configure(text=self._tail_fit(final_tail[-400:]))
-        self.partial.configure(text=self._tail_fit(partial[-400:]))
+    def show(self, mt='', partial=''):
+        """更新两行。
+
+        ⚠️ 签名已从 4 参（final_tail, partial, mt, draft）改为 2 参
+        （mt, partial）—— 定稿原文与草稿预览不再上屏幕字幕。
+        """
         self.mt.configure(text=self._tail_fit(mt[-400:]) if mt else '')
-        # 草稿预览单独一行 —— 不与定稿译文挤在同一行，否则定稿译文一出现
-        # 就会把草稿预览顶掉（草稿开关等于白开）。
-        self.draft.configure(text=self._tail_fit(draft[-400:]) if draft else '')
+        self.partial.configure(text=self._tail_fit(partial[-400:]) if partial else '')
 
     def destroy(self):
-        self.win.destroy()
+        try:
+            self.handle.destroy()
+        except Exception:
+            pass
+        try:
+            self.win.destroy()
+        except Exception:
+            pass
 
 
 class App:
@@ -997,38 +1475,35 @@ class App:
         # wait/join 上阻塞，后台线程就永远卡在这里，表现为「翻译不跑了」）。
         # 所以跨线程只往队列里塞，由 _poll 在主线程排空。
         self._ui_log_q = queue.Queue()
+        # 设备解析结果（APP-004 第 3 条）：命令行 > 配置文件 > 推荐默认值。
+        # 已在 main() 里解析过一次并回退过不可用的设备。
+        self._dev_selected = {
+            'asr': getattr(args, 'asr_device', None) or 'GPU.0',
+            'mt': getattr(args, 'mt_device', None) or 'GPU.0',
+            'tts': getattr(args, 'tts_device', None) or 'NPU',
+        }
+        self._device_notes = list(getattr(args, 'device_notes', []) or [])
         self.mt = TranslationService(
-            target=args.translate, device=args.mt_device, auto=False,
+            target=args.translate, device=self._dev_selected['mt'], auto=False,
             engine_key=args.mt_engine, use_ctx=getattr(args, 'mt_ctx', False),
             glossary=getattr(args, 'mt_glossary', False),
             draft=_init_draft_flag(args),
             on_log=self._ui_log)
 
         root.title('Confucius4-R2T2 实时字幕 · 多后端测试')
-        root.geometry('1080x700')
+        # ⚠️ 1080x820：三分区改**纵向三行**后（每行 = 控件行 + 说明行），
+        #    700 高装不下，主文本区会被压扁。820 能让三行都完整显示。
+        root.geometry('1080x820')
 
+        # ── 顶栏 ──────────────────────────────────────────────────────
+        # APP-007：ASR 后端与翻译目标语言的下拉**移入三分区**，
+        # 顶栏只留「开始 / 清空 / 保存 / 屏幕字幕」这类全局操作。
         top = ttk.Frame(root, padding=(10, 8))
         top.pack(fill='x')
-        ttk.Label(top, text='推理后端').pack(side='left')
-        self.keys = list(ENGINES)
-        self.var_engine = tk.StringVar(value=ENGINES[args.engine]['label'])
-        self.cb_engine = ttk.Combobox(top, state='readonly', width=26,
-                                      values=[ENGINES[k]['label'] for k in self.keys],
-                                      textvariable=self.var_engine)
-        self.cb_engine.pack(side='left', padx=(4, 12))
-        self.cb_engine.bind('<<ComboboxSelected>>', lambda e: self.load_engine())
-
-        ttk.Label(top, text='翻译').pack(side='left')
-        self.mt_keys = list(TARGETS)
-        self.var_mt = tk.StringVar(value=TARGET_LABELS[args.translate])
-        self.cb_mt = ttk.Combobox(top, state='readonly', width=8,
-                                  values=[TARGET_LABELS[k] for k in self.mt_keys],
-                                  textvariable=self.var_mt)
-        self.cb_mt.pack(side='left', padx=(4, 12))
-        self.cb_mt.bind('<<ComboboxSelected>>', self._on_mt_changed)
+        ttk.Label(top, text='Confucius4 实时字幕').pack(side='left')
 
         self.btn = ttk.Button(top, text='▶ 开始', command=self.toggle, state='disabled')
-        self.btn.pack(side='left')
+        self.btn.pack(side='left', padx=(12, 0))
         ttk.Button(top, text='清空', command=self.clear).pack(side='left', padx=4)
         ttk.Button(top, text='保存', command=self.save).pack(side='left')
         self.var_overlay = tk.BooleanVar(value=True)
@@ -1038,6 +1513,21 @@ class App:
         self.var_note = tk.StringVar(value='')
         ttk.Label(root, textvariable=self.var_note, foreground='#555',
                   padding=(12, 0)).pack(fill='x')
+
+        # ── 状态栏（APP-007：从窗口底部迁到主面板顶部）────────────────
+        # ⚠️ **pack 顺序是关键**：状态栏必须排在 self.txt **之前** pack。
+        #    pack 按顺序分配空间，先 pack 的控件先拿到请求高度；
+        #    以前状态栏在最后、而 ScrolledText 默认请求 718px（24 行），
+        #    在 1080x700 窗口里 pack 优先满足它 ⇒ 状态栏被压成 **1px**
+        #    （实测 700/900 窗口高都是 1px，1000px 才恢复 29px）。
+        #    ⚠️ 这跟「全屏」没有任何关系 —— 代码里从来没有全屏逻辑。
+        bot = ttk.Frame(root, padding=(10, 4))
+        bot.pack(fill='x')
+        self.var_meter = tk.StringVar(value='')
+        self.lbl_meter = ttk.Label(bot, textvariable=self.var_meter, font=('Consolas', 10))
+        self.lbl_meter.pack(side='left')
+        self.var_status = tk.StringVar(value='')
+        ttk.Label(bot, textvariable=self.var_status, foreground='#555').pack(side='right')
 
         # 音频来源单独一行：三种输入（麦克风 / 系统声音 / 音频文件）
         # 的设备选择互斥，挤在一行会让顶栏没法看。
@@ -1055,9 +1545,10 @@ class App:
         self.cb_source.bind('<<ComboboxSelected>>', self._on_source_changed)
 
         # ASR 识别语种：'auto' = 自动检测（不注入语种提示），其余是模型
-        # support_languages 里的英文名。这个下拉放在「音频来源」右边，
-        # 因为语种是识别行为、跟采集方式无关，但顶栏已经很挤了。
-        ttk.Label(srow, text='识别语种').pack(side='left')
+        # support_languages 里的英文名。
+        # ⚠️ APP-007：这个下拉**移入 ASR 分区**（它属于识别行为，
+        #    跟采集方式无关，放在音频来源行里反而挤）。
+        #    这里只先算出 label 映射，控件本身在三分区里创建。
         self._asr_lang_keys = [ASR_LANG_AUTO] + list(ASR_LANGS)
         self._asr_lang_label = {k: asr_lang_label(k) for k in self._asr_lang_keys}
         self._asr_lang_label_back = {v: k for k, v in self._asr_lang_label.items()}
@@ -1065,12 +1556,6 @@ class App:
         if init_lang not in self._asr_lang_keys:
             init_lang = ASR_LANG_AUTO
         self.var_asr_lang = tk.StringVar(value=self._asr_lang_label[init_lang])
-        self.cb_asr_lang = ttk.Combobox(srow, state='readonly', width=12,
-                                        textvariable=self.var_asr_lang,
-                                        values=[self._asr_lang_label[k]
-                                                for k in self._asr_lang_keys])
-        self.cb_asr_lang.pack(side='left', padx=(4, 12))
-        self.cb_asr_lang.bind('<<ComboboxSelected>>', self._on_asr_lang_changed)
 
         # 麦克风设备
         self.mics = list_input_devices()
@@ -1118,52 +1603,144 @@ class App:
                                          foreground='#555')
         self.lbl_source_note.pack(side='left', padx=(10, 0))
 
-        # 翻译后端（设备 × 量化）单独一行：顶栏放不下，且与 ASR 后端独立可选。
-        mrow = ttk.Frame(root, padding=(12, 4))
-        mrow.pack(fill='x')
-        ttk.Label(mrow, text='翻译后端').pack(side='left')
-        self.mt_eng_keys = [k for k in MT_ENGINES]
-        self._mt_eng_label = {k: MT_ENGINES[k]['label'] for k in self.mt_eng_keys}
-        self._mt_eng_label_back = {v: k for k, v in self._mt_eng_label.items()}
-        self.var_mt_eng = tk.StringVar(value=self._mt_eng_label[args.mt_engine])
-        self.cb_mt_eng = ttk.Combobox(
-            mrow, state='readonly', width=26, textvariable=self.var_mt_eng,
-            values=[self._mt_eng_label[k] for k in self.mt_eng_keys])
-        self.cb_mt_eng.pack(side='left', padx=(4, 12))
-        self.cb_mt_eng.bind('<<ComboboxSelected>>', self._on_mt_engine_changed)
-        self.var_mt_note = tk.StringVar(value='')
-        ttk.Label(mrow, textvariable=self.var_mt_note, foreground='#555').pack(side='left')
-        # 重试按钮：翻译模型加载失败时（状态栏显示「失败」）一键重试，
-        # 不用重启整个程序。加载中时禁用。
-        self.btn_mt_retry = ttk.Button(mrow, text='↻ 重试翻译 Retry', width=16,
-                                       command=self._retry_mt, state='disabled')
-        self.btn_mt_retry.pack(side='left', padx=(8, 0))
+        # ── 三个配置分区：ASR / 翻译 / 语音（APP-007）───────────────
+        #    每个分区**只保留一个「设备+精度」组合下拉**（用户决策）。
+        #    原来的「推理设备」行（drow）把三个独立设备下拉挤在一行，
+        #    且 ASR/MT 的后端下拉标签里本来就含设备名 ⇒ 语义重叠。
+        #
+        #    ⚠️ **纵向三行**，不是横向三列：1080 宽装不下三列
+        #       （实测「语音输出」整块被裁掉，翻译分区的 note 也被切）。
+        #       每行结构 = [控件行] + [说明文字行]，长 note 单独占一行，
+        #       不会被相邻控件挤没。
+        #    ⚠️ 继续用 pack（项目全仓库 0 个 grid）。
+        self._dev_avail = device_config.available_devices()
+        self._dev_label_back = {device_config.device_label(d): d
+                                for d in self._dev_avail}
+        # 命令行 > 配置文件 > 推荐默认值（device_config.get_devices 已解析）
+        self._dev_choices = dict(self._dev_selected)
+
+        areas = ttk.Frame(root, padding=(10, 4))
+        areas.pack(fill='x')
+
+        # ---- ASR 分区 ----
+        f_asr = ttk.LabelFrame(areas, text='ASR 识别', padding=(8, 4))
+        f_asr.pack(fill='x', pady=2)
+        row_asr = ttk.Frame(f_asr)
+        row_asr.pack(fill='x')
+        self._asr_opts = build_asr_options(self._dev_avail)
+        self._asr_opt_by_id = {o['id']: o for o in self._asr_opts}
+        self.var_asr_combo = tk.StringVar(value='')
+        self.cb_asr_combo = ttk.Combobox(
+            row_asr, state='readonly', width=24, textvariable=self.var_asr_combo,
+            values=[o['label'] for o in self._asr_opts])
+        self.cb_asr_combo.pack(side='left', padx=(0, 8))
+        self.cb_asr_combo.bind('<<ComboboxSelected>>', self._on_asr_combo_changed)
+        ttk.Label(row_asr, text='识别语种').pack(side='left', padx=(0, 4))
+        self.cb_asr_lang = ttk.Combobox(
+            row_asr, state='readonly', width=12, textvariable=self.var_asr_lang,
+            values=[self._asr_lang_label[k] for k in self._asr_lang_keys])
+        self.cb_asr_lang.pack(side='left', padx=(0, 8))
+        self.cb_asr_lang.bind('<<ComboboxSelected>>', self._on_asr_lang_changed)
+        self.var_asr_note = tk.StringVar(value='')
+        ttk.Label(f_asr, textvariable=self.var_asr_note,
+                  foreground='#555').pack(fill='x')
+
+        # ---- 翻译分区 ----
+        f_mt = ttk.LabelFrame(areas, text='翻译', padding=(8, 4))
+        f_mt.pack(fill='x', pady=2)
+        row_mt = ttk.Frame(f_mt)
+        row_mt.pack(fill='x')
+        ttk.Label(row_mt, text='目标语言').pack(side='left', padx=(0, 4))
+        self.mt_keys = list(TARGETS)
+        self.var_mt = tk.StringVar(value=TARGET_LABELS[args.translate])
+        self.cb_mt = ttk.Combobox(
+            row_mt, state='readonly', width=8, textvariable=self.var_mt,
+            values=[TARGET_LABELS[k] for k in self.mt_keys])
+        self.cb_mt.pack(side='left', padx=(0, 8))
+        self.cb_mt.bind('<<ComboboxSelected>>', self._on_mt_changed)
+        self._mt_opts = build_mt_options(self._dev_avail)
+        self._mt_opt_by_id = {o['id']: o for o in self._mt_opts}
+        self.var_mt_combo = tk.StringVar(value='')
+        self.cb_mt_combo = ttk.Combobox(
+            row_mt, state='readonly', width=26, textvariable=self.var_mt_combo,
+            values=[o['label'] for o in self._mt_opts])
+        self.cb_mt_combo.pack(side='left', padx=(0, 8))
+        self.cb_mt_combo.bind('<<ComboboxSelected>>', self._on_mt_combo_changed)
         # 草稿译文开关：默认**关闭**，只翻已经定稿的文本。勾上后还会实时翻译
-        # 还没定稿的那句（浅蓝色显示），但会占翻译算力、抬高 ASR 积压。
+        # 还没定稿的那句，但会占翻译算力、抬高 ASR 积压。
         self.var_mt_draft = tk.BooleanVar(value=_init_draft_flag(args))
         self.chk_mt_draft = ttk.Checkbutton(
-            mrow, text='草稿译文 Draft', variable=self.var_mt_draft,
+            row_mt, text='草稿译文 Draft', variable=self.var_mt_draft,
             command=self._on_mt_draft_toggled)
-        self.chk_mt_draft.pack(side='left', padx=(12, 0))
+        self.chk_mt_draft.pack(side='left', padx=(0, 8))
+        # 重试按钮：翻译模型加载失败时（状态栏显示「失败」）一键重试，
+        # 不用重启整个程序。加载中时禁用。
+        self.btn_mt_retry = ttk.Button(row_mt, text='↻ 重试翻译 Retry', width=16,
+                                       command=self._retry_mt, state='disabled')
+        self.btn_mt_retry.pack(side='left', padx=(0, 8))
+        self.var_mt_note = tk.StringVar(value='')
+        ttk.Label(f_mt, textvariable=self.var_mt_note, foreground='#555').pack(fill='x')
         self.mt.set_draft(self.var_mt_draft.get())
-        self._mark_missing_mt_engines()
-        self._set_mt_note(args.mt_engine)
 
+        # ---- 语音分区（TTS，C-101 P4 第 4 条）----
+        f_tts = ttk.LabelFrame(areas, text='语音输出', padding=(8, 4))
+        f_tts.pack(fill='x', pady=2)
+        row_tts = ttk.Frame(f_tts)
+        row_tts.pack(fill='x')
+        self.var_tts_on = tk.BooleanVar(value=(getattr(args, 'tts', 'off') == 'on'))
+        self.chk_tts = ttk.Checkbutton(row_tts, text='开启', variable=self.var_tts_on,
+                                       command=self._on_tts_toggled)
+        self.chk_tts.pack(side='left', padx=(0, 8))
+        self._tts_opts = build_tts_options(self._dev_avail)
+        self._tts_opt_by_id = {o['id']: o for o in self._tts_opts}
+        self.var_tts_combo = tk.StringVar(value='')
+        self.cb_tts_combo = ttk.Combobox(
+            row_tts, state='readonly', width=22, textvariable=self.var_tts_combo,
+            values=[o['label'] for o in self._tts_opts])
+        self.cb_tts_combo.pack(side='left', padx=(0, 8))
+        self.cb_tts_combo.bind('<<ComboboxSelected>>', self._on_tts_combo_changed)
+        ttk.Label(row_tts, text='音色').pack(side='left', padx=(0, 4))
+        self.tts_voices = ['A', 'B', 'clone']
+        self._tts_voice_label = {'A': '预设 A', 'B': '预设 B', 'clone': '克隆说话人'}
+        self._tts_voice_back = {v: k for k, v in self._tts_voice_label.items()}
+        self.var_tts_voice = tk.StringVar(
+            value=self._tts_voice_label.get(args.tts_voice, 'A'))
+        self.cb_tts_voice = ttk.Combobox(
+            row_tts, state='readonly', width=12, textvariable=self.var_tts_voice,
+            values=[self._tts_voice_label[k] for k in self.tts_voices])
+        self.cb_tts_voice.pack(side='left', padx=(0, 8))
+        self.cb_tts_voice.bind('<<ComboboxSelected>>', self._on_tts_voice_changed)
+        ttk.Label(row_tts, text='输出设备').pack(side='left', padx=(0, 4))
+        # 复用 App 已有的输出设备列表（MME/WASAPI）—— C-101 P4 第 4 条
+        self.var_tts_out = tk.StringVar(
+            value=self._out_label.get(init_out, '（未找到输出设备）'))
+        self.cb_tts_out = ttk.Combobox(
+            row_tts, state='readonly', width=24, textvariable=self.var_tts_out,
+            values=[self._out_label[oid] for oid, _ in self.outs])
+        self.cb_tts_out.pack(side='left', padx=(0, 8))
+        self.tts = None                      # TTSService 实例
+        self.var_tts_note = tk.StringVar(value='')
+        ttk.Label(f_tts, textvariable=self.var_tts_note, foreground='#555').pack(fill='x')
+
+        # ⚠️ height=10（行）：**这是状态栏可见的关键**。
+        #    ScrolledText 默认请求高度 718 px（24 行），在 1080x700 窗口里
+        #    pack 优先满足它 ⇒ 状态栏被压成 1 px（实测）。
+        #    配合「bot 在 txt 之前 pack」，窗口再小也是压 txt 而不是压状态栏。
         self.txt = scrolledtext.ScrolledText(root, wrap='word', font=('Microsoft YaHei UI', 13),
-                                             relief='flat', padx=12, pady=10, spacing3=6)
+                                             relief='flat', padx=12, pady=10, spacing3=6,
+                                             height=10)
         self.txt.pack(fill='both', expand=True, padx=10, pady=(4, 4))
         self.txt.tag_config('partial', foreground='#9a9a9a')
         self.txt.tag_config('mt', foreground='#1565c0')            # 定稿译文
         self.txt.tag_config('mt_partial', foreground='#7aa7d0')    # 实时译文草稿
         self.txt.configure(state='disabled')
 
-        bot = ttk.Frame(root, padding=(10, 4))
-        bot.pack(fill='x')
-        self.var_meter = tk.StringVar(value='')
-        self.lbl_meter = ttk.Label(bot, textvariable=self.var_meter, font=('Consolas', 10))
-        self.lbl_meter.pack(side='left')
-        self.var_status = tk.StringVar(value='')
-        ttk.Label(bot, textvariable=self.var_status, foreground='#555').pack(side='right')
+        # ── 三个组合下拉的初值（命令行 > 配置文件 > 推荐默认）──────────
+        # ⚠️ 找不到匹配项 ⇒ 回退到该分区的默认选项 + **明确提示**（不能卡死）。
+        self._combo_notes = []
+        self._asr_effective_device = None      # 当前引擎实际用的设备
+        self._tts_precision = getattr(args, 'tts_precision', 'f32')
+        self._init_combo_values(args)
 
         self._toggle_overlay()
         self._sync_source_widgets()
@@ -1183,6 +1760,127 @@ class App:
             self._ui_log(f'prewarm transformers failed: {type(e).__name__}: {e}')
         self.load_engine()
         root.after(self.POLL_MS, self._poll)
+
+    # -- 组合下拉（APP-007）---------------------------------------------
+    def _resolve_mt_engine_key(self, key, dev):
+        """把翻译引擎键解析成**实际模型键**（用户决策：下拉里不显示 auto）。
+
+        'auto' 的 device 是 None、model 是 None（走 translator.DEFAULT_MODEL），
+        语义上不是「某个设备 × 某个量化」⇒ 启动时把它解析成同设备下
+        **本机确实存在**的实际引擎（gpu_int8cw / npu_int8cw ...）。
+        """
+        if key != 'auto':
+            return key
+        cands = [k for k in MT_ENGINES
+                 if k != 'auto' and MT_ENGINES[k].get('device') == dev]
+        for k in cands:
+            if mt_available(k):
+                return k
+        for k in cands:
+            if k in MT_ENGINES:
+                return k
+        return next((k for k in MT_ENGINES if k != 'auto'), 'auto')
+
+    def _init_combo_values(self, args):
+        """给三个组合下拉设初值；找不到匹配项就回退并提示。"""
+        # ---- ASR ----
+        want = f'{args.engine}@{self._dev_selected["asr"]}'
+        opt = self._asr_opt_by_id.get(want)
+        if opt is None:
+            opt = next((o for o in self._asr_opts
+                        if o['engine'] == args.engine), None)   # 同引擎、任意设备
+        if opt is None and self._asr_opts:
+            opt = self._asr_opts[0]
+        if opt is None:
+            self._combo_notes.append('ASR：没有可用后端')
+        else:
+            self.var_asr_combo.set(opt['label'])
+            self._dev_choices['asr'] = opt['device']
+            self.var_note.set(opt.get('note', ''))
+
+        # ---- 翻译（auto 先解析成实际模型键）----
+        mt_key = self._resolve_mt_engine_key(args.mt_engine, self._dev_selected['mt'])
+        # ⚠️ 翻译组合的 id 是「量化@设备」（不是 engine@设备，见 build_mt_options），
+        #    且 engine_key 与量化是**多对一**（gpu_int8cw / npu_int8cw 同模型）。
+        #    ⇒ 先按「同 engine + 同设备」找，找不到再按「同设备 + 同精度」找。
+        want_dev = self._dev_selected['mt']
+        opt = next((o for o in self._mt_opts
+                    if o['engine'] == mt_key and o['device'] == want_dev), None)
+        if opt is None:
+            want_prec = MT_PRECISION.get(mt_key)
+            opt = next((o for o in self._mt_opts
+                        if o['device'] == want_dev and o['precision'] == want_prec),
+                       None)
+        if opt is None:
+            opt = next((o for o in self._mt_opts
+                        if o['engine'] == mt_key), None)   # 同 engine、任意设备
+        if opt is None and self._mt_opts:
+            opt = self._mt_opts[0]
+        if opt is None:
+            self._combo_notes.append('翻译：没有可用后端')
+        else:
+            self.var_mt_combo.set(opt['label'])
+            self._dev_choices['mt'] = opt['device']
+            self.var_mt_note.set(opt.get('note', ''))
+            # 🔴 **GUI 显示的组合必须真的生效**：TranslationService 是用
+            #    args.mt_engine（可能是 'auto'）建的 ⇒ 'auto' 恒等于 INT8-CW。
+            #    若组合落在 INT4-CW（或别的 engine 键），必须在这里
+            #    set_engine → set_device 纠正，否则界面显示与实际跑的不一致。
+            #    顺序铁律：先 set_engine，后 set_device。
+            try:
+                if opt['engine'] != getattr(self.mt, 'engine_key', None):
+                    self.mt.set_engine(opt['engine'])
+                self.mt.set_device(opt['device'])
+            except Exception as e:
+                self._combo_notes.append(f'翻译后端初始化失败：{e}')
+
+        # ---- 语音 ----
+        want = f'{self._dev_selected["tts"]}@{self._tts_precision}'
+        opt = self._tts_opt_by_id.get(want)
+        if opt is None:
+            opt = next((o for o in self._tts_opts
+                        if o['device'] == self._dev_selected['tts']), None)
+        if opt is None and self._tts_opts:
+            opt = self._tts_opts[0]
+        if opt is None:
+            self._combo_notes.append('语音：没有可用组合')
+        else:
+            self.var_tts_combo.set(opt['label'])
+            self._dev_choices['tts'] = opt['device']
+            self._tts_precision = opt['precision']
+            self.var_tts_note.set(f'设备 {opt["device"]} · 精度 {opt["precision"]}')
+
+        # ⚠️ TranslationService.__init__ 里的 _apply_engine_defaults 会用
+        #    MT_ENGINES[key]['device'] **覆盖**显式传入的 device ⇒ 上面的
+        #    set_engine → set_device 已一并纠正（顺序铁律：先 engine 后 device）。
+
+        if self._combo_notes:
+            msg = '；'.join(self._combo_notes)
+            self.var_note.set(msg)
+            self.var_status.set(msg)
+        device_config.save_config(dict(self._dev_choices))
+
+    def _cur_asr_opt(self):
+        """当前选中的 ASR 组合选项（按 label 反查；label 必须全局唯一）。"""
+        lab = self.var_asr_combo.get()
+        for o in self._asr_opts:
+            if o['label'] == lab:
+                return o
+        return None
+
+    def _cur_mt_opt(self):
+        lab = self.var_mt_combo.get()
+        for o in self._mt_opts:
+            if o['label'] == lab:
+                return o
+        return None
+
+    def _cur_tts_opt(self):
+        lab = self.var_tts_combo.get()
+        for o in self._tts_opts:
+            if o['label'] == lab:
+                return o
+        return None
 
     # -- 设备 / 引擎 ------------------------------------------------------
     def _mic_index(self):
@@ -1323,16 +2021,24 @@ class App:
         return got
 
     def load_engine(self):
-        key = self.keys[[ENGINES[k]['label'] for k in self.keys].index(self.var_engine.get())]
-        if self._loading or key == self.engine_key:
+        """按当前 ASR 组合选项（引擎 + 设备）加载/重载引擎。"""
+        opt = self._cur_asr_opt()
+        if opt is None:
+            return
+        key, dev = opt['engine'], opt['device']
+        if self._loading:
+            return
+        if (key == self.engine_key
+                and dev == getattr(self, '_asr_effective_device', None)):
             return
         self.stop()
         self._loading = True
         self.btn.configure(state='disabled')
-        self.cb_engine.configure(state='disabled')
-        self.var_note.set(ENGINES[key]['note'])
+        self.cb_asr_combo.configure(state='disabled')
+        self.var_note.set(opt.get('note', ''))
         old = [self.engine]
         self.engine, self.engine_key = None, None
+        self._asr_effective_device = None
 
         def work():
             try:
@@ -1342,18 +2048,22 @@ class App:
                     gc.collect()
                 # 语种在引擎创建时就定下来（要进 prompt / 进程启动参数），
                 # 所以这里传 GUI 上的实时选择，不是 args 的启动快照。
+                # ⚠️ device 来自组合下拉（用户显式选的），make_engine 内部
+                #    按 kind 决定是否采纳（npu/cuda 档写死）。
                 eng = make_engine(key, on_log=self._ui_log,
-                                  force_language=self._cur_asr_lang())
-                self.root.after(0, self._engine_ready, key, eng)
+                                  force_language=self._cur_asr_lang(),
+                                  device=dev)
+                self.root.after(0, self._engine_ready, key, eng, dev)
             except Exception as e:
                 msg = f'{type(e).__name__}: {e}'
                 self.root.after(0, self._engine_failed, msg)
 
         threading.Thread(target=work, daemon=True).start()
 
-    def _engine_ready(self, key, eng):
+    def _engine_ready(self, key, eng, dev=None):
         self.engine, self.engine_key, self._loading = eng, key, False
-        self.cb_engine.configure(state='readonly')
+        self._asr_effective_device = dev
+        self.cb_asr_combo.configure(state='readonly')
         self.btn.configure(state='normal')
         self.var_status.set(f'{ENGINES[key]["label"]} 就绪（加载 {eng.load_s:.1f} s）')
         # 翻译模型要等 ASR 就绪后再加载（同一张卡上并行编译会把 GUI 卡死）。
@@ -1367,7 +2077,7 @@ class App:
 
     def _engine_failed(self, msg):
         self._loading = False
-        self.cb_engine.configure(state='readonly')
+        self.cb_asr_combo.configure(state='readonly')
         self.var_status.set('加载失败')
         from tkinter import messagebox
         messagebox.showerror('后端加载失败', msg)
@@ -1397,6 +2107,13 @@ class App:
         if self.session and self.session.running:
             self.session.stop()
             self.session.ended.wait(30)
+        # C-099①：停的时候把挂起的半句补翻，否则最后半句的译文（含 TTS）会丢。
+        # （`Translator.flush` 内部按 seg_keys 去重，重复调用是安全的。）
+        try:
+            if self.mt.active:
+                self.mt.flush(seg=len(self.blocks) - 1 if self.blocks else None)
+        except Exception:
+            pass
         self.btn.configure(text='▶ 开始')
 
     def _on_mt_changed(self, *_a):
@@ -1412,33 +2129,63 @@ class App:
         except ValueError:
             return self.mt.target
 
-    # -- 翻译后端（设备 × 量化）-------------------------------------------
-    def _mark_missing_mt_engines(self):
-        """模型目录不在本机的项，标签后面加「（缺模型）」提示。"""
-        for k in self.mt_eng_keys:
-            if not mt_available(k):
-                self._mt_eng_label[k] += '（缺模型）'
-                self._mt_eng_label_back[self._mt_eng_label[k]] = k
-        self.cb_mt_eng.configure(values=[self._mt_eng_label[k] for k in self.mt_eng_keys])
-
-    def _cur_mt_engine_key(self):
-        return self._mt_eng_label_back.get(self.var_mt_eng.get(), self.mt.engine_key)
-
-    def _set_mt_note(self, key):
-        cfg = MT_ENGINES.get(key)
-        self.var_mt_note.set((cfg or {}).get('note', ''))
-
-    def _on_mt_engine_changed(self, *_a):
-        key = self._cur_mt_engine_key()
-        self._set_mt_note(key)
-        if not self.mt.set_engine(key):
+    # -- 组合下拉事件（APP-007）-----------------------------------------
+    def _on_asr_combo_changed(self, *_a):
+        """ASR 分区的「设备+精度」组合变化 ⇒ 重载引擎。"""
+        opt = self._cur_asr_opt()
+        if not opt:
             return
+        self._dev_choices['asr'] = opt['device']
+        self.var_asr_note.set(opt.get('note', ''))
+        device_config.save_config(dict(self._dev_choices))
+        if (opt['engine'] == self.engine_key
+                and opt['device'] == getattr(self, '_asr_effective_device', None)):
+            return
+        self.var_status.set(f'ASR 切换中：{opt["label"]}')
+        self.load_engine()
+
+    def _on_mt_combo_changed(self, *_a):
+        """翻译分区的「设备+量化」组合变化。
+
+        🔴 **顺序铁律**：先 ``set_engine(key)``，后 ``set_device(dev)``。
+        ``TranslationService.set_engine`` 内部会把 ``self.device`` 重置成
+        该 engine 的默认值（translator.py:set_engine），只调 set_device 会被
+        覆盖；反过来只调 set_engine 则设备回不到用户选的值。
+        两次调用只触发**一次**模型重建（重建在工作线程，读取的是最终 device）。
+        """
+        opt = self._cur_mt_opt()
+        if not opt:
+            return
+        self._dev_choices['mt'] = opt['device']
+        self.var_mt_note.set(opt.get('note', ''))
+        device_config.save_config(dict(self._dev_choices))
+        if not self.mt.set_engine(opt['engine']):
+            self.var_status.set('翻译后端切换失败（保持原后端）')
+            return
+        self.mt.set_device(opt['device'])
         if not self.mt.active:
-            self.var_status.set(f'翻译后端：{MT_ENGINES[key]["label"]}（翻译关闭中，切换将在开启翻译时生效）')
+            self.var_status.set(
+                f'翻译后端：{opt["label"]}（翻译关闭中，切换将在开启翻译时生效）')
             return
-        self.cb_mt_eng.configure(state='disabled')
-        self.var_status.set(f'翻译后端切换中：{MT_ENGINES[key]["label"]} · {self.mt.device}')
-        self.root.after(300, lambda: self.cb_mt_eng.configure(state='readonly'))
+        self.cb_mt_combo.configure(state='disabled')
+        self.var_status.set(f'翻译后端切换中：{opt["label"]} · {self.mt.device}')
+        self.root.after(300, lambda: self.cb_mt_combo.configure(state='readonly'))
+
+    def _on_tts_combo_changed(self, *_a):
+        """语音分区的「设备+精度」组合变化 ⇒ 重起 TTS worker。
+
+        ⚠️ TTS 的 precision 是 **OV 推理精度 f32/f16**，不是量化位宽；
+        worker 进程启动时就绑定了设备与精度 ⇒ 换组合必须重启。
+        """
+        opt = self._cur_tts_opt()
+        if not opt:
+            return
+        self._dev_choices['tts'] = opt['device']
+        self._tts_precision = opt['precision']
+        self.var_tts_note.set(f'设备 {opt["device"]} · 精度 {opt["precision"]}')
+        device_config.save_config(dict(self._dev_choices))
+        if getattr(self, 'tts', None) is not None:
+            self._restart_tts_on_device(opt['device'], opt['precision'])
 
     def _on_mt_draft_toggled(self, *_a):
         """开关草稿译文（还没定稿那句的实时预览）。
@@ -1453,8 +2200,124 @@ class App:
         else:
             self.var_status.set('草稿译文已关闭（只翻译已定稿的文本）')
 
+    # -- 推理设备（APP-004 第 3 条 / APP-007 组合下拉）------------------
+    def _reload_engine_on_device(self, key, dev):
+        """ASR 换设备 ⇒ 重载引擎。
+
+        🔴 **不再改写全局 ``ENGINES``**：``OVEngine.__init__`` 已经支持
+        ``device=`` 覆盖（kind=='ov' 时），把全局表改了会让**别的会话**
+        （CLI / 后台回放）跟着变，属于隐藏的全局副作用。
+        """
+        self.var_status.set(f'ASR 设备切换中：{dev}（正在重载引擎）')
+        self.load_engine()
+
+    def _restart_tts_on_device(self, dev, precision=None):
+        """TTS 换设备/精度 ⇒ 重起 worker（worker 进程启动时就绑定了这两项）。"""
+        try:
+            self.tts.close()
+        except Exception:
+            pass
+        self.tts = None
+        if precision:
+            self._tts_precision = precision
+        self.var_status.set(
+            f'语音输出切换中：{dev} · {self._tts_precision}（正在重启 TTS）')
+        self._on_tts_toggled()
+
+    # -- TTS（C-101 P4）--------------------------------------------------
+    def _on_tts_toggled(self, *_a):
+        """语音输出勾选：起/停 TTS worker。
+
+        ⚠️ **TTS 加载失败不能影响字幕和翻译**（C-101 P4 第 5 条）⇒
+        整段 try/except，失败只提示、不抛。
+        """
+        on = self.var_tts_on.get()
+        if not on:
+            if self.tts is not None:
+                try:
+                    self.tts.close()
+                except Exception:
+                    pass
+                self.tts = None
+            self.var_tts_note.set('已关闭')
+            self.var_status.set('语音输出已关闭')
+            return
+        try:
+            from tts_service import TTSService
+            voice = self._tts_voice_back.get(self.var_tts_voice.get(), 'A')
+            out_name = self.var_tts_out.get()
+            out_id = self._out_label_back.get(out_name)
+            # ⚠️ 用 **GUI 的实时选择**，不是 args 的启动快照：
+            #    用户在组合下拉里改过设备/精度后，args 里的值是旧的。
+            dev = self._dev_choices.get('tts') or getattr(self.args, 'tts_device', 'NPU')
+            prec = self._tts_precision or getattr(self.args, 'tts_precision', 'f32')
+            self.tts = TTSService(
+                device=dev, voice=voice,
+                out_device=out_id,
+                precision=prec,
+                on_log=lambda m: self._ui_log(f'tts: {m}'))
+            self.var_tts_note.set(f'启动中… 设备 {dev} · 精度 {prec}')
+            self.var_status.set('语音输出已开启（正在加载 TTS 模型）')
+        except Exception as e:
+            self.tts = None
+            self.var_tts_note.set(f'启动失败：{e}')
+            self.var_status.set('语音输出启动失败（不影响字幕与翻译）')
+            self._ui_log(f'tts start failed: {type(e).__name__}: {e}')
+
+    def _on_tts_voice_changed(self, *_a):
+        """切换音色：需要重启 worker（音色条件在加载时绑定）。"""
+        voice = self._tts_voice_back.get(self.var_tts_voice.get(), 'A')
+        if self.tts is not None:
+            try:
+                self.tts.close()
+            except Exception:
+                pass
+            self.tts = None
+        if self.var_tts_on.get():
+            self._on_tts_toggled()
+
+    def _pump_tts(self):
+        """把**定稿译文**提交给 TTS（C-101 P4 第 1 条：只念定稿译文）。
+
+        ⚠️ GUI 侧原先**只加了控件和统计，没接提交链路**
+        ⇒ 译文从来没送到 TTS。CLI 侧（`run_cli`）是在 `mt.pop_outbox()`
+        的循环里提交的，GUI 侧要在这里补上（定时轮询里做，不能阻塞 UI）。
+
+        - 只提交 `kind == 'final'` 的译文（草稿译文会反复改，不能念）；
+        - **outbox 一定要 pop**（哪怕 TTS 没开）——
+          否则 GUI 模式下 `mt.outbox` 会**无限增长**（之前没人消费它，
+          界面显示译文走的是 `mt_of_seg` 读 `done` 字典，不依赖 outbox）；
+        - 翻译没开 / TTS 没开 ⇒ 只丢不提交。
+
+        ⚠️ C-111 已撤回（2026-10-23）：段尾半句不再单独翻译，
+        恢复 C-099① 的挂起机制 ⇒ outbox 只有 'final'/'draft'/'switch'。
+        """
+        try:
+            if not self.mt.active:
+                return
+            for kind, key, txt in self.mt.pop_outbox():
+                if kind == 'final' and txt and txt.strip():
+                    if self.tts is not None:
+                        self.tts.submit(txt, seg=key)
+        except Exception as e:
+            self._ui_log(f'tts submit failed: {e!r}')
+
+    def _tts_meter(self):
+        """底栏的 TTS 统计（首包 / 积压 / 丢句）。"""
+        if self.tts is None:
+            return ''
+        try:
+            st = self.tts.stats()
+        except Exception:
+            return ''
+        fp = st.get('first_packet_s')
+        f = lambda v, d=1: ('—' if v is None else f'{v:.{d}f}')
+        return (f'  |  TTS 首包 {f(fp, 2)}s  积压 {f(st.get("backlog_s"))}s'
+                f'/最大 {f(st.get("max_backlog_s"))}s  丢句 {st.get("n_dropped", 0)}'
+                f'  已播 {st.get("n_played", 0)}')
+
     def _mt_of(self, seg):
-        """定稿段的译文（按段序号查；半句并入下一段的，本段译文会少那一截）。"""
+        """定稿段的译文（按段序号查）。"""
         return self.mt.mt_of_seg(seg)
 
     def _on_final(self, text):
@@ -1497,18 +2360,59 @@ class App:
             open(p, 'w', encoding='utf-8').write(self._save_text())
 
     def _toggle_overlay(self):
+        """屏幕字幕开关。
+
+        🔴 **默认完全穿透**（APP-007 第 4 项）：字幕不挡桌面交互，
+        拖动改用独立的把手（字幕窗口自己收不到鼠标消息）。
+        """
         if self.var_overlay.get() and not self.overlay:
-            self.overlay = CaptionOverlay(self.root, self.args.font_size)
+            self.overlay = CaptionOverlay(self.root, self.args.font_size,
+                                          click_through=True)
+            # 穿透后鼠标点不到字幕窗口 ⇒ 把手右键菜单「关闭屏幕字幕」
+            # 必须能回调回来，否则关不掉。
+            self.overlay.on_close = self._close_overlay_from_handle
         elif not self.var_overlay.get() and self.overlay:
             self.overlay.destroy()
             self.overlay = None
 
+    def _close_overlay_from_handle(self):
+        """字幕把手右键「关闭屏幕字幕」⇒ 同步把顶栏开关打回关。"""
+        try:
+            self.var_overlay.set(False)
+        except Exception:
+            pass
+        self._toggle_overlay()
+        self.var_status.set('屏幕字幕已关闭')
+
     def quit(self):
         self.stop()
         self.mt.flush()          # C-099①：收尾时把挂起的半句补翻，不能丢
+        # 收尾：把最后一批定稿译文补交给 TTS，然后等它排空再关
+        # （CLI 侧 `run_cli` 收尾也有同样一段，见 C-101 P4 第 6 条）
+        try:
+            self._pump_tts()
+        except Exception:
+            pass
+        if self.tts is not None:
+            try:
+                self.tts.drain(timeout=30)
+            except Exception:
+                pass
+            try:
+                self.tts.close()
+            except Exception:
+                pass
+            self.tts = None
         self.mt.close()
         if self.engine:
             self.engine.close()
+        # 字幕窗（含独立拖拽把手）要显式销毁，否则进程可能不退出。
+        if self.overlay is not None:
+            try:
+                self.overlay.destroy()
+            except Exception:
+                pass
+            self.overlay = None
         self.root.destroy()
 
     # -- 刷新 -------------------------------------------------------------
@@ -1537,15 +2441,14 @@ class App:
             mt_tail = ' '.join(
                 m for m in (self._mt_of(i) for i in range(len(self.blocks) - 3,
                                                             len(self.blocks))) if m)
-            draft = self.mt.draft if (self.mt.active and self.mt.draft_on) else ''
-            # 定稿译文与草稿预览**分行**显示：草稿单独占 overlay 的第四行，
-            # 不与定稿译文互相顶替（否则定稿译文一出现，草稿预览就没了）。
-            self.overlay.show(self.final_text.replace('\n', ' ').rstrip(), partial,
-                              mt_tail, draft)
+            # APP-007：屏幕字幕只保留**定稿译文**（青）与**实时识别**（黄）两行。
+            # 定稿原文与草稿译文预览不再上屏幕字幕（仍在主文本区里）。
+            self.overlay.show(mt_tail, partial)
 
     def _poll(self):
         self._drain_ui_log()          # 后台线程的日志统一在这里上屏
         self._track_mt_state()
+        self._pump_tts()              # ← 把定稿译文提交给 TTS（GUI 侧链路）
         s, e = self.session, self.engine
         if s:
             if s.error:
@@ -1732,7 +2635,7 @@ def run_cli(args):
     asr_lang = None if (getattr(args, 'asr_lang', ASR_LANG_AUTO) or
                          ASR_LANG_AUTO) == ASR_LANG_AUTO else args.asr_lang
     eng = make_engine(args.engine, on_log=lambda m: print(m, flush=True),
-                      force_language=asr_lang)
+                      force_language=asr_lang, device=args.asr_device)
     print(f'[{args.engine}] 加载 {eng.load_s:.1f} s，设备 {eng.device_desc}，'
           f'识别语种 {asr_lang or "自动检测"}', flush=True)
     mt = TranslationService(target=args.translate, device=args.mt_device,
@@ -1740,6 +2643,22 @@ def run_cli(args):
                             glossary=args.mt_glossary,
                             draft=_init_draft_flag(args),
                             on_log=lambda m: print(f'  [翻译] {m}', flush=True))
+    # ── TTS（C-101 P4 第 5 条：加载顺序 ASR → MT → TTS）──
+    #    TTS 加载失败**不能影响字幕和翻译** ⇒ 整段 try/except。
+    tts = None
+    if getattr(args, 'tts', 'off') == 'on':
+        try:
+            from tts_service import TTSService
+            tts = TTSService(device=args.tts_device, voice=args.tts_voice,
+                             out_device=args.tts_out_device,
+                             precision=args.tts_precision,
+                             out_wav=args.tts_out,
+                             on_log=lambda m: print(f'  [TTS] {m}', flush=True))
+            print(f'[TTS] worker 已启动（设备 {args.tts_device}，'
+                  f'音色 {args.tts_voice}，精度 {args.tts_precision}）', flush=True)
+        except Exception as e:
+            tts = None
+            print(f'[TTS] 启动失败（不影响字幕与翻译）：{e}', flush=True)
     finals = []
 
     def on_final(t):
@@ -1768,6 +2687,9 @@ def run_cli(args):
                 elif kind in ('final', 'fix') and txt.strip():
                     tag = '修正译文' if kind == 'fix' else '译文'
                     print(f'\n[{tag}] {txt}', flush=True)
+                    # ── TTS：只提交**定稿译文**（C-101 P4 第 1 条）──
+                    if tts is not None and tts.active:
+                        tts.submit(txt, seg=key)
             if args.max_seconds and s.audio_s >= args.max_seconds:
                 s.stop()
     except KeyboardInterrupt:
@@ -1790,6 +2712,9 @@ def run_cli(args):
             elif kind in ('final', 'fix') and txt.strip():
                 tag = '修正译文' if kind == 'fix' else '译文'
                 print(f'[{tag}] {txt}', flush=True)
+                # ── TTS：补交最后一批定稿译文 ──
+                if tts is not None and tts.active:
+                    tts.submit(txt, seg=key)
         sm = mt.summary()
         f = lambda v, d=1: ('—' if v is None else f'{v:.{d}f}')
         print(f'[{args.engine}] 翻译 target={mt.target} 后端={mt.engine_key} 设备 {mt.device} '
@@ -1816,6 +2741,29 @@ def run_cli(args):
             with open(mtp, 'w', encoding='utf-8') as f:
                 f.write('\n'.join(lines) + '\n')
             print(f'[{args.engine}] 译文已写 {mtp}', flush=True)
+    # ── TTS 收尾：等队列排空并落盘 ──
+    if tts is not None:
+        try:
+            time.sleep(0.2)
+            tts.drain(timeout=120)
+            st = tts.stats()
+            f = lambda v, d=2: ('—' if v is None else f'{v:.{d}f}')
+            print(f'[TTS] 首包 {f(st.get("first_packet_s"))}s  '
+                  f'积压 当前 {f(st.get("backlog_s"))}s / 最大 '
+                  f'{f(st.get("max_backlog_s"))}s  '
+                  f'提交 {st.get("n_submitted")}  播完 {st.get("n_played")}  '
+                  f'丢弃 {st.get("n_dropped")}  重启 {st.get("n_restart")}  '
+                  f'state={st.get("state")}', flush=True)
+            if args.tts_out:
+                print(f'[TTS] 语音已写 {args.tts_out}，'
+                      f'逐句时间线 {args.tts_out}.tts.jsonl', flush=True)
+        except Exception as e:
+            print(f'[TTS] 收尾异常（不影响字幕）：{e}', flush=True)
+        finally:
+            try:
+                tts.close()
+            except Exception:
+                pass
     mt.close()
     eng.close()
 
@@ -1855,20 +2803,15 @@ def _pad(text, width):
 
 
 def _check_devices():
-    """探测 OpenVINO 可用设备。返回 (设备名 -> 全名) 映射。"""
-    try:
-        import openvino as ov
-        core = ov.Core()
-        out = {}
-        for d in core.available_devices:
-            try:
-                out[d] = core.get_property(d, 'FULL_DEVICE_NAME')
-            except Exception:
-                out[d] = d
-        return out
-    except Exception as e:
-        print(f'  [跳过] OpenVINO 不可用：{e}')
-        return {}
+    """探测 OpenVINO 可用设备。返回 (设备名 -> 全名) 映射。
+
+    ⚠️ 与 `device_config.detect_devices()` 是同一套逻辑（单一数据源）——
+    GUI 下拉框、CLI 设备解析、`--check` 输出看到的必须是同一份列表。
+    """
+    devs = device_config.detect_devices()
+    if not devs:
+        print('  [跳过] OpenVINO 不可用')
+    return devs
 
 
 def _check_models():
@@ -2070,8 +3013,6 @@ def main():
                          '如 Chinese / English / Japanese / Korean')
     ap.add_argument('--translate', choices=list(TARGETS), default='off',
                     help='实时翻译目标语言（Hy-MT2-1.8B）；off=不翻译')
-    ap.add_argument('--mt-device', default='GPU.0',
-                    help="翻译模型推理设备；--mt-engine 非 auto 时以后端自带的设备为准")
     ap.add_argument('--mt-engine', choices=list(MT_ENGINES), default=MT_DEFAULT,
                     help='翻译后端（设备 × 量化）；auto = 用 --mt-device + LIVECAP_MT_MODEL')
     ap.add_argument('--mt-ctx', action='store_true',
@@ -2083,7 +3024,40 @@ def main():
                     help='开启草稿译文：除定稿文本外，还实时翻译还没定稿的那句'
                          '（界面上的浅蓝色预览）。默认关闭 —— 只翻译已定稿的文本；'
                          '草稿每 1.5s 翻一次近整句，是 ASR 积压的主要来源')
+    # ── TTS（C-101 P4）──
+    ap.add_argument('--tts', choices=['off', 'on'], default='off',
+                    help='译文语音输出开关。默认 off（不影响现有行为）')
+    ap.add_argument('--tts-precision', default='f32', choices=['f32', 'f16'],
+                    help='TTS 推理精度')
+    ap.add_argument('--tts-voice', default='A', choices=['A', 'B', 'clone'],
+                    help='音色：预设 A / 预设 B / 克隆当前说话人')
+    ap.add_argument('--tts-out', default=None,
+                    help='CLI 回放测试：把语音按真实时间轴混成一个 wav 落盘；'
+                         '同时写 <out>.tts.jsonl（逐句时间线）')
+    ap.add_argument('--tts-out-device', default=None,
+                    help='TTS 播放输出设备（名称或索引；默认系统默认输出）')
+
+    # ── 推理设备（APP-004 第 3 条）──
+    # 三个模型各一个设备；不给就用配置文件里的（再没有就用推荐默认值）。
+    ap.add_argument('--asr-device', default=None,
+                    help='ASR 推理设备（GPU.0 / NPU / CPU）。不给则用配置文件里的选择')
+    ap.add_argument('--mt-device', default=None,
+                    help='翻译推理设备（GPU.0 / NPU / CPU）。不给则用配置文件里的选择')
+    ap.add_argument('--tts-device', default=None,
+                    help='语音输出推理设备（默认 NPU）。不给则用配置文件里的选择')
     args = ap.parse_args()
+
+    # 设备解析：命令行 > 配置文件 > 推荐默认值；不可用时回退并提示。
+    _dev_cli = {
+        'asr': args.asr_device,
+        'mt': args.mt_device,
+        'tts': args.tts_device,
+    }
+    _dev_sel, _dev_notes = device_config.get_devices(_dev_cli)
+    args.asr_device = _dev_sel['asr']
+    args.mt_device = _dev_sel['mt']
+    args.tts_device = _dev_sel['tts']
+    args.device_notes = _dev_notes
 
     # 没显式给 --source 时按老习惯推断：给了 --file 就是文件模式，否则麦克风
     if args.source is None:

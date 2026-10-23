@@ -1,10 +1,15 @@
 # STATUS_APP
 last_ack: APP-006
 更新时间: 2026-10-23 16:52
-当前任务: **巡检完成：`CORRECTIONS_APP.md` 最大编号 = APP-006 = last_ack ⇒ 本轮无新纠偏条目**。本轮闭环三件事：① **TTS NPU 冒烟通过**（持锁，216.3 s exit=0；产物 4 文件落仓库外 `tts_smoke_out/`；`speaker_embed (1,1024)`、24000 Hz、4 chunk；命中缓存后 `load_s` 9.99 s）② **修掉「内置音色抛 ValueError」真 bug**（根因：`eng.speaker_library` 未挂 ⇒ 读 babelvox 源码定位；修复后 `builtin_speaker_n_chunks=4`）③ **`.gitignore` 加固**（补 `results/asr_diag/` 与 `results/**/*.npy`）。另**撤回 §12.2「内置音色全部内置」的表述**。详见 §13。
+当前任务: **GUI 四项改造（用户 16:0x 拍板）已全部落地并验证通过**：① **配置面板三分区**（ASR / 翻译 / 语音纵向三行，每区**只有一个「设备+精度」组合下拉**）② **状态栏迁到顶栏之下固定一行**（实测 800x500~1080x820 高度恒为 19px，不再被 pack 压成 1px）③ **屏幕字幕只留两栏**（定稿译文青 `#5fd7d7` + 实时识别黄 `#ffd75e`）④ **鼠标完全穿透 + 独立拖拽把手**（`WS_EX_TRANSPARENT|NOACTIVATE`，`WindowFromPoint` 实测不命中字幕窗）。详见 §14。
+阻塞 / 待用户决定: ① **本轮 GUI 改造按用户决策只改仓库**，v1.3 客户包**不做定点同步**，等 v1.4 统一打包带入；② **APP-006 第 3~7 步**（历史改写 + force push）仍等 reviewer 复核 §11.2 清单；③ 端到端 ABBA 未做；④ v1.4 重打包前置未完成；⑤ RTF 无正式稳态结论；⑥ 包体 12.73 GB 待评估；⑦ 音质判定交 reviewer
 阻塞 / 待用户决定: ① **APP-006 第 3~7 步**：历史改写 + force push（等 reviewer 复核 §11.2 清单；且**改写后所有 SHA 全变**，并行线程 ASR/MT/TTS 需重新 clone 或 reset --hard，**会覆盖他们未提交的改动**）——**本轮已按纪律停下**；② **端到端 ABBA 未做**（冒烟已过，前置已解锁）；③ **v1.4 重打包前置未完成**（设备自选 ✅ + TTS 集成 ✅ + 端到端验证 ❌）；④ **RTF 无正式结论**（本轮 1.357 是自测短句首调用含预热，不可当稳态）；⑤ **包体 12.73 GB**（需评估剔除 `decoder-npu-int8`/`decoder-gpu-int8`/`encoder-fp16`）；⑥ 是否剔除 INT4-CW（可再省 0.97 GB）；⑦ **babelvox tokenizer 的 `fix_mistral_regex` 提示**待 TTS 模块确认；⑧ **音质判定交 reviewer**（目标机不自己调 MiniMax）
 
 ## 最近更新
+- 16:52 §14 **GUI 四项改造全部落地**：① **三分区**（ASR/翻译/语音**纵向三行**，每区**只有一个「设备+精度」组合下拉**；旧的三个独立设备下拉已删净）② **状态栏迁到顶栏之下固定一行**（实测 800×500~1080×820 高度**恒为 19px**；根因是 **pack 挤压**不是全屏，代码里从来无全屏逻辑）③ **屏幕字幕只留两栏**（青 `#5fd7d7` 定稿译文 + 黄 `#ffd75e` 实时识别）④ **鼠标完全穿透**（`WS_EX_TRANSPARENT|NOACTIVATE`，`WindowFromPoint` 实测不命中字幕窗）+ **独立拖拽把手**（44×24，左上角外侧，不穿透）
+- 16:52 §14 **顺手修掉的 3 个真 bug**：① `make_engine` 无条件传 `device=` ⇒ **CUDA 档必抛 `TypeError`**（`CudaEngine.__init__` 无此形参）② 翻译组合 label **冲突**（`gpu_int8cw@GPU.0` 与 `npu_int8cw@GPU.0` 同 label ⇒ 反查静默选错引擎）⇒ 改为**以量化维度**展开 ③ 拖拽把手**初始位置错**（overrideredirect 窗口未映射时 `winfo_x()` 返 0 ⇒ 把手跑到屏幕左上角）
+- 16:52 §14 **验证全 PASS**：`verify_overlay.py` / `diag_overlay_gui.py` / `diag_device_gui.py` / `diag_layout_gui.py` / `diag_device_select.py` 5 个脚本全部 ALL PASS；证据截图 2 张落 `results/app/`
+- 16:52 §14 **未做**：v1.3 客户包**不动**（用户决策：等 v1.4 统一打包带入）；APP-006 第 3~7 步仍等 reviewer
 - 16:52 §13 **巡检无新条目 + 三件事闭环**：TTS NPU 冒烟**通过**（持锁 216.3 s exit=0，`load_s` 9.99 s 命中缓存，`builtin_speaker_n_chunks=4`）；修掉内置音色 `ValueError: speaker_library not set`（根因读 babelvox 源码定位，挂 `SpeakerLibrary` 后 4 音色可用）；`.gitignore` 加固（`results/asr_diag/` + `results/**/*.npy`，check-ignore 全命中）
 - 16:52 §13 **撤回 §12.2 一条结论**：「内置音色全部内置」不准确 ⇒ 实为**随包分发**（4 组 json+npy）且**必须显式挂 `SpeakerLibrary`**；但 §12.2 主结论「spkonly 不需要 ref_text」仍成立
 - 16:52 §13 **如实记录未完成项**：端到端 ABBA 未做、v1.4 未重打、APP-006 第 3~7 步等 reviewer、RTF 无稳态结论、音质交 reviewer
@@ -1833,3 +1838,271 @@ results/*_probe.npy
 - 本轮**没有**调用 MiniMax 做质量判定（质量判定归 reviewer）。
 - 本轮**没有**整目录覆盖同步客户包（只用了 `sync_c136_to_pkg.py` 的定点替换）。
 - 本轮**没有**提交 `status/app/CORRECTIONS_APP.md`，也**没有**吞其它模块的未提交改动。
+
+## §14 GUI 四项改造：三分区配置面板 / 状态栏迁移 / 字幕两栏 / 鼠标穿透（2026-10-23 16:52）
+
+### §14.0 本轮动作摘要
+
+用户提出 4 项 GUI 改造要求，本轮**全部落地并验证通过**：
+
+| # | 要求 | 实现 | 验证 |
+|---|---|---|---|
+| 1 | 配置面板按 ASR / 翻译 / 语音分三个独立区域，各自提供设备+精度 | 三个 `ttk.LabelFrame`，**纵向三行**（每行 = 控件行 + 说明行），每区**只有一个「设备+精度」组合下拉** | `diag_device_gui.py` 27 项 PASS |
+| 2 | 底部状态信息迁到主面板，非全屏也可见 | 状态栏从窗口底部迁到**顶栏之下、三分区之上**，固定一行 | `diag_layout_gui.py` 实测 800×500~1080×820 **高度恒为 19px** |
+| 3 | 屏幕字幕只留两栏 | 删除「定稿原文」「草稿译文」两行，保留**定稿译文（青 `#5fd7d7`）+ 实时识别（黄 `#ffd75e`）** | `verify_overlay.py` + `diag_overlay_gui.py` PASS + 截图 |
+| 4 | 屏幕字幕对鼠标完全穿透，但仍可拖动 | `WS_EX_TRANSPARENT\|WS_EX_NOACTIVATE` + **独立 44×24 拖拽把手**（不穿透） | `diag_overlay_gui.py` 17 项 PASS（`WindowFromPoint` 实测） |
+
+**用户拍板的设计决策（本轮遵循）**：
+
+- 穿透与拖动 ⇒ **默认完全穿透 + 独立拖拽把手**
+- 字幕两栏语义 ⇒ **定稿译文（青）+ 实时识别（黄）**
+- 状态栏位置 ⇒ **移到分区配置区上方，固定一行**
+- 设备/精度关系 ⇒ **三区各只保留一个「设备+精度」组合下拉**
+- 翻译 `auto` ⇒ **从下拉隐藏，启动时解析成实际模型键**
+- 客户包 ⇒ **本轮只改仓库**，等 v1.4 统一打包时带入，**不做 v1.3 定点同步**
+- 记录位置 ⇒ **只追加本 STATUS**，不写 reviewer 独占的 `CORRECTIONS_APP.md`
+
+### §14.1 用户前提纠正：状态栏「只有全屏可见」不是全屏问题
+
+用户原话是「底部状态栏**仅在 GUI 全屏时可见**」。**实测代码里根本没有全屏逻辑**：
+`fullscreen` / `zoomed` / `wm_state` 全项目 **0 命中**。
+
+真实根因是 **Tk `pack` 的空间分配顺序**：
+
+- `ScrolledText` 默认请求高度 **718 px**（24 行），而窗口是 `1080×700`；
+- `pack` 按控件加入顺序分配空间，**先 pack 的先拿请求高度**；
+- 状态栏原来排在**最后** ⇒ 前面的大文本区把空间吃光 ⇒ **状态栏被压成 1 px**；
+- 实测：窗口高 700 / 900 时状态栏都是 **1 px**，到 1000 px 才恢复约 29 px。
+
+**修法**（两条都必要）：
+
+1. 状态栏 `bot` 帧排到 `self.txt` **之前** `pack` ⇒ 窗口再小也是压文本区而不是压状态栏；
+2. `self.txt` 设 `height=10`（行）⇒ 限制它的请求高度。
+
+**实测结果**（`diag_layout_gui.py`，状态栏 Label 实际高度）：
+
+| 窗口 | 状态栏高度 | 主文本区高度 |
+|---|---|---|
+| 1080×820 | **19 px** | 445 px |
+| 1080×700 | **19 px** | 325 px |
+| 900×600 | **19 px** | 225 px |
+| 800×500 | **19 px** | 125 px |
+
+⇒ **非全屏、非最小窗口下都稳定可见**。
+
+### §14.2 三分区 + 组合下拉（要求 1）
+
+**布局**（`live_caption_app.py` 的 `App.__init__`）：
+
+```
+顶栏（开始 / 清空 / 保存 / 屏幕字幕）
+var_note（引擎说明）
+状态栏 bot（左侧 var_meter=RTF统计，右侧 var_status=状态文字）   ← 从底部迁来
+areas ─┬ f_asr  「ASR 识别」  [组合下拉][识别语种] / 说明行
+       ├ f_mt   「翻译」      [目标语言][组合下拉][草稿Draft][重试] / 说明行
+       └ f_tts  「语音输出」  [开启][组合下拉][音色][输出设备] / 说明行
+主文本区 self.txt（height=10）
+```
+
+⚠️ **必须纵向三行，不能横向三列**。第一次实现成横向三列，1080 宽装不下 ⇒
+**「语音输出」整块被裁掉**、翻译分区的说明文字也被切（见第一次截图）。
+改成纵向三行 + 说明文字单独占一行后，三个分区**完整可见**。
+
+**组合选项生成器**（模块级函数，`live_caption_app.py`）：
+
+| 函数 | 行号 | 语义 |
+|---|---|---|
+| `build_asr_options(devices)` | 443 | ASR：按 `kind` 分三路处理 |
+| `build_mt_options(devices)` | 485 | 翻译：以**量化**为维度展开 |
+| `build_tts_options(devices)` | 520 | 语音：设备 × OV 推理精度 f32/f16 |
+
+**ASR 三种 kind 的处理完全不同**（最易错处）：
+
+- `kind=='ov'`（`gpu_int8`/`gpu_int4`）⇒ 设备**可覆盖** ⇒ 与本机可用设备求交集逐个生成，
+  但**排除 NPU**（NPU 归 `kind=='npu'` 那条路，两条路会争用设备）；
+- `kind=='npu'`（`npu_int8`/`npu_int4`）⇒ 设备**写死 NPU**，不接受覆盖
+  （all-NPU 交付后端，换设备会让模型与后端不匹配）；
+- `kind=='cuda'`（`cuda_q8`/`cuda_q4`）⇒ 另一种 kind（audio.cpp），设备概念不同 ⇒ 单列一条。
+
+另：**本机缺该精度 IR 的选项不出现**（`_asr_ir_ready`），而不是选完再报错。
+
+**TTS 的 precision 是 OV 推理精度 f32/f16，不是量化位宽** ⇒ 用
+`device_config.check_precision` 过滤 ⇒ **NPU + f32 不出现**（NPU 只支持 f16/i8）。
+
+**翻译下拉以「量化」为维度**（不是 engine × 设备），原因见 §14.4②。
+
+### §14.3 事件处理（要求 1 的配套）
+
+**新增三个事件方法**（替换掉旧的 `_cur_device` / `_on_device_changed` /
+`_on_mt_engine_changed` / `_mark_missing_mt_engines` / `_cur_mt_engine_key` /
+`_set_mt_note`）：
+
+| 方法 | 行号 | 行为 |
+|---|---|---|
+| `_on_asr_combo_changed` | 2133 | 写 `_dev_choices['asr']` → 存配置 → 若与当前引擎/设备不同则 `load_engine()` |
+| `_on_mt_combo_changed` | 2147 | 写 `_dev_choices['mt']` → 存配置 → **先 `set_engine` 后 `set_device`** |
+| `_on_tts_combo_changed` | 2174 | 写 `_dev_choices['tts']` + `_tts_precision` → 存配置 → 已 running 则重启 worker |
+
+🔴 **翻译的顺序铁律**：`TranslationService.set_engine(key)` 会把 `self.device`
+**重置**成该 engine 的默认值（`translator.py:847`），只调 `set_device` 会被覆盖；
+反过来只调 `set_engine` 则设备回不到用户选的值。
+⇒ 必须 **先 `set_engine(key)`，后 `set_device(dev)`**，两次调用只触发**一次**模型重建。
+
+**其它事件侧改动**：
+
+- `_reload_engine_on_device`（2204）⇒ **不再改写全局 `ENGINES`**。
+  `OVEngine.__init__` 已支持 `device=` 覆盖（仅 `kind=='ov'`），
+  改全局表会让**别的会话**（CLI / 后台回放）跟着变，属隐藏的全局副作用。
+- `_restart_tts_on_device(dev, precision=None)`（2214）⇒ 支持精度变化（TTS 的 precision 也在 worker 启动时绑定）。
+- `_on_tts_toggled`（2228）⇒ 用 **GUI 实时选择**（`_dev_choices['tts']` / `_tts_precision`），
+  **不再用 `args.tts_device` / `args.tts_precision` 启动快照**（用户改过组合后 args 是旧值）。
+
+**旧属性清理已实测归零**：`grep` 全文件对
+`var_dev_asr|var_dev_mt|var_dev_tts|cb_dev_asr|cb_dev_mt|cb_dev_tts|mt_eng_keys|cb_mt_eng|var_mt_eng|var_engine|cb_engine|self.keys|var_dev_note|_mt_eng_label|_on_device_changed|_cur_device|_cur_mt_engine_key|_set_mt_note|_mark_missing_mt_engines|_on_mt_engine_changed`
+⇒ **No matches found**。
+
+### §14.4 顺手修掉的 3 个真 bug（不是本次要求，但不修就会坏）
+
+#### ① `make_engine` 的 CUDA TypeError
+
+原代码无条件把 `device=` 传给引擎类，而 `CudaEngine.__init__` **没有 `device` 形参**
+⇒ GUI 选「NVIDIA GPU（CUDA）」**必抛**
+`TypeError: CudaEngine.__init__() got an unexpected keyword argument 'device'`。
+
+修法（`make_engine`，行号 1158）：
+
+```python
+kind = ENGINES[key]['kind']
+if kind == 'cuda':
+    return CudaEngine(key, on_log=on_log, force_language=force_language)
+if device and kind == 'ov':
+    return OVEngine(key, on_log=on_log, force_language=force_language, device=device)
+return OVEngine(key, on_log=on_log, force_language=force_language)
+```
+
+#### ② 翻译组合的 label 冲突 ⇒ 静默选错引擎
+
+GUI 靠 **label 反查** engine/device/precision ⇒ label 必须**全局唯一**。
+但 `MT_ENGINES` 里 `gpu_int8cw` 与 `npu_int8cw` 指的是**同一个模型目录**
+（`mt2-int8sym-cw-q`），只是 engine 默认设备不同。
+若按 engine × device 展开，`gpu_int8cw@GPU.0` 与 `npu_int8cw@GPU.0` 得到**同一个 label**
+「Intel GPU（集显） · INT8-CW」⇒ **反查会取错引擎**（静默，无报错）。
+
+修法 ⇒ **以「量化」为维度**展开（`build_mt_options`，行号 485）：
+`{量化}@{设备}`，engine 取该档里已注册（模型目录在本机）的那个。
+`set_engine` 会把 device 重置成 engine 默认值，随后 `set_device` 再纠正回用户选的设备。
+
+#### ③ 拖拽把手初始位置错误
+
+`overrideredirect` 的 Toplevel 在 `update_idletasks()` **之前还没真正创建** ⇒
+此时 `winfo_x()` 返回 0（相对 root 原点）⇒ 把手被放到**屏幕左上角**，
+看起来「把手不见了」（实测初始位置 `(12,8)`，应为 `(205+12, 1069+8)`）。
+
+修法 ⇒ 把 `_place_handle()` 移到字幕窗映射**之后**，并改用 `winfo_rootx/y`（屏幕坐标）。
+
+#### 附：把手位置从「内侧」改到「左上角外侧」
+
+字幕窗带 `WS_EX_LAYERED`（alpha 0.86）⇒ **Layered 窗口在屏幕合成/截图时不绘出
+被它覆盖的区域** ⇒ 把手放在字幕窗内侧时**截图里消失**（实测）。
+改放外侧（偏移 `-HANDLE_W-6, -HANDLE_H-6`）⇒ 截图可见，且不挡字幕第一行。
+
+### §14.5 鼠标穿透的实现与实测（要求 4）
+
+**新增模块** `live_caption/win_clickthrough.py`（纯 ctypes，无第三方依赖）：
+
+- `hwnd_of(widget)` ⇒ 取**顶层** hwnd。
+  🔴 Tk 的 `winfo_id()` 是**子窗口**，必须 `GetParent(winfo_id())` 才是顶层；
+  设错窗口时穿透**完全不生效且不报错**。
+- `enable_click_through` / `disable_click_through` / `is_click_through`。
+  🔴 `SetWindowLongW` 的**返回值不可信**（失败返 0、旧值也可能为 0、
+  `GetLastError()` 仍可能为 0）⇒ 唯一可靠判据是**回读 `GetWindowLongW` 校验目标位**。
+- `window_at(x, y)` / `belongs_to(hwnd, root_hwnd)`。
+- Tk 的 `attributes('-alpha', ...)` 本身已置 `WS_EX_LAYERED` ⇒ 只需追加
+  `WS_EX_TRANSPARENT` / `WS_EX_NOACTIVATE`。
+
+**双窗口方案**（`CaptionOverlay`，行号 1242）：
+
+- 字幕主 Toplevel：`WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE` ⇒ **完全穿透**。
+- 独立 **44×24 拖拽把手** Toplevel：**不穿透** ⇒ 唯一的拖拽入口 + 右键菜单入口。
+
+🔴 **加了 `WS_EX_TRANSPARENT` 之后窗口收不到鼠标消息** ⇒ 老式「直接拖字幕」必然失效。
+把手右键菜单提供「鼠标穿透：开/关」与「关闭屏幕字幕」（后者回调 `_close_overlay_from_handle`，
+把顶栏开关同步打回关 —— 没有这个回调关不掉字幕）。
+
+**穿透验证必须用 `WindowFromPoint`**：
+`WM_NCHITTEST` 在设了 TRANSPARENT 后**仍可能返回 `HTCLIENT`**，
+Tk 的 `event_generate` 合成事件也**绕过系统命中测试**仍会送达 ⇒ 两者都给**假阳性**。
+
+**实测结果**（`diag_overlay_gui.py`，真 Tk 17 项全 PASS）：
+
+| 项 | 实测 |
+|---|---|
+| 字幕窗 EXSTYLE | `0x80800a8`（含 `WS_EX_TRANSPARENT` + `WS_EX_NOACTIVATE`） |
+| 把手 EXSTYLE | `0x88`（**不含** TRANSPARENT ⇒ 不穿透） |
+| `WindowFromPoint` 命中字幕窗？ | **否**（`at=593280` ≠ overlay hwnd）⇒ 穿透真实生效 |
+| `WindowFromPoint` 命中把手？ | **是**（`at=4525966` = handle hwnd） |
+| 拖把手 | 字幕窗 `(205,1069) → (305,1109)`，相对位置**不变**（偏移恒为 `(-50,-30)`） |
+| 关/开穿透 | 均可切换；关掉后 `WindowFromPoint` 重新命中字幕窗 |
+| 兜底直接拖字幕 | 可用（`(305,1109) → (355,1139)`）—— 穿透失败时的降级路径 |
+
+### §14.6 字幕两栏（要求 3）
+
+`CaptionOverlay` 整体重写：
+
+- **删除** `self.final`（定稿原文白 `#f2f2f2`）与 `self.draft`（草稿译文浅蓝 `#7aa7d0`）。
+- **保留**：`self.mt`（青 `#5fd7d7`，定稿译文）+ `self.partial`（黄 `#ffd75e`，实时识别）。
+- 高度由 `4 * line + 34` 改为 `2 * line + 30`。
+- `show()` 签名由 4 参改为 **2 参** `show(mt='', partial='')`。
+- `App._render` 的调用同步改为两参。
+- ⚠️ **定稿原文仍在主文本区与保存的 txt 里**，只是不再上屏幕字幕。
+
+### §14.7 验证脚本与产物（证据）
+
+**5 个验证脚本，全部 ALL PASS**：
+
+| 脚本 | 覆盖 | 结果 |
+|---|---|---|
+| `verify_overlay.py` | 字幕两栏语义 + 源码断言（8 组） | ALL PASS |
+| `live_caption/diag_overlay_gui.py` | 穿透 + 把手 + 拖拽（真 Tk，17 项） | ALL PASS |
+| `live_caption/diag_device_gui.py` | 三分区组合下拉（27 项，含唯一性/回退/事件路径） | ALL PASS |
+| `live_caption/diag_layout_gui.py` | 状态栏高度 + 分区几何 + 截屏 | ALL PASS |
+| `live_caption/diag_device_select.py` | 设备选择底层（回退/优先级/持久化/精度约束） | ALL PASS |
+
+**新增诊断脚本**（4 个）：
+
+| 文件 | 字节 | mtime | SHA256 |
+|---|---|---|---|
+| `live_caption/win_clickthrough.py` | 7817 | 2026-10-23 16:26 | `db376c52bfe20f2665954bee133a3f20e325d0916559083884b8e6d50ab3e9d1` |
+| `live_caption/diag_overlay_gui.py` | 6075 | 2026-10-23 16:30 | `b222f8e71d61f6796189a037770c391ad3593318871a80046d81faf40cd48129` |
+| `live_caption/diag_device_gui.py` | 7288 | 2026-10-23 16:42 | `6b376a19ac31ee4a65f0f39bdfcac700c9edf9fb746515f97dc6868609e57b6c` |
+| `live_caption/diag_layout_gui.py` | 9378 | 2026-10-23 16:47 | `575c2e52323fe927061a8722599dfa45b1f76b508776f09506b416c099838eeb` |
+| `live_caption/diag_overlay_shot.py` | 4682 | 2026-10-23 16:51 | `7ad45e4058ea4a8651f3f78428e430f573ffde8db6ea2858485443602b3cd987` |
+
+**证据截图**（`results/app/`，2 个文件）：
+
+| 文件 | 字节 | mtime | SHA256 | 内容 |
+|---|---|---|---|---|
+| `results/app/gui_layout_1080x820.png` | 24622 | 2026-10-23 16:48 | `0680a90ce766d2b54bd91685956705c3c78b82bab8921fc9288012b32505eabd` | 主面板：状态栏（RTF 统计 + 状态文字）固定在顶栏之下，三分区纵向三行完整可见 |
+| `results/app/overlay_two_rows.png` | 28255 | 2026-10-23 16:51 | `3a9d201dfbe1457a541f3ebebbe2c34ee75c029fcc4ddee8257559b5fe6a1dd3` | 屏幕字幕两栏（青/黄）+ 左上角蓝色拖拽把手 |
+
+⚠️ 截图脚本用**纯 ctypes + GDI**（`PrintWindow` / `BitBlt` + 自写 PNG 编码），
+因为环境**没有 pywin32 / PIL**（`import win32gui` 实测 `ModuleNotFoundError`）。
+字幕窗是 Layered 窗口 ⇒ `PrintWindow` 对它无效 ⇒ 走**屏幕 DC** 再裁剪。
+
+### §14.8 本轮边界重申
+
+- 本轮**只改仓库**，**没有**同步客户包（用户决策：等 v1.4 统一打包带入）。
+  ⇒ **v1.3 客户包里的 GUI 仍是旧版**（三分区/两栏字幕/鼠标穿透**都还没有**）。
+- 本轮**没有**执行任何新纠偏条目（最大编号 APP-006 = `last_ack`，**无 APP-007+**）。
+  ⚠️ 注意：用户口头把本次改造称为「APP-007」，**但 reviewer 尚未发放 APP-007**，
+  正式编号仍以 `CORRECTIONS_APP.md` 为准；本节代码注释里的「APP-007」暂作**工作标记**。
+- 本轮**没有**跑 CPU 推理或测速（全部是界面层检查，不加载模型；
+  `diag_layout_gui.py` 里还把 `App.load_engine` 临时替换成空操作，避免起模型编译进程）。
+- 本轮**没有**调用 MiniMax 做质量判定（质量判定归 reviewer）。
+- 本轮**没有**提交 `status/app/CORRECTIONS_APP.md`。
+- ⚠️ `live_caption/live_caption_app.py` 的工作区改动里**同时含 ASR 并行会话的 §10/§11 成果**
+  （静音门限相对化 / 语音守卫相对化 / 空段拒切 / 回环立体声混合 / CudaEngine / run_cli / main）。
+  按 `STATUS_ASR.md` 头「① §10/§11 的 `live_caption/` 改动按 ASR-003 归 App 模块提交」，
+  本轮**一并提交**该文件，并在提交说明里标注来源，避免下轮重复。
+  **其它模块的未提交改动（`translator.py` / `audio_source.py` / `tts_service.py` /
+  `status/CORRECTIONS.md`）本轮仍不提交** —— 逐文件 `git add`，未用 `-A`。

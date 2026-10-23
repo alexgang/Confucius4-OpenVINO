@@ -36,7 +36,11 @@ class FakeTr:
     def __init__(self, *a, **kw):
         self.load_s = 0.1
 
-    def translate(self, text, tgt, on_token=None, ctx=None):
+    # ⚠️ 签名必须与 translator.py::_run_jobs 的调用一致：
+    #    `tr.translate(job.text, svc.target, ctx=ctx, glossary=gl)`
+    #    少了 glossary 会抛 TypeError，而 TypeError 被 svc.err 吞掉
+    #    ⇒ 译文全空、断言全红，却看不到任何报错（2026-10-23 APP-007 排查发现）。
+    def translate(self, text, tgt, on_token=None, ctx=None, glossary=None):
         return dict(text='【译】' + text, lat_ms=1.0, ttft_ms=1.0,
                     n_in=1, n_out=1, skipped=False)
 
@@ -68,13 +72,13 @@ class FakeTxt:
 
 
 class FakeOverlay:
-    """复刻 CaptionOverlay.show 的四行。"""
+    """复刻 CaptionOverlay.show 的**两行**（APP-007：定稿译文 / 实时识别）。"""
 
     def __init__(self):
-        self.lines = ('', '', '', '')
+        self.lines = ('', '')          # lines[0]=定稿译文, lines[1]=实时识别
 
-    def show(self, final_tail, partial, mt='', draft=''):
-        self.lines = (final_tail, partial, mt, draft)
+    def show(self, mt='', partial=''):
+        self.lines = (mt, partial)
 
 
 class FakeApp:
@@ -113,11 +117,12 @@ for s in SEGS:
 app._render('partial text so far')
 
 check('① 关闭草稿：主文本区有译文', '〔译〕' in app.txt.dump())
-check('① 关闭草稿：overlay 译文行非空', bool(app.overlay.lines[2].strip()),
-      repr(app.overlay.lines[2]))
-check('① 关闭草稿：overlay 译文含第一段译文', '【译】Hello world' in app.overlay.lines[2])
-check('① 关闭草稿：overlay 译文含最后一段译文', '【译】The third segment' in app.overlay.lines[2])
-check('① 关闭草稿：overlay 草稿行为空', app.overlay.lines[3] == '', repr(app.overlay.lines[3]))
+check('① 关闭草稿：overlay 译文行非空', bool(app.overlay.lines[0].strip()),
+      repr(app.overlay.lines[0]))
+check('① 关闭草稿：overlay 译文含第一段译文', '【译】Hello world' in app.overlay.lines[0])
+check('① 关闭草稿：overlay 译文含最后一段译文', '【译】The third segment' in app.overlay.lines[0])
+check('① 关闭草稿：overlay 只有两行（无草稿行）', len(app.overlay.lines) == 2,
+      repr(app.overlay.lines))
 
 # ── ② 开启草稿时，定稿译文同样要在（不能因为开了草稿就丢） ──────────
 app2 = FakeApp(draft=True)
@@ -125,19 +130,21 @@ for s in SEGS:
     app2._on_final(s)
     app2.mt.wait_idle(30)
 app2._render('partial text so far')
-check('② 开启草稿：overlay 译文行非空', bool(app2.overlay.lines[2].strip()),
-      repr(app2.overlay.lines[2]))
+check('② 开启草稿：overlay 译文行非空', bool(app2.overlay.lines[0].strip()),
+      repr(app2.overlay.lines[0]))
 
-# ── ③ 草稿预览与定稿译文分行，不互相顶替 ────────────────────────────
+# ── ③ 草稿预览不再上屏幕字幕（APP-007 删掉了第四行） ─────────────────
 app3 = FakeApp(draft=True)
 app3._on_final('First segment here.')
 app3.mt.wait_idle(30)
 app3.mt.draft = '【草稿预览】未定稿那半句的翻译'
 app3._render('partial unfinished')
-check('③ 定稿译文行非空', bool(app3.overlay.lines[2].strip()), repr(app3.overlay.lines[2]))
-check('③ 草稿预览行非空', bool(app3.overlay.lines[3].strip()), repr(app3.overlay.lines[3]))
-check('③ 两行内容不同（没有互相顶替）',
-      app3.overlay.lines[2] != app3.overlay.lines[3])
+check('③ 定稿译文行非空', bool(app3.overlay.lines[0].strip()), repr(app3.overlay.lines[0]))
+check('③ overlay 只有两行', len(app3.overlay.lines) == 2, repr(app3.overlay.lines))
+check('③ 草稿预览不再进 overlay', '草稿预览' not in app3.overlay.lines[0]
+      and '草稿预览' not in app3.overlay.lines[1], repr(app3.overlay.lines))
+check('③ 译文行与实时行内容不同',
+      app3.overlay.lines[0] != app3.overlay.lines[1])
 
 # ── ④ 关闭草稿时残留的草稿不能出现在 overlay 上 ──────────────────────
 app4 = FakeApp(draft=False)
@@ -145,8 +152,9 @@ app4._on_final('First segment here.')
 app4.mt.wait_idle(30)
 app4.mt.draft = '不该出现的残留草稿'
 app4._render('partial unfinished')
-check('④ 关闭草稿：残留草稿不进 overlay', app4.overlay.lines[3] == '',
-      repr(app4.overlay.lines[3]))
+check('④ 关闭草稿：残留草稿不进 overlay', len(app4.overlay.lines) == 2
+      and '残留草稿' not in app4.overlay.lines[0]
+      and '残留草稿' not in app4.overlay.lines[1], repr(app4.overlay.lines))
 check('④ 关闭草稿：残留草稿不进主文本区', '不该出现的残留草稿' not in app4.txt.dump())
 
 # ── ⑤ 段数不足 3 段时也要正常（range 边界） ──────────────────────────
@@ -154,14 +162,14 @@ app5 = FakeApp(draft=False)
 app5._on_final('Only one segment.')
 app5.mt.wait_idle(30)
 app5._render('partial')
-check('⑤ 只有 1 段：overlay 译文行非空', bool(app5.overlay.lines[2].strip()),
-      repr(app5.overlay.lines[2]))
-check('⑤ 只有 1 段：译文内容正确', '【译】Only one segment.' in app5.overlay.lines[2])
+check('⑤ 只有 1 段：overlay 译文行非空', bool(app5.overlay.lines[0].strip()),
+      repr(app5.overlay.lines[0]))
+check('⑤ 只有 1 段：译文内容正确', '【译】Only one segment.' in app5.overlay.lines[0])
 
 # ── ⑥ 没有定稿时不报错（overlay 译文行空即可） ──────────────────────
 app6 = FakeApp(draft=False)
 app6._render('partial only')
-check('⑥ 无定稿：overlay 译文行为空', app6.overlay.lines[2] == '')
+check('⑥ 无定稿：overlay 译文行为空', app6.overlay.lines[0] == '')
 check('⑥ 无定稿：overlay 实时行有内容', app6.overlay.lines[1] == 'partial only')
 
 # ── ⑦ 源码层面：不得再用「拿原文当 key」的写法 ─────────────────────
@@ -171,6 +179,16 @@ check('⑦ 源码不再有 self._mt_of(b) for b in self.blocks',
       '_mt_of(b) for b in self.blocks' not in src)
 check('⑦ 源码不再有 mt_tail or draft（会互相顶替）',
       'mt_tail or draft' not in src)
+
+# ── ⑧ APP-007：屏幕字幕只保留两行（定稿译文 + 实时识别） ────────────
+check('⑧ overlay 只有两行 Label（删掉了定稿原文与草稿预览）',
+      'self.final = tk.Label' not in src
+      and 'self.draft = tk.Label' not in src)
+check('⑧ overlay 的 show 签名是两参',
+      'def show(self, mt=\'\', partial=\'\')' in src)
+check('⑧ overlay 高度按 2 行算',
+      'h = 2 * line + 30' in src)
+check('⑧ overlay 调用是两参', 'self.overlay.show(mt_tail, partial)' in src)
 
 print()
 print('=' * 60)
