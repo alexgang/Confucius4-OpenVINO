@@ -24,6 +24,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 import zipfile
@@ -48,10 +49,39 @@ MUST = [
     'THIRD_PARTY.md',
     'Start_LiveCaption.bat',
     'Diagnose.bat',
+    # 翻译模型：INT8-CW 是**默认**（APP-002 / C-134 用户决定），INT4 保留为可选
+    'models/mt/mt2-int8sym-cw-q/openvino_model.xml',
+    'models/mt/mt2-int8sym-cw-q/openvino_model.bin',
+    'models/mt/mt2-int8sym-cw-q/config.json',
+    'models/mt/mt2-int8sym-cw-q/chat_template.jinja',
     'models/mt/mt2-int4sym-cw-q/openvino_model.xml',
     'models/mt/mt2-int4sym-cw-q/openvino_model.bin',
     'models/mt/mt2-int4sym-cw-q/config.json',
     'models/mt/mt2-int4sym-cw-q/chat_template.jinja',
+    # TTS（Qwen3-TTS / BabelVox）随包分发（APP-004② / TTS-004 交接单）
+    'models/qwen3tts/int8/talker.xml',
+    'models/qwen3tts/int8/talker.bin',
+    'models/qwen3tts/int8/talker_prefill.xml',
+    'models/qwen3tts/int8/talker_prefill.bin',
+    'models/qwen3tts/int8/talker_decode.xml',
+    'models/qwen3tts/int8/talker_decode.bin',
+    'models/qwen3tts/int8/cp_prefill.xml',
+    'models/qwen3tts/int8/cp_prefill.bin',
+    'models/qwen3tts/int8/cp_decode.xml',
+    'models/qwen3tts/int8/cp_decode.bin',
+    'models/qwen3tts/int8/code_predictor.xml',
+    'models/qwen3tts/int8/code_predictor.bin',
+    'models/qwen3tts/int8/tokenizer_encoder.xml',
+    'models/qwen3tts/int8/tokenizer_encoder.bin',
+    'models/qwen3tts/int8/tokenizer_decoder.xml',
+    'models/qwen3tts/int8/tokenizer_decoder.bin',
+    'models/qwen3tts/int8/speaker_encoder.xml',
+    'models/qwen3tts/int8/speaker_encoder.bin',
+    'models/qwen3tts/tokenizer/config.json',
+    'models/qwen3tts/tokenizer/tokenizer_config.json',
+    'models/qwen3tts/tokenizer/vocab.json',
+    'models/qwen3tts/tokenizer/merges.txt',
+    'models/qwen3tts/voices/preset_A.wav',
 ]
 
 # 必须**不存在**于 zip 内的**精确**路径
@@ -61,9 +91,6 @@ MUST_NOT_EXACT = [
     'app/translator.py.bak_instruct_20261022',
     'models/mt/int4sym-cw-q/openvino_model.bin',
     'models/mt/int8sym-cw-q/openvino_model.bin',
-    # v1.3 只附带 INT4 —— INT8 必须不在包内
-    'models/mt/mt2-int8sym-cw-q/openvino_model.xml',
-    'models/mt/mt2-int8sym-cw-q/openvino_model.bin',
     # 开发期备份一律不进包
     'app/live_caption_app.py.bak_c105',
     'app/live_caption_app.py.bak_c106',
@@ -89,10 +116,28 @@ MUST_NOT_PREFIX = list(pkg_exclude.SKIP_DIR_PREFIXES)
 MUST_NOT_NAME_RE = pkg_exclude.SPOKEN_FILE_RE
 
 # 额外的目录级断言：整个旧量化目录不该存在（比「目录里某个 .bin 不该存在」更强）
+# ⚠️ APP-005②：mt2-int8sym-cw-q **已改为默认模型并随包分发** ⇒ 这里不能再禁它。
 MUST_NOT_PREFIX += [
     'models/mt/int8sym-cw-q/',
     'models/mt/int4sym-cw-q/',
-    'models/mt/mt2-int8sym-cw-q/',
+]
+
+# 🔴 TTS 音色素材断言（APP-005② 顺手补）
+# 客户包**只允许**音色 A（预设音色）。
+# 同事音色 B / 克隆音色 C / 任何会议录音一律禁止进包（BRIEF 硬要求）。
+MUST_NOT_PREFIX += [
+    'models/qwen3tts/voices/preset_B',
+    'models/qwen3tts/voices/preset_C',
+    'models/qwen3tts/voices/clone_',
+    'app/voices/',
+]
+
+# 禁止进包的文件名模式（音色 B/C 的 wav/npz 等）
+MUST_NOT_NAME_RE_LIST = [
+    pkg_exclude.SPOKEN_FILE_RE,
+    re.compile(r'preset_B', re.I),
+    re.compile(r'preset_C', re.I),
+    re.compile(r'clone_[A-Z]', re.I),
 ]
 
 
@@ -102,6 +147,33 @@ def md5(path):
         for chunk in iter(lambda: f.read(1 << 20), b''):
             h.update(chunk)
     return h.hexdigest()
+
+
+V14_TTS_NOTE = (
+    'v1.4 修订（2026-10-23，APP-005② / APP-004 执行后）：'
+    '（4）**TTS（Qwen3-TTS / BabelVox）随包分发** —— '
+    'models/qwen3tts/（int8 IR 18 文件 + weights 37 文件 + tokenizer + voices/preset_A.wav），'
+    '运行时 babelvox 1.7.1 及其依赖（librosa / scipy / num2words / numba / llvmlite / soxr / '
+    'soundfile / cloudpickle / joblib / pooch / platformdirs / defusedxml / msgpack / decorator）'
+    '以 vendored 方式随包，**客户机离线可跑，无需联网 pip install**；'
+    '许可证归属见包根 NOTICE。**只附带音色 A（预设音色）** —— '
+    '音色 B / 克隆音色 / 会议录音素材一律不含在包内。'
+    '（5）**打包断言已按 INT8 默认模型更新** —— 原「v1.3 只附带 INT4」的断言与目录排除'
+    '在 INT8 成为默认后会导致打包必然 FAIL，现改为「INT8 必需 + INT4 可选 + 无旧量化目录」。'
+)
+
+
+def ensure_v14_notes(data):
+    """幂等地保证 notes 里有 v1.4 的 TTS / INT8 修订说明。
+
+    APP-005②：MANIFEST 的 notes 必须与包内实际内容一致，
+    否则就是「对客户不成立的承诺」（C-133 的教训）。
+    """
+    notes = data.get('notes') or ''
+    if '（4）**TTS（Qwen3-TTS / BabelVox）随包分发**' in notes:
+        return False
+    data['notes'] = V14_TTS_NOTE + notes
+    return True
 
 
 def refresh_manifest(pkg):
@@ -128,12 +200,76 @@ def refresh_manifest(pkg):
 
     data['files'] = new_files
     data['bytes'] = new_bytes
+
+    # 🔴 APP-005②：packages 表必须与包内 site-packages 实际一致，
+    # 否则客户按 MANIFEST 核对版本会与实机不符（TTS 依赖此前完全没登记）。
+    # ⚠️ 包名大小写不统一（Jinja2 vs jinja2）⇒ 按小写归一化去重，
+    #    已存在的 key 保留其原有拼写，只更新版本号。
+    old_pkgs = data.get('packages') or {}
+    new_pkgs = dict(old_pkgs)
+    lower2orig = {k.lower(): k for k in old_pkgs}
+    for name, ver in collect_installed_packages(pkg).items():
+        orig = lower2orig.get(name.lower())
+        if orig is not None:
+            if old_pkgs.get(orig) != ver:
+                new_pkgs[orig] = ver
+        else:
+            new_pkgs[name] = ver
+            lower2orig[name.lower()] = name
+    data['packages'] = new_pkgs
+    notes_changed = ensure_v14_notes(data)
+
     with open(path, 'w', encoding='utf-8', newline='') as f:
         json.dump(data, f, ensure_ascii=False, indent=1)
 
+    added = sorted(set(new_pkgs) - set(old_pkgs))
+    changed = sorted(k for k in set(new_pkgs) & set(old_pkgs)
+                      if new_pkgs[k] != old_pkgs[k])
     print(f'MANIFEST 刷新: files {old_files} -> {new_files}  '
           f'bytes {old_bytes} -> {new_bytes} ({new_bytes / 1024 ** 3:.2f} GB)')
+    print(f'  packages: 新增 {len(added)} 个{added if added else ""}')
+    if changed:
+        print(f'  packages: 版本变化 {len(changed)} 个{changed if changed else ""}')
+    print(f'  notes: {"已追加 v1.4 TTS/INT8 修订说明" if notes_changed else "已含 v1.4 修订说明"}')
     return old_files, old_bytes, new_files, new_bytes
+
+
+def collect_installed_packages(pkg):
+    """扫描包内 `python/Lib/site-packages/*.dist-info/METADATA` 拿真实版本。
+
+    只读、stdlib only。返回 {包名: 版本}。
+    """
+    import re as _re
+    sp = os.path.join(pkg, 'python', 'Lib', 'site-packages')
+    out = {}
+    if not os.path.isdir(sp):
+        return out
+    try:
+        names = os.listdir(sp)
+    except OSError:
+        return out
+    for d in names:
+        if not d.endswith('.dist-info'):
+            continue
+        meta = os.path.join(sp, d, 'METADATA')
+        if not os.path.isfile(meta):
+            continue
+        ver = ''
+        try:
+            with open(meta, 'r', encoding='utf-8', errors='replace') as f:
+                for line in f:
+                    if line.startswith('Version:'):
+                        ver = line.split(':', 1)[1].strip()
+                        break
+        except OSError:
+            continue
+        if not ver:
+            continue
+        name = d[:-len('.dist-info')]
+        # wheel 名是 name-version ⇒ 取第一段作为显示名
+        base = name.split('-')[0]
+        out[base] = ver
+    return out
 
 
 def report_excluded(pkg):
@@ -207,7 +343,46 @@ def do_dry_run(pkg, prefix):
     if missing:
         print('结论：FAIL（关键文件缺失）')
         return 1
+    # 🔴 内部素材闸门（APP-006 第 6 步）—— dry-run 同样要拦
+    rc = check_internal_material(pkg)
+    if rc:
+        print()
+        print('结论：FAIL（内部素材闸门未通过）')
+        return rc
     print('结论：PASS（dry-run，未写 zip）')
+    return 0
+
+
+def check_internal_material(pkg):
+    """打包前内部素材闸门（APP-006 第 6 步）。
+
+    复用独立脚本 `check_internal_material.py`（单一数据源）。
+    命中即 **FAIL**，不允许打包 —— 这是防止内部会议素材再次进包的最后一道闸。
+    """
+    import subprocess
+    script = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           'check_internal_material.py')
+    if not os.path.isfile(script):
+        print('[warn] 未找到 check_internal_material.py，跳过内部素材闸门')
+        return 0
+    print()
+    print('=' * 70)
+    print('内部素材闸门（APP-006 第 6 步）')
+    print('=' * 70)
+    try:
+        r = subprocess.run([sys.executable, script, '--pkg', pkg],
+                           capture_output=True, timeout=1800)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        print(f'!! 内部素材闸门执行失败: {e}')
+        return 1
+    out = r.stdout.decode('utf-8', errors='replace')
+    err = r.stderr.decode('utf-8', errors='replace')
+    print(out.rstrip())
+    if err.strip():
+        print(err.rstrip())
+    if r.returncode != 0:
+        print('⚠️ 内部素材闸门未通过 ⇒ 拒绝打包')
+        return 1
     return 0
 
 
@@ -232,6 +407,13 @@ def main():
 
     if args.dry_run:
         return do_dry_run(PKG, PREFIX)
+
+    # 🔴 打包前内部素材闸门（APP-006 第 6 步）—— 命中即拒绝打包
+    rc = check_internal_material(PKG)
+    if rc:
+        print()
+        print('结论：FAIL（内部素材闸门未通过）')
+        return rc
 
     t0 = time.time()
     print('=' * 70)
@@ -352,25 +534,45 @@ def main():
 
         # translator.py 关键符号抽查
         src = zf.read(f'{PREFIX}/app/translator.py').decode('utf-8')
-        syms = ['mt2-int4sym-cw-q', '_TRANSLATE_INSTR', 'Default Translation',
+        syms = ['mt2-int8sym-cw-q', '_TRANSLATE_INSTR', 'Default Translation',
                 'stop_strings = set()', 'split_sentences']
         print()
         print('translator.py 符号抽查：')
         for s in syms:
             print(f'  [{"有" if s in src else "缺"}] {s}')
 
-        # 翻译模型目录清单：v1.3 只允许 INT4
+        # 翻译模型目录清单：INT8-CW 是默认（必须带），INT4 是可选项（可带可不带）
+        # ⚠️ APP-005②：原来是 `mt_dirs == ['mt2-int4sym-cw-q']`（只允许 INT4），
+        #    但 INT8 已是默认模型并随包 ⇒ 原判定会让打包必然 FAIL。
         mt_dirs = sorted({n[len(f'{PREFIX}/models/mt/'):].split('/')[0]
                            for n in names
                            if n.startswith(f'{PREFIX}/models/mt/') and '/' in n[len(f'{PREFIX}/models/mt/'):]})
         print()
         print(f'包内翻译模型目录: {mt_dirs}')
-        only_int4 = mt_dirs == ['mt2-int4sym-cw-q']
-        print(f'  [{"符合" if only_int4 else "不符"}] v1.3 只附带 INT4')
+        int8_ok = 'mt2-int8sym-cw-q' in mt_dirs
+        # 旧量化目录（无 `mt2-` 前缀）一律不允许出现
+        legacy_ok = not [d for d in mt_dirs if d in ('int4sym-cw-q', 'int8sym-cw-q')]
+        print(f'  [{"符合" if int8_ok else "不符"}] 默认 INT8-CW 目录在包内')
+        print(f'  [{"符合" if legacy_ok else "不符"}] 无旧量化目录（int4sym-cw-q / int8sym-cw-q）')
+        mt_dirs_ok = int8_ok and legacy_ok
+
+        # 🔴 TTS 音色素材断言（APP-005②）
+        # 客户包只允许音色 A；音色 B / C / 克隆素材 / 会议录音一律不许进包。
+        tts_bad = sorted(
+            n for n in names
+            if any(rx.search(n.rsplit('/', 1)[-1]) for rx in MUST_NOT_NAME_RE_LIST)
+            and n.startswith(f'{PREFIX}/models/qwen3tts/')
+        )
+        print()
+        print('TTS 音色素材（只允许音色 A）：')
+        print(f'  [{"已移除" if not tts_bad else "仍在"}] 音色 B/C/克隆素材 '
+              f'（{len(tts_bad)} 条命中）')
+        for n in tts_bad[:20]:
+            print(f'      ⚠️ {n}')
 
     print()
-    if (missing or stale or stale_prefix or not only_int4 or not files_ok
-            or not bytes_ok or spoken_hit or internal_hit):
+    if (missing or stale or stale_prefix or not mt_dirs_ok or not files_ok
+            or not bytes_ok or spoken_hit or internal_hit or tts_bad):
         print('结论：FAIL')
         return 1
     print(f'结论：PASS  md5={md5(ZIP)}')

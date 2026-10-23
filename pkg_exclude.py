@@ -88,6 +88,12 @@ SKIP_DIR_NAMES = frozenset({
     'mt_cache',    # 翻译模型编译缓存
 })
 
+# 🔴 备份目录（任意层级）
+# C-133 教训：**备份不能放在包目录内** —— `_backup_*` 目录不被 `.bak`
+# 文件名规则覆盖，会污染包（实测 2026-10-23 客户包根又出现了
+# `_backup_c111/`，里面有旧版 live_caption_app.py / translator.py）。
+BACKUP_DIR_RE = re.compile(r'^_backup', re.I)
+
 # 例外：这些顶层目录下的 __pycache__ **保留**
 # （包内 Python 恒为 3.12，pyc 版本固定 ⇒ 保留可省首次启动 1~5 s）
 KEEP_PYCACHE_UNDER = frozenset({'python'})
@@ -131,6 +137,10 @@ SKIP_DIR_PREFIXES = tuple(
         'ov_cache',
         'npu_cache',
         'mt_cache',
+        '_backup_c111',
+        '_backup_c133',
+        '_backup_c134',
+        '_backup_c135',
     )
 ) + SKIP_PATH_PREFIXES
 
@@ -176,6 +186,9 @@ def is_excluded(relpath: str, top_dir: str = None) -> bool:
     for seg in relpath.split('/')[:-1]:
         if seg in SKIP_DIR_NAMES:
             return True
+        # 🔴 备份目录（任意层级）—— C-133 教训：备份放包内会污染包
+        if BACKUP_DIR_RE.match(seg):
+            return True
 
     return False
 
@@ -197,6 +210,9 @@ def iter_package_files(pkg_root: str):
         keep = []
         for d in dirnames:
             if d in SKIP_DIR_NAMES:
+                continue
+            # 🔴 备份目录（任意层级）—— C-133 教训：备份放包内会污染包
+            if BACKUP_DIR_RE.match(d):
                 continue
             if d == '__pycache__' and top_dir not in KEEP_PYCACHE_UNDER:
                 continue
@@ -238,6 +254,7 @@ def iter_excluded(pkg_root: str):
 
         for d in list(dirnames):
             hit = d in SKIP_DIR_NAMES or (
+                BACKUP_DIR_RE.match(d)) or (
                 d == '__pycache__' and top_dir not in KEEP_PYCACHE_UNDER)
             if not hit:
                 continue

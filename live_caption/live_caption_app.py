@@ -151,7 +151,7 @@ SEG_MIN_SPEECH_RUN_MS = int(os.environ.get('LIVECAP_MIN_SPEECH_RUN_MS', '200'))
 # 静音」而设的。旧判据是**绝对阈值** probe_db > SILENCE_DB(-40dB)，
 # 在真实录音里会大面积失效：
 #
-#   真实演讲 <redacted>.wav 实测 —— 30 处 ≥1.2s 静音里，
+#   真实演讲 <内部音频>.wav 实测 —— 30 处 ≥1.2s 静音里，
 #   现状判据拦截了 24 处（80%）。原因底噪本身就接近 -40dB
 #   （中位 -56dB 但 p10 到 -65dB），说话收尾时能量渐弱，
 #   句末 0.35s 的能量中位只有 -42.4dB，低于 -40dB → 判「不是说完」

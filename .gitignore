@@ -71,6 +71,17 @@ Confucius4_LiveCaption_v*/
 # OpenVINO/NPU 编译缓存（C-085/C-086/C-087 的 NPU CACHE_DIR，约 53 GiB，可重建）
 reports/npu_cache/
 
+# ── APP-005① / APP-006：内部会议素材防复发 ─────────────────────────
+# 回放产物一律写仓库外（replay_out/），这里的 results/ 只是兜底。
+results/**/*replay*
+results/c134_replay/
+# 会议录音的转写原文与逐句分段（历史里已有 79 个，APP-006 要清）
+reports/**/transcript_*.txt
+reports/**/segments_*.json
+reports/cuda*/logs_stream/
+# spoken 语料的转写/译文（内部会议口语子集）
+**/*_spoken.*
+
 # C-090#2 / C-095#4：OpenVINO IR 权重（.bin 可达 GiB 级，绝不能进仓库）。
 # R0–R4 的 INT4 IR 已移到 models/c089_int4/；这里再加一道兜底，
 # 防止以后有人把 IR 输出到 reports/ 下。

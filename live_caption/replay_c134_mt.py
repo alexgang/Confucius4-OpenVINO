@@ -36,7 +36,11 @@ PKG = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.3'
 APP = os.path.join(PKG, 'app')
 PY = os.path.join(PKG, 'python', 'python.exe')
 LOCK = r'C:\Users\Trekker-PTL\shared\MACHINE_LOCK'
-OUTDIR = os.path.join(REPO, 'results', 'c134_replay')
+
+# 🔴 APP-005①：回放产物**一律写到仓库外**。
+#   旧路径 `results/c134_replay/` 已被 commit 73f268e 带进 origin/main，
+#   里面是内部会议录音的转写原文 ⇒ 必须脱库（APP-005①(a)）。
+OUTDIR = os.path.join(r'C:\Users\Trekker-PTL\replay_out', 'c135')
 
 
 # ── 锁 ──────────────────────────────────────────────────────────────
@@ -154,14 +158,64 @@ def release_lock():
 # ── 单轮回放 ────────────────────────────────────────────────────────
 SEG_RE = re.compile(r'^\s*\[(\d+\.\d+)\s*-\s*(\d+\.\d+)\s*\]')
 
+# 🔴 APP-005③：英文残留判定
+#   「连续 ≥5 个英文词」才算残留（中文句子里的英文缩写/术语不算）。
+EN_WORD_RE = re.compile(r"[A-Za-z][A-Za-z'\-]*")
+CJK_RE = re.compile(r'[\u4e00-\u9fff]')
+
+
+def english_residual_ratio(lines):
+    """统计「英文残留句数占比」与「空行数」。
+
+    返回 (残留句数, 总句数, 占比, 空行数, 残留句索引列表)
+    ⚠️ 只返回**计数**，不返回原文 —— 报告里不能出现会议原文。
+
+    🔴 口径（2026-10-23 13:50 修正）：「空行」只统计**中间**的空行，
+       **文件开头/结尾的空行不算**（CLI 写文件时头部会带一个换行，
+       那是格式不是「空译文」）。
+    """
+    total = 0
+    residual = 0
+    empty = 0
+    idx = []
+    for i, ln in enumerate(lines):
+        s = (ln or '').strip()
+        if not s:
+            empty += 1
+            continue
+        total += 1
+        words = EN_WORD_RE.findall(s)
+        if len(words) >= 5 and not CJK_RE.search(s):
+            residual += 1
+            idx.append(i)
+    ratio = (residual / total) if total else 0.0
+    return residual, total, round(ratio, 4), empty, idx
+
+
+def count_inner_empty(lines):
+    """**中间**空行数（去掉文件首尾空行后的空行计数）。
+
+    APP-005③ 验收要求「0 个空行」指「没有空译文行」，
+    文件头尾的换行不算（CLI 写文件时头部会带一个换行，那是格式）。
+    """
+    s = list(lines)
+    while s and not (s[0] or '').strip():
+        s.pop(0)
+    while s and not (s[-1] or '').strip():
+        s.pop()
+    return sum(1 for ln in s if not (ln or '').strip())
+
 
 def run_once(audio, seconds, translate, out_json, engine='gpu_int8',
-             mt_engine=None):
+             mt_engine=None, asr_lang='English'):
     os.makedirs(OUTDIR, exist_ok=True)
     txt_out = os.path.join(OUTDIR, out_json.replace('.json', '.txt'))
     cmd = [PY, os.path.join(APP, 'live_caption_app.py'),
            '--cli', '--file', audio, '--engine', engine,
-           '--asr-lang', 'Chinese',
+           # 🔴 APP-005③：原来写死 'Chinese'，而素材是**纯英文会议**
+           #   ⇒ ASR 自己做翻译，MT 输出大段英文残留，「翻译正常」的结论不成立。
+           #   现改为按素材实际语种传 English（可用 --asr-lang 覆盖）。
+           '--asr-lang', asr_lang,
            '--max-seconds', str(seconds),
            '--translate', translate,
            '--out', txt_out]
@@ -179,10 +233,12 @@ def run_once(audio, seconds, translate, out_json, engine='gpu_int8',
     # ⚠️ --out 写出的定稿文本**没有** [start-end] 时间戳前缀（实测）
     #   ⇒ 只能按非空行统计「段数」，不能解析时间轴。
     segs = []
+    raw_lines = []
     if os.path.isfile(txt_out):
         with open(txt_out, 'r', encoding='utf-8', errors='replace') as f:
             for line in f:
                 t = line.strip()
+                raw_lines.append(t)
                 if not t:
                     continue
                 m = SEG_RE.match(line)
@@ -190,12 +246,56 @@ def run_once(audio, seconds, translate, out_json, engine='gpu_int8',
                     segs.append((float(m.group(1)), float(m.group(2)), t))
                 else:
                     segs.append((None, None, t))
+
+    # 🔴 APP-005③ 口径修正（2026-10-23 13:50）：**译文在另一个文件**。
+    #   `--out <x>.txt` 写的是 **ASR 定稿原文**（英文）；
+    #   翻译开启时，CLI 另外写 `<x>.mt.txt`（**译文**，中文）。
+    #   ⇒ 验收「英文残留句占比 ≤5% / 0 空行」必须统计 **`.mt.txt`**，
+    #   统计 `.txt` 恒为 100% 英文（那是原文，不是译文）。
+    #   ⚠️ 这里只记**计数**，不记原文。
+    mt_txt = txt_out.replace('.txt', '.mt.txt')
+    mt_exists = os.path.isfile(mt_txt)
+    mt_lines = []
+    if mt_exists:
+        with open(mt_txt, 'r', encoding='utf-8', errors='replace') as f:
+            mt_lines = [ln.strip() for ln in f]
+
+    # 统计对象：翻译开启 ⇒ 译文文件；翻译关闭 ⇒ 原文文件（此时无译文可查）
+    if translate != 'off' and mt_exists:
+        stat_lines = mt_lines
+        stat_target = os.path.basename(mt_txt)
+    else:
+        stat_lines = raw_lines
+        stat_target = os.path.basename(txt_out)
+    residual, n_lines, ratio, empty, resid_idx = english_residual_ratio(stat_lines)
+    empty = count_inner_empty(stat_lines)   # 空行只算中间的
+    # 另存「原文侧」计数（用于句数 ↔ 行数对应关系核对）
+    o_resid, o_n, o_ratio, o_empty, _ = english_residual_ratio(raw_lines)
+    o_empty = count_inner_empty(raw_lines)
     return {
         'translate': translate,
         'mt_engine': mt_engine or 'default(auto)',
+        'asr_lang': asr_lang,
         'wall_s': round(wall, 2),
         'exit_code': p.returncode,
         'segments': len(segs),
+        # 🔴 APP-005③：句数 ↔ 行数对应关系（reviewer 指出 §8.7 里
+        #   「STATUS 说 14 句、mt.txt 只有 9~10 行」对不上）
+        'stat_target': stat_target,
+        'txt_lines_total': len(stat_lines),
+        'txt_lines_nonempty': n_lines,
+        'english_residual_lines': residual,
+        'english_residual_ratio': ratio,
+        'empty_lines': empty,
+        'residual_line_idx': resid_idx[:20],
+        # 原文侧（ASR 定稿）
+        'src_lines_total': len(raw_lines),
+        'src_lines_nonempty': o_n,
+        'src_empty_lines': o_empty,
+        # 译文侧
+        'mt_txt': mt_txt if mt_exists else None,
+        'mt_txt_exists': mt_exists,
+        'mt_lines_total': len(mt_lines),
         'out_txt': txt_out,
         'out_txt_exists': os.path.isfile(txt_out),
         'stdout_tail': out_txt[-3000:],
@@ -210,6 +310,8 @@ def main():
         REPO, 'test_audio', '<redacted>.wav'))
     ap.add_argument('--seconds', type=float, default=60.0)
     ap.add_argument('--module', default='app')
+    # 🔴 APP-005③：素材是**英文**会议 ⇒ 默认 English（原来写死 Chinese）
+    ap.add_argument('--asr-lang', default='English')
     ap.add_argument('--no-wait-lock', action='store_true')
     args = ap.parse_args()
 
@@ -229,16 +331,28 @@ def main():
         results = []
         for name, tr, me in plan:
             print(f'\n===== {name}（translate={tr}） =====', flush=True)
-            r = run_once(args.audio, args.seconds, tr, f'{name}.json', mt_engine=me)
+            r = run_once(args.audio, args.seconds, tr, f'{name}.json',
+                         mt_engine=me, asr_lang=args.asr_lang)
             r['name'] = name
             results.append(r)
             print(f'  exit={r["exit_code"]} segments={r["segments"]} '
                   f'wall={r["wall_s"]}s', flush=True)
+            # 🔴 APP-005③：报告里只报**计数**，不贴会议原文
+            print(f'  统计对象={r["stat_target"]} '
+                  f'行数={r["txt_lines_nonempty"]}/{r["txt_lines_total"]} '
+                  f'英文残留={r["english_residual_lines"]} '
+                  f'({r["english_residual_ratio"] * 100:.1f}%) '
+                  f'空行={r["empty_lines"]}', flush=True)
+            if r['mt_txt_exists']:
+                print(f'  译文文件={os.path.basename(r["mt_txt"])} '
+                      f'行数={r["mt_lines_total"]}', flush=True)
             if r['exit_code'] != 0:
                 print('  stderr tail:', r['stderr_tail'][-800:], flush=True)
         with open(os.path.join(OUTDIR, 'replay_report.json'), 'w',
                   encoding='utf-8') as f:
-            json.dump({'audio': args.audio, 'seconds': args.seconds,
+            json.dump({'audio': os.path.basename(args.audio),
+                       'seconds': args.seconds,
+                       'asr_lang': args.asr_lang,
                        'results': results}, f, ensure_ascii=False, indent=2)
         print('\n结果已落盘:', os.path.join(OUTDIR, 'replay_report.json'))
     finally:
