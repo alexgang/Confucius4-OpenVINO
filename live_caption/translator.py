@@ -860,6 +860,29 @@ class TranslationService:
         self.q.put(_Job('switch', '', ''))   # 哨兵：唤醒可能阻塞在 get() 上的线程
         return True
 
+    def set_device(self, device):
+        """热切换翻译推理设备（APP-004 第 3 条）。
+
+        与 set_engine 的区别：set_engine 会把 device **重置**成该 engine 的默认值；
+        这里只改设备，不动 engine_key / model_dir（用户显式选的优先）。
+
+        ⚠️ 设备变了必须**真的重建模型**（OV 的模型是绑在 device 上的），
+        所以走和 set_engine 一样的 `_reload` 通道。
+        """
+        if not device or device == self.device:
+            return True
+        self.device = device
+        if not self.active:
+            return True                      # 翻译关着，只记住，下次开启时生效
+        if not self._thread_alive():
+            self.err = None
+            self._start()
+            return True
+        self.state = 'loading'
+        self._reload.set()
+        self.q.put(_Job('switch', '', ''))   # 哨兵：唤醒可能阻塞在 get() 上的线程
+        return True
+
     def _start(self):
         self.state = 'loading'
         self._reload.clear()

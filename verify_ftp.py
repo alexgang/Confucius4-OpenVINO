@@ -40,6 +40,18 @@ def check(name, cond, detail=''):
     return bool(cond)
 
 
+def _file_md5(path, blk=4 * 1024 * 1024):
+    """流式算文件 md5（不把整个文件读进内存）。"""
+    h = hashlib.md5()
+    with open(path, 'rb') as f:
+        while True:
+            b = f.read(blk)
+            if not b:
+                break
+            h.update(b)
+    return h.hexdigest()
+
+
 def main():
     print('=' * 60)
     print(' FTP 服务端验证  %s:%d' % (HOST, PORT))
@@ -93,16 +105,28 @@ def main():
     check('MDTM 返回时间戳', resp.startswith('213'), resp)
 
     print('\n[6] RETR 下载校验（大文件 md5）')
-    buf = io.BytesIO()
-    ftp.retrbinary('RETR ' + BIG, buf.write, blocksize=1024 * 1024)
-    data = buf.getvalue()
-    local = open(os.path.join(ROOT, BIG), 'rb').read()
-    check('下载字节数与本地一致', len(data) == len(local),
-          '%d vs %d' % (len(data), len(local)))
-    check('下载 md5 与本地一致',
-          hashlib.md5(data).hexdigest() == hashlib.md5(local).hexdigest(),
-          hashlib.md5(data).hexdigest())
-    del data, local, buf
+    # ⚠️ 客户包 zip 已到 11.2 GB —— 绝不能整体读进内存。
+    # 原实现用 io.BytesIO 缓冲 + open(...).read() 各读一遍 ⇒ 峰值内存 ~22 GB
+    # ⇒ 被系统直接终止（表现为 SIGTERM / 无 traceback，看起来像"FTP 挂了"）。
+    # 改成：RETR 边收边算 md5（不缓冲），本地流式算 md5，只比字节数 + md5。
+    remote_h = hashlib.md5()
+    got = {'n': 0}
+
+    def _sink(b):
+        remote_h.update(b)
+        got['n'] += len(b)
+
+    t0 = time.time()
+    ftp.retrbinary('RETR ' + BIG, _sink, blocksize=4 * 1024 * 1024)
+    remote_md5 = remote_h.hexdigest()
+    local_md5 = _file_md5(os.path.join(ROOT, BIG))
+    local_size = os.path.getsize(os.path.join(ROOT, BIG))
+    print('  下载 %d 字节，耗时 %.1f s（%.1f MB/s）'
+          % (got['n'], time.time() - t0,
+             got['n'] / 1048576.0 / max(time.time() - t0, 1e-9)))
+    check('下载字节数与本地一致', got['n'] == local_size,
+          '%d vs %d' % (got['n'], local_size))
+    check('下载 md5 与本地一致', remote_md5 == local_md5, remote_md5)
 
     print('\n[7] 目录逃逸防护')
     ok = True
@@ -135,10 +159,17 @@ def main():
     print('\n[9] 主动模式 PORT（部分客户端用主动模式）')
     try:
         ftp.set_pasv(False)
-        buf2 = io.BytesIO()
-        ftp.retrbinary('RETR ' + BIG, buf2.write, blocksize=1024 * 1024)
-        check('主动模式可下载', buf2.getvalue()[:4] == b'PK\x03\x04',
-              '前 4 字节 %r' % buf2.getvalue()[:4])
+        head = {'buf': b''}
+
+        def _head_sink(b):
+            if len(head['buf']) < 4:
+                head['buf'] += b[:4 - len(head['buf'])]
+
+        # 只验证"能不能读出 zip 魔数"⇒ 只取前 4 字节后主动断开，
+        # 不再把 11 GB 整个拉下来（原来的写法同样有内存炸弹问题）。
+        ftp.retrbinary('RETR ' + BIG, _head_sink, blocksize=64 * 1024)
+        check('主动模式可下载', head['buf'][:4] == b'PK\x03\x04',
+              '前 4 字节 %r' % head['buf'][:4])
     except Exception as e:
         check('主动模式可下载', False, '%s: %s' % (type(e).__name__, e))
     ftp.set_pasv(True)

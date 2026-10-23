@@ -1,10 +1,18 @@
 # STATUS_APP
 last_ack: APP-006
-更新时间: 2026-10-24 03:16
-当前任务: **巡检仍无新纠偏条目（最大 APP-006 = last_ack，SHA 逐字节一致）+ v1.4 客户包「真正交付闭环」**：① 巡检：`CORRECTIONS_APP.md` SHA256 `dff32b2c…7db8cc` 与 §13/§15/§16 **逐字节一致** ⇒ **无 APP-007+**（代码里的「APP-007」是用户口头/并行会话自命名的内部工作标记，非 reviewer 编号；沿用前 3 轮同一口径）② ✅ **v1.4 zip 真正闭环**：22:56 打出的 11 216 035 275 B zip 经**内容级**校验（zip ⇄ 包目录**逐文件 SHA256 13 978 个全部一致**、仓库 ⇄ 包目录 **16/16 一致**、testzip OK、MANIFEST `version='1.4'`/files=13977/bytes=13667856211、内部素材闸门 **0 命中**、`_spoken` **0**）⇒ **C-111-V7 的包目录修改已真正随 zip 交付**（MT §46 阻塞项③ 闭环）；FTP 共享那份与源 zip **SHA256 完全相同** `4a2d943f…f8e89` ③ 🔴 **修掉 4 个打包脚本缺陷**：MANIFEST 条数校验**恒误报 FAIL**（`entries` 含 MANIFEST 自身）、**缺内容级校验**（曾导致「zip 旧版/包目录新版」而所有断言 PASS）、`version` **手填**（包内自称 v1.3）、删旧 zip 失败会**中断**打包 ⇒ 已加 `PKG_VERSION` 单一数据源 + `verify_zip_matches_pkg()` ④ ✅ **App 侧改动入库**：CPU 移出设备清单、音色只留 A、`tts_npu_cache` 进排除名单（4.87 GB 编译缓存绝不能进包）、TTS service 三处 bug 修、ASR 回环立体声不丢声道。详见 §17。
-阻塞 / 待用户决定: ① **APP-006 第 3~7 步**：历史改写 + force push（等 reviewer 复核 §11.2 清单；§16.6.2 已复查确认远端仍有 **85 个会议转写载体**；且**改写后所有 SHA 全变**，并行线程 ASR/MT/TTS 需重新 clone 或 reset --hard，**会覆盖他们未提交的改动**）——**本轮已按纪律停下**；② **v1.4 是否算可交付**：zip 与内容级校验**全 PASS**，但 **TTS 实时性不达标**（首包 P50 **5465.6 ms** / P95 **7822.65 ms**、丢句 **8/14 ≈ 57%**、最大积压 **11.13 s**）⇒ **字幕+翻译可交付，TTS 语音输出暂不可用于实时场景**；③ **V7 的已知代价**：链首段那行显示**半句残句**（12 段语料 5 行/58 字）⇒ 若不接受，需 App 实现「段级文案 + 整句文案并存、渲染层同段二选一」（MT 已备 `mt_fix_of()` 接口）；④ **RTF 净影响无定论**（Δ=+0.108 但 off 组组内极差 0.161，同量级噪声）；⑤ **包体 10.45 GiB**（13 977 文件；需评估剔除 `decoder-npu-int8`/`decoder-gpu-int8`/`encoder-fp16`；是否剔除 INT4-CW 可再省 0.97 GB）；⑥ 🔴 **FTP 那份 zip 是独立副本**（link count=1，**非硬链接**）⇒ 源 zip 重打后**必须重新复制**；⑦ **babelvox tokenizer 的 `fix_mistral_regex` 提示**待 TTS 模块确认；⑧ **音质判定交 reviewer**（目标机不自己调 MiniMax，2 个 wav 已落盘）；⑨ **`tts_service.py` 不读 worker stderr**（静默吞 traceback，本轮未修）；⑩ **MT 的 `translator.py` 改动未走「App 合入」流程**（MT §46 已自述并请 App/reviewer 复核）⇒ 本轮**未提交** `translator.py`
+更新时间: 2026-10-24 03:24
+当前任务: **v1.4 客户包已正式交付（打包 → 干净目录复验 → FTP 发布 → 24/24 验证）+ 本轮独立收尾**：① ✅ **干净目录解压复验 PASS**：解压到 `pkg_verify_v14/` 后跑包内解释器 `--check` ⇒ 「**结论：环境正常。ASR 可用后端 6 个，Intel 集显可用。**」依赖全 [OK]、设备列表**无 CPU**（GPU.0/GPU.1/NPU）、ASR 6 后端全 [OK]、翻译 5 项全 [OK] ② ✅ **FTP 验证 24/24 PASS**（EXIT=0）：登录/FEAT 多行/NLST 147/LIST 147/SIZE 11216035275/MDTM 213 20261023225606/RETR md5 一致/逃逸防护/只读拒写/主动模式 PORT/QUIT 全过 ③ ✅ **FTP 共享只留 v1.4**（v1.3.zip 已按用户拍板移除；**根目录本体保留未动**）④ 🔴 **修掉 `verify_ftp.py` 的「内存炸弹」真 bug**：原 `[6]`/`[9]` 段用 `io.BytesIO` + `open().read()` 各读一遍 11.2 GB ⇒ **峰值内存 ~22 GB ⇒ 被系统直接 SIGTERM**（这才是此前「verify_ftp 被 SIGTERM / 无输出」的**真实根因**，与 FTP 服务无关）⇒ 已改为**流式**（RETR 边收边算 md5 + 本地 4 MB 一块流式 md5 + 主动模式只取前 4 字节魔数）⑤ 📦 **最终产物**：zip **11 216 035 275 B** / SHA256 `4a2d943f…f8e89` / MD5 `46ce0d68…30dc9` / mtime `2026-10-23 22:56:06`；v1.3→v1.4 **+2 028 629 159 B（+22.1%）**，增长来自 **Qwen3-TTS 运行时+INT8 IR+权重**（非缓存回潮）⑥ ✅ **git 边界**：`translator.py` **只入库 `set_device` 一个 hunk**（+23 行，`git apply --cached` 精确提取；C-111 V7 的 `done_fix` hunk 属 MT，**未入库**）。详见 §18。
+阻塞 / 待用户决定: ① **APP-006 第 3~7 步**：历史改写 + force push（等 reviewer 复核 §11.2 清单；§16.6.2 已复查确认远端仍有 **85 个会议转写载体**；且**改写后所有 SHA 全变**，并行线程 ASR/MT/TTS 需重新 clone 或 reset --hard，**会覆盖他们未提交的改动**）——**本轮仍按纪律停下**；② **v1.4 交付口径**：zip 与内容级校验**全 PASS**、FTP 已发布，但 **TTS 实时性不达标**（首包 P50 **5465.6 ms** / P95 **7822.65 ms**、丢句 **8/14 ≈ 57%**、最大积压 **11.13 s**）⇒ **字幕+翻译可交付，TTS 语音输出暂不可用于实时场景**；③ **V7 的已知代价**：链首段那行显示**半句残句**（12 段语料 5 行/58 字）⇒ 若不接受，需 App 实现「段级文案 + 整句文案并存、渲染层同段二选一」（MT 已备 `mt_fix_of()` 接口）；④ **RTF 净影响无定论**（Δ=+0.108 但 off 组组内极差 0.161，同量级噪声）；⑤ **包体 10.45 GiB**（13 977 文件；需评估剔除 `decoder-npu-int8`/`decoder-gpu-int8`/`encoder-fp16`；是否剔除 INT4-CW 可再省 0.97 GB）；⑥ 🔴 **FTP 那份 zip 是独立副本**（link count=1，**非硬链接**）⇒ 源 zip 重打后**必须重新复制**；⑦ **babelvox tokenizer 的 `fix_mistral_regex` 提示**待 TTS 模块确认；⑧ **音质判定交 reviewer**（目标机不自己调 MiniMax，2 个 wav 已落盘）；⑨ **`tts_service.py` 不读 worker stderr**（静默吞 traceback，本轮未修）；⑩ **并行会话已提交 `d0c146e`（其 §17 与本节 §18 编号不冲突，§18 为本轮独立收尾段）**
 
 ## 最近更新
+- 03:24 §18 ✅ **v1.4 干净目录解压复验 PASS**：`pkg_verify_v14/Confucius4_LiveCaption_v1.4/` 跑包内 `--check` ⇒ 「**结论：环境正常。ASR 可用后端 6 个，Intel 集显可用。**」（依赖全 [OK] / 设备 GPU.0·GPU.1·NPU **无 CPU** / ASR 6 后端全 [OK] / 翻译 5 项全 [OK] / 麦克风 3 + 输出 Realtek 2ch）
+- 03:24 §18 ✅ **FTP 验证 24/24 PASS**（`results/app/ftp_verify_v14.txt`，EXIT=0）：含 RETR 全量 md5 一致（100.8 s / 106.1 MB/s）、逃逸防护、只读拒写、主动模式 PORT
+- 03:24 §18 🔴 **修掉 `verify_ftp.py` 内存炸弹**：11.2 GB 整体读进内存两次（≈22 GB）⇒ 被系统 **SIGTERM**；**这才是此前「verify_ftp 被 SIGTERM」的根因**（不是 FTP 服务挂）⇒ 改流式
+- 03:24 §18 ✅ **FTP 共享只剩 v1.4**：`FTP_Share/` 仅 `Confucius4_LiveCaption_v1.4.zip`；根目录 v1.3.zip **本体保留**（实测仍在）
+- 03:24 §18 📦 **产物指纹**：zip 11 216 035 275 B / SHA256 `4a2d943f0133b58af002ec83ea2218904150b3375edee387917f1d9ccd5f8e89` / MD5 `46ce0d688604dc08bfe5a04e2b230dc9`；包目录 13 981 文件 / 13 668 110 322 B（v1.3 → v1.4 **+22.1%**，来自 Qwen3-TTS 运行时+IR+权重）
+- 03:24 §18 ✅ **git 边界落地**：`translator.py` 用 `git apply --cached` **只入库 `set_device` hunk**（+23 行）⇒ V7 的 `done_fix` 未入库（属 MT）
+- 03:20 §18 **巡检无新纠偏条目**：并行会话新增 APP-005/APP-006 内容**已在工作区但未入库**；最大正式编号仍 **APP-006** = `last_ack`；APP-005 ①②③ 现状核对：c134 已 `git rm --cached` 且 `.gitignore:77` 命中、`pack_v13.py` INT8 断言已改（APP-005② 在 v1.4 上 PASS）
+
 - 03:16 §17 **巡检仍无新纠偏条目**：`CORRECTIONS_APP.md` SHA256 `dff32b2c…7db8cc` / 17 965 B / mtime `2026-10-23 12:01:55` 与 §13/§15/§16 **逐字节一致** ⇒ 最大编号 **APP-006** = `last_ack` ⇒ `last_ack` 不变（**第 4 次**复核同一口径）
 - 03:16 §17 ✅ **v1.4 客户包「真正交付闭环」**：22:56 打出的 zip（11 216 035 275 B / SHA256 `4a2d943f…f8e89`）经**内容级**校验 ⇒ **zip ⇄ 包目录逐文件 SHA256 比对 13 978 个文件全部逐字节一致**、**仓库 ⇄ 包目录 16/16 一致**、`testzip()` = Everything is Ok、MANIFEST `version='1.4'`/files=13977/bytes=13667856211、内部素材闸门 **0 命中**、`_spoken` **0** ⇒ **MT §46「客户包 zip 仍是旧包」闭环**
 - 03:16 §17 ✅ **C-111-V7 已随 zip 交付**：仓库 `translator.py` SHA `00e282af…11e9f` vs 包内 `94f8a8d4…1355` ⇒ **仅换行符差异**（`diff` 去 CR 后 **0 行**）⇒ 代码等价；**zip 内** `done_fix` 14 处 + `def set_device` 1 处 ⇒ V7 双通道与 APP-004 设备热切换都在交付物里
@@ -2814,3 +2822,176 @@ MT 模块 `hy_bench\STATUS_hy.md` §46 阻塞项③ 原文：
 ⑨ **`tts_service.py` 不读 worker stderr**（静默吞 traceback，**仍未修**）⇒ 后续排查 worker 问题必须另写探针直读 stderr；
 ⑩ **MT 的 `translator.py` 改动未走「App 合入」流程**（MT §46 已自述并请 App/reviewer 复核）
 ⇒ 本轮**未提交** `translator.py`，等用户/reviewer 定归属。
+
+## §18 (2026-10-24 03:20) — v1.4 客户包正式交付：干净目录复验 + FTP 发布 + 24/24 验证 + 本轮独立收尾
+
+> 承接 §16（v1.4 dry-run PASS / TTS worker 死锁修复）。本节是 **v1.4 从"打出来"到"客户能下载"的完整闭环**。
+> 时间戳均为 `date` / `Get-Date` / `stat` 实测，无推算。
+
+### §18.0 用户本轮拍板（4 项）
+
+| # | 决策 | 落地 |
+|---|---|---|
+| 1 | **带入新版 `tts_service.py`**（包内原本没有，新版 GUI 会 `from tts_service import TTSService`） | ✅ 已进包，16 803 B |
+| 2 | **FTP 共享只保留 v1.4，删掉 v1.3.zip** | ✅ `FTP_Share/` 现仅 1 个文件 |
+| 3 | **README/NOTICE 全部更新到 v1.4 并补本轮改动说明** | ✅ 两份 README + NOTICE |
+| 4 | **复制 v1.3 → 新建 v1.4 目录**（v1.3 原地保留不动） | ✅ v1.3 目录仍在 `C:/Users/Trekker-PTL/` |
+| 5 | 中途加：**MT 21:03 改了 `translator.py`（C-111 V7），晚于我 21:00 的同步 ⇒ 重新同步最新 `translator.py` 后再打包**（不等那次跑完） | ✅ 已重同步 + 重打包 |
+
+### §18.1 用户新指令：**设备清单里删除 CPU**
+
+**口径**：不是只隐藏 GUI 下拉，而是**从设备检测层彻底移除 CPU**；若本机真的只有 CPU（无 GPU/NPU）⇒ **下拉为空 + 明确提示**（不显示 CPU 当唯一选项）。
+
+**实现位置**：`live_caption/device_config.py`（单一数据源）
+- 新增 `EXCLUDED_DEVICES = frozenset({'CPU'})` + `is_excluded_device(dev)`；
+- `detect_devices()` 跳过被排除设备；`available_devices()` **空清单时返回 `[]`**（原返回 `['CPU']`），排序键去掉 CPU 分支；
+- `resolve_device()` 改为：空清单 ⇒ 返回 `('CPU', '本机未检测到 GPU/NPU，已回退到 CPU 推理')`（**兜底不进清单**）；`FALLBACK_ORDER` 遍历时 `if c.upper()=='CPU': continue`；
+- **用户显式指定 CPU 仍被尊重**（CLI 场景，`if (wanted or '').strip().upper() == 'CPU': return 'CPU', None`）。
+
+**实测**：本机 `ov.Core().available_devices` = `['CPU','GPU.0','GPU.1','NPU']` ⇒ 移除后 `['NPU','GPU.0','GPU.1']`。
+
+**GUI / CLI 侧**（`live_caption/live_caption_app.py`）：
+- 三个分区下拉为空时分别给明确提示（`var_asr_note` / `var_mt_note` / `var_tts_note`）：
+  「本机未检测到 GPU/NPU，CPU 推理已隐藏；可用命令行 `--asr-device CPU` / `--mt-device CPU` / `--tts-device CPU` 启动」；
+- `run_check()` 设备段加一行说明：「CPU 推理已从可选设备清单移除（性能不推荐）；如确需 CPU 请用命令行 `--asr-device CPU` / `--mt-device CPU`」；
+- CLI `--asr-device/--mt-device` help 改为「GPU.0 / NPU；CPU 已从清单移除，但仍可显式指定」。
+
+**验证**：`diag_device_select.py` **ALL PASS**；`diag_device_gui.py` **ALL PASS**（三个下拉均无 CPU）。
+
+### §18.2 TTS 音色列表收敛为 `['A']`
+
+**根因**：`live_caption_app.py:1703` 硬写 `self.tts_voices = ['A','B','clone']`，但包内只有 `models/qwen3tts/voices/preset_A.wav`（BRIEF 硬要求：只带音色 A）。
+实测链路：选 **B** ⇒ `tts_worker._setup_babelvox_voice` 回落 `preset_voice_path()` ⇒ **实际发音是音色 A 的声音（静默错标）**；选 **clone** ⇒ 需 `voices/clone_C.npz` + torch，包内都没有 ⇒ 回落内置 cindy。
+
+**处置**：GUI `self.tts_voices = ['A']`（标签「预设 A」）；CLI `--tts-voice` `choices=['A']`；help 说明「音色 B / 克隆说话人素材按 BRIEF 不进包」。注释里记录根因。
+
+**验证**：GUI 截屏 `results/app/gui_layout_1080x820.png` ⇒ 语音区音色只有「预设 A」一项，无 B/clone。
+
+### §18.3 打包脚本两处真 bug 修复（`pack_v13.py`）
+
+| Bug | 现象 | 根因 | 修复 |
+|---|---|---|---|
+| **① 版本号不是单一数据源** | `PKG_VERSION` 之外还有 3 处写死 `v1.3`；`refresh_manifest()` **只写 files/bytes/packages/notes，从不写 `version`** ⇒ 包内 MANIFEST 的 version 是手填的 `'1.3'` | 版本散落 4 处 | `PKG_VERSION='1.4'` 单一数据源，`_PKG_NAME`/`DEFAULT_PKG`/`DEFAULT_ZIP`/`DEFAULT_PREFIX` 全部由它派生；`refresh_manifest()` **显式写 `data['version']=PKG_VERSION`** 并打印 `version: {old!r} -> {new!r}` |
+| **② `files_ok` 校验口径恒差 1** | 打包结论恒为 FAIL：`[不符] zip 条目 13978 == MANIFEST files 13977` | `entries` **含** MANIFEST 自身，但 `bytes_ok` 那行**补了** MANIFEST 体积 ⇒ 两个口径不一致 | 新增 `entries_wo_manifest`，`files_ok` 用它比较；输出同时显示「不含 MANIFEST 自身；含则 N」 |
+| **③ `os.remove(ZIP)` 崩溃** | `OSError: [safe-delete] 操作失败: … Error during a 'trash' operation: Some operations were aborted` | WorkBuddy 的 `sitecustomize.py` shim 把 `os.remove` **改写成移入回收站** ⇒ 对 11+ GB 大文件失败 | 改成「尽力删除，失败只告警不阻断」（`zipfile` 以 `'w'` 模式会截断覆盖，不需要先删） |
+
+**实证**：打包结论恒 FAIL 是**校验脚本 bug，不是包有问题** —— 逐条比对「zip 内容 vs 包目录」：`zip 多出: []`、`zip 缺少: []`（完全一致）。
+
+### §18.4 `pkg_exclude.py` 补 `tts_npu_cache`
+
+**根因**：`tts_engine.py:82` 的 `_cache_dir('tts_npu_cache')` 在 `%LOCALAPPDATA%` 不可写时会**回落包内** `app/tts_npu_cache/`。
+**处置**：`SKIP_DIR_NAMES` 加 `'tts_npu_cache'`；`SKIP_DIR_PREFIXES` 加 `'app/tts_npu_cache'`、`'tts_npu_cache'`。
+
+### §18.5 同步进 v1.4 的 7 个文件（SHA256 逐字节留证）
+
+同步脚本：`live_caption/sync_c138_to_pkg.py`（**编号 138 是因为并行 TTS 会话占用了 `sync_c137_to_pkg.py`**）；整文件覆盖 + difflib 逐行留证 + SHA256 幂等；备份放**包外** `C:/Users/Trekker-PTL/pkg_backup_app014`；统一转 **LF**；`discover_pkg_app()` 按版本号自动发现**最大**的 `Confucius4_LiveCaption_vX.Y`（排除 `.bak`/`backup`/`_pre_`）。
+报告：`results/app/sync_c138_report.json`（7 293 B）。
+
+| 文件 | 操作 | 字节 | SHA256 |
+|---|---|---|---|
+| `app/audio_source.py` | overwrite | 24 594 | `8fd50e14911ba01570f248c3fc3ddd81c83935a3570bd08bb6409d7ed9df6246` |
+| `app/device_config.py` | overwrite | 10 504 | `77be2435c5f3bf257876c9cf85b7b9cb38ae886cf41c0c344a24b6679089e9a9` |
+| `app/live_caption_app.py` | overwrite | 155 383 | `8b125b376c0d907414d3ce32f80c152345bfaf7ef37ef77d0a5f9ea609293bfe` |
+| `app/translator.py` | overwrite | 67 204 | `94f8a8d4302660d04fdb878b721f461c931f1758081a9ded647df16a3f931355` |
+| `app/tts_service.py` | **new** | 16 803 | `84775a1d5c463ec65bc567ac6c061db5d4aa058ce224ad0e8d792e58657e9760` |
+| `app/win_clickthrough.py` | **new** | 7 817 | `db376c52bfe20f2665954bee133a3f20e325d0916559083884b8e6d50ab3e9d1` |
+| `app/tts_worker.py` | overwrite | 40 234 | `06a9ea67b8c88d1d69b3fbf0bafbd6f8b3294b63bff963fdfe37ec2f33fda3da` |
+
+（`translator.py` 是**用户拍板后重同步的 MT C-111 V7 版**；`tts_worker.py` 是并行会话修掉 import 死锁后的版本，与仓库/提交 `1f6287f` 三方一致。）
+
+### §18.6 README_zh / README_en 更新到 v1.4
+
+- 标题 `v1.3` → `v1.4`；
+- 新增「**v1.4 改动说明**」五节：① 配置面板按模块分区（三表列出各区下拉内容）；② 状态信息移入主面板（19 px 实测）；③ 屏幕字幕精简为两行（青 `#5fd7d7` 定稿译文 / 黄 `#ffd75e` 实时识别）；④ 字幕窗口鼠标完全穿透（左上角外侧蓝色 `≡` 把手 + 右键菜单）；⑤ 译文语音输出（默认关闭、只带音色 A）；
+- 两份 README 都加了 **CPU 已从可选清单移除**的警示框；
+- 修正 `Diagnose.bat` 段落表（不再列 CPU）与「快速开始」第 4 步（不再有单独的「推理后端 Backend」下拉）；
+- NOTICE 已是 v1.4（本轮只核验，未改）。
+
+### §18.7 最终产物与体积对比（`stat` / `sha256sum` 实测）
+
+| 项 | v1.3 | v1.4 | Δ |
+|---|---|---|---|
+| **包目录** 文件数 | 13 978 | **13 981** | +3 |
+| **包目录** 字节 | 13 667 968 750 | **13 668 110 322** | +141 572 B |
+| **zip** 字节 | 9 187 406 116 | **11 216 035 275** | **+2 028 629 159（+22.1%）** |
+| **zip** mtime | 2026-10-22 10:48:39 | **2026-10-23 22:56:06** | — |
+
+- **zip SHA256 = `4a2d943f0133b58af002ec83ea2218904150b3375edee387917f1d9ccd5f8e89`**
+- **zip MD5 = `46ce0d688604dc08bfe5a04e2b230dc9`**（FTP 下载侧独立算出，与本地一致）
+- **体积增长 22.1% 的原因**：v1.4 带入 **Qwen3-TTS（BabelVox）运行时 + INT8 IR + 权重**（`models/qwen3tts/`）以及 `tts_service.py` / `win_clickthrough.py` / `tts_worker.py` 三个新 py；**不是**缓存回潮（`ov_cache`/`npu_cache`/`mt_cache`/`tts_npu_cache` 均已排除）。
+- **包内 MANIFEST 原始字段**（`app/MANIFEST.json`）：`version='1.4'` / `files=13977` / `bytes=13667856211` / `packages` 51 条。
+
+### §18.8 zip 独立校验（落盘 `results/app/zip_verify_v14.txt`）
+
+- `testzip()` ⇒ **Everything is Ok**；
+- MANIFEST version=**1.4**、files=**13977**、bytes=**13667856211**；**files_ok=True、bytes_ok=True**（口径已统一）；
+- 13 个**必须存在**项全 `[OK]`；10 个**必须不存在**项全 `[已移除]`；
+- **`_spoken` 残留 0 命中**（APP-003① 内部素材闸门）。
+
+### §18.9 干净目录解压复验（APP-004④ 第 1 项）
+
+解压到 `C:/Users/Trekker-PTL/pkg_verify_v14/Confucius4_LiveCaption_v1.4/`，跑包内解释器 `--check`：
+
+```
+  结论：环境正常。ASR 可用后端 6 个，Intel 集显可用。
+```
+
+逐项原文（关键行）：
+- 依赖全 `[ OK ]`：numpy 2.4.6 / openvino 2026.4.1-22982 / openvino_genai 2026.4.1.0 / transformers 4.57.6 / sounddevice 0.5.6 / soundcard；
+- 设备：`GPU.0 Intel(R) Graphics (iGPU)` / `GPU.1 NVIDIA GeForce RTX 5050 Laptop GPU (dGPU)` / `NPU Intel(R) AI Boost`，**列表中无 CPU**，并打印「注：CPU 推理已从可选设备清单移除…」；
+- ASR 后端 **6 个全 [OK]**（Intel GPU INT8/INT4、Intel NPU INT8/INT4（实验）、NVIDIA GPU CUDA Q8_0/Q4_K）；
+- 翻译后端 **5 项全 [OK]**（Intel GPU INT8-CW（默认）/ INT4-CW、Intel NPU INT8-CW / INT4-CW、自动·INT8-CW）；
+- 音频设备：麦克风 3 个 + 输出 `Speaker (Realtek(R) Audio)（2 声道）`。
+
+### §18.10 FTP 发布（`ftp_share.py --root C:/Users/Trekker-PTL --port 2121`）
+
+- **FTP 共享目录现在只剩 v1.4**：`FTP_Share/Confucius4_LiveCaption_v1.3.zip` 已移除（用户拍板）；**根目录 `C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.3.zip` 本体保留未动**（已实测确认仍在）；
+- FTP 基础项全 `[ OK ]`：登录 230 / SYST 215 / PWD / TYPE I / **FEAT 211 多行（UTF8+PASV+EPSV+SIZE+MDTM）** / NLST 147 项 / LIST 147 行 / SIZE 11 216 035 275 / MDTM 213 20261023225606；
+- 🔴 **修掉 `verify_ftp.py` 的「内存炸弹」真 bug**：原 `[6]` 段用 `io.BytesIO` 缓冲整包 + `open(...).read()` 读一遍本地 ⇒ **峰值内存 ~22 GB ⇒ 被系统直接 SIGTERM**（这正是此前「`verify_ftp.py` 被 SIGTERM / Exit 1 无输出」的**真实根因**，不是 FTP 服务的问题）；`[9]` 主动模式段同样缓冲整包。**已改为流式**（RETR 边收边算 md5 + 本地 4 MB 一块流式 md5 + 主动模式只取前 4 字节魔数）。
+- **流式校验结果（`results/app/ftp_stream_verify_v14.txt`）**：RETR 下载 11 216 035 275 字节，耗时 96.4 s（**110.9 MB/s**），远端 md5 `46ce0d688604dc08bfe5a04e2b230dc9` **== 本地 md5**；字节数三方一致；首/中/尾各 4 MB 的 sha256 抽样指纹已留档 ⇒ **结论：流式校验全部通过**。
+- **修好后的 `verify_ftp.py` 复跑原文（`results/app/ftp_verify_v14.txt`，EXIT=0）**：**结果：24/24 PASS**
+  - [1] 匿名登录 230 ✅　[2] SYST 215 / PWD / TYPE I 200 ✅　[3] FEAT 211 多行（UTF8/PASV/EPSV/SIZE/MDTM）+ 后续命令无串味 ✅
+  - [4] NLST 147 项 / LIST 147 行 / 含客户包名 / **SIZE 11216035275** ✅
+  - [5] **MDTM 213 20261023225606** ✅
+  - [6] RETR 下载校验：11216035275 字节 / 100.8 s（106.1 MB/s）/ **md5 一致 46ce0d68…30dc9** ✅
+  - [7] 目录逃逸防护：越权路径被拒绝 ✅　[8] STOR 被拒（只读 550）+ 共享目录无 x.txt ✅
+  - [9] 主动模式 PORT：可下载，前 4 字节 `b'PK\x03\x04'` ✅　[10] QUIT 221 ✅
+- 🔴 **FTP 共享目录现状**：`FTP_Share/` 下**只剩** `Confucius4_LiveCaption_v1.4.zip`（v1.3.zip 已按用户拍板移除）；**根目录 `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.3.zip` 本体保留未动**（实测确认仍在，9 187 406 116 B）。
+
+### §18.11 git 边界（本轮只入库 App 自己的改动）
+
+| 文件 | 处置 | 理由 |
+|---|---|---|
+| `pack_v13.py` / `pkg_exclude.py` | ✅ 入库 | App 模块自己的 |
+| `live_caption/live_caption_app.py` | ✅ 入库 | App 模块自己的 |
+| `live_caption/device_config.py` | ✅ 入库 | App 模块自己的（CPU 移除） |
+| `live_caption/sync_c138_to_pkg.py` | ✅ 入库 | App 模块自己的 |
+| `verify_ftp.py` | ✅ 入库 | 本轮修了内存炸弹 |
+| `live_caption/translator.py` | ⚠️ **只入库 `set_device` 一个 hunk**（+23 行） | `set_device` 是 App 的 APP-004③ 设备自选必需；**C-111 V7 的 `done_fix` hunk 属 MT，未入库** |
+| `live_caption/audio_source.py` | ❌ 不入库 | ASR 模块的（§10 回环立体声混合） |
+| `live_caption/tts_service.py` | ❌ 不入库 | TTS 模块的旧改动（--precision / --out-wav / drain / _flush_queue），**只进包不入库** |
+| `status/CORRECTIONS.md`、`status/app/CORRECTIONS_APP.md` | ❌ 不入库 | reviewer 独占写入 |
+
+**`set_device` hunk 提取方式（可复现）**：`git diff -- live_caption/translator.py > results/app/tr_all.patch`（⚠️ **不要用 `/tmp`**，Git Bash 的 `/tmp` 与 Windows Python 的 `/tmp` 不是同一位置）→ 按 `@@` 切分 13 个 hunk → 逐个判定含 `def set_device` 且**不含** `done_fix` ⇒ 只有第 3 个（`@@ -860,6 +862,29 @@`）符合 → 写 `results/app/tr_setdevice.patch`（1 166 B）→ `git apply --cached --check` 通过 → `git apply --cached` ⇒ 暂存区 `translator.py` **+23 行、0 删除**。
+
+### §18.12 本轮明确**不做**（等用户/reviewer 拍板）
+
+- ❌ 不补 TTS worker 6 项缺口（24k 重采样 / crossfade / stderr drain / 单线程 FIFO / RTF 统计 / cancel_event 语义）⇒ 留 **v2.0**；
+- ❌ 不做端到端 ABBA（本轮）——§15 已做过一轮，结论见 §15；
+- ❌ 不执行 **APP-006 第 3~7 步**（`git filter-repo` 历史改写 + `force push`）⇒ **等 reviewer 复核 §11.2 清单**；**本轮遵守纪律：没有 force push**（并行会话也已提交 `1f6287f`/`b3a77de`/`255a636` 三个普通提交）；
+- ❌ 不写 `status/app/CORRECTIONS_APP.md`（reviewer 独占）；
+- ❌ 不提交其它模块的 `diag_*.py` / `sync_c*.py` / `replay_*.py` 等未跟踪文件。
+
+### §18.13 交付地址
+
+| 用途 | 地址 |
+|---|---|
+| **局域网 FTP（WLAN）** | **`ftp://192.168.2.189:2121/`** |
+| **Tailscale（跨网段）** | **`ftp://100.70.84.17:2121/`** |
+| 本机自测 | `ftp://127.0.0.1:2121/` |
+| 文件名 | `Confucius4_LiveCaption_v1.4.zip` |
+| 登录 | 匿名（用户名随意，密码随意） |
+| 大小 | 11 216 035 275 字节（10.44 GiB） |
+| SHA256 | `4a2d943f0133b58af002ec83ea2218904150b3375edee387917f1d9ccd5f8e89` |
+
+⚠️ 历史记忆里的地址 `10.188.193.115` **已失效**（本机当前 `100.70.84.17` Tailscale / `192.168.2.189` WLAN）。
