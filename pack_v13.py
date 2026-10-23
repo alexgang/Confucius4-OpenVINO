@@ -1,4 +1,4 @@
-r"""pack_v13.py —— 打包客户包 v1.3 并校验。
+r"""pack_v13.py —— 打包客户包并校验（当前版本 v1.4，见 ``PKG_VERSION``）。
 
 步骤：刷新 MANIFEST → zip → testzip() → 抽查关键文件（MT 模型、translator.py、
 MANIFEST、README）→ 硬校验 MANIFEST 的 files/bytes。
@@ -33,9 +33,16 @@ import zipfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pkg_exclude  # noqa: E402
 
-DEFAULT_PKG = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.3'
-DEFAULT_ZIP = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.3.zip'
-DEFAULT_PREFIX = 'Confucius4_LiveCaption_v1.3'
+# ── 客户包版本（单一数据源）────────────────────────────────────────────
+# APP-007：打 v1.4。原先三个常量各自写死 "v1.3"，改版本要改三处
+# 且 MANIFEST 的 version 是**手填**的（refresh_manifest 从不写它）⇒
+# 打包出来的东西自称 v1.3、实际是 v1.4。
+# ⇒ 现在版本号只有一个来源（PKG_VERSION），三个常量由它派生。
+PKG_VERSION = '1.4'
+_PKG_NAME = f'Confucius4_LiveCaption_v{PKG_VERSION}'
+DEFAULT_PKG = rf'C:\Users\Trekker-PTL\{_PKG_NAME}'
+DEFAULT_ZIP = rf'C:\Users\Trekker-PTL\{_PKG_NAME}.zip'
+DEFAULT_PREFIX = _PKG_NAME
 
 MANIFEST_REL = 'app/MANIFEST.json'
 
@@ -149,6 +156,59 @@ def md5(path):
     return h.hexdigest()
 
 
+def _sha256_bytes(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def verify_zip_matches_pkg(zip_path, pkg_dir, prefix):
+    """🔴🔴 **内容级**校验：zip 里的每个文件 == 打 zip 那一刻包目录里的内容。
+
+    为什么必须加这一刀（真实事故，2026-10-23）
+    ------------------------------------------
+    `pack_v13.py` 是**流式**写 zip 的：遍历包目录 → 逐个 `zf.write()` →
+    写完才做 MANIFEST 硬校验 + 关键文件存在性检查。
+    **它从不校验「zip 里的内容 == 包目录里的内容」。**
+
+    实测事故（21:00:32 → 21:17:23）：
+      - 21:00:32  打包写到 `app/translator.py`（当时是 C-111 旧版）
+      - 21:06:56  MT 模块把 C-111-V7 定点同步进包目录（该文件被覆盖）
+      - 21:17:23  打包结束、zip 落盘
+    ⇒ **zip 里是旧版、包目录里是新版** ⇒ 客户拿到的还是旧的
+    ⇒ 而 MANIFEST files/bytes、关键文件 [OK]、符号抽查 **全部 PASS**
+    （因为它们**只查存在性与统计口径，不查内容**）。
+
+    ⇒ 本函数用 **SHA256 逐文件**比对，能把「打包期间包目录被改过」直接判 FAIL。
+
+    成本：需要把 zip 全量解压一遍（十几 GB）⇒ 默认**开启**，
+    打包总耗时从 ~14 min 增加到 ~20 min；可用 `--no-verify-content` 关掉。
+
+    返回 (ok, n_checked, mismatches)；mismatches 是 (rel, zip_sha, pkg_sha)。
+    """
+    mismatches = []
+    n_checked = 0
+    with zipfile.ZipFile(zip_path, 'r') as zf:
+        for info in zf.infolist():
+            if info.is_dir():
+                continue
+            name = info.filename
+            if prefix and name.startswith(prefix + '/'):
+                rel = name[len(prefix) + 1:]
+            else:
+                rel = name
+            disk = os.path.join(pkg_dir, rel.replace('/', os.sep))
+            if not os.path.isfile(disk):
+                mismatches.append((rel, '(zip 有 / 包目录无)', ''))
+                continue
+            with open(disk, 'rb') as f:
+                dbytes = f.read()
+            zbytes = zf.read(name)
+            n_checked += 1
+            if _sha256_bytes(zbytes) != _sha256_bytes(dbytes):
+                mismatches.append((rel, _sha256_bytes(zbytes)[:12],
+                                   _sha256_bytes(dbytes)[:12]))
+    return (not mismatches), n_checked, mismatches
+
+
 V14_TTS_NOTE = (
     'v1.4 修订（2026-10-23，APP-005② / APP-004 执行后）：'
     '（4）**TTS（Qwen3-TTS / BabelVox）随包分发** —— '
@@ -201,6 +261,13 @@ def refresh_manifest(pkg):
     data['files'] = new_files
     data['bytes'] = new_bytes
 
+    # 🔴🔴 **version 必须显式写**（APP-007）。
+    #    refresh_manifest 原先只写 files/bytes/packages/notes，
+    #    `version` 是**手工填**的 ⇒ 打 v1.4 时包内 MANIFEST 还自称 '1.3'
+    #    （客户核对版本号会得到错误结论）。
+    old_version = data.get('version')
+    data['version'] = PKG_VERSION
+
     # 🔴 APP-005②：packages 表必须与包内 site-packages 实际一致，
     # 否则客户按 MANIFEST 核对版本会与实机不符（TTS 依赖此前完全没登记）。
     # ⚠️ 包名大小写不统一（Jinja2 vs jinja2）⇒ 按小写归一化去重，
@@ -231,6 +298,8 @@ def refresh_manifest(pkg):
     if changed:
         print(f'  packages: 版本变化 {len(changed)} 个{changed if changed else ""}')
     print(f'  notes: {"已追加 v1.4 TTS/INT8 修订说明" if notes_changed else "已含 v1.4 修订说明"}')
+    if old_version != PKG_VERSION:
+        print(f'  version: {old_version!r} -> {PKG_VERSION!r}')
     return old_files, old_bytes, new_files, new_bytes
 
 
@@ -387,7 +456,8 @@ def check_internal_material(pkg):
 
 
 def main():
-    ap = argparse.ArgumentParser(description='打包客户包 v1.3 并校验')
+    ap = argparse.ArgumentParser(
+        description=f'打包客户包 v{PKG_VERSION} 并校验')
     ap.add_argument('--pkg', default=DEFAULT_PKG, help='客户包源目录')
     ap.add_argument('--zip', default=DEFAULT_ZIP, help='输出 zip 路径')
     ap.add_argument('--prefix', default=DEFAULT_PREFIX, help='zip 内顶层目录名')
@@ -395,6 +465,9 @@ def main():
                     help='压缩级别（默认 6；实测 1/6/9 差异 <1%%，不建议改）')
     ap.add_argument('--dry-run', action='store_true',
                     help='只报告将要打包/排除的内容，不写 zip')
+    ap.add_argument('--no-verify-content', action='store_true',
+                    help='跳过「zip ⇄ 包目录 逐文件 SHA256」内容一致性校验'
+                         '（默认开启；关闭可省约 5~6 min 与十几 GB 磁盘读）')
     args = ap.parse_args()
 
     PKG = args.pkg
@@ -427,7 +500,17 @@ def main():
     refresh_manifest(PKG)
 
     if os.path.exists(ZIP):
-        os.remove(ZIP)
+        # ⚠️ 2026-10-23：某些环境（WorkBuddy 的 sitecustomize shim）把
+        #    `os.remove` 改写成「移入回收站」，对**十几 GB 的大文件**会失败
+        #    （OSError: [safe-delete] ... Some operations were aborted）
+        #    ⇒ 打包中断。删除失败**不应阻断打包**：zipfile 用 'w' 模式
+        #    打开会直接截断覆盖，不需要先删。
+        #    ⇒ 改成「尽力删除，失败就只告警」。
+        try:
+            os.remove(ZIP)
+            print(f'已删除旧 zip: {ZIP}')
+        except OSError as e:
+            print(f'[warn] 删除旧 zip 失败（不影响打包，zipfile 会覆盖写）: {e}')
 
     n_files = 0
     total_raw = 0
@@ -522,13 +605,22 @@ def main():
         zip_bytes = sum(zf.getinfo(n).file_size for n in entries)
         man_files = man.get('files')
         man_bytes = man.get('bytes')
-        files_ok = (len(entries) == man_files)
-        # MANIFEST 自身不计入统计口径 → 校验时补上它的体积
-        man_size = zf.getinfo(f'{PREFIX}/{MANIFEST_REL}').file_size
+        # 🔴 MANIFEST 自身**不计入**统计口径（否则自引用：它写的 bytes
+        #    会改变它自己的长度）⇒ zip 条目里要**减掉** MANIFEST 这一条。
+        #    ⚠️ 2026-10-23 修：原先 `files_ok` 直接拿 `len(entries)` 比
+        #    `man_files`，而 `entries` **含** MANIFEST ⇒ 永远差 1 ⇒
+        #    打包结论恒为 FAIL（bytes 那行补了体积、files 这行没减条数，
+        #    两个校验口径不一致）。v1.4 首次打包实测：zip 13978 条 vs
+        #    MANIFEST 13977 ⇒ 误报 FAIL，而 zip 内容与包目录**逐条一致**。
+        man_arc = f'{PREFIX}/{MANIFEST_REL}'
+        man_size = zf.getinfo(man_arc).file_size
+        entries_wo_manifest = [n for n in entries if n != man_arc]
+        files_ok = (len(entries_wo_manifest) == man_files)
         bytes_ok = (zip_bytes == man_bytes + man_size)
         print()
         print(f'MANIFEST version = {man["version"]}  files={man_files}  bytes={man_bytes}')
-        print(f'  [{"OK" if files_ok else "不符"}] zip 条目 {len(entries)} == MANIFEST files {man_files}')
+        print(f'  [{"OK" if files_ok else "不符"}] zip 条目 {len(entries_wo_manifest)} '
+              f'（不含 MANIFEST 自身；含则 {len(entries)}）== MANIFEST files {man_files}')
         print(f'  [{"OK" if bytes_ok else "不符"}] zip 原始体积 {zip_bytes} '
               f'== MANIFEST bytes {man_bytes} + MANIFEST 自身 {man_size}')
 
@@ -571,8 +663,30 @@ def main():
             print(f'      ⚠️ {n}')
 
     print()
+    # 🔴🔴 **内容级**校验：zip ⇄ 包目录 逐文件 SHA256（防「打包期间包目录被改过」）
+    content_ok = True
+    if not args.no_verify_content:
+        print('=' * 70)
+        print('内容一致性校验（zip ⇄ 包目录，逐文件 SHA256）')
+        print('=' * 70)
+        content_ok, n_chk, mism = verify_zip_matches_pkg(ZIP, PKG, PREFIX)
+        print(f'  比对 {n_chk} 个文件')
+        if content_ok:
+            print('  [{"OK" if content_ok else "不符"}] 全部逐字节一致')
+        else:
+            print(f'  ✗ 内容不一致 {len(mism)} 个文件：')
+            for rel, zs, ds in mism[:30]:
+                print(f'      {rel}  zip [{zs}] != 包目录 [{ds}]')
+            print('  ⇒ **打包期间包目录被改过**（同步/打包竞态）'
+                  ' ⇒ 客户拿到的是旧内容。')
+            print('    修法：确认包目录已定稿后**重跑 pack_v13.py**（不要手动改 zip）。')
+    else:
+        print('[skip] 内容一致性校验（--no-verify-content）')
+
+    print()
     if (missing or stale or stale_prefix or not mt_dirs_ok or not files_ok
-            or not bytes_ok or spoken_hit or internal_hit or tts_bad):
+            or not bytes_ok or spoken_hit or internal_hit or tts_bad
+            or not content_ok):
         print('结论：FAIL')
         return 1
     print(f'结论：PASS  md5={md5(ZIP)}')

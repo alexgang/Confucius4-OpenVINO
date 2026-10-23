@@ -1700,8 +1700,17 @@ class App:
         self.cb_tts_combo.pack(side='left', padx=(0, 8))
         self.cb_tts_combo.bind('<<ComboboxSelected>>', self._on_tts_combo_changed)
         ttk.Label(row_tts, text='音色').pack(side='left', padx=(0, 4))
-        self.tts_voices = ['A', 'B', 'clone']
-        self._tts_voice_label = {'A': '预设 A', 'B': '预设 B', 'clone': '克隆说话人'}
+        # 🔴🔴 **只保留音色 A**（APP-007 交付修正，2026-10-23）。
+        #    客户包只带 `models/qwen3tts/voices/preset_A.wav`（BRIEF 硬要求：
+        #    同事音色 B / 克隆音色 C 一律不进包）。
+        #    ⚠️ 之前这里写死 ['A','B','clone'] 是**错的**：
+        #      - 选 B ⇒ tts_worker._setup_babelvox_voice 回落 preset_voice_path()
+        #        ⇒ **实际发的是音色 A 的声音**（静默错标，用户无从察觉）；
+        #      - 选 clone ⇒ 需要 voices/clone_C.npz + torch ⇒ 包内两者都没有
+        #        ⇒ 失败回落内置 speaker cindy。
+        #    ⇒ 列出来只会让用户选了却拿不到对应的音色。
+        self.tts_voices = ['A']
+        self._tts_voice_label = {'A': '预设 A'}
         self._tts_voice_back = {v: k for k, v in self._tts_voice_label.items()}
         self.var_tts_voice = tk.StringVar(
             value=self._tts_voice_label.get(args.tts_voice, 'A'))
@@ -1793,6 +1802,8 @@ class App:
             opt = self._asr_opts[0]
         if opt is None:
             self._combo_notes.append('ASR：没有可用后端')
+            self.var_asr_note.set('本机未检测到 GPU/NPU，CPU 推理已隐藏；'
+                                  '可用命令行 --asr-device CPU 启动')
         else:
             self.var_asr_combo.set(opt['label'])
             self._dev_choices['asr'] = opt['device']
@@ -1818,6 +1829,8 @@ class App:
             opt = self._mt_opts[0]
         if opt is None:
             self._combo_notes.append('翻译：没有可用后端')
+            self.var_mt_note.set('本机未检测到 GPU/NPU，CPU 推理已隐藏；'
+                                  '可用命令行 --mt-device CPU 启动')
         else:
             self.var_mt_combo.set(opt['label'])
             self._dev_choices['mt'] = opt['device']
@@ -1844,6 +1857,8 @@ class App:
             opt = self._tts_opts[0]
         if opt is None:
             self._combo_notes.append('语音：没有可用组合')
+            self.var_tts_note.set('本机未检测到 GPU/NPU，CPU 推理已隐藏；'
+                                  '可用命令行 --tts-device CPU 启动')
         else:
             self.var_tts_combo.set(opt['label'])
             self._dev_choices['tts'] = opt['device']
@@ -2900,6 +2915,10 @@ def run_check():
     has_npu = any(d.upper() == 'NPU' for d in devs)
     print(f'  Intel 集显 (GPU)：{"[ OK ] 可用" if has_gpu else "[缺 ] 不可用"}')
     print(f'  Intel NPU     ：{"[ OK ] 可用" if has_npu else "[缺 ] 不可用"}')
+    # 🔴 CPU 已从设备清单移除（用户决定 2026-10-23）⇒ 明说，免得
+    #    客户以为「没检测到 CPU」是安装故障。
+    print('  注：CPU 推理已从可选设备清单移除（性能不推荐）；'
+          '如确需 CPU 请用命令行 --asr-device CPU / --mt-device CPU。')
     print()
 
     # ── 3. ASR 后端 ────────────────────────────────────────────────
@@ -3029,8 +3048,9 @@ def main():
                     help='译文语音输出开关。默认 off（不影响现有行为）')
     ap.add_argument('--tts-precision', default='f32', choices=['f32', 'f16'],
                     help='TTS 推理精度')
-    ap.add_argument('--tts-voice', default='A', choices=['A', 'B', 'clone'],
-                    help='音色：预设 A / 预设 B / 克隆当前说话人')
+    ap.add_argument('--tts-voice', default='A', choices=['A'],
+                    help='音色：预设 A（客户包只随包分发音色 A；'
+                         '音色 B / 克隆说话人素材按 BRIEF 不进包）')
     ap.add_argument('--tts-out', default=None,
                     help='CLI 回放测试：把语音按真实时间轴混成一个 wav 落盘；'
                          '同时写 <out>.tts.jsonl（逐句时间线）')
@@ -3040,9 +3060,11 @@ def main():
     # ── 推理设备（APP-004 第 3 条）──
     # 三个模型各一个设备；不给就用配置文件里的（再没有就用推荐默认值）。
     ap.add_argument('--asr-device', default=None,
-                    help='ASR 推理设备（GPU.0 / NPU / CPU）。不给则用配置文件里的选择')
+                    help='ASR 推理设备（GPU.0 / NPU；CPU 已从清单移除，'
+                         '但仍可显式指定）。不给则用配置文件里的选择')
     ap.add_argument('--mt-device', default=None,
-                    help='翻译推理设备（GPU.0 / NPU / CPU）。不给则用配置文件里的选择')
+                    help='翻译推理设备（GPU.0 / NPU；CPU 已从清单移除，'
+                         '但仍可显式指定）。不给则用配置文件里的选择')
     ap.add_argument('--tts-device', default=None,
                     help='语音输出推理设备（默认 NPU）。不给则用配置文件里的选择')
     args = ap.parse_args()

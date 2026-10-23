@@ -82,6 +82,22 @@ _DEVICE_LABELS = {
     'CPU': 'CPU（不推荐）',
 }
 
+# ── 不进入「可选设备清单」的设备 ─────────────────────────────────────
+# 🔴 **CPU 从清单里移除**（用户决定 2026-10-23）。
+#    理由：CPU 在本项目的 Intel 平台上**是负加速**（声码器在 iGPU 上
+#    0.42~0.64× 且 SNR 仅 21 dB；CPU 推理整体也比集显慢一个量级），
+#    列出来只会诱导用户误选。CPU 只保留作**兜底**
+#    （``resolve_device`` 找不到任何可用设备时回退到它）。
+EXCLUDED_DEVICES = frozenset({'CPU'})
+
+
+def is_excluded_device(dev: str) -> bool:
+    """该设备是否**不进入可选清单**（目前只有 CPU）。
+
+    大小写不敏感（OV 有时给 'cpu'）。
+    """
+    return (dev or '').strip().upper() in EXCLUDED_DEVICES
+
 
 def device_label(dev: str) -> str:
     """设备名 -> 界面显示文本。"""
@@ -94,12 +110,20 @@ def detect_devices() -> Dict[str, str]:
     """探测本机 OpenVINO 可用设备。
 
     返回 ``{设备名: 全名}``；OpenVINO 不可用时返回**空字典**（不抛异常）。
+
+    🔴 **CPU 已从设备清单中移除**（用户决定，2026-10-23）：
+       CPU 只作**兜底**存在（见 ``resolve_device``），**不作为可选设备**
+       出现在 GUI / CLI 的设备清单里 —— 它在集显/NPU 上是负加速
+       （声码器在 iGPU 上 0.42~0.64× 且 SNR 仅 21 dB），列出来只会诱导
+       用户误选。
     """
     try:
         import openvino as ov
         core = ov.Core()
         out: Dict[str, str] = {}
         for d in core.available_devices:
+            if is_excluded_device(d):
+                continue
             try:
                 out[d] = core.get_property(d, 'FULL_DEVICE_NAME')
             except Exception:
@@ -110,20 +134,21 @@ def detect_devices() -> Dict[str, str]:
 
 
 def available_devices() -> List[str]:
-    """本机实际可用的推理设备列表（检测不到的不返回）。"""
+    """本机实际可用的推理设备列表（**不含 CPU**）。
+
+    🔴 CPU 不在清单里（用户决定 2026-10-23）⇒ 本机只有 CPU 时
+       这里返回**空列表**。GUI 会据此在下拉里给明确提示，而不是
+       让用户在一个没有意义的选项里瞎选。
+    """
     devs = detect_devices()
     if not devs:
-        # OV 不可用时给 CPU（唯一一定存在的），而不是空列表 ——
-        # 空列表会让下拉框没有任何选项。
-        return ['CPU']
-    # 顺序：NPU → GPU → CPU（高性能在前），其余按名字
+        return []
+    # 顺序：NPU → GPU（高性能在前），其余按名字
     def _key(d: str):
         if d.upper() == 'NPU':
             return (0, d)
         if d.upper().startswith('GPU'):
             return (1, d)
-        if d.upper() == 'CPU':
-            return (3, d)
         return (2, d)
     return sorted(devs.keys(), key=_key)
 
@@ -153,7 +178,9 @@ def resolve_device(role: str, wanted: Optional[str],
     if avail is None:
         avail = available_devices()
     if not avail:
-        return 'CPU', None
+        # 🔴 本机只有 CPU（或 OV 不可用）⇒ 清单为空（CPU 已从清单移除）
+        #    ⇒ 直接回退到 CPU 兜底，**不能卡死**。
+        return 'CPU', '本机未检测到 GPU/NPU，已回退到 CPU 推理'
 
     def _pick(pref: str) -> Optional[str]:
         if pref in avail:
@@ -168,6 +195,10 @@ def resolve_device(role: str, wanted: Optional[str],
         got = _pick(wanted)
         if got:
             return got, None
+        # ⚠️ 用户**显式指定了 CPU** ⇒ 尊重用户选择（CLI 场景），
+        #    不因为 CPU 不在清单里就否掉。
+        if (wanted or '').strip().upper() == 'CPU':
+            return 'CPU', None
         msg = f'本机没有设备「{wanted}」，已回退到默认设备'
     else:
         msg = None
@@ -178,6 +209,8 @@ def resolve_device(role: str, wanted: Optional[str],
     if got:
         return got, msg
     for c in FALLBACK_ORDER.get(role, []):
+        if c.upper() == 'CPU':
+            continue                   # CPU 不在清单里 ⇒ 跳过这一档
         got = _pick(c)
         if got:
             return got, msg or f'已回退到设备「{got}」'

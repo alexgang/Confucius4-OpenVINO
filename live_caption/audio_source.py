@@ -49,6 +49,21 @@ import numpy as np
 SR = 16000                 # 统一输出采样率
 BLOCK_MS = 100             # 每块时长（毫秒）
 
+# ── 回环立体声混合（2026-10-23 §10 改动 3）─────────────────────────
+# WASAPI 回环采到的是**双声道**（系统输出的实时混音）。旧实现只取
+# `a[:, 0]`（左声道），右声道内容整个丢弃 —— 若人声与背景声分处
+# 左右声道，主要人声可能直接丢失。
+#
+# STEREO_MIX_BALANCE_DB：两声道 RMS 差 ≤ 此值时取 (L+R)/2；
+#                        明显不同时取 RMS 大的那路（避免反相相消）。
+STEREO_MIX_BALANCE_DB = float(os.environ.get('LIVECAP_STEREO_BALANCE_DB', '6'))
+# 声道平衡的 EMA 系数（越大越平滑，越不容易逐块抖动）。
+STEREO_MIX_EMA = float(os.environ.get('LIVECAP_STEREO_EMA', '0.9'))
+# 反相判定阈值：两声道相关系数 ≤ 此值 ⇒ 视为反相 ⇒ 取 RMS 大的那路。
+# ⚠️ 反相时两路 RMS **相等**，只看 RMS 会误判成「平衡」而取平均
+#    ⇒ 信号完全相消（实测输出 −120dB = 数字静音）。必须单独判。
+STEREO_MIX_ANTIPHASE_CORR = float(os.environ.get('LIVECAP_STEREO_ANTIPHASE', '-0.5'))
+
 
 # ── 工具 ────────────────────────────────────────────────────────────────
 def resample_to_16k(x: np.ndarray, src_sr: int) -> np.ndarray:
@@ -69,12 +84,83 @@ def _rms(x: np.ndarray) -> float:
     return float(np.sqrt(float(np.mean(x.astype(np.float64) ** 2)) + 1e-12))
 
 
+def _corr(a: np.ndarray, b: np.ndarray) -> float:
+    """两路信号的皮尔逊相关系数（-1 ~ +1）。
+
+    用于识别**反相**（corr ≈ −1）：反相时取平均会把信号完全相消。
+    """
+    x = np.asarray(a, dtype=np.float64)
+    y = np.asarray(b, dtype=np.float64)
+    if x.size < 2 or y.size < 2:
+        return 0.0
+    x = x - x.mean()
+    y = y - y.mean()
+    sx = float(np.sqrt(np.sum(x * x)))
+    sy = float(np.sqrt(np.sum(y * y)))
+    if sx < 1e-12 or sy < 1e-12:
+        return 0.0
+    return float(np.sum(x * y) / (sx * sy))
+
+
 def _to_mono(x: np.ndarray) -> np.ndarray:
     """任意形状 → 单声道 float32（取第 0 声道）。"""
     a = np.asarray(x, dtype=np.float32)
     if a.ndim > 1:
         a = a[:, 0] if a.shape[1] >= 1 else a.reshape(-1)
     return a.reshape(-1).astype(np.float32, copy=False)
+
+
+def _stereo_to_mono(x: np.ndarray, state: Optional[dict] = None) -> np.ndarray:
+    """立体声 → 单声道，**不丢声道**（回环路径专用）。
+
+    背景（2026-10-23 §9.6 附带发现）：``_to_mono`` 只取 ``a[:, 0]``，
+    右声道内容被整个丢掉。对 WASAPI 回环（浏览器视频）来说，若人声
+    与背景声落在不同声道，取 ch0 可能把主要人声丢掉。
+
+    策略（用户批准的第 3 项改动）：
+
+    * 两声道 RMS **接近**且**不反相**（|相关系数| 高）
+      → 取 ``(L + R) / 2``。两路内容一致时平均值等于任一路（不损失），
+      轻微不同时还能提升信噪比。
+    * 两声道 RMS **明显不同** → 取 **RMS 大的那路**。此时若直接取平均，
+      弱的那路会被强的那路压制。
+    * 两声道**反相**（R ≈ −L）→ 取 RMS 大的那路（相关系数 ≈ −1）。
+      ⚠️ 这一条**必须**单独判：反相时两路 RMS **相等** ⇒ 只看 RMS
+      会误判成「平衡」而取平均 ⇒ **完全相消**（幅值趋近 0），
+      把有效信号整个抹掉（实测输出 −120dB，即数字静音）。
+    * 单声道输入 → 原样返回。
+
+    为了避免逐块抖动（L/R 能量在相邻块之间反复越过阈值导致音色跳变），
+    用 ``state`` 字典维护一个**平滑后的声道平衡量**（EMA 系数
+    ``STEREO_MIX_EMA``，默认 0.9），判平衡时用平滑值而不是瞬时值。
+    """
+    a = np.asarray(x, dtype=np.float32)
+    if a.ndim < 2 or a.shape[1] < 2:
+        return _to_mono(a)
+    left = a[:, 0]
+    right = a[:, 1]
+    rl = _rms(left)
+    rr = _rms(right)
+    if rl <= 1e-9 and rr <= 1e-9:
+        return left.astype(np.float32, copy=False)
+    # 瞬时声道平衡（dB，正 = 左更强）
+    bal = 20.0 * float(np.log10((rl + 1e-9) / (rr + 1e-9)))
+    if state is not None:
+        prev = state.get('bal')
+        bal = bal if prev is None else (STEREO_MIX_EMA * prev
+                                        + (1.0 - STEREO_MIX_EMA) * bal)
+        state['bal'] = bal
+    # 反相检测：相关系数接近 -1 ⇒ 取平均会相消，必须走「取大路」分支。
+    # ⚠️ 不能只看 RMS：反相时两路 RMS 相等，RMS 判据会误判成「平衡」。
+    corr = _corr(left, right)
+    if corr <= STEREO_MIX_ANTIPHASE_CORR:
+        mixed = left if bal >= 0 else right
+        return mixed.astype(np.float32, copy=False)
+    if abs(bal) <= STEREO_MIX_BALANCE_DB:
+        mixed = (left + right) * 0.5
+    else:
+        mixed = left if bal > 0 else right
+    return mixed.astype(np.float32, copy=False)
 
 
 # ── 设备枚举 ────────────────────────────────────────────────────────────
@@ -311,6 +397,8 @@ class SystemAudioSource(BaseAudioSource):
         self._loopback = None
         self._rec = None
         self._pending = np.zeros(0, np.float32)
+        # 立体声混合状态（EMA 平滑的声道平衡量），见 _stereo_to_mono
+        self._mix_state = {}
 
     def _resolve(self):
         """找到要采集的 loopback 设备。"""
@@ -349,7 +437,7 @@ class SystemAudioSource(BaseAudioSource):
                         # 静音设备：补零，保持时间轴连续
                         self._emit(np.zeros(step, np.float32), time.perf_counter())
                         continue
-                    pcm = resample_to_16k(_to_mono(data), SR)
+                    pcm = resample_to_16k(_stereo_to_mono(data, self._mix_state), SR)
                     if pcm.size == 0:
                         continue
                     self._emit(pcm, time.perf_counter())

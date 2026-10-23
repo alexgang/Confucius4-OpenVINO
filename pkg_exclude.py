@@ -86,6 +86,11 @@ SKIP_DIR_NAMES = frozenset({
     'ov_cache',    # OpenVINO 编译缓存（实测 4181 MB）
     'npu_cache',   # NPU 插件编译缓存
     'mt_cache',    # 翻译模型编译缓存
+    # 🔴 TTS 编译缓存（APP-007）。
+    # `live_caption/tts_engine.py::_cache_dir('tts_npu_cache')` 在
+    # %LOCALAPPDATA% 不可写时会**回落包内** `app/tts_npu_cache/`
+    # ⇒ 与 ov_cache/npu_cache/mt_cache 同性质，必须排除。
+    'tts_npu_cache',
 })
 
 # 🔴 备份目录（任意层级）
@@ -134,9 +139,11 @@ SKIP_DIR_PREFIXES = tuple(
         'app/ov_cache',
         'app/npu_cache',
         'app/mt_cache',
+        'app/tts_npu_cache',
         'ov_cache',
         'npu_cache',
         'mt_cache',
+        'tts_npu_cache',
         '_backup_c111',
         '_backup_c133',
         '_backup_c134',

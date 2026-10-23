@@ -63,13 +63,18 @@ class TTSService:
 
     def __init__(self, device: str = 'GPU.0', voice: str = 'A',
                  out_device: Optional[str] = None, model_dir: Optional[str] = None,
-                 on_log=print, auto: bool = True, clone: bool = False):
+                 on_log=print, auto: bool = True, clone: bool = False,
+                 precision: str = 'f32', out_wav: Optional[str] = None,
+                 bigvgan_ir: Optional[str] = None):
         self.on_log = on_log
         self.device = device
         self.voice = voice            # 'A' | 'B' | 'clone'
         self.out_device = out_device  # 输出设备名（None = 系统默认）
         self.model_dir = model_dir
         self.clone = clone            # 克隆当前说话人
+        self.precision = precision    # OV 推理精度（f32 / f16）
+        self.out_wav = out_wav        # 落盘模式（CLI 回放测试）
+        self.bigvgan_ir = bigvgan_ir  # BigVGAN IR 覆盖（多相分解版 / NPU 窗口版）
 
         self.proc: Optional[subprocess.Popen] = None
         self.lock = threading.Lock()
@@ -91,6 +96,8 @@ class TTSService:
         self._next_id = 0
         self._outbox: List = []
         self._outbox_lock = threading.Lock()
+        # worker 未 ready 时暂存的下发命令（ready 后补发）
+        self._queue: List = []
 
         if auto:
             self.start()
@@ -112,6 +119,7 @@ class TTSService:
             env['LIVECAP_TTS_DIR'] = env.get('LIVECAP_TTS_DIR', '')
             cmd = [sys.executable, _WORKER,
                    '--device', self.device,
+                   '--precision', self.precision,
                    '--voice', self.voice]
             if self.out_device:
                 cmd += ['--out-device', self.out_device]
@@ -119,6 +127,10 @@ class TTSService:
                 cmd += ['--model-dir', self.model_dir]
             if self.clone:
                 cmd += ['--clone']
+            if self.out_wav:
+                cmd += ['--out-wav', self.out_wav]
+            if self.bigvgan_ir:
+                cmd += ['--bigvgan-ir', self.bigvgan_ir]
             try:
                 self.proc = subprocess.Popen(
                     cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -192,7 +204,12 @@ class TTSService:
 
     # -- 提交 ------------------------------------------------------------
     def submit(self, text: str, seg: Optional[int] = None):
-        """提交一条**定稿译文**。"""
+        """提交一条**定稿译文**。
+
+        ⚠️ worker 还没 `ready` 时**不能直接下发** —— worker 的 stdin
+        在模型加载完成前也在收命令，但那时音色条件还没加载好，
+        合成会失败。所以这里**先入待发队列**，等 `ready` 事件后补发。
+        """
         text = (text or '').strip()
         if not text:
             return
@@ -203,8 +220,60 @@ class TTSService:
             self._next_id += 1
             self.pending[jid] = dict(seg=seg, text=text, t=time.perf_counter())
             self.n_submitted += 1
-        self._send({'cmd': 'synth', 'id': jid, 'text': text})
+            ready = (self.state == 'ready')
+        cmd = {'cmd': 'synth', 'id': jid, 'text': text}
+        if ready:
+            self._send(cmd)
+        else:
+            with self.lock:
+                self._queue.append(cmd)
         self._update_backlog()
+
+    def _flush_queue(self):
+        """worker 就绪后补发待发队列。"""
+        with self.lock:
+            q = list(self._queue)
+            self._queue.clear()
+        for cmd in q:
+            self._send(cmd)
+        if q:
+            self.on_log(f'[TTS] 就绪后补发 {len(q)} 句')
+
+    def drain(self, timeout: float = 30.0) -> bool:
+        """等所有已提交的句子都播完（或超时）。
+
+        用于**收尾**：App 退出前要把队列里的话念完，不能半路掐断。
+        返回 True 表示已排空。
+
+        ⚠️ 判定依据是「已提交数 == 已播数 + 已丢数」——
+        worker 侧的 `played` / `dropped` 事件都会更新这两个计数。
+
+        ⚠️ **worker 还没 ready 时**，先给它一段加载时间（`timeout` 的
+        一半，最多 60 s）——模型加载要几十秒（实测 CPU 37 s），
+        不等就退出会把待发队列里的句子全丢掉。
+        """
+        t0 = time.perf_counter()
+        # ── 阶段 1：等 worker ready ──
+        ready_wait = min(60.0, max(5.0, timeout * 0.5))
+        while time.perf_counter() - t0 < ready_wait:
+            if self.state in ('ready', 'error'):
+                break
+            time.sleep(0.2)
+
+        # ── 阶段 2：等排空 ──
+        t_end = t0 + timeout
+        while time.perf_counter() < t_end:
+            with self.lock:
+                pending_n = len(self.pending)
+                n_sub = self.n_submitted
+                n_done = self.n_played + self.n_dropped
+            if pending_n == 0 and n_done >= n_sub:
+                return True
+            time.sleep(0.2)
+        with self.lock:
+            pending_n = len(self.pending)
+        self.on_log(f'[TTS] drain 超时：仍有 {pending_n} 句未完成')
+        return False
 
     def _send(self, obj: dict):
         with self.lock:
@@ -223,6 +292,13 @@ class TTSService:
         C-101 P4 第 2 条：「积压超 N 秒就丢掉最旧的**未开始的句子**」。
         丢掉必须**整句为单位**，所以主进程在丢弃时也要让 worker 别播这一句
         —— 否则 worker 照样合成并播出来，丢弃就白做了。
+
+        ⚠️ **计数只在这里加一次**（2026-10-22 修）：
+        worker 收到 `cancel` 后会回一条 `{'kind':'dropped','id':jid}` 事件，
+        而 `_handle_event` 也会 `n_dropped += count`
+        ⇒ 同一句被**计了两次**（实测「提交 9」却报「丢弃 16」）。
+        现在 worker 侧的 `dropped` 事件**不再计数**（只记日志），
+        因为所有丢弃都是主进程发起的（积压超限 / 显式 cancel）。
         """
         self._send({'cmd': 'cancel', 'id': jid})
         with self.lock:
@@ -235,6 +311,7 @@ class TTSService:
         if kind == 'ready':
             self.state = 'ready'
             self.on_log(f'[TTS] 就绪：{msg.get("device")} · 音色 {msg.get("voice")}')
+            self._flush_queue()
         elif kind == 'error':
             self.state = 'error'
             self.err = msg.get('message', 'unknown')
@@ -248,8 +325,12 @@ class TTSService:
                 self.pending.pop(jid, None)
             self.n_played += 1
         elif kind == 'dropped':
-            # worker 自己判断的丢句
-            self.n_dropped += msg.get('count', 1)
+            # ⚠️ **不再计数**（2026-10-22 修）：
+            # worker 的 `dropped` 事件是对主进程 `cancel` 指令的**回执**，
+            # 丢弃数已经在 `cancel()` / `_update_backlog()` 里加过了。
+            # 这里再加一次会导致同一句被计两遍
+            # （实测「提交 9 / 丢弃 16」）。
+            self.on_log(f'[TTS] 已丢弃 id={msg.get("id")}')
         elif kind == 'log':
             self.on_log(f'[TTS] {msg.get("message", "")}')
 
@@ -264,7 +345,15 @@ class TTSService:
 
     # -- 积压与丢句 ------------------------------------------------------
     def _update_backlog(self):
-        """按**音频时长**估算积压（不是字数），超 8 s 就丢最旧的未播句。"""
+        """按**音频时长**估算积压（不是字数），超 8 s 就丢最旧的未播句。
+
+        ⚠️ **worker 还没 ready 时不丢句**（2026-10-22 修）：
+        worker 加载模型要几十秒（实测 CPU 37 s），这段时间里所有提交的句子
+        都堆在待发队列上，积压估算会瞬间超过阈值
+        ⇒ 实测 30 s 回放里 **8 句全被丢掉**，一句都没念。
+        但这段积压**不是播放跟不上造成的**，是模型还没加载完
+        ⇒ 此时丢句是误伤。改成：ready 之前只**记录**积压，不丢。
+        """
         with self.lock:
             pending = list(self.pending.values())
         if not pending:
@@ -281,6 +370,10 @@ class TTSService:
         self.max_backlog_s = max(self.max_backlog_s, est)
 
         if est > BACKLOG_MAX_S:
+            # ⚠️ **worker 还没 ready ⇒ 只记录，不丢**（见本方法 docstring）
+            if self.state != 'ready':
+                self.on_log(f'[TTS] 积压 {est:.1f}s（模型尚未就绪，暂不丢弃）')
+                return
             # 丢最旧的未播句（**整句为单位**，C-101 P4 第 2 条）
             with self.lock:
                 drop_ids = []
