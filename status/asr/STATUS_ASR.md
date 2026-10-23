@@ -194,6 +194,16 @@ half | Agenda topics today.
 - **幂等**：重跑输出「已完成：共 0 处改动」（已在临时副本 `/tmp/pkgtest` 上验证两遍）。
 - 落地后校验：客户包 `translator.py` 与仓库**字节一致**、`_carry` 已全部改为 `_half`
   （仅剩合法字段名 `seg_carry`）、C-111 标记 8 处（translator）+ 2 处（app）、两文件语法检查通过。
+- **客户包代码上的行为验证**（假引擎，直接 `import` 客户包的 `translator.py`）：
+  ```
+  half  ZH:So welcome                ← 段尾半句当段即翻、只显示
+  final ZH:Good morning everyone.
+  final ZH:Let us start.
+  fix   ZH:So welcome to our Q3 meeting.   ← 补全后整句原地覆盖
+  half  ZH:to our Q3 meeting.
+  final ZH:Then we cover AI.
+  ```
+  ⇒ 客户包代码里 `half` / `fix` 语义确实生效。
 
 ### 5.6 本轮新产物清单
 | 产物 | 文件数 | 说明 |
@@ -203,12 +213,16 @@ half | Agenda topics today.
 | `hy_bench/runs/c111_half/c111_e2e.json` | 1 | 真实翻译模型 e2e（**timing_valid=false**，修复前） |
 | `live_caption/diag_c111_fixkey.py` | 1 | fix-key 回归脚本（**本轮新建**） |
 | `live_caption/sync_c111_to_pkg.py` | 1 | 客户包同步脚本（**本轮新建**） |
+| `live_caption/wait_and_run_e2e.py` | 1 | 等锁 + 自动跑 e2e 的排队脚本（**本轮新建**） |
 | `status/asr/STATUS_ASR.md` | 1 | 本文件 |
 
 ### 5.7 下一步计划
 1. **持共享机器锁重跑 e2e**（`python live_caption/diag_c111_e2e.py`）—— 确认修复后
    翻译次数、事件构成、`fix` key 不再重复；这次 `timing_valid=true`。
    （脚本已自带锁逻辑：锁被别的模块持有时**直接退出不抢**；孤儿锁可回收。）
+   **已启动排队任务** `live_caption/wait_and_run_e2e.py`（本轮新建）：每 30s 查一次锁，
+   锁释放（或变孤儿锁）就自动跑 e2e 并把日志写到 `hy_bench/runs/c111_half/e2e.log`。
+   ⇒ **TTS 模块持锁期间不抢锁、不干扰**（ASR-001 规则）。
 2. ~~**git 提交**（只提本线程的改动，见 §5.8 的 hunk 边界）~~ → **已完成**，见 §5.9。
 3. **等 reviewer 裁决**模块边界（C-111 属 ASR 还是 MT）与「GPU INT8 8.17%」的产物路径。
 
