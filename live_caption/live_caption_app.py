@@ -1443,6 +1443,7 @@ class App:
         self.blocks = []
         self.mt.seg_keys.clear()
         self.mt.seg_carry.clear()
+        self.mt.seg_half.clear()
         self._render('')
 
     def _save_text(self):
@@ -1452,13 +1453,14 @@ class App:
             out.append(src)
             mt = self._mt_of(i)
             if mt:
-                # 本段开头接上了上一段的半句：用 … 标出接续关系（C-099①）
+                # 本段原文开头承接上一段的半句（C-111：半句的完整译文在**上一行**，
+                # 本行的译文是它的后半截）—— 用 … 标出接续关系
                 if self.mt.seg_carry.get(i):
                     mt = '…' + mt
                 out.append('〔译〕' + mt)
             elif self.mt.seg_carry.get(i) and self.mt.active:
-                # 整段都是半句、已并入下一段：说明译文在哪，避免看起来像丢了
-                out.append('〔译〕（半句，接续下一段）')
+                # 本段译文还没出来（翻译在途）—— 说明它在等什么，避免看起来像丢了
+                out.append('〔译〕（译文生成中…）')
         return '\n'.join(out) + ('\n' if out else '')
 
     def save(self):
@@ -1736,8 +1738,12 @@ def run_cli(args):
                 print(f'\r[实时] {cur[-90:]}', end='', flush=True)
                 last = cur
             for kind, key, txt in mt.pop_outbox():
-                if kind == 'final' and txt.strip():
-                    print(f'\n[译文] {txt}', flush=True)
+                if kind == 'half' and txt.strip():
+                    # C-111：段尾半句的初翻译文 —— 显示但**不朗读**
+                    print(f'\n[半句译文] {txt}', flush=True)
+                elif kind in ('final', 'fix') and txt.strip():
+                    tag = '修正译文' if kind == 'fix' else '译文'
+                    print(f'\n[{tag}] {txt}', flush=True)
             if args.max_seconds and s.audio_s >= args.max_seconds:
                 s.stop()
     except KeyboardInterrupt:
@@ -1755,8 +1761,11 @@ def run_cli(args):
         mt.flush(seg=len(finals) - 1 if finals else None)
         mt.wait_idle(180)
         for kind, key, txt in mt.pop_outbox():
-            if kind == 'final' and txt.strip():
-                print(f'[译文] {txt}', flush=True)
+            if kind == 'half' and txt.strip():
+                print(f'[半句译文] {txt}', flush=True)
+            elif kind in ('final', 'fix') and txt.strip():
+                tag = '修正译文' if kind == 'fix' else '译文'
+                print(f'[{tag}] {txt}', flush=True)
         sm = mt.summary()
         f = lambda v, d=1: ('—' if v is None else f'{v:.{d}f}')
         print(f'[{args.engine}] 翻译 target={mt.target} 后端={mt.engine_key} 设备 {mt.device} '
@@ -1778,7 +1787,7 @@ def run_cli(args):
                 if m and mt.seg_carry.get(i):
                     m = '…' + m          # 本段开头接上了上一段的半句
                 elif not m and mt.seg_carry.get(i):
-                    m = '（半句，接续下一段）'
+                    m = '（译文生成中…）'
                 lines.append(m or '')
             with open(mtp, 'w', encoding='utf-8') as f:
                 f.write('\n'.join(lines) + '\n')

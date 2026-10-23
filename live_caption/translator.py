@@ -680,10 +680,24 @@ class HunyuanTranslator:
 
 # ── A2 调度 ─────────────────────────────────────────────────────────────
 class _Job:
-    __slots__ = ('kind', 'key', 'text')
+    """一个翻译任务。
 
-    def __init__(self, kind, key, text):
+    kind:
+      'final' —— 完整句的定稿译文（**朗读**）
+      'half'  —— 段尾半句的**初翻**译文（残句，**不朗读**，只显示）
+      'fix'   —— 半句被补成完整句后的**修正**译文（**朗读**）
+      'draft' —— 尾巴草稿（不朗读）
+
+    C-111 的半句修正涉及**两段的归属**：
+      seg      —— 修正后的完整句归**当前段**（句末标点落在这一段）
+      old_key  —— 被替换掉的旧 key（半句初翻那次的 key）
+      old_seg  —— 旧 key 原本归属的段（半句产生的那一段）
+    """
+    __slots__ = ('kind', 'key', 'text', 'seg', 'old_key', 'old_seg')
+
+    def __init__(self, kind, key, text, seg=None, old_key=None, old_seg=None):
         self.kind, self.key, self.text = kind, key, text
+        self.seg, self.old_key, self.old_seg = seg, old_key, old_seg
 
 
 class TranslationService:
@@ -747,9 +761,13 @@ class TranslationService:
         self.load_s = 0.0
         self._draft_last = 0.0
         self._draft_key = ''
-        self._carry = ''                   # C-099① 段尾挂起未翻的半句
+        # C-111：段尾半句**不再挂起** —— 定稿时立即翻译，译文归本段。
+        # 这个字段记录「当前未闭合的半句链」：{'text','key','seg'}，
+        # 下一次 submit() 时用它做「补全/延长 → 重翻修正」。
+        self._half = None
         self.seg_keys = {}                 # 段序号 -> 该段提交的句子 key 列表
-        self.seg_carry = {}                # 段序号 -> 是否有半句并入/挂起
+        self.seg_carry = {}                # 段序号 -> 本段开头是否承接上一段的半句
+        self.seg_half = {}                 # 段序号 -> 本段末尾是否为半句（未闭合）
         self.use_ctx = use_ctx             # C-099② 是否带上一句原文做上下文
         # H-003：术语表开关（--mt-glossary）。开时走官方 Terminology 模板，
         # prompt 变长（约 +200 token），延迟会涨，故默认关。
@@ -860,37 +878,163 @@ class TranslationService:
         self.state = 'idle'
 
     # -- 提交 ------------------------------------------------------------
+    def _enqueue_half(self, text, key, seg):
+        """段尾半句：**当段就翻**（kind='half'），译文归本段，不朗读。
+
+        C-111：旧的挂起机制要等到下一段定稿才翻，代价是译文延迟无上限
+        （T3）、且半句译文记在下一段名下 → 本段界面「译文缺字」。
+
+        ★ 同一个半句**原地覆盖**：半句变长时仍用同一个 key 槽位，
+          界面那一行的译文被直接替换（不会分裂成两行）。
+        """
+        k = key or norm_key(text)
+        self.q.put(_Job('half', k, text, seg=seg))
+
+    def _enqueue_fix(self, text, slot_key, seg, old_key=None):
+        """半句被补成完整句：**重翻并原地覆盖**旧译文（kind='fix'）。
+
+        ★ C-111：修正译文写进**半句原来的槽位**（slot_key）——
+          界面那一行的译文直接被替换成整句译文，归属不变（仍是产生半句的那段）。
+          所以：
+            - 界面：半句译文立刻可见 → 补全后原地变完整句，不跳段、不重复；
+            - TTS：只念这一份修正译文（初翻的半句译文不朗读），
+              同一句话不会被念两遍。
+        """
+        k = slot_key or norm_key(text)
+        self.q.put(_Job('fix', k, text, seg=seg, old_key=old_key))
+
     def submit(self, sentence, seg=None):
         """定稿段：分句后逐句提交，命中缓存或已提交过则跳过。
 
-        C-099①：ASR 在 12–20 s 处硬切段，段尾经常是半句。半句单独翻会语义错
-        （段尾半句 → 单独译出），所以段尾没有句末标点时**不单独翻**，
-        挂起作为前缀并入下一段首句一起翻；flush() 时（最后一段/停止）必须补翻。
+        **C-111（2026-10-23）：段尾半句不再挂起。**
+        旧行为（C-099①）：段尾没有句末标点时把半句挂起，等下一段首句拼起来
+        一起翻。代价有两处：
+          ① 半句译文要等到**下一段定稿**才出 → 延迟无上限（T3 痛点）；
+          ② 半句译文记在**下一段**名下 → 本段界面上译文缺自己那一截
+             （C-109 实测 29/72 段受影响，共 253 词）。
+        新行为：
+          - 段尾半句**当段就翻**（kind='half'），译文归**本段**，立刻可见；
+          - 后续段把半句补成完整句时**重翻并原地覆盖**旧译文（kind='fix'），
+            TTS 只念修正后的那一份，不重复朗读。
 
-        seg 是该段的序号（App 的 blocks 下标），用来记住这段的译文由哪些句子组成
-        —— 半句并入下一段后，本段译文会少那一截，渲染时靠 seg_keys 对齐。
+        seg 是该段的序号（App 的 blocks 下标），用来记住这段的译文由哪些
+        句子组成 —— 半句的 key 留在**它自己产生的那一段**，后续补全时原地更新。
         """
         if not self.active:
             return []
         text = (sentence or '').strip()
         if not text:
             return []
-        if self._carry:                        # 上一段挂起的半句接在本段开头
-            text = self._carry + ' ' + text
-            self._carry = ''
-            carried_in = True
-        else:
-            carried_in = False
-        sents = split_sentences(text)
-        if not sents:
-            return []
-        has_carry = False
-        last = sents[-1]
-        if not ends_sentence(last):            # 段尾是半句 -> 挂起，等下一段
-            self._carry = last
-            sents = sents[:-1]
-            has_carry = True
+        prev_half = self._half                # 上一段留下的未闭合半句
+        carried_in = prev_half is not None
+        merged = (prev_half['text'] + ' ' + text) if prev_half else text
+
+        # ★ 归属规则（本方案统一，不再有例外）：
+        #   **每一段只负责自己原文的内容**。跨段的那一句被拆成两半：
+        #     前半（上一段的尾）归上一段，后半（这一段的首）归这一段。
+        #   → 每一段的界面上都能找到**这一段原文**对应的译文，
+        #     不会出现「这段原文没有译文」的情况。
+        #   → 跨段的两半**分别翻**（各翻各的），互不等待：
+        #     上一段的半句立刻翻（半句译文残缺但**立刻可见**），
+        #     这一段的首半句也立刻翻。
+
         keys = []
+        new_half = None                      # 本次产生的段尾半句
+
+        if prev_half:
+            hl = len(prev_half['text'])
+            cut = next((c for c in _find_cut_points(merged) if c >= hl), None)
+            if cut is None:
+                # 半句跨了段仍未闭合 —— 整条链继续延长。
+                # ★ 本段也**保留自己那一份译文**（各归各段）：
+                #   这一段引入的原文是链上的一段，界面上必须有它的译文。
+                #   槽位 key = **这一段自己的原文**（不是整条链）。
+                ck = norm_key(text.strip())
+                if ck and ck not in self._seen:
+                    self._seen.add(ck)
+                if ck:
+                    self.q.put(_Job('half', ck, text.strip(), seg=seg))
+                    if seg is not None:
+                        self.seg_keys.setdefault(seg, [])
+                        if ck not in self.seg_keys[seg]:
+                            self.seg_keys[seg].append(ck)
+                # 链继续延长：整条链的文本交给下一个段。
+                # ★ 保留**链首**的 key/seg（链首才是「最初产生半句的那段」）：
+                #   闭合时整句译文要**原地覆盖链首那一段**的槽位 ——
+                #   这就是用户要的「修正之前的翻译错误」：
+                #   链首那段先前显示的是残缺半句译文，闭合后变成完整句译文。
+                #   （链上每一段另有一个**自己的**槽位，那是它那份独立的半句译文。）
+                self._half = {'text': merged, 'key': prev_half['key'],
+                              'seg': prev_half['seg']}
+                if seg is not None:
+                    self.seg_carry[seg] = True
+                return []
+            # ── 半句链在这里闭合 ──
+            #   整句（跨若干段）= merged[:cut+1]。
+            #   ★ 归属：**每一段保留自己那一份半句译文**（各归各段）——
+            #     这就是「当段就翻」的意义：段7 的半句译文立刻出现在段7，
+            #     不必等段9 闭合。闭合时只对**最后一段**的槽位做修正
+            #     （kind='fix'），前面各段的半句译文保持不变（它们本来就是
+            #     各自那一段的内容）。
+            #
+            #   为什么链上每一段都留一份？
+            #     实测段7、段8 连续两段都是半句、直到段9才闭合。
+            #     若把整条链的译文都归到闭合段，段7/段8 的界面上
+            #     **一个字都没有**（seg_keys 全空）—— 比旧机制更糟。
+            #     链上各段各留一份 ⇒ 每段界面上都有自己原文的译文。
+            # ★ 修正译文翻的是**完整整句**（不切分）——
+            #   切分是给「显示/归属」用的；翻译要整句才有完整语义。
+            #   （否则同一段内容会被翻两遍，浪费算力且译文不一致。）
+            self._enqueue_fix(merged[:cut + 1], prev_half['key'],
+                              prev_half['seg'])
+            if prev_half['seg'] is not None:
+                self.seg_half[prev_half['seg']] = False   # 半句已闭合
+            # 本段自己的内容：从半句链的分界点到下一个句末标点
+            head = merged[hl:cut + 1].strip()             # 本段首半句
+            tail_txt = merged[cut + 1:].strip()           # 本段其余内容
+            # ★ 首半句**单独成句**、单独翻、归本段 ——
+            #   不能把它和后面的内容一起丢给 split_sentences：
+            #   它自己没有句末标点，会和后面的内容粘成一句，
+            #   而这一句要到更后面的段才闭合 → 本段没有任何归属
+            #   （实测段7/段8 的 seg_keys 全空）。
+            #
+            #   ★ 但要**按同样的规则切分**，否则超长片段会被翻两遍
+            #     （split_sentences 会把超长句切开，head 与 rest_text
+            #      的切法不一致 → 同一段内容翻两次）。
+            if head:
+                for hp in split_sentences(head):
+                    hk = norm_key(hp)
+                    if not hk:
+                        continue
+                    if hk not in self._seen:
+                        self._seen.add(hk)
+                        keys.append(hk)
+                    # ★ head 是整句的**后半截**（整句已被 'fix' 覆盖到上一段）。
+                    #   所以它用 kind='half'（只显示、**不朗读**）——
+                    #   否则 TTS 会把「整句」和「整句的后半截」念两遍。
+                    self.q.put(_Job('half', hk, hp, seg=seg))
+            rest_text = tail_txt
+        else:
+            rest_text = merged
+
+        # ── 本段文本分句 ──
+        sents = split_sentences(rest_text)
+        if sents and not ends_sentence(sents[-1]):
+            # 段尾半句：当段就翻，译文归本段（不再挂起到下一段）
+            tail = sents[-1]
+            sents = sents[:-1]
+            tk = norm_key(tail)
+            self._enqueue_half(tail, tk, seg)
+            new_half = {'text': tail, 'key': tk, 'seg': seg}
+            self._half = new_half
+            if seg is not None:
+                self.seg_half[seg] = True
+        elif prev_half is not None:
+            # ★ 半句链已闭合、而本段**没有**产生新的半句 ⇒ 必须清空 `self._half`。
+            #   否则下一段会把**已经闭合**的旧半句当成新的链头再走一遍闭合流程
+            #   ⇒ 同一个槽位被反复修正（实测 fix 的 key「So, welcome」重复 3 次，
+            #      译文被连续改写成三句不同的话）。
+            self._half = None
         for s in sents:
             k = norm_key(s)
             if not k or k in self._seen:
@@ -899,32 +1043,56 @@ class TranslationService:
             keys.append(k)
             if k in self.done:
                 continue
-            self.q.put(_Job('final', k, s))
+            self.q.put(_Job('final', k, s, seg=seg))
+
+        # ── 段-译归属 ──
+        #   ★ 半句的 key 记在**它自己产生的那一段**，
+        #     不能记到下一段 —— 这正是 C-109「本段译文缺自己那半句」的根因。
         if seg is not None:
-            self.seg_keys[seg] = keys
-            self.seg_carry[seg] = has_carry or carried_in
+            self.seg_keys.setdefault(seg, [])
+            for k in keys:
+                if k not in self.seg_keys[seg]:
+                    self.seg_keys[seg].append(k)
+            self.seg_carry[seg] = carried_in
+        # 新产生的半句 → 记在**它自己那一段**
+        if new_half is not None and new_half['seg'] is not None:
+            hs = new_half['seg']
+            self.seg_keys.setdefault(hs, [])
+            if new_half['key'] not in self.seg_keys[hs]:
+                self.seg_keys[hs].append(new_half['key'])
         return keys
 
     def flush(self, seg=None):
-        """收尾：把挂起的半句补翻（C-099①：最后一段或停止时不能丢）。"""
-        if not self.active or not self._carry:
+        """收尾：把**最后一段的半句**当作定稿译文交出去。
+
+        C-111：半句在定稿时已经翻过了，这里不再重翻，只把它标记成
+        'final'（可朗读、可显示），并清掉「未闭合」标记。
+        """
+        if not self.active:
             return []
-        s, self._carry = self._carry, ''
-        k = norm_key(s)
-        if not k:
+        half = self._half
+        self._half = None
+        if not half:
             return []
-        if k not in self._seen:
-            self._seen.add(k)
-            if k not in self.done:
-                self.q.put(_Job('final', k, s))
-        if seg is not None:
-            self.seg_keys.setdefault(seg, [])
-            if k not in self.seg_keys[seg]:
-                self.seg_keys[seg].append(k)
-        return [k] if k else []
+        k = half['key']
+        if half['seg'] is not None:
+            self.seg_half[half['seg']] = False
+        with self.lock:
+            txt = self.done.get(k)
+        if txt:
+            with self.lock:
+                self.outbox.append(('final', k, txt))
+            return [k]
+        # 理论上不该发生（半句当段就翻了）—— 兜底补翻一次
+        self.q.put(_Job('final', k, half['text'], seg=half['seg']))
+        return [k]
 
     def mt_of_seg(self, seg):
-        """取某段的译文（按该段实际提交的句子拼，不含并入下一段的半句）。"""
+        """取某段的译文（按该段实际提交的句子拼）。
+
+        C-111：段尾半句的译文**归本段**，所以这里不再缺那一截；
+        半句被后续段补全后，`done` 里的槽位被原地覆盖，这里自动显示修正版。
+        """
         if not self.active:
             return None
         keys = self.seg_keys.get(seg)
@@ -936,8 +1104,8 @@ class TranslationService:
 
     @property
     def carry(self):
-        """当前挂起未翻的半句（界面可用来提示）。"""
-        return self._carry
+        """当前未闭合的半句原文（界面可用来提示）。"""
+        return self._half['text'] if self._half else ''
 
     def set_draft(self, on):
         """开关「草稿译文」（尾巴的实时预览）。
@@ -1029,9 +1197,10 @@ class TranslationService:
                     # 换模型后旧译文不再可信（不同量化产物输出不同），清掉缓存与统计
                     self.done.clear()
                     self._seen.clear()
-                    self._carry = ''
+                    self._half = None
                     self.seg_keys.clear()
                     self.seg_carry.clear()
+                    self.seg_half.clear()
                     self._last_src = ''
                     self.draft = ''
                     self.lats.clear()
@@ -1092,10 +1261,13 @@ def _run_jobs(svc, tr):
             svc.err = f'{type(e).__name__}: {e}'
             svc._busy -= 1
             continue
-        if job.kind == 'final':
+        if job.kind in ('final', 'fix'):
             svc._last_src = job.text       # 记下来给下一句当上下文
         with svc.lock:
-            if job.kind == 'final':
+            if job.kind in ('final', 'half', 'fix'):
+                # ★ C-111：'half'（段尾半句初翻）与 'fix'（补全后的修正）
+                #   都写进同一个 key 槽位 —— 修正是**原地覆盖**，
+                #   界面那一行译文直接被替换，不需要额外的对齐逻辑。
                 svc.done[job.key] = r['text']
                 while len(svc.done) > svc.CACHE_MAX:
                     svc.done.popitem(last=False)
@@ -1105,7 +1277,11 @@ def _run_jobs(svc, tr):
                     if r['n_out'] > 1 and r['lat_ms'] > r['ttft_ms']:
                         svc.tpots.append((r['lat_ms'] - r['ttft_ms']) / (r['n_out'] - 1))
                     svc.n_done += 1
-                svc.outbox.append(('final', job.key, r['text']))
+                # ★ outbox 的 kind 决定消费方怎么处理：
+                #   'final' —— 完整句定稿译文 → 朗读
+                #   'half'  —— 半句初翻译文   → **只显示，不朗读**
+                #   'fix'   —— 补全后的修正译文 → 朗读（覆盖显示）
+                svc.outbox.append((job.kind, job.key, r['text']))
             else:
                 svc.draft = r['text']
                 svc.outbox.append(('draft', job.key, r['text']))
