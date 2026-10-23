@@ -2552,3 +2552,67 @@ $ python pack_v13.py --pkg "C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4" --
 | `status/app/STATUS_APP.md` | 修改（追加 §16） | App |
 
 （`live_caption/tts_worker.py` 的 import 死锁修复本体已在**上轮** commit `1f6287f` 中，本轮未再改它。）
+
+### §16.6 补记：远端 `CORRECTIONS_APP.md` 状态的**口径订正** + 历史素材仍在远端的复查
+
+#### §16.6.1 订正 §15 / §12 里「远端未提交 `CORRECTIONS_APP.md`」的表述
+
+§15.8 与 §13.8 写的「**未提交** `CORRECTIONS_APP.md`」，其**本意**是
+「**本轮未把 reviewer 新写入的 APP-005/006 两条提交上去**」；
+但**字面**读起来会被误解为「远端从来没有这个文件」。**本节订正这个歧义**：
+
+| 事实 | 实测证据 |
+|---|---|
+| 远端**确实存在** `status/app/CORRECTIONS_APP.md` | `git ls-tree origin/main status/app/` → `100644 blob 9757d91dd958712a11b26231aae6526b942225e1 status/app/CORRECTIONS_APP.md` |
+| 它是在 **`fd5b7ef`** 进入 git 的 | `git log --diff-filter=A -- status/app/CORRECTIONS_APP.md` → 唯一一条 `fd5b7ef`；提交时间 `2026-10-23 11:24:42`，作者 `Confucius4-OpenVINO Bot` |
+| **该提交早于 App 模块接手** | `fd5b7ef` 的标题是「C-133/C-134：默认 MT 改 INT8-CW…」⇒ 是**我接手之前**的历史提交，**不是本轮或上轮做的** |
+| 远端 blob = **截至 APP-004 的旧版** | 远端 blob SHA `9757d91d…`（工作区 `172e299f…`，两者**不同**）⇒ 远端**没有** APP-005 / APP-006 两条 |
+| 工作区的 APP-005/006 仍**未入库** | `git status --porcelain` → ` M status/app/CORRECTIONS_APP.md`（**未暂存**）；本轮提交只含 3 个 App 文件（`git show --stat b3a77de`） |
+
+⇒ **本轮与上轮的「未提交」结论在行为上成立**（reviewer 独占文件始终只读、未被本轮改动入库），
+但**「远端不含该文件」是错的** —— 远端含一份**旧的（APP-004 截止）**版本。
+**澄清该歧义，避免 reviewer 按「远端完全没有」去核查而对不上。**
+
+⚠️ 远端那份旧版**含中文会议内容片段**（「[REDACTED-内部会议引文]」，APP-003① 的证据引用）。
+按 **§11.2 第 18 项**的既有判定：这类是**「点名说明」**（规则解释 / 纠偏记录），
+**不是会议原文本身 ⇒ 保留** ⇒ **不构成 APP-005① 的违规**，无需为此追加脱敏动作。
+
+#### §16.6.2 远端会议素材复查：APP-006 第 3~7 步**仍然必要**
+
+| 类别 | 远端 `origin/main` 实测 | 判定 |
+|---|---|---|
+| `results/c134_replay/` | **0**（`git ls-tree -r origin/main --name-only \| grep c134_replay` 空） | ✅ 已脱库（APP-005①，§11.1） |
+| `mt2_acc_outputs/` / `*_spoken.*` / `[REDACTED]*` | **0** | ✅ 干净 |
+| **`reports/` 下的会议转写载体**（`transcript_*` / `segments_*` / `spe_*`） | **85 个文件仍在远端** | 🔴 **仍需历史改写** |
+
+⇒ 与 §11.2 的结论一致：APP-005① 只解决了**当前快照**的脱库，
+**历史提交里的 85 个会议转写载体仍在 GitHub 上** ⇒
+**APP-006 第 3~7 步（`git filter-repo` 改写历史 + 强制推送）确有必要**，
+且按 APP-006 第 2 步「这一步需要停下来等 reviewer」⇒ **本轮仍未自行推进**。
+
+#### §16.6.3 本轮**未做**实跑验证的**最终说明**（补记于 §16.1 之后）
+
+`MACHINE_LOCK` 在本轮被 TTS 模块**反复占用**：21:01:53 起（pid 29352）→ 21:06 释放 → **21:08:57 又被重新占用**（pid 29960，`module: tts`）。
+按纪律「锁已存在就等待」⇒ **全程不碰锁、不跑 NPU 推理**。
+
+⇒ v1.4 包内 `tts_worker.py` 的实跑验证（`ready` 时延）**本轮仍未做**，
+当前结论依据是**逐字节等价论证**：v1.4 包内该文件与仓库文件 SHA256 **完全相同**
+（`06a9ea67…fda3da`）⇒ 代码等价 ⇒ §15 实测的「9.4~10.1 s 正常 emit `ready`」对 v1.4 包同样成立。
+⚠️ 该论证**依赖 §15 的实测**；若 §15 的产物被清掉，此结论需重新实测。
+（另注：§13.4 的冒烟脚本 `C:\Users\Trekker-PTL\tts_smoke_app012.py` **写死了 v1.3 路径**，
+若将来要对 v1.4 复测，需先按同样的「自动发现最大版本包」口径改造 —— 尚未做。）
+
+#### §16.6.4 git 闭环（本轮）
+
+| 项 | 实测 |
+|---|---|
+| commit | `b3a77de`（3 files changed, 485 insertions(+), 33 deletions(-)） |
+| 暂存内容 | 仅 `live_caption/sync_c137_to_pkg.py`（M）、`live_caption/sync_c138_to_pkg.py`（A）、`status/app/STATUS_APP.md`（M） |
+| 推送 | `git push origin main` → **`1f6287f..b3a77de`（普通快进，非 force）** |
+| 快进校验 | `git merge-base --is-ancestor origin/main HEAD` → `FAST_FORWARD_OK` |
+| 远端 HEAD | `b3a77de07c69b34219f775727303625bf2977f19` |
+| 分支 | 仅 `main`（`remotes/origin/HEAD -> origin/main`） |
+| 素材闸门 | `python check_internal_material.py --staged` → **PASS（命中 0 个）** |
+| 脱敏表扫描 | 7 789 条替换表扫 3 个暂存文件 → **TOTAL hits = 0** |
+| 机器锁 | **未创建**（全程被 TTS 模块占用）⇒ 无遗留锁 |
+| 未提交 | `CORRECTIONS_APP.md`（reviewer 独占）、`audio_source.py` / `translator.py` / `tts_service.py` / `device_config.py` / `live_caption_app.py` / `pack_v13.py` / `pkg_exclude.py` / `status/CORRECTIONS.md` 及全部 `diag_c111_*` 脚本 ⇒ **留给各自模块会话** |
