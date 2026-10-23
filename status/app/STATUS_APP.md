@@ -1,10 +1,13 @@
 # STATUS_APP
 last_ack: APP-006
-更新时间: 2026-10-23 13:57
-当前任务: APP-005①②③ 全部 ✅（含回放语种纠正 + **统计口径修正**）+ APP-006 第 1~2 步（备份 + 脱敏替换表）✅，**第 3 步历史改写等 reviewer 复核 §11.2 清单后执行**
-阻塞 / 待用户决定: ① **APP-006 第 3~7 步**：历史改写 + force push（等 reviewer 复核 §11.2 清单；且**改写后所有 SHA 全变**，并行线程 ASR/MT/TTS 需重新 clone 或 reset --hard，**会覆盖他们未提交的改动**）；② **包体 12.73 GB**（v1.4 重打前需评估是否剔除 `decoder-npu-int8` / `decoder-gpu-int8` / `encoder-fp16`）；③ 是否剔除 INT4-CW（可再省 0.97 GB）；④ TTS worker 适配 BabelVox 后才能重打 v1.4（APP-004 前置未完成）
+更新时间: 2026-10-23 15:35
+当前任务: **巡检完成：`CORRECTIONS_APP.md` 最大编号 = APP-006 = last_ack ⇒ 本轮无新纠偏条目**。本轮闭环三件事：① **APP-005① 补推送已做**（普通快进 push，`origin/main` 上 `results/c134_replay/*` 7 条泄露已清零）② **TTS 引擎按 14:37 新交接单纠正为 spkonly**（ICL/ref_text 口径作废）③ **TTS worker 接入 BabelVox**（三级回落 + 采样率随引擎走）；另修掉 `split_long_text()` 累计判据真 bug。详见 §12。
+阻塞 / 待用户决定: ① **APP-006 第 3~7 步**：历史改写 + force push（等 reviewer 复核 §11.2 清单；且**改写后所有 SHA 全变**，并行线程 ASR/MT/TTS 需重新 clone 或 reset --hard，**会覆盖他们未提交的改动**）——**本轮已按纪律停下**；② **TTS NPU 冒烟超时未出结论**（缓存已 8 blob/2.4 GB，冷编译耗时非挂死，900 s 未跑完）⇒ 端到端 ABBA 未做；③ **v1.4 重打包前置未完成**（设备自选 + TTS 集成 + 端到端验证）；④ **包体 12.73 GB**（需评估剔除 `decoder-npu-int8`/`decoder-gpu-int8`/`encoder-fp16`）；⑤ 是否剔除 INT4-CW（可再省 0.97 GB）；⑥ `results/asr_diag/*` 未被 .gitignore 覆盖，有误提交风险
 
 ## 最近更新
+- 15:35 §12 **巡检无新条目 + 三件事闭环**：APP-005① 补推送关闭远端泄露（`origin/main` c134_replay 7 条→0，普通 push 非 force）；`tts_engine.py` 纠正为 spkonly（`PRESET_A_REF_TEXT=None`，删 `ref_text`/`ref_audio` 入参）；`tts_worker.py` 接入 BabelVox（24000 Hz + `_reopen_player`）；修掉 `split_long_text()` 单句判据→累计判据 bug；客户包 TTS 清单 55/55 SHA256 全对、`voices/` 仅音色 A
+- 15:35 §12 **如实记录未完成项**：NPU 冒烟超时（无 RTF/音质结论）、ABBA 未做、v1.4 未重打、APP-006 第 3~7 步等 reviewer
+- 15:35 §12.6 **并行改动隔离**：`translator.py`（MT 回退到 C-111 前基线）/ `live_caption_app.py` / `audio_source.py` / `tts_service.py` 均**不提交**，逐文件 `git add` 未用 `-A`
 - 13:57 §11.4 **APP-005③ 回放重跑完成**（ABBA 4/4 exit=0，锁 13:49~13:54）：译文英文残留 **0.0%**、空行 **0**、产物写仓库外（7 文件）；**顺带修正了验收口径本身**（`--out` 是原文、译文另存 `.mt.txt`，原脚本统计错了对象）
 - 13:56 §11.5~§11.7 补写完成：mirror 备份 2.7 GB、改写前 SHA 快照（main `bce542a` / origin `73f268e` / 51 commits / 0 tag）、防复发六层机制、**改写历史的 7 条残留风险**
 - 13:29 §11 **APP-005①② + APP-006 第1~2步 落地**：c134_replay 脱库（`git ls-files results | grep c134` 空）、pack_v13 INT8 断言改正（dry-run INT8 全部 [OK]、缺 bin 时 FAIL 已验证）、MANIFEST 刷到 13973 文件/13.67 GB、备份 2.7 GB mirror 已建、脱敏替换表 7789 条已生成、内部素材闸门脚本已挂进 pack_v13
@@ -1353,3 +1356,171 @@ $ python pack_v13.py --dry-run
 | `replay_report.json` | 22752 | 2026-10-23 13:54 |
 
 ⚠️ **报告里不贴会议原文** —— 本节只贴计数与结构性字段（句数 / 延迟 / RTF / 行数 / 残留数）。
+
+## §12 无新纠偏条目巡检 + APP-005① 补推送关闭远端泄露 + TTS 引擎按新交接单纠正（2026-10-23 15:36）
+
+### §12.0 本轮动作摘要
+
+- **巡检结论：`CORRECTIONS_APP.md` 最大编号 = APP-006 = 头部 `last_ack` ⇒ 本轮无新纠偏条目，无需执行新条目。**
+  - 依据：文件实测 mtime `2026-10-23 12:01:55.742320600 +0800`，17965 B，SHA256 `dff32b2c96b6ccc02127ef6b258eef73bd0b3d0cd574a3772a5f4063ee7db8cc`；
+    `## APP-xxx` 条目共 6 条（APP-001 09:12 / APP-002 09:37 / APP-003 09:45 / APP-004 11:17 / APP-005 11:58 / APP-006 12:01）；
+    全仓全局搜 `APP-007` / `APP-008` / `APP-009` **0 命中**。
+  - `CORRECTIONS_APP.md` 本轮**只读、未修改、未提交**（git 显示 `M` 是相对 HEAD 多出 APP-005/006 两条，属 reviewer 侧未入库内容）。
+- **本轮实际做的三件事**（都是把 §11 的「已做但未闭环」补完）：
+  1. **APP-005① 补推送** —— 关闭 `origin/main` 上仍在线的内部会议转写泄露（§12.1）。
+  2. **TTS 引擎纠正** —— `tts_engine.py` 原按 12:02 的旧 ICL 口径写，与 TTS 模块 14:37 更新的交接单结论相反，按新口径改 spkonly（§12.2）。
+  3. **TTS worker 接入 BabelVox** —— 原先只走旧 OVSynth 路线，与「TTS 随包分发」方向相反（§12.3）。
+- **未推进**：APP-006 第 3~7 步（历史改写 + force push）—— APP-006 第 2 步明写「这一步需要停下来等 reviewer 复核」⇒ **本轮按纪律停下**。
+- **未完成**：NPU 冒烟实测超时未出结论（§12.5）；v1.4 重打包前置未完成，暂缓。
+
+### §12.1 APP-005① 补推送 —— 关闭 `origin/main` 内部会议转写泄露
+
+§11.1 只做了**本地** `git rm --cached`（commit `0de52ad`），**该 commit 从未 push** ⇒
+`origin/main` 上 7 个 `results/c134_replay/*` 一直在线。**本轮补做普通快进 push 已关闭。**
+
+| 项 | 改前 | 改后 |
+|---|---|---|
+| `git ls-remote origin main` | `73f268e...`（旧） | `75e82a53f01736475e6e80d6106efd2b4e9dc6ce` |
+| `git ls-tree -r origin/main --name-only \| grep c134_replay` | **7 条命中** | **空** |
+| 本地 `main` | `75e82a5` | `75e82a5` |
+| push 方式 | —— | `git push origin main`（**普通 push，非 force**） |
+
+- **快进性校验**：`git merge-base --is-ancestor origin/main main` = 0（true）⇒ 改前 `origin/main` 是本地 `main` 的祖先 ⇒ push 是纯快进，**未使用 force push**，未改写他人历史。
+- push 前 `git status` 已确认 `origin/main` 无落后分叉；push 后 `git ls-remote` 与本地一致。
+- ⚠️ **本节不贴会议原文**，只记录文件名层面的结论。
+
+### §12.2 `tts_engine.py` 按新交接单纠正（ICL → spkonly）
+
+**根因**：`live_caption/tts_engine.py` 写于 **12:02**，而 TTS 模块交接单 `C:\Users\Trekker-PTL\qwen3tts_eval\TTS_交接单.md`
+mtime **2026-10-23 14:37**（18667 B）——**新文档比引擎晚 2.5 小时，且结论相反**：
+
+| 维度 | 旧引擎写法（12:02，**已作废**） | 新交接单口径（14:37，**本轮采用**） |
+|---|---|---|
+| 音色路线 | ICL：传 `ref_text` + `ref_audio` | **spkonly（x_vector）**：只传 `speaker_embed` |
+| 原因 | —— | babelvox 的 `ref_text` 路径**不是官方 ICL**，codec 轨道无 `ref_code` ⇒ 分布外 prompt ⇒ EOS 不稳（TTS-005） |
+| 参考文本常量 | `PRESET_A_REF_TEXT = "..."` | **`PRESET_A_REF_TEXT = None`**（音色 A 的参考文本已作废） |
+
+本轮改动（`live_caption/tts_engine.py`，16309 B，SHA256 `afd48c7b65156a9e885313041b2117e7c832fbc0d6ae90b6cd90dcf1adafe717`，mtime `2026-10-23 15:15:57`）：
+
+```python
+# 🔴🔴 **音色 A 的参考文本已作废，不要用**（交接单 2026-10-23 14:37 更新，TTS-005）
+PRESET_A_REF_TEXT = None
+BUILTIN_SPEAKERS = ('cindy', 'lou', 'phil', 'steve')
+TTS_SAMPLE_RATE = 24000
+```
+
+```python
+def speaker_embedding(eng, ref_wav=None, on_log=print) -> Optional['np.ndarray']:
+    """预计算参考 wav 的 speaker embedding（**x_vector / spkonly 路线**）。"""
+    import numpy as np
+    wav = ref_wav or preset_voice_path()
+    if not wav: ... return None
+    spk = eng.extract_speaker_embedding(wav)
+    spk = np.asarray(spk, dtype=np.float32).reshape(1, -1)
+    return spk
+```
+
+```python
+def stream(eng, text, language='English', speaker_embed=None,
+           speaker=None, cancel_event=None, on_log=print):
+    kwargs = dict(text=text, language=language,
+                  speaker_embed=speaker_embed, speaker=speaker,
+                  split_on_silence=False, cancel_event=cancel_event)
+    return eng.generate_stream(**kwargs)
+```
+
+- `stream()` 已**删除 `ref_audio` / `ref_text` 两个入参** ⇒ 调用方不可能再误走 ICL。
+- `split_on_silence=False` 固定为默认（交接单 §6.3「不要无条件切分」）。
+- **内置音色**：`cindy` / `lou` / `phil` / `steve` 四条，**全部内置**（speaker encoder 9 MB）⇒ 客户包**不需要 `ref_text`**。
+
+### §12.2.1 顺带修掉 `split_long_text()` 的真 bug（单句判据 → 累计判据）
+
+**原判据错在哪**：`split_long_text()` 原本判断的是「**单句** est > max_sec」，而不是「**累计 buf_est + est** > max_sec」。
+后果：一句超长句（> max_sec）会**整句被塞进同一段**，随后引擎侧照样触发静默截断 ⇒ 切分形同虚设。
+
+- 已改为**累计判据**：`buf_est + est > max_sec` 才起新段；并抽出 `_estimate_sec()` 统一估时口径。
+- **自检输出**：`长句切分：10 段，每段估时 max=35.0s （上限 39.8s）` ⇒ `OK`（每段估时均低于上限 ⇒ 无静默截断风险）。
+
+### §12.3 `tts_worker.py` 接入 BabelVox 路线（原先只走旧引擎）
+
+**问题**：`tts_worker.py` 原先**只有**旧 `confucius4-tts` 的 OVSynth + BigVGAN 路线 ⇒ 与 APP-004「TTS 随包分发」方向相反，
+且旧路线采样率 22050 Hz ≠ babelvox 的 24000 Hz。
+
+本轮改动（`live_caption/tts_worker.py`，38670 B，SHA256 `fec383a50eab9405362a623e7f2e39f64e864bbf5992bebbf98bddc3b1d4cd1a`，mtime `2026-10-23 15:20:20`；`git diff --stat` = 352 插入 / 54 删除）：
+
+| 项 | 改前 | 改后 |
+|---|---|---|
+| 采样率常量 | `SR = 22050` | `SR = 22050`（旧） / **`TTS_SR = 24000`（babelvox 原生）**，`self.sr` 随引擎走 |
+| 引擎加载 | 只有 OVSynth / torch | **三级回落：BabelVox → OVSynth → torch** |
+| 音色 | 只能 `--voice A` | `--voice` 放开 choices，支持 `cindy/lou/phil/steve` |
+| 播放流 | 固定 22050 建流 | **`_reopen_player(sr)`**：`sounddevice.OutputStream` 采样率是**流级属性**，切引擎须重建播放流 |
+| 新增方法 | —— | `_reopen_player(sr)` / `_try_load_babelvox()` / `_setup_babelvox_voice()` / `_synth_babelvox()` |
+| CLI | —— | 新增 `--tts-cache-dir`；`_flush_timeline` 与 jsonl 的 `dur_s` 改用 `self.sr` |
+
+- **仓库 ⇄ 客户包一致性已校验**（三份文件 SHA256 完全一致）：
+
+| 文件 | 仓库 SHA256 | 客户包 SHA256 | 结论 |
+|---|---|---|---|
+| `tts_engine.py` | `afd48c7b65156a9e…` | `afd48c7b65156a9e…` | **SAME** |
+| `tts_worker.py` | `fec383a50eab9405…` | `fec383a50eab9405…` | **SAME** |
+| `tts_engine_patch.py` | `71a0aa3832114415…` | `71a0aa3832114415…` | **SAME** |
+
+- `tts_engine_patch.py`（15973 B，SHA256 `71a0aa38321144150873ee3b0da68e9436dd7c56cdb44630668fb794e597f83e`）
+  由 `C:\Users\Trekker-PTL\qwen3tts_eval\qwen3tts_patch.py` 复制而来，内含 `MultiDecoderBabelVox`
+  —— 用于**解耦 `max_decoder_frames` 一参两用**（静态形状定耗时 + `effective_max` 定截断），避免降帧数把长句砍断。
+
+### §12.4 客户包 TTS 文件清单核对（交接单 55 条 ⇄ 客户包 55/55 全对）
+
+- 交接单 `TTS_交接单.md`（14:37）列 IR/模型/词表文件共 **55 条**，逐条比对客户包
+  `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.3\app\models\qwen3tts\` ⇒ **字节 55/55 + SHA256 55/55 全对**。
+- `models/qwen3tts/` 目录构成：**int8 18 文件 / weights 37 文件 / tokenizer 4 文件 / voices 仅 `preset_A.wav`（192044 B）**。
+- 🔴 **`voices/` 只有音色 A**（参考 wav）⇒ **音色 B 与克隆音色 C 确认未进包**（符合交接单「客户包只能带音色 A」纪律）。
+- `python/Lib/site-packages/babelvox` 存在且可 import；`BabelVox.__init__` 签名已逐项核对：
+  `model_path, export_dir, device, max_talker_seq, max_cp_seq, max_speaker_frames, max_decoder_frames, use_kv_cache, max_kv_len, use_cp_kv_cache, talker_buckets, precision, cache_dir, fallback_cpu`。
+- **内部素材闸门**：`check_internal_material.py --repo . --pkg <客户包>` ⇒ **命中 0 个内部素材 / 结论：PASS**。
+- **全量会议原文扫描**：用脱敏替换表 `git_backup/replace_text_c135.txt`（7789 条，每行一条原文）扫描 16 个待推送文件 ⇒
+  **唯一命中在 `status/app/STATUS_APP.md` 第 692 行**（§8.7.4 引用「然后在最后我们将有 plenty of time for Q&A…」）——
+  属**旧章节的历史引用**，非本轮新增落盘内容（§8.7.4 不在改写范围，本轮亦未改动该行）。
+
+### §12.5 未完成项与阻塞（如实记录，未包装成「已交付」）
+
+| # | 事项 | 状态 | 证据 / 原因 |
+|---|---|---|---|
+| 1 | **TTS NPU 冒烟实测** | ⏸ **未出结论** | 后台任务 `5DMllB`：`timeout 900 ./python/python.exe tts_smoke_app012.py NPU`。运行 10m39s 时 NPU 缓存已产出 **8 个 blob / 2.4 GB**（`%LOCALAPPDATA%\Confucius4LiveCaption\tts_npu_cache`，最大 blob 487 MB，最后写入 15:27），python 进程 CPU 301→**805 s** 持续增长 ⇒ 属**冷编译耗时，非挂死**；900 s 超时未到出结果。**本轮不报任何 RTF / 音质结论。** |
+| 2 | **端到端 ABBA（tts off/on/on/off）** | ⏸ 未做 | 依赖 #1 通过 |
+| 3 | **v1.4 重打包** | ⏸ 未做 | 前置：设备自选 + TTS 集成 + 端到端验证均未闭环 |
+| 4 | **APP-006 第 3~7 步** | ⏸ **等 reviewer 复核** | APP-006 第 2 步明写「这一步需要停下来等 reviewer 复核」⇒ 按纪律**本轮不自行推进**。§11.2 的清单已落盘，等 reviewer 签字后方可执行历史改写 + force push。 |
+| 5 | **包体 12.73 GB 优化** | ⏸ 未做 | 需评估是否剔除 `decoder-npu-int8` / `decoder-gpu-int8` / `encoder-fp16`；并与 INT4-CW（可再省 0.97 GB）一并决策 |
+
+### §12.6 并行会话冲突（按纪律**未提交**这些改动）
+
+`git status` 显示工作区混有**其它模块**的未提交改动，本轮**一律不吞**：
+
+| 文件 | 归属 | 处置 |
+|---|---|---|
+| `live_caption/translator.py` | MT 模块 —— 工作区 1152 行 vs HEAD 1305 行（`+71/−224`），**C-111 的 33 个标志全部消失**（`grep -c "seg_half\|_enqueue_fix\|_enqueue_half"` = 0；HEAD = 33）⇒ 被回退到 C-111 之前基线 | **不提交**，原样留给 MT 模块 |
+| `live_caption/live_caption_app.py` | ASR 线程 —— 含 `SIL_REL` / `SPK_REL` 改动（mtime `2026-10-23 15:27:29`） | **不提交** |
+| `live_caption/audio_source.py` | ASR §10 改动 3「回环立体声混合」（`_stereo_to_mono` / `_corr` / `STEREO_MIX_BALANCE_DB`），+90 行 | **不提交** |
+| `live_caption/tts_service.py` | TTS 侧 10-22 旧改动（`--precision` / `--out-wav` / `--bigvgan-ir` 协议扩展），**非本轮 App 改动** | **不提交** |
+| `status/CORRECTIONS.md` | 旧 C 编号文件（冻结于 C-135），本轮未改 | **不提交** |
+| `status/app/CORRECTIONS_APP.md` | **reviewer 独占写入文件，只读** | 🔴 **绝不提交** |
+| `results/asr_diag/`、`results/*.npy`、`live_caption/diag_*.py`（多个）、`live_caption/sync_c111_revert_to_pkg.py`、`reviewer/find_int8enc.ps1` | ASR / 其它模块诊断产物 | **不提交** |
+
+⚠️ **注意 `git check-ignore` 对 `results/asr_diag/*` 无输出** ⇒ 这些 ASR 诊断产物**未被 .gitignore 覆盖**，
+存在**误提交风险**。本轮已逐文件指定 `git add`，未使用 `git add -A` / `git add .`。
+
+### §12.7 本轮提交清单（App 模块负责范围）
+
+| 文件 | 状态 | 字节 | mtime | SHA256 |
+|---|---|---|---|---|
+| `live_caption/tts_engine.py` | 新增 | 16309 | 2026-10-23 15:15:57 | `afd48c7b65156a9e885313041b2117e7c832fbc0d6ae90b6cd90dcf1adafe717` |
+| `live_caption/tts_engine_patch.py` | 新增 | 15973 | 2026-10-23 15:21:10 | `71a0aa38321144150873ee3b0da68e9436dd7c56cdb44630668fb794e597f83e` |
+| `live_caption/device_config.py` | 新增 | 8684 | 2026-10-23 11:54:43 | `a03ce889ed76e2b244f8770f57e35343e24a812d4204ac92eed57b9f172bd9af` |
+| `live_caption/sync_c135_to_pkg.py` | 新增 | 24705 | 2026-10-23 15:21:20 | `fd99b10ee296c33f9e54c56d4880b9cbb9bbc6e1b9f0d88b62bc16672965f294` |
+| `live_caption/tts_worker.py` | 修改 | 38670 | 2026-10-23 15:20:20 | `fec383a50eab9405362a623e7f2e39f64e864bbf5992bebbf98bddc3b1d4cd1a` |
+| `status/app/STATUS_APP.md` | 修改 | —— | —— | 见提交后实测 |
+
+- `device_config.py` 自检：`diag_device_select.py` **ALL PASS**；`diag_device_gui.py` **ALL PASS**（实际探测到 `['NPU','GPU.0','GPU.1','CPU']`）。
+- `sync_c135_to_pkg.py` 只读校验：客户包 `live_caption_app.py` / `translator.py` 与 HEAD 版**代码骨架完全相同（EQUIV）**。
+- `sync_c135_to_pkg.py` 的 `NEW_FILES` 本轮改为 `['device_config.py', 'tts_engine.py', 'tts_engine_patch.py']`；
+  `tts_worker.py` 走**精确字符串替换 + `assert count == 1`** 通道（该文件是整文件同源复制，故按整文件替换处理并逐字节校验 SHA256）。

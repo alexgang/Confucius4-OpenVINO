@@ -46,6 +46,16 @@ from typing import Optional
 SR = 22050
 CHUNK_SAMPLES = 1024          # 音频回调每次取多少采样
 
+# 🔴 Qwen3-TTS（BabelVox）的输出采样率 —— **24000 Hz**（babelvox 原生）。
+# 旧引擎（OVSynth + BigVGAN）是 22050 Hz。
+# ⇒ 走 BabelVox 路线时播放流必须用 24000，否则**变调/加速**。
+TTS_SR = 24000
+
+# ⚠️ 2026-10-22 修：`_HERE` 之前**从未定义**，但被用了 2 处
+#    （`_load_conds` 的 `voices/` 目录、`_update_clone` 的 `clone_C.npz`）
+#    ⇒ `NameError: name '_HERE' is not defined` ⇒ 音色加载必崩 ⇒ `ready=False`。
+_HERE = os.path.dirname(os.path.abspath(__file__))
+
 
 def emit(obj: dict):
     """往 stdout 发一行 JSON（立刻 flush，主进程要实时看到状态）。"""
@@ -193,14 +203,21 @@ class Player:
 
 class TTSWorker:
     def __init__(self, device='GPU.0', voice='A', out_device=None, model_dir=None,
-                 clone=False, bigvgan_ir=None):
+                 clone=False, bigvgan_ir=None, precision='f32',
+                 out_wav=None, seed=1234, steps=25, cfg_rate=0.7):
         self.device = device
         self.voice = voice
         self.out_device = out_device
         self.model_dir = model_dir
         self.clone_mode = clone
+        self.precision = precision   # OV 推理精度（f32 / f16）
+        self.out_wav = out_wav       # 落盘模式：按真实时间轴混成一个 wav
+        self.seed = seed
+        self.steps = steps
+        self.cfg_rate = cfg_rate
         self.model = None
-        self.ov_rt = None            # OV 运行时（非 torch 路径）
+        self.ov_rt = None            # OV 合成器（OVSynth 实例；非 torch 路径）
+        self.ov_runtime = None       # OVRuntime 实例（供克隆音色/编码器链路用）
         self.bigvgan_ir = bigvgan_ir  # 指定 BigVGAN IR（多相分解版）
         self.conds = {}
         self.player = None
@@ -209,39 +226,143 @@ class TTSWorker:
         self._stop = threading.Event()
         self._cancel_lock = threading.Lock()
         self._cancelled: set = set()  # 被主进程丢弃的句子 id
+        # ── BabelVox 路线（APP-004 第 2 条）──
+        self.engine = None           # BabelVox 实例
+        self.speaker_embed = None    # spkonly：预计算的 (1, 1024) 向量
+        self.speaker_name = None     # 内置 speaker 名（用内置时有效）
+        self.tts_cache_dir = None    # NPU 编译缓存目录
+        self.sr = SR                # 当前引擎的采样率
+        self._cur_jid = -1          # 当前正在合成的句子 id（供取消检查）
+        # ── 落盘模式（--tts-out 回放测试）──
+        self._timeline = []          # [(t_start_s, wav)]
+        self._t0 = None
+        self._jsonl_path = None      # 逐句记录文件（x.tts.jsonl）
+        self._jsonl_rows = []
 
     # -- 模型加载 --------------------------------------------------------
     def load(self):
         t0 = time.perf_counter()
 
-        # 导入 tts_ov 运行时包（如果 P2 移植已完成，优先用 OV 版本）
-        ov_rt = self._try_load_ov()
+        # 🔴 优先走 **Qwen3-TTS（BabelVox）** 路线（APP-004 第 2 条：
+        #   TTS 模型文件随客户包分发 ⇒ 客户机离线也能跑）。
+        #   旧引擎（confucius4-tts 的 OVSynth + BigVGAN）只作为回落。
+        engine = self._try_load_babelvox()
 
-        if ov_rt is None:
-            # ── 回落：torch 参考实现 ──
-            log('[tts_worker] 使用 torch 参考实现（OpenVINO 版本尚未就绪）')
-            import tts_model
-            import native_stream as NS
-            self.tts_model = tts_model
-            self.NS = NS
-            self.model = tts_model.load_model(
-                device='cuda' if self.device.upper() in ('GPU.0', 'GPU.1', 'GPU') else self.device,
-                config=self.model_dir)
+        if engine is None:
+            # 导入 tts_ov 运行时包（如果 P2 移植已完成，优先用 OV 版本）
+            ov_rt = self._try_load_ov()
+
+            if ov_rt is None:
+                # ── 回落：torch 参考实现 ──
+                log('[tts_worker] 使用 torch 参考实现（OpenVINO 版本尚未就绪）')
+                import tts_model
+                import native_stream as NS
+                self.tts_model = tts_model
+                self.NS = NS
+                self.model = tts_model.load_model(
+                    device='cuda' if self.device.upper() in ('GPU.0', 'GPU.1', 'GPU') else self.device,
+                    config=self.model_dir)
+            else:
+                # ── OV 路径：**不 import torch** ──
+                self.ov_rt = ov_rt
+                self.model = ov_rt          # 合成的调用方按 OV 路径走
+                log(f'[tts_worker] OpenVINO 运行时已加载，设备 {self.device}')
+
+            # 音色条件
+            self.conds = self._load_conds()
         else:
-            # ── OV 路径：**不 import torch** ──
-            self.ov_rt = ov_rt
-            self.model = ov_rt          # 合成的调用方按 OV 路径走
-            log(f'[tts_worker] OpenVINO 运行时已加载，设备 {self.device}')
+            # ── BabelVox 路线（spkonly）──
+            self.engine = engine
+            self.model = engine
+            self._setup_babelvox_voice()
+            # 🔴 BabelVox 输出 24000 Hz（旧的 22050 播放流会变调/加速）
+            #    ⇒ 播放流必须按新采样率**重建**。
+            self.sr = TTS_SR
+            self._reopen_player(TTS_SR)
 
-        # 音色条件
-        self.conds = self._load_conds()
         log(f'[tts_worker] 模型加载完成 {time.perf_counter() - t0:.1f}s')
         emit({'kind': 'ready', 'device': self.device, 'voice': self.voice})
+
+    def _reopen_player(self, sr: int):
+        """按新的采样率**重建**播放流。
+
+        🔴 为什么要重建：`Player` 在构造时用 `samplerate=sr` 建了
+        `sounddevice.OutputStream`，采样率是**流级属性**，之后改不了。
+        BabelVox 输出 24000 Hz，而旧引擎是 22050 Hz
+        ⇒ 播放流必须跟着引擎走，否则**变调/加速**。
+        """
+        if self.player is None:
+            return
+        try:
+            self.player.close()
+        except Exception:
+            pass
+        try:
+            self.player = Player(device=self.out_device, sr=sr)
+            log(f'[tts_worker] 播放流已按 {sr} Hz 重建')
+        except Exception as e:
+            log(f'[tts_worker] 播放流重建失败（{e}）⇒ 语音输出不可用')
+            self.player = None
+
+    def _try_load_babelvox(self):
+        """加载 Qwen3-TTS 的 BabelVox 引擎。失败返回 None（回落旧引擎）。
+
+        ⚠️ 这条路径**不 import torch**（babelvox 只用 transformers 的 tokenizer）。
+        """
+        try:
+            import tts_engine
+            eng = tts_engine.make_engine(device=self.device,
+                                         cache_dir=self.tts_cache_dir,
+                                         on_log=log)
+            return eng
+        except Exception as e:
+            log(f'[tts_worker] BabelVox 引擎不可用（{e}）⇒ 回落旧引擎')
+            import traceback
+            log(traceback.format_exc()[-1000:])
+            return None
+
+    def _setup_babelvox_voice(self):
+        """准备音色（spkonly 路线）。
+
+        🔴🔴 **只传 `speaker_embed`，禁止传 `ref_text` / `ref_audio`**
+        （交接单 §5.1 / TTS-005：babelvox 的 ref_text 路径不是官方 ICL，
+        codec 轨道没有 ref_code ⇒ 分布外 prompt ⇒ EOS 不稳）。
+
+        优先级：
+        1. 用户指定的内置 speaker（`--voice cindy`）⇒ 零体积；
+        2. 预设音色 A 的参考 wav ⇒ 预计算 speaker embedding（只算一次）。
+        """
+        import tts_engine
+
+        key = (self.voice or 'A').strip()
+        if key.lower() in tts_engine.BUILTIN_SPEAKERS:
+            self.speaker_embed = None
+            self.speaker_name = key.lower()
+            log(f'[tts_worker] 使用内置 speaker：{self.speaker_name}')
+            return
+
+        wav = tts_engine.preset_voice_path()
+        self.speaker_embed = tts_engine.speaker_embedding(self.engine, wav, on_log=log)
+        self.speaker_name = 'A'
+        if self.speaker_embed is None:
+            log('[tts_worker] ⚠️ 没有可用音色 ⇒ 退回内置 speaker cindy')
+            self.speaker_name = 'cindy'
 
     def _try_load_ov(self):
         """尝试加载 OpenVINO 版运行时包（tts_ov）。失败则回落到 torch。
 
         ⚠️ **OV 路径下绝不 import torch**（C-101 铁律）。
+
+        ⚠️ **本函数返回的是 `OVSynth` 实例**（不是 `OVRuntime`）：
+        `OVSynth` 才有整句合成入口 `synth()`。
+        （旧实现返回 `OVRuntime` 且调用不存在的 `synth_ov.synth_whole(...)`
+          ⇒ OV 路径一跑就崩，会静默回落到 torch，违反「运行时不能依赖 torch」的铁律。）
+
+        ⚠️ **IR 路径必须显式给对**（2026-10-22 修）：
+        - `OVRuntime` 默认找 `ir/` 下的 `bigvgan_dynamic.xml`，那份**在 GPU 上算错**
+          （SNR ≈ -8 dB，见 runtime.py 注释）⇒ 改用 `ir_dyn/bigvgan_poly.xml`（多相版）；
+        - `s2a_estimator` 在 `ir_dyn/` 里叫 `s2a_estimator_f32.xml` / `_f16.xml`；
+        - `ir_dir` 指向 `ir_dyn`，`OVRuntime.load()` 再按候选列表兜底。
         """
         try:
             tts_dir = os.environ.get('LIVECAP_TTS_DIR', '').strip()
@@ -250,10 +371,40 @@ class TTSWorker:
                 if os.path.isdir(os.path.join(d, 'tts_ov')):
                     if d not in sys.path:
                         sys.path.insert(0, d)
-                    from tts_ov import runtime
-                    return runtime.load(self.device)
+                    from tts_ov.runtime import OVRuntime, IR_DYN_DIR
+                    from tts_ov.synth_ov import OVSynth
+
+                    ptag = 'f16' if self.precision in ('f16', 'fp16') else 'f32'
+                    # ── BigVGAN IR（多相版优先）──
+                    bg = self.bigvgan_ir
+                    if not bg:
+                        for cand in ('bigvgan_poly.xml', 'bigvgan_poly_dyn.xml'):
+                            p = os.path.join(IR_DYN_DIR, cand)
+                            if os.path.exists(p):
+                                bg = p
+                                break
+                    # ── S2A estimator IR（按精度）──
+                    s2a = os.path.join(IR_DYN_DIR, f's2a_estimator_{ptag}.xml')
+                    if not os.path.exists(s2a):
+                        s2a = None
+
+                    rt = OVRuntime(device=self.device, precision=self.precision,
+                                   ir_dir=IR_DYN_DIR, verbose=True,
+                                   bigvgan_ir=bg, s2a_estimator_ir=s2a)
+                    rt.load()
+                    synth = OVSynth(rt, device=self.device,
+                                    precision=self.precision,
+                                    use_torch_rng=True,
+                                    bigvgan_ir=bg, s2a_estimator_ir=s2a)
+                    # 保留 OVRuntime 引用（克隆音色 / 编码器链路要用）
+                    self.ov_runtime = rt
+                    log(f'[tts_worker] BigVGAN IR = {os.path.basename(bg) if bg else "（自动）"}'
+                        f' / S2A = {os.path.basename(s2a) if s2a else "（自动）"}')
+                    return synth
         except Exception as e:
             log(f'[tts_worker] OpenVINO 运行时不可用（{e}），用 torch 回落')
+            import traceback
+            log(traceback.format_exc()[-1200:])
         return None
 
     def _load_conds(self):
@@ -329,45 +480,65 @@ class TTSWorker:
     def synth(self, jid: int, text: str):
         """合成一句并播放。
 
-        OV 路径（`self.ov_rt` 存在）**完全不碰 torch**；
-        否则回落到 torch 的 `native_stream.synth_stream`。
+        三条路径：
+        - **BabelVox**（`self.engine` 存在）—— Qwen3-TTS，**不碰 torch**；
+        - OV 路径（`self.ov_rt` 存在）—— 旧 OVSynth，**不碰 torch**；
+        - 否则回落到 torch 的 `native_stream.synth_stream`。
+
+        ⚠️ **落盘模式**（`--out-wav`）：不实时播放，而是按**真实时间轴**
+        把每句记到时间轴上，最后混成一个 wav（C-101 P4 第 6 条）。
         """
         import numpy as np
 
-        key = self.voice
-        if key not in self.conds:
-            emit({'kind': 'error', 'message': f'没有可用的音色：{key}'})
-            return
-
         t_submit = time.perf_counter()
-        cond = self.conds[key]
         lang = self._guess_lang(text)
+        is_babelvox = self.engine is not None
+
+        if is_babelvox:
+            # BabelVox 路线：音色由 speaker_embed / 内置 speaker 提供
+            if self.speaker_embed is None and not self.speaker_name:
+                emit({'kind': 'error', 'message': '没有可用的音色'})
+                return
+            cond = None
+        else:
+            key = self.voice
+            if key not in self.conds:
+                emit({'kind': 'error', 'message': f'没有可用的音色：{key}'})
+                return
+            cond = self.conds[key]
 
         # 主进程可能已经因为积压超限丢弃了这一句（C-101 P4 第 2 条）
         if self._is_cancelled(jid):
             log(f'[tts_worker] 句子 id={jid} 已被丢弃，跳过合成')
+            self._record_jsonl(jid, text, t_submit, dropped=True)
             return
 
         try:
             with self._synth_lock:
                 if self._is_cancelled(jid):
                     return
-                if self.ov_rt is not None:
+                self._cur_jid = jid
+                if is_babelvox:
+                    chunks = self._synth_babelvox(text, lang)
+                elif self.ov_rt is not None:
                     chunks = self._synth_ov(text, lang, cond)
                 else:
                     chunks = self._synth_torch(text, lang, cond)
         except Exception as e:
             import traceback
             log('[tts_worker] 合成失败：' + traceback.format_exc())
-            emit({'kind': 'error', 'message': f'合成失败：{e}'})
+            emit({'kind': 'error', 'message': f'合成失败：{e}', 'id': jid})
+            self._record_jsonl(jid, text, t_submit, error=str(e)[:200])
             return
 
         if self._is_cancelled(jid):
             log(f'[tts_worker] 句子 id={jid} 合成完成但已被丢弃，不播放')
+            self._record_jsonl(jid, text, t_submit, dropped=True)
             return
 
         if not chunks:
             emit({'kind': 'played', 'id': jid})
+            self._record_jsonl(jid, text, t_submit)
             return
 
         # 首包延迟：从收到指令到第一块音频可用
@@ -376,7 +547,14 @@ class TTSWorker:
 
         # 播放：把整句的波形一次性塞进环形缓冲
         wav = np.concatenate(chunks) if len(chunks) > 1 else chunks[0]
-        if self.player is not None:
+        t_first = time.perf_counter()
+        if self.out_wav:
+            # ── 落盘模式：按真实时间轴排队，不实时播放 ──
+            now = time.perf_counter()
+            if self._t0 is None:
+                self._t0 = now
+            self._timeline.append((now - self._t0, wav.copy()))
+        elif self.player is not None:
             try:
                 self.player.write(wav.tolist())
             except TimeoutError as e:
@@ -385,30 +563,111 @@ class TTSWorker:
                 log(f'[tts_worker] 播放缓冲写满，阻塞超时：{e}')
                 emit({'kind': 'error', 'message': f'播放缓冲写满：{e}',
                       'id': jid, 'dropped': True})
+                self._record_jsonl(jid, text, t_submit, dropped=True)
                 return
             except Exception as e:
                 log(f'[tts_worker] 播放写入失败：{e}')
                 emit({'kind': 'error', 'message': f'播放写入失败：{e}', 'id': jid})
+                self._record_jsonl(jid, text, t_submit, error=str(e)[:200])
                 return
+        self._record_jsonl(jid, text, t_submit, dur_s=len(wav) / self.sr,
+                           t_first=t_first)
         emit({'kind': 'played', 'id': jid,
-              'dur_s': round(len(wav) / SR, 3),
+              'dur_s': round(len(wav) / self.sr, 3),
               'latency_s': round(latency, 3)})
 
+    # -- 逐句记录（C-101 P4 第 6 条：`x.tts.jsonl`）----------------------
+    def _record_jsonl(self, jid, text, t_submit, dur_s=None, t_first=None,
+                      dropped=False, error=None):
+        """记录一句的时间线（供 `x.tts.jsonl` 落盘）。
+
+        每条字段：译文、入队时间、首包时间、播完时间、是否被丢弃。
+        """
+        row = dict(id=jid, text=text,
+                   t_submit=round(t_submit, 4),
+                   t_first_packet=(round(t_first - t_submit, 4)
+                                   if t_first is not None else None),
+                   t_done=round(time.perf_counter(), 4),
+                   dur_s=round(dur_s, 3) if dur_s is not None else None,
+                   dropped=bool(dropped),
+                   error=error)
+        self._jsonl_rows.append(row)
+        # 实时追加到文件（崩溃也能留下已完成的行）
+        if self._jsonl_path:
+            try:
+                with open(self._jsonl_path, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps(row, ensure_ascii=False) + '\n')
+            except Exception:
+                pass
+
+    def _flush_timeline(self):
+        """落盘模式收尾：把时间轴上的句子混成一个 wav。"""
+        if not self.out_wav or not self._timeline:
+            return
+        import numpy as np
+        sr = self.sr                     # 🔴 采样率随引擎走（BabelVox=24000）
+        items = list(self._timeline)
+        end = max(t + len(w) / sr for t, w in items)
+        total = int(end * sr)
+        out = np.zeros(total, dtype=np.float32)
+        for t, w in items:
+            i = int(t * sr)
+            j = min(i + len(w), total)
+            out[i:j] += w[:j - i]
+        try:
+            import soundfile as sf
+            sf.write(self.out_wav, out, sr)
+            log(f'[tts_worker] 已落盘 {self.out_wav}'
+                f'（{len(out)/sr:.2f}s，{len(items)} 句，{sr} Hz）')
+        except Exception as e:
+            log(f'[tts_worker] 落盘失败：{e}')
+
+    def _synth_babelvox(self, text: str, lang: str):
+        """BabelVox（Qwen3-TTS）流式合成。返回 list[np.ndarray]（**24000 Hz**）。
+
+        🔴🔴 **音色路线：spkonly** —— 只传 `speaker_embed`，
+        **不传 `ref_text` / `ref_audio`**（交接单 §5.1 / TTS-005）。
+
+        ⚠️ **长句要按句切分**（交接单 §6.2）：帧数上限 =
+        `max_talker_seq − prefill_len`，逐条不同 ⇒ 超限会被**静默砍断**。
+        ⇒ 这里对超长句先切分，逐段合成后拼起来。
+        """
+        import numpy as np
+        import tts_engine
+
+        # 语言映射：babelvox 用全称（'English' / 'Chinese'）
+        blang = 'Chinese' if lang.lower().startswith('zh') else 'English'
+
+        # 长句切分（保守上限 478 帧 ≈ 39.8 s）
+        parts = tts_engine.split_long_text(text)
+        chunks = []
+        for p in parts:
+            if self._stop.is_set():
+                break
+            if self._is_cancelled(self._cur_jid):
+                break
+            for wav_chunk, sr in tts_engine.stream(
+                    self.engine, p, language=blang,
+                    speaker_embed=self.speaker_embed,
+                    speaker=self.speaker_name if self.speaker_embed is None else None,
+                    cancel_event=self._stop):
+                w = np.asarray(wav_chunk, dtype=np.float32).reshape(-1)
+                chunks.append(w)
+                self.sr = int(sr)
+        return chunks
+
     def _synth_ov(self, text: str, lang: str, cond: dict):
-        """OV 整句合成（不依赖 torch）。返回 list[np.ndarray]（22050 Hz）。"""
+        """OV 整句合成（**不依赖 torch**）。返回 list[np.ndarray]（22050 Hz）。
+
+        ⚠️ 入口是 `OVSynth.synth()`（**实例方法**）。
+        旧实现调用的 `synth_ov.synth_whole(rt, ...)` **不存在** ⇒ 必崩。
+        """
         import numpy as np
 
-        rt = self.ov_rt
-        # OV 整句合成入口（tts_ov/synth_ov.py，由 P2 移植提供）
-        try:
-            from tts_ov import synth_ov
-        except Exception as e:
-            raise RuntimeError(f'OV 整句合成不可用：{e}')
-
-        res = synth_ov.synth_whole(
-            rt, text, lang, cond,
-            seed=1234, n_timesteps=25, cfg_rate=0.7,
-            bigvgan_ir=self.bigvgan_ir,
+        synth = self.ov_rt
+        res = synth.synth(
+            text, lang, cond,
+            seed=self.seed, n_timesteps=self.steps, cfg_rate=self.cfg_rate,
         )
         wav = np.asarray(res['wav'], dtype=np.float32).reshape(-1)
         return [wav]
@@ -442,7 +701,7 @@ class TTSWorker:
     def run(self):
         # 先起播放流，再加载模型（模型加载要几秒，播放流要先开好）
         try:
-            self.player = Player(device=self.out_device)
+            self.player = Player(device=self.out_device, sr=self.sr)
         except Exception as e:
             log(f'[tts_worker] 播放流创建失败：{e}')
             self.player = None
@@ -488,6 +747,16 @@ class TTSWorker:
         self._stop.set()
         if self.player is not None:
             self.player.close()
+        # 落盘模式：把时间轴混成 wav（C-101 P4 第 6 条）
+        self._flush_timeline()
+        # 逐句记录收尾（补写完整文件，崩溃也能靠增量行保留已完成部分）
+        if self._jsonl_path and self._jsonl_rows:
+            try:
+                with open(self._jsonl_path, 'w', encoding='utf-8') as f:
+                    for r in self._jsonl_rows:
+                        f.write(json.dumps(r, ensure_ascii=False) + '\n')
+            except Exception as e:
+                log(f'[tts_worker] jsonl 收尾失败：{e}')
 
     def _safe_load(self):
         try:
@@ -513,7 +782,7 @@ class TTSWorker:
         pcm = pcm[-16000 * 10:]        # 最多留 10 s
 
         # ── 路线 1：OV 编码器（无 torch）──
-        if getattr(self, 'ov_rt', None) is not None:
+        if getattr(self, 'ov_runtime', None) is not None:
             try:
                 cond = self._extract_cond_ov(pcm)
                 if cond is not None:
@@ -553,7 +822,7 @@ class TTSWorker:
         返回 dict（numpy），结构与 npz 一致。不可用时返回 None。
         """
         import numpy as np
-        rt = getattr(self, 'ov_rt', None)
+        rt = getattr(self, 'ov_runtime', None)
         if rt is None:
             return None
         if not (rt.has('w2vbert_17') and rt.has('campplus')):
@@ -587,19 +856,48 @@ class TTSWorker:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--device', default='GPU.0')
-    ap.add_argument('--voice', default='A', choices=['A', 'B', 'clone'])
+    ap.add_argument('--precision', default='f32', choices=['f32', 'f16'])
+    ap.add_argument('--voice', default='A',
+                    help='音色：A / B / clone，或 babelvox 内置 speaker'
+                         '（cindy / lou / phil / steve）')
     ap.add_argument('--out-device', default=None)
     ap.add_argument('--model-dir', default=None)
     ap.add_argument('--clone', action='store_true')
     ap.add_argument('--bigvgan-ir', default=None,
                     help='指定 BigVGAN IR 路径（多相分解版）')
+    ap.add_argument('--tts-cache-dir', default=None,
+                    help='NPU 编译缓存目录（默认 %%LOCALAPPDATA%%'
+                         '\\Confucius4LiveCaption\\tts_npu_cache）')
+    ap.add_argument('--out-wav', default=None,
+                    help='落盘模式：把语音按**真实时间轴**混成一个 wav'
+                         '（C-101 P4 第 6 条的 CLI 回放测试）')
+    ap.add_argument('--jsonl', default=None,
+                    help='逐句记录文件（默认 <out-wav>.tts.jsonl）')
+    ap.add_argument('--seed', type=int, default=1234)
+    ap.add_argument('--steps', type=int, default=25)
+    ap.add_argument('--cfg-rate', type=float, default=0.7)
     args = ap.parse_args()
 
     w = TTSWorker(device=args.device, voice=args.voice, out_device=args.out_device,
-                   model_dir=args.model_dir, clone=args.clone,
-                   bigvgan_ir=args.bigvgan_ir)
-    w.run()
+                  model_dir=args.model_dir, clone=args.clone,
+                  bigvgan_ir=args.bigvgan_ir, precision=args.precision,
+                  out_wav=args.out_wav, seed=args.seed, steps=args.steps,
+                  cfg_rate=args.cfg_rate)
+    w.tts_cache_dir = args.tts_cache_dir
+    # jsonl 路径：`--out-wav` 存在时默认 `<out-wav>.tts.jsonl`
+    if args.jsonl:
+        w._jsonl_path = args.jsonl
+    elif args.out_wav:
+        w._jsonl_path = args.out_wav + '.tts.jsonl'
+    try:
+        w.run()
+    except Exception:
+        import traceback
+        log('[tts_worker] 异常退出：' + traceback.format_exc())
+        w._flush_timeline()
+        raise
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())
