@@ -33,6 +33,11 @@ import zipfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pkg_exclude  # noqa: E402
 
+try:
+    import machine_lock_app
+except Exception:                       # pragma: no cover
+    machine_lock_app = None
+
 # ── 客户包版本（单一数据源）────────────────────────────────────────────
 # APP-007：打 v1.4。原先三个常量各自写死 "v1.3"，改版本要改三处
 # 且 MANIFEST 的 version 是**手填**的（refresh_manifest 从不写它）⇒
@@ -468,8 +473,31 @@ def main():
     ap.add_argument('--no-verify-content', action='store_true',
                     help='跳过「zip ⇄ 包目录 逐文件 SHA256」内容一致性校验'
                          '（默认开启；关闭可省约 5~6 min 与十几 GB 磁盘读）')
+    ap.add_argument('--no-lock', action='store_true',
+                    help='不取共享机器锁（默认取；打包是长时重活，会干扰其它模块计时）')
     args = ap.parse_args()
 
+    # 🔴 打包是**长时重活**（压缩 13.7 GB + 逐文件 SHA256 复核 11.2 GB zip）
+    #    ⇒ 必须持共享机器锁，否则别的模块测速会把它当干扰源（或被它干扰）。
+    #    证据：shared/NOTICE_tts_to_app_20261024.md 通知 2；
+    #    实测事故 2026-10-23 22:25~22:29（TTS 报 timing_valid=True 假阳性）。
+    #    ⚠️ `--dry-run` **不持锁**（只做只读统计，不压缩、不写 zip）。
+    if args.dry_run or args.no_lock or machine_lock_app is None:
+        if not args.dry_run and machine_lock_app is None:
+            print('[warn] 无法 import machine_lock_app ⇒ 未持共享机器锁')
+        return _run(args)
+
+    lk = machine_lock_app.LockHeld(module='app-pack', timeout=3600)
+    if not lk.acquire():
+        print('!! 未能取得共享机器锁 ⇒ 拒绝打包（避免干扰其它模块计时）')
+        return 1
+    try:
+        return _run(args)
+    finally:
+        lk.release()
+
+
+def _run(args):
     PKG = args.pkg
     ZIP = args.zip
     PREFIX = args.prefix

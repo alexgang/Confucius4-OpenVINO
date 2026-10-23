@@ -1,0 +1,28 @@
+[1] 起 watcher 监视 shared/MACHINE_LOCK
+[2] 跑真实 pack_v13.py（假包，MUST 检查预期 FAIL）
+  打包输出（末 12 行）:
+      [已移除] reports/ 
+      [已移除] models/mt/int8sym-cw-q/ 
+      [已移除] models/mt/int4sym-cw-q/ 
+      [已移除] models/qwen3tts/voices/preset_B 
+      [已移除] models/qwen3tts/voices/preset_C 
+      [已移除] models/qwen3tts/voices/clone_ 
+      [已移除] app/voices/ 
+    
+    内部会议内容应已移除（results/ 下 *_spoken.* 与点名文件）：
+      [已移除] *_spoken.* （0 条命中）
+      [已移除] 点名文件 （0 条命中）
+    [lock] 已释放
+
+  [ OK ] 打包进程启动过（lock 消息出现）  -- rc=1
+  [ OK ] 取锁消息含 module: app-pack
+  [ OK ] watcher 观察到锁文件存在  -- 观测 8 次
+  [ OK ] 锁内容含 pid/started  -- 'module: app-pack\npid: 5236\nstarted: 2026-10-24 04:32:10\nhost: LAPTOP-0GDQGD3I\n'
+
+[3] 打包结束后锁已释放
+  [ OK ] shared/MACHINE_LOCK 不存在
+  [ OK ] lock_state = free  -- state=free
+
+============================================================
+ 结果：6/6 PASS
+============================================================

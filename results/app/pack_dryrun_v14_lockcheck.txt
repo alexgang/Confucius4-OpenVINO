@@ -1,0 +1,63 @@
+======================================================================
+[dry-run] Confucius4_LiveCaption_v1.4
+======================================================================
+源目录: C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4
+
+将打包: 13977 文件 / 13667856211 字节 (12.73 GB)
+
+将排除的内容：
+  __pycache__                   3 文件        0.2 MB
+
+关键文件检查：
+  [OK] app/translator.py
+  [OK] app/live_caption_app.py
+  [OK] app/MANIFEST.json
+  [OK] README_zh.md
+  [OK] README_en.md
+  [OK] THIRD_PARTY.md
+  [OK] Start_LiveCaption.bat
+  [OK] Diagnose.bat
+  [OK] models/mt/mt2-int8sym-cw-q/openvino_model.xml
+  [OK] models/mt/mt2-int8sym-cw-q/openvino_model.bin
+  [OK] models/mt/mt2-int8sym-cw-q/config.json
+  [OK] models/mt/mt2-int8sym-cw-q/chat_template.jinja
+  [OK] models/mt/mt2-int4sym-cw-q/openvino_model.xml
+  [OK] models/mt/mt2-int4sym-cw-q/openvino_model.bin
+  [OK] models/mt/mt2-int4sym-cw-q/config.json
+  [OK] models/mt/mt2-int4sym-cw-q/chat_template.jinja
+  [OK] models/qwen3tts/int8/talker.xml
+  [OK] models/qwen3tts/int8/talker.bin
+  [OK] models/qwen3tts/int8/talker_prefill.xml
+  [OK] models/qwen3tts/int8/talker_prefill.bin
+  [OK] models/qwen3tts/int8/talker_decode.xml
+  [OK] models/qwen3tts/int8/talker_decode.bin
+  [OK] models/qwen3tts/int8/cp_prefill.xml
+  [OK] models/qwen3tts/int8/cp_prefill.bin
+  [OK] models/qwen3tts/int8/cp_decode.xml
+  [OK] models/qwen3tts/int8/cp_decode.bin
+  [OK] models/qwen3tts/int8/code_predictor.xml
+  [OK] models/qwen3tts/int8/code_predictor.bin
+  [OK] models/qwen3tts/int8/tokenizer_encoder.xml
+  [OK] models/qwen3tts/int8/tokenizer_encoder.bin
+  [OK] models/qwen3tts/int8/tokenizer_decoder.xml
+  [OK] models/qwen3tts/int8/tokenizer_decoder.bin
+  [OK] models/qwen3tts/int8/speaker_encoder.xml
+  [OK] models/qwen3tts/int8/speaker_encoder.bin
+  [OK] models/qwen3tts/tokenizer/config.json
+  [OK] models/qwen3tts/tokenizer/tokenizer_config.json
+  [OK] models/qwen3tts/tokenizer/vocab.json
+  [OK] models/qwen3tts/tokenizer/merges.txt
+  [OK] models/qwen3tts/voices/preset_A.wav
+
+内部会议内容检查（results/ 下 *_spoken.* 与点名文件）：
+  源目录残留: 0 个内部内容文件
+
+
+======================================================================
+内部素材闸门（APP-006 第 6 步）
+======================================================================
+[待打包目录] C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4
+  命中 0 个内部素材
+
+结论：PASS —— 未发现内部素材
+结论：PASS（dry-run，未写 zip）

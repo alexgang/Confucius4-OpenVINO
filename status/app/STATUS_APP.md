@@ -1,33 +1,27 @@
 # STATUS_APP
 last_ack: APP-006
-更新时间: 2026-10-24 03:24
-当前任务: **v1.4 客户包已正式交付（打包 → 干净目录复验 → FTP 发布 → 24/24 验证）+ 本轮独立收尾**：① ✅ **干净目录解压复验 PASS**：解压到 `pkg_verify_v14/` 后跑包内解释器 `--check` ⇒ 「**结论：环境正常。ASR 可用后端 6 个，Intel 集显可用。**」依赖全 [OK]、设备列表**无 CPU**（GPU.0/GPU.1/NPU）、ASR 6 后端全 [OK]、翻译 5 项全 [OK] ② ✅ **FTP 验证 24/24 PASS**（EXIT=0）：登录/FEAT 多行/NLST 147/LIST 147/SIZE 11216035275/MDTM 213 20261023225606/RETR md5 一致/逃逸防护/只读拒写/主动模式 PORT/QUIT 全过 ③ ✅ **FTP 共享只留 v1.4**（v1.3.zip 已按用户拍板移除；**根目录本体保留未动**）④ 🔴 **修掉 `verify_ftp.py` 的「内存炸弹」真 bug**：原 `[6]`/`[9]` 段用 `io.BytesIO` + `open().read()` 各读一遍 11.2 GB ⇒ **峰值内存 ~22 GB ⇒ 被系统直接 SIGTERM**（这才是此前「verify_ftp 被 SIGTERM / 无输出」的**真实根因**，与 FTP 服务无关）⇒ 已改为**流式**（RETR 边收边算 md5 + 本地 4 MB 一块流式 md5 + 主动模式只取前 4 字节魔数）⑤ 📦 **最终产物**：zip **11 216 035 275 B** / SHA256 `4a2d943f…f8e89` / MD5 `46ce0d68…30dc9` / mtime `2026-10-23 22:56:06`；v1.3→v1.4 **+2 028 629 159 B（+22.1%）**，增长来自 **Qwen3-TTS 运行时+INT8 IR+权重**（非缓存回潮）⑥ ✅ **git 边界**：`translator.py` **只入库 `set_device` 一个 hunk**（+23 行，`git apply --cached` 精确提取；C-111 V7 的 `done_fix` hunk 属 MT，**未入库**）。详见 §18。
-阻塞 / 待用户决定: ① **APP-006 第 3~7 步**：历史改写 + force push（等 reviewer 复核 §11.2 清单；§16.6.2 已复查确认远端仍有 **85 个会议转写载体**；且**改写后所有 SHA 全变**，并行线程 ASR/MT/TTS 需重新 clone 或 reset --hard，**会覆盖他们未提交的改动**）——**本轮仍按纪律停下**；② **v1.4 交付口径**：zip 与内容级校验**全 PASS**、FTP 已发布，但 **TTS 实时性不达标**（首包 P50 **5465.6 ms** / P95 **7822.65 ms**、丢句 **8/14 ≈ 57%**、最大积压 **11.13 s**）⇒ **字幕+翻译可交付，TTS 语音输出暂不可用于实时场景**；③ **V7 的已知代价**：链首段那行显示**半句残句**（12 段语料 5 行/58 字）⇒ 若不接受，需 App 实现「段级文案 + 整句文案并存、渲染层同段二选一」（MT 已备 `mt_fix_of()` 接口）；④ **RTF 净影响无定论**（Δ=+0.108 但 off 组组内极差 0.161，同量级噪声）；⑤ **包体 10.45 GiB**（13 977 文件；需评估剔除 `decoder-npu-int8`/`decoder-gpu-int8`/`encoder-fp16`；是否剔除 INT4-CW 可再省 0.97 GB）；⑥ 🔴 **FTP 那份 zip 是独立副本**（link count=1，**非硬链接**）⇒ 源 zip 重打后**必须重新复制**；⑦ **babelvox tokenizer 的 `fix_mistral_regex` 提示**待 TTS 模块确认；⑧ **音质判定交 reviewer**（目标机不自己调 MiniMax，2 个 wav 已落盘）；⑨ **`tts_service.py` 不读 worker stderr**（静默吞 traceback，本轮未修）；⑩ **并行会话已提交 `d0c146e`（其 §17 与本节 §18 编号不冲突，§18 为本轮独立收尾段）**
+更新时间: 2026-10-24 04:32
+当前任务: **巡检无新纠偏条目（最大编号 APP-006 = `last_ack`）+ 落实 TTS 跨模块通知 2（App 长时重活持共享机器锁）**：① 🔴 **新增 `machine_lock_app.py`（仓库根，stdlib only）** —— 4 模块共用锁 `C:\Users\Trekker-PTL\shared\MACHINE_LOCK` 的 App 侧实现：**原子创建** `O_CREAT|O_EXCL`、**ctypes Win32 判活**（`OpenProcess`+`GetExitCodeProcess`）、**fail-closed**（探测失败一律视为「存活」⇒ **绝不误删他人活锁**）、**不用 `tasklist /FI`**（Git Bash 路径转换曾致误回收）、**不按进程名过滤** ② ✅ **`pack_v13.py` 真实打包路径默认取锁**（`module='app-pack'`，取锁在 MUST 检查之前）；**`--dry-run` 不取锁**（只读统计）；新增 `--no-lock` ③ ✅ **`verify_ftp.py` 默认取锁**（`module='app-ftpverify'`）—— 全量 RETR 11.2 GB 是长时重活 ④ 🔴🔴 **自测时踩出并修掉一个真 bug**：初版把**所有** `OpenProcess` 失败都当「活着」⇒ `stale_pid` 永不成立 ⇒ 取锁**挂死等 1 小时** ⇒ 改为区分 `GetLastError()==87`（PID 确定不存在 ⇒ 已死）与其它失败码（⇒ 活着）⑤ ✅ **验收 A 锁实现 11/11 PASS** + **验收 B 真实打包路径取锁 6/6 PASS** + **验收 C dry-run PASS 且不持锁** ⑥ ✅ **仓库 ⇄ 客户包 v1.4 逐文件核对 16/16 代码等价**（difflines=0；2 个仅换行符差异）⑦ 🔴 **撤回 §14/§15 关于 `fix_mistral_regex` 的错误结论**（客户包 transformers **4.57.6 实测支持**该参数；警告真来源是 **MT 侧**，`translator.py` 属 MT 管辖 ⇒ App **不改不提交**）。详见 §19。
+阻塞 / 待用户决定: ① **APP-006 第 3~7 步**：历史改写 + force push（等 reviewer 复核 §11.2 清单；§16.6.2 已复查确认远端仍有 **85 个**会议转写载体；且**改写后所有 SHA 全变**，并行线程 ASR/MT/TTS 需重新 clone 或 reset --hard，**会覆盖他们未提交的改动**）——**本轮仍按纪律停下**；② **v1.4 交付口径**：zip 与内容级校验**全 PASS**、FTP 已发布，但 **TTS 实时性不达标**（首包 P50 **5465.6 ms** / P95 **7822.65 ms**、丢句 **8/14 ≈ 57%**、最大积压 **11.13 s**）⇒ **字幕+翻译可交付，TTS 语音输出暂不可用于实时场景**；③ **V7 的已知代价**：链首段那行显示**半句残句**（12 段语料 5 行/58 字）⇒ 若不接受，需 App 实现「段级文案 + 整句文案并存、渲染层同段二选一」（MT 已备 `mt_fix_of()` 接口）；④ **RTF 净影响无定论**（Δ=+0.108 但 off 组组内极差 0.161，同量级噪声）；⑤ **包体 10.45 GiB**（13 977 文件；需评估剔除 `decoder-npu-int8`/`decoder-gpu-int8`/`encoder-fp16`；是否剔除 INT4-CW 可再省 0.97 GB）；⑥ 🔴 **FTP 那份 zip 是独立副本**（link count=1，**非硬链接**）⇒ 源 zip 重打后**必须重新复制**；⑦ **`fix_mistral_regex` 归 MT 侧处置**（§19.2：真来源是 MT；TTS 侧零改动；App **不代 MT 改 `translator.py`**）；⑧ **音质判定交 reviewer**（目标机不自己调 MiniMax，2 个 wav 已落盘）；⑨ **`tts_service.py` 不读 worker stderr**（静默吞 traceback，本轮未修）；⑩ **并行会话仍在本项目工作**（工作区有 `live_caption/diag_c111_*` 等 MT 会话产物 ⇒ 提交须逐文件 `git add`）
 
 ## 最近更新
-- 03:24 §18 ✅ **v1.4 干净目录解压复验 PASS**：`pkg_verify_v14/Confucius4_LiveCaption_v1.4/` 跑包内 `--check` ⇒ 「**结论：环境正常。ASR 可用后端 6 个，Intel 集显可用。**」（依赖全 [OK] / 设备 GPU.0·GPU.1·NPU **无 CPU** / ASR 6 后端全 [OK] / 翻译 5 项全 [OK] / 麦克风 3 + 输出 Realtek 2ch）
-- 03:24 §18 ✅ **FTP 验证 24/24 PASS**（`results/app/ftp_verify_v14.txt`，EXIT=0）：含 RETR 全量 md5 一致（100.8 s / 106.1 MB/s）、逃逸防护、只读拒写、主动模式 PORT
-- 03:24 §18 🔴 **修掉 `verify_ftp.py` 内存炸弹**：11.2 GB 整体读进内存两次（≈22 GB）⇒ 被系统 **SIGTERM**；**这才是此前「verify_ftp 被 SIGTERM」的根因**（不是 FTP 服务挂）⇒ 改流式
-- 03:24 §18 ✅ **FTP 共享只剩 v1.4**：`FTP_Share/` 仅 `Confucius4_LiveCaption_v1.4.zip`；根目录 v1.3.zip **本体保留**（实测仍在）
-- 03:24 §18 📦 **产物指纹**：zip 11 216 035 275 B / SHA256 `4a2d943f0133b58af002ec83ea2218904150b3375edee387917f1d9ccd5f8e89` / MD5 `46ce0d688604dc08bfe5a04e2b230dc9`；包目录 13 981 文件 / 13 668 110 322 B（v1.3 → v1.4 **+22.1%**，来自 Qwen3-TTS 运行时+IR+权重）
-- 03:24 §18 ✅ **git 边界落地**：`translator.py` 用 `git apply --cached` **只入库 `set_device` hunk**（+23 行）⇒ V7 的 `done_fix` 未入库（属 MT）
-- 03:20 §18 **巡检无新纠偏条目**：并行会话新增 APP-005/APP-006 内容**已在工作区但未入库**；最大正式编号仍 **APP-006** = `last_ack`；APP-005 ①②③ 现状核对：c134 已 `git rm --cached` 且 `.gitignore:77` 命中、`pack_v13.py` INT8 断言已改（APP-005② 在 v1.4 上 PASS）
 
-- 03:16 §17 **巡检仍无新纠偏条目**：`CORRECTIONS_APP.md` SHA256 `dff32b2c…7db8cc` / 17 965 B / mtime `2026-10-23 12:01:55` 与 §13/§15/§16 **逐字节一致** ⇒ 最大编号 **APP-006** = `last_ack` ⇒ `last_ack` 不变（**第 4 次**复核同一口径）
-- 03:16 §17 ✅ **v1.4 客户包「真正交付闭环」**：22:56 打出的 zip（11 216 035 275 B / SHA256 `4a2d943f…f8e89`）经**内容级**校验 ⇒ **zip ⇄ 包目录逐文件 SHA256 比对 13 978 个文件全部逐字节一致**、**仓库 ⇄ 包目录 16/16 一致**、`testzip()` = Everything is Ok、MANIFEST `version='1.4'`/files=13977/bytes=13667856211、内部素材闸门 **0 命中**、`_spoken` **0** ⇒ **MT §46「客户包 zip 仍是旧包」闭环**
-- 03:16 §17 ✅ **C-111-V7 已随 zip 交付**：仓库 `translator.py` SHA `00e282af…11e9f` vs 包内 `94f8a8d4…1355` ⇒ **仅换行符差异**（`diff` 去 CR 后 **0 行**）⇒ 代码等价；**zip 内** `done_fix` 14 处 + `def set_device` 1 处 ⇒ V7 双通道与 APP-004 设备热切换都在交付物里
-- 03:16 §17 🔴 **修掉打包脚本 4 个缺陷**：① MANIFEST 条数校验**恒误报 FAIL**（`entries` 含 MANIFEST 自身，与 bytes 那行口径不一致）② **缺内容级校验**（21:00~21:17 真实事故：zip 旧版/包目录新版而所有断言 PASS）③ `version` **手填**（包内自称 v1.3）④ 删旧 zip 失败会**中断**打包 ⇒ 改为 `PKG_VERSION` 单一数据源 + `verify_zip_matches_pkg()` + `--no-verify-content` 开关
-- 03:16 §17 ✅ **新增 `live_caption/verify_pkg_zip.py`（293 行）**：既校验 zip⇄包目录，也校验**仓库⇄包目录**关键 .py（换行符归一，因仓库 CRLF / 包内 LF）；本轮实测 **PASS**
-- 03:16 §17 ✅ **App 侧改动入库**：CPU 移出可选设备清单（只作兜底，显式 `--asr-device CPU` 仍尊重）、音色只留 A（选 B 会**静默发音色 A 的声音**）、**`tts_npu_cache` 进排除名单**（4.87 GB TTS 编译缓存绝不能进包，MEMORY 早记但名单一直漏）、TTS service 三处 bug 修（ready 前入队/drain 两阶段/dropped 不二次计数）、ASR 回环立体声不丢声道（反相需**单独判**，只看 RMS 会误判成平衡而取平均 ⇒ −120 dB 数字静音）
-- 03:16 §17 ✅ **FTP 共享链接已重建**：`FTP_Share\Confucius4_LiveCaption_v1.4.zip` 与源 zip **SHA256 完全相同** `4a2d943f…f8e89`；⚠️ 是**独立副本**（link count=1，非硬链接）⇒ 源 zip 重打后**必须重新复制**
-- 03:16 §17 **git 闭环**：提交 9 个 App 侧文件 + `status/app/STATUS_APP.md`；**未提交** `CORRECTIONS_APP.md`（reviewer 独占）/ `translator.py`（MT 管辖，已主动 `git restore --staged`）/ `status/CORRECTIONS.md`（C 编号已冻结）/ 全部 `diag_c111_*`（MT 会话产物）；素材闸门 **PASS（0 命中）**；推送为**普通快进**（未 force）
-- 03:16 §17 **纪律声明**：本轮**未执行任何新纠偏条目**；**未推进 APP-006 第 3~7 步**（等 reviewer 复核 §11.2）；**未跑 CPU 推理/测速**（全程文件比对 + dry-run + 静态校验 ⇒ **未创建 MACHINE_LOCK**）；**未调用 MiniMax**；**未整目录覆盖**同步客户包；**未吞**其它模块改动
-- 21:07 §16 **巡检无新纠偏条目**：`CORRECTIONS_APP.md` SHA256 `dff32b2c…7db8cc` / 17 965 B / mtime `2026-10-23 12:01:55` 与 §13、§15 巡检**逐字节一致** ⇒ 最大编号 **APP-006** = `last_ack` ⇒ `last_ack` 不变
-- 21:07 §16 🔴 **修掉 v1.4 客户包真实交付缺陷**：包内 `tts_worker.py` 是**未修复旧版**（38 670 B / SHA `fec383a5…4cd1a` / 修复标记 0 命中）⇒ 客户机会重现「worker 永不 emit ready」死锁（TTS 语音输出等于不可用且零报错）；根因 = `sync_c138_to_pkg.py` 的 FILES 列表**漏了 tts_worker.py**
-- 21:07 §16 **定点修复 + 三处 SHA 一致**：用 `sync_c137_to_pkg.py`（精确字符串替换 + `assert count==1` + 幂等）同步 v1.4；**仓库 / v1.3 / v1.4 三处 `tts_worker.py` SHA256 均为 `06a9ea67b8c88d1d69b3fbf0bafbd6f8b3294b63bff963fdfe37ec2f33fda3da`**（40 234 B，v1.4 mtime `2026-10-23 21:05:29`）；备份在包外 `pkg_backup_app014/tts_worker.py.v14_pre_c137.bak`
-- 21:07 §16 **两处防复发**：① `sync_c137_to_pkg.py` 改**自动发现最大版本包**（原写死 v1.3 ⇒ v1.4 永远同步不到）+ 新增 `--pkg`；② `sync_c138_to_pkg.py` 的 FILES **补入 `tts_worker.py`** ⇒ dry-run 现显示「已与仓库一致（SHA256 06a9ea67b8c88d1d…）」
-- 21:07 §16 **v1.4 打包 dry-run 全 PASS**：13 977 文件 / 13 667 853 048 B（12.73 GB）；**INT8 默认模型 4 个关键文件全部 [OK]**（APP-005② 在 v1.4 上验证通过）；TTS IR 全 [OK]；音色仅 `preset_A.wav`；**内部素材闸门 0 命中**；MANIFEST 原始字段 `version='1.4'` / `files=13977` / `bytes=13667853048` / `packages` 51 条 与 dry-run 吻合
-- 21:07 §16 **仓库 ⇄ v1.4 逐文件核对**：16 个 .py 中 **15 个一致**，`translator.py` **不一致**（MT 的 C-111-V7 §46 在途未定稿，仓库 mtime 21:03 晚于同步 21:00）⇒ **App 不替 MT 决定入包，等其定稿后再同步**
+- 04:32 §19 **巡检无新纠偏条目**：`CORRECTIONS_APP.md` SHA256 `dff32b2c…7db8cc` / 17 965 B / mtime `2026-10-23 12:01:55`，`## APP-` 共 **6** 条（APP-001…006）⇒ 最大编号 **APP-006** = `last_ack` ⇒ **`last_ack` 不变**（**第 5 次**复核同一口径）；`CORRECTIONS_APP.md` **只读未改**
+- 04:32 §19 🔴 **新增 `machine_lock_app.py`（12 830 B / `04:31:34` / `02a3bbd2…`）**：共享锁 App 侧实现（stdlib only）—— 原子创建 + ctypes 判活 + fail-closed + 不用 `tasklist /FI` + 不按进程名过滤
+- 04:32 §19 ✅ **`pack_v13.py` / `verify_ftp.py` 默认取共享锁**（新增 `--no-lock`；`--dry-run` **不取锁**）；依据 = `shared/NOTICE_tts_to_app_20261024.md` 通知 2（22:25~22:29 实测事故：TTS 报 `timing_valid=True` 假阳性，82.9 vs 63.98 ms/帧）
+- 04:32 §19 🔴🔴 **修掉自测暴露的锁真 bug**：初版把所有 `OpenProcess` 失败当「活着」⇒ `stale_pid` 永不成立 ⇒ 取锁**挂死等 1 小时** ⇒ 改为区分 `GetLastError()==87`（PID 确定不存在 ⇒ 已死）与其它失败码（⇒ 活着）
+- 04:32 §19 ✅ **验收 A 锁实现 11/11 PASS**（`results/app/test_machine_lock_app.txt`，1 123 B / `04:31:48`）：原子创建 / 活锁不可回收 / `stale_pid` 可回收 / 释放只删自己那份 / 子进程并发只有一个拿到
+- 04:32 §19 ✅ **验收 B 真实打包路径取锁 6/6 PASS**（`results/app/test_pack_lock.txt`，1 211 B / `04:32:12`）：watcher 观测锁文件存在 **8 次**，内容 `module: app-pack` / `pid: 5236`，结束后锁已释放、`lock_state=free`
+- 04:32 §19 ✅ **验收 C dry-run PASS 且不持锁**（`results/app/pack_dryrun_v14_lockcheck.txt`，2 604 B / `04:32:01`）：「将打包: 13977 文件 / 13667856211 字节 (12.73 GB)」「内部素材闸门 命中 0 个」「结论：PASS（dry-run，未写 zip）」；实测 `shared/MACHINE_LOCK` 期间**不存在**
+- 04:32 §19 📦 **交付物未被本轮改动**：zip **11 216 035 275 B** / SHA256 `4a2d943f0133b58af002ec83ea2218904150b3375edee387917f1d9ccd5f8e89` / mtime `2026-10-23 22:56:06` ⇒ 与 §18 指纹**逐字节一致**
+- 04:32 §19 ✅ **仓库 ⇄ 客户包 v1.4 逐文件核对 16/16 代码等价**（`diff <(tr -d '\r' …)` difflines=0）；仅 `live_caption_app.py` / `translator.py` 有换行符差异（仓库 CRLF / 包内 LF）；其余 14 个 SHA **完全相同**
+- 04:32 §19 🔴 **撤回 §14 L254 / L316 关于 `fix_mistral_regex` 的错误结论**：客户包 transformers **实测 4.57.6**，`tokenization_utils_base.py` **L2420 形参 + L2404 透传 + L2486–2507 三态** ⇒ **支持**该参数；警告真来源是 **MT 侧** `models\mt\mt2-int8sym-cw-q` ⇒ **App 不改不提交 `translator.py`**；TTS 侧实测 0 处传参 ⇒ **零改动**
+- 04:32 §19 **纪律声明**：本轮**未执行任何新纠偏条目**；**未推进 APP-006 第 3~7 步**（等 reviewer 复核 §11.2，按纪律停下）；**未跑 CPU 推理/测速**；**未调用 MiniMax**；**未整目录覆盖**同步客户包；**未修改 `CORRECTIONS_APP.md`**；**未吞** MT/ASR/TTS 其它模块改动
+- 03:24 §18 ✅ **v1.4 干净目录解压复验 PASS**（依赖全 [OK] / 设备 GPU.0·GPU.1·NPU **无 CPU** / ASR 6 后端全 [OK] / 翻译 5 项全 [OK]）+ **FTP 验证 24/24 PASS**（`results/app/ftp_verify_v14.txt`，EXIT=0）
+- 03:24 §18 🔴 **修掉 `verify_ftp.py` 内存炸弹**：11.2 GB 整体读进内存两次（≈22 GB）⇒ 被系统 **SIGTERM**；**这才是此前「verify_ftp 被 SIGTERM」的根因** ⇒ 改流式
+- 03:24 §18 📦 **产物指纹**：zip 11 216 035 275 B / SHA256 `4a2d943f…f8e89` / MD5 `46ce0d68…30dc9`；包目录 13 981 文件 / 13 668 110 322 B（v1.3 → v1.4 **+22.1%**）
+- 03:24 §18 ✅ **git 边界落地**：`translator.py` 用 `git apply --cached` **只入库 `set_device` hunk**（+23 行）⇒ V7 的 `done_fix` 未入库（属 MT）
+
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -2995,3 +2989,197 @@ MT 模块 `hy_bench\STATUS_hy.md` §46 阻塞项③ 原文：
 | SHA256 | `4a2d943f0133b58af002ec83ea2218904150b3375edee387917f1d9ccd5f8e89` |
 
 ⚠️ 历史记忆里的地址 `10.188.193.115` **已失效**（本机当前 `100.70.84.17` Tailscale / `192.168.2.189` WLAN）。
+
+
+## §19 (2026-10-24 04:32) — 巡检无新纠偏条目 + 落实 TTS 通知 2（App 长时重活持共享机器锁）+ 撤回 §14/§15 关于 `fix_mistral_regex` 的错误结论
+
+> 本节实测时间 **04:32:23**（`Get-Date -Format 'yyyy-MM-dd HH:mm:ss'`）。
+> 上游：`status/app/CORRECTIONS_APP.md` 的 **APP-006**（最大编号）= 头部 `last_ack`。
+
+### 19.0 巡检结论：**无新纠偏条目**
+
+| 项 | 实测 |
+|---|---|
+| `CORRECTIONS_APP.md` 的 `## APP-xxx` 条目数 | **6**（APP-001 … APP-006） |
+| 最大编号 | **APP-006** |
+| 头部 `last_ack` | **APP-006** |
+| ⇒ 本轮需执行的纠偏条目 | **0 条**（`last_ack` 不变，仍是 APP-006） |
+| `CORRECTIONS_APP.md` mtime / 字节 / SHA256 | `2026-10-23 12:01:55` / **17 965 B** / `dff32b2c96b6ccc0…7db8cc` |
+
+⚠️ 与 §13 / §15 / §16 / §17 / §18 **逐字节一致**（同一 SHA256）⇒ 与前几轮复核同一口径，**第 5 次**。
+🔴 **纪律**：本轮**未执行任何新纠偏条目**；`CORRECTIONS_APP.md` 是 reviewer 独占文件，
+本轮**只读、未修改**（`git diff` 仍显示它是工作区未提交的 reviewer 新增内容 ⇒ **未入库**）。
+
+### 19.1 落实 `shared/NOTICE_tts_to_app_20261024.md` 通知 2：**给 App 长时重活加共享机器锁**
+
+#### 19.1.1 背景（跨模块通知，中立载体 `shared/`）
+
+TTS 模块通知 App：`pack_v13.py` / `verify_ftp.py` 这类**长时重活**不持共享锁
+⇒ 会让别的模块测速失真（`timing_guard.py` v1 只做基线进程快照差分 ⇒ 基线采样前就存在的
+`pack_v13.py` 被当「自己人」⇒ 报出 `timing_valid = True` **假阳性**）。
+
+实测事故（通知原文）：**2026-10-23 22:25:06** App 的 `pack_v13.py` 启动 →
+**22:29** TTS 开始测每帧耗时 ⇒ 绝对值被抬高（**82.9 ms/帧 vs 干净值 63.98 ms/帧**）。
+
+#### 19.1.2 本轮改动（**App 侧 3 个文件**）
+
+| # | 文件 | 改动 | 大小 / mtime / SHA256 |
+|---|---|---|---|
+| 1 | **`machine_lock_app.py`**（**新建**，仓库根） | App 模块的共享机器锁实现（**stdlib only**）：原子创建 `O_CREAT\|O_EXCL`；fail-closed 判活；陈旧锁回收；释放只删自己那份 | 12 830 B / `2026-10-24 04:31:34` / `02a3bbd25244444f…` |
+| 2 | **`pack_v13.py`**（已修改） | 新增 `--no-lock`；**真实打包路径默认取锁**（`module='app-pack'`），`--dry-run` **不取锁**（只读统计，不压缩不写 zip）；取锁在 MUST 检查**之前** | 31 031 B / `2026-10-24 04:26:52` / `4b0004b09c857043…` |
+| 3 | **`verify_ftp.py`**（已修改） | 新增 `--no-lock`；**默认取锁**（`module='app-ftpverify'`）—— 第 [6] 步全量 RETR 11.2 GB 是长时重活 | 8 592 B / `2026-10-24 04:27:05` / `558c6182d1ab946f…` |
+
+#### 19.1.3 🔴 判活实现：**ctypes Win32，fail-closed，不用 `tasklist /FI`**
+
+`machine_lock_app.py::_pid_alive()` 用 `OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION)` +
+`GetExitCodeProcess`：
+
+| 情形 | 判定 | 理由 |
+|---|---|---|
+| 打开成功 + 退出码 == `STILL_ACTIVE(259)` | **活着** | — |
+| 打开成功 + 退出码 != 259 | **已死** | — |
+| 打开失败 + `GetLastError() == 87 (ERROR_INVALID_PARAMETER)` | **已死**（可回收） | 87 = **该 PID 确定不存在** |
+| **其它任何失败 / 异常** | **活着（等待）** | 不确定 = 存活 |
+
+🔴 **绝不手写 `tasklist /FI`**：Git Bash 下 MSYS 路径转换会把 `/FI` 当成路径 ⇒ 抛异常
+⇒ 旧代码 `except: return False` ⇒ 误判「死了」⇒ **误删他人的活锁**
+（2026-10-23 11:23 真实事故：误回收 App 活锁 PID 29864）。
+🔴 **不按进程名过滤**（PID 可能被复用）。
+
+#### 19.1.4 🔴🔴 本轮**自测时踩出并修掉的一个真 bug**（`OpenProcess` 失败语义的过度 fail-closed）
+
+**现象**：自测进程**挂死**（跑满 3 分 48 秒无输出，被手动终止）。
+**根因**：`_pid_alive()` 初版把 **所有** `OpenProcess` 失败都当成「活着」
+⇒ 第 [3] 项「PID 不存在 ⇒ `stale_pid` 可回收」永远不成立
+⇒ `lock_state()` 恒返回 `held` ⇒ 第 [4] 项的 `LockHeld.acquire()` 默认
+`timeout=3600` ⇒ **等 1 小时**。
+**修法**：区分 `GetLastError()==87`（PID 确定不存在 ⇒ 已死）与其它失败码（⇒ 活着）。
+**验收**：`results/app/test_machine_lock_app.txt` ⇒ **11/11 PASS**（含第 [3] 项 `stale_pid`）。
+
+#### 19.1.5 验收 A：锁实现自测 **11/11 PASS**
+
+产物：`results/app/test_machine_lock_app.py`（4 763 B / `04:31:41` / `94fd502392a37e40…`）
+⇒ `results/app/test_machine_lock_app.txt`（1 123 B / `04:31:48` / `a18649a529af0e33…`）
+
+```
+[1] 原子创建 + 释放
+  [ OK ] 第 1 次取锁成功
+  [ OK ] 锁文件已创建
+  [ OK ] 状态 = held  -- state=held module=app-test pid=18504
+  [ OK ] 锁内容含 module/pid/started  -- 'module: app-test\npid: 18504\nstarted: 2026-10-24 04:31:43\nhost: LAPTOP-0GDQGD3I\n'
+[2] fail-closed：活锁不可被回收
+  [ OK ] 第 2 次取锁失败（等待超时）
+  [ OK ] 第一个的锁仍在（未被误回收）
+  [ OK ] 状态仍是 held（fail-closed）  -- state=held
+  [ OK ] 锁内容未被改动（仍是第一个持有者）
+[3] fail-closed：PID 不存在 ⇒ stale_pid 可回收
+  [ OK ] 状态 = stale_pid  -- state=stale_pid pid=999999
+[4] 释放：只删内容与自己一致的文件
+  [ OK ] 内容不一致时不删除
+[5] 子进程并发抢锁：只有一个能拿到
+  [ OK ] 两个子进程只有一个拿到锁  -- 'got' / 'nope'
+============================================================
+ 结果：11/11 PASS
+============================================================
+```
+
+⚠️ 自测**全程用临时目录下的锁文件**，**绝不碰真实 `shared/MACHINE_LOCK`**。
+
+#### 19.1.6 验收 B：真实打包路径上确实取锁 **6/6 PASS**
+
+产物：`results/app/test_pack_lock.py`（3 807 B / `04:32:08` / `efb466b1cd027821…`）
+⇒ `results/app/test_pack_lock.txt`（1 211 B / `04:32:12` / `92d5b44a9363d6f8…`）
+
+用**极小的假客户包**跑**真实的 `pack_v13.py`**（不带 `--dry-run`）+ 后台 watcher 监视锁文件：
+
+```
+[ OK ] 打包进程启动过（lock 消息出现）  -- rc=1
+[ OK ] 取锁消息含 module: app-pack
+[ OK ] watcher 观察到锁文件存在  -- 观测 8 次
+[ OK ] 锁内容含 pid/started  -- 'module: app-pack\npid: 5236\nstarted: 2026-10-24 04:32:10\nhost: LAPTOP-0GDQGD3I\n'
+[ OK ] shared/MACHINE_LOCK 不存在
+[ OK ] lock_state = free  -- state=free
+ 结果：6/6 PASS
+```
+
+⚠️ `rc=1` 是**预期**的（假包缺 MUST 清单里的 MT/TTS 大文件）——
+**锁的获取发生在 MUST 检查之前**，不影响本项验证。
+⚠️ 用**独立假包目录 + 独立 zip 输出**，**绝不碰真实 v1.4 客户包**。
+
+#### 19.1.7 验收 C：`--dry-run` **不持锁**且结论 PASS
+
+产物：`results/app/pack_dryrun_v14_lockcheck.txt`（2 604 B / `04:32:01` / `fcba0c19e79d8940…`）
+
+```
+将打包: 13977 文件 / 13667856211 字节 (12.73 GB)
+...
+[待打包目录] C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4
+  命中 0 个内部素材
+结论：PASS —— 未发现内部素材
+结论：PASS（dry-run，未写 zip）
+```
+✅ 实测 `shared/MACHINE_LOCK` 在 dry-run 期间**不存在**（只读统计不该占锁）。
+⚠️ 本轮**未重打 zip**：交付物 `Confucius4_LiveCaption_v1.4.zip` **11 216 035 275 B /
+SHA256 `4a2d943f0133b58af002ec83ea2218904150b3375edee387917f1d9ccd5f8e89` /
+mtime `2026-10-23 22:56:06`** —— 与 §18 记录的指纹**逐字节一致，未被本轮改动**。
+
+#### 19.1.8 仓库 ⇄ 客户包 v1.4 逐文件核对（本轮复核，16 个 .py）
+
+| 结论 | 明细 |
+|---|---|
+| **16/16 代码等价** | `diff <(tr -d '\r' < 仓库) <(tr -d '\r' < 包内)` **difflines = 0** |
+| 仅换行符差异的 2 个 | `live_caption_app.py`（repo `0a5a0490f63a` / pkg `8b125b376c0d`）、`translator.py`（repo `00e282af503b` / pkg `94f8a8d43026`）⇒ **仓库 CRLF / 包内 LF**（已知差异，非内容差异） |
+| 其余 14 个 SHA **完全相同** | `audio_source.py` `8fd50e14911b` / `backends.py` `6b176065c154` / `device_config.py` `77be2435c5f3` / `tts_engine.py` `8110ded6d304` / `tts_engine_patch.py` `71a0aa383211` / `tts_service.py` `84775a1d5c46` / `tts_worker.py` `06a9ea67b8c8` / `seg_stream.py` `9d0065007931` / `win_clickthrough.py` `db376c52bfe2` / `npu_delivery_backend.py` `983c39f209e8` / `npu_embeds_backend.py` `0254c64697e6` / `segment_encoder_backend.py` `c2c701dd928c` / `selftest_audio_sources.py` `a6f8bd1f763a` / `streaming_asr.py`（仅换行符） |
+
+⇒ **仓库与客户包 v1.4 交付物仍然一致**，本轮未产生任何新的漂移。
+
+### 19.2 🔴 撤回 §14 / §15 关于 `fix_mistral_regex` 的错误结论
+
+#### 19.2.1 撤回内容
+
+| 位置 | 原文（错） | 处置 |
+|---|---|---|
+| §14 L254 | 「建议 `fix_mistral_regex=True`。**但客户包 transformers 4.57.6 不支持该参数**」 | 🔴 **撤回** |
+| §14 L316 | 「**tokenizer regex 警告**：`fix_mistral_regex=True` 在 transformers 4.57.6 下不可用」 | 🔴 **撤回** |
+
+**正确结论（实测）**：
+- 客户包 transformers 版本实测 = **`4.57.6`**（`Confucius4_LiveCaption_v1.4/python/Lib/site-packages/transformers/__init__.py` 的 `__version__ = "4.57.6"`）。
+- `tokenization_utils_base.py` **实测支持**该参数：
+  - **L2420** 形参 `fix_mistral_regex=None`
+  - **L2404** 透传 `fix_mistral_regex=kwargs.get("fix_mistral_regex")`
+  - **L2486–2507** 三态处理：`None` → 警告 / `False` → 静默 / `True` → 换预分词器
+- ⇒ **「4.57.6 不支持该参数」是错的**；警告的触发条件是
+  `transformers_version > 4.57.2` ⇒ 落入 mistral 探测分支 ⇒ 报警（**不是**「不支持」）。
+
+#### 19.2.2 警告的**真实来源**：**MT 侧，不是 TTS 侧**
+
+- 警告原文里的模型路径是 **MT 模型** `models\mt\mt2-int8sym-cw-q` ⇒ **来源是 MT（Hy-MT2）加载 tokenizer**。
+- `live_caption/translator.py` L639 `self.tok = AutoTokenizer.from_pretrained(self.model_dir)`
+  ⇒ **MT 侧才是该传参的地方**。
+- 🔴 **模块边界**：`translator.py` 属 **MT** 管辖 ⇒ **App 不改、不提交** `translator.py`。
+  ⇒ 本轮**只撤回错误结论**并把处置口径交给 MT/reviewer，**不代 MT 改代码**。
+- TTS 侧 **零改动**（`live_caption/tts_engine.py` / `tts_worker.py` / `tts_engine_patch.py`
+  **实测 0 处 `fix_mistral_regex`** ⇒ 本来就没传，无需改）。
+- TTS 侧实测（通知原文）：golden 30 句 ids **30/30 逐字不变**（TTS 预分词器是 Qwen2 的 `\p{L}+`，与 mistral 正则无关）。
+
+⚠️ 若 MT 侧传 `True` ⇒ 会改分词（通知实测：30 句里 **26/30 ids 不变，4 条变**）⇒ 属 **MT 的质量变更**，
+须 **MT 自己**用 chrF 口径做对照后决定 ⇒ **App 不代做**。
+⇒ 若只为**消警告**且不改行为 ⇒ 在 MT 侧传 `False`（预分词器不变）。
+
+### 19.3 本轮纪律声明
+
+- ✅ **未执行任何新纠偏条目**（最大编号 APP-006 = `last_ack`）。
+- ✅ **未推进 APP-006 第 3~7 步**（历史改写 + force push）—— §11.2 清单仍**等 reviewer 复核**，
+  **本轮按纪律停下**（该条明确写了「这一步需要停下来等 reviewer」）。
+  ⚠️ 复查提醒：§16.6.2 已确认远端仍有 **85 个**会议转写载体。
+- ✅ **未在 CPU 上跑推理/测速**（本轮只做：文件 SHA/diff 比对 + dry-run 只读统计 +
+  两个**纯文件系统**自测脚本）⇒ **本轮唯一的共享锁使用是自测里「持锁→释放」的验证**，
+  不是计时作业；自测用的是**临时目录**的锁文件。
+- ✅ **未调用 MiniMax**（质量判定仍交 reviewer）。
+- ✅ **未整目录覆盖**同步客户包（本轮**没有**改任何包内文件）。
+- ✅ **未修改 `status/app/CORRECTIONS_APP.md`**（reviewer 独占，只读）。
+- ✅ **未吞**其它模块的改动：工作区里 `live_caption/translator.py`（MT 管辖）、
+  `status/CORRECTIONS.md`（C 编号已冻结）、`status/app/CORRECTIONS_APP.md`（reviewer 独占）
+  **均未入库**；`live_caption/diag_c111_*.py`（MT 会话产物）**未入库**。
+- 🔴 **并发会话**：本轮期间工作区有并行会话产物（`live_caption/diag_c111_*`、`results/app/tr_*.patch` 等）
+  ⇒ 提交时**逐文件 `git add`**，不用 `-A`。

@@ -1,9 +1,15 @@
-"""FTP 服务端验证：登录 / PWD / SYST / FEAT / LIST / NLST / RETR / SIZE / MDTM。
+r"""FTP 服务端验证：登录 / PWD / SYST / FEAT / LIST / NLST / RETR / SIZE / MDTM。
 
 跑法：
     python verify_ftp.py [host] [port]
 默认测 127.0.0.1:2121。
+
+🔴 **持共享机器锁**：第 [6] 步要把 11.2 GB zip 从 FTP 全量 RETR 下来做 md5 比对
+⇒ 长时间占满网络 + 磁盘 ⇒ 会干扰其它模块的计时测量
+（证据：`shared/NOTICE_tts_to_app_20261024.md` 通知 2）。
+⇒ 默认取 `C:\Users\Trekker-PTL\shared\MACHINE_LOCK`；`--no-lock` 可跳过。
 """
+import argparse
 import ftplib
 import hashlib
 import io
@@ -11,9 +17,22 @@ import os
 import sys
 import time
 
-HOST = sys.argv[1] if len(sys.argv) > 1 else '127.0.0.1'
-PORT = int(sys.argv[2]) if len(sys.argv) > 2 else 2121
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    import machine_lock_app
+except Exception:                       # pragma: no cover
+    machine_lock_app = None
+
 ROOT = r'C:\Users\Trekker-PTL\FTP_Share'
+
+_ap = argparse.ArgumentParser(description='FTP 服务端验证')
+_ap.add_argument('host', nargs='?', default='127.0.0.1')
+_ap.add_argument('port', nargs='?', type=int, default=2121)
+_ap.add_argument('--no-lock', action='store_true',
+                 help='不取共享机器锁（默认取；全量 RETR 11.2 GB 是长时重活）')
+_args = _ap.parse_args()
+HOST = _args.host
+PORT = _args.port
 
 
 def _pick_package():
@@ -195,4 +214,16 @@ def main():
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    # 🔴 全量 RETR 11.2 GB 是长时重活 ⇒ 默认持共享机器锁
+    if _args.no_lock or machine_lock_app is None:
+        if not _args.no_lock and machine_lock_app is None:
+            print('[warn] 无法 import machine_lock_app ⇒ 未持共享机器锁')
+        sys.exit(main())
+    _lk = machine_lock_app.LockHeld(module='app-ftpverify', timeout=3600)
+    if not _lk.acquire():
+        print('!! 未能取得共享机器锁 ⇒ 拒绝执行（避免干扰其它模块计时）')
+        sys.exit(1)
+    try:
+        sys.exit(main())
+    finally:
+        _lk.release()

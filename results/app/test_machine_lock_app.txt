@@ -1,0 +1,26 @@
+临时锁文件: C:\Users\TREKKE~1\AppData\Local\Temp\lock_app_test_mkunk3te\MACHINE_LOCK
+
+[1] 原子创建 + 释放
+  [ OK ] 第 1 次取锁成功
+  [ OK ] 锁文件已创建
+  [ OK ] 状态 = held  -- state=held module=app-test pid=18504
+  [ OK ] 锁内容含 module/pid/started  -- 'module: app-test\npid: 18504\nstarted: 2026-10-24 04:31:43\nhost: LAPTOP-0GDQGD3I\n'
+
+[2] fail-closed：活锁不可被回收
+  [ OK ] 第 2 次取锁失败（等待超时）
+  [ OK ] 第一个的锁仍在（未被误回收）
+  [ OK ] 状态仍是 held（fail-closed）  -- state=held
+  [ OK ] 锁内容未被改动（仍是第一个持有者）
+
+[3] fail-closed：PID 不存在 ⇒ stale_pid 可回收
+  [ OK ] 状态 = stale_pid  -- state=stale_pid pid=999999
+
+[4] 释放：只删内容与自己一致的文件
+  [ OK ] 内容不一致时不删除
+
+[5] 子进程并发抢锁：只有一个能拿到
+  [ OK ] 两个子进程只有一个拿到锁  -- 'got' / 'nope'
+
+============================================================
+ 结果：11/11 PASS
+============================================================
