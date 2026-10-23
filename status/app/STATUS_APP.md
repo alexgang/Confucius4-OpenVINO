@@ -1,6 +1,6 @@
 # STATUS_APP
 last_ack: APP-006
-更新时间: 2026-10-23 15:35
+更新时间: 2026-10-23 15:39
 当前任务: **巡检完成：`CORRECTIONS_APP.md` 最大编号 = APP-006 = last_ack ⇒ 本轮无新纠偏条目**。本轮闭环三件事：① **APP-005① 补推送已做**（普通快进 push，`origin/main` 上 `results/c134_replay/*` 7 条泄露已清零）② **TTS 引擎按 14:37 新交接单纠正为 spkonly**（ICL/ref_text 口径作废）③ **TTS worker 接入 BabelVox**（三级回落 + 采样率随引擎走）；另修掉 `split_long_text()` 累计判据真 bug。详见 §12。
 阻塞 / 待用户决定: ① **APP-006 第 3~7 步**：历史改写 + force push（等 reviewer 复核 §11.2 清单；且**改写后所有 SHA 全变**，并行线程 ASR/MT/TTS 需重新 clone 或 reset --hard，**会覆盖他们未提交的改动**）——**本轮已按纪律停下**；② **TTS NPU 冒烟超时未出结论**（缓存已 8 blob/2.4 GB，冷编译耗时非挂死，900 s 未跑完）⇒ 端到端 ABBA 未做；③ **v1.4 重打包前置未完成**（设备自选 + TTS 集成 + 端到端验证）；④ **包体 12.73 GB**（需评估剔除 `decoder-npu-int8`/`decoder-gpu-int8`/`encoder-fp16`）；⑤ 是否剔除 INT4-CW（可再省 0.97 GB）；⑥ `results/asr_diag/*` 未被 .gitignore 覆盖，有误提交风险
 
@@ -8,6 +8,8 @@ last_ack: APP-006
 - 15:35 §12 **巡检无新条目 + 三件事闭环**：APP-005① 补推送关闭远端泄露（`origin/main` c134_replay 7 条→0，普通 push 非 force）；`tts_engine.py` 纠正为 spkonly（`PRESET_A_REF_TEXT=None`，删 `ref_text`/`ref_audio` 入参）；`tts_worker.py` 接入 BabelVox（24000 Hz + `_reopen_player`）；修掉 `split_long_text()` 单句判据→累计判据 bug；客户包 TTS 清单 55/55 SHA256 全对、`voices/` 仅音色 A
 - 15:35 §12 **如实记录未完成项**：NPU 冒烟超时（无 RTF/音质结论）、ABBA 未做、v1.4 未重打、APP-006 第 3~7 步等 reviewer
 - 15:35 §12.6 **并行改动隔离**：`translator.py`（MT 回退到 C-111 前基线）/ `live_caption_app.py` / `audio_source.py` / `tts_service.py` 均**不提交**，逐文件 `git add` 未用 `-A`
+- 15:40 §12.8 **提交推送 + 锁释放闭环**：commit `ca818ee`（6 个文件，闸门 PASS + 7789 条替换表 0 命中），`git push origin main` 普通快进（0 behind/1 ahead，未 force），远端 c134_replay 复查 = 0；`MACHINE_LOCK` 经 `_pid_alive()` 确认 31752/30136 均已死后释放
+- 15:38 §12.5 #1 订正：NPU 冒烟 **15m00s 被 `timeout` 终止**，产物目录 0 文件（缓存已 13 blob/3.83 GB ⇒ 冷编译非挂死）⇒ **冒烟未过，无任何性能结论**
 - 13:57 §11.4 **APP-005③ 回放重跑完成**（ABBA 4/4 exit=0，锁 13:49~13:54）：译文英文残留 **0.0%**、空行 **0**、产物写仓库外（7 文件）；**顺带修正了验收口径本身**（`--out` 是原文、译文另存 `.mt.txt`，原脚本统计错了对象）
 - 13:56 §11.5~§11.7 补写完成：mirror 备份 2.7 GB、改写前 SHA 快照（main `bce542a` / origin `73f268e` / 51 commits / 0 tag）、防复发六层机制、**改写历史的 7 条残留风险**
 - 13:29 §11 **APP-005①② + APP-006 第1~2步 落地**：c134_replay 脱库（`git ls-files results | grep c134` 空）、pack_v13 INT8 断言改正（dry-run INT8 全部 [OK]、缺 bin 时 FAIL 已验证）、MANIFEST 刷到 13973 文件/13.67 GB、备份 2.7 GB mirror 已建、脱敏替换表 7789 条已生成、内部素材闸门脚本已挂进 pack_v13
@@ -1486,7 +1488,7 @@ def stream(eng, text, language='English', speaker_embed=None,
 
 | # | 事项 | 状态 | 证据 / 原因 |
 |---|---|---|---|
-| 1 | **TTS NPU 冒烟实测** | ⏸ **未出结论** | 后台任务 `5DMllB`：`timeout 900 ./python/python.exe tts_smoke_app012.py NPU`。运行 10m39s 时 NPU 缓存已产出 **8 个 blob / 2.4 GB**（`%LOCALAPPDATA%\Confucius4LiveCaption\tts_npu_cache`，最大 blob 487 MB，最后写入 15:27），python 进程 CPU 301→**805 s** 持续增长 ⇒ 属**冷编译耗时，非挂死**；900 s 超时未到出结果。**本轮不报任何 RTF / 音质结论。** |
+| 1 | **TTS NPU 冒烟实测** | ❌ **失败（超时终止，未出结论）** | 后台任务 `5DMllB`：`timeout 900 ./python/python.exe tts_smoke_app012.py NPU` ⇒ **15m00s 被 `timeout` 强制终止**，退出前 stdout 仅 1 行 transformers 环境提示（`None of PyTorch, TensorFlow >= 2.0, or Flax have been found...`），stderr 空。**产物目录 `C:\Users\Trekker-PTL\tts_smoke_out\` 实测 0 文件**（目录 mtime 仍为创建时刻 15:22）⇒ **未产出任何 wav / 报告**。进程 CPU 301→**1011 s** 持续增长、NPU 缓存由 8 blob/2.4 GB 增至 **13 blob / 3.83 GB**（最后写入 15:35）⇒ 属 **NPU 冷编译耗时，非挂死**。**本轮不报任何 RTF / 音质结论 —— 冒烟未过。** |
 | 2 | **端到端 ABBA（tts off/on/on/off）** | ⏸ 未做 | 依赖 #1 通过 |
 | 3 | **v1.4 重打包** | ⏸ 未做 | 前置：设备自选 + TTS 集成 + 端到端验证均未闭环 |
 | 4 | **APP-006 第 3~7 步** | ⏸ **等 reviewer 复核** | APP-006 第 2 步明写「这一步需要停下来等 reviewer 复核」⇒ 按纪律**本轮不自行推进**。§11.2 的清单已落盘，等 reviewer 签字后方可执行历史改写 + force push。 |
@@ -1524,3 +1526,63 @@ def stream(eng, text, language='English', speaker_embed=None,
 - `sync_c135_to_pkg.py` 只读校验：客户包 `live_caption_app.py` / `translator.py` 与 HEAD 版**代码骨架完全相同（EQUIV）**。
 - `sync_c135_to_pkg.py` 的 `NEW_FILES` 本轮改为 `['device_config.py', 'tts_engine.py', 'tts_engine_patch.py']`；
   `tts_worker.py` 走**精确字符串替换 + `assert count == 1`** 通道（该文件是整文件同源复制，故按整文件替换处理并逐字节校验 SHA256）。
+
+### §12.8 提交 / 推送 / 机器锁释放（闭环证据）
+
+**① 提交**（逐文件 `git add`，**未用 `-A` / `-A.`**）：
+
+```
+$ git add live_caption/tts_engine.py live_caption/tts_engine_patch.py \
+         live_caption/device_config.py live_caption/sync_c135_to_pkg.py \
+         live_caption/tts_worker.py status/app/STATUS_APP.md
+$ git diff --cached --name-only
+live_caption/device_config.py
+live_caption/sync_c135_to_pkg.py
+live_caption/tts_engine.py
+live_caption/tts_engine_patch.py
+live_caption/tts_worker.py
+status/app/STATUS_APP.md        ← 恰好 6 个，全在 App 范围内
+```
+
+- `status/app/CORRECTIONS_APP.md` **保持未暂存**（`git status` 仍显示 ` M`）⇒ 🔴 **未提交 reviewer 独占写入文件**。
+- **内部素材闸门**：`python check_internal_material.py --staged` ⇒ **命中 0 个内部素材 / 结论：PASS**。
+- **会议原文扫描**：用脱敏替换表 `C:\Users\Trekker-PTL\git_backup\replace_text_c135.txt`（**7789 条**，每行一条原文）
+  逐条扫 6 个暂存文件 ⇒ **总命中 0**。（§12.4 提到的第 692 行旧章节引用**不在本次变更范围**，故未进入暂存区。）
+
+**② 提交与推送**：
+
+| 项 | 值 |
+|---|---|
+| commit | `ca818ee`（`APP §12: 无新纠偏巡检 + APP-005① 补推送关闭远端泄露 + TTS 引擎按新交接单纠正为 spkonly`） |
+| push 前 `git rev-list --left-right --count origin/main...main` | **`0  1`**（0 behind / 1 ahead ⇒ 纯快进） |
+| `git merge-base --is-ancestor origin/main main` | 0（true）⇒ **FAST_FORWARD_OK** |
+| push 命令 | `git push origin main`（**普通 push，非 force**） |
+| push 输出 | `75e82a5..ca818ee  main -> main` |
+| push 后 `git ls-remote origin main` | `ca818ee7f5ce47673b579a5eb20d4a0dd0ef378a` |
+| push 后远端泄露复查 | `git ls-tree -r origin/main --name-only \| grep -c c134_replay` = **0** |
+
+- ✅ **「不 force push」纪律已遵守**；未改写他人历史，未覆盖并行线程的未提交改动。
+- ⚠️ **未提交清单保留完好**（留给对应线程）：`translator.py` / `live_caption_app.py` / `audio_source.py` / `tts_service.py` /
+  `status/CORRECTIONS.md` / `status/app/CORRECTIONS_APP.md` / `results/asr_diag/` / `results/*.npy` /
+  `live_caption/diag_*.py`（15 个）/ `live_caption/sync_c111_revert_to_pkg.py` / `reviewer/find_int8enc.ps1`。
+
+**③ 机器锁释放**（按纪律：回收前用 ctypes 探测 PID）：
+
+| 步骤 | 实测 |
+|---|---|
+| 锁内容（释放前） | `module: app` / `pid: 31752` / `started: 2026-10-23 15:22:09` / `host: LAPTOP-0GDQGD3I` ⇒ **本模块自己的锁**，不涉及他人锁 |
+| 探测方式 | 复用仓库参考实现 `live_caption/replay_c134_mt.py::_pid_alive()`（ctypes `OpenProcess` + `GetExitCodeProcess`） |
+| 探测结果 | `pid=31752 -> alive=False`；`pid=30136 -> alive=False`（冒烟 python 进程）⇒ **两者均已真死** |
+| 释放动作 | `rm -f shared/MACHINE_LOCK` ⇒ 复查 `ls` 报 **No such file or directory** ⇒ ✅ 已释放 |
+
+- ⚠️ **踩坑记录**：第一次自写探测时给 `k32.OpenProcess.restype = wt.HANDLE` ⇒ 反而返回 `err=87`（ERROR_INVALID_PARAMETER），
+  进程已死/未死都无法判断。**参考实现刻意不设 `restype`**（ctypes 默认 `c_int`）——我的版本「修得更规范」反而错了。
+  ⇒ **纪律：探测进程存活只复用 `replay_c134_mt.py::_pid_alive()`，不要自己重写。**
+- 🔴 **绝不用 `tasklist /FI`**（Git Bash 下 `/FI` 被当路径），也**不用 `Get-Process` 单独判定**（进程退出后可能仍在快照中）。
+
+**④ 本轮边界重申**：
+
+- 本轮**没有**执行任何新纠偏条目（最大编号 APP-006 = `last_ack`，无 APP-007+）。
+- 本轮**没有**推进 APP-006 第 3~7 步（历史改写 + force push）—— **等 reviewer 复核 §11.2 清单**，本轮到此为止。
+- 本轮**没有**跑 CPU 推理或测速；NPU 冒烟是被 `timeout` 杀掉的冷编译，**无有效性能数据**。
+- 本轮**没有**调用 MiniMax 做质量判定（质量判定归 reviewer）。
