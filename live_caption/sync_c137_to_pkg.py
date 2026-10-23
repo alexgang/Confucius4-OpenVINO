@@ -41,7 +41,45 @@ import os
 import sys
 
 REPO = r'C:\Users\Trekker-PTL\confucius4-openvino'
-PKG_APP = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.3\app'
+
+
+def discover_pkg_app(home: str = r'C:\Users\Trekker-PTL') -> str:
+    """按 `Confucius4_LiveCaption_vX.Y` 自动发现**版本号最大**的包。
+
+    🔴 必须排除 `.bak` / `backup` / `_pre_` 目录 —— 否则会选中
+       `v1.0.bak_20261020`（历史教训，见长期记忆「验证脚本不得写死
+       版本号/包路径」）。
+
+    ⚠️ 2026-10-23 21:0x：v1.4 包已建立，本脚本原先写死 v1.3 ⇒
+       v1.4 包内 tts_worker.py 仍是**未修复**的旧版 ⇒ 客户包会重现
+       「worker 永不 ready」的 import 死锁 ⇒ 改为自动发现。
+    """
+    best = None
+    best_key = None
+    for name in os.listdir(home):
+        if not name.startswith('Confucius4_LiveCaption_v'):
+            continue
+        low = name.lower()
+        if '.bak' in low or 'backup' in low or '_pre_' in low:
+            continue
+        app = os.path.join(home, name, 'app')
+        if not os.path.isdir(app):
+            continue
+        ver = name.rsplit('_v', 1)[-1]
+        try:
+            key = tuple(int(x) for x in ver.split('.'))
+        except ValueError:
+            continue
+        if best_key is None or key > best_key:
+            best_key = key
+            best = app
+    if best is None:
+        raise SystemExit('[客户包] 未找到 Confucius4_LiveCaption_vX.Y/app')
+    return best
+
+
+# 目标包：默认自动发现版本号最大的包；也可用 --pkg 显式指定。
+PKG_APP = discover_pkg_app()
 
 REPO_FILE = os.path.join(REPO, 'live_caption', 'tts_worker.py')
 PKG_FILE = os.path.join(PKG_APP, 'tts_worker.py')
@@ -110,7 +148,15 @@ def write_text(path, text):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--check', action='store_true', help='只校验不写')
+    ap.add_argument('--pkg', default=None,
+                    help='客户包 app 目录（默认自动发现版本号最大的包）')
     args = ap.parse_args()
+
+    global PKG_APP, PKG_FILE
+    if args.pkg:
+        PKG_APP = os.path.abspath(args.pkg)
+        PKG_FILE = os.path.join(PKG_APP, 'tts_worker.py')
+    print('[客户包]', PKG_APP)
 
     if not os.path.isfile(REPO_FILE):
         print('找不到仓库文件：', REPO_FILE)

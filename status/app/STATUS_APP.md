@@ -1,10 +1,17 @@
 # STATUS_APP
 last_ack: APP-006
-更新时间: 2026-10-23 20:58
-当前任务: **端到端 ABBA 已跑通 + 修掉 TTS worker 的 import 死锁**：① 端到端 ABBA（tts off/on/on/off）**首次拿到 TTS 侧数据**（§15.2，产物 21 文件 / 1 392 428 B 落仓库外 `abba_out/e2e/app_20261023_2050/`）② 定位并修掉 **TTS worker 永不 emit `ready`** 的根因（**importlib 模块锁死锁**：后台线程 import numpy/scipy 的 C 扩展 与 主线程 `sys.stdin` 迭代互等）⇒ 修复后 worker **9.4~10.1 s 正常 ready**③ 修复已**定点同步**客户包（仓库⇄客户包 SHA256 逐字节一致）。详见 §15。
-阻塞 / 待用户决定: ① **APP-006 第 3~7 步**：历史改写 + force push（等 reviewer 复核 §11.2 清单；且**改写后所有 SHA 全变**，并行线程 ASR/MT/TTS 需重新 clone 或 reset --hard，**会覆盖他们未提交的改动**）——**本轮已按纪律停下**；② **TTS 实时性不达标**（首包 P50 **5465.6 ms** / P95 **7822.65 ms**、丢句 **8/14 ≈ 57%**、最大积压 **11.13 s**）⇒ 当前不可用于实时交付，**v1.4 是否仍打包待用户决定**；③ **RTF 净影响无定论**（Δ=+0.108 但 off 组组内极差 0.161，同量级噪声）；④ **包体 12.73 GB**（需评估剔除 `decoder-npu-int8`/`decoder-gpu-int8`/`encoder-fp16`）；⑤ 是否剔除 INT4-CW（可再省 0.97 GB）；⑥ **babelvox tokenizer 的 `fix_mistral_regex` 提示**待 TTS 模块确认；⑦ **音质判定交 reviewer**（目标机不自己调 MiniMax，2 个 wav 已落盘）；⑧ **`tts_service.py` 不读 worker stderr**（静默吞 traceback，本轮未修）
+更新时间: 2026-10-23 21:07
+当前任务: **巡检无新纠偏条目（最大 APP-006 = last_ack，SHA 逐字节一致）+ 修掉 v1.4 客户包真实交付缺陷**：① 巡检：`CORRECTIONS_APP.md` SHA256 `dff32b2c…7db8cc` 与上轮逐字节一致 ⇒ **无 APP-007+**（代码里的「APP-007」是并行会话自命名的工作标记，非 reviewer 编号）② 🔴 修掉**v1.4 包内 `tts_worker.py` 缺 import 死锁修复**（38670 B 旧版 ⇒ 客户机 TTS 会重现「worker 永不 ready」死锁）⇒ 已定点同步，**仓库/v1.3/v1.4 三处 SHA256 逐字节一致** `06a9ea67…fda3da`；并把 `tts_worker.py` 补进 `sync_c138_to_pkg.py` 的 FILES 列表防止再漏 ③ v1.4 打包 **dry-run 全 PASS**：13 977 文件 / 12.73 GB、INT8 默认模型 4 关键文件 [OK]、内部素材闸门 **0 命中** ④ `sync_c137_to_pkg.py` 由写死 v1.3 路径改为**自动发现最大版本包** + `--pkg` 参数。详见 §16。
+阻塞 / 待用户决定: ① **APP-006 第 3~7 步**：历史改写 + force push（等 reviewer 复核 §11.2 清单；且**改写后所有 SHA 全变**，并行线程 ASR/MT/TTS 需重新 clone 或 reset --hard，**会覆盖他们未提交的改动**）——**本轮已按纪律停下**；② **v1.4 是否仍打包**：dry-run 已全 PASS，但 **TTS 实时性不达标**（首包 P50 **5465.6 ms** / P95 **7822.65 ms**、丢句 **8/14 ≈ 57%**、最大积压 **11.13 s**）⇒ 当前不可用于实时交付 ⇒ **是否出 v1.4 zip 待用户决定**；③ **v1.4 包内 `translator.py` 仍是 MT 定稿前版本**（仓库 mtime 21:03 晚于同步 21:00，C-111-V7 §46 在途）⇒ **等 MT 定稿后 App 再同步一次**；④ **RTF 净影响无定论**（Δ=+0.108 但 off 组组内极差 0.161，同量级噪声）；⑤ **包体 12.73 GB**（需评估剔除 `decoder-npu-int8`/`decoder-gpu-int8`/`encoder-fp16`）；⑥ 是否剔除 INT4-CW（可再省 0.97 GB）；⑦ **babelvox tokenizer 的 `fix_mistral_regex` 提示**待 TTS 模块确认；⑧ **音质判定交 reviewer**（目标机不自己调 MiniMax，2 个 wav 已落盘）；⑨ **`tts_service.py` 不读 worker stderr**（静默吞 traceback，本轮未修）
 
 ## 最近更新
+- 21:07 §16 **巡检无新纠偏条目**：`CORRECTIONS_APP.md` SHA256 `dff32b2c…7db8cc` / 17 965 B / mtime `2026-10-23 12:01:55` 与 §13、§15 巡检**逐字节一致** ⇒ 最大编号 **APP-006** = `last_ack` ⇒ `last_ack` 不变
+- 21:07 §16 🔴 **修掉 v1.4 客户包真实交付缺陷**：包内 `tts_worker.py` 是**未修复旧版**（38 670 B / SHA `fec383a5…4cd1a` / 修复标记 0 命中）⇒ 客户机会重现「worker 永不 emit ready」死锁（TTS 语音输出等于不可用且零报错）；根因 = `sync_c138_to_pkg.py` 的 FILES 列表**漏了 tts_worker.py**
+- 21:07 §16 **定点修复 + 三处 SHA 一致**：用 `sync_c137_to_pkg.py`（精确字符串替换 + `assert count==1` + 幂等）同步 v1.4；**仓库 / v1.3 / v1.4 三处 `tts_worker.py` SHA256 均为 `06a9ea67b8c88d1d69b3fbf0bafbd6f8b3294b63bff963fdfe37ec2f33fda3da`**（40 234 B，v1.4 mtime `2026-10-23 21:05:29`）；备份在包外 `pkg_backup_app014/tts_worker.py.v14_pre_c137.bak`
+- 21:07 §16 **两处防复发**：① `sync_c137_to_pkg.py` 改**自动发现最大版本包**（原写死 v1.3 ⇒ v1.4 永远同步不到）+ 新增 `--pkg`；② `sync_c138_to_pkg.py` 的 FILES **补入 `tts_worker.py`** ⇒ dry-run 现显示「已与仓库一致（SHA256 06a9ea67b8c88d1d…）」
+- 21:07 §16 **v1.4 打包 dry-run 全 PASS**：13 977 文件 / 13 667 853 048 B（12.73 GB）；**INT8 默认模型 4 个关键文件全部 [OK]**（APP-005② 在 v1.4 上验证通过）；TTS IR 全 [OK]；音色仅 `preset_A.wav`；**内部素材闸门 0 命中**；MANIFEST 原始字段 `version='1.4'` / `files=13977` / `bytes=13667853048` / `packages` 51 条 与 dry-run 吻合
+- 21:07 §16 **仓库 ⇄ v1.4 逐文件核对**：16 个 .py 中 **15 个一致**，`translator.py` **不一致**（MT 的 C-111-V7 §46 在途未定稿，仓库 mtime 21:03 晚于同步 21:00）⇒ **App 不替 MT 决定入包，等其定稿后再同步**
+- 21:07 §16 **未跑 NPU 实跑验证**：`MACHINE_LOCK` 被 **TTS 模块**持有（`pid: 29352` / 21:01:53），ctypes 探测失败按纪律**视为存活** ⇒ 不碰锁、不跑推理；改用**逐字节等价论证**（SHA 与仓库完全相同 ⇒ §15 实测的「9.4~10.1 s 正常 ready」对 v1.4 成立）
 - 20:58 §15 **端到端 ABBA 完成**（§13.7 #1 闭环）：4 轮 off/on/on/off，**翻译全程开启**、ASR/MT 走 GPU.0、TTS 走 NPU、持共享机器锁；产物 21 文件 / 1 392 428 B 落仓库外 `C:\Users\Trekker-PTL\abba_out\e2e\app_20261023_2050\`；`abba_report.json` SHA256 `575d1306f175d040edee69560a5947e5f4bd29669029c0f6b7af03602d9b90dc`
 - 20:58 §15 **TTS 侧首次拿到数据**：首包 P50 **5465.6 ms** / P95 **7822.65 ms**；提交 7 / 播完 3 / 丢弃 4（2 轮累计丢弃 8 句 ≈ 57%）；最大积压 **11.13 s** ⇒ **TTS 实时性不达标**，不可用于实时交付
 - 20:58 §15 **RTF 净影响无定论**：on 0.7245 vs off 0.6165 ⇒ Δ=**+0.108**（超 ≤+0.10 线），但 off 组**组内极差 0.161** > Δ ⇒ 同量级噪声，**测不出净影响**（按 APP-005③ 不写「无影响」）
@@ -13,35 +20,6 @@ last_ack: APP-006
 - 20:58 §15 **巡检无新纠偏条目**：`CORRECTIONS_APP.md` 最大编号 = **APP-006** = `last_ack`，文件 SHA256 `dff32b2c…7db8cc` 与 §13 巡检**逐字节一致** ⇒ `last_ack` 保持 APP-006
 - 20:58 §15.8 **边界重申**：未执行任何新纠偏条目；**未推进 APP-006 第 3~7 步**（等 reviewer 复核 §11.2）；**未跑 CPU 推理/测速**；**未调用 MiniMax**；**未整目录覆盖**同步客户包；**未提交** `CORRECTIONS_APP.md`；未吞其它模块改动
 - 16:52 §14 **GUI 四项改造全部落地**：① **三分区**（ASR/翻译/语音**纵向三行**，每区**只有一个「设备+精度」组合下拉**；旧的三个独立设备下拉已删净）② **状态栏迁到顶栏之下固定一行**（实测 800×500~1080×820 高度**恒为 19px**；根因是 **pack 挤压**不是全屏，代码里从来无全屏逻辑）③ **屏幕字幕只留两栏**（青 `#5fd7d7` 定稿译文 + 黄 `#ffd75e` 实时识别）④ **鼠标完全穿透**（`WS_EX_TRANSPARENT|NOACTIVATE`，`WindowFromPoint` 实测不命中字幕窗）+ **独立拖拽把手**（44×24，左上角外侧，不穿透）
-- 16:52 §14 **顺手修掉的 3 个真 bug**：① `make_engine` 无条件传 `device=` ⇒ **CUDA 档必抛 `TypeError`**（`CudaEngine.__init__` 无此形参）② 翻译组合 label **冲突**（`gpu_int8cw@GPU.0` 与 `npu_int8cw@GPU.0` 同 label ⇒ 反查静默选错引擎）⇒ 改为**以量化维度**展开 ③ 拖拽把手**初始位置错**（overrideredirect 窗口未映射时 `winfo_x()` 返 0 ⇒ 把手跑到屏幕左上角）
-- 16:52 §14 **验证全 PASS**：`verify_overlay.py` / `diag_overlay_gui.py` / `diag_device_gui.py` / `diag_layout_gui.py` / `diag_device_select.py` 5 个脚本全部 ALL PASS；证据截图 2 张落 `results/app/`
-- 16:52 §14 **未做**：v1.3 客户包**不动**（用户决策：等 v1.4 统一打包带入）；APP-006 第 3~7 步仍等 reviewer
-- 16:52 §13 **巡检无新条目 + 三件事闭环**：TTS NPU 冒烟**通过**（持锁 216.3 s exit=0，`load_s` 9.99 s 命中缓存，`builtin_speaker_n_chunks=4`）；修掉内置音色 `ValueError: speaker_library not set`（根因读 babelvox 源码定位，挂 `SpeakerLibrary` 后 4 音色可用）；`.gitignore` 加固（`results/asr_diag/` + `results/**/*.npy`，check-ignore 全命中）
-- 16:52 §13 **撤回 §12.2 一条结论**：「内置音色全部内置」不准确 ⇒ 实为**随包分发**（4 组 json+npy）且**必须显式挂 `SpeakerLibrary`**；但 §12.2 主结论「spkonly 不需要 ref_text」仍成立
-- 16:52 §13 **如实记录未完成项**：端到端 ABBA 未做、v1.4 未重打、APP-006 第 3~7 步等 reviewer、RTF 无稳态结论、音质交 reviewer
-- 16:52 §13.4 **并行改动隔离**：`live_caption_app.py`（并行会话 16:47 仍在改）/ `translator.py`（MT）/ `audio_source.py`（ASR）/ `tts_service.py` / `streaming_asr.py` 均**不提交**；`CORRECTIONS_APP.md` **绝不提交**；逐文件 `git add` 未用 `-A`
-- 16:52 §13.6 **复验通过**：`pack_v13.py --dry-run` **PASS**（INT8 4 个关键文件 + Qwen3TTS 12 个 IR 全 [OK]）；`check_internal_material.py` **0 命中**；`diag_device_select.py` **ALL PASS**（设备配置已自恢复默认）
-- 15:35 §12 **巡检无新条目 + 三件事闭环**：APP-005① 补推送关闭远端泄露（`origin/main` c134_replay 7 条→0，普通 push 非 force）；`tts_engine.py` 纠正为 spkonly（`PRESET_A_REF_TEXT=None`，删 `ref_text`/`ref_audio` 入参）；`tts_worker.py` 接入 BabelVox（24000 Hz + `_reopen_player`）；修掉 `split_long_text()` 单句判据→累计判据 bug；客户包 TTS 清单 55/55 SHA256 全对、`voices/` 仅音色 A
-- 15:35 §12 **如实记录未完成项**：NPU 冒烟超时（无 RTF/音质结论）、ABBA 未做、v1.4 未重打、APP-006 第 3~7 步等 reviewer
-- 15:35 §12.6 **并行改动隔离**：`translator.py`（MT 回退到 C-111 前基线）/ `live_caption_app.py` / `audio_source.py` / `tts_service.py` 均**不提交**，逐文件 `git add` 未用 `-A`
-- 15:40 §12.8 **提交推送 + 锁释放闭环**：commit `ca818ee`（6 个文件，闸门 PASS + 7789 条替换表 0 命中），`git push origin main` 普通快进（0 behind/1 ahead，未 force），远端 c134_replay 复查 = 0；`MACHINE_LOCK` 经 `_pid_alive()` 确认 31752/30136 均已死后释放
-- 15:38 §12.5 #1 订正：NPU 冒烟 **15m00s 被 `timeout` 终止**，产物目录 0 文件（缓存已 13 blob/3.83 GB ⇒ 冷编译非挂死）⇒ **冒烟未过，无任何性能结论**
-- 13:29 §11 **APP-005①② + APP-006 第1~2步 落地**：c134_replay 脱库（`git ls-files results | grep c134` 空）、pack_v13 INT8 断言改正（dry-run INT8 全部 [OK]、缺 bin 时 FAIL 已验证）、MANIFEST 刷到 13973 文件/13.67 GB、备份 2.7 GB mirror 已建、脱敏替换表 7789 条已生成、内部素材闸门脚本已挂进 pack_v13
-- 13:28 发现并处理 **包根 `_backup_c111/` 污染**（C-133 教训重现）：已移出到 `pkg_backup_app005/_backup_c111/`，并给 `pkg_exclude.py` 加 `BACKUP_DIR_RE` 规则（任意层级）
-- 13:27 脱敏客户包与仓库源码里的内部音频文件名（`<redacted>.wav` → `<内部音频>.wav`），客户包内部素材闸门复扫 **0 命中**
-- 13:26 `git clone --mirror` **被沙箱拦截**（不许读 `.ssh/known_hosts`）⇒ 改用**本地仓库**做 mirror（本地 main 领先 origin/main 3 个 ASR 提交且含远端全部历史 ⇒ 等价且不需授权）
-- 13:23 `pack_v13.py` 加内部素材闸门钩子 + INT8/TTS 的 MUST/MUST_NOT + `only_int4` 改双向断言；`MANIFEST` 加 `packages` 自动收集与 v1.4 notes
-- 13:19 APP-006 第1步 **mirror 备份完成**：`C:/Users/Trekker-PTL/git_backup/Confucius4-OpenVINO_20261023.git`（2.7 GB，fsck 仅有 dangling 对象）
-- 13:18 APP-005① **c134_replay 脱库** + `.gitignore` 加固（`results/**/*replay*` / `reports/**/transcript_*` / `segments_*` / `**/*_spoken.*`）
-- 13:15 新建 **App 模块专属纠偏巡检自动化**（`FREQ=HOURLY;INTERVAL=1`，与 ASR/MT 对齐）—— 补上了此前缺失的第 3 个模块巡检
-- 12:57 读到 **APP-005**（BLOCKING×2+HIGH）与 **APP-006**（BLOCKING，用户决定改写历史 + force push）
-- 11:24 **APP-003 全部落地**：① results/ 内部会议内容已隔离（11 文件移至 `pkg_internal_quarantine/`）；② 默认翻译改 **INT8-CW**；③ CORRECTIONS 第 23 行改为「[目标机工作记录·非纠偏]」；④ **更正 §4 的时间戳**
-- 11:20 §8：默认 MT 改 INT8-CW 的代码/IR/文档改动全表 + 包体积变化（8.28 → 9.97 GB，+1.69 GB）
-- 11:10 §5 实测：客户包 Python 3.12 **能直接跑** Qwen3-TTS；最小依赖集 **297 MB** + IR **2542 MB**
-- 09:34 补齐 APP-001 要求的 4 项现状汇总（§4）
-
----
-
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -2386,3 +2364,191 @@ $ python live_caption/sync_c137_to_pkg.py      # 幂等复验
 - 本轮**没有**调用 MiniMax 做质量判定（质量判定归 reviewer）。
 - 本轮**没有**整目录覆盖同步客户包（只用了 `sync_c137_to_pkg.py` 的定点替换 + SHA256 逐字节校验）。
 - 本轮**没有**提交 `status/app/CORRECTIONS_APP.md`，也**没有**吞其它模块的未提交改动。
+
+## §16 无新纠偏条目巡检 + 修掉 v1.4 客户包「tts_worker 缺 import 死锁修复」+ 打包 dry-run 全 PASS（2026-10-23 21:07）
+
+### §16.0 巡检结论：**无新 reviewer 纠偏条目**
+
+| 项 | 实测值 | 证据 |
+|---|---|---|
+| `CORRECTIONS_APP.md` SHA256 | `dff32b2c96b6ccc02127ef6b258eef73bd0b3d0cd574a3772a5f4063ee7db8cc` | 与 §13 / §15 巡检**逐字节一致** |
+| 文件大小 / mtime | 17 965 B / `2026-10-23 12:01:55` | `stat` 实测 |
+| `## APP-xxx` 条目数 | **6 条**：APP-001 / 002 / 003 / 004 / 005 / 006 | 全文 grep |
+| 最大编号 | **APP-006** | = STATUS 头部 `last_ack` |
+
+⇒ **无编号 > APP-006 的新条目**，`last_ack` 保持 **APP-006** 不变。
+
+⚠️ `git status` 显示 `status/app/CORRECTIONS_APP.md` 为 ` M`（已修改未暂存），
+但那是 **HEAD（`0be407c`）里不含该文件**导致的 diff 噪声
+（该文件是 reviewer 独占写入、**从未被我提交过**）⇒ **仍然不修改、不暂存、不提交**。
+
+⚠️ 仓库代码里大量出现「**APP-007**」字样（`pack_v13.py`、`live_caption_app.py`、
+`sync_c138_to_pkg.py`、`diag_device_gui.py` 等），但 **`CORRECTIONS_APP.md` 里没有 APP-007 条目**
+⇒ 那是**并行会话/用户口头自命名的内部工作标记**，**不是 reviewer 发放的纠偏编号**
+⇒ **不作为 `last_ack` 依据，也不据此宣称「执行了 APP-007」**（沿用 §14 / §15 的同一口径）。
+
+### §16.1 🔴 本轮修掉的**真实交付缺陷**：v1.4 客户包漏了 TTS worker 的 import 死锁修复
+
+**发现路径**：并行会话已在建 v1.4 包（`Confucius4_LiveCaption_v1.4/app/` 存在，`app/` mtime 21:00），
+本轮做「仓库 ⇄ 客户包逐文件 SHA 核对」时暴露。
+
+**缺陷**：v1.4 包内 `app/tts_worker.py` 是 **未修复的旧版**：
+
+| 位置 | 字节 | SHA256 | 含 `APP-FIX-20261023` |
+|---|---|---|---|
+| 仓库 `live_caption/tts_worker.py` | 40 234 | `06a9ea67b8c88d1d69b3fbf0bafbd6f8b3294b63bff963fdfe37ec2f33fda3da` | ✅ |
+| v1.3 包 `app/tts_worker.py` | 40 234 | `06a9ea67…fda3da` | ✅ |
+| **v1.4 包 `app/tts_worker.py`（修复前）** | **38 670** | **`fec383a50eab9405362a623e7f2e39f64e864bbf5992bebbf98bddc3b1d4cd1a`** | ❌ **0 命中** |
+
+**根因**：`live_caption/sync_c138_to_pkg.py` 的 `FILES` 列表
+只列了 6 个文件（`live_caption_app.py` / `translator.py` / `audio_source.py` /
+`device_config.py` / `tts_service.py` / `win_clickthrough.py`），
+**没有 `tts_worker.py`** ⇒ 该文件从未被 v1.4 同步流程覆盖。
+
+**后果（严重）**：§15 定位的那个 importlib 模块锁死锁会在**客户机**重现 ⇒
+TTS worker **一行输出都不发**、永不 emit `{"kind":"ready"}`、
+主进程永远停在 `state=loading` ⇒ drain 超时、**0 句播完** ⇒
+**客户拿到的 v1.4 语音输出功能等于不可用**（且表面零报错）。
+
+**修法**（两处，均为定点、幂等）：
+1. `live_caption/sync_c137_to_pkg.py`（**精确字符串替换 + `assert count == 1`**）
+   —— 脚本原先**写死 v1.3 路径** ⇒ v1.4 永远同步不到。
+   改为**按 `Confucius4_LiveCaption_vX.Y` 自动发现版本号最大的包**
+   （排除 `.bak` / `backup` / `_pre_`，历史教训），
+   并新增 `--pkg` 显式指定参数（默认自动发现）。
+2. `live_caption/sync_c138_to_pkg.py` 的 `FILES` 列表**补入 `('tts_worker.py', 'overwrite')`**
+   ⇒ 下次同步不会漏。
+
+**执行与验证（原始输出）**：
+
+```
+# 只读预检
+$ python live_caption/sync_c137_to_pkg.py --check --pkg "...\Confucius4_LiveCaption_v1.4\app"
+[客户包] C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4\app
+客户包命中：新块 0 次 / 旧锚点 1 次
+--check：命中唯一旧锚点，未写入
+```
+
+```
+# 实际写入（备份已先落包外）
+$ python live_caption/sync_c137_to_pkg.py --pkg "...\Confucius4_LiveCaption_v1.4\app"
+客户包命中：新块 0 次 / 旧锚点 1 次
+✅ 已同步
+   客户包 SHA256 before: fec383a50eab9405362a623e7f2e39f64e864bbf5992bebbf98bddc3b1d4cd1a
+   客户包 SHA256 after : 06a9ea67b8c88d1d69b3fbf0bafbd6f8b3294b63bff963fdfe37ec2f33fda3da
+   仓库   SHA256       : 06a9ea67b8c88d1d69b3fbf0bafbd6f8b3294b63bff963fdfe37ec2f33fda3da
+   与仓库逐字节一致   : True
+```
+
+```
+# 幂等复跑（no-op）
+$ python live_caption/sync_c137_to_pkg.py --pkg "...\Confucius4_LiveCaption_v1.4\app"
+客户包命中：新块 1 次 / 旧锚点 0 次
+✅ 客户包已是修复版（幂等 no-op）
+```
+
+**修复后三处 SHA256 完全一致**（逐字节）：
+
+```
+06a9ea67b8c88d1d69b3fbf0bafbd6f8b3294b63bff963fdfe37ec2f33fda3da  live_caption/tts_worker.py
+06a9ea67b8c88d1d69b3fbf0bafbd6f8b3294b63bff963fdfe37ec2f33fda3da  Confucius4_LiveCaption_v1.4/app/tts_worker.py
+06a9ea67b8c88d1d69b3fbf0bafbd6f8b3294b63bff963fdfe37ec2f33fda3da  Confucius4_LiveCaption_v1.3/app/tts_worker.py
+```
+
+v1.4 包内文件：`40 234 B` / mtime `2026-10-23 21:05:29`。
+语法检查 `python -m py_compile tts_worker.py`（在 v1.4 包目录内）→ **OK**。
+
+**备份（包外，不污染客户包）**：
+`C:\Users\Trekker-PTL\pkg_backup_app014\tts_worker.py.v14_pre_c137.bak`
+（38 670 B / mtime `2026-10-23 15:23:25` = 修复前的原件）
+
+⚠️ **未做实跑验证（`ready` 时延）的原因**：`MACHINE_LOCK` 被 **TTS 模块**持有
+（`module: tts` / `pid: 29352` / `started: 2026-10-23 21:01:53`），
+本轮用 ctypes `OpenProcess` + `GetExitCodeProcess` 探测该 PID ⇒ **OpenProcess 返回 NULL
+⇒ 探测失败 ⇒ 按纪律「探测失败一律视为存活」** ⇒ **不碰锁、不跑 NPU 推理**。
+⇒ 改用**逐字节等价论证**：v1.4 包内 `tts_worker.py` 与仓库文件 SHA256 **完全相同**
+⇒ 代码等价 ⇒ §15 已实测的「9.4~10.1 s 正常 emit `ready`」结论对 v1.4 包**同样成立**。
+
+### §16.2 仓库 ⇄ v1.4 客户包逐文件一致性核对（16 个 .py）
+
+口径：CRLF/LF 归一后取 SHA256。
+
+| 文件 | 状态 |
+|---|---|
+| `audio_source.py` / `backends.py` / `device_config.py` / `live_caption_app.py` / `npu_delivery_backend.py` / `npu_embeds_backend.py` / `seg_stream.py` / `segment_encoder_backend.py` / `selftest_audio_sources.py` / `streaming_asr.py` / `tts_engine.py` / `tts_engine_patch.py` / `tts_service.py` / **`tts_worker.py`** / `win_clickthrough.py` | **一致**（15 个） |
+| `translator.py` | **不一致** |
+
+**`translator.py` 差异 = MT 模块正在进行的 C-111-V7（§46）改动，**本轮刻意不动**：
+仓库 `live_caption/translator.py` mtime `2026-10-23 21:03:26`（**晚于** v1.4 同步时刻 21:00）
+⇒ 属**未定稿的在途改动**（`done_fix` 双通道、`mt_fix_of()`、`fix` 以 `'final'` 进 outbox 等）
+⇒ **App 不替 MT 决定是否入包** ⇒ 等 MT 定稿后由 App 再同步一次。
+
+`sync_c138_to_pkg.py` 的 dry-run 也印证同一结论（其余 6 个全部「已与仓库一致」）：
+```
+[跳过] live_caption_app.py        已与仓库一致（SHA256 8b125b376c0d9074…）
+[覆盖] translator.py              包内独有行   36 / 仓库独有行   82  （包内 1334 行 → 仓库 1380 行）
+[跳过] audio_source.py            已与仓库一致（SHA256 8fd50e14911ba015…）
+[跳过] device_config.py           已与仓库一致（SHA256 77be2435c5f3bf25…）
+[跳过] tts_service.py             已与仓库一致（SHA256 84775a1d5c463ec6…）
+[跳过] win_clickthrough.py        已与仓库一致（SHA256 db376c52bfe20f26…）
+[跳过] tts_worker.py              已与仓库一致（SHA256 06a9ea67b8c88d1d…）
+合计：写入 1 个 / 跳过 6 个 / 备份目录 C:\Users\Trekker-PTL\pkg_backup_app014
+```
+
+### §16.3 v1.4 打包 dry-run：**全 PASS**（APP-005② 验收口径）
+
+```
+$ python pack_v13.py --pkg "C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4" --dry-run
+源目录: C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4
+将打包: 13977 文件 / 13667853048 字节 (12.73 GB)
+将排除的内容：
+  __pycache__                   3 文件        0.2 MB
+关键文件检查：
+  [OK] app/translator.py / app/live_caption_app.py / app/MANIFEST.json
+  [OK] README_zh.md / README_en.md / THIRD_PARTY.md / Start_LiveCaption.bat / Diagnose.bat
+  [OK] models/mt/mt2-int8sym-cw-q/{openvino_model.xml,openvino_model.bin,config.json,chat_template.jinja}
+  [OK] models/mt/mt2-int4sym-cw-q/{openvino_model.xml,openvino_model.bin,config.json,chat_template.jinja}
+  [OK] models/qwen3tts/int8/{talker,talker_prefill,talker_decode,cp_prefill,cp_decode,code_predictor,tokenizer_encoder,tokenizer_decoder,speaker_encoder}.{xml,bin}
+  [OK] models/qwen3tts/tokenizer/{config.json,tokenizer_config.json,vocab.json,merges.txt}
+  [OK] models/qwen3tts/voices/preset_A.wav
+内部会议内容检查（results/ 下 *_spoken.* 与点名文件）：
+  源目录残留: 0 个内部内容文件
+======================================================================
+内部素材闸门（APP-006 第 6 步）
+  命中 0 个内部素材
+结论：PASS —— 未发现内部素材
+结论：PASS（dry-run，未写 zip）
+```
+
+**要点**：
+- **INT8 默认模型 4 个关键文件全部 [OK]** ⇒ APP-005② 的「INT8 被当成禁止进包」已纠正并**在 v1.4 上验证通过**。
+- **内部素材闸门 0 命中** ⇒ APP-006 第 6 步的 pre-pack 闸门在 v1.4 上有效。
+- **音色只有 `preset_A.wav`** ⇒ 与本轮 `live_caption_app.py` 里「只保留音色 A」的改动一致
+  （音色 B / 克隆音色按 BRIEF 不进包）。
+- v1.4 包内 `MANIFEST.json` 原始字段（`json.load` 实读）：
+  `version = '1.4'`、`files = 13977`、`bytes = 13667853048`、`packages` **51 条**、`notes` 8 939 字符
+  ⇒ **files/bytes 与 dry-run 完全吻合** ⇒ MANIFEST 已是最新（并行会话已刷新），**本轮无需再刷**。
+  备份（包外）：`pkg_backup_app014/MANIFEST.json.v14_pre_refresh.bak`（17 162 B）。
+
+### §16.4 本轮**未做**的事（边界）
+
+| 项 | 原因 |
+|---|---|
+| **未跑 NPU 实跑验证**（`ready` 时延） | `MACHINE_LOCK` 被 TTS 模块持有且 PID 探测失败（按纪律视为存活）⇒ 不碰锁、不跑推理 |
+| **未同步 `translator.py` 到 v1.4** | MT 的 C-111-V7（§46）在途未定稿（mtime 21:03 晚于同步时刻 21:00）⇒ 等 MT 定稿 |
+| **未实际打 v1.4 zip** | §15 已记录「TTS 实时性不达标（首包 P50 5465.6 ms、丢句 57%）」⇒ **v1.4 是否仍打包待用户决定** |
+| **未推进 APP-006 第 3~7 步** | APP-006 第 2 步明写「这一步需要停下来等 reviewer 复核」⇒ **本轮仍未自行推进** |
+| **未提交 `CORRECTIONS_APP.md`** | reviewer 独占写入文件，只读 |
+| **未提交其它模块的未提交改动** | `audio_source.py` / `translator.py` / `tts_service.py` / `device_config.py` / `live_caption_app.py` / `pack_v13.py` / `pkg_exclude.py` / `status/CORRECTIONS.md` 等仍为**未暂存**，留给各自模块会话处理（App 只提交自己的 2 个 sync 脚本 + 本 STATUS） |
+| **未调用 MiniMax、未自判音质** | 音质判定交 reviewer 回转写 |
+| **未整目录覆盖同步客户包** | 全部走定点替换 + 唯一命中断言 |
+
+### §16.5 本轮 git 清单
+
+| 文件 | 动作 | 归属 |
+|---|---|---|
+| `live_caption/sync_c137_to_pkg.py` | 修改（写死路径 → 自动发现 + `--pkg`） | App |
+| `live_caption/sync_c138_to_pkg.py` | 新增（含 `FILES` 补入 `tts_worker.py`） | App |
+| `status/app/STATUS_APP.md` | 修改（追加 §16） | App |
+
+（`live_caption/tts_worker.py` 的 import 死锁修复本体已在**上轮** commit `1f6287f` 中，本轮未再改它。）
