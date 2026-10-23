@@ -82,6 +82,13 @@ reports/cuda*/logs_stream/
 # spoken 语料的转写/译文（内部会议口语子集）
 **/*_spoken.*
 
+# APP §13：诊断/探针产物（ASR 回环、麦克风底噪等）—— 实测未被上面的规则覆盖，
+# 有被 `git add -A` 误提交的风险（§12.6 已记录）。这里补齐。
+results/asr_diag/
+results/**/*.npy
+# 单次探针产物（loopback_probe.npy / mic_noise_probe.npy 等）
+results/*_probe.npy
+
 # C-090#2 / C-095#4：OpenVINO IR 权重（.bin 可达 GiB 级，绝不能进仓库）。
 # R0–R4 的 INT4 IR 已移到 models/c089_int4/；这里再加一道兜底，
 # 防止以后有人把 IR 输出到 reports/ 下。

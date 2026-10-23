@@ -248,7 +248,45 @@ def make_engine(device: str = 'NPU',
     except Exception as e:
         raise TTSEngineError(f'模型加载失败：{type(e).__name__}: {e}') from e
     on_log('[tts_engine] 模型加载完成')
+
+    # 🔴🔴 **必须挂 SpeakerLibrary**，否则按名查内置音色会直接抛
+    #   `ValueError: speaker_library not set; cannot look up named speaker`
+    #   （babelvox/pipeline.py:782 —— `speaker_library` 默认是 None）。
+    # 内置音色 cindy/lou/phil/steve **不是引擎内置常量**，而是随包文件
+    # `babelvox/data/speakers/{name}.json` + `{name}.npy`（embedding 1×1024）；
+    # `SpeakerLibrary(dir, copy_builtins=True)` 会把它们复制到库目录。
+    # ⇒ 只建 `SpeakerLibrary` 而不设 `eng.speaker_library` 是无效的。
+    _attach_speaker_library(eng, on_log=on_log)
     return eng
+
+
+def _attach_speaker_library(eng, on_log=print) -> bool:
+    """给引擎挂上 `SpeakerLibrary`（按名查内置音色的前提）。
+
+    库目录放 `%LOCALAPPDATA%\\Confucius4LiveCaption\\tts_speakers`
+    （**不写进客户包目录**，同编译缓存的纪律）。
+    失败只告警不抛 —— 内置音色是可选路径，参考 wav（spkonly）才是主路径。
+    """
+    try:
+        from babelvox.speakers import SpeakerLibrary
+    except Exception as e:
+        on_log(f'[tts_engine] ⚠️ babelvox.speakers 不可用（{e}）'
+               f' ⇒ 内置音色（cindy/lou/phil/steve）不可用，只能用参考 wav')
+        return False
+    lib_dir = _cache_dir('tts_speakers')
+    try:
+        eng.speaker_library = SpeakerLibrary(lib_dir, copy_builtins=True)
+    except Exception as e:
+        on_log(f'[tts_engine] ⚠️ SpeakerLibrary 初始化失败（{e}）'
+               f' ⇒ 内置音色不可用')
+        return False
+    try:
+        names = sorted(p['name'] for p in eng.speaker_library.list_profiles())
+    except Exception:
+        names = []
+    on_log(f'[tts_engine] SpeakerLibrary 就绪：{lib_dir}'
+           f'（{len(names)} 个音色：{", ".join(names) if names else "无"}）')
+    return True
 
 
 def speaker_embedding(eng, ref_wav: Optional[str] = None,

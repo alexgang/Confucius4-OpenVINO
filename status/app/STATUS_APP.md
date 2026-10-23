@@ -1,17 +1,20 @@
 # STATUS_APP
 last_ack: APP-006
-更新时间: 2026-10-23 15:39
-当前任务: **巡检完成：`CORRECTIONS_APP.md` 最大编号 = APP-006 = last_ack ⇒ 本轮无新纠偏条目**。本轮闭环三件事：① **APP-005① 补推送已做**（普通快进 push，`origin/main` 上 `results/c134_replay/*` 7 条泄露已清零）② **TTS 引擎按 14:37 新交接单纠正为 spkonly**（ICL/ref_text 口径作废）③ **TTS worker 接入 BabelVox**（三级回落 + 采样率随引擎走）；另修掉 `split_long_text()` 累计判据真 bug。详见 §12。
-阻塞 / 待用户决定: ① **APP-006 第 3~7 步**：历史改写 + force push（等 reviewer 复核 §11.2 清单；且**改写后所有 SHA 全变**，并行线程 ASR/MT/TTS 需重新 clone 或 reset --hard，**会覆盖他们未提交的改动**）——**本轮已按纪律停下**；② **TTS NPU 冒烟超时未出结论**（缓存已 8 blob/2.4 GB，冷编译耗时非挂死，900 s 未跑完）⇒ 端到端 ABBA 未做；③ **v1.4 重打包前置未完成**（设备自选 + TTS 集成 + 端到端验证）；④ **包体 12.73 GB**（需评估剔除 `decoder-npu-int8`/`decoder-gpu-int8`/`encoder-fp16`）；⑤ 是否剔除 INT4-CW（可再省 0.97 GB）；⑥ `results/asr_diag/*` 未被 .gitignore 覆盖，有误提交风险
+更新时间: 2026-10-23 16:52
+当前任务: **巡检完成：`CORRECTIONS_APP.md` 最大编号 = APP-006 = last_ack ⇒ 本轮无新纠偏条目**。本轮闭环三件事：① **TTS NPU 冒烟通过**（持锁，216.3 s exit=0；产物 4 文件落仓库外 `tts_smoke_out/`；`speaker_embed (1,1024)`、24000 Hz、4 chunk；命中缓存后 `load_s` 9.99 s）② **修掉「内置音色抛 ValueError」真 bug**（根因：`eng.speaker_library` 未挂 ⇒ 读 babelvox 源码定位；修复后 `builtin_speaker_n_chunks=4`）③ **`.gitignore` 加固**（补 `results/asr_diag/` 与 `results/**/*.npy`）。另**撤回 §12.2「内置音色全部内置」的表述**。详见 §13。
+阻塞 / 待用户决定: ① **APP-006 第 3~7 步**：历史改写 + force push（等 reviewer 复核 §11.2 清单；且**改写后所有 SHA 全变**，并行线程 ASR/MT/TTS 需重新 clone 或 reset --hard，**会覆盖他们未提交的改动**）——**本轮已按纪律停下**；② **端到端 ABBA 未做**（冒烟已过，前置已解锁）；③ **v1.4 重打包前置未完成**（设备自选 ✅ + TTS 集成 ✅ + 端到端验证 ❌）；④ **RTF 无正式结论**（本轮 1.357 是自测短句首调用含预热，不可当稳态）；⑤ **包体 12.73 GB**（需评估剔除 `decoder-npu-int8`/`decoder-gpu-int8`/`encoder-fp16`）；⑥ 是否剔除 INT4-CW（可再省 0.97 GB）；⑦ **babelvox tokenizer 的 `fix_mistral_regex` 提示**待 TTS 模块确认；⑧ **音质判定交 reviewer**（目标机不自己调 MiniMax）
 
 ## 最近更新
+- 16:52 §13 **巡检无新条目 + 三件事闭环**：TTS NPU 冒烟**通过**（持锁 216.3 s exit=0，`load_s` 9.99 s 命中缓存，`builtin_speaker_n_chunks=4`）；修掉内置音色 `ValueError: speaker_library not set`（根因读 babelvox 源码定位，挂 `SpeakerLibrary` 后 4 音色可用）；`.gitignore` 加固（`results/asr_diag/` + `results/**/*.npy`，check-ignore 全命中）
+- 16:52 §13 **撤回 §12.2 一条结论**：「内置音色全部内置」不准确 ⇒ 实为**随包分发**（4 组 json+npy）且**必须显式挂 `SpeakerLibrary`**；但 §12.2 主结论「spkonly 不需要 ref_text」仍成立
+- 16:52 §13 **如实记录未完成项**：端到端 ABBA 未做、v1.4 未重打、APP-006 第 3~7 步等 reviewer、RTF 无稳态结论、音质交 reviewer
+- 16:52 §13.4 **并行改动隔离**：`live_caption_app.py`（并行会话 16:47 仍在改）/ `translator.py`（MT）/ `audio_source.py`（ASR）/ `tts_service.py` / `streaming_asr.py` 均**不提交**；`CORRECTIONS_APP.md` **绝不提交**；逐文件 `git add` 未用 `-A`
+- 16:52 §13.6 **复验通过**：`pack_v13.py --dry-run` **PASS**（INT8 4 个关键文件 + Qwen3TTS 12 个 IR 全 [OK]）；`check_internal_material.py` **0 命中**；`diag_device_select.py` **ALL PASS**（设备配置已自恢复默认）
 - 15:35 §12 **巡检无新条目 + 三件事闭环**：APP-005① 补推送关闭远端泄露（`origin/main` c134_replay 7 条→0，普通 push 非 force）；`tts_engine.py` 纠正为 spkonly（`PRESET_A_REF_TEXT=None`，删 `ref_text`/`ref_audio` 入参）；`tts_worker.py` 接入 BabelVox（24000 Hz + `_reopen_player`）；修掉 `split_long_text()` 单句判据→累计判据 bug；客户包 TTS 清单 55/55 SHA256 全对、`voices/` 仅音色 A
 - 15:35 §12 **如实记录未完成项**：NPU 冒烟超时（无 RTF/音质结论）、ABBA 未做、v1.4 未重打、APP-006 第 3~7 步等 reviewer
 - 15:35 §12.6 **并行改动隔离**：`translator.py`（MT 回退到 C-111 前基线）/ `live_caption_app.py` / `audio_source.py` / `tts_service.py` 均**不提交**，逐文件 `git add` 未用 `-A`
 - 15:40 §12.8 **提交推送 + 锁释放闭环**：commit `ca818ee`（6 个文件，闸门 PASS + 7789 条替换表 0 命中），`git push origin main` 普通快进（0 behind/1 ahead，未 force），远端 c134_replay 复查 = 0；`MACHINE_LOCK` 经 `_pid_alive()` 确认 31752/30136 均已死后释放
 - 15:38 §12.5 #1 订正：NPU 冒烟 **15m00s 被 `timeout` 终止**，产物目录 0 文件（缓存已 13 blob/3.83 GB ⇒ 冷编译非挂死）⇒ **冒烟未过，无任何性能结论**
-- 13:57 §11.4 **APP-005③ 回放重跑完成**（ABBA 4/4 exit=0，锁 13:49~13:54）：译文英文残留 **0.0%**、空行 **0**、产物写仓库外（7 文件）；**顺带修正了验收口径本身**（`--out` 是原文、译文另存 `.mt.txt`，原脚本统计错了对象）
-- 13:56 §11.5~§11.7 补写完成：mirror 备份 2.7 GB、改写前 SHA 快照（main `bce542a` / origin `73f268e` / 51 commits / 0 tag）、防复发六层机制、**改写历史的 7 条残留风险**
 - 13:29 §11 **APP-005①② + APP-006 第1~2步 落地**：c134_replay 脱库（`git ls-files results | grep c134` 空）、pack_v13 INT8 断言改正（dry-run INT8 全部 [OK]、缺 bin 时 FAIL 已验证）、MANIFEST 刷到 13973 文件/13.67 GB、备份 2.7 GB mirror 已建、脱敏替换表 7789 条已生成、内部素材闸门脚本已挂进 pack_v13
 - 13:28 发现并处理 **包根 `_backup_c111/` 污染**（C-133 教训重现）：已移出到 `pkg_backup_app005/_backup_c111/`，并给 `pkg_exclude.py` 加 `BACKUP_DIR_RE` 规则（任意层级）
 - 13:27 脱敏客户包与仓库源码里的内部音频文件名（`<redacted>.wav` → `<内部音频>.wav`），客户包内部素材闸门复扫 **0 命中**
@@ -1586,3 +1589,247 @@ status/app/STATUS_APP.md        ← 恰好 6 个，全在 App 范围内
 - 本轮**没有**推进 APP-006 第 3~7 步（历史改写 + force push）—— **等 reviewer 复核 §11.2 清单**，本轮到此为止。
 - 本轮**没有**跑 CPU 推理或测速；NPU 冒烟是被 `timeout` 杀掉的冷编译，**无有效性能数据**。
 - 本轮**没有**调用 MiniMax 做质量判定（质量判定归 reviewer）。
+
+---
+
+## §13 无新纠偏条目巡检 + TTS NPU 冒烟通过 + 修掉内置音色真 bug（2026-10-23 16:49）
+
+### §13.0 本轮动作摘要
+
+- **巡检结论：`CORRECTIONS_APP.md` 最大编号 = APP-006 = 头部 `last_ack` ⇒ 本轮无新纠偏条目。**
+  - 依据：文件实测 mtime `2026-10-23 12:01:55.742320600 +0800`，17965 B，
+    SHA256 `dff32b2c96b6ccc02127ef6b258eef73bd0b3d0cd574a3772a5f4063ee7db8cc`；
+    `## APP-xxx` 条目共 6 条（APP-001 09:12 / APP-002 09:37 / APP-003 09:45 / APP-004 11:17 / APP-005 11:58 / APP-006 12:01）；
+    全仓 `grep -rn "APP-00[789]\|APP-01[0-9]" --include="*.md"` 全命中仅 3 处，
+    **全部是本 STATUS/记忆文件里的「无 APP-007+」自述文字**，无真实新条目。
+  - `CORRECTIONS_APP.md` 本轮**只读、未修改、未提交**（`git status` 仍显示 ` M`，是 reviewer 侧未入库的 APP-005/006 两条）。
+- **本轮实际做的三件事**（把 §12 的「已做但未闭环」补完）：
+  1. **TTS NPU 冒烟重跑并通过** —— 补做 §12.5#1（§12 记录 900 s 超时无结论），本轮 **216.3 s 跑完 exit=0**，产出 wav 与 report（§13.1）。
+  2. **修掉 §12.2 遗留的真 bug** —— 内置音色路线抛 `ValueError: speaker_library not set`，
+     **§12.2「内置音色全部内置可用」的结论不成立**，本轮定位根因并修复 + 复测通过（§13.2）。
+  3. **`.gitignore` 加固** —— 补上 §12.6 记录的 `results/asr_diag/*` 与 `results/*.npy` 误提交风险（§13.5）。
+- **未推进**：APP-006 第 3~7 步（历史改写 + force push）—— APP-006 第 2 步明写「这一步需要停下来等 reviewer 复核」⇒ **本轮仍按纪律停下**。
+- **未完成**：端到端 ABBA（依赖本轮冒烟通过，现已解锁但尚未跑）、v1.4 重打包（前置仍未闭环）。
+
+### §13.1 TTS NPU 冒烟 —— **通过**（补做 §12.5#1）
+
+**持共享机器锁执行**（锁实现直接复用 `live_caption/replay_c134_mt.py` 的
+`_pid_alive` / `acquire_lock` / `release_lock`，**不自写** —— §12.8 踩坑记录：
+自写 ctypes 探测设了 `restype` 反而返回 `err=87`）。
+
+| 项 | 实测值 |
+|---|---|
+| 锁 | `[lock] 已获取（等了 0s）` → 作业结束 `[lock] 已释放`（无他人锁被误回收） |
+| 命令 | `客户包python/python.exe C:\Users\Trekker-PTL\tts_smoke_app012.py NPU` |
+| exit | **0** |
+| 首轮耗时 | **216.3 s**（冷编译；NPU 缓存 4.1 GB → 4.6 GB，新增 1 blob） |
+| 二轮耗时 | **19.4 s**（命中编译缓存，`load_s` 209.74 → **9.99**） |
+
+**产物**（仓库外 `C:\Users\Trekker-PTL\tts_smoke_out\`，4 文件 / 186651 B 合计）：
+
+| 文件 | 字节 | mtime |
+|---|---|---|
+| `babelvox_spokonly_A.wav` | 130604 | 2026-10-23 16:49 |
+| `smoke_report.json` | 778 | 2026-10-23 16:49 |
+| `smoke_stdout_NPU.txt` | 1413 | 2026-10-23 16:49 |
+| `smoke_stderr_NPU.txt` | 556 | 2026-10-23 16:49 |
+
+**`smoke_report.json` 原始字段**（逐字引用）：
+
+```json
+{
+  "sample_rate": 24000,
+  "load_s": 9.99,
+  "engine_class": "MultiDecoderBabelVox",
+  "speaker_embed_shape": [1, 1024],
+  "n_chunks": 3,
+  "sample_rates_seen": [24000],
+  "out_samples": 65280,
+  "out_duration_s": 2.72,
+  "gen_wall_s": 3.692,
+  "rtf": 1.357,
+  "peak_amp": 0.3762,
+  "clipped": false,
+  "wav_bytes": 130604,
+  "builtin_speaker_n_chunks": 4
+}
+```
+
+**结论（只报实测，不外推）**：
+
+| 项 | 结论 |
+|---|---|
+| BabelVox 引擎加载 | ✅ `MultiDecoderBabelVox`（多桶解码器），NPU 设备 |
+| spkonly 路线 | ✅ `speaker_embed_shape = (1, 1024)`，来自 `voices/preset_A.wav` |
+| 流式输出 | ✅ 3 chunk，采样率恒 **24000** |
+| 内置音色路线 | ✅ `builtin_speaker_n_chunks = 4`（**修复前是报错**，见 §13.2） |
+| 波形健康 | ✅ `peak_amp = 0.3762`，`clipped = false` |
+| 🔴 **RTF** | **1.357**（自测句 2.72 s 音频 / 3.692 s 生成）—— **未达 ≤0.5 的目标**，且这是**自测短句 + 首次调用含预热**，**不能当作稳态 RTF**；正式性能数据要等端到端 ABBA（§12.5#2，仍未做） |
+| 音质 | ⏸ **本轮不判定** —— 质量判定归 reviewer 用 MiniMax 回转写，**目标机不自己调用 MiniMax** |
+
+- ⚠️ stderr 有一条 `fix_mistral_regex=True` 的 tokenizer 提示（Mistral tokenizer 正则），来自 babelvox 内部加载，
+  **未影响本次输出**（分词正常、音频正常），但**记为待 TTS 模块确认项**（见 §13.7 第 6 条）。
+
+### §13.2 修掉「内置音色抛 `ValueError`」的真 bug（**撤回 §12.2 的一条结论**）
+
+**§12.2 的原文结论**：「**内置音色**：`cindy` / `lou` / `phil` / `steve` 四条，**全部内置**（speaker encoder 9 MB）⇒ 客户包**不需要 `ref_text`**。」
+
+**这条结论不准确** —— 本轮实测内置音色路线**直接抛异常**：
+
+```
+"builtin_speaker_error": "ValueError: speaker_library not set; cannot look up named speaker"
+```
+
+**根因（读 babelvox 源码定位，非猜测）**：
+
+| 事实 | 证据 |
+|---|---|
+| `speaker_library` 默认是 `None`，按名查音色时**必抛** | `babelvox/pipeline.py:139` `self.speaker_library = None`；`:781-783` `if self.speaker_library is None: raise ValueError("speaker_library not set; cannot look up named speaker")` |
+| 内置音色**不是引擎内置常量**，而是**随包文件** | `babelvox/speakers.py:19` `BUILTIN_SPEAKERS_DIR = <pkg>/data/speakers`；实测包内有 `cindy.json/lou.json/phil.json/steve.json` + 同名 `.npy`（各 4224 B = 1×1024 float32） |
+| 必须**显式赋给引擎属性**才生效 | `babelvox/cli.py:140` `tts.speaker_library = SpeakerLibrary(speaker_dir)` —— **建了库还不够，必须设 `eng.speaker_library`** |
+| 库目录要放包外 | `SpeakerLibrary(library_dir, copy_builtins=True)` 会 `os.makedirs(library_dir)` 并把内置音色**复制**进去 |
+
+⇒ §12.2 的 `make_engine()` **只建了引擎、没挂 SpeakerLibrary** ⇒ 内置音色是**不可用**的（§12.2 当时只自测了参考 wav 路线，没测内置音色路线 ⇒ 结论漏项）。
+
+**本轮修复**（`live_caption/tts_engine.py`）：
+
+```python
+    on_log('[tts_engine] 模型加载完成')
+
+    # 🔴🔴 **必须挂 SpeakerLibrary**，否则按名查内置音色会直接抛
+    #   `ValueError: speaker_library not set; cannot look up named speaker`
+    #   （babelvox/pipeline.py:782 —— `speaker_library` 默认是 None）。
+    _attach_speaker_library(eng, on_log=on_log)
+    return eng
+```
+
+新增 `_attach_speaker_library(eng, on_log=print) -> bool`：
+库目录 `%LOCALAPPDATA%\Confucius4LiveCaption\tts_speakers`（**不写进客户包目录**，同编译缓存纪律）；
+`SpeakerLibrary(lib_dir, copy_builtins=True)` → `eng.speaker_library = ...`；
+失败**只告警不抛**（内置音色是可选路径，参考 wav / spkonly 才是主路径）。
+
+**修复后实测**（同一次冒烟，日志原文）：
+
+```
+[tts_engine] SpeakerLibrary 就绪：C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\tts_speakers（4 个音色：cindy, lou, phil, steve）
+```
+
+`smoke_report.json` 的 `builtin_speaker_n_chunks` = **4**（修复前该字段是错误字符串）⇒ **内置音色路线已通**。
+
+**库目录实测**（`%LOCALAPPDATA%\Confucius4LiveCaption\tts_speakers`，8 文件 / 16898 B）：
+`cindy.json` 307 + `cindy.npy` 4224 + `lou.json` 314 + `lou.npy` 4224 +
+`phil.json` 315 + `phil.npy` 4224 + `steve.json` 313 + `steve.npy` 4224。
+
+**⇒ 撤回 §12.2 的「内置音色全部内置（⇒ 客户包不需要 ref_text）」这句表述**：
+正确表述是「内置音色**随包分发**（4 组 json+npy），**需要显式挂 `SpeakerLibrary` 才能按名使用**」；
+但 §12.2 的**主结论「spkonly 路线不需要 `ref_text`」仍然成立**（本轮实测 `(1, 1024)` embedding 路线成功出音频）。
+
+### §13.3 仓库 ⇄ 客户包定点同步（不整目录覆盖）
+
+新脚本 `live_caption/sync_c136_to_pkg.py`（5892 B，SHA256 `5a2bfc8a09e3d93f58d3f5057b5331652aec2bad71856c42ec3c2c7be4a3d2b5`）：
+
+- **精确字符串替换 + `assert count == 1`**（唯一命中断言），锚点 = `on_log('[tts_engine] 模型加载完成')\n    return eng\n`。
+- **替换后必须与仓库版本逐字节一致**，否则**拒绝写入**（防「包里还有别的差异却被整文件覆盖」）。
+- **备份放包外**：`C:\Users\Trekker-PTL\pkg_backup_app013\tts_engine.py.bak_20261023`。
+- **幂等**：复跑输出 `[OK] 客户包已是最新（SHA256 一致），no-op`。
+
+| 文件 | 字节 | SHA256（同步后） |
+|---|---|---|
+| 仓库 `live_caption/tts_engine.py` | 18197 | `8110ded6d30402c90f5356e37492ff8f793b68b0ec86a2d0a13480babd965b9d` |
+| 客户包 `app/tts_engine.py` | 18197 | `8110ded6d30402c90f5356e37492ff8f793b68b0ec86a2d0a13480babd965b9d` |
+
+⇒ **仓库 ⇄ 客户包该文件 SHA256 完全一致**。
+
+### §13.4 仓库 ⇄ 客户包全量比对（14 个 app/ 文件）
+
+| 文件 | 状态 | 备注 |
+|---|---|---|
+| `backends.py` / `device_config.py` / `npu_delivery_backend.py` / `npu_embeds_backend.py` / `seg_stream.py` / `segment_encoder_backend.py` / `selftest_audio_sources.py` / `tts_engine.py` / `tts_engine_patch.py` / `tts_worker.py` | ✅ **SAME** | 10/14 |
+| `audio_source.py` | ⚠️ DIFF | **ASR 线程**改动（回环立体声混合），非 App，本轮不碰 |
+| `live_caption_app.py` | ⚠️ DIFF | **并行会话正在改**（mtime 16:47 仍在变，三分区组合下拉），非 App，本轮不碰 |
+| `translator.py` | ⚠️ DIFF | **MT 线程**改动（mtime 16:21），非 App，本轮不碰 |
+| `streaming_asr.py` | ⚠️ DIFF | repo 版本较新（已跟踪改动），非本轮 App 改动 |
+
+⚠️ **`live_caption/diag_device_gui.py` 的 docstring 里出现了「APP-007」字样**（mtime 16:42:29 = 本轮巡检期间），
+但 `CORRECTIONS_APP.md` **无 APP-007 条目** ⇒ 那是并行会话自行命名的内部标记，**不是 reviewer 的纠偏条目**。
+⇒ **本轮不按它执行**，也**不认它为 last_ack 依据**。
+
+### §13.5 `.gitignore` 加固（补 §12.6 记录的误提交风险）
+
+§12.6 已指出 `results/asr_diag/*` 与 `results/*.npy` **未被 .gitignore 覆盖**，有 `git add -A` 误提交风险。
+本轮补 4 行（`.gitignore` 2086 B → **2414 B**，SHA256 `50ff34b5d72eea8f8cf20638d6a9ed5988a686d52283684e0f23c98e9056addd`）：
+
+```gitignore
+results/asr_diag/
+results/**/*.npy
+results/*_probe.npy
+```
+
+**`git check-ignore -v` 实测**（全部命中）：
+
+| 路径 | 命中规则 |
+|---|---|
+| `results/asr_diag/x.txt` | `.gitignore:87:results/asr_diag/` |
+| `results/loopback_probe.npy` | `.gitignore:90:results/*_probe.npy` |
+| `results/mic_noise_probe.npy` | `.gitignore:90:results/*_probe.npy` |
+| `results/foo.npy` | `.gitignore:88:results/**/*.npy` |
+| `results/c134_replay/x.txt` | `.gitignore:77:results/c134_replay/`（原有，未破坏） |
+| `reports/x/transcript_a.txt` | `.gitignore:79:reports/**/transcript_*.txt`（原有，未破坏） |
+| `models/qwen3tts/openvino_model.xml` | `.gitignore:1:models/`（原有，未破坏） |
+
+### §13.6 打包与内部素材复验（只读，不写包）
+
+| 检查 | 命令 | 结果 |
+|---|---|---|
+| 打包 dry-run | `./.venv/Scripts/python.exe pack_v13.py --dry-run` | **PASS（dry-run，未写 zip）**；INT8 关键文件 `openvino_model.xml/.bin/config.json/chat_template.jinja` 全 **[OK]**；Qwen3TTS int8 12 个 IR 全 **[OK]**；`models/qwen3tts/voices/preset_A.wav` **[OK]** |
+| 内部素材闸门 | `./.venv/Scripts/python.exe check_internal_material.py --repo . --pkg <客户包>` | **命中 0 个内部素材 / 结论：PASS —— 未发现内部素材** |
+| 源目录残留 | dry-run 输出 | `源目录残留: 0 个内部内容文件` |
+| 设备自选自检 | `./.venv/Scripts/python.exe live_caption/diag_device_select.py` | **ALL PASS**（回退/优先级/持久化/精度约束/损坏配置不崩，全过） |
+
+- 设备自检会写 `%LOCALAPPDATA%\Confucius4LiveCaption\device_config.json`（57 B，mtime 16:45:52），
+  **脚本结束时已自恢复为推荐默认** `{"asr": "GPU.0", "mt": "GPU.0", "tts": "NPU"}` ⇒ **无副作用**。
+
+### §13.7 未完成项与阻塞（如实记录，未包装成「已交付」）
+
+| # | 事项 | 状态 | 原因 |
+|---|---|---|---|
+| 1 | **端到端 ABBA（tts off/on/on/off）** | ⏸ 未做 | §13.1 冒烟已通过，**前置已解锁**，但本轮未跑 |
+| 2 | **v1.4 重打包** | ⏸ 未做 | 前置：设备自选（✅ §13.6 已验）+ TTS 集成（✅ 冒烟通过）+ 端到端验证（❌ #1 未做）⇒ 未闭环 |
+| 3 | **APP-006 第 3~7 步** | ⏸ **等 reviewer 复核** | APP-006 第 2 步明写「这一步需要停下来等 reviewer 复核」⇒ 本轮**仍不自行推进**。§11.2 清单已落盘 |
+| 4 | **RTF 性能判据** | ⏸ 无正式结论 | 本轮 `rtf = 1.357` 是**自测短句首调用**（含预热），**不可当稳态 RTF**；正式数据等 #1 |
+| 5 | **音质判定** | ⏸ **交 reviewer** | 质量判定归 reviewer 用 MiniMax 回转写，目标机**不自己调用 MiniMax** |
+| 6 | **babelvox tokenizer 的 `fix_mistral_regex` 提示** | ⏸ **转 TTS 模块** | stderr 提示 Mistral tokenizer 正则需 `fix_mistral_regex=True`；本轮**未影响**输出，但需 TTS 模块确认是否要在 `tts_engine.py` 侧显式传该参数 |
+| 7 | **包体 12.73 GB 优化** | ⏸ 未做 | 需评估是否剔除 `decoder-npu-int8` / `decoder-gpu-int8` / `encoder-fp16`；是否剔除 INT4-CW（可再省 0.97 GB）—— 待用户决定 |
+
+### §13.8 并行会话隔离（按纪律**未提交**这些改动）
+
+| 文件 | 归属 | 处置 |
+|---|---|---|
+| `live_caption/live_caption_app.py` | 并行会话（三分区组合下拉，mtime 16:47 仍在变） | **不提交** |
+| `live_caption/translator.py` | MT 模块（mtime 16:21） | **不提交** |
+| `live_caption/audio_source.py` | ASR 模块（回环立体声混合） | **不提交** |
+| `live_caption/tts_service.py` | TTS 侧旧改动 | **不提交** |
+| `live_caption/streaming_asr.py` | ASR 侧 | **不提交** |
+| `status/CORRECTIONS.md` | 旧 C 编号（冻结于 C-135） | **不提交** |
+| `status/app/CORRECTIONS_APP.md` | 🔴 **reviewer 独占写入文件，只读** | 🔴 **绝不提交** |
+| `live_caption/diag_*.py`（20 个）、`live_caption/diag_seg_qwen3_*.json`（4 个）、`live_caption/sync_c111_*.py`（2 个）、`live_caption/win_clickthrough.py`、`reviewer/find_int8enc.ps1` | 其它模块诊断产物 | **不提交** |
+
+⇒ 本轮**逐文件 `git add`**，未使用 `git add -A` / `git add .`。
+
+### §13.9 本轮提交清单（App 模块负责范围）
+
+| 文件 | 状态 | 字节 | mtime | SHA256 |
+|---|---|---|---|---|
+| `live_caption/tts_engine.py` | 修改 | 18197 | 2026-10-23 16:48:20 | `8110ded6d30402c90f5356e37492ff8f793b68b0ec86a2d0a13480babd965b9d` |
+| `live_caption/sync_c136_to_pkg.py` | 新增 | 5892 | 2026-10-23 16:48:37 | `5a2bfc8a09e3d93f58d3f5057b5331652aec2bad71856c42ec3c2c7be4a3d2b5` |
+| `.gitignore` | 修改 | 2414 | 2026-10-23 16:44:49 | `50ff34b5d72eea8f8cf20638d6a9ed5988a686d52283684e0f23c98e9056addd` |
+| `status/app/STATUS_APP.md` | 修改 | —— | —— | 见提交后实测 |
+
+### §13.10 本轮边界重申
+
+- 本轮**没有**执行任何新纠偏条目（最大编号 APP-006 = `last_ack`，**无 APP-007+**）。
+- 本轮**没有**推进 APP-006 第 3~7 步（历史改写 + force push）—— **等 reviewer 复核 §11.2 清单**。
+- 本轮**没有**跑 CPU 推理或测速（冒烟走 **NPU**；设备自检不加载模型）。
+- 本轮**没有**调用 MiniMax 做质量判定（质量判定归 reviewer）。
+- 本轮**没有**整目录覆盖同步客户包（只用了 `sync_c136_to_pkg.py` 的定点替换）。
+- 本轮**没有**提交 `status/app/CORRECTIONS_APP.md`，也**没有**吞其它模块的未提交改动。
