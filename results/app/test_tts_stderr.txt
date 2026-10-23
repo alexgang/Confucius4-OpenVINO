@@ -1,0 +1,15 @@
+[1] stderr 行被读出 + stdout 状态行仍正常
+  [ OK ] stderr 行出现在 on_log  -- ['[TTS][stderr] HELLO_STDERR_MARKER']
+  [ OK ] stderr 行带 [TTS][stderr] 前缀
+  [ OK ] worker 进入 ready 状态
+  [ OK ] stdout 分支未受影响（无 stderr 前缀污染 ready 行）
+[3] stderr 写 >512 KB：worker 不被堵死，ready 仍能到达
+  [ OK ] flood 模式下 worker 仍能 emit ready（未被 stderr 写满堵死）
+  [ OK ] 读到了大量 stderr 行（>1000 行）  -- n=3000
+  [ OK ] worker 进程还活着（poll() is None）
+[4] worker 崩溃：traceback 不被静默吞掉
+  [ OK ] 崩溃 traceback 出现在 on_log
+  [ OK ] 崩溃被记为 error 状态
+============================================================
+结果：9/9 PASS
+============================================================

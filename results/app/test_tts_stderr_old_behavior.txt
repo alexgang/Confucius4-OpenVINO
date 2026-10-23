@@ -1,0 +1,8 @@
+旧行为（stderr 无人读）：
+  worker 是否 emit ready : False
+  worker 进程是否还活着   : True   (poll=None)
+  观察时长                 : 60.1s
+  日志条数                 : 0
+
+⇒ 结论：旧行为**死锁确认**（worker 卡在 write(stderr)，永不发 ready）。
+        修复后同一场景 9/9 PASS（见 test_tts_stderr.txt）。

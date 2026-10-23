@@ -144,11 +144,37 @@ class TTSService:
 
     def _start_reader(self):
         """后台线程读 worker 的 stdout（状态行）与 stderr（日志）。"""
-        t = threading.Thread(target=self._read_loop, daemon=True)
-        t.start()
-
-    def _read_loop(self):
         proc = self.proc
+        if proc is None:
+            return
+        t = threading.Thread(target=self._read_loop, args=(proc,), daemon=True)
+        t.start()
+        # 🔴 stderr **必须**有独立读者（2026-10-24 §20 修）。
+        #   原因：worker 的 traceback / 库的告警都走 stderr ⇒
+        #   ① 不读 ⇒ **静默吞掉崩溃原因**（排查时完全看不到东西）；
+        #   ② 不读 ⇒ 管道缓冲区（Windows 约 64 KB）写满后 worker 会
+        #      **阻塞在 write(stderr)** ⇒ 表现为「worker 永不 ready」
+        #      的假死（和 §15 的 import 死锁症状一样，极难定位）。
+        #   ⚠️ 不能合并进 _read_loop —— 那个循环在 stdout 关闭才结束，
+        #      而 stdout 的行是稀疏的 ⇒ stderr 会一直堵着没人读。
+        t2 = threading.Thread(target=self._read_stderr_loop, args=(proc,), daemon=True)
+        t2.start()
+
+    def _read_stderr_loop(self, proc):
+        """把 worker 的 stderr 逐行转给 `on_log`（不再静默丢弃）。"""
+        if proc is None or proc.stderr is None:
+            return
+        try:
+            for line in proc.stderr:
+                line = line.rstrip('\r\n')
+                if not line:
+                    continue
+                self.on_log(f'[TTS][stderr] {line}')
+        except Exception:
+            # stderr 在进程退出时关闭 → readline 抛 ValueError/IOError 属正常
+            pass
+
+    def _read_loop(self, proc):
         if proc is None:
             return
         try:

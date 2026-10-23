@@ -1,0 +1,11 @@
+{
+ "status": "synced",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.4\\app",
+ "file": "tts_service.py",
+ "sha_pkg_before": "84775a1d5c463ec65bc567ac6c061db5d4aa058ce224ad0e8d792e58657e9760",
+ "sha_pkg_after": "9ece6694b7065f8e519dd10edd561d512d870774894e76e4359897269074b303",
+ "bytes": 18184,
+ "mtime": 1792791700.9353068,
+ "repo_sha256": "9ece6694b7065f8e519dd10edd561d512d870774894e76e4359897269074b303",
+ "identical_to_repo": true
+}

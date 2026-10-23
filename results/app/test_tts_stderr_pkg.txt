@@ -1,0 +1,13 @@
+导入的 tts_service 来自: C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4\app\tts_service.py
+[1] 包内版本：stderr 被读出
+  [ OK ] stderr 行出现在 on_log
+  [ OK ] 带 [TTS][stderr] 前缀
+  [ OK ] worker 进入 ready
+[2] 包内版本：stderr 写满 512 KB 不死锁
+  [ OK ] worker 仍能 emit ready
+  [ OK ] 读满 3000 行 stderr  -- n=3000
+[3] 包内版本：崩溃 traceback 不静默
+  [ OK ] traceback 出现在 on_log
+============================================================
+结果：6/6 PASS
+============================================================
