@@ -61,6 +61,12 @@ EVIDENCE = {}
 
 STUB = os.path.join(HERE, '_stub_close_worker.py')
 
+# 🔴 **反证基线**：§31 修复**之前**的那个 commit
+#   ⇒ 用 `git show <基线>:<file>` 取修复前的源码跑同样的场景 ⇒ 证明缺陷曾真实存在。
+# ⚠️ **不能**用 `HEAD`（提交后 HEAD 就是修复版了 ⇒ 反证会永远落空）。
+# ⚠️ **不能**依赖临时备份目录（清理后就没了）⇒ 用**固定的 commit SHA**。
+BASELINE_COMMIT = '5b99bfd^'      # = §31 修复前的最后一个 commit
+
 # ── 桩 worker：ready 之后**不回 played**（句子永远在途）──────────────────
 #   ⛔ **stdin EOF 后必须继续活着** ⇒ 否则 worker 退出 ⇒ 触发自动重启
 #      ⇒ 掩盖「命令送不出去 / 句子永远等不到结果」这个待测缺陷。
@@ -178,30 +184,50 @@ def group_a():
     #   ⚠️ 组间**必须各自显式设置**模块级常量（否则串到后面的组）。
     tts_service.BACKLOG_MAX_S = 1e9
 
-    # ── 反证：用**修复前**的源码副本跑同样的场景 ⇒ 缺陷必须复现 ──
+    # ── 反证：用**修复前**的源码跑同样的场景 ⇒ 缺陷必须复现 ──
     # ⚠️ 不能在同一个进程里 monkeypatch（改的是类方法，桩 worker 也要重起）
     #    ⇒ 用**子进程**跑修复前那份 `tts_service.py`。
-    old_mod = os.path.join(HERE, 'bak_s31', 'tts_service.py.bak_s31')
-    if os.path.exists(old_mod):
-        import subprocess
+    import subprocess
+    old_src = None
+    try:
+        r = subprocess.run(
+            ['git', 'show', '%s:live_caption/tts_service.py' % BASELINE_COMMIT],
+            cwd=REPO, capture_output=True, text=True, encoding='utf-8',
+            errors='replace', timeout=120)
+        if r.returncode == 0:
+            old_src = r.stdout
+    except Exception:
+        pass
+
+    if old_src:
+        old_mod = os.path.join(HERE, '_old_tts_service_s31.py')
+        with open(old_mod, 'w', encoding='utf-8', newline='') as f:
+            f.write(old_src)
         probe = os.path.join(HERE, '_probe_old_close.py')
         with open(probe, 'w', encoding='utf-8') as f:
             f.write(OLD_PROBE)
-        r = subprocess.run([sys.executable, probe, old_mod, STUB],
-                           capture_output=True, text=True, timeout=120)
         try:
-            out = json.loads((r.stdout or '').strip().splitlines()[-1])
-        except Exception:
-            out = {}
-        # ⚠️ **这条是「证明缺陷曾经存在」** ⇒ 命中是**预期**的
-        #    ⇒ 归 **REAL** 组（断言「修复前不变式确实被破坏」成立）
-        #    ⇒ **不能**放 BUG 组（BUG 组 = 「缺陷仍然存在」，命中即 FAIL）。
-        real('A1 修复前的 close() 确实破坏不变式（反证：缺陷曾真实存在）',
-             out.get('invariant_broken') is True,
-             f'修复前 sum={out.get("sum")} submitted={out.get("submitted")}')
-        EVIDENCE['A1_old'] = out
+            r = subprocess.run([sys.executable, probe, old_mod, STUB],
+                               capture_output=True, text=True, timeout=120)
+            try:
+                out = json.loads((r.stdout or '').strip().splitlines()[-1])
+            except Exception:
+                out = {}
+            # ⚠️ **这条是「证明缺陷曾经存在」** ⇒ 命中是**预期**的
+            #    ⇒ 归 **REAL** 组（断言「修复前不变式确实被破坏」成立）
+            #    ⇒ **不能**放 BUG 组（BUG 组 = 「缺陷仍然存在」，命中即 FAIL）。
+            real('A1 修复前的 close() 确实破坏不变式（反证：缺陷曾真实存在）',
+                 out.get('invariant_broken') is True,
+                 f'修复前 sum={out.get("sum")} submitted={out.get("submitted")}')
+            EVIDENCE['A1_old'] = out
+        finally:
+            for p in (old_mod, probe):
+                try:
+                    os.remove(p)
+                except Exception:
+                    pass
     else:
-        print('  [skip] A1 —— 找不到修复前副本，跳过反证')
+        print('  [skip] A1 —— 取不到修复前源码，跳过反证')
 
     # ── 修复后的真实路径 ──
     svc = make_svc()
@@ -377,21 +403,17 @@ def group_c():
          ('if flushed' in fn_src or 'if self.mt.pending' in fn_src),
          'guarded')
 
-    # 反证：对**修复前的源码副本**（git HEAD 版）断言「确实缺 wait_idle」
+    # 反证：对**修复前**的源码断言「确实缺 wait_idle」
     #   ⇒ 命中 = 缺陷在修复前复现（反证证据）
-    #   ⇒ 修复后（工作区版）**不应该**命中 ⇒ 必须在 BUG 组里「落空」
     # ⚠️ **不能**用 HEAD 当反证对象：修复提交之后 HEAD 就变成修复版了
-    #    ⇒ 反证会永远命中 ⇒ 总判定永远 FAIL。
-    #    ⇒ 用**提交前保存的副本** `live_caption_app.py.bak_s31`（若无则跳过）。
+    #    ⇒ 反证会永远落空 ⇒ 失去证据价值。
+    #    ⇒ 用**固定的基线 commit** `BASELINE_COMMIT`（= 修复前那版）。
     import subprocess
-    bak = os.path.join(HERE, 'bak_s31', 'live_caption_app.py.bak_s31')
     try:
-        if os.path.exists(bak):
-            old_src = open(bak, 'r', encoding='utf-8').read()
-        else:
-            old_src = subprocess.run(
-                ['git', 'show', 'HEAD:live_caption/live_caption_app.py'],
-                cwd=REPO, capture_output=True, text=True, timeout=60).stdout
+        old_src = subprocess.run(
+            ['git', 'show', '%s:live_caption/live_caption_app.py' % BASELINE_COMMIT],
+            cwd=REPO, capture_output=True, text=True, encoding='utf-8',
+            errors='replace', timeout=120).stdout
         h_tree = ast.parse(old_src)
         h_quit = None
         for node in ast.walk(h_tree):
