@@ -83,7 +83,18 @@ DEFAULT_ALLOW = (
     'live_caption/device_config.py',
     'live_caption/live_caption_app.py',
     'live_caption/translator.py',
-    'README',
+)
+
+# 🔴 **精确匹配**放行（不是前缀！）
+# ---------------------------------------------------------------------------
+# 背景（APP-010 实测发现）：原先 `DEFAULT_ALLOW` 里有 `'README'` 这个**前缀**项
+# ⇒ `README_zh.md` / `README_en.md` 因为以 `README` 开头而被**整份跳过内容扫描**
+# ⇒ 客户包 README 第 143 行里的内部产品代号（`blc b0` / `BLCC B0`）**真实漏检**。
+#
+# ⚠️ 放行 README 的原意是「仓库根 README.md 里合法地提到这些名字」，
+#    而**不是**放行所有 README* 文件 ⇒ 必须精确匹配文件名。
+DEFAULT_ALLOW_EXACT = (
+    'README.md',
 )
 
 # 明确要扫的二进制扩展名（只查文件名，不读内容）
@@ -94,8 +105,10 @@ SKIP_CONTENT_EXT = {
 }
 
 
-def _allowed(rel: str, allow):
+def _allowed(rel: str, allow, allow_exact=()):
     norm = rel.replace('\\', '/')
+    if norm in allow_exact:
+        return True
     return any(norm.startswith(a) for a in allow)
 
 
@@ -119,7 +132,7 @@ def _scan_content(path: str):
     return None
 
 
-def scan_dir(root: str, allow, verbose=False):
+def scan_dir(root: str, allow, verbose=False, allow_exact=()):
     """扫描一个目录树，返回 [(relpath, reason)]。"""
     hits = []
     for dirpath, dirs, files in os.walk(root):
@@ -129,7 +142,7 @@ def scan_dir(root: str, allow, verbose=False):
         for fn in files:
             full = os.path.join(dirpath, fn)
             rel = os.path.relpath(full, root).replace('\\', '/')
-            if _allowed(rel, allow):
+            if _allowed(rel, allow, allow_exact):
                 continue
             why = _scan_name(rel)
             if why:
@@ -146,7 +159,7 @@ def scan_dir(root: str, allow, verbose=False):
     return hits
 
 
-def scan_staged(repo: str, allow, verbose=False):
+def scan_staged(repo: str, allow, verbose=False, allow_exact=()):
     """扫描 git **待提交**（index 相对 HEAD）的文件，返回 [(relpath, reason)]。"""
     hits = []
     try:
@@ -159,7 +172,7 @@ def scan_staged(repo: str, allow, verbose=False):
     names = out.stdout.decode('utf-8', errors='replace').splitlines()
     for rel in names:
         rel = rel.strip()
-        if not rel or _allowed(rel, allow):
+        if not rel or _allowed(rel, allow, allow_exact):
             continue
         why = _scan_name(rel)
         if why:
@@ -194,13 +207,14 @@ def main():
         return 2
 
     allow = list(DEFAULT_ALLOW) + list(args.allow)
+    allow_exact = tuple(DEFAULT_ALLOW_EXACT)
     total = 0
 
     if args.pkg:
         if not os.path.isdir(args.pkg):
             print(f'!! 目录不存在: {args.pkg}', file=sys.stderr)
             return 2
-        hits = scan_dir(args.pkg, allow, args.verbose)
+        hits = scan_dir(args.pkg, allow, args.verbose, allow_exact)
         total += len(hits)
         print(f'[待打包目录] {args.pkg}')
         print(f'  命中 {len(hits)} 个内部素材')
@@ -210,7 +224,7 @@ def main():
             print(f'    …另有 {len(hits) - 50} 个')
 
     if args.staged:
-        hits = scan_staged(args.repo, allow, args.verbose)
+        hits = scan_staged(args.repo, allow, args.verbose, allow_exact)
         total += len(hits)
         print(f'[git 待提交] {args.repo}')
         print(f'  命中 {len(hits)} 个内部素材')

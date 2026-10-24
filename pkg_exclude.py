@@ -26,7 +26,7 @@ C-133 / APP-002：客户包瘦身（删除编译缓存等不进包的文件）�
 | `app/reports/`、`reports/` | 运行期报告输出，不是交付物 |
 | `*.bak*` | 开发期备份（`.bak_c105` / `.bak_instruct_20261022` / `.bak_mtdev_20261019` …） |
 | `results/**/*_spoken.*` | 🔴 **内部会议录音的转写/翻译**（APP-003①）。`results/mt2_acc_outputs/int8_gpu_spoken.txt` 第 2 行是「[REDACTED-内部会议引文]」⇒ 属 BRIEF 规定的「会议录音不能进客户包」 |
-| `results/mt2_memory.json` | 🔴 **同样含内部会议内容**（APP-003①，reviewer 未点名，本模块实测发现）。该文件的 `out` 字段是「[REDACTED-内部会议引文]—— 是 `spoken` 语料的译文示例 |
+| `results/mt2_memory.json` | 🔴 **同样含内部会议内容**（APP-003①，reviewer 未点名，本模块实测发现）。该文件的 `out` 字段是「[REDACTED-内部会议引文]」—— 是 `spoken` 语料的译文示例 |
 
 **刻意保留**
 | 保留 | 理由 |

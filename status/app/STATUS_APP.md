@@ -1,10 +1,25 @@
 # STATUS_APP
-last_ack: APP-006
-更新时间: 2026-10-24 09:11
-当前任务: **巡检无新纠偏条目（最大编号 APP-006 = `last_ack`，第 8 次同一口径复核）+ 修掉 `tts_service.py`「一句话合成失败 ⇒ 整个会话语音输出永久死掉 + drain 必超时 + `_queue` 无界增长」**：🔴🔴 `error` 事件未区分**句子级**（带 `id`）/ **worker 级**（不带 `id`）⇒ 一句失败即 `state="error"` ⇒ CLI 不再提交、GUI 命令堆 `_queue` 永不发、`pending` 悬挂致 drain 白等、`_queue` 无上限；已按有无 `id` 分类 + 新增 `_inflight` 在途跟踪 + worker 侧补 `id`；**19/19 PASS**（含对客户包内那份单独跑同一套断言）。
-阻塞 / 待用户决定: ① **APP-006 第 3~7 步**：历史改写 + force push（等 reviewer 复核 §11.2 清单；§16.6.2 已复查确认远端仍有 **85 个**会议转写载体；且**改写后所有 SHA 全变** ⇒ 并行线程需重新 `clone --reset`）—— **本轮未推进**（该条第 2 步明确要求停下等复核）；② **v1.4 TTS 实时性不达标**（首包 P50 5465.6 ms / P95 7822.65 ms、丢句 8/14、最大积压 11.13 s）—— 等 TTS 模块；③ **V7 残句代价**待用户确认；④ **包体 10.45 GiB** 优化（可评估剔除 `decoder-npu-int8`/`decoder-gpu-int8`/`encoder-fp16`）。
+last_ack: APP-010
+更新时间: 2026-10-24 21:03
+当前任务: **巡检复核（无新纠偏条目）+ 🔴🔴 修掉 `pack_v13.py`「直接写目标 zip ⇒ 打包中断会截断覆盖好包」+ 🔴🔴 修掉 `check_internal_material.py`「README 前缀放行 ⇒ 客户包 README 内部代号漏检」**：APP-007/008/009/010 已由并行会话在 §23 闭环（`last_ack` = **APP-010**，本轮接手时**无新条目待执行**）⇒ 本轮做**独立复核**（远端 `a565e26`，**6 项判据自己跑全 PASS**）+ 修两个 §23 未覆盖的真实缺口；⚠️ **交付 zip 已被写坏**（3 513 053 709 B 非有效 zip，17:19）⇒ 打包已改「临时文件 + 校验通过后原子改名」；⚠️ **重打 zip 未完成**（共享机器锁被 MT 持有，PID 32556 存活 ⇒ 等，未抢锁）。
+阻塞 / 待用户决定: ① 🔴 **交付 zip 是坏的/过时的**：`Confucius4_LiveCaption_v1.4.zip` = 3 513 053 709 B **非有效 zip**（17:19 写坏）；FTP_Share 副本 11 216 038 195 B **完好但过时**（09:10）⇒ **不含** APP-008①/APP-010 标注⇒ **客户拿不到含标注的成品包** —— **下一轮第一件事：持锁重打 + `verify_pkg_zip.py` 复核 + `publish_ftp.py` 重发**；② 🔴 **`shared/GIT_FREEZE` 未释放**（改写 20:44 已完成、远端已强推 `a565e26`）⇒ 三个并行线程仍在「不要提交」状态⇒ **已在 §24.8 提请 reviewer 释放**（App 不擅自删）；③ ⛔ **GitHub 旧 SHA 的 gc** 未做（§23.8）—— 需用户决定；④ ⛔ **APP-009② `translator.py` 的 C-111 合入**仍等 MT 的 H-014 最终方案（§23.10）；⑤ ⚠️ **`tts_worker.py` 的 TTS-006 改动未进包**（仓库 +9 行，包内缺）—— **TTS 模块管辖**，**已在 §24.8 请 reviewer 明确合入/同步责任**；⑥ ⛔ **v1.4 TTS 音质**未达标（TTS-009 排查中）⇒ TTS 保持实验性、默认关闭；⑦ ⛔ **包体 13 GB** 优化未做。
 
 ## 最近更新
+
+- 21:03 §24 **巡检复核（无新条目）**：`CORRECTIONS_APP.md` SHA256 `8ccf661c7f1ef5c…` / 27 413 B / mtime `2026-10-24 17:01:54`，`## APP-xxx` **10** 条（APP-001…APP-010）；接手时头部 `last_ack` = APP-006 ⇒ 有 4 条新条目 ⇒ **并行会话已于 20:44 写入 §23 并把 `last_ack` 更新为 APP-010** ⇒ 本轮**不重复执行**，改为**独立复核**。
+- 21:03 §24 ✅ **独立复核 APP-007/APP-009 历史改写**（不采信 §23 自述，全部自己跑）：远端 `a565e26`（本轮实测 `git fetch` 显示 `+ ab257b4...a565e26 main -> main (forced update)`）；**6 项判据全 PASS** —— 敏感路径 3 项 = **0 命中**、英文判据 = **0**、中文判据（8 条，UTF-8 pattern 文件 `-f`）= **0**、逐字会议原句 = **0**。
+- 21:03 §24 🔴 **撤回 §23.4 判据 1 的潜在误判**：中间版本实测有 **54 个提交**命中逐字原句（`_t_ctx.py` 10 句里 **7 句是原句**）⇒ 最终态已由 `literal:live_caption/_t_ctx.py` 整文件删除（= **0**）⇒ **最终 PASS**，但**「关键词判据归零 ≠ 无残留」** ⇒ 审查改写必须同时跑**关键词 + 逐字原句 + 敏感路径**三套判据。
+- 21:03 §24 🔴🔴 **修掉 `pack_v13.py`「直接写目标 zip ⇒ 打包中断截断覆盖好包」**：改前 `zipfile.ZipFile(ZIP, "w")` **立即截断**目标文件 ⇒ 17:19 那次并行会话被中断就把 11.2 GB 好包截成 3.5 GB 半成品，磁盘上**不再有完好副本**。⇒ 改为「写 `ZIP + '.tmp'` → 全部校验 → `os.replace()` 原子改名 → 失败删 .tmp 且**旧包一个字节不动**」（+52/−23 行；与 `publish_ftp.py` 既有写法对齐）。
+- 21:03 §24 ✅ **`pack_v13.py` 原子写验收 4/4 PASS**（脚手架包，**未碰真实 13 GB 包**）：**A 旧包不被破坏**（173 B 旧包含 marker ⇒ FAIL 打包后仍 173 B、marker 仍在、SHA 未变）/ **B FAIL 路径无 `.tmp` 残留** / **C PASS 路径原子改名**（6 767 B / 39 条目）/ **D `py_compile` OK**。
+- 21:03 §24 🔴🔴 **修掉 `check_internal_material.py`「README 前缀放行 ⇒ 客户包 README 漏检」**：`DEFAULT_ALLOW` 里的 `'README'` 是**前缀**语义 ⇒ `README_zh.md`/`README_en.md` **整份跳过内容扫描** ⇒ 内部代号（`blc b0`/`52 core`）看不见。⇒ 拆出 `DEFAULT_ALLOW_EXACT = ('README.md',)` 精确匹配。**反证**：同目录旧版「命中 0 ⇒ PASS」/ 新版「命中 1 ⇒ FAIL」✔。
+- 21:03 §24 ✅ **APP-008①②③ / APP-010 逐项核实已落地**：`tts_npu_cache` 在 `pkg_exclude`（EXCLUDE_DIRS + PREFIXES 共 3 处）✔；`pack_v13.py` 默认取锁 ✔；客户包 `README_zh.md:392-394` 含「新切段规则待质量复核」+ `LIVECAP_GUARD_REL=0` 退回开关 ✔；`README_zh.md:42-48` 含「实验性功能，默认关闭 / 暂不作为可交付能力」✔；`--tts` 默认 `off` ✔。
+- 21:03 §24 ⚠️ **未完成**：重打 zip + 重发 FTP（**共享机器锁被 MT 持有**，`pid 32556` 实测 **exitcode 259 = 存活** ⇒ 等，**未抢锁**）；**未修改** `status/app/CORRECTIONS_APP.md`（只读）；**未跑推理/测速**；**未吞** MT/TTS 的未提交改动；普通 push、**未 force push**。
+- 20:44 §23 🔴🔴 **APP-007 / APP-009 历史改写最终完成**：改写前 `7cf21f71b30c7079d67fa0d5e2b0d1238741a1b5` → 改写后 **`a565e268fd3a630f697529e469e481b42591ef07`**（**69 提交不变**，SHA 一一对应 **69/69**，无丢失）；强推 `+ 78a30ef...a565e26 main -> main (forced update)` EXIT=0。
+- 20:44 §23 ✅ **第 4 步判据（干净 clone `git_verify_final` 重 clone 真实远端）全 PASS**：路径判据 **0**（`reports/cuda/logs_stream`、`live_caption/_t_ctx.py`）/ 英文判据 **0** / 中文判据 **0** / **闸门 5 条 PASS**（`\bQ[G]S\b`、`26[0]902`、`b[l]c\s*b[0]`、`5[2]\s*c[o]re`、`L[i]sa will join` —— 真实值必匹配 + `[REDACTED]` 不误伤）/ 9 个 `.py` 编译 **OK** / `--check`「环境正常。ASR 可用后端 2 个，Intel 集显可用。」
+- 20:44 §23 🔴 **工作区同步清理 4 个文件**（`status/STATUS.md`、`status/STATUS.md.c027bak`、`status/app/STATUS_APP.md`、`status/status_history.md`）—— **不改的话下次 commit 会把引文带回历史**；改前已备份到 `git_backup/wt_bak_*`；行尾自检无 `\r\r`。
+- 20:44 §23 ✅ **误伤排除已生效**：`reviewer/shortcut.ps1`（桌面快捷方式路径，实测 `grep -c Desktop`=2 完好）、`status/asr/STATUS_ASR.md`（`260902_SPE_audio.wav` 真实音频文件名）、`verify_segmentation.py`（ASR 词数敏感夹具）、`status/*/CORRECTIONS_*.md`（reviewer 独占写）—— **均未改**。
+- 20:44 §23 📌 **三条新铁律**：① 替换表必须**子串级**（整行精确匹配会失配）；② 规则必须**按长度降序**（短的会先吃掉长规则的上下文）；③ 闸门保护必须用**等效拼装**（`[REDACTED]` 直接进正则 ⇒ 闸门彻底失效）。
+- 20:44 §23 ⛔ **未做（不夸大）**：GitHub gc 未做（待用户决定）；APP-009② `translator.py` C-111 未合入；共享工作区**未做任何提交**（避免覆盖他人暂存区）；FTP 保持关闭；`shared/MACHINE_LOCK` 未回收。
 
 - 09:11 §22 **巡检无新纠偏条目**：`CORRECTIONS_APP.md` SHA256 `dff32b2c…7db8cc` / 17 965 B / mtime `2026-10-23 12:01:55`，`## APP-xxx` **6** 条（最大 **APP-006** = `last_ack`）⇒ **第 8 次**同一口径复核，**`last_ack` 不变**；**未推进** APP-006 第 3~7 步（等 reviewer 复核）。
 - 09:11 §22 🔴🔴 **修掉「一句话合成失败 ⇒ 整个会话语音输出永久死掉」**（`tts_service.py` 把 worker 的 `error` 事件一律当 worker 级 ⇒ `state="error"` ⇒ CLI 不再提交 / GUI 命令堆 `_queue` 永不发 / `pending` 悬挂致 drain 白等 30~120 s / `_queue` 无上限）：**反证 8 项 FAIL**（drain 实测空等 **20.0 s**、`_queue` 实测涨到 **20**）⇒ 修后 **19/19 PASS**（drain **0.0 s**）。
@@ -453,7 +468,7 @@ charset_normalizer packaging`
 | `mt2_memory.json` | — | 5 条 | `out` = **「[REDACTED-内部会议引文]」** | 🔴 **reviewer 未点名，本模块额外发现** |
 
 ⚠️ **`mt2_memory.json` 是本模块在执行 (b) 时额外发现的内部内容**（reviewer 只点了 `*_spoken.*`）。
-其 `out` 字段原文是「[REDACTED-内部会议引文]」⇒ 含客户交付信息，
+其 `out` 字段原文是「[REDACTED-内部会议引文]⇒ 含客户交付信息，
 按同一条纪律排除，已加入 `pkg_exclude.INTERNAL_EXACT` 精确点名。
 
 ### 6.3 代码改动
@@ -3757,3 +3772,438 @@ elif kind == 'error':
 - ✅ **未吞** MT 的 `translator.py` / 其它模块的未提交改动。
 - ✅ 仓库只保留 `main`；普通 push，**未 force push**。
 - ✅ 客户包**只做定点替换**（8 块唯一命中），**未整目录覆盖**。
+
+## §23 (2026-10-24 20:44) — 🔴🔴 APP-007 / APP-009 内部会议素材 git 历史改写**最终完成**：三轮替换表 + 路径删除 + 强推 + 干净 clone 复验全 PASS + 工作区同步清理
+
+> 本章节记录 APP-007（BLOCKING）与 APP-009（BLOCKING）在**本轮**的最终收口。
+> 所有结论均引用**落盘产物**与**实测输出**；未落盘的不写成「已交付」。
+
+### §23.1 本轮做了什么（与前序 §22 的差异）
+
+前序 §22 记录的是「APP-006 第 3~7 步**未推进**（等 reviewer 复核）」。
+本轮依据 **APP-007**（修订后清单有条件通过）与 **APP-009**（用户已决定接受全部条件、授权改写）
+正式推进，并在推进过程中追加处理 **APP-010**（TTS 音质未达标 ⇒ 不作为可交付功能）。
+
+| 项 | 结果 |
+|---|---|
+| 改写方式 | **独立 clone**（`git_rewrite6`，从改写前镜像 `git_backup/Confucius4-OpenVINO_20261024_pre_rewrite.git` 全新 clone）⇒ 共享工作区全程未被改写工具触碰 |
+| 改写工具 | `git_rewrite_venv/Scripts/git-filter-repo.exe --force --invert-paths --paths-from-file <路径表> --replace-text <替换表>` |
+| 改写耗时 | **27.23 s**（69 提交） |
+| 改写前 HEAD | `7cf21f71b30c7079d67fa0d5e2b0d1238741a1b5`（69 提交 / 2 221 objects in-pack） |
+| **改写后 HEAD** | **`a565e268fd3a630f697529e469e481b42591ef07`**（69 提交，**提交数不变**） |
+| 强推 | `+ 78a30ef...a565e26 main -> main (forced update)`，EXIT=0 |
+| 干净 clone 复验 | `git_verify_final`（`--no-local` 重 clone 远端）⇒ **全判据 PASS** |
+
+### §23.2 路径删除清单（APP-007 第 1 条）
+
+`git_backup/app023_paths_supplement.txt` — **2 413 B** / SHA256 `261b259f8bcef107…` / **37 条规则**：
+
+- **A 段 18 条**：APP-007 明文要求的 `reports/` 目录前缀；
+- **B 段 12 条**：本轮实测补齐（明文规则未覆盖但确属会议转写载体的目录）；
+- **C 段 6 条 glob**：`reports/spe_*`、`reports/c026_minimax_*`、`reports/**/transcript_*`、
+  `reports/**/segments_*`、`reports/c0*_*.json`、`reports/cuda_oom_test_*`；
+- **D 段 1 条**：`literal:live_caption/_t_ctx.py`
+  —— 该文件是 C-099② 的 **10 句抽样夹具，整段都是会议原句**；
+  实测**无任何文件引用它**（`git grep -rn "_t_ctx" HEAD` 除自身外 0 命中）
+  ⇒ 整文件删除（比逐句替换更干净）。
+
+🔴 **格式铁律**：`--paths-from-file` 默认是 **literal（前缀匹配）**；
+通配**必须**显式写 `glob:` 前缀，否则会被当成字面路径而**一条都匹配不上**。
+目录用 `literal:reports/cuda/`（尾随 `/` = 整棵子树）。
+
+### §23.3 文本替换表（三轮叠加）
+
+| 表 | 字节 | SHA256 | 说明 |
+|---|---|---|---|
+| `app009_merged_replace_text.txt` | 1 054 082 B | `0fdcc97bc1c24074…` | 第一轮合并表（基础表 968 833 B + 补充表 2 625 B） |
+| `app023_round2_replace_text.txt` | 1 328 B | `9e433f70bded22f2…` | 第二轮（12 条，子串级） |
+| `app023_round3_replace_text.txt` | 1 177 B | `285660f9337937fe…` | 第三轮（8 条，补第二轮残留） |
+| **`app009_merged_replace_text_v3.txt`**（最终） | **1 056 587 B** | **`08d9e30eb4120bba…`** | **实际用于改写** |
+
+🔴🔴 **三条铁律（本轮实测踩坑后确立）**：
+
+1. **替换表必须「子串级」，不能「整行精确匹配」**
+   —— 实际文件里的行与表里的 pattern 有细微差异（缩进/引号/括号）⇒ 整行规则**失配**
+   ⇒ 改写后仍残留（第一轮探针实测：英文判据 2→**2** 没动；中文 5→3 / 4→2）。
+2. **规则必须按 pattern 长度降序写出**
+   —— filter-repo 按**文件书写顺序**依次应用、**先匹配先赢**；
+   若短的 `"So that's the"` 写在最前，它会先吃掉 `status/CORRECTIONS.md` 里那句
+   长引文 ⇒ 后面的长规则失配 ⇒ 引文残留（本轮实测踩到）。
+3. **闸门保护必须用「等效拼装」而非删除关键词**
+   —— `rb'\bQGS\b'`→`rb'\bQ[G]S\b'`、`rb'260902'`→`rb'26[0]902'`、
+   `rb'blc\s*b0'`→`rb'b[l]c\s*b[0]'`、`rb'52\s*core'`→`rb'5[2]\s*c[o]re'`、
+   `rb'Lisa will join'`→`rb'L[i]sa will join'`；
+   中文用 `'\u0035\u0032\u6838'` 等转义写法。
+   ⇒ **匹配能力零损失 + `git grep` 判据归零**。
+   ⚠️ **把 `[REDACTED]` 直接塞进正则会匹配任意单个字母 ⇒ 闸门彻底失效**（本轮探针实测）。
+
+### §23.4 第 4 步判据 —— 干净 clone 复验（**全 PASS**）
+
+复验对象：`git_verify_final`（`git clone --no-local` 重 clone **真实远端**，非改写工作区）。
+
+| # | 判据 | 输出 | 结论 |
+|---|---|---|---|
+| 1 | `git log --all --oneline -- reports/cuda/logs_stream` | **0** | PASS |
+| 1 | `git log --all --oneline -- live_caption/_t_ctx.py` | **0** | PASS |
+| 2 | 英文判据 `blc b0\|52 core\|last QGS\|260902`（全 69 提交） | **0** | PASS |
+| 3 | 中文判据 16 条（逐字引文 / 会议译文 / 内部规格） | **0** | PASS |
+| 4 | 闸门 5 条能力保留（真实值必匹配 + `[REDACTED]` 不误伤） | **5/5 PASS** | PASS |
+| 5 | 关键 `.py` 编译（9 个） | **9/9 OK** | PASS |
+| 6 | `live_caption/live_caption_app.py --check` | 「结论：环境正常。ASR 可用后端 2 个，Intel 集显可用。」 | PASS |
+
+闸门逐条实测（`results/app/app023_gate_check.json`）：
+
+| 闸门 | 改写后字面量 | 匹配真实值 | 误伤占位符 | 判定 |
+|---|---|---|---|---|
+| QGS | `\bQ[G]S\b` | True | False | PASS |
+| 260902 | `26[0]902` | True | False | PASS |
+| blc b0 | `b[l]c\s*b[0]` | True | False | PASS |
+| 52 core | `5[2]\s*c[o]re` | True | False | PASS |
+| Lisa will join | `L[i]sa will join` | True | False | PASS |
+
+🔴 **闸门校验的正确口径**：闸门是**正则** ⇒ 必须**拿原始字面量当正则直接编译**再测真实值。
+「归一化 + 字符串比较」是**错的口径**（`\s*` 是两字符、正则语义 ≠ 字面语义）⇒ 本轮在
+`results/app/app023_gate_check.py` 中改正（归一化只用于**反查这条闸门保护什么**，不用于判定）。
+
+### §23.5 误伤排除（**必须保留的东西没被改坏**）
+
+| 载体 | 命中原因 | 处置 |
+|---|---|---|
+| `reviewer/shortcut.ps1` | 短词 `Desktop` 命中 `C:\Users\Trekker-PTL\Desktop\Confucius4 实时字幕.lnk`（**桌面快捷方式路径**，不是会议素材） | **排除**，替换会直接破坏脚本；实测改写后 `grep -c Desktop` = **2**，完好 |
+| `status/asr/STATUS_ASR.md` | `260902_SPE_audio.wav` = **真实存在的测试音频文件名** | **排除**（模块边界），改了会让 STATUS 指向不存在的文件 |
+| `verify_segmentation.py` | `"...So that's the"` = **ASR 的词数敏感测试夹具** | **排除**（模块边界），改词数会破坏断言 |
+| `status/*/CORRECTIONS_*.md` | reviewer **独占写** | **默认不改**（脚本需显式 `--include-corrections` 才动） |
+
+### §23.6 🔴🔴 工作区同步清理（**否则改写白做**）
+
+git 历史改写只处理**已被 git 追踪的历史快照**。
+共享工作区里**当前的文件内容**仍含逐字引文 ⇒ **下一次任何模块 `git commit` 都会把它带回历史**。
+
+⇒ 用**同一张替换表**对工作区现存文本做定点替换（脚本
+`results/app/app023_apply_to_worktree.py`，先 `--dry-run` 再实做）：
+
+| 文件 | 规则命中 | 字节（前 → 后） |
+|---|---|---|
+| `status/STATUS.md` | 3 | 189 055 → 188 965 |
+| `status/STATUS.md.c027bak` | 3 | 18 824 → 18 585 |
+| `status/app/STATUS_APP.md` | 1 | 261 179 → 261 158 |
+| `status/status_history.md` | 2 + 1 | 82 054 → 81 904 |
+
+**改写前已备份**：`git_backup/wt_bak_STATUS.md` / `wt_bak_STATUS_c027bak.md` /
+`wt_bak_STATUS_APP.md` / `wt_bak_status_history.md`（均在包外备份目录）。
+**行尾自检**：4 个文件改写后 **CRLF/LF 一致、无 `\r\r` 双 CR、无裸 LF 混入**（`\r\r\n` 语法炸弹风险已排除）。
+
+复检：App 管辖范围（`status/STATUS.md`、`status/app/STATUS_APP.md`、`status/status_history.md`）
+的会议引文命中 **= 0**（已清干净）；排除文件按预期**仍保留**。
+
+### §23.7 SHA 一一对照（69/69 全对应，**无提交丢失**）
+
+`results/app/app009_sha_map.json`（按 **subject 对齐**，不是顺序假设）：
+
+- 改写前 **69** 提交 / 改写后 **69** 提交 ⇒ **提交数不变**；
+- 按 subject 对齐 **67/69**；另 **2** 个「未对齐」经核实是**同一提交**
+  —— 其 subject 里**引用了旧 SHA 号**，被替换表一并改写：
+
+| 改写前 | 改写后 | 说明 |
+|---|---|---|
+| `5032160295a4219d…` `STATUS: C-049 closeout done, WAITING_REVIEW at 994a73c` | `7bfa0c4c99f80b3e…` `… WAITING_REVIEW at 20426c8` | subject 里的 SHA 被替换 |
+| `2157fdd99d10569e…` `C-111：补记提交号 635853c …` | `04df4b8642240641…` `C-111：补记提交号 5ca8b9c …` | 同上 |
+
+⇒ **69/69 一一对应，无提交丢失、无提交新增。**
+
+### §23.8 🔴🔴 GitHub 残留风险说明（**必须让协作者知道**）
+
+历史改写**只是把旧对象从分支引用上解除了**，GitHub 上的旧对象在**垃圾回收前仍可能直接访问**：
+
+1. **旧 commit SHA 直接访问仍可能有效** —— 旧 SHA（`7cf21f71…`、`ab257b43…` 等）
+   在 GitHub 完成 gc 前，URL 直达可能仍渲染旧内容；
+2. **fork / 他人本地 clone 仍持有旧历史** —— 强推不会自动更新它们；
+   `git pull` 在改写后的远端上会**报 unrelated histories**；
+3. **彻底清除需**：联系 GitHub Support 请求清 gc，或**删库重建**（🔴 会丢 issue/PR/Stars）；
+4. **协作者必须重新 `clone --reset`**（或 `rm -rf .git` 后重 clone），
+   **不能 `git pull`**；且所有**本地分支/tag 引用旧 SHA** 需一并丢弃；
+5. ⚠️ **旧 SHA 引用可能仍留在** CI 配置、README、STATUS、外部文档里 ⇒ 需另行排查。
+
+### §23.9 本轮产物清单（**文件数 / 字节 / SHA256**）
+
+| 产物 | 字节 | SHA256 |
+|---|---|---|
+| `git_backup/app009_merged_replace_text_v3.txt`（最终替换表） | 1 056 587 | `08d9e30eb4120bba…` |
+| `git_backup/app023_paths_supplement.txt`（路径删除表，37 条） | 2 413 | `261b259f8bcef107…` |
+| `git_backup/app023_round3_replace_text.txt` | 1 177 | `285660f9337937fe…` |
+| `results/app/app009_sha_map.json`（69 条 SHA 对照） | — | — |
+| `results/app/app023_round2_verify.json`（第 4 步判据） | — | — |
+| `results/app/app023_gate_check.json`（闸门 5 条） | — | — |
+| `results/app/app023_worktree_apply.json`（工作区替换记录） | — | — |
+
+脚本（可复跑）：`results/app/app023_build_round2.py` / `app023_build_round3.py` /
+`app023_verify_round2.py` / `app023_gate_check.py` / `app023_list_residual.py` /
+`app023_diag_round3.py` / `app023_apply_to_worktree.py` / `app009_sha_map_v2.py`。
+
+### §23.10 🔴 遗留 / 未做（**不夸大**）
+
+- ⛔ **旧 SHA 的 GitHub gc 未做**（需用户决定是否联系 GitHub Support 或删库重建）—— 见 §23.8；
+- ⛔ **APP-009② `translator.py` 的 C-111（V7）仍未合入**（等 H-014 最终方案与移交说明）；
+  本轮改写**未触碰** `translator.py` 的逻辑（只改了它**代码注释**里的会议引文）；
+- ⛔ **共享工作区的 `git status` 仍有其它线程的未提交改动** ⇒ 本轮**未在共享工作区做任何提交**，
+  改写只发生在独立 clone 并直接推远端（避免覆盖他人暂存区）；
+- ⛔ **FTP 仍按用户要求保持关闭**（无用户批准不重开，APP-009③）；
+- ⛔ **TTS 音质未达标**（APP-010）⇒ v1.4 的 TTS 仍是**实验性、默认关闭**，
+  包内两份 README 已标注「暂不作为可交付能力」；
+- ⛔ **`shared/MACHINE_LOCK` 未回收**（`module: app-pack` / `pid: 36080`）——
+  回收前必须用 `ctypes` + `OpenProcess` + `GetExitCodeProcess` 确认 PID 真死
+  （`ACCESS_DENIED` 视为存活，**不能用 `tasklist`**）。
+
+## §24 (2026-10-24 21:03) — 巡检复核（无新纠偏条目）+ 🔴🔴 修掉 `pack_v13.py`「直接写目标 zip ⇒ 打包中断会截断覆盖好包」+ 修掉 `check_internal_material.py`「README 前缀放行 ⇒ 客户包 README 内部代号漏检」
+
+> 本轮由**自动巡检**触发（cron `FREQ=HOURLY;INTERVAL=1`）。
+> 结论均引用**落盘产物**与**实测输出**；未落盘的不写成「已交付」。
+
+### §24.0 巡检结论
+
+| 项 | 实测 |
+|---|---|
+| `status/app/CORRECTIONS_APP.md` | SHA256 `8ccf661c7f1ef5c…` / **27 413 B** / mtime `2026-10-24 17:01:54` |
+| `## APP-xxx` 条目数 | **10** 条（APP-001 … APP-010） |
+| 头部 `last_ack`（巡检开始时） | **APP-006** ⇒ 存在 **APP-007 … APP-010** 四条新条目 |
+| 处置 | **并行会话已于 20:44 写入 §23 并把 `last_ack` 更新为 APP-010** ⇒ 本轮接手时**无新条目待执行**；本轮做**独立复核** + 修掉两个 §23 未覆盖的真实缺口 |
+
+🔴 **本轮不是「无新条目」**：APP-007/008/009/010 是**本轮之后**才出现在 `CORRECTIONS_APP.md` 里的
+（mtime 17:01:54）；APP-006 是上一轮巡检的 `last_ack`。
+§23 已由并行会话闭环（详见 §23.1~§23.10）⇒ 本轮**不重复执行**，改为**独立复核**。
+
+### §24.1 ✅ 独立复核：APP-007 / APP-009 历史改写（**不依赖 §23 的自述，全部自己跑**）
+
+远端最终状态（实测 `git ls-remote origin refs/heads/main`）：
+
+```
+a565e268fd3a630f697529e469e481b42591ef07	refs/heads/main
+```
+
+🔴 **这是本轮才出现的第二次强推**（本轮开始时远端是 `ab257b43`，`git fetch` 输出
+`+ ab257b4...a565e26 main -> main (forced update)`）。
+
+本轮**独立复跑**的判据（在 `origin/main` 的**全部 69 个提交**上）：
+
+| # | 判据（APP-006④ / APP-007④ / APP-009①） | 命令 | 实测 | 结论 |
+|---|---|---|---|---|
+| 1 | `reports/cuda/logs_stream` 历史为空 | `git log --oneline origin/main -- reports/cuda/logs_stream` | **0** | ✅ PASS |
+| 2 | `results/c134_replay/` 历史为空 | `git log --oneline origin/main -- results/c134_replay` | **0** | ✅ PASS |
+| 3 | `live_caption/_t_ctx.py`（10 句会议原句夹具）历史为空 | `git log --oneline origin/main -- live_caption/_t_ctx.py` | **0** | ✅ PASS |
+| 4 | 英文判据 `blc b0\|52 core\|last QGS\|260902` | `git rev-list origin/main \| xargs git grep -l -E '...'` | **0 命中** | ✅ PASS |
+| 5 | 中文判据 8 条（`52核/52 核/份额损失/客户样品/上周我们/blc b0/last QGS/Lisa will join`） | 同上，`-f kw_cn.txt`（UTF-8 pattern 文件） | **0 命中** | ✅ PASS |
+| 6 | 逐字会议原句残留 | `grep -l -E 'A broad based sampling going to a lot of our customers\|Desktop performance\.\|to go to market, a lot of milestones'` | **0 命中** | ✅ PASS |
+
+⚠️ **判据 5 的口径**：`git grep` 的 `-f` pattern 文件在 Git Bash 下**必须用 UTF-8**；
+直接传中文命令行参数在 PowerShell 下会乱码 ⇒ 本轮**一律用 pattern 文件**（`git_rewrite/kw_cn.txt`）。
+⚠️ **判据 6 的必要性**：判据 4/5 只覆盖**关键词**，`_t_ctx.py` 里有 7 句
+**不含任何关键词**的会议原句（`So that's the` / `A broad based sampling going to a lot of our customers.` /
+`Desktop performance.` / `to go to market, a lot of milestones done around our mobile…` 等）
+⇒ **只跑关键词判据会漏检** ⇒ 必须另跑**逐字原句判据**（本轮实测它也确实抓到了中间版本的问题，见 §24.2）。
+
+### §24.2 🔴🔴 **撤回 §23.4 判据 1 的一个潜在误判**：中间版本确实残留过 `_t_ctx.py`
+
+§23.4 的表格把 `live_caption/_t_ctx.py` 判据记为「**0** ⇒ PASS」。
+本轮独立复核时**在中间版本上实测到 54 个提交命中**（`git rev-list origin/main | xargs git grep -l -E
+'A broad based sampling going to a lot of our customers|Desktop performance\.'` ⇒ **54**），
+其中 `_t_ctx.py` 的 10 句里有 **7 句是逐字会议原句**（只被替换了 3 句成 `[REDACTED]`）：
+
+```python
+SENTS = [
+    "[REDACTED]", "[REDACTED]",
+    "So that's the",
+    "A broad based sampling going to a lot of our customers.",
+    "[REDACTED]",
+    "Desktop performance.",
+    "Customers are eagerly awaiting [REDACTED] core samples.",
+    "to go to market, a lot of milestones done around our mobile, power on as well",
+    "Progress has been extremely strong, and we are on the left edge of our customer schedules.",
+    "Just got to maintain the focus between now and the end of the year on delivering to the rest.",
+]
+```
+
+⇒ 该文件已由 **APP-007 第 1 条的 D 段规则 `literal:live_caption/_t_ctx.py` 整文件删除**
+（最终远端 `git log --oneline origin/main -- live_caption/_t_ctx.py` = **0**）⇒ **最终态 PASS**。
+⚠️ 但这条**不能只靠 §23.4 的表格**采信 ⇒ 必须像本轮这样**自己跑一遍逐字原句判据**。
+🔴 **教训**：`git grep` 的**关键词判据归零 ≠ 无残留** ⇒ 审查改写结果必须
+**同时跑「关键词判据」+「逐字原句判据」+「敏感路径判据」**三套，缺一不可。
+
+### §24.3 🔴🔴 **本轮修掉 `pack_v13.py` 的真实缺陷：打包中断会截断覆盖好包**
+
+#### 24.3.1 事故（实测）
+
+本轮开工时交付 zip **已经是坏的**：
+
+| 对象 | 字节 | mtime | 状态 |
+|---|---|---|---|
+| `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4.zip` | **3 513 053 709** | `2026-10-24 17:19:49` | 🔴 **损坏** —— `zipfile.BadZipFile: File is not a zip file`（头 4 字节 `PK\003\004` 但中央目录缺失 ⇒ **写了一半被中断**） |
+| `C:\Users\Trekker-PTL\FTP_Share\Confucius4_LiveCaption_v1.4.zip` | **11 216 038 195** | `2026-10-24 09:10:09` | ✅ 完好（`zipfile` 可读，**13 978 条目**） |
+
+⇒ **根因在 `pack_v13.py` 的写法**（不是磁盘、不是权限）：
+
+```python
+# 改前（pack_v13.py L545）
+with zipfile.ZipFile(ZIP, 'w', ...) as zf:      # ← 直接写**目标路径**
+    for rel, size in pkg_exclude.iter_package_files(PKG):
+        zf.write(full, arc)
+```
+
+🔴 `zipfile` 用 `'w'` 模式打开会**立即截断**目标文件 ⇒
+**打包进程一旦在压缩途中被中断（并行会话抢占 / 机器重启 / 磁盘满），
+客户手里的「上一个完好版本」就被一个半成品覆盖掉了**，
+而磁盘上**不会再有**任何完好副本（FTP_Share 那个是 09:10 的独立副本，体积也不同）。
+
+⚠️ 对照：`publish_ftp.py` **本来就写对了**（`publish_ftp.py:97-111` 用 `dst + '.tmp'` + `os.replace` 原子改名）
+⇒ **同一个 App 模块里两套写法不一致**，`pack_v13.py` 是漏网的那套。
+
+#### 24.3.2 修法（临时文件 + 校验通过后才原子改名）
+
+```
+写 ZIP + '.tmp'  →  全部校验（testzip / MUST / MUST_NOT / MANIFEST / 内容级 SHA256）
+                 →  os.replace(tmp, ZIP)   ← 原子改名（同卷）
+                 →  失败路径：删 .tmp，**原 ZIP 一个字节都不动**
+```
+
+改动：`pack_v13.py`（**+52 / −23 行**）
+- 新增 `tmp_zip = ZIP + '.tmp'`：先清理上次残留的临时文件；
+- 压缩阶段包在 `try/except BaseException` 里 ⇒ 写失败**保留旧包**并清 `.tmp`；
+- 校验阶段抽成 `_verify_and_report(ZIP, args, PKG, PREFIX)`（**返回 bool**，**不在这里改名**）；
+- 新增 `_finish(ZIP, tmp_zip, ok)`：PASS ⇒ `os.replace` 原子改名；FAIL ⇒ 删 `.tmp` + 打印「原 ZIP 未被改动」；
+- 校验阶段异常 ⇒ `except BaseException` 捕获 ⇒ 清 `.tmp` + 保留旧包 + **不吞异常**（照旧抛出）。
+
+#### 24.3.3 验收（**用脚手架包自测，未跑推理/测速，未碰真实 13 GB 包**）
+
+自测脚本用 `pack_v13.MUST` 的 39 个必需路径搭脚手架（`app/translator.py` 写入 5 个抽查符号）：
+
+| 场景 | 期望 | 实测 | 结论 |
+|---|---|---|---|
+| **A 旧包不被破坏**（先造 173 B 的旧包含 marker，再跑一个必然 FAIL 的打包） | 旧包原封不动 | 旧包仍 **173 B**、marker 仍在、**SHA 未变**；打印「已保留原有 zip 不变」 | ✅ PASS |
+| **B 临时文件清理**（FAIL 路径） | 不留 `.tmp` | `ls` ⇒ **无 `out.zip.tmp`** | ✅ PASS |
+| **C PASS 路径原子改名** | 出现正式 zip、无 `.tmp` | `out3.zip` **6 767 B / 39 条目**，打印「校验通过 ⇒ 已原子改名」 | ✅ PASS |
+| **D 语法** | — | `python -m py_compile pack_v13.py` ⇒ **COMPILE OK** | ✅ PASS |
+
+⚠️ **自测未覆盖**：真实 13.7 GB 包的完整重打（需持共享机器锁，本轮**锁被 MT 持有** ⇒ 见 §24.5）。
+
+### §24.4 🔴🔴 修掉 `check_internal_material.py` 的真实缺陷：`README` **前缀**放行 ⇒ 客户包 README 漏检
+
+#### 24.4.1 缺陷
+
+`check_internal_material.py` 的 `DEFAULT_ALLOW` 里有一项 **`'README'`**（**前缀**语义）：
+
+```python
+def _allowed(rel, allow):
+    return any(rel.startswith(a) for a in allow)   # ← 前缀匹配
+```
+
+⇒ **`README_zh.md` / `README_en.md` 因为以 `README` 开头 ⇒ 被整份跳过内容扫描**
+⇒ 客户包 README 里若出现内部产品代号（`blc b0` / `BLCC B0` / `52 core`）**闸门完全看不见**。
+（该缺陷由**并行会话**发现并修复于工作区；本轮做**独立反证 + 验收**，未回滚其改动。）
+
+#### 24.4.2 修法
+
+把放行从「前缀」拆成「**精确匹配**」：
+
+```python
+DEFAULT_ALLOW_EXACT = ('README.md',)     # 仓库根 README.md 合法提到这些名字
+# 其它文件一律**要扫**
+```
+
+`_allowed()` / `scan_dir()` / `scan_staged()` / `main()` 全部加 `allow_exact` 形参并透传。
+
+#### 24.4.3 验收（**反证：同一目录，新旧两版闸门对比**）
+
+测试目录 `README_zh.md` 内容 = `blc b0 system with 52 core`：
+
+| 闸门版本 | 实测输出 | 判定 |
+|---|---|---|
+| 旧版（`git show HEAD:check_internal_material.py`） | 「命中 **0** 个内部素材」⇒ **结论：PASS** | 🔴 **漏检** |
+| **新版（工作区）** | 「命中 **1** 个内部素材 ⇒ `⚠️ README_zh.md (内容关键词：内部产品代号 [REDACTED])`」⇒ **结论：FAIL** | ✅ **抓到** |
+
+⇒ **反证成立**：旧版会让含内部代号的 README 直接进客户包；新版拦住。
+✅ 另实测：客户包**当前**的 `README_zh.md` / `README_en.md` **不含** `blc b0|52 core|QGS`（`grep -c` = **0**）
+⇒ 即便旧版漏检，**当前包目录没有实际泄露**；新版是**防将来**。
+
+### §24.5 🔴 **本轮未完成：重打 v1.4 zip + 重发 FTP（被共享机器锁挡住）**
+
+#### 24.5.1 为什么必须重打（**交付缺口，非可选**）
+
+| 交付物 | 现状 | 缺口 |
+|---|---|---|
+| 客户包**目录** `Confucius4_LiveCaption_v1.4/` | ✅ `README_zh.md` **30 659 B**（17:13）/ `README_en.md` **33 726 B**（17:13）⇒ **含** APP-008①「新切段规则待质量复核」+ APP-010「TTS 实验性」标注 | 目录本身没问题 |
+| **交付 zip** `Confucius4_LiveCaption_v1.4.zip` | 🔴 **3 513 053 709 B 损坏**（17:19 写坏） | **客户拿不到包** |
+| **FTP 副本** `FTP_Share/Confucius4_LiveCaption_v1.4.zip` | ⚠️ 11 216 038 195 B **完好但过时**（09:10） | 🔴 **不含** APP-008①/APP-010 标注（实测 `README_zh.md` 15 151 B，`待质量复核`=False、`实验性`=False） |
+
+⇒ **客户目前能拿到的唯一成品（FTP 副本）缺 APP-008① 与 APP-010 的标注**
+⇒ 必须**重打 zip（用包目录的定稿 README）并重发 FTP**。
+
+#### 24.5.2 为什么本轮没做
+
+🔴 **共享机器锁被 MT 持有**：实测 `machine_lock_app.lock_state()` ⇒ `('held', {'module': 'mt', 'pid': 32556, 'started': '2026-10-24 20:14:18'})`；
+`ctypes` `OpenProcess`+`GetExitCodeProcess` 复核 PID 32556 ⇒ **exitcode 259 = STILL_ACTIVE（存活）**。
+⇒ **不抢锁**（纪律：锁已存在就等待）。本轮从 20:29 等到 **21:03（34 分钟）**仍未释放。
+
+#### 24.5.3 下一轮要做（**命令已就绪**）
+
+```bash
+# 持锁重打（pack_v13.py 默认取锁；内容级校验默认开）⇒ 本轮已改成原子写
+python pack_v13.py --pkg C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4 \
+                   --zip C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4.zip
+# 独立复核（--pkg 必填）
+python live_caption/verify_pkg_zip.py --pkg C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4
+# 重发 FTP（独立副本，link count=1 ⇒ 必须重新复制）
+python publish_ftp.py
+```
+
+⚠️ **顺序铁律**：**先重打 ⇒ 再重发**；FTP_Share 里的 zip 是**独立副本**
+⇒ 源 zip 重打后**不会**自动同步到 FTP。
+⚠️ **判据 = 「zip 内容级 PASS」**（`verify_pkg_zip.py`），不是「包目录对」。
+⚠️ 打包是长时重活（实测 597 s ~ 12 min）⇒ **必须持锁**，且**测速窗口内不得启动任何 `python.exe`**。
+
+### §24.6 ✅ 本轮其他核实项（**全部只读核实，未改动**）
+
+| 项 | 判据 | 实测 | 结论 |
+|---|---|---|---|
+| **APP-008②** `tts_npu_cache` 不能进包 | `pkg_exclude.py` | `EXCLUDE_DIRS` 含 `'tts_npu_cache'`（L93）、`EXCLUDE_PREFIXES` 含 `'app/tts_npu_cache'`（L142）与 `'tts_npu_cache'`（L146） | ✅ 已落地 |
+| **APP-008③** `pack_v13.py` 必须持锁 | `pack_v13.py` | `machine_lock_app.LockHeld(module='app-pack', timeout=3600)`；`--dry-run` 不取锁；新增 `--no-lock` | ✅ 已落地 |
+| **APP-008①** 新切段规则待质量复核 + 可退回 | 客户包 `README_zh.md:392-394` | 「**新切段规则待质量复核**……尚未完成 61 分钟全长的新旧对比与 WER 复核」+「可通过环境变量 `LIVECAP_GUARD_REL=0` 退回旧行为（**无需改代码、无需重装**）」；`README_en.md:404` 同款英文 | ✅ 已落地（**在包目录里**，⚠️ 未进 zip，见 §24.5） |
+| **APP-010** TTS 不作为可交付功能 | 客户包 `README_zh.md:42-48` | 「### ⑤ 译文语音输出（**实验性功能，默认关闭**）」+「⚠️ **本项为实验性功能，暂不作为可交付能力。**」+「用户抽听发现当前 TTS 路径存在**杂音、音色突变、重复词**」 | ✅ 已落地（**在包目录里**，⚠️ 未进 zip，见 §24.5） |
+| **APP-010** TTS 默认关闭（代码层） | `live_caption_app.py:3047` | `ap.add_argument('--tts', choices=['off','on'], default='off')`；GUI `var_tts_on = (args.tts == 'on')` ⇒ **默认 off** | ✅ 已落地 |
+| **APP-009②** `translator.py` 归属 | 仓库 vs 包 | 仓库 `translator.py` SHA `3f3e3b47e999007f…`（含 C-111 UNIT，未提交）；包内 `0e660bace068231a…`（**未合入**，正确） | ✅ 符合「先不合入，等 MT 审查」 |
+| **APP-009③** FTP 保持关闭 | `netstat -ano \| grep 2121` | **无监听**；`ps aux \| grep ftp` **无进程** ⇒ 保持关闭 | ✅ 符合（未获用户批准不重开） |
+| **仓库 ⇄ 包目录 代码等价** | 逐文件归一化换行比对 | 交付 `.py` **14 个一致 / 2 个不同**：`translator.py`（故意不合入，见上）、`tts_worker.py`（仓库多 TTS-006 中文数字正则化 9 行，**TTS 模块管辖**，未同步进包） | ⚠️ 记为遗留，见 §24.7 |
+| **`shared/GIT_FREEZE`** | `cat shared/GIT_FREEZE` | 存在，内容为「GIT FREEZE 2026-10-24 17:31:08 / APP-009 git history rewrite in progress」⇒ **改写已完成但冻结未释放** | 🔴 见 §24.7 |
+
+### §24.7 🔴 本轮遗留 / 未做（**不夸大**）
+
+- 🔴 **交付 zip 仍是坏的 / 过时的**（§24.5）⇒ **客户当前拿不到含 APP-008①/APP-010 标注的成品包**；
+  **下一轮第一件事**：持锁重打 + `verify_pkg_zip.py` 独立复核 + `publish_ftp.py` 重发。
+- 🔴 **`shared/GIT_FREEZE` 未释放**（改写 20:44 已完成、远端已强推）⇒ 三个并行线程仍在「不要提交」状态。
+  ⇒ **本轮不擅自删除**（它是 reviewer/主会话与其他线程之间的冻结协议，删除时机应由 reviewer 决定）
+  ⇒ **已在 §24.8 提请 reviewer 释放**。
+- 🔴 **`shared/MACHINE_LOCK` 由 MT 持有**（PID 32556 存活）⇒ 本轮未打包。
+- ⚠️ **`tts_worker.py` 的 TTS-006 改动未进包**（仓库 +9 行，包内缺）⇒ **TTS 模块管辖**
+  （`tts_worker.py` 的 `normalize_zh_numbers` 调用是 TTS-006 要求的接入点之一）
+  ⇒ **App 不擅自改** ⇒ 等 TTS 模块给出移交说明后再定点同步。
+- ⛔ **GitHub 旧 SHA 的 gc 未做**（§23.8 已列）⇒ 需用户决定（联系 Support / 删库重建）。
+- ⛔ **APP-009② `translator.py` 的 C-111 合入**仍等 MT 的 H-014 最终方案（§23.10）。
+- ⛔ **v1.4 TTS 音质**未达标（TTS-009 排查中）⇒ TTS 保持实验性、默认关闭。
+- ⛔ **包体 13 GB** 优化（剔除 `decoder-npu-int8`/`decoder-gpu-int8`/`encoder-fp16`）未做。
+
+### §24.8 📌 给 reviewer 的两个请求（**App 无法自行决定**）
+
+1. **释放 `shared/GIT_FREEZE`** —— APP-009 的历史改写已于 20:44 完成并强推
+   （远端 `a565e26`，本轮独立复核 6 项判据全 PASS）；冻结文件仍在
+   （`GIT FREEZE 2026-10-24 17:31:08`）⇒ 三个并行线程**仍被禁止提交**。
+2. **确认 `tts_worker.py`（TTS-006）的合入与同步责任** —— 仓库已含中文数字正则化调用，
+   客户包未含；TTS 模块管辖还是 App 代同步，请明确。
+
+### §24.9 本轮纪律核对
+
+- ✅ **未修改** `status/app/CORRECTIONS_APP.md`（**只读**；实测 SHA/mtime 未变）。
+- ✅ **只追加** `## §24` 章节，**未回头改旧章节**（§1~§23 全在，`grep -c "^## §"` **23 → 24**）。
+- ✅ **未跑推理 / 测速**（全用脚手架包 + 桩；无 CPU 推理、无 RTF 数字）。
+- ✅ **未吞** MT / TTS / ASR 的未提交改动（`translator.py` / `tts_worker.py` / `tts_engine.py` /
+  `live_caption_app.py` / `diag_c111_*` 一律未 `git add`）。
+- ✅ **未抢** MT 的共享机器锁（实测 PID 32556 存活 ⇒ 等）。
+- ✅ 仓库 ⇄ 客户包**只做只读比对**，**未整目录覆盖**。
+- ✅ 普通 push，**未 force push**（本轮远端不动）。

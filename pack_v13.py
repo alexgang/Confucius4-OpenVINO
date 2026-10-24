@@ -527,33 +527,49 @@ def _run(args):
     # ── 打包前刷新 MANIFEST（口径 = 排除后的净载荷，不含 MANIFEST 自身）──
     refresh_manifest(PKG)
 
-    if os.path.exists(ZIP):
-        # ⚠️ 2026-10-23：某些环境（WorkBuddy 的 sitecustomize shim）把
-        #    `os.remove` 改写成「移入回收站」，对**十几 GB 的大文件**会失败
-        #    （OSError: [safe-delete] ... Some operations were aborted）
-        #    ⇒ 打包中断。删除失败**不应阻断打包**：zipfile 用 'w' 模式
-        #    打开会直接截断覆盖，不需要先删。
-        #    ⇒ 改成「尽力删除，失败就只告警」。
+    # 🔴🔴 **原子写 zip**：先写临时文件，**校验通过后**才改名到目标路径。
+    #
+    # 事故（2026-10-24 17:19 实测）：并行会话在写 zip 途中被中断
+    # ⇒ 直接写目标路径 ⇒ **好包被截断覆盖**：
+    #   `Confucius4_LiveCaption_v1.4.zip` = 3 513 053 709 B（非有效 zip，
+    #   `zipfile.BadZipFile: File is not a zip file`），
+    #   而 FTP_Share 里的旧副本仍是 11 216 038 195 B 的完好包。
+    # ⇒ **旧 zip 在打包成功前绝不能被动**（客户手里的包必须是最后一个完好版本）。
+    # ⇒ 流程：写 `ZIP + '.tmp'` → 校验（testzip + 关键文件 + 内容级复核）
+    #   → `os.replace()` 原子改名 → 删除临时文件（异常路径）。
+    tmp_zip = ZIP + '.tmp'
+    if os.path.exists(tmp_zip):
+        # 上次中断留下的临时文件 ⇒ 先尽力删除（失败也不阻断：'w' 会覆盖）
         try:
-            os.remove(ZIP)
-            print(f'已删除旧 zip: {ZIP}')
+            os.remove(tmp_zip)
+            print(f'已清理上次残留的临时 zip: {tmp_zip}')
         except OSError as e:
-            print(f'[warn] 删除旧 zip 失败（不影响打包，zipfile 会覆盖写）: {e}')
+            print(f'[warn] 清理临时 zip 失败（不影响打包，zipfile 会覆盖写）: {e}')
 
     n_files = 0
     total_raw = 0
-    with zipfile.ZipFile(ZIP, 'w', compression=zipfile.ZIP_DEFLATED,
-                         compresslevel=args.level, allowZip64=True) as zf:
-        for rel, size in pkg_exclude.iter_package_files(PKG):
-            full = os.path.join(PKG, rel.replace('/', os.sep))
-            arc = f'{PREFIX}/{rel}'
-            zf.write(full, arc)
-            n_files += 1
-            total_raw += size
-            if n_files % 2000 == 0:
-                print(f'  ... {n_files} 文件')
+    try:
+        with zipfile.ZipFile(tmp_zip, 'w', compression=zipfile.ZIP_DEFLATED,
+                             compresslevel=args.level, allowZip64=True) as zf:
+            for rel, size in pkg_exclude.iter_package_files(PKG):
+                full = os.path.join(PKG, rel.replace('/', os.sep))
+                arc = f'{PREFIX}/{rel}'
+                zf.write(full, arc)
+                n_files += 1
+                total_raw += size
+                if n_files % 2000 == 0:
+                    print(f'  ... {n_files} 文件')
+    except BaseException as e:
+        # 🔴 写失败 ⇒ **保留旧包不动**，只清临时文件
+        try:
+            if os.path.exists(tmp_zip):
+                os.remove(tmp_zip)
+        except OSError:
+            pass
+        print(f'!! 打包失败（已保留原有 zip 不变）: {type(e).__name__}: {e}')
+        raise
 
-    sz = os.path.getsize(ZIP)
+    sz = os.path.getsize(tmp_zip)
     print()
     print(f'文件数     : {n_files}')
     print(f'原始字节   : {total_raw}')
@@ -564,13 +580,33 @@ def _run(args):
 
     print('-' * 70)
     print('testzip() 校验…')
+    # ⚠️ 校验在**临时文件**上做（不是目标 ZIP）⇒ 失败时旧包完好无损
+    try:
+        ok = _verify_and_report(tmp_zip, args, PKG, PREFIX)
+    except BaseException as e:
+        # 🔴 校验阶段异常 ⇒ **不改名**（旧包保持原样）+ 清理临时文件
+        try:
+            if os.path.exists(tmp_zip):
+                os.remove(tmp_zip)
+        except OSError:
+            pass
+        print(f'!! 校验阶段异常（已保留原有 zip 不变）: {type(e).__name__}: {e}')
+        raise
+    return _finish(ZIP, tmp_zip, ok)
+
+
+def _verify_and_report(ZIP, args, PKG, PREFIX):
+    """在 ZIP（临时文件）上做全部校验并打印报告。返回 True=全部通过。
+
+    🔴 **不在这里改名** —— 改名由 `_finish()` 在全部校验通过后做。
+    """
     with zipfile.ZipFile(ZIP, 'r') as zf:
         bad = zf.testzip()
         if bad is None:
             print('  Everything is Ok')
         else:
             print('  !!! 损坏条目:', bad)
-            return 1
+            return False
 
         names = set(zf.namelist())
         print()
@@ -716,7 +752,25 @@ def _run(args):
             or not bytes_ok or spoken_hit or internal_hit or tts_bad
             or not content_ok):
         print('结论：FAIL')
+        return False
+    return True
+
+
+def _finish(ZIP, tmp_zip, ok):
+    """校验结束后的收尾：PASS ⇒ 原子改名；FAIL ⇒ 丢弃临时文件（旧包不动）。"""
+    if not ok:
+        # FAIL 路径：校验没通过 ⇒ 不改名 ⇒ 旧包（若存在）保持原样
+        try:
+            if os.path.exists(tmp_zip):
+                os.remove(tmp_zip)
+            print(f'[info] 校验未通过 ⇒ 已丢弃临时 zip，原 {ZIP} 未被改动')
+        except OSError as e:
+            print(f'[warn] 清理临时 zip 失败: {e}')
         return 1
+    # 🔴🔴 全部校验通过 ⇒ **原子改名**把临时文件变成正式包
+    #    （`os.replace` 在同一卷上是原子操作 ⇒ 客户永远看不到半个包）
+    os.replace(tmp_zip, ZIP)
+    print(f'[info] 校验通过 ⇒ 已原子改名到正式路径: {ZIP}')
     print(f'结论：PASS  md5={md5(ZIP)}')
     return 0
 
