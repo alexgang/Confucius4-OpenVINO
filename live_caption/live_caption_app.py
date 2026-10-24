@@ -2343,10 +2343,54 @@ class App:
     def clear(self):
         self.final_text = ''
         self.blocks = []
-        self.mt.seg_keys.clear()
-        self.mt.seg_carry.clear()
-        self.mt.seg_half.clear()
+        self._reset_mt_session()
         self._render('')
+
+    def _reset_mt_session(self):
+        """🔴🔴 清空**整个 MT 会话状态**（不只 3 个字典）。
+
+        ★ **旧行为是真 bug**（MT 移交说明 §4.3 点名）：
+          原来只清 `seg_keys` / `seg_carry` / `seg_half`
+          ⇒ **没清** `units`（句单元列表）、`_seen`（已提交句集合）、
+          `_pend`（跨段缓冲）、`done` / `done_fix`（译文缓存）。
+          ⇒ 点「清空」之后：
+            · `mt.units` 里**上一场**的句单元还在 ⇒ 渲染层会把旧译文混进新场次；
+            · `_seen` 还在 ⇒ 新场次里出现的**同一句**会被当成「已翻过」
+              ⇒ **不翻译、不进显示单元** ⇒ 新场次的这句话**直接丢失**；
+            · `_pend` 里还挂着上一场的半句 ⇒ 新场次第一段会**接到上一场的尾巴后面**
+              ⇒ 出现「前半句丢失 / 跨行重复」；
+            · `done` 里还留着旧译文 ⇒ 同一句在新场次**读到上一场的旧译文**。
+          ⇒ 这些和 `translator._loop()` 里「换模型后清缓存」是同一套字段，
+            这里按同样口径清（**不重载模型**，只重置会话状态）。
+
+        ⚠️ 用 `getattr(..., None)` 防御：字段名是 `translator.py` 的内部约定，
+          万一将来改名 ⇒ 跳过而不是抛异常把「清空」按钮搞崩。
+        """
+        mt = self.mt
+        # ── 字典类（原来清的 3 个 + 译文缓存）──
+        for name in ('seg_keys', 'seg_carry', 'seg_half'):
+            d = getattr(mt, name, None)
+            if isinstance(d, dict):
+                d.clear()
+        for name in ('done', 'done_fix'):
+            d = getattr(mt, name, None)
+            if hasattr(d, 'clear'):
+                d.clear()
+        # ── 列表 / 集合 / 标量 ──
+        units = getattr(mt, 'units', None)
+        if isinstance(units, list):
+            units.clear()
+        seen = getattr(mt, '_seen', None)
+        if isinstance(seen, set):
+            seen.clear()
+        if hasattr(mt, '_pend'):
+            mt._pend = ''
+        if hasattr(mt, '_half'):
+            mt._half = None
+        if hasattr(mt, 'draft'):
+            mt.draft = ''
+        if hasattr(mt, '_last_src'):
+            mt._last_src = ''
 
     def _save_text(self):
         """原文 + 译文（保存/自测共用）。"""

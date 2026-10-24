@@ -1,0 +1,81 @@
+{
+ "total": 14,
+ "n_pass": 14,
+ "n_fail": 0,
+ "all_pass": true,
+ "app_py_sha256": "1477f13fdfebec59c1c35cb7457d6b9b8639a7461c0a5ef9bd741642961c3dbf",
+ "translator_py_sha256": "db842668035da04432545ffd9e5a496c406f4412ca8c396d7e2c31716c5942ef",
+ "mtime": "2026-10-25 00:29:41",
+ "checks": [
+  {
+   "name": "反证 旧 clear 后 units 仍非空（证明是真 bug）",
+   "pass_": true,
+   "detail": "units=1"
+  },
+  {
+   "name": "反证 旧 clear 后 _seen 仍非空（⇒ 同句会被当成已翻过 ⇒ 丢句）",
+   "pass_": true,
+   "detail": "_seen=1"
+  },
+  {
+   "name": "反证 旧 clear 后 _pend 仍非空（⇒ 新场次会接上一场尾巴）",
+   "pass_": true,
+   "detail": "_pend='a half sentence'"
+  },
+  {
+   "name": "反证 旧 clear 后 done 仍非空（⇒ 同句读到旧译文）",
+   "pass_": true,
+   "detail": "done=1"
+  },
+  {
+   "name": "① 清空后 units 为空",
+   "pass_": true,
+   "detail": "units=0"
+  },
+  {
+   "name": "② 清空后 _seen 为空",
+   "pass_": true,
+   "detail": "_seen=0"
+  },
+  {
+   "name": "③ 清空后 _pend 为空串",
+   "pass_": true,
+   "detail": "_pend=''"
+  },
+  {
+   "name": "④ 清空后 done 为空",
+   "pass_": true,
+   "detail": "done=0"
+  },
+  {
+   "name": "④b 清空后 done_fix 为空",
+   "pass_": true,
+   "detail": "done_fix=0"
+  },
+  {
+   "name": "⑤ 清空后 seg_keys/seg_carry/seg_half 为空",
+   "pass_": true,
+   "detail": "seg_keys=0 seg_carry=0 seg_half=0"
+  },
+  {
+   "name": "⑥ 清空后 _half/draft/_last_src 也归零",
+   "pass_": true,
+   "detail": "_half=None draft=''"
+  },
+  {
+   "name": "⑦ 回归：清空后新场次同一句仍进显示单元（未被当成已翻过而丢弃）",
+   "pass_": true,
+   "detail": "units=1 done=['hello world']"
+  },
+  {
+   "name": "⑧ App.clear() 确实调用 _reset_mt_session",
+   "pass_": true,
+   "detail": "clear() 源码里含调用"
+  },
+  {
+   "name": "⑨ 字段缺失时不抛异常（防御性）",
+   "pass_": true,
+   "detail": "bare 对象清空成功"
+  }
+ ]
+}

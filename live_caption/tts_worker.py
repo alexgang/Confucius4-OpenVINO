@@ -641,6 +641,15 @@ class TTSWorker:
         # 语言映射：babelvox 用全称（'English' / 'Chinese'）
         blang = 'Chinese' if lang.lower().startswith('zh') else 'English'
 
+        # 🔴🔴 TTS-006：**中文数字正则化要在分句之前**
+        #   （分句按字数估帧数 ⇒ 若先分句再正则化，估的是「数字」的字数，
+        #    而实际读的是「五十二」的 3 个字 ⇒ 帧数上限会被低估）
+        #   ⇒ 这里先正则化，再 split_long_text。
+        #   ⚠️ `tts_engine.stream()` 里也有一层（幂等 ⇒ 不重复转换），
+        #   那层负责覆盖**其它 stream 调用方**。
+        if lang.lower().startswith('zh'):
+            text = tts_engine.normalize_zh_numbers(text)
+
         # 长句切分（保守上限 478 帧 ≈ 39.8 s）
         parts = tts_engine.split_long_text(text)
         chunks = []

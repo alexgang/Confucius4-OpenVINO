@@ -162,6 +162,34 @@ DECODER_BUCKETS = [8, 16, 32, 64, 128, 256]
 MAX_DECODER_FRAMES = 512          # 🔴 保持 512 —— 一参两用，降了会砍断长句
 MAX_TALKER_SEQ = 512
 
+# 🔴🔴 **左上下文帧数**（TTS-010 修复 —— 杂音/音色突变的根因）
+#
+# 上游 babelvox 的分块解码是「每 chunk 独立解码、**零上下文**」
+# ⇒ 声码器在帧维度**非因果** ⇒ 独立解码 ≠ 整段取前缀
+# ⇒ **每个 chunk 边界都引入失真** ⇒ 用户抽听听到的「杂音 / 音色突变」，
+#    官方 CUDA（faster-qwen3-tts）用「25 帧左上下文滑动窗口」正是为此：
+#        *Sliding window with 25-frame left context … avoids boundary
+#        artifacts (pops) while keeping decode cost bounded.*
+#
+# ⇒ 这里照抄官方：解码时把前 CTX_FRAMES 帧一起送进声码器，
+#    只取本 chunk 对应的那一段样本（丢弃左上下文部分）。
+#
+# 实测（`qwen3tts_eval/results/voice_ac/ctx_production/manifest.json`）：
+#   ctx vs 整句  cos 中位 0.999999 / 最低 0.989294
+#                 SNR 中位 70.03 dB / 最低 16.68 dB
+#   基线 vs 整句 cos 中位 0.838118 / SNR 中位 4.83 dB
+#   边界跳变    中位 0.0574 → 0.0075（−7.6×），20/20 条全部改善
+#
+# ⚠️ 25 是官方 CUDA 的取值；改小会退回边界失真，改大只增解码开销。
+CTX_FRAMES = 25
+# 🔴 chunk 大小（babelvox `generate_stream(chunk_frames=...)`，单位=帧）
+# 官方 12 帧/秒 ⇒ chunk_frames=8 ≈ 0.67 s 一次解码。
+CHUNK_FRAMES = 8
+# 🔴 解码器静态桶：必须覆盖「左上下文 + 一个 chunk」的最大帧数
+#    （8 + 25 = 33）以及「历史满 + 末块」的组合（25 + 12 = 37 ⇒ 取 40）。
+#    ⇒ 新增 33 / 40 两个桶，其余沿用。
+DECODER_BUCKETS_CTX = [8, 16, 32, 33, 40, 64, 128, 256]
+
 
 class TTSEngineError(RuntimeError):
     """TTS 引擎加载/合成失败。"""
@@ -182,6 +210,27 @@ def _load_patch_class():
             spec.loader.exec_module(mod)
             return mod
     return None
+
+
+def _class_supports_param(cls, name: str) -> bool:
+    """探测类是否支持某个构造参数（**能力探测**，不是版本号判断）。
+
+    ⚠️ 为什么要探测而不是直接传：
+    客户包 vendored 的 `tts_engine_patch.py` 可能是**旧版**
+    （TTS-010 之前）⇒ 不认识 `ctx_frames` ⇒ 无条件传会
+    `TypeError` ⇒ **整个 TTS 引擎加载失败**（客户机上表现为「TTS 起不来」）。
+    ⇒ 探测不到就不传，退回旧行为（音质差但能跑）比**完全起不来**好。
+    """
+    import inspect
+    try:
+        sig = inspect.signature(cls.__init__)
+    except (TypeError, ValueError):
+        return False
+    if name in sig.parameters:
+        return True
+    # 有 **kwargs ⇒ 理论上能收，但旧 patch 的 **kwargs 会吞掉并忽略
+    # ⇒ 这种情况**按不支持处理**（避免「以为开了其实没开」）。
+    return False
 
 
 def make_engine(device: str = 'NPU',
@@ -235,11 +284,27 @@ def make_engine(device: str = 'NPU',
     cls = BabelVox
     if patch is not None and hasattr(patch, 'MultiDecoderBabelVox'):
         cls = patch.MultiDecoderBabelVox
-        kwargs['decoder_buckets'] = DECODER_BUCKETS
-        on_log('[tts_engine] 使用 MultiDecoderBabelVox（解码器多桶）')
+        # 🔴🔴 **TTS-010：左上下文解码**（消边界失真 = 消杂音/音色突变）
+        #   ⚠️ **必须做能力探测**：客户包 vendored 的 `tts_engine_patch.py`
+        #   可能还是旧版（不支持 `ctx_frames`）⇒ 无条件传会
+        #   `TypeError: __init__() got an unexpected keyword argument` ⇒
+        #   **整个 TTS 引擎加载失败**（比音质问题更严重）。
+        #   ⇒ 用 `inspect.signature` 探测，不支持就不传（退回旧行为）。
+        _supports_ctx = _class_supports_param(cls, 'ctx_frames')
+        if _supports_ctx:
+            kwargs['decoder_buckets'] = DECODER_BUCKETS_CTX
+            kwargs['ctx_frames'] = CTX_FRAMES
+            on_log(f'[tts_engine] 使用 MultiDecoderBabelVox'
+                   f'（解码器多桶 + 左上下文 {CTX_FRAMES} 帧）')
+        else:
+            kwargs['decoder_buckets'] = DECODER_BUCKETS
+            on_log('[tts_engine] ⚠️ tts_engine_patch.py **不支持左上下文**'
+                   '（旧版）⇒ 已退回无上下文解码，'
+                   '边界失真/杂音仍在 ⇒ 请同步新版 patch')
     else:
         on_log('[tts_engine] ⚠️ 未找到 tts_engine_patch.py，'
-               '退回原生 BabelVox（长句解码较慢）')
+               '退回原生 BabelVox（长句解码较慢，'
+               '且**无左上下文** ⇒ 边界失真/杂音）')
 
     on_log(f'[tts_engine] 加载模型：device={device} root={root} cache={cdir}')
     t0 = os.times()
@@ -317,6 +382,149 @@ def speaker_embedding(eng, ref_wav: Optional[str] = None,
     return spk
 
 
+# ── 中文数字正则化（TTS-006，规则版本 zh-num-v1.0）────────────────────
+#
+# 🔴🔴 **为什么需要**：Qwen3-TTS 读中文里的阿拉伯数字会读成英文
+#   （实测 zh13「[REDACTED]心B0」→「fifty two 核心 B zero」，
+#    zh12「28核心样本」→「twenty eight 核心」），
+#   而 Confucius4 参照读成「五十二核心B零」「二十八核心」⇒ 回转写错误率
+#   2.3~2.5% vs 参照 1.0% 的差距**基本全部来自这里**。
+#
+# 🔴 **只对 language=zh 生效**；英文句**逐字不动**。
+# 🔴 **无数字的句子必须逐字不变**（自证没有误伤，见 verify_zh_num.py）。
+#
+# 规则：
+#   ① 百分数  85%      → 百分之八十五
+#   ② 年份    2026     → 二零二六（逐位；1900~2099 才当年份）
+#   ③ 小数    3.5      → 三点五（小数位逐位）
+#   ④ 型号    B0 / iPhone15 → B零 / iPhone一五（字母紧邻 ⇒ 逐位）
+#   ⑤ 普通数  52 / 28  → 五十二 / 二十八（按数值读）
+#
+# ⚠️ **维护方**：本文件由 **TTS 模块**维护（规则 + 单元测试在
+#   `qwen3tts_eval/verify_zh_num.py`）；App 模块只负责同步到客户包。
+
+ZH_NUM_RULES_VERSION = 'zh-num-v1.0'
+
+_CN_DIGITS = '零一二三四五六七八九'
+
+
+def _int_to_cn(n: int) -> str:
+    """0 ~ 99999999 的整数读法（中文口语习惯，无「一」开头的一十）。"""
+    if n < 0:
+        return '负' + _int_to_cn(-n)
+    if n < 10:
+        return _CN_DIGITS[n]
+    if n < 20:
+        return '十' + (_CN_DIGITS[n % 10] if n % 10 else '')
+    if n < 100:
+        return _CN_DIGITS[n // 10] + '十' + (_CN_DIGITS[n % 10] if n % 10 else '')
+    if n < 1000:
+        head = _CN_DIGITS[n // 100] + '百'
+        rest = n % 100
+        if rest == 0:
+            return head
+        if rest < 10:
+            return head + '零' + _CN_DIGITS[rest]
+        return head + _int_to_cn(rest)
+    if n < 10000:
+        head = _CN_DIGITS[n // 1000] + '千'
+        rest = n % 1000
+        if rest == 0:
+            return head
+        if rest < 100:
+            return head + '零' + _int_to_cn(rest)
+        return head + _int_to_cn(rest)
+    if n < 100000000:
+        head = _int_to_cn(n // 10000) + '万'
+        rest = n % 10000
+        if rest == 0:
+            return head
+        if rest < 1000:
+            return head + '零' + _int_to_cn(rest)
+        return head + _int_to_cn(rest)
+    return str(n)
+
+
+def _digits_to_cn(s: str) -> str:
+    """逐位读（年份、型号里的单个数字）。"""
+    return ''.join(_CN_DIGITS[int(c)] if c.isdigit() else c for c in s)
+
+
+def normalize_zh_numbers(text: str) -> str:
+    """把中文文本里的阿拉伯数字改成中文读法（TTS-006）。
+
+    🔴 **幂等**：对已正则化的文本再跑一次结果不变
+    （⇒ 不会与其它前端处理叠加成双重转换）。
+    🔴 **无数字文本逐字返回原对象内容**（长度与内容都不变）。
+    """
+    if not text or not any(c.isdigit() for c in text):
+        return text
+
+    import re
+
+    def _pct(m):
+        num = m.group(1)
+        if '.' in num:
+            ip, fp = num.split('.', 1)
+            val = _int_to_cn(int(ip)) + '点' + _digits_to_cn(fp)
+        else:
+            val = _int_to_cn(int(num))
+        return '百分之' + val
+
+    def _year(m):
+        n = int(m.group(0))
+        if 1900 <= n <= 2099:
+            return _digits_to_cn(m.group(0))
+        return _int_to_cn(n)
+
+    def _dec(m):
+        ip, fp = m.group(1), m.group(2)
+        return _int_to_cn(int(ip)) + '点' + _digits_to_cn(fp)
+
+    def _model(m):
+        # 字母紧邻数字 ⇒ 型号 ⇒ 逐位读（B0 → B零）
+        return m.group(1) + _digits_to_cn(m.group(2))
+
+    def _plain(m):
+        return _int_to_cn(int(m.group(0)))
+
+    out = text
+    # ① 百分数（先做，避免 % 里的数字被后面规则吃掉）
+    out = re.sub(r'(\d+(?:\.\d+)?)\s*%', _pct, out)
+    # ② 小数（先于年份，否则 2026.5 会被年份规则误吃）
+    out = re.sub(r'(?<![\d.])(\d+)\.(\d+)(?![\d])', _dec, out)
+    # ③ 年份（4 位，1900~2099）
+    out = re.sub(r'(?<![\d.])(\d{4})(?![\d.])', _year, out)
+    # ④ 型号：字母紧跟数字（前面必须紧邻字母 ⇒ "BLC 28" 不会被误判）
+    out = re.sub(r'([A-Za-z])(\d+)', _model, out)
+    # ⑤ 普通整数
+    out = re.sub(r'(?<![\d.])(\d+)(?![\d.])', _plain, out)
+    return out
+
+
+def _is_zh_language(language: str) -> bool:
+    """babelvox 的 language 传 'Chinese' / 'English'；兼容 'zh' / 'zh-CN'。"""
+    s = (language or '').strip().lower()
+    return s.startswith('zh') or s.startswith('chinese')
+
+
+def reset_ctx(eng) -> None:
+    """🔴🔴 **生成新句子前必须调用**（TTS-010 左上下文纪律）。
+
+    左上下文解码会在引擎里缓存「上一批解码过的帧码」，
+    用来给下一个 chunk 提供边界上下文。
+    ⇒ 若不清理，**上一句的尾帧会串进下一句** ⇒ 音色突变 / 杂音。
+
+    ⚠️ 引擎无此方法时**静默跳过**（原生 BabelVox / 老 patch 没有 ctx）。
+    """
+    fn = getattr(eng, 'reset_ctx', None)
+    if callable(fn):
+        try:
+            fn()
+        except Exception:
+            pass
+
+
 def stream(eng, text: str, language: str = 'English',
            speaker_embed=None,
            speaker: Optional[str] = None,
@@ -334,7 +542,22 @@ def stream(eng, text: str, language: str = 'English',
 
     ⚠️ **`split_on_silence` 必须是 False**（交接单 §1.2）：
     打开它每帧多跑一次 decode 判静音 ⇒ RTF 1.83 → 5.90。
+
+    🔴🔴 **TTS-006：中文数字正则化在这里生效**（`language=zh` 时）
+    ⇒ 中文里的「52 核心 B0」送进模型前会变成「五十二核心B零」
+    ⇒ 避免模型读成英文 "fifty two 核心 B zero"。
+    ⚠️ 英文句**逐字不动**；无数字的中文句**逐字不动**。
+
+    🔴🔴 **TTS-010：左上下文 + chunk 尺寸**
+    - `chunk_frames=CHUNK_FRAMES`：分块解码的粒度（帧），
+      越小边界越多（失真越大），越大首字延迟越高。
+    - 调用前先 `reset_ctx(eng)`：**清掉上一句的尾帧上下文**，
+      否则跨句串音。
     """
+    if _is_zh_language(language):
+        text = normalize_zh_numbers(text)
+    # 🔴 每句独立：清掉上一句残留的左上下文
+    reset_ctx(eng)
     kwargs = dict(
         text=text,
         language=language,
@@ -343,6 +566,15 @@ def stream(eng, text: str, language: str = 'English',
         split_on_silence=False,      # 🔴 必须 False
         cancel_event=cancel_event,
     )
+    # 🔴 chunk_frames：babelvox 支持时传入（老版本无此参数 ⇒ 退回默认 12）
+    try:
+        import inspect
+        _sig = inspect.signature(eng.generate_stream)
+        _has_chunk = 'chunk_frames' in _sig.parameters
+    except Exception:
+        _has_chunk = False
+    if _has_chunk:
+        kwargs['chunk_frames'] = CHUNK_FRAMES
     return eng.generate_stream(**kwargs)
 
 

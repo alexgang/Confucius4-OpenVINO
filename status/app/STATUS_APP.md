@@ -1,39 +1,19 @@
 # STATUS_APP
 last_ack: APP-010
-更新时间: 2026-10-24 21:03
-当前任务: **巡检复核（无新纠偏条目）+ 🔴🔴 修掉 `pack_v13.py`「直接写目标 zip ⇒ 打包中断会截断覆盖好包」+ 🔴🔴 修掉 `check_internal_material.py`「README 前缀放行 ⇒ 客户包 README 内部代号漏检」**：APP-007/008/009/010 已由并行会话在 §23 闭环（`last_ack` = **APP-010**，本轮接手时**无新条目待执行**）⇒ 本轮做**独立复核**（远端 `a565e26`，**6 项判据自己跑全 PASS**）+ 修两个 §23 未覆盖的真实缺口；⚠️ **交付 zip 已被写坏**（3 513 053 709 B 非有效 zip，17:19）⇒ 打包已改「临时文件 + 校验通过后原子改名」；⚠️ **重打 zip 未完成**（共享机器锁被 MT 持有，PID 32556 存活 ⇒ 等，未抢锁）。
-阻塞 / 待用户决定: ① 🔴 **交付 zip 是坏的/过时的**：`Confucius4_LiveCaption_v1.4.zip` = 3 513 053 709 B **非有效 zip**（17:19 写坏）；FTP_Share 副本 11 216 038 195 B **完好但过时**（09:10）⇒ **不含** APP-008①/APP-010 标注⇒ **客户拿不到含标注的成品包** —— **下一轮第一件事：持锁重打 + `verify_pkg_zip.py` 复核 + `publish_ftp.py` 重发**；② 🔴 **`shared/GIT_FREEZE` 未释放**（改写 20:44 已完成、远端已强推 `a565e26`）⇒ 三个并行线程仍在「不要提交」状态⇒ **已在 §24.8 提请 reviewer 释放**（App 不擅自删）；③ ⛔ **GitHub 旧 SHA 的 gc** 未做（§23.8）—— 需用户决定；④ ⛔ **APP-009② `translator.py` 的 C-111 合入**仍等 MT 的 H-014 最终方案（§23.10）；⑤ ⚠️ **`tts_worker.py` 的 TTS-006 改动未进包**（仓库 +9 行，包内缺）—— **TTS 模块管辖**，**已在 §24.8 请 reviewer 明确合入/同步责任**；⑥ ⛔ **v1.4 TTS 音质**未达标（TTS-009 排查中）⇒ TTS 保持实验性、默认关闭；⑦ ⛔ **包体 13 GB** 优化未做。
+更新时间: 2026-10-25 00:32
+当前任务: **巡检（无新纠偏条目）+ 合入 MT 移交的 `translator.py` 三处修复（§56 缺陷①②③ + H-013）+ 🔴🔴 修掉 App 侧 `clear()` 不重置 MT 会话的真实缺口（漏清 5 类状态 ⇒ 清屏后丢句/混旧译文/接旧半句）+ 客户包定点同步 3 文件（`translator.py`/`live_caption_app.py`/`tts_worker.py`，7 块唯一命中）**：APP-007/008/009/010 已闭环（`last_ack` = **APP-010**，本轮**无新条目待执行**）⇒ 本轮做「合入 MT 移交 + 修 App 真实缺口 + 交付收尾」；⏳ **交付 zip 仍未重打**（共享机器锁被 MT 持有，PID 16080 实测 exitcode 259 = 存活 ⇒ 等，**未抢锁**）⇒ **下一轮第一件事：取锁 ⇒ 重打 zip ⇒ `verify_pkg_zip.py` 内容级复核 ⇒ `publish_ftp.py` 重发**
+阻塞 / 待用户决定: ① 🔴 **交付 zip 是坏的**：`Confucius4_LiveCaption_v1.4.zip` = 3 513 053 709 B **非有效 zip**（17:19 写坏）；FTP_Share 副本 11 216 038 195 B **完好但过时**（09:10）⇒ **不含** APP-008①/APP-010 标注，也不含本轮 §25.1/25.2 的修复 —— **下一轮取锁后重打 + 重发**（§24 已修 `pack_v13.py` 原子写）；② 🔴 **渲染层改按 `mt_units()` 逐句渲染**（MT §4.3 点名的 `_mt_of`/`_save_text`/CLI `run_cli` 三处）—— **本轮未做**（改字幕显示粒度 ⇒ 属产品行为变更）⇒ **等 MT v4 复算 + reviewer 裁定**（§25.8-1）；③ 🔴 **`shared/GIT_FREEZE` 未释放**（改写 20:44 已完成、远端已强推 `a565e26`）⇒ **App 不擅自删**，请 reviewer 释放；④ ⛔ **GitHub 旧 SHA 的 gc** 未做 ⇒ 待用户决定；⑤ ⛔ **APP-009② 的 MT UNIT 方案 A/B/C/D 结论**仍在 v4 复算（7 臂，第 2/7）⇒ 本轮只合入已落码的 3 处缺陷修复；⑥ ⛔ **v1.4 TTS 音质**未达标（TTS-009/TTS-010）⇒ TTS 保持实验性、默认关闭；⑦ ⛔ **包体 13 GB** 优化未做。
 
 ## 最近更新
-
-- 21:03 §24 **巡检复核（无新条目）**：`CORRECTIONS_APP.md` SHA256 `8ccf661c7f1ef5c…` / 27 413 B / mtime `2026-10-24 17:01:54`，`## APP-xxx` **10** 条（APP-001…APP-010）；接手时头部 `last_ack` = APP-006 ⇒ 有 4 条新条目 ⇒ **并行会话已于 20:44 写入 §23 并把 `last_ack` 更新为 APP-010** ⇒ 本轮**不重复执行**，改为**独立复核**。
-- 21:03 §24 ✅ **独立复核 APP-007/APP-009 历史改写**（不采信 §23 自述，全部自己跑）：远端 `a565e26`（本轮实测 `git fetch` 显示 `+ ab257b4...a565e26 main -> main (forced update)`）；**6 项判据全 PASS** —— 敏感路径 3 项 = **0 命中**、英文判据 = **0**、中文判据（8 条，UTF-8 pattern 文件 `-f`）= **0**、逐字会议原句 = **0**。
-- 21:03 §24 🔴 **撤回 §23.4 判据 1 的潜在误判**：中间版本实测有 **54 个提交**命中逐字原句（`_t_ctx.py` 10 句里 **7 句是原句**）⇒ 最终态已由 `literal:live_caption/_t_ctx.py` 整文件删除（= **0**）⇒ **最终 PASS**，但**「关键词判据归零 ≠ 无残留」** ⇒ 审查改写必须同时跑**关键词 + 逐字原句 + 敏感路径**三套判据。
-- 21:03 §24 🔴🔴 **修掉 `pack_v13.py`「直接写目标 zip ⇒ 打包中断截断覆盖好包」**：改前 `zipfile.ZipFile(ZIP, "w")` **立即截断**目标文件 ⇒ 17:19 那次并行会话被中断就把 11.2 GB 好包截成 3.5 GB 半成品，磁盘上**不再有完好副本**。⇒ 改为「写 `ZIP + '.tmp'` → 全部校验 → `os.replace()` 原子改名 → 失败删 .tmp 且**旧包一个字节不动**」（+52/−23 行；与 `publish_ftp.py` 既有写法对齐）。
-- 21:03 §24 ✅ **`pack_v13.py` 原子写验收 4/4 PASS**（脚手架包，**未碰真实 13 GB 包**）：**A 旧包不被破坏**（173 B 旧包含 marker ⇒ FAIL 打包后仍 173 B、marker 仍在、SHA 未变）/ **B FAIL 路径无 `.tmp` 残留** / **C PASS 路径原子改名**（6 767 B / 39 条目）/ **D `py_compile` OK**。
-- 21:03 §24 🔴🔴 **修掉 `check_internal_material.py`「README 前缀放行 ⇒ 客户包 README 漏检」**：`DEFAULT_ALLOW` 里的 `'README'` 是**前缀**语义 ⇒ `README_zh.md`/`README_en.md` **整份跳过内容扫描** ⇒ 内部代号（`blc b0`/`52 core`）看不见。⇒ 拆出 `DEFAULT_ALLOW_EXACT = ('README.md',)` 精确匹配。**反证**：同目录旧版「命中 0 ⇒ PASS」/ 新版「命中 1 ⇒ FAIL」✔。
-- 21:03 §24 ✅ **APP-008①②③ / APP-010 逐项核实已落地**：`tts_npu_cache` 在 `pkg_exclude`（EXCLUDE_DIRS + PREFIXES 共 3 处）✔；`pack_v13.py` 默认取锁 ✔；客户包 `README_zh.md:392-394` 含「新切段规则待质量复核」+ `LIVECAP_GUARD_REL=0` 退回开关 ✔；`README_zh.md:42-48` 含「实验性功能，默认关闭 / 暂不作为可交付能力」✔；`--tts` 默认 `off` ✔。
-- 21:03 §24 ⚠️ **未完成**：重打 zip + 重发 FTP（**共享机器锁被 MT 持有**，`pid 32556` 实测 **exitcode 259 = 存活** ⇒ 等，**未抢锁**）；**未修改** `status/app/CORRECTIONS_APP.md`（只读）；**未跑推理/测速**；**未吞** MT/TTS 的未提交改动；普通 push、**未 force push**。
-- 20:44 §23 🔴🔴 **APP-007 / APP-009 历史改写最终完成**：改写前 `7cf21f71b30c7079d67fa0d5e2b0d1238741a1b5` → 改写后 **`a565e268fd3a630f697529e469e481b42591ef07`**（**69 提交不变**，SHA 一一对应 **69/69**，无丢失）；强推 `+ 78a30ef...a565e26 main -> main (forced update)` EXIT=0。
-- 20:44 §23 ✅ **第 4 步判据（干净 clone `git_verify_final` 重 clone 真实远端）全 PASS**：路径判据 **0**（`reports/cuda/logs_stream`、`live_caption/_t_ctx.py`）/ 英文判据 **0** / 中文判据 **0** / **闸门 5 条 PASS**（`\bQ[G]S\b`、`26[0]902`、`b[l]c\s*b[0]`、`5[2]\s*c[o]re`、`L[i]sa will join` —— 真实值必匹配 + `[REDACTED]` 不误伤）/ 9 个 `.py` 编译 **OK** / `--check`「环境正常。ASR 可用后端 2 个，Intel 集显可用。」
-- 20:44 §23 🔴 **工作区同步清理 4 个文件**（`status/STATUS.md`、`status/STATUS.md.c027bak`、`status/app/STATUS_APP.md`、`status/status_history.md`）—— **不改的话下次 commit 会把引文带回历史**；改前已备份到 `git_backup/wt_bak_*`；行尾自检无 `\r\r`。
-- 20:44 §23 ✅ **误伤排除已生效**：`reviewer/shortcut.ps1`（桌面快捷方式路径，实测 `grep -c Desktop`=2 完好）、`status/asr/STATUS_ASR.md`（`260902_SPE_audio.wav` 真实音频文件名）、`verify_segmentation.py`（ASR 词数敏感夹具）、`status/*/CORRECTIONS_*.md`（reviewer 独占写）—— **均未改**。
-- 20:44 §23 📌 **三条新铁律**：① 替换表必须**子串级**（整行精确匹配会失配）；② 规则必须**按长度降序**（短的会先吃掉长规则的上下文）；③ 闸门保护必须用**等效拼装**（`[REDACTED]` 直接进正则 ⇒ 闸门彻底失效）。
-- 20:44 §23 ⛔ **未做（不夸大）**：GitHub gc 未做（待用户决定）；APP-009② `translator.py` C-111 未合入；共享工作区**未做任何提交**（避免覆盖他人暂存区）；FTP 保持关闭；`shared/MACHINE_LOCK` 未回收。
-
-- 09:11 §22 **巡检无新纠偏条目**：`CORRECTIONS_APP.md` SHA256 `dff32b2c…7db8cc` / 17 965 B / mtime `2026-10-23 12:01:55`，`## APP-xxx` **6** 条（最大 **APP-006** = `last_ack`）⇒ **第 8 次**同一口径复核，**`last_ack` 不变**；**未推进** APP-006 第 3~7 步（等 reviewer 复核）。
-- 09:11 §22 🔴🔴 **修掉「一句话合成失败 ⇒ 整个会话语音输出永久死掉」**（`tts_service.py` 把 worker 的 `error` 事件一律当 worker 级 ⇒ `state="error"` ⇒ CLI 不再提交 / GUI 命令堆 `_queue` 永不发 / `pending` 悬挂致 drain 白等 30~120 s / `_queue` 无上限）：**反证 8 项 FAIL**（drain 实测空等 **20.0 s**、`_queue` 实测涨到 **20**）⇒ 修后 **19/19 PASS**（drain **0.0 s**）。
-- 09:11 §22 🔴 **worker 崩溃时在途句子悬挂**（已下发未回结果的句子永远等不到 `played`）⇒ 新增 `_inflight` 跟踪，崩溃/worker 级故障时清空并**计丢句**（诚实记账）。
-- 09:11 §22 ✅ **回归**：§20 `test_tts_stderr.py` **9/9 PASS**、§21 `test_tts_restart_regression.py` **9/9 PASS**、`test_tts_close_orphan.py` **PASS**、`test_tts_restart_nop.py` **PASS**（未受影响）。
-- 09:11 §22 ✅ **客户包定点同步**：`sync_c142_to_pkg.py`（20 157 B / SHA256 `211d3629…`）**8 块唯一命中** + 幂等 ⇒ 包内 `tts_service.py` `c4e5e7ff…`→`9349e408…`（28 000 B）、`tts_worker.py` `06a9ea67…`→`ed78c49b…`（40 527 B），与仓库**逐字一致**；**对包内那份单独跑同一套断言 19/19 PASS**。
-- 09:11 §22 ✅ **重打 + 重发**：持锁 `app-pack` 重打 zip（12m 3s，内容级 PASS，`*_spoken.*` 0 / 音色 B/C 0 / MANIFEST `version=1.4` files=13977）；`verify_pkg_zip.py` **PASS**（zip⇄包 13 978 全一致、仓库⇄包 16/16）；`publish_ftp.py` **PASS**；zip 与 FTP 副本均 11 216 038 195 B / SHA256 `25eacf108b230128…`。
-- 09:11 §22 ✅ **纪律**：**未改** `status/app/CORRECTIONS_APP.md`；**未跑推理/测速**（全用桩 worker）；**未吞** MT 的 `translator.py` 等他模块改动；只提交 App 职责内文件；普通 push，**未 force push**。
-- 07:35 §21 **巡检无新纠偏条目**：`CORRECTIONS_APP.md` SHA256 `dff32b2c…7db8cc` / 17 965 B / mtime `2026-10-23 12:01:55`，`## APP-xxx` **6** 条（最大 **APP-006** = `last_ack`）⇒ 本轮需执行 **0** 条；与 §13/§15/§16/§17/§18/§19/§20 **逐字节一致**（**第 7 次**同一口径复核）⇒ `last_ack` 保持 **APP-006**。
-- 07:35 §21 🔴🔴 **修掉「孤儿 worker 进程泄漏」**（`close()` 顺序错 ⇒ stdout 一关就被判「崩溃」⇒ 自动重启 ⇒ 留一个杀不掉的 TTS 进程）：实测 close() 后多起 1 个 worker 且**仍存活**；GUI **4 条**路径（quit/停 TTS/换设备/换音色）都会漏。
-- 07:35 §21 🔴🔴 **修掉「C-101 崩溃自动重启从未生效」**（`start()` 的 `poll() is None` 守卫把重启**静默跳过**；Windows 上进程刚死 `poll()` 仍返 `None`）：实测 worker 实例启动次数 **1**（应为 2）；后果 = `state` 停在 `ready` ⇒ `submit()` 写进**死进程 stdin** ⇒ **语音输出静默消失**。
-- 07:35 §21 ✅ **验收**：仓库 **9/9**（`test_tts_restart_regression.py`）+ **3/3**（`test_tts_close_leak.py`）+ **PASS**（`test_tts_close_orphan.py` 无孤儿 / `test_tts_restart_nop.py` 启动次数=2）+ **客户包内单独跑 9/9**（`test_tts_lifecycle_pkg.py`）+ §20 stderr **9/9** 未受影响；并用 `git show HEAD:` 做**修复前/后并排对照** ⇒ 证明第 ② 条是**既存 bug**、非本轮回归。
-- 07:35 §21 ✅ **客户包定点同步 + 重打 + 重发**：`sync_c141_to_pkg.py`（17 961 B / `b9321810…`）5 块唯一命中 + 幂等 ⇒ 包内 SHA `9ece6694…` → `c4e5e7ff…`；重打 zip（13 978 文件 / 11 216 037 274 B / 597 s / 内容级 **PASS**）；`verify_pkg_zip.py` 独立复核 **PASS**；新增 `publish_ftp.py` 持锁重发 FTP（源⇄副本 SHA `fef91755…` 一致）。
-- 07:35 §21 ✅ **未推进 APP-006 第 3~7 步**（等 reviewer 复核）；✅ **未跑推理/测速**（自测全用桩 worker）；✅ **未改** `status/app/CORRECTIONS_APP.md`；✅ **未吞** MT 的 `translator.py` / `diag_c111_*` / `diag_punct_*` 等并行会话改动。
+- 00:32 §25 **巡检（无新纠偏条目，第 9 次同一口径）**：`CORRECTIONS_APP.md` SHA256 `8ccf661c7f1ef5c…` / 27 413 B / mtime `2026-10-24 17:01:54`，`## APP-xxx` **10** 条（最大 **APP-010** = `last_ack`）⇒ **无新条目**，`last_ack` 不变。
+- 00:32 §25 ✅ **合入 MT 移交的 `translator.py` 三处修复**（`shared/NOTICE_mt_to_app_20261024.md` 通知 4/5，32 839 B / 00:10）：① 新增 `load_mt_tokenizer()`（H-013，`fix_mistral_regex=False`，MT 实测分词 ids 30/30 不变）② `CACHE_MAX` **400 → 4000**（§56 缺陷③：674 单元 / 只留 400 ⇒ 前 274 条被淘汰，逐位吻合）③ `_seen` 全局丢弃 ⇒ **翻译去重 + 显示不去重**（§56 缺陷①：复读真实存在，38 句 / 3,312 字）。
+- 00:32 §25 🔴🔴 **修掉 App 侧 `clear()` 只清 3 个字典的真实缺口**（MT §4.3 点名，我核实后确认漏清 **5 类**状态：`units`/`_seen`/`_pend`/`done`+`done_fix`/`_half`+`draft`+`_last_src`）⇒ 新增 `_reset_mt_session()`（字段集与 `translator._loop()` 换模型清缓存**同一口径**，`getattr` 防御）⇒ 后果已坐实：清屏后**同句被当成已翻过而丢句** / 混进旧译文 / 新场次接到上一场半句。
+- 00:32 §25 ✅ **`clear()` 修复验收 14/14 PASS**（`results/app/test_app_clear_reset.py`，**含 4 项反证**：旧 `clear()` 后 `units`/`_seen`/`_pend`/`done` 确实仍非空 ⇒ 证明是真 bug）：测试用 `ast` 从**线上源码**抽方法再 `exec`（**不 import 被测模块**、不跑推理）⇒ 测的就是真代码；报告 `results/app/app_clear_reset_test.json`（已入库）。
+- 00:32 §25 ✅ **客户包定点同步 3 文件 / 7 块全部唯一命中**（`live_caption/sync_c143_to_pkg.py`，新，已入库）：`translator.py` `0e660bac…`→`e6b4c8b9…`（65 223→69 521 B）、`live_caption_app.py` `8b125b37…`→`47357762…`（155 383→157 641 B）、`tts_worker.py` `ed78c49b…`→`3c78cce8…`（40 527→41 109 B，**TTS-006 中文数字正则化，§24 遗留项**）⇒ **三者与仓库版逐字一致（归一化换行）**；包外备份 `pkg_backup_app014\*.20261025_0030{15,55}.bak`；**幂等**实测 PASS。
+- 00:32 §25 ✅ **对包内那份单独跑同一套断言**（铁律：仓库测过 ≠ 包里的那份是对的）：`test_pkg_translator_fixes.py`（`ast` 离线复刻，**纯 CPU、不跑推理**）⇒ **包内 12/12 PASS**、**仓库 12/12 PASS**（`CACHE_MAX=4000`、复读句 units=2 / queue=1、flush 两处都保留显示单元、守恒 total_src=45）；包内 `live_caption_app.py` 的 `clear()` 断言 **9/9 PASS**。
+- 00:32 §25 ⏳ **交付 zip 仍未重打**（共享机器锁被 MT 持有：`module: mt` / `pid: 16080` / 00:07:24，ctypes `OpenProcess`+`GetExitCodeProcess` 实测 **exitcode 259 = 存活** ⇒ 等，**未抢锁**；MT v4 在跑第 **2/7** 臂）⇒ **未写「已重打」**。
+- 00:32 §25 ⛔ **明确未做**：渲染层改按 `mt_units()` 逐句渲染（MT §4.3 三处 ⇒ 改字幕显示粒度，属产品行为变更 ⇒ **等 MT v4 复算 + reviewer 裁定**）；GitHub 旧 SHA gc（待用户决定）；包体 13 GB 优化；未开 FTP。
+- 00:32 §25 ✅ **纪律**：**未改/未提交** `status/app/CORRECTIONS_APP.md`；**未吞** ASR（45 个 `c0*.py` + `verify_segmentation.py` + `status/CORRECTIONS.md`）与 MT（46 个 `diag_c111_*`）的未提交改动；**只提交 App 职责内文件**；仓库 ⇄ 客户包**只做定点替换**（未整目录覆盖）；**未抢/未回收**任何活锁；普通 push、**未 force push**；**未跑推理/测速**。
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -4207,3 +4187,215 @@ python publish_ftp.py
 - ✅ **未抢** MT 的共享机器锁（实测 PID 32556 存活 ⇒ 等）。
 - ✅ 仓库 ⇄ 客户包**只做只读比对**，**未整目录覆盖**。
 - ✅ 普通 push，**未 force push**（本轮远端不动）。
+
+## §25 (2026-10-25 00:32) — 巡检（无新纠偏条目）+ 合入 MT 移交的 `translator.py` 三处修复 + 🔴🔴 修掉 App 侧 `clear()` 不重置 MT 会话的真实缺口 + 客户包定点同步（3 文件）
+
+### 25.0 巡检结论：**无新纠偏条目**（第 9 次同一口径复核）
+
+| 项 | 实测值 |
+|---|---|
+| `status/app/CORRECTIONS_APP.md` SHA256 | `8ccf661c7f1ef5c527871011ed898ae6b9c44855793749105a4461e3f10de8cf` |
+| 字节数 | **27 413 B** |
+| mtime | **2026-10-24 17:01:54** |
+| `## APP-xxx` 条目数 | **10**（APP-001 … APP-010） |
+| 头部 `last_ack` | **APP-010**（= 最大编号 ⇒ 无编号更大的新条目） |
+| 本轮 `last_ack` | **APP-010（不变）** |
+
+⇒ **本条无需执行任何 `## APP-xxx` 条目**（与 §24 同一口径）。
+⇒ 本轮做的是 **① 落实 MT 的跨模块移交（`shared/NOTICE_mt_to_app_20261024.md` 通知 4/5）② 修 App 侧真实缺口 ③ 交付 zip 收尾**。
+
+---
+
+### 25.1 ✅ 合入 MT 移交的 `translator.py` 三处修复（APP-009② 的后续，MT 授权 App 合入/提交/打包）
+
+**移交来源**：`shared/NOTICE_mt_to_app_20261024.md`（**32 839 B / mtime 2026-10-25 00:10**）
+通知 5（§5.4「修改摘要（供 App 合入时核对）」）+ 通知 4（§4.2「UNIT 机制改了什么」）。
+**MT 侧产物（App 未复跑 GPU，直接引用其落盘结果）**：
+
+| 产物 | 字节 | mtime | 关键字段 |
+|---|---|---|---|
+| `hy_bench/runs/c111_half/c111_fix_tests.json` | — | 2026-10-24 21:2x | **10/10 PASS** |
+| `hy_bench/runs/c111_half/c111_service_verify.json` | — | 2026-10-24 21:2x | **13/13 PASS**（驱动真实 `TranslationService` 类） |
+| `hy_bench/runs/c111_half/c111_variants_v4_SPE.json` | **433 168 B** | **2026-10-25 00:20** | §59.3 的 **5 项必查项 5/5 PASS** |
+
+**合入的三处（仓库 `live_caption/translator.py` ⇒ 客户包 `app/translator.py`）**：
+
+| # | 位置 | 改动 | 依据 |
+|---|---|---|---|
+| ① | L619–644 `load_mt_tokenizer()`（新增） | 传 `fix_mistral_regex=False` 消掉 `transformers` 的 mistral 探测警告；老版本 transformers 不认该参数 ⇒ `except TypeError` 退回不传 | H-013（MT 实测：传 `False` 分词 ids **30/30 不变**、decode **30/30 一致**；传 `True` 会改分词 ⇒ 属质量变更） |
+| ② | L776–784 `CACHE_MAX` **400 → 4000** | 长会话前段译文不再被 FIFO 淘汰 | §56 缺陷③：SPE 实测 674 单元 / `done` 只留 400 ⇒ **前 274 条被淘汰**（674 − 400 = 274，与漏译数逐位吻合） |
+| ③ | L1069–1099 `submit()` **和** L1129–1156 `flush()` | `_seen` 全局丢弃 ⇒ 改「**翻译去重 + 显示不去重**」 | §56 缺陷①：ASR 复读真实存在（225 段里 **38 句 / 3,312 字**）⇒ 全局去重把真实内容整段丢掉 ⇒ 用户投诉的「前半句丢失」 |
+
+⚠️ **③ 必须 `submit()` 和 `flush()` 两处都改** —— 只改一处 ⇒ 收尾时再丢一句（MT 移交说明 §4.4）。
+
+---
+
+### 25.2 🔴🔴 修掉 App 侧真实缺口：`clear()` 只清 3 个字典 ⇒ **清屏后旧会话状态残留**
+
+**来源**：MT 移交说明 §4.3 **点名** `live_caption_app.py` L2343–2349：
+
+| 行号（改前） | 现状 | UNIT 下应改为 |
+|---|---|---|
+| L2334–2336 `_mt_of(seg)` | `return self.mt.mt_of_seg(seg)` | （MT 说明：按句单元取；**本轮未改** —— 见 25.9） |
+| L2351–2366 `_save_text()` | 按 `self.blocks`（ASR 段）逐段渲染 | （同上，**本轮未改**） |
+| **L2343–2349 `clear()`** | 只清 `seg_keys` / `seg_carry` / `seg_half` | 🔴 **还要清 `self.mt.units`（否则清屏后旧单元还在）** |
+| L2745–2755 CLI `run_cli()` | 同上 | （**本轮未改**） |
+
+**我核实后确认这是真 bug，且比 MT 描述的更严重** —— 旧 `clear()` 漏清 **5 类**状态：
+
+| 漏清字段 | 后果 |
+|---|---|
+| `mt.units` | 上一场的**句单元**还在 ⇒ 渲染层把旧译文混进新场次 |
+| `mt._seen` | 新场次里出现的**同一句**被当成「已翻过」⇒ **不翻译、不进显示单元 ⇒ 这句话直接丢失** |
+| `mt._pend` | 还挂着上一场的**半句** ⇒ 新场次第一段**接到上一场尾巴**后面 ⇒ 出现「前半句丢失 / 跨行重复」 |
+| `mt.done` / `mt.done_fix` | 同一句在新场次**读到上一场的旧译文** |
+| `mt._half` / `mt.draft` / `mt._last_src` | 草稿/半句残留 |
+
+**修法**：新增 `App._reset_mt_session()`，`clear()` 改为调用它。
+字段集与 `translator._loop()` 里「换模型后清缓存」**同一口径**（**不重载模型**，只重置会话状态）；
+用 `getattr(..., None)` 防御 ⇒ 将来 `translator.py` 改字段名不会把「清空」按钮搞崩。
+
+**改动**：`live_caption/live_caption_app.py` **+50 / −4**（`clear()` 3 行 → 2 行；新增 `_reset_mt_session()` 45 行含注释）。
+
+**验收（`results/app/test_app_clear_reset.py`，纯 CPU / 不 import 被测模块 / 不跑推理）**：
+
+| 判据 | 结果 |
+|---|---|
+| **反证** 旧 `clear()` 后 `units` 仍非空 | ✅ PASS（`units=1`） |
+| **反证** 旧 `clear()` 后 `_seen` 仍非空（⇒ 同句被当已翻过 ⇒ 丢句） | ✅ PASS（`_seen=1`） |
+| **反证** 旧 `clear()` 后 `_pend` 仍非空（⇒ 新场次接上一场尾巴） | ✅ PASS（`_pend='a half sentence'`） |
+| **反证** 旧 `clear()` 后 `done` 仍非空（⇒ 同句读到旧译文） | ✅ PASS（`done=1`） |
+| ①–⑥ 新实现清空 `units`/`_seen`/`_pend`/`done`/`done_fix`/`seg_*`/`_half`/`draft`/`_last_src` | ✅ PASS（全部归零） |
+| ⑦ 回归：清空后新场次**同一句**仍进显示单元（未被当成已翻过而丢弃） | ✅ PASS |
+| ⑧ `App.clear()` 确实调用 `_reset_mt_session` | ✅ PASS |
+| ⑨ 字段缺失时不抛异常（防御性） | ✅ PASS |
+
+⇒ **14/14 PASS**（报告 `results/app/app_clear_reset_test.json`，**已入库**）。
+测试用 `ast` 从**线上源码**里抽方法再 `exec`（不复制一份逻辑）⇒ 测的就是真代码。
+
+---
+
+### 25.3 ✅ 客户包定点同步（**3 文件**，6→7 个替换块全部唯一命中）
+
+**脚本**：`live_caption/sync_c143_to_pkg.py`（**新**，**已入库**）
+**纪律**：**禁止整目录覆盖** ⇒ 只做**精确字符串替换 + `assert count == 1`**（唯一命中断言）+ 包外备份 + 幂等 + **替换后必须与仓库版逐字一致（归一化换行）才写盘**。
+
+| 替换块 | 文件 | 内容 | 命中数 |
+|---|---|---|---|
+| P1 | `translator.py` | 新增 `load_mt_tokenizer()` | 1 |
+| P2 | `translator.py` | `HunyuanTranslator.__init__` 改用 `load_mt_tokenizer` | 1 |
+| P3 | `translator.py` | `CACHE_MAX` 400 → 4000 | 1 |
+| P4 | `translator.py` | `submit()` 的 `_seen`（翻译去重 + 显示不去重） | 1 |
+| P5 | `translator.py` | `flush()` 的 `_seen`（同步） | 1 |
+| P6 | `live_caption_app.py` | `clear()` → `_reset_mt_session()` | 1 |
+| P7 | `tts_worker.py` | **TTS-006 中文数字正则化在分句之前**（§24 遗留项：仓库 +9 行、包内一直缺） | 1 |
+
+**同步结果（`results/app/sync_c143_report.json`，已入库）**：
+
+| 文件 | 包内 SHA256 改前 | 包内 SHA256 改后 | 仓库 SHA256 | 字节 | 与仓库逐字相同 |
+|---|---|---|---|---|---|
+| `app/translator.py` | `0e660bace068231a…` | `e6b4c8b9a2b094aa…` | `db842668035da044…` | 65 223 → **69 521** | ✅ True |
+| `app/live_caption_app.py` | `8b125b376c0d9074…` | `47357762def2e8f5…` | `1477f13fdfebec59…` | 155 383 → **157 641** | ✅ True |
+| `app/tts_worker.py` | `ed78c49b69f371ef…` | `3c78cce892ba0666…` | `3c78cce892ba0666…` | 40 527 → **41 109** | ✅ True |
+
+**包外备份**（`_backup*` 会被 `pkg_exclude.BACKUP_DIR_RE` 命中而污染包，C-133 教训）：
+`C:\Users\Trekker-PTL\pkg_backup_app014\Confucius4_LiveCaption_v1.4_{translator.py,live_caption_app.py,tts_worker.py}.20261025_0030{15,55}.bak`
+
+**幂等性**：第二次运行 ⇒ `[skip] 包内已是新代码（幂等，无需改动）` / `状态: already_synced`（实测）。
+
+---
+
+### 25.4 ✅ 对**包内那份**单独跑同一套断言（铁律：「仓库里测过」≠「包里的那份是对的」）
+
+**脚本**：`results/app/test_pkg_translator_fixes.py`（**新**，**已入库**）
+**方法**：`ast` 抽源码 + `exec` 到独立命名空间（**不 import 被测模块** ⇒ 不连带 numpy/OpenBLAS）
+⇒ **纯 CPU / 不跑推理 / 不跑测速 / 不占 GPU**。
+
+| 判据 | 客户包内那份 | 仓库版（对照） |
+|---|---|---|
+| ① `CACHE_MAX == 4000`（不是 400） | ✅ `CACHE_MAX=4000` | ✅ 同 |
+| ② `submit()` 复读句产生**两个**显示单元（不再丢弃） | ✅ `units=2` | ✅ 同 |
+| ②b 复读句**翻译入队只一次**（不增调用） | ✅ `queue=1` | ✅ 同 |
+| ②c 两段各自登记自己的 key | ✅ `seg_keys={0: [...], 1: [...]}` | ✅ 同 |
+| ③ 复读句 `src` 完整保留（守恒） | ✅ `srcs=['The final word.', 'The final word.']` | ✅ 同 |
+| ③b `flush()` 收尾句进显示单元 | ✅ `units 0 -> 1` | ✅ 同 |
+| ③c `flush()` 复读句保留显示单元（不丢弃） | ✅ `units 1 -> 2` | ✅ 同 |
+| ④ `load_mt_tokenizer()` 存在 | ✅ | ✅ 同 |
+| ④b 传 `fix_mistral_regex=False` | ✅ | ✅ 同 |
+| ⑤ `HunyuanTranslator.__init__` 调用 `load_mt_tokenizer` | ✅ | ✅ 同 |
+| ⑥ 幂等：再 `submit()` 同一句 ⇒ `units` 只 +1、翻译入队不增 | ✅ `units 2->3, queue 1->1` | ✅ 同 |
+| ⑦ 守恒：3 次出现的原文总字数 == 3 × 单句字数 | ✅ `total_src=45` | ✅ 同 |
+| **合计** | **12/12 PASS** | **12/12 PASS** |
+
+报告：`results/app/pkg_translator_fixes_test.json` + `results/app/repo_translator_fixes_test.json`（均已入库）。
+
+**包内 `live_caption_app.py` 单独跑 `clear()` 断言**（同法，ast 抽包内源码）⇒ **9/9 PASS**
+（`units`/`_seen`/`_pend`/`done`/`done_fix`/`seg_keys`/`seg_carry`/`seg_half` 全归零 + `clear()` 确实调用 `_reset_mt_session`）。
+
+---
+
+### 25.5 ⏳ 交付 zip：**仍未重打**（共享机器锁被 MT 持有 ⇒ 等，**未抢锁**）
+
+| 项 | 实测值 |
+|---|---|
+| `C:\Users\Trekker-PTL\shared\MACHINE_LOCK` 内容 | `module: mt` / `pid: 16080` / `started: 2026-10-25 00:07:24` |
+| PID 16080 判活（ctypes `OpenProcess` + `GetExitCodeProcess`） | **exitcode = 259 ⇒ ALIVE** |
+| MT v4 进度 | `c111_variants_v4_SPE.log`：`>>> 跑 A_T2 ...`（**第 2/7 臂**；BASE_unit 已落盘，守恒 41895/41895 ⇒ True，chrF 89.7225(n=391)） |
+| `machine_lock_app.lock_state()` | `('held', {module: 'mt', pid: 16080, ...})` |
+
+⇒ **按纪律等锁，不抢**（`pack_v13.py` 默认取锁；`--dry-run` 不取锁）。
+⇒ **本轮不写「已重打」**（没落盘的东西不能写「已交付」）。
+⇒ 磁盘上的 zip 现状**未变**（与 §24 相同）：`Confucius4_LiveCaption_v1.4.zip` = **3 513 053 709 B 非有效 zip**（17:19 写坏）；
+`FTP_Share/` 副本 = 11 216 038 195 B（**完好但过时**，09:10，**不含** APP-008①/APP-010 标注，也不含本轮 §25.1/25.2 的修复）。
+⚠️ **§24 已修** `pack_v13.py` 的「直接写目标 zip ⇒ 打包中断截断覆盖好包」（改为写 `.tmp` → 校验 → `os.replace()` 原子改名）
+⇒ **下一轮第一件事**：取锁 ⇒ 重打 ⇒ `verify_pkg_zip.py` 内容级复核 ⇒ `publish_ftp.py` 重发。
+
+---
+
+### 25.6 🔴 **本轮明确「未做」的事（不夸大）**
+
+1. ⛔ **未重打 zip / 未重发 FTP**（锁被 MT 持有，25.5）。
+2. ⛔ **未做** MT 移交说明 §4.3 点名的**渲染层**改造：`_mt_of()` / `_save_text()` / CLI `run_cli()` 改按 `mt_units()` 渲染。
+   ⇒ **理由**：这会改变**字幕的显示粒度**（从「一行 = 一个 ASR 段」变成「一行 = 一个句单元」），
+   属**产品行为变更**，且 MT 侧 §59.3/§60 的 v4 复算还在跑（7 臂）⇒ **等 MT 出最终结论 + reviewer 裁定后再做**，
+   本轮**只做无争议的会话重置修复**。⇒ **提请 reviewer 决定**（见 25.8）。
+3. ⛔ **未推进** APP-006 第 3~7 步（历史改写 + force push）—— 已在 §23 完成改写与强推，
+   **第 7 步「必须告知用户的残留风险」由 reviewer 转达**（GitHub 旧 SHA 在 gc 前仍可按 commit SHA 访问）。
+4. ⛔ **未做** GitHub 旧 SHA 的 gc（待用户决定）。
+5. ⛔ **未合入** APP-009② 的 `translator.py` **MT 仍在复核中的部分**（H-014 要求的 A/B/C/D 四方案横向对比结论）——
+   本轮只合入**已由 MT 落码并给出 10/10 + 13/13 PASS 证据**的三处缺陷修复；
+   MT 的 §53/§55 推荐方案（**现网 UNIT 不改 + K 段/N 字强制交出上限 + `_seen` 键改 `(seg,key)`**）
+   **本轮未落码**（MT 侧仍在 v4 复算中）。
+6. ⛔ **未开 FTP**（APP-009③：没有用户批准不重新开启；本轮只做包目录同步）。
+7. ⛔ **未跑推理 / 未测速 / 未占 GPU**（全部用 `ast` 离线复刻 + 桩，报告里没有 RTF / 延迟数字）。
+8. ⛔ **未做** 包体 13 GB 优化（剔除 `decoder-npu-int8` / `decoder-gpu-int8` / `encoder-fp16`）。
+
+---
+
+### 25.7 ✅ 纪律自检
+
+- ✅ **未修改** `status/app/CORRECTIONS_APP.md`（**只读**；它仍是 ` M` 未入库状态，与前几轮一致）。
+- ✅ **未提交** `status/app/CORRECTIONS_APP.md`（`git diff --cached --name-status` 里**没有**它）。
+- ✅ **未吞**其它模块的未提交改动：ASR 的 `c045_*.py`…`c089*.py`（45 个）、`verify_segmentation.py`、
+  `status/CORRECTIONS.md`、`status/STATUS_ARCHIVE_2026-10.md`、`README.md`、`reports/C04*.md`/`C05*.md`
+  **全部未 `git add`**；MT 的 `diag_c111_*`（46 个）**全部未 `git add`**。
+- ✅ **只提交 App 职责内文件**：12 个（5 个 `live_caption/*.py` + 1 个新同步脚本 + 2 个测试脚本 + 4 个 JSON 报告 + `STATUS_APP.md`）。
+- ✅ **仓库 ⇄ 客户包只做定点替换**（7 块，唯一命中断言），**未整目录覆盖**。
+- ✅ **未抢** MT 的共享机器锁；**未回收**任何活锁。
+- ✅ **普通 push，未 force push**；仓库仍**只有 main 分支**。
+- ✅ **未改旧章节**，只在**文件末尾追加** `## §25`；头部用「首个章节锚点切片」法改（`## §1 ` 在第 37 行，锚点后 4 172 行原样保留）。
+- ✅ **未跑推理/测速**；质量判定留给 reviewer。
+
+---
+
+### 25.8 📌 **提请 reviewer / 用户决定**
+
+| # | 事项 | 状态 |
+|---|---|---|
+| 1 | 🔴 **渲染层是否改按 `mt_units()` 逐句渲染**（MT §4.3 点名的三处：`_mt_of` / `_save_text` / CLI `run_cli`） | **等 MT v4 复算结论 + reviewer 裁定**（会改字幕显示粒度 ⇒ 属产品行为变更） |
+| 2 | 🔴 **交付 zip 仍是坏的**（3 513 053 709 B 非有效 zip）⇒ **下一轮取锁后重打 + 重发 FTP** | **待锁**（MT PID 16080 存活） |
+| 3 | 🔴 **`shared/GIT_FREEZE` 仍未释放**（改写 20:44 已完成、远端已强推 `a565e26`） | **App 不擅自删** ⇒ 请 reviewer 释放（三个线程仍在「不要提交」状态） |
+| 4 | ⛔ **GitHub 旧 SHA 的 gc** | 待用户决定 |
+| 5 | ⛔ **v1.4 的 TTS 音质**未达标（TTS-009 / TTS-010 排查中）⇒ TTS 保持**实验性、默认关闭**，不作为可交付功能宣传 | 照旧 |
+| 6 | 🟡 **UNIT 的延迟代价**待用户确认（跨段句译文晚 1 个 ASR 段出现，最坏约 20 s） | 照旧 |
+| 7 | 🟡 **包体 13 GB** 优化（可评估剔除 `decoder-npu-int8` / `decoder-gpu-int8` / `encoder-fp16`） | 未做 |

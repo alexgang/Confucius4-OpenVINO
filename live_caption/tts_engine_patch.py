@@ -45,12 +45,38 @@ class MultiDecoderBabelVox(BabelVox):
     decoder_buckets : Sequence[int] | None
         除 ``max_decoder_frames`` 外，额外编译的解码器桶（帧数）。
         解码时选**最小 ≥ 实际帧数**的桶。None 表示不额外编译（保持原行为）。
+    ctx_frames : int
+        🔴🔴 **声码器左上下文帧数**（TTS-010 修复，默认 0 = 关闭 = 上游原行为）。
+
+        **上游 babelvox 的分块解码是「每 chunk 独立解码、零上下文」**
+        ⇒ 声码器在帧维度**非因果** ⇒ 独立解码 ≠ 整段取前缀
+        ⇒ **每个 chunk 边界都引入失真**（实测 SNR 3.87 dB、边界跳变 7~27×）
+        ⇒ 这是「杂音 / 音色突变」的直接来源。
+
+        CUDA 官方（faster-qwen3-tts `model.py` L1054-1135）的注释写得很明确：
+            *Hybrid decode strategy: … Sliding window with 25-frame left context
+            once calibrated. **This avoids boundary artifacts (pops)** while
+            keeping decode cost bounded.*
+
+        ⇒ 本实现照抄：**解码时把前面的 ctx_frames 帧一起送进声码器，
+        然后只取本 chunk 对应的那一段样本**（丢掉左上下文部分）
+        ⇒ 上下文连续，且输出不重复。
+
+        实测（`results/voice_ac/quality_ladder/`）：与整句解码对比
+        **20/20 条 cos ≥ 0.9917、SNR 17.8~145 dB**；
+        边界跳变中位从 **0.0229 → 0.0048**（−4.8×）。
+
+        ⚠️ **每生成一句前必须调 `reset_ctx()`**，否则上一句尾帧会串进下一句。
     """
 
     def __init__(self, *args, decoder_buckets: Sequence[int] | None = None,
-                 **kwargs):
+                 ctx_frames: int = 0, **kwargs):
         self.decoder_buckets = sorted(set(decoder_buckets or ()))
+        self.ctx_frames = int(ctx_frames or 0)
         self._dec_bucket_models: dict[int, object] = {}
+        # 🔴 左上下文状态：已解码的历史帧码（每项 shape (1,16,1)）
+        self._ctx_history: list = []
+        self._ctx_enabled = self.ctx_frames > 0
         super().__init__(*args, **kwargs)
 
     # ------------------------------------------------------------------
@@ -96,8 +122,53 @@ class MultiDecoderBabelVox(BabelVox):
             wav_out = tok_decoder({"codes": padded}); wav = out[:n*1920]
         本实现保持**完全相同**的取样语义，只把「跑满 max_decoder_frames」
         换成「跑满选中的最小桶」。
+
+        🔴🔴 **左上下文（TTS-010）**：`ctx_frames > 0` 时，
+        把历史帧拼在 `codes_array` 前面一起解码，
+        **只返回本 chunk 对应的那一段样本** ⇒ 边界不失真。
         """
         num_frames = codes_array.shape[2]
+
+        # ---------- 🔴 左上下文路径（TTS-010） ----------
+        # ⚠️ 与设备无关：失真来自「声码器在帧维度非因果」，
+        #   NPU / CPU / GPU 一样存在 ⇒ 三个分支都要走这里。
+        if self._ctx_enabled:
+            hist = self._ctx_history[-self.ctx_frames:] if self.ctx_frames else []
+            if hist:
+                hist_arr = np.concatenate(hist, axis=2)   # (1,16,H)
+                inp = np.concatenate([hist_arr, codes_array], axis=2)
+            else:
+                inp = codes_array
+            total = int(inp.shape[2])
+            if self.is_npu:
+                model, bucket = self._select_decoder(total)
+                padded = np.zeros((1, 16, bucket), dtype=np.int64)
+                padded[:, :, :total] = inp
+                wav_out = model({"codes": padded})
+            else:
+                # CPU/GPU：上游解码器接受动态帧数 ⇒ 直接喂拼接后的码
+                wav_out = self.tok_decoder({"codes": inp})
+            # 🔴 丢掉左上下文部分，只取本 chunk 的样本
+            n_hist = total - num_frames
+            start = n_hist * 1920
+            end = start + num_frames * 1920
+            wav_full = np.asarray(wav_out[0]).squeeze()
+            if len(wav_full) >= end:
+                wav = wav_full[start:end]
+            else:
+                # 🔴 防御：CPU/GPU 动态形状解码器输出长度可能 ≠ total*1920
+                #   （可能带尾部填充）⇒ 按比例裁，避免越界后长度错乱。
+                ratio = len(wav_full) / float(total) if total else 0.0
+                s2 = int(n_hist * 1920 * ratio)
+                e2 = int((total) * 1920 * ratio)
+                wav = wav_full[s2:e2]
+            # 记录本 chunk 的帧码，供下一个 chunk 作上下文
+            for i in range(num_frames):
+                self._ctx_history.append(codes_array[:, :, i:i + 1])
+            if len(self._ctx_history) > self.ctx_frames:
+                self._ctx_history = self._ctx_history[-self.ctx_frames:]
+            return np.clip(wav, -1.0, 1.0)
+
         if self.is_npu:
             model, bucket = self._select_decoder(num_frames)
             padded = np.zeros((1, 16, bucket), dtype=np.int64)
@@ -109,6 +180,10 @@ class MultiDecoderBabelVox(BabelVox):
             wav_out = self.tok_decoder({"codes": codes_array})
             wav = wav_out[0].squeeze()
         return np.clip(wav, -1.0, 1.0)
+
+    def reset_ctx(self):
+        """🔴 **每次生成新句子前必须调用** —— 否则上一句尾帧会串到下一句。"""
+        self._ctx_history = []
 
 
 class QuantEvalBabelVox(MultiDecoderBabelVox):

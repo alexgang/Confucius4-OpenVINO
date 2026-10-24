@@ -1,0 +1,74 @@
+{
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.4\\app",
+ "target": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.4\\app\\translator.py",
+ "target_sha256": "e6b4c8b9a2b094aa009fcb0685dc1f026721ded1aa2d0c79df2773da9636912d",
+ "target_bytes": 69521,
+ "target_mtime": 1792859415.5713856,
+ "mtime": "2026-10-25 00:31:30",
+ "total": 12,
+ "n_pass": 12,
+ "n_fail": 0,
+ "all_pass": true,
+ "checks": [
+  {
+   "name": "① CACHE_MAX == 4000（不是 400）",
+   "pass_": true,
+   "detail": "CACHE_MAX=4000"
+  },
+  {
+   "name": "② submit() 复读句产生两个显示单元（不再丢弃）",
+   "pass_": true,
+   "detail": "units=2"
+  },
+  {
+   "name": "②b 复读句翻译入队只一次（不增调用）",
+   "pass_": true,
+   "detail": "queue=1"
+  },
+  {
+   "name": "②c 两段各自登记了自己的 key",
+   "pass_": true,
+   "detail": "seg_keys={0: ['The final word.'], 1: ['The final word.']}"
+  },
+  {
+   "name": "③ 复读句的 src 完整保留（守恒）",
+   "pass_": true,
+   "detail": "srcs=['The final word.', 'The final word.']"
+  },
+  {
+   "name": "③b flush() 收尾句进显示单元",
+   "pass_": true,
+   "detail": "units 0 -> 1"
+  },
+  {
+   "name": "③c flush() 复读句保留显示单元（不丢弃）",
+   "pass_": true,
+   "detail": "units 1 -> 2"
+  },
+  {
+   "name": "④ load_mt_tokenizer() 存在",
+   "pass_": true,
+   "detail": ""
+  },
+  {
+   "name": "④b load_mt_tokenizer 传 fix_mistral_regex=False",
+   "pass_": true,
+   "detail": ""
+  },
+  {
+   "name": "⑤ HunyuanTranslator.__init__ 调用 load_mt_tokenizer",
+   "pass_": true,
+   "detail": ""
+  },
+  {
+   "name": "⑥ 幂等：重复 submit 同一句 ⇒ units 只 +1、翻译入队不增",
+   "pass_": true,
+   "detail": "units 2->3, queue 1->1"
+  },
+  {
+   "name": "⑦ 守恒：3 次出现的原文总字数 == 3 × 单句字数",
+   "pass_": true,
+   "detail": "total_src=45"
+  }
+ ]
+}
