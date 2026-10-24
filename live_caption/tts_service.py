@@ -111,6 +111,19 @@ class TTSService:
         #   worker 重启后，未下发的（`_queue` 里的）会补发，
         #   但**已下发的那批**是真的丢了 ⇒ 必须在崩溃时清掉并计丢句。
         self._inflight: set = set()
+        # 🔴 2026-10-25 §30 修：**已被主进程丢弃、但 worker 可能仍会播出来**的 jid。
+        #   起因：worker 的 `synth()` 线程**可能已经越过自己的取消检查**
+        #   （`tts_worker.py` L537）⇒ 主进程已按积压丢弃（`n_dropped += 1`
+        #   并发了 `cancel`），worker 却仍把这句话合成并播了出来 ⇒ 主进程收到
+        #   `played` ⇒ 旧实现**无条件** `n_played += 1`
+        #   ⇒ 同一句被「丢了」又「播了」⇒ **双记**
+        #   ⇒ `n_played + n_dropped` 比 `n_submitted` **多 1**
+        #   （实测见 `results/app/test_tts_exit_played.py` 的 B 组反证）。
+        #   语义：本句**其实被播出来了**（用户听到了）⇒ 收到 `played` 时
+        #   **改记为「已播」**（`n_dropped -= 1` + `n_played += 1`）
+        #   ⇒ 不变式 `n_played + n_dropped == n_submitted` 成立。
+        #   ⚠️ 集合只在「丢句」时增长；worker 退出时会清空（见 `_on_worker_exit`）。
+        self._dropped_ids: set = set()
         self._next_id = 0
         self._outbox: List = []
         self._outbox_lock = threading.Lock()
@@ -243,6 +256,29 @@ class TTSService:
             self.state = 'error'
             self.err = RuntimeError(f'TTS worker 退出（rc={rc}），已重启过一次仍失败')
             self.on_log(f'[TTS] worker 再次退出（rc={rc}），不再重启；语音输出已停用')
+            # 🔴🔴 2026-10-25 §30 修：**必须清理在途句子**。
+            #   旧实现在这个分支**直接 return** ⇒ `pending` / `_inflight` / `_queue`
+            #   全都没清 ⇒ worker 已判死、**不会再重启**
+            #   ⇒ 所有「已下发未回结果」的句子**永远等不到 `played`/`error`**
+            #   ⇒ `pending` 永久悬挂 ⇒ `drain()` **必定超时**
+            #   （GUI 白等 30 s / CLI 白等 120 s）
+            #   ⇒ 同时 `n_played + n_dropped != n_submitted`（少算，统计失真）。
+            #   实测（`results/app/test_tts_exit_played.py` A 组反证）：
+            #     第 2 次崩溃后 pending=[3,4] 悬挂、`drain()` 超时 8.0 s 返 False、
+            #     sum=3 != submitted=5。
+            #   ⚠️ §21/§22/§29 只修了「**第一次**崩溃」路径，**第二次**崩溃漏了。
+            #   ⇒ 这里与第一次崩溃路径做**同样的清理 + 计丢句**（诚实记账）。
+            with self.lock:
+                orphan = sorted(self.pending.keys())
+                self.pending.clear()
+                self._inflight.clear()
+                self._dropped_ids.clear()
+                n_queued = len(self._queue)
+                self._queue.clear()
+            if orphan or n_queued:
+                self.n_dropped += len(orphan)
+                self.on_log(f'[TTS] worker 判死，{len(orphan)} 句未完成'
+                            f'（已计丢句），{n_queued} 句待发作废')
             return
         # 🔴🔴 §21：**必须先把死掉的 proc 从 `self.proc` 上摘掉**，否则
         #   `start()` 开头那句
@@ -477,6 +513,10 @@ class TTSService:
             #   ⇒ ① 集合无界增长；② worker 崩溃时 `_on_worker_exit()`
             #   会把它**再算一次**丢句（`n_dropped` 双记）。
             self._inflight.discard(jid)
+            # 🔴 2026-10-25 §30 修：登记「这句已被丢弃」。
+            #   worker 可能**无视 cancel 照样播出来**（它已越过自己的取消检查）
+            #   ⇒ 收到 `played` 时要**改记为已播**而不是双记。
+            self._dropped_ids.add(jid)
         self.n_dropped += 1
 
     # -- 事件 ------------------------------------------------------------
@@ -513,7 +553,13 @@ class TTSService:
                 with self.lock:
                     self.pending.pop(msg_id, None)
                     self._inflight.discard(msg_id)
-                self.n_dropped += 1
+                    # 🔴 2026-10-25 §30 修：这一句**可能早先已按积压被丢弃**
+                    #   （`n_dropped` 已 +1）⇒ 这里再 +1 就**双记**。
+                    #   ⇒ 已在 `_dropped_ids` 里 ⇒ 本次**不再重复计丢句**。
+                    already = msg_id in self._dropped_ids
+                    self._dropped_ids.discard(msg_id)
+                if not already:
+                    self.n_dropped += 1
                 self.on_log(f'[TTS] 第 {msg_id} 句合成失败（已丢弃，语音输出继续）：'
                             f'{message}')
             else:
@@ -526,6 +572,7 @@ class TTSService:
                     orphan = sorted(self.pending.keys())
                     self.pending.clear()
                     self._inflight.clear()
+                    self._dropped_ids.clear()
                     n_queued = len(self._queue)
                     self._queue.clear()
                 if orphan or n_queued:
@@ -538,9 +585,26 @@ class TTSService:
             self.first_packet_s = msg.get('latency_s')
         elif kind == 'played':
             jid = msg.get('id')
+            # 🔴🔴 2026-10-25 §30 修：**这一句可能早先已被按积压丢弃**。
+            #   worker 的 `synth()` 线程**可能已经越过自己的取消检查**
+            #   （`tts_worker.py` L537）⇒ 主进程已 `n_dropped += 1` 并发了
+            #   `cancel`，worker 却仍把这句话合成并播了出来。
+            #   旧实现**无条件** `n_played += 1` ⇒ 同一句被「丢了」又「播了」
+            #   ⇒ **双记** ⇒ `n_played + n_dropped` 比 `n_submitted` **多 1**
+            #   ⇒ GUI/CLI 底栏「丢句 + 已播」超过「提交」⇒ 统计自相矛盾。
+            #   语义修正：这一句**确实被播出来了**（用户听到了）
+            #   ⇒ 改记为「已播」（`n_dropped -= 1` + `n_played += 1`）
+            #   ⇒ 不变式 `n_played + n_dropped == n_submitted` 成立。
             with self.lock:
                 self.pending.pop(jid, None)
                 self._inflight.discard(jid)
+                was_dropped = jid in self._dropped_ids
+                if was_dropped:
+                    self._dropped_ids.discard(jid)
+            if was_dropped:
+                self.n_dropped -= 1
+                self.on_log(f'[TTS] 第 {jid} 句已按积压丢弃，但 worker 仍播了出来'
+                            f'（改记为已播）')
             self.n_played += 1
         elif kind == 'dropped':
             # ⚠️ **不再计数**（2026-10-22 修）：
@@ -614,6 +678,10 @@ class TTSService:
                     #      句子**再算一次**丢句 ⇒ `n_dropped` 双记、统计虚高
                     #      （实测：真实丢 8 句 ⇒ 统计成 9）。
                     self._inflight.discard(jid)
+                    # 🔴 2026-10-25 §30 修：登记「这句已被丢弃」。
+                    #   worker 可能无视 cancel 照样播出来 ⇒ 收到 `played` 时
+                    #   **改记为已播**（`n_dropped -= 1`），避免双记。
+                    self._dropped_ids.add(jid)
             # 通知 worker 别播这些句子（否则丢弃白做了）
             for jid in drop_ids:
                 self._send({'cmd': 'cancel', 'id': jid})

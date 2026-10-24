@@ -1,0 +1,25 @@
+{
+  "real_fail": [],
+  "bug_hit": [],
+  "evidence": {
+    "A": {
+      "n_submitted": 5,
+      "n_played": 0,
+      "n_dropped": 5,
+      "accounted": 5,
+      "pending_left": 0,
+      "inflight_left": 0,
+      "drained": true,
+      "drain_s": 0.0,
+      "n_restart": 1,
+      "state": "error"
+    },
+    "B": {
+      "n_submitted": 1,
+      "n_played": 1,
+      "n_dropped": 0,
+      "sum": 1,
+      "pending_left": 0
+    }
+  }
+}

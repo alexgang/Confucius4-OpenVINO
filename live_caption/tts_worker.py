@@ -550,6 +550,23 @@ class TTSWorker:
 
         # 播放：把整句的波形一次性塞进环形缓冲
         wav = np.concatenate(chunks) if len(chunks) > 1 else chunks[0]
+        # 🔴🔴 2026-10-25 §30 修：**播放前必须再查一次取消**。
+        #   起因（真实竞态）：`synth()` 跑在**独立线程**（`run()` 里
+        #   `threading.Thread(target=self.synth, ...)`），而 `cancel` 指令
+        #   由**主线程**的 `for line in sys.stdin` 循环接收 ⇒ 二者并发。
+        #   ⇒ 主进程在「积压超限」时发 `cancel`，若此刻 `synth` 线程已经
+        #      **越过**上面 L537 的取消检查 ⇒ 这句话**照样被合成并播出去**。
+        #   ⇒ 主进程已把它记为「丢弃」（`n_dropped += 1`），worker 又回
+        #      `played` ⇒ 主进程**双记**（丢了 + 播了）
+        #      ⇒ `n_played + n_dropped` 比 `n_submitted` **多 1**。
+        #   ⇒ 这里在**真正播放前**补一次检查，**收窄竞态窗口**。
+        #   ⚠️ 这只是**缩小**窗口（检查与 write 之间仍有纳秒级缝隙），
+        #      **权威判据在主进程**（`tts_service.py` 的 `_dropped_ids` ⇒
+        #      收到 `played` 时改记为「已播」）⇒ 两边都要有。
+        if self._is_cancelled(jid):
+            log(f'[tts_worker] 句子 id={jid} 播放前被丢弃，不播放')
+            self._record_jsonl(jid, text, t_submit, dropped=True)
+            return
         t_first = time.perf_counter()
         if self.out_wav:
             # ── 落盘模式：按真实时间轴排队，不实时播放 ──

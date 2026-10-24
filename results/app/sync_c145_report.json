@@ -1,0 +1,62 @@
+{
+  "time": "2026-10-25 05:56:29",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.4",
+  "check_only": false,
+  "method": "git-HEAD 派生替换块 + 唯一命中断言（不手抄代码）",
+  "files": {
+    "tts_service.py": {
+      "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.4\\app\\tts_service.py",
+      "orig_sha256": "d86a6eb0956fb946743e5c9ea70870aed8f0f67ce64d8b6ca02f539454c9d00d",
+      "orig_bytes": 30707,
+      "new_sha256": "da1ecc12cbae1be96bf96c8fa58180aeb2ff7ee0961f5ab0df0ab2a305cd15f2",
+      "new_bytes": 35606,
+      "n_patches_derived": 8,
+      "applied": [
+        "tts_service.py#1",
+        "tts_service.py#2",
+        "tts_service.py#3",
+        "tts_service.py#4",
+        "tts_service.py#5",
+        "tts_service.py#6",
+        "tts_service.py#7",
+        "tts_service.py#8"
+      ],
+      "already_synced": [],
+      "repo_sha256": "da1ecc12cbae1be96bf96c8fa58180aeb2ff7ee0961f5ab0df0ab2a305cd15f2",
+      "repo_bytes": 35606,
+      "verify_equal_to_repo": true,
+      "mtime": "2026-10-25 05:56:29",
+      "actual_sha256": "da1ecc12cbae1be96bf96c8fa58180aeb2ff7ee0961f5ab0df0ab2a305cd15f2",
+      "actual_bytes": 35606
+    },
+    "tts_worker.py": {
+      "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.4\\app\\tts_worker.py",
+      "orig_sha256": "3c78cce892ba0666a14d2dd7c5babff700e52ba223e4d9f754f53ea82f9bfda9",
+      "orig_bytes": 41109,
+      "new_sha256": "71f7cf3db1284f4c22aab563128f0b2f5c534c3270ca7b670f8e022cf26c7ff4",
+      "new_bytes": 42428,
+      "n_patches_derived": 1,
+      "applied": [
+        "tts_worker.py#1"
+      ],
+      "already_synced": [],
+      "repo_sha256": "71f7cf3db1284f4c22aab563128f0b2f5c534c3270ca7b670f8e022cf26c7ff4",
+      "repo_bytes": 42428,
+      "verify_equal_to_repo": true,
+      "mtime": "2026-10-25 05:56:29",
+      "actual_sha256": "71f7cf3db1284f4c22aab563128f0b2f5c534c3270ca7b670f8e022cf26c7ff4",
+      "actual_bytes": 42428
+    }
+  },
+  "patches": [
+    "tts_service.py#1",
+    "tts_service.py#2",
+    "tts_service.py#3",
+    "tts_service.py#4",
+    "tts_service.py#5",
+    "tts_service.py#6",
+    "tts_service.py#7",
+    "tts_service.py#8",
+    "tts_worker.py#1"
+  ]
+}
