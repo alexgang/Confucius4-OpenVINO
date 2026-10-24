@@ -1,0 +1,199 @@
+{
+  "source_product": "C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_variants_v4_SPE.json",
+  "product_mtime": 1792859580.4254053,
+  "product_bytes": 875123,
+  "product_top_keys": [
+    "source",
+    "corpus",
+    "n_seg",
+    "time_scale",
+    "engine",
+    "device",
+    "wall_max",
+    "ref_cache",
+    "note",
+    "deltas_vs_base",
+    "results"
+  ],
+  "corpus": "SPE",
+  "n_seg": 225,
+  "arms_available": [
+    "BASE_unit",
+    "A_T2"
+  ],
+  "base_arm_raw": {
+    "n_units": 712,
+    "n_formal": 712,
+    "n_outbox": 674,
+    "kinds": {
+      "final": 674
+    },
+    "n_translate_calls": 674,
+    "n_final": 674,
+    "n_draft": 0,
+    "miss_rate": 0.0,
+    "n_unit_missing": 0,
+    "n_timeout": 0,
+    "src_chars": 41895,
+    "orig_chars": 41895,
+    "src_kept": true,
+    "n_partial": 0
+  },
+  "base_arm_coverage_raw": {
+    "n_units_with_mt": 712,
+    "src_chars_with_mt": 41895,
+    "coverage_rate": 1.0,
+    "n_units_no_mt": 0,
+    "segs_without_mt": [
+      13,
+      57,
+      65,
+      178,
+      189,
+      192,
+      224
+    ]
+  },
+  "base_arm_quality_raw": {
+    "n_pairs": 391,
+    "chrf_vs_ref": 89.7225,
+    "ci_lo": 83.2386,
+    "ci_hi": 94.141,
+    "metric": "sacrebleu CHRF",
+    "word_order": 0,
+    "note": "被测 vs BF16 独立参照；CI = 语料级配对 bootstrap 1000 次"
+  },
+  "n_units_actual": 712,
+  "n_outbox_actual": 674,
+  "unit_sample_keys": [
+    "key",
+    "src",
+    "seg",
+    "mt"
+  ],
+  "unit_sample": {
+    "key": "Good morning everyone.",
+    "seg": 0,
+    "src": "Good morning everyone.",
+    "mt": "大家早上好。"
+  },
+  "Q1_mt_of_seg": {
+    "product_n_seg": 225,
+    "n_unique_segments_in_units": 218,
+    "n_segments_with_units": 218,
+    "n_segments_without_any_unit": 7,
+    "n_segments_empty_seg_keys": 0,
+    "empty_seg_examples": [],
+    "n_segments_where_mt_of_seg_is_none": 0,
+    "seg_no_mt_examples": [],
+    "note": "① seg 字段实测是字符串，已转 int；② 「本段没有句单元」= 该段原文整段是半句 ⇒ 它的文字被并入**下一段**的句单元 ⇒ 该段在 _save_text()/_render() 里**永远不输出〔译〕行**（= 少一行译文）；③ 全部句单元的 src 拼接仍覆盖 41895 字（守恒成立）⇒ 不是丢原文，是**渲染层没把「跨段合成的句子」按句拆出来显示**"
+  },
+  "Q2_save_text_ratio": {
+    "n_original_lines": 218,
+    "n_translation_lines": 218,
+    "lines_without_translation": 0,
+    "ratio_translation_per_original": 1.0,
+    "n_units_total": 712,
+    "units_not_represented_as_own_line": 494,
+    "note": "旧 _save_text() 按**段**输出 ⇒ 译文行数 ≤ 段数；UNIT 下句单元数 712 ⇒ 「一句原文对一句译文」拿不到（MT 通知 4.3 表 L2351-2366）"
+  },
+  "Q3_overlay_tail3": {
+    "tail_segments": [
+      221,
+      222,
+      223
+    ],
+    "tail_segments_with_translation": [
+      221,
+      222,
+      223
+    ],
+    "n_tail_with_translation": 3,
+    "note": "overlay 取「最近 3 段的译文」（live_caption_app.py L2499-2502）⇒ UNIT 下若最近 3 段里有整段半句 ⇒ 屏幕字幕译文更少"
+  },
+  "Q4_outbox_kind": {
+    "kind_counter": {
+      "final": 674
+    },
+    "n_final": 674,
+    "n_units": 712,
+    "n_final_vs_units_gap": 38,
+    "outbox_shape": "list of [kind, src, mt]（实测）",
+    "n_non_final": 0,
+    "note": "TTS 链只提交 kind=='final'（live_caption_app.py L2314）⇒ 「要朗读的译文必须以 final 出 outbox」在 UNIT 下成立"
+  },
+  "units_without_mt": {
+    "n": 0,
+    "n_total": 712,
+    "note": "mt 为 None = 该句单元还没出译文（翻译在途）"
+  },
+  "src_conservation": {
+    "sum_src_chars_no_ws": 41895,
+    "product_orig_chars": 41895,
+    "product_src_chars": 41895,
+    "match_orig_chars": true,
+    "note": "原文守恒用「去空白字符数」口径（MEMORY 铁律：否则空白差异被误报成丢失）"
+  },
+  "duplicate_units": {
+    "n_unique_src": 674,
+    "n_units": 712,
+    "n_src_appearing_more_than_once": 14,
+    "n_extra_display_units_from_duplicates": 38,
+    "max_repeat_of_one_src": 9,
+    "examples": [
+      {
+        "src": "the final word, the final word, the final word, the final wo…",
+        "segs": [
+          8,
+          8
+        ]
+      },
+      {
+        "src": "these, these, these, these, these, these, these, these, thes…",
+        "segs": [
+          24,
+          24,
+          24
+        ]
+      },
+      {
+        "src": "really really really really really really really really real…",
+        "segs": [
+          40,
+          40,
+          40
+        ]
+      },
+      {
+        "src": "three, three, three, three, three, three, three, three, thre…",
+        "segs": [
+          44,
+          44,
+          44,
+          44,
+          44,
+          44,
+          44
+        ]
+      },
+      {
+        "src": "really, really, really, really, really, really, really, real…",
+        "segs": [
+          46,
+          46
+        ]
+      }
+    ],
+    "note": "翻译调用 674 < 句单元 712 ⇒ 38 个显示单元复用已有译文（= MT §56 缺陷①的修复方向）；⇒ 渲染层若**按 src 去重显示**就会丢这 38 次出现 ⇒ 必须按 units 逐条显示"
+  },
+  "verdict": {
+    "Q1_segments_without_any_unit": 7,
+    "Q1_segments_with_no_translation_line": 0,
+    "Q2_lines_translation_per_original": 1.0,
+    "Q2_units_merged_into_other_lines": 494,
+    "Q4_final_count": 674,
+    "Q4_display_units_beyond_translate_calls": 38,
+    "src_conservation_ok": true,
+    "conclusion": "渲染层三处（_mt_of / _save_text / CLI run_cli）仍是「按段」粒度：① 7 段在 UNIT 下拿不到任何句单元 ⇒ 永远没有〔译〕行；② 494 个句单元被挤进 218 行译文（平均 3.3 句/行）⇒ 「一句原文对一句译文」拿不到；③ 38 个显示单元复用已有译文（翻译调用 674）⇒ 渲染层若按 src 去重显示会丢这 38 次出现；④ 原文守恒 OK(41895/41895) ⇒ 不是丢原文，是渲染层粒度问题"
+  }
+}

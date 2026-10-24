@@ -1,0 +1,98 @@
+{
+  "source_product": "C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_variants_v4_SPE.json",
+  "product_bytes": 875123,
+  "product_mtime": 1792859580.4254053,
+  "method": "离线读 MT v4 BASE_unit 臂的 units/outbox 原始字段；不 import 被测模块、不跑推理、不占锁、不改产品代码",
+  "inputs_raw": {
+    "product_corpus": "SPE",
+    "product_n_seg": 225,
+    "arm": "BASE_unit",
+    "product_n_units": 712,
+    "product_n_formal": 712,
+    "product_n_translate_calls": 674,
+    "product_miss_rate": 0.0,
+    "product_n_unit_missing": 0,
+    "product_n_timeout": 0,
+    "product_src_chars": 41895,
+    "product_orig_chars": 41895,
+    "product_src_kept": true,
+    "product_coverage_raw": {
+      "n_units_with_mt": 712,
+      "src_chars_with_mt": 41895,
+      "coverage_rate": 1.0,
+      "n_units_no_mt": 0,
+      "segs_without_mt": [
+        13,
+        57,
+        65,
+        178,
+        189,
+        192,
+        224
+      ]
+    },
+    "product_chrf_vs_ref": 89.7225,
+    "product_chrf_n_pairs": 391
+  },
+  "current_by_segment": {
+    "n_original_lines": 218,
+    "n_translation_lines": 218,
+    "n_lines_without_translation": 0,
+    "sentences_per_translation_line_hist": {
+      "1": 23,
+      "2": 62,
+      "3": 54,
+      "4": 51,
+      "5": 17,
+      "6": 6,
+      "7": 2,
+      "8": 1,
+      "9": 1,
+      "10": 1
+    },
+    "max_sentences_in_one_line": 10,
+    "n_units_with_seg_none": 1,
+    "note": "现状 `_save_text()`/`_render()` 按**段**输出（live_caption_app.py L2395-2410 / L2478-2487）；⇒ 一行里塞多句；且没有任何句单元的段**不输出〔译〕行**。⚠️ 实测有 1 个句单元的 `seg` 为 None（来自 `flush()` 收尾补翻，translator.py L1130-1150）⇒ 现状 `mt_of_seg()` **根本取不到它们的译文**"
+  },
+  "candidate_by_unit": {
+    "n_original_lines": 712,
+    "n_translation_lines": 712,
+    "n_lines_pending_translation": 0,
+    "every_unit_has_src": true,
+    "src_chars_no_ws": 41895,
+    "src_chars_match_orig_chars": true,
+    "note": "候选 `_save_text()` 按 `mt_units()` 逐单元输出「一句原文 + 一句译文」"
+  },
+  "duplicate_display_check": {
+    "n_unique_src": 674,
+    "n_units": 712,
+    "n_src_repeated": 14,
+    "n_extra_display_units": 38,
+    "max_repeat_of_one_src": 9,
+    "candidate_shows_every_occurrence": true,
+    "note": "🔴 MEMORY 铁律：「翻译去重」≠「显示去重」⇒ 候选实现必须逐次建行；若按 src 去重显示，会丢这 38 次出现"
+  },
+  "tts_vs_display": {
+    "outbox_kind_counter": {
+      "final": 674
+    },
+    "n_final_outbox": 674,
+    "n_display_units": 712,
+    "gap_display_minus_speech": 38,
+    "outbox_src_unique": 674,
+    "outbox_src_max_repeat": 1,
+    "note": "🔴 TTS 从 outbox 取 `kind=='final'`（live_caption_app.py L2314）⇒ 重复句**只朗读一次**（674 条 final）但**显示 712 次**（712 个单元）⇒ 字幕说两遍、语音只播一遍 —— 这是**产品行为问题**，需 reviewer 裁定，本轮不改"
+  },
+  "verdict": {
+    "current_lines": 436,
+    "candidate_lines": 1424,
+    "line_growth_ratio": 3.266,
+    "current_max_sentences_per_line": 10,
+    "candidate_max_sentences_per_line": 1,
+    "current_segments_without_translation_line": 0,
+    "candidate_units_without_translation_line": 0,
+    "src_conservation_ok": true,
+    "duplicate_occurrences_preserved": true,
+    "conclusion": "候选实现（按 mt_units() 逐句渲染）可达成：① 每行 1 句（现状最多 10 句/行）；② 原文守恒 OK；③ 重复句逐次显示；④ 待翻译单元显示「译文生成中…」而非空白。代价：输出行数 436 → 1424（3.3×），且**字幕显示粒度变更**属产品行为 ⇒ 需 reviewer 裁定"
+  }
+}
