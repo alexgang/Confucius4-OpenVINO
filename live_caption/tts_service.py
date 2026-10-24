@@ -326,12 +326,41 @@ class TTSService:
           ② `state = 'idle'`（让 `_read_loop` 的 `state != 'idle'` 判断为假）；
           ③ 发 quit → 等 → kill；
           ④ **再等 reader 线程收尾**（避免它们还持有旧 proc 的管道）。
+
+        🔴🔴 2026-10-25 §31 修：**关闭时必须清理在途句子并计丢句**。
+          旧实现直接杀进程 ⇒ `pending` / `_inflight` / `_queue` 里
+          **已提交但永远等不到 `played`/`error`** 的句子**静默消失**
+          ⇒ 违反 §29 建立的**不变式** `n_played + n_dropped == n_submitted`
+          （实测提交 5 / 播 2 / 丢 0 ⇒ sum=2 ≠ 5）
+          ⇒ GUI/CLI 底栏「丢句 + 已播」**少于**「提交」⇒ 统计自相矛盾，
+             且用户**不知道**有几句译文被丢掉了。
+          ⚠️ GUI 的**三条**路径都会调 `close()`（停 TTS / 换设备 / 换音色）
+             ⇒ 每走一次就丢一批在途句子的记账。
+          ⇒ 现在与「崩溃清理」路径（`_on_worker_exit`）做**同样的**清理：
+             清 `pending` / `_inflight` / `_queue` + **计丢句**（诚实记账）。
+          ⚠️ `_queue` 里的 jid **是 `pending` 的子集**（`submit()` 先写
+             `pending[jid]` 再入队）⇒ 只按 `pending` 计一次，**不重复计**。
         """
         with self.lock:
             self._closing = True
             p = self.proc
             self.proc = None
             self.state = 'idle'
+            # 🔴 §31：在途句子的**唯一放弃点** ⇒ 清干净 + 计丢句
+            orphan = sorted(self.pending.keys())
+            self.pending.clear()
+            self._inflight.clear()
+            # ⚠️ **不要清 `_dropped_ids`**：worker 此刻**还活着**（quit 在后面才发）
+            #    ⇒ 它可能在这段时间里回一条 `played`（积压丢弃过、但它仍播了）
+            #    ⇒ `_handle_event` 要靠 `_dropped_ids` 把它**改记为「已播」**
+            #    ⇒ 提前清了 ⇒ 又变成「丢了 + 播了」双记（§30 修的正是这个）。
+            n_queued = len(self._queue)
+            self._queue.clear()
+        if orphan:
+            # ⚠️ `_queue` 的 jid ⊆ `pending` ⇒ 只按 `pending` 计一次
+            self.n_dropped += len(orphan)
+            self.on_log(f'[TTS] 关闭语音输出，{len(orphan)} 句未播译文作废'
+                        f'（已计丢句），{n_queued} 句待发作废')
         try:
             if p is not None:
                 try:

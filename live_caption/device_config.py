@@ -248,7 +248,7 @@ def save_config(devices: Dict[str, str]) -> bool:
 
 
 def get_devices(cli_overrides: Optional[Dict[str, str]] = None) -> Tuple[Dict[str, str], List[str]]:
-    """算出本次启动三��模型实际用的设备。
+    """算出本次启动三个模型实际用的设备。
 
     优先级：**命令行 > 配置文件 > 推荐默认值**。
 

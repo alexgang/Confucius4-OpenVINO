@@ -1,0 +1,48 @@
+{
+  "real_fail": [],
+  "bug_hit": [],
+  "evidence": {
+    "A1_old": {
+      "sum": 0,
+      "submitted": 5,
+      "n_played": 0,
+      "n_dropped": 0,
+      "invariant_broken": true
+    },
+    "A_close": {
+      "n_submitted": 5,
+      "n_played": 0,
+      "n_dropped": 5,
+      "invariant": true
+    },
+    "B_close_played": {
+      "n_dropped_before_close": 1,
+      "n_dropped": 2,
+      "n_played": 1,
+      "n_submitted": 3,
+      "invariant": true
+    },
+    "C_gui_quit": {
+      "flush_lines": [
+        2480
+      ],
+      "wait_lines": [
+        2482
+      ],
+      "has_guard": true
+    },
+    "D_fffd": {
+      "device_config.py": {
+        "utf8_ok": true,
+        "u_fffd": 0,
+        "bytes": 10501
+      },
+      "audio_source.py": {
+        "utf8_ok": true,
+        "u_fffd": 0,
+        "bytes": 24588
+      }
+    }
+  },
+  "verdict": "PASS"
+}
