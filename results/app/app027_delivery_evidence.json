@@ -1,0 +1,91 @@
+{
+  "generated_at": "2026-10-25T02:07:04",
+  "zip_main": {
+    "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.4.zip",
+    "bytes": 11216047396,
+    "mtime": "2026-10-25T01:59:18.913723",
+    "sha256": "01ebfebec0f6fe8ea47e0826ad7d65d647f8bbed86be8eaf56815eb859d99428"
+  },
+  "zip_ftp_copy": {
+    "path": "C:\\Users\\Trekker-PTL\\FTP_Share\\Confucius4_LiveCaption_v1.4.zip",
+    "bytes": 11216047396,
+    "mtime": "2026-10-25T02:04:11.001563",
+    "sha256": "01ebfebec0f6fe8ea47e0826ad7d65d647f8bbed86be8eaf56815eb859d99428"
+  },
+  "zip_ftp_sha_match": true,
+  "zip_sizes_match": true,
+  "zip_entries": 13978,
+  "zip_testzip_bad_entry": null,
+  "zip_eocd_signature_found": true,
+  "manifest_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.4\\app\\MANIFEST.json",
+  "manifest_version": "1.4",
+  "manifest_files": 13977,
+  "manifest_bytes": 13667889883,
+  "spoken_files": [],
+  "audio_files_count": 23,
+  "audio_files_non_testdata": [
+    "models\\qwen3tts\\voices\\preset_A.wav"
+  ],
+  "voices_dir": [
+    "preset_A.wav"
+  ],
+  "repo_vs_pkg_key_files": {
+    "translator.py": {
+      "repo_bytes": 70941,
+      "pkg_bytes": 69519,
+      "repo_norm_sha256": "11deb2b64955e3c13009e244a005dc2fcf41fb5b851d2aeb7b167e1f563dcc5c",
+      "pkg_norm_sha256": "11deb2b64955e3c13009e244a005dc2fcf41fb5b851d2aeb7b167e1f563dcc5c",
+      "equal": true
+    },
+    "live_caption_app.py": {
+      "repo_bytes": 160793,
+      "pkg_bytes": 157641,
+      "repo_norm_sha256": "47357762def2e8f5a6c350f49d4c94c7ca942649f9becf28619d17ddd473476c",
+      "pkg_norm_sha256": "47357762def2e8f5a6c350f49d4c94c7ca942649f9becf28619d17ddd473476c",
+      "equal": true
+    },
+    "tts_worker.py": {
+      "repo_bytes": 41109,
+      "pkg_bytes": 41109,
+      "repo_norm_sha256": "3c78cce892ba0666a14d2dd7c5babff700e52ba223e4d9f754f53ea82f9bfda9",
+      "pkg_norm_sha256": "3c78cce892ba0666a14d2dd7c5babff700e52ba223e4d9f754f53ea82f9bfda9",
+      "equal": true
+    },
+    "tts_service.py": {
+      "repo_bytes": 28000,
+      "pkg_bytes": 28000,
+      "repo_norm_sha256": "9349e408ff2b5510465c1c5651ae105bf3cf06df9d44f76a18598c9a93fed1bf",
+      "pkg_norm_sha256": "9349e408ff2b5510465c1c5651ae105bf3cf06df9d44f76a18598c9a93fed1bf",
+      "equal": true
+    }
+  },
+  "repo_vs_pkg_all_equal": true,
+  "readme_markers_lines": {
+    "app010_experimental": [
+      42,
+      44,
+      390
+    ],
+    "app010_default_off": [
+      42,
+      47,
+      56,
+      248,
+      265,
+      272,
+      274,
+      318,
+      319,
+      320,
+      362,
+      363,
+      391
+    ],
+    "app008_pending_qc": [
+      392
+    ],
+    "app008_guard_rel": [
+      394
+    ]
+  }
+}
