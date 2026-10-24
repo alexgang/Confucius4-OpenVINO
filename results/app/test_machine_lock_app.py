@@ -99,6 +99,61 @@ def main():
     check('两个子进程只有一个拿到锁', len(got) == 1, '%r / %r' % (o1, o2))
 
     print()
+    print('[6] README_LOCK.md 单行格式（MT 通知 2 的事故形态）：'
+          '`asr PID 14644 started ...`')
+    # 🔴 事故形态：别的模块按 README_LOCK.md 写锁（单行）⇒ 旧版 App 解析不出 PID
+    #    ⇒ lock_state 返回 'unreadable' ⇒ fail-closed 永久等待（MT 实测空等 14 分钟）。
+    lock3 = os.path.join(tmp, 'LOCK3')
+    with open(lock3, 'w', encoding='utf-8') as f:
+        f.write('asr PID 999999 started 2026-10-24 15:13:06\n')
+    info6 = M._read_lock(lock3)
+    check('README 格式能解析出 module/pid/started_ts',
+          info6.get('module') == 'asr' and info6.get('pid') == 999999
+          and info6.get('started_ts') is not None,
+          'module=%s pid=%s started_ts=%s' % (info6.get('module'),
+                                              info6.get('pid'),
+                                              info6.get('started_ts')))
+    st6, _ = M.lock_state(lock3)
+    check('README 格式 + PID 已死 ⇒ stale_pid（可回收）',
+          st6 == 'stale_pid', 'state=%s' % st6)
+    with open(lock3, 'w', encoding='utf-8') as f:
+        f.write('tts PID %d started 2026-10-25 03:00:00\n' % os.getpid())
+    st6b, _ = M.lock_state(lock3)
+    check('README 格式 + PID 存活 ⇒ held（必须等，fail-closed）',
+          st6b == 'held', 'state=%s' % st6b)
+    os.remove(lock3)
+
+    print()
+    print('[7] GBK 编码的锁（别的模块用 Windows ANSI 写）')
+    lock4 = os.path.join(tmp, 'LOCK4')
+    with open(lock4, 'w', encoding='gbk') as f:
+        f.write('会议 PID %d started 2026-10-25 03:00:00\n' % os.getpid())
+    info7 = M._read_lock(lock4)
+    check('GBK 锁能解析出 pid/started_ts',
+          info7.get('pid') == os.getpid() and info7.get('started_ts') is not None,
+          'module=%r pid=%r' % (info7.get('module'), info7.get('pid')))
+    os.remove(lock4)
+
+    print()
+    print('[8] App 自己写出的 payload ⇒ 两种格式都能被解析（自洽）')
+    lock5 = os.path.join(tmp, 'LOCK5')
+    ok8, payload8 = M.acquire(lock_path=lock5, module='app-selftest',
+                              timeout=5, verbose=False)
+    info8 = M._read_lock(lock5) if ok8 else {}
+    st8, _ = M.lock_state(lock5) if ok8 else ('none', {})
+    check('双格式 payload 自解析一致',
+          ok8 and info8.get('module') == 'app-selftest'
+          and info8.get('pid') == os.getpid() and st8 == 'held',
+          'ok=%s module=%s pid=%s state=%s' % (ok8, info8.get('module'),
+                                               info8.get('pid'), st8))
+    check('payload 同时含 README 单行与 key-value 两套字段',
+          ' PID ' in (payload8 or '') and 'module:' in (payload8 or '')
+          and 'pid:' in (payload8 or '') and 'started:' in (payload8 or ''),
+          repr(payload8)[:160])
+    M.release(payload8, lock_path=lock5, verbose=False)
+    check('释放后锁文件已删除', not os.path.exists(lock5))
+
+    print()
     print('=' * 60)
     passed = sum(1 for _, ok, _ in results if ok)
     total = len(results)

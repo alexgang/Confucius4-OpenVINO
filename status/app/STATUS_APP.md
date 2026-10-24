@@ -1,10 +1,19 @@
 # STATUS_APP
 last_ack: APP-010
-更新时间: 2026-10-25 02:08
-当前任务: **巡检（无新纠偏条目，第 11 次同一口径）+ ✅ 交付 zip 重打闭环（§27）**：`last_ack` = **APP-010**（本轮**无新条目待执行**）⇒ 本轮闭环 §26 头部遗留的**阻塞项①**—— 🔴 **交付 zip 已重打并复核通过**（持共享机器锁 `app-pack` PID 21324 / 14 min 39 s / 原子写 `os.replace` ⇒ **没有**再出现「好包被截断覆盖」）⇒ zip **11 216 047 396 B** / **13 978** 条目 / `testzip()=None` / EOCD 签名在 / 内容级复核 **13 978 文件逐字节一致** / 独立脚本 `verify_pkg_zip.py` **PASS** / 仓库⇄包 **16/16** ⇒ FTP_Share 已重发（**11 216 047 396 B**，SHA256 `01ebfebe…` 与主包**一致**）⇒ 🔴 `.tmp` 坏残包**已消失**；客户包合规逐项实测通过（**0** 个 `*_spoken.*`、音色目录**只有 `preset_A.wav`**、无会议录音/克隆素材/同事音色 B、APP-008① 标注 L392/L394 **在**、APP-010 实验性标注 L42/L44/L390 **在**）；⏳ **仍等 reviewer 裁定**：渲染层三处（`_mt_of`/`_save_text`/CLI `run_cli` 改按 `mt_units()`）⇒ 字幕粒度属**产品行为变更**（行数 3.3×）⇒ 本轮**仍未改**（§26.6 三问已备齐证据）
-阻塞 / 待用户决定: ① 🟢 **交付 zip 阻塞项已闭环**：`Confucius4_LiveCaption_v1.4.zip` = **11 216 047 396 B**（2026-10-25 01:59:18，SHA256 `01ebfebe…`）**13 978** 条目 / `testzip()=None` / EOCD 在 / 内容级 **13 978 文件逐字节一致** / 独立复核 PASS / 仓库⇄包 16/16；`FTP_Share/` 副本**同字节同 SHA256**（02:04:11）⇒ **§26 头部「交付 zip 是坏的」已在 §27.1.6 更正**；② 🔴 **渲染层改按 `mt_units()` 逐句渲染**（MT §4.3 三处）—— **本轮仍未改**，等 reviewer 裁定（§26.6 三问；行数 436 → 1424，3.3×）；③ ⛔ **GitHub 旧 SHA 的 gc** 未做 ⇒ 待用户决定；④ ⛔ **APP-009② 的 MT UNIT 方案 A/B/C/D 结论**仍在 v4 复算 ⇒ 渲染层改动还等它定案；⑤ ⛔ **v1.4 TTS 音质**未达标（TTS-009/TTS-010）⇒ TTS 保持实验性、默认关闭（包内已标注）；⑥ ⛔ **包体 12.73 GB** 优化未做；⑦ ⛔ **V7 残句代价**待用户确认（链首段半句残句 12 段语料 5 行/58 字）
+更新时间: 2026-10-25 03:16
+当前任务: **巡检（无新纠偏条目，第 12 次同一口径）+ 🔴🔴 修掉 App 侧共享机器锁「读不懂 `README_LOCK.md` 规定的格式」⇒ 跨模块互锁死等（§28）**：`last_ack` = **APP-010**（本轮**无新条目待执行**；`CORRECTIONS_APP.md` SHA256 `8ccf661c…` / 27 413 B / mtime 2026-10-24 17:01:54⇒ `## APP-xxx` 10 条、最大 APP-010，**只读零改动**）⇒ 🔴 本轮闭环 `machine_lock_app.py` 的**真实承重 bug**：该脚本只解析 key-value 锁格式 ⇒ 遇到 `README_LOCK.md` 规定的单行格式（`asr PID 14644 started ...`）**解析不出 PID** ⇒ `lock_state()` 返 `unreadable` ⇒ 按 fail-closed**永久等待**（MT 通知 2 记录过空等 14 分钟；MT 侧已修、**App 侧漏修**）⇒ 修法 5 处（README 兜底解析 / `started` 正则 / **GBK 多编码回退** / **写入改为双格式** / 模块名放宽）⇒ 验收 **18/18 PASS**（原有 13 项未回归 + 新增 README/GBK/双格式三组）⇒ **跨模块双向兼容实测**：App 新 payload 被 **MT `read_lock()`** 与 **TTS `_read_lock()`** **均正确解析**；⚠️ 另发现 MT `lock_state` 返 `unreadable` 的真因是**该解释器缺 `psutil`**（`read_lock` 已解析正确）⇒ **不属 App 职责，不代改**；⇒ 本轮**未改任何产品代码**（4 个核心 .py 零改动）、**未重打包**（`machine_lock_app.py` 不在包内）、**未取/未抢/未回收**共享锁（测试全在临时目录）；⏳ **仍等 reviewer**：渲染层三处（`_mt_of`/`_save_text`/CLI `run_cli` 改按 `mt_units()`）**未改**（§26.6 三问备齐；通知 7 **未推翻**该判断）、APP-006 第 3~7 步等复核
+阻塞 / 待用户决定: ① 🟢 **交付 zip 阻塞项已闭环**（§27）：`Confucius4_LiveCaption_v1.4.zip` = **11 216 047 396 B**（2026-10-25 01:59:18，SHA256 `01ebfebe…`）**13 978** 条目 / `testzip()=None` / EOCD 在 / 内容级 **13 978 文件逐字节一致** / 独立复核 PASS / 仓库⇄包 16/16；`FTP_Share/` 副本**同字节同 SHA256**（02:04:11）⇒ **§26 头部「交付 zip 是坏的」已在 §27.1.6 更正**；② 🔴 **渲染层改按 `mt_units()` 逐句渲染**（MT §4.3 三处）—— **本轮仍未改**，等 reviewer 裁定（§26.6 三问；行数 436 → 1424，3.3×）；③ ⛔ **GitHub 旧 SHA 的 gc** 未做 ⇒ 待用户决定；④ ⛔ **APP-009② 的 MT UNIT 方案 A/B/C/D 结论**仍在 v4 复算 ⇒ 渲染层改动还等它定案（🔴 通知 7 §7.5 已给新口径 Δ：A 臂**真实劣化**、B/C/D **持平** ⇒ 但**选型仍等 reviewer**）；⑤ ⛔ **v1.4 TTS 音质**未达标（TTS-009/TTS-010）⇒ TTS 保持实验性、默认关闭（包内已标注）；⑥ ⛔ **包体 12.73 GB** 优化未做；⑦ ⛔ **V7 残句代价**待用户确认（链首段半句残句 12 段语料 5 行/58 字）
 
 ## 最近更新
+
+- 03:16 §28 ✅ **巡检（无新纠偏条目，第 12 次同一口径）**：`CORRECTIONS_APP.md` SHA256 `8ccf661c…` / 27 413 B / mtime 2026-10-24 17:01:54 ⇒ `## APP-xxx` **10** 条（最大 **APP-010** = `last_ack`）⇒ **无新条目**，`last_ack` **不变**；🔴 该文件**只读零改动**。
+- 03:16 §28 ✅ **跨模块通知巡检**：`shared/NOTICE_mt_to_app_20261024.md` 新增**通知 7**（42 480 B / 02:35）⇒ 三条结论**均标注「App 侧无动作」**（含「§56 三处修复已合入、v1.4 已发布」确认闭环）⇒ 本轮**未改任何翻译/渲染逻辑**。
+- 03:16 §28 🔴🔴 **修掉 App 侧共享机器锁读不懂 `README_LOCK.md` 格式** ⇒ 跨模块互锁**死等**：`machine_lock_app.py` 只解析 key-value ⇒ 遇到 README 单行格式（`asr PID 14644 started ...`）**解析不出 PID** ⇒ `lock_state` 返 `unreadable` ⇒ fail-closed **永久等待**（MT 通知 2 记录过空等 14 分钟）；修法 5 处（README 兜底解析 / `started` 正则 / **GBK 多编码回退** / **写入改为双格式** / 模块名放宽为 `\S+`）。
+- 03:16 §28 ✅ **验收 18/18 PASS**（`results/app/test_machine_lock_app.py`，**仓库已有文件本轮扩写**）：原有 13 项**未回归** + 新增 [6] README 格式（死⇒`stale_pid`／活⇒`held`）[7] GBK 锁 [8] 双格式 payload 自洽 ⇒ **18/18**。
+- 03:16 §28 ✅ **跨模块双向兼容实测**：App 新写出的 payload 被 **MT** `read_lock()` 与 **TTS** `_read_lock()` **均正确解析**（module/pid/started）⇒ 反向 App 读 ASR 的 README 锁 `state=held` 判活正确；⚠️ 另发现 MT 侧 `lock_state` 返 `unreadable` 的真因是**该解释器缺 `psutil`**（其 `read_lock` 已解析正确）⇒ **不属 App 职责，不代改**。
+- 03:16 §28 ✅ **交付侧只读复核**：主包 zip 与 `FTP_Share` 副本均 11 216 047 396 B / **EOCD 在**；仓库 ⇄ 包 `app/` **5/5 MATCH**（`translator.py` `11deb2b6…` / `live_caption_app.py` `47357762…` / `tts_service.py` `9349e408…` / `tts_worker.py` `3c78cce8…` / `device_config.py` `77be2435…`）⇒ 🔴 **本轮无需重打包**（`machine_lock_app.py` **不在包内**，MANIFEST 命中 0）。
+- 03:16 §28 ⏳ **仍等 reviewer**：渲染层三处（`_mt_of`/`_save_text`/`run_cli` 改按 `mt_units()`）**未改**（§26.6 三问备齐）—— 通知 7 **未推翻**该判断；APP-006 第 3~7 步仍等复核。
+- 03:16 §28 ✅ **纪律**：**未改/未提交** `CORRECTIONS_APP.md`；**未吞** ASR/MT/TTS 未提交改动；**未改产品代码**（4 个核心 .py 零改动）；**未 import 被测模块**；**未跑推理/测速/占 GPU**；**未取/未抢/未回收**共享锁（测试全在临时目录）；**未重打包/未动 FTP_Share/未重开 FTP**；**未调用 MiniMax**。
 - 02:08 §27 ✅ **交付 zip 重打闭环（本轮核心）**：持共享机器锁（`app-pack` / PID 21324 / 01:47:44）→ `pack_v13.py` 14 min 39 s → **原子写**（`ZIP.tmp` → 校验 → `os.replace`）⇒ **没有**再出现「好包被截断覆盖」；内容级校验 **13 978 文件逐字节一致**、MANIFEST `version=1.4`/`files=13977`、`testzip()=None`、EOCD 签名在 ⇒ **PASS**。
 - 02:08 §27 ✅ **独立复核 + FTP_Share 重发**：`verify_pkg_zip.py` **PASS**（zip⇄包 13 978 一致、仓库⇄包 **16/16**）；`publish_ftp.py` 持锁 `app-ftppub` 复制 **11 216 047 396 B**（9.0 s / 1 188.9 MB/s），源⇄副本 SHA256 `01ebfebe…` **一致** ⇒ **PASS**；🔴 **未重开 FTP 服务**（守 APP-009③）。
 - 02:08 §27 ✅ **客户包合规逐项实测**：`*_spoken.*` **0** 个；包内音频 23 个里 **22 个是 scipy 自带测试数据**，非测试数据**只有** `models/qwen3tts/voices/preset_A.wav` ⇒ **无会议录音 / 无克隆音色 / 无同事音色 B**；APP-008① 标注 `README_zh.md` **L392**（待质量复核）**L394**（`LIVECAP_GUARD_REL=0`）**在**；APP-010 实验性标注 **L42/L44/L390** **在**。
@@ -12,14 +21,6 @@ last_ack: APP-010
 - 02:08 §27 ⏳ **渲染层三处本轮仍不改**（`_mt_of`/`_save_text`/CLI `run_cli` 改按 `mt_units()`）⇒ 字幕显示粒度属**产品行为变更**（行数 436 → 1424，3.3×）⇒ **仍等 reviewer 裁定**（§26.6 三问，证据已备齐）。
 - 02:08 §27 ✅ **纪律**：**未改/未提交** `status/app/CORRECTIONS_APP.md`（SHA256 仍 `8ccf661c…` / 27 413 B）；**未吞** ASR/MT/TTS 的未提交改动；**未改产品代码**（4 个核心 .py 本轮零改动）；**未 import 被测模块**；**未跑推理/测速/占 GPU**；打包窗口内**未启动任何 `python.exe`** ⇒ 耗时数字未被自己污染。
 - 00:45 §26 🔴🔴 **把「渲染层仍是按段粒度」从「等 review」推进到「有实测数字可裁定」**：用 MT 已落盘的 v4 **BASE_unit 臂**（真实 61 分钟会议，225 段 / 712 句单元 / chrF 89.7225 / 守恒 41895/41895）**离线复刻**现状渲染与候选渲染 ⇒ 现状 **1 行最多塞 10 句**、**7 段永远没有〔译〕行**、**1 个句单元 `seg=None`（`flush()` 收尾补翻）现状根本取不到译文**；候选（按 `mt_units()` 逐句）每行 1 句、守恒 OK、重复句逐次显示（38 次）⇒ 产物 `results/app/render_units_candidate_eval.json`。
-- 00:45 §26 ⛔ **渲染层三处本轮仍不改**：`_mt_of`/`_save_text`/CLI `run_cli` 改按 `mt_units()` ⇒ **字幕显示粒度变更属产品行为**（输出行数 436 → 1424，3.3×）⇒ **提请 reviewer 裁定**，证据已备齐（§26.6），不自行推进。
-- 00:45 §26 ✅ **交付侧事实复核（本轮实测）**：① 三个 zip 的 **EOCD 签名**——主包**坏**（无 `PK\x05\x06`）、`.tmp` 残留**也是坏的**、FTP_Share 副本**结构完好但过时**（13 978 条目）；② 仓库 ⇄ 客户包三文件（`translator.py`/`live_caption_app.py`/`tts_worker.py`）**仍逐字一致**（归一化换行）⇒ §25 的同步没被后续改动破坏；③ `shared/GIT_FREEZE` **已释放**（§25 头部的「未释放」在本节更正）；④ APP-008① 的退回开关 `LIVECAP_GUARD_REL=0` **包内 README 已写明**、三个相对判据开关（`SIL_REL`/`SPK_REL`/`GUARD_REL`）**包内代码均在**；⑤ APP-010 的 TTS 实验性标注**包内 README_zh.md L42-44 / L390** 已在。
-- 00:45 §26 ⏳ **交付 zip 仍未重打**：共享机器锁被 MT 持有（`module: mt` / `pid: 16080` / 00:07:24），本轮用 `ctypes` `OpenProcess`+`GetExitCodeProcess` 实测 **exitcode 259 = 存活** ⇒ 等，**未抢锁、未回收**；MT v4 进度观测 **3/7 臂**（BASE_unit ✓ / A_T2 ✓ / A_T3 在跑）⇒ **未写「已重打」**。
-- 00:45 §26 ✅ **纪律**：**未改/未提交** `status/app/CORRECTIONS_APP.md`（本轮复核 SHA256 仍 `8ccf661c7f1ef5c…` / 27 413 B / mtime `2026-10-24 17:01:54`）；**未吞** ASR/MT/TTS 的未提交改动；**未改产品代码**（`live_caption_app.py` 本轮零改动）；**未 import 被测模块**（脚本全走 `ast`/读 JSON）；**未跑推理/测速/占 GPU**；**未取/未抢/未回收**任何机器锁。
-- 00:37 §25.9 🔴🔴 **修掉「MT 移交的注释把内部会议音频编号带进客户包」⇒ 打包闸门 FAIL**：`pack_v13.py --dry-run` 实测闸门 FAIL（`app/translator.py` 命中「会议音频编号」）⇒ 根因 = MT 移交的注释含 `260902_SPE`（L778 / L1076）；⚠️ `DEFAULT_ALLOW` 豁免**不覆盖包内相对路径** `app/translator.py` ⇒ 闸门**正确 FAIL** ⇒ **不加豁免**（会掩盖真泄露）⇒ 改成「内部 61 分钟会议回放/实录」（技术结论全保留）；**重跑 dry-run ⇒ 命中 0 ⇒ PASS**，关键文件 40 项全 [OK]；git `0782059`。
-- 00:32 §25 **巡检（无新纠偏条目，第 9 次同一口径）**：`CORRECTIONS_APP.md` SHA256 `8ccf661c7f1ef5c…` / 27 413 B / mtime `2026-10-24 17:01:54`，`## APP-xxx` **10** 条（最大 **APP-010** = `last_ack`）⇒ **无新条目**，`last_ack` 不变。
-- 00:32 §25 ✅ **合入 MT 移交的 `translator.py` 三处修复**（`shared/NOTICE_mt_to_app_20261024.md` 通知 4/5，32 839 B / 00:10）：① 新增 `load_mt_tokenizer()`（H-013，`fix_mistral_regex=False`，MT 实测分词 ids 30/30 不变）② `CACHE_MAX` **400 → 4000**（§56 缺陷③：674 单元 / 只留 400 ⇒ 前 274 条被淘汰，逐位吻合）③ `_seen` 全局丢弃 ⇒ **翻译去重 + 显示不去重**（§56 缺陷①：复读真实存在，38 句 / 3,312 字）。
-- 00:32 §25 🔴🔴 **修掉 App 侧 `clear()` 只清 3 个字典的真实缺口**（MT §4.3 点名，我核实后确认漏清 **5 类**状态：`units`/`_seen`/`_pend`/`done`+`done_fix`/`_half`+`draft`+`_last_src`）⇒ 新增 `_reset_mt_session()`（字段集与 `translator._loop()` 换模型清缓存**同一口径**，`getattr` 防御）⇒ 后果已坐实：清屏后**同句被当成已翻过而丢句** / 混进旧译文 / 新场次接到上一场半句。
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -4729,3 +4730,181 @@ python publish_ftp.py
 持共享锁 → 原子写 → 内容级 PASS（13 978 文件逐字节一致）→ 独立复核 PASS → FTP_Share 重发（SHA256 一致）；
 客户包合规逐项复核通过（无会议录音/无音色 B·C/无克隆素材）；产品代码零改动；
 渲染层三处仍等 reviewer 裁定）
+
+
+## §28 巡检（无新纠偏条目，第 12 次同一口径）+ 🔴🔴 修掉 App 侧共享机器锁「读不懂 `README_LOCK.md` 规定的格式」⇒ 跨模块互锁死等（2026-10-25 03:16）
+
+### 28.1 巡检结论：`CORRECTIONS_APP.md` **无新条目**
+
+| 项 | 实测值 |
+|---|---|
+| SHA256 | `8ccf661c7f1ef5c527871011ed898ae6b9c44855793749105a4461e3f10de8cf` |
+| 字节数 | 27 413 B |
+| mtime | 2026-10-24 17:01:54 |
+| `## APP-xxx` 条目数 | **10**（APP-001 ~ APP-010） |
+| 最大编号 | **APP-010** |
+| `STATUS_APP.md` 头部 `last_ack` | **APP-010** |
+
+⇒ **无编号 > `last_ack` 的新条目** ⇒ `last_ack` **保持 APP-010 不变**（**第 12 次**同一口径复核）。
+🔴 `status/app/CORRECTIONS_APP.md` **只读、本轮零改动**（SHA256 仍为上表值）。
+
+### 28.2 🔴 跨模块通知巡检：`shared/NOTICE_mt_to_app_20261024.md` 出现**新通知 7**（42 480 B / mtime 2026-10-25 02:35）
+
+通知 1~6 已在 §19 / §25 处理完毕；**通知 7 是本轮新出现的**（02:35 写入，上轮 §27 巡检于 02:08 时尚不存在）。
+
+**通知 7 的三条结论与 App 侧动作（原文 §7.1 表格）**：
+
+| # | 结论 | App 侧动作（通知 7 原文） |
+|---|---|---|
+| 1 | 「B/C/D 在 SPE 上劣化」（Δ −0.53 / −7.31 / −7.84）是**评测脚本的度量 bug**，不是翻译劣化 | **无动作**（不要因此改翻译逻辑） |
+| 2 | B/C/D 三案在三语料上「质量零风险」（新口径 Δ ≈ 0、CI 跨 0、参照句字符覆盖率 = 1.0000） | **无动作** |
+| 3 | §56 三处修复**已由 App 合入并提交**；客户包 v1.4 **已重打并发布** | **无动作**（✅ 闭环） |
+
+🔴 **通知 7 明确写「App 侧无需因本通知改任何代码」** ⇒ 本轮**未改任何翻译/渲染逻辑**、未改 `translator.py`。
+⚠️ 通知 7 §7.7「给 App 的评测口径纪律」（chrF 只能用新口径 / Δ 按 `ref_src` 配对 / 守恒只能用内容级 / 复算须有旁证）**适用于 App 侧若自建评测脚本时**；
+本轮 App **没有**产出 chrF/Δ 数字 ⇒ 无需套用，但记录在案。
+
+⇒ 结论：通知 7 是**结论性/确认性**通知，**不含 App 待办**。App 侧无需改动代码。
+
+### 28.3 🔴🔴 本轮真实承重 bug：App 侧共享机器锁**读不懂 `README_LOCK.md` 规定的格式** ⇒ 跨模块互锁**死等**
+
+#### 28.3.1 缺陷描述
+
+`shared/README_LOCK.md`（以及本轮任务书）规定锁文件内容是「**模块名 PID 开始时间**」：
+
+```
+asr PID 14644 started 2026-10-24 15:13:06
+```
+
+而仓库根的 `machine_lock_app.py`（App 侧唯一的锁实现，被 `pack_v13.py` / `publish_ftp.py` / `verify_ftp.py` 共用）
+**只解析 key-value 格式**（`module:` / `pid:` / `started:` 各占一行）
+⇒ 遇到 README 格式的锁 ⇒ **解析不出 PID** ⇒ `lock_state()` 返回 **`unreadable`**
+⇒ 按 fail-closed 规则**永远等待**。
+
+🔴 **这是 MT 通知 2 记录的那次事故在 App 侧的镜像**（MT 侧记录：「MT 本轮第一次取锁时**空等 14 分钟**没拿到」，
+手工核验 PID 14644 **已不存在** ⇒ 那把锁本该可回收）。App 侧当时只修了自己的一半 —— MT 修了 MT 的实现，
+**没人修 App 的实现** ⇒ App 的三个打包/发布脚本仍会在 ASR/MT 持锁时**空等**。
+
+#### 28.3.2 修复前的实测证据（真实复现）
+
+```
+$ python -  # 写入 README 格式锁后调用 App 的解析器
+parsed info = {'module': '?', 'pid': None, 'started': None, 'parse_error': False, 'started_ts': None}
+started_ts = None
+lock_state = unreadable          ← 🔴 明明 PID 已死，却被判「不可解析」⇒ fail-closed 永久等待
+```
+
+⚠️ 与 `unreadable` 的语义冲突：README 格式的锁**是能解析的**（PID 明明白白写着），只是 App 的正则不认识它
+⇒ 把「读不懂」误当成「不确定」⇒ **fail-closed 用错了地方**（fail-closed 本该用于「确实无法确定 PID」，而不是「解析器不支持该格式」）。
+
+#### 28.3.3 修法（3 处，全部在 `machine_lock_app.py`）
+
+| # | 位置 | 改动 |
+|---|---|---|
+| ① | `_read_lock()` | key-value 解析不出 `pid`/`module` 时 ⇒ **启用 README 格式兜底**（`_parse_module_pid()`）；`started` 同样兜底 |
+| ② | `_parse_started()` | 新增 README 格式解析：正则 `\bstarted\b[:\s]+(.+)$`（与 MT 侧 `machine_lock.py` 同口径） |
+| ③ | `_decode_lock_bytes()`（**新增**） | 🔴 锁可能是 **GBK/ANSI** 编码（TTS 侧 `machine_lock.py` 明确记录了这点）⇒ 改为 **utf-8 → gbk → cp936 → latin-1** 多编码回退；原来只用 `utf-8 + errors='replace'` 会把中文模块名变乱码 |
+
+**另外两处配套改动（写入侧 + 解析兜底）**：
+
+| # | 位置 | 改动 |
+|---|---|---|
+| ④ | `acquire()` 的 payload | 🔴 **改为同时写两种格式**：README 单行 `<module> PID <pid> started <time>` **+** key-value 三行 ⇒ 四个模块的读锁器都能解析（App 历史上**只**写 key-value ⇒ 别的模块按 README 格式解析时读不出 App 的 PID） |
+| ⑤ | `_parse_module_pid()` | 模块名正则从 `[A-Za-z0-9_\-]+` 放宽为 `\S+`（**别的模块可能写中文模块名**）⇒ 并补 TTS 侧同款「关键字扫描」兜底 |
+
+#### 28.3.4 验收：回归自测 **18/18 PASS**
+
+产物：`results/app/test_machine_lock_app.py`（**仓库已有文件，本轮扩写**，新增第 [6][7][8] 三组用例）
+
+| 组 | 用例 | 结果 |
+|---|---|---|
+| [1]~[5] | **原有 13 项**（原子创建 / fail-closed 活锁不可回收 / `stale_pid` 可回收 / 释放只删自己那份 / 子进程并发只有一个拿到） | ✅ **全 PASS（未回归）** |
+| [6] | **README 单行格式**：能解析出 `module`/`pid`/`started_ts`；PID 已死 ⇒ **`stale_pid`（可回收）**；PID 存活 ⇒ **`held`（必须等）** | ✅ 3/3 |
+| [7] | **GBK 编码的锁**（`会议 PID 32996 started ...`）⇒ 能解析出 `pid`/`started_ts`，`module='会议'` | ✅ 1/1 |
+| [8] | App 自己写出的 **双格式 payload** ⇒ 自解析一致（`module`/`pid`/`state=held`）；payload 同时含 README 单行与 key-value 两套字段；释放后锁文件已删除 | ✅ 4/4 |
+
+**新增用例的原始输出**：
+
+```
+[6] README_LOCK.md 单行格式（MT 通知 2 的事故形态）：`asr PID 14644 started ...`
+  [ OK ] README 格式能解析出 module/pid/started_ts  -- module=asr pid=999999 started_ts=1792825986.0
+  [ OK ] README 格式 + PID 已死 ⇒ stale_pid（可回收）  -- state=stale_pid
+  [ OK ] README 格式 + PID 存活 ⇒ held（必须等，fail-closed）  -- state=held
+
+[7] GBK 编码的锁（别的模块用 Windows ANSI 写）
+  [ OK ] GBK 锁能解析出 pid/started_ts  -- module='会议' pid=32996
+
+[8] App 自己写出的 payload ⇒ 两种格式都能被解析（自洽）
+  [ OK ] 双格式 payload 自解析一致  -- ok=True module=app-selftest pid=32996 state=held
+  [ OK ] payload 同时含 README 单行与 key-value 两套字段  -- 'app-selftest PID 32996 started 2026-10-25 03:15:31\nmodule: app-selftest\npid: 32996\nstarted: 2026-10-25 03:15:31\nhost: LAPTOP-0GDQGD3I\n'
+  [ OK ] 释放后锁文件已删除
+
+============================================================
+ 结果：18/18 PASS
+============================================================
+```
+
+#### 28.3.5 验收：**跨模块双向兼容**实测（用别的模块的真实读锁器）
+
+🔴 只自测「自己写自己读」是不够的 ⇒ 本轮**直接调用其它模块的读锁实现**：
+
+| 对方读锁器 | 读 App 新写出的 payload | 结果 |
+|---|---|---|
+| **MT** `hy_bench/machine_lock.py::read_lock()` | `module='app-pack' pid=8436 started='2026-10-25 03:15:35'` | ✅ **解析正确** |
+| **TTS** `qwen3tts_eval/machine_lock.py::_read_lock()` | `module='app-pack' pid=42520 started='2026-10-25 03:15:47'` | ✅ **解析正确** |
+
+反向（App 读对方的 README 格式锁）：`asr PID <本进程PID> started ...` ⇒ `state = held` ⇒ **判活正确**。
+
+⚠️ **实测发现（不是本轮改动引起，属 MT 侧环境问题）**：MT 的 `lock_state()` 对 App 的 payload 返回 **`unreadable`**，
+根因 = **MT 那个解释器里没有 `psutil`**（`mt.psutil is None` ⇒ 该实现无条件返回 `unreadable`），
+**不是** payload 格式问题（其 `read_lock()` 已正确解析出 module/pid/started）⇒ **不属 App 职责，不代改**。
+App 侧 `machine_lock_app.py` 用 `ctypes` Win32 API，**无 psutil 依赖**。
+
+#### 28.3.6 真实共享锁路径现状
+
+`machine_lock_app.lock_state()` 对 `C:\Users\Trekker-PTL\shared\MACHINE_LOCK` 实测 ⇒ **`state = free`**（锁不存在，本轮无需等待、无需回收）。
+⚠️ 本轮**未创建/未删除/未回收** `shared/MACHINE_LOCK`；所有锁测试**全部在临时目录**（`tempfile.mkdtemp()`）里做。
+
+### 28.4 ✅ 交付侧只读复核（本轮未重打包）
+
+| 项 | 实测 |
+|---|---|
+| 主包 `Confucius4_LiveCaption_v1.4.zip` | 11 216 047 396 B / mtime 2026-10-25 01:59 / **EOCD 签名在**（结构完好） |
+| `FTP_Share/Confucius4_LiveCaption_v1.4.zip` | 11 216 047 396 B / mtime 2026-10-25 02:04 / **EOCD 签名在** |
+| 仓库 ⇄ 客户包 `app/` 代码等价（**归一化换行**） | `translator.py` `11deb2b64955…` / `live_caption_app.py` `47357762def2…` / `tts_service.py` `9349e408ff2b…` / `tts_worker.py` `3c78cce892ba…` / `device_config.py` `77be2435c5f3…` ⇒ **5/5 MATCH** |
+
+🔴 **本轮无需重打包**：`machine_lock_app.py` 是**仓库根的打包工具**，**不在客户包内**
+（实测 `Confucius4_LiveCaption_v1.4/app/machine_lock_app.py` **不存在**、包内 `MANIFEST` 命中数 **0**）
+⇒ 本轮改动**不触及包内任何文件** ⇒ **zip 与 FTP_Share 副本保持原样、不重打**（避免无谓的 14 分钟打包与 FTP 复制）。
+
+### 28.5 ⏳ 本轮**未推进**（仍等 reviewer）
+
+| 项 | 状态 |
+|---|---|
+| 渲染层三处（`_mt_of` / `_save_text` / CLI `run_cli`）改按 `mt_units()` 逐句渲染 | ⏳ **仍未改**（§26.6 三问已备齐证据）—— 字幕显示粒度属**产品行为变更**（行数 436 → 1424，3.3×）⇒ 等 reviewer 裁定。🔴 通知 7 **没有**推翻这个判断（它只更正了 MT 侧的评测口径与「B/C/D 劣化」结论） |
+| APP-006 第 3~7 步（历史改写 + force push） | ⏳ **等 reviewer 复核**（该条第 2 步明确要求停下） |
+| APP-009② 的 MT UNIT 方案 A/B/C/D 结论 | ⏳ 🔴 通知 7 §7.5 已给出**新口径下的 Δ**（A 臂**真实劣化**、B/C/D **持平**）⇒ 但**方案选型仍等 reviewer 裁定** |
+| GitHub 旧 SHA 的 gc | ⛔ 待用户决定 |
+| v1.4 TTS 音质 | ⛔ 未达标（TTS-009/TTS-010）⇒ TTS 保持实验性、默认关闭（包内已标注） |
+| 包体 12.73 GB 优化 | ⛔ 未做 |
+| V7 残句代价 | ⛔ 待用户确认 |
+
+### 28.6 ✅ 本轮纪律核对
+
+- ✅ **未改/未提交** `status/app/CORRECTIONS_APP.md`（SHA256 仍 `8ccf661c…` / 27 413 B / mtime 2026-10-24 17:01:54）—— **只读**。
+- ✅ **未吞** ASR/MT/TTS 的未提交改动（`status/CORRECTIONS.md`、84 行 reviewer 改动、大批 `diag_c111_*` 未跟踪文件**全部保留在工作区**）。
+- ✅ **未改产品代码**：`translator.py` / `live_caption_app.py` / `tts_service.py` / `tts_worker.py` **本轮零改动**（仓库⇄包 5/5 MATCH 未被破坏）。
+- ✅ **未 import 被测模块**（锁测试只 import `machine_lock_app` 本身，纯 stdlib）。
+- ✅ **未跑推理 / 未测速 / 未占 GPU**；锁相关全部是文件与 PID 判定。
+- ✅ **未取 / 未抢 / 未回收**任何共享机器锁（所有测试走临时目录）。
+- ✅ **未重打包、未动 FTP_Share、未重开 FTP 服务**（守 APP-009③）。
+- ✅ **未调用 MiniMax**（质量判定交 reviewer）。
+
+### 28.7 本轮产物清单（落盘证据）
+
+| 产物 | 字节数 | mtime | SHA256 |
+|---|---|---|---|
+| `machine_lock_app.py` | 16 635 | 2026-10-25 03:15:24 | `9d9933c8c47d96f98fab2f17a2c72893c379b895e9a3c7f256cb5b29a61774f5` |
+| `results/app/test_machine_lock_app.py` | 7 698 | 2026-10-25 03:15:11 | `109451a476f2a43156b4c9a4ffaba009cdbf2d74549f19b15e1a124ebbd95a21` |
+
+（文件数：2 个；均已入库。🔴 **没有落盘的东西一律不写「已交付」。**）

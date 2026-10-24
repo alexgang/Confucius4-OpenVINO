@@ -59,6 +59,7 @@ from __future__ import annotations
 import ctypes
 import datetime
 import os
+import re
 import time
 
 # 共享锁路径（4 个模块共用）
@@ -120,16 +121,45 @@ def _boot_time() -> float:
 
 
 # ── 锁文件读写 ─────────────────────────────────────────────────────────
-def _read_lock(lock_path: str = LOCK):
-    """读锁文件。返回 dict(module/pid/started/started_ts/raw) 或 None（不存在）。"""
+def _decode_lock_bytes(path: str):
+    """读锁文件原始字节并解码。
+
+    🔴 **多编码回退**：别的模块可能用 Windows 默认 ANSI（GBK）写锁
+    （TTS 侧 `machine_lock.py` 明确记录了这一点）⇒ 只用 utf-8 + errors='replace'
+    会把模块名等字段变成乱码。⇒ 依次尝试 utf-8 → gbk → cp936 → latin-1。
+    """
     try:
-        with open(lock_path, encoding='utf-8', errors='replace') as f:
-            raw = f.read()
+        with open(path, 'rb') as f:
+            blob = f.read()
     except FileNotFoundError:
         return None
     except Exception:
         # 读不出来 = 不确定 ⇒ 调用方按 fail-closed 处理
         return dict(raw='', parse_error=True)
+    for enc in ('utf-8', 'gbk', 'cp936', 'latin-1'):
+        try:
+            return blob.decode(enc)
+        except Exception:
+            continue
+    return blob.decode('latin-1', errors='replace')
+
+
+def _read_lock(lock_path: str = LOCK):
+    """读锁文件。返回 dict(module/pid/started/started_ts/raw) 或 None（不存在）。
+
+    🔴 **兼容两种格式**（4 个模块可能各写各的）：
+    ① key-value（本模块历史上写的）：
+         module: app-pack
+         pid: 12345
+         started: 2026-10-25 03:00:00
+    ② **README_LOCK.md 规定的格式**（ASR / MT 等模块在用）：
+         asr PID 14644 started 2026-10-24 15:13:06
+    """
+    raw = _decode_lock_bytes(lock_path)
+    if raw is None:
+        return None
+    if isinstance(raw, dict):          # parse_error
+        return raw
 
     info = dict(raw=raw, module='?', pid=None, started=None, parse_error=False)
     for line in raw.splitlines():
@@ -148,22 +178,85 @@ def _read_lock(lock_path: str = LOCK):
                 info['pid'] = None
         elif k == 'started':
             info['started'] = v
+
+    # ② README 格式兜底：key-value 解析不出 pid/module 时启用。
+    if info['pid'] is None or info['module'] == '?':
+        mod2, pid2 = _parse_module_pid(raw)
+        if mod2 is not None:
+            info['module'] = mod2
+        if pid2 is not None:
+            info['pid'] = pid2
+    if info['started'] is None:
+        m = re.search(r'\bstarted\b[:\s]+(.+)$', raw, re.I | re.M)
+        if m:
+            info['started'] = m.group(1).strip()
     info['started_ts'] = _parse_started(raw)
     return info
 
 
+def _parse_module_pid(text: str):
+    """解析 README 格式的「模块名 PID <pid> started <时间>」⇒ (module, pid)。
+
+    解析不出来返回 (None, None)。
+
+    ⚠️ **模块名不限于 ASCII**（别的模块可能写中文模块名，且锁可能是 GBK 编码）
+    ⇒ 模块名取「PID 关键字之前的那一串非空白字符」。
+    """
+    for line in (text or '').splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        m = re.match(r'^(\S+)\s+PID\s+(\d+)\b', line, re.I)
+        if m:
+            return m.group(1), int(m.group(2))
+    # 兜底：关键字扫描（与 TTS 侧 `machine_lock.py` 同策略）
+    #   —— 找含 'pid' 的行，取其中第一个纯数字 token。
+    for line in (text or '').splitlines():
+        line = line.strip()
+        if 'pid' not in line.lower():
+            continue
+        for tok in line.replace(':', ' ').split():
+            if tok.isdigit():
+                pid = int(tok)
+                # 模块名 = 该行 PID 之前的第一段非空白
+                head = line[:line.lower().index(tok)].strip()
+                mod = head.split()[0] if head.split() else '?'
+                return mod, pid
+    return None, None
+
+
 def _parse_started(text: str):
-    """从锁内容里解析 started 时间戳（epoch 秒）。解析不了返回 None。"""
+    """从锁内容里解析 started 时间戳（epoch 秒）。解析不了返回 None。
+
+    支持两种格式：
+    ① key-value：`started: 2026-10-25 03:00:00`
+    ② README 格式：`asr PID 14644 started 2026-10-24 15:13:06`
+    """
+    fmts = ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S', '%Y/%m/%d %H:%M:%S')
+
+    def _try(raw):
+        raw = raw.strip()
+        for fmt in fmts:
+            try:
+                return datetime.datetime.strptime(raw, fmt).timestamp()
+            except Exception:
+                continue
+        return None
+
     for line in (text or '').splitlines():
         line = line.strip()
         low = line.lower()
         if low.startswith('started'):
             raw = line.split(':', 1)[1].strip() if ':' in line else ''
-            for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S', '%Y/%m/%d %H:%M:%S'):
-                try:
-                    return datetime.datetime.strptime(raw, fmt).timestamp()
-                except Exception:
-                    continue
+            ts = _try(raw)
+            if ts is not None:
+                return ts
+        # ② README 格式：`<module> PID <pid> started <time>`
+        m = re.search(r'\bstarted\b[:\s]+(.+)$', line, re.I)
+        if m:
+            ts = _try(m.group(1))
+            if ts is not None:
+                return ts
     return None
 
 
@@ -224,9 +317,16 @@ def acquire(lock_path: str = LOCK, module: str = 'app', timeout: float = 3600,
                 print('[lock] 超时，未能取得机器锁 %s' % lock_path, flush=True)
             return False, None
         attempt += 1
-        payload = ('module: %s\npid: %d\nstarted: %s\nhost: %s\n'
-                   % (module, os.getpid(),
-                      time.strftime('%Y-%m-%d %H:%M:%S'),
+        # 🔴 **写成两种格式**（README_LOCK.md 单行格式 + key-value）
+        #    ⇒ 四个模块的读锁实现都能解析（MT 读两种、TTS 关键字扫描、
+        #      ASR 人工读 key-value、App 自己也读两种）。
+        #    ⚠️ 历史上 App 只写 key-value ⇒ 别的模块按 README 格式的解析器
+        #      读不出 PID（MT 通知 2 记录过 14 分钟空等事故）。
+        _started = time.strftime('%Y-%m-%d %H:%M:%S')
+        payload = ('%s PID %d started %s\n'
+                   'module: %s\npid: %d\nstarted: %s\nhost: %s\n'
+                   % (module, os.getpid(), _started,
+                      module, os.getpid(), _started,
                       os.environ.get('COMPUTERNAME', '?')))
         try:
             fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
