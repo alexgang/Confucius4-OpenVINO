@@ -1,10 +1,11 @@
 # STATUS_APP
 last_ack: APP-010
-更新时间: 2026-10-25 00:32
+更新时间: 2026-10-25 00:37
 当前任务: **巡检（无新纠偏条目）+ 合入 MT 移交的 `translator.py` 三处修复（§56 缺陷①②③ + H-013）+ 🔴🔴 修掉 App 侧 `clear()` 不重置 MT 会话的真实缺口（漏清 5 类状态 ⇒ 清屏后丢句/混旧译文/接旧半句）+ 客户包定点同步 3 文件（`translator.py`/`live_caption_app.py`/`tts_worker.py`，7 块唯一命中）**：APP-007/008/009/010 已闭环（`last_ack` = **APP-010**，本轮**无新条目待执行**）⇒ 本轮做「合入 MT 移交 + 修 App 真实缺口 + 交付收尾」；⏳ **交付 zip 仍未重打**（共享机器锁被 MT 持有，PID 16080 实测 exitcode 259 = 存活 ⇒ 等，**未抢锁**）⇒ **下一轮第一件事：取锁 ⇒ 重打 zip ⇒ `verify_pkg_zip.py` 内容级复核 ⇒ `publish_ftp.py` 重发**
 阻塞 / 待用户决定: ① 🔴 **交付 zip 是坏的**：`Confucius4_LiveCaption_v1.4.zip` = 3 513 053 709 B **非有效 zip**（17:19 写坏）；FTP_Share 副本 11 216 038 195 B **完好但过时**（09:10）⇒ **不含** APP-008①/APP-010 标注，也不含本轮 §25.1/25.2 的修复 —— **下一轮取锁后重打 + 重发**（§24 已修 `pack_v13.py` 原子写）；② 🔴 **渲染层改按 `mt_units()` 逐句渲染**（MT §4.3 点名的 `_mt_of`/`_save_text`/CLI `run_cli` 三处）—— **本轮未做**（改字幕显示粒度 ⇒ 属产品行为变更）⇒ **等 MT v4 复算 + reviewer 裁定**（§25.8-1）；③ 🔴 **`shared/GIT_FREEZE` 未释放**（改写 20:44 已完成、远端已强推 `a565e26`）⇒ **App 不擅自删**，请 reviewer 释放；④ ⛔ **GitHub 旧 SHA 的 gc** 未做 ⇒ 待用户决定；⑤ ⛔ **APP-009② 的 MT UNIT 方案 A/B/C/D 结论**仍在 v4 复算（7 臂，第 2/7）⇒ 本轮只合入已落码的 3 处缺陷修复；⑥ ⛔ **v1.4 TTS 音质**未达标（TTS-009/TTS-010）⇒ TTS 保持实验性、默认关闭；⑦ ⛔ **包体 13 GB** 优化未做。
 
 ## 最近更新
+- 00:37 §25.9 🔴🔴 **修掉「MT 移交的注释把内部会议音频编号带进客户包」⇒ 打包闸门 FAIL**：`pack_v13.py --dry-run` 实测闸门 FAIL（`app/translator.py` 命中「会议音频编号」）⇒ 根因 = MT 移交的注释含 `260902_SPE`（L778 / L1076）；⚠️ `DEFAULT_ALLOW` 豁免**不覆盖包内相对路径** `app/translator.py` ⇒ 闸门**正确 FAIL** ⇒ **不加豁免**（会掩盖真泄露）⇒ 改成「内部 61 分钟会议回放/实录」（技术结论全保留）；**重跑 dry-run ⇒ 命中 0 ⇒ PASS**，关键文件 40 项全 [OK]；git `0782059`。
 - 00:32 §25 **巡检（无新纠偏条目，第 9 次同一口径）**：`CORRECTIONS_APP.md` SHA256 `8ccf661c7f1ef5c…` / 27 413 B / mtime `2026-10-24 17:01:54`，`## APP-xxx` **10** 条（最大 **APP-010** = `last_ack`）⇒ **无新条目**，`last_ack` 不变。
 - 00:32 §25 ✅ **合入 MT 移交的 `translator.py` 三处修复**（`shared/NOTICE_mt_to_app_20261024.md` 通知 4/5，32 839 B / 00:10）：① 新增 `load_mt_tokenizer()`（H-013，`fix_mistral_regex=False`，MT 实测分词 ids 30/30 不变）② `CACHE_MAX` **400 → 4000**（§56 缺陷③：674 单元 / 只留 400 ⇒ 前 274 条被淘汰，逐位吻合）③ `_seen` 全局丢弃 ⇒ **翻译去重 + 显示不去重**（§56 缺陷①：复读真实存在，38 句 / 3,312 字）。
 - 00:32 §25 🔴🔴 **修掉 App 侧 `clear()` 只清 3 个字典的真实缺口**（MT §4.3 点名，我核实后确认漏清 **5 类**状态：`units`/`_seen`/`_pend`/`done`+`done_fix`/`_half`+`draft`+`_last_src`）⇒ 新增 `_reset_mt_session()`（字段集与 `translator._loop()` 换模型清缓存**同一口径**，`getattr` 防御）⇒ 后果已坐实：清屏后**同句被当成已翻过而丢句** / 混进旧译文 / 新场次接到上一场半句。
@@ -4387,6 +4388,53 @@ python publish_ftp.py
 - ✅ **未跑推理/测速**；质量判定留给 reviewer。
 
 ---
+
+### 25.9 🔴🔴 修掉「MT 移交的注释把内部会议音频编号带进客户包」⇒ **打包闸门 FAIL**（本轮 dry-run 实测发现并已修）
+
+**发现方式**：`pack_v13.py --dry-run`（**不取机器锁**，§24 起的规范）⇒ 内部素材闸门 **FAIL**：
+
+```
+[待打包目录] C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4
+  命中 1 个内部素材
+    ⚠️ app/translator.py  (内容关键词：会议音频编号 [REDACTED])
+结论：FAIL —— 存在内部素材，禁止打包/提交
+```
+
+**根因**：MT 移交的 `translator.py` 注释里含**内部会议音频编号** `260902_SPE`：
+
+| 位置（改前） | 原文 |
+|---|---|
+| L778 | `#   实测（260902_SPE 会议回放，225 段 / 61 分钟）：产出 **674 个句单元**，` |
+| L1076 | `#   ASR 复读是真实存在的（260902_SPE 会议实录实测 225 段里有 **38 句**` |
+
+**⚠️ 为什么 `DEFAULT_ALLOW` 里的豁免没救到它**（这点值得 reviewer 注意）：
+`check_internal_material.py` 的 `DEFAULT_ALLOW` 含 `'live_caption/translator.py'` —— 那是**相对仓库根**的路径；
+而**打包闸门扫的是包内相对路径** `app/translator.py` ⇒ **不匹配** ⇒ 闸门**正确地 FAIL 了**。
+⇒ 🔴 **不能靠加豁免绕过**（豁免会掩盖真泄露）⇒ 正确处置 = **注释里去掉内部资产编号、保留技术结论**。
+
+**修法**：两处 `260902_SPE 会议回放/实录` → `内部 61 分钟会议回放/实录`（技术结论与数字全部保留）。
+同步脚本加 **P8 / P8b** 两个替换块（唯一命中断言）⇒ 仓库与包内**逐字一致**。
+
+**验收（重跑 `pack_v13.py --dry-run`）**：
+
+```
+内部素材闸门（APP-006 第 6 步）
+[待打包目录] C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4
+  命中 0 个内部素材
+结论：PASS —— 未发现内部素材
+结论：PASS（dry-run，未写 zip）
+```
+
+⇒ **内部素材闸门 PASS**；关键文件检查 **40 项全 [OK]**（含 `models/mt/mt2-int8sym-cw-q/*` 4 个 INT8 关键文件）
+⇒ 排除项只有 `__pycache__` 4 文件 + `.bak_*` 2 文件
+⇒ `results/` 下 `*_spoken.*` 残留 **0 个**。
+
+**附带核查**（全包扫描，仅读前 512 KB，避免读 1.7 GB IR）：
+`models/*/tokenizer.json`、`models/*/vocab.json`、`python/Lib/**` 的 `.dll`/`.whl` 里也命中过 `QGS`/`260902`，
+但那是 **BPE 词表与二进制里的偶然子串**（不是泄露）⇒ **未改**（改模型文件会破坏 IR 完整性）。
+真正需要处理的只有 `app/translator.py` 这 2 处注释。
+
+**git**：commit `0782059`（3 个 App 职责内文件：`translator.py` + `sync_c143_to_pkg.py` + `sync_c143_report.json`）。
 
 ### 25.8 📌 **提请 reviewer / 用户决定**
 
