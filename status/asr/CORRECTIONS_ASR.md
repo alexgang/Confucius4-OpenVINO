@@ -51,3 +51,40 @@ last_ack: <本模块最新已读的纠偏编号>
 - 在 STATUS_ASR 里写一份**移交说明**：改了哪些文件和函数（附 diff 摘要）、设计意图、已有的测试结果（段归属覆盖率从 84.1% 提到 100% 的口径和产物）、还没完成的事项。
 - 写完以后，**不要再改 `live_caption/` 下的任何文件，也不要提交**。它们以后只由 App 线程提交。
 - 按 ASR-002 修正基线表（两列口径，注明出处）。之后继续做 ASR 本身的工作：模型、量化、设备摆放、流式和切段策略、RTF。
+
+## ASR-004 [HIGH] 2026-10-24 08:56 — §10 切段改动已随 v1.4 客户包交付，但缺 61 分钟全长质量验证；请补 A/B WER + C-108 空段校验
+
+**读了什么**：STATUS_ASR §8–§11（行 519–1067）；目标机 git：`live_caption/live_caption_app.py` 与 `audio_source.py` 的 §10 改动已由 App 提交 `d0c146e`（2026-10-24 03:18，"v1.4 客户包…App 侧改动入库"），当前文件里有 `SIL_REL_DROP_DB`、`_speech_ratio_ok`，即**新切段策略已经在交付包里**。
+
+**问题**：§10 的验证只覆盖了"定稿间隔、硬切、空段、切点安全"这些切段指标，用的是回环 120s 和**真实演讲 12 分钟**。没有任何 WER 数据。切点位置变了（演讲 108→110 段，规则2 切点 6→10），会直接影响 ASR 的上下文和定稿文本。按 BRIEF：12–27 分钟切片看不出 1–2pp 的差距，**质量判定必须用 61 分钟全长**。另外，你们自己在 §8.6 第 2 条写过"必须重跑 C-108 的空段校验（61 分钟素材，hang 0.8/0.6/0.5 三档）"，这一步也还没做。gain=0.3/0.1 时空段（绝对口径）18→48、35→119，§10.2 只用"口径失真"一句话解释了，没有给出相对口径下的逐档数字。
+
+**要做的**（这是质量作业，不需要机器锁；计时数字不做要求）：
+1. 用 <redacted> **61 分钟全长**，走**真实的 `Segmenter`**（和 App 实时路径相同的切段，加上交付配置 GPU INT8，有余力再跑全 NPU），跑 A/B 两组：A=`LIVECAP_SIL_REL=0 LIVECAP_SPK_REL=0 LIVECAP_MIN_REL_COVER=0`（旧行为；如果关掉空段拒切的 env 不是这个名字，请写明你实际用的开关），B=默认（新行为）。每组输出逐段转写 json，字段包括段起止时间、文本、切段规则（rule）。
+2. 在同一份 61 分钟素材上重跑 C-108 空段校验（hang 0.8/0.6/0.5 三档），A/B 都要跑。gain 0.3/0.1 档补充**相对口径**的空段数。
+3. 把产物路径写进 STATUS 的新章节。**WER 不用你们自己算**，reviewer 会在本机用 MiniMax baseline 跑 compare_wer + paired_bootstrap 做独立复核。
+
+**验收**：B 相对 A 的 Δ WER 配对 bootstrap 置信区间不显著劣化（CI 上界不要明显大于 0，具体以 reviewer 复核为准）；C-108 三档的空段数在 B 下不多于 A。如果 B 显著变差，在 STATUS 里标出来，并给出回退用的 env 组合（不用改代码），由主会话转告 App。
+
+**顺带更正（不单独推送）**：① §5.9 标题写的是"已完成 2026-10-23 12:00"，`ebc6107` 实际提交时间约为 11:14，请改正。② 开头写的"更新时间 15:05"晚于文件实际写入时间（15:02）和提交 `75e82a5` 的时间（15:03），以后请用实际时钟。③ 开始处理本条时，先把 last_ack 改成 ASR-004，并写一行"最近更新"。
+
+## ASR-005 [HIGH] 2026-10-24 09:13 — 【用户新任务】仿照 R2T2 的方法，把 Qwen3-ASR 0.6B 量化成 NPU 能运行的 INT4/INT8 版本；另附 git 冻结协议
+### 一、新任务（用户指派）
+用户要求：**沿用 Confucius4-R2T2 的方法，把 Qwen3-ASR 0.6B 也做成 NPU 上能运行的 INT8 和 INT4 版本**，作为更小、更快的 ASR 候选。ASR-004（新切段规则的 61 分钟 WER 复核）照旧先做，做完再开始这项。阶段和检查点如下：
+- **P0 基准**：从 hf-mirror 或 ModelScope 获取 Qwen3-ASR-0.6B 官方权重，记录版本。先用官方 torch 推理（CUDA）在 61 分钟 <redacted> 上跑出 **离线和流式（640 ms，自适应 max_new_tokens）两份参照转写**，这就是 0.6B 的质量上限。转写交给 reviewer 用 MiniMax baseline 算 WER（全局对齐）。
+- **P1 OV 导出（照搬 R2T2 的经验，不要重新踩坑）**：
+  - encoder 导出成**整段全局注意力** IR（输入 mel 加 n_valid）。optimum 默认导出的分窗注意力是错的，这是 R2T2 的根因 ①。
+  - 窗口计数按 mel_len//800（根因 ②）；max_new_tokens 用官方的自适应规则（根因 ③）。
+  - decoder：GPU 用 stateful IR；NPU 用**只保留 inputs_embeds 端口**的标准 KV 形式，走 NPUW_LLM，动态维度要设上界或静态化。每个样例前都要 `reset_state()`。
+  - 每一步都用 teacher-forcing 和 torch 对比（cos ≥ 0.999，top1 ≥ 99%）。
+- **P2 量化**：
+  - INT8_SYM 按通道（R2T2 在 NPU 上的交付配方）；
+  - INT4：按通道无校准的版本在 R2T2 上会出乱码，所以直接用 R2T2 验证过的可用配方（按通道 + AWQ + scale estimation，必要时 ratio 0.8 加 hessian），校准集**不能包含评测音频**（用 0–12 分钟校准，≥12 分钟评测）。
+  - GPU 和 NPU 各出一版，**NPU 是主要目标**。
+- **P3 验收**：
+  - 61 分钟全长 WER，和 0.6B 的 torch 参照、R2T2 的交付基线（GPU INT8 8.17% / 全 NPU 7.95%，reviewer 口径）分别做配对 bootstrap；
+  - NPU 上的 RTF P50/P95（多次 fresh 进程运行，持机器锁）、首字延迟和内存；
+  - 最后给一张对比表：0.6B（INT8 / INT4 × GPU / NPU）对比 R2T2 的交付版本。
+- 检查点：P0 结束、P2 结束，各停一次，等 reviewer 复核（最多 30 分钟）。
+- 工作目录建议新建 `C:\Users\Trekker-PTL\qwen3asr_06b`，用独立 venv。STATUS 继续写在 STATUS_ASR.md 里，新开章节。
+### 二、git 冻结协议
+**git 冻结协议（App 改写历史期间）**：App 开始改写之前会创建 `C:\Users\Trekker-PTL\shared\GIT_FREEZE`（内容写起止说明）。**只要这个文件存在，就不要在 `confucius4-openvino` 仓库里 commit、push 或 pull**，可以照常改本地文件，但不要提交。App 改写和强制推送完成后会删掉这个文件，并在 STATUS_APP 里公布改写前后的 SHA 对照。之后已有的本地 clone 要**重新 clone 或者 `git fetch` 后 `reset --hard origin/main`**，不能直接 pull（注意先备份未提交的改动）。

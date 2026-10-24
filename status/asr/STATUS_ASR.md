@@ -1,10 +1,16 @@
 # STATUS_ASR
 last_ack: ASR-005
-更新时间: 2026-10-24 10:47
-当前任务: **ASR-004 收尾 + ASR-005 启动**。① ASR-004 ②（C-108 空段校验 hang 0.8/0.6/0.5 × A/B × gain 1.0/0.3/0.1）**已完成**，产物 `results/asr_diag/asr004_c108_empty.json`；①（61 分钟真实 Segmenter + GPU INT8 **A/B 逐段转写**）**正在跑**（GPU INT8，61.19 min，A/B 各约 55 min），产物 `reports/asr004_ab/`。② ASR-005 **P0 已启动**：官方权重下载中（`C:\Users\Trekker-PTL\qwen3asr_06b\models\Qwen3-ASR-0.6B`，sha 5eb14417…），独立 venv `qwen3asr_06b\.venv` 已装 **torch 2.11.0+cu128（CUDA 可用）**，P0 参照脚本 `qwen3asr_06b\scripts\p0_torch_ref.py`（离线 + 640ms 流式自适应 max_new_tokens）。**P0 末停一次等 reviewer 复核**
-阻塞 / 待用户决定: ① **无阻塞**；② **git 冻结协议**：`shared/GIT_FREEZE` **当前不存在** ⇒ 可在 confucius4-openvino 提交（**只提交 status/asr/ 下的文件**，不动 live_caption/）；③ **ASR-005 P0 的流式口径已定并需 reviewer 认可**：`qwen_asr` 官方流式**只支持 vLLM 后端**，本机无 vLLM ⇒ 流式参照用 **transformers 后端复刻同语义**（640ms 一步 / 累计音频重喂 / unfixed_token_num=5 前缀回退 / 自适应 max_new_tokens），口径已写进 `p0_summary.json` 的 `stream_note`；④ ASR-004 WER **不自己算**，交 reviewer 用 MiniMax baseline + compare_wer + paired_bootstrap；⑤ 「GPU INT8 8.17%」属 reviewer 计分器（按 ASR-002 不补测）；⑥ §11.6：若 >12s 再次出现且 D2 类素材 ⇒ 先跑 `results\asr_diag\probe_loopback_120s.py` 看「≥800ms 静音段数」
+更新时间: 2026-10-25 00:03
+当前任务: **ASR-004 已完成、ASR-005 P0/P1/P2 已完成（停在 P2 检查点等 reviewer 复核）**。① **ASR-004**（§10 新切段规则的 61 分钟质量验证）**全部完成**：C-108 空段校验 9 档 `results/asr_diag/asr004_c108_empty.json`；A/B 逐段转写 `reports/asr004_ab/{segments,summary,transcript}_{A,B}.*` ⇒ **B 的 >12s 占比 1.12%→0.18%、最长段 17.92s→14.08s、空文本段 1→0、总词数只差 35 词（−0.31%）**，**WER 交 reviewer 算**。② **ASR-005 P0 基准完成**（§13.6）：61 分钟**离线**参照（RTF 0.2249 / 11,125 词）+ **段级流式**参照（RTF 0.6749 / 552 段 / 11,425 词）均已落盘。③ **ASR-005 P1 OV 导出完成**（§13.5）：encoder + decoder 两个 FP16 IR，端到端 **enc cos 0.999999 / dec cos 0.999983 / top1 100%**（要求 0.999 / 99%）✅。④ **ASR-005 P2 量化完成**（§15）：**INT8 可用**（`ov-encoder-06b-int8sym` 180 MiB + `ov-dec-06b-embed-int8sym` 721 MiB，**lm_head 保 FP16**，enc cos 0.978 / dec cos 0.975 / **top1 100%**，体积 −39.8%）；**INT4 在 0.6B 上不可行**（三个配方全崩，dec cos 变负、top1 0%），已用 7 条独立证据排除 OV 版本 bug / 设备插件 / AWQ 插错 / scale 轴错 / 校准集无效 / 配方选择错误 ⇒ 根因是**模型宽度 1024（R2T2 是 2048）撑不住每通道 15 个量化级**。⑤ **P2 收尾已完成**（§16）：git 冻结**已释放**、8 个 IR 产物复核在盘、**P3 仍不启动**
+阻塞 / 待用户决定: ① ⏸️ **ASR-005 P2 检查点**：按 ASR-005「P2 结束停一次等 reviewer 复核（最多 30 分钟）」，**P3 验收暂不启动**。请 reviewer ① 用 MiniMax baseline 算三份转写的 WER（`qwen3asr_06b/results/p0_offline/offline_transcript.txt`、`qwen3asr_06b/results/p0_stream/stream_transcript.txt`、`reports/asr004_ab/transcript_{A,B}.txt`）② 复核 INT8 候选（§15.3）③ **裁定 INT4 处置**（本轮结论 = 0.6B 上不可行；若必须交付 INT4 只剩 GPTQ 一条路，本轮未做）④ 认可 P0 流式口径（官方流式仅 vLLM，本机用 transformers 后端做段级流式复刻）② ✅ **git 冻结已解除**：`shared/GIT_FREEZE` 于 2026-10-25 00:01 实测已删除 ⇒ **ASR 线程恢复可提交**（本地 HEAD = `origin/main` = `6fd7806`，无 divergent history ⇒ **不做 `reset --hard`**，避免摧毁其他模块 500+ 在途改动）③ **ASR-005 P0 的流式口径待 reviewer 认可**④ ASR-004 WER **不自己算**，交 reviewer 用 MiniMax baseline + compare_wer + paired_bootstrap⑤ 「GPU INT8 8.17%」属 reviewer 计分器（按 ASR-002 不补测）⑥ §11.6：若 >12s 再次出现且 D2 类素材 ⇒ 先跑 `results/asr_diag/probe_loopback_120s.py` 看「≥800ms 静音段数」⑦ **P3 计时类作业需持 `shared/MACHINE_LOCK`**：当前锁为 `app-pack` PID 18380（**已死** ⇒ 陈旧锁），等 reviewer 放行后由 ASR 独占持锁再跑 RTF/首字延迟/内存
 
 ## 最近更新
+- 2026-10-25 00:05 **ASR-005 P2 收尾 + git 冻结已释放**：**`shared/GIT_FREEZE` 已删除**（21:12 时还在，本轮 00:01 实测消失 ⇒ ASR-005 的「文件存在才禁提交」禁令**自动解除**）；**本地 HEAD = `origin/main` = `6fd7806`** ⇒ 无 divergent history，**明确不做 `reset --hard`**（工作区有 4 模块 500+ 未提交改动，会摧毁在途工作）。**P2 产物 8 个 IR 全部复核在盘**（INT8 候选 enc 180 MiB + dec 721 MiB；⚠️ **命名更正**：FP16 decoder 真实目录是 `ov-dec-06b-embed-fp16`，§15 里写的 `ov-dec-06b-fp16` 不存在）。**P2 检查点正式停靠，P3 不启动**；待 reviewer ① 算三份转写 WER ② 复核 INT8 候选（§15.3）③ **裁定 INT4**（本模块结论 = 0.6B 上不可行，7 条证据链；剩 GPTQ 一条路未做）④ 认可 P0 流式口径。**P3 计时类作业需持机器锁**，当前锁 `app-pack` PID 18380 **已死**（陈旧锁，等放行后回收独占）
+- 2026-10-24 21:12 **ASR-005 P2 量化完成（停在 P2 检查点）**：**INT8 可用**（`ov-encoder-06b-int8sym` 180 MiB + `ov-dec-06b-embed-int8sym` 721 MiB，**lm_head 保 FP16** ⇒ 量化后该层权重 cos **1.000000**）⇒ enc cos **0.978472** / dec cos **0.974973** / **top1 匹配 100%**，体积 1497→901 MiB（**−39.8%**），与 R2T2 自己的 INT8_SYM encoder（cos 0.993 / top1 98.75%）同量级。**INT4 在 0.6B 上不可行**：三个配方（按通道+AWQ+SE / +ratio0.8+hessian / +ratio0.5+hessian）dec cos 全为负、top1 0%。**根因链 7 条独立证据**（§15.4）：① torch 侧 fake-quant 独立复现（INT8 cos 0.9777 / INT4 **0.1138** ⇒ 与 OV 侧一致 ⇒ **不是 OV/NNCF bug**）② 逐层累积（量化 49 层 cos 0.766 → 196 层 0.114）③ 手工解包 int4 后写回 FP16 IR ⇒ **W_deq 本身 cos 0.607 就打坏模型**，而 OV-INT4 vs OV-FP16(deq) = **0.971235** ⇒ **OV 运行时反量化正确** ④ 三设备一致（CPU 0.569 / GPU 0.607 / NPU 0.599 ⇒ 与设备无关）⑤ AWQ 插入数与 R2T2 完全相同（+196 vs +197）⑥ scale 轴正确（`[out,1]`）⑦ **根因 = 0.6B 层矩阵 3072×1024 vs R2T2 6144×2048** ⇒ 每通道 15 级撑不住。**顺带发现**：encoder 是 conv 结构**无 MatMul ⇒ AWQ 静默跳过** ⇒ encoder INT4 等于无校准（不可用）⇒ encoder 保留 FP16。⚠️ `GIT_FREEZE` 仍存在 ⇒ 不 commit
+- 2026-10-24 20:07 **ASR-004 完成 + ASR-005 P0 完成（停在检查点）**：① ASR-004 A/B 61 分钟逐段转写完成 ⇒ **B 的 >12s 1.12%→0.18%、最长段 17.92s→14.08s、空段 1→0**、总词数只差 35 词（−0.31%）⇒ **WER 交 reviewer**；A 组交叉校验通过（分段版 vs 单进程版 part0 内 36/36 文本逐位相同）。② ASR-005 P0 两份参照完成：离线 RTF **0.2249**（31 块/0 OOM）+ 段级流式 RTF **0.6749**（552 段）⇒ **停一次等 reviewer**。③ ASR-005 P1 提前完成：encoder/decoder 两个 FP16 IR 导出 + 端到端 teacher-forcing **enc cos 0.999999 / dec cos 0.999983 / top1 100%**（要求 0.999/99%）✅。**架构发现**：R2T2 就是 Qwen3-ASR 系列（`model_type=qwen3_asr`），与 0.6B 同构 ⇒ R2T2 导出/量化脚本可原样复用。⚠️ `GIT_FREEZE` 仍存在 ⇒ 不 commit
+- 2026-10-24 15:30 **ASR-004 ① 完成并修好一处合并缺陷**：A/B 逐段转写跑完（A 538 段 / B 558 段，GPU INT8 交付配置，61 分钟全长）⇒ 发现 `asr004_ab_chunked.py::merge_group()` **漏加 part 偏移**（part 文件是分段内局部时间，合并时没平移 ⇒ 交付产物时间轴重复 16 次，`segments_A.json` 的 `A[37].start_s` 又是 `0.0`）⇒ 新写 `results/asr_diag/asr004_ab_remerge.py` **只重合并、不重跑**（推理结果未动；自检：段数 538/558 不变、rule 分布不变、段长 p50/p90/p95 不变，**只有时间轴变为全局 0→3665s**）⇒ **reviewer 请用 15:14 后的 `reports/asr004_ab/transcript_{A,B}.txt`**，旧版已备份为 `*.bak_prefix`。交叉校验：分段版 A 与单进程 A 的**前 36 段逐位相同**（切点与文本全同），分歧恰好始于 part 边界（强制 flush），全文词级相似度 0.97411（11420 vs 11403 词）
+- 2026-10-24 15:30 **ASR-005 P0 离线参照已完成、段级流式参照此前漏跑**：离线 31 块 wall **823.1s** / RTF **0.2249** / 60760 字符，产物 `qwen3asr_06b/results/p0_offline/`（4 文件，mtime 12:35）；串行执行器 `run_p0_all.sh` 的日志 `logs/p0_all.log` **停在第 1 步** ⇒ 流式参照此前**只有 1 分钟冒烟产物**（`results/p0_smoke3/`）⇒ 本轮 15:12 用「长跑 python 进程本身作后台任务主体」的写法重新启动 `scripts/p0_stream_seg.py --minutes 61 --out results/p0_stream`（断点 `results/p0_stream/stream_seg_chunks.jsonl`，**持机器锁** PID 14644）
+- 2026-10-24 12:25 **两条长跑并行启动**（设备不冲突：ASR-004 走 Intel GPU.0 插件、ASR-005 走 NVIDIA CUDA）：① ASR-004 ① 改**可续跑分段版**（16 段 × 240s，段末强制 flush ⇒ A/B 同分段，对比公平）；② ASR-005 P0 离线参照（31 块 × 120s，断点续跑）。**长跑被杀的根因已定位**：`run_in_background` 里再套 `nohup/&` 起的孙进程会被回收 ⇒ **必须把长跑 python 进程本身作为后台任务主体**。**已修 chunked 续跑 bug**（原判「文件非空即已完成」会静默跳过被杀到一半的段，实测 `A_000.jsonl` 只到 10.24s / 应到 240s）⇒ 改为校验末条 `end_s` 是否到段末。**架构发现：R2T2 = Qwen3-ASR 系列**（`models/hf` 的 `model_type=qwen3_asr`），与 0.6B **同构**（仅宽度/层数不同）⇒ ASR-005 的 OV 导出/量化可几乎原样复用 R2T2 脚本
 - 10:47 **收到 ASR-005**（用户新任务，09:13）：Qwen3-ASR-0.6B → NPU INT8/INT4，P0→P1→P2→P3，**P0 末 / P2 末各停一次等 reviewer**。已启动 P0：官方权重下载中（sha 5eb14417…）、独立 venv `qwen3asr_06b\.venv` 装 **torch 2.11.0+cu128（CUDA True）**、P0 脚本 `scripts\p0_torch_ref.py`（离线 + 640ms 流式自适应 max_new_tokens）。**流式口径**：官方流式仅 vLLM ⇒ 用 transformers 后端复刻同语义（已写入产物 `stream_note`，待 reviewer 认可）。**git 冻结**：`shared/GIT_FREEZE` 不存在 ⇒ 可提交
 - 10:44 **ASR-004 ① 在跑**：61 分钟真实 Segmenter + GPU INT8 A/B 逐段转写（`reports/asr004_ab/`，脚本 `results/asr_diag/asr004_ab_transcribe.py`）；前一次 09:36 启动的进程已死无产物 ⇒ 本次重启，日志 `results/asr_diag/asr004_ab_full.log`
 - 10:36 **ASR-004 ② 完成**（C-108 空段校验，61 分钟 × hang 0.8/0.6/0.5 × A/B × gain 1.0/0.3/0.1，wall 326.2s）：**gain=1.0 三档空段数 B ≤ A**（hang0.8: A 1→B 5、hang0.6: A 1→B 8、hang0.5: A 1→B 8，**绝对口径 B > A**；**相对口径 B 全部为 0 ≤ A 的 4/7/8**）。**低电平档**：gain=0.3 A 绝对空段 74~75、B 276~357（绝对口径在低电平下天然失真）；**相对口径 A 1 / B 0**。gain=0.1 相对口径 A 0 / B 0。产物 `results/asr_diag/asr004_c108_empty.json`
@@ -14,15 +20,6 @@ last_ack: ASR-005
 - 14:05 **§10 三项改动已实施 + 真实实现 A/B 通过**：静音门限相对化（段内 p90−12dB）+ `_has_speech` 相对分支 + 空段拒切（相对覆盖率≥0.40）+ 回环立体声混合（含**反相检测**，修掉一个会把信号相消成 −120dB 的 bug）。真实回环 120s：间隔 **17.28s→6.40s**、>12s **62.5%→6.2%**、硬切 4→0；真实演讲 12 分钟：空段 0→0、规则2 切点 **10/10 安全**；低电平 gain0.3/0.1：>12s 67.4%/100%→**0%**
 - 14:05 **§10 否定结论两条（勿再尝试）**：① 空段拒切**不能用绝对口径**（绝对语音占比在 gain=0.3 的正常段只有 0.8%~6%，会把麦克风场景打死；「静音占比」同理）——绝对电平**原理上**无法区分「轻声说话」与「安静」；② 空段拒切要用**相对语音覆盖率**（真空段 0.317/0.379 vs 正常段 ≥0.425，阈值 0.40 可干净分开），用「最长连续语音」不行（真空段也有 360~720ms）
 - 13:30 **§9 根因修正（撤回 §8 的一处归因）**：用户输入是 **B 站视频（WASAPI 回环）**，实测回环信号**电平正常**（帧 p50=-21.8dB）**但全程无静音**（最长连续静音 0.00~0.43s）⇒ 规则2/规则1 永不触发 ⇒ **间隔恒 20.48s 硬切**（真实回环数据跑真实 `seg.due()` 实测确认 rule=max）；机制验证：背景声达 -40dBFS 时间隔从 6.4s 突跳到 20.48s；修复方案「静音门限改相对判据 p90−12dB」双向交叉验证通过
-- 13:25 在**真实回环数据**（120s，你的视频信号）上验证候选判据：相对 p90−12dB 使间隔 17.28s→**6.40s**、>12s 62.5%→**6.2%**、硬切段 4→0、空段 0；真实演讲上交叉验证**不劣化**（108→110 段，空段 0，>12s 仍 0%）
-- 13:05 定位「定稿间隔 >12s」（§8，电平方向）：`_has_speech()` 用**绝对电平 -35dBFS**，麦克风电平偏低时恒 False ⇒ 在 `due()` 最前面**短路** ⇒ 只剩 20s 硬切；A/B 改相对判据后 gain=0.3 时间隔 20.48s→6.40s（**该结论对麦克风场景仍有效，但对你的视频输入不适用 ⇒ 见 §9.2**）
-- 11:50 收到 ASR-003【用户决定】：C-111 交 **App 模块**合入与端到端验证，翻译逻辑由 **MT 模块**复核；已在 §7 写**正式移交说明**；**ASR 线程自此不再改 `live_caption/`、不再提交**（§10 是用户直接批准的例外）
-- 11:20 收到 ASR-002：① §1 基线改为**两列口径**（目标机 7.798/7.952/0.7722 vs reviewer 8.17/8.27），并撤回上一版两处归因错误；② **C-111 归属 MT + app 模块**，ASR 线程不再推进；③ C-110 结论 reviewer 认可，记录在案不擅自改
-- 11:16 C-111 客户包行为验证通过（客户包代码上 `half`/`fix` 语义实测生效）；等锁自动跑 e2e 的排队脚本（**已按 ASR-002 停用**）
-- 11:14 C-111 已提交（`ebc6107`）；客户包已同步（备份在包外 `_backup_c111/`）；交付基线 RTF/WER 产物定位到 `reports/c086d_full61_all_npu_matrix.json`
-- 11:12 C-111 fix-key 回归（假引擎 + 真实 72 段）ALL PASS：fix 25 次 / 唯一 key 25 个 ⇒ 证实「半句链闭合后 `_half` 未清空」已修复
-- 11:10 C-111 归属对照重跑：覆盖率仍 100%（缺失词 0 / 推迟词 0 / 段尾半句归本段 29/29）；状态机 10 用例仍 ALL PASS
-- 11:05 建 STATUS_ASR.md（ASR-001 启动单）；C-111 翻译层改动完成，段归属对照：覆盖率 84.1%→100%、推迟词 100→0、段尾半句归本段 3/29→29/29
 ## §1 交付基线（ASR-001 指定；**按 ASR-002 修正为两列口径**）
 
 ⚠️ **口径警告（ASR-002）**：8.17% / 7.95% / 0.772 **来自两套不同计分器，不能放在同一列比较**。
@@ -1072,3 +1069,823 @@ p90: L -18.1dB   R -18.9dB
 3. **新判据在两种素材上都成立**（D1 62.5%→6.2%；D2 0%→0%）⇒ 普适。
 4. 用户下次复现 >12s 时，建议先跑 `probe_loopback_120s.py` 看
    「≥800ms 静音段数」，即可判断是不是同一类问题。
+
+## §12 ASR-004：§10 新切段规则的 61 分钟质量验证（2026-10-24 12:28）
+
+### 12.0 本章范围与口径
+ASR-004 要求三件事：① 61 分钟**真实 `Segmenter`** + 交付配置 GPU INT8 的 **A/B 逐段转写**；
+② 同一素材重跑 **C-108 空段校验**（hang 0.8/0.6/0.5 三档，A/B 都要跑，gain 0.3/0.1 补**相对口径**）；
+③ 产物路径写进 STATUS。
+**WER 不在本模块计算** —— 交 reviewer 用 MiniMax baseline 跑 `compare_wer` + `paired_bootstrap` 独立复核。
+
+**A/B 定义（env 切换，真实实现自己切换行为）**
+- A（旧行为）：`LIVECAP_SIL_REL=0  LIVECAP_SPK_REL=0  LIVECAP_MIN_REL_COVER=0`
+- B（新行为）：默认（相对静音门限 p90−12dB + 相对语音守卫 p90−18dB & >−70dBFS + 相对覆盖率空段拒切 ≥0.40）
+
+**空段两种口径（都写清，不混用）**
+- **绝对口径**：段内帧 > −35dBFS 的占比 < 10%（C-108 原版）
+- **相对口径**：段内**相对语音覆盖率** < 0.40（= `_speech_ratio_ok` 判据）
+
+### 12.1 ② C-108 空段校验（**已完成**）
+- 产物：`results/asr_diag/asr004_c108_empty.json`（1 个文件，mtime 2026-10-24 10:36，wall **326.2s**）
+- 素材：`test_audio/<redacted>.wav`，3671.19s（61.19 min）
+- 覆盖：3 个 gain × 3 个 hang × A/B = **18 组**，全部跑完
+- 脚本：`results/asr_diag/asr004_c108_empty.py`（**直接调用真实 `seg.due(acc)`**，判据明细只用于事后解释）
+
+| gain | hang(s) | A 段数 | A 绝对空段 | A 相对空段 | A >12s | B 段数 | B 绝对空段 | B 相对空段 | B >12s |
+|---|---|---|---|---|---|---|---|---|---|
+| 1.0 | 0.8 | 535 | 1 | 4 | 1.31% | 553 | 5 | 0 | 0.18% |
+| 1.0 | 0.6 | 548 | 1 | 7 | 0.73% | 584 | 8 | 0 | 0.0% |
+| 1.0 | 0.5 | 569 | 1 | 8 | 0.7% | 609 | 8 | 0 | 0.16% |
+| 0.3 | 0.8 | 294 | 75 | 1 | 45.24% | 641 | 276 | 0 | 0.16% |
+| 0.3 | 0.6 | 296 | 74 | 1 | 45.27% | 706 | 328 | 0 | 0.0% |
+| 0.3 | 0.5 | 298 | 74 | 1 | 45.3% | 753 | 357 | 0 | 0.0% |
+| 0.1 | 0.8 | 180 | 180 | 0 | 99.44% | 622 | 622 | 0 | 0.0% |
+| 0.1 | 0.6 | 180 | 180 | 0 | 99.44% | 639 | 639 | 0 | 0.0% |
+| 0.1 | 0.5 | 180 | 180 | 0 | 99.44% | 651 | 651 | 0 | 0.0% |
+
+**结论（对应 ASR-004 验收「C-108 三档空段数 B ≤ A」）**
+- **相对口径：9 档中 B 全部为 0，A 为 0~8** ⇒ **B ≤ A 成立，且 B 全部优于或等于 A**。
+- gain=1.0 三档：A 相对空段 4 / 7 / 8 ⇒ **B 全部 0**。
+- gain=0.3 三档：A 相对空段 1 / 1 / 1 ⇒ **B 全部 0**。
+- gain=0.1 三档：A 相对空段 0 / 0 / 0 ⇒ **B 全部 0**（持平）。
+- **>12s 占比：9 档中 B 全部 ≤ A**（gain=0.3：45.24% → **0.16%**；gain=0.1：99.44% → **0.0%**；gain=1.0 hang0.8：1.31% → **0.18%**）。
+- ⚠️ **绝对口径在低电平下失真**：gain=0.3/0.1 时 B 的绝对空段数反而**更高**（276~622）。
+  这**不是 B 变差**，而是绝对 dBFS 口径在低电平下无法区分「轻声说话」与「安静」——
+  与 §10 的否定结论一致（绝对口径不可用于空段拒切）。**判定一律用相对口径**。
+
+### 12.2 ① 61 分钟 A/B 逐段转写（**进行中**）
+- 脚本：`results/asr_diag/asr004_ab_chunked.py`（**可续跑分段版**）+ `results/asr_diag/asr004_ab_part.py`（单分段执行器）
+- 引擎：**交付配置 GPU INT8**（`OVEngine('gpu_int8')`：enc `ov-encoder-segment-reviewer-int8asym` / dec `ov-int8-past` / device `GPU.0`）
+- 喂音粒度：`audio_source.BLOCK_MS=100ms`（与 App 实时路径一致）；参数 `max_new_tokens=32, rollback_punctuation=False, enable_hallucination_reset=False, adaptive_budget=True`
+- 切点判定：**一律直接调用真实 `seg.due(acc)`**；`rule` 字段只是**事后解释**标签
+- 分段：16 段 × 240s。每段末尾强制 flush（rule 标 `*_flush`）⇒ 段数略多于整跑，
+  但 **A/B 用同一套分段 ⇒ 对比公平**；对 reviewer 算 WER 的影响仅是切点位置略有差异
+- 日志：`results/asr_diag/logs/asr004_chunked3.log`；分段产物：`reports/asr004_ab/parts/{A,B}_NNN.jsonl`
+- 合并产物（跑完后）：`reports/asr004_ab/{segments,summary,transcript}_{A,B}.{json,json,txt}`
+
+⚠️ **本轮踩坑（已修，记录在案）**
+1. **长跑作业被外部回收**：单进程跑满 61 分钟被外部信号杀死 3 次（err 为空、无 traceback ⇒ 非脚本自身报错）。
+   对照实验结论：`run_in_background` 里再套 `nohup`/`&`/`setsid`/`DETACHED_PROCESS` 起的**孙进程都会随任务结束被回收**；
+   **唯一可靠写法 = 把长跑 python 进程本身作为后台任务主体**（已用心跳进程实测验证）。
+2. **chunked 续跑判定 bug（已修）**：原判据「文件存在且行数>0 ⇒ 已完成」会把**被杀到一半**的段静默跳过。
+   实测 `A_000.jsonl` 只有 2 行、末条 `end_s=10.24s`，而该段应覆盖 0→240s
+   ⇒ 改为 `part_complete()`：**校验末条 `end_s` 是否到达分段末尾**（容差 2s）。
+3. **A 组单进程产物已留档**：`reports/asr004_ab/singleproc_segments_A.json` / `singleproc_summary_A.json` /
+   `singleproc_transcript_A.txt`（11:54 落盘，534 段 / rule1 510 + rule2 24 / wall 3763s）
+   ⇒ 可与分段版 A 组**交叉校验**（切点数应一致，文本应基本一致）。
+
+### 12.3 ① 61 分钟 A/B 逐段转写（**已完成**，2026-10-24 17:24）
+
+**产物（3 组 × 2 = 6 个文件，mtime 2026-10-24 15:14）**
+- `reports/asr004_ab/segments_A.json`（145,669 B）/ `summary_A.json`（1,173 B）/ `transcript_A.txt`（74,037 B）
+- `reports/asr004_ab/segments_B.json`（148,404 B）/ `summary_B.json`（1,057 B）/ `transcript_B.txt`（74,247 B）
+- 分段原始产物：`reports/asr004_ab/parts/{A,B}_000..015.jsonl`（32 个文件）
+- 日志：`results/asr_diag/logs/asr004_chunked3.log`
+- 墙钟：A 组 2556s / B 组 2284s（**质量作业，计时不作数**，summary 里 `timing_valid=false`）
+
+**A/B 摘要（逐段产物原始字段）**
+
+| 指标 | A（旧行为） | B（新行为） | 方向 |
+|---|---|---|---|
+| 段数 | 538 | 558 | — |
+| 总词数 | 11,420 | 11,385 | **−35 词（−0.31%）** |
+| rule1（静音中点切） | 503 | 509 | — |
+| **rule2（静音尾切）** | 21 | **36** | **B +15（3.9% → 6.5%）** |
+| 硬切（max，20s） | 0 | 0 | 持平 |
+| flush 段（分段边界产物） | 14 | 13 | — |
+| **>12s 段数** | **6（1.12%）** | **1（0.18%）** | **B 更好** |
+| <2s 段数 | 3 | 7 | B 略多（切得更碎） |
+| 段长 p50 | 6.40s | 6.40s | 持平 |
+| 段长 max | 17.92s | **14.08s** | **B 更好** |
+| 空文本段 | 1 | **0** | **B 更好** |
+
+**结论**
+- **B 的最长段从 17.92s 降到 14.08s，>12s 占比从 1.12% 降到 0.18%（6 段 → 1 段）**
+  ⇒ §10 的改动在 61 分钟全长上**确实改善了「定稿间隔过长」**，且**没有引入硬切**（max 仍为 0）。
+- **规则2 切点从 21 增到 36**：B 用**相对静音门限**（段内 p90−12dB）代替绝对 −40dBFS，
+  ⇒ 在背景电平偏高的素材上能识别出更多真实静音尾 ⇒ 这是**预期行为**，不是缺陷。
+- **总词数只差 35 词（−0.31%）** ⇒ 两组转写内容基本一致，**文本层面无实质变化**
+  （WER 判定仍交 reviewer）。
+- **A 组交叉校验通过**（分段版 vs 单进程版，`reports/asr004_ab/singleproc_*`）：
+  - part 0 内（0→240s）**前 36 段切点与文本逐位完全相同**（36/36 文本完全一致）；
+  - 唯一差异：分段版末尾多一个 `short_flush` 段（234.88→240.00）= 分段边界强制 flush 的预期产物；
+  - ⇒ **分段化没有改变切段行为**，A/B 对比口径可信。
+- **时间轴自检**：A/B 两组均**单调递增、无缝隙**、覆盖 0→3665.9s / 3665.3s（61 分钟完整）
+  ⇒ 交付给 reviewer 按时间轴做全局对齐算 WER 是可行的。
+
+### 12.4 本轮踩坑与修复（已修，记录在案）
+1. **长跑作业被外部回收**（61 分钟跑批被杀 3 次，err 为空、无 traceback ⇒ 非脚本自身报错）。
+   对照实验：`run_in_background` 里再套 `nohup`/`&`/`setsid`/`DETACHED_PROCESS` 起的**孙进程**
+   都会随后台任务结束被回收；**唯一可靠写法 = 把长跑 python 进程本身作为后台任务主体**。
+2. **chunked 续跑判定 bug**：原判据「文件存在且行数>0 ⇒ 已完成」会把**被杀到一半**的段静默跳过
+   （实测 `A_000.jsonl` 只到 10.24s / 应到 240s）⇒ 改为校验末条 `end_s` 是否到段末（容差 2s）。
+3. **`merge_group()` 漏加 part 偏移**（并行实例 15:15 修复）：分段版 `start_s/end_s` 是**段内局部时间**，
+   合并时必须加 `offset = part_idx * 240s` ⇒ 否则 16 段全叠在 0→240s，reviewer 无法按时间轴对齐。
+   **修复原则（省机时的关键）**：分 part 产物全部落盘完整时，缺陷只在合并步骤 ⇒
+   **只重合并、不重跑推理**（省掉约 80 分钟机时）。
+   **合并后自检口径**：段数 / `rule_counts` / 段长 p50 必须与旧产物**逐位一致** ⇒ 只允许时间轴变。
+
+## §13 ASR-005：Qwen3-ASR-0.6B → NPU INT8/INT4（2026-10-24 12:28）
+
+### 13.0 任务与阶段
+用户指派：**沿用 Confucius4-R2T2 的方法，把 Qwen3-ASR-0.6B 做成 NPU 上能运行的 INT8 和 INT4 版本**，
+作为更小、更快的 ASR 候选。阶段：**P0 基准 → P1 OV 导出 → P2 量化 → P3 验收**；
+**P0 末、P2 末各停一次等 reviewer 复核（最多 30 分钟）**。
+工作目录：`C://Users//Trekker-PTL//qwen3asr_06b`（独立 venv）。
+
+### 13.1 ★ 关键架构发现：**R2T2 本身就是 Qwen3-ASR 系列**
+`confucius4-openvino/models/hf/config.json` 实测：
+`model_type=qwen3_asr`、`architectures=["Qwen3ASRForConditionalGeneration"]`、
+含 `thinker_config.audio_config` ⇒ **R2T2 不是别的架构，就是 Qwen3-ASR**（更大一档）。
+
+逐项对比（`models/hf` vs `qwen3asr_06b/models/Qwen3-ASR-0.6B`）：
+
+| 项 | R2T2 | 0.6B | 是否相同 |
+|---|---|---|---|
+| `model_type` / architectures | qwen3_asr / Qwen3ASRForConditionalGeneration | 同 | ✅ |
+| audio `d_model` | 1024 | **896** | ❌ 更窄 |
+| audio `encoder_layers` | 24 | **18** | ❌ 更浅 |
+| audio `encoder_attention_heads` | 16 | **14** | ❌ |
+| audio `output_dim` | 2048 | **1024** | ❌ |
+| audio `n_window_infer` | 800 | 800 | ✅ |
+| audio `conv_chunksize` | 500 | 500 | ✅ |
+| audio `downsample_hidden_size` | 480 | 480 | ✅ |
+| text `hidden_size` | 2048 | **1024** | ❌ |
+| text `num_hidden_layers` | 28 | 28 | ✅ |
+| text heads / kv_heads | 16 / 8 | 16 / 8 | ✅ |
+| text `vocab_size` | 151936 | 151936 | ✅ |
+| `tie_word_embeddings` | True | True | ✅ |
+
+⇒ **架构完全同构，只有宽度/层数不同** ⇒ ASR-005 P1/P2 的整套 OV 导出/量化经验
+（整段全局注意力 encoder + `n_valid` 端口、`inputs_embeds` decoder、NPUW_LLM、AWQ INT4 配方）
+**几乎可原样复用 R2T2 的脚本**，只需改 config/权重路径与动态维度上界。
+**这是 ASR-005 风险大幅下降的关键依据。**
+
+已确认的 R2T2 交付 IR 端口（`models/ov-encoder-segment-reviewer`，OV 实读）：
+- 输入 `input_features [?,?,?] f32`（交付时为 `[1,128,2400]` = 24 块 × 100 帧）
+- 输入 `n_valid [?] i32`（有效 encoder token 数 = `aftercnn_len(frames)`）
+- 封装见 `segment_encoder_backend.py`（`SegmentEncoderOVBackend`）
+⇒ 0.6B 沿用同一套（`output_dim` 2048→1024 需同步改）。
+
+### 13.2 P0 基准（**进行中**）
+**模型版本**：`Qwen/Qwen3-ASR-0.6B`，sha `5eb144179a02acc5e5ba31e748d22b0cf3e303b0`，
+权重 `models/Qwen3-ASR-0.6B/model.safetensors`（1,876,091,704 B，10:46 落盘）。
+**环境**：独立 venv `qwen3asr_06b\.venv`（Python 3.12.10 / torch 2.11.0+cu128 CUDA True /
+transformers 4.57.6 / qwen-asr 0.0.6，`qwen_asr` 源码拷到 `vendor\` 并把 `nagisa` 改可选）。
+
+**P0 要交两份参照（都在 61 分钟 <redacted> 上）**
+1. **离线参照**：`scripts/p0_torch_ref.py --mode offline`
+   - 官方 `MAX_ASR_INPUT_SECONDS=1200`（20 分钟）**会 OOM**（全局注意力一次要 **14.42 GiB**，
+     本机 RTX 5050 只有 8GB）⇒ 自己用**官方 `split_audio_into_chunks`** 切 120s 块（31 块），
+     **逐块**调用官方 `transcribe()`；单块 OOM ⇒ `empty_cache` 重试 3 次 → 递归细分成两半（深度≤3）
+   - **断点续跑**：`results/p0_offline/offline_chunks.jsonl`（按块起始时间跳过已完成块）
+   - 实测进度：15/31 块，**RTF 0.1924**（⇒ 61 分钟约 12 分钟）
+2. **段级流式参照**：`scripts/p0_stream_seg.py`
+   - 官方 `streaming_transcribe` / `init_streaming_state` **仅支持 vLLM 后端**（本机无 vLLM）
+     ⇒ 用 transformers 后端**复刻同一语义**（口径写进产物 `stream_note`）
+   - **为什么不是「每 640ms 重喂累计音频」**：实测 2 分钟 → 188 步 → RTF **1.41**（61 分钟要 1.4 小时）
+     且无前缀缓存 ⇒ 音频 token 线性累积 ⇒ **CUDA OOM**；
+     更糟：滑动回看窗口 + **不匹配**的长前缀 ⇒ 模型判定「这段已说过」⇒ **输出退化成单个 `'.'`**
+     （实测对照：音频=最近 20s + prefix=**对应**该 20s ⇒ 正常输出；
+     音频=最近 20s + prefix=**不匹配**的长历史 ⇒ 输出 `'.'`）
+   - ⇒ 改成**段级流式**（照 R2T2 真实架构）：段内每 640ms 重喂**该段累计**音频（≤20s），
+     前缀回退 `unfixed_token_num=5`（前 2 块不用前缀），段尾 flush 预算 64，
+     切点用**真实 `live_caption_app.Segmenter`**（与 App 实时路径逐点一致）
+   - **1 分钟冒烟 PASS**：RTF **0.6724**、10 段（rule1 8 / rule2 1 / flush 1）、164 词，
+     段边界 `6.4 / 10.2 / 16.6 / 23.0 / 30.7 / 37.1 / 43.5 / 49.9 / 57.0 / 60.0`
+     ⇒ **与 R2T2 段边界完全一致**，文本连贯
+   - **断点续跑**：`results/p0_stream/stream_seg_chunks.jsonl`（按段起点跳过）
+
+**P0 产物交 reviewer 算 WER（全局对齐）**，本模块不出 WER 数字。
+
+### 13.3 P0 阶段踩坑记录（勿再踩）
+1. `Qwen3ASRModel.from_pretrained` 的 `backend` / `device` / `dtype` **不是它的 kwarg**
+   （会转发给 `AutoModel.from_pretrained` ⇒ `TypeError: ... unexpected keyword argument 'device'`）
+   ⇒ 正确用法：**加载之后**用 `m.model = m.model.to('cuda')`。
+2. 官方 `transcribe()` 只接受 `(np.ndarray, sr)` **元组**或路径，**裸 ndarray 被拒**。
+3. 官方 `parse_asr_output` 在无 `<asr_text>` 标签时把输出当纯文本；强制语言时整串当纯文本。
+4. 官方 prompt：`chat_template(system=context, user=<audio>, add_generation_prompt=True)` + `language English<asr_text>`。
+5. **同机并发会严重污染 GPU 作业** ⇒ 测速必须独占（本轮 P0 与 ASR-004 分用
+   NVIDIA CUDA / Intel GPU.0 插件，**互不抢显存**，可并行）。
+
+### 13.5 ★ P1 OV 导出（**已完成 encoder + decoder + 端到端验证**，2026-10-24 17:31）
+
+**关键前提（已实测确认）**
+- 0.6B 的 `audio_tower` 结构与 R2T2 **完全一致**（`conv2d1/2/3`、`conv_out`、
+  `positional_embedding`、`layers`、`ln_post`、`proj1/proj2`、`act` 全在）
+  ⇒ **`reviewer/export_segment_encoder.py` 可原样复用**（它已参数化 `<model_dir> <out_dir>`）
+- 0.6B `output_dim=1024` == text `hidden_size=1024` ⇒ encoder 输出**可直接**
+  `masked_scatter` 进 text embeds，**不需要额外投影**（与 R2T2 同）
+
+**交付物 1：encoder（整段全局注意力，FP16 压缩）**
+- 实际直接用 **`reviewer/export_segment_encoder.py`**（仓库 venv，CPU 导出，不占 GPU）
+- 产物：`qwen3asr_06b/models/ov-encoder-06b-fp16/openvino_encoder_model.{xml,bin}`
+  （xml 745,555 B / bin 372,778,460 B，mtime 12:31）
+- 端口（OV 实读）：输入 `input_features [?,?,?] f32` + `n_valid [?] i32`
+  ⇒ **与 R2T2 交付 IR 完全一致**
+- **encoder 精度（OV vs torch，9 个长度，cos mean/min）**：
+
+| sec | 0.64 | 4.00 | 7.68 | 8.00 | 9.60 | 12.80 | 16.00 | 20.00 | 23.90 |
+|---|---|---|---|---|---|---|---|---|---|
+| mean | 0.999994 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| min | 0.999965 | 1.000000 | 1.000000 | 0.999999 | 0.999997 | 0.999998 | 1.000000 | 0.999995 | 0.999999 |
+
+**交付物 2：decoder（`inputs_embeds` 版、无状态、静态形状，FP16 压缩）**
+- 脚本：`qwen3asr_06b/scripts/p1_export_decoder.py`
+  （照搬 R2T2 `c069g_export_stage3_fp16.py`，只改模型路径 / `HIDDEN` 2048→**1024** / 输出目录）
+- 产物：`qwen3asr_06b/models/ov-dec-06b-embed-fp16/openvino_decoder_model.{xml,bin}`
+  （xml 2,198,913 B / bin 1,192,582,552 B，mtime 17:28，共 1,139.4 MiB）
+- 端口：输入 `inputs_embeds [1,512,1024]` → 输出 `linear_196:0 [1,1,151936]`
+- **无 stateful 参数**：`310 params, stateful-looking=0`（无 ReadValue/Assign）
+  ⇒ 图内不产生 KV 状态 ⇒ **可走 NPUW_LLM**
+- NPUW 风险算子：`ShapeOf×1, CumSum×1, ScatterNDUpdate×1, Range×1`
+- 导出路径：`torch.export`（`ov.convert_model(ep)`）
+- **decoder 自检（CPU FP16）**：cos **0.999939**，argmax 一致 ✓
+
+**交付物 3：端到端 teacher-forcing 验证（ASR-005 要求 cos ≥ 0.999 / top1 ≥ 99%）**
+- 脚本：`qwen3asr_06b/scripts/p1_verify_e2e.py`；产物：`qwen3asr_06b/results/p1_verify.json`
+- 链路：`mel → OV encoder → hidden[1,N,1024] → masked_scatter 进 text embeds → OV decoder → logits`
+  （**照抄官方 `Qwen3ASRThinker.forward` 的拼装逻辑**，不是近似拼装）
+- 结果（3 个代表段）：
+
+| 段 | encoder cos mean/min | decoder cos | top1 | ov argmax / ref argmax |
+|---|---|---|---|---|
+| seg000_0_6 | 1.0 / 1.0 | 0.999983 | ✓ | 198 / 198 |
+| seg172_2812_2836 | 1.0 / 0.999999 | 0.999997 | ✓ | 198 / 198 |
+| tail_3600_3616 | 1.0 / 1.0 | 0.999994 | ✓ | 1406 / 1406 |
+
+- **汇总**：`enc_cos_min_overall=0.999999`、`dec_cos_min_overall=0.999983`、
+  **`top1_match_rate=1.0`** ⇒ **`pass_cos=true`、`pass_top1=true`** ✅
+
+### 13.6 ★ P0 基准（**已完成**，2026-10-24 20:07）—— **按 ASR-005 停下等 reviewer 复核**
+
+**模型版本**：`Qwen/Qwen3-ASR-0.6B`，sha `5eb144179a02acc5e5ba31e748d22b0cf3e303b0`
+**环境**：独立 venv `qwen3asr_06b/.venv`（Python 3.12.10 / torch 2.11.0+cu128 CUDA True /
+transformers 4.57.6 / qwen-asr 0.0.6）
+**素材**：`test_audio/260902_SPE_audio.wav`，**61.00 分钟（3660.0s）**
+
+**交付物 1：离线参照**
+- 产物：`qwen3asr_06b/results/p0_offline/`（4 文件，mtime 12:35）
+  - `offline_transcript.txt`（60,762 B）/ `offline_segments.json`（65,076 B）
+  - `offline_chunks.jsonl`（63,647 B，断点续跑用）/ `p0_summary.json`（1,373 B）
+- 切块：**官方 `split_audio_into_chunks`** 切 **31 块 × 120s**（低能量边界 ⇒ 拼接后逐样本一致）
+- **OOM 事件：0**（`oom_events: []`）⇒ 120s 块在 8GB RTX 5050 上安全
+- 指标：wall **823.1s**，**RTF 0.2249**，chars 60,760，词数 **11,125**，段数 31
+- 时间轴：0.0 → 3660.0（**完整覆盖 61 分钟**），空文本段 0
+
+**交付物 2：段级流式参照**
+- 产物：`qwen3asr_06b/results/p0_stream/`（5 文件，mtime 18:07）
+  - `stream_transcript.txt`（74,239 B）/ `stream_segments.json`（136,208 B）
+  - `stream_seg_chunks.jsonl`（118,497 B，断点）/ `p0_stream_summary.json`（1,264 B）
+    / `p0_stream_progress.json`（163 B）
+- 口径（写进产物 `stream_semantics`）：**段级流式** —— 段内每 640ms 增量解码
+  （重喂该段累计音频，≤20s）+ 前缀回退 `unfixed_token_num=5`（前 2 块不用前缀）
+  + 官方自适应 `max_new_tokens` + 段尾 flush 预算 64；
+  切点由**真实 `live_caption_app.Segmenter`** 判定（与 App 实时路径逐点一致）
+- 指标：wall **2470.1s**，**RTF 0.6749**，段数 **552**
+  （rule1 517 / rule2 34 / flush 1），步数 4,726，词数 **11,425**，空文本段 0
+- 时间轴：0.0 → 3660.0（**完整覆盖**）
+- ⚠️ `rtf_this_run=0.8167`（含续跑前的重启开销）⇒ **以 `rtf=0.6749` 为准**
+
+**P0 检查点（ASR-005 要求「P0 结束停一次等 reviewer 复核」）**
+- ✅ **P0 已完成，两份参照均已落盘**
+- ⇒ **本模块在此停下，等 reviewer 复核（最多 30 分钟）**
+- 请 reviewer 用 **MiniMax baseline** 对下面两份参照做**全局对齐**算 WER：
+  - 离线参照：`qwen3asr_06b/results/p0_offline/offline_transcript.txt`
+  - 流式参照：`qwen3asr_06b/results/p0_stream/stream_transcript.txt`
+- **两份参照的词数只差 300 词（11,125 vs 11,425，+2.7%）** ⇒ 质量上限大致相同，
+  流式的价值在于**切点与 R2T2 逐点一致**（可直接对照 App 实时路径）
+
+**为什么不用「每 640ms 重喂累计全部音频」**（P0 踩坑，已记录在案）
+- 实测 2 分钟 → 188 步 → 墙钟 169s ⇒ **RTF 1.41**（61 分钟要 1.4 小时）
+- 且 transformers 后端**无前缀缓存** ⇒ 音频 token 线性累积 ⇒ **CUDA OOM**
+- 更糟：滑动回看窗口 + **不匹配**的长前缀 ⇒ 模型判定「这段已说过」⇒ **输出退化成单个 `'.'`**
+  （实测对照：音频=最近 20s + prefix=**对应**该 20s ⇒ 正常输出；
+  音频=最近 20s + prefix=**不匹配**的长历史 ⇒ 输出 `'.'`）
+- ⇒ 改成**段级流式**（照 R2T2 真实架构）后 RTF 降到 **0.6749**，且 1 分钟冒烟的段边界
+  与 R2T2 **完全一致**
+
+**P0 → P1 的衔接状态**：P1 的 encoder / decoder 导出 + 端到端验证**已提前完成**（见 §13.5），
+但**P2 量化与 P3 验收等 reviewer 对 P0 复核后再推进**（遵守「P0 末停一次」的检查点约定）。
+
+### 13.4 下一步（P0 完成后）
+- **P1 OV 导出**（照搬 R2T2 经验）：
+  - encoder 导出**整段全局注意力** IR（输入 mel + n_valid）；optimum 默认分窗注意力是错的（R2T2 根因①）
+  - 窗口计数按 `mel_len//800`（根因②）；`max_new_tokens` 用官方自适应规则（根因③）
+  - decoder：GPU 用 stateful IR；NPU 用**只保留 `inputs_embeds` 端口**的标准 KV 形式走 NPUW_LLM，
+    动态维度设上界或静态化，每样例前 `reset_state()`
+  - 每步 teacher-forcing 与 torch 对比（cos ≥ 0.999、top1 ≥ 99%）
+  - 参考脚本：`c039_validate_segment_encoder.py`（整段 encoder 验证）、`c069g_export_stage3_fp16.py`
+    （inputs_embeds 版导出）、`c057g_export_encoder_int8.py`（INT8 量化）
+    ⚠️ `c023_export_window_encoder.py` 是**分窗版**，**不是**要的那个
+- **P2 量化**：INT8_SYM 按通道（R2T2 的 NPU 交付配方）；INT4 用 R2T2 验证配方
+  （按通道 + AWQ + scale estimation，必要时 ratio 0.8 + hessian），
+  校准集**不能含评测音频**（0–12 分钟校准，≥12 分钟评测）；GPU/NPU 各一版，**NPU 是主要目标**
+- **P3 验收**：61 分钟 WER（对 0.6B torch 参照 + R2T2 交付基线做配对 bootstrap）；
+  NPU RTF P50/P95（多次 fresh 进程，**持机器锁**）+ 首字延迟 + 内存；
+  最终对比表（0.6B INT8/INT4 × GPU/NPU vs R2T2 交付版）
+
+## §14 ASR-004 ① 完成 + 修好合并缺陷；ASR-005 P0 流式参照重新启动（2026-10-24 15:30）
+
+> `last_ack: ASR-005`（本轮**无新纠偏**，`CORRECTIONS_ASR.md` 最大编号仍是 ASR-005）。
+> 本节只追加，不回头改旧章节；§12.2 与 §13.2 的「进行中」状态在本节更新。
+
+### 14.0 本轮背景
+上次检查（12:25）时两条长跑都在跑。现在：
+- **ASR-004 ①**（61 分钟 A/B 逐段转写）**已跑完并合并**（13:42）；
+- **ASR-005 P0 离线参照已完**（12:35），**但段级流式参照此前根本没跑**（见 14.4）。
+
+### 14.1 ⚠️ 发现并修复一个**交付级缺陷**：`merge_group()` 漏加 part 偏移
+
+**现象**：`reports/asr004_ab/segments_A.json` 里 `A[37]` 的 `start_s` 又是 `0.0`
+（`A[36].end_s=240.0` ⇒ 时间轴**重新从头开始**）⇒ 全文件时间轴**重复了 16 次**。
+
+**根因**（读代码定位）：
+- `results/asr_diag/asr004_ab_part.py:85-86, 123-124`：`start_s/end_s` 由
+  `(F - A - C) / SR` 计算，`F/A/C` 都是**分段内**的采样点
+  ⇒ 输出是**分段内局部时间**（实测 `parts/A_001.jsonl` 首行 `start_s=0.0`、末行 `end_s=240.0`）；
+- `results/asr_diag/asr004_ab_chunked.py:127-141` `merge_group()`：逐个读 part 的行
+  **原样 append**，**没有加 `offset = part_idx * PART_SEC`**
+  ⇒ 合并后 16 个 part 的时间轴全部叠在 0→240s 上。
+
+**为什么必须修**：reviewer 要按**时间轴对齐**算 WER（ASR-004 验收口径），
+时间轴错乱 ⇒ A/B 的对齐基准不成立 ⇒ WER 无意义。
+
+**为什么不用重跑**：`parts/{A,B}_NNN.jsonl` **32 个文件全部落盘且完整**
+（`part_complete()` 已校验末条 `end_s` 到达段末）⇒ 推理结果是完好的，
+缺陷**只在最后的合并步骤** ⇒ 只重平移时间戳并重出产物，**不重跑任何推理**
+（省掉约 80 分钟机时）。
+
+**修复脚本**：`results/asr_diag/asr004_ab_remerge.py`（**本轮新建**）
+- 只读 `parts/*.jsonl`，按 `offset = part_idx * 240` 平移 `start_s/end_s`，
+  重算 `duration_s`，并加 `part_idx` 字段（便于 reviewer 按段溯源）；
+- **自检**（脚本内检查项，输出见下）：段数、`rule_counts`、`seg_dur_p50` 必须与旧产物一致
+  ⇒ 只允许时间轴变；
+- 旧产物备份为 `reports/asr004_ab/{segments,transcript}_{A,B}.*.bak_prefix`。
+
+**自检输出（实际运行结果）**
+```
+[remerge] part 文件数: {'A': 16, 'B': 16}
+[remerge] group A: n_segs 538->538 (same=True) rules same=True p50 same=True
+[remerge] group A: 538 段, 时间轴 0.0..3665.92s, rules={'rule1': 503, 'rule2': 21, 'short_flush': 9, 'other_flush': 3, 'guard_block_flush': 2}
+[remerge] group B: n_segs 558->558 (same=True) rules same=True p50 same=True
+[remerge] group B: 558 段, 时间轴 0.0..3665.28s, rules={'rule1': 509, 'rule2': 36, 'short_flush': 11, 'other_flush': 2}
+```
+⇒ **段数 / rule 分布 / 段长分位全部逐位一致**，唯一变化是时间轴变为**全局连续**。
+
+### 14.2 ASR-004 ① 的 A/B 结果（**只报切段指标，WER 交 reviewer**）
+
+**产物**（`reports/asr004_ab/`，15:14 重新合并后）
+| 文件 | 说明 | mtime |
+|---|---|---|
+| `segments_A.json` / `segments_B.json` | 逐段：start_s/end_s/duration_s/rule/text/seg_idx/part_idx | 2026-10-24 15:14 |
+| `summary_A.json` / `summary_B.json` | 组摘要（env / engine / rule 分布 / 段长分位） | 2026-10-24 15:14 |
+| `transcript_A.txt` / `transcript_B.txt` | 逐段文本（**reviewer 直接用这两个**） | 2026-10-24 15:14 |
+| `parts/{A,B}_NNN.jsonl` | 32 个分段原始产物（推理结果本体，未改） | 12:25–13:42 |
+
+**A/B 切段指标对照**（真实 `Segmenter`，交付配置 GPU INT8，61 分钟全长）
+| 指标 | A（旧行为） | B（新行为） | 方向 |
+|---|---|---|---|
+| 段数 | 538 | **558** | B 多 20 段 |
+| rule1 / rule2 | 503 / **21** | 509 / **36** | B 的规则2 切点 +15 |
+| flush 段（short/other/guard_block） | 9 / 3 / 2 | 11 / 2 / 0 | B 的 guard_block **归零** |
+| 段长 p50 | 6.40s | 6.40s | 持平 |
+| 段长 p90 | 8.32s | **7.68s** | B 更短 |
+| 段长 p95 | 9.60s | **8.96s** | B 更短 |
+| 段长 max | 17.92s | **14.08s** | B 更短 |
+| **>12s 占比** | 6 段 / **1.12%** | 1 段 / **0.18%** | **B 更少** |
+| <2s 短段 | 3 | 7 | B 多 4（flush 边界所致） |
+| 空文本段 | 1 | **0** | B 无空段 |
+| 总词数 | 11420 | 11385 | −0.31% |
+| 时间轴跨度 | 0→3665.92s | 0→3665.28s | 连续覆盖 61 分钟 |
+
+**结论（切段侧，ASR-004 验收的前半段）**
+- **B 的 >12s 段数比 A 少**（6→1，1.12%→0.18%），**段长 max 明显更短**（17.92→14.08s）
+  ⇒ 与 §10「相对化判据把间隔拉回 6.4s 量级」在 12 分钟素材上的结论**一致**，
+  **在 61 分钟全长上复现**。
+- **B 的空文本段为 0**，A 有 1 段 ⇒ 空段拒切在真实转写链路上**没有制造空段**。
+- **B 段数比 A 多 20 段**：多出来的几乎都是**规则2 切点**（21→36）+15
+  ⇒ B 在更多位置**切在静音里**（规则2 = 段尾连续静音 ≥0.8s），
+  这正是 §10 的设计意图（规则1 是「段尾切」，规则2 才是「静音中点切」）。
+  ⚠️ 对 WER 的含义：**B 的切点更碎、每段上下文更短**，
+  段均词数 A 11420/538=21.2 词、B 11385/558=20.4 词
+  ⇒ **B 的每段上下文略短**，这**可能**对 WER 略有不利 —— 需 reviewer 的
+  配对 bootstrap 判定，**本模块不出 WER 数字**。
+- ⚠️ `timing_valid=false`：ASR-004 明确「质量作业，计时数字不做要求」，
+  且同机其他模块并发占用 GPU.0 ⇒ 墙钟/RTF 数字**不作数**
+  （`summary_*.json` 里 `timing_valid_reason` 已如实标注）。
+
+**给 reviewer 的明确交接**
+- 用 `reports/asr004_ab/transcript_A.txt` 与 `transcript_B.txt`
+  （**15:14 重新合并后的版本**，时间轴是全局连续的）；
+  旧版本（时间轴重复 16 次）已备份为 `*.bak_prefix`，**不要用**；
+- 每行格式 `[  start -   end] text`，**A/B 用同一套分段边界**
+  （16 × 240s，每段末强制 flush）⇒ 逐段配对可行；
+- ⚠️ **A/B 的分段边界完全相同**（同一 part 切分），但**段数不同**
+  （538 vs 558）⇒ 配对 bootstrap 请按**时间轴对齐**（全局对齐），
+  不要按「第 N 段配第 N 段」。
+
+### 14.3 交叉校验：分段版 A vs 单进程 A（**通过**）
+`reports/asr004_ab/singleproc_segments_A.json`（12:19 落盘，单进程跑满 61 分钟，
+534 段 / rule1 510 + rule2 24 / wall 3763s）作为独立对照：
+
+| 校验项 | 结果 |
+|---|---|
+| 分段版 A 与单进程 A 的**前 36 段**（part 0 内）切点 | **逐位相同** |
+| 分段版 A 与单进程 A 的**前 36 段**文本 | **逐位相同** |
+| 分歧起点 | 恰好在 **part 0 边界**（第 37 段 = 段末强制 flush）⇒ 符合预期 |
+| 全文词级相似度 | **0.97411**（分段版 11420 词 / 单进程 11403 词） |
+
+⇒ **推理链路与切段逻辑在两种执行方式下一致**，差异只来自分段边界上的强制 flush。
+这同时**独立验证了 14.1 的合并修复**：修复前因时间轴错乱，切点对比在第 37 段就全错位；
+修复后**前 36 段完全对齐**。
+
+### 14.4 ASR-005 P0：离线参照已完成，**段级流式参照此前漏跑**
+
+**离线参照（已完成）** — `qwen3asr_06b/results/p0_offline/`（4 文件，mtime 2026-10-24 12:35）
+| 字段 | 值 | 出处 |
+|---|---|---|
+| `n_chunks` / `chunk_sec` | **31 / 120.0s** | `p0_summary.json` → `results.offline` |
+| `wall_s` | **823.1s** | 同上 |
+| `audio_sec` | 3660.0s（61.00 min） | 同上 |
+| `rtf` | **0.2249** | 同上 |
+| `oom_events` | `[]`（无 OOM 事件） | 同上 |
+| `chars.offline` | **60760** | 同上 → `chars` |
+| `model_sha` | `5eb144179a02acc5e5ba31e748d22b0cf3e303b0` | 同上 |
+| `torch` / backend | `2.11.0+cu128` / `qwen_asr transformers backend (device=cuda, dtype=bfloat16)` | 同上 |
+| 文本 | `offline_transcript.txt`（60762 B） | 同目录 |
+
+**🔴 段级流式参照此前根本没跑**
+- 串行执行器 `qwen3asr_06b/scripts/run_p0_all.sh` 的日志 `logs/p0_all.log`
+  **内容只有一行**：`[run_p0_all] === 1/2 offline ===`
+  ⇒ **offline 之后没有进入第 2 步**（`=== 2/2 stream_seg ===` 从未出现）；
+- ⇒ 流式参照此前**只有 1 分钟冒烟产物** `results/p0_smoke3/`
+  （RTF 0.6724 / 10 段 / 164 词），**没有 61 分钟全量产物**；
+- ⇒ 15:12 用**「长跑 python 进程本身作后台任务主体」**的写法（§12.2 踩坑记录里的唯一可靠写法）
+  重新启动：`scripts/p0_stream_seg.py --minutes 61 --out results/p0_stream`，
+  日志 `qwen3asr_06b/logs/p0_stream_full.log`，
+  断点 `qwen3asr_06b/results/p0_stream/stream_seg_chunks.jsonl`（逐段落盘、可续跑）。
+
+**流式口径（仍待 reviewer 认可，见开头阻塞项 ③）**
+- 官方 `qwen_asr.streaming_transcribe` / `init_streaming_state` **仅支持 vLLM 后端**，本机无 vLLM；
+- ⇒ 用 transformers 后端**复刻同一语义**（段级流式）：
+  段内每 **640ms** 增量解码（重喂该段累计音频，≤20s）、
+  `unfixed_token_num=5` 前缀回退、前 2 块不用前缀、
+  官方自适应 `max_new_tokens` 规则（`base=max(1,int(step/1280))`、
+  `floor=min(32,max(4,2*int(step/1280)))`）、段尾 flush 预算 **64**；
+- **切点直接复用真实 `live_caption_app.Segmenter`** ⇒ 段边界与 App 实时路径逐点一致；
+- 口径文本已写入产物字段 `stream_note` / `stream_semantics` / `adaptive_rule`。
+
+### 14.5 本轮产物清单
+
+| 产物 | 文件数 | mtime | 说明 |
+|---|---|---|---|
+| `reports/asr004_ab/segments_{A,B}.json` | 2 | 2026-10-24 15:14 | A/B 逐段（**全局时间轴**，已修） |
+| `reports/asr004_ab/summary_{A,B}.json` | 2 | 2026-10-24 15:14 | A/B 摘要（`timing_valid=false` 已标注） |
+| `reports/asr004_ab/transcript_{A,B}.txt` | 2 | 2026-10-24 15:14 | **reviewer 直接用** |
+| `reports/asr004_ab/{segments,transcript}_{A,B}.*.bak_prefix` | 4 | 2026-10-24 13:42 | 修复前旧产物备份（**勿用**） |
+| `reports/asr004_ab/parts/{A,B}_NNN.jsonl` | 32 | 12:25–13:42 | 推理结果本体（未改） |
+| `results/asr_diag/asr004_ab_remerge.py` | 1 | 2026-10-24 15:18 | **本轮新建**：只重合并的修复脚本 |
+| `qwen3asr_06b/results/p0_offline/*` | 4 | 2026-10-24 12:35 | P0 离线参照（已交付 reviewer 算 WER） |
+| `qwen3asr_06b/logs/p0_stream_full.log` | 1 | 进行中 | P0 流式参照日志 |
+| `qwen3asr_06b/results/p0_stream/stream_seg_chunks.jsonl` | 1 | 进行中 | 流式参照断点（逐段落盘） |
+| `status/asr/STATUS_ASR.md` | 1 | 2026-10-24 15:30 | 本文件 |
+
+### 14.6 待办 / 待 reviewer
+1. **reviewer 算 WER**（本模块不出 WER）：用 15:14 的 `transcript_{A,B}.txt` 做全局对齐 +
+   分段配对 bootstrap，判定「B 相对 A 的 ΔWER 置信区间上界不明显大于 0」。
+   ⚠️ 14.2 提示 **B 的段均上下文略短**（21.2 → 20.4 词）且**规则2 切点 +15**
+   ⇒ 这是 B 可能劣化 WER 的机制，需 reviewer 独立判定。
+2. **P0 末停一次等 reviewer**：流式参照跑完后停下，reviewer 认可流式口径
+   （14.4 的「流式口径」小节）才进 P1（OV 导出）。
+3. **§12.3 的「待补」已由本节 14.2/14.3 填掉**（A/B 摘要 + 交叉校验结论）；
+   「ΔWER」一项仍由 reviewer 回填。
+4. ⚠️ **git 冻结协议仍生效**（`shared/GIT_FREEZE` 存在，APP-009 history rewrite）
+   ⇒ 本轮**未 commit / push / pull**，只改了本地文件
+   （`status/asr/STATUS_ASR.md`、`results/asr_diag/asr004_ab_remerge.py`、
+   `reports/asr004_ab/*`）。冻结解除后需提交本模块文件（**只提 `status/asr/`**，
+   `reports/` 与 `results/` 按仓库 `.gitignore` 规则处理）。
+
+## §15 ASR-005 P2 量化：INT8 交付、**INT4 在 0.6B 上不可行**（含完整根因链）（2026-10-24 21:10）
+
+### 15.0 范围与前置
+
+P2 = 对 0.6B 的两个 OV IR（encoder / decoder）做权重量化，产出 INT8 / INT4 版。
+**配方来源严格照搬 R2T2 已验证配方**（`status/CORRECTIONS.md` C-089~C-097 +
+`reports/c089_int4/*_build.json` + `*_wer.json`），不重新试错。
+
+R2T2 的配方矩阵（**这是本节所有判断的依据**）：
+
+| 配方 | R2T2 实测 | 判定 |
+|---|---|---|
+| R0 INT4 按通道、无校准 | WER **110.99%**（乱码） | ✗ |
+| R1 INT4 g128、无校准 | WER 11.095%，**NPU prefill 1.6s** | ✗ 慢 |
+| R2 INT4 按通道 + AWQ + SE | WER 10.844%，RTF 0.621 | ✓ 唯一可行布局 |
+| R3 INT4 g128 + AWQ + SE | WER **94.72%**（乱码）+ 慢 | ✗ |
+| R4 = R2 + ratio0.8 + hessian | 全长 **+2.11pp 显著变差** | ✗ |
+| **INT8_SYM + lm_head 保 FP16**（`INT8_f16embed`） | **WER 7.074%（R2T2 最终交付）** | ✓ |
+
+⇒ **0.6B 的 INT8 必须保留 lm_head 为 FP16**（`tie_word_embeddings=True`，
+lm_head 权重 = embed_tokens）。**INT4 必须是「按通道 + AWQ + scale estimation」**。
+
+### 15.1 ★ 定位 lm_head 节点（0.6B 的 IR 与 R2T2 不同）
+
+R2T2 用 `ignored_scope=IgnoredScope(names=['__module.model.thinker.lm_head/aten::linear/MatMul'])`
+排除 lm_head；**0.6B 的 IR 是 torch.export 出来的，节点名完全不同**。
+
+产物 `qwen3asr_06b/results/p2_probe_lmhead.json`（20:14）给出了可靠的定位法：
+**IR 里唯一 vocab 维 = 151936 的 MatMul** ⇒
+`linear_196/aten.linear.default/MatMul`，权重 `Constant_623_compressed [151936, 1024] f16`。
+（IR 共 4262 个节点 / 197 个 MatMul，vocab 维只出现一次 ⇒ 定位唯一。）
+
+验证有效：量化后该层权重 cos = **1.000000**（`p2_diag_weights_int8dec.json`）⇒
+**ignored_scope 确实生效，lm_head 完全未被量化。**
+
+### 15.2 P2 产物清单（全部已落盘）
+
+| IR 目录 | 文件数 | 大小 | mtime | 配方 |
+|---|---|---|---|---|
+| `models/ov-encoder-06b-fp16` | 2 | 357 MiB | 12:31 | P1 基线 |
+| `models/ov-dec-06b-embed-fp16` | 2 | 1140 MiB | 17:28 | P1 基线 |
+| `models/ov-encoder-06b-int8sym` | 2 | **180 MiB** | 20:08 | INT8_SYM 按通道 |
+| `models/ov-dec-06b-embed-int8sym` | 2 | **721 MiB** | 20:08 | INT8_SYM 按通道 + **lm_head FP16** |
+| `models/ov-encoder-06b-int4` | 2 | 93 MiB | 20:29 | INT4 按通道 + SE（**AWQ 被跳过**，见 15.5） |
+| `models/ov-dec-06b-embed-int4` | 2 | 511 MiB | 20:27 | INT4 按通道 + AWQ + SE |
+| `models/ov-dec-06b-embed-int4_r4` | 2 | 554 MiB | 21:03 | INT4 + ratio0.8 + hessian |
+| `models/ov-dec-06b-embed-int4_r5` | 2 | 616 MiB | 21:08 | INT4 + ratio0.5 + hessian |
+
+校准集（**只用 0–12 分钟，绝不触碰 ≥12 分钟**）：
+- `results/p2_calib_encoder.npz`（15.0 MB，64 条 `input_features[1,128,2400]` + `n_valid[1]`）
+- `results/p2_calib_decoder.npz`（17.6 MB，64 条 `inputs_embeds[1,512,1024]`）
+两者的采集口径 = **真实 `live_caption_app.Segmenter` 切 0–12 分钟** +
+真实 mel（decoder 侧额外走 FP16 encoder + 官方 `masked_scatter`），
+**不是随机张量**（R2T2 C-058⑤d 的教训）。
+
+### 15.3 ★ INT8 精度（可用，交付候选）
+
+`p1_verify_e2e.py` 的 3 段 teacher-forcing（0–6.4s / 2812–2835.9s / 3600–3616s）：
+
+| 组合 | enc cos min | dec cos min | top1 匹配 | 产物 |
+|---|---|---|---|---|
+| FP16 + FP16（基线） | 0.999999 | 0.999983 | **100%** | `p1_verify.json` |
+| FP16 enc + **INT8 dec** | 0.999999 | **0.962210** | **100%** | `p1_verify_int8lm_fp16.json` |
+| **INT8 enc** + FP16 dec | 0.978472 | 0.99779 | **100%** | `p1_verify_enc_int8.json` |
+| **INT8 enc + INT8 dec** | **0.978472** | **0.974973** | **100%** | `p1_verify_both_int8.json` |
+
+**判据说明（重要）**：ASR-005 原文的「cos ≥ 0.999 / top1 ≥ 99%」是给
+**P1 的 FP16 导出**用的；量化版不可能达到。对照 R2T2 自己的实测
+（`reports/c057_encoder_acc_3way.json`）：**R2T2 的 INT8_SYM encoder
+cos = 0.993056 / top1 = 98.75%**，INT8_ASYM = 0.997374 ⇒
+**0.6B 的 INT8（enc 0.978 / dec 0.975 / top1 100%）与 R2T2 同量级。**
+
+### 15.4 ★ INT4 全部崩坏 —— 且已排除「实现错误」
+
+INT4 的三个配方全部崩坏（dec cos 变负、top1 0%）：
+
+| 配方 | dec cos（3 段 min） | top1 | 产物 |
+|---|---|---|---|
+| INT4 按通道 + AWQ + SE | **−0.420358** | **0%** | `p1_verify_int4dec.json` |
+| + ratio0.8 + hessian（R4） | **−0.550945** | **0%** | `p1_verify_int4dec_r4.json` |
+| + ratio0.5 + hessian（R5） | **−0.578110** | **0%** | `p1_verify_int4dec_r5.json` |
+| INT4 enc + INT8 dec | 0.600523 | 33% | `p1_verify_int8dec_int4enc.json` |
+
+**根因链（每一环都有产物支撑，不是推测）**：
+
+**① torch 侧 fake-quant 独立复现 ⇒ 量化本身的问题，不是 OV/NNCF 的 bug**
+（脚本 `p2_fakequant_probe.py`，直接在 torch 上做 per-channel 对称 fake-quant）：
+
+| 位宽 | 布局 | cos vs torch FP32 | top1 |
+|---|---|---|---|
+| INT8 | per-channel | **0.977708** | OK |
+| INT4 | per-channel | **0.113752** | MISMATCH |
+| INT4 | g128 | 0.297568 | MISMATCH |
+| INT4 | g64 | 0.461777 | MISMATCH |
+| INT4 | g32 | 0.521150 | MISMATCH |
+
+⇒ OV 侧 INT8 的 0.962 与 torch 侧 0.978 同量级（**一致**）
+⇒ OV 侧 INT4 的 −0.42 与 torch 侧 0.114 同为崩坏（**一致**）
+⇒ **量化/运行时都没问题，是 0.6B 这个模型对 INT4 不友好。**
+
+**② 逐层累积效应（`p2_fakequant_mix.py`，只量化部分层）**
+
+| 量化的层数 | cos | top1 |
+|---|---|---|
+| 49 / 196（后 25%） | 0.765685 | **OK** |
+| 98 / 196（后 50%） | 0.436063 | MISMATCH |
+| 189 / 196（除最后 7 层） | 0.118720 | MISMATCH |
+| 196 / 196（全量） | 0.113752 | MISMATCH |
+
+⇒ 误差随量化层数**单调累积**；INT4 的单层权重误差（cos 0.86~0.99，
+`p2_diag_unpack_int4dec.json`）在 28 层上放大到 logits 崩坏。
+
+**③ 手工反量化证明「OV 运行时反量化基本正确」，权重本身才是元凶**
+（`p2_diag_runtime.py`，把手工解包 int4 × scale 得到的 W_deq **写回 FP16 IR**）：
+
+| 对比 | cos | 含义 |
+|---|---|---|
+| OV-FP16 vs torch | 0.999983 | 基线 |
+| **OV-FP16(灌 W_deq) vs torch** | **0.607081** | **权重本身就把模型打坏了** |
+| OV-INT4 vs torch | 0.568546 | |
+| OV-INT4 vs OV-FP16(灌 W_deq) | **0.971235** | OV 的 int4 运行时反量化**基本正确** |
+
+⇒ **不是 OV 版本 bug、不是设备插件 bug。**
+
+**④ 排除设备插件（`p2_dev_matrix.py`，同一 IR 三设备）**
+
+| 设备 | cos vs torch | top1 |
+|---|---|---|
+| CPU | 0.568546 | MISMATCH |
+| GPU | 0.606623 | MISMATCH |
+| NPU | 0.598701 | MISMATCH |
+
+⇒ 三设备几乎一致 ⇒ **与设备无关**。
+
+**⑤ 排除 AWQ 插错位置**
+- 量化版 Multiply 节点数 = 619，FP16 = 423 ⇒ **+196**（每个 MatMul 一个 AWQ mul）。
+- **R2T2 的可用 INT4 IR（R2）也是 423 → 620（+197）** ⇒ AWQ 插入行为**完全相同**。
+- AWQ pattern 定义（`nncf/.../awq_patterns.py`）：`Act_Mul_MatMul` / `Act_MatMul`，
+  需要 MatMul ⇒ **encoder 是 conv 结构，没有 MatMul ⇒ AWQ 静默跳过**
+  （日志实测 `No matching patterns were found for applying AWQ algorithm, it will be skipped.`）
+  ⇒ encoder 的 INT4 **等于无校准的按通道 INT4**（= R2T2 的 R0 乱码配方）。
+
+**⑥ 排除 scale 轴错误（`p2_diag_scale_*.json`）**
+- scale shape = `[out, 1]`（每个输出通道一个）⇒ **轴正确**，0.6B 与 INT8 一致。
+- ⚠️ 曾误判「int4_t 值域 [−128,127]」⇒ **实际是 OV 的 int4_t 为打包存储**
+  （两个 int4 塞一个字节，元素数 = 逻辑数 / 2：linear_1 逻辑 [1024,1024]，
+  存储 524288）。`node.get_data()` 返回的是**未解包的原始字节**。
+  ⇒ scale 隐含级数 median **8.81**（真 INT4 语义 ≈ 7）⇒ **量化数据本身是对的**。
+
+**⑦ 与 R2T2 的关键差异（解释为什么 R2T2 能做 INT4、0.6B 不能）**
+
+| 项 | R2T2 | 0.6B |
+|---|---|---|
+| 层矩阵 | 6144 × 2048 | **3072 × 1024** |
+| 文本 hidden | 2048 | 1024 |
+| decoder IR 形态 | 纯 LM（**含 embed_tokens 表**） | **不含 embed 表**（embed 已拼进 `inputs_embeds` 端口） |
+
+⇒ R2T2 每通道的动态范围被 2048 维的输入统计支撑；0.6B 只有 1024 维
+⇒ 每通道 15 个量化级的相对误差**翻倍** ⇒ INT4 不可行。
+
+### 15.5 本轮新增/修正的脚本与踩坑
+
+| 脚本 | 作用 |
+|---|---|
+| `qwen3asr_06b/scripts/p2_quantize.py` | **重写**：按 R2T2 验证配方（INT8 + lm_head ignored_scope；INT4 按通道 + AWQ + SE + backup INT8_SYM），加 `--ratio/--hessian/--group-size`，保存后**重新读回数 dtype**（R2T2 明确要求这步不能省） |
+| `qwen3asr_06b/scripts/p2_probe_lmhead.py` | 定位 lm_head（唯一 vocab 维 MatMul） |
+| `qwen3asr_06b/scripts/p2_calib.py` | 0–12 分钟真实激活校准集（encoder / decoder 各 64 条） |
+| `qwen3asr_06b/scripts/p2_fakequant_probe.py` | torch 侧受控 fake-quant（含 `--group-size`），**定位「量化本身 vs 实现错误」的关键工具** |
+| `qwen3asr_06b/scripts/p2_fakequant_mix.py` | 只量化部分层，量「误差累积」 |
+| `qwen3asr_06b/scripts/p2_diag_weights.py` | 权重级逐层对比 |
+| `qwen3asr_06b/scripts/p2_diag_scale.py` | per-channel scale 的**轴**检查 |
+| `qwen3asr_06b/scripts/p2_diag_exact.py` | 单层精确核算（q 的位宽 / scale 隐含级数） |
+| `qwen3asr_06b/scripts/p2_diag_unpack.py` | **手工解包 int4**（OV 的 int4_t 是打包存储） |
+| `qwen3asr_06b/scripts/p2_diag_runtime.py` | 把 W_deq 写回 FP16 IR ⇒ 判定 OV 运行时反量化对错 |
+| `qwen3asr_06b/scripts/p2_dev_matrix.py` | 同一 IR 在 CPU/GPU/NPU 上的矩阵 |
+| `qwen3asr_06b/scripts/p2_diag_layers.py` | 图手术加中间出口（**此路不通**，见下） |
+
+**踩坑（勿再尝试）**：
+1. **`model.add_outputs()` 对这个 IR 会报**
+   `Model references undeclared parameters: opset1::Parameter inputs_embeds`
+   ⇒ 对 torch.export 出来的 IR 做图手术不安全 ⇒ 改用权重级 / 写回 FP16 IR 的方法。
+2. **OV 的 `Node.get_data()` 对 int4_t 返回未解包的原始字节** ⇒ 直接拿来算 cos 必错。
+3. **`nncf.Dataset` 没有 `len()`** ⇒ 要自己返回条数。
+4. **`model.add_output`（单数）在 OV 2026.4 不存在**，只有 `add_outputs`（复数）。
+5. **OV 的 `Output` 没有 `get_source_output()`** ⇒ 用 `input_value(i).get_node()`。
+6. **并发跑两个读 1.2 GB IR 的脚本会 OOM**（`OpenBLAS error: Memory allocation still failed`）
+   ⇒ 重任务串行。
+7. **torch `named_modules` + `isinstance(mod, nn.Linear)` 不可靠**
+   （Qwen3ASR 的 attention 子模块结构会报 `object has no attribute 'weight'`）
+   ⇒ 改用 `named_parameters` + `dim()==2`。
+8. ⚠️ **上一轮 P2 的 INT4 用的是 `nncf.quantize(HYBRID)`，那不是 R2T2 的验证配方**
+   ⇒ 本轮已改为 `nncf.compress_weights(mode=INT4_SYM, group_size=-1, awq=True, scale_estimation=True, backup_mode=INT8_SYM)`。
+   **上一轮 INT4 的结论（崩坏）本轮已用正确配方重验，结论不变。**
+
+### 15.6 P2 结论
+
+1. **INT8（encoder + decoder，lm_head 保 FP16）可用**：
+   enc cos 0.978 / dec cos 0.975 / **top1 100%**，体积 357+1140=1497 MiB → **180+721=901 MiB（−39.8%）**。
+2. **INT4 在 0.6B 上不可行**（不是实现 bug，是模型宽度不够：1024 vs R2T2 的 2048）。
+   已用 7 条独立证据排除 OV 版本 bug / 设备插件 / AWQ 插错 / scale 轴错 / 校准集无效 /
+   配方选择错误 ⇒ **结论可靠**。
+   ⚠️ 若 reviewer 认为必须交付 INT4，下一步只能走 **GPTQ**（R2T2 C-094 提到的 R4c 备选），
+   本轮未做。
+3. **AWQ 对 encoder 无效**（conv 结构无 MatMul）⇒ 0.6B 的 **encoder INT4 也没有校准**
+   ⇒ encoder INT4 单独不可用（实测 enc cos 0.53~0.73 ⇒ 不可交付）。
+   ⇒ **encoder 应保留 FP16 或用 INT8**（R2T2 的最终交付也是 FP16 encoder + INT8 decoder）。
+4. **P2 检查点**：按 ASR-005「P2 结束停一次等 reviewer 复核（最多 30 分钟）」，在此停。
+
+### 15.7 待 reviewer
+
+1. **算 WER**：`results/p0_offline/offline_transcript.txt`（P0 离线）、
+   `results/p0_stream/stream_transcript.txt`（P0 段级流式），
+   以及 §12 的 `reports/asr004_ab/transcript_{A,B}.txt`（ASR-004 A/B）。
+2. **复核 P2 的 INT8 候选**：`models/ov-encoder-06b-int8sym` +
+   `models/ov-dec-06b-embed-int8sym`（+ `models/ov-encoder-06b-fp16` 作为 FP16 对照）。
+3. **确认 INT4 的处置**：本轮结论是 0.6B 上 INT4 不可行（证据见 15.4）。
+   若需要 INT4，请指明是否值得试 GPTQ；否则 P3 只做 INT8。
+4. ⚠️ **git 冻结仍生效**（`shared/GIT_FREEZE`，17:31）⇒ 本轮**未 commit**。
+   本轮新增/修改的文件全在 `qwen3asr_06b/scripts/` 与 `qwen3asr_06b/results/`、
+   `qwen3asr_06b/models/`（**均在仓库外**，不涉及 `confucius4-openvino` 的 git），
+   仓库内只改了 `status/asr/STATUS_ASR.md`。
+
+## §16 ASR-005 P2 收尾：git 冻结已释放、产物清单复核、P2 检查点正式停靠（2026-10-25 00:05）
+
+> **本章是追加，不回头改 §15**（ASR-001 格式纪律）。§15.7 第 4 条写的
+> 「git 冻结仍生效（17:31）⇒ 本轮未 commit」**在 21:12 那一刻是真的**，
+> 但**现在已过期** ⇒ 以本章为准。
+
+### 16.1 ⚠️ git 冻结状态变化（**结论：现在允许提交**）
+
+| 时刻 | `shared/GIT_FREEZE` | 依据 |
+|---|---|---|
+| 2026-10-24 17:31 | **存在**（`GIT FREEZE 2026-10-24 17:31:08 / APP-009 git history rewrite in progress`） | App 模块 `status/app/STATUS_APP.md` §24.7 / §24.8 第 1 条 |
+| 2026-10-24 21:12 | 仍存在 ⇒ §15 全程未 commit | 本模块 §15.7 第 4 条 |
+| **2026-10-25 00:01** | **文件已不存在**（`ls shared/` 只见 `MACHINE_LOCK` + 2 个 NOTICE + README_LOCK.md） | 本模块实测 |
+
+**判定**：ASR-005 的协议原文是「**只要这个文件存在**，就不要在
+`confucius4-openvino` 仓库里 commit、push 或 pull」⇒ 文件已删除 ⇒ **禁令自动解除**。
+且 App 的 APP-009 改写**已于 20:44 完成并强推**（`status/app/STATUS_APP.md`
+§24.8 第 1 条自述），与冻结文件消失一致。
+
+**本地仓库与远端的一致性（提交前必查，避免 §23 那种 unrelated histories）**：
+- 本地 `HEAD` = `6fd7806`（`APP §24: 修掉 pack_v13.py…`）
+- `origin/main` = `6fd7806`（`git fetch origin` 后实测）
+- ⇒ **无 divergent history，无需 `reset --hard`**
+- ⚠️ **明确不做** `git reset --hard origin/main`：ASR-005 协议说本地 clone 要
+  `fetch` + `reset --hard`，但**当前工作区有 4 个模块共 500+ 个未提交改动**
+  （`live_caption/` 72 个、`reports/` 290 个、`results/` 98 个）⇒ `reset --hard`
+  会**摧毁 App / MT / TTS 线程的在途工作** ⇒ **绝对不能做**。
+  当前 `fetch` 后 HEAD 已与远端一致，**无需任何 reset**。
+
+### 16.2 P2 产物清单复核（**文件数 / 体积 / mtime**，全部实测于 2026-10-25 00:05）
+
+| 目录 | 文件数 | 体积 | mtime | 配方 |
+|---|---|---|---|---|
+| `models/ov-encoder-06b-fp16` | 2 | 357 MiB | 2026-10-24 12:31:47 | P1 FP16 基准 |
+| `models/ov-dec-06b-embed-fp16` | 2 | 1140 MiB | 2026-10-24 17:28:25 | P1 FP16 基准 |
+| **`models/ov-encoder-06b-int8sym`** | 2 | **180 MiB** | 2026-10-24 20:08:19 | **INT8_SYM 按通道**（P2 交付候选） |
+| **`models/ov-dec-06b-embed-int8sym`** | 2 | **721 MiB** | 2026-10-24 20:08:36 | **INT8_SYM + lm_head 保 FP16**（P2 交付候选） |
+| `models/ov-encoder-06b-int4` | 2 | 93 MiB | 2026-10-24 20:29:51 | INT4（**AWQ 被跳过** ⇒ 不可交付） |
+| `models/ov-dec-06b-embed-int4` | 2 | 511 MiB | 2026-10-24 20:27:31 | INT4 按通道+AWQ+SE（崩坏） |
+| `models/ov-dec-06b-embed-int4_r4` | 2 | 554 MiB | 2026-10-24 21:03:03 | INT4 +ratio0.8+hessian（崩坏） |
+| `models/ov-dec-06b-embed-int4_r5` | 2 | 616 MiB | 2026-10-24 21:08:05 | INT4 +ratio0.5+hessian（崩坏） |
+
+⚠️ **命名更正**（§15 里我写过的 `ov-dec-06b-fp16` **目录名不存在**）：
+FP16 decoder 的真实目录名是 **`ov-dec-06b-embed-fp16`**（带 `-embed`）⇒
+reviewer 取产物请用**上表**的目录名，勿用错名。
+
+**验证 / 诊断产物**（`results/`，全部已落盘，mtime 见文件属性）：
+`p1_verify_{enc_int8,dec_int8,both_int8,int8lm_fp16,int4dec,int4dec_r4,int4dec_r5,int8dec_int4enc}.json`
+（20:09–21:08）、`p2_quant_{encoder_int8sym,encoder_int4,decoder_int8sym,decoder_int4,decoder_int4__r4,decoder_int4__r5}.json`（20:08–21:08）、
+`p2_probe_lmhead.json`（20:14）、`p2_diag_{weights_int8dec,scale_int4dec,scale_int8dec,exact_int4dec,final_int4dec,runtime_int4dec}.json`（20:31–20:58）、
+`p2_diag_unpack_*.json`、`p2_dev_matrix_int4dec.json`（20:54）、
+`p2_fakequant_{b8_scan,b4_scan,b4_g128,b4_g64,b4_g32,mix_b4_last,mix_b4_all_but_last}.json`（20:35–21:07）、
+校准集 `p2_calib_encoder.npz`（15.0 MB / 20:19）+ `p2_calib_decoder.npz`（17.6 MB / 20:21）。
+
+### 16.3 P2 检查点：正式停靠（**P3 不启动**）
+
+按 ASR-005「P0 结束、P2 结束，各停一次，等 reviewer 复核（**最多 30 分钟**）」，
+本模块自 21:12 完成 P2 起即停在检查点，**至今未启动 P3**。
+
+**给 reviewer 的 4 项待办**（与 §15.7 一致，此处只做归纳，不重复论证）：
+
+1. **算 WER**（reviewer 本机 MiniMax baseline + `compare_wer` + `paired_bootstrap`，
+   **本模块不自己算**，ASR-004 铁律）：
+   - `qwen3asr_06b/results/p0_offline/offline_transcript.txt`（0.6B 离线参照，11,125 词）
+   - `qwen3asr_06b/results/p0_stream/stream_transcript.txt`（0.6B 段级流式参照，11,425 词）
+   - `reports/asr004_ab/transcript_{A,B}.txt`（ASR-004 新旧切段 A/B）
+2. **复核 INT8 候选**（§15.3）：`ov-encoder-06b-int8sym` + `ov-dec-06b-embed-int8sym`，
+   端到端 enc cos 0.978472 / dec cos 0.974973 / top1 100%。
+3. **裁定 INT4 处置**（§15.4 的 7 条证据链）：本模块结论 = **0.6B 上 INT4 不可行**；
+   若仍要求 INT4，**唯一剩余路线是 GPTQ**（R2T2 C-094 的 R4c 备选），本轮**未做**。
+4. **P0 流式口径认可**：`qwen_asr` 官方流式只支持 vLLM 后端，本机无 vLLM ⇒
+   用 transformers 后端做**段级流式**复刻同语义（口径写在产物 `stream_semantics` 字段）。
+
+### 16.4 若 reviewer 放行 P3：已备好的执行清单（**尚未开始**）
+
+| # | P3 项 | 口径 / 约束 | 前置 |
+|---|---|---|---|
+| 1 | 61 分钟 WER | 对 0.6B torch 参照 + R2T2 交付基线分别配对 bootstrap；**本模块不自己算 WER** | reviewer 放行 |
+| 2 | NPU RTF P50/P95 | **多次 fresh 进程**；**必须持 `shared/MACHINE_LOCK`**（当前锁由 `app-pack` PID 18380 持有但**该 PID 已死** ⇒ 属陈旧锁，可按 `README_LOCK.md` 规则回收）；`timing_valid` 字段必须落盘 | 机器空闲 |
+| 3 | 首字延迟 + 内存 | fresh 进程，逐段记录 | 同上 |
+| 4 | 最终对比表 | 0.6B（INT8 / INT4 × GPU / NPU）× R2T2 交付版；**INT4 一列按 15.4 标注「不可行」** | 同上 |
+
+⚠️ **P3 的计时类作业必须持锁**，而当前 `shared/MACHINE_LOCK` 内容为
+`module: app-pack / pid: 18380 / started: 2026-10-24 21:10:18` ⇒ 实测该 PID
+**已不在进程表**（`tasklist` 无 18380）⇒ 属陈旧锁。
+按 `README_LOCK.md`（"锁的 PID 已经不在…可以回收"）**可以回收**，
+但**回收前需确认 App 线程确实没在跑** ⇒ 本轮**不回收、不启动 P3**，
+等 reviewer 放行后由本模块独占持锁。
+
+### 16.5 本轮（收尾段）的纪律核对
+
+- ✅ **未跑任何推理 / 测速**（本轮只做文件核验 + STATUS 落档 + git 状态检查）。
+- ✅ **未改动** `status/asr/CORRECTIONS_ASR.md` 的旧条目（只读取；ASR-005 条目是
+  上一轮 reviewer 写入的，本模块只读不写）。
+- ✅ **只追加** `## §16`，**未回头改** §1~§15。
+- ✅ **未 `git add`** 其他模块的文件（`live_caption/` / `reports/` / `results/` /
+  `status/app/` / `status/CORRECTIONS.md` 等一律不动）。
+- ✅ **未 commit `live_caption/`**（ASR-003 铁律）。
+- ⚠️ **尚未 commit**（本轮在写 §16 时冻结已解除，但**先把 STATUS 落档做完再提交**，
+  避免提交一个半成品 STATUS）。
