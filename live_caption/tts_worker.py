@@ -497,13 +497,16 @@ class TTSWorker:
         if is_babelvox:
             # BabelVox 路线：音色由 speaker_embed / 内置 speaker 提供
             if self.speaker_embed is None and not self.speaker_name:
-                emit({'kind': 'error', 'message': '没有可用的音色'})
+                # 🔴 2026-10-24 §22：**句子级**错误必须带 `id`
+                #   （主进程据此判定「这一句失败」而不是「worker 整体挂了」）
+                emit({'kind': 'error', 'message': '没有可用的音色', 'id': jid})
                 return
             cond = None
         else:
             key = self.voice
             if key not in self.conds:
-                emit({'kind': 'error', 'message': f'没有可用的音色：{key}'})
+                # 🔴 2026-10-24 §22：**句子级**错误必须带 `id`（同上一处）
+                emit({'kind': 'error', 'message': f'没有可用的音色：{key}', 'id': jid})
                 return
             cond = self.conds[key]
 

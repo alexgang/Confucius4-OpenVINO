@@ -104,6 +104,13 @@ class TTSService:
 
         # 主进程侧的待播队列（只做积压统计与丢句决策，音频全在 worker 里）
         self.pending: 'OrderedDict[int, dict]' = OrderedDict()
+        # 🔴 2026-10-24 §22 修：**已下发 worker、等待结果**的句子 id。
+        #   用途：worker 崩溃时，这些句子永远等不到 `played`/`error`
+        #   ⇒ 挂在 `pending` 上**永不消失** ⇒ `drain()` 必定超时
+        #   （GUI 白等 30 s / CLI 白等 120 s）。
+        #   worker 重启后，未下发的（`_queue` 里的）会补发，
+        #   但**已下发的那批**是真的丢了 ⇒ 必须在崩溃时清掉并计丢句。
+        self._inflight: set = set()
         self._next_id = 0
         self._outbox: List = []
         self._outbox_lock = threading.Lock()
@@ -249,6 +256,17 @@ class TTSService:
         with self.lock:
             if dead_proc is not None and self.proc is dead_proc:
                 self.proc = None
+            # 🔴 2026-10-24 §22 修：**已下发给（已死）worker 的句子永远等不到
+            #   `played`/`error`** ⇒ 它们会一直挂在 `pending` 上
+            #   ⇒ `drain()` 必定超时（GUI 白等 30 s / CLI 白等 120 s）。
+            #   ⇒ 崩溃时把这些句子清掉并**计丢句**（诚实记账）。
+            lost = sorted(self._inflight)
+            self._inflight.clear()
+            for jid in lost:
+                self.pending.pop(jid, None)
+        if lost:
+            self.n_dropped += len(lost)
+            self.on_log(f'[TTS] worker 崩溃，{len(lost)} 句在途译文丢失（已计丢句）')
         self._restarted = True
         self.n_restart += 1
         self.on_log(f'[TTS] worker 退出（rc={rc}），自动重启一次')
@@ -326,9 +344,21 @@ class TTSService:
             self.pending[jid] = dict(seg=seg, text=text, t=time.perf_counter())
             self.n_submitted += 1
             ready = (self.state == 'ready')
+            dead = (self.state == 'error')
         cmd = {'cmd': 'synth', 'id': jid, 'text': text}
         if ready:
+            with self.lock:
+                self._inflight.add(jid)
             self._send(cmd)
+        elif dead:
+            # 🔴 2026-10-24 §22 修：worker 级故障后 `state == 'error'`，
+            #   此时 `_flush_queue()` **永远不会被调用**（它只在 `ready` 事件时跑）
+            #   ⇒ 旧实现把命令无限堆进 `_queue` ⇒ **内存无界增长**。
+            #   现在：直接计丢句并清掉 pending，**不排队**。
+            with self.lock:
+                self.pending.pop(jid, None)
+            self.n_dropped += 1
+            self.on_log('[TTS] worker 已故障（error），该句不提交（已计丢句）')
         else:
             with self.lock:
                 self._queue.append(cmd)
@@ -340,6 +370,10 @@ class TTSService:
             q = list(self._queue)
             self._queue.clear()
         for cmd in q:
+            jid = cmd.get('id')
+            if jid is not None:
+                with self.lock:
+                    self._inflight.add(jid)
             self._send(cmd)
         if q:
             self.on_log(f'[TTS] 就绪后补发 {len(q)} 句')
@@ -418,9 +452,52 @@ class TTSService:
             self.on_log(f'[TTS] 就绪：{msg.get("device")} · 音色 {msg.get("voice")}')
             self._flush_queue()
         elif kind == 'error':
-            self.state = 'error'
-            self.err = msg.get('message', 'unknown')
-            self.on_log(f'[TTS] 错误：{self.err}')
+            # 🔴🔴 2026-10-24 §22 修：**必须区分「句子级」与「worker 级」错误**。
+            #
+            # worker 的 `error` 事件有两类（见 `tts_worker.py`）：
+            #   - **句子级**：带 `'id': jid`（合成失败 / 播放缓冲写满 / 播放写入失败）
+            #   - **worker 级**：**不带** `'id'`（模型加载失败 / 播放设备打开失败）
+            #
+            # 旧实现**一律**当成 worker 级 ⇒ `self.state = 'error'`，后果有三条：
+            #   ① **整个会话的语音输出永久死掉**：
+            #      `active` 变 False ⇒ CLI 的 `if tts.active: tts.submit(...)`
+            #      从此不再提交；GUI 的 `submit()` 里 `ready = (state=='ready')`
+            #      为 False ⇒ 命令进 `_queue` ⇒ `_flush_queue()` **只在 ready
+            #      事件时调用** ⇒ 永远不发出去 ⇒ 静默堆积、**一声不响**。
+            #   ② `pending[jid]` **永不清除**（这条路径上 worker 不发 `played`）
+            #      ⇒ `drain()` 的 `pending_n == 0` 永远为假 ⇒ **收尾必超时**
+            #      （GUI 白等 30 s / CLI 白等 120 s）。
+            #   ③ `_queue` **无上限** ⇒ 内存无界增长。
+            #
+            # 修法：带 `id` ⇒ 句子级 ⇒ 只清这一句 + 计丢句 + **服务继续**
+            #       不带 `id` ⇒ worker 级 ⇒ 维持原语义（判死 + 重启由 `_read_loop` 管）。
+            msg_id = msg.get('id')
+            message = msg.get('message', 'unknown')
+            if msg_id is not None:
+                # ── 句子级：这一句失败，**不影响后面的句子** ──────────────
+                with self.lock:
+                    self.pending.pop(msg_id, None)
+                    self._inflight.discard(msg_id)
+                self.n_dropped += 1
+                self.on_log(f'[TTS] 第 {msg_id} 句合成失败（已丢弃，语音输出继续）：'
+                            f'{message}')
+            else:
+                # ── worker 级：模型/播放设备等整体故障 ────────────────────
+                self.state = 'error'
+                self.err = message
+                # worker 已死 ⇒ 在途与待发的句子都不会再有结果
+                # ⇒ 必须清掉，否则 `drain()` 必定超时（GUI 30 s / CLI 120 s 白等）。
+                with self.lock:
+                    orphan = sorted(self.pending.keys())
+                    self.pending.clear()
+                    self._inflight.clear()
+                    n_queued = len(self._queue)
+                    self._queue.clear()
+                if orphan or n_queued:
+                    self.n_dropped += len(orphan)
+                    self.on_log(f'[TTS] worker 故障，{len(orphan)} 句未完成'
+                                f'（已计丢句），{n_queued} 句待发作废')
+                self.on_log(f'[TTS] 错误：{self.err}')
         elif kind == 'first_packet':
             # 首包延迟：从 submit 到 worker 开始播这段
             self.first_packet_s = msg.get('latency_s')
@@ -428,6 +505,7 @@ class TTSService:
             jid = msg.get('id')
             with self.lock:
                 self.pending.pop(jid, None)
+                self._inflight.discard(jid)
             self.n_played += 1
         elif kind == 'dropped':
             # ⚠️ **不再计数**（2026-10-22 修）：
