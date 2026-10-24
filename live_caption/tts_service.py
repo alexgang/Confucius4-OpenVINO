@@ -349,7 +349,18 @@ class TTSService:
         if ready:
             with self.lock:
                 self._inflight.add(jid)
-            self._send(cmd)
+            # 🔴🔴 2026-10-25 §29 修：**命令送不出去时必须撤账**。
+            #   `_send()` 旧实现只记日志、不返回成败 ⇒ 调用方以为已下发
+            #   ⇒ `_inflight` 里留下这个 jid ⇒ 但 worker 永远收不到
+            #   ⇒ `pending[jid]` 永久悬挂 ⇒ `drain()` 必超时
+            #   （GUI 白等 30 s / CLI 白等 120 s）。
+            #   现在：`_send()` 返回成败 ⇒ 失败即撤账（清 pending + 注销
+            #   `_inflight`）+ **计丢句**（诚实记账，不让这句凭空消失）。
+            if not self._send(cmd):
+                with self.lock:
+                    self.pending.pop(jid, None)
+                    self._inflight.discard(jid)
+                self.n_dropped += 1
         elif dead:
             # 🔴 2026-10-24 §22 修：worker 级故障后 `state == 'error'`，
             #   此时 `_flush_queue()` **永远不会被调用**（它只在 `ready` 事件时跑）
@@ -369,12 +380,22 @@ class TTSService:
         with self.lock:
             q = list(self._queue)
             self._queue.clear()
+        n_failed = 0
         for cmd in q:
             jid = cmd.get('id')
             if jid is not None:
                 with self.lock:
                     self._inflight.add(jid)
-            self._send(cmd)
+            # 🔴 2026-10-25 §29 修：同上 —— 送不出去必须撤账 + 计丢句
+            if not self._send(cmd):
+                n_failed += 1
+                if jid is not None:
+                    with self.lock:
+                        self.pending.pop(jid, None)
+                        self._inflight.discard(jid)
+        if n_failed:
+            self.n_dropped += n_failed
+            self.on_log(f'[TTS] 补发时 {n_failed} 句未能下发（已计丢句）')
         if q:
             self.on_log(f'[TTS] 就绪后补发 {len(q)} 句')
 
@@ -414,16 +435,25 @@ class TTSService:
         self.on_log(f'[TTS] drain 超时：仍有 {pending_n} 句未完成')
         return False
 
-    def _send(self, obj: dict):
+    def _send(self, obj: dict) -> bool:
+        """把一条命令写给 worker。
+
+        🔴 2026-10-25 §29 修：**必须返回成败**。
+        旧实现只记日志、不返回 ⇒ 调用方无法知道命令有没有真的送出去
+        ⇒ 「已下发」的记账（`_inflight`）与事实脱节 ⇒ 句子永久悬挂
+        ⇒ `drain()` 必超时。返回 False 的调用方必须**撤账**。
+        """
         with self.lock:
             p = self.proc
         if p is None or p.stdin is None:
-            return
+            return False
         try:
             p.stdin.write(json.dumps(obj, ensure_ascii=False) + '\n')
             p.stdin.flush()
+            return True
         except Exception as e:
             self.on_log(f'[TTS] 发送失败：{e}')
+            return False
 
     def cancel(self, jid: int):
         """通知 worker 丢弃某一句（还没开始播的整句）。
@@ -442,6 +472,11 @@ class TTSService:
         self._send({'cmd': 'cancel', 'id': jid})
         with self.lock:
             self.pending.pop(jid, None)
+            # 🔴 2026-10-25 §29 修：**必须同时注销 `_inflight`**。
+            #   旧实现只清 `pending` ⇒ 这个 jid 永远留在 `_inflight` 里
+            #   ⇒ ① 集合无界增长；② worker 崩溃时 `_on_worker_exit()`
+            #   会把它**再算一次**丢句（`n_dropped` 双记）。
+            self._inflight.discard(jid)
         self.n_dropped += 1
 
     # -- 事件 ------------------------------------------------------------
@@ -571,6 +606,14 @@ class TTSService:
                         break
                 for jid in drop_ids:
                     self.pending.pop(jid, None)
+                    # 🔴🔴 2026-10-25 §29 修：**必须同时注销 `_inflight`**。
+                    #   旧实现只清 `pending` ⇒ 这些 jid 永远留在 `_inflight` 里
+                    #   ⇒ ① `_inflight` 集合无界增长（长会议内存单调上升）；
+                    #   ② 🔴 worker 崩溃时 `_on_worker_exit()` 会
+                    #      `lost = sorted(self._inflight)` ⇒ 把**早已丢弃**的
+                    #      句子**再算一次**丢句 ⇒ `n_dropped` 双记、统计虚高
+                    #      （实测：真实丢 8 句 ⇒ 统计成 9）。
+                    self._inflight.discard(jid)
             # 通知 worker 别播这些句子（否则丢弃白做了）
             for jid in drop_ids:
                 self._send({'cmd': 'cancel', 'id': jid})

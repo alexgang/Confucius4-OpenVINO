@@ -1,0 +1,35 @@
+{
+  "time": "2026-10-25 04:28:51",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.4",
+  "check_only": false,
+  "files": {
+    "tts_service.py": {
+      "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.4\\app\\tts_service.py",
+      "orig_sha256": "9349e408ff2b5510465c1c5651ae105bf3cf06df9d44f76a18598c9a93fed1bf",
+      "orig_bytes": 28000,
+      "new_sha256": "d86a6eb0956fb946743e5c9ea70870aed8f0f67ce64d8b6ca02f539454c9d00d",
+      "new_bytes": 30707,
+      "applied": [
+        "P1-service-send-returns-bool",
+        "P2-service-submit-accounting",
+        "P3-service-flush-accounting",
+        "P4-service-cancel-discard-inflight",
+        "P5-service-backlog-discard-inflight"
+      ],
+      "already_synced": [],
+      "repo_sha256": "d86a6eb0956fb946743e5c9ea70870aed8f0f67ce64d8b6ca02f539454c9d00d",
+      "repo_bytes": 30707,
+      "verify_equal_to_repo": true,
+      "mtime": "2026-10-25 04:28:51",
+      "actual_sha256": "d86a6eb0956fb946743e5c9ea70870aed8f0f67ce64d8b6ca02f539454c9d00d",
+      "actual_bytes": 30707
+    }
+  },
+  "patches": [
+    "P1-service-send-returns-bool",
+    "P2-service-submit-accounting",
+    "P3-service-flush-accounting",
+    "P4-service-cancel-discard-inflight",
+    "P5-service-backlog-discard-inflight"
+  ]
+}

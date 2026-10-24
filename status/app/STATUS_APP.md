@@ -1,11 +1,19 @@
 # STATUS_APP
 last_ack: APP-010
-更新时间: 2026-10-25 03:16
-当前任务: **巡检（无新纠偏条目，第 12 次同一口径）+ 🔴🔴 修掉 App 侧共享机器锁「读不懂 `README_LOCK.md` 规定的格式」⇒ 跨模块互锁死等（§28）**：`last_ack` = **APP-010**（本轮**无新条目待执行**；`CORRECTIONS_APP.md` SHA256 `8ccf661c…` / 27 413 B / mtime 2026-10-24 17:01:54⇒ `## APP-xxx` 10 条、最大 APP-010，**只读零改动**）⇒ 🔴 本轮闭环 `machine_lock_app.py` 的**真实承重 bug**：该脚本只解析 key-value 锁格式 ⇒ 遇到 `README_LOCK.md` 规定的单行格式（`asr PID 14644 started ...`）**解析不出 PID** ⇒ `lock_state()` 返 `unreadable` ⇒ 按 fail-closed**永久等待**（MT 通知 2 记录过空等 14 分钟；MT 侧已修、**App 侧漏修**）⇒ 修法 5 处（README 兜底解析 / `started` 正则 / **GBK 多编码回退** / **写入改为双格式** / 模块名放宽）⇒ 验收 **18/18 PASS**（原有 13 项未回归 + 新增 README/GBK/双格式三组）⇒ **跨模块双向兼容实测**：App 新 payload 被 **MT `read_lock()`** 与 **TTS `_read_lock()`** **均正确解析**；⚠️ 另发现 MT `lock_state` 返 `unreadable` 的真因是**该解释器缺 `psutil`**（`read_lock` 已解析正确）⇒ **不属 App 职责，不代改**；⇒ 本轮**未改任何产品代码**（4 个核心 .py 零改动）、**未重打包**（`machine_lock_app.py` 不在包内）、**未取/未抢/未回收**共享锁（测试全在临时目录）；⏳ **仍等 reviewer**：渲染层三处（`_mt_of`/`_save_text`/CLI `run_cli` 改按 `mt_units()`）**未改**（§26.6 三问备齐；通知 7 **未推翻**该判断）、APP-006 第 3~7 步等复核
-阻塞 / 待用户决定: ① 🟢 **交付 zip 阻塞项已闭环**（§27）：`Confucius4_LiveCaption_v1.4.zip` = **11 216 047 396 B**（2026-10-25 01:59:18，SHA256 `01ebfebe…`）**13 978** 条目 / `testzip()=None` / EOCD 在 / 内容级 **13 978 文件逐字节一致** / 独立复核 PASS / 仓库⇄包 16/16；`FTP_Share/` 副本**同字节同 SHA256**（02:04:11）⇒ **§26 头部「交付 zip 是坏的」已在 §27.1.6 更正**；② 🔴 **渲染层改按 `mt_units()` 逐句渲染**（MT §4.3 三处）—— **本轮仍未改**，等 reviewer 裁定（§26.6 三问；行数 436 → 1424，3.3×）；③ ⛔ **GitHub 旧 SHA 的 gc** 未做 ⇒ 待用户决定；④ ⛔ **APP-009② 的 MT UNIT 方案 A/B/C/D 结论**仍在 v4 复算 ⇒ 渲染层改动还等它定案（🔴 通知 7 §7.5 已给新口径 Δ：A 臂**真实劣化**、B/C/D **持平** ⇒ 但**选型仍等 reviewer**）；⑤ ⛔ **v1.4 TTS 音质**未达标（TTS-009/TTS-010）⇒ TTS 保持实验性、默认关闭（包内已标注）；⑥ ⛔ **包体 12.73 GB** 优化未做；⑦ ⛔ **V7 残句代价**待用户确认（链首段半句残句 12 段语料 5 行/58 字）
+更新时间: 2026-10-25 04:44
+当前任务: **巡检（无新纠偏条目，第 13 次同一口径）+ 🔴🔴 修掉 App 侧 TTS「已下发」记账与事实脱节 ⇒ 丢句双记 / 句子永久悬挂 / `drain()` 必超时（§29）**：`last_ack` = **APP-010**（本轮**无新条目待执行**；`CORRECTIONS_APP.md` SHA256 `8ccf661c…` / 27 413 B / mtime 2026-10-24 17:01:54 ⇒ `## APP-xxx` 10 条、最大 APP-010，**只读零改动**）⇒ 🔴 本轮闭环 `live_caption/tts_service.py` 的**真实承重 bug**（§22 引入 `_inflight` 后遗留的三条脱节路径）：① `_update_backlog()` 丢句**不注销 `_inflight`** ⇒ 集合无界增长 + worker 崩溃时**丢句双记**（实测真实丢 8 句统计成 **9**，「`n_played+n_dropped==n_submitted`」不变式被破坏）；② `cancel()` 同样**不注销**（同源）；③ 🔴 `_send()` **不返回成败** ⇒ 命令送不出去时 `pending`/`_inflight` **永久悬挂** ⇒ `drain()` **必超时**（GUI 白等 30 s / CLI 白等 120 s；实测 drain 超时 6.0 s 返 False）⇒ 修法 4 处（`_send()` 返回 bool / `submit()` 撤账+计丢句 / `_flush_queue()` 撤账+计丢句 / `cancel()`+`_update_backlog()` 注销 `_inflight`）⇒ 验收 **REAL 全 PASS + BUG 全落空 ⇒ PASS**（含**包内那份单独跑同一套断言 PASS**）+ §20/§21/§22 六个既有套件**全部未回归**⇒ 交付闭环：dry-run PASS（内部素材闸门 **0** 命中）→ 持共享锁 `app-pack`/PID 27688 重打 zip **11 min 47 s**（内容级 **13 978** 逐字节一致、原子改名）→ `verify_pkg_zip.py` **独立复核 PASS**（仓库⇄包 **16/16**）→ `publish_ftp.py` 持锁重发 FTP_Share（源⇄副本 SHA256 `e1b66f1b49677b9a…` **一致**）⇒ 🔴 **未重开 FTP 服务**（守 APP-009③）；🟡 附带发现 `device_config.py`/`audio_source.py` 有 **U+FFFD 乱码**（GBK 当 UTF-8 解码；仓库⇄包**同一份**；纯注释、不影响运行）⇒ **只记录不擅自改**，提请 reviewer 裁定⇒ 本轮**未改任何翻译/渲染逻辑**（4 个核心 .py 中只有 `tts_service.py` 改动）；⏳ **仍等 reviewer**：渲染层三处（`_mt_of`/`_save_text`/CLI `run_cli` 改按 `mt_units()`）**未改**（§26.6 三问备齐）、APP-006 第 3~7 步等复核
+阻塞 / 待用户决定: ① 🟢 **交付 zip 已闭环并随 §29 重打**（§29.6）：`Confucius4_LiveCaption_v1.4.zip` = **11 216 048 041 B**（2026-10-25 04:38:22，SHA256 `e1b66f1b49677b9a…`）**13 978** 条目 / 内容级 **13 978 文件逐字节一致** / 独立复核 PASS / 仓库⇄包 16/16；`FTP_Share/` 副本**同字节同 SHA256**（04:42:56）⇒ **§26 头部「交付 zip 是坏的」已在 §27.1.6 更正**；② 🔴 **渲染层改按 `mt_units()` 逐句渲染**（MT §4.3 三处）—— **本轮仍未改**，等 reviewer 裁定（§26.6 三问；行数 436 → 1424，3.3×）；③ ⛔ **GitHub 旧 SHA 的 gc** 未做 ⇒ 待用户决定；④ ⛔ **APP-009② 的 MT UNIT 方案 A/B/C/D 结论**仍在 v4 复算 ⇒ 渲染层改动还等它定案（🔴 通知 7 §7.5 已给新口径 Δ：A 臂**真实劣化**、B/C/D **持平** ⇒ 但**选型仍等 reviewer**）；⑤ ⛔ **v1.4 TTS 音质**未达标（TTS-009/TTS-010）⇒ TTS 保持实验性、默认关闭（包内已标注）；⑥ ⛔ **包体 12.73 GB** 优化未做；⑦ ⛔ **V7 残句代价**待用户确认（链首段半句残句 12 段语料 5 行/58 字）；⑧ 🟡 **§29.7 两处 U+FFFD 乱码**（`device_config.py` / `audio_source.py`）待 reviewer 裁定是否一次性修掉
 
 ## 最近更新
 
+- 04:46 §29 ✅ **巡检（无新纠偏条目，第 13 次同一口径）**：`CORRECTIONS_APP.md` SHA256 `8ccf661c…` / 27 413 B / mtime 2026-10-24 17:01:54 ⇒ `## APP-xxx` **10** 条（最大 **APP-010** = `last_ack`）⇒ **无新条目**，`last_ack` **不变**；🔴 该文件**只读零改动**；跨模块通知**无新条目**（MT 最大仍是通知 7，TTS 两条已在 §19/§20 处理）。
+- 04:46 §29 🔴🔴 **修掉 App 侧 TTS「已下发」记账与事实脱节**（`live_caption/tts_service.py`）：① `_update_backlog()` 丢句**不注销 `_inflight`** ⇒ 集合无界增长 + worker 崩溃时**丢句双记**（实测真实丢 8 句统计成 **9**）；② `cancel()` 同样**不注销**（同源）；③ 🔴 `_send()` **不返回成败** ⇒ 命令送不出去时 `pending`/`_inflight` **永久悬挂** ⇒ `drain()` **必超时**（GUI 30 s / CLI 120 s；实测超时 6.0 s 返 False）。
+- 04:46 §29 ✅ **修法 4 处**：`_send()` 返回 `bool` / `submit()` 送不出去则**撤账+计丢句** / `_flush_queue()` 同上 / `cancel()`+`_update_backlog()` **注销 `_inflight`** ⇒ 修后**「`n_played+n_dropped==n_submitted`」不变式成立**。
+- 04:46 §29 ✅ **验收 PASS**（`results/app/test_tts_drop_crash.py`，桩 worker、**无推理/无测速/无 GPU**）：修复前 **3 组反证全部命中**（幽灵 jid=[0] / 取消后仍在 / pending 悬挂 + drain 超时）且不变式被破坏（sum=9>8）；修复后 **REAL 全 PASS + BUG 全落空**；§20/§21/§22 六个既有套件**全部未回归**。
+- 04:46 §29 ✅ **客户包定点同步 PASS**：`sync_c144_to_pkg.py`（**新增**，5 块**唯一命中**、包外备份、SHA256 幂等、**禁整目录覆盖**）⇒ 包内 `tts_service.py` `9349e408…`/28 000 B → `d86a6eb0…`/**30 707 B**，与仓库**逐字节一致**；🔴 **包内那份单独跑同一套断言 PASS**。
+- 04:46 §29 ✅ **交付闭环（持共享锁）**：dry-run PASS（内部素材闸门 **0** 命中）→ 锁 `app-pack`/PID 27688 → 重打 zip **11 min 47 s**（内容级 **13 978** 逐字节一致、**原子改名**）→ `verify_pkg_zip.py` **独立复核 PASS**（仓库⇄包 **16/16**）→ `publish_ftp.py` 持锁重发 FTP_Share（**11 216 048 041 B**，源⇄副本 SHA256 `e1b66f1b49677b9a…` **一致**）⇒ 🔴 **未重开 FTP 服务**（守 APP-009③）。
+- 04:46 §29 🟡 **附带发现（只记录未改）**：`device_config.py`（2 处）与 `audio_source.py`（3 处）有 **U+FFFD 乱码**（根因 = **GBK 字节当 UTF-8 解码**；仓库⇄客户包**是同一份**）⇒ 均为**注释/docstring**、**不影响运行逻辑** ⇒ 提请 reviewer 裁定。
+- 04:46 §29 ✅ **纪律**：**未改/未提交** `CORRECTIONS_APP.md`；**未吞** ASR/MT/TTS 未提交改动；**未改翻译/渲染逻辑**；**未 import 被测模块**；**未跑推理/测速/占 GPU**；**未调用 MiniMax**；仓库 ⇄ 客户包**只做定点替换**；打包窗口内**未启动任何 `python.exe`**。
 - 03:16 §28 ✅ **巡检（无新纠偏条目，第 12 次同一口径）**：`CORRECTIONS_APP.md` SHA256 `8ccf661c…` / 27 413 B / mtime 2026-10-24 17:01:54 ⇒ `## APP-xxx` **10** 条（最大 **APP-010** = `last_ack`）⇒ **无新条目**，`last_ack` **不变**；🔴 该文件**只读零改动**。
 - 03:16 §28 ✅ **跨模块通知巡检**：`shared/NOTICE_mt_to_app_20261024.md` 新增**通知 7**（42 480 B / 02:35）⇒ 三条结论**均标注「App 侧无动作」**（含「§56 三处修复已合入、v1.4 已发布」确认闭环）⇒ 本轮**未改任何翻译/渲染逻辑**。
 - 03:16 §28 🔴🔴 **修掉 App 侧共享机器锁读不懂 `README_LOCK.md` 格式** ⇒ 跨模块互锁**死等**：`machine_lock_app.py` 只解析 key-value ⇒ 遇到 README 单行格式（`asr PID 14644 started ...`）**解析不出 PID** ⇒ `lock_state` 返 `unreadable` ⇒ fail-closed **永久等待**（MT 通知 2 记录过空等 14 分钟）；修法 5 处（README 兜底解析 / `started` 正则 / **GBK 多编码回退** / **写入改为双格式** / 模块名放宽为 `\S+`）。
@@ -13,14 +21,7 @@ last_ack: APP-010
 - 03:16 §28 ✅ **跨模块双向兼容实测**：App 新写出的 payload 被 **MT** `read_lock()` 与 **TTS** `_read_lock()` **均正确解析**（module/pid/started）⇒ 反向 App 读 ASR 的 README 锁 `state=held` 判活正确；⚠️ 另发现 MT 侧 `lock_state` 返 `unreadable` 的真因是**该解释器缺 `psutil`**（其 `read_lock` 已解析正确）⇒ **不属 App 职责，不代改**。
 - 03:16 §28 ✅ **交付侧只读复核**：主包 zip 与 `FTP_Share` 副本均 11 216 047 396 B / **EOCD 在**；仓库 ⇄ 包 `app/` **5/5 MATCH**（`translator.py` `11deb2b6…` / `live_caption_app.py` `47357762…` / `tts_service.py` `9349e408…` / `tts_worker.py` `3c78cce8…` / `device_config.py` `77be2435…`）⇒ 🔴 **本轮无需重打包**（`machine_lock_app.py` **不在包内**，MANIFEST 命中 0）。
 - 03:16 §28 ⏳ **仍等 reviewer**：渲染层三处（`_mt_of`/`_save_text`/`run_cli` 改按 `mt_units()`）**未改**（§26.6 三问备齐）—— 通知 7 **未推翻**该判断；APP-006 第 3~7 步仍等复核。
-- 03:16 §28 ✅ **纪律**：**未改/未提交** `CORRECTIONS_APP.md`；**未吞** ASR/MT/TTS 未提交改动；**未改产品代码**（4 个核心 .py 零改动）；**未 import 被测模块**；**未跑推理/测速/占 GPU**；**未取/未抢/未回收**共享锁（测试全在临时目录）；**未重打包/未动 FTP_Share/未重开 FTP**；**未调用 MiniMax**。
-- 02:08 §27 ✅ **交付 zip 重打闭环（本轮核心）**：持共享机器锁（`app-pack` / PID 21324 / 01:47:44）→ `pack_v13.py` 14 min 39 s → **原子写**（`ZIP.tmp` → 校验 → `os.replace`）⇒ **没有**再出现「好包被截断覆盖」；内容级校验 **13 978 文件逐字节一致**、MANIFEST `version=1.4`/`files=13977`、`testzip()=None`、EOCD 签名在 ⇒ **PASS**。
-- 02:08 §27 ✅ **独立复核 + FTP_Share 重发**：`verify_pkg_zip.py` **PASS**（zip⇄包 13 978 一致、仓库⇄包 **16/16**）；`publish_ftp.py` 持锁 `app-ftppub` 复制 **11 216 047 396 B**（9.0 s / 1 188.9 MB/s），源⇄副本 SHA256 `01ebfebe…` **一致** ⇒ **PASS**；🔴 **未重开 FTP 服务**（守 APP-009③）。
-- 02:08 §27 ✅ **客户包合规逐项实测**：`*_spoken.*` **0** 个；包内音频 23 个里 **22 个是 scipy 自带测试数据**，非测试数据**只有** `models/qwen3tts/voices/preset_A.wav` ⇒ **无会议录音 / 无克隆音色 / 无同事音色 B**；APP-008① 标注 `README_zh.md` **L392**（待质量复核）**L394**（`LIVECAP_GUARD_REL=0`）**在**；APP-010 实验性标注 **L42/L44/L390** **在**。
-- 02:08 §27 ✅ **§26 头部「交付 zip 是坏的」已更正**（在本节更正，不改 §26 原文）：本包**完好**；🔴 §26 记录的 **8 271 022 632 B `.tmp` 坏残包已被删除**（`pack_v13.py` 清理路径）⇒ 磁盘上不再有第二个半成品 zip。
-- 02:08 §27 ⏳ **渲染层三处本轮仍不改**（`_mt_of`/`_save_text`/CLI `run_cli` 改按 `mt_units()`）⇒ 字幕显示粒度属**产品行为变更**（行数 436 → 1424，3.3×）⇒ **仍等 reviewer 裁定**（§26.6 三问，证据已备齐）。
-- 02:08 §27 ✅ **纪律**：**未改/未提交** `status/app/CORRECTIONS_APP.md`（SHA256 仍 `8ccf661c…` / 27 413 B）；**未吞** ASR/MT/TTS 的未提交改动；**未改产品代码**（4 个核心 .py 本轮零改动）；**未 import 被测模块**；**未跑推理/测速/占 GPU**；打包窗口内**未启动任何 `python.exe`** ⇒ 耗时数字未被自己污染。
-- 00:45 §26 🔴🔴 **把「渲染层仍是按段粒度」从「等 review」推进到「有实测数字可裁定」**：用 MT 已落盘的 v4 **BASE_unit 臂**（真实 61 分钟会议，225 段 / 712 句单元 / chrF 89.7225 / 守恒 41895/41895）**离线复刻**现状渲染与候选渲染 ⇒ 现状 **1 行最多塞 10 句**、**7 段永远没有〔译〕行**、**1 个句单元 `seg=None`（`flush()` 收尾补翻）现状根本取不到译文**；候选（按 `mt_units()` 逐句）每行 1 句、守恒 OK、重复句逐次显示（38 次）⇒ 产物 `results/app/render_units_candidate_eval.json`。
+
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -4908,3 +4909,267 @@ App 侧 `machine_lock_app.py` 用 `ctypes` Win32 API，**无 psutil 依赖**。
 | `results/app/test_machine_lock_app.py` | 7 698 | 2026-10-25 03:15:11 | `109451a476f2a43156b4c9a4ffaba009cdbf2d74549f19b15e1a124ebbd95a21` |
 
 （文件数：2 个；均已入库。🔴 **没有落盘的东西一律不写「已交付」。**）
+
+
+
+## §29 巡检（无新纠偏条目，第 13 次同一口径）+ 🔴🔴 修掉 App 侧 TTS **「已下发」记账与事实脱节** ⇒ 丢句双记 / 句子永久悬挂 / `drain()` 必超时（2026-10-25 04:46）
+
+### 29.1 巡检结论（无新纠偏条目）
+
+| 项 | 实测值 |
+|---|---|
+| `status/app/CORRECTIONS_APP.md` SHA256 | `8ccf661c7f1ef5c527871011ed898ae6b9c44855793749105a4461e3f10de8cf` |
+| 字节数 / mtime | **27 413 B** / 2026-10-24 17:01:54 |
+| `## APP-xxx` 条目数 | **10**（APP-001 … APP-010） |
+| 最大编号 | **APP-010** = 头部 `last_ack` ⇒ **无编号更大的新条目** |
+| 本轮对该文件的改动 | **零改动（只读）** —— SHA256 与 mtime 与 §26/§27/§28 **逐字节一致** |
+
+⇒ `last_ack` **保持 APP-010 不变**（本轮**无新条目待执行**）。
+⇒ 跨模块通知巡检：`shared/NOTICE_mt_to_app_20261024.md`（42 480 B / 2026-10-25 02:35:37，
+sha `3410dff5f6a69f15`）最大为**通知 7**，**已在 §28 处理完毕**，本轮**无新通知**；
+`shared/NOTICE_tts_to_app_20261024.md`（6 476 B / 2026-10-24 03:14:23）两条通知
+**已在 §19/§20 处理完毕**。⇒ 本轮**未改任何翻译/渲染逻辑**。
+
+### 29.2 本轮核心：🔴🔴 `tts_service.py` 的「**已下发**」记账与事实脱节
+
+§22 给 `TTSService` 引入了 `_inflight`（已下发 worker、等待结果的句子 id）。
+本轮通读发现：**三条路径会让 `_inflight` 与事实脱节**，且都发生在 App 侧
+**真实运行**的代码路径上（积压丢句 / 显式 cancel / 发送失败）。
+
+#### 缺陷 ① `_update_backlog()` 丢句后 **不注销 `_inflight`** ⇒ 崩溃时丢句**双记**
+
+```python
+for jid in drop_ids:
+    self.pending.pop(jid, None)      # ← 只清了 pending，_inflight 没清
+...
+self.n_dropped += len(drop_ids)      # ← 这里已经计过一次丢句
+```
+
+**实测反证**（`results/app/test_tts_drop_crash.py`，桩 worker，无推理）：
+提交 8 句 → 积压丢弃 1 句（`n_dropped=1`）→ 杀 worker
+⇒ `_on_worker_exit()` 里 `lost = sorted(self._inflight)` 把**早已丢弃**的句子
+**又算了一次** ⇒ **`n_dropped` 从 1 变成 9**，
+**「`n_played + n_dropped == n_submitted`」这条不变式被破坏**
+（实测 `sum=9 > submitted=8`）。
+
+⇒ 双重后果：
+1. **`_inflight` 集合无界增长**（每丢一句多一个常驻 int）⇒ 长会议内存单调上升；
+2. 🔴 **底栏「丢句 N」统计虚高**（`n_dropped`）⇒ 用户看到的丢句数不是真实丢句数。
+
+#### 缺陷 ② `cancel()` 同样**不注销 `_inflight`**（与 ① 同源）
+
+```python
+self._send({'cmd': 'cancel', 'id': jid})
+with self.lock:
+    self.pending.pop(jid, None)      # ← 同样只清 pending
+self.n_dropped += 1
+```
+
+⇒ 被取消的句子永远留在 `_inflight` ⇒ 崩溃时**再算一次**丢句（同 ① 的后果 2）。
+
+#### 缺陷 ③ `_send()` **不返回成败** ⇒ 命令送不出去时句子**永久悬挂**
+
+```python
+def _send(self, obj: dict):
+    ...
+    if p is None or p.stdin is None:
+        return                          # ← 调用方以为「已下发」
+    try:
+        p.stdin.write(...)
+        p.stdin.flush()
+    except Exception as e:
+        self.on_log(f'[TTS] 发送失败：{e}')   # ← 只记日志，不告诉调用方
+```
+
+⇒ `submit()` 先 `self._inflight.add(jid)` 再 `self._send(cmd)` ⇒
+**写失败时 `_inflight` 里留下这个 jid，但 worker 永远收不到**
+⇒ `pending[jid]` **永久悬挂** ⇒ **`drain()` 必超时**
+（GUI 收尾白等 **30 s** / CLI 收尾白等 **120 s**）。
+
+**实测反证**：把 worker 的 stdin 关掉（worker 仍活着但再也收不到命令）
+⇒ `submit()` 后 `pending=[0]` 永久悬挂、`drain(timeout=6)` **返回 False（超时 6.0 s）**。
+
+### 29.3 修法（4 处，全部在 `live_caption/tts_service.py`）
+
+| # | 位置 | 修法 |
+|---|---|---|
+| 1 | `_send()` | **返回 `bool`**：`p is None` / `stdin is None` / 写异常 ⇒ 返回 `False` |
+| 2 | `submit()` | `_send()` 返 False ⇒ **清 `pending` + 注销 `_inflight` + 计丢句**（诚实记账） |
+| 3 | `_flush_queue()` | 同上；并汇总 `n_failed` 一次性计丢句 + 记日志 |
+| 4 | `cancel()` / `_update_backlog()` | 丢句/取消时**同时 `self._inflight.discard(jid)`** |
+
+⇒ 修后**「每句恰好算一次」不变式**成立：
+`n_played + n_dropped == n_submitted`。
+
+### 29.4 验收（**桩 worker，不在 CPU 上跑推理/测速，不占 GPU**）
+
+产物：`results/app/test_tts_drop_crash.py`（**11 611 B** / sha `33e4c9d9caff2207` /
+2026-10-25 04:27:33）。
+
+**判定口径**：REAL 组（修复后必须全过）+ BUG 组（**断言「缺陷仍存在」**）
+⇒ 修复前 BUG 命中 = 缺陷复现成功；修复后必须**全部落空**。
+
+**修复前实测（反证成立）**：
+
+```
+[A5 反证·缺陷①：被丢的 jid 仍留在 _inflight（幽灵） — ghost=[0] inflight=[0..7]   ← BUG 命中
+[C1 不变式：n_played + n_dropped == n_submitted — played=0 dropped=9 sum=9 submitted=8  ← FAIL
+[D2 反证·缺陷②：取消后 jid 仍在 _inflight — inflight=[0]                          ← BUG 命中
+[E1 反证·缺陷③：句子永久挂在 pending — pending=[0] inflight=[0]                    ← BUG 命中
+[E2 反证·缺陷③：drain 超时返回 False — drained=False 用时 6.0s                    ← BUG 命中
+结论：FAIL
+```
+
+**修复后实测**：
+
+```
+[A6] 缺陷①已修：被丢的 jid 已从 _inflight 注销 — ghost=[] inflight=[1..7]   [OK]
+[C1] 不变式：n_played + n_dropped == n_submitted — played=0 dropped=8 sum=8 submitted=8  [OK]
+[C2] 崩溃后 _inflight 已清空 — inflight=[]                                    [OK]
+[D3] 缺陷②已修：cancel 后 _inflight 不含该 jid — inflight=[]                 [OK]
+[E3] 缺陷③已修：drain 能排空（不超时） — drained=True 用时 0.0s              [OK]
+REAL 未通过：无
+BUG 仍命中（应为无）：无
+结论：PASS
+```
+
+**回归（§20/§21/§22 的 6 个既有套件，全部未受影响）**：
+
+| 套件 | 结果 |
+|---|---|
+| `test_tts_error_isolation.py`（§22） | **PASS**（drain 0.0 s，未超时） |
+| `test_tts_stderr.py`（§20） | **9/9 PASS** |
+| `test_tts_close_leak.py`（§21） | **PASS**（`n_restart=0`，`proc=None`） |
+| `test_tts_close_orphan.py`（§21） | **PASS —— 无孤儿**（新起 0 个） |
+| `test_tts_restart_nop.py`（§21） | **PASS（重启确实发生）** |
+| `test_tts_restart_regression.py`（§21） | **PASS**（启动 2 次 / `n_restart=1` / `state=error`） |
+
+### 29.5 客户包定点同步（**未做整目录覆盖**）
+
+新增 `live_caption/sync_c144_to_pkg.py`（**15 254 B** / sha `65a248702db839bc` /
+2026-10-25 04:28:47）：**精确字符串替换 + `assert count == 1`** 唯一命中断言 +
+包外备份（`C:\Users\Trekker-PTL\pkg_backup_app015`）+ SHA256 幂等 +
+「替换后与仓库版归一化换行逐字一致才写盘」。
+
+5 个替换块（全部**唯一命中**）：
+
+```
+P1-service-send-returns-bool        P2-service-submit-accounting
+P3-service-flush-accounting         P4-service-cancel-discard-inflight
+P5-service-backlog-discard-inflight
+```
+
+同步报告：`results/app/sync_c144_report.json`（**1 311 B** / sha `4be10e6cba2620d8` /
+2026-10-25 04:28:51），原始字段：
+
+| 字段 | 值 |
+|---|---|
+| `files.tts_service.py.orig_sha256` | `9349e408ff2b5510465c1c5651ae105bf3cf06df9d44f76a18598c9a93fed1bf` |
+| `files.tts_service.py.orig_bytes` | **28 000** |
+| `files.tts_service.py.new_sha256` | `d86a6eb0956fb946743e5c9ea70870aed8f0f67ce64d8b6ca02f539454c9d00d` |
+| `files.tts_service.py.new_bytes` | **30 707** |
+| `files.tts_service.py.verify_equal_to_repo` | **`true`** |
+| `files.tts_service.py.already_synced` | `[]`（首次执行，非幂等跳过） |
+
+**包内那份单独跑同一套断言**（`results/app/test_tts_drop_crash_pkg.py`，
+**11 965 B** / sha `dafb0b2c6bd2585c` / 2026-10-25 04:29:01，
+`sys.path` 指向 `Confucius4_LiveCaption_v1.4\app`）⇒ **REAL 全 PASS + BUG 全落空 ⇒ PASS**
+⇒ 🔴 **「仓库里测过」≠「包里的那份是对的」** 这条纪律本轮再次守住。
+
+### 29.6 交付闭环（持共享机器锁）
+
+| 步骤 | 结果 |
+|---|---|
+| `pack_v13.py --dry-run` | **PASS**（内部素材闸门 **0** 命中；`*_spoken.*` **0** 条；点名文件 **0** 条；音色 B/C/克隆 **0** 条） |
+| 共享机器锁 | 由 `pack_v13.py` 自己取：**`app-pack` / PID 27688 / 2026-10-25 04:29:21**（双格式 payload）⇒ 结束后**已释放** |
+| 重打 zip | **11 min 47 s**；MANIFEST `version=1.4` / `files=13977` / `bytes=13667892590`；zip 条目 **13 977**（含 MANIFEST 自身 13 978）== MANIFEST files；内容级 **13 978 文件逐字节一致** ⇒ **原子改名**到正式路径 ⇒ **PASS** |
+| 主包 zip | `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4.zip` — **11 216 048 041 B** / sha256 `e1b66f1b49677b9a4bb14d012b208f7ebdff08a750170983802c5cd15df0054e` / mtime **2026-10-25 04:38:22** |
+| 独立复核 | `verify_pkg_zip.py --pkg <包目录>` ⇒ **PASS**（zip⇄包目录 **13 978** 全部逐字节一致；仓库⇄包目录 **16 / 0**） |
+| FTP_Share 重发 | `publish_ftp.py` 持锁 `app-ftppub` ⇒ **11 216 048 041 B** / **8.2 s** / 1 302.7 MB/s；源 SHA256 = 副本 SHA256 = `e1b66f1b49677b9a4bb14d012b208f7ebdff08a750170983802c5cd15df0054e` ⇒ **PASS**；副本 mtime **2026-10-25 04:42:56** |
+| FTP 服务 | 🔴 **未重开**（守 APP-009③「没有用户批准不要重新开启」） |
+
+⚠️ `verify_pkg_zip.py` 的 `--pkg` 是**包目录**（不是 zip 路径）——
+本轮首次误传 zip 路径 ⇒ 报「包目录不存在」，改传目录后 PASS（**教训见下**）。
+
+### 29.7 附带发现（**本轮只记录，未改**）
+
+- 🔴 **`live_caption/device_config.py` 与 `live_caption/audio_source.py` 存在 U+FFFD 乱码**
+  （`device_config.py` 2 处：`三\uFFFD\uFFFD模型`（原应为「三个模型」）；
+  `audio_source.py` 3 处：`跑批更\uFFFD\uFFFD\uFFFD`（原应为「跑批更快」））。
+  实测来源：**GBK 字节被当 UTF-8 解码**（`个`.encode('gbk') = `b8 f6` ⇒ 解成 2 个 U+FFFD）。
+  🔴 **两份副本（仓库 ⇄ 客户包）都是同一份乱码**（`device_config.py` 双方 sha 均为 `77be2435c5f3bf25`）。
+  ⚠️ 均为**注释/docstring 内的显示问题**，**不影响运行逻辑**；
+  ⚠️ 因属**显示层**、且改动会牵动客户包 zip 再重打，本轮**只记录不擅自改**，
+  提请 reviewer 裁定（可与本轮已完成的 zip 重打**分开**一次性处理）。
+  证据：`results/app/_evidence/tts_service_before_c144.py` 同目录另有 §29 修复前的
+  `tts_service.py` 快照（**28 000 B** / sha `9349e408ff2b5510`）。
+
+### 29.8 本轮纪律自检
+
+| 纪律 | 状态 |
+|---|---|
+| `status/app/CORRECTIONS_APP.md` **只读零改动** | ✅ SHA256 仍 `8ccf661c…` / 27 413 B / mtime 2026-10-24 17:01:54 |
+| 只写 `status/app/STATUS_APP.md`（**只追加** §29） | ✅ 未回头改旧章节 |
+| 头部 `last_ack` = 已执行完的最大 APP 编号 | ✅ **APP-010**（本轮无新条目 ⇒ 不变） |
+| 「更新时间」用实测值 | ✅ `Get-Date` 实测，非推算 |
+| 结论引用结果文件与**原始字段** | ✅ §29.5 贴 `sync_c144_report.json` 原始字段 |
+| 产物附文件数 / mtime / 字节数 / SHA256 | ✅ 见 §29.4/§29.5/§29.6 |
+| **没落盘的不写「已交付」** | ✅ 本节所有「PASS」均有落盘产物 |
+| 共享机器锁 | ✅ `pack_v13.py`/`publish_ftp.py` **自己取锁并释放**；**未抢他人锁** |
+| 不在 CPU 上跑推理/测速 | ✅ 全部用**桩 worker**，**无推理、无测速、无 GPU 占用** |
+| 质量判定交 reviewer | ✅ **未调用 MiniMax**；本节只给数字与不变式 |
+| 仓库 ⇄ 客户包**只做定点替换** | ✅ `sync_c144_to_pkg.py` 5 块唯一命中；**禁整目录覆盖** |
+| 只提交 App 职责内文件 | ✅ 见 §29.9 |
+| 不 force push | ✅ 普通快进 push |
+| 不吞 ASR/MT/TTS 未提交改动 | ✅ 逐文件 `git add`；他模块改动**全部保留在工作区** |
+| 打包窗口内不启动 `python.exe` | ✅ 打包窗口内只做**只读**核查（`ls`/`cat` 锁文件） |
+
+### 29.9 本轮改动文件清单
+
+| 文件 | 职责 | 字节 | SHA256（前 16） |
+|---|---|---|---|
+| `live_caption/tts_service.py` | App（产品代码） | **30 707** | `d86a6eb0956fb946` |
+| `live_caption/sync_c144_to_pkg.py` | App（打包脚本，**新增**） | **15 254** | `65a248702db839bc` |
+| `results/app/test_tts_drop_crash.py` | App（验收脚本，**新增**） | **11 611** | `33e4c9d9caff2207` |
+| `results/app/test_tts_drop_crash_pkg.py` | App（包内独立验收，**新增**） | **11 965** | `dafb0b2c6bd2585c` |
+| `results/app/sync_c144_report.json` | App（同步报告，**新增**） | **1 311** | `4be10e6cba2620d8` |
+| `results/app/_mk_pkg_test.py` | App（生成包内验收脚本的小工具，**新增**） | 434 | — |
+| `status/app/STATUS_APP.md` | App（本文件） | — | — |
+
+**客户包侧（不在 git 内）**：`Confucius4_LiveCaption_v1.4\app\tts_service.py`
+**30 707 B** / sha `d86a6eb0956fb946`（与仓库**逐字节一致**）。
+
+### 29.10 ⏳ 仍等 reviewer（**本轮未推进**）
+
+- 🔴 **渲染层三处**（`_mt_of` / `_save_text` / CLI `run_cli` 改按 `mt_units()` 逐句渲染）
+  —— **未改**；§26.6 三问仍备齐；MT 通知 7 **未推翻**该判断。
+  ⚠️ 属**字幕显示粒度的产品行为变更**（行数 436 → 1424，3.3×）⇒ 不自行推进。
+- ⛔ **APP-006 第 3~7 步**（git 历史改写）—— 仍等 reviewer 复核。
+- ⛔ **APP-009② 的 MT UNIT 方案 A/B/C/D 选型** —— 仍等 reviewer 裁定。
+- ⛔ **GitHub 旧 SHA 的 gc** —— 待用户决定。
+- ⛔ **v1.4 TTS 音质**（TTS-009/TTS-010）—— 保持实验性、默认关闭（包内已标注）。
+- ⛔ **包体 12.73 GB** 优化 —— 未做。
+- ⛔ **V7 残句代价** —— 待用户确认。
+- 🟡 **§29.7 的两处 U+FFFD 乱码** —— 本轮只记录，提请 reviewer 裁定是否一次性修掉。
+
+### 29.11 🔴 下次巡检必读（本轮新增）
+
+- 🔴🔴 **`_inflight` 这类「已下发」记账，任何**放弃该句的路径**都必须注销它**
+  ⇒ 漏一处 ⇒ ① 集合无界增长；② worker 崩溃时**丢句双记**（统计虚高）。
+  ⇒ **不变式**：`n_played + n_dropped == n_submitted`（每句恰好算一次）
+  —— 建议把这条写进任何 TTS 改动的**回归断言**。
+- 🔴🔴 **「发送函数」必须返回成败** ⇒ 否则调用方的「已下发」记账与事实脱节
+  ⇒ 句子永久悬挂 ⇒ `drain()` 必超时（GUI 30 s / CLI 120 s 白等）。
+- 🔴 **「丢弃/取消」与「崩溃清理」是两条独立的放弃路径** ⇒ 两条**都要**注销记账。
+- ⚠️ **`verify_pkg_zip.py --pkg` 传的是「包目录」**（不是 zip 路径）⇒ 传错会报
+  「包目录不存在」（且**不会**破坏任何东西，但会浪费一次调用）。
+- ⚠️ **`sync_c144_to_pkg.py` 的包目录自动发现必须用正则取版本号**
+  —— 目录名里可能有 `v1.0.bak_20261020` 这类后缀 ⇒ `int(name.rsplit('_v',1)[1])`
+  会抛异常 ⇒ **整个目录列表被跳过** ⇒ 报「找不到客户包目录」。
+- ⚠️ **桩 worker 的 stdin EOF 后必须继续活着** ⇒ 否则 worker 退出 ⇒ 触发
+  自动重启 ⇒ **掩盖**「命令送不出去」这个待测缺陷（本轮实测踩到，已修桩）。
+- ⚠️ **测试里改模块级常量（如 `BACKLOG_MAX_S`）会串到后面的分组**
+  ⇒ 每个分组开头要**显式设置**自己需要的阈值（本轮踩到：A/D/E 组被
+  C 组的低阈值干扰 ⇒ 断言失效）。
+- 🔴 **打包/校验的耗时数字只能在「窗口内不启动任何 `python.exe`」时引用**
+  ⇒ 本轮打包窗口内只做只读核查（`ls`/`cat` 锁文件）。
