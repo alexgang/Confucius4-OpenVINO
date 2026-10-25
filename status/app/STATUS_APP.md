@@ -1,12 +1,16 @@
 # STATUS_APP
 last_ack: APP-017
-更新时间: 2026-10-25 22:32
-当前任务: **§42 用户反馈「全流程 CUDA/NPU 都没声音」⇒ 两个产品级真因已修**：① `device_config.resolve_device` 把 `CUDA` **静默降级成 NPU**（`_pick('CUDA')` 在 OV 设备清单里找不到 ⇒ 回退默认；改 12 行，修后 `--tts-device CUDA` **真跑 CUDA**：边车就绪 40.3 s / 首包 4.13 s / 播完 1 丢弃 0）；② 🔴🔴 **GUI「语音输出 → 输出设备」传的是 WASAPI 端点 id**（`soundcard` 的 `s.id` = `IMMDevice::GetId()` = `{0.0.0.…}.{guid}`），而 `sounddevice` 只认 **int 索引或设备名子串** ⇒ `ValueError: No output device matching` ⇒ `Player._stream=None` ⇒ **每句都被丢 ⇒ 一句都不出声，与 CUDA/NPU/精度完全无关**（离线复刻证实：GUID ✗ / 名字子串 ✓ / int ✓；同一个 id 在 `make_source('system')` 上是**正确**用法 ⇒ 只改播放层）⇒ 新增 `resolve_out_device` / `_match_output_index` / `_describe_out` + **开流失败回退系统默认**；③ **三层音频判据**（① `n_played` ② 回环 RMS ③ 人耳）落地，`app052` 三例 **0.19658 / 0.11482 / 0.12878 全 PASS** ⇒ **App 侧已把声音送进系统混音器**；④ 新增客户级自检 `app/audio_check.py`；⑤ ⏳ **v1.5 第三次重打待锁**（`mt pid=9748` 自 21:21 持锁，22:24 已 63 min）
-阻塞 / 待用户决定: ① 🔴 **v1.5 第三次重打待机器锁释放**（`mt pid=9748` 自 21:21 持有；按纪律**只等不抢**）：重打内容 = §39 播放修复 + §40/§41 CUDA 边车 + §42 两个修复；② 🔴 **§42.3 的修复待实机验证**（`--out-device {GUID}` ⇒ 应打印「端点 id → … → 播放索引 N」且 `n_played=1`）；③ ✅ **CUDA 落地方式已定**（§41 用户选「只做本机可选后端」）⇒ 不再待决；④ ⛔ **OV 的 CUDA plugin 不引入**（§39.5 依据不变）；⑤ ⛔ **APP-017「检查点 3」**由并发 App 会话在做 ⇒ 本会话不重复跑；⑥ ⛔ **WER +2.6pp 主因**未定位；⑦ ✅ **APP-015 方案 C 渲染层验收 23/23**，但 `translator.py` 合入仍待 MT 移交（APP-009② / H-014，App 不代提交）；⚠️ 并发会话在该文件留的在制品**本轮未动**；⑧ ⛔ 包体 10.45 GiB 优化未做；⑨ ⛔ V7 残句代价待确认；⑩ ⛔ 集显 F32 TTS 慢（首包 33.9 s）
+更新时间: 2026-10-26 01:35
+当前任务: **§42 用户反馈「全流程 CUDA/NPU 都没声音」⇒ 两个产品级真因已修**：① `device_config.resolve_device` 把 `CUDA` **静默降级成 NPU**（`_pick('CUDA')` 在 OV 设备清单里找不到 ⇒ 回退默认；改 12 行，修后 `--tts-device CUDA` **真跑 CUDA**：边车就绪 40.3 s / 首包 4.13 s / 播完 1 丢弃 0）；② 🔴🔴 **GUI「语音输出 → 输出设备」传的是 WASAPI 端点 id**（`soundcard` 的 `s.id` = `IMMDevice::GetId()` = `{0.0.0.…}.{guid}`），而 `sounddevice` 只认 **int 索引或设备名子串** ⇒ `ValueError: No output device matching` ⇒ `Player._stream=None` ⇒ **每句都被丢 ⇒ 一句都不出声，与 CUDA/NPU/精度完全无关**（离线复刻证实：GUID ✗ / 名字子串 ✓ / int ✓；同一个 id 在 `make_source('system')` 上是**正确**用法 ⇒ 只改播放层）⇒ 新增 `resolve_out_device` / `_match_output_index` / `_describe_out` + **开流失败回退系统默认**；③ **三层音频判据**（① `n_played` ② 回环 RMS ③ 人耳）落地，`app052` 三例 **0.20673 / 0.11488 / 0.12878 全 PASS** ⇒ **App 侧已把声音送进系统混音器**；④ 新增客户级自检 `app/audio_check.py`；⑤ ✅ **v1.5 第三次重打完成**（md5 `5fd226b40afb894497bf4de21557e420` / 11 216 089 426 B / 13 982 条目 / **逐字节一致**）+ `app014b` **PASS 50 / 0**
+阻塞 / 待用户决定: ① 🔴 **只剩用户实机确认**：重开 GUI 看日志是否出现「输出设备解析 … → 播放索引 N」与「实际输出: <设备名>」；仍听不到就跑 `app\audio_check.py` 逐台确认哪台真的出声（③ 层）；② ✅ **v1.5 已出包**（md5 `5fd226b4…`）⇒ 不再待锁；§42.3 已由 `app055` 真机验证（对照组 GUID → `ValueError`；实验组 GUID → 索引 3 → `n_cb=21` 真出声）；③ ✅ **CUDA 落地方式已定**（§41 用户选「只做本机可选后端」）⇒ 不再待决；④ ⛔ **OV 的 CUDA plugin 不引入**（§39.5 依据不变）；⑤ ⛔ **APP-017「检查点 3」**由并发 App 会话在做 ⇒ 本会话不重复跑；⑥ ⛔ **WER +2.6pp 主因**未定位；⑦ ✅ **APP-015 方案 C 渲染层验收 23/23**，但 `translator.py` 合入仍待 MT 移交（APP-009② / H-014，App 不代提交）；⚠️ 并发会话在该文件留的在制品**本轮未动**；⑧ ⛔ 包体 10.45 GiB 优化未做；⑨ ⛔ V7 残句代价待确认；⑩ ⛔ 集显 F32 TTS 慢（首包 33.9 s）
 
 
 ## 最近更新
 
+- 01:35 §42 ✅ **v1.5 第三次重打完成**：md5 `5fd226b40afb894497bf4de21557e420` / 11 216 089 426 B / **13 982 条目** / **逐字节一致**；新增 `app/audio_check.py`、`app/tts_cuda.py`、`app/tts_cuda_sidecar.py`（后两个是 §41 的，旧包没有）
+- 01:35 §42 ✅ **打包前自检 `app014b` PASS 50 / FAIL 0**（含 GUI/CLI 冒烟 16 项）；zip 内关键串逐条核对通过（`resolve_out_device` / `实际输出` / `role == 'tts'`）
+- 01:35 §42 ✅ **`app052` 三例一次跑完留证**：440Hz **0.20673** / CUDA **0.11488** / NPU **0.12878** 全 PASS（与上一次独立运行 ±5% 内一致）
+- 01:35 §42 🔴 **打包踩到闸门死锁**：安静窗口把「ASR 的**等锁进程**」当作业 ⇒ 互等 ⇒ 停自己的进程后 `--skip-quiet` 重启（理由写进日志头）；随后又排队等 `mt pid=32792` 约 3 h
 - 22:32 §42 🔴🔴 **真因二（主因）**：GUI「语音输出 → 输出设备」传的是 **WASAPI 端点 id**（`soundcard` 的 `s.id` = `IMMDevice::GetId()`），而 `sounddevice` 只认 int 索引/设备名子串 ⇒ `ValueError: No output device matching` ⇒ `Player._stream=None` ⇒ **每句都被丢** ⇒ 与 CUDA/NPU/精度**全无关**
 - 22:32 §42 ✅ **离线复刻证实**（`ast` 抽 `sounddevice._get_device_id` + 打桩设备表）：GUID → `ValueError`；`Realtek` 子串 → `id=0`；int → `id=0`
 - 22:32 §42 ✅ **修法**：`tts_worker.py` 新增 `resolve_out_device`（GUID → soundcard 端点名 → sounddevice 索引）/ `_match_output_index` / `_describe_out` + **开流失败回退系统默认**；日志改为「实际输出: 名字（hostapi=…, ch=…, sr=…）」
@@ -18,10 +22,6 @@ last_ack: APP-017
 - 22:32 §42 ⛔ **未动 `live_caption_app.py`**（并发会话 APP-015 方案 C 在制品；且 GUID 应在播放层修）
 - 22:32 §42 ⏳ **v1.5 第三次重打未完成**：`mt pid=9748` 自 21:21 持锁（22:24 已 63 min），只等不抢
 - 21:25 §41 ✅ 巡检无新条目（`CORRECTIONS_APP.md` 最大 APP-017 = `last_ack`，只读零改动）
-- 21:25 §41 ✅ 安静窗口闸门 + 方案 C 渲染层 **23/23** + `pkg_exclude.__all__` 悬空名补齐
-- 21:15 §41 ✅ CUDA（PyTorch）做成**本机可选后端**（GUI 第三项、检测不到自动隐藏、包体不变）
-- 20:50 §40 🔴 PyTorch+CUDA 实测跑通：TTFA **0.547 s** / RTF **0.892**（`timing_valid=false`）
-- 19:50 §39.9 ✅ v1.5 已持锁重打（含播放修复）：md5 `f8475ce511efef7d13209bf9b64b5b95`
 
 
 ## §1 现状汇总（2026-10-23）
@@ -7159,17 +7159,17 @@ OV 发行版不带 CUDA plugin（§39.5）⇒ 落空 ⇒ 走「回退默认设�
 🔴 ② 用 `soundcard` 的 **loopback** 录「默认扬声器」、同时用 `sounddevice` 在**同名设备**播放比对 RMS
 —— 两边名字不一致就说明「播的地方 ≠ 听的地方」。
 
-实测（`app052`，2026-10-25 22:13–22:14）：
+实测（`app052`，2026-10-26 01:30，**`cases` 数组累加，三例一次跑完**）：
 
 | 例 | `rms_window` | `peak` | 判定 |
 |---|---|---|---|
-| 440 Hz 测试音 | **0.19658** | —— | PASS |
-| CUDA 合成 wav（`_fq3tts_out/cuda_nostream.wav`） | **0.11482** | 0.5472 | PASS |
-| NPU 合成 wav（`app040_synth_NPU_f16.wav`） | **0.12878** | 0.4882 | PASS |
+| 440 Hz 测试音 | **0.20673**（另一次 0.19658） | 0.3002 | PASS |
+| CUDA 合成 wav（`_fq3tts_out/cuda_nostream.wav`） | **0.11488**（另一次 0.11482） | 0.5473 | PASS |
+| NPU 合成 wav（`app040_synth_NPU_f16.wav`） | **0.12878** | 0.4881 | PASS |
 
 ⇒ **② 通过**：App 播出去的声音**确实进了系统混音器** ⇒ 耳朵仍听不到就只能查 ③。
-⚠️ 现存 json 只留了**最后一例**（脚本首版单输出覆盖，证据链不完整）⇒ 已改成 `cases` 数组累加，
-锁空闲后一次性重跑三例留证（§42.6）。
+⚠️ 两次独立运行数值一致（±5% 内），说明判据稳定、不是偶然。
+⚠️ 脚本首版只留最后一例（证据被覆盖，json 只剩 NPU 那次）⇒ 已改 `cases` 累加，本条即为完整证据。
 
 ### §42.5 给用户的自检工具：`app/audio_check.py`
 
@@ -7204,15 +7204,33 @@ OV 发行版不带 CUDA plugin（§39.5）⇒ 落空 ⇒ 走「回退默认设�
 ⇒ 一句话：**旧代码遇 GUID 直接抛异常、一句都播不出；新代码映射到索引 3 并正常播放。**
 这就是「GUI 里 CUDA / NPU 都没声音」的完整解释与修复闭环。
 
-**⏳ 待办（锁相关）**：
+**✅ v1.5 第三次重打已完成（2026-10-26 01:24，含 §39 + §40/§41 + §42 全部修复）**
 
-1. `MACHINE_LOCK` 的 `mt pid=9748` 已于 **22:27** 被判定**陈旧锁**（PID 已死）⇒ 挂起中的
-   `pack_v13.py`（PID 30552，21:29 起等锁 174 次）已回收并持锁，正在过安静窗口 ⇒
-   **本轮全程不再启动任何 python**（安静窗口要求 45 s 内无外部 python），等它出包。
-2. `app052` 三例一次性重跑（`--case 440Hz --case CUDA=… --case NPU=…`）留完整证据 —— 待打包结束后做。
-3. **v1.5 第三次重打** = 该进程；内容 = §39 播放修复 + §40/§41 CUDA 边车 + §42 两个修复。
-4. ⚠️ 重打后必须核：md5 / 条目数 / **逐字节一致** + zip 内 `tts_worker.py` 含
-   `resolve_out_device`、`device_config.py` 含 `role == 'tts'` 的 CUDA 特判、`app/audio_check.py` 在包内。
+| 项 | 值 |
+|---|---|
+| md5 | **`5fd226b40afb894497bf4de21557e420`** |
+| 体积 | **11 216 089 426 B**（旧包 11 216 075 157 ⇒ +14 269 B） |
+| zip 条目 | **13 982**（MANIFEST files 13 981，含自身 13 982） |
+| 逐字节一致 | ✅ **13 982 个文件全部一致** |
+| 新增文件 | `app/audio_check.py` + `app/tts_cuda.py` + `app/tts_cuda_sidecar.py`（后两个是 §41 的，旧包 19:46 那版没有） |
+| 闸门 | 开发专用脚本 **0** 命中 / 内部素材 **0** 命中 / 包内本地模块**确定缺失 0 条**（`app/*.py` = 19 个，54 条疑似为第三方，不判负） |
+| 打包前自检 | `app014b` **PASS 50 / FAIL 0**（含 GUI/CLI 冒烟 16 项 PASS） |
+
+🔴 **zip 内关键串已逐条核对**：`tts_worker.py` 含 `resolve_out_device` / `_match_output_index` / `实际输出`；
+`device_config.py` 含 `role == 'tts'` + `tts_cuda.available()`；`audio_check.py` 在包内；
+`live_caption_app.py` 含 `NVIDIA CUDA（PyTorch）`。
+
+⚠️ **打包过程**：挂起进程（PID 30552，21:29 起）等锁 174 次后被 MT 的**陈旧锁**放行，却卡在安静窗口
+（把 ASR 的**等锁进程**当作业 ⇒ 互等）⇒ 停掉自己的进程、以 `--skip-quiet` 重启（理由写进
+`results/app/pack_v15_s42.log` 头部）⇒ 之后又排队等 `mt pid=32792` 约 3 h ⇒ 01:24 出包。
+
+**⏳ 待办（只剩用户侧确认）**：
+
+1. 🔴 **用户实机确认**：重开 GUI（包目录已就地修好），看日志是否出现
+   `输出设备解析：… → 播放索引 N` 与 `实际输出: <设备名>（hostapi=…）`，以及听不听得到。
+   若仍听不到 ⇒ 让他跑 `app\audio_check.py` 逐台确认哪台**真的出声**（③ 层）。
+2. ⚠️ `app052` 已留完整三例证据（§42.4），**不再重复跑**。
+3. ⚠️ 客户机（无 CUDA 环境）：`NVIDIA CUDA（PyTorch）` 选项**自动隐藏**，包体不变 —— 这一条未变。
 
 ### §42.7 边界 / 不做
 

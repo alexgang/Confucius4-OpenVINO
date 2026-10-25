@@ -2,12 +2,47 @@
  "sd_device": 3,
  "sd_name": "Speaker (Realtek(R) Audio)",
  "soundcard_speaker": "Speaker (Realtek(R) Audio)",
- "wav": "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app040_synth_NPU_f16.wav",
- "sr": 48000,
- "n": 293759,
- "rms_all": 0.1223,
- "rms_window": 0.12878,
- "peak": 0.4882,
+ "cases": [
+  {
+   "label": "440Hz",
+   "wav": null,
+   "sd_device": 3,
+   "sd_name": "Speaker (Realtek(R) Audio)",
+   "sec": 1.2,
+   "sr": 48000,
+   "n": 86399,
+   "rms_all": 0.17125,
+   "rms_window": 0.20673,
+   "peak": 0.3002,
+   "verdict": true
+  },
+  {
+   "label": "CUDA",
+   "wav": "C:/Users/Trekker-PTL/_fq3tts_out/cuda_nostream.wav",
+   "sd_device": 3,
+   "sd_name": "Speaker (Realtek(R) Audio)",
+   "sec": 6.24,
+   "sr": 48000,
+   "n": 328320,
+   "rms_all": 0.10973,
+   "rms_window": 0.11488,
+   "peak": 0.5473,
+   "verdict": true
+  },
+  {
+   "label": "NPU",
+   "wav": "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app040_synth_NPU_f16.wav",
+   "sd_device": 3,
+   "sd_name": "Speaker (Realtek(R) Audio)",
+   "sec": 5.52,
+   "sr": 48000,
+   "n": 293759,
+   "rms_all": 0.1223,
+   "rms_window": 0.12878,
+   "peak": 0.4881,
+   "verdict": true
+  }
+ ],
  "verdict": true,
- "verdict_note": "② 通过：声音**进了系统混音器** ⇒ App 侧链路没问题，听不到要去查终点设备/音量/插孔"
+ "verdict_note": "② 通过：所有例子都在系统混音器里录到了信号 ⇒ App 侧链路没问题，听不到要去查**终点设备 / 音量 / 静音 / 插孔**"
 }
