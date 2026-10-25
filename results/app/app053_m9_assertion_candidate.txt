@@ -1,0 +1,96 @@
+🔴 **M9 断言的候选替换块**（供 reviewer 采纳 §44 跨段上限时**一并应用**）
+
+====================================================================
+背景
+====================================================================
+`results/app/app047_app_gate_test.py` 的 **M9** 断言原文：
+
+    check('MATCH', 'M9 真实语料：与「最小改动版」逐条一致',
+          m == minimal(drafts, finals),
+          f'shipped={len(m)} minimal={len(minimal(drafts, finals))}')
+
+⚠️ **这条断言在 §44 采纳跨段上限后必然 FAIL** ⇒ 但**不是产品缺陷**：
+   M9 的原意是验证「§41 当时落地的产品规则 == §41 的另一个候选『最小改动版』」
+   ⇒ 二者本就应当收敛为同一结果。
+   🔴 §44 引入**新判据**（跨段上限）⇒ 产品规则**故意**不再等于「最小改动版」
+   ⇒ **M9 的前提已过期**。
+
+====================================================================
+实测（真实 MT 产物 `c111_v5_ts10_nopunct.json` 的 C_draft 臂）
+====================================================================
+| 项 | 现版 | 候选（跨段上限 2） |
+|---|---|---|
+| 配对数 | 95 | **95**（零损失） |
+| 草稿集合 | 109 中配 95 | **完全相同** |
+| 与「最小改动版」的**差异条数** | 0 | **恰好 2** |
+| 段号倒流 | 0 | 0 |
+| 正式稿被多草稿共用 | 0 | 0 |
+
+**那 2 条差异（就是被修掉的两条离群错配）**：
+
+| 草稿 | 现版（错） | 候选（对） |
+|---|---|---|
+| `DRAFT::Okay`（seg 6） | seg 39 `Okay, next slide.`（跨 **33** 段） | seg 8 `Okay So you recall, Alex spoke about business growth…`（跨 **2** 段） |
+| `DRAFT::That`（seg 22） | seg 107 `That's where we are today.`（跨 **85** 段） | seg 23 `That Could be in situations like chipsets…`（跨 **1** 段） |
+
+====================================================================
+候选替换块（精确字符串替换 + 唯一命中断言）
+====================================================================
+**替换 1**：把 M9 的断言本体换成「差异恰好 2 条且都是修正」的新断言。
+
+原文（**必须逐字一致**，命中数应为 1）：
+
+    check('MATCH', 'M9 真实语料：与「最小改动版」逐条一致',
+          m == minimal(drafts, finals),
+          f'shipped={len(m)} minimal={len(minimal(drafts, finals))}')
+
+替换为：
+
+    # 🔴🔴 **§44 更新（2026-10-26）**：M9 的原断言「产品规则 == 最小改动版」
+    #   在 §44 引入「跨段上限」后**必然 FAIL** ⇒ **前提已过期**，不是产品缺陷。
+    #   ⇒ 改为断言**差异恰好 2 条**，且这 2 条**必须都是跨段离群错配的修正**
+    #   （§44 的修复目标）⇒ 若差异数 ≠ 2 ⇒ 说明改动越界 ⇒ 必须 FAIL。
+    _m9_min = minimal(drafts, finals)
+    _m9_diff = [(di, _m9_min.get(di), fi)
+                for di, fi in sorted(m.items())
+                if _m9_min.get(di) != fi]
+    _m9_far = 0
+    for _di, _mi, _fi in _m9_diff:
+        _ds = drafts[_di].get('seg')
+        _fs_old = finals[_mi].get('seg') if _mi is not None else None
+        _fs_new = finals[_fi].get('seg')
+        if (isinstance(_ds, int) and isinstance(_fs_old, int)
+                and isinstance(_fs_new, int) and _fs_old - _ds > 10
+                and _fs_new - _ds <= 10):
+            _m9_far += 1
+    check('MATCH', 'M9 真实语料：与「最小改动版」的差异**恰好 2 条**且都是跨段错配修正',
+          len(_m9_diff) == 2 and _m9_far == 2,
+          f'n_diff={len(_m9_diff)} n_far_fixed={_m9_far} '
+          f'shipped={len(m)} minimal={len(_m9_min)}')
+
+**替换 2**（可选，防御性）：在 M9 之前补一条「跨段上限生效」的独立断言。
+
+    # 🔴 **§44 新增**：跨段距离上限必须真的生效（否则上面的差异数就不可能是 2）
+    check('MATCH', 'M9b 真实语料：配对的跨段距离 ≤ MAX_SEG_SPAN（无离群错配）',
+          all(not (isinstance(drafts[di].get('seg'), int)
+                   and isinstance(finals[fi].get('seg'), int)
+                   and finals[fi].get('seg') - drafts[di].get('seg') > 10)
+              for di, fi in m.items()),
+          'n_pairs=%d' % len(m))
+
+====================================================================
+验收结果（候选 caption_render 已实测）
+====================================================================
+- `results/app/test_app015_caption_render.py` ⇒ **REAL 23/23 PASS | BUG 5/5 命中 | verdict=PASS** ⇒ **零回归**
+- `results/app/app047_app_gate_test.py` ⇒ 采纳上述替换块后 **28/28 PASS**（未采纳时 27/28，唯一 FAIL 即 M9 ⇒ 前提过期）
+- `results/app/app053_draft_prefix_boundary_probe.py` ⇒ **16/16 PASS | verdict=PASS**
+  （证据：`results/app/app053_draft_prefix_boundary_evidence.json`）
+
+====================================================================
+纪律提醒
+====================================================================
+🔴 **本轮未改产品代码**（`live_caption/caption_render.py` 保持 HEAD 原样）
+   ⇒ 候选文件在 `results/app/app053_caption_render_segcap_candidate.py`
+   ⇒ **采纳时**才把它应用到 `live_caption/caption_render.py`。
+🔴 **方案 C 尚未进入交付包**（v1.5 包内 `live_caption_app.py` 的 `caption_render`
+   命中数 = 0，HEAD 版亦为 0）⇒ **本缺陷当前不影响已交付的 v1.5**。

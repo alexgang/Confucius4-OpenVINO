@@ -1,0 +1,176 @@
+{
+  "task": "MT 通知 13「假前缀」在 App 渲染层的实际影响（离线，真实 MT 产物）",
+  "generated_at": "2026-10-26 01:53:42",
+  "discipline": {
+    "no_model_import": true,
+    "no_inference": true,
+    "no_benchmark": true,
+    "no_gpu": true,
+    "no_machine_lock": true,
+    "no_minimax": true,
+    "mt_artifact_readonly": true,
+    "customer_pkg_readonly": true,
+    "no_product_code_change": true
+  },
+  "source": {
+    "path": "C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_v5_ts10_nopunct.json",
+    "bytes": 430633,
+    "mtime": "2026-10-25 13:59:01",
+    "arm": "C_draft",
+    "n_units": 267,
+    "n_draft": 109,
+    "n_final": 158,
+    "mt_artifact_draft_gap": {
+      "n_pairs": 109,
+      "n_with_gap": 108,
+      "gap_max": 565.5469999999623,
+      "gap_p50": 7.835499999986496,
+      "gap_p95": 13.389799999987009
+    }
+  },
+  "rules": {
+    "product_now": "caption_render.match_draft_to_final 同构（norm_src 去标点 ⇒ 撇号被删 ⇒ 无词边界）",
+    "product_boundary": "同上，但归一化保留标点 + 词边界判据",
+    "mt_notice13": "通知 13 三步全做（正向前缀 + 词边界 + min_len=10）",
+    "product_segcap2": "🔴 拟实现的修法：现版规则 + 跨段上限 2（依据 caption_render 模块 docstring 已写明的「草稿 seg = 段尾半句所在段；正式稿 seg = 凑齐后提交段」）",
+    "product_boundary_segcap2": "词边界 + 跨段上限（叠加对照）"
+  },
+  "judged": {
+    "product_now": {
+      "n_paired": 95,
+      "n_unpaired_draft": 14,
+      "coverage_rate": 0.8716,
+      "n_seg_violation": 0,
+      "n_final_used_by_multi_draft": 0,
+      "violations_sample": []
+    },
+    "product_boundary": {
+      "n_paired": 95,
+      "n_unpaired_draft": 14,
+      "coverage_rate": 0.8716,
+      "n_seg_violation": 0,
+      "n_final_used_by_multi_draft": 0,
+      "violations_sample": []
+    },
+    "mt_notice13": {
+      "n_paired": 91,
+      "n_unpaired_draft": 18,
+      "coverage_rate": 0.8349,
+      "n_seg_violation": 0,
+      "n_final_used_by_multi_draft": 0,
+      "violations_sample": []
+    },
+    "product_segcap2": {
+      "n_paired": 95,
+      "n_unpaired_draft": 14,
+      "coverage_rate": 0.8716,
+      "n_seg_violation": 0,
+      "n_final_used_by_multi_draft": 0,
+      "violations_sample": []
+    },
+    "product_boundary_segcap2": {
+      "n_paired": 95,
+      "n_unpaired_draft": 14,
+      "coverage_rate": 0.8716,
+      "n_seg_violation": 0,
+      "n_final_used_by_multi_draft": 0,
+      "violations_sample": []
+    }
+  },
+  "q2_seg_span_stats": {
+    "product_now": {
+      "n": 94,
+      "max": 85,
+      "p95": 1,
+      "median": 1,
+      "n_gt_10": 2
+    },
+    "product_boundary": {
+      "n": 94,
+      "max": 33,
+      "p95": 1,
+      "median": 1,
+      "n_gt_10": 1
+    },
+    "mt_notice13": {
+      "n": 90,
+      "max": 2,
+      "p95": 1,
+      "median": 1,
+      "n_gt_10": 0
+    },
+    "product_segcap2": {
+      "n": 94,
+      "max": 2,
+      "p95": 1,
+      "median": 1,
+      "n_gt_10": 0
+    },
+    "product_boundary_segcap2": {
+      "n": 94,
+      "max": 2,
+      "p95": 1,
+      "median": 1,
+      "n_gt_10": 0
+    }
+  },
+  "q1_product_false_prefix": {
+    "n_false_prefix": 1,
+    "n_paired_total": 95,
+    "samples": [
+      {
+        "draft_key": "DRAFT::That",
+        "draft_seg": 22,
+        "draft_src": "That",
+        "final_key": "That's where we are today.",
+        "final_seg": 107,
+        "final_src": "That's where we are today."
+      }
+    ]
+  },
+  "q2_boundary_delta": {
+    "only_in_product_now": [
+      [
+        "DRAFT::That",
+        "That's where we are today."
+      ]
+    ],
+    "n_only_in_product_now": 1,
+    "only_in_product_boundary": [
+      [
+        "DRAFT::That",
+        "That Could be in situations like chipsets where we use Samsung technology or Wi-Fi,"
+      ]
+    ],
+    "n_only_in_product_boundary": 1
+  },
+  "q3_render_effect": {
+    "n_sampled": 1,
+    "samples": [
+      {
+        "draft_key": "DRAFT::That",
+        "draft_seg": 22,
+        "matched_final_seg": 107,
+        "draft_src": "That",
+        "final_src": "That's where we are today.",
+        "render_lines": [
+          {
+            "kind": "src",
+            "text": "That's where we are today.",
+            "seg": 0,
+            "draft": false
+          }
+        ],
+        "n_mt_lines": 0,
+        "duplicate_mt": false,
+        "misplaced": true
+      }
+    ]
+  },
+  "summary": {
+    "n_pass": 16,
+    "n_total": 16,
+    "verdict": "PASS",
+    "elapsed_sec": 0.2
+  }
+}
