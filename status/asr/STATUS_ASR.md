@@ -2995,3 +2995,71 @@ NPU 编译是 **CPU 密集**（147–222 s 满载）⇒ **可能轻微影响 MT 
 * `p3_run_with_lock.py` 加 `--task` 参数（锁里写**这次跑什么**），
   三格连跑时不再让别的模块看到过时的任务名（已做隔离测试：参数解析 ✅ / 旧用法兼容 ✅ / **未碰规范锁** ✅）；
 * ⚠️ **INT4 步骤失败不阻断** FP16/INT8 两格的长跑（两者不依赖 INT4）。
+
+### 24.10 🔴🔴 实测踩坑：**INT4 脚本静默走成了 INT8 分支**（`--int4` flag 漏传）
+
+**现象**（2026-10-25 20:40，流水线第 ② 步）：
+```
+[mask2int4] argv = ['--model','decoder','--calib','…','--asym','--group-size','128','--backup-asym','--tag','']
+[p2] INT8_SYM（按通道，lm_head 保留 FP16）...        ← 🔴 不是 INT4！
+[p2] saved …\ov-dec-06b-embed-mask2-int8sym  1139.7 MiB -> 720.6 MiB
+[p2] 产物常量: {… "n_i4": 0, "n_i8": 196 …}          ← 🔴 0 个 int4
+[mask2int4] 预期产物目录: …\ov-dec-06b-embed-mask2-int4
+[mask2int4] 存在: False                                ← 🔴 目录没建
+```
+⇒ **退出码 0（不报错）** ⇒ 若只看「rc==0」会**误判成功**；
+⇒ 实际是 **INT8 重量化跑了两遍**，INT4 根本没做。
+
+**根因**：`p2_quantize.py` 里 INT4/INT8 的分岔点是 `if args.int4:`
+⇒ `--int4` 是 **`store_true` 开关**，**不传就走 INT8 分支** ⇒ **静默走错**。
+
+**已修**（`scripts/p2_quantize_mask2_int4.py`）：
+1. **强制补 `--int4`**（若未传则加上）⇒ 杜绝静默走错；
+2. **产出后自检** `n_i4 > 0` ⇒ 没有 int4 常量就把退出码置为 **5（失败）**；
+3. **元信息改名** `p2_quant_decoder_int4.json` → `p2_quant_decoder_int4_mask2.json`
+   ⇒ 不覆盖旧图记录（可追溯）；
+4. 流水线 `step_int4()` 的**判定改为「目录存在 **且** 有 int4 常量」**
+   ⇒ 不再只看目录（目录可能来自上次的错误运行）。
+
+🔴 **连带影响（已处理）**：
+* `results/p2_quant_decoder_int8sym.json` 被这次错误的 INT8 运行**覆盖**
+  （原本是旧图 10-24 的记录）⇒ 已改名归档为
+  `results/p2_quant_decoder_int8sym_mask2_rerun.json`
+  （内容是**新图** INT8 的记录，20:40）；
+  ⇒ ⚠️ **旧图 `ov-dec-06b-embed-int8sym` 的量化元信息 json 已丢失**
+  （**模型目录本身仍在**，只是元信息没了）—— 不影响交付，但记录在案。
+
+⚠️ **教训（与 §13「n_bad=0 ≠ 没查出问题」同源）**：
+**「退出码 0」不等于「做对了事」** ⇒ 凡是有「配方/参数」分支的脚本，
+**必须对产物做「配方级自检」**（本次：查 `n_i4`；量化的其它分支可查 `n_i8`/`recipe` 字段），
+**不能只看 rc**。
+
+### 24.11 ✅ 步骤 ① 校准集已完成（**右对齐 + 双端口**）
+
+`results/p2_calib_decoder_mask2.npz`（**16.8 MiB**，20:40，耗时 104.5 s）：
+
+| 项 | 值 |
+|---|---|
+| 样本数 | **64** |
+| `inputs_embeds` | `[64, 1, 512, 1024]` f32 |
+| `attention_mask` | `[64, 1, 512]` i64 |
+| 对齐 | **右对齐**（`[pad, content]`，与 `p3_ov_app.py` 一致） |
+| 有效长度 | min **15** / max **109** / mean **71.73** |
+
+⇒ ⚠️ 注意 **有效长度普遍偏短（mean 71.7）** ⇒ 校准时 padding 区占比高
+⇒ 这正是**必须有 mask** 的场景（旧图在这种输入下会把 88% 的位置当有效 token）。
+
+### 24.12 ✅ 步骤 ③ FP16 长跑进行中，**文本正常**
+
+`results/p3_mask2_61min_fp16/segments.jsonl`（20:45，33 段已落盘）**首段文本实测**：
+
+```
+[  0.00-  6.40] rule1 :: All right. Good morning, everyone. Good morning. Let's get started. So well.
+[  6.40- 10.24] rule2 :: Welcome to our Q three twenty six QGS.
+[ 10.24- 16.64] rule1 :: Agenda topics today. We'll talk about three. One. I want to share our engineering strate…
+[208.64-215.04] rule1 :: Through this model, software I want still Lisa's thunder. She'll come and talk about the…
+```
+
+⇒ ✅ **标准英文、正确大小写与标点、无复读、无乱码**
+⇒ ✅ **§23 的修复在真实 App 长跑路径上同样生效**（不止是单点 logits）。
+⇒ 计时口径：本次**全程持规范锁**（`task=p3_mask2_61min_fp16`）⇒ `timing_valid` 预期为 **true**。
