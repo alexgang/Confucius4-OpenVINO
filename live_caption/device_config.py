@@ -361,6 +361,18 @@ def resolve_device(role: str, wanted: Optional[str],
         got = _pick(wanted)
         if got:
             return got, None
+        # 🔴🔴 **`CUDA` 不是 OV 设备，但它是合法的 TTS 设备**（STATUS §40/§41）：
+        #   OV 的 CUDA plugin 官方发行版不带（那是 OV IR 跑 NVIDIA 的限制），
+        #   而 **PyTorch + faster-qwen3-tts** 这条路本机实测可用。
+        #   ⇒ 不特判就会被 `_pick` 判成「本机没有该设备」**静默降级成 NPU**
+        #   （实测：`--tts-device CUDA` 却打印「设备 NPU」）。
+        if role == 'tts' and (wanted or '').strip().upper() == 'CUDA':
+            try:
+                import tts_cuda
+                if tts_cuda.available():
+                    return 'CUDA', None
+            except Exception:
+                pass
         # ⚠️ 用户**显式指定了 CPU** ⇒ 尊重用户选择（CLI 场景），
         #    不因为 CPU 不在清单里就否掉。
         if (wanted or '').strip().upper() == 'CPU':

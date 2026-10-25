@@ -1,26 +1,27 @@
 # STATUS_APP
 last_ack: APP-017
-更新时间: 2026-10-25 21:25
-当前任务: **巡检（APP-017，无新条目）+ §41 三项落地：① 安静窗口闸门 ② 方案 C 渲染层匹配规则对齐 MT 口径（18/21 → 23/23）③ `pkg_exclude.__all__` 悬空名补齐 + 开发专用文件排除**：① ✅ **无新纠偏条目** —— `CORRECTIONS_APP.md` 最大编号 APP-017 = 头部 `last_ack`，本轮**只读零改动**（SHA256 `baaa16ae…` 与开始时逐位一致）；② ✅ **安静窗口闸门**（MT 通知 10 §10.6 / 通知 11 §11.3「取锁 ≠ 空闲」）—— `machine_lock_app.py` 新增 `wait_quiet_window`（stdlib + ctypes，不引 psutil），`pack_v13.py` / `publish_ftp.py` 持锁后再过第二道闸门，**超时 ⇒ 拒绝打包/发布**；③ ✅ **匹配规则**（`caption_render.match_draft_to_final`）—— 发现 MT 侧有**两套**口径（旧 109 / 修正 90）⇒ 引入**独立判据「段号单调性」**裁决 ⇒ 落地方案「三级关系 + 反向拒绝 + 最短剩余正式稿优先 + 全局一对一」，真实语料**段号倒流 0 / 无共用**，验收 **REAL 23/23 + BUG 5/5**；④ ✅ **`pkg_exclude.__all__` 三个悬空名补齐**（原 `import *` 直接抛 `AttributeError`）⇒ 新增「`app/` 下 `_` 前缀脚本」排除规则 ⇒ 客户包 v1.5 里的 `app/_probe_tts_cuda.py`（含开发机绝对路径）**下次打包自动剔出**，但 `selftest_audio_sources.py`（客户自检必需）**不误伤**；⑤ 🔴 **§40 CUDA 路径**（PyTorch+CUDA，TTFA 0.547 s / RTF 0.892）**仍为无锁参考** ⇒ `timing_valid=false`，待锁空闲持锁复测
-阻塞 / 待用户决定: ① 🔴 **待用户决定 CUDA 后端怎么落**（§40.7）：(a) 只做本机可选后端（GUI 第三项、检测不到自动隐藏）⇒ **包体不变**；(b) 进客户包 ⇒ **+5.7 GB / 需独立 env 解决 transformers 5.15.1 冲突**；(c) 先做 CUDA vs NPU 音质抽听再定；② ⛔ **OV 的 CUDA plugin 不引入**（§39.5 依据不变）；③ ⛔ **APP-017 的「检查点 3」**由另一个 App 并行会话在做 ⇒ 本会话不重复跑、不抢锁；④ ⛔ **WER +2.6pp 主因**仍未定位；⑤ ✅ **APP-015 方案 C 渲染层验收已闭环**（§41.3：18/21 ⇒ **23/23 PASS**）—— 但 **`translator.py` 合入仍待 MT 移交**（APP-009② / H-014，App 不代提交）；⑥ ⛔ 包体 10.45 GiB 优化未做；⑦ ⛔ V7 残句代价待确认；⑧ ⛔ 集显 F32 TTS 很慢（首包 33.9 s）；⑨ 🔴 **v1.5 包需重打**（§41.4 新增排除规则 ⇒ 包清单会少 1 个开发探针）—— **本轮未重打**，下次打包时自动生效
+更新时间: 2026-10-25 22:32
+当前任务: **§42 用户反馈「全流程 CUDA/NPU 都没声音」⇒ 两个产品级真因已修**：① `device_config.resolve_device` 把 `CUDA` **静默降级成 NPU**（`_pick('CUDA')` 在 OV 设备清单里找不到 ⇒ 回退默认；改 12 行，修后 `--tts-device CUDA` **真跑 CUDA**：边车就绪 40.3 s / 首包 4.13 s / 播完 1 丢弃 0）；② 🔴🔴 **GUI「语音输出 → 输出设备」传的是 WASAPI 端点 id**（`soundcard` 的 `s.id` = `IMMDevice::GetId()` = `{0.0.0.…}.{guid}`），而 `sounddevice` 只认 **int 索引或设备名子串** ⇒ `ValueError: No output device matching` ⇒ `Player._stream=None` ⇒ **每句都被丢 ⇒ 一句都不出声，与 CUDA/NPU/精度完全无关**（离线复刻证实：GUID ✗ / 名字子串 ✓ / int ✓；同一个 id 在 `make_source('system')` 上是**正确**用法 ⇒ 只改播放层）⇒ 新增 `resolve_out_device` / `_match_output_index` / `_describe_out` + **开流失败回退系统默认**；③ **三层音频判据**（① `n_played` ② 回环 RMS ③ 人耳）落地，`app052` 三例 **0.19658 / 0.11482 / 0.12878 全 PASS** ⇒ **App 侧已把声音送进系统混音器**；④ 新增客户级自检 `app/audio_check.py`；⑤ ⏳ **v1.5 第三次重打待锁**（`mt pid=9748` 自 21:21 持锁，22:24 已 63 min）
+阻塞 / 待用户决定: ① 🔴 **v1.5 第三次重打待机器锁释放**（`mt pid=9748` 自 21:21 持有；按纪律**只等不抢**）：重打内容 = §39 播放修复 + §40/§41 CUDA 边车 + §42 两个修复；② 🔴 **§42.3 的修复待实机验证**（`--out-device {GUID}` ⇒ 应打印「端点 id → … → 播放索引 N」且 `n_played=1`）；③ ✅ **CUDA 落地方式已定**（§41 用户选「只做本机可选后端」）⇒ 不再待决；④ ⛔ **OV 的 CUDA plugin 不引入**（§39.5 依据不变）；⑤ ⛔ **APP-017「检查点 3」**由并发 App 会话在做 ⇒ 本会话不重复跑；⑥ ⛔ **WER +2.6pp 主因**未定位；⑦ ✅ **APP-015 方案 C 渲染层验收 23/23**，但 `translator.py` 合入仍待 MT 移交（APP-009② / H-014，App 不代提交）；⚠️ 并发会话在该文件留的在制品**本轮未动**；⑧ ⛔ 包体 10.45 GiB 优化未做；⑨ ⛔ V7 残句代价待确认；⑩ ⛔ 集显 F32 TTS 慢（首包 33.9 s）
 
 
 ## 最近更新
-- 21:25 §41 ✅ **巡检结论：无新纠偏条目**（`CORRECTIONS_APP.md` 最大 APP-017 = `last_ack`，本轮**只读零改动**，SHA256 `baaa16ae…` 与开始时逐位一致）
-- 21:25 §41 🔴🔴 **匹配规则：MT 侧有【两套】口径**（旧 `dt in ft or ft in dt` = **109** / 修正「方向性前缀+反向拒绝+最短优先+min_len=10」= **90**）⇒ 不能盲从任一套 ⇒ 引入**独立判据「段号单调性」**（产品语义：草稿=段 N 尾半句，正式=凑齐后段 N 或更晚）
-- 21:25 §41 ✅ **落地方案**：三级关系（相等/方向性前缀/子串）+ **反向一律拒绝** + **最短剩余正式稿优先** + **全局一对一**；真实语料（109 draft/158 final）**段号倒流 0 / 无正式稿被多草稿共用**；**不抄** MT 的 `min_len=10`（评测口径会放弃短草稿 ⇒ 渲染层会导致浅色草稿永不替换）
-- 21:25 §41 ✅ **渲染层验收 18/21 ⇒ 23/23 PASS**（BUG 5/5，verdict=PASS）—— R1/R10 是**坏断言**（R1 与 docstring 自相矛盾；R10 与 R3 互斥），R2 是**真实现缺口**
-- 21:25 §41 🔴 **新发现并修掉 `pkg_exclude.__all__` 三个悬空名**（`APP_DIR`/`APP_DEV_ONLY_FILE_RE`/`is_app_dev_only` 从未实现 ⇒ `from pkg_exclude import *` 抛 `AttributeError`）
-- 21:25 §41 ✅ **新增「`app/` 下 `_` 前缀脚本」排除规则** ⇒ 客户包 v1.5 的 `app/_probe_tts_cuda.py`（含开发机绝对路径、全仓库零引用）**下次打包自动剔出**；`selftest_audio_sources.py`（客户自检必需）**不误伤**
-- 21:25 §41 ✅ **安静窗口闸门**（MT 通知 10 §10.6 / 通知 11 §11.3）—— `machine_lock_app.py` 新增 `wait_quiet_window`（stdlib + ctypes，**不引 psutil**），`pack_v13.py` / `publish_ftp.py` 持锁后再过第二道闸门，**超时 ⇒ 拒绝打包/发布**；实测本机 12 个外部 python 进程时正确 `ok=False`
-- 21:25 §41 ✅ **本轮闸门**：新增 `app047_app_gate_test.py` **28/28 PASS**；`app045` 14/14 + BUG 2/2；`app015` 23/23 + BUG 5/5；`test_machine_lock_app` **18/18 无回归**；7 文件 `py_compile` 全过
-- 21:25 §41 🔴 **生效范围**：现网 `translator.py` **不产生** `kind='draft'` 单元 ⇒ 本轮改动**对现网零影响**；待 MT 的 `translator_C.py` 合入后生效
-- 20:50 §40 🔴 **用户追问成立**：PyTorch+CUDA 路径实测跑通 —— `torch 2.11.0+cu128` / sm_120 / **TTFA 0.547 s**、**RTF 0.892**（首包比 NPU 6.964 s 快 **12.7×**）
-- 20:50 §40 🔴 **订正表述边界**：§39.5 的「不可用」只指 **OV 的 CUDA plugin**；**本机 CUDA 完全可用**（matmul 实测通过）
-- 20:50 §40 🔴 **钉版坑**：faster-qwen3-tts 必须 `transformers==5.15.1`，装 5.20.2 会 `MimiConfig` 无 `rope_theta` 直接崩
-- 20:50 §40 💰 **代价实测**：torch 4 211 MB + 依赖 ≈500 MB + HF 权重 2 400 MB ⇒ **+5.7 GB**（包体 ≈17 GB）；与包内 transformers 4.57.6 冲突
-- 20:50 §40 ⚠️ **口径**：无锁参考（asr 持锁）⇒ `timing_valid=false`；持锁复测待锁空闲
-- 19:50 §39.9 ✅ **v1.5 已持锁重打（含播放修复）**：md5 `f8475ce511efef7d13209bf9b64b5b95`、11 216 075 157 B、13 979 条目、**逐字节一致 PASS**
+
+- 22:32 §42 🔴🔴 **真因二（主因）**：GUI「语音输出 → 输出设备」传的是 **WASAPI 端点 id**（`soundcard` 的 `s.id` = `IMMDevice::GetId()`），而 `sounddevice` 只认 int 索引/设备名子串 ⇒ `ValueError: No output device matching` ⇒ `Player._stream=None` ⇒ **每句都被丢** ⇒ 与 CUDA/NPU/精度**全无关**
+- 22:32 §42 ✅ **离线复刻证实**（`ast` 抽 `sounddevice._get_device_id` + 打桩设备表）：GUID → `ValueError`；`Realtek` 子串 → `id=0`；int → `id=0`
+- 22:32 §42 ✅ **修法**：`tts_worker.py` 新增 `resolve_out_device`（GUID → soundcard 端点名 → sounddevice 索引）/ `_match_output_index` / `_describe_out` + **开流失败回退系统默认**；日志改为「实际输出: 名字（hostapi=…, ch=…, sr=…）」
+- 22:32 §42 🔴 **真因一**：`device_config.resolve_device` 把 `CUDA` **静默降级成 NPU**（`_pick('CUDA')` 在 OV 清单里找不到）⇒ 修 12 行；CLI 全流程日志由「设备 NPU」→「设备 CUDA」
+- 22:32 §42 ✅ **修后全流程实测**：`[tts_cuda] 就绪 RTX 5050 / torch 2.11.0+cu128 / 加载 38.2 s / 预热 1.7 s` ⇒ `首包 4.13 s 提交 1 播完 1 丢弃 0 state=ready`
+- 22:32 §42 ✅ **三层音频判据落地**（① `n_played` ② 回环 RMS ③ 人耳）+ `app052` 三例 **0.19658 / 0.11482 / 0.12878 全 PASS** ⇒ 声音**确实进了系统混音器**
+- 22:32 §42 🔴 `app052` 首版只留最后一例（证据被覆盖）⇒ 改 `cases` 数组累加；锁空后重跑留证
+- 22:32 §42 ✅ 新增客户级自检 `app/audio_check.py`（逐台输出端点播 440 Hz，含 hostapi）
+- 22:32 §42 ⛔ **未动 `live_caption_app.py`**（并发会话 APP-015 方案 C 在制品；且 GUID 应在播放层修）
+- 22:32 §42 ⏳ **v1.5 第三次重打未完成**：`mt pid=9748` 自 21:21 持锁（22:24 已 63 min），只等不抢
+- 21:25 §41 ✅ 巡检无新条目（`CORRECTIONS_APP.md` 最大 APP-017 = `last_ack`，只读零改动）
+- 21:25 §41 ✅ 安静窗口闸门 + 方案 C 渲染层 **23/23** + `pkg_exclude.__all__` 悬空名补齐
+- 21:15 §41 ✅ CUDA（PyTorch）做成**本机可选后端**（GUI 第三项、检测不到自动隐藏、包体不变）
+- 20:50 §40 🔴 PyTorch+CUDA 实测跑通：TTFA **0.547 s** / RTF **0.892**（`timing_valid=false`）
+- 19:50 §39.9 ✅ v1.5 已持锁重打（含播放修复）：md5 `f8475ce511efef7d13209bf9b64b5b95`
 
 
 ## §1 现状汇总（2026-10-23）
@@ -7078,3 +7079,120 @@ tts_worker.py --device CUDA
 - **关**：把 venv 改名/删除，或设 `LIVECAP_CUDA_PY=<别的路径>` ⇒ `available()` 为 False ⇒ 该项**自动消失**，
   且 `_tts_device_problem('CUDA')` 会给「未安装 CUDA 后端环境」的说明（**不静默**）。
 - 客户机：**本来就不会有** ⇒ 不会出现、不会报错、**包体不变**。
+
+
+## §42 🔴🔴 用户反馈「全流程 ASR→翻译→语音输出，CUDA 与 NPU 都没声音」⇒ 查出**两个产品级真因**：① 选 CUDA 实际跑的是 NPU ② 🔴🔴 **GUI 把 WASAPI 端点 id 直接塞给 sounddevice ⇒ 播放流根本打不开**（与设备/精度全无关）+ 三层音频判据落地（2026-10-25 22:30）
+
+> 用户原话：「我用本地文件来测试全流程实测ASR->翻译->语音输出，但是无论Cuda还是nPU语音输出没有听到任何声音啊」
+>
+> 结论先给：**GUI 这条路从来就没把播放流打开过**（§42.3）⇒ 换 CUDA / 换 NPU / 换精度**都不会有任何区别**。
+> 而 CLI 那条路（不传 `--tts-out-device`）**能出声** —— 这也解释了为什么 §39 的修复在探针上 PASS、
+> 用户实机仍然「一点声音都没有」。
+
+### §42.1 复现（本地文件 → ASR → 翻译 → 语音输出，客户包 python）
+
+```
+python live_caption_app.py --cli --file <cuda_nostream.wav> --translate en --tts on --tts-device CUDA
+```
+
+| 版本 | 日志关键行 | 结果 |
+|---|---|---|
+| **修前**（`app051_fullpipe_cuda.log`） | `[TTS] worker 已启动（设备 NPU，音色 A，精度 f32）` | 🔴 选了 CUDA，**实际跑 NPU** |
+| **修后**（`app051_fullpipe_cuda2.log`） | `设备 CUDA…` → `[tts_cuda] 就绪：RTX 5050 / torch 2.11.0+cu128 / 加载 38.2s / 预热 1.7s` → `播放流已启动 ⇒ **实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）**` → `[TTS] 首包 4.13s 提交 1 播完 1 丢弃 0 state=ready` | ✅ 真跑 CUDA，**播完 1 句** |
+
+🔴 `device_config.json` 里 `"tts": "CUDA"`（22:07 由用户保存）⇒ GUI 里选的确实是 CUDA，
+但**旧代码把这个选择吃掉了**（§42.2）。
+
+### §42.2 真因一：`device_config.resolve_device()` 把 `CUDA` **静默降级**成 `NPU`
+
+`resolve_device('tts', 'CUDA')` 走 `_pick('CUDA')` —— 那是在 **OV 的设备清单**里找；
+OV 发行版不带 CUDA plugin（§39.5）⇒ 落空 ⇒ 走「回退默认设备」⇒ 返回 **NPU**，
+只在返回值里带一句 `'本机没有设备「CUDA」，已回退到默认设备'`（**不报错、不弹窗、界面照常**）。
+
+修法（`device_config.py`，**+12 行**）：`role == 'tts'` 且 `wanted == 'CUDA'` 且 `tts_cuda.available()`
+⇒ 直接 `return 'CUDA', None`。
+**语义**：`CUDA` 不是 OV 设备，但它是**合法的 TTS 设备**（PyTorch 边车，§41）⇒ 不能拿 OV 的设备清单判它。
+
+### §42.3 🔴🔴 真因二（**「一句都不出声」的主因，GUI 侧**）：`sd.OutputStream(device=<WASAPI GUID>)`
+
+| 环节 | 值 / 行为 |
+|---|---|
+| GUI「语音输出 → 输出设备」 | `self.var_tts_out` 初值 = `self._out_label[init_out]` ⇒ **永远非空** |
+| ↓ 反查 | `out_id = self._out_label_back.get(out_name)` = **`soundcard` 的 `s.id`** |
+| `s.id` 是什么 | `soundcard/mediafoundation.py::_device_id` → `IMMDevice::GetId()` ⇒ `{0.0.0.00000000}.{2e5b3e0f-…}` |
+| ↓ 往下传 | `TTSService(out_device=out_id)` → worker `--out-device` → `Player(device=…)` |
+| ↓ `sounddevice` 怎么解析 | `_get_device_id()` 把「设备名 + hostapi 名」拼起来，对 `device` 的**空格分词**逐个 `find()` ⇒ **GUID 永远 -1** |
+| 结果 | `ValueError: No output device matching '{0.0.0…}'` ⇒ `_stream=None` ⇒ `write()` 抛 `RuntimeError('播放流未打开')` ⇒ **每句都被丢** |
+
+🔴 **离线复刻（不碰任何音频端点）**：用 `ast` 从 `sounddevice.py` 抽出 `_get_device_id` **原文**，
+`exec` 到独立命名空间并打桩两台输出设备：
+
+| 传入 | 结果 |
+|---|---|
+| `{0.0.0.00000000}.{2e5b3e0f-…}`（**GUI 实际传的**） | 🔴 `ValueError: No output device matching '…'` |
+| `Realtek`（设备名子串） | ✅ `id=0` |
+| `0`（int 索引） | ✅ `id=0` |
+
+⚠️ **同一个 id 用在别处是对的**：`make_source('system', system_device=self._out_device_id())`
+要的就是 soundcard 端点 id（GUI「系统输出设备」用它采回环）⇒ **不能改上游**，只能在**播放层**转。
+
+修法（`tts_worker.py`，App）：
+
+| 新增 | 作用 |
+|---|---|
+| `resolve_out_device(device)` | `None`/`int`/设备名 → 原样；**WASAPI id → 反查 `soundcard` 端点名 → 按名字匹配 `sounddevice` 输出索引**；都不行 → `None`（系统默认）+ **明确说明** |
+| `_match_output_index(sd, name)` | 精确 → 前缀 → 子串（忽略大小写） |
+| `_describe_out(sd, dev)` | 人话描述「实际输出：名字（hostapi=…, ch=…, sr=…）」 |
+| `Player.__init__` 回退链 | ① 用解析出的设备开流 ② **打不开就回退系统默认再试一次**（「播到默认设备」远比「一句都不出声」可接受） |
+
+现在日志会说人话：`输出设备解析：'{0.0.0.00000000}.{…}' ⇒ 端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3`。
+
+### §42.4 三层音频判据（本轮立规矩：以后查「没声音」按这个分层）
+
+| 层 | 判据 | 工具 | 能证明什么 |
+|---|---|---|---|
+| ① | `PortAudio` 回调在消费（`n_played` / `n_cb`） | `app039_tts_e2e_smoke.py` | App 把样本**交给了声卡驱动** |
+| ② | **系统混音器收到**（回环录音 RMS） | `app052_audio_loopback_probe.py` | 声音**进了系统输出链** |
+| ③ | 用户耳朵听到 | 只能人听 | 终点设备 / 音量 / 静音 / 插孔 / HDMI |
+
+🔴 `n_played=1` **推不出** ③（§39 已栽过：`played` 只是合成侧记账）。
+🔴 ② 用 `soundcard` 的 **loopback** 录「默认扬声器」、同时用 `sounddevice` 在**同名设备**播放比对 RMS
+—— 两边名字不一致就说明「播的地方 ≠ 听的地方」。
+
+实测（`app052`，2026-10-25 22:13–22:14）：
+
+| 例 | `rms_window` | `peak` | 判定 |
+|---|---|---|---|
+| 440 Hz 测试音 | **0.19658** | —— | PASS |
+| CUDA 合成 wav（`_fq3tts_out/cuda_nostream.wav`） | **0.11482** | 0.5472 | PASS |
+| NPU 合成 wav（`app040_synth_NPU_f16.wav`） | **0.12878** | 0.4882 | PASS |
+
+⇒ **② 通过**：App 播出去的声音**确实进了系统混音器** ⇒ 耳朵仍听不到就只能查 ③。
+⚠️ 现存 json 只留了**最后一例**（脚本首版单输出覆盖，证据链不完整）⇒ 已改成 `cases` 数组累加，
+锁空闲后一次性重跑三例留证（§42.6）。
+
+### §42.5 给用户的自检工具：`app/audio_check.py`
+
+`python app\audio_check.py` ⇒ 列出**所有**输出端点（含 hostapi：MME / 主声音驱动 / WASAPI 都列），
+逐台播两声 440 Hz ⇒ **听到哪台，就在「语音输出 → 输出设备」里选哪台**。
+另有 `--device N` / `--play-wav x.wav`，结尾自带「怎么读结论」三条。
+⚠️ 这是**客户级**工具（不是开发探针）⇒ 放包内 `app/`，同内容也进仓库 `live_caption/` 以便重打可复现。
+
+### §42.6 待办（锁空闲后，本轮**未**做）
+
+1. 🔴 `MACHINE_LOCK` 被 `mt pid=9748` 从 21:21 持有至今（22:24 = **63 min**）⇒ 按纪律**不抢锁、只等** ⇒ 以下全部待锁释放：
+   - `resolve_out_device` **实机验证**（`--out-device {GUID}` ⇒ 日志应出现「端点 id → … → 播放索引 N」且 `n_played=1`）；
+   - `app052` 三例一次性重跑（`--case 440Hz --case CUDA=… --case NPU=…`）留完整证据；
+   - **v1.5 第三次重打**（含 §39 播放修复 + §40/§41 CUDA 边车 + §42 两个修复）。
+2. ⚠️ 本轮两个文件已 `cp` 到包内并核 md5，但**重打以仓库为准** ⇒ 重打前必须 `git show HEAD:` 逐字节比对。
+
+### §42.7 边界 / 不做
+
+- ⛔ **不改 `live_caption_app.py`**：GUI 传 GUID 这件事**在播放层修**（`tts_worker.py`）比改上游安全
+  —— 同一个 id 还被 `make_source('system')` 正确使用；而且该文件工作区里有**并行会话的 APP-015 方案 C 在制品**
+  （工单要求「方案 C 残留 = 0」）⇒ 本轮**一个字都不动**。
+- ⛔ 不把 CUDA 打进客户包（§41 用户决定）；⛔ 不重开 FTP；⛔ 不代提交 `CORRECTIONS_APP.md`。
+- ⚠️ 口径：CUDA 侧 `首包 4.13 s` = **进程内首句**，不是稳态 TTFA 0.547 s（§41.3）。
+- ⚠️ **编号事实**：本文件里 `## §41` 出现**两次**（第 6771 行 = 并发会话的「安静窗口闸门 + 方案 C 渲染层」，
+  第 7022 行 = 本会话的「CUDA 做成可选后端」）。**不回滚、不改别人的章节**，仅在此说明归属 ⇒
+  本章用 **§42** 起号，避免再撞。

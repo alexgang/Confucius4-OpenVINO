@@ -1,0 +1,13 @@
+{
+ "sd_device": 3,
+ "sd_name": "Speaker (Realtek(R) Audio)",
+ "soundcard_speaker": "Speaker (Realtek(R) Audio)",
+ "wav": "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app040_synth_NPU_f16.wav",
+ "sr": 48000,
+ "n": 293759,
+ "rms_all": 0.1223,
+ "rms_window": 0.12878,
+ "peak": 0.4882,
+ "verdict": true,
+ "verdict_note": "② 通过：声音**进了系统混音器** ⇒ App 侧链路没问题，听不到要去查终点设备/音量/插孔"
+}

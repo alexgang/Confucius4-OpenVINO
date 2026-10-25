@@ -1,33 +1,29 @@
 {
-  "device": "GPU.0",
-  "precision": "f32",
+  "device": "CUDA",
+  "precision": "bf16",
   "voice": "A",
   "state": "ready",
   "err": "None",
-  "load_s": 11.01,
+  "load_s": 31.02,
   "ready": true,
-  "first_packet": 33.883,
+  "first_packet": 4.447,
   "played": true,
   "events": [],
   "logs": [
     "[TTS] [tts_worker] 播放流已启动：sr=22050 device=None blocksize=1024 latency=0.18575963718820862",
-    "[TTS][stderr] None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.",
-    "[TTS] [tts_engine] OV 推理精度 = f32（权重位宽恒为 INT8）",
-    "[TTS] [tts_engine] 使用 MultiDecoderBabelVox（解码器多桶 + 左上下文 25 帧）",
-    "[TTS] [tts_engine] 加载模型：device=GPU.0 root=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\models\\qwen3tts cache=C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_npu_cache",
-    "[TTS] [tts_engine] 已把 INFERENCE_PRECISION_HINT=f32 注入 GPU.0 的编译",
-    "[TTS][stderr] The tokenizer you are loading from 'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\models\\qwen3tts\\tokenizer' with an incorrect regex pattern: https://huggingface.co/mistralai/Mistral-Small-3.1-24B-Instruct-2503/discussions/84#69121093e8b480e709447d5e. This will lead to incorrect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.",
-    "[TTS] [tts_engine] 模型加载完成",
-    "[TTS] [tts_engine] SpeakerLibrary 就绪：C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_speakers（4 个音色：cindy, lou, phil, steve）",
-    "[TTS] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\models\\qwen3tts\\voices\\preset_A.wav -> (1, 1024)",
+    "[TTS] [tts_worker] 使用 PyTorch+CUDA 后端（faster-qwen3-tts 边车）",
+    "[TTS] [tts_cuda] 启动 CUDA 边车：C:\\Users\\Trekker-PTL\\_fq3tts_env\\Scripts\\python.exe",
+    "[TTS] [tts_cuda] 就绪：NVIDIA GeForce RTX 5050 Laptop GPU / torch 2.11.0+cu128 / 加载 25.4s / 预热 1.5s",
+    "[TTS] [tts_cuda] 端到端启动耗时 27.2 s",
+    "[TTS] [tts_worker] CUDA 后端自行使用参考音频做音色：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\models\\qwen3tts\\voices\\preset_A.wav",
     "[TTS] [tts_worker] 播放流已启动：sr=24000 device=None blocksize=1024 latency=0.21333333333333335",
     "[TTS] [tts_worker] 播放流已按 24000 Hz 重建",
-    "[TTS] [tts_worker] 模型加载完成 9.3s",
-    "[TTS] 就绪：GPU.0 · 音色 A"
+    "[TTS] [tts_worker] 模型加载完成 27.8s",
+    "[TTS] 就绪：CUDA · 音色 A"
   ],
   "stats": {
     "state": "ready",
-    "first_packet_s": 33.883,
+    "first_packet_s": 4.447,
     "backlog_s": 5.13,
     "max_backlog_s": 5.13,
     "n_dropped": 0,
@@ -35,9 +31,9 @@
     "n_submitted": 1,
     "n_restart": 0,
     "voice": "A",
-    "device": "GPU.0",
+    "device": "CUDA",
     "out_device": null,
     "clone": false
   },
-  "synth_s": 37.03
+  "synth_s": 7.51
 }

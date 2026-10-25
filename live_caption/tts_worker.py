@@ -194,6 +194,89 @@ class RingBuffer:
             self._cv.notify_all()
 
 
+def _match_output_index(sd, name: str):
+    """在 sounddevice 的输出设备里按名字找索引（精确 → 前后缀 → 子串，忽略大小写）。"""
+    try:
+        devs = [(i, d) for i, d in enumerate(sd.query_devices())
+                if d['max_output_channels'] > 0]
+    except Exception:
+        return None
+    low = (name or '').strip().lower()
+    if not low:
+        return None
+    for i, d in devs:                                  # ① 精确同名
+        if d['name'].strip().lower() == low:
+            return i
+    for i, d in devs:                                  # ② 前缀（sounddevice 常带后缀）
+        n = d['name'].strip().lower()
+        if n.startswith(low) or low.startswith(n):
+            return i
+    for i, d in devs:                                  # ③ 子串
+        n = d['name'].strip().lower()
+        if low in n or n in low:
+            return i
+    return None
+
+
+def resolve_out_device(device):
+    """把「WASAPI 端点 id / 设备名 / 索引」统一解析成 sounddevice 认的输出设备。
+
+    🔴🔴 **为什么必须做这一步**（用户反馈「GUI 里无论 CUDA 还是 NPU 都听不到声音」）：
+      GUI 的「语音输出 → 输出设备」下拉值来自 `audio_source.list_output_devices()`，
+      它是 **soundcard 的 WASAPI 端点 id**（形如 `{0.0.0.00000000}.{guid}`）。
+      而 `sounddevice` 的 `device=` 只接受 **int 索引**或**设备名子串**
+      （`sounddevice.py::_get_device_id` 把设备名+hostapi 拼起来做 `find()`）
+      ⇒ GUID **永远匹配不到** ⇒ `ValueError: No output device matching '…'`
+      ⇒ 播放流**打不开** ⇒ 一句都播不出来（**与精度/CUDA/NPU 全无关**）。
+      ⚠️ 同一个 id 用在「系统声音」来源（`make_source('system', system_device=…)`）
+        上是**正确**的（soundcard 要的就是它）⇒ 不能改上游，只能在这里转。
+
+    返回 `(sd_device, note)`：`sd_device` = int / 设备名 / None(=系统默认)。
+    """
+    if device is None:
+        return None, '系统默认设备'
+    if isinstance(device, int):
+        return device, '索引 %d' % device
+    s = str(device).strip()
+    if not s:
+        return None, '系统默认设备'
+    import sounddevice as sd
+    try:                       # ① 本身就是设备名（或名字子串）⇒ 原样交给 sounddevice
+        sd.query_devices(s, 'output')
+        return s, '设备名「%s」' % s
+    except Exception:
+        pass
+    name = None                # ② WASAPI 端点 id ⇒ 反查端点名，再按名字找播放索引
+    try:
+        import soundcard as sc
+        for spk in sc.all_speakers():
+            if spk.id == s:
+                name = spk.name
+                break
+    except Exception:
+        pass
+    if name:
+        idx = _match_output_index(sd, name)
+        if idx is not None:
+            return idx, '端点 id → 「%s」→ 播放索引 %d' % (name, idx)
+        return None, ('端点 id → 「%s」，但 sounddevice 里没有同名播放设备 '
+                      '⇒ 改用系统默认' % name)
+    return None, '无法识别「%s」⇒ 改用系统默认' % s
+
+
+def _describe_out(sd, dev):
+    """人话描述「声音到底去了哪个设备」（写进日志，便于用户自查）。"""
+    try:
+        info = sd.query_devices(dev if dev is not None else sd.default.device[1],
+                                'output')
+        host = sd.query_hostapis(info['hostapi'])['name']
+        return ('%s（hostapi=%s, ch=%d, 设备默认 sr=%d）'
+                % (info['name'], host, info['max_output_channels'],
+                   int(info['default_samplerate'])))
+    except Exception as e:
+        return '（无法解析设备名：%s）' % e
+
+
 class Player:
     """sounddevice 输出流 + 环形缓冲。
 
@@ -213,19 +296,47 @@ class Player:
         self._stream = None
         self._lock = threading.Lock()
         self.n_cb = 0                # 音频回调次数（诊断：0 = 回调根本没跑）
-        try:
-            self._stream = sd.OutputStream(
-                samplerate=sr, channels=1, dtype='float32',
-                device=device, blocksize=CHUNK_SAMPLES,
-                callback=self._cb)
-            self._stream.start()
-            log(f'[tts_worker] 播放流已启动：sr={sr} device={device} '
-                f'blocksize={CHUNK_SAMPLES} '
-                f'latency={getattr(self._stream, "latency", None)}')
-        except Exception as e:
-            log(f'[tts_worker] 播放设备打开失败：{e}')
-            emit({'kind': 'error', 'message': f'播放设备打开失败：{e}'})
-            self._stream = None
+        # 🔴🔴 **把 GUI 的端点 id 转成 sounddevice 认的设备**（见 resolve_out_device）：
+        #   GUI 传的是 WASAPI GUID，直接塞给 `sd.OutputStream` 必然 ValueError
+        #   ⇒ 旧实现「播放设备打开失败」⇒ **一句都不出声**（用户反馈的真因之一）。
+        sd_dev, how = resolve_out_device(device)
+        self.out_how = how
+        self.out_sd_device = sd_dev
+        self.out_desc = _describe_out(sd, sd_dev)
+        self.out_is_default = sd_dev is None
+        if str(device).strip() and device is not None and sd_dev != device:
+            log(f'[tts_worker] 输出设备解析：{device!r} ⇒ {how}')
+        # ① 先用解析出的设备开流；② 失败 ⇒ **回退系统默认再试一次**
+        #   （「一句都不出声」远比「播到默认设备」严重 ⇒ 宁可回退也不静音）
+        err = None
+        for dev_try in ([sd_dev] if sd_dev is None else [sd_dev, None]):
+            try:
+                self._stream = sd.OutputStream(
+                    samplerate=sr, channels=1, dtype='float32',
+                    device=dev_try, blocksize=CHUNK_SAMPLES,
+                    callback=self._cb)
+                self._stream.start()
+                if dev_try is None and sd_dev is not None:
+                    self.out_desc = _describe_out(sd, None)
+                    self.out_is_default = True
+                    log('[tts_worker] ⚠️ 指定的输出设备打不开 ⇒ **已回退到系统默认**'
+                        f'（实际输出: {self.out_desc}）')
+                log(f'[tts_worker] 播放流已启动：sr={sr} '
+                    f'device={"默认设备" if self.out_is_default else dev_try} '
+                    f'⇒ **实际输出: {self.out_desc}** '
+                    f'blocksize={CHUNK_SAMPLES} '
+                    f'latency={getattr(self._stream, "latency", None)}')
+                err = None
+                break
+            except Exception as e:
+                err = e
+                log(f'[tts_worker] 播放设备打开失败（device={dev_try!r}，'
+                    f'{how}）：{e}')
+                self._stream = None
+        if self._stream is None:
+            log('[tts_worker] 🔴 默认设备也打不开 ⇒ 本次会话无法出声'
+                '（请检查系统是否有可用输出端点）')
+            emit({'kind': 'error', 'message': f'播放设备打开失败：{err}'})
 
     def _cb(self, outdata, frames, time_info, status):
         self.n_cb += 1
