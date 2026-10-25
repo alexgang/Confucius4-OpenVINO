@@ -7682,7 +7682,23 @@ check('MATCH', 'M9 真实语料：与「最小改动版」逐条一致',
 
 ### §44.7 git（只提交 App 职责内文件）
 
-> 本节在提交后补记（§43 的做法）。
+| 项 | 值 |
+|---|---|
+| 提交 | **`47ee904`** `docs(app): §44 查出「草稿→正式稿」配对的跨段离群错配 ⇒ 正式稿译文被搬到几十段之外（MT 通知 13 的「假前缀」在 App 渲染层同样成立）` |
+| 变更 | **8 files changed, 2049 insertions(+), 19 deletions(-)** |
+| 提交的文件（**仅 App 职责内**） | `status/app/STATUS_APP.md`（M，+303/−19）<br>`results/app/app053_draft_prefix_boundary_probe.py`（新）<br>`results/app/app053_draft_prefix_boundary_evidence.json`（新）<br>`results/app/app053_caption_render_segcap_candidate.py`（新）<br>`results/app/app053_m9_assertion_candidate.txt`（新）<br>`results/app/app053_regression_check.py`（新）<br>`results/app/app053_append_status44.py`（新）<br>`results/app/_sec44_body.md`（新，§44 中间稿） |
+| push | `12f4cbf..47ee904  main -> main` ⇒ **普通快进，未 force** |
+| 远端 `origin/main` | `47ee904cf3ffbbb8425df27ba9de73fb24290aac` |
+| 未推送 | **空**（`git log origin/main..HEAD` 无输出） |
+| 分支 | 只保留 **main** |
+
+🔴 **未提交（保留在工作区，未吞）**：`status/app/CORRECTIONS_APP.md`（reviewer 独占）、
+`live_caption/live_caption_app.py`（方案 C 在制品）、`pack_v13.py`、`pkg_exclude.py`、
+`status/CORRECTIONS.md` 及其它模块的未提交改动。
+
+🔴 **并发会话的提交未被吞**：本轮 push 的起点是 **`12f4cbf`**（**ASR §27**，非上轮的 `3622d80`）
+⇒ 期间 ASR 会话提交过一次 ⇒ 本次 push 为 `12f4cbf..47ee904` **普通快进**
+⇒ ASR 的 `status/asr/STATUS_ASR.md` 改动**完整保留**在历史中。
 
 ---
 
