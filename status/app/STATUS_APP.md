@@ -7411,10 +7411,18 @@ sleeper pid 37712 cpu a=0.1875 b=0.1875 delta=0.0000   ← 稳态增量确实是
 
 ### §43.6 git
 
-- commit：**（见 §43.7）**
-- 远端 `CORRECTIONS_APP.md` blob **未提交**（reviewer 独占文件）；`status/CORRECTIONS.md`、
-  `live_caption/live_caption_app.py`（并发会话 APP-015 方案 C 在制品）、`live_caption/translator.py`
-  **全部保留在工作区（未吞）**。
+- commit：**`65e6627`**（**6 个 App 职责内文件**：`machine_lock_app.py` / `results/app/app037_quiet_window.py`（新增）/
+  `results/app/app049_quiet_cpu_classifier_test.py`（新增）/ `results/app/app049_quiet_cpu_classifier_evidence.json`（新增）/
+  `results/app/app052_audio_loopback_probe.json` / `status/app/STATUS_APP.md`）
+  ⇒ **1168 insertions / 18 deletions**；
+- push：`git push origin main` **普通快进** `92c72f5..65e6627`（**未 force**）⇒
+  `git ls-remote origin main` = `65e6627f09e288aa99a209e95cfb5b55c228b137`；
+- 🔴 **远端 `CORRECTIONS_APP.md` blob 仍是 `7082400bf16d739f161dc98d0cb4cb6ef5fda015`**
+  ⇒ **未提交 reviewer 独占文件**（工作区显示 `M` 的是 **reviewer 自己**的未提交改动）；
+- 🔴 **未吞** ASR / MT / TTS 其它模块的未提交改动（`status/CORRECTIONS.md`、
+  `live_caption/live_caption_app.py`（并发会话 APP-015 方案 C 在制品）、`live_caption/translator.py`、
+  `pack_v13.py` / `pkg_exclude.py`（并发会话的「包内本地模块导入完整性」闸门在制品）**全部保留在工作区**）；
+- ⚠️ 本轮 push 的 HEAD 父提交是 `92c72f5`（**并发 App 会话**的 §42 v1.5 重打提交）⇒ 非我提交，**未回滚**。
 
 ### §43.7 ⛔ 仍未闭环（**如实记录，本轮未推进**）
 
