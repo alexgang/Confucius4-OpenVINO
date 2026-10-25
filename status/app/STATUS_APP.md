@@ -8185,3 +8185,17 @@ suspect count: 56
 | 10 | ⛔ **APP-015 方案 C 的 `translator.py` 合入** | 待 MT 移交（**MT 管辖，App 不代提交**） |
 | 11 | ⛔ **APP-017「检查点 3」** | 由**并发 App 会话**在做 ⇒ 本会话不重复跑、不抢锁 |
 | 12 | ⛔ **包体 10.45 GiB 优化 / V7 残句代价 / 集显 F32 TTS 慢** | 未推进 |
+
+### §46.8 git 提交
+
+| 项 | 值 |
+|---|---|
+| commit | **`61f1d62`** `fix(app): §46 把「包内本地模块导入完整性」闸门入库（防 ModuleNotFoundError 漏到客户手里）` |
+| 文件数 | **5**（**全部 App 职责内**）：`pack_v13.py` / `pkg_exclude.py` / `results/app/app048_pkg_import_integrity_gate.py` / `results/app/app048_pkg_import_integrity_evidence.json` / `status/app/STATUS_APP.md` |
+| 变更量 | **+984 / −18** |
+| push | `git push origin main` **普通快进** `75bdc38..61f1d62`（**未 force**）⇒ `origin/main` == `61f1d62` |
+| 🔴 **未提交** `status/app/CORRECTIONS_APP.md` | 远端 blob 仍是 **`7082400bf16d739f161dc98d0cb4cb6ef5fda015`** ⇒ **reviewer 独占文件零改动** |
+| 🔴 **他模块改动** | `live_caption/live_caption_app.py`（方案 C 在制品）/ `status/CORRECTIONS.md` / `regen_seg_wavs.py` / `verify_segmentation.py` / `live_caption/diag_c111_*`（**60+** 个）/ ASR 的 `c0*.py`（**40+** 个）**全部保留在工作区，未吞**（本轮提交后 `git status --short` 仍有 **434** 项） |
+| 提交前自检 | `git diff --cached --name-only \| grep -c CORRECTIONS` = **0**；暂存区 U+FFFD 计数 = **0**；内部会议判据关键词命中 = **0**；`py_compile` × 3 全过 |
+
+🔴 **本轮只提交了「本会话自己产出的 App 职责内文件」**，逐文件 `git add`（**不用 `-A`**）。
