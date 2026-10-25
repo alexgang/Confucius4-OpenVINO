@@ -667,6 +667,10 @@ def _verify_and_report(ZIP, args, PKG, PREFIX):
 
     🔴 **不在这里改名** —— 改名由 `_finish()` 在全部校验通过后做。
     """
+    # 🔴 预置：下面 `with` 块里才赋值，但**函数末尾的 FAIL 判定**要用
+    #    ⇒ 必须先给默认值，否则某些提前 return 的路径会 NameError。
+    certain = []
+    suspect = []
     with zipfile.ZipFile(ZIP, 'r') as zf:
         bad = zf.testzip()
         if bad is None:
@@ -808,6 +812,61 @@ def _verify_and_report(ZIP, args, PKG, PREFIX):
         for n in devonly_hit[:20]:
             print(f'      ⚠️ {n}')
 
+        # 🔴🔴 **包内本地模块导入完整性**（APP-042）
+        #    真实故障形态：同步脚本给 `app/live_caption_app.py` 加了
+        #    `import caption_render`，却**漏了复制** `caption_render.py`
+        #    ⇒ 客户包启动即 `ModuleNotFoundError`，
+        #    而打包流水线**全绿**（zip 完整 / MANIFEST 一致 / 逐字节一致）
+        #    ⇒ **缺陷直接漏到客户手里**。
+        #    ⇒ 这道断言是「包能不能跑」的最后一道闸门。
+        #    ⚠️ 判据只查**包内 `app/` 下的 `.py`**（客户包的本地模块都在这），
+        #       第三方依赖（numpy / soundcard）不在 `app/` 下 ⇒ 不报。
+        #    ⚠️ 用 `ast` **静态**解析，不 import、不执行任何包内代码。
+        app_py_in_zip = sorted(
+            n for n in names
+            if n.startswith(f'{PREFIX}/app/') and n.endswith('.py')
+        )
+        # zip 内 app/ 的模块名清单（比包目录更权威 —— 这是真正要交付的内容）
+        zip_app_modules = {n.rsplit('/', 1)[-1][:-3] for n in app_py_in_zip}
+        missing_local = []
+        for n in app_py_in_zip:
+            try:
+                src = zf.read(n).decode('utf-8')
+            except (KeyError, UnicodeDecodeError):
+                continue
+            # 🔴 去重：同一文件里同一模块可能 import 多次 ⇒ 只报一次
+            seen_mod = set()
+            for mod in pkg_exclude._iter_local_imports(src):
+                if mod in seen_mod:
+                    continue
+                seen_mod.add(mod)
+                if mod in zip_app_modules:
+                    continue
+                if mod in pkg_exclude._LOCAL_MODULE_ALLOW:
+                    continue
+                missing_local.append((n[len(PREFIX) + 1:], mod))
+        # 「确定缺失」= 仓库 `live_caption/` 里确实有同名 `.py`
+        repo_modules = set()
+        repo_live = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 'live_caption')
+        if os.path.isdir(repo_live):
+            repo_modules = {fn[:-3] for fn in os.listdir(repo_live)
+                            if fn.endswith('.py')}
+        certain = [(f, m) for f, m in missing_local if m in repo_modules]
+        suspect = [(f, m) for f, m in missing_local if m not in repo_modules]
+        print()
+        print('包内本地模块导入完整性（app/ 下互引）：')
+        print(f'  zip 内 app/*.py = {len(app_py_in_zip)} 个；'
+              f'检查出 {len(certain)} 条确定缺失 / {len(suspect)} 条疑似')
+        print(f'  [{"OK" if not certain else "缺失"}] 确定缺失的本地模块 '
+              f'（{len(certain)} 条）')
+        for f, m in certain[:20]:
+            print(f'      ⚠️ {f}  →  import {m}（仓库有 {m}.py，包内没有）')
+        if suspect:
+            print(f'  [提示] 疑似第三方依赖（不判负）：{len(suspect)} 条')
+            for f, m in suspect[:10]:
+                print(f'      · {f}  →  {m}')
+
     print()
     # 🔴🔴 **内容级**校验：zip ⇄ 包目录 逐文件 SHA256（防「打包期间包目录被改过」）
     content_ok = True
@@ -832,7 +891,7 @@ def _verify_and_report(ZIP, args, PKG, PREFIX):
     print()
     if (missing or stale or stale_prefix or not mt_dirs_ok or not files_ok
             or not bytes_ok or spoken_hit or internal_hit or tts_bad
-            or not content_ok):
+            or certain or not content_ok):
         print('结论：FAIL')
         return False
     return True

@@ -81,6 +81,8 @@ __all__ = [
     'iter_package_files',
     'package_stats',
     'iter_excluded',
+    'APP_LOCAL_MODULE_RE',
+    'find_missing_local_modules',
 ]
 
 # ── 按**目录名**排除（任意层级）──────────────────────────────────────
@@ -219,6 +221,178 @@ def is_app_dev_only(relpath: str) -> bool:
 def _top_dir(relpath: str) -> str:
     """相对路径的第一段（顶层目录名）；顶层文件返回 ''。"""
     return relpath.split('/', 1)[0] if '/' in relpath else ''
+
+
+# ══════════════════════════════════════════════════════════════════════
+# 包内**本地模块**导入完整性（APP-042）
+# ══════════════════════════════════════════════════════════════════════
+#
+# 🔴 **要防的故障（真实发生过，不是假想）**：
+#   `app/live_caption_app.py` 里新增了 `import caption_render`，
+#   但同步脚本只替换了 `live_caption_app.py`、**漏了复制新的
+#   `caption_render.py`** ⇒ 客户包启动即 `ModuleNotFoundError`。
+#   ⇒ **包内代码互相 import 的本地模块必须都在包内**。
+#
+# 🔴 **为什么用 `ast` 静态解析而不是真 import**：
+#   - 真 import 会**执行**模块顶层代码（`app/` 下的模块一 import numpy
+#     就可能 abort，见项目铁律「分析脚本一律不要 import 被测模块」）；
+#   - 包内文件数以万计，真 import 无法在打包校验的合理耗时内完成。
+#   ⇒ `ast.parse` 只看语法树，**不执行任何代码**。
+#
+# ⚠️ **只查 `app/` 下的模块**：客户包 `app/` 是一组**平铺**的本地模块
+#   （`from translator import X` 这种同目录 import），而 `python/` 下的
+#   site-packages 是第三方依赖，不属于「本地模块缺失」范畴。
+
+#: `app/` 下的本地模块名（不含扩展名）—— 由包内文件清单推导。
+APP_LOCAL_MODULE_RE = re.compile(r'^app/([A-Za-z_][A-Za-z0-9_]*)\.py$')
+
+#: 这些名字**不是**本地模块（标准库 / 第三方 / 包内但不在 app/ 下）。
+_LOCAL_MODULE_ALLOW = frozenset({
+    # 标准库里最常见的同名项（防止把 `import xml` 之类误判成缺模块）
+    '__future__',
+    'xml', 'os', 'sys', 'json', 're', 'time', 'math', 'audio', 'queue',
+    'email', 'http', 'logging', 'typing', 'unittest', 'argparse', 'asyncio',
+    'dataclasses', 'subprocess', 'threading', 'collections', 'pathlib',
+    'tempfile', 'traceback', 'warnings', 'pickle', 'socket', 'sqlite3',
+    'struct', 'random', 'uuid', 'hashlib', 'base64', 'copy', 'csv',
+    'datetime', 'glob', 'html', 'itertools', 'functools', 'inspect',
+    'io', 'ipaddress', 'mmap', 'numbers', 'operator', 'shutil', 'signal',
+    'stat', 'string', 'textwrap', 'tokenize', 'types', 'unicodedata',
+    'urllib', 'zipfile', 'ctypes', 'abc', 'contextlib', 'enum', 'errno',
+    'gc', 'getpass', 'importlib', 'inspect', 'ipaddress', 'json',
+    'keyword', 'locale', 'marshal', 'numbers', 'operator', 'pprint',
+    'pty', 'pwd', 'py_compile', 'reprlib', 'secrets', 'select', 'selectors',
+    'site', 'ssl', 'stat', 'string', 'symtable', 'sysconfig', 'tarfile',
+    'token', 'trace', 'unicodedata', 'venv', 'webbrowser', 'zlib',
+})
+
+
+def _iter_local_imports(src_text: str):
+    """从一段 Python 源码里抽出它引用的**本地模块名**。
+
+    产出模块名（不含扩展名），形如 ``caption_render``。
+
+    🔴 **只认「同目录平铺模块」形态**：
+       - ``import caption_render``        ⇒ ``caption_render``
+       - ``import caption_render as cr``  ⇒ ``caption_render``
+       - ``from caption_render import X`` ⇒ ``caption_render``
+       - ``from . import caption_render`` ⇒ ``caption_render``
+       - ``from .caption_render import X``⇒ ``caption_render``
+
+    ⚠️ **不认** ``from a.b import c``（子包形态）—— `app/` 下没有子包；
+       遇到时按「顶层名 ``a``」处理是**错的**（``a.b`` 可能是第三方），
+       所以这里**直接跳过**，避免把第三方包误报成缺失。
+    """
+    import ast
+    try:
+        tree = ast.parse(src_text)
+    except SyntaxError:
+        # 语法错误不该让打包校验崩掉；调用方会另外报语法问题。
+        return
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                # `import a.b` → 只取顶层 `a`（但子包形态在 app/ 下不存在，
+                # 这里保守取顶层名即可，见下方白名单过滤）
+                top = alias.name.split('.')[0]
+                yield top
+        elif isinstance(node, ast.ImportFrom):
+            if node.level and node.level > 0:
+                # 相对导入：`from . import X` / `from .X import Y`
+                for alias in node.names:
+                    if alias.name != '*':
+                        yield alias.name
+                continue
+            if not node.module:
+                continue
+            # `from a.b import c` —— 子包形态 ⇒ 跳过（避免误报第三方包）
+            if '.' in node.module:
+                continue
+            yield node.module
+
+
+def find_missing_local_modules(pkg_root: str, known_modules=None):
+    """检查客户包 ``app/`` 下的**本地模块导入完整性**。
+
+    返回 ``(certain, suspect, checked)``：
+
+    - ``certain`` : **确定缺失**的 ``(引用方相对路径, 模块名)`` 列表。
+      判据：包内 ``app/`` 下**没有**该 ``.py``，但**仓库源目录**里
+      **确实有**同名 ``.py`` ⇒ 它是**本地模块**，只是**没被带进包**
+      ⇒ **真故障**，必须让打包 FAIL。
+    - ``suspect`` : **疑似缺失**的同名结构列表。
+      判据：包内没有、仓库源里也没有 ⇒ 可能是**第三方依赖**
+      （``numpy`` / ``soundcard`` / …）⇒ **只提示，不判负**。
+    - ``checked`` : 被检查过的 ``app/*.py`` 文件数。
+
+    🔴 **为什么要这道闸门**（见上方注释）：
+       同步脚本做「精确字符串替换」时，新增一个 ``import X`` 的同时
+       **可能漏掉把 ``X.py`` 复制进包** ⇒ 客户包启动即
+       ``ModuleNotFoundError``，而打包流水线**全绿**（zip 完整、
+       MANIFEST 一致、逐字节一致）⇒ **缺陷会直接漏到客户手里**。
+
+    ⚠️ **判据边界**（避免误报，这是本函数最关键的设计）：
+       「包内没有」**不足以**判定缺失 —— 第三方依赖也满足这个条件。
+       ⇒ 必须引入**外部基准**：``known_modules``
+       （默认由调用方传入「仓库 `live_caption/` 下的 `.py` 名」）
+       ⇒ 只有「仓库里存在 ⇒ 本该在包内，却没在」才算**确定缺失**。
+
+    🔴 **`known_modules` 为什么必须由调用方传入**：
+       本模块刻意**零依赖**（不 import 仓库任何其他模块），
+       而「仓库 `live_caption/` 的文件名清单」需要知道仓库在哪
+       ⇒ 只能由调用方（`pack_v13.py` / 测试脚本）传入。
+    """
+    import os
+
+    pkg_root = os.path.abspath(pkg_root)
+    app_dir = os.path.join(pkg_root, APP_DIR.rstrip('/'))
+
+    if not os.path.isdir(app_dir):
+        return [], [], 0
+
+    if known_modules is None:
+        known_modules = set()
+
+    # 包内 app/ 下实际存在的模块名
+    present = set()
+    py_files = []
+    for fn in sorted(os.listdir(app_dir)):
+        if not fn.endswith('.py'):
+            continue
+        py_files.append(fn)
+        present.add(fn[:-3])
+
+    certain = []
+    suspect = []
+    for fn in py_files:
+        full = os.path.join(app_dir, fn)
+        try:
+            with open(full, 'rb') as f:
+                raw = f.read()
+        except OSError:
+            continue
+        try:
+            src = raw.decode('utf-8')
+        except UnicodeDecodeError:
+            src = raw.decode('utf-8', 'replace')
+        # 🔴 **去重**：同一文件里同一模块可能被 import 多次
+        #    （`import soundcard` 出现在 5 个函数里）⇒ 只报一次。
+        seen = set()
+        for name in _iter_local_imports(src):
+            if name in seen:
+                continue
+            seen.add(name)
+            if name in present:
+                continue
+            if name in _LOCAL_MODULE_ALLOW:
+                continue
+            if name in known_modules:
+                certain.append((f'{APP_DIR}{fn}', name))
+            else:
+                suspect.append((f'{APP_DIR}{fn}', name))
+
+    return certain, suspect, len(py_files)
 
 
 def is_excluded(relpath: str, top_dir: str = None) -> bool:

@@ -1,0 +1,147 @@
+{
+  "task": "「包内本地模块导入完整性」闸门（APP-042）：防 ModuleNotFoundError 漏到客户手里",
+  "generated_at": "2026-10-26 04:27:29",
+  "discipline": {
+    "no_model_import": true,
+    "no_inference": true,
+    "no_benchmark": true,
+    "no_gpu": true,
+    "no_real_machine_lock": true,
+    "no_minimax": true,
+    "no_write_to_pkg": true,
+    "static_ast_only": true
+  },
+  "judgement": {
+    "certain": "包内无 + 仓库有 ⇒ 本地模块漏带 ⇒ 真故障 ⇒ 打包 FAIL",
+    "suspect": "包内无 + 仓库无 ⇒ 可能是第三方依赖 ⇒ 仅提示，不判负"
+  },
+  "summary": {
+    "total": 10,
+    "pass": 10,
+    "fail": 0,
+    "verdict": "PASS",
+    "elapsed_s": 0.415
+  },
+  "results": [
+    {
+      "group": "REAL",
+      "name": "R1 真实包 app/*.py 全部被检查（>0）",
+      "ok": true,
+      "detail": "checked=20"
+    },
+    {
+      "group": "REAL",
+      "name": "R2 真实包**无**确定缺失的本地模块（当前 PASS）",
+      "ok": true,
+      "detail": "certain=[]"
+    },
+    {
+      "group": "REAL",
+      "name": "R3 疑似项只作提示（第三方依赖），数量合理",
+      "ok": true,
+      "detail": "suspect=56 例: [('app/_probe_tts_cuda.py', 'openvino'), ('app/_probe_tts_cuda.py', 'numpy'), ('app/audio_check.py', 'wave'), ('app/audio_check.py', 'numpy'), ('app/audio_check.py', 'sounddevice')]"
+    },
+    {
+      "group": "REAL",
+      "name": "R4 疑似档确实捕获到第三方依赖（证明不误伤必需）",
+      "ok": true,
+      "detail": "第三方名: ['PIL', 'array', 'atexit', 'av', 'babelvox', 'faster_qwen3_tts', 'native_stream', 'numpy']"
+    },
+    {
+      "group": "REAL",
+      "name": "R5 现状基线：开发探针仍在包内（本轮未重打，§41.7⑦）",
+      "ok": true,
+      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\app\\_probe_tts_cuda.py 存在 ⇒ 待下次打包剔除"
+    },
+    {
+      "group": "BUG",
+      "name": "S1 真故障被抓住：引用了包内没有的本地模块",
+      "ok": true,
+      "detail": "certain=[('app/live_caption_app.py', 'caption_render')]"
+    },
+    {
+      "group": "BUG",
+      "name": "S2 包内存在的模块不报缺失（translator 在包里）",
+      "ok": true,
+      "detail": "certain=[('app/live_caption_app.py', 'caption_render')]"
+    },
+    {
+      "group": "BUG",
+      "name": "S3 标准库不报缺失（os）",
+      "ok": true,
+      "detail": "suspect=[]"
+    },
+    {
+      "group": "BUG",
+      "name": "S4 第三方依赖（numpy/soundcard/openvino）不判确定缺失",
+      "ok": true,
+      "detail": "certain=[]"
+    },
+    {
+      "group": "BUG",
+      "name": "S5 第三方依赖落到「疑似」档（仅提示）",
+      "ok": true,
+      "detail": "suspect=[('app/live_caption_app.py', 'numpy'), ('app/live_caption_app.py', 'soundcard'), ('app/live_caption_app.py', 'openvino')]"
+    },
+    {
+      "group": "BUG",
+      "name": "S6 无基准（known_modules 为空）⇒ 不判确定缺失",
+      "ok": true,
+      "detail": "certain=[] suspect=[('app/live_caption_app.py', 'caption_render')]"
+    },
+    {
+      "group": "BUG",
+      "name": "S7 五种 import 形态都识别为 caption_render",
+      "ok": true,
+      "detail": "certain=[('app/main.py', 'caption_render')]"
+    },
+    {
+      "group": "BUG",
+      "name": "S8 子包形态 import 不判确定缺失",
+      "ok": true,
+      "detail": "certain=[] suspect=[]"
+    },
+    {
+      "group": "BUG",
+      "name": "S9 语法错误文件不导致闸门崩溃",
+      "ok": true,
+      "detail": "certain=[('app/ok.py', 'caption_render')]"
+    },
+    {
+      "group": "BUG",
+      "name": "S10 真实故障形态：漏复制 caption_render.py 被精确抓住",
+      "ok": true,
+      "detail": "certain=[('app/live_caption_app.py', 'caption_render')]"
+    },
+    {
+      "group": "WIRE",
+      "name": "W1 pack_v13 调用 find_missing_local_modules 或 _iter_local_imports",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "WIRE",
+      "name": "W2 pack_v13 有「包内本地模块导入完整性」断言",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "WIRE",
+      "name": "W3 pack_v13 的 FAIL 条件含 certain（确定缺失 ⇒ 判负）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "WIRE",
+      "name": "W4 pkg_exclude.__all__ 导出新 API",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "WIRE",
+      "name": "W5 pkg_exclude 新 API 在 __all__ 里且可调用",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}
