@@ -506,6 +506,11 @@ def main():
                          '（默认开启；关闭可省约 5~6 min 与十几 GB 磁盘读）')
     ap.add_argument('--no-lock', action='store_true',
                     help='不取共享机器锁（默认取；打包是长时重活，会干扰其它模块计时）')
+    ap.add_argument('--lock-timeout', type=float, default=10800.0,
+                    help='等待共享机器锁的秒数（默认 10800 = 3 小时）'
+                         '⚠️ 实测（2026-10-25）：四个模块**轮流**用锁时，'
+                         '1 小时的等待不够（TTS 拿了 30 min、MT 又接上）'
+                         '⇒ 打包进程会**空等超时退出**（安全：旧包不动、无残留）')
     args = ap.parse_args()
 
     # 🔴 打包是**长时重活**（压缩 13.7 GB + 逐文件 SHA256 复核 11.2 GB zip）
@@ -518,7 +523,8 @@ def main():
             print('[warn] 无法 import machine_lock_app ⇒ 未持共享机器锁')
         return _run(args)
 
-    lk = machine_lock_app.LockHeld(module='app-pack', timeout=3600)
+    print(f'[lock] 等待共享机器锁（最多等 {args.lock_timeout:.0f}s）…')
+    lk = machine_lock_app.LockHeld(module='app-pack', timeout=args.lock_timeout)
     if not lk.acquire():
         print('!! 未能取得共享机器锁 ⇒ 拒绝打包（避免干扰其它模块计时）')
         return 1
