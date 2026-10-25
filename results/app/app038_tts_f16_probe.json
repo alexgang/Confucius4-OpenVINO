@@ -1,0 +1,175 @@
+{
+  "ir_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\models\\qwen3tts\\int8",
+  "devices": [
+    "CPU",
+    "GPU.0",
+    "GPU.1",
+    "NPU"
+  ],
+  "runs": {
+    "GPU.0@f32": {
+      "ok": 7,
+      "total": 7,
+      "per_ir": {
+        "code_predictor.xml": {
+          "ok": true,
+          "sec": 2.42,
+          "err": ""
+        },
+        "cp_decode.xml": {
+          "ok": true,
+          "sec": 1.89,
+          "err": ""
+        },
+        "cp_prefill.xml": {
+          "ok": true,
+          "sec": 1.87,
+          "err": ""
+        },
+        "speaker_encoder.xml": {
+          "ok": true,
+          "sec": 2.87,
+          "err": ""
+        },
+        "talker.xml": {
+          "ok": true,
+          "sec": 3.21,
+          "err": ""
+        },
+        "talker_decode.xml": {
+          "ok": true,
+          "sec": 5.42,
+          "err": ""
+        },
+        "talker_prefill.xml": {
+          "ok": true,
+          "sec": 4.98,
+          "err": ""
+        }
+      }
+    },
+    "GPU.0@f16": {
+      "ok": 7,
+      "total": 7,
+      "per_ir": {
+        "code_predictor.xml": {
+          "ok": true,
+          "sec": 0.65,
+          "err": ""
+        },
+        "cp_decode.xml": {
+          "ok": true,
+          "sec": 0.42,
+          "err": ""
+        },
+        "cp_prefill.xml": {
+          "ok": true,
+          "sec": 0.46,
+          "err": ""
+        },
+        "speaker_encoder.xml": {
+          "ok": true,
+          "sec": 0.46,
+          "err": ""
+        },
+        "talker.xml": {
+          "ok": true,
+          "sec": 2.7,
+          "err": ""
+        },
+        "talker_decode.xml": {
+          "ok": true,
+          "sec": 2.59,
+          "err": ""
+        },
+        "talker_prefill.xml": {
+          "ok": true,
+          "sec": 2.66,
+          "err": ""
+        }
+      }
+    },
+    "GPU.1@f32": {
+      "ok": 3,
+      "total": 7,
+      "per_ir": {
+        "code_predictor.xml": {
+          "ok": false,
+          "sec": 1.15,
+          "err": "!kernels.empty()' failed at src\\plugins\\intel_gpu\\src\\kernel_selector\\kernel_selector.cpp:70: [GPU] Could not find a suitable kernel for convert:Constant_511 params raw string: F16_BFYX_v1_p0_0_v1_p0_0_v64_p0_0_v1_p0_0;F32_BFYX_v1_p0_0_v1_p0_0_v64_p0_0_v1_p0_0"
+        },
+        "cp_decode.xml": {
+          "ok": false,
+          "sec": 0.54,
+          "err": "!kernels.empty()' failed at src\\plugins\\intel_gpu\\src\\kernel_selector\\kernel_selector.cpp:70: [GPU] Could not find a suitable kernel for convert:/rotary_emb/Cast_2 params raw string: F16_BFYX_v1_p0_0_v1_p0_0_v64_p0_0_v1_p0_0;F32_BFYX_v1_p0_0_v1_p0_0_v64_p0_0_v1_p0_0"
+        },
+        "cp_prefill.xml": {
+          "ok": false,
+          "sec": 0.45,
+          "err": "!kernels.empty()' failed at src\\plugins\\intel_gpu\\src\\kernel_selector\\kernel_selector.cpp:70: [GPU] Could not find a suitable kernel for convert:Constant_496 params raw string: F16_BFYX_v1_p0_0_v1_p0_0_v64_p0_0_v1_p0_0;F32_BFYX_v1_p0_0_v1_p0_0_v64_p0_0_v1_p0_0"
+        },
+        "speaker_encoder.xml": {
+          "ok": true,
+          "sec": 0.82,
+          "err": ""
+        },
+        "talker.xml": {
+          "ok": true,
+          "sec": 3.3,
+          "err": ""
+        },
+        "talker_decode.xml": {
+          "ok": false,
+          "sec": 2.79,
+          "err": "!kernels.empty()' failed at src\\plugins\\intel_gpu\\src\\kernel_selector\\kernel_selector.cpp:70: [GPU] Could not find a suitable kernel for convert:/rotary_emb/Cast_1 params raw string: F16_BFYX_v1_p0_0_v64_p0_0_v1_p0_0_v3_p0_0;F32_BFYX_v1_p0_0_v64_p0_0_v1_p0_0_v3_p0_0"
+        },
+        "talker_prefill.xml": {
+          "ok": true,
+          "sec": 3.46,
+          "err": ""
+        }
+      }
+    },
+    "GPU.1@f16": {
+      "ok": 3,
+      "total": 7,
+      "per_ir": {
+        "code_predictor.xml": {
+          "ok": false,
+          "sec": 0.56,
+          "err": "!kernels.empty()' failed at src\\plugins\\intel_gpu\\src\\kernel_selector\\kernel_selector.cpp:70: [GPU] Could not find a suitable kernel for convert:Constant_511 params raw string: F16_BFYX_v1_p0_0_v1_p0_0_v64_p0_0_v1_p0_0;F32_BFYX_v1_p0_0_v1_p0_0_v64_p0_0_v1_p0_0"
+        },
+        "cp_decode.xml": {
+          "ok": false,
+          "sec": 0.56,
+          "err": "!kernels.empty()' failed at src\\plugins\\intel_gpu\\src\\kernel_selector\\kernel_selector.cpp:70: [GPU] Could not find a suitable kernel for convert:/rotary_emb/Cast_2 params raw string: F16_BFYX_v1_p0_0_v1_p0_0_v64_p0_0_v1_p0_0;F32_BFYX_v1_p0_0_v1_p0_0_v64_p0_0_v1_p0_0"
+        },
+        "cp_prefill.xml": {
+          "ok": false,
+          "sec": 0.46,
+          "err": "!kernels.empty()' failed at src\\plugins\\intel_gpu\\src\\kernel_selector\\kernel_selector.cpp:70: [GPU] Could not find a suitable kernel for convert:Constant_496 params raw string: F16_BFYX_v1_p0_0_v1_p0_0_v64_p0_0_v1_p0_0;F32_BFYX_v1_p0_0_v1_p0_0_v64_p0_0_v1_p0_0"
+        },
+        "speaker_encoder.xml": {
+          "ok": true,
+          "sec": 0.66,
+          "err": ""
+        },
+        "talker.xml": {
+          "ok": true,
+          "sec": 3.36,
+          "err": ""
+        },
+        "talker_decode.xml": {
+          "ok": false,
+          "sec": 3.05,
+          "err": "!kernels.empty()' failed at src\\plugins\\intel_gpu\\src\\kernel_selector\\kernel_selector.cpp:70: [GPU] Could not find a suitable kernel for convert:/rotary_emb/Cast_1 params raw string: F16_BFYX_v1_p0_0_v64_p0_0_v1_p0_0_v3_p0_0;F32_BFYX_v1_p0_0_v64_p0_0_v1_p0_0_v3_p0_0"
+        },
+        "talker_prefill.xml": {
+          "ok": true,
+          "sec": 3.28,
+          "err": ""
+        }
+      }
+    }
+  }
+}

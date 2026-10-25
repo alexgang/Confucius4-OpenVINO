@@ -71,6 +71,7 @@ BabelVox(
 
 from __future__ import annotations
 
+import contextlib
 import os
 from typing import Iterator, List, Optional, Tuple
 
@@ -233,10 +234,61 @@ def _class_supports_param(cls, name: str) -> bool:
     return False
 
 
+@contextlib.contextmanager
+def _ov_precision(prec: str, device: str, on_log=print):
+    """把 OV **推理精度**（``INFERENCE_PRECISION_HINT``）注入本次编译。
+
+    🔴🔴 **为什么需要这个上下文管理器**：
+       BabelVox 在 ``BabelVox.__init__`` 内部**自建** ``ov.Core()`` 并
+       ``core.compile_model(model.xml, device)``（**不传任何 property**）
+       ⇒ App 侧**没有任何钩子**能把精度塞进去。
+       ⇒ 之前 GUI 的「精度 f32/f16」下拉 ⇒ **完全无效**（摆设）。
+
+    ⇒ 做法：**临时替换** ``babelvox.pipeline.ov.Core`` 为一个子类，
+       其 ``__init__`` 会 ``set_property({'INFERENCE_PRECISION_HINT': prec})``。
+       退出上下文时**还原**（不污染同进程内的其它代码）。
+
+    ⚠️ **只在目标设备上设精度**：``set_property(device, {...})`` 是
+       按设备的全局属性 ⇒ 只对要用的那个设备设，避免影响别的设备。
+    ⚠️ **NPU + f32 会被 OV 拒** ⇒ 上游已在 `make_engine` 里回落到 f16。
+    ⚠️ **NVIDIA 设备**在无 CUDA plugin 时 ``GPU.N`` 是被 Intel GPU plugin
+       枚举到的 ⇒ 设 f16 有可能让「FP16 reorder 无 kernel」变成
+       「FP16 kernel 有但缺 INT8 转换」……**实测为准**，不预断。
+    """
+    patched = False
+    core_cls = None
+    try:
+        import babelvox.pipeline as bp
+    except Exception:
+        bp = None
+    if bp is not None and hasattr(bp, 'ov'):
+        core_cls = bp.ov.Core
+
+        class _PrecCore(core_cls):
+            def __init__(self, *a, **kw):
+                super().__init__(*a, **kw)
+                try:
+                    self.set_property(device,
+                                      {'INFERENCE_PRECISION_HINT': prec})
+                except Exception as e:
+                    on_log(f'[tts_engine] ⚠️ 设置推理精度 {prec} 失败：{e}')
+
+        bp.ov.Core = _PrecCore
+        patched = True
+        on_log(f'[tts_engine] 已把 INFERENCE_PRECISION_HINT={prec}'
+               f' 注入 {device} 的编译')
+    try:
+        yield
+    finally:
+        if patched and bp is not None and core_cls is not None:
+            bp.ov.Core = core_cls
+
+
 def make_engine(device: str = 'NPU',
                 model_path: Optional[str] = None,
                 cache_dir: Optional[str] = None,
-                on_log=print):
+                on_log=print,
+                precision: Optional[str] = None):
     """创建 BabelVox 引擎实例。
 
     返回的对象有 `.generate_stream(text, language=..., ref_audio=..., ...)`
@@ -244,6 +296,17 @@ def make_engine(device: str = 'NPU',
 
     ⚠️ `device='NPU'` 时会用 `MultiDecoderBabelVox`（多桶解码器），
     没有 patch 文件时退回原生 `BabelVox`（功能可用，但长句解码慢）。
+
+    🔴🔴 **`precision` 是 OV **推理精度**（f32/f16），不是权重位宽**：
+       - **权重位宽**恒为 ``int8``（包内只有 INT8 一份 IR）⇒ 不能改；
+       - **推理精度**通过 ``INFERENCE_PRECISION_HINT`` 传给 OV 编译。
+       ⇒ 之前 GUI 有「精度 f32/f16」下拉，但**这个参数根本没传进来**
+       ⇒ 下拉是**摆设**（用户选了没有任何效果）。
+       ⇒ 现在真正接上：``precision`` → ``ov.Core().set_property``。
+
+    ⚠️ **NPU 不支持 f32**（``INFERENCE_PRECISION_HINT=f32`` 会被 OV 拒）
+       ⇒ 传 f32 + device=NPU 时**主动回落到 f16**（并打日志），
+       不能让整个引擎加载失败。
     """
     try:
         from babelvox import BabelVox
@@ -266,12 +329,21 @@ def make_engine(device: str = 'NPU',
     # 离线优先：禁止 HF 联网
     os.environ.setdefault('HF_HUB_OFFLINE', '1')
 
+    # 🔴 推理精度归一（f16/fp16 → f16；f32/None → f32）
+    prec = (precision or 'f32').strip().lower()
+    prec = 'f16' if prec in ('f16', 'fp16', 'half') else 'f32'
+    if str(device).upper() == 'NPU' and prec == 'f32':
+        # 🔴 NPU 拒 f32 ⇒ 回落 f16（宁可精度降一档，也不能整个引擎起不来）
+        on_log('[tts_engine] NPU 不支持 f32 推理精度 ⇒ 已自动改用 f16')
+        prec = 'f16'
+    on_log(f'[tts_engine] OV 推理精度 = {prec}（权重位宽恒为 INT8）')
+
     cdir = cache_dir or _cache_dir()
     kwargs = dict(
         export_dir=root,
         model_path=tok,
         device=device,
-        precision='int8',
+        precision='int8',            # 🔴 权重位宽恒为 INT8（只有这一份 IR）
         use_cp_kv_cache=True,
         use_kv_cache=False,          # 🔴 必须 False
         talker_buckets=TALKER_BUCKETS,
@@ -308,10 +380,11 @@ def make_engine(device: str = 'NPU',
 
     on_log(f'[tts_engine] 加载模型：device={device} root={root} cache={cdir}')
     t0 = os.times()
-    try:
-        eng = cls(**kwargs)
-    except Exception as e:
-        raise TTSEngineError(f'模型加载失败：{type(e).__name__}: {e}') from e
+    with _ov_precision(prec, device, on_log=on_log):
+        try:
+            eng = cls(**kwargs)
+        except Exception as e:
+            raise TTSEngineError(f'模型加载失败：{type(e).__name__}: {e}') from e
     on_log('[tts_engine] 模型加载完成')
 
     # 🔴🔴 **必须挂 SpeakerLibrary**，否则按名查内置音色会直接抛

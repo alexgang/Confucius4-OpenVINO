@@ -1,11 +1,17 @@
 # STATUS_APP
-last_ack: APP-016
-更新时间: 2026-10-25 12:36
-当前任务: **巡检（无新纠偏条目，第 19 次同一口径）+ 🔴🔴 修掉 §31.4 修过又被写回的 U+FFFD 乱码 + 🔴🔴 把「文本编码完整性」加进内部素材闸门（§36）**：`last_ack` = **APP-016**（本轮**无新条目**；`CORRECTIONS_APP.md` SHA256 `1c30440a…` / 34 998 B / mtime 2026-10-25 09:18:37 ⇒ `## APP-xxx` **16** 条、最大 APP-016，**只读零改动**）⇒ 🔴 本轮闭环 **3 件事**：① 🔴🔴 **修掉 U+FFFD 乱码回归**（§36.2）—— 实测 `6a1dee6`（09:22，**晚于** §31.4 的修复 07:49）把 `device_config.py` L132 的 docstring 又写回乱码 ⇒ **§31.4 的修复被覆盖**；仓库 + v1.4 包 + v1.5 包**三份同步修掉**，修后 SHA256 **三份逐字节一致** `0797ef22…`；✅ **已交付的 v1.4 zip 未受影响**（zip 打包于 07:43，早于回归；实测 zip 内该文件 U+FFFD = **0**）；② 🔴🔴 **补上闸门**（§36.3）—— 「修掉一处」≠「这一类不会再来」⇒ 在 `check_internal_material.py` 增加**规则 C 文本编码完整性**（非法 UTF-8 / 含 U+FFFD ⇒ 命中）⇒ **打包前**（`--pkg`）+ **提交前**（`--staged`）双点拦；🔴 **与「内部素材」放行名单解耦**（放行名单只放宽「允许提到内部素材的名字」，**不放宽「允许乱码」**）；③ ✅ **闸门自测 PASS 9/9**（§36.4，`results/app/app036_text_integrity_gate_test.py`，纯文件 IO、无推理/测速/GPU）⇒ 另实测 `--pkg <v1.5>` 0 命中 / `--staged` 0 命中 / **故意**暂存乱码文件 ⇒ **命中 1 / 退出码 1（确实拦得住）**；⏳ **进行中**：持共享机器锁打包 v1.5（**等 MT 释放锁，不抢**）
-阻塞 / 待用户决定: ① ⏳ **APP-014② v1.5 打包进行中** —— 干净目录 / README / 自检三步已完（§34.2~§34.4），**持机器锁打包**在等 MT 释放锁（§36.5）；② ⛔ **APP-015 的 MT 半句方案 C**（草稿只上字幕、TTS 只念正式稿）⇒ **移交说明已到**（`NOTICE_mt_to_app_20261024.md` 的**通知 9**）⇒ 但**实现尚未定稿**（工作区在制品，验收 **18/21 FAIL**）⇒ **v1.5 明确不带**（§34.7）；③ ⛔ **APP-012② 的 +2.6pp 缺口主因仍未定位**（§32.5 实测证明接缝去重只值 −0.26/−0.32 pp ≈ 缺口的 3%）；④ ⛔ **APP-009② 的 MT UNIT 方案 A/B/C/D 结论**仍在 v4 复算 ⇒ 渲染层三处**仍未改**；⑤ ⛔ **包体 10.45 GiB** 优化未做；⑥ ⛔ **V7 残句代价**待用户确认（链首段半句残句 12 段语料 5 行/58 字）；⑦ 🟢 ~~**APP-014② v1.5 打包前准备**~~ ⇒ §34.2~§34.4 已完成；⑧ 🟢 ~~**APP-011 二次历史改写**~~ ⇒ 按 APP-013 撤销；⑨ 🟢 ~~**APP-010 的 TTS 实验性标注**~~ ⇒ 已按 APP-014 改写为「正式功能，默认开启」（§33.3）；⑩ 🟢 ~~**U+FFFD 乱码**~~ ⇒ §31.4 修过一次被覆盖，**本轮 §36.2 已修 + 进闸门**（§36.3）
+last_ack: APP-017
+更新时间: 2026-10-25 18:09
+当前任务: **巡检（`CORRECTIONS_APP.md` 1 条新条目 **APP-017**）+ 用户两条反馈闭环（§37）**：① ✅ **ASR 设备重复**已修 —— 根因是 `kind=='ov'` 档遍历所有设备（含 `GPU.1`）而 `kind=='cuda'` 档又单列一条 ⇒ 同一块物理显卡出现两次；修法 = OV 档 `continue` 跳过 CUDA 设备、**保留 CUDA 那条**（按**物理设备**去重，不是按 label）⇒ 实测 ASR 6 个选项、重复 NVIDIA **0 条**、CUDA **2 条**（Q8_0/Q4_K）；② 🔴🔴 **「语音输出无法工作」**已修 —— 三条真因全部实测：(a) **OV 官方发行版压根不带 CUDA plugin**（在 `openvino_contrib`，需自编译）⇒ 旧 note 的「装一下就能用」是错的承诺；(b) `GPU.1` 是被 **Intel GPU plugin** 枚举的，`f32`/`f16` 失败**完全相同（均 3/7）**⇒ 与精度无关，而 BabelVox 把 7 个 IR 全编到同一设备 ⇒ **引擎整体加载失败**；(c) 🔴 **Intel 集显 f16 能编过但合成失控**（talker 跑满 `MAX_DECODER_FRAMES=512` ⇒ 40.96 s 削波音频 peak=1.000）；④ GUI 的**精度下拉从未生效**（`make_engine` 没 `precision` 形参 → worker 不传 → BabelVox 自建 `ov.Core` 不传 property）⇒ 已三处打通 + `_ov_precision` 注入 `INFERENCE_PRECISION_HINT`；⑤ GUI **零状态监视** ⇒ 新增 `_track_tts_state()`。修后 TTS 下拉**只剩 2 个实测可用组合**：`Intel NPU · F16`（首选）+ `Intel GPU（集显） · F32`（慢）；⏳ **v1.5 zip 生成于修复之前 ⇒ 需重打**（APP-017 要求）
+阻塞 / 待用户决定: ① ⏳ **APP-017 要求持锁重打 v1.5 zip**（现包内容已更新，旧 zip **不含**本轮修复）；② ⛔ **APP-017 的「检查点 3（TTS 实时性 + ABBA）」**由另一个 App 并行会话在做（`app037_cp3_abba_v15.py`）⇒ 本会话**不重复跑、不抢锁**；③ ⛔ **APP-012② / APP-017 的 WER +2.6pp 主因**仍未定位（接缝去重只值 ≈3%）；④ ⛔ **APP-015 方案 C** 仍是工作区在制品（验收 18/21 FAIL）⇒ **v1.5 明确不带**；⑤ ⛔ **APP-009②** 的 MT UNIT 方案 A/B/C/D 仍在 v4 复算 ⇒ 渲染层三处**仍未改**；⑥ ⛔ **包体 10.45 GiB** 优化未做；⑦ ⛔ **V7 残句代价**待用户确认
 
 
 ## 最近更新
+- 18:09 §37 ✅ **ASR 设备去重**：OV 档跳过 CUDA 设备、**保留 CUDA**（按物理设备而非 label）⇒ 实测重复 NVIDIA **0** 条 / CUDA **2** 条
+- 18:09 §37 🔴🔴 **「语音输出无法工作」已修**：三条真因（OV 不带 CUDA plugin / 集显 f16 合成失控 / 精度下拉从未生效）+ GUI 零状态监视 ⇒ 5 处修法
+- 18:09 §37 🔴 **决定性实测**：`GPU.1` 的 `f32` 与 `f16` 失败**完全相同（均 3/7）** ⇒ 与精度无关；`GPU.0` f32 **7/7** 且合成 PASS（5.68 s / peak .555）但**很慢**（RTF≈15.6）
+- 18:09 §37 🔴🔴 **方法论**：`played` 不能当验收判据（后台无音频消费 ⇒ 3 s 环形缓冲必然超时，NPU 也被误判 FAIL）⇒ 必须拆开测合成
+- 18:09 §37 ✅ **验证**：GUI 冒烟**全 PASS**（ASR 6 / MT 6 / TTS 2）、包内与仓库三文件**逐字节一致**、包内**不含方案 C**、闸门 **PASS**
+- 18:09 §37 ⏳ **v1.5 zip 已过期**（生成于修复之前）⇒ 需重打
 - 12:36 §36 🔴🔴 **修掉 U+FFFD 乱码回归**：`6a1dee6`（09:22）把 §31.4（07:49）修掉的 `device_config.py` L132 乱码**又写回了** ⇒ 仓库 + v1.4 包 + v1.5 包**三份修掉**，SHA256 **三份逐字节一致** `0797ef22…`；✅ **已交付 v1.4 zip 未受影响**（实测 U+FFFD=0）
 - 12:36 §36 🔴🔴 **「文本编码完整性」进内部素材闸门**：新增**规则 C**（非法 UTF-8 / 含 U+FFFD ⇒ 命中）⇒ **打包前**（`--pkg`）+ **提交前**（`--staged`）双点拦；🔴 **与放行名单解耦**（放行 ≠ 允许乱码）；第三方依赖目录排除（不误报）
 - 12:36 §36 ✅ **闸门自测 PASS 9/9**（T1~T6）+ 实测 `--pkg <v1.5>` 0 命中 / `--staged` 0 命中 / **故意**暂存乱码文件 ⇒ 命中 1 退出码 1（**确实拦得住**）；证据 `results/app/app036_text_integrity_gate_evidence.json`
@@ -15,11 +21,6 @@ last_ack: APP-016
 - 10:45 §34 ✅ **v1.5 干净包目录已建**（`app014b_build_v15_dir.py`）：`models/` 12 GB 走**硬链接**、会改写的文件是**真实副本** ⇒ 改 v1.5 绝不连带改 v1.4
 - 10:45 §34 ✅ **v1.5 版本号 + README 已升版**：MANIFEST `version` = **1.5** + notes 四条修订；中英双语加 `## v1.5 改动说明`，并把设备表里的假设备「Intel GPU 2」清零
 - 10:45 §34 ✅ **打包前自检 PASS 47 / FAIL 0**（包内代码 == 仓库代码 / v1.5 标识 / README 落地 / 旧死代码 AST 清零 / 内部素材闸门 **0 命中** / GUI 冒烟 **16/0**）
-- 12:20 §35 🔴 **STATUS 脱敏 + 头部结构清理**：内部判据/原句 **23 → 0**；头部「最近更新」**37 → 15 行**（守 APP-001）；更正头部阻塞项②（方案 C 移交说明**已在**通知 9）
-- 10:28 §33 ✅ **APP-014① TTS 转为正式功能**：去「实验性」标注 + **默认开启** + 耳机提示；🔴 修掉仓库根 README **双 CR 行尾炸弹** + 客户包 README **重复行 bug**
-- 10:20 §32 巡检（**6 条新条目** APP-011~APP-016）：假设备「Intel GPU 2」已修 + TTS 加 CUDA 设备 + 接缝重复词已修
-- 07:49 §31 修掉 TTS `close()` 不计丢句 + GUI 退出丢最后一句译文（不变式 `n_played+n_dropped==n_submitted`）
-- （更早条目已合并进正文 §1~§35，对应 §35 指针行；头部保持 ≤ 15 行）
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -6373,3 +6374,126 @@ MANIFEST 硬校验 + **逐文件 SHA256 内容复核** → `os.replace()` 原子
 | `status/app/STATUS_APP.md` | L5460/L5461 表格里的乱码字节 → 描述式写法；追加本章节 |
 
 🔴 **未提交**：`status/app/CORRECTIONS_APP.md`（reviewer 独占）。
+
+## §37 巡检（`CORRECTIONS_APP.md` **1 条新条目** APP-017）+ ✅ 用户反馈「ASR 设备重复」已修 + 🔴🔴 用户反馈「语音输出无法工作」已修（三条真因：OV 不带 CUDA plugin / 集显 f16 合成失控 / 精度下拉从未生效 + GUI 零状态监视）（2026-10-25 18:09）
+
+### §37.1 本轮输入
+
+| 类型 | 内容 |
+|---|---|
+| 用户反馈① | 「GUI 里面 ASR 里的设备既有 NVIDIA 独显又有 NVIDIA GPU (Cuda)，重复了，**保留 Cuda 即可**」 |
+| 用户反馈② | 「语音输出，提示本机 OV 未安装 Cuda plugin，**语音输出无法工作**」 |
+| 纠偏 | **APP-017**（RESUME：额度已重置，从 `last_ack` 继续；持锁打 v1.5 包 → 干净目录 `--check` / SHA256 / 清单复核；再做检查点 3；切点导致 WER +2.6pp 的主因继续查） |
+
+`last_ack`: **APP-016 → APP-017**。`CORRECTIONS_APP.md` 本轮**只读零改动**（`## APP-xxx` **17** 条，最大 APP-017，34 998 → 35 386 B，mtime 15:38:05）。
+
+### §37.2 反馈①根因：同一块物理显卡被列了两次
+
+`ENGINES` 有三种 `kind`，两种都会展开到「设备」这一维：
+
+- `kind == 'ov'`（`gpu_int8` / `gpu_int4`）⇒ **遍历所有设备**，其中含 `GPU.1`；
+- `kind == 'cuda'`（`cuda_q8` / `cuda_q4`）⇒ **单列一条** `NVIDIA GPU（CUDA）`。
+
+而本机 `GPU.1` = `NVIDIA GeForce RTX 5050 Laptop GPU` ⇒ **同一块卡出现两次**。
+
+🔴 **不能按 label 去重** —— 两条 label 本来就不同（`NVIDIA 独显（RTX 5050 Laptop GPU） · INT8` vs `NVIDIA GPU（CUDA） · Q8_0`）⇒ **必须按物理设备判定**。
+
+**修法**：`kind == 'ov'` 档 `if device_config.is_cuda_device(dev): continue` ⇒ OV 档不再列 NVIDIA，**CUDA 那条保留**（用户要求）。另给 CUDA 档补诚实提示：客户包**未随附** `audio.cpp` / GGUF（包内无 `cuda/`、无 `audiocpp_cli.exe`、无 `.gguf`）。
+
+**实测**（`results/app/app024_gui_smoke.py`，客户包 python）：
+
+| 断言 | 结果 |
+|---|---|
+| ASR 选项数 / label 唯一 | **6** / 唯一 OK |
+| ASR 里 OV 档重复列出的 NVIDIA 设备 | **0 条** ⇒ PASS |
+| ASR 里 `NVIDIA GPU（CUDA）` | **2 条**（Q8_0 / Q4_K，不同量化精度）⇒ 保留 PASS |
+| ASR 每台 OV 设备出现次数 | `{'GPU.0': 2}`（INT8 / INT4 两档量化，**不是**重复设备） |
+
+### §37.3 反馈②真因三条（全部实测，不是推测）
+
+**① OV 官方发行版压根不带 CUDA plugin。**
+NVIDIA plugin 在 `openvino_contrib` 仓库的 `nvidia_plugin` 模块里，**需自行编译源码**。⇒ pip / 官方 zip 装出来的 OV **永远** `has_cuda_plugin() == False`。⇒ 旧 note 里「要真正启用需装 openvino 的 CUDA 组件」是**错的承诺**，已删除。
+
+**② `GPU.1` 不是 CUDA 设备。** 它是被 **Intel GPU plugin**（OpenCL ICD）枚举到的 —— 实测失败栈全在 `src\plugins\intel_gpu\...`。⇒ `compile_model(..., 'GPU.1')` 走的是 Intel 插件的 kernel 集。
+
+**③ NVIDIA 上「与精度无关」地编不过（决定性）** —— `results/app/app038_tts_f16_probe.py`（持锁跑，客户包真实 INT8 IR）：
+
+| 设备 · 精度 | 结果 |
+|---|---|
+| `GPU.0` @ f32 | **7 / 7** |
+| `GPU.0` @ f16 | **7 / 7** |
+| `GPU.1` @ f32 | **3 / 7** |
+| `GPU.1` @ f16 | **3 / 7**（与 f32 **同 4 个** IR，报同一条 `Could not find a suitable kernel for convert`） |
+
+⇒ **f16 救不了**：失败是 INT8 权重在 Intel GPU 插件上缺 convert kernel。
+而 App 侧主路径 `babelvox.pipeline.BabelVox` 把 **7 个 IR 全编到同一台设备** ⇒ **有一个编不过就整体加载失败** ⇒ NVIDIA 上 TTS 是「**完全不可用**」，不是「偶尔失败」。
+
+**④ 还发现一个更隐蔽的坏法：Intel 集显 f16 能编过但合成失控。**
+`results/app/app040_tts_synth_only.py`（只验合成，绕开播放）：
+
+| 设备 · 精度 | 加载 | 合成 | 音频 | 判定 |
+|---|---|---|---|---|
+| **NPU · f16** | 13.1 s | 6.4 s | **5.52 s**（69 帧）RMS .1288 peak .489 | ✅ **可用**（RTF≈1.16） |
+| Intel 集显 · f32 | 20.1 s | 88.7 s | 5.68 s（71 帧）RMS .1393 peak .555 | ⚠️ 能合成但**极慢**（RTF≈15.6） |
+| Intel 集显 · f16 | 9.3 s | 80.2 s | **40.96 s（512 帧）peak 1.000** | 🔴 **失控** |
+
+集显 f16 是「**静默坏**」：不报错，只是 talker 不发出 EOS ⇒ 跑满 `MAX_DECODER_FRAMES=512` ⇒ 41 s 削波噪音；且 `speaker_embedding` 的 onednn primitive 执行失败（`could not execute a primitive`）⇒ 悄悄回退内置音色。🔴 而 **OV 在 GPU 上的默认推理精度就是 f16** ⇒ 不加 `INFERENCE_PRECISION_HINT` 走的就是这条坏路。
+
+**⑤ GUI 的「精度 f32/f16」下拉从未生效（三处断链）。**
+`tts_engine.make_engine()` **没有 `precision` 形参**；`tts_worker._try_load_babelvox()` 调用时**不传**；`babelvox/pipeline.py` 自建 `ov.Core()` 且 `compile_model(xml, device)` **不传任何 property**。⇒ 用户选 f16/f32 毫无效果。
+
+**⑥ 用户当时就是坏配置**：`%LOCALAPPDATA%\Confucius4LiveCaption\device_config.json` = `{"asr":"GPU.0","mt":"NPU","tts":"GPU.1"}` ⇒ tts 指向 NVIDIA ⇒ 必然失败。
+
+**⑦ GUI 完全不监视 TTS 状态**：worker 加载失败时语音分区说明行**永远停在「启动中…」**，状态栏**零提示**，而字幕与翻译照常工作 ⇒ 用户只看到「语音输出无法工作」，**界面上一个字的报错都没有**。
+
+### §37.4 修法（仓库 + 客户包 v1.5 双份同步）
+
+| 文件 | 改动 |
+|---|---|
+| `live_caption/device_config.py` | 新增 `cuda_backend_possible(dev)`（= 是 NVIDIA **且** 有 CUDA plugin）；`has_cuda_plugin()` docstring 补事实前提（官方发行版不带，不是「忘了装」） |
+| `live_caption/live_caption_app.py` | ① `build_asr_options` OV 档 `continue` 跳过 CUDA 设备 + CUDA 档补「包内未随附 audio.cpp/GGUF」；② 新增 `_is_intel_gpu` / `_tts_device_problem(dev, prec)` / `_first_usable_tts_device(devices, skip, prec)`；③ `build_tts_options` 改为**按「设备 × 精度」逐项判定**，不可用组合**不列**并把原因挂到第一个可用选项的 note；④ `_on_tts_toggled` 启动前预检（坏配置自动换可用设备 + 明确告知）；⑤ 新增 `_track_tts_state()` 并接入 `_poll()`（状态变化立刻上屏 + 完整错误进日志）；⑥ `from typing import Optional` |
+| `live_caption/tts_engine.py` | 新增 `import contextlib` + `_ov_precision()` 上下文管理器（临时替换 `babelvox.pipeline.ov.Core` 为子类以注入 `INFERENCE_PRECISION_HINT`，退出还原）；`make_engine(..., precision=None)` 新增形参 + 精度归一 + **NPU 拒绝 f32 自动回落 f16**；`precision='int8'` 明确标注为**权重位宽**（与推理精度解耦） |
+| `live_caption/tts_worker.py` | `_try_load_babelvox()` 补传 `precision=self.precision` |
+| `results/app/app024_gui_smoke.py` | 断言**随修法改向**：旧断言「TTS 里**能看到** CUDA」已必然 FAIL（方向反了）⇒ 改为「TTS **无** NVIDIA、**无**集显 f16、note 含移除原因、首选为 NPU」+ 9 项源码静态自检 |
+| `results/app/app038_tts_f16_probe.py` / `app038_run.py` | **新增**：GPU × f32/f16 的 7 IR 编译矩阵（持锁运行器） |
+| `results/app/app039_tts_e2e_smoke.py` | **新增**：走 `TTSService` 的端到端冒烟 |
+| `results/app/app040_tts_synth_only.py` | **新增**：**只验合成**（绕开播放）—— 见 §37.5 方法论教训 |
+
+修后 TTS 下拉（本机）**只剩 2 个实测可用的组合**：`Intel NPU · F16`（**首选/默认**）、`Intel GPU（集显） · F32`（慢，已警告）；NVIDIA 与集显 F16 **不列**，原因写在第一条 note 里。
+
+### §37.5 🔴🔴 方法论教训：`played` 不能当 TTS 的验收判据
+
+`app039` 走完整链路（合成 + 写播放环形缓冲）时，NPU 与 GPU.0 **都**报：
+
+```
+播放缓冲写满，阻塞超时：环形缓冲写入超时（容量 72000，已有 0，待写 138240）
+```
+
+`72000 = sr*3` = **3 s** 缓冲；`已有 0` ⇒ 音频回调**完全没消费**（后台非交互会话无音频消费线程）⇒ 只要句子音频 > 3 s 就必然「写入超时」。
+
+⇒ **这个 FAIL 与 TTS 能不能合成无关**，是播放环境的伪结果。⇒ 必须把「合成」与「播放」拆开测（`app040` 直接调 `tts_engine.make_engine` + `tts_engine.stream`，不触碰 `sounddevice`）。
+
+🔴 同一条纪律的推广：**任何「端到端」判定，先确认失败点在哪一环**；否则会把环境限制误判成产品缺陷（本次若只看 `app039`，会得出「NPU 也不能用」的**错误结论**）。
+
+### §37.6 验证
+
+| 项 | 结果 |
+|---|---|
+| GUI 冒烟（客户包 `app/`） | **全 PASS**（ASR 6 / MT 6 / TTS 2，label 全唯一；Combobox 反查 OK；假设备 `Intel GPU 2` = 0；源码静态自检 10/10） |
+| `app038` IR 编译矩阵 | GPU.0 f32 **7/7**、GPU.0 f16 **7/7**、GPU.1 f32 **3/7**、GPU.1 f16 **3/7** |
+| `app040` 合成 | NPU f16 **PASS**、GPU.0 f32 **PASS**（慢）、GPU.0 f16 **FAIL（失控）** |
+| 包内/仓库一致性 | `device_config.py` / `tts_engine.py` / `tts_worker.py` **逐字节一致**；`live_caption_app.py` 包内 **不含方案 C**（`caption_render` / `_draft_mt` 命中 **0**），仓库工作区**仍保留**方案 C 未提交 |
+| 语法 / 乱码 | 两处 `live_caption_app.py` `ast.parse` OK；`U+FFFD = 0` |
+| 内部素材 + 文本编码闸门 | `check_internal_material.py --pkg <v1.5>` ⇒ **命中 0 / 结论 PASS** |
+| 客户包备份 | `C:/Users/Trekker-PTL/pkg_backup_20261025/`（4 个文件改前原件） |
+
+### §37.7 ⏳ v1.5 zip 已过期
+
+上一版 `Confucius4_LiveCaption_v1.5.zip`（11 216 064 030 B / md5 `235e24ba45f44537464479b9e23202e5`）**生成于本轮修复之前** ⇒ **不含这 4 个文件的修复**。包目录内容已更新 ⇒ **必须重打**（APP-017 也要求「持锁打 v1.5 包」）。
+
+### §37.8 待用户决定 / 阻塞
+
+1. ⛔ **APP-017 的「检查点 3（TTS 实时性 + ABBA）」** 由另一个 App 并行会话在做（`results/app/app037_cp3_abba_v15.py`）⇒ 本会话**不重复跑、不抢锁**。
+2. ⛔ **APP-012② / APP-017 的 WER +2.6pp 主因**仍未定位（接缝去重只值 ≈3%）。
+3. ⛔ **APP-015 方案 C** 仍是工作区在制品（验收 18/21 FAIL）⇒ **v1.5 明确不带**。
+4. 🔴 **未提交**：`status/app/CORRECTIONS_APP.md`（reviewer 独占）；方案 C 工作区改动（属并行会话在制品）。

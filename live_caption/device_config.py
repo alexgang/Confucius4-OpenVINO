@@ -232,6 +232,12 @@ def has_cuda_plugin() -> bool:
 
     判定：``openvino`` 包目录里存在含 ``cuda`` 的组件文件。
     ⇒ False ⇒ ``GPU.N`` 即使是 NVIDIA 硬件，也**不能**按 CUDA 后端用。
+
+    🔴 **事实前提（2026-10-25 查证）**：OV 官方发行版**不含** CUDA plugin
+       —— NVIDIA plugin 在 ``openvino_contrib`` 仓库里，需**自行编译源码**才能用
+       ⇒ pip / 官方 zip 装出来的 OV **永远** ``has_cuda_plugin() == False``。
+       ⇒ **不是「忘了装」，而是「官方发行版压根不带」** ⇒ 界面上不能承诺
+       「装一下就能用」。
     """
     try:
         import openvino
@@ -246,6 +252,24 @@ def has_cuda_plugin() -> bool:
         return False
     except Exception:
         return False
+
+
+def cuda_backend_possible(dev: str) -> bool:
+    """该设备**能否**真的走 CUDA 后端。
+
+    🔴 判定 = 「是 NVIDIA 硬件」**且**「OV 带了 CUDA plugin」。
+       两个条件缺一不可：
+       - 只有 NVIDIA 硬件、没 plugin ⇒ OV 仍用 **Intel GPU plugin**
+         （经 OpenCL/Level Zero 枚举到 NVIDIA 卡）⇒ 名字里有 CUDA 是**假的**；
+       - 有 plugin 但设备不是 NVIDIA ⇒ 用不上。
+
+    ⇒ 这与「OV 的 ``available_devices`` 里出现 GPU.N」**无关**：
+       实测本机 ``GPU.1 = NVIDIA GeForce RTX 5050`` 会出现，
+       但它是被 **Intel GPU plugin**（OpenCL ICD）枚举到的，
+       **不是 CUDA 设备** ⇒ ``core.compile_model(..., 'GPU.1')``
+       走的是 Intel GPU 插件的 kernel 集。
+    """
+    return is_cuda_device(dev) and has_cuda_plugin()
 
 
 def detect_devices() -> Dict[str, str]:

@@ -311,9 +311,14 @@ class TTSWorker:
         """
         try:
             import tts_engine
+            # 🔴🔴 **必须传 precision**（2026-10-25 修）：
+            #   之前**没传** ⇒ GUI 的「精度 f32/f16」下拉**完全无效**
+            #   （BabelVox 内部自建 ov.Core，不传任何 property）。
+            #   ⇒ 用户在 GUI 里选 f16 也毫无作用（摆设）。
             eng = tts_engine.make_engine(device=self.device,
                                          cache_dir=self.tts_cache_dir,
-                                         on_log=log)
+                                         on_log=log,
+                                         precision=self.precision)
             return eng
         except Exception as e:
             log(f'[tts_worker] BabelVox 引擎不可用（{e}）⇒ 回落旧引擎')

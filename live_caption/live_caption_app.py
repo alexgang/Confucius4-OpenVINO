@@ -51,6 +51,7 @@ import sys
 import threading
 import time
 from datetime import datetime
+from typing import Optional
 
 os.environ.setdefault('USE_TORCH', '0')
 os.environ.setdefault('PYTHONUTF8', '1')
@@ -453,12 +454,37 @@ def build_asr_options(devices):
       （make_engine 注释明确「不接受覆盖」）。
     - kind=='cuda'（cuda_q8/cuda_q4）：另一种 kind（audio.cpp），
       设备概念不同 ⇒ 单列一条，标注 CUDA。
+
+    🔴🔴 **去重（2026-10-25 16:40 用户反馈）**：
+    用户在 ASR 下拉里看到「**NVIDIA 独显**」与「**NVIDIA GPU（CUDA）**」
+    **两项都是同一块物理显卡** ⇒ 重复。
+    根因：`kind=='ov'` 档**遍历所有设备**（含 `GPU.1` = NVIDIA 独显），
+    而 `kind=='cuda'` 档又**单列一条 CUDA** ⇒ 同一硬件出现两次。
+    ⇒ **修法**：`kind=='ov'` 档**跳过 CUDA 设备**
+      （`device_config.is_cuda_device(dev)`）⇒ **CUDA 那条保留**，
+      OV 档不再重复列出 NVIDIA 独显。
+    ⚠️ 「保留 CUDA」是**用户明确要求**（「重复了，保留Cuda即可」）。
+    ⚠️ **不能只按 label 去重**：两条的 label 本来就不同
+      （「NVIDIA 独显（RTX 5050 Laptop GPU） · INT8」vs「NVIDIA GPU（CUDA） · Q8_0」），
+      去重必须按**物理设备**判定。
+
+    🔴 **ASR 的 CUDA 是「另一种后端」**（audio.cpp + GGUF），
+       **不是** OV 的 GPU.N ⇒ 它与 OV 档的 NVIDIA 设备**本来就是两条不同的路**
+       （一条 audio.cpp，一条 OpenVINO）⇒ 去重只发生在「OV 档 vs CUDA 档」
+       对**同一块物理显卡**的重复展示上 ⇒ 保留 CUDA 那条（用户要求）。
     """
+    # 🔴 ASR 的 CUDA 后端需要**外部资产**（audio.cpp 的 audiocpp_cli.exe + GGUF）
+    #    ⇒ 客户包里**没有**（包内无 cuda/ 目录、无 audiocpp_cli.exe、无 .gguf）
+    #    ⇒ 客户机上必然不可用 ⇒ note 必须**说清楚**，不能让用户白选。
+    cuda_assets_ok = bool(CUDA_DIR)
     out = []
     for key, cfg in ENGINES.items():
         prec = ASR_PRECISION.get(key, 'INT8')
         note = cfg.get('note', '')
         if cfg['kind'] == 'cuda':
+            if not cuda_assets_ok:
+                note = (note + '；🔴 客户包**未随附** audio.cpp / GGUF 模型'
+                                '（不在包内）⇒ 需另行部署才能用')
             out.append(dict(id=f'{key}@CUDA',
                             label=f'NVIDIA GPU（CUDA） · {prec}',
                             engine=key, device='CUDA', precision=prec,
@@ -475,6 +501,8 @@ def build_asr_options(devices):
         for dev in devices:
             if str(dev).upper() == 'NPU':
                 continue                   # NPU 归 kind=='npu' 那条路
+            if device_config.is_cuda_device(dev):
+                continue                   # 🔴 CUDA 设备由 kind=='cuda' 那条承担
             out.append(dict(id=f'{key}@{dev}',
                             label=f'{device_config.device_label(dev)} · {prec}',
                             engine=key, device=dev, precision=prec,
@@ -517,6 +545,74 @@ def build_mt_options(devices):
     return out
 
 
+def _is_intel_gpu(dev: str) -> bool:
+    """是不是**经 OV 的 Intel GPU 插件**驱动的 GPU（即不是 CUDA/NVIDIA）。"""
+    if not str(dev).upper().startswith('GPU'):
+        return False
+    return not device_config.is_cuda_device(dev)
+
+
+def _tts_device_problem(dev: str, prec: Optional[str] = None) -> str:
+    """该设备（**含精度**）用于 TTS 时**是否有已知问题**（返回描述，空串 = 没问题）。
+
+    🔴 **判据全部来自端到端实测，不是猜**（`results/app/app040_tts_synth_only.py`，
+       客户包真实 IR + 真实音色，2026-10-25）：
+
+       | 设备 · 精度      | 加载 | 合成 | 音频 | 结论 |
+       |------------------|------|------|------|------|
+       | NPU · f16        | 13.1 s | 6.4 s | 5.52 s（69 帧）RMS .13 peak .49 | ✅ 可用 |
+       | Intel 集显 · f32 | 20.1 s | 88.7 s | 5.68 s（71 帧）RMS .14 peak .56 | ⚠️ 能合成但极慢 |
+       | Intel 集显 · f16 | 9.3 s | 80.2 s | **40.96 s（512 帧）peak 1.000** | 🔴 **失控** |
+       | NVIDIA 独显      | 🔴 7 个 IR 只编过 3 个 ⇒ **引擎整体加载失败** | | | 🔴 不可用 |
+
+    🔴🔴 **集显 f16 是「静默坏」**：不是报错，而是 talker 不发出 EOS ⇒
+       跑满 `MAX_DECODER_FRAMES=512` ⇒ 41 s 削波噪音，且
+       `speaker_embedding` 的 onednn primitive 执行失败 ⇒ 悄悄回退内置音色。
+       ⚠️ 而 **OV 的 GPU 默认推理精度就是 f16** ⇒ 不加 `INFERENCE_PRECISION_HINT`
+       走的就是这条坏路 ⇒ 这正是「语音输出听起来全是噪音/卡住」的来源。
+
+    ⚠️ 与 `build_tts_options` 的过滤**同一口径** ⇒ 两处不会打架。
+    """
+    if not dev:
+        return '未指定设备'
+    up = str(dev).upper()
+    if up == 'CPU':
+        return ''                        # CPU 是兜底，允许
+    if device_config.is_cuda_device(dev) and not device_config.has_cuda_plugin():
+        return ('本机 OV 未安装 CUDA plugin ⇒ NVIDIA 独显上的 TTS 引擎'
+                '无法加载（实测 7 个 IR 只有 3 个能编过，且 f32/f16 '
+                '失败完全相同 ⇒ 与精度无关）')
+    try:
+        avail = device_config.available_devices()
+    except Exception:
+        avail = []
+    if avail and dev not in avail:
+        return f'本机没有该设备（当前可用：{", ".join(avail)}）'
+    if _is_intel_gpu(dev) and (prec or '').lower().startswith('f16'):
+        return ('实测本机 Intel 集显 **f16** 合成失控：talker 跑满 512 帧 '
+                '⇒ 40.96 s 削波音频（peak 1.000），且 speaker embedding 的 '
+                'onednn 执行失败 ⇒ 会静默回退内置音色；'
+                '同一设备改用 **f32** 可正常合成')
+    return ''
+
+
+def _first_usable_tts_device(devices, skip=None,
+                             prec: Optional[str] = None) -> Optional[str]:
+    """在设备清单里找**第一个 TTS 真能用**的设备（跳过 skip）。
+
+    优先级：**NPU**（实测端到端可用，RTF≈1.16）→ **Intel 集显** → 其它。
+    ⚠️ **NVIDIA 设备直接跳过**（无 CUDA plugin 时引擎必然加载失败）。
+    🔴 `prec` 一起参与判定（集显 f16 是坏路、f32 才能用）。
+    """
+    cands = [d for d in devices if d and d.upper() != 'CPU' and d != skip]
+    cands.sort(key=lambda d: (0 if d.upper() == 'NPU' else
+                               1 if d.upper().startswith('GPU') else 2))
+    for d in cands:
+        if not _tts_device_problem(d, prec):
+            return d
+    return None
+
+
 def build_tts_options(devices):
     """语音分区的「设备+精度」组合选项。
 
@@ -524,45 +620,88 @@ def build_tts_options(devices):
     过滤规则：``device_config.check_precision`` —— **NPU 不支持 f32**
     （PRECISION_UNSUPPORTED = {'NPU': ('f32',)}）。
 
-    🔴🔴 **CUDA 设备（2026-10-25 用户要求：TTS 设备里也要有 CUDA）**：
-       本机 ``GPU.1`` = NVIDIA GeForce RTX 5050（dGPU）⇒ 必须能在 TTS 下拉里
-       **显式看到 CUDA 选项**。但实测（见 ``results/app/app024_tts_ir_probe.py``）：
+    🔴🔴🔴 **NVIDIA（CUDA）选项必须「不可选」而不是「可选但会失败」**
+       （2026-10-25 用户反馈：「语音输出，提示本机 OV 未安装 Cuda plugin，
+       语音输出无法工作」）。
 
-           GPU.0（Intel 集显） : TTS 真实 IR **7/7** 编译成功
-           GPU.1（NVIDIA 独显） : TTS 真实 IR **3/7** 编译成功
-                                （4 个在 FP16↔FP32 reorder 节点上无 kernel）
+       **事实链（本轮查证，不是推测）**：
 
-       根因：**本机 OV 未安装 CUDA plugin**（`openvino` 包内无 cuda 组件）
-       ⇒ OV 2026.4 对 NVIDIA 独显仍走 **Intel GPU plugin**（经 Level Zero），
-       对 INT8 权重的 FP16 reorder 覆盖不全。
+       1. OV 官方发行版**压根不带 CUDA plugin** —— NVIDIA plugin 在
+          ``openvino_contrib`` 仓库里，需**自行编译源码**才能用
+          ⇒ pip / 官方 zip 装出来的 OV **永远** ``has_cuda_plugin() == False``
+          ⇒ 「装一下就能用」是**假承诺**。
+       2. 本机 OV 2026.4.1 的 ``available_devices`` 里的 ``GPU.1``
+          = ``NVIDIA GeForce RTX 5050``，但它是被 **Intel GPU plugin**
+          （OpenCL ICD 枚举）发现的 ⇒ **不是 CUDA 设备**
+          ⇒ ``compile_model(..., 'GPU.1')`` 走的是 Intel GPU 插件的 kernel 集。
+       3. 实测**真实 INT8 IR** 逐个编译（§32.4）：``GPU.0`` **7/7 成功**；
+          ``GPU.1`` **3/7 成功** —— 4 个在 FP16↔FP32 reorder 节点报
+          「Could not find a suitable kernel」。
+       4. App 侧 TTS 主路径是 **BabelVox 引擎**
+          （``tts_engine.make_engine`` → ``babelvox.pipeline.BabelVox``），
+          它把 **全部 7 个 IR 都编到同一台设备** ⇒ 只要有一个编不过，
+          **整个引擎加载失败** ⇒ **TTS 一点声音都出不来**。
+          ⇒ GPU.1 上 TTS 是「**完全不可用**」，不是「偶尔失败」。
 
-       ⇒ 本函数的处理：**照常列出 CUDA 选项**（用户要求），
-         但 **note 里写明实测结论**，让用户知道它当前跑不通、为什么。
-         绝不把用不了的选项**静默隐藏**（用户明确要看到），
-         也绝不**假装它可用**。
+       ⇒ **修法（不是隐藏，是「明确不可用 + 给出可用替代」）**：
+         - NVIDIA 设备**不再出现在 TTS 下拉里**（选了必然失败 = 骗用户）；
+         - 但**保留一条明确说明**的 note，告诉用户「为什么没有 CUDA 选项」
+           +「要真正用 NVIDIA 需要自行编译 OV 的 NVIDIA plugin」；
+         - **可用设备照常列出**（NPU / 集显 / CPU），让语音输出真能用。
+       ⚠️ **不能「静默隐藏」**：必须让用户知道 NVIDIA 为什么不在列表里，
+          否则他会以为程序漏了硬件（正是本次投诉的由来）。
+
+    🔴🔴 **补充实测（同轮，`app038` / `app040`）—— NVIDIA 与「集显 f16」两种坏法**：
+
+       - `GPU.1` 在 **f32 与 f16 下失败完全相同（都是 3/7，报同一个
+         `Could not find a suitable kernel for convert`）**
+         ⇒ 失败**与推理精度无关**，就是 INT8 权重在 Intel GPU 插件上无 kernel
+         ⇒ 旧 note 里「装一下 OV 的 CUDA 组件就能用」是**错的承诺**（已删）。
+       - `GPU.0`（Intel 集显）**能编过但 f16 合成失控**：talker 不发出 EOS
+         ⇒ 跑满 `MAX_DECODER_FRAMES=512` ⇒ **40.96 s 削波音频（peak 1.000）**，
+         且 `speaker_embedding` 的 onednn 执行失败 ⇒ 静默回退内置音色。
+         同一设备 **f32 正常**（5.68 s 音频，peak 0.555），但 **88.7 s 才合成完**
+         （RTF≈15.6）⇒ 实时朗读不推荐。
+       ⇒ 所以本函数**按「设备 × 精度」逐项判定**
+         （`_tts_device_problem(dev, prec)`），**不是**按设备一刀切。
     """
     out = []
-    cuda_ok = device_config.has_cuda_plugin()
+    skipped = {}                     # dev -> {'precs': [...], 'why': str}
     for dev in devices:
         is_cuda = device_config.is_cuda_device(dev)
-        note = ''
-        if is_cuda:
-            if cuda_ok:
-                note = 'CUDA 后端（OV CUDA plugin 已安装）'
-            else:
-                note = ('CUDA 设备：🔴 本机 OV **未安装 CUDA plugin**'
-                        '（OV 仍用 Intel GPU plugin 驱动它）⇒ TTS 的 INT8 权重'
-                        '在 FP16 reorder 节点上无 kernel，**实测 3/7 IR 编译失败**；'
-                        '要真正启用需装 openvino 的 CUDA 组件')
         for prec in TTS_PRECISIONS:
             if device_config.check_precision(dev, prec):
                 continue                   # 例如 NPU + f32 ⇒ 不出现
+            prob = _tts_device_problem(dev, prec)
+            if prob:
+                # 🔴 实测不可用（NVIDIA 编不过 / 集显 f16 失控）⇒ **不列**
+                slot = skipped.setdefault(dev, {'precs': [], 'why': prob})
+                slot['precs'].append(prec.upper())
+                continue
+            if is_cuda:
+                note = 'CUDA 后端（OV CUDA plugin 已安装）'
+            elif str(dev).upper() == 'NPU':
+                note = '✅ 实测可用（端到端合成 PASS，RTF≈1.16）⇒ **推荐**'
+            else:
+                note = ('⚠️ 实测本机集显 f32 可正常合成，但很慢'
+                        '（5.7 s 音频需 88.7 s）⇒ 实时朗读不推荐；'
+                        '**f16 会失控所以不在此列**')
             label = f'{device_config.device_label(dev)} · {prec.upper()}'
             if is_cuda:
                 label = f'CUDA · {label}'
             out.append(dict(id=f'{dev}@{prec}',
                             label=label,
                             device=dev, precision=prec, fixed=False, note=note))
+    if skipped and out:
+        detail = '；'.join(
+            f'{device_config.device_label(d)}'
+            + (f' · {"/".join(v["precs"])}' if v['precs'] else '')
+            + f'：{v["why"]}'
+            for d, v in skipped.items())
+        # 🔴 说明挂在**第一个**可用选项上（保证用户一定看得到）
+        out[0]['note'] = ((out[0].get('note') + '　') if out[0].get('note')
+                          else '') + ('🔴 已从语音输出列表移除（实测不可用）：'
+                                      + detail)
     return out
 
 # Qwen3-ASR 模型内置 support_languages（见 models/hf/config.json），
@@ -2478,6 +2617,29 @@ class App:
             #    用户在组合下拉里改过设备/精度后，args 里的值是旧的。
             dev = self._dev_choices.get('tts') or getattr(self.args, 'tts_device', 'NPU')
             prec = self._tts_precision or getattr(self.args, 'tts_precision', 'f32')
+
+            # 🔴🔴 **启动前预检**（2026-10-25 修，用户反馈「语音输出无法工作」）：
+            #   配置文件里残留的设备（本机实测 `tts = GPU.1` = NVIDIA）**不在
+            #   新的 TTS 下拉里**（因为 NVIDIA 上引擎必然加载失败）
+            #   ⇒ 旧实现会**直接用这个残留值起 worker** ⇒ 编译失败 ⇒
+            #   语音输出**一点声音都没有**，而界面只有一句静态提示。
+            # ⇒ 这里**先拦一道**：不可用 ⇒ 换到**可用**设备 + 明确告知，
+            #   **不要**让用户对着一个必然失败的配置干等编译。
+            bad = _tts_device_problem(dev, prec)
+            if bad:
+                self._ui_log(f'[tts] 设备 {dev}（{prec}）不可用：{bad} ⇒ 自动改用可用设备')
+                alt = _first_usable_tts_device(self._dev_avail, skip=dev,
+                                               prec=prec)
+                if alt is None:
+                    self.var_tts_note.set(f'🔴 语音输出不可用：{bad}；'
+                                          f'且本机没有其它可用设备')
+                    self.var_status.set('语音输出不可用（不影响字幕与翻译）')
+                    return
+                self.var_status.set(
+                    f'语音输出设备 {dev} 不可用（{bad}）⇒ 已自动改用 {alt}')
+                dev = alt
+                self._dev_choices['tts'] = dev
+
             self.tts = TTSService(
                 device=dev, voice=voice,
                 out_device=out_id,
@@ -2755,6 +2917,7 @@ class App:
     def _poll(self):
         self._drain_ui_log()          # 后台线程的日志统一在这里上屏
         self._track_mt_state()
+        self._track_tts_state()
         self._pump_tts()              # ← 把定稿译文提交给 TTS（GUI 侧链路）
         s, e = self.session, self.engine
         if s:
@@ -2811,6 +2974,44 @@ class App:
                 state='normal' if (st == 'error' and self.mt.active) else 'disabled')
         except Exception:
             pass
+
+    def _track_tts_state(self):
+        """🔴🔴 **监视 TTS worker 状态**（2026-10-25 补）。
+
+        🔴 **为什么必须有**：
+           旧实现**完全不监视** TTS ⇒ worker 加载失败（模型编译失败 /
+           设备不支持 / 播放设备打不开）时，
+           - 语音分区的说明行**永远停在「启动中…」**，
+           - 状态栏也**没有任何提示**，
+           - 而字幕与翻译**照常工作** ⇒ 用户看到的现象就是
+             「**语音输出无法工作**」但**界面上一个字的报错都没有**。
+
+           ⚠️ 这正是本次用户反馈「语音输出，提示本机 OV 未安装 Cuda plugin.
+           语音输出无法工作」时**最难受的部分**：只有一句静态提示，
+           没有任何「到底为什么不行」的现场信息。
+
+        ⇒ 现在：状态变化时**立刻**在语音分区的说明行 + 状态栏显示，
+          并把完整错误写进日志（`_ui_log`）。
+        """
+        tts = getattr(self, 'tts', None)
+        if tts is None:
+            return
+        st = getattr(tts, 'state', None)
+        if st == getattr(self, '_tts_last_state', None):
+            return
+        self._tts_last_state = st
+        if st == 'loading':
+            self.var_tts_note.set(
+                f'加载中… 设备 {tts.device} · 精度 {tts.precision}'
+                f'（首次编译较慢，请稍候）')
+        elif st == 'ready':
+            self.var_tts_note.set(
+                f'已就绪 设备 {tts.device} · 精度 {tts.precision} · 音色 {tts.voice}')
+        elif st == 'error':
+            brief = str(getattr(tts, 'err', '') or '未知错误').split('(')[0].strip()
+            self.var_tts_note.set(f'🔴 语音输出不可用：{brief}')
+            self.var_status.set('语音输出加载失败（不影响字幕与翻译）')
+            self._ui_log(f'[tts] worker error: {getattr(tts, "err", None)!r}')
 
     def _retry_mt(self):
         """重新加载翻译模型（上次失败后用）。"""

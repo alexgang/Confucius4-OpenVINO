@@ -1,0 +1,27 @@
+{
+  "sentence": "这是一次语音输出的自测，用来确认朗读功能可以正常工作。",
+  "result": {
+    "device": "GPU.0",
+    "precision": "f32",
+    "logs": [
+      "[tts_engine] OV 推理精度 = f32（权重位宽恒为 INT8）",
+      "[tts_engine] 使用 MultiDecoderBabelVox（解码器多桶 + 左上下文 25 帧）",
+      "[tts_engine] 加载模型：device=GPU.0 root=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\models\\qwen3tts cache=C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_npu_cache",
+      "[tts_engine] 已把 INFERENCE_PRECISION_HINT=f32 注入 GPU.0 的编译",
+      "[tts_engine] 模型加载完成",
+      "[tts_engine] SpeakerLibrary 就绪：C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_speakers（4 个音色：cindy, lou, phil, steve）",
+      "[tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\models\\qwen3tts\\voices\\preset_A.wav -> (1, 1024)"
+    ],
+    "ready": true,
+    "samples": 136320,
+    "seconds": 5.68,
+    "frames": 71.0,
+    "hit_max_frames": false,
+    "err": null,
+    "wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app040_synth_GPU0_f32.wav",
+    "load_s": 20.11,
+    "synth_s": 88.68,
+    "rms": 0.139328,
+    "peak": 0.555178
+  }
+}

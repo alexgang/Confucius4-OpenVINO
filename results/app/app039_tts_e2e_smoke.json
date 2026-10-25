@@ -1,0 +1,29 @@
+{
+  "device": "NPU",
+  "precision": "f16",
+  "voice": "A",
+  "state": "ready",
+  "err": "None",
+  "load_s": 18.01,
+  "ready": true,
+  "first_packet": null,
+  "played": false,
+  "events": [],
+  "logs": [
+    "[TTS][stderr] None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.",
+    "[TTS] [tts_engine] OV 推理精度 = f16（权重位宽恒为 INT8）",
+    "[TTS] [tts_engine] 使用 MultiDecoderBabelVox（解码器多桶 + 左上下文 25 帧）",
+    "[TTS] [tts_engine] 加载模型：device=NPU root=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\models\\qwen3tts cache=C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_npu_cache",
+    "[TTS] [tts_engine] 已把 INFERENCE_PRECISION_HINT=f16 注入 NPU 的编译",
+    "[TTS][stderr] The tokenizer you are loading from 'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\models\\qwen3tts\\tokenizer' with an incorrect regex pattern: https://huggingface.co/mistralai/Mistral-Small-3.1-24B-Instruct-2503/discussions/84#69121093e8b480e709447d5e. This will lead to incorrect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.",
+    "[TTS] [tts_engine] 模型加载完成",
+    "[TTS] [tts_engine] SpeakerLibrary 就绪：C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_speakers（4 个音色：cindy, lou, phil, steve）",
+    "[TTS] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\models\\qwen3tts\\voices\\preset_A.wav -> (1, 1024)",
+    "[TTS] [tts_worker] 播放流已按 24000 Hz 重建",
+    "[TTS] [tts_worker] 模型加载完成 15.6s",
+    "[TTS] 就绪：NPU · 音色 A",
+    "[TTS] [tts_worker] 播放缓冲写满，阻塞超时：环形缓冲写入超时（容量 72000，已有 0，待写 138240）",
+    "[TTS] 第 0 句合成失败（已丢弃，语音输出继续）：播放缓冲写满：环形缓冲写入超时（容量 72000，已有 0，待写 138240）"
+  ],
+  "synth_s": 180.17
+}
