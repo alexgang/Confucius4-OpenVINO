@@ -1,0 +1,146 @@
+[lock] 等待共享机器锁（最多等 10800s）…
+[lock] 已取得机器锁（第 1 次尝试）
+app-pack PID 40968 started 2026-10-25 18:14:59
+module: app-pack
+pid: 40968
+started: 2026-10-25 18:14:59
+host: LAPTOP-0GDQGD3I
+
+
+======================================================================
+内部素材闸门（APP-006 第 6 步）
+======================================================================
+[待打包目录] C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5
+  命中 0 个内部素材
+
+结论：PASS —— 未发现内部素材
+======================================================================
+打包 Confucius4_LiveCaption_v1.5
+======================================================================
+源目录: C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5
+输出  : C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5.zip
+
+MANIFEST 刷新: files 13978 -> 13978  bytes 13667932242 -> 13667952959 (12.73 GB)
+  packages: 新增 0 个
+  notes: 已含 v1.4/v1.5 修订说明
+  ... 2000 文件
+  ... 4000 文件
+  ... 6000 文件
+  ... 8000 文件
+  ... 10000 文件
+  ... 12000 文件
+
+文件数     : 13979
+原始字节   : 13667972679
+压缩后字节 : 11216072487  (10.45 GB)
+压缩率     : 82.1%
+耗时       : 551s
+
+----------------------------------------------------------------------
+testzip() 校验…
+  Everything is Ok
+
+关键文件抽查：
+  [OK] app/translator.py  (69,519 bytes)
+  [OK] app/live_caption_app.py  (184,721 bytes)
+  [OK] app/MANIFEST.json  (19,720 bytes)
+  [OK] README_zh.md  (35,562 bytes)
+  [OK] README_en.md  (39,302 bytes)
+  [OK] THIRD_PARTY.md  (1,782 bytes)
+  [OK] Start_LiveCaption.bat  (225 bytes)
+  [OK] Diagnose.bat  (281 bytes)
+  [OK] models/mt/mt2-int8sym-cw-q/openvino_model.xml  (2,958,965 bytes)
+  [OK] models/mt/mt2-int8sym-cw-q/openvino_model.bin  (1,792,991,738 bytes)
+  [OK] models/mt/mt2-int8sym-cw-q/config.json  (1,402 bytes)
+  [OK] models/mt/mt2-int8sym-cw-q/chat_template.jinja  (654 bytes)
+  [OK] models/mt/mt2-int4sym-cw-q/openvino_model.xml  (2,959,933 bytes)
+  [OK] models/mt/mt2-int4sym-cw-q/openvino_model.bin  (1,021,360,620 bytes)
+  [OK] models/mt/mt2-int4sym-cw-q/config.json  (1,402 bytes)
+  [OK] models/mt/mt2-int4sym-cw-q/chat_template.jinja  (654 bytes)
+  [OK] models/qwen3tts/int8/talker.xml  (2,951,866 bytes)
+  [OK] models/qwen3tts/int8/talker.bin  (444,373,680 bytes)
+  [OK] models/qwen3tts/int8/talker_prefill.xml  (2,737,511 bytes)
+  [OK] models/qwen3tts/int8/talker_prefill.bin  (444,373,680 bytes)
+  [OK] models/qwen3tts/int8/talker_decode.xml  (2,836,039 bytes)
+  [OK] models/qwen3tts/int8/talker_decode.bin  (444,375,018 bytes)
+  [OK] models/qwen3tts/int8/cp_prefill.xml  (493,499 bytes)
+  [OK] models/qwen3tts/int8/cp_prefill.bin  (78,791,628 bytes)
+  [OK] models/qwen3tts/int8/cp_decode.xml  (527,980 bytes)
+  [OK] models/qwen3tts/int8/cp_decode.bin  (78,791,754 bytes)
+  [OK] models/qwen3tts/int8/code_predictor.xml  (501,339 bytes)
+  [OK] models/qwen3tts/int8/code_predictor.bin  (78,791,628 bytes)
+  [OK] models/qwen3tts/int8/tokenizer_encoder.xml  (1,423,894 bytes)
+  [OK] models/qwen3tts/int8/tokenizer_encoder.bin  (48,294,176 bytes)
+  [OK] models/qwen3tts/int8/tokenizer_decoder.xml  (1,233,462 bytes)
+  [OK] models/qwen3tts/int8/tokenizer_decoder.bin  (114,326,316 bytes)
+  [OK] models/qwen3tts/int8/speaker_encoder.xml  (297,919 bytes)
+  [OK] models/qwen3tts/int8/speaker_encoder.bin  (8,887,690 bytes)
+  [OK] models/qwen3tts/tokenizer/config.json  (4,494 bytes)
+  [OK] models/qwen3tts/tokenizer/tokenizer_config.json  (7,344 bytes)
+  [OK] models/qwen3tts/tokenizer/vocab.json  (2,776,833 bytes)
+  [OK] models/qwen3tts/tokenizer/merges.txt  (1,671,839 bytes)
+  [OK] models/qwen3tts/voices/preset_A.wav  (192,044 bytes)
+
+旧产物应已移除（精确路径）：
+  [已移除] app/translator.py.bak_instruct_20261022
+  [已移除] models/mt/int4sym-cw-q/openvino_model.bin
+  [已移除] models/mt/int8sym-cw-q/openvino_model.bin
+  [已移除] app/live_caption_app.py.bak_c105
+  [已移除] app/live_caption_app.py.bak_c106
+  [已移除] app/live_caption_app.py.bak_c108
+  [已移除] app/live_caption_app.py.bak_c109
+  [已移除] results/mt2_memory.json
+
+缓存目录应已移除（目录前缀）：
+  [已移除] app/ov_cache/ 
+  [已移除] app/npu_cache/ 
+  [已移除] app/mt_cache/ 
+  [已移除] app/tts_npu_cache/ 
+  [已移除] ov_cache/ 
+  [已移除] npu_cache/ 
+  [已移除] mt_cache/ 
+  [已移除] tts_npu_cache/ 
+  [已移除] _backup_c111/ 
+  [已移除] _backup_c133/ 
+  [已移除] _backup_c134/ 
+  [已移除] _backup_c135/ 
+  [已移除] app/reports/ 
+  [已移除] reports/ 
+  [已移除] models/mt/int8sym-cw-q/ 
+  [已移除] models/mt/int4sym-cw-q/ 
+  [已移除] models/qwen3tts/voices/preset_B 
+  [已移除] models/qwen3tts/voices/preset_C 
+  [已移除] models/qwen3tts/voices/clone_ 
+  [已移除] app/voices/ 
+
+内部会议内容应已移除（results/ 下 *_spoken.* 与点名文件）：
+  [已移除] *_spoken.* （0 条命中）
+  [已移除] 点名文件 （0 条命中）
+
+MANIFEST version = 1.5  files=13978  bytes=13667952959
+  [OK] zip 条目 13978 （不含 MANIFEST 自身；含则 13979）== MANIFEST files 13978
+  [OK] zip 原始体积 13667972679 == MANIFEST bytes 13667952959 + MANIFEST 自身 19720
+
+translator.py 符号抽查：
+  [有] mt2-int8sym-cw-q
+  [有] _TRANSLATE_INSTR
+  [有] Default Translation
+  [有] stop_strings = set()
+  [有] split_sentences
+
+包内翻译模型目录: ['mt2-int4sym-cw-q', 'mt2-int8sym-cw-q']
+  [符合] 默认 INT8-CW 目录在包内
+  [符合] 无旧量化目录（int4sym-cw-q / int8sym-cw-q）
+
+TTS 音色素材（只允许音色 A）：
+  [已移除] 音色 B/C/克隆素材 （0 条命中）
+
+======================================================================
+内容一致性校验（zip ⇄ 包目录，逐文件 SHA256）
+======================================================================
+  比对 13979 个文件
+  [{"OK" if content_ok else "不符"}] 全部逐字节一致
+
+[info] 校验通过 ⇒ 已原子改名到正式路径: C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5.zip
+结论：PASS  md5=07513403e049a8e475168410dff9ac72
+[lock] 已释放

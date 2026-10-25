@@ -54,6 +54,27 @@ def norm_newline(b):
     return b.replace(b'\r\n', b'\n')
 
 
+def head_bytes(rel):
+    """取 `git show HEAD:<rel>` 的字节；取不到返回 None。
+
+    🔴🔴 **为什么基准是 HEAD 而不是工作区**（2026-10-25 §37 实测）：
+       工作区可能躺着**别的并行会话的在制品**（本机就是 APP-015 方案 C，
+       133 行未提交改动）⇒ 拿工作区当基准会把「未定稿的在制品」
+       当成「必须进包的代码」，从而**逼着在制品进包**
+       ⇒ 与 §34.7「v1.5 不带方案 C」直接冲突。
+       ⇒ 正确口径：**包内代码 == 已提交的源码（HEAD）**。
+    """
+    try:
+        out = subprocess.run(
+            ['git', '-C', REPO, 'show', 'HEAD:%s' % rel],
+            capture_output=True, timeout=60)
+        if out.returncode != 0:
+            return None
+        return out.stdout
+    except Exception:
+        return None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--pkg', required=True)
@@ -64,23 +85,34 @@ def main():
     print('v1.5 打包前自检 ——', PKG)
     print('=' * 70)
 
-    # ── ① 包内代码 == 仓库代码 ──────────────────────────────────
+    # ── ① 包内代码 == 仓库代码（基准 = **HEAD**，不是工作区）──────────
     print()
-    print('--- (1) 包内代码 vs 仓库代码（SHA256，归一化行尾）---')
+    print('--- (1) 包内代码 vs 仓库 **HEAD**（SHA256，归一化行尾）---')
     for fn in ('live_caption_app.py', 'device_config.py', 'tts_service.py',
                'tts_worker.py', 'tts_engine.py', 'audio_source.py',
                'backends.py', 'seg_stream.py'):
+        rel = 'live_caption/%s' % fn
         rp = os.path.join(REPO, 'live_caption', fn)
         pp = os.path.join(PKG, 'app', fn)
         if not (os.path.isfile(rp) and os.path.isfile(pp)):
             check('%s 存在（仓库+包）' % fn, False,
                   'repo=%s pkg=%s' % (os.path.isfile(rp), os.path.isfile(pp)))
             continue
-        a = norm_newline(open(rp, 'rb').read())
+        hb = head_bytes(rel)
+        if hb is None:
+            # 取不到 HEAD（不在 git 里）⇒ 退回工作区，但明确标注
+            hb = open(rp, 'rb').read()
+            print('       [warn] %s 取不到 HEAD，退回工作区文件' % fn)
+        a = norm_newline(hb)
         b = norm_newline(open(pp, 'rb').read())
-        check('%s 与仓库一致' % fn, a == b,
-              'repo=%s pkg=%s' % (hashlib.sha256(a).hexdigest()[:12],
-                                  hashlib.sha256(b).hexdigest()[:12]))
+        # 工作区与 HEAD 不同 ⇒ 有在制品；只做**提示**，不进判定
+        wt = norm_newline(open(rp, 'rb').read())
+        note = ''
+        if wt != a:
+            note = '  [注] 工作区有未提交改动（在制品，**不进包**）'
+        check('%s 与 HEAD 一致' % fn, a == b,
+              'head=%s pkg=%s%s' % (hashlib.sha256(a).hexdigest()[:12],
+                                    hashlib.sha256(b).hexdigest()[:12], note))
 
     # ── ② v1.5 标识就位 ───────────────────────────────────────
     print()
@@ -94,7 +126,9 @@ def main():
     check('MANIFEST notes 含 v1.5 修订（设备全名）',
           '（6）**设备下拉按实际硬件显示全名**' in notes)
     check('MANIFEST notes 含 v1.5 修订（CUDA 诚实警示）',
-          '（7）**语音分区新增 CUDA 选项**' in notes)
+          'ASR 语音分区新增 CUDA 选项 + 去重' in notes)
+    check('MANIFEST notes 含 v1.5 修订（TTS 只列实测可用组合）',
+          '（10）**语音输出只列' in notes)
     check('MANIFEST notes 含 v1.5 修订（接缝去重）',
           '（8）**修掉段接缝处的重复词**' in notes)
     check('MANIFEST notes 含 v1.5 修订（TTS 转正式）',
