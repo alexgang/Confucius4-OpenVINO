@@ -1,0 +1,708 @@
+{
+  "purpose": "APP-017 第③项：App 实时路径 WER +2.6pp 主因归因",
+  "generated_at": "2026-10-26 03:18:05",
+  "discipline": {
+    "no_inference": "不跑任何 GPU/OV/NPU 推理 ⇒ 无推理 / 无 GPU / 无测速 / 不占机器锁",
+    "no_import": "不 import 被测模块（live_caption_app 会连带 numpy/OpenBLAS）",
+    "no_live_caption_modify": "live_caption/ 只读，未修改",
+    "no_verdict": "不自己判定质量；结论归 reviewer（MiniMax 回转写）"
+  },
+  "reference": {
+    "path": "reports/c026_minimax_raw.json",
+    "kind": "MiniMax baseline（人工真值）",
+    "words": 11499,
+    "n_chunks": 8,
+    "note": "reviewer 的 8.17% / +2.63pp 就是对这个真值算的 ⇒ 本脚本同尺度"
+  },
+  "scorer": {
+    "method": "method_b：全局 difflib.SequenceMatcher(autojunk=False) 对齐 + 按 owner 归因",
+    "tokenizer": "§32.5 已验收的 norm_tokens（与 app037 一致）",
+    "note": "删除类错误按对齐点就近归桶；替换类 ref 侧多出的部分就近归桶"
+  },
+  "arms": {
+    "BASE_c048_adaptive": {
+      "key": "BASE_c048_adaptive",
+      "label": "BASE 交付基准 c048 adaptive (fp16 enc + int8 dec, 226seg)",
+      "transcript": "reports/c048_61min_adaptive/transcript_adaptive.txt",
+      "cfg": {
+        "encoder": "fp16",
+        "decoder": "int8",
+        "device": "GPU.0",
+        "generation_budget": "adaptive_budget=True, finish_budget=max64",
+        "cfg_source": "reports/c086d_full61_all_npu_matrix.json.wer_validation.reference_device"
+      },
+      "n_segs": 226,
+      "hyp_words": 11725,
+      "words_per_seg": 51.88053097345133,
+      "ref_words": 11499,
+      "wer_pct": 7.757196277937212,
+      "ins": 382,
+      "rep": 451,
+      "dele": 59,
+      "err_by_bucket": {
+        "ins": {
+          "head3": 25,
+          "tail3": 51,
+          "mid": 306
+        },
+        "rep": {
+          "head3": 27,
+          "tail3": 22,
+          "mid": 402
+        },
+        "dele": {
+          "head3": 8,
+          "tail3": 1,
+          "mid": 50
+        }
+      },
+      "boundary_err": 134,
+      "mid_err": 758,
+      "boundary_err_per_seg": 0.5929203539823009,
+      "mid_err_per_seg": 3.353982300884956,
+      "err_per_seg": 3.9469026548672566,
+      "ins_per_seg": 1.6902654867256637,
+      "rep_per_seg": 1.9955752212389382,
+      "del_per_seg": 0.2610619469026549,
+      "n_boundary_tokens": 1350,
+      "n_mid_tokens": 10375,
+      "boundary_err_per_token": 0.09925925925925926,
+      "mid_err_per_token": 0.07306024096385542,
+      "boundary_token_share": 0.11513859275053305,
+      "mid_token_share": 0.8848614072494669,
+      "err_per_token": 0.07607675906183368
+    },
+    "BASE_c048_baseline": {
+      "key": "BASE_c048_baseline",
+      "label": "BASE c048 baseline (固定 max_new_tokens=32, 无 adaptive)",
+      "transcript": "reports/c048_61min_adaptive/transcript_baseline.txt",
+      "cfg": {
+        "encoder": "fp16",
+        "decoder": "int8",
+        "device": "GPU.0",
+        "generation_budget": "max_new_tokens=32 固定",
+        "cfg_source": "c048_61min.py:69"
+      },
+      "n_segs": 226,
+      "hyp_words": 12810,
+      "words_per_seg": 56.68141592920354,
+      "ref_words": 11499,
+      "wer_pct": 17.723280285242193,
+      "ins": 1109,
+      "rep": 875,
+      "dele": 54,
+      "err_by_bucket": {
+        "ins": {
+          "head3": 25,
+          "tail3": 50,
+          "mid": 1034
+        },
+        "rep": {
+          "head3": 27,
+          "tail3": 35,
+          "mid": 813
+        },
+        "dele": {
+          "head3": 6,
+          "tail3": 0,
+          "mid": 48
+        }
+      },
+      "boundary_err": 143,
+      "mid_err": 1895,
+      "boundary_err_per_seg": 0.6327433628318584,
+      "mid_err_per_seg": 8.38495575221239,
+      "err_per_seg": 9.017699115044248,
+      "ins_per_seg": 4.907079646017699,
+      "rep_per_seg": 3.8716814159292037,
+      "del_per_seg": 0.23893805309734514,
+      "n_boundary_tokens": 1350,
+      "n_mid_tokens": 11460,
+      "boundary_err_per_token": 0.10592592592592592,
+      "mid_err_per_token": 0.16535776614310646,
+      "boundary_token_share": 0.1053864168618267,
+      "mid_token_share": 0.8946135831381733,
+      "err_per_token": 0.1590944574551132
+    },
+    "c057_enc_int4": {
+      "key": "c057_enc_int4",
+      "label": "c057 enc_int4 (int4 enc + int8 dec, 226seg)",
+      "transcript": "reports/c057_61min_encoder/transcript_enc_int4.txt",
+      "cfg": {
+        "encoder": "int4",
+        "decoder": "int8",
+        "device": "GPU.0",
+        "generation_budget": "adaptive_budget=True, finish_budget=max64",
+        "cfg_source": "c057f_encoder_61min.py:38-42"
+      },
+      "n_segs": 226,
+      "hyp_words": 11696,
+      "words_per_seg": 51.75221238938053,
+      "ref_words": 11499,
+      "wer_pct": 7.870249586920602,
+      "ins": 358,
+      "rep": 487,
+      "dele": 60,
+      "err_by_bucket": {
+        "ins": {
+          "head3": 26,
+          "tail3": 39,
+          "mid": 293
+        },
+        "rep": {
+          "head3": 24,
+          "tail3": 25,
+          "mid": 438
+        },
+        "dele": {
+          "head3": 8,
+          "tail3": 2,
+          "mid": 50
+        }
+      },
+      "boundary_err": 124,
+      "mid_err": 781,
+      "boundary_err_per_seg": 0.5486725663716814,
+      "mid_err_per_seg": 3.4557522123893807,
+      "err_per_seg": 4.004424778761062,
+      "ins_per_seg": 1.584070796460177,
+      "rep_per_seg": 2.1548672566371683,
+      "del_per_seg": 0.26548672566371684,
+      "n_boundary_tokens": 1350,
+      "n_mid_tokens": 10346,
+      "boundary_err_per_token": 0.09185185185185185,
+      "mid_err_per_token": 0.07548811134738063,
+      "boundary_token_share": 0.11542407660738714,
+      "mid_token_share": 0.8845759233926128,
+      "err_per_token": 0.07737688098495211
+    },
+    "c057_enc_fp16": {
+      "key": "c057_enc_fp16",
+      "label": "c057 enc_fp16 (fp16 enc + int8 dec, 226seg)",
+      "transcript": "reports/c057_61min_encoder/transcript_enc_fp16.txt",
+      "cfg": {
+        "encoder": "fp16",
+        "decoder": "int8",
+        "device": "GPU.0",
+        "generation_budget": "adaptive_budget=True, finish_budget=max64",
+        "cfg_source": "c057f_encoder_61min.py:38-42"
+      },
+      "n_segs": 226,
+      "hyp_words": 11725,
+      "words_per_seg": 51.88053097345133,
+      "ref_words": 11499,
+      "wer_pct": 7.757196277937212,
+      "ins": 382,
+      "rep": 451,
+      "dele": 59,
+      "err_by_bucket": {
+        "ins": {
+          "head3": 25,
+          "tail3": 51,
+          "mid": 306
+        },
+        "rep": {
+          "head3": 27,
+          "tail3": 22,
+          "mid": 402
+        },
+        "dele": {
+          "head3": 8,
+          "tail3": 1,
+          "mid": 50
+        }
+      },
+      "boundary_err": 134,
+      "mid_err": 758,
+      "boundary_err_per_seg": 0.5929203539823009,
+      "mid_err_per_seg": 3.353982300884956,
+      "err_per_seg": 3.9469026548672566,
+      "ins_per_seg": 1.6902654867256637,
+      "rep_per_seg": 1.9955752212389382,
+      "del_per_seg": 0.2610619469026549,
+      "n_boundary_tokens": 1350,
+      "n_mid_tokens": 10375,
+      "boundary_err_per_token": 0.09925925925925926,
+      "mid_err_per_token": 0.07306024096385542,
+      "boundary_token_share": 0.11513859275053305,
+      "mid_token_share": 0.8848614072494669,
+      "err_per_token": 0.07607675906183368
+    },
+    "c086_all_npu": {
+      "key": "c086_all_npu",
+      "label": "c086 全 NPU (int8sym enc + cleanie int8 dec, 226seg)",
+      "transcript": "reports/c086_full61/transcript_all_npu_full.txt",
+      "cfg": {
+        "encoder": "int8sym",
+        "decoder": "cleanie_int8sym",
+        "device": "NPU",
+        "generation_budget": "adaptive_budget=True, finish_budget=max64",
+        "cfg_source": "reports/c086d_full61_all_npu_matrix.json.config"
+      },
+      "n_segs": 226,
+      "hyp_words": 11683,
+      "words_per_seg": 51.69469026548673,
+      "ref_words": 11499,
+      "wer_pct": 7.87894599530394,
+      "ins": 353,
+      "rep": 468,
+      "dele": 85,
+      "err_by_bucket": {
+        "ins": {
+          "head3": 25,
+          "tail3": 39,
+          "mid": 289
+        },
+        "rep": {
+          "head3": 23,
+          "tail3": 24,
+          "mid": 421
+        },
+        "dele": {
+          "head3": 11,
+          "tail3": 6,
+          "mid": 68
+        }
+      },
+      "boundary_err": 128,
+      "mid_err": 778,
+      "boundary_err_per_seg": 0.5663716814159292,
+      "mid_err_per_seg": 3.4424778761061945,
+      "err_per_seg": 4.008849557522124,
+      "ins_per_seg": 1.5619469026548674,
+      "rep_per_seg": 2.0707964601769913,
+      "del_per_seg": 0.37610619469026546,
+      "n_boundary_tokens": 1350,
+      "n_mid_tokens": 10333,
+      "boundary_err_per_token": 0.09481481481481481,
+      "mid_err_per_token": 0.07529275137907675,
+      "boundary_token_share": 0.11555251219720962,
+      "mid_token_share": 0.8844474878027904,
+      "err_per_token": 0.07754857485234956
+    },
+    "APP_A": {
+      "key": "APP_A",
+      "label": "APP 实时路径 A (int8asym enc + int8 dec, 538seg)",
+      "transcript": "reports/asr004_ab/transcript_A.txt",
+      "cfg": {
+        "encoder": "int8asym",
+        "decoder": "int8",
+        "device": "GPU.0",
+        "generation_budget": "adaptive_budget=True, finish_budget=max64",
+        "cfg_source": "reports/asr004_ab/summary_A.json.engine"
+      },
+      "n_segs": 538,
+      "hyp_words": 11879,
+      "words_per_seg": 22.07992565055762,
+      "ref_words": 11499,
+      "wer_pct": 10.16610140012175,
+      "ins": 423,
+      "rep": 676,
+      "dele": 70,
+      "err_by_bucket": {
+        "ins": {
+          "head3": 74,
+          "tail3": 149,
+          "mid": 200
+        },
+        "rep": {
+          "head3": 123,
+          "tail3": 133,
+          "mid": 420
+        },
+        "dele": {
+          "head3": 30,
+          "tail3": 5,
+          "mid": 35
+        }
+      },
+      "boundary_err": 514,
+      "mid_err": 655,
+      "boundary_err_per_seg": 0.9553903345724907,
+      "mid_err_per_seg": 1.2174721189591078,
+      "err_per_seg": 2.1728624535315983,
+      "ins_per_seg": 0.7862453531598513,
+      "rep_per_seg": 1.2565055762081785,
+      "del_per_seg": 0.13011152416356878,
+      "n_boundary_tokens": 3214,
+      "n_mid_tokens": 8665,
+      "boundary_err_per_token": 0.15992532669570628,
+      "mid_err_per_token": 0.07559145989613388,
+      "boundary_token_share": 0.27056149507534305,
+      "mid_token_share": 0.729438504924657,
+      "err_per_token": 0.09840895698291102
+    },
+    "APP_B": {
+      "key": "APP_B",
+      "label": "APP 实时路径 B (int8asym enc + int8 dec, 558seg)",
+      "transcript": "reports/asr004_ab/transcript_B.txt",
+      "cfg": {
+        "encoder": "int8asym",
+        "decoder": "int8",
+        "device": "GPU.0",
+        "generation_budget": "adaptive_budget=True, finish_budget=max64",
+        "cfg_source": "reports/asr004_ab/summary_B.json.engine"
+      },
+      "n_segs": 558,
+      "hyp_words": 11841,
+      "words_per_seg": 21.22043010752688,
+      "ref_words": 11499,
+      "wer_pct": 10.035655274371685,
+      "ins": 468,
+      "rep": 615,
+      "dele": 71,
+      "err_by_bucket": {
+        "ins": {
+          "head3": 101,
+          "tail3": 141,
+          "mid": 226
+        },
+        "rep": {
+          "head3": 129,
+          "tail3": 128,
+          "mid": 358
+        },
+        "dele": {
+          "head3": 26,
+          "tail3": 3,
+          "mid": 42
+        }
+      },
+      "boundary_err": 528,
+      "mid_err": 626,
+      "boundary_err_per_seg": 0.946236559139785,
+      "mid_err_per_seg": 1.1218637992831542,
+      "err_per_seg": 2.068100358422939,
+      "ins_per_seg": 0.8387096774193549,
+      "rep_per_seg": 1.1021505376344085,
+      "del_per_seg": 0.12724014336917563,
+      "n_boundary_tokens": 3331,
+      "n_mid_tokens": 8510,
+      "boundary_err_per_token": 0.15851095767036927,
+      "mid_err_per_token": 0.0735605170387779,
+      "boundary_token_share": 0.28131070010978804,
+      "mid_token_share": 0.718689299890212,
+      "err_per_token": 0.09745798496748585
+    },
+    "APP_singleproc": {
+      "key": "APP_singleproc",
+      "label": "APP 单进程 (int8asym enc + int8 dec, 534seg)",
+      "transcript": "reports/asr004_ab/singleproc_transcript_A.txt",
+      "cfg": {
+        "encoder": "int8asym",
+        "decoder": "int8",
+        "device": "GPU.0",
+        "generation_budget": "adaptive_budget=True, finish_budget=max64",
+        "cfg_source": "reports/asr004_ab/singleproc_summary_A.json.engine"
+      },
+      "n_segs": 534,
+      "hyp_words": 11866,
+      "words_per_seg": 22.220973782771537,
+      "ref_words": 11499,
+      "wer_pct": 10.000869640838333,
+      "ins": 404,
+      "rep": 681,
+      "dele": 65,
+      "err_by_bucket": {
+        "ins": {
+          "head3": 81,
+          "tail3": 134,
+          "mid": 189
+        },
+        "rep": {
+          "head3": 143,
+          "tail3": 131,
+          "mid": 407
+        },
+        "dele": {
+          "head3": 23,
+          "tail3": 5,
+          "mid": 37
+        }
+      },
+      "boundary_err": 517,
+      "mid_err": 633,
+      "boundary_err_per_seg": 0.9681647940074907,
+      "mid_err_per_seg": 1.1853932584269662,
+      "err_per_seg": 2.153558052434457,
+      "ins_per_seg": 0.7565543071161048,
+      "rep_per_seg": 1.2752808988764044,
+      "del_per_seg": 0.12172284644194757,
+      "n_boundary_tokens": 3195,
+      "n_mid_tokens": 8671,
+      "boundary_err_per_token": 0.1618153364632238,
+      "mid_err_per_token": 0.07300196055818245,
+      "boundary_token_share": 0.2692566998145963,
+      "mid_token_share": 0.7307433001854037,
+      "err_per_token": 0.09691555705376706
+    }
+  },
+  "q1_reproduction": {
+    "base_wer_pct": 7.757196277937212,
+    "app_a_wer_pct": 10.16610140012175,
+    "app_b_wer_pct": 10.035655274371685,
+    "delta_a_pp": 2.408905122184538,
+    "delta_b_pp": 2.2784589964344724,
+    "reviewer_base_pct": 8.17,
+    "reviewer_delta_a_pp": 2.63,
+    "reviewer_delta_b_pp": "~2.4",
+    "note": "本脚本基线 WER 与 reviewer 的 8.17% 差 0.413 pp（分词口径与词数不同，真值词数 11499 vs reviewer 口径 10964）⇒ 同量级、同符号"
+  },
+  "q2_budget_control": {
+    "base_adaptive_wer_pct": 7.757196277937212,
+    "base_baseline_wer_pct": 17.723280285242193,
+    "budget_effect_pp": 9.966084007304982,
+    "app_gap_pp": 2.408905122184538,
+    "app_budget": "adaptive_budget=True + finish max64（与 BASE adaptive 同口径）",
+    "budget_source": "live_caption/live_caption_app.py:1294-1296",
+    "sha256": {
+      "baseline": "2f209de9c3969d64566494ebfbb4b416cf624471996a561fd403a8fa123ab923",
+      "c039_spe61": "2f209de9c3969d64566494ebfbb4b416cf624471996a561fd403a8fa123ab923",
+      "v3_segenc_int8": "2f209de9c3969d64566494ebfbb4b416cf624471996a561fd403a8fa123ab923",
+      "adaptive": "84f80e47aef7aa0c798153f8b37296eb67d4f3f0272f115066f1357c9af2cb30",
+      "c057_enc_fp16": "84f80e47aef7aa0c798153f8b37296eb67d4f3f0272f115066f1357c9af2cb30"
+    },
+    "verdict": "生成预算**不是** App 缺口的原因；用 baseline 当参照会拿错尺子"
+  },
+  "q3_encoder_bound": {
+    "enc_fp16_wer_pct": 7.757196277937212,
+    "enc_int4_wer_pct": 7.870249586920602,
+    "enc_delta_pp": 0.11305330898338983,
+    "app_gap_pp": 2.408905122184538,
+    "enc_ir_mib": {
+      "fp16": 605.6,
+      "int8asym": 303.8,
+      "int8sym": 303.5,
+      "int4": 162.5
+    },
+    "enc_ir_mib_source": "reports/c057_encoder_acc_3way.json.summary.*.ir_mib",
+    "caveat": "这是**外推上界**：int8asym 的一端到端 226 段臂在本仓库不存在 ⇒ 「int8asym 的贡献 ≤ int4 的贡献」这一步依赖「IR 体积越小量化越差」这一假设 ⇒ 需 reviewer 裁定是否接受",
+    "open_metric_anomaly": "reports/c057_encoder_acc_3way.json 的 token_edit_pct 排序为 fp16 0% / int8sym 18.42% / int8asym 30.53% / int4 4.21% ⇒ **与 IR 体积排序相反** ⇒ 该 teacher-forcing 指标与端到端 WER 的关系存疑（ASR-006 §4 已提过该指标过于敏感）"
+  },
+  "q4_error_placement": {
+    "arms": {
+      "BASE_c048_adaptive": {
+        "n_segs": 226,
+        "words_per_seg": 51.88053097345133,
+        "boundary_err_per_seg": 0.5929203539823009,
+        "mid_err_per_seg": 3.353982300884956,
+        "err_per_seg": 3.9469026548672566,
+        "boundary_err_per_token": 0.09925925925925926,
+        "mid_err_per_token": 0.07306024096385542,
+        "err_per_token": 0.07607675906183368,
+        "boundary_token_share": 0.11513859275053305,
+        "mid_token_share": 0.8848614072494669
+      },
+      "c057_enc_int4": {
+        "n_segs": 226,
+        "words_per_seg": 51.75221238938053,
+        "boundary_err_per_seg": 0.5486725663716814,
+        "mid_err_per_seg": 3.4557522123893807,
+        "err_per_seg": 4.004424778761062,
+        "boundary_err_per_token": 0.09185185185185185,
+        "mid_err_per_token": 0.07548811134738063,
+        "err_per_token": 0.07737688098495211,
+        "boundary_token_share": 0.11542407660738714,
+        "mid_token_share": 0.8845759233926128
+      },
+      "APP_A": {
+        "n_segs": 538,
+        "words_per_seg": 22.07992565055762,
+        "boundary_err_per_seg": 0.9553903345724907,
+        "mid_err_per_seg": 1.2174721189591078,
+        "err_per_seg": 2.1728624535315983,
+        "boundary_err_per_token": 0.15992532669570628,
+        "mid_err_per_token": 0.07559145989613388,
+        "err_per_token": 0.09840895698291102,
+        "boundary_token_share": 0.27056149507534305,
+        "mid_token_share": 0.729438504924657
+      },
+      "APP_B": {
+        "n_segs": 558,
+        "words_per_seg": 21.22043010752688,
+        "boundary_err_per_seg": 0.946236559139785,
+        "mid_err_per_seg": 1.1218637992831542,
+        "err_per_seg": 2.068100358422939,
+        "boundary_err_per_token": 0.15851095767036927,
+        "mid_err_per_token": 0.0735605170387779,
+        "err_per_token": 0.09745798496748585,
+        "boundary_token_share": 0.28131070010978804,
+        "mid_token_share": 0.718689299890212
+      }
+    },
+    "fair_metric": "**每词**口径（按桶内 token 数归一）⇒ 消除段长混淆",
+    "boundary_err_per_token_ratio": 1.6111879928298767,
+    "mid_err_per_token_ratio": 1.0346456417181913,
+    "err_per_token_ratio": 1.2935482293998115,
+    "per_seg_ratio_caution": "「每段」口径的比值被段长混淆（App 段更短 ⇒ 边界 token 占比更高）⇒ 不作为对外报数口径",
+    "note": "「边界」= 段首 3 词 + 段尾 3 词；「中间」= 段内其余 token"
+  },
+  "counterfactual_split": {
+    "err_base": 892,
+    "err_app": 1169,
+    "err_excess": 277,
+    "n_base": 226,
+    "n_app": 538,
+    "cf_segcount_only_err": 2123.433628318584,
+    "cf_segcount_only_wer_pct": 18.466246006770884,
+    "cf_quality_only_err": 491.0669144981412,
+    "cf_quality_only_wer_pct": 4.270518432021404,
+    "note": "两个极端假设都不等于实际 ⇒ 加性分解不闭合 ⇒ 交互存在 ⇒ **不能**用「只改一个变量」的线性口径对外报数"
+  },
+  "excluded_or_retracted": [
+    {
+      "hypothesis": "「重新聚合成 225 段后 Δ = 0.0 ⇒ 段聚合方式与 WER 差异无关」",
+      "status": "🔴 **撤回**（该对照是恒等式，零效力）",
+      "evidence": "实测 reaggregate() 后的 token 序列与原序列**逐位相同**（11879 词，hyp == hyp2 为 True）⇒ 不重新解码就不可能改变 WER ⇒ Δ=0.0 是数学必然，不是实证结论",
+      "evidence_source": "app056 实测（见 self_check「reagg 恒等式」）"
+    },
+    {
+      "hypothesis": "「生成预算（固定 32 token vs adaptive）造成 App 的缺口」",
+      "status": "✅ 排除",
+      "evidence": "c048 baseline（固定 32 token）WER 17.723% 比 BASE adaptive 高 9.966 pp；而 App 用的是 adaptive_budget=True + finish max64 ⇒ 与 BASE 同口径"
+    },
+    {
+      "hypothesis": "「接缝切词重复是主因」",
+      "status": "🔴 已被前轮证据否定（只覆盖缺口约 3%）",
+      "evidence": "app037_wer_gap_maincause.json：seam_dup=16（A）/21（B），而总插入 232/225 ⇒ 覆盖率 ≈ 7%/9%；且 app037_seam_mechanism.json：n_cut_through_word=32/537（5.96%）"
+    },
+    {
+      "hypothesis": "「c057 的 enc_fp16 是一个独立的 fp16 对照臂」",
+      "status": "✅ 排除（它是 BASE adaptive 的一次复现）",
+      "evidence": "transcript_enc_fp16.txt 与 transcript_adaptive.txt 的 SHA256 完全相同"
+    },
+    {
+      "hypothesis": "「encoder 精度是主因」",
+      "status": "✅ 强烈不支持（给出上界）",
+      "evidence": "同为 226 段 / 同一 int8 decoder，fp16→int4 的端到端 Δ 仅 +0.113 pp，而 App 缺口 2.409 pp"
+    }
+  ],
+  "reagg_tautology_check": {
+    "reagg_n_segs": 225,
+    "words_original": 11879,
+    "words_reagg": 11879,
+    "token_sequence_identical": true,
+    "conclusion": "app037 的「反事实·225 段 Δ=0.0」是**恒等式**，不能作为「段聚合方式与 WER 差异无关」的证据 ⇒ 该结论撤回"
+  },
+  "evidence_files": [
+    {
+      "path": "reports/c048_61min_adaptive/transcript_adaptive.txt",
+      "bytes": 66110,
+      "mtime": "2026-10-20 09:24:20",
+      "sha256": "84f80e47aef7aa0c798153f8b37296eb67d4f3f0272f115066f1357c9af2cb30",
+      "role": "BASE_c048_adaptive"
+    },
+    {
+      "path": "reports/c048_61min_adaptive/transcript_baseline.txt",
+      "bytes": 71715,
+      "mtime": "2026-10-20 09:24:20",
+      "sha256": "2f209de9c3969d64566494ebfbb4b416cf624471996a561fd403a8fa123ab923",
+      "role": "BASE_c048_baseline"
+    },
+    {
+      "path": "reports/c057_61min_encoder/transcript_enc_int4.txt",
+      "bytes": 65985,
+      "mtime": "2026-10-22 09:35:13",
+      "sha256": "9c428c1b64867acf4d8274e48e8b54aafa282c8d661fda8083f41b6b45682c81",
+      "role": "c057_enc_int4"
+    },
+    {
+      "path": "reports/c057_61min_encoder/transcript_enc_fp16.txt",
+      "bytes": 66110,
+      "mtime": "2026-10-22 09:35:13",
+      "sha256": "84f80e47aef7aa0c798153f8b37296eb67d4f3f0272f115066f1357c9af2cb30",
+      "role": "c057_enc_fp16"
+    },
+    {
+      "path": "reports/c086_full61/transcript_all_npu_full.txt",
+      "bytes": 65715,
+      "mtime": "2026-10-22 09:35:13",
+      "sha256": "cdfed2c78fe437ccdff46b9f7f01b2144a92e7340eadb9327626fa4828955400",
+      "role": "c086_all_npu"
+    },
+    {
+      "path": "reports/asr004_ab/transcript_A.txt",
+      "bytes": 74037,
+      "mtime": "2026-10-24 15:14:02",
+      "sha256": "a8110f6acbae3238ca968a0cfcd1af8374ccdf03f73a07625ce23a38bc778ef9",
+      "role": "APP_A"
+    },
+    {
+      "path": "reports/asr004_ab/transcript_B.txt",
+      "bytes": 74247,
+      "mtime": "2026-10-24 15:14:02",
+      "sha256": "5fc3deb999d547fee89ef70b7d2ad491addd1a73ba7f8f4db5205d30e43cdfc8",
+      "role": "APP_B"
+    },
+    {
+      "path": "reports/asr004_ab/singleproc_transcript_A.txt",
+      "bytes": 73837,
+      "mtime": "2026-10-24 12:19:04",
+      "sha256": "4924c61ec047435a0a65ce5d68f5bd94746badc4c07a5157dff11ff8e452afad",
+      "role": "APP_singleproc"
+    },
+    {
+      "path": "reports/c026_minimax_raw.json",
+      "bytes": 1609048,
+      "mtime": "2026-10-10 14:18:30",
+      "sha256": "3e8e085bc31d897dd1804f63f613990549a9c6f8d2b2e253b3476099ace6e34c",
+      "role": "引用"
+    },
+    {
+      "path": "reports/c057_encoder_acc_3way.json",
+      "bytes": 11360,
+      "mtime": "2026-10-22 09:35:13",
+      "sha256": "9677b1b2ffafc29624d9fa7fc742277dd1840f74b9e959ce60b8d80387e6b986",
+      "role": "引用"
+    },
+    {
+      "path": "reports/c086d_full61_all_npu_matrix.json",
+      "bytes": 9617,
+      "mtime": "2026-10-22 09:35:13",
+      "sha256": "17cc12a8b4efff3dddd967b31e731380e77378100e1bf587455031496b133868",
+      "role": "引用"
+    },
+    {
+      "path": "reports/asr004_ab/summary_A.json",
+      "bytes": 1173,
+      "mtime": "2026-10-24 15:14:02",
+      "sha256": "7e471cd92c7415519c2031bca53193942aa25314b1c0a018f3de8921ecfbfbc6",
+      "role": "引用"
+    },
+    {
+      "path": "reports/asr004_ab/summary_B.json",
+      "bytes": 1057,
+      "mtime": "2026-10-24 15:14:02",
+      "sha256": "f306c97b7da744230689c5c0003b67d28af0506a30071289a7e89f7b386aac91",
+      "role": "引用"
+    },
+    {
+      "path": "results/app/app037_wer_gap_maincause.json",
+      "bytes": 35927,
+      "mtime": "2026-10-25 16:05:43",
+      "sha256": "d6e688148307a95a0c872e8081e3cf1a4d0590f2227b61862580538280f725be",
+      "role": "引用"
+    },
+    {
+      "path": "results/app/app037_segcount_effect.json",
+      "bytes": 2208,
+      "mtime": "2026-10-25 16:14:54",
+      "sha256": "2e7e775f8fc9d7ac6bf0494c8ba80ba7a748f8f34aee286c38fc65933c90d999",
+      "role": "引用"
+    },
+    {
+      "path": "results/app/app037_seam_mechanism.json",
+      "bytes": 21847,
+      "mtime": "2026-10-25 16:15:42",
+      "sha256": "120dabe5421c1fb0cc49239eeecb858d418b019bec10731477f78247417b042b",
+      "role": "引用"
+    }
+  ],
+  "open_for_reviewer": [
+    "① Q4 的「边界误差率 vs 中间误差率」比值，是「每段更差」还是「段更多」主导？（本脚本给出数值，不下结论）",
+    "② 是否接受 Q3 的**外推上界**（「int8asym 的贡献 ≤ int4 的贡献」）？若不接受，需要在 226 段下补一条 int8asym 端到端臂（**需持锁跑推理**）",
+    "③ c057_encoder_acc_3way.json 的 token_edit_pct 与 IR 体积排序相反（int8asym 30.53% > int4 4.21%）⇒ 该指标是否仍应作为编码器选型依据？",
+    "④ 缺口是「段更多」与「每段更差」的**叠加**（两个极端反事实都不闭合）⇒ 若要改产品行为，是改分段粒度、还是改 encoder、还是改预算？**请裁定**",
+    "⑤ 是否需要把 App 的默认引擎 encoder 从 int8asym 改回 fp16？（**App 不自行决定**；另需权衡 IR 体积 605.6 vs 303.8 MiB 与速度）"
+  ]
+}
