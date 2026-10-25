@@ -104,6 +104,59 @@ SKIP_CONTENT_EXT = {
     '.onnx', '.blob', '.m4a', '.aac',
 }
 
+# ── C. 文本编码完整性（U+FFFD / 解码失败）──────────────────────────
+# 🔴🔴 **本轮新增（§36）**：乱码（U+FFFD）是**交付质量事故**，
+#    且**内部素材闸门完全看不见**（它只找"内部素材"，不找"乱码"）。
+#    ⇒ 历史上 §29.7 → §31.4 修过两处，**结果 §32 的提交 6a1dee6 又把
+#      乱码写回了同一个文件**（docstring 里「都不中」三个字被替换成了
+#      3 个 U+FFFD 替换字符）
+#      ⇒ 「修掉一处」不等于「这一类不会再来」⇒ 必须**进闸门**。
+#
+#    根因模式（两种都堵）：
+#      ① **UTF-8 字节被按 GBK 读（errors='replace'）再写回 UTF-8**
+#         ⇒ 原字节被替换成 `ef bf bd`（U+FFFD）× N；
+#      ② **GBK 字节被按 UTF-8 读** ⇒ 同样产出 U+FFFD。
+#    ⇒ 判据：**文本文件里出现 U+FFFD，或根本不是合法 UTF-8** ⇒ 命中。
+#
+# ⚠️ **只扫本模块交付的文本类型**（.py/.md/.txt/.json/.bat/.cfg/.ini/...）
+#    ⇒ 不扫 site-packages 里的第三方库（它们的源码可能有历史遗留的
+#    非 UTF-8 编码，且**不是 App 的交付责任**）⇒ 见 TEXT_EXT。
+TEXT_EXT = {
+    '.py', '.md', '.txt', '.json', '.bat', '.cfg', '.ini', '.yml', '.yaml',
+    '.toml', '.sh', '.ps1', '.js', '.css', '.html', '.csv',
+}
+# 第三方依赖目录（不归 App 交付责任，不扫内容完整性）
+TEXT_SKIP_DIRS = {
+    'site-packages', '__pycache__', 'python', 'Lib',
+    'node_modules', 'models', '.git',
+}
+# 单文件读入上限（与内容关键词扫描同一量级）
+TEXT_HEAD_BYTES = 8 * 1024 * 1024
+
+
+def _scan_text_integrity(path: str):
+    """文本文件编码完整性：返回问题说明（None = 正常）。
+
+    判据（两条）：
+      ① 文件**不是合法 UTF-8** ⇒ 「非 UTF-8 文本」；
+      ② 合法 UTF-8 但含 **U+FFFD** ⇒ 「含 U+FFFD 乱码」。
+    """
+    try:
+        with open(path, 'rb') as f:
+            raw = f.read(TEXT_HEAD_BYTES)
+    except OSError:
+        return None
+    if not raw:
+        return None
+    try:
+        text = raw.decode('utf-8')
+    except UnicodeDecodeError as e:
+        return '文本编码：非 UTF-8（%s @ byte %d）' % (e.reason, e.start)
+    n = text.count('\ufffd')
+    if n:
+        return '文本编码：含 %d 个 U+FFFD 乱码字符' % n
+    return None
+
 
 def _allowed(rel: str, allow, allow_exact=()):
     norm = rel.replace('\\', '/')
@@ -132,6 +185,19 @@ def _scan_content(path: str):
     return None
 
 
+def _skip_text_integrity(rel: str) -> bool:
+    """该路径是否**不参与**文本编码完整性检查。
+
+    🔴 只排除**第三方依赖目录**（site-packages / 随包 python 运行时 /
+    模型权重目录）—— 它们的源码可能有历史遗留的非 UTF-8 编码，
+    且**不是 App 的交付责任**。
+    ⚠️ **不排除** `live_caption/` `status/` 等本模块自己的文件 ⇒
+    哪怕它在「内部素材」放行名单里，**乱码也必须拦下**。
+    """
+    segs = rel.replace('\\', '/').split('/')
+    return any(s in TEXT_SKIP_DIRS for s in segs)
+
+
 def scan_dir(root: str, allow, verbose=False, allow_exact=()):
     """扫描一个目录树，返回 [(relpath, reason)]。"""
     hits = []
@@ -142,13 +208,23 @@ def scan_dir(root: str, allow, verbose=False, allow_exact=()):
         for fn in files:
             full = os.path.join(dirpath, fn)
             rel = os.path.relpath(full, root).replace('\\', '/')
+            ext = os.path.splitext(fn)[1].lower()
+
+            # ── C. 文本编码完整性（**不受「内部素材」放行名单影响**）──
+            # 🔴 放行名单的语义是「允许提到内部素材的名字」，
+            #    **不是**「允许乱码」⇒ 乱码一律拦下。
+            if ext in TEXT_EXT and not _skip_text_integrity(rel):
+                why = _scan_text_integrity(full)
+                if why:
+                    hits.append((rel, f'编码规则：{why}'))
+                    continue
+
             if _allowed(rel, allow, allow_exact):
                 continue
             why = _scan_name(rel)
             if why:
                 hits.append((rel, f'文件名规则：{why}'))
                 continue
-            ext = os.path.splitext(fn)[1].lower()
             if ext in SKIP_CONTENT_EXT:
                 continue
             if os.path.getsize(full) > 64 * 1024 * 1024:
@@ -172,16 +248,26 @@ def scan_staged(repo: str, allow, verbose=False, allow_exact=()):
     names = out.stdout.decode('utf-8', errors='replace').splitlines()
     for rel in names:
         rel = rel.strip()
-        if not rel or _allowed(rel, allow, allow_exact):
+        if not rel:
+            continue
+        full = os.path.join(repo, rel.replace('/', os.sep))
+        ext = os.path.splitext(rel)[1].lower()
+
+        # ── C. 文本编码完整性（**不受「内部素材」放行名单影响**）──
+        if ext in TEXT_EXT and not _skip_text_integrity(rel):
+            why = _scan_text_integrity(full)
+            if why:
+                hits.append((rel, f'编码规则：{why}'))
+                continue
+
+        if _allowed(rel, allow, allow_exact):
             continue
         why = _scan_name(rel)
         if why:
             hits.append((rel, f'文件名规则：{why}'))
             continue
-        full = os.path.join(repo, rel.replace('/', os.sep))
         if not os.path.isfile(full):
             continue
-        ext = os.path.splitext(rel)[1].lower()
         if ext in SKIP_CONTENT_EXT:
             continue
         why = _scan_content(full)

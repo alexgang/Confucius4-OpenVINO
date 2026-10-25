@@ -129,7 +129,7 @@ def device_label(dev: str) -> str:
        - 名字里含 Intel + Graphics ⇒ 「Intel GPU（集显）」；
        - 名字里含 Intel + AI Boost ⇒ 「Intel NPU」；
     2. 查不到全名（OV 不可用 / 设备已拔出）⇒ 回落 ``_DEVICE_LABELS``；
-    3. 都不��� ⇒ 原样返回设备名（**绝不编造「Intel GPU 2」这种不存在的设备**）。
+    3. 都不中 ⇒ 原样返回设备名（**绝不编造「Intel GPU 2」这种不存在的设备**）。
 
     ⚠️ 标签必须**全局唯一**（GUI 靠 label 反查设备，见 live_caption_app.py
        的 ``_dev_label_back``）⇒ 含厂商的标签天然比「GPU.1」更不容易撞。

@@ -1,0 +1,19 @@
+{
+  "test": "app036_text_integrity_gate",
+  "ts": "2026-10-25 12:36:06",
+  "pass": 9,
+  "fail": 0,
+  "verdict": "PASS",
+  "failed_items": [],
+  "passed_items": [
+    "T1 U+FFFD 文件被命中",
+    "T1 命中原因标注为编码规则",
+    "T2 非 UTF-8 文本被命中",
+    "T3 放行名单内的乱码仍被命中（不因放行而放过）",
+    "T4 第三方目录不命中：python/Lib/site-packages/x.py",
+    "T4 第三方目录不命中：models/tokenizer/tokenizer.json",
+    "T4 第三方目录不命中：python/Lib/site-packages/sub/deep.py",
+    "T5 干净文件不命中（无误报）",
+    "T6 真实客户包 v1.5 闸门 0 命中"
+  ]
+}
