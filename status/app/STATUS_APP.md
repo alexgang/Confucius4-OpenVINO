@@ -1,13 +1,17 @@
 # STATUS_APP
 last_ack: APP-017
-更新时间: 2026-10-25 19:52
-当前任务: **第 20 次巡检（`CORRECTIONS_APP.md` 无新条目）+ 用户两条反馈闭环（§39）+ v1.5 持锁重打完成（§39.9）**：① 🔴🔴 **「语音输出无论 NPU/GPU 都听不到声音」已修** —— 真因是 `RingBuffer.write()` 要求**整句一次装下**（`count + n > cap`），而容量 `sr*3` = **72 000 样本（3.00 s）**、一句合成出 **138 240 样本（5.76 s）** ⇒ **条件恒真 ⇒ 每句都等满 30 s 超时被丢弃**（与设备/精度/驱动**全无关**）；修法 = `write()` **按空位分片推进**（不丢样本不断句）+ `n_read`/`stall_s` 让「缓冲满但有消费」与「根本没人消费」分流 + 无人消费时 5 s 内给出人话诊断 + `n_cb` 回调计数 + 启动日志；② ⛔ **NV CUDA 经查「不可用」⇒ 未加入语音输出选项**（`openvino/libs` 无 CUDA 组件、`nvidia-smi` 正常说明不是缺驱动、但 `cmake`/`nvcc`/CUDA Toolkit/MSVC 全缺、官方 README 明确「不含在 Intel 发行版、须自编译、仅在 Ubuntu 20.04 验证」；`GPU.1` 的 f32/f16 失败完全相同（3/7）⇒ 是 Intel GPU plugin 枚举，不是 CUDA 设备）；③ ✅ **v1.5 已持锁重打**：md5 `f8475ce511efef7d13209bf9b64b5b95`、11 216 075 157 B、13 979 条目、逐字节一致、**PASS**；zip 内 `tts_worker.py` md5 `77e1d988…` 含全部播放修复、README 第（11）条与 MANIFEST 第（11）条都在包内、**方案 C 残留 0**；④ ✅ 打包前自检 **PASS 49 / 0**（新增 MANIFEST 第（11）条断言）
-阻塞 / 待用户决定: ① 🟢 ~~「语音输出听不到声音」~~ ⇒ **§39 已修 + 已重打进包**（NPU·F16 6.96 s / 集显·F32 33.9 s 均实测出声）；② ⛔ **NV CUDA 方案未加入**（不可用，依据见 §39.5）⇒ 用户若要「真用 NVIDIA 跑」需另立项目（自编译 plugin）；③ ⛔ **APP-017 的「检查点 3（TTS 实时性 + ABBA）」**由另一个 App 并行会话在做⇒ 本会话**不重复跑、不抢锁**；④ ⛔ **APP-012② / APP-017 的 WER +2.6pp 主因**仍未定位（接缝去重只值 ≈3%）；⑤ ⛔ **APP-015 方案 C** 仍是工作区在制品（验收 18/21 FAIL）⇒ **v1.5 明确不带**；⑥ ⛔ **APP-009②** 的 MT UNIT 方案 A/B/C/D 仍在 v4 复算 ⇒ 渲染层三处**仍未改**；⑦ ⛔ **包体 10.45 GiB** 优化未做；⑧ ⛔ **V7 残句代价**待用户确认；⑨ ⛔ **集显 F32 的 TTS 很慢**（首包 33.9 s，RTF≈15.6）⇒ 不承诺实时朗读
+更新时间: 2026-10-25 20:55
+当前任务: **巡检（APP-017，无新条目）+ §39 修掉「语音输出无声」并重打 v1.5+ §40 CUDA 路径实测跑通**：① 🔴 **用户追问「CUDA 是独立的，faster-qwen3-tts 不是能跑吗」⇒ 用户是对的** —— §39.5 的「不可用」只说 **OpenVINO 的 CUDA plugin**，不等于本机 CUDA 不可用；② ✅ **PyTorch+CUDA 路径实测跑通**（独立 venv，不进包）：`torch 2.11.0+cu128` / CUDA 12.8 / `RTX 5050 Laptop` (sm_120) ⇒ 流式 **TTFA 0.547 s**、首块 0.640 s、非流式 **RTF 0.892**（5.563 s 合成 6.240 s 音频）、RMS 0.1149 / peak 0.5469；**首包比现网 NPU（6.964 s）快 12.7×**；③ 🔴 **必须钉 `transformers==5.15.1`** —— 5.20.2 加载即崩（`MimiConfig` 无 `rope_theta`）；④ 💰 **体积代价 ≈ +5.7 GB**（torch 4 211 MB + 依赖 ≈500 MB + HF 权重 2 400 MB）⇒ 客户包 11.2 GB → ≈17 GB；且与包内 transformers 4.57.6 **冲突**（需独立 env）；⑤ ⚠️ **§40 数字为无锁参考**（跑时 asr PID=38236 持锁）⇒ `timing_valid=false`，持锁复测待锁空闲；⑥ ✅ v1.5 包（md5 `f8475ce5…`）已含 §39 播放修复，13 979 条目、逐字节一致、自检 **PASS 49/0**
+阻塞 / 待用户决定: ① 🔴 **待用户决定 CUDA 后端怎么落**（§40.7）：(a) 只做本机可选后端（GUI 第三项、检测不到自动隐藏）⇒ **包体不变**；(b) 进客户包 ⇒ **+5.7 GB / 需独立 env 解决 transformers 5.15.1 冲突**；(c) 先做 CUDA vs NPU 音质抽听再定；② ⛔ **OV 的 CUDA plugin 不引入**（§39.5 依据不变）；③ ⛔ **APP-017 的「检查点 3」**由另一个 App 并行会话在做 ⇒ 本会话不重复跑、不抢锁；④ ⛔ **WER +2.6pp 主因**仍未定位；⑤ ⛔ **APP-015 方案 C** 仍在制品（18/21 FAIL）；⑥ ⛔ 包体 10.45 GiB 优化未做；⑦ ⛔ V7 残句代价待确认；⑧ ⛔ 集显 F32 TTS 很慢（首包 33.9 s）
 
 
 ## 最近更新
+- 20:50 §40 🔴 **用户追问成立**：PyTorch+CUDA 路径实测跑通 —— `torch 2.11.0+cu128` / sm_120 / **TTFA 0.547 s**、**RTF 0.892**（首包比 NPU 6.964 s 快 **12.7×**）
+- 20:50 §40 🔴 **订正表述边界**：§39.5 的「不可用」只指 **OV 的 CUDA plugin**；**本机 CUDA 完全可用**（matmul 实测通过）
+- 20:50 §40 🔴 **钉版坑**：faster-qwen3-tts 必须 `transformers==5.15.1`，装 5.20.2 会 `MimiConfig` 无 `rope_theta` 直接崩
+- 20:50 §40 💰 **代价实测**：torch 4 211 MB + 依赖 ≈500 MB + HF 权重 2 400 MB ⇒ **+5.7 GB**（包体 ≈17 GB）；与包内 transformers 4.57.6 冲突
+- 20:50 §40 ⚠️ **口径**：无锁参考（asr 持锁）⇒ `timing_valid=false`；持锁复测待锁空闲
 - 19:50 §39.9 ✅ **v1.5 已持锁重打（含播放修复）**：md5 `f8475ce511efef7d13209bf9b64b5b95`、11 216 075 157 B、13 979 条目、**逐字节一致 PASS**
-- 19:50 §39.9 ✅ **zip 内核实**：`app/tts_worker.py` md5 `77e1d988…`（== 包目录 == HEAD）、播放修复 6 个标记齐全、README/MANIFEST 第（11）条在包内、**方案 C 残留 0**
 - 19:35 §39 🔴🔴 **「语音输出无论 NPU/GPU 都听不到声音」已修**：真因 = `RingBuffer.write()` 要求「整句一次装下」，容量 72 000 样本（3 s）< 一句 138 240 样本（5.76 s）⇒ 条件恒真 ⇒ **每句都超时被丢**（与设备/精度无关）
 - 19:35 §39 🔴 **探针 `app044` 三段证据**：A 无消费者（报容量）/ **A2 有消费者仍超时**（证伪「环境问题」）/ B 真实流 0.5 s 响、5.76 s 挂 ⇒ 修后 A2 OK 2.81 s、B 5.76 s OK 2.76 s
 - 19:35 §39 ⛔ **NV CUDA 不可用 ⇒ 未加入语音输出选项**：libs 无 CUDA 组件 / cmake-nvcc-CUDA Toolkit-MSVC 全缺 / 官方 README「须自编译、仅 Ubuntu 20.04 验证」 / `GPU.1` 是 Intel GPU plugin 枚举
@@ -17,10 +21,6 @@ last_ack: APP-017
 - 18:27 §38 ✅ **v1.5 已持锁重打**：md5 `07513403e049a8e475168410dff9ac72`、11 216 072 487 B、13 979 条目、内容**逐字节一致**、**PASS**
 - 18:27 §38 ✅ **zip 内修复已核实**：4 个修复文件 SHA256 与包目录/HEAD 一致、修法标记齐全、**方案 C 残留 0**
 - 18:27 §38 🔴 **自检口径修正**：`app014b_v15_preship_check.py` 基准从「工作区」改为 **`git show HEAD:`**（否则会逼着并行会话的在制品进包）⇒ 自检 **PASS 48 / 0**
-- 18:27 §38 ✅ **README（中英）+ MANIFEST notes 随行为同步**：notes（7）改为「ASR 新增 CUDA + 去重」、新增（10）「语音输出只列实测可用组合」
-- 18:09 §37 ✅ **ASR 设备去重**：OV 档跳过 CUDA 设备、**保留 CUDA**（按物理设备而非 label）⇒ 实测重复 NVIDIA **0** 条 / CUDA **2** 条
-- 18:09 §37 🔴🔴 **「语音输出无法工作」已修**：三条真因（OV 不带 CUDA plugin / 集显 f16 合成失控 / 精度下拉从未生效）+ GUI 零状态监视 ⇒ 5 处修法
-- 18:09 §37 🔴 **决定性实测**：`GPU.1` 的 `f32` 与 `f16` 失败**完全相同（均 3/7）** ⇒ 与精度无关；`GPU.0` f32 **7/7** 且合成 PASS（5.68 s / peak .555）但**很慢**（RTF≈15.6）
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -6679,3 +6679,88 @@ while self._count + n > self._cap:   # 等播放消费腾出空间
 
 ⇒ ⚠️ **上一版 zip（18:24，md5 `07513403…`）不含本次播放修复**，必须用本版 `f8475ce5…`。
 ⛔ FTP **仍按要求关闭**，交付只给本地路径 `C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.5.zip`。
+
+## §40 🔴 用户追问「CUDA 是独立的，之前给的 faster-qwen3-tts 方案不是能跑吗」⇒ **成立**：PyTorch+CUDA 路径实测跑通（TTFA **0.547 s** / RTF **0.892**）+ 修正 §39.5 的表述边界（2026-10-25 20:50）
+
+> 用户原话：「Cuda 是独立的内容，没有包含在 OpenVINO 里面，用之前给你的 fast qwen3 tts 的方案不是可以正常运行吗？」
+> ⇒ **用户是对的。** §39.5 的结论只在「**OpenVINO 的 CUDA plugin**」这个范围内成立，我当时的措辞容易被读成「本机 CUDA 用不了」，这是**表述不严谨**。本节实测另一条**完全独立**的路径。
+
+### §40.1 更正 §39.5 的边界（不改结论，改适用范围）
+
+| 说法 | 是否成立 | 依据 |
+|---|---|---|
+| 「**OpenVINO 的 CUDA plugin** 不可用」 | ✅ 成立（§39.5 全部依据有效） | 发行版不带该 plugin、须自编译、仅 Ubuntu 验证、`GPU.1` 是 Intel GPU plugin 枚举 |
+| 「本机 **CUDA** 不可用」 | ❌ **不成立** | `nvidia-smi` 正常；`torch 2.11.0+cu128` 在本机 `sm_120` 上 matmul 实测通过（§40.3） |
+| 「**faster-qwen3-tts（PyTorch+CUDA）** 这条路走不通」 | ❌ **不成立** | §40.3 实测 RTF 0.892 / TTFA 0.547 s |
+
+⇒ **结论订正**：**OV IR 跑 NVIDIA 不行；PyTorch 跑 NVIDIA 完全可以**，二者互不相干。
+
+### §40.2 先自查：那份方案之前到底跑过没有
+
+| 检查 | 结果 |
+|---|---|
+| 系统 python 3.12 有 torch？ | ❌ 无 |
+| 客户包 python 有 torch？ | ❌ 无（日志里的 `None of PyTorch…` 就是这个） |
+| 仓库里有任何 fq3tts / faster_qwen3 的运行记录？ | ❌ 无（`grep` 只命中 `tts_engine.py` **注释**里引用的「25 帧左上下文」） |
+
+⇒ **诚实结论：这份方案在本机从未真正跑过**。之前只是把它的「25 帧左上下文滑动窗口」做法搬进了 OV 路径（`MultiDecoderBabelVox`），**没有装过 torch**。所以「不是可以正常运行吗」——**当时并没有验证过**，本节才是第一次实测。
+
+### §40.3 实测（`results/app/app047_cuda_tts_probe.py`，同句同音色）
+
+环境（venv `C:/Users/Trekker-PTL/_fq3tts_env`，独立于客户包，**不污染包里 python**）：
+
+```
+torch 2.11.0+cu128 / CUDA 12.8 / NVIDIA GeForce RTX 5050 Laptop GPU / capability (12,0)
+CUDA 自检：randn(2000,2000) @ 自身 ⇒ 通过（证「真在 GPU 上算」，不是 CPU 回退）
+```
+
+🔴 **踩到一个必须记的坑**：`faster-qwen3-tts` 必须 **`transformers==5.15.1`**（README 钉版）。
+装成 5.20.2 时**加载即崩**：`AttributeError: 'MimiConfig' object has no attribute 'rope_theta'`
+（`qwen_tts/_transformers_compat.py` 的 `_default_rope_parameters` 直接取 `config.rope_theta`）
+⇒ **钉版后正常**。
+
+| 指标 | 数值 | 说明 |
+|---|---|---|
+| 模型加载（0.6B · bfloat16 · 首次） | **26.98 s** | 含权重加载；CPU 上做的是 **CUDA Graph 捕获**前的准备 |
+| CUDA Graph 预热 | **2.77 s** | `warmup(prefill_len=100)`：predictor + talker 两张图各捕获一次 |
+| 非流式合成（26 字） | **5.563 s** / 音频 **6.240 s** ⇒ **RTF 0.892** | RMS **0.1149** / peak **0.5469** ⇒ 健康、未削波 |
+| **流式 TTFA** | **0.547 s** | 首块 **0.640 s**、共 **10** 块、全程 **3.922 s** |
+| 采样率 | 24 000 Hz | 与现网 TTS 一致（`_reopen_player(24000)` 不用改） |
+| 音色 | `preset_A.wav` + `xvec_only=True` | 与现网 embedding 同源，**不需要 ref_text** |
+
+产物（仓库外，供抽听）：`C:/Users/Trekker-PTL/_fq3tts_out/cuda_nostream.wav` / `cuda_stream.wav`
+
+### §40.4 与现网横比（同一测试句）
+
+| 路径 | 首包 / TTFA | 合成 6.2 s 音频要多久 | 备注 |
+|---|---|---|---|
+| **OV · NPU · F16**（现网首选） | **6.964 s** | ≈ 5.5 s 合成（§37/§39 实测） | 已进包，`n_played=1` 出声 |
+| **OV · 集显 · F32**（现网次选） | **33.883 s** | RTF≈15.6 | 能出声但很慢 |
+| **PyTorch · CUDA（本节）** | **0.547 s** | **5.563 s**（RTF 0.892） | ⚠️ 未进包；首包比 NPU **快 12.7×** |
+
+⇒ CUDA 路径的**首包优势是数量级**的（0.547 s vs 6.964 s），代价是首启多 **~27 s 加载 + 2.8 s 图捕获**。
+
+### §40.5 体积代价（决定「进不进包」的关键）
+
+| 项 | 实测体积 |
+|---|---|
+| `torch`（cu128，含 CUDA dll） | **4 211 MB**（wheel 2 753 MB） |
+| `transformers` 5.15.1 + tokenizers | 102 MB |
+| 其它（numpy/scipy/numba/librosa/soundfile/sklearn/pandas/onnxruntime…） | ≈ 400~500 MB（含可裁的 `gradio` 75 MB、`onnxruntime` 46 MB） |
+| HF 权重 `Qwen3-TTS-12Hz-0.6B-Base`（safetensors + speech_tokenizer） | **2 400 MB** |
+| **合计** | **≈ +5.7 GB**（客户包 11.2 GB ⇒ **≈ 17 GB**） |
+
+⚠️ 另一个冲突：客户包现装 **transformers 4.57.6**，而 CUDA 后端要求 **5.15.1** ⇒ 直接塞进同一个
+python 会**改动现网依赖**（ASR/MT 也用它）⇒ 只能**独立 site-packages / 独立 env**，或核验 5.15.1 不破现网。
+
+### §40.6 口径声明（重要）
+
+🔴 本节数字是**无锁参考**：跑的时候 `MACHINE_LOCK` 被 **`asr PID=38236`（task=p3_mask2_61min_fp16）** 持有
+⇒ `timing_valid=false` ⇒ **只能用于「能不能跑 / 什么量级」的判断，不作为对外正式口径**。
+⇒ 待锁空闲后持锁复测 3 次取中位数（脚本已支持 `--repeats 3` 并自动记录 `lock_owner_at_start` / `timing_valid`）。
+
+### §40.7 待用户决定（不擅自改交付形态）
+
+1. **只在本机做可选后端**（GUI 第三项 `NVIDIA CUDA（本机已装）`，检测不到就自动隐藏）⇒ **包体不变**；
+2. **进客户包** ⇒ 包体 +5.7 GB（≈17 GB），且要解决 transformers 版本冲突（独立 env）；
+3. 先做 **CUDA vs NPU 音质抽听**再决定。

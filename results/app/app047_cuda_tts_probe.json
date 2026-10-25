@@ -1,0 +1,49 @@
+{
+ "sentence": "这是一次语音输出的自测，用来确认朗读功能可以正常工作。",
+ "language": "Chinese",
+ "text_len": 27,
+ "model": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+ "ref_audio": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\models\\qwen3tts\\voices\\preset_A.wav",
+ "device": "cuda",
+ "dtype": "bfloat16",
+ "chunk_size": 8,
+ "torch": "2.11.0+cu128",
+ "cuda_version": "12.8",
+ "cuda_available": true,
+ "gpu": "NVIDIA GeForce RTX 5050 Laptop GPU",
+ "capability": [
+  12,
+  0
+ ],
+ "load_s": 26.98,
+ "warmup_s": 2.77,
+ "nonstream": [
+  {
+   "n": 149760,
+   "sr": 24000,
+   "dur_s": 6.24,
+   "rms": 0.1149,
+   "peak": 0.5469,
+   "synth_s": 5.563,
+   "rtf": 0.892
+  }
+ ],
+ "rtf_median": 0.892,
+ "synth_median_s": 5.563,
+ "audio_dur_s": 6.24,
+ "stream": {
+  "ttfa_s": 0.547,
+  "chunks": 10,
+  "total_s": 3.922,
+  "first_chunk_s": 0.64,
+  "sr": 24000
+ },
+ "compare_ov_npu": {
+  "first_packet_s": 6.964,
+  "note": "App §39 实测（NPU·F16）"
+ },
+ "timing_valid": false,
+ "timing_note": "本次为**无锁参考**（跑时 MACHINE_LOCK 被 asr PID=38236 持有，task=p3_mask2_61min_fp16）⇒ 数字只用于判定「能不能跑/量级」，不作为对外正式口径；持锁复测待锁空闲",
+ "verdict": true,
+ "verdict_note": "RTF 0.892 < 1 且 TTFA 0.547 s ⇒ 实时朗读可行"
+}
