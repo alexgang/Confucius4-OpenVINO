@@ -1,10 +1,11 @@
 last_ack: ASR-009
-更新时间: 2026-10-25 21:04
-当前任务: **ASR-006 §6 / ASR-007 继续（§24.13）**。① ✅ **新图校准集已采好**（`results/p2_calib_decoder_mask2.npz`，64 条 / 16.8 MiB / **右对齐 + 双端口**）；② 🔴 **INT4 重量化需重跑**（20:40 那次**漏传 `--int4`** ⇒ 静默走 INT8 分支、`n_i4=0`、**rc=0 不报错** ⇒ 脚本已修：强制补 flag + 产出后自检 `n_i4>0` 否则 rc=5）；③ ⏳ **三格 61 分钟长跑进行中**（FP16 自 20:40:40 起，持规范锁 `task=p3_mask2_61min_fp16` ⇒ 计时有效，33.4%）；④ ✅ **修 3 处脚本缺陷**（`build_compare_mask2.py` 读 summary 的 `quality` 子字典 → 实际是**平铺在顶层**；`p3_make_matrix.py` 新格子没进 ORDER + 加「数据有效」列；🔴 `p3_ov_app.py` **续跑计时口径 bug** 会让 RTF 被低估 ⇒ 已加 `prev_dec_wall` 累加）；⑤ ✅ **补回 §24.10 丢失的旧图 INT8 元信息**（`p2_rebuild_quant_meta.py`，重建值 196 int8 / 538 f16 / 720.3 MiB / ratio 0.6322 ⇒ 与历史**逐位一致**）；⑥ ✅ **teacher-forcing 脚本补 target 退化检测**（§18.2 教训：target 退化 ⇒ top1 恒 100% 的 tautology）；⑦ ✅ **NPU 脚本补「复读 prompt」检测** + 口径说明
-阻塞 / 待用户决定: ① 🔴 **0.6B 的 WER 全部空缺**（`wer_pct: null`）—— 本模块**不自算 WER**（ASR-002 铁律）⇒ 需 reviewer 用本机 baseline + 全局对齐复算**新图（mask2）**的 INT8 / INT4_ASYM 61 分钟全长 WER（对照 0.6B 流式参照 10.97%、R2T2 App 路径 B 10.58%）；② 🔴 **INT4 格待跑**（脚本已修但产物目录仍不存在）⇒ 依赖 FP16 长跑结束让出 GPU；③ ⏳ **INT8 格待跑**；④ ⏳ **NPU 格文本正常性待验**（脚本已就绪，待锁）；⑤ ⏳ **prefix 路径待验**（脚本已就绪，待跑）；⑥ ⏳ **teacher-forcing 新图标定点待跑**（脚本已改，待跑）；⑦ 🔴 **`reports/compare/` 里 0.6B 各格待刷新**（旧格子用的正是**旧图**，已标作废）；⑧ ⏳ **交付级 RTF / 首字延迟 / 内存仍空缺**（现有都是 n=1 或被干扰 ⇒ 不冒充交付级）；⑨ ⚠️ **reviewer 指定的 R2T2 R2 同口径标定点未跑**；⑩ ⚠️ **P0 参照重跑未做**（少跑 11.19 s）；⑪ ⚠️ **设备内存未测**；⑫ ⚠️ **「提高 rule1 静音要求」必须改代码**（硬编码无 env）⇒ **属 App 模块**（ASR-003 边界）
+更新时间: 2026-10-25 21:26
+当前任务: **ASR-006 §6 / ASR-007 继续（§25）**。① ✅ **【用户决定】ASR 不考虑 FP16** ⇒ **矩阵只保留 INT8 / INT4 两格**（已删 `results/p3_mask2_61min_fp16/`（原已跑 65.7%）、6 个脚本的 FP16 格位、流水线 `step_p3` 三格→两格）；② 🔴 **但两处 FP16 不能照字面删**：① `models/ov-dec-06b-embed-mask2/`（FP16 源图）是 **INT4 重量化的输入**（删了 INT4 跑不了）；② `mask2_fp16` 是 teacher-forcing 的 **target 生成器**（§7 铁律：target 必须同家族 FP16，否则 tautology）⇒ 均**保留**；③ ✅ **原两个 `precision=FP16` 格子实为 P0 的 torch CUDA 参照**（backend = torch 2.11 + CUDA, bfloat16，带 reviewer 算的 **WER 主参照 10.97%**）⇒ 删掉就没有对照基准 ⇒ 已**改标 `TORCH_REF`** 并保留（`is_delivery_candidate: false`）；④ 🔴 **顺带修好漏标作废**：§23 只标了 1 格作废，另有 **4 格用旧图却仍显示「有效」**（int4_asymg128 / int4_sym_chan / int8__npu / int4__all）⇒ 已补标；⑤ ✅ **矩阵已无 `precision=FP16`**（实测扫描 17 个 json，命中 0 处）；⑥ 🔴 **INT4 重量化仍待跑**（脚本已修好：强制 `--int4` + `n_i4` 自检 + 流水线跳过判定加 `n_i4>0`）；⑦ ⏳ **INT8 / INT4 两格 61 分钟长跑待跑**；⑧ ⏳ **NPU 格文本正常性 / prefix 路径 / teacher-forcing 新图标定点待跑**（脚本已就绪）
+阻塞 / 待用户决定: ① 🔴 **0.6B 的 WER 全部空缺**（`wer_pct: null`）—— 本模块**不自算 WER**（ASR-002 铁律）⇒ 需 reviewer 用本机 baseline + 全局对齐复算**新图（mask2）**的 INT8 / INT4_ASYM 61 分钟全长 WER，**对照 `qwen3asr_06b__torchref__cuda_stream.json` 的 10.97%**（同一计分器 ⇒ 合规）；② 🔴 **INT4 格待跑**（脚本已修但产物目录仍不存在）⇒ 等 MT 让出机器锁（当前 `mt PID 9748 started 21:21:45`）；③ ⏳ **INT8 格待跑**；④ ⏳ **NPU 格文本正常性待验**（脚本已就绪，待锁）；⑤ ⏳ **prefix 路径待验**（脚本已就绪，待跑）；⑥ ⏳ **teacher-forcing 新图标定点待跑**（脚本已改，待跑）；⑦ 🔴 **`reports/compare/` 待补两格**（`…__int8__mask2__int8.json` + `…__int4__mask2__int4.json`）⇒ 依赖 INT4 重量化 + 两格长跑；⑧ ⏳ **交付级 RTF / 首字延迟 / 内存仍空缺**（现有都是 n=1 或被干扰 ⇒ 不冒充交付级）；⑨ ⚠️ **reviewer 指定的 R2T2 R2 同口径标定点未跑**；⑩ ⚠️ **P0 参照重跑未做**（少跑 11.19 s）；⑪ ⚠️ **设备内存未测**；⑫ ⚠️ **「提高 rule1 静音要求」必须改代码**（硬编码无 env）⇒ **属 App 模块**（ASR-003 边界）
 
 
 ## 最近更新
+- 2026-10-25 21:26 **【用户决定】ASR 不考虑 FP16 ⇒ 矩阵只剩 INT8 / INT4 两格（§25）**：① ✅ **删除**：① `results/p3_mask2_61min_fp16/`（原**已跑到 65.7%** / 364 段 / 2410.24 s，FP16 无价值 ⇒ 作废）；② `build_compare_mask2.py` 的 fp16 变体、`build_compare_06b.py` 的 FP16 格、`p3_make_matrix.py` 的 ORDER 里的 3 个 FP16 名；③ `p2_multitoken_top1.py` 的 ov_models **7 项→3 项**（删旧图 5 项，`ov_fp16_ref`→`mask2_fp16_ref`）、`p3_int4_slice_decode.py` VARIANTS **6→3**、`p3_npu_mask2_text_check.py` 删 `old_int8`、`p3_diag_mask2_prefix.py` 删 `fp16_old`、`run_mask2_pipeline.sh` 的 `step_p3` **三格→两格**；② 🔴 **两处 FP16 不能照字面删**：① `models/ov-dec-06b-embed-mask2/`（FP16 源图 1.2 G）是 **INT4 重量化的输入**（`p2_quantize_mask2_int4.py::NEW_SRC`）⇒ 删了 INT4 跑不了；② `mask2_fp16` 是 teacher-forcing 的 **target 生成器**（§7 铁律：target 必须同家族 FP16，否则是自一致 tautology）⇒ 保留；③ **原两个 `precision=FP16` 格子实为 P0 的 torch CUDA 参照**（backend = torch 2.11 + CUDA, bfloat16，带 reviewer 算的 **WER 主参照 10.97%**）⇒ 直接删就没有对照基准 ⇒ 已**改标 `TORCH_REF`** + `is_delivery_candidate:false` 保留（`…__torchref__cuda_stream.json` / `…__torchref__cuda_offline.json`）；③ 🔴 **顺带修好漏标作废**：§23 只标了 `int8__gpu0` 一格，另有 **4 格用旧图却仍显示「有效」**（int4_asymg128 / int4_sym_chan / int8__npu / int4__all）⇒ 已补标作废（判据：`dec_ir` 指向 `ov-dec-06b-embed-*` 非 `-mask2` ⇒ 一律作废）；④ ✅ **矩阵已无 `precision=FP16`**（实测扫描全部 json，命中 0 处）；⑤ ✅ **备份可回滚**（`_backup_fp16_removal_20261025/`，300 KB：compare 全量副本 + FP16 长跑 364 段 + 6 个脚本改前版本）；⑥ ✅ **FP16 长跑进程已停**（`TaskStop`）⇒ GPU 与锁让出；⚠️ 停后核查发现**锁已被 MT 正确接管**（`mt PID 9748 started 21:21:45`）⇒ 无孤儿锁
 - 2026-10-25 21:04 **§24.13：修 3 处脚本缺陷 + 补回丢失的元信息 + 补 2 处判据缺口（FP16 长跑进行中，33.4%，计时有效）**：① 🔴 **`build_compare_mask2.py` 读 summary 的 `quality` 子字典 ⇒ 恒得空 dict** —— `p3_ov_app.py` 的 summary 字段**平铺在顶层**（`n_segs`/`total_words`/`rule_counts`/`seg_dur_p50`/…）⇒ 已改为读顶层（否则新格子会全是 0/null）；② ✅ **`p3_make_matrix.py`**：`ORDER` 前插 3 个新图格子 + 矩阵表加「数据有效」列（旧图标 ❌ 作废）+ `MATRIX.md` 新增「§23 根治后旧图格子作废」章节；③ 🔴 **`p3_ov_app.py` 续跑计时口径 bug** —— 续跑时 `wall` 只含本次而 `rtf` 分母是**全程** `covered_s` ⇒ **RTF 被低估** ⇒ 已加 `prev_dec_wall`（累加历史已落盘段的 `dec_wall_s`）+ 新增 `wall_s_total`/`rtf_note`（⚠️ 本次 FP16 是**单次连续跑完** ⇒ `prev_dec_wall=0` ⇒ **本次数据不受影响**）；④ ✅ **补回 §24.10 丢失的旧图 INT8 元信息**（新脚本 `p2_rebuild_quant_meta.py`：196 int8 / 538 f16 / 720.3 MiB / ratio 0.6322 ⇒ 与 §23/§20 历史记录**逐位一致**；顺带确认旧图 INT4 的原始 json **未丢失**，无需重建）；⑤ 🔴 **重建脚本自身踩到的 dtype 口径坑（新铁律）**：OV 的 `get_type_name()` 返回**短名**（`f16`/`i8`）而 `str(dtype)` 是 `<Type: 'float16'>` ⇒ 用 `str()` 做键 ⇒ `n_i8=0` ⇒ 会得出「这不是 INT8 图」的**假结论** ⇒ 正确口径 = **只数 Constant 节点**（与 `p2_quantize.py::const_stats` 同口径）；⑥ ✅ **teacher-forcing 脚本补 target 退化检测**（§18.2 教训：target 退化 ⇒ top1 恒 100% 的 tautology；判据 = 三连同 / ABAB / 唯一率<0.30）+ `ov_fp16_ref` 自检加 `degenerate_warning`；⑦ ✅ **NPU 脚本补「复读 prompt」检测**（§20 的症状）+ 口径说明（整段贪心、无 640ms 分块 ⇒ RTF **不可**与 App 路径比）
 - 2026-10-25 20:22 **新图三格就绪：INT8 mask 语义保留 + NPU 双端口支持 + 校准集需重采（§24）**：① ✅ **INT8 重量化不破坏动态 mask 链**（`results/p3_diag_mask2_int8.json`：fp16 与 int8 的 SDPA in3 `n_true` 均 **5562**、逐行 True 分布相同，= 期望值 `(512−L)×1 + L(L+1)/2`）⇒ §23 的修复在 INT8 格里同样成立；② ✅ **NPUW 支持双端口**（`results/p3_diag_npu_mask2.json`：`mask2_fp16` 编译 **222.2s**、`mask2_int8sym` **147.6s**、旧图 `old_int8sym` **132.1s**，三者**全编译成功且推理无 NaN**）⇒ §23.7 待办⑤「双端口是否支持」**已解除**；③ 🔴🔴 **新发现：校准集与新图双重不匹配** —— 旧 `p2_calib_decoder.npz` **只有 `inputs_embeds`（单端口）** 且是**左对齐**（`p2_calib.py:160`），而新图需**双端口 + 右对齐**（`p3_ov_app.py:283`）⇒ NNCF 会**缺输入报错**，且即使补全也会「照左对齐分布挑通道」⇒ **INT4 质量会无谓变差** ⇒ 已新建 `p2_calib_mask2.py`（右对齐+带 mask）与 `p2_quantize_mask2_int4.py`（双端口 load_calib + 强制 `INT4_ASYM g128+AWQ+SE`/backup `INT8_ASYM`/lm_head FP16）；④ ✅ **目录改名** `ov-dec-06b-embed-mask2-int8symmask2` → `…-int8sym`（720.6 MiB，json `dst` 已同步）；⑤ ✅ **encoder 无需重跑**（不涉及 mask）⇒ 三格重跑成本低于预期；⑥ ⚠️ **污染自评**：本轮 NPU 编译（20:10–20:19，CPU 满载 147–222s）与 **MT 的延迟测量重叠** ⇒ 可能轻微影响其 P50/P95 ⇒ 已在 §24.2 标注；⑦ ⏳ **本轮未启动任何计时作业**（锁自 20:04:28 被 `mt` PID 19892 持有）⇒ 交付级 RTF 仍空缺
 - 2026-10-25 17:08 **根因彻底查清并根治：OV decoder 缺 attention mask 语义 = 导出时没传 mask（§23）**：① ✅★ **三张旧图的 mask 链逐位相同且严格等于因果下三角**（`p3_diag_mask_runtime.json`：sdpa0.in3_mask n_true=131328、row_true 1→512、`equals_tril=True`）⇒ **图里根本没有 padding mask**；② ✅ **补上 §19 的关键漏洞**（`p3_diag_bool_const.json`：前序 const_diff/3d_const/attrs **都跳过了 Constant 整类**，而 mask 链全是 bool 常量）⇒ 三图 3 个 bool 常量**哈希完全一致**（`le`=下三角 n_true=131328 / `ne`=全 False ⇒ cumsum=0）⇒ 静态同样证明无 padding mask；③ ✅ **决定性对照**（`p3_diag_mask_sem.json`）：**OV fp16 argmax=541 与 torch `mask=none` argmax=541 逐位吻合**（熵 5.8996 vs 5.8869）⇒ 旧图 ≡ torch「不传 mask」；④ ✅ **定位到导出层**：`create_causal_mask(attention_mask=None)` ⇒ 图里 cumsum 输入被常量折叠成全 False ⇒ **图结构不用改，只要导出时传 `attention_mask`**；⑤ ✅ **玩具实验定死语义**（`p3_diag_bool_mask_sem.json`）：OV 与 torch 的 bool mask 语义一致（True=可见），但 🔴 **OV 对整行屏蔽返回 NaN（torch 返回 0）** ⇒ v1 导出真实 mask 下 **NaN** ⇒ v2 改自建 mask `causal AND (content OR self)`（padding 行开对角线，与位置 511 的 logits 数学等价）；⑥ ✅ **根治生效**（`p1_decoder_export_mask2.json`）：真实 mask 下 **OV 熵 4.983 → 0.7596、top1 `all`→`Alright`、argmax 71486 与 torch 一致**；mask 全 1 仍**逐位复现旧图**（4.9833/541）⇒ 排除巧合；产物 `models/ov-dec-06b-embed-mask2/`（1139.7 MiB，4250 算子，双端口）；⑦ ✅ **端到端**（`p3_diag_mask2_e2e.json`）：新图 `Alright. Good morning, everyone. Good morning.`（三图最好），固定 6.4s 与累积路径一致；⑧ ✅ **INT8 已基于新图重量化**（INT8_SYM 按通道 + lm_head 保 FP16，1139.7→**720.6 MiB**，196/196 int8 per-channel）；⑨ 🔴 **旧图全部 61 分钟质量数据作废**（§20 的 553 段/11825 词、compare 矩阵 0.6B 各格）⇒ **三格都要用新图重跑**；⑩ ✅ **ASR-006 §2 rule1 诊断完成**（并发会话 `results/asr_diag/asr006_rule1_cut_diag.{py,json,md}`）：rule1 占切点 **93.67%**、切在词中间 **9.15%**（N=3）、**静音内 0.0% vs 非静音 10.77%** ⇒ 去重收益上界 **≤0.963pp**（仅覆盖 178 个多余插入的 **≤61.8%**）⇒ **接缝去重不是主因**（独立证实 §18.8）；⑪ ⏳ **计时未启动**：锁被 `app` PID 32652 占用 ⇒ 交付级 RTF 仍空缺
@@ -19,7 +20,6 @@ last_ack: ASR-009
 - 2026-10-24 20:07 **ASR-004 完成 + ASR-005 P0 完成（停在检查点）**：① ASR-004 A/B 61 分钟逐段转写完成 ⇒ **B 的 >12s 1.12%→0.18%、最长段 17.92s→14.08s、空段 1→0**、总词数只差 35 词（−0.31%）⇒ **WER 交 reviewer**；A 组交叉校验通过（分段版 vs 单进程版 part0 内 36/36 文本逐位相同）。② ASR-005 P0 两份参照完成：离线 RTF **0.2249**（31 块/0 OOM）+ 段级流式 RTF **0.6749**（552 段）⇒ **停一次等 reviewer**。③ ASR-005 P1 提前完成：encoder/decoder 两个 FP16 IR 导出 + 端到端 teacher-forcing **enc cos 0.999999 / dec cos 0.999983 / top1 100%**（要求 0.999/99%）✅。**架构发现**：R2T2 就是 Qwen3-ASR 系列（`model_type=qwen3_asr`），与 0.6B 同构 ⇒ R2T2 导出/量化脚本可原样复用。⚠️ `GIT_FREEZE` 仍存在 ⇒ 不 commit
 - 2026-10-24 15:30 **ASR-004 ① 完成并修好一处合并缺陷**：A/B 逐段转写跑完（A 538 段 / B 558 段，GPU INT8 交付配置，61 分钟全长）⇒ 发现 `asr004_ab_chunked.py::merge_group()` **漏加 part 偏移**（part 文件是分段内局部时间，合并时没平移 ⇒ 交付产物时间轴重复 16 次，`segments_A.json` 的 `A[37].start_s` 又是 `0.0`）⇒ 新写 `results/asr_diag/asr004_ab_remerge.py` **只重合并、不重跑**（推理结果未动；自检：段数 538/558 不变、rule 分布不变、段长 p50/p90/p95 不变，**只有时间轴变为全局 0→3665s**）⇒ **reviewer 请用 15:14 后的 `reports/asr004_ab/transcript_{A,B}.txt`**，旧版已备份为 `*.bak_prefix`。交叉校验：分段版 A 与单进程 A 的**前 36 段逐位相同**（切点与文本全同），分歧恰好始于 part 边界（强制 flush），全文词级相似度 0.97411（11420 vs 11403 词）
 - 2026-10-24 15:30 **ASR-005 P0 离线参照已完成、段级流式参照此前漏跑**：离线 31 块 wall **823.1s** / RTF **0.2249** / 60760 字符，产物 `qwen3asr_06b/results/p0_offline/`（4 文件，mtime 12:35）；串行执行器 `run_p0_all.sh` 的日志 `logs/p0_all.log` **停在第 1 步** ⇒ 流式参照此前**只有 1 分钟冒烟产物**（`results/p0_smoke3/`）⇒ 本轮 15:12 用「长跑 python 进程本身作后台任务主体」的写法重新启动 `scripts/p0_stream_seg.py --minutes 61 --out results/p0_stream`（断点 `results/p0_stream/stream_seg_chunks.jsonl`，**持机器锁** PID 14644）
-- 2026-10-24 12:25 **两条长跑并行启动**（设备不冲突：ASR-004 走 Intel GPU.0 插件、ASR-005 走 NVIDIA CUDA）：① ASR-004 ① 改**可续跑分段版**（16 段 × 240s，段末强制 flush ⇒ A/B 同分段，对比公平）；② ASR-005 P0 离线参照（31 块 × 120s，断点续跑）。**长跑被杀的根因已定位**：`run_in_background` 里再套 `nohup/&` 起的孙进程会被回收 ⇒ **必须把长跑 python 进程本身作为后台任务主体**。**已修 chunked 续跑 bug**（原判「文件非空即已完成」会静默跳过被杀到一半的段，实测 `A_000.jsonl` 只到 10.24s / 应到 240s）⇒ 改为校验末条 `end_s` 是否到段末。**架构发现：R2T2 = Qwen3-ASR 系列**（`models/hf` 的 `model_type=qwen3_asr`），与 0.6B **同构**（仅宽度/层数不同）⇒ ASR-005 的 OV 导出/量化可几乎原样复用 R2T2 脚本
 
 ## §2 最近一周的结论摘要（均引用产物）
 
@@ -3138,3 +3138,124 @@ NPU 编译是 **CPU 密集**（147–222 s 满载）⇒ **可能轻微影响 MT 
 ⇒ 与 `p2_quantize.py::const_stats` **同口径** ⇒ 数值可直接比对。
 ⇒ ⚠️ 「数所有节点」是**错的**（与 `const_stats` 不可比）。
 ⇒ ★ 这是 §13「**有效样本为 0 ⇒ 结论是『工具失效』而不是『通过』**」的又一个实例。
+
+## §25 **【用户决定】ASR 不考虑 FP16 ⇒ 矩阵只保留 INT8 / INT4 两格（2026-10-25 21:25）**
+
+### 25.0 用户原话与本节结论
+
+> **「ASR不用考虑FP16，没有价值，F16的内容删除」**（2026-10-25 21:20）
+
+⇒ **交付精度维度只剩 INT8 / INT4**；FP16 从「候选交付精度」中彻底移除。
+
+### 25.1 🔴 但「删 FP16」有一处**不能照字面执行**（已识别并绕过）
+
+`reports/compare/` 里原有两个带 `precision: FP16` 的格子：
+
+```
+qwen3asr_06b__fp16__cuda_stream.json    （cell_id = Qwen3-ASR-0.6B__FP16__CUDA）
+qwen3asr_06b__fp16__cuda_offline.json   （cell_id = Qwen3-ASR-0.6B__FP16__CUDA_offline）
+```
+
+**逐字段核查后确认：它们不是 OV FP16 交付候选，而是 P0 的 torch CUDA 参照**：
+
+| 字段 | 实际值 |
+|---|---|
+| `backend` | `qwen_asr transformers backend (torch 2.11 + CUDA, **bfloat16**)` |
+| `source_files` | `results/p0_stream/` / `results/p0_offline/` |
+| `accuracy.wer_pct` | **10.97%（主参照）** / **14.80%（离线旁证）** |
+| `scorer` | reviewer 计分器（MiniMax baseline，全局对齐） |
+
+⇒ 🔴 **直接删掉 ⇒ 唯一带 WER 的对照基准消失** ⇒ reviewer 复算新图 INT8/INT4 WER
+**没有任何可比的锚点**（ASR-002：Δ 只和同一计分器的基线比较）。
+
+⇒ ✅ **处理方式**：**去掉 FP16 这个精度标签，保留数据本体**
+⇒ 文件改名 `…__torchref__cuda_stream.json` / `…__torchref__cuda_offline.json`，
+`precision: FP16 → TORCH_REF`，并加 `is_delivery_candidate: false`
++ `precision_renamed_note`（写明原委）。
+
+### 25.2 已删除的内容（清单 + 依据）
+
+| 对象 | 处置 | 依据 |
+|---|---|---|
+| `results/p3_mask2_61min_fp16/`（**已跑到 65.7%**，364 段 / 2410.24 s / 92 KB） | ✅ **删除** | FP16 不是交付精度 ⇒ 该长跑无价值（已先备份，见 25.4） |
+| `reports/compare/qwen3asr_06b__fp16__cuda_stream.json` | ✅ 改名 + 改标签 ⇒ `qwen3asr_06b__torchref__cuda_stream.json` | 见 25.1 |
+| `reports/compare/qwen3asr_06b__fp16__cuda_offline.json` | ✅ 改名 + 改标签 ⇒ `qwen3asr_06b__torchref__cuda_offline.json` | 见 25.1 |
+| `build_compare_mask2.py` 的 `fp16` 变体 | ✅ 删除 | FP16 格不再产出 |
+| `build_compare_06b.py` 的 FP16 格生成 | ✅ 改标 `TORCH_REF` | 见 25.1 |
+| `p3_make_matrix.py` 的 `ORDER` | ✅ 去掉 2 个 FP16 名 + 新图 FP16 名；加入 2 个 `torchref` 名 | 矩阵不再有 FP16 维度 |
+| `run_mask2_pipeline.sh` 的 `step_p3` | ✅ **三格 → 两格**（删 `run_one fp16`） | FP16 不跑 |
+| `p2_multitoken_top1.py` 的 `ov_models` | ✅ **7 项 → 3 项**（删旧图 5 项；`ov_fp16_ref` → `mask2_fp16_ref`） | 旧图 top1 基线失真（§24.7） |
+| `p3_int4_slice_decode.py` 的 `VARIANTS` | ✅ **6 项 → 3 项**（只留 mask2 三项） | 旧图数据已作废 |
+| `p3_npu_mask2_text_check.py` 的 `VARIANTS` | ✅ 删 `old_int8` 旧图对照 | 旧图已作废 |
+| `p3_diag_mask2_prefix.py` 的 `DECS` | ✅ 删 `fp16_old` 旧图对照 | 旧图已作废 |
+
+### 25.3 🔴 **必须保留**的 FP16 内容（删了就跑不动 / 失去判据）
+
+| 对象 | 为什么必须留 |
+|---|---|
+| `models/ov-dec-06b-embed-mask2/`（**FP16 源图**，1.2 G，双端口 4250 算子） | ★ **它是 INT4 重量化的输入**（`p2_quantize_mask2_int4.py::NEW_SRC`）⇒ 删了 INT4 根本跑不了 |
+| `models/ov-encoder-06b-fp16-static/`（356.3 MiB） | encoder **不涉及 attention mask** ⇒ INT8/INT4 两格**共用**这一份 encoder IR（不量化） |
+| `mask2_fp16`（teacher-forcing 的 **target 生成器**） | ★ target 必须来自**同家族 FP16 参考** ⇒ 否则 teacher-forcing 就是 §7 铁律的**自一致 tautology** ⇒ 它是**测量工具**，不是交付候选 |
+| `mask2_fp16`（NPU / 切片脚本的**同机对照基准**） | 若 NPU 上 FP16 也异常 ⇒ 问题在 NPU/图；只有 INT8 异常 ⇒ 问题在量化 ⇒ 需要基准才能区分 |
+| `lm_head 保 FP16`（INT8/INT4 配方的一部分） | 这是**量化配方参数**，与「FP16 作为交付精度」无关 |
+| `models/ov-dec-06b-embed-fp16/`（旧 FP16 图，1139.4 MiB） | **保留**（未删）：旧图记录的可追溯性；且体积表要能对照「量化前后差多少」⇒ 但**其质量数据已作废** |
+
+⇒ ★ **一句话**：**FP16 作为「交付精度」全部删除；FP16 作为「工具 / 源 / 基准」必须保留。**
+
+### 25.4 备份（可回滚）
+
+`qwen3asr_06b/_backup_fp16_removal_20261025/`（**300 KB**）：
+
+* `compare_before/` —— 删除前的 `reports/compare/` 全量副本（**18 个文件 = 16 个 cell json + MATRIX.json + MATRIX.md**）
+* `p3_mask2_61min_fp16_partial/` —— FP16 长跑已跑的 364 段（65.7%）
+* 6 个改动脚本的改前版本
+
+### 25.5 🔴 顺带修好的一个**漏标作废**的问题
+
+§23 判定「旧图质量数据全部作废」时，**只标了 `qwen3asr_06b__int8__gpu0.json` 一格**，
+漏了另外 4 个同样用旧图的格子 ⇒ 矩阵里它们仍显示「有效」⇒ **会误导 reviewer**。
+
+| 格子 | 旧 decoder IR | 处置 |
+|---|---|---|
+| `qwen3asr_06b__int4_asymg128__gpu0.json` | `ov-dec-06b-embed-int4_asymg128` | ✅ 补标作废 |
+| `qwen3asr_06b__int4_sym_chan__gpu0.json` | `ov-dec-06b-embed-int4` | ✅ 补标作废 |
+| `qwen3asr_06b__int8__npu.json` | `ov-dec-06b-embed-int8sym` | ✅ 补标作废 |
+| `qwen3asr_06b__int4__all.json` | （旧图证据链汇总） | ✅ 补标作废 |
+
+⇒ 判据：**格子里的 `dec_ir` 指向 `ov-dec-06b-embed-*`（非 `-mask2`）⇒ 一律作废。**
+
+### 25.6 ✅ 删除后的矩阵现状（`reports/compare/MATRIX.json`，**16 格**）
+
+> ⚠️ 订正：本节初稿写「17 格」⇒ **实测 `MATRIX.json` 的 `cells` 数组长度 = 16**（另有 `MATRIX.json` / `MATRIX.md`
+> 两个文件本身，不计入格数；`reports/compare/` 下 json 文件共 17 个 = 16 cell + 1 个 `MATRIX.json`）。
+
+| 精度 | 格子 | 设备 | 数据有效 |
+|---|---|---|---|
+| **TORCH_REF** | `qwen3asr_06b__torchref__cuda_stream.json` | CUDA | ✅（**WER 主参照 10.97%**） |
+| **TORCH_REF** | `qwen3asr_06b__torchref__cuda_offline.json` | CUDA_offline | ✅（旁证 14.80%） |
+| INT8 | `qwen3asr_06b__int8__gpu0.json` | GPU.0 | 🔴 **作废**（旧图） |
+| INT8 | `qwen3asr_06b__int8__npu.json` | NPU | 🔴 **作废**（旧图，本节补标） |
+| INT4 | `qwen3asr_06b__int4_asymg128__gpu0.json` | GPU.0 | 🔴 **作废**（旧图，本节补标） |
+| INT4 | `qwen3asr_06b__int4_sym_chan__gpu0.json` | GPU.0 | 🔴 **作废**（旧图，本节补标） |
+| INT4 | `qwen3asr_06b__int4__all.json` | ALL | 🔴 **作废**（旧图，本节补标） |
+| ALL | `qwen3asr_06b__modelsize.json` | ALL | ✅ |
+| INT8 | `r2t2__int8__gpu0.json` / `r2t2__int8__npu.json` | GPU.0 / NPU | ✅（R2T2，与 0.6B 无关） |
+| INT4 | `r2t2__int4__npu.json` / `r2t2__int4__npu_cpu_3way.json` / `r2t2__int4_recipe_matrix.json` | NPU | ✅（R2T2） |
+| CUDA_Q8 / CUDA_Q4 | `r2t2__cuda_q8.json` / `r2t2__cuda_q4.json` | CUDA | ✅（**R2T2-1.7B**，与 0.6B 无关） |
+| ALL | `r2t2__modelsize.json` | ALL | ✅ |
+
+⇒ ✅ **矩阵里已无 `precision=FP16`**（实测扫描全部 17 个 json 的 `"precision"` 字段：`FP16` 命中 **0** 处）。
+⚠️ 口径澄清：字符串 `FP16` 本身仍在若干 json 的**说明性字段**里（如 `precision_renamed_note`
+「ASR 不考虑 FP16」、`modelsize` 里「FP16 源图是 INT4 重量化的输入源」等）⇒ **这是刻意的说明文字，不是精度标签**。
+⇒ ⏳ **待补两格**（新图，待重跑）：`qwen3asr_06b__int8__mask2__int8.json`
++ `qwen3asr_06b__int4__mask2__int4.json`。
+
+### 25.7 附带影响与后续
+
+* 🔴 **长跑进度损失**：FP16 长跑已跑 65.7%（364 段）⇒ **作废**（但省下约 20 分钟机时，
+  换 INT8/INT4 两格的价值更高 ⇒ 净收益为正）。
+* ✅ **FP16 长跑进程已停**（`TaskStop`）⇒ GPU 与机器锁让出；
+  ⚠️ 停后核查发现**锁已被 MT 正确接管**（`mt PID 9748 started 21:21:45`）⇒ 无孤儿锁。
+* ⏳ **INT8 / INT4 两格长跑待跑**（依赖 INT4 重量化产物）。
+* ⏳ **reviewer WER 待复算**：新图 INT8 / INT4 的 61 分钟全长 WER，
+  **对照 `torchref__cuda_stream` 的 10.97%**（同一计分器 ⇒ ASR-002 合规）。
