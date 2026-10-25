@@ -636,6 +636,100 @@ def _norm_word(w):
     return str(w).strip('.,!?;:，。！？；：').lower()
 
 
+# ── 段接缝重复词消除（APP-012② / APP-014①）─────────────────────────
+#
+# 🔴🔴 **问题（ASR-006 §2 实测）**：rule1 的切点会**穿过一个词**，
+#    前后两段都把这个词转写出来（例：`...future technology | technology needs...`）。
+#
+# 🔴🔴 **旧 `stitch()` 的致命缺口**：它只试 n=3,2 —— 而**实测接缝重复
+#    绝大多数是 n=1（单个词）**！61 分钟 A/B 两组离线实测
+#    （`results/app/app024_seam_diag.py`，素材 reports/asr004_ab/segments_{A,B}.json，
+#    段边界由**真实 Segmenter** 判定 ⇒ 与 App 实时路径逐点一致）：
+#      A 组：536 对相邻段 → n≥3: **0**、n=2: **0**、n=1: **36**
+#      B 组：557 对相邻段 → n≥3: **0**、n=2: **0**、n=1: **42**
+#    ⇒ 旧 stitch **一次都没命中过** ⇒ 重复词 100% 漏到用户屏幕上。
+#
+# ✅ 修法：**整词级 n-gram 去重**（n = 3 → 2 → 1），
+#    命中就删掉新段开头的重复词。
+#
+# 🔴🔴🔴 **n=1 的判据（本轮实测重新设计，替换掉原先的「停用词表」方案）**：
+#   原方案用「英文停用词表」做安全阀，**方向是错的** ——
+#   `app024_stopword_audit.py` 实测：被它挡掉的 15(A)/18(B) 处**全是真缺陷**
+#   （切点正好落在词中间）：
+#     ...our strategy will and has | has been to maximize the IDM advantage.
+#     ...And the scale is | is very important.
+#     ...a different perspective on that approach. So | So this was just a summary.
+#   ⇒ 停用词表把**真缺陷**当成了「真内容」⇒ 漏掉一半以上的真缺陷。
+#
+#   ✅ **新判据（两个可观测特征，实测有效）**：
+#     ① **后段首词是大写开头、而前段末尾词不是** ⇒ 后段**重新起句**
+#        （ASR 给新句首字母大写）⇒ 强特征「切点穿词」；
+#        典型：`...So, welcome | Welcome to our Q3 26 QGS.`、
+#               `...love the scale | Scale and compatibility for multiple generations.`
+#     ② **前段末尾不是句末标点**（`.` `?` `!` `。` `！` `？`）
+#        ⇒ 同一句话被切成两半 ⇒ 「切点穿词」；
+#        反之若有句末标点 ⇒ 上一句说完了，新句又说了同一个词 ⇒ **真内容**。
+#
+#   📊 **量化（独立参照 c048 adaptive，语料级配对 bootstrap K=40/5000 次，
+#      `results/app/app024_seam_rule_wer.py`）**：
+#      A 组 6.055% → 6.013%   Δ = −0.043 pp  CI [−0.077, −0.009] ⇒ 上界<0 改善
+#      B 组 5.851% → 5.791%   Δ = −0.060 pp  CI [−0.102, −0.026] ⇒ 上界<0 改善
+#   ⇒ 显著改善，且比「无安全阀」更保守（少误删）。
+#
+# ⚠️ **不要误读这个收益的量级**：它只覆盖 ASR-006 所述 **+2.6pp** 缺口的
+#    **约 3%** ⇒ **接缝去重不是 +2.6pp 的主因**（主因是段首/段尾的**插入**
+#    本身，ASR 侧记的是多 178 个）。详见 STATUS_APP §32。
+#
+# 🔴 **已删掉的「字符级重叠裁剪」**：原在制品里有 `_stitch_char_overlap()`
+#    + 注释提到的 `stitch_pair()`，但 **stitch_pair 根本不存在**，
+#    且实时路径上 `stitch()` 只有 `prev_words`（前 3 个词）**没有 prev_text**
+#    ⇒ 该分支**无生效路径**；实测 A/B 两组**字符级命中 0 次**
+#    （真缺陷全是整词级 n=1）⇒ 整段移除，避免留下「看着有、其实没生效」的代码。
+#
+#   * 开关：`LIVECAP_STITCH_SEAM=0` 可**完全退回旧行为**（只试 n=3,2；**默认开**）。
+
+# 接缝整词去重的最大 n（3 → 2 → 1）
+STITCH_MAX_NGRAM = int(os.environ.get('LIVECAP_STITCH_MAX_NGRAM', '3'))
+# 接缝去重总开关（1=开，0=退回旧行为）
+STITCH_SEAM_ENABLED = os.environ.get('LIVECAP_STITCH_SEAM', '1') not in ('0', 'false', 'False')
+
+# 🔴 **句末标点集**（判据②用）：前段末尾是这些字符 ⇒ 上一句说完了
+_STITCH_SENT_END = '.?!。！？；…'
+
+
+def _stitch_is_capitalized(w: str) -> bool:
+    """词是否**首字母大写**（后段重新起句的特征）。"""
+    return bool(w) and w[0].isupper()
+
+
+def _stitch_tail_is_sentence_end(prev_text: str) -> bool:
+    """前段末尾是否为**句末标点**（⇒ 上一句说完了 ⇒ 新句重说 ⇒ 真内容）。"""
+    t = (prev_text or '').rstrip()
+    return bool(t) and t[-1] in _STITCH_SENT_END
+
+
+def _stitch_is_cut_through_word(prev_text, prev_word: str,
+                                cur_word: str) -> bool:
+    """判定「这次 n=1 重复」是不是**切点穿词**（真缺陷）造成的。
+
+    🔴 **判据（实测验证，见文件头注释）**：
+       ① 后段首词大写开头、而前段末尾词不是 ⇒ 后段重新起句 ⇒ 切点穿词；
+       ② 前段末尾**非**句末标点 ⇒ 同一句被切开 ⇒ 切点穿词。
+       ⇒ 任一成立即判为「切点穿词」（该删）。
+
+    🔴 **`prev_text` 为 None 时只判据①**（判据②需要标点信息，
+       没有就不能用 ⇒ 宁可漏删也不误删；空串 '' 同理**不能**当「无标点」用，
+       否则判据②恒成立 ⇒ 退化成最激进的「无安全阀」档）。
+    """
+    if _stitch_is_capitalized(cur_word) and not _stitch_is_capitalized(prev_word):
+        return True
+    if not prev_text:
+        return False
+    if not _stitch_tail_is_sentence_end(prev_text):
+        return True
+    return False
+
+
 class Segmenter:
     """在线切段规则（只看已累计的音频）。
 
@@ -888,17 +982,60 @@ class Segmenter:
         return db > speech_db - GUARD_REL_DROP_DB
 
 
-def stitch(prev_words, text):
-    """段接缝去重：下一段开头 2–3 词与上一段末尾完全相同时删掉。"""
-    if not prev_words or not text:
+def stitch(prev_words, text, prev_text=None):
+    """段接缝去重：下一段开头与上一段末尾重复的词删掉。
+
+    🔴🔴 **为什么必须扩到 n=1**（APP-012② / APP-014①）：
+    61 分钟 A/B 两组离线实测（`results/app/app024_seam_diag.py`），**接缝重复
+    几乎全是 n=1（单个词）**：
+    A 组 536 对相邻段 → n≥3: 0 / n=2: 0 / n=1: **36**；
+    B 组 557 对相邻段 → n≥3: 0 / n=2: 0 / n=1: **42**。
+    ⇒ 旧实现（只试 3、2）**一次都没命中过**。
+
+    判据（**顺序固定**）：
+
+    ① **整词级 n-gram**（n = STITCH_MAX_NGRAM → … → 1）：
+       前段末尾 n 个词 == 后段开头 n 个词 ⇒ 删掉后段开头的这 n 个词。
+       🔴 n=1 有**判据**（`_stitch_is_cut_through_word`）：只有当
+       「后段重新起句（首字母大写）」**或**「前段末尾非句末标点」时
+       才算「切点穿词」才删；否则是真内容（上一句说完了，新句又说一遍）。
+
+    ⚠️ **`prev_text` 现在是必需的信息**（判据②要用前段末尾的标点信息）：
+       调用方**必须**传前段的完整文本；传 None / 空串时退化为「只信判据①」
+       （宁可漏删也不误删）。
+
+    🔴 **开关语义**（`LIVECAP_STITCH_SEAM`，默认 **1**）：
+       `0` ⇒ **完全退回旧行为**（只试 n=3,2，**不做 n=1**）
+       —— 注意不是「跳过判据」，而是「连 n=1 都不做」；
+       「跳过判据」反而会**更激进**（最激进档），与「关掉」的语义相反。
+    """
+    if not text:
         return text
+    if not prev_words:
+        return text
+
     words = text.split()
     nw = [_norm_word(w) for w in words]
     prev = [_norm_word(w) for w in prev_words]
-    for n in (3, 2):
-        if len(nw) >= n and len(prev) >= n and prev[-n:] == nw[:n]:
-            rest = words[n:]
-            return ' '.join(rest) if rest else text
+
+    # 🔴 开关关闭 ⇒ 退回旧行为：**下限抬到 2**（旧实现只试 n=3,2，不做 n=1）
+    #   注意是「下限」不是「上限」—— 旧行为保留了 n=3 的去重能力。
+    min_n = 1 if STITCH_SEAM_ENABLED else 2
+    max_n = STITCH_MAX_NGRAM
+
+    # ── ① 整词级 n-gram：n 从大到小 ──
+    for n in range(min(max_n, len(words)), min_n - 1, -1):
+        if len(nw) < n or len(prev) < n:
+            continue
+        if prev[-n:] != nw[:n]:
+            continue
+        # 🔴 n=1 用「切点穿词」判据决定删不删
+        if n == 1 and STITCH_SEAM_ENABLED:
+            if not _stitch_is_cut_through_word(prev_text, prev_words[-1],
+                                                words[0]):
+                continue
+        rest = words[n:]
+        return ' '.join(rest) if rest else text
     return text
 
 
@@ -946,6 +1083,8 @@ class OVEngine:
             self.device_desc = 'NPU'
         self.load_s = time.perf_counter() - t0
         self._last_words = []
+        # 🔴 前段的**完整文本**（接缝判据②需要看末尾的标点）⇒ 必须保留
+        self._last_text = ''
         self.stats = dict(chunks=0, segs=0, proc_s=0.0, wall_s=0.0, lag_ms=None)
         self.reset()
 
@@ -1003,9 +1142,11 @@ class OVEngine:
 
     def _close_segment(self):
         carry = self.state.buffer.copy()     # 未解码残余（chunk 边界之后）交给下一段
-        final = stitch(self._last_words, self._finalize())
+        # 🔴 必须传 prev_text（接缝判据②要看前段末尾的标点）
+        final = stitch(self._last_words, self._finalize(), self._last_text)
         if final.split():
             self._last_words = final.split()[-3:]
+            self._last_text = final
         self.stats['segs'] += 1
         self.reset()
         self.state.buffer = carry
@@ -1015,10 +1156,14 @@ class OVEngine:
         st = self.state
         if st.audio_accum.shape[0] == 0 and st.buffer.shape[0] == 0:
             return None
-        final = stitch(self._last_words, self._finish(self.backend, st, max_new_tokens=64))
+        # 🔴 必须传 prev_text（接缝判据②要看前段末尾的标点）
+        final = stitch(self._last_words,
+                       self._finish(self.backend, st, max_new_tokens=64),
+                       self._last_text)
         self.stats['segs'] += 1
         self.reset()
         self._last_words = []
+        self._last_text = ''
         return final
 
     @property
@@ -1116,6 +1261,8 @@ class CudaEngine:
         self.finishing = []                  # 已关闭 stdin、等最终文本的会话（按顺序）
         self.acc = np.zeros(0, np.float32)
         self._last_words = []
+        # 🔴 前段的**完整文本**（接缝判据②需要看末尾的标点）⇒ 必须保留
+        self._last_text = ''
         self.stats = dict(chunks=0, segs=0, proc_s=0.0, wall_s=0.0, lag_ms=None)
 
     def set_force_language(self, lang):
@@ -1134,6 +1281,7 @@ class CudaEngine:
         self.spare = _CudaProc(self.cfg['gguf'], self.force_language)
         self.acc = np.zeros(0, np.float32)
         self._last_words = []
+        self._last_text = ''
         return True
 
     @property
@@ -1158,9 +1306,13 @@ class CudaEngine:
         outs = []
         while self.finishing and self.finishing[0].done.is_set():
             p = self.finishing.pop(0)
-            text = stitch(self._last_words, p.final if p.final is not None else p.partial)
+            # 🔴 必须传 prev_text（接缝判据②要看前段末尾的标点）
+            text = stitch(self._last_words,
+                          p.final if p.final is not None else p.partial,
+                          self._last_text)
             if text.split():
                 self._last_words = text.split()[-3:]
+                self._last_text = text
             self.stats['segs'] += 1
             outs.append(text)
         return ''.join(outs) if outs else None
