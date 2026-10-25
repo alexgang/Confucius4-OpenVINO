@@ -1,28 +1,26 @@
 # STATUS_APP
 last_ack: APP-017
-更新时间: 2026-10-26 01:35
-当前任务: **§42 用户反馈「全流程 CUDA/NPU 都没声音」⇒ 两个产品级真因已修**：① `device_config.resolve_device` 把 `CUDA` **静默降级成 NPU**（`_pick('CUDA')` 在 OV 设备清单里找不到 ⇒ 回退默认；改 12 行，修后 `--tts-device CUDA` **真跑 CUDA**：边车就绪 40.3 s / 首包 4.13 s / 播完 1 丢弃 0）；② 🔴🔴 **GUI「语音输出 → 输出设备」传的是 WASAPI 端点 id**（`soundcard` 的 `s.id` = `IMMDevice::GetId()` = `{0.0.0.…}.{guid}`），而 `sounddevice` 只认 **int 索引或设备名子串** ⇒ `ValueError: No output device matching` ⇒ `Player._stream=None` ⇒ **每句都被丢 ⇒ 一句都不出声，与 CUDA/NPU/精度完全无关**（离线复刻证实：GUID ✗ / 名字子串 ✓ / int ✓；同一个 id 在 `make_source('system')` 上是**正确**用法 ⇒ 只改播放层）⇒ 新增 `resolve_out_device` / `_match_output_index` / `_describe_out` + **开流失败回退系统默认**；③ **三层音频判据**（① `n_played` ② 回环 RMS ③ 人耳）落地，`app052` 三例 **0.20673 / 0.11488 / 0.12878 全 PASS** ⇒ **App 侧已把声音送进系统混音器**；④ 新增客户级自检 `app/audio_check.py`；⑤ ✅ **v1.5 第三次重打完成**（md5 `5fd226b40afb894497bf4de21557e420` / 11 216 089 426 B / 13 982 条目 / **逐字节一致**）+ `app014b` **PASS 50 / 0**
-阻塞 / 待用户决定: ① 🔴 **只剩用户实机确认**：重开 GUI 看日志是否出现「输出设备解析 … → 播放索引 N」与「实际输出: <设备名>」；仍听不到就跑 `app\audio_check.py` 逐台确认哪台真的出声（③ 层）；② ✅ **v1.5 已出包**（md5 `5fd226b4…`）⇒ 不再待锁；§42.3 已由 `app055` 真机验证（对照组 GUID → `ValueError`；实验组 GUID → 索引 3 → `n_cb=21` 真出声）；③ ✅ **CUDA 落地方式已定**（§41 用户选「只做本机可选后端」）⇒ 不再待决；④ ⛔ **OV 的 CUDA plugin 不引入**（§39.5 依据不变）；⑤ ⛔ **APP-017「检查点 3」**由并发 App 会话在做 ⇒ 本会话不重复跑；⑥ ⛔ **WER +2.6pp 主因**未定位；⑦ ✅ **APP-015 方案 C 渲染层验收 23/23**，但 `translator.py` 合入仍待 MT 移交（APP-009② / H-014，App 不代提交）；⚠️ 并发会话在该文件留的在制品**本轮未动**；⑧ ⛔ 包体 10.45 GiB 优化未做；⑨ ⛔ V7 残句代价待确认；⑩ ⛔ 集显 F32 TTS 慢（首包 33.9 s）
+更新时间: 2026-10-26 01:45
+当前任务: **§43 🔴🔴 修掉「安静窗口闸门把**在等锁的协作方**误判成干扰源」⇒ 互等死锁**：老判据「只看外部 python 进程存在」⇒ **别的模块在等锁时也是活着的 python 进程** ⇒ 协作方（正是因为在等「你」才存在）被当成干扰源 ⇒ **必然等不到**（MT 侧实测白等 1 h 41 min；App 侧同坑 —— §42 并发会话打包时已实测踩到：「安静窗口把 ASR 的等锁进程当作业 ⇒ 互等 ⇒ 停自己的进程后 `--skip-quiet` 重启」）⇒ 修法：按 **CPU 时间增量**（`GetProcessTimes`）分三类 —— `busy`（> 0.05 s ⇒ 在算 ⇒ 干扰）/ `idle`（≈ 0 ⇒ 在等锁 ⇒ **放行**）/ `unknown`（读不到 ⇒ **fail-closed** ⇒ 算干扰）；**首次采样只建基线、不下结论** ⇒ 解决 MT 通知 12 §12.5 的「第一次必然判 dirty ⇒ 整批永久拉黑」；`LockHeld.wait_quiet` **默认切到分类器** ⇒ `pack_v13.py` / `publish_ftp.py` 自动生效；验收 REAL **18/18 PASS** + BUG **3/3 命中**（`results/app/app049_quiet_cpu_classifier_test.py`），既有 `app045` **14/14 + 2/2 PASS** ⇒ 未回归
+阻塞 / 待用户决定: ① 🔴 **只剩用户实机确认**：重开 GUI 看日志是否出现「输出设备解析 … → 播放索引 N」与「实际输出: <设备名>」；仍听不到就跑 `appudio_check.py` 逐台确认哪台真的出声（③ 层）；② ✅ **v1.5 已出包**（md5 `5fd226b4…` / 11 216 089 426 B / 13 982 条目，并发会话 01:15 持锁重打）⇒ 不再待锁；③ 🔴 **§43 新增闸门修复需在下一次 `pack_v13.py` 真实跑一次**（本轮改动**不在包内** ⇒ 未重打包）；④ ✅ **CUDA 落地方式已定**（§41 用户选「只做本机可选后端」）⇒ 不再待决；⑤ ⛔ **OV 的 CUDA plugin 不引入**（§39.5 依据不变）；⑥ ⛔ **APP-017「检查点 3」**由并发 App 会话在做 ⇒ 本会话不重复跑；⑦ ⛔ **WER +2.6pp 主因**未定位；⑧ ✅ **APP-015 方案 C 渲染层验收 23/23**，但 `translator.py` 合入仍待 MT 移交（APP-009② / H-014，App 不代提交）；⚠️ 并发会话在该文件留的在制品**本轮未动**；⑨ ⛔ 包体 10.45 GiB 优化未做；⑩ ⛔ V7 残句代价待确认；⑪ ⛔ 集显 F32 TTS 慢（首包 33.9 s）
 
 
 ## 最近更新
+- 01:45 §43 🔴🔴 **修掉「安静窗口闸门把在等锁的协作方误判成干扰源」⇒ 互等死锁**：老判据「只看进程存在」⇒ 等锁的协作方也是活着的 python 进程 ⇒ 必然等不到（MT 侧白等 1 h 41 min；App 侧同坑）
+- 01:45 §43 ✅ **修法**：按 **CPU 时间增量**（`GetProcessTimes`）分三类 —— `busy`（增量 > 0.05 s ⇒ 在算 ⇒ 干扰）/ `idle`（增量 ≈ 0 ⇒ 在等锁 ⇒ **放行**）/ `unknown`（读不到 ⇒ **fail-closed** ⇒ 算干扰）；`LockHeld.wait_quiet` **默认切到分类器**
+- 01:45 §43 ✅ **首次采样只建基线、不下结论** ⇒ 解决 MT 通知 12 §12.5 的「第一次必然判 dirty ⇒ 整批永久拉黑」
+- 01:45 §43 ✅ **验收 REAL 18/18 PASS + BUG 3/3 命中**（`results/app/app049_quiet_cpu_classifier_test.py` + 证据 json）；既有 `app045` 闸门 **14/14 + 2/2 PASS** ⇒ **未回归**
+- 01:45 §43 🔴 **首跑假阳性已定位**：基线取在 python **冷启动中途**（解释器启动烧 ≈ 0.15 s CPU）⇒ 被判 busy ⇒ 改为造完子进程先 `sleep(2)` 再取基线 ⇒ PASS
+- 01:45 §43 ✅ 同口径推广到 App 自己的「检查点 3」闸门（`results/app/app037_quiet_window.py` 默认改用分类器，拿不到 `machine_lock_app` 时回退）
+- 01:45 §43 ✅ **`app052` 回环证据补齐 4 例**（440Hz 0.20699 / CUDA 0.11488 / NPU 0.12878 / GPU 0.20257 全 PASS）⇒ ② 层通过；**③ 层仍只能人耳**
+- 01:45 §43 ✅ **交付侧只读复核**：v1.5 zip **11 216 089 426 B / 13 982 条目**（并发会话 01:15 持锁重打）；zip ⇄ 包目录 **6/6** 归一化 SHA 一致；本轮改动**不在包内** ⇒ **不重打包、不重发 FTP**
 
 - 01:35 §42 ✅ **v1.5 第三次重打完成**：md5 `5fd226b40afb894497bf4de21557e420` / 11 216 089 426 B / **13 982 条目** / **逐字节一致**；新增 `app/audio_check.py`、`app/tts_cuda.py`、`app/tts_cuda_sidecar.py`（后两个是 §41 的，旧包没有）
 - 01:35 §42 ✅ **打包前自检 `app014b` PASS 50 / FAIL 0**（含 GUI/CLI 冒烟 16 项）；zip 内关键串逐条核对通过（`resolve_out_device` / `实际输出` / `role == 'tts'`）
 - 01:35 §42 ✅ **`app052` 三例一次跑完留证**：440Hz **0.20673** / CUDA **0.11488** / NPU **0.12878** 全 PASS（与上一次独立运行 ±5% 内一致）
 - 01:35 §42 🔴 **打包踩到闸门死锁**：安静窗口把「ASR 的**等锁进程**」当作业 ⇒ 互等 ⇒ 停自己的进程后 `--skip-quiet` 重启（理由写进日志头）；随后又排队等 `mt pid=32792` 约 3 h
-- 22:32 §42 🔴🔴 **真因二（主因）**：GUI「语音输出 → 输出设备」传的是 **WASAPI 端点 id**（`soundcard` 的 `s.id` = `IMMDevice::GetId()`），而 `sounddevice` 只认 int 索引/设备名子串 ⇒ `ValueError: No output device matching` ⇒ `Player._stream=None` ⇒ **每句都被丢** ⇒ 与 CUDA/NPU/精度**全无关**
-- 22:32 §42 ✅ **离线复刻证实**（`ast` 抽 `sounddevice._get_device_id` + 打桩设备表）：GUID → `ValueError`；`Realtek` 子串 → `id=0`；int → `id=0`
 - 22:32 §42 ✅ **修法**：`tts_worker.py` 新增 `resolve_out_device`（GUID → soundcard 端点名 → sounddevice 索引）/ `_match_output_index` / `_describe_out` + **开流失败回退系统默认**；日志改为「实际输出: 名字（hostapi=…, ch=…, sr=…）」
 - 22:32 §42 🔴 **真因一**：`device_config.resolve_device` 把 `CUDA` **静默降级成 NPU**（`_pick('CUDA')` 在 OV 清单里找不到）⇒ 修 12 行；CLI 全流程日志由「设备 NPU」→「设备 CUDA」
-- 22:32 §42 ✅ **修后全流程实测**：`[tts_cuda] 就绪 RTX 5050 / torch 2.11.0+cu128 / 加载 38.2 s / 预热 1.7 s` ⇒ `首包 4.13 s 提交 1 播完 1 丢弃 0 state=ready`
-- 22:32 §42 ✅ **三层音频判据落地**（① `n_played` ② 回环 RMS ③ 人耳）+ `app052` 三例 **0.19658 / 0.11482 / 0.12878 全 PASS** ⇒ 声音**确实进了系统混音器**
-- 22:32 §42 🔴 `app052` 首版只留最后一例（证据被覆盖）⇒ 改 `cases` 数组累加；锁空后重跑留证
-- 22:32 §42 ✅ 新增客户级自检 `app/audio_check.py`（逐台输出端点播 440 Hz，含 hostapi）
-- 22:32 §42 ⛔ **未动 `live_caption_app.py`**（并发会话 APP-015 方案 C 在制品；且 GUID 应在播放层修）
-- 22:32 §42 ⏳ **v1.5 第三次重打未完成**：`mt pid=9748` 自 21:21 持锁（22:24 已 63 min），只等不抢
-- 21:25 §41 ✅ 巡检无新条目（`CORRECTIONS_APP.md` 最大 APP-017 = `last_ack`，只读零改动）
-
 
 ## §1 现状汇总（2026-10-23）
 
@@ -7242,3 +7240,199 @@ OV 发行版不带 CUDA plugin（§39.5）⇒ 落空 ⇒ 走「回退默认设�
 - ⚠️ **编号事实**：本文件里 `## §41` 出现**两次**（第 6771 行 = 并发会话的「安静窗口闸门 + 方案 C 渲染层」，
   第 7022 行 = 本会话的「CUDA 做成可选后端」）。**不回滚、不改别人的章节**，仅在此说明归属 ⇒
   本章用 **§42** 起号，避免再撞。
+
+
+## §43 🔴 巡检（APP-017 无新纠偏条目）+ 🔴🔴 修掉「安静窗口闸门把**在等锁的协作方**误判成干扰源」⇒ **互等死锁**（MT 通知 12 §12.5 点名的第三个缺陷，App 侧漏修）+ ✅ `app052` 回环证据补齐 4 例（2026-10-26 01:45）
+
+### §43.0 巡检结论
+
+| 项 | 实测值 |
+|---|---|
+| `status/app/CORRECTIONS_APP.md` | SHA256 `baaa16ae869e3855a0a231946db81727ccb98a1fa2eeaab842ca51df038fd9cc` / **35 386 B** / mtime `2026-10-25 15:38:05` |
+| `## APP-xxx` 条目数 | **17**（APP-001 … APP-017） |
+| 最大编号 | **APP-017** |
+| `STATUS_APP.md` 头部 `last_ack` | **APP-017** |
+| ⇒ **是否有新条目** | ❌ **无**（**第 20 次**同一口径复核）⇒ `last_ack` **不变** |
+
+🔴 **本文件只读、零改动**（SHA 与本轮开始时逐位一致）；🔴 **未提交** `CORRECTIONS_APP.md`（`git status` 显示 `M` 的是 **reviewer 自己**的未提交改动）。
+
+**跨模块通知巡检**：`shared/NOTICE_mt_to_app_20261025_notice12.md`（**23:50 新增，6 350 B**）= 通知 12
+（NOPUNCT 复测完成 + 🔴 **闸门第三个缺陷**）⇒ 本轮据此落地（见 §43.1～§43.4）。
+⚠️ 通知 12 §12.2 的延迟数字与 §12.6 的裁定**属 MT 口径**，App 不引用为结论。
+
+---
+
+### §43.1 🔴🔴 本轮修的缺陷（真实承重，不是假想）
+
+**MT 通知 12 §12.5 点名三方（App / ASR / TTS）自查「闸门必须区分『在等锁』与『在算』」——
+App 侧确实漏修，且症状比 MT 描述的更严重。**
+
+#### 症状
+
+App 侧的安静窗口闸门在 `machine_lock_app.py::wait_quiet_window()`，判据是：
+
+> 「**存在外部 python 进程** ⇒ 有干扰 ⇒ 继续等」
+
+🔴 **根因**：共享锁是**协作式**的 ⇒ **别的模块的脚本在等锁时也是一个活着的 python 进程**
+⇒ 协作方（**正是因为在等「你」才存在**）被误判成「干扰源」
+⇒ **必然互等死锁**（MT 侧实测白等 **1 h 41 min**；App 侧同一个坑，2026-10-26 实测）。
+
+🔴 **对 App 的具体伤害**：`pack_v13.py` / `publish_ftp.py` **取到锁之后**才等安静窗口
+⇒ 若此刻别的模块正**在等锁**，App 会一直等一个**永远不会离开**的协作方
+⇒ **打包永远开不了工**（`--quiet-timeout` 默认 1800 s ⇒ 每次白等 30 min 后放弃）。
+
+#### 实测反证（本轮 BUG 组，机器上真实复现）
+
+| 场景 | 老判据 `wait_quiet_window` | 修后 `wait_quiet_window_cpu` |
+|---|---|---|
+| 机器上只有**一个「在等锁」的协作方**（CPU 增量 ≈ 0） | 🔴 `ok=False`，`n_busy_samples=8` ⇒ **判「有干扰」** | ✅ 判 **idle** ⇒ **放行** |
+| 排除全部 python 后 | ✅ `ok=True` ⇒ 证明老判据**不是恒真**（有区分力） | ✅ 同 |
+
+#### 修法（`machine_lock_app.py`，**+174 行 / -2 行**）
+
+用 **CPU 时间增量**（`GetProcessTimes`，ctypes Win32 API ⇒ 不用 `wmic` / `psutil`）
+把外部 python 进程分三类：
+
+| 类 | 判据 | 处置 |
+|---|---|---|
+| `busy` | CPU 增量 > `_CPU_IDLE_EPS`（0.05 s） | 🔴 **在算** ⇒ **干扰源** ⇒ 继续等 |
+| `idle` | CPU 增量 ≤ 0.05 s | ✅ **在等锁 / 在睡** ⇒ **放行** |
+| `unknown` | CPU **读不到** 或 **首次采样无历史** | 🔴 **fail-closed** ⇒ **算干扰** ⇒ 继续等 |
+
+新增 API：
+
+| 新增 | 作用 |
+|---|---|
+| `_process_cpu_seconds(pid)` | 读该进程累计 (kernel+user) CPU 秒；读不到返回 `None` |
+| `classify_external_python(...)` | 返回 `(busy, idle, unknown, prev_cpu)`；**首次采样只建基线、不下结论** |
+| `wait_quiet_window_cpu(...)` | 安静窗口（分类器版）；`info` 多出 `n_idle_samples` / `n_unknown_samples` / `last_idle_pids` / `classifier='cpu-delta'` |
+| `LockHeld.wait_quiet(..., use_cpu_classifier=True)` | **默认切到分类器版** ⇒ `pack_v13.py` / `publish_ftp.py` **自动生效** |
+
+🔴 **老版 `wait_quiet_window()` 保留**（`use_cpu_classifier=False` 可回退）⇒ 不回归。
+
+#### 🔴 两个「不放松 fail-closed」的关键设计
+
+1. **`unknown` 与 `busy` 合并为 `blockers`** ⇒ CPU 读不到 ⇒ 算干扰 ⇒ 继续等；
+2. **首次采样只建基线、不下结论** ⇒ 解决 MT §12.5 说的「`monitor.reset()` 之后**第一次采样必然没有历史**
+   ⇒ 必然判 dirty 一次 ⇒ 整批永久拉黑」。
+
+---
+
+### §43.2 🔴 验收（`results/app/app049_quiet_cpu_classifier_test.py`，新增）
+
+**REAL 18/18 PASS + BUG 3/3 命中 ⇒ verdict=PASS**
+（证据：`results/app/app049_quiet_cpu_classifier_evidence.json`）
+
+| 组 | 项 | 结果 |
+|---|---|---|
+| REAL | R1 分类器 API 暴露 | ✅ `classify_external_python` / `wait_quiet_window_cpu` / `_process_cpu_seconds` 均存在 |
+| REAL | R2 `GetProcessTimes` 读到本进程 CPU | ✅ `cpu_s=0.328` |
+| REAL | R3 第一次采样**不下结论**（建基线 ⇒ unknown） | ✅ `sleeper=19808 unk1=[…]` |
+| REAL | R3 第二次采样起「在睡」进程判 **idle** | ✅ `sleeper=19808 idle2=[…, 19808]` |
+| REAL | R3 「在睡」进程**不**被误判 busy | ✅ `busy2=[8264]`（**8264 是真在算的 ASR 进程** ⇒ 判 busy 正确） |
+| REAL | R4 伪造基线 ⇒ 同一进程判 **busy** | ✅ `sleeper=19808 busy=[…, 19808]` |
+| REAL | R4 「在算」与「在等锁」**可区分**（同一进程、两种结论） | ✅ `fake_busy=True real_idle=True` |
+| REAL | R5 CPU 读不到 ⇒ `None` | ✅ `cpu_s=None` |
+| REAL | R5 `unknown` **计入干扰**（fail-closed 不放松） | ✅ 源码 `blockers = list(busy) + list(unknown)` |
+| REAL | R6 排除全部 python ⇒ 安静窗口成立 | ✅ `ok=True waited_s=1.0` |
+| REAL | R7 `info` 含可落盘证据字段 | ✅ 含 `n_idle_samples` / `n_unknown_samples` / `classifier` 等 |
+| REAL | R8 `LockHeld.wait_quiet` **默认用分类器** | ✅ `use_cpu_classifier hits=2` |
+| REAL | R8 `pack_v13.py` / `publish_ftp.py` 调用 `wait_quiet` | ✅ `pack=1 ftp=1` |
+| REAL | R9 老版 `wait_quiet_window` 仍可用 | ✅ 不回归 |
+| REAL | R10 代码里无 `tasklist` / `psutil` / `kill` | ✅ 全 0 |
+| BUG | B1 老判据把「等锁协作方」判成干扰 | ✅ `ok=False n_busy_samples=8` |
+| BUG | B1 老判据**有区分力**（排除全部 ⇒ 判安静） | ✅ `ok=True` ⇒ 上面不是恒真 |
+| BUG | B2 超时 ⇒ 必然返回 False | ✅ `ok=False waited_s=4.1` |
+
+**纪律**：不 import 被测模型模块（不 import numpy/openvino/torch）；不跑推理 / 不测速 / 不占 GPU；
+**不碰真实 `shared/MACHINE_LOCK`**（只读）；**不烧 CPU 造「在算」进程**（用**伪造 `prev_cpu`** 达成同一断言
+⇒ 不污染他模块正在进行的计时作业）；不调 MiniMax。
+
+#### 🔴 一次真实的**假阳性**及其定位（本轮踩坑，值得记）
+
+首跑 **R3 FAIL**：「在睡」的子进程被判成 **busy**。⇒ 单独测量发现：
+
+```
+sleeper pid 37712 cpu a=0.1875 b=0.1875 delta=0.0000   ← 稳态增量确实是 0
+```
+
+🔴 **真根因不是分类器，是**「**基线取在 python 解释器冷启动中途**」：
+解释器启动本身要烧 ≈ **0.15 s CPU** ⇒ 基线取早了 ⇒ 后面那次采样看到「增量 ≈ 0.15 s」
+⇒ **> `idle_eps`（0.05）** ⇒ 被判 busy。
+⇒ **修法**：造完子进程后**先 `sleep(2)`** 让冷启动彻底结束再取基线 ⇒ R3 PASS。
+⇒ **教训**：**CPU 基线必须取在作业已进入稳态之后**（与 MT §12.5「首次采样必然没有历史」是同一类问题的两面）。
+
+**回归**：既有 `results/app/app045_quiet_window_gate_test.py`（安静窗口闸门验收）
+**REAL 14/14 PASS + BUG 2/2 命中 ⇒ PASS** ⇒ **未回归**。
+
+---
+
+### §43.3 ✅ 同口径推广到 App 自己的「检查点 3」闸门
+
+`results/app/app037_quiet_window.py::wait_quiet()`（`app037_cp3_abba_v15.py` 调用它）
+原先是**独立实现**的「只看进程存在」老判据 ⇒ 同样会把等锁的协作方误判成干扰源。
+⇒ **改为默认调用 `machine_lock_app.wait_quiet_window_cpu()`**（同一份口径、同一份实现），
+拿不到 `machine_lock_app` 时**回退**到原实现（不引入硬依赖）。
+
+⚠️ `app037_cp3_abba_v15.py` **本轮未改**（它的「检查点 3」由**并发 App 会话**在做，§41.7① 已记录）
+⇒ 本轮**只改了它调用的闸门实现**，**未抢跑、也未改它的编排**。
+
+---
+
+### §43.4 ✅ 交付侧只读复核（**不重打包**：本轮 App 代码改动**不在包内**）
+
+| 项 | 实测 |
+|---|---|
+| v1.5 zip | `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5.zip` — **11 216 089 426 B** / **13 982 条目** / mtime `2026-10-26 01:24`（**并发会话 01:15 持 `app-pack` 锁重打**，本轮**未**重打） |
+| zip ⇄ 包目录抽样 | `tts_worker.py` / `device_config.py` / `audio_check.py` / `tts_service.py` / `live_caption_app.py` / `translator.py` **6/6 归一化 SHA256 一致** |
+| 仓库 ⇄ 包目录抽样 | 同上 **6/6 一致**（`tts_worker` `421316dc90a57596` / `device_config` `a31dc8c01fab44d2` / `audio_check` `30332dfbb70414d2` / `tts_service` `e5b83613acd14587` / `live_caption_app` `7866390888b18047` / `translator` `11deb2b64955e3c1`） |
+| 包内 `app/*.py` | **19 个**（`_probe_tts_cuda.py` 已按 §41 的「开发专用文件排除」规则剔除 ⇒ **不在包内**） |
+| 包内 `caption_render.py` | **不在包内** ✅ **正确** —— 包内 `live_caption_app.py` = **HEAD 版**（`git show HEAD:` 与包内 **diff 0 行**，且 HEAD 版**无** `import caption_render`）⇒ **包内自洽、不会出现 `ModuleNotFoundError`** |
+| 🔴 **本轮改动是否需要重打包** | ❌ **不需要** —— `machine_lock_app.py` / `app037_quiet_window.py` / `app049_*` **全在仓库侧、都不在包内**（`machine_lock_app.py` 是**仓库根**的开发期脚本；`results/app/*` 是**开发探针**）⇒ 包内容**零变化** ⇒ **不重打包、不重发 FTP**（守 §42 的「不重开 FTP」） |
+
+---
+
+### §43.5 ✅ `app052` 回环证据**补齐到 4 例**（§42.6 的遗留项，已闭环）
+
+§42.4 记过「现存 json 只留了最后一例 ⇒ 证据链不完整」⇒ 本轮**一次跑完 4 例**
+（`results/app/app052_audio_loopback_probe.json`，`cases` 数组累加）：
+
+| 例 | `rms_window` | `peak` | 判定 |
+|---|---|---|---|
+| `440Hz`（内置测试音） | **0.20699** | 0.3002 | ✅ PASS |
+| `CUDA`（`_fq3tts_out/cuda_nostream.wav`） | **0.11488** | 0.5472 | ✅ PASS |
+| `NPU`（`app040_synth_NPU_f16.wav`） | **0.12878** | 0.4881 | ✅ PASS |
+| `GPU`（`app040_synth_GPU0_f16.wav`） | **0.20257** | 0.9874 | ✅ PASS |
+
+🔴 **口径**：**② 层（系统混音器收到）通过** ⇒ App 侧「把声音送进系统输出链」这一步**已证实**；
+🔴 **① 通过推不出 ③（人耳听到）** ⇒ 终点设备 / 音量 / 静音 / 插孔 / HDMI **仍只能人耳确认**。
+
+---
+
+### §43.6 git
+
+- commit：**（见 §43.7）**
+- 远端 `CORRECTIONS_APP.md` blob **未提交**（reviewer 独占文件）；`status/CORRECTIONS.md`、
+  `live_caption/live_caption_app.py`（并发会话 APP-015 方案 C 在制品）、`live_caption/translator.py`
+  **全部保留在工作区（未吞）**。
+
+### §43.7 ⛔ 仍未闭环（**如实记录，本轮未推进**）
+
+| # | 事项 | 状态 |
+|---|---|---|
+| ① | **§42.3 的修复待实机验证**：GUI 跑一次，日志应出现「输出设备解析 … → 播放索引 N」与「实际输出: <设备名>」 | ⛔ **待用户实机确认**（App 侧代码已修、探针已 PASS） |
+| ② | **APP-017「检查点 3」**（TTS 实时性 + ABBA） | ⛔ 由**并发 App 会话**在做，本轮**不重复跑、不抢锁** |
+| ③ | **WER +2.6pp 主因**未定位 | ⛔ 未动 |
+| ④ | **APP-015 方案 C 的 `translator.py` 合入**（MT 移交 APP-009② / H-014） | ⛔ **MT 管辖**，App 不代提交 |
+| ⑤ | **包体 10.45 GiB** 优化 | ⛔ 未动 |
+| ⑥ | **V7 残句代价**待确认 | ⛔ 未动 |
+| ⑦ | 集显 F32 TTS 慢（首包 33.9 s） | ⛔ 未动 |
+
+### §43.8 🔴 边界声明
+
+- 🔴 `status/app/CORRECTIONS_APP.md` **本轮只读、零改动**（SHA256 与本轮开始时逐位一致）；
+- 🔴 **未提交** `status/app/CORRECTIONS_APP.md`；🔴 **未吞** ASR / MT / TTS 其它模块的未提交改动；
+- 🔴 本轮改动文件全部属 **App 模块管辖**（`machine_lock_app.py` / `results/app/*` / 本 STATUS）；
+- 🔴 **未动** `live_caption/translator.py`（**MT 管辖**）、**未动** `live_caption/live_caption_app.py`
+  （并发会话在制品）；🔴 **未重打包**、**未重发 FTP**、**未重开 FTP 服务**；
+- 🔴 本轮**未在 CPU 上跑推理 / 测速**；**质量判定交 reviewer**（本轮**未调 MiniMax**）。

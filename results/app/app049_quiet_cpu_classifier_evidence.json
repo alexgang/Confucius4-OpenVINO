@@ -1,0 +1,152 @@
+{
+ "task": "安静窗口「在等锁 vs 在算」分类器的离线验收（MT 通知 12 §12.5）",
+ "generated_at": "2026-10-26 01:39:44",
+ "discipline": {
+  "imports_only_stdlib_lock_module": true,
+  "no_inference": true,
+  "no_benchmark": true,
+  "no_gpu": true,
+  "no_machine_lock_write": true,
+  "no_minimax": true,
+  "no_cpu_burner_spawned": true,
+  "note": "「在算」分支用伪造 prev_cpu 达成 ⇒ 不烧 CPU ⇒ 不污染他模块计时"
+ },
+ "summary": {
+  "real_total": 18,
+  "real_pass": 18,
+  "real_fail": 0,
+  "bug_total": 3,
+  "bug_hit": 3,
+  "bug_miss": 0,
+  "verdict": "PASS",
+  "elapsed_s": 21.4
+ },
+ "results": [
+  {
+   "group": "REAL",
+   "name": "R1 machine_lock_app 暴露分类器 API",
+   "ok": true,
+   "detail": "classify=True wait_quiet_cpu=True"
+  },
+  {
+   "group": "REAL",
+   "name": "R2 GetProcessTimes 能读到本进程 CPU 秒数",
+   "ok": true,
+   "detail": "cpu_s=0.328"
+  },
+  {
+   "group": "REAL",
+   "name": "R3 机器上存在外部 python 进程（可作分类对象）",
+   "ok": true,
+   "detail": "n_ext=5 pids=[39748, 29248, 38924, 8264, 19808]"
+  },
+  {
+   "group": "REAL",
+   "name": "R3 第一次采样不下结论（建基线）⇒ 落在 unknown",
+   "ok": true,
+   "detail": "sleeper=19808 unk1=[39748, 29248, 38924, 8264, 19808] idle1=[] busy1=[]"
+  },
+  {
+   "group": "REAL",
+   "name": "R3 第二次采样起「在睡」进程被判 idle（放行）",
+   "ok": true,
+   "detail": "sleeper=19808 idle2=[39748, 29248, 38924, 19808] busy2=[8264] unk2=[]"
+  },
+  {
+   "group": "REAL",
+   "name": "R3 「在睡」进程**不**被误判成 busy（干扰源）",
+   "ok": true,
+   "detail": "busy2=[8264]"
+  },
+  {
+   "group": "REAL",
+   "name": "R4 伪造基线 ⇒ 同一进程被判 busy（干扰源）",
+   "ok": true,
+   "detail": "sleeper=19808 busy=[39748, 29248, 38924, 8264, 19808] idle=[] unknown=[]"
+  },
+  {
+   "group": "REAL",
+   "name": "R4 「在算」与「在等锁」可区分（同一进程、两种结论）",
+   "ok": true,
+   "detail": "fake_busy=True real_idle=True"
+  },
+  {
+   "group": "REAL",
+   "name": "R5 CPU 读不到 ⇒ 返回 None（上层据此 fail-closed）",
+   "ok": true,
+   "detail": "cpu_s=None"
+  },
+  {
+   "group": "REAL",
+   "name": "R5 unknown 被计入干扰（fail-closed 不放松）",
+   "ok": true,
+   "detail": "源码里 unknown 与 busy 合并为 blockers"
+  },
+  {
+   "group": "REAL",
+   "name": "R6 排除全部 python ⇒ 安静窗口成立（分类器版）",
+   "ok": true,
+   "detail": "ok=True waited_s=1.0"
+  },
+  {
+   "group": "REAL",
+   "name": "R7 info 含可落盘的证据字段",
+   "ok": true,
+   "detail": "keys=['classifier', 'last_busy_pids', 'last_idle_pids', 'n_busy_samples', 'n_idle_samples', 'n_samples', 'n_unknown_samples', 'quiet_seconds', 'quiet_since', 'timeout', 'waited_s']"
+  },
+  {
+   "group": "REAL",
+   "name": "R8 LockHeld.wait_quiet 默认切到 CPU 分类器",
+   "ok": true,
+   "detail": "use_cpu_classifier hits=2"
+  },
+  {
+   "group": "REAL",
+   "name": "R8 pack_v13.py / publish_ftp.py 调用了 wait_quiet",
+   "ok": true,
+   "detail": "pack=1 ftp=1"
+  },
+  {
+   "group": "REAL",
+   "name": "R9 老版 wait_quiet_window 仍然可用",
+   "ok": true,
+   "detail": "has=True"
+  },
+  {
+   "group": "REAL",
+   "name": "R10 代码里绝不用 tasklist /FI",
+   "ok": true,
+   "detail": "occurrences=0"
+  },
+  {
+   "group": "REAL",
+   "name": "R10 保持 stdlib only（不引入 psutil）",
+   "ok": true,
+   "detail": "occurrences=0"
+  },
+  {
+   "group": "REAL",
+   "name": "R10 闸门不 kill 别人的进程",
+   "ok": true,
+   "detail": "found=[]"
+  },
+  {
+   "group": "BUG",
+   "name": "B1 老判据：协作方在等锁（CPU≈0）⇒ 仍被判「有干扰」",
+   "ok": true,
+   "detail": "ok=False n_busy_samples=8（False ⇒ 老判据把等锁方误判为干扰）"
+  },
+  {
+   "group": "BUG",
+   "name": "B1 老判据有区分力（排除全部 python 后判「安静」）",
+   "ok": true,
+   "detail": "ok=True（True ⇒ 老判据在无干扰时成立 ⇒ 上面不是恒真）"
+  },
+  {
+   "group": "BUG",
+   "name": "B2 超时 ⇒ wait_quiet_window_cpu 必然返回 False",
+   "ok": true,
+   "detail": "ok=False waited_s=4.1"
+  }
+ ]
+}

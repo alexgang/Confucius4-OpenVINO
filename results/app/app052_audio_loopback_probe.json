@@ -12,7 +12,7 @@
    "sr": 48000,
    "n": 86399,
    "rms_all": 0.17125,
-   "rms_window": 0.20673,
+   "rms_window": 0.20699,
    "peak": 0.3002,
    "verdict": true
   },
@@ -26,12 +26,12 @@
    "n": 328320,
    "rms_all": 0.10973,
    "rms_window": 0.11488,
-   "peak": 0.5473,
+   "peak": 0.5472,
    "verdict": true
   },
   {
    "label": "NPU",
-   "wav": "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app040_synth_NPU_f16.wav",
+   "wav": "results/app/app040_synth_NPU_f16.wav",
    "sd_device": 3,
    "sd_name": "Speaker (Realtek(R) Audio)",
    "sec": 5.52,
@@ -40,6 +40,19 @@
    "rms_all": 0.1223,
    "rms_window": 0.12878,
    "peak": 0.4881,
+   "verdict": true
+  },
+  {
+   "label": "GPU",
+   "wav": "results/app/app040_synth_GPU0_f16.wav",
+   "sd_device": 3,
+   "sd_name": "Speaker (Realtek(R) Audio)",
+   "sec": 40.96,
+   "sr": 48000,
+   "n": 1994880,
+   "rms_all": 0.2011,
+   "rms_window": 0.20257,
+   "peak": 0.9874,
    "verdict": true
   }
  ],

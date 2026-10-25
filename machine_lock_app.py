@@ -410,6 +410,167 @@ def external_python_pids(exclude_pids=()):
     return out
 
 
+# ── 「在等锁」与「在算」的区分（MT 通知 12 §12.5）────────────────────
+#
+# 🔴🔴 **为什么必须区分**（MT 侧实测事故）：
+#   共享锁是**协作式**的 ⇒ 别的模块的脚本**在等锁时也会是一个活着的 python 进程**
+#   ⇒ 老判据「只看进程存在」会把**协作方**（正是因为在等**你**才存在）
+#   误判成「干扰源」⇒ **必然互等死锁**。
+#   ⇒ MT 侧实测白等 **1 h 41 min**。
+#
+# 🔴 **判据 = CPU 时间增量**（`GetProcessTimes`，ctypes Win32 API）：
+#   「在等锁」的进程只是 `sleep()` ⇒ CPU 增量 ≈ **0 s**；
+#   「在算」的进程真正在烧 CPU ⇒ 增量显著 > 0。
+#   ⇒ **增量 ≈ 0 ⇒ 放行**（等锁不是干扰）；**增量 > 0 ⇒ 算干扰**。
+#
+# ⚠️ **不放松 fail-closed**：CPU 读不到 ⇒ 视为「在算」（= 干扰）⇒ 继续等。
+# ⚠️ **首次采样必然没有历史** ⇒ 不能在第一次采样就下判断
+#    （MT 通知 12 §12.5 的第三个缺陷：旧判据要求「有 CPU 历史」，
+#      于是第一次采样必然判「在算」⇒ 把锁包装器判成干扰 ⇒ 整批永久作废）。
+#    ⇒ 本实现：**第一次采样只记录基线、不下结论**；从第二次采样起才有结论。
+
+_CPU_SAMPLE_INTERVAL = 3.0     # 两次 CPU 采样的间隔（秒）
+_CPU_IDLE_EPS = 0.05           # CPU 增量 ≤ 此值（秒）⇒ 判「在等锁/在睡」
+
+
+def _process_cpu_seconds(pid: int):
+    """返回该进程累计的 (kernel + user) CPU 秒数；读不到返回 None。
+
+    用 `GetProcessTimes`（ctypes Win32 API）⇒ 不用 `wmic` / `psutil`
+    （`wmic` 在本机已被移除；`psutil` 会破坏本模块的 stdlib-only 契约）。
+    """
+    try:
+        k32 = ctypes.windll.kernel32
+        k32.OpenProcess.restype = ctypes.wintypes.HANDLE
+        h = k32.OpenProcess(_PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
+        if not h:
+            return None
+        try:
+            c = ctypes.wintypes.FILETIME()
+            e = ctypes.wintypes.FILETIME()
+            k = ctypes.wintypes.FILETIME()
+            u = ctypes.wintypes.FILETIME()
+            if not k32.GetProcessTimes(h, ctypes.byref(c), ctypes.byref(e),
+                                       ctypes.byref(k), ctypes.byref(u)):
+                return None
+            def _v(ft):
+                return (ft.dwHighDateTime << 32) | ft.dwLowDateTime
+            return (_v(k) + _v(u)) / 1e7
+        finally:
+            k32.CloseHandle(h)
+    except Exception:
+        return None
+
+
+def classify_external_python(exclude_pids=(), sample_interval=_CPU_SAMPLE_INTERVAL,
+                             idle_eps=_CPU_IDLE_EPS, prev_cpu=None):
+    """把外部 python 进程分成「在等锁（放行）」与「在算（算干扰）」。
+
+    返回 `(busy_pids, idle_pids, unknown_pids, prev_cpu)`：
+
+    - `busy_pids`   ：CPU 增量显著 ⇒ **在算** ⇒ 干扰源
+    - `idle_pids`   ：CPU 增量 ≈ 0 ⇒ **在等锁 / 在睡** ⇒ **放行**
+    - `unknown_pids`：**读不到 CPU** ⇒ fail-closed ⇒ **算干扰**
+    - `prev_cpu`    ：本轮的 CPU 基线（下一轮传入 ⇒ 才有增量可比）
+
+    🔴 **第一次采样没有历史** ⇒ 只建基线、**不下结论**
+    ⇒ 全部归入 `unknown_pids`（fail-closed ⇒ 算干扰 ⇒ 继续等）。
+    ⚠️ 这样第一次采样会**多等一轮**，但**不会**像 MT 旧实现那样
+    「第一次必然判 dirty ⇒ 整批永久作废」—— 第二次采样起就能正常区分。
+    """
+    ex = set(int(p) for p in (exclude_pids or ()))
+    ex.add(os.getpid())
+    try:
+        pids = external_python_pids(exclude_pids=ex)
+    except Exception:
+        # 枚举失败 ⇒ fail-closed ⇒ 全部算干扰
+        return ([-1], [], [], dict(prev_cpu or {}))
+
+    prev = dict(prev_cpu or {})
+    now = {}
+    busy, idle, unknown = [], [], []
+    for pid in pids:
+        cpu = _process_cpu_seconds(pid)
+        if cpu is None:
+            unknown.append(pid)
+            continue
+        now[pid] = cpu
+        old = prev.get(pid)
+        if old is None:
+            # 第一次见到这个进程 ⇒ 还没有历史 ⇒ 无法判断 ⇒ fail-closed
+            unknown.append(pid)
+            continue
+        delta = cpu - old
+        if delta <= idle_eps:
+            idle.append(pid)          # 在等锁 / 在睡 ⇒ 放行
+        else:
+            busy.append(pid)          # 真在算 ⇒ 干扰源
+    return (busy, idle, unknown, now)
+
+
+def wait_quiet_window_cpu(quiet_seconds: float = 45.0, timeout: float = 1800.0,
+                           poll: float = 15.0, exclude_pids=(), verbose: bool = True,
+                           sample_interval=_CPU_SAMPLE_INTERVAL,
+                           idle_eps=_CPU_IDLE_EPS):
+    """安静窗口（**区分「在等锁」与「在算」**的版本）⇒ 返回 (ok, info)。
+
+    与 `wait_quiet_window` 的区别：
+    - 老版：只要存在外部 python 进程 ⇒ 判「有干扰」⇒ **永远等不到**
+      （协作方在等锁时也是活着的 python 进程 ⇒ **互等死锁**）。
+    - 本版：用 **CPU 时间增量**区分 ⇒ 「在等锁」的协作方**放行**，
+      只有「真在算」的进程才算干扰。
+
+    🔴 **fail-closed 保持**：CPU 读不到 / 首次采样无历史 ⇒ 算干扰 ⇒ 继续等。
+    🔴 **不 kill 任何进程**。
+    """
+    t0 = time.time()
+    quiet_since = None
+    prev_cpu = None
+    info = dict(quiet_seconds=quiet_seconds, timeout=timeout,
+                waited_s=0.0, n_samples=0, n_busy_samples=0,
+                n_idle_samples=0, n_unknown_samples=0,
+                last_busy_pids=[], last_idle_pids=[],
+                classifier='cpu-delta')
+    while time.time() - t0 < timeout:
+        info['n_samples'] += 1
+        busy, idle, unknown, prev_cpu = classify_external_python(
+            exclude_pids=exclude_pids, sample_interval=sample_interval,
+            idle_eps=idle_eps, prev_cpu=prev_cpu)
+        blockers = list(busy) + list(unknown)
+        if blockers:
+            info['n_busy_samples'] += 1
+            if unknown:
+                info['n_unknown_samples'] += 1
+            info['last_busy_pids'] = blockers[:20]
+            quiet_since = None
+            if verbose:
+                print('[quiet] 有 %d 个「在算」的外部 python 进程（另有 %d 个在等锁'
+                      '、%d 个读不到）⇒ 继续等（已等 %.0f s）'
+                      % (len(busy), len(idle), len(unknown), time.time() - t0),
+                      flush=True)
+        else:
+            info['n_idle_samples'] += 1
+            info['last_idle_pids'] = list(idle)[:20]
+            if quiet_since is None:
+                quiet_since = time.time()
+                if verbose:
+                    print('[quiet] 外部 python 进程均「在等锁/在睡」⇒ 视为安静，'
+                          '开始计时安静窗口…', flush=True)
+            elif time.time() - quiet_since >= quiet_seconds:
+                info['waited_s'] = time.time() - t0
+                info['quiet_since'] = quiet_since
+                if verbose:
+                    print('[quiet] ✅ 安静窗口已持续 %.0f s ⇒ 可以开始计时'
+                          % quiet_seconds, flush=True)
+                return True, info
+        time.sleep(poll)
+    info['waited_s'] = time.time() - t0
+    if verbose:
+        print('[quiet] 🔴 超时 %.0f s 仍未进入安静窗口 ⇒ 不开跑'
+              % timeout, flush=True)
+    return False, info
+
+
 def wait_quiet_window(quiet_seconds: float = 45.0, timeout: float = 1800.0,
                       poll: float = 15.0, exclude_pids=(), verbose: bool = True):
     """等待「没有别的 python 进程」并持续 `quiet_seconds` 秒。
@@ -574,15 +735,26 @@ class LockHeld:
         return release(self.payload, self.lock_path, self.verbose)
 
     def wait_quiet(self, quiet_seconds: float = 45.0, timeout: float = 1800.0,
-                   poll: float = 15.0):
+                   poll: float = 15.0, use_cpu_classifier: bool = True):
         """🔴 **取锁之后的第二道闸门**：等「安静窗口」。
 
         「我持锁」≠「机器空闲」—— 别的模块的脚本**大多不取锁**
         ⇒ 只取锁会被偷跑污染 ⇒ 计时类作业必须**再等一道**。
 
+        🔴🔴 **默认用 CPU 增量分类器**（MT 通知 12 §12.5）：
+        别的模块的脚本**在等锁时也是活着的 python 进程** ⇒ 老判据
+        「只看进程存在」会把**协作方**误判成干扰源 ⇒ **互等死锁**
+        （MT 侧实测白等 1 h 41 min）⇒ 现在按 **CPU 时间增量**区分：
+        「在等锁/在睡」（增量 ≈ 0）**放行**，「真在算」（增量 > 0）才算干扰。
+
         返回 (ok, info)；`info` 含 `waited_s` / `n_samples` / `n_busy_samples`
-        / `last_busy_pids`，可直接落盘作证据。
+        / `last_busy_pids`（+ CPU 分类器时另含 `n_idle_samples` /
+        `n_unknown_samples` / `last_idle_pids` / `classifier`），可直接落盘作证据。
         """
+        if use_cpu_classifier:
+            return wait_quiet_window_cpu(quiet_seconds=quiet_seconds,
+                                         timeout=timeout, poll=poll,
+                                         verbose=self.verbose)
         return wait_quiet_window(quiet_seconds=quiet_seconds, timeout=timeout,
                                   poll=poll, verbose=self.verbose)
 
