@@ -1,0 +1,12 @@
+{
+ "guid": "{0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}",
+ "speaker": "Speaker (Realtek(R) Audio)",
+ "control_error": "ValueError: No output device matching '{0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}'",
+ "resolved_dev": 3,
+ "how": "端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3",
+ "out_desc": "Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）",
+ "n_cb": 21,
+ "ring_left": 0,
+ "verdict": true,
+ "verdict_note": "修复有效：GUID 被解析成播放索引，回调在消费 ⇒ 能出声"
+}

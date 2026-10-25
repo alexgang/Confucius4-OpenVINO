@@ -7178,13 +7178,41 @@ OV 发行版不带 CUDA plugin（§39.5）⇒ 落空 ⇒ 走「回退默认设�
 另有 `--device N` / `--play-wav x.wav`，结尾自带「怎么读结论」三条。
 ⚠️ 这是**客户级**工具（不是开发探针）⇒ 放包内 `app/`，同内容也进仓库 `live_caption/` 以便重打可复现。
 
-### §42.6 待办（锁空闲后，本轮**未**做）
+### §42.6 验证与待办
 
-1. 🔴 `MACHINE_LOCK` 被 `mt pid=9748` 从 21:21 持有至今（22:24 = **63 min**）⇒ 按纪律**不抢锁、只等** ⇒ 以下全部待锁释放：
-   - `resolve_out_device` **实机验证**（`--out-device {GUID}` ⇒ 日志应出现「端点 id → … → 播放索引 N」且 `n_played=1`）；
-   - `app052` 三例一次性重跑（`--case 440Hz --case CUDA=… --case NPU=…`）留完整证据；
-   - **v1.5 第三次重打**（含 §39 播放修复 + §40/§41 CUDA 边车 + §42 两个修复）。
-2. ⚠️ 本轮两个文件已 `cp` 到包内并核 md5，但**重打以仓库为准** ⇒ 重打前必须 `git show HEAD:` 逐字节比对。
+**✅ 已完成（`app054_check_out_device_map.py`，真机、不播音频、不 import 被测模块）**：
+按纪律用 `ast` 抽出 `resolve_out_device` / `_match_output_index` 两个**纯函数**原文再 `exec`
+（`tts_worker` 顶部连带 numpy/openvino ⇒ 不能 import），用**真实**设备表跑：
+
+| 传入 | 结果 |
+|---|---|
+| `{0.0.0.00000000}.{05fde43c-…}`（**soundcard 真实端点 id，即 GUI 实际传的值**） | ✅ `dev=3` = `Speaker (Realtek(R) Audio)`，名字**对得上** |
+| 设备名子串 / `int` / `None` | ✅ 原样 / 原样 / 默认 |
+| 垃圾串 `zzz-not-a-device` | ✅ 回退默认 + **说明原因**（不静默） |
+
+⇒ **`resolve_out_device` 在真机上能把 GUI 的端点 id 正确映射到同名播放设备**（该机默认输出 = 索引 3）。
+
+**✅ 决定性验证（`app055_guid_playback_check.py`，真机、**不加载模型、不占 GPU**）**：
+同一个脚本里做**对照组 vs 实验组**（`ast` 抽 `RingBuffer`/`Player`/三个解析函数原文再 `exec`，
+`tts_worker` 顶部连带 numpy/openvino ⇒ 不 import）：
+
+| 组 | 做法 | 结果 |
+|---|---|---|
+| **对照组** | `sd.OutputStream(device=<真实 GUID>)`（**旧实现的做法**） | 🔴 `ValueError: No output device matching '{0.0.0.00000000}.{05fde43c-…}'` —— **真机复现旧故障** |
+| **实验组** | `Player(device=<同一 GUID>)`（**修复后**） | ✅ 日志 `输出设备解析：… ⇒ 端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3` ⇒ `播放流已启动 device=3 ⇒ 实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, sr=44100）` ⇒ 写 0.5 s 正弦 ⇒ **`n_cb=21`、缓冲剩余 0** ⇒ **① 层通过（真出声）** |
+
+⇒ 一句话：**旧代码遇 GUID 直接抛异常、一句都播不出；新代码映射到索引 3 并正常播放。**
+这就是「GUI 里 CUDA / NPU 都没声音」的完整解释与修复闭环。
+
+**⏳ 待办（锁相关）**：
+
+1. `MACHINE_LOCK` 的 `mt pid=9748` 已于 **22:27** 被判定**陈旧锁**（PID 已死）⇒ 挂起中的
+   `pack_v13.py`（PID 30552，21:29 起等锁 174 次）已回收并持锁，正在过安静窗口 ⇒
+   **本轮全程不再启动任何 python**（安静窗口要求 45 s 内无外部 python），等它出包。
+2. `app052` 三例一次性重跑（`--case 440Hz --case CUDA=… --case NPU=…`）留完整证据 —— 待打包结束后做。
+3. **v1.5 第三次重打** = 该进程；内容 = §39 播放修复 + §40/§41 CUDA 边车 + §42 两个修复。
+4. ⚠️ 重打后必须核：md5 / 条目数 / **逐字节一致** + zip 内 `tts_worker.py` 含
+   `resolve_out_device`、`device_config.py` 含 `role == 'tts'` 的 CUDA 特判、`app/audio_check.py` 在包内。
 
 ### §42.7 边界 / 不做
 

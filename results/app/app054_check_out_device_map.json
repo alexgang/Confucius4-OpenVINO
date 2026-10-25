@@ -1,0 +1,99 @@
+{
+ "sd_output_devices": [
+  {
+   "index": 2,
+   "name": "Microsoft 声音映射器 - Output"
+  },
+  {
+   "index": 3,
+   "name": "Speaker (Realtek(R) Audio)"
+  },
+  {
+   "index": 6,
+   "name": "主声音驱动程序"
+  },
+  {
+   "index": 7,
+   "name": "Speaker (Realtek(R) Audio)"
+  },
+  {
+   "index": 8,
+   "name": "Speaker (Realtek(R) Audio)"
+  },
+  {
+   "index": 14,
+   "name": "Speakers 1 (Realtek HD Audio output with SST)"
+  },
+  {
+   "index": 15,
+   "name": "Speakers 2 (Realtek HD Audio output with SST)"
+  },
+  {
+   "index": 17,
+   "name": "Headphones 1 (Realtek HD Audio 2nd output with SST)"
+  },
+  {
+   "index": 18,
+   "name": "Headphones 2 (Realtek HD Audio 2nd output with SST)"
+  }
+ ],
+ "sc_speakers": [
+  {
+   "name": "Speaker (Realtek(R) Audio)",
+   "id": "{0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}"
+  }
+ ],
+ "cases": [
+  {
+   "case": "真实 WASAPI 端点 id（GUI 形态）",
+   "input": "{0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}",
+   "dev": 3,
+   "how": "端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3",
+   "sd_name": "Speaker (Realtek(R) Audio)",
+   "expect": "Speaker (Realtek(R) Audio)",
+   "name_match": true,
+   "ok": true
+  },
+  {
+   "case": "设备名子串",
+   "input": "Microsoft 声音",
+   "dev": "Microsoft 声音",
+   "how": "设备名「Microsoft 声音」",
+   "sd_name": "Microsoft 声音映射器 - Output",
+   "expect": null,
+   "name_match": null,
+   "ok": true
+  },
+  {
+   "case": "int 索引",
+   "input": "2",
+   "dev": 2,
+   "how": "索引 2",
+   "sd_name": "Microsoft 声音映射器 - Output",
+   "expect": null,
+   "name_match": null,
+   "ok": true
+  },
+  {
+   "case": "None（系统默认）",
+   "input": "None",
+   "dev": null,
+   "how": "系统默认设备",
+   "sd_name": null,
+   "expect": null,
+   "name_match": null,
+   "ok": true
+  },
+  {
+   "case": "垃圾串",
+   "input": "zzz-not-a-device",
+   "dev": null,
+   "how": "无法识别「zzz-not-a-device」⇒ 改用系统默认",
+   "sd_name": null,
+   "expect": null,
+   "name_match": null,
+   "ok": true
+  }
+ ],
+ "verdict": true
+}
