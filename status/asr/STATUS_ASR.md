@@ -1,10 +1,11 @@
 last_ack: ASR-009
-更新时间: 2026-10-26 01:55
-当前任务: **ASR-006 §6 / ASR-007 收口（§26 + §27 已完成）**。① ✅★ **§26**：新图 INT4 重量化（**1139.7 → 518.6 MiB，ratio 0.455**，比 INT8 小 **28.03%**，`n_i4=392`，配方 `INT4_ASYM g128 + AWQ + SE` / backup `INT8_ASYM` / `lm_head` 保 FP16）+ **INT8/INT4 两格 61 分钟全长跑**（553 段、`rule_counts` 518/34/1、`seg_dur` 6.4/8.96/12.16 **两格逐位一致**；词数 11419 vs 11369 −0.44%；**RTF 0.6827 vs 0.6959 +1.93%**；`timing_valid` 两格 true；文本健康度无退化：拉丁占比 1.0000 / 三连重复 0 / 空段 0）；② ✅★ **§27 后处理链全过**：① **NPU 文本正常性 —— `prompt_echo_detected` 三格全 false ⇒ §20 的 NPU BLOCKED 解除**（45 段 / 867·869·850 词 / 编译 117.7·88.5·208.8 s）；② **prefix 路径 mask 不错位**（12 步 `mask_ok=True`、`mask_mismatch=0`、三格 final 文本逐字相同）；③ **teacher-forcing**（target 来自**同家族 OV FP16**、**0/20 段退化 ⇒ 不是 tautology**）：INT8 **99.2941%**（422/425）、INT4 **92.7059%**（394/425）；④ **设备内存补测完成**（INT4 比 INT8 省 **200.8 MiB** 驻留内存，−26.3%）；⑤ 🔴🔴 **重大发现：`GPU.0` = `Intel(R) Graphics (iGPU)`（arch v30.1.0），`GPU.1` 才是 `NVIDIA RTX 5050 (dGPU)`，全程 `nvidia-smi used=0`** ⇒ **本模块所有标 `GPU.0` 的格子跑的都是核显**，任何「GPU 上 RTF/WER」的表述都必须写明 iGPU；⑥ ✅ 修掉 3 个 bug（`p3_diag_mask2_prefix` 两处 `.numpy()` on grad tensor / `p3_diag_device_mem` 的 `ir_mib` 只算 xml / `p3_ov_app.device_mem_mb` 三处缺陷）
-阻塞 / 待用户决定: ① 🔴★ **WER 仍全部空缺**（两格 + NPU 三格 `wer_pct: null`）—— 本模块**不自算 WER**（ASR-002 / ASR-004）⇒ 需 reviewer 用本机 baseline + 全局对齐 + paired bootstrap 复算，**锚点 = `qwen3asr_06b__torchref__cuda_stream.json` 的 10.97%**（同一计分器 ⇒ 合规）；② ⏳ **`R2T2 R2` 同口径标定点未跑** ⇒ teacher-forcing 的 99.29% / 92.71% **没有阈值可判**（本轮已明确不下「INT4 可行/不可行」结论）；③ ⏳ **NPU 上 INT4 反而更慢（RTF 0.3777 vs INT8 0.2719，+38.9%；编译 208.8 vs 88.5 s）需要复核** —— 与 iGPU 上「只慢 1.93%」方向相反；但样本仅 1 次 × 300 s 切片且含首次编译开销 ⇒ 只作观察；④ ⚠️ **`GPU.0` = iGPU 这条必须同步给 reviewer**；⑤ ⚠️ **两格 `summary.json` 的 `mem_device` 仍是旧的空值**（补测结果在独立文件 `results/p3_diag_device_mem.json`，未回填以避免改已交付产物）；⑥ ⚠️ **交付级 RTF / 首字延迟仍非多跑统计**（n=1 单次连续跑，虽 `timing_valid=true`）⇒ 要 P50/P95 需持锁 fresh-process 多跑；⑦ ⚠️ **P0 参照重跑未做**（少跑 11.19 s）；⑧ ⚠️ **「提高 rule1 静音要求」必须改代码**（硬编码无 env）⇒ **属 App 模块**（ASR-003 边界）；⑨ ⚠️ `reports/compare/` 旧图 5 格仍 `data_invalidated=true` ⇒ reviewer 引用时务必看「数据有效」列
+更新时间: 2026-10-26 02:12
+当前任务: **ASR-006 §6 / ASR-007 收口（§26 / §27 / §28 已完成）**。① ✅★ **§26**：新图 INT4 重量化（**1139.7 → 518.6 MiB，ratio 0.455**，比 INT8 小 **28.03%**，`n_i4=392`）+ **INT8/INT4 两格 61 分钟全长跑**（553 段、切点逐位一致；词数 11419 vs 11369 −0.44%；**RTF 0.6827 vs 0.6959 +1.93%**；两格 `timing_valid=true`；文本无退化）；② ✅★ **§27 后处理链全过**：NPU 文本 **`prompt_echo` 三格全 false ⇒ §20 BLOCKED 解除**；prefix **12 步 `mask_ok=True`**；teacher-forcing（**target 非退化 0/20**）INT8 **99.2941%** / INT4 **92.7059%**；驻留内存 INT4 省 **200.8 MiB**；③ 🔴🔴 **设备身份：`GPU.0` = `Intel(R) Graphics (iGPU)`，`GPU.1` 才是 `NVIDIA RTX 5050 (dGPU)`，`nvidia-smi used` 全程 0** ⇒ 所有标 `GPU.0` 的格子跑的是**核显**；④ ✅★ **§28 NPU 多轮复核坐实**：新增 `--rounds`（第 1 轮作 warmup）；稳态 RTF **INT8 0.2729 ＜ FP16 0.2859 ＜ INT4 0.3778** ⇒ **NPU 上 INT4 确实比 INT8 慢 38.4%（warmup 只占 <1.7%）**；且两轮文本与上次**逐字一致**（确定性可复现）；⑤ ★ **部署建议**：**NPU 选 INT8**（INT4 既慢 38% 又只省 28%）、**iGPU 可用 INT4**（只慢 1.93% 而省 26–28% 体积/内存）
+阻塞 / 待用户决定: ① 🔴★ **WER 仍全部空缺**（两格 + NPU 三格 `wer_pct: null`）—— 本模块**不自算 WER**（ASR-002 / ASR-004）⇒ 需 reviewer 复算，**锚点 = `qwen3asr_06b__torchref__cuda_stream.json` 的 10.97%**（同一计分器 ⇒ 合规）；② ⏳ **`R2T2 R2` 同口径标定点未跑** ⇒ teacher-forcing 的 99.29% / 92.71% **仍无阈值可判**；③ ⚠️ **`GPU.0` = iGPU 这条必须同步给 reviewer**（影响他对历史 GPU 格子的解读）；④ ⚠️ **两格 `summary.json` 的 `mem_device` 仍是旧空值**（补测在 `results/p3_diag_device_mem.json`，未回填以免改已交付产物）；⑤ ⚠️ **交付级 RTF / 首字延迟仍非多跑统计**（n=1 单次连续跑；NPU 也只有 2 轮）⇒ 要 P50/P95 需持锁 fresh-process 多跑；⑥ ⚠️ **INT4 在 NPU 上更慢的机理未查**（只报现象）；⑦ ⚠️ **P0 参照重跑未做**（`--minutes 61` 截到 3660.0 s，**少跑 11.19 s**）；⑧ ⚠️ **「提高 rule1 静音要求」必须改代码**（硬编码无 env）⇒ **属 App 模块**（ASR-003 边界）；⑨ ⚠️ `reports/compare/` 旧图 5 格仍 `data_invalidated=true` ⇒ reviewer 引用时务必看「数据有效」列
 
 
 ## 最近更新
+- 2026-10-26 02:10 **NPU 多轮复核坐实「INT4 在 NPU 上更慢」+ 部署选型建议（§28）**：① 新增 `p3_npu_mask2_text_check.py --rounds N`（**N≥2 时第 1 轮只作 warmup，不计入 `wall_s`/`rtf`**；逐轮 `rtf_per_round` 落盘；默认 N=1 保持老行为）；② ✅ **warmup 影响 < 1.7% 且方向不一致**（fp16 0.2908→0.2859 / int8 0.2719→0.2729 / int4 0.3777→0.3778）⇒ **首次推理的 lazy 编译不是 INT4 慢的原因**；③ 🔴 **稳态 RTF 排序：INT8 0.2729 ＜ FP16 0.2859 ＜ INT4 0.3778** ⇒ **NPU 上 INT4 慢 38.4%**（与单轮 38.9% 一致）；④ ✅ **文本逐字复现**（867/869/850 词、latin 0.9585/0.9586/0.9578、`prompt_echo` 全 false）⇒ 贪心确定性 + NPU 推理稳定；⑤ ★ **部署建议**：**NPU 选 INT8**（INT4 慢 38% 只省 28%）、**iGPU 用 INT4**（慢 1.93% 省 26–28%）；⚠️ 但**质量（WER）仍未验**，此结论只覆盖性能与体积；⑥ ⚠️ 口径限制已写清：整段贪心不可比 App 路径 / 300 s 切片 / 仅 2 轮 / 无质量结论 / 机理论未查
 - 2026-10-26 01:52 **后处理链全过 + 设备身份重大发现（§27）**：① ✅★ **NPU 文本正常性**：`prompt_echo_detected` **三格全 false** ⇒ **§20 的 NPU BLOCKED 解除**（切片 [720,1020] 300 s / 45 段；词数 fp16 867、int8 **869**、int4 850；编译 117.7 / 88.5 / 208.8 s；RTF 0.2908 / 0.2719 / 0.3777 —— ⚠️ 整段贪心口径，**不可**与 App 路径比）；② ✅ **prefix 路径 mask 不错位**：12 步逐步 `mask_ok=True`、`mask_mismatch_count=0`、`any_degenerate=false`，三格 final 文本逐字相同（仅 `All right.` vs `Alright.`）⇒ 补上了 §23 修复最易漏的一条；③ ✅ **teacher-forcing**（20 段 / 425 token；target 来自**同家族 OV FP16**；**target 退化检测 0/20 ⇒ 不是 tautology**）：INT8 **99.2941%**（422/425）、INT4 **92.7059%**（394/425）、fp16 自检 100%；`position_layout_probe` 也是 100% ⇒ 这批段长下位置排布恰好等价；④ 🔴🔴 **设备身份**：`GPU.0` = **Intel(R) Graphics (iGPU)**、`GPU.1` = **NVIDIA RTX 5050 (dGPU)**、NPU = Intel AI Boost；**`nvidia-smi used` 全程 0** ⇒ **所有标 `GPU.0` 的格子跑的是核显**；⑤ ✅ **驻留内存补测**（USM 编译增量）：int4 **561.8 MiB** / int8 **762.6 MiB** / fp16 1209.5 MiB ⇒ INT4 比 INT8 省 **200.8 MiB（−26.3%）**，与目录体积比例吻合（0.726 vs 0.720）；⑥ 🔴 **修 3 个 bug**：`p3_diag_mask2_prefix` 两处 `.numpy()` on grad tensor（grep 全部 `.numpy()` 才没漏第二处）、`p3_diag_device_mem` 的 `ir_mib` 只算 xml（得出 2.8 MiB 的荒唐值）、`p3_ov_app.device_mem_mb` 三处缺陷；⑦ ⏳ WER / R2T2 R2 标定点 / NPU-INT4 变慢复核 仍待办
 - 2026-10-26 01:20 **新图 INT4 重量化 + INT8/INT4 两格 61 分钟全长跑完成（§26）**：① ✅ **INT4 重量化**（`INT4_ASYM g128 + AWQ + SE`，backup `INT8_ASYM`，`lm_head` 保 FP16，`n_calib=64` 右对齐双端口）：**1139.7 → 518.6 MiB（ratio 0.455）**、`n_i4=392`、`quant_seconds=210.1`、NNCF 位宽 int4_asym g128 **74%(196/197)** 且 ratio-defining **100%** ⇒ 配方确认生效；比 INT8（720.6 MiB）**小 28.03%**；② ✅ **两格长跑**（同 wav / 同 encoder / 同 App 路径，唯一变量 = decoder 精度）：553 段、`rule_counts` 518/34/1、`seg_dur` p50/p95/max 6.4/8.96/12.16 **两格逐位一致**（切段在音频域 ⇒ 段边界完全可比）；词数 **11419 vs 11369（−0.44%）**；**RTF 0.6827 vs 0.6959（+1.93%）**、`seg_rtf_p50` 0.6789 vs 0.6899、首字延迟 p50 0.2470 vs 0.2497 s、`timing_valid` 两格 **true**、全程持规范锁；③ ✅ **文本健康度无退化**：拉丁/全部字母 **1.0000**（无乱码异体字）、三连重复 **0**、ABAB 6/7、空段 **0**、唯一词率 0.235/0.241；段级 78.8% 文本不同属流式贪心+前缀回退的**预期**抖动（`nomenclature→nomenclators`、`SMG→S M G` 之类），最长 3 段语义连贯；④ 🔴 **修掉 `rule_counts` 双重计数**（引用 summary dict 后又在其上累加 ⇒ 553 写成 1036）⇒ 取拷贝 + 「合计 == n_segs」自检；⑤ ✅ **格子与矩阵**：新增 `…__int8__mask2__int8.json` / `…__int4__mask2__int4.json`，`MATRIX.json` **18 格**、两格有效；⑥ 🔴 **§26.4 三条不可归因边界**：旧图 INT8 长跑 `timing_valid=false` ⇒ RTF 1.2389 **不得引用**、且**无持锁重跑版本**；旧图 encoder 是 `int8sym-static` 而新图是 `fp16-static` ⇒ **新旧长跑同时变两样**，词数/RTF 差异不能全归因 mask；旧图 11825 vs 新图 11419 词只能作方向性旁证；⑦ ⏳ NPU/prefix/teacher-forcing 仍在等 `app-pack` 让锁 ⇒ 写 §27
 - 2026-10-25 21:26 **【用户决定】ASR 不考虑 FP16 ⇒ 矩阵只剩 INT8 / INT4 两格（§25）**：① ✅ **删除**：① `results/p3_mask2_61min_fp16/`（原**已跑到 65.7%** / 364 段 / 2410.24 s，FP16 无价值 ⇒ 作废）；② `build_compare_mask2.py` 的 fp16 变体、`build_compare_06b.py` 的 FP16 格、`p3_make_matrix.py` 的 ORDER 里的 3 个 FP16 名；③ `p2_multitoken_top1.py` 的 ov_models **7 项→3 项**（删旧图 5 项，`ov_fp16_ref`→`mask2_fp16_ref`）、`p3_int4_slice_decode.py` VARIANTS **6→3**、`p3_npu_mask2_text_check.py` 删 `old_int8`、`p3_diag_mask2_prefix.py` 删 `fp16_old`、`run_mask2_pipeline.sh` 的 `step_p3` **三格→两格**；② 🔴 **两处 FP16 不能照字面删**：① `models/ov-dec-06b-embed-mask2/`（FP16 源图 1.2 G）是 **INT4 重量化的输入**（`p2_quantize_mask2_int4.py::NEW_SRC`）⇒ 删了 INT4 跑不了；② `mask2_fp16` 是 teacher-forcing 的 **target 生成器**（§7 铁律：target 必须同家族 FP16，否则是自一致 tautology）⇒ 保留；③ **原两个 `precision=FP16` 格子实为 P0 的 torch CUDA 参照**（backend = torch 2.11 + CUDA, bfloat16，带 reviewer 算的 **WER 主参照 10.97%**）⇒ 直接删就没有对照基准 ⇒ 已**改标 `TORCH_REF`** + `is_delivery_candidate:false` 保留（`…__torchref__cuda_stream.json` / `…__torchref__cuda_offline.json`）；③ 🔴 **顺带修好漏标作废**：§23 只标了 `int8__gpu0` 一格，另有 **4 格用旧图却仍显示「有效」**（int4_asymg128 / int4_sym_chan / int8__npu / int4__all）⇒ 已补标作废（判据：`dec_ir` 指向 `ov-dec-06b-embed-*` 非 `-mask2` ⇒ 一律作废）；④ ✅ **矩阵已无 `precision=FP16`**（实测扫描全部 json，命中 0 处）；⑤ ✅ **备份可回滚**（`_backup_fp16_removal_20261025/`，300 KB：compare 全量副本 + FP16 长跑 364 段 + 6 个脚本改前版本）；⑥ ✅ **FP16 长跑进程已停**（`TaskStop`）⇒ GPU 与锁让出；⚠️ 停后核查发现**锁已被 MT 正确接管**（`mt PID 9748 started 21:21:45`）⇒ 无孤儿锁
@@ -19,7 +20,6 @@ last_ack: ASR-009
 - 2026-10-25 09:35 **收到 ASR-006 / ASR-007**：① **ASR-004 通过可关闭**（A 10.80% / B 10.58%，Δ −0.22pp CI [−0.64,+0.20] ⇒ v1.4 不用回退）；🔴 **新发现：App 实时路径比交付基准差 2.6pp**（+2.63pp CI [+1.80,+3.41] 显著，主因 rule1 切点**切在词中间** ⇒ 前后两段重复转写该词，插入多 178 个集中在段首/段尾 3 词）⇒ **只诊断不改代码**，排在 P3 之后。② **P0 参照两处修正（根因已查明）**：`--minutes 61` 截断 ⇒ wav **真实 3671.19s**，**少跑 11.19s**（reviewer 说 6s）⇒ P3 跑整个 wav；`rtf_this_run=0.8167` 是**续跑尾部的分母只剩 30.56s** ⇒ **已删该字段**；`n_runs=1` 是**progress 只每 60 步落盘、本次只跑 3 步没更新** ⇒ **已修为运行开始锁定**。⚠️ §13.6「两份参照上限相同」被推翻（离线对流式 **+3.83pp CI [+2.94,+4.70]**）⇒ **P3 以段级流式为主参照**。③ ⚠️ **§15.4「INT4 不可行」被退回（证据不足，暂不关闭）** ⇒ 该结论**降级**，本模块**不再宣称 INT4 不可行**；新判据 = **多 token teacher-forcing top1**（≥20 个 ≥12 分钟评测段，R2T2 的 R2 同口径标定）+ GPU `INT4_ASYM g128+AWQ+SE` 5 分钟切片解码，限时 ≤2h，排在 P3 之后。④ **ASR-007 用户决定：0.6B 只作实验，不进交付** ⇒ P3 改为**出对比报告**（R2T2 INT8/INT4 × 0.6B FP16/INT8/INT4 × GPU.0/NPU/CUDA，指标=WER/延迟/内存/体积/设备摆放；json 放 `qwen3asr_06b/reports/compare/` 每格一份）
 - 2026-10-25 00:05 **ASR-005 P2 收尾 + git 冻结已释放**：**`shared/GIT_FREEZE` 已删除**（21:12 时还在，本轮 00:01 实测消失 ⇒ ASR-005 的「文件存在才禁提交」禁令**自动解除**）；**本地 HEAD = `origin/main` = `6fd7806`** ⇒ 无 divergent history，**明确不做 `reset --hard`**（工作区有 4 模块 500+ 未提交改动，会摧毁在途工作）。**P2 产物 8 个 IR 全部复核在盘**（INT8 候选 enc 180 MiB + dec 721 MiB；⚠️ **命名更正**：FP16 decoder 真实目录是 `ov-dec-06b-embed-fp16`，§15 里写的 `ov-dec-06b-fp16` 不存在）。**P2 检查点正式停靠，P3 不启动**；待 reviewer ① 算三份转写 WER ② 复核 INT8 候选（§15.3）③ **裁定 INT4**（本模块结论 = 0.6B 上不可行，7 条证据链；剩 GPTQ 一条路未做）④ 认可 P0 流式口径。**P3 计时类作业需持机器锁**，当前锁 `app-pack` PID 18380 **已死**（陈旧锁，等放行后回收独占）
 - 2026-10-24 21:12 **ASR-005 P2 量化完成（停在 P2 检查点）**：**INT8 可用**（`ov-encoder-06b-int8sym` 180 MiB + `ov-dec-06b-embed-int8sym` 721 MiB，**lm_head 保 FP16** ⇒ 量化后该层权重 cos **1.000000**）⇒ enc cos **0.978472** / dec cos **0.974973** / **top1 匹配 100%**，体积 1497→901 MiB（**−39.8%**），与 R2T2 自己的 INT8_SYM encoder（cos 0.993 / top1 98.75%）同量级。**INT4 在 0.6B 上不可行**：三个配方（按通道+AWQ+SE / +ratio0.8+hessian / +ratio0.5+hessian）dec cos 全为负、top1 0%。**根因链 7 条独立证据**（§15.4）：① torch 侧 fake-quant 独立复现（INT8 cos 0.9777 / INT4 **0.1138** ⇒ 与 OV 侧一致 ⇒ **不是 OV/NNCF bug**）② 逐层累积（量化 49 层 cos 0.766 → 196 层 0.114）③ 手工解包 int4 后写回 FP16 IR ⇒ **W_deq 本身 cos 0.607 就打坏模型**，而 OV-INT4 vs OV-FP16(deq) = **0.971235** ⇒ **OV 运行时反量化正确** ④ 三设备一致（CPU 0.569 / GPU 0.607 / NPU 0.599 ⇒ 与设备无关）⑤ AWQ 插入数与 R2T2 完全相同（+196 vs +197）⑥ scale 轴正确（`[out,1]`）⑦ **根因 = 0.6B 层矩阵 3072×1024 vs R2T2 6144×2048** ⇒ 每通道 15 级撑不住。**顺带发现**：encoder 是 conv 结构**无 MatMul ⇒ AWQ 静默跳过** ⇒ encoder INT4 等于无校准（不可用）⇒ encoder 保留 FP16。⚠️ `GIT_FREEZE` 仍存在 ⇒ 不 commit
-- 2026-10-24 20:07 **ASR-004 完成 + ASR-005 P0 完成（停在检查点）**：① ASR-004 A/B 61 分钟逐段转写完成 ⇒ **B 的 >12s 1.12%→0.18%、最长段 17.92s→14.08s、空段 1→0**、总词数只差 35 词（−0.31%）⇒ **WER 交 reviewer**；A 组交叉校验通过（分段版 vs 单进程版 part0 内 36/36 文本逐位相同）。② ASR-005 P0 两份参照完成：离线 RTF **0.2249**（31 块/0 OOM）+ 段级流式 RTF **0.6749**（552 段）⇒ **停一次等 reviewer**。③ ASR-005 P1 提前完成：encoder/decoder 两个 FP16 IR 导出 + 端到端 teacher-forcing **enc cos 0.999999 / dec cos 0.999983 / top1 100%**（要求 0.999/99%）✅。**架构发现**：R2T2 就是 Qwen3-ASR 系列（`model_type=qwen3_asr`），与 0.6B 同构 ⇒ R2T2 导出/量化脚本可原样复用。⚠️ `GIT_FREEZE` 仍存在 ⇒ 不 commit
 
 ## §2 最近一周的结论摘要（均引用产物）
 
@@ -3513,3 +3513,79 @@ qwen3asr_06b__fp16__cuda_offline.json   （cell_id = Qwen3-ASR-0.6B__FP16__CUDA_
 * ⏳ **两格 summary 的 `mem_device` 仍是旧的空值** —— 本节用独立脚本补到了
   `results/p3_diag_device_mem.json`，**没有**回填进 `summary.json`（避免改已交付产物）。
 * ⚠️ **`GPU.0` = iGPU 这条要同步给 reviewer**（可能影响他对历史 GPU 格子的解读）。
+
+## §28 NPU 多轮复核：**INT4 在 NPU 上确实比 INT8 慢 38.4%**（不是 warmup 假象）（2026-10-26 02:10）
+
+> 起因：§27.1 发现 NPU 上 `mask2_int4` 的 RTF 0.3777 比 `mask2_int8` 的 0.2719 **慢 38.9%**，
+> 而这与 iGPU 上「INT4 只慢 1.93%」**方向相反**。§27 已声明「样本只有 1 次 × 300 s 切片、
+> 且含首次编译开销 ⇒ 只作观察」。本节就是把这个「观察」变成结论。
+
+### 28.0 方法（`p3_npu_mask2_text_check.py` 新增 `--rounds`）
+
+原脚本只跑 1 轮 ⇒ **无法区分「首次推理的 lazy 编译 / 预热开销」与「真实的稳态性能差」**。
+⇒ 新增 `--rounds N`：
+* `N >= 2` 时**第 1 轮只作 warmup，不计入 `wall_s` / `rtf`**；
+* 逐轮 `wall` / `rtf` 全部落盘（`wall_s_per_round` / `rtf_per_round`），可自查；
+* 新增 `steady_state_note` 说明本轮是否含 warmup；
+* 默认 `N = 1` ⇒ **完全保持老行为**（向后兼容，`rtf_note` 里仍写明不可与 App 路径比）。
+
+本次跑：`--variants mask2_fp16,mask2_int8,mask2_int4 --device NPU --rounds 2`，
+切片不变（`[720, 1020]` = 300 s，45 段），持规范锁，总耗时 **15 m 55 s**。
+产物：`results/p3_npu_mask2_text_r2/summary.json`（**新目录，不覆盖 §27 的单轮产物**）。
+
+### 28.1 结果：单轮 vs 两轮（同一台机器、同一把锁、同一切片）
+
+| 变体 | 单轮 RTF（§27，含首次推理） | 两轮逐轮 RTF | **稳态 RTF**（第 2 轮） | 单轮 → 稳态 |
+|---|---|---|---|---|
+| `mask2_fp16`（对照） | 0.2908 | 0.2841 / **0.2859** | **0.2859** | −1.7% |
+| `mask2_int8` | 0.2719 | 0.2713 / **0.2729** | **0.2729** | +0.4% |
+| `mask2_int4` | 0.3777 | 0.3765 / **0.3778** | **0.3778** | +0.03% |
+
+⇒ ★★ **warmup 的影响 < 1.7%，而且方向不一致**（fp16 变小、int8/int4 基本不变）
+⇒ **首次推理的 lazy 编译开销不是「INT4 慢 38.9%」的原因**。
+⇒ 稳态下 **INT4 / INT8 = 0.3778 / 0.2729 = 1.384 ⇒ 慢 38.4%**，与单轮的 38.9% 一致。
+
+**NPU 上的速度排序（稳态 RTF，越小越快）**：
+`INT8 0.2729` ＜ `FP16 0.2859` ＜ **`INT4 0.3778`**
+⇒ 🔴 **NPU 上 INT4 是三者中最慢的**，INT8 最快。
+
+### 28.2 ✅ 复现性：文本与前一次**逐字一致**
+
+两轮结果的 `n_segs` / `total_words` / `latin_ratio` / `rep_rate` 与 §27 **完全相同**：
+
+| 变体 | 段数 | 词数 | `latin_ratio` | `rep_rate` | `prompt_echo_detected` |
+|---|---|---|---|---|---|
+| `mask2_fp16` | 45 | 867 | 0.9585 | 0.0855 | false |
+| `mask2_int8` | 45 | 869 | 0.9586 | 0.0853 | false |
+| `mask2_int4` | 45 | 850 | 0.9578 | 0.0872 | false |
+
+⇒ 贪心解码是确定性的 ⇒ **两次独立运行的文本完全相同** ⇒ 说明：
+① 脚本没有随机性（没有 sampling）；
+② NPU 上的推理**稳定可复现**（不是偶发异常导致的慢）；
+③ §27 的「`prompt_echo` 三格全 false」**再次确认**。
+
+### 28.3 🔴 部署含义（**这条比速度本身更重要**）
+
+| 维度 | NPU | iGPU（App 路径，§26.2） |
+|---|---|---|
+| INT4 相对 INT8 的 RTF | **+38.4%（明显更慢）** | +1.93%（几乎持平） |
+| INT4 相对 INT8 的体积 | **−28.03%** | 同 |
+| INT4 相对 INT8 的驻留内存 | −200.8 MiB（−26.3%，§27.4） | 同 |
+
+⇒ ★ **部署选型建议**：
+* **走 NPU 时选 INT8** —— INT4 在 NPU 上「既慢 38% 又只省 28% 体积」，性价比为负。
+* **走 iGPU（GPU.0）时 INT4 可用** —— 速度几乎不损失（+1.93%），体积/内存省 26–28%。
+⚠️ 这只是**性能与体积**的结论；**质量（WER）仍未验**（见 §28.4），
+所以「NPU 选 INT8」也不等于「INT8 质量达标」。
+
+### 28.4 ⚠️ 本节的口径限制（不要越界解读）
+
+1. 🔴 **RTF 是「整段贪心」口径**（无 640 ms 分块 + 前缀回退）⇒ **不可**与 App 路径的
+   0.6827 / 0.6959 相比，也**不是**交付级 RTF。
+2. ⚠️ **切片只有 300 s / 45 段**（§20 起就用这个切片做 NPU 文本检查）⇒
+   不能外推到 61 分钟全长；若要交付级结论需另跑全长（成本高，未做）。
+3. ⚠️ **只有 2 轮**（1 warmup + 1 计入）⇒ 只能说「warmup 不是主因」，
+   不能说「这是 P50」。真要做 P50/P95 至少 5 轮以上。
+4. ⚠️ **WER 仍空缺** ⇒ 本节**没有**任何质量结论；速度排序与质量排序可能不同。
+5. ⚠️ **INT4 在 NPU 上更慢的机理未查**（可能是权重重排 / 去量化开销 / NPU 的 int4 通路未优化）
+   ⇒ 只报现象，不猜原因。
