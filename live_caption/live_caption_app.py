@@ -656,7 +656,7 @@ def _norm_word(w):
 #   原方案用「英文停用词表」做安全阀，**方向是错的** ——
 #   `app024_stopword_audit.py` 实测：被它挡掉的 15(A)/18(B) 处**全是真缺陷**
 #   （切点正好落在词中间）：
-#     ...our strategy will and has | has been to maximize the IDM advantage.
+#     ...our strategy will and has | has been to maximize the overall result.
 #     ...And the scale is | is very important.
 #     ...a different perspective on that approach. So | So this was just a summary.
 #   ⇒ 停用词表把**真缺陷**当成了「真内容」⇒ 漏掉一半以上的真缺陷。
@@ -664,11 +664,15 @@ def _norm_word(w):
 #   ✅ **新判据（两个可观测特征，实测有效）**：
 #     ① **后段首词是大写开头、而前段末尾词不是** ⇒ 后段**重新起句**
 #        （ASR 给新句首字母大写）⇒ 强特征「切点穿词」；
-#        典型：`...So, welcome | Welcome to our Q3 26 QGS.`、
+#        典型：`...So, welcome | Welcome to our Q3 preview.`、
 #               `...love the scale | Scale and compatibility for multiple generations.`
 #     ② **前段末尾不是句末标点**（`.` `?` `!` `。` `！` `？`）
 #        ⇒ 同一句话被切成两半 ⇒ 「切点穿词」；
 #        反之若有句末标点 ⇒ 上一句说完了，新句又说了同一个词 ⇒ **真内容**。
+#
+#   ⚠️ **上面的示例句已脱敏**（2026-10-25）：原先直接引用内部会议转写片段，
+#      被内部素材闸门（`check_internal_material.py`）在打包前拦下
+#      ⇒ 全部换成语义等价的合成句，**判据逻辑不受影响**。
 #
 #   📊 **量化（独立参照 c048 adaptive，语料级配对 bootstrap K=40/5000 次，
 #      `results/app/app024_seam_rule_wer.py`）**：

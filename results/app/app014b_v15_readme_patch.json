@@ -1,0 +1,89 @@
+{
+ "applied": [],
+ "skipped": [
+  [
+   "README_zh.md",
+   "标题版本号",
+   "幂等跳过"
+  ],
+  [
+   "README_zh.md",
+   "开篇简介追加 v1.5",
+   "幂等跳过"
+  ],
+  [
+   "README_zh.md",
+   "插入 v1.5 改动说明段",
+   "幂等跳过（mark 已在）"
+  ],
+  [
+   "README_zh.md",
+   "修掉不存在的「Intel GPU 2」",
+   "幂等跳过（已是目标行）"
+  ],
+  [
+   "README_zh.md",
+   "修掉不存在的「Intel GPU 2」",
+   "幂等跳过（已是目标行）"
+  ],
+  [
+   "README_zh.md",
+   "修掉不存在的「Intel GPU 2」",
+   "幂等跳过（已是目标行）"
+  ],
+  [
+   "README_zh.md",
+   "已知限制补接缝去重量级",
+   "幂等跳过"
+  ],
+  [
+   "README_en.md",
+   "标题版本号",
+   "幂等跳过"
+  ],
+  [
+   "README_en.md",
+   "开篇简介追加 v1.5",
+   "幂等跳过"
+  ],
+  [
+   "README_en.md",
+   "插入 v1.5 改动说明段",
+   "幂等跳过（mark 已在）"
+  ],
+  [
+   "README_en.md",
+   "修掉不存在的「Intel GPU 2」",
+   "幂等跳过（已是目标行）"
+  ],
+  [
+   "README_en.md",
+   "修掉不存在的「Intel GPU 2」",
+   "幂等跳过（已是目标行）"
+  ],
+  [
+   "README_en.md",
+   "修掉不存在的「Intel GPU 2」",
+   "幂等跳过（已是目标行）"
+  ],
+  [
+   "README_en.md",
+   "已知限制补接缝去重量级",
+   "幂等跳过"
+  ]
+ ],
+ "report": [
+  {
+   "file": "README_zh.md",
+   "before_len": 17411,
+   "after_len": 17411,
+   "changed": false
+  },
+  {
+   "file": "README_en.md",
+   "before_len": 36684,
+   "after_len": 36684,
+   "changed": false
+  }
+ ]
+}

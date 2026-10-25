@@ -1,4 +1,4 @@
-r"""pack_v13.py —— 打包客户包并校验（当前版本 v1.4，见 ``PKG_VERSION``）。
+r"""pack_v13.py —— 打包客户包并校验（当前版本 v1.5，见 ``PKG_VERSION``）。
 
 步骤：刷新 MANIFEST → zip → testzip() → 抽查关键文件（MT 模型、translator.py、
 MANIFEST、README）→ 硬校验 MANIFEST 的 files/bytes。
@@ -43,7 +43,9 @@ except Exception:                       # pragma: no cover
 # 且 MANIFEST 的 version 是**手填**的（refresh_manifest 从不写它）⇒
 # 打包出来的东西自称 v1.3、实际是 v1.4。
 # ⇒ 现在版本号只有一个来源（PKG_VERSION），三个常量由它派生。
-PKG_VERSION = '1.4'
+# APP-014②：打 v1.5（本轮 = 假设备标签修复 + TTS CUDA 选项 + 接缝去重 +
+#            TTS 转正式功能默认开启）。
+PKG_VERSION = '1.5'
 _PKG_NAME = f'Confucius4_LiveCaption_v{PKG_VERSION}'
 DEFAULT_PKG = rf'C:\Users\Trekker-PTL\{_PKG_NAME}'
 DEFAULT_ZIP = rf'C:\Users\Trekker-PTL\{_PKG_NAME}.zip'
@@ -228,17 +230,46 @@ V14_TTS_NOTE = (
 )
 
 
+V15_APP_NOTE = (
+    'v1.5 修订（2026-10-25，APP-014② / APP-012② / APP-014① 执行后）：'
+    '（6）**设备下拉按实际硬件显示全名** —— 原先把 NVIDIA 独显误标成'
+    '「Intel GPU 2」（该设备不存在），现改为按 OpenVINO 报告的 '
+    'FULL_DEVICE_NAME 逐字显示（如「Intel(R) Graphics (iGPU)」/ '
+    '「NVIDIA GeForce RTX 5050 Laptop GPU (dGPU)」/「Intel(R) AI Boost」），'
+    '查不到全名才回落简写标签。'
+    '（7）**语音分区新增 CUDA 选项** —— NVIDIA 设备会在语音设备列表里'
+    '单列一条「NVIDIA GPU（CUDA）」。⚠️ **诚实警示：本包内的 OpenVINO 未安装 '
+    'CUDA plugin**（`openvino` 包内无 cuda 组件），该选项在 NVIDIA 卡上**仍走 '
+    'Intel GPU plugin（Level Zero）**，并非真正的 CUDA 后端；'
+    '实测 INT8 TTS IR 在 NVIDIA 独显上 3/7 编译成功（4 个在 FP16↔FP32 reorder '
+    '节点报「Could not find a suitable kernel」），集显上 7/7 成功。'
+    '（8）**修掉段接缝处的重复词** —— 旧去重只试 3-gram / 2-gram，'
+    '而实测段边界的 n-gram 重复分布是 n≥3 = 0、n=2 = 0、n=1 = 36~42 处 ⇒ '
+    '**一次都没命中过**，重复词 100% 漏到屏幕上。现改为整词级 1~3-gram，'
+    '且 1-gram 用「切点穿词」判据（后段首词大写开头 / 前段末尾非句末标点）'
+    '区分「切点穿词」与「真内容」，避免误删真实复读。'
+    '（9）**TTS（译文语音输出）转为正式功能，默认开启** —— '
+    '去掉「实验性」标注，CLI `--tts` 默认 None（区分「没给」与「显式 off」），'
+    'GUI 初值默认开；开关旁常驻「⚠️ 请佩戴耳机，避免回授」提示。'
+)
+
+
 def ensure_v14_notes(data):
-    """幂等地保证 notes 里有 v1.4 的 TTS / INT8 修订说明。
+    """幂等地保证 notes 里有 v1.4 的 TTS / INT8 修订说明 + v1.5 的本轮修订。
 
     APP-005②：MANIFEST 的 notes 必须与包内实际内容一致，
     否则就是「对客户不成立的承诺」（C-133 的教训）。
     """
     notes = data.get('notes') or ''
-    if '（4）**TTS（Qwen3-TTS / BabelVox）随包分发**' in notes:
-        return False
-    data['notes'] = V14_TTS_NOTE + notes
-    return True
+    changed = False
+    if '（4）**TTS（Qwen3-TTS / BabelVox）随包分发**' not in notes:
+        notes = V14_TTS_NOTE + notes
+        changed = True
+    if '（6）**设备下拉按实际硬件显示全名**' not in notes:
+        notes = V15_APP_NOTE + notes
+        changed = True
+    data['notes'] = notes
+    return changed
 
 
 def refresh_manifest(pkg):
@@ -302,7 +333,7 @@ def refresh_manifest(pkg):
     print(f'  packages: 新增 {len(added)} 个{added if added else ""}')
     if changed:
         print(f'  packages: 版本变化 {len(changed)} 个{changed if changed else ""}')
-    print(f'  notes: {"已追加 v1.4 TTS/INT8 修订说明" if notes_changed else "已含 v1.4 修订说明"}')
+    print(f'  notes: {"已追加本轮修订说明" if notes_changed else "已含 v1.4/v1.5 修订说明"}')
     if old_version != PKG_VERSION:
         print(f'  version: {old_version!r} -> {PKG_VERSION!r}')
     return old_files, old_bytes, new_files, new_bytes
