@@ -6183,6 +6183,45 @@ MANIFEST 硬校验 + **逐文件 SHA256 内容复核** → `os.replace()` 原子
 ⚠️ **打包窗口内不启动任何 `python.exe`**（会污染 MT 的计时测量）⇒ 本轮所有
 文件编辑一律用 `Read`/`Edit`/`sed`，不用 Python 脚本处理被测逻辑。
 
+### §35.5.1 ⏳ 等锁时间线（实测到 13:48）
+
+| 时刻 | 已等 | 观察 |
+|---|---|---|
+| 11:53 | 0 s | 第二轮打包启动（`--lock-timeout 10800` = 3 h），后台 task `jmqwVo` |
+| 12:20 | 1080 s | 锁持有者 = `mt pid=34440`（`started 11:19:54`） |
+| 12:46 | 2280 s | 仍 held；MT 进程存活（CPU 0.36 s ⇒ 在等子进程，不是空转烧 CPU） |
+| 13:48 | **6884 s** | 仍 held（MT 已连续持锁 **2 h 28 min**） |
+
+**MT 侧进程观察**（`Win32_Process` 实测，13:48）：MT 的 `_run_h016_v5_batches.py`
+在**连续起子进程**（12:56 起 `p3_ov_app.py`、13:11 TTS 内存测量、13:30 `p3_diag_orthogonal.py`、
+13:33 `diag_c111_variants2.py --wall-max 400`）⇒ **还在跑**，不是挂死。
+
+⚠️ **3 h 上限的余量**：13:48 时已等 6884 s ⇒ **距 10800 s 上限还剩 3916 s（约 65 min）**。
+🔴 **若超时**：安全失败（**旧包不动、无残留 `.tmp`**）⇒ 可再起一轮
+（`--lock-timeout` 可配置，无需改代码）。**绝不**为了赶时间而**绕过锁**。
+
+### §35.5.2 🔴 **并行会话对本轮产物的影响核查**（打包在等锁期间必须做）
+
+12:38 出现**同模块并行会话**的提交 `70fe985`（§36：修 U+FFFD 乱码 + 把「文本编码完整性」
+加进内部素材闸门），其中**改了 v1.5 包目录** ⇒ 必须核实是否污染产物：
+
+| 核查项 | 实测 | 判定 |
+|---|---|---|
+| 包内 `app/device_config.py` vs git HEAD（归一化行尾 SHA256） | `0797ef2226cd9993` **两侧一致** | ✅ MATCH |
+| 包内 `device_config.py` 的 U+FFFD 计数 | **0** | ✅ |
+| 仓库 `live_caption/device_config.py` vs HEAD | 一致 | ✅ |
+| 客户包 `app/` + 根目录 + `results/` 的 U+FFFD 全扫 | **0 命中** | ✅ |
+| `check_internal_material.py` 改动对打包的影响 | 闸门是 **`subprocess` 调用脚本文件**（`pack_v13.py` L467-469）⇒ **取得锁后才执行** ⇒ 会读**磁盘上最新版**（§36 的加严版） | ✅ 不冲突，且**更严** |
+| 包内 8 个关键 `.py` vs git HEAD（`live_caption_app` / `device_config` / `tts_service` / `translator` / `tts_worker` / `streaming_asr` / `audio_source` / `backends`） | **8/8 MATCH** | ✅ 基线 = HEAD，**不含**方案 C |
+
+🔴 **结论**：并行会话的 §36 是**修正**（消 U+FFFD）+ **加严**（闸门加编码检查）
+⇒ **不污染 v1.5**，且**只会更安全**。
+🔴 **但暴露了一个真实风险**：**打包读的是包目录，而包目录可能被别的会话改**
+⇒ 打包前必须核「包内代码 == git HEAD」（本轮已核 8/8），
+否则 zip 会与仓库基线错配。⇒ **建议把这一步固化进 `app014b_v15_preship_check.py`**
+（该脚本第①组断言**已经是**「包内代码 == 仓库代码」，但只比了 8 个文件 ⇒ **够用**）。
+
+
 ### §35.6 🔴 纪律
 
 - **未改/未提交** `status/app/CORRECTIONS_APP.md`（reviewer 独占写）；
