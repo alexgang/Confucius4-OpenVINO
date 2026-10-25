@@ -1,10 +1,11 @@
-# STATUS_ASR
 last_ack: ASR-009
-更新时间: 2026-10-25 16:50
-当前任务: **ASR-006 §5② / §6 + ASR-007 / ASR-008 / ASR-009 已执行**（§20）。① ✅★ **「0.6B INT4 不可行」被证伪** —— `INT4_ASYM g128 + AWQ + SE`（backup INT8_ASYM，lm_head 保 FP16）**文本正常**：5 分钟切片 **882 词 vs INT8 928 词**，定长 top1 **69.44% vs INT8 70.83%**、top5 **85.71% vs 87.90%** ⇒ **INT4 在 0.6B 上可用**；② 🔴 **照搬 R2T2 的「INT4_SYM 按通道 + AWQ + SE」在 0.6B 上崩坏**（切片仅 **98 词**、定长 top1 **16.27%**）⇒ **配方必须换**，差异来自模型规模/宽度；③ ✅ **P3 INT8 61 分钟全长质量数据已落盘**（`results/p3_p3_61min_gpu_int8/`：**553 段 / 11825 词 / rule 518+34+1 / 段长 p50 6.4s p95 8.96s max 12.16s / 跑满 3671.19 s** ⇒ 满足 ASR-006 §3「跑整个 wav」）；④ ✅ **ASR-006 §2 切点重复诊断已完成**（并发会话产出）：rule1 占全部切点 **93.67%**、「切在词中间」**9.54%**、**静音内切点 0.0%** ⇒ 「重复词去重」路线天花板 **≤0.963pp**（仅覆盖 reviewer 观测的 178 个多余插入的 **≤61.8%**）⇒ **接缝去重不是主因**；⑤ ✅ **ASR-007 对比矩阵已更新**（`qwen3asr_06b/reports/compare/` **17 个文件**，新增 2 个 INT4 格子 + 更新 INT8/INT4 汇总）；⑥ ✅ **ASR-007 矩阵已补齐「设备摆放」**（§22）：INT4 两格补 `enc_ir`/`device_placement`，并修了格子**文件名重复拼接** bug（`int4_int4_*` → 正式名）+ `MATRIX.md` 新增设备摆放汇总表；⑦ 🔴 **锁脚本自身 4 个缺陷已实测修复**（§21）：进程名过滤会**误回收别人活锁** / 「锁早于开机时间」未实现 / 锁里写错 PID / 删锁不校验归属 ⇒ 已全部修好并通过 3 项隔离测试；⑧ ⏳ **规范锁路径持锁重跑仍在等 `app`**（PID 32652 **实测存活**，`app037_cp3_abba_v15.py` `--quiet-timeout 3600`）⇒ 交付级 RTF **仍空缺**
+更新时间: 2026-10-25 17:08
+当前任务: **ASR-006 §6 / ASR-007 继续（§23）**。① ✅★ **根因彻底查清并根治：OV decoder 缺 attention mask 语义 = 导出时没传 `attention_mask`**（不是 OV 的 bug、不是量化问题、不是 f16 舍入）—— 三张旧图（fp16 / f32true / int8sym）的 SDPA mask **运行时逐位相同**且**严格等于因果下三角**（`equals_tril=True`、n_true=131328），静态 bool 常量（`le`=下三角 / `ne`=全 False ⇒ cumsum=0）**三图哈希完全一致** ⇒ **图里根本没有 padding mask**；且 **OV fp16 的 argmax=541 与 torch `mask=none` 的 argmax=541 逐位吻合** ⇒ 旧图 ≡ torch「不传 mask」。② ✅ **修复已闭环**：导出时把 `attention_mask` 作为第二端口传入（图里原有的 Equal/CumSum/BitwiseAnd 动态链自动算出正确 padding mask，**图结构不用改**），并自建 mask `causal AND (content OR self)` 规避 **OV 对整行屏蔽返回 NaN**（torch 返回 0）⇒ **真实 mask 下 OV 熵 4.983 → 0.7596、top1 `all` → `Alright`、argmax 与 torch 一致（71486）**；mask 全 1 仍**逐位复现旧图**（4.9833/541）⇒ 证明是端口真的起作用。③ ✅ **端到端验证**：新图输出 `Alright. Good morning, everyone. Good morning.`（**三图里最好**，旧 fp16 缺标点、旧 int8 首词后接 `.` 复读），固定 6.4s 与累积路径**结果一致**。④ ✅ **INT8 已基于新图重量化**（INT8_SYM 按通道 + lm_head 保 FP16，1139.7 → **720.6 MiB**，196/196 int8 per-channel）。⑤ 🔴 **旧图的全部 61 分钟质量数据作废**（含 §20 的 553 段 / 11825 词）⇒ **所有格子必须用新图重跑**；⑥ ✅ **ASR-006 §2 rule1 切点诊断已完成**（并发会话）：rule1 占切点 **93.67%**、「切在词中间」**9.15%**（N=3）、**静音内切点 0.0% vs 非静音 10.77%** ⇒ 去重收益上界 **≤0.963pp**（仅覆盖 reviewer 观测 178 个多余插入的 **≤61.8%**）⇒ **接缝去重不是主因**（独立证实 §18.8）。
+阻塞 / 待用户决定: ① 🔴 **0.6B 的 WER 全部空缺**（`wer_pct: null`）—— 本模块**不自算 WER**（ASR-002 铁律）⇒ 需 reviewer 用本机 baseline + 全局对齐复算 **新图（mask2）的 INT8 / INT4_ASYM 61 分钟全长 WER**（对照 0.6B 流式参照 10.97%、R2T2 App 路径 B 10.58%）；② 🔴 **旧图数据全部作废、需重跑**：`results/p3_p3_61min_gpu_int8/`（553 段 / 11825 词）与 `reports/compare/` 里 0.6B 的格子**都是无 mask 的旧图** ⇒ **FP16 / INT8 / INT4 三格都要用 `ov-dec-06b-embed-mask2`（或其量化版）重跑 61 分钟**；③ ⏳ **计时**：`shared/MACHINE_LOCK` 被 `app` PID 32652 占用（16:23:32 起，`app037_cp3_abba_v15.py --quiet-timeout 3600`）⇒ 本轮**未启动任何计时作业**，交付级 RTF 仍空缺；④ 🔴 **0.6B 在 NPU 上仍 BLOCKED**（stateful IR 在 NPU 编译失败：`to_shape was called on a dynamic shape`）；⑤ ⏳ **新图的双端口在 NPUW 上是否支持待测**（若不支持 ⇒ 需把 mask 烘进图或改用「左对齐 + 动态取位」方案）；⑥ ⏳ **INT4_ASYM g128+AWQ+SE 需基于新图重量化**；⑦ ⚠️ **reviewer 指定的 R2T2 R2 同口径标定点未跑**；⑧ ⚠️ **P0 参照重跑未做**（少跑 11.19 s）；⑨ ⚠️ **设备内存未测**；⑩ ⚠️ **「提高 rule1 静音要求」必须改代码**（`min_silence_ms=300`/`SIL_LOOKBACK_SEC=3.0` 硬编码无 env）⇒ **属 App 模块**（ASR-003 边界），本模块只给离线指标（req≥500ms ⇒ 51.69% 的 rule1 切点不再触发）
 阻塞 / 待用户决定: ① 🔴 **0.6B 的 WER 全部空缺**（`wer_pct: null`）—— 本模块**不自算 WER**（ASR-002 铁律）⇒ 需 reviewer 用本机 baseline + 全局对齐复算 **INT8 / INT4_ASYM 的 61 分钟全长 WER**（对照 0.6B 流式参照 10.97%、R2T2 App 路径 B 10.58%），并裁定 **INT4 是否值得为 0.6B 做**；② ⏳ **0.6B INT8 61 分钟持锁重跑未拿到计时**（规范锁被 `app` PID 32652 占用，16:44 重启等待器）⇒ 交付级 RTF / 首字延迟 / 内存**仍全部作废**（现有都是 n=1 或被干扰）；③ 🔴 **0.6B 在 NPU 上仍 BLOCKED**（输出复读 prompt；`ov-dec-06b-past-int8` stateful IR 在 NPU 编译失败：`to_shape was called on a dynamic shape`）⇒ **NPU 格写明原因，不硬凑**；④ ⚠️ **「提高 rule1 静音要求」必须改代码**（`min_silence_ms=300` / `SIL_LOOKBACK_SEC=3.0` 在 `live_caption_app.py` 里硬编码、**无 env**）⇒ **属 App 模块**（ASR-003 边界），本模块只给离线指标（req≥500ms ⇒ 51.69% 的 rule1 切点不再触发）；⑤ ⚠️ **reviewer 指定的 R2T2 R2 标定点未跑**（同口径 teacher-forcing top1）；⑥ ⚠️ **P0 参照重跑未做**（P0 流式参照本身少跑 11.19 s）；⑦ ⚠️ **设备内存（iGPU/NPU）未测**（`mem_device` 均为「未匹配到设备」）；⑧ 🔴 **锁协议教训（§21）**：① 判活**只看 PID**、**绝不加进程名过滤**（App 有 `pythonw.exe` 持锁）；② 「锁早于开机时间」必须真实现；③ 锁里写**真正占设备的子进程 PID**；④ 删锁**校验归属**；⑤ ⚠️ **Git Bash 里 `tasklist /FI` 可能返回空** ⇒ 判活要用 `Get-Process`/`Get-CimInstance` 复核，否则会把**活着的持锁者**当成陈旧锁回收
 
 ## 最近更新
+- 2026-10-25 17:08 **根因彻底查清并根治：OV decoder 缺 attention mask 语义 = 导出时没传 mask（§23）**：① ✅★ **三张旧图的 mask 链逐位相同且严格等于因果下三角**（`p3_diag_mask_runtime.json`：sdpa0.in3_mask n_true=131328、row_true 1→512、`equals_tril=True`）⇒ **图里根本没有 padding mask**；② ✅ **补上 §19 的关键漏洞**（`p3_diag_bool_const.json`：前序 const_diff/3d_const/attrs **都跳过了 Constant 整类**，而 mask 链全是 bool 常量）⇒ 三图 3 个 bool 常量**哈希完全一致**（`le`=下三角 n_true=131328 / `ne`=全 False ⇒ cumsum=0）⇒ 静态同样证明无 padding mask；③ ✅ **决定性对照**（`p3_diag_mask_sem.json`）：**OV fp16 argmax=541 与 torch `mask=none` argmax=541 逐位吻合**（熵 5.8996 vs 5.8869）⇒ 旧图 ≡ torch「不传 mask」；④ ✅ **定位到导出层**：`create_causal_mask(attention_mask=None)` ⇒ 图里 cumsum 输入被常量折叠成全 False ⇒ **图结构不用改，只要导出时传 `attention_mask`**；⑤ ✅ **玩具实验定死语义**（`p3_diag_bool_mask_sem.json`）：OV 与 torch 的 bool mask 语义一致（True=可见），但 🔴 **OV 对整行屏蔽返回 NaN（torch 返回 0）** ⇒ v1 导出真实 mask 下 **NaN** ⇒ v2 改自建 mask `causal AND (content OR self)`（padding 行开对角线，与位置 511 的 logits 数学等价）；⑥ ✅ **根治生效**（`p1_decoder_export_mask2.json`）：真实 mask 下 **OV 熵 4.983 → 0.7596、top1 `all`→`Alright`、argmax 71486 与 torch 一致**；mask 全 1 仍**逐位复现旧图**（4.9833/541）⇒ 排除巧合；产物 `models/ov-dec-06b-embed-mask2/`（1139.7 MiB，4250 算子，双端口）；⑦ ✅ **端到端**（`p3_diag_mask2_e2e.json`）：新图 `Alright. Good morning, everyone. Good morning.`（三图最好），固定 6.4s 与累积路径一致；⑧ ✅ **INT8 已基于新图重量化**（INT8_SYM 按通道 + lm_head 保 FP16，1139.7→**720.6 MiB**，196/196 int8 per-channel）；⑨ 🔴 **旧图全部 61 分钟质量数据作废**（§20 的 553 段/11825 词、compare 矩阵 0.6B 各格）⇒ **三格都要用新图重跑**；⑩ ✅ **ASR-006 §2 rule1 诊断完成**（并发会话 `results/asr_diag/asr006_rule1_cut_diag.{py,json,md}`）：rule1 占切点 **93.67%**、切在词中间 **9.15%**（N=3）、**静音内 0.0% vs 非静音 10.77%** ⇒ 去重收益上界 **≤0.963pp**（仅覆盖 178 个多余插入的 **≤61.8%**）⇒ **接缝去重不是主因**（独立证实 §18.8）；⑪ ⏳ **计时未启动**：锁被 `app` PID 32652 占用 ⇒ 交付级 RTF 仍空缺
 - 2026-10-25 16:50 **ASR-007 矩阵补全：设备摆放字段 + 格子命名 bug 已修（§22）**：① 🔴 **INT4 两个格子缺 ASR-007 要求的「设备摆放」**（只有 `dec_ir`，无 `enc_ir`、无 `device_placement`）⇒ 已补：encoder = `GPU.0（OV FP16，不量化，所有变体共用）`、decoder = `GPU.0（OV，权重精度 = <该变体自己的 recipe>）`（**按变体分别写**，原写法两格共用一句「见 recipe」不可复核）、note 标明本组是**量化对比实验**（encoder 是 conv 结构无 MatMul ⇒ AWQ 静默跳过 ⇒ 保持 FP16）；② 🔴 **格子生成脚本文件名重复拼接**（`var` 已含 `int4_` 前缀又拼一次）⇒ 产出 `qwen3asr_06b__int4_int4_asymg128__gpu0.json`，**与 MATRIX 引用名不一致** ⇒ 已修为 `qwen3asr_06b__<var>__gpu0.json`，错误命名的中间产物已删；③ ✅ **`MATRIX.md` 新增「设备摆放」汇总表**（ASR-007 明确要求的一节）：从每个格子 json 现读 `device_placement`/`enc_ir`/`dec_ir` ⇒ 当前 **4 / 16 格**有该信息（0.6B 的 INT8×GPU.0、INT8×NPU、INT4×2），其余 12 格历史格子本轮未补（表下已注明）；④ 产物重新生成：`int4_asymg128__gpu0.json` 4436 B / `int4_sym_chan__gpu0.json` 4311 B / `MATRIX.json` 10801 B / `MATRIX.md` 6005 B（均 16:47），目录仍 **17 个文件**；⑤ ⏳ **持锁重跑仍等 `app`**（`Get-Process` 确认 PID 32652 存活）⇒ 交付级 RTF 仍空缺
 - 2026-10-25 16:44 **锁脚本自身 4 个缺陷实测修复（§21）+ 持锁重跑仍在等 `app`（§21）**：① 🔴 **缺陷①（最危险）**：`pid_alive` 原带进程名过滤（`and 'python' in txt`）⇒ App 的 `pythonw.exe`（`live_caption_app.py`）等**非 python 持锁者会被判成陈旧锁而回收** ⇒ **破坏别人的计时** ⇒ 已改为**只看 PID 是否在**；② 🔴 **缺陷②**：协议里「锁早于开机时间 ⇒ 可回收」**根本没实现**（`boot_time()` 定义了从未调用）⇒ 异常退出的锁会**永久阻塞**其它模块 ⇒ 已补实现；③ 🔴 **缺陷③**：锁里写的是**包装器 PID**（`subprocess.run` ⇒ 写 `os.getpid()`）⇒ 包装器被杀则**子进程变孤儿继续占 GPU**，而别人会回收锁 ⇒ **计时互相污染** ⇒ 已改 `Popen` **先取真实子进程 PID 再写锁**（另存 `wrapper_pid`）；④ 🔴 **缺陷④**：删锁**不校验归属** ⇒ 会误删别人后来拿到的锁 ⇒ 已加 `release_lock(expect_pid=…)`，回收陈旧锁时也校验 PID（防竞态）；⑤ ✅ **3 项隔离测试全过**（活锁不回收 / 非我锁不删 / 陈旧锁可回收，均未碰规范锁）；⑥ ⏳ **持锁重跑仍被占**：规范锁 = `app PID 32652 started 2026-10-25 16:23:32`，**实测该进程存活**（`app037_cp3_abba_v15.py --quiet-timeout 3600`）⇒ **等待是正确行为**；⚠️ 记录排查陷阱：**Git Bash 里 `tasklist /FI` 可能返回空**（本轮一度误判「进程已退出」）⇒ 判活必须用 `Get-Process`/`Get-CimInstance` 复核，否则会**误回收活锁**；⇒ **交付级 RTF 仍空缺**，不冒充已交付
 - 2026-10-25 16:40 **INT4 补测完成、「0.6B INT4 不可行」被证伪（§20）**：① ✅★ **`INT4_ASYM g128 + AWQ + SE`（backup INT8_ASYM，lm_head 保 FP16）文本正常** —— 新配方量化 `results/p2_quant_decoder_int4__asymg128.json`（15:58，2153 B，`recipe`=INT4_ASYM g128、`dst_mib`=**518.3**、`n_i4`=**392**、`ignored_scope`=lm_head ✔）；5 分钟切片（720–1020 s）**882 词 vs INT8 928 词**、定长 top1 **69.44% vs 70.83%**、top5 **85.71% vs 87.90%** ⇒ **INT4 在 0.6B 上可用**；② 🔴 **INT4_SYM 按通道（R2T2 R2 照搬）在 0.6B 上崩坏**（切片 **98 词**、定长 top1 **16.27%**、top5 **28.77%**）⇒ **照搬 R2T2 配方不成立**，差异来自模型规模/宽度；③ ✅ **P3 INT8 61 分钟全长质量数据已落盘**（`results/p3_p3_61min_gpu_int8/`，4 文件）：**553 段 / 11825 词 / rule 518+34+1 / 段长 p50 6.4s p95 8.96s max 12.16s / covered 3671.19 s 且 `complete`=true**；④ 🔴 **该次计时作废且锁路径用错**（写在仓库内 `shared/MACHINE_LOCK` ⇒ 互锁失效，TTS 已实测记录）⇒ 已回收孤儿锁 + 新写 `scripts/p3_run_with_lock.py`（只用规范路径）⇒ **规范路径持锁重跑在等 `app` 锁**；⑤ ✅ **ASR-006 §2 切点诊断完成**（并发会话，16:35）：rule1 占切点 **93.67%**、「切在词中间」**9.54%**、**静音内 0.0%**、去重收益上界 **≤0.963pp**（仅覆盖 178 个多余插入的 **≤61.8%**）⇒ **接缝去重不是主因**；⑥ ✅ **ASR-007 矩阵更新**（`reports/compare/` 17 文件，新增 2 个 INT4 格子）
@@ -19,7 +20,6 @@ last_ack: ASR-009
 - 2026-10-24 12:25 **两条长跑并行启动**（设备不冲突：ASR-004 走 Intel GPU.0 插件、ASR-005 走 NVIDIA CUDA）：① ASR-004 ① 改**可续跑分段版**（16 段 × 240s，段末强制 flush ⇒ A/B 同分段，对比公平）；② ASR-005 P0 离线参照（31 块 × 120s，断点续跑）。**长跑被杀的根因已定位**：`run_in_background` 里再套 `nohup/&` 起的孙进程会被回收 ⇒ **必须把长跑 python 进程本身作为后台任务主体**。**已修 chunked 续跑 bug**（原判「文件非空即已完成」会静默跳过被杀到一半的段，实测 `A_000.jsonl` 只到 10.24s / 应到 240s）⇒ 改为校验末条 `end_s` 是否到段末。**架构发现：R2T2 = Qwen3-ASR 系列**（`models/hf` 的 `model_type=qwen3_asr`），与 0.6B **同构**（仅宽度/层数不同）⇒ ASR-005 的 OV 导出/量化可几乎原样复用 R2T2 脚本
 - 10:47 **收到 ASR-005**（用户新任务，09:13）：Qwen3-ASR-0.6B → NPU INT8/INT4，P0→P1→P2→P3，**P0 末 / P2 末各停一次等 reviewer**。已启动 P0：官方权重下载中（sha 5eb14417…）、独立 venv `qwen3asr_06b\.venv` 装 **torch 2.11.0+cu128（CUDA True）**、P0 脚本 `scripts\p0_torch_ref.py`（离线 + 640ms 流式自适应 max_new_tokens）。**流式口径**：官方流式仅 vLLM ⇒ 用 transformers 后端复刻同语义（已写入产物 `stream_note`，待 reviewer 认可）。**git 冻结**：`shared/GIT_FREEZE` 不存在 ⇒ 可提交
 - 10:44 **ASR-004 ① 在跑**：61 分钟真实 Segmenter + GPU INT8 A/B 逐段转写（`reports/asr004_ab/`，脚本 `results/asr_diag/asr004_ab_transcribe.py`）；前一次 09:36 启动的进程已死无产物 ⇒ 本次重启，日志 `results/asr_diag/asr004_ab_full.log`
-- 10:36 **ASR-004 ② 完成**（C-108 空段校验，61 分钟 × hang 0.8/0.6/0.5 × A/B × gain 1.0/0.3/0.1，wall 326.2s）：**gain=1.0 三档空段数 B ≤ A**（hang0.8: A 1→B 5、hang0.6: A 1→B 8、hang0.5: A 1→B 8，**绝对口径 B > A**；**相对口径 B 全部为 0 ≤ A 的 4/7/8**）。**低电平档**：gain=0.3 A 绝对空段 74~75、B 276~357（绝对口径在低电平下天然失真）；**相对口径 A 1 / B 0**。gain=0.1 相对口径 A 0 / B 0。产物 `results/asr_diag/asr004_c108_empty.json`
 ## §1 交付基线（ASR-001 指定；**按 ASR-002 修正为两列口径**）
 
 ⚠️ **口径警告（ASR-002）**：8.17% / 7.95% / 0.772 **来自两套不同计分器，不能放在同一列比较**。
@@ -2686,3 +2686,149 @@ return re.search(rf'"[^"]*","{pid}"', txt) is not None
   ⇒ **等待是正确行为**，不是脚本缺陷；
 * 后台任务 `6WmBa3`（修复版锁脚本）在等；交付级 RTF **仍空缺**，
   STATUS 头部第 ⑦ 项与 §21.6 保持「在跑」，**不冒充已交付**。
+## §23 **根因彻底查清并根治：OV decoder 缺 attention mask 语义 = 导出时没传 mask**（2026-10-25 17:05）
+
+### 23.0 撤回表（本节推翻前序说法）
+| 前序结论 | 位置 | 处置 |
+|---|---|---|
+| 「OV IR 缺 attention mask 语义」 | §19.12（推测） | 🔴 **表述不准** ⇒ 修正为「**导出时没传 `attention_mask`** ⇒ 图里**根本没有** padding mask」 |
+| 「INT8 图恰好带上了正确的 mask 语义」 | §19.0/§19.2 | 🔴 **撤回** ⇒ INT8 **没有**带 mask；它只是权重误差恰好把平坦 logits 推回正确一侧（**巧合**） |
+| 「FP16 图把 padding 当有效 token（等价 mask=none）」 | §19.12 | ✅ **成立且已闭环**（argmax 逐位吻合） |
+| 「INT8 61 分钟长跑质量数据可用」 | §20 | 🔴 **作废** ⇒ 用的 `ov-dec-06b-embed-int8sym` 是**单端口无 mask** 的图 ⇒ 质量数据同样不可信，**需用新图重跑** |
+
+### 23.1 证据链（每步都有落盘产物）
+
+**第 1 步 — 运行时抓 mask 真值**（`results/p3_diag_mask_runtime.json`，15:31）
+三张旧图（fp16 / f32true / int8sym）各抓 9 个 mask 链中间量，**三图逐位相同**：
+```
+sdpa0.in3_mask: shape=[1,1,512,512] n_true=131328
+                 row_true_head8=[1,2,3,4,5,6,7,8]  row_true_tail8=[505..512]
+                 equals_tril=True      ← 严格因果下三角
+```
+⇒ **旧图里根本没有 padding mask**，只有因果 mask。
+（`row_true` 从 1 递增到 512 ⇒ 512×513/2 = 131328）
+
+**第 2 步 — 静态常量全量比对**（`results/p3_diag_bool_const.json`，15:17）
+补了前序的**关键漏洞**：§19 的 `const_diff` / `3d_const` / `attrs` **都把 `Constant` 整类跳过**了
+（因 NNCF 会插入 Constant ⇒ 序号漂移），而 **mask 链恰恰全是 bool 常量** ⇒ 从未逐位比对过。
+三图的 3 个 bool 常量**哈希完全一致**：
+```
+view_2/aten.view.default/Reshape  bool [512,1]   n_true=512    hash=393a0fa0f348fb03
+le/aten.le.Tensor/LessEqual       bool [512,512] n_true=131328  hash=a48be07c8e369803
+ne/aten.ne.Scalar/NotEqual        bool [1,512]   n_true=0       hash=bf619eac0cdf3f68
+```
+⇒ `le` = **因果下三角**；`ne` = **全 False** ⇒ **cumsum = 全 0** ⇒ 静态层面同样证明**没有 padding mask**。
+（`byname` 口径：fp16 vs int8sym 的 196 条差异**全是 `dtype/shape`**（f16 权重 → int8 权重），
+**不含任何 bool 常量名**；f32true vs int8sym 差异 **0**）
+
+**第 3 步 — 与 torch 逐位对照**（`results/p3_diag_mask_sem.json`，15:10）
+同一份 embeds（L=51）：
+| | 熵 | top1 | argmax |
+|---|---|---|---|
+| torch mask=real | 0.7121 | `All` | 2403 |
+| torch mask=none | 5.8869 | `š` | 11645 |
+| torch mask=all1 | 5.8869 | `š` | 11645 |
+| torch mask=all0 | 5.6503 | `.tail` | 38711 |
+| **OV fp16** | **5.8996** | **`š`** | **11645** ← 与 torch mask=none **argmax 逐位吻合** |
+| **OV int8** | **1.0380** | **`All`** | **2403** ← 与 torch mask=real 吻合 |
+⇒ **OV fp16 ≡ torch「不传 attention_mask」**，这是根因的决定性对照。
+
+**第 4 步 — 定位到导出层**
+`Qwen3ASRThinkerTextModel.forward` 里 `create_causal_mask(attention_mask=None)`
+⇒ 图里 cumsum 的输入被**常量折叠成全 False** ⇒ 整条动态链退化成纯因果 mask。
+⇒ 图里**本来就有** padding mask 的动态链（`Equal` / `CumSum` / `BitwiseAnd` / `Unsqueeze` → SDPA.in3），
+只是输入是常量 ⇒ **图结构不用改，只要导出时把 `attention_mask` 传进去**。
+
+### 23.2 玩具实验定死 bool mask 语义 + 发现 OV 的 NaN 行为
+`results/p3_diag_bool_mask_sem.json`（16:42）。手搓微型 OV 图（Q=[1,1,1,4]，K=全 1，V 第 i 行=i）：
+
+| mask | OV 输出 | torch 输出 |
+|---|---|---|
+| all_true | 1.5 | 1.5 |
+| **all_false（整行屏蔽）** | **NaN** | **0.0** |
+| mask_first2 | 0.5 | 0.5 |
+| mask_last2 | 2.5 | 2.5 |
+
+⇒ **bool 语义一致（True=可见）**；
+⇒ 🔴 **OV 的 SDPA 对「整行被屏蔽」返回 NaN，PyTorch 返回 0** ⇒
+直接用标准 mask 导出 ⇒ padding 行整行被屏蔽 ⇒ **真实 mask 下 logits 全 NaN**（实测，见 23.3 的 v1）。
+
+### 23.3 两版导出与修复
+
+| 版本 | 脚本 | 做法 | 真实 mask 结果 |
+|---|---|---|---|
+| v1 | `scripts/p1_export_decoder_mask.py` | 加 `attention_mask` 端口，mask 用 torch 标准 | 🔴 **NaN**（top1=`!`） |
+| **v2 ✅** | `scripts/p1_export_decoder_mask2.py` | 同上，但 **patch `create_causal_mask` 自建 mask**：`causal AND (content OR self)`（**padding 行开对角线**） | ✅ **熵 0.7596 / top1 `Alright`** |
+
+**为什么开对角线是安全的**：因果 mask ⇒ 位置 511 **看不到** q<411 的 padding 行 ⇒
+padding 行的输出**不参与**位置 511 的 logits ⇒ **与 torch 标准 mask 数学等价**。
+（实测 torch 标准 mask 在 padding 行是**全 False**、我的 patch 是**开对角线**，
+差异 12832 个元素，但**最终 logits 等价**——因为因果性）
+
+**v2 自检结果**（`results/p1_decoder_export_mask2.json`，16:50）：
+| 输入 | OV 熵 | OV top1 | torch 熵 | torch top1 |
+|---|---|---|---|---|
+| **真实 mask** | **0.7596** | **`Alright`** | 0.7540 | `Alright` |
+| mask 全 1 | 4.9833 | `all` | 4.8953 | `all` |
+⇒ argmax 均为 **71486**（与 torch 一致）；
+⇒ 🔴 **mask 全 1 逐位复现旧图（4.9833 / argmax 541）** ⇒ 证明是 **mask 端口真的起作用**，
+不是巧合（这是排除「恰好撞对」的关键对照）。
+产物：`models/ov-dec-06b-embed-mask2/`（1139.7 MiB，4250 算子，
+端口 `inputs_embeds [1,512,1024]` + `attention_mask [1,512]` i64）。
+
+### 23.4 端到端贪心验证
+`results/p3_diag_mask2_e2e.json`（16:53），固定 6.4s 与累积 10×0.64s **两种音频模式**各 10 步：
+
+| 模式 | 图 | 输出文本 | 退化 | 拉丁比 |
+|---|---|---|---|---|
+| fixed6.4s | fp16_old | `all right good morning everyone good morning let's get` | 否 | 0.9815 |
+| fixed6.4s | int8_old | `All right. Good morning everyone. Good morning.` | 否 | 0.9362 |
+| fixed6.4s | **mask2_new** | **`Alright. Good morning, everyone. Good morning.`** | 否 | 0.9130 |
+| cum10×0.64s | fp16_old | 同上 | 否 | 0.9815 |
+| cum10×0.64s | int8_old | 同上 | 否 | 0.9362 |
+| cum10×0.64s | **mask2_new** | **同 mask2** | 否 | 0.9130 |
+
+⇒ **新图输出最好**（有正确大小写 + 标点：`Alright.` / `,` / `.`），
+旧 fp16 缺标点且首词小写错误，旧 int8 首词 `All` 后接 `.` 复读。
+⇒ 两种音频模式**结果一致** ⇒ 说明修复不依赖输入条件。
+
+### 23.5 INT8 量化（基于新图）
+`scripts/p2_quantize_mask2.py`（包装脚本，**不改** `p2_quantize.py` ⇒ 不影响其它模块）：
+源 = `models/ov-dec-06b-embed-mask2/openvino_model.xml`，
+**INT8_SYM 按通道 + lm_head 保留 FP16**（`ignored_scope=['linear_196/aten.linear.default/MatMul']`）
+⇒ **1139.7 MiB → 720.6 MiB（0.6323）**，196/196 参数 int8_sym per-channel，**0 个 int4**。
+产物：`results/p2_quant_decoder_int8sym_mask2.json`（16:55）、
+`models/ov-dec-06b-embed-mask2-int8symmask2/`。
+
+### 23.6 `p3_ov_app.py` 已适配双端口
+`scripts/p3_ov_app.py` 的 `OVRunner` 现在**自动检测 decoder 端口数**：
+* 端口数 ≥2 ⇒ 传真实 `attention_mask`（右对齐，前 `512-L` 位为 0）
+* 端口数 =1 ⇒ 旧行为（并打印告警说明该图**缺 padding mask 语义**）
+⇒ **默认行为不变**，用新图时自动走 mask 路径。
+
+### 23.7 待办（因本节结论而必须重做）
+1. 🔴 **61 分钟长跑必须用新图重跑**（`ov-dec-06b-embed-mask2` 或其 INT8 版）⇒
+   §20 的 `results/p3_p3_61min_gpu_int8/`（553 段 / 11825 词）**质量作废**（用的旧图）。
+2. 🔴 **FP16 / INT4 格子全部要重测**（旧图全都没有 padding mask）⇒
+   ASR-007 的 `reports/compare/` 里 0.6B 的格子数据**全部要刷新**。
+3. ⏳ **INT4（`INT4_ASYM g128 + AWQ + SE`）也要基于新图重量化**（§20 的 INT4 图也是旧图）。
+4. ⏳ **NPU 格**：新图是**双端口**，NPUW 是否支持 `attention_mask` 动态端口**待测**
+   （若不支持 ⇒ 需要把 mask 烘进图，或改用「内容左对齐 + 取动态位置」方案）。
+5. ⏳ **计时**：`shared/MACHINE_LOCK` 仍被 `app` PID 32652 占用（16:23:32 起，
+   `app037_cp3_abba_v15.py --quiet-timeout 3600`）⇒ 本轮**未启动任何计时作业**。
+
+### 23.8 本轮方法论教训（务必记住）
+1. 🔴 **前序三份常量比对都把 `Constant` 整类跳过了**（因 NNCF 插入导致序号漂移）
+   ⇒ **任何"因 NNCF 插入而跳过的类型"都要单独用多重集口径补测**，
+   否则会漏掉「mask 链全在 Constant 里」这类关键证据。
+2. 🔴 **`torch.eye` / `torch.tril` 不能进被导出的图** ⇒ torch.export 分解成 `aten.arange`
+   ⇒ OV 2026.4 前端报 **`KeyError: 'torch.uint16'`**（v2 第一版失败）
+   ⇒ 必须用 **numpy 预计算常量**（`torch.from_numpy(np.eye(...))`）。
+3. 🔴 **导出脚本的 fallback 会吞掉真实错误**：`torch.export` 失败后 fallback 到
+   `ov.convert_model(net, input=...)` ⇒ 报的是「TorchScript 无法 scripting」这种**无关错误**
+   ⇒ **必须把 `torch.export` 的原始异常打印出来**（v2 第一版因此多花一轮）。
+4. ✅ **OV Model 的构造**：`ov.Model([result], [])`（`results` + `sinks`），
+   `ov.Model([result])` **报错**；`ov.Core().create_model` **不存在**（2026.4）。
+5. ✅ **`op.inputs` 是方法不是属性** ⇒ 必须 `op.inputs()`。
+6. ✅ **`model.add` 不存在**（2026.4）⇒ 图手术改 `op.set_arguments({idx: ...})` 需要
+   `model.add` ⇒ **不可用**；要加常量节点得用 `opset13` 在**新建**图里做。
