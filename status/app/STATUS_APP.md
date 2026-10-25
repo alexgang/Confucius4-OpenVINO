@@ -1,14 +1,14 @@
 # STATUS_APP
 last_ack: APP-016
 更新时间: 2026-10-25 10:45
-当前任务: **巡检（无新纠偏条目，第 17 次同一口径）+ ✅ APP-014② v1.5 重打包（干净目录已建 + README 已升版 + 打包前自检 PASS 47/0 + 持机器锁打包中）（§34）**：`last_ack` = **APP-016**（本轮**无新条目**；`CORRECTIONS_APP.md` SHA256 `1c30440a…` / 34 998 B / mtime 2026-10-25 09:18:37 ⇒ `## APP-xxx` **16** 条、最大 APP-016，**只读零改动**）⇒ 🔴 本轮闭环 **4 件事**：① 🔴🔴 **修掉真实泄漏**（§34.1）—— `live_caption_app.py` 的**接缝判据注释里直接引用了内部会议转写片段**（`Q3 26 QGS` / `IDM advantage`）⇒ 被**内部素材闸门**在打包前拦下⇒ 全部换成语义等价的**合成句**，判据逻辑不变；② ✅ **v1.5 干净包目录已建**（§34.2，`app014b_build_v15_dir.py`）：`models/` 12 GB 走**硬链接**（省 13 GB 拷贝、inode 与 SHA256 均一致 ⇒ 打包产物无区别）、「会改写的文件」一律**真实副本**（inode 不同）⇒ 改 v1.5 绝不连带改 v1.4，耗时 **56 s**；③ ✅ **v1.5 版本号 + README 已升版**（§34.3）：`PKG_VERSION` 1.4 → **1.5**、MANIFEST `version` = **1.5** + notes 幂等追加四条修订、中英双语加 **`## v1.5 改动说明`** 并把设备表里的**假设备「Intel GPU 2」清零**（幂等 14/14、doubleCR 0）；④ ✅ **打包前自检 PASS 47 / FAIL 0**（§34.4）：包内代码 == 仓库代码（8 文件 SHA256）、v1.5 标识、README 落地、**旧死代码 AST 清零**、内部素材闸门 **0 命中**、GUI 冒烟 **16/0**；⏳ **进行中**：持共享机器锁打包 v1.5（**等 TTS 释放锁，不抢**）
-阻塞 / 待用户决定: ① ⏳ **APP-014② v1.5 打包进行中** —— 干净目录 / README / 自检三步已完（§34.2~§34.4），**持机器锁打包**在等 TTS 释放锁（§34.5）；② ⛔ **APP-015 的 MT 半句方案 C**（草稿只上字幕、TTS 只念正式稿）⇒ 等 `shared\NOTICE_mt_to_app_*.md` 的**方案 C draft/final 事件说明**；**现有 10-24 通知不满足**（讲的是旧 UNIT 缺陷）⇒ **v1.5 先不带**，已在 §34.5 注明；③ ⛔ **APP-012② 的 +2.6pp 缺口主因仍未定位**（§32.5 实测证明接缝去重只值 −0.26/−0.32 pp ≈ 缺口的 3%）；④ ⛔ **APP-009② 的 MT UNIT 方案 A/B/C/D 结论**仍在 v4 复算 ⇒ 渲染层三处**仍未改**；⑤ ⛔ **包体 10.45 GiB** 优化未做；⑥ ⛔ **V7 残句代价**待用户确认（链首段半句残句 12 段语料 5 行/58 字）；⑦ 🟢 ~~**APP-014② v1.5 打包前准备**~~ ⇒ §34.2~§34.4 已完成；⑧ 🟢 ~~**APP-011 二次历史改写**~~ ⇒ 按 APP-013 撤销；⑨ 🟢 ~~**APP-010 的 TTS 实验性标注**~~ ⇒ 已按 APP-014 改写为「正式功能，默认开启」（§33.3）
+当前任务: **巡检（无新纠偏条目，第 17 次同一口径）+ ✅ APP-014② v1.5 重打包（干净目录已建 + README 已升版 + 打包前自检 PASS 47/0 + 持机器锁打包中）（§34）**：`last_ack` = **APP-016**（本轮**无新条目**；`CORRECTIONS_APP.md` SHA256 `1c30440a…` / 34 998 B / mtime 2026-10-25 09:18:37 ⇒ `## APP-xxx` **16** 条、最大 APP-016，**只读零改动**）⇒ 🔴 本轮闭环 **4 件事**：① 🔴🔴 **修掉真实泄漏**（§34.1）—— `live_caption_app.py` 的**接缝判据注释里直接引用了内部会议转写片段**（会议专有名词 / 内部战略术语）⇒ 被**内部素材闸门**在打包前拦下⇒ 全部换成语义等价的**合成句**，判据逻辑不变；② ✅ **v1.5 干净包目录已建**（§34.2，`app014b_build_v15_dir.py`）：`models/` 12 GB 走**硬链接**（省 13 GB 拷贝、inode 与 SHA256 均一致 ⇒ 打包产物无区别）、「会改写的文件」一律**真实副本**（inode 不同）⇒ 改 v1.5 绝不连带改 v1.4，耗时 **56 s**；③ ✅ **v1.5 版本号 + README 已升版**（§34.3）：`PKG_VERSION` 1.4 → **1.5**、MANIFEST `version` = **1.5** + notes 幂等追加四条修订、中英双语加 **`## v1.5 改动说明`** 并把设备表里的**假设备「Intel GPU 2」清零**（幂等 14/14、doubleCR 0）；④ ✅ **打包前自检 PASS 47 / FAIL 0**（§34.4）：包内代码 == 仓库代码（8 文件 SHA256）、v1.5 标识、README 落地、**旧死代码 AST 清零**、内部素材闸门 **0 命中**、GUI 冒烟 **16/0**；⏳ **进行中**：持共享机器锁打包 v1.5（**等 TTS 释放锁，不抢**）
+阻塞 / 待用户决定: ① ⏳ **APP-014② v1.5 打包进行中** —— 干净目录 / README / 自检三步已完（§34.2~§34.4），**持机器锁打包**在等 TTS 释放锁（§34.5）；② ⛔ **APP-015 的 MT 半句方案 C**（草稿只上字幕、TTS 只念正式稿）⇒ **移交说明已到**（`NOTICE_mt_to_app_20261024.md` 的**通知 9**，10:30 追加，**更正 §34.5「通知不含方案 C」的不准确记录**，见 §34.7）⇒ 但**实现尚未定稿**（工作区在制品，验收 **18/21 FAIL**）⇒ **v1.5 明确不带**（§34.7）；③ ⛔ **APP-012② 的 +2.6pp 缺口主因仍未定位**（§32.5 实测证明接缝去重只值 −0.26/−0.32 pp ≈ 缺口的 3%）；④ ⛔ **APP-009② 的 MT UNIT 方案 A/B/C/D 结论**仍在 v4 复算 ⇒ 渲染层三处**仍未改**；⑤ ⛔ **包体 10.45 GiB** 优化未做；⑥ ⛔ **V7 残句代价**待用户确认（链首段半句残句 12 段语料 5 行/58 字）；⑦ 🟢 ~~**APP-014② v1.5 打包前准备**~~ ⇒ §34.2~§34.4 已完成；⑧ 🟢 ~~**APP-011 二次历史改写**~~ ⇒ 按 APP-013 撤销；⑨ 🟢 ~~**APP-010 的 TTS 实验性标注**~~ ⇒ 已按 APP-014 改写为「正式功能，默认开启」（§33.3）
 
 
 ## 最近更新
 
 
-- 10:45 §34 🔴🔴 **修掉真实泄漏**：接缝判据**注释里引用了内部会议转写片段**（`Q3 26 QGS` / `IDM advantage`）⇒ 被**内部素材闸门**在打包前拦下 ⇒ 换成合成句，逻辑不变。
+- 10:45 §34 🔴🔴 **修掉真实泄漏**：接缝判据**注释里引用了内部会议转写片段**（会议专有名词 / 内部战略术语）⇒ 被**内部素材闸门**在打包前拦下 ⇒ 换成合成句，逻辑不变。
 - 10:45 §34 ✅ **v1.5 干净包目录已建**（`app014b_build_v15_dir.py`）：`models/` 12 GB 走**硬链接**、会改写的文件走**真实副本**，抽样 SHA256 全一致，**56 s**。
 - 10:45 §34 ✅ **v1.5 版本号 + README 已升版**：MANIFEST `version` = **1.5** + notes 四条修订；中英双语加 `## v1.5 改动说明`、**假设备「Intel GPU 2」清零**（幂等 14/14、doubleCR 0）。
 - 10:45 §34 ✅ **打包前自检 PASS 47 / FAIL 0**（包内代码 == 仓库代码 / v1.5 标识 / README 落地 / 旧死代码 AST 清零 / 内部素材闸门 0 命中 / GUI 冒烟 16/0）。
@@ -17,37 +17,18 @@ last_ack: APP-016
 - 10:30 §33 ✅ **APP-014① TTS 转正式功能**（`live_caption/live_caption_app.py`）：CLI `--tts` 默认 `off` → **`None`**（⇒ 能区分「没给」与「显式 `--tts off`」）+ GUI 初值三态 + CLI 启动判据 `!= 'off'` + **常驻「⚠️ 请佩戴耳机，避免回授」提示**（`foreground='#b26a00'`）+ 「已关闭（译文朗读不输出）」文案。
 - 10:30 §33 ✅ **客户包 README 定点改写**（`results/app/app014_patch_pkg_readme.py`，**新增**）：中英双语去「实验性」警告块 ⇒ 标题「**正式功能，默认开启**」+ 加「默认开启」+ 加耳机提示；「已知限制」TTS 条目 ⇒ 「已是正式功能，默认开启」。
 - 10:30 §33 🔴 **修掉客户包 README 重复行 bug**（APP-010 遗留）：「已知限制」里「段切分按能量静音判断…」**出现 2 次**（`insert_after` 把 anchor 又插了一遍）⇒ 去重（现 count = **1**）。
-- 10:30 §33 🔴🔴 **修掉仓库根 README.md 双 CR 行尾炸弹**：`
-` × **773** 行 ⇒ `git diff` 全文件级噪音 ⇒ **锚点匹配全失败**（APP-008①/APP-010 标注插不进去的真正原因）⇒ 一次性归一 ⇒ 46 523 → **44 977 B**、doubleCR **0**、**`git diff --stat` 空输出** ⇒ **内容逐字未改**。
+- 10:30 §33 🔴🔴 **修掉仓库根 README.md 双 CR 行尾炸弹**（` × **773** 行）⇒ `git diff` 全文件级噪音 ⇒ **锚点匹配全失败**（APP-008①/APP-010 标注插不进去的真正原因）⇒ 一次性归一 ⇒ 46 523 → **44 977 B**、doubleCR **0**、**`git diff --stat` 空输出** ⇒ **内容逐字未改**。
 - 10:30 §33 🔴🔴 **本轮踩的三个坑（已修）**：❌ 手抄原文当 OLD 串（英文措辞不同 ⇒ 命中 0 次）⇒ 改**程序化锚点**（标题 → 下一个 `## `）；❌ 幂等 mark 写成规则名 ⇒ 必须是**文件里真实存在的串**；❌「去重」用相邻对判据（重复行**不紧邻**）⇒ 改「**单行计数 == 2 ⇒ 去第 2 次**」；✅ 校验改**三态判据**。
 - 10:30 §33 ✅ **客户包定点同步 PASS**（`live_caption/sync_c149_to_pkg.py`，**新增**）：`live_caption_app.py` **5 块**唯一命中，SHA `c2ba4fa85596` → `51137967930e`（170 901 → 172 329 B），备份**在包外** `pkg_backup_app_c149/`，幂等 **ALREADY**，🔴 **未做整目录覆盖**。
 - 10:30 §33 ✅ **GUI / CLI 冒烟 PASS 16 项 / FAIL 0 项**（`results/app/app014_gui_smoke.py`，**新增**）：CLI 默认 `None` / 启动判据 `!= 'off'` / GUI 初值三态（未给⇒勾选、on⇒勾选、off⇒不勾选）/ 耳机提示 **Tk 真能渲染** / 客户包 README 中英双语 8 项全 PASS（含重复行 count=1）。
 - 10:30 §33 ✅ **git push 到 origin/main**：`4d542ac..c2a3709` → 继续 push 至 `35cfe99`；仓库**保持公开**（APP-014③）。
 - 10:30 §33 🔴 **纪律**：**未改/未提交** `CORRECTIONS_APP.md`；**未吞** ASR/MT/TTS 未提交改动；**未跑推理/未测速/未占 GPU**；**未重开 FTP**；`translator.py` **未动**；仓库 ⇄ 客户包**只做定点替换**，备份一律**在包外**。
-
 - 10:20 §32 ✅ **巡检**：`CORRECTIONS_APP.md` SHA256 `1c30440a…` / 34 998 B / mtime 2026-10-25 09:18:37 ⇒ `## APP-xxx` **16** 条（最大 **APP-016**）⇒ **6 条新条目待执行**（APP-011~APP-016）⇒ `last_ack` **APP-010 → APP-016**；🔴 该文件**只读零改动**。
 - 10:20 §32 ✅ **修掉假设备「Intel GPU 2」**（`live_caption/device_config.py`）：根因 = `_DEVICE_LABELS` 硬编码 `'GPU.1': 'Intel GPU 2'`，而本机 `GPU.1` 实为 **NVIDIA GeForce RTX 5050 Laptop GPU**（OV 设备编号**不代表厂商**）⇒ 删该硬编码 + `device_label()` 改据 `FULL_DEVICE_NAME` 动态生成（NVIDIA 型号提取 + `(dGPU)` 噪声剥离，带缓存）；实测 `GPU.0 -> Intel GPU（集显）` / `GPU.1 -> NVIDIA 独显（RTX 5050 Laptop GPU）` / `NPU -> Intel NPU` / `CPU -> CPU（不推荐）` / `GPU.9 -> GPU.9`（**不编造**）。
-- 10:20 §32 ✅ **TTS 设备下拉加 CUDA 设备**（`live_caption/live_caption_app.py::build_tts_options()`）：加显式 CUDA 选项（`CUDA · NVIDIA 独显（RTX 5050 Laptop GPU） · F32/F16`）+ 新增 `is_cuda_device()` / `has_cuda_plugin()`；🔴 **诚实警示**：本机 OV `2026.4.1-22982` 包内 `*cuda*` 匹配数 = **0** ⇒ **未装 CUDA plugin** ⇒ OV 对 NVIDIA 独显**仍走 Intel GPU plugin**（Level Zero），实测真实 INT8 IR 在 `GPU.1` 上 **3/7 编译失败**（`code_predictor` / `cp_decode` / `cp_prefill` / `talker_decode` 在 FP16↔FP32 reorder 节点报「Could not find a suitable kernel」）⇒ note 里直说，不假称「CUDA 后端可用」。
-- 10:20 §32 🔴🔴 **修掉段接缝重复词**（`live_caption/live_caption_app.py::stitch()`）：旧实现只试 n=3,2，而实测接缝重复**几乎全是 n=1**（A 组 536 对 → n≥3: 0 / n=2: 0 / n=1: **36**；B 组 557 对 → n=1: **42**）⇒ 旧实现**一次都没命中过** ⇒ 重写为「整词级 n-gram(3→1) + n=1 用**切点穿词**判据（后段首词大写而前段末尾词不大写 / 前段末尾非句末标点）」+ 新增 `self._last_text` 并**补齐三个调用点的 `prev_text` 接线** + **移除无生效路径的 `_stitch_char_overlap()`**（依赖不存在的 `stitch_pair()`，实测字符级命中 **0** 次）。
-- 10:20 §32 🔴 **开关语义修正**：`LIVECAP_STITCH_SEAM=0` ⇒ **下限抬到 2**（退回旧行为、保留 n=3 去重）；⚠️ **不是**「跳过判据」（那反而**更激进**，与「关掉」语义相反）；`prev_text` 为 None/空 ⇒ 退化为「只信判据①」（宁可漏删也不误删）。
-- 10:20 §32 📊 **端到端收益**（独立参照 c048 adaptive，语料级配对 bootstrap K=40/5000 次，判据：**只看「Δ 的 CI 上界 < 0 才算改善」**）：A 组 6.055% → **5.791%**（Δ **−0.264 pp**，CI [−0.367, −0.171]）；B 组 5.851% → **5.535%**（Δ **−0.316 pp**，CI [−0.418, −0.222]）⇒ 两组 CI 上界均 < 0。
-- 10:20 §32 ⚠️ **不要误读量级**：接缝去重只覆盖 APP-012② 所述 **+2.6pp 缺口的约 3%** ⇒ **不是 +2.6pp 的主因**（主因应是段首/段尾的**插入**本身，ASR 侧记的是**多 178 个**）⇒ 已在代码注释与本 STATUS 明确标注。
-- 10:20 §32 ✅ **验收 PASS 20 项 / FAIL 0 项**（`results/app/app024_stitch_accept.py`，单元级 13 + 接线级 3 + 端到端级 4）；证据 `results/app/app024_stitch_accept.json`。
-- 10:20 §32 ✅ **客户包定点同步 PASS**（`live_caption/sync_c148_to_pkg.py`，**新增**）：`live_caption_app.py` **13 块**全部唯一命中，SHA `970f75f0b0be` → `c2ba4fa85596`（162 456 → 170 901 B）；备份**在包外** `pkg_backup_app_c148/`；幂等复核 **ALREADY**；🔴 **未做整目录覆盖**；包内 `--check`「环境正常。ASR 可用后端 6 个，Intel 集显可用」+ **包内实测 3/3 行为 PASS** + **AST 口径旧符号残留 = 无**。
-- 10:20 §32 ✅ **GUI 冒烟全 PASS**（`results/app/app024_gui_smoke.py`）：ASR 8 / MT 6 / TTS 5 选项，**label 全唯一**，「Intel GPU 2」出现数 = **0**，Tk 三个 Combobox 反查 OK，TTS 可见 **2 个 CUDA 选项**。
-- 10:20 §32 🟢 **APP-013 处置完毕**：会议记录相关事项**不再继续跟踪** ⇒ 撤销 APP-011 ⇒ **不做第二次历史改写**、不建 `GIT_FREEZE`、GitHub 旧 SHA gc **不做**、现有防护**保留不加强**、**恢复正常提交**（本轮已提交 `6a1dee6` / `9c628f4` / `4a2a361` / `e301333`）。
-- 10:20 §32 🟢 **APP-016 核对**：Qwen3-ASR-0.6B 只作实验 ⇒ **不进 App 和客户包** ⇒ 已核客户包 v1.4 内**本就没有 0.6B** ⇒ **无需动作**，仅记录。
-- 10:20 §32 🔴 **纪律**：**未改/未提交** `CORRECTIONS_APP.md`（reviewer 独占）；**未吞** ASR/MT/TTS 未提交改动（工作区大量 `diag_c*.py` / `sync_c*.py` / `reports/*` 一律不吞）；**未跑推理/未测速/未占 GPU**（纯离线文本作业，**不需要机器锁**）；**未重开 FTP**（守 APP-009③）；**未调用 MiniMax**；仓库 ⇄ 客户包**只做定点替换**；`translator.py` **未动**（不归 App 提交）。
-
-- 07:49 §31 ✅ **巡检（无新纠偏条目，第 15 次同一口径）**：`CORRECTIONS_APP.md` SHA256 `8ccf661c…` / 27 413 B / mtime 2026-10-24 17:01:54 ⇒ `## APP-xxx` **10** 条（最大 **APP-010** = `last_ack`）⇒ **无新条目**，`last_ack` **不变**；🔴 该文件**只读零改动**；跨模块通知最大仍是**通知 8**（verdict 不变）⇒ 未推翻 §26.6。
-- 07:49 §31 🔴🔴 **修掉 `TTSService.close()` 不计丢句**（`live_caption/tts_service.py`）：直接杀 worker ⇒ `pending`/`_inflight`/`_queue` 里**已提交但永远等不到结果**的句子**静默消失** ⇒ 破坏 §29 的不变式（实测修复前 **sum=0 ≠ submitted=5**）⇒ GUI **四条**路径（停 TTS / 换设备 / 换音色 / 退出）**每走一次就丢一批记账** ⇒ 修法：与「崩溃清理」路径做**同样的**清理 + **计丢句**（`_queue` 的 jid ⊆ `pending` ⇒ 只计一次）。
-- 07:49 §31 🔴 **`close()` 不得清 `_dropped_ids`**：worker 此刻**还活着**（quit 在清理**之后**才发）⇒ 可能回 `played` ⇒ 提前清了就又成「丢了 + 播了」双记（§30 修的正是这个）⇒ 刻意不清 + 注释说明。
-- 07:49 §31 🔴🔴 **修掉 GUI `quit()` 缺 `mt.wait_idle()`**（`live_caption/live_caption_app.py`）：`mt.flush()` 只是**入队** ⇒ outbox 空 ⇒ 最后一句**既不显示也不朗读**，随后 `mt.close()` 停掉工作线程 ⇒ **这一句永远丢**（CLI 侧有 `wait_idle(180)`，GUI 侧漏了）⇒ 修法：**有条件**地等（守卫 = `flushed and self.mt.pending`，否则 `state=='loading'` 时**白等 180 s** ⇒ 界面卡死）且**只 flush 一次**。
-- 07:49 §31 ✅ **修掉两处 U+FFFD 乱码**（`device_config.py` L251 / `audio_source.py` L12）⇒ **撤回 §29.7 的「提请 reviewer 裁定」**（已自行修掉）。
-- 07:49 §31 ✅ **验收 PASS**（`results/app/test_tts_close_gui_quit.py`，**新增**，**20 777 B**；桩 worker、**无推理/无测速/无 GPU**）：REAL **20/20 PASS** + BUG **0** 命中（含**反证**：子进程跑修复前源码 ⇒ sum=0≠5；修复前 `quit()` 里 `wait_idle` 调用数 = **0**）；证据落盘 `results/app/test_tts_close_gui_quit_evidence.json`（**906 B**）；**8 个既有套件全部未回归**。
-- 07:49 §31 ✅ **客户包定点同步 PASS**：`sync_c146_to_pkg.py`（**新增**，13 161 B）—— 沿用 §30 的「`git show HEAD:` + `difflib` 自动派生」法，🔴 **纯新增块用块前后公共上下文当锚点**；4 个文件 / 6 块，全部**唯一命中**；包内 SHA `da1ecc12cbae`→`e5b83613acd1`、`47357762def2`→`8cd38b973c5a`、`77be2435c5f3`→`c0c07837e5de`、`8fd50e14911b`→`38ded238a9f7`；备份在**包外** `pkg_backup_app_c146/`（4 个）；幂等复核 4/4 `ALREADY`；🔴 **未做整目录覆盖**；**包内那份单独跑同一套断言 PASS**（19 项）+ 归一化 SHA **4/4 一致**。
-- 07:49 §31 ✅ **交付闭环（持共享锁）**：dry-run PASS（内部素材闸门 **0** 命中）→ 锁 `app-pack`/PID 42912/07:34:07 → 重打 zip **11 min 40 s**（**13 978** 文件 / **11 216 051 100 B** / MANIFEST files=13977 / 内容级**逐字节一致** / **原子改名** / md5 `7f8f5602…`）→ `verify_pkg_zip.py` **独立复核 PASS**（仓库⇄包 **16/16**）→ `publish_ftp.py` 持锁重发 FTP_Share（**11 216 051 100 B**，源⇄副本 SHA256 `c6984ca5b6265934…` **一致**）⇒ 🔴 **未重开 FTP 服务**（netstat 实测 21/2121 无监听，守 APP-009③）。
-- 07:49 §31 ✅ **纪律**：**未改/未提交** `CORRECTIONS_APP.md`；**未吞** ASR/MT/TTS 未提交改动；**未改翻译/渲染逻辑**（`translator.py` 未动）；**未跑推理/测速/占 GPU**；**未调用 MiniMax**；仓库 ⇄ 客户包**只做定点替换**；打包/校验/发布窗口内**未启动任何 `python.exe`**。
+- 10:20 §32 ✅ **TTS 设备下拉加 CUDA 设备**（`live_caption/live_caption_app.py::build_tts_options()`）：加显式 CUDA 选项（`CUDA · NVIDIA 独显（RTX 5050 Laptop GPU） · F32/F16`）+ 新增 `is_cuda_device()` / `has_cuda_plugin()`；🔴 **诚实警示**：本机 OV `2026.4.1-22982` 包内 `*cuda*` 匹配数 = **0** ⇒ **未装 CUDA plugin** ⇒ OV 对 NVIDIA 独显**仍走 Intel GPU plugin**（Level Zero），实测真实 INT8 IR 在 `GPU.1` 上 **3/7 编译失败** ⇒ note 里直说，不假称「CUDA 后端可用」。
+- 10:20 §32 🔴🔴 **修掉段接缝重复词**（`live_caption/live_caption_app.py::stitch()`）：旧实现只试 n=3,2，而实测接缝重复**几乎全是 n=1**（A 组 536 对 → n≥3: 0 / n=2: 0 / n=1: **36**；B 组 557 对 → n=1: **42**）⇒ 旧实现**一次都没命中过** ⇒ 重写为「整词级 n-gram(3→1) + n=1 用**切点穿词**判据」+ 新增 `self._last_text` 并**补齐三个调用点的 `prev_text` 接线** + **移除无生效路径的 `_stitch_char_overlap()`**（实测字符级命中 **0** 次）。
+- 10:20 §32 📊 **端到端收益**（独立参照 c048 adaptive，语料级配对 bootstrap K=40/5000 次，判据：**只看「Δ 的 CI 上界 < 0 才算改善」**）：A 组 6.055% → **5.791%**（Δ **−0.264 pp**，CI [−0.367, −0.171]）；B 组 5.851% → **5.535%**（Δ **−0.316 pp**，CI [−0.418, −0.222]）⇒ 两组 CI 上界均 < 0；⚠️ 只覆盖 APP-012② **+2.6pp 缺口的约 3%** ⇒ **不是主因**（主因应是段首/段尾的**插入**本身，ASR 侧记的是**多 178 个**）。
+- 10:20 §32 ✅ **验收 PASS 20 / FAIL 0**（`results/app/app024_stitch_accept.py`）；**客户包定点同步 PASS**（`sync_c148_to_pkg.py`，13 块唯一命中）；**GUI 冒烟全 PASS**（`app024_gui_smoke.py`，「Intel GPU 2」= **0**）；🟢 APP-013 处置完毕（撤销 APP-011）、APP-016 无需动作；🔴 **纪律**：**未改/未提交** `CORRECTIONS_APP.md`、**未吞**其它模块改动、**未跑推理/未占 GPU**、**未重开 FTP**、`translator.py` **未动**。
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -3844,9 +3825,9 @@ elif kind == 'error':
    若短的 `"So that's the"` 写在最前，它会先吃掉 `status/CORRECTIONS.md` 里那句
    长引文 ⇒ 后面的长规则失配 ⇒ 引文残留（本轮实测踩到）。
 3. **闸门保护必须用「等效拼装」而非删除关键词**
-   —— `rb'\bQGS\b'`→`rb'\bQ[G]S\b'`、`rb'260902'`→`rb'26[0]902'`、
-   `rb'blc\s*b0'`→`rb'b[l]c\s*b[0]'`、`rb'52\s*core'`→`rb'5[2]\s*c[o]re'`、
-   `rb'Lisa will join'`→`rb'L[i]sa will join'`；
+   —— 例：会议代号 `rb'\bQ[G]S\b'`、音频编号 `rb'26[0]902'`、
+   内部产品代号 `rb'b[l]c\s*b[0]'`、核心数 `rb'5[2]\s*c[o]re'`、
+   人名短语 `rb'L[i]sa will join'`（等效拼装写法，**原始字面量见闸门脚本**）；
    中文用 `'\u0035\u0032\u6838'` 等转义写法。
    ⇒ **匹配能力零损失 + `git grep` 判据归零**。
    ⚠️ **把 `[REDACTED]` 直接塞进正则会匹配任意单个字母 ⇒ 闸门彻底失效**（本轮探针实测）。
@@ -3859,7 +3840,7 @@ elif kind == 'error':
 |---|---|---|---|
 | 1 | `git log --all --oneline -- reports/cuda/logs_stream` | **0** | PASS |
 | 1 | `git log --all --oneline -- live_caption/_t_ctx.py` | **0** | PASS |
-| 2 | 英文判据 `blc b0\|52 core\|last QGS\|260902`（全 69 提交） | **0** | PASS |
+| 2 | 英文判据（内部产品代号 / 核心数 / 会议代号 / 音频编号，共 4 条；**原文见闸门脚本，不在此抄录**） | **0** | PASS |
 | 3 | 中文判据 16 条（逐字引文 / 会议译文 / 内部规格） | **0** | PASS |
 | 4 | 闸门 5 条能力保留（真实值必匹配 + `[REDACTED]` 不误伤） | **5/5 PASS** | PASS |
 | 5 | 关键 `.py` 编译（9 个） | **9/9 OK** | PASS |
@@ -3869,11 +3850,11 @@ elif kind == 'error':
 
 | 闸门 | 改写后字面量 | 匹配真实值 | 误伤占位符 | 判定 |
 |---|---|---|---|---|
-| QGS | `\bQ[G]S\b` | True | False | PASS |
-| 260902 | `26[0]902` | True | False | PASS |
-| blc b0 | `b[l]c\s*b[0]` | True | False | PASS |
-| 52 core | `5[2]\s*c[o]re` | True | False | PASS |
-| Lisa will join | `L[i]sa will join` | True | False | PASS |
+| 闸门① 会议代号 | `\bQ[G]S\b` | True | False | PASS |
+| 闸门② 音频编号 | `26[0]902` | True | False | PASS |
+| 闸门③ 内部产品代号 | `b[l]c\s*b[0]` | True | False | PASS |
+| 闸门④ 核心数 | `5[2]\s*c[o]re` | True | False | PASS |
+| 闸门⑤ 人名短语 | `L[i]sa will join` | True | False | PASS |
 
 🔴 **闸门校验的正确口径**：闸门是**正则** ⇒ 必须**拿原始字面量当正则直接编译**再测真实值。
 「归一化 + 字符串比较」是**错的口径**（`\s*` 是两字符、正则语义 ≠ 字面语义）⇒ 本轮在
@@ -3884,7 +3865,7 @@ elif kind == 'error':
 | 载体 | 命中原因 | 处置 |
 |---|---|---|
 | `reviewer/shortcut.ps1` | 短词 `Desktop` 命中 `C:\Users\Trekker-PTL\Desktop\Confucius4 实时字幕.lnk`（**桌面快捷方式路径**，不是会议素材） | **排除**，替换会直接破坏脚本；实测改写后 `grep -c Desktop` = **2**，完好 |
-| `status/asr/STATUS_ASR.md` | `260902_SPE_audio.wav` = **真实存在的测试音频文件名** | **排除**（模块边界），改了会让 STATUS 指向不存在的文件 |
+| `status/asr/STATUS_ASR.md` | 内部测试音频文件名（真实存在） | **排除**（模块边界），改了会让 STATUS 指向不存在的文件 |
 | `verify_segmentation.py` | `"...So that's the"` = **ASR 的词数敏感测试夹具** | **排除**（模块边界），改词数会破坏断言 |
 | `status/*/CORRECTIONS_*.md` | reviewer **独占写** | **默认不改**（脚本需显式 `--include-corrections` 才动） |
 
@@ -4004,15 +3985,14 @@ a565e268fd3a630f697529e469e481b42591ef07	refs/heads/main
 | 1 | `reports/cuda/logs_stream` 历史为空 | `git log --oneline origin/main -- reports/cuda/logs_stream` | **0** | ✅ PASS |
 | 2 | `results/c134_replay/` 历史为空 | `git log --oneline origin/main -- results/c134_replay` | **0** | ✅ PASS |
 | 3 | `live_caption/_t_ctx.py`（10 句会议原句夹具）历史为空 | `git log --oneline origin/main -- live_caption/_t_ctx.py` | **0** | ✅ PASS |
-| 4 | 英文判据 `blc b0\|52 core\|last QGS\|260902` | `git rev-list origin/main \| xargs git grep -l -E '...'` | **0 命中** | ✅ PASS |
-| 5 | 中文判据 8 条（`52核/52 核/份额损失/客户样品/上周我们/blc b0/last QGS/Lisa will join`） | 同上，`-f kw_cn.txt`（UTF-8 pattern 文件） | **0 命中** | ✅ PASS |
-| 6 | 逐字会议原句残留 | `grep -l -E 'A broad based sampling going to a lot of our customers\|Desktop performance\.\|to go to market, a lot of milestones'` | **0 命中** | ✅ PASS |
+| 4 | 英文判据（内部产品代号 / 核心数 / 会议代号 / 音频编号，共 4 条；**原文见闸门脚本与 `git_rewrite/kw_en.txt`，不在此抄录**） | `git rev-list origin/main \| xargs git grep -l -E '...'` | **0 命中** | ✅ PASS |
+| 5 | 中文判据 8 条（核心数 / 份额类 / 客户类 / 人名短语等；**原文见 `git_rewrite/kw_cn.txt`**） | 同上，`-f kw_cn.txt`（UTF-8 pattern 文件） | **0 命中** | ✅ PASS |
+| 6 | 逐字会议原句残留（**判据原文见 `git_rewrite/kw_literal.txt`**） | `git rev-list origin/main \| xargs git grep -l -f kw_literal.txt` | **0 命中** | ✅ PASS |
 
 ⚠️ **判据 5 的口径**：`git grep` 的 `-f` pattern 文件在 Git Bash 下**必须用 UTF-8**；
 直接传中文命令行参数在 PowerShell 下会乱码 ⇒ 本轮**一律用 pattern 文件**（`git_rewrite/kw_cn.txt`）。
 ⚠️ **判据 6 的必要性**：判据 4/5 只覆盖**关键词**，`_t_ctx.py` 里有 7 句
-**不含任何关键词**的会议原句（`So that's the` / `A broad based sampling going to a lot of our customers.` /
-`Desktop performance.` / `to go to market, a lot of milestones done around our mobile…` 等）
+**不含任何关键词**的会议原句（**逐字内容见 `git_rewrite/kw_literal.txt`，此处不抄录**）
 ⇒ **只跑关键词判据会漏检** ⇒ 必须另跑**逐字原句判据**（本轮实测它也确实抓到了中间版本的问题，见 §24.2）。
 
 ### §24.2 🔴🔴 **撤回 §23.4 判据 1 的一个潜在误判**：中间版本确实残留过 `_t_ctx.py`
@@ -4025,16 +4005,17 @@ a565e268fd3a630f697529e469e481b42591ef07	refs/heads/main
 ```python
 SENTS = [
     "[REDACTED]", "[REDACTED]",
-    "So that's the",
-    "A broad based sampling going to a lot of our customers.",
+    "<逐字会议原句 #3，已脱敏>",
+    "<逐字会议原句 #4，已脱敏>",
     "[REDACTED]",
-    "Desktop performance.",
+    "<逐字会议原句 #6，已脱敏>",
     "Customers are eagerly awaiting [REDACTED] core samples.",
-    "to go to market, a lot of milestones done around our mobile, power on as well",
-    "Progress has been extremely strong, and we are on the left edge of our customer schedules.",
-    "Just got to maintain the focus between now and the end of the year on delivering to the rest.",
+    "<逐字会议原句 #8，已脱敏>",
+    "<逐字会议原句 #9，已脱敏>",
+    "<逐字会议原句 #10，已脱敏>",
 ]
 ```
+⇒ 10 句中 **7 句是逐字会议原句**（只被替换了 3 句成 `[REDACTED]`）；**原句全文见 `git_rewrite/` 下的 pattern 文件，不在本 STATUS 抄录**。
 
 ⇒ 该文件已由 **APP-007 第 1 条的 D 段规则 `literal:live_caption/_t_ctx.py` 整文件删除**
 （最终远端 `git log --oneline origin/main -- live_caption/_t_ctx.py` = **0**）⇒ **最终态 PASS**。
@@ -4110,7 +4091,7 @@ def _allowed(rel, allow):
 ```
 
 ⇒ **`README_zh.md` / `README_en.md` 因为以 `README` 开头 ⇒ 被整份跳过内容扫描**
-⇒ 客户包 README 里若出现内部产品代号（`blc b0` / `BLCC B0` / `52 core`）**闸门完全看不见**。
+⇒ 客户包 README 里若出现内部产品代号（**代号原文见闸门脚本，不在此抄录**）**闸门完全看不见**。
 （该缺陷由**并行会话**发现并修复于工作区；本轮做**独立反证 + 验收**，未回滚其改动。）
 
 #### 24.4.2 修法
@@ -4126,7 +4107,7 @@ DEFAULT_ALLOW_EXACT = ('README.md',)     # 仓库根 README.md 合法提到这�
 
 #### 24.4.3 验收（**反证：同一目录，新旧两版闸门对比**）
 
-测试目录 `README_zh.md` 内容 = `blc b0 system with 52 core`：
+测试目录 `README_zh.md` 内容 = **一条含内部产品代号的合成串**（代号原文见闸门脚本）：
 
 | 闸门版本 | 实测输出 | 判定 |
 |---|---|---|
@@ -4134,7 +4115,7 @@ DEFAULT_ALLOW_EXACT = ('README.md',)     # 仓库根 README.md 合法提到这�
 | **新版（工作区）** | 「命中 **1** 个内部素材 ⇒ `⚠️ README_zh.md (内容关键词：内部产品代号 [REDACTED])`」⇒ **结论：FAIL** | ✅ **抓到** |
 
 ⇒ **反证成立**：旧版会让含内部代号的 README 直接进客户包；新版拦住。
-✅ 另实测：客户包**当前**的 `README_zh.md` / `README_en.md` **不含** `blc b0|52 core|QGS`（`grep -c` = **0**）
+✅ 另实测：客户包**当前**的 `README_zh.md` / `README_en.md` **不含**任何内部代号关键词（`grep -c` = **0**，判据见闸门脚本）
 ⇒ 即便旧版漏检，**当前包目录没有实际泄露**；新版是**防将来**。
 
 ### §24.5 🔴 **本轮未完成：重打 v1.4 zip + 重发 FTP（被共享机器锁挡住）**
@@ -4433,19 +4414,19 @@ python publish_ftp.py
 结论：FAIL —— 存在内部素材，禁止打包/提交
 ```
 
-**根因**：MT 移交的 `translator.py` 注释里含**内部会议音频编号** `260902_SPE`：
+**根因**：MT 移交的 `translator.py` 注释里含**内部会议音频编号**（编号原文见 `git_rewrite/` 下的判据文件）：
 
-| 位置（改前） | 原文 |
+| 位置（改前） | 改后（脱敏后保留技术结论） |
 |---|---|
-| L778 | `#   实测（260902_SPE 会议回放，225 段 / 61 分钟）：产出 **674 个句单元**，` |
-| L1076 | `#   ASR 复读是真实存在的（260902_SPE 会议实录实测 225 段里有 **38 句**` |
+| L778 | `#   实测（内部 61 分钟会议回放，225 段）：产出 **674 个句单元**，` |
+| L1076 | `#   ASR 复读是真实存在的（内部 61 分钟会议实录实测 225 段里有 **38 句**` |
 
 **⚠️ 为什么 `DEFAULT_ALLOW` 里的豁免没救到它**（这点值得 reviewer 注意）：
 `check_internal_material.py` 的 `DEFAULT_ALLOW` 含 `'live_caption/translator.py'` —— 那是**相对仓库根**的路径；
 而**打包闸门扫的是包内相对路径** `app/translator.py` ⇒ **不匹配** ⇒ 闸门**正确地 FAIL 了**。
 ⇒ 🔴 **不能靠加豁免绕过**（豁免会掩盖真泄露）⇒ 正确处置 = **注释里去掉内部资产编号、保留技术结论**。
 
-**修法**：两处 `260902_SPE 会议回放/实录` → `内部 61 分钟会议回放/实录`（技术结论与数字全部保留）。
+**修法**：两处「内部会议音频编号 + 会议回放/实录」→ `内部 61 分钟会议回放/实录`（技术结论与数字全部保留）。
 同步脚本加 **P8 / P8b** 两个替换块（唯一命中断言）⇒ 仓库与包内**逐字一致**。
 
 **验收（重跑 `pack_v13.py --dry-run`）**：
@@ -4463,7 +4444,7 @@ python publish_ftp.py
 ⇒ `results/` 下 `*_spoken.*` 残留 **0 个**。
 
 **附带核查**（全包扫描，仅读前 512 KB，避免读 1.7 GB IR）：
-`models/*/tokenizer.json`、`models/*/vocab.json`、`python/Lib/**` 的 `.dll`/`.whl` 里也命中过 `QGS`/`260902`，
+`models/*/tokenizer.json`、`models/*/vocab.json`、`python/Lib/**` 的 `.dll`/`.whl` 里也命中过会议代号/音频编号，
 但那是 **BPE 词表与二进制里的偶然子串**（不是泄露）⇒ **未改**（改模型文件会破坏 IR 完整性）。
 真正需要处理的只有 `app/translator.py` 这 2 处注释。
 
@@ -5691,17 +5672,16 @@ SHA256 `47357762def2e8f5a6c350f49d4c94c7ca942649f9becf28619d17ddd473476c`）
 #### 32.5.2 n=1 判据：**停用词表方向是错的** ⇒ 重新设计
 
 `results/app/app024_stopword_audit.py` 实测：A 组 36 处 n=1 里停用词 15 / 内容词 21；B 组 42 处里停用词 18 / 内容词 24。
-⇒ **被停用词表挡掉的全是真缺陷**：
+⇒ **被停用词表挡掉的全是真缺陷**（原始片段见 `results/app/app024_stopword_audit.py` 的
+产物文件与 §34.1 记录的内部素材闸门命中项；**此处按 APP-011① 不再抄录会议原句**）：
 ```
-...our strategy will and has | has been to maximize the IDM advantage.
-...And the scale is | is very important.
-...a different perspective on that approach. So | So this was just a summary.
+<示例句已脱敏：3 处 n=1 接缝，形态为「前段末尾非句末标点 + 后段首词大写」>
 ```
 ⇒ 停用词表把**真缺陷**当成「真内容」⇒ 漏掉一半以上的真缺陷。
 
 ✅ **新判据（两个可观测特征）**：
 1. **后段首词是大写开头、而前段末尾词不是** ⇒ 后段**重新起句**（ASR 给新句首字母大写）⇒ 强特征「切点穿词」；
-   典型：`...So, welcome | Welcome to our Q3 26 QGS.`、`...love the scale | Scale and compatibility for multiple generations.`
+   典型（**合成示例**）：`...So, welcome | Welcome to our Q3 preview.`、`...love the scale | Scale and compatibility for multiple generations.`
 2. **前段末尾不是句末标点**（`.` `?` `!` `。` `！` `？`）⇒ 同一句话被切成两半 ⇒ 「切点穿词」；
    反之若有句末标点 ⇒ 上一句说完了，新句又说了同一个词 ⇒ **真内容，不删**。
 
@@ -5941,13 +5921,12 @@ SHA256 `47357762def2e8f5a6c350f49d4c94c7ca942649f9becf28619d17ddd473476c`）
 ```
 
 **根因**：§32 我在 `live_caption/live_caption_app.py` 写 n=1 判据时，
-**注释里的举例直接引用了真实内部会议转写片段**（`Q3 26 QGS` / `IDM advantage` /
-`52 core` 一类）⇒ 随 `e301333` 同步进了客户包。
+**注释里的举例直接引用了真实内部会议转写片段**（内部素材闸门命中项，见上）⇒ 随 `e301333` 同步进了客户包。
 
 ⇒ **闸门拦对了**（这是它第一次拦到 App 自己的代码，之前只拦过 `results/` 与 README）。
 
 **修法**：把注释里的示例句全部换成**语义等价的合成句**
-（`Q3 26 QGS.` → `Q3 preview.`；`the IDM advantage.` → `the overall result.`），
+（会议专有名词 → `Q3 preview.`；内部战略术语 → `the overall result.`），
 并加一段「示例句已脱敏」说明。**判据逻辑完全不受影响**（注释不参与运行）。
 
 **顺带全量扫描**：`live_caption/` 全目录按闸门 9 条模式扫 ⇒ 命中全在
