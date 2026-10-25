@@ -1,10 +1,11 @@
 # STATUS_ASR
 last_ack: ASR-009
-更新时间: 2026-10-25 16:40
-当前任务: **ASR-006 §5② / §6 + ASR-007 / ASR-008 / ASR-009 已执行**。① ✅★ **「0.6B INT4 不可行」被证伪** —— `INT4_ASYM g128 + AWQ + SE`（backup INT8_ASYM，lm_head 保 FP16）**文本正常**：5 分钟切片 **882 词 vs INT8 928 词**，定长 top1 **69.44% vs INT8 70.83%**、top5 **85.71% vs 87.90%** ⇒ **INT4 在 0.6B 上可用**；② 🔴 **照搬 R2T2 的「INT4_SYM 按通道 + AWQ + SE」在 0.6B 上崩坏**（切片仅 **98 词**、定长 top1 **16.27%**）⇒ **配方必须换**，差异来自模型规模/宽度；③ ✅ **P3 INT8 61 分钟全长质量数据已落盘**（`results/p3_p3_61min_gpu_int8/`：**553 段 / 11825 词 / rule 518+34+1 / 段长 p50 6.4s p95 8.96s max 12.16s / 跑满 3671.19 s** ⇒ 满足 ASR-006 §3「跑整个 wav」）；④ ✅ **ASR-006 §2 切点重复诊断已完成**（并发会话产出）：rule1 占全部切点 **93.67%**、「切在词中间」**9.54%**、**静音内切点 0.0%** ⇒ 「重复词去重」路线天花板 **≤0.963pp**（仅覆盖 reviewer 观测的 178 个多余插入的 **≤61.8%**）⇒ **接缝去重不是主因**；⑤ ✅ **ASR-007 对比矩阵已更新**（`qwen3asr_06b/reports/compare/` **17 个文件**，新增 2 个 INT4 格子 + 更新 INT8/INT4 汇总）；⑥ ⏳ **规范锁路径持锁重跑在等锁**（`app` PID 32652 存活）
-阻塞 / 待用户决定: ① 🔴 **0.6B 的 WER 全部空缺**（`wer_pct: null`）—— 本模块**不自算 WER**（ASR-002 铁律）⇒ 需 reviewer 用本机 baseline + 全局对齐复算 **INT8 / INT4_ASYM 的 61 分钟全长 WER**（对照 0.6B 流式参照 10.97%、R2T2 App 路径 B 10.58%），并裁定 **INT4 是否值得为 0.6B 做**；② ⏳ **0.6B INT8 61 分钟持锁重跑未拿到计时**（规范锁被 `app` 占用，16:23 起等待中）⇒ 交付级 RTF / 首字延迟 / 内存**仍全部作废**（现有都是 n=1 或被干扰）；③ 🔴 **0.6B 在 NPU 上仍 BLOCKED**（输出复读 prompt；`ov-dec-06b-past-int8` stateful IR 在 NPU 编译失败：`to_shape was called on a dynamic shape`）⇒ **NPU 格写明原因，不硬凑**；④ ⚠️ **「提高 rule1 静音要求」必须改代码**（`min_silence_ms=300` / `SIL_LOOKBACK_SEC=3.0` 在 `live_caption_app.py` 里硬编码、**无 env**）⇒ **属 App 模块**（ASR-003 边界），本模块只给离线指标（req≥500ms ⇒ 51.69% 的 rule1 切点不再触发）；⑤ ⚠️ **reviewer 指定的 R2T2 R2 标定点未跑**（同口径 teacher-forcing top1）；⑥ ⚠️ **P0 参照重跑未做**（P0 流式参照本身少跑 11.19 s）；⑦ ⚠️ **设备内存（iGPU/NPU）未测**（`mem_device` 均为「未匹配到设备」）；⑧ 🔴 **锁路径纪律**：只能用 `C:\Users\Trekker-PTL\shared\MACHINE_LOCK`（仓库内相对路径会让 4 模块互锁失效，见 TTS `NOTICE_tts_lock_path_20261025.md`）⇒ 本轮已新写 `scripts/p3_run_with_lock.py`（双格式写锁 / 多编码读锁 / finally 删锁）
+更新时间: 2026-10-25 16:44
+当前任务: **ASR-006 §5② / §6 + ASR-007 / ASR-008 / ASR-009 已执行**（§20）。① ✅★ **「0.6B INT4 不可行」被证伪** —— `INT4_ASYM g128 + AWQ + SE`（backup INT8_ASYM，lm_head 保 FP16）**文本正常**：5 分钟切片 **882 词 vs INT8 928 词**，定长 top1 **69.44% vs INT8 70.83%**、top5 **85.71% vs 87.90%** ⇒ **INT4 在 0.6B 上可用**；② 🔴 **照搬 R2T2 的「INT4_SYM 按通道 + AWQ + SE」在 0.6B 上崩坏**（切片仅 **98 词**、定长 top1 **16.27%**）⇒ **配方必须换**，差异来自模型规模/宽度；③ ✅ **P3 INT8 61 分钟全长质量数据已落盘**（`results/p3_p3_61min_gpu_int8/`：**553 段 / 11825 词 / rule 518+34+1 / 段长 p50 6.4s p95 8.96s max 12.16s / 跑满 3671.19 s** ⇒ 满足 ASR-006 §3「跑整个 wav」）；④ ✅ **ASR-006 §2 切点重复诊断已完成**（并发会话产出）：rule1 占全部切点 **93.67%**、「切在词中间」**9.54%**、**静音内切点 0.0%** ⇒ 「重复词去重」路线天花板 **≤0.963pp**（仅覆盖 reviewer 观测的 178 个多余插入的 **≤61.8%**）⇒ **接缝去重不是主因**；⑤ ✅ **ASR-007 对比矩阵已更新**（`qwen3asr_06b/reports/compare/` **17 个文件**，新增 2 个 INT4 格子 + 更新 INT8/INT4 汇总）；⑥ 🔴 **锁脚本自身 4 个缺陷已实测修复**（§21）：进程名过滤会**误回收别人活锁** / 「锁早于开机时间」未实现 / 锁里写错 PID / 删锁不校验归属 ⇒ 已全部修好并通过 3 项隔离测试；⑦ ⏳ **规范锁路径持锁重跑仍在等 `app`**（PID 32652 **实测存活**，`app037_cp3_abba_v15.py` `--quiet-timeout 3600`）⇒ 交付级 RTF **仍空缺**
+阻塞 / 待用户决定: ① 🔴 **0.6B 的 WER 全部空缺**（`wer_pct: null`）—— 本模块**不自算 WER**（ASR-002 铁律）⇒ 需 reviewer 用本机 baseline + 全局对齐复算 **INT8 / INT4_ASYM 的 61 分钟全长 WER**（对照 0.6B 流式参照 10.97%、R2T2 App 路径 B 10.58%），并裁定 **INT4 是否值得为 0.6B 做**；② ⏳ **0.6B INT8 61 分钟持锁重跑未拿到计时**（规范锁被 `app` PID 32652 占用，16:44 重启等待器）⇒ 交付级 RTF / 首字延迟 / 内存**仍全部作废**（现有都是 n=1 或被干扰）；③ 🔴 **0.6B 在 NPU 上仍 BLOCKED**（输出复读 prompt；`ov-dec-06b-past-int8` stateful IR 在 NPU 编译失败：`to_shape was called on a dynamic shape`）⇒ **NPU 格写明原因，不硬凑**；④ ⚠️ **「提高 rule1 静音要求」必须改代码**（`min_silence_ms=300` / `SIL_LOOKBACK_SEC=3.0` 在 `live_caption_app.py` 里硬编码、**无 env**）⇒ **属 App 模块**（ASR-003 边界），本模块只给离线指标（req≥500ms ⇒ 51.69% 的 rule1 切点不再触发）；⑤ ⚠️ **reviewer 指定的 R2T2 R2 标定点未跑**（同口径 teacher-forcing top1）；⑥ ⚠️ **P0 参照重跑未做**（P0 流式参照本身少跑 11.19 s）；⑦ ⚠️ **设备内存（iGPU/NPU）未测**（`mem_device` 均为「未匹配到设备」）；⑧ 🔴 **锁协议教训（§21）**：① 判活**只看 PID**、**绝不加进程名过滤**（App 有 `pythonw.exe` 持锁）；② 「锁早于开机时间」必须真实现；③ 锁里写**真正占设备的子进程 PID**；④ 删锁**校验归属**；⑤ ⚠️ **Git Bash 里 `tasklist /FI` 可能返回空** ⇒ 判活要用 `Get-Process`/`Get-CimInstance` 复核，否则会把**活着的持锁者**当成陈旧锁回收
 
 ## 最近更新
+- 2026-10-25 16:44 **锁脚本自身 4 个缺陷实测修复（§21）+ 持锁重跑仍在等 `app`（§21）**：① 🔴 **缺陷①（最危险）**：`pid_alive` 原带进程名过滤（`and 'python' in txt`）⇒ App 的 `pythonw.exe`（`live_caption_app.py`）等**非 python 持锁者会被判成陈旧锁而回收** ⇒ **破坏别人的计时** ⇒ 已改为**只看 PID 是否在**；② 🔴 **缺陷②**：协议里「锁早于开机时间 ⇒ 可回收」**根本没实现**（`boot_time()` 定义了从未调用）⇒ 异常退出的锁会**永久阻塞**其它模块 ⇒ 已补实现；③ 🔴 **缺陷③**：锁里写的是**包装器 PID**（`subprocess.run` ⇒ 写 `os.getpid()`）⇒ 包装器被杀则**子进程变孤儿继续占 GPU**，而别人会回收锁 ⇒ **计时互相污染** ⇒ 已改 `Popen` **先取真实子进程 PID 再写锁**（另存 `wrapper_pid`）；④ 🔴 **缺陷④**：删锁**不校验归属** ⇒ 会误删别人后来拿到的锁 ⇒ 已加 `release_lock(expect_pid=…)`，回收陈旧锁时也校验 PID（防竞态）；⑤ ✅ **3 项隔离测试全过**（活锁不回收 / 非我锁不删 / 陈旧锁可回收，均未碰规范锁）；⑥ ⏳ **持锁重跑仍被占**：规范锁 = `app PID 32652 started 2026-10-25 16:23:32`，**实测该进程存活**（`app037_cp3_abba_v15.py --quiet-timeout 3600`）⇒ **等待是正确行为**；⚠️ 记录排查陷阱：**Git Bash 里 `tasklist /FI` 可能返回空**（本轮一度误判「进程已退出」）⇒ 判活必须用 `Get-Process`/`Get-CimInstance` 复核，否则会**误回收活锁**；⇒ **交付级 RTF 仍空缺**，不冒充已交付
 - 2026-10-25 16:40 **INT4 补测完成、「0.6B INT4 不可行」被证伪（§20）**：① ✅★ **`INT4_ASYM g128 + AWQ + SE`（backup INT8_ASYM，lm_head 保 FP16）文本正常** —— 新配方量化 `results/p2_quant_decoder_int4__asymg128.json`（15:58，2153 B，`recipe`=INT4_ASYM g128、`dst_mib`=**518.3**、`n_i4`=**392**、`ignored_scope`=lm_head ✔）；5 分钟切片（720–1020 s）**882 词 vs INT8 928 词**、定长 top1 **69.44% vs 70.83%**、top5 **85.71% vs 87.90%** ⇒ **INT4 在 0.6B 上可用**；② 🔴 **INT4_SYM 按通道（R2T2 R2 照搬）在 0.6B 上崩坏**（切片 **98 词**、定长 top1 **16.27%**、top5 **28.77%**）⇒ **照搬 R2T2 配方不成立**，差异来自模型规模/宽度；③ ✅ **P3 INT8 61 分钟全长质量数据已落盘**（`results/p3_p3_61min_gpu_int8/`，4 文件）：**553 段 / 11825 词 / rule 518+34+1 / 段长 p50 6.4s p95 8.96s max 12.16s / covered 3671.19 s 且 `complete`=true**；④ 🔴 **该次计时作废且锁路径用错**（写在仓库内 `shared/MACHINE_LOCK` ⇒ 互锁失效，TTS 已实测记录）⇒ 已回收孤儿锁 + 新写 `scripts/p3_run_with_lock.py`（只用规范路径）⇒ **规范路径持锁重跑在等 `app` 锁**；⑤ ✅ **ASR-006 §2 切点诊断完成**（并发会话，16:35）：rule1 占切点 **93.67%**、「切在词中间」**9.54%**、**静音内 0.0%**、去重收益上界 **≤0.963pp**（仅覆盖 178 个多余插入的 **≤61.8%**）⇒ **接缝去重不是主因**；⑥ ✅ **ASR-007 矩阵更新**（`reports/compare/` 17 文件，新增 2 个 INT4 格子）
 - 2026-10-25 13:40 **P3 根因大反转（§19）**：① 🔴 **撤回「INT8 decoder 量化损坏」**（§18.3）—— 10 层静态比对**全部相同**（**1523 个算子实例 attrs 零差异** / 341 个 3D-4D 常量**多重集**相同 / 196 个 int8 权重重算 cos 0.999929 / 位置 id **运行时**相同 / 张量精度分布相同 / .bin 存储精度全 native）；② 🔴 **撤回「FP16 端到端必崩、INT8 正常」**（§18.3/§18.4）—— `p3_diag_surgery.json` 显示**固定 6.4s + 无 prefix** 时 **FP16 10 步全程正常英文**（`all`→` right`→` good`→` morning`→` everyone`→…），而 **INT8 反而重复退化**（`.`↔`Good`/` morning` 循环）⇒ **模型都没坏，是输入条件差异**；③ 🔴 **撤回 §18.2 的 teacher-forcing 判据**（target 序列本身 = **4824 'ь' 连续 20 次** ⇒ FP16 的 100% 是**自一致 tautology**）；④ ✅ **右对齐结论仍成立且已补证据**（`p3_diag_align.json` 左对齐两图**都给 `<|im_end|>`**；`p3_diag_pos_sem.json` 证明 IR **不是恒取 511** ⇒ 内容落点会改 logits）；⑤ 🔴 **「logits 全向量 cos」在 151936 维稀疏尖峰上不可用**（INT8 只在 margin 0.77/0.027 的 2 个位置翻转，其余 10/12 命中且 margin 很大）；⑥ ⚠️ **P3 长跑 timing_valid=false**（机器锁在启动前已被 `mt` 占用）⇒ 质量可用、计时作废
 - 2026-10-25 12:12 **P3 重大发现（§18）**：① ✅ **NPU 阻塞解除**（encoder 静态化 → NPU 编译 4 IR 全过除 stateful decoder）；② ✅★ **OV decoder IR 恒取位置 511 ⇒ 必须右对齐**（左对齐产出 padding 区 logits；OV/torch 都给 `all` vs `<|im_end|>`，左右 cos −0.154）⇒ **P1 的 teacher-forcing 判据无效** ⇒ **§15.3 的 enc cos 0.978 / dec cos 0.975 / top1 100% 全部作废**；③ 🔴 **INT8 decoder 在 CPU 上与 FP16 的 logits cos ≈ 0**（CPU −0.000094 / GPU −0.139394 / NPU −0.129165）⇒ **decoder 量化损坏**（encoder 完好，cos≥0.9997）；④ 🔴 **GPU 上 FP16 decoder 反而崩**（端到端矩阵）⇒ 两个独立问题；⑤ ✅ **ASR-006 §5 第③点核实通过**（fake-quant 未误量化 tied 权重 ⇒ 旧数据有效）；⑥ **rule1 接缝去重已由 App 模块完成** ⇒ 本模块该诊断降级为可选
@@ -19,7 +20,6 @@ last_ack: ASR-009
 - 10:44 **ASR-004 ① 在跑**：61 分钟真实 Segmenter + GPU INT8 A/B 逐段转写（`reports/asr004_ab/`，脚本 `results/asr_diag/asr004_ab_transcribe.py`）；前一次 09:36 启动的进程已死无产物 ⇒ 本次重启，日志 `results/asr_diag/asr004_ab_full.log`
 - 10:36 **ASR-004 ② 完成**（C-108 空段校验，61 分钟 × hang 0.8/0.6/0.5 × A/B × gain 1.0/0.3/0.1，wall 326.2s）：**gain=1.0 三档空段数 B ≤ A**（hang0.8: A 1→B 5、hang0.6: A 1→B 8、hang0.5: A 1→B 8，**绝对口径 B > A**；**相对口径 B 全部为 0 ≤ A 的 4/7/8**）。**低电平档**：gain=0.3 A 绝对空段 74~75、B 276~357（绝对口径在低电平下天然失真）；**相对口径 A 1 / B 0**。gain=0.1 相对口径 A 0 / B 0。产物 `results/asr_diag/asr004_c108_empty.json`
 - 09:17 **收到 ASR-004**（reviewer 08:56）：§10 新切段规则已随 v1.4 交付（App 提交 d0c146e），但**缺 61 分钟全长质量验证** ⇒ 补 ① 61 分钟真实 Segmenter + GPU INT8 **A/B 逐段转写**（A=旧行为/B=新行为，**WER 交 reviewer 算**）② **C-108 空段校验 hang 0.8/0.6/0.5 三档 × A/B**（gain 0.3/0.1 补相对口径空段数）③ 产物写入 §12。顺带更正：§5.9 标题 12:00→**11:14**（ebc6107 实际提交时间）、开头更新时间改用**实际时钟**
-- 15:05 **§11 回环补测 + 修正 §9.3 表述**：绝对判据失效的真正条件是「该段音频没有 ≥800ms 连续静音」（**素材内容决定**），不是「回环这个音源」。D1（13:24，你报告现象那段）静音帧 12.2%、≥800ms 静音**仅 1 个** ⇒ 基线 17.28s/62.5%；D2（当前播放）静音帧 34.3%、≥800ms 静音**11 个** ⇒ **基线本身 6.40s/0%**。**新判据两种素材都成立**（62.5%→6.2% / 0%→0%）⇒ 普适
 ## §1 交付基线（ASR-001 指定；**按 ASR-002 修正为两列口径**）
 
 ⚠️ **口径警告（ASR-002）**：8.17% / 7.95% / 0.772 **来自两套不同计分器，不能放在同一列比较**。
@@ -2568,3 +2568,63 @@ req≥1000 ms ⇒ 97.61%）
 5. **准确率作业不需要锁；计时作业必须持规范锁**（本轮两者的区分已严格落实）。
 6. **不跑 CPU 推理**（CPU 只用于单组件诊断，如 NNCF 量化）。
 7. **不改 `live_caption/`**（ASR-003 铁律）：本轮只 `import` 其中的 `Segmenter` 做只读重放。
+## §21 锁协议脚本自身的 4 个缺陷（本轮实测修复）+ 持锁重跑仍被 App 占用（2026-10-25 16:44）
+
+> 本章记录**本轮新写的** `qwen3asr_06b/scripts/p3_run_with_lock.py` 自身的缺陷。
+> 这些缺陷**会让 4 模块互锁失效或破坏别人的计时** ⇒ 比「没写锁脚本」更危险。
+
+### 21.1 缺陷①（🔴 最危险）：`pid_alive` 带了进程名过滤 ⇒ 会**误回收别人活着的锁**
+原实现：
+```python
+txt = out.stdout.decode('gbk', errors='replace')
+return str(pid) in txt and 'python' in txt.lower()      # ← 错
+```
+**问题**：锁的持有者**不一定是 python 进程** ——
+App 侧实测同时存在 `python.exe`（作业）与 `pythonw.exe`（`live_caption_app.py`），
+MT/TTS 也可能是 Node / cmd / `pythonw`。
+⇒ 只要持锁者不是名字含 `python` 的进程，就会被**判成「PID 已不在」⇒ 回收它的锁**
+⇒ **别人正在跑的计时作业失去保护 ⇒ 多个模块同时占 GPU ⇒ 计时全部作废**。
+**修复**：**只看 PID 是否在**，不加任何进程名过滤：
+```python
+return re.search(rf'"[^"]*","{pid}"', txt) is not None
+```
+
+### 21.2 缺陷②：协议里「锁早于开机时间 ⇒ 可回收」**根本没实现**
+`boot_time()` 定义了但**从未被调用**（`lock_is_stale()` 里没有它）
+⇒ **上次异常退出留下的锁会永久阻塞其它模块**（只要那个 PID 后来被别的进程复用，反而更糟）。
+**修复**：补实现 —— 锁的 `started` 早于「now − 开机时长」⇒ 该 PID 属上一次会话 ⇒ 必然已死 ⇒ 可回收。
+
+### 21.3 缺陷③（🔴）：锁里写的是**包装器 PID**，不是**真正占设备的进程 PID**
+原实现用 `subprocess.run(argv)` ⇒ 锁里写 `os.getpid()`（包装器自己）。
+**问题**：包装器若被杀 / 被回收，**子进程会变成孤儿继续占 GPU**，
+而别的模块看到「锁的 PID 已死」⇒ 回收锁 ⇒ **孤儿进程仍在跑 GPU** ⇒ **计时互相污染**。
+**修复**：
+* 改用 `subprocess.Popen(argv)`，**先起子进程拿到真实 PID，再写锁**；
+* 锁里的 `pid` = **子进程 PID**（真正占设备那个），另写 `wrapper_pid` 供人工排查。
+
+### 21.4 缺陷④：删锁**不校验归属** ⇒ 会误删别人后来拿到的锁
+**修复**：`release_lock(path, expect_pid=…)` ⇒ **只在锁里的 PID 还是自己时才删**；
+回收陈旧锁时也传 `expect_pid=陈旧PID` ⇒ 若判陈旧到删锁之间持锁者恰好重启并写了新锁，
+则**不删**、重新等待（避免竞态误删）。
+
+### 21.5 隔离测试（3 项全过，未碰规范锁）
+| 用例 | 期望 | 实测 |
+|---|---|---|
+| T1 活锁（PID=自己） | 不判陈旧；可正常释放 | `stale=False` / `release=True` ✔ |
+| T2 锁属于别人（`expect_pid` 不匹配） | **不删** | `release=False`，文件仍在 ✔ |
+| T3 陈旧锁（`started=2000-01-01`） | 判陈旧且可回收 | `stale=True` / `release=True` ✔ |
+
+### 21.6 ⏳ 持锁重跑仍**在等锁**（本轮未拿到交付级计时）
+* 16:34 首次启动的等待器用的是**缺陷版脚本** ⇒ 已停；
+* 16:44 用**修复版**重启（后台任务 `6WmBa3`，日志 `logs/p3_61min_gpu_int8_locked.log`）。
+* 规范锁 `C:\Users\Trekker-PTL\shared\MACHINE_LOCK` 当前内容：
+  `app PID 32652 started 2026-10-25 16:23:32`
+  ⇒ 持锁进程 **确实存活**（`tasklist` 返回 `"python.exe","32652",…`；
+  命令行 = `results/app/app037_cp3_abba_v15.py --pkg …/Confucius4_LiveCaption_v1.5
+  --seconds 60 --quiet-seconds 45 --quiet-timeout 3600 --lock-timeout 10800`）
+  ⇒ **等待是正确行为**，不是脚本缺陷。
+* ⚠️ 记录一个**排查陷阱**：在 Git Bash 里跑 `tasklist /FI "PID eq N"` **可能返回空**
+  （本次就误判成「进程已退出」）⇒ **判活必须用 `Get-Process` / `Get-CimInstance` 复核**，
+  否则会把**活着的持锁者当成陈旧锁回收**。
+* ⇒ **本轮仍未拿到 0.6B INT8 的交付级 RTF / 首字延迟 / 内存**
+  ⇒ STATUS 头部第 ⑥ 项与 §20.7 第 1 行**保持「在跑」**，不冒充已交付。
