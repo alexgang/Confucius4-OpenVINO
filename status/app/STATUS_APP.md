@@ -1,10 +1,28 @@
 # STATUS_APP
-last_ack: APP-010
-更新时间: 2026-10-25 07:49
-当前任务: **巡检（无新纠偏条目，第 15 次同一口径）+ 🔴🔴 修掉 App 侧 TTS「`close()` 不计丢句」与「GUI 退出丢最后一句译文」⇒ 不变式被破坏 / 最后一句译文**永不显示也不朗读**（§31）**：`last_ack` = **APP-010**（本轮**无新条目待执行**；`CORRECTIONS_APP.md` SHA256 `8ccf661c…` / 27 413 B / mtime 2026-10-24 17:01:54 ⇒ `## APP-xxx` 10 条、最大 APP-010，**只读零改动**）⇒ 🔴 本轮闭环 App 侧**三个真实承重缺陷**：① 🔴🔴 `live_caption/tts_service.py::close()` **不计丢句** ⇒ 直接杀 worker ⇒ `pending`/`_inflight`/`_queue` 里**已提交但永远等不到 `played`/`error`** 的句子**静默消失** ⇒ 违反 §29 的不变式 `n_played+n_dropped==n_submitted`（实测修复前 sum=0 ≠ submitted=5）⇒ GUI 的**四条**路径（停 TTS / 换设备 / 换音色 / 退出）**每走一次就丢一批记账**，用户看到的「丢句+已播」**少于**「提交」且**不知道**丢了几句 ⇒ 修法：与「崩溃清理」路径做**同样的**清理 + **计丢句**（`_queue` 的 jid ⊆ `pending` ⇒ 只计一次）；② 🔴 `close()` **不得**清 `_dropped_ids`（worker 此刻**还活着**、quit 在清理**之后**才发 ⇒ 可能回 `played` ⇒ 提前清了就又成「丢了+播了」双记，§30 修的正是这个）；③ 🔴🔴 `live_caption/live_caption_app.py::App.quit()` **缺 `mt.wait_idle()`** ⇒ `mt.flush()` 只是**入队**、翻译在后台线程异步做 ⇒ outbox 还是空的 ⇒ 最后一句**既不显示也不朗读**，随后 `mt.close()` 把工作线程停掉 ⇒ **这一句永远丢**（CLI 侧 `run_cli` 收尾**有** `wait_idle(180)`，GUI 侧漏了 ⇒ 两边不一致）⇒ 修法：**有条件**地 `wait_idle(180)`（守卫 = `flushed and self.mt.pending` ⇒ 否则 `state=='loading'` 时**白等 180 s** ⇒ 用户点关闭后界面卡死）且**只 flush 一次**；④ ✅ §29.7 的两处 **U+FFFD 乱码**（`device_config.py` L251 / `audio_source.py` L12，GBK 字节当 UTF-8 解码）本轮**一次性修掉** ⇒ 🔴 **撤回 §29.7 的「提请 reviewer 裁定」**⇒ 验收 **REAL 20/20 PASS + BUG 0 命中 ⇒ PASS**（含**反证**：子进程跑修复前那份源码 ⇒ sum=0 ≠ 5；修复前 `quit()` 里 `wait_idle` 调用数 = **0**）+ **8 个既有套件全部未回归**（§20/§21/§22/§29/§30 等）⇒ 交付闭环：dry-run PASS（内部素材闸门 **0** 命中）→ 持共享锁 `app-pack`/PID 42912/07:34:07 重打 zip **11 min 40 s**（**13 978** 文件 / **11 216 051 100 B** / MANIFEST files=13977 / 内容级**逐字节一致** / **原子改名**）→ `verify_pkg_zip.py` **独立复核 PASS**（zip⇄包 13 978 一致 / 仓库⇄包 **16/16**）→ `publish_ftp.py` 持锁重发 FTP_Share（**11 216 051 100 B**，源⇄副本 SHA256 `c6984ca5b6265934…` **一致**）⇒ 🔴 **未重开 FTP 服务**（守 APP-009③，netstat 实测 21/2121 无监听）；🔴 **同步脚本本轮补强**：`sync_c146_to_pkg.py` 沿用 §30 的「`git show HEAD:` + `difflib` 自动派生」法，🔴 **纯新增块不能用新块内部的行当锚点**（那些行在包内**根本不存在**）⇒ 必须用块**前后各一行**的公共上下文定位 ⇒ **未做整目录覆盖**；**对包内那份单独跑同一套断言 PASS**（19 项）+ 包内⇄仓库**归一化 SHA256 4/4 一致** ⇒ 本轮**未改任何翻译/渲染逻辑**；⏳ **仍等 reviewer**：渲染层三处（`_mt_of`/`_save_text`/CLI `run_cli` 改按 `mt_units()`）**未改**（§26.6 三问备齐；🔴 MT 通知 8 **verdict 全部不变**、**未推翻**该判断）、APP-006 第 3~7 步等复核
-阻塞 / 待用户决定: ① 🟢 **交付 zip 已闭环并随 §31 重打**（§31.8）：`Confucius4_LiveCaption_v1.4.zip` = **11 216 051 100 B**（2026-10-25 07:43，SHA256 `c6984ca5b6265934…`）**13 978** 条目 / 内容级 **13 978 文件逐字节一致** / 独立复核 PASS / 仓库⇄包 16/16 / `testzip()`=None；`FTP_Share/` 副本**同字节同 SHA256**（07:47）⇒ **§26 头部「交付 zip 是坏的」已在 §27.1.6 更正**；② 🔴 **渲染层改按 `mt_units()` 逐句渲染**（MT §4.3 三处）—— **本轮仍未改**，等 reviewer 裁定（§26.6 三问；行数 436 → 1424，3.3×；🔴 MT 通知 8 更正了 Δ 数值但 **verdict 全部不变** ⇒ 未推翻）；③ ⛔ **GitHub 旧 SHA 的 gc** 未做 ⇒ 待用户决定；④ ⛔ **APP-009② 的 MT UNIT 方案 A/B/C/D 结论**仍在 v4 复算 ⇒ 渲染层改动还等它定案；⑤ ⛔ **v1.4 TTS 音质**未达标（TTS-009/TTS-010）⇒ TTS 保持实验性、默认关闭（包内已标注）；⑥ ⛔ **包体 10.45 GiB** 优化未做；⑦ ⛔ **V7 残句代价**待用户确认（链首段半句残句 12 段语料 5 行/58 字）；⑧ ✅ ~~**§29.7 两处 U+FFFD 乱码**~~ ⇒ **2026-10-25 §31.4 已修掉**（`device_config.py` L251 / `audio_source.py` L12 ⇒ U+FFFD 计数 = 0）⇒ **不再需要裁定**
+last_ack: APP-016
+更新时间: 2026-10-25 10:20
+当前任务: **巡检（`CORRECTIONS_APP.md` 有 **6 条新条目** APP-011~APP-016）+ ✅ 用户反馈「设备下拉出现不存在的 **Intel GPU 2**」已修 + ✅ 「TTS 设备下拉加 CUDA 设备」已加 + 🔴🔴 修掉 App 实时路径「切点穿词 ⇒ 段接缝重复词」（§32）**：`last_ack` = **APP-016**（本轮**已执行 6 条**：APP-011 ⇒ **按 APP-013 撤销**、不做二次改写；APP-012② ⇒ **§32.5 已修**（接缝去重）；APP-013 ⇒ **恢复正常提交**；APP-014 ⇒ **TTS 转正式 + 默认开启 + 重打 v1.5**（⏳ v1.5 **尚未打**，见 §32.7）；APP-015 ⇒ **MT 半句方案 C**（等 `shared\NOTICE_mt_to_app_*.md`）；APP-016 ⇒ **0.6B 只作实验，不进包**（已核：包内本就没有 0.6B））；`CORRECTIONS_APP.md` SHA256 `1c30440a…` / 34 998 B / mtime 2026-10-25 09:18:37 ⇒ `## APP-xxx` **16** 条、最大 **APP-016**，**只读零改动**）⇒ 🔴 本轮闭环 **3 个用户可见缺陷**：① 🔴 **假设备「Intel GPU 2」**（`_DEVICE_LABELS` 硬编码 `'GPU.1': 'Intel GPU 2'`，而本机 `GPU.1` 实为 **NVIDIA GeForce RTX 5050 Laptop GPU**）⇒ 删硬编码 + 改据 `FULL_DEVICE_NAME` 动态生成（实测 `GPU.0 -> Intel GPU（集显）` / `GPU.1 -> NVIDIA 独显（RTX 5050 Laptop GPU）` / `NPU -> Intel NPU` / `CPU -> CPU（不推荐）` / 不存在的 `GPU.9 -> GPU.9` **不编造**）；② ✅ **TTS 设备下拉加 CUDA 设备**（`build_tts_options()` 加显式 CUDA 选项 + `is_cuda_device()` / `has_cuda_plugin()` 探测 + **诚实带实测警示 note**：本机 OV **未装 CUDA plugin** ⇒ 实测真实 INT8 IR 在 NVIDIA 上 **3/7 编译失败** ⇒ 不假称「CUDA 后端可用」）；③ 🔴🔴 **段接缝重复词**（旧 `stitch()` 只试 n=3,2，而实测接缝重复**几乎全是 n=1**（A 组 36 / B 组 42，n≥2 全为 0）⇒ **一次都没命中过**）⇒ 重写为「整词级 n-gram(3→1) + n=1 用『切点穿词』判据（大小写 + 句末标点）」+ 补齐三个调用点的 `prev_text` 接线 + **开关语义修正**；⇒ **客户包已定点同步**（`sync_c148_to_pkg.py`，13 块，SHA `970f75f0b0be`→`c2ba4fa85596`，幂等 ALREADY，包内自检「环境正常」+ **包内实测 3/3 行为 PASS**）；⏳ **仍等**：APP-014② **v1.5 重打包**（需先做 TTS 转正式的代码改动）、APP-015 **MT 移交说明**、APP-010 要求的 README 标注 + 🔴 **仓库根 README 双 CR 行尾炸弹**（`
+
+` × 773 行）
+阻塞 / 待用户决定: ① ⛔ **APP-014② 的 v1.5 重打包尚未开始** —— 依赖「TTS 转正式（去实验性标注 + 默认开启 + CLI `--tts on` + 生产配置按 TTS-011）」这一步**代码改动**先完成（§32.7 已列清单）；② ⛔ **APP-015 的 MT 半句方案 C**（草稿只上字幕、TTS 只念正式稿）⇒ 等 `shared\NOTICE_mt_to_app_*.md` 移交说明；**若 v1.5 打包时仍未定稿 ⇒ 先不带**，并在 §33 注明；③ ⛔ **APP-012② 的 +2.6pp 缺口主因仍未定位** —— §32.5 实测证明**接缝去重只值 −0.26/−0.32 pp（≈ 缺口的 3%）** ⇒ 主因应另找（候选：段首/段尾的**插入**本身，ASR 侧记的是**多 178 个**，与本次消掉的 35/41 词**量级差一个数量级**）；④ ⛔ **仓库根 README.md 双 CR 行尾炸弹**（`
+
+` × 773 行，git blob 是 LF）⇒ 修复脚本 `results/app/app023_fix_readme_crlf.py` **已写未跑** + 仍缺 APP-008①（切段待质量复核 + `LIVECAP_GUARD_REL=0`）与 APP-010（TTS 实验性）标注 —— ⚠️ **APP-014 已决定 TTS 转正式** ⇒ APP-010 标注需**按新决定改写**（不再写「实验性」）；⑤ ⛔ **APP-009② 的 MT UNIT 方案 A/B/C/D 结论**仍在 v4 复算 ⇒ 渲染层（`_mt_of`/`_save_text`/CLI `run_cli` 改按 `mt_units()`）**仍未改**；⑥ ⛔ **包体 10.45 GiB** 优化未做；⑦ ⛔ **V7 残句代价**待用户确认（链首段半句残句 12 段语料 5 行/58 字）；⑧ 🟢 ~~**§29.7 两处 U+FFFD 乱码**~~ ⇒ §31.4 已修；⑨ 🟢 ~~**APP-011 二次历史改写**~~ ⇒ **按 APP-013 撤销**，不做第二次改写、不建 GIT_FREEZE、GitHub 旧 SHA gc 不做、现有防护保留不加强、**恢复正常提交**
 
 ## 最近更新
+
+- 10:20 §32 ✅ **巡检**：`CORRECTIONS_APP.md` SHA256 `1c30440a…` / 34 998 B / mtime 2026-10-25 09:18:37 ⇒ `## APP-xxx` **16** 条（最大 **APP-016**）⇒ **6 条新条目待执行**（APP-011~APP-016）⇒ `last_ack` **APP-010 → APP-016**；🔴 该文件**只读零改动**。
+- 10:20 §32 ✅ **修掉假设备「Intel GPU 2」**（`live_caption/device_config.py`）：根因 = `_DEVICE_LABELS` 硬编码 `'GPU.1': 'Intel GPU 2'`，而本机 `GPU.1` 实为 **NVIDIA GeForce RTX 5050 Laptop GPU**（OV 设备编号**不代表厂商**）⇒ 删该硬编码 + `device_label()` 改据 `FULL_DEVICE_NAME` 动态生成（NVIDIA 型号提取 + `(dGPU)` 噪声剥离，带缓存）；实测 `GPU.0 -> Intel GPU（集显）` / `GPU.1 -> NVIDIA 独显（RTX 5050 Laptop GPU）` / `NPU -> Intel NPU` / `CPU -> CPU（不推荐）` / `GPU.9 -> GPU.9`（**不编造**）。
+- 10:20 §32 ✅ **TTS 设备下拉加 CUDA 设备**（`live_caption/live_caption_app.py::build_tts_options()`）：加显式 CUDA 选项（`CUDA · NVIDIA 独显（RTX 5050 Laptop GPU） · F32/F16`）+ 新增 `is_cuda_device()` / `has_cuda_plugin()`；🔴 **诚实警示**：本机 OV `2026.4.1-22982` 包内 `*cuda*` 匹配数 = **0** ⇒ **未装 CUDA plugin** ⇒ OV 对 NVIDIA 独显**仍走 Intel GPU plugin**（Level Zero），实测真实 INT8 IR 在 `GPU.1` 上 **3/7 编译失败**（`code_predictor` / `cp_decode` / `cp_prefill` / `talker_decode` 在 FP16↔FP32 reorder 节点报「Could not find a suitable kernel」）⇒ note 里直说，不假称「CUDA 后端可用」。
+- 10:20 §32 🔴🔴 **修掉段接缝重复词**（`live_caption/live_caption_app.py::stitch()`）：旧实现只试 n=3,2，而实测接缝重复**几乎全是 n=1**（A 组 536 对 → n≥3: 0 / n=2: 0 / n=1: **36**；B 组 557 对 → n=1: **42**）⇒ 旧实现**一次都没命中过** ⇒ 重写为「整词级 n-gram(3→1) + n=1 用**切点穿词**判据（后段首词大写而前段末尾词不大写 / 前段末尾非句末标点）」+ 新增 `self._last_text` 并**补齐三个调用点的 `prev_text` 接线** + **移除无生效路径的 `_stitch_char_overlap()`**（依赖不存在的 `stitch_pair()`，实测字符级命中 **0** 次）。
+- 10:20 §32 🔴 **开关语义修正**：`LIVECAP_STITCH_SEAM=0` ⇒ **下限抬到 2**（退回旧行为、保留 n=3 去重）；⚠️ **不是**「跳过判据」（那反而**更激进**，与「关掉」语义相反）；`prev_text` 为 None/空 ⇒ 退化为「只信判据①」（宁可漏删也不误删）。
+- 10:20 §32 📊 **端到端收益**（独立参照 c048 adaptive，语料级配对 bootstrap K=40/5000 次，判据：**只看「Δ 的 CI 上界 < 0 才算改善」**）：A 组 6.055% → **5.791%**（Δ **−0.264 pp**，CI [−0.367, −0.171]）；B 组 5.851% → **5.535%**（Δ **−0.316 pp**，CI [−0.418, −0.222]）⇒ 两组 CI 上界均 < 0。
+- 10:20 §32 ⚠️ **不要误读量级**：接缝去重只覆盖 APP-012② 所述 **+2.6pp 缺口的约 3%** ⇒ **不是 +2.6pp 的主因**（主因应是段首/段尾的**插入**本身，ASR 侧记的是**多 178 个**）⇒ 已在代码注释与本 STATUS 明确标注。
+- 10:20 §32 ✅ **验收 PASS 20 项 / FAIL 0 项**（`results/app/app024_stitch_accept.py`，单元级 13 + 接线级 3 + 端到端级 4）；证据 `results/app/app024_stitch_accept.json`。
+- 10:20 §32 ✅ **客户包定点同步 PASS**（`live_caption/sync_c148_to_pkg.py`，**新增**）：`live_caption_app.py` **13 块**全部唯一命中，SHA `970f75f0b0be` → `c2ba4fa85596`（162 456 → 170 901 B）；备份**在包外** `pkg_backup_app_c148/`；幂等复核 **ALREADY**；🔴 **未做整目录覆盖**；包内 `--check`「环境正常。ASR 可用后端 6 个，Intel 集显可用」+ **包内实测 3/3 行为 PASS** + **AST 口径旧符号残留 = 无**。
+- 10:20 §32 ✅ **GUI 冒烟全 PASS**（`results/app/app024_gui_smoke.py`）：ASR 8 / MT 6 / TTS 5 选项，**label 全唯一**，「Intel GPU 2」出现数 = **0**，Tk 三个 Combobox 反查 OK，TTS 可见 **2 个 CUDA 选项**。
+- 10:20 §32 🟢 **APP-013 处置完毕**：会议记录相关事项**不再继续跟踪** ⇒ 撤销 APP-011 ⇒ **不做第二次历史改写**、不建 `GIT_FREEZE`、GitHub 旧 SHA gc **不做**、现有防护**保留不加强**、**恢复正常提交**（本轮已提交 `6a1dee6` / `9c628f4` / `4a2a361` / `e301333`）。
+- 10:20 §32 🟢 **APP-016 核对**：Qwen3-ASR-0.6B 只作实验 ⇒ **不进 App 和客户包** ⇒ 已核客户包 v1.4 内**本就没有 0.6B** ⇒ **无需动作**，仅记录。
+- 10:20 §32 🔴 **纪律**：**未改/未提交** `CORRECTIONS_APP.md`（reviewer 独占）；**未吞** ASR/MT/TTS 未提交改动（工作区大量 `diag_c*.py` / `sync_c*.py` / `reports/*` 一律不吞）；**未跑推理/未测速/未占 GPU**（纯离线文本作业，**不需要机器锁**）；**未重开 FTP**（守 APP-009③）；**未调用 MiniMax**；仓库 ⇄ 客户包**只做定点替换**；`translator.py` **未动**（不归 App 提交）。
 
 - 07:49 §31 ✅ **巡检（无新纠偏条目，第 15 次同一口径）**：`CORRECTIONS_APP.md` SHA256 `8ccf661c…` / 27 413 B / mtime 2026-10-24 17:01:54 ⇒ `## APP-xxx` **10** 条（最大 **APP-010** = `last_ack`）⇒ **无新条目**，`last_ack` **不变**；🔴 该文件**只读零改动**；跨模块通知最大仍是**通知 8**（verdict 不变）⇒ 未推翻 §26.6。
 - 07:49 §31 🔴🔴 **修掉 `TTSService.close()` 不计丢句**（`live_caption/tts_service.py`）：直接杀 worker ⇒ `pending`/`_inflight`/`_queue` 里**已提交但永远等不到结果**的句子**静默消失** ⇒ 破坏 §29 的不变式（实测修复前 **sum=0 ≠ submitted=5**）⇒ GUI **四条**路径（停 TTS / 换设备 / 换音色 / 退出）**每走一次就丢一批记账** ⇒ 修法：与「崩溃清理」路径做**同样的**清理 + **计丢句**（`_queue` 的 jid ⊆ `pending` ⇒ 只计一次）。
@@ -5563,3 +5581,200 @@ SHA256 `47357762def2e8f5a6c350f49d4c94c7ca942649f9becf28619d17ddd473476c`）
 - ⏳ **v1.4 TTS 音质**未达标（TTS-009/TTS-010）⇒ TTS 保持**实验性、默认关闭**（包内已标注）。
 - ⏳ **GitHub 旧 SHA 的 gc** 未做 ⇒ 待用户决定。
 - ⏳ **包体 10.45 GiB** 优化未做；**V7 残句代价**待用户确认。
+
+## §32 巡检（`CORRECTIONS_APP.md` **6 条新条目** APP-011~APP-016）+ ✅ 用户反馈「设备下拉出现不存在的 **Intel GPU 2**」已修 + ✅ 「TTS 设备下拉加 **CUDA** 设备」已加 + 🔴🔴 修掉 App 实时路径「切点穿词 ⇒ 段接缝重复词」（2026-10-25 10:20）
+
+### 32.1 巡检结果（`CORRECTIONS_APP.md` 只读零改动）
+
+| 项 | 值 |
+|:--|:--|
+| SHA256 | `1c30440a510429507b3450b795b1303e6ffca843256b6eb4ee26e59725d2dc38` |
+| 字节 | 34 998 B |
+| mtime | 2026-10-25 09:18:37 |
+| `## APP-xxx` 条数 | **16**（APP-001 ~ APP-016） |
+| 上一轮 `last_ack` | APP-010 |
+| 本轮 `last_ack` | **APP-016** |
+| 本轮**新条目** | **6 条**：APP-011 ~ APP-016 |
+
+🔴 **本文件（`CORRECTIONS_APP.md`）由 reviewer 独占写入 ⇒ 本轮只读、零改动。**
+
+### 32.2 六条新条目的处置
+
+| 编号 | 等级 | 要点 | 本轮处置 |
+|:--|:--|:--|:--|
+| APP-011 | HIGH | 改写后 12 个新提交又把会议原句推回公开历史 | ✅ **按 APP-013 撤销** ⇒ 不做二次改写、不建 `GIT_FREEZE`、GitHub 旧 SHA gc 不做、现有防护保留不加强 |
+| APP-012 | NORMAL | ① TTS 修复通过用户抽听；② App 实时路径切点重复词（归 App 修） | ✅ ① 已抽听通过；② **§32.5 已修**（接缝去重，CI 上界 < 0） |
+| APP-013 | HIGH | 【用户决定】会议记录不再跟踪，保持现状 | ✅ **恢复正常提交**（本轮 4 个提交：`6a1dee6` / `9c628f4` / `4a2a361` / `e301333`） |
+| APP-014 | HIGH | 【用户决定】TTS 转正式功能；先修切点重复词再重打包；仓库不改私有 | ✅ ① 已修（§32.5）；⏳ ② **TTS 转正式代码改动 + v1.5 重打包未做**（§32.7）；③ 仓库**保持公开** |
+| APP-015 | NORMAL | 【用户确认】MT 半句方案 **C**：草稿只上字幕、TTS 只念正式稿 | ⏳ 等 `shared\NOTICE_mt_to_app_*.md` 移交说明；**v1.5 打包时未到 ⇒ 先不带** |
+| APP-016 | FYI | Qwen3-ASR-0.6B 只作实验，不进 App 和客户包 | ✅ 已核客户包 v1.4 内**本就没有 0.6B** ⇒ **无需动作**，仅记录 |
+
+### 32.3 ✅ 修掉假设备「Intel GPU 2」（用户直接反馈）
+
+**用户原话**：「在设备里面都出现了 Intel GPU 2，这是一个不存在的设备」
+
+🔴 **根因**：**OpenVINO 的设备编号不代表厂商**。本机实测 `ov.Core().available_devices` = `['CPU', 'GPU.0', 'GPU.1', 'NPU']`：
+
+| OV 设备 | `FULL_DEVICE_NAME` | `DEVICE_TYPE` |
+|:--|:--|:--|
+| `GPU.0` | `Intel(R) Graphics (iGPU)` | INTEGRATED |
+| `GPU.1` | `NVIDIA GeForce RTX 5050 Laptop GPU (dGPU)` | DISCRETE |
+| `NPU` | `Intel(R) AI Boost` | — |
+
+⇒ 旧代码 `_DEVICE_LABELS = {'GPU.1': 'Intel GPU 2'}` 是**硬编码错误**，凭空制造了一个不存在的设备。
+
+**修法**（`live_caption/device_config.py`）：
+1. **删掉** `_DEVICE_LABELS['GPU.1']` 硬编码项；
+2. `device_label()` 改为**据 `FULL_DEVICE_NAME` 动态生成**（新增 `_full_device_name()` 带缓存 + `_label_from_full_name()`）；
+3. NVIDIA 分支：**提取型号 + 剥离 `(dGPU)`/`(iGPU)` 噪声** ⇒ `NVIDIA 独显（RTX 5050 Laptop GPU）`。
+
+**实测（包内与仓库一致）**：
+
+| 输入 | 输出 |
+|:--|:--|
+| `GPU.0` | `Intel GPU（集显）` |
+| `GPU.1` | `NVIDIA 独显（RTX 5050 Laptop GPU）` |
+| `NPU` | `Intel NPU` |
+| `CPU` | `CPU（不推荐）` |
+| `GPU.9`（不存在） | `GPU.9` ⇒ **不编造** |
+
+✅ **GUI 冒烟全 PASS**（`results/app/app024_gui_smoke.py`）：ASR 8 / MT 6 / TTS 5 选项，**label 全唯一**，「Intel GPU 2」出现数 = **0**，Tk 三个 Combobox 反查 OK。
+
+### 32.4 ✅ TTS 设备下拉加 CUDA 设备
+
+**用户原话**：「TTS 设备里面也加上 Cuda 设备」
+
+**改法**（`live_caption/live_caption_app.py::build_tts_options()` + `device_config.py`）：
+- 新增 `is_cuda_device(dev)`：据 `FULL_DEVICE_NAME` 匹配 `nvidia/geforce/rtx/cuda/quadro/tesla`；
+- 新增 `has_cuda_plugin()`：扫 `openvino` 包目录找 `*cuda*` 的 `.dll/.so/.pyd/.exe`；
+- `build_tts_options()` 对 CUDA 设备加**显式 CUDA 选项**（label 前缀 `CUDA ·`），并挂 **note**。
+
+🔴🔴 **诚实警示（实测，不是推测）**：
+- OV 版本 `2026.4.1-22982`，`openvino` 包内 `*cuda*` 匹配数 = **0** ⇒ **未安装 CUDA plugin**；
+- ⇒ OV 2026.4 对 NVIDIA 独显**仍走 Intel GPU plugin**（经 Level Zero），**不是真 CUDA 后端**；
+- 实测**真实 INT8 IR** 逐个编译：
+  - `GPU.0`（Intel 集显）：**7/7 成功**；
+  - `GPU.1`（NVIDIA 独显）：**3/7 成功** —— `code_predictor.xml` / `cp_decode.xml` / `cp_prefill.xml` / `talker_decode.xml` 在 `convert`（FP16↔FP32 reorder）节点报 **「Could not find a suitable kernel」**（报错路径 `src\plugins\intel_gpu\...`）。
+
+⇒ note 里直说「🔴 本机 OV **未安装 CUDA plugin**（OV 仍用 Intel GPU plugin 驱动它）⇒ TTS 的 INT8 权重在 FP16 reorder 节点上无 kernel，**实测 3/7 IR 编译失败**；要真正启用需装 openvino 的 CUDA 组件」——**不假称「CUDA 后端可用」**。
+
+实测 TTS 下拉含 **2 个 CUDA 选项**（`CUDA · NVIDIA 独显（RTX 5050 Laptop GPU） · F32` / `· F16`）。
+
+### 32.5 🔴🔴 修掉段接缝重复词（APP-012② / APP-014①）
+
+#### 32.5.1 根因：旧 `stitch()` **一次都没命中过**
+
+素材：`reports/asr004_ab/segments_{A,B}.json`（段边界由**真实 `live_caption_app.Segmenter`** 判定 ⇒ 与 App 实时路径逐点一致）。
+
+| 组 | 相邻段对 | n≥3 | n=2 | **n=1** |
+|:--|--:|--:|--:|--:|
+| A | 536 | **0** | **0** | **36** |
+| B | 557 | **0** | **0** | **42** |
+
+⇒ 旧 `stitch()` 只试 `n in (3, 2)` ⇒ **一次都没命中过** ⇒ 重复词 **100% 漏到用户屏幕上**。
+
+#### 32.5.2 n=1 判据：**停用词表方向是错的** ⇒ 重新设计
+
+`results/app/app024_stopword_audit.py` 实测：A 组 36 处 n=1 里停用词 15 / 内容词 21；B 组 42 处里停用词 18 / 内容词 24。
+⇒ **被停用词表挡掉的全是真缺陷**：
+```
+...our strategy will and has | has been to maximize the IDM advantage.
+...And the scale is | is very important.
+...a different perspective on that approach. So | So this was just a summary.
+```
+⇒ 停用词表把**真缺陷**当成「真内容」⇒ 漏掉一半以上的真缺陷。
+
+✅ **新判据（两个可观测特征）**：
+1. **后段首词是大写开头、而前段末尾词不是** ⇒ 后段**重新起句**（ASR 给新句首字母大写）⇒ 强特征「切点穿词」；
+   典型：`...So, welcome | Welcome to our Q3 26 QGS.`、`...love the scale | Scale and compatibility for multiple generations.`
+2. **前段末尾不是句末标点**（`.` `?` `!` `。` `！` `？`）⇒ 同一句话被切成两半 ⇒ 「切点穿词」；
+   反之若有句末标点 ⇒ 上一句说完了，新句又说了同一个词 ⇒ **真内容，不删**。
+
+#### 32.5.3 移除**无生效路径**的代码
+
+原在制品的 `_stitch_char_overlap()` 依赖注释提到的 `stitch_pair()` —— **该函数根本不存在**；且实时路径 `stitch()` 只有 `prev_words`（前 3 词）**没有 `prev_text`** ⇒ 实测 A/B 两组**字符级命中 0 次** ⇒ 整段移除（避免留下「看着有、其实没生效」的代码）。
+
+#### 32.5.4 接线补齐（三个调用点）
+
+新增 `self._last_text` 状态（`OVEngine.__init__` / `CudaEngine.__init__` / `CudaEngine.set_force_language` 初始化），三个调用点**全部**传 `prev_text`：
+- `OVEngine._close_segment()`；
+- `OVEngine.flush()`；
+- `CudaEngine._collect()`。
+
+#### 32.5.5 🔴 开关语义修正
+
+| 写法 | 语义 | 判定 |
+|:--|:--|:--|
+| `LIVECAP_STITCH_SEAM=0` | **下限抬到 2** ⇒ 退回旧行为（只试 n=3,2，**保留 n=3 去重**） | ✅ 正确 |
+| ~~「跳过判据」~~ | 会**更激进**（最激进档）⇒ 与「关掉」语义相反 | ❌ **已修正** |
+| `prev_text` 为 `None` / `''` | 退化为「**只信判据①**」（宁可漏删也不误删） | ✅ 保守 |
+
+#### 32.5.6 端到端收益（语料级配对 bootstrap，K=40 / 5000 次）
+
+独立参照：`reports/c048_61min_adaptive/transcript_adaptive.txt`（ASR 模块用同一份 method_b **精确复现 7.798%**，n_ref = 11 725 词）。
+判据：**只看「Δ 的 CI 上界 < 0 才算改善」**。
+
+| 档 | A 组 | B 组 |
+|:--|:--|:--|
+| ① 旧 stitch（只试 n=3,2）—— 现状 | 6.055% | 5.851% |
+| ④ **新实现（大小写/标点判据）** | **5.791%** | **5.535%** |
+| Δ | **−0.264 pp** | **−0.316 pp** |
+| CI | [−0.367, −0.171] ⇒ 上界 < 0 | [−0.418, −0.222] ⇒ 上界 < 0 |
+| 删除词数 | 35 | 41 |
+
+🔴🔴 **口径提醒**：本轮 WER 绝对值（6.0% / 5.8%）与 ASR 侧报的 10.80% / 10.58% **参照文本不同** ⇒ **Δ 可对话，绝对值不可跨口径比较**。
+
+🔴🔴 **最重要的结论（不要误读量级）**：接缝去重**只覆盖 APP-012② 所述 +2.6pp 缺口的约 3%** ⇒ **+2.6pp 的主因不是「切点穿词的重复词」**。主因应另找 —— 候选：段首/段尾的**插入**本身（ASR 侧记的是**多 178 个**且集中在段首 3 词 / 段尾 3 词，与本次消掉的 35 / 41 词**量级差一个数量级**）。本条已在**代码注释**与本 STATUS 明确标注。
+
+#### 32.5.7 ✅ 验收 PASS 20 项 / FAIL 0 项
+
+`results/app/app024_stitch_accept.py`（**新增**；`ast` 抽纯函数 + `exec` 到独立命名空间 ⇒ **不 import 被测模块**，**无推理/无 GPU**）：
+
+- **① 单元级（13 项）**：切点穿词⇒删 / 真内容重复⇒**不删** / n=2,3 仍命中 / 无重复原样 / 开关存在 / **开关=0 退回旧行为（n=1 不删 + 保留 n=3）** / `prev_text=None` 与 `''` 保守退化 / `prev_text=None` + 首词大写 ⇒ 判据①仍生效 / **旧符号 AST 口径清零**；
+- **② 接线级（3 项）**：`stitch(self._last_words` 调用点 = **3**；`self._last_text` 出现 **9** 次；`self._last_text = ''` 出现 **4** 次；
+- **③ 端到端级（4 项）**：A/B 两组 Δ 的 CI 上界 < 0；删词数在 1~60 合理区间。
+
+🔴 **一处实现修正（本轮自查发现）**：验收脚本原断言用字符串 split 取「注释之后」的部分 ⇒ 注释本身含该词 ⇒ **误报 FAIL** ⇒ 改为 **AST 口径**（注释不计入代码）⇒ 真实残留 = **0**。
+
+### 32.6 ✅ 客户包定点同步（`sync_c148_to_pkg.py`，**新增**）
+
+| 项 | 值 |
+|:--|:--|
+| 文件 | `live_caption/live_caption_app.py` |
+| 变更块 | **13**，全部**唯一命中** |
+| 字节 | 162 456 → **170 901 B** |
+| SHA256 | `970f75f0b0be` → **`c2ba4fa85596`** |
+| 备份（**包外**） | `C://Users//Trekker-PTL//pkg_backup_app_c148//live_caption_app.py.bak_20261025_101725` |
+| 幂等复核 | **ALREADY** |
+| 整目录覆盖 | ⛔ **未做** |
+
+🔴 **同步源必须是 HEAD，不是工作区**（工作区混着 ASR/MT/TTS 的未提交文件 ⇒ 同步工作区版会污染客户包）。
+🔴 **未做整目录覆盖**；替换后**必须与仓库版逐字一致（归一化换行）才写盘**。
+
+**包内验证**：
+- `./python/python.exe app/live_caption_app.py --check` ⇒ 「**环境正常。ASR 可用后端 6 个，Intel 集显可用。**」；
+- **包内实测 3/3 行为 PASS**（用**包内 python** 抽纯函数跑三条判据用例）；
+- **AST 口径旧符号残留 = 无**。
+
+### 32.7 ⏳ APP-014 剩余工作清单（**v1.5 重打包**）
+
+**执行顺序（按 APP-014 要求）**：① 修实时路径切点重复词 ⇒ **✅ §32.5 已完成** → ② 重新打包 v1.5 → ③ git 仓库保持公开。
+
+**第②步的前置（必须先做完 TTS 转正式的代码改动）**：
+1. **去「实验性」标注**（代码注释、GUI 文案、README）—— ⚠️ APP-010 要求的「TTS 实验性」标注需**按 APP-014 的新决定改写**，不能保留旧措辞；
+2. **默认开启**：GUI 保留开关 + 「请佩戴耳机，避免回授」提示；CLI 默认 `--tts on`；
+3. **生产配置以 TTS-011 交接单为准**；
+4. **重打 v1.5**：干净目录自检 → GUI 冒烟 → 清单和 SHA → 内部素材检查 → **打包持机器锁**；
+5. **APP-015 若未定稿 ⇒ 草稿/正式稿两路事件先不带**，并在 §33 注明。
+
+**第③步**：git 仓库**保持公开**，**不改私有**。
+
+### 32.8 🔴 本轮纪律自查
+
+- ✅ **未改 / 未提交** `status/app/CORRECTIONS_APP.md`（reviewer 独占写入）；
+- ✅ **未吞** ASR / MT / TTS 的未提交改动（工作区大量 `diag_c*.py` / `sync_c*.py` / `replay_*.py` / `reports/*` 一律不碰）；
+- ✅ **未跑推理 / 未测速 / 未占 GPU**（本轮全是**纯离线文本作业** ⇒ **不需要机器锁**；客户包 `--check` 只做能力枚举）；
+- ✅ **未重开 FTP**（守 APP-009③）；
+- ✅ **未调用 MiniMax**；未改 `translator.py`（不归 App 提交，H-010）；
+- ✅ 仓库 ⇄ 客户包**只做定点替换**（不整目录覆盖）；
+- ✅ **§32 的所有数字**都来自本轮实测脚本的落盘证据（`results/app/app024_*.json`）。
