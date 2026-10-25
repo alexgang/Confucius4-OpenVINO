@@ -1,0 +1,560 @@
+{
+  "A": {
+    "blocked": [
+      {
+        "rule": "rule1",
+        "word": "On",
+        "norm": "on",
+        "prev": "we're going to do in Hammerlick and I'll show on the roadmap later on.",
+        "cur": "On we're 100% internal silicon and that's a function of working with I"
+      },
+      {
+        "rule": "rule1",
+        "word": "is",
+        "norm": "is",
+        "prev": "deliver leadership, silicon, IP, SoC at scale, right? And the scale is",
+        "cur": "is very important. We see the benefit of that today, even in our tradi"
+      },
+      {
+        "rule": "rule1",
+        "word": "will",
+        "norm": "will",
+        "prev": " Novellix solves that problem. When we come out with Novellix, we will",
+        "cur": "will be leadership versus N5. When they come out with Zen 6, middle of"
+      },
+      {
+        "rule": "rule1",
+        "word": "A",
+        "norm": "a",
+        "prev": " but this is where we're going to leverage Crescent Island, which is a",
+        "cur": "A data center inferencing chip has massive memory bandwidth and flops "
+      },
+      {
+        "rule": "rule1",
+        "word": "to",
+        "norm": "to",
+        "prev": "e rubric around what you run locally in a machine, what you offload to",
+        "cur": "to a box or a tower and what you offload to a cloud, right? And the or"
+      },
+      {
+        "rule": "rule1",
+        "word": "Have",
+        "norm": "have",
+        "prev": "add SMT that's targeted for Hammer Lake and then after that we'll have",
+        "cur": "Have white eagle, right? So copper shark, as the team knows, absolutel"
+      },
+      {
+        "rule": "rule1",
+        "word": "So",
+        "norm": "so",
+        "prev": " very helpful in bringing a different perspective on that approach. So",
+        "cur": "So there is six verticals within edge, even though we draw it as one h"
+      },
+      {
+        "rule": "rule1",
+        "word": "Very",
+        "norm": "very",
+        "prev": "icture of these verticals and we built this for the board so it's very",
+        "cur": "Very generic, but at some point, yeah, things need to just work. And a"
+      },
+      {
+        "rule": "rule1",
+        "word": "As",
+        "norm": "as",
+        "prev": " the optimizations that are unique are sitting below that right and as",
+        "cur": "As we go and develop this stack, most of these have existed for some t"
+      },
+      {
+        "rule": "rule1",
+        "word": "It's",
+        "norm": "its",
+        "prev": "They're just trying to deploy models on a certain product, and so it's",
+        "cur": "It's about you know some memory tuning, compile time, you know a littl"
+      },
+      {
+        "rule": "rule2",
+        "word": "So",
+        "norm": "so",
+        "prev": " the stack we're building is going to win and help us through that. So",
+        "cur": "So this was just a summary of how we're trying to go and make sure all"
+      },
+      {
+        "rule": "rule1",
+        "word": "about",
+        "norm": "about",
+        "prev": "t easier for things to get up and running. The second section is about",
+        "cur": "about getting the agentic stack hardened, getting our microservices ou"
+      },
+      {
+        "rule": "rule1",
+        "word": "I",
+        "norm": "i",
+        "prev": "selves, it'll actually make the external view much much heavier. But I",
+        "cur": "I don't think there's any explicit planet. There's a lot of hodgepodge"
+      },
+      {
+        "rule": "rule1",
+        "word": "A",
+        "norm": "a",
+        "prev": "k to do. Like we just met with them yesterday. We're not giving them a",
+        "cur": "A free launch by any stretch of imagination, but they've progressed an"
+      },
+      {
+        "rule": "rule1",
+        "word": "Just",
+        "norm": "just",
+        "prev": "sers still prefer Windows based AI PC plus agentic workload. So I just",
+        "cur": "Just want to know what's our strategy for this Windows based AIPC plus"
+      }
+    ],
+    "allowed": [
+      {
+        "rule": "rule1",
+        "word": "Welcome",
+        "norm": "welcome",
+        "prev": "Good morning everyone. Good morning. Let's get started. So, welcome",
+        "cur": "Welcome to our Q3 26 QGS."
+      },
+      {
+        "rule": "rule1",
+        "word": "Scale",
+        "norm": "scale",
+        "prev": "that today, even in our traditional business where OEMs love the scale",
+        "cur": "Scale and compatibility for multiple generations, and a lot of what we"
+      },
+      {
+        "rule": "rule1",
+        "word": "Opportunity",
+        "norm": "opportunity",
+        "prev": "ce desktop, other end of the spectrum, Wildcat Lake, great opportunity",
+        "cur": "Opportunity to win share in mainstream, great structure. If you recall"
+      },
+      {
+        "rule": "rule1",
+        "word": "Last",
+        "norm": "last",
+        "prev": "t and scale it to Novalex 12xe, Titanlake AX, right? And then the last",
+        "cur": "Last thing, we got to win in what we call a new infrastructure or a ne"
+      },
+      {
+        "rule": "rule1",
+        "word": "Different",
+        "norm": "different",
+        "prev": " because we don't understand everything in physical AI. It's different",
+        "cur": "Different in client, and as we go into this engagement, we need to go "
+      },
+      {
+        "rule": "rule1",
+        "word": "technology",
+        "norm": "technology",
+        "prev": " need to adapt to. We don't fully understand all the future technology",
+        "cur": "technology needs that these markets will go. We will have to retool so"
+      },
+      {
+        "rule": "rule1",
+        "word": "See",
+        "norm": "see",
+        "prev": "with our customers about what that means for them, and then you'll see",
+        "cur": "See on here this big white box called ax2 that is just starting early "
+      },
+      {
+        "rule": "rule1",
+        "word": "Continue",
+        "norm": "continue",
+        "prev": "don't know yet, but the family of the ax will continue on and continue",
+        "cur": "Continue to scale. Okay, I'm not going to go through this line by line"
+      },
+      {
+        "rule": "rule1",
+        "word": "Verticals,",
+        "norm": "verticals",
+        "prev": "raw it as one here to simplify. And as you look at all those verticals",
+        "cur": "Verticals, so they're you know, aero, industrial, education. Before we"
+      },
+      {
+        "rule": "short_flush",
+        "word": "Development,",
+        "norm": "development",
+        "prev": "But then that upper layer where you see kernel development",
+        "cur": "Development, you know, CUDA and its overall moat has been there for a "
+      },
+      {
+        "rule": "rule1",
+        "word": "See",
+        "norm": "see",
+        "prev": " clean, getting enabled in open source and in upstream, and we can see",
+        "cur": "See that now pulling through as they're building, you know, an ax like"
+      },
+      {
+        "rule": "rule1",
+        "word": "front",
+        "norm": "front",
+        "prev": "Nvidia is a very heavy one that's still going to be very far in front.",
+        "cur": "front of us until we get that traction through the next year at least."
+      },
+      {
+        "rule": "rule1",
+        "word": "Key",
+        "norm": "key",
+        "prev": "nctional, always performant to the hardware roof line. That's the key.",
+        "cur": "Key part of the focus, landing kernel foundry, make it easier for thin"
+      },
+      {
+        "rule": "rule1",
+        "word": "like",
+        "norm": "like",
+        "prev": "saggregated designs that provide the ability to create many skus, like",
+        "cur": "like Novaleak versus integrated designs that provide lower cost, like "
+      },
+      {
+        "rule": "rule1",
+        "word": "Example,",
+        "norm": "example",
+        "prev": "e trying to solve and the problems within that segment. So for example",
+        "cur": "Example, doing a two chip solution for Wildcat for that class of integ"
+      },
+      {
+        "rule": "rule1",
+        "word": "Two",
+        "norm": "two",
+        "prev": " up to the mic so we can ask questions in the room as well. I have two",
+        "cur": "Two questions that I think they're fairly related. First is what is th"
+      },
+      {
+        "rule": "rule1",
+        "word": "context",
+        "norm": "context",
+        "prev": "ness leader, always will have to look at their business in the context",
+        "cur": "context of do they have to do an investment shift? Are there skills th"
+      },
+      {
+        "rule": "rule1",
+        "word": "performance",
+        "norm": "performance",
+        "prev": "en trying to get our act together. We also don't have high performance",
+        "cur": "performance GPUs, right? So all these things are kind of factors into "
+      },
+      {
+        "rule": "rule1",
+        "word": "commitments",
+        "norm": "commitments",
+        "prev": "y don't want to be shackled with contracts and production commitments.",
+        "cur": "commitments if you want to move fast in AI. So those things don't go h"
+      },
+      {
+        "rule": "rule1",
+        "word": "Definitely",
+        "norm": "definitely",
+        "prev": "o and run and pivot quick to make the platform shine. We're definitely",
+        "cur": "Definitely here always. I think sometimes there's confusion about tryi"
+      },
+      {
+        "rule": "rule1",
+        "word": "something",
+        "norm": "something",
+        "prev": "hing about it, it's actually a good idea for the, maybe it's something",
+        "cur": "something we should also feed even our SMG documentation, like all of "
+      }
+    ]
+  },
+  "B": {
+    "blocked": [
+      {
+        "rule": "rule1",
+        "word": "has",
+        "norm": "has",
+        "prev": "arting at the bottom, process and packaging, our strategy will and has",
+        "cur": "has been to maximize the IDM advantage. So working closely with TD on "
+      },
+      {
+        "rule": "rule1",
+        "word": "A",
+        "norm": "a",
+        "prev": " but this is where we're going to leverage Crescent Island, which is a",
+        "cur": "A data center inferencing chip has massive memory bandwidth and flops "
+      },
+      {
+        "rule": "rule1",
+        "word": "to",
+        "norm": "to",
+        "prev": "e rubric around what you run locally in a machine, what you offload to",
+        "cur": "to a box or a tower and what you offload to a cloud, right? And the or"
+      },
+      {
+        "rule": "rule1",
+        "word": "We're",
+        "norm": "were",
+        "prev": "ds all of those on top, and so if you look at the verticals that we're",
+        "cur": "We're building in a PC client. We're all used to that old business aro"
+      },
+      {
+        "rule": "rule1",
+        "word": "The",
+        "norm": "the",
+        "prev": " view it as a vertical like the others, and what's different about the",
+        "cur": "The three on the right"
+      },
+      {
+        "rule": "rule1",
+        "word": "So",
+        "norm": "so",
+        "prev": " very helpful in bringing a different perspective on that approach. So",
+        "cur": "So there is six verticals within edge, even though we draw it as one h"
+      },
+      {
+        "rule": "rule1",
+        "word": "Very",
+        "norm": "very",
+        "prev": "icture of these verticals and we built this for the board so it's very",
+        "cur": "Very generic, but at some point, yeah, things need to just work. And a"
+      },
+      {
+        "rule": "rule1",
+        "word": "As",
+        "norm": "as",
+        "prev": " the optimizations that are unique are sitting below that right and as",
+        "cur": "As we go and develop this stack, most of these have existed for some t"
+      },
+      {
+        "rule": "rule1",
+        "word": "So",
+        "norm": "so",
+        "prev": "know, I try not to speak of it because you know it's really bad and so",
+        "cur": "So SMD has been trying to do a lot of improvements there. It used to j"
+      },
+      {
+        "rule": "rule1",
+        "word": "It's",
+        "norm": "its",
+        "prev": "They're just trying to deploy models on a certain product, and so it's",
+        "cur": "It's about you know some memory tuning, compile time, you know a littl"
+      },
+      {
+        "rule": "rule2",
+        "word": "So",
+        "norm": "so",
+        "prev": " the stack we're building is going to win and help us through that. So",
+        "cur": "So this was just a summary of how we're trying to go and make sure all"
+      },
+      {
+        "rule": "rule1",
+        "word": "about",
+        "norm": "about",
+        "prev": "t easier for things to get up and running. The second section is about",
+        "cur": "about getting the agentic stack hardened, getting our microservices ou"
+      },
+      {
+        "rule": "rule1",
+        "word": "In",
+        "norm": "in",
+        "prev": " well. Okay, so there were a couple of questions, related questions in",
+        "cur": "In reaction to what you were presenting, Mike. So I'll start with thos"
+      },
+      {
+        "rule": "rule1",
+        "word": "the",
+        "norm": "the",
+        "prev": "re a lot of patterns and really good work in collaboration between the",
+        "cur": "the CCG team and the data center on their routing mechanisms. So somet"
+      },
+      {
+        "rule": "rule1",
+        "word": "that",
+        "norm": "that",
+        "prev": "we live and die by that, right? So I think it was trying to make that.",
+        "cur": "that pivot so that we're not confused about the approach for something"
+      },
+      {
+        "rule": "rule1",
+        "word": "I",
+        "norm": "i",
+        "prev": "selves, it'll actually make the external view much much heavier. But I",
+        "cur": "I don't think there's any explicit planet. There's a lot of hodgepodge"
+      },
+      {
+        "rule": "rule1",
+        "word": "To",
+        "norm": "to",
+        "prev": ", we do plan to transition towards 1280 for graphics. We would like to",
+        "cur": "To transition towards compute, we got to see gaps being closed on it, "
+      },
+      {
+        "rule": "rule1",
+        "word": "A",
+        "norm": "a",
+        "prev": "k to do. Like we just met with them yesterday. We're not giving them a",
+        "cur": "A free launch by any stretch of imagination, but they've progressed an"
+      }
+    ],
+    "allowed": [
+      {
+        "rule": "rule1",
+        "word": "Welcome",
+        "norm": "welcome",
+        "prev": "Good morning everyone. Good morning. Let's get started. So, welcome",
+        "cur": "Welcome to our Q3 26 QGS."
+      },
+      {
+        "rule": "rule1",
+        "word": "Scale",
+        "norm": "scale",
+        "prev": "hat today, even in our traditional business where OEMs love the scale.",
+        "cur": "Scale and compatibility for multiple generations, and a lot of what we"
+      },
+      {
+        "rule": "rule1",
+        "word": "Lost",
+        "norm": "lost",
+        "prev": "y. Job one, noble liquid scale. Right? If you look at where we've lost",
+        "cur": "Lost competitive share in the last few generations. It's been lack of "
+      },
+      {
+        "rule": "rule1",
+        "word": "Opportunity",
+        "norm": "opportunity",
+        "prev": "ce desktop, other end of the spectrum, Wildcat Lake, great opportunity",
+        "cur": "Opportunity to win share in mainstream, great structure. If you recall"
+      },
+      {
+        "rule": "rule1",
+        "word": "Last",
+        "norm": "last",
+        "prev": "t and scale it to Novalex 12xe, Titanlake AX, right? And then the last",
+        "cur": "Last thing, we got to win in what we call a new infrastructure or a ne"
+      },
+      {
+        "rule": "rule1",
+        "word": "market",
+        "norm": "market",
+        "prev": "t ain't going to happen tomorrow, and so we got to look at the market.",
+        "cur": "market of there's a lot of volume and scale with fixed robots, amr mac"
+      },
+      {
+        "rule": "rule1",
+        "word": "Second",
+        "norm": "second",
+        "prev": "us access to actually understand better that market, right? The second",
+        "cur": "Second thing is working with Dan's team is how do we get access to def"
+      },
+      {
+        "rule": "rule1",
+        "word": "shape",
+        "norm": "shape",
+        "prev": "s team is how do we get access to definitional partners who help shape",
+        "cur": "shape our understanding of the requirements of the future, because we "
+      },
+      {
+        "rule": "rule1",
+        "word": "Different",
+        "norm": "different",
+        "prev": " because we don't understand everything in physical AI. It's different",
+        "cur": "Different in client, and as we go into this engagement, we need to go "
+      },
+      {
+        "rule": "rule1",
+        "word": "See",
+        "norm": "see",
+        "prev": "with our customers about what that means for them, and then you'll see",
+        "cur": "See on here this big white box called ax2 that is just starting early "
+      },
+      {
+        "rule": "rule1",
+        "word": "Continue",
+        "norm": "continue",
+        "prev": "don't know yet, but the family of the ax will continue on and continue",
+        "cur": "Continue to scale. Okay, I'm not going to go through this line by line"
+      },
+      {
+        "rule": "rule1",
+        "word": "Congratulations",
+        "norm": "congratulations",
+        "prev": "x, we did power on last week, right, very cleanly, so congratulations.",
+        "cur": "Congratulations to all the team. I mean, guys, think about it. Who wou"
+      },
+      {
+        "rule": "rule1",
+        "word": "Continue",
+        "norm": "continue",
+        "prev": "s new AI features come out, ALOS designs come out. We have to continue",
+        "cur": "Continue to support that. I don't really view it as a vertical like th"
+      },
+      {
+        "rule": "rule1",
+        "word": "Verticals,",
+        "norm": "verticals",
+        "prev": "raw it as one here to simplify. And as you look at all those verticals",
+        "cur": "Verticals, so they're you know, aero, industrial, education. Before we"
+      },
+      {
+        "rule": "rule1",
+        "word": "Now",
+        "norm": "now",
+        "prev": "re to ask ourselves, it's the overall Intel product challenge, but now",
+        "cur": "Now also a very big CCPG challenge to get developers on board easy, an"
+      },
+      {
+        "rule": "rule1",
+        "word": "front",
+        "norm": "front",
+        "prev": "Nvidia is a very heavy one that's still going to be very far in front.",
+        "cur": "front of us until we get that traction through the next year at least."
+      },
+      {
+        "rule": "rule1",
+        "word": "Key",
+        "norm": "key",
+        "prev": "nctional, always performant to the hardware roof line. That's the key.",
+        "cur": "Key part of the focus, landing kernel foundry, make it easier for thin"
+      },
+      {
+        "rule": "rule1",
+        "word": "like",
+        "norm": "like",
+        "prev": "saggregated designs that provide the ability to create many skus, like",
+        "cur": "like Novaleak versus integrated designs that provide lower cost, like "
+      },
+      {
+        "rule": "rule1",
+        "word": "Example,",
+        "norm": "example",
+        "prev": "e trying to solve and the problems within that segment. So for example",
+        "cur": "Example, doing a two chip solution for Wildcat for that class of integ"
+      },
+      {
+        "rule": "rule1",
+        "word": "Two",
+        "norm": "two",
+        "prev": " up to the mic so we can ask questions in the room as well. I have two",
+        "cur": "Two questions that I think they're fairly related. First is what is th"
+      },
+      {
+        "rule": "short_flush",
+        "word": "Thanks.",
+        "norm": "thanks",
+        "prev": "Lisa, thanks",
+        "cur": "Thanks. It was a great presentation and a good overview. I apologize f"
+      },
+      {
+        "rule": "rule1",
+        "word": "performance",
+        "norm": "performance",
+        "prev": "en trying to get our act together. We also don't have high performance",
+        "cur": "performance GPUs, right? So all these things are kind of factors into "
+      },
+      {
+        "rule": "rule1",
+        "word": "existing",
+        "norm": "existing",
+        "prev": "artners in China, like Unitree and others, right? And we have existing",
+        "cur": "existing solutions today that are winning designs in that space. Again"
+      },
+      {
+        "rule": "rule1",
+        "word": "Right",
+        "norm": "right",
+        "prev": " last year, obviously Intel was also going through tough times, right?",
+        "cur": "Right and have to make choices, but now pivot it to be ready for an AI"
+      }
+    ]
+  }
+}
