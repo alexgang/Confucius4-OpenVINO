@@ -7017,3 +7017,64 @@ __all__ = [ ..., 'APP_DIR', 'APP_DEV_ONLY_FILE_RE', 'is_app_dev_only', ... ]
 - 🔴 本轮改动文件全部属 **App 模块管辖**（打包脚本 / sync / `pkg_exclude` / `caption_render` / 验收脚本 / 本 STATUS）；
 - 🔴 **未动** `live_caption/translator.py`（**MT 管辖**，H-010 / H-014）、**未动** `live_caption/live_caption_app.py`
   （并行会话的在制品，148 行未提交差异 ⇒ 本轮**不碰**）。
+
+## §41 ✅ 按用户决定落地：CUDA（PyTorch）做成**本机可选后端**（GUI 第三项、检测不到自动隐藏、客户包体积不变）（2026-10-25 21:15）
+
+> 用户决定（AskUserQuestion）：**「只做本机可选后端（推荐）」** ⇒ 包体不变（仍 11.2 GB），
+> 客户机没有 CUDA 环境时该项**不出现**；开发机上作为最快的一档。
+
+### §41.1 架构：**子进程边车**，不是 in-process
+
+| 为什么不能直接 import | 结论 |
+|---|---|
+| 客户包 python **没有 torch**（也不该塞：+4.2 GB） | ❌ |
+| 该后端要求 `transformers==5.15.1`，包内是 **4.57.6**（ASR/MT 也在用） | ❌ 会**改动现网依赖** |
+| ⇒ 只能放**独立 venv**（`C:/Users/Trekker-PTL/_fq3tts_env`） | ✅ 选它 |
+
+```
+tts_worker.py --device CUDA
+   └─ import tts_cuda → CudaTTSEngine.start()
+        └─ 子进程: _fq3tts_env\Scripts\python.exe  tts_cuda_sidecar.py
+             ├─ 加载 FasterQwen3TTS(0.6B, bf16, cuda) + warmup(CUDA Graph)
+             └─ stdin/stdout 协议：JSON 头 + **裸 float32 PCM**（不做 base64，省一半带宽）
+```
+
+🔴 **协议细节（踩过的坑）**：
+- 第三方库（transformers / tqdm）会往 **stdout 打印** ⇒ 边车启动时立刻 `sys.stdout = sys.stderr`，
+  协议出口单独留 `out = sys.stdout.buffer`，否则**协议被日志污染**；
+- 每块只发**一次**（先缓存一块，收到下一块才发旧的，最后一块打 `last=True`）
+  —— 第一版写完发现「最后一块被发了两次」，已修；
+- 客户端 `_readline` 用**二进制**读并保留余量缓冲（文本层会多读，把 PCM 吃掉）。
+
+### §41.2 改动清单（**只动 App 自己的文件**，`tts_engine.py` 归 TTS 模块，未改）
+
+| 文件 | 改动 |
+|---|---|
+| `tts_cuda.py`（新，App） | 客户端：`available()` / `probe()` / `CudaTTSEngine`（`generate_stream` 与 babelvox **同形**，`tts_engine.stream()` 无需改）；`USES_REF_AUDIO=True` 让上层跳过 embedding |
+| `tts_cuda_sidecar.py`（新，App） | 边车服务端：加载 + warmup + 请求循环 + 分块回传 |
+| `tts_worker.py`（App） | ① `_try_load_babelvox` 顶部按 `device.startswith('CUDA')` 走 `tts_cuda`；② `_setup_babelvox_voice` 对 `USES_REF_AUDIO` 引擎跳过 embedding；③ `--precision` choices 加 **`bf16`**（CUDA 恒 bf16，OV 仍只认 f32/f16） |
+| `live_caption_app.py`（App） | ① 新增 `_cuda_tts_available()`；② `_tts_device_problem` 对 `CUDA` **早退**（不能套用「OV 没装 CUDA plugin」那条，那是 OV IR 的限制）；③ `build_tts_options` 在**最后** `insert(0, ...)` 插 CUDA 项（这样「已移除」说明仍挂在 OV 首项上） |
+
+⚠️ 同步纪律：`live_caption_app.py` 的包内版本是**逐处 Edit** 过去的（工作区里有并行会话的 APP-015
+方案 C，**整文件覆盖会把在制品带进包**）；`tts_worker.py` / `tts_cuda*.py` 三份用 `cp` 并核 md5。
+
+### §41.3 验证
+
+| 项 | 结果 |
+|---|---|
+| GUI 冒烟 `app024`（断言已按 §40 改向） | **全 PASS**：TTS 共 **3** 项 = `NVIDIA CUDA（PyTorch） · bf16`（首选）/ `Intel NPU · F16` / `Intel GPU（集显） · F32`；**OV-NVIDIA 选项 0 条**；CUDA note 写明「PyTorch 路线 + 0.547 s」 |
+| 端到端 `app039 --device CUDA --precision bf16` | **PASS**：边车就绪 **25.4 s 加载 + 1.5 s 预热**（端到端 27.2 s），`state=ready`，**`first_packet_s=4.447`**、**`n_played=1`** ⇒ **真出声** |
+| 边车崩溃隔离 | 边车死了只影响**该句**（worker 记丢句），不会拖垮 GUI 进程 |
+
+🔴 **两个口径必须分开报（别混）**：
+- **0.547 s** = 模型已加载 + 已 warmup 后，**单句流式 TTFA**（稳态，`app047` 探针）；
+- **4.447 s** = **进程内首句**（含 worker 冷启后的首次请求、播放流重建、分句链路）⇒
+  对现网 NPU 的首句 6.964 s 仍快 **1.6×**。
+⇒ 「CUDA 比 NPU 快 12.7×」**只能用于稳态 TTFA 这一口径**，不能拿去说首句。
+
+### §41.4 怎么开 / 怎么关
+
+- **开**：本机装好 `_fq3tts_env`（见 §40.3）⇒ GUI「语音输出」自动多出 `NVIDIA CUDA（PyTorch） · bf16`，且为首选。
+- **关**：把 venv 改名/删除，或设 `LIVECAP_CUDA_PY=<别的路径>` ⇒ `available()` 为 False ⇒ 该项**自动消失**，
+  且 `_tts_device_problem('CUDA')` 会给「未安装 CUDA 后端环境」的说明（**不静默**）。
+- 客户机：**本来就不会有** ⇒ 不会出现、不会报错、**包体不变**。

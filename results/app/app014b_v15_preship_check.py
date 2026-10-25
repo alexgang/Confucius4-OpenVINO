@@ -129,6 +129,8 @@ def main():
           'ASR 语音分区新增 CUDA 选项 + 去重' in notes)
     check('MANIFEST notes 含 v1.5 修订（TTS 只列实测可用组合）',
           '（10）**语音输出只列' in notes)
+    check('MANIFEST notes 含 v1.5 修订（可选 CUDA 后端）',
+          '（12）**新增可选 CUDA（PyTorch）语音输出后端**' in notes)
     check('MANIFEST notes 含 v1.5 修订（修掉语音输出无声）',
           '（11）**修掉「语音输出无论 NPU/GPU 都听不到声音」**' in notes)
     check('MANIFEST notes 含 v1.5 修订（接缝去重）',

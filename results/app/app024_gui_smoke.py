@@ -114,10 +114,25 @@ def main() -> None:
               % (o["label"], o["device"], o["precision"]))
     tts_cuda = [o for o in tts
                 if "CUDA" in o["label"] or device_config.is_cuda_device(o["device"])]
+    # 🔴 §40 起口径变了：**CUDA 允许出现 1 条，但必须是 PyTorch 后端**（`device='CUDA'`），
+    #   且**绝不能**是 OV 枚举出来的 NVIDIA（那种选了必失败 —— §37/§39.5 的依据不变）。
+    ov_cuda = [o for o in tts
+               if device_config.is_cuda_device(o["device"])
+               and str(o["device"]).upper() != "CUDA"]
+    pt_cuda = [o for o in tts if str(o["device"]).upper() == "CUDA"]
     print()
-    print("TTS 里的 NVIDIA/CUDA 选项条数：%d => %s"
-          % (len(tts_cuda), "PASS（已移除）" if not tts_cuda else "FAIL（选了会失败）"))
-    ok &= not tts_cuda
+    print("TTS 里的 OV-NVIDIA 选项条数：%d => %s"
+          % (len(ov_cuda), "PASS（已移除）" if not ov_cuda else "FAIL（OV IR 编不过）"))
+    ok &= not ov_cuda
+    print("TTS 里的 PyTorch-CUDA 选项条数：%d => %s"
+          % (len(pt_cuda), "PASS" if len(pt_cuda) <= 1 else "FAIL（重复）"))
+    ok &= len(pt_cuda) <= 1
+    if pt_cuda:
+        n = pt_cuda[0].get("note") or ""
+        good = ("PyTorch" in n) and ("0.547" in n)
+        print("  CUDA 选项 note 写明是 PyTorch 路线 + 实测数字：",
+              "PASS" if good else "FAIL（会被当成 OV 的 CUDA plugin）")
+        ok &= good
     notes = " ".join(o.get("note") or "" for o in tts)
     has_note = ("已从语音输出列表移除" in notes) and ("NVIDIA" in notes)
     print("TTS note 里有「已从语音输出列表移除」+ NVIDIA 原因说明：",
@@ -130,9 +145,12 @@ def main() -> None:
     ok &= not gpu_f16
     print("TTS 至少有一个可用选项：", "PASS" if tts else "FAIL")
     ok &= bool(tts)
-    print("TTS 首选是否为 NPU：",
-          "PASS" if (tts and tts[0]["device"].upper() == "NPU") else "FAIL")
-    ok &= bool(tts and tts[0]["device"].upper() == "NPU")
+    # 🔴 首选：本机装了 CUDA 后端 ⇒ 首选 CUDA（实测最快）；没有 ⇒ NPU
+    first_dev = (tts[0]["device"].upper() if tts else "")
+    expect_first = "CUDA" if pt_cuda else "NPU"
+    print("TTS 首选是否为 %s：" % expect_first,
+          "PASS" if first_dev == expect_first else "FAIL（实际 %r）" % first_dev)
+    ok &= (first_dev == expect_first)
 
     # ── ③ 假设备 ──
     print()

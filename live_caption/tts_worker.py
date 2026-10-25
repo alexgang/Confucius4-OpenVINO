@@ -363,6 +363,20 @@ class TTSWorker:
         """
         try:
             import tts_engine
+            # 🔴🆕 **`device='CUDA'` 走独立后端**（STATUS §40）：
+            #   不是 OV 的 CUDA plugin（官方发行版根本不带），而是
+            #   **PyTorch + faster-qwen3-tts**，跑在独立 venv（+5.7 GB，不进客户包）
+            #   ⇒ 由 `tts_cuda` 以**子进程边车**调用，模型只加载一次。
+            #   ⚠️ 客户机没这个 venv 时 `available()` 为 False ⇒ GUI 不列该项。
+            if str(self.device).upper().startswith('CUDA'):
+                import tts_cuda
+                if not tts_cuda.available():
+                    raise RuntimeError('CUDA 后端不可用：找不到 %s'
+                                       % tts_cuda.python_exe())
+                log('[tts_worker] 使用 PyTorch+CUDA 后端（faster-qwen3-tts 边车）')
+                eng = tts_cuda.CudaTTSEngine(on_log=log)
+                eng.start()
+                return eng
             # 🔴🔴 **必须传 precision**（2026-10-25 修）：
             #   之前**没传** ⇒ GUI 的「精度 f32/f16」下拉**完全无效**
             #   （BabelVox 内部自建 ov.Core，不传任何 property）。
@@ -399,6 +413,13 @@ class TTSWorker:
             return
 
         wav = tts_engine.preset_voice_path()
+        if getattr(self.engine, 'USES_REF_AUDIO', False):
+            # 🔴 CUDA 后端自己用参考音频做 x-vector（`ref_audio=` + `xvec_only=True`）
+            #   ⇒ 不要在这里算 embedding（边车在另一个进程，没有 babelvox 编码器）
+            self.speaker_embed = None
+            self.speaker_name = 'A'
+            log(f'[tts_worker] CUDA 后端自行使用参考音频做音色：{wav}')
+            return
         self.speaker_embed = tts_engine.speaker_embedding(self.engine, wav, on_log=log)
         self.speaker_name = 'A'
         if self.speaker_embed is None:
@@ -961,7 +982,10 @@ class TTSWorker:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--device', default='GPU.0')
-    ap.add_argument('--precision', default='f32', choices=['f32', 'f16'])
+    # 🔴 bf16 只对 **PyTorch+CUDA 后端**有意义（该后端恒 bf16，忽略该参数）；
+    #   OV 后端仍只认 f32/f16（bf16 传进来会被归一成 f32）。
+    ap.add_argument('--precision', default='f32',
+                    choices=['f32', 'f16', 'bf16'])
     ap.add_argument('--voice', default='A',
                     help='音色：A / B / clone，或 babelvox 内置 speaker'
                          '（cindy / lou / phil / steve）')

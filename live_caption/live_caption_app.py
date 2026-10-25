@@ -552,6 +552,19 @@ def _is_intel_gpu(dev: str) -> bool:
     return not device_config.is_cuda_device(dev)
 
 
+def _cuda_tts_available():
+    """本机是否具备 **PyTorch+CUDA** 的 TTS 后端（独立 venv）。快速判断，不加载模型。
+
+    🔴 与 OV 的 CUDA plugin **无关**：那条路（OV IR 跑 NVIDIA）官方发行版根本不支持；
+    这条路是 `faster-qwen3-tts`（torch + CUDA Graph），实测 TTFA 0.547 s（STATUS §40）。
+    """
+    try:
+        import tts_cuda
+        return bool(tts_cuda.available())
+    except Exception:
+        return False
+
+
 def _tts_device_problem(dev: str, prec: Optional[str] = None) -> str:
     """该设备（**含精度**）用于 TTS 时**是否有已知问题**（返回描述，空串 = 没问题）。
 
@@ -576,6 +589,11 @@ def _tts_device_problem(dev: str, prec: Optional[str] = None) -> str:
     if not dev:
         return '未指定设备'
     up = str(dev).upper()
+    if up.startswith('CUDA'):
+        # 🔴🆕 **PyTorch + CUDA 是另一条路径**（STATUS §40），与 OV 的 CUDA plugin 无关
+        #   ⇒ 绝不能套用下面「OV 没装 CUDA plugin」那条判定（那是 OV IR 的限制）。
+        return '' if _cuda_tts_available() else \
+            '未安装 CUDA 后端环境（需独立 venv：torch cu128 + transformers==5.15.1）'
     if up == 'CPU':
         return ''                        # CPU 是兜底，允许
     if device_config.is_cuda_device(dev) and not device_config.has_cuda_plugin():
@@ -702,6 +720,16 @@ def build_tts_options(devices):
         out[0]['note'] = ((out[0].get('note') + '　') if out[0].get('note')
                           else '') + ('🔴 已从语音输出列表移除（实测不可用）：'
                                       + detail)
+
+    # 🔴🆕 **CUDA（PyTorch）后端**放在最前面（STATUS §40：实测最快，首包 0.547 s）
+    #   ⚠️ 只在**本机装了独立 venv**时出现；客户机没有 ⇒ 自动不列（客户包不带 torch）
+    if _cuda_tts_available():
+        out.insert(0, dict(
+            id='CUDA@bf16', label='NVIDIA CUDA（PyTorch） · bf16',
+            device='CUDA', precision='bf16', fixed=False,
+            note=('✅ 实测可用（PyTorch+CUDA，RTX 5050）：**流式首包 0.547 s** / RTF 0.892'
+                  '（比 NPU 快 12.7×）⇒ **最快**；'
+                  '⚠️ 走独立 venv（torch 不进客户包），首次加载 ~27 s')))
     return out
 
 # Qwen3-ASR 模型内置 support_languages（见 models/hf/config.json），
