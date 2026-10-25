@@ -1,0 +1,36 @@
+{
+  "sr": 24000,
+  "cap": 72000,
+  "sent_n": 138240,
+  "A_ring_no_consumer": {
+    "name": "A_ring_atomic_write",
+    "cap": 72000,
+    "n": 138240,
+    "ok": false,
+    "sec": 2.06,
+    "err": "RuntimeError: 播放回调没有消费音频（2.1 s 无进展：容量 72000，已有 72000，累计已写 72000，累计已读 0）⇒ 请检查播放设备是否被占用/静音",
+    "is_capacity_bug": false,
+    "is_stall_diag": true
+  },
+  "A2_ring_with_consumer": {
+    "name": "A2_ring_with_consumer",
+    "cap": 72000,
+    "n": 138240,
+    "ok": true,
+    "write_s": 2.81,
+    "consumed": 138240,
+    "callbacks": 137
+  },
+  "B_real_player": {
+    "name": "B_real_player",
+    "stream_open": true,
+    "short_write_ok": true,
+    "level_after_write": 12000,
+    "level_after_1_2s": 0,
+    "consumed": 12000,
+    "ok": true,
+    "long_write_ok": true,
+    "long_write_s": 2.76
+  },
+  "verdict": true
+}

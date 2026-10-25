@@ -683,8 +683,8 @@ def build_tts_options(devices):
             elif str(dev).upper() == 'NPU':
                 note = '✅ 实测可用（端到端合成 PASS，RTF≈1.16）⇒ **推荐**'
             else:
-                note = ('⚠️ 实测本机集显 f32 可正常合成，但很慢'
-                        '（5.7 s 音频需 88.7 s）⇒ 实时朗读不推荐；'
+                note = ('⚠️ 实测本机集显 f32 能合成、**也能播出声音**，但很慢'
+                        '（首包 30 s 量级）⇒ 实时朗读不推荐；'
                         '**f16 会失控所以不在此列**')
             label = f'{device_config.device_label(dev)} · {prec.upper()}'
             if is_cuda:

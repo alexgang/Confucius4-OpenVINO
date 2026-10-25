@@ -108,27 +108,35 @@ def _run(args, TTSService) -> int:
             return 1
 
         # ── ② 提交一句 + 等 first_packet / played ──
+        # 🔴🔴 **观测量必须是 `stats()`，不是 `pop_outbox()`**（2026-10-25 修）：
+        #   `TTSService._emit()` 在本版里**从未被调用** ⇒ `pop_outbox()` 永远
+        #   返回空列表 ⇒ 旧版脚本「一个事件都看不到」，却把原因误判成
+        #   「worker 没发事件」。真实记账在 `stats()`：
+        #   `n_submitted` / `n_played` / `n_dropped` / `first_packet_s`。
         print()
         print("=== ② 提交一句，等合成 + 播放 ===")
         t1 = time.perf_counter()
         svc.submit(SENTENCE, seg=0)
         got_first, got_played = None, False
+        last_st = {}
         while time.perf_counter() - t1 < args.play_timeout:
-            evs = svc.pop_outbox() or []
-            for ev in evs:
-                result['events'].append(ev)
-                kind = ev.get('kind')
-                print("  [event] %r" % (ev,))
-                if kind == 'first_packet' and got_first is None:
-                    got_first = ev.get('latency_s')
-                elif kind == 'played':
-                    got_played = True
-            if got_first is not None and got_played:
+            st = svc.stats()
+            last_st = st
+            if got_first is None and st.get('first_packet_s') is not None:
+                got_first = st['first_packet_s']
+                print("  [stats] first_packet_s=%r" % (got_first,))
+            if st.get('n_played', 0) >= 1:
+                got_played = True
+                print("  [stats] n_played=%d" % st['n_played'])
+                break
+            if st.get('n_dropped', 0) >= 1:
+                print("  [stats] 🔴 n_dropped=%d（句子被丢弃）" % st['n_dropped'])
                 break
             time.sleep(0.5)
 
         result['first_packet'] = got_first
         result['played'] = got_played
+        result['stats'] = last_st
         result['synth_s'] = round(time.perf_counter() - t1, 2)
 
         print()

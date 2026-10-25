@@ -97,39 +97,80 @@ class RingBuffer:
         self._closed = False
         self.timeout_s = timeout_s
         self.n_written = 0
+        self.n_read = 0              # 累计被播放回调取走的样本数（诊断用）
         self.n_blocks = 0            # 因写满而阻塞的次数
+        # 🔴 播放回调**完全没消费**时的判定阈值：超过这么久没有任何进展
+        #    ⇒ 直接抛「回调没消费」而不是傻等 30 s（见 write() 的说明）。
+        self.stall_s = min(5.0, float(timeout_s))
 
-    def write(self, data):
-        """整句写入。缓冲不足时**阻塞**直到有空位（反压）。
+    def write(self, data, should_stop=None):
+        """整句写入 —— **按空位分片推进**（不再要求「整句一次装下」）。
 
-        `data` 是一个 list/array（整句音频）。要么整句写入，要么抛
-        `TimeoutError`（等待超时）或 `RuntimeError`（缓冲已关闭）。
+        🔴🔴 **2026-10-25 修（用户反馈「语音输出无论 NPU/GPU 都听不到声音」）**：
+
+           旧实现是「**整句原子写入**」：:
+
+               while self._count + n > self._cap:   # 等播放消费
+                   ...
+
+           ⇒ **只要整句样本数 n > 容量，`count + n > cap` 就永远成立**
+             （`count` 最小是 0：`0 + n > cap`）⇒ 等满 `timeout_s` 必然
+             `TimeoutError` ⇒ 该句被判「合成失败（已丢弃）」⇒ **一声都不响**。
+
+           实测（`results/app/app044_player_probe.py`）：
+             - 容量 = `sr*3` = **72 000 样本（3.00 s）**；
+             - BabelVox 一句 19 字 = **138 240 样本（5.76 s）**；
+             - ⇒ **每一句都 > 容量 ⇒ 每一句都必然写入失败**。
+             - ⚠️ **与设备/精度/NPU/GPU 全都无关**；也**与回调在不在跑无关**
+               —— 实测「有消费者」时仍然超时（70 次回调、消费 0 样本），
+               因为要求的是「整句一次装下」，消费再多也腾不出 138 240 个空位。
+
+           ⇒ 现改为**分片写入**：缓冲一有空位就写一段，直到整句写完。
+             **仍然不丢样本、不切断句子**（语义不变），只是不再要求「一次装下」。
+             `n_blocks` 仍记录「被反压阻塞的次数」，供诊断。
+
+        `should_stop`：可选的无参可调用对象；返回 True 时**中止**本句
+        （返回 False），已写入的部分留在缓冲里自然播完（不制造爆音）。
         """
         n = len(data)
         if n == 0:
-            return
-        with self._cv:
-            if self._closed:
-                raise RuntimeError('环形缓冲已关闭')
-            deadline = time.monotonic() + self.timeout_s
-            while self._count + n > self._cap:
-                # 缓冲装不下整句 ⇒ 等播放消费
+            return True
+        i = 0
+        last_progress = time.monotonic()
+        base_read = self.n_read
+        while i < n:
+            if should_stop is not None and should_stop():
+                return False
+            with self._cv:
                 if self._closed:
                     raise RuntimeError('环形缓冲已关闭')
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    raise TimeoutError(
-                        f'环形缓冲写入超时（容量 {self._cap}，'
-                        f'已有 {self._count}，待写 {n}）')
+                if self._count < self._cap:
+                    space = self._cap - self._count
+                    take = min(space, n - i)
+                    for j in range(take):
+                        self._buf[self._w] = data[i + j]
+                        self._w = (self._w + 1) % self._cap
+                    self._count += take
+                    self.n_written += take
+                    i += take
+                    self._cv.notify_all()
+                    continue
+                # ── 缓冲已满 ⇒ 等播放消费（反压）──
+                if self.n_read != base_read:
+                    base_read = self.n_read
+                    last_progress = time.monotonic()
+                stalled = time.monotonic() - last_progress
+                if stalled > self.stall_s:
+                    # 🔴 把「30 s 静默挂起」变成一条**能定位**的报错
+                    raise RuntimeError(
+                        '播放回调没有消费音频（%.1f s 无进展：容量 %d，已有 %d，'
+                        '累计已写 %d，累计已读 %d）⇒ 请检查播放设备是否被占用/静音'
+                        % (stalled, self._cap, self._count,
+                           self.n_written, self.n_read))
                 self.n_blocks += 1
-                self._cv.wait(timeout=min(remaining, 0.5))
-
-            for i in range(n):
-                self._buf[self._w] = data[i]
-                self._w = (self._w + 1) % self._cap
-            self._count += n
-            self.n_written += n
-            self._cv.notify_all()
+                self._cv.wait(timeout=min(0.5, max(0.05,
+                                                    self.stall_s - stalled)))
+        return True
 
     def read(self, n) -> list:
         with self._cv:
@@ -139,6 +180,7 @@ class RingBuffer:
                 self._buf[self._r] = None
                 self._r = (self._r + 1) % self._cap
                 self._count -= 1
+            self.n_read += len(out)
             self._cv.notify_all()
             return out
 
@@ -164,31 +206,41 @@ class Player:
         self.sr = sr
         # 容量 ≥ 2 块（约 2–3 s）：写满时靠阻塞反压，不靠丢样本
         # （C-101 第 3 条：播放层丢样本会让一句话中间被切断）。
+        # 🔴 容量只影响「反压多早触发」，**不再影响能否写进去**
+        #    （write() 已改为分片推进，见其 docstring）。
         self.ring = RingBuffer(capacity=sr * 3, timeout_s=30.0)
         self._sd = sd
         self._stream = None
         self._lock = threading.Lock()
+        self.n_cb = 0                # 音频回调次数（诊断：0 = 回调根本没跑）
         try:
             self._stream = sd.OutputStream(
                 samplerate=sr, channels=1, dtype='float32',
                 device=device, blocksize=CHUNK_SAMPLES,
                 callback=self._cb)
             self._stream.start()
+            log(f'[tts_worker] 播放流已启动：sr={sr} device={device} '
+                f'blocksize={CHUNK_SAMPLES} '
+                f'latency={getattr(self._stream, "latency", None)}')
         except Exception as e:
             log(f'[tts_worker] 播放设备打开失败：{e}')
             emit({'kind': 'error', 'message': f'播放设备打开失败：{e}'})
             self._stream = None
 
     def _cb(self, outdata, frames, time_info, status):
-        if status:
+        self.n_cb += 1
+        if status and self.n_cb <= 5:
+            # ⚠️ 只报前 5 次，避免刷屏（欠载时每块都会带 status）
             log(f'[tts_worker] 播放状态：{status}')
         data = self.ring.read(frames)
         if len(data) < frames:
             data = data + [0.0] * (frames - len(data))
         outdata[:, 0] = data
 
-    def write(self, wav):
-        self.ring.write(wav)
+    def write(self, wav, should_stop=None):
+        if self._stream is None:
+            raise RuntimeError('播放流未打开（无法播出声音）')
+        return self.ring.write(wav, should_stop=should_stop)
 
     def close(self):
         with self._lock:
@@ -581,19 +633,38 @@ class TTSWorker:
             self._timeline.append((now - self._t0, wav.copy()))
         elif self.player is not None:
             try:
-                self.player.write(wav.tolist())
+                # 🔴🔴 2026-10-25 修：`write()` 已改为**分片推进**（不再要求整句
+                #   一次装下）。旧实现在这句 5.76 s 音频上必然超时 ⇒ 一声不响。
+                #   这里同时把「取消」做成**逐片可中断** ⇒ 长句播放期间也能被丢弃。
+                self.player.write(
+                    wav.tolist(),
+                    should_stop=lambda: (self._is_cancelled(jid)
+                                         or self._stop.is_set()))
             except TimeoutError as e:
-                # 缓冲写满 ⇒ 播放跟不上（C-101 P4 第 2 条：这种情况由
-                # tts_service 层做整句级丢弃，这里只记录）
+                # 旧语义：缓冲写满 ⇒ 播放跟不上（C-101 P4 第 2 条）
                 log(f'[tts_worker] 播放缓冲写满，阻塞超时：{e}')
                 emit({'kind': 'error', 'message': f'播放缓冲写满：{e}',
                       'id': jid, 'dropped': True})
                 self._record_jsonl(jid, text, t_submit, dropped=True)
                 return
             except Exception as e:
-                log(f'[tts_worker] 播放写入失败：{e}')
-                emit({'kind': 'error', 'message': f'播放写入失败：{e}', 'id': jid})
-                self._record_jsonl(jid, text, t_submit, error=str(e)[:200])
+                # 🔴 带上播放器诊断：回调次数 / 已写 / 已读
+                #   0 次回调 = 播放流没跑；有回调但没读 = 设备被占用/静音
+                diag = ''
+                try:
+                    diag = (' [诊断: 回调 %d 次, 已写 %d, 已读 %d, 缓冲 %d/%d]'
+                            % (self.player.n_cb,
+                               self.player.ring.n_written,
+                               self.player.ring.n_read,
+                               self.player.ring.level(),
+                               self.player.ring._cap))
+                except Exception:
+                    pass
+                log(f'[tts_worker] 播放写入失败：{e}{diag}')
+                emit({'kind': 'error', 'message': f'播放写入失败：{e}{diag}',
+                      'id': jid})
+                self._record_jsonl(jid, text, t_submit,
+                                   error=(str(e) + diag)[:300])
                 return
         self._record_jsonl(jid, text, t_submit, dur_s=len(wav) / self.sr,
                            t_first=t_first)
