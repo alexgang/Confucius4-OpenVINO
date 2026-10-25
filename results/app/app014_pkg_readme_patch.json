@@ -1,0 +1,71 @@
+{
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.4",
+  "jobs": [
+    {
+      "file": "README_zh.md",
+      "status": "PATCHED",
+      "applied": [
+        "TTS 段改正式功能",
+        "已知限制 TTS 条目",
+        "修重复的段切分行"
+      ],
+      "skipped": [
+        {
+          "rule": "TTS 段改正式功能",
+          "reason": "标记已存在 ⇒ 幂等跳过"
+        }
+      ],
+      "verify": [
+        {
+          "rule": "已知限制 TTS 条目",
+          "mark_count": 1,
+          "old_count": 0,
+          "new_count": 1,
+          "ok": true
+        },
+        {
+          "rule": "修重复的段切分行",
+          "single_count": 1,
+          "ok": true
+        }
+      ],
+      "bytes_before": 30659,
+      "bytes_after": 30359,
+      "sha256_before": "6941f39c6c2cc6f8ed57027889e150d8b44ab564defa06e1a413726fecf57e21",
+      "sha256_after": "43ace5a57aad24297e6e1de69eeba22b50629bc88464c6f6812d8802be94e664"
+    },
+    {
+      "file": "README_en.md",
+      "status": "PATCHED",
+      "applied": [
+        "TTS 段改正式功能",
+        "已知限制 TTS 条目",
+        "修重复的段切分行"
+      ],
+      "skipped": [
+        {
+          "rule": "TTS 段改正式功能",
+          "reason": "标记已存在 ⇒ 幂等跳过"
+        }
+      ],
+      "verify": [
+        {
+          "rule": "已知限制 TTS 条目",
+          "mark_count": 1,
+          "old_count": 0,
+          "new_count": 1,
+          "ok": true
+        },
+        {
+          "rule": "修重复的段切分行",
+          "single_count": 1,
+          "ok": true
+        }
+      ],
+      "bytes_before": 33726,
+      "bytes_after": 33329,
+      "sha256_before": "ccd9d680508952ac53e7896cb30660d95ddde4bdd8033ee709bceee94565093f",
+      "sha256_after": "cadbfefa67825c83ca2e097a84fde6a15d74adadd9a904214967724e1ae98176"
+    }
+  ]
+}

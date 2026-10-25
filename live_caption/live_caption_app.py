@@ -1870,7 +1870,12 @@ class App:
         f_tts.pack(fill='x', pady=2)
         row_tts = ttk.Frame(f_tts)
         row_tts.pack(fill='x')
-        self.var_tts_on = tk.BooleanVar(value=(getattr(args, 'tts', 'off') == 'on'))
+        # 🔴 **TTS 默认开启**（APP-014：TTS 已转为正式功能）
+        #    ⚠️ 兼容：命令行显式给了 `--tts off` 时仍按 off；
+        #       没给（`None`）⇒ 按**默认开启**处理。
+        _tts_arg = getattr(args, 'tts', None)
+        self.var_tts_on = tk.BooleanVar(
+            value=(True if _tts_arg is None else _tts_arg == 'on'))
         self.chk_tts = ttk.Checkbutton(row_tts, text='开启', variable=self.var_tts_on,
                                        command=self._on_tts_toggled)
         self.chk_tts.pack(side='left', padx=(0, 8))
@@ -1912,6 +1917,14 @@ class App:
         self.cb_tts_out.pack(side='left', padx=(0, 8))
         self.tts = None                      # TTSService 实例
         self.var_tts_note = tk.StringVar(value='')
+
+        # 🔴 **耳机提示**（APP-014：TTS 转正式功能 ⇒ 默认开启）
+        #    TTS 从**系统输出设备**播放，而 ASR 可能采**系统回环**⇒
+        #    不戴耳机会把 TTS 的声音**再采回去** ⇒ 自激 / 回声 / 重复词。
+        #    ⇒ 在开关旁边常驻一行提示（不是弹窗，避免打断会议）。
+        ttk.Label(row_tts, text='⚠️ 请佩戴耳机，避免回授',
+                  foreground='#b26a00').pack(side='left', padx=(4, 0))
+
         ttk.Label(f_tts, textvariable=self.var_tts_note, foreground='#555').pack(fill='x')
 
         # ⚠️ height=10（行）：**这是状态栏可见的关键**。
@@ -2449,7 +2462,7 @@ class App:
                 except Exception:
                     pass
                 self.tts = None
-            self.var_tts_note.set('已关闭')
+            self.var_tts_note.set('已关闭（译文朗读不输出）')
             self.var_status.set('语音输出已关闭')
             return
         try:
@@ -2936,7 +2949,9 @@ def run_cli(args):
     # ── TTS（C-101 P4 第 5 条：加载顺序 ASR → MT → TTS）──
     #    TTS 加载失败**不能影响字幕和翻译** ⇒ 整段 try/except。
     tts = None
-    if getattr(args, 'tts', 'off') == 'on':
+    # 🔴 **默认开启**（APP-014）：`--tts` 默认 None ⇒ 视为 on；
+    #    显式 `--tts off` ⇒ 关闭。
+    if getattr(args, 'tts', None) != 'off':
         try:
             from tts_service import TTSService
             tts = TTSService(device=args.tts_device, voice=args.tts_voice,
@@ -3319,8 +3334,14 @@ def main():
                          '（界面上的浅蓝色预览）。默认关闭 —— 只翻译已定稿的文本；'
                          '草稿每 1.5s 翻一次近整句，是 ASR 积压的主要来源')
     # ── TTS（C-101 P4）──
-    ap.add_argument('--tts', choices=['off', 'on'], default='off',
-                    help='译文语音输出开关。默认 off（不影响现有行为）')
+    # 🔴 **默认 on**（APP-014：TTS 已从「实验性」转为**正式功能**）。
+    #    ⚠️ 默认 None（而不是 'on'）⇒ GUI 与 CLI 都能区分
+    #       「用户没给」与「用户显式给了 --tts off」
+    #       ⇒ GUI 初值按「没给 ⇒ 开启」，显式 off 则仍按 off。
+    ap.add_argument('--tts', choices=['off', 'on'], default=None,
+                    help='译文语音输出开关。**默认 on**（TTS 已是正式功能）；'
+                         '显式 --tts off 可关闭。'
+                         '⚠️ 请佩戴耳机，避免 TTS 声音被 ASR 回采造成回授')
     ap.add_argument('--tts-precision', default='f32', choices=['f32', 'f16'],
                     help='TTS 推理精度')
     ap.add_argument('--tts-voice', default='A', choices=['A'],
