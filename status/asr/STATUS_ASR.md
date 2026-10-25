@@ -1,10 +1,11 @@
 last_ack: ASR-009
-更新时间: 2026-10-26 01:25
-当前任务: **ASR-006 §6 / ASR-007 继续（§26 已完成，§27 进行中）**。① ✅★ **INT4 重量化完成**（新图 `ov-dec-06b-embed-mask2` → `…-mask2-int4`，配方 `INT4_ASYM g128 ratio=1.0 + AWQ + SE + backup=INT8_ASYM`，`lm_head` 保 FP16；**1139.7 → 518.6 MiB（ratio 0.455）**，比 INT8 的 720.6 MiB **小 28.03%**，`n_i4=392`，量化 210.1 s，`n_calib=64` 右对齐双端口）；② ✅★ **INT8 / INT4 两格 61 分钟全长跑完成**（同 wav 3671.19 s、同 encoder `fp16-static`、同 App 路径，唯一变量 = decoder 精度）：两格均 **553 段**、`rule_counts` 均 **518/34/1**、`seg_dur_p50/p95/max` 均 6.4/8.96/12.16 s ⇒ 切点**逐位一致**；词数 **11419 vs 11369（−0.44%）**；**RTF 0.6827 vs 0.6959（+1.93%）**、首字延迟 0.2470 vs 0.2497 s（+1.1%）、`timing_valid` 两格均 **true**；③ ✅ **文本健康度无退化**：两格「拉丁字母/全部字母 = 1.0000」（无乱码/异体字）、三连重复 **0**、空段 **0**、唯一词率 0.235/0.241；段级文本 78.8% 不同属流式贪心抖动的**预期**（差异均为小词形，最长段语义连贯）；④ ✅ **修掉 `build_compare_mask2.py` 的 `rule_counts` 双重计数 bug**（引用 summary 的 dict 又在其上累加 ⇒ 553 段写成 1036，正好翻倍）⇒ 已改为取拷贝 + 加「合计必须等于 `n_segs`」自检；⑤ ✅ **对比格子与矩阵已刷新**：新增 `…__int8__mask2__int8.json` / `…__int4__mask2__int4.json`，`MATRIX.json` 共 **18 格**，两格 `data_invalidated=false`；⑥ 🔴 **三条不可归因边界已写进 §26.4**：旧图 INT8 长跑 `timing_valid=false`（锁路径错 + 被 MT 干扰）⇒ 其 RTF 1.2389 **不得引用**；旧图用 `int8sym-static` encoder 而新图用 `fp16-static` ⇒ **新旧长跑同时变了两样**，差异不能全归因 mask（§23 的正交实验才是根因证据）；⑦ ⏳ **NPU 文本正常性 / prefix 路径 / teacher-forcing 标定点仍在等锁**（`app-pack PID 39320` 打包中）⇒ 结果写 §27
-阻塞 / 待用户决定: ① 🔴★ **WER 仍全部空缺**（`wer_pct: null`）—— 本模块**不自算 WER**（ASR-002 / ASR-004）⇒ 需 reviewer 用本机 baseline + 全局对齐 + paired bootstrap 复算**新图（mask2）两格**的 61 分钟全长 WER，**锚点 = `qwen3asr_06b__torchref__cuda_stream.json` 的 10.97%**（同一计分器 ⇒ 合规）；② ⏳ **NPU 文本正常性待验**（`run_mask2_post.sh` 已就绪，等 `app-pack` 让锁）；③ ⏳ **prefix 路径待验**；④ ⏳ **teacher-forcing 新图标定点待跑**；⑤ ⚠️ **设备内存（`mem_device`）仍为空**（两格 summary 均 `note: 未匹配到设备`）⇒ 交付前必须补；⑥ ⚠️ **`reports/compare/` 里旧图 5 格仍为 `data_invalidated=true`**（有效格只剩新图 2 格 + TORCH_REF 2 格 + R2T2 若干）⇒ reviewer 引用时务必看「数据有效」列；⑦ ⚠️ **交付级 RTF / 首字延迟仍非多跑统计**（两格都是 n=1 单次连续跑，虽 `timing_valid=true`）⇒ 若要 P50/P95 需持锁 fresh-process 多跑；⑧ ⚠️ **reviewer 指定的 R2T2 R2 同口径标定点未跑**；⑨ ⚠️ **P0 参照重跑未做**（少跑 11.19 s）；⑩ ⚠️ **「提高 rule1 静音要求」必须改代码**（硬编码无 env）⇒ **属 App 模块**（ASR-003 边界）
+更新时间: 2026-10-26 01:55
+当前任务: **ASR-006 §6 / ASR-007 收口（§26 + §27 已完成）**。① ✅★ **§26**：新图 INT4 重量化（**1139.7 → 518.6 MiB，ratio 0.455**，比 INT8 小 **28.03%**，`n_i4=392`，配方 `INT4_ASYM g128 + AWQ + SE` / backup `INT8_ASYM` / `lm_head` 保 FP16）+ **INT8/INT4 两格 61 分钟全长跑**（553 段、`rule_counts` 518/34/1、`seg_dur` 6.4/8.96/12.16 **两格逐位一致**；词数 11419 vs 11369 −0.44%；**RTF 0.6827 vs 0.6959 +1.93%**；`timing_valid` 两格 true；文本健康度无退化：拉丁占比 1.0000 / 三连重复 0 / 空段 0）；② ✅★ **§27 后处理链全过**：① **NPU 文本正常性 —— `prompt_echo_detected` 三格全 false ⇒ §20 的 NPU BLOCKED 解除**（45 段 / 867·869·850 词 / 编译 117.7·88.5·208.8 s）；② **prefix 路径 mask 不错位**（12 步 `mask_ok=True`、`mask_mismatch=0`、三格 final 文本逐字相同）；③ **teacher-forcing**（target 来自**同家族 OV FP16**、**0/20 段退化 ⇒ 不是 tautology**）：INT8 **99.2941%**（422/425）、INT4 **92.7059%**（394/425）；④ **设备内存补测完成**（INT4 比 INT8 省 **200.8 MiB** 驻留内存，−26.3%）；⑤ 🔴🔴 **重大发现：`GPU.0` = `Intel(R) Graphics (iGPU)`（arch v30.1.0），`GPU.1` 才是 `NVIDIA RTX 5050 (dGPU)`，全程 `nvidia-smi used=0`** ⇒ **本模块所有标 `GPU.0` 的格子跑的都是核显**，任何「GPU 上 RTF/WER」的表述都必须写明 iGPU；⑥ ✅ 修掉 3 个 bug（`p3_diag_mask2_prefix` 两处 `.numpy()` on grad tensor / `p3_diag_device_mem` 的 `ir_mib` 只算 xml / `p3_ov_app.device_mem_mb` 三处缺陷）
+阻塞 / 待用户决定: ① 🔴★ **WER 仍全部空缺**（两格 + NPU 三格 `wer_pct: null`）—— 本模块**不自算 WER**（ASR-002 / ASR-004）⇒ 需 reviewer 用本机 baseline + 全局对齐 + paired bootstrap 复算，**锚点 = `qwen3asr_06b__torchref__cuda_stream.json` 的 10.97%**（同一计分器 ⇒ 合规）；② ⏳ **`R2T2 R2` 同口径标定点未跑** ⇒ teacher-forcing 的 99.29% / 92.71% **没有阈值可判**（本轮已明确不下「INT4 可行/不可行」结论）；③ ⏳ **NPU 上 INT4 反而更慢（RTF 0.3777 vs INT8 0.2719，+38.9%；编译 208.8 vs 88.5 s）需要复核** —— 与 iGPU 上「只慢 1.93%」方向相反；但样本仅 1 次 × 300 s 切片且含首次编译开销 ⇒ 只作观察；④ ⚠️ **`GPU.0` = iGPU 这条必须同步给 reviewer**；⑤ ⚠️ **两格 `summary.json` 的 `mem_device` 仍是旧的空值**（补测结果在独立文件 `results/p3_diag_device_mem.json`，未回填以避免改已交付产物）；⑥ ⚠️ **交付级 RTF / 首字延迟仍非多跑统计**（n=1 单次连续跑，虽 `timing_valid=true`）⇒ 要 P50/P95 需持锁 fresh-process 多跑；⑦ ⚠️ **P0 参照重跑未做**（少跑 11.19 s）；⑧ ⚠️ **「提高 rule1 静音要求」必须改代码**（硬编码无 env）⇒ **属 App 模块**（ASR-003 边界）；⑨ ⚠️ `reports/compare/` 旧图 5 格仍 `data_invalidated=true` ⇒ reviewer 引用时务必看「数据有效」列
 
 
 ## 最近更新
+- 2026-10-26 01:52 **后处理链全过 + 设备身份重大发现（§27）**：① ✅★ **NPU 文本正常性**：`prompt_echo_detected` **三格全 false** ⇒ **§20 的 NPU BLOCKED 解除**（切片 [720,1020] 300 s / 45 段；词数 fp16 867、int8 **869**、int4 850；编译 117.7 / 88.5 / 208.8 s；RTF 0.2908 / 0.2719 / 0.3777 —— ⚠️ 整段贪心口径，**不可**与 App 路径比）；② ✅ **prefix 路径 mask 不错位**：12 步逐步 `mask_ok=True`、`mask_mismatch_count=0`、`any_degenerate=false`，三格 final 文本逐字相同（仅 `All right.` vs `Alright.`）⇒ 补上了 §23 修复最易漏的一条；③ ✅ **teacher-forcing**（20 段 / 425 token；target 来自**同家族 OV FP16**；**target 退化检测 0/20 ⇒ 不是 tautology**）：INT8 **99.2941%**（422/425）、INT4 **92.7059%**（394/425）、fp16 自检 100%；`position_layout_probe` 也是 100% ⇒ 这批段长下位置排布恰好等价；④ 🔴🔴 **设备身份**：`GPU.0` = **Intel(R) Graphics (iGPU)**、`GPU.1` = **NVIDIA RTX 5050 (dGPU)**、NPU = Intel AI Boost；**`nvidia-smi used` 全程 0** ⇒ **所有标 `GPU.0` 的格子跑的是核显**；⑤ ✅ **驻留内存补测**（USM 编译增量）：int4 **561.8 MiB** / int8 **762.6 MiB** / fp16 1209.5 MiB ⇒ INT4 比 INT8 省 **200.8 MiB（−26.3%）**，与目录体积比例吻合（0.726 vs 0.720）；⑥ 🔴 **修 3 个 bug**：`p3_diag_mask2_prefix` 两处 `.numpy()` on grad tensor（grep 全部 `.numpy()` 才没漏第二处）、`p3_diag_device_mem` 的 `ir_mib` 只算 xml（得出 2.8 MiB 的荒唐值）、`p3_ov_app.device_mem_mb` 三处缺陷；⑦ ⏳ WER / R2T2 R2 标定点 / NPU-INT4 变慢复核 仍待办
 - 2026-10-26 01:20 **新图 INT4 重量化 + INT8/INT4 两格 61 分钟全长跑完成（§26）**：① ✅ **INT4 重量化**（`INT4_ASYM g128 + AWQ + SE`，backup `INT8_ASYM`，`lm_head` 保 FP16，`n_calib=64` 右对齐双端口）：**1139.7 → 518.6 MiB（ratio 0.455）**、`n_i4=392`、`quant_seconds=210.1`、NNCF 位宽 int4_asym g128 **74%(196/197)** 且 ratio-defining **100%** ⇒ 配方确认生效；比 INT8（720.6 MiB）**小 28.03%**；② ✅ **两格长跑**（同 wav / 同 encoder / 同 App 路径，唯一变量 = decoder 精度）：553 段、`rule_counts` 518/34/1、`seg_dur` p50/p95/max 6.4/8.96/12.16 **两格逐位一致**（切段在音频域 ⇒ 段边界完全可比）；词数 **11419 vs 11369（−0.44%）**；**RTF 0.6827 vs 0.6959（+1.93%）**、`seg_rtf_p50` 0.6789 vs 0.6899、首字延迟 p50 0.2470 vs 0.2497 s、`timing_valid` 两格 **true**、全程持规范锁；③ ✅ **文本健康度无退化**：拉丁/全部字母 **1.0000**（无乱码异体字）、三连重复 **0**、ABAB 6/7、空段 **0**、唯一词率 0.235/0.241；段级 78.8% 文本不同属流式贪心+前缀回退的**预期**抖动（`nomenclature→nomenclators`、`SMG→S M G` 之类），最长 3 段语义连贯；④ 🔴 **修掉 `rule_counts` 双重计数**（引用 summary dict 后又在其上累加 ⇒ 553 写成 1036）⇒ 取拷贝 + 「合计 == n_segs」自检；⑤ ✅ **格子与矩阵**：新增 `…__int8__mask2__int8.json` / `…__int4__mask2__int4.json`，`MATRIX.json` **18 格**、两格有效；⑥ 🔴 **§26.4 三条不可归因边界**：旧图 INT8 长跑 `timing_valid=false` ⇒ RTF 1.2389 **不得引用**、且**无持锁重跑版本**；旧图 encoder 是 `int8sym-static` 而新图是 `fp16-static` ⇒ **新旧长跑同时变两样**，词数/RTF 差异不能全归因 mask；旧图 11825 vs 新图 11419 词只能作方向性旁证；⑦ ⏳ NPU/prefix/teacher-forcing 仍在等 `app-pack` 让锁 ⇒ 写 §27
 - 2026-10-25 21:26 **【用户决定】ASR 不考虑 FP16 ⇒ 矩阵只剩 INT8 / INT4 两格（§25）**：① ✅ **删除**：① `results/p3_mask2_61min_fp16/`（原**已跑到 65.7%** / 364 段 / 2410.24 s，FP16 无价值 ⇒ 作废）；② `build_compare_mask2.py` 的 fp16 变体、`build_compare_06b.py` 的 FP16 格、`p3_make_matrix.py` 的 ORDER 里的 3 个 FP16 名；③ `p2_multitoken_top1.py` 的 ov_models **7 项→3 项**（删旧图 5 项，`ov_fp16_ref`→`mask2_fp16_ref`）、`p3_int4_slice_decode.py` VARIANTS **6→3**、`p3_npu_mask2_text_check.py` 删 `old_int8`、`p3_diag_mask2_prefix.py` 删 `fp16_old`、`run_mask2_pipeline.sh` 的 `step_p3` **三格→两格**；② 🔴 **两处 FP16 不能照字面删**：① `models/ov-dec-06b-embed-mask2/`（FP16 源图 1.2 G）是 **INT4 重量化的输入**（`p2_quantize_mask2_int4.py::NEW_SRC`）⇒ 删了 INT4 跑不了；② `mask2_fp16` 是 teacher-forcing 的 **target 生成器**（§7 铁律：target 必须同家族 FP16，否则是自一致 tautology）⇒ 保留；③ **原两个 `precision=FP16` 格子实为 P0 的 torch CUDA 参照**（backend = torch 2.11 + CUDA, bfloat16，带 reviewer 算的 **WER 主参照 10.97%**）⇒ 直接删就没有对照基准 ⇒ 已**改标 `TORCH_REF`** + `is_delivery_candidate:false` 保留（`…__torchref__cuda_stream.json` / `…__torchref__cuda_offline.json`）；③ 🔴 **顺带修好漏标作废**：§23 只标了 `int8__gpu0` 一格，另有 **4 格用旧图却仍显示「有效」**（int4_asymg128 / int4_sym_chan / int8__npu / int4__all）⇒ 已补标作废（判据：`dec_ir` 指向 `ov-dec-06b-embed-*` 非 `-mask2` ⇒ 一律作废）；④ ✅ **矩阵已无 `precision=FP16`**（实测扫描全部 json，命中 0 处）；⑤ ✅ **备份可回滚**（`_backup_fp16_removal_20261025/`，300 KB：compare 全量副本 + FP16 长跑 364 段 + 6 个脚本改前版本）；⑥ ✅ **FP16 长跑进程已停**（`TaskStop`）⇒ GPU 与锁让出；⚠️ 停后核查发现**锁已被 MT 正确接管**（`mt PID 9748 started 21:21:45`）⇒ 无孤儿锁
 - 2026-10-25 21:04 **§24.13：修 3 处脚本缺陷 + 补回丢失的元信息 + 补 2 处判据缺口（FP16 长跑进行中，33.4%，计时有效）**：① 🔴 **`build_compare_mask2.py` 读 summary 的 `quality` 子字典 ⇒ 恒得空 dict** —— `p3_ov_app.py` 的 summary 字段**平铺在顶层**（`n_segs`/`total_words`/`rule_counts`/`seg_dur_p50`/…）⇒ 已改为读顶层（否则新格子会全是 0/null）；② ✅ **`p3_make_matrix.py`**：`ORDER` 前插 3 个新图格子 + 矩阵表加「数据有效」列（旧图标 ❌ 作废）+ `MATRIX.md` 新增「§23 根治后旧图格子作废」章节；③ 🔴 **`p3_ov_app.py` 续跑计时口径 bug** —— 续跑时 `wall` 只含本次而 `rtf` 分母是**全程** `covered_s` ⇒ **RTF 被低估** ⇒ 已加 `prev_dec_wall`（累加历史已落盘段的 `dec_wall_s`）+ 新增 `wall_s_total`/`rtf_note`（⚠️ 本次 FP16 是**单次连续跑完** ⇒ `prev_dec_wall=0` ⇒ **本次数据不受影响**）；④ ✅ **补回 §24.10 丢失的旧图 INT8 元信息**（新脚本 `p2_rebuild_quant_meta.py`：196 int8 / 538 f16 / 720.3 MiB / ratio 0.6322 ⇒ 与 §23/§20 历史记录**逐位一致**；顺带确认旧图 INT4 的原始 json **未丢失**，无需重建）；⑤ 🔴 **重建脚本自身踩到的 dtype 口径坑（新铁律）**：OV 的 `get_type_name()` 返回**短名**（`f16`/`i8`）而 `str(dtype)` 是 `<Type: 'float16'>` ⇒ 用 `str()` 做键 ⇒ `n_i8=0` ⇒ 会得出「这不是 INT8 图」的**假结论** ⇒ 正确口径 = **只数 Constant 节点**（与 `p2_quantize.py::const_stats` 同口径）；⑥ ✅ **teacher-forcing 脚本补 target 退化检测**（§18.2 教训：target 退化 ⇒ top1 恒 100% 的 tautology；判据 = 三连同 / ABAB / 唯一率<0.30）+ `ov_fp16_ref` 自检加 `degenerate_warning`；⑦ ✅ **NPU 脚本补「复读 prompt」检测**（§20 的症状）+ 口径说明（整段贪心、无 640ms 分块 ⇒ RTF **不可**与 App 路径比）
@@ -19,7 +20,6 @@ last_ack: ASR-009
 - 2026-10-25 00:05 **ASR-005 P2 收尾 + git 冻结已释放**：**`shared/GIT_FREEZE` 已删除**（21:12 时还在，本轮 00:01 实测消失 ⇒ ASR-005 的「文件存在才禁提交」禁令**自动解除**）；**本地 HEAD = `origin/main` = `6fd7806`** ⇒ 无 divergent history，**明确不做 `reset --hard`**（工作区有 4 模块 500+ 未提交改动，会摧毁在途工作）。**P2 产物 8 个 IR 全部复核在盘**（INT8 候选 enc 180 MiB + dec 721 MiB；⚠️ **命名更正**：FP16 decoder 真实目录是 `ov-dec-06b-embed-fp16`，§15 里写的 `ov-dec-06b-fp16` 不存在）。**P2 检查点正式停靠，P3 不启动**；待 reviewer ① 算三份转写 WER ② 复核 INT8 候选（§15.3）③ **裁定 INT4**（本模块结论 = 0.6B 上不可行，7 条证据链；剩 GPTQ 一条路未做）④ 认可 P0 流式口径。**P3 计时类作业需持机器锁**，当前锁 `app-pack` PID 18380 **已死**（陈旧锁，等放行后回收独占）
 - 2026-10-24 21:12 **ASR-005 P2 量化完成（停在 P2 检查点）**：**INT8 可用**（`ov-encoder-06b-int8sym` 180 MiB + `ov-dec-06b-embed-int8sym` 721 MiB，**lm_head 保 FP16** ⇒ 量化后该层权重 cos **1.000000**）⇒ enc cos **0.978472** / dec cos **0.974973** / **top1 匹配 100%**，体积 1497→901 MiB（**−39.8%**），与 R2T2 自己的 INT8_SYM encoder（cos 0.993 / top1 98.75%）同量级。**INT4 在 0.6B 上不可行**：三个配方（按通道+AWQ+SE / +ratio0.8+hessian / +ratio0.5+hessian）dec cos 全为负、top1 0%。**根因链 7 条独立证据**（§15.4）：① torch 侧 fake-quant 独立复现（INT8 cos 0.9777 / INT4 **0.1138** ⇒ 与 OV 侧一致 ⇒ **不是 OV/NNCF bug**）② 逐层累积（量化 49 层 cos 0.766 → 196 层 0.114）③ 手工解包 int4 后写回 FP16 IR ⇒ **W_deq 本身 cos 0.607 就打坏模型**，而 OV-INT4 vs OV-FP16(deq) = **0.971235** ⇒ **OV 运行时反量化正确** ④ 三设备一致（CPU 0.569 / GPU 0.607 / NPU 0.599 ⇒ 与设备无关）⑤ AWQ 插入数与 R2T2 完全相同（+196 vs +197）⑥ scale 轴正确（`[out,1]`）⑦ **根因 = 0.6B 层矩阵 3072×1024 vs R2T2 6144×2048** ⇒ 每通道 15 级撑不住。**顺带发现**：encoder 是 conv 结构**无 MatMul ⇒ AWQ 静默跳过** ⇒ encoder INT4 等于无校准（不可用）⇒ encoder 保留 FP16。⚠️ `GIT_FREEZE` 仍存在 ⇒ 不 commit
 - 2026-10-24 20:07 **ASR-004 完成 + ASR-005 P0 完成（停在检查点）**：① ASR-004 A/B 61 分钟逐段转写完成 ⇒ **B 的 >12s 1.12%→0.18%、最长段 17.92s→14.08s、空段 1→0**、总词数只差 35 词（−0.31%）⇒ **WER 交 reviewer**；A 组交叉校验通过（分段版 vs 单进程版 part0 内 36/36 文本逐位相同）。② ASR-005 P0 两份参照完成：离线 RTF **0.2249**（31 块/0 OOM）+ 段级流式 RTF **0.6749**（552 段）⇒ **停一次等 reviewer**。③ ASR-005 P1 提前完成：encoder/decoder 两个 FP16 IR 导出 + 端到端 teacher-forcing **enc cos 0.999999 / dec cos 0.999983 / top1 100%**（要求 0.999/99%）✅。**架构发现**：R2T2 就是 Qwen3-ASR 系列（`model_type=qwen3_asr`），与 0.6B 同构 ⇒ R2T2 导出/量化脚本可原样复用。⚠️ `GIT_FREEZE` 仍存在 ⇒ 不 commit
-- 2026-10-24 15:30 **ASR-004 ① 完成并修好一处合并缺陷**：A/B 逐段转写跑完（A 538 段 / B 558 段，GPU INT8 交付配置，61 分钟全长）⇒ 发现 `asr004_ab_chunked.py::merge_group()` **漏加 part 偏移**（part 文件是分段内局部时间，合并时没平移 ⇒ 交付产物时间轴重复 16 次，`segments_A.json` 的 `A[37].start_s` 又是 `0.0`）⇒ 新写 `results/asr_diag/asr004_ab_remerge.py` **只重合并、不重跑**（推理结果未动；自检：段数 538/558 不变、rule 分布不变、段长 p50/p90/p95 不变，**只有时间轴变为全局 0→3665s**）⇒ **reviewer 请用 15:14 后的 `reports/asr004_ab/transcript_{A,B}.txt`**，旧版已备份为 `*.bak_prefix`。交叉校验：分段版 A 与单进程 A 的**前 36 段逐位相同**（切点与文本全同），分歧恰好始于 part 边界（强制 flush），全文词级相似度 0.97411（11420 vs 11403 词）
 
 ## §2 最近一周的结论摘要（均引用产物）
 
@@ -3387,3 +3387,129 @@ qwen3asr_06b__fp16__cuda_offline.json   （cell_id = Qwen3-ASR-0.6B__FP16__CUDA_
   **`qwen3asr_06b__torchref__cuda_stream.json` 的 10.97%**（同一计分器 ⇒ 合规）。
 * ⏳ 本节**不含** NPU 文本正常性 / prefix 路径 / teacher-forcing 标定点 —— 这三项在
   `scripts/run_mask2_post.sh` 里排队等锁（`app-pack PID 39320` 打包中），结果写 §27。
+
+## §27 后处理链：NPU 文本正常性 ✅ / prefix 路径 ✅ / teacher-forcing ✅ / 设备内存 ✅（2026-10-26 01:52）
+
+> 承接 §26.6。本节跑的是 `scripts/run_mask2_post.sh all`（新建）：① NPU 文本正常性 →
+> ② prefix 路径 → ③ teacher-forcing 标定点 → ④ 对比格子 → ⑤ 刷新矩阵。
+> 全程持规范锁，总耗时 30 m 18 s（其中等 `app-pack` 约 8 m）。
+
+### 27.1 ✅ NPU 文本正常性 —— **§20 的 NPU BLOCKED 可以解除**
+
+产物：`results/p3_npu_mask2_text/summary.json`（29,914 B）+ 三变体各自的 `segments.jsonl` / `transcript.txt`。
+切片 = **[720, 1020] s（300 s）**，45 段，整段贪心（`FLUSH_MAX_NEW=64`）。
+
+| 变体 | 段数 | 词数 | `latin_ratio` | 重复率 | **`prompt_echo_detected`** | 编译+加载 | RTF（⚠️非 App 口径） |
+|---|---|---|---|---|---|---|---|
+| `mask2_fp16`（**同机对照，不是交付候选**） | 45 | 867 | 0.9585 | 0.0855 | **false** | 117.7 s | 0.2908 |
+| `mask2_int8` | 45 | **869** | 0.9586 | 0.0853 | **false** | 88.5 s | **0.2719** |
+| `mask2_int4` | 45 | **850** | 0.9578 | 0.0872 | **false** | 208.8 s | **0.3777** |
+
+⇒ ★★ **`prompt_echo_detected` 三格全为 `false`** ⇒ §20 记录的「NPU 上复读 prompt」症状
+（输出把整段 prompt 原样念一遍）在**新图**上**没有出现**；三格 seg01 都是
+`But we're making good progress. Just last week, we powered on our.`（正文）而非 prompt。
+⇒ 加上 §24 已验证「NPUW 支持双端口 + 编译成功 + 无 NaN」⇒ **§20 的 NPU BLOCKED 解除**。
+⚠️ 但**质量仍未验**：`latin_ratio` 只有 0.958（含标点/数字），**WER 仍空缺** ⇒ 只能说到「文本正常、无复读」，不能说「NPU 质量达标」。
+
+⚠️ **两个必须标明的口径限制**：
+1. 这三格的 RTF **不是 App 路径口径**（整段贪心、无 640 ms 分块 + 前缀回退）⇒
+   **不可**与 §26.2 的 0.6827 / 0.6959 相比（脚本已把 `rtf_note` 落盘）。
+2. 🔴 **NPU 上 INT4 反而更慢**：RTF 0.3777 vs INT8 0.2719（**+38.9%**）、编译 208.8 s vs 88.5 s。
+   这与 GPU（iGPU）上「INT4 只慢 1.93%」**方向相反** ⇒ 初步看 **NPU 对 int4 支持不友好**
+   （可能需额外去量化/权重重排）。⚠️ 但**样本只有 1 次 × 300 s 切片**，且含首次编译开销
+   ⇒ **只作观察，不作结论**；若要定论需「同一切片、多轮、编译后预热再计时」。
+
+### 27.2 ✅ prefix 路径：mask 不错位
+
+产物：`results/p3_diag_mask2_prefix.json`（11,697 B）。12 步、`unfixed_chunk_num=2`、`unfixed_token_num=5`。
+
+| 变体 | `has_mask_port` | `mask_mismatch_count` | `any_degenerate` | `final_text` |
+|---|---|---|---|---|
+| `mask2_int8` | true | **0** | **false** | `All right. Good morning, everyone. Good morning. Let's get started. So welcome to our Q three.` |
+| `mask2_int4` | true | **0** | **false** | `Alright. Good morning, everyone. Good morning. Let's get started. So welcome to our Q three.` |
+| `mask2_fp16` | true | **0** | **false** | 与 `mask2_int8` **逐字相同** |
+
+⇒ ★ **12 步逐步 `mask_ok=True`**（`am.sum() == L`，即「有效位计数 = 实际内容长度」）⇒
+在**前缀回退路径**（把已确认文本的 embedding 再拼回去）上 mask 也**没有错位** ——
+这是 §23 修复最容易漏的一条（prefix 是 App 路径特有逻辑），现在有实测证据。
+⇒ 三格 final 文本几乎逐字相同（唯一差别 `All right.` vs `Alright.`）⇒ 无退化。
+
+### 27.3 ✅ teacher-forcing 标定点（新图口径）
+
+产物：`results/p2_multitoken_top1.json`（47,664 B）。20 段 × 最多 24 token = **425 个目标 token**，
+评测段全部取自 ≥12 分钟区段（与校准集 0–12 min 不重叠）。
+
+* **target 源 = OV FP16 decoder（GPU.0）** ⇒ 同家族、同位置排布（**不用 torch 的 token**，避免位置编码口径混入）。
+* 🔴 **target 退化检测：0 / 20 段退化**（判据 = 三连同 token / ABAB 交替 / 唯一率 < 0.30）
+  ⇒ ⚠️ 这条**很关键**：§18.2 的教训就是「target 自己退化 ⇒ top1 恒 100% 的 tautology」。
+  本次 target 非退化 ⇒ 下面的百分比**不是** tautology。
+
+| 被测 | `n_hit / n_total` | **top1** | 说明 |
+|---|---|---|---|
+| `mask2_fp16_ref` | 425 / 425 | 100.0000% | **自检项**（target 就来自它）⇒ 预期 100%，不作质量证据 |
+| `mask2_fp16_gpu` | 425 / 425 | 100.0000% | 同上（同一张图） |
+| **`mask2_int8_gpu`** | **422 / 425** | **99.2941%** | 3 个 token 翻转 |
+| **`mask2_int4_gpu`** | **394 / 425** | **92.7059%** | 31 个 token 翻转 |
+
+* 另附 `position_layout_probe`：OV 对 **torch target** 的命中率也是 100%（425/425）
+  ⇒ 这 20 段上位置排布差异**没有**表现出来（脚本头注释原本预期会低）⇒ 说明「OV 恒取位置 511」
+  在这批段长下与 torch 的自然位置**恰好等价**（段长都 ≤ 24 token 生成 + 固定 6.4 s 音频）。
+* 🔴 **本轮不下「INT4 可行 / 不可行」的结论**：判据的**阈值**必须由 reviewer 的
+  **R2T2 R2 同口径标定点**给出（R2T2 是另一套模型 + 另一套 IR + 不同 prompt 模板）
+  ⇒ 本轮**只给 0.6B 侧的原始 token 级计数**（脚本 `threshold_note` 已写明）。
+
+### 27.4 🔴🔴 设备身份与驻留内存：**`GPU.0` 是 Intel 核显，不是 NVIDIA 独显**
+
+产物：`results/p3_diag_device_mem.json`（新建脚本 `scripts/p3_diag_device_mem.py`，只编译不推理）。
+
+**设备身份**（实测 `FULL_DEVICE_NAME` / `DEVICE_ARCHITECTURE`）：
+
+| 设备 | 身份 |
+|---|---|
+| `CPU` | Intel(R) Core(TM) Ultra 7 356H |
+| **`GPU.0`** | **`Intel(R) Graphics (iGPU)`**，`arch=v30.1.0`，vendor `0x8086` |
+| `GPU.1` | `NVIDIA GeForce RTX 5050 Laptop GPU (dGPU)`，vendor `0x10de`，`arch=v12.0.0` |
+| `NPU` | `Intel(R) AI Boost`，`arch=5010` |
+
+⇒ 🔴★ **本模块所有标 `GPU.0` 的格子（含 §26.2 两格、历史 GPU 格）跑的都是 Intel 核显**；
+全程 `nvidia-smi` 的 `used = 0 MiB`（总 8151 MiB）⇒ **NVIDIA 独显一次都没被用到**。
+⚠️ 影响：任何「GPU 上 RTF/WER」的表述都必须写明是 **iGPU**，否则 reviewer 会误以为是独显成绩。
+
+**模型驻留内存（USM，编译增量；`GPU_MEMORY_STATISTICS`）**：
+
+| 模型 | 目录总大小 | `usm_device` 增量 | `usm_host` 增量 | 合计 | `compile_s` | `n_ops` |
+|---|---|---|---|---|---|---|
+| encoder `fp16-static` | 356.3 MiB | 146.2 MiB | 348.8 MiB | 495.0 MiB | 2.31 | 1577 |
+| decoder **int4** | **518.6 MiB** | 30.0 MiB | **531.8 MiB** | **561.8 MiB** | 3.36 | 5818 |
+| decoder **int8** | **720.6 MiB** | 30.0 MiB | **732.6 MiB** | **762.6 MiB** | 2.58 | 4838 |
+| decoder fp16 | 1139.7 MiB | 57.5 MiB | 1152.0 MiB | 1209.5 MiB | 2.61 | 4250 |
+
+⇒ ★ **INT4 比 INT8 省 200.8 MiB 设备内存（762.6 → 561.8，−26.3%）**，比 FP16 省 647.7 MiB（−53.6%）。
+⇒ 与目录体积比例吻合（531.8 / 732.6 = 0.726 vs 518.6 / 720.6 = 0.720）⇒ 数据自洽。
+⇒ iGPU 共享系统内存 ⇒ 占用几乎全在 `usm_host`（`usm_device` 只 30–58 MiB）。
+⚠️ 这是**同进程依次编译**的增量（`del cm` 后靠引用计数释放，Python GC 未强制）
+⇒ 视为**近似值**，量级可信、小数位不可抠。
+
+### 27.5 本节修掉的三个 bug
+
+1. 🔴 **`p3_diag_mask2_prefix.py` 两处 `.numpy()` on grad tensor**（`embed` 权重带 `requires_grad`）
+   ⇒ `RuntimeError: Can't call numpy() on Tensor that requires grad`（01:40 首次运行崩在 215 行）
+   ⇒ 两处都包 `torch.no_grad()` + `.detach().numpy()`。
+   ⚠️ 只修崩溃点会留下另一处同类隐患 —— 我 grep 了全部 `.numpy()` 才把两处都改掉。
+2. 🔴 **`p3_diag_device_mem.py` 的 `ir_mib` 只算 `.xml`**（2.1–2.8 MiB 的荒唐数字，
+   权重全在 `.bin`）⇒ 改为**目录内全部文件求和**（`dir_mib` + `n_files`），并保留 `xml_mib` 作对照。
+3. 🔴 **`p3_ov_app.device_mem_mb()` 三处缺陷**（这是两格 `mem_device` 全为
+   `{"note": "未匹配到设备"}` 的**根因**）：① 靠 `core.get_devices()` 遍历猜设备名
+   （返回的名字不等于 `GPU.0` 就直接放弃）；② `for p in ('TILES','GPU_MEMORY','MEMORY'): pass`
+   空循环占位；③ 外层 `for name in ('NPU','GPU','CPU')` 首个迭代就 `break` 的死循环。
+   ⇒ 改为**直接用编译时那个 device 名**查 `SUPPORTED_PROPERTIES` + 逐个读内存属性 + 字节→MiB 派生。
+   另补：USM 是**累计值**，必须记 `usm_before` 做差后才能当「模型占用」用。
+
+### 27.6 遗留
+
+* ⏳ **WER 仍全空缺**（两格 + NPU 三格）⇒ 交 reviewer；锚点 = `…__torchref__cuda_stream.json` 的 **10.97%**。
+* ⏳ **NPU 上 INT4 更慢（+38.9%）需要复核**：同切片、多轮、编译后预热再计时，才能定论。
+* ⏳ **`R2T2 R2` 同口径标定点未跑** ⇒ teacher-forcing 的阈值仍无法判定。
+* ⏳ **两格 summary 的 `mem_device` 仍是旧的空值** —— 本节用独立脚本补到了
+  `results/p3_diag_device_mem.json`，**没有**回填进 `summary.json`（避免改已交付产物）。
+* ⚠️ **`GPU.0` = iGPU 这条要同步给 reviewer**（可能影响他对历史 GPU 格子的解读）。
