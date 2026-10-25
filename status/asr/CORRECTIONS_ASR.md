@@ -88,3 +88,72 @@ last_ack: <本模块最新已读的纠偏编号>
 - 工作目录建议新建 `C:\Users\Trekker-PTL\qwen3asr_06b`，用独立 venv。STATUS 继续写在 STATUS_ASR.md 里，新开章节。
 ### 二、git 冻结协议
 **git 冻结协议（App 改写历史期间）**：App 开始改写之前会创建 `C:\Users\Trekker-PTL\shared\GIT_FREEZE`（内容写起止说明）。**只要这个文件存在，就不要在 `confucius4-openvino` 仓库里 commit、push 或 pull**，可以照常改本地文件，但不要提交。App 改写和强制推送完成后会删掉这个文件，并在 STATUS_APP 里公布改写前后的 SHA 对照。之后已有的本地 clone 要**重新 clone 或者 `git fetch` 后 `reset --hard origin/main`**，不能直接 pull（注意先备份未提交的改动）。
+
+## ASR-006 [HIGH] 2026-10-25 08:35 — P2 检查点复核结论：ASR-004 通过；P3 放行（只做 INT8）；INT4"不可行"结论证据不足，暂不关闭；新发现：App 实时路径比交付基准差 2.6pp（切点处重复词）
+
+**读了什么**：STATUS_ASR §12–§16（行 1117–1891）；拉回本机：`reports/asr004_ab/{transcript,segments}_{A,B}`、`qwen3asr_06b/results/p0_offline/offline_segments.json`、`p0_stream/{stream_transcript.txt,stream_segments.json,p0_stream_summary.json}`；目标机上读了 `results/asr_diag/asr004_ab_chunked.py`、`asr004_ab_remerge.py`、`git check-ignore`。WER 全部由 reviewer 在本机用 MiniMax baseline（ref 10964 词）全局对齐计算。A/B 和 0.6B 的段数不同，所以用"全局对齐→错误归到 hyp 词→按两边共同切点分块"的配对 bootstrap（5000 次）。这个工具已经用 226 段的同切分样本对照过：结果与 `paired_bootstrap.py` 逐位一致（8.17% / 8.27%，CI [-0.39,+0.54] 对 [-0.40,+0.56]）。
+
+### 1. ASR-004：通过，可以关闭
+| 组 | WER | S/D/I |
+|---|---|---|
+| A 旧切段 | 10.80% | 368/175/641 |
+| B 新切段（v1.4） | 10.58% | 353/188/619 |
+Δ(B−A) = **−0.22pp**，95% CI [−0.64, +0.20]（300 个共同切点块）；按 60 s 网格分块是 [−0.70, +0.25]。B 不劣化，**v1.4 的切段改动不用回退**。
+- §14.1 的 merge_group 偏移缺陷**确实存在，修复也正确**：重合并后 A/B 每个 part 都严格覆盖 [240i, 240(i+1)]，无缝隙、无重叠。但它在 `results/asr_diag/`（`.gitignore` 第 87 行排除；`git grep merge_group` 在受控代码里没有命中），只是评测脚本的缺陷，**不是"交付级缺陷"，不影响 v1.4 包**。以后请按实际影响范围定级。
+
+### 2. 新发现（比 ASR-004 本身重要）：App 实时路径的 WER 显著差于交付基准
+- A 对交付基准 `int8dec_fp16enc`（8.17%，226 段）：**+2.63pp，CI [+1.80, +3.41]，显著**。B 同样约 +2.4pp。
+- 主要来源是插入：641 对 463，多 178 个。按位置统计，多出来的插入集中在**段首 3 个词（129 对 37）和段尾 3 个词（184 对 47）**，段中间反而更少（328 对 379）。按切点规则归类：段尾插入 181 个、段首插入 119 个都落在 **rule1 切点**上（A、B 情况相同）。典型例子：`...future technology | technology needs...`、`...kernel development | development you know...`，也就是切点穿过一个词时，前后两段都把这个词转写了出来。
+- 这个问题是 6.4 s 量级 rule1 切点本来就有的，不是 ASR-004 引入的，A 和 B 都有。另外 A 用的是 enc int8asym，基准是 enc FP16，这里面有一小部分编码器差异。
+- **要做的**（在 ASR 职责范围内，只做诊断，不改 `live_caption`，ASR-003）：用现有 parts 产物离线分析 rule1 切点处的能量和静音，找出"切在词中间"的比例；给出不改代码就能试的方案（env 参数，比如加大 rule1 的静音要求），或者需要 App 实施的方案（比如段间做 n-gram 去重、或者切点前后保留重叠再去重）。每个方案都要在 61 分钟 A 组产物上做离线去重模拟，给出估计的 WER 收益（reviewer 复核）。排在 P3 INT8 之后做；用户如果另有优先级，以主会话为准。
+
+### 3. ASR-005 P0 参照
+| 转写 | WER | S/D/I |
+|---|---|---|
+| 0.6B 离线（31 × 120 s） | 14.80% | 736/351/536 |
+| 0.6B 段级流式 | 10.97% | 450/168/585 |
+- **流式口径可以接受**，但要定性为"App 路径等价参照"，不是官方 vLLM 流式。它用的是真实 Segmenter（B 行为），所以能直接和 R2T2 的 App 路径配对：0.6B 流式对 R2T2-B 是 **+0.39pp，CI [−0.33, +1.14]**；对 R2T2-A 是 +0.17pp，CI [−0.60, +0.91]，都**不显著**。
+- **§13.6 里"两份参照质量上限大致相同"的说法不成立**：离线对流式是 +3.83pp，CI [+2.94, +4.70]，31 块中有 30 块是离线更差。从误差形态看，离线把错误分散在各处（没有 ≥10 词的大段漏转），像是 120 s 长段的风格化或规整化输出。**P3 请以段级流式为 0.6B 的参照**，离线只作旁证。
+- 小瑕疵：0.6B 只跑到 3660.0 s（`--minutes 61`），R2T2 的 A/B 跑到 3665.9 s，最后约 6 s 没跑，影响 ≤0.06pp。P3 请跑整个 wav。`p0_stream_summary.json` 里 `n_runs=1`、`wall_this_run_s=wall_s=2470.1`，但 `rtf_this_run=0.8167` 和 `rtf=0.6749` 对不上，请查明或删掉这个字段（CUDA RTF 不作验收，只是字段要自洽）。
+
+### 4. INT8 候选：现在没有可复核的 WER 或 RTF
+§15.3 只有 3 段 teacher-forcing，"top1 100%" 实际只是 3 个 token 的 argmax 一致，不能作为质量证据。enc cos 0.978 低于 R2T2 同口径的数（INT8_SYM 是 0.993，INT8_ASYM 是 0.997）；dec cos 0.962 没有 R2T2 的同口径数可以对比。是否可用，要等 P3 的 61 分钟 WER 来判定。
+
+### 5. INT4"在 0.6B 上不可行"：证据不足，暂不关闭；但也不是只剩 GPTQ 一条路
+- "宽度 1024 不够，所以每通道误差翻倍"是推断，没有数据支撑。每通道量化误差主要由输入维的离群值分布决定，不随维度线性变化；而且同宽度（hidden 1024）的 Qwen3-0.6B 文本 LLM 做 INT4 是常规配置。
+- 判据本身有问题：只看了 3 个位置的末位 logits cos。连 INT8 fake-quant 也只有 0.978，这已经说明这个指标对这个模型过于敏感，不能单靠它判"崩坏"。
+- 需要核实：`p2_fakequant_probe.py` 用的是 `named_parameters + dim()==2`，有没有把 tied 的 embed_tokens/lm_head（以及 audio tower 的 2D 参数）也一起量化了？如果有，fake-quant 那一环证据要作废。
+- **要做的**（限时 ≤2 小时，在 P3 INT8 之后做；做不完就如实写，不要拖 INT8）：① 把判据换成**多 token teacher-forcing top1**：≥20 个 ≥12 分钟的评测段，统计全部输出 token，同时用 R2T2 的 R2（AWQ+SE 按通道，WER 10.84%）在同一口径下做标定点；② 在 GPU 上试 `INT4_ASYM g128 + AWQ + SE`（backup INT8_ASYM，lm_head 保持 FP16），跑 5 分钟切片（≥12 分钟区段）的贪心解码看文本是否正常。①② 都确认崩坏，才能写"0.6B INT4 不可行"。只有在 ①② 显示有希望、但按通道版不行时，才考虑 GPTQ。
+
+### 6. P3 放行（INT8）
+- 61 分钟全长，走 App 路径（真实 Segmenter，B 行为，**单进程不分 part**，跑整个 wav），这样能和 0.6B 流式参照（552 段）用原版 `paired_bootstrap.py` 逐段配对。产出 GPU 和 NPU 两版 INT8 转写；GPU 版同时给出 enc FP16（或 INT8_ASYM）的变体。
+- 对比对象：0.6B 段级流式参照、R2T2 App 路径 B（10.58%）。R2T2 交付基准 8.17% 是 226 段离线切分，和 App 路径不是同一口径，只作参考列。
+- 计时：持机器锁（目前锁为空），多次 fresh 进程，记 P50/P95、首字延迟、内存，`timing_valid` 落盘。
+
+**验收**：P3 的转写放到 `qwen3asr_06b/results/p3_*/`，在 STATUS 新开章节写清路径。WER 由 reviewer 复核：0.6B INT8 对 0.6B 流式参照的配对 CI 不显著劣化，就算通过。§2 的诊断结论和 §5 的 INT4 补测写成单独小节。开始处理本条时，先把 last_ack 改成 ASR-006。
+
+## ASR-007 [HIGH] 2026-10-25 09:18 — 【用户决定】Qwen3-ASR-0.6B 只作为实验，不进交付内容；交付一份 R2T2 与 Qwen3-ASR 在不同量化精度和设备上的对比分析报告
+用户已经确认：**Qwen3-ASR-0.6B 只是实验，不进 App 和客户包**（交付仍用 R2T2）。ASR-006 的 P3 改成以**出对比报告**为目标：
+### 对比矩阵（能做的都做；做不了的格子写明原因，不要硬凑）
+| 模型 | 精度 | 设备 |
+|---|---|---|
+| R2T2（1.7B） | INT8、INT4（已有交付级数据，可以复用并注明来源） | GPU.0、NPU；CUDA Q8/Q4 作参照 |
+| Qwen3-ASR-0.6B | FP16、INT8、INT4（INT4 按 ASR-006 的 2 小时限时补测，做不出来就写明"不可用"并附证据） | GPU.0、NPU；CUDA（torch 官方）作参照 |
+### 每一格要的指标
+- **准确率**：260902_SPE 61 分钟全长 WER，**统一走 App 实时路径的流式口径**（640 ms 分块、自适应 max_new_tokens）。转写交给 reviewer 用本机的 baseline 和全局对齐复算，配对 bootstrap 的 CI 也由 reviewer 算。目标机自己算的 WER 只作参考。
+- **延迟**：RTF 的 P50/P95/最大值（逐段统计，至少跑 2 次 fresh 进程，持机器锁，给出范围）；首字和出字延迟（chunk 输入到文字出现）的 P50/P95；模型加载和首次编译的耗时（分有缓存和没有缓存两种情况）。
+- **内存**：fresh 进程测量，iGPU 或 NPU 的设备内存加上主机内存（峰值和稳态）；模型文件体积。
+- 设备摆放：encoder 和 decoder 分别放在哪个设备上，要写清楚。
+### 产出
+- 结果 json 统一放到 `qwen3asr_06b\reports\compare`，每一格一份，包含原始字段和 timing_valid；
+- STATUS 里写一节汇总表，注明每个数字的来源文件；
+- reviewer 会复核 WER，并汇编成 HTML 对比报告（沿用之前 OV 和 CUDA 对比报告的格式）。
+- 计时作业一律持共享机器锁，串行执行。准确率作业不需要锁。
+
+## ASR-008 [NORMAL] 2026-10-25 10:38 — RESUME：额度已重置，请从 last_ack 继续
+目标机额度已经在 10:00 重置。还没完成的事项，按 §17 的顺序做：
+1. **ASR-006 / ASR-007**：修正 0.6B 参照 → P3 INT8（App 路径、单进程、持锁计时）→ INT4 限时 2 小时补测 → rule1 切点重复词诊断数据（交给 App）→ R2T2 和 0.6B 的精度×设备对比报告（结果放到 reports\compare\）。
+开始做的时候，请先在 STATUS_ASR 头部写一行"最近更新"。
+
+## ASR-009 [NORMAL] 2026-10-25 15:38 — RESUME：额度已重置，请从 last_ack 继续
+目标机额度已经在 15:00 重置。请接着做 ASR-006/007：0.6B INT8（App 路径，持锁）→ INT4 限时补测 → 切点重复诊断（交给 App）→ R2T2 对比 0.6B 报告（reports\compare\）。

@@ -1,10 +1,14 @@
 # STATUS_ASR
-last_ack: ASR-005
-更新时间: 2026-10-25 00:03
-当前任务: **ASR-004 已完成、ASR-005 P0/P1/P2 已完成（停在 P2 检查点等 reviewer 复核）**。① **ASR-004**（§10 新切段规则的 61 分钟质量验证）**全部完成**：C-108 空段校验 9 档 `results/asr_diag/asr004_c108_empty.json`；A/B 逐段转写 `reports/asr004_ab/{segments,summary,transcript}_{A,B}.*` ⇒ **B 的 >12s 占比 1.12%→0.18%、最长段 17.92s→14.08s、空文本段 1→0、总词数只差 35 词（−0.31%）**，**WER 交 reviewer 算**。② **ASR-005 P0 基准完成**（§13.6）：61 分钟**离线**参照（RTF 0.2249 / 11,125 词）+ **段级流式**参照（RTF 0.6749 / 552 段 / 11,425 词）均已落盘。③ **ASR-005 P1 OV 导出完成**（§13.5）：encoder + decoder 两个 FP16 IR，端到端 **enc cos 0.999999 / dec cos 0.999983 / top1 100%**（要求 0.999 / 99%）✅。④ **ASR-005 P2 量化完成**（§15）：**INT8 可用**（`ov-encoder-06b-int8sym` 180 MiB + `ov-dec-06b-embed-int8sym` 721 MiB，**lm_head 保 FP16**，enc cos 0.978 / dec cos 0.975 / **top1 100%**，体积 −39.8%）；**INT4 在 0.6B 上不可行**（三个配方全崩，dec cos 变负、top1 0%），已用 7 条独立证据排除 OV 版本 bug / 设备插件 / AWQ 插错 / scale 轴错 / 校准集无效 / 配方选择错误 ⇒ 根因是**模型宽度 1024（R2T2 是 2048）撑不住每通道 15 个量化级**。⑤ **P2 收尾已完成**（§16）：git 冻结**已释放**、8 个 IR 产物复核在盘、**P3 仍不启动**
-阻塞 / 待用户决定: ① ⏸️ **ASR-005 P2 检查点**：按 ASR-005「P2 结束停一次等 reviewer 复核（最多 30 分钟）」，**P3 验收暂不启动**。请 reviewer ① 用 MiniMax baseline 算三份转写的 WER（`qwen3asr_06b/results/p0_offline/offline_transcript.txt`、`qwen3asr_06b/results/p0_stream/stream_transcript.txt`、`reports/asr004_ab/transcript_{A,B}.txt`）② 复核 INT8 候选（§15.3）③ **裁定 INT4 处置**（本轮结论 = 0.6B 上不可行；若必须交付 INT4 只剩 GPTQ 一条路，本轮未做）④ 认可 P0 流式口径（官方流式仅 vLLM，本机用 transformers 后端做段级流式复刻）② ✅ **git 冻结已解除**：`shared/GIT_FREEZE` 于 2026-10-25 00:01 实测已删除 ⇒ **ASR 线程恢复可提交**（本地 HEAD = `origin/main` = `6fd7806`，无 divergent history ⇒ **不做 `reset --hard`**，避免摧毁其他模块 500+ 在途改动）③ **ASR-005 P0 的流式口径待 reviewer 认可**④ ASR-004 WER **不自己算**，交 reviewer 用 MiniMax baseline + compare_wer + paired_bootstrap⑤ 「GPU INT8 8.17%」属 reviewer 计分器（按 ASR-002 不补测）⑥ §11.6：若 >12s 再次出现且 D2 类素材 ⇒ 先跑 `results/asr_diag/probe_loopback_120s.py` 看「≥800ms 静音段数」⑦ **P3 计时类作业需持 `shared/MACHINE_LOCK`**：当前锁为 `app-pack` PID 18380（**已死** ⇒ 陈旧锁），等 reviewer 放行后由 ASR 独占持锁再跑 RTF/首字延迟/内存
+last_ack: ASR-009
+更新时间: 2026-10-25 16:40
+当前任务: **ASR-006 §5② / §6 + ASR-007 / ASR-008 / ASR-009 已执行**。① ✅★ **「0.6B INT4 不可行」被证伪** —— `INT4_ASYM g128 + AWQ + SE`（backup INT8_ASYM，lm_head 保 FP16）**文本正常**：5 分钟切片 **882 词 vs INT8 928 词**，定长 top1 **69.44% vs INT8 70.83%**、top5 **85.71% vs 87.90%** ⇒ **INT4 在 0.6B 上可用**；② 🔴 **照搬 R2T2 的「INT4_SYM 按通道 + AWQ + SE」在 0.6B 上崩坏**（切片仅 **98 词**、定长 top1 **16.27%**）⇒ **配方必须换**，差异来自模型规模/宽度；③ ✅ **P3 INT8 61 分钟全长质量数据已落盘**（`results/p3_p3_61min_gpu_int8/`：**553 段 / 11825 词 / rule 518+34+1 / 段长 p50 6.4s p95 8.96s max 12.16s / 跑满 3671.19 s** ⇒ 满足 ASR-006 §3「跑整个 wav」）；④ ✅ **ASR-006 §2 切点重复诊断已完成**（并发会话产出）：rule1 占全部切点 **93.67%**、「切在词中间」**9.54%**、**静音内切点 0.0%** ⇒ 「重复词去重」路线天花板 **≤0.963pp**（仅覆盖 reviewer 观测的 178 个多余插入的 **≤61.8%**）⇒ **接缝去重不是主因**；⑤ ✅ **ASR-007 对比矩阵已更新**（`qwen3asr_06b/reports/compare/` **17 个文件**，新增 2 个 INT4 格子 + 更新 INT8/INT4 汇总）；⑥ ⏳ **规范锁路径持锁重跑在等锁**（`app` PID 32652 存活）
+阻塞 / 待用户决定: ① 🔴 **0.6B 的 WER 全部空缺**（`wer_pct: null`）—— 本模块**不自算 WER**（ASR-002 铁律）⇒ 需 reviewer 用本机 baseline + 全局对齐复算 **INT8 / INT4_ASYM 的 61 分钟全长 WER**（对照 0.6B 流式参照 10.97%、R2T2 App 路径 B 10.58%），并裁定 **INT4 是否值得为 0.6B 做**；② ⏳ **0.6B INT8 61 分钟持锁重跑未拿到计时**（规范锁被 `app` 占用，16:23 起等待中）⇒ 交付级 RTF / 首字延迟 / 内存**仍全部作废**（现有都是 n=1 或被干扰）；③ 🔴 **0.6B 在 NPU 上仍 BLOCKED**（输出复读 prompt；`ov-dec-06b-past-int8` stateful IR 在 NPU 编译失败：`to_shape was called on a dynamic shape`）⇒ **NPU 格写明原因，不硬凑**；④ ⚠️ **「提高 rule1 静音要求」必须改代码**（`min_silence_ms=300` / `SIL_LOOKBACK_SEC=3.0` 在 `live_caption_app.py` 里硬编码、**无 env**）⇒ **属 App 模块**（ASR-003 边界），本模块只给离线指标（req≥500ms ⇒ 51.69% 的 rule1 切点不再触发）；⑤ ⚠️ **reviewer 指定的 R2T2 R2 标定点未跑**（同口径 teacher-forcing top1）；⑥ ⚠️ **P0 参照重跑未做**（P0 流式参照本身少跑 11.19 s）；⑦ ⚠️ **设备内存（iGPU/NPU）未测**（`mem_device` 均为「未匹配到设备」）；⑧ 🔴 **锁路径纪律**：只能用 `C:\Users\Trekker-PTL\shared\MACHINE_LOCK`（仓库内相对路径会让 4 模块互锁失效，见 TTS `NOTICE_tts_lock_path_20261025.md`）⇒ 本轮已新写 `scripts/p3_run_with_lock.py`（双格式写锁 / 多编码读锁 / finally 删锁）
 
 ## 最近更新
+- 2026-10-25 16:40 **INT4 补测完成、「0.6B INT4 不可行」被证伪（§20）**：① ✅★ **`INT4_ASYM g128 + AWQ + SE`（backup INT8_ASYM，lm_head 保 FP16）文本正常** —— 新配方量化 `results/p2_quant_decoder_int4__asymg128.json`（15:58，2153 B，`recipe`=INT4_ASYM g128、`dst_mib`=**518.3**、`n_i4`=**392**、`ignored_scope`=lm_head ✔）；5 分钟切片（720–1020 s）**882 词 vs INT8 928 词**、定长 top1 **69.44% vs 70.83%**、top5 **85.71% vs 87.90%** ⇒ **INT4 在 0.6B 上可用**；② 🔴 **INT4_SYM 按通道（R2T2 R2 照搬）在 0.6B 上崩坏**（切片 **98 词**、定长 top1 **16.27%**、top5 **28.77%**）⇒ **照搬 R2T2 配方不成立**，差异来自模型规模/宽度；③ ✅ **P3 INT8 61 分钟全长质量数据已落盘**（`results/p3_p3_61min_gpu_int8/`，4 文件）：**553 段 / 11825 词 / rule 518+34+1 / 段长 p50 6.4s p95 8.96s max 12.16s / covered 3671.19 s 且 `complete`=true**；④ 🔴 **该次计时作废且锁路径用错**（写在仓库内 `shared/MACHINE_LOCK` ⇒ 互锁失效，TTS 已实测记录）⇒ 已回收孤儿锁 + 新写 `scripts/p3_run_with_lock.py`（只用规范路径）⇒ **规范路径持锁重跑在等 `app` 锁**；⑤ ✅ **ASR-006 §2 切点诊断完成**（并发会话，16:35）：rule1 占切点 **93.67%**、「切在词中间」**9.54%**、**静音内 0.0%**、去重收益上界 **≤0.963pp**（仅覆盖 178 个多余插入的 **≤61.8%**）⇒ **接缝去重不是主因**；⑥ ✅ **ASR-007 矩阵更新**（`reports/compare/` 17 文件，新增 2 个 INT4 格子）
+- 2026-10-25 13:40 **P3 根因大反转（§19）**：① 🔴 **撤回「INT8 decoder 量化损坏」**（§18.3）—— 10 层静态比对**全部相同**（**1523 个算子实例 attrs 零差异** / 341 个 3D-4D 常量**多重集**相同 / 196 个 int8 权重重算 cos 0.999929 / 位置 id **运行时**相同 / 张量精度分布相同 / .bin 存储精度全 native）；② 🔴 **撤回「FP16 端到端必崩、INT8 正常」**（§18.3/§18.4）—— `p3_diag_surgery.json` 显示**固定 6.4s + 无 prefix** 时 **FP16 10 步全程正常英文**（`all`→` right`→` good`→` morning`→` everyone`→…），而 **INT8 反而重复退化**（`.`↔`Good`/` morning` 循环）⇒ **模型都没坏，是输入条件差异**；③ 🔴 **撤回 §18.2 的 teacher-forcing 判据**（target 序列本身 = **4824 'ь' 连续 20 次** ⇒ FP16 的 100% 是**自一致 tautology**）；④ ✅ **右对齐结论仍成立且已补证据**（`p3_diag_align.json` 左对齐两图**都给 `<|im_end|>`**；`p3_diag_pos_sem.json` 证明 IR **不是恒取 511** ⇒ 内容落点会改 logits）；⑤ 🔴 **「logits 全向量 cos」在 151936 维稀疏尖峰上不可用**（INT8 只在 margin 0.77/0.027 的 2 个位置翻转，其余 10/12 命中且 margin 很大）；⑥ ⚠️ **P3 长跑 timing_valid=false**（机器锁在启动前已被 `mt` 占用）⇒ 质量可用、计时作废
+- 2026-10-25 12:12 **P3 重大发现（§18）**：① ✅ **NPU 阻塞解除**（encoder 静态化 → NPU 编译 4 IR 全过除 stateful decoder）；② ✅★ **OV decoder IR 恒取位置 511 ⇒ 必须右对齐**（左对齐产出 padding 区 logits；OV/torch 都给 `all` vs `<|im_end|>`，左右 cos −0.154）⇒ **P1 的 teacher-forcing 判据无效** ⇒ **§15.3 的 enc cos 0.978 / dec cos 0.975 / top1 100% 全部作废**；③ 🔴 **INT8 decoder 在 CPU 上与 FP16 的 logits cos ≈ 0**（CPU −0.000094 / GPU −0.139394 / NPU −0.129165）⇒ **decoder 量化损坏**（encoder 完好，cos≥0.9997）；④ 🔴 **GPU 上 FP16 decoder 反而崩**（端到端矩阵）⇒ 两个独立问题；⑤ ✅ **ASR-006 §5 第③点核实通过**（fake-quant 未误量化 tied 权重 ⇒ 旧数据有效）；⑥ **rule1 接缝去重已由 App 模块完成** ⇒ 本模块该诊断降级为可选
+- 2026-10-25 09:35 **收到 ASR-006 / ASR-007**：① **ASR-004 通过可关闭**（A 10.80% / B 10.58%，Δ −0.22pp CI [−0.64,+0.20] ⇒ v1.4 不用回退）；🔴 **新发现：App 实时路径比交付基准差 2.6pp**（+2.63pp CI [+1.80,+3.41] 显著，主因 rule1 切点**切在词中间** ⇒ 前后两段重复转写该词，插入多 178 个集中在段首/段尾 3 词）⇒ **只诊断不改代码**，排在 P3 之后。② **P0 参照两处修正（根因已查明）**：`--minutes 61` 截断 ⇒ wav **真实 3671.19s**，**少跑 11.19s**（reviewer 说 6s）⇒ P3 跑整个 wav；`rtf_this_run=0.8167` 是**续跑尾部的分母只剩 30.56s** ⇒ **已删该字段**；`n_runs=1` 是**progress 只每 60 步落盘、本次只跑 3 步没更新** ⇒ **已修为运行开始锁定**。⚠️ §13.6「两份参照上限相同」被推翻（离线对流式 **+3.83pp CI [+2.94,+4.70]**）⇒ **P3 以段级流式为主参照**。③ ⚠️ **§15.4「INT4 不可行」被退回（证据不足，暂不关闭）** ⇒ 该结论**降级**，本模块**不再宣称 INT4 不可行**；新判据 = **多 token teacher-forcing top1**（≥20 个 ≥12 分钟评测段，R2T2 的 R2 同口径标定）+ GPU `INT4_ASYM g128+AWQ+SE` 5 分钟切片解码，限时 ≤2h，排在 P3 之后。④ **ASR-007 用户决定：0.6B 只作实验，不进交付** ⇒ P3 改为**出对比报告**（R2T2 INT8/INT4 × 0.6B FP16/INT8/INT4 × GPU.0/NPU/CUDA，指标=WER/延迟/内存/体积/设备摆放；json 放 `qwen3asr_06b/reports/compare/` 每格一份）
 - 2026-10-25 00:05 **ASR-005 P2 收尾 + git 冻结已释放**：**`shared/GIT_FREEZE` 已删除**（21:12 时还在，本轮 00:01 实测消失 ⇒ ASR-005 的「文件存在才禁提交」禁令**自动解除**）；**本地 HEAD = `origin/main` = `6fd7806`** ⇒ 无 divergent history，**明确不做 `reset --hard`**（工作区有 4 模块 500+ 未提交改动，会摧毁在途工作）。**P2 产物 8 个 IR 全部复核在盘**（INT8 候选 enc 180 MiB + dec 721 MiB；⚠️ **命名更正**：FP16 decoder 真实目录是 `ov-dec-06b-embed-fp16`，§15 里写的 `ov-dec-06b-fp16` 不存在）。**P2 检查点正式停靠，P3 不启动**；待 reviewer ① 算三份转写 WER ② 复核 INT8 候选（§15.3）③ **裁定 INT4**（本模块结论 = 0.6B 上不可行，7 条证据链；剩 GPTQ 一条路未做）④ 认可 P0 流式口径。**P3 计时类作业需持机器锁**，当前锁 `app-pack` PID 18380 **已死**（陈旧锁，等放行后回收独占）
 - 2026-10-24 21:12 **ASR-005 P2 量化完成（停在 P2 检查点）**：**INT8 可用**（`ov-encoder-06b-int8sym` 180 MiB + `ov-dec-06b-embed-int8sym` 721 MiB，**lm_head 保 FP16** ⇒ 量化后该层权重 cos **1.000000**）⇒ enc cos **0.978472** / dec cos **0.974973** / **top1 匹配 100%**，体积 1497→901 MiB（**−39.8%**），与 R2T2 自己的 INT8_SYM encoder（cos 0.993 / top1 98.75%）同量级。**INT4 在 0.6B 上不可行**：三个配方（按通道+AWQ+SE / +ratio0.8+hessian / +ratio0.5+hessian）dec cos 全为负、top1 0%。**根因链 7 条独立证据**（§15.4）：① torch 侧 fake-quant 独立复现（INT8 cos 0.9777 / INT4 **0.1138** ⇒ 与 OV 侧一致 ⇒ **不是 OV/NNCF bug**）② 逐层累积（量化 49 层 cos 0.766 → 196 层 0.114）③ 手工解包 int4 后写回 FP16 IR ⇒ **W_deq 本身 cos 0.607 就打坏模型**，而 OV-INT4 vs OV-FP16(deq) = **0.971235** ⇒ **OV 运行时反量化正确** ④ 三设备一致（CPU 0.569 / GPU 0.607 / NPU 0.599 ⇒ 与设备无关）⑤ AWQ 插入数与 R2T2 完全相同（+196 vs +197）⑥ scale 轴正确（`[out,1]`）⑦ **根因 = 0.6B 层矩阵 3072×1024 vs R2T2 6144×2048** ⇒ 每通道 15 级撑不住。**顺带发现**：encoder 是 conv 结构**无 MatMul ⇒ AWQ 静默跳过** ⇒ encoder INT4 等于无校准（不可用）⇒ encoder 保留 FP16。⚠️ `GIT_FREEZE` 仍存在 ⇒ 不 commit
 - 2026-10-24 20:07 **ASR-004 完成 + ASR-005 P0 完成（停在检查点）**：① ASR-004 A/B 61 分钟逐段转写完成 ⇒ **B 的 >12s 1.12%→0.18%、最长段 17.92s→14.08s、空段 1→0**、总词数只差 35 词（−0.31%）⇒ **WER 交 reviewer**；A 组交叉校验通过（分段版 vs 单进程版 part0 内 36/36 文本逐位相同）。② ASR-005 P0 两份参照完成：离线 RTF **0.2249**（31 块/0 OOM）+ 段级流式 RTF **0.6749**（552 段）⇒ **停一次等 reviewer**。③ ASR-005 P1 提前完成：encoder/decoder 两个 FP16 IR 导出 + 端到端 teacher-forcing **enc cos 0.999999 / dec cos 0.999983 / top1 100%**（要求 0.999/99%）✅。**架构发现**：R2T2 就是 Qwen3-ASR 系列（`model_type=qwen3_asr`），与 0.6B 同构 ⇒ R2T2 导出/量化脚本可原样复用。⚠️ `GIT_FREEZE` 仍存在 ⇒ 不 commit
@@ -16,10 +20,6 @@ last_ack: ASR-005
 - 10:36 **ASR-004 ② 完成**（C-108 空段校验，61 分钟 × hang 0.8/0.6/0.5 × A/B × gain 1.0/0.3/0.1，wall 326.2s）：**gain=1.0 三档空段数 B ≤ A**（hang0.8: A 1→B 5、hang0.6: A 1→B 8、hang0.5: A 1→B 8，**绝对口径 B > A**；**相对口径 B 全部为 0 ≤ A 的 4/7/8**）。**低电平档**：gain=0.3 A 绝对空段 74~75、B 276~357（绝对口径在低电平下天然失真）；**相对口径 A 1 / B 0**。gain=0.1 相对口径 A 0 / B 0。产物 `results/asr_diag/asr004_c108_empty.json`
 - 09:17 **收到 ASR-004**（reviewer 08:56）：§10 新切段规则已随 v1.4 交付（App 提交 d0c146e），但**缺 61 分钟全长质量验证** ⇒ 补 ① 61 分钟真实 Segmenter + GPU INT8 **A/B 逐段转写**（A=旧行为/B=新行为，**WER 交 reviewer 算**）② **C-108 空段校验 hang 0.8/0.6/0.5 三档 × A/B**（gain 0.3/0.1 补相对口径空段数）③ 产物写入 §12。顺带更正：§5.9 标题 12:00→**11:14**（ebc6107 实际提交时间）、开头更新时间改用**实际时钟**
 - 15:05 **§11 回环补测 + 修正 §9.3 表述**：绝对判据失效的真正条件是「该段音频没有 ≥800ms 连续静音」（**素材内容决定**），不是「回环这个音源」。D1（13:24，你报告现象那段）静音帧 12.2%、≥800ms 静音**仅 1 个** ⇒ 基线 17.28s/62.5%；D2（当前播放）静音帧 34.3%、≥800ms 静音**11 个** ⇒ **基线本身 6.40s/0%**。**新判据两种素材都成立**（62.5%→6.2% / 0%→0%）⇒ 普适
-- 15:05 **改动 3 收益无法量化**：30s 双声道实测 corr(L,R)=**0.9182**、RMS 差 0.21dB ⇒ 高度相关 ⇒ `(L+R)/2` 与只取 ch0 **切段结果逐位相同**（4/4 与 6/6 切点全同）⇒ 保留为**防御性**改动（左右内容确实不同时才起作用），函数级 T1~T6 全 PASS，无回归风险
-- 14:05 **§10 三项改动已实施 + 真实实现 A/B 通过**：静音门限相对化（段内 p90−12dB）+ `_has_speech` 相对分支 + 空段拒切（相对覆盖率≥0.40）+ 回环立体声混合（含**反相检测**，修掉一个会把信号相消成 −120dB 的 bug）。真实回环 120s：间隔 **17.28s→6.40s**、>12s **62.5%→6.2%**、硬切 4→0；真实演讲 12 分钟：空段 0→0、规则2 切点 **10/10 安全**；低电平 gain0.3/0.1：>12s 67.4%/100%→**0%**
-- 14:05 **§10 否定结论两条（勿再尝试）**：① 空段拒切**不能用绝对口径**（绝对语音占比在 gain=0.3 的正常段只有 0.8%~6%，会把麦克风场景打死；「静音占比」同理）——绝对电平**原理上**无法区分「轻声说话」与「安静」；② 空段拒切要用**相对语音覆盖率**（真空段 0.317/0.379 vs 正常段 ≥0.425，阈值 0.40 可干净分开），用「最长连续语音」不行（真空段也有 360~720ms）
-- 13:30 **§9 根因修正（撤回 §8 的一处归因）**：用户输入是 **B 站视频（WASAPI 回环）**，实测回环信号**电平正常**（帧 p50=-21.8dB）**但全程无静音**（最长连续静音 0.00~0.43s）⇒ 规则2/规则1 永不触发 ⇒ **间隔恒 20.48s 硬切**（真实回环数据跑真实 `seg.due()` 实测确认 rule=max）；机制验证：背景声达 -40dBFS 时间隔从 6.4s 突跳到 20.48s；修复方案「静音门限改相对判据 p90−12dB」双向交叉验证通过
 ## §1 交付基线（ASR-001 指定；**按 ASR-002 修正为两列口径**）
 
 ⚠️ **口径警告（ASR-002）**：8.17% / 7.95% / 0.772 **来自两套不同计分器，不能放在同一列比较**。
@@ -1889,3 +1889,682 @@ reviewer 取产物请用**上表**的目录名，勿用错名。
 - ✅ **未 commit `live_caption/`**（ASR-003 铁律）。
 - ⚠️ **尚未 commit**（本轮在写 §16 时冻结已解除，但**先把 STATUS 落档做完再提交**，
   避免提交一个半成品 STATUS）。
+
+## §17 收到 ASR-006 / ASR-007：P2 复核结论落地、P3 改以「对比报告」为目标（2026-10-25 09:35）
+
+> 本章**只追加**，不回头改 §12~§16。§15.4「INT4 在 0.6B 上不可行」的结论
+> 被 reviewer 判为「**证据不足，暂不关闭**」⇒ 以本章为准（§17.4 说明怎么补）。
+
+### 17.1 reviewer 的复核结论（ASR-006，08:35）
+
+| 项 | 结论 |
+|---|---|
+| **ASR-004** | ✅ **通过，可关闭**。A 旧切段 10.80% / B 新切段 10.58%，Δ = **−0.22pp**，CI [−0.64, +0.20]（300 共同切点块）⇒ v1.4 切段改动**不用回退** |
+| **§14.1 的 merge_group 偏移缺陷** | 确实存在且修复正确，但只在 `results/asr_diag/`（`.gitignore` 排除）⇒ 是**评测脚本缺陷，不是交付级缺陷** ⇒ 以后按**实际影响范围**定级 |
+| **新发现（比 ASR-004 重要）** | 🔴 **App 实时路径比交付基准差 2.6pp**（A 对 `int8dec_fp16enc` 8.17%：**+2.63pp，CI [+1.80, +3.41]，显著**），主因是**插入多 178 个**且集中在**段首 3 词 / 段尾 3 词**，全落在 **rule1 切点**上（切点穿过一个词 ⇒ 前后两段都转写出来）。**A、B 都有 ⇒ 不是 ASR-004 引入** |
+| **P0 参照** | 0.6B 离线 14.80% / 段级流式 10.97%；**流式口径可接受**，但要定性为「App 路径等价参照」而非官方 vLLM 流式。0.6B 流式对 R2T2-B **+0.39pp CI [−0.33, +1.14]**、对 R2T2-A +0.17pp CI [−0.60, +0.91]，**都不显著** |
+| **§13.6「两份参照质量上限大致相同」不成立** | 🔴 离线对流式是 **+3.83pp，CI [+2.94, +4.70]**，31 块中 30 块离线更差 ⇒ **P3 以段级流式为参照，离线只作旁证** |
+| **INT8 候选** | ⚠️ 现在**没有可复核的 WER 或 RTF**；§15.3 的「top1 100%」只是 **3 个 token 的 argmax 一致**，**不能作为质量证据**；enc cos 0.978 低于 R2T2 同口径（INT8_SYM 0.993 / INT8_ASYM 0.997）⇒ **是否可用要等 P3 的 61 分钟 WER 判定** |
+
+### 17.2 P0 参照的两处修正（**reviewer §3 要求，本模块已定位根因**）
+
+**① 音频被 `--minutes 61` 截断（reviewer 说「最后约 6 s 没跑」，实测差得更多）**
+- wav **真实长度 3671.189 s（61.19 min）**（`soundfile.info`：58,739,029 frames @ 16 kHz）
+- 0.6B P0 跑的是 `--minutes 61` ⇒ **截到 3660.0 s** ⇒ **少跑 11.19 s**
+- R2T2 A/B 跑到 **3665.92 s**（`reports/asr004_ab/segments_A.json` 末段 `end_s`）
+⇒ **P3 跑整个 wav（`--minutes 0`）**，不再截断。
+
+**② `rtf` / `rtf_this_run` / `n_runs` 三个字段不自洽（根因已查明并已修）**
+
+reviewer 观察到 `p0_stream_summary.json` 里 `n_runs=1`、`wall_this_run_s = wall_s = 2470.1`、
+但 `rtf_this_run=0.8167` 与 `rtf=0.6749` 对不上。**三个字段的根因分别是**：
+
+| 字段 | 实测 | 根因 |
+|---|---|---|
+| `rtf = 0.6749` | ✅ **自洽** | = `wall_cum_s(2470.1) / covered_s(3660.0)`。`wall_cum` 是**跨次累加**值（长跑被回收过），`progress.json` 里 2447.6s@3630.7s 与之自洽 |
+| `rtf_this_run = 0.8167` | 🔴 **口径错** | 原式 `wall / (covered_s − resume_from_s)`。本次运行是**续跑尾部**（jsonl 里 552 段已全在）⇒ `resume_from_s = 3629.44` ⇒ 分母只剩 **30.56 s** ⇒ 严重高估。⇒ **已删除该字段**（口径唯一，避免误读），改记 `covered_this_run_s` |
+| `n_runs = 1` | 🔴 **少算** | `n_runs` 从 `progress.json` 读再 +1，而 progress **只在每 60 步落盘** ⇒ 本次只跑 3 步 ⇒ progress **根本没被更新** ⇒ 读到的仍是上次的 1（真实为 2 次运行）。⇒ **已修：运行开始时锁定 `this_run_idx`，全程只用这一个值** |
+
+⚠️ **纪律**：CUDA RTF **不作验收**（reviewer 明说），但**字段必须自洽**。
+
+### 17.3 P3 口径（ASR-006 §6 + ASR-007 改造后）
+
+- **走 App 路径**：真实 `Segmenter`（B 行为），**单进程不分 part**，**跑整个 wav**
+  ⇒ 这样能和 0.6B 流式参照（552 段）用原版 `paired_bootstrap.py` **逐段配对**。
+- **产出 3 份转写**（`qwen3asr_06b/results/p3_*/`）：GPU INT8 / **NPU INT8** / GPU **enc FP16 变体**。
+- **对比对象**：0.6B 段级流式参照（**主参照**）、R2T2 App 路径 B（10.58%）；
+  R2T2 交付基准 8.17% 是 226 段离线切分，**口径不同，只作参考列**。
+- **计时**：持 `shared/MACHINE_LOCK`，**多次 fresh 进程**，记 P50/P95、首字延迟、内存，
+  **`timing_valid` 落盘**。
+- **验收**：0.6B INT8 对 0.6B 流式参照的配对 CI **不显著劣化**即通过；**WER 由 reviewer 复核**。
+
+### 17.4 INT4「不可行」结论被退回：reviewer 的 5 条反驳 + 本模块的回应
+
+reviewer 的 5 点（本模块**全部接受**，不作反驳）：
+
+1. 「宽度 1024 不够 ⇒ 每通道误差翻倍」是**推断无数据支撑**；每通道量化误差主要由**输入维的离群值分布**决定，不随维度线性变化；同宽度（hidden 1024）的 Qwen3-0.6B 文本 LLM 做 INT4 是常规配置。
+2. 判据本身有问题：只看 **3 个位置的末位 logits cos**；连 INT8 fake-quant 也只有 0.978 ⇒ 该指标对本模型**过于敏感**，不能单靠它判「崩坏」。
+3. **需核实 `p2_fakequant_probe.py` 是否把 tied 的 embed_tokens/lm_head（以及 audio tower 的 2D 参数）也一起量化了** ⇒ 若有，fake-quant 那一环证据作废。
+4. **新判据**：**多 token teacher-forcing top1**（≥20 个 ≥12 分钟的评测段，统计**全部输出 token**），
+   并用 **R2T2 的 R2（AWQ+SE 按通道，WER 10.84%）在同一口径下做标定点**。
+5. **新试法**：GPU 上试 **`INT4_ASYM g128 + AWQ + SE`**（backup `INT8_ASYM`，lm_head 保持 FP16），
+   跑 **5 分钟切片（≥12 分钟区段）**的贪心解码看文本是否正常。
+   ⇒ **①② 都确认崩坏，才能写「0.6B INT4 不可行」**；只有在 ①② 显示有希望、
+   但按通道版不行时，才考虑 GPTQ。
+
+⚠️ **§15.4 的「7 条证据链」至此降级**：其中 ①②（torch 侧 fake-quant 复现 / 逐层累积）
+是**基于第 3 点的同一批数据** ⇒ 若 fake-quant 误量化了 tied 权重，这两条链**同时失效**。
+其余 ③④⑤⑥⑦（写回 FP16 IR / 三设备一致 / AWQ 插入数 / scale 轴 / 宽度对比）
+**不依赖 fake-quant，仍成立**（但③④ 用的是**末位 logits cos** 这个被质疑的指标
+⇒ 也需用新判据复核）。⇒ **本模块不宣称 INT4 不可行，也不再宣称已排除实现 bug**。
+
+**补测计划（限时 ≤2 小时，排在 P3 INT8 之后；做不完就如实写，不拖 INT8）**：
+① 多 token teacher-forcing top1 判据（含 R2T2 R2 同口径标定）；
+② GPU `INT4_ASYM g128 + AWQ + SE` 5 分钟切片贪心解码；
+③ 先核实 fake-quant 探针的 tied 权重问题（最便宜，且决定 ① 能否复用旧数据）。
+
+### 17.5 rule1 切点重复词诊断（ASR-006 §2，**排在 P3 INT8 之后**）
+
+- 范围：**只诊断，不改 `live_caption`**（ASR-003 铁律）。
+- 要做的：用现有 parts 产物**离线**分析 rule1 切点处的**能量与静音**，
+  找出「切在词中间」的比例；
+  给出 ① 不改代码就能试的方案（env 参数，比如加大 rule1 的静音要求）
+  ② 需要 App 实施的方案（段间 n-gram 去重 / 切点前后保留重叠再去重）；
+  **每个方案都要在 61 分钟 A 组产物上做离线去重模拟，给出估计的 WER 收益**（reviewer 复核）。
+
+### 17.6 ASR-007【用户决定】0.6B 只作实验，交付物改为**对比分析报告**
+
+用户已确认：**Qwen3-ASR-0.6B 只是实验，不进 App 和客户包**（交付仍用 R2T2）。
+⇒ ASR-006 的 P3 改成以**出对比报告**为目标。
+
+**对比矩阵**（做不了的格子**写明原因，不硬凑**）：
+
+| 模型 | 精度 | 设备 |
+|---|---|---|
+| R2T2（1.7B） | INT8、INT4（已有交付级数据，**复用并注明来源**） | GPU.0、NPU；CUDA Q8/Q4 作参照 |
+| Qwen3-ASR-0.6B | FP16、INT8、INT4（INT4 按 §17.4 的 2 小时限时补测，做不出来就写「不可用」并附证据） | GPU.0、NPU；CUDA（torch 官方）作参照 |
+
+**每格指标**：
+- **准确率**：260902_SPE 61 分钟全长 WER，**统一走 App 实时路径的流式口径**
+  （640 ms 分块、自适应 max_new_tokens）；转写交 reviewer 复算，目标机自算 WER **只作参考**。
+- **延迟**：RTF 的 P50/P95/最大值（**≥2 次 fresh 进程，持机器锁，给出范围**）；
+  首字/出字延迟 P50/P95；**模型加载与首次编译耗时（分有缓存/无缓存两种）**。
+- **内存**：fresh 进程测量，**iGPU 或 NPU 设备内存 + 主机内存（峰值与稳态）**；模型文件体积。
+- **设备摆放**：encoder / decoder **分别**在哪个设备上，要写清楚。
+
+**产出**：
+- 结果 json 统一放 `qwen3asr_06b/reports/compare/`，**每一格一份**，含**原始字段**和 `timing_valid`；
+- STATUS 里写一节**汇总表**，注明每个数字的**来源文件**；
+- reviewer 复核 WER 并汇编成 HTML 对比报告（沿用之前 OV/CUDA 对比报告的格式）。
+- **计时作业一律持共享机器锁，串行执行；准确率作业不需要锁。**
+
+### 17.7 本模块的执行顺序（**按 reviewer 指定的优先级**）
+
+| 序 | 任务 | 依据 | 锁 |
+|---|---|---|---|
+| 1 | 修 P0 参照：跑整个 wav + 修 rtf/n_runs 字段 | ASR-006 §3 | 不需要（准确率作业） |
+| 2 | **P3 INT8**：61 分钟 App 路径全长（GPU / NPU / enc FP16 变体） | ASR-006 §6 | 计时部分**需要** |
+| 3 | **INT4 补测**（≤2 h 限时）：多 token top1 判据 + GPU INT4_ASYM g128 解码 | ASR-006 §5 | 不需要 |
+| 4 | rule1 切点重复词诊断（离线模拟 WER 收益） | ASR-006 §2 | 不需要 |
+| 5 | 对比分析报告（矩阵 + 汇总表 + `reports/compare/*.json`） | ASR-007 | 计时格**需要** |
+
+⚠️ **P3 的单进程全长跑可能很久**（torch CUDA 参照已 2470 s；OV NPU 另算）
+⇒ 沿用**已验证的长跑存活写法**：`run_in_background=true` + **直接前台命令**
+（python 进程本身作任务主体）+ **断点续跑**（判据校验**末条记录**，不是「文件非空」）。
+
+### 17.8 本轮纪律核对
+
+- ✅ **未跑任何推理 / 测速**（本轮只读纠偏 + 定位根因 + 改脚本 + 落档）。
+- ✅ **未改 `live_caption/`**（ASR-003 铁律）。
+- ✅ **未改 `status/asr/CORRECTIONS_ASR.md`**（只读；ASR-006/007 是 reviewer 写的）。
+- ✅ **只追加** `## §17`。
+
+## §18 P3 阶段重大发现：OV decoder「取位置 511」语义错误 + NPU 阻塞解除 + INT8 decoder 精度异常（2026-10-25 12:05）
+
+### 18.1 ★★★ 最关键发现：OV decoder IR 恒取位置 511 ⇒ **右对齐**才对
+`p1_export_decoder.py` 导出的是 `self.head(h[:, -1:, :])` ⇒ **恒取位置 511 的 logits**。
+IR 输入是**静态 [1,512,1024]**；真实内容只有前 T 个位置 ⇒
+* **左对齐**（左内容 + 右补零）：位置 511 落在 **padding 区** ⇒ 输出 padding 位置的
+  logits ⇒ **生成乱码**（实测 `_difference_difference...` / `umberumberumber...`）
+* **右对齐**（左补零 + 右内容）：位置 511 = **最后一个真实 token** ⇒ 正确
+
+**决定性实验**（`results/p3_diag_align.json`）：
+| 排布 | OV argmax | torch argmax |
+|---|---|---|
+| left | 151645 `<|im_end|>` ❌ | 151645 `<|im_end|>` ❌ |
+| **right** | **541 `all`** ✅ | **541 `all`** ✅ |
+
+OV left vs right 的 logits cos = **−0.154354** ⇒ 两者语义完全不同。
+
+⚠️⚠️ **由此推翻 §15.3 的 INT8 精度证据**：P1 的 teacher-forcing 判据
+（cos=0.999983、top1 100%）**必然无效** —— 因为 OV 与 torch **两侧都取位置 511**
+⇒ 两边"错"得完全一致 ⇒ cos 必然接近 1 ⇒ **该指标根本发现不了这个错误**。
+⇒ **§15.3 的 enc cos 0.978 / dec cos 0.975 / top1 100% 全部作废**，
+  INT8 是否可用**只认 P3 的 61 分钟 WER**（与 ASR-006 §4 的判断一致，
+  但本模块找到了更强的技术根据）。
+
+### 18.2 三个语义 bug 及其修复（都在 `scripts/p3_ov_app.py`）
+1. **右对齐**（见 18.1）
+2. **prefix 不能塞进 prompt 模板**（会打乱 audio_token 展开位置 ⇒ mask 不匹配 ⇒ 崩）
+   ⇒ 改为分段拼接 `left + audio + right + prefix`（照 R2T2 `npu_embeds_backend.build_inputs_embeds`）
+3. **flush 必须以 `raw` 为前缀**（否则模型从头重生成 ⇒ 每段内容重复两遍，实测过）
+
+⇒ 修正后 30 秒冒烟：5 段文本与 P0 torch 参照**逐段一致**
+（`All right. Good morning, everyone. Good morning. Let's get started. So, we.` /
+`Welcome to our Q326 QGS.`）⇒ **INT8 量化后文本质量正常（GPU 路径）**。
+
+### 18.3 ✅ NPU 阻塞解除（encoder 动态形状）
+**现象**：`ov-encoder-06b-{fp16,int8sym}` 的 `input_features` 是 `[?,?,?]` 全动态 ⇒
+NPU 编译失败：`vclAllocatedExecutableCreate4 result: 0x78000004 - [NPU_VCL] Compiler
+returned msg: IE.Reshape doesn't support dynamic shapes`（decoder IR 静态 ⇒ 无此问题）。
+
+**修法**（`scripts/p3_staticize_encoder.py`）：`core.read_model()` →
+`model.reshape({input(0): ov.PartialShape([1,128,2400]), input(1): ov.PartialShape([1])})`
+⇒ ⚠️ OV 2026.4 的 `reshape` 是**原地修改返回 None**；
+⇒ 用**模块级 `ov.save_model(model, xml)`** 保存（⚠️ `Model` **没有** `save_model` 方法）。
+
+**验证**（`results/p3_npu_compile_check.json`，NPU 编译全部通过）：
+| IR | 编译 | compile_s |
+|---|---|---|
+| `ov-encoder-06b-fp16-static` | ✅ | 26.60 |
+| `ov-encoder-06b-int8sym-static` | ✅ | 20.49 |
+| `ov-dec-06b-embed-int8sym` | ✅ | 110.21 |
+| `ov-dec-06b-past-int8`（stateful，非本会话产出） | ❌ | 2.90（`to_shape was called on a dynamic shape`）|
+
+⇒ 新增产物：`models/ov-encoder-06b-fp16-static/`（372.8 MB .bin）、
+`models/ov-encoder-06b-int8sym-static/`（186.9 MB .bin）。
+⚠️ **静态化本身不改变语义**：`results/p3_diag_static_vs_dynamic.json`
+⇒ CPU 上动态 vs 静态 **cos = 1.0、maxabs = 0.0**（逐 token 对齐 offset 全 0）。
+
+### 18.4 🔴 INT8 decoder 的 logits 与 FP16 **近乎正交**（CPU 单步实测）
+`results/p3_diag_int8_fidelity.json`（同设备内、encoder 固定 FP16、6.4 s 音频）：
+| 设备 | INT8dec vs FP16dec 的 logits cos | argmax 相同 | INT8enc vs FP16enc（过 FP16dec） |
+|---|---|---|---|
+| CPU | **−0.000094** | ❌（541 vs 2403） | **0.999716** ✅ |
+| GPU.0 | **−0.139394** | ❌ | 0.999154 ✅ |
+| NPU | **−0.129165** | ✅（本例巧合） | 0.999653 ✅ |
+
+⇒ **encoder 量化完好，decoder 量化损坏**（cos ≈ 0 而非 0.9~0.99 ⇒ 不是「精度不够」，
+  而是**权重/反量化写错**）。
+⚠️ 但「INT8 decoder 坏」是**设备相关**的：在 GPU 上端到端反而**只有 INT8 decoder 正常**（见 18.5）。
+
+**排除项（都有实测产物）**：
+| 候选 | 排除依据 |
+|---|---|
+| lm_head 被误量化 | ❌ **未排除但已确认 lm_head 是 FP16**：INT8 IR 的 lm_head MatMul 输入 = `Convert(Constant float16 [151936,1024])` ⇒ `ignored_scope` **生效** |
+| 静态化破坏语义 | `p3_diag_static_vs_dynamic.json`：CPU 动态 vs 静态 cos=1.0 |
+| 设备算错（单步） | `p3_diag_dev_mismatch.json`：三设备 encoder cos≥0.9998、decoder cos≥0.994、argmax 相同 |
+| 首次推理未预热 | `p3_diag_npu_warmup.json`：NPU 连 5 次 encoder cos 全 0.99998、decoder argmax 全同 |
+| 输入长度相关 | `p3_diag_npu_short_input.json`：mf=64/128/320/640 三设备 argmax 全同 |
+| 量化配方本身 | torch 侧 fake-quant 196 权重 INT8 per-channel：cos **0.977708**、top1 ✓（**纯 numpy**，不经过 NNCF/OV）⇒ 配方没问题 |
+
+⇒ **差异只能来自 NNCF / OV 的量化实现**。
+⚠️ **scale 常量在 IR 的 MatMul 输入链上找不到**（`Multiply` 链只拿到 `[1,1,1024]` 的
+fp16 常量，且**全局去重会误判 cycle**，须按路径去重）；数值反推配对
+（`results/p3_diag_int8_scale_axis.json`）**frac_equal 中位数仅 0.010** ⇒
+**int8 权重与 FP16 权重没能成功配对**，量化轴/广播轴**尚未判定** ⇒ **待查**。
+
+### 18.5 ★ 端到端 2×2 矩阵（GPU.0，真实 10 步段内循环，`results/p3_diag_matrix.json`）
+| encoder | decoder | 端到端结果 |
+|---|---|---|
+| fp16 | **fp16** | ❌ 西里尔文乱码 `šĺģš⇐търьььььььььььььь` |
+| fp16 | **int8** | ✅ `All right. Good morning, everyone. Good morning. Let's get started. So, we.` |
+| int8 | fp16 | ❌ 乱码 `deššššššššššššššššš` |
+| int8 | int8 | ✅ 正常 |
+
+⚠️ **与 CPU 上的单步结论相反**（CPU：FP16 cos 0.9988 正常、INT8 cos 0.038 崩）
+⇒ **两个独立问题**：① CPU 上 INT8 decoder 权重/反量化异常；
+② GPU 上 FP16 decoder 端到端崩坏（单步 logits 正常 ⇒ 疑似多步累积/数值溢出）。
+⚠️ **NPU 侧矩阵正在跑**（`results/p3_diag_matrix.json` 追加 NPU 段）。
+
+### 18.6 ✅ ASR-006 §5 第③点核实结论：**fake-quant 探针没有误量化 tied 权重**
+`p2_fakequant_probe.py` 的 `apply_quant()` 对 `embed_tokens` 有守卫
+`if nm == 'embed_tokens' and not args.quant_embed: continue`，
+而 `--quant-embed` **默认 False** ⇒ **旧 fake-quant 数据未量化 embed_tokens/lm_head**
+⇒ 与 OV 侧「ignore lm_head（FP16）+ 量化 196 个层权重」**口径一致**
+⇒ **§15.4 第①②条证据链（fake-quant 复现 / 逐层累积）不因这一点作废**，
+旧数据（INT8 cos 0.977708 / INT4 cos 0.113752）**仍有效**。
+
+### 18.7 本轮产物清单（全部落盘，附文件数与 mtime 基准）
+| 文件 | 内容 |
+|---|---|
+| `scripts/p3_staticize_encoder.py` | encoder 静态化（reshape + `ov.save_model`） |
+| `scripts/p3_npu_compile_check.py` | NPU 编译验证（4 个 IR） |
+| `scripts/p3_diag_align.py` | 左/右对齐 × OV/torch 决定性实验 |
+| `scripts/p3_diag_dev_mismatch.py` | 三设备 × 精度 交叉对照 |
+| `scripts/p3_diag_static_vs_dynamic.py` | 动态 vs 静态 IR 等价性 |
+| `scripts/p3_diag_npu_warmup.py` | NPU 连续 5 次预热检验 |
+| `scripts/p3_diag_npu_short_input.py` | 4 档输入长度 × 三设备 |
+| `scripts/p3_diag_npu_multistep.py` | 复刻 runner 的 10 步逐步对照 |
+| `scripts/p3_diag_npu_ablate.py` | encoder/decoder 变量分离（A/B 场景） |
+| `scripts/p3_diag_npu_fp16dec.py` | FP16 vs INT8 decoder 判别 |
+| `scripts/p3_diag_int8_fidelity.py` | 同设备内精度隔离 + 多 token teacher-forcing top1 |
+| `scripts/p3_diag_int8_weights.py` / `_weights2.py` / `_scale_axis.py` | 权重级诊断（配对未成功） |
+| `scripts/p3_diag_rootcause.py` / `p3_diag_int8_rootcause.py` | 根因判定（lm_head 确认 FP16） |
+| `scripts/p3_diag_graph_dump.py` | 图结构 dump（**须按路径去重**，全局去重会误判 cycle） |
+| `scripts/p3_diag_ov_vs_torch.py` | OV × OV × torch 三方对比 |
+| `scripts/p3_diag_matrix.py` | 端到端 2×2×N 矩阵 |
+| `results/p3_diag_*.json` | 上述全部诊断产物 |
+
+### 18.8 口径与纪律
+* **P3 长跑口径**不变：单进程不分 part、真实 `live_caption_app.Segmenter`（B 行为）、
+  跑整个 wav（3671.19 s）、640 ms 分块 + 前缀回退 5 token / 前 2 块不用前缀、
+  自适应 max_new_tokens、段尾 flush 预算 64。
+* **计时作业持 `shared/MACHINE_LOCK`**，串行执行；**准确率作业不需要锁**。
+* **WER 全部交 reviewer 复算**，目标机自算只作参考（ASR-004 铁律）。
+* **不改 `live_caption/`**（ASR-003 铁律）。rule1 接缝去重已由 **App 模块**完成
+  （`live_caption_app.py:648` 起的 APP-012②/APP-014① 注释：整词级 n-gram 去重
+  n=3→2→1 + 「后段首词大写 & 前段末尾非句末标点」判据；
+  量化收益 A −0.043pp / B −0.060pp，CI 上界<0 ⇒ 显著但**只覆盖 +2.6pp 的约 3%**
+  ⇒ **接缝去重不是主因**）⇒ 本模块的 rule1 诊断**降级为可选**，不重复做。
+* ⚠️ **INT4 补测仍未做**（ASR-006 §5 第②③点），限时 ≤2h，排在 P3 之后。
+* ⚠️ **P0 参照重跑未做**（脚本已修：`rtf_this_run` 已删、`n_runs` 锁定、整个 wav）。
+## §19 P3 根因大反转：**撤回「INT8 量化损坏」与「FP16 必崩」**，根因收窄到**输入条件**（2026-10-25 13:40）
+
+### 19.0 本章要撤回的结论（STATUS 只追加，不回头改旧章节）
+| 旧章节 | 原结论 | **本章处置** |
+|---|---|---|
+| §18.4 | 「**INT8 decoder 量化损坏**」（cos ≈ 0 ⇒ 权重/反量化写错） | 🔴 **撤回** —— 10 层静态比对全部相同；且**正交实验显示 INT8 也会退化** |
+| §18.5 | 「GPU 上 FP16 decoder 端到端崩坏」「两个独立问题」 | 🔴 **撤回「模型层面」的解读** —— 同一份 FP16 IR 在另一组输入条件下**完全正常** |
+| §18.2 | P1 的 teacher-forcing 判据（enc cos 0.999983 / top1 100%） | 🔴 **撤回** —— 判据是**自一致 tautology**（见 §19.3） |
+| §18.1 | 「OV decoder IR **恒取位置 511**」 | ⚠️ **部分修正** —— 右对齐结论**仍成立**，但「恒取」不准确（见 §19.4） |
+| §15.3 | INT8 的 enc cos 0.978 / dec cos 0.975 / top1 100% | 🔴 **已由 §18 撤回**，本章进一步说明**为何无效**（§19.5） |
+
+### 19.1 ✅ 静态层面：两个 decoder IR **在 10 个层面完全相同**
+| # | 层面 | 结果 | 产物 |
+|---|---|---|---|
+| 1 | 端口 | **相同** | `p3_diag_const_diff.json` |
+| 2 | 整数常量（位置/掩码/Range 参数） | **相同** | 同上 |
+| 3 | 293 个取位置类算子的索引常量 | **逐条相同** | 同上 |
+| 4 | 28 个 SDPA 的 attrs + 输入规格 + mask 溯源 | **完全相同** | `p3_diag_sdpa_spec.json` |
+| 5 | lm_head 权重（按输出末维 151936 定位） | **逐位相同** | `p3_diag_int8_deep.json` |
+| 6 | 341 个 3D/4D/1D 常量（norm weight / RoPE） | **341/341 相同**（**多重集口径** + 排序逐条 + 序号对照，三口径一致） | `p3_diag_3d_const.json` |
+| 7 | 196 个 2D 权重的反量化 | **cos min 0.999929 / p50 0.999960**，量化轴 = **axis 0**（per-output-channel） | `p3_diag_int8_dequant.json` |
+| 8 | **全部算子 attrs（1523 个非插入实例）** | **0 差异** | `p3_diag_attrs.json` |
+| 9 | 张量精度分布 | **相同**（f32 输出 2661/2661；f16 输出 538 vs 930 的差额 = NNCF 插入的 196 个 scale） | `p3_diag_elemtype.json` |
+| 10 | .bin **实际存储精度** | **全部 native**（无「声明 f32 实存 f16」）；f16 2D 权重 0.22% 元素落在 f16 最小正规数以下 | `p3_diag_bin_precision.json` |
+
+补充：**类型直方图差异恰好只有 3 类**（Constant/Convert/Multiply 各 **+196**）⇒
+图结构完全一致，**无 FakeQuantize**（未做激活量化）。
+
+⚠️ **本轮踩过的两个坑（方法论，必须记住）**：
+* **`get_ordered_ops()` 的序号会漂移** —— NNCF 插入 196×3 个节点 ⇒ 后续序号整体偏移
+  ⇒ **不能用序号配对常量/算子**。可靠口径：**多重集比对**（Counter）、
+  **类型内第 k 个实例**（仅限 NNCF 不插入的类型）、**friendly_name**。
+* **`model.add_outputs(tensor)` 在 OV 2026.4 失败**（"Incorrect type of a value to add as output"）
+  ⇒ 可用写法：**`model.add_outputs(consumer_op.input_value(i))`**（加的是消费者的输入端口）。
+
+### 19.2 🔴★★ 决定性反转：**FP16 并不崩，INT8 反而退化**（`results/p3_diag_surgery.json`）
+CPU、**固定 6.4 s 音频**、**无 prefix 回退**、每步 8 token 贪心：
+| 图 | 10 步首 token | 判定 |
+|---|---|---|
+| **fp16** | `all` → ` right` → ` good` → ` morning` → ` everyone` → ` good` → ` morning` → ` let` → `'s` → ` get` | ✅ **全程正常英文** |
+| **fp32**（重新保存） | **与 fp16 逐位相同** | ✅ ⇒ `compress_to_fp16` **无损**（复核 §18.5 的说法） |
+| **int8** | `All` → ` right` → `.` → ` Good` → ` morning` → ` everyone` → `.` → ` Good` → ` morning` → `.` | ⚠️ **重复退化**（`.`↔`Good`/` morning` 2-token 循环） |
+
+⇒ **两个 IR 都没有「坏」**；退化是**输入条件**触发的。
+⇒ 前序「FP16 端到端必崩 / INT8 正常」是**特定输入组合下的现象**（§19.3）。
+
+### 19.3 🔴 teacher-forcing 判据是**自一致 tautology**（`p2_multitoken_top1.json` 原始字段）
+`ov_fp16_gpu.per_segment[0]`：
+```
+target  = [97622, 97622, 97622, 97622, 4824, 97622, 4824, 4824, ... ×20]
+argmax  = [97622, 97622, 97622, 97622, 4824, 97622, 4824, 4824, ... ×20]
+```
+* 4824 = `ь`、97622 = `系统` 一类 ⇒ **target 序列本身就是退化重复**
+* FP16 的「top1 100%」= **拿自己的退化输出当 target 再对齐自己** ⇒ **恒等于 100%**
+⇒ **该判据对 FP16 完全无效**，对 INT8 的 72.02% 也只是「偏离退化模式的程度」
+⇒ **不能再用它比较 FP16/INT8/INT4 优劣**。
+⇒ 顺带解释 §18.4 的「logits cos ≈ 0」：teacher-forcing 明细显示 INT8 只在
+**2 个 margin 极小**的位置翻转（margin **0.77** / **0.027**），其余 **10/12 命中且 margin 很大**
+⇒ **151936 维稀疏 logits 的全向量 cos 不可作为「模型坏了」的判据**。
+
+### 19.4 ⚠️ 修正 §18.1：「恒取位置 511」不准确，但**右对齐仍然正确**
+* `p3_diag_align.json`（CPU，单步）：**左对齐时 FP16 与 INT8 都给 `<|im_end|>`**
+  （top5 = `['<|im_end|>',' case','�','  \n','\n']`）⇒ 左对齐让 511 落在 padding 区 ⇒ 输出无意义
+  ⇒ **右对齐是必须的**（结论不变）。
+* `p3_diag_pos_sem.json`：同一份 embeds 放在 512 窗口的 **3 个不同 offset**（0 / 100 / 411）
+  ⇒ **logits 完全不同**（FP16 offset0→`<|im_end|>`、offset100→`.”`、offset411→`all`）
+  ⇒ IR **不是**「恒取 511」，位置计算**依赖内容落点**。
+* 运行时抓取位置链（`p3_diag_rope_probe.json`）：两图的 position id 张量
+  **完全相同**（`ScatterNDUpdate` 输出 min 0 / max 511 / 非零 98112；
+  `Gather` 输出 min 0 / max 511 / 非零 32704）⇒ **位置语义两图一致**。
+
+### 19.5 ✅ 其余假设逐条排除（均有产物）
+| 假设 | 排除依据 | 产物 |
+|---|---|---|
+| 精度提示（f16 vs f32） | FP16 端到端在 **f32 提示下仍乱码** ⇒ 非精度问题 | `p3_diag_precision_hint.json` + `p3_diagcheck_gpu_fp16dec_f32/` |
+| 内容长度 / RoPE 位置偏移 | 长度扫描 L=26→115：FP16 **全程**乱码、INT8 逐步转正常 | `p3_diag_len_sweep.json` |
+| 设备相关（CPU vs GPU） | 乱码模式**逐字相同**（`'šĺģ�šĺģ�'` / `'ьььььььь'`）⇒ **确定性的图级差异，不是数值噪声** | `p3_diag_device_steps.json` |
+| IR 权重被 f16 舍入损坏 | FP16 IR 权重 vs torch `named_parameters`：**197/311 匹配、cos = 1.0、relerr = 0** | `p3_diag_ir_weight_check.json` |
+| `compress_to_fp16` 损坏图 | 以 `compress_to_fp16=False` 重新保存：**0 个常量变化**，bin 字节数完全相同（1,192,582,552） | `p3_diag_f32_save.json` |
+| 编译后 fusion 不同 | 编译后算子数 FP16 **1824**；INT8 图 `get_runtime_model()` **触发 segfault** ⇒ 该口径**不可用**（如实记录） | `p3_diag_compiled.py`（未落盘结论，脚本在） |
+
+### 19.6 🔴 待隔离的两个变量（**正在跑**：`p3_diag_orthogonal.py` → `p3_diag_orthogonal.json`）
+| 脚本 | 音频 | prefix 回退 | FP16 | INT8 |
+|---|---|---|---|---|
+| `p3_diag_surgery.py` | **固定 6.4 s** | **无** | ✅ 正常 | ⚠️ 退化 |
+| `p3_diag_device_steps.py` / `_len_sweep.py` | **逐步累积** 0.64→6.4 s | **有**（回退 5 token） | ❌ 乱码 | ✅ 正常 |
+| `p3_ov_app.py`（真实 App） | 逐步累积 | 有 | ❌ 乱码 | ✅ 正常 |
+
+⇒ **V1 = 音频累积长度**、**V2 = prefix 回退**，正交实验 2 图 × 3 模式 × 2 prefix = 12 组。
+
+### 19.7 ⚠️ P3 61 分钟长跑（GPU.0 + INT8 enc + INT8 dec）的计时口径**作废**
+* 产物：`qwen3asr_06b/results/p3_p3_61min_gpu_int8/segments.jsonl`（**13:05 时 67 段 → 13:38 时 254 段**，
+  文本持续为正常英文，如 `Moving forward. Okay, next slide. Alex, share this…`）。
+* 🔴 **`timing_valid = false`**：本作业 **12:56** 启动时 `shared/MACHINE_LOCK` **已被 `mt` 模块占用**
+  （内容 `module: mt / pid: 34440 / started: 2026-10-25 11:19:54`，进程存活，
+  命令行 `_run_h016_v5_batches.py`）⇒ **计时被其它模块干扰**
+  ⇒ **质量数据可用，RTF / P50 / P95 / 首字延迟 / 内存一律不得引用**。
+  ⇒ 后续如需计时，**必须先确认锁空闲**再启动。
+
+### 19.8 本轮产物清单（全部落盘；mtime 2026-10-25）
+| 脚本 | 产物 | 关键结论 |
+|---|---|---|
+| `scripts/p3_diag_3d_const.py` | `results/p3_diag_3d_const.json` | 341/341 相同（三口径） |
+| `scripts/p3_diag_elemtype.py` | `results/p3_diag_elemtype.json` | 精度分布相同 |
+| `scripts/p3_diag_bin_precision.py` | `results/p3_diag_bin_precision.json` | 存储精度全 native |
+| `scripts/p3_diag_attrs.py` | `results/p3_diag_attrs.json` | **1523 实例 attrs 0 差异** |
+| `scripts/p3_diag_align.py` | `results/p3_diag_align.json` | 左对齐两图都 EOT |
+| `scripts/p3_diag_pos_sem.py` | `results/p3_diag_pos_sem.json` | offset 会改 logits |
+| `scripts/p3_diag_rope_probe.py` | `results/p3_diag_rope_probe.json` | 位置 id 运行时相同 |
+| `scripts/p3_diag_device_steps.py` | `results/p3_diag_device_steps.json` | 跨设备乱码逐字相同 |
+| `scripts/p3_diag_surgery.py` | `results/p3_diag_surgery.json` | **FP16 正常 / INT8 退化** |
+| `scripts/p3_diag_orthogonal.py` | `results/p3_diag_orthogonal.json` | （在跑）正交隔离 |
+| `scripts/p3_diag_compiled.py` | （未落盘，INT8 图 segfault） | 编译后图口径不可用 |
+| `scripts/p1_export_decoder_f32.py` | （待跑）真 f32 导出（`compress_to_fp16=False`） | 备用解法路径 |
+
+### 19.9 口径与纪律（补充 §18.8）
+* **本模块不得再宣称「FP16 更好」或「INT8 更好」**，直到 §19.6 的正交实验定因。
+* **不得用 teacher-forcing top1 比较 FP16/INT8/INT4**（自一致 tautology，§19.3）。
+* **不得用「logits 全向量 cos」判「模型坏了」**（151936 维稀疏尖峰，§19.3）。
+* 后续若要改判据：应使用**非退化的目标**（例如 reviewer 给定的真值文本 / torch 自然排布的
+  贪心输出），并**同时报告 argmax 与 top-5 命中**（`p3_diag_align.json` 显示
+  FP16 top5 含 `All`、INT8 top5 含 `Alright` ⇒ **两者答案都在 top5，只是排序不同**）。
+* **P3 长跑的质量数据（转写文本）可用；计时数据全部作废**（§19.7）。
+
+### 19.10 ✅✅ 正交实验完成（`results/p3_diag_orthogonal.json`）：**两个 IR 都会退化**，只是阈值不同
+CPU、每步 8 token 贪心、6 步；`fixed` = 固定 6.4 s 音频，`cum1` = 累积到 0.64 s，
+`cumN` = 累积到 n×0.64 s；`prefix` = 是否启用「回退 5 token 前缀」。
+| 图 | 模式 | prefix | step1 (L=26) | step2 | step4 | step6 | 判定 |
+|---|---|---|---|---|---|---|---|
+| **fp16** | fixed (L=101) | ✗ | `all right good morning everyone…` | 同上 | 同上 | 同上 | ✅ **正常** |
+| **fp16** | fixed (L=101) | ✓ | `all right good morning…` | ` morning everyone…` | ` get started so very very very` | ` very very very…` | ⚠️ **退化**（`very` 复读） |
+| **fp16** | cum1 (L=26) | ✗ | `��ℿ�ℿ�` | 同上 | 同上 | 同上 | ❌ **乱码** |
+| **fp16** | cumN | ✗ | `��ℿ�ℿ�` | `��ℿ�` | `šĺģ�šĺģ�` | `š�ъразьшьь` | ❌ **乱码** |
+| **fp16** | cumN | ✓ | `��ℿ�ℿ�` | `��칩�ли` | `šĺģ�šĺģ�` | `ьъисъешьъеш` | ❌ **乱码** |
+| **int8** | fixed (L=101) | ✗ | `All right. Good morning everyone…` | 同上 | 同上 | 同上 | ✅ **正常** |
+| **int8** | fixed (L=101) | ✓ | `All right. Good morning…` | ` Good morning everyone…` | `. Let get started. So well.` | ` started. So well.` | ✅ **正常** |
+| **int8** | cum1 (L=26) | ✗ | **`��系统。`** | 同上 | 同上 | 同上 | ❌ **乱码（INT8 也乱码！）** |
+| **int8** | cumN | ✗ | `��系统。` | `System.` | `All right. Good morning.` | `All right. Good morning everyone. Good` | ✅ **正常** |
+| **int8** | cumN | ✓ | `��系统。` | `System.` | `All right. Good morning.` | `. Good morning everyone. Good morning.` | ✅ **正常** |
+
+⇒ **结论 1**：**L=26（0.64 s）时 FP16 与 INT8 都输出乱码**
+（FP16 `��ℿ�ℿ�` / INT8 `��系统。`）⇒ **短输入退化不是量化问题**
+⇒ §18.4「INT8 量化损坏」与 §18.5「FP16 端到端崩坏」**均不成立**。
+⇒ **结论 2**：**阈值不同** —— FP16 需 L≳101 才正常，INT8 **L≳35 即正常**
+（INT8 在这一点上**更稳**）。
+⇒ **结论 3**：**prefix 回退**在 FP16 上会诱发 `very very very…` 复读（INT8 不受影响）
+⇒ prefix 回退把「已生成的 token」重新喂回，**FP16 对此更敏感**。
+⇒ **结论 4**：先前「FP16 全程乱码」只在 **L≤68 的累积模式**成立，
+在 **L=101 固定音频**下 FP16 **完全正常** ⇒ **「FP16 必崩」的说法过宽**。
+
+### 19.11 ✅ 判读口径再修正：**「乱码」≠「模型坏」**
+* 短输入（L=26）下**两个模型都**给出乱码 ⇒ 这是**该输入下的正常行为**
+  （0.64 s 音频只含 1~2 个词，模型本来就没内容可转写）。
+* **下一必须查的量**：乱码档的 logits 是否出现 **NaN / Inf**（f16 溢出）、
+  **top1 margin**（排序脆弱）、**softmax 熵**（模型没主意）。
+  脚本 `scripts/p3_diag_logit_health.py` → `results/p3_diag_logit_health.json`（**在跑**）。
+* ⚠️ 在该实验出结果前，**本模块不使用「崩坏 / 损坏」这类措辞**，
+  统一表述为「**该输入条件下输出退化**」。
+
+### 19.12 ✅★ **机制查清**：「乱码」是**置信度平坦 + 贪心漂移**，不是数值损坏（`results/p3_diag_logit_health.json`）
+CPU、累积音频档位、每档测**单步** logits 的健康度：
+| 图 | nstep | L | NaN | Inf | logit_max | top1_margin | **熵** | mass_top1 | top1 | top5 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| fp16 | 1 | 26 | 0 | 0 | 16.95 | 1.690 | **5.796** | 0.192 | `�` | `�`,`<\|im_end\|>`,`�`,`ъ`,`ǥ` |
+| fp16 | 2 | 35 | 0 | 0 | 16.49 | 0.986 | **5.960** | 0.130 | `�` | `�`,`razil`,`de`,`RectTransform`,`ći` |
+| fp16 | 4 | 51 | 0 | 0 | 15.61 | 0.460 | **5.900** | 0.077 | `š` | `š`,`�`,`ｂ`,` реб`,`bris` |
+| fp16 | 6 | 68 | 0 | 0 | 17.09 | 1.801 | **4.726** | 0.344 | `š` | `š`,`RectTransform`,`št`,`man`,`ż` |
+| fp16 | 8 | 85 | 0 | 0 | 17.59 | 0.273 | **5.505** | 0.133 | `all` | `all`,`아`,`de`,`every`,`<\|im_end\|>` |
+| fp16 | 10 | 101 | 0 | 0 | 21.46 | 1.677 | **4.983** | 0.256 | `all` | `all`,`aff`,`right`,`All`,`language` |
+| fp16 | 11 | 110 | 0 | 0 | 23.07 | 1.461 | **1.017** | 0.747 | `All` | `All`,`all`,`Right`,`Everything`,`l` |
+| int8 | 1 | 26 | 0 | 0 | 20.65 | 0.270 | **5.437** | 0.192 | `�` | `�`,`<\|im_end\|>`,`�`,`раз`,`�` |
+| int8 | 2 | 35 | 0 | 0 | 19.49 | 1.240 | **5.704** | 0.182 | `System` | `System`,`.`,`system`,`emotion`,`son` |
+| int8 | 4 | 51 | 0 | 0 | 20.41 | 0.045 | **1.038** | 0.490 | `All` | `All`,`all`,`I`,`Right`,`Good` |
+| int8 | 6 | 68 | 0 | 0 | 20.31 | 1.067 | **0.693** | 0.733 | `All` | `All`,`all`,` All`,`Alright`,`Right` |
+| int8 | 8 | 85 | 0 | 0 | 20.66 | 0.668 | **0.750** | 0.653 | `all` | `all`,`All`,`I`,`’all`,` All` |
+| int8 | 10 | 101 | 0 | 0 | 21.09 | 0.767 | **0.774** | 0.669 | `All` | `All`,`all`,`Alright`,`Right`,`I` |
+| int8 | 11 | 110 | 0 | 0 | 20.43 | 1.598 | **0.646** | 0.810 | `All` | `All`,`all`,`Alright`,`Right`,`I` |
+
+**判读（三条硬结论）**：
+1. ✅ **没有任何 NaN / Inf / f16 溢出**（`f16_overflow` 全 false，logit_max ≤ 23.07 ≪ 65504）
+   ⇒ **排除「数值溢出 / NaN」这一整类原因**。
+2. ✅ **FP16 的 logits 是「平坦」的**：熵长期停在 **4.7~6.0**（≈ln(120)~ln(400)）
+   ⇒ 模型**没有主意**，正确答案常在 **top5 内但排名靠后**
+   （L=101 时 top5 = `all`,`aff`,`right`,`All`,`language` ⇒ 正确项 `right`/`All` 在第 3/4 位）。
+   ⇒ **贪心解码一旦选中 `all`（而非 `All`），后续 token 分布随之漂走 ⇒ 输出乱码**。
+   ⇒ **「乱码」= 置信度不足导致的贪心漂移**，不是模型损坏。
+3. ✅ **INT8 的 logits 是「尖锐」的**：从 L=51 起熵就降到 **~1.0 并保持**
+   ⇒ top1 稳定 ⇒ 输出正常。
+   ⇒ **INT8 在「置信度」这个维度上确实比 FP16 稳**（不是「INT8 量化更好」，
+   而是在**这个具体输入分布上**更稳）。
+
+⚠️ **判据口径再收紧**：**「top1 不对」不等于「模型错」** —— 必须看 **top-5**
+（FP16 在 L=101 的正确答案就在 top5）。⇒ **后续所有质量判定都要同时报 top-5 命中**。
+
+## §20 收到 ASR-007 / ASR-008 / ASR-009：**INT4 补测完成（「0.6B INT4 不可行」被证伪）** + 对比矩阵更新（2026-10-25 16:40）
+
+### 20.0 本章处理的纠偏条目与执行结果一览
+| 条目 | 要求 | 本轮结果 | 产物 |
+|---|---|---|---|
+| **ASR-007** | 交付 R2T2 × 0.6B 的「精度 × 设备」对比报告 | ✅ **矩阵更新**（16 格，每格一份 json + `MATRIX.md`/`MATRIX.json`）；0.6B 的 INT8/INT4 格子由本轮补全 | `qwen3asr_06b/reports/compare/`（**17 个文件**，含 2 个新 INT4 格子） |
+| **ASR-008 / ASR-009** | 继续做：0.6B INT8（App 路径，持锁）→ INT4 限时补测 → 切点重复诊断 → R2T2 对比 0.6B 报告 | ✅ ① **INT4 限时补测完成且结论反转**（§20.2/§20.3）② **INT8 61 分钟质量数据已落盘**（§20.4）③ **切点重复诊断已完成**（§20.5，由并发会话产出）④ **对比矩阵已更新**（§20.6） | 见上 |
+| **ASR-006 §5②** | GPU 上 `INT4_ASYM g128 + AWQ + SE`（backup INT8_ASYM，lm_head 保 FP16），5 分钟切片贪心解码看文本是否正常 | ✅ **文本正常 ⇒ INT4 可用** | `results/p3_int4_slice/`、`results/p3_int4_fixedlen/` |
+| **ASR-006 §6** | P3 走 App 路径、单进程、跑整个 wav | ✅ **已跑完整个 wav（3671.19 s）**，553 段 | `results/p3_p3_61min_gpu_int8/`（4 文件） |
+
+### 20.1 ✅★ 最重要结论：**「0.6B INT4 不可行」被本轮数据证伪**（但**配方必须换**）
+ASR-006 §5 把「0.6B INT4 不可行」降级为「证据不足，暂不关闭」。本轮做完 §5② 后：
+
+| 配方 | 5 分钟切片总词数 | 定长 top1 | 定长 top5 | 判定 |
+|---|---|---|---|---|
+| **INT8**（INT8_SYM per-channel，lm_head FP16） | **928** | **70.83%** | 87.90% | ✅ 基准 |
+| **INT4_ASYM g128 + AWQ + SE**（backup INT8_ASYM） | **882** | **69.44%** | 85.71% | ✅ **可用，与 INT8 同量级** |
+| **INT4_SYM 按通道 + AWQ + SE**（= R2T2 R2 照搬） | **98** | **16.27%** | 28.77% | 🔴 **崩坏** |
+| FP16（对照） | 164 | 89.29% | 94.44% | ⚠️ 见 §20.3 |
+
+* ⇒ **0.6B 的 INT4 可用**（INT4_ASYM g128 路线），**「不可行」结论被推翻**。
+* ⇒ **但照搬 R2T2 的「按通道 + AWQ + SE」配方在 0.6B 上不成立**
+  ⇒ 差异来自**模型规模/宽度**，不是配方本身的普遍性。
+* ⚠️ 本轮用的是**代理指标**（词数 / 文本健康度 / token 级命中率），**不是 WER**
+  ⇒ 质量等级**必须由 reviewer 用本机 baseline 复算 61 分钟全长 WER**后才能下结论。
+
+**原始字段（可复核）**：
+* 量化产物 `qwen3asr_06b/results/p2_quant_decoder_int4__asymg128.json`（15:58，2153 B）
+  - `recipe` = `"INT4_ASYM g128 ratio=1.0 + AWQ + SE + backup=INT8_ASYM"`
+  - `dst_mib` = **518.3**（源 1139.4，`size_ratio` 0.4549）
+  - `dst_const_stats.n_i4` = **392**（uint4_t）、`n_i8` = **0**、`n_f16` = 538
+  - `ignored_scope` = `["linear_196/aten.linear.default/MatMul"]`（**lm_head 保 FP16** ✔）
+* 切片解码 `results/p3_int4_slice/summary_all.json`（16:12/16:16/16:20/16:27，4 个 `summary.json`）
+* 定长判据 `results/p3_int4_fixedlen/summary_all.json`（16:28/16:30/16:32/16:34，4 个 `summary.json`）
+
+### 20.2 ✅ INT4 补测的做法（ASR-006 §5② 原文要求的口径）
+**新配方量化**（`scripts/p2_quantize.py` **本轮新增 `--asym` / `--backup-asym` 开关**，
+因为原脚本只有 INT4_SYM + backup INT8_SYM，**不支持 §5② 指定的 INT4_ASYM + INT8_ASYM**）：
+```
+python scripts/p2_quantize.py --model decoder --int4 --asym --backup-asym \
+    --group-size 128 --calib results/p2_calib_decoder.npz --tag _asymg128
+```
+⇒ 耗时 3m50s，NNCF 统计：`int4_asym, group size 128` 覆盖 **196/196** 个 ratio-defining 参数，
+`float` 1/197（= lm_head，ignored_scope 命中）✔
+（校准集只有 64 条 < subset_size 128，NNCF 有 WARNING 但不影响结果）。
+
+**判据脚本**（本轮新写 2 个）：
+| 脚本 | 用途 | 设计 |
+|---|---|---|
+| `scripts/p3_int4_slice_decode.py` | §5② 原文的「5 分钟切片贪心解码」 | 走**真实 App 路径**（`live_caption_app.Segmenter` B 行为 + 640 ms 分块 + 前缀回退 5 token + **自适应 max_new_tokens** + 段尾 flush 64） |
+| `scripts/p3_int4_fixedlen.py` | **干净判据**（隔离累积长度与前缀两个变量） | **固定 6.4 s（L=101 mel 帧）+ 关闭前缀** ⇒ 文本差异**只能**来自权重量化 |
+
+⚠️ **为什么必须加「定长」这一路**（§19 的直接应用）：
+`p3_int4_slice_decode.py` 的**累积**路径下，**FP16 自己也退化**
+（`results/p3_int4_slice/fp16/summary.json`：`total_words` 仅 **164** vs INT8 **928**，
+`nonlatin_ratio` **0.8023**、43/46 段非拉丁占比 >30%）
+⇒ §19 已证明：**累积路径下 L=26 的短输入会让 FP16 和 INT8 都输出乱码**
+⇒ 在累积路径上「谁正常」被**首段短输入 + 前缀污染**主导 ⇒ **测不出量化差异**。
+⇒ 定长路径（`p3_int4_fixedlen.py`）才是能判 INT4 好坏的干净口径。
+
+### 20.3 ✅ 定长口径下的完整对照（`results/p3_int4_fixedlen/summary_all.json`）
+**设计**：固定 6.4 s（L=101 mel 帧）+ 无前缀 + encoder 固定 OV FP16（**非量化**）
+⇒ 被测的**只有 decoder 的权重量化**。评测段 20 个，全部取自 **≥12 分钟** 区段
+（校准集 0–12 分钟不含评测音频），共 **504** 个 target token。
+
+| 变体 | top1 命中 | top1 % | top5 % | 总词 | 替换字符 | 非拉丁占比 | 复读 top1 | 段非拉丁>30% |
+|---|---|---|---|---|---|---|---|---|
+| **fp16**（参考） | 450/504 | **89.29%** | 94.44% | 244 | 0 | 0.2090 | 0.0451 | 3 |
+| **int8** | 357/504 | **70.83%** | 87.90% | 396 | 0 | 0.2259 | 0.0354 | **0** |
+| **int4_asymg128** | 350/504 | **69.44%** | 85.71% | 363 | 0 | 0.2214 | 0.0386 | 2 |
+| **int4_sym_chan** | 82/504 | **16.27%** | 28.77% | 20 | 0 | 0.0815 | 0.0500 | 2（复读段 20） |
+
+**文本样例（原始字段 `transcript`）**：
+* int8：`"But we're making good progress. Just last week, we powered on our. Our."`
+* int4_asymg128：`"But we are making good progress. Just last week, we powered on our. Our. Our."`
+  ⇒ **正常英文**，与 INT8 几乎逐词一致
+* int4_sym_chan：`"â颈âчь蹄nisnistrasnisurenisnisurenisnisurenisnisuris…"` ⇒ **崩坏**
+
+⚠️ **口径声明**：top1/target 来自 **FP16 参考自己的贪心输出**（非退化目标，
+§19.2 已证明 FP16 在 L=101 正常）⇒ **不是 §19.3 那种自一致 tautology**
+（§19.3 的 target 是 4824 'ь' 连续 20 次的退化序列）。
+⚠️ 但 **FP16 的 top1 只有 89.29%（不是 100%）** ⇒ 这个指标本身**对 0.6B 敏感**
+（与 ASR-006 §5 退回旧判据的理由一致）⇒ **必须与 top5 一起读**
+（§19.12 的收紧口径），且**不能单独用它定「可用/不可用」**
+⇒ 本章的判定依据是**文本本身是否正常**（词数 + 非拉丁占比 + 复读率），
+top1/top5 只作**同口径的相对对照**。
+
+### 20.4 ✅ P3 INT8 的 61 分钟全长**质量**数据（`results/p3_p3_61min_gpu_int8/`）
+**产物（4 个文件）**：`summary.json`（15:07，2366 B）、`segments.jsonl`（14:12，142560 B）、
+`segments.json`（14:12，164733 B）、`transcript.txt`（14:12，75526 B）。
+
+| 字段 | 值 |
+|---|---|
+| `audio_sec` / `covered_s` | **3671.189 / 3671.189**（`complete` = **true**）⇒ **跑的是整个 wav，未截断** ✔（满足 ASR-006 §3） |
+| `n_segs` | **553** |
+| `rule_counts` | rule1 **518** / rule2 **34** / flush **1** |
+| `total_words` | **11825** |
+| `n_steps_total` | 5737 |
+| `seg_dur_p50` / `p95` / `max` | **6.4 / 8.96 / 12.16** s |
+| `segmenter` | `live_caption_app.Segmenter（真实 App 切段器，B 行为）` |
+| `timing_valid` | **false** |
+
+🔴 **该次运行的计时数据全部作废**（§19.7 已记，此处补上**锁路径**这一条新证据）：
+* 启动时规范路径 `C:\Users\Trekker-PTL\shared\MACHINE_LOCK` 已被 `mt` 占用
+  （PID 34440 存活）⇒ 计时被干扰；
+* ⚠️ **且本次 ASR 把锁写在了仓库内相对路径**
+  `confucius4-openvino\shared\MACHINE_LOCK`（内容 `asr PID=8363 start=2026-10-25 12:56:21`）
+  ⇒ **App / MT / TTS 在规范路径上看不到这把锁** ⇒ 互锁失效
+  （TTS 的 `shared/NOTICE_tts_lock_path_20261025.md` 已实测记录此事，
+  且 TTS 因此反复拿到 `timing_valid=false`）。
+* ⇒ 本轮**已回收**该孤儿锁（PID 8363 已不在），并**新写**
+  `scripts/p3_run_with_lock.py`：只用**规范路径**、写锁时**同时写两种格式**
+  （README 单行 + key-value）、读锁支持**多编码回退**（utf-8/gbk/cp936/latin-1）、
+  **PID 不在则回收**、**`finally` 保证删锁**（不留孤儿）。
+* ⇒ **规范路径持锁重跑已启动**（`results/p3_p3_61min_gpu_int8_locked/`），
+  16:23 起在等 `app` 的锁（PID 32652 存活）⇒ 本章**未拿到**其计时结果。
+
+### 20.5 ✅ ASR-006 §2 切点重复诊断已完成（**由并发会话产出，本线程只引用不改代码**）
+产物：`confucius4-openvino/results/asr_diag/asr006_rule1_cut_diag.{py,json,md}`
+（`json` **1 777 399 B** / `md` **18 323 B**，mtime **16:35**；脚本 71 232 B，mtime 16:22）。
+
+**机制结论（`.md` §0）**：规则1 的语义是「**最近 3 秒内存在一段 ≥300 ms 静音**」
+（`find_silence_in_range` 只取 not-None，中点不参与定位），
+而**切点落在实时喂音的 chunk 栅格**（`CHUNK_SEC=0.64 s`）
+⇒ **静音位置与切点位置解耦** ⇒ 切点可以落在词中间。
+对照：规则2 用 `find_trailing_silence`（紧贴末尾）+ ≥0.8 s ⇒ 规则2 切点天然落在词间隙。
+
+**关键数字**：
+| 量 | A 组 | B 组 |
+|---|---|---|
+| 段数 / 切点（不含 EOF） | 538 / 537 | 558 / 557 |
+| 切点分类 | rule1 **503** / rule2 20 / flush 14 | rule1 **508** / rule2 36 / flush 13 |
+| **rule1 占全部切点** | **93.67%** | **91.20%** |
+| 「切在词中间」（N=2 后缀匹配） | **9.54%**（48/503 rule1） | **10.93%**（55/508 rule1） |
+| N=3 / N=4 | 7.95% / 7.36% | 9.15% / 8.55% |
+| **静音内切点的「切在词中间」比例** | **0.0%**（sil −40/−45/−50 三档全部） | **0.0%**（三档全部） |
+| 非静音切点的「切在词中间」比例 | 10.77% / 10.48% / 10.18% | 11.56% / 11.30% / 11.09% |
+
+🔴 **「重复词去重」路线的天花板远低于 +2.63pp**（`.md` §4b，已与 reviewer 观测交叉核对）：
+reviewer 观测 A 对交付基准 **+2.63pp**（CI [1.80, 3.41]）、插入 641 对 463、**多 178 个**；
+而「同一个词在接缝两侧各被转写一次」这种形态在 A 组**只有几十个接缝**：
+
+| 口径 | rule1 接缝数 | 可消词数（上界） | 估计 WER 收益（上界） | 占 reviewer 多余插入 |
+|---|---|---|---|---|
+| N=2 | 55 | ≤110 | ≤0.963pp | **≤61.8%** |
+| N=3 | 46 | ≤92 | ≤0.806pp | ≤51.7% |
+| N=4 | 43 | ≤86 | ≤0.753pp | ≤48.3% |
+
+⇒ **独立量化证实 §18.8 的结论「接缝去重不是主因」**（App 已实现的整词级 n-gram 去重
+量化收益只有 −0.043pp / −0.060pp）⇒ **剩下的插入是 ASR 本身的识别错误**
+（切点附近上下文被截断/错切），**不是**去重能消的
+⇒ 要动就得**改切点位置本身**（把切点移到静音中点），**属 App 模块**（ASR-003 边界）。
+
+**离线去重模拟的收益上界（A / B 组）**：
+`plan1_ngram_keep1` 22/22 词（≤0.193pp / ≤0.228pp）、`plan2_seq_L1` 36/42 词
+（≤0.315pp / ≤0.369pp）、`plan2_charprefix_kmin2_L1` 51/51 词（≤0.447pp / ≤0.448pp）、
+`plan2_charprefix_kmin2_L4` 361/442 词（≤3.161pp / ≤3.882pp），
+`plan3_merge_non_silence_rule1_sil40` 34/40 词（≤0.298pp / ≤0.351pp）
+⇒ **收益随 L 放大，但 L 越大误删风险越高** ⇒ 需 reviewer 复算取舍。
+
+**「把 rule1 的静音要求从 300 ms 提到 X」的离线指标（`.md` §5b）**：
+🔴 **`min_silence_ms=300` 与 `SIL_LOOKBACK_SEC=3.0` 在 `live_caption_app.py` 里是硬编码、没有 env**
+⇒ **真正提高它必须改代码（App 模块）**，不是「只改 env」能做到。
+（sil_db=−40 时：req≥500 ms ⇒ 51.69% 的 rule1 切点不再触发；req≥800 ms ⇒ 94.63%；
+req≥1000 ms ⇒ 97.61%）
+
+**env 重放保真度**（`.json` → `groups.{A,B}.env_replay`）：
+`baseline` 重放与产物切点的匹配率 A **99.63%** / B **99.64%** ✔
+⇒ env 重放口径可信；`MIN_SEG_SEC=8/10/12` 会把匹配率降到 ~29%（切点整体前移），
+`SIL_REL_DROP=6`（B 组）把 rule2 从 36 提到 111 ⇒ **相对化静音阈值会大幅改变切点分布**，
+这些都只是**切点层面的中间量**，不等于 WER 收益。
+
+### 20.6 ✅ ASR-007 对比矩阵已更新（`qwen3asr_06b/reports/compare/`）
+**目录现有 17 个文件**（mtime 2026-10-25 16:36）：
+`MATRIX.json`（2363 B）、`MATRIX.md`（**新生成**，汇总表 + 做不了的格子 + 产物清单）、
+以及 15 个格子 json。其中**本轮新增/更新 3 个**：
+| 格子 | 状态 | 关键字段 |
+|---|---|---|
+| `qwen3asr_06b__int4_asymg128__gpu0.json`（**新**） | **OK** — 文本正常，与 INT8 同量级 | `accuracy.proxy_metrics_5min_slice.total_words` 882 / `proxy_metrics_fixedlen.top1_pct` 69.4444 / `top5_pct` 85.7143；`timing_valid` = **false**（未持锁） |
+| `qwen3asr_06b__int4_sym_chan__gpu0.json`（**新**） | **BROKEN** — 文本崩坏 | `total_words` 98 / `top1_pct` 16.2698 / `top5_pct` 28.7698 |
+| `qwen3asr_06b__int4__all.json`（**更新**） | **RESOLVED** — INT4 在 0.6B 上可用（INT4_ASYM g128） | 新增 `resolution_2026_10_25` 字段，含 `evidence_int4_asymg128` / `evidence_int4_sym_chan` / `why_scenario` / `still_missing` / `caveat` |
+| `qwen3asr_06b__int8__gpu0.json`（**更新**） | OK — 61 分钟全长跑完（quality OK） | `accuracy.quality_proxy`（553 段 / 11825 词 / rule_counts / 段长 p50 p95 max / `complete`=true）；`latency` 全部标 `timing_valid=false` 并列 `invalid_fields` |
+
+⚠️ **两套计分器仍不可混用**（ASR-002 铁律，`MATRIX.md` 顶部保留该警告）：
+* **目标机计分器**：全局对齐 + 分段配对 bootstrap（7.798% / 7.952% / 9.795%）
+* **reviewer 计分器**：MiniMax baseline（8.17% / 8.27% / 10.97% / 14.80%）
+⇒ **0.6B 的所有 WER 一律空着**（`wer_pct: null`），交 reviewer 复算。
+
+### 20.7 ⏳ 本轮明确**未完成**的（不冒充已交付）
+| 项 | 状态 | 原因 |
+|---|---|---|
+| **0.6B INT8 61 分钟持锁重跑**（交付级计时） | ⏳ **在跑**（16:23 起等 `app` 的锁，PID 32652 存活） | 规范路径锁被 App 持有 ⇒ 按协议等待 |
+| **0.6B INT8 / INT4 的 61 分钟全长 WER** | ❌ **未做** | 本模块**不自算 WER**（ASR-002）⇒ 交 reviewer |
+| **0.6B INT4 的 NPU 格** | ❌ **未做** | `ov-dec-06b-past-int8`（stateful）在 NPU 上编译失败：`to_shape was called on a dynamic shape`；且非 stateful decoder 在 NPU 上输出复读 prompt |
+| **reviewer 指定的 R2T2 R2 标定点**（同口径 teacher-forcing top1） | ❌ **未跑** | 需 R2T2 自己的 encoder 输出 + prompt 模板 + R2 IR；§5① 已把 0.6B 侧的原始 token 级计数给出（`results/p2_multitoken_top1.json`，20 段 / 436 token） |
+| **P0 参照重跑** | ❌ **未做** | 排在 P3 之后；P3 INT8 已跑完整个 wav，但 P0 流式参照本身仍少 11.19 s |
+| **≥2 次 fresh 进程的交付级 RTF** | ❌ **未做** | 现有都是 n=1 ⇒ 全部 `timing_valid=false` |
+| **设备内存峰值/稳态**（iGPU / NPU） | ❌ **未测** | `mem_device` 均为「未匹配到设备」 |
+| **模型加载/首次编译耗时（分有缓存/无缓存）** | ❌ **未测** | 只测到冷编译 |
+
+### 20.8 口径与纪律（本章新增的硬规则）
+1. 🔴 **锁只能用规范路径** `C:\Users\Trekker-PTL\shared\MACHINE_LOCK`
+   ⇒ **仓库内相对路径 `shared/MACHINE_LOCK` 会让 4 模块互锁失效**
+   （TTS 已实测记录 ⇒ 本轮据此新写 `scripts/p3_run_with_lock.py`）。
+2. 🔴 **「模型好不好」必须先隔离输入条件**（§19 的延续）：
+   累积音频 + 前缀回退路径下，**FP16 自己也会退化**
+   ⇒ 判权重量化的好坏 ⇒ **必须用定长 + 无前缀** 的口径。
+3. 🔴 **代理指标 ≠ WER**：本模块只交**可复核的中间量**
+   （总词数 / 替换字符数 / 非拉丁占比 / 复读率 / token 级 top1+top5）
+   ⇒ 质量等级交 reviewer 复算。
+4. 🔴 **teacher-forcing 判据要配「非退化 target」**：FP16 参考自己在定长输入下的贪心输出
+   ⇒ 且**必须同时报 top-5**（§19.12）。
+5. **准确率作业不需要锁；计时作业必须持规范锁**（本轮两者的区分已严格落实）。
+6. **不跑 CPU 推理**（CPU 只用于单组件诊断，如 NNCF 量化）。
+7. **不改 `live_caption/`**（ASR-003 铁律）：本轮只 `import` 其中的 `Segmenter` 做只读重放。
