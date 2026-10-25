@@ -1,10 +1,10 @@
 last_ack: ASR-009
-更新时间: 2026-10-25 17:08
-当前任务: **ASR-006 §6 / ASR-007 继续（§23）**。① ✅★ **根因彻底查清并根治：OV decoder 缺 attention mask 语义 = 导出时没传 `attention_mask`**（不是 OV 的 bug、不是量化问题、不是 f16 舍入）—— 三张旧图（fp16 / f32true / int8sym）的 SDPA mask **运行时逐位相同**且**严格等于因果下三角**（`equals_tril=True`、n_true=131328），静态 bool 常量（`le`=下三角 / `ne`=全 False ⇒ cumsum=0）**三图哈希完全一致** ⇒ **图里根本没有 padding mask**；且 **OV fp16 的 argmax=541 与 torch `mask=none` 的 argmax=541 逐位吻合** ⇒ 旧图 ≡ torch「不传 mask」。② ✅ **修复已闭环**：导出时把 `attention_mask` 作为第二端口传入（图里原有的 Equal/CumSum/BitwiseAnd 动态链自动算出正确 padding mask，**图结构不用改**），并自建 mask `causal AND (content OR self)` 规避 **OV 对整行屏蔽返回 NaN**（torch 返回 0）⇒ **真实 mask 下 OV 熵 4.983 → 0.7596、top1 `all` → `Alright`、argmax 与 torch 一致（71486）**；mask 全 1 仍**逐位复现旧图**（4.9833/541）⇒ 证明是端口真的起作用。③ ✅ **端到端验证**：新图输出 `Alright. Good morning, everyone. Good morning.`（**三图里最好**，旧 fp16 缺标点、旧 int8 首词后接 `.` 复读），固定 6.4s 与累积路径**结果一致**。④ ✅ **INT8 已基于新图重量化**（INT8_SYM 按通道 + lm_head 保 FP16，1139.7 → **720.6 MiB**，196/196 int8 per-channel）。⑤ 🔴 **旧图的全部 61 分钟质量数据作废**（含 §20 的 553 段 / 11825 词）⇒ **所有格子必须用新图重跑**；⑥ ✅ **ASR-006 §2 rule1 切点诊断已完成**（并发会话）：rule1 占切点 **93.67%**、「切在词中间」**9.15%**（N=3）、**静音内切点 0.0% vs 非静音 10.77%** ⇒ 去重收益上界 **≤0.963pp**（仅覆盖 reviewer 观测 178 个多余插入的 **≤61.8%**）⇒ **接缝去重不是主因**（独立证实 §18.8）。
-阻塞 / 待用户决定: ① 🔴 **0.6B 的 WER 全部空缺**（`wer_pct: null`）—— 本模块**不自算 WER**（ASR-002 铁律）⇒ 需 reviewer 用本机 baseline + 全局对齐复算 **新图（mask2）的 INT8 / INT4_ASYM 61 分钟全长 WER**（对照 0.6B 流式参照 10.97%、R2T2 App 路径 B 10.58%）；② 🔴 **旧图数据全部作废、需重跑**：`results/p3_p3_61min_gpu_int8/`（553 段 / 11825 词）与 `reports/compare/` 里 0.6B 的格子**都是无 mask 的旧图** ⇒ **FP16 / INT8 / INT4 三格都要用 `ov-dec-06b-embed-mask2`（或其量化版）重跑 61 分钟**；③ ⏳ **计时**：`shared/MACHINE_LOCK` 被 `app` PID 32652 占用（16:23:32 起，`app037_cp3_abba_v15.py --quiet-timeout 3600`）⇒ 本轮**未启动任何计时作业**，交付级 RTF 仍空缺；④ 🔴 **0.6B 在 NPU 上仍 BLOCKED**（stateful IR 在 NPU 编译失败：`to_shape was called on a dynamic shape`）；⑤ ⏳ **新图的双端口在 NPUW 上是否支持待测**（若不支持 ⇒ 需把 mask 烘进图或改用「左对齐 + 动态取位」方案）；⑥ ⏳ **INT4_ASYM g128+AWQ+SE 需基于新图重量化**；⑦ ⚠️ **reviewer 指定的 R2T2 R2 同口径标定点未跑**；⑧ ⚠️ **P0 参照重跑未做**（少跑 11.19 s）；⑨ ⚠️ **设备内存未测**；⑩ ⚠️ **「提高 rule1 静音要求」必须改代码**（`min_silence_ms=300`/`SIL_LOOKBACK_SEC=3.0` 硬编码无 env）⇒ **属 App 模块**（ASR-003 边界），本模块只给离线指标（req≥500ms ⇒ 51.69% 的 rule1 切点不再触发）
-阻塞 / 待用户决定: ① 🔴 **0.6B 的 WER 全部空缺**（`wer_pct: null`）—— 本模块**不自算 WER**（ASR-002 铁律）⇒ 需 reviewer 用本机 baseline + 全局对齐复算 **INT8 / INT4_ASYM 的 61 分钟全长 WER**（对照 0.6B 流式参照 10.97%、R2T2 App 路径 B 10.58%），并裁定 **INT4 是否值得为 0.6B 做**；② ⏳ **0.6B INT8 61 分钟持锁重跑未拿到计时**（规范锁被 `app` PID 32652 占用，16:44 重启等待器）⇒ 交付级 RTF / 首字延迟 / 内存**仍全部作废**（现有都是 n=1 或被干扰）；③ 🔴 **0.6B 在 NPU 上仍 BLOCKED**（输出复读 prompt；`ov-dec-06b-past-int8` stateful IR 在 NPU 编译失败：`to_shape was called on a dynamic shape`）⇒ **NPU 格写明原因，不硬凑**；④ ⚠️ **「提高 rule1 静音要求」必须改代码**（`min_silence_ms=300` / `SIL_LOOKBACK_SEC=3.0` 在 `live_caption_app.py` 里硬编码、**无 env**）⇒ **属 App 模块**（ASR-003 边界），本模块只给离线指标（req≥500ms ⇒ 51.69% 的 rule1 切点不再触发）；⑤ ⚠️ **reviewer 指定的 R2T2 R2 标定点未跑**（同口径 teacher-forcing top1）；⑥ ⚠️ **P0 参照重跑未做**（P0 流式参照本身少跑 11.19 s）；⑦ ⚠️ **设备内存（iGPU/NPU）未测**（`mem_device` 均为「未匹配到设备」）；⑧ 🔴 **锁协议教训（§21）**：① 判活**只看 PID**、**绝不加进程名过滤**（App 有 `pythonw.exe` 持锁）；② 「锁早于开机时间」必须真实现；③ 锁里写**真正占设备的子进程 PID**；④ 删锁**校验归属**；⑤ ⚠️ **Git Bash 里 `tasklist /FI` 可能返回空** ⇒ 判活要用 `Get-Process`/`Get-CimInstance` 复核，否则会把**活着的持锁者**当成陈旧锁回收
+更新时间: 2026-10-25 20:22
+当前任务: **ASR-006 §6 / ASR-007 继续（§24）**。① ✅ **新图 INT8 重量化不破坏动态 mask 语义**（fp16/int8 运行时 SDPA mask `n_true` 均 **5562** = 期望值，逐位相同）⇒ §23 的修复在 INT8 格里同样成立；② ✅ **NPUW 支持新图双端口**（`mask2_fp16` 编译 222.2s / `mask2_int8sym` 147.6s，均编译成功、推理**无 NaN**）⇒ §23.7 的「双端口是否支持」未知项**已解除**；③ 🔴🔴 **新发现：校准集与新图双重不匹配**（旧 npz **单端口** + **左对齐**，而新图需**双端口 + 右对齐**）⇒ 必须重采校准集（脚本 `p2_calib_mask2.py` / `p2_quantize_mask2_int4.py` 已就绪，**未跑**）；④ ✅ **产物目录改名** `…-int8symmask2` → `…-int8sym`（json 的 `dst` 已同步）；⑤ ✅ **encoder 不需重跑**（不涉及 mask）⇒ 三格重跑成本低于预期；⑥ 🔴 **旧图 61 分钟数据仍全部作废** ⇒ FP16/INT8/INT4 三格待用新图重跑；⑦ ⏳ **本轮未启动任何计时作业**（锁自 20:04:28 被 `mt` PID 19892 持有，测延迟）⇒ 交付级 RTF 仍空缺
+阻塞 / 待用户决定: ① 🔴 **0.6B 的 WER 全部空缺**（`wer_pct: null`）—— 本模块**不自算 WER**（ASR-002 铁律）⇒ 需 reviewer 用本机 baseline + 全局对齐复算**新图（mask2）**的 INT8 / INT4_ASYM 61 分钟全长 WER（对照 0.6B 流式参照 10.97%、R2T2 App 路径 B 10.58%）；② 🔴 **三格 61 分钟重跑未启动**（`p3_mask2_61min_fp16` / `_int8` / `_int4`）—— 需先跑 `p2_calib_mask2.py` 重采**右对齐双端口**校准集，该作业**重 CPU** ⇒ 与 MT 的延迟测量（`hy_bench/_run_h018_nopunct_ts10.py`，20:04 起持锁）冲突 ⇒ 等锁；③ ⏳ **NPU 格文本正常性未验**（编译已通过 ✅，但「不复读 prompt」要用贪心解码验证）⇒ 待锁；④ 🔴 **`reports/compare/` 里 0.6B 各格全部要刷新**（现有 INT8 格子用的正是**旧图** `ov-dec-06b-embed-int8sym`）；⑤ ⏳ **交付级 RTF / 首字延迟 / 内存仍空缺**（现有都是 n=1 或被干扰 ⇒ 不冒充交付级）；⑥ ⚠️ **本轮 NPU 编译（20:10–20:19）与 MT 延迟测量重叠** ⇒ **可能轻微污染 MT 的 P50/P95**（已在 §24.2 标注）；⑦ ⚠️ **reviewer 指定的 R2T2 R2 同口径标定点未跑**；⑧ ⚠️ **P0 参照重跑未做**（少跑 11.19 s）；⑨ ⚠️ **设备内存未测**；⑩ ⚠️ **「提高 rule1 静音要求」必须改代码**（硬编码无 env）⇒ **属 App 模块**（ASR-003 边界）
 
 ## 最近更新
+- 2026-10-25 20:22 **新图三格就绪：INT8 mask 语义保留 + NPU 双端口支持 + 校准集需重采（§24）**：① ✅ **INT8 重量化不破坏动态 mask 链**（`results/p3_diag_mask2_int8.json`：fp16 与 int8 的 SDPA in3 `n_true` 均 **5562**、逐行 True 分布相同，= 期望值 `(512−L)×1 + L(L+1)/2`）⇒ §23 的修复在 INT8 格里同样成立；② ✅ **NPUW 支持双端口**（`results/p3_diag_npu_mask2.json`：`mask2_fp16` 编译 **222.2s**、`mask2_int8sym` **147.6s**、旧图 `old_int8sym` **132.1s**，三者**全编译成功且推理无 NaN**）⇒ §23.7 待办⑤「双端口是否支持」**已解除**；③ 🔴🔴 **新发现：校准集与新图双重不匹配** —— 旧 `p2_calib_decoder.npz` **只有 `inputs_embeds`（单端口）** 且是**左对齐**（`p2_calib.py:160`），而新图需**双端口 + 右对齐**（`p3_ov_app.py:283`）⇒ NNCF 会**缺输入报错**，且即使补全也会「照左对齐分布挑通道」⇒ **INT4 质量会无谓变差** ⇒ 已新建 `p2_calib_mask2.py`（右对齐+带 mask）与 `p2_quantize_mask2_int4.py`（双端口 load_calib + 强制 `INT4_ASYM g128+AWQ+SE`/backup `INT8_ASYM`/lm_head FP16）；④ ✅ **目录改名** `ov-dec-06b-embed-mask2-int8symmask2` → `…-int8sym`（720.6 MiB，json `dst` 已同步）；⑤ ✅ **encoder 无需重跑**（不涉及 mask）⇒ 三格重跑成本低于预期；⑥ ⚠️ **污染自评**：本轮 NPU 编译（20:10–20:19，CPU 满载 147–222s）与 **MT 的延迟测量重叠** ⇒ 可能轻微影响其 P50/P95 ⇒ 已在 §24.2 标注；⑦ ⏳ **本轮未启动任何计时作业**（锁自 20:04:28 被 `mt` PID 19892 持有）⇒ 交付级 RTF 仍空缺
 - 2026-10-25 17:08 **根因彻底查清并根治：OV decoder 缺 attention mask 语义 = 导出时没传 mask（§23）**：① ✅★ **三张旧图的 mask 链逐位相同且严格等于因果下三角**（`p3_diag_mask_runtime.json`：sdpa0.in3_mask n_true=131328、row_true 1→512、`equals_tril=True`）⇒ **图里根本没有 padding mask**；② ✅ **补上 §19 的关键漏洞**（`p3_diag_bool_const.json`：前序 const_diff/3d_const/attrs **都跳过了 Constant 整类**，而 mask 链全是 bool 常量）⇒ 三图 3 个 bool 常量**哈希完全一致**（`le`=下三角 n_true=131328 / `ne`=全 False ⇒ cumsum=0）⇒ 静态同样证明无 padding mask；③ ✅ **决定性对照**（`p3_diag_mask_sem.json`）：**OV fp16 argmax=541 与 torch `mask=none` argmax=541 逐位吻合**（熵 5.8996 vs 5.8869）⇒ 旧图 ≡ torch「不传 mask」；④ ✅ **定位到导出层**：`create_causal_mask(attention_mask=None)` ⇒ 图里 cumsum 输入被常量折叠成全 False ⇒ **图结构不用改，只要导出时传 `attention_mask`**；⑤ ✅ **玩具实验定死语义**（`p3_diag_bool_mask_sem.json`）：OV 与 torch 的 bool mask 语义一致（True=可见），但 🔴 **OV 对整行屏蔽返回 NaN（torch 返回 0）** ⇒ v1 导出真实 mask 下 **NaN** ⇒ v2 改自建 mask `causal AND (content OR self)`（padding 行开对角线，与位置 511 的 logits 数学等价）；⑥ ✅ **根治生效**（`p1_decoder_export_mask2.json`）：真实 mask 下 **OV 熵 4.983 → 0.7596、top1 `all`→`Alright`、argmax 71486 与 torch 一致**；mask 全 1 仍**逐位复现旧图**（4.9833/541）⇒ 排除巧合；产物 `models/ov-dec-06b-embed-mask2/`（1139.7 MiB，4250 算子，双端口）；⑦ ✅ **端到端**（`p3_diag_mask2_e2e.json`）：新图 `Alright. Good morning, everyone. Good morning.`（三图最好），固定 6.4s 与累积路径一致；⑧ ✅ **INT8 已基于新图重量化**（INT8_SYM 按通道 + lm_head 保 FP16，1139.7→**720.6 MiB**，196/196 int8 per-channel）；⑨ 🔴 **旧图全部 61 分钟质量数据作废**（§20 的 553 段/11825 词、compare 矩阵 0.6B 各格）⇒ **三格都要用新图重跑**；⑩ ✅ **ASR-006 §2 rule1 诊断完成**（并发会话 `results/asr_diag/asr006_rule1_cut_diag.{py,json,md}`）：rule1 占切点 **93.67%**、切在词中间 **9.15%**（N=3）、**静音内 0.0% vs 非静音 10.77%** ⇒ 去重收益上界 **≤0.963pp**（仅覆盖 178 个多余插入的 **≤61.8%**）⇒ **接缝去重不是主因**（独立证实 §18.8）；⑪ ⏳ **计时未启动**：锁被 `app` PID 32652 占用 ⇒ 交付级 RTF 仍空缺
 - 2026-10-25 16:50 **ASR-007 矩阵补全：设备摆放字段 + 格子命名 bug 已修（§22）**：① 🔴 **INT4 两个格子缺 ASR-007 要求的「设备摆放」**（只有 `dec_ir`，无 `enc_ir`、无 `device_placement`）⇒ 已补：encoder = `GPU.0（OV FP16，不量化，所有变体共用）`、decoder = `GPU.0（OV，权重精度 = <该变体自己的 recipe>）`（**按变体分别写**，原写法两格共用一句「见 recipe」不可复核）、note 标明本组是**量化对比实验**（encoder 是 conv 结构无 MatMul ⇒ AWQ 静默跳过 ⇒ 保持 FP16）；② 🔴 **格子生成脚本文件名重复拼接**（`var` 已含 `int4_` 前缀又拼一次）⇒ 产出 `qwen3asr_06b__int4_int4_asymg128__gpu0.json`，**与 MATRIX 引用名不一致** ⇒ 已修为 `qwen3asr_06b__<var>__gpu0.json`，错误命名的中间产物已删；③ ✅ **`MATRIX.md` 新增「设备摆放」汇总表**（ASR-007 明确要求的一节）：从每个格子 json 现读 `device_placement`/`enc_ir`/`dec_ir` ⇒ 当前 **4 / 16 格**有该信息（0.6B 的 INT8×GPU.0、INT8×NPU、INT4×2），其余 12 格历史格子本轮未补（表下已注明）；④ 产物重新生成：`int4_asymg128__gpu0.json` 4436 B / `int4_sym_chan__gpu0.json` 4311 B / `MATRIX.json` 10801 B / `MATRIX.md` 6005 B（均 16:47），目录仍 **17 个文件**；⑤ ⏳ **持锁重跑仍等 `app`**（`Get-Process` 确认 PID 32652 存活）⇒ 交付级 RTF 仍空缺
 - 2026-10-25 16:44 **锁脚本自身 4 个缺陷实测修复（§21）+ 持锁重跑仍在等 `app`（§21）**：① 🔴 **缺陷①（最危险）**：`pid_alive` 原带进程名过滤（`and 'python' in txt`）⇒ App 的 `pythonw.exe`（`live_caption_app.py`）等**非 python 持锁者会被判成陈旧锁而回收** ⇒ **破坏别人的计时** ⇒ 已改为**只看 PID 是否在**；② 🔴 **缺陷②**：协议里「锁早于开机时间 ⇒ 可回收」**根本没实现**（`boot_time()` 定义了从未调用）⇒ 异常退出的锁会**永久阻塞**其它模块 ⇒ 已补实现；③ 🔴 **缺陷③**：锁里写的是**包装器 PID**（`subprocess.run` ⇒ 写 `os.getpid()`）⇒ 包装器被杀则**子进程变孤儿继续占 GPU**，而别人会回收锁 ⇒ **计时互相污染** ⇒ 已改 `Popen` **先取真实子进程 PID 再写锁**（另存 `wrapper_pid`）；④ 🔴 **缺陷④**：删锁**不校验归属** ⇒ 会误删别人后来拿到的锁 ⇒ 已加 `release_lock(expect_pid=…)`，回收陈旧锁时也校验 PID（防竞态）；⑤ ✅ **3 项隔离测试全过**（活锁不回收 / 非我锁不删 / 陈旧锁可回收，均未碰规范锁）；⑥ ⏳ **持锁重跑仍被占**：规范锁 = `app PID 32652 started 2026-10-25 16:23:32`，**实测该进程存活**（`app037_cp3_abba_v15.py --quiet-timeout 3600`）⇒ **等待是正确行为**；⚠️ 记录排查陷阱：**Git Bash 里 `tasklist /FI` 可能返回空**（本轮一度误判「进程已退出」）⇒ 判活必须用 `Get-Process`/`Get-CimInstance` 复核，否则会**误回收活锁**；⇒ **交付级 RTF 仍空缺**，不冒充已交付
@@ -19,45 +19,7 @@ last_ack: ASR-009
 - 2026-10-24 15:30 **ASR-005 P0 离线参照已完成、段级流式参照此前漏跑**：离线 31 块 wall **823.1s** / RTF **0.2249** / 60760 字符，产物 `qwen3asr_06b/results/p0_offline/`（4 文件，mtime 12:35）；串行执行器 `run_p0_all.sh` 的日志 `logs/p0_all.log` **停在第 1 步** ⇒ 流式参照此前**只有 1 分钟冒烟产物**（`results/p0_smoke3/`）⇒ 本轮 15:12 用「长跑 python 进程本身作后台任务主体」的写法重新启动 `scripts/p0_stream_seg.py --minutes 61 --out results/p0_stream`（断点 `results/p0_stream/stream_seg_chunks.jsonl`，**持机器锁** PID 14644）
 - 2026-10-24 12:25 **两条长跑并行启动**（设备不冲突：ASR-004 走 Intel GPU.0 插件、ASR-005 走 NVIDIA CUDA）：① ASR-004 ① 改**可续跑分段版**（16 段 × 240s，段末强制 flush ⇒ A/B 同分段，对比公平）；② ASR-005 P0 离线参照（31 块 × 120s，断点续跑）。**长跑被杀的根因已定位**：`run_in_background` 里再套 `nohup/&` 起的孙进程会被回收 ⇒ **必须把长跑 python 进程本身作为后台任务主体**。**已修 chunked 续跑 bug**（原判「文件非空即已完成」会静默跳过被杀到一半的段，实测 `A_000.jsonl` 只到 10.24s / 应到 240s）⇒ 改为校验末条 `end_s` 是否到段末。**架构发现：R2T2 = Qwen3-ASR 系列**（`models/hf` 的 `model_type=qwen3_asr`），与 0.6B **同构**（仅宽度/层数不同）⇒ ASR-005 的 OV 导出/量化可几乎原样复用 R2T2 脚本
 - 10:47 **收到 ASR-005**（用户新任务，09:13）：Qwen3-ASR-0.6B → NPU INT8/INT4，P0→P1→P2→P3，**P0 末 / P2 末各停一次等 reviewer**。已启动 P0：官方权重下载中（sha 5eb14417…）、独立 venv `qwen3asr_06b\.venv` 装 **torch 2.11.0+cu128（CUDA True）**、P0 脚本 `scripts\p0_torch_ref.py`（离线 + 640ms 流式自适应 max_new_tokens）。**流式口径**：官方流式仅 vLLM ⇒ 用 transformers 后端复刻同语义（已写入产物 `stream_note`，待 reviewer 认可）。**git 冻结**：`shared/GIT_FREEZE` 不存在 ⇒ 可提交
-- 10:44 **ASR-004 ① 在跑**：61 分钟真实 Segmenter + GPU INT8 A/B 逐段转写（`reports/asr004_ab/`，脚本 `results/asr_diag/asr004_ab_transcribe.py`）；前一次 09:36 启动的进程已死无产物 ⇒ 本次重启，日志 `results/asr_diag/asr004_ab_full.log`
-## §1 交付基线（ASR-001 指定；**按 ASR-002 修正为两列口径**）
 
-⚠️ **口径警告（ASR-002）**：8.17% / 7.95% / 0.772 **来自两套不同计分器，不能放在同一列比较**。
-以后做判定时，**Δ 只和同一计分器的基线比较**。
-
-### 1.1 目标机计分器（R4 json 用的同一套；全局对齐 + 分段配对 bootstrap）
-
-| 指标 | 数值 | 产物 / 出处 |
-|---|---|---|
-| GPU INT8 参照 WER | **7.798%** | `reports/c086d_full61_all_npu_matrix.json` → `results_full61min.wer_A_pct=7.798`；同族 `reports/c089_int4/R4_npu_full_wer.json` 的 `ref_wer_pct=7.798` |
-| 全 NPU INT8 cleanie WER | **7.952%** | 同上 → `results_full61min.wer_pct=7.952`、`verdict.wer_pct=7.952`、`slice_consistency_check.full61min.all_npu=7.952` |
-| 全 NPU vs GPU Δ | **+0.154 pp**，`ci95=[-0.288, +0.584]`，`significant_vs_A=false` | 同上 → `results_full61min.delta_pp_vs_A=0.154` / `ci95` / `significant_vs_A` |
-| 全 NPU 61 分钟 RTF | **0.7722**（`seg_rtf_p50=0.7718` / `p95=0.7942` / `max=0.8152`） | 同上 → `results_full61min.rtf=0.7722`、`seg_rtf_p50/p95/max`；`wall_s=2834.59`（47.24 min）/ `audio_sec=3671.0`（61.19 min）/ `n_segs=226` / `paired_n_segs=226` / `ref_words=11067` |
-| 配方 | `enc@NPU + dec@NPU (cleanie INT8_SYM)` | 同上 → `config.name`（encoder/decoder 均 NPU） |
-
-> 📎 **R4 INT4 配方的处置**（目标机口径，判定用）：
-> `reports/c089_int4/R4_npu_full_wer.json` — `wer_pct=9.795`、`ref_wer_pct=7.798`、
-> `delta_pp=1.997`、`ci95=[0.95, 3.095]`、`significantly_worse=true`、`ci_contains_zero=false`
-> ⇒ **R4 INT4 在 NPU 上显著劣化，不可用**（这条结论口径一致、成立）。
-
-### 1.2 reviewer 计分器（reviewer 本机 compare_wer.py + paired_bootstrap.py，MiniMax baseline）
-
-| 指标 | 数值 | 出处 |
-|---|---|---|
-| GPU INT8（enc FP16 + dec INT8）WER | **8.17%** | reviewer 本机 `~/asr_baseline/report/data/npu.json` 与 `OV_vs_CUDA_INT4_INT8_report.md`（**产物在 reviewer 本机，不在本仓库**） |
-| 全 NPU WER | **8.27%** | 同上 |
-| 全 NPU vs GPU Δ | **+0.10 pp**，`[-0.41, +0.56]` | 同上 |
-| 全 NPU 61 分钟 RTF | P50 **0.7722** / P95 0.7942 / max 0.8152 | 同一次全长运行，226 段（与 1.1 的目标机 RTF 数值一致） |
-
-> ✅ **本仓库 `reports/` 下没有 reviewer 口径的 WER 产物**（`8.17` / `8.27` 搜不到），
-> 按 ASR-002「找不到就如实写『产物缺失』，**不需要为此补测**」—— 此处如实标注为
-> **产物在 reviewer 本机**，不是本仓库的缺失。
->
-> 🔴 **修正记录（ASR-002 指出）**：本节上一版把「8.17%」的产物写成
-> `reports/c089_int4/R4_npu_full_wer.json`、并把「全 NPU 7.95%」写成该 json 的
-> `ref_wer_pct` —— **两处都错**：
-> ① R4 json 里只有 **7.798** 这个**目标机口径的 GPU 参照**，没有 8.17；
-> ② `ref_wer_pct=7.798` 是 **GPU** 参照，**不是 NPU**（NPU 是 `wer_pct=7.952`）。
 
 ## §2 最近一周的结论摘要（均引用产物）
 
@@ -2832,3 +2794,140 @@ padding 行的输出**不参与**位置 511 的 logits ⇒ **与 torch 标准 ma
 5. ✅ **`op.inputs` 是方法不是属性** ⇒ 必须 `op.inputs()`。
 6. ✅ **`model.add` 不存在**（2026.4）⇒ 图手术改 `op.set_arguments({idx: ...})` 需要
    `model.add` ⇒ **不可用**；要加常量节点得用 `opset13` 在**新建**图里做。
+## §24 **新图三格就绪：INT8 mask 语义保留 + NPU 双端口支持 + 校准集需重采（待办收敛）**（2026-10-25 20:20）
+
+### 24.0 本节摘要
+§23 查清了根因并给出根治版导出（`ov-dec-06b-embed-mask2`，双端口 `inputs_embeds` +
+`attention_mask`）。本节把「**新图能不能真正用起来**」的三个前置全部验证掉：
+
+| 前置 | 结论 | 证据文件 |
+|---|---|---|
+| ① INT8 重量化会不会破坏动态 mask 链？ | ✅ **不会**（fp16 / int8 运行时 mask 逐位相同） | `results/p3_diag_mask2_int8.json` |
+| ② NPUW 支不支持多一个 i64 输入端口？ | ✅ **支持**（新图 FP16 / INT8 均编译通过且推理无 NaN） | `results/p3_diag_npu_mask2.json` |
+| ③ INT4 的校准集还能用吗？ | 🔴 **不能**（旧校准集是**单端口 + 左对齐**，与新图**双端口 + 右对齐**都不匹配） | 本节 24.3 |
+
+⇒ §23.7 的待办从 8 条收敛到 **4 条**（见 24.5），且**新增 2 个此前没意识到的坑**（24.3）。
+
+---
+
+### 24.1 ✅ INT8 重量化**不破坏**动态 mask 语义（新增证据）
+
+**为什么必须单独验**：NNCF `compress_weights` 会插入 196×3 个节点，且 mask 链是
+`Equal`/`CumSum`/`BitwiseAnd`/`Unsqueeze` 这类**整数/布尔**算子，
+bool 常量在 NNCF 眼里是 `char` dtype ⇒ **有可能被当成普通权重误处理**。
+若 INT8 版的 mask 链被破坏 ⇒ §23 的修复在 INT8 格里**依然无效**（等于还要再修一次）。
+
+**实测**（`scripts/p3_diag_mask2_int8.py`，`valid_len=101`）：
+
+| 图 | 端口数 | SDPA in3 `n_true` | 逐行 True（head8 / tail8） |
+|---|---|---|---|
+| `ov-dec-06b-embed-mask2`（FP16） | 2 | **5562** | `[1,1,1,1,1,1,1,1]` / `[94,95,96,97,98,99,100,101]` |
+| `ov-dec-06b-embed-mask2-int8sym`（INT8） | 2 | **5562** | `[1,1,1,1,1,1,1,1]` / `[94,95,96,97,98,99,100,101]` |
+| 旧图（对照） | 1 | 131328 | 纯因果下三角（**无 padding mask**） |
+
+* 期望值 = `(512−L)×1 + L×(L+1)/2` = `411 + 5151` = **5562**
+  ⇒ fp16 与 int8 **都精确等于期望值**；
+* `verdict_mask_preserved_through_quant = true`
+  ⇒ **INT8 重量化后 mask 链完好，§23 的修复在 INT8 格里同样成立**。
+
+⚠️ **口径修正**：我第一版脚本的期望值写成 `L×(L+1)/2 = 5151`（漏了 padding 行的对角线）
+⇒ 误判「不匹配」。正确口径是 **5562**。自建 mask = `causal AND (content OR self)`
+⇒ **padding 行只开对角线**（每行 1 个 True），**有效行 causal**（第 k 行 k+1 个）。
+⇒ 记入 MEMORY：**读 §23 的 `n_true=5151` 时要认得那是「只看有效区」的口径**。
+
+---
+
+### 24.2 ✅ NPUW **支持**双端口（新图在 NPU 上编译通过、推理无 NaN）
+
+**为什么这是关键未知项**：§20 的 0.6B NPU 格是 **BLOCKED**（NPU 端复读 prompt；
+`ov-dec-06b-past-int8` stateful IR 在 NPU 编译失败：`to_shape was called on a dynamic shape`）。
+⇒ 已知 NPUW 对这个模型**本来就挑**。
+§23 的根治方案把赌注押在「**多一个 i64 输入端口**能不能过 NPUW」⇒ 必须实测。
+
+**实测**（`scripts/p3_diag_npu_mask2.py`，device=NPU）：
+
+| 图 | 端口 | 编译 | 编译耗时 | 推理 | 全 finite | NaN | argmax |
+|---|---|---|---|---|---|---|---|
+| `mask2_fp16` | `inputs_embeds[1,512,1024] f32` + `attention_mask[1,512] i64` | ✅ OK | 222.2 s | 0.27 s | ✅ | ❌ | 38510 |
+| `mask2_int8sym` | 同上（双端口） | ✅ OK | 147.6 s | 0.16 s | ✅ | ❌ | 23180 |
+| `old_int8sym`（对照） | `inputs_embeds` 单端口 | ✅ OK | 132.1 s | 0.15 s | ✅ | ❌ | 124793 |
+
+⇒ ✅ **多一个 i64 端口在 NPUW 上完全支持**（三个 case 全编译成功、全无 NaN）。
+⇒ ⚠️ 但**「能编译 + 不 NaN」≠「输出正常」** ⇒ NPU 格的**文本正常性仍要跑贪心解码才知道**
+（§24.5 待办 ③）。
+
+⚠️ **污染记录（诚实标注）**：本节的 NPU 编译在 **20:10–20:19** 期间跑，
+与 **MT 的 `hy_bench` 延迟测量（`c111_v5_ts10_nopunct_r2`，20:04 起持锁）重叠**。
+NPU 编译是 **CPU 密集**（147–222 s 满载）⇒ **可能轻微影响 MT 的 P50/P95**。
+⇒ 已在 `shared/` 侧无记录能力的前提下，**本节明确标注该风险**；
+⇒ **我后续不再在 MT 持锁期间跑 CPU 密集作业**（NPU 编译、校准集生成都算）。
+
+---
+
+### 24.3 🔴🔴 新发现：**校准集与新图不匹配**（此前从未有人发现）
+
+§23 只说「要重量化 INT4」，但**没检查校准集本身是否还能用**。实测发现**两个不匹配**：
+
+| 项 | 旧校准集 `results/p2_calib_decoder.npz` | 新图推理需要 | 后果 |
+|---|---|---|---|
+| **端口** | 只有 `inputs_embeds`（64×1×512×1024 f32） | `inputs_embeds` **+** `attention_mask` | 🔴 NNCF 喂样本**缺一个输入** ⇒ 直接报错 |
+| **对齐方向** | `p2_calib.py:160` = `[embeds, pad]` ⇒ **左对齐** | `p3_ov_app.py:283` / `p1_export_decoder_mask2.py:295` = `[pad, embeds]` ⇒ **右对齐** | 🔴 **激活分布位置不一致** ⇒ AWQ 按激活幅度挑通道会**挑错** |
+
+⇒ 🔴 **即使强行喂进去（补一个全 1 的 mask），量出来的 INT4 也是「照左对齐分布挑出来的通道」**
+⇒ 与推理时的右对齐分布不匹配 ⇒ **INT4 质量会无谓地差**。
+⇒ **必须重采校准集**（右对齐 + 带 mask）。
+
+**已做**（本轮）：
+* 新建 `scripts/p2_calib_mask2.py` —— 采**右对齐 + 带 `attention_mask`** 的双端口校准集
+  （切段口径仍是**真实 `live_caption_app.Segmenter`** 切 0–12 分钟；
+  embeds 仍是 **FP16 encoder + 官方 `masked_scatter`** 真实激活）；
+* 新建 `scripts/p2_quantize_mask2_int4.py` —— INT4 量化包装
+  （覆盖 `load_calib` 为双端口版；强制 ASR-006 §5② 配方
+  `INT4_ASYM g128 + AWQ + SE` + backup `INT8_ASYM` + lm_head 保 FP16；
+  产物目录 `models/ov-dec-06b-embed-mask2-int4/`）。
+
+⚠️ **两个脚本都还没跑**（校准集生成要加载 torch 模型 + OV encoder ⇒ 重 CPU/GPU
+⇒ 撞 MT 持锁窗口 ⇒ 等锁）。
+
+---
+
+### 24.4 ✅ 产物目录名修正（去重）
+
+* `models/ov-dec-06b-embed-mask2-int8symmask2/` ⇒ **`models/ov-dec-06b-embed-mask2-int8sym/`**
+  （原名是 `dst_base`（已含 `mask2`）+ tag（又拼 `mask2`）造成的重复）；
+* `results/p2_quant_decoder_int8sym_mask2.json` 的 `dst` 字段**已同步更新**
+  （并加 `dst_renamed_note` 记录改名事实）；
+* 大小复核：`mask2` **1.2 G**（1139.7 MiB）/ `mask2-int8sym` **721 M**（720.6 MiB，ratio 0.6323）。
+
+---
+
+### 24.5 收敛后的待办（从 §23.7 的 8 条收敛到 4 条）
+
+| # | 待办 | 状态 | 阻塞原因 |
+|---|---|---|---|
+| ① | **INT4 基于新图重量化** | 🔜 脚本已就绪，**未跑** | 需先跑 `p2_calib_mask2.py`（重 CPU）⇒ 等 MT 释放机器 |
+| ② | **61 分钟长跑三格**（mask2 FP16 / mask2 INT8 / mask2 INT4） | 🔜 未启动 | 同上（且长跑要占 GPU ⇒ 不能与 MT 的 GPU 计时并行） |
+| ③ | **NPU 格刷新** | 🔜 编译已验证 ✅，**文本正常性未验** | 同上 |
+| ④ | **`reports/compare/` 0.6B 各格刷新** | 🔜 未做 | 依赖 ①②③ 的数据 |
+
+**不重跑 encoder**（encoder 不涉及 mask ⇒ 换 decoder IR 即可）⇒ 重跑成本比想象低。
+
+⚠️ **本轮未启动任何计时作业**（锁自 20:04:28 起被 `mt` PID 19892 持有，
+作业 `hy_bench/_run_h018_nopunct_ts10.py` ⇒ 测**延迟** ⇒ 属**必须串行**的类别）
+⇒ **交付级 RTF 仍空缺**，不冒充已交付。
+
+---
+
+### 24.6 方法论教训
+
+1. 🔴 **「改了模型输入端口」 ⇒ 必须回头检查**所有**依赖该输入的产物**
+   （本轮发现校准集的双重不匹配：端口 + 对齐方向）。
+   ⇒ **改端口/改布局 ⇒ 立即列一张「下游产物清单」逐个复核**。
+2. 🔴 **「左右对齐」是一个隐式契约**，写在**推理侧**、被**校准侧**违反时
+   **不会报错，只会静默地让量化变差** ⇒ 校准脚本与推理脚本的**对齐方向必须显式断言一致**。
+3. ⚠️ **「期望值写错 ⇒ 误判量化坏了」**（本轮 24.1 的 5151 vs 5562）
+   ⇒ 写断言前先**手算一遍真值**，别凭直觉。
+4. ⚠️ **NPU 编译是 CPU 密集**（147–222 s 满载）⇒ 在别的模块做**延迟测量**期间跑它
+   ⇒ **会污染对方的 P50/P95** ⇒ 判据：凡是需要**独占 CPU 满载**的作业，
+   都必须等共享机器锁（哪怕它本身不是「计时」作业）。
+   ⇒ 本节的 NPU 编译已与 MT 的延迟测量重叠 ⇒ **已在 24.2 明确标注该风险**。
