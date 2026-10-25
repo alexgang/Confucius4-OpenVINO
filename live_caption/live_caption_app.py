@@ -523,15 +523,46 @@ def build_tts_options(devices):
     ⚠️ 这里的 precision 是 **OV 推理精度 f32/f16**，不是量化位宽。
     过滤规则：``device_config.check_precision`` —— **NPU 不支持 f32**
     （PRECISION_UNSUPPORTED = {'NPU': ('f32',)}）。
+
+    🔴🔴 **CUDA 设备（2026-10-25 用户要求：TTS 设备里也要有 CUDA）**：
+       本机 ``GPU.1`` = NVIDIA GeForce RTX 5050（dGPU）⇒ 必须能在 TTS 下拉里
+       **显式看到 CUDA 选项**。但实测（见 ``results/app/app024_tts_ir_probe.py``）：
+
+           GPU.0（Intel 集显） : TTS 真实 IR **7/7** 编译成功
+           GPU.1（NVIDIA 独显） : TTS 真实 IR **3/7** 编译成功
+                                （4 个在 FP16↔FP32 reorder 节点上无 kernel）
+
+       根因：**本机 OV 未安装 CUDA plugin**（`openvino` 包内无 cuda 组件）
+       ⇒ OV 2026.4 对 NVIDIA 独显仍走 **Intel GPU plugin**（经 Level Zero），
+       对 INT8 权重的 FP16 reorder 覆盖不全。
+
+       ⇒ 本函数的处理：**照常列出 CUDA 选项**（用户要求），
+         但 **note 里写明实测结论**，让用户知道它当前跑不通、为什么。
+         绝不把用不了的选项**静默隐藏**（用户明确要看到），
+         也绝不**假装它可用**。
     """
     out = []
+    cuda_ok = device_config.has_cuda_plugin()
     for dev in devices:
+        is_cuda = device_config.is_cuda_device(dev)
+        note = ''
+        if is_cuda:
+            if cuda_ok:
+                note = 'CUDA 后端（OV CUDA plugin 已安装）'
+            else:
+                note = ('CUDA 设备：🔴 本机 OV **未安装 CUDA plugin**'
+                        '（OV 仍用 Intel GPU plugin 驱动它）⇒ TTS 的 INT8 权重'
+                        '在 FP16 reorder 节点上无 kernel，**实测 3/7 IR 编译失败**；'
+                        '要真正启用需装 openvino 的 CUDA 组件')
         for prec in TTS_PRECISIONS:
             if device_config.check_precision(dev, prec):
                 continue                   # 例如 NPU + f32 ⇒ 不出现
+            label = f'{device_config.device_label(dev)} · {prec.upper()}'
+            if is_cuda:
+                label = f'CUDA · {label}'
             out.append(dict(id=f'{dev}@{prec}',
-                            label=f'{device_config.device_label(dev)} · {prec.upper()}',
-                            device=dev, precision=prec, fixed=False, note=''))
+                            label=label,
+                            device=dev, precision=prec, fixed=False, note=note))
     return out
 
 # Qwen3-ASR 模型内置 support_languages（见 models/hf/config.json），
@@ -1863,7 +1894,7 @@ class App:
             self.var_tts_combo.set(opt['label'])
             self._dev_choices['tts'] = opt['device']
             self._tts_precision = opt['precision']
-            self.var_tts_note.set(f'设备 {opt["device"]} · 精度 {opt["precision"]}')
+            self.var_tts_note.set(self._tts_note_text(opt))
 
         # ⚠️ TranslationService.__init__ 里的 _apply_engine_defaults 会用
         #    MT_ENGINES[key]['device'] **覆盖**显式传入的 device ⇒ 上面的
@@ -2186,6 +2217,18 @@ class App:
         self.var_status.set(f'翻译后端切换中：{opt["label"]} · {self.mt.device}')
         self.root.after(300, lambda: self.cb_mt_combo.configure(state='readonly'))
 
+    def _tts_note_text(self, opt):
+        """语音分区的说明文字（设备 + 精度 + 必要的警示）。
+
+        🔴 CUDA 选项必须**带上实测结论**（用户能在选之前就知道它跑不通），
+           不能只显示「设备 GPU.1」让人以为能用。
+        """
+        base = f'设备 {opt["device"]} · 精度 {opt["precision"]}'
+        note = opt.get('note') or ''
+        if note:
+            return f'{base}　⚠️ {note}'
+        return base
+
     def _on_tts_combo_changed(self, *_a):
         """语音分区的「设备+精度」组合变化 ⇒ 重起 TTS worker。
 
@@ -2197,7 +2240,7 @@ class App:
             return
         self._dev_choices['tts'] = opt['device']
         self._tts_precision = opt['precision']
-        self.var_tts_note.set(f'设备 {opt["device"]} · 精度 {opt["precision"]}')
+        self.var_tts_note.set(self._tts_note_text(opt))
         device_config.save_config(dict(self._dev_choices))
         if getattr(self, 'tts', None) is not None:
             self._restart_tts_on_device(opt['device'], opt['precision'])

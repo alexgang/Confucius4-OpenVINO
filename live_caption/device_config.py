@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from typing import Dict, List, Optional, Tuple
 
 # ── 配置目录（与 live_caption_app.py::_cache 同一套规则）───────────────
@@ -75,12 +76,29 @@ PRECISION_UNSUPPORTED: Dict[str, Tuple[str, ...]] = {
 }
 
 # 设备显示名（GUI 下拉框用）
+# 🔴🔴 **不要在这里硬编码「GPU.N 是 Intel 集显」**！
+#    OpenVINO 的 ``GPU.N`` 编号**不代表厂商**：OV 会把本机所有 GPU 依次编号，
+#    本机实测（2026-10-25）::
+#
+#        GPU.0 = Intel(R) Graphics (iGPU)      ← Intel 集显
+#        GPU.1 = NVIDIA GeForce RTX 5050 (dGPU) ← NVIDIA 独显
+#
+#    ⇒ 把 GPU.1 标成「Intel GPU 2」是**错的**（用户报「设备里出现了不存在的
+#    Intel GPU 2」）。**唯一可靠的来源是 ``FULL_DEVICE_NAME``**。
+#    ⇒ 见 ``device_label()``：能查到全名就据实生成标签，查不到才回落这里。
 _DEVICE_LABELS = {
     'GPU.0': 'Intel GPU（集显）',
-    'GPU.1': 'Intel GPU 2',
     'NPU': 'Intel NPU',
     'CPU': 'CPU（不推荐）',
 }
+
+# 全名里的厂商关键字 -> 简洁显示名（用于「Intel GPU（集显）」这种友好文案）
+_VENDOR_HINTS = (
+    ('nvidia', 'NVIDIA'),
+    ('intel', 'Intel'),
+    ('amd', 'AMD'),
+    ('radeon', 'AMD'),
+)
 
 # ── 不进入「可选设备清单」的设备 ─────────────────────────────────────
 # 🔴 **CPU 从清单里移除**（用户决定 2026-10-23）。
@@ -100,10 +118,134 @@ def is_excluded_device(dev: str) -> bool:
 
 
 def device_label(dev: str) -> str:
-    """设备名 -> 界面显示文本。"""
+    """设备名 -> 界面显示文本。
+
+    🔴🔴 **按实际硬件生成，不按编号猜**（2026-10-25 用户报「设备里出现了
+    不存在的 Intel GPU 2」）。
+
+    优先级：
+    1. 查 ``FULL_DEVICE_NAME``（OpenVINO 报的真实硬件名）⇒ 据实生成：
+       - 名字里含 NVIDIA ⇒ 「NVIDIA 独显（RTX 5050 Laptop GPU）」之类的简称；
+       - 名字里含 Intel + Graphics ⇒ 「Intel GPU（集显）」；
+       - 名字里含 Intel + AI Boost ⇒ 「Intel NPU」；
+    2. 查不到全名（OV 不可用 / 设备已拔出）⇒ 回落 ``_DEVICE_LABELS``；
+    3. 都不��� ⇒ 原样返回设备名（**绝不编造「Intel GPU 2」这种不存在的设备**）。
+
+    ⚠️ 标签必须**全局唯一**（GUI 靠 label 反查设备，见 live_caption_app.py
+       的 ``_dev_label_back``）⇒ 含厂商的标签天然比「GPU.1」更不容易撞。
+    """
     if not dev:
         return '（未指定）'
+
+    full = _full_device_name(dev)
+    if full:
+        label = _label_from_full_name(full)
+        if label:
+            return label
+
+    # 回落：静态表（**不含任何猜测编号的 GPU 标签**）
     return _DEVICE_LABELS.get(dev, dev)
+
+
+_FULL_NAME_CACHE: Dict[str, str] = {}
+
+
+def _full_device_name(dev: str) -> str:
+    """取设备的 ``FULL_DEVICE_NAME``（失败返回空串）。
+
+    🔴 结果**进程内缓存**（设备不会运行时插拔）⇒ 避免每次建 GUI 都新建
+       ``ov.Core()``。
+    """
+    if dev in _FULL_NAME_CACHE:
+        return _FULL_NAME_CACHE[dev]
+    name = ''
+    try:
+        import openvino as ov
+        core = ov.Core()
+        if dev in core.available_devices:
+            name = core.get_property(dev, 'FULL_DEVICE_NAME') or ''
+    except Exception:
+        name = ''
+    _FULL_NAME_CACHE[dev] = name
+    return name
+
+
+def _label_from_full_name(full: str) -> str:
+    """把 ``FULL_DEVICE_NAME`` 变成简洁的界面标签。
+
+    例：
+      「NVIDIA GeForce RTX 5050 Laptop GPU」→ 「NVIDIA 独显（RTX 5050 Laptop GPU）」
+      「Intel(R) Graphics (iGPU)」           → 「Intel GPU（集显）」
+      「Intel(R) AI Boost」                  → 「Intel NPU」
+      「Intel(R) Core(TM) Ultra 7 356H」    → ''（CPU 不在清单里）
+    """
+    low = full.lower()
+    if 'nvidia' in low or 'geforce' in low or 'rtx' in low:
+        # NVIDIA 独显：抽出具体型号（去掉厂商前缀与括号噪声）
+        model = full
+        for pre in ('NVIDIA GeForce ', 'NVIDIA ', 'nvidia '):
+            if model.lower().startswith(pre.lower()):
+                model = model[len(pre):]
+                break
+        # 去掉 "(dGPU)" 这类后缀噪声 + 归一空白
+        model = re.sub(r'\((?:dGPU|iGPU|discrete|integrated)\)', '', model,
+                       flags=re.I).strip()
+        model = re.sub(r'\s+', ' ', model).strip(' ()')
+        return f'NVIDIA 独显（{model}）' if model else 'NVIDIA 独显'
+    if 'intel' in low and ('graphics' in low or 'iris' in low or 'uhd' in low):
+        return 'Intel GPU（集显）'
+    if 'intel' in low and ('ai boost' in low or 'npu' in low):
+        return 'Intel NPU'
+    if 'amd' in low or 'radeon' in low:
+        return 'AMD 独显' if 'radeon rx' in low or 'radeon pro' in low else 'AMD GPU'
+    return ''
+
+
+# ── NVIDIA / CUDA 设备识别 ───────────────────────────────────────────
+# 🔴🔴 **实测结论（2026-10-25，OV 2026.4.1）**：
+#   本机 ``available_devices`` = ['CPU', 'GPU.0', 'GPU.1', 'NPU']，
+#   其中 ``GPU.1`` 的 FULL_DEVICE_NAME = 「NVIDIA GeForce RTX 5050 Laptop GPU (dGPU)」
+#   ⇒ **GPU.N 编号不代表厂商**（OV 把所有 GPU 依次编号）。
+#
+#   但 ⚠️ **OV 主包里并没有 CUDA plugin 组件**
+#   （实测 ``openvino`` 包内 `*cuda*` 匹配数 = 0）
+#   ⇒ OV 2026.4 对 NVIDIA 独显**仍然走 Intel GPU plugin**（经 Level Zero），
+#      **不是**真正的 CUDA 后端。
+#
+#   ⇒ 后果（实测 TTS 真实 IR 逐个编译）：
+#      GPU.0（Intel 集显）  : 7/7 编译成功
+#      GPU.1（NVIDIA 独显） : 3/7 编译成功（4 个在 FP16↔FP32 reorder 节点上
+#                            「Could not find a suitable kernel」）
+CUDA_DEVICE_HINTS = ('nvidia', 'geforce', 'rtx', 'cuda', 'quadro', 'tesla')
+
+
+def is_cuda_device(dev: str) -> bool:
+    """该设备是否是 **NVIDIA / CUDA** 设备（据 FULL_DEVICE_NAME 判定）。"""
+    full = _full_device_name(dev).lower()
+    if not full:
+        return False
+    return any(h in full for h in CUDA_DEVICE_HINTS)
+
+
+def has_cuda_plugin() -> bool:
+    """OpenVINO 是否**真的**带 CUDA plugin（而不是借 Intel GPU plugin 驱动 NVIDIA）。
+
+    判定：``openvino`` 包目录里存在含 ``cuda`` 的组件文件。
+    ⇒ False ⇒ ``GPU.N`` 即使是 NVIDIA 硬件，也**不能**按 CUDA 后端用。
+    """
+    try:
+        import openvino
+        base = os.path.dirname(os.path.abspath(openvino.__file__))
+        for root, _dirs, files in os.walk(base):
+            for fn in files:
+                low = fn.lower()
+                if 'cuda' in low and low.endswith(('.dll', '.so', '.pyd', '.exe')):
+                    return True
+            # 只扫一层子目录，避免全量 walk 太慢
+            break
+        return False
+    except Exception:
+        return False
 
 
 def detect_devices() -> Dict[str, str]:
