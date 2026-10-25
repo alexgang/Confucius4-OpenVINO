@@ -74,6 +74,9 @@ __all__ = [
     'SPOKEN_FILE_RE',
     'RESULTS_DIR',
     'INTERNAL_EXACT',
+    'APP_DIR',
+    'APP_DEV_ONLY_FILE_RE',
+    'is_app_dev_only',
     'is_excluded',
     'iter_package_files',
     'package_stats',
@@ -151,6 +154,67 @@ SKIP_DIR_PREFIXES = tuple(
     )
 ) + SKIP_PATH_PREFIXES
 
+# ══════════════════════════════════════════════════════════════════════
+# 🔴 开发专用文件排除（APP-002 的延伸）
+# ══════════════════════════════════════════════════════════════════════
+# 客户包是**交付物** ⇒ 包内只应有「客户能直接用的东西」。
+# 🔴 **开发专用文件** = 只在开发机上有意义的文件：
+#   - 一次性实测探针（如 `app/_probe_tts_cuda.py`：实测 OV 的 CUDA plugin
+#     在 NVIDIA 独显上能否加载 TTS ⇒ **与客户无关**，且里面写着
+#     **开发机绝对路径** `C:\Users\Trekker-PTL\confucius4-openvino`
+#     ⇒ 属于「开发机路径泄漏」）；
+#   - 任何**未被 README / bat / 其它代码引用**的 `_` 前缀脚本。
+#
+# ⚠️ **判据必须是「文件本身」而不是「名字前缀」**：
+#   `selftest_audio_sources.py` 是**客户自检**用的（`verify_pkg_zip.py`
+#   的 `KEY_APP_FILES` 把它列为必需）⇒ **绝不能**被 `_` 前缀规则误伤。
+#   ⇒ 规则 = 「**下划线前缀**」∧「**在 `app/` 下**」∧「**不在白名单**」。
+APP_DIR = 'app/'
+
+# 🔴 **开发专用**（下划线前缀）—— 命中即排除
+APP_DEV_ONLY_FILE_RE = re.compile(r'^_[A-Za-z0-9_]+\.(py|ps1|bat|sh)$', re.I)
+
+# 🔴 **明确保留**（虽然也可能命中上面的规则）—— 键 = 文件名（不含目录）
+APP_DEV_ONLY_KEEP = frozenset({
+    # 客户自检用（`verify_pkg_zip.py` 的 KEY_APP_FILES 列为必需）
+    'selftest_audio_sources.py',
+})
+
+# 🔴 **App 侧代码会主动引用**的文件（防止误排除）
+APP_DEV_ONLY_REFERENCED = frozenset({
+    'tts_engine.py', 'tts_engine_patch.py', 'tts_service.py',
+    'tts_worker.py', 'translator.py', 'live_caption_app.py',
+    'device_config.py', 'audio_source.py', 'backends.py',
+    'seg_stream.py', 'segment_encoder_backend.py',
+    'npu_delivery_backend.py', 'npu_embeds_backend.py',
+    'streaming_asr.py', 'win_clickthrough.py',
+    'selftest_audio_sources.py',
+})
+
+
+def is_app_dev_only(relpath: str) -> bool:
+    """判断相对路径是否**只在开发机上有意义**（⇒ 不进客户包）。
+
+    规则（全部条件同时满足才排除）：
+
+    1. 位于 `app/` 下（客户包代码目录）；
+    2. 文件名**以下划线开头**（开发期临时脚本的命名惯例）；
+    3. 扩展名属于脚本类（`.py` / `.ps1` / `.bat` / `.sh`）；
+    4. **不在**白名单里（`selftest_audio_sources.py` 等客户真要用的）。
+
+    ⚠️ **故意不做的事**：
+    - 不按「代码是否引用了它」判断 ⇒ 那需要全包静态分析，
+      太重且易误判；`_` 前缀 + 白名单已经足够；
+    - 不排除 `results/` 下的诊断产物（它们由 `SKIP_FILE_RE` /
+      `INTERNAL_EXACT` 单独管）⇒ **本规则只管 `app/` 下的脚本**。
+    """
+    if not relpath.startswith(APP_DIR):
+        return False
+    name = relpath.rsplit('/', 1)[-1]
+    if name in APP_DEV_ONLY_KEEP or name in APP_DEV_ONLY_REFERENCED:
+        return False
+    return bool(APP_DEV_ONLY_FILE_RE.match(name))
+
 
 def _top_dir(relpath: str) -> str:
     """相对路径的第一段（顶层目录名）；顶层文件返回 ''。"""
@@ -183,6 +247,10 @@ def is_excluded(relpath: str, top_dir: str = None) -> bool:
     if relpath in INTERNAL_EXACT:
         return True
     if relpath.startswith(RESULTS_DIR) and SPOKEN_FILE_RE.search(relpath):
+        return True
+
+    # 2.75) 🔴 开发专用文件（app/ 下的 `_` 前缀脚本，如 `_probe_tts_cuda.py`）
+    if is_app_dev_only(relpath):
         return True
 
     # 3) __pycache__：python/ 下保留，其余排除
@@ -241,6 +309,9 @@ def iter_package_files(pkg_root: str):
             if rel in INTERNAL_EXACT:
                 continue
             if rel.startswith(RESULTS_DIR) and SPOKEN_FILE_RE.search(fn):
+                continue
+            # 🔴 开发专用文件（app/ 下的 `_` 前缀脚本）
+            if is_app_dev_only(rel):
                 continue
             try:
                 size = os.path.getsize(full)

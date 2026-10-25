@@ -1,0 +1,190 @@
+{
+  "task": "App 侧本轮三项改动（安静窗口闸门 / 匹配规则 / 开发专用文件排除）的离线闸门",
+  "generated_at": "2026-10-25 21:18:02",
+  "discipline": {
+    "no_model_import": true,
+    "no_inference": true,
+    "no_benchmark": true,
+    "no_gpu": true,
+    "no_real_machine_lock": true,
+    "no_minimax": true,
+    "no_write_to_pkg_or_mt": true
+  },
+  "summary": {
+    "total": 28,
+    "pass": 28,
+    "fail": 0,
+    "verdict": "PASS",
+    "elapsed_s": 6.145
+  },
+  "results": [
+    {
+      "group": "GATE",
+      "name": "Q1 wait_quiet_window 存在",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "GATE",
+      "name": "Q2 list_processes 存在",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "GATE",
+      "name": "Q3 LockHeld.wait_quiet 存在",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "GATE",
+      "name": "Q4 wait_quiet_window 可执行且返回结构完整",
+      "ok": true,
+      "detail": "ok=False keys=['last_busy_pids', 'n_busy_samples', 'n_samples', 'quiet_seconds', 'timeout', 'waited_s']"
+    },
+    {
+      "group": "GATE",
+      "name": "Q5 pack_v13.py 接入安静窗口",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "GATE",
+      "name": "Q5 publish_ftp.py 接入安静窗口",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "GATE",
+      "name": "Q6 machine_lock_app.py 代码里绝不用 tasklist",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "GATE",
+      "name": "Q6 pack_v13.py 代码里绝不用 tasklist",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "GATE",
+      "name": "Q6 publish_ftp.py 代码里绝不用 tasklist",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "MATCH",
+      "name": "M1 反向拒绝（正式 ⊂ 草稿 ⇒ 不配）",
+      "ok": true,
+      "detail": "match={}"
+    },
+    {
+      "group": "MATCH",
+      "name": "M2 方向性前缀成立（草稿 ⊂ 正式）",
+      "ok": true,
+      "detail": "match={0: 0}"
+    },
+    {
+      "group": "MATCH",
+      "name": "M3 最短剩余正式稿优先",
+      "ok": true,
+      "detail": "match={0: 1}"
+    },
+    {
+      "group": "MATCH",
+      "name": "M4 全局一对一（一个正式稿只被一个草稿占）",
+      "ok": true,
+      "detail": "match={0: 0}"
+    },
+    {
+      "group": "MATCH",
+      "name": "M5 确定性（同样输入 → 同样输出）",
+      "ok": true,
+      "detail": "{0: 1, 1: 0} vs {0: 1, 1: 0}"
+    },
+    {
+      "group": "MATCH",
+      "name": "M6 真实语料：段号倒流 0 条（产品语义判据）",
+      "ok": true,
+      "detail": "n_violation=0 n_pairs=95"
+    },
+    {
+      "group": "MATCH",
+      "name": "M7 真实语料：一个正式稿不被多草稿共用",
+      "ok": true,
+      "detail": "n_multi=0"
+    },
+    {
+      "group": "MATCH",
+      "name": "M8 真实语料：配对数 ≥ 90（覆盖率不显著回退）",
+      "ok": true,
+      "detail": "n_pairs=95 n_draft=109"
+    },
+    {
+      "group": "MATCH",
+      "name": "M9 真实语料：与「最小改动版」逐条一致",
+      "ok": true,
+      "detail": "shipped=95 minimal=95"
+    },
+    {
+      "group": "EXCLUDE",
+      "name": "E1 pkg_exclude.__all__ 无悬空名字",
+      "ok": true,
+      "detail": "missing=[]"
+    },
+    {
+      "group": "EXCLUDE",
+      "name": "E2 `from pkg_exclude import *` 可执行",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "EXCLUDE",
+      "name": "E3 app/_probe_tts_cuda.py 被排除",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "EXCLUDE",
+      "name": "E4 app/selftest_audio_sources.py 不被误伤",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "EXCLUDE",
+      "name": "E5 正常 App 代码不被误伤",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "EXCLUDE",
+      "name": "E6 规则只作用于 app/（results/ 不受影响）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "EXCLUDE",
+      "name": "E7 pack_v13 硬校验含「开发专用脚本」断言",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "EXCLUDE",
+      "name": "E8 客户包 v1.5 现状含开发探针（⇒ 本轮规则有真实靶子）",
+      "ok": true,
+      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\app\\_probe_tts_cuda.py exists=True"
+    },
+    {
+      "group": "EXCLUDE",
+      "name": "E9 新规则下客户包清单**不含**开发探针",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "EXCLUDE",
+      "name": "E10 新规则下客户包清单**仍含** selftest_audio_sources.py",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

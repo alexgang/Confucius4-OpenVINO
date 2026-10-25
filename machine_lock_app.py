@@ -33,6 +33,25 @@ TTS 模块 22:29 开始测每帧耗时 —— TTS 的 `timing_guard.py` v1 只�
 （2026-10-23 11:23 真实事故：误回收 App 活锁 PID 29864）。
 本文件只用 `ctypes` 调 Win32 API，不经过 shell。
 
+## 🔴🔴「我持锁」≠「机器空闲」—— 安静窗口闸门
+
+**实测事故（2026-10-25 16:04，MT 侧记录）**：MT **已持锁**（`module: mt / pid: 7592`）并在跑
+`ts10_nopunct_r2`，**同时** ASR 的 `p3_int4_slice_decode.py --device GPU.0` 正在跑
+（PID 15884 / 31756）⇒ **GPU.0 上两个作业并行** ⇒ MT 的计时被污染 ⇒ MT 主动停掉重跑。
+⚠️ ASR 自己的 `STATUS_ASR.md` §19.7 记载的上一轮是**同一个模式**。
+
+⇒ **根因**：共享锁是**协作式**的 ⇒ ASR/MT/TTS 的许多脚本**根本不取锁**
+⇒ **光靠「我持锁」不足以保证机器空闲**。
+
+⇒ 本模块的做法（照 TTS 的三层叠加，取中间那层）：
+1. **取锁**（本文件的 `LockHeld`）；
+2. 🔴 **再等一道「安静窗口」**：连续 N 次采样，**没有**别的模块的 python 作业进程，
+   才开跑；否则继续等（**不抢、不 kill 别人的进程**）；
+3. 跑批期间若发现别的模块进来 ⇒ 记 `timing_valid=false`（由调用方决定是否作废）。
+
+依据：`shared/NOTICE_tts_lock_path_20261025.md` 第三节；
+`shared/NOTICE_mt_to_app_20261025.md` §10.6（明确要求 App 侧照此加固）。
+
 ## 用法
 
 ```python
@@ -53,10 +72,15 @@ try:
 finally:
     lk.release()
 ```
+
+🔴 **计时/测速类重活建议用 `LockHeld` + `wait_quiet_window()` 两步**
+（见 `pack_v13.py` / `publish_ftp.py` 的用法）：
+取锁只保证「没有别的模块**自觉**取锁」；安静窗口才保证「没有别的模块**偷跑**」。
 """
 from __future__ import annotations
 
 import ctypes
+import ctypes.wintypes
 import datetime
 import os
 import re
@@ -300,9 +324,146 @@ def lock_state(lock_path: str = LOCK):
     return 'stale_pid', info
 
 
+# ══════════════════════════════════════════════════════════════════════
+# 🔴🔴 安静窗口闸门（2026-10-25 新增，见模块 docstring）
+# ══════════════════════════════════════════════════════════════════════
+# 「我持锁」≠「机器空闲」：别的模块的脚本**大多不取锁** ⇒ 必须再加一道
+# 「安静窗口」检查：连续 N 次采样没有别的模块的 python 作业，才开跑。
+#
+# 🔴 **只等、只观察，绝不 kill 别人的进程**。
+# 🔴 **判据用 ctypes Win32 API 枚举进程**（CreateToolhelp32Snapshot +
+#   Process32FirstW/NextW）⇒ 不用 `tasklist /FI`（Git Bash 下会被当路径）。
+# 🔴 **读不到命令行 ⇒ 保守判为「有干扰」**（fail-closed）⇒ 宁可多等。
+
+_TH32CS_SNAPPROCESS = 0x00000002
+
+
+class _PROCESSENTRY32W(ctypes.Structure):
+    _fields_ = [
+        ('dwSize', ctypes.wintypes.DWORD),
+        ('cntUsage', ctypes.wintypes.DWORD),
+        ('th32ProcessID', ctypes.wintypes.DWORD),
+        ('th32DefaultHeapID', ctypes.POINTER(ctypes.c_ulong)),
+        ('th32ModuleID', ctypes.wintypes.DWORD),
+        ('cntThreads', ctypes.wintypes.DWORD),
+        ('th32ParentProcessID', ctypes.wintypes.DWORD),
+        ('pcPriClassBase', ctypes.c_long),
+        ('dwFlags', ctypes.wintypes.DWORD),
+        ('szExeFile', ctypes.c_wchar * 260),
+    ]
+
+
+def list_processes():
+    """枚举所有进程 => [(pid, exe_name), ...]（ctypes，无外部依赖）。
+
+    ⚠️ 这里**不读命令行**（读 PEB 的实现见 `results/app/app037_quiet_window.py`）
+    ⇒ 本模块保持 **stdlib only + ctypes**，不引入 psutil。
+    """
+    out = []
+    try:
+        k32 = ctypes.WinDLL('kernel32', use_last_error=True)
+        k32.CreateToolhelp32Snapshot.restype = ctypes.wintypes.HANDLE
+        k32.Process32FirstW.restype = ctypes.wintypes.BOOL
+        k32.Process32NextW.restype = ctypes.wintypes.BOOL
+        snap = k32.CreateToolhelp32Snapshot(_TH32CS_SNAPPROCESS, 0)
+        invalid = ctypes.c_void_p(-1).value
+        if not snap or snap == invalid:
+            return out
+        try:
+            pe = _PROCESSENTRY32W()
+            pe.dwSize = ctypes.sizeof(_PROCESSENTRY32W)
+            if k32.Process32FirstW(snap, ctypes.byref(pe)):
+                while True:
+                    out.append((int(pe.th32ProcessID), pe.szExeFile))
+                    if not k32.Process32NextW(snap, ctypes.byref(pe)):
+                        break
+        finally:
+            k32.CloseHandle(snap)
+    except Exception:
+        # 🔴 枚举失败 ⇒ **fail-closed**（调用方按「有干扰」处理）
+        raise
+    return out
+
+
+# 🔴 **自己**的进程标识（出现在可执行名/路径里 ⇒ 视为「自己」，不计入干扰）
+_SELF_EXE_NAMES = ('python', 'pythonw')
+
+
+def external_python_pids(exclude_pids=()):
+    """返回「不是自己的 python 进程」的 PID 列表。
+
+    ⚠️ **只认 python 进程**：WorkBuddy 自己的 `bash.exe -c ...` 外壳里
+    也会出现别的模块的脚本名（命令行里带了那些字符串）⇒ 按进程名过滤
+    才是可靠口径（MT 侧 `quiet_window.py` 实测 3 个误报即源于此）。
+
+    🔴 **枚举失败 ⇒ 抛异常**（由 `wait_quiet_window` 按 fail-closed 处理）。
+    """
+    ex = set(int(p) for p in (exclude_pids or ()))
+    ex.add(os.getpid())
+    out = []
+    for pid, exe in list_processes():
+        if pid in ex:
+            continue
+        name = (exe or '').lower()
+        if name.startswith('python') or name.startswith('pythonw'):
+            out.append(pid)
+    return out
+
+
+def wait_quiet_window(quiet_seconds: float = 45.0, timeout: float = 1800.0,
+                      poll: float = 15.0, exclude_pids=(), verbose: bool = True):
+    """等待「没有别的 python 进程」并持续 `quiet_seconds` 秒。
+
+    返回 (ok: bool, info: dict)。
+
+    * `ok=True`  ⇒ 进入安静窗口，可以开始计时
+    * `ok=False` ⇒ 超时未进入（调用方**应当拒绝开跑**，或标记 timing_valid=false）
+
+    🔴 **fail-closed**：枚举失败 / 读不到 ⇒ 视为「有干扰」⇒ 继续等。
+    🔴 **不 kill 任何进程**。
+    """
+    t0 = time.time()
+    quiet_since = None
+    info = dict(quiet_seconds=quiet_seconds, timeout=timeout,
+                waited_s=0.0, n_samples=0, n_busy_samples=0,
+                last_busy_pids=[])
+    while time.time() - t0 < timeout:
+        info['n_samples'] += 1
+        try:
+            busy = external_python_pids(exclude_pids)
+        except Exception as e:
+            busy = [-1]          # fail-closed：枚举失败 ⇒ 视为有干扰
+            info['enumeration_error'] = repr(e)
+        if busy:
+            info['n_busy_samples'] += 1
+            info['last_busy_pids'] = busy[:20]
+            quiet_since = None
+            if verbose:
+                print('[quiet] 有 %d 个外部 python 进程 ⇒ 继续等（已等 %.0f s）'
+                      % (len(busy), time.time() - t0), flush=True)
+        else:
+            if quiet_since is None:
+                quiet_since = time.time()
+                if verbose:
+                    print('[quiet] 外部 python 进程已空，开始计时安静窗口…',
+                          flush=True)
+            elif time.time() - quiet_since >= quiet_seconds:
+                info['waited_s'] = time.time() - t0
+                info['quiet_since'] = quiet_since
+                if verbose:
+                    print('[quiet] ✅ 安静窗口已持续 %.0f s ⇒ 可以开始计时'
+                          % quiet_seconds, flush=True)
+                return True, info
+        time.sleep(poll)
+    info['waited_s'] = time.time() - t0
+    if verbose:
+        print('[quiet] 🔴 超时 %.0f s 仍未进入安静窗口 ⇒ 不开跑'
+              % timeout, flush=True)
+    return False, info
+
+
 # ── 取锁 / 放锁 ────────────────────────────────────────────────────────
-def acquire(lock_path: str = LOCK, module: str = 'app', timeout: float = 3600,
-            poll: float = 20.0, verbose: bool = True):
+def acquire(lock_path: str = LOCK, module: str = 'app', timeout: float = 3600,            poll: float = 20.0, verbose: bool = True):
     """取得机器锁。返回 (ok, payload)。
 
     * `os.open(O_CREAT|O_EXCL)` 原子创建 ⇒ 物理上不可能两个模块同时拿到锁。
@@ -411,6 +572,19 @@ class LockHeld:
 
     def release(self) -> bool:
         return release(self.payload, self.lock_path, self.verbose)
+
+    def wait_quiet(self, quiet_seconds: float = 45.0, timeout: float = 1800.0,
+                   poll: float = 15.0):
+        """🔴 **取锁之后的第二道闸门**：等「安静窗口」。
+
+        「我持锁」≠「机器空闲」—— 别的模块的脚本**大多不取锁**
+        ⇒ 只取锁会被偷跑污染 ⇒ 计时类作业必须**再等一道**。
+
+        返回 (ok, info)；`info` 含 `waited_s` / `n_samples` / `n_busy_samples`
+        / `last_busy_pids`，可直接落盘作证据。
+        """
+        return wait_quiet_window(quiet_seconds=quiet_seconds, timeout=timeout,
+                                  poll=poll, verbose=self.verbose)
 
     def __enter__(self):
         if not self.acquire():

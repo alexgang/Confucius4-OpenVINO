@@ -1,0 +1,120 @@
+{
+ "task": "App 侧「安静窗口闸门」离线验收（MT 通知 10 §10.6 / TTS 锁路径通知）",
+ "generated_at": "2026-10-25 21:18:23",
+ "discipline": {
+  "imports_only_stdlib_lock_module": true,
+  "no_inference": true,
+  "no_benchmark": true,
+  "no_gpu": true,
+  "no_machine_lock_write": true,
+  "no_minimax": true
+ },
+ "summary": {
+  "real_total": 14,
+  "real_pass": 14,
+  "real_fail": 0,
+  "bug_total": 2,
+  "bug_hit": 2,
+  "bug_miss": 0,
+  "verdict": "PASS",
+  "elapsed_s": 11.2
+ },
+ "results": [
+  {
+   "group": "REAL",
+   "name": "Q1 machine_lock_app 暴露安静窗口 API",
+   "ok": true,
+   "detail": "wait_quiet_window=True LockHeld.wait_quiet=True"
+  },
+  {
+   "group": "REAL",
+   "name": "Q2 list_processes 能枚举进程（ctypes Win32 API）",
+   "ok": true,
+   "detail": "n_procs=405"
+  },
+  {
+   "group": "REAL",
+   "name": "Q2 枚举结果含 (pid, exe_name) 元组",
+   "ok": true,
+   "detail": "sample=[(0, '[System Process]'), (4, 'System')]"
+  },
+  {
+   "group": "REAL",
+   "name": "Q3 external_python_pids 排除自己",
+   "ok": true,
+   "detail": "self=1872 ext=[37812, 38456, 38236, 9668, 16732, 9748, 38888]"
+  },
+  {
+   "group": "REAL",
+   "name": "Q3 能发现别的 python 进程（本机实测非空）",
+   "ok": true,
+   "detail": "n_ext=7"
+  },
+  {
+   "group": "REAL",
+   "name": "Q4 有外部 python 进程 ⇒ 安静窗口不成立（fail-closed）",
+   "ok": true,
+   "detail": "ok=False n_busy_samples=3"
+  },
+  {
+   "group": "REAL",
+   "name": "Q4 记录到有干扰的采样数 > 0",
+   "ok": true,
+   "detail": "n_busy_samples=3"
+  },
+  {
+   "group": "REAL",
+   "name": "Q5 无外部 python 进程 ⇒ 安静窗口成立",
+   "ok": true,
+   "detail": "ok=True waited_s=1.0"
+  },
+  {
+   "group": "REAL",
+   "name": "Q6 info 含可落盘的证据字段",
+   "ok": true,
+   "detail": "keys=['last_busy_pids', 'n_busy_samples', 'n_samples', 'quiet_seconds', 'quiet_since', 'timeout', 'waited_s']"
+  },
+  {
+   "group": "REAL",
+   "name": "Q7 pack_v13.py 调用了安静窗口",
+   "ok": true,
+   "detail": "wait_quiet=1 hits"
+  },
+  {
+   "group": "REAL",
+   "name": "Q8 publish_ftp.py 调用了安静窗口",
+   "ok": true,
+   "detail": "wait_quiet=1 hits"
+  },
+  {
+   "group": "REAL",
+   "name": "Q9 代码里绝不用 tasklist /FI（Git Bash 下会被当路径）",
+   "ok": true,
+   "detail": "occurrences=0"
+  },
+  {
+   "group": "REAL",
+   "name": "Q10 保持 stdlib only（不引入 psutil）",
+   "ok": true,
+   "detail": "occurrences=0"
+  },
+  {
+   "group": "REAL",
+   "name": "Q11 安静窗口不 kill 别人的进程",
+   "ok": true,
+   "detail": "found=[]"
+  },
+  {
+   "group": "BUG",
+   "name": "B1 排除全部 python 后 ⇒ 「有干扰 ⇒ 不成立」断言必然 FAIL",
+   "ok": true,
+   "detail": "ok=True（True ⇒ 该断言在无干扰时确实会 FAIL ⇒ 有区分力）"
+  },
+  {
+   "group": "BUG",
+   "name": "B2 超时 ⇒ wait_quiet_window 必然返回 False",
+   "ok": true,
+   "detail": "ok=False waited_s=3.0"
+  }
+ ]
+}

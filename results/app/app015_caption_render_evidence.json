@@ -1,0 +1,200 @@
+{
+  "task": "APP-015 方案 C 的 App 侧渲染层（caption_render.py）离线验收",
+  "generated_at": "2026-10-25 21:18:11",
+  "discipline": {
+    "imports_only_stdlib_render_module": true,
+    "no_inference": true,
+    "no_benchmark": true,
+    "no_gpu": true,
+    "no_machine_lock": true,
+    "no_minimax": true
+  },
+  "corpus": {
+    "n_blocks": 7,
+    "n_units": 7,
+    "draft_src": "we should go",
+    "final_src": "we should go now with the release plan for Q3.",
+    "draft_seg": 4,
+    "final_seg": 5
+  },
+  "summary": {
+    "real_total": 23,
+    "real_pass": 23,
+    "real_fail": 0,
+    "bug_total": 5,
+    "bug_hit": 5,
+    "bug_miss": 0,
+    "verdict": "PASS",
+    "elapsed_s": 0.001
+  },
+  "results": [
+    {
+      "group": "REAL",
+      "name": "R1 归一化后草稿是正式稿的前缀",
+      "ok": true,
+      "detail": "draft='we should go' final='we should go now with the release plan for q3'"
+    },
+    {
+      "group": "REAL",
+      "name": "R1 is_substring 成立",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "REAL",
+      "name": "R1 归一化去标点（草稿无句末标点也能匹配）",
+      "ok": true,
+      "detail": "norm(no)='we should go' norm(punct)='we should go'"
+    },
+    {
+      "group": "REAL",
+      "name": "R2 更具体的草稿优先配更短的正式稿",
+      "ok": true,
+      "detail": "match={0: 1, 1: 0}"
+    },
+    {
+      "group": "REAL",
+      "name": "R2 一对一（一个正式稿只被一个草稿占）",
+      "ok": true,
+      "detail": "match={0: 1, 1: 0}"
+    },
+    {
+      "group": "REAL",
+      "name": "R2 同一正式稿不被两个草稿关联",
+      "ok": true,
+      "detail": "match={0: 1, 1: 0}"
+    },
+    {
+      "group": "REAL",
+      "name": "R3 草稿行被正式稿原地替换（段 4）",
+      "ok": true,
+      "detail": "seg4=[('src', 'we should go'), ('mt', '我们现在来讲一下第三季度的发布计划。')]"
+    },
+    {
+      "group": "REAL",
+      "name": "R3 替换后草稿译文不再出现",
+      "ok": true,
+      "detail": "texts=['大家早上好，欢迎参加本次会议。', '我们上个季度启动了新平台。', '团队一直在推进路线图。', '我来分享一些数据。', '我们现在来讲一下第三季度的发布计划。', '今天就到这里，谢谢大家。']"
+    },
+    {
+      "group": "REAL",
+      "name": "R4 未替换的草稿保留显示",
+      "ok": true,
+      "detail": "drafts=['我们应该走']"
+    },
+    {
+      "group": "REAL",
+      "name": "R4 草稿行标记 draft=True（⇒ 浅色）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "REAL",
+      "name": "R5 原文守恒（渲染层不丢字/不加字）",
+      "ok": true,
+      "detail": "rendered=204 orig=204"
+    },
+    {
+      "group": "REAL",
+      "name": "R6 正式稿译文在一屏里只出现一次",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "group": "REAL",
+      "name": "R6 summarize 的重复计数为 0",
+      "ok": true,
+      "detail": "dup=0"
+    },
+    {
+      "group": "REAL",
+      "name": "R7 正式稿不在凑齐段（段 5）重复出现",
+      "ok": true,
+      "detail": "seg5=[('src', 'now with the release')]"
+    },
+    {
+      "group": "REAL",
+      "name": "R8 granularity='unit' 分支可用且原文守恒",
+      "ok": true,
+      "detail": "{'n_src': 6, 'n_mt': 6, 'n_draft': 0, 'n_lines': 12, 'src_chars': 204, 'n_mt_texts': 6, 'n_dup_mt_texts': 0}"
+    },
+    {
+      "group": "REAL",
+      "name": "R8 'unit' 粒度下一行一句（n_src = 句单元数）",
+      "ok": true,
+      "detail": "n_src=6"
+    },
+    {
+      "group": "REAL",
+      "name": "R9 collect_drafts 取到草稿译文与原文",
+      "ok": true,
+      "detail": "[{'key': 'DRAFT::k4', 'src': 'we should go', 'mt': '我们应该走'}]"
+    },
+    {
+      "group": "REAL",
+      "name": "R10 无原文的草稿仍然显示（浅色 mt_draft）",
+      "ok": true,
+      "detail": "unknown_lines=[('mt_draft', True)]"
+    },
+    {
+      "group": "REAL",
+      "name": "R10 无原文的草稿不被猜测替换（草稿行仍是 draft=True）",
+      "ok": true,
+      "detail": "seg4=[('src', 'we should go', False), ('mt', '我们现在来讲一下第三季度的发布计划。', False), ('mt_draft', '未知草稿', True)]"
+    },
+    {
+      "group": "REAL",
+      "name": "R10 无原文的草稿不影响正式稿的正常替换（正式稿仍在草稿行）",
+      "ok": true,
+      "detail": "seg4=[('src', 'we should go'), ('mt', '我们现在来讲一下第三季度的发布计划。'), ('mt_draft', '未知草稿')]"
+    },
+    {
+      "group": "REAL",
+      "name": "R11 正式稿还在途时译文不消失（草稿行仍在）",
+      "ok": true,
+      "detail": "seg4=[('src', 'we should go'), ('mt_draft', '我们应该走')]"
+    },
+    {
+      "group": "REAL",
+      "name": "R11 正式稿还在途时不被误搬到草稿行",
+      "ok": true,
+      "detail": "seg4=[('src', 'we should go'), ('mt_draft', '我们应该走')]"
+    },
+    {
+      "group": "REAL",
+      "name": "R11 正式稿就绪后同一句只出现一次（跨两轮渲染）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "BUG",
+      "name": "B1 反证：旧行为（草稿行+正式稿行同时在）会被新实现避免",
+      "ok": true,
+      "detail": "new impl must not show both"
+    },
+    {
+      "group": "BUG",
+      "name": "B2 反证：正式稿不再从段聚合里重复出现",
+      "ok": true,
+      "detail": "seg5_mt=[]"
+    },
+    {
+      "group": "BUG",
+      "name": "B3 反证：删掉一行原文后守恒断言必然 FAIL",
+      "ok": true,
+      "detail": "broken=175 orig=204"
+    },
+    {
+      "group": "BUG",
+      "name": "B4 反证：一个正式稿不会被两个草稿关联",
+      "ok": true,
+      "detail": "match={1: 0}"
+    },
+    {
+      "group": "BUG",
+      "name": "B5 反证：正式稿还在途时译文不消失（草稿行兜住）",
+      "ok": true,
+      "detail": "seg4=[('src', 'we should go'), ('mt_draft', '我们应该走')] seg5=[('src', 'now with the rel')]"
+    }
+  ]
+}

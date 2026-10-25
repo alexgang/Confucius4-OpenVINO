@@ -124,6 +124,15 @@ _ap.add_argument('--check', action='store_true',
                 help='只校验 FTP 副本是否与源一致（不复制）')
 _ap.add_argument('--no-lock', action='store_true',
                 help='不取共享机器锁（复制 11.2 GB 是长时重活，不建议）')
+_ap.add_argument('--quiet-seconds', type=float, default=45.0,
+                 help='取锁后还要等「安静窗口」的秒数（默认 45）'
+                      '🔴 「我持锁」≠「机器空闲」：别的模块的脚本**大多不取锁**'
+                      '⇒ 只取锁会被偷跑污染（MT 通知 10 §10.6）')
+_ap.add_argument('--quiet-timeout', type=float, default=1800.0,
+                 help='等待安静窗口的秒数（默认 1800 = 30 min）'
+                      '⚠️ 超时 ⇒ **拒绝发布**')
+_ap.add_argument('--skip-quiet', action='store_true',
+                 help='跳过安静窗口检查（默认**不跳过**）')
 _args = _ap.parse_args()
 
 
@@ -181,6 +190,22 @@ if __name__ == '__main__':
         print('!! 未能取得共享机器锁 ⇒ 拒绝执行（避免干扰其它模块计时）')
         sys.exit(1)
     try:
+        # 🔴🔴 **第二道闸门：安静窗口**（MT 通知 10 §10.6）
+        #    复制 11.2 GB 是长时重活 ⇒ 不但在别人的计时窗口里跑会污染**它们**，
+        #    自己的发布过程也可能被别人偷跑干扰 ⇒ 取锁后必须再等安静窗口。
+        if not _args.skip_quiet:
+            print(f'[lock] 已持锁 ⇒ 等安静窗口（{_args.quiet_seconds:.0f}s，'
+                  f'最多等 {_args.quiet_timeout:.0f}s）…')
+            qok, qinfo = lk.wait_quiet(quiet_seconds=_args.quiet_seconds,
+                                       timeout=_args.quiet_timeout)
+            if not qok:
+                print('!! 未进入安静窗口 ⇒ 拒绝发布'
+                      '（宁可不发，也不污染别的模块的计时）')
+                print('   采样 %d 次 / 有干扰 %d 次 / 已等 %.0f s'
+                      % (qinfo.get('n_samples', 0),
+                         qinfo.get('n_busy_samples', 0),
+                         qinfo.get('waited_s', 0.0)))
+                sys.exit(1)
         sys.exit(main())
     finally:
         lk.release()

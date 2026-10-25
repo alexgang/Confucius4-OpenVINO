@@ -1,0 +1,138 @@
+{
+  "task": "草稿↔正式稿关联规则的离线规则比对（v2：四套规则 × 独立判据）",
+  "generated_at": "2026-10-25 21:13:41",
+  "discipline": {
+    "no_model_import": true,
+    "no_inference": true,
+    "no_benchmark": true,
+    "no_gpu": true,
+    "no_machine_lock": true,
+    "no_minimax": true,
+    "mt_artifact_readonly": true
+  },
+  "source": {
+    "path": "C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_v5_ts10_nopunct.json",
+    "bytes": 430633,
+    "mtime": "2026-10-25 13:59:01",
+    "arm": "C_draft",
+    "n_units": 267,
+    "n_draft": 109,
+    "n_final": 158,
+    "mt_artifact_draft_gap": {
+      "n_pairs": 109,
+      "n_with_gap": 108
+    }
+  },
+  "independent_criterion": {
+    "name": "段号单调性（final.seg >= draft.seg）",
+    "rationale": "方案 C 的物理语义：草稿=段 N 的尾半句，正式稿=凑齐后（段 N 或更晚）的整句⇒ 时间倒流的配对必错。该判据来自产品语义，不依赖任何一套匹配规则。"
+  },
+  "judged": {
+    "current": {
+      "n_paired": 95,
+      "n_unpaired_draft": 14,
+      "coverage_rate": 0.8716,
+      "n_seg_violation": 0,
+      "n_final_seg_none": 1,
+      "n_final_used_by_multi_draft": 0,
+      "violations_sample": []
+    },
+    "minimal": {
+      "n_paired": 95,
+      "n_unpaired_draft": 14,
+      "coverage_rate": 0.8716,
+      "n_seg_violation": 0,
+      "n_final_seg_none": 1,
+      "n_final_used_by_multi_draft": 0,
+      "violations_sample": []
+    },
+    "mt_old": {
+      "n_paired": 109,
+      "n_unpaired_draft": 0,
+      "coverage_rate": 1.0,
+      "n_seg_violation": 1,
+      "n_final_seg_none": 1,
+      "n_final_used_by_multi_draft": 7,
+      "violations_sample": [
+        {
+          "draft_key": "DRAFT::So that",
+          "draft_seg": 92,
+          "final_seg": 62,
+          "draft_src": "So that",
+          "final_src": "So that's something we've done intentionally to help drive the edge growth And then physic"
+        }
+      ]
+    },
+    "mt_fixed": {
+      "n_paired": 90,
+      "n_unpaired_draft": 19,
+      "coverage_rate": 0.8257,
+      "n_seg_violation": 0,
+      "n_final_seg_none": 0,
+      "n_final_used_by_multi_draft": 3,
+      "violations_sample": []
+    },
+    "proposed": {
+      "n_paired": 95,
+      "n_unpaired_draft": 14,
+      "coverage_rate": 0.8716,
+      "n_seg_violation": 0,
+      "n_final_seg_none": 1,
+      "n_final_used_by_multi_draft": 0,
+      "violations_sample": []
+    }
+  },
+  "pairwise_agreement": {
+    "current|minimal": {
+      "common": 93,
+      "only_a": 2,
+      "only_b": 2
+    },
+    "current|mt_old": {
+      "common": 92,
+      "only_a": 3,
+      "only_b": 17
+    },
+    "current|mt_fixed": {
+      "common": 86,
+      "only_a": 9,
+      "only_b": 4
+    },
+    "current|proposed": {
+      "common": 93,
+      "only_a": 2,
+      "only_b": 2
+    },
+    "minimal|mt_old": {
+      "common": 94,
+      "only_a": 1,
+      "only_b": 15
+    },
+    "minimal|mt_fixed": {
+      "common": 86,
+      "only_a": 9,
+      "only_b": 4
+    },
+    "minimal|proposed": {
+      "common": 95,
+      "only_a": 0,
+      "only_b": 0
+    },
+    "mt_old|mt_fixed": {
+      "common": 90,
+      "only_a": 19,
+      "only_b": 0
+    },
+    "mt_old|proposed": {
+      "common": 94,
+      "only_a": 15,
+      "only_b": 1
+    },
+    "mt_fixed|proposed": {
+      "common": 86,
+      "only_a": 4,
+      "only_b": 9
+    }
+  },
+  "elapsed_s": 0.249
+}

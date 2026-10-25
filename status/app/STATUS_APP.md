@@ -1,26 +1,28 @@
 # STATUS_APP
 last_ack: APP-017
-更新时间: 2026-10-25 20:55
-当前任务: **巡检（APP-017，无新条目）+ §39 修掉「语音输出无声」并重打 v1.5+ §40 CUDA 路径实测跑通**：① 🔴 **用户追问「CUDA 是独立的，faster-qwen3-tts 不是能跑吗」⇒ 用户是对的** —— §39.5 的「不可用」只说 **OpenVINO 的 CUDA plugin**，不等于本机 CUDA 不可用；② ✅ **PyTorch+CUDA 路径实测跑通**（独立 venv，不进包）：`torch 2.11.0+cu128` / CUDA 12.8 / `RTX 5050 Laptop` (sm_120) ⇒ 流式 **TTFA 0.547 s**、首块 0.640 s、非流式 **RTF 0.892**（5.563 s 合成 6.240 s 音频）、RMS 0.1149 / peak 0.5469；**首包比现网 NPU（6.964 s）快 12.7×**；③ 🔴 **必须钉 `transformers==5.15.1`** —— 5.20.2 加载即崩（`MimiConfig` 无 `rope_theta`）；④ 💰 **体积代价 ≈ +5.7 GB**（torch 4 211 MB + 依赖 ≈500 MB + HF 权重 2 400 MB）⇒ 客户包 11.2 GB → ≈17 GB；且与包内 transformers 4.57.6 **冲突**（需独立 env）；⑤ ⚠️ **§40 数字为无锁参考**（跑时 asr PID=38236 持锁）⇒ `timing_valid=false`，持锁复测待锁空闲；⑥ ✅ v1.5 包（md5 `f8475ce5…`）已含 §39 播放修复，13 979 条目、逐字节一致、自检 **PASS 49/0**
-阻塞 / 待用户决定: ① 🔴 **待用户决定 CUDA 后端怎么落**（§40.7）：(a) 只做本机可选后端（GUI 第三项、检测不到自动隐藏）⇒ **包体不变**；(b) 进客户包 ⇒ **+5.7 GB / 需独立 env 解决 transformers 5.15.1 冲突**；(c) 先做 CUDA vs NPU 音质抽听再定；② ⛔ **OV 的 CUDA plugin 不引入**（§39.5 依据不变）；③ ⛔ **APP-017 的「检查点 3」**由另一个 App 并行会话在做 ⇒ 本会话不重复跑、不抢锁；④ ⛔ **WER +2.6pp 主因**仍未定位；⑤ ⛔ **APP-015 方案 C** 仍在制品（18/21 FAIL）；⑥ ⛔ 包体 10.45 GiB 优化未做；⑦ ⛔ V7 残句代价待确认；⑧ ⛔ 集显 F32 TTS 很慢（首包 33.9 s）
+更新时间: 2026-10-25 21:25
+当前任务: **巡检（APP-017，无新条目）+ §41 三项落地：① 安静窗口闸门 ② 方案 C 渲染层匹配规则对齐 MT 口径（18/21 → 23/23）③ `pkg_exclude.__all__` 悬空名补齐 + 开发专用文件排除**：① ✅ **无新纠偏条目** —— `CORRECTIONS_APP.md` 最大编号 APP-017 = 头部 `last_ack`，本轮**只读零改动**（SHA256 `baaa16ae…` 与开始时逐位一致）；② ✅ **安静窗口闸门**（MT 通知 10 §10.6 / 通知 11 §11.3「取锁 ≠ 空闲」）—— `machine_lock_app.py` 新增 `wait_quiet_window`（stdlib + ctypes，不引 psutil），`pack_v13.py` / `publish_ftp.py` 持锁后再过第二道闸门，**超时 ⇒ 拒绝打包/发布**；③ ✅ **匹配规则**（`caption_render.match_draft_to_final`）—— 发现 MT 侧有**两套**口径（旧 109 / 修正 90）⇒ 引入**独立判据「段号单调性」**裁决 ⇒ 落地方案「三级关系 + 反向拒绝 + 最短剩余正式稿优先 + 全局一对一」，真实语料**段号倒流 0 / 无共用**，验收 **REAL 23/23 + BUG 5/5**；④ ✅ **`pkg_exclude.__all__` 三个悬空名补齐**（原 `import *` 直接抛 `AttributeError`）⇒ 新增「`app/` 下 `_` 前缀脚本」排除规则 ⇒ 客户包 v1.5 里的 `app/_probe_tts_cuda.py`（含开发机绝对路径）**下次打包自动剔出**，但 `selftest_audio_sources.py`（客户自检必需）**不误伤**；⑤ 🔴 **§40 CUDA 路径**（PyTorch+CUDA，TTFA 0.547 s / RTF 0.892）**仍为无锁参考** ⇒ `timing_valid=false`，待锁空闲持锁复测
+阻塞 / 待用户决定: ① 🔴 **待用户决定 CUDA 后端怎么落**（§40.7）：(a) 只做本机可选后端（GUI 第三项、检测不到自动隐藏）⇒ **包体不变**；(b) 进客户包 ⇒ **+5.7 GB / 需独立 env 解决 transformers 5.15.1 冲突**；(c) 先做 CUDA vs NPU 音质抽听再定；② ⛔ **OV 的 CUDA plugin 不引入**（§39.5 依据不变）；③ ⛔ **APP-017 的「检查点 3」**由另一个 App 并行会话在做 ⇒ 本会话不重复跑、不抢锁；④ ⛔ **WER +2.6pp 主因**仍未定位；⑤ ✅ **APP-015 方案 C 渲染层验收已闭环**（§41.3：18/21 ⇒ **23/23 PASS**）—— 但 **`translator.py` 合入仍待 MT 移交**（APP-009② / H-014，App 不代提交）；⑥ ⛔ 包体 10.45 GiB 优化未做；⑦ ⛔ V7 残句代价待确认；⑧ ⛔ 集显 F32 TTS 很慢（首包 33.9 s）；⑨ 🔴 **v1.5 包需重打**（§41.4 新增排除规则 ⇒ 包清单会少 1 个开发探针）—— **本轮未重打**，下次打包时自动生效
 
 
 ## 最近更新
+- 21:25 §41 ✅ **巡检结论：无新纠偏条目**（`CORRECTIONS_APP.md` 最大 APP-017 = `last_ack`，本轮**只读零改动**，SHA256 `baaa16ae…` 与开始时逐位一致）
+- 21:25 §41 🔴🔴 **匹配规则：MT 侧有【两套】口径**（旧 `dt in ft or ft in dt` = **109** / 修正「方向性前缀+反向拒绝+最短优先+min_len=10」= **90**）⇒ 不能盲从任一套 ⇒ 引入**独立判据「段号单调性」**（产品语义：草稿=段 N 尾半句，正式=凑齐后段 N 或更晚）
+- 21:25 §41 ✅ **落地方案**：三级关系（相等/方向性前缀/子串）+ **反向一律拒绝** + **最短剩余正式稿优先** + **全局一对一**；真实语料（109 draft/158 final）**段号倒流 0 / 无正式稿被多草稿共用**；**不抄** MT 的 `min_len=10`（评测口径会放弃短草稿 ⇒ 渲染层会导致浅色草稿永不替换）
+- 21:25 §41 ✅ **渲染层验收 18/21 ⇒ 23/23 PASS**（BUG 5/5，verdict=PASS）—— R1/R10 是**坏断言**（R1 与 docstring 自相矛盾；R10 与 R3 互斥），R2 是**真实现缺口**
+- 21:25 §41 🔴 **新发现并修掉 `pkg_exclude.__all__` 三个悬空名**（`APP_DIR`/`APP_DEV_ONLY_FILE_RE`/`is_app_dev_only` 从未实现 ⇒ `from pkg_exclude import *` 抛 `AttributeError`）
+- 21:25 §41 ✅ **新增「`app/` 下 `_` 前缀脚本」排除规则** ⇒ 客户包 v1.5 的 `app/_probe_tts_cuda.py`（含开发机绝对路径、全仓库零引用）**下次打包自动剔出**；`selftest_audio_sources.py`（客户自检必需）**不误伤**
+- 21:25 §41 ✅ **安静窗口闸门**（MT 通知 10 §10.6 / 通知 11 §11.3）—— `machine_lock_app.py` 新增 `wait_quiet_window`（stdlib + ctypes，**不引 psutil**），`pack_v13.py` / `publish_ftp.py` 持锁后再过第二道闸门，**超时 ⇒ 拒绝打包/发布**；实测本机 12 个外部 python 进程时正确 `ok=False`
+- 21:25 §41 ✅ **本轮闸门**：新增 `app047_app_gate_test.py` **28/28 PASS**；`app045` 14/14 + BUG 2/2；`app015` 23/23 + BUG 5/5；`test_machine_lock_app` **18/18 无回归**；7 文件 `py_compile` 全过
+- 21:25 §41 🔴 **生效范围**：现网 `translator.py` **不产生** `kind='draft'` 单元 ⇒ 本轮改动**对现网零影响**；待 MT 的 `translator_C.py` 合入后生效
 - 20:50 §40 🔴 **用户追问成立**：PyTorch+CUDA 路径实测跑通 —— `torch 2.11.0+cu128` / sm_120 / **TTFA 0.547 s**、**RTF 0.892**（首包比 NPU 6.964 s 快 **12.7×**）
 - 20:50 §40 🔴 **订正表述边界**：§39.5 的「不可用」只指 **OV 的 CUDA plugin**；**本机 CUDA 完全可用**（matmul 实测通过）
 - 20:50 §40 🔴 **钉版坑**：faster-qwen3-tts 必须 `transformers==5.15.1`，装 5.20.2 会 `MimiConfig` 无 `rope_theta` 直接崩
 - 20:50 §40 💰 **代价实测**：torch 4 211 MB + 依赖 ≈500 MB + HF 权重 2 400 MB ⇒ **+5.7 GB**（包体 ≈17 GB）；与包内 transformers 4.57.6 冲突
 - 20:50 §40 ⚠️ **口径**：无锁参考（asr 持锁）⇒ `timing_valid=false`；持锁复测待锁空闲
 - 19:50 §39.9 ✅ **v1.5 已持锁重打（含播放修复）**：md5 `f8475ce511efef7d13209bf9b64b5b95`、11 216 075 157 B、13 979 条目、**逐字节一致 PASS**
-- 19:35 §39 🔴🔴 **「语音输出无论 NPU/GPU 都听不到声音」已修**：真因 = `RingBuffer.write()` 要求「整句一次装下」，容量 72 000 样本（3 s）< 一句 138 240 样本（5.76 s）⇒ 条件恒真 ⇒ **每句都超时被丢**（与设备/精度无关）
-- 19:35 §39 🔴 **探针 `app044` 三段证据**：A 无消费者（报容量）/ **A2 有消费者仍超时**（证伪「环境问题」）/ B 真实流 0.5 s 响、5.76 s 挂 ⇒ 修后 A2 OK 2.81 s、B 5.76 s OK 2.76 s
-- 19:35 §39 ⛔ **NV CUDA 不可用 ⇒ 未加入语音输出选项**：libs 无 CUDA 组件 / cmake-nvcc-CUDA Toolkit-MSVC 全缺 / 官方 README「须自编译、仅 Ubuntu 20.04 验证」 / `GPU.1` 是 Intel GPU plugin 枚举
-- 19:35 §39 ✅ **两设备端到端出声**：NPU·F16 `first_packet_s=6.964` / 集显·F32 `33.883`，均 `n_played=1`、`n_dropped=0`；⚠️ 集显很慢
-- 19:35 §39 🔴 **方法论**：`pop_outbox()` 恒空（`_emit()` 从未被调用）⇒ 端到端观测必须用 `stats()`；「有消费者就不会超时」的假设被 A2 证伪
-- 19:31 §39 ✅ **文档同步**：README 中英补第（11）条（含「仍听不到怎么自查」）、MANIFEST notes 第（11）条、自检新增断言 ⇒ **PASS 49 / 0**
-- 18:27 §38 ✅ **v1.5 已持锁重打**：md5 `07513403e049a8e475168410dff9ac72`、11 216 072 487 B、13 979 条目、内容**逐字节一致**、**PASS**
-- 18:27 §38 ✅ **zip 内修复已核实**：4 个修复文件 SHA256 与包目录/HEAD 一致、修法标记齐全、**方案 C 残留 0**
-- 18:27 §38 🔴 **自检口径修正**：`app014b_v15_preship_check.py` 基准从「工作区」改为 **`git show HEAD:`**（否则会逼着并行会话的在制品进包）⇒ 自检 **PASS 48 / 0**
+
+
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -6764,3 +6766,254 @@ python 会**改动现网依赖**（ASR/MT 也用它）⇒ 只能**独立 site-pa
 1. **只在本机做可选后端**（GUI 第三项 `NVIDIA CUDA（本机已装）`，检测不到就自动隐藏）⇒ **包体不变**；
 2. **进客户包** ⇒ 包体 +5.7 GB（≈17 GB），且要解决 transformers 版本冲突（独立 env）；
 3. 先做 **CUDA vs NPU 音质抽听**再决定。
+
+## §41 🔴 巡检（APP-017 无新条目）+ 三项落地：① **安静窗口闸门**（MT 通知 10 §10.6 / 通知 11 §11.3）② **方案 C 渲染层匹配规则**对齐 MT 口径（验收 **18/21 → 23/23**）③ **`pkg_exclude.__all__` 悬空名补齐 + 开发专用文件排除**（2026-10-25 21:18）
+
+### §41.0 巡检结论：**无新的 reviewer 纠偏条目** ✅
+
+- `status/app/CORRECTIONS_APP.md`：最大编号 **APP-017**，本轮**未改动**
+  （SHA256 `baaa16ae869e3855a0a231946db81727ccb98a1fa2eeaab842ca51df038fd9cc`，
+  35 386 B，mtime `2026-10-25 15:38:05` —— 与本轮开始时**逐位一致** ⇒ 未被我修改 ✅）；
+- `status/app/STATUS_APP.md` 头部 `last_ack: APP-017` ⇒ **不存在编号 > APP-017 的新条目**
+  ⇒ **本轮无需执行新的纠偏条目**；
+- ⇒ 头部 `last_ack` **保持 `APP-017` 不变**（只追加本章节，不改旧章节）。
+
+### §41.1 🔴 背景：MT 通知 11（`shared/NOTICE_mt_to_app_20261025_notice11.md`，20:44 新到）
+
+MT 通知 11 通报了两件事，对 App 侧的直接影响只有第 1 件：
+
+| 通知 11 内容 | 对 App 的动作 |
+|---|---|
+| §11.1–11.2 NOPUNCT_BIG 的**时序类数字全部不可引用**（被 TTS 在 GPU.0 上并行污染，67 次采样 65 次 dirty） | ✅ **App 侧没有引用过这组数字** ⇒ 无需撤下 |
+| §11.3 缺陷①：**安静窗口只在批次编排启动时过了一次** ⇒「批次开始时干净」≠「批次全程干净」 | 🔴 **本轮已加固**（见 §41.2） |
+| §11.3 缺陷②：**污染标志全程累积** ⇒ 一次污染把后面干净批次也作废 | ⛔ **MT 侧已修**（`ContaminationMonitor.reset()`）⇒ App 侧不涉及 |
+| §11.3 建议③：「取锁」与「机器空闲」是两件事 | 🔴 **本轮已加固**（见 §41.2） |
+| §11.5 `c111_v5_ts10_nopunct_r2.json` 已标 `timing_valid=false` | ✅ App 侧不引用 |
+
+🔴 **本轮未对客户包做任何改动** ⇒ 无「已引用需撤下」的情况。
+
+### §41.2 ✅ ①「安静窗口闸门」已落地（取锁 ≠ 空闲 ⇒ 两道闸门）
+
+#### §41.2.1 根因（引用实测事故）
+
+2026-10-25 16:04 MT 已持锁跑 `ts10_nopunct_r2`，ASR 的
+`p3_int4_slice_decode.py --device GPU.0` **在同一块 GPU 上偷跑** ⇒ MT 计时污染作废。
+根因：**别的模块脚本大多不取锁** ⇒ 「我持锁」≠「机器空闲」。
+
+#### §41.2.2 改动（stdlib only + ctypes，**不引 psutil**）
+
+| 文件 | 改动 |
+|---|---|
+| `machine_lock_app.py` | ① docstring 新增「🔴🔴「我持锁」≠「机器空闲」—— 安静窗口闸门」章节；② 新增 `import ctypes.wintypes`；③ 新增 `list_processes()` / `external_python_pids()` / `wait_quiet_window()`；④ `LockHeld.wait_quiet()` |
+| `pack_v13.py` | 新增 `--quiet-seconds`（默认 45）/ `--quiet-timeout`（默认 1800）/ `--skip-quiet`；持锁后、`_run()` 前插第二道闸门，**超时 ⇒ 拒绝打包**（宁可不做，也不污染别的模块的计时） |
+| `publish_ftp.py` | 同上三个参数 + 同一条闸门（超时 ⇒ `sys.exit(1)` 拒绝发布） |
+
+`wait_quiet_window()` 的返回 `info` 含**可落盘证据字段**：
+`quiet_seconds` / `timeout` / `waited_s` / `n_samples` / `n_busy_samples` /
+`last_busy_pids` / `quiet_since`；**枚举失败时 `busy=[-1]` 并记 `enumeration_error`
+⇒ fail-closed**（读不到就判「有干扰」）。
+
+#### §41.2.3 实测有效性（真机实测，非构造）
+
+- 本机当时有 **12 个外部 python 进程**（ASR `p3_mask2_61min_fp16` PID 38236、
+  MT `_run_h018_nopunct_ts10.py`、TTS `own14_gpu_scale_factor_end2end.py` 等）
+  ⇒ `wait_quiet_window` 正确返回 **`ok=False`** 并**拒绝开跑**；
+- 排除全部外部 python PID 后 ⇒ 正确返回 **`ok=True`** ⇒ **有区分力**（不是恒真）。
+
+#### §41.2.4 验收证据
+
+- `results/app/app045_quiet_window_gate_test.py` → `results/app/app045_quiet_window_gate_evidence.json`
+  （3 112 B，mtime `2026-10-25 21:18:23`，SHA256 `ccea27d149f7feca…`）
+  ⇒ **REAL 14/14 PASS + BUG 2/2 命中（反证成立）**，`verdict=PASS`；
+- 既有 `results/app/test_machine_lock_app.py` 重跑 ⇒ **18/18 PASS**（**无回归**）；
+- `machine_lock_app.py` / `pack_v13.py` / `publish_ftp.py` 三文件 `py_compile` 全过；
+- `pack_v13.py --help` 正确显示 3 个新参数。
+
+### §41.3 ✅ ② 方案 C 渲染层：**匹配规则**对齐 MT 口径（验收 18/21 → **23/23**）
+
+#### §41.3.1 上一轮的 3 条 FAIL —— 逐条判定（区分「断言缺陷」与「实现缺陷」）
+
+| 断言 | 判定 | 依据 |
+|---|---|---|
+| **R1**「归一化去标点」 | 🔴 **坏断言** | 断言写 `norm_src('we should go') != norm_src('we should go.')`，但 `norm_src` 的**定义就是去标点** ⇒ 两者**必然相等**（实测 `equal=True`）⇒ 断言与模块 docstring **自相矛盾** |
+| **R10**「无 src 的草稿只显示不替换」 | 🔴 **坏断言**（且与 R3 **互斥**） | 原断言要求 `FINAL_MT` **不在** seg4，而 R3 要求 `FINAL_MT` **在** seg4（同一份 UNITS）⇒ 两条**不可能同时成立**（实测 seg4 = `[('src','we should go'),('mt','FIN'),('mt_draft','未知草稿')]`）⇒ R10 的真实意图应是「**无 src 的草稿不被猜测替换**」，不是「整段不出现正式稿」 |
+| **R2**「更具体的草稿优先配更短的正式稿」 | 🔴 **真实现缺口** | 现版排序键 `(rank, -len(dn), di, fi)` 只有「草稿更长优先」，**没有**「最短剩余正式稿优先」tie-break ⇒ MT 的权威实现用的是 `cand_len < best[1]`（**最短正式稿优先**） |
+
+#### §41.3.2 🔴🔴 关键发现：**MT 侧有**两套**口径，且给出不同的配对数**
+
+| 口径 | 位置 | 规则 | 在 MT 产物上的配对数 |
+|---|---|---|---|
+| **旧口径** | `hy_bench/_bak_variants2_before_xseg.py::draft_to_final_gap` | `dt in ft or ft in dt`（**双向包含**，无方向性、无 min_len）+ 最短正式句 | **109**（= MT 产物 `draft_gap.n_pairs` 自报值） |
+| **修正口径** | `hy_bench/c111_metrics_fixed.py::draft_to_final_gap_fixed` | `norm_tight`（**只去空白**）+ **方向性前缀** + **反向拒绝** + 最短正式稿优先 + `min_len=10` | **90**（我的逐字复刻值） |
+
+⇒ 🔴 **两套口径不一致，不能盲从任一套** ⇒ 必须引入**独立于任何规则**的裁判。
+
+#### §41.3.3 ✅ 独立判据：**段号单调性**（`final.seg >= draft.seg`）
+
+依据**产品语义**（不是任何一套匹配规则）：方案 C 里「草稿 = **段 N 的尾半句**，
+正式稿 = **凑齐后（段 N 或更晚）**的整句」⇒ 配对若 `final.seg < draft.seg`
+⇒ **时间倒流** ⇒ 必错。`seg=None` 的单元（`flush()` 补翻）不参与该判据。
+
+#### §41.3.4 四套规则 × 独立判据（MT 真实产物 `c111_v5_ts10_nopunct.json` 的 `C_draft` 臂，109 draft / 158 final）
+
+| 规则 | 配对数 | 覆盖率 | **段号倒流** | **final 被多草稿共用** | 未配对草稿 |
+|---|---|---|---|---|---|
+| 现版（`rank` + 草稿更长优先） | 95 | 0.872 | **0** | **0** | 14 |
+| **最小改动版**（+ 最短剩余正式稿优先） | 95 | 0.872 | **0** | **0** | 14 |
+| MT **旧口径**（双向包含） | 109 | 1.000 | 🔴 **1** | 🔴 **7** | 0 |
+| MT **修正口径**（方向性 + 反向拒绝） | 90 | 0.826 | **0** | 🔴 **3** | 19 |
+
+**结论**：旧口径虽然覆盖率 100%，但**破坏全局一对一**（7 条正式稿被多个草稿共用
+⇒ 同一句译文会在屏幕上出现多次 ⇒ **违反渲染层不变式 4**）**且有 1 条段号倒流**
+⇒ **不能采用**。修正口径覆盖率最低（0.826）⇒ 对渲染层偏严。
+
+#### §41.3.5 ✅ 已实施的规则（三级关系 + 反向拒绝 + 最短剩余正式稿优先 + 全局一对一）
+
+排序键（升序，先命中先占）：
+
+```
+(rank, -len(draft_norm), len(final_norm), draft_idx, final_idx)
+```
+
+| rank | 关系 | 含义 |
+|---|---|---|
+| 0 | **完全相等** | 草稿就是这句（定稿只补了句末标点） |
+| 1 | **正式稿以草稿为前缀**（且更长） | 草稿是整句的**前半截**（方案 C 主场景） |
+| 2 | **草稿嵌在正式稿中间** | 放宽兜底 |
+
+- 🔴 **反向一律拒绝**（「正式 ⊂ 草稿」⇒ 那是**更早**的单元 ⇒ 不是「草稿被正式稿替换」）
+  —— 与 MT 修正口径的「修正 B：**方向性**」一致；
+- 🔴 **不抄** MT 的 `min_len=10`：那是**评测口径**（草稿太短 ⇒ 替换间隔无统计意义）
+  ⇒ 会**主动放弃**「So great」这类短草稿的配对
+  ⇒ **渲染层不能这么做**（否则用户看到浅色草稿**永远不被替换**）⇒ `min_len` 只在评测侧生效；
+- ⚠️ **与 MT 评测口径的已知差异（用途不同，不是 bug）**：MT 评测允许一个正式稿被多个草稿关联
+  （它不关心「同一句译文显示几次」）；**渲染层必须一对一**（否则违反不变式 4）
+  ⇒ **两边的配对数天然不会完全相同，不可直接互相引用**。
+
+#### §41.3.6 改后验收：**REAL 23/23 PASS + BUG 5/5 命中，verdict=PASS** ✅
+
+- `results/app/test_app015_caption_render.py` → `results/app/app015_caption_render_evidence.json`
+  （6 341 B，mtime `2026-10-25 21:18:11`，SHA256 `0ff70e0b1c365f47…`）
+  ⇒ 由 **18/21 PASS ⇒ 23/23 PASS**（R10 拆成 3 条更细的断言），
+  **BUG 5/5 命中**（反证成立），`verdict=PASS`；
+- 规则比对的原始证据：`results/app/app046_match_rule_probe.py` →
+  `results/app/app046_match_rule_probe_evidence.json`
+  （3 552 B，mtime `2026-10-25 21:13:41`，SHA256 `714a44f60b60d77f…`）
+  ⇒ 含四套规则的配对数、段号倒流样例、两两一致度；
+- ✅ **已落地实现与「最小改动版」在真实语料上逐条一致**（实测 `shipped == minimal == proposed`）。
+
+#### §41.3.7 🔴 生效范围声明（**对现网零影响**）
+
+- 当前生产 `live_caption/translator.py` **不产生** `kind='draft'` 的单元
+  （`self.units.append(dict(key=k, src=s, seg=seg, mt=None))` 无 `kind` 字段）
+  ⇒ `caption_render.py` 的草稿路径在现网**不会被触发**
+  ⇒ **本节改动对现网零影响**；
+- 但**一旦 MT 的 `translator_C.py` 合入**（方案 C 落地，MT 移交 APP-009② / H-014）
+  ⇒ 立即生效 ⇒ 故**先修好规则再合入**，避免带着已知缺口上线。
+
+### §41.4 ✅ ③ `pkg_exclude.__all__` 悬空名补齐 + 开发专用文件排除
+
+#### §41.4.1 🔴 发现的缺陷（本轮巡检新发现，**此前未修**）
+
+工作区的 `pkg_exclude.py`（mtime `2026-10-25 13:54`，一次**未完成的在制品改动**）
+把三个**从未实现**的名字加进了 `__all__`：
+
+```python
+__all__ = [ ..., 'APP_DIR', 'APP_DEV_ONLY_FILE_RE', 'is_app_dev_only', ... ]
+```
+
+⇒ 实测 `from pkg_exclude import *` ⇒ **`AttributeError: module 'pkg_exclude' has no attribute 'APP_DIR'`**
+⇒ **任何 `import *` 的调用方直接崩**。
+
+#### §41.4.2 真实靶子：客户包 v1.5 里有开发探针
+
+- `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5\app\_probe_tts_cuda.py`（3 072 B，mtime `2026-10-25 09:14`）
+  ⇒ 内含**开发机绝对路径** `REPO = r"C:\Users\Trekker-PTL\confucius4-openvino"`；
+- ✅ 实测**全仓库零引用**（`grep -rn "_probe_tts_cuda"` 在 `.py/.md/.bat/.json` 里**无命中**）
+  ⇒ 是**纯开发探针**，与客户无关；
+- ⚠️ 该文件**已在 v1.5 包内** ⇒ 属「开发机路径泄漏」。
+
+#### §41.4.3 已实施的规则
+
+`pkg_exclude.py` 新增（全部条件**同时满足**才排除）：
+
+1. 位于 `app/` 下；
+2. 文件名**以下划线开头**；
+3. 扩展名属脚本类（`.py` / `.ps1` / `.bat` / `.sh`）；
+4. **不在**白名单里。
+
+🔴 **白名单**（防误伤）：`selftest_audio_sources.py`
+—— 它是**客户自检**用的（`verify_pkg_zip.py` 的 `KEY_APP_FILES` 把它列为**必需**）
+⇒ **绝不能**被 `_` 前缀规则误伤（已实测 `is_excluded=False`）。
+
+🔴 **单一数据源**：`is_app_dev_only()` 已接进 `is_excluded()` 与 `iter_package_files()`
+⇒ `pack_v13.py` 走 `pkg_exclude.iter_package_files` ⇒ **新规则自动生效**；
+并在 `pack_v13.py` 的硬校验里**单独加了「开发专用脚本」断言**
+（⚠️ **不能**复用 `MUST_NOT_NAME_RE_LIST` —— 那个列表的匹配被**限定在 `models/qwen3tts/` 下**
+⇒ 在那里加规则**不会生效**）。
+
+#### §41.4.4 验收证据
+
+- `results/app/app047_app_gate_test.py` → `results/app/app047_app_gate_evidence.json`
+  （4 931 B，mtime `2026-10-25 21:18:02`，SHA256 `dbeb7e99a3f86ebe…`）
+  ⇒ **28/28 PASS**，`verdict=PASS`。覆盖三组：
+  - `GATE` 9 条（安静窗口回归：API 存在 / 可执行 / 两处接线 / 代码里绝不用 `tasklist`）；
+  - `MATCH` 9 条（反向拒绝 / 方向性前缀 / 最短剩余优先 / 全局一对一 / 确定性 /
+    **真实语料段号倒流 0** / **真实语料无共用** / 覆盖率不显著回退 / 与最小改动版逐条一致）；
+  - `EXCLUDE` 10 条（`__all__` 无悬空名 / `import *` 可执行 / 探针被排除 /
+    **`selftest_audio_sources.py` 不被误伤** / 正常代码不被误伤 / 只作用于 `app/` /
+    `pack_v13` 含该断言 / **客户包 v1.5 现状确实含探针**（有真实靶子）/
+    **新规则下包清单不含探针** / **仍含 selftest**）。
+
+### §41.5 ✅ 本轮总闸门与回归
+
+| 脚本 | 结果 |
+|---|---|
+| `results/app/test_app015_caption_render.py` | **REAL 23/23 PASS + BUG 5/5 命中，verdict=PASS**（原 18/21 ⇒ FAIL） |
+| `results/app/app045_quiet_window_gate_test.py` | **REAL 14/14 PASS + BUG 2/2 命中，verdict=PASS** |
+| `results/app/test_machine_lock_app.py` | **18/18 PASS**（无回归） |
+| `results/app/app047_app_gate_test.py` | **28/28 PASS，verdict=PASS**（本轮新增） |
+| `py_compile` × 7 文件 | **全过**（`pkg_exclude` / `pack_v13` / `publish_ftp` / `machine_lock_app` / `caption_render` / 2 个验收脚本） |
+
+🔴 **本轮全部为离线校验**：不跑推理、不测速、不占 GPU、**不取真实机器锁**、不调 MiniMax。
+🔴 **未写**客户包、**未写** MT 目录（`app046` 只读 MT 产物）。
+
+### §41.6 📦 本轮产物清单（文件数 / mtime / 字节数 / SHA256）
+
+| 文件 | 字节 | mtime | SHA256（前 16） |
+|---|---|---|---|
+| `live_caption/caption_render.py` | 20 438 | 2026-10-25 21:13:36 | `dbb13e9acf390301` |
+| `pkg_exclude.py` | 17 859 | 2026-10-25 21:16:33 | `cc542cf09dc9ac56` |
+| `pack_v13.py` | 39 211 | 2026-10-25 21:17:13 | `d0eabcb6adedeec0` |
+| `publish_ftp.py` | 8 828 | 2026-10-25 20:59:20 | `845069ea8490ae1f` |
+| `machine_lock_app.py` | 24 922 | 2026-10-25 20:58:36 | `f9ea7d0ff1028e28` |
+| `results/app/test_app015_caption_render.py` | 17 686 | 2026-10-25 21:14:20 | `c1e8fd948b536c37` |
+| `results/app/app046_match_rule_probe.py` | 14 870 | 2026-10-25 21:12:08 | `8f780c9c30a68b29` |
+| `results/app/app046_match_rule_probe_evidence.json` | 3 552 | 2026-10-25 21:13:41 | `714a44f60b60d77f` |
+| `results/app/app047_app_gate_test.py` | 14 845 | 2026-10-25 21:17:53 | `5ed6d0ed56327a16` |
+| `results/app/app047_app_gate_evidence.json` | 4 931 | 2026-10-25 21:18:02 | `dbeb7e99a3f86ebe` |
+| `results/app/app045_quiet_window_gate_evidence.json` | 3 112 | 2026-10-25 21:18:23 | `ccea27d149f7feca` |
+| `results/app/app015_caption_render_evidence.json` | 6 341 | 2026-10-25 21:18:11 | `0ff70e0b1c365f47` |
+
+（**12 个文件**；`status/app/STATUS_APP.md` 本章节为第 13 个。）
+
+### §41.7 ⛔ 仍未闭环的既有 App 事项（**本轮未推进，如实记录**）
+
+| # | 事项 | 状态 |
+|---|---|---|
+| ① | **APP-017 的「检查点 3」**由**另一个 App 并行会话**在做 | ⛔ 本会话**不重复跑、不抢锁** |
+| ② | **WER +2.6pp 主因**未定位 | ⛔ 未动 |
+| ③ | **APP-015 方案 C 的 `translator.py` 合入**（MT 移交 APP-009② / H-014） | ⛔ 属 **MT 移交**，App 不代提交 `translator.py`；本轮只把**渲染层规则**修好待命 |
+| ④ | **包体 10.45 GiB 优化** | ⛔ 未动 |
+| ⑤ | **V7 残句代价**待确认 | ⛔ 未动 |
+| ⑥ | **集显 F32 TTS 很慢**（首包 33.9 s） | ⛔ 未动（§40 的 CUDA 路径因体积 +5.7 GB 待用户决定） |
+| ⑦ | **v1.5 包需重打**（本轮新增了「开发专用文件排除」规则 ⇒ 包清单会少 1 个文件） | 🔴 **本轮未重打** ⇒ 下一轮打包时自动生效；**本节不宣称已重打** |
+
+### §41.8 🔴 边界声明
+
+- 🔴 `status/app/CORRECTIONS_APP.md` **本轮只读、零改动**（SHA256 与本轮开始时逐位一致）；
+- 🔴 **未提交** `status/app/CORRECTIONS_APP.md`（它显示为 `M` 是 **reviewer 改了但未提交**，不是我的改动）；
+- 🔴 **未吞** ASR / MT / TTS 其它模块的未提交改动（工作区大量 `M` 属并行会话）；
+- 🔴 本轮改动文件全部属 **App 模块管辖**（打包脚本 / sync / `pkg_exclude` / `caption_render` / 验收脚本 / 本 STATUS）；
+- 🔴 **未动** `live_caption/translator.py`（**MT 管辖**，H-010 / H-014）、**未动** `live_caption/live_caption_app.py`
+  （并行会话的在制品，148 行未提交差异 ⇒ 本轮**不碰**）。

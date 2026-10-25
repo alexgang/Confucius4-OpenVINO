@@ -147,6 +147,9 @@ MUST_NOT_PREFIX += [
 ]
 
 # 禁止进包的文件名模式（音色 B/C 的 wav/npz 等）
+# ⚠️ **注意**：本列表的匹配在硬校验里被**限定在 `models/qwen3tts/` 下**
+#    ⇒ 这里放别的规则**不会生效** ⇒ 开发专用脚本的断言单独写
+#    （见 `pkg_exclude.is_app_dev_only`）。
 MUST_NOT_NAME_RE_LIST = [
     pkg_exclude.SPOKEN_FILE_RE,
     re.compile(r'preset_B', re.I),
@@ -511,6 +514,17 @@ def main():
                          '⚠️ 实测（2026-10-25）：四个模块**轮流**用锁时，'
                          '1 小时的等待不够（TTS 拿了 30 min、MT 又接上）'
                          '⇒ 打包进程会**空等超时退出**（安全：旧包不动、无残留）')
+    ap.add_argument('--quiet-seconds', type=float, default=45.0,
+                    help='取锁后还要等「安静窗口」的秒数（默认 45）'
+                         '🔴 「我持锁」≠「机器空闲」：别的模块的脚本**大多不取锁**'
+                         '⇒ 只取锁会被偷跑污染（实测 2026-10-25 16:04：MT 持锁跑批时'
+                         'ASR 偷跑同一块 GPU ⇒ MT 计时作废）')
+    ap.add_argument('--quiet-timeout', type=float, default=1800.0,
+                    help='等待安静窗口的秒数（默认 1800 = 30 min）'
+                         '⚠️ 超时 ⇒ **拒绝打包**（不污染别的模块的计时窗口）')
+    ap.add_argument('--skip-quiet', action='store_true',
+                    help='跳过安静窗口检查（默认**不跳过**；'
+                         '仅在明确知道机器空闲时使用）')
     args = ap.parse_args()
 
     # 🔴 打包是**长时重活**（压缩 13.7 GB + 逐文件 SHA256 复核 11.2 GB zip）
@@ -529,6 +543,22 @@ def main():
         print('!! 未能取得共享机器锁 ⇒ 拒绝打包（避免干扰其它模块计时）')
         return 1
     try:
+        # 🔴🔴 **第二道闸门：安静窗口**（MT 通知 10 §10.6 明确要求 App 侧加固）
+        #    「我持锁」≠「机器空闲」⇒ 别的模块**不取锁**偷跑时，本模块的打包
+        #    会污染**它们**的计时 ⇒ 反过来也一样 ⇒ 取锁后必须再等安静窗口。
+        if not args.skip_quiet:
+            print(f'[lock] 已持锁 ⇒ 等安静窗口（{args.quiet_seconds:.0f}s，'
+                  f'最多等 {args.quiet_timeout:.0f}s）…')
+            qok, qinfo = lk.wait_quiet(quiet_seconds=args.quiet_seconds,
+                                      timeout=args.quiet_timeout)
+            if not qok:
+                print('!! 未进入安静窗口 ⇒ 拒绝打包'
+                      '（宁可不做，也不污染别的模块的计时）')
+                print('   采样 %d 次 / 有干扰 %d 次 / 已等 %.0f s'
+                      % (qinfo.get('n_samples', 0),
+                         qinfo.get('n_busy_samples', 0),
+                         qinfo.get('waited_s', 0.0)))
+                return 1
         return _run(args)
     finally:
         lk.release()
@@ -761,6 +791,21 @@ def _verify_and_report(ZIP, args, PKG, PREFIX):
         print(f'  [{"已移除" if not tts_bad else "仍在"}] 音色 B/C/克隆素材 '
               f'（{len(tts_bad)} 条命中）')
         for n in tts_bad[:20]:
+            print(f'      ⚠️ {n}')
+
+        # 🔴 开发专用脚本断言（app/ 下的 `_` 前缀，如 `_probe_tts_cuda.py`）
+        #    ⚠️ **不能**复用 MUST_NOT_NAME_RE_LIST —— 那个列表的匹配被
+        #    「限定在 models/qwen3tts/ 下」⇒ 在这里加规则不会生效。
+        #    ⇒ 单独按 `pkg_exclude.is_app_dev_only` 判定（单一数据源）。
+        devonly_hit = sorted(
+            n for n in names
+            if pkg_exclude.is_app_dev_only(n[len(PREFIX) + 1:])
+        )
+        print()
+        print('开发专用脚本（app/ 下的 `_` 前缀）：')
+        print(f'  [{"已移除" if not devonly_hit else "仍在"}] 开发专用脚本 '
+              f'（{len(devonly_hit)} 条命中）')
+        for n in devonly_hit[:20]:
             print(f'      ⚠️ {n}')
 
     print()
