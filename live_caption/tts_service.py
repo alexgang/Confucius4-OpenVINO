@@ -156,6 +156,17 @@ class TTSService:
                 except Exception:
                     pass
                 self.proc = None
+            # 🔴 2026-10-26 §47 修：**新 worker 起来 ⇒ 旧 jid 的标记可以清空**。
+            #   `_dropped_ids` 里是「旧 worker 的 jid」⇒ 新 worker 用的是
+            #   **全新的、单调递增的** jid（`_next_id`）⇒ 两边不会撞
+            #   ⇒ 旧标记对新 worker **毫无意义** ⇒ 必须清，否则
+            #   「关 TTS / 换设备 / 换音色」每走一次就攒一批 ⇒ 集合无界增长。
+            #   ⚠️ 走到这里说明「没有活着的 proc」（上面的守卫已 return）
+            #      ⇒ 旧 worker **不可能**再回事件 ⇒ 清掉是安全的。
+            #   ⚠️ `close()` 路径**不走这里**（`_closing` 守卫在上面就 return）
+            #      ⇒ close() 里的孤儿标记会被保留到下一次 start() 才清
+            #      ⇒ 迟到 `played` 仍能正确改记（这正是 §47 要的行为）。
+            self._dropped_ids.clear()
             self.state = 'loading'
             self.err = None
             env = dict(os.environ)
@@ -354,6 +365,17 @@ class TTSService:
             #    ⇒ 它可能在这段时间里回一条 `played`（积压丢弃过、但它仍播了）
             #    ⇒ `_handle_event` 要靠 `_dropped_ids` 把它**改记为「已播」**
             #    ⇒ 提前清了 ⇒ 又变成「丢了 + 播了」双记（§30 修的正是这个）。
+            # 🔴🔴 2026-10-26 §47 修：**孤儿句必须登记进 `_dropped_ids`**。
+            #   旧实现只清 `pending` + 计丢句，**没有登记** ⇒
+            #   迟到的 `played` 到达时 `was_dropped = False`
+            #   ⇒ 只 `n_played += 1`（**不减** `n_dropped`）
+            #   ⇒ 同一句「丢了」又「播了」⇒ **sum 比 submitted 多 1**
+            #   ⇒ 不变式 `n_played + n_dropped == n_submitted` 被破坏。
+            #   实测（`results/app/app057_tts_dropped_id_registration.py` A 组）：
+            #     修复前 close() 后迟到 played ⇒ sum=4 / submitted=3 ⇒ 破坏。
+            #   ⇒ 这里**登记**（与 `_update_backlog` / `cancel` 同一口径）：
+            #     「已计丢句」+「worker 可能仍会产出事件」。
+            self._dropped_ids.update(orphan)
             n_queued = len(self._queue)
             self._queue.clear()
         if orphan:
@@ -595,13 +617,33 @@ class TTSService:
                 # ── worker 级：模型/播放设备等整体故障 ────────────────────
                 self.state = 'error'
                 self.err = message
-                # worker 已死 ⇒ 在途与待发的句子都不会再有结果
-                # ⇒ 必须清掉，否则 `drain()` 必定超时（GUI 30 s / CLI 120 s 白等）。
+                # 🔴🔴 2026-10-26 §47 修：**前提事实错误** ⇒ 行为随之出错。
+                #   旧注释写「worker 已死 ⇒ 在途与待发的句子都不会再有结果」
+                #   ⇒ 据此做了 `self._dropped_ids.clear()`。
+                #   🔴 **但 worker 级 error 的两个产地都不会让 worker 进程退出**：
+                #     `tts_worker.py` L339 `播放设备打开失败`（Player 打不开）
+                #     `tts_worker.py` L1004 `模型加载失败`（`_safe_load` 异常）
+                #   ⇒ 主循环 `for line in sys.stdin` **继续跑**
+                #   ⇒ 它仍会为在途句子回**句子级** `error`（带 id）
+                #      （模型没加载 ⇒ `synth()` emit `没有可用的音色` + id）
+                #      或回 `played`（设备没开 ⇒ `synth()` 仍 emit `played`）
+                #   ⇒ 后果有两条：
+                #     ① `_dropped_ids.clear()` **毁掉 §30 的积压丢弃标记**
+                #        ⇒ 迟到的 `played` 不再被识别为「已丢弃」⇒ 双记；
+                #     ② 孤儿句**只计丢句、不登记** ⇒ 迟到句子级 error 又 +1
+                #        ⇒ **同一句被计两次** ⇒ sum 比 submitted 多 N。
+                #   实测（`results/app/app057_tts_dropped_id_registration.py`
+                #   B/C 组）：修复前 worker 级 error 后跟 3 条迟到句子级 error
+                #   ⇒ sum=6 / submitted=3 ⇒ 不变式破坏。
+                # ⇒ 修法（两处）：
+                #   ① **不清** `_dropped_ids`（保留 §30 的标记）；
+                #   ② 孤儿句**登记**进 `_dropped_ids`（与 `close()` 同一口径）
+                #      ⇒ 迟到的句子级 error 命中 `already` ⇒ 不重复计丢句。
                 with self.lock:
                     orphan = sorted(self.pending.keys())
                     self.pending.clear()
                     self._inflight.clear()
-                    self._dropped_ids.clear()
+                    self._dropped_ids.update(orphan)
                     n_queued = len(self._queue)
                     self._queue.clear()
                 if orphan or n_queued:

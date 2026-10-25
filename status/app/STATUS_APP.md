@@ -1,24 +1,26 @@
 # STATUS_APP
 last_ack: APP-017
-更新时间: 2026-10-26 04:41
-当前任务: **§46 🔴🔴 把「已在真实打包里跑过、但从未入库」的包内导入完整性闸门入库**（APP-017 无新条目，第 21 次同一口径）⇒ `pkg_exclude.py` 新增 `find_missing_local_modules()`（包内无 + 仓库有 ⇒ 确定缺失 ⇒ 打包 FAIL；包内无 + 仓库无 ⇒ 第三方依赖 ⇒ 仅提示）+ `pack_v13.py` 把它并入 FAIL 判定 ⇒ 已在 `pack_v15_s42.log` L646-648 真实 PASS（0 条确定缺失 / 54 条疑似）⇒ 本轮重跑 **10/10 PASS** + 独立复现真故障形态（`caption_render` 被精确抓住，56 条第三方零误伤）⇒ 🔴 **补发 v1.5 到 FTP_Share**（`publish_ftp.py` 持锁 `app-ftppub` / 安静窗口 45 s / 11 216 089 426 B / 9.2 s / 源⇄副本 SHA256 `0c0f6a96…` 一致 ⇒ PASS）⇒ 🔴 **未改产品代码、未重打包、未重开 FTP、零推理零 GPU 零测速**
+更新时间: 2026-10-26 06:15
+当前任务: **§47 🔴🔴 修掉「**已计丢句**没有登记进 `_dropped_ids`」⇒ 不变式 `n_played + n_dropped == n_submitted` 在**两条真实路径**上被破坏**（APP-017 无新条目，第 22 次同一口径）⇒ `close()` 的孤儿句与 worker 级 error 的孤儿句**只计丢句、不登记** ⇒ 迟到的 `played` / 句子级 `error` 被**重复或双记**（反证：修复前 close() 后 sum=4/3、worker 级 error 后 sum=6/3）⇒ 修法 4 处（登记 orphan / **不**清 `_dropped_ids` / 新 worker 起来才清）⇒ 验收 **18/18 PASS**（`app057`，含 2 条固定 commit 反证）+ 既有 **6 套件未回归** + **对包内那份单独跑同一套断言 PASS** ⇒ 交付：`sync_c151_to_pkg.py`（4 块唯一命中 + 幂等）⇒ 持锁重打 v1.5（`app-pack` PID 34112 / 05:53:09 / 13 982 文件逐字节一致 / 原子改名）⇒ 主包 = FTP_Share 副本 = **11 216 090 481 B** / SHA256 `ca4e60bf…` **一致**⇒ 🔴 **未重开 FTP 服务**、零推理零 GPU 零测速
 阻塞 / 待用户决定: ① 🔴 **§45.6① 等 reviewer 裁定**：「边界/每词 1.611× vs 中间/每词 1.035×」是否足以判定「切段粒度/切点位置」为主因（**App 不自行下质量结论**）；② 🔴 **§45.6② 等 reviewer 裁定**：是否接受 encoder 外推上界 —— 若不接受，需在 226 段下补一条 **int8asym 端到端臂（需持锁跑推理）**；③ 🔴 **§45.6③**：`reports/c057_encoder_acc_3way.json` 的 `token_edit_pct` 与 IR 体积**排序相反**⇒ 该指标是否仍应作选型依据；④ 🔴 **§45.6④**：若要改产品行为是改分段粒度/改 encoder/改预算？⇒ 改 encoder 上界仅 ~0.113 pp ⇒ **改分段粒度是唯一有数量级空间的方向**；⑤ 🔴 **§45.6⑤**：是否把 App 默认引擎 encoder 从 int8asym 改回 fp16（**App 不自行决定**）；⑥ 🔴 **等 reviewer 裁定**：是否采纳「跨段上限 `MAX_SEG_SPAN = 2`」（§44 候选已备好）；⑦ 🔴 **需回复 MT 通知 13**：其 §13.1「产品不受影响」**在 App 渲染层不成立**（跨段 85/33 段错配），且其 §13.4「词边界」**抓不住** `Okay` ⇒ 建议改用「跨段距离」判据；⑧ 🔴 **§46.5 新增等裁定**：包内 `torch` / `qwen_asr` **不在** site-packages（当前客户启动路径不受影响）⇒ 是否加「第三方依赖可满足性」闸门；⑨ ✅ **§43 闸门端到端验证已结清**（`pack_v15_s42.log` L646-648 真实 PASS）⇒ 🔴 **§42.3 修复待用户实机确认**；⑩ 🔴 **FTP_Share 已补发 v1.5**（SHA256 一致）⇒ 🔴 **FTP 服务仍关闭**（守 APP-009③）；⑪ ⛔ **OV 的 CUDA plugin 不引入**（§39.5 不变）；⑫ ⛔ **APP-017「检查点 3」**由并发 App 会话在做 ⇒ 本会话不重复跑；⑬ ✅ **APP-015 方案 C 渲染层验收 23/23**，但 `translator.py` 合入仍待 MT 移交（APP-009② / H-014，App 不代提交）；⑭ ⛔ 包体 10.45 GiB 优化未做；⑮ ⛔ V7 残句代价待确认；⑯ ⛔ 集显 F32 TTS 慢（首包 33.9 s）
 
 
 ## 最近更新
+- 06:15 §47 🔴🔴 **修掉「已计丢句」没有登记进 `_dropped_ids`** ⇒ 不变式 `n_played+n_dropped==n_submitted` 在**两条真实路径**上被破坏
+- 06:15 §47 🔴 **缺陷①`close()` 的孤儿句只计丢句、不登记** ⇒ 迟到 `played` 被双记（反证：修复前 sum=4 / submitted=3）
+- 06:15 §47 🔴🔴 **缺陷②worker 级 error 既 `clear()` 掉 §30 的标记、又不登记孤儿** ⇒ 且其前提「worker 已死」是**事实错误**（L339/L1004 都不退出进程）
+- 06:15 §47 ✅ **修法 4 处**（登记 orphan / 不清 `_dropped_ids` / worker 级 error 也登记 / 新 worker 起来才清 ⇒ 兼顾迟到改记与集合不无界）
+- 06:15 §47 ✅ **验收 18/18 PASS**（`app057`）⇒ 修复前 REAL 失败 **7** 项 ⇒ 修复后 **0** 项；含 **2 条固定 commit `5b99bfd` 反证**（E1 sum=4/3、E2 sum=6/3）
+- 06:15 §47 ✅ **既有 6 个 TTS 套件全部未回归**（§20/§21/§22/§29/§30/§31）
+- 06:15 §47 ✅ **对包内那份单独跑同一套断言 PASS**（A/C 两组 sum 恒 = 3）⇒ 修复真的进了包
+- 06:15 §47 ✅ **交付**：`sync_c151_to_pkg.py`（4 块唯一命中 + 幂等 ALREADY + 包外备份）⇒ 包内 SHA `e5b83613…`→`4c7d9e30…`（与仓库逐字节一致）
+- 06:15 §47 ✅ **持锁重打 v1.5**（`app-pack` PID 34112 / 05:53:09 / 安静窗口 45 s）⇒ **13 982 文件逐字节一致** / 原子改名 / 内部素材闸门 0 ⇒ 锁已释放
+- 06:15 §47 ✅ **交付闭环**：主包 = FTP_Share 副本 = **11 216 090 481 B** / SHA256 `ca4e60bf…` **一致** ⇒ `verify_pkg_zip.py` 独立复核 PASS
+- 06:15 §47 ✅ **修复已在交付 zip 内**（zip 内 `tts_service.py` 41 202 B / SHA `4c7d9e30…`）⇒ 🔴 **未重开 FTP 服务**
 - 04:41 §46 🔴🔴 **补上「已在真实打包里 PASS、但从未入库」的包内导入完整性闸门**⇒ `pkg_exclude.py` + `pack_v13.py`（+234 行）⇒ 缺陷类别进闸门，防复发
 - 04:41 §46 ✅ **该闸门已在真实打包里跑过**：`pack_v15_s42.log` L646-648 = 「0 条确定缺失 / 54 条疑似」⇒ ⇒ **§45.8#6「§43 闸门待端到端验证」结清**
 - 04:41 §46 ✅ **验收重跑 10/10 PASS**（`app048_pkg_import_integrity_gate.py`）+ **独立复现真故障形态**：`caption_render` 被精确抓住，**56 条第三方依赖零误伤**
 - 04:41 §46 ✅ **判据边界实测**：仓库 159 个模块 ∩ 手工白名单 = **0**；∩ 完整 stdlib 名单（290）= **0** ⇒ 无同名冲突
-- 04:41 §46 🔴 **补发 v1.5 到 FTP_Share**（`publish_ftp.py` 持锁 `app-ftppub` PID 41420 / 04:39:03 / 安静窗口 45 s）⇒ **11 216 089 426 B / 9.2 s** ⇒ 源⇄副本 SHA256 `0c0f6a96…` **一致** ⇒ PASS
-- 04:41 §46 ✅ **交付闭环**：主包 = FTP_Share 副本 = **11 216 089 426 B** / 13 982 条目 / MANIFEST `version=1.5`；🔴 **未重开 FTP 服务**（netstat 无监听）
-- 04:41 §46 🔴 **附带发现（只记录未改）**：包内 `torch` / `qwen_asr` **不在** site-packages⇒ 当前客户启动路径**不受影响**（走 `SegmentEncoderOVBackend`，不 import 它们）⇒ 提请 reviewer 裁定
-- 04:41 §46 ✅ **包内代码 == 仓库 HEAD**：zip 内 `live_caption_app.py` SHA256 `7866390888b1…` 与 `git show HEAD:` **逐字节一致** ⇒ 工作区的方案 C 在制品**未进包**（守「基准必须是 HEAD」）
-- 03:18 §45 🔴🔴 **WER +2.6pp 主因已归因**（APP-017 第③项完成）⇒ **缺口集中在「段的两个端点」** ⇒ **指向切段粒度/切点位置，不是编码器精度**
-- 03:18 §45 🔴 **先统一到 reviewer 的尺子**：改用 **MiniMax 真值**（`reports/c026_minimax_raw.json`，11 499 词）重算 ⇒ BASE **7.757%** / APP_A **10.166%**（**Δ +2.409 pp** ⇒ 同量级复现）
-- 03:18 §45 🔴🔴 **核心发现（公平口径·每词）**：**边界/词** BASE **9.9259%** → APP_A **15.9925%**（**1.611×**）而**中间/词** 7.3060% → 7.5591%（**1.035×**）⇒ **段内部并不差，劣势全在段端点**
-- 03:18 §45 ✅ **encoder 精度强烈不支持为主因**：同为 226 段，fp16→**int4** 只 **+0.113 pp**而 App 缺口 **2.409 pp**
-- 03:18 §45 🔴🔴 **撤回 §37 的「重新聚合成 225 段 Δ=0.0 ⇒ 段聚合方式与 WER 无关」**：token 序列**逐位相同** ⇒ 该对照是**恒等式、零效力**
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -8199,3 +8201,265 @@ suspect count: 56
 | 提交前自检 | `git diff --cached --name-only \| grep -c CORRECTIONS` = **0**；暂存区 U+FFFD 计数 = **0**；内部会议判据关键词命中 = **0**；`py_compile` × 3 全过 |
 
 🔴 **本轮只提交了「本会话自己产出的 App 职责内文件」**，逐文件 `git add`（**不用 `-A`**）。
+
+
+## §47 🔴 巡检（APP-017 无新纠偏条目，**第 22 次**同一口径）+ 🔴🔴 修掉「**已计丢句**没有登记进 `_dropped_ids`」⇒ 不变式 `n_played + n_dropped == n_submitted` 在**两条真实路径**上被破坏（2026-10-26 06:15）
+
+> 第 22 次巡检：`status/app/CORRECTIONS_APP.md` **无新条目**（最大 **APP-017**），
+> `last_ack` 保持 **APP-017** ⇒ 本轮**不执行任何 reviewer 新纠偏**。
+> 该文件**只读、零改动**（SHA256 与本轮开始时逐位一致，见 §47.1）。
+
+---
+
+### §47.1 巡检结论（实测）
+
+| 项 | 实测值 |
+|---|---|
+| `status/app/CORRECTIONS_APP.md` | SHA256 `baaa16ae869e3855a0a231946db81727ccb98a1fa2eeaab842ca51df038fd9cc` / **35 386 B** / mtime `2026-10-25 15:38:05` |
+| `## APP-xxx` 条目数 | **17**（APP-001 … APP-017） |
+| 最大编号 | **APP-017** |
+| `STATUS_APP.md` 头部 `last_ack` | **APP-017** |
+| ⇒ **是否有编号 > last_ack 的新条目** | ❌ **无** ⇒ `last_ack` **不变** |
+| 共享机器锁 | 巡检开始时**不存在**（`ls shared/` 实测）⇒ 后续打包才取锁 |
+| 跨模块通知 | `shared/` 下最新仍是 **MT 通知 13**（`2026-10-26 00:47`）⇒ 与 §44/§45/§46 同一口径，**无新通知** |
+
+🔴 **本文件（CORRECTIONS）只读零改动**；🔴 **未提交** `status/app/CORRECTIONS_APP.md`
+（`git status` 显示 `M` 的是 **reviewer 自己**的未提交改动）。
+
+---
+
+### §47.2 🔴🔴 本轮核心：**「已计丢句」必须登记进 `_dropped_ids`**
+
+§30（commit `d39eb17`）建立了不变式 `n_played + n_dropped == n_submitted`，
+并引入 `_dropped_ids`（=「**已计丢句、但 worker 可能仍会产出事件**」的 jid 集合）
+来**唯一**处理「丢了又播」的竞态。
+
+🔴🔴 **但 `_dropped_ids` 的「登记」只发生在两处** ⇒ **另外两条「放弃该句」的路径漏了登记**：
+
+| 路径 | 代码位置 | 是否计丢句 | 🔴 **是否登记 `_dropped_ids`** |
+|---|---|---|---|
+| 积压超限丢弃 | `_update_backlog()` | ✅ `n_dropped += len(drop_ids)` | ✅ `self._dropped_ids.add(jid)` |
+| 显式 cancel | `cancel()` | ✅ `n_dropped += 1` | ✅ `self._dropped_ids.add(jid)` |
+| **① `close()` 的孤儿句** | `close()` | ✅ `n_dropped += len(orphan)` | ❌ **未登记** |
+| **② worker 级 error 的孤儿句** | `_handle_event()` worker 级分支 | ✅ `n_dropped += len(orphan)` | ❌ **未登记**，且**额外 `clear()` 掉**了别人的标记 |
+
+#### §47.2.1 缺陷 ①：`close()` 的孤儿句**没登记** ⇒ 迟到 `played` 双记
+
+`close()`（**停 TTS / 换设备 / 换音色 / 退出**，四条路径都调）把在途句子
+`pending` 清掉 + `n_dropped += len(orphan)` ⇒ 但**没有**登记进 `_dropped_ids`。
+
+🔴 而 **§31 自己的注释**就写明「worker 此刻**还活着**（quit 在清理**之后**才发）
+⇒ 它可能在这段时间里回一条 `played`」⇒
+迟到 `played` 到达时 `was_dropped = False` ⇒ 只 `n_played += 1`（**不减** `n_dropped`）
+⇒ 同一句「丢了」又「播了」⇒ **sum 比 submitted 多 1** ⇒ 不变式破坏。
+
+> 🔴 **这不是假想竞态**：`tts_worker.py` 的 `synth()` 跑在**独立线程**，
+> 而 `close()` 由**主线程**调 ⇒ 二者并发 ⇒ 真实存在。
+
+#### §47.2.2 缺陷 ②：worker 级 `error` **既清空 `_dropped_ids`、又不登记孤儿**
+
+`tts_service.py::_handle_event()` 的 worker 级 error 分支（旧实现）：
+
+```python
+with self.lock:
+    orphan = sorted(self.pending.keys())
+    self.pending.clear()
+    self._inflight.clear()
+    self._dropped_ids.clear()          # 🔴 毁掉 §30 的积压丢弃标记
+    n_queued = len(self._queue)
+    self._queue.clear()
+```
+
+🔴🔴 **前提事实错误** —— 旧注释写「worker 已死 ⇒ 在途与待发的句子都不会再有结果」，
+但 **worker 级 error 的两个产地都不会让 worker 进程退出**：
+
+| 产地 | 代码 | 是否让进程退出 |
+|---|---|---|
+| 播放设备打开失败 | `tts_worker.py` L339 `emit({'kind': 'error', 'message': f'播放设备打开失败：{err}'})` | ❌ **不退出**（`Player` 打不开，`self.player = None`，主循环继续） |
+| 模型加载失败 | `tts_worker.py` L1004 `emit({'kind': 'error', 'message': f'模型加载失败：{e}'})` | ❌ **不退出**（`_safe_load` 异常，主循环继续） |
+
+⇒ 主循环 `for line in sys.stdin` **继续跑** ⇒ 它仍会为在途句子回事件：
+
+* 设备没开 ⇒ `synth()` 仍走 `emit({'kind': 'played', 'id': jid})`（`player is None` ⇒ 跳过播放但**照样 emit played**）；
+* 模型没加载 ⇒ `synth()` emit **句子级** error（`没有可用的音色` + `id`）。
+
+⇒ **后果两条**：
+① `_dropped_ids.clear()` **毁掉 §30 的积压丢弃标记** ⇒ 迟到的 `played` 不再被识别为「已丢弃」⇒ 双记；
+② 孤儿句**只计丢句、不登记** ⇒ 迟到的句子级 error 又 `+1` ⇒ **同一句被计两次**。
+
+#### §47.2.3 修复（4 处，全部在 `live_caption/tts_service.py`）
+
+| # | 位置 | 修法 |
+|---|---|---|
+| ① | `close()` | `self._dropped_ids.update(orphan)` —— 孤儿句**登记**（与 `_update_backlog` / `cancel` 同一口径） |
+| ② | `_handle_event()` worker 级 error | **删除** `self._dropped_ids.clear()` —— 保留 §30 的标记 |
+| ③ | `_handle_event()` worker 级 error | `self._dropped_ids.update(orphan)` —— 孤儿句**登记** ⇒ 迟到句子级 error 命中 `already` ⇒ 不重复计丢句 |
+| ④ | `start()` | 新 worker 起来时 `self._dropped_ids.clear()` —— 新 worker 用**全新、单调递增**的 jid ⇒ 旧标记无意义 ⇒ 否则「关 TTS / 换设备 / 换音色」每走一次就攒一批 ⇒ **集合无界增长** |
+
+> ⚠️ ④ 的位置很讲究：`close()` 路径**不走** `start()`（`_closing` 守卫在上面就 `return`）
+> ⇒ `close()` 里的孤儿标记会被**保留**到下一次 `start()` 才清 ⇒ 迟到 `played` 仍能正确改记（这正是 §47 要的行为）。
+> ⇒ 而 `start()` 里能走到 `clear()` ⇒ 说明**没有活着的 proc** ⇒ 旧 worker **不可能**再回事件 ⇒ 清掉是安全的。
+
+---
+
+### §47.3 ✅ 验收（`results/app/app057_tts_dropped_id_registration.py`，**18/18 PASS**）
+
+🔴 **纪律**：**桩 worker**（不跑推理、不测速、不占 GPU、不取机器锁）；`tts_service` 只 import stdlib；
+**不调 MiniMax**（质量判定交 reviewer）。
+
+#### §47.3.1 修复前 → 修复后（同一套断言）
+
+| 组 | 断言 | 修复前 | 修复后 |
+|---|---|---|---|
+| **A** | `close()` 后孤儿句**已登记** `_dropped_ids` | ❌ `_dropped_ids=[]` | ✅ `[0, 1, 2]` |
+| **A** | **迟到 `played` 后不变式成立** | ❌ **sum=4 / submitted=3** | ✅ sum=3 / submitted=3 |
+| **A** | 迟到 `played` 被**改记为已播**（`n_dropped` 减 1 / `n_played` 加 1） | ❌ p=1 / d=3 | ✅ p=1 / d=2 |
+| **B** | worker 级 error **未清空** `_dropped_ids`（jid 0 的标记还在） | ❌ `[]` | ✅ `[0, 1, 2]` |
+| **B** | worker 级 error 的孤儿句**已登记** | ❌ `[]` | ✅ `[0, 1, 2]` |
+| **C** | **迟到句子级 error 后不变式成立** | ❌ **sum=6 / submitted=3** | ✅ sum=3 / submitted=3 |
+| **C** | 迟到句子级 error **未重复**计丢句 | ❌ `n_dropped=6` | ✅ `n_dropped=3` |
+| **D** | 正常路径：3 句全播 ⇒ p=3 / d=0，不变式成立 | ✅ | ✅（**未回归**） |
+
+**修复前 REAL 失败 7 项 ⇒ 修复后 REAL 失败 0 项。**
+
+#### §47.3.2 反证（证明缺陷**曾真实存在**，不是嘴说）
+
+🔴 **反证基线不能用 `HEAD`**（提交后 HEAD 就是修复版 ⇒ 反证永远落空）
+⇒ 用**固定 commit SHA `5b99bfd`**（= §31 的提交，本缺陷类别**尚未**修），
+在**子进程**里跑**同样的场景**：
+
+| 反证 | 修复前实测 | 判定 |
+|---|---|---|
+| E1 `close()` 后迟到 `played` | **sum=4 / submitted=3**（`broken_after_late_played=true`） | ✅ **缺陷复现** |
+| E2 worker 级 error 后跟 3 条迟到句子级 error | **sum=6 / submitted=3**（`broken=true`） | ✅ **缺陷复现** |
+
+#### §47.3.3 既有套件**未回归**（6 个，仓库版）
+
+| 套件 | 归属 | 结果 |
+|---|---|---|
+| `test_tts_stderr.py` | §20 | ✅ **9/9 PASS** |
+| `test_tts_restart_regression.py` | §21 | ✅ **PASS** |
+| `test_tts_error_isolation.py` | §22 | ✅ **PASS** |
+| `test_tts_drop_crash.py` | §29 | ✅ **PASS**（REAL 全过 / BUG 全落空） |
+| `test_tts_exit_played.py` | §30 | ✅ **PASS**（REAL 全过 / BUG 全落空） |
+| `test_tts_close_gui_quit.py` | §31 | ✅ **PASS**（REAL 全过且 BUG 全落空） |
+
+#### §47.3.4 🔴 **对包内那份单独跑同一套断言**（「仓库里测过」≠「包里的那份是对的」）
+
+| 场景 | 包内实测 | 判定 |
+|---|---|---|
+| `close()` 后（3 句在途） | p=0 / d=3 / sub=3 / **sum=3** | ✅ |
+| `close()` 后迟到 `played` id=1 | p=1 / d=2 / sub=3 / **sum=3** | ✅ **改记正确** |
+| worker 级 error + 3 条迟到句子级 error | p=0 / d=3 / sub=3 / **sum=3** | ✅ **无重复计数** |
+
+⇒ 加载的模块确认为**包内那份**：`C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5\app\tts_service.py`。
+
+---
+
+### §47.4 交付（**定点替换**，未做整目录覆盖）
+
+🔴 **纪律**：仓库 `live_caption/` 与客户包 `app/` 是**两份独立副本**
+⇒ 只用「**精确字符串替换 + 唯一命中断言**」，**禁止整目录覆盖**。
+
+#### §47.4.1 `live_caption/sync_c151_to_pkg.py`（新增，沿用 §30 的「`git show` + `difflib` 自动派生替换块」法 ⇒ **不手抄代码**）
+
+| 项 | 实测值 |
+|---|---|
+| 基线 commit | `b42613e`（§47 改动**之前**的版本） |
+| 变更块 | **4** 块（对应 §47.2.3 的 ① ② ③ ④） |
+| 命中 | **4/4 唯一命中**（`cnt == 1` 断言全过） |
+| 包内 `tts_service.py` 修复前 | **37 696 B** / SHA256 `e5b83613acd14587b3b6fcc09bf467dae60bda4ae8d17f30ff98c03135330d22` |
+| 包内 `tts_service.py` 修复后 | **41 202 B** / SHA256 `4c7d9e30e69d459ad14ad7a433e930100ee771f1a86ac1bfac5499c040475837` |
+| 归一化 SHA（仓库 ⇄ 包内） | **完全一致** `4c7d9e30e69d459ad14ad7a433e930100ee771f1a86ac1bfac5499c040475837` |
+| 幂等复跑 | ✅ **`ALREADY`**（不重复改写） |
+| 包外备份 | `C:\Users\Trekker-PTL\pkg_backup_app_c151\tts_service.py.bak_20261026_055245`（**在包外** ⇒ 不会被 `pkg_exclude.BACKUP_DIR_RE` 命中而污染包） |
+
+#### §47.4.2 重打 v1.5 包（**持共享机器锁**）
+
+| 项 | 实测值 |
+|---|---|
+| 打包前 `--dry-run` | ✅ **PASS**（关键文件全 [OK]、内部素材闸门 **0** 命中） |
+| 机器锁 | ✅ **已取得**（`app-pack` / **PID 34112** / **05:53:09**）⇒ 安静窗口 **45 s** ⇒ 才开始计时 |
+| 打包耗时 | **约 10 min**（05:53:09 → 06:03） |
+| 包内本地模块导入完整性 | ✅ **0 条确定缺失 / 54 条疑似**（第三方依赖，§46 闸门） |
+| 内容级校验 | ✅ **13 982 个文件逐字节一致**（zip ⇄ 包目录） |
+| 原子改名 | ✅ **已原子改名**到 `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5.zip` |
+| 锁 | ✅ **已释放**（`MACHINE_LOCK` 已删除） |
+
+#### §47.4.3 交付物最终状态
+
+| 项 | 实测值 |
+|---|---|
+| 主包 zip | `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5.zip` — **11 216 090 481 B** / mtime `2026-10-26 06:03` / SHA256 `ca4e60bf0334fedca0fd8dc360998e810e1c58c63d7350400ab62cdf7ead289a` |
+| FTP_Share 副本 | `C:\Users\Trekker-PTL\FTP_Share\Confucius4_LiveCaption_v1.5.zip` — **11 216 090 481 B** / 复制 **8.6 s（1 245.4 MB/s）** |
+| 源 ⇄ 副本 SHA256 | **一致** `ca4e60bf…` ⇒ ✅ **PASS**（`publish_ftp.py` 持锁 `app-ftppub`，原子改名） |
+| `verify_pkg_zip.py` 独立复核 | ✅ **PASS**（zip ⇄ 包目录 **13 982** 一致；仓库 ⇄ 包目录 **15/16**） |
+| 🔴 **修复已在交付 zip 内** | ✅ zip 内 `app/tts_service.py` = **41 202 B** / SHA256 `4c7d9e30e69d459a…`（与仓库**逐字节一致**）⇒ `self._dropped_ids.update(orphan)` 命中 **2** 处、`clear()` 剩 **2** 处（均已核实语义安全：L169 `start()` / L286 worker 判死） |
+| MANIFEST | `version=1.5` / `files=13981` |
+| v1.4 | **保留**（FTP 是发布目录，旧版本不删） |
+| 🔴 **FTP 服务** | **未重开**（`netstat` 实测 21 / 2121 **无监听** ⇒ 守 APP-009③） |
+
+> ⚠️ **`verify_pkg_zip.py` 报的 1 处「不一致」是预期的**：
+> `live_caption_app.py` 包内 = `HEAD`（SHA `7866390888b1…`），
+> 而**工作区**那份是**方案 C 在制品**（未提交）⇒ 差在 `451571bf…` vs `78663908…`。
+> ⇒ **包内代码 == 仓库 HEAD**（守「基准必须是 HEAD」的纪律）⇒ **方案 C 未进包**（§34.7 的要求）。
+
+---
+
+### §47.5 git（**只提交 App 职责内文件**）
+
+- 🔴 **未提交** `status/app/CORRECTIONS_APP.md`（**reviewer 独占文件**）
+- 🔴 **未吞**他模块改动：`live_caption/live_caption_app.py`（方案 C 在制品）/ `status/CORRECTIONS.md` /
+  ASR 的 `c0*.py`（40+）/ `live_caption/diag_c111_*`（60+）/ `regen_seg_wavs.py` / `verify_segmentation.py`
+  ⇒ **全部保留在工作区**
+- 🔴 **不 force push**（仓库只保留 `main` 分支）
+
+（提交号见 §47.6）
+
+---
+
+### §47.6 🔴 下次巡检必读（本轮新增）
+
+- 🔴🔴 **「已计丢句」与「登记进 `_dropped_ids`」是**两件事**，必须成对**。
+  §30 只把「登记」加在**积压丢弃**与**显式 cancel** 两处 ⇒
+  **`close()`** 与 **worker 级 error** 两条路径只做了前者 ⇒ 不变式在**真实路径**上被破坏。
+  ⇒ **审计清单**：凡是「`n_dropped += N`」的地方，**必须**同时有「`N` 个 jid 登记进 `_dropped_ids`」。
+- 🔴🔴 **「worker 级 error ⇒ worker 已死」是**事实错误** ⇒ 写这类清理逻辑时，
+  必须**逐个核对 error 的产地**（`tts_worker.py` L339 / L1004 **都不退出进程**）
+  ⇒ 主循环仍会回事件 ⇒ 迟到事件必须能被识别为「已放弃」。
+- 🔴 **「清空 `_dropped_ids`」是有条件的**：只有**确认旧 worker 不可能再回事件**时才可清
+  ⇒ `start()` 里清是安全的（没有活着的 proc）；
+  ⇒ `close()` 里**不能**清（worker 还活着）；
+  ⇒ worker 级 error 里**更不能**清（worker 根本没死）。
+- 🔴 **集合无界增长的修法要选对位置**：`close()` 的孤儿标记**不能**在 `close()` 里清
+  （会破坏迟到 `played` 的改记）⇒ 放到**下一次 `start()`** 清
+  ⇒ 新 worker 用**全新、单调递增**的 jid ⇒ 旧标记对它无意义 ⇒ 两边都满足。
+- 🔴 **反证基线用「固定 commit SHA」**：本轮用 `5b99bfd`（§31 的提交，本缺陷未修）
+  ⇒ 子进程跑**同一套场景** ⇒ E1 sum=4/3、E2 sum=6/3 ⇒ **缺陷复现**。
+  ⚠️ 若用 `HEAD` ⇒ 反证**永远落空** ⇒ 失去证据价值。
+- ⚠️ **包版回归脚本里写死的包版本会过期**：`test_tts_close_gui_quit_pkg.py` 写死 `v1.4`
+  ⇒ 对 v1.5 跑会误报 FAIL（`live_caption_app.py` 归一化 SHA 不一致）
+  ⇒ **不是回归**（包内 == HEAD，在制品本就不该进包）⇒ 本轮用 sed 改版本号临时跑后删除。
+  ⇒ 🔴 **教训**：pkg 回归脚本应**自动发现最大版本包**，不要写死。
+- ✅ **「包内那份单独跑同一套断言」仍然有效**：包内 `tts_service.py` 的
+  A/C 两组场景实测 sum 恒 = 3 ⇒ 与仓库版一致 ⇒ 修复真的进了包。
+- ⚠️ **打包窗口内不启动任何 `python.exe`** ⇒ 本轮打包窗口内只做只读核查
+  （`ls` / `tail` 日志 / `cat` 锁文件）⇒ 耗时数字未被自己污染。
+- ✅ **`pack_v13.py --dry-run` 先跑**：PASS（关键文件全 [OK] + 内部素材闸门 0 命中）
+  ⇒ 再持锁重打 ⇒ 内容级 13 982 一致 ⇒ 原子改名 ⇒ `verify_pkg_zip.py` 独立复核 PASS
+  ⇒ `publish_ftp.py` 持锁重发（源⇄副本 SHA 一致）⇒ **四步闭环才算交付完成**。
+
+---
+
+### §47.7 本轮**未推进**（仍等 reviewer / 用户）
+
+- ⛔ **§45.6①~⑤**（切段粒度归因 / encoder 上界 / `token_edit_pct` 是否仍作选型依据 /
+  改哪一层 / App 默认 encoder 是否回 fp16）—— **等 reviewer 裁定**（App 不自行下质量结论）。
+- ⛔ **§44** 的 `MAX_SEG_SPAN = 2` 候选 —— **等 reviewer 裁定**。
+- ⛔ **MT 通知 13 的回复** —— §44 已给出事实与建议，仍待 reviewer 转达。
+- ⛔ **APP-015 方案 C 的 `translator.py` 合入** —— 待 MT 移交（APP-009② / H-014，**MT 管辖，App 不代提交**）。
+- ⛔ **APP-017「检查点 3」** —— 由并发 App 会话在做 ⇒ 本会话不重复跑。
+- ⛔ **§46.5**：包内 `torch` / `qwen_asr` **不在** site-packages（当前客户启动路径不受影响）
+  ⇒ 是否加「第三方依赖可满足性」闸门 —— **等 reviewer 裁定**。
+- ⛔ **包体 10.45 GiB 优化**、**V7 残句代价**、**集显 F32 TTS 慢**（首包 33.9 s）。
+

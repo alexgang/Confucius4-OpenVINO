@@ -1,0 +1,53 @@
+{
+  "real_fail": [],
+  "evidence": {
+    "A_close_late_played": {
+      "n_played": 1,
+      "n_dropped": 2,
+      "n_submitted": 3,
+      "sum": 3,
+      "invariant": true
+    },
+    "B_worker_error": {
+      "n_played": 0,
+      "n_dropped": 3,
+      "n_submitted": 3,
+      "sum": 3,
+      "invariant": true
+    },
+    "C_late_sentence_error": {
+      "n_played": 0,
+      "n_dropped": 3,
+      "n_submitted": 3,
+      "sum": 3,
+      "invariant": true
+    },
+    "D_normal": {
+      "n_played": 3,
+      "n_dropped": 0,
+      "n_submitted": 3,
+      "sum": 3,
+      "invariant": true
+    },
+    "E_baseline": {
+      "commit": "5b99bfd",
+      "close_late_played": {
+        "n_played": 1,
+        "n_dropped": 3,
+        "n_submitted": 3,
+        "sum": 4,
+        "broken_after_late_played": true,
+        "sum_before_late": 3
+      },
+      "worker_error": {
+        "n_played": 0,
+        "n_dropped": 6,
+        "n_submitted": 3,
+        "sum": 6,
+        "broken": true
+      }
+    }
+  },
+  "baseline_commit": "5b99bfd",
+  "verdict": "PASS"
+}
