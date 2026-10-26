@@ -1,26 +1,26 @@
 # STATUS_APP
 last_ack: APP-022
-更新时间: 2026-10-26 20:55
-当前任务: **§55 🔴 响应 APP-022 —— 预留 `spk` / `spk_conf` 接口（**本条已完成**，未集成）+ TTS-017① `cp_prefill` → NPU 同步** ⇒ ① **APP-022 已完成**：事件**按需加长**（`spk=None` ⇒ 仍是 5 元组 ⇒ MT 的 `len(e)==5` 断言继续成立）；`spk` 有值 ⇒ 7 元组；② GUI 新增「跟随说话人（克隆）」**（默认仍是预设 A**）与「显示说话人」**（默认关闭）**；③ 说话人表**只在内存**、会话结束清空、**不进客户包**；④ 🔴🔴 **TTS-017① `cp_prefill` 已同步到 NPU**（形状 `[1,2,1024]`；编译失败**回退 CPU + 记日志 + 返回 False**，不静默降级）；⑤ ✅ `app079` **REAL 15/15 · BUG 0/2**；⑥ ✅ 客户包 **6/6 synced**（骨架等价校验后升级基底，逐字一致 + `py_compile` OK）；⑦ ✅ **已交付 zip 干净**（13 984 entries / 第三方素材 0 / 仅 1 个 wav）；⚠️ **散包目录仍有 8 + 22 个第三方素材残留**（未清理 ⇒ 不写「已交付」）
+更新时间: 2026-10-26 22:15
+当前任务: **§56 🔴 巡检（APP-022 = `last_ack` ⇒ **本轮无新 APP 纠偏条目**）+ 🔴🔴 响应 TTS 跨模块通知 —— 共享机器锁改「原子写 + 独占」+ 持锁方逐条自检（**本条已完成**）** ⇒ ① **无新条目**：`CORRECTIONS_APP.md` 最大编号 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0** ⇒ 不触发逐条执行；② 🔴 **根因**：App 是 4 模块里**唯一仍用 `O_CREAT|O_EXCL`「先建空文件、之后才写内容」**写锁的模块（ASR/TTS 早已改 `tmp+os.replace`）⇒ 别的模块在**空锁窗口**读到空文件 ⇒ 解析不出 pid ⇒ 判成陈旧锁 ⇒ **`os.remove` 删掉别人的活锁** ⇒ 两模块同时跑 ⇒ **TTS 两轮数据作废**（16/30、24/30 行 `timing_valid=false`）；③ ✅ **原子 + 独占写**（`tmp`+`fsync`+**`os.link`**，`FileExistsError` ⇒ 独占失败；**刻意不用 `os.replace`** —— 它会覆盖 ⇒ 丢独占性 ⇒ TOCTOU）；④ ✅ **读不出 pid 不删**（等 2 s 重读，**只有确实空白才回收**，非空 ⇒ 绝不删）；⑤ ✅ **锁内真真实 PID**（口径不变）；⑥ ✅ **逐条自检**（新增 `lock_intact` / `lock_probe` / `LockHeld.intact()` ⇒ 每条记录落盘 `timing_valid`/`lock_note`/`lock_pid`；🔴 **判定顺序**：先判「是不是自己」再判存活 ⇒ 锁被抢才报「锁被抢」，不被「PID 已死」掩盖）；⑦ ✅ **8 个计时脚本收敛**到 `machine_lock_app.write_lock_atomic()`（消除各自复制的逻辑漂移）；⑧ ✅ **4 组验收全绿**：`app082` **22/22**（REAL 9+BUG 1，B1 反证 `5809/13712` 见到空锁）、`test_machine_lock_app` **18/18**（既有回归无回归）、`app083b` **72/72**（语义校验，非只看语法）、`app085` **20/20**（跨进程 e2e，REAL 8+BUG 2，三方解析器全可读）；⑨ ✅ **回执已发** `shared\NOTICE_app_to_tts_asr_20261026_s56.md`（附原始字段 + 产物哈希，建议 TTS 自行决定是否重跑）；⚠️ **未在 CPU 跑推理/测速、未碰真实 `shared/MACHINE_LOCK`、未碰客户包、未改 `CORRECTIONS_APP.md`、未吞其它模块改动**
 
-阻塞 / 待用户决定: ① 🔴 **APP-022 集成阶段需等 ASR-013 + TTS-019 交付**（本条只做接口预留，**未集成**）；② 🔴 **APP-021 验收 C 仍需用户配合**（需人）：交互会话里系统音量 ≥ 50%、戴耳机/外放 ⇒ **先点「🔊 测试声音」再点离线朗读念一句** ⇒ 把会话日志路径与遥测行写进本 STATUS；③ 🔴 **撤回后的口径**：在用户用耳朵确认之前，**不得**再宣称「离线朗读能出声」；④ 🔴 **v1.5 zip 未重打**（守 APP-020，等 cp_prefill 同步后的最终版 + 机器锁）；⑤ 🔴 **散包目录仍有第三方素材残留**（babelvox speakers 8 + scipy 测试音频 22）⇒ **未清理**，需重打时由 `pkg_exclude` 规则覆盖；⑥ 🔴 **术语表 / `packaging` 默认值待用户决定**（MT 通知 14 建议：术语表只在芯片/半导体语境下开、`packaging` 放可选集 ⇒ 属 App 默认值 ⇒ 本轮**未擅自改**）；⑦ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑧ 🔴 **§49.7 待裁定**（APP-020 明确「先不要定」⇒ 未动）；⑨ 🔴 **§45.6①–⑤ 等 reviewer 裁定**；⑩ 🔴 **等裁定**：是否采纳 `MAX_SEG_SPAN = 2`（§44 候选已备好）；⑪ 🔴 **需回复 MT 通知 13**；⑫ 🔴 **§46.5** 第三方依赖可满足性闸门；⑬ 🔴 **§42.3** 修复待用户实机确认；⑭ ⛔ **FTP 服务仍关闭**（守 APP-009③）；⑮ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑯ ⛔ 包体优化未做（用户已接受）；⑰ ⛔ V7 残句代价待确认
+阻塞 / 待用户决定: ① 🔴 **APP-022 集成阶段需等 ASR-013 + TTS-019 交付**（本条只做接口预留，**未集成**）；② 🔴 **APP-021 验收 C 仍需用户配合**（需人）：交互会话里系统音量 ≥ 50%、戴耳机/外放 ⇒ **先点「🔊 测试声音」再点离线朗读念一句** ⇒ 把会话日志路径与遥测行写进本 STATUS；③ 🔴 **撤回后的口径**：在用户用耳朵确认之前，**不得**再宣称「离线朗读能出声」；④ 🔴 **v1.5 zip 未重打**（守 APP-020，等 cp_prefill 同步后的最终版 + 机器锁）；⑤ 🔴 **散包目录仍有第三方素材残留**（babelvox speakers 8 + scipy 测试音频 22）⇒ **未清理**，需重打时由 `pkg_exclude` 规则覆盖；⑥ 🔴 **术语表 / `packaging` 默认值待用户决定**（MT 通知 14 建议：术语表只在芯片/半导体语境下开、`packaging` 放可选集 ⇒ 属 App 默认值 ⇒ 本轮**未擅自改**）；⑦ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑧ 🔴 **§49.7 待裁定**（APP-020 明确「先不要定」⇒ 未动）；⑨ 🔴 **§45.6①–⑤ 等 reviewer 裁定**；⑩ 🔴 **等裁定**：是否采纳 `MAX_SEG_SPAN = 2`（§44 候选已备好）；⑪ 🔴 **需回复 MT 通知 13**；⑫ 🔴 **§46.5** 第三方依赖可满足性闸门；⑬ 🔴 **§42.3** 修复待用户实机确认；⑭ ⛔ **FTP 服务仍关闭**（守 APP-009③）；⑮ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑯ ⛔ 包体优化未做（用户已接受）；⑰ ⛔ V7 残句代价待确认；⑱ 🔴 **§56.9**：TTS-019 `single` 臂 / TTS-017① `A_CPU` 臂两轮数据**是否重跑由 TTS 自行决定**（App 已修根因，**不代跑尺子**）；⑲ 🔴 **§56.2**：ASR/TTS 侧锁写法的**独占性**待其自评（`os.replace` 会覆盖 ⇒ 丢独占性）
 
 
 ## 最近更新
-- 20:55 §55 🔴 **APP-022 已完成（仅接口预留，未集成）**：事件**按需加长**（`spk=None` ⇒ 仍是 5 元组 ⇒ MT 的 `len(e)==5` 断言继续成立）
-- 20:55 §55 🔴🔴 **TTS-017① `cp_prefill` 已同步到 NPU**：形状 `[1,2,1024]`；失败**回退 CPU + 记日志 + 返回 False**（不静默降级）
-- 20:55 §55 ✅ GUI 预留两项：「跟随说话人（克隆）」**（默认仍是预设 A）**+「显示说话人」**（默认关闭）**；说话人表**只在内存**、会话结束清空
-- 20:55 §55 ✅ `app079` **REAL 15/15 · BUG 0/2**；客户包 **6/6 synced**（骨架等价校验后升级基底 + 逐字校验 + `py_compile` OK）
-- 20:55 §55 ✅ **已交付 v1.5 zip 干净**（13 984 entries / babelvox speakers 0 / scipy 测试音频 0 / 仅 `preset_A.wav` 1 个 wav）；⚠️ **散包目录仍有 8 + 22 残留**
-- 16:55 §54 🔴 **会话日志可读性修复（§54.10）**：① 同一行落盘 **2~3 遍** ⇒ 短窗口去重；② stderr **中文乱码** ⇒ 查到根因是 `sox` 包 `os.popen` 文本模式把 cmd.exe 的 **GBK 字节解成 U+FFFD（不可逆）** ⇒ 边车加 `_RawStderr` 字节代理 + service 改二进制管道 + `_decode_worker_line`（utf-8→gb18030 严格判定）；③ **双重标签** `[TTS] [TTS]` ⇒ 不再叠加 tag
+- 22:15 §56 🔴 **巡检：无新 APP 纠偏条目**（`CORRECTIONS_APP.md` 最大 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0**）⇒ `last_ack` 保持 **APP-022**
+- 22:15 §56 🔴🔴 **根因（跨模块）**：App 是 4 模块里**唯一仍用 `O_CREAT|O_EXCL`「先建空文件再写内容」**写锁的模块（ASR/TTS 早已 `tmp+os.replace`）⇒ 别的模块在**空锁窗口**读到空文件 ⇒ 解析不出 pid ⇒ 判成陈旧锁 ⇒ **`os.remove` 删掉别人的活锁** ⇒ 两模块同时跑 ⇒ **TTS 两轮数据作废**（16/30、24/30 行 `timing_valid=false`）
+- 22:15 §56 ✅ **原子 + 独占写**（`tmp`+`fsync`+**`os.link`** ⇒ `FileExistsError` 独占失败；🔴 **刻意不用 `os.replace`** —— 它会**覆盖** ⇒ 丢独占性 ⇒ TOCTOU）+ **读不出 pid 不删**（等 2 s，**只有确实空白才回收**）+ **锁内真实 PID** + **逐条自检**（`lock_intact`/`lock_probe` ⇒ 每条记录落盘 `timing_valid`/`lock_note`/`lock_pid`）
+- 22:15 §56 ✅ **8 个计时脚本收敛**到 `machine_lock_app.write_lock_atomic()`；**4 组验收全绿**：`app082` **22/22**（BUG 反证 `5809/13712` 见到空锁）、`test_machine_lock_app` **18/18**（无回归）、`app083b` **72/72**（语义校验）、`app085` **20/20**（跨进程 e2e，三方解析器全可读）；回执已发 `shared\NOTICE_app_to_tts_asr_20261026_s56.md`
+- 20:55 §55 🔴 **APP-022 已完成（仅接口预留，未集成）**：事件**按需加长**（`spk=None` ⇒ 仍是 5 元组 ⇒ MT 的 `len(e)==5` 断言继续成立）；GUI 预留「跟随说话人（克隆）」（默认仍是预设 A）+「显示说话人」（默认关闭）；说话人表**只在内存**、会话结束清空、**不进客户包**
+- 20:55 §55 🔴🔴 **TTS-017① `cp_prefill` 已同步到 NPU**（形状 `[1,2,1024]`；失败**回退 CPU + 记日志 + 返回 False**，不静默降级）；`app079` **REAL 15/15 · BUG 0/2**；客户包 **6/6 synced**；**已交付 v1.5 zip 干净**（13 984 entries / 第三方素材 0 / 仅 1 个 wav）；⚠️ **散包目录仍有 8 + 22 残留**（未清理 ⇒ 不写「已交付」）
+- 16:55 §54 🔴 **会话日志可读性修复（§54.10）**：① 同一行落盘 **2~3 遍** ⇒ 短窗口去重；② stderr **中文乱码** ⇒ 根因是 `sox` 包 `os.popen` 文本模式把 cmd.exe 的 **GBK 字节解成 U+FFFD（不可逆）** ⇒ 边车加 `_RawStderr` 字节代理 + service 改二进制管道 + `_decode_worker_line`（utf-8→gb18030 严格判定）；③ **双重标签** `[TTS] [TTS]` ⇒ 不再叠加 tag
 - 16:55 §54 ✅ `app078` **28/28**（新增专项自检）+ `app077` 复跑 **11/11**（真实 CUDA）+ 回归 app076 38/38 / app069 37/37 / app072 13/13 / app073 16/16；最终会话日志**无重复行、无双重标签、乱码已消**
 - 16:20 §54 🔴🔴 **撤回 §52.1/§52.6 的「played 1 ⇒ 能出声」结论**（APP-021）：`played` 只代表"写进缓冲"，`player is None` 时音频被**扔掉却照样发 played** ⇒ 旧判据无效 ⇒ **§51「真实音频未验证结清」一并撤回**
 - 16:20 §54 🔴 **played 改成「真的播完」**：`ring.n_read` 追上本句最后样本写入位置才发；超时 ⇒ 带诊断的句子级 error；**播放器不可用 ⇒ 句子级 error**（不再发 played）
 - 16:20 §54 ✅ **每句一行遥测**：out_desc/sr/样本数/**峰值**/**RMS(dBFS)**/NaN·Inf/回调增量/`n_read` 增量/欠载次数；峰值 < 1e-3 或有 NaN ⇒ 标「静音合成」
 - 16:20 §54 ✅ **会话日志落盘**：`%LOCALAPPDATA%\Confucius4LiveCaption\session_YYYYMMDD_HHMMSS.log`（GUI + TTS 全量，不再只在 error 时写）⇒ 用户报障给一个文件即可复盘
-- 16:20 §54 ✅ **「🔊 测试声音」按钮**（离线朗读对话框 + TTS 行）：1 s 440 Hz 走**同一个 worker 的 Player** ⇒ 把「播放链路」与「TTS 合成」拆开
+- 16:20 §54 ✅ **「🔊 测试声音」按钮**（离线朗读对话框 + TTS 行：1 s 440 Hz 走**同一个 worker 的 Player** ⇒ 把「播放链路」与「TTS 合成」拆开）+ **离线朗读对话框显示「已播 / 丢 / 失败」三个数** + 最近一条句子级错误原文
 - 16:20 §54 ✅ **`cb_tts_out` 绑变更事件**（改下拉 ⇒ 重启 worker + 日志写明新设备）+ **`--tts-dump-dir`** / 运行时 `set_dump_dir` ⇒ 逐句 wav 落盘
-- 16:20 §54 ✅ **离线朗读对话框显示「已播 / 丢 / 失败」三个数** + 最近一条句子级错误原文
 - 16:20 §54 🔴 **顺带修掉「played 推迟 ⇒ 积压高估 ⇒ 多丢句」**：新增 `written` 事件 + 积压按「缓冲里剩 ≤ 3 s」计
 ## §1 现状汇总（2026-10-23）
 
@@ -9692,3 +9692,166 @@ U+FFFD 计数 **0**）⇒ 内容含：① §四 回执一行；② APP-022 预�
 
 **只读未改**：`status/app/CORRECTIONS_APP.md`（48 457 B，
 SHA256 `682aced289a58d18b9303cffa6cc5a60dd21c83e226cfefa3d3f2171f81aea00`）。
+
+---
+
+## §56 🔴 巡检（APP-022 = `last_ack`，**本轮无新 APP 纠偏条目**）+ 🔴🔴 响应 TTS 跨模块通知 —— **共享机器锁改原子写 + 持锁方逐条自检**（2026-10-26 22:15）
+
+**本条已完成**（无「需要停下来等 reviewer 复核」的节点）。
+
+### 56.1 巡检结论：无新条目
+
+| 项 | 实测值 | 来源 |
+|---|---|---|
+| `CORRECTIONS_APP.md` 中 `## APP-xxx` 条目 | **APP-001 … APP-022**（共 **22** 条） | 全文读取 `status/app/CORRECTIONS_APP.md` |
+| 最大 APP 编号 | **APP-022** | 同上 |
+| `STATUS_APP.md` 头部 `last_ack`（写入前） | **APP-022** | `status/app/STATUS_APP.md` L2 |
+| 编号 > `last_ack` 的新条目 | **0 条** ⇒ 不触发「按编号逐条执行」 | 22 − 22 |
+| `CORRECTIONS_APP.md` 只读校验 | 48 457 B / mtime `2026-10-26 16:18:08` / SHA256 `682aced289a58d18b9303cffa6cc5a60dd21c83e226cfefa3d3f2171f81aea00` | 本轮写盘前后各测一次，**未改动** |
+
+⇒ 头部 `last_ack` **保持 APP-022**（本轮没有更大的 APP 编号可 ack）。
+
+### 56.2 本轮实际工作的来源：TTS 模块跨模块通知（点名 App）
+
+`C:\Users\Trekker-PTL\shared\NOTICE_tts_lock_atomic_20261026.md`（TTS 模块 21:45 发出，明确点名 App）：
+
+- **§3.1 写锁必须原子**（`tmp` 写全 + 原子落位）；
+- **§3.2 读不出 pid 时不要马上删**，等 2 s 再判；
+- **§3.3 锁里必须写真实占设备进程的 PID**；
+- **§四 追加**：持锁方**逐条自检**「锁还在吗」⇒ 锁被删 / 被换写 ⇒ 该条强制 `timing_valid=false`。
+
+**TTS 侧实测事故（通知原文记录）**：21:21~21:22 TTS-019 `single` 臂 **16/30** 行 `timing_valid=false`；
+21:34~21:38 TTS-017① `A_CPU` 臂 **24/30** 行 `timing_valid=false`。
+
+**根因（App 侧核查结论）**：ASR（`qwen3asr_06b/scripts/pya_app_path_seg.py`）与 TTS（`qwen3tts_eval/machine_lock.py`）
+**早已**改为 `tmp + os.replace`；**App 是 4 个模块里唯一仍用 `O_CREAT|O_EXCL`「先建空文件、之后才写内容」的模块**
+⇒ 别的模块正好在这个空窗里读到空锁 ⇒ 解析不出 pid ⇒ 判成「陈旧锁」⇒ **`os.remove` 删掉别人的活锁**
+⇒ 两个模块同时跑 ⇒ 计时数据被污染。缺陷形态与 TTS 两轮数据作废的现象完全吻合。
+
+> ⚠️ **App 侧实现与通知示例不同（有意为之）**：通知示例给的是 `os.replace`，
+> 但 `os.replace` **会覆盖已存在的锁** ⇒ 丢失独占性（两个写者都能成功 ⇒ TOCTOU）。
+> App 侧改用 **`tmp` + `os.fsync` + `os.link(tmp, lock_path)`**：
+> `os.link` 在目标已存在时抛 `FileExistsError` ⇒ **既原子又独占**，同时满足 §3.1。
+
+### 56.3 代码改动（`machine_lock_app.py` —— App 侧共享机器锁的唯一权威实现）
+
+`machine_lock_app.py`：**40 550 B** / mtime `2026-10-26 22:13:23` / SHA256 `f72d52fc1c82a6da1843d4ab931889385fc94f94f57d457eda7c5a26bf6d7daf`
+（diff `+194` 行，stdlib only + ctypes，未新增依赖）。
+
+| # | 改动 | 落地位置 |
+|---|---|---|
+| 1 | 新增 `_write_lock_atomically(lock_path, payload)`：`tmp` 写全 + `flush` + `os.fsync` → `os.link(tmp, lock_path)`（**原子 + 独占**；目标已存在 ⇒ `FileExistsError` ⇒ 返回 `False`）→ `finally` 删 tmp（硬链接已建立，不影响锁） | 新函数 |
+| 2 | 新增公开入口 `write_lock_atomic(lock_path, payload) -> bool`（供各计时脚本统一调用，消除逻辑漂移） | 新函数 |
+| 3 | 新增 `lock_intact(lock_path, own_pid, own_pids)`：**三条判据**（① 锁文件存在 ② 锁内 PID 存活 ③ 锁内 PID 是自己） | 新函数 |
+| 4 | 🔴 **`lock_intact` 判定顺序修正**：**先判「是不是自己」再判「PID 是否存活」** ⇒ 锁被别人换写时准确报「**锁被抢**」；旧顺序会先命中「PID 已死」⇒ **掩盖**真正的现象 | `lock_intact` |
+| 5 | 新增 `lock_probe(lock_path, own_pid, own_pids)` ⇒ 返回 `dict(lock_ok, lock_note, lock_pid)`（字段名与 TTS 侧 `_lock_probe()` 对齐） | 新函数 |
+| 6 | `acquire()` 改走 `_write_lock_atomically()` ⇒ **消除 `O_CREAT|O_EXCL` 空锁窗口** | `acquire` |
+| 7 | `acquire()` 的 `unreadable` 分支按 §3.2 强化：**等 2 s 重读**；**只有确实空白（0 字节 / 纯空白）才回收**；内容非空 ⇒ **绝不删**（fail-closed） | `acquire` |
+| 8 | `LockHeld` 新增 `intact()` 方法（持锁方逐条自检入口） | `LockHeld` |
+| 9 | 模块 docstring 增补「原子写锁」段落（记录事故与依据） | 文件头 |
+
+### 56.4 消除逻辑漂移：8 个计时脚本统一收敛取锁写法
+
+8 个脚本各自复制了一份取锁代码 ⇒ 改一处漏七处。统一收敛到 `machine_lock_app.write_lock_atomic()`。
+改动由 `results/app/app083_sync_atomic_lock_to_scripts.py` 自动生成（**正则从目标文件抽取实际旧块，不手抄**）
+⇒ 手抄错位自动变成「命中 0 次 ⇒ 失败不写盘」；**先编译临时副本再写盘** ⇒ 语法错时目标文件一个都不动。
+
+| 文件 | diff | 备注 |
+|---|---|---|
+| `results/app/app056_tts_streaming_gap.py` | +21/−10 | |
+| `results/app/app059_tts_streaming_e2e.py` | +21/−10 | |
+| `results/app/app061_tts_npu_contention.py` | +21/−10 | **另加** solo 臂 + 并发臂两处 `**_lock_probe_fields()`** |
+| `results/app/app062_cp_decode_device_ab.py` | +21/−4 | **另加** `**_lock_probe_fields()`** |
+| `results/app/app065_precision_hint_ab.py` | +21/−10 | |
+| `results/app/app067_ruler_same_day_recheck.py` | +21/−10 | |
+| `live_caption/diag_c111_e2e.py` | +21/−4 | payload 模块名用 `tag` 变量；**补回被吞的 `return True`** |
+| `live_caption/replay_c134_mt.py` | +21/−4 | payload 模块名用 `module` 变量；**补回被吞的 `return True, waited, None`** |
+
+合计 **9 个文件**（含 `machine_lock_app.py`）**+366 / −95** 行。
+
+### 56.5 §四 逐条自检接入（每条记录落盘 `timing_valid` / `lock_note` / `lock_pid`）
+
+`results/app/app084_add_lock_probe_to_rows.py` 给**每条测量记录**加三字段：
+
+- `timing_valid`（bool）：锁完好 ⇒ `True`；锁被抢 / 被删 ⇒ `False`；
+- `lock_note`（str）：诊断原文（如「锁内 PID 424242 不是自己（[38748]）⇒ 锁被抢（该 PID 已死）」）；
+- `lock_pid`（int / null）：锁内 PID。
+
+⇒ 「锁被抢」在数据里**完全看不出来**这件事被解决：现在每条记录自带判据。
+
+### 56.6 验收证据（4 组全绿 + BUG 组反证基线）
+
+**全部在临时目录 + 轻量文件 I/O 上完成；全程未触碰真实 `shared/MACHINE_LOCK`；未在 CPU 上跑推理或测速。**
+
+| # | 脚本 | 结果 | 关键原始字段 |
+|---|---|---|---|
+| 1 | `results/app/app082_atomic_lock_test.py` | **22/22 PASS**（REAL 9 + BUG 1） | B1 反证：`n_empty_samples=5809 / n_samples=13712`（旧写法暴露空锁窗口）；T5：`acquire() 内不再出现 O_CREAT\|O_EXCL -- found=False`；T8：`intact=False（发现被抢）`；T9：`release() 只删自己那份` |
+| 2 | `results/app/test_machine_lock_app.py`（**既有回归，未修改**） | **18/18 PASS**（无回归） | [7] `GBK 锁能解析出 pid/started_ts -- module='会议' pid=41624`；[8] `双格式 payload 自解析一致 -- ok=True` |
+| 3 | `results/app/app083b_verify_lock_scripts.py`（**语义校验，不只看语法**） | **72/72 PASS**（9 断言 × 8 文件） | `成功路径有 return True（没被吞掉） -- returns=['return True', 'return False', 'return False']`；`换行风格与 HEAD 一致 -- HEAD_crlf=False now_crlf=False`；`改动规模合理（+≤40 / -≤20） -- +21/-4` |
+| 4 | `results/app/app085_atomic_lock_e2e.py`（**跨进程**端到端） | **20/20 PASS**（REAL 8 + BUG 2） | E1/E2：`第 1 个写者成功 {'got': True}` / `第 2 个写者被拒（独占） {'got': False}`；E3：`lock_ok=True -- '锁完好（pid=38748）'`；E4：`lock_ok=False -- '锁内 PID 424242 不是自己（[38748]）⇒ 锁被抢（该 PID 已死）'`；E6：`state=unreadable` ⇒ `内容非空 ⇒ 不删`；E7：`ASR 正则解析 / TTS 关键字扫描解析 / MT key-value 解析` 三方全 OK；B1：`n_empty=5909 / n_samples=14111`；B2：`空锁 ⇒ 别的模块解析不出 pid ⇒ 会当陈旧锁删掉 -- pid=None` |
+
+**验收设计的两条纪律**：
+① **REAL 组**（修好后必须成立）+ **BUG 组**（缺陷仍存在才命中 ⇒ **命中即 FAIL**）⇒ BUG 组**确实命中**，证明测试有鉴别力；
+② **跨进程** e2e 覆盖「写锁的子进程退出后其 PID 确实已死」这个测试假象 ⇒ E3 改用**本进程自己持有的锁**测「完好」。
+
+### 56.7 产物清单（**14 个文件，均已落盘**）
+
+**新增验收 / 补丁脚本（5 个）**
+
+| 文件 | 字节 | mtime | SHA256 |
+|---|---|---|---|
+| `results/app/app082_atomic_lock_test.py` | 11 952 | 2026-10-26 22:07:39 | `4eae566372c5c8be8582f50653e50db1d70caf625f958a5d85c79b78baeba704` |
+| `results/app/app083_sync_atomic_lock_to_scripts.py` | 10 244 | 2026-10-26 22:11:33 | `68285b5bb6b5621427b1da19e5764ccf1a63eebfcc51e597d5ccfd62146ac61b` |
+| `results/app/app083b_verify_lock_scripts.py` | 4 480 | 2026-10-26 22:12:10 | `1416bb07008bc63c0711cd75f7d248429ab8309e880fb6948d3d8e10b217e0ec` |
+| `results/app/app084_add_lock_probe_to_rows.py` | 5 970 | 2026-10-26 22:12:42 | `34805d6f25ff6508b3921f6899f5391c3abfbff05e1c4f8f641382d333255927` |
+| `results/app/app085_atomic_lock_e2e.py` | 9 981 | 2026-10-26 22:13:28 | `3fcf567e8e92c4d5a0da331ecee112f945e169200f0a0dcb125f729c32341662` |
+
+**改动的仓库文件（9 个）**
+
+| 文件 | 字节 | mtime | SHA256 |
+|---|---|---|---|
+| `machine_lock_app.py` | 40 550 | 2026-10-26 22:13:23 | `f72d52fc1c82a6da1843d4ab931889385fc94f94f57d457eda7c5a26bf6d7daf` |
+| `results/app/app056_tts_streaming_gap.py` | 10 586 | 2026-10-26 22:11:40 | `b572cb096b4cf6886ca360592281d34a243b3717a4b01fb16646899d5fcc3b65` |
+| `results/app/app059_tts_streaming_e2e.py` | 12 105 | 2026-10-26 22:11:40 | `59436391744cc6495d2dc938f6c519df5d21391d0817b0b640a8ccb26128c21a` |
+| `results/app/app061_tts_npu_contention.py` | 13 003 | 2026-10-26 22:12:57 | `653d3334d0c147d4f27496d99ce5312ca8c189f4cac4df908da0a2e7882fb052` |
+| `results/app/app062_cp_decode_device_ab.py` | 16 953 | 2026-10-26 22:12:47 | `cae3e6b5fd7386ae191c175d869db66b1a8d5714aabca9698a7ce89b14a87b7f` |
+| `results/app/app065_precision_hint_ab.py` | 14 659 | 2026-10-26 22:11:40 | `ca933363a9b98e9858da12a50fbfbed721d9b3b3020234e7748e07aacb180791` |
+| `results/app/app067_ruler_same_day_recheck.py` | 9 770 | 2026-10-26 22:11:40 | `4c4bb12dd5853b7764c47b3fd1875d3ddc030a90da236344a59e4700376f0e15` |
+| `live_caption/diag_c111_e2e.py` | 13 486 | 2026-10-26 22:11:58 | `8567bd8566a403d00e7f2bc8ed6190a964be9aa46dbea262ddcb40095f10e7a0` |
+| `live_caption/replay_c134_mt.py` | 15 666 | 2026-10-26 22:11:51 | `9625c083847d557f00a69bd47f22ad2ddb61c3b9b609073df374b986d651eb69` |
+
+**只读未改**：`status/app/CORRECTIONS_APP.md`（48 457 B，SHA256 `682aced289a58d18b9303cffa6cc5a60dd21c83e226cfefa3d3f2171f81aea00`）。
+
+### 56.8 本轮明确**未做**的事（守住边界）
+
+| 项 | 说明 |
+|---|---|
+| ❌ 未在 CPU 上跑推理 / 测速 | 4 组验收全是轻量文件 I/O + 临时目录；**未触碰真实 `shared/MACHINE_LOCK`**（该锁 21:53 由其它模块持有，125 B，本轮**未删、未改**） |
+| ❌ 未调用 MiniMax | 质量判定由 reviewer 回转写 |
+| ❌ 未修改 `CORRECTIONS_APP.md` | reviewer 独占写入文件，只读 |
+| ❌ 未整目录覆盖同步 | 本轮**未碰客户包**（`Confucius4_LiveCaption_v1.3` / `v1.5` 一个字节未改）⇒ 与「仓库⇄客户包是两份独立副本」的纪律一致 |
+| ❌ 未吞其它模块改动 | 只 `git add` 本节 §56.7 列出的 14 个 App 文件；ASR/MT/TTS 的未提交改动一律不碰 |
+| ❌ 未 force push | main 分支普通 push |
+
+### 56.9 给 TTS / ASR 的回执（已落盘 `shared/`）
+
+`C:\Users\Trekker-PTL\shared\NOTICE_app_to_tts_asr_20261026_s56.md`：
+App 侧已落地 §3.1（原子 + 独占写）、§3.2（读不出 pid 不删）、§3.3（真实 PID）、
+§四（逐条自检 ⇒ `timing_valid` / `lock_note` / `lock_pid`），
+并附 §56.6 四组验收的原始字段与 §56.7 产物哈希，供 TTS 复核是否需要重跑作废的两轮。
+
+### 56.10 沉淀的通用教训
+
+🔴 **「4 个模块协作同一个锁文件」时，任何一个模块的非原子写都会污染全部分模块的计时数据** ——
+空锁窗口对**写方**是毫秒级、对**读方**是「整个作业时长」，且**症状发生在别的模块**（TTS 的数据作废）而**根因在 App**。
+⇒ 跨模块共享资源的写入，**必须由该资源的唯一权威实现统一提供**，不能让各模块各自复制一份（⇒ 已用 `write_lock_atomic()` 收敛 8 处）。
+
+🔴 **「读不出 pid」≠「锁是空的」** —— 这是 §3.2 与本轮 §56.3-7 同源的两条铁律：
+**读不出 ⇒ fail-closed（不删）**；**只有确实空白才可回收**。
+
+🔴 **判定顺序会影响诊断准确性** —— `lock_intact` 里「先判存活再判是不是自己」会把「锁被抢」误报成「PID 已死」，
+**掩盖**真正的现象 ⇒ 顺序 = 先判归属、再判存活。
+
+🔴 **`os.replace` 不等于「独占」** —— 通知示例用它，但它会**覆盖**已存在的锁 ⇒ 两个写者都能成功 ⇒ TOCTOU。
+「原子」与「独占」是**两个**性质，要同时满足需要 `os.link`（或 `O_CREAT|O_EXCL` + 后写，但后者有空窗）。
+

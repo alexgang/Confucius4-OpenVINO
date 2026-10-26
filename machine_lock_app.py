@@ -284,6 +284,121 @@ def _parse_started(text: str):
     return None
 
 
+# ── 原子写锁（2026-10-26 21:45 TTS 通知 §一 / §三 3.1）────────────────
+# 🔴🔴 **为什么不能用 `os.open(O_CREAT|O_EXCL)` 再写内容**：
+#   那是「**先建空文件、之后才写内容**」⇒ 存在一个「文件已存在、内容还是空的」
+#   时间窗口 ⇒ 别的模块（ASR 的 `pya_app_path_seg.py` / `p3_run_with_lock.py`）
+#   在窗口里读锁 ⇒ **解析不出 pid** ⇒ 判成「陈旧锁」⇒ `os.remove` **删掉我们的活锁**
+#   ⇒ 两个模块同时跑。
+#   实测事故（2026-10-26 21:21~21:38，TTS 侧记录）：
+#     · 21:21~21:22  TTS-019 `single` 臂 **16/30** 行 `timing_valid=false`
+#     · 21:34~21:38  TTS-017① `A_CPU` 臂 **24/30** 行 `timing_valid=false`
+#   依据：`shared/NOTICE_tts_lock_atomic_20261026.md`。
+#
+# ✅ **本实现**：先把内容**完整**写进临时文件 ⇒ `os.link()` 原子地建立硬链接。
+#   - `os.link` 在目标已存在时**抛 FileExistsError** ⇒ **独占**（绝不覆盖别人）
+#   - 建立硬链接是**原子**的 ⇒ 别的模块**永远看不到半成品锁**
+#     （内容要么完整、要么文件不存在）
+#   ⚠️ **刻意不用 `os.replace`**：它会**覆盖**已存在的锁 ⇒ 丢掉独占性
+#     （TOCTOU：两个模块都看到「不存在」⇒ 都 replace ⇒ 后写者覆盖前者 ⇒ 两个都以为拿到了锁）。
+def _write_lock_atomically(lock_path: str, payload: str) -> bool:
+    """原子 + 独占地创建锁文件。成功返回 True；锁已存在返回 False。
+
+    🔴 临时文件名**必须带 PID**（`LOCK.<pid>.tmp`）⇒ 两个模块不会用同一个 tmp 名互踩。
+    """
+    tmp = '%s.%d.tmp' % (lock_path, os.getpid())
+    try:
+        with open(tmp, 'w', encoding='utf-8') as fh:
+            fh.write(payload)
+            fh.flush()
+            os.fsync(fh.fileno())
+        try:
+            os.link(tmp, lock_path)
+        except FileExistsError:
+            return False            # 别人抢先 ⇒ 独占失败
+        return True
+    finally:
+        try:
+            os.unlink(tmp)           # 硬链接已建立 ⇒ 删掉 tmp 不影响锁
+        except OSError:
+            pass
+
+
+def write_lock_atomic(lock_path: str, payload: str) -> bool:
+    """🔴 **公开入口**：原子 + 独占地写锁。成功 True；锁已存在 False。
+
+    ⇒ App 侧所有计时脚本**统一走这里** ⇒ 不再各写一份（逻辑漂移的根源）。
+    """
+    return _write_lock_atomically(lock_path, payload)
+
+
+def lock_probe(lock_path: str = LOCK, own_pid: int = None, own_pids=None):
+    """🔴 **逐条锁自检**（TTS 通知 §四）⇒ 返回可直接落盘的 dict。
+
+    字段与 TTS 侧 `_lock_probe()` 对齐：
+      `lock_ok`    —— 锁是否完好（True/False）
+      `lock_note`  —— 原因（人可读）
+      `lock_pid`   —— 当前锁内的 PID（读不到为 None）
+
+    🔴🔴 **为什么必须逐条查**：「锁被抢 / 被删 / 被换写」这件事
+    **在数据里完全看不出来** ⇒ 不查就会把**被污染的数据**当成正常结果
+    （TTS 第一轮就是这样：数据看着像没事，实际上 16/30 被污染）。
+
+    用法（计时脚本）：
+        p = machine_lock_app.lock_probe()
+        row['timing_valid'] = p['lock_ok']
+        row['lock_note'] = p['lock_note']
+    """
+    ok, why = lock_intact(lock_path, own_pid=own_pid, own_pids=own_pids)
+    info = _read_lock(lock_path)
+    pid = None
+    if isinstance(info, dict):
+        pid = info.get('pid')
+    return dict(lock_ok=bool(ok), lock_note=why, lock_pid=pid)
+
+
+def lock_intact(lock_path: str = LOCK, own_pid: int = None, own_pids=None):
+    """持锁方**逐条自检**：锁还在吗？内容还是我这一份吗？
+
+    返回 `(ok: bool, reason: str)`。
+
+    🔴🔴 **用途**（TTS 通知 §四）：锁被别的模块抢走 / 被删掉时，
+    「锁被抢」这件事**在数据里完全看不出来** ⇒ 必须逐条自检 ⇒
+    锁一断就**强制 `timing_valid=false`** ⇒ 污染不会伪装成正常数据。
+
+    判据（三条全过才算 intact）：
+      ① 锁文件存在；
+      ② 能解析出 pid 且该 pid **仍存活**（ctypes Win32，fail-closed）；
+      ③ 该 pid **是自己**（`own_pid` 或在 `own_pids` 集合里）。
+    """
+    own = set(int(p) for p in (own_pids or ()))
+    if own_pid is not None:
+        own.add(int(own_pid))
+    if not own:
+        own.add(os.getpid())
+
+    if not os.path.exists(lock_path):
+        return False, '锁文件不存在（被删或从未创建）'
+    info = _read_lock(lock_path)
+    if info is None:
+        return False, '锁文件读不到'
+    if info.get('parse_error'):
+        return False, '锁文件读不出来（parse_error）'
+    pid = info.get('pid')
+    if pid is None:
+        return False, '锁里解析不出 pid（半成品锁？）'
+    # 🔴 **判定顺序**：先判「是不是自己」⇒ 诊断更准。
+    #    锁被**别人换写**时，锁内的 PID 往往已经死了
+    #    ⇒ 若先判存活就会报「PID 已死」⇒ 掩盖了真正的现象「锁被抢」。
+    if int(pid) not in own:
+        alive = '存活' if _pid_alive(pid) else '已死'
+        return False, '锁内 PID %d 不是自己（%s）⇒ 锁被抢（该 PID %s）' % (
+            pid, sorted(own), alive)
+    if not _pid_alive(pid):
+        return False, '锁内 PID %d 已死（锁被回收/换写）' % pid
+    return True, '锁完好（pid=%d）' % pid
+
+
 def lock_state(lock_path: str = LOCK):
     """判断锁状态。返回 (state, info)。
 
@@ -627,7 +742,9 @@ def wait_quiet_window(quiet_seconds: float = 45.0, timeout: float = 1800.0,
 def acquire(lock_path: str = LOCK, module: str = 'app', timeout: float = 3600,            poll: float = 20.0, verbose: bool = True):
     """取得机器锁。返回 (ok, payload)。
 
-    * `os.open(O_CREAT|O_EXCL)` 原子创建 ⇒ 物理上不可能两个模块同时拿到锁。
+    * 🔴🔴 **原子写**（`tmp` 写全 + `os.link` 建硬链接）⇒ 别的模块**永远看不到半成品锁**，
+      且**独占**（目标已存在就失败 ⇒ 绝不覆盖别人的锁）。
+      依据：`shared/NOTICE_tts_lock_atomic_20261026.md` §一 / §三 3.1。
     * 锁已存在：`held` / `unreadable` ⇒ **等待**（fail-closed）；
       `stale_pid` / `stale_boot` ⇒ 回收后重试。
     """
@@ -651,40 +768,61 @@ def acquire(lock_path: str = LOCK, module: str = 'app', timeout: float = 3600,  
                       module, os.getpid(), _started,
                       os.environ.get('COMPUTERNAME', '?')))
         try:
-            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-            try:
-                os.write(fd, payload.encode('utf-8'))
-            finally:
-                os.close(fd)
+            got = _write_lock_atomically(lock_path, payload)
+        except Exception as e:
+            if verbose:
+                print('[lock] 创建锁异常（%s），按 fail-closed 等待后重试' % e,
+                      flush=True)
+            time.sleep(poll)
+            continue
+        if got:
             if verbose:
                 print('[lock] 已取得机器锁（第 %d 次尝试）\n%s' % (attempt, payload),
                       flush=True)
             return True, payload
-        except FileExistsError:
-            state, info = lock_state(lock_path)
-            mod = info.get('module', '?')
-            pid = info.get('pid')
-            if state in ('stale_pid', 'stale_boot'):
-                reason = ('PID %s 已死' % pid if state == 'stale_pid'
-                          else '锁的 started 早于开机时间')
+        # 锁已存在 ⇒ 判状态
+        state, info = lock_state(lock_path)
+        mod = info.get('module', '?')
+        pid = info.get('pid')
+        if state in ('stale_pid', 'stale_boot'):
+            reason = ('PID %s 已死' % pid if state == 'stale_pid'
+                      else '锁的 started 早于开机时间')
+            if verbose:
+                print('[lock] 陈旧锁（module=%s pid=%s：%s）→ 回收'
+                      % (mod, pid, reason), flush=True)
+            try:
+                os.remove(lock_path)
+            except Exception:
+                pass
+            time.sleep(1.0)
+            continue
+        # held / unreadable ⇒ 等待（fail-closed）
+        if state == 'unreadable':
+            # 🔴🔴 **「读不出 pid」≠「锁是空的」**（TTS 通知 §三 3.2）
+            #    ⇒ 别的模块**正在写**这个锁时，我们也会读不出 pid
+            #    ⇒ **不许马上删** ⇒ 先等 2 s 再读一次。
+            # 🔴 **比 TTS 的建议更严一档**：只在「文件确实是空的（0 字节 /
+            #    纯空白）」时才回收 ⇒ 别的模块用**我们不认识的格式**写的
+            #    **活锁**绝不删除（那正是「误删活锁」的原始事故形态）。
+            time.sleep(2.0)
+            raw2 = _decode_lock_bytes(lock_path)
+            blank = (raw2 is None) or (not raw2.strip())
+            if blank:
                 if verbose:
-                    print('[lock] 陈旧锁（module=%s pid=%s：%s）→ 回收'
-                          % (mod, pid, reason), flush=True)
+                    print('[lock] 锁是**空文件**（等 2 s 后仍无内容）→ 回收',
+                          flush=True)
                 try:
                     os.remove(lock_path)
                 except Exception:
                     pass
-                time.sleep(1.0)
                 continue
-            # held / unreadable ⇒ 等待（fail-closed）
             if verbose:
-                print('[lock] 等待中…（module=%s pid=%s state=%s，已等 %ds）'
-                      % (mod, pid, state, int(time.time() - t0)), flush=True)
-            time.sleep(poll)
-        except Exception as e:
-            if verbose:
-                print('[lock] 创建锁异常（%s），按 fail-closed 等待后重试' % e, flush=True)
-            time.sleep(poll)
+                print('[lock] 锁读不出 pid，但内容非空 ⇒ 可能是别的模块的格式'
+                      ' ⇒ **不删**，继续等（fail-closed）', flush=True)
+        if verbose:
+            print('[lock] 等待中…（module=%s pid=%s state=%s，已等 %ds）'
+                  % (mod, pid, state, int(time.time() - t0)), flush=True)
+        time.sleep(poll)
 
 
 def release(payload, lock_path: str = LOCK, verbose: bool = True) -> bool:
@@ -733,6 +871,14 @@ class LockHeld:
 
     def release(self) -> bool:
         return release(self.payload, self.lock_path, self.verbose)
+
+    def intact(self) -> tuple:
+        """🔴 逐条自检：锁还在吗？内容还是我这一份吗？（见 `lock_intact`）
+
+        ⇒ 计时脚本在**每条样本前后**调用一次 ⇒ 锁一断就
+        `timing_valid=false` ⇒ 「锁被抢」不会伪装成正常数据。
+        """
+        return lock_intact(self.lock_path, own_pid=os.getpid())
 
     def wait_quiet(self, quiet_seconds: float = 45.0, timeout: float = 1800.0,
                    poll: float = 15.0, use_cpu_classifier: bool = True):

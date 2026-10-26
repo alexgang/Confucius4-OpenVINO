@@ -37,6 +37,19 @@ APP = os.path.join(PKG, 'app')
 PY = os.path.join(PKG, 'python', 'python.exe')
 LOCK = r'C:\Users\Trekker-PTL\shared\MACHINE_LOCK'
 
+# 🔴 取锁统一走仓库根的 `machine_lock_app`（**原子写** + 独占 + fail-closed）。
+#   旧的「各自复制一份取锁代码」是逻辑漂移的根源 ⇒ 已全部收敛到这里。
+#   旧写法 `os.open(O_CREAT|O_EXCL)` **先建空文件、之后才写内容**
+#   ⇒ 存在「文件已存在、内容还是空的」窗口 ⇒ 别的模块读到空锁
+#   ⇒ 解析不出 pid ⇒ 判成「陈旧锁」⇒ **删掉别人的活锁** ⇒ 两个模块同时跑
+#   ⇒ 实测作废 TTS 两轮数据（16/30、24/30 行 timing_valid=false）。
+#   依据：shared/NOTICE_tts_lock_atomic_20261026.md §一 / §三 3.1。
+_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+import machine_lock_app
+
+
 # 🔴 APP-005①：回放产物**一律写到仓库外**。
 #   旧路径 `results/c134_replay/` 已被 commit 73f268e 带进 origin/main，
 #   里面是内部会议录音的转写原文 ⇒ 必须脱库（APP-005①(a)）。
@@ -139,10 +152,14 @@ def acquire_lock(module='app', timeout_s=3600):
 
     waited = time.time() - t0
     os.makedirs(os.path.dirname(LOCK), exist_ok=True)
-    with open(LOCK, 'w', encoding='utf-8') as f:
-        f.write(f'module: {module}\npid: {os.getpid()}\n'
-                f'started: {time.strftime("%Y-%m-%d %H:%M:%S")}\n'
-                f'host: {os.environ.get("COMPUTERNAME", "?")}\n')
+    _pay = ('module: %s\npid: %d\nstarted: %s\n'
+            'host: %s\n'
+            % (module, os.getpid(),
+               time.strftime('%Y-%m-%d %H:%M:%S'),
+               os.environ.get('COMPUTERNAME', '?')))
+    if not machine_lock_app.write_lock_atomic(LOCK, _pay):
+        print('[lock] 原子写入失败（锁已被别人占用）', flush=True)
+        return False, waited, None
     print(f'[lock] 已获取（等了 {waited:.0f}s）', flush=True)
     return True, waited, None
 

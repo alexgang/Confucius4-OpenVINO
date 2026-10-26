@@ -40,6 +40,19 @@ import sys
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+# 🔴 取锁统一走仓库根的 `machine_lock_app`（**原子写** + 独占 + fail-closed）。
+#   旧的「各自复制一份取锁代码」是逻辑漂移的根源 ⇒ 已全部收敛到这里。
+#   旧写法 `os.open(O_CREAT|O_EXCL)` **先建空文件、之后才写内容**
+#   ⇒ 存在「文件已存在、内容还是空的」窗口 ⇒ 别的模块读到空锁
+#   ⇒ 解析不出 pid ⇒ 判成「陈旧锁」⇒ **删掉别人的活锁** ⇒ 两个模块同时跑
+#   ⇒ 实测作废 TTS 两轮数据（16/30、24/30 行 timing_valid=false）。
+#   依据：shared/NOTICE_tts_lock_atomic_20261026.md §一 / §三 3.1。
+_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+import machine_lock_app
+
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 PKG = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5'
 OUT_DIR = r'C:\Users\Trekker-PTL\abba_out'
@@ -71,16 +84,14 @@ def acquire_lock(module='app', timeout_s=3600.0):
     t0 = time.time()
     while True:
         if not os.path.exists(LOCK):
-            try:
-                fd = os.open(LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-                os.write(fd, ('%s PID=%d started %s\n'
-                              % (module, os.getpid(),
-                                 time.strftime('%Y-%m-%d %H:%M:%S'))).encode('utf-8'))
-                os.close(fd)
-                print('[lock] 已取得 %s' % LOCK)
-                return True
-            except FileExistsError:
-                pass
+                _pay = ('module: %s\npid: %d\nstarted: %s\n'
+                        'host: %s\n'
+                        % (module, os.getpid(),
+                           time.strftime('%Y-%m-%d %H:%M:%S'),
+                           os.environ.get('COMPUTERNAME', '?')))
+                if machine_lock_app.write_lock_atomic(LOCK, _pay):
+                    print('[lock] 已取得 %s' % LOCK)
+                    return True
         # 已有锁 ⇒ 读它
         try:
             raw = io.open(LOCK, 'r', encoding='utf-8', errors='replace').read()
