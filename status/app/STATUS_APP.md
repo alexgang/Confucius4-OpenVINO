@@ -1,12 +1,19 @@
 # STATUS_APP
 last_ack: APP-022
-更新时间: 2026-10-27 03:26
-当前任务: **§59 🔴 巡检（APP-022 = `last_ack` ⇒ **本轮无新 APP 纠偏条目**）+ 🔴🔴 修「`submit()` 丢唤醒竞态 ⇒ 命令永久滞留 `_queue` ⇒ 该句永远不被朗读」这个真实缺陷（**本条已完成**）** ⇒ ① **无新条目**：`CORRECTIONS_APP.md` 最大编号 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0** ⇒ 不触发逐条执行 ⇒ `last_ack` **保持 APP-022**（**第 23 次**同一口径复核，文件**只读零修改**，SHA256 `682aced289a58d18b…` 与 §57/§58 一致）；② 🔴 **缺陷 A（主）—— 丢唤醒竞态**：`submit()` 拆成两个临界区（锁内读 `state` → 出锁 → 再锁内入队）⇒ 与事件线程的「`state='ready'` + `_flush_queue()` 补发」之间存在窗口 ⇒ 若 `ready` 恰在窗口内到达 ⇒ 该句被塞进 `_queue` ⇒ **此后永不再有 ready 事件 ⇒ 命令永久滞留队列 ⇒ 该句永远不被朗读、且 `drain()` 必超时**；③ 🔴 **缺陷 B（同源）—— 幽灵在途句**：窗口内 worker 判死 ⇒ 那句入队后**永不再 ready** ⇒ 主进程 `_inflight` 多出**从未在途**的 jid ⇒ `_on_worker_exit()` 取 `lost = sorted(self._inflight)` **把幽灵算成在途丢失** ⇒ `n_dropped` 双记 ⇒ 不变式 `n_played + n_dropped + len(pending) == n_submitted` 破坏；④ ✅ **修法（4 处，闭合窗口）**：**(a)** `submit()` 的「读状态 + 入队/下发」**合并到同一临界区**；**(b)** **入队前锁内复查 `state`**（`ready` ⇒ 直接下发 / `error` ⇒ 定案丢句 / 否则入队）—— 这才是闭合窗口的**关键**；**(c)** `_handle_event('ready')` 的 `state='ready'` 赋值**移进锁内**（事件侧也必须原子）；**(d)** 窗口内定案的句子**只有它此刻仍在 `pending` 里才计丢句** ⇒ 否则与孤儿清理重复 ⇒ 又一次双记；⑤ ✅ **验收 `app089` REAL 17/17 全 PASS + 反证 3/3 命中**（基线固定 `421d2d0`，本缺陷在基线**未修** ⇒ 提交后 HEAD 变修复版也不影响反证）；反证实测：`n_queue=1`（命令永久滞留）/ `played=0, pending=1`（永远悬挂）/ `drain_ok=False, elapsed=6.01 s`（超时）—— 证据 `verdict="PASS"`、`real_fail=[]`、`baseline_commit="421d2d0"`；⑥ ✅ **回归无回归**：11 个既有套件全 PASS（`app057`/`app086`/`app088`/`test_tts_drop_crash`/`test_tts_close_gui_quit`/`test_tts_close_leak`/`test_tts_close_orphan`/`test_tts_error_isolation`/`test_tts_exit_played`/`test_tts_restart_regression`/`test_tts_stderr`）；⑦ ✅ **客户包定点同步**（双副本纪律：**精确字符串替换 + 唯一命中断言**，禁整目录覆盖；不手抄代码 ⇒ `git show 421d2d0:` + `difflib` 派生 8 块）⇒ 仓库⇄包 `tts_service.py` **SHA256 逐字节相同**（`db6f2412…` / 80 036 B）；⚠️ **我自己踩的坑（已修）**：包内是 **CRLF** 而 `git show` 永远 **LF** ⇒ 替换块命中 0 次 ⇒ 报「找不到唯一锚点」（**误导性报错**，真因是换行不匹配）⇒ 改为**全程归一化匹配 + 写盘还原**；⑧ ✅ **git**：commit **`36e3d1e`**（**4 个 App 职责内文件**）⇒ `git push origin main` **普通快进** `6235df4..36e3d1e`（**未 force**）⇒ 🔴 **`CORRECTIONS_APP.md` 未入暂存**（远端 blob 仍 `7082400b…` ⇒ 与 `421d2d0` 逐位一致）⇒ 🔴 **其它模块 465 项未提交改动全部保留**（**未吞**）；⑨ ✅ **对包内那份单独跑同一套断言 PASS（17/17 + 反证 3/3）**、`check_internal_material.py --pkg` 与 `--staged` **均 PASS（命中 0）**；⚠️ **未在 CPU 跑推理/测速、未占 GPU、未碰真实 `shared/MACHINE_LOCK`、未调 MiniMax、未改 `CORRECTIONS_APP.md`、未吞其它模块改动**
+更新时间: 2026-10-27 04:59
+当前任务: **§60 🔴 巡检（APP-022 = `last_ack` ⇒ **本轮无新 APP 纠偏条目**）+ 🔴🔴 修「丢句『判定』与『计数』不原子 ⇒ `n_dropped` 双记」这个真实缺陷（**本条已完成**）** ⇒ ① **无新条目**：`CORRECTIONS_APP.md` 最大编号 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0** ⇒ 不触发逐条执行 ⇒ `last_ack` **保持 APP-022**（**第 24 次**同一口径复核，文件**只读零修改**，SHA256 `682aced289a58d18b…` / 48 457 B / mtime 2026-10-26 16:18:08 与 §57/§58/§59 一致）；② 🔴 **缺陷 —— 丢句双记**：`submit()` / `_flush_queue()` 里丢句的**判定**（`pending.pop`）与**计数**（`n_dropped += 1`）被**拆开**（判定在锁内、计数在锁外且**无条件**）⇒ 与「worker 级 error 的孤儿清理」（`pending.clear()` + `n_dropped += len(orphan)`）**交错**时 ⇒ 同一句被计**两次** ⇒ 不变式 `n_played + n_dropped + len(pending) == n_submitted` 破坏 ⇒ 底栏「丢句 + 已播」**超过**「提交」；③ 🔴 **三条漏掉的口径**：`action=='send'` 发送失败 / `action=='dead'` worker 已故障 / `_flush_queue()` 补发失败（后者是**循环外** `n_dropped += n_failed` ⇒ **无法按句判定** ⇒ 一批里只要有一句已被别处定案就**整批**多计）；④ 🔴 **不是理论构造**：worker 级 error（模型加载失败 / 播放设备打不开）随时可能发生，而 `submit()` **每句都调** ⇒ 只要用户在 worker 故障的同一瞬间提交新句就命中；⑤ ✅ **修法 —— 统一原子口径**：新增 `tts_service.py::_drop_one(jid, register_dropped=False)` ⇒ **摘除 + 注销 `_inflight` + 计数全部在同一把锁内**完成 ⇒ **只有「这句此刻确实还在 `pending` 里」才计丢句** ⇒ 已被别人定案（已播/已丢/已失败）**不重复计**；`register_dropped` 区分语义（`True` ⇒ 登记 `_dropped_ids` 供迟到 `played` 改记；`False` ⇒ 命令从未下发/worker 已死 ⇒ 不会再有事件）⇒ 四条调用点全部改用（发送失败 / `dead` / 第二临界区 `direct`+`dead` / `_flush_queue()` **按句**）；⑥ ✅ **验收 `app090` REAL 16/16 全 PASS + 反证 2/2 命中**（基线固定 `b3c5ebb`，本缺陷在基线**未修** ⇒ 提交后 HEAD 变修复版也不影响反证）—— 反证实测：修复前 `n_dropped=2 / sum=2 / submitted=1` ⇒ `over=True` ⇒ **证明缺陷曾真实存在**；复现手法 = **可注入锁包装器**在 `submit()` 第一个临界区**释放之后**同步触发 worker 级 error ⇒ **每次必现**（触发点必须在释放锁之后，否则 `_handle_event('error')` 取锁自死锁 —— 那正是修复后的**正确**行为）；⑦ ✅ **回归无回归**：11 个既有套件全 PASS（`app057`/`app086`/`app088`/`app089`/`test_tts_drop_crash`/`test_tts_error_isolation`/`test_tts_exit_played`/`test_tts_close_gui_quit`/`test_tts_restart_regression`/`test_tts_close_orphan`/`test_tts_restart_nop`）⇒ §57/§58/§59 三个既有反证**仍全命中**；⑧ ✅ **客户包定点同步**（双副本纪律：**精确字符串替换 + 唯一命中断言**，禁整目录覆盖；不手抄代码 ⇒ `git show b3c5ebb:` + `difflib` 派生 **9 块**）⇒ 仓库⇄包 `tts_service.py` **SHA256 逐字节相同**（`615d69fb…` / 85 018 B）；⚠️ **我自己踩的坑（已修）**：① 包内 **CRLF** vs `git show` **LF** ⇒ 命中 0 次 ⇒ 报「块未命中」（**误导性报错**）⇒ 改为**全程归一化匹配 + 写盘还原行尾**；② 纯新增块的**单行锚点不唯一**（`return False` 命中 3 次）⇒ 改为**逐步加长上下文**（1~6 行）直到恰好命中 1 次；⑨ ✅ **对包内那份单独跑同一套断言 PASS（REAL 全过 + 反证全命中）**；⚠️ **未在 CPU 跑推理/测速、未占 GPU、未碰真实 `shared/MACHINE_LOCK`、未调 MiniMax、未改 `CORRECTIONS_APP.md`、未吞其它模块改动、客户包 zip 未重打 ⇒ 不写「已交付」**
 
-阻塞 / 待用户决定: ① 🔴 **APP-022 集成阶段需等 ASR-013 + TTS-019 交付**（§55 只做接口预留，**未集成**）；② 🔴 **APP-021 验收 C 仍需用户配合**（需人）：交互会话里系统音量 ≥ 50%、戴耳机/外放 ⇒ **先点「🔊 测试声音」再点离线朗读念一句** ⇒ 把会话日志路径与遥测行写进本 STATUS；③ 🔴 **撤回后的口径**：在用户用耳朵确认之前，**不得**再宣称「离线朗读能出声」；④ 🔴 **v1.5 zip 未重打**（守 APP-020，等 cp_prefill 同步后的最终版 + 机器锁）；⑤ 🔴 **散包目录仍有第三方素材残留**（babelvox speakers 8 + scipy 测试音频 22）⇒ `pkg_exclude.py` 排除规则**已在**（APP-018②/APP-019）但**散包目录未物理清理** ⇒ 需重打时由规则覆盖；⑥ 🔴 **术语表 / `packaging` 默认值待用户决定**（MT 通知 14 建议：术语表只在芯片/半导体语境下开、`packaging` 放可选集 ⇒ 属 App 默认值 ⇒ 本轮**未擅自改**）；⑦ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑧ 🔴 **§49.7 待裁定**（APP-020 明确「先不要定」⇒ 未动）；⑨ 🔴 **§45.6①–⑤ 等 reviewer 裁定**；⑩ 🔴 **等裁定**：是否采纳 `MAX_SEG_SPAN = 2`（§44 候选已备好）；⑪ 🔴 **需回复 MT 通知 13**；⑫ 🔴 **§46.5** 第三方依赖可满足性闸门；⑬ 🔴 **§42.3** 修复待用户实机确认；⑭ ⛔ **FTP 服务仍关闭**（守 APP-009③）；⑮ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑯ ⛔ 包体优化未做（用户已接受）；⑰ ⛔ V7 残句代价待确认；⑱ 🔴 **§56.9**：TTS-019 `single` 臂 / TTS-017① `A_CPU` 臂两轮数据**是否重跑由 TTS 自行决定**（App 已修根因，**不代跑尺子**）；⑲ 🔴 **§56.2**：ASR/TTS 侧锁写法的**独占性**待其自评（`os.replace` 会覆盖 ⇒ 丢独占性）；⑳ 🔴 **§57**：历史遗留未跟踪文件（`live_caption/sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `results/app/app073*` / `app074*` 等）**归属未判定** ⇒ 本轮**未提交**（§46「已产出未入库」教训 ⇒ 需单独裁定后再入库）；㉑ ✅ **§58.8 已闭环**：客户包侧 `test_tts_close_gui_quit_pkg.py` 的 **PE1** 在 §58 提交（`421d2d0`）后**复跑已转 PASS**（`96118245f4e275f0` vs `96118245f4e275f0`）；㉒ ✅ **§59 已闭环**：缺陷 A/B 已修并提交 `36e3d1e`（普通 push `6235df4..36e3d1e`，未 force）⇒ 客户包定点同步后 **仓库⇄包 SHA256 逐字节相同**（`db6f2412…` / 80 036 B）⇒ 包侧单独跑同一套断言 **17/17 + 反证 3/3** PASS ⇒ 🔴 **客户包 `app/` 目录仍未重打 zip**（守 APP-020：等 `cp_prefill` 同步后的最终版 + 机器锁）⇒ **不写「已交付」**
+阻塞 / 待用户决定: ① 🔴 **APP-022 集成阶段需等 ASR-013 + TTS-019 交付**（§55 只做接口预留，**未集成**）；② 🔴 **APP-021 验收 C 仍需用户配合**（需人）：交互会话里系统音量 ≥ 50%、戴耳机/外放 ⇒ **先点「🔊 测试声音」再点离线朗读念一句** ⇒ 把会话日志路径与遥测行写进本 STATUS；③ 🔴 **撤回后的口径**：在用户用耳朵确认之前，**不得**再宣称「离线朗读能出声」；④ 🔴 **v1.5 zip 未重打**（守 APP-020，等 cp_prefill 同步后的最终版 + 机器锁）；⑤ 🔴 **散包目录仍有第三方素材残留**（babelvox speakers 8 + scipy 测试音频 22）⇒ `pkg_exclude.py` 排除规则**已在**（APP-018②/APP-019）但**散包目录未物理清理** ⇒ 需重打时由规则覆盖；⑥ 🔴 **术语表 / `packaging` 默认值待用户决定**（MT 通知 14 建议：术语表只在芯片/半导体语境下开、`packaging` 放可选集 ⇒ 属 App 默认值 ⇒ 本轮**未擅自改**）；⑦ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑧ 🔴 **§49.7 待裁定**（APP-020 明确「先不要定」⇒ 未动）；⑨ 🔴 **§45.6①–⑤ 等 reviewer 裁定**；⑩ 🔴 **等裁定**：是否采纳 `MAX_SEG_SPAN = 2`（§44 候选已备好）；⑪ 🔴 **需回复 MT 通知 13**；⑫ 🔴 **§46.5** 第三方依赖可满足性闸门；⑬ 🔴 **§42.3** 修复待用户实机确认；⑭ ⛔ **FTP 服务仍关闭**（守 APP-009③）；⑮ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑯ ⛔ 包体优化未做（用户已接受）；⑰ ⛔ V7 残句代价待确认；⑱ 🔴 **§56.9**：TTS-019 `single` 臂 / TTS-017① `A_CPU` 臂两轮数据**是否重跑由 TTS 自行决定**（App 已修根因，**不代跑尺子**）；⑲ 🔴 **§56.2**：ASR/TTS 侧锁写法的**独占性**待其自评（`os.replace` 会覆盖 ⇒ 丢独占性）；⑳ 🔴 **§57**：历史遗留未跟踪文件（`live_caption/sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `results/app/app073*` / `app074*` 等）**归属未判定** ⇒ 本轮**未提交**（§46「已产出未入库」教训 ⇒ 需单独裁定后再入库）；㉑ ✅ **§58.8 已闭环**：客户包侧 `test_tts_close_gui_quit_pkg.py` 的 **PE1** 在 §58 提交（`421d2d0`）后**复跑已转 PASS**（`96118245f4e275f0` vs `96118245f4e275f0`）；㉒ ✅ **§59 已闭环**：缺陷 A/B 已修并提交 `36e3d1e`（普通 push `6235df4..36e3d1e`，未 force）⇒ 客户包定点同步后 **仓库⇄包 SHA256 逐字节相同**（`db6f2412…` / 80 036 B）⇒ 包侧单独跑同一套断言 **17/17 + 反证 3/3** PASS ⇒ 🔴 **客户包 `app/` 目录仍未重打 zip**（守 APP-020：等 `cp_prefill` 同步后的最终版 + 机器锁）⇒ **不写「已交付」**；㉓ ✅ **§60 已闭环**：丢句「判定 + 计数」原子化（新增 `_drop_one()`）已修 ⇒ 验收 `app090` **REAL 16/16 + 反证 2/2** PASS（基线 `b3c5ebb`；反证实测修复前 `n_dropped=2 / sum=2 / submitted=1`）⇒ 客户包 v1.5 定点同步后 **仓库⇄包 SHA256 逐字节相同**（`615d69fb…` / 85 018 B）⇒ 包侧单独跑同一套断言 PASS ⇒ 🔴 **客户包 `app/` 目录仍未重打 zip**（守 APP-020）⇒ **不写「已交付」**
 
 
 ## 最近更新
+- 04:59 §60 🔴 **巡检：无新 APP 纠偏条目**（`CORRECTIONS_APP.md` 最大 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0** ⇒ `last_ack` **保持 APP-022**，**第 24 次**同一口径复核）；`CORRECTIONS_APP.md` 全程**只读零修改**（SHA256 `682aced289a58d18b…` / 48 457 B / mtime 2026-10-26 16:18:08）
+- 04:59 §60 🔴🔴 **缺陷 —— 丢句双记**：`submit()` / `_flush_queue()` 里丢句的**判定**（`pending.pop`）与**计数**（`n_dropped += 1`）被**拆开**（判定在锁内、计数在锁外且**无条件**）⇒ 与「worker 级 error 的孤儿清理」（`pending.clear()` + `n_dropped += len(orphan)`）**交错** ⇒ 同一句被计**两次** ⇒ 不变式 `n_played + n_dropped + len(pending) == n_submitted` 破坏 ⇒ 底栏「丢句 + 已播」**超过**「提交」
+- 04:59 §60 🔴 **三条漏掉的口径**：`action=='send'` 发送失败 / `action=='dead'` worker 已故障 / `_flush_queue()` 补发失败（后者是**循环外** `n_dropped += n_failed` ⇒ **无法按句判定** ⇒ 一批里只要有一句已被别处定案就**整批**多计）；🔴 **不是理论构造**：`submit()` **每句都调**，worker 级 error 随时可能发生
+- 04:59 §60 ✅ **修法 —— 统一原子口径**：新增 `tts_service.py::_drop_one(jid, register_dropped=False)` ⇒ **摘除 + 注销 `_inflight` + 计数全部在同一把锁内** ⇒ **只有「这句此刻确实还在 `pending` 里」才计丢句**；四条调用点全部改用（发送失败 / `dead` / 第二临界区 `direct`+`dead` / `_flush_queue()` **按句**）
+- 04:59 §60 ✅ **验收 `app090` REAL 16/16 全 PASS + 反证 2/2 命中**（基线固定 `b3c5ebb`，该缺陷在基线**未修** ⇒ 提交后 HEAD 变修复版也不影响反证）；反证实测 `n_dropped=2 / sum=2 / submitted=1` ⇒ `over=True` ⇒ **证明缺陷曾真实存在**；复现 = **可注入锁包装器**在 `submit()` 第一个临界区**释放之后**同步触发 worker 级 error ⇒ **每次必现**
+- 04:59 §60 ✅ **回归 11 套全绿**：`app057`/`app086`/`app088`/`app089`/`test_tts_drop_crash`/`test_tts_error_isolation`/`test_tts_exit_played`/`test_tts_close_gui_quit`/`test_tts_restart_regression`/`test_tts_close_orphan`/`test_tts_restart_nop` ⇒ §57/§58/§59 三个既有反证**仍全命中**
+- 04:59 §60 ✅ **客户包定点同步**（**精确字符串替换 + 唯一命中断言**，禁整目录覆盖；不手抄代码 ⇒ `git show b3c5ebb:` + `difflib` 派生 **9 块**）⇒ 仓库⇄包 `tts_service.py` **SHA256 逐字节相同**（`615d69fb…` / 85 018 B，改前 80 036 B / `db6f2412…`）；⚠️ **我自己踩的坑（已修）**：① 包内 **CRLF** vs `git show` **LF** ⇒ 命中 0 次 ⇒ 报「块未命中」（**误导性报错**）⇒ 改为**全程归一化匹配 + 写盘还原行尾**；② 纯新增块**单行锚点不唯一**（`return False` 命中 3 次）⇒ 改为**逐步加长上下文**（1~6 行）
 - 03:26 §59 🔴 **巡检：无新 APP 纠偏条目**（`CORRECTIONS_APP.md` 最大 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0** ⇒ `last_ack` **保持 APP-022**，**第 23 次**同一口径复核）；`CORRECTIONS_APP.md` 全程**只读零修改**（SHA256 `682aced289a58d18b…` / 48 457 B / mtime 2026-10-26 16:18:08 / 22 条 / 最大 APP-022）
 - 03:26 §59 🔴🔴 **缺陷 A（丢唤醒竞态）**：`submit()` 拆成两个临界区（锁内读 `state` → 出锁 → 再锁内入队）⇒ 与事件线程的「`state='ready'` + `_flush_queue()` 补发」之间有窗口 ⇒ `ready` 恰在窗口内到达 ⇒ 该句塞进 `_queue` ⇒ **此后永不再有 ready ⇒ 命令永久滞留 ⇒ 该句永远不被朗读、`drain()` 必超时**
 - 03:26 §59 🔴 **缺陷 B（同源，幽灵在途句）**：窗口内 worker 判死 ⇒ 那句入队后**永不再 ready** ⇒ `_inflight` 多出**从未在途**的 jid ⇒ `_on_worker_exit()` 取 `lost = sorted(self._inflight)` **把幽灵算成在途丢失** ⇒ `n_dropped` 双记 ⇒ 不变式破坏
@@ -10479,3 +10486,144 @@ if kind == 'ready':
   ⇒ 否则与「孤儿清理」的计数**重复** ⇒ 又一次双记。
 - ✅ **同步脚本沿用 `git show` + `difflib` 自动派生**（不手抄代码）
   ⇒ 8 块全部唯一命中 ⇒ **禁整目录覆盖**的双副本纪律仍然成立。
+
+## §60 🔴 巡检（APP-022 = `last_ack`，**本轮无新 APP 纠偏条目**）+ 🔴🔴 修「丢句『判定』与『计数』不原子 ⇒ `n_dropped` 双记」（2026-10-27 04:59）｜**本条已完成**｜**待提交**
+
+### §60.0 巡检结论：**无新条目** ⇒ `last_ack` 保持 `APP-022`
+
+- `status/app/CORRECTIONS_APP.md` 全文只读复核：最大编号 **APP-022** = 头部 `last_ack`
+  ⇒ **编号差 0** ⇒ 不触发逐条执行 ⇒ `last_ack` **保持 APP-022**（**第 24 次**同一口径复核）。
+- 🔴 **该文件全程只读零修改**：SHA256 `682aced289a58d18b9303cffa6cc5a60dd21c83e226cfefa3d3f2171f81aea00`
+  / **48 457 B** / mtime **2026-10-26 16:18:08** ⇒ 与 §57/§58/§59 **逐位一致** ⇒ **未入暂存**。
+
+### §60.1 🔴🔴 本轮修的缺陷：**丢句「判定」与「计数」不原子 ⇒ `n_dropped` 双记**
+
+**不变式（本项目长期口径）**：`n_played + n_dropped + len(pending) == n_submitted`
+⇒ 双记会破坏它 ⇒ 底栏「丢句 + 已播」**超过**「提交」⇒ 用户看到的统计**自相矛盾**。
+
+**根因（§59 的修法留下的缺口）**：`submit()` / `_flush_queue()` 里，丢句的**判定**与**计数**被**拆开**：
+
+```python
+elif action == 'dead':
+    with self.lock:
+        self.pending.pop(jid, None)     # ← 判定：把这句话摘掉
+    self.n_dropped += 1                 # ← 计数：**无条件** +1（**锁外**）
+```
+
+而「worker 级 error 的孤儿清理」做的是：
+
+```python
+with self.lock:
+    orphan = sorted(self.pending.keys())
+    self.pending.clear()
+self.n_dropped += len(orphan)          # ← 锁外
+```
+
+⇒ **只要两者交错**，同一句被计**两次**：
+
+| 时刻 | 线程 | 动作 |
+|---|---|---|
+| t1 | App | `submit()` 写入 `pending[jid]`、`n_submitted += 1` |
+| t2 | 事件 | worker 级 error ⇒ 孤儿清理把 `jid` 算进 `orphan` ⇒ **计 1** |
+| t3 | App | `submit()` 的丢句分支：`pending.pop` 返回 `None`（已被清掉）⇒ **但仍无条件 `n_dropped += 1`** ⇒ **计 2** |
+
+🔴 **这不是理论构造**：worker 级 error（模型加载失败 / 播放设备打不开）随时可能发生，
+而 `submit()` 是**每句都调**的 ⇒ 只要用户在 worker 故障的同一瞬间提交新句，就命中。
+
+🔴 **三条漏掉的口径**（逐条核对得出）：
+
+1. `submit()` 的 `action == 'send'` 且 `_send()` 失败 ⇒ **无条件** `n_dropped += 1`；
+2. `submit()` 的 `action == 'dead'`（worker 已故障）⇒ **无条件** `n_dropped += 1`；
+3. `_flush_queue()` 的补发失败 ⇒ 先 `pending.pop` 再在**循环外** `n_dropped += n_failed`
+   ⇒ **无法按句判定**（一批里只要有一句已被别处定案，就**整批**多计）。
+
+### §60.2 ✅ 修法：**统一原子口径**（新增 `_drop_one()`）
+
+新增 `tts_service.py::_drop_one(jid, register_dropped=False)`：
+
+- **摘除**（`pending.pop`）+ **注销 `_inflight`** + **计数 `n_dropped += 1`**
+  **全部在同一把锁内**完成 ⇒ 原子 ⇒ 不会与别的路径并发叠加。
+- **只有「这一句此刻确实还在 `pending` 里」才计丢句** ⇒ 已被别人定案（已播 / 已丢 / 已失败）⇒ **不重复计**。
+- `register_dropped` 参数区分两种语义：
+  - `True` ⇒ 同时登记进 `_dropped_ids`（**worker 仍可能回 `played`** ⇒ 收到时「改记为已播」）——
+    用于「命令**已下发**、worker 可能无视 cancel 照样播」的场景；
+  - `False` ⇒ **不**登记（**命令从未下发**或 worker 已死 ⇒ 不会再有事件）——
+    用于「发送失败 / worker 已故障」的场景。
+
+四条调用点全部改为 `_drop_one()`：`action == 'send'` 发送失败 / `action == 'dead'` /
+第二临界区的 `direct` 与 `dead` / `_flush_queue()` 补发失败（**改为按句**调用）。
+
+### §60.3 ✅ 验收 `app090`：**REAL 全过 + 反证全命中**
+
+新增 `results/app/app090_tts_drop_double_count.py`（**不起 worker 子进程** ⇒ 不跑推理、
+不测速、不占 GPU、不碰声卡、**不取机器锁**）：
+
+- **A 组**：`submit()` 的 `dead` 分支 与 孤儿清理 交错 ⇒ **不得**双记；
+- **B 组**：`submit()` 的发送失败分支 与 孤儿清理 交错 ⇒ **不得**双记；
+- **C 组**（防「修成不计数」）：无交错时 worker 已故障提交 ⇒ **必须**计 1 句；
+- **D 组**（回归 §47）：worker 级 error 后的**迟到句子级 error** ⇒ **不得**重复计；
+- **E 组**（回归 §29）：`_flush_queue()` 补发失败 ⇒ **必须**计 1 句；
+- **F 组**（**反证**）：修复前的固定 commit `b3c5ebb` 在**子进程**里跑同样的场景
+  ⇒ **必须复现双记**。
+
+🔴 **确定性复现手法**：真实窗口只有几微秒宽 ⇒ 靠「多跑几千次」抓不到
+⇒ 用**可注入的锁包装器**在 `submit()` 的**第一个临界区释放之后**（= 窗口的精确位置）
+**同步**触发 worker 级 error ⇒ **每次都必现** ⇒ 证据可复现。
+（⚠️ 触发点必须在**释放锁之后**：`_handle_event('error')` 自己要取锁
+⇒ 若在持锁时调用 ⇒ 直接自死锁，那正是修复后的**正确**行为。）
+
+**实测结果**：
+
+- REAL **A/B/C/D/E 共 16 项全 PASS** ⇒ `real_fail=[]` ⇒ `verdict="PASS"`；
+- 反证 **F1/F2 全命中** ⇒ 修复前 `n_dropped=2`、`sum=2`、`submitted=1`
+  ⇒ `over=True` ⇒ **证明缺陷曾真实存在**（不是嘴说）；
+- 证据落盘 `results/app/app090_tts_drop_double_count_evidence.json`
+  （SHA256 `f366e0d715af554e0f4af2fbbf4af588c0c4e41472fcce3526b9c01f5d8beb75` / 1 656 B /
+  mtime 2026-10-27 04:59:02）。
+
+### §60.4 ✅ 回归**无回归**（既有套件全绿）
+
+`app057` / `app086` / `app088` / `app089` / `test_tts_drop_crash` / `test_tts_error_isolation` /
+`test_tts_exit_played` / `test_tts_close_gui_quit` / `test_tts_restart_regression` /
+`test_tts_close_orphan` / `test_tts_restart_nop` ⇒ **全部 PASS**
+（§57 的「迟到句子级 error 不得重复计」/ §58 的「幽灵在途句」/ §59 的「丢唤醒」三个既有反证**仍全命中**）。
+
+### §60.5 ✅ 客户包 v1.5 **定点同步**（双副本纪律）
+
+新增 `live_caption/sync_s60_drop_atomic_to_pkg.py`（**精确字符串替换 + 唯一命中断言**，禁整目录覆盖）：
+
+- 替换块**从 git 自动派生**（**不手抄代码**）：`git show b3c5ebb:live_caption/tts_service.py`
+  + `difflib` ⇒ **9 块** ⇒ 全部唯一命中；
+- 🔴 **基线不能用 `HEAD`**（§60 提交后 HEAD 就是修复版）⇒ 用**修复前的固定 commit** `b3c5ebb`；
+- ⚠️ **我自己踩的坑（已修）**：① 包内是 **CRLF** 而 `git show` 永远 **LF** ⇒ 替换块命中 0 次
+  ⇒ 报「块未命中」⇒ 改为**全程归一化匹配 + 写盘还原包内行尾**；
+  ② 纯新增块（`_drop_one`）的**单行锚点不唯一**（如 `            return False` 命中 3 次）
+  ⇒ 改为**逐步加长上下文**（1~6 行）直到某段**恰好命中 1 次** ⇒ 定位成功。
+
+**实测**：`tts_service.py` **SYNCED** ⇒ 80 036 → **85 018 B**，
+SHA256 `db6f24129801…` → `615d69fbc04c…`（改前 80 036 B / `db6f24129801…`），
+行尾 **CRLF** 保留；包外备份 `C:\Users\Trekker-PTL\pkg_backup_app_s60\tts_service.py.bak_20261027_045858`。
+
+**同步后校验**：仓库 ⇄ 包 `tts_service.py` **SHA256 逐字节相同**
+（`615d69fbc04ceff1c53934d15c913617e2f7d4c62739ba01bf48dc1b37015c18` / **85 018 B**）；
+**对包内那份单独跑同一套断言**（`--pkg` 模式）⇒ **REAL 全过 + 反证全命中** ⇒ PASS。
+
+### §60.6 产物清单（附实测元数据）
+
+| 文件 | 字节 | SHA256 | mtime |
+|---|---|---|---|
+| `live_caption/tts_service.py` | 85 018 | `615d69fbc04ceff1c53934d15c913617e2f7d4c62739ba01bf48dc1b37015c18` | 2026-10-27 04:55:35 |
+| `live_caption/sync_s60_drop_atomic_to_pkg.py` | 13 967 | `b21dabc05aaa4ba02ff9b895b2389621f1fd4744e46f88d7a5d79c0ec2ea61c1` | 2026-10-27 04:58:53 |
+| `results/app/app090_tts_drop_double_count.py` | 20 852 | `25f040d7867f3e623e870c890cd93014511eda1f7956e95202bd52a3abcef5ef` | 2026-10-27 04:56:31 |
+| `results/app/app090_tts_drop_double_count_evidence.json` | 1 656 | `f366e0d715af554e0f4af2fbbf4af588c0c4e41472fcce3526b9c01f5d8beb75` | 2026-10-27 04:59:02 |
+| 客户包 `app/tts_service.py` | 85 018 | `615d69fbc04ceff1c53934d15c913617e2f7d4c62739ba01bf48dc1b37015c18` | 2026-10-27 04:58:58 |
+
+### §60.7 🔴 本轮**未做**的事（不写「已交付」）
+
+- ⚠️ **客户包 `app/` 目录仍未重打 zip**（守 APP-020：等 `cp_prefill` 同步后的最终版 + 机器锁）
+  ⇒ **不写「已交付」**；
+- ⚠️ **未在 CPU 跑推理 / 测速、未占 GPU、未碰真实 `shared/MACHINE_LOCK`、未调 MiniMax**
+  （本轮全部为**纯桩**测试 ⇒ 不需要机器锁）；
+- ⚠️ **未改 `status/app/CORRECTIONS_APP.md`**（SHA256 与 §57/§58/§59 逐位一致）；
+- ⚠️ **未吞其它模块的未提交改动** ⇒ 只逐文件 `git add` 了 **4 个 App 职责内文件**；
+- ⚠️ **APP-021 验收 C 仍需用户用耳朵实测**、**APP-022 仍等 ASR-013 + TTS-019** ⇒ 本轮**不推进**。

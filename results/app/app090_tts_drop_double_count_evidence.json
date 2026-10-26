@@ -1,0 +1,81 @@
+{
+  "real_fail": [],
+  "evidence": {
+    "A_dead_race": {
+      "n_played": 0,
+      "n_dropped": 1,
+      "n_submitted": 1,
+      "n_pending": 0,
+      "n_queue": 0,
+      "inflight": [],
+      "sum": 1,
+      "invariant": true,
+      "over": false
+    },
+    "B_sendfail_race": {
+      "n_played": 0,
+      "n_dropped": 1,
+      "n_submitted": 1,
+      "n_pending": 0,
+      "n_queue": 0,
+      "inflight": [],
+      "sum": 1,
+      "invariant": true,
+      "over": false
+    },
+    "C_no_race": {
+      "n_played": 0,
+      "n_dropped": 1,
+      "n_submitted": 1,
+      "n_pending": 0,
+      "n_queue": 0,
+      "inflight": [],
+      "sum": 1,
+      "invariant": true,
+      "over": false
+    },
+    "D_late_sentence_error": {
+      "n_played": 0,
+      "n_dropped": 1,
+      "n_submitted": 1,
+      "n_pending": 0,
+      "n_queue": 0,
+      "inflight": [],
+      "sum": 1,
+      "invariant": true,
+      "over": false
+    },
+    "E_flush_fail": {
+      "n_played": 0,
+      "n_dropped": 1,
+      "n_submitted": 1,
+      "n_pending": 0,
+      "n_queue": 0,
+      "inflight": [],
+      "sum": 1,
+      "invariant": true,
+      "over": false
+    },
+    "F_baseline": {
+      "commit": "b3c5ebb",
+      "A": {
+        "n_played": 0,
+        "n_dropped": 2,
+        "n_submitted": 1,
+        "n_pending": 0,
+        "sum": 2,
+        "over": true
+      },
+      "B": {
+        "n_played": 0,
+        "n_dropped": 2,
+        "n_submitted": 1,
+        "n_pending": 0,
+        "sum": 2,
+        "over": true
+      }
+    }
+  },
+  "baseline_commit": "b3c5ebb",
+  "verdict": "PASS"
+}

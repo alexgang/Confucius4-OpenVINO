@@ -776,18 +776,24 @@ class TTSService:
             #   现在：`_send()` 返回成败 ⇒ 失败即撤账（清 pending + 注销
             #   `_inflight`）+ **计丢句**（诚实记账，不让这句凭空消失）。
             if not self._send(cmd):
-                with self.lock:
-                    self.pending.pop(jid, None)
-                    self._inflight.discard(jid)
-                self.n_dropped += 1
+                # 🔴🔴 2026-10-27 §60 修：**不得无条件 `n_dropped += 1`**。
+                #   旧实现无条件 +1 ⇒ 若 worker 级 error 的「孤儿清理」
+                #   已先把这句清掉并计过丢句 ⇒ 这里**再 +1** ⇒ **双记**。
+                #   ⇒ 改用统一原子口径（见 `_drop_one`）。
+                #   ⚠️ `register_dropped=False`：命令**从未到达 worker**
+                #     ⇒ worker 不会回 `played` ⇒ 不必登记 `_dropped_ids`。
+                self._drop_one(jid, register_dropped=False)
         elif action == 'dead':
             # 🔴 2026-10-24 §22 修：worker 级故障后 `state == 'error'`，
             #   此时 `_flush_queue()` **永远不会被调用**（它只在 `ready` 事件时跑）
             #   ⇒ 旧实现把命令无限堆进 `_queue` ⇒ **内存无界增长**。
             #   现在：直接计丢句并清掉 pending，**不排队**。
-            with self.lock:
-                self.pending.pop(jid, None)
-            self.n_dropped += 1
+            # 🔴🔴 2026-10-27 §60 修：**不得无条件 `n_dropped += 1`**。
+            #   旧实现无条件 +1 ⇒ 若 worker 级 error 的「孤儿清理」
+            #   已先把这句清掉并计过丢句 ⇒ 这里**再 +1** ⇒ **双记**。
+            #   ⇒ 改用统一原子口径（见 `_drop_one`）。
+            #   ⚠️ `register_dropped=False`：worker 已故障 ⇒ 不会再有 `played`。
+            self._drop_one(jid, register_dropped=False)
             self.on_log('[TTS] worker 已故障（error），该句不提交（已计丢句）')
         else:
             # ── worker 还没 ready ⇒ 入待发队列 ──────────────────────────
@@ -831,13 +837,14 @@ class TTSService:
                     #      ⇒ worker 判死后**永远不会再 ready**（除非重启）
                     #      ⇒ 这句**永远滞留** ⇒ `_queue` 无上限增长。
                     #   ⇒ 现在在同一把锁内复查 ⇒ 故障期间**直接定案**。
-                    #   ⚠️ 计数口径：`pending.pop` 返回 None ⇒ 这句**已被别处
-                    #      定案**（多半是 worker 级 error 的「孤儿清理」
-                    #      已经把它计过丢句）⇒ 本次**不再重复计**。
-                    in_pending = self.pending.pop(jid, None) is not None
+                    #   🔴🔴 2026-10-27 §60 修：**这里不得再 `pending.pop`**。
+                    #   旧实现在本临界区内 pop、到锁外才计数 ⇒
+                    #   「摘除」与「计数」**不原子** ⇒ 与别的路径交错时
+                    #   会出现「已被别处定案却仍被计数」⇒ **双记**。
+                    #   ⇒ 现在**不在这里摘除** ⇒ 交给 `_drop_one()` 在
+                    #      **同一个锁内**完成「摘除 + 计数」⇒ 原子。
                     direct = False
                     dead = True
-                    was_pending = in_pending
                 else:
                     self._queue.append(cmd)
                     # 🔴🔴 2026-10-27 §58 修：登记「这句在待发队列里」
@@ -847,15 +854,15 @@ class TTSService:
                     dead = False
             if direct:
                 if not self._send(cmd):
-                    with self.lock:
-                        self.pending.pop(jid, None)
-                        self._inflight.discard(jid)
-                    self.n_dropped += 1
+                    # 🔴🔴 2026-10-27 §60 修：统一原子口径（见 `_drop_one`）。
+                    #   ⚠️ `register_dropped=False`：命令**从未到达 worker**。
+                    self._drop_one(jid, register_dropped=False)
             elif dead:
-                # ⚠️ 只有「这句此刻确实还在 `pending` 里」才计丢句
-                #   （否则会与「孤儿清理」的计数重复 ⇒ 双记）。
-                if was_pending:
-                    self.n_dropped += 1
+                # 🔴🔴 2026-10-27 §60 修：**只有「这句此刻确实还在 `pending` 里」
+                #   才计丢句**（否则会与「孤儿清理」的计数重复 ⇒ 双记）。
+                #   ⇒ `_drop_one()` 在**同一把锁内**完成「摘除 + 计数」。
+                #   ⚠️ `register_dropped=False`：worker 已故障 ⇒ 不会再有 `played`。
+                self._drop_one(jid, register_dropped=False)
                 self.on_log('[TTS] worker 已故障（error），该句不提交（已计丢句）')
         self._update_backlog()
 
@@ -888,11 +895,14 @@ class TTSService:
             if not self._send(cmd):
                 n_failed += 1
                 if jid is not None:
-                    with self.lock:
-                        self.pending.pop(jid, None)
-                        self._inflight.discard(jid)
+                    # 🔴🔴 2026-10-27 §60 修：**不得无条件 `n_dropped += 1`**。
+                    #   旧实现先 `pending.pop` 再在循环外 `n_dropped += n_failed`
+                    #   ⇒ 若这句已被 worker 级 error 的「孤儿清理」定案
+                    #   ⇒ 仍然**双记** ⇒ 不变式破坏。
+                    #   ⇒ 改用统一原子口径（见 `_drop_one`）⇒ **按句**判定。
+                    #   ⚠️ `register_dropped=False`：命令**从未到达 worker**。
+                    self._drop_one(jid, register_dropped=False)
         if n_failed:
-            self.n_dropped += n_failed
             self.on_log(f'[TTS] 补发时 {n_failed} 句未能下发（已计丢句）')
         if n_skipped:
             self.on_log(f'[TTS] 补发时跳过 {n_skipped} 句（已被丢弃，不重新下发）')
@@ -962,6 +972,58 @@ class TTSService:
         except Exception as e:
             self.on_log(f'[TTS] 发送失败：{e}')
             return False
+
+    # 🔴🔴🔴 2026-10-27 §60 新增：**丢句记账的唯一原子口径**。
+    def _drop_one(self, jid: int, register_dropped: bool = False) -> bool:
+        """原子地「把这一句定案为丢句」。
+
+        🔴🔴 **为什么需要这个统一入口（§60 修的缺陷类别）**：
+          丢句的**判定**（这句还在不在途）与**计数**（`n_dropped += 1`）
+          必须**在同一把锁内**完成，否则会出现「双记」：
+            · 路径 A 先把这句话从 `pending` 里清掉并计了丢句；
+            · 路径 B 随后又对**同一句**执行 `n_dropped += 1`
+              （因为它只看 `state` / 发送成败，**没看这句是否还在途**）
+            ⇒ 同一句被计了两次 ⇒ `n_played + n_dropped > n_submitted`
+              ⇒ 不变式破坏 ⇒ 底栏「丢句 + 已播」超过「提交」。
+
+        🔴 **真实触发路径（不是理论构造）**：
+          「worker 级 error 的孤儿清理」会做
+              `orphan = sorted(self.pending.keys())` → `pending.clear()`
+              → `n_dropped += len(orphan)`
+          而 `submit()` 的三条丢句路径（发送失败 / worker 已故障 / 补发失败）
+          都在**这个清理之外**各自执行了一次**无条件**的 `n_dropped += 1`
+          ⇒ 只要 worker 级 error 与 `submit()` / `_flush_queue()` **交错**，
+            就会双记（实测见 `results/app/app090_tts_drop_double_count.py`）。
+
+        ⇒ **统一口径**：**只有「这一句此刻确实还在 `pending` 里」才计丢句**。
+          摘除（`pending.pop`）+ 注销 `_inflight` + 计数
+          **全部在同一把锁内**完成 ⇒ 原子。
+
+        参数 `register_dropped`：
+          `True`  ⇒ 同时登记进 `_dropped_ids`
+                    （含义：worker **仍可能**回 `played` ⇒ 收到时要「改记为已播」）
+                    —— 用于「命令**已下发**、worker 可能无视 cancel 照样播」的场景；
+          `False` ⇒ **不**登记（含义：命令**从未下发**或 worker 已死 ⇒ 不会再有事件）
+                    —— 用于「发送失败 / worker 已故障」的场景。
+
+        返回 True  = 本次**确实计了**丢句；
+        返回 False = 这句**已被别的路径定案**（已播 / 已丢 / 已失败）⇒ **不再重复计**。
+        """
+        with self.lock:
+            # 🔴 `pop` 返回 None ⇒ 这句**已不在途** ⇒ 已被别人定案 ⇒ 不得重复计。
+            was_pending = self.pending.pop(jid, None) is not None
+            # 🔴 §29：**必须同时注销 `_inflight`**，否则 worker 崩溃时
+            #   `lost = sorted(self._inflight)` 会把它**再算一次**丢句。
+            self._inflight.discard(jid)
+            if not was_pending:
+                return False
+            if register_dropped:
+                # 🔴 §30：登记「已丢弃但 worker 可能仍会播」
+                #   ⇒ 迟到的 `played` 会被改记为已播（`n_dropped -= 1`）。
+                self._dropped_ids.add(jid)
+            # 🔴 计数**在锁内**完成 ⇒ 与「摘除」原子 ⇒ 不会与别的路径并发叠加。
+            self.n_dropped += 1
+        return True
 
     def cancel(self, jid: int):
         """通知 worker 丢弃某一句（还没开始播的整句）。
