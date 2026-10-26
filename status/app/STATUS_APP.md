@@ -1,12 +1,20 @@
 # STATUS_APP
 last_ack: APP-022
-更新时间: 2026-10-27 02:01
-当前任务: **§58 🔴 巡检（APP-022 = `last_ack` ⇒ **本轮无新 APP 纠偏条目**）+ 🔴🔴 修「`cancel()` 漏清待发队列 ⇒ 幽灵在途句 ⇒ 崩溃时 `n_dropped` 双记」这个真实缺陷（**本条已完成**）** ⇒ ① **无新条目**：`CORRECTIONS_APP.md` 最大编号 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0** ⇒ 不触发逐条执行 ⇒ `last_ack` **保持 APP-022**；② 🔴 **缺陷**：§57 只清了 `pending`/`_inflight`/`_dropped_ids`，**漏了 `_queue`**（worker 未 ready 时 `submit()` 把命令放这里，**尚未下发**）⇒ `cancel()` 后命令**仍留在 `_queue`** ⇒ ready 后 `_flush_queue()` **重新下发** ⇒ worker **真的播出来** ⇒ 主进程 `_inflight` 多出**从未在途**的 jid（**幽灵在途句**）⇒ worker 崩溃时 `_on_worker_exit()` 取 `lost = sorted(self._inflight)` **把幽灵算成在途丢失** ⇒ `n_dropped` 双记 ⇒ 不变式破坏；③ 🔴 **实测反证**（基线 `e06f8ee`）：3 句提交 → cancel 第 0 句 → ready 后 `_inflight=[0]` → 崩溃 ⇒ `n_dropped=2/n_played=2/submitted=3` ⇒ **sum(4) ≠ submitted(3)**；④ ⚠️ **与 §57 是两个不同的洞**（§57 = 同一句被计两次；§58 = 从未在途的句被当成在途丢失）⇒ 根因/触发路径/修法都不同 ⇒ 必须都修；⑤ ✅ **修法一（源头）**：`cancel()` 在**同一锁内**把 jid 从 `_queue` 摘掉（⚠️ `_queue` 是 list（保顺序）⇒ 摘除 O(n) ⇒ 另加 `_queued_ids` set 记成员 ⇒ O(1) 判定；`submit()` 登记入队、3 处 `_queue.clear()` 全部同步清）；⑥ ✅ **修法二（第二道保险）**：`_flush_queue()` 补发时**跳过已不在 `pending` 里的 jid**（判据 = 已被别处定案 ⇒ 绝不重新下发）+ 落日志「补发时跳过 N 句」；⑦ ✅ **验收 `app088` 15/15 全 PASS + 反证命中**（A 7/B 4/C 4/D 3；证据 `verdict="PASS"`、`real_fail=[]`、`baseline_commit="e06f8ee"`）—— D1 修复前 `n_queue=3`（应 2）、D2 修复前 `inflight=[0]`、D3 修复前 `sum=4` vs `submitted=3`；⑧ ✅ **回归无回归**：`app057` PASS、`app086` PASS、`test_tts_drop_crash` PASS、`test_tts_close_gui_quit` PASS、`test_tts_drop_crash_pkg` PASS；⑨ ✅ **附带修 4 处 U+FFFD 乱码注释**（§54.10 遗留，三版 commit 数量相同 ⇒ 非本轮引入）⇒ 按 §36「不原样引用坏字节」改文字描述 ⇒ 仓库/包两侧 U+FFFD **归 0**、`check_internal_material.py --pkg` **PASS（命中 0）**；⑩ ✅ **客户包定点同步**（双副本纪律：**精确字符串替换 + 唯一命中断言**，禁整目录覆盖；不手抄代码 ⇒ `git show e06f8ee:` + `difflib` 派生块）⇒ `tts_service.py` / `tts_cuda_sidecar.py` 仓库⇄包 **SHA256 完全相同**（`3fd81271…` / `840c521b…`，73 481 B 与 10 367 B）；⑪ ⚠️ **我自己踩的坑（已修正）**：换行 join 重建全文 ⇒ 包尾多 2 空行（CRLF 1281 vs 1279）⇒ 用尾部字节串定点替换修正 ⇒ 现两侧**逐字节相同**；⑫ ⚠️ **客户包侧 PE1 FAIL 属预期**：git HEAD（`7a73692`）尚未含 §58 ⇒ `difflib` 核对 113 行差异**全部是 §58 + 乱码修复**、无其它内容 ⇒ 提交后即转 PASS（正是 §48「基准必须是 HEAD」的正确体现）；⚠️ **未在 CPU 跑推理/测速、未碰真实 `shared/MACHINE_LOCK`、未改 `CORRECTIONS_APP.md`、未吞其它模块改动**
+更新时间: 2026-10-27 03:26
+当前任务: **§59 🔴 巡检（APP-022 = `last_ack` ⇒ **本轮无新 APP 纠偏条目**）+ 🔴🔴 修「`submit()` 丢唤醒竞态 ⇒ 命令永久滞留 `_queue` ⇒ 该句永远不被朗读」这个真实缺陷（**本条已完成**）** ⇒ ① **无新条目**：`CORRECTIONS_APP.md` 最大编号 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0** ⇒ 不触发逐条执行 ⇒ `last_ack` **保持 APP-022**（**第 23 次**同一口径复核，文件**只读零修改**，SHA256 `682aced289a58d18b…` 与 §57/§58 一致）；② 🔴 **缺陷 A（主）—— 丢唤醒竞态**：`submit()` 拆成两个临界区（锁内读 `state` → 出锁 → 再锁内入队）⇒ 与事件线程的「`state='ready'` + `_flush_queue()` 补发」之间存在窗口 ⇒ 若 `ready` 恰在窗口内到达 ⇒ 该句被塞进 `_queue` ⇒ **此后永不再有 ready 事件 ⇒ 命令永久滞留队列 ⇒ 该句永远不被朗读、且 `drain()` 必超时**；③ 🔴 **缺陷 B（同源）—— 幽灵在途句**：窗口内 worker 判死 ⇒ 那句入队后**永不再 ready** ⇒ 主进程 `_inflight` 多出**从未在途**的 jid ⇒ `_on_worker_exit()` 取 `lost = sorted(self._inflight)` **把幽灵算成在途丢失** ⇒ `n_dropped` 双记 ⇒ 不变式 `n_played + n_dropped + len(pending) == n_submitted` 破坏；④ ✅ **修法（4 处，闭合窗口）**：**(a)** `submit()` 的「读状态 + 入队/下发」**合并到同一临界区**；**(b)** **入队前锁内复查 `state`**（`ready` ⇒ 直接下发 / `error` ⇒ 定案丢句 / 否则入队）—— 这才是闭合窗口的**关键**；**(c)** `_handle_event('ready')` 的 `state='ready'` 赋值**移进锁内**（事件侧也必须原子）；**(d)** 窗口内定案的句子**只有它此刻仍在 `pending` 里才计丢句** ⇒ 否则与孤儿清理重复 ⇒ 又一次双记；⑤ ✅ **验收 `app089` REAL 17/17 全 PASS + 反证 3/3 命中**（基线固定 `421d2d0`，本缺陷在基线**未修** ⇒ 提交后 HEAD 变修复版也不影响反证）；反证实测：`n_queue=1`（命令永久滞留）/ `played=0, pending=1`（永远悬挂）/ `drain_ok=False, elapsed=6.01 s`（超时）—— 证据 `verdict="PASS"`、`real_fail=[]`、`baseline_commit="421d2d0"`；⑥ ✅ **回归无回归**：11 个既有套件全 PASS（`app057`/`app086`/`app088`/`test_tts_drop_crash`/`test_tts_close_gui_quit`/`test_tts_close_leak`/`test_tts_close_orphan`/`test_tts_error_isolation`/`test_tts_exit_played`/`test_tts_restart_regression`/`test_tts_stderr`）；⑦ ✅ **客户包定点同步**（双副本纪律：**精确字符串替换 + 唯一命中断言**，禁整目录覆盖；不手抄代码 ⇒ `git show 421d2d0:` + `difflib` 派生 8 块）⇒ 仓库⇄包 `tts_service.py` **SHA256 逐字节相同**（`db6f2412…` / 80 036 B）；⚠️ **我自己踩的坑（已修）**：包内是 **CRLF** 而 `git show` 永远 **LF** ⇒ 替换块命中 0 次 ⇒ 报「找不到唯一锚点」（**误导性报错**，真因是换行不匹配）⇒ 改为**全程归一化匹配 + 写盘还原**；⑧ ✅ **git**：commit **`36e3d1e`**（**4 个 App 职责内文件**）⇒ `git push origin main` **普通快进** `6235df4..36e3d1e`（**未 force**）⇒ 🔴 **`CORRECTIONS_APP.md` 未入暂存**（远端 blob 仍 `7082400b…` ⇒ 与 `421d2d0` 逐位一致）⇒ 🔴 **其它模块 465 项未提交改动全部保留**（**未吞**）；⑨ ✅ **对包内那份单独跑同一套断言 PASS（17/17 + 反证 3/3）**、`check_internal_material.py --pkg` 与 `--staged` **均 PASS（命中 0）**；⚠️ **未在 CPU 跑推理/测速、未占 GPU、未碰真实 `shared/MACHINE_LOCK`、未调 MiniMax、未改 `CORRECTIONS_APP.md`、未吞其它模块改动**
 
-阻塞 / 待用户决定: ① 🔴 **APP-022 集成阶段需等 ASR-013 + TTS-019 交付**（本条只做接口预留，**未集成**）；② 🔴 **APP-021 验收 C 仍需用户配合**（需人）：交互会话里系统音量 ≥ 50%、戴耳机/外放 ⇒ **先点「🔊 测试声音」再点离线朗读念一句** ⇒ 把会话日志路径与遥测行写进本 STATUS；③ 🔴 **撤回后的口径**：在用户用耳朵确认之前，**不得**再宣称「离线朗读能出声」；④ 🔴 **v1.5 zip 未重打**（守 APP-020，等 cp_prefill 同步后的最终版 + 机器锁）；⑤ 🔴 **散包目录仍有第三方素材残留**（babelvox speakers 8 + scipy 测试音频 22）⇒ **未清理**，需重打时由 `pkg_exclude` 规则覆盖；⑥ 🔴 **术语表 / `packaging` 默认值待用户决定**（MT 通知 14 建议：术语表只在芯片/半导体语境下开、`packaging` 放可选集 ⇒ 属 App 默认值 ⇒ 本轮**未擅自改**）；⑦ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑧ 🔴 **§49.7 待裁定**（APP-020 明确「先不要定」⇒ 未动）；⑨ 🔴 **§45.6①–⑤ 等 reviewer 裁定**；⑩ 🔴 **等裁定**：是否采纳 `MAX_SEG_SPAN = 2`（§44 候选已备好）；⑪ 🔴 **需回复 MT 通知 13**；⑫ 🔴 **§46.5** 第三方依赖可满足性闸门；⑬ 🔴 **§42.3** 修复待用户实机确认；⑭ ⛔ **FTP 服务仍关闭**（守 APP-009③）；⑮ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑯ ⛔ 包体优化未做（用户已接受）；⑰ ⛔ V7 残句代价待确认；⑱ 🔴 **§56.9**：TTS-019 `single` 臂 / TTS-017① `A_CPU` 臂两轮数据**是否重跑由 TTS 自行决定**（App 已修根因，**不代跑尺子**）；⑲ 🔴 **§56.2**：ASR/TTS 侧锁写法的**独占性**待其自评（`os.replace` 会覆盖 ⇒ 丢独占性）；⑳ 🔴 **§57**：历史遗留未跟踪文件（`live_caption/sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `results/app/app073*` / `app074*` 等）**归属未判定** ⇒ 本轮**未提交**（§46「已产出未入库」教训 ⇒ 需单独裁定后再入库）；㉑ ✅ **§58.8 已闭环**：客户包侧 `test_tts_close_gui_quit_pkg.py` 的 **PE1** 在 §58 提交（`421d2d0`）后**复跑已转 PASS**（`96118245f4e275f0` vs `96118245f4e275f0`）；㉒ 🔴 **§58.7**：客户包 `app/` 目录**未重打 zip**（守 APP-020：等 `cp_prefill` 同步后的最终版 + 机器锁）⇒ **不写「已交付」**
+阻塞 / 待用户决定: ① 🔴 **APP-022 集成阶段需等 ASR-013 + TTS-019 交付**（§55 只做接口预留，**未集成**）；② 🔴 **APP-021 验收 C 仍需用户配合**（需人）：交互会话里系统音量 ≥ 50%、戴耳机/外放 ⇒ **先点「🔊 测试声音」再点离线朗读念一句** ⇒ 把会话日志路径与遥测行写进本 STATUS；③ 🔴 **撤回后的口径**：在用户用耳朵确认之前，**不得**再宣称「离线朗读能出声」；④ 🔴 **v1.5 zip 未重打**（守 APP-020，等 cp_prefill 同步后的最终版 + 机器锁）；⑤ 🔴 **散包目录仍有第三方素材残留**（babelvox speakers 8 + scipy 测试音频 22）⇒ `pkg_exclude.py` 排除规则**已在**（APP-018②/APP-019）但**散包目录未物理清理** ⇒ 需重打时由规则覆盖；⑥ 🔴 **术语表 / `packaging` 默认值待用户决定**（MT 通知 14 建议：术语表只在芯片/半导体语境下开、`packaging` 放可选集 ⇒ 属 App 默认值 ⇒ 本轮**未擅自改**）；⑦ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑧ 🔴 **§49.7 待裁定**（APP-020 明确「先不要定」⇒ 未动）；⑨ 🔴 **§45.6①–⑤ 等 reviewer 裁定**；⑩ 🔴 **等裁定**：是否采纳 `MAX_SEG_SPAN = 2`（§44 候选已备好）；⑪ 🔴 **需回复 MT 通知 13**；⑫ 🔴 **§46.5** 第三方依赖可满足性闸门；⑬ 🔴 **§42.3** 修复待用户实机确认；⑭ ⛔ **FTP 服务仍关闭**（守 APP-009③）；⑮ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑯ ⛔ 包体优化未做（用户已接受）；⑰ ⛔ V7 残句代价待确认；⑱ 🔴 **§56.9**：TTS-019 `single` 臂 / TTS-017① `A_CPU` 臂两轮数据**是否重跑由 TTS 自行决定**（App 已修根因，**不代跑尺子**）；⑲ 🔴 **§56.2**：ASR/TTS 侧锁写法的**独占性**待其自评（`os.replace` 会覆盖 ⇒ 丢独占性）；⑳ 🔴 **§57**：历史遗留未跟踪文件（`live_caption/sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `results/app/app073*` / `app074*` 等）**归属未判定** ⇒ 本轮**未提交**（§46「已产出未入库」教训 ⇒ 需单独裁定后再入库）；㉑ ✅ **§58.8 已闭环**：客户包侧 `test_tts_close_gui_quit_pkg.py` 的 **PE1** 在 §58 提交（`421d2d0`）后**复跑已转 PASS**（`96118245f4e275f0` vs `96118245f4e275f0`）；㉒ ✅ **§59 已闭环**：缺陷 A/B 已修并提交 `36e3d1e`（普通 push `6235df4..36e3d1e`，未 force）⇒ 客户包定点同步后 **仓库⇄包 SHA256 逐字节相同**（`db6f2412…` / 80 036 B）⇒ 包侧单独跑同一套断言 **17/17 + 反证 3/3** PASS ⇒ 🔴 **客户包 `app/` 目录仍未重打 zip**（守 APP-020：等 `cp_prefill` 同步后的最终版 + 机器锁）⇒ **不写「已交付」**
 
 
 ## 最近更新
+- 03:26 §59 🔴 **巡检：无新 APP 纠偏条目**（`CORRECTIONS_APP.md` 最大 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0** ⇒ `last_ack` **保持 APP-022**，**第 23 次**同一口径复核）；`CORRECTIONS_APP.md` 全程**只读零修改**（SHA256 `682aced289a58d18b…` / 48 457 B / mtime 2026-10-26 16:18:08 / 22 条 / 最大 APP-022）
+- 03:26 §59 🔴🔴 **缺陷 A（丢唤醒竞态）**：`submit()` 拆成两个临界区（锁内读 `state` → 出锁 → 再锁内入队）⇒ 与事件线程的「`state='ready'` + `_flush_queue()` 补发」之间有窗口 ⇒ `ready` 恰在窗口内到达 ⇒ 该句塞进 `_queue` ⇒ **此后永不再有 ready ⇒ 命令永久滞留 ⇒ 该句永远不被朗读、`drain()` 必超时**
+- 03:26 §59 🔴 **缺陷 B（同源，幽灵在途句）**：窗口内 worker 判死 ⇒ 那句入队后**永不再 ready** ⇒ `_inflight` 多出**从未在途**的 jid ⇒ `_on_worker_exit()` 取 `lost = sorted(self._inflight)` **把幽灵算成在途丢失** ⇒ `n_dropped` 双记 ⇒ 不变式破坏
+- 03:26 §59 ✅ **修法 4 处（闭合窗口）**：**(a)** `submit()` 「读状态 + 入队/下发」**合并同一临界区**；**(b)** **入队前锁内复查 `state`**（`ready`⇒直接下发/`error`⇒定案丢句/否则入队）—— 闭合窗口的**关键**；**(c)** `_handle_event('ready')` 的 `state='ready'` 赋值**移进锁内**（事件侧也原子）；**(d)** 窗口内定案的句子**只有仍在 `pending` 里才计丢句**（否则与孤儿清理重复 ⇒ 二次双记）
+- 03:26 §59 ✅ **验收 `app089` REAL 17/17 全 PASS + 反证 3/3 命中**（基线固定 `421d2d0`，该缺陷在基线**未修** ⇒ 提交后 HEAD 变修复版也不影响反证）；反证实测 `n_queue=1`（命令永久滞留）/ `played=0, pending=1`（永远悬挂）/ `drain_ok=False, elapsed=6.01 s`（超时）；证据 `verdict="PASS"`、`real_fail=[]`、`baseline_commit="421d2d0"`
+- 03:26 §59 ✅ **回归 11 套全绿**：`app057`/`app086`/`app088`/`test_tts_drop_crash`/`test_tts_close_gui_quit`/`test_tts_close_leak`/`test_tts_close_orphan`/`test_tts_error_isolation`/`test_tts_exit_played`/`test_tts_restart_regression`/`test_tts_stderr`
+- 03:26 §59 ✅ **客户包定点同步**（**精确字符串替换 + 唯一命中断言**，禁整目录覆盖；不手抄代码 ⇒ `git show 421d2d0:` + `difflib` 派生 **8 块**）⇒ 仓库⇄包 `tts_service.py` **SHA256 逐字节相同**（`db6f2412…` / 80 036 B，改前 73 481 B / `3fd81271…`）；⚠️ **我自己踩的坑（已修）**：包内 **CRLF** vs `git show` 永远 **LF** ⇒ 命中 0 次 ⇒ 报「找不到唯一锚点」（**误导性报错**，真因是换行不匹配）⇒ 改为**全程归一化匹配 + 写盘还原**
+- 03:26 §59 ✅ **已提交 `36e3d1e` 并推送**（普通 push `6235df4..36e3d1e`，**未 force**）⇒ 4 个 App 职责内文件入暂存；🔴 **`CORRECTIONS_APP.md` 未入暂存**（远端 blob 仍 `7082400b…` ⇒ 与 `421d2d0` 逐位一致）；🔴 **其它模块 465 项未提交改动全部保留**（**未吞**）；`check_internal_material.py --pkg` 与 `--staged` **均 PASS（命中 0）**
 - 22:15 §56 ✅ **原子 + 独占写**（`tmp`+`fsync`+**`os.link`** ⇒ `FileExistsError` 独占失败；🔴 **刻意不用 `os.replace`** —— 它会**覆盖** ⇒ 丢独占性 ⇒ TOCTOU）+ **读不出 pid 不删**（等 2 s，**只有确实空白才回收**）+ **锁内真实 PID** + **逐条自检**（`lock_intact`/`lock_probe` ⇒ 每条记录落盘 `timing_valid`/`lock_note`/`lock_pid`）
 - 22:15 §56 ✅ **8 个计时脚本收敛**到 `machine_lock_app.write_lock_atomic()`；**4 组验收全绿**：`app082` **22/22**（BUG 反证 `5809/13712` 见到空锁）、`test_machine_lock_app` **18/18**（无回归）、`app083b` **72/72**（语义校验）、`app085` **20/20**（跨进程 e2e，三方解析器全可读）；回执已发 `shared\NOTICE_app_to_tts_asr_20261026_s56.md`
 - 20:55 §55 🔴 **APP-022 已完成（仅接口预留，未集成）**：事件**按需加长**（`spk=None` ⇒ 仍是 5 元组 ⇒ MT 的 `len(e)==5` 断言继续成立）；GUI 预留「跟随说话人（克隆）」（默认仍是预设 A）+「显示说话人」（默认关闭）；说话人表**只在内存**、会话结束清空、**不进客户包**
@@ -14,15 +22,6 @@ last_ack: APP-022
 - 16:55 §54 🔴 **会话日志可读性修复（§54.10）**：① 同一行落盘 **2~3 遍** ⇒ 短窗口去重；② stderr **中文乱码** ⇒ 根因是 `sox` 包 `os.popen` 文本模式把 cmd.exe 的 **GBK 字节解成 U+FFFD（不可逆）** ⇒ 边车加 `_RawStderr` 字节代理 + service 改二进制管道 + `_decode_worker_line`（utf-8→gb18030 严格判定）；③ **双重标签** `[TTS] [TTS]` ⇒ 不再叠加 tag
 - 16:55 §54 ✅ `app078` **28/28**（新增专项自检）+ `app077` 复跑 **11/11**（真实 CUDA）+ 回归 app076 38/38 / app069 37/37 / app072 13/13 / app073 16/16；最终会话日志**无重复行、无双重标签、乱码已消**
 - 16:20 §54 🔴🔴 **撤回 §52.1/§52.6 的「played 1 ⇒ 能出声」结论**（APP-021）：`played` 只代表"写进缓冲"，`player is None` 时音频被**扔掉却照样发 played** ⇒ 旧判据无效 ⇒ **§51「真实音频未验证结清」一并撤回**
-- 16:20 §54 🔴 **played 改成「真的播完」**：`ring.n_read` 追上本句最后样本写入位置才发；超时 ⇒ 带诊断的句子级 error；**播放器不可用 ⇒ 句子级 error**（不再发 played）
-- 02:01 §58 🔴 **巡检：无新 APP 纠偏条目**（`CORRECTIONS_APP.md` 最大 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0**）⇒ `last_ack` **保持 APP-022**；`CORRECTIONS_APP.md` 全程**只读零修改**（SHA256 `682aced289a58d18b…` 与 §57 巡检时相同）
-- 02:01 §58 🔴🔴 **缺陷**：§57 只清 `pending`/`_inflight`/`_dropped_ids`，**漏了 `_queue`**（worker 未 ready 时 `submit()` 暂存命令、**尚未下发**）⇒ `cancel()` 后命令仍在队列 ⇒ ready 后被**重新下发** ⇒ worker 真播 ⇒ 主进程 `_inflight` 多出**从未在途**的 jid（**幽灵在途句**）⇒ worker 崩溃时 `lost = sorted(self._inflight)` **把幽灵算成在途丢失** ⇒ `n_dropped` 双记 ⇒ 不变式破坏
-- 02:01 §58 🔴 **实测反证**（基线 `e06f8ee`）：3 句提交 → cancel 第 0 句 → ready 后 `_inflight=[0]` → 崩溃 ⇒ `n_dropped=2 / n_played=2 / submitted=3` ⇒ **sum(4) ≠ submitted(3)**；⚠️ 与 §57 是**两个不同的洞**（§57 = 同一句被计两次；§58 = 从未在途的句被当成在途丢失）
-- 02:01 §58 ✅ **修法一（源头）**：`cancel()` 在**同一锁内**把 jid 从 `_queue` 摘掉（`_queue` 是 list 保顺序 ⇒ 摘除 O(n) ⇒ 另加 `_queued_ids` set 记成员 ⇒ O(1) 判定；`submit()` 登记 + 3 处 `_queue.clear()` 同步清）；✅ **修法二（第二道保险）**：`_flush_queue()` 补发时**跳过已不在 `pending` 里的 jid** + 落日志「补发时跳过 N 句」
-- 02:01 §58 ✅ **验收 `app088` 15/15 全 PASS + 反证命中**（A 7/B 4/C 4/D 3；证据 `verdict="PASS"`、`real_fail=[]`、`baseline_commit="e06f8ee"`）：D1 修复前 `n_queue=3`、D2 修复前 `inflight=[0]`、D3 修复前 `sum=4` vs `submitted=3`；**回归 5 套全绿**（`app057`/`app086`/`test_tts_drop_crash`/`test_tts_close_gui_quit`/`test_tts_drop_crash_pkg`）
-- 02:08 §58 ✅ **已提交 `421d2d0` 并推送**（普通 push `7a73692..421d2d0`，未 force）⇒ 7 个 App 文件入暂存；**`CORRECTIONS_APP.md` 未入暂存**、其它模块 **464 项**未提交改动**未被吞**；`check_internal_material.py --staged` 与 `--pkg` **均 PASS（命中 0）**；**客户包侧 PE1 复跑已转 PASS**（`96118245f4e275f0` vs `96118245f4e275f0`）
-- 02:01 §58 ✅ **附带修 4 处 U+FFFD 乱码注释**（§54.10 遗留 ⇒ 三版 commit 数量相同 ⇒ 非本轮引入）⇒ 按 §36 改文字描述 ⇒ 仓库/包两侧 U+FFFD **归 0**、`check_internal_material.py --pkg` **PASS（命中 0）**；✅ **客户包定点同步** ⇒ `tts_service.py` / `tts_cuda_sidecar.py` 仓库⇄包 **SHA256 完全相同**（`3fd81271…` / `840c521b…`）；⚠️ **我自己踩的坑**：换行 join 重建全文 ⇒ 包尾多 2 空行 ⇒ 已用尾部字节串定点替换修正 ⇒ 现两侧**逐字节相同**
-
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -10268,3 +10267,215 @@ for cmd in q:
 
 🔴 **双副本同步的「尾部空行」也是差异** —— 用换行 join 重建全文会多出尾部空行。
 ⇒ 教训：同步后必须做**归一化逐字节比对**（不只是 diff 块数）⇒ 尾部差异只有在逐字节比对下才暴露。
+
+## §59 🔴 巡检（APP-022 = `last_ack`，**本轮无新 APP 纠偏条目**）+ 🔴🔴 修「`submit()` 丢唤醒竞态 ⇒ 命令永久滞留 `_queue` ⇒ 该句永远不被朗读」（2026-10-27 03:26）｜**本条已完成**｜**已提交 `36e3d1e` 并推送**
+
+### 59.1 巡检结论（无新条目）
+
+| 项 | 实测 |
+|---|---|
+| `status/app/CORRECTIONS_APP.md` SHA256 | `682aced289a58d18b9303cffa6cc5a60dd21c83e226cfefa3d3f2171f81aea00` |
+| 大小 / mtime | **48 457 B** / **2026-10-26 16:18:08** |
+| `## APP-xxx` 条目数 | **22** |
+| 最大编号 | **APP-022** |
+| 头部 `last_ack` | **APP-022** |
+| **编号差** | **0** ⇒ **不触发逐条执行** ⇒ `last_ack` **保持 APP-022** |
+
+⇒ 本轮**无新 reviewer 纠偏条目**（**第 23 次**同一口径复核）；
+该文件**全程只读、零修改**（§57/§58 巡检时 SHA 相同 ⇒ 逐位一致）。
+
+### 59.2 🔴🔴 本轮修的缺陷：`submit()` 的**丢唤醒竞态（lost wakeup）**
+
+#### 59.2.1 缺陷 A（主）：命令**永远发不出去**
+
+`submit()` 旧实现把「读 `state`」与「登记在途 / 入队」拆成了**两个临界区**：
+
+```python
+with self.lock:                       # ① 临界区
+    ...
+    ready = (self.state == 'ready')   # ← 读状态
+    dead  = (self.state == 'error')
+...
+else:
+    with self.lock:                   # ② 临界区
+        self._queue.append(cmd)       # ← 入队
+```
+
+而 `ready` 事件的处理**在锁外**改状态：
+
+```python
+if kind == 'ready':
+    self.state = 'ready'              # ← 锁外
+    self._flush_queue()               # ← 快照 _queue（当时可能为空）
+```
+
+⇒ **丢唤醒**（实测时序）：
+
+| 时刻 | 线程 | 动作 |
+|---|---|---|
+| t1 | App | ① 锁内读到 `state == 'loading'` ⇒ `action='queue'` |
+| t2 | 事件 | `state = 'ready'` ⇒ `_flush_queue()` ⇒ 快照 `_queue`（**空的**）⇒ 无事可做 |
+| t3 | App | ② 入队 ⇒ 命令**留在 `_queue` 里** |
+
+⇒ worker **已经 ready** ⇒ **再也不会有第二个 `ready` 事件**
+⇒ `_flush_queue()` **永远不会再跑**
+⇒ 这条命令**永远发不出去**
+⇒ `pending[jid]` **永久悬挂** ⇒ `drain()` **必超时**（GUI 白等 30 s / CLI 白等 120 s）
+⇒ 🔴 **用户可见后果：这一句译文永远不会被朗读**，且界面「提交」比「已播 + 丢句」多 1。
+
+#### 59.2.2 缺陷 B（同源）：`_inflight` 登记与「孤儿清理」交错 ⇒ **幽灵在途句**
+
+`_inflight.add(jid)` 也在**另一个**临界区 ⇒ 可与 worker 级 error 的
+「孤儿清理」（`pending.clear()` + `_inflight.clear()` + 计丢句）交错
+⇒ 交错后 `_inflight` 里多了一个**从未真正在途**的 jid（**幽灵**）
+⇒ worker 崩溃时 `lost = sorted(self._inflight)` 把它算成「在途丢失」
+⇒ `n_dropped` **双记** ⇒ 不变式破坏。
+
+#### 59.2.3 与 §58 的区别（为什么这是**另一个**破口）
+
+| 轮次 | 破口 | 命令**是否被下发** |
+|---|---|---|
+| §58 | `cancel()` **漏清 `_queue`** | **是**（被重新下发 ⇒ 主进程记错） |
+| **§59** | `submit()` **丢唤醒** | **否**（根本没下发 ⇒ 永久滞留） |
+
+两者都会破坏不变式，但**根因不同、修的位置不同** ⇒ 必须分别修。
+
+### 59.3 ✅ 修法（`live_caption/tts_service.py`，**4 处**）
+
+1. **读 `state` + 登记在途 + 决定「直接下发 vs 入队」合并到同一临界区**
+   ⇒ 孤儿清理看不到半状态 ⇒ 杜绝缺陷 B；
+2. **入队前在同一把锁内复查 `state`** ⇒ 若已 ready 则**自己下发**（不入队）
+   ⇒ 杜绝缺陷 A；
+3. **`_handle_event('ready')` 的 `state = 'ready'` 移进锁内**
+   ⇒ 与 ② 的复查**互斥** ⇒ 「入队」与「补发」**不可能两边都错过**：
+   - 复查看到 `'ready'` ⇒ `_flush_queue()` 的快照要么还没取（一定取得到我们的命令），
+     要么已经取完（那它看到的是空队列 ⇒ 我们必须**自己**下发）；
+   - 复查看到非 `'ready'` ⇒ `_flush_queue()` 必定在我们之后跑（它读 `state` 前我们已入队）⇒ 一定取得到；
+4. **顺带补齐「worker 级 error 落在窗口内 ⇒ 不得入队」**
+   ⇒ `_queue` 不再无上限增长；⚠️ 计数口径 = **只有该句此刻仍在 `pending` 里才计丢句**
+   （否则与「孤儿清理」的计数重复 ⇒ 双记）。
+
+### 59.4 ✅ 验收（`results/app/app089_tts_submit_lost_wakeup.py`）
+
+**REAL 17/17 PASS**（桩 worker，**不跑推理 / 不测速 / 不占 GPU / 不取机器锁 / 不调 MiniMax**）。
+
+🔴 **关键手法：确定性复现，不靠概率** —— 真实世界里那个窗口只有几微秒宽，
+靠「多跑几次」抓不到 ⇒ 本脚本用**可注入的锁包装器**，在 `submit()` 的
+**第一个临界区释放之后**（= 窗口的精确位置）**同步**触发 `ready` 事件
+⇒ **每次都必现**。
+⚠️ 触发点必须在**释放锁之后**：修复后 `_handle_event('ready')` 自己要取锁
+⇒ 若在持锁时调用 ⇒ 直接自死锁（那正是修复后的**正确**行为）。
+
+| 组 | 断言 | 结果 |
+|---|---|---|
+| A | 丢唤醒：命令**没有**滞留待发队列（`n_queue=0`） | OK |
+| A | 不变式成立（无悬挂） | OK |
+| A | 这句**真的被播出来了** | OK |
+| A | `drain()` **正常返回**（`elapsed=0.00 s`，不超时） | OK |
+| B | 幽灵在途句：孤儿清理与 `submit()` 交错 ⇒ 不变式成立 | OK |
+| B | `_inflight` **无残留**（`inflight=[]`） | OK |
+| B | 丢句数**恰好 1**（只算一次） | OK |
+| C | 正常路径：worker 未 ready 时提交 ⇒ ready 后 **3/3 补发并播出** | OK |
+| C | 不变式成立 / 待发队列清空 | OK |
+
+**反证（固定 commit `421d2d0` 的源码，子进程跑同一场景）3/3 命中**：
+
+| # | 断言（命中 = 预期成立） | 修复前实测 |
+|---|---|---|
+| D1 | 命令**永久滞留**待发队列 | `n_queue=1`（应为 0） |
+| D2 | 这句**永远悬挂**（没播出、也没离开 `pending`） | `played=0` / `pending=1` |
+| D3 | `drain()` **超时** | `drain_ok=False`，`elapsed=6.01 s` |
+
+⚠️ 反证基线**用固定 commit SHA `421d2d0`**（= §58 的提交，本缺陷类别**尚未**修）
+⇒ 提交后 HEAD 变成修复版也不影响反证。
+
+**回归 11 个既有套件全部未回归**：
+`app057` / `app086` / `app088` / `test_tts_drop_crash` / `test_tts_close_gui_quit` /
+`test_tts_close_leak` / `test_tts_close_orphan` / `test_tts_error_isolation` /
+`test_tts_exit_played` / `test_tts_restart_regression` / `test_tts_stderr`
+⇒ 全部 PASS（REAL 全过 + 反证仍命中）。
+
+**证据落盘**：`results/app/app089_tts_submit_lost_wakeup_evidence.json`
+（`verdict="PASS"`、`real_fail=[]`、`baseline_commit="421d2d0"`）。
+
+### 59.5 ✅ 客户包定点同步（**双副本纪律**）
+
+- 🔴 **精确字符串替换 + 唯一命中断言**，**禁整目录覆盖**；
+- 🔴 **不手抄代码** ⇒ `git show 421d2d0:` + `difflib` **自动派生**替换块
+  ⇒ **8 块**全部唯一命中；
+- ✅ **幂等**：复跑 `--check` = **ALREADY**；
+- ✅ **包外备份**：`C:\Users\Trekker-PTL\pkg_backup_app_c152\tts_service.py.bak_20261027_032521`；
+- ✅ **仓库 ⇄ 包** `tts_service.py` **SHA256 完全相同**：`db6f2412980184f99a1ba27cb9f8b3fa9829190bc79777ac2b5fda5de6c54a1f`
+  / **80 036 B**（改前 73 481 B / `3fd812719bbb620998c1dc7f5d66f048f103947bb72266f6b01f2c5ac5af637f`）；
+- ✅ **对包内那份单独跑同一套断言**：REAL **17/17 PASS** + 反证 **3/3 命中**
+  （`--pkg C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.5`）；
+- ✅ `check_internal_material.py --pkg <v1.5>` **PASS（命中 0）**。
+
+#### 59.5.1 🔴 同步脚本自身踩的坑（已修，**记进下次巡检必读**）
+
+🔴🔴 **包内是 CRLF、`git show` 出来的永远是 LF**
+⇒ 推导出的替换块是 LF 文本 ⇒ 在 CRLF 的包内容里**命中 0 次**
+⇒ 首版报「**纯新增块找不到唯一锚点**」（`FAIL-block-cannot-anchor`）。
+⇒ 修法：**推导与匹配全程在归一化（LF）文本上进行**，
+写盘时**还原成包原本的换行风格**（按 `pkg_bytes.count(b'\r\n') > 0` 判定）
+⇒ 同步后仓库 ⇄ 包**逐字节 SHA256 相同**（含 CRLF 行尾，**1370 CRLF / 1370 LF**）。
+⚠️ 教训：**「块数对得上」不等于「字节对得上」** ⇒ 必须做**归一化逐字节比对**。
+
+### 59.6 git 提交
+
+- commit **`36e3d1e`**（**4 个 App 职责内文件**）：
+  `live_caption/tts_service.py`（修改）、
+  `live_caption/sync_c152_to_pkg.py`（新增）、
+  `results/app/app089_tts_submit_lost_wakeup.py`（新增）、
+  `results/app/app089_tts_submit_lost_wakeup_evidence.json`（新增）；
+- → `git push origin main` **普通快进** `6235df4..36e3d1e`（**未 force**）；
+- 🔴 **`status/app/CORRECTIONS_APP.md` 未入暂存** ⇒ 远端 blob 仍是 `7082400b…`
+  （**与 `421d2d0` 逐位一致** ⇒ reviewer 独占文件未被提交）；
+- 🔴 **其它模块 465 项未提交改动全部保留在工作区**（**未吞**），
+  含 `status/CORRECTIONS.md` / `live_caption/translator.py` / ASR `c0*.py` / `diag_c111_*` 等；
+- ⚠️ 起点 `6235df4` 是**并发会话的 ASR §38 提交** ⇒ **未被吞**。
+
+### 59.7 未推进（**均等 reviewer / 用户裁定**，本轮**未擅自推进**）
+
+① 🔴 **APP-022 集成阶段**需等 **ASR-013 + TTS-019** 交付（§55 只做接口预留，**未集成**）；
+② 🔴 **APP-021 验收 C** 仍需用户配合（交互会话 + 音量 ≥ 50% + 戴耳机/外放
+⇒ 先点「🔊 测试声音」再点离线朗读念一句 ⇒ 回填会话日志路径与遥测行）；
+③ 🔴 **v1.5 zip 未重打**（守 **APP-020**：等 `cp_prefill` 同步后的最终版 + 机器锁）
+⇒ 🔴 **不写「已交付」**；
+④ 🔴 **散包目录仍有第三方素材残留**（babelvox speakers **8** + scipy 测试音频 **22**）
+⇒ `pkg_exclude.py` 的排除规则**已在**（APP-018② / APP-019），
+但**散包目录未物理清理** ⇒ 需重打时由规则覆盖；
+⑤ 🔴 **术语表 / `packaging` 默认值待用户决定**（MT 通知 14 建议：`packaging` 放可选集
+⇒ 属 App 默认值 ⇒ 本轮**未擅自改**）；
+⑥ 🔴 §45.6①–⑤ / §44 `MAX_SEG_SPAN=2` / §49.7 / §46.5 / §42.3 / MT 通知 13 回复
+⇒ **均等裁定**；⑦ ⛔ **FTP 仍关闭**（守 APP-009③）；⑧ ⛔ 包体优化未做（用户已接受）。
+
+## 🔴 下次巡检必读（本轮新增）
+
+- 🔴🔴 **「读状态」与「据此行动」必须放在同一把锁内** —— `submit()` 拆成两个临界区
+  ⇒ 与事件线程的「状态转换 + 补发」形成**丢唤醒**窗口
+  ⇒ 命令**永久滞留队列** ⇒ 永远不被朗读、且 `drain()` 必超时。
+  ⇒ 通用判据：**任何「先看状态、再决定做什么」的代码，检查这两步是否原子**。
+- 🔴🔴 **丢唤醒的另一半在事件侧**：`_handle_event('ready')` 的状态赋值
+  **必须在锁内** ⇒ 否则它与「入队临界区」之间的窗口依旧存在
+  ⇒ **两侧都改**才闭合（复查 + 锁内置状态）。
+- 🔴 **注入式复现优于概率式复现**：真实竞态窗口只有几微秒宽
+  ⇒ 「多跑几次」抓不到 ⇒ 用**可注入的锁包装器**在**精确位置**同步触发事件
+  ⇒ **每次必现**、证据可复现。
+- ⚠️ **注入点必须在「释放锁之后」** —— 修复后事件处理自己要取锁
+  ⇒ 在持锁时调用 ⇒ **自死锁**（那是修复后的**正确**行为，不是脚本 bug）
+  ⇒ 第一版脚本就是这么挂死的（跑满 5 分钟被 kill）。
+  ⇒ 教训：**测试脚本被修复后的行为「卡死」时，先分清是「脚本写错」还是「修复生效」**。
+- 🔴🔴 **包内 CRLF vs `git show` 的 LF** ⇒ 替换块**命中 0 次**
+  ⇒ 报「纯新增块找不到唯一锚点」（**误导性报错**，真因是换行不匹配）。
+  ⇒ 同步脚本必须**全程归一化匹配 + 写盘还原**；
+  ⇒ 验收判据 = **归一化后逐字节 SHA256 相同**（不是「块数对得上」）。
+- 🔴 **`self.lock` 是非可重入 `threading.Lock`** ⇒ `_handle_event` 里
+  **绝不能**在持锁状态下再取锁（自死锁）⇒ `state='ready'` 的 `with` 块
+  与 `_flush_queue()` 必须**分开**（后者自己取锁）。
+- 🔴 **「worker 级 error 落在窗口内」也要堵**（不只是 `ready`）
+  ⇒ 否则那句会入队 ⇒ worker 判死后**永不再 ready** ⇒ 永久滞留 ⇒ `_queue` 无上限增长。
+- 🔴 **计数口径**：窗口内定案的句子，**只有它此刻仍在 `pending` 里**才计丢句
+  ⇒ 否则与「孤儿清理」的计数**重复** ⇒ 又一次双记。
+- ✅ **同步脚本沿用 `git show` + `difflib` 自动派生**（不手抄代码）
+  ⇒ 8 块全部唯一命中 ⇒ **禁整目录覆盖**的双副本纪律仍然成立。
