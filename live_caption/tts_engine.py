@@ -224,6 +224,50 @@ CHUNK_FRAMES = 8
 #    ⇒ 新增 33 / 40 两个桶，其余沿用。
 DECODER_BUCKETS_CTX = [8, 16, 32, 33, 40, 64, 128, 256]
 
+# 🔴🔴🔴 **cp_decode 的静态形状**（APP-018 第 1 条 —— 补上从未实现的生产配置）
+#
+# ## 根因（实测，非推测）
+#
+# reviewer 的生产配置明写「**cp_decode 放 NPU**」，但 **App 侧从未实现**：
+#
+# | 位置 | 代码 | cp_decode 实际设备 |
+# |---|---|---|
+# | `babelvox/pipeline.py` L347-350（原生 `BabelVox._load_npu_models`） | `core.compile_model(cp_decode.xml, "CPU")` | **CPU** |
+# | `live_caption/tts_engine_patch.py` L379-382（vendored patch，md5 与 TTS 模块 `qwen3tts_patch.py` **完全一致**） | 同上 | **CPU** |
+# | `qwen3tts_eval/eval_cp_on_npu.py::_recompile_cp_on_npu()`（TTS 模块的「尺子」） | `m.reshape(CP_SHAPE)` 后 `compile_model(m, "NPU")` | **NPU** |
+#
+# ⇒ TTS 模块测出 RTF 0.8568 / 首包 0.5862 s 时 **cp_decode 在 NPU**；
+#   App 测出 RTF ~1.9 / 首块 ~1.3 s 时 **cp_decode 在 CPU**。
+# ⇒ `cp_decode` 是**每步 AR 都要跑**的组件（pipeline L920/L1161）
+#   ⇒ 放 CPU 直接拖慢整条 AR 链。
+#
+# ## 实测 A/B（`results/app/app062_cp_decode_device_ab.py`，持锁 + 安静窗口）
+#
+# | 臂 | cp_decode | 单句 RTF 中位 | 首块中位 | 聚合 RTF |
+# |---|---|---|---|---|
+# | A | CPU（App 现状） | **1.912** | **1.296 s** | 1.971 |
+# | B | NPU（本修复） | **1.218** | **0.837 s** | 1.256 |
+# | Δ | — | **提速 1.57×** | **提速 1.55×** | — |
+#
+# ## 🔴 为什么必须 reshape
+#
+# 直接 `compile_model(cp_decode.xml, "NPU")` ⇒ **Segmentation fault**
+# （进程直接崩，try/except 接不住；OV 的 NPU 插件在动态维 IR 上崩）。
+# 生产路径的 cp_decode **形状本来就是静态的**
+# （babelvox `pipeline.py` L110-113: CP_NUM_LAYERS=5 / CP_NUM_KV_HEADS=8 /
+#  CP_HEAD_DIM=128 / **CP_MAX_KV_LEN=20**；`_run_cp_decode` L567-580 每次都传
+# 固定形状的 attn_mask 与 kv）⇒ **可以 reshape 定死后编译到 NPU**。
+#
+# ⚠️ 形状必须与 TTS 模块 `_recompile_cp_on_npu()` **完全一致**
+#    ⇒ 否则两边的数不可比（铁律：同一把尺子）。
+CP_DECODE_NPU_SHAPE = {
+    "inputs_embeds": [1, 1, 1024],
+    "cache_position": [1],
+    "attention_mask": [1, 1, 1, 20],
+    "past_keys": [5, 1, 8, 20, 128],
+    "past_values": [5, 1, 8, 20, 128],
+}
+
 
 class TTSEngineError(RuntimeError):
     """TTS 引擎加载/合成失败。"""
@@ -420,6 +464,16 @@ def make_engine(device: str = 'NPU',
             raise TTSEngineError(f'模型加载失败：{type(e).__name__}: {e}') from e
     on_log('[tts_engine] 模型加载完成')
 
+    # 🔴🔴🔴 **cp_decode 放 NPU**（APP-018 第 1 条 —— 补上从未实现的生产配置）
+    #   原生 babelvox 把它编译到 **CPU**（pipeline L347-350）⇒
+    #   App 的 RTF 比 TTS 模块的尺子差 ~2.2×。
+    #   实测 A/B：RTF 1.912→1.218、首块 1.296→0.837 s（提速 ~1.57×）。
+    #   ⚠️ 失败会优雅降级（保持 CPU）⇒ 不会把引擎搞挂。
+    try:
+        _move_cp_decode_to_npu(eng, on_log=on_log)
+    except Exception as e:
+        on_log(f'[tts_engine] ⚠️ cp_decode 搬 NPU 时异常（{e}）⇒ 保持 CPU')
+
     # 🔴🔴 **必须挂 SpeakerLibrary**，否则按名查内置音色会直接抛
     #   `ValueError: speaker_library not set; cannot look up named speaker`
     #   （babelvox/pipeline.py:782 —— `speaker_library` 默认是 None）。
@@ -457,6 +511,81 @@ def _attach_speaker_library(eng, on_log=print) -> bool:
         names = []
     on_log(f'[tts_engine] SpeakerLibrary 就绪：{lib_dir}'
            f'（{len(names)} 个音色：{", ".join(names) if names else "无"}）')
+    return True
+
+
+def _cp_decode_ir_path(eng) -> Optional[str]:
+    """定位 cp_decode 的 IR 路径。
+
+    🔴 `MultiDecoderBabelVox`（App 用的类）**没有** `_ir_path`
+    （那是 `QuantEvalBabelVox` 才有的）⇒ 走原生路径：
+    `model_dir = export_dir / precision` ⇒ `.../int8/cp_decode.xml`。
+    """
+    fn = getattr(eng, '_ir_path', None)
+    if callable(fn):
+        try:
+            return fn('cp_decode')
+        except Exception:
+            pass
+    root = getattr(eng, '_model_dir', None)
+    if not root:
+        try:
+            root = os.path.join(model_root(), 'int8')
+        except Exception:
+            return None
+    return os.path.join(root, 'cp_decode.xml')
+
+
+def _move_cp_decode_to_npu(eng, on_log=print) -> bool:
+    """🔴🔴 把 `cp_decode` 从 CPU 搬到 **NPU**（补上从未实现的生产配置）。
+
+    见模块顶部 `CP_DECODE_NPU_SHAPE` 的完整根因说明与 A/B 数据。
+
+    ⚠️ **失败必须优雅降级**：NPU 编译失败（Segfault 风险 / 插件缺失）
+    ⇒ 保留 CPU 版本 ⇒ **引擎仍可用**（只是慢一点）
+    ⇒ 绝不能因为「优化」把整个 TTS 引擎搞挂。
+    """
+    # 🔴 判据用 `is_npu`（babelvox pipeline L127 自己算的标志位）
+    #   ⚠️ **不要用 `device == "NPU"`**：本机设备名是精确的 "NPU"，
+    #   但约定上应写成「大小写不敏感的前缀匹配」，免得 NPU.0 之类被误判。
+    is_npu = bool(getattr(eng, 'is_npu', False))
+    if not is_npu:
+        dev = str(getattr(eng, 'device', '') or '')
+        if not dev.upper().startswith('NPU'):
+            on_log(f'[tts_engine] 非 NPU 档（device={dev}）'
+                   f' ⇒ cp_decode 保持原设备')
+            return False
+
+    ir = _cp_decode_ir_path(eng)
+    if not ir or not os.path.isfile(ir):
+        on_log(f'[tts_engine] ⚠️ 找不到 cp_decode 的 IR（{ir}）'
+               f' ⇒ 保持原设备')
+        return False
+
+    try:
+        import openvino as ov
+        core = ov.Core()
+        cdir = _cache_dir()
+        if cdir:
+            core.set_property({'CACHE_DIR': cdir})
+        m = core.read_model(ir)
+        # 🔴🔴 必须 reshape：动态维 IR 直接编到 NPU 会 Segfault
+        m.reshape(CP_DECODE_NPU_SHAPE)
+        cm = core.compile_model(m, 'NPU')
+    except Exception as e:
+        on_log(f'[tts_engine] ⚠️ cp_decode → NPU 失败（{type(e).__name__}: '
+               f'{e}）⇒ 保持 CPU（引擎仍可用，仅较慢）')
+        return False
+
+    eng.cp_decode = cm
+    # `cp_on_cpu` 在 babelvox 里**只被写、从不被读**（pipeline L181/L356）
+    # ⇒ 纯信息标志，置 False 安全（用于日志/诊断）
+    try:
+        eng.cp_on_cpu = False
+    except Exception:
+        pass
+    on_log('[tts_engine] ✅ cp_decode 已放 NPU'
+           '（生产配置要求；实测 RTF 1.912→1.218、首块 1.296→0.837 s）')
     return True
 
 

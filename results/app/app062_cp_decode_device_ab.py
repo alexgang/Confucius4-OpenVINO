@@ -149,241 +149,6 @@ def release_lock():
         pass
 
 
-# ---------------------------------------------------------------------------
-# 🔴🔴 安静窗口闸门（防污染）
-# ---------------------------------------------------------------------------
-# 实测教训（2026-10-26）：同一脚本、同一配置，连续两跑 A 臂
-#   RTF 中位 **2.284** → **3.256**（差 1.43×）
-# ⇒ 原因：**ASR 模块的 `p3_ov_app.py --device NPU` 正在并发跑**，
-#    而且**它没持机器锁** ⇒ 我的计时窗口被污染。
-# ⇒ 计时前必须确认「没有别的推理作业在跑」。
-#
-# 🔴 判据**不能只看进程名**（要按命令行判断是不是推理作业）；
-#    🔴 也不能只看「谁持锁」——**不持锁的模块作业照样会污染**。
-#    🔴 取命令行**不用 wmic**（实测返回空 ⇒ 假阴性）⇒ 用 ctypes 走
-#    Windows API（NtQueryInformationProcess + PEB）读命令行。
-#
-# 🔴🔴 **「正在等锁的进程」不算作业**（否则和自己是死锁）：
-#    判据要排除 CPU 增量≈0 的等锁进程。
-
-# 这些命令行片段 = 「会跟本实验抢 NPU/GPU/CPU」的作业
-JOB_MARKERS = (
-    'p3_ov_app.py',          # ASR NPU 推理
-    'p3_run_with_lock.py',
-    'own20_step_probe.py',   # TTS 模块探针
-    'bench', 'run_matrix',   # TTS 模块矩阵
-    'eval_', 'diag_',
-)
-
-
-def _read_cmdline(pid: int) -> str:
-    """🔴 读进程命令行（ctypes 走 Windows API）。
-
-    ⚠️ 不用 `wmic`（实测返回空 ⇒ 假阴性）。
-    ⚠️ 不用 `tasklist`（只有镜像名，没有命令行）。
-
-    🔴🔴 **必须显式设 argtypes/restype**：否则 `HANDLE` 被当成
-    32 位 int 截断 ⇒ `ReadProcessMemory` 静默失败 ⇒ **假阴性**
-    （本次实测踩过：所有进程都返回空字符串）。
-    """
-    import ctypes
-    from ctypes import wintypes
-
-    PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-    kernel32 = ctypes.windll.kernel32
-    ntdll = ctypes.windll.ntdll
-
-    kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL,
-                                     wintypes.DWORD]
-    kernel32.OpenProcess.restype = wintypes.HANDLE
-    kernel32.ReadProcessMemory.argtypes = [
-        wintypes.HANDLE, ctypes.c_void_p, ctypes.c_void_p,
-        ctypes.c_size_t, ctypes.POINTER(ctypes.c_size_t)]
-    kernel32.ReadProcessMemory.restype = wintypes.BOOL
-    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
-    ntdll.NtQueryInformationProcess.argtypes = [
-        wintypes.HANDLE, ctypes.c_ulong, ctypes.c_void_p,
-        ctypes.c_ulong, ctypes.POINTER(ctypes.c_ulong)]
-    ntdll.NtQueryInformationProcess.restype = ctypes.c_long
-
-    h = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
-    if not h:
-        return ''
-    try:
-        class PROCESS_BASIC_INFORMATION(ctypes.Structure):
-            _fields_ = [('ExitStatus', wintypes.LONG),
-                        ('PebBaseAddress', ctypes.c_void_p),
-                        ('AffinityMask', ctypes.c_void_p),
-                        ('BasePriority', ctypes.c_void_p),
-                        ('UniqueProcessId', ctypes.c_void_p),
-                        ('InheritedFromUniqueProcessId', ctypes.c_void_p)]
-        pbi = PROCESS_BASIC_INFORMATION()
-        ret = ctypes.c_ulong()
-        status = ntdll.NtQueryInformationProcess(
-            h, 0, ctypes.byref(pbi), ctypes.sizeof(pbi), ctypes.byref(ret))
-        if status != 0 or not pbi.PebBaseAddress:
-            return ''
-        peb = pbi.PebBaseAddress
-
-        # PEB.ProcessParameters（x64 偏移 0x20）
-        # RTL_USER_PROCESS_PARAMETERS.CommandLine（x64 偏移 0x70）
-        if ctypes.sizeof(ctypes.c_void_p) == 8:
-            pp_off, cmd_off = 0x20, 0x70
-        else:
-            pp_off, cmd_off = 0x10, 0x40
-
-        n_read = ctypes.c_size_t(0)
-        params_ptr = ctypes.c_void_p()
-        if not kernel32.ReadProcessMemory(
-                h, ctypes.c_void_p(peb + pp_off), ctypes.byref(params_ptr),
-                ctypes.sizeof(params_ptr), ctypes.byref(n_read)):
-            return ''
-
-        class UNICODE_STRING(ctypes.Structure):
-            _fields_ = [('Length', wintypes.USHORT),
-                        ('MaximumLength', wintypes.USHORT),
-                        ('Buffer', ctypes.c_void_p)]
-        us = UNICODE_STRING()
-        if not kernel32.ReadProcessMemory(
-                h, ctypes.c_void_p(params_ptr.value + cmd_off),
-                ctypes.byref(us), ctypes.sizeof(us), ctypes.byref(n_read)):
-            return ''
-        n = us.Length // 2
-        if n <= 0 or n > 32768:
-            return ''
-        buf = ctypes.create_unicode_buffer(n)
-        if not kernel32.ReadProcessMemory(
-                h, ctypes.c_void_p(us.Buffer), buf, us.Length,
-                ctypes.byref(n_read)):
-            return ''
-        return buf.value
-    except Exception:
-        return ''
-    finally:
-        kernel32.CloseHandle(h)
-
-
-def _cpu_time_s(pid: int) -> float:
-    """进程已用 CPU 时间（秒）——用来区分「真在跑」与「在等锁」。"""
-    import ctypes
-    from ctypes import wintypes
-
-    class FILETIME(ctypes.Structure):
-        _fields_ = [('dwLowDateTime', wintypes.DWORD),
-                    ('dwHighDateTime', wintypes.DWORD)]
-
-    kernel32 = ctypes.windll.kernel32
-    kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL,
-                                     wintypes.DWORD]
-    kernel32.OpenProcess.restype = wintypes.HANDLE
-    kernel32.GetProcessTimes.argtypes = [
-        wintypes.HANDLE, ctypes.POINTER(FILETIME), ctypes.POINTER(FILETIME),
-        ctypes.POINTER(FILETIME), ctypes.POINTER(FILETIME)]
-    kernel32.GetProcessTimes.restype = wintypes.BOOL
-    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
-
-    h = kernel32.OpenProcess(0x1000, False, pid)
-    if not h:
-        return 0.0
-    try:
-        c, e = FILETIME(), FILETIME()
-        k, u = FILETIME(), FILETIME()
-        if not kernel32.GetProcessTimes(h, ctypes.byref(c), ctypes.byref(e),
-                                        ctypes.byref(k), ctypes.byref(u)):
-            return 0.0
-        def _t(ft):
-            return (ft.dwHighDateTime << 32 | ft.dwLowDateTime) / 1e7
-        return _t(c) + _t(e) + _t(k) + _t(u)
-    except Exception:
-        return 0.0
-    finally:
-        kernel32.CloseHandle(h)
-
-
-def _find_job_pids(exclude_self=True):
-    """找「会抢设备」的作业进程（按命令行，不按进程名）。"""
-    import ctypes
-    from ctypes import wintypes
-
-    kernel32 = ctypes.windll.kernel32
-    out = []
-    # Toolhelp32 枚举进程
-    class PROCESSENTRY32W(ctypes.Structure):
-        _fields_ = [('dwSize', wintypes.DWORD),
-                    ('cntUsage', wintypes.DWORD),
-                    ('th32ProcessID', wintypes.DWORD),
-                    ('th32DefaultHeapID', ctypes.c_size_t),
-                    ('th32ModuleID', wintypes.DWORD),
-                    ('cntThreads', wintypes.DWORD),
-                    ('th32ParentProcessID', wintypes.DWORD),
-                    ('pcPriClassBase', ctypes.c_long),
-                    ('dwFlags', wintypes.DWORD),
-                    ('szExeFile', wintypes.WCHAR * 260)]
-
-    me = os.getpid()
-    snap = kernel32.CreateToolhelp32Snapshot(0x00000002, 0)  # TH32CS_SNAPPROCESS
-    if snap == -1:
-        return out
-    try:
-        pe = PROCESSENTRY32W()
-        pe.dwSize = ctypes.sizeof(pe)
-        if kernel32.Process32FirstW(snap, ctypes.byref(pe)):
-            while True:
-                pid = pe.th32ProcessID
-                name = pe.szExeFile
-                if (name.lower() in ('python.exe', 'pythonw.exe')
-                        and not (exclude_self and pid == me)):
-                    cmd = _read_cmdline(pid)
-                    low = (cmd or '').lower()
-                    if any(mk in low for mk in JOB_MARKERS):
-                        out.append({'pid': pid, 'cmd': cmd[:300],
-                                    'cpu_s': round(_cpu_time_s(pid), 2)})
-                if not kernel32.Process32NextW(snap, ctypes.byref(pe)):
-                    break
-    finally:
-        kernel32.CloseHandle(snap)
-    return out
-
-
-def wait_quiet_window(max_wait_s=1800.0, poll_s=12.0, require_two_rounds=True):
-    """🔴 等到「没有别的推理作业在跑」为止。
-
-    🔴🔴 **必须排除「正在等锁的进程」**：CPU 增量 ≈ 0 ⇒ 它只是排队，
-         不是在干活 ⇒ 若把它算成作业 ⇒ 与自己是死锁。
-    ⇒ 判据：两次采样相隔 ``poll_s``，CPU 增量 < 0.5 s ⇒ 视为「等锁/空转」。
-    """
-    t0 = time.time()
-    clean_rounds = 0
-    while time.time() - t0 < max_wait_s:
-        snap1 = {j['pid']: j for j in _find_job_pids()}
-        time.sleep(poll_s)
-        snap2 = {j['pid']: j for j in _find_job_pids()}
-        active = []
-        for pid, j in snap2.items():
-            cpu0 = snap1.get(pid, {}).get('cpu_s', j['cpu_s'])
-            delta = round(j['cpu_s'] - cpu0, 2)
-            j['cpu_delta'] = delta
-            # 🔴 CPU 增量 ≈ 0 ⇒ 等锁/空转 ⇒ 不算作业
-            if delta >= 0.5:
-                active.append(j)
-        if not active:
-            clean_rounds += 1
-            need = 2 if require_two_rounds else 1
-            if clean_rounds >= need:
-                print('[quiet] 安静窗口达成（连续 %d 轮无活跃推理作业）'
-                      % clean_rounds)
-                return True
-        else:
-            clean_rounds = 0
-            for j in active:
-                print('[quiet] 检测到活跃作业 pid=%d cpuΔ=%.2fs cmd=%s'
-                      % (j['pid'], j['cpu_delta'], j['cmd'][:160]),
-                      flush=True)
-    print('[quiet] ⚠️ 等不到安静窗口（已等 %.0fs）⇒ 继续但数据可能受污染'
-          % (time.time() - t0))
-    return False
-
-
 def _cp_decode_ir_path(eng, model_root):
     """定位 cp_decode 的 IR。
 
@@ -394,7 +159,6 @@ def _cp_decode_ir_path(eng, model_root):
     fn = getattr(eng, '_ir_path', None)
     if callable(fn):
         return fn('cp_decode')
-    # 原生路径：export_dir/int8/cp_decode.xml
     root = getattr(eng, '_model_dir', None)
     if not root:
         root = os.path.join(model_root, 'int8')
@@ -402,11 +166,14 @@ def _cp_decode_ir_path(eng, model_root):
 
 
 def _recompile_cp_decode_npu(eng, core, model_root):
-    """把 cp_decode 用**固定形状**重编译到 NPU（与 TTS 模块同一把尺子）。"""
+    """把 cp_decode 用**固定形状**重编译到 NPU（与 TTS 模块同一把尺子）。
+
+    🔴🔴 **必须 reshape**：动态维 IR 直接编到 NPU 会 **Segfault**
+    （进程直接崩，try/except 接不住）—— 见 `eval_cp_on_npu.py` 的 docstring。
+    """
     t0 = time.perf_counter()
     ir = _cp_decode_ir_path(eng, model_root)
     m = core.read_model(ir)
-    # 🔴🔴 必须 reshape：动态维 IR 直接编到 NPU 会 Segfault
     m.reshape(CP_SHAPE)
     cm = core.compile_model(m, 'NPU')
     dt = time.perf_counter() - t0
@@ -425,7 +192,10 @@ def main() -> int:
     ap.add_argument('--quiet-max-wait', type=float, default=1800.0)
     args = ap.parse_args()
 
+    # 🔴 顺序铁律：**客户包优先** ⇒ 仓库 live_caption 只能 append，
+    #    否则 tts_engine 会被解析成仓库版（模型不在仓库里 ⇒ 找不到）。
     sys.path.insert(0, os.path.join(PKG, 'app'))
+    sys.path.append(os.path.join(HERE, '..', '..', 'live_caption'))
     sys.path.insert(0, os.path.join(PKG, 'python', 'Lib', 'site-packages'))
     os.chdir(PKG)
 
@@ -435,14 +205,28 @@ def main() -> int:
     # 🔴🔴 **安静窗口闸门**：计时前必须确认「没有别的推理作业在跑」。
     #   实测教训：ASR 的 `p3_ov_app.py --device NPU` 并发跑（且**不持锁**）
     #   ⇒ 同一脚本两跑 RTF 中位 2.284 → 3.256（差 1.43×）。
-    quiet_ok = wait_quiet_window(
-        max_wait_s=args.quiet_max_wait,
-        require_two_rounds=not args.skip_quiet)
-    print('[quiet] 安静窗口 = %s' % quiet_ok)
+    # 🔴 按**文件路径**加载 proc_guard（不依赖 sys.path 顺序）
+    import importlib.util as _ilu
+    _pg_path = os.path.join(HERE, 'proc_guard.py')
+    _spec = _ilu.spec_from_file_location('proc_guard', _pg_path)
+    _pg = _ilu.module_from_spec(_spec)
+    _spec.loader.exec_module(_pg)
+    QuietGate = _pg.QuietGate
+    gate = QuietGate()
+    # 🔴🔴 闸门必须**先自检**：读不到命令行 ⇒ 不能声称「无污染」
+    gate_ok = gate.self_test()
+    quiet_ok = gate.wait_quiet(max_wait_s=args.quiet_max_wait,
+                               require_two_rounds=not args.skip_quiet,
+                               skip=args.skip_quiet)
+    print('[quiet] 闸门自检=%s  安静窗口=%s' % (gate_ok, quiet_ok))
 
-    rec = {'experiment': 'APP-062 cp_decode 设备 A/B（CPU vs NPU）',            'precision': args.precision,
+    rec = {'experiment': 'APP-062 cp_decode 设备 A/B（CPU vs NPU）',
+           'precision': args.precision,
            'ts': time.strftime('%Y-%m-%d %H:%M:%S'),
-           'quiet_ok': None,
+           # 🔴🔴 这两个字段**必须落真实值**（曾经写成 None ⇒ 报告无法自证
+           #    「数据是不是在安静窗口里测的」⇒ 不可追溯）。
+           'quiet_ok': quiet_ok,
+           'gate_self_test': gate_ok,
            'skip_quiet': bool(args.skip_quiet),
            'texts': TEXTS}
     try:
