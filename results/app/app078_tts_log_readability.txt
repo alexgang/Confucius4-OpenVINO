@@ -5,7 +5,7 @@ PASS A2 去重 API 齐备（append/_core/_suppressed）  | append=True core=True
 PASS A3 包装前缀被剥离（同一正文⇒同一核心键）  | k1='[tts_worker] 输出设备解析：xxx' k2='[tts_worker] 输出设备解析：xxx' k3='[tts_worker] 输出设备解析：xxx'
 PASS A4 不同正文不被误去重  | k1='[tts_worker] 输出设备解析：xxx' k4='[tts_worker] 播放流已启动：sr=22050'
 PASS A5 同一条日志落盘只 1 次（写 3 次）  | 出现 1 次；抑制计数=2
-PASS A6 不同内容的故障行都被保留  | body='16:52:25 [TTS] 错误一：播放器不可用\n16:52:25 [TTS] 错误二：引擎没有产出任何音频\n'
+PASS A6 不同内容的故障行都被保留  | body='00:41:29 [TTS] 错误一：播放器不可用\n00:41:29 [TTS] 错误二：引擎没有产出任何音频\n'
 PASS A7 append 不自死锁（锁必须可重入）  | RLock 可重入，5 s 内完成
 PASS A8 双重标签有防护（消息自带 [TTS] 则不补 tag）  | guard = True
 PASS A9 边车有 stderr 字节代理  | _RawStderr = True

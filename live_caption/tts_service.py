@@ -863,20 +863,47 @@ class TTSService:
         ⇒ 同一句被**计了两次**（实测「提交 9」却报「丢弃 16」）。
         现在 worker 侧的 `dropped` 事件**不再计数**（只记日志），
         因为所有丢弃都是主进程发起的（积压超限 / 显式 cancel）。
+
+        🔴🔴 2026-10-26 §57 修：**同一个 jid 的丢弃计数只能加一次**。
+        旧实现**无条件** `n_dropped += 1` ⇒ 只要同一句被 cancel 两次就双记。
+        真实触发路径（不是理论构造）：
+        `live_caption/offline_reader.py` 的 `OfflineReader.stop()` 与 `_loop()`
+        的 `finally` **各调一次** `_cancel_pending()`；
+        而 `_cancel_pending()` 是「**锁内快照 victims → 锁外逐个 `svc.cancel()`**」
+        ⇒ 两个线程的快照可重叠 ⇒ 同一 jid 被 `cancel()` 两次
+        ⇒ 实测 3 句提交却报 `n_dropped=6` ⇒ 不变式
+          `n_played + n_dropped + len(pending) == n_submitted` 被破坏。
+        🔴 且**双记无法被 §30 的「改记」自愈**：迟到 `played` 只能 `n_dropped -= 1`
+        ⇒ 减回 1 仍与 `submitted` 不符 ⇒ 必须在本方法内杜绝双记。
+
+        ⇒ 修法：**只有「这一句此刻确实还在途（仍在 `pending` 里）」的那一次
+        cancel 才计丢句**。判定与摘除放在**同一个锁内临界区**（原子）。
+        第二次 cancel 时该句已不在 `pending` ⇒ 已由第一次 cancel 定案
+        ⇒ 本次**不再重复计丢句**、也**不再重复登记** `_dropped_ids`。
         """
         self._send({'cmd': 'cancel', 'id': jid})
         with self.lock:
-            self.pending.pop(jid, None)
+            # 🔴 §57：**原子地**判定「这句是否还在途」并摘出 `pending`。
+            #   `pop` 返回被摘下的值 ⇒ `None` ⇒ 这句**已不在途**。
+            was_pending = self.pending.pop(jid, None) is not None
             # 🔴 2026-10-25 §29 修：**必须同时注销 `_inflight`**。
             #   旧实现只清 `pending` ⇒ 这个 jid 永远留在 `_inflight` 里
             #   ⇒ ① 集合无界增长；② worker 崩溃时 `_on_worker_exit()`
             #   会把它**再算一次**丢句（`n_dropped` 双记）。
             self._inflight.discard(jid)
-            # 🔴 2026-10-25 §30 修：登记「这句已被丢弃」。
-            #   worker 可能**无视 cancel 照样播出来**（它已越过自己的取消检查）
-            #   ⇒ 收到 `played` 时要**改记为已播**而不是双记。
-            self._dropped_ids.add(jid)
-        self.n_dropped += 1
+            if was_pending:
+                # 🔴 2026-10-25 §30 修：登记「这句已被丢弃」。
+                #   worker 可能**无视 cancel 照样播出来**（它已越过自己的取消检查）
+                #   ⇒ 收到 `played` 时要**改记为已播**而不是双记。
+                self._dropped_ids.add(jid)
+        # 🔴🔴 §57：**只有真正在途的那一次才计丢句**。
+        #   ⚠️ 不在途 ⇒ 这句已被别的路径定案（已播 / 已丢 / 已失败）
+        #   ⇒ 这里再 +1 就是**双记**（不变式 sum > submitted）。
+        #   ⚠️ 且**不得**再登记 `_dropped_ids`：若这句其实**已被播**
+        #   （`n_played` 已 +1），登记后迟到的重复 `played` 会被误判为
+        #   「已丢弃」⇒ `n_dropped -= 1` ⇒ `n_dropped` 变负 ⇒ 账本更糟。
+        if was_pending:
+            self.n_dropped += 1
 
     # -- 事件 ------------------------------------------------------------
     def _handle_event(self, msg: dict):

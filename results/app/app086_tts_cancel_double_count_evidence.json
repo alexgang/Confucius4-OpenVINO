@@ -1,0 +1,50 @@
+{
+  "real_fail": [],
+  "evidence": {
+    "A_cancel_twice": {
+      "n_played": 0,
+      "n_dropped": 1,
+      "n_submitted": 3,
+      "n_pending": 2,
+      "sum": 1,
+      "invariant": true
+    },
+    "B_offline_stop": {
+      "n_played": 0,
+      "n_dropped": 3,
+      "n_submitted": 3,
+      "n_pending": 0,
+      "sum": 3,
+      "invariant": true
+    },
+    "C_normal": {
+      "n_played": 2,
+      "n_dropped": 1,
+      "n_submitted": 3,
+      "n_pending": 0,
+      "sum": 3,
+      "invariant": true
+    },
+    "D_baseline": {
+      "commit": "8d6bcc1",
+      "cancel_twice": {
+        "n_played": 0,
+        "n_dropped": 2,
+        "n_submitted": 3,
+        "n_pending": 2,
+        "sum": 2,
+        "broken": true
+      },
+      "cancel_twice_after_late_played": {
+        "n_played": 1,
+        "n_dropped": 1,
+        "n_submitted": 3,
+        "n_pending": 2,
+        "sum": 2,
+        "broken": true
+      }
+    }
+  },
+  "baseline_commit": "8d6bcc1",
+  "verdict": "PASS"
+}

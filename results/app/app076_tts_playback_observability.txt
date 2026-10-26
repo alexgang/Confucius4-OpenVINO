@@ -1,18 +1,18 @@
 APP-021 自检：把播放链路做成可观测
-时间：2026-10-26 16:21:35
+时间：2026-10-27 00:41:29
 结果：38 PASS / 0 FAIL（共 38 项）
 
 PASS  A0 抽到 Player 类
 PASS  A2 n_read 未追上 ⇒ 判失败（不是「已播完」）  |  diag=等待播放消费超时 0.3 s（已读 0 / 目标 24000，回调 0 次）
 PASS  A3 n_read 追上 ⇒ 判成功  |  diag=
-PASS  A4 播放回调推进后能等到「播完」  |  耗时 0.17 s
+PASS  A4 播放回调推进后能等到「播完」  |  耗时 0.16 s
 PASS  A5 telemetry 字段齐全  |  缺 []
 PASS  A6 测试声音：n_read 增量 ≈ sr×1 s（24000）  |  n_read +24000 / 回调 +3
 PASS  A7 无播放器 ⇒ 测试声音明确失败（不假装成功）  |  msg=播放流未打开（没有输出设备）
 PASS  A8 源码：`played` 只在 wait_consumed 之后发出  |  played emit 点 1 个；before_wait=[True]
 PASS  B0 抽到 append_session_log / session_log_path
-PASS  B1 会话日志文件已创建且追加了内容  |  路径=C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\session_20261026_162135.log
-PASS  B2 会话日志路径在 %LOCALAPPDATA%\Confucius4LiveCaption 下  |  C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\session_20261026_162135.log
+PASS  B1 会话日志文件已创建且追加了内容  |  路径=C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\session_20261027_004129.log
+PASS  B2 会话日志路径在 %LOCALAPPDATA%\Confucius4LiveCaption 下  |  C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\session_20261027_004129.log
 PASS  B3 service 有 n_failed（独立于 n_dropped）
 PASS  B4 service 有 last_sentence_error
 PASS  B5 stats() 带出 n_failed / last_sentence_error / session_log
@@ -49,7 +49,7 @@ PASS  D10 `played` 事件带遥测
   },
   "A4_wait_consumed": {
     "ok": true,
-    "elapsed": 0.172
+    "elapsed": 0.164
   },
   "A6_test_tone": {
     "ok": true,
@@ -58,15 +58,15 @@ PASS  D10 `played` 事件带遥测
   },
   "A8_played_emit_points": [
     {
-      "played_line": 1175,
+      "played_line": 1211,
       "wait_lines": [
-        1146
+        1182
       ],
       "before_wait": true
     }
   ],
   "B1_session_log": {
-    "path": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\session_20261026_162135.log",
+    "path": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\session_20261027_004129.log",
     "exists": true
   }
 }
