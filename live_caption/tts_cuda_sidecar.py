@@ -31,6 +31,60 @@ import traceback
 _out = sys.stdout.buffer
 sys.stdout = sys.stderr
 
+# 🔴🔴 APP-021§54.10：**stderr 改成「字节透传」**，绕开 Python 文本编码。
+#   起因（实测 16:36 会话日志）：stderr 里出现
+#     `'sox' �����ڲ����ⲿ���ģ�Ҳ���ǿ����еĳ���`
+#   ⇒ 那不是「解码方式不对」，而是**字节在上游就被破坏了**。
+#   完整链路（实测）：
+#     ① `sox` 包初始化时执行 `os.popen('sox -h')`（**文本模式**）
+#        ⇒ cmd.exe 找不到 sox ⇒ 用**系统 locale（cp936）**写中文报错
+#           `'sox' 不是内部或外部命令，也不是可运行的程序`（**GBK 字节**）
+#     ② `os.popen` 文本模式按 `locale.getpreferredencoding(False)` 解码
+#        ⇒ 本 venv 是 **utf-8** ⇒ GBK 字节解成 **U+FFFD（不可恢复！）**
+#     ③ `logger.warning(...)` 再用 UTF-8 编码输出 ⇒ 已是替换符 ⇒ 永久乱码
+#   ⇒ **在 service 侧怎么改都救不回来**（U+FFFD 不可逆）
+#   ⇒ 修法：把 `sys.stderr` 换成「直接写字节」的代理
+#     ⇒ 第三方 `print(..., file=sys.stderr)` 的文本按 **utf-8** 编码成字节，
+#       **不经过文本解码** ⇒ 不会产生 U+FFFD；
+#     ⇒ 而 cmd.exe 的**原始 GBK 字节**（os.popen 内部直写 fd 2）**原样透传**
+#       ⇒ 由主进程侧按「utf-8 严格 → gb18030 严格」逐行判定（见
+#         `tts_service._decode_worker_line`）⇒ **两边都正确**。
+#   ⚠️ 必须**在 import 任何第三方库之前**做（`sox` 包在 import 时就会触发）。
+class _RawStderr:
+    """把文本按 UTF-8 写成**字节**的 stderr 代理（不经过文本层）。"""
+
+    def __init__(self, raw):
+        self._raw = raw
+
+    def write(self, s):
+        try:
+            if isinstance(s, str):
+                s = s.encode('utf-8', 'replace')
+            self._raw.write(s)
+        except Exception:
+            pass
+        return len(s) if isinstance(s, (bytes, bytearray)) else 0
+
+    def flush(self):
+        try:
+            self._raw.flush()
+        except Exception:
+            pass
+
+    def isatty(self):
+        return False
+
+    def fileno(self):
+        return self._raw.fileno()
+
+
+try:
+    _raw_err = getattr(sys.stderr, 'buffer', None)
+    if _raw_err is not None:
+        sys.stderr = _RawStderr(_raw_err)
+except Exception:
+    pass
+
 os.environ.setdefault('HF_HUB_OFFLINE', '1')
 os.environ.setdefault('TRANSFORMERS_VERBOSITY', 'error')
 os.environ.setdefault('HF_HUB_DISABLE_PROGRESS_BARS', '1')

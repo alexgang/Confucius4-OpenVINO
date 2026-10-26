@@ -58,15 +58,37 @@ TTS_SR = 24000
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
 
+def _out_write(text: str):
+    """往 stdout 写一行（**兼容二进制管道**）。
+
+    🔴🔴 APP-021§54.10：主进程为了正确解码 stderr 的 GBK 字节，
+    把管道改成了**二进制**模式（`Popen` 去掉 `text=True`）
+    ⇒ worker 的 `sys.stdout` 变成二进制流
+    ⇒ 旧写法 `sys.stdout.write(str)` 会抛
+      `TypeError: a bytes-like object is required`。
+    ⇒ 现在：**优先写 bytes**；拿不到 buffer 时才退回文本流。
+    ⚠️ 两种情况都**必须 flush** —— 主进程靠行到达来实时拿状态。
+    """
+    data = text + '\n'
+    try:
+        buf = sys.stdout.buffer
+    except Exception:
+        buf = None
+    if buf is not None:
+        buf.write(data.encode('utf-8', 'replace'))
+        buf.flush()
+        return
+    sys.stdout.write(data)
+    sys.stdout.flush()
+
+
 def emit(obj: dict):
     """往 stdout 发一行 JSON（立刻 flush，主进程要实时看到状态）。"""
-    sys.stdout.write(json.dumps(obj, ensure_ascii=False) + '\n')
-    sys.stdout.flush()
+    _out_write(json.dumps(obj, ensure_ascii=False))
 
 
 def log(msg: str):
-    sys.stdout.write(str(msg) + '\n')
-    sys.stdout.flush()
+    _out_write(str(msg))
 
 
 # ── APP-021②：每句一行播放遥测 ────────────────────────────────────────
@@ -1381,8 +1403,24 @@ class TTSWorker:
         th = threading.Thread(target=self._safe_load, daemon=True)
         th.start()
 
-        for line in sys.stdin:
-            line = line.strip()
+        # 🔴🔴 APP-021§54.10：**按字节读 stdin**。
+        #   起因：主进程为了正确解码 stderr（GBK/utf-8 混编码），
+        #   把整条管道改成**二进制**模式（`Popen` 去掉 `text=True`）
+        #   ⇒ worker 的 `sys.stdin` 也变成二进制流
+        #   ⇒ 旧写法 `for line in sys.stdin` 拿到的是 **bytes**
+        #   ⇒ `line.strip()` 能用，但 `json.loads(bytes)` 在部分版本上行为不稳，
+        #      且**中文文本可能被按 locale 解码坏**。
+        #   ⇒ 现在显式按 utf-8 解码（主进程写的就是 utf-8）。
+        #   ⚠️ 用 `sys.stdin.buffer` 取二进制流；若拿不到就退回 `sys.stdin`。
+        try:
+            _stdin = sys.stdin.buffer
+        except Exception:
+            _stdin = sys.stdin
+        for _raw in _stdin:
+            if isinstance(_raw, (bytes, bytearray)):
+                line = bytes(_raw).decode('utf-8', 'replace').strip()
+            else:
+                line = str(_raw).strip()
             if not line:
                 continue
             try:

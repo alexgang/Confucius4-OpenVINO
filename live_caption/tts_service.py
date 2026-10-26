@@ -61,7 +61,48 @@ MAX_TEXT_CHARS = int(os.environ.get('LIVECAP_TTS_MAX_CHARS', '200'))
 #   `%LOCALAPPDATA%\Confucius4LiveCaption\session_YYYYMMDD_HHMMSS.log`
 #   （**不只在 error 时写**）⇒ 用户报障时只要给这个文件即可复盘。
 _SESSION_LOG_PATH = None
-_SESSION_LOG_LOCK = threading.Lock()
+# 🔴 必须是 **RLock**：`append_session_log()` 持锁后会调 `session_log_path()`
+#   （它内部也取这把锁）⇒ 普通 Lock 会**自死锁**。
+_SESSION_LOG_LOCK = threading.RLock()
+
+# 🔴🔴 APP-021§54.10：**会话日志去重**。
+#   起因（实测 16:22 的会话日志）：同一条 worker 日志被落盘 **2~3 遍** ——
+#     ① service 的 `_log_and_forward` 写一遍（tag='[TTS]'）；
+#     ② GUI 的 `_ui_log` 又写一遍；
+#     ③ GUI 的 TTS on_log 回调还加了 `tts: ` 前缀再写一遍。
+#   ⇒ 用户报障时在 8 KB 日志里翻「真正的错误行」成本极高，
+#     且**重复行会让人误判成「错误发生了 3 次」**。
+#   ⇒ 现在按「剥掉包装前缀后的正文」在**短窗口**内去重。
+#   ⚠️ 只影响**落盘**，界面显示与 `log_tail` 都不变。
+_SESSION_DEDUP_WINDOW_S = 3.0
+_SESSION_DEDUP = []          # [(monotonic, core_key)]
+_SESSION_DEDUP_HITS = [0]    # 被去重掉的行数（诊断用）
+
+
+def _session_log_core(msg) -> str:
+    """剥掉重复包装前缀，取「正文」作为去重键。
+
+    包装前缀有：`[TTS] ` / `[tts] ` / `tts: ` / `[TTS][stderr] ` 之类。
+    ⚠️ 只用于**去重键**，**写进文件的原文不受影响**。
+    """
+    s = str(msg)
+    prefixes = ('[TTS]', '[tts]', 'tts:', 'TTS:', '[stderr]')
+    for _ in range(6):
+        before = s
+        t = s.lstrip()
+        for p in prefixes:
+            if t.startswith(p):
+                t = t[len(p):].lstrip()
+                break
+        s = t
+        if s == before:
+            break
+    return s
+
+
+def session_log_dup_suppressed() -> int:
+    """本次会话被去重掉的重复行数（诊断用）。"""
+    return _SESSION_DEDUP_HITS[0]
 
 
 def session_log_path() -> str:
@@ -81,15 +122,58 @@ def session_log_path() -> str:
 
 
 def append_session_log(msg: str, tag: str = ''):
-    """往会话日志追加一行（**永不抛异常** ⇒ 诊断不能把功能带崩）。"""
+    """往会话日志追加一行（**永不抛异常** ⇒ 诊断不能把功能带崩）。
+
+    🔴 APP-021§54.10：**短窗口内去重**（同一条 worker 日志会被 service
+    与 GUI 各写一遍 ⇒ 落盘出现 2~3 份重复 ⇒ 用户报障时极难定位真错误行）。
+    """
     try:
-        path = session_log_path()
+        core = _session_log_core(msg)
+        now = time.monotonic()
         with _SESSION_LOG_LOCK:
+            # 清理窗口外的记录
+            while _SESSION_DEDUP and now - _SESSION_DEDUP[0][0] > \
+                    _SESSION_DEDUP_WINDOW_S:
+                _SESSION_DEDUP.pop(0)
+            if any(k == core for _, k in _SESSION_DEDUP):
+                _SESSION_DEDUP_HITS[0] += 1
+                return                      # 重复行 ⇒ 不落盘
+            _SESSION_DEDUP.append((now, core))
+            path = session_log_path()
             with open(path, 'a', encoding='utf-8', newline='\n') as f:
                 f.write('%s %s%s\n' % (time.strftime('%H:%M:%S'),
                                       (tag + ' ') if tag else '', msg))
     except Exception:
         pass
+
+
+def _decode_worker_line(b) -> str:
+    """把 worker 的一行**原始字节**解成文本（**混编码**管道专用）。
+
+    🔴🔴 APP-021§54.10：stderr 是**混编码**管道：
+      ① worker 自己写的是 utf-8（env 已钉 `PYTHONIOENCODING=utf-8`）；
+      ② 但 worker **spawn 的外部 exe**（cmd.exe / sox / ffmpeg）在 Windows 上
+         吐的是 **GBK** 字节 ⇒ 按 utf-8 解会变成 `'sox' �����ڲ���`。
+    ⇒ 判定顺序：**utf-8 严格 → gb18030 严格 → utf-8 替换**
+      （utf-8 严格通过 ⇒ 一定是 utf-8；否则 gb18030 能解 ⇒ 按 GBK；
+        都不行 ⇒ 最后兜底替换，**绝不抛异常**）。
+    ⚠️ 必须在**字节层**判定 —— 一旦按错误编码解出 U+FFFD 就**不可恢复**。
+    """
+    if isinstance(b, str):
+        return b
+    try:
+        b = bytes(b)
+    except Exception:
+        return ''
+    b = b.rstrip(b'\r\n')
+    if not b:
+        return ''
+    for enc in ('utf-8', 'gb18030'):
+        try:
+            return b.decode(enc)
+        except Exception:
+            continue
+    return b.decode('utf-8', 'replace')
 
 
 class TTSService:
@@ -216,7 +300,13 @@ class TTSService:
             self.log_tail.append('%s %s' % (time.strftime('%H:%M:%S'), msg))
         except Exception:
             pass
-        append_session_log(str(msg), tag='[TTS]')
+        # 🔴 APP-021§54.10：消息本身**已经带** `[TTS]` 前缀
+        #   （来自 stdout 读取循环的 `self.on_log(f'[TTS] {line}')`）
+        #   ⇒ 再加 tag 会写成 `[TTS] [TTS] [tts_worker] …`（双重标签）。
+        #   ⇒ 只有**消息里没有** `[TTS]` 时才补 tag。
+        _m = str(msg)
+        _tag = '' if _m.lstrip().startswith('[TTS]') else '[TTS]'
+        append_session_log(_m, tag=_tag)
         try:
             if self._on_log_user:
                 self._on_log_user(msg)
@@ -330,10 +420,18 @@ class TTSService:
                 #   （详见上面 env 那段注释里的完整根因）。
                 #   `errors='replace'` 是**第二道保险**：万一还有非法字节，
                 #   也不能让整个读循环崩掉（那会被误判成「worker 退出」）。
+                # 🔴🔴 APP-021§54.10：**改用二进制模式**，自己逐行解码。
+                #   起因（实测 16:22 会话日志）：stderr 里出现
+                #     `'sox' �����ڲ����ⲿ���ģ�Ҳ���ǿ����еĳ���`
+                #   ⇒ 那是 **cmd.exe / sox 吐的 GBK 字节**被按 utf-8 解码。
+                #   ⚠️ **一旦按 utf-8 解出 U+FFFD 就不可恢复** ⇒ 必须留在字节层。
+                #   ⇒ stdout（JSON 协议 + worker 自己写的日志，env 已钉 utf-8）
+                #      按 utf-8 解；stderr（**混编码**：worker 的 utf-8 +
+                #      外部 exe 的 GBK）按「utf-8 严格 → gb18030 严格 → utf-8 替换」
+                #      三级判定逐行选编码。
                 self.proc = subprocess.Popen(
                     cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE, text=True, encoding='utf-8',
-                    errors='replace', bufsize=1, env=env)
+                    stderr=subprocess.PIPE, bufsize=0, env=env)
             except Exception as e:
                 self.state = 'error'
                 self.err = e
@@ -361,12 +459,22 @@ class TTSService:
         self._reader_threads = [t, t2]
 
     def _read_stderr_loop(self, proc):
-        """把 worker 的 stderr 逐行转给 `on_log`（不再静默丢弃）。"""
+        """把 worker 的 stderr 逐行转给 `on_log`（不再静默丢弃）。
+
+        🔴🔴 APP-021§54.10：**逐行判定编码**（stderr 是**混编码**管道）：
+          ① worker 自己写的是 utf-8（env 已钉 `PYTHONIOENCODING=utf-8`）；
+          ② 但 worker **spawn 的外部 exe**（cmd.exe / sox / ffmpeg）在 Windows 上
+             吐的是 **GBK** 字节 ⇒ 按 utf-8 解会变成 `'sox' �����ڲ���`。
+          ⇒ 判定顺序：**utf-8 严格 → gb18030 严格 → utf-8 替换**
+            （utf-8 严格通过 ⇒ 一定是 utf-8；否则 gb18030 能解 ⇒ 按 GBK；
+              都不行 ⇒ 最后兜底替换，绝不抛异常）。
+        ⚠️ 必须在**字节层**判定 —— 一旦按错误编码解出 U+FFFD 就**不可恢复**。
+        """
         if proc is None or proc.stderr is None:
             return
         try:
-            for line in proc.stderr:
-                line = line.rstrip('\r\n')
+            for raw in proc.stderr:
+                line = _decode_worker_line(raw)
                 if not line:
                     continue
                 self.on_log(f'[TTS][stderr] {line}')
@@ -379,8 +487,14 @@ class TTSService:
             return
         read_error = None
         try:
-            for line in proc.stdout:
-                line = line.strip()
+            # 🔴 APP-021§54.10：stdout 现在是**二进制**流（见 start() 的 Popen）
+            #   ⇒ 自己解码。worker 的 env 已钉 utf-8 ⇒ 按 utf-8 解即可；
+            #   仍用 'replace' 兜底，**绝不让解码异常把读循环打断**
+            #   （那会被误判成「worker 退出」，见下面 except 里的完整根因）。
+            for raw in proc.stdout:
+                line = (raw.decode('utf-8', 'replace')
+                        if isinstance(raw, (bytes, bytearray))
+                        else str(raw)).strip()
                 if not line:
                     continue
                 if line.startswith('{'):
@@ -558,7 +672,12 @@ class TTSService:
         try:
             if p is not None:
                 try:
-                    p.stdin.write(json.dumps({'cmd': 'quit'}) + '\n')
+                    # 🔴 APP-021§54.10：二进制管道 ⇒ 写 bytes（兼容旧文本管道）
+                    _q = (json.dumps({'cmd': 'quit'}) + '\n').encode('utf-8')
+                    try:
+                        p.stdin.write(_q)
+                    except TypeError:
+                        p.stdin.write(_q.decode('utf-8'))
                     p.stdin.flush()
                 except Exception:
                     pass
@@ -707,7 +826,15 @@ class TTSService:
         if p is None or p.stdin is None:
             return False
         try:
-            p.stdin.write(json.dumps(obj, ensure_ascii=False) + '\n')
+            # 🔴 APP-021§54.10：worker 现在跑在**二进制**管道模式
+            #   （见 start() 的 Popen）⇒ 写 stdin 也必须写 **bytes**。
+            #   ⚠️ 写 str 会抛 TypeError ⇒ 之前会表现为「发送失败」。
+            line = (json.dumps(obj, ensure_ascii=False) + '\n').encode('utf-8')
+            try:
+                p.stdin.write(line)
+            except TypeError:
+                # 兼容旧的文本模式管道（例如外部注入的假 proc）
+                p.stdin.write(line.decode('utf-8'))
             p.stdin.flush()
             return True
         except Exception as e:

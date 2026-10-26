@@ -1,0 +1,33 @@
+app078 —— 会话日志可读性专项自检（APP-021§54.10）
+============================================================
+PASS A1 tts_service 可导入  | import ok
+PASS A2 去重 API 齐备（append/_core/_suppressed）  | append=True core=True suppressed=True
+PASS A3 包装前缀被剥离（同一正文⇒同一核心键）  | k1='[tts_worker] 输出设备解析：xxx' k2='[tts_worker] 输出设备解析：xxx' k3='[tts_worker] 输出设备解析：xxx'
+PASS A4 不同正文不被误去重  | k1='[tts_worker] 输出设备解析：xxx' k4='[tts_worker] 播放流已启动：sr=22050'
+PASS A5 同一条日志落盘只 1 次（写 3 次）  | 出现 1 次；抑制计数=2
+PASS A6 不同内容的故障行都被保留  | body='16:52:25 [TTS] 错误一：播放器不可用\n16:52:25 [TTS] 错误二：引擎没有产出任何音频\n'
+PASS A7 append 不自死锁（锁必须可重入）  | RLock 可重入，5 s 内完成
+PASS A8 双重标签有防护（消息自带 [TTS] 则不补 tag）  | guard = True
+PASS A9 边车有 stderr 字节代理  | _RawStderr = True
+PASS A9a stderr 代理在第三方 import **之前**安装  | proxy@2066 first_import@6054
+PASS B1 存在独立解码函数（可单测）  | 找到 = _decode_worker_line
+PASS B2 utf-8 中文原样解出  | r='你好，世界'
+PASS B3 GBK 中文不乱码（无 U+FFFD）  | r='不是内部或外部命令，也不是可运行的程序'
+PASS B4 非法字节不抛异常  | r='ok��\x00bad'
+PASS B5 sox 报错行可读  | r="'sox' 不是内部或外部命令"
+PASS C1 二进制子进程可启动
+PASS C2 stdout utf-8 中文可读  | s='子进程输出：中文 ⇒ 正常'
+PASS C3 stderr GBK 中文可读  | line='子进程错误：不是内部命令'
+PASS C4 stdin 字节读写闭环  | echo='回显：你好 stdin'
+PASS C7 GBK 字节经解码函数后原文可读（★ 乱码根因）  | dec="'sox' 不是内部或外部命令，也不是可运行的程序"
+PASS C5 worker 源码可读
+PASS C5a worker 写 stdout 用 buffer（bytes）  | 找到 sys.stdout.buffer = True
+PASS C5b worker 读 stdin 用 buffer（bytes）  | 找到 sys.stdin.buffer = True
+PASS C5c worker 不再有裸 sys.stdout.write(str)  | 裸写已清零
+PASS C6 service 源码可读
+PASS C6a service 的 Popen 不再用 text=True（改二进制）  | 代码行里 text=True = False
+PASS C6b service 的 stdin 写的是 bytes  | 找到 .encode('utf-8') = True
+PASS C6c service 用独立解码函数（可单测）  | _decode_worker_line 出现 = True
+------------------------------------------------------------
+PASS 28 / FAIL 0
+判定：OK
