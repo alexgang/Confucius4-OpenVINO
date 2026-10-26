@@ -704,12 +704,17 @@ class TTSService:
                 self._closing = False
 
     # -- 提交 ------------------------------------------------------------
-    def submit(self, text: str, seg: Optional[int] = None):
+    def submit(self, text: str, seg: Optional[int] = None,
+               spk=None, spk_conf=None):
         """提交一条**定稿译文**。
 
         ⚠️ worker 还没 `ready` 时**不能直接下发** —— worker 的 stdin
         在模型加载完成前也在收命令，但那时音色条件还没加载好，
         合成会失败。所以这里**先入待发队列**，等 `ready` 事件后补发。
+
+        🔴🔴 APP-022：`spk` / `spk_conf` **接口预留**（当前恒为 None）。
+        ⇒ 透传给 worker 的 `synth` 命令（worker 侧**同样只预留不使用**）。
+        ⇒ **不改变现有行为**：spk 为 None 时命令体与改造前逐字一致。
         """
         text = (text or '').strip()
         if not text:
@@ -724,6 +729,10 @@ class TTSService:
             ready = (self.state == 'ready')
             dead = (self.state == 'error')
         cmd = {'cmd': 'synth', 'id': jid, 'text': text}
+        # 🔴🔴 APP-022：说话人字段**只在有值时加** ⇒ 无 spk 时命令体不变
+        if spk is not None:
+            cmd['spk'] = spk
+            cmd['spk_conf'] = spk_conf
         if ready:
             with self.lock:
                 self._inflight.add(jid)

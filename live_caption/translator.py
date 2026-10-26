@@ -767,6 +767,31 @@ class HunyuanTranslator:
 
 
 # ── A2 调度 ─────────────────────────────────────────────────────────────
+def _mk_event(kind, uid, src, txt, seg, spk=None, spk_conf=None):
+    """🔴🔴 构造一条 outbox 事件（APP-022 的 `spk` 扩展）。
+
+    ## 口径：**「有 spk 才加长，没有就保持 5 元组」**
+
+    - `spk is None`（当前常态，ASR 侧还没交付）⇒ **返回原来的 5 元组**
+      `(kind, id, src, txt, seg)` ⇒ **与改造前逐位一致**
+      ⇒ MT 侧的 5 元组断言（`_h019_C_handoff_selftest.py` 的
+      `12_event_is_5tuple`、`_h021_n_limit_selftest.py` 的 `ev_5tuple`）
+      **继续成立**，不必等 MT 改。
+    - `spk` 有值 ⇒ 返回 **7 元组**
+      `(kind, id, src, txt, seg, spk, spk_conf)`
+      ⇒ `caption_render.unpack_event()` 两种都认。
+
+    ⚠️ **为什么不用 dict / 不用 6 元组**：
+    - dict ⇒ 会破坏所有按位置解包的调用方（含 MT 的离线副本）；
+    - 固定 6 元组 ⇒ 会让「现在没有 spk」也改变事件形状
+      ⇒ MT 的 `len(e) == 5` 断言**当场失败** ⇒ 跨模块被卡住。
+    ⇒ **按需加长**是最小侵入的做法。
+    """
+    if spk is None:
+        return (kind, uid, src, txt, seg)
+    return (kind, uid, src, txt, seg, spk, spk_conf)
+
+
 class _Job:
     """一个翻译任务。
 
@@ -785,14 +810,20 @@ class _Job:
       old_key  —— 被替换掉的旧 key（半句初翻那次的 key）
       old_seg  —— 旧 key 原本归属的段（半句产生的那一段）
     """
-    __slots__ = ('kind', 'key', 'text', 'seg', 'old_key', 'old_seg', 'unit_id')
+    __slots__ = ('kind', 'key', 'text', 'seg', 'old_key', 'old_seg', 'unit_id',
+                 'spk', 'spk_conf')
 
     def __init__(self, kind, key, text, seg=None, old_key=None, old_seg=None,
-                 unit_id=None):
+                 unit_id=None, spk=None, spk_conf=None):
         self.kind, self.key, self.text = kind, key, text
         self.seg, self.old_key, self.old_seg = seg, old_key, old_seg
         # ★ 方案 C（H-019）：**单元 id** —— 草稿与正式稿共用 ⇒ App 按 id 原位替换
         self.unit_id = unit_id
+        # 🔴🔴 APP-022（**接口预留，本轮不集成**）：
+        #   `spk` / `spk_conf` —— 定稿段的说话人信息（pyannote 强制断句）。
+        #   ⚠️ **当前 ASR 侧还没交付**（等 ASR-013）⇒ 一律是 None。
+        #   ⇒ **只加字段、不加行为**：翻译逻辑**完全不受影响**。
+        self.spk, self.spk_conf = spk, spk_conf
 
 
 class TranslationService:
@@ -1053,7 +1084,7 @@ class TranslationService:
         k = slot_key or norm_key(text)
         self.q.put(_Job('fix', k, text, seg=seg, old_key=old_key))
 
-    def submit(self, sentence, seg=None):
+    def submit(self, sentence, seg=None, spk=None, spk_conf=None):
         """[方案 C] 定稿段：**按完整句**切分后逐句提交 + **尾巴先出草稿**。
 
         ★★ C-111-UNIT（§48）：翻译与显示的最小单元 = **完整句**。
@@ -1085,6 +1116,15 @@ class TranslationService:
         同一句只翻一次（不重复入队 ⇒ 翻译调用次数不增），
         但**每次出现都建一个显示单元** ⇒ 说话人真的又说了一遍，字幕就该显示两遍。
         ⚠️ **不是** (seg,key)（(seg,key) 是 §45 讨论过但**未采用**的另一种口径）。
+
+        ## 🔴🔴 APP-022：`spk` / `spk_conf`（**接口预留，本轮不集成**）
+
+        `spk` = 全局说话人 id（S1、S2…；**身份还没定下来时为 null**），
+        `spk_conf` = 该 id 的置信度。
+        ⚠️ **当前 ASR 侧还没交付**（等 ASR-013 的 pyannote 强制断句）
+        ⇒ 调用方一律传 None ⇒ **行为与改造前逐位一致**。
+        🔴 **只透传、不使用**：翻译逻辑**完全不受影响**
+        （MT 不需要改翻译逻辑，见 APP-022「共用约定」）。
         """
         if not self.active:
             return []
@@ -1189,13 +1229,17 @@ class TranslationService:
                 u = self._draft_unit.get(uid)
                 if u is None:
                     u = dict(key=dk, src=self._pend, seg=seg, mt=None,
-                             kind='draft', unit_id=uid)
+                             kind='draft', unit_id=uid, spk=spk,
+                             spk_conf=spk_conf)
                     self.units.append(u)
                     self._draft_unit[uid] = u
                 else:
                     u['src'] = self._pend
                     u['seg'] = seg
-                self.q.put(_Job('draft', dk, self._pend, seg=seg, unit_id=uid))
+                    u['spk'] = spk
+                    u['spk_conf'] = spk_conf
+                self.q.put(_Job('draft', dk, self._pend, seg=seg, unit_id=uid,
+                                spk=spk, spk_conf=spk_conf))
 
         # ── 正式稿 ────────────────────────────────────────────────────
         #   发射顺序：`ready`（本段凑齐的整句）→ `forced_parts`（强制切出的）
@@ -1224,7 +1268,8 @@ class TranslationService:
             if k in self._seen:
                 self.units.append(dict(key=k, src=s, seg=seg, mt=None,
                                        kind='final', unit_id=uid,
-                                       partial=is_forced))
+                                       partial=is_forced, spk=spk,
+                                       spk_conf=spk_conf))
                 if seg is not None:
                     self.seg_keys.setdefault(seg, [])
                     if k not in self.seg_keys[seg]:
@@ -1235,16 +1280,20 @@ class TranslationService:
                     cached = self.done.get(k)
                 if cached:
                     with self.lock:
-                        self.outbox.append(('final', uid, s, cached, seg))
+                        self.outbox.append(_mk_event('final', uid, s, cached,
+                                                     seg, spk, spk_conf))
                 else:
                     # 缓存里没有（被 CACHE_MAX 淘汰）⇒ 老实重翻一次
-                    self.q.put(_Job('final', k, s, seg=seg, unit_id=uid))
+                    self.q.put(_Job('final', k, s, seg=seg, unit_id=uid,
+                                    spk=spk, spk_conf=spk_conf))
                 continue
             self._seen.add(k)
             keys.append(k)
             self.units.append(dict(key=k, src=s, seg=seg, mt=None, kind='final',
-                                   unit_id=uid, partial=is_forced))
-            self.q.put(_Job('final', k, s, seg=seg, unit_id=uid))
+                                   unit_id=uid, partial=is_forced,
+                                   spk=spk, spk_conf=spk_conf))
+            self.q.put(_Job('final', k, s, seg=seg, unit_id=uid,
+                            spk=spk, spk_conf=spk_conf))
 
         if seg is not None:
             self.seg_keys.setdefault(seg, [])
@@ -1255,12 +1304,13 @@ class TranslationService:
             self.seg_half[seg] = bool(self._pend)
         return keys
 
-    def flush(self, seg=None):
+    def flush(self, seg=None, spk=None, spk_conf=None):
         """[方案 C] 收尾：缓冲里的最后一句当完整句翻一次（**正式稿**）。
 
         ★ 与 submit() 一致：重复句**不丢弃**（翻译去重 + 显示不去重）。
         ★ flush 出来的单元**沿用挂起链的 id** ⇒ App 能把它和此前的草稿对上
           （若该链此前出过草稿 ⇒ 同 id 原位替换）。
+        🔴🔴 APP-022：`spk` / `spk_conf` **接口预留**（当前恒为 None）。
         """
         if not self.active:
             return []
@@ -1288,8 +1338,9 @@ class TranslationService:
         if k not in self._seen:
             self._seen.add(k)
             self.units.append(dict(key=k, src=pend, seg=seg, mt=None, kind='final',
-                                   unit_id=uid))
-            self.q.put(_Job('final', k, pend, seg=seg, unit_id=uid))
+                                   unit_id=uid, spk=spk, spk_conf=spk_conf))
+            self.q.put(_Job('final', k, pend, seg=seg, unit_id=uid,
+                            spk=spk, spk_conf=spk_conf))
             if seg is not None:
                 self.seg_keys.setdefault(seg, [])
                 if k not in self.seg_keys[seg]:
@@ -1298,14 +1349,16 @@ class TranslationService:
             return [k]
         # 已翻过 ⇒ 不重复入队，但**保留显示单元**（内容不能丢）
         self.units.append(dict(key=k, src=pend, seg=seg, mt=None, kind='final',
-                               unit_id=uid))
+                               unit_id=uid, spk=spk, spk_conf=spk_conf))
         with self.lock:
             txt = self.done.get(k)
         if txt:
             with self.lock:
-                self.outbox.append(('final', uid, pend, txt, seg))
+                self.outbox.append(_mk_event('final', uid, pend, txt, seg,
+                                             spk, spk_conf))
         else:
-            self.q.put(_Job('final', k, pend, seg=seg, unit_id=uid))
+            self.q.put(_Job('final', k, pend, seg=seg, unit_id=uid,
+                            spk=spk, spk_conf=spk_conf))
         return [k]
 
     def mt_of_seg(self, seg):
@@ -1583,11 +1636,16 @@ def _run_jobs(svc, tr):
                 #   txt  —— 译文
                 #   seg  —— ASR 段号
                 #   ⚠️ 旧格式是 3 元组 (kind, key, text) ⇒ **App 侧必须改成解 5 元组**。
-                svc.outbox.append((('final' if job.kind == 'fix' else job.kind),
-                                   job.unit_id or job.key,
-                                   job.text, r['text'], job.seg))
+                # 🔴🔴 APP-022：`spk` / `spk_conf` **接口预留** ——
+                #   `spk is None` ⇒ 事件**仍是 5 元组**（逐位不变 ⇒ MT 的
+                #   `len(e)==5` 断言继续成立）；有 spk ⇒ **7 元组**。
+                svc.outbox.append(_mk_event(
+                    ('final' if job.kind == 'fix' else job.kind),
+                    job.unit_id or job.key,
+                    job.text, r['text'], job.seg, job.spk, job.spk_conf))
             else:
                 svc.draft = r['text']
-                svc.outbox.append(('draft', job.unit_id or job.key,
-                                   job.text, r['text'], job.seg))
+                svc.outbox.append(_mk_event('draft', job.unit_id or job.key,
+                                             job.text, r['text'], job.seg,
+                                             job.spk, job.spk_conf))
             svc._busy -= 1          # 结果落盘后才算完成，wait_idle 才能安全返回

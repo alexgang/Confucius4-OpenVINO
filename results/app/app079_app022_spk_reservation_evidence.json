@@ -1,0 +1,122 @@
+{
+ "purpose": "APP-022「spk / spk_conf 接口预留」+ TTS-017①「cp_prefill → NPU」的 App 侧验收",
+ "correction": "APP-022 [NORMAL] 2026-10-26 16:20（CORRECTIONS_APP.md）",
+ "notices": [
+  "shared/NOTICE_tts_to_app_20261026.md（TTS-017① cp_prefill CPU→NPU）"
+ ],
+ "no_model": true,
+ "no_gpu": true,
+ "no_inference": true,
+ "no_lock": true,
+ "checks": [
+  {
+   "group": "REAL",
+   "name": "A1 translator.submit() 接受 spk / spk_conf",
+   "ok": true,
+   "detail": "args=['self', 'sentence', 'seg', 'spk', 'spk_conf']"
+  },
+  {
+   "group": "REAL",
+   "name": "A2 spk=None ⇒ 事件仍是 5 元组（MT 的 len(e)==5 仍成立）",
+   "ok": true,
+   "detail": "len=5 ('final', 'C:1:1', 'src', 'txt', 3)"
+  },
+  {
+   "group": "REAL",
+   "name": "A3 spk=\"S1\" ⇒ 事件是 7 元组（尾部带 spk / spk_conf）",
+   "ok": true,
+   "detail": "len=7 ('final', 'C:1:1', 'src', 'txt', 3, 'S1', 0.87)"
+  },
+  {
+   "group": "BUG",
+   "name": "B1 spk=None 时事件不是 5 元组（⇒ MT 契约被破坏）",
+   "ok": false,
+   "detail": "len=5"
+  },
+  {
+   "group": "BUG",
+   "name": "B2 事件里出现 spk 键但值为 None（⇒ 形状被无条件改长）",
+   "ok": false,
+   "detail": "len=5"
+  },
+  {
+   "group": "REAL",
+   "name": "A4 unpack_event 认 3/5/7 元组且 spk 取值正确",
+   "ok": true,
+   "detail": "3->None 5->None 7->spk=S1 conf=0.87"
+  },
+  {
+   "group": "REAL",
+   "name": "A5 _Job.__slots__ 含 spk / spk_conf（字段通到 job）",
+   "ok": true,
+   "detail": "slots=['kind', 'key', 'text', 'seg', 'old_key', 'old_seg', 'unit_id', 'spk', 'spk_conf']"
+  },
+  {
+   "group": "REAL",
+   "name": "A6 tts_service.submit() 接受 spk 并透传到 synth 命令",
+   "ok": true,
+   "detail": "args=['self', 'text', 'seg', 'spk', 'spk_conf'] cmd_fields=True"
+  },
+  {
+   "group": "REAL",
+   "name": "A7 spk=None ⇒ 命令体不含 spk 键（逐字不变）",
+   "ok": true,
+   "detail": "conditional_write=True"
+  },
+  {
+   "group": "REAL",
+   "name": "A8 _split_spk：纯字符串 ⇒ (text, None, None)（当前形态）",
+   "ok": true,
+   "detail": "('hello', None, None)"
+  },
+  {
+   "group": "REAL",
+   "name": "A9 _split_spk：dict / 元组形态也能拆（交付后零改动即接上）",
+   "ok": true,
+   "detail": "dict=('hi', 'S2', 0.5) tuple=('hi', 'S3', 0.4)"
+  },
+  {
+   "group": "REAL",
+   "name": "A10 render_lines 带 spk_by_seg ⇒ 输出行有 spk 键",
+   "ok": true,
+   "detail": "plain=None spk=S1"
+  },
+  {
+   "group": "REAL",
+   "name": "A11 原文守恒不变式在加 spk 后依然成立",
+   "ok": true,
+   "detail": "plain='第一段原文第二段原文' spk='第一段原文第二段原文'"
+  },
+  {
+   "group": "REAL",
+   "name": "A12 CP_PREFILL_NPU_SHAPE = {inputs_embeds: [1,2,1024]}（TTS-017①）",
+   "ok": true,
+   "detail": "shape={'inputs_embeds': [1, 2, 1024]}"
+  },
+  {
+   "group": "REAL",
+   "name": "A13 cp_prefill / cp_decode 共用 _cp_ir_path（避免两份逻辑漂移）",
+   "ok": true,
+   "detail": "_cp_ir_path=True _move_cp_prefill_to_npu=True"
+  },
+  {
+   "group": "REAL",
+   "name": "A14 cp_prefill 搬 NPU 失败 ⇒ return False 且不抛异常（降级契约）",
+   "ok": true,
+   "detail": "try=True return_False=True raise=False"
+  },
+  {
+   "group": "REAL",
+   "name": "A15 tts_npu_cache 在 pkg_exclude 排除名单里（TTS 通知 §二）",
+   "ok": true,
+   "detail": "found=True"
+  }
+ ],
+ "n_checks": 17,
+ "n_pass": 15,
+ "n_real": 15,
+ "n_real_ok": 15,
+ "n_bug": 2,
+ "n_bug_hit": 0,
+ "verdict": "PASS"
+}

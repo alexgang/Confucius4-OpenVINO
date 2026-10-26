@@ -226,7 +226,7 @@ def match_draft_to_final(drafts, finals):
 
 # ── 渲染 ────────────────────────────────────────────────────────────
 def render_lines(blocks, units, drafts=None, granularity='seg',
-                 seg_carry=None, show_pending=False):
+                 seg_carry=None, show_pending=False, spk_by_seg=None):
     """把「ASR 段 + 句单元 + 草稿」渲染成显示行。
 
     参数
@@ -249,11 +249,15 @@ def render_lines(blocks, units, drafts=None, granularity='seg',
         True ⇒ 该段译文**还在途**（且承接了上一段的半句）时，
         输出一行「（译文生成中…）」⇒ **保持 `_save_text()` 的旧行为**
         （旧实现有这个提示行，屏幕渲染没有 ⇒ 用它把两者区分开）。
+    spk_by_seg : {seg: spk_id}   **可选**（APP-022 接口预留）
+        该段的说话人 id。⚠️ **当前恒为空**（ASR 侧还没交付 spk）
+        ⇒ 输出行会多带一个 `'spk'` 键（**值为 None**）
+        ⇒ **不影响 `text` / `kind` / `seg`** ⇒ 现有渲染逻辑零影响。
 
     返回
     ----
     [{'kind': 'src'|'mt'|'mt_draft', 'text': str, 'seg': int|None,
-      'draft': bool}, ...]
+      'draft': bool, 'spk': str|None}, ...]
 
     🔴 **不变式 1（原文守恒）**：所有 `kind=='src'` 的 `text` 拼接
        == `blocks` 的拼接（去空白口径）。
@@ -399,7 +403,8 @@ def render_lines(blocks, units, drafts=None, granularity='seg',
 
     lines = []
     for i, src in enumerate(blocks):
-        lines.append({'kind': 'src', 'text': src, 'seg': i, 'draft': False})
+        lines.append({'kind': 'src', 'text': src, 'seg': i, 'draft': False,
+                      'spk': (spk_by_seg or {}).get(i)})
         parts = mt_by_seg.get(i) or []
         if parts:
             txt = ' '.join(parts)
@@ -421,7 +426,7 @@ def render_lines(blocks, units, drafts=None, granularity='seg',
 
 
 def unpack_event(item):
-    """把 outbox 事件**解包**成统一结构（🔴 兼容 3 元组与 5 元组）。
+    """把 outbox 事件**解包**成统一结构（🔴 兼容 3 / 5 / 7 元组）。
 
     =====================================================================
     🔴🔴 事件格式在方案 C 里变了（MT H-019 移交说明）
@@ -430,31 +435,46 @@ def unpack_event(item):
     |------|------|------|
     | 旧（3 元组） | `(kind, key, text)` | `key` = **翻译去重键**，草稿与正式稿**不同** |
     | **新（5 元组）** | `(kind, id, src, txt, seg)` | `id` = **单元 id**，草稿与正式稿**共用** |
+    | **7 元组**（APP-022） | `(kind, id, src, txt, seg, spk, spk_conf)` | 追加说话人信息 |
 
     🔴 **为什么必须按 id 替换、不能按原文包含关系**：
     MT §73 实测「双向包含 + 取最短」会把草稿 `'That'` 配到
     `"That's where we are today."`（**跨 85 段**）⇒ 正式稿译文被搬到
     **错误的段**（用户可见）。⇒ 方案 C 的「同 id 原位替换」是**唯一**可靠口径。
 
+    🔴🔴 **7 元组是「按需加长」**（APP-022）：
+    `spk is None`（当前常态）⇒ 事件**仍是 5 元组** ⇒ 与改造前逐位一致
+    ⇒ MT 侧的 `len(e) == 5` 断言（`12_event_is_5tuple` / `ev_5tuple`）
+    **继续成立**，不需要等 MT 改。
+
     返回
     ----
-    {'kind','id','key','src','txt','seg'}
+    {'kind','id','key','src','txt','seg','spk','spk_conf'}
       · `id`  —— 单元 id（新格式有；旧格式退回 `key`）
       · `key` —— 翻译去重键（旧格式有；新格式用 `DRAFT::`+id 派生）
       · `src` —— 原文（新格式有；旧格式为空）
       · `seg` —— ASR 段号（新格式有；旧格式为 None）
+      · `spk` —— 全局说话人 id（**7 元组才有**；否则 None）
+      · `spk_conf` —— 说话人置信度（**7 元组才有**；否则 None）
     """
     if not item:
         return None
     kind = item[0] if len(item) > 0 else ''
+    if len(item) >= 7:
+        kind, uid, src, txt, seg = item[0], item[1], item[2], item[3], item[4]
+        return {'kind': kind, 'id': uid, 'key': uid,
+                'src': src or '', 'txt': txt or '', 'seg': seg,
+                'spk': item[5], 'spk_conf': item[6]}
     if len(item) >= 5:
         kind, uid, src, txt, seg = item[0], item[1], item[2], item[3], item[4]
         return {'kind': kind, 'id': uid, 'key': uid,
-                'src': src or '', 'txt': txt or '', 'seg': seg}
+                'src': src or '', 'txt': txt or '', 'seg': seg,
+                'spk': None, 'spk_conf': None}
     if len(item) >= 3:
         kind, key, text = item[0], item[1], item[2]
         return {'kind': kind, 'id': key, 'key': key,
-                'src': '', 'txt': text or '', 'seg': None}
+                'src': '', 'txt': text or '', 'seg': None,
+                'spk': None, 'spk_conf': None}
     return None
 
 

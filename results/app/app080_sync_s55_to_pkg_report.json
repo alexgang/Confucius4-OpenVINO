@@ -1,0 +1,714 @@
+{
+  "when": "2026-10-26 20:47:57",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\app",
+  "backup_dir": "C:\\Users\\Trekker-PTL\\_backup\\pkg_sync_s55",
+  "method": "B: baseline-equivalence upgrade + per-block uniqueness audit",
+  "files": [
+    {
+      "name": "tts_engine",
+      "rel": "live_caption/tts_engine.py",
+      "baseline_equal": true,
+      "blocks": [
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 36,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "52da9c659e85da5b",
+          "old_hits_in_pkg": 29556,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 13,
+          "old_sha256": "578efa5514d11cc3",
+          "new_sha256": "97b1dde8a6cc00d0",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 2,
+          "new_lines": 2,
+          "old_sha256": "6f9cea27809c14e4",
+          "new_sha256": "f28f0549a905a047",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 3,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "741a1441f89abb60",
+          "old_hits_in_pkg": 29556,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 1,
+          "old_sha256": "ebdc690eee873d99",
+          "new_sha256": "507f218254c158a2",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 74,
+          "old_sha256": "671e7f2f98f42e82",
+          "new_sha256": "089d7af49b383957",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 2,
+          "new_lines": 2,
+          "old_sha256": "b29cd1557392a521",
+          "new_sha256": "30366bfa560442a6",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 1,
+          "old_sha256": "6a3749b283a201b8",
+          "new_sha256": "e8ff15fc90cf7c06",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 2,
+          "new_lines": 2,
+          "old_sha256": "36084aa768cba13d",
+          "new_sha256": "eb8ebdb4f3da9304",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 2,
+          "new_lines": 3,
+          "old_sha256": "0d155cf81f7b470c",
+          "new_sha256": "6432e8cd36b841f5",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 1,
+          "old_sha256": "0e4192493605865a",
+          "new_sha256": "9b5de9f3c083b4ed",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        }
+      ],
+      "n_blocks": 11,
+      "backup": "C:\\Users\\Trekker-PTL\\_backup\\pkg_sync_s55\\tts_engine_20261026_204757.py",
+      "status": "synced",
+      "bytes": 45341,
+      "sha256": "309cb670216855297dbb747e15c85c6fdb3311cf6ac2f6f47c125863d79dd5da",
+      "crlf": false,
+      "pkg_sha256_before": "99002de2bcab65efd33d50fd332f1439f0672de25f2f38900b1c40faf3f516a8"
+    },
+    {
+      "name": "translator",
+      "rel": "live_caption/translator.py",
+      "baseline_equal": true,
+      "blocks": [
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 25,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "f173a9499bbae48f",
+          "old_hits_in_pkg": 58704,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 2,
+          "old_sha256": "448894ca91c2231e",
+          "new_sha256": "c950f5b570a44c17",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 1,
+          "old_sha256": "9de6c7c8ad9cc7b3",
+          "new_sha256": "182793ab51e0dd7d",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 5,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "09436e5800b19d2b",
+          "old_hits_in_pkg": 58704,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 1,
+          "old_sha256": "2753331bd01ae355",
+          "new_sha256": "8e27f042617bf736",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 9,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "b63a8de86c3a45da",
+          "old_hits_in_pkg": 58704,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 2,
+          "old_sha256": "d20e923cb687a32e",
+          "new_sha256": "fdc7cdf976b30df1",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 4,
+          "old_sha256": "dcc601a69acf961a",
+          "new_sha256": "e638a3e2555b049a",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 2,
+          "old_sha256": "09fea6cffc793fb4",
+          "new_sha256": "a6ea115560c0c53c",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 2,
+          "old_sha256": "4c1393576c510f3c",
+          "new_sha256": "58ec895cd787089d",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 2,
+          "old_sha256": "511f73c12caabd46",
+          "new_sha256": "4e284ec1f1bd67f6",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 2,
+          "new_lines": 4,
+          "old_sha256": "526df67326cabf07",
+          "new_sha256": "79790bda945b440e",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 1,
+          "old_sha256": "c0096056b53a686e",
+          "new_sha256": "1c7e12703a38d15f",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 1,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "80b55aaf92fd3f06",
+          "old_hits_in_pkg": 58704,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "replace",
+          "old_lines": 2,
+          "new_lines": 3,
+          "old_sha256": "9143ad90390c74b1",
+          "new_sha256": "b314f7acd6bbae39",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 1,
+          "old_sha256": "d6012fbdbb786de0",
+          "new_sha256": "0a8fbacdbd9c66da",
+          "old_hits_in_pkg": 2,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 2,
+          "old_sha256": "5cae67098de35204",
+          "new_sha256": "dd9b4632e94893be",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 2,
+          "old_sha256": "70535f90e96b1e19",
+          "new_sha256": "e302f456cad830ae",
+          "old_hits_in_pkg": 2,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 3,
+          "new_lines": 7,
+          "old_sha256": "644a9926c360a51f",
+          "new_sha256": "8b5301075ae4fb2d",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 2,
+          "new_lines": 3,
+          "old_sha256": "807273cc6e2aa3a6",
+          "new_sha256": "a93cbd491005f7c1",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        }
+      ],
+      "n_blocks": 20,
+      "backup": "C:\\Users\\Trekker-PTL\\_backup\\pkg_sync_s55\\translator_20261026_204757.py",
+      "status": "synced",
+      "bytes": 82734,
+      "sha256": "e817a85b3d759d7b5558e054e0a6004c1602369eb97368c8c047f641b701f3e8",
+      "crlf": false,
+      "pkg_sha256_before": "a8069a56ed82122b1cc10246f266cf87388bb405b3a385d9e90a7b74139593dc"
+    },
+    {
+      "name": "caption_render",
+      "rel": "live_caption/caption_render.py",
+      "baseline_equal": true,
+      "blocks": [
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 1,
+          "old_sha256": "96c4b6e228237486",
+          "new_sha256": "9c1acae49b68aebe",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 4,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "6bf01c8119c0b3b8",
+          "old_hits_in_pkg": 17786,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 1,
+          "old_sha256": "88f45da7b21887e0",
+          "new_sha256": "7d194bdff1e14508",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 2,
+          "old_sha256": "b47360d76bd75772",
+          "new_sha256": "e18086c90ec76424",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 1,
+          "old_sha256": "09e8101724d90dfc",
+          "new_sha256": "33ae498b11ea2d6c",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 1,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "37553067c19e61cb",
+          "old_hits_in_pkg": 17786,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 5,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "66314db03e2bc430",
+          "old_hits_in_pkg": 17786,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 1,
+          "old_sha256": "12417d051744579f",
+          "new_sha256": "ce5e7bad322416db",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 2,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "5b1ab6a9f664ee0b",
+          "old_hits_in_pkg": 17786,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 5,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "e043f81d8d00e118",
+          "old_hits_in_pkg": 17786,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 2,
+          "old_sha256": "80397c470e6961c5",
+          "new_sha256": "7c96219cf7ed1780",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 2,
+          "old_sha256": "9d525ccf048604fc",
+          "new_sha256": "27184967e3c89497",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        }
+      ],
+      "n_blocks": 12,
+      "backup": "C:\\Users\\Trekker-PTL\\_backup\\pkg_sync_s55\\caption_render_20261026_204757.py",
+      "status": "synced",
+      "bytes": 26991,
+      "sha256": "3642555a536c4d66e00c854b71a4e84231916400c0fa097bfb5404c704cfbcf5",
+      "crlf": false,
+      "pkg_sha256_before": "0c66b9d8905e60b3be086028b81acc74a32cb5aaac1e00146a8410f01339b215"
+    },
+    {
+      "name": "live_caption_app",
+      "rel": "live_caption/live_caption_app.py",
+      "baseline_equal": true,
+      "blocks": [
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 32,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "ad4c2de3587553b2",
+          "old_hits_in_pkg": 157255,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 1,
+          "old_sha256": "3b9c025a18989ca8",
+          "new_sha256": "dddf12d0a67ffa3d",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 1,
+          "old_sha256": "c2723a3992835cbb",
+          "new_sha256": "22a6be2aa24040c2",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 9,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "035e44d666e2e8f8",
+          "old_hits_in_pkg": 157255,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "replace",
+          "old_lines": 2,
+          "new_lines": 9,
+          "old_sha256": "3863520851dadf2d",
+          "new_sha256": "20bc2f9fe443e301",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 1,
+          "old_sha256": "d36b0f3449a1291c",
+          "new_sha256": "e7726b589d103e49",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 1,
+          "old_sha256": "2188d4b323119acb",
+          "new_sha256": "cb5a2622369de9c2",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 6,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "b559d9e6b100dbda",
+          "old_hits_in_pkg": 157255,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 8,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "3ce905931b1bb111",
+          "old_hits_in_pkg": 157255,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 4,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "d03c864835b8b0db",
+          "old_hits_in_pkg": 157255,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 6,
+          "old_sha256": "faabb21b1e029a24",
+          "new_sha256": "1b116a891b58bda1",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 6,
+          "old_sha256": "338439a39e26f986",
+          "new_sha256": "f2d83d6480600eb6",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 4,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "65e042f7b19c0c62",
+          "old_hits_in_pkg": 157255,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 2,
+          "old_sha256": "45945a3dd3789ec7",
+          "new_sha256": "5e20059d788f72fd",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 3,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "701ffa7e0dcba803",
+          "old_hits_in_pkg": 157255,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 5,
+          "old_sha256": "0d999579adddec83",
+          "new_sha256": "1975b4c551ecea9f",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 1,
+          "old_sha256": "3d8b32660521c609",
+          "new_sha256": "4383ada31b93a911",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 3,
+          "old_sha256": "bae96bd098c18ffa",
+          "new_sha256": "078f24067e86ddcc",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        }
+      ],
+      "n_blocks": 18,
+      "backup": "C:\\Users\\Trekker-PTL\\_backup\\pkg_sync_s55\\live_caption_app_20261026_204757.py",
+      "status": "synced",
+      "bytes": 214244,
+      "sha256": "706cb589e22e8c5c621c5933cb5bbfc53c560fab8e984714b52fc847043a47d6",
+      "crlf": true,
+      "pkg_sha256_before": "15439a97ae5b1fb59f129569c6d5af48c7aafdf0fff1f598498cd9a35d5ec874"
+    },
+    {
+      "name": "tts_service",
+      "rel": "live_caption/tts_service.py",
+      "baseline_equal": true,
+      "blocks": [
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 2,
+          "old_sha256": "a4cb4f6be9ed0453",
+          "new_sha256": "171886bd12675a4d",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 4,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "39232bed03948545",
+          "old_hits_in_pkg": 48933,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 4,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "fd38408a54a2aef2",
+          "old_hits_in_pkg": 48933,
+          "old_block_is_blank": true
+        }
+      ],
+      "n_blocks": 3,
+      "backup": "C:\\Users\\Trekker-PTL\\_backup\\pkg_sync_s55\\tts_service_20261026_204757.py",
+      "status": "synced",
+      "bytes": 66480,
+      "sha256": "1b2e310ea98e99f5bf72e02d7a03a316d7c34c41f24ac0c75c5ac9b69f6961e6",
+      "crlf": true,
+      "pkg_sha256_before": "0b17ee3614c107d2b62edc947d3e7cc553624b12c8a7942bc80961baa3fdf94c"
+    },
+    {
+      "name": "tts_worker",
+      "rel": "live_caption/tts_worker.py",
+      "baseline_equal": true,
+      "blocks": [
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 6,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "05564e1b43710001",
+          "old_hits_in_pkg": 66762,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 1,
+          "old_sha256": "e20db1474f65dcbd",
+          "new_sha256": "31815c8bb41b018c",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 6,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "a7792e2c7d6b6a28",
+          "old_hits_in_pkg": 66762,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "insert",
+          "old_lines": 0,
+          "new_lines": 2,
+          "old_sha256": "e3b0c44298fc1c14",
+          "new_sha256": "ab385502f46eac13",
+          "old_hits_in_pkg": 66762,
+          "old_block_is_blank": true
+        },
+        {
+          "tag": "replace",
+          "old_lines": 1,
+          "new_lines": 8,
+          "old_sha256": "fe67873e7bc3b149",
+          "new_sha256": "3fe292a8653e77f4",
+          "old_hits_in_pkg": 1,
+          "old_block_is_blank": false
+        }
+      ],
+      "n_blocks": 5,
+      "backup": "C:\\Users\\Trekker-PTL\\_backup\\pkg_sync_s55\\tts_worker_20261026_204757.py",
+      "status": "synced",
+      "bytes": 86756,
+      "sha256": "6e181450a810d603146ce1dd06585977c49cc6bbc5b7f771417822f9c19a062d",
+      "crlf": true,
+      "pkg_sha256_before": "fa2022b35d32b06ba39967f0a3d551818615fc6f3238d86e910c54fce2948c46"
+    }
+  ],
+  "errors": []
+}

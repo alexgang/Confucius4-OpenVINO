@@ -594,6 +594,12 @@ class TTSWorker:
         self.dump_dir = None
         self._dump_seq = 0
         self._dump_paths = []
+        # 🔴🔴 APP-022：当前句的说话人（**接口预留，本轮不集成**）
+        #   ⚠️ 隐私纪律（APP-022「共用约定」）：x-vector **只在内存里**，
+        #   会话结束就丢弃、**不落盘、不进客户包**。
+        #   ⇒ 这里只存**标签**（S1/S2…）与置信度，**不是**向量本身。
+        self._last_spk = None
+        self._last_spk_conf = None
 
     # -- 模型加载 --------------------------------------------------------
     def load(self):
@@ -891,7 +897,7 @@ class TTSWorker:
         return out
 
     # -- 合成 ------------------------------------------------------------
-    def synth(self, jid: int, text: str):
+    def synth(self, jid: int, text: str, spk=None, spk_conf=None):
         """合成一句并播放。
 
         三条路径：
@@ -901,12 +907,20 @@ class TTSWorker:
 
         ⚠️ **落盘模式**（`--out-wav`）：不实时播放，而是按**真实时间轴**
         把每句记到时间轴上，最后混成一个 wav（C-101 P4 第 6 条）。
+
+        🔴🔴 APP-022：`spk` / `spk_conf` **接口预留**（pyannote 强制断句）。
+        ⚠️ **本轮不集成**：等 TTS-019 交付「按句子取对应说话人的音色向量」
+        ⇒ 这里**只把字段接住并记进遥测**，**不改变任何合成行为**。
+        ⇒ 隐私纪律（APP-022「共用约定」）：x-vector 只在内存里，
+        会话结束就丢弃、**不落盘、不进客户包**。
         """
         import numpy as np
 
         t_submit = time.perf_counter()
         lang = self._guess_lang(text)
         is_babelvox = self.engine is not None
+        # 🔴 APP-022：记住本句的说话人（**只在本进程内存里**）
+        self._last_spk, self._last_spk_conf = spk, spk_conf
 
         if is_babelvox:
             # BabelVox 路线：音色由 speaker_embed / 内置 speaker 提供
@@ -1433,7 +1447,14 @@ class TTSWorker:
             elif cmd == 'synth':
                 jid = msg.get('id')
                 text = msg.get('text', '')
-                t = threading.Thread(target=self.synth, args=(jid, text), daemon=True)
+                # 🔴🔴 APP-022：`spk` / `spk_conf` **接口预留**
+                #   （当前 ASR 侧还没交付 ⇒ 恒为 None ⇒ **行为不变**）。
+                #   等 TTS-019 交付「按说话人取音色向量」时在这里接上。
+                spk = msg.get('spk')
+                spk_conf = msg.get('spk_conf')
+                t = threading.Thread(target=self.synth,
+                                     args=(jid, text, spk, spk_conf),
+                                     daemon=True)
                 t.start()
             elif cmd == 'cancel':
                 # 主进程判定积压超限，丢弃这一句（整句为单位，C-101 P4 第 2 条）

@@ -1,12 +1,17 @@
 # STATUS_APP
-last_ack: APP-021
-更新时间: 2026-10-26 16:55
-当前任务: **§54 🔴 响应 APP-021 —— 把播放链路做成可观测，并**撤回**「played ≥ 1 ⇒ 能出声」这个无效判据** ⇒ ① 🔴🔴 **撤回 §52.1/§52.6 的结论**：`played` 旧实现是在「最后一块写进环形缓冲后」立刻发的（缓冲 3 s ⇒ 发 `played` 时最多还有 3 s 音频没播；`player is None` 时音频被**直接扔掉却照样发 played**）⇒ **「played 1 ⇒ 端到端能出声」这个判据无效**，`app071` 的「OK 语音输出正常」什么都证明不了 ⇒ **§51「真实音频未验证结清」一并撤回**（那条也是靠 played 判的）；② `played` 改成**真的播完**：`ring.n_read` 追上本句最后样本的写入位置才发（等待可 cancel/stop，超时报**带诊断的句子级 error**）；③ **播放器不可用 ⇒ 发句子级 error**（`'播放器不可用，音频未输出'` + id），**不再**发 played；④ **每句一行遥测**：`out_desc`/`sr`/样本数/峰值/**RMS(dBFS)**/NaN·Inf 数/回调增量/`n_read` 增量/欠载次数；峰值 < 1e-3 或有 NaN ⇒ 标「静音合成」；⑤ **会话日志落盘**：GUI `_ui_log` + TTSService `log_tail` 一律追加写 `%LOCALAPPDATA%\Confucius4LiveCaption\session_YYYYMMDD_HHMMSS.log`（**不只在 error 时写**）；⑥ **「🔊 测试声音」按钮**（离线朗读对话框 + TTS 行）：经**同一个 worker 的 Player** 播 1 s 440 Hz（幅度 0.3），播放前后显示 `n_cb`/`n_read` 增量与实际输出设备 ⇒ 把「播放链路」与「TTS 合成」**彻底拆开**；⑦ `cb_tts_out` 绑 `<<ComboboxSelected>>`（改下拉 ⇒ 重启 worker + 日志写明新设备）；⑧ 新增 `--tts-dump-dir` + 运行时 `set_dump_dir` ⇒ 逐句落盘 wav；⑨ 离线朗读对话框显示**「已播 / 丢 / 失败」三个数** + 最近一条句子级错误原文；⑩ 🔴 **顺带修掉一个被 played 语义变更牵连的隐患**：`played` 推迟到「播完」后 ⇒ 主进程 `pending` 会多挂一句时长 ⇒ **积压被高估 ⇒ 连续会议里多丢句** ⇒ 新增 `written` 事件（音频已全部写进缓冲）+ 积压按「缓冲里剩 ≤ 3 s」计；⑪ ✅ `app076` **38/38**（不加载模型）、`app069` **37/37**、`app072` **13/13**、`app073` **16/16×3 模式**、`app070` 19/21（2 条**截图**失败 = **既有问题**，stash 回退验证过）；⑫ ✅ **验收 A/B 已跑**（真实 CUDA + 真实声卡 + 真实遥测 + wav 落盘）⇒ 见 §54.5
+last_ack: APP-022
+更新时间: 2026-10-26 20:55
+当前任务: **§55 🔴 响应 APP-022 —— 预留 `spk` / `spk_conf` 接口（**本条已完成**，未集成）+ TTS-017① `cp_prefill` → NPU 同步** ⇒ ① **APP-022 已完成**：事件**按需加长**（`spk=None` ⇒ 仍是 5 元组 ⇒ MT 的 `len(e)==5` 断言继续成立）；`spk` 有值 ⇒ 7 元组；② GUI 新增「跟随说话人（克隆）」**（默认仍是预设 A**）与「显示说话人」**（默认关闭）**；③ 说话人表**只在内存**、会话结束清空、**不进客户包**；④ 🔴🔴 **TTS-017① `cp_prefill` 已同步到 NPU**（形状 `[1,2,1024]`；编译失败**回退 CPU + 记日志 + 返回 False**，不静默降级）；⑤ ✅ `app079` **REAL 15/15 · BUG 0/2**；⑥ ✅ 客户包 **6/6 synced**（骨架等价校验后升级基底，逐字一致 + `py_compile` OK）；⑦ ✅ **已交付 zip 干净**（13 984 entries / 第三方素材 0 / 仅 1 个 wav）；⚠️ **散包目录仍有 8 + 22 个第三方素材残留**（未清理 ⇒ 不写「已交付」）
 
-阻塞 / 待用户决定: ① 🔴 **APP-021 验收 C 需用户配合**（需人）：在交互会话里、系统音量 ≥ 50%、戴平时耳机或外放 ⇒ **先点「🔊 测试声音」再点离线朗读念一句** ⇒ 听到后把会话日志路径与遥测行写进本 STATUS；**先点测试声音**是 APP-021 明文要求（用来区分「设备问题」与「合成问题」）；② 🔴 **撤回后的口径**：在用户用耳朵确认之前，**不得**再宣称「离线朗读能出声」；③ 🔴 **§51/§52 代码已进散包、zip 未重打**（守 APP-020，与 cp_prefill 一起重打）；④ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑤ 🔴 **§49.7 待裁定**（APP-020 明确「先不要定」⇒ 未动）；⑥ 🔴 **§45.6①–⑤ 等 reviewer 裁定**；⑦ 🔴 **等裁定**：是否采纳 `MAX_SEG_SPAN = 2`（§44 候选已备好）；⑧ 🔴 **需回复 MT 通知 13**；⑨ 🔴 **§46.5** 第三方依赖可满足性闸门；⑩ 🔴 **§42.3** 修复待用户实机确认；⑪ ⛔ **FTP 服务仍关闭**（守 APP-009③；FTP_Share 副本 = 12:06 那份 v1.5 zip，**不含 §51/§52/§54**）；⑫ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑬ ⛔ 包体优化未做（用户已接受）；⑭ ⛔ V7 残句代价待确认
+阻塞 / 待用户决定: ① 🔴 **APP-022 集成阶段需等 ASR-013 + TTS-019 交付**（本条只做接口预留，**未集成**）；② 🔴 **APP-021 验收 C 仍需用户配合**（需人）：交互会话里系统音量 ≥ 50%、戴耳机/外放 ⇒ **先点「🔊 测试声音」再点离线朗读念一句** ⇒ 把会话日志路径与遥测行写进本 STATUS；③ 🔴 **撤回后的口径**：在用户用耳朵确认之前，**不得**再宣称「离线朗读能出声」；④ 🔴 **v1.5 zip 未重打**（守 APP-020，等 cp_prefill 同步后的最终版 + 机器锁）；⑤ 🔴 **散包目录仍有第三方素材残留**（babelvox speakers 8 + scipy 测试音频 22）⇒ **未清理**，需重打时由 `pkg_exclude` 规则覆盖；⑥ 🔴 **术语表 / `packaging` 默认值待用户决定**（MT 通知 14 建议：术语表只在芯片/半导体语境下开、`packaging` 放可选集 ⇒ 属 App 默认值 ⇒ 本轮**未擅自改**）；⑦ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑧ 🔴 **§49.7 待裁定**（APP-020 明确「先不要定」⇒ 未动）；⑨ 🔴 **§45.6①–⑤ 等 reviewer 裁定**；⑩ 🔴 **等裁定**：是否采纳 `MAX_SEG_SPAN = 2`（§44 候选已备好）；⑪ 🔴 **需回复 MT 通知 13**；⑫ 🔴 **§46.5** 第三方依赖可满足性闸门；⑬ 🔴 **§42.3** 修复待用户实机确认；⑭ ⛔ **FTP 服务仍关闭**（守 APP-009③）；⑮ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑯ ⛔ 包体优化未做（用户已接受）；⑰ ⛔ V7 残句代价待确认
 
 
 ## 最近更新
+- 20:55 §55 🔴 **APP-022 已完成（仅接口预留，未集成）**：事件**按需加长**（`spk=None` ⇒ 仍是 5 元组 ⇒ MT 的 `len(e)==5` 断言继续成立）
+- 20:55 §55 🔴🔴 **TTS-017① `cp_prefill` 已同步到 NPU**：形状 `[1,2,1024]`；失败**回退 CPU + 记日志 + 返回 False**（不静默降级）
+- 20:55 §55 ✅ GUI 预留两项：「跟随说话人（克隆）」**（默认仍是预设 A）**+「显示说话人」**（默认关闭）**；说话人表**只在内存**、会话结束清空
+- 20:55 §55 ✅ `app079` **REAL 15/15 · BUG 0/2**；客户包 **6/6 synced**（骨架等价校验后升级基底 + 逐字校验 + `py_compile` OK）
+- 20:55 §55 ✅ **已交付 v1.5 zip 干净**（13 984 entries / babelvox speakers 0 / scipy 测试音频 0 / 仅 `preset_A.wav` 1 个 wav）；⚠️ **散包目录仍有 8 + 22 残留**
 - 16:55 §54 🔴 **会话日志可读性修复（§54.10）**：① 同一行落盘 **2~3 遍** ⇒ 短窗口去重；② stderr **中文乱码** ⇒ 查到根因是 `sox` 包 `os.popen` 文本模式把 cmd.exe 的 **GBK 字节解成 U+FFFD（不可逆）** ⇒ 边车加 `_RawStderr` 字节代理 + service 改二进制管道 + `_decode_worker_line`（utf-8→gb18030 严格判定）；③ **双重标签** `[TTS] [TTS]` ⇒ 不再叠加 tag
 - 16:55 §54 ✅ `app078` **28/28**（新增专项自检）+ `app077` 复跑 **11/11**（真实 CUDA）+ 回归 app076 38/38 / app069 37/37 / app072 13/13 / app073 16/16；最终会话日志**无重复行、无双重标签、乱码已消**
 - 16:20 §54 🔴🔴 **撤回 §52.1/§52.6 的「played 1 ⇒ 能出声」结论**（APP-021）：`played` 只代表"写进缓冲"，`player is None` 时音频被**扔掉却照样发 played** ⇒ 旧判据无效 ⇒ **§51「真实音频未验证结清」一并撤回**
@@ -17,11 +22,6 @@ last_ack: APP-021
 - 16:20 §54 ✅ **`cb_tts_out` 绑变更事件**（改下拉 ⇒ 重启 worker + 日志写明新设备）+ **`--tts-dump-dir`** / 运行时 `set_dump_dir` ⇒ 逐句 wav 落盘
 - 16:20 §54 ✅ **离线朗读对话框显示「已播 / 丢 / 失败」三个数** + 最近一条句子级错误原文
 - 16:20 §54 🔴 **顺带修掉「played 推迟 ⇒ 积压高估 ⇒ 多丢句」**：新增 `written` 事件 + 积压按「缓冲里剩 ≤ 3 s」计
-- 16:20 §54 ✅ 自检 `app076` **38/38**、`app069` 37/37、`app072` 13/13、`app073` 16/16×3；已同步散包（4 文件逐字校验，zip 未重打）
-- 13:45 §51 🆕 **离线朗读上线**：文件 / 对话框文本 → TTS（**不经过 ASR/翻译**）；🔴🔴 **节流是命门**：一次性喂整篇 ⇒ 积压 >8 s ⇒ **丢 238/240**，按「pending 预算 7.0 s」节流后 **0 丢**；每段 ≤ 3.4 s
-- 12:05 §50 🔴🔴 **「差一个数量级」查清**：生产配置**唯一不合的就是 `cp_decode`**（已修），其余 9 项逐项对齐；🔴 **假设 H4 被否证**（`app065` A/B/A：f16 效应 −0.018 ≤ 漂移 0.061 ⇒ **产品代码不改**）；🔴🔴 **剩下 1.5× 是「跨天不可比」**（尺子 0.8568 测于 10-25，今天同机自给 1.3899）⇒ ⚠️ `timing_invalid=30` ⇒ **不对外报**
-- 12:05 §50 🔴 **尺子复测踩坑**：包装进程持锁 + spawn 尺子 ⇒ 被其「基线进程 CPU 增量」判据判为污染（**观察者即污染源**）⇒ 以后**不用包装进程跑别人的计时脚本**；✅ **GUI 真实截图补齐**（`app066`）+ ✅ **截图 4 个坑**已修进脚本（`PrintWindow` 对 Tk 返回全白 ⇒ `_is_blank` 校验 + 三级兜底）；✅ **包内 21 个 app/*.py 与仓库全量比对**（18 逐字一致 + 3 仅 CRLF）；✅ **打包前三道闸门全 PASS**（`app014b` 50/50、第三方素材 30/30、包路径硬编码 0 违规）
-- 12:05 §50 🔴 **交付 zip 仍是旧代码**（zip 内 `tts_engine.py` 31 945 B vs 包内 39 173 B）⇒ 必须重打
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -9369,3 +9369,310 @@ os.popen('sox -h').readlines()  ->  []   ← 文本模式已把字节毁掉
   ⚠️ `sync_app077_to_pkg.py` 的 `FILES` **不含边车** ⇒ 同步时**必须单独补**。
 
 ⚠️ **本节不改变 §54.9 的结论**：验收 C 仍需用户用耳朵确认。
+
+## §55 🔴 响应 APP-022 —— 预留 `spk` / `spk_conf` 接口（**本条已完成**，未集成） + TTS-017① `cp_prefill` → NPU 同步（2026-10-26 20:55）
+
+> **本条状态：APP-022 已完成（仅「预留接口 + 记录计划」，按条目明文「本条现在只需要预留接口，
+> 不要开始集成」执行）**
+> **本条无需等 reviewer 复核** —— APP-022 全文**没有**「需要停下来等 reviewer」的节点；
+> 条目本身要求的是「预留接口 + 计划」，本节即完成该范围。
+> ⚠️ **但集成阶段（ASR-013 + TTS-019 交付后）不在本条范围内**，见 §55.6 的接入清单。
+
+### §55.0 本轮输入（原文核对，不改 reviewer 文件）
+
+- `status/app/CORRECTIONS_APP.md`：**48 457 B**、mtime **2026-10-26 16:18:08**、
+  SHA256 `682aced289a58d18b9303cffa6cc5a60dd21c83e226cfefa3d3f2171f81aea00`。
+  共 **22** 条 `## APP-xxx`（APP-001 … APP-022）。
+  🔴 **本轮只读，未修改**（reviewer 独占写入）。
+- 本模块 `last_ack` 原为 **APP-021** ⇒ **APP-022 是唯一待执行的新条目**。
+- APP-022 原文要点（逐条落实见 §55.1–§55.4）：
+  ① ASR 定稿段增加 `spk`（全局说话人 id S1/S2…，身份未定时 null）+ `spk_conf`；
+  ② App 原样传给 MT 和 TTS 事件，**MT 不需要改翻译逻辑**；
+  ③ GUI 音色下拉增加「跟随说话人（克隆）」，**默认仍是预设 A**；
+  ④ 字幕上**可选**显示说话人标签（S1/S2）；
+  ⑤ **会话结束清空说话人表**；
+  ⑥ **客户包里不能出现任何说话人音频或向量**；
+  ⑦ **本条现在只需要预留接口，不要开始集成**（等 ASR-013 / TTS-019）。
+
+### §55.1 🔴🔴 关键设计决策：**事件「按需加长」**（不是无条件改形状）
+
+MT 侧现有断言**会当场失败**（本轮实测确认）：
+
+| MT 断言 | 位置 | 判据 |
+|---|---|---|
+| `12_event_is_5tuple` | `hy_bench/_h019_C_handoff_selftest.py` | `len(e) == 5` |
+| `ev_tuple_ok` / `ev_5tuple` | `hy_bench/_h021_n_limit_selftest.py` | `all(len(e) == 5 ...)` |
+
+⇒ **无条件把事件改成 6 元组 / dict ⇒ MT 跨模块契约当场破**（MT 还没改）。
+
+✅ **采用方案**：`spk is None` ⇒ 事件**仍是 5 元组**（`(kind, id, src, txt, seg)`，**逐位不变**）；
+`spk` 有值 ⇒ **7 元组** `(kind, id, src, txt, seg, spk, spk_conf)`。
+
+- 落点：`live_caption/translator.py` 新增模块级纯函数 `_mk_event(kind, uid, src, txt, seg, spk=None, spk_conf=None)`。
+- ⇒ **无 spk 时 MT 的 `len(e)==5` 断言继续成立**（**不必等 MT 改**），由 `app079` A2/B1/B2 实测验证。
+- ⚠️ **被否掉的两个方案（记录以免复发）**：
+  - **固定 6 元组**（多一个恒 None 槽）⇒ 让「现在没有 spk」也改变事件形状 ⇒ MT 断言当场失败，
+    且**没有「无 spk 时逐位不变」的性质**；
+  - **dict 事件** ⇒ 破坏所有按位置解包的调用方（`kind, id, src, txt, seg = e`），含 MT 的离线副本。
+
+### §55.2 ✅ App 侧改动清单（6 个文件）
+
+| 文件 | 落点 | 内容 |
+|---|---|---|
+| `live_caption/translator.py` | `_mk_event()` / `_Job.__slots__` / `submit()` / `flush()` / `_run_jobs()` | `spk`/`spk_conf` 透传；**5 元组按需加长** |
+| `live_caption/caption_render.py` | `unpack_event()` / `render_lines()` | 兼容 **3/5/7 元组**；新增 `spk_by_seg` 可选参数（**当前恒为空**） |
+| `live_caption/live_caption_app.py` | `_split_spk()` / `App._on_final()` / `App.clear()` / `_render()` / 音色下拉 / `--tts-voice` | ASR 定稿段拆 `(text, spk, spk_conf)`；**说话人表**；GUI 两项 |
+| `live_caption/tts_service.py` | `submit()` | **按需加字段**：`spk is None` ⇒ 命令体**逐字不变** |
+| `live_caption/tts_worker.py` | `__init__` / `synth()` / 主循环 `cmd=='synth'` | 字段接住并记进遥测，**不改变任何合成行为** |
+| `live_caption/tts_engine.py` | `CP_PREFILL_NPU_SHAPE` / `_cp_ir_path()` / `_move_cp_prefill_to_npu()` | **TTS-017①**（见 §55.3） |
+
+#### §55.2.1 `_split_spk()`：ASR 侧交付后 App 侧**零改动**即可接上
+
+| ASR 定稿形态 | 拆法 | 当前状态 |
+|---|---|---|
+| 纯字符串 | `(final, None, None)` | ✅ **当前恒走这一支** ⇒ 行为与改造前逐位一致 |
+| dict（含 `text`） | `(d['text'], d.get('spk'), d.get('spk_conf'))` | 待 ASR-013 |
+| 2/3 元组 | `(f[0], f[1], f[2])` | 待 ASR-013 |
+
+⚠️ **不猜字段名之外的任何东西** ⇒ ASR 侧真正交付时只需回 dict（或元组）。
+
+#### §55.2.2 GUI 两项（**默认行为不变**）
+
+- **音色下拉**：新增「跟随说话人（克隆）」，`self.tts_voices = ['A', 'follow_speaker']`。
+  ⚠️ **默认仍是「预设 A」**（APP-022 明文）。
+  ⚠️ 本轮**未集成** ⇒ 选它 ⇒ **显式回落预设 A + 写日志 + 界面提示**
+  （**绝不静默** —— 引用 §42 的教训：静默回落会让用户以为在用克隆音色）。
+- **「显示说话人」Checkbutton**：`self.var_show_spk = tk.BooleanVar(value=False)` ⇒ **默认关闭**。
+  标签**只加在显示层行首**（`self.txt.insert('end', pre + l['text'] + '\n')`）
+  ⇒ **`l['text']` 本身不变** ⇒ 渲染层「**原文守恒**」不变式**依然成立**（`app079` A11 PASS）。
+
+#### §55.2.3 隐私纪律（APP-022「共用约定」）
+
+- `App._spk_table`（`{spk_id: {'label','conf','vec'}}`）与 `_spk_by_seg` **只在内存里**；
+- `App.clear()`（**会话结束**）⇒ `self._spk_table.clear()` / `self._spk_by_seg.clear()`；
+- `tts_worker._last_spk` / `_last_spk_conf` **只存标签与置信度，不是向量本身**；
+- ⚠️ **本轮**没有任何说话人音频或向量进入仓库或客户包（见 §55.5 实证）。
+
+### §55.3 🔴🔴 TTS-017①：`cp_prefill` 从 CPU 挪到 NPU（**同步已完成**）
+
+#### §55.3.1 触发条件已满足（不是自行另做一套）
+
+- APP-020 明文：「`cp_prefill` 的摆放**等 TTS 线程在 STATUS_TTS 里给出新的 config 后再同步
+  （由主会话转达），不要自己另做一套**」。
+- ✅ 条件已满足：`qwen3tts_eval/status/STATUS_TTS.md` **§41**（17:45）+
+  `C:\Users\Trekker-PTL\shared\NOTICE_tts_to_app_20261026.md`（17:10）已交付 config。
+
+#### §55.3.2 「动态维 IR 编不了 NPU」被推翻 —— **独立复核**（不只信通知）
+
+| 证据 | 位置 | 原始内容 |
+|---|---|---|
+| 运行时输入恒定 | 客户包 `python/Lib/site-packages/babelvox/pipeline.py` **L909 / L1146** | `cp_input = np.concatenate([hidden, code_0_embed], axis=1)` ⇒ **恒为 (1, 2, 1024)** |
+| IR 确实是动态维 | `models/qwen3tts/int8/cp_prefill.xml` | `<data shape="1,?,1024" element_type="f32" />` |
+| NPU 编译实测 | TTS 侧 `diag_cp_prefill_npu.py` | `compile_model("NPU")` **成功（0.333 s）** |
+
+⇒ **运行时输入恒为 `(1,2,1024)`** ⇒ `reshape({"inputs_embeds": [1,2,1024]})` 后可编到 NPU。
+⇒ **教训**：「导出时的签名是动态」≠「运行时是动态」⇒ 动态维 IR 编译失败时，
+先读上游源码确认实际形状，再 reshape。
+
+#### §55.3.3 落点（App 侧）
+
+- `live_caption/tts_engine.py` 新增常量（紧跟 `CP_DECODE_NPU_SHAPE` 之后）：
+  `CP_PREFILL_NPU_SHAPE = {"inputs_embeds": [1, 2, 1024]}`
+  ⚠️ 形状**必须与 TTS 侧 `diag_cp_prefill_npu.py` 完全一致**（同一把尺子）。
+- 新增通用 IR 定位函数 `_cp_ir_path(eng, name)`；`_cp_decode_ir_path(eng)` 改为其**兼容包装**
+  （避免两份 IR 定位逻辑漂移 —— 通知 §1.2 的建议）。
+- 新增 `_move_cp_prefill_to_npu(eng, on_log=print) -> bool`：
+  `is_npu` 判据 → 定位 IR → `core.read_model` → `m.reshape(CP_PREFILL_NPU_SHAPE)`
+  → `core.compile_model(m, 'NPU')` → `eng.cp_prefill = cm`。
+- `make_engine()` 中在 `_move_cp_decode_to_npu` 之后调用，**外层 try/except 兜底**。
+
+#### §55.3.4 🔴 降级契约（通知 §1.3，**已照做**）
+
+- **编译失败 ⇒ 保留 CPU + 记日志 + `return False`**，**引擎必须仍然可用**（只是慢一点）
+  ⇒ **绝不抛异常中断 TTS 启动流程**；
+- 日志格式统一：`cp_prefill: NPU / CPU（回落原因：…）`（`cp_decode` 同步统一），
+  便于现场判断「走了 NPU」还是「悄悄在 CPU 上跑」；
+- ⚠️ **不静默降级**。
+- `app079` A14 实测：**失败路径 `return False` + 不抛异常**（`try=True return_False=True raise=False`）。
+
+### §55.4 ✅ 离线验收（**不加载模型 / 不占 GPU / 不取机器锁**）
+
+`results/app/app079_app022_spk_reservation_test.py`（**15 182 B**，
+mtime **2026-10-26 20:41:20**，SHA256 `43e553f87c03bc4ff971cfcbad1314c4543dd4d98a9c828f137ff60e153e6892`）
+⇒ 证据 `results/app/app079_app022_spk_reservation_evidence.json`（**3 632 B**，
+mtime **2026-10-26 20:41:23**，SHA256 `25a3fc6bb54aa478667e8d92e5b2fc394d23ca777168c05b8ae2d9979e1819f3`）。
+
+**结果：REAL 15/15 PASS ｜ BUG 0/2 命中（全落空）｜ verdict = PASS**
+
+| # | 判据 | 结果 |
+|---|---|---|
+| A1 | `translator.submit()` 接受 `spk` / `spk_conf` | PASS（`args=['self','sentence','seg','spk','spk_conf']`） |
+| A2 | `spk=None` ⇒ 事件仍是 **5 元组** | PASS（`len=5`）⇒ MT 的 `len(e)==5` 仍成立 |
+| A3 | `spk="S1"` ⇒ **7 元组** | PASS（`('final','C:1:1','src','txt',3,'S1',0.87)`） |
+| B1 | BUG 组：事件不是 5 元组 | **未命中**（`len=5`）✅ |
+| B2 | BUG 组：事件里出现 `spk` 键但值为 None（形状被无条件改长） | **未命中** ✅ |
+| A4 | `unpack_event` 认 **3/5/7** 元组 | PASS（`3->None 5->None 7->spk=S1 conf=0.87`） |
+| A5 | `_Job.__slots__` 含 `spk`/`spk_conf` | PASS |
+| A6 | `tts_service.submit()` 接受 `spk` 并透传到 synth 命令 | PASS |
+| A7 | `spk=None` ⇒ 命令体**不含** `spk` 键（逐字不变） | PASS |
+| A8 | `_split_spk`：纯字符串 ⇒ `(text, None, None)` | PASS |
+| A9 | `_split_spk`：dict / 元组形态也能拆 | PASS |
+| A10 | `render_lines` 带 `spk_by_seg` ⇒ 输出行有 `spk` 键 | PASS（`plain=None spk=S1`） |
+| A11 | **原文守恒不变式在加 spk 后依然成立** | PASS |
+| A12 | `CP_PREFILL_NPU_SHAPE = {inputs_embeds: [1,2,1024]}` | PASS |
+| A13 | `cp_prefill`/`cp_decode` 共用 `_cp_ir_path` | PASS |
+| A14 | `cp_prefill` 搬 NPU 失败 ⇒ `return False` 且不抛异常 | PASS |
+| A15 | `tts_npu_cache` 在 `pkg_exclude` 排除名单里 | PASS |
+
+> ⚠️ **BUG 组显示 `FAIL` 是正确行为** —— B 组断言的是「缺陷存在」，`FAIL` 表示**未命中**（无缺陷）。
+
+**回归（全部纯离线，不加载模型）**：`app073` **11/11**、`app076` **38/38**、
+`app069` **37/37**、`app072` **13/13**；6 个改动文件 `py_compile` **全部 COMPILE OK**。
+
+### §55.5 🔴 客户包定点同步（**方式 B：骨架等价校验后升级基底**）
+
+#### §55.5.1 为什么不是方式 A
+
+`results/app/app080_sync_s55_to_pkg.py`（**6 889 B**，mtime **2026-10-26 20:47:55**，
+SHA256 `91f65ecb63f0a49ed39ed25343f01f358cda030961ba00564ff2bd574d82a30a`）
+先按用户纪律尝试**方式 A**（精确字符串替换 + 唯一命中断言）：
+
+```
+tts_engine         block 1 hits=29556   （应恰为 1）
+translator         block 1 hits=58704
+caption_render     block 2 hits=17803
+live_caption_app   block 1 hits=157255
+tts_service        block 2 hits=48973
+tts_worker         block 1 hits=66762
+⇒ 全部中止（未写入）
+```
+
+**根因**：`difflib` 在**行级**做差异时，派生的替换块**包含大量公共行**
+（如 `tts_engine` 的块 1 有 29 556 次命中）⇒ **唯一命中断言不成立** ⇒ 方式 A 本轮**不可用**。
+
+⇒ **改用用户纪律明文允许的方式 B**：「代码骨架等价校验后升级基底」。
+
+#### §55.5.2 方式 B 的前置断言（**逐字级，不靠感觉**）
+
+🔴 **前置断言**：目标文件的**内容基线必须逐字等于 `git show HEAD:<rel>`**（忽略行尾）
+⇒ 同时证明「骨架等价」**且**挡住「别的会话改过包」。
+
+| 文件 | 包内基线 == 仓库 HEAD 基线 |
+|---|---|
+| `tts_engine.py` | ✅ True（HEAD 39 173 B / 包内 39 173 B） |
+| `translator.py` | ✅ True（HEAD 79 275 B / 包内 79 275 B） |
+| `caption_render.py` | ✅ True（HEAD 25 660 B / 包内 25 660 B） |
+| `live_caption_app.py` | ✅ True（HEAD 204 708 B / 包内 208 681 B） |
+| `tts_service.py` | ✅ True（HEAD 64 780 B / 包内 65 959 B） |
+| `tts_worker.py` | ✅ True（HEAD 83 578 B / 包内 85 273 B） |
+
+⚠️ **行尾按目标文件原有风格保留**（仓库 CRLF / 包内 LF **混存** ⇒ 不能一刀切）：
+`tts_engine`/`translator`/`caption_render` = LF；`live_caption_app`/`tts_service`/`tts_worker` = CRLF。
+
+#### §55.5.3 同步结果（**6/6 成功**，报告
+`results/app/app080_sync_s55_to_pkg_report.json`，**21 979 B**，
+mtime **2026-10-26 20:47:57**，SHA256 `30a92b550f035371d385db8d6d1923f4b2d93076c7bb0d5693a75362e6a23ce6`）
+
+| 文件 | 状态 | 差异块数 | 包内字节 | 包内 SHA256 |
+|---|---|---|---|---|
+| `tts_engine.py` | synced | 11 | 45 341 | `309cb670216855297dbb747e15c85c6fdb3311cf6ac2f6f47c125863d79dd5da` |
+| `translator.py` | synced | 20 | 82 734 | `e817a85b3d759d7b5558e054e0a6004c1602369eb97368c8c047f641b701f3e8` |
+| `caption_render.py` | synced | 12 | 26 991 | `3642555a536c4d66e00c854b71a4e84231916400c0fa097bfb5404c704cfbcf5` |
+| `live_caption_app.py` | synced | 18 | 214 244 | `706cb589e22e8c5c621c5933cb5bbfc53c560fab8e984714b52fc847043a47d6` |
+| `tts_service.py` | synced | 3 | 66 480 | `1b2e310ea98e99f5bf72e02d7a03a316d7c34c41f24ac0c75c5ac9b69f6961e6` |
+| `tts_worker.py` | synced | 5 | 86 756 | `6e181450a810d603146ce1dd06585977c49cc6bbc5b7f771417822f9c19a062d` |
+
+- ✅ **同步后逐字校验**：6 个文件与仓库工作区**逐字一致**（忽略行尾）= **6/6 True**；
+- ✅ **包内 `py_compile`**：6 个文件**全部 COMPILE OK**；
+- ✅ **备份**：同步前 6 个文件已备份到**包外**
+  `C:\Users\Trekker-PTL\_backup\pkg_sync_s55\<name>_<stamp>.py`；
+- ✅ **未做整目录覆盖**（只逐文件定点升级 6 个文件）。
+
+### §55.6 🔴 APP-018② 第三方素材排除 —— **已交付 zip 干净，但散包目录仍有残留**（如实记录）
+
+#### §55.6.1 ✅ 已交付 zip（`Confucius4_LiveCaption_v1.5.zip`，**11 216 226 254 B**）—— 干净
+
+| 判据 | 命中数 |
+|---|---|
+| zip entries 总数 | **13 984** |
+| `babelvox/data/speakers`（cindy/lou/phil/steve 的 json+npy） | **0** |
+| scipy `tests/data` 测试音频（wav/flac/ogg/mp3） | **0** |
+| **全部 .wav** | **1** ⇒ 仅 `Confucius4_LiveCaption_v1.5/models/qwen3tts/voices/preset_A.wav` |
+
+⇒ **APP-018② 在已交付 zip 上成立**。
+
+#### §55.6.2 ⚠️ **散包目录**（`Confucius4_LiveCaption_v1.5\`）—— **仍有残留，未清理**
+
+审计脚本 `results/app/app081_thirdparty_asset_audit.py`（**773 B**，mtime **2026-10-26 20:48:15**，
+SHA256 `c5e504a1ed0694c1ecbbf47b59238a12d826bcc0cd3b7d3d0b0f4c73eece00da`）：
+
+| 判据 | 命中数 | 样例 |
+|---|---|---|
+| `babelvox/data/speakers` | **8** | `cindy.json/.npy`、`lou.*`、`phil.*`、`steve.*` |
+| scipy `tests/data` 测试音频 | **22** | `test-44100Hz-2ch-32bit-float-be.wav` 等 |
+| 散包目录**全部 .wav** | **23** | 1 个 `preset_A.wav` + 22 个 scipy |
+
+🔴 **结论（不粉饰）**：
+- ✅ **已交付的 zip 是干净的**（第三方素材**未进 zip**）；
+- ⚠️ **散包目录本身**仍有这 30 个文件 ⇒ 说明**散包不是由当前 `pkg_exclude` 规则生成的**
+  （规则是打包时排除，散包是更早的产物）⇒ **散包目录不能当作「已清理」**；
+- ⚠️ **本轮未清理散包**（属打包流程问题，且重打 zip 需要机器锁 + 等 cp_prefill 同步后的最终版）；
+  ⇒ **记为待办，不写「已交付」**。
+
+### §55.7 🔴 跨模块通知的处置
+
+#### §55.7.1 回复 TTS 通知（`shared\NOTICE_tts_to_app_20261026.md` §四 要求回写一行）
+
+> **回执**（App → TTS）：已同步的函数名 = `_move_cp_prefill_to_npu()` +
+> `_cp_ir_path()`（`_cp_decode_ir_path()` 改为兼容包装）；
+> 落点文件 = `live_caption/tts_engine.py`（仓库）+ `Confucius4_LiveCaption_v1.5\app\tts_engine.py`（包内）；
+> `tts_npu_cache` 排除 = **已加**（`pkg_exclude.py` 的 `SKIP_DIR_NAMES` L101 /
+> `SKIP_DIR_PREFIXES` L202/L206，HEAD `57e3860` **已含**）。
+
+⚠️ **通知 §二「`tts_npu_cache` 尚未修复」的表述已过时** —— 核实
+`git show HEAD:pkg_exclude.py` 确认 HEAD `57e3860` **已含**该排除项（`app079` A15 PASS 复核）。
+
+#### §55.7.2 MT 通知 14（`shared\NOTICE_mt_to_app_20261026_notice14.md`）
+
+- ✅ N=120 字上限**已验证**（33/33 PASS）⇒ **无新增行动项**；
+- 🔴 术语表净贡献 ≈ 0 ⇒ MT 建议「术语表**只在芯片/半导体语境下开**」、`packaging` 放**可选集**
+  —— 这属于 **App 的默认值** ⇒ 🔴 **本轮不擅自改默认行为**，**列为待用户决定**（见头部阻塞项）。
+
+### §55.8 本轮**未做**（按条目要求 / 用户纪律，明确不做）
+
+- ❌ **APP-022 的实际集成**（等 ASR-013 + TTS-019 交付）—— 本条明文「不要开始集成」；
+- ❌ **重打 v1.5 zip**（需等 cp_prefill 同步后的最终版 + 机器锁；守 APP-020）；
+- ❌ **清理散包目录**的第三方素材残留（见 §55.6.2，属打包流程问题）；
+- ❌ **CPU 推理 / 测速 / 跑模型**（本轮全部纯离线）；
+- ❌ **自调 MiniMax 质量判定**（由 reviewer 回转写）；
+- ❌ **改术语表 / `packaging` 默认值**（属用户决定，见 §55.7.2）；
+- ❌ **提交 `status/app/CORRECTIONS_APP.md`**（reviewer 独占文件）。
+
+### §55.9 证据汇总（文件数 / mtime / 字节数 / SHA256）
+
+**本轮新增产物（仓库 `C:\Users\Trekker-PTL\confucius4-openvino`）**
+
+| 文件 | 字节 | mtime | SHA256 |
+|---|---|---|---|
+| `results/app/app079_app022_spk_reservation_test.py` | 15 182 | 2026-10-26 20:41:20 | `43e553f87c03bc4ff971cfcbad1314c4543dd4d98a9c828f137ff60e153e6892` |
+| `results/app/app079_app022_spk_reservation_evidence.json` | 3 632 | 2026-10-26 20:41:23 | `25a3fc6bb54aa478667e8d92e5b2fc394d23ca777168c05b8ae2d9979e1819f3` |
+| `results/app/app080_sync_s55_to_pkg.py` | 6 889 | 2026-10-26 20:47:55 | `91f65ecb63f0a49ed39ed25343f01f358cda030961ba00564ff2bd574d82a30a` |
+| `results/app/app080_sync_s55_to_pkg_report.json` | 21 979 | 2026-10-26 20:47:57 | `30a92b550f035371d385db8d6d1923f4b2d93076c7bb0d5693a75362e6a23ce6` |
+| `results/app/app081_thirdparty_asset_audit.py` | 773 | 2026-10-26 20:48:15 | `c5e504a1ed0694c1ecbbf47b59238a12d826bcc0cd3b7d3d0b0f4c73eece00da` |
+
+**仓库改动文件（6 个）**
+
+| 文件 | 字节 | mtime | SHA256 |
+|---|---|---|---|
+| `live_caption/tts_engine.py` | 45 341 | 2026-10-26 20:30:13 | `309cb670216855297dbb747e15c85c6fdb3311cf6ac2f6f47c125863d79dd5da` |
+| `live_caption/translator.py` | 84 385 | 2026-10-26 20:37:18 | `6ad930a98f9f64afbeb0c58c43a7ead69fc258f53b4f9ab56500136b27f77282` |
+| `live_caption/tts_service.py` | 66 480 | 2026-10-26 20:37:41 | `1b2e310ea98e99f5bf72e02d7a03a316d7c34c41f24ac0c75c5ac9b69f6961e6` |
+| `live_caption/tts_worker.py` | 86 756 | 2026-10-26 20:38:05 | `6e181450a810d603146ce1dd06585977c49cc6bbc5b7f771417822f9c19a062d` |
+| `live_caption/caption_render.py` | 26 991 | 2026-10-26 20:39:24 | `3642555a536c4d66e00c854b71a4e84231916400c0fa097bfb5404c704cfbcf5` |
+| `live_caption/live_caption_app.py` | 214 244 | 2026-10-26 20:39:40 | `706cb589e22e8c5c621c5933cb5bbfc53c560fab8e984714b52fc847043a47d6` |
+
+**客户包落点（`C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5\app\`）**：见 §55.5.3 表（6/6 synced，
+逐字一致 + `py_compile` OK）。
+
+**只读未改**：`status/app/CORRECTIONS_APP.md`（48 457 B，
+SHA256 `682aced289a58d18b9303cffa6cc5a60dd21c83e226cfefa3d3f2171f81aea00`）。

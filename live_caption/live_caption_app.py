@@ -1544,6 +1544,38 @@ def make_engine(key, on_log=print, force_language=None, device=None):
 
 
 # ── 会话（音频源 + 引擎）────────────────────────────────────────────────
+def _split_spk(final):
+    """🔴🔴 APP-022：把 ASR 的定稿段拆成 `(text, spk, spk_conf)`。
+
+    ## 为什么需要它
+
+    ASR 侧（ASR-013，pyannote 强制断句）交付后，定稿段会**带上说话人**。
+    但**当前的 ASR 实现只回纯字符串** ⇒ 现在这里**恒返回 `(text, None, None)`**
+    ⇒ **行为与改造前逐位一致**。
+
+    ## 支持的三种形态（**向后兼容**）
+
+    | 形态 | 判据 | 拆法 |
+    |---|---|---|
+    | 纯字符串（**当前**） | `isinstance(final, str)` | `(final, None, None)` |
+    | dict | `isinstance(final, dict)` 且有 `text` | `(final['text'], final.get('spk'), final.get('spk_conf'))` |
+    | 2/3 元组 | `isinstance(final, (tuple, list))` | `(final[0], final[1] if len>1 else None, …)` |
+
+    ⚠️ **不猜字段名之外的任何东西** ⇒ ASR 侧真正交付时，
+    只需让它回 dict（或元组）⇒ App 侧**零改动**即可接上。
+    """
+    if isinstance(final, str):
+        return final, None, None
+    if isinstance(final, dict):
+        return (final.get('text') or '', final.get('spk'),
+                final.get('spk_conf'))
+    if isinstance(final, (tuple, list)) and final:
+        return (final[0] or '',
+                final[1] if len(final) > 1 else None,
+                final[2] if len(final) > 2 else None)
+    return (str(final or ''), None, None)
+
+
 class Session:
     """把音频源和引擎接起来的后台推理循环（GUI 与 CLI 共用）。
 
@@ -1590,10 +1622,10 @@ class Session:
                 self.audio_s += len(pcm) / SR
                 final = self.engine.feed(pcm, t_cap)
                 if final:
-                    self.on_final(final)
+                    self.on_final(*_split_spk(final))
             tail = self.engine.flush()
             if tail:
-                self.on_final(tail)
+                self.on_final(*_split_spk(tail))
         except Exception as e:
             self.error = e
         finally:
@@ -1838,6 +1870,15 @@ class App:
         #    ⇒ 这里从 outbox 的 ('draft', key, text) 把译文按 key 存下来，
         #    与 `mt_units()` 里的草稿单元（**带 src**）配对。
         self._draft_mt = {}
+        # 🔴🔴 APP-022：**说话人表**（会话内有效，**接口预留，本轮不集成**）。
+        #   结构：{spk_id: {'label': 'S1', 'conf': float|None, 'vec': None}}
+        #   ⚠️ **当前恒为空**（ASR 侧还没交付 spk ⇒ 一律 None）。
+        #   🔴 **隐私纪律**（APP-022「共用约定」）：
+        #     说话人的 x-vector **只在内存里**、会话结束就丢弃、
+        #     **不落盘、不进客户包** ⇒ `vec` 字段永远不写盘。
+        self._spk_table = {}
+        # 🔴 APP-022：ASR 侧送来的说话人信息（**当前恒为 None**）
+        self._spk_by_seg = {}
         # auto=False：翻译模型等 ASR 引擎就绪后再加载，避免两个模型在同一 GPU 上并行编译
         #
         # on_log 必须线程安全：翻译/引擎都在后台线程，直接 root.after() 会和主线程
@@ -2084,16 +2125,29 @@ class App:
         #      - 选 clone ⇒ 需要 voices/clone_C.npz + torch ⇒ 包内两者都没有
         #        ⇒ 失败回落内置 speaker cindy。
         #    ⇒ 列出来只会让用户选了却拿不到对应的音色。
-        self.tts_voices = ['A']
-        self._tts_voice_label = {'A': '预设 A'}
+        #
+        # 🔴🔴 APP-022：**新增「跟随说话人（克隆）」选项**（接口预留）。
+        #   ⚠️ **默认仍是「预设 A」**（APP-022 明文：「默认仍是预设 A」）。
+        #   ⚠️ **本轮不集成**（等 ASR-013 + TTS-019 交付）⇒
+        #     选它 ⇒ 日志写明「未启用（等 ASR-013 / TTS-019）」+ 回落预设 A
+        #     ⇒ **绝不静默**（§42 的教训：静默回落会让用户以为在用克隆音色）。
+        self.tts_voices = ['A', 'follow_speaker']
+        self._tts_voice_label = {'A': '预设 A',
+                                 'follow_speaker': '跟随说话人（克隆）'}
         self._tts_voice_back = {v: k for k, v in self._tts_voice_label.items()}
         self.var_tts_voice = tk.StringVar(
-            value=self._tts_voice_label.get(args.tts_voice, 'A'))
+            value=self._tts_voice_label.get(args.tts_voice, '预设 A'))
         self.cb_tts_voice = ttk.Combobox(
-            row_tts, state='readonly', width=12, textvariable=self.var_tts_voice,
+            row_tts, state='readonly', width=18, textvariable=self.var_tts_voice,
             values=[self._tts_voice_label[k] for k in self.tts_voices])
         self.cb_tts_voice.pack(side='left', padx=(0, 8))
         self.cb_tts_voice.bind('<<ComboboxSelected>>', self._on_tts_voice_changed)
+        # 🔴🔴 APP-022：字幕上**可以选择显示说话人标签**（S1、S2…）。
+        #   ⚠️ **默认关闭**（不改现有显示行为 ⇒ 老用户看不到任何变化）。
+        self.var_show_spk = tk.BooleanVar(value=False)
+        cb_show_spk = ttk.Checkbutton(
+            row_tts, text='显示说话人', variable=self.var_show_spk)
+        cb_show_spk.pack(side='left', padx=(0, 8))
         ttk.Label(row_tts, text='输出设备').pack(side='left', padx=(0, 4))
         # 复用 App 已有的输出设备列表（MME/WASAPI）—— C-101 P4 第 4 条
         self.var_tts_out = tk.StringVar(
@@ -2697,6 +2751,14 @@ class App:
         try:
             from tts_service import TTSService
             voice = self._tts_voice_back.get(self.var_tts_voice.get(), 'A')
+            # 🔴🔴 APP-022：「跟随说话人（克隆）」**本轮未启用**。
+            #   等 ASR-013（pyannote 强制断句）+ TTS-019（按说话人取音色向量）
+            #   交付后才真正生效 ⇒ 现在**显式回落「预设 A」并写日志**
+            #   ⇒ **绝不静默**（§42 的教训：静默回落 ⇒ 用户以为在用克隆音色）。
+            if voice == 'follow_speaker':
+                self._ui_log('[tts] 「跟随说话人（克隆）」尚未启用'
+                             '（等 ASR-013 / TTS-019 交付）⇒ 本次使用预设 A')
+                voice = 'A'
             out_name = self.var_tts_out.get()
             out_id = self._out_label_back.get(out_name)
             # ⚠️ 用 **GUI 的实时选择**，不是 args 的启动快照：
@@ -2742,6 +2804,10 @@ class App:
     def _on_tts_voice_changed(self, *_a):
         """切换音色：需要重启 worker（音色条件在加载时绑定）。"""
         voice = self._tts_voice_back.get(self.var_tts_voice.get(), 'A')
+        # 🔴 APP-022：「跟随说话人」未启用 ⇒ 明确提示（不静默）
+        if voice == 'follow_speaker':
+            self.var_tts_note.set('「跟随说话人（克隆）」尚未启用'
+                                  '（等 ASR-013 / TTS-019）⇒ 使用预设 A')
         if self.tts is not None:
             try:
                 self.tts.close()
@@ -2964,15 +3030,29 @@ class App:
         """定稿段的译文（按段序号查）。"""
         return self.mt.mt_of_seg(seg)
 
-    def _on_final(self, text):
+    def _on_final(self, text, spk=None, spk_conf=None):
+        """定稿段入库（🔴🔴 APP-022：`spk` / `spk_conf` **接口预留**）。
+
+        ⚠️ **当前 ASR 侧只回纯字符串** ⇒ `spk` 恒为 None
+        ⇒ **行为与改造前逐位一致**。
+        """
         self.final_text += text + '\n'
         self.blocks.append(text)
-        self.mt.submit(text, seg=len(self.blocks) - 1)
+        seg = len(self.blocks) - 1
+        # 🔴 APP-022：登记说话人（**当前恒不进这个分支**）
+        if spk is not None:
+            self._spk_by_seg[seg] = (spk, spk_conf)
+            self._spk_table.setdefault(spk, {'conf': spk_conf, 'vec': None})
+        self.mt.submit(text, seg=seg, spk=spk, spk_conf=spk_conf)
 
     def clear(self):
         self.final_text = ''
         self.blocks = []
         self._reset_mt_session()
+        # 🔴🔴 APP-022：**会话结束清空说话人表**
+        #   （隐私纪律：x-vector 只在内存里 ⇒ 必须在这里丢弃）
+        self._spk_table.clear()
+        self._spk_by_seg.clear()
         self._render('')
 
     def _reset_mt_session(self):
@@ -3218,14 +3298,22 @@ class App:
                         u['mt'] = t
         return caption_render.render_lines(
             self.blocks, units, granularity='seg', show_pending=show_pending,
-            seg_carry=getattr(self.mt, 'seg_carry', None) or {})
+            seg_carry=getattr(self.mt, 'seg_carry', None) or {},
+            spk_by_seg=self._spk_by_seg)
 
     def _render(self, partial):
         self.txt.configure(state='normal')
         self.txt.delete('1.0', 'end')
+        # 🔴🔴 APP-022：**可选显示说话人标签**（S1、S2…）。
+        #   ⚠️ **默认关闭**（`var_show_spk`）⇒ 现有显示行为**逐位不变**。
+        show_spk = bool(self.var_show_spk.get())
         for l in self._render_lines():
             if l['kind'] == 'src':
-                self.txt.insert('end', l['text'] + '\n')
+                # ⚠️ 标签**加在行首**（不改 `l['text']` 本身）
+                #   ⇒ 渲染层「原文守恒」不变式**依然成立**。
+                spk = l.get('spk')
+                pre = ('[%s] ' % spk) if (show_spk and spk) else ''
+                self.txt.insert('end', pre + l['text'] + '\n')
             elif l['kind'] == 'mt':
                 self.txt.insert('end', '    〔译〕' + l['text'] + '\n', 'mt')
             elif l['kind'] == 'mt_draft':
@@ -3913,9 +4001,11 @@ def main():
                          '⚠️ 请佩戴耳机，避免 TTS 声音被 ASR 回采造成回授')
     ap.add_argument('--tts-precision', default='f32', choices=['f32', 'f16'],
                     help='TTS 推理精度')
-    ap.add_argument('--tts-voice', default='A', choices=['A'],
+    ap.add_argument('--tts-voice', default='A', choices=['A', 'follow_speaker'],
                     help='音色：预设 A（客户包只随包分发音色 A；'
-                         '音色 B / 克隆说话人素材按 BRIEF 不进包）')
+                         '音色 B / 克隆说话人素材按 BRIEF 不进包）；'
+                         'follow_speaker = 跟随说话人（克隆）—— '
+                         'APP-022 接口预留，尚未启用（等 ASR-013 / TTS-019）')
     ap.add_argument('--tts-out', default=None,
                     help='CLI 回放测试：把语音按真实时间轴混成一个 wav 落盘；'
                          '同时写 <out>.tts.jsonl（逐句时间线）')

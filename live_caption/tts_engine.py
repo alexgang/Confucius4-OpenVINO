@@ -268,6 +268,42 @@ CP_DECODE_NPU_SHAPE = {
     "past_values": [5, 1, 8, 20, 128],
 }
 
+# ══════════════════════════════════════════════════════════════════════
+# 🔴🔴 `cp_prefill` 的 NPU 静态形状（TTS-017① / `shared\NOTICE_tts_to_app_20261026.md`）
+# ══════════════════════════════════════════════════════════════════════
+#
+# ## 🔴🔴 **推翻**旧文档「变长 IR 编不了 NPU」的结论
+#
+# 旧结论（TTS §15 / 交接单）写的是「cp_prefill 输入**变长** `[1,?,1024]`
+# ⇒ NPU 插件算不出 bounds ⇒ `Reshape node '/Reshape_2': cannot compute
+# output bounds dimension`」。
+#
+# ⇒ **错在只看「导出时的签名」，没看「运行时喂什么」。**
+#
+# ## 运行时输入**恒为** `(1, 2, 1024)`
+#
+# babelvox `pipeline.py`（包内 `python/Lib/site-packages/babelvox/pipeline.py`）：
+#   L908-909（流式）/ L1145-1146（非流式）：
+#     `code_0_embed = self.codec_emb[[code_0]][np.newaxis, :, :]`
+#     `cp_input = np.concatenate([hidden, code_0_embed], axis=1)`
+#   ⇒ `hidden` 是 (1,1,1024)、`code_0_embed` 是 (1,1,1024)
+#   ⇒ `cp_input` **恒为 (1, 2, 1024)**（prefill 长度**固定为 2**）。
+#
+# 🔴 **本机实测复核**（2026-10-26，`v1.5` 包内 `babelvox/pipeline.py`）：
+#   L909 `cp_input = np.concatenate([hidden, code_0_embed], axis=1)`
+#   L1146 `cp_input = np.concatenate([hidden, code_0_embed], axis=1)  # (1,2,1024)`
+#   ⇒ 与 TTS 侧 `pipeline.py` L909/L1146 **逐位一致**。
+#
+# 🔴 **IR 确实是动态维**（本机实测 `models/qwen3tts/int8/cp_prefill.xml`）：
+#   `<data shape="1,?,1024" element_type="f32" />`
+#   ⇒ **必须 reshape** 才能编到 NPU（同 cp_decode）。
+#
+# ⚠️ 形状必须与 TTS 模块 `diag_cp_prefill_npu.py` **完全一致**
+#    ⇒ 否则两边的数不可比（铁律：同一把尺子）。
+CP_PREFILL_NPU_SHAPE = {
+    "inputs_embeds": [1, 2, 1024],
+}
+
 
 class TTSEngineError(RuntimeError):
     """TTS 引擎加载/合成失败。"""
@@ -472,7 +508,19 @@ def make_engine(device: str = 'NPU',
     try:
         _move_cp_decode_to_npu(eng, on_log=on_log)
     except Exception as e:
-        on_log(f'[tts_engine] ⚠️ cp_decode 搬 NPU 时异常（{e}）⇒ 保持 CPU')
+        on_log(f'[tts_engine] cp_decode: CPU'
+               f'（回落原因：搬运时异常 {e}）')
+
+    # 🔴🔴🔴 **cp_prefill 放 NPU**（TTS-017① 交付配置）
+    #   APP-020 说「等 TTS 线程在 STATUS_TTS 里给出新的 config 后再同步」；
+    #   TTS 线程已于 2026-10-26 17:10 交付（`shared\NOTICE_tts_to_app_20261026.md`，
+    #   依据 STATUS_TTS §41 / 交接单 §28）⇒ **本轮同步**。
+    #   ⚠️ 与 cp_decode 同类：失败**优雅降级**（保持 CPU）⇒ 不会把引擎搞挂。
+    try:
+        _move_cp_prefill_to_npu(eng, on_log=on_log)
+    except Exception as e:
+        on_log(f'[tts_engine] cp_prefill: CPU'
+               f'（回落原因：搬运时异常 {e}）')
 
     # 🔴🔴 **必须挂 SpeakerLibrary**，否则按名查内置音色会直接抛
     #   `ValueError: speaker_library not set; cannot look up named speaker`
@@ -514,17 +562,20 @@ def _attach_speaker_library(eng, on_log=print) -> bool:
     return True
 
 
-def _cp_decode_ir_path(eng) -> Optional[str]:
-    """定位 cp_decode 的 IR 路径。
+def _cp_ir_path(eng, name: str) -> Optional[str]:
+    """定位 code predictor 组件（`cp_prefill` / `cp_decode`）的 IR 路径。
 
     🔴 `MultiDecoderBabelVox`（App 用的类）**没有** `_ir_path`
     （那是 `QuantEvalBabelVox` 才有的）⇒ 走原生路径：
     `model_dir = export_dir / precision` ⇒ `.../int8/cp_decode.xml`。
+
+    🔴 **通用化**（TTS 通知 §1.2「建议合并成一个『NPU 搬运』工具函数，
+    避免两份 IR 定位逻辑漂移」）：cp_prefill 与 cp_decode 共用本函数。
     """
     fn = getattr(eng, '_ir_path', None)
     if callable(fn):
         try:
-            return fn('cp_decode')
+            return fn(name)
         except Exception:
             pass
     root = getattr(eng, '_model_dir', None)
@@ -533,7 +584,80 @@ def _cp_decode_ir_path(eng) -> Optional[str]:
             root = os.path.join(model_root(), 'int8')
         except Exception:
             return None
-    return os.path.join(root, 'cp_decode.xml')
+    return os.path.join(root, f'{name}.xml')
+
+
+def _cp_decode_ir_path(eng) -> Optional[str]:
+    """定位 cp_decode 的 IR 路径（兼容旧调用方）。"""
+    return _cp_ir_path(eng, 'cp_decode')
+
+
+def _move_cp_prefill_to_npu(eng, on_log=print) -> bool:
+    """🔴🔴 把 `cp_prefill` 从 CPU 搬到 **NPU**（TTS-017① 的交付配置）。
+
+    依据：`shared\\NOTICE_tts_to_app_20261026.md` §1（TTS 线程交付）
+    + TTS 交接单 §28 / STATUS_TTS §41。
+
+    ## 为什么能搬（旧结论「变长 IR 编不了 NPU」已被推翻）
+
+    `cp_input` **恒为 (1, 2, 1024)** ⇒ `reshape(CP_PREFILL_NPU_SHAPE)`
+    后可编到 NPU（TTS 侧实测 `compile_s = 0.219 s`）。
+
+    ## 🔴 降级约定（通知 §1.3，**必须照做**）
+
+    - **编译失败 ⇒ 保留 CPU + 记日志 + 返回 False**，**引擎必须仍然可用**
+      （只是慢一点）⇒ **绝不抛异常中断 TTS 启动流程**。
+    - 启动日志打印一行 **`cp_prefill: NPU / CPU（回落原因：…）`**，
+      便于现场判断是「走了 NPU」还是「悄悄在 CPU 上跑」。
+
+    ⚠️ **与 `_move_cp_decode_to_npu` 同一类操作** ⇒ 共用
+    `_cp_ir_path()` / `_cache_dir()` / 同一套 try-except 降级骨架。
+    """
+    # 🔴 判据用 `is_npu`（babelvox pipeline L127 自己算的标志位）
+    #   ⚠️ **不要用 `device == "NPU"` 精确匹配**：本机设备名是精确的 "NPU"，
+    #   但约定上应写成「大小写不敏感的前缀匹配」，免得 NPU.0 之类被误判。
+    is_npu = bool(getattr(eng, 'is_npu', False))
+    if not is_npu:
+        dev = str(getattr(eng, 'device', '') or '')
+        if not dev.upper().startswith('NPU'):
+            on_log(f'[tts_engine] cp_prefill: CPU（非 NPU 档 device={dev}）')
+            return False
+
+    ir = _cp_ir_path(eng, 'cp_prefill')
+    if not ir or not os.path.isfile(ir):
+        on_log(f'[tts_engine] cp_prefill: CPU'
+               f'（回落原因：找不到 IR {ir}）')
+        return False
+
+    try:
+        import openvino as ov
+        core = ov.Core()
+        cdir = _cache_dir()
+        if cdir:
+            core.set_property({'CACHE_DIR': cdir})
+        m = core.read_model(ir)
+        # 🔴🔴 必须 reshape：IR 是动态维 `1,?,1024`（实测 cp_prefill.xml）
+        #   ⇒ 不 reshape 直接编到 NPU 会失败（Reshape bounds 算不出）。
+        #   运行时输入**恒为 (1,2,1024)** ⇒ 这个静态形状是安全的。
+        m.reshape(CP_PREFILL_NPU_SHAPE)
+        cm = core.compile_model(m, 'NPU')
+    except Exception as e:
+        # 🔴 **绝不抛异常**：NPU 编译失败应降级，不应让 TTS 不可用
+        on_log(f'[tts_engine] cp_prefill: CPU'
+               f'（回落原因：{type(e).__name__}: {e}）'
+               f'⇒ 引擎仍可用，仅较慢')
+        return False
+
+    eng.cp_prefill = cm
+    # `cp_on_cpu` 在 babelvox 里**只被写、从不被读**（pipeline L181/L356）
+    # ⇒ 纯信息标志，置 False 安全（用于日志/诊断）
+    try:
+        eng.cp_on_cpu = False
+    except Exception:
+        pass
+    on_log('[tts_engine] cp_prefill: NPU'
+           '（TTS-017① 交付配置：运行时输入恒为 (1,2,1024) ⇒ 静态形状安全）')
+    return True
 
 
 def _move_cp_decode_to_npu(eng, on_log=print) -> bool:
@@ -552,14 +676,14 @@ def _move_cp_decode_to_npu(eng, on_log=print) -> bool:
     if not is_npu:
         dev = str(getattr(eng, 'device', '') or '')
         if not dev.upper().startswith('NPU'):
-            on_log(f'[tts_engine] 非 NPU 档（device={dev}）'
-                   f' ⇒ cp_decode 保持原设备')
+            on_log(f'[tts_engine] cp_decode: CPU'
+                   f'（非 NPU 档 device={dev}）')
             return False
 
-    ir = _cp_decode_ir_path(eng)
+    ir = _cp_ir_path(eng, 'cp_decode')
     if not ir or not os.path.isfile(ir):
-        on_log(f'[tts_engine] ⚠️ 找不到 cp_decode 的 IR（{ir}）'
-               f' ⇒ 保持原设备')
+        on_log(f'[tts_engine] cp_decode: CPU'
+               f'（回落原因：找不到 IR {ir}）')
         return False
 
     try:
@@ -573,8 +697,9 @@ def _move_cp_decode_to_npu(eng, on_log=print) -> bool:
         m.reshape(CP_DECODE_NPU_SHAPE)
         cm = core.compile_model(m, 'NPU')
     except Exception as e:
-        on_log(f'[tts_engine] ⚠️ cp_decode → NPU 失败（{type(e).__name__}: '
-               f'{e}）⇒ 保持 CPU（引擎仍可用，仅较慢）')
+        on_log(f'[tts_engine] cp_decode: CPU'
+               f'（回落原因：{type(e).__name__}: {e}）'
+               f'⇒ 引擎仍可用，仅较慢')
         return False
 
     eng.cp_decode = cm
@@ -584,7 +709,7 @@ def _move_cp_decode_to_npu(eng, on_log=print) -> bool:
         eng.cp_on_cpu = False
     except Exception:
         pass
-    on_log('[tts_engine] ✅ cp_decode 已放 NPU'
+    on_log('[tts_engine] cp_decode: NPU'
            '（生产配置要求；实测 RTF 1.912→1.218、首块 1.296→0.837 s）')
     return True
 
