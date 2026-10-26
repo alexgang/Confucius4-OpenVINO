@@ -157,3 +157,55 @@ last_ack: <本模块最新已读的纠偏编号>
 
 ## ASR-009 [NORMAL] 2026-10-25 15:38 — RESUME：额度已重置，请从 last_ack 继续
 目标机额度已经在 15:00 重置。请接着做 ASR-006/007：0.6B INT8（App 路径，持锁）→ INT4 限时补测 → 切点重复诊断（交给 App）→ R2T2 对比 0.6B 报告（reports\compare\）。
+
+## ASR-010 [HIGH] 2026-10-26 09:15 — reviewer 复核：§23 根因成立；mask2 INT8 WER 10.94%（与 torch 参照持平），INT4 11.57%（显著差 0.63pp）；§28 结论需限定配方；ASR-007 还缺 NPU 61 分钟格、计时和内存格，以及交付用 json
+
+先在 STATUS 里写 last_ack: ASR-010，再加一行最近更新，然后按 §4 的顺序执行。
+
+### §1 §23 根因：接受
+- 读了 `scripts/p1_export_decoder.py` 和 `p1_export_decoder_mask2.py` 的差异。旧版 `Exportable.forward` 调用的是 `self.tm(inputs_embeds=..., use_cache=False)`，没有传 attention_mask，内容又是右对齐的（前 512-L 位是 padding），所以 padding 位置被当成有效 token 参与注意力。新版自建的 mask 是 `causal & (content | eye)`，作用等同于 HF `_unmask_unattended` 的做法：内容行的可见范围和标准 mask 完全一致，padding 行只放开对角线，用来避开 OV SDPA 遇到整行被屏蔽时输出 NaN 的问题。由于是因果 mask，位置 511 的 logits 和标准 mask 数学等价。这个判断成立。
+- 61 分钟的独立验证（reviewer 计算，见 §2）：mask2 INT8 和 torch 流式参照的差值是 Δ −0.04pp，CI [−0.32, +0.25]；552 个块中 471 个块的错误数相同。说明 OV 路径已经忠实复现了 torch 参照，修复在全长音频上成立。
+- 受影响、必须标作废的结论（大部分你已经标了，下面这条还没标）：MATRIX 里 `int4_sym_chan__gpu0` 的 "BROKEN"、`int4__all` 的 "INT4_SYM 按通道在 0.6B 上崩坏"，以及"做不了的格子"一节里列出的这两项（NPU BLOCKED、INT4_SYM BROKEN），用的都是旧图，不能再作为结论引用。请把它们移出"做不了的格子"，改成"旧图结论作废、待新图重测"。
+- FYI（不阻塞）：R2T2 的 `c069g_export_stage3_fp16.py` 和这里是同一个写法（`forward` 只接收 inputs_embeds，不传 mask）。请用一行写清楚：R2T2 交付或已测的 IR（GPU INT8 / NPU INT8 cleanie）是否由 c069g 派生、是否有左侧 padding。R2T2 的 61 分钟 WER 已经做过端到端验证，所以这里只是确认，不需要重跑。
+
+### §2 reviewer 本机复算的 WER（MiniMax 基线，参考词数 10964，全局对齐）。请原样填进格子，并标 `wer_scorer: reviewer_minimax_global`
+| 被测 | WER | S/D/I |
+|---|---|---|
+| 0.6B mask2 INT8 @GPU.0（iGPU），App 路径，553 段 | **10.94%** | 433/177/589 |
+| 0.6B mask2 INT4（ASYM g128 + AWQ + SE）@GPU.0，App 路径 | **11.57%** | 475/209/584 |
+
+配对 bootstrap，重采样 5000 次：
+- INT4 − INT8：**+0.63pp，CI [+0.16, +1.10]，显著**（同一切分，553 段，原版 paired_bootstrap）。这和 §27.3 的 teacher-forcing top1 结果方向一致（INT8 99.29% / INT4 92.71%）。
+- INT8 − torch 流式参照（10.97%）：−0.04pp，CI [−0.32, +0.25]，不显著；INT4 − torch：+0.59pp，CI [+0.08, +1.12]，显著。
+- 对 R2T2 App 路径（ASR-004 B，10.58%）：INT8 +0.36pp，CI [−0.36, +1.07]，不显著；INT4 +0.99pp，CI [+0.30, +1.67]，显著。
+- 对交付基准 8.17%（非 App 路径，按 30 秒网格分块）：INT8 +2.76pp，CI [+2.00, +3.53]；INT4 +3.39pp，CI [+2.64, +4.17]。两者路径不同，**公平的对照是 10.58%**，报告里要写清楚这一点。
+
+结论：0.6B INT8 在 App 路径上和 R2T2 INT8 的差别不显著；0.6B INT4 显著更差。§26.2 说"INT4 代价极小"只适用于速度和体积，质量上有 +0.63pp 的代价，请改写。
+
+### §3 §28 "NPU 上 INT4 比 INT8 慢 38.4%"：数字接受，结论要限定范围
+- `results/p3_npu_mask2_text_r2/summary.json` 中，两轮 RTF 的差别不到 0.5%（INT4 为 0.3765 和 0.3778），而 INT4 和 INT8 相差 38%，所以方向是可靠的。
+- 但是：(a) 被测的配方是 **INT4_ASYM g128**。NPU 原生的 INT4 通路是对称、按通道量化，分组非对称的权重在 NPU 上大概率要额外解压。因此只能写成"INT4_ASYM g128 在 NPU 上比 INT8 慢 38%"，**不能写成"NPU 上 INT4 最慢"**。(b) summary 里没有设备摆放字段：脚本中 `OVRunner(ENC_IR_FP16, dec_ir, args.device)` 把 encoder 也放在 NPU 上，请在 json 里写明 enc 和 dec 各自的设备。summary 里也没有 `timing_valid` 和持锁信息（锁的持有者、PID、开始时间），请补上。(c) 这是整段贪心的口径，不是 App 路径，不能进入 ASR-007 的 RTF 列。
+
+### §4 ASR-007 还缺的格子（精度 INT8/INT4 × 设备 GPU.0/NPU，CUDA 只作参照；FP16 按用户 10-25 21:20 的决定删除，reviewer 接受）
+1. **0.6B INT8@NPU 和 INT4@NPU，61 分钟 App 路径**（`p3_ov_app.py --device NPU`，切段器和参数与 §26.2 相同），产出 transcript 和 segments，由 reviewer 算 WER。如果 encoder 上不了 NPU，就写明实际的摆放（例如 enc GPU.0 + dec NPU），不要硬凑。
+2. **INT4_SYM 按通道（+AWQ+SE，lm_head 保持 FP16）在 mask2 新图上重测**：先跑 teacher-forcing top1 和 300 秒切片（GPU.0 和 NPU 都跑）。如果 top1 不低于 INT4_ASYM g128 的 92.7%，就把它作为 INT4@NPU 格子的配方再跑一次 61 分钟；否则写明不可行并附证据。
+3. **计时和内存**（需要持锁，每次都是 fresh 进程，每格 3 次）：格子包括 0.6B INT8/INT4 × GPU.0/NPU，以及 R2T2 INT8 × GPU.0/NPU（都用 App 路径）。用固定的 600 秒切片 [720, 1320] 来测：
+   - RTF：给出每次运行的值，以及 P50/P95（分块重采样）；
+   - 首字延迟 P50/P95；出字延迟 P50/P95（段尾到定稿文本输出的时间）；
+   - 加载时间和编译时间，冷启动与有缓存各一组；
+   - 主机内存：进程峰值的 working set 和 private bytes；
+   - 设备内存：GPU USM 的 device/host 两项，NPU 给出可读取的属性。
+   - 质量仍然以 61 分钟单次运行为准。§27.4 那种在同一进程里依次编译得到的差值，只能作为近似值，不能填进内存格。
+4. R2T2 的 INT8@NPU 也需要一份 61 分钟 App 路径的 transcript（和 0.6B NPU 做同口径对比）。R2T2 INT4 不需要新跑，引用已有数据，并注明口径（非 App 路径、计分器）。
+5. **交付文件** `qwen3asr_06b/reports/compare/ASR007_results.json`，每格一条记录，字段包括：model、precision、recipe、enc_device、dec_device、enc_ir、dec_ir、path（app / whole_seg / torch_ref）、transcript、n_segs、wer_pct、wer_scorer、rtf_runs、rtf_p50、rtf_p95、first_tok_p50/p95、final_lat_p50/p95、load_s、compile_s_cold、compile_s_cached、mem_host_peak_mb、mem_device_mb、timing_valid、lock_holder、source_files。MATRIX.md 的 WER 列必须带上计分器列，目标机计分器的 7.952 / 9.795 不能和 reviewer 计分器的数字放在同一列里比较。
+
+验收标准：上面第 1 条和第 4 条的 transcript 落盘，reviewer 复算 WER；第 3 条每格 3 次，timing_valid 为 true，并附持锁证据；ASR007_results.json 字段齐全、可以追溯。做完后在 STATUS 里写一节，交给 reviewer 汇编 HTML 报告。
+
+## ASR-011 [HIGH] 2026-10-26 09:24 — 【用户决定】ASR-007 对比报告按**精简版**做（约 2 小时），不再做全矩阵
+用户已确认：Qwen3-ASR-0.6B 只是实验，对比报告用精简版。ASR-010 第④条按下面的范围收缩，**只补这些**：
+1. **0.6B INT8 @ NPU**：61 分钟 App 路径转写一份（转写交给 reviewer 复算 WER）。
+2. **R2T2 INT8 @ NPU**：61 分钟 App 路径转写一份（同上）。
+3. **速度和内存**：每一格只测 **1 次** fresh 进程（不用 3 次），持锁。报告 RTF 中位/P95、出字延迟 P50、有缓存时的加载时间、峰值内存，并写清设备摆放。
+4. INT4_SYM 按通道在新图上的重测：**不做了**。报告里写"旧图结论作废，新图没有重测"。
+5. 用已有的 mask2 INT8/INT4 @ iGPU 结果，加上上面几格，汇总成 `reports\compare\ASR007_results.json`（每个数字附来源文件），交给 reviewer 汇编 HTML 报告。
+ASR-010 的其他条目照旧：把旧图结论从"做不了"清单里移出；补上 §28 的设备摆放、持锁和 timing_valid 字段；用一行确认交付的 R2T2 IR 是不是由 c069g 派生的。
