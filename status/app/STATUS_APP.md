@@ -10487,7 +10487,7 @@ if kind == 'ready':
 - ✅ **同步脚本沿用 `git show` + `difflib` 自动派生**（不手抄代码）
   ⇒ 8 块全部唯一命中 ⇒ **禁整目录覆盖**的双副本纪律仍然成立。
 
-## §60 🔴 巡检（APP-022 = `last_ack`，**本轮无新 APP 纠偏条目**）+ 🔴🔴 修「丢句『判定』与『计数』不原子 ⇒ `n_dropped` 双记」（2026-10-27 04:59）｜**本条已完成**｜**待提交**
+## §60 🔴 巡检（APP-022 = `last_ack`，**本轮无新 APP 纠偏条目**）+ 🔴🔴 修「丢句『判定』与『计数』不原子 ⇒ `n_dropped` 双记」（2026-10-27 04:59）｜**本条已完成**｜**已提交 `3afaf7a` 并推送**
 
 ### §60.0 巡检结论：**无新条目** ⇒ `last_ack` 保持 `APP-022`
 
@@ -10617,6 +10617,21 @@ SHA256 `db6f24129801…` → `615d69fbc04c…`（改前 80 036 B / `db6f24129801
 | `results/app/app090_tts_drop_double_count.py` | 20 852 | `25f040d7867f3e623e870c890cd93014511eda1f7956e95202bd52a3abcef5ef` | 2026-10-27 04:56:31 |
 | `results/app/app090_tts_drop_double_count_evidence.json` | 1 656 | `f366e0d715af554e0f4af2fbbf4af588c0c4e41472fcce3526b9c01f5d8beb75` | 2026-10-27 04:59:02 |
 | 客户包 `app/tts_service.py` | 85 018 | `615d69fbc04ceff1c53934d15c913617e2f7d4c62739ba01bf48dc1b37015c18` | 2026-10-27 04:58:58 |
+
+### §60.8 ✅ **git**：commit `3afaf7a` 并**普通推送**（**未 force**）
+
+- 提交内容 = **5 个 App 职责内文件**：
+  `live_caption/tts_service.py`（修复）/ `live_caption/sync_s60_drop_atomic_to_pkg.py`（新）/
+  `results/app/app090_tts_drop_double_count.py`（新）/
+  `results/app/app090_tts_drop_double_count_evidence.json`（新）/
+  `status/app/STATUS_APP.md`（本节）；
+- 推送：`git push origin main` ⇒ **普通快进** `88f5d56..3afaf7a`（**未 force**）
+  ⇒ 推送后 `git rev-list --left-right --count origin/main...HEAD` = **0 0**；
+- 🔴 **`status/app/CORRECTIONS_APP.md` 未入暂存** ⇒ 远端 blob 仍
+  `7082400bf16d739f161dc98d0cb4cb6ef5fda015` ⇒ 与 `b3c5ebb` **逐位一致**；
+- 🔴 **其它模块 466 项未提交改动全部保留**（**未吞**）；
+- ✅ **两道闸门**：`check_internal_material.py --staged` **PASS（命中 0）**、
+  `--pkg` **PASS（命中 0）**。
 
 ### §60.7 🔴 本轮**未做**的事（不写「已交付」）
 
