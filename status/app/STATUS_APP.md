@@ -1,26 +1,22 @@
 # STATUS_APP
-last_ack: APP-017
-更新时间: 2026-10-26 06:15
-当前任务: **§47 🔴🔴 修掉「**已计丢句**没有登记进 `_dropped_ids`」⇒ 不变式 `n_played + n_dropped == n_submitted` 在**两条真实路径**上被破坏**（APP-017 无新条目，第 22 次同一口径）⇒ `close()` 的孤儿句与 worker 级 error 的孤儿句**只计丢句、不登记** ⇒ 迟到的 `played` / 句子级 `error` 被**重复或双记**（反证：修复前 close() 后 sum=4/3、worker 级 error 后 sum=6/3）⇒ 修法 4 处（登记 orphan / **不**清 `_dropped_ids` / 新 worker 起来才清）⇒ 验收 **18/18 PASS**（`app057`，含 2 条固定 commit 反证）+ 既有 **6 套件未回归** + **对包内那份单独跑同一套断言 PASS** ⇒ 交付：`sync_c151_to_pkg.py`（4 块唯一命中 + 幂等）⇒ 持锁重打 v1.5（`app-pack` PID 34112 / 05:53:09 / 13 982 文件逐字节一致 / 原子改名）⇒ 主包 = FTP_Share 副本 = **11 216 090 481 B** / SHA256 `ca4e60bf…` **一致**⇒ 🔴 **未重开 FTP 服务**、零推理零 GPU 零测速
-阻塞 / 待用户决定: ① 🔴 **§45.6① 等 reviewer 裁定**：「边界/每词 1.611× vs 中间/每词 1.035×」是否足以判定「切段粒度/切点位置」为主因（**App 不自行下质量结论**）；② 🔴 **§45.6② 等 reviewer 裁定**：是否接受 encoder 外推上界 —— 若不接受，需在 226 段下补一条 **int8asym 端到端臂（需持锁跑推理）**；③ 🔴 **§45.6③**：`reports/c057_encoder_acc_3way.json` 的 `token_edit_pct` 与 IR 体积**排序相反**⇒ 该指标是否仍应作选型依据；④ 🔴 **§45.6④**：若要改产品行为是改分段粒度/改 encoder/改预算？⇒ 改 encoder 上界仅 ~0.113 pp ⇒ **改分段粒度是唯一有数量级空间的方向**；⑤ 🔴 **§45.6⑤**：是否把 App 默认引擎 encoder 从 int8asym 改回 fp16（**App 不自行决定**）；⑥ 🔴 **等 reviewer 裁定**：是否采纳「跨段上限 `MAX_SEG_SPAN = 2`」（§44 候选已备好）；⑦ 🔴 **需回复 MT 通知 13**：其 §13.1「产品不受影响」**在 App 渲染层不成立**（跨段 85/33 段错配），且其 §13.4「词边界」**抓不住** `Okay` ⇒ 建议改用「跨段距离」判据；⑧ 🔴 **§46.5 新增等裁定**：包内 `torch` / `qwen_asr` **不在** site-packages（当前客户启动路径不受影响）⇒ 是否加「第三方依赖可满足性」闸门；⑨ ✅ **§43 闸门端到端验证已结清**（`pack_v15_s42.log` L646-648 真实 PASS）⇒ 🔴 **§42.3 修复待用户实机确认**；⑩ 🔴 **FTP_Share 已补发 v1.5**（SHA256 一致）⇒ 🔴 **FTP 服务仍关闭**（守 APP-009③）；⑪ ⛔ **OV 的 CUDA plugin 不引入**（§39.5 不变）；⑫ ⛔ **APP-017「检查点 3」**由并发 App 会话在做 ⇒ 本会话不重复跑；⑬ ✅ **APP-015 方案 C 渲染层验收 23/23**，但 `translator.py` 合入仍待 MT 移交（APP-009② / H-014，App 不代提交）；⑭ ⛔ 包体 10.45 GiB 优化未做；⑮ ⛔ V7 残句代价待确认；⑯ ⛔ 集显 F32 TTS 慢（首包 33.9 s）
+last_ack: APP-019
+更新时间: 2026-10-26 11:00
+当前任务: **§49 🔴🔴 补上「**从未实现**的生产配置」：`cp_decode` 放 NPU**（APP-018 第 1 条检查点 3）⇒ TTS 模块的「尺子」把 cp_decode 编在 NPU（RTF 0.8568 / 首包 0.5862 s），**App 从来编在 CPU**（原生 babelvox L347-350 + App vendored patch L379-382 都写死 "CPU"）⇒ cp_decode 是**每步 AR 都要跑**的组件 ⇒ 放 CPU 直接拖慢整条 AR 链 ⇒ 实测 A/B（`app062`，持锁 + 安静窗口，客户包 python）：**单句 RTF 中位 1.912 → 1.218（1.57×）、首块中位 1.296 → 0.837 s（1.55×）、聚合 RTF 1.971 → 1.256** ⇒ 修复：`_move_cp_decode_to_npu()`（⚠️ 必须 reshape ⇒ 动态维 IR 直接编 NPU 会 **Segfault**；⚠️ 失败**优雅降级**保 CPU ⇒ 不把引擎搞挂）⇒ ✅ 已同步客户包（`sync_s49_to_pkg.py` 3 块唯一命中 + 逐字校验 sha256 `99002de2…`）⇒ 🔴🔴 **撤回**上一版「N 句并发抢 NPU」结论（`threads` 臂**绕过 worker 的 `_synth_lock`** ⇒ 测的是人为并发；真实是**串行排队**：ABBA 里 7 句 `t_submit` 跨度 0.0126 s 但首包**递增** 1.42→6.58→12.42→17.52→19.13→23.73→31.06 s）⇒ 🔴 新增 `proc_guard.py` 安静窗口闸门（共享锁挡不住**不持锁**的 ASR 作业 ⇒ 同一脚本两跑 RTF 曾 2.284→3.256 差 1.43×）⇒ **ABBA 复测 s49**：丢句 **0/7**、首包 P50 **26.08→17.29 s** / P95 **45.27→28.46 s**、ASR RTF 增量 **−0.067**（PASS）⇒ ✅ `--check` + GUI 冒烟全 PASS（产物 `abba_out/app063_*.txt`）⇒ ⛔ **WER 切段代码先不动**（方案清单 `app060_wer_cutpoint_change_plan.md`）
+阻塞 / 待用户决定: ① 🔴 **§49.7 待裁定**：首包 P50 仍 **17.29 s**，与 TTS 尺子 **0.5862 s** 仍差 **29×** ⇒ 已知剩余差距来自「7 句同时到达 ⇒ 串行排队累积」（单句首包实测仅 0.945 s）⇒ 是否需要**限制同时在飞的句数**或**加大 `BACKLOG_MAX_S`**（App 不自行改产品行为）；② 🔴 **§45.6① 等 reviewer 裁定**：「边界/每词 1.611× vs 中间/每词 1.035×」是否足以判定「切段粒度/切点位置」为主因（**App 不自行下质量结论**）；③ 🔴 **§45.6② 等 reviewer 裁定**：是否接受 encoder 外推上界 —— 若不接受，需在 226 段下补一条 **int8asym 端到端臂（需持锁跑推理）**；④ 🔴 **§45.6③**：`reports/c057_encoder_acc_3way.json` 的 `token_edit_pct` 与 IR 体积**排序相反**⇒ 该指标是否仍应作选型依据；⑤ 🔴 **§45.6④**：若要改产品行为是改分段粒度/改 encoder/改预算？⇒ 改 encoder 上界仅 ~0.113 pp ⇒ **改分段粒度是唯一有数量级空间的方向**；⑥ 🔴 **§45.6⑤**：是否把 App 默认引擎 encoder 从 int8asym 改回 fp16（**App 不自行决定**）；⑦ 🔴 **等 reviewer 裁定**：是否采纳「跨段上限 `MAX_SEG_SPAN = 2`」（§44 候选已备好）；⑧ 🔴 **需回复 MT 通知 13**：其 §13.1「产品不受影响」**在 App 渲染层不成立**（跨段 85/33 段错配），且其 §13.4「词边界」**抓不住** `Okay` ⇒ 建议改用「跨段距离」判据；⑨ 🔴 **§46.5 新增等裁定**：包内 `torch` / `qwen_asr` **不在** site-packages（当前客户启动路径不受影响）⇒ 是否加「第三方依赖可满足性」闸门；⑩ ✅ **§43 闸门端到端验证已结清**（`pack_v15_s42.log` L646-648 真实 PASS）⇒ 🔴 **§42.3 修复待用户实机确认**；⑪ 🔴 **FTP_Share 已补发 v1.5**（SHA256 一致）⇒ 🔴 **FTP 服务仍关闭**（守 APP-009③）；⑫ ⛔ **OV 的 CUDA plugin 不引入**（§39.5 不变）；⑬ ⛔ **APP-017「检查点 3」**由并发 App 会话在做 ⇒ 本会话不重复跑；⑭ ✅ **APP-015 方案 C 渲染层验收 23/23**，但 `translator.py` 合入仍待 MT 移交（APP-009② / H-014，App 不代提交）；⑮ ⛔ 包体 10.45 GiB 优化未做；⑯ ⛔ V7 残句代价待确认；⑰ ⛔ 集显 F32 TTS 慢（首包 33.9 s）；⑱ 🔴 **需重打客户包**（包内代码已含修复，但 **git HEAD 与包内基线已不同步** ⇒ 重打前须复核 `pack_v13.py` 硬校验 + `app014b_v15_preship_check.py`）
 
 
 ## 最近更新
-- 06:15 §47 🔴🔴 **修掉「已计丢句」没有登记进 `_dropped_ids`** ⇒ 不变式 `n_played+n_dropped==n_submitted` 在**两条真实路径**上被破坏
-- 06:15 §47 🔴 **缺陷①`close()` 的孤儿句只计丢句、不登记** ⇒ 迟到 `played` 被双记（反证：修复前 sum=4 / submitted=3）
-- 06:15 §47 🔴🔴 **缺陷②worker 级 error 既 `clear()` 掉 §30 的标记、又不登记孤儿** ⇒ 且其前提「worker 已死」是**事实错误**（L339/L1004 都不退出进程）
-- 06:15 §47 ✅ **修法 4 处**（登记 orphan / 不清 `_dropped_ids` / worker 级 error 也登记 / 新 worker 起来才清 ⇒ 兼顾迟到改记与集合不无界）
-- 06:15 §47 ✅ **验收 18/18 PASS**（`app057`）⇒ 修复前 REAL 失败 **7** 项 ⇒ 修复后 **0** 项；含 **2 条固定 commit `5b99bfd` 反证**（E1 sum=4/3、E2 sum=6/3）
-- 06:15 §47 ✅ **既有 6 个 TTS 套件全部未回归**（§20/§21/§22/§29/§30/§31）
-- 06:15 §47 ✅ **对包内那份单独跑同一套断言 PASS**（A/C 两组 sum 恒 = 3）⇒ 修复真的进了包
-- 06:15 §47 ✅ **交付**：`sync_c151_to_pkg.py`（4 块唯一命中 + 幂等 ALREADY + 包外备份）⇒ 包内 SHA `e5b83613…`→`4c7d9e30…`（与仓库逐字节一致）
-- 06:15 §47 ✅ **持锁重打 v1.5**（`app-pack` PID 34112 / 05:53:09 / 安静窗口 45 s）⇒ **13 982 文件逐字节一致** / 原子改名 / 内部素材闸门 0 ⇒ 锁已释放
-- 06:15 §47 ✅ **交付闭环**：主包 = FTP_Share 副本 = **11 216 090 481 B** / SHA256 `ca4e60bf…` **一致** ⇒ `verify_pkg_zip.py` 独立复核 PASS
-- 06:15 §47 ✅ **修复已在交付 zip 内**（zip 内 `tts_service.py` 41 202 B / SHA `4c7d9e30…`）⇒ 🔴 **未重开 FTP 服务**
-- 04:41 §46 🔴🔴 **补上「已在真实打包里 PASS、但从未入库」的包内导入完整性闸门**⇒ `pkg_exclude.py` + `pack_v13.py`（+234 行）⇒ 缺陷类别进闸门，防复发
-- 04:41 §46 ✅ **该闸门已在真实打包里跑过**：`pack_v15_s42.log` L646-648 = 「0 条确定缺失 / 54 条疑似」⇒ ⇒ **§45.8#6「§43 闸门待端到端验证」结清**
-- 04:41 §46 ✅ **验收重跑 10/10 PASS**（`app048_pkg_import_integrity_gate.py`）+ **独立复现真故障形态**：`caption_render` 被精确抓住，**56 条第三方依赖零误伤**
-- 04:41 §46 ✅ **判据边界实测**：仓库 159 个模块 ∩ 手工白名单 = **0**；∩ 完整 stdlib 名单（290）= **0** ⇒ 无同名冲突
+- 11:00 §49 🔴🔴 **补上「从未实现」的生产配置：`cp_decode` 放 NPU** ⇒ TTS 尺子编在 NPU、**App 从来编在 CPU** ⇒ 这是「差一个数量级」的**配置侧根因**
+- 11:00 §49 ✅ **实测 A/B**（`app062`，持锁 + 安静窗口，客户包 python）：单句 RTF 中位 **1.912→1.218（1.57×）**、首块中位 **1.296→0.837 s（1.55×）**、聚合 RTF 1.971→1.256
+- 11:00 §49 ✅ **端到端确认**（`app059`）：worker 日志 `✅ cp_decode 已放 NPU` ⇒ 首包 **0.945 / 0.847 s** ⇒ PASS
+- 11:00 §49 ✅ **ABBA 复测 s49**：丢句 **0/7**（原 57%）、首包 P50 **26.08→17.29 s** / P95 **45.27→28.46 s**、ASR RTF 增量 **−0.067**（PASS）
+- 11:00 §49 🔴🔴 **撤回**「N 句并发抢 NPU」⇒ `threads` 臂**绕过 worker 的 `_synth_lock`** ⇒ 真实是**串行排队累积**（首包递增 1.42→31.06 s）⇒ 治本是压 RTF
+- 11:00 §49 🔴 **新增安静窗口闸门**（`proc_guard.py`）⇒ 共享锁挡不住**不持锁**的 ASR 作业 ⇒ 曾致同脚本两跑 RTF 2.284→3.256（差 1.43×）
+- 11:00 §49 ✅ **`--check` + GUI 冒烟全 PASS** ⇒ 产物 `abba_out/app063_check_v15.txt` / `app063_gui_smoke.txt`（⛔ 未截图：冒烟为无头 Tk 装配检查）
+- 11:00 §49 ✅ **交付闭环**：`sync_s49_to_pkg.py` 3 块唯一命中 + 逐字校验 sha256 `99002de2…` ⇒ 包内三件关键文件与仓库**内容一致**
+- 11:00 §49 ✅ **APP-018 第 3 条**：WER 切点/粒度 **5 个方案清单**已写（`app060_wer_cutpoint_change_plan.md`）⇒ ⛔ **切段代码一行未动**
+- 11:00 §49 ⚠️ **待裁定**：首包 P50 仍 17.29 s（vs 尺子 0.5862 s）⇒ 剩余差距全在排队 ⇒ 限制在飞句数 or 加大 `BACKLOG_MAX_S`（App 不自行改产品行为）
+- 11:00 §49 ⚠️ **包体尚未重打**（包内代码已含修复，但 git HEAD 与包内基线已不同步）⇒ 重打前须复核 `pack_v13.py` 硬校验 + `app014b_v15_preship_check.py`
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -8463,3 +8459,226 @@ with self.lock:
   ⇒ 是否加「第三方依赖可满足性」闸门 —— **等 reviewer 裁定**。
 - ⛔ **包体 10.45 GiB 优化**、**V7 残句代价**、**集显 F32 TTS 慢**（首包 33.9 s）。
 
+
+## §48 🔴 响应 APP-018 / APP-019 —— TTS 流式化 + 第三方素材排除 + 两道新闸门（**并发 App 会话产出，2026-10-26 10:30，commit `57e3860`**）
+
+> **归属说明**：本节内容由**并发 App 会话**产出并提交代码（`57e3860`），但该会话**未把 STATUS 落盘**
+> ⇒ 本节由后续会话**补写**，以免 STATUS 出现 §48 编号断层。
+> ⚠️ 本节**代码已入库**，本会话已在其之上**追加**了 cp_decode→NPU 修复与并发归因撤回（见 §49）。
+> ⚠️ `57e3860` 的**提交信息里带有一个后来被证伪的结论**（「N 句并发抢 NPU」）⇒ 已在 §49.4 **正式撤回**。
+
+### §48.1 APP-018 第 1 条（检查点 3）：TTS 首包慢、丢句 57% 的集成层排查
+
+- 🔴 **TTS worker 旧实现「先收完全部块再 return」** ⇒ `first_packet` 只能在整句合成完成后才发
+  ⇒ App 报的「首包」= **整句耗时**（实测 8.36 s），真实流式首包只 1.16 s ⇒ **流式能力被完全浪费（差 7.2×）**
+  ⇒ 改为三条合成路径**统一成生成器**，在 `_synth_lock` 内边收边写环形缓冲
+- 🔴 worker 的 `run()` 对每条 `synth()` 各起一个线程
+  ⇒ 🔴🔴 **该结论已在 §49.4 撤回**（worker 的 `_synth_lock` 早已把整段合成包住 ⇒ 真实路径是**串行**）
+- ✅ **编译缓存已命中**：`%LOCALAPPDATA%\...\tts_npu_cache` 7.9 GB 在位、模型加载 28.4 s（**而非 950 s**）
+  ⇒ **不是**缓存问题
+- ✅ **ABBA 实测**（`s48_abba_mt_gpu`，30 s 素材，fresh 进程）：**丢句 0/7**（原 57%）
+  ⇒ 不变式 `n_played + n_dropped == n_submitted` 成立
+
+### §48.2 APP-018 第 2 条 + APP-019：第三方自带素材排除（授权边界）
+
+- `babelvox` 内置 speaker profile（cindy/lou/phil/steve）+ scipy 测试 wav ⇒ **不再进客户包**
+- 体积只掉 90 KB ⇒ **不是目的**（reviewer 明说「不需要为减小体积再额外下功夫」）
+- ⚠️ 配套兜底：内置音色不可用时**回落参考 wav**，不再硬回落 cindy
+
+### §48.3 APP-018 第 3 条：WER 缺口「切点/粒度」改法 —— **只列不改**
+
+⇒ 方案清单 `results/app/app060_wer_cutpoint_change_plan.md`（**5 个候选方案 + 对比表**）
+⇒ ⛔ **切段代码一行未动**，等 ASR 的 Opus 复核结果。
+
+### §48.4 新增两道闸门（防复发）
+
+- `results/app/app049_pkg_path_hardcode_gate.py`：客户包路径写死版本号
+  （含 `tts_cuda.py` 写死 v1.5 ⇒ 客户机换版本即音色找不到）⇒ **接入 `pack_v13.py` 打包前**
+- `results/app/app058_third_party_noise_gate.py`：第三方素材排除规则自检（命中/泄漏/误伤）
+
+### §48.5 APP-018 第 4 条：`verify_pkg_zip.py` 关键文件清单
+
+⇒ 改为「以包内实测全集为准」⇒ 原 16 条漏掉 4 个（含刚修过的 `tts_cuda.py` / `tts_cuda_sidecar.py`）。
+
+## §49 🔴 巡检（**APP-018 第 1 条 / APP-019 全部响应**）+ 🔴🔴 **补上「从未实现」的生产配置：`cp_decode` 放 NPU** + 🔴🔴 **撤回**「N 句并发抢 NPU」的误归因 + ✅ **ABBA 复测丢句归零**（2026-10-26 11:00）
+
+> **本节归属说明**：本节由 App 线程产出。§48 的**代码**由并发 App 会话提交（commit `57e3860`，
+> 10:30）但**未写 STATUS**；本节补齐 STATUS 落盘，并**追加**了并发会话未覆盖的两项根因
+> （cp_decode 设备缺口、并发归因撤回）。
+> ⚠️ `status/app/CORRECTIONS_APP.md` 本会话**零改动**（reviewer 独占写）。
+
+### §49.0 一句话结论
+
+reviewer 说「App 首包 5.5 s / 丢句 57%，与 TTS 模块单测差一个数量级 ⇒ 问题在 App 集成层」——
+**查实集成层有两处独立缺陷**：
+① **首包计时起点错了**（worker 先收完全部块才 return ⇒ 报的「首包」其实是整句耗时）；
+② 🔴🔴 **生产配置从未实现**：reviewer 明写的「**cp_decode 放 NPU**」在 App 侧**从来没有被实现过**
+⇒ 这是「差一个数量级」的**配置侧根因**。
+两处都已修，**丢句归零**，首包 P50 从 26.08 s 降到 **17.29 s**（仍高于单句实测 0.945 s ⇒
+剩余差距是排队累积，已列入待裁定项）。
+
+### §49.1 APP-018 第 1 条逐项排查结果（reviewer 四个问点）
+
+| reviewer 问点 | 结论 | 证据 |
+|---|---|---|
+| ① worker 是否用生产配置 | 🔴 **配置有一处从未实现**：`cp_decode` 编在 **CPU**，reviewer 要求 NPU | §49.2 |
+| ① 编译缓存是否命中（重编译 950 s） | ✅ **命中**，不是问题 | TTS 模块 manifest：`load.cache_mode="warm"`、`compile_info/cp_decode/compile_s=0.22`；App 侧 `tts_npu_cache` 有 4033 条 onednn cl_cache 条目；实测加载 **19.21 s**（非 950 s） |
+| ② 与 ASR/MT 同跑时 NPU 是否被争用 | ✅ **是的，且这是测量污染源** | ASR 的 `p3_ov_app.py --device NPU` 在并发跑且**不持机器锁** ⇒ 同脚本两跑 RTF 中位 **2.284 → 3.256**（差 **1.43×**）⇒ 共享锁挡不住不持锁的作业 ⇒ 新建 `proc_guard.py` 安静窗口闸门（§49.5） |
+| ③ service 层积压阈值与丢句逻辑 | ✅ 逻辑在位（`BACKLOG_MAX_S=8`，四条丢弃路径均登记 `_dropped_ids`），**丢句不是逻辑 bug，是 RTF>1 撑不住** | §49.4 逐句时间线 |
+| ④ 首包计时起点是否正确 | 🔴 **错的**，已修 | §49.3 |
+
+### §49.2 🔴🔴 根因一：**「cp_decode 放 NPU」在 App 侧从未实现**（新发现）
+
+reviewer 的生产配置明写「**cp_decode 放 NPU**」，但 App 侧**从来没实现过**：
+
+| 位置 | 代码 | cp_decode 实际设备 |
+|---|---|---|
+| `babelvox/pipeline.py` L347-350（原生 `BabelVox._load_npu_models`） | `core.compile_model(cp_decode.xml, "CPU")` | **CPU** |
+| `live_caption/tts_engine_patch.py` L379-382（App vendored patch，md5 与 TTS 模块 `qwen3tts_patch.py` **完全一致**） | 同上 | **CPU** |
+| `qwen3tts_eval/eval_cp_on_npu.py::_recompile_cp_on_npu()`（TTS 模块的「尺子」） | `m.reshape(CP_SHAPE)` 后 `compile_model(m, "NPU")` | **NPU** |
+
+⇒ **同一套模型、同一份 patch**，TTS 模块测出 RTF 0.8568 / 首包 0.5862 s 时 **cp_decode 在 NPU**；
+App 测出 RTF ~1.9 / 首块 ~1.3 s 时 **cp_decode 在 CPU**。
+⇒ `cp_decode` 是**每步 AR 都要跑**的组件（`pipeline.py` L920 / L1161）⇒ 放 CPU 直接拖慢整条 AR 链。
+
+**修复**（`live_caption/tts_engine.py`）：
+- 新增 `CP_DECODE_NPU_SHAPE`（形状与 TTS 模块 `_recompile_cp_on_npu()` **完全一致** ⇒ 同一把尺子）：
+  `inputs_embeds[1,1,1024] / cache_position[1] / attention_mask[1,1,1,20] / past_keys[5,1,8,20,128] / past_values[5,1,8,20,128]`
+- 新增 `_cp_decode_ir_path(eng)` —— App 用的 `MultiDecoderBabelVox` **没有** `_ir_path`
+  （那是 `QuantEvalBabelVox` 才有的）⇒ 走原生路径 `export_dir/int8/cp_decode.xml`
+- 新增 `_move_cp_decode_to_npu(eng)`，在 `make_engine()` 里调用
+- 🔴 **必须 reshape**：动态维 IR 直接编到 NPU 会 **Segfault**（进程直接崩，try/except 接不住）；
+  生产路径的 cp_decode 形状本来就是静态的（`CP_NUM_LAYERS=5 / CP_NUM_KV_HEADS=8 / CP_HEAD_DIM=128 / CP_MAX_KV_LEN=20`）
+- 🔴 **失败必须优雅降级**（保留 CPU ⇒ 引擎仍可用，只慢一点）⇒ 绝不因优化把引擎搞挂
+
+**A/B 实测**（`results/app/app062_cp_decode_device_ab.py`，持锁 + 安静窗口，客户包 python，产物写仓库外
+`C:/Users/Trekker-PTL/abba_out/app062_cp_decode_device_ab.json`）：
+
+| 臂 | cp_decode | 单句 RTF 中位 | 首块中位 | 聚合 RTF |
+|---|---|---|---|---|
+| A | **CPU**（App 原状） | **1.912** | **1.296 s** | 1.971 |
+| B | **NPU**（本修复） | **1.218** | **0.837 s** | 1.256 |
+| Δ | — | **提速 1.57×** | **提速 1.55×** | **1.971→1.256** |
+
+端到端确认（`app059_tts_streaming_e2e.py`，真实 worker 子进程，**客户包 python**）：
+worker 日志出现 `✅ cp_decode 已放 NPU` ⇒ 第 1 句首包 1.719 s（含冷启动）/ 第 2 句 **0.945 s** /
+第 3 句 **0.847 s** ⇒ **首包 P50 0.945 s** ⇒ PASS。
+
+### §49.3 根因二：**首包计时起点错了**（H1，承接并发会话 §48）
+
+`tts_worker.synth()` 旧实现把 `_synth_babelvox()` 返回的**全部 chunk 收完**才 `emit(first_packet)`
+⇒ App 报的「首包」其实是**整句合成耗时**。`app056` 实测：真实流式首包 **1.162 s** vs 整句完成
+**8.358 s**（RTF 1.536）⇒ 差距 **7.2×**。修复后 App 报的首包降到 **0.945 s**（§49.2 端到端）
+⇒ **三段叠加收益 8.8×**（8.36 s → 0.945 s）。
+
+### §49.4 🔴🔴 撤回：真实机制是「**串行排队累积**」，不是「N 句并发抢 NPU」
+
+**上一版写进 `app061_tts_npu_contention.py` docstring 的结论已作废**（本节已更正该文件）：
+
+| 项 | 上一版（错） | 本节（实测更正） |
+|---|---|---|
+| 机制 | N 句并发跑 N 路 NPU 推理 | **串行队列**（worker 的 `_synth_lock` 早就把整段合成包住） |
+| 证据 | `app061 --mode threads` 单句 RTF 2.05→9.19 | 该臂**直接调引擎层、绕过 worker 的锁** ⇒ 测的是**人为构造的并发**，**不是 App 真实路径** |
+| 佐证 | — | ABBA 自己否证并发：7 句 `t_submit` 跨度仅 **0.0126 s**（确实同时提交），但首包**递增** |
+
+**s49 逐句时间线**（`abba_out/e2e/s49_abba_mt_gpu/abba2_on.tts.wav.tts.jsonl`）：
+
+| id | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|---|---|
+| `t_submit` 相对跨度 | 0 | +0.007 | +0.009 | +0.012 | +0.043 | +0.059 | +0.115 s |
+| `t_first_packet` | **1.42** | **6.58** | **12.42** | **17.52** | **19.13** | **23.73** | **31.06** s |
+
+⇒ 同时到达、串行处理 ⇒ **第 N 句首包 ≈ 前 N−1 句耗时之和** ⇒ 排队累积 ⇒ P95 首包 28–46 s
+⇒ 积压超 `BACKLOG_MAX_S=8` ⇒ 丢句。
+⇒ **治本方向是把单句 RTF 压到 < 1**（§49.2 已做 1.912→1.218），**不是**「消除并发」（本来就没有并发）。
+
+### §49.5 🔴 新增「安静窗口闸门」（`results/app/proc_guard.py`，测量工具，**不进客户包**）
+
+**实测教训**：同一脚本、同一配置、连续两跑 A 臂单句 RTF 中位 **2.284 → 3.256**（差 **1.43×**）
+⇒ 原因是 **ASR 模块的 `p3_ov_app.py --device NPU` 在并发跑，且它不持机器锁**
+⇒ **共享锁挡不住「不持锁」的模块作业**（铁律补强）。
+
+- 纯 `ctypes` 实现（无第三方依赖，客户包 python 可用）
+- 判据 = **命令行片段**（`p3_ov_app.py` / `p3_run_with_lock.py` / `own20_step_probe.py` / `bench_` / `eval_` / `diag_` …）
+- ⚠️ **三个必须踩对的坑**（写在 docstring 里）：
+  ① `PROCESS_BASIC_INFORMATION` **漏 4 字节 padding** ⇒ `PebBaseAddress` 读成 None ⇒ 全体假阴性；
+  ② `OpenProcess` 权限掩码需含 `PROCESS_VM_READ`(0x10)，只给 0x1000 ⇒ `ReadProcessMemory` 失败；
+  ③ ctypes 函数必须**显式设 `argtypes`/`restype`**，否则 `HANDLE` 被截断成 32 位。
+- ⚠️ **取命令行不用 `wmic`**（实测返回空 ⇒ 假阴性）
+- 🔴 **「正在等锁的进程」不算作业**（否则与自己是死锁）⇒ 判据：两次采样相隔 `poll_s`，
+  **CPU 增量 < 0.5 s ⇒ 视为等锁/空转**
+- ⚠️ `GetProcessTimes` 的**第 1 个参数是「创建时间」不是 CPU 时间** ⇒ 只取 kernel + user
+- **闸门启动前必须先自检**：读不到命令行 ⇒ 不能声称「无污染」
+
+### §49.6 ✅ ABBA 复测（s49，修复后；MT=GPU.0 / TTS=NPU，fresh 进程，持锁）
+
+产物：`C:/Users/Trekker-PTL/abba_out/e2e/s49_abba_mt_gpu/abba_report.json`
+（含 `--tts-out` 的 wav：`abba2_on.tts.wav` / `abba3_on.tts.wav` ⇒ **已交给 reviewer**）
+
+| 指标 | s48（流式改造后、cp_decode 仍 CPU） | **s49（+cp_decode→NPU）** | 原 §15 |
+|---|---|---|---|
+| 丢句 | 0/7 | **0/7** | **57%** |
+| 首包 P50 | 26.08 s | **17.29 s** | 5.5 s |
+| 首包 P95 | 45.27 s | **28.46 s** | — |
+| ASR RTF 增量 | −0.0345 | **−0.067** | — |
+| ASR RTF 增量判据（≤+0.10） | PASS | **PASS** | — |
+| 积压最大值 | 22.0 s | 22.0 s | — |
+
+⇒ 丢句已归零（不变式 `n_played + n_dropped == n_submitted` 成立）。
+⚠️ **首包 P50 仍 17.29 s，与 TTS 尺子 0.5862 s 仍差 29×** ⇒ 已知剩余差距来自排队累积
+（单句首包实测 0.945 s）⇒ **列入 §49.7 待裁定**。
+
+### §49.7 🔴 待裁定：首包 P50 17.29 s 怎么进一步压
+
+单句首包实测 **0.945 s**（与 TTS 尺子同量级），但端到端 P50 **17.29 s** ⇒ 差距**全部来自排队**。
+⇒ 两个方向（**App 不自行改产品行为，等 reviewer / 用户定**）：
+1. **限制同时在飞的句数**（例如最多 2 句在飞 ⇒ 其余在 service 层排队，不占 worker）
+2. **加大 `BACKLOG_MAX_S`**（当前 8）⇒ 让更多句能等而不是被丢
+⇒ ⚠️ 两者都改变产品行为；且方向 1 会让「丢句」重新变成「延迟」⇒ **需 reviewer 权衡**。
+
+### §49.8 APP-018 第 2 条 + APP-019：第三方素材排除（承接并发会话 §48，**已落盘确认**）
+
+- `babelvox` 内置 speaker profile（cindy/lou/phil/steve）+ scipy 测试 wav ⇒ **不再进客户包**（授权边界）
+- 体积只掉 90 KB ⇒ **不是目的**（reviewer 明说「不需要为减小体积再额外下功夫」）
+- 配套兜底：`builtin_speakers_available()`（只查文件、**不 import babelvox**、零副作用）
+  ⇒ 内置音色不可用时**回落参考 wav**，不再硬回落 cindy
+- 闸门：`results/app/app058_third_party_noise_gate.py` = **30/30 命中 / 0 泄漏 / 0 误伤 PASS**
+  ⇒ 已接进 `pack_v13.py`（`noise_hit` 断言）
+
+### §49.9 APP-018 第 3 条：WER 切点/粒度改法 —— **只列不改**（按 reviewer 要求）
+
+- 方案清单：`results/app/app060_wer_cutpoint_change_plan.md`（**5 个候选方案 + 对比表**）
+- ⛔ **切段代码一行未动**，等 ASR 的 Opus 复核结果
+
+### §49.10 APP-018 第 4 条：`--check` 与 GUI 冒烟的**产物路径**
+
+| 项 | 产物路径 | 结果 |
+|---|---|---|
+| 环境检查（`--check`，客户包） | `C:/Users/Trekker-PTL/abba_out/app063_check_v15.txt` | ✅ 依赖全 OK；OV 设备 GPU.0/GPU.1/NPU 全 OK；ASR 6 个后端齐全 |
+| GUI 冒烟 | `C:/Users/Trekker-PTL/abba_out/app063_gui_smoke.txt` | ✅ **全 PASS**：ASR/MT/TTS 选项唯一、无「Intel GPU 2」假设备、TTS 有可用选项、首选 CUDA、Tk 装配 OK |
+| 截图 | ⛔ **未截图**（冒烟脚本是**无头 Tk 装配**检查，未开真实窗口） | — |
+| ABBA wav（交 reviewer） | `C:/Users/Trekker-PTL/abba_out/e2e/s49_abba_mt_gpu/abba{2,3}_on.tts.wav` | ✅ |
+| cp_decode A/B | `C:/Users/Trekker-PTL/abba_out/app062_cp_decode_device_ab.json` | ✅ |
+| 流式端到端 | `C:/Users/Trekker-PTL/abba_out/app059_tts_streaming_e2e.json` | ✅ 首包 P50 0.945 s |
+
+### §49.11 ✅ 交付闭环
+
+- ✅ `live_caption/tts_engine.py` 修复已进仓库并提交（`7927ca5`）
+- ✅ `live_caption/sync_s49_to_pkg.py` 已执行 ⇒ **3 个变更块**（基线行 226/422/459）唯一命中
+  ⇒ 备份 `C:/Users/Trekker-PTL/pkg_backup_app_s49/tts_engine.py.bak_s49_104951`
+  ⇒ **逐字校验通过**（sha256 `99002de2bcab65ef`）⇒ `diff` 确认包内与仓库 **IDENTICAL**
+- ✅ **包内 `tts_engine.py` / `tts_worker.py` / `tts_service.py` 与仓库内容一致**
+  （`tts_worker.py` 仅 CRLF 行尾差异；`tts_service.py` §47 的 `_dropped_ids` 登记在位 L378/L570）
+- ⚠️ **包体尚未重打**：包内代码已含修复，但 **git HEAD 与包内基线已不同步** ⇒ 重打前须复核
+  `pack_v13.py` 硬校验 + `app014b_v15_preship_check.py`
+- ⛔ **未重开 FTP 服务**（守 APP-009③）
+- ⛔ **未代提交 `CORRECTIONS_APP.md`**（`git diff --cached --name-only | grep -c CORRECTIONS` = **0**）
+
+### §49.12 本节新增/更正的测量工具
+
+| 文件 | 性质 | 说明 |
+|---|---|---|
+| `results/app/proc_guard.py` | **新增** | 安静窗口闸门（纯 ctypes，不进客户包） |
+| `results/app/app062_cp_decode_device_ab.py` | 已入库（并发会话版本）+ **本节修 `quiet_ok` 落真实值**（原来写死 `None` ⇒ 报告无法自证「是不是在安静窗口测的」） |
+| `results/app/app061_tts_npu_contention.py` | **本节更正 docstring** | 撤回并发误归因；`threads` 臂保留但**不再作为 App 真实机制的证据** |
+| `live_caption/sync_s49_to_pkg.py` | **新增** | 包同步（用**包内文件**当基线，不用 `git show` ⇒ 避开并发会话改同一批文件） |
