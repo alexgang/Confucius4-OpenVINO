@@ -9695,7 +9695,7 @@ SHA256 `682aced289a58d18b9303cffa6cc5a60dd21c83e226cfefa3d3f2171f81aea00`）。
 
 ---
 
-## §56 🔴 巡检（APP-022 = `last_ack`，**本轮无新 APP 纠偏条目**）+ 🔴🔴 响应 TTS 跨模块通知 —— **共享机器锁改原子写 + 持锁方逐条自检**（2026-10-26 22:15）
+## §56 🔴 巡检（APP-022 = `last_ack`，**本轮无新 APP 纠偏条目**）+ 🔴🔴 响应 TTS 跨模块通知 —— **共享机器锁改原子写 + 持锁方逐条自检**（2026-10-26 22:15）｜**已提交 `8d6bcc1` 并推送**
 
 **本条已完成**（无「需要停下来等 reviewer 复核」的节点）。
 
@@ -9821,6 +9821,28 @@ SHA256 `682aced289a58d18b9303cffa6cc5a60dd21c83e226cfefa3d3f2171f81aea00`）。
 | `live_caption/replay_c134_mt.py` | 15 666 | 2026-10-26 22:11:51 | `9625c083847d557f00a69bd47f22ad2ddb61c3b9b609073df374b986d651eb69` |
 
 **只读未改**：`status/app/CORRECTIONS_APP.md`（48 457 B，SHA256 `682aced289a58d18b9303cffa6cc5a60dd21c83e226cfefa3d3f2171f81aea00`）。
+
+### 56.11 提交与推送
+
+| 项 | 值 |
+|---|---|
+| commit | **`8d6bcc1`**（`8d6bcc15aed7d68cb17061723fd03a191f3c7365`） |
+| commit message | `fix(app): §56 共享机器锁改「原子写 + 独占」+ 持锁方逐条自检` |
+| 变更规模 | **15 files changed, 1575 insertions(+), 106 deletions(-)**（+5 个新增验收脚本，+10 个改动文件含 STATUS） |
+| 推送 | `f0fe574..8d6bcc1  main -> main` ⇒ **快进推送，无 force push** |
+| 分支 | `main`（唯一分支，`## main...origin/main` 已同步） |
+| 暂存区核验 | `CORRECTIONS_APP.md` **未在暂存区**（`git diff --cached --name-only \| grep -i CORRECTIONS` ⇒ 无命中） |
+| 未吞其它模块 | ASR/MT/TTS 的未提交改动**一律未 add、未 commit** |
+
+**本轮入库的 15 个文件**（全部为 App 模块负责范围）：
+`machine_lock_app.py`、`status/app/STATUS_APP.md`、
+`results/app/app056_tts_streaming_gap.py`、`app059_tts_streaming_e2e.py`、
+`app061_tts_npu_contention.py`、`app062_cp_decode_device_ab.py`、
+`app065_precision_hint_ab.py`、`app067_ruler_same_day_recheck.py`、
+`results/app/app082_atomic_lock_test.py`、`app083_sync_atomic_lock_to_scripts.py`、
+`app083b_verify_lock_scripts.py`、`app084_add_lock_probe_to_rows.py`、
+`app085_atomic_lock_e2e.py`、
+`live_caption/diag_c111_e2e.py`、`live_caption/replay_c134_mt.py`。
 
 ### 56.8 本轮明确**未做**的事（守住边界）
 
