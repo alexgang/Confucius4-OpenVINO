@@ -209,3 +209,24 @@ last_ack: <本模块最新已读的纠偏编号>
 4. INT4_SYM 按通道在新图上的重测：**不做了**。报告里写"旧图结论作废，新图没有重测"。
 5. 用已有的 mask2 INT8/INT4 @ iGPU 结果，加上上面几格，汇总成 `reports\compare\ASR007_results.json`（每个数字附来源文件），交给 reviewer 汇编 HTML 报告。
 ASR-010 的其他条目照旧：把旧图结论从"做不了"清单里移出；补上 §28 的设备摆放、持锁和 timing_valid 字段；用一行确认交付的 R2T2 IR 是不是由 c069g 派生的。
+
+## ASR-012 [NORMAL] 2026-10-26 10:52 — 0.6B INT8@NPU 61分钟 WER 11.05%（对 iGPU +0.12pp 不显著）；§29.4 结论接受但理由要改
+
+### 1. 0.6B INT8@NPU 61 分钟（reviewer 本机复算，请原样回填到格子 wer_pct 和 STATUS）
+- 输入：`qwen3asr_06b/results/p3_mask2_61min_int8_npu/segments.json`（553 段），MiniMax baseline（10964 词），`paired_bootstrap.py`（全局对齐，按段配对，5000 次）。
+- 段边界核实：和 iGPU INT8 格（`p3_mask2_61min_int8`）**553/553 逐位相同**（start_s/end_s 最大差 0.0 s），文本相同 447/553，词数 11412。§31.2 的说法成立。
+- **INT8@NPU WER 11.05%**（1212 个错误）；INT8@iGPU 10.94%（1199 个错误）。
+- NPU−iGPU = **+0.12pp，95% CI [−0.05, +0.29]，不显著**（按段比：17 段更好 / 510 段持平 / 26 段更差）。
+- 对比 R2T2 App 路径 B（10.58%，两边切段不同，用时间块配对 bootstrap，498 块）：0.6B@NPU − R2T2-B = **+0.47pp，CI [−0.24, +1.17]，不显著**。
+- 计时字段已经按 timing_valid=false 作废，这一点正确。
+
+### 2. §29.4（R2T2 交付 IR 和 mask）：结论接受，有两条理由写错了，请改
+reviewer 读了代码：`c079b_build_clean_embeds_ir.py` 的 PAIRS = `qwen3-lm-int8sym-lastlogit-ov → qwen3-lm-int8sym-cleanie-ov`（int4 同理）；`c069g` 的 OUT_DIR = `models/ov-dec-embed-fp16`，live_caption/*.py 里没有任何地方引用它。所以"不派生自 c069g"成立。
+写错的两处：
+- (a) "R2T2 走 cross-attention + 逐 token 解码，每步只喂当前 token 的 embedding，所以没有 padding 概念"——不对。`npu_embeds_backend.py:211-214` 的 prefill 一次喂进 **T 个 prompt token**（音频 embedding + 模板），也就是 decoder-only 的整段 prefill，和 0.6B 是同一种结构；只是之后的 decode 每步喂 1 个 token。
+- (b) 全 1 mask 正确的**真实理由**：batch=1、没有任何 padding token，mask 长度刚好等于真实 token 数（prefill 是 T，decode 是 past+1）；IR 保留了 attention_mask 端口（c079b 第 30 行），静态化到 512 的 padding 由 NPUW_LLM 在内部完成，NPUW 会根据传入的 attention_mask 自己生成 mask。0.6B 旧图的问题在于：自己手写把输入 padding 到固定长度 512，而图里**没有 mask 端口**。R2T2 不具备这个条件，所以不存在同样的根因风险。再加上实测证据：全 NPU 61 分钟 7.95% 对 GPU +0.10pp 不显著（c086d）。
+- 要你做的：把 §29.4 第 3 点的理由改成 (b)，删掉 "cross-attention / 每步只喂当前 token" 这一句（报告会引用这一段）。不需要重跑。
+
+### 3. 待办
+- R2T2 INT8@NPU App 路径 61 分钟（pid25264，10:41 开始，results/p3_r2t2_61min_npu 目前还是空目录）：跑完后把 segments.json 留在原处，WER 由 reviewer 复算（对比 App 路径 R2T2 iGPU B 10.58%）。
+- 开始处理某一条纠偏时，先写 last_ack 和一行最近更新。
