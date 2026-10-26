@@ -60,7 +60,11 @@ import pkg_exclude as PE         # noqa: E402  纯 stdlib
 OUT = os.path.join(HERE, 'app048_pkg_import_integrity_evidence.json')
 
 #: 真实客户包（只读）
-PKG_V15 = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5'
+import sys as _sys
+_sys.path.insert(0, r'C:\Users\Trekker-PTL\confucius4-openvino')
+import pkg_paths as _pkg_paths
+
+PKG_V15 = _pkg_paths.discover_pkg_dir()
 
 _results = []
 
@@ -228,6 +232,13 @@ def run_synthetic():
         if os.path.isdir(src_app):
             for fn in os.listdir(src_app):
                 if fn.endswith('.py'):
+                    # 🔴🔴 §50 修：**必须显式排除** caption_render.py
+                    #   原实现依赖「包内本来就没有 caption_render.py」这个
+                    #   **巧合**来制造故障 ⇒ §48b 把该文件同步进包后，
+                    #   场景 G 变成「复制了 ⇒ certain=[]」⇒ S10 假 FAIL。
+                    #   ⇒ 故障形态要**显式**制造，不能靠包内的历史状态。
+                    if fn == 'caption_render.py':
+                        continue
                     shutil.copy2(os.path.join(src_app, fn),
                                  os.path.join(dst_app, fn))
             repo_app = os.path.join(REPO, 'live_caption', 'live_caption_app.py')

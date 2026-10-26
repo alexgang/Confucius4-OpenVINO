@@ -1,6 +1,6 @@
 {
   "task": "「包内本地模块导入完整性」闸门（APP-042）：防 ModuleNotFoundError 漏到客户手里",
-  "generated_at": "2026-10-26 04:27:29",
+  "generated_at": "2026-10-26 11:07:10",
   "discipline": {
     "no_model_import": true,
     "no_inference": true,
@@ -20,14 +20,14 @@
     "pass": 10,
     "fail": 0,
     "verdict": "PASS",
-    "elapsed_s": 0.415
+    "elapsed_s": 0.802
   },
   "results": [
     {
       "group": "REAL",
       "name": "R1 真实包 app/*.py 全部被检查（>0）",
       "ok": true,
-      "detail": "checked=20"
+      "detail": "checked=21"
     },
     {
       "group": "REAL",
@@ -39,7 +39,7 @@
       "group": "REAL",
       "name": "R3 疑似项只作提示（第三方依赖），数量合理",
       "ok": true,
-      "detail": "suspect=56 例: [('app/_probe_tts_cuda.py', 'openvino'), ('app/_probe_tts_cuda.py', 'numpy'), ('app/audio_check.py', 'wave'), ('app/audio_check.py', 'numpy'), ('app/audio_check.py', 'sounddevice')]"
+      "detail": "suspect=57 例: [('app/_probe_tts_cuda.py', 'openvino'), ('app/_probe_tts_cuda.py', 'numpy'), ('app/audio_check.py', 'wave'), ('app/audio_check.py', 'numpy'), ('app/audio_check.py', 'sounddevice')]"
     },
     {
       "group": "REAL",
