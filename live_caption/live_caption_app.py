@@ -2102,6 +2102,18 @@ class App:
             row_tts, state='readonly', width=24, textvariable=self.var_tts_out,
             values=[self._out_label[oid] for oid, _ in self.outs])
         self.cb_tts_out.pack(side='left', padx=(0, 8))
+        # 🔴🔴 APP-021⑤：输出设备下拉**必须绑变更事件**。
+        #   旧行为：`cb_tts_out` **没有**绑 `<<ComboboxSelected>>`
+        #   （全文只有 `cb_tts_voice` 绑了）⇒ `out_id` 只在
+        #   `_on_tts_toggled()` 起 worker 时读**一次**
+        #   ⇒ worker 已经起来之后再改下拉 ⇒ **完全没有效果**
+        #   ⇒ 用户以为换了设备，其实声音还是从旧设备出（或旧设备坏了）。
+        self.cb_tts_out.bind('<<ComboboxSelected>>', self._on_tts_out_changed)
+        # 🔴 APP-021④：「测试声音」按钮 —— 把「播放链路」与「TTS 合成」拆开。
+        #   走**同一个 worker 的 Player** 播 1 s 440 Hz 正弦波。
+        self.btn_tts_test = ttk.Button(row_tts, text='🔊 测试声音', width=12,
+                                       command=self._on_tts_test_sound)
+        self.btn_tts_test.pack(side='left', padx=(0, 8))
         self.tts = None                      # TTSService 实例
         self._offline_dlg = None             # 离线朗读对话框（Toplevel）
         self.var_tts_note = tk.StringVar(value='')
@@ -2417,7 +2429,23 @@ class App:
 
     # -- 线程安全的日志投递 ----------------------------------------------
     def _ui_log(self, msg):
-        """后台线程 -> 主线程。绝不能在这里碰 tk。"""
+        r"""后台线程 -> 主线程。绝不能在这里碰 tk。
+
+        🔴🔴 APP-021③：**同时把日志落盘**（会话日志文件）。
+        起因（APP-021 证据 2）：用户那次「听不到声音」的会话**没留下任何证据**
+        —— `_ui_log()` 只 `var_status.set`（后一条覆盖前一条），
+        `live_caption.log` 最后 mtime 是 10-21，
+        `tts_worker_error.log` 只在 worker 级 error 时写（目标机上没有）
+        ⇒ **事后完全无法复盘**。
+        ⇒ 现在：每条日志都**追加**写到
+        `%LOCALAPPDATA%\Confucius4LiveCaption\session_YYYYMMDD_HHMMSS.log`
+        ⇒ 用户报障时只要给这一个文件。
+        """
+        try:
+            from tts_service import append_session_log
+            append_session_log(str(msg))
+        except Exception:
+            pass
         self._ui_log_q.put(msg)
 
     def _drain_ui_log(self):
@@ -2723,6 +2751,55 @@ class App:
         if self.var_tts_on.get():
             self._on_tts_toggled()
 
+    # 🔴🔴 APP-021⑤：**输出设备热切换**（改下拉 ⇒ 重启 worker）。
+    #   旧行为：`cb_tts_out` 没绑事件 ⇒ 改了完全没用（见建控件处的注释）。
+    #   ⇒ 现在：worker 在跑时改下拉 ⇒ 关掉旧 worker + 用新设备重起，
+    #     并在日志里写明**新设备**。
+    def _on_tts_out_changed(self, *_a):
+        out_name = self.var_tts_out.get()
+        out_id = self._out_label_back.get(out_name)
+        old = getattr(self, '_tts_out_id', None)
+        self._tts_out_id = out_id
+        self._ui_log(f'[tts] 输出设备改为：{out_name}')
+        if out_id == old:
+            return
+        if self.tts is None:
+            # worker 没在跑 ⇒ 下次起 worker 自然会用新设备 ⇒ 不用重启
+            return
+        self.var_tts_note.set(f'输出设备已改为 {out_name}（正在重启 TTS）')
+        self.var_status.set(f'语音输出设备切换中：{out_name}')
+        try:
+            self.tts.close()
+        except Exception:
+            pass
+        self.tts = None
+        if self.var_tts_on.get():
+            self._on_tts_toggled()
+
+    # 🔴 APP-021④：「测试声音」—— 播 1 s 440 Hz 正弦波。
+    #   ⇒ 用户点一下就知道**声卡链路**通不通：
+    #     听到 ⇒ 播放链路 OK，若 TTS 还是听不到 ⇒ 合成侧问题；
+    #     听不到 ⇒ 设备/音量/系统问题（与 TTS 无关）。
+    def _on_tts_test_sound(self, *_a):
+        svc = self.tts
+        if svc is None:
+            self.var_tts_note.set('🔴 语音输出还没启动 ⇒ 先勾选「开启」')
+            self.var_status.set('语音输出未启动（无法测试声音）')
+            self._ui_log('[tts] 测试声音：TTS 未启动')
+            return
+        try:
+            if not svc.test_tone():
+                self.var_tts_note.set('🔴 测试声音指令没能下发（worker 可能已退出）')
+                self._ui_log('[tts] 测试声音：指令下发失败')
+                return
+        except Exception as e:
+            self.var_tts_note.set(f'🔴 测试声音失败：{e}')
+            self._ui_log(f'[tts] 测试声音异常：{type(e).__name__}: {e}')
+            return
+        self.var_tts_note.set('🔊 正在播放 1 秒测试音（440 Hz）…'
+                              '请确认是否听到（听到=播放链路正常）')
+        self.var_status.set('正在播放测试音…')
+
     def _pump_tts(self):
         """把**定稿译文**提交给 TTS（C-101 P4 第 1 条：只念定稿译文）。
 
@@ -2791,8 +2868,10 @@ class App:
             return ''
         fp = st.get('first_packet_s')
         f = lambda v, d=1: ('—' if v is None else f'{v:.{d}f}')
+        # 🔴 APP-021③：把「失败」也摆出来（已播 / 丢句 / 失败）
         return (f'  |  TTS 首包 {f(fp, 2)}s  积压 {f(st.get("backlog_s"))}s'
                 f'/最大 {f(st.get("max_backlog_s"))}s  丢句 {st.get("n_dropped", 0)}'
+                f'  失败 {st.get("n_failed", 0)}'
                 f'  已播 {st.get("n_played", 0)}')
 
     # -- 离线朗读（文件 / 对话框文本 → TTS）-------------------------------

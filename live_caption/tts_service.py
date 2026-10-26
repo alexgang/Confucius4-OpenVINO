@@ -52,6 +52,45 @@ BACKLOG_MAX_S = float(os.environ.get('LIVECAP_TTS_BACKLOG_MAX', '8'))
 # 单句最长（秒）：防止异常长句卡住
 MAX_TEXT_CHARS = int(os.environ.get('LIVECAP_TTS_MAX_CHARS', '200'))
 
+# ── APP-021③：会话日志落盘 ────────────────────────────────────────────
+# 🔴🔴 起因（APP-021 证据 2）：用户那次「听不到声音」的会话**没留下任何证据**
+#   —— `_ui_log()` 只写状态栏（后一条覆盖前一条），`live_caption.log` 最后
+#   mtime 是 10-21，`tts_worker_error.log` 只在 worker 级 error 时才写
+#   （而目标机上根本没有那个文件）⇒ **事后无法复盘**。
+# ⇒ 现在：本次会话的**所有**日志（GUI + TTS worker）一律**追加**写到
+#   `%LOCALAPPDATA%\Confucius4LiveCaption\session_YYYYMMDD_HHMMSS.log`
+#   （**不只在 error 时写**）⇒ 用户报障时只要给这个文件即可复盘。
+_SESSION_LOG_PATH = None
+_SESSION_LOG_LOCK = threading.Lock()
+
+
+def session_log_path() -> str:
+    """本次会话的日志文件路径（进程内第一次调用时确定）。"""
+    global _SESSION_LOG_PATH
+    with _SESSION_LOG_LOCK:
+        if _SESSION_LOG_PATH is None:
+            base = os.environ.get('LOCALAPPDATA') or os.path.expanduser('~')
+            d = os.path.join(base, 'Confucius4LiveCaption')
+            try:
+                os.makedirs(d, exist_ok=True)
+            except Exception:
+                pass
+            _SESSION_LOG_PATH = os.path.join(
+                d, 'session_%s.log' % time.strftime('%Y%m%d_%H%M%S'))
+        return _SESSION_LOG_PATH
+
+
+def append_session_log(msg: str, tag: str = ''):
+    """往会话日志追加一行（**永不抛异常** ⇒ 诊断不能把功能带崩）。"""
+    try:
+        path = session_log_path()
+        with _SESSION_LOG_LOCK:
+            with open(path, 'a', encoding='utf-8', newline='\n') as f:
+                f.write('%s %s%s\n' % (time.strftime('%H:%M:%S'),
+                                      (tag + ' ') if tag else '', msg))
+    except Exception:
+        pass
+
 
 class TTSService:
     """译文语音输出服务（主进程侧）。
@@ -65,7 +104,8 @@ class TTSService:
                  out_device: Optional[str] = None, model_dir: Optional[str] = None,
                  on_log=print, auto: bool = True, clone: bool = False,
                  precision: str = 'f32', out_wav: Optional[str] = None,
-                 bigvgan_ir: Optional[str] = None):
+                 bigvgan_ir: Optional[str] = None,
+                 dump_dir: Optional[str] = None):
         self.on_log = on_log
         self.device = device
         self.voice = voice            # 'A' | 'B' | 'clone'
@@ -75,6 +115,8 @@ class TTSService:
         self.precision = precision    # OV 推理精度（f32 / f16）
         self.out_wav = out_wav        # 落盘模式（CLI 回放测试）
         self.bigvgan_ir = bigvgan_ir  # BigVGAN IR 覆盖（多相分解版 / NPU 窗口版）
+        # 🔴 APP-021⑥：逐句 wav 落盘目录（None = 不落盘）
+        self.dump_dir = dump_dir
 
         self.proc: Optional[subprocess.Popen] = None
         self.lock = threading.Lock()
@@ -101,6 +143,14 @@ class TTSService:
         self.n_dropped = 0                            # 丢句数
         self.n_played = 0                             # 已播句数
         self.n_submitted = 0
+        # 🔴🔴 APP-021③：「失败」是**第三个**计数（与已播/丢弃并列）。
+        #   旧实现只有 已播/丢弃 ⇒ 「句子级失败」（合成失败 / 播放器不可用 /
+        #   音频没播完）被**混进 n_dropped** ⇒ 界面分不清「被丢弃」和「失败」。
+        self.n_failed = 0                             # 句子级失败数
+        # 🔴 APP-021③：最近一条**句子级**错误原文（对话框要显示）
+        self.last_sentence_error: Optional[str] = None
+        # 🔴 APP-021②：最近一行的播放遥测（供界面显示 / 日志核对）
+        self.last_telemetry: Optional[dict] = None
 
         # 🔴🔴 §52：**故障必须自带原因**。
         #   用户报「TTS worker 故障（error）⇒ 朗读中止」时，界面只有这一句，
@@ -158,11 +208,15 @@ class TTSService:
         错误**之前**的那几十行里（例如 CUDA 后端会先打「边车启动…」再打
         「BabelVox 引擎不可用」再打「模型加载失败」）⇒ 只保存最后一句
         等于什么都没保存。`log_tail` 让界面/日志能一起交出来。
+
+        🔴🔴 APP-021③：**同时追加写到会话日志文件**（不只在 error 时写）
+        ⇒ 用户报障时给一个文件就能复盘整个会话。
         """
         try:
             self.log_tail.append('%s %s' % (time.strftime('%H:%M:%S'), msg))
         except Exception:
             pass
+        append_session_log(str(msg), tag='[TTS]')
         try:
             if self._on_log_user:
                 self._on_log_user(msg)
@@ -229,6 +283,31 @@ class TTSService:
             env = dict(os.environ)
             # 让 worker 里的 tts_ov 能被 import 到
             env['LIVECAP_TTS_DIR'] = env.get('LIVECAP_TTS_DIR', '')
+            # 🔴🔴🔴 §53：**worker 的 stdout 编码必须钉死为 UTF-8**。
+            #   起因（2026-10-26 用户实测「TTS worker 退出（rc=None），已重启过一次仍失败」）：
+            #   `live_caption_app.py` L57-58 在**运行时**做
+            #       os.environ.setdefault('PYTHONUTF8', '1')
+            #       os.environ.setdefault('PYTHONIOENCODING', 'utf-8')
+            #   ⇒ ① 它只影响**后续新建**的子进程的 stdout 编码（worker 写 UTF-8）；
+            #     ② **但它改不了本进程**的 `locale.getpreferredencoding()`
+            #        （实测仍是 cp936 —— 环境变量在解释器启动**前**才生效）；
+            #     ③ 而 `Popen(..., text=True)` **不带 encoding** 时，
+            #        用的正是 `locale.getpreferredencoding(False)` 来解码管道
+            #        ⇒ **父进程用 cp936 解码 worker 写的 UTF-8 字节**。
+            #   ⇒ worker 第一条带中文/符号（`⇒` `🔴` `·`）的日志行
+            #      ⇒ `UnicodeDecodeError` ⇒ 被 `_read_loop` 的 `except: pass` 吞掉
+            #      ⇒ 读循环提前结束 ⇒ 走进「stdout 关闭 = worker 退出」分支
+            #      ⇒ `proc.wait(timeout=2)` 超时、`poll()` 返回 **None**
+            #        （**进程其实还活着**！）⇒ 报「worker 退出（rc=None）」
+            #      ⇒ 重启一次后同样立刻崩 ⇒ 「已重启过一次仍失败」。
+            #   ⚠️ **用户从 `Start_LiveCaption.bat` 启动时 `PYTHONUTF8=1`**
+            #      （脚本里 `set PYTHONUTF8=1`）⇒ 父进程就是 UTF-8 ⇒ 不会犯。
+            #      ⇒ 所以这条 bug 只在「**不经 bat、直接 python app/live_caption_app.py**」
+            #      或 bat 被改过时出现 ⇒ 极难复现、极难联想。
+            #   ⇒ 修法（**不依赖任何环境变量**）：`Popen` 显式 `encoding='utf-8'`
+            #      + 给 worker 的 env 也钉 `PYTHONIOENCODING=utf-8`（双向锁死）。
+            env['PYTHONIOENCODING'] = 'utf-8'
+            env['PYTHONUTF8'] = '1'
             cmd = [sys.executable, _WORKER,
                    '--device', self.device,
                    '--precision', self.precision,
@@ -243,10 +322,18 @@ class TTSService:
                 cmd += ['--out-wav', self.out_wav]
             if self.bigvgan_ir:
                 cmd += ['--bigvgan-ir', self.bigvgan_ir]
+            # 🔴 APP-021⑥：逐句 wav 落盘目录
+            if self.dump_dir:
+                cmd += ['--dump-dir', self.dump_dir]
             try:
+                # 🔴 §53：`encoding='utf-8'` **必须显式写** ⇒ 不依赖 locale/环境变量
+                #   （详见上面 env 那段注释里的完整根因）。
+                #   `errors='replace'` 是**第二道保险**：万一还有非法字节，
+                #   也不能让整个读循环崩掉（那会被误判成「worker 退出」）。
                 self.proc = subprocess.Popen(
                     cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE, text=True, bufsize=1, env=env)
+                    stderr=subprocess.PIPE, text=True, encoding='utf-8',
+                    errors='replace', bufsize=1, env=env)
             except Exception as e:
                 self.state = 'error'
                 self.err = e
@@ -290,6 +377,7 @@ class TTSService:
     def _read_loop(self, proc):
         if proc is None:
             return
+        read_error = None
         try:
             for line in proc.stdout:
                 line = line.strip()
@@ -303,8 +391,24 @@ class TTSService:
                     self._handle_event(msg)
                 else:
                     self.on_log(f'[TTS] {line}')
-        except Exception:
-            pass
+        except Exception as e:
+            # 🔴🔴🔴 §53：**读循环异常不许被当成「worker 退出」**。
+            #   旧实现是 `except: pass` ⇒ 解码异常（UnicodeDecodeError）
+            #   被**静默吞掉** ⇒ 循环提前结束 ⇒ 直接落到下面
+            #   「stdout 关闭 = worker 退出」的收尾逻辑
+            #   ⇒ `proc.wait(timeout=2)` 超时 + `poll()` 返回 None
+            #   ⇒ 报「worker 退出（rc=None）」——**而进程其实还活着**。
+            #   ⇒ 这就是 §53 用户实测那条错误的真身：
+            #      「TTS worker 退出（rc=None），已重启过一次仍失败」。
+            # ⇒ 修法：**区分两类退出** ——
+            #   ① 读循环**异常**结束 ⇒ **不是进程退出** ⇒ 不判死、不重启，
+            #      而是记下原因 + 继续用**另一个线程**接管（或直接判 error 并带原因）。
+            #      既然协议已经坏掉，最诚实的做法是：判 error + **带原因**，
+            #      这样界面能显示「解码失败」而不是含混的「worker 退出」。
+            #   ② 正常 EOF（`for line in stdout` 正常结束）⇒ 才是进程退出。
+            read_error = e
+            self.on_log(f'[TTS] 🔴 读取 worker 输出失败：'
+                        f'{type(e).__name__}: {e}')
         # stdout 关闭 = worker 退出
         # 🔴 §21：`poll()` 在进程刚死时可能仍返回 None（Windows 上退出码还没回填）
         #   ⇒ 旧代码把 `rc=None` 记进日志，且**判断不到「真的死了」**。
@@ -313,6 +417,17 @@ class TTSService:
             rc = proc.wait(timeout=2)
         except Exception:
             rc = proc.poll()
+        # 🔴🔴 §53：**读循环异常 ⇒ 进程不一定死了** ⇒ 先确认它到底死没死。
+        #   `poll()` 返回 None ⇒ **还活着** ⇒ 绝不判死（否则会误杀一个健康 worker），
+        #   直接标 error 并**带上真实原因**（解码错误），让界面/日志说人话。
+        if read_error is not None and rc is None:
+            self.state = 'error'
+            self.err = RuntimeError(
+                f'读取 TTS worker 输出失败：{type(read_error).__name__}: '
+                f'{read_error}')
+            self.last_error = str(self.err)
+            self._dump_error(str(self.err))
+            return
         # 🔴 §21：只有「**不是**主动 close 导致的退出」才走重启路径。
         #   主动 close 时 `_closing=True` ⇒ 不重启（否则就是孤儿泄漏）。
         if self.state != 'idle' and not self._closing:
@@ -668,6 +783,19 @@ class TTSService:
                     self._dropped_ids.discard(msg_id)
                 if not already:
                     self.n_dropped += 1
+                # 🔴🔴 APP-021③：**句子级失败单独计数**（`n_failed`）。
+                #   旧行为：句子级 error 被混进 `n_dropped` ⇒ 界面分不清
+                #   「这句被丢弃（积压超限）」和「这句失败了（合成/播放问题）」。
+                #   ⇒ 现在分开：已播 / 丢句 / 失败 三个数（对话框要显示）。
+                #   ⚠️ **口径**：不变式仍然是
+                #     `n_played + n_dropped == n_submitted`（**不动**，
+                #     §29/§30/§47 建立的账本口径不能被这次改动破坏）
+                #     ⇒ `n_failed` 是 `n_dropped` 的**子集**
+                #     （只有「既没被积压丢、又失败」的那句才 +1）
+                #     ⇒ 界面上的三个数是「已播 / 丢句(含失败) / 失败(其中)」。
+                if not already:
+                    self.n_failed += 1
+                self.last_sentence_error = ('第 %s 句：%s' % (msg_id, message))
                 self.on_log(f'[TTS] 第 {msg_id} 句合成失败（已丢弃，语音输出继续）：'
                             f'{message}')
             else:
@@ -739,6 +867,46 @@ class TTSService:
                 self.on_log(f'[TTS] 第 {jid} 句已按积压丢弃，但 worker 仍播了出来'
                             f'（改记为已播）')
             self.n_played += 1
+            # 🔴🔴 APP-021②：`played` 现在带**每句遥测** ⇒ 存下来供界面显示，
+            #   并**追加进会话日志**（复盘时能看到「这一句到底播了没有」）。
+            #   ⚠️ 语义（APP-021①）：`played` 现在**只在音频已被播放回调
+            #   全部取走之后**才发 ⇒ 它**才真的代表「出声了」**。
+            tel = msg.get('telemetry')
+            if tel:
+                self.last_telemetry = tel
+                self.on_log('[TTS] 遥测 id=%s peak=%s rms_dbfs=%s '
+                            'read_delta=%s consumed=%s%s'
+                            % (jid, tel.get('peak'), tel.get('rms_dbfs'),
+                               tel.get('read_delta'), tel.get('consumed'),
+                               (' [静音合成]' if tel.get('silent_synth') else '')))
+        elif kind == 'written':
+            # 🔴 APP-021③：本句音频已**全部写进**环形缓冲（**还没播完**）。
+            #   ⇒ 主进程用它更新**真实积压**（缓冲里的音频只剩几秒待播，
+            #      不是整句时长）⇒ 避免因 `played` 推迟而**高估积压**
+            #      ⇒ 避免连续会议里多丢句。
+            #   ⚠️ **不动记账**：这句仍然算「在途」（还没出声），
+            #      `n_played` 只有真的 `played` 才 +1。
+            jid = msg.get('id')
+            with self.lock:
+                it = self.pending.get(jid)
+                if it is not None:
+                    it['written'] = True
+                    it['dur_s'] = msg.get('dur_s')
+            self._update_backlog()
+        elif kind == 'test_tone':
+            # 🔴 APP-021④：「测试声音」的结果回传
+            ok = bool(msg.get('ok'))
+            tel = msg.get('telemetry') or {}
+            self.last_telemetry = tel
+            self.on_log('[TTS] 测试声音：%s（%s，回调 +%s / 已读 +%s）'
+                        % ('成功' if ok else '失败',
+                           msg.get('message', ''),
+                           tel.get('cb_delta', '-'), tel.get('read_delta', '-')))
+        elif kind == 'telemetry':
+            # 🔴 APP-021②：拉取到的遥测快照
+            tel = msg.get('telemetry') or {}
+            self.last_telemetry = tel
+            self.on_log('[TTS] 遥测快照：%s' % tel)
         elif kind == 'dropped':
             # ⚠️ **不再计数**（2026-10-22 修）：
             # worker 的 `dropped` 事件是对主进程 `cancel` 指令的**回执**，
@@ -753,6 +921,24 @@ class TTSService:
         with self._outbox_lock:
             out, self._outbox = self._outbox, []
         return out
+
+    # 🔴 APP-021④：让 GUI 能触发「测试声音」（走**同一个 worker 的 Player**）。
+    def test_tone(self, freq: float = 440.0, dur_s: float = 1.0,
+                  amp: float = 0.3) -> bool:
+        """发一条 `test_tone` 指令给 worker。
+
+        返回 True = 指令**已下发**（不代表已播完 —— 结果在 `test_tone` 事件里）。
+        """
+        return self._send({'cmd': 'test_tone', 'freq': freq,
+                           'dur_s': dur_s, 'amp': amp})
+
+    # 🔴 APP-021②：拉一次播放器遥测（不含模型）。
+    def request_telemetry(self) -> bool:
+        return self._send({'cmd': 'telemetry'})
+
+    # 🔴 APP-021⑥：**运行时**开关逐句 wav 落盘（worker 已经在跑也能改）。
+    def set_dump_dir(self, path: Optional[str]) -> bool:
+        return self._send({'cmd': 'set_dump_dir', 'dir': path or ''})
 
     def _emit(self, kind, payload):
         with self._outbox_lock:
@@ -777,6 +963,16 @@ class TTSService:
         # 粗略估算：中文 ~5 字/秒，英文 ~2.5 词/秒
         est = 0.0
         for it in pending:
+            # 🔴 APP-021③：**音频已写进环形缓冲**的句子 ⇒ 用**真实时长**
+            #   且**只算还没播的那部分**（环形缓冲容量 3 s ⇒ 最多 3 s 待播）
+            #   ⇒ 否则会把这句的**整段时长**都算进积压 ⇒ 高估 ⇒ 多丢句。
+            if it.get('written'):
+                try:
+                    d = float(it.get('dur_s') or 0.0)
+                except Exception:
+                    d = 0.0
+                est += min(3.0, d)
+                continue
             t = it['text']
             cjk = sum(1 for ch in t if '\u4e00' <= ch <= '\u9fff')
             other = len(t) - cjk
@@ -794,6 +990,15 @@ class TTSService:
                 drop_ids = []
                 acc = 0.0
                 for jid, it in self.pending.items():
+                    # 🔴 APP-021③：已写进缓冲的句子 ⇒ 剩余待播 ≤ 3 s
+                    if it.get('written'):
+                        try:
+                            d = float(it.get('dur_s') or 0.0)
+                        except Exception:
+                            d = 0.0
+                        acc += min(3.0, d)
+                        drop_ids.append(jid)
+                        continue
                     t = it['text']
                     cjk = sum(1 for ch in t if '\u4e00' <= ch <= '\u9fff')
                     d = cjk / 5.0 + (len(t) - cjk) / 15.0
@@ -837,4 +1042,11 @@ class TTSService:
             clone=self.clone,
             # 🔴 §52：worker 级故障的**原文**（None = 没有故障）
             last_error=self.last_error,
+            # 🔴 APP-021③：三个数（已播 / 丢句 / 失败）+ 最近一条句子级错误
+            n_failed=self.n_failed,
+            last_sentence_error=self.last_sentence_error,
+            # 🔴 APP-021②：最近一行的播放遥测
+            last_telemetry=self.last_telemetry,
+            # 🔴 APP-021③：会话日志路径（用户报障时给这一个文件即可复盘）
+            session_log=session_log_path(),
         )

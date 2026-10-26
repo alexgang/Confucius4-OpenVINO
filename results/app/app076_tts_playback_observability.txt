@@ -1,0 +1,72 @@
+APP-021 自检：把播放链路做成可观测
+时间：2026-10-26 16:21:35
+结果：38 PASS / 0 FAIL（共 38 项）
+
+PASS  A0 抽到 Player 类
+PASS  A2 n_read 未追上 ⇒ 判失败（不是「已播完」）  |  diag=等待播放消费超时 0.3 s（已读 0 / 目标 24000，回调 0 次）
+PASS  A3 n_read 追上 ⇒ 判成功  |  diag=
+PASS  A4 播放回调推进后能等到「播完」  |  耗时 0.17 s
+PASS  A5 telemetry 字段齐全  |  缺 []
+PASS  A6 测试声音：n_read 增量 ≈ sr×1 s（24000）  |  n_read +24000 / 回调 +3
+PASS  A7 无播放器 ⇒ 测试声音明确失败（不假装成功）  |  msg=播放流未打开（没有输出设备）
+PASS  A8 源码：`played` 只在 wait_consumed 之后发出  |  played emit 点 1 个；before_wait=[True]
+PASS  B0 抽到 append_session_log / session_log_path
+PASS  B1 会话日志文件已创建且追加了内容  |  路径=C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\session_20261026_162135.log
+PASS  B2 会话日志路径在 %LOCALAPPDATA%\Confucius4LiveCaption 下  |  C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\session_20261026_162135.log
+PASS  B3 service 有 n_failed（独立于 n_dropped）
+PASS  B4 service 有 last_sentence_error
+PASS  B5 stats() 带出 n_failed / last_sentence_error / session_log
+PASS  B6 service 处理 written 事件（真实积压口径）
+PASS  B7 service 处理 test_tone / telemetry 事件
+PASS  B8 service 提供 test_tone() / set_dump_dir() 指令
+PASS  C1 `_ui_log` 落盘到会话日志
+PASS  C2 `cb_tts_out` 绑了 <<ComboboxSelected>>
+PASS  C3 有 `_on_tts_out_changed`（改下拉 ⇒ 重启 worker）
+PASS  C4 重启时把新设备写进日志
+PASS  C5 TTS 行有「🔊 测试声音」按钮
+PASS  C6 有 `_on_tts_test_sound`
+PASS  C7 `_tts_meter` 显示失败数
+PASS  C8 离线朗读对话框显示「已播 / 丢 / 失败」三个数
+PASS  C9 离线朗读对话框显示最近一条句子级错误
+PASS  C10 离线朗读对话框有「🔊 测试声音」按钮
+PASS  C11 离线朗读对话框有「同时保存 wav」勾选
+PASS  D1 worker 支持 --dump-dir
+PASS  D2 worker 支持 set_dump_dir 指令（运行时开关）
+PASS  D3 worker 支持 test_tone 指令
+PASS  D4 worker 支持 telemetry 指令
+PASS  D5 播放器不可用 ⇒ 发句子级 error（含 id）
+PASS  D6 无音频产出 ⇒ 不发 played（改发句子级 error）
+PASS  D7 每句遥测写进 worker 日志
+PASS  D8 静音合成有显式标记
+PASS  D9 `_fmt_telemetry` 含峰值/RMS/NaN/回调/已读/欠载
+PASS  D10 `played` 事件带遥测
+
+--- 证据 ---
+{
+  "A2_not_consumed": {
+    "ok": false,
+    "diag": "等待播放消费超时 0.3 s（已读 0 / 目标 24000，回调 0 次）"
+  },
+  "A4_wait_consumed": {
+    "ok": true,
+    "elapsed": 0.172
+  },
+  "A6_test_tone": {
+    "ok": true,
+    "msg": "已播放 1.00 s 440 Hz 正弦波（幅度 0.30）；全部消费完毕",
+    "read_delta": 24000
+  },
+  "A8_played_emit_points": [
+    {
+      "played_line": 1175,
+      "wait_lines": [
+        1146
+      ],
+      "before_wait": true
+    }
+  ],
+  "B1_session_log": {
+    "path": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\session_20261026_162135.log",
+    "exists": true
+  }
+}

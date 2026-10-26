@@ -70,6 +70,10 @@ class OfflineReaderDialog(tk.Toplevel):
         self._last_dir = initial_dir or os.path.expanduser('~')
         self._src_info = ''            # 文件解析信息（用于状态栏）
         self._alive = True
+        # 🔴 APP-021⑥：勾选后**每段落盘一个 wav**（供 reviewer 算 RMS / 回转写）
+        self.var_dump = tk.BooleanVar(value=False)
+        # 🔴 APP-021④：测试声音按钮的反馈
+        self._test_result = ''
 
         self._build()
         self._refresh_stats()
@@ -108,6 +112,26 @@ class OfflineReaderDialog(tk.Toplevel):
         ttk.Label(stat, textvariable=self.var_stat, foreground='#555').pack(side='left')
         self.var_prog = tk.StringVar(value='')
         ttk.Label(stat, textvariable=self.var_prog, foreground='#1565c0').pack(side='right')
+
+        # 🔴🔴 APP-021③：**「已播 / 丢 / 失败」三个数** + 最近一条句子级错误。
+        #   起因：用户那次「听不到声音」的会话**界面上什么证据都没有**
+        #   （旧行为只有一个「TTS 状态」和一个进度串）。
+        #   ⇒ 现在这三个数常驻，用户一眼能看出「到底播了没有」。
+        cnt = ttk.Frame(self)
+        cnt.pack(fill='x', padx=8)
+        self.var_counts = tk.StringVar(value='已播 0 · 丢 0 · 失败 0')
+        ttk.Label(cnt, textvariable=self.var_counts,
+                  foreground='#1565c0').pack(side='left')
+        self.var_last_err = tk.StringVar(value='')
+        ttk.Label(cnt, textvariable=self.var_last_err,
+                  foreground='#c0392b').pack(side='left', padx=(10, 0))
+        # 🔴 APP-021④：测试声音按钮（离线朗读这边也放一个，方便排查）
+        self.btn_test = ttk.Button(cnt, text='🔊 测试声音', width=12,
+                                   command=self._test_sound)
+        self.btn_test.pack(side='right')
+        # 🔴 APP-021⑥：同时保存 wav（勾选后每段落盘一个 wav）
+        ttk.Checkbutton(cnt, text='同时保存 wav', variable=self.var_dump
+                        ).pack(side='right', padx=(0, 10))
 
         bot = ttk.Frame(self, padding=(8, 6))
         bot.pack(fill='x')
@@ -231,6 +255,8 @@ class OfflineReaderDialog(tk.Toplevel):
 
         self._reader = OR.OfflineReader(
             svc, on_log=lambda m: self._on_log(f'[offline] {m}'))
+        # 🔴 APP-021⑥：勾了「同时保存 wav」⇒ 告诉 worker 落盘目录
+        self._apply_dump_dir()
         n = self._reader.start(segs)
         st = getattr(svc, 'state', '?')
         self.btn_start.configure(state='disabled')
@@ -273,11 +299,86 @@ class OfflineReaderDialog(tk.Toplevel):
         self.btn_stop.configure(state='disabled')
         self._on_log('[offline] 用户停止朗读')
 
+    # ── 测试声音（APP-021④）────────────────────────────────────────────
+    def _test_sound(self):
+        """播 1 s 440 Hz 正弦波（走**同一个 worker 的 Player**）。
+
+        🔴 这是 APP-021 验收 C 的第一步：
+        **先点测试声音，再点离线朗读**。
+        - 听到 440 Hz、但 TTS 听不到 ⇒ 看「峰值/RMS」⇒ 合成侧问题；
+        - 440 Hz 也听不到 ⇒ 设备/音量/系统问题（与 TTS 无关）。
+        """
+        svc = self._get_svc()
+        if svc is None:
+            svc = self._ensure_svc()
+        if svc is None:
+            self.var_last_err.set('🔴 语音输出没能启动 ⇒ 无法测试声音')
+            self._on_log('[offline] 测试声音：TTS 未启动')
+            return
+        try:
+            if not svc.test_tone():
+                self.var_last_err.set('🔴 测试声音指令没能下发（worker 可能已退出）')
+                self._on_log('[offline] 测试声音：指令下发失败')
+                return
+        except Exception as e:
+            self.var_last_err.set(f'🔴 测试声音失败：{e}')
+            self._on_log(f'[offline] 测试声音异常：{e!r}')
+            return
+        self.var_last_err.set('🔊 正在播放 1 秒测试音（440 Hz）…请确认是否听到')
+        self._on_log('[offline] 测试声音已触发（1 s 440 Hz）')
+
+    # 🔴 APP-021⑥：把「同时保存 wav」同步给 worker。
+    def _apply_dump_dir(self):
+        svc = self._get_svc()
+        if svc is None:
+            return
+        d = None
+        if self.var_dump.get():
+            try:
+                import tempfile
+                d = os.path.join(tempfile.gettempdir(),
+                                 'confucius4_offline_tts_%d' % os.getpid())
+                os.makedirs(d, exist_ok=True)
+            except Exception as e:
+                self._on_log(f'[offline] 建落盘目录失败：{e!r}')
+                return
+        try:
+            svc.set_dump_dir(d)
+            self._on_log(f'[offline] 逐句 wav 落盘：{d or "（关闭）"}')
+        except Exception as e:
+            self._on_log(f'[offline] 设置落盘目录失败：{e!r}')
+
+    # 🔴🔴 APP-021③：把「已播 / 丢 / 失败」三个数 + 最近一条句子级错误
+    #   **常驻显示**在对话框里。
+    #   🔴 语义（与服务端一致）：`n_failed` 是 `n_dropped` 的**子集**
+    #      （只有「既没被积压丢、又失败」的那句才 +1）⇒ 三个数可以并列展示。
+    def _refresh_counts(self):
+        svc = self._get_svc()
+        if svc is None:
+            return
+        try:
+            st = svc.stats()
+        except Exception:
+            return
+        self.var_counts.set('已播 %s · 丢 %s · 失败 %s'
+                            % (st.get('n_played', 0), st.get('n_dropped', 0),
+                               st.get('n_failed', 0)))
+        # 🔴 APP-021②：把最近一条遥测也摆出来（峰值 / RMS 是「有没有声」的硬信息）
+        tel = st.get('last_telemetry') or {}
+        if tel:
+            self.var_last_err.set('最近一句：峰值 %s · RMS %s dBFS · 已读 +%s'
+                                  % (tel.get('peak', '-'), tel.get('rms_dbfs', '-'),
+                                     tel.get('read_delta', '-')))
+        err = st.get('last_sentence_error')
+        if err:
+            self.var_last_err.set('🔴 ' + err)
+
     # ── 轮询 ────────────────────────────────────────────────────────────
     def _poll(self):
         if not self._alive:
             return
         try:
+            self._refresh_counts()
             r = self._reader
             if r is not None:
                 s = r.snapshot()

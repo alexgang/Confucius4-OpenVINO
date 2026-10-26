@@ -1,0 +1,27 @@
+{
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5",
+  "files": [
+    {
+      "file": "tts_service.py",
+      "action": "same",
+      "sha256": "3cd374bc87904a72d3b73cd6dc9eb1dd95c2404b9b877a9be87a35624309f19e"
+    },
+    {
+      "file": "tts_worker.py",
+      "action": "copy",
+      "sha256_before": "b6cca39384b3034c81db408c1ec808ea5a32b70047a93b2bc3d38ea660725d86",
+      "sha256_after": "4d43a8733b7ac93c8d33e9eddec9904f0d9c3ecaf906033fcce87eaddfd68f85",
+      "verified": true
+    },
+    {
+      "file": "offline_reader_gui.py",
+      "action": "same",
+      "sha256": "0d3b6cc776871e8435622fb30988dc8e00b5c303af43154b905745dedea621e1"
+    },
+    {
+      "file": "live_caption_app.py",
+      "action": "same",
+      "sha256": "15439a97ae5b1fb59f129569c6d5af48c7aafdf0fff1f598498cd9a35d5ec874"
+    }
+  ]
+}

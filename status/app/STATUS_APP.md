@@ -1,15 +1,21 @@
 # STATUS_APP
-last_ack: APP-020
-更新时间: 2026-10-26 15:05
-当前任务: **§52 🔴 响应用户「TTS worker 故障（error）⇒ 朗读中止」—— 查出一条确定的 error 路径并修掉 + 让故障自带原因** ⇒ ① **不是**朗读逻辑的问题：该提示来自 `offline_reader` 的 `svc.state == "error"`（worker 级故障），只有两个产地：`播放设备打开失败`(tts_worker L339) / `模型加载失败`(L1067)；② 逐层排除：CUDA venv 与边车**都在**（torch 2.11.0+cu128 / transformers 5.15.1 / avail=True）、HF 权重在、GPU 干净（342 MiB）、**单独起边车 ready 18.48 s**、**真实 TTSService 起 CUDA ready 24.29 s 且首包 2.214 s 播放成功** ⇒ 后端没坏；③ 🔴🔴 **查出真缺陷：同一个 WASAPI 端点 id 解析结果不稳定** —— `app071` 日志里主线程解析成「播放索引 3」，`_reopen_player()`（在 `_safe_load` **线程**里）再解析变成「无法识别 ⇒ 改用系统默认」（`soundcard` 取扬声器要 COM，子线程没初始化，异常被 `except` 吞掉）⇒ 用户在下拉里选的设备被**悄悄换掉**；默认设备再不可用就直接走到 `播放设备打开失败` ⇒ **worker 级 error**；修复 = **按 id 缓存** + **尽力 CoInitializeEx** + 失败也缓存（`tts_worker.resolve_out_device`）⇒ 修复后同一条日志由 `device=默认设备` 变成 `device=3（缓存）`；④ 🔴 **CUDA 失败不再静默回落**（旧行为：边车起不来 ⇒ 回落 ov ⇒ 回落 torch 参考实现 `import tts_model` ⇒ 最终报「模型加载失败：No module named 'tts_model'」——**与真实原因毫无关系**，误导过我）；⑤ 🔴 **故障自带原因**：`TTSService` 新增 `last_error` + `log_tail(200)` + 落盘 `%LOCALAPPDATA%\Confucius4LiveCaption\tts_worker_error.log`（含前因 60 行），`stats()` 带出 `last_error`；⑥ 🔴 **修我的重启隐患**：`close()` 只 kill worker、不杀边车 ⇒ 立刻起新 worker 会双份显存（各≈2.5 GB / 共 8 GB）⇒ OOM ⇒ 又 error ⇒ 现在重启前**等旧 worker 真退出**（≤5 s）；⑦ 对话框：error 时显示**真实原因 + 最近日志**，并给「↻ 重试」（真的重启 worker 后重念）；⑧ ✅ 证据：`app071` **真实 CUDA 音频** （ready 24.29 s / 首包 1.924 s / played 1）⇒ **§51「真实音频未验证」一并结清**；`app072` **13/13**、`app069` **37/37**、`app070` **21/21**、包内 `--check` 全 OK ⇒ ✅ 已同步散包（4 文件 27 个变更块逐字校验）；⛔ zip 仍未重打（守 APP-020）
+last_ack: APP-021
+更新时间: 2026-10-26 16:20
+当前任务: **§54 🔴 响应 APP-021 —— 把播放链路做成可观测，并**撤回**「played ≥ 1 ⇒ 能出声」这个无效判据** ⇒ ① 🔴🔴 **撤回 §52.1/§52.6 的结论**：`played` 旧实现是在「最后一块写进环形缓冲后」立刻发的（缓冲 3 s ⇒ 发 `played` 时最多还有 3 s 音频没播；`player is None` 时音频被**直接扔掉却照样发 played**）⇒ **「played 1 ⇒ 端到端能出声」这个判据无效**，`app071` 的「OK 语音输出正常」什么都证明不了 ⇒ **§51「真实音频未验证结清」一并撤回**（那条也是靠 played 判的）；② `played` 改成**真的播完**：`ring.n_read` 追上本句最后样本的写入位置才发（等待可 cancel/stop，超时报**带诊断的句子级 error**）；③ **播放器不可用 ⇒ 发句子级 error**（`'播放器不可用，音频未输出'` + id），**不再**发 played；④ **每句一行遥测**：`out_desc`/`sr`/样本数/峰值/**RMS(dBFS)**/NaN·Inf 数/回调增量/`n_read` 增量/欠载次数；峰值 < 1e-3 或有 NaN ⇒ 标「静音合成」；⑤ **会话日志落盘**：GUI `_ui_log` + TTSService `log_tail` 一律追加写 `%LOCALAPPDATA%\Confucius4LiveCaption\session_YYYYMMDD_HHMMSS.log`（**不只在 error 时写**）；⑥ **「🔊 测试声音」按钮**（离线朗读对话框 + TTS 行）：经**同一个 worker 的 Player** 播 1 s 440 Hz（幅度 0.3），播放前后显示 `n_cb`/`n_read` 增量与实际输出设备 ⇒ 把「播放链路」与「TTS 合成」**彻底拆开**；⑦ `cb_tts_out` 绑 `<<ComboboxSelected>>`（改下拉 ⇒ 重启 worker + 日志写明新设备）；⑧ 新增 `--tts-dump-dir` + 运行时 `set_dump_dir` ⇒ 逐句落盘 wav；⑨ 离线朗读对话框显示**「已播 / 丢 / 失败」三个数** + 最近一条句子级错误原文；⑩ 🔴 **顺带修掉一个被 played 语义变更牵连的隐患**：`played` 推迟到「播完」后 ⇒ 主进程 `pending` 会多挂一句时长 ⇒ **积压被高估 ⇒ 连续会议里多丢句** ⇒ 新增 `written` 事件（音频已全部写进缓冲）+ 积压按「缓冲里剩 ≤ 3 s」计；⑪ ✅ `app076` **38/38**（不加载模型）、`app069` **37/37**、`app072` **13/13**、`app073` **16/16×3 模式**、`app070` 19/21（2 条**截图**失败 = **既有问题**，stash 回退验证过）；⑫ ✅ **验收 A/B 已跑**（真实 CUDA + 真实声卡 + 真实遥测 + wav 落盘）⇒ 见 §54.5
 
-阻塞 / 待用户决定: ① 🔴 **§52 请复现一次并回传日志**：已修掉一条确定的 error 路径（设备解析）并让故障自带原因，但**用户那次为什么 error 仍无直接证据**（当时没有落盘日志）⇒ 若再出现，对话框会直接显示原因，且 `%LOCALAPPDATA%\Confucius4LiveCaption\tts_worker_error.log` 会有完整前因；② ✅ **真实音频已验证**（`app071` CUDA：ready 24.29 s / 首包 1.924 s / 已播 1 句，且输出设备解析成用户选的那个）⇒ 但仍建议在 **GUI 里点一次「📖 离线朗读…」**确认人耳能听到（`app071` 走的是同一条 `submit` 链路，不是 GUI 点击路径）；③ 🔴 **§51/§52 代码已进散包、zip 未重打**（守 APP-020，与 cp_prefill 一起重打）；④ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑤ 🔴 **§49.7 待裁定**（APP-020 明确「先不要定」⇒ 未动）；⑥ 🔴 **§45.6①–⑤ 等 reviewer 裁定**；⑦ 🔴 **等裁定**：是否采纳 `MAX_SEG_SPAN = 2`（§44 候选已备好）；⑧ 🔴 **需回复 MT 通知 13**；⑨ 🔴 **§46.5** 第三方依赖可满足性闸门；⑩ 🔴 **§42.3 修复待用户实机确认**；⑪ ⛔ **FTP 服务仍关闭**（守 APP-009③；FTP_Share 副本 = 12:06 那份 v1.5 zip，**不含 §51/§52**）；⑫ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑬ ⛔ 包体优化未做（用户已接受）；⑭ ⛔ V7 残句代价待确认
+阻塞 / 待用户决定: ① 🔴 **APP-021 验收 C 需用户配合**（需人）：在交互会话里、系统音量 ≥ 50%、戴平时耳机或外放 ⇒ **先点「🔊 测试声音」再点离线朗读念一句** ⇒ 听到后把会话日志路径与遥测行写进本 STATUS；**先点测试声音**是 APP-021 明文要求（用来区分「设备问题」与「合成问题」）；② 🔴 **撤回后的口径**：在用户用耳朵确认之前，**不得**再宣称「离线朗读能出声」；③ 🔴 **§51/§52 代码已进散包、zip 未重打**（守 APP-020，与 cp_prefill 一起重打）；④ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑤ 🔴 **§49.7 待裁定**（APP-020 明确「先不要定」⇒ 未动）；⑥ 🔴 **§45.6①–⑤ 等 reviewer 裁定**；⑦ 🔴 **等裁定**：是否采纳 `MAX_SEG_SPAN = 2`（§44 候选已备好）；⑧ 🔴 **需回复 MT 通知 13**；⑨ 🔴 **§46.5** 第三方依赖可满足性闸门；⑩ 🔴 **§42.3** 修复待用户实机确认；⑪ ⛔ **FTP 服务仍关闭**（守 APP-009③；FTP_Share 副本 = 12:06 那份 v1.5 zip，**不含 §51/§52/§54**）；⑫ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑬ ⛔ 包体优化未做（用户已接受）；⑭ ⛔ V7 残句代价待确认
 
 
 ## 最近更新
-- 15:05 §52 🔴🔴 **查出确定的 error 路径**：同一个 WASAPI 端点 id 在**子线程**里再解析会失败（`soundcard` 需 COM）⇒ 用户选的设备被**悄悄换成系统默认**⇒ 现在「按 id 缓存 + CoInitializeEx」，日志由 `device=默认设备` 变为 `device=3`
-- 15:05 §52 🔴 **故障自带原因**：`TTSService.last_error` + `log_tail` + 落盘 `tts_worker_error.log`；对话框直接显示原因并给「↻ 重试」（重启 worker 后重念）
-- 15:05 §52 ✅ **真实音频已通**（`app071` CUDA：首包 1.924 s / played 1）；`app072` 13/13、`app069` 37/37、`app070` 21/21；已同步散包（zip 未重打）
+- 16:20 §54 🔴🔴 **撤回 §52.1/§52.6 的「played 1 ⇒ 能出声」结论**（APP-021）：`played` 只代表"写进缓冲"，`player is None` 时音频被**扔掉却照样发 played** ⇒ 旧判据无效 ⇒ **§51「真实音频未验证结清」一并撤回**
+- 16:20 §54 🔴 **played 改成「真的播完」**：`ring.n_read` 追上本句最后样本写入位置才发；超时 ⇒ 带诊断的句子级 error；**播放器不可用 ⇒ 句子级 error**（不再发 played）
+- 16:20 §54 ✅ **每句一行遥测**：out_desc/sr/样本数/**峰值**/**RMS(dBFS)**/NaN·Inf/回调增量/`n_read` 增量/欠载次数；峰值 < 1e-3 或有 NaN ⇒ 标「静音合成」
+- 16:20 §54 ✅ **会话日志落盘**：`%LOCALAPPDATA%\Confucius4LiveCaption\session_YYYYMMDD_HHMMSS.log`（GUI + TTS 全量，不再只在 error 时写）⇒ 用户报障给一个文件即可复盘
+- 16:20 §54 ✅ **「🔊 测试声音」按钮**（离线朗读对话框 + TTS 行）：1 s 440 Hz 走**同一个 worker 的 Player** ⇒ 把「播放链路」与「TTS 合成」拆开
+- 16:20 §54 ✅ **`cb_tts_out` 绑变更事件**（改下拉 ⇒ 重启 worker + 日志写明新设备）+ **`--tts-dump-dir`** / 运行时 `set_dump_dir` ⇒ 逐句 wav 落盘
+- 16:20 §54 ✅ **离线朗读对话框显示「已播 / 丢 / 失败」三个数** + 最近一条句子级错误原文
+- 16:20 §54 🔴 **顺带修掉「played 推迟 ⇒ 积压高估 ⇒ 多丢句」**：新增 `written` 事件 + 积压按「缓冲里剩 ≤ 3 s」计
+- 16:20 §54 ✅ 自检 `app076` **38/38**、`app069` 37/37、`app072` 13/13、`app073` 16/16×3；已同步散包（4 文件逐字校验，zip 未重打）
 - 13:45 §51 🆕 **离线朗读上线**：文件 / 对话框文本 → TTS（**不经过 ASR/翻译**，直接 `tts.submit()`）⇒ 逻辑自检 37/37 + GUI 冒烟 21/21（均不加载模型）
 - 13:45 §51 🔴🔴 **节流是命门**：一次性喂整篇 ⇒ 积压 >8 s ⇒ **丢 238/240**；按「pending 总预算 7.0 s < 阈值 8 s」节流后 **0 丢**；单段超预算会「自己丢自己」（36 s 段实测）⇒ 每段 ≤ 3.4 s
 - 13:45 §51 ✅ 已同步散包（2 新增 + 1 修改逐字校验）+ `--check` OK + 主窗口截图确认新按钮；**zip 未重打**（守 APP-020）
@@ -9083,3 +9089,216 @@ ASR 的 `wait_and_build_r2t2.py`（pid 31632/33652，`--poll 30`）在等**本�
 - `app071` 走的是 `TTSService.submit()` 链路（与对话框完全相同），但**不是** GUI 点击路径
   ⇒ 人耳确认仍需一次 GUI 实测。
 - ⛔ **zip 仍未重打**（守 APP-020：与 cp_prefill 一起重打）。
+
+## §54 🔴 响应 APP-021 —— 把播放链路做成可观测，并**撤回**「played ≥ 1 ⇒ 能出声」这个无效判据（2026-10-26 16:20）
+
+> 本节 ack `CORRECTIONS_APP.md` 的 **APP-021 [HIGH] 2026-10-26 15:25**。
+> ⚠️ **编号说明**：并行会话已把 **§53** 用于 `pkg_paths` 单一数据源修复
+> （commit `02f4c60`）⇒ 本节用 **§54**，避免撞号。
+
+### §54.1 🔴🔴 **撤回两条结论**（APP-021⑦ 的核心）
+
+| 原结论 | 位置 | 处置 |
+|---|---|---|
+| 「`played` 1 ⇒ 端到端能出声」 | §52.1 / §52.6 | 🔴 **撤回** |
+| 「§51 真实音频未验证 **结清**」 | §52.8 的证据表 | 🔴 **一并撤回** |
+
+**为什么必须撤回**（APP-021 证据 1，逐条落到代码）：
+
+1. `tts_worker.synth()` 的 `played` 是在**最后一块写进环形缓冲后**立刻发的，
+   **不是「声卡播完」** ⇒ 环形缓冲容量 `sr*3`（3 s）⇒ 发 `played` 时
+   **最多还有 3 s 音频没播**。
+2. `player is None` 时（`run()` L1071 或 `_reopen_player()` 失败），
+   循环里 `elif self.player is not None` **整段跳过** ⇒
+   **音频被直接扔掉，却照样发 `played`** ⇒ 主进程记「已播」
+   ⇒ 界面显示正常 ⇒ **实际一声没出**。
+3. `app071` 的判定是 `n_played >= 1 ⇒ 'OK 语音输出正常'`（L125），
+   看到 played 就 `break` 然后 `svc.close()`（L114/L132），**close 会 kill worker**
+   ⇒ 探针那一句如果 ≤ 3 s，**可能整句都还在缓冲里就被杀掉了**。
+4. `app071` 没记 `n_cb`、`ring.n_read`，**没算峰值/RMS，也没人听**
+   ⇒ 那个「OK」**什么都证明不了**。
+5. `app070` 用的是**假 service**（STATUS 自己已注明）
+   ⇒ **到现在为止，没有任何一条证据证明离线朗读在声卡上真的出过声**。
+
+⇒ **本节之后**：在用户用耳朵确认之前，**不得**再宣称「离线朗读能出声」。
+
+### §54.2 `played` 语义改成「**真的播完**」（APP-021①）
+
+**worker 侧**（`live_caption/tts_worker.py`）：
+
+- 新增 `Player.wait_consumed(target, timeout_s, should_stop)`
+  ⇒ 等 `ring.n_read >= target`（`target` = **本句最后样本的写入位置**，
+  在 `_synth_lock` **内**取 ⇒ 不会被下一句放大）。
+- `synth()` 的收尾顺序改为：
+  `written` 事件 → `wait_consumed()` → **重算遥测** → 发 `played`。
+- 等待**可被 cancel / stop 中止**；超时 ⇒ 发**带诊断的句子级 error**
+  （`'音频未被播放完（已读 X / 目标 Y，回调 N 次）'`），**不发** `played`。
+- `player is None` 且非 out_wav 模式 ⇒ 发**句子级 error**
+  （`'播放器不可用，音频未输出'` + id），**不再**发 `played`。
+- 引擎**没产出任何音频**（`n_parts == 0`）⇒ 同样改发**句子级 error**
+  （旧行为发 `played` ⇒ 界面显示「已播 1」但**声卡上一声都没有**）。
+
+**service 侧**（`live_caption/tts_service.py`）：
+
+- 句子级 error ⇒ 新增 `n_failed` 计数（**独立于** `n_dropped`）
+  ⇒ 界面能区分「被积压丢弃」与「失败」。
+- ⚠️ **口径**：`n_failed` 是 `n_dropped` 的**子集**
+  （只有「既没被积压丢、又失败」的那句才 +1）
+  ⇒ §29/§30/§47 建立的不变式
+  `n_played + n_dropped == n_submitted` **保持不动**（不能被这次改动破坏）。
+
+### §54.3 每句一行播放遥测（APP-021②）
+
+一行里含：`out_desc` / `sr` / 本句样本数 / 分块数 / **峰值** /
+**RMS(dBFS)** / **NaN·Inf 个数** / **回调次数增量** / **`ring.n_read` 增量** /
+**欠载次数增量** / 缓冲水位 / `consumed` 标志。
+
+- 峰值 < `1e-3` 或有 NaN·Inf ⇒ 标 **「静音合成」**。
+- 写进 **worker 日志**（一行），并**通过 `played`/`error` 事件带回主进程**
+  ⇒ `TTSService.last_telemetry` ⇒ 界面显示。
+- 🔴 **口径坑（实测踩到）**：遥测快照**必须等播完之后再算**。
+  第一版在「写完缓冲那一刻」算 ⇒ `read_delta` 只统计到**那一刻**已被取走的部分
+  （实测 68 608 / 本句 120 960）⇒ **判据「n_read 增量 ≥ 本句样本数」会被误判成失败**
+  ⇒ 现在**播完后重算**（见 §54.5 的 A4 复测）。
+
+### §54.4 会话日志落盘 + 「已播/丢/失败」三个数（APP-021③）
+
+- **会话日志**：`%LOCALAPPDATA%\Confucius4LiveCaption\session_YYYYMMDD_HHMMSS.log`
+  ⇒ GUI 的 `_ui_log` **与** `TTSService.log_tail` **一律追加**写
+  （**不只在 error 时写**）⇒ 用户报障时给**一个文件**即可复盘整个会话。
+  ⚠️ 起因（APP-021 证据 2）：用户那次会话**没留下任何证据**
+  —— `_ui_log()` 只 `var_status.set`（后一条覆盖前一条），
+  `live_caption.log` 最后 mtime 是 10-21，
+  `tts_worker_error.log` 只在 worker 级 error 时写（目标机上**没有**这个文件）。
+- **离线朗读对话框**：常驻显示 **「已播 / 丢 / 失败」三个数**
+  + **最近一条句子级 error 的原文** + 最近一句的**峰值/RMS/已读增量**。
+- **主窗口底栏**（`_tts_meter`）也加上「失败 N」。
+
+### §54.5 ✅ 验收 A / B（真实 CUDA + 真实声卡，**不需要人**）
+
+`results/app/app077_tts_acceptance_ab.py`（真实 `TTSService` + 真实 CUDA 边车
++ 真实 `sounddevice` 播放流）：
+
+**【验收 B】`sd.query_devices()` 全表**（目标机，2026-10-26 16:17）：
+
+| index | name | hostapi | max_out | 默认 sr |
+|---|---|---|---|---|
+| 3 | Speaker (Realtek(R) Audio) | 0 (MME) | 2 | 44100 |
+| 6 | 主声音驱动程序 | 1 (WASAPI) | 2 | 44100 |
+| 7 | Speaker (Realtek(R) Audio) | 1 (WASAPI) | 2 | 44100 |
+| 8 | Speaker (Realtek(R) Audio) | 2 (ASIO) | 2 | 48000 |
+| 14 | Speakers 1 (Realtek HD Audio output with SST) | 3 (PUL) | 2 | 48000 |
+| 15 | Speakers 2 (Realtek HD Audio output with SST) | 3 (PUL) | 2 | 44100 |
+| 17 | Headphones 1 (Realtek HD Audio 2nd output with SST) | 3 (PUL) | 2 | 48000 |
+| 18 | Headphones 2 (Realtek HD Audio 2nd output with SST) | 3 (PUL) | 2 | 44100 |
+
+- sounddevice 默认输出设备 = `[1, 3]`
+- soundcard 端点 id = `{0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}`
+- **解析结果**：`sd_device=3`，方式 =「端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3」
+  ⇒ **所选设备 index=3 / hostapi=0 (MME) / name=Speaker (Realtek(R) Audio)**
+- worker 日志两处都确认了实际输出：`实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）`
+
+**【验收 B】440 Hz 测试声音**（走**同一个 worker 的 Player**）：
+
+- `已播放 1.00 s 440 Hz 正弦波（幅度 0.30）；全部消费完毕`
+- **`n_cb` 增量 = 24**，**`n_read` 增量 = 24 000** ⇒ ≈ 24000×1 s ✅（APP-021② 的期望值）
+- `underflow = 4`（欠载 4 次，缓冲起始为空 ⇒ 正常）
+
+**【验收 A】真实合成 + 落盘 wav**（CUDA / 音色 A / 24 字中文）：
+
+- wav 路径（reviewer 可拉回本机复核）：
+  `C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\tts_dump_20261026_161950\seg_0_0001.wav`
+- **独立复核**（脚本自己再算一遍，**不依赖 worker 自报**）：
+
+| 项 | 值 |
+|---|---|
+| sr | 24000 |
+| 时长 | **5.68 s** |
+| 样本数 | 136 320 |
+| **峰值** | **0.53125**（> 0.05 ✅） |
+| **RMS** | 0.123043 |
+| **RMS(dBFS)** | **−18.20 dB** |
+| **NaN 个数** | **0** |
+| Inf 个数 | 0 |
+
+⇒ **峰值 0.53 / RMS −18.2 dBFS ⇒ 合成出来的音频是真实语音波形，不是静音**；
+⇒ 时长 5.68 s 与 24 字中文「≈5 字/秒」**基本相符**。
+（⚠️ 两次独立跑的数字略有差异（第一跑 5.04 s / 峰值 0.5078，
+第二跑 5.68 s / 峰值 0.53125）⇒ 合成**不是逐位确定的**，
+但**幅度量级一致** ⇒ 这正是要复核的「幅度」口径。）
+
+**【验收 A】每句遥测（播放口径，播完后重算）**：
+
+```
+# 「合成遥测」= 写完缓冲那一刻（回答：合成侧产出了什么）
+out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）
+sr=24000 samples=136320 parts=9 peak=0.5312 rms_dbfs=-18.2 nan_inf=0
+cb_delta=170 read_delta=73728 underflow_delta=98 ring=62592/72000 consumed=-
+
+# 「遥测」= 等播完之后重算（回答：真的播出去多少）★
+out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）
+sr=24000 samples=136320 parts=9 peak=0.5312 rms_dbfs=-18.2 nan_inf=0
+cb_delta=232 read_delta=136320 underflow_delta=99 ring=0/72000 consumed=True
+```
+
+⇒ **`read_delta` = 136 320 = 本句样本数**（合成那刻只有 73 728，播完后才追平）
+⇒ 这一句的音频**确实被播放回调全部取走**了（不再有「还有 3 s 没播」的模糊空间）
+⇒ **这才是 APP-021 要求的判据**。
+
+### §54.6 「🔊 测试声音」按钮 + 输出设备热切换 + 逐句 wav 落盘
+
+- **「🔊 测试声音」**（APP-021④）：**离线朗读对话框**与 **TTS 行**各一个。
+  经**同一个 worker 的 Player** 播 1 s 440 Hz 正弦波（幅度 0.3）；
+  播放前后显示 `n_cb`/`n_read` 增量与**实际输出设备**。
+  ⇒ 把「**播放链路**」与「**TTS 合成**」**彻底拆开**：
+  440 Hz 听不到 ⇒ 设备/音量/系统问题；听得到但 TTS 听不到 ⇒ 合成侧问题。
+- **`cb_tts_out` 绑 `<<ComboboxSelected>>`**（APP-021⑤）：
+  旧行为**根本没绑**（全文只有 `cb_tts_voice` 绑了）⇒ `out_id` 只在
+  `_on_tts_toggled()` 起 worker 时读**一次** ⇒ worker 起来后再改下拉
+  **完全没有效果** ⇒ 用户以为换了设备、其实声音还是从旧设备出。
+  ⇒ 现在：改下拉 ⇒ 关旧 worker + 用新设备重起，**日志写明新设备**。
+- **`--tts-dump-dir`** + 运行时 `set_dump_dir`（APP-021⑥）：
+  离线朗读对话框有「**同时保存 wav**」勾选框 ⇒ **每段**落盘一个 wav，
+  供 reviewer 算 RMS / 回转写。
+
+### §54.7 🔴 顺带修掉一个被 played 语义变更牵连的隐患
+
+`played` 推迟到「播完」后 ⇒ 主进程的 `pending` 会**多挂一句的时长**
+⇒ **积压被高估** ⇒ 在连续会议里会**多丢句**（`BACKLOG_MAX_S = 8` 的阈值
+是按「音频时长」算的）。
+
+⇒ 修法：worker 新增 **`written` 事件**（音频已**全部写进**环形缓冲，
+还没播完）⇒ 主进程据此算**真实积压**（缓冲里只剩 ≤ 3 s 待播）
+⇒ 记账**不动**（这句仍算在途，`n_played` 只有真 `played` 才 +1）。
+
+### §54.8 证据与回归
+
+| 脚本 | 结果 |
+|---|---|
+| `app076_tts_playback_observability.py` | **38/38 PASS**（A worker 语义 / B service 计数+日志 / C GUI / D 协议；**不加载模型**） |
+| `app077_tts_acceptance_ab.py` | **验收 A + B 全 PASS**（真实 CUDA + 真实声卡 + wav 落盘 + 独立复核） |
+| `app069_offline_reader_selftest.py` | **37/37**（逻辑层未回归） |
+| `app070_offline_reader_gui_smoke.py` | 19/21 —— 2 条**截图**失败 = **既有问题**（`git stash` 回退验证：改动前后**同样**失败）⇒ 非本次引入 |
+| `app072_tts_error_reason_test.py` | **13/13** |
+| `app073_tts_encoding_fix.py` | **16/16 × 3 种编码模式**（cp936 / UTF-8 / workbuddy py3.13） |
+| 包内 `--check` | 全 OK |
+| 散包同步 | `sync_app077_to_pkg.py` ⇒ 4 文件**逐字校验**通过（`tts_service.py` / `tts_worker.py` / `offline_reader_gui.py` / `live_caption_app.py`） |
+
+⚠️ **zip 仍未重打**（守 APP-020「v1.5 先别当最终版」）。
+
+### §54.9 🔴 **验收 C 仍需用户配合**（**当前唯一的阻塞**）
+
+APP-021 明文要求（且**明令**：不得用「played ≥ 1」或假 service 的冒烟结果
+宣称「能出声」）：
+
+1. 在**用户的交互会话**里，用户戴**平时用的耳机或外放**，**系统音量 ≥ 50%**。
+2. **先点「🔊 测试声音」**，**再**点离线朗读念一句。
+3. 用户**确认听到**之后，把**会话日志的路径**与**其中的遥测行**写进本 STATUS。
+
+分支判读（APP-021 原文）：
+
+- **440 Hz 能听到、TTS 听不到** ⇒ 看 §54.3 的**峰值**（合成侧问题）。
+- **440 Hz 也听不到** ⇒ **设备/系统问题** ⇒ 报给用户（本机默认端点主音量
+  **0.25**、未静音 ⇒ 需先确认音量与端点）。
+
+⇒ 本节**不**输出「能出声」这类结论；`app077` 只给**可核对的硬数字**。

@@ -36,6 +36,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import math
 import os
 import sys
 import threading
@@ -66,6 +67,26 @@ def emit(obj: dict):
 def log(msg: str):
     sys.stdout.write(str(msg) + '\n')
     sys.stdout.flush()
+
+
+# ── APP-021②：每句一行播放遥测 ────────────────────────────────────────
+def _fmt_telemetry(tel: dict) -> str:
+    """把遥测 dict 格式化成**一行人可读**的文本（写进 worker 日志）。
+
+    ⚠️ 字段名与数值必须**逐项**出现在这一行里 ⇒ reviewer 只看日志就能
+    复核「峰值 / RMS(dBFS) / NaN / 回调数 / 已读增量 / 欠载次数」。
+    """
+    return ('out=%s sr=%s samples=%s parts=%s peak=%.4f rms_dbfs=%.1f '
+            'nan_inf=%s cb_delta=%s read_delta=%s underflow_delta=%s '
+            'ring=%s/%s consumed=%s%s'
+            % (tel.get('out_desc', '?'), tel.get('sr', '?'),
+               tel.get('n_samples', 0), tel.get('n_parts', 0),
+               float(tel.get('peak', 0.0)), float(tel.get('rms_dbfs', -99.0)),
+               tel.get('n_nan_inf', 0), tel.get('cb_delta', 0),
+               tel.get('read_delta', 0), tel.get('underflow_delta', 0),
+               tel.get('ring_level', 0), tel.get('ring_cap', 0),
+               tel.get('consumed', '-'),
+               (' [静音合成]' if tel.get('silent_synth') else '')))
 
 
 class RingBuffer:
@@ -351,6 +372,10 @@ class Player:
         self._stream = None
         self._lock = threading.Lock()
         self.n_cb = 0                # 音频回调次数（诊断：0 = 回调根本没跑）
+        # 🔴🔴 APP-021②：回调**欠载**次数（环形缓冲里取不满一帧 ⇒ 补了静音）。
+        #   大量欠载 = 合成比播放快（或播放端在欠载）⇒ 听感上是「断断续续」。
+        self.n_underflow = 0         # 欠载次数
+        self.n_silence_fill = 0      # 补了多少个静音样本（欠载填充总量）
         # 🔴🔴 **把 GUI 的端点 id 转成 sounddevice 认的设备**（见 resolve_out_device）：
         #   GUI 传的是 WASAPI GUID，直接塞给 `sd.OutputStream` 必然 ValueError
         #   ⇒ 旧实现「播放设备打开失败」⇒ **一句都不出声**（用户反馈的真因之一）。
@@ -400,6 +425,9 @@ class Player:
             log(f'[tts_worker] 播放状态：{status}')
         data = self.ring.read(frames)
         if len(data) < frames:
+            # 🔴 APP-021②：欠载计数（诊断用；不影响播放语义）
+            self.n_underflow += 1
+            self.n_silence_fill += (frames - len(data))
             data = data + [0.0] * (frames - len(data))
         outdata[:, 0] = data
 
@@ -407,6 +435,90 @@ class Player:
         if self._stream is None:
             raise RuntimeError('播放流未打开（无法播出声音）')
         return self.ring.write(wav, should_stop=should_stop)
+
+    # 🔴🔴 APP-021①：**等音频真的被播放回调取走**（而不是"写进缓冲"）。
+    #
+    #   旧语义：synth() 把最后一块写进环形缓冲就发 `played`
+    #   ⇒ `played` 只代表"进了缓冲"，**不代表声卡播完**
+    #   ⇒ 缓冲容量 3 s ⇒ 发 played 时最多还有 3 s 音频没出声
+    #   ⇒ 用户据此判断"能出声"是**无效判据**（APP-021 证据 1）。
+    #
+    #   新语义：`wait_consumed(target)` 等 `ring.n_read` 追上
+    #   **本句最后样本的写入位置**（`n_written` 的绝对值）⇒
+    #   此时这一句的音频**已经全部交给声卡**。
+    def wait_consumed(self, target: int, timeout_s: float = 30.0,
+                      should_stop=None):
+        """等 `ring.n_read >= target`。
+
+        返回 `(ok, diag)`：
+        - `ok=True`  ⇒ 音频已被播放回调**全部取走**；
+        - `ok=False` ⇒ 超时/被中止 ⇒ `diag` 里带诊断（已读/目标/n_cb）。
+        """
+        t0 = time.monotonic()
+        while True:
+            try:
+                n_read = self.ring.n_read
+            except Exception:
+                n_read = 0
+            if n_read >= target:
+                return True, ''
+            if should_stop is not None and should_stop():
+                return False, ('已被中止（已读 %d / 目标 %d）' % (n_read, target))
+            if time.monotonic() - t0 > timeout_s:
+                return False, ('等待播放消费超时 %.1f s（已读 %d / 目标 %d，'
+                               '回调 %d 次）'
+                               % (timeout_s, n_read, target, self.n_cb))
+            time.sleep(0.02)
+
+    def telemetry(self) -> dict:
+        """播放器当前的诊断快照（供每句遥测 / 「测试声音」用）。"""
+        try:
+            ring = self.ring
+            return dict(
+                out_desc=self.out_desc,
+                sr=self.sr,
+                n_cb=self.n_cb,
+                n_underflow=self.n_underflow,
+                n_silence_fill=self.n_silence_fill,
+                n_written=ring.n_written,
+                n_read=ring.n_read,
+                n_blocks=ring.n_blocks,
+                ring_level=ring.level(),
+                ring_cap=ring._cap,
+                stream_open=(self._stream is not None),
+            )
+        except Exception as e:
+            return {'error': '%s: %s' % (type(e).__name__, e)}
+
+    # 🔴 APP-021④：**测试声音** —— 1 s 的 440 Hz 正弦波（幅度 0.3）。
+    #   走**同一个** Player（同一个 sounddevice 输出流）⇒
+    #   「能听到 440 Hz」就把「播放链路」与「TTS 合成」彻底拆开了：
+    #   440 Hz 听不到 ⇒ 设备/音量/系统问题；听得到但 TTS 听不到 ⇒ 合成侧问题。
+    def test_tone(self, freq: float = 440.0, dur_s: float = 1.0,
+                  amp: float = 0.3):
+        """播一段测试音。返回 (ok, diag)。"""
+        if self._stream is None:
+            return False, '播放流未打开（没有输出设备）'
+        try:
+            import math
+        except Exception:
+            pass
+        n = int(self.sr * dur_s)
+        if n <= 0:
+            return False, '时长非法'
+        wave = [amp * math.sin(2.0 * math.pi * freq * i / float(self.sr))
+                for i in range(n)]
+        try:
+            ok = self.write(wave)
+        except Exception as e:
+            return False, '写入失败：%s: %s' % (type(e).__name__, e)
+        if not ok:
+            return False, '写入被中止'
+        target = self.ring.n_written
+        ok2, diag = self.wait_consumed(target, timeout_s=dur_s + 5.0)
+        peak = amp
+        return ok2, ('已播放 %.2f s %d Hz 正弦波（幅度 %.2f）；%s'
+                     % (dur_s, freq, peak, diag if diag else '全部消费完毕'))
 
     def close(self):
         with self._lock:
@@ -456,6 +568,10 @@ class TTSWorker:
         self._t0 = None
         self._jsonl_path = None      # 逐句记录文件（x.tts.jsonl）
         self._jsonl_rows = []
+        # 🔴 APP-021⑥：逐句 wav 落盘目录（None = 不落盘）
+        self.dump_dir = None
+        self._dump_seq = 0
+        self._dump_paths = []
 
     # -- 模型加载 --------------------------------------------------------
     def load(self):
@@ -813,6 +929,17 @@ class TTSWorker:
         n_parts = 0
         aborted = False
         wav_parts = []
+        # 🔴🔴 APP-021②：本句的**幅度/数值**统计（用于判定「合成出来是不是静音」）。
+        #   ⚠️ 必须逐块累计，不能只在最后算一次（分块流式），
+        #   也不能 import numpy 到模块顶层（numpy 预导入见 main()）。
+        peak = 0.0
+        sum_sq = 0.0
+        n_nan = 0
+        n_inf = 0
+        # 播放侧计数器基线（用于算「本句期间」的增量）
+        base_cb = 0
+        base_read = 0
+        base_underflow = 0
         try:
             with self._synth_lock:
                 if self._is_cancelled(jid):
@@ -824,6 +951,11 @@ class TTSWorker:
                     chunks = iter(self._synth_ov(text, lang, cond))
                 else:
                     chunks = iter(self._synth_torch(text, lang, cond))
+
+                if self.player is not None:
+                    base_cb = self.player.n_cb
+                    base_read = self.player.ring.n_read
+                    base_underflow = self.player.n_underflow
 
                 # ── 流式主循环：收到一块 ⇒ 立刻发声 ────────────────
                 for w in chunks:
@@ -837,14 +969,32 @@ class TTSWorker:
                               'latency_s': round(latency, 3), 'id': jid})
                     n_samples += len(w)
                     n_parts += 1
-                    if self.out_wav:
+                    # ── APP-021②：本块幅度统计 ──────────────────────
+                    try:
+                        if len(w):
+                            wf = np.asarray(w, dtype=np.float64)
+                            p = float(max(abs(float(wf.min())),
+                                           abs(float(wf.max()))))
+                            if p > peak:
+                                peak = p
+                            sum_sq += float((wf ** 2).sum())
+                            n_nan += int(np.count_nonzero(np.isnan(wf)))
+                            n_inf += int(np.count_nonzero(np.isinf(wf)))
+                    except Exception:
+                        pass
+                    if self.out_wav or self.dump_dir:
                         # ⚠️ 落盘模式**不逐块入时间轴**：块的到达间隔
                         #   （= 合成耗时）通常 **> 音频时长**（RTF>1）
                         #   ⇒ 逐块入轴会把一句话**拉散成断续的碎片**。
                         #   ⇒ 这里只**整句累加**，收尾时一次性入轴
                         #   （与旧实现语义一致：一句话 = 一个时间点）。
+                        # 🔴 APP-021⑥：需要逐句 wav 时也整句累加（供落盘）。
                         wav_parts.append(w)
-                    elif self.player is not None:
+                    if self.out_wav:
+                        # 🔴 APP-021⑥：落盘模式下**不实时播放**
+                        #   （与旧语义一致：只混时间轴，不出声）。
+                        continue
+                    if self.player is not None:
                         try:
                             # 🔴🔴 2026-10-25 修：`write()` 已改为**分片推进**
                             #   （不再要求整句一次装下）⇒ 流式逐块写没问题。
@@ -887,6 +1037,12 @@ class TTSWorker:
                             # `should_stop` 触发 ⇒ 这句被丢弃（或正在收尾）
                             aborted = True
                             break
+                # 🔴🔴 APP-021①：**在锁内**记下「本句最后样本的写入位置」。
+                #   ⚠️ 必须在 `_synth_lock` **内**取 ⇒ 否则下一句的 `synth()`
+                #      可能已经往缓冲里写了别的样本 ⇒ target 被放大
+                #      ⇒ `played` 会**晚**发（不算错，但语义不准）。
+                target_written = (self.player.ring.n_written
+                                  if self.player is not None else 0)
         except Exception as e:
             import traceback
             log('[tts_worker] 合成失败：' + traceback.format_exc())
@@ -909,8 +1065,30 @@ class TTSWorker:
 
         if n_parts == 0:
             # 一块都没拿到（空句 / 引擎没吐块）
-            emit({'kind': 'played', 'id': jid})
-            self._record_jsonl(jid, text, t_submit)
+            # 🔴🔴 APP-021①：**没有音频 ⇒ 不能算「已播」**。
+            #   旧行为：这里发 `played` ⇒ 主进程 `n_played += 1`
+            #   ⇒ 界面显示「已播 1」，但**声卡上一声都没有**。
+            #   ⇒ 现在：发**句子级 error**（带 id）⇒ 计入「失败」，
+            #   界面能显示「失败 1 句：引擎没有产出音频」。
+            emit({'kind': 'error', 'id': jid,
+                  'message': '引擎没有产出任何音频（本句无内容可播）'})
+            self._record_jsonl(jid, text, t_submit,
+                               error='引擎没有产出任何音频')
+            return
+
+        # ── APP-021①：无播放器 ⇒ **显式失败**，绝不发 played ──────────
+        #   旧行为：`player is None` 时循环里 `elif self.player is not None`
+        #   整段跳过 ⇒ **音频被直接扔掉**，却照样发 `played`
+        #   ⇒ 主进程记「已播」⇒ 用户界面显示正常 ⇒ **实际一声没出**。
+        #   ⇒ 现在：发**句子级 error**（带 id + 诊断）。
+        if not self.out_wav and self.player is None:
+            msg = '播放器不可用，音频未输出（没有可用的输出设备）'
+            log(f'[tts_worker] 🔴 句子 id={jid}：{msg}')
+            emit({'kind': 'error', 'id': jid, 'message': msg,
+                  'telemetry': self._telemetry_snapshot(0, 0, 0.0, 0.0, 0,
+                                                        base_cb, base_read,
+                                                        base_underflow)})
+            self._record_jsonl(jid, text, t_submit, error=msg)
             return
 
         if self.out_wav and wav_parts:
@@ -921,13 +1099,139 @@ class TTSWorker:
             wav = np.concatenate(wav_parts) if len(wav_parts) > 1 else wav_parts[0]
             self._timeline.append((now - self._t0, wav.copy()))
 
+        # 🔴 APP-021⑥：逐句 wav 落盘（`--dump-dir`）——
+        #   ⚠️ 与 `--out-wav`（时间轴混音）**独立**：两者可同时开。
+        if self.dump_dir and wav_parts:
+            wav = np.concatenate(wav_parts) if len(wav_parts) > 1 else wav_parts[0]
+            self._dump_segment_wav(jid, wav)
+
+        # 🔴🔴 APP-021②：本句的**一行遥测**（写进 worker 日志 + 事件带回主进程）。
+        rms = 0.0
+        if n_samples > 0 and sum_sq > 0:
+            rms = (sum_sq / float(n_samples)) ** 0.5
+        elif n_samples > 0:
+            rms = 0.0
+        rms_dbfs = -99.0
+        if rms > 0:
+            rms_dbfs = 20.0 * math.log10(rms)
+        tel = self._telemetry_snapshot(n_samples, n_parts, peak, rms_dbfs,
+                                       n_nan + n_inf, base_cb, base_read,
+                                       base_underflow)
+        tel['rms'] = round(rms, 6)
+        tel['n_inf'] = n_inf
+        silent = (peak < 1e-3) or (n_nan + n_inf) > 0
+        if silent:
+            tel['silent_synth'] = True
+        # ⚠️ 这一行是「**写完缓冲那一刻**」的快照 ⇒ `read_delta` 只到此刻
+        #   ⇒ 它回答的是「**合成侧**产出了什么」（峰值/RMS/NaN/样本数），
+        #   **不是**「播出去多少」⇒ 播完后的那一行才是权威的播放口径。
+        log('[tts_worker] 合成遥测 id=%d %s'
+            % (jid, _fmt_telemetry(tel)))
+
         dur = n_samples / float(self.sr if self.sr else SR)
+
+        # 🔴 APP-021③：告知主进程「本句音频已**全部写进**环形缓冲」
+        #   （**还没播完**）⇒ 主进程用它算**真实积压**
+        #   （音频在缓冲里 ⇒ 剩下的待播时间只有几秒，不是整句时长）
+        #   ⚠️ 没有这个事件的话，`played` 推迟到「播完」后，
+        #      主进程的 `pending` 会多挂一句的时长 ⇒ 积压被高估
+        #      ⇒ 在连续会议里会**多丢句**。
+        if not self.out_wav and self.player is not None:
+            emit({'kind': 'written', 'id': jid, 'dur_s': round(dur, 3)})
+
+        # 🔴🔴 APP-021①：**等音频真的被播放回调取走**再发 `played`。
+        #   旧行为：写进环形缓冲就发 ⇒ `played` ≠ 出声（缓冲还有 3 s 没播）。
+        if not self.out_wav and self.player is not None:
+            target = target_written
+            ok, diag = self.player.wait_consumed(
+                target, timeout_s=30.0,
+                should_stop=lambda: (self._is_cancelled(jid)
+                                     or self._stop.is_set()))
+            tel['consumed'] = ok
+            if not ok:
+                msg = ('音频未被播放完（%s）' % diag)
+                log(f'[tts_worker] 🔴 句子 id={jid}：{msg}')
+                emit({'kind': 'error', 'id': jid, 'message': msg,
+                      'telemetry': tel})
+                self._record_jsonl(jid, text, t_submit, dur_s=dur,
+                                   t_first=t_first, error=msg)
+                return
+            # 🔴🔴 **必须在这里重算遥测**！
+            #   上面的快照是**写完缓冲那一刻**的 ⇒ `read_delta` 只统计到
+            #   「此刻已被取走」的部分（实测 68 608 / 本句 120 960）
+            #   ⇒ **判据「n_read 增量 ≥ 本句样本数」会被误判成失败**。
+            #   ⇒ 等播完之后重算 ⇒ `read_delta` 才是「本句期间真正被取走的量」。
+            tel = self._telemetry_snapshot(n_samples, n_parts, peak, rms_dbfs,
+                                           n_nan + n_inf, base_cb, base_read,
+                                           base_underflow)
+            tel['rms'] = round(rms, 6)
+            tel['n_inf'] = n_inf
+            tel['consumed'] = ok
+            if silent:
+                tel['silent_synth'] = True
+            log('[tts_worker] 遥测 id=%d %s' % (jid, _fmt_telemetry(tel)))
+
         self._record_jsonl(jid, text, t_submit, dur_s=dur, t_first=t_first)
         emit({'kind': 'played', 'id': jid,
               'dur_s': round(dur, 3),
-              'latency_s': round(latency, 3)})
+              'latency_s': round(latency, 3),
+              'telemetry': tel})
 
     # -- 逐句记录（C-101 P4 第 6 条：`x.tts.jsonl`）----------------------
+    def _telemetry_snapshot(self, n_samples, n_parts, peak, rms_dbfs,
+                            n_nan_inf, base_cb, base_read, base_underflow):
+        """汇总「本句」的播放遥测（APP-021②）。
+
+        ⚠️ 增量口径：`cb_delta` = 本句期间音频回调次数增量，
+        `read_delta` = 本句期间被播放回调**取走的样本数**增量
+        （⇒ 这个数 ≥ 本句样本数 ⇒ 音频**真的**交给了声卡），
+        `underflow_delta` = 本句期间缓冲欠载次数增量。
+        """
+        tel = dict(n_samples=int(n_samples), n_parts=int(n_parts),
+                   peak=round(float(peak), 6),
+                   rms_dbfs=round(float(rms_dbfs), 2),
+                   n_nan_inf=int(n_nan_inf),
+                   cb_delta=0, read_delta=0, underflow_delta=0,
+                   ring_level=0, ring_cap=0, out_desc='（未初始化）',
+                   sr=self.sr)
+        p = self.player
+        if p is None:
+            return tel
+        try:
+            tel['cb_delta'] = max(0, p.n_cb - base_cb)
+            tel['read_delta'] = max(0, p.ring.n_read - base_read)
+            tel['underflow_delta'] = max(0, p.n_underflow - base_underflow)
+            tel['ring_level'] = p.ring.level()
+            tel['ring_cap'] = p.ring._cap
+            tel['out_desc'] = p.out_desc
+            tel['n_cb_total'] = p.n_cb
+            tel['n_read_total'] = p.ring.n_read
+        except Exception:
+            pass
+        return tel
+
+    def _dump_segment_wav(self, jid: int, wav):
+        """🔴 APP-021⑥：逐句落盘 wav（供 reviewer 算 RMS / 回转写）。
+
+        目录：`--dump-dir` 指定；未指定 ⇒ **不落盘**（默认零副作用）。
+        文件名：`seg_<jid>_<序号>.wav`。
+        """
+        if not self.dump_dir:
+            return None
+        try:
+            import soundfile as sf
+            os.makedirs(self.dump_dir, exist_ok=True)
+            self._dump_seq += 1
+            path = os.path.join(self.dump_dir,
+                                'seg_%d_%04d.wav' % (jid, self._dump_seq))
+            sf.write(path, wav, self.sr)
+            self._dump_paths.append(path)
+            log(f'[tts_worker] 已落盘分段 wav：{path}')
+            return path
+        except Exception as e:
+            log(f'[tts_worker] 分段 wav 落盘失败：{e}')
+            return None
+
     def _record_jsonl(self, jid, text, t_submit, dur_s=None, t_first=None,
                       dropped=False, error=None):
         """记录一句的时间线（供 `x.tts.jsonl` 落盘）。
@@ -1110,6 +1414,28 @@ class TTSWorker:
                     self._update_clone(pcm)
                 except Exception as e:
                     log(f'[tts_worker] 克隆更新失败：{e}')
+            elif cmd == 'test_tone':
+                # 🔴 APP-021④：**测试声音**（1 s 440 Hz 正弦波，走同一个 Player）
+                #   ⇒ 把「播放链路」与「TTS 合成」彻底拆开：
+                #     听得到 ⇒ 播放链路 OK；听不到 ⇒ 设备/音量/系统问题。
+                th = threading.Thread(target=self._do_test_tone, daemon=True)
+                th.start()
+            elif cmd == 'telemetry':
+                # 🔴 APP-021②：拉一次播放器遥测（不含模型）
+                try:
+                    tel = (self.player.telemetry() if self.player is not None
+                           else {'error': '播放器不可用'})
+                except Exception as e:
+                    tel = {'error': '%s: %s' % (type(e).__name__, e)}
+                emit({'kind': 'telemetry', 'telemetry': tel,
+                      'id': msg.get('id')})
+            elif cmd == 'set_dump_dir':
+                # 🔴 APP-021⑥：**运行时**开关逐句 wav 落盘
+                #   （worker 已经在跑，不能只靠启动参数 ⇒ 对话框勾选框要用）
+                d = msg.get('dir') or None
+                self.dump_dir = d
+                log(f'[tts_worker] 逐句 wav 落盘目录：{d or "（关闭）"}')
+                emit({'kind': 'dump_dir', 'dir': d})
 
         self._stop.set()
         if self.player is not None:
@@ -1132,6 +1458,33 @@ class TTSWorker:
             import traceback
             log('[tts_worker] 加载失败：' + traceback.format_exc())
             emit({'kind': 'error', 'message': f'模型加载失败：{e}'})
+
+    def _do_test_tone(self):
+        """执行「测试声音」（APP-021④）。
+
+        ⚠️ **必须在模型 ready 之后才有意义**（播放流是模型加载时按采样率
+        重建的）⇒ 没 ready 时也要能测（用当前 player）。
+        """
+        try:
+            if self.player is None:
+                emit({'kind': 'test_tone', 'ok': False,
+                      'message': '播放器不可用（没有可用的输出设备）'})
+                return
+            before = self.player.telemetry()
+            ok, diag = self.player.test_tone()
+            after = self.player.telemetry()
+            tel = dict(after)
+            tel['cb_delta'] = after.get('n_cb', 0) - before.get('n_cb', 0)
+            tel['read_delta'] = (after.get('n_read', 0)
+                                 - before.get('n_read', 0))
+            log('[tts_worker] 测试声音：%s' % diag)
+            emit({'kind': 'test_tone', 'ok': bool(ok),
+                  'message': diag, 'telemetry': tel})
+        except Exception as e:
+            import traceback
+            log('[tts_worker] 测试声音失败：' + traceback.format_exc())
+            emit({'kind': 'test_tone', 'ok': False,
+                  'message': f'{type(e).__name__}: {e}'})
 
     def _update_clone(self, pcm):
         """用最近的 16 kHz PCM 更新克隆音色条件。
@@ -1243,6 +1596,9 @@ def main():
                          '（C-101 P4 第 6 条的 CLI 回放测试）')
     ap.add_argument('--jsonl', default=None,
                     help='逐句记录文件（默认 <out-wav>.tts.jsonl）')
+    ap.add_argument('--dump-dir', default=None,
+                    help='🔴 APP-021⑥：逐句 wav 落盘目录（每段一个 wav，'
+                         '供 reviewer 算 RMS / 回转写）；不给 = 不落盘')
     ap.add_argument('--seed', type=int, default=1234)
     ap.add_argument('--steps', type=int, default=25)
     ap.add_argument('--cfg-rate', type=float, default=0.7)
@@ -1280,6 +1636,7 @@ def main():
                   bigvgan_ir=args.bigvgan_ir, precision=args.precision,
                   out_wav=args.out_wav, seed=args.seed, steps=args.steps,
                   cfg_rate=args.cfg_rate)
+    w.dump_dir = args.dump_dir
     w.tts_cache_dir = args.tts_cache_dir
     # jsonl 路径：`--out-wav` 存在时默认 `<out-wav>.tts.jsonl`
     if args.jsonl:
