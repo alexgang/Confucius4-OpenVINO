@@ -3589,6 +3589,7 @@ def run_cli(args):
                              out_device=args.tts_out_device,
                              precision=args.tts_precision,
                              out_wav=args.tts_out,
+                             dump_dir=args.tts_dump_dir,
                              on_log=lambda m: print(f'  [TTS] {m}', flush=True))
             print(f'[TTS] worker 已启动（设备 {args.tts_device}，'
                   f'音色 {args.tts_voice}，精度 {args.tts_precision}）', flush=True)
@@ -4011,6 +4012,11 @@ def main():
                          '同时写 <out>.tts.jsonl（逐句时间线）')
     ap.add_argument('--tts-out-device', default=None,
                     help='TTS 播放输出设备（名称或索引；默认系统默认输出）')
+    ap.add_argument('--tts-dump-dir', default=None,
+                    help='🔴 APP-021⑥：**逐句** wav 落盘目录（每段一个 wav）。'
+                         '不给 = 不落盘。供 reviewer 算峰值/RMS 与回转写'
+                         '（与 `--tts-out` 的「整段混音时间轴」是两个独立功能，'
+                         '可以同时开）')
 
     # ── 推理设备（APP-004 第 3 条）──
     # 三个模型各一个设备；不给就用配置文件里的（再没有就用推荐默认值）。

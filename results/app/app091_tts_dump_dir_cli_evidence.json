@@ -1,0 +1,56 @@
+{
+  "section": "61",
+  "verdict": "PASS",
+  "baseline_commit": "3afaf7a",
+  "real_total": 5,
+  "real_fail": [],
+  "bug_total": 3,
+  "bug_proved": [
+    "B1 基线里**没有** --tts-dump-dir（缺陷曾真实存在）",
+    "B2 基线的 TTSService(...) **没有** dump_dir=",
+    "B3 基线 `--help` 里**没有** --tts-dump-dir"
+  ],
+  "bug_unproved": [],
+  "checks": [
+    {
+      "name": "A1 argparse 里有 --tts-dump-dir",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A2 CLI 的 TTSService(...) 传了 dump_dir=",
+      "ok": true,
+      "detail": "expr=args.tts_dump_dir"
+    },
+    {
+      "name": "A3 dump_dir 取自 args.tts_dump_dir",
+      "ok": true,
+      "detail": "expr=args.tts_dump_dir"
+    },
+    {
+      "name": "A4 `--help` 里出现 --tts-dump-dir",
+      "ok": true,
+      "detail": "rc=0"
+    },
+    {
+      "name": "A5 `--help` 里出现 TTS_DUMP_DIR 占位符",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "B1 基线里**没有** --tts-dump-dir（缺陷曾真实存在）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "B2 基线的 TTSService(...) **没有** dump_dir=",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "B3 基线 `--help` 里**没有** --tts-dump-dir",
+      "ok": true,
+      "detail": "rc=0"
+    }
+  ]
+}
