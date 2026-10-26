@@ -1,10 +1,11 @@
 last_ack: ASR-013
-更新时间: 2026-10-27 03:25
-当前任务: **无新纠偏（last_ack 保持 ASR-013）+ §37 遗留的 checkpoint 隐患已修（§38）**：CORRECTIONS_ASR.md mtime **2026-10-26 16:18:05**、md5 `55c28c72…` 与上轮**完全一致**（最大编号仍 ASR-013，`grep -rn "ASR-01[4-9]" status/` 命中 0）⇒ **last_ack 保持 ASR-013，不改**。本轮实质工作：① 🔴 **修掉「长跑跑完不删 checkpoint」的隐患**（§37 遗留，§38）—— `scripts/pya_app_path_seg.py` 写完最终 json 后**不删** `*.partial.json` ⇒ 下次同 tag 跑会误续到 `fed_s=3660.0`（已覆盖 99.7%）⇒ **静默产出少了最后 11.19 s 的截断结果，却看着像跑完了** ⇒ 已加「最终产物落盘后 `os.remove(ckpt_path)`」（失败只告警、不中断本轮产物）；② ✅ **2 分钟冒烟验证通过**（`logs/pya_ckptsmoke.log`，1939 B，03:22:37，rc=0）⇒ 日志打印「[pya] 已清理 checkpoint → …ckptsmoke.partial.json」、跑完**无残留 partial**、`MACHINE_LOCK` **正常释放**（无孤儿锁）；③ ✅ **清掉 forced61 陈旧 checkpoint**（`pya_app_forced_forced61.partial.json`，129183 B，`fed_s`=3660.0 / 605 段）⇒ 最终产物 **`pya_app_forced_forced61.json`（150639 B，01:09:22）未受影响**（`n_segs`=607 / `audio_sec`=3671.19 / `rtf`=0.5765 复核一致）；④ 🔴 **WER 仍未算**（本线程不调用 MiniMax）⇒ 交 reviewer 对照 **App 路径 R2T2 iGPU INT8 B 10.58%** 复算
-阻塞 / 待用户决定: ① 🔴★ **待 reviewer 复算 WER**：`pya_app_forced_forced61.json`（**150639 B，01:09:22**；App 路径、61 分钟、同 R2T2 gpu_int8 引擎；`n_segs`=607 / `audio_sec`=3671.19 / `rtf`=0.5765）对照 **App 路径 R2T2 iGPU INT8 B 10.58%**（同路径 ⇒ 可直接配对 bootstrap）；⚠️ 交付基准 8.17% 是 226 段离线切分、**非** App 路径 ⇒ 只作参考列，不可当同口径；② 🔴 **空文本段 17 个**（全为 `model_break`，段长 0.64–1.92 s）⇒ 模型断点落在极短无语音间隙上 ⇒ 需 App 侧空段守卫（ASR-003 边界）或 ASR 侧最小段过滤 ⇒ **本轮未擅自改**；③ 🔴 **段数 +49（558 → 607，+8.8%）** ⇒ 定稿更碎 ⇒ TTS 音色切换 / MT 翻译段数 / App 接缝开销都增加 ⇒ 待评审；④ ⚠️ **短切片不可外推**：5 分钟口径 6.67% → 6.25%（−0.42pp），61 分钟口径 9.87% → 3.30%（−6.57pp）⇒ **必须以 61 分钟为准**；⑤ 🔴★ **ASR-013 交付精度待定**：FP16 分段 IR 已达标，**INT8 三条路径（weight-only 0.995336 / 激活感知 0.951184 / head 保留 0.986118）全部未过阈** ⇒ 按「再试 INT8」字面要求，若激活感知仍不过阈则交付 **FP16 为准 + INT8 差距如实记录**，**不擅自降阈值**；⑥ 🔴 **待 reviewer 复算的 WER**：R2T2 INT8@NPU App 路径（对照 App 路径 R2T2 iGPU B **10.58%**）；⑦ 🔴 **0.6B 新图两格 WER 仍空**（int8__mask2 / int4__mask2 已有 reviewer 值 10.94% / 11.57%，但 `r2t2__int8__npu_app` 与 `0.6B INT8@NPU` 的 61 分钟 App 格 WER 待复算）；⑧ 🔴 **旧图 5 格结论作废 ≠ 新图已有结论** —— `int4_sym_chan` 在新图上**至今未知**（按 ASR-011 第 4 条用户决定**不测**）；⑨ ⏳ **`R2T2 R2` 同口径标定点未跑** ⇒ teacher-forcing 99.29%/92.71% 仍无阈值可判；⑩ ⚠️ **`GPU.0` = iGPU 必须同步 reviewer**（影响他对历史 GPU 格的解读）；⑪ ⚠️ **`INT4_ASYM g128 在 NPU 上比 INT8 慢 38%**（**不能**写成「NPU 上 INT4 最慢」）—— 机理未查（只报现象）；⑫ ⚠️ **P0 参照重跑未做**（`--minutes 61` 截到 3660.0 s，少跑 11.19 s）—— 本轮 61 分钟跑用 `--minutes 61.2` ⇒ 覆盖 3671.189 s（= 整个 wav）；⑬ ⚠️ **「提高 rule1 静音要求」必须改代码**（硬编码无 env）⇒ 属 App 模块（ASR-003 边界）；⑭ ⚠️ **bench 每格只测 1 次**（用户决定）⇒ `rtf_p50 == rtf_p95`，**不是分布**；⑮ ⚠️ **R2T2 首字延迟是「引擎级」口径**（含 encoder+prefill），与 0.6B 的「argmax 首 token」**不同口径** ⇒ 报告须标注；⑯ ⚠️ **R2T2 的加载+编译不可分**（OVEngine 合算在 `load_s`）⇒ 冷/热只给合并值；⑰ ⚠️ **NPU 无 `GPU_MEMORY_STATISTICS`** ⇒ NPU 格的设备内存**无法读取**，只报 `DEVICE_ARCHITECTURE`（不硬凑）；⑱ ⚠️ **0.6B INT4@NPU 61 分钟 App 路径未跑**（ASR-011 精简版只要求 INT8@NPU ⇒ 按用户范围**不补**，报告须写明「该格无 App 路径质量数据」）；⑲ ⚠️ **ASR-013 说话人身份尚未被真正检验**：61 分钟素材只有 1 个说话人 ⇒ 全局 id 只有 S1、x-vector 同人/异人余弦**几乎无间隙**（cos_same_min 0.8912 vs cos_diff_max 0.9906，margin 仅 **0.0054**）⇒ 多说话人素材上的切换点 F1 / 碎片化**尚无数据**，需换素材重跑；⑳ ✅ **checkpoint 遗留项已闭环（§38）**：`pya_app_forced_forced61.partial.json` （129183 B，`fed_s`=3660.0/605 段）**已删除**，脚本已改为跑完自动清理 ⇒ 下次同 tag 跑**不会**误续成截断结果
+更新时间: 2026-10-27 04:50
+当前任务: **无新纠偏（last_ack 保持 ASR-013）+ 共享机器锁的独占性/fail-closed 修复（§39）**：CORRECTIONS_ASR.md mtime **2026-10-26 16:18:05**、md5 `55c28c72…` 与上轮**完全一致**（最大编号仍 ASR-013，`grep -rn "ASR-01[4-9]" status/` 命中 0）⇒ **last_ack 保持 ASR-013，不改**。本轮实质工作（触发源：`shared/NOTICE_app_to_tts_asr_20261026_s56.md` §六.2，**App 点名 ASR**）：① 🔴 **确认并修掉 ASR 侧共享锁的 3 个真缺陷** —— 新建单一事实来源 `scripts/asr_lock_common.py`，5 个持锁脚本（`pya_app_path_seg.py` / `pya_bench_one_window.py` / `pya_stream_segment.py` / `run_wait_calib_mask2.py` / `p3_run_with_lock.py`）统一调用：**(a) 丢独占性**（4 个脚本用 `tmp+os.replace`、1 个用 `open(path,'w')` 直接写 ⇒ 两个写者都成功）⇒ 改 `tmp+fsync+os.link`（`FileExistsError` ⇒ 独占；建链原子 ⇒ 永不见半成品锁）；**(b) 读锁 fail-open**（解析不出 pid 就删 ⇒ 会删掉别的模块的活锁 ⇒ TTS 侧 21:21~21:38 有 40 行 `timing_valid=false` 作废）⇒ 改 **fail-closed**（内容非空 ⇒ 绝不删、只等；空文件才回收；回收前复核 pid）；**(c) 🔴 本轮新发现：跨模块 pid 格式地雷** —— 本模块历史写 `PID=424242 start=…`（等号），TTS 的关键字扫描会取到**第一个纯数字 token = `04`（=4）** ⇒ TTS 误判我们的活锁已死 ⇒ **删掉我们的活锁** （实测 C2 项修前 `pid=4`、修后 `pid=424242`）⇒ **统一改成空格分隔**（与 App 一致），四模块解析器全通；② ✅ **验收 19/19 PASS**（`results/lock_verify/asr_lock_verify_20261027.log`，1728 B，04:48；REAL 组全成立 + **BUG 组 2 项均命中** ⇒ 测试有鉴别力）+ **跨进程互斥 PASS**（`asr_lock_xproc_20261027.log`，873 B；6 个独立进程抢锁 ⇒ **持有区间零重叠**、无死锁、无孤儿锁）+ **反证**（`old_impl_counterproof_20261027.log`，497 B：旧 `os.replace` ⇒ **重叠 5 对** ⇒ 旧实现确实互斥失效）；③ ✅ **2 分钟实跑冒烟 rc=0**（`--tag locksmoke`）⇒ 20 段 / rtf 0.6045 / seg_model_rtf 0.05655 ⇒ **跑完锁正常释放、无 `.tmp` 残留、checkpoint 自动清理**（§38 修复仍生效）⇒ 冒烟产物已删；④ ✅ **清掉最后一个残留 checkpoint**（`pya_app_forced_smoke2.partial.json`，4049 B，00:30；最终产物 `pya_app_forced_smoke2.json` 已完整落盘 audio_sec=120.0 / n_segs=21 / rtf=0.2888 ⇒ 该 partial 为陈旧残留）⇒ **全盘 `*.partial.json` 归零**；⑤ 🔴 **WER 仍未算**（本线程不调用 MiniMax）⇒ 交 reviewer 对照 **App 路径 R2T2 iGPU INT8 B 10.58%** 复算
+阻塞 / 待用户决定: ① 🔴★ **待 reviewer 复算 WER**：`pya_app_forced_forced61.json`（**150639 B，01:09:22**；App 路径、61 分钟、同 R2T2 gpu_int8 引擎；`n_segs`=607 / `audio_sec`=3671.19 / `rtf`=0.5765）对照 **App 路径 R2T2 iGPU INT8 B 10.58%**（同路径 ⇒ 可直接配对 bootstrap）；⚠️ 交付基准 8.17% 是 226 段离线切分、**非** App 路径 ⇒ 只作参考列，不可当同口径；② 🔴 **空文本段 17 个**（全为 `model_break`，段长 0.64–1.92 s）⇒ 模型断点落在极短无语音间隙上 ⇒ 需 App 侧空段守卫（ASR-003 边界）或 ASR 侧最小段过滤 ⇒ **本轮未擅自改**；③ 🔴 **段数 +49（558 → 607，+8.8%）** ⇒ 定稿更碎 ⇒ TTS 音色切换 / MT 翻译段数 / App 接缝开销都增加 ⇒ 待评审；④ ⚠️ **短切片不可外推**：5 分钟口径 6.67% → 6.25%（−0.42pp），61 分钟口径 9.87% → 3.30%（−6.57pp）⇒ **必须以 61 分钟为准**；⑤ 🔴★ **ASR-013 交付精度待定**：FP16 分段 IR 已达标，**INT8 三条路径（weight-only 0.995336 / 激活感知 0.951184 / head 保留 0.986118）全部未过阈** ⇒ 按「再试 INT8」字面要求，若激活感知仍不过阈则交付 **FP16 为准 + INT8 差距如实记录**，**不擅自降阈值**；⑥ 🔴 **待 reviewer 复算的 WER**：R2T2 INT8@NPU App 路径（对照 App 路径 R2T2 iGPU B **10.58%**）；⑦ 🔴 **0.6B 新图两格 WER 仍空**（int8__mask2 / int4__mask2 已有 reviewer 值 10.94% / 11.57%，但 `r2t2__int8__npu_app` 与 `0.6B INT8@NPU` 的 61 分钟 App 格 WER 待复算）；⑧ 🔴 **旧图 5 格结论作废 ≠ 新图已有结论** —— `int4_sym_chan` 在新图上**至今未知**（按 ASR-011 第 4 条用户决定**不测**）；⑨ ⏳ **`R2T2 R2` 同口径标定点未跑** ⇒ teacher-forcing 99.29%/92.71% 仍无阈值可判；⑩ ⚠️ **`GPU.0` = iGPU 必须同步 reviewer**（影响他对历史 GPU 格的解读）；⑪ ⚠️ **`INT4_ASYM g128 在 NPU 上比 INT8 慢 38%**（**不能**写成「NPU 上 INT4 最慢」）—— 机理未查（只报现象）；⑫ ⚠️ **P0 参照重跑未做**（`--minutes 61` 截到 3660.0 s，少跑 11.19 s）—— 本轮 61 分钟跑用 `--minutes 61.2` ⇒ 覆盖 3671.189 s（= 整个 wav）；⑬ ⚠️ **「提高 rule1 静音要求」必须改代码**（硬编码无 env）⇒ 属 App 模块（ASR-003 边界）；⑭ ⚠️ **bench 每格只测 1 次**（用户决定）⇒ `rtf_p50 == rtf_p95`，**不是分布**；⑮ ⚠️ **R2T2 首字延迟是「引擎级」口径**（含 encoder+prefill），与 0.6B 的「argmax 首 token」**不同口径** ⇒ 报告须标注；⑯ ⚠️ **R2T2 的加载+编译不可分**（OVEngine 合算在 `load_s`）⇒ 冷/热只给合并值；⑰ ⚠️ **NPU 无 `GPU_MEMORY_STATISTICS`** ⇒ NPU 格的设备内存**无法读取**，只报 `DEVICE_ARCHITECTURE`（不硬凑）；⑱ ⚠️ **0.6B INT4@NPU 61 分钟 App 路径未跑**（ASR-011 精简版只要求 INT8@NPU ⇒ 按用户范围**不补**，报告须写明「该格无 App 路径质量数据」）；⑲ ⚠️ **ASR-013 说话人身份尚未被真正检验**：61 分钟素材只有 1 个说话人 ⇒ 全局 id 只有 S1、x-vector 同人/异人余弦**几乎无间隙**（cos_same_min 0.8912 vs cos_diff_max 0.9906，margin 仅 **0.0054**）⇒ 多说话人素材上的切换点 F1 / 碎片化**尚无数据**，需换素材重跑；⑳ ✅ **checkpoint 遗留项已全部闭环（§38 + §39）**：`pya_app_forced_forced61.partial.json`（129183 B）与 `pya_app_forced_smoke2.partial.json`（4049 B）**均已删除**，脚本已改为跑完自动清理 ⇒ 全盘 `*.partial.json` 归零；㉑ ⚠️ **TTS 侧的同一锁缺陷本模块未代改**（`qwen3tts_eval/machine_lock.py` 仍是 `tmp+os.replace`，App 通知 §六.2 也点了 TTS）⇒ 属 TTS 模块职责；但本模块已把锁格式改成空格分隔 ⇒ **TTS 现在能正确读出本模块的 pid**（C2 实测 PASS）⇒ TTS 修好前也不会再误删本模块的活锁
 
 
 ## 最近更新
+- 2026-10-27 04:50 **无新纠偏（last_ack 保持 ASR-013）+ 共享机器锁的独占性/fail-closed 修复（§39）**：① ✅ **无新纠偏**（`CORRECTIONS_ASR.md` mtime **2026-10-26 16:18:05**、md5 `55c28c72…` 与上轮完全一致；`grep -n '^#\{1,3\} '` 最大编号仍 **ASR-013**；`grep -rn "ASR-01[4-9]" status/` 命中 **0**）⇒ **last_ack 不改**；② 🔴★ **修掉 ASR 侧共享锁的 3 个真缺陷**（触发源 `shared/NOTICE_app_to_tts_asr_20261026_s56.md` §六.2，**App 点名 ASR**）—— 新建单一事实来源 `scripts/asr_lock_common.py`（17345 B，04:43），5 个持锁脚本统一调用：**(a) 丢独占性**（4 个脚本 `tmp+os.replace`、1 个 `open(path,'w')`）⇒ 改 `tmp+fsync+os.link`（`FileExistsError` ⇒ 独占）；**(b) 读锁 fail-open**（解析不出 pid 就删 ⇒ 误删别的模块活锁 ⇒ TTS 侧 21:21~21:38 有 **40 行 `timing_valid=false`** 作废）⇒ 改 **fail-closed**；**(c) 🔴 本轮新发现：跨模块 pid 格式地雷** —— 本模块历史写 `PID=424242 start=…`（等号），TTS 关键字扫描取到**第一个纯数字 token = `04`（=4）** ⇒ TTS 误判我们的活锁已死 ⇒ **删掉我们的活锁** ⇒ 统一改成**空格分隔**（与 App 一致）；③ ✅ **验收 19/19 PASS**（`results/lock_verify/asr_lock_verify_20261027.log`，1728 B，04:48；REAL 组全成立 + **BUG 组 2 项均命中** ⇒ 有鉴别力）+ **跨进程互斥 PASS**（`asr_lock_xproc_20261027.log`，873 B；6 独立进程抢锁 ⇒ **持有区间零重叠**、无死锁、无孤儿锁）+ **反证**（`old_impl_counterproof_20261027.log`，497 B：旧实现 **重叠 5 对** ⇒ 确实互斥失效）+ **C1–C4 四模块解析器全通**（ASR/TTS/MT 真实解析器都读出 pid=424242）；④ ✅ **2 分钟实跑冒烟 rc=0**（`--tag locksmoke`）⇒ 20 段 / rtf 0.6045 / seg_model_rtf 0.05655 ⇒ 跑完**锁正常释放、无 `.tmp` 残留、checkpoint 自动清理** ⇒ 产物已删；⑤ ✅ **清掉最后一个残留 checkpoint**（`pya_app_forced_smoke2.partial.json`，4049 B）⇒ 全盘 `*.partial.json` **归零**；⑥ 🔴 **WER 仍未算**（不调用 MiniMax）⇒ 交 reviewer 对照 App 路径 R2T2 iGPU INT8 B **10.58%** 复算；⑦ ⚠️ **TTS 侧同一锁缺陷本模块未代改**（属 TTS 职责）⇒ 但格式已改 ⇒ TTS 现在能正确读出本模块 pid ⇒ 修好前也不会误删本模块活锁
 - 2026-10-27 03:25 **无新纠偏（last_ack 保持 ASR-013）+ §37 遗留的 checkpoint 隐患已修（§38）**：① ✅ **无新纠偏**（`CORRECTIONS_ASR.md` mtime **2026-10-26 16:18:05**、md5 `55c28c72…` 与上轮完全一致；`grep -n '^#\{1,3\} '` 最大编号仍 **ASR-013**；`grep -rn "ASR-01[4-9]" status/` 命中 **0**）⇒ **last_ack 不改**；② 🔴 **修掉「跑完不删 checkpoint」隐患**（§37 遗留）：`scripts/pya_app_path_seg.py` 写完最终 json 后**不删** `*.partial.json` ⇒ 下次同 tag 跑会误续到 `fed_s`=3660.0（已覆盖 99.7%）⇒ **静默产出少了最后 11.19 s 的截断结果却看着像跑完** ⇒ 已在最终产物落盘后加 `os.remove(ckpt_path)`（失败只告警、不中断）；③ ✅ **2 分钟冒烟验证通过**（`logs/pya_ckptsmoke.log`，1939 B，03:22:37，rc=0）：日志打印「[pya] 已清理 checkpoint → …ckptsmoke.partial.json」、跑完**无残留 partial**、`MACHINE_LOCK` **正常释放**；④ ✅ **清掉 forced61 陈旧 checkpoint**（`pya_app_forced_forced61.partial.json`，129183 B，`fed_s`=3660.0/605 段）⇒ 最终产物 `pya_app_forced_forced61.json`（150639 B，01:09:22，`n_segs`=607 / `audio_sec`=3671.19 / `rtf`=0.5765）**未受影响**；⑤ 🔴 **WER 仍未算**（本线程不调用 MiniMax）⇒ 交 reviewer 对照 App 路径 R2T2 iGPU INT8 B **10.58%** 复算
 - 2026-10-27 01:20 **ASR-013 ②验收① 闭环：61 分钟 forced 跑完 + 词内切点 9.87% → 3.30%（§37）**：① 🔴 **长跑夭折根因修复（§36 续）** —— 后台进程随会话结束被回收 ⇒ 已加 **每 60 s checkpoint + 自动断点续跑**（`scripts/pya_app_path_seg.py`）+ `--no-resume` + 进度日志，2 分钟冒烟验证生效；② ✅ **61 分钟 App 路径 forced 长跑跑完**（`pya_app_forced_forced61.json`，150639 B，01:09:22；`audio_sec` **3671.19** 全覆盖、`n_segs` **607**、`rule_counts` rule1 **479** / model_break **108** / rule2 **20**、`rtf` **0.5765**、`seg_model_rtf` **0.06018**、总词数 **11322**、拉丁 0.8326 / 三连 0 / 非 ASCII 0 ⇒ 文本健康）；③ ✅★ **词内切点 9.87% → 3.30%**（同口径 `asr006_rule1_cut_diag.seam_overlap(N=3)`：App 路径 B 基线 557 接缝 / 55 命中 / 9.87% ⇒ 本轮 606 接缝 / **20 命中 / 3.30%**；rule1 10.24% → **3.55%**）；④ 🔴 **WER 未算（不调用 MiniMax）** ⇒ 交 reviewer 对照 App 路径 R2T2 iGPU INT8 B **10.58%** 复算；⑤ 🔴 **代价**：段数 **+49**（558→607）、**空文本段 17**（全为 `model_break`）⇒ 需 App 空段守卫或 ASR 最小段过滤（未擅自改）
 - 2026-10-27 00:45 **无新纠偏（last_ack 保持 ASR-013）+ 61 分钟 forced 长跑夭折根因修复（§36）**：① ✅ **无新纠偏**（`CORRECTIONS_ASR.md` mtime 2026-10-26 16:18:05、md5 `55c28c72…` 与上轮完全一致；最大编号仍 ASR-013）⇒ **last_ack 不改**；② 🔴★ **根因：61 分钟 forced 长跑连续两次夭折**（PID 12832 / PID 380 **均已死、锁没删** ⇒ 陈旧锁；日志只到「引擎加载完成」、`pya_app_forced_forced61.json` **从未落盘**）⇒ **不是模型问题，是后台进程被回收** ⇒ 光重跑没用；③ ✅ **加 checkpoint + 自动断点续跑**（`scripts/pya_app_path_seg.py`：每 60 s 落 `pya_app_forced_<tag>.partial.json`、启动自动续、`--no-resume` 从头跑、每 60 s 打进度）；🔴 续跑须同步 `rec.fed` 与 `eng._last_words/_last_text`（否则新段 start_s/end_s 算错 + 接缝判据②失效）；✅ 2 分钟冒烟验证续跑生效（「断点续跑：从 60.0s 起（已有 8 段）」）+ 跑完正常删锁；④ ⏳ **第 3 跑在途**（PID 17296，00:30:18 起，持规范锁）：分段模型断点 **108 个**、RTF **0.06018**；进度 660.0/3671.2 s（18.0%）、段数 108、中途 RTF **0.5851** ⇒ 文本正常，**最终产物尚未落盘**
@@ -19,7 +20,6 @@ last_ack: ASR-013
 - 2026-10-26 02:10 **NPU 多轮复核坐实「INT4 在 NPU 上更慢」+ 部署选型建议（§28）**：① 新增 `p3_npu_mask2_text_check.py --rounds N`（**N≥2 时第 1 轮只作 warmup，不计入 `wall_s`/`rtf`**；逐轮 `rtf_per_round` 落盘；默认 N=1 保持老行为）；② ✅ **warmup 影响 < 1.7% 且方向不一致**（fp16 0.2908→0.2859 / int08 0.2719→0.2729 / int4 0.3777→0.3778）⇒ **首次推理的 lazy 编译不是 INT4 慢的原因**；③ 🔴 **稳态 RTF 排序：INT8 0.2729 ＜ FP16 0.2859 ＜ INT4 0.3778** ⇒ **NPU 上 INT4 慢 38.4%**（与单轮 38.9% 一致）；④ ✅ **文本逐字复现**（867/869/850 词、latin 0.9585/0.9586/0.9578、`prompt_echo` 全 false）⇒ 贪心确定性 + NPU 推理稳定；⑤ ★ **部署建议**：**NPU 选 INT8**（INT4 慢 38% 只省 28%）、**iGPU 用 INT4**（慢 1.93% 省 26–28%）；⚠️ 但**质量（WER）仍未验**，此结论只覆盖性能与体积；⑥ ⚠️ 口径限制已写清：整段贪心不可比 App 路径 / 300 s 切片 / 仅 2 轮 / 无质量结论 / 机理论未查
 - 2026-10-26 01:52 **后处理链全过 + 设备身份重大发现（§27）**：① ✅★ **NPU 文本正常性**：`prompt_echo_detected` **三格全 false** ⇒ **§20 的 NPU BLOCKED 解除**（切片 [720,1020] 300 s / 45 段；词数 fp16 867、int8 **869**、int4 850；编译 117.7 / 88.5 / 208.8 s；RTF 0.2908 / 0.2719 / 0.3777 —— ⚠️ 整段贪心口径，**不可**与 App 路径比）；② ✅ **prefix 路径 mask 不错位**：12 步逐步 `mask_ok=True`、`mask_mismatch_count=0`、`any_degenerate=false`，三格 final 文本逐字相同（仅 `All right.` vs `Alright.`）⇒ 补上了 §23 修复最易漏的一条；③ ✅ **teacher-forcing**（20 段 / 425 token；target 来自**同家族 OV FP16**；**target 退化检测 0/20 ⇒ 不是 tautology**）：INT8 **99.2941%**（422/425）、INT4 **92.7059%**（394/425）、fp16 自检 100%；`position_layout_probe` 也是 100% ⇒ 这批段长下位置排布恰好等价；④ 🔴🔴 **设备身份**：`GPU.0` = **Intel(R) Graphics (iGPU)**、`GPU.1` = **NVIDIA RTX 5050 (dGPU)**、NPU = Intel AI Boost；**`nvidia-smi used` 全程 0** ⇒ **所有标 `GPU.0` 的格子跑的是核显**；⑤ ✅ **驻留内存补测**（USM 编译增量）：int4 **561.8 MiB** / int8 **762.6 MiB** / fp16 1209.5 MiB ⇒ INT4 比 INT8 省 **200.8 MiB（−26.3%）**，与目录体积比例吻合（0.726 vs 0.720）；⑥ 🔴 **修 3 个 bug**：`p3_diag_mask2_prefix` 两处 `.numpy()` on grad tensor（grep 全部 `.numpy()` 才没漏第二处）、`p3_diag_device_mem` 的 `ir_mib` 只算 xml（得出 2.8 MiB 的荒唐值）、`p3_ov_app.device_mem_mb` 三处缺陷；⑦ ⏳ WER / R2T2 R2 标定点 / NPU-INT4 变慢复核 仍待办
 - 2026-10-26 01:20 **新图 INT4 重量化 + INT8/INT4 两格 61 分钟全长跑完成（§26）**：① ✅ **INT4 重量化**（`INT4_ASYM g128 + AWQ + SE`，backup `INT8_ASYM`，`lm_head` 保 FP16，`n_calib=64` 右对齐双端口）：**1139.7 → 518.6 MiB（ratio 0.455）**、`n_i4=392`、`quant_seconds=210.1`、NNCF 位宽 int4_asym g128 **74%(196/197)** 且 ratio-defining **100%** ⇒ 配方确认生效；比 INT8（720.6 MiB）**小 28.03%**；② ✅ **两格长跑**（同 wav / 同 encoder / 同 App 路径，唯一变量 = decoder 精度）：553 段、`rule_counts` 518/34/1、`seg_dur` p50/p95/max 6.4/8.96/12.16 **两格逐位一致**（切段在音频域 ⇒ 段边界完全可比）；词数 **11419 vs 11369（−0.44%）**；**RTF 0.6827 vs 0.6959（+1.93%）**、`seg_rtf_p50` 0.6789 vs 0.6899、首字延迟 p50 0.2470 vs 0.2497 s、`timing_valid` 两格 **true**、全程持规范锁；③ ✅ **文本健康度无退化**：拉丁/全部字母 **1.0000**（无乱码异体字）、三连重复 **0**、ABAB 6/7、空段 **0**、唯一词率 0.235/0.241；段级 78.8% 文本不同属流式贪心+前缀回退的**预期**抖动（`nomenclature→nomenclators`、`SMG→S M G` 之类），最长 3 段语义连贯；④ 🔴 **修掉 `rule_counts` 双重计数**（引用 summary dict 后又在其上累加 ⇒ 553 写成 1036）⇒ 取拷贝 + 「合计 == n_segs」自检；⑤ ✅ **格子与矩阵**：新增 `…__int8__mask2__int8.json` / `…__int4__mask2__int4.json`，`MATRIX.json` **18 格**、两格有效；⑥ 🔴 **§26.4 三条不可归因边界**：旧图 INT8 长跑 `timing_valid=false` ⇒ RTF 1.2389 **不得引用**、且**无持锁重跑版本**；旧图 encoder 是 `int8sym-static` 而新图是 `fp16-static` ⇒ **新旧长跑同时变两样**，词数/RTF 差异不能全归因 mask；旧图 11825 vs 新图 11419 词只能作方向性旁证；⑦ ⏳ NPU/prefix/teacher-forcing 仍在等 `app-pack` 让锁 ⇒ 写 §27
-- 2026-10-25 21:26 **【用户决定】ASR 不考虑 FP16 ⇒ 矩阵只剩 INT8 / INT4 两格（§25）**：① ✅ **删除**：① `results/p3_mask2_61min_fp16/`（原**已跑到 65.7%** / 364 段 / 2410.24 s，FP16 无价值 ⇒ 作废）；② `build_compare_mask2.py` 的 fp16 变体、`build_compare_06b.py` 的 FP16 格、`p3_make_matrix.py` 的 ORDER 里的 3 个 FP16 名；③ `p2_multitoken_top1.py` 的 ov_models **7 项→3 项**（删旧图 5 项，`ov_fp16_ref`→`mask2_fp16_ref`）、`p3_int4_slice_decode.py` VARIANTS **6→3**、`p3_npu_mask2_text_check.py` 删 `old_int8`、`p3_diag_mask2_prefix.py` 删 `fp16_old`、`run_mask2_pipeline.sh` 的 `step_p3` **三格→两格**；② 🔴 **两处 FP16 不能照字面删**：① `models/ov-dec-06b-embed-mask2/`（FP16 源图 1.2 G）是 **INT4 重量化的输入**（`p2_quantize_mask2_int4.py::NEW_SRC`）⇒ 删了 INT4 跑不了；② `mask2_fp16` 是 teacher-forcing 的 **target 生成器**（§7 铁律：target 必须同家族 FP16，否则是自一致 tautology）⇒ 保留；③ **原两个 `precision=FP16` 格子实为 P0 的 torch CUDA 参照**（backend = torch 2.11 + CUDA, bfloat16，带 reviewer 算的 **WER 主参照 10.97%**）⇒ 直接删就没有对照基准 ⇒ 已**改标 `TORCH_REF`** + `is_delivery_candidate:false` 保留（`…__torchref__cuda_stream.json` / `…__torchref__cuda_offline.json`）；③ 🔴 **顺带修好漏标作废**：§23 只标了 `int8__gpu0` 一格，另有 **4 格用旧图却仍显示「有效」**（int4_asymg128 / int4_sym_chan / int8__npu / int4__all）⇒ 已补标作废（判据：`dec_ir` 指向 `ov-dec-06b-embed-*` 非 `-mask2` ⇒ 一律作废）；④ ✅ **矩阵已无 `precision=FP16`**（实测扫描全部 json，命中 0 处）；⑤ ✅ **备份可回滚**（`_backup_fp16_removal_20261025/`，300 KB：compare 全量副本 + FP16 长跑 364 段 + 6 个脚本改前版本）；⑥ ✅ **FP16 长跑进程已停**（`TaskStop`）⇒ GPU 与锁让出；⚠️ 停后核查发现**锁已被 MT 正确接管**（`mt PID 9748 started 21:21:45`）⇒ 无孤儿锁
 ## §2 最近一周的结论摘要（均引用产物）
 
 ### 2.1 切段策略（属本模块范围）
@@ -4546,3 +4546,146 @@ reviewer 记录的启动信息：pid **25264**，10:41 开始，
   `[lock] 已取锁（pid=36804, task=pya_app_forced_ckptsmoke）`
 - 跑完 `MACHINE_LOCK` **不存在**（`release_lock` 正常）⇒ **无孤儿锁**、未干扰其它模块
 
+## §39 共享机器锁的独占性与 fail-closed 修复（App 通知 §六.2 点名 ASR）+ 跨模块 pid 格式互操作修复（2026-10-27 04:26–04:50）
+
+> 触发来源：`shared/NOTICE_app_to_tts_asr_20261026_s56.md`（App 模块，2026-10-26 22:15）§六.2
+> 「**`os.replace` 的独占性问题**：TTS/ASR 侧若用 `os.replace`，请评估「两个写者都成功」的可能
+> ⇒ 建议改用 `os.link`（`FileExistsError` ⇒ 独占失败）」。**该通知明确点名 ASR**。
+> ⚠️ **本轮无新纠偏**（`CORRECTIONS_ASR.md` mtime **2026-10-26 16:18:05**、md5 `55c28c72…`
+> 与上轮完全一致，最大编号仍 **ASR-013**，`grep -rn "ASR-01[4-9]" status/` 命中 0）
+> ⇒ **last_ack 保持 ASR-013，不改**；本轮做的是**通知里点名本模块的缺陷修复**。
+
+### 39.1 🔴 缺陷确认：ASR 侧的锁实现有**两个**真缺陷 + **一个**跨模块互操作地雷
+
+本模块 5 个持锁脚本各抄了一份锁实现 ⇒ 逻辑漂移：
+
+| # | 文件 | 写锁方式 | 缺陷 |
+|---|---|---|---|
+| 1 | `scripts/pya_app_path_seg.py` | `tmp + os.replace` | **丢独占性**（两个写者都成功） |
+| 2 | `scripts/pya_bench_one_window.py` | `tmp + os.replace` | 同上 |
+| 3 | `scripts/pya_stream_segment.py` | `tmp + os.replace` | 同上 |
+| 4 | `scripts/run_wait_calib_mask2.py` | `tmp + os.replace` | 同上 |
+| 5 | `scripts/p3_run_with_lock.py` | `open(path,'w')` **直接写** | 丢独占性 **且**有「文件已建、内容未写完」空窗 |
+
+**缺陷①（丢独占性）**：`os.replace` 在目标已存在时**覆盖** ⇒ 两个写者都看到「锁不存在」、
+都 replace ⇒ **后写者覆盖前者** ⇒ **两个模块都以为拿到了锁** ⇒ 同时跑 ⇒ 计时互相污染。
+🔴 **实测反证**（本轮新做，`results/lock_verify/old_impl_counterproof.py`）：
+6 个独立进程同时抢锁 ⇒ **持有区间重叠 5 对**（即 6 个进程**同时**持锁）
+⇒ 旧实现**确实**互斥失效，不是理论推断。
+
+**缺陷②（读锁 fail-open ⇒ 误删活锁）**：旧读锁逻辑是
+「`pid is None or not _pid_alive(pid)` ⇒ **一律回收**」。
+但「解析不出 pid」**不等于**「持锁者已死」⇒ 会**删掉别的模块的活锁**。
+这正是 TTS 侧记录的数据作废事故的根因
+（`NOTICE_tts_lock_atomic_20261026.md`：TTS-019 `single` 臂 **16/30 行 `timing_valid=false`**、
+TTS-017① `A_CPU` 臂 **24/30 行 `timing_valid=false`**，2026-10-26 21:21~21:38）。
+
+**缺陷③（本轮新发现，通知里没写）**：🔴 **跨模块 pid 格式互操作地雷**。
+本模块历史写锁用 `asr PID=424242 start=2026-10-27 04:40:00 task=…`（**等号**形式）。
+TTS 的 `qwen3tts_eval/machine_lock.py::_read_lock` 用**关键字扫描**取 pid：
+对这一行做 `replace(":", " ").split()` 后取**第一个纯数字 token**
+⇒ 拿到的是**时间戳里的 `04`（=4）**，**不是** 424242
+⇒ TTS 认为「锁内 PID 4 已死」⇒ 判「陈旧锁」⇒ **删掉我们的活锁** ⇒ 互锁失效。
+🔴 **本轮实测证据**：`results/lock_verify/asr_lock_verify_20261027.log` 里 C2 项
+修格式前为 `[FAIL] TTS 解析器能读出 pid -- pid=4`（期望 424242），
+修格式后为 `[PASS] ... pid=424242`。
+✅ App 的 `machine_lock_app.py` 早就不用等号形式（用空格）⇒ **App 不受影响，只有 ASR 受影响**。
+
+### 39.2 ✅ 修法（新建单一事实来源 `scripts/asr_lock_common.py`，5 个脚本统一调用）
+
+**写锁**：🔴 **刻意不用 `os.replace`**（会覆盖别人）⇒ 改
+`tmp 写全 + flush + os.fsync` ⇒ 再 **`os.link(tmp, lock_path)`**：
+- `os.link` 在目标已存在时抛 `FileExistsError` ⇒ **独占**（绝不覆盖别人）；
+- 建硬链接是**原子**的 ⇒ 别的模块**永远看不到半成品锁**（内容要么完整、要么文件不存在）；
+- ⚠️ 临时文件名**必须带 PID**（`LOCK.<pid>.tmp`）⇒ 两个模块不会用同一个 tmp 名互踩
+  （🔴 旧代码用的是**固定名** `MACHINE_LOCK.tmp` ⇒ 实测跨进程时直接
+  `PermissionError: [WinError 32] 另一个程序正在使用此文件`，本轮反证时复现）。
+
+**读锁（fail-closed）**：
+- 锁**不存在** ⇒ 可抢；
+- 锁**存在且内容非空** ⇒ **绝不删**（即使 pid 解析不出，也只**等**）；
+- 锁**存在但内容为空**（0 字节）⇒ 等 2 s 重读；**仍为空**才回收；
+- pid **解析得出且进程已死** ⇒ 才是陈旧锁；**回收前复核**「锁里的 pid 仍是刚才那个陈旧 pid」
+  （否则会删掉「持锁者刚好重启并写了新锁」）。
+
+**锁内容格式**：🔴 **统一改成空格分隔**（与 App 的 `machine_lock_app.py` 一致）：
+```
+asr PID <pid> started <YYYY-MM-DD HH:MM:SS> task=<task>
+module: asr
+pid: <pid>
+started: <YYYY-MM-DD HH:MM:SS>
+task: <task>
+host: <COMPUTERNAME>
+```
+⇒ **四个模块的解析器（ASR 正则 / TTS 关键字扫描 / MT key-value）全部能读出 pid**。
+
+**判陈旧口径不变**：只看 **PID 是否存活**，**不做进程名过滤**；另加
+「锁的 started 早于本次开机 ⇒ 必然已死」。
+
+### 39.3 ✅ 验收证据（`results/lock_verify/`，6 个文件）
+
+**① `asr_lock_verify_20261027.log`（1728 B，04:48）—— 单元验收 19/19 PASS**
+（设计照抄 App 的 `app082_atomic_lock_test.py`：**REAL 组必须成立 + BUG 组必须命中**
+⇒ BUG 组命中说明测试**有鉴别力**，不是恒过测试）：
+
+| 项 | 判据 | 结果 |
+|---|---|---|
+| R1a/b/c | 第一个写者拿到锁 / **第二个写者被拒（独占）** / 内容未被覆盖 | PASS |
+| R2a | 读锁**从未**看到空内容（无空窗）—— 并发写 17189 次采样 | PASS（`n_empty=0`） |
+| R3a/b/c | 解析不出 pid ⇒ **不判陈旧** / **拿不到锁** / **别人的锁没被删** | PASS |
+| R4 | 0 字节空锁 ⇒ 等 2 s 重读后回收 | PASS |
+| R5 | 死 pid ⇒ 陈旧锁可回收 | PASS |
+| R6/a/b | 活锁（pid=本进程）⇒ **不可回收**、等超时 | PASS |
+| R7a/b | 删锁**只删自己的**（pid 不匹配 ⇒ 不删） | PASS |
+| **B1** | **旧 `os.replace` 实现 ⇒ 两个写者都成功（缺陷复现）** | PASS（命中 ⇒ 有鉴别力） |
+| **B2** | **旧读锁把「读不懂的活锁」删了（缺陷复现）** | PASS（命中 ⇒ 有鉴别力） |
+| **C1–C4** | **ASR / TTS / MT 三个真实解析器**都读出 pid=424242；MT 读出 started 时间戳 | PASS |
+
+**② `asr_lock_xproc_20261027.log`（873 B，04:48）—— 跨进程互斥验收 PASS**
+6 个**独立进程**（`spawn`）同时抢锁 ⇒ 持有区间**零重叠**：
+```
+worker0 […539.129, …540.630) → worker2 […] → worker5 → worker4 → worker3 → worker1
+[A1] 全部 6 个进程都最终拿到锁（无死锁）= True
+[A2] 持有区间**无重叠**（互斥成立）= True
+[A3] 跑完无残留锁文件 = True
+```
+🔴 **安全边界**：脚本把锁路径重定向到**临时目录**，**不创建也不删除真实
+`shared/MACHINE_LOCK`** ⇒ 未干扰其它模块。
+
+**③ `old_impl_counterproof_20261027.log`（497 B，04:48）—— 反证**
+同一脚本换成旧 `os.replace` 实现 ⇒ **重叠 5 对** ⇒ 旧实现**确实**互斥失效。
+
+**④ `diag_empty_read.py`（1060 B）—— R2 的诊断**
+发现 Windows 上 `os.link` 建硬链接后，**写者持有期间读者会拿到 `PermissionError(13)`**
+（不是空文件）⇒ 该情形**不能**当「空闲」，也**不是**空窗 ⇒ 由 R3 的 fail-closed 覆盖。
+
+**⑤ 2 分钟实跑冒烟**（`results/lock_verify/pya_ckptsmoke.log` 之外的本次冒烟，
+已清理产物）：`pya_app_path_seg.py --engine gpu_int8 --strategy forced --minutes 2
+--tag locksmoke --no-resume` ⇒ **rc=0**、日志打印
+`[lock] 已取锁 …（pid=28756, task=pya_app_forced_locksmoke）` ⇒
+**20 段**（rule1 14 / model_break 3 / rule2 2 / flush 1）、`rtf` 0.6045、
+`seg_model_rtf` 0.05655、`midword` 15.79%（3/19 接缝命中）
+⇒ 跑完 **`MACHINE_LOCK` 不存在（正常释放）**、**无 `.tmp` 残留**、
+**checkpoint 自动清理**（§38 的修复仍生效）⇒ 冒烟产物已删。
+
+### 39.4 机器锁
+
+- 本轮唯一的计时作业是 2 分钟冒烟 ⇒ **由本模块持锁**
+  （`[lock] 已取锁 … pid=28756, task=pya_app_forced_locksmoke`）。
+- 跑完 `MACHINE_LOCK` **不存在** ⇒ **无孤儿锁**、未干扰其它模块
+  （本轮开始与结束时 `shared/` 下都只有 README + NOTICE，`MACHINE_LOCK` 不存在）。
+
+### 39.5 🔴 本轮**没有**做的事
+
+- **未算 WER**（本线程不调用 MiniMax）⇒ `pya_app_forced_forced61.json` 的 WER **仍交 reviewer**
+  对照 **App 路径 R2T2 iGPU INT8 B 10.58%**（同路径 ⇒ 可直接配对 bootstrap）。
+- **未改 `live_caption/` 任何文件**（ASR-003 边界）；**未开新实验**；
+  未跑 61 分钟长跑（只 2 分钟冒烟）。
+- **未动其它模块的文件**：`status/CORRECTIONS.md`、`status/STATUS_ARCHIVE_2026-10.md`、
+  `status/app/CORRECTIONS_APP.md`（`git status` 显示为 M）**未动**；
+  `qwen3asr_06b` **不在 git 仓库内** ⇒ 本轮的脚本改动**不进 git**（只在本机）。
+- **未修 TTS 侧的同一缺陷**：TTS 的 `qwen3tts_eval/machine_lock.py` 仍是
+  `tmp + os.replace`（App 通知 §六.2 也点了 TTS）⇒ **属 TTS 模块职责，本线程不代改**。
+  ⚠️ 但本模块已把锁格式改成**空格分隔**，⇒ **TTS 现在能正确读出本模块的 pid**
+  （C2 项实测 PASS）⇒ TTS 侧在**修好之前**也不会再误删本模块的活锁。
+- 空文本段 17 个、段数 +49（558 → 607）的归属问题仍**待用户裁定**。
