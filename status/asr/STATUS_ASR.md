@@ -3838,3 +3838,31 @@ to global declaration`）。
 * 🔄 0.6B INT8@NPU 61 分钟长跑进行中（最近 **64.0%** / 355 段 / 2350.7 s，文本正常）。
 * ⏳ R2T2 INT8@NPU 61 分钟（**必须等 0.6B 那格跑完**，两者共用 NPU）。
 * ⏳ 6 格 bench（等 CPU 空闲 + 规范锁；当前锁被 `tts` 持有 10:10:13 起，CPU 100%）。
+
+### 30.11 ✅ R2T2 App 转写脚本冒烟通过（`gpu_int8` 档，1 分钟切片）
+`asr007_r2t2_app_transcribe.py --engine gpu_int8 --minutes 1` ⇒
+**10 段 / 162 词**、`rule_counts {rule1: 8, rule2: 1, short_flush: 1}`、
+`load_s 11.9` / `wall_s 83.4` / `rtf 1.3908`；文本**通顺无复读**（"Good morning
+everyone. Good morning. Let's get started…"）⇒ 脚本逻辑与真实 App 路径对齐。
+⚠️ 用的是 **GPU.0** 档（NPU 档与正在跑的 0.6B 长跑**抢 NPU**）
+⇒ 只验证脚本逻辑，**不作交付数据**。
+
+### 30.12 🔴 `timing_valid` 必须**真读锁**、且要按**进程树**判归属
+原 `asr007_r2t2_app_transcribe.py` 把 `timing_valid` **硬编码成 `True`**
+⇒ 没持锁也会声称计时有效（我那次冒烟就是没持锁跑的，字段却写 True）。
+⇒ 修法：
+* 真实读规范锁 `C:/Users/Trekker-PTL/shared/MACHINE_LOCK`（多编码回退）；
+* 解析锁里的 `pid`，再按**进程树**判「是不是本进程持的锁」
+  —— 🔴 **Windows 上 venv python 会再起一个 base python 子进程**
+  （实测：父 = `.venv\Scripts\python.exe`，子 = `Python312\python.exe`）
+  ⇒ **只比 `os.getpid()` 会误判成「不是我持的锁」**；
+* `timing_valid = bool(lock_is_ours)`，不成立就写明原因（附锁内容快照）。
+
+### 30.13 ✅ 新增 `build_compare_r2t2_app.py`（R2T2@NPU 61 分钟 App 路径新格）
+* 读 `results/p3_r2t2_61min_npu/{summary.json,segments.json,transcript.txt}`
+  ⇒ 产出 `reports/compare/r2t2__int8__npu_app.json`；
+* **只加字段不改数值**；**WER 留 `null`**（交 reviewer 复算，ASR-004 铁律）；
+* ⚠️ 明确标注：本格是 **App 路径**（真实 `OVEngine` + 真实 `Segmenter.due()`）
+  ⇒ 与既有 `r2t2__int8__npu.json`（**226 段离线切分**）**路径不同 ⇒ WER 不可直接比**；
+  且**段数也不可比**（App `MIN_SEG 6 s` vs `seg_stream` 旧切段器 12/20 s）；
+* 已接入 `asr007_build_results.py`（`r2t2__int8__npu_app.json` → `path='app'`）。
