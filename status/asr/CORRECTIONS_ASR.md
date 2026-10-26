@@ -230,3 +230,26 @@ reviewer 读了代码：`c079b_build_clean_embeds_ir.py` 的 PAIRS = `qwen3-lm-i
 ### 3. 待办
 - R2T2 INT8@NPU App 路径 61 分钟（pid25264，10:41 开始，results/p3_r2t2_61min_npu 目前还是空目录）：跑完后把 segments.json 留在原处，WER 由 reviewer 复算（对比 App 路径 R2T2 iGPU B 10.58%）。
 - 开始处理某一条纠偏时，先写 last_ack 和一行最近更新。
+
+## ASR-013 [HIGH] 2026-10-26 16:20 — 新功能（用户决定）：接入 pyannote/segmentation-3.0，① 给 ASR 做强制断句 ② 给出说话人 id，供 TTS 切换克隆音色
+
+**优先级**：先把手上的 ASR-007/011 精简版对比报告收尾，再做本条。本条 ASR 线程负责：分段模型的导出和部署、断句策略、说话人 embedding 和在线聚类（身份是从音频侧得出的，归 ASR）。TTS 的音色切换由 TTS 线程做，集成由 App 做。
+
+### 共用约定（ASR/TTS/App 三个模块一致，主会话定）
+- 模型：pyannote/segmentation-3.0（HF，MIT 许可，gated 需登录接受条款；只有 pytorch_model.bin，约 1.5M 参数）。输入 16 kHz 单声道 10 s 窗 [1,1,160000]，输出约 589 帧 × 7 类 powerset（≤3 个局部说话人 + 重叠）。可以转 ONNX/OV IR（sherpa-onnx 有现成导出可对照）。转换用的 torch 只在导出环境里，运行时不依赖 torch。
+- 它只做**窗内**说话人分段（哪一帧有人说话、窗内是 1/2/3 号谁在说、有没有重叠），**不给跨窗的身份**。跨时间认出"同一个人"，要另外用说话人 embedding 做在线聚类。主会话的建议：**直接复用 Qwen3-TTS Base 自带的 speaker encoder 提的 x-vector**（就是 spkonly 用的那个），同一个向量既当身份、又当克隆音色，不再引入第三个模型。如果它区分说话人的能力不够，再评估 wespeaker-resnet34 / CAMPPlus。
+- 设备：iGPU 或 NPU，**不在 CPU 上跑**（CPU 只能做单组件对拍诊断）。NPU 用静态 10 s 窗形状；如果 LSTM 在 NPU 上编译不过，就放 GPU.0。注意 TTS 现在全部在 NPU 上，要实测争用。
+- 事件字段：ASR 的定稿段增加 `spk`（全局说话人 id，S1、S2…；身份还没定下来时为 null）以及 `spk_conf`。App 把它原样传给 MT 和 TTS 事件；MT 不需要改翻译逻辑。
+- 隐私：克隆当前说话人仍然是**可选项，默认用预设音色 A**。说话人的 x-vector 只存在内存里，会话结束就丢弃，不落盘、不进客户包。测试素材里的会议录音和克隆音色仍然只限内部使用。
+
+### 要做的事
+1. 导出 segmentation-3.0 → OV IR（FP16；再试 INT8），和 torch 输出逐帧对拍（powerset logits cos ≥ 0.999，帧级类别一致率 ≥ 99%）。分别在 GPU.0 和 NPU 上测单窗耗时和内存。
+2. 流式断句：用 10 s 窗滑动，步长和 640 ms 分块对齐（或者 1.28 s），把重叠的部分聚合成帧级的"有人说话 / 说话人变化"概率。断点规则：(a) 静音 ≥ X ms；(b) 局部说话人切换，并且稳定 ≥ N 帧；(c) 最长段兜底。**断点只能落在静音或说话人切换处，不能切在词中间**（这正是 App 路径 WER 10.58% 对 8.17% 的主因）。X、N、判决滞后要扫参，并报告判决滞后给定稿带来的额外延迟。
+3. 说话人身份：对定稿段里单人、无重叠、≥ 2 s 的语音提 x-vector，做在线聚类（余弦阈值 + 均值逐步更新 + 说话人数上限），给每段输出 spk 和 spk_conf。
+4. 参照：在 CUDA 上**离线**跑 pyannote/speaker-diarization-3.1，结果当作伪真值（只用来评估，不进交付）。
+
+### 验收
+- ① WER：61 分钟 SPE 会议走 App 路径，和现在的 10.58%（R2T2 iGPU INT8）做配对 bootstrap，reviewer 复算。同时报告断点落在词内的比例，和现在的约 1.6× 对比。
+- ② 延迟和性能：定稿延迟 P50/P95 的增量；ASR RTF 的增量；和 TTS 同时跑在 NPU 上时的争用（计时要持机器锁）。
+- ③ 说话人：对照 3.1 伪真值，报告说话人切换点的 F1（±0.5 s 容差）、段级说话人纯度、全局 id 的混淆和碎片化（一个人被拆成多个 id 的次数）。
+- 产物放在 results/pyannote_seg/，结果写进 STATUS 新章节。开始时先写 last_ack 和一行最近更新。
