@@ -1,10 +1,11 @@
 last_ack: ASR-013
-更新时间: 2026-10-27 01:20
-当前任务: **无新纠偏 + ASR-013 ②验收① 已闭环（§37）**：CORRECTIONS_ASR.md mtime 2026-10-26 16:18:05、md5 55c28c72…未变（最大编号仍 ASR-013）⇒ **last_ack 保持 ASR-013**。本轮实质工作：① 🔴 **定位并修复 61 分钟 forced 长跑连续两次夭折的根因**（§36）—— 后台进程随会话结束被回收（PID 12832 / 380 均已死、锁没删 ⇒ 陈旧锁）⇒ 在 `scripts/pya_app_path_seg.py` 加 **每 60 s checkpoint + 自动断点续跑**（续跑须同步 `rec.fed` 与 `eng._last_words/_last_text`）+ `--no-resume` + 进度日志，2 分钟冒烟验证生效；② ✅ **61 分钟 App 路径 forced 长跑跑完**（`pya_app_forced_forced61.json`，150639 B，01:09:22；`audio_sec` 3671.19 全覆盖、`n_segs` 607、`rule_counts` rule1 479 / model_break 108 / rule2 20、`wall_s` 2116.41、`rtf` 0.5765、`seg_model_rtf` 0.06018、总词数 11322、文本健康（拉丁 0.8326 / 三连 0 / 非 ASCII 0））；③ ✅★ **词内切点 9.87% → 3.30%**（同口径 `asr006_rule1_cut_diag.seam_overlap(N=3)`：App 路径 B 基线 557 接缝 55 命中 9.87% → 本轮 606 接缝 20 命中 **3.30%**；rule1 10.24% → **3.55%**）；④ 🔴 **WER 未算（本线程不调用 MiniMax）** ⇒ 交 reviewer 对照 App 路径 R2T2 iGPU INT8 B **10.58%** 复算
-阻塞 / 待用户决定: ① 🔴★ **待 reviewer 复算 WER**：`pya_app_forced_forced61.json`（App 路径、61 分钟、同 R2T2 gpu_int8 引擎）对照 **App 路径 R2T2 iGPU INT8 B 10.58%**（同路径 ⇒ 可直接配对 bootstrap）；⚠️ 交付基准 8.17% 是 226 段离线切分、**非** App 路径 ⇒ 只作参考列，不可当同口径；② 🔴 **空文本段 17 个**（全为 `model_break`，段长 0.64–1.92 s）⇒ 模型断点落在极短无语音间隙上 ⇒ 需 App 侧空段守卫（ASR-003 边界）或 ASR 侧最小段过滤 ⇒ **本轮未擅自改**；③ 🔴 **段数 +49（558 → 607，+8.8%）** ⇒ 定稿更碎 ⇒ TTS 音色切换 / MT 翻译段数 / App 接缝开销都增加 ⇒ 待评审；④ ⚠️ **短切片不可外推**：5 分钟口径 6.67% → 6.25%（−0.42pp），61 分钟口径 9.87% → 3.30%（−6.57pp）⇒ **必须以 61 分钟为准**；⑤ 🔴★ **ASR-013 交付精度待定**：FP16 分段 IR 已达标，**INT8 三条路径（weight-only 0.995336 / 激活感知 0.951184 / head 保留 0.986118）全部未过阈** ⇒ 按「再试 INT8」字面要求，若激活感知仍不过阈则交付 **FP16 为准 + INT8 差距如实记录**，**不擅自降阈值**；⑥ 🔴 **待 reviewer 复算的 WER**：R2T2 INT8@NPU App 路径（对照 App 路径 R2T2 iGPU B **10.58%**）；⑦ 🔴 **0.6B 新图两格 WER 仍空**（int8__mask2 / int4__mask2 已有 reviewer 值 10.94% / 11.57%，但 `r2t2__int8__npu_app` 与 `0.6B INT8@NPU` 的 61 分钟 App 格 WER 待复算）；⑧ 🔴 **旧图 5 格结论作废 ≠ 新图已有结论** —— `int4_sym_chan` 在新图上**至今未知**（按 ASR-011 第 4 条用户决定**不测**）；⑨ ⏳ **`R2T2 R2` 同口径标定点未跑** ⇒ teacher-forcing 99.29%/92.71% 仍无阈值可判；⑩ ⚠️ **`GPU.0` = iGPU 必须同步 reviewer**（影响他对历史 GPU 格的解读）；⑪ ⚠️ **`INT4_ASYM g128 在 NPU 上比 INT8 慢 38%**（**不能**写成「NPU 上 INT4 最慢」）—— 机理未查（只报现象）；⑫ ⚠️ **P0 参照重跑未做**（`--minutes 61` 截到 3660.0 s，少跑 11.19 s）—— 本轮 61 分钟跑用 `--minutes 61.2` ⇒ 覆盖 3671.189 s（= 整个 wav）；⑬ ⚠️ **「提高 rule1 静音要求」必须改代码**（硬编码无 env）⇒ 属 App 模块（ASR-003 边界）；⑭ ⚠️ **bench 每格只测 1 次**（用户决定）⇒ `rtf_p50 == rtf_p95`，**不是分布**；⑮ ⚠️ **R2T2 首字延迟是「引擎级」口径**（含 encoder+prefill），与 0.6B 的「argmax 首 token」**不同口径** ⇒ 报告须标注；⑯ ⚠️ **R2T2 的加载+编译不可分**（OVEngine 合算在 `load_s`）⇒ 冷/热只给合并值；⑰ ⚠️ **NPU 无 `GPU_MEMORY_STATISTICS`** ⇒ NPU 格的设备内存**无法读取**，只报 `DEVICE_ARCHITECTURE`（不硬凑）；⑱ ⚠️ **0.6B INT4@NPU 61 分钟 App 路径未跑**（ASR-011 精简版只要求 INT8@NPU ⇒ 按用户范围**不补**，报告须写明「该格无 App 路径质量数据」）；⑲ ⚠️ **ASR-013 说话人身份尚未被真正检验**：61 分钟素材只有 1 个说话人 ⇒ 全局 id 只有 S1、x-vector 同人/异人余弦**几乎无间隙**（cos_same_min 0.8912 vs cos_diff_max 0.9906，margin 仅 **0.0054**）⇒ 多说话人素材上的切换点 F1 / 碎片化**尚无数据**，需换素材重跑
+更新时间: 2026-10-27 03:25
+当前任务: **无新纠偏（last_ack 保持 ASR-013）+ §37 遗留的 checkpoint 隐患已修（§38）**：CORRECTIONS_ASR.md mtime **2026-10-26 16:18:05**、md5 `55c28c72…` 与上轮**完全一致**（最大编号仍 ASR-013，`grep -rn "ASR-01[4-9]" status/` 命中 0）⇒ **last_ack 保持 ASR-013，不改**。本轮实质工作：① 🔴 **修掉「长跑跑完不删 checkpoint」的隐患**（§37 遗留，§38）—— `scripts/pya_app_path_seg.py` 写完最终 json 后**不删** `*.partial.json` ⇒ 下次同 tag 跑会误续到 `fed_s=3660.0`（已覆盖 99.7%）⇒ **静默产出少了最后 11.19 s 的截断结果，却看着像跑完了** ⇒ 已加「最终产物落盘后 `os.remove(ckpt_path)`」（失败只告警、不中断本轮产物）；② ✅ **2 分钟冒烟验证通过**（`logs/pya_ckptsmoke.log`，1939 B，03:22:37，rc=0）⇒ 日志打印「[pya] 已清理 checkpoint → …ckptsmoke.partial.json」、跑完**无残留 partial**、`MACHINE_LOCK` **正常释放**（无孤儿锁）；③ ✅ **清掉 forced61 陈旧 checkpoint**（`pya_app_forced_forced61.partial.json`，129183 B，`fed_s`=3660.0 / 605 段）⇒ 最终产物 **`pya_app_forced_forced61.json`（150639 B，01:09:22）未受影响**（`n_segs`=607 / `audio_sec`=3671.19 / `rtf`=0.5765 复核一致）；④ 🔴 **WER 仍未算**（本线程不调用 MiniMax）⇒ 交 reviewer 对照 **App 路径 R2T2 iGPU INT8 B 10.58%** 复算
+阻塞 / 待用户决定: ① 🔴★ **待 reviewer 复算 WER**：`pya_app_forced_forced61.json`（**150639 B，01:09:22**；App 路径、61 分钟、同 R2T2 gpu_int8 引擎；`n_segs`=607 / `audio_sec`=3671.19 / `rtf`=0.5765）对照 **App 路径 R2T2 iGPU INT8 B 10.58%**（同路径 ⇒ 可直接配对 bootstrap）；⚠️ 交付基准 8.17% 是 226 段离线切分、**非** App 路径 ⇒ 只作参考列，不可当同口径；② 🔴 **空文本段 17 个**（全为 `model_break`，段长 0.64–1.92 s）⇒ 模型断点落在极短无语音间隙上 ⇒ 需 App 侧空段守卫（ASR-003 边界）或 ASR 侧最小段过滤 ⇒ **本轮未擅自改**；③ 🔴 **段数 +49（558 → 607，+8.8%）** ⇒ 定稿更碎 ⇒ TTS 音色切换 / MT 翻译段数 / App 接缝开销都增加 ⇒ 待评审；④ ⚠️ **短切片不可外推**：5 分钟口径 6.67% → 6.25%（−0.42pp），61 分钟口径 9.87% → 3.30%（−6.57pp）⇒ **必须以 61 分钟为准**；⑤ 🔴★ **ASR-013 交付精度待定**：FP16 分段 IR 已达标，**INT8 三条路径（weight-only 0.995336 / 激活感知 0.951184 / head 保留 0.986118）全部未过阈** ⇒ 按「再试 INT8」字面要求，若激活感知仍不过阈则交付 **FP16 为准 + INT8 差距如实记录**，**不擅自降阈值**；⑥ 🔴 **待 reviewer 复算的 WER**：R2T2 INT8@NPU App 路径（对照 App 路径 R2T2 iGPU B **10.58%**）；⑦ 🔴 **0.6B 新图两格 WER 仍空**（int8__mask2 / int4__mask2 已有 reviewer 值 10.94% / 11.57%，但 `r2t2__int8__npu_app` 与 `0.6B INT8@NPU` 的 61 分钟 App 格 WER 待复算）；⑧ 🔴 **旧图 5 格结论作废 ≠ 新图已有结论** —— `int4_sym_chan` 在新图上**至今未知**（按 ASR-011 第 4 条用户决定**不测**）；⑨ ⏳ **`R2T2 R2` 同口径标定点未跑** ⇒ teacher-forcing 99.29%/92.71% 仍无阈值可判；⑩ ⚠️ **`GPU.0` = iGPU 必须同步 reviewer**（影响他对历史 GPU 格的解读）；⑪ ⚠️ **`INT4_ASYM g128 在 NPU 上比 INT8 慢 38%**（**不能**写成「NPU 上 INT4 最慢」）—— 机理未查（只报现象）；⑫ ⚠️ **P0 参照重跑未做**（`--minutes 61` 截到 3660.0 s，少跑 11.19 s）—— 本轮 61 分钟跑用 `--minutes 61.2` ⇒ 覆盖 3671.189 s（= 整个 wav）；⑬ ⚠️ **「提高 rule1 静音要求」必须改代码**（硬编码无 env）⇒ 属 App 模块（ASR-003 边界）；⑭ ⚠️ **bench 每格只测 1 次**（用户决定）⇒ `rtf_p50 == rtf_p95`，**不是分布**；⑮ ⚠️ **R2T2 首字延迟是「引擎级」口径**（含 encoder+prefill），与 0.6B 的「argmax 首 token」**不同口径** ⇒ 报告须标注；⑯ ⚠️ **R2T2 的加载+编译不可分**（OVEngine 合算在 `load_s`）⇒ 冷/热只给合并值；⑰ ⚠️ **NPU 无 `GPU_MEMORY_STATISTICS`** ⇒ NPU 格的设备内存**无法读取**，只报 `DEVICE_ARCHITECTURE`（不硬凑）；⑱ ⚠️ **0.6B INT4@NPU 61 分钟 App 路径未跑**（ASR-011 精简版只要求 INT8@NPU ⇒ 按用户范围**不补**，报告须写明「该格无 App 路径质量数据」）；⑲ ⚠️ **ASR-013 说话人身份尚未被真正检验**：61 分钟素材只有 1 个说话人 ⇒ 全局 id 只有 S1、x-vector 同人/异人余弦**几乎无间隙**（cos_same_min 0.8912 vs cos_diff_max 0.9906，margin 仅 **0.0054**）⇒ 多说话人素材上的切换点 F1 / 碎片化**尚无数据**，需换素材重跑；⑳ ✅ **checkpoint 遗留项已闭环（§38）**：`pya_app_forced_forced61.partial.json` （129183 B，`fed_s`=3660.0/605 段）**已删除**，脚本已改为跑完自动清理 ⇒ 下次同 tag 跑**不会**误续成截断结果
 
 
 ## 最近更新
+- 2026-10-27 03:25 **无新纠偏（last_ack 保持 ASR-013）+ §37 遗留的 checkpoint 隐患已修（§38）**：① ✅ **无新纠偏**（`CORRECTIONS_ASR.md` mtime **2026-10-26 16:18:05**、md5 `55c28c72…` 与上轮完全一致；`grep -n '^#\{1,3\} '` 最大编号仍 **ASR-013**；`grep -rn "ASR-01[4-9]" status/` 命中 **0**）⇒ **last_ack 不改**；② 🔴 **修掉「跑完不删 checkpoint」隐患**（§37 遗留）：`scripts/pya_app_path_seg.py` 写完最终 json 后**不删** `*.partial.json` ⇒ 下次同 tag 跑会误续到 `fed_s`=3660.0（已覆盖 99.7%）⇒ **静默产出少了最后 11.19 s 的截断结果却看着像跑完** ⇒ 已在最终产物落盘后加 `os.remove(ckpt_path)`（失败只告警、不中断）；③ ✅ **2 分钟冒烟验证通过**（`logs/pya_ckptsmoke.log`，1939 B，03:22:37，rc=0）：日志打印「[pya] 已清理 checkpoint → …ckptsmoke.partial.json」、跑完**无残留 partial**、`MACHINE_LOCK` **正常释放**；④ ✅ **清掉 forced61 陈旧 checkpoint**（`pya_app_forced_forced61.partial.json`，129183 B，`fed_s`=3660.0/605 段）⇒ 最终产物 `pya_app_forced_forced61.json`（150639 B，01:09:22，`n_segs`=607 / `audio_sec`=3671.19 / `rtf`=0.5765）**未受影响**；⑤ 🔴 **WER 仍未算**（本线程不调用 MiniMax）⇒ 交 reviewer 对照 App 路径 R2T2 iGPU INT8 B **10.58%** 复算
 - 2026-10-27 01:20 **ASR-013 ②验收① 闭环：61 分钟 forced 跑完 + 词内切点 9.87% → 3.30%（§37）**：① 🔴 **长跑夭折根因修复（§36 续）** —— 后台进程随会话结束被回收 ⇒ 已加 **每 60 s checkpoint + 自动断点续跑**（`scripts/pya_app_path_seg.py`）+ `--no-resume` + 进度日志，2 分钟冒烟验证生效；② ✅ **61 分钟 App 路径 forced 长跑跑完**（`pya_app_forced_forced61.json`，150639 B，01:09:22；`audio_sec` **3671.19** 全覆盖、`n_segs` **607**、`rule_counts` rule1 **479** / model_break **108** / rule2 **20**、`rtf` **0.5765**、`seg_model_rtf` **0.06018**、总词数 **11322**、拉丁 0.8326 / 三连 0 / 非 ASCII 0 ⇒ 文本健康）；③ ✅★ **词内切点 9.87% → 3.30%**（同口径 `asr006_rule1_cut_diag.seam_overlap(N=3)`：App 路径 B 基线 557 接缝 / 55 命中 / 9.87% ⇒ 本轮 606 接缝 / **20 命中 / 3.30%**；rule1 10.24% → **3.55%**）；④ 🔴 **WER 未算（不调用 MiniMax）** ⇒ 交 reviewer 对照 App 路径 R2T2 iGPU INT8 B **10.58%** 复算；⑤ 🔴 **代价**：段数 **+49**（558→607）、**空文本段 17**（全为 `model_break`）⇒ 需 App 空段守卫或 ASR 最小段过滤（未擅自改）
 - 2026-10-27 00:45 **无新纠偏（last_ack 保持 ASR-013）+ 61 分钟 forced 长跑夭折根因修复（§36）**：① ✅ **无新纠偏**（`CORRECTIONS_ASR.md` mtime 2026-10-26 16:18:05、md5 `55c28c72…` 与上轮完全一致；最大编号仍 ASR-013）⇒ **last_ack 不改**；② 🔴★ **根因：61 分钟 forced 长跑连续两次夭折**（PID 12832 / PID 380 **均已死、锁没删** ⇒ 陈旧锁；日志只到「引擎加载完成」、`pya_app_forced_forced61.json` **从未落盘**）⇒ **不是模型问题，是后台进程被回收** ⇒ 光重跑没用；③ ✅ **加 checkpoint + 自动断点续跑**（`scripts/pya_app_path_seg.py`：每 60 s 落 `pya_app_forced_<tag>.partial.json`、启动自动续、`--no-resume` 从头跑、每 60 s 打进度）；🔴 续跑须同步 `rec.fed` 与 `eng._last_words/_last_text`（否则新段 start_s/end_s 算错 + 接缝判据②失效）；✅ 2 分钟冒烟验证续跑生效（「断点续跑：从 60.0s 起（已有 8 段）」）+ 跑完正常删锁；④ ⏳ **第 3 跑在途**（PID 17296，00:30:18 起，持规范锁）：分段模型断点 **108 个**、RTF **0.06018**；进度 660.0/3671.2 s（18.0%）、段数 108、中途 RTF **0.5851** ⇒ 文本正常，**最终产物尚未落盘**
 - 2026-10-26 23:20 **ASR-013 ②③④ 全部产出 + ASR-011 交付件刷新 + 61 分钟 forced 长跑重启（§35）**：① 🔴 **INT8 三条路径全部未过阈**（weight-only cos 0.995336/一致 0.981324、激活感知 calib cos 0.951184/一致 0.947368、head 保留 cos 0.986118/一致 0.920204）⇒ **FP16 暂作交付精度**（GPU.0 cos 0.99943/一致 1.0000、NPU cos 0.999405/一致 0.9983 ✅）；② ✅ **流式断点产出**（`pya_stream_full61_NPU.json`：5722 窗、RTF **0.01068**、断点 **107** 个、判决滞后 P50/P95 **800/800 ms**）；③ ✅ **说话人身份产出**（`pya_spk_full61_NPU.json`：100/108 段分配、全局 id **S1**、spk_conf 均值 **0.9785**）⚠️ 但素材只有 1 人 ⇒ 区分能力未检验（x-vector margin 仅 0.0054）；④ ✅ **伪真值**（`pya_ref_diar_smoke30.json`，CUDA 离线 3.1）；⑤ ✅ **`ASR007_results.json` 8 → 14 条记录**（bench 6 格并入、27 必需字段 0 缺失）+ MATRIX 刷新 ⇒ 交 reviewer 汇编；🔄 61 分钟 App 路径 forced 长跑 **23:19 重启**（旧进程夭折留下陈旧锁 PID 12832，已回收）
@@ -19,7 +20,6 @@ last_ack: ASR-013
 - 2026-10-26 01:52 **后处理链全过 + 设备身份重大发现（§27）**：① ✅★ **NPU 文本正常性**：`prompt_echo_detected` **三格全 false** ⇒ **§20 的 NPU BLOCKED 解除**（切片 [720,1020] 300 s / 45 段；词数 fp16 867、int8 **869**、int4 850；编译 117.7 / 88.5 / 208.8 s；RTF 0.2908 / 0.2719 / 0.3777 —— ⚠️ 整段贪心口径，**不可**与 App 路径比）；② ✅ **prefix 路径 mask 不错位**：12 步逐步 `mask_ok=True`、`mask_mismatch_count=0`、`any_degenerate=false`，三格 final 文本逐字相同（仅 `All right.` vs `Alright.`）⇒ 补上了 §23 修复最易漏的一条；③ ✅ **teacher-forcing**（20 段 / 425 token；target 来自**同家族 OV FP16**；**target 退化检测 0/20 ⇒ 不是 tautology**）：INT8 **99.2941%**（422/425）、INT4 **92.7059%**（394/425）、fp16 自检 100%；`position_layout_probe` 也是 100% ⇒ 这批段长下位置排布恰好等价；④ 🔴🔴 **设备身份**：`GPU.0` = **Intel(R) Graphics (iGPU)**、`GPU.1` = **NVIDIA RTX 5050 (dGPU)**、NPU = Intel AI Boost；**`nvidia-smi used` 全程 0** ⇒ **所有标 `GPU.0` 的格子跑的是核显**；⑤ ✅ **驻留内存补测**（USM 编译增量）：int4 **561.8 MiB** / int8 **762.6 MiB** / fp16 1209.5 MiB ⇒ INT4 比 INT8 省 **200.8 MiB（−26.3%）**，与目录体积比例吻合（0.726 vs 0.720）；⑥ 🔴 **修 3 个 bug**：`p3_diag_mask2_prefix` 两处 `.numpy()` on grad tensor（grep 全部 `.numpy()` 才没漏第二处）、`p3_diag_device_mem` 的 `ir_mib` 只算 xml（得出 2.8 MiB 的荒唐值）、`p3_ov_app.device_mem_mb` 三处缺陷；⑦ ⏳ WER / R2T2 R2 标定点 / NPU-INT4 变慢复核 仍待办
 - 2026-10-26 01:20 **新图 INT4 重量化 + INT8/INT4 两格 61 分钟全长跑完成（§26）**：① ✅ **INT4 重量化**（`INT4_ASYM g128 + AWQ + SE`，backup `INT8_ASYM`，`lm_head` 保 FP16，`n_calib=64` 右对齐双端口）：**1139.7 → 518.6 MiB（ratio 0.455）**、`n_i4=392`、`quant_seconds=210.1`、NNCF 位宽 int4_asym g128 **74%(196/197)** 且 ratio-defining **100%** ⇒ 配方确认生效；比 INT8（720.6 MiB）**小 28.03%**；② ✅ **两格长跑**（同 wav / 同 encoder / 同 App 路径，唯一变量 = decoder 精度）：553 段、`rule_counts` 518/34/1、`seg_dur` p50/p95/max 6.4/8.96/12.16 **两格逐位一致**（切段在音频域 ⇒ 段边界完全可比）；词数 **11419 vs 11369（−0.44%）**；**RTF 0.6827 vs 0.6959（+1.93%）**、`seg_rtf_p50` 0.6789 vs 0.6899、首字延迟 p50 0.2470 vs 0.2497 s、`timing_valid` 两格 **true**、全程持规范锁；③ ✅ **文本健康度无退化**：拉丁/全部字母 **1.0000**（无乱码异体字）、三连重复 **0**、ABAB 6/7、空段 **0**、唯一词率 0.235/0.241；段级 78.8% 文本不同属流式贪心+前缀回退的**预期**抖动（`nomenclature→nomenclators`、`SMG→S M G` 之类），最长 3 段语义连贯；④ 🔴 **修掉 `rule_counts` 双重计数**（引用 summary dict 后又在其上累加 ⇒ 553 写成 1036）⇒ 取拷贝 + 「合计 == n_segs」自检；⑤ ✅ **格子与矩阵**：新增 `…__int8__mask2__int8.json` / `…__int4__mask2__int4.json`，`MATRIX.json` **18 格**、两格有效；⑥ 🔴 **§26.4 三条不可归因边界**：旧图 INT8 长跑 `timing_valid=false` ⇒ RTF 1.2389 **不得引用**、且**无持锁重跑版本**；旧图 encoder 是 `int8sym-static` 而新图是 `fp16-static` ⇒ **新旧长跑同时变两样**，词数/RTF 差异不能全归因 mask；旧图 11825 vs 新图 11419 词只能作方向性旁证；⑦ ⏳ NPU/prefix/teacher-forcing 仍在等 `app-pack` 让锁 ⇒ 写 §27
 - 2026-10-25 21:26 **【用户决定】ASR 不考虑 FP16 ⇒ 矩阵只剩 INT8 / INT4 两格（§25）**：① ✅ **删除**：① `results/p3_mask2_61min_fp16/`（原**已跑到 65.7%** / 364 段 / 2410.24 s，FP16 无价值 ⇒ 作废）；② `build_compare_mask2.py` 的 fp16 变体、`build_compare_06b.py` 的 FP16 格、`p3_make_matrix.py` 的 ORDER 里的 3 个 FP16 名；③ `p2_multitoken_top1.py` 的 ov_models **7 项→3 项**（删旧图 5 项，`ov_fp16_ref`→`mask2_fp16_ref`）、`p3_int4_slice_decode.py` VARIANTS **6→3**、`p3_npu_mask2_text_check.py` 删 `old_int8`、`p3_diag_mask2_prefix.py` 删 `fp16_old`、`run_mask2_pipeline.sh` 的 `step_p3` **三格→两格**；② 🔴 **两处 FP16 不能照字面删**：① `models/ov-dec-06b-embed-mask2/`（FP16 源图 1.2 G）是 **INT4 重量化的输入**（`p2_quantize_mask2_int4.py::NEW_SRC`）⇒ 删了 INT4 跑不了；② `mask2_fp16` 是 teacher-forcing 的 **target 生成器**（§7 铁律：target 必须同家族 FP16，否则是自一致 tautology）⇒ 保留；③ **原两个 `precision=FP16` 格子实为 P0 的 torch CUDA 参照**（backend = torch 2.11 + CUDA, bfloat16，带 reviewer 算的 **WER 主参照 10.97%**）⇒ 直接删就没有对照基准 ⇒ 已**改标 `TORCH_REF`** + `is_delivery_candidate:false` 保留（`…__torchref__cuda_stream.json` / `…__torchref__cuda_offline.json`）；③ 🔴 **顺带修好漏标作废**：§23 只标了 `int8__gpu0` 一格，另有 **4 格用旧图却仍显示「有效」**（int4_asymg128 / int4_sym_chan / int8__npu / int4__all）⇒ 已补标作废（判据：`dec_ir` 指向 `ov-dec-06b-embed-*` 非 `-mask2` ⇒ 一律作废）；④ ✅ **矩阵已无 `precision=FP16`**（实测扫描全部 json，命中 0 处）；⑤ ✅ **备份可回滚**（`_backup_fp16_removal_20261025/`，300 KB：compare 全量副本 + FP16 长跑 364 段 + 6 个脚本改前版本）；⑥ ✅ **FP16 长跑进程已停**（`TaskStop`）⇒ GPU 与锁让出；⚠️ 停后核查发现**锁已被 MT 正确接管**（`mt PID 9748 started 21:21:45`）⇒ 无孤儿锁
-- 2026-10-25 21:04 **§24.13：修 3 处脚本缺陷 + 补回丢失的元信息 + 补 2 处判据缺口（FP16 长跑进行中，33.4%，计时有效）**：① 🔴 **`build_compare_mask2.py` 读 summary 的 `quality` 子字典 ⇒ 恒得空 dict** —— `p3_ov_app.py` 的 summary 字段**平铺在顶层**（`n_segs`/`total_words`/`rule_counts`/`seg_dur_p50`/…）⇒ 已改为读顶层（否则新格子会全是 0/null）；② ✅ **`p3_make_matrix.py`**：`ORDER` 前插 3 个新图格子 + 矩阵表加「数据有效」列（旧图标 ❌ 作废）+ `MATRIX.md` 新增「§23 根治后旧图格子作废」章节；③ 🔴 **`p3_ov_app.py` 续跑计时口径 bug** —— 续跑时 `wall` 只含本次而 `rtf` 分母是**全程** `covered_s` ⇒ **RTF 被低估** ⇒ 已加 `prev_dec_wall`（累加历史已落盘段的 `dec_wall_s`）+ 新增 `wall_s_total`/`rtf_note`（⚠️ 本次 FP16 是**单次连续跑完** ⇒ `prev_dec_wall=0` ⇒ **本次数据不受影响**）；④ ✅ **补回 §24.10 丢失的旧图 INT8 元信息**（新脚本 `p2_rebuild_quant_meta.py`：196 int8 / 538 f16 / 720.3 MiB / ratio 0.6322 ⇒ 与 §23/§20 历史记录**逐位一致**；顺带确认旧图 INT4 的原始 json **未丢失**，无需重建）；⑤ 🔴 **重建脚本自身踩到的 dtype 口径坑（新铁律）**：OV 的 `get_type_name()` 返回**短名**（`f16`/`i8`）而 `str(dtype)` 是 `<Type: 'float16'>` ⇒ 用 `str()` 做键 ⇒ `n_i8=0` ⇒ 会得出「这不是 INT8 图」的**假结论** ⇒ 正确口径 = **只数 Constant 节点**（与 `p2_quantize.py::const_stats` 同口径）；⑥ ✅ **teacher-forcing 脚本补 target 退化检测**（§18.2 教训：target 退化 ⇒ top1 恒 100% 的 tautology；判据 = 三连同 / ABAB / 唯一率<0.30）+ `ov_fp16_ref` 自检加 `degenerate_warning`；⑦ ✅ **NPU 脚本补「复读 prompt」检测**（§20 的症状）+ 口径说明（整段贪心、无 640ms 分块 ⇒ RTF **不可**与 App 路径比）
 ## §2 最近一周的结论摘要（均引用产物）
 
 ### 2.1 切段策略（属本模块范围）
@@ -4470,3 +4470,79 @@ reviewer 记录的启动信息：pid **25264**，10:41 开始，
 | `qwen3asr_06b/logs/pya_app_forced61.log` | 长跑日志（分段模型 RTF + 每 60 s 进度 + 最终 json 摘要） | 1 个，01:09 |
 | `qwen3asr_06b/scripts/pya_app_path_seg.py` | §36 改的 checkpoint + 断点续跑 | 1 个，00:30 前 |
 | `confucius4-openvino/status/asr/STATUS_ASR.md` | **本节落档**（§37） | — |
+
+## §38 §37 遗留项闭环：「长跑跑完不删 checkpoint」隐患修复 + 强制 61 分钟陈旧 checkpoint 清理（2026-10-27 03:19–03:25）
+
+### §38.0 本轮判定：无新纠偏
+- 检查对象：`confucius4-openvino/status/asr/CORRECTIONS_ASR.md`
+  （mtime **2026-10-26 16:18:05**，37954 B，md5 `55c28c7231dac56b5e340f4095840c8d`
+  —— 与 2026-10-26 23:20 / 2026-10-27 00:24–01:20 / 02:13 四次**完全一致**，文件未被追加）
+- 纠偏编号集合：ASR-001 … **ASR-013**（最大 = **ASR-013**）；
+  `grep -n '^#\{1,3\} '` 列出全部标题，最大编号仍 ASR-013；
+  `grep -rn "ASR-01[4-9]" status/` 命中 **0**（仅 STATUS_ASR.md §36 里那句
+  「无 ASR-014+」的自述被命中）⇒ **确认无 ASR-014 及以后**
+- `STATUS_ASR.md` 开头 `last_ack: ASR-013` ⇒ **last_ack 保持 ASR-013，不改**
+- ⇒ 结论：**无新纠偏**，按规则不因「纠偏」改任何东西；但本轮**做了实质工作**（见下）
+
+### §38.1 🔴 缺陷：`pya_app_path_seg.py` 跑完不删 checkpoint ⇒ 同 tag 重跑会静默产出截断结果
+- **来源**：§37 遗留项（上轮 02:13 已记录「`pya_app_forced_forced61.partial.json` 跑完后未删除
+  ⇒ 下次同 tag 跑会误续到 fed_s=3660.0（已覆盖 99.7%）」）。
+- **实证（本轮复核，非推断）**：
+  - `results/pyannote_seg/pya_app_forced_forced61.partial.json`（**129183 B**，01:09:22）在盘；
+    读其原始字段：`fed_s` = **3660.0**、`n_segs_so_far` = **605**、`segments` 长度 **605**、
+    `elapsed_s` = 2110.59、`rtf_so_far` 存在
+  - 同名最终产物 `pya_app_forced_forced61.json`（**150639 B**，01:09:22）：
+    `n_segs` = **607**、`audio_sec` = **3671.19**、`rtf` = **0.5765**
+  - ⇒ 最终产物本身**完整无缺**（607 段 > checkpoint 的 605 段），
+    但 **checkpoint 脚本只写不删**
+- **危害（为什么必须现在修，而不是留到下次）**：
+  脚本的续跑判据是「`abs(ck['audio_sec'] - audio_sec) < 1.0` 且 `segments` 非空 ⇒ 跳过已喂音频」。
+  `partial.json` 的 `audio_sec` 与同 tag 跑**完全一致** ⇒ **下次同 tag 跑必然命中续跑**，
+  从 `fed_s`=3660.0 继续 ⇒ **只覆盖 3660.0/3671.19 = 99.70%**，
+  最终 json 的 `audio_sec` 仍写 3671.19、`n_segs` 变少 ⇒
+  **产物看着「跑完了」，实际少了最后 11.19 s 的音频**，而 reviewer 只会看到一个 `complete` 的 json
+  ⇒ 属于**静默数据缺失**，比崩掉更危险
+- **修法**（`scripts/pya_app_path_seg.py`，写在最终产物落盘之后、打印之前）：
+  ```python
+  # 🔴 跑完必须删 checkpoint：否则下次同 tag 跑会误续到 fed_s=末段，
+  #    静默产出「少了最后一段音频」的截断结果，却看着像跑完了。
+  try:
+      if os.path.exists(ckpt_path):
+          os.remove(ckpt_path)
+          print(f'[pya] 已清理 checkpoint → {ckpt_path}', flush=True)
+  except OSError as e:
+      print(f'[pya] ⚠️ 清理 checkpoint 失败（不影响本次产物）：{e}', flush=True)
+  ```
+  ⇒ 用 `try/except OSError` 包住：**清理失败只告警、不中断本轮产物**（清理是卫生问题，不是产物正确性问题）
+- **验证**：
+  - `python -m py_compile scripts/pya_app_path_seg.py` ⇒ **通过**；
+    `ast` 静态核查：`ckpt_path` 与 `os.remove` **同在 `main()` 作用域**（不是悬空变量）
+  - **2 分钟冒烟**（`.venv/Scripts/python.exe scripts/pya_app_path_seg.py --strategy forced
+    --tag ckptsmoke --minutes 2`）⇒ **rc=0**；
+    日志 `logs/pya_ckptsmoke.log`（**1939 B**，03:22:37）含
+    `[pya] 已清理 checkpoint → …pya_app_forced_ckptsmoke.partial.json`；
+    跑完 `results/pyannote_seg/` 内**无 `ckptsmoke` 的 partial 残留**；
+    `shared/MACHINE_LOCK` **已释放**（脚本 `finally: release_lock(lock_pid)` ⇒ 无孤儿锁）
+  - 冒烟产物已清理：`pya_app_forced_ckptsmoke.json` + `pya_frames_app_ckptsmoke.npz` 已删
+
+### §38.2 ✅ 强制 61 分钟陈旧 checkpoint 已清除，最终产物未受影响
+- 删除 `results/pyannote_seg/pya_app_forced_forced61.partial.json`（129183 B）
+- 删除后复核最终产物仍完好：`pya_app_forced_forced61.json`（**150639 B**，01:09:22）
+  ⇒ `n_segs`=**607** / `audio_sec`=**3671.19** / `rtf`=**0.5765**（与 §37 记录**逐位一致**）
+- `results/pyannote_seg/` 目录现有 **35** 个文件（清理前 37：减 1 个陈旧 partial、减 2 个冒烟产物）
+
+### §38.3 本轮未做的事（明确记录，避免下轮误读）
+- **未算 WER**：本线程不调用 MiniMax（ASR-001 用户总原则）⇒
+  `pya_app_forced_forced61.json` 的 WER 仍**交 reviewer** 对照
+  **App 路径 R2T2 iGPU INT8 B 10.58%** 复算（同路径 ⇒ 可直接配对 bootstrap）；
+  ⚠️ 交付基准 8.17% 是 226 段离线切分、**非** App 路径 ⇒ 只作参考列
+- **未改 `live_caption/` 下任何文件**（ASR-003 边界）；本轮改的只有
+  `qwen3asr_06b/scripts/pya_app_path_seg.py`（**ASR 模块自己的工作目录**）+ 删自己的产物
+- **未开新实验**、未跑 61 分钟长跑（只跑了 2 分钟冒烟验证修复本身）
+- **空文本段 17 个**、**段数 +49（558→607）** 的归属问题仍**待用户裁定**（§37 已列，未擅动）
+
+### §38.4 机器锁
+- 本轮唯一的作业是 2 分钟冒烟（计时性质）⇒ **由本模块持锁**：
+  `[lock] 已取锁（pid=36804, task=pya_app_forced_ckptsmoke）`
+- 跑完 `MACHINE_LOCK` **不存在**（`release_lock` 正常）⇒ **无孤儿锁**、未干扰其它模块
+
