@@ -3866,3 +3866,21 @@ everyone. Good morning. Let's get started…"）⇒ 脚本逻辑与真实 App �
   ⇒ 与既有 `r2t2__int8__npu.json`（**226 段离线切分**）**路径不同 ⇒ WER 不可直接比**；
   且**段数也不可比**（App `MIN_SEG 6 s` vs `seg_stream` 旧切段器 12/20 s）；
 * 已接入 `asr007_build_results.py`（`r2t2__int8__npu_app.json` → `path='app'`）。
+
+### 30.14 🔴 缓存目录必须**按格隔离**（否则「冷」那遍不冷）
+原设计 6 格共用一个 `results/asr007_bench/_ov_cache` ⇒ 跑完 `int8` 后缓存里
+已有 int8 的 blob ⇒ 跑 `int4` 时「冷」那遍其实**命中了缓存**
+⇒ `compile_s_cold` 失真。
+⇒ 修法：缓存根目录下**按格分子目录** `_ov_cache/<cell>/`
+（`asr007_bench.py::OV_CACHE_ROOT` + `spec['cell']`，
+ `asr007_bench_all.py::_clear_ov_cache(cell)` 只清该格自己的目录）。
+⇒ 附带修正：`spec['cell']` 原先在 `bench_06b()` **调用之后**才设
+⇒ 现在**提前**设进 `spec`（缓存目录要用它）。
+
+### 30.15 ✅ 新增 `wait_and_build_mask2_npu.py`（等长跑 + 自动出格）
+* 轮询**落盘的 `segments.jsonl`**（不是进程存活 —— 进程可能被外部回收）；
+* 🔴 判据 = **末条记录的 `end_s` 覆盖到 `audio_sec − 1.0`**
+  （**不是**「文件非空」）；
+* 满足后自动跑 `build_compare_mask2.py` ⇒ 产出
+  `reports/compare/qwen3asr_06b__int8__mask2__int8_npu.json`；
+* **不**自己算 WER（ASR-004）⇒ 格子 `wer_pct = null`，交 reviewer。
