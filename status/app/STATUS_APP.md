@@ -9632,6 +9632,16 @@ SHA256 `c5e504a1ed0694c1ecbbf47b59238a12d826bcc0cd3b7d3d0b0f4c73eece00da`）：
 ⚠️ **通知 §二「`tts_npu_cache` 尚未修复」的表述已过时** —— 核实
 `git show HEAD:pkg_exclude.py` 确认 HEAD `57e3860` **已含**该排除项（`app079` A15 PASS 复核）。
 
+🔴 **已发出正式回执通知**：`C:\Users\Trekker-PTL\shared\NOTICE_app_to_tts_asr_20261026_s55.md`
+（**6 321 B**，SHA256 `4aeb2b69dc331db532b1b7424c22b342b9c0770930c245fc38bd11a2561f2973`，
+U+FFFD 计数 **0**）⇒ 内容含：① §四 回执一行；② APP-022 预留详情（含**按需加长**说明）；
+③ 给 TTS 的**集成待办**（对应 `NOTICE_tts_to_asr_app_spk_20261026.md` §五.2 的回退/限频平滑/埋点/左上下文重置）；
+④ 给 ASR 的**接口要求**（回 dict ⇒ App 零改动接上；id 必须全局稳定；未定时给 `null`）；
+⑤ 自检结果；⑥ 待用户决定项。
+
+⚠️ **该回执只写 `shared/` 中立通知文件**，**未代改任何 `STATUS_TTS` / `STATUS_ASR`**（跨模块边界）。
+
+
 #### §55.7.2 MT 通知 14（`shared\NOTICE_mt_to_app_20261026_notice14.md`）
 
 - ✅ N=120 字上限**已验证**（33/33 PASS）⇒ **无新增行动项**；
@@ -9649,6 +9659,12 @@ SHA256 `c5e504a1ed0694c1ecbbf47b59238a12d826bcc0cd3b7d3d0b0f4c73eece00da`）：
 - ❌ **提交 `status/app/CORRECTIONS_APP.md`**（reviewer 独占文件）。
 
 ### §55.9 证据汇总（文件数 / mtime / 字节数 / SHA256）
+
+**Git 提交**：`48b646f`（`feat(app): §55 响应 APP-022 —— 预留 spk/spk_conf 接口（未集成）+ TTS-017① cp_prefill → NPU`）
+⇒ **13 files changed, 2184 insertions(+), 65 deletions(-)**；
+**已普通 push 到 `origin/main`**（`02f4c60..48b646f`，fast-forward，**未 force push**），
+推送后 `git rev-list --left-right --count origin/main...HEAD` = **0 / 0**（完全同步）。
+🔴 **`status/app/CORRECTIONS_APP.md` 未被提交**（reviewer 独占文件，全程只读）。
 
 **本轮新增产物（仓库 `C:\Users\Trekker-PTL\confucius4-openvino`）**
 
