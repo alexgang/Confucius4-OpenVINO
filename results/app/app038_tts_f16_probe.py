@@ -31,7 +31,11 @@ import time
 
 import openvino as ov
 
-PKG = r"C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5"
+import sys as _sys
+_sys.path.insert(0, r'C:\Users\Trekker-PTL\confucius4-openvino')
+import pkg_paths as _pkg_paths
+
+PKG = _pkg_paths.discover_pkg_dir()
 IR_DIR = os.path.join(PKG, "models", "qwen3tts", "int8")
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                    "app038_tts_f16_probe.json")

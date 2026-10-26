@@ -35,7 +35,11 @@ import time
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 GATE = os.path.join(REPO, 'check_internal_material.py')
-PKG_V15 = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5'
+import sys as _sys
+_sys.path.insert(0, r'C:\Users\Trekker-PTL\confucius4-openvino')
+import pkg_paths as _pkg_paths
+
+PKG_V15 = _pkg_paths.discover_pkg_dir()
 
 PASS = []
 FAIL = []

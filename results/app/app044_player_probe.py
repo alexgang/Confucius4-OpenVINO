@@ -33,7 +33,11 @@ import os
 import sys
 import time
 
-PKG = r"C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5"
+import sys as _sys
+_sys.path.insert(0, r'C:\Users\Trekker-PTL\confucius4-openvino')
+import pkg_paths as _pkg_paths
+
+PKG = _pkg_paths.discover_pkg_dir()
 APP_DIR = os.path.join(PKG, "app")
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "app044_player_probe.json")

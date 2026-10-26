@@ -24,7 +24,12 @@ import shutil
 import sys
 import time
 
-PKG_APP = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4\app'
+import sys as _sys
+_sys.path.insert(0, r'C:\Users\Trekker-PTL\confucius4-openvino')
+import pkg_paths as _pkg_paths
+
+# 🔴🔴 §48：**不写死包版本** ⇒ 自动发现最大版本（`pkg_paths` 单一数据源）
+PKG_APP = _pkg_paths.pkg_app_dir()
 HERE = os.path.dirname(os.path.abspath(__file__))
 WORK = os.path.join(HERE, '_pkg_lifecycle')
 os.makedirs(WORK, exist_ok=True)

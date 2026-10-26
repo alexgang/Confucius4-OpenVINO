@@ -34,7 +34,11 @@ import wave
 SENTENCE = "这是一次语音输出的自测，用来确认朗读功能可以正常工作。"
 LANGUAGE = "Chinese"
 
-PKG = r"C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5"
+import sys as _sys
+_sys.path.insert(0, r'C:\Users\Trekker-PTL\confucius4-openvino')
+import pkg_paths as _pkg_paths
+
+PKG = _pkg_paths.discover_pkg_dir()
 DEFAULT_MODEL = "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
 DEFAULT_REF = os.path.join(PKG, "models", "qwen3tts", "voices", "preset_A.wav")
 OUT_DIR = r"C:\Users\Trekker-PTL\_fq3tts_out"

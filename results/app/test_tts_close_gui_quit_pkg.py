@@ -33,8 +33,13 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
-PKG = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.4'
-PKG_APP = os.path.join(PKG, 'app')
+import sys as _sys
+_sys.path.insert(0, r'C:\Users\Trekker-PTL\confucius4-openvino')
+import pkg_paths as _pkg_paths
+# 🔴🔴 §48：**不写死包版本** ⇒ 自动发现最大版本（`pkg_paths` 单一数据源）
+#   （§48 前写死 v1.4 ⇒ 包升到 v1.5 后这个验收脚本指错对象、误报 FAIL）
+PKG = _pkg_paths.discover_pkg_dir()
+PKG_APP = _pkg_paths.pkg_app_dir(PKG)
 
 # 🔴 **必须**把 `sys.path` 指向**客户包** ⇒ import 到的是包内那份
 sys.path.insert(0, PKG_APP)
@@ -95,6 +100,27 @@ def sha(p):
         for c in iter(lambda: f.read(1 << 20), b''):
             h.update(c)
     return h.hexdigest()
+
+
+def _git_head_bytes(rel_path: str):
+    """🔴🔴 §48：取 **git HEAD** 里某文件的内容（字节）。
+
+    为什么必须用 HEAD 而不是工作区：
+      工作区的 `live_caption_app.py` 是**方案 C 在制品**（未提交）
+      ⇒ 用工作区当基线 ⇒ 报「不一致」⇒ 看起来像缺陷，其实是正常的
+      ⇒ 白白让人工解释一次，且**掩盖真正的差异**。
+
+    取不到 ⇒ 返回 None（调用方按「失败」处理，**不静默当成一致**）。
+    """
+    try:
+        r = subprocess.run(
+            ['git', 'show', 'HEAD:' + rel_path.replace('\\', '/')],
+            cwd=REPO, capture_output=True, timeout=120)
+    except Exception:
+        return None
+    if r.returncode != 0:
+        return None
+    return r.stdout
 
 
 def main():
@@ -254,19 +280,28 @@ while True:
         EVIDENCE.setdefault('pkg_D', {})[p] = dict(u_fffd=n, bytes=len(raw),
                                                     utf8_ok=ok)
 
-    # ── E：包内 ⇄ 仓库 归一化 SHA 一致 ──
+    # ── E：包内 ⇄ **HEAD** 归一化 SHA 一致 ──
     print()
-    print('[E] 包内 ⇄ 仓库 四个文件归一化 SHA256 必须一致')
+    print('[E] 包内 ⇄ git HEAD 四个文件归一化 SHA256 必须一致')
+    print('    （§48：基准必须是 **HEAD**，不是工作区 —— 工作区有在制品改动时，'
+          '用工作区当基线会误报）')
     for f in ('tts_service.py', 'live_caption_app.py',
               'device_config.py', 'audio_source.py'):
-        a = open(os.path.join(REPO, 'live_caption', f), 'rb').read()
         b = open(os.path.join(PKG_APP, f), 'rb').read()
+        a = _git_head_bytes('live_caption/' + f)
+        if a is None:
+            real(f'PE {f} 在 HEAD 里存在', False, 'git show 失败')
+            EVIDENCE.setdefault('pkg_E', {})[f] = dict(head_sha_norm=None,
+                                                       pkg_sha_norm=None,
+                                                       pkg_bytes=len(b),
+                                                       match=False)
+            continue
         na = hashlib.sha256(a.replace(b'\r\n', b'\n')).hexdigest()
         nb = hashlib.sha256(b.replace(b'\r\n', b'\n')).hexdigest()
-        real(f'PE {f} 归一化 SHA 一致', na == nb,
+        real(f'PE {f} 归一化 SHA 一致（HEAD）', na == nb,
              f'{na[:16]} vs {nb[:16]}')
         EVIDENCE.setdefault('pkg_E', {})[f] = dict(
-            repo_sha_norm=na, pkg_sha_norm=nb, repo_bytes=len(a),
+            head_sha_norm=na, pkg_sha_norm=nb, head_bytes=len(a),
             pkg_bytes=len(b), match=(na == nb))
 
     print()

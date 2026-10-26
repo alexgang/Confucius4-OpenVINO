@@ -50,6 +50,7 @@ sys.path.insert(0, REPO)          # `pkg_exclude` / `machine_lock_app` 在仓库
 
 import caption_render as CR      # noqa: E402  纯 stdlib
 import pkg_exclude as PE         # noqa: E402  纯 stdlib
+import pkg_paths as _pkg_paths  # noqa: E402  §48 单一数据源
 
 OUT = os.path.join(HERE, 'app047_app_gate_evidence.json')
 MT_ART = r'C:\Users\Trekker-PTL\hy_bench\runs\c111_half\c111_v5_ts10_nopunct.json'
@@ -280,7 +281,7 @@ def run_gate_exclude():
           'is_app_dev_only' in code and '开发专用脚本' in code, '')
 
     # T-H 真实客户包现状：v1.5 里确实有那个探针
-    pkg = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5'
+    pkg = _pkg_paths.discover_pkg_dir()
     probe = os.path.join(pkg, 'app', '_probe_tts_cuda.py')
     if os.path.exists(pkg):
         check('EXCLUDE', 'E8 客户包 v1.5 现状含开发探针（⇒ 本轮规则有真实靶子）',
