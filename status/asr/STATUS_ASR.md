@@ -1,10 +1,11 @@
 last_ack: ASR-011
-更新时间: 2026-10-26 09:50
-当前任务: **ASR-010 / ASR-011 落地（§29 已落档）**。① ✅★ **reviewer WER 已回填**：mask2 INT8 @iGPU **10.94%**（433/177/589）、INT4 @iGPU **11.57%**（475/209/584），均标 `wer_scorer=reviewer_minimax_global`；配对 bootstrap **INT4−INT8 = +0.63pp CI [+0.16,+1.10] 显著**，**INT8−torch 参照 10.97% = −0.04pp 不显著**（⇒ OV 忠实复现 torch），**INT8−R2T2 App B 10.58% = +0.36pp 不显著**；② ✅★ **§26.2「INT4 代价极小」已改写**（只适用速度/体积，**质量有 +0.63pp 显著代价**）；③ ✅ **旧图结论已移出「做不了的格子」**（NPU BLOCKED / INT4_SYM BROKEN / int4__all 三条用旧图）⇒ 改为「旧图结论作废、待新图重测」；④ ✅ **MATRIX.md 已加「WER 计分器」列**（reviewer / 目标机两列分开，7.952/9.795 不与 10.94/11.57 同列）；⑤ ✅ **§28 字段已补**（`device_placement` enc=NPU/dec=NPU、`timing_valid=true`、`lock_holder`；用新脚本 `p3_backfill_npu_fields.py` **只加字段不改数值** + 备份）；⑥ ✅★ **R2T2 IR 溯源已确认**：交付 decoder `qwen3-lm-int8sym-cleanie-ov` **不派生自 c069g**（是 C-079#2 `c079b_build_clean_embeds_ir.py` 那条线），**有 `attention_mask` 端口且恒传全 1**（cross-attention 架构，**无 padding 概念**）⇒ **§23 的 mask 缺陷只影响 0.6B 那条 `inputs_embeds` 线**；⑦ 🔄 **0.6B INT8 @NPU 61 分钟 App 路径进行中**（`results/p3_mask2_61min_int8_npu/`，enc+dec 都在 NPU，质量作业不持锁 ⇒ **计时作废**）；⑧ ⏳ 待跑：R2T2 INT8@NPU 61 分钟（等 NPU）+ 6 格速度/内存 bench（`asr007_bench.py`，每格 1 次 fresh 进程持锁、600 s 切片 [720,1320]）
-阻塞 / 待用户决定: ① 🔴★ **待 reviewer 复算的 WER**：0.6B INT8@NPU + R2T2 INT8@NPU 两份 transcript（跑完后交）；② 🔴 **旧图 5 格结论作废 ≠ 新图已有结论** —— `int4_sym_chan` 在新图上**至今未知**（按 ASR-011 第 4 条用户决定**不测**）；③ ⏳ **`R2T2 R2` 同口径标定点未跑** ⇒ teacher-forcing 99.29%/92.71% 仍无阈值可判；④ ⚠️ **`GPU.0` = iGPU 必须同步 reviewer**（影响他对历史 GPU 格的解读）；⑤ ⚠️ **`INT4_ASYM g128 在 NPU 上比 INT8 慢 38%`**（**不能**写成「NPU 上 INT4 最慢」）—— 机理未查（只报现象）；⑥ ⚠️ **P0 参照重跑未做**（`--minutes 61` 截到 3660.0 s，少跑 11.19 s）；⑦ ⚠️ **「提高 rule1 静音要求」必须改代码**（硬编码无 env）⇒ 属 App 模块（ASR-003 边界）；⑧ ⚠️ **bench 每格只测 1 次**（用户决定）⇒ `rtf_p50 == rtf_p95`，**不是分布**
+更新时间: 2026-10-26 10:22
+当前任务: **ASR-011 推进中（§30 已落档）**。① ✅★ **bench 脚本实战化 + 5 个真缺陷修完**（§29 写的脚本一个都没真跑过 ⇒ 本节跑通并修）：① `BLOCK_MS` **未定义**（被 `if False` 掩盖）；② **首字延迟测的根本不是首字**（原记的是整次 `generate()` 耗时 ⇒ 已给 `OVRunner.generate` 加**向后兼容**的 `on_first_token` 回调，在第一个非 EOS/PAD token 被 argmax 时打点 ⇒ 实测 p50 0.2748 s）；③ `GetProcessMemoryInfo` **恒返回 False**（未声明 `argtypes` ⇒ ctypes 参数错位 ⇒ 已改 `WinDLL` 显式加载 + argtypes ⇒ 0.6B peak WS 9294.5 MiB / peak private 10900.7 MiB）；④ **导入顺序**让 transformers 走「无 torch」降级分支 ⇒ `GenerationMixin` ImportError（已先 import transformers 再 import App）；⑤ R2T2 设备内存被判「拿不到 core」是**错的**（`npu_delivery_backend.py:136` 有 `be._core` ⇒ 实测读到 usm_device 171.3 MB / usm_host 2043.8 MB）；② ✅ **冒烟验证两条路径都跑通、文本正常**（0.6B INT8@GPU.0 3 段 59 词 / R2T2 INT8@GPU.0 3 段；**缓存确认生效**：冷编译 12.26 s → 热 4.50 s）；③ ✅ **新编排脚本 `asr007_bench_all.py`**（每格冷/热各一遍 fresh 进程、都持规范锁；只清自己的 CACHE_DIR，**不碰** App 的缓存）；④ ✅ **质量长跑 `timing_valid` 强制 false**（`build_compare_mask2.py` 新增 `QUALITY_RUNS`）；⑤ 🔄 **0.6B INT8 @NPU 61 分钟进行中**（最近 64.0% / 355 段 / 2350.7 s，文本正常）；⑥ ⏳ 待跑：R2T2 INT8@NPU 61 分钟（等 NPU）+ 6 格 bench（等 CPU/锁，当前锁被 `tts` 持有、CPU 100%）
+阻塞 / 待用户决定: ① 🔴★ **待 reviewer 复算的 WER**：0.6B INT8@NPU + R2T2 INT8@NPU 两份 transcript（跑完后交）；② 🔴 **旧图 5 格结论作废 ≠ 新图已有结论** —— `int4_sym_chan` 在新图上**至今未知**（按 ASR-011 第 4 条用户决定**不测**）；③ ⏳ **`R2T2 R2` 同口径标定点未跑** ⇒ teacher-forcing 99.29%/92.71% 仍无阈值可判；④ ⚠️ **`GPU.0` = iGPU 必须同步 reviewer**（影响他对历史 GPU 格的解读）；⑤ ⚠️ **`INT4_ASYM g128 在 NPU 上比 INT8 慢 38%`**（**不能**写成「NPU 上 INT4 最慢」）—— 机理未查（只报现象）；⑥ ⚠️ **P0 参照重跑未做**（`--minutes 61` 截到 3660.0 s，少跑 11.19 s）；⑦ ⚠️ **「提高 rule1 静音要求」必须改代码**（硬编码无 env）⇒ 属 App 模块（ASR-003 边界）；⑧ ⚠️ **bench 每格只测 1 次**（用户决定）⇒ `rtf_p50 == rtf_p95`，**不是分布**；⑨ ⚠️ **R2T2 首字延迟是「引擎级」口径**（含 encoder+prefill），与 0.6B 的「argmax 首 token」**不同口径** ⇒ 报告须标注
 
 
 ## 最近更新
+- 2026-10-26 10:22 **bench 脚本实战化：5 个真缺陷修完 + 冒烟验证通过（§30）**：① 🔴 **`BLOCK_MS` 从未定义**（原代码 `... if False else ...` 把左半边短路掉了 ⇒ 语法过、运行不报错，但名字不存在）；② 🔴★ **首字延迟测的根本不是首字**（原记「整次 `generate()` 耗时」）⇒ 给 `p3_ov_app.py::OVRunner.generate` 加**向后兼容**的 `on_first_token` 回调（默认 None ⇒ **已交付产物不受影响**），在第一个非 EOS/PAD token 被 argmax 时打点 ⇒ 实测 **p50 0.2748 s / p95 0.3331 s**；③ 🔴 **`GetProcessMemoryInfo` 恒返回 False**（未声明 `argtypes` ⇒ ctypes 把指针当 int 传 ⇒ 参数错位）⇒ 改 `WinDLL('psapi')` 显式加载 + `restype/argtypes` ⇒ 0.6B **peak WS 9294.5 MiB / peak private 10900.7 MiB**、R2T2 **5091.7 / 5028.4 MiB**（另修 `peak_private` 误用当前值 `PrivateUsage` ⇒ 改 `PeakPagefileUsage`）；④ 🔴 **导入顺序**让 transformers 走「无 torch」降级分支 ⇒ `transformers.generation` 部分初始化 ⇒ `GenerationMixin` ImportError ⇒ 修法：**先** import transformers 再 import App（与长跑成功顺序一致），已在 bench 两条路径 + R2T2 转写脚本修好；⑤ 🔴 **R2T2 设备内存被判「拿不到 core」是错的**（`npu_delivery_backend.py:136` 有 `be._core`）⇒ 实测读到 **usm_device 171.3 MB / usm_host 2043.8 MB**；⑥ ✅ **冒烟验证两条路径都跑通、文本正常**（0.6B INT8@GPU.0 3 段 59 词 / R2T2 INT8@GPU.0 3 段；**缓存确认生效**：冷编译 **12.26 s** → 热 **4.50 s**；⚠️ 20 s 切片含冷启动 ⇒ RTF 偏高，**不作交付**）；⑦ ✅ **新编排脚本 `asr007_bench_all.py`**（每格冷/热各一遍 fresh 进程、都持规范锁；只清**自己专用** CACHE_DIR，**绝不碰** App 的 `%LOCALAPPDATA%/Confucius4LiveCaption/*_cache`）；⑧ ✅ **质量长跑 `timing_valid` 强制 false**（`build_compare_mask2.py` 新增 `QUALITY_RUNS` ⇒ RTF/延迟一律作废，只交 transcript）；⑨ 🔄 **0.6B INT8 @NPU 61 分钟进行中**（64.0% / 355 段 / 2350.7 s，文本正常）
 - 2026-10-26 09:50 **reviewer WER 回填 + 旧图结论作废 + §28 字段补全 + R2T2 IR 溯源确认（§29）**：① ✅★ **reviewer 复算的 WER 已原样填进格子**（标 `wer_scorer=reviewer_minimax_global`）：mask2 **INT8 @iGPU 10.94%**（433/177/589）/ **INT4 @iGPU 11.57%**（475/209/584）；配对 bootstrap（5000 次）**INT4−INT8 +0.63pp CI [+0.16,+1.10] 显著**、**INT8−torch 10.97% −0.04pp 不显著**（⇒ OV 忠实复现 torch 参照）、**INT8−R2T2 App B 10.58% +0.36pp 不显著**、**INT4−R2T2 +0.99pp 显著**；⚠️ 对交付基准 8.17%（226 段**非 App 路径**）的 +2.76/+3.39pp **不可**当同口径；② ✅★ **§26.2「INT4 代价极小」已就地改写**（只适用速度/体积，**质量有 +0.63pp 显著代价**）；③ ✅ **旧图结论移出「做不了的格子」**（NPU BLOCKED / INT4_SYM BROKEN / int4__all 三条都用旧图）⇒ 改为「旧图结论作废、待新图重测」表；⚠️ 格子 json 的 `status` 未改（不污染已交付产物）⇒ **以 MATRIX.md 为准**；④ ✅ **MATRIX.md 加「WER 计分器」列**（reviewer(MiniMax) / 目标机 分列，7.952/9.795 与 10.94/11.57 不同列）；⑤ ✅ **§28 summary 补字段**（`device_placement` enc=NPU/dec=NPU、`timing_valid=true`、`lock_holder`）—— 新脚本 `p3_backfill_npu_fields.py` **只加字段不改数值**（逐字段校验，变动即中止）+ 备份到 `results/_backfill_backup/`；⑥ ✅★ **R2T2 IR 溯源**：交付 decoder `qwen3-lm-int8sym-cleanie-ov` **不派生自 c069g**（是 C-079#2 那条线），**有 `attention_mask` 端口且恒传全 1**（cross-attention，**无 padding 概念**）⇒ **§23 mask 缺陷只影响 0.6B**；⑦ 🔄 **0.6B INT8 @NPU 61 分钟进行中**（enc+dec 都在 NPU；质量作业未持锁 ⇒ **计时作废**）；⑧ ⏳ 待跑 R2T2 INT8@NPU + 6 格 bench（`asr007_bench.py`，每格 1 次 fresh 进程持锁、600 s 切片）；⑨ ✅ `reports/compare/ASR007_results.json` 已产出（6 条记录）
 - 2026-10-26 02:10 **NPU 多轮复核坐实「INT4 在 NPU 上更慢」+ 部署选型建议（§28）**：① 新增 `p3_npu_mask2_text_check.py --rounds N`（**N≥2 时第 1 轮只作 warmup，不计入 `wall_s`/`rtf`**；逐轮 `rtf_per_round` 落盘；默认 N=1 保持老行为）；② ✅ **warmup 影响 < 1.7% 且方向不一致**（fp16 0.2908→0.2859 / int08 0.2719→0.2729 / int4 0.3777→0.3778）⇒ **首次推理的 lazy 编译不是 INT4 慢的原因**；③ 🔴 **稳态 RTF 排序：INT8 0.2729 ＜ FP16 0.2859 ＜ INT4 0.3778** ⇒ **NPU 上 INT4 慢 38.4%**（与单轮 38.9% 一致）；④ ✅ **文本逐字复现**（867/869/850 词、latin 0.9585/0.9586/0.9578、`prompt_echo` 全 false）⇒ 贪心确定性 + NPU 推理稳定；⑤ ★ **部署建议**：**NPU 选 INT8**（INT4 慢 38% 只省 28%）、**iGPU 用 INT4**（慢 1.93% 省 26–28%）；⚠️ 但**质量（WER）仍未验**，此结论只覆盖性能与体积；⑥ ⚠️ 口径限制已写清：整段贪心不可比 App 路径 / 300 s 切片 / 仅 2 轮 / 无质量结论 / 机理论未查
 - 2026-10-26 01:52 **后处理链全过 + 设备身份重大发现（§27）**：① ✅★ **NPU 文本正常性**：`prompt_echo_detected` **三格全 false** ⇒ **§20 的 NPU BLOCKED 解除**（切片 [720,1020] 300 s / 45 段；词数 fp16 867、int8 **869**、int4 850；编译 117.7 / 88.5 / 208.8 s；RTF 0.2908 / 0.2719 / 0.3777 —— ⚠️ 整段贪心口径，**不可**与 App 路径比）；② ✅ **prefix 路径 mask 不错位**：12 步逐步 `mask_ok=True`、`mask_mismatch_count=0`、`any_degenerate=false`，三格 final 文本逐字相同（仅 `All right.` vs `Alright.`）⇒ 补上了 §23 修复最易漏的一条；③ ✅ **teacher-forcing**（20 段 / 425 token；target 来自**同家族 OV FP16**；**target 退化检测 0/20 ⇒ 不是 tautology**）：INT8 **99.2941%**（422/425）、INT4 **92.7059%**（394/425）、fp16 自检 100%；`position_layout_probe` 也是 100% ⇒ 这批段长下位置排布恰好等价；④ 🔴🔴 **设备身份**：`GPU.0` = **Intel(R) Graphics (iGPU)**、`GPU.1` = **NVIDIA RTX 5050 (dGPU)**、NPU = Intel AI Boost；**`nvidia-smi used` 全程 0** ⇒ **所有标 `GPU.0` 的格子跑的是核显**；⑤ ✅ **驻留内存补测**（USM 编译增量）：int4 **561.8 MiB** / int8 **762.6 MiB** / fp16 1209.5 MiB ⇒ INT4 比 INT8 省 **200.8 MiB（−26.3%）**，与目录体积比例吻合（0.726 vs 0.720）；⑥ 🔴 **修 3 个 bug**：`p3_diag_mask2_prefix` 两处 `.numpy()` on grad tensor（grep 全部 `.numpy()` 才没漏第二处）、`p3_diag_device_mem` 的 `ir_mib` 只算 xml（得出 2.8 MiB 的荒唐值）、`p3_ov_app.device_mem_mb` 三处缺陷；⑦ ⏳ WER / R2T2 R2 标定点 / NPU-INT4 变慢复核 仍待办
@@ -19,7 +20,6 @@ last_ack: ASR-011
 - 2026-10-25 13:40 **P3 根因大反转（§19）**：① 🔴 **撤回「INT8 decoder 量化损坏」**（§18.3）—— 10 层静态比对**全部相同**（**1523 个算子实例 attrs 零差异** / 341 个 3D-4D 常量**多重集**相同 / 196 个 int8 权重重算 cos 0.999929 / 位置 id **运行时**相同 / 张量精度分布相同 / .bin 存储精度全 native）；② 🔴 **撤回「FP16 端到端必崩、INT8 正常」**（§18.3/§18.4）—— `p3_diag_surgery.json` 显示**固定 6.4s + 无 prefix** 时 **FP16 10 步全程正常英文**（`all`→` right`→` good`→` morning`→` everyone`→…），而 **INT8 反而重复退化**（`.`↔`Good`/` morning` 循环）⇒ **模型都没坏，是输入条件差异**；③ 🔴 **撤回 §18.2 的 teacher-forcing 判据**（target 序列本身 = **4824 'ь' 连续 20 次** ⇒ FP16 的 100% 是**自一致 tautology**）；④ ✅ **右对齐结论仍成立且已补证据**（`p3_diag_align.json` 左对齐两图**都给 `<|im_end|>`**；`p3_diag_pos_sem.json` 证明 IR **不是恒取 511** ⇒ 内容落点会改 logits）；⑤ 🔴 **「logits 全向量 cos」在 151936 维稀疏尖峰上不可用**（INT8 只在 margin 0.77/0.027 的 2 个位置翻转，其余 10/12 命中且 margin 很大）；⑥ ⚠️ **P3 长跑 timing_valid=false**（机器锁在启动前已被 `mt` 占用）⇒ 质量可用、计时作废
 - 2026-10-25 12:12 **P3 重大发现（§18）**：① ✅ **NPU 阻塞解除**（encoder 静态化 → NPU 编译 4 IR 全过除 stateful decoder）；② ✅★ **OV decoder IR 恒取位置 511 ⇒ 必须右对齐**（左对齐产出 padding 区 logits；OV/torch 都给 `all` vs `<|im_end|>`，左右 cos −0.154）⇒ **P1 的 teacher-forcing 判据无效** ⇒ **§15.3 的 enc cos 0.978 / dec cos 0.975 / top1 100% 全部作废**；③ 🔴 **INT8 decoder 在 CPU 上与 FP16 的 logits cos ≈ 0**（CPU −0.000094 / GPU −0.139394 / NPU −0.129165）⇒ **decoder 量化损坏**（encoder 完好，cos≥0.9997）；④ 🔴 **GPU 上 FP16 decoder 反而崩**（端到端矩阵）⇒ 两个独立问题；⑤ ✅ **ASR-006 §5 第③点核实通过**（fake-quant 未误量化 tied 权重 ⇒ 旧数据有效）；⑥ **rule1 接缝去重已由 App 模块完成** ⇒ 本模块该诊断降级为可选
 - 2026-10-25 09:35 **收到 ASR-006 / ASR-007**：① **ASR-004 通过可关闭**（A 10.80% / B 10.58%，Δ −0.22pp CI [−0.64,+0.20] ⇒ v1.4 不用回退）；🔴 **新发现：App 实时路径比交付基准差 2.6pp**（+2.63pp CI [+1.80,+3.41] 显著，主因 rule1 切点**切在词中间** ⇒ 前后两段重复转写该词，插入多 178 个集中在段首/段尾 3 词）⇒ **只诊断不改代码**，排在 P3 之后。② **P0 参照两处修正（根因已查明）**：`--minutes 61` 截断 ⇒ wav **真实 3671.19s**，**少跑 11.19s**（reviewer 说 6s）⇒ P3 跑整个 wav；`rtf_this_run=0.8167` 是**续跑尾部的分母只剩 30.56s** ⇒ **已删该字段**；`n_runs=1` 是**progress 只每 60 步落盘、本次只跑 3 步没更新** ⇒ **已修为运行开始锁定**。⚠️ §13.6「两份参照上限相同」被推翻（离线对流式 **+3.83pp CI [+2.94,+4.70]**）⇒ **P3 以段级流式为主参照**。③ ⚠️ **§15.4「INT4 不可行」被退回（证据不足，暂不关闭）** ⇒ 该结论**降级**，本模块**不再宣称 INT4 不可行**；新判据 = **多 token teacher-forcing top1**（≥20 个 ≥12 分钟评测段，R2T2 的 R2 同口径标定）+ GPU `INT4_ASYM g128+AWQ+SE` 5 分钟切片解码，限时 ≤2h，排在 P3 之后。④ **ASR-007 用户决定：0.6B 只作实验，不进交付** ⇒ P3 改为**出对比报告**（R2T2 INT8/INT4 × 0.6B FP16/INT8/INT4 × GPU.0/NPU/CUDA，指标=WER/延迟/内存/体积/设备摆放；json 放 `qwen3asr_06b/reports/compare/` 每格一份）
-- 2026-10-25 00:05 **ASR-005 P2 收尾 + git 冻结已释放**：**`shared/GIT_FREEZE` 已删除**（21:12 时还在，本轮 00:01 实测消失 ⇒ ASR-005 的「文件存在才禁提交」禁令**自动解除**）；**本地 HEAD = `origin/main` = `6fd7806`** ⇒ 无 divergent history，**明确不做 `reset --hard`**（工作区有 4 模块 500+ 未提交改动，会摧毁在途工作）。**P2 产物 8 个 IR 全部复核在盘**（INT8 候选 enc 180 MiB + dec 721 MiB；⚠️ **命名更正**：FP16 decoder 真实目录是 `ov-dec-06b-embed-fp16`，§15 里写的 `ov-dec-06b-fp16` 不存在）。**P2 检查点正式停靠，P3 不启动**；待 reviewer ① 算三份转写 WER ② 复核 INT8 候选（§15.3）③ **裁定 INT4**（本模块结论 = 0.6B 上不可行，7 条证据链；剩 GPTQ 一条路未做）④ 认可 P0 流式口径。**P3 计时类作业需持机器锁**，当前锁 `app-pack` PID 18380 **已死**（陈旧锁，等放行后回收独占）
 
 ## §2 最近一周的结论摘要（均引用产物）
 
@@ -3746,3 +3746,95 @@ cleanie）是否由 c069g 派生、是否有左侧 padding。」
 * ⏳ 6 格速度/内存 bench（`asr007_bench.py`，每格 1 次 fresh 进程 + 持规范锁 +
   600 s 切片 [720,1320]）—— 需等 CPU 空闲（当前 100%）
 * ⏳ `ASR007_results.json` 在上述产物落盘后重新汇总（脚本已就位）
+
+## §30 ASR-011 ③ bench 脚本实战化：5 个真缺陷 + 冒烟验证通过（2026-10-26 10:00–10:20）
+
+### 30.0 本节做了什么
+§29 已把三个脚本写好（`asr007_bench.py` / `asr007_r2t2_app_transcribe.py` /
+`asr007_build_results.py`）但**一个都没真跑过**。本节把它们**跑通并修掉真实缺陷** ——
+不跑一遍就交付脚本，等于把坑留给 reviewer。
+
+### 30.1 🔴 缺陷①：`BLOCK_MS` 未定义（被 `if False` 掩盖）
+```python
+step = int(SR * BLOCK_MS / 1000) if False else int(SR * 0.1)   # ← BLOCK_MS 从未定义
+```
+`if False` 让 Python **短路**掉左半边 ⇒ 语法检查通过、运行也不报错，
+但 `BLOCK_MS` 这个名字**根本不存在** ⇒ 一旦有人把 `if False` 去掉就炸。
+⇒ 已在文件头定义 `BLOCK_MS = 100`（= `audio_source.BLOCK_MS`，App 实时路径喂音粒度）
+并改成 `step = int(SR * BLOCK_MS / 1000)`。
+
+### 30.2 🔴 缺陷②：**首字延迟测的根本不是首字**
+原实现把「整次 `generate()` 的耗时」记成首字延迟（`t_first = t_dec`）
+⇒ 量级是「整段增量解码耗时」，**不是**「等到第一个字」。
+⇒ 修法：给 `p3_ov_app.py::OVRunner.generate` 加**向后兼容**的可选回调
+`on_first_token`（默认 `None` ⇒ **行为与以前完全一致**，已交付产物不受影响），
+在**第一个非 EOS/PAD token 被 argmax 出来**的那一刻打点。
+⇒ 实测（20 s 切片）：**首字延迟 p50 = 0.2748 s / p95 = 0.3331 s**（量级合理）。
+
+### 30.3 🔴 缺陷③：`GetProcessMemoryInfo` **永远返回 False**
+```python
+ctypes.windll.psapi.GetProcessMemoryInfo(h, ctypes.byref(pmc), pmc.cb)  # ← 恒 False
+```
+根因：**没声明 `argtypes`** ⇒ ctypes 把 `POINTER(PROCESS_MEMORY_COUNTERS)`
+当 int 传 ⇒ 参数错位。
+⇒ 修法：`WinDLL('psapi')` **显式加载** + 声明 `restype=BOOL` / `argtypes=[HANDLE,
+POINTER(PMC), DWORD]`。
+⇒ 实测：0.6B peak WS **9294.5 MiB** / peak private **10900.7 MiB**；
+R2T2 peak WS **5091.7 MiB** / peak private **5028.4 MiB**。
+⚠️ 另修语义错误：`peak_private_bytes_mb` 原写成 `PrivateUsage`（**当前值**）
+⇒ 改为 `PeakPagefileUsage`（峰值口径）。
+
+### 30.4 🔴 缺陷④：**导入顺序**让 transformers 走「无 torch」降级分支
+现象：`ImportError: cannot import name 'GenerationMixin' from 'transformers.generation'`
+（提示 `None of PyTorch, TensorFlow >= 2.0, or Flax have been found`）。
+根因：`live_caption_app` 的 import 链先被加载 ⇒ transformers 检测不到 torch
+⇒ 走**无 torch 的降级分支** ⇒ `transformers.generation` 处于**部分初始化**状态
+⇒ `GenerationMixin` 不存在。
+⇒ 修法：**先** `import transformers`（+ `from transformers.generation import
+GenerationMixin`），**再** import `live_caption_app`（与 `p3_ov_app.py` 长跑的成功顺序一致）。
+⇒ 已在 `asr007_bench.py`（两个路径都加）与 `asr007_r2t2_app_transcribe.py` 修好。
+
+### 30.5 🔴 缺陷⑤：R2T2 的设备内存被判「拿不到 core」
+原注释写「OV core 在 backend 内部 ⇒ 拿不到 core ⇒ 设备内存**未测**（不硬凑）」。
+**实测是错的**：`npu_delivery_backend.py:136` 有 `be._core = core`；
+`segment_encoder_backend.py:85` 有 `self._core = core` ⇒ **拿得到**。
+⇒ 修法：`device_mem(getattr(eng.backend, '_core', None), eng.device_desc)`
+（并给 `device_mem` 加 `core is None` 的显式处理）。
+⇒ 实测读到：**GPU.0 `usm_device` 171.3 MB / `usm_host` 2043.8 MB**。
+
+### 30.6 ✅ 冒烟验证通过（两条路径都跑通，文本正常）
+| 路径 | 段数 | 词数 | RTF | 首字 p50 | 出字 p50 | peak WS | 设备内存 |
+|---|---|---|---|---|---|---|---|
+| 0.6B INT8 @GPU.0 | 3 | 59 | 2.1585 | 0.2748 s | 0.2049 s | 9294.5 MiB | usm_device 188.1 MB / usm_host 1133.9 MB |
+| R2T2 INT8 @GPU.0 | 3 | — | 1.3258 | 2.3229 s | 0.7241 s | 5091.7 MiB | usm_device 171.3 MB / usm_host 2043.8 MB |
+* ⚠️ **20 s 切片含冷启动** ⇒ RTF 偏高（正式 600 s 切片会摊薄），**冒烟数据不作交付**。
+* ✅ **缓存机制确认生效**：0.6B 冷编译 **12.26 s** → 热（命中 CACHE_DIR）**4.50 s**。
+* ✅ **文本正常**（两路内容一致、格式差异符合不同模型预期）⇒ 无复读、无乱码。
+* ⚠️ **R2T2 首字延迟口径不同**：引擎级（`cur_text` 由空变非空，含 encoder+prefill+首 token）
+  vs 0.6B 的「argmax 首 token」⇒ **报告里必须标注**（已在 json 的
+  `first_tok_latency_note` 写明）。
+
+### 30.7 ★ 冷/热缓存编排（reviewer 要「冷启动与有缓存各一组」）
+新脚本 `asr007_bench_all.py`：每格跑 **2 遍 fresh 进程**（每遍都持规范锁）：
+1. **冷**：清空 0.6B **专用** CACHE_DIR（`results/asr007_bench/_ov_cache`）
+   ⇒ 保证冷编译（🔴 只清自己的目录，**绝不碰** App 的 `%LOCALAPPDATA%/Confucius4LiveCaption/*_cache`）；
+2. **热**：同一缓存目录再跑一次 ⇒ 命中缓存。
+⇒ `compile_s_cold` / `compile_s_cached` 两组数字都有出处（`bench_cold.json` / `bench_warm.json`）。
+⚠️ **RTF 只取「热」那遍**（有缓存 = 用户真实体感），且**每格 n=1** ⇒
+`rtf_p50 == rtf_p95`，**不是分布**（ASR-011 第 3 条用户决定）。
+
+### 30.8 ✅ 质量长跑的 `timing_valid` 强制为 false
+`build_compare_mask2.py` 新增 `QUALITY_RUNS` 判定：`p3_mask2_61min_int8_npu` /
+`p3_mask2_61min_int4_npu` 属**质量作业（未持锁）** ⇒ 强制 `timing_valid=false`
+并写明原因 ⇒ **RTF / 延迟数字一律作废**，只交 transcript 给 reviewer。
+（计时/内存由 `asr007_bench.py` 的**持锁 fresh 进程**单独测。）
+
+### 30.9 🔴 踩坑记录：`global` 声明位置
+`SLICE_SEC` 改成可变参数后，`global SLICE_SEC` 必须写在 `main()` **函数体第一行**
+（写在 `args = ap.parse_args()` 之后 ⇒ `SyntaxError: name 'SLICE_SEC' is used prior
+to global declaration`）。
+
+### 30.10 本节未完成
+* 🔄 0.6B INT8@NPU 61 分钟长跑进行中（最近 **64.0%** / 355 段 / 2350.7 s，文本正常）。
+* ⏳ R2T2 INT8@NPU 61 分钟（**必须等 0.6B 那格跑完**，两者共用 NPU）。
+* ⏳ 6 格 bench（等 CPU 空闲 + 规范锁；当前锁被 `tts` 持有 10:10:13 起，CPU 100%）。
