@@ -40,7 +40,7 @@ import subprocess
 import sys
 import threading
 import time
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from typing import List, Optional
 
 # 与 App 同目录，worker 脚本
@@ -102,6 +102,18 @@ class TTSService:
         self.n_played = 0                             # 已播句数
         self.n_submitted = 0
 
+        # 🔴🔴 §52：**故障必须自带原因**。
+        #   用户报「TTS worker 故障（error）⇒ 朗读中止」时，界面只有这一句，
+        #   拿不到 worker 到底为什么错（模型加载 / 播放设备 / 边车启动），
+        #   而 worker 级 error 的 message 其实**已经发过来了**，只是被丢了。
+        #   ⇒ `last_error` 存最近一次**worker 级**错误原文；
+        #      `log_tail` 存最近 200 行 worker 日志（含 stderr 转发）。
+        self.last_error: Optional[str] = None
+        self.log_tail: deque = deque(maxlen=200)
+        # `on_log` 外面套一层：**先记账再转发**（调用方仍只看到自己的 on_log）
+        self._on_log_user = on_log
+        self.on_log = self._log_and_forward
+
         # 主进程侧的待播队列（只做积压统计与丢句决策，音频全在 worker 里）
         self.pending: 'OrderedDict[int, dict]' = OrderedDict()
         # 🔴 2026-10-24 §22 修：**已下发 worker、等待结果**的句子 id。
@@ -137,6 +149,51 @@ class TTSService:
     @property
     def active(self) -> bool:
         return self.state in ('loading', 'ready')
+
+    # -- 日志与故障落盘（§52）--------------------------------------------
+    def _log_and_forward(self, msg):
+        """先记进 `log_tail`，再转给调用方的 `on_log`。
+
+        🔴 为什么要在 service 里留尾巴：worker 级错误的**真实原因**往往在
+        错误**之前**的那几十行里（例如 CUDA 后端会先打「边车启动…」再打
+        「BabelVox 引擎不可用」再打「模型加载失败」）⇒ 只保存最后一句
+        等于什么都没保存。`log_tail` 让界面/日志能一起交出来。
+        """
+        try:
+            self.log_tail.append('%s %s' % (time.strftime('%H:%M:%S'), msg))
+        except Exception:
+            pass
+        try:
+            if self._on_log_user:
+                self._on_log_user(msg)
+        except Exception:
+            pass
+
+    def _dump_error(self, message: str, n_tail: int = 60):
+        """把 worker 级故障（含前因日志）追加到 `tts_worker_error.log`。
+
+        ⚠️ 只在**worker 级**故障时写（句子级错误太频繁，会刷盘）。
+        ⚠️ 写失败一律吞掉：诊断信息不能把语音链路带崩。
+        """
+        try:
+            base = os.environ.get('LOCALAPPDATA') or os.path.expanduser('~')
+            path = os.path.join(base, 'Confucius4LiveCaption',
+                                'tts_worker_error.log')
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            tail = list(self.log_tail)[-n_tail:]
+            with open(path, 'a', encoding='utf-8', newline='\n') as f:
+                f.write('\n' + '=' * 78 + '\n')
+                f.write('%s  worker 级故障\n' % time.strftime(
+                    '%Y-%m-%d %H:%M:%S'))
+                f.write('device=%s precision=%s voice=%s out_device=%s\n'
+                        % (self.device, self.precision, self.voice,
+                           self.out_device))
+                f.write('message: %s\n' % message)
+                f.write('--- 最近 %d 行日志 ---\n' % len(tail))
+                f.write('\n'.join(tail) + '\n')
+            self.last_error_path = path
+        except Exception:
+            pass
 
     def start(self):
         """起 worker 进程。"""
@@ -617,6 +674,11 @@ class TTSService:
                 # ── worker 级：模型/播放设备等整体故障 ────────────────────
                 self.state = 'error'
                 self.err = message
+                # 🔴 §52：**留住原因**（界面/q 日志要用）+ 落盘一份，
+                #   这样下次用户报「worker 故障」时能直接看到为什么
+                #   （旧行为：只把 message 塞进 `self.err`，界面从不显示）。
+                self.last_error = str(message)
+                self._dump_error(str(message))
                 # 🔴🔴 2026-10-26 §47 修：**前提事实错误** ⇒ 行为随之出错。
                 #   旧注释写「worker 已死 ⇒ 在途与待发的句子都不会再有结果」
                 #   ⇒ 据此做了 `self._dropped_ids.clear()`。
@@ -773,4 +835,6 @@ class TTSService:
             device=self.device,
             out_device=self.out_device,
             clone=self.clone,
+            # 🔴 §52：worker 级故障的**原文**（None = 没有故障）
+            last_error=self.last_error,
         )

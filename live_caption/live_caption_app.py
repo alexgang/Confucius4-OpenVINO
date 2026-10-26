@@ -2799,16 +2799,55 @@ class App:
         if svc is not None and getattr(svc, 'state', '') not in ('error',):
             return svc
         if svc is not None:
+            # 🔴🔴 §52：重启前必须**等旧 worker 真的退出**。
+            #   `close()` 只 kill worker 进程；CUDA 后端的**边车**是 worker 的
+            #   子进程，要等它自己读到 stdin EOF 才退（若它还在加载模型，
+            #   可能要等到加载完，≈20 s）。此刻立刻起新 worker ⇒ 两个边车
+            #   同时占显存（各 ≈2.5 GB，卡只有 8 GB）⇒ 可能 OOM
+            #   ⇒ 新 worker 也报 error ⇒ 用户看到「怎么重启都没用」。
+            #   ⇒ 这里最多等 5 s（超时也继续，绝不卡住界面）。
+            try:
+                old_err = svc.stats().get('last_error')
+            except Exception:
+                old_err = None
+            if old_err:
+                self._ui_log(f'[tts] 上一次 worker 级故障：{old_err}')
             try:
                 svc.close()
             except Exception:
                 pass
+            t0 = time.time()
+            while time.time() - t0 < 5.0:
+                p = getattr(svc, 'proc', None)
+                if p is None or p.poll() is not None:
+                    break
+                time.sleep(0.1)
             self.tts = None
         if not self.var_tts_on.get():
             self.var_tts_on.set(True)
             self._ui_log('[offline] 语音输出原为关闭 ⇒ 已自动开启（离线朗读需要 TTS）')
         self._on_tts_toggled()
         return self.tts
+
+    def _offline_tts_reason(self):
+        """给离线朗读对话框：返回 `(last_error, 日志尾巴)`。
+
+        🔴 没有这个，界面只能显示「TTS worker 故障（error）」——
+        用户和我都不知道**为什么**（模型？播放设备？边车？）。
+        """
+        svc = self.tts
+        if svc is None:
+            return None, []
+        try:
+            err = svc.stats().get('last_error')
+        except Exception:
+            err = None
+        tail = []
+        try:
+            tail = list(getattr(svc, 'log_tail', []))[-8:]
+        except Exception:
+            pass
+        return err, tail
 
     def _open_offline_reader(self):
         """打开「离线朗读」对话框（文本/文件 ⇒ TTS，**不经过 ASR / 翻译**）。
@@ -2821,6 +2860,7 @@ class App:
             open_dialog(self.root, self._offline_get_tts,
                         self._offline_ensure_tts,
                         on_log=self._ui_log,
+                        get_reason=self._offline_tts_reason,
                         initial_dir=os.path.expanduser('~'))
         except Exception as e:
             self.var_tts_note.set(f'离线朗读打不开：{e}')

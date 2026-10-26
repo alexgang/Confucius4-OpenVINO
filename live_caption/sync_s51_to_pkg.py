@@ -41,12 +41,17 @@ BACKUP_DIR = os.path.join(HOME, 'pkg_backup_app_s51')
 
 EDIT_FILES = [
     'live_caption/live_caption_app.py',
+    # ── §52（用户报「TTS worker 故障（error）」后的修复）──
+    #   tts_worker：输出设备解析**加缓存 + CoInitializeEx**（同一 id 必须始终
+    #               解析成同一设备）；CUDA 后端失败**不再静默回落**（误导性报错）
+    #   tts_service：worker 级故障记 `last_error` + 落盘 `tts_worker_error.log`
+    'live_caption/tts_worker.py',
+    'live_caption/tts_service.py',
 ]
 NEW_FILES = [
     'live_caption/offline_reader.py',
     'live_caption/offline_reader_gui.py',
 ]
-
 PKG_REL = 'app'
 
 

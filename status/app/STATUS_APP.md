@@ -1,12 +1,15 @@
 # STATUS_APP
 last_ack: APP-020
-更新时间: 2026-10-26 13:45
-当前任务: **§51 🆕 用户需求：TTS 离线朗读（上传文件 / 对话框输入文本 → 语音播报）** ⇒ ① 新增 `live_caption/offline_reader.py`（**纯逻辑、不碰 Tk**）：文件解析（.txt/.md/.log/.srt/.vtt/.docx/.docm **纯标准库**；.pdf 装了 PyMuPDF/pypdf 才解析，否则**明确报错**）+ 分段 `split_for_tts()`（每段 ≤ 3.4 s；英文句号做缩写/小数判定） + 节流控制器 `OfflineReader`（🔴 **核心坑：`_update_backlog()` 在积压 >8 s 时整句丢最旧的未播句 ⇒ 一次性喂整篇长文档几乎全丢**，实测裸提交 240 段丢 238、节流后丢 0）⇒ 用**负数 seg（≤ -1e6）打标**，「停止」只撤本次朗读的句子、**不碰 MT 的句子**；② 新增 `offline_reader_gui.py`（对话框）：选择文件 → 可编辑文本框 → 开始/停止，**Tk 只在主线程 `after()` 轮询 `snapshot()`，绝不跨线程碰控件**；③ `live_caption_app.py` 接入：语音输出分区新增「📖 离线朗读…」按钮（放 note 行，避免 row_tts 再挤宽度）+ `_offline_ensure_tts()`（没开会自动开启并写明日志）+ `quit()` 收尾先停喂句线程；④ ✅ 逻辑自检 `app069`：**37/37 PASS**（假 service **逐条复刻**真实丢句规则，不加载模型）；⑤ ✅ GUI 冒烟 `app070`：**21/21 PASS**（真实 Tk + 假 service，截图 ×2）；⑥ ✅ 已同步散包（`sync_s51_to_pkg.py`：2 新增 + 1 修改 4 变更块，逐字校验，备份 `pkg_backup_app_s51`）+ 包内 py_compile OK + `--check` 全 OK + **主窗口重截图确认新按钮入位**（`abba_out/app066_gui_smoke.png`，49 033 B）⇒ ⛔ **zip 未重打**（守 APP-020）
+更新时间: 2026-10-26 15:05
+当前任务: **§52 🔴 响应用户「TTS worker 故障（error）⇒ 朗读中止」—— 查出一条确定的 error 路径并修掉 + 让故障自带原因** ⇒ ① **不是**朗读逻辑的问题：该提示来自 `offline_reader` 的 `svc.state == "error"`（worker 级故障），只有两个产地：`播放设备打开失败`(tts_worker L339) / `模型加载失败`(L1067)；② 逐层排除：CUDA venv 与边车**都在**（torch 2.11.0+cu128 / transformers 5.15.1 / avail=True）、HF 权重在、GPU 干净（342 MiB）、**单独起边车 ready 18.48 s**、**真实 TTSService 起 CUDA ready 24.29 s 且首包 2.214 s 播放成功** ⇒ 后端没坏；③ 🔴🔴 **查出真缺陷：同一个 WASAPI 端点 id 解析结果不稳定** —— `app071` 日志里主线程解析成「播放索引 3」，`_reopen_player()`（在 `_safe_load` **线程**里）再解析变成「无法识别 ⇒ 改用系统默认」（`soundcard` 取扬声器要 COM，子线程没初始化，异常被 `except` 吞掉）⇒ 用户在下拉里选的设备被**悄悄换掉**；默认设备再不可用就直接走到 `播放设备打开失败` ⇒ **worker 级 error**；修复 = **按 id 缓存** + **尽力 CoInitializeEx** + 失败也缓存（`tts_worker.resolve_out_device`）⇒ 修复后同一条日志由 `device=默认设备` 变成 `device=3（缓存）`；④ 🔴 **CUDA 失败不再静默回落**（旧行为：边车起不来 ⇒ 回落 ov ⇒ 回落 torch 参考实现 `import tts_model` ⇒ 最终报「模型加载失败：No module named 'tts_model'」——**与真实原因毫无关系**，误导过我）；⑤ 🔴 **故障自带原因**：`TTSService` 新增 `last_error` + `log_tail(200)` + 落盘 `%LOCALAPPDATA%\Confucius4LiveCaption\tts_worker_error.log`（含前因 60 行），`stats()` 带出 `last_error`；⑥ 🔴 **修我的重启隐患**：`close()` 只 kill worker、不杀边车 ⇒ 立刻起新 worker 会双份显存（各≈2.5 GB / 共 8 GB）⇒ OOM ⇒ 又 error ⇒ 现在重启前**等旧 worker 真退出**（≤5 s）；⑦ 对话框：error 时显示**真实原因 + 最近日志**，并给「↻ 重试」（真的重启 worker 后重念）；⑧ ✅ 证据：`app071` **真实 CUDA 音频** （ready 24.29 s / 首包 1.924 s / played 1）⇒ **§51「真实音频未验证」一并结清**；`app072` **13/13**、`app069` **37/37**、`app070` **21/21**、包内 `--check` 全 OK ⇒ ✅ 已同步散包（4 文件 27 个变更块逐字校验）；⛔ zip 仍未重打（守 APP-020）
 
-阻塞 / 待用户决定: ① 🔴 **§51 真实音频待人工确认**（自检/冒烟都用假 service，**不加载模型**；当时机器锁被其他模块持有 ⇒ 按铁律不在他人计时窗口起重计算进程 ⇒ 请用户在 GUI 点「📖 离线朗读…」实测，或锁空闲后补一次带模型冒烟）；② 🔴 **§51 代码已进散包、zip 未重打**（守 APP-020「待 TTS-017 同步后重打」 ⇒ §51 与 cp_prefill 同步一并进下次重打）；③ 🔴 **§50.5 需 TTS 模块配合**：「App vs 尺子」可对外报的同日对比要 TTS 用自己身份重跑 `eval_final_config_timing.py --voice A`（App 不代跑：包装进程会改它的判据）；④ 🔴 **§49.7 待裁定**（APP-020 明确「先不要定」⇒ 未动）：首包 P50 17.29 s vs 单句 0.945 s，差距全在排队 ⇒ 限制在飞句数 or 加大 `BACKLOG_MAX_S`；⑤ 🔴 **§45.6①–⑤ 等 reviewer 裁定**（边界 1.611× vs 中间 1.035×；encoder 外推上界；token_edit_pct 与 IR 体积排序相反；粒度/encoder/预算取舍；默认 encoder 是否回 fp16）；⑥ 🔴 **等裁定**：是否采纳 `MAX_SEG_SPAN = 2`（§44 候选已备好）；⑦ 🔴 **需回复 MT 通知 13**：§13.1 在 App 渲染层不成立、§13.4 抓不住 `Okay` ⇒ 建议改「跨段距离」判据；⑧ 🔴 **§46.5**：包内 torch/qwen_asr 不在 site-packages ⇒ 是否加「第三方依赖可满足性」闸门；⑨ 🔴 **§42.3 修复待用户实机确认**；⑩ ⛔ **FTP 服务仍关闭**（守 APP-009③；FTP_Share 副本 = 12:06 那份 v1.5 zip，**不含 §51**）；⑪ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑫ ⛔ 包体优化未做（用户已接受）；⑬ ⛔ V7 残句代价待确认；⑭ ⛔ 集显 F32 TTS 慢（首包 33.9 s）
+阻塞 / 待用户决定: ① 🔴 **§52 请复现一次并回传日志**：已修掉一条确定的 error 路径（设备解析）并让故障自带原因，但**用户那次为什么 error 仍无直接证据**（当时没有落盘日志）⇒ 若再出现，对话框会直接显示原因，且 `%LOCALAPPDATA%\Confucius4LiveCaption\tts_worker_error.log` 会有完整前因；② ✅ **真实音频已验证**（`app071` CUDA：ready 24.29 s / 首包 1.924 s / 已播 1 句，且输出设备解析成用户选的那个）⇒ 但仍建议在 **GUI 里点一次「📖 离线朗读…」**确认人耳能听到（`app071` 走的是同一条 `submit` 链路，不是 GUI 点击路径）；③ 🔴 **§51/§52 代码已进散包、zip 未重打**（守 APP-020，与 cp_prefill 一起重打）；④ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑤ 🔴 **§49.7 待裁定**（APP-020 明确「先不要定」⇒ 未动）；⑥ 🔴 **§45.6①–⑤ 等 reviewer 裁定**；⑦ 🔴 **等裁定**：是否采纳 `MAX_SEG_SPAN = 2`（§44 候选已备好）；⑧ 🔴 **需回复 MT 通知 13**；⑨ 🔴 **§46.5** 第三方依赖可满足性闸门；⑩ 🔴 **§42.3 修复待用户实机确认**；⑪ ⛔ **FTP 服务仍关闭**（守 APP-009③；FTP_Share 副本 = 12:06 那份 v1.5 zip，**不含 §51/§52**）；⑫ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑬ ⛔ 包体优化未做（用户已接受）；⑭ ⛔ V7 残句代价待确认
 
 
 ## 最近更新
+- 15:05 §52 🔴🔴 **查出确定的 error 路径**：同一个 WASAPI 端点 id 在**子线程**里再解析会失败（`soundcard` 需 COM）⇒ 用户选的设备被**悄悄换成系统默认**⇒ 现在「按 id 缓存 + CoInitializeEx」，日志由 `device=默认设备` 变为 `device=3`
+- 15:05 §52 🔴 **故障自带原因**：`TTSService.last_error` + `log_tail` + 落盘 `tts_worker_error.log`；对话框直接显示原因并给「↻ 重试」（重启 worker 后重念）
+- 15:05 §52 ✅ **真实音频已通**（`app071` CUDA：首包 1.924 s / played 1）；`app072` 13/13、`app069` 37/37、`app070` 21/21；已同步散包（zip 未重打）
 - 13:45 §51 🆕 **离线朗读上线**：文件 / 对话框文本 → TTS（**不经过 ASR/翻译**，直接 `tts.submit()`）⇒ 逻辑自检 37/37 + GUI 冒烟 21/21（均不加载模型）
 - 13:45 §51 🔴🔴 **节流是命门**：一次性喂整篇 ⇒ 积压 >8 s ⇒ **丢 238/240**；按「pending 总预算 7.0 s < 阈值 8 s」节流后 **0 丢**；单段超预算会「自己丢自己」（36 s 段实测）⇒ 每段 ≤ 3.4 s
 - 13:45 §51 ✅ 已同步散包（2 新增 + 1 修改逐字校验）+ `--check` OK + 主窗口截图确认新按钮；**zip 未重打**（守 APP-020）
@@ -19,9 +22,6 @@ last_ack: APP-020
 - 12:05 §50 ✅ **包内 21 个 app/*.py 与仓库全量比对**：18 个逐字一致、3 个仅 CRLF 差异（`streaming_asr`/`translator`/`tts_worker`）⇒ `tts_cuda*.py` 的「写死 v1.5」修复已进包
 - 12:05 §50 ✅ **打包前三道闸门全 PASS**：`app014b` **50/50**、第三方素材 **30/30 命中 0 泄漏 0 误伤**、包路径硬编码 **0 处违规**
 - 12:05 §50 🔴 **交付 zip 仍是旧代码**（zip 内 `tts_engine.py` 31 945 B vs 包内 39 173 B；`tts_worker` 54 522 vs 60 486）⇒ 必须重打
-- 12:05 §50 ⚠️ **重打被 ASR 作业挡住**：打包持锁等安静窗口 **4 分 39 秒**未成（ASR `asr007_r2t2_app_transcribe.py --engine npu` 在跑）⇒ **主动让锁**（另有 3 个协作方等锁）⇒ 待 ASR 结束再打
-- 11:00 §49 🔴🔴 **补上「从未实现」的生产配置：`cp_decode` 放 NPU** ⇒ 单句 RTF 中位 **1.912→1.218（1.57×）**、首块 **1.296→0.837 s（1.55×）**
-- 11:00 §49 ✅ **ABBA 复测 s49**：丢句 **0/7**（原 57%）、首包 P50 **26.08→17.29 s** / P95 **45.27→28.46 s**、ASR RTF 增量 **−0.067**（PASS）
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -8966,3 +8966,120 @@ ASR 的 `wait_and_build_r2t2.py`（pid 31632/33652，`--poll 30`）在等**本�
 - PDF 在客户包内**必然**走「请转换」分支（包内无解析库）⇒ 这是**明确告知**，
   不是缺陷；要不要内置 pypdf（+约 2 MB）等用户决定。
 - ⛔ **zip 未重打**：散包已含 §51，zip 等与 cp_prefill（APP-020）一起重打。
+## §52 🔴 用户报「TTS worker 故障（error）⇒ 朗读中止」——查出一条确定的 error 路径 + 让故障自带原因（2026-10-26 15:05）
+
+### §52.0 这条提示是什么意思（先把判据说清）
+
+用户看到的 `TTS worker 故障（error）⇒ 朗读中止` 是**我**在 `offline_reader.OfflineReader`
+里写的判据：`svc.state == 'error'`。它表示 **worker 级故障**，全仓库只有两个产地：
+
+| 位置 | 场景 |
+|---|---|
+| `tts_worker.py` L339 | `播放设备打开失败`（**连系统默认设备都打不开**才报） |
+| `tts_worker.py` L1067 | `模型加载失败：{e}`（`_safe_load` 兜底） |
+
+⇒ **不是**分段/节流/朗读逻辑的问题（那部分 `app069` 37/37 一直通）。
+⇒ 但它**只说明"出事了"，不说明"出了什么事"** —— 这本身是缺陷（见 §52.3）。
+
+### §52.1 逐层排除（先静态、后计算，避免瞎跑重活）
+
+| 检查 | 结论 |
+|---|---|
+| `device_config.json` | `asr=NPU, mt=GPU.0, **tts=CUDA**`（14:47 写入 ⇒ 用户刚换成 CUDA） |
+| CUDA venv `_fq3tts_env` | **在**；`torch 2.11.0+cu128` / `deps avail=True` / `transformers 5.15.1` / `fq3tts 0.5.4`（就是 §40 钉的死组合） |
+| 边车脚本 | 包内 `app/tts_cuda_sidecar.py` **在** |
+| HF 权重 | `models--Qwen--Qwen3-TTS-12Hz-0.6B-Base` **在**（缓存共 12 GB） |
+| GPU 占用 | 342 MiB / 8 151 MiB ⇒ **没有残留边车占显存** |
+| **单独起边车** | `{"ready": true, "load_s": 18.48, "warmup_s": 1.61, ...}` ⇒ **后端本身没问题** |
+| **真实 `TTSService` 起 CUDA** | ready 24.29 s / 首包 **2.214 s** / **played 1** ⇒ **端到端能出声** |
+
+⇒ 两条"重活"结论相反于直觉：**CUDA 后端不是坏的**。所以故障是**状态相关**的。
+
+### §52.2 🔴🔴 查出的确定缺陷 ①：设备解析结果不稳定（这是我这次唯一能"抓到"的 error 路径）
+
+`app071` 第一次跑的真实日志（**证据就在这一行里**）：
+
+```
+ 2.40s 输出设备解析：'{0.0.0…}' ⇒ 端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3
+24.14s 输出设备解析：'{0.0.0…}' ⇒ 无法识别「{0.0.0…}」⇒ 改用系统默认     ← 🔴 同一个 id！
+```
+
+- 第一次发生在 **worker 主线程**（`Player.__init__`，sr=22050）；
+  第二次发生在 `_reopen_player(24000)`，而它在 **`_safe_load` 线程**里。
+- `resolve_out_device()` 的端点 id 反查靠 `soundcard.all_speakers()`，**要 COM**；
+  子线程没初始化 COM ⇒ 抛异常 ⇒ 被 `except: pass` 吞掉 ⇒ `name=None`
+  ⇒ 「无法识别 ⇒ 改用系统默认」。
+- 后果链：用户在下拉里选的设备被**悄悄换掉** → 播到系统默认设备 →
+  若默认设备也不可用（独占/被禁用/HDMI 拔掉）⇒ **播放流打不开** ⇒ L339 ⇒ `state=error`
+  ⇒ 我的朗读器中止。**这条链完全解释用户看到的提示**（虽无直接日志证明他走的就是这条）。
+
+**修法（`tts_worker.resolve_out_device`）**：
+1. **按 id 缓存**解析结果（第一次在主线程算的才是权威）⇒ 同一 id **永远**同一设备；
+2. 调用前**尽力 `CoInitializeEx`**（`ctypes.windll.ole32`，thread-local 只做一次）
+   ⇒ 子线程首次也能解析；
+3. **失败结果也缓存** —— "有时用你选的、有时用默认"比"一直用默认"更难查。
+4. 日志标注 `（缓存）`，一眼能看出是复算还是复用。
+
+**修复后同一条日志**（`app071` 第二次跑）：
+
+```
+ 1.59s 播放流已启动：sr=22050 device=3 ⇒ **实际输出: Speaker (Realtek(R) Audio)**
+20.54s 播放流已启动：sr=24000 **device=3** ⇒ **实际输出: Speaker (Realtek(R) Audio)**
+```
+⇒ 24 kHz 重建**不再回落默认**，用户选的设备真的被用上了。
+
+### §52.3 🔴 缺陷 ②③：故障不带原因（两个层次）
+
+- **② CUDA 失败被静默回落**：`_try_load_babelvox()` 把所有异常都 `return None`
+  ⇒ 回落 `_try_load_ov()`（CUDA 设备必然也失败）⇒ 回落 torch 参考实现
+  `import tts_model`（**包内根本没有**）⇒ 最终报出去的是
+  「**模型加载失败：No module named 'tts_model'**」——**与真实原因（边车）毫无关系**。
+  ⇒ 现在：`device` 以 `CUDA` 开头时**带着真实原因直接抛**（`CUDA 后端启动失败：…`）。
+- **③ worker 级错误原文被丢掉**：message 只进了 `self.err`，**界面从不显示**。
+  ⇒ 用户只能转述"worker 故障"，我拿不到任何线索。
+  ⇒ 现在 `TTSService` 有 `last_error` / `log_tail`(200 行) /
+  `tts_worker_error.log`（落盘：时间 + device/precision/voice/out_device +
+  message + **前因 60 行**），`stats()` 带出 `last_error`。
+
+### §52.4 🔴 缺陷 ④：我自己的重启路径有显存风险（本轮新引入，已修）
+
+`TTSService.close()` 只 `kill` **worker** 进程；CUDA **边车是 worker 的子进程**，
+要等它自己读到 stdin EOF 才退（若还在加载模型，可能等到加载完 ≈20 s）。
+我 §51 的 `_offline_ensure_tts()` 是「error ⇒ close() ⇒ 立刻新建」⇒ 两个边车同时
+占显存（各 ≈2.5 GB / 卡 8 GB）⇒ 可能 OOM ⇒ 新 worker 也 error ⇒
+用户会觉得"重启也没用"。
+⇒ 现在重启前**等旧 worker 真的退出**（≤5 s，超时也继续、绝不卡界面），
+并把上一次的 `last_error` 写进日志。
+
+### §52.5 界面：从"四个字的结论"变成"可操作的原因"
+
+- `offline_reader_gui`：新增 `get_reason` 回调（由 App 提供 `last_error` + 日志尾巴）；
+  出错时提示 = `🔴 TTS 语音输出故障：<真实原因>` + `最近日志：…`；
+- 新增 **「↻ 重试」** 按钮：**真的重启 worker**（`ensure_svc`）后再念，
+  而不是只把同样的文本再 submit 一遍（那样在 error 下必然再失败）；
+- 若重启后仍然 error ⇒ 继续显示原因 + 保持重试可用。
+
+### §52.6 证据（本轮全部可复跑）
+
+| 脚本 | 结果 |
+|---|---|
+| `app071_tts_worker_error_probe.py` | **真实 CUDA**：ready 24.29 s / 首包 **1.924 s** / played **1** / 输出设备 `device=3`（修复前是"默认设备"）⇒ **§51「真实音频未验证」结清** |
+| `app072_tts_error_reason_test.py` | **13/13 PASS**：A 设备解析（主线程=子线程=索引 3、缓存、冷缓存子线程仍成功）；B 假 worker 报错 ⇒ `last_error` 有原文 + `tts_worker_error.log` 已追加（含 `device=CUDA`）；C 对话框显示原因 + 重试后成功朗读 |
+| `app069` | **37/37**（逻辑层未回归） |
+| `app070` | **21/21**（对话框未回归，新增按钮不影响原断言） |
+| 包内 `--check` | 全 OK（ASR 6 后端 / MT 5 组合 / 音频设备） |
+
+同步：`sync_s51_to_pkg.py` 已扩到 4 个文件（新增 `tts_worker.py` 9 块、
+`tts_service.py` 5 块；`live_caption_app.py`、`offline_reader_gui.py` 随本轮更新），
+全部 difflib 派生 + 逐字校验通过（备份 `pkg_backup_app_s51`）。
+
+### §52.7 诚实边界（必须写清）
+
+- 🔴 **用户那次为什么 error，仍没有直接证据**：当时既没有落盘日志，也没有界面显示
+  worker 级 message。我能确定的是：**后端可用**、**有一条确定的 error 路径已被修掉**
+  （设备解析），以及**以后再发生一定查得到**（`last_error` + `tts_worker_error.log`）。
+- 请用户在 GUI 里点一次「📖 离线朗读…」复现；若再出现，对话框会直接告诉你原因，
+  并把完整前因写进 `%LOCALAPPDATA%\Confucius4LiveCaption\tts_worker_error.log`。
+- `app071` 走的是 `TTSService.submit()` 链路（与对话框完全相同），但**不是** GUI 点击路径
+  ⇒ 人耳确认仍需一次 GUI 实测。
+- ⛔ **zip 仍未重打**（守 APP-020：与 cp_prefill 一起重打）。

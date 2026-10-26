@@ -1,0 +1,37 @@
+==============================================================================
+app072 §52 回归测试（不加载 TTS 模型）
+ts=2026-10-26 14:57:00 pkg=C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5
+python=3.12.10
+==============================================================================
+
+[A] resolve_out_device：同一 id ⇒ 同一设备（主线程 vs 子线程）
+  端点 id = {0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}
+  可选输出 1 个
+  主线程解析 ⇒ (3, '端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3')
+  子线程解析 ⇒ (3, '端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3（缓存）')
+  PASS  主线程能解析出设备（不是 None）  [(3, '端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3')]
+  PASS  子线程解析出的**设备**与主线程相同  [(3, '端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3（缓存）') vs (3, '端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3')]
+  PASS  第二次走缓存（note 含「缓存」）  [(3, '端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3（缓存）')]
+  清缓存后子线程首次解析 ⇒ (3, '端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3')
+  PASS  冷缓存 + 子线程也能解析（COM 初始化生效）  [(3, '端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3')]
+
+[B] worker 级故障 ⇒ last_error + 落盘日志
+  state=error  last_error='合成侧假故障：用于测试 last_error'
+  PASS  state 变成 error
+  PASS  stats() 带出 worker 级错误原文（含「假故障」）  [合成侧假故障：用于测试 last_error]
+  PASS  日志尾巴有内容（≥1 行）  [1 行]
+  PASS  tts_worker_error.log 已追加  [C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\tts_worker_error.log 500 B]
+  PASS  日志文件里有原因与设备信息  [424 字符]
+
+[C] 对话框在 error 下显示原因并可重试
+  重启仍失败时的提示：'🔴 TTS 语音输出故障：模型加载失败：演示原因（CUDA 边车启动超时）\n最近日志：10:00:00 [TTS] 模型加载失败：演示原因'
+  PASS  提示里带出了**具体原因**  [🔴 TTS 语音输出故障：模型加载失败：演示原因（CUDA 边车启动超时）
+最近日志：10:00:00 [TTS] 模型]
+  PASS  重试按钮已启用
+  PASS  重试后换到好的 service 并开始朗读  [fed=2]
+  PASS  重试成功后不再显示错误  [开始朗读：2 段 / 预计 2.9 s]
+
+==============================================================================
+结果：PASS 13 / FAIL 0
+⚠️ 本测试不加载 TTS 模型：A 段直接调设备解析，B 段用「假 worker」进程，C 段用假 service。真实音频仍由人工朗读确认。
+==============================================================================

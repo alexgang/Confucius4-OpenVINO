@@ -1,0 +1,15 @@
+# app071 TTS worker 探测  2026-10-26 14:57:38
+# pkg=C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5 device=CUDA precision=f16 out_device={0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}
+   1.20s [TTS] [tts_worker] 输出设备解析：'{0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}' ⇒ 端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3
+   1.59s [TTS] [tts_worker] 播放流已启动：sr=22050 device=3 ⇒ **实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）** blocksize=1024 latency=0.18575963718820862
+   1.60s [TTS] [tts_worker] 使用 PyTorch+CUDA 后端（faster-qwen3-tts 边车）
+   1.60s [TTS] [tts_cuda] 启动 CUDA 边车：C:\Users\Trekker-PTL\_fq3tts_env\Scripts\python.exe
+  16.18s [TTS] [tts_cuda] 就绪：NVIDIA GeForce RTX 5050 Laptop GPU / torch 2.11.0+cu128 / 加载 12.6s / 预热 1.7s
+  16.18s [TTS] [tts_cuda] 端到端启动耗时 14.6 s
+  20.12s [TTS] [tts_worker] CUDA 后端自行使用参考音频做音色：C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5\models\qwen3tts\voices\preset_A.wav
+  20.38s [TTS] [tts_worker] 输出设备解析：'{0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}' ⇒ 端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3（缓存）
+  20.54s [TTS] [tts_worker] 播放流已启动：sr=24000 device=3 ⇒ **实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）** blocksize=1024 latency=0.21333333333333335
+  20.54s [TTS] [tts_worker] 播放流已按 24000 Hz 重建
+  20.54s [TTS] [tts_worker] 模型加载完成 18.9s
+  20.54s [TTS] 就绪：CUDA · 音色 A
+[probe] 判定：OK 语音输出正常

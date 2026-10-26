@@ -194,6 +194,33 @@ class RingBuffer:
             self._cv.notify_all()
 
 
+# ── 输出设备解析缓存（§52：同一 id 必须始终解析成同一设备）──────────────
+# key = GUI 传来的原始字符串（WASAPI 端点 id / 设备名）
+# value = (sd_device, note)
+_OUT_DEV_CACHE = {}
+_OUT_DEV_LOCK = threading.Lock()
+_CO_DONE = threading.local()
+
+
+def _co_init():
+    """尽力在当前线程初始化 COM（`soundcard` 在子线程里取扬声器列表需要它）。
+
+    ⚠️ 不能 `import comtypes`（包内没有）⇒ 直接调 ole32。
+    ⚠️ 已初始化过就**不要重复调**（同线程第二次 CoInitializeEx 会返回
+       RPC_E_CHANGED_MODE / S_FALSE，虽然无害但会刷日志）⇒ 用 thread-local 标记。
+    ⚠️ 任何失败都**吞掉**：这里只是「尽力」，真正的兜底是 ① 缓存 ② 系统默认。
+    """
+    if getattr(_CO_DONE, 'ok', False):
+        return
+    try:
+        import ctypes
+        # 0x2 = COINIT_APARTMENTTHREADED；返回 S_OK/S_FALSE/E_INVALIDARG 都无所谓
+        ctypes.windll.ole32.CoInitializeEx(None, 0x2)
+        _CO_DONE.ok = True
+    except Exception:
+        pass
+
+
 def _match_output_index(sd, name: str):
     """在 sounddevice 的输出设备里按名字找索引（精确 → 前后缀 → 子串，忽略大小写）。"""
     try:
@@ -231,7 +258,18 @@ def resolve_out_device(device):
       ⚠️ 同一个 id 用在「系统声音」来源（`make_source('system', system_device=…)`）
         上是**正确**的（soundcard 要的就是它）⇒ 不能改上游，只能在这里转。
 
-    返回 `(sd_device, note)`：`sd_device` = int / 设备名 / None(=系统默认)。
+    🔴🔴🔴 **同一个 id 必须始终解析成同一个设备**（2026-10-26 §52 修）：
+      `app071` 实测日志里同一个端点 id **第一次**解析成功（→ 播放索引 3），
+      24 s 后 `_reopen_player()` **再解析就失败**（`无法识别 ⇒ 改用系统默认`）。
+      原因：`_reopen_player()` 是在 **`_safe_load` 线程**里调的，而 `soundcard`
+      取扬声器列表要 **COM**，那个线程没初始化过 COM ⇒ `all_speakers()`
+      抛异常、被 `except` 吃掉 ⇒ 静默回落「系统默认」。
+      ⇒ 用户在下拉里选的设备被**悄悄换掉**；若默认设备也不可用，
+        就直接走到 `播放设备打开失败` ⇒ **worker 级 error** ⇒ 整场朗读中止。
+      修法两层：
+        ① **按 id 缓存**解析结果（第一次在主线程算的才是权威）；
+        ② 调用前**尽力 CoInitializeEx**（非主线程也能拿到 COM）；
+      两者都失败才回落默认，并且**日志里会写清楚**是缓存还是现算。
     """
     if device is None:
         return None, '系统默认设备'
@@ -240,13 +278,23 @@ def resolve_out_device(device):
     s = str(device).strip()
     if not s:
         return None, '系统默认设备'
+    # ① 缓存命中 ⇒ 直接复用（保证「同一 id ⇒ 同一设备」，且不再依赖 COM）
+    with _OUT_DEV_LOCK:
+        hit = _OUT_DEV_CACHE.get(s)
+    if hit is not None:
+        d, note = hit
+        return d, note + '（缓存）'
     import sounddevice as sd
-    try:                       # ① 本身就是设备名（或名字子串）⇒ 原样交给 sounddevice
+    try:                       # ② 本身就是设备名（或名字子串）⇒ 原样交给 sounddevice
         sd.query_devices(s, 'output')
-        return s, '设备名「%s」' % s
+        res = (s, '设备名「%s」' % s)
+        with _OUT_DEV_LOCK:
+            _OUT_DEV_CACHE[s] = res
+        return res
     except Exception:
         pass
-    name = None                # ② WASAPI 端点 id ⇒ 反查端点名，再按名字找播放索引
+    _co_init()                 # ③ 尽力初始化 COM（soundcard 在子线程里需要）
+    name = None                # ④ WASAPI 端点 id ⇒ 反查端点名，再按名字找播放索引
     try:
         import soundcard as sc
         for spk in sc.all_speakers():
@@ -258,10 +306,17 @@ def resolve_out_device(device):
     if name:
         idx = _match_output_index(sd, name)
         if idx is not None:
-            return idx, '端点 id → 「%s」→ 播放索引 %d' % (name, idx)
-        return None, ('端点 id → 「%s」，但 sounddevice 里没有同名播放设备 '
-                      '⇒ 改用系统默认' % name)
-    return None, '无法识别「%s」⇒ 改用系统默认' % s
+            res = (idx, '端点 id → 「%s」→ 播放索引 %d' % (name, idx))
+        else:
+            res = (None, ('端点 id → 「%s」，但 sounddevice 里没有同名播放设备 '
+                          '⇒ 改用系统默认' % name))
+    else:
+        res = (None, '无法识别「%s」⇒ 改用系统默认' % s)
+    # ⑤ 成功的结果**缓存**；失败的结果**也缓存**（否则每次调用都可能给出
+    #    不同设备 —— 「有时用你选的、有时用默认」比一直用默认更难查）
+    with _OUT_DEV_LOCK:
+        _OUT_DEV_CACHE[s] = res
+    return res
 
 
 def _describe_out(sd, dev):
@@ -498,9 +553,21 @@ class TTSWorker:
                                          precision=self.precision)
             return eng
         except Exception as e:
-            log(f'[tts_worker] BabelVox 引擎不可用（{e}）⇒ 回落旧引擎')
             import traceback
-            log(traceback.format_exc()[-1000:])
+            tb = traceback.format_exc()[-1000:]
+            # 🔴🔴 §52：**CUDA 后端失败不能静默回落**。
+            #   旧行为：CUDA 边车起不来 ⇒ 这里只打一行「BabelVox 引擎不可用」
+            #   ⇒ 回落 `_try_load_ov`（CUDA 设备必然也失败）⇒ 回落 torch 参考
+            #   实现 `import tts_model`（包内没有）⇒ 最终报出去的是
+            #   「**模型加载失败：No module named 'tts_model'**」
+            #   ⇒ **与真实原因（边车）毫无关系**，用户和我都被误导过。
+            #   ⇒ 现在：CUDA 直接带着真实原因抛上去（反正回落也必然失败）。
+            if str(self.device).upper().startswith('CUDA'):
+                log(f'[tts_worker] 🔴 CUDA 后端启动失败（不回落旧引擎）：{e}')
+                log(tb)
+                raise RuntimeError(f'CUDA 后端启动失败：{e}') from e
+            log(f'[tts_worker] BabelVox 引擎不可用（{e}）⇒ 回落旧引擎')
+            log(tb)
             return None
 
     def _setup_babelvox_voice(self):

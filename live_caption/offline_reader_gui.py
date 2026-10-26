@@ -54,7 +54,7 @@ class OfflineReaderDialog(tk.Toplevel):
     POLL_MS = 300
 
     def __init__(self, master, get_svc, ensure_svc, on_log=None,
-                 initial_dir=None):
+                 initial_dir=None, get_reason=None):
         super().__init__(master)
         self.title('离线朗读 — 文件 / 文本 → 语音播报')
         self.geometry('920x660')
@@ -63,6 +63,9 @@ class OfflineReaderDialog(tk.Toplevel):
         self._get_svc = get_svc
         self._ensure_svc = ensure_svc
         self._on_log = on_log or (lambda m: None)
+        # 🔴 §52：故障原因提供者 —— 返回 `(last_error, 日志尾巴)`。
+        #    没有它，界面只能说「TTS worker 故障（error）」，用户无从下手。
+        self._get_reason = get_reason or (lambda: (None, []))
         self._reader = None
         self._last_dir = initial_dir or os.path.expanduser('~')
         self._src_info = ''            # 文件解析信息（用于状态栏）
@@ -114,6 +117,10 @@ class OfflineReaderDialog(tk.Toplevel):
         self.btn_stop = ttk.Button(bot, text='■ 停止', width=10,
                                    command=self._stop, state='disabled')
         self.btn_stop.pack(side='left', padx=(6, 0))
+        # 🔴 §52：出错后可一键重启语音输出再念（否则用户只能关掉重开程序）
+        self.btn_retry = ttk.Button(bot, text='↻ 重试', width=10,
+                                    command=self._retry, state='disabled')
+        self.btn_retry.pack(side='left', padx=(6, 0))
         ttk.Button(bot, text='清空', width=8,
                    command=self._clear).pack(side='left', padx=(6, 0))
         self.btn_close = ttk.Button(bot, text='关闭', width=8,
@@ -175,6 +182,23 @@ class OfflineReaderDialog(tk.Toplevel):
         r = self._reader
         return bool(r and not r.done and not r.stopped)
 
+    def _reason_text(self) -> str:
+        """把「TTS 故障原因 + 日志尾巴」拼成给用户看的一段话。
+
+        🔴 不展示原因的话，用户只能看到「worker 故障（error）」——
+        这句话对**用户**和**我**都没有任何信息量（§52 的实际教训）。
+        """
+        try:
+            err, tail = self._get_reason()
+        except Exception as e:
+            err, tail = None, [f'（取原因失败：{e!r}）']
+        if not err:
+            return ''
+        s = f'🔴 TTS 语音输出故障：{err}'
+        if tail:
+            s += '\n最近日志：' + ' | '.join(t.strip() for t in tail[-4:])
+        return s
+
     def _start(self):
         if self._running():
             return
@@ -191,6 +215,14 @@ class OfflineReaderDialog(tk.Toplevel):
             self.var_note.set(msg)
             self._on_log(f'[offline] {msg}')
             return
+        # 🔴 §52：重启后仍是 error ⇒ **把原因说出来**，并允许重试，
+        #   不要给一句无信息量的「worker 故障」。
+        if getattr(svc, 'state', '') == 'error':
+            self.var_note.set(self._reason_text() or
+                              '🔴 TTS worker 启动失败（没有拿到具体原因）')
+            self.btn_retry.configure(state='normal')
+            self._on_log('[offline] TTS worker 处于 error 状态，已中止')
+            return
 
         segs = OR.split_for_tts(text)
         if not segs:
@@ -203,10 +235,32 @@ class OfflineReaderDialog(tk.Toplevel):
         st = getattr(svc, 'state', '?')
         self.btn_start.configure(state='disabled')
         self.btn_stop.configure(state='normal')
+        self.btn_retry.configure(state='disabled')
         self.var_note.set(
             f'开始朗读：{n} 段 / 预计 {OR.est_seconds(text):.1f} s'
             + ('（TTS 还在加载模型，加载完会自动开始）' if st != 'ready' else ''))
         self._on_log(f'[offline] 开始：{n} 段，TTS 状态 {st}')
+
+    def _retry(self):
+        """重启语音输出后再念（worker 卡在 error 时的唯一出路）。"""
+        r = self._reader
+        if r is not None and not r.done:
+            r.stop()
+        self._reader = None
+        self.var_note.set('正在重启语音输出…（模型加载需要十几到几十秒）')
+        self._on_log('[offline] 用户点「重试」⇒ 重启 TTS')
+        try:
+            svc = self._ensure_svc()
+        except Exception as e:
+            self.var_note.set(f'🔴 重启失败：{e}')
+            return
+        if svc is None or getattr(svc, 'state', '') == 'error':
+            self.var_note.set(self._reason_text() or
+                              '🔴 重启后仍然失败（没有拿到具体原因）')
+            self.btn_retry.configure(state='normal')
+            return
+        self.btn_retry.configure(state='disabled')
+        self._start()
 
     def _stop(self):
         r = self._reader
@@ -231,9 +285,15 @@ class OfflineReaderDialog(tk.Toplevel):
                     f'已提交 {s["n_fed"]}/{s["n_seg"]} 段 · 待播 '
                     f'{max(0, s["n_pend"])} · TTS {s["state"]}')
                 if s['error']:
-                    self.var_note.set(f'🔴 {s["error"]}')
+                    # 🔴 §52：reader 只说「worker 故障」，**真正原因在 service 里**
+                    #   （worker 级 error 的原文 + 最近日志）。两句合起来给用户看，
+                    #   并打开「↻ 重试」（真的会重启 worker，不是只重发文本）。
+                    reason = self._reason_text()
+                    self.var_note.set(
+                        f'🔴 {s["error"]}' + (('\n' + reason) if reason else ''))
                     self.btn_start.configure(state='normal')
                     self.btn_stop.configure(state='disabled')
+                    self.btn_retry.configure(state='normal')
                     self._reader = None
                 elif s['done']:
                     if not s['stopped']:
@@ -264,12 +324,18 @@ class OfflineReaderDialog(tk.Toplevel):
             pass
 
 
-def open_dialog(master, get_svc, ensure_svc, on_log=None, initial_dir=None):
+def open_dialog(master, get_svc, ensure_svc, on_log=None, initial_dir=None,
+                get_reason=None):
     """打开（或聚焦已打开的）离线朗读对话框。"""
     win = getattr(master, '_offline_dlg', None)
     if win is not None:
         try:
             if win.winfo_exists():
+                # 已开着的窗口要用**新的**回调（换设备/换音色后 self.tts 变了）
+                win._get_svc = get_svc
+                win._ensure_svc = ensure_svc
+                if get_reason is not None:
+                    win._get_reason = get_reason
                 win.deiconify()
                 win.lift()
                 win.focus_force()
@@ -277,6 +343,6 @@ def open_dialog(master, get_svc, ensure_svc, on_log=None, initial_dir=None):
         except Exception:
             pass
     win = OfflineReaderDialog(master, get_svc, ensure_svc, on_log=on_log,
-                              initial_dir=initial_dir)
+                              initial_dir=initial_dir, get_reason=get_reason)
     master._offline_dlg = win
     return win
