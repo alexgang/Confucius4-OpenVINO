@@ -3,15 +3,15 @@
   "files": [
     {
       "file": "tts_service.py",
-      "action": "same",
-      "sha256": "3cd374bc87904a72d3b73cd6dc9eb1dd95c2404b9b877a9be87a35624309f19e"
+      "action": "copy",
+      "sha256_before": "eaeb7668e6a0ab4c6d1ad739eeb8f9e82c75c059c47da7871b3b9321cdf80d64",
+      "sha256_after": "0b17ee3614c107d2b62edc947d3e7cc553624b12c8a7942bc80961baa3fdf94c",
+      "verified": true
     },
     {
       "file": "tts_worker.py",
-      "action": "copy",
-      "sha256_before": "b6cca39384b3034c81db408c1ec808ea5a32b70047a93b2bc3d38ea660725d86",
-      "sha256_after": "4d43a8733b7ac93c8d33e9eddec9904f0d9c3ecaf906033fcce87eaddfd68f85",
-      "verified": true
+      "action": "same",
+      "sha256": "fa2022b35d32b06ba39967f0a3d551818615fc6f3238d86e910c54fce2948c46"
     },
     {
       "file": "offline_reader_gui.py",

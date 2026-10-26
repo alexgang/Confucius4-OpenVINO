@@ -1,6 +1,6 @@
-# app077 APP-021 验收 A/B  2026-10-26 16:20:41
+# app077 APP-021 验收 A/B  2026-10-26 16:53:17
 # pkg=C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5 device=CUDA precision=bf16
-# dump_dir=C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\tts_dump_20261026_161950
+# dump_dir=C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\tts_dump_20261026_165248
 # 设备全表：
   {"i": 0, "name": "Microsoft 声音映射器 - Input", "hostapi": 0, "max_out": 0, "default_samplerate": 44100.0}
   {"i": 1, "name": "麦克风阵列 (适用于数字麦克风的英特尔® 智音技术)", "hostapi": 0, "max_out": 0, "default_samplerate": 44100.0}
@@ -25,49 +25,49 @@
   {"i": 20, "name": "立体声混音 (Realtek HD Audio Stereo input)", "hostapi": 3, "max_out": 0, "default_samplerate": 48000.0}
 
 --- 运行日志 ---
-   2.07s [TTS] [tts_worker] 输出设备解析：'{0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}' ⇒ 端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3
-   2.49s [TTS] [tts_worker] 播放流已启动：sr=22050 device=3 ⇒ **实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）** blocksize=1024 latency=0.18575963718820862
-   2.51s [TTS] [tts_worker] 使用 PyTorch+CUDA 后端（faster-qwen3-tts 边车）
-   2.52s [TTS] [tts_cuda] 启动 CUDA 边车：C:\Users\Trekker-PTL\_fq3tts_env\Scripts\python.exe
-  21.28s [TTS][stderr] 'sox' �����ڲ����ⲿ���Ҳ���ǿ����еĳ���
-  21.30s [TTS][stderr] ���������ļ���
-  21.32s [TTS][stderr] SoX could not be found!
-  21.34s [TTS][stderr]     If you do not have SoX, proceed here:
-  21.36s [TTS][stderr]      - - - http://sox.sourceforge.net/ - - -
-  21.38s [TTS][stderr]     If you do (or think that you should) have SoX, double-check your
-  21.39s [TTS][stderr]     path variables.
-  21.41s [TTS][stderr]     
-  26.29s [TTS][stderr] Could not infer sample rate from base model; defaulting to 24000 Hz.
-  26.31s [TTS][stderr] Warming up predictor (3 runs)...
-  27.57s [TTS][stderr] Capturing CUDA graph for predictor...
-  27.96s [TTS][stderr] CUDA graph captured!
-  27.98s [TTS][stderr] Warming up talker graph (3 runs)...
-  28.40s [TTS][stderr] Capturing CUDA graph for talker decode...
-  28.57s [TTS][stderr] Talker CUDA graph captured!
-  28.59s [TTS] [tts_cuda] 就绪：NVIDIA GeForce RTX 5050 Laptop GPU / torch 2.11.0+cu128 / 加载 23.1s / 预热 2.3s
-  28.61s [TTS] [tts_cuda] 端到端启动耗时 26.0 s
-  32.60s [TTS][stderr] None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
-  36.15s [TTS] [tts_worker] CUDA 后端自行使用参考音频做音色：C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5\models\qwen3tts\voices\preset_A.wav
-  36.41s [TTS] [tts_worker] 输出设备解析：'{0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}' ⇒ 端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3（缓存）
-  36.65s [TTS] [tts_worker] 播放流已启动：sr=24000 device=3 ⇒ **实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）** blocksize=1024 latency=0.21333333333333335
-  36.67s [TTS] [tts_worker] 播放流已按 24000 Hz 重建
-  36.69s [TTS] [tts_worker] 模型加载完成 34.2s
-  36.71s [TTS] 就绪：CUDA · 音色 A
-  37.94s [TTS] [tts_worker] 测试声音：已播放 1.00 s 440 Hz 正弦波（幅度 0.30）；全部消费完毕
-  37.95s [TTS] 测试声音：成功（已播放 1.00 s 440 Hz 正弦波（幅度 0.30）；全部消费完毕，回调 +24 / 已读 +24000）
-  45.39s [TTS] [tts_worker] 已落盘分段 wav：C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\tts_dump_20261026_161950\seg_0_0001.wav
-  45.41s [TTS] [tts_worker] 合成遥测 id=0 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=136320 parts=9 peak=0.5312 rms_dbfs=-18.2 nan_inf=0 cb_delta=170 read_delta=73728 underflow_delta=98 ring=62592/72000 consumed=-
-  48.04s [TTS] [tts_worker] 遥测 id=0 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=136320 parts=9 peak=0.5312 rms_dbfs=-18.2 nan_inf=0 cb_delta=232 read_delta=136320 underflow_delta=99 ring=0/72000 consumed=True
-  48.06s [TTS] 遥测 id=0 peak=0.53125 rms_dbfs=-18.2 read_delta=136320 consumed=True
+   0.96s [TTS] [tts_worker] 输出设备解析：'{0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}' ⇒ 端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3
+   1.27s [TTS] [tts_worker] 播放流已启动：sr=22050 device=3 ⇒ **实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）** blocksize=1024 latency=0.18575963718820862
+   1.29s [TTS] [tts_worker] 使用 PyTorch+CUDA 后端（faster-qwen3-tts 边车）
+   1.30s [TTS] [tts_cuda] 启动 CUDA 边车：C:\Users\Trekker-PTL\_fq3tts_env\Scripts\python.exe
+   9.64s [TTS][stderr] 'sox' 不是内部或外部命令，也不是可运行的程序
+   9.65s [TTS][stderr] 或批处理文件。
+   9.66s [TTS][stderr] SoX could not be found!
+   9.67s [TTS][stderr]     If you do not have SoX, proceed here:
+   9.68s [TTS][stderr]      - - - http://sox.sourceforge.net/ - - -
+   9.69s [TTS][stderr]     If you do (or think that you should) have SoX, double-check your
+   9.70s [TTS][stderr]     path variables.
+   9.71s [TTS][stderr]     
+  12.54s [TTS][stderr] Could not infer sample rate from base model; defaulting to 24000 Hz.
+  12.55s [TTS][stderr] Warming up predictor (3 runs)...
+  13.33s [TTS][stderr] Capturing CUDA graph for predictor...
+  13.54s [TTS][stderr] CUDA graph captured!
+  13.55s [TTS][stderr] Warming up talker graph (3 runs)...
+  13.84s [TTS][stderr] Capturing CUDA graph for talker decode...
+  13.96s [TTS][stderr] Talker CUDA graph captured!
+  13.97s [TTS] [tts_cuda] 就绪：NVIDIA GeForce RTX 5050 Laptop GPU / torch 2.11.0+cu128 / 加载 10.8s / 预热 1.4s
+  13.98s [TTS] [tts_cuda] 端到端启动耗时 12.7 s
+  16.09s [TTS][stderr] None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+  17.85s [TTS] [tts_worker] CUDA 后端自行使用参考音频做音色：C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5\models\qwen3tts\voices\preset_A.wav
+  18.09s [TTS] [tts_worker] 输出设备解析：'{0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}' ⇒ 端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3（缓存）
+  18.25s [TTS] [tts_worker] 播放流已启动：sr=24000 device=3 ⇒ **实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）** blocksize=1024 latency=0.21333333333333335
+  18.26s [TTS] [tts_worker] 播放流已按 24000 Hz 重建
+  18.27s [TTS] [tts_worker] 模型加载完成 17.0s
+  18.28s [TTS] 就绪：CUDA · 音色 A
+  19.37s [TTS] [tts_worker] 测试声音：已播放 1.00 s 440 Hz 正弦波（幅度 0.30）；全部消费完毕
+  19.38s [TTS] 测试声音：成功（已播放 1.00 s 440 Hz 正弦波（幅度 0.30）；全部消费完毕，回调 +24 / 已读 +24000）
+  23.51s [TTS] [tts_worker] 已落盘分段 wav：C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\tts_dump_20261026_165248\seg_0_0001.wav
+  23.52s [TTS] [tts_worker] 合成遥测 id=0 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=120960 parts=8 peak=0.5234 rms_dbfs=-17.6 nan_inf=0 cb_delta=92 read_delta=54272 underflow_delta=39 ring=66688/72000 consumed=-
+  26.30s [TTS] [tts_worker] 遥测 id=0 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=120960 parts=8 peak=0.5234 rms_dbfs=-17.6 nan_inf=0 cb_delta=158 read_delta=120960 underflow_delta=40 ring=0/72000 consumed=True
+  26.31s [TTS] 遥测 id=0 peak=0.523438 rms_dbfs=-17.57 read_delta=120960 consumed=True
 
 --- 结构化结果 ---
 {
   "test_tone": {
     "out_desc": "Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）",
     "sr": 24000,
-    "n_cb": 29,
-    "n_underflow": 6,
-    "n_silence_fill": 5696,
+    "n_cb": 25,
+    "n_underflow": 2,
+    "n_silence_fill": 1600,
     "n_written": 24000,
     "n_read": 24000,
     "n_blocks": 0,
@@ -81,34 +81,34 @@
   "n_played": 1,
   "n_failed": 0,
   "last_telemetry": {
-    "n_samples": 136320,
-    "n_parts": 9,
-    "peak": 0.53125,
-    "rms_dbfs": -18.2,
+    "n_samples": 120960,
+    "n_parts": 8,
+    "peak": 0.523438,
+    "rms_dbfs": -17.57,
     "n_nan_inf": 0,
-    "cb_delta": 232,
-    "read_delta": 136320,
-    "underflow_delta": 99,
+    "cb_delta": 158,
+    "read_delta": 120960,
+    "underflow_delta": 40,
     "ring_level": 0,
     "ring_cap": 72000,
     "out_desc": "Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）",
     "sr": 24000,
-    "n_cb_total": 266,
-    "n_read_total": 160320,
-    "rms": 0.123043,
+    "n_cb_total": 188,
+    "n_read_total": 144960,
+    "rms": 0.132245,
     "n_inf": 0,
     "consumed": true
   },
   "last_sentence_error": null,
   "wavs": [
     {
-      "path": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_dump_20261026_161950\\seg_0_0001.wav",
+      "path": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_dump_20261026_165248\\seg_0_0001.wav",
       "sr": 24000,
-      "dur_s": 5.68,
-      "n_samples": 136320,
-      "peak": 0.53125,
-      "rms": 0.123043,
-      "rms_dbfs": -18.2,
+      "dur_s": 5.04,
+      "n_samples": 120960,
+      "peak": 0.523438,
+      "rms": 0.132245,
+      "rms_dbfs": -17.57,
       "n_nan": 0,
       "n_inf": 0
     }
