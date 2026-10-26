@@ -74,10 +74,13 @@ def main():
     got_at = None
     deadline = time.perf_counter() + 60
     while time.perf_counter() < deadline:
-        for kind, key, txt in mt.pop_outbox():
-            if kind == 'final' and txt.strip():
+        for _item in mt.pop_outbox():
+            _ev = L.caption_render.unpack_event(_item)
+            if _ev is None:
+                continue
+            if _ev['kind'] == 'final' and _ev['txt'].strip():
                 got_at = time.perf_counter()
-                print(f'★ T2 翻译延迟 = {got_at - final_at:.2f}s   译文={txt!r}', flush=True)
+                print(f'★ T2 翻译延迟 = {got_at - final_at:.2f}s   译文={_ev["txt"]!r}', flush=True)
         if got_at:
             break
         time.sleep(0.02)
@@ -97,11 +100,14 @@ def main():
             mt.submit(r, seg=1)
             deadline = time.perf_counter() + 60
             while time.perf_counter() < deadline:
-                for kind, key, txt in mt.pop_outbox():
-                    if kind == 'final' and txt.strip():
+                for _item in mt.pop_outbox():
+                    _ev = L.caption_render.unpack_event(_item)
+                    if _ev is None:
+                        continue
+                    if _ev['kind'] == 'final' and _ev['txt'].strip():
                         t3 = time.perf_counter() - t_next
                         print(f'★ T3 挂起半句的译文延迟 = {t3:.2f}s（从下一段定稿算起）', flush=True)
-                        print(f'  译文={txt!r}', flush=True)
+                        print(f'  译文={_ev["txt"]!r}', flush=True)
                         break
                 else:
                     time.sleep(0.02)

@@ -1,0 +1,14 @@
+feat(app): 合入 MT 方案 C 补丁 + App 侧 5 元组事件契约改造
+
+- translator.py：应用 MT 移交补丁 shared/mt_C_translator.patch
+  （归一化后与 hy_bench/_h019_translator_C.py 逐字节一致）
+  新增 PEND_MAX_SEGS=3 / PEND_MAX_CHARS=120 / PEND_SENTINEL /
+  DRAFT_KEY_PREFIX / make_unit_id；pop_outbox 返回 5 元组
+- caption_render.py：新增 unpack_event()（兼容 3/5 元组）
+  render_lines() 加入「同 id 优先配对」，被 id 配上的草稿/正式稿
+  排除出 src 包含匹配（消除跨段离群错配）
+- live_caption_app.py：GUI/CLI 两处 outbox 消费改用 unpack_event
+  _draft_mt 改按单元 id 存；TTS seg 改用真正的 ASR 段号
+- diag_mt_e2e.py：两处 outbox 消费同步改造
+- app073_C_event_contract_test.py：离线契约验收 11/11 PASS
+  （app073_C_event_contract_evidence.json）

@@ -17,17 +17,28 @@ r"""caption_render.py —— 字幕渲染层（APP-015 方案 C 的 App 侧实�
 ====================================================================
 方案 C（APP-015 / H-016 / H-017 / MT 通知 9，用户已决定）的接口约定
 ====================================================================
-MT 侧 outbox 是 `(kind, key, text)` 三元组：
+MT 侧 outbox 的事件格式在**方案 C 合入时**变了（MT H-019 移交说明）：
+
+| 格式 | 事件 | 含义 |
+|------|------|------|
+| 旧（3 元组） | `(kind, key, text)` | `key` = **翻译去重键**，草稿与正式稿**不同** |
+| **新（5 元组）** | `(kind, id, src, txt, seg)` | `id` = **单元 id**，草稿与正式稿**共用** |
 
 | kind    | 含义                  | 字幕                | TTS |
 |---------|-----------------------|---------------------|-----|
 | 'draft' | 跨段尾句的**草稿**    | ✅ 显示（**浅色**） | ❌ 不念 |
 | 'final' | **正式稿**（完整句）  | ✅ 显示（正常色）   | ✅ 念 |
 
-🔴 **草稿与正式稿的 key 不同**（草稿 = `DRAFT::` + 半句 key，
-   正式稿 = 整句 key）⇒ **不能**用 key 直接覆盖。
-⇒ **替换关系靠 `src` 的包含关系建立**：草稿的 `src` 是正式稿 `src` 的
-   前缀/子串（MT 实测 122/135 = 90.4%）。
+🔴🔴 **替换关系改用「同 id 原位替换」**（**不再用原文包含关系**）：
+
+- 草稿与它的正式稿**共用同一个单元 id**（`C:<起始段>:<序号>`）
+  ⇒ App 按 id 直接配对 ⇒ 零歧义。
+- 🔴 **为什么必须改**：MT §73 实测「双向包含 + 取最短」的 src 匹配
+  会把草稿 `'That'` 配到 `"That's where we are today."`
+  （**跨 85 段**）⇒ 正式稿译文被搬到**错误的段**（用户可见）。
+  ⇒ 「包含/前缀」只保留作**诊断统计**口径，**不再用于渲染替换**。
+- ⇒ 本模块**保留**旧的 src 包含匹配，但**只作为「没有 id 时」的兜底**
+  （旧格式 3 元组的事件没有 id）。
 
 ====================================================================
 🔴🔴 关键语义：**「原地替换」= 正式稿显示在草稿那一行**
@@ -221,13 +232,15 @@ def render_lines(blocks, units, drafts=None, granularity='seg',
     参数
     ----
     blocks : [str, ...]        ASR 段原文（按段序）
-    units  : [{'key','src','seg','mt','kind'?}, ...]
+    units  : [{'key','src','seg','mt','kind'?,'unit_id'?}, ...]
              句单元。**`kind=='draft'` 的单元归入草稿**（MT 方案 C 合入后
              `translator.py` 的 `units` 会这样登记）；
              其余（无 kind / kind=='final'）归入正式稿。
-    drafts : [{'key','src','mt','seg'?}, ...]
-             **额外**的草稿单元（可选）—— 由调用方从 outbox 的
-             `('draft', key, text)` 收集（提供 `src` 才有原文）。
+             🔴 **`unit_id` = 方案 C 的单元 id** ⇒ 草稿与正式稿靠它配对
+             （**不要再用 src 包含关系**做替换，见模块 docstring）。
+    drafts : [{'key','id'?,'src','mt','seg'?}, ...]
+             **额外**的草稿单元（可选）—— 由调用方从 outbox 收集
+             （`collect_drafts()`，兼容 3 元组与 5 元组）。
     granularity : 'seg' | 'unit'
         'seg'  —— **现状**：一行 = 一个 ASR 段（该段的句单元译文拼在一行）
         'unit' —— 一行 = 一个句单元（§26.6 第①问，**尚未被裁定** ⇒ 默认 'seg'）
@@ -269,17 +282,61 @@ def render_lines(blocks, units, drafts=None, granularity='seg',
             continue
         draft_units.append(d)
 
+    # ── 🔴🔴 方案 C：**同 id 原位替换**（唯一可靠口径）───────────────
+    #   草稿与它的正式稿**共用同一个单元 id**（MT H-019 移交说明）
+    #   ⇒ 直接按 id 配对，**不再用原文包含关系**。
+    #
+    #   🔴 为什么必须这样：MT §73 实测「双向包含 + 取最短」会把草稿
+    #     `'That'` 配到 `"That's where we are today."`（**跨 85 段**）
+    #     ⇒ 正式稿译文被搬到**错误的段**（用户可见）。
+    #   ⇒ 有 id 就用 id；**没有 id 才回退**到旧的 src 包含匹配。
+    #
+    #   判据：**同一个 id 最多一条正式单元**（MT 侧保证）⇒ 配对无歧义。
+    final_idx_by_id = {}
+    for j, u in enumerate(final_units):
+        uid = u.get('unit_id') or u.get('id')
+        if uid and uid not in final_idx_by_id:
+            final_idx_by_id[uid] = j
+    id_matched_draft_idx = set()
+    id_matched_final_idx = set()
+    for i, d in enumerate(draft_units):
+        uid = d.get('unit_id') or d.get('id')
+        if not uid:
+            continue
+        fj = final_idx_by_id.get(uid)
+        if fj is None:
+            continue
+        id_matched_draft_idx.add(i)
+        id_matched_final_idx.add(fj)
+
     # 只保留有原文的草稿（没有原文 ⇒ 无法建立替换关系 ⇒ 不参与匹配，
     # 但**仍然要显示** ⇒ 走「未关联草稿」那条路）
-    matchable = [d for d in draft_units if (d.get('src') or '').strip()]
-    m2f = match_draft_to_final(matchable, final_units)
-    # matchable 的下标 → draft_units 的下标
-    idx_map = {}
+    #
+    # 🔴🔴 **id 配对优先** ⇒ 已经按 id 配上的草稿与正式稿
+    #   **不再参加 src 包含匹配** ⇒ 否则 src 匹配可能给同一个草稿找到
+    #   **另一个**「看起来更合适」的正式稿 ⇒ 又回到「跨 85 段错配」的老问题。
+    cand_draft = [(i, d) for i, d in enumerate(draft_units)
+                  if (d.get('src') or '').strip() and i not in id_matched_draft_idx]
+    cand_final = [j for j in range(len(final_units))
+                  if j not in id_matched_final_idx]
+    m2f = match_draft_to_final([d for _i, d in cand_draft],
+                               [final_units[j] for j in cand_final])
+    # （cand_draft / cand_final 的下标 → draft_units / final_units 的下标）
+    draft_to_final = {}
+    for k, fj_pos in m2f.items():
+        if k >= len(cand_draft):
+            continue
+        di = cand_draft[k][0]
+        fj = cand_final[fj_pos]
+        draft_to_final[di] = fj
+    # id 配对**优先写入**（覆盖同一条草稿的 src 配对）
     for i, d in enumerate(draft_units):
-        for j, m in enumerate(matchable):
-            if m is d:
-                idx_map[j] = i
-    draft_to_final = {idx_map[j]: fi for j, fi in m2f.items() if j in idx_map}
+        uid = d.get('unit_id') or d.get('id')
+        if not uid:
+            continue
+        fj = final_idx_by_id.get(uid)
+        if fj is not None:
+            draft_to_final[i] = fj
     matched_final_idx = set(draft_to_final.values())
     matched_draft_idx = set(draft_to_final.keys())
 
@@ -363,12 +420,54 @@ def render_lines(blocks, units, drafts=None, granularity='seg',
     return lines
 
 
-def collect_drafts(outbox, src_lookup=None):
-    """从 outbox 的 `('draft', key, text)` 三元组收集草稿的**译文**。
+def unpack_event(item):
+    """把 outbox 事件**解包**成统一结构（🔴 兼容 3 元组与 5 元组）。
 
-    🔴 **为什么要 `src_lookup`**：outbox 的草稿**只有 key 和译文**，
-    **没有原文** ⇒ 无法做 `src` 包含匹配（通知 9 §9.1.2 的核心判据）。
+    =====================================================================
+    🔴🔴 事件格式在方案 C 里变了（MT H-019 移交说明）
+    =====================================================================
+    | 格式 | 事件 | 含义 |
+    |------|------|------|
+    | 旧（3 元组） | `(kind, key, text)` | `key` = **翻译去重键**，草稿与正式稿**不同** |
+    | **新（5 元组）** | `(kind, id, src, txt, seg)` | `id` = **单元 id**，草稿与正式稿**共用** |
+
+    🔴 **为什么必须按 id 替换、不能按原文包含关系**：
+    MT §73 实测「双向包含 + 取最短」会把草稿 `'That'` 配到
+    `"That's where we are today."`（**跨 85 段**）⇒ 正式稿译文被搬到
+    **错误的段**（用户可见）。⇒ 方案 C 的「同 id 原位替换」是**唯一**可靠口径。
+
+    返回
+    ----
+    {'kind','id','key','src','txt','seg'}
+      · `id`  —— 单元 id（新格式有；旧格式退回 `key`）
+      · `key` —— 翻译去重键（旧格式有；新格式用 `DRAFT::`+id 派生）
+      · `src` —— 原文（新格式有；旧格式为空）
+      · `seg` —— ASR 段号（新格式有；旧格式为 None）
+    """
+    if not item:
+        return None
+    kind = item[0] if len(item) > 0 else ''
+    if len(item) >= 5:
+        kind, uid, src, txt, seg = item[0], item[1], item[2], item[3], item[4]
+        return {'kind': kind, 'id': uid, 'key': uid,
+                'src': src or '', 'txt': txt or '', 'seg': seg}
+    if len(item) >= 3:
+        kind, key, text = item[0], item[1], item[2]
+        return {'kind': kind, 'id': key, 'key': key,
+                'src': '', 'txt': text or '', 'seg': None}
+    return None
+
+
+def collect_drafts(outbox, src_lookup=None):
+    """从 outbox 收集草稿的**译文**（🔴 兼容 3 元组与 5 元组）。
+
+    🔴 **为什么要 `src_lookup`**：旧格式（3 元组）的草稿**只有 key 和译文**，
+    **没有原文** ⇒ 无法做 `src` 包含匹配。
     ⇒ 调用方提供「key → 原文」的映射（来自 `mt_units()` 里的草稿单元）。
+
+    🔴 **新格式（5 元组）自带 `src`** ⇒ **不再需要** `src_lookup`，
+    而且**这是正确性关键**：草稿的原文由 MT 侧**权威给出**
+    ⇒ App 不必再靠「猜」来配对。
 
     🔴 **拿不到 `src` 时** ⇒ 这里**照常返回译文**，但 `src` 为空
     ⇒ `render_lines()` 会把它当「未关联草稿」⇒ **只显示、不替换**
@@ -376,24 +475,25 @@ def collect_drafts(outbox, src_lookup=None):
 
     参数
     ----
-    outbox     : [(kind, key, text), ...]
-    src_lookup : {key: src}  可选
+    outbox     : [(kind, id, src, txt, seg), ...] 或 [(kind, key, text), ...]
+    src_lookup : {key: src}  可选（仅旧格式需要）
 
     返回
     ----
-    [{'key','src','mt'}, ...]
+    [{'key','id','src','mt','seg'?}, ...]
     """
     out = []
     for item in outbox or []:
-        if not item or len(item) < 3:
+        ev = unpack_event(item)
+        if ev is None or ev['kind'] != 'draft':
             continue
-        kind, key, text = item[0], item[1], item[2]
-        if kind != 'draft':
-            continue
-        src = ''
-        if src_lookup:
-            src = src_lookup.get(key) or ''
-        out.append({'key': key, 'src': src, 'mt': text})
+        src = ev['src']
+        if not src and src_lookup:
+            src = src_lookup.get(ev['key']) or ''
+        d = {'key': ev['key'], 'id': ev['id'], 'src': src, 'mt': ev['txt']}
+        if ev['seg'] is not None:
+            d['seg'] = ev['seg']
+        out.append(d)
     return out
 
 

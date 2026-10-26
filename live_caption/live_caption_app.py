@@ -2743,17 +2743,32 @@ class App:
         按 key 记进 `self._draft_mt`（渲染层要用它给草稿行上色/替换）。
         🔴 **TTS 提交条件不变**：`kind == 'final'` ⇒ **草稿永远不被朗读**
         （这正是 MT 通知 9 §9.1.1 要求的「TTS 只订阅 final」）。
+
+        🔴🔴 **事件格式已变（方案 C 合入，MT H-019 移交说明）**：
+        outbox 事件从 `(kind, key, text)` **3 元组**变成
+        `(kind, id, src, txt, seg)` **5 元组**
+        ⇒ 这里**必须**用 `caption_render.unpack_event()` 解包
+        （**不能**直接 `for kind, key, txt in ...` ⇒ 会 ValueError 崩掉）。
+        🔴 **`seg` 的含义也变了**：旧格式里 `key` 被当作 seg 传给 TTS
+        （其实那是**翻译去重键**，不是段号）⇒ 现在传**真正的段号**。
         """
         try:
             if not self.mt.active:
                 return
-            for kind, key, txt in self.mt.pop_outbox():
-                if kind == 'final' and txt and txt.strip():
+            for item in self.mt.pop_outbox():
+                ev = caption_render.unpack_event(item)
+                if ev is None:
+                    continue
+                kind = ev['kind']
+                if kind == 'final' and ev['txt'] and ev['txt'].strip():
                     if self.tts is not None:
-                        self.tts.submit(txt, seg=key)
-                elif kind == 'draft' and txt:
+                        # 🔴 `seg` 用**真正的 ASR 段号**（方案 C 的 5 元组自带）
+                        self.tts.submit(ev['txt'], seg=ev['seg'])
+                elif kind == 'draft' and ev['txt']:
                     # APP-015：草稿**只显示、不朗读** ⇒ 这里只记译文
-                    self._draft_mt[key] = txt
+                    # 🔴 **按单元 id 存**（不是翻译去重键）⇒ 与渲染层的
+                    #    「同 id 原位替换」对齐（草稿与正式稿共用 id）。
+                    self._draft_mt[ev['id']] = ev['txt']
                     # 🔴 **缓存必须有界**（MEMORY 铁律：「译文缓存有上限 ⇒
                     #    长会话前段译文会被淘汰」）：草稿是**每 1.5 s 一条**
                     #    ⇒ 4 小时会议 ≈ 9 600 条 ⇒ 不设上限会无界增长。
@@ -3112,10 +3127,14 @@ class App:
             units = [u for u in units
                      if (u.get('kind') or 'final') != 'draft']
         # 给草稿单元补上译文
+        # 🔴🔴 **按单元 id 查**（方案 C：草稿与正式稿**共用 id**）
+        #   ⇒ 查 `unit_id`；**不再**用 `key`（那是翻译去重键）
+        #   ⇒ 没有 id 的（极旧格式）才回退到 key。
         if self._draft_mt:
             for u in units:
                 if (u.get('kind') or 'final') == 'draft':
-                    t = self._draft_mt.get(u.get('key'))
+                    uid = u.get('unit_id') or u.get('key')
+                    t = self._draft_mt.get(uid)
                     if t:
                         u['mt'] = t
         return caption_render.render_lines(
@@ -3430,7 +3449,12 @@ def run_cli(args):
             if cur and cur != last:
                 print(f'\r[实时] {cur[-90:]}', end='', flush=True)
                 last = cur
-            for kind, key, txt in mt.pop_outbox():
+            for item in mt.pop_outbox():
+                # 🔴🔴 方案 C：事件是 **5 元组** ⇒ 用 unpack_event 统一解包
+                ev = caption_render.unpack_event(item)
+                if ev is None:
+                    continue
+                kind, txt = ev['kind'], ev['txt']
                 if kind == 'half' and txt.strip():
                     # C-111：段尾半句的初翻译文 —— 显示但**不朗读**
                     print(f'\n[半句译文] {txt}', flush=True)
@@ -3443,7 +3467,7 @@ def run_cli(args):
                     print(f'\n[{tag}] {txt}', flush=True)
                     # ── TTS：只提交**定稿译文**（C-101 P4 第 1 条）──
                     if tts is not None and tts.active:
-                        tts.submit(txt, seg=key)
+                        tts.submit(txt, seg=ev['seg'])
             if args.max_seconds and s.audio_s >= args.max_seconds:
                 s.stop()
     except KeyboardInterrupt:
@@ -3460,18 +3484,23 @@ def run_cli(args):
         # C-099①：先把挂起的半句补翻，再等队列排空，否则最后半句会丢
         mt.flush(seg=len(finals) - 1 if finals else None)
         mt.wait_idle(180)
-        for kind, key, txt in mt.pop_outbox():
+        for item in mt.pop_outbox():
+            # 🔴🔴 方案 C：事件是 **5 元组** ⇒ 用 unpack_event 统一解包
+            ev = caption_render.unpack_event(item)
+            if ev is None:
+                continue
+            kind, txt = ev['kind'], ev['txt']
             if kind == 'half' and txt.strip():
                 print(f'[半句译文] {txt}', flush=True)
             elif kind == 'draft' and txt.strip():
-                # APP-015：草稿 —— 只显示、不朗读
+                # APP-015：草稿 —— 只显示，不朗读
                 print(f'[草稿·未定稿] {txt}', flush=True)
             elif kind in ('final', 'fix') and txt.strip():
                 tag = '修正译文' if kind == 'fix' else '译文'
                 print(f'[{tag}] {txt}', flush=True)
                 # ── TTS：补交最后一批定稿译文 ──
                 if tts is not None and tts.active:
-                    tts.submit(txt, seg=key)
+                    tts.submit(txt, seg=ev['seg'])
         sm = mt.summary()
         f = lambda v, d=1: ('—' if v is None else f'{v:.{d}f}')
         print(f'[{args.engine}] 翻译 target={mt.target} 后端={mt.engine_key} 设备 {mt.device} '

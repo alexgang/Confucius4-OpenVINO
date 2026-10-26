@@ -1,0 +1,80 @@
+{
+  "purpose": "§53 方案 C 事件契约（5 元组）+ 同 id 原位替换的 App 侧验收",
+  "module_under_test": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\caption_render.py",
+  "method": "纯离线：只 import caption_render（纯 stdlib）⇒ 不起进程 / 不跑推理 / 不占 GPU / 不取机器锁",
+  "event_contract": "(kind, id, src, txt, seg)，kind ∈ {draft, final}",
+  "replacement_rule": "同 id 原位替换（不再用原文包含关系）",
+  "results": [
+    {
+      "group": "REAL",
+      "name": "A1 unpack_event 解 3 元组（旧格式）",
+      "ok": true,
+      "detail": "{'kind': 'draft', 'id': 'DRAFT::k4', 'key': 'DRAFT::k4', 'src': '', 'txt': '译文', 'seg': None}"
+    },
+    {
+      "group": "REAL",
+      "name": "A2 unpack_event 解 5 元组（新格式）",
+      "ok": true,
+      "detail": "{'kind': 'final', 'id': 'C:1:7', 'key': 'C:1:7', 'src': 'We should go to market soon with three milestones done.', 'txt': '我们应该很快推向市场，并且已经完成了三个里程碑。', 'seg': 2}"
+    },
+    {
+      "group": "REAL",
+      "name": "A3 同 id ⇒ 正式稿原地替换草稿那一行（seg 1）",
+      "ok": true,
+      "detail": "seg1=['我们应该很快推向市场，并且已经完成了三个里程碑。'] seg2=[]"
+    },
+    {
+      "group": "REAL",
+      "name": "A4 同 id ⇒ 不再跨段错配（A 落在草稿行、B 留在自己段）",
+      "ok": true,
+      "detail": "seg0=['A译文'] seg2=['B译文']"
+    },
+    {
+      "group": "REAL",
+      "name": "A4b 旧 src 口径确实会选错（证明 A4 的断言有证据价值）",
+      "ok": true,
+      "detail": "legacy picked: 'That is where we are today.'"
+    },
+    {
+      "group": "REAL",
+      "name": "A5 被同 id 正式稿替换后无残留草稿行",
+      "ok": true,
+      "detail": "n_draft_lines=0"
+    },
+    {
+      "group": "REAL",
+      "name": "A6 原文守恒（渲染层不丢字不加字）",
+      "ok": true,
+      "detail": "rendered=68 orig=68"
+    },
+    {
+      "group": "REAL",
+      "name": "A7 正式稿还在途 ⇒ 草稿行照常显示（浅色）、不提前剔除",
+      "ok": true,
+      "detail": "n_draft_busy=1 texts=['Welcome to our Q3 meeting.', '欢迎参加我们的Q3会议。', 'We should go to market soon', '我们应该很快推向市场', 'with three milestones done.']"
+    },
+    {
+      "group": "REAL",
+      "name": "A8 TTS 只订阅 final（草稿永不进语音）",
+      "ok": true,
+      "detail": "['final']"
+    },
+    {
+      "group": "REAL",
+      "name": "B1 旧 3 元组路径仍工作（无 id ⇒ 回退 src 匹配）",
+      "ok": true,
+      "detail": "['我们应该很快推向市场，并且已经完成了三个里程碑。']"
+    },
+    {
+      "group": "REAL",
+      "name": "B2 同 id 多条正式单元 ⇒ 草稿行只取第一条、无歧义",
+      "ok": true,
+      "detail": "seg0=['A'] n_draft=0"
+    }
+  ],
+  "n_pass": 11,
+  "n_fail": 0,
+  "bug_hits": [],
+  "real_failures": [],
+  "verdict": "PASS"
+}

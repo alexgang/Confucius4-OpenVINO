@@ -190,6 +190,46 @@ TARGET_SEG_WORDS = (8, 12)
 MAX_SEG_WORDS = 20          # 硬上限（含）：超过必须在最近的合法边界断开
 MAX_SEG_CHARS = 60          # 中文硬上限（字）：中文没有词边界，按字符数控制
 
+# ── 方案 C（H-016/H-017/H-019）：草稿先出 + K/N 强制交出 ──────────────
+# ★ H-019 明确：**K 段 / N 字上限必须给具体值**，不再写「建议加一个上限」。
+#
+# **K = 3 段**（PEND_MAX_SEGS）：
+#   实测（runs/c111_half/c111_kcap_fixed.json，5 套语料 × K∈{2,3,5}）：
+#     NOPUNCT_ALL：K=2 → pending 等 2 段 / 单元 185；K=3 → 等 2 段 / 单元 181；
+#                  K=5 → 等 5 段 / 单元 168
+#     TINY_2W    ：K=2 → 等 1 段 / 单元 25；K=3 → 等 2 段 / 单元 20
+#     NOPUNCT_5  ：K=3 → 等 2 段
+#   ⇒ **K=3** = 「等待 ≤3 段」与「切碎程度」的平衡点（K=2 把 TINY_2W 切得更碎）。
+#
+# **N = 120 字**（PEND_MAX_CHARS）：
+#   实测 5 套语料的 pending 最大字数 = 98（P0）/ 78（NOPUNCT_5）/ 108（NOPUNCT_ALL）
+#   / 102（TINY_2W）/ 78（REPEAT）⇒ **N=120 在全部真实语料上不触发**
+#   ⇒ 只兜住「标点模型整场漏标」的长挂起 ⇒ 不改变正常语料的任何行为。
+#
+# ⚠️ **强制交出不得合成句点**（否则破坏原文守恒）：
+#   用**哨兵式切分**（尾部追加 PEND_SENTINEL 私用区哨兵找边界，**切完剥掉**）
+#   ⇒ src 里**没有任何原文没有的字符**（实测：剥掉哨兵后 src 与原文逐字相等）。
+PEND_MAX_SEGS = int(os.environ.get('LIVECAP_MT_PEND_K', '3'))
+PEND_MAX_CHARS = int(os.environ.get('LIVECAP_MT_PEND_N', '120'))
+PEND_SENTINEL = '\ue000'
+
+# 草稿 key 的命名空间前缀（**不占正式 _seen** ⇒ 不挡正式单元）
+DRAFT_KEY_PREFIX = 'DRAFT::'
+
+
+def make_unit_id(start_seg, seq):
+    """方案 C 的**单元 id**（H-019 的「同 id 替换」锚点）。
+
+    格式 = `C:<起始段>:<序号>`
+      start_seg —— 该**挂起链**起始的 ASR 段号
+      seq       —— 全局单调序号（单元序号）
+
+    ⇒ **不含任何原文内容** ⇒ App 不需要（也不应该）做原文包含关系匹配。
+    ⇒ 同一条链的**所有草稿** + **它的正式稿** 共用同一个 id ⇒ 原位替换。
+    """
+    return 'C:%s:%d' % (start_seg, seq)
+
+
 # 常见英文缩写 —— 这些点后面**不是**句末，不能切。
 # ★ 这里的词都是**不可能单独作句子成分**的（称谓 / 单位 / 星期 / 头衔）。
 #   故意不放 no / min / max / e / g / co / vol 这些 —— 它们本身就是完整
@@ -440,6 +480,11 @@ def detect_lang(text):
     if _LATIN.search(text or ''):
         return 'en'
     return ''
+
+
+def _norm_tight(s):
+    """去空白字符数（内容级守恒口径，§49.4 铁律）。"""
+    return re.sub(r'\s+', '', s or '')
 
 
 def norm_key(sentence):
@@ -740,11 +785,14 @@ class _Job:
       old_key  —— 被替换掉的旧 key（半句初翻那次的 key）
       old_seg  —— 旧 key 原本归属的段（半句产生的那一段）
     """
-    __slots__ = ('kind', 'key', 'text', 'seg', 'old_key', 'old_seg')
+    __slots__ = ('kind', 'key', 'text', 'seg', 'old_key', 'old_seg', 'unit_id')
 
-    def __init__(self, kind, key, text, seg=None, old_key=None, old_seg=None):
+    def __init__(self, kind, key, text, seg=None, old_key=None, old_seg=None,
+                 unit_id=None):
         self.kind, self.key, self.text = kind, key, text
         self.seg, self.old_key, self.old_seg = seg, old_key, old_seg
+        # ★ 方案 C（H-019）：**单元 id** —— 草稿与正式稿共用 ⇒ App 按 id 原位替换
+        self.unit_id = unit_id
 
 
 class TranslationService:
@@ -814,6 +862,14 @@ class TranslationService:
         #   这是「前半句丢失 / 跨行重复 / 空行」三者的**共同根因**的解法
         #   （跨段句不再被劈成两半分别归属不同段）。
         self._pend = ''
+        # ── 方案 C（H-019）：挂起链状态 + K/N 强制交出 + 单元 id 发号 ──
+        self._pend_uid = None       # 当前挂起链的单元 id（None = 没有链）
+        self._pend_start_seg = None # 当前挂起链的**起始段**
+        self._unit_seq = 0          # 单元 id 的全局序号
+        self._draft_text = {}       # uid → 已发出的草稿原文（变了才重发）
+        self._draft_unit = {}       # uid → units 里的草稿单元（就地更新，不重复建）
+        self._used_uids = set()     # 已经分配给**正式单元**的 id（防重复 ⇒ 同 id 替换无歧义）
+        self.chain_closure_uids = []  # 「由挂起链闭合而成」的正式单元 id（诊断用）
         # 句单元列表（翻译 + 显示的最小单元）：每条 = 一个**完整句**
         #   {'key','src','seg','mt'}。App 可按它渲染（界面对齐、一行一句）。
         self.units = []
@@ -998,53 +1054,37 @@ class TranslationService:
         self.q.put(_Job('fix', k, text, seg=seg, old_key=old_key))
 
     def submit(self, sentence, seg=None):
-        """定稿段：**按完整句**切分后逐句提交（翻译单元 = 完整句）。
+        """[方案 C] 定稿段：**按完整句**切分后逐句提交 + **尾巴先出草稿**。
 
-        ★★ C-111-UNIT（§48，2026-10-24）：**翻译与显示的最小单元 = 完整句**。
+        ★★ C-111-UNIT（§48）：翻译与显示的最小单元 = **完整句**。
+        ★★ 方案 C（H-016/H-017/H-019，用户 10-25 已定）：
+             - 段尾半句**立即出草稿**（kind='draft'）⇒ 字幕立刻有内容，
+               **TTS 不念草稿**（TTS 只订阅 kind='final'）；
+             - 半句凑齐 / 被 K-N 强制切出 / flush 时出**正式稿**（kind='final'）
+               ⇒ 正式稿与 BASE 逐字相同（质量零风险，chrF Δ=0、守恒缺 0 字）；
+             - 草稿与正式稿**共用同一个单元 id** ⇒ App 按 id 原位替换。
 
-        ## 为什么改（用户实测「翻译丢失，尤其是前半句丢失」）
+        ## 单元 id（同 id 替换，H-019 核心）
 
-        旧机制（C-111）把段尾半句**当段就翻**（kind='half'），闭合时再**重翻整句**
-        （kind='fix'）并**原地覆盖**链首段的显示槽位。三者互斥，**不可能同时满足**：
+        `C:<起始段>:<序号>`。一条**挂起链**（尾巴从半句长到完整句的全过程）
+        的**所有草稿** + **它的正式稿** 共用**同一个** id：
+          - 尾巴每增长一次 → 再发一次 draft，**id 不变**（覆盖同一行字幕）；
+          - 链闭合 → 发 final，**id 仍是它**（App 原位替换，零残留草稿行）。
+        ⇒ App **不需要**原文包含关系匹配（§73 已证明它会配错段，跨 85 段）。
 
-        | 做法 | 结果 |
-        |---|---|
-        | 整句写链首段（C-111 原地覆盖） | 下一段重复 |
-        | 整句不写链首段（C-111-V7 双通道） | **链首段残缺 = 前半句丢失** |
-        | 整句写闭合段 | 更前面的段变**空行** |
+        ## K 段 / N 字强制交出（哨兵式切分，**禁合成句点**）
 
-        根因：**跨段的那一句被劈成两半**（前半归上一段、后半归下一段），
-        而「一行 = 一个 ASR 段」这种对齐方式**装不下**跨段的句子。
+        挂起链跨段数 ≥ PEND_MAX_SEGS（3）或挂起字数 > PEND_MAX_CHARS（120）
+        ⇒ 强制切出。切出用**哨兵**（PEND_SENTINEL）找边界、切完剥掉
+        ⇒ src 不含原文没有的字符 ⇒ **内容级守恒不受影响**。
+        强制切出的单元带 partial=True（App 可给残句加 '…' 提示）。
 
-        ⇒ 本方案：**跨段缓冲**，段尾半句**不立即翻**，留在 `_pend` 里等下一段补全，
-          凑成**完整句**再翻一次。于是：
-          - 每个句子**只翻一次、只出现一次** ⇒ **不重复**；
-          - 每个翻译单元都是**完整句** ⇒ **不残缺**；
-          - 原文与译文**一一对应** ⇒ **不错行**；
-          - 没有单元为空 ⇒ **不空行**。
+        ## 去重口径（**与 HEAD 一致，H-019 §2 要求写清楚**）
 
-        ## 实测（真实模型 INT8-CW，30 段语料）
-
-        | 指标 | C-111 原地覆盖 | C-111-UNIT（本方案） |
-        |---|---|---|
-        | 重复对 | **7** | **0**（余下为 bigram 误报） |
-        | 残句行 | 0 | **2**（段尾本身无标点） |
-        | 空行 | 0 | **0** |
-        | 原文守恒 | — | **2527 字 = 2527 字** ✅ |
-        | 朗读字数 | 582 | **1069**（= 全部完整句） |
-        | 翻译次数 | 66 | **48**（省 27%） |
-        | chrF（按句配对，UNIT vs C-111） | 参照 | **65.10，CI [52.16, 77.88] ⇒ 未劣化** |
-
-        ## 代价
-
-        - 跨段的那一句要**等下一段定稿**才出译文。
-          实测**最长只等 1 段**（连续「无新译文」最长 1 段）⇒ **延迟有界**，
-          不复现 C-099① 的 T3「延迟无上限」。
-        - 屏幕行数 = **句数**（不再 = ASR 段数）⇒ App 渲染层可按 `units` 渲染，
-          或继续用 `mt_of_seg()` 按段聚合（后者在整段都是半句时会出现空行）。
-
-        seg 是该段的序号（App 的 blocks 下标），用来记住这段的译文由哪些
-        **句单元**组成 —— 句单元的 key 记在**提交它的那一段**。
+        **「翻译按 key 去重 + 显示不去重」**：
+        同一句只翻一次（不重复入队 ⇒ 翻译调用次数不增），
+        但**每次出现都建一个显示单元** ⇒ 说话人真的又说了一遍，字幕就该显示两遍。
+        ⚠️ **不是** (seg,key)（(seg,key) 是 §45 讨论过但**未采用**的另一种口径）。
         """
         if not self.active:
             return []
@@ -1052,9 +1092,11 @@ class TranslationService:
         if not text:
             return []
         keys = []
-        # 本段是否**承接**了上一段留下的半句（App 用它加 '…' 标记 /
-        # 显示「译文生成中…」）
         carried_in = bool(self._pend)
+
+        # ── 挂起链的旧状态（草稿的 id 必须延续）──────────────────────
+        old_uid = self._pend_uid
+        old_start = self._pend_start_seg
 
         # ── 跨段缓冲：把新段接到上段留下的尾巴后面 ──
         self._pend = (self._pend + ' ' + text).strip() if self._pend else text
@@ -1067,92 +1109,203 @@ class TranslationService:
             ready = sents
             self._pend = ''
 
-        for s in ready:
+        # ── ★ 方案 C：K 段 / N 字强制交出（哨兵式切分，**不合成句点**）──
+        forced = False
+        forced_parts = []
+        if self._pend:
+            pend_chars = len(_norm_tight(self._pend))
+            span = 0
+            if self._pend_start_seg is not None and seg is not None:
+                span = seg - self._pend_start_seg + 1
+            too_many = span >= PEND_MAX_SEGS
+            too_long = pend_chars > PEND_MAX_CHARS
+            if too_many or too_long:
+                sub = [x.replace(PEND_SENTINEL, '').strip()
+                       for x in split_sentences(self._pend + PEND_SENTINEL)]
+                sub = [x for x in sub if x]
+                if len(sub) > 1:
+                    forced_parts = sub[:-1]
+                    self._pend = sub[-1]
+                    forced = True
+                elif too_many:
+                    forced_parts = [self._pend]
+                    self._pend = ''
+                    forced = True
+
+        # ── 链状态更新（**必须先定链，再分配 id**）────────────────────
+        #   规则（**唯一**）：
+        #     · 挂起链 = 「尾巴从半句长到被切出」这一段连续过程；
+        #     · 链的**正式稿** = **含有该链内容**的那一条
+        #       （`ready[0]`；若无 ready 则强制切出的第一片 `forced_parts[0]`）；
+        #     · 链闭合后**残留的尾巴是新链**（新 id、新起始段）；
+        #     · 其余正式单元一律拿**新 id**（它们没有草稿）。
+        #   ⇒ 保证「一个 id 至多对应一个正式单元」⇒ 同 id 替换无歧义。
+        #
+        # ⚠️🔴 **2026-10-26 修正（H-019 移交说明落地时发现）**：
+        #   原实现把链 id 给「**每次 submit 的第一条 ready**」⇒ 一条链跨多段时
+        #   **多条正式单元共用同一 id**（实测 P0 11 例、NOPUNCT_ALL 31 例）
+        #   ⇒ App 按 id 原位替换会把**上一条字幕覆盖掉**。
+        #   根因 = 链内容（old_pend）其实只在**第一次凑齐**时出现在 `ready[0]`；
+        #   之后每段再来一个完整句，那条完整句**不含链内容**，不该再拿链 id。
+        #   ⇒ 现在按「哪条正式单元**含有链内容**」来分配链 id。
+        chain_final_emission_idx = None
+        if old_uid is not None:
+            for _i, _s in enumerate(ready):
+                if norm_key(_s):
+                    chain_final_emission_idx = _i
+                    break
+            if chain_final_emission_idx is None:
+                for _j, _f in enumerate(forced_parts):
+                    if norm_key(_f):
+                        chain_final_emission_idx = len(ready) + _j
+                        break
+        if self._pend:
+            if old_uid is not None and chain_final_emission_idx is None:
+                # 链**继续**（内容仍在缓冲里）⇒ **同一个 id**
+                self._pend_uid = old_uid
+                self._pend_start_seg = old_start
+            else:
+                # 链已闭合（内容进了正式稿）**或** 本来就没有链
+                #   ⇒ 残留的尾巴是**新链**（新 id、新起始段）
+                self._pend_start_seg = seg
+                self._unit_seq += 1
+                self._pend_uid = make_unit_id(seg, self._unit_seq)
+        else:
+            self._pend_uid = None
+            self._pend_start_seg = None
+
+        # ── ★ 方案 C：尾巴半句**立即出草稿**（不朗读、不占正式槽位）──
+        #   🔴 草稿**不**清空 _pend、**不**写 _seen
+        #      ⇒ 定稿到达时同一段内容会照常出**正式稿**（只念一次），不重复。
+        #   🔴 草稿用**独立命名空间**（DRAFT:: 前缀），不污染正式 _seen
+        #      ⇒ 草稿半句的 key 不会挡住后续整句的提交（正式单元守恒）。
+        #   🔴 草稿 key = DRAFT::<uid>（**稳定**）⇒ App 的按 key 缓存里
+        #      每条链只有一条 ⇒ 后来的草稿直接覆盖前面的。
+        if self._pend:
+            uid = self._pend_uid
+            if self._draft_text.get(uid) != self._pend:
+                self._draft_text[uid] = self._pend
+                dk = DRAFT_KEY_PREFIX + uid
+                u = self._draft_unit.get(uid)
+                if u is None:
+                    u = dict(key=dk, src=self._pend, seg=seg, mt=None,
+                             kind='draft', unit_id=uid)
+                    self.units.append(u)
+                    self._draft_unit[uid] = u
+                else:
+                    u['src'] = self._pend
+                    u['seg'] = seg
+                self.q.put(_Job('draft', dk, self._pend, seg=seg, unit_id=uid))
+
+        # ── 正式稿 ────────────────────────────────────────────────────
+        #   发射顺序：`ready`（本段凑齐的整句）→ `forced_parts`（强制切出的）
+        #   ⇒ **链 id 只给「含有链内容的那一条」**（chain_final_emission_idx）
+        #     其余正式单元一律新 id ⇒ 一个 id 至多一条正式单元。
+        emissions = [(s, False) for s in ready]
+        emissions += [(f, True) for f in forced_parts]
+        for _ei, (s, is_forced) in enumerate(emissions):
             k = norm_key(s)
             if not k:
                 continue
-            # 🔴🔴 **重复句不再被丢弃（§50.2 / §54.4 定案，2026-10-24 21:12 修复）**
-            #   **旧行为（`k in self._seen` ⇒ 整句跳过）会丢真实内容**：
-            #   ASR 复读是真实存在的（内部 61 分钟会议实录实测 225 段里有 **38 句**
-            #   是「同一句被重复说」，共 **3,312 字**），全局去重把它们**整段丢弃**
-            #   ⇒ 内容级守恒失败（实测 orig 41,895 → 保留 38,583，**缺 3,312 字**）。
-            #   ⇒ 用户报的「前半句丢失」在会议场景会复现。
-            #
-            #   **新行为 = 「翻译去重 + 显示不去重」**：
-            #   · 翻译：同一句话**只翻一次**（`done[key]` 一份译文，译文必然相同
-            #     ⇒ 不重复翻译、不增加调用次数）；
-            #   · 显示：每次出现都**建一个句单元** ⇒ 说话人真的又说了一遍，
-            #     字幕就该显示两遍 ⇒ 内容级守恒 100%。
-            #   ⇒ `mt_units()` 能逐处渲染，`mt_of_seg(seg)` 按段取到自己的那一份。
+            if _ei == chain_final_emission_idx and old_uid is not None:
+                uid = old_uid
+                self.chain_closure_uids.append(uid)
+            else:
+                self._unit_seq += 1
+                uid = make_unit_id(seg, self._unit_seq)
+            # 🔴 **一个 id 至多一条正式单元**（同 id 替换必须无歧义）
+            while uid in self._used_uids:
+                self._unit_seq += 1
+                uid = make_unit_id(seg, self._unit_seq)
+            self._used_uids.add(uid)
+            # 🔴 **去重口径 = 「翻译按 key 去重 + 显示不去重」**（与 HEAD 一致）：
+            #   已翻过 ⇒ 不重复入队（调用次数不增），但**保留显示单元**
+            #   ⇒ 内容级守恒 100%（§50.2 / §54.4 定案）。
             if k in self._seen:
-                # 已翻过 ⇒ 不重复入队，但**保留显示单元**（内容不能丢）
-                self.units.append(dict(key=k, src=s, seg=seg, mt=None))
+                self.units.append(dict(key=k, src=s, seg=seg, mt=None,
+                                       kind='final', unit_id=uid,
+                                       partial=is_forced))
                 if seg is not None:
                     self.seg_keys.setdefault(seg, [])
                     if k not in self.seg_keys[seg]:
                         self.seg_keys[seg].append(k)
+                # 🔴 **已翻过的也要发 final 事件**（用缓存译文，**不新增翻译调用**）
+                #    ⇒ 否则这条链的草稿**永远等不到同 id 的 final** ⇒ 孤儿草稿。
+                with self.lock:
+                    cached = self.done.get(k)
+                if cached:
+                    with self.lock:
+                        self.outbox.append(('final', uid, s, cached, seg))
+                else:
+                    # 缓存里没有（被 CACHE_MAX 淘汰）⇒ 老实重翻一次
+                    self.q.put(_Job('final', k, s, seg=seg, unit_id=uid))
                 continue
             self._seen.add(k)
             keys.append(k)
-            # 句单元：翻译 + 显示的最小单元
-            self.units.append(dict(key=k, src=s, seg=seg, mt=None))
-            self.q.put(_Job('final', k, s, seg=seg))
+            self.units.append(dict(key=k, src=s, seg=seg, mt=None, kind='final',
+                                   unit_id=uid, partial=is_forced))
+            self.q.put(_Job('final', k, s, seg=seg, unit_id=uid))
 
         if seg is not None:
             self.seg_keys.setdefault(seg, [])
-            for k in keys:
-                if k not in self.seg_keys[seg]:
-                    self.seg_keys[seg].append(k)
-            # ★ UNIT 下 `seg_carry` 的语义 = 「本段承接了上一段的半句」。
-            #   App 用它给译文加 '…' 前缀、并在译文缺失时显示「译文生成中…」。
-            #   （UNIT 下**不再有**「整句覆盖上一段槽位」这回事，
-            #     所以 '…' 只是提示承接关系，不表示内容重复。）
+            for kk in keys:
+                if kk not in self.seg_keys[seg]:
+                    self.seg_keys[seg].append(kk)
             self.seg_carry[seg] = carried_in
-            # 本段结尾是否还留了半句在缓冲里（等下一段）
             self.seg_half[seg] = bool(self._pend)
         return keys
 
     def flush(self, seg=None):
-        """收尾：把跨段缓冲里**最后那句没说完的**当完整句交出去。
+        """[方案 C] 收尾：缓冲里的最后一句当完整句翻一次（**正式稿**）。
 
-        ★ C-111-UNIT（§48）：翻译单元 = 完整句。段尾没有句末标点时
-        它留在 `_pend` 里等下一段；到收尾时它就是最后一句 ⇒ 翻一次。
-        （与旧 C-111 的差别：旧机制这段已经翻过了，这里只是标记 'final'。）
+        ★ 与 submit() 一致：重复句**不丢弃**（翻译去重 + 显示不去重）。
+        ★ flush 出来的单元**沿用挂起链的 id** ⇒ App 能把它和此前的草稿对上
+          （若该链此前出过草稿 ⇒ 同 id 原位替换）。
         """
         if not self.active:
             return []
         self._half = None
         pend = getattr(self, '_pend', '')
+        uid = self._pend_uid
         self._pend = ''
+        self._pend_uid = None
+        self._pend_start_seg = None
         if not pend:
             return []
         k = norm_key(pend)
         if not k:
             return []
-        # 🔴 与 `submit()` 一致：**重复句不丢弃**（翻译去重 + 显示不去重）
+        if uid is None:
+            self._unit_seq += 1
+            uid = make_unit_id(seg, self._unit_seq)
+        # ⚠️🔴 **2026-10-26 修正**：flush 出来的尾巴**就是链内容本身**
+        #   ⇒ 它拿链 id 是对的；但必须确保这个 id **还没被别的正式单元用过**
+        #   （链闭合时 id 已随「含有链内容的正式稿」用掉了 ⇒ 此时另发新 id）。
+        if uid in self._used_uids:
+            self._unit_seq += 1
+            uid = make_unit_id(seg, self._unit_seq)
+        self._used_uids.add(uid)
         if k not in self._seen:
             self._seen.add(k)
-            self.units.append(dict(key=k, src=pend, seg=seg, mt=None))
-            self.q.put(_Job('final', k, pend, seg=seg))
+            self.units.append(dict(key=k, src=pend, seg=seg, mt=None, kind='final',
+                                   unit_id=uid))
+            self.q.put(_Job('final', k, pend, seg=seg, unit_id=uid))
             if seg is not None:
                 self.seg_keys.setdefault(seg, [])
                 if k not in self.seg_keys[seg]:
                     self.seg_keys[seg].append(k)
                 self.seg_half[seg] = False
             return [k]
-        # 已翻过 ⇒ 不重复入队，但**保留显示单元**（内容不能丢，见 submit() 里的说明）
-        self.units.append(dict(key=k, src=pend, seg=seg, mt=None))
-        if seg is not None:
-            self.seg_keys.setdefault(seg, [])
-            if k not in self.seg_keys[seg]:
-                self.seg_keys[seg].append(k)
-            self.seg_half[seg] = False
-        # 已经翻过了（理论上不会走到）—— 只把译文重新标成可朗读
+        # 已翻过 ⇒ 不重复入队，但**保留显示单元**（内容不能丢）
+        self.units.append(dict(key=k, src=pend, seg=seg, mt=None, kind='final',
+                               unit_id=uid))
         with self.lock:
             txt = self.done.get(k)
         if txt:
             with self.lock:
-                self.outbox.append(('final', k, txt))
+                self.outbox.append(('final', uid, pend, txt, seg))
+        else:
+            self.q.put(_Job('final', k, pend, seg=seg, unit_id=uid))
         return [k]
 
     def mt_of_seg(self, seg):
@@ -1259,6 +1412,15 @@ class TranslationService:
         return self.done.get(norm_key(sentence))
 
     def pop_outbox(self):
+        """取走全部待处理事件。
+
+        ★ 方案 C（H-019）：事件 = **(kind, id, src, txt, seg)** 5 元组，
+          kind ∈ {draft, final}，id = **单元 id**（C:<起始段>:<序号>），
+          src = 原文，txt = 译文，seg = ASR 段号。
+        ⚠️ **App 侧必须改成解 5 元组**（旧代码解 3 元组 (kind, key, text)）。
+        ⇒ 草稿与正式稿**共用 id** ⇒ App 按 id 原位替换，
+          **不要再用原文包含关系做替换**（§73：会配错段，跨 85 段）。
+        """
         with self.lock:
             out, self.outbox = self.outbox, []
         return out
@@ -1414,9 +1576,18 @@ def _run_jobs(svc, tr):
                 #     若 fix 仍以 'fix' 发出 ⇒ **GUI 不朗读整句**（只剩残句）。
                 #     以 'final' 发出 ⇒ **App 侧零改动**，整句只朗读一次。
                 #     （'half' 仍是 'half' ⇒ 残句不朗读，界面显示不受影响。）
-                svc.outbox.append(('final' if job.kind == 'fix' else job.kind,
-                                   job.key, r['text']))
+                # ★ 方案 C（H-019）：**事件格式** = (kind, id, src, txt, seg)
+                #   kind ∈ {draft, final}
+                #   id   —— **单元 id**（C:<起始段>:<序号>）⇒ App 按 id 原位替换
+                #   src  —— 原文（**仅供诊断**，App **不**用它做替换匹配）
+                #   txt  —— 译文
+                #   seg  —— ASR 段号
+                #   ⚠️ 旧格式是 3 元组 (kind, key, text) ⇒ **App 侧必须改成解 5 元组**。
+                svc.outbox.append((('final' if job.kind == 'fix' else job.kind),
+                                   job.unit_id or job.key,
+                                   job.text, r['text'], job.seg))
             else:
                 svc.draft = r['text']
-                svc.outbox.append(('draft', job.key, r['text']))
+                svc.outbox.append(('draft', job.unit_id or job.key,
+                                   job.text, r['text'], job.seg))
             svc._busy -= 1          # 结果落盘后才算完成，wait_idle 才能安全返回
