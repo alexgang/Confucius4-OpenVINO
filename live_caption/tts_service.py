@@ -153,7 +153,7 @@ def _decode_worker_line(b) -> str:
     🔴🔴 APP-021§54.10：stderr 是**混编码**管道：
       ① worker 自己写的是 utf-8（env 已钉 `PYTHONIOENCODING=utf-8`）；
       ② 但 worker **spawn 的外部 exe**（cmd.exe / sox / ffmpeg）在 Windows 上
-         吐的是 **GBK** 字节 ⇒ 按 utf-8 解会变成 `'sox' �����ڲ���`。
+         吐的是 **GBK** 字节 ⇒ 按 utf-8 解会变成一段乱码（U+FFFD 替换字符）。
     ⇒ 判定顺序：**utf-8 严格 → gb18030 严格 → utf-8 替换**
       （utf-8 严格通过 ⇒ 一定是 utf-8；否则 gb18030 能解 ⇒ 按 GBK；
         都不行 ⇒ 最后兜底替换，**绝不抛异常**）。
@@ -275,6 +275,16 @@ class TTSService:
         self._outbox_lock = threading.Lock()
         # worker 未 ready 时暂存的下发命令（ready 后补发）
         self._queue: List = []
+        # 🔴🔴 2026-10-27 §58 修：`_queue` 里**有哪些 jid**（辅助集合）。
+        #   为什么要它：worker 还没 ready 时 `submit()` 把命令放进 `_queue`
+        #   （**还没下发**）⇒ 此时 `cancel(jid)` 必须能把这条命令**摘掉**
+        #   ⇒ 否则 ready 后 `_flush_queue()` 会把它**重新下发**
+        #   ⇒ worker 真的播它 ⇒ 而主进程这边成了「幽灵在途」
+        #   ⇒ worker 一崩溃 ⇒ `_inflight` 里的幽灵被当成「在途丢失」
+        #   ⇒ `n_dropped` 双记 ⇒ 不变式破坏（实测 sum 4 vs submitted 3）。
+        #   ⚠️ `_queue` 是 `list`（要保顺序）⇒ 摘除是 O(n) ⇒ 另用 set 记成员
+        #      以便 O(1) 判断「这个 jid 在不在待发队列里」。
+        self._queued_ids: set = set()
 
         if auto:
             self.start()
@@ -422,7 +432,7 @@ class TTSService:
                 #   也不能让整个读循环崩掉（那会被误判成「worker 退出」）。
                 # 🔴🔴 APP-021§54.10：**改用二进制模式**，自己逐行解码。
                 #   起因（实测 16:22 会话日志）：stderr 里出现
-                #     `'sox' �����ڲ����ⲿ���ģ�Ҳ���ǿ����еĳ���`
+                #     一行以 `'sox' ` 开头、后面跟一串 U+FFFD 替换字符的乱码
                 #   ⇒ 那是 **cmd.exe / sox 吐的 GBK 字节**被按 utf-8 解码。
                 #   ⚠️ **一旦按 utf-8 解出 U+FFFD 就不可恢复** ⇒ 必须留在字节层。
                 #   ⇒ stdout（JSON 协议 + worker 自己写的日志，env 已钉 utf-8）
@@ -464,7 +474,7 @@ class TTSService:
         🔴🔴 APP-021§54.10：**逐行判定编码**（stderr 是**混编码**管道）：
           ① worker 自己写的是 utf-8（env 已钉 `PYTHONIOENCODING=utf-8`）；
           ② 但 worker **spawn 的外部 exe**（cmd.exe / sox / ffmpeg）在 Windows 上
-             吐的是 **GBK** 字节 ⇒ 按 utf-8 解会变成 `'sox' �����ڲ���`。
+             吐的是 **GBK** 字节 ⇒ 按 utf-8 解会变成一段乱码（U+FFFD 替换字符）。
           ⇒ 判定顺序：**utf-8 严格 → gb18030 严格 → utf-8 替换**
             （utf-8 严格通过 ⇒ 一定是 utf-8；否则 gb18030 能解 ⇒ 按 GBK；
               都不行 ⇒ 最后兜底替换，绝不抛异常）。
@@ -572,6 +582,8 @@ class TTSService:
                 self._dropped_ids.clear()
                 n_queued = len(self._queue)
                 self._queue.clear()
+                # 🔴 2026-10-27 §58：待发队列作废 ⇒ 成员集合也要清
+                self._queued_ids.clear()
             if orphan or n_queued:
                 self.n_dropped += len(orphan)
                 self.on_log(f'[TTS] worker 判死，{len(orphan)} 句未完成'
@@ -664,6 +676,8 @@ class TTSService:
             self._dropped_ids.update(orphan)
             n_queued = len(self._queue)
             self._queue.clear()
+            # 🔴 2026-10-27 §58：待发队列作废 ⇒ 成员集合也要清
+            self._queued_ids.clear()
         if orphan:
             # ⚠️ `_queue` 的 jid ⊆ `pending` ⇒ 只按 `pending` 计一次
             self.n_dropped += len(orphan)
@@ -760,6 +774,9 @@ class TTSService:
         else:
             with self.lock:
                 self._queue.append(cmd)
+                # 🔴🔴 2026-10-27 §58 修：登记「这句在待发队列里」
+                #   ⇒ `cancel()` 才能把它摘掉（见 cancel() 里的说明）。
+                self._queued_ids.add(jid)
         self._update_backlog()
 
     def _flush_queue(self):
@@ -767,11 +784,25 @@ class TTSService:
         with self.lock:
             q = list(self._queue)
             self._queue.clear()
+            self._queued_ids.clear()
         n_failed = 0
+        n_skipped = 0
         for cmd in q:
             jid = cmd.get('id')
+            # 🔴🔴 2026-10-27 §58 修：**跳过已被 cancel 的句子**。
+            #   worker 还没 ready 期间 `cancel(jid)` 会把这条命令从 `_queue`
+            #   摘掉（见 cancel()）⇒ 正常情况下这里遇不到；
+            #   但**两道保险**：即使 `_queue` 与 `pending` 之间出现任何
+            #   不一致（其它路径清过 `pending`），也**绝不能**把一句
+            #   已经「定了案（已丢）」的译文**重新下发** ⇒
+            #   worker 会真的播它 ⇒ 主进程这边变成「幽灵在途」
+            #   ⇒ worker 一崩溃 ⇒ `n_dropped` 双记 ⇒ 不变式破坏。
+            #   ⇒ 判据 = 「这句已不在 `pending` 里」⇒ 它已被别处定案。
             if jid is not None:
                 with self.lock:
+                    if jid not in self.pending:
+                        n_skipped += 1
+                        continue
                     self._inflight.add(jid)
             # 🔴 2026-10-25 §29 修：同上 —— 送不出去必须撤账 + 计丢句
             if not self._send(cmd):
@@ -783,6 +814,8 @@ class TTSService:
         if n_failed:
             self.n_dropped += n_failed
             self.on_log(f'[TTS] 补发时 {n_failed} 句未能下发（已计丢句）')
+        if n_skipped:
+            self.on_log(f'[TTS] 补发时跳过 {n_skipped} 句（已被丢弃，不重新下发）')
         if q:
             self.on_log(f'[TTS] 就绪后补发 {len(q)} 句')
 
@@ -880,6 +913,26 @@ class TTSService:
         cancel 才计丢句**。判定与摘除放在**同一个锁内临界区**（原子）。
         第二次 cancel 时该句已不在 `pending` ⇒ 已由第一次 cancel 定案
         ⇒ 本次**不再重复计丢句**、也**不再重复登记** `_dropped_ids`。
+
+        🔴🔴 2026-10-27 §58 修：**还必须把这一句从「待发队列 `_queue`」里摘掉**。
+        旧实现只清 `pending` / `_inflight` ⇒ **漏了 `_queue`** ⇒ 于是有两条真缺陷：
+        ① 🔴 **幽灵在途句**：worker **还没 ready** 时（模型加载中，实测 4~24 s）
+           `submit()` 把命令**放进 `_queue`**（`tts_service.py` L762）⇒
+           此时 `cancel(jid)` 只清了 `pending` ⇒ **命令仍留在 `_queue` 里**
+           ⇒ worker ready 后 `_flush_queue()` **把它重新下发**
+           ⇒ worker 按 `synth` 正常合成并**真的播出来**
+           ⇒ 但主进程这边 `_inflight` 里多了一个**从未真正在途**的 jid
+           ⇒ ② 🔴 **崩溃时双记**：worker 崩溃时 `_on_worker_exit()` 取
+           `lost = sorted(self._inflight)` ⇒ **把幽灵 jid 也算成「在途丢失」**
+           ⇒ `n_dropped += len(lost)` ⇒ **同一句被丢了两次**
+           ⇒ 不变式 `n_played + n_dropped + len(pending) == n_submitted` 被破坏。
+        实测（`results/app/app088_tts_cancel_queue_ghost.py` A 组）：
+          3 句提交 → cancel 第 0 句 → ready 后 `_inflight=[0]`（幽灵）
+          → worker 崩溃 ⇒ `n_dropped=2 / n_played=2 / submitted=3`
+          ⇒ **sum(4) ≠ submitted(3)** ⇒ 不变式破坏。
+        ⚠️ 这与 §57 的「同一 jid 被 cancel 两次」是**两个不同的破口**：
+          §57 修的是「同一句被计两次」，本条修的是「**从未在途的句被当成在途丢失**」。
+        ⇒ 修法：**在同一把锁内**把 jid 从 `_queue` 里摘掉（§58）。
         """
         self._send({'cmd': 'cancel', 'id': jid})
         with self.lock:
@@ -891,6 +944,15 @@ class TTSService:
             #   ⇒ ① 集合无界增长；② worker 崩溃时 `_on_worker_exit()`
             #   会把它**再算一次**丢句（`n_dropped` 双记）。
             self._inflight.discard(jid)
+            # 🔴🔴 2026-10-27 §58 修：**必须同时从「待发队列」里摘掉**。
+            #   worker 还没 ready 时命令在 `_queue` 里（还没下发）
+            #   ⇒ 不摘 ⇒ ready 后会被 `_flush_queue()` 重新下发
+            #   ⇒ worker 真的会播它 ⇒ 而主进程这边是「幽灵在途」
+            #   ⇒ worker 一崩溃 ⇒ 它被当成「在途丢失」⇒ `n_dropped` 双记。
+            #   ⚠️ 与 `pending`/`_inflight` 在**同一把锁内**完成 ⇒ 原子。
+            if jid in self._queued_ids:
+                self._queued_ids.discard(jid)
+                self._queue = [c for c in self._queue if c.get('id') != jid]
             if was_pending:
                 # 🔴 2026-10-25 §30 修：登记「这句已被丢弃」。
                 #   worker 可能**无视 cancel 照样播出来**（它已越过自己的取消检查）
@@ -999,6 +1061,8 @@ class TTSService:
                     self._dropped_ids.update(orphan)
                     n_queued = len(self._queue)
                     self._queue.clear()
+                    # 🔴 2026-10-27 §58：待发队列作废 ⇒ 成员集合也要清
+                    self._queued_ids.clear()
                 if orphan or n_queued:
                     self.n_dropped += len(orphan)
                     self.on_log(f'[TTS] worker 故障，{len(orphan)} 句未完成'

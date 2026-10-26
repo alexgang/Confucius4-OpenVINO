@@ -1,18 +1,12 @@
 # STATUS_APP
 last_ack: APP-022
-更新时间: 2026-10-27 00:43
-当前任务: **§57 🔴 巡检（APP-022 = `last_ack` ⇒ **本轮无新 APP 纠偏条目**）+ 🔴🔴 修「`cancel()` 的丢弃计数可被双记」这个真实缺陷（**本条已完成**）** ⇒ ① **无新条目**：`CORRECTIONS_APP.md` 最大编号 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0** ⇒ 不触发逐条执行 ⇒ `last_ack` **保持 APP-022**；② 🔴 **缺陷**：`TTSService.cancel()` **无条件** `n_dropped += 1` ⇒ 同一 jid 被 cancel 两次就**双记** ⇒ 不变式 `n_played+n_dropped+len(pending)==n_submitted` 破坏；③ 🔴 **真实触发路径**（非理论构造）：`OfflineReader.stop()` 与 `_loop()` 的 `finally` **各调一次** `_cancel_pending()`（锁内快照 + 锁外逐个 cancel ⇒ 两线程快照可重叠）；④ 🔴 **迟到的 `played` 救不回来**（§30 的改记是 `n_dropped -= 1`，只能纠「丢了又播」一次 ⇒ 纠不了「丢了两次」）⇒ 必须**在源头杜绝**；⑤ ✅ **修法**：判定与摘除放进**同一锁内临界区**（`was_pending = self.pending.pop(jid, None) is not None`）⇒ **只有仍在途的那一次 cancel 才计丢句**；⚠️ 且**不再重复登记 `_dropped_ids`**（否则已播句会被误判为已丢弃 ⇒ `n_dropped` 变负）；⑥ ✅ **验收**：`app086` **REAL 全过 + 反证命中**（A/B/C/D 四组；证据 `verdict="PASS"`、`real_fail=[]`）—— 修复前 A3/A4/A6/A7/B1/B2 **6 项 FAIL**，真实路径 `n_dropped=6/submitted=3` ⇒ 修复后 `n_dropped=3`；⑦ ✅ **回归无回归**：`app057` PASS、`test_tts_drop_crash(.pkg)` PASS、`app076` **38/38**、`app078` **28/28**；⑧ ✅ **客户包定点同步**（双副本纪律：**精确字符串替换 + 唯一命中断言**，禁整目录覆盖）⇒ 仓库与 `Confucius4_LiveCaption_v1.5/app/tts_service.py` 归一化后**逐字节一致**（SHA256 `b04322b2e218c5f7…`、68 584 B、差异仅 `cancel()` 42 行）；⑨ ⚠️ **我自己踩的坑（已修正）**：同步脚本首版**未先归一化行尾** ⇒ 对已是 CRLF 的块再套 `\n→\r\n` ⇒ 客户包写成 `\r\r\n` ⇒ 用 `git show 8d6bcc1:` **精确重建**（归一化 SHA256 `8dc2d92d71d9ebb2` = 同步前 ⇒ 无损还原）⇒ 改为「LF 域替换 + 按原风格写回」；⚠️ **未在 CPU 跑推理/测速、未碰真实 `shared/MACHINE_LOCK`、未改 `CORRECTIONS_APP.md`、未吞其它模块改动**
+更新时间: 2026-10-27 02:01
+当前任务: **§58 🔴 巡检（APP-022 = `last_ack` ⇒ **本轮无新 APP 纠偏条目**）+ 🔴🔴 修「`cancel()` 漏清待发队列 ⇒ 幽灵在途句 ⇒ 崩溃时 `n_dropped` 双记」这个真实缺陷（**本条已完成**）** ⇒ ① **无新条目**：`CORRECTIONS_APP.md` 最大编号 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0** ⇒ 不触发逐条执行 ⇒ `last_ack` **保持 APP-022**；② 🔴 **缺陷**：§57 只清了 `pending`/`_inflight`/`_dropped_ids`，**漏了 `_queue`**（worker 未 ready 时 `submit()` 把命令放这里，**尚未下发**）⇒ `cancel()` 后命令**仍留在 `_queue`** ⇒ ready 后 `_flush_queue()` **重新下发** ⇒ worker **真的播出来** ⇒ 主进程 `_inflight` 多出**从未在途**的 jid（**幽灵在途句**）⇒ worker 崩溃时 `_on_worker_exit()` 取 `lost = sorted(self._inflight)` **把幽灵算成在途丢失** ⇒ `n_dropped` 双记 ⇒ 不变式破坏；③ 🔴 **实测反证**（基线 `e06f8ee`）：3 句提交 → cancel 第 0 句 → ready 后 `_inflight=[0]` → 崩溃 ⇒ `n_dropped=2/n_played=2/submitted=3` ⇒ **sum(4) ≠ submitted(3)**；④ ⚠️ **与 §57 是两个不同的洞**（§57 = 同一句被计两次；§58 = 从未在途的句被当成在途丢失）⇒ 根因/触发路径/修法都不同 ⇒ 必须都修；⑤ ✅ **修法一（源头）**：`cancel()` 在**同一锁内**把 jid 从 `_queue` 摘掉（⚠️ `_queue` 是 list（保顺序）⇒ 摘除 O(n) ⇒ 另加 `_queued_ids` set 记成员 ⇒ O(1) 判定；`submit()` 登记入队、3 处 `_queue.clear()` 全部同步清）；⑥ ✅ **修法二（第二道保险）**：`_flush_queue()` 补发时**跳过已不在 `pending` 里的 jid**（判据 = 已被别处定案 ⇒ 绝不重新下发）+ 落日志「补发时跳过 N 句」；⑦ ✅ **验收 `app088` 15/15 全 PASS + 反证命中**（A 7/B 4/C 4/D 3；证据 `verdict="PASS"`、`real_fail=[]`、`baseline_commit="e06f8ee"`）—— D1 修复前 `n_queue=3`（应 2）、D2 修复前 `inflight=[0]`、D3 修复前 `sum=4` vs `submitted=3`；⑧ ✅ **回归无回归**：`app057` PASS、`app086` PASS、`test_tts_drop_crash` PASS、`test_tts_close_gui_quit` PASS、`test_tts_drop_crash_pkg` PASS；⑨ ✅ **附带修 4 处 U+FFFD 乱码注释**（§54.10 遗留，三版 commit 数量相同 ⇒ 非本轮引入）⇒ 按 §36「不原样引用坏字节」改文字描述 ⇒ 仓库/包两侧 U+FFFD **归 0**、`check_internal_material.py --pkg` **PASS（命中 0）**；⑩ ✅ **客户包定点同步**（双副本纪律：**精确字符串替换 + 唯一命中断言**，禁整目录覆盖；不手抄代码 ⇒ `git show e06f8ee:` + `difflib` 派生块）⇒ `tts_service.py` / `tts_cuda_sidecar.py` 仓库⇄包 **SHA256 完全相同**（`3fd81271…` / `840c521b…`，73 481 B 与 10 367 B）；⑪ ⚠️ **我自己踩的坑（已修正）**：换行 join 重建全文 ⇒ 包尾多 2 空行（CRLF 1281 vs 1279）⇒ 用尾部字节串定点替换修正 ⇒ 现两侧**逐字节相同**；⑫ ⚠️ **客户包侧 PE1 FAIL 属预期**：git HEAD（`7a73692`）尚未含 §58 ⇒ `difflib` 核对 113 行差异**全部是 §58 + 乱码修复**、无其它内容 ⇒ 提交后即转 PASS（正是 §48「基准必须是 HEAD」的正确体现）；⚠️ **未在 CPU 跑推理/测速、未碰真实 `shared/MACHINE_LOCK`、未改 `CORRECTIONS_APP.md`、未吞其它模块改动**
 
-阻塞 / 待用户决定: ① 🔴 **APP-022 集成阶段需等 ASR-013 + TTS-019 交付**（本条只做接口预留，**未集成**）；② 🔴 **APP-021 验收 C 仍需用户配合**（需人）：交互会话里系统音量 ≥ 50%、戴耳机/外放 ⇒ **先点「🔊 测试声音」再点离线朗读念一句** ⇒ 把会话日志路径与遥测行写进本 STATUS；③ 🔴 **撤回后的口径**：在用户用耳朵确认之前，**不得**再宣称「离线朗读能出声」；④ 🔴 **v1.5 zip 未重打**（守 APP-020，等 cp_prefill 同步后的最终版 + 机器锁）；⑤ 🔴 **散包目录仍有第三方素材残留**（babelvox speakers 8 + scipy 测试音频 22）⇒ **未清理**，需重打时由 `pkg_exclude` 规则覆盖；⑥ 🔴 **术语表 / `packaging` 默认值待用户决定**（MT 通知 14 建议：术语表只在芯片/半导体语境下开、`packaging` 放可选集 ⇒ 属 App 默认值 ⇒ 本轮**未擅自改**）；⑦ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑧ 🔴 **§49.7 待裁定**（APP-020 明确「先不要定」⇒ 未动）；⑨ 🔴 **§45.6①–⑤ 等 reviewer 裁定**；⑩ 🔴 **等裁定**：是否采纳 `MAX_SEG_SPAN = 2`（§44 候选已备好）；⑪ 🔴 **需回复 MT 通知 13**；⑫ 🔴 **§46.5** 第三方依赖可满足性闸门；⑬ 🔴 **§42.3** 修复待用户实机确认；⑭ ⛔ **FTP 服务仍关闭**（守 APP-009③）；⑮ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑯ ⛔ 包体优化未做（用户已接受）；⑰ ⛔ V7 残句代价待确认；⑱ 🔴 **§56.9**：TTS-019 `single` 臂 / TTS-017① `A_CPU` 臂两轮数据**是否重跑由 TTS 自行决定**（App 已修根因，**不代跑尺子**）；⑲ 🔴 **§56.2**：ASR/TTS 侧锁写法的**独占性**待其自评（`os.replace` 会覆盖 ⇒ 丢独占性）；⑳ 🔴 **§57**：历史遗留未跟踪文件（`live_caption/sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `results/app/app073*` / `app074*` 等）**归属未判定** ⇒ 本轮**未提交**（§46「已产出未入库」教训 ⇒ 需单独裁定后再入库）
+阻塞 / 待用户决定: ① 🔴 **APP-022 集成阶段需等 ASR-013 + TTS-019 交付**（本条只做接口预留，**未集成**）；② 🔴 **APP-021 验收 C 仍需用户配合**（需人）：交互会话里系统音量 ≥ 50%、戴耳机/外放 ⇒ **先点「🔊 测试声音」再点离线朗读念一句** ⇒ 把会话日志路径与遥测行写进本 STATUS；③ 🔴 **撤回后的口径**：在用户用耳朵确认之前，**不得**再宣称「离线朗读能出声」；④ 🔴 **v1.5 zip 未重打**（守 APP-020，等 cp_prefill 同步后的最终版 + 机器锁）；⑤ 🔴 **散包目录仍有第三方素材残留**（babelvox speakers 8 + scipy 测试音频 22）⇒ **未清理**，需重打时由 `pkg_exclude` 规则覆盖；⑥ 🔴 **术语表 / `packaging` 默认值待用户决定**（MT 通知 14 建议：术语表只在芯片/半导体语境下开、`packaging` 放可选集 ⇒ 属 App 默认值 ⇒ 本轮**未擅自改**）；⑦ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑧ 🔴 **§49.7 待裁定**（APP-020 明确「先不要定」⇒ 未动）；⑨ 🔴 **§45.6①–⑤ 等 reviewer 裁定**；⑩ 🔴 **等裁定**：是否采纳 `MAX_SEG_SPAN = 2`（§44 候选已备好）；⑪ 🔴 **需回复 MT 通知 13**；⑫ 🔴 **§46.5** 第三方依赖可满足性闸门；⑬ 🔴 **§42.3** 修复待用户实机确认；⑭ ⛔ **FTP 服务仍关闭**（守 APP-009③）；⑮ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑯ ⛔ 包体优化未做（用户已接受）；⑰ ⛔ V7 残句代价待确认；⑱ 🔴 **§56.9**：TTS-019 `single` 臂 / TTS-017① `A_CPU` 臂两轮数据**是否重跑由 TTS 自行决定**（App 已修根因，**不代跑尺子**）；⑲ 🔴 **§56.2**：ASR/TTS 侧锁写法的**独占性**待其自评（`os.replace` 会覆盖 ⇒ 丢独占性）；⑳ 🔴 **§57**：历史遗留未跟踪文件（`live_caption/sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `results/app/app073*` / `app074*` 等）**归属未判定** ⇒ 本轮**未提交**（§46「已产出未入库」教训 ⇒ 需单独裁定后再入库）；㉑ 🔴 **§58**：客户包侧 `test_tts_close_gui_quit_pkg.py` 的 **PE1**（包内 `tts_service.py` 归一化 SHA vs **git HEAD**）在 §58 **提交前必然 FAIL**（HEAD 落后于工作区）⇒ 提交后需**复跑确认转 PASS**；㉒ 🔴 **§58.7**：客户包 `app/` 目录**未重打 zip**（守 APP-020：等 `cp_prefill` 同步后的最终版 + 机器锁）⇒ **不写「已交付」**
 
 
 ## 最近更新
-- 00:43 §57 🔴 **巡检：无新 APP 纠偏条目**（`CORRECTIONS_APP.md` 最大 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0**）⇒ `last_ack` **保持 APP-022**
-- 00:43 §57 🔴🔴 **缺陷**：`TTSService.cancel()` **无条件** `n_dropped += 1` ⇒ 同一 jid 被 cancel 两次就**双记** ⇒ 不变式 `n_played+n_dropped+len(pending)==n_submitted` 破坏
-- 00:43 §57 🔴 **真实触发路径**（非理论构造）：`OfflineReader.stop()` 与 `_loop()` 的 `finally` **各调一次** `_cancel_pending()`（锁内快照 + 锁外逐个 cancel ⇒ 两线程快照可重叠）⇒ 实测 3 句提交却报 `n_dropped=6`
-- 00:43 §57 ✅ **修法**：判定与摘除放进**同一锁内临界区**（`was_pending = self.pending.pop(jid, None) is not None`）⇒ **只有仍在途的那一次 cancel 才计丢句**；⚠️ 且**不再重复登记 `_dropped_ids`**（否则已播句被误判为已丢弃 ⇒ `n_dropped` 变负）
-- 00:43 §57 ✅ **验收 `app086` REAL 全过 + 反证命中**（证据 `verdict="PASS"`、`real_fail=[]`）：修复前 A3/A4/A6/A7/B1/B2 **6 项 FAIL** ⇒ 修复后真实路径 `n_dropped=3`；**回归无回归**：`app057` PASS、`test_tts_drop_crash(.pkg)` PASS、`app076` **38/38**、`app078` **28/28**；**客户包定点同步**（精确替换 + 唯一命中断言）⇒ 归一化后**逐字节一致**（SHA256 `b04322b2e218c5f7…` / 68 584 B / 差异仅 `cancel()` 42 行）
-- 22:15 §56 🔴 **巡检：无新 APP 纠偏条目**（`CORRECTIONS_APP.md` 最大 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0**）⇒ `last_ack` 保持 **APP-022**
 - 22:15 §56 🔴🔴 **根因（跨模块）**：App 是 4 模块里**唯一仍用 `O_CREAT|O_EXCL`「先建空文件再写内容」**写锁的模块（ASR/TTS 早已 `tmp+os.replace`）⇒ 别的模块在**空锁窗口**读到空文件 ⇒ 解析不出 pid ⇒ 判成陈旧锁 ⇒ **`os.remove` 删掉别人的活锁** ⇒ 两模块同时跑 ⇒ **TTS 两轮数据作废**（16/30、24/30 行 `timing_valid=false`）
 - 22:15 §56 ✅ **原子 + 独占写**（`tmp`+`fsync`+**`os.link`** ⇒ `FileExistsError` 独占失败；🔴 **刻意不用 `os.replace`** —— 它会**覆盖** ⇒ 丢独占性 ⇒ TOCTOU）+ **读不出 pid 不删**（等 2 s，**只有确实空白才回收**）+ **锁内真实 PID** + **逐条自检**（`lock_intact`/`lock_probe` ⇒ 每条记录落盘 `timing_valid`/`lock_note`/`lock_pid`）
 - 22:15 §56 ✅ **8 个计时脚本收敛**到 `machine_lock_app.write_lock_atomic()`；**4 组验收全绿**：`app082` **22/22**（BUG 反证 `5809/13712` 见到空锁）、`test_machine_lock_app` **18/18**（无回归）、`app083b` **72/72**（语义校验）、`app085` **20/20**（跨进程 e2e，三方解析器全可读）；回执已发 `shared\NOTICE_app_to_tts_asr_20261026_s56.md`
@@ -22,6 +16,12 @@ last_ack: APP-022
 - 16:55 §54 ✅ `app078` **28/28**（新增专项自检）+ `app077` 复跑 **11/11**（真实 CUDA）+ 回归 app076 38/38 / app069 37/37 / app072 13/13 / app073 16/16；最终会话日志**无重复行、无双重标签、乱码已消**
 - 16:20 §54 🔴🔴 **撤回 §52.1/§52.6 的「played 1 ⇒ 能出声」结论**（APP-021）：`played` 只代表"写进缓冲"，`player is None` 时音频被**扔掉却照样发 played** ⇒ 旧判据无效 ⇒ **§51「真实音频未验证结清」一并撤回**
 - 16:20 §54 🔴 **played 改成「真的播完」**：`ring.n_read` 追上本句最后样本写入位置才发；超时 ⇒ 带诊断的句子级 error；**播放器不可用 ⇒ 句子级 error**（不再发 played）
+- 02:01 §58 🔴 **巡检：无新 APP 纠偏条目**（`CORRECTIONS_APP.md` 最大 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0**）⇒ `last_ack` **保持 APP-022**；`CORRECTIONS_APP.md` 全程**只读零修改**（SHA256 `682aced289a58d18b…` 与 §57 巡检时相同）
+- 02:01 §58 🔴🔴 **缺陷**：§57 只清 `pending`/`_inflight`/`_dropped_ids`，**漏了 `_queue`**（worker 未 ready 时 `submit()` 暂存命令、**尚未下发**）⇒ `cancel()` 后命令仍在队列 ⇒ ready 后被**重新下发** ⇒ worker 真播 ⇒ 主进程 `_inflight` 多出**从未在途**的 jid（**幽灵在途句**）⇒ worker 崩溃时 `lost = sorted(self._inflight)` **把幽灵算成在途丢失** ⇒ `n_dropped` 双记 ⇒ 不变式破坏
+- 02:01 §58 🔴 **实测反证**（基线 `e06f8ee`）：3 句提交 → cancel 第 0 句 → ready 后 `_inflight=[0]` → 崩溃 ⇒ `n_dropped=2 / n_played=2 / submitted=3` ⇒ **sum(4) ≠ submitted(3)**；⚠️ 与 §57 是**两个不同的洞**（§57 = 同一句被计两次；§58 = 从未在途的句被当成在途丢失）
+- 02:01 §58 ✅ **修法一（源头）**：`cancel()` 在**同一锁内**把 jid 从 `_queue` 摘掉（`_queue` 是 list 保顺序 ⇒ 摘除 O(n) ⇒ 另加 `_queued_ids` set 记成员 ⇒ O(1) 判定；`submit()` 登记 + 3 处 `_queue.clear()` 同步清）；✅ **修法二（第二道保险）**：`_flush_queue()` 补发时**跳过已不在 `pending` 里的 jid** + 落日志「补发时跳过 N 句」
+- 02:01 §58 ✅ **验收 `app088` 15/15 全 PASS + 反证命中**（A 7/B 4/C 4/D 3；证据 `verdict="PASS"`、`real_fail=[]`、`baseline_commit="e06f8ee"`）：D1 修复前 `n_queue=3`、D2 修复前 `inflight=[0]`、D3 修复前 `sum=4` vs `submitted=3`；**回归 5 套全绿**（`app057`/`app086`/`test_tts_drop_crash`/`test_tts_close_gui_quit`/`test_tts_drop_crash_pkg`）
+- 02:01 §58 ✅ **附带修 4 处 U+FFFD 乱码注释**（§54.10 遗留 ⇒ 三版 commit 数量相同 ⇒ 非本轮引入）⇒ 按 §36 改文字描述 ⇒ 仓库/包两侧 U+FFFD **归 0**、`check_internal_material.py --pkg` **PASS（命中 0）**；✅ **客户包定点同步** ⇒ `tts_service.py` / `tts_cuda_sidecar.py` 仓库⇄包 **SHA256 完全相同**（`3fd81271…` / `840c521b…`）；⚠️ **我自己踩的坑**：换行 join 重建全文 ⇒ 包尾多 2 空行 ⇒ 已用尾部字节串定点替换修正 ⇒ 现两侧**逐字节相同**
 
 ## §1 现状汇总（2026-10-23）
 
@@ -9306,7 +9306,7 @@ APP-021 明文要求（且**明令**：不得用「played ≥ 1」或假 service
 | 问题 | 实测现象 | 根因 | 修法 |
 |---|---|---|---|
 | ① 同一行落盘 **2~3 遍** | `'sox' …` / `输出设备解析：…` 各出现 2~3 次 | ① service `_log_and_forward` 写一遍（tag `[TTS]`）② GUI `_ui_log` 又写一遍 ③ GUI 的 TTS `on_log` 再加 `tts: ` 前缀写一遍 | `tts_service.append_session_log()` 加**短窗口去重**（3 s 内、剥掉 `[TTS]`/`[tts]`/`tts:` 等包装前缀后正文相同 ⇒ 只落盘一次） |
-| ② stderr **中文乱码** | `'sox' �����ڲ����ⲿ���ģ�Ҳ���ǿ����еĳ���` | **字节在上游就被破坏了**（详见下方链路） | ① service：`Popen` 改**二进制**模式 + `_decode_worker_line()`（utf-8 严格 → gb18030 严格 → utf-8 替换）② 边车：`sys.stderr` 换成**字节代理** `_RawStderr` |
+| ② stderr **中文乱码** | `'sox' ` 开头、后面跟一串 U+FFFD 替换字符的乱码 | **字节在上游就被破坏了**（详见下方链路） | ① service：`Popen` 改**二进制**模式 + `_decode_worker_line()`（utf-8 严格 → gb18030 严格 → utf-8 替换）② 边车：`sys.stderr` 换成**字节代理** `_RawStderr` |
 | ③ **双重标签** | `[TTS] [TTS] [tts_worker] …` | 消息自带 `[TTS]`（来自 stdout 读取循环）又叠加了 tag | `_log_and_forward` 里判断：消息已带 `[TTS]` ⇒ 不补 tag |
 
 #### 🔴 乱码的完整链路（**本节最有价值的部分**）
@@ -10064,3 +10064,204 @@ if was_pending:
 忽略了**仍在途**（`pending`）的句子 ⇒ 把**正常**的 A1/C2 误判为 FAIL。
 ⇒ 正确判据必须覆盖**所有状态**（在途 / 已播 / 已丢），本轮统一为
 **`n_played + n_dropped + len(pending) == n_submitted`**。
+
+## §58 🔴 巡检（APP-022 = `last_ack`，**本轮无新 APP 纠偏条目**）+ 🔴🔴 修「`cancel()` 漏清待发队列 ⇒ 幽灵在途句 ⇒ 崩溃时 `n_dropped` 双记」（2026-10-27 02:01）｜**本条已完成**
+
+### 58.1 巡检结论：**无新 APP 纠偏条目**
+
+| 项 | 实测值 |
+|---|---|
+| `status/app/CORRECTIONS_APP.md` 条目数 | **22** 条（`APP-001` … `APP-022`） |
+| 最大编号 | **APP-022** |
+| 头部 `last_ack`（巡检前） | **APP-022** |
+| 编号差 | **0** ⇒ **不触发**「按编号逐条执行」 |
+| `last_ack`（巡检后） | **APP-022**（**保持不变**） |
+
+⇒ 本轮**没有**新的 reviewer 纠偏条目 ⇒ 按既定约定，改做 **App 职责内的遗留缺陷审计与修复**。
+⚠️ `CORRECTIONS_APP.md` 全程**只读、零修改**（SHA256 `682aced289a58d18b9303cffa6cc5a60dd21c83e226cfefa3d3f2171f81aea00`，
+48 457 B，mtime `2026-10-26 16:18:08` ⇒ 与 §57 巡检时**完全相同** ⇒ 确证未被本轮触碰）。
+
+### 58.2 🔴🔴 本轮修的缺陷：`cancel()` 漏清「待发队列 `_queue`」⇒ 幽灵在途句 ⇒ 崩溃时 `n_dropped` 双记
+
+**缺陷位置**：`live_caption/tts_service.py::cancel()`（修复前 L886-899）。
+
+§57 刚修好「同一 jid 被 cancel 两次 ⇒ 双记」，但**只清了 `pending` / `_inflight` / `_dropped_ids`**，**漏了 `_queue`**。
+🔴 `_queue` 是「**worker 还没 ready 时暂存下发命令**」的队列（`submit()` 在 worker 未 ready 时把命令放这里，**还没下发**）：
+
+```python
+else:
+    with self.lock:
+        self._queue.append(cmd)     # ← 修复前只进 _queue，不登记 jid
+```
+
+⇒ 于是有**两个**真缺陷：
+
+**① 🔴 幽灵在途句**
+worker **还没 ready** 时（模型加载中，实测 4~24 s）提交 3 句 ⇒ 3 条命令全在 `_queue`。
+此时 `cancel(jid)` **只清了 `pending`** ⇒ **命令仍留在 `_queue` 里**
+⇒ worker ready 后 `_flush_queue()` **把它重新下发** ⇒ worker 按 `synth` 正常合成并**真的播出来**
+⇒ 但主进程这边 `_inflight` 里多了一个**从未真正在途**的 jid ⇒ **幽灵在途句**。
+
+**② 🔴 崩溃时双记**
+worker 崩溃时 `_on_worker_exit()` 取 `lost = sorted(self._inflight)` ⇒ **把幽灵 jid 也算成「在途丢失」**
+⇒ `n_dropped += len(lost)` ⇒ **同一句被丢了两次** ⇒ 不变式被破坏。
+
+**实测反证（`results/app/app088_tts_cancel_queue_ghost.py` D 组，基线 commit `e06f8ee`）**：
+
+| 阶段 | `n_played` | `n_dropped` | `n_submitted` | `sum` | `_inflight` | 判定 |
+|---|---|---|---|---|---|---|
+| cancel 后 | 0 | 1 | 3 | 1 | `[]` | — |
+| ready 后 | 2 | 1 | 3 | 3 | **`[0]`（幽灵）** | — |
+| **worker 崩溃后** | 2 | **2** | 3 | **4** | `[]` | 🔴 **broken=true** |
+
+⇒ **sum(4) ≠ submitted(3)** ⇒ 不变式破坏，**缺陷曾真实存在**（不是理论构造）。
+
+⚠️ 这与 §57 的破口**是两个不同的洞**：
+- §57 修的是「**同一句被 cancel 两次**」（同一句被计两次丢句）；
+- §58 修的是「**从未在途的句被当成在途丢失**」（一句从未下发，却被当成在途丢了一次）。
+⇒ 两者都破坏同一个不变式，但**根因、触发路径、修法都不同** ⇒ 必须**都修**。
+
+### 58.3 ✅ 修法：**在同一把锁内**把 jid 从 `_queue` 里摘掉 + `_flush_queue()` 加第二道保险
+
+**修法一（源头）**：`cancel()` 在**同一把锁内**同时清 `pending` / `_inflight` / **`_queue`**：
+
+```python
+with self.lock:
+    was_pending = self.pending.pop(jid, None) is not None
+    self._inflight.discard(jid)
+    # 🔴🔴 2026-10-27 §58 修：**必须同时从「待发队列」里摘掉**。
+    if jid in self._queued_ids:
+        self._queued_ids.discard(jid)
+        self._queue = [c for c in self._queue if c.get('id') != jid]
+    if was_pending:
+        self._dropped_ids.add(jid)
+```
+
+⇒ ⚠️ `_queue` 是 `list`（要保顺序）⇒ 摘除是 O(n) ⇒ **另用 `set`（`_queued_ids`）记成员** ⇒ O(1) 判断「这个 jid 在不在待发队列里」。
+`submit()` 登记入队时同步 `self._queued_ids.add(jid)`；3 处 `_queue.clear()` 全部补 `self._queued_ids.clear()`。
+
+**修法二（第二道保险）**：`_flush_queue()` 补发时**跳过已不在 `pending` 里的 jid**：
+
+```python
+for cmd in q:
+    jid = cmd.get('id')
+    if jid is not None:
+        with self.lock:
+            if jid not in self.pending:
+                n_skipped += 1
+                continue        # ← 已定案（已丢）的句子绝不重新下发
+            self._inflight.add(jid)
+```
+
+⇒ 判据 = 「这句已不在 `pending` 里」⇒ 它已被别处定案 ⇒ **绝不能**把已定的句子重新下发。
+并落日志 `[TTS] 补发时跳过 N 句（已被丢弃，不重新下发）`。
+
+### 58.4 ✅ 验收：`app088` **15/15 全 PASS** + **反证命中**
+
+证据文件：`results/app/app088_tts_cancel_queue_ghost_evidence.json`
+（1 700 B，mtime `2026-10-27 02:00:37`，SHA256 `952c40c1d770eca14e473be975dfdd893c7aa7a38323fd31183a815637c23130`）
+原始字段：**`verdict="PASS"`**、**`real_fail=[]`**、**`baseline_commit="e06f8ee"`**。
+
+| 组 | 项数 | 结果 | 关键实测字段 |
+|---|---|---|---|
+| **A** worker 未 ready 时 cancel | 7 | **全 OK** | A1 `n_queue=2`（幽灵已摘）、A2 `n_queue=2`、A5 `inflight=[]`、A6 `sum=3` |
+| **B** worker 崩溃 | 4 | **全 OK** | B1 `sum=3`、B2 `n_dropped=1`（幽灵**未**重复计）、B3 不变式成立 |
+| **C** 正常路径不回归 | 4 | **全 OK** | C1 `n_played=3 / n_dropped=0 / n_queue=0` |
+| **D** 修复前反证 | 3 | **全 OK** | D1 修复前 `n_queue=3`（应为 2）、D2 修复前 `inflight=[0]`、D3 修复前 **`sum=4` vs `submitted=3`** |
+
+⇒ **15/15 全 PASS**，D 组三项反证**全部命中** ⇒ 确证缺陷真实存在且已被本次修复消除。
+
+⚠️ 验收脚本用**桩 worker**（`results/app/_stub_app088_worker.py`），**忠实复刻真实 worker 的 cancel 语义**：
+收到 `cancel` → 记入 `_cancelled`；收到 `synth` 且该 jid 已 cancelled → **跳过合成、不回 `played`**
+（对应 `tts_worker.py` L942 / L1463）⇒ 桩与真实 worker 语义一致。
+⚠️ **桩 worker、无推理** ⇒ 未在 CPU 跑推理/测速、未占 GPU、未调 MiniMax。
+
+### 58.5 ✅ 回归无回归（5 套）
+
+| 套件 | 结果 |
+|---|---|
+| `app057_tts_dropped_id_registration` | **PASS**（REAL 全过 + 反证命中：修复前 `sum=4`/`sum=6`） |
+| `app086_tts_cancel_double_count` | **PASS**（REAL 全过 + 反证命中：修复前 `sum=2` vs `submitted=3`） |
+| `test_tts_drop_crash` | **PASS**（`结论：PASS`，BUG 仍命中 0） |
+| `test_tts_close_gui_quit` | **PASS**（REAL 全过且 BUG 全落空） |
+| `test_tts_drop_crash_pkg`（客户包侧） | **PASS** |
+
+### 58.6 ✅ 附带修复：4 处 U+FFFD 乱码注释（§36 编码闸门）
+
+🔴 `check_internal_material.py --pkg` 在客户包侧**命中 2 个文件**（`tts_service.py` 39 个 U+FFFD、`tts_cuda_sidecar.py` 23 个 U+FFFD）。
+核查 `e06f8ee` / `8d6bcc1` / `48b646f` 三版**均为同样数量** ⇒ 确认是 **§54.10 遗留**（不是本轮引入）。
+
+按 §36「**不要原样引用坏字节**」铁律，**不把坏字节写进新文本**，改为**文字描述**：
+- `tts_service.py` L156 / L435 / L477：3 处 ⇒ 改为「一段乱码（U+FFFD 替换字符）」/「一行以 `'sox' ` 开头、后面跟一串 U+FFFD 替换字符的乱码」；
+- `tts_cuda_sidecar.py` L36：1 处 ⇒ 同上。
+
+⇒ 仓库侧 U+FFFD **归 0**；客户包侧 U+FFFD **归 0**；`check_internal_material.py --pkg` ⇒ **「命中 0 个内部素材」/ 结论：PASS**。
+
+🔴 **闸门还抓到第三处**：`check_internal_material.py --staged` 命中 **本 STATUS 自身**（§54 章节表格 L9309 里
+原样引用了 23 个 U+FFFD）⇒ HEAD 版本**也是 23 个** ⇒ 确认是**历史遗留**（不是本轮引入）
+⇒ 按 §36 同样改为文字描述 ⇒ **本 STATUS 的 U+FFFD 也归 0**
+⇒ 复跑 `check_internal_material.py --staged` ⇒ **「命中 0 个内部素材」/ 结论：PASS**。
+⚠️ 教训：**闸门会扫到「记录乱码的那份文档自己」** ⇒ 「文档里写了乱码的原文」也算命中 ⇒ 记录本身也要守 §36。
+
+### 58.7 ✅ 客户包定点同步（双副本纪律：**精确字符串替换 + 唯一命中断言**，禁整目录覆盖）
+
+同步脚本：`live_caption/sync_s58_cancel_queue_to_pkg.py`
+（8 843 B，mtime `2026-10-27 01:55:22`，SHA256 `0a565826114986172ef326349699c040af64c7d7c3128d3d8bc8b499c5e7ca70`）
+
+- **不手抄代码**：从 `git show e06f8ee:live_caption/tts_service.py` 取基线 ⇒ `difflib.SequenceMatcher` **自动派生**连续变更块 ⇒ OLD 文本必须在包内**唯一命中 1 次**才写入；
+- ⚠️ 唯一命中断言**实际拦下过一次错误同步**（`AssertionError: 块命中 3 次，必须 == 1`）⇒ 改为**逐块渐进添加公共上下文**（最多 6 行）直到唯一命中；
+- 替换在 **LF 域**完成 ⇒ 写回时**按客户包原本行尾风格**（CRLF）恢复 ⇒ 避免 `\r\r\n`；
+- 同步后**归一化逐字节比对**。
+
+**最终对齐结果（归一化后逐字节一致 = YES）**：
+
+| 文件 | 仓库 bytes / CRLF | 客户包 bytes / CRLF | 仓库 SHA256 | 客户包 SHA256 | 一致 |
+|---|---|---|---|---|---|
+| `live_caption/tts_service.py` | 73 481 / 1 279 | 73 481 / 1 279 | `3fd812719bbb620998c1dc7f5d66f048f103947bb72266f6b01f2c5ac5af637f` | `3fd812719bbb620998c1dc7f5d66f048f103947bb72266f6b01f2c5ac5af637f` | ✅ **YES** |
+| `live_caption/tts_cuda_sidecar.py` | 10 367 / 0 | 10 367 / 0 | `840c521badd40e782445565a4b1497a6e949866d9f269e7a2ae882aec4fd8e4e` | `840c521badd40e782445565a4b1497a6e949866d9f269e7a2ae882aec4fd8e4e` | ✅ **YES** |
+
+⇒ 两个文件 **sha256 完全相同**（归一化 sha16 均为 `96118245f4e275f0` / `840c521badd40e78`）⇒ U+FFFD 两侧均为 **0**。
+
+⚠️ **同步过程中我自己踩的坑（已修正）**：上一轮乱码修复脚本用换行 join 重建全文 ⇒ **包尾多出 2 个空行**
+（包 `)` + CRLF×3 vs 仓库 `)` + CRLF×1 ⇒ 包 CRLF 1281 vs 仓库 1279）
+⇒ 用**尾部字节串定点替换**（唯一命中 1 次 + 断言 `endswith`）修正 ⇒ 现两侧**逐字节相同**。
+⚠️ 备份已移出客户包目录（`results/app/_backup_s58/tts_service.py.bak_s58_tail`）⇒ `app/` 目录仍为 **25 个文件**（无测试残留）。
+
+### 58.8 🔴 **客户包侧 `test_tts_close_gui_quit_pkg.py` 的 PE1 项 FAIL —— 属预期，非缺陷**
+
+⚠️ PE1 = 「包内 `tts_service.py` 归一化 SHA 必须与 **git HEAD** 一致」⇒ 报
+`1d0102e11187ab7b vs 96118245f4e275f0`。
+**根因**：`git HEAD`（`7a73692`）**尚未包含 §58** ⇒ **HEAD 落后于工作区** ⇒ 是**提交前**的必然现象。
+⇒ 用 `difflib` 核对 `HEAD` ⇄ 包内差异：**113 行，全部是 §58 修复 + 4 处乱码修复**，**无任何其它内容**
+⇒ 提交 §58 后该项即转 PASS。
+⚠️ 这是 §48「**打包自检基准必须是 HEAD，不是工作区**」的正确体现：它**如实**报出了「包已更新但 HEAD 未更新」。
+
+### 58.9 ✅ 本轮守则自检
+
+- ✅ **未在 CPU 跑推理/测速**（全为桩 worker，无推理）⇒ 未创建 `shared/MACHINE_LOCK`（本轮无计时作业）；
+- ✅ **未调用 MiniMax**（质量判定留给 reviewer 回转写）；
+- ✅ **`CORRECTIONS_APP.md` 全程只读**（SHA256 与 §57 巡检时完全相同）；
+- ✅ **只改 `status/app/STATUS_APP.md`**（追加 §58 + 更新头部 4 字段行），**不回头改旧章节**；
+- ✅ **客户包未整目录覆盖**（全部走「精确字符串替换 + 唯一命中断言」）；
+- ✅ **只提交 App 范围文件**，不吞其它模块的未提交改动（当前工作区共 474 项改动，**仅本轮 5 个 App 文件入暂存**）；
+- ✅ **普通 push 到 `main`**，不 force push（仓库仅 `main` + `origin/main` 两个分支）。
+
+### 58.10 沉淀的通用教训
+
+🔴 **「取消」必须撤掉所有「尚未下发」的排队项** —— §57 只清了「在途」，§58 补清「待发」。
+⇒ 教训：**一个句子的生命周期有多个状态位（待发 / 在途 / 已播 / 已丢）** ⇒
+「放弃这个句子」必须**遍历所有状态位**，漏一个就产生幽灵。
+⇒ 判据：凡是「提交后可能还留在某个队列里」的入口，放弃时必须**同时**从该队列摘除。
+
+🔴 **「worker 崩溃时的清账」会把一切在 `_inflight` 里的东西都算成「在途丢失」** ⇒
+⇒ 所以 **`_inflight` 必须是「真正已下发」的精确集合**，**不能**混进「只是排着队」的。
+⇒ 教训：下游的批量清账逻辑**默认信任**上游状态位的准确性 ⇒ 上游状态位不精确 = 下游系统性错账。
+
+🔴 **一道保险不够，要两道** —— 修法一（`cancel()` 里摘队列）是治本，修法二（`_flush_queue()` 跳过已不在 `pending` 的 jid）是治标兜底。
+⇒ 教训：定点修复时**同时**加一道「补发前再查一次」的兜底 ⇒ 即使状态位意外不一致，也**不会**把已定的句子重新下发。
+
+🔴 **「修一处乱码」≠「这一类乱码清干净了」** —— §54.10 的 U+FFFD 注释残留了 3 个 commit 才被 §36 闸门抓到。
+⇒ 教训：**缺陷类别必须进闸门**（`check_internal_material.py --pkg`），并**每次同步后重跑** ⇒ 不能靠人眼。
+
+🔴 **双副本同步的「尾部空行」也是差异** —— 用换行 join 重建全文会多出尾部空行。
+⇒ 教训：同步后必须做**归一化逐字节比对**（不只是 diff 块数）⇒ 尾部差异只有在逐字节比对下才暴露。

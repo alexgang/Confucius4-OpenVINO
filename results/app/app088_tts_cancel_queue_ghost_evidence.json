@@ -1,0 +1,82 @@
+{
+  "real_fail": [],
+  "evidence": {
+    "A_after_cancel": {
+      "n_played": 0,
+      "n_dropped": 1,
+      "n_submitted": 3,
+      "n_pending": 2,
+      "n_queue": 2,
+      "inflight": [],
+      "sum": 1,
+      "invariant": true
+    },
+    "A_after_ready": {
+      "n_played": 2,
+      "n_dropped": 1,
+      "n_submitted": 3,
+      "n_pending": 0,
+      "n_queue": 0,
+      "inflight": [],
+      "sum": 3,
+      "invariant": true
+    },
+    "B_after_crash": {
+      "n_played": 2,
+      "n_dropped": 1,
+      "n_submitted": 3,
+      "n_pending": 0,
+      "n_queue": 0,
+      "inflight": [],
+      "sum": 3,
+      "invariant": true
+    },
+    "C_normal": {
+      "n_played": 3,
+      "n_dropped": 0,
+      "n_submitted": 3,
+      "n_pending": 0,
+      "n_queue": 0,
+      "inflight": [],
+      "sum": 3,
+      "invariant": true
+    },
+    "D_baseline": {
+      "commit": "e06f8ee",
+      "after_cancel": {
+        "n_played": 0,
+        "n_dropped": 1,
+        "n_submitted": 3,
+        "n_pending": 2,
+        "n_queue": 3,
+        "inflight": [],
+        "sum": 1,
+        "broken": false
+      },
+      "after_ready": {
+        "n_played": 2,
+        "n_dropped": 1,
+        "n_submitted": 3,
+        "n_pending": 0,
+        "n_queue": 0,
+        "inflight": [
+          0
+        ],
+        "sum": 3,
+        "broken": false
+      },
+      "after_crash": {
+        "n_played": 2,
+        "n_dropped": 2,
+        "n_submitted": 3,
+        "n_pending": 0,
+        "n_queue": 0,
+        "inflight": [],
+        "sum": 4,
+        "broken": true
+      }
+    }
+  },
+  "baseline_commit": "e06f8ee",
+  "verdict": "PASS"
+}
