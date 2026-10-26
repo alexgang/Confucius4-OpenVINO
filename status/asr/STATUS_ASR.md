@@ -1,10 +1,11 @@
-last_ack: ASR-011
-更新时间: 2026-10-26 11:00
-当前任务: **ASR-011 ① 已完成 + 交付件字段语义已修正（§31/§32 已落档）**。① ✅★ **0.6B INT8 @NPU 61 分钟长跑跑完**：`covered_s` 3671.189（`complete=true`）、**553 段**、**11412 词**、`rule_counts` 518/34/1、段长 p50/p95/max 6.4/8.96/12.16、编译 144.51 s；⚠️ **`timing_valid=false`**（质量作业未持锁 ⇒ **计时数字一律作废**，只交 transcript）；② ✅★ **NPU vs iGPU 同口径对比**：**段边界 553/553 逐位一致**（切段在**音频域** ⇒ 不同设备/精度的格子段数段长可直接比）、**文本 447/553（80.8%）逐字相同**、词数 **−7（−0.06%）**、文本健康度**完全同型** ⇒ **NPU 上文本完全健康**（**不是**模型坏、**不是** mask 失效）；③ ✅ **格子已自动生成**（`qwen3asr_06b__int8__mask2__int8_npu.json`：`wer_pct=null` 交 reviewer、`device_placement` NPU/NPU **且带产品级出处**）；④ ✅★ **交付件 4 处字段语义错误已修**（§32）：作废 RTF 从 `latency.rtf` **挪到 `timing_observed`**（格子/汇总/MATRIX 三层同步）、`mem_host_peak_mb` 改为**只由 bench 格提供**（原值是系统级内存、不是进程峰值）、`device_placement` 补 `evidence`（引用 summary 原始字段）、`mem_device_mb` 做归一（原先恒 null ⇒ 不满足 ASR-010 §4.5 字段清单）⇒ **27 个必需字段 0 缺失**；⑤ 🔄 **R2T2 INT8@NPU 61 分钟进行中**（22.7% / 127 段，RTF≈1.01，已就位自动出格脚本）；⑥ ⏳ 待跑 6 格速度/内存 bench（等 NPU/CPU/规范锁空闲）
-阻塞 / 待用户决定: ① 🔴★ **待 reviewer 复算的 WER**：0.6B INT8@NPU（553 段 / 11412 词，`results/p3_mask2_61min_int8_npu/transcript.txt`）+ R2T2 INT8@NPU（跑完后交）；② 🔴 **旧图 5 格结论作废 ≠ 新图已有结论** —— `int4_sym_chan` 在新图上**至今未知**（按 ASR-011 第 4 条用户决定**不测**）；③ ⏳ **`R2T2 R2` 同口径标定点未跑** ⇒ teacher-forcing 99.29%/92.71% 仍无阈值可判；④ ⚠️ **`GPU.0` = iGPU 必须同步 reviewer**（影响他对历史 GPU 格的解读）；⑤ ⚠️ **`INT4_ASYM g128 在 NPU 上比 INT8 慢 38%`**（**不能**写成「NPU 上 INT4 最慢」）—— 机理未查（只报现象）；⑥ ⚠️ **P0 参照重跑未做**（`--minutes 61` 截到 3660.0 s，少跑 11.19 s）；⑦ ⚠️ **「提高 rule1 静音要求」必须改代码**（硬编码无 env）⇒ 属 App 模块（ASR-003 边界）；⑧ ⚠️ **bench 每格只测 1 次**（用户决定）⇒ `rtf_p50 == rtf_p95`，**不是分布**；⑨ ⚠️ **R2T2 首字延迟是「引擎级」口径**（含 encoder+prefill），与 0.6B 的「argmax 首 token」**不同口径** ⇒ 报告须标注；⑩ ⚠️ **R2T2 的加载+编译不可分**（OVEngine 合算在 `load_s`）⇒ 冷/热只给合并值；⑪ ⚠️ **NPU 无 `GPU_MEMORY_STATISTICS`** ⇒ NPU 格的设备内存**无法读取**，只报 `DEVICE_ARCHITECTURE`（不硬凑）
+last_ack: ASR-012
+更新时间: 2026-10-26 11:08
+当前任务: **ASR-012 已落地（§33）；ASR-011 ① 完成 + 交付件字段语义已修正（§31/§32）**。① ✅★ **0.6B INT8@NPU WER 11.05% 已回填**（reviewer 复算，MiniMax baseline 10964 词、1212 个错误）——对 iGPU 10.94% **+0.12pp CI [−0.05,+0.29] 不显著**（17 段更好/510 持平/26 更差）、对 R2T2 App B 10.58% **+0.47pp CI [−0.24,+1.17] 不显著**；reviewer 独立核实段边界 **553/553 逐位相同**（差 0.0 s）⇒ **§31.2 成立**；② ✅★ **§29.4 的「cross-attention」错误理由已撤回并改写**（ASR-012 §2）—— R2T2 实为 **decoder-only 整段 prefill**（`npu_embeds_backend.py:211-214` prefill 一次喂 T 个 prompt token，与 0.6B 同结构），全 1 mask 的真实理由 = **batch=1、无 padding token、mask 长度=真实 token 数、静态化 padding 由 NPUW_LLM 内部完成**（IR 有 mask 端口 ⇒ 不具备 0.6B 的根因条件）；三处派生物同步修正；③ ✅ **交付件 4 处字段语义错误已修**（§32）：作废 RTF 隔离到 `timing_observed`、`mem_host_peak_mb` 只由 bench 格提供、`device_placement` 补 `evidence`、`mem_device_mb` 归一 ⇒ **27 个必需字段 0 缺失**；④ 🔄 **R2T2 INT8@NPU 61 分钟进行中**（31.3% / 175 段，RTF≈1.05；已就位自动出格脚本）；⑤ ⏳ 待跑 6 格速度/内存 bench（等 NPU/CPU/规范锁空闲）
+阻塞 / 待用户决定: ① 🔴★ **待 reviewer 复算的 WER**：R2T2 INT8@NPU App 路径（跑完后交，对照 App 路径 R2T2 iGPU B **10.58%**）；② 🔴 **旧图 5 格结论作废 ≠ 新图已有结论** —— `int4_sym_chan` 在新图上**至今未知**（按 ASR-011 第 4 条用户决定**不测**）；③ ⏳ **`R2T2 R2` 同口径标定点未跑** ⇒ teacher-forcing 99.29%/92.71% 仍无阈值可判；④ ⚠️ **`GPU.0` = iGPU 必须同步 reviewer**（影响他对历史 GPU 格的解读）；⑤ ⚠️ **`INT4_ASYM g128 在 NPU 上比 INT8 慢 38%`**（**不能**写成「NPU 上 INT4 最慢」）—— 机理未查（只报现象）；⑥ ⚠️ **P0 参照重跑未做**（`--minutes 61` 截到 3660.0 s，少跑 11.19 s）；⑦ ⚠️ **「提高 rule1 静音要求」必须改代码**（硬编码无 env）⇒ 属 App 模块（ASR-003 边界）；⑧ ⚠️ **bench 每格只测 1 次**（用户决定）⇒ `rtf_p50 == rtf_p95`，**不是分布**；⑨ ⚠️ **R2T2 首字延迟是「引擎级」口径**（含 encoder+prefill），与 0.6B 的「argmax 首 token」**不同口径** ⇒ 报告须标注；⑩ ⚠️ **R2T2 的加载+编译不可分**（OVEngine 合算在 `load_s`）⇒ 冷/热只给合并值；⑪ ⚠️ **NPU 无 `GPU_MEMORY_STATISTICS`** ⇒ NPU 格的设备内存**无法读取**，只报 `DEVICE_ARCHITECTURE`（不硬凑）；⑫ ⚠️ **0.6B INT4@NPU 61 分钟 App 路径未跑**（ASR-011 精简版只要求 INT8@NPU ⇒ 按用户范围**不补**，报告须写明「该格无 App 路径质量数据」）
 
 
 ## 最近更新
+- 2026-10-26 11:08 **ASR-012 落地：0.6B INT8@NPU WER 11.05% 已回填 + §29.4 的「cross-attention」理由已撤回（§33）**：① ✅★ **reviewer 复算的 WER 已原样回填**：0.6B INT8@NPU（App 路径，553 段）= **11.05%**（1212 个错误）、iGPU 对照 10.94%（1199）⇒ **NPU−iGPU +0.12pp CI [−0.05,+0.29] 不显著**（17 段更好/510 持平/26 更差）、**对 R2T2 App B 10.58% +0.47pp CI [−0.24,+1.17] 不显著**；reviewer **独立核实段边界 553/553 逐位相同（差 0.0 s）** ⇒ §31.2 成立；⚠️ reviewer 未给 S/D/I 拆分 ⇒ `wer_breakdown` 如实写「不硬凑」+ `n_errors=1212`；② 🔴★ **撤回 §29.4 第 3 点的错误理由**：「R2T2 走 cross-attention、序列里根本没有 padding 概念」**是错的** —— R2T2 是 **decoder-only 整段 prefill**（`npu_embeds_backend.py:211-214` prefill 一次喂 **T 个 prompt token**，与 0.6B 同结构）；全 1 mask 的**真实理由** = **batch=1、无 padding token、mask 长度=真实 token 数（prefill=T / decode=past+1）、静态化到 512 的 padding 由 NPUW_LLM 内部完成**、IR **保留了 `attention_mask` 端口** ⇒ 0.6B 的根因（「自己手写 padding 到 512 且图里无 mask 端口」）**R2T2 不具备**；实测佐证 全 NPU 7.95% 对 GPU +0.10pp 不显著；「不派生自 c069g」这**一条成立**（reviewer 也确认：`c079b` 的 PAIRS 是 `…lastlogit-ov → …cleanie-ov`，`live_caption/*.py` 无处引用 `ov-dec-embed-fp16`）；**§29.4 已就地改写**（报告会引用这一段）+ 三处派生物同步修正（`asr007_build_results.py` / `asr007_r2t2_app_transcribe.py` / **`build_compare_r2t2_app.py` 新增覆盖** —— 🔴 长跑进程启动时已加载旧代码 ⇒ summary 带旧措辞，出格时必须覆盖）；③ 🔄 R2T2 INT8@NPU 61 分钟进行中（31.3% / 175 段，RTF≈1.05）；④ ⚠️ reviewer 记的 pid 25264（9 MB 小进程）应是 venv 包装层，真实占设备的是 20876 ⇒ **以产物为准、不以 PID 为准**
 - 2026-10-26 11:00 **交付件 4 处字段语义错误已修 + 27 个必需字段校验通过（§32）**：① 🔴 **`mem_host_peak_mb` 塞的是系统级内存、不是进程峰值**（取的是 `GlobalMemoryStatusEx` 的 total/avail/used）⇒ 改为**只由 bench 格提供**（`GetProcessMemoryInfo`），原值另存 `mem_host_system_raw`；② 🔴★ **作废的 RTF 仍摆在 `latency.rtf` 里**（`timing_valid=false` 的 0.6B@NPU 那一格）⇒ **三层同步修**：格子 json 挪到 `timing_observed`（数值字段全置 null）、`MATRIX.md` RTF 列显示「**作废**」、`MATRIX.json` 加 `rtf_observed`（`rtf` 置 null）⇒ **连带**把 `r2t2__int8__npu` 那格自称 `timing_valid=false` 的 RTF 0.7722 也清出 RTF 列（**交付级 RTF 只来自 bench 格**）；③ 🔴 **`device_placement` 没有产品级出处**（是脚本参数推出来的）⇒ 补 `evidence`（引用 summary 原始字段 `device`=NPU / `enc_ir` / `dec_ir` / `mem_device.device` / `DEVICE_ARCHITECTURE`=5010）+ 推理链说明（`OVRunner` 同一 `device` 参数编译两个 IR ⇒ enc==dec）；④ 🔴 **`mem_device_mb` 恒 null**（设备内存被塞进 `mem_device_raw` ⇒ 不满足 ASR-010 §4.5 字段清单）⇒ 新增 `_device_mem_mb()` 归一（GPU 取 `GPU_MEMORY_STATISTICS` 的 usm_device/usm_host/…；**NPU 无此属性 ⇒ 只报 `DEVICE_ARCHITECTURE`，内存不硬凑**）；⑤ ✅ 附带：R2T2 的 `compile_s_cold/cached` 改用 `load_s_cold/load_s_cached` 合并值（OVEngine 合算加载+编译）+ MATRIX 顶部 reviewer 数字清单补 10.94%/11.57%；⑥ ✅ **27 个必需字段逐条核对 ⇒ 7 条记录 0 缺失**；⑦ ✅ 新增 `wait_and_build_r2t2.py`（R2T2 长跑结束自动出格，判据 = `n_segs>0` 且 `covered_s >= audio_sec−1.0`，**不是**「文件非空」）
 - 2026-10-26 10:45 **0.6B INT8 @ NPU 61 分钟长跑跑完 + NPU vs iGPU 同口径对比（§31）**：① ✅★ **长跑跑满整个 wav**：`covered_s` **3671.189**（`complete=true`）、**553 段**、`rule_counts` **518/34/1**、段长 p50/p95/max **6.4/8.96/12.16 s**、总词数 **11412**、`load_s` 6.47 / `compile_s` **144.51**、`n_steps_total` 5737（640 ms 粒度）、decoder **2 端口**（⇒ 带 `attention_mask`，新图 mask2 生效）；⚠️ **`timing_valid=false`**（质量作业未持锁 ⇒ **RTF 1.0684 等计时数字一律作废**，只交 transcript）；② ✅★ **NPU vs iGPU 同口径对比（本节最有价值的一条）**：**段边界 553/553 逐位一致**（差 < 0.01 s ⇒ **切段在音频域** ⇒ 不同设备/精度格子的段数段长可直接比）、`rule_counts` 与段长分布**逐位一致**、**文本逐字相同 447/553（80.8%）**、词数 **−7（−0.06%）**、文本健康度**完全同型**（latin 1.0000 / 三连 0 / ABAB 6 / 唯一率 0.2346 vs 0.2354 / 空段 0 / 非 ASCII 字母 0）⇒ **NPU 上文本完全健康**，差异只是 NPU↔iGPU 浮点抖动（**不是**模型坏、**不是** mask 失效）；③ ✅ **格子已自动生成**（`reports/compare/qwen3asr_06b__int8__mask2__int8_npu.json`：`n_segs=553` / `words=11412` / **`wer_pct=null`** 交 reviewer / `timing_valid=false` / `device_placement` **NPU/NPU** / 四件套 `source_files` 齐全）；④ 🔄 **R2T2 INT8@NPU 61 分钟进行中**（引擎加载 4.1 s，NPU 缓存已命中；切段常量 group=B 与 ASR-004 同口径）；⑤ ⏳ 6 格速度/内存 bench 待跑（等 CPU/锁空闲）
 - 2026-10-26 10:22 **bench 脚本实战化：5 个真缺陷修完 + 冒烟验证通过（§30）**：① 🔴 **`BLOCK_MS` 从未定义**（原代码 `... if False else ...` 把左半边短路掉了 ⇒ 语法过、运行不报错，但名字不存在）；② 🔴★ **首字延迟测的根本不是首字**（原记「整次 `generate()` 耗时」）⇒ 给 `p3_ov_app.py::OVRunner.generate` 加**向后兼容**的 `on_first_token` 回调（默认 None ⇒ **已交付产物不受影响**），在第一个非 EOS/PAD token 被 argmax 时打点 ⇒ 实测 **p50 0.2748 s / p95 0.3331 s**；③ 🔴 **`GetProcessMemoryInfo` 恒返回 False**（未声明 `argtypes` ⇒ ctypes 把指针当 int 传 ⇒ 参数错位）⇒ 改 `WinDLL('psapi')` 显式加载 + `restype/argtypes` ⇒ 0.6B **peak WS 9294.5 MiB / peak private 10900.7 MiB**、R2T2 **5091.7 / 5028.4 MiB**（另修 `peak_private` 误用当前值 `PrivateUsage` ⇒ 改 `PeakPagefileUsage`）；④ 🔴 **导入顺序**让 transformers 走「无 torch」降级分支 ⇒ `transformers.generation` 部分初始化 ⇒ `GenerationMixin` ImportError ⇒ 修法：**先** import transformers 再 import App（与长跑成功顺序一致），已在 bench 两条路径 + R2T2 转写脚本修好；⑤ 🔴 **R2T2 设备内存被判「拿不到 core」是错的**（`npu_delivery_backend.py:136` 有 `be._core`）⇒ 实测读到 **usm_device 171.3 MB / usm_host 2043.8 MB**；⑥ ✅ **冒烟验证两条路径都跑通、文本正常**（0.6B INT8@GPU.0 3 段 59 词 / R2T2 INT8@GPU.0 3 段；**缓存确认生效**：冷编译 **12.26 s** → 热 **4.50 s**；⚠️ 20 s 切片含冷启动 ⇒ RTF 偏高，**不作交付**）；⑦ ✅ **新编排脚本 `asr007_bench_all.py`**（每格冷/热各一遍 fresh 进程、都持规范锁；只清**自己专用** CACHE_DIR，**绝不碰** App 的 `%LOCALAPPDATA%/Confucius4LiveCaption/*_cache`）；⑧ ✅ **质量长跑 `timing_valid` 强制 false**（`build_compare_mask2.py` 新增 `QUALITY_RUNS` ⇒ RTF/延迟一律作废，只交 transcript）；⑨ 🔄 **0.6B INT8 @NPU 61 分钟进行中**（64.0% / 355 段 / 2350.7 s，文本正常）
@@ -19,7 +20,6 @@ last_ack: ASR-011
 - 2026-10-25 16:50 **ASR-007 矩阵补全：设备摆放字段 + 格子命名 bug 已修（§22）**：① 🔴 **INT4 两个格子缺 ASR-007 要求的「设备摆放」**（只有 `dec_ir`，无 `enc_ir`、无 `device_placement`）⇒ 已补：encoder = `GPU.0（OV FP16，不量化，所有变体共用）`、decoder = `GPU.0（OV，权重精度 = <该变体自己的 recipe>）`（**按变体分别写**，原写法两格共用一句「见 recipe」不可复核）、note 标明本组是**量化对比实验**（encoder 是 conv 结构无 MatMul ⇒ AWQ 静默跳过 ⇒ 保持 FP16）；② 🔴 **格子生成脚本文件名重复拼接**（`var` 已含 `int4_` 前缀又拼一次）⇒ 产出 `qwen3asr_06b__int4_int4_asymg128__gpu0.json`，**与 MATRIX 引用名不一致** ⇒ 已修为 `qwen3asr_06b__<var>__gpu0.json`，错误命名的中间产物已删；③ ✅ **`MATRIX.md` 新增「设备摆放」汇总表**（ASR-007 明确要求的一节）：从每个格子 json 现读 `device_placement`/`enc_ir`/`dec_ir` ⇒ 当前 **4 / 16 格**有该信息（0.6B 的 INT8×GPU.0、INT8×NPU、INT4×2），其余 12 格历史格子本轮未补（表下已注明）；④ 产物重新生成：`int4_asymg128__gpu0.json` 4436 B / `int4_sym_chan__gpu0.json` 4311 B / `MATRIX.json` 10801 B / `MATRIX.md` 6005 B（均 16:47），目录仍 **17 个文件**；⑤ ⏳ **持锁重跑仍等 `app`**（`Get-Process` 确认 PID 32652 存活）⇒ 交付级 RTF 仍空缺
 - 2026-10-25 16:44 **锁脚本自身 4 个缺陷实测修复（§21）+ 持锁重跑仍在等 `app`（§21）**：① 🔴 **缺陷①（最危险）**：`pid_alive` 原带进程名过滤（`and 'python' in txt`）⇒ App 的 `pythonw.exe`（`live_caption_app.py`）等**非 python 持锁者会被判成陈旧锁而回收** ⇒ **破坏别人的计时** ⇒ 已改为**只看 PID 是否在**；② 🔴 **缺陷②**：协议里「锁早于开机时间 ⇒ 可回收」**根本没实现**（`boot_time()` 定义了从未调用）⇒ 异常退出的锁会**永久阻塞**其它模块 ⇒ 已补实现；③ 🔴 **缺陷③**：锁里写的是**包装器 PID**（`subprocess.run` ⇒ 写 `os.getpid()`）⇒ 包装器被杀则**子进程变孤儿继续占 GPU**，而别人会回收锁 ⇒ **计时互相污染** ⇒ 已改 `Popen` **先取真实子进程 PID 再写锁**（另存 `wrapper_pid`）；④ 🔴 **缺陷④**：删锁**不校验归属** ⇒ 会误删别人后来拿到的锁 ⇒ 已加 `release_lock(expect_pid=…)`，回收陈旧锁时也校验 PID（防竞态）；⑤ ✅ **3 项隔离测试全过**（活锁不回收 / 非我锁不删 / 陈旧锁可回收，均未碰规范锁）；⑥ ⏳ **持锁重跑仍被占**：规范锁 = `app PID 32652 started 2026-10-25 16:23:32`，**实测该进程存活**（`app037_cp3_abba_v15.py --quiet-timeout 3600`）⇒ **等待是正确行为**；⚠️ 记录排查陷阱：**Git Bash 里 `tasklist /FI` 可能返回空**（本轮一度误判「进程已退出」）⇒ 判活必须用 `Get-Process`/`Get-CimInstance` 复核，否则会**误回收活锁**；⇒ **交付级 RTF 仍空缺**，不冒充已交付
 - 2026-10-25 16:40 **INT4 补测完成、「0.6B INT4 不可行」被证伪（§20）**：① ✅★ **`INT4_ASYM g128 + AWQ + SE`（backup INT8_ASYM，lm_head 保 FP16）文本正常** —— 新配方量化 `results/p2_quant_decoder_int4__asymg128.json`（15:58，2153 B，`recipe`=INT4_ASYM g128、`dst_mib`=**518.3**、`n_i4`=**392**、`ignored_scope`=lm_head ✔）；5 分钟切片（720–1020 s）**882 词 vs INT8 928 词**、定长 top1 **69.44% vs 70.83%**、top5 **85.71% vs 87.90%** ⇒ **INT4 在 0.6B 上可用**；② 🔴 **INT4_SYM 按通道（R2T2 R2 照搬）在 0.6B 上崩坏**（切片 **98 词**、定长 top1 **16.27%**、top5 **28.77%**）⇒ **照搬 R2T2 配方不成立**，差异来自模型规模/宽度；③ ✅ **P3 INT8 61 分钟全长质量数据已落盘**（`results/p3_p3_61min_gpu_int8/`，4 文件）：**553 段 / 11825 词 / rule 518+34+1 / 段长 p50 6.4s p95 8.96s max 12.16s / covered 3671.19 s 且 `complete`=true**；④ 🔴 **该次计时作废且锁路径用错**（写在仓库内 `shared/MACHINE_LOCK` ⇒ 互锁失效，TTS 已实测记录）⇒ 已回收孤儿锁 + 新写 `scripts/p3_run_with_lock.py`（只用规范路径）⇒ **规范路径持锁重跑在等 `app` 锁**；⑤ ✅ **ASR-006 §2 切点诊断完成**（并发会话，16:35）：rule1 占切点 **93.67%**、「切在词中间」**9.54%**、**静音内 0.0%**、去重收益上界 **≤0.963pp**（仅覆盖 178 个多余插入的 **≤61.8%**）⇒ **接缝去重不是主因**；⑥ ✅ **ASR-007 矩阵更新**（`reports/compare/` 17 文件，新增 2 个 INT4 格子）
-- 2026-10-25 13:40 **P3 根因大反转（§19）**：① 🔴 **撤回「INT8 decoder 量化损坏」**（§18.3）—— 10 层静态比对**全部相同**（**1523 个算子实例 attrs 零差异** / 341 个 3D-4D 常量**多重集**相同 / 196 个 int8 权重重算 cos 0.999929 / 位置 id **运行时**相同 / 张量精度分布相同 / .bin 存储精度全 native）；② 🔴 **撤回「FP16 端到端必崩、INT8 正常」**（§18.3/§18.4）—— `p3_diag_surgery.json` 显示**固定 6.4s + 无 prefix** 时 **FP16 10 步全程正常英文**（`all`→` right`→` good`→` morning`→` everyone`→…），而 **INT8 反而重复退化**（`.`↔`Good`/` morning` 循环）⇒ **模型都没坏，是输入条件差异**；③ 🔴 **撤回 §18.2 的 teacher-forcing 判据**（target 序列本身 = **4824 'ь' 连续 20 次** ⇒ FP16 的 100% 是**自一致 tautology**）；④ ✅ **右对齐结论仍成立且已补证据**（`p3_diag_align.json` 左对齐两图**都给 `<|im_end|>`**；`p3_diag_pos_sem.json` 证明 IR **不是恒取 511** ⇒ 内容落点会改 logits）；⑤ 🔴 **「logits 全向量 cos」在 151936 维稀疏尖峰上不可用**（INT8 只在 margin 0.77/0.027 的 2 个位置翻转，其余 10/12 命中且 margin 很大）；⑥ ⚠️ **P3 长跑 timing_valid=false**（机器锁在启动前已被 `mt` 占用）⇒ 质量可用、计时作废
 
 ## §2 最近一周的结论摘要（均引用产物）
 
@@ -3710,14 +3710,30 @@ cleanie）是否由 c069g 派生、是否有左侧 padding。」
    ⇒ 与 0.6B 的「单端口 `inputs_embeds` + 恒取位置 511」**根本不同**。
 3. **R2T2 的 backend 真传 mask**（`live_caption/npu_embeds_backend.py:212/235`）：
    `"attention_mask": np.ones((1, T), dtype=np.int64)`
-   ⇒ **全 1**，因为 R2T2 走的是 **cross-attention + 逐 token 解码**，
-   **序列里根本没有 padding 概念**（每步只喂当前 token 的 embedding）
-   ⇒ **不存在**「左对齐 padding 落到固定位置」的失效模式。
+   ⇒ **全 1**，**理由按 ASR-012 §2(b) 修正**（原 §29.4 第 3 点写的
+   「cross-attention + 逐 token 解码、序列里根本没有 padding 概念」**是错的**，
+   见 §33.2 的撤回）：
+   * R2T2 是 **decoder-only 的整段 prefill** —— `npu_embeds_backend.py:211-214`
+     的 prefill **一次喂进 T 个 prompt token**（音频 embedding + 模板），
+     与 0.6B 是**同一种结构**；只是**之后的 decode** 每步喂 1 个 token；
+   * 全 1 正确的**真实理由**是：**batch=1、序列里没有任何 padding token**，
+     **mask 长度刚好等于真实 token 数**（prefill 是 T，decode 是 past+1）
+     ⇒ 传全 1 就是**如实反映真实 token 布局**；
+   * IR **保留了 `attention_mask` 端口**（`c079b` 第 30 行）⇒ 静态化到 512 的
+     padding 由 **NPUW_LLM 在内部完成**，NPUW 会根据传入的 `attention_mask`
+     自行生成 mask；
+   * ⇒ **0.6B 旧图的根因是「自己手写把输入 padding 到固定长度 512，
+     而图里没有 mask 端口」**；R2T2 **不具备这个条件**（有 mask 端口），
+     所以**不存在同样的根因风险**；
+   * **实测佐证**：全 NPU 61 分钟 **7.95%** 对 GPU **+0.10pp 不显著**
+     （`reports/c086d_full61_all_npu_matrix.json`）。
 4. R2T2 的 61 分钟 WER 已做过端到端验证（全 NPU **7.952%** / 目标机计分器，
    `reports/c086d_full61_all_npu_matrix.json`）⇒ **这里只做确认，不重跑**。
 
-⇒ **一句话**：R2T2 交付 IR **不派生自 c069g**，**是 cross-attention 架构、
-有 `attention_mask` 端口且恒传全 1**，**没有左侧 padding 问题** ⇒
+⇒ **一句话**：R2T2 交付 IR **不派生自 c069g**，**是 decoder-only 整段 prefill
++ 有 `attention_mask` 端口且恒传全 1（batch=1、无 padding token、mask 长度=真实
+token 数，静态化 padding 由 NPUW_LLM 内部处理）**，**不存在 0.6B 那种
+「自己手写 padding 到 512 且图里无 mask 端口」的根因** ⇒
 **§23 的 mask 缺失缺陷只影响 0.6B 那条 `inputs_embeds` 导出线**。
 
 ### 29.5 🔄 ASR-011 ①：0.6B INT8 @ NPU 61 分钟 App 路径（**进行中**）
@@ -4038,3 +4054,86 @@ RTF ≈ **1.01**（音频 833 s / 墙钟 845 s）⇒ 预计还需约 48 分钟�
 * ⏳ 6 格速度/内存 bench（等 R2T2 长跑让出 NPU + CPU + 规范锁空闲）。
 * ⏳ R2T2 INT8@NPU 61 分钟 App 格出格（自动脚本已就位）。
 * ⏳ 待 reviewer 复算两份新 transcript 的 WER（0.6B@NPU + R2T2@NPU）。
+
+## §33 ASR-012 落地：0.6B INT8@NPU WER 11.05% 已回填 + §29.4 理由改写（2026-10-26 11:00–11:10）
+
+### 33.0 本节做了什么
+reviewer 10:52 发了 **ASR-012**（3 项：① 回填 WER、② 改 §29.4 的理由、③ R2T2 长跑继续）。
+本节逐条处理并落档。
+
+### 33.1 ✅ ① 0.6B INT8 @ NPU 的 WER 已原样回填
+reviewer 复算（MiniMax baseline，参考词数 **10964**，全局对齐 + 按段配对 bootstrap 5000 次）：
+| 项 | 值 |
+|---|---|
+| **0.6B INT8 @ NPU（App 路径，553 段）** | **11.05%**（总错误 **1212** 个） |
+| 0.6B INT8 @ iGPU（对照） | **10.94%**（1199 个错误） |
+| **NPU − iGPU** | **+0.12pp，CI [−0.05, +0.29]，不显著** |
+| 按段比 | **17 段更好 / 510 段持平 / 26 段更差** |
+| 0.6B@NPU − R2T2 App B（10.58%） | **+0.47pp，CI [−0.24, +1.17]，不显著**（两边切段不同 ⇒ 时间块配对 bootstrap，498 块） |
+
+**reviewer 独立核实了段边界**：与 iGPU INT8 格 **553/553 逐位相同**
+（`start_s/end_s` 最大差 **0.0 s**）、文本相同 447/553、词数 11412
+⇒ **§31.2 的结论成立**（切段在音频域；NPU 上文本与 iGPU 无实质差异）。
+
+⇒ **回填动作**：`build_compare_mask2.py` 的 `REVIEWER_WER` 新增 `int8_npu` 项
+（`wer_pct=11.05` / `n_errors=1212` / `scorer=reviewer_minimax_global` /
+`ref='ASR-012 §1'`）⇒ 重跑后格子 `accuracy.wer_pct=11.05`、
+`wer_scorer=reviewer_minimax_global`、`paired_bootstrap` 含两组 CI。
+⚠️ reviewer **只给了总错误数、未给 S/D/I 拆分** ⇒ `wer_breakdown` 写
+「未给 S/D/I 拆分 ⇒ 不硬凑」+ `n_errors=1212`，**不编造拆分**。
+⇒ `ASR007_results.json` 与 `MATRIX.md` 已刷新（WER 列 11.05 / reviewer(MiniMax)）。
+
+### 33.2 🔴 ② 撤回 §29.4 第 3 点里的「cross-attention」错误理由
+reviewer 读代码后指出：§29.4 写的
+「R2T2 走 **cross-attention** + 逐 token 解码，每步只喂当前 token 的 embedding，
+所以没有 padding 概念」**是错的**。
+
+**正确的说法（ASR-012 §2(b)）**：
+1. R2T2 是 **decoder-only 的整段 prefill** ——
+   `live_caption/npu_embeds_backend.py:211-214` 的 prefill **一次喂进 T 个
+   prompt token**（音频 embedding + 模板），与 0.6B 是**同一种结构**；
+   只是**之后的 decode** 每步喂 1 个 token。
+2. 全 1 mask 正确的**真实理由**：
+   * **batch=1、序列里没有任何 padding token**；
+   * **mask 长度刚好等于真实 token 数**（prefill 是 T，decode 是 past+1）
+     ⇒ 传全 1 是**如实反映真实 token 布局**；
+   * IR **保留了 `attention_mask` 端口**（`c079b_build_clean_embeds_ir.py:30`）
+     ⇒ 静态化到 512 的 padding 由 **NPUW_LLM 在内部完成**，
+     NPUW 会根据传入的 `attention_mask` 自行生成 mask；
+   * ⇒ **0.6B 旧图的根因是「自己手写把输入 padding 到固定长度 512，
+     而图里没有 mask 端口」**；R2T2 **不具备这个条件**
+     （有 mask 端口）⇒ **不存在同样的根因风险**；
+   * **实测佐证**：全 NPU 61 分钟 **7.95%** 对 GPU **+0.10pp 不显著**
+     （`reports/c086d_full61_all_npu_matrix.json`）。
+3. 「**不派生自 c069g**」这**一条成立**（reviewer 也确认）：
+   `c079b_build_clean_embeds_ir.py` 的 `PAIRS` =
+   `qwen3-lm-int8sym-lastlogit-ov → qwen3-lm-int8sym-cleanie-ov`（int4 同理）；
+   `c069g` 的 `OUT_DIR` = `models/ov-dec-embed-fp16`；
+   `live_caption/*.py` 里**没有任何地方引用** `models/ov-dec-embed-fp16`。
+
+⇒ **动作**：
+* **§29.4 第 3 点已就地改写**（reviewer 明确要求「报告会引用这一段」
+  ⇒ 就地改比另起章节更合用），并在此处记录改动内容；
+* **三处派生物同步修正**（都含旧措辞）：
+  | 文件 | 位置 |
+  |---|---|
+  | `scripts/asr007_build_results.py` | `R2T2_IR_NOTE` |
+  | `scripts/asr007_r2t2_app_transcribe.py` | `R2T2_IR_NOTE` |
+  | `scripts/build_compare_r2t2_app.py` | **新增** `R2T2_IR_NOTE`（覆盖 summary 里的旧措辞 —— 🔴 长跑进程启动时已加载旧代码 ⇒ summary 带的是旧措辞，**出格时必须覆盖**） |
+* ⇒ `ASR007_results.json` 的 `r2t2_ir_note` 与 R2T2 App 格随之更新。
+* **不需要重跑**（reviewer 明示）。
+
+### 33.3 🔄 ③ R2T2 INT8 @ NPU 61 分钟 App 路径（进行中）
+reviewer 记录的启动信息：pid **25264**，10:41 开始，
+`results/p3_r2t2_61min_npu`（当时是空目录）。
+⇒ **本机实测**：跑到 **31.3% / 175 段**，RTF ≈ **1.05**（音频 1150 s / 墙钟 1207 s）。
+⚠️ reviewer 说「pid25264」—— 本机 `tasklist` 显示的是 **20876**（4.5 GB 那个），
+`25264` 是一个 **9 MB 的小进程** ⇒ 推测 reviewer 记的是 venv 包装层的 PID
+（Windows 上 venv python 会再起一个 base python 子进程，§30.12 已记录此现象）
+⇒ **以「目录里有没有产物」为准，不以 PID 为准**。
+
+### 33.4 本节未完成
+* ⏳ 6 格速度/内存 bench（等 R2T2 长跑让出 NPU + CPU + 规范锁空闲）。
+* ⏳ R2T2 INT8@NPU 61 分钟 App 格出格（自动脚本 `wait_and_build_r2t2.py` 已就位）。
+* ⏳ 待 reviewer 复算 R2T2 INT8@NPU App 路径的 WER
+  （对照 App 路径 R2T2 iGPU B **10.58%**）。
