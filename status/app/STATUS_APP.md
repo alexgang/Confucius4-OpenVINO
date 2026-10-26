@@ -10952,9 +10952,10 @@ APP-021⑥ 的原文：「新增 `--tts-dump-dir`（**或者**在对话框里勾
 | 项 | 值 |
 |---|---|
 | 代码提交 | **`37d06de`** `feat(app): §61 补齐 APP-021⑥「逐句 wav 落盘」的 App CLI 半边（--tts-dump-dir）` |
+| 文档提交 | **`ecb3f99`** `docs(app): §61 —— 巡检无新 APP 条目 + 交付代差修复 + APP-021⑥ --tts-dump-dir 补齐` |
 | 提交文件（4 个，**逐个 `git add`，未用 `-A`**） | `live_caption/live_caption_app.py`（M，+6）<br>`live_caption/sync_s61_dump_dir_to_pkg.py`（A，+216）<br>`results/app/app091_tts_dump_dir_cli_test.py`（A，+206）<br>`results/app/app091_tts_dump_dir_cli_evidence.json`（A，+56） |
-| 🔴 **未提交** | `status/app/CORRECTIONS_APP.md`（reviewer 的 ` M`，**不在暂存区**）<br>他模块 **471 项**未提交改动**全部保留在工作区**（本轮**零吞并**） |
-| 提交前核对 | `git diff --cached --name-only` ⇒ **只含上述 4 个 App 文件** |
+| 🔴 **未提交** | `status/app/CORRECTIONS_APP.md`（reviewer 的 ` M`，**不在暂存区**；本轮结束时复核 SHA256 `682aced289a58d18b…` / 48 457 B / mtime `2026-10-26 16:18:08` ⇒ **与 §61.1 记录逐位一致**）<br>他模块 **467 项**未提交改动**全部保留在工作区**（本轮**零吞并**；改动数由 471 → 467 是因本轮 5 个文件已入库） |
+| 提交前核对 | `git diff --cached --name-only` ⇒ 代码提交**只含上述 4 个 App 文件**；文档提交**只含** `status/app/STATUS_APP.md` |
 | 分支 | 仅 `main`（`git branch -a` ⇒ `main` + `remotes/origin/main`，无其它分支） |
-| push | **普通 push 到 `origin/main`**，**不 force**（待 §61 提交后执行） |
-| 本节补记 | `docs(app): §61 补记 —— 回写 commit 37d06de …`（文档提交与代码提交**分两段**，沿用 §59/§60 模式） |
+| push | **普通 push 到 `origin/main`**，**不 force** ⇒ 实测 `601dbad..ecb3f99  main -> main`；推送后 `git rev-parse HEAD origin/main` **两侧同为 `ecb3f99d381f0c93b98f8a70d079e780ff86816e`** ✅ |
+| 本节补记 | 本节即最终版本（**push 已在 `ecb3f99` 之前完成**，故 §61.10 无需第三次补记提交） |
