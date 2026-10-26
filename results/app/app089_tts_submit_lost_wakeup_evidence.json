@@ -1,0 +1,57 @@
+{
+  "real_fail": [],
+  "evidence": {
+    "A_after_submit": {
+      "n_played": 1,
+      "n_dropped": 0,
+      "n_submitted": 1,
+      "n_pending": 0,
+      "n_queue": 0,
+      "inflight": [],
+      "sum": 1,
+      "invariant": true
+    },
+    "A_drain": {
+      "ok": true,
+      "elapsed": 0.0
+    },
+    "B_after_crash": {
+      "n_played": 0,
+      "n_dropped": 1,
+      "n_submitted": 1,
+      "n_pending": 0,
+      "n_queue": 0,
+      "inflight": [],
+      "sum": 1,
+      "invariant": true
+    },
+    "C_normal": {
+      "n_played": 3,
+      "n_dropped": 0,
+      "n_submitted": 3,
+      "n_pending": 0,
+      "n_queue": 0,
+      "inflight": [],
+      "sum": 3,
+      "invariant": true
+    },
+    "D_baseline": {
+      "commit": "421d2d0",
+      "after_submit": {
+        "n_played": 0,
+        "n_dropped": 0,
+        "n_submitted": 1,
+        "n_pending": 1,
+        "n_queue": 1,
+        "inflight": [],
+        "sum": 0,
+        "stuck": true,
+        "broken": false
+      },
+      "drain_ok": false,
+      "drain_elapsed": 6.01
+    }
+  },
+  "baseline_commit": "421d2d0",
+  "verdict": "PASS"
+}

@@ -735,21 +735,39 @@ class TTSService:
             return
         if len(text) > MAX_TEXT_CHARS:
             text = text[:MAX_TEXT_CHARS]
+        # 🔴🔴🔴 2026-10-27 §59 修：**「读状态」与「登记在途」必须在同一把锁内**。
+        #
+        #   旧实现（§29~§58 一直如此）分成了**两个临界区**：
+        #       ① 锁内读 `state` → `ready` / `dead`
+        #       ② 出锁后再 `with self.lock: self._inflight.add(jid)`
+        #   ⇒ ①与②之间，worker 级 error 的「孤儿清理」可能整段跑掉
+        #      （`pending.clear()` + `_inflight.clear()` + 计丢句）
+        #      ⇒ ②再把 jid 加回 `_inflight` ⇒ **幽灵在途句**
+        #      ⇒ worker 崩溃时 `lost = sorted(self._inflight)` 把它算成
+        #         「在途丢失」⇒ `n_dropped` 双记 ⇒ 不变式破坏。
+        #
+        #   ⇒ 现在：读状态 + 登记在途 / 决定「直接下发 vs 入队」**一次做完**。
         with self.lock:
             jid = self._next_id
             self._next_id += 1
             self.pending[jid] = dict(seg=seg, text=text, t=time.perf_counter())
             self.n_submitted += 1
-            ready = (self.state == 'ready')
-            dead = (self.state == 'error')
+            st = self.state
+            if st == 'ready':
+                # worker 已 ready ⇒ 立刻下发 ⇒ **同时**登记在途
+                # （与 `pending[jid]` 的写入在同一临界区 ⇒ 孤儿清理看不到半状态）
+                self._inflight.add(jid)
+                action = 'send'
+            elif st == 'error':
+                action = 'dead'
+            else:
+                action = 'queue'
         cmd = {'cmd': 'synth', 'id': jid, 'text': text}
         # 🔴🔴 APP-022：说话人字段**只在有值时加** ⇒ 无 spk 时命令体不变
         if spk is not None:
             cmd['spk'] = spk
             cmd['spk_conf'] = spk_conf
-        if ready:
-            with self.lock:
-                self._inflight.add(jid)
+        if action == 'send':
             # 🔴🔴 2026-10-25 §29 修：**命令送不出去时必须撤账**。
             #   `_send()` 旧实现只记日志、不返回成败 ⇒ 调用方以为已下发
             #   ⇒ `_inflight` 里留下这个 jid ⇒ 但 worker 永远收不到
@@ -762,7 +780,7 @@ class TTSService:
                     self.pending.pop(jid, None)
                     self._inflight.discard(jid)
                 self.n_dropped += 1
-        elif dead:
+        elif action == 'dead':
             # 🔴 2026-10-24 §22 修：worker 级故障后 `state == 'error'`，
             #   此时 `_flush_queue()` **永远不会被调用**（它只在 `ready` 事件时跑）
             #   ⇒ 旧实现把命令无限堆进 `_queue` ⇒ **内存无界增长**。
@@ -772,11 +790,73 @@ class TTSService:
             self.n_dropped += 1
             self.on_log('[TTS] worker 已故障（error），该句不提交（已计丢句）')
         else:
+            # ── worker 还没 ready ⇒ 入待发队列 ──────────────────────────
+            was_pending = False
             with self.lock:
-                self._queue.append(cmd)
-                # 🔴🔴 2026-10-27 §58 修：登记「这句在待发队列里」
-                #   ⇒ `cancel()` 才能把它摘掉（见 cancel() 里的说明）。
-                self._queued_ids.add(jid)
+                # 🔴🔴🔴 2026-10-27 §59 修：**丢唤醒竞态（lost wakeup）**。
+                #   `ready` 事件可能在上面那次读 `state` 与这里之间到达：
+                #       T_app : 锁内读到 state='loading' ⇒ action='queue'
+                #       T_evt : `self.state = 'ready'` ⇒ `_flush_queue()`
+                #               ⇒ 快照 `_queue`（**当时还是空的**）⇒ 无事可做
+                #       T_app : 入队 ⇒ 命令**留在队列里**
+                #   ⇒ worker **已经 ready** ⇒ **再也不会有第二个 `ready` 事件**
+                #      ⇒ `_flush_queue()` 永远不会再跑
+                #      ⇒ 这条命令**永远发不出去**
+                #      ⇒ `pending[jid]` **永久悬挂** ⇒ `drain()` 必超时
+                #      ⇒ 这句译文**永远不会被朗读**。
+                #   ⚠️ 这与 §58 的「幽灵在途句」是**两个不同的洞**：
+                #      §58 = 命令**被下发**了但主进程记错；
+                #      §59 = 命令**根本没被下发**就永久滞留。
+                #   ⇒ 修法：**入队前在同一把锁内复查 `state`**。
+                #      复查与入队在同一临界区 ⇒ 与 `_flush_queue()` 的快照互斥
+                #      ⇒ **不可能两边都错过**：
+                #        · 复查看到 'ready'  ⇒ `_flush_queue()` 的快照要么还没取
+                #          （那就一定取得到我们的命令），要么已经取完
+                #          （那它看到的是空队列 ⇒ 我们必须**自己**下发）；
+                #        · 复查看到非 'ready' ⇒ `_flush_queue()` 必定在我们之后跑
+                #          （它读 `state` 之前我们已入队）⇒ 一定取得到我们的命令。
+                if self.state == 'ready':
+                    # 已经 ready ⇒ **不能**再入队（会永远滞留）
+                    # ⇒ 改为直接下发（与 `action == 'send'` 同一条路径）
+                    self._inflight.add(jid)
+                    direct = True
+                    dead = False
+                elif self.state == 'error':
+                    # 🔴🔴 2026-10-27 §59 修：**worker 级故障时也不能入队**。
+                    #   §22 的原意是「`state == 'error'` 时不排队」
+                    #   （否则 `_queue` 无上限增长 ⇒ 内存无界）。
+                    #   ⚠️ 但旧实现只在**第一次**临界区读状态 ⇒ 若故障恰好
+                    #      落在「读状态」与「入队」之间 ⇒ 这句**照样入队**
+                    #      ⇒ 而 `_flush_queue()` 只在 `ready` 时跑
+                    #      ⇒ worker 判死后**永远不会再 ready**（除非重启）
+                    #      ⇒ 这句**永远滞留** ⇒ `_queue` 无上限增长。
+                    #   ⇒ 现在在同一把锁内复查 ⇒ 故障期间**直接定案**。
+                    #   ⚠️ 计数口径：`pending.pop` 返回 None ⇒ 这句**已被别处
+                    #      定案**（多半是 worker 级 error 的「孤儿清理」
+                    #      已经把它计过丢句）⇒ 本次**不再重复计**。
+                    in_pending = self.pending.pop(jid, None) is not None
+                    direct = False
+                    dead = True
+                    was_pending = in_pending
+                else:
+                    self._queue.append(cmd)
+                    # 🔴🔴 2026-10-27 §58 修：登记「这句在待发队列里」
+                    #   ⇒ `cancel()` 才能把它摘掉（见 cancel() 里的说明）。
+                    self._queued_ids.add(jid)
+                    direct = False
+                    dead = False
+            if direct:
+                if not self._send(cmd):
+                    with self.lock:
+                        self.pending.pop(jid, None)
+                        self._inflight.discard(jid)
+                    self.n_dropped += 1
+            elif dead:
+                # ⚠️ 只有「这句此刻确实还在 `pending` 里」才计丢句
+                #   （否则会与「孤儿清理」的计数重复 ⇒ 双记）。
+                if was_pending:
+                    self.n_dropped += 1
+                self.on_log('[TTS] worker 已故障（error），该句不提交（已计丢句）')
         self._update_backlog()
 
     def _flush_queue(self):
@@ -971,8 +1051,19 @@ class TTSService:
     def _handle_event(self, msg: dict):
         kind = msg.get('kind')
         if kind == 'ready':
-            self.state = 'ready'
+            # 🔴🔴 2026-10-27 §59 修：**状态转换必须在锁内完成**。
+            #   旧实现 `self.state = 'ready'` 在锁外 ⇒ 与 `submit()` 的
+            #   「入队临界区」之间存在窗口 ⇒ `submit()` 可能读到 'loading'
+            #   ⇒ 入队 ⇒ 而 `_flush_queue()` 的快照**已经取过**（当时为空）
+            #   ⇒ 命令**永久滞留**在 `_queue` 里（worker 已 ready，不会再有
+            #     第二个 ready 事件 ⇒ 永远不会被下发）⇒ 丢唤醒竞态。
+            #   ⇒ 现在：锁内置为 'ready' ⇒ 与 `submit()` 的复查互斥
+            #      ⇒ 「入队」与「补发」**不可能两边都错过**。
+            with self.lock:
+                self.state = 'ready'
             self.on_log(f'[TTS] 就绪：{msg.get("device")} · 音色 {msg.get("voice")}')
+            # ⚠️ `_flush_queue()` 自己会取锁 ⇒ **必须在上面那个 with 块之外**调用
+            #   （`self.lock` 是**非**可重入的 `threading.Lock` ⇒ 嵌套会自死锁）。
             self._flush_queue()
         elif kind == 'error':
             # 🔴🔴 2026-10-24 §22 修：**必须区分「句子级」与「worker 级」错误**。
