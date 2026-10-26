@@ -2103,6 +2103,7 @@ class App:
             values=[self._out_label[oid] for oid, _ in self.outs])
         self.cb_tts_out.pack(side='left', padx=(0, 8))
         self.tts = None                      # TTSService 实例
+        self._offline_dlg = None             # 离线朗读对话框（Toplevel）
         self.var_tts_note = tk.StringVar(value='')
 
         # 🔴 **耳机提示**（APP-014：TTS 转正式功能 ⇒ 默认开启）
@@ -2113,6 +2114,19 @@ class App:
                   foreground='#b26a00').pack(side='left', padx=(4, 0))
 
         ttk.Label(f_tts, textvariable=self.var_tts_note, foreground='#555').pack(fill='x')
+
+        # 🔴 **离线朗读入口**（用户需求：上传文件 / 对话框输入文本 ⇒ 直接播报）
+        #    放在这里而不是 row_tts：row_tts 已经排了 6 个控件，
+        #    1080 宽再塞按钮会把「⚠️ 请佩戴耳机」挤掉（§13 实测过同类裁切）。
+        #    note 行本来就是单独一行、只放一个 label ⇒ 左边补按钮不吃宽度。
+        row_tts2 = ttk.Frame(f_tts)
+        row_tts2.pack(fill='x')
+        self.btn_offline = ttk.Button(
+            row_tts2, text='📖 离线朗读…', width=14,
+            command=self._open_offline_reader)
+        self.btn_offline.pack(side='left', padx=(0, 8))
+        ttk.Label(row_tts2, textvariable=self.var_tts_note,
+                  foreground='#555').pack(side='left', fill='x', expand=True)
 
         # ⚠️ height=10（行）：**这是状态栏可见的关键**。
         #    ScrolledText 默认请求高度 718 px（24 行），在 1080x700 窗口里
@@ -2766,6 +2780,52 @@ class App:
                 f'/最大 {f(st.get("max_backlog_s"))}s  丢句 {st.get("n_dropped", 0)}'
                 f'  已播 {st.get("n_played", 0)}')
 
+    # -- 离线朗读（文件 / 对话框文本 → TTS）-------------------------------
+    def _offline_get_tts(self):
+        """给离线朗读对话框用：取当前 TTS service（可能为 None）。"""
+        return self.tts
+
+    def _offline_ensure_tts(self):
+        """确保 TTS 已启动，返回 service（None = 起不来）。
+
+        🔴 与 `_on_tts_toggled()` 的分工：那边是**用户手动勾选**，
+        这边是**离线朗读要用却没开**时的兜底。三种情形：
+        ① 已在跑（非 error）⇒ 直接用，不重启（重启要重新编译/加载模型）；
+        ② error ⇒ 先 close 再重起（worker 可能崩过一次）；
+        ③ 没开 ⇒ 自动把「开启」勾上并调用 `_on_tts_toggled()`，
+           并在日志里写明「自动开启」——不能让用户以为是自己开的。
+        """
+        svc = self.tts
+        if svc is not None and getattr(svc, 'state', '') not in ('error',):
+            return svc
+        if svc is not None:
+            try:
+                svc.close()
+            except Exception:
+                pass
+            self.tts = None
+        if not self.var_tts_on.get():
+            self.var_tts_on.set(True)
+            self._ui_log('[offline] 语音输出原为关闭 ⇒ 已自动开启（离线朗读需要 TTS）')
+        self._on_tts_toggled()
+        return self.tts
+
+    def _open_offline_reader(self):
+        """打开「离线朗读」对话框（文本/文件 ⇒ TTS，**不经过 ASR / 翻译**）。
+
+        ⚠️ 这里**不加载模型**：对话框只做界面，朗读时才通过 service 提交；
+        TTS 没开的话由 `_offline_ensure_tts()` 兜底开启。
+        """
+        try:
+            from offline_reader_gui import open_dialog
+            open_dialog(self.root, self._offline_get_tts,
+                        self._offline_ensure_tts,
+                        on_log=self._ui_log,
+                        initial_dir=os.path.expanduser('~'))
+        except Exception as e:
+            self.var_tts_note.set(f'离线朗读打不开：{e}')
+            self._ui_log(f'[offline] 打开失败：{type(e).__name__}: {e}')
+
     def _mt_of(self, seg):
         """定稿段的译文（按段序号查）。"""
         return self.mt.mt_of_seg(seg)
@@ -2942,6 +3002,16 @@ class App:
             pass
         # 收尾：把最后一批定稿译文补交给 TTS，然后等它排空再关
         # （CLI 侧 `run_cli` 收尾也有同样一段，见 C-101 P4 第 6 条）
+        # ⚠️ 离线朗读对话框要先停：否则它的喂句线程还在往即将关闭的
+        #    service 里 submit（会触发 `_send` 失败 ⇒ 计丢句、日志噪音）。
+        try:
+            dlg = getattr(self, '_offline_dlg', None)
+            rd = getattr(dlg, '_reader', None) if dlg is not None else None
+            if rd is not None and not rd.done:
+                rd.stop()
+                rd.wait(timeout=3)
+        except Exception:
+            pass
         try:
             self._pump_tts()
         except Exception:
