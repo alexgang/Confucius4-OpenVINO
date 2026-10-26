@@ -39,7 +39,66 @@ os.environ.setdefault('TOKENIZERS_PARALLELISM', 'false')
 
 MODEL_ID = os.environ.get('LIVECAP_CUDA_TTS_MODEL',
                           'Qwen/Qwen3-TTS-12Hz-0.6B-Base')
-PKG = os.environ.get('LIVECAP_PKG', r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5')
+
+# 🔴🔴 §48：**不写死客户包版本号**。
+# 原代码写死 `...\Confucius4_LiveCaption_v1.5`
+# ⇒ ① 客户机上的包是别的版本/别的路径 ⇒ 音色文件找不到；
+# ⇒ ② 仓库升版本后这行不跟着变 ⇒ 又一次指向旧包。
+#
+# 推导顺序（与 `tts_cuda.py::default_pkg_dir()` **同规则**）：
+#   1. 环境变量 `LIVECAP_PKG`（客户端 `tts_cuda.py` 启动边车时**必设**
+#      ⇒ 客户机上就是**包根**，最可靠）；
+#   2. 从本文件所在目录**逐级向上**找含 `models/` 的目录
+#      （客户机命中 `<包根>`；开发机深度不同 ⇒ 不能写死层数）；
+#   3. 在**用户主目录**里挑**版本号最大**且含 `models/` 的包（开发机）。
+#
+# ⚠️ 本文件**在客户包里**⇒ 不能 import 仓库根的 `pkg_paths.py`（包里没有它）
+# ⇒ 只做纯 stdlib 推导。
+def _looks_like_pkg(d):
+    # 🔴 判据 = **同时**有 `app/` 和 `models/`（仓库根只有 `models/` ⇒ 别误判）
+    return (bool(d)
+            and os.path.isdir(os.path.join(d, 'app'))
+            and os.path.isdir(os.path.join(d, 'models')))
+
+
+def _discover_pkg_dir() -> str:
+    env = os.environ.get('LIVECAP_PKG', '').strip()
+    if env:
+        return os.path.abspath(env)
+
+    here = os.path.dirname(os.path.abspath(__file__))
+    d = os.path.abspath(here)
+    for _ in range(6):
+        parent = os.path.dirname(d)
+        if parent == d:
+            break
+        d = parent
+        if _looks_like_pkg(d):
+            return d
+
+    scan_root = os.path.expanduser('~')
+    best, best_key = '', None
+    try:
+        names = os.listdir(scan_root)
+    except OSError:
+        names = []
+    for name in names:
+        if not name.startswith('Confucius4_LiveCaption_v'):
+            continue
+        ver = name[len('Confucius4_LiveCaption_v'):]
+        try:
+            key = tuple(int(x) for x in ver.split('.'))
+        except ValueError:
+            continue
+        cand = os.path.join(scan_root, name)
+        if not _looks_like_pkg(cand):
+            continue
+        if best_key is None or key > best_key:
+            best_key, best = key, cand
+    return os.path.abspath(best) if best else ''
+
+
+PKG = _discover_pkg_dir()
 DEFAULT_REF = os.path.join(PKG, 'models', 'qwen3tts', 'voices', 'preset_A.wav')
 
 _LANG = {

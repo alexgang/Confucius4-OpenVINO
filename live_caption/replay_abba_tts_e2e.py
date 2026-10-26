@@ -63,12 +63,38 @@ from replay_c134_mt import (          # noqa: E402
 )
 
 # 客户包 Python（唯一带 babelvox 的解释器）
-PKG = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.3'
+# 🔴 2026-10-26 §48：指向 **v1.5**（旧值 v1.3 早已不存在 ⇒ 脚本直接崩）。
+#   ⚠️ **不写死版本号** ⇒ 用「扫主目录挑版本号最大」的方式发现
+#      （与 `sync_s48_to_pkg.py::discover_pkg()` 同一口径）。
+def _discover_pkg():
+    import re as _re
+    home = r'C:\Users\Trekker-PTL'
+    cands = []
+    for name in os.listdir(home):
+        if not name.startswith('Confucius4_LiveCaption_v'):
+            continue
+        m = _re.search(r'_v(\d+(?:\.\d+)+)', name)
+        if not m:
+            continue
+        if not os.path.isdir(os.path.join(home, name, 'app')):
+            continue
+        cands.append((tuple(int(x) for x in m.group(1).split('.')),
+                      os.path.join(home, name)))
+    if not cands:
+        raise SystemExit('!! 找不到客户包目录')
+    cands.sort()
+    return cands[-1][1]
+
+
+PKG = _discover_pkg()
 PY = os.path.join(PKG, 'python', 'python.exe')
 
-# 暂存区：仓库代码 + 客户包模型（models 是符号链接，不复制 12 GB）
-STAGE = r'C:\Users\Trekker-PTL\abba_stage'
-STAGE_APP = os.path.join(STAGE, 'app')
+# 🔴 2026-10-26 §48：**直接用客户包内的 app/**（不再用陈旧的 abba_stage）
+#   理由：ABBA 要测的是**客户实际拿到的代码** ⇒ 必须跑包内那份；
+#   旧的 `abba_stage/app` 是 2026-10-23 的拷贝（含大量 diag 脚本，
+#   且 `models` 还指向 v1.3）⇒ 测的不是交付物。
+STAGE_APP = os.path.join(PKG, 'app')
+STAGE = PKG
 
 # 🔴 APP-005①：产物一律写仓库外
 OUTROOT = r'C:\Users\Trekker-PTL\abba_out\e2e'

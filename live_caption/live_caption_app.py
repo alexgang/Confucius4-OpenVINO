@@ -74,6 +74,15 @@ import audio_source
 from audio_source import (BLOCK_MS, SR, default_output_device_id,
                           list_input_devices, list_output_devices, make_source,
                           resample_to_16k, soundcard_available)
+# APP-015（方案 C）：字幕渲染层（草稿 → 正式稿的原地替换 + 浅色草稿）。
+# 🔴 单独成模块的原因：这段逻辑**不依赖模型** ⇒ 可离线验收
+#    （不起进程、不 import numpy、不跑推理、不占 GPU、不取机器锁）；
+#    而本文件顶部就 import numpy/openvino ⇒ **不能**被离线验收脚本 import。
+import caption_render
+
+# 🔴 **草稿译文缓存上限**（APP-015）：草稿每 ~1.5 s 一条 ⇒ 4 小时 ≈ 9 600 条
+#    ⇒ 不设上限会无界增长（与 `translator.py` 的 `CACHE_MAX` 同一口径）。
+_DRAFT_MT_CACHE_MAX = 2000
 
 CHUNK_SEC = 0.64
 
@@ -473,11 +482,11 @@ def build_asr_options(devices):
        （一条 audio.cpp，一条 OpenVINO）⇒ 去重只发生在「OV 档 vs CUDA 档」
        对**同一块物理显卡**的重复展示上 ⇒ 保留 CUDA 那条（用户要求）。
     """
+    out = []
     # 🔴 ASR 的 CUDA 后端需要**外部资产**（audio.cpp 的 audiocpp_cli.exe + GGUF）
     #    ⇒ 客户包里**没有**（包内无 cuda/ 目录、无 audiocpp_cli.exe、无 .gguf）
     #    ⇒ 客户机上必然不可用 ⇒ note 必须**说清楚**，不能让用户白选。
     cuda_assets_ok = bool(CUDA_DIR)
-    out = []
     for key, cfg in ENGINES.items():
         prec = ASR_PRECISION.get(key, 'INT8')
         note = cfg.get('note', '')
@@ -1822,6 +1831,13 @@ class App:
         self.blocks = []                  # [(定稿原文, 译文 or None)]
         self.overlay = None
         self._loading = False
+        # APP-015（方案 C）：草稿译文的**按 key 缓存**。
+        # 🔴 为什么需要它：`translator.py` 的 worker 把草稿译文写进**单槽位**
+        #    `svc.draft`（**不进 `done`**）⇒ `mt_units()` 里草稿单元的
+        #    `mt` 恒为 None ⇒ 渲染层拿不到「这句草稿的译文」。
+        #    ⇒ 这里从 outbox 的 ('draft', key, text) 把译文按 key 存下来，
+        #    与 `mt_units()` 里的草稿单元（**带 src**）配对。
+        self._draft_mt = {}
         # auto=False：翻译模型等 ASR 引擎就绪后再加载，避免两个模型在同一 GPU 上并行编译
         #
         # on_log 必须线程安全：翻译/引擎都在后台线程，直接 root.after() 会和主线程
@@ -2708,6 +2724,11 @@ class App:
 
         ⚠️ C-111 已撤回（2026-10-23）：段尾半句不再单独翻译，
         恢复 C-099① 的挂起机制 ⇒ outbox 只有 'final'/'draft'/'switch'。
+
+        🔴 **APP-015（方案 C）**：这里**顺带**把 `kind == 'draft'` 的译文
+        按 key 记进 `self._draft_mt`（渲染层要用它给草稿行上色/替换）。
+        🔴 **TTS 提交条件不变**：`kind == 'final'` ⇒ **草稿永远不被朗读**
+        （这正是 MT 通知 9 §9.1.1 要求的「TTS 只订阅 final」）。
         """
         try:
             if not self.mt.active:
@@ -2716,6 +2737,18 @@ class App:
                 if kind == 'final' and txt and txt.strip():
                     if self.tts is not None:
                         self.tts.submit(txt, seg=key)
+                elif kind == 'draft' and txt:
+                    # APP-015：草稿**只显示、不朗读** ⇒ 这里只记译文
+                    self._draft_mt[key] = txt
+                    # 🔴 **缓存必须有界**（MEMORY 铁律：「译文缓存有上限 ⇒
+                    #    长会话前段译文会被淘汰」）：草稿是**每 1.5 s 一条**
+                    #    ⇒ 4 小时会议 ≈ 9 600 条 ⇒ 不设上限会无界增长。
+                    #    ⇒ 超过上限就丢**最旧的**（FIFO，与 translator 的
+                    #    `CACHE_MAX` 同一口径）。
+                    if len(self._draft_mt) > _DRAFT_MT_CACHE_MAX:
+                        for _k in list(self._draft_mt.keys())[
+                                :len(self._draft_mt) - _DRAFT_MT_CACHE_MAX]:
+                            self._draft_mt.pop(_k, None)
         except Exception as e:
             self._ui_log(f'tts submit failed: {e!r}')
 
@@ -2793,9 +2826,32 @@ class App:
             mt.draft = ''
         if hasattr(mt, '_last_src'):
             mt._last_src = ''
+        # APP-015：草稿译文缓存也要清 ⇒ 否则**上一场**的草稿译文会
+        # 在新场次里被当成当前草稿显示。
+        if isinstance(getattr(self, '_draft_mt', None), dict):
+            self._draft_mt.clear()
 
     def _save_text(self):
-        """原文 + 译文（保存/自测共用）。"""
+        """原文 + 译文（保存/自测共用）。
+
+        🔴 **APP-015（方案 C）**：改用**渲染层**输出 ⇒ 保存的文件与
+        **屏幕上显示的完全一致**（含草稿 → 正式稿的原地替换、浅色草稿行）。
+        ⚠️ **粒度不变**（仍是「一行 = 一个 ASR 段」）。
+        """
+        lines = self._render_lines(show_pending=True)
+        if lines:
+            out = []
+            for l in lines:
+                if l['kind'] == 'src':
+                    out.append(l['text'])
+                elif l['kind'] == 'mt':
+                    out.append('〔译〕' + l['text'])
+                elif l['kind'] == 'mt_pending':
+                    out.append('〔译〕' + l['text'])
+                else:  # mt_draft —— 未定稿的草稿
+                    out.append('〔译〕' + l['text'] + '（草稿）')
+            return '\n'.join(out) + ('\n' if out else '')
+        # 翻译没开 ⇒ 退回报原文（旧行为）
         out = []
         for i, src in enumerate(self.blocks):
             out.append(src)
@@ -2913,16 +2969,62 @@ class App:
         self.root.destroy()
 
     # -- 刷新 -------------------------------------------------------------
+    def _render_lines(self, show_pending=False):
+        """渲染成显示行（**APP-015 方案 C** 的渲染层入口）。
+
+        🔴 **粒度保持现状**：`granularity='seg'`（一行 = 一个 ASR 段）
+        ⇒ **不擅自改字幕粒度**（§26.6 第①问至今未被裁定 ⇒ 见
+        `caption_render.py` 的模块 docstring）。
+
+        🔴 **草稿译文从哪来**：`translator.py` 的 worker 把草稿译文写进
+        **单槽位** `svc.draft`（不进 `done`）⇒ `mt_units()` 里草稿单元的
+        `mt` 恒为 None ⇒ 这里用 `self._draft_mt`（`_pump_tts` 收集的
+        outbox 草稿译文）补上。
+
+        🔴 **草稿显示受「草稿译文 Draft」开关控制**（`mt.draft_on`）：
+        用户关掉它 ⇒ **不显示草稿行**（但**替换关系仍然生效** ——
+        正式稿该替换还是要替换，否则那一行会空着）。
+
+        `show_pending=True` ⇒ 输出「（译文生成中…）」提示行
+        （**只给 `_save_text()` 用**，保持旧行为；屏幕渲染不用）。
+        """
+        if not self.mt.active:
+            return []
+        try:
+            units = self.mt.mt_units()
+        except Exception:
+            units = []
+        # 🔴 **草稿开关关闭 ⇒ 剔掉草稿单元**（不显示、不替换）。
+        #    ⚠️ 但**正式稿不能因此被埋掉**：被替换掉的正式稿若也不显示，
+        #    那一行会变成「有原文没译文」⇒ 所以这里**只剔草稿行**，
+        #    替换关系由渲染层在**有草稿单元**时才建立。
+        if not getattr(self.mt, 'draft_on', False):
+            units = [u for u in units
+                     if (u.get('kind') or 'final') != 'draft']
+        # 给草稿单元补上译文
+        if self._draft_mt:
+            for u in units:
+                if (u.get('kind') or 'final') == 'draft':
+                    t = self._draft_mt.get(u.get('key'))
+                    if t:
+                        u['mt'] = t
+        return caption_render.render_lines(
+            self.blocks, units, granularity='seg', show_pending=show_pending,
+            seg_carry=getattr(self.mt, 'seg_carry', None) or {})
+
     def _render(self, partial):
         self.txt.configure(state='normal')
         self.txt.delete('1.0', 'end')
-        for i, src in enumerate(self.blocks):
-            self.txt.insert('end', src + '\n')
-            mt = self._mt_of(i)
-            if mt:
-                if self.mt.seg_carry.get(i):
-                    mt = '…' + mt
-                self.txt.insert('end', '    〔译〕' + mt + '\n', 'mt')
+        for l in self._render_lines():
+            if l['kind'] == 'src':
+                self.txt.insert('end', l['text'] + '\n')
+            elif l['kind'] == 'mt':
+                self.txt.insert('end', '    〔译〕' + l['text'] + '\n', 'mt')
+            elif l['kind'] == 'mt_draft':
+                # 浅色（未定稿）—— APP-015 方案 C
+                self.txt.insert('end', '    〔译〕' + l['text'] + '\n',
+                                'mt_partial')
+            # 'mt_pending' 不上屏（旧行为：屏幕字幕不显示「译文生成中…」）
         if partial:
             self.txt.insert('end', partial, 'partial')
             # 草稿译文只在勾选了「草稿译文」时才显示（默认关闭）
@@ -3222,6 +3324,10 @@ def run_cli(args):
                 if kind == 'half' and txt.strip():
                     # C-111：段尾半句的初翻译文 —— 显示但**不朗读**
                     print(f'\n[半句译文] {txt}', flush=True)
+                elif kind == 'draft' and txt.strip():
+                    # APP-015（方案 C）：草稿 —— **只显示、不朗读**
+                    # （TTS 只订阅 'final' ⇒ 这里**不**调用 tts.submit）
+                    print(f'\n[草稿·未定稿] {txt}', flush=True)
                 elif kind in ('final', 'fix') and txt.strip():
                     tag = '修正译文' if kind == 'fix' else '译文'
                     print(f'\n[{tag}] {txt}', flush=True)
@@ -3247,6 +3353,9 @@ def run_cli(args):
         for kind, key, txt in mt.pop_outbox():
             if kind == 'half' and txt.strip():
                 print(f'[半句译文] {txt}', flush=True)
+            elif kind == 'draft' and txt.strip():
+                # APP-015：草稿 —— 只显示、不朗读
+                print(f'[草稿·未定稿] {txt}', flush=True)
             elif kind in ('final', 'fix') and txt.strip():
                 tag = '修正译文' if kind == 'fix' else '译文'
                 print(f'[{tag}] {txt}', flush=True)
@@ -3268,14 +3377,23 @@ def run_cli(args):
             f.write('\n'.join(finals) + '\n')
         if mt.active:
             mtp = os.path.splitext(args.out)[0] + '.mt.txt'
+            # APP-015（方案 C）：改用**渲染层** ⇒ 与 GUI 屏幕显示一致
+            # （含草稿 → 正式稿的原地替换）。
             lines = []
+            try:
+                units = mt.mt_units()
+            except Exception:
+                units = []
+            rl = caption_render.render_lines(
+                finals, units, granularity='seg', show_pending=True,
+                seg_carry=getattr(mt, 'seg_carry', None) or {})
+            by_seg = {}
+            for l in rl:
+                if l['kind'] in ('mt', 'mt_draft', 'mt_pending'):
+                    by_seg.setdefault(l['seg'], []).append(l)
             for i, t in enumerate(finals):
-                m = mt.mt_of_seg(i)
-                if m and mt.seg_carry.get(i):
-                    m = '…' + m          # 本段开头接上了上一段的半句
-                elif not m and mt.seg_carry.get(i):
-                    m = '（译文生成中…）'
-                lines.append(m or '')
+                parts = by_seg.get(i) or []
+                lines.append('\n'.join(p['text'] for p in parts))
             with open(mtp, 'w', encoding='utf-8') as f:
                 f.write('\n'.join(lines) + '\n')
             print(f'[{args.engine}] 译文已写 {mtp}', flush=True)

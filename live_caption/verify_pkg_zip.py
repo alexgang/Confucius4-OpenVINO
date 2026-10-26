@@ -48,33 +48,71 @@ from __future__ import annotations
 import argparse
 import hashlib
 import os
+import subprocess
 import sys
 import zipfile
 
 # 仓库 ⇄ 客户包 双向核对的**关键 .py**（其余 .py 不逐个比对，避免噪音）
-KEY_APP_FILES = [
-    'audio_source.py',
-    'backends.py',
-    'device_config.py',
-    'live_caption_app.py',
-    'npu_delivery_backend.py',
-    'npu_embeds_backend.py',
-    'seg_stream.py',
-    'segment_encoder_backend.py',
-    'selftest_audio_sources.py',
-    'streaming_asr.py',
-    'translator.py',
-    'tts_engine.py',
-    'tts_engine_patch.py',
-    'tts_service.py',
-    'tts_worker.py',
-    'win_clickthrough.py',
-]
+#
+# 🔴🔴 §48：**这份清单原来只有 16 条，而包内 `app/*.py` 实测 20 个**
+# ⇒ 漏掉 4 个（含 `tts_cuda.py` / `tts_cuda_sidecar.py` 这两个**会进包**
+# 且 §48 刚修过写死包路径的文件）⇒ 「仓库 ⇄ 包目录」核对**根本查不到它们**
+# ⇒ 属于「自检 PASS ≠ 全面无缺陷」。
+# ⇒ 现在改为：**以包内实测的 `app/*.py` 为准**自动取全，
+#    再**排除**明确不是交付物的开发专用脚本（`_` 前缀）。
+KEY_APP_FILES_EXCLUDE_PREFIX = '_'
 
 # 本脚本放在仓库的 `live_caption/` 下 ⇒ 仓库的 live_caption 目录就是本文件所在目录。
 _REPO_LIVE = os.path.dirname(os.path.abspath(__file__))
 # 仓库根（含 `pkg_exclude.py`），用于复用排除规则
 _REPO_ROOT = os.path.dirname(_REPO_LIVE)
+
+
+def _git_head_bytes(rel_path: str):
+    """取 **HEAD** 里某文件的内容（字节）。
+
+    🔴🔴 **为什么必须用 HEAD 而不是工作区**（长期记忆铁律：
+    「打包前自检『包内代码 == 仓库』的基准必须是 `HEAD`，不是工作区」）：
+
+    实测（§47.4.3）：工作区的 `live_caption_app.py` 是**方案 C 在制品**
+    （未提交，SHA `451571bf…`），而包内是 **HEAD**（SHA `78663908…`）
+    ⇒ 用工作区当基线 ⇒ 报出 1 处「不一致」⇒ **看起来像缺陷，其实是正常的**
+    ⇒ 白白让人工解释一次，且**掩盖真正的差异**。
+
+    ⚠️ `git show` 走 stdout ⇒ 换行符会被 git 原样保留
+    （仓库里是 CRLF 时拿到的也是 CRLF）⇒ 后面统一做换行归一化再比。
+
+    取不到（文件不在 HEAD / git 不可用）⇒ 返回 None（调用方按「跳过」处理，
+    **不静默当成一致**）。
+    """
+    try:
+        r = subprocess.run(
+            ['git', 'show', 'HEAD:' + rel_path.replace('\\', '/')],
+            cwd=_REPO_ROOT, capture_output=True, timeout=120)
+    except Exception:
+        return None
+    if r.returncode != 0:
+        return None
+    return r.stdout
+
+
+def key_app_files(pkg_dir: str):
+    """关键 .py 清单 = **包内实测全集** − 开发专用脚本（`_` 前缀）。
+
+    🔴 这样清单**不会**随包新增文件而漏检（§48 的核心修法）。
+    """
+    app_dir = os.path.join(pkg_dir, 'app')
+    names = []
+    try:
+        for n in sorted(os.listdir(app_dir)):
+            if not n.endswith('.py'):
+                continue
+            if n.startswith(KEY_APP_FILES_EXCLUDE_PREFIX):
+                continue
+            names.append(n)
+    except OSError:
+        pass
+    return names
 
 
 def sha256_file(path):
@@ -184,29 +222,50 @@ def _expected_set(pkg_dir):
     return expected, excluded
 
 
-def verify_repo_vs_pkg(pkg_dir, repo_live=None):
-    """关键 .py 的「仓库 ⇄ 包目录」代码级核对（换行符归一化）。
+def verify_repo_vs_pkg(pkg_dir, repo_live=None, baseline='head'):
+    """关键 .py 的「**基准** ⇄ 包目录」代码级核对（换行符归一化）。
 
-    返回 (n_same, n_diff, diffs)；diff 条目 = (文件名, repo_sha, pkg_sha)。
+    参数
+    ----
+    baseline
+        * `'head'`（**默认，§48 改**）：基准 = **git HEAD** 的内容
+          ⇒ 与「包里装的必须是已入库的代码」这条纪律一致；
+        * `'worktree'`：基准 = 工作区文件（旧行为，保留以便对照）。
+
+    返回 (n_same, n_diff, n_skip, diffs)
+    diffs 条目 = (文件名, 基准 sha, 包内 sha)
     """
     repo_live = repo_live or _REPO_LIVE
     same = 0
     diffs = []
-    for name in KEY_APP_FILES:
-        rp = os.path.join(repo_live, name)
+    n_skip = 0
+    for name in key_app_files(pkg_dir):
         pp = os.path.join(pkg_dir, 'app', name)
-        if not os.path.isfile(rp) or not os.path.isfile(pp):
+        if not os.path.isfile(pp):
             continue
-        with open(rp, 'rb') as f:
-            rb = f.read()
         with open(pp, 'rb') as f:
             pb = f.read()
+
+        if baseline == 'head':
+            rb = _git_head_bytes('live_caption/' + name)
+            if rb is None:
+                # HEAD 里没有 ⇒ 跳过（**不静默当成一致**）
+                n_skip += 1
+                continue
+        else:
+            rp = os.path.join(repo_live, name)
+            if not os.path.isfile(rp):
+                n_skip += 1
+                continue
+            with open(rp, 'rb') as f:
+                rb = f.read()
+
         if _norm_lines(rb) == _norm_lines(pb):
             same += 1
         else:
             diffs.append((name, sha256_bytes(_norm_lines(rb))[:12],
                           sha256_bytes(_norm_lines(pb))[:12]))
-    return same, len(diffs), diffs
+    return same, len(diffs), n_skip, diffs
 
 
 def main():
@@ -216,6 +275,9 @@ def main():
     ap.add_argument('--zip', default=None, help='zip 路径（默认 <pkg>.zip）')
     ap.add_argument('--prefix', default=None, help='zip 内顶层目录名（默认自动推断）')
     ap.add_argument('--no-repo', action='store_true', help='跳过「仓库 ⇄ 包目录」核对')
+    ap.add_argument('--baseline', choices=('head', 'worktree'), default='head',
+                    help='「仓库 ⇄ 包目录」的基准（默认 head = git HEAD；'
+                         'worktree = 工作区文件，仅供对照）')
     ap.add_argument('--allow-extra', action='store_true',
                     help='包目录里多出来的文件不视为失败（默认只提示）')
     args = ap.parse_args()
@@ -275,14 +337,20 @@ def main():
         print(f'[1] zip ⇄ 包目录：跳过（zip 不存在: {zip_path}）')
 
     if not args.no_repo:
-        same, ndiff, diffs = verify_repo_vs_pkg(pkg)
+        same, ndiff, nskip, diffs = verify_repo_vs_pkg(pkg, baseline=args.baseline)
+        bl = 'HEAD' if args.baseline == 'head' else '工作区'
         print()
-        print(f'[2] 仓库 ⇄ 包目录（关键 .py，换行符归一）：一致 {same} / 不一致 {ndiff}')
+        print(f'[2] {bl} ⇄ 包目录（关键 .py，换行符归一）：'
+              f'一致 {same} / 不一致 {ndiff} / 跳过 {nskip}')
+        print(f'    清单来源 = 包内实测 app/*.py（排除 `_{KEY_APP_FILES_EXCLUDE_PREFIX}` 前缀的'
+              f'开发专用脚本）⇒ 共 {len(key_app_files(pkg))} 个')
         for name, rsha, psha in diffs:
-            print(f'      ⚠ {name}  repo [{rsha}] != pkg [{psha}]')
+            print(f'      ⚠ {name}  {bl} [{rsha}] != pkg [{psha}]')
         if ndiff:
-            print('  ⇒ 包目录与仓库不同步（可能是 MT/TTS 模块在途改动，'
-                  '**不一定是错误**，但必须确认是否该入包）')
+            print(f'  ⇒ 包目录与{bl}不同步 ⇒ **包里装的不是已入库的代码**')
+            print('    （若工作区有在制品改动，请先提交或定点同步后再打包）')
+        if nskip:
+            print(f'  ⇒ {nskip} 个文件在{bl}里找不到 ⇒ 已跳过（**不算一致**）')
 
     print()
     print('结论：' + ('PASS' if rc == 0 else 'FAIL'))

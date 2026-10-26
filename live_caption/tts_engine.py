@@ -152,7 +152,40 @@ def preset_voice_path() -> Optional[str]:
 PRESET_A_REF_TEXT = None
 
 # babelvox 内置 speaker（零额外体积，随包分发）
+# 🔴🔴 **2026-10-26 §48（APP-018 第 2 条 / APP-019）**：
+#   这些 profile 是**第三方音色**（`babelvox/data/speakers/*.npy`）
+#   ⇒ 客户包里**不再分发**（授权边界）⇒ **本机开发环境仍有**。
+#   ⇒ 运行时**必须先探测可用性**，不能假设它们一定在
+#   （否则 `--voice cindy` 会一路走到 babelvox 内部才抛
+#    `ValueError: speaker library not set` / `No such file`）。
 BUILTIN_SPEAKERS = ('cindy', 'lou', 'phil', 'steve')
+
+
+def builtin_speakers_available() -> tuple:
+    """返回**当前可用**的内置 speaker 名列表（可能为空）。
+
+    🔴 **为什么要探测**：APP-018 第 2 条把
+    `babelvox/data/speakers/` 从客户包里排除了 ⇒ 客户机上**没有**这些文件
+    ⇒ `--voice cindy` 必须**在选之前**就知道不可用。
+
+    判据 = `babelvox/data/speakers/{name}.json` + `{name}.npy` **同时存在**。
+    ⚠️ 探测**不 import babelvox**（只查文件）⇒ 零副作用、零开销。
+    """
+    try:
+        import babelvox.speakers as _bs
+        base = getattr(_bs, 'BUILTIN_SPEAKERS_DIR', None)
+        if not base:
+            return ()
+        import os as _os
+        out = []
+        for name in BUILTIN_SPEAKERS:
+            j = _os.path.join(base, name + '.json')
+            n = _os.path.join(base, name + '.npy')
+            if _os.path.isfile(j) and _os.path.isfile(n):
+                out.append(name)
+        return tuple(out)
+    except Exception:
+        return ()
 
 # 🔴 BabelVox 输出采样率（babelvox `generate` / `generate_stream` 返回 24000）
 TTS_SAMPLE_RATE = 24000

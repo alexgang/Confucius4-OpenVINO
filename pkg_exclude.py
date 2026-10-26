@@ -83,6 +83,9 @@ __all__ = [
     'iter_excluded',
     'APP_LOCAL_MODULE_RE',
     'find_missing_local_modules',
+    'THIRD_PARTY_NOISE_PREFIXES',
+    'THIRD_PARTY_NOISE_FILE_RE',
+    'is_third_party_noise',
 ]
 
 # ── 按**目录名**排除（任意层级）──────────────────────────────────────
@@ -137,6 +140,58 @@ RESULTS_DIR = 'results/'
 INTERNAL_EXACT = (
     'results/mt2_memory.json',
 )
+
+# ══════════════════════════════════════════════════════════════════════
+# 🔴 第三方自带素材排除（APP-018 第 2 条 + APP-019）
+# ══════════════════════════════════════════════════════════════════════
+#
+# 交付包里有两类**第三方自带素材**，授权归属**不属于本项目**：
+#
+#  ① babelvox 自带的 speaker profile
+#     （`babelvox/data/speakers/{cindy,lou,phil,steve}.json` + `.npy`
+#      = 第三方音色 embedding，1×1024）⇒ **第三方音色**；
+#  ② scipy 自带的**测试 wav**（`scipy/io/tests/data/*.wav`，22 个）
+#     ⇒ **第三方音频素材**。
+#
+# ⇒ 一律排除（reviewer APP-018 第 2 条 / APP-019 确认）。
+# ⚠️ **目的不是减体积**（reviewer 明确「不需要为减小体积再额外下功夫」）
+#    ⇒ 体积只掉 90 KB，**关键是授权边界干净**。
+#
+# 🔴 **安全性依据（删掉不会让包跑不起来）**：
+#  ① `babelvox/speakers.py::_copy_builtin_speakers()` 在
+#     `BUILTIN_SPEAKERS_DIR` 不存在时**直接 return**（L63-64）⇒ 删目录不报错；
+#  ② App 的**生产路线是 spkonly**（`preset_A.wav` → `speaker_embed`）
+#     ⇒ **不依赖**内置音色；
+#  ③ scipy 的 `tests/` 目录**运行时不会被 import**
+#     （只有 pytest 会用）⇒ 删掉不影响 `import scipy.*`；
+#  ④ 唯一依赖点是「按名查内置 speaker」（`--voice cindy`）
+#     ⇒ 已加**显式回落**（`tts_engine.builtin_speaker_available()`）。
+#
+# ── 目录前缀（带尾 '/'，可在 walk 时整目录 prune）────────────────
+THIRD_PARTY_NOISE_PREFIXES = (
+    'python/Lib/site-packages/babelvox/data/speakers/',
+)
+
+# ── 文件名正则：**只限 scipy 下的 tests 目录**里的音频素材 ──────────
+# ⚠️ 必须限定 `scipy/` + `tests/`，否则会误伤客户自己的音频
+#    （例如 `models/qwen3tts/voices/preset_A.wav` 绝不能被排除）。
+THIRD_PARTY_NOISE_FILE_RE = re.compile(
+    r'^python/Lib/site-packages/scipy/.*/tests/.*\.(wav|flac|mp3|ogg|aiff|m4a)$',
+    re.I)
+
+
+def is_third_party_noise(relpath: str) -> bool:
+    """判断相对路径是否属于**第三方自带素材**（⇒ 不进客户包）。
+
+    见 `THIRD_PARTY_NOISE_PREFIXES` / `THIRD_PARTY_NOISE_FILE_RE` 的说明。
+    """
+    if not relpath:
+        return False
+    for prefix in THIRD_PARTY_NOISE_PREFIXES:
+        if relpath.startswith(prefix):
+            return True
+    return bool(THIRD_PARTY_NOISE_FILE_RE.match(relpath))
+
 
 # ── 供 pack_v13.py 做「目录前缀」断言用（带尾 '/'，零假阳性）──────
 SKIP_DIR_PREFIXES = tuple(
@@ -427,6 +482,11 @@ def is_excluded(relpath: str, top_dir: str = None) -> bool:
     if is_app_dev_only(relpath):
         return True
 
+    # 2.8) 🔴 第三方自带素材（APP-018 第 2 条 / APP-019）
+    #   babelvox 自带 speaker profile + scipy 自带测试 wav
+    if is_third_party_noise(relpath):
+        return True
+
     # 3) __pycache__：python/ 下保留，其余排除
     if '__pycache__' in relpath.split('/'):
         return top_dir not in KEEP_PYCACHE_UNDER
@@ -465,6 +525,12 @@ def iter_package_files(pkg_root: str):
                 continue
             if d == '__pycache__' and top_dir not in KEEP_PYCACHE_UNDER:
                 continue
+            # 🔴 第三方自带素材目录（APP-018 第 2 条）—— 整目录 prune
+            #   （`babelvox/data/speakers/` ⇒ 内置音色 profile）
+            d_rel = (rel_dir + '/' + d) if rel_dir != '.' else d
+            d_rel = d_rel.replace('\\', '/') + '/'
+            if any(d_rel.startswith(p) for p in THIRD_PARTY_NOISE_PREFIXES):
+                continue
             keep.append(d)
         dirnames[:] = sorted(keep)
 
@@ -487,6 +553,11 @@ def iter_package_files(pkg_root: str):
             # 🔴 开发专用文件（app/ 下的 `_` 前缀脚本）
             if is_app_dev_only(rel):
                 continue
+            # 🔴 第三方自带素材（APP-018 第 2 条）—— 文件级
+            #   （scipy 的测试 wav：目录里还有 .sav/.mat 等非音频数据，
+            #    只排音频文件，不整目录删）
+            if is_third_party_noise(rel):
+                continue
             try:
                 size = os.path.getsize(full)
             except OSError:
@@ -505,9 +576,12 @@ def iter_excluded(pkg_root: str):
         top_dir = '' if rel_dir == '.' else rel_dir.split('/')[0]
 
         for d in list(dirnames):
+            d_rel = (rel_dir + '/' + d) if rel_dir != '.' else d
+            d_rel = d_rel.replace('\\', '/') + '/'
             hit = d in SKIP_DIR_NAMES or (
                 BACKUP_DIR_RE.match(d)) or (
-                d == '__pycache__' and top_dir not in KEEP_PYCACHE_UNDER)
+                d == '__pycache__' and top_dir not in KEEP_PYCACHE_UNDER) or (
+                any(d_rel.startswith(p) for p in THIRD_PARTY_NOISE_PREFIXES))
             if not hit:
                 continue
             for p2, _d2, f2 in os.walk(os.path.join(dirpath, d)):

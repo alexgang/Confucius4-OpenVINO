@@ -30,6 +30,92 @@ SIDECAR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 READY_TIMEOUT_S = float(os.environ.get('LIVECAP_CUDA_READY_S', '180'))
 
 
+def _looks_like_pkg(d: str) -> bool:
+    """目录像不像**客户包根**。
+
+    🔴 判据 = **同时**有 `app/` 和 `models/`（实测教训）：
+    - 仓库根 `confucius4-openvino/` **有** `models/`（放模型）但**没有** `app/`
+      ⇒ 只判 `models/` 会把**仓库根**误判成包根（实测 `ref_audio` 指到
+      `confucius4-openvino\\models\\...`，该文件不存在）；
+    - **客户包根两个都有**（`app/` 是代码、`models/` 是模型与音色）。
+    ⇒ 必须两个都判。
+    """
+    return (bool(d)
+            and os.path.isdir(os.path.join(d, 'app'))
+            and os.path.isdir(os.path.join(d, 'models')))
+
+
+def _scan_for_pkg(start: str) -> str:
+    """从 `start` 向上逐级查找「含 `models/` 且名字像包的目录」。
+
+    🔴 **为什么是「逐级向上」而不是「固定上 N 级」**：
+    - 客户机：`<包根>/app/tts_cuda.py` ⇒ 包根是**上上级**；
+    - 开发机：`<repo>/live_caption/tts_cuda.py` ⇒ 上上级是 `C:\\Users\\Trekker-PTL`
+      ⇒ **深度不同** ⇒ 写死层数必错（实测：写成上上级时开发机找不到包，
+      `ref_audio` 退化成**相对路径** `models\\qwen3tts\\voices\\preset_A.wav`）。
+    ⇒ 逐级向上 ⇒ 两种布局都对。
+    """
+    d = os.path.abspath(start)
+    for _ in range(6):                 # 最多向上 6 级，够用且不会跑飞
+        parent = os.path.dirname(d)
+        if parent == d:                # 到根了
+            break
+        d = parent
+        if _looks_like_pkg(d):
+            return d
+    return ''
+
+
+def default_pkg_dir() -> str:
+    """🔴🔴 **推导**客户包根目录（**绝不写死版本号**，STATUS §48）。
+
+    事故（2026-10-26 实测）：原代码写死了**某个具体版本**的绝对包路径
+    ⇒ ① 客户机上的包是**别的版本**（或装在别的路径）⇒ 音色文件找不到；
+    ⇒ ② 仓库里升级版本号后，这行**不会跟着变** ⇒ 又一次指向旧包。
+
+    推导顺序：
+    1. 环境变量 `LIVECAP_PKG`（显式指定，最高优先）；
+    2. 从本文件所在目录**逐级向上**找含 `models/` 的目录
+       （客户机命中 `<包根>`；开发机命中 `C:\\Users\\Trekker-PTL` 本身——
+        它下面有 `models/` 吗？没有 ⇒ 继续向上 ⇒ 也找不到 ⇒ 落第 3 步）；
+    3. 在**扫描根**里挑**版本号最大**且含 `models/` 的 `Confucius4_LiveCaption_v*`。
+
+    ⚠️ 本模块**在客户包里**⇒ **不能 import 仓库根的 `pkg_paths.py`**
+    （包里没有它）⇒ 这里只做**纯 stdlib 的路径推导**。
+    ⚠️ 找不到 ⇒ 返回空串（由调用方报错，**不静默指向某个旧版本**）。
+    """
+    env = os.environ.get('LIVECAP_PKG', '').strip()
+    if env:
+        return os.path.abspath(env)
+
+    here = os.path.dirname(os.path.abspath(__file__))
+    hit = _scan_for_pkg(here)
+    if hit:
+        return hit
+
+    # 开发机：在**用户主目录**里挑版本号最大的包
+    scan_root = os.path.expanduser('~')
+    best, best_key = '', None
+    try:
+        names = os.listdir(scan_root)
+    except OSError:
+        names = []
+    for name in names:
+        if not name.startswith('Confucius4_LiveCaption_v'):
+            continue
+        ver = name[len('Confucius4_LiveCaption_v'):]
+        try:
+            key = tuple(int(x) for x in ver.split('.'))
+        except ValueError:
+            continue
+        cand = os.path.join(scan_root, name)
+        if not _looks_like_pkg(cand):
+            continue
+        if best_key is None or key > best_key:
+            best_key, best = key, cand
+    return os.path.abspath(best) if best else ''
+
+
 class CudaTTSError(RuntimeError):
     pass
 
@@ -83,8 +169,10 @@ class CudaTTSEngine:
         self._rid = 0
         self._py = python or ENV_PY
         self._chunk_size = int(chunk_size)
-        pkg = pkg_dir or os.environ.get(
-            'LIVECAP_PKG', r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5')
+        # 🔴🔴 §48：**不写死版本号** ⇒ 由 `default_pkg_dir()` 推导
+        # （§48 前这里写死 `...\Confucius4_LiveCaption_v1.5`
+        #   ⇒ 客户机换版本/换路径 ⇒ 音色文件找不到）。
+        pkg = pkg_dir or default_pkg_dir()
         self.ref_audio = ref_audio or os.path.join(
             pkg, 'models', 'qwen3tts', 'voices', 'preset_A.wav')
         atexit.register(self.close)
@@ -101,7 +189,11 @@ class CudaTTSEngine:
         env = dict(os.environ)
         env.setdefault('HF_HUB_OFFLINE', '1')
         env.setdefault('PYTHONIOENCODING', 'utf-8')
-        env['LIVECAP_PKG'] = os.environ.get('LIVECAP_PKG', '') or os.path.dirname(
+        # 🔴🔴 §48：**统一**推导 —— 原代码这里用「上上级」，
+        # 而 `__init__` 里算 `ref_audio` 用的是**写死的绝对路径**
+        # ⇒ 两处不一致 ⇒ 边车与客户端可能指向**不同的包**。
+        # ⇒ 现在两处都走 `default_pkg_dir()`（同一函数、同一规则）。
+        env['LIVECAP_PKG'] = default_pkg_dir() or os.path.dirname(
             os.path.dirname(os.path.abspath(__file__)))
 
         t0 = time.monotonic()

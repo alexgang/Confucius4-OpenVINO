@@ -494,6 +494,52 @@ def check_internal_material(pkg):
     return 0
 
 
+def check_pkg_path_hardcode():
+    """打包前「客户包路径写死」闸门（§48）。
+
+    为什么要有这道闸门（真实事故，2026-10-26）
+    ------------------------------------------
+    `results/app/test_tts_close_gui_quit_pkg.py` 把客户包版本**写死**成
+    `Confucius4_LiveCaption_v1.4`。包一升版，这个「包内验收脚本」就指着
+    **旧包**跑 ⇒ 报出 3 项 FAIL ⇒ 看起来像**真回归**，实际只是**脚本过期**。
+
+    ⇒ 同类缺陷还有「会进包的生产模块写死包路径」——
+    `tts_cuda.py` 写死 v1.5 的绝对路径 ⇒ 客户机上的包是别的版本/别的路径时
+    **音色文件找不到** ⇒ CUDA 后端直接不可用。
+
+    ⇒ 复用独立脚本 `results/app/app049_pkg_path_hardcode_gate.py`
+    （**单一数据源**）⇒ 命中即 **FAIL**，不允许打包。
+    """
+    import subprocess
+    script = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           'results', 'app', 'app049_pkg_path_hardcode_gate.py')
+    if not os.path.isfile(script):
+        print('[warn] 未找到 app049_pkg_path_hardcode_gate.py，'
+              '跳过「包路径写死」闸门')
+        return 0
+    print()
+    print('=' * 70)
+    print('包路径写死闸门（§48）')
+    print('=' * 70)
+    try:
+        r = subprocess.run([sys.executable, script],
+                           capture_output=True, timeout=600)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        print(f'!! 包路径写死闸门执行失败: {e}')
+        return 1
+    out = r.stdout.decode('utf-8', errors='replace')
+    err = r.stderr.decode('utf-8', errors='replace')
+    print(out.rstrip())
+    if err.strip():
+        print(err.rstrip())
+    if r.returncode != 0:
+        print('⚠️ 「包路径写死」闸门未通过 ⇒ 拒绝打包')
+        print('   修法：用 `pkg_paths.discover_pkg_dir()` / '
+              '`pkg_paths.pkg_app_dir()`（单一数据源）')
+        return 1
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(
         description=f'打包客户包 v{PKG_VERSION} 并校验')
@@ -572,6 +618,17 @@ def _run(args):
     if not os.path.isdir(PKG):
         print(f'!! 源目录不存在: {PKG}')
         return 1
+
+    # 🔴🔴 **打包前闸门①**（§48）：包路径写死
+    #    ⇒ 「包内验收脚本指向旧包」+「生产模块指向别的版本的绝对路径」
+    #       两类缺陷都会**静默**漏到客户手里（打包流水线本身全绿）。
+    #    ⚠️ 放在 dry-run **之前** ⇒ 只读、几秒 ⇒ 打包前就能看到问题，
+    #       不必等 10 min 打包完才发现。
+    rc = check_pkg_path_hardcode()
+    if rc:
+        print()
+        print('结论：FAIL（包路径写死闸门未通过）')
+        return rc
 
     if args.dry_run:
         return do_dry_run(PKG, PREFIX)
@@ -734,6 +791,22 @@ def _verify_and_report(ZIP, args, PKG, PREFIX):
         for n in internal_hit:
             print(f'      ⚠️ {n}')
 
+        # 🔴🔴 第三方自带素材断言（APP-018 第 2 条 / APP-019）
+        #   babelvox 自带 speaker profile（第三方音色）
+        #   scipy 自带测试 wav（第三方音频素材）
+        #   ⇒ 授权边界必须干净 ⇒ 一个都不许在 zip 里。
+        noise_hit = sorted(
+            n for n in names
+            if pkg_exclude.is_third_party_noise(
+                n[len(PREFIX) + 1:] if n.startswith(PREFIX + '/') else n)
+        )
+        print()
+        print('第三方自带素材应已移除（babelvox 内置音色 / scipy 测试 wav）：')
+        print(f'  [{"已移除" if not noise_hit else "仍在"}] 第三方素材 '
+              f'（{len(noise_hit)} 条命中）')
+        for n in noise_hit[:20]:
+            print(f'      ⚠️ {n}')
+
         # MANIFEST 硬校验
         man = json.loads(zf.read(f'{PREFIX}/{MANIFEST_REL}').decode('utf-8'))
         entries = [n for n in names if not n.endswith('/')]
@@ -891,7 +964,7 @@ def _verify_and_report(ZIP, args, PKG, PREFIX):
     print()
     if (missing or stale or stale_prefix or not mt_dirs_ok or not files_ok
             or not bytes_ok or spoken_hit or internal_hit or tts_bad
-            or certain or not content_ok):
+            or noise_hit or certain or not content_ok):
         print('结论：FAIL')
         return False
     return True

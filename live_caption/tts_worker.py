@@ -517,11 +517,22 @@ class TTSWorker:
         import tts_engine
 
         key = (self.voice or 'A').strip()
+        # 🔴🔴 **2026-10-26 §48（APP-018 第 2 条）**：客户包里**没有**内置音色
+        #   （`babelvox/data/speakers/` 已作为第三方素材排除）⇒ 必须先探测。
+        #   旧实现只看「名字在 BUILTIN_SPEAKERS 里」就直接用 ⇒ 客户机上
+        #   会在 babelvox 内部才炸（`speaker library not set` / 文件不存在）
+        #   ⇒ 表现为「语音输出没有声音」，很难定位。
+        avail = tts_engine.builtin_speakers_available()
         if key.lower() in tts_engine.BUILTIN_SPEAKERS:
-            self.speaker_embed = None
-            self.speaker_name = key.lower()
-            log(f'[tts_worker] 使用内置 speaker：{self.speaker_name}')
-            return
+            if key.lower() in avail:
+                self.speaker_embed = None
+                self.speaker_name = key.lower()
+                log(f'[tts_worker] 使用内置 speaker：{self.speaker_name}')
+                return
+            log(f'[tts_worker] ⚠️ 内置 speaker「{key}」在当前环境不可用'
+                f'（客户包不分发第三方音色文件，可用：{avail or "无"}）'
+                f' ⇒ 改用参考 wav（音色 A）')
+            # ↓ 继续走参考 wav 路线（音色 A）
 
         wav = tts_engine.preset_voice_path()
         if getattr(self.engine, 'USES_REF_AUDIO', False):
@@ -534,8 +545,17 @@ class TTSWorker:
         self.speaker_embed = tts_engine.speaker_embedding(self.engine, wav, on_log=log)
         self.speaker_name = 'A'
         if self.speaker_embed is None:
-            log('[tts_worker] ⚠️ 没有可用音色 ⇒ 退回内置 speaker cindy')
-            self.speaker_name = 'cindy'
+            # 🔴 内置音色也不可用（客户机）⇒ 只能报「没有音色」
+            #   ⇒ 旧实现在这里硬回落 'cindy' ⇒ 客户机上必然失败
+            #   ⇒ 改成：有可用内置音色才回落，否则让 `synth()` 走
+            #      「没有可用的音色」句子级错误路径（带 id ⇒ 不影响后续句子）。
+            fallback = next((s for s in avail), None)
+            if fallback:
+                log(f'[tts_worker] ⚠️ 没有可用音色 ⇒ 退回内置 speaker {fallback}')
+                self.speaker_name = fallback
+            else:
+                log('[tts_worker] 🔴 没有可用音色（参考 wav 算不出 embedding，'
+                    '且无内置音色文件）⇒ 语音输出将逐句报错')
 
     def _try_load_ov(self):
         """尝试加载 OpenVINO 版运行时包（tts_ov）。失败则回落到 torch。
@@ -705,17 +725,101 @@ class TTSWorker:
             self._record_jsonl(jid, text, t_submit, dropped=True)
             return
 
+        # 🔴🔴 2026-10-26 §48（APP-018 第 1 条）：**流式合成 + 边合成边播**。
+        #   旧实现：`_synth_babelvox()` 把**所有块收完**才 `return list`
+        #   ⇒ `first_packet` 只能在**整句合成完成之后**才发
+        #   ⇒ App 报的「首包」= **整句合成耗时**（实测 8.36 s），
+        #     而**真实流式首包只要 1.16 s** ⇒ **流式能力被完全浪费**（差 7.2×）
+        #     ⇒ 听感上也是「整句合成完才出声」。
+        #   新实现：三条路径统一成**迭代器**，在 `_synth_lock` 内**边收边写**
+        #      环形缓冲 ⇒ 第一块到达即发声、即报首包。
+        #   ⚠️ 附带修掉一个旧隐患：旧实现的 `player.write()` 在**锁外**
+        #      ⇒ 两句的音频可能**交错**进同一个环形缓冲；现在写入也在锁内
+        #      ⇒ 句子之间**严格有序**。
+        #   ⚠️ 中途失败（如缓冲 stall）：已写入的**部分音频会播出去**，
+        #      但**不发 `played`** ⇒ 主进程记为「这一句失败」
+        #      ⇒ 不变式 `n_played + n_dropped == n_submitted` 仍成立。
+        chunks = None
+        t_first = None
+        latency = None
+        n_samples = 0
+        n_parts = 0
+        aborted = False
+        wav_parts = []
         try:
             with self._synth_lock:
                 if self._is_cancelled(jid):
                     return
                 self._cur_jid = jid
                 if is_babelvox:
-                    chunks = self._synth_babelvox(text, lang)
+                    chunks = self._synth_babelvox(text, lang)      # 生成器
                 elif self.ov_rt is not None:
-                    chunks = self._synth_ov(text, lang, cond)
+                    chunks = iter(self._synth_ov(text, lang, cond))
                 else:
-                    chunks = self._synth_torch(text, lang, cond)
+                    chunks = iter(self._synth_torch(text, lang, cond))
+
+                # ── 流式主循环：收到一块 ⇒ 立刻发声 ────────────────
+                for w in chunks:
+                    if self._stop.is_set() or self._is_cancelled(jid):
+                        aborted = True
+                        break
+                    if t_first is None:
+                        t_first = time.perf_counter()
+                        latency = t_first - t_submit
+                        emit({'kind': 'first_packet',
+                              'latency_s': round(latency, 3), 'id': jid})
+                    n_samples += len(w)
+                    n_parts += 1
+                    if self.out_wav:
+                        # ⚠️ 落盘模式**不逐块入时间轴**：块的到达间隔
+                        #   （= 合成耗时）通常 **> 音频时长**（RTF>1）
+                        #   ⇒ 逐块入轴会把一句话**拉散成断续的碎片**。
+                        #   ⇒ 这里只**整句累加**，收尾时一次性入轴
+                        #   （与旧实现语义一致：一句话 = 一个时间点）。
+                        wav_parts.append(w)
+                    elif self.player is not None:
+                        try:
+                            # 🔴🔴 2026-10-25 修：`write()` 已改为**分片推进**
+                            #   （不再要求整句一次装下）⇒ 流式逐块写没问题。
+                            #   「取消」做成**逐块可中断** ⇒ 长句播放期间也能被丢弃。
+                            ok = self.player.write(
+                                w.tolist(),
+                                should_stop=lambda: (
+                                    self._is_cancelled(jid)
+                                    or self._stop.is_set()))
+                        except TimeoutError as e:
+                            # 旧语义：缓冲写满 ⇒ 播放跟不上（C-101 P4 第 2 条）
+                            log(f'[tts_worker] 播放缓冲写满，阻塞超时：{e}')
+                            emit({'kind': 'error',
+                                  'message': f'播放缓冲写满：{e}',
+                                  'id': jid, 'dropped': True})
+                            self._record_jsonl(jid, text, t_submit,
+                                               dropped=True, t_first=t_first)
+                            return
+                        except Exception as e:
+                            # 🔴 带上播放器诊断：回调次数 / 已写 / 已读
+                            #   0 次回调 = 播放流没跑；有回调但没读 = 设备被占用/静音
+                            diag = ''
+                            try:
+                                diag = (' [诊断: 回调 %d 次, 已写 %d, 已读 %d, 缓冲 %d/%d]'
+                                        % (self.player.n_cb,
+                                           self.player.ring.n_written,
+                                           self.player.ring.n_read,
+                                           self.player.ring.level(),
+                                           self.player.ring._cap))
+                            except Exception:
+                                pass
+                            log(f'[tts_worker] 播放写入失败：{e}{diag}')
+                            emit({'kind': 'error',
+                                  'message': f'播放写入失败：{e}{diag}',
+                                  'id': jid})
+                            self._record_jsonl(jid, text, t_submit,
+                                               error=(str(e) + diag)[:300])
+                            return
+                        if not ok:
+                            # `should_stop` 触发 ⇒ 这句被丢弃（或正在收尾）
+                            aborted = True
+                            break
         except Exception as e:
             import traceback
             log('[tts_worker] 合成失败：' + traceback.format_exc())
@@ -723,85 +827,37 @@ class TTSWorker:
             self._record_jsonl(jid, text, t_submit, error=str(e)[:200])
             return
 
-        if self._is_cancelled(jid):
-            log(f'[tts_worker] 句子 id={jid} 合成完成但已被丢弃，不播放')
-            self._record_jsonl(jid, text, t_submit, dropped=True)
+        # ── 收尾 ──────────────────────────────────────────────────
+        # 🔴🔴 2026-10-25 §30 的取消语义在流式下依然成立：
+        #   `cancel` 由**主线程**的 `for line in sys.stdin` 收到，
+        #   `synth()` 跑在**独立线程** ⇒ 二者并发 ⇒ 取消可能在**任意块之间**
+        #   到达 ⇒ 每块写入前都要查一次（上面循环里已经查了）。
+        #   ⚠️ 权威判据在**主进程**（`tts_service.py` 的 `_dropped_ids`）
+        #      ⇒ 收到迟到的 `played` 时改记为「已播」⇒ 不双记。
+        if aborted or self._is_cancelled(jid) or self._stop.is_set():
+            log(f'[tts_worker] 句子 id={jid} 合成中途被丢弃，不播放')
+            self._record_jsonl(jid, text, t_submit, dropped=True,
+                               t_first=t_first)
             return
 
-        if not chunks:
+        if n_parts == 0:
+            # 一块都没拿到（空句 / 引擎没吐块）
             emit({'kind': 'played', 'id': jid})
             self._record_jsonl(jid, text, t_submit)
             return
 
-        # 首包延迟：从收到指令到第一块音频可用
-        latency = time.perf_counter() - t_submit
-        emit({'kind': 'first_packet', 'latency_s': round(latency, 3), 'id': jid})
-
-        # 播放：把整句的波形一次性塞进环形缓冲
-        wav = np.concatenate(chunks) if len(chunks) > 1 else chunks[0]
-        # 🔴🔴 2026-10-25 §30 修：**播放前必须再查一次取消**。
-        #   起因（真实竞态）：`synth()` 跑在**独立线程**（`run()` 里
-        #   `threading.Thread(target=self.synth, ...)`），而 `cancel` 指令
-        #   由**主线程**的 `for line in sys.stdin` 循环接收 ⇒ 二者并发。
-        #   ⇒ 主进程在「积压超限」时发 `cancel`，若此刻 `synth` 线程已经
-        #      **越过**上面 L537 的取消检查 ⇒ 这句话**照样被合成并播出去**。
-        #   ⇒ 主进程已把它记为「丢弃」（`n_dropped += 1`），worker 又回
-        #      `played` ⇒ 主进程**双记**（丢了 + 播了）
-        #      ⇒ `n_played + n_dropped` 比 `n_submitted` **多 1**。
-        #   ⇒ 这里在**真正播放前**补一次检查，**收窄竞态窗口**。
-        #   ⚠️ 这只是**缩小**窗口（检查与 write 之间仍有纳秒级缝隙），
-        #      **权威判据在主进程**（`tts_service.py` 的 `_dropped_ids` ⇒
-        #      收到 `played` 时改记为「已播」）⇒ 两边都要有。
-        if self._is_cancelled(jid):
-            log(f'[tts_worker] 句子 id={jid} 播放前被丢弃，不播放')
-            self._record_jsonl(jid, text, t_submit, dropped=True)
-            return
-        t_first = time.perf_counter()
-        if self.out_wav:
-            # ── 落盘模式：按真实时间轴排队，不实时播放 ──
+        if self.out_wav and wav_parts:
+            # ── 落盘模式：整句一次性入时间轴（见循环内的说明）──
             now = time.perf_counter()
             if self._t0 is None:
                 self._t0 = now
+            wav = np.concatenate(wav_parts) if len(wav_parts) > 1 else wav_parts[0]
             self._timeline.append((now - self._t0, wav.copy()))
-        elif self.player is not None:
-            try:
-                # 🔴🔴 2026-10-25 修：`write()` 已改为**分片推进**（不再要求整句
-                #   一次装下）。旧实现在这句 5.76 s 音频上必然超时 ⇒ 一声不响。
-                #   这里同时把「取消」做成**逐片可中断** ⇒ 长句播放期间也能被丢弃。
-                self.player.write(
-                    wav.tolist(),
-                    should_stop=lambda: (self._is_cancelled(jid)
-                                         or self._stop.is_set()))
-            except TimeoutError as e:
-                # 旧语义：缓冲写满 ⇒ 播放跟不上（C-101 P4 第 2 条）
-                log(f'[tts_worker] 播放缓冲写满，阻塞超时：{e}')
-                emit({'kind': 'error', 'message': f'播放缓冲写满：{e}',
-                      'id': jid, 'dropped': True})
-                self._record_jsonl(jid, text, t_submit, dropped=True)
-                return
-            except Exception as e:
-                # 🔴 带上播放器诊断：回调次数 / 已写 / 已读
-                #   0 次回调 = 播放流没跑；有回调但没读 = 设备被占用/静音
-                diag = ''
-                try:
-                    diag = (' [诊断: 回调 %d 次, 已写 %d, 已读 %d, 缓冲 %d/%d]'
-                            % (self.player.n_cb,
-                               self.player.ring.n_written,
-                               self.player.ring.n_read,
-                               self.player.ring.level(),
-                               self.player.ring._cap))
-                except Exception:
-                    pass
-                log(f'[tts_worker] 播放写入失败：{e}{diag}')
-                emit({'kind': 'error', 'message': f'播放写入失败：{e}{diag}',
-                      'id': jid})
-                self._record_jsonl(jid, text, t_submit,
-                                   error=(str(e) + diag)[:300])
-                return
-        self._record_jsonl(jid, text, t_submit, dur_s=len(wav) / self.sr,
-                           t_first=t_first)
+
+        dur = n_samples / float(self.sr if self.sr else SR)
+        self._record_jsonl(jid, text, t_submit, dur_s=dur, t_first=t_first)
         emit({'kind': 'played', 'id': jid,
-              'dur_s': round(len(wav) / self.sr, 3),
+              'dur_s': round(dur, 3),
               'latency_s': round(latency, 3)})
 
     # -- 逐句记录（C-101 P4 第 6 条：`x.tts.jsonl`）----------------------
@@ -851,7 +907,7 @@ class TTSWorker:
             log(f'[tts_worker] 落盘失败：{e}')
 
     def _synth_babelvox(self, text: str, lang: str):
-        """BabelVox（Qwen3-TTS）流式合成。返回 list[np.ndarray]（**24000 Hz**）。
+        """BabelVox（Qwen3-TTS）**流式**合成。**生成器**：逐块 yield np.ndarray（24000 Hz）。
 
         🔴🔴 **音色路线：spkonly** —— 只传 `speaker_embed`，
         **不传 `ref_text` / `ref_audio`**（交接单 §5.1 / TTS-005）。
@@ -859,6 +915,15 @@ class TTSWorker:
         ⚠️ **长句要按句切分**（交接单 §6.2）：帧数上限 =
         `max_talker_seq − prefill_len`，逐条不同 ⇒ 超限会被**静默砍断**。
         ⇒ 这里对超长句先切分，逐段合成后拼起来。
+
+        🔴🔴 **2026-10-26 改为生成器（APP-018 第 1 条）**：
+          旧实现是「**先收完所有块，再 return 整个 list**」⇒ 调用方
+          (`synth()`) 只能在**整句合成完成之后**才发 `first_packet`、才写播放缓冲
+          ⇒ **App 报出来的「首包」其实是整句合成耗时**（实测 8.36 s），
+          而**真实流式首包只要 1.16 s** ⇒ **流式能力被完全浪费**（差 7.2×），
+          听感上也要等整句合成完才出声。
+          ⇒ 现在**逐块 yield**：调用方拿到第一块就能发声 ⇒ 首包回到真实值。
+          ⚠️ 兼容性：旧调用方仍可用 `list(_synth_babelvox(...))` 收全量。
         """
         import numpy as np
         import tts_engine
@@ -877,7 +942,6 @@ class TTSWorker:
 
         # 长句切分（保守上限 478 帧 ≈ 39.8 s）
         parts = tts_engine.split_long_text(text)
-        chunks = []
         for p in parts:
             if self._stop.is_set():
                 break
@@ -889,9 +953,8 @@ class TTSWorker:
                     speaker=self.speaker_name if self.speaker_embed is None else None,
                     cancel_event=self._stop):
                 w = np.asarray(wav_chunk, dtype=np.float32).reshape(-1)
-                chunks.append(w)
                 self.sr = int(sr)
-        return chunks
+                yield w
 
     def _synth_ov(self, text: str, lang: str, cond: dict):
         """OV 整句合成（**不依赖 torch**）。返回 list[np.ndarray]（22050 Hz）。
