@@ -204,9 +204,12 @@ class Session:
         return {
             "type": "echo",
             "id": f"echo_{sidx}",
+            "seq": int(msg.get("seq", 0)),
             "t_start": round(t_start, 3),
             "t_end": round(t_start + len(raw) / 2 / C.SAMPLE_RATE, 3),
+            # ★ 回声原样 16 kHz PCM16；插件按 t_start + D 排程播放
             "pcm24k": base64.b64encode(raw).decode("ascii"),
+            "sample_rate": C.SAMPLE_RATE,
             "delay_sec": self.delay_sec,
         }
 
@@ -250,8 +253,26 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
     # token 通过请求头或首个消息给出
     token = _get_header(websocket, "X-Bridge-Token")
     if not token:
-        _log("拒绝连接：缺少 token")
-        await websocket.close(code=1008, reason="no token")
+        # ★ 浏览器端 WebSocket **不能自定义请求头** ⇒ 允许 token 放在
+        #   首个 hello 消息里（EXT-003 P0①③ 的插件侧就是这么连的）。
+        #   安全口径不变：token 必须正确，且 Origin 必须是 chrome-extension://。
+        first = await _recv_first(websocket)
+        if first is None:
+            _log("拒绝连接：缺少 token")
+            await websocket.close(code=1008, reason="no token")
+            return
+        token = str(first.get("token") or "")
+        if not token:
+            _log("拒绝连接：缺少 token")
+            await websocket.close(code=1008, reason="no token")
+            return
+        if not tokens.verify(token):
+            _log("拒绝连接：token 不匹配")
+            await websocket.close(code=1008, reason="bad token")
+            return
+        _log(f"已通过首个 hello 消息鉴权（role={first.get('role')}）")
+        await _handle_messages(websocket, session=Session(token, delay_sec=delay_sec),
+                               first=first, echo_mode=echo_mode, delay_sec=delay_sec)
         return
     if not tokens.verify(token):
         _log("拒绝连接：token 不匹配")
@@ -260,11 +281,40 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
 
     _log(f"已连接（origin={origin}）")
     session = Session(token, delay_sec=delay_sec)
+    await _handle_messages(websocket, session=session, first=None,
+                           echo_mode=echo_mode, delay_sec=delay_sec)
+
+
+async def _recv_first(websocket) -> Optional[dict]:
+    """读第一条消息并解析成 dict（用于 hello 帧里的 token 鉴权）。"""
     try:
-        async for message in websocket:
-            try:
-                msg = json.loads(message)
-            except Exception:
+        raw = await asyncio.wait_for(websocket.recv(), timeout=5.0)
+    except Exception:
+        return None
+    try:
+        msg = json.loads(raw)
+    except Exception:
+        return None
+    return msg if isinstance(msg, dict) else None
+
+
+async def _handle_messages(websocket, *, session: "Session", first: Optional[dict],
+                           echo_mode: bool, delay_sec: float) -> None:
+    """消息循环。`first` 若已读过则先处理它。"""
+    try:
+        pending = [first] if first else []
+        it = pending.pop() if pending else None
+        while True:
+            if it is not None:
+                msg = it
+                it = None
+            else:
+                raw = await websocket.recv()
+                try:
+                    msg = json.loads(raw)
+                except Exception:
+                    continue
+            if not isinstance(msg, dict):
                 continue
             mtype = msg.get("type")
             if mtype == "hello":

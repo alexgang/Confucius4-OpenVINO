@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>实时翻译配音</title>
+  <style>
+    body { font: 13px/1.5 "Microsoft YaHei", system-ui, sans-serif; width: 300px; margin: 0; padding: 12px; color: #1f2328; }
+    h1 { font-size: 14px; margin: 0 0 10px; }
+    label { display: block; margin: 8px 0 2px; font-size: 12px; color: #57606a; }
+    select, input { width: 100%; box-sizing: border-box; padding: 4px 6px; border: 1px solid #d0d7de; border-radius: 4px; font: inherit; }
+    .row { display: flex; gap: 6px; margin-top: 10px; }
+    button { flex: 1; padding: 6px; border: 1px solid #d0d7de; border-radius: 4px; background: #f6f8fa; cursor: pointer; font: inherit; }
+    button.primary { background: #1f6feb; color: #fff; border-color: #1f6feb; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    #status { margin-top: 10px; padding: 6px 8px; background: #f6f8fa; border-radius: 4px; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+    .ok { color: #1a7f37; } .err { color: #cf222e; } .warn { color: #9a6700; }
+    .hint { font-size: 11px; color: #57606a; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <h1>实时翻译配音 (EXT)</h1>
+
+  <label for="ws">桥接服务</label>
+  <input id="ws" type="text" value="ws://127.0.0.1:8765/">
+
+  <label for="token">配对 token（桥接服务 bridge_token.txt）</label>
+  <input id="token" type="text" placeholder="粘贴 token">
+
+  <label for="delay">延迟 D（秒，6–20）</label>
+  <input id="delay" type="number" min="6" max="20" value="10">
+
+  <label for="lang">目标语言</label>
+  <select id="lang">
+    <option value="Chinese">中文</option>
+    <option value="English">English</option>
+    <option value="Japanese">日本語</option>
+  </select>
+
+  <label for="voice">音色</label>
+  <select id="voice">
+    <option value="A">预设 A</option>
+    <option value="clone">克隆说话人</option>
+  </select>
+
+  <label for="duck">原声压低量（dB）</label>
+  <input id="duck" type="number" min="-60" max="0" value="-15">
+
+  <label><input type="checkbox" id="subs" checked> 字幕开关</label>
+  <label><input type="checkbox" id="player"> 打开延迟画面播放器窗口</label>
+
+  <div class="row">
+    <button id="btnStart" class="primary">开始</button>
+    <button id="btnStop" disabled>停止</button>
+  </div>
+
+  <div id="status">未连接</div>
+  <div class="hint">DRM 站点（Netflix 等）会被浏览器黑屏，明确不支持。</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

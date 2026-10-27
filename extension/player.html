@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>EXT 延迟画面播放器</title>
+  <style>
+    html, body { margin: 0; background: #0d1117; color: #e6edf3; font: 12px/1.5 "Microsoft YaHei", system-ui, sans-serif; }
+    #wrap { display: flex; flex-direction: column; align-items: center; padding: 8px; gap: 8px; }
+    canvas { max-width: 96vw; background: #000; border-radius: 6px; }
+    #bar { display: flex; flex-wrap: wrap; gap: 14px; padding: 4px 10px; background: #161b22; border-radius: 6px; font-variant-numeric: tabular-nums; }
+    #subs { position: fixed; left: 0; right: 0; bottom: 8%; text-align: center; font-size: 20px; pointer-events: none; }
+    #subs span { background: rgba(0,0,0,.65); padding: 2px 8px; border-radius: 4px; }
+    .k { color: #8b949e; }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <canvas id="cv" width="640" height="360"></canvas>
+    <div style="margin:4px 0"><button id="btnCapture" style="display:none;padding:6px 16px;font:inherit">开始捕获（选择要配音的标签页）</button></div>
+    <div id="bar">
+      <span><span class="k">队列</span> <b id="mQueue">0</b></span>
+      <span><span class="k">编码</span> <b id="mEnc">0</b></span>
+      <span><span class="k">解码</span> <b id="mDec">0</b></span>
+      <span><span class="k">绘制</span> <b id="mDraw">0</b></span>
+      <span><span class="k">掉帧</span> <b id="mDrop">0</b></span>
+      <span><span class="k">编码器</span> <b id="mCodec">—</b></span>
+      <span><span class="k">延迟</span> <b id="mDelay">0</b> s</span>
+      <span><span class="k">唇音误差</span> <b id="mLip">—</b> ms</span>
+      <span><span class="k">排程误差</span> <b id="mSched">—</b> ms</span>
+      <span><span class="k">CPU</span> <b id="mCpu">—</b> %</span>
+      <span><span class="k">内存</span> <b id="mMem">—</b> MB</span>
+    </div>
+  </div>
+  <div id="subs"></div>
+  <script src="player.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Live Dub EXT (实时翻译配音)",
+  "version": "0.1.0",
+  "description": "抓取网页/本地视频音频流，本机 ASR→翻译→TTS，按时间戳延迟播放配音。",
+  "minimum_chrome_version": "116",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyTksqa76aAULYGSr4qJuLJFfyuALr3EQ/9kJg4qOf7CtnTKXaJEin0WqU5P7ngSM8vWP3lzF+Zw8D/4+BJ4ijlP14gz3olaFrbquRvmwoh7ahCchzsrK+aQMTXmDLNQiqTfEn0VHrWCm2KyYtRP6Y/w1SUXiJ55xss8Au7JbmQHmEnQYpumvcoNWTmpou7KKPA2Kanv6r/ySM9eJ7IRBoP7+qqB7uNbqrL6Y9NwJFzfUBe5GiVHxZHMXcqt/acROYbfyxlHCAPTwJycheRoz9I2ufuzpZdQQ0Pz03a00+S4L8oj8hGnyVbEheJHzgbSMzZj4d2+sydJ4ZlG0Q77IKQIDAQAB",
+  "background": {
+    "service_worker": "sw.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "实时翻译配音"
+  },
+  "permissions": [
+    "tabCapture",
+    "offscreen",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ],
+  "minimum_permissions": []
+}

@@ -80,3 +80,86 @@ python tests/test_next_instruction.py → 18 PASS / 0 FAIL
 - ⛔ **不写「已交付」**：P0 ③ 只验证了服务端侧，端到端排程误差 ≤ 20 ms 需插件侧配合才能测。
 
 ---
+
+## 2026-10-27 23:07 — EXT-003 落地（插件侧 P0 ①②③ + 引擎入口自查）
+
+**执行时间**：2026-10-27 21:13（任务启动）→ 23:07（本轮收尾，含等共享锁）
+
+**指令摘要**
+- 来源文件：`C:\Users\Trekker-PTL\live_dub_ext\status\CORRECTIONS_EXT.md`（reviewer 独占写入，本轮**只读**，未修改、未入库）
+- 幂等闸门实跑：`python tools/next_instruction.py --json` ⇒
+  `{"action":"execute","latest":{"id":"EXT-004","num":4,"priority":"[NORMAL]","ts":"2026-10-27 20:38","title":"RESUME：额度已重置，请从 last_ack 继续"},"last_ack":2,"n_entries":4}`
+- 本轮实际执行项 = **EXT-003 [HIGH] 的未完成部分**（EXT-004 只是「继续」信号）：
+  1. **P0① 插件侧**：MV3 + tabCapture + offscreen + AudioWorklet 16 kHz 采样计数时间戳；
+  2. **P0② 插件侧**：WebCodecs 延迟画面 + 唇音同步测试；
+  3. **P0③ 插件侧**：浏览器端回声排程误差；
+  4. **自查引擎入口**：ASR / MT / TTS 的确切调用入口。
+- `last_ack`：`EXT-002` ⇒ `EXT-003`（只推进到**实际执行完**的最大 EXT 编号）。
+
+**涉及新建的文件**（均在本模块仓库内，未改动任何其他模块的文件）
+- 插件 MV3：`extension/manifest.json`、`sw.js`、`offscreen.js`、`offscreen.html`、
+  `player.js`、`player.html`、`popup.js`、`popup.html`、
+  `capture-worklet.js`、`onset-worklet.js`、`probe-worklet.js`（11 个）
+- 实测工具：`tools/machine_lock.py`、`tools/browser_probe.py`、`tools/video_lipsync_probe.py`、
+  `tools/echo_sched_probe.py`、`tools/src_server.py`、`tools/bridge_echo_server.py`、
+  `tools/run_probe_locked.py`、`tools/player_perf_bench.js`（8 个）
+- 自测：`tests/test_ext_browser_contract.py`（新增，A/B/C 三段）
+
+**涉及修改的文件**
+- `ext/bridge.py` — 修 `delay_sec` 未定义名；修 `_handle_messages` 漏传 `first`；
+  允许 token 走首个 hello 消息（浏览器 WS 不能自定义请求头）；回声带 `sample_rate`
+- `extension/player.js` — 5 个性能缺陷（无界队列 / O(n²) / 大数组搬运 / pct 重排序 / 唇音配对 O(n²)）
+- `extension/capture-worklet.js` — 环形缓冲 + 96 抽头 FIR（修永久卡死与阻带衰减不足）
+- `extension/offscreen.js` — Port 控制通道 + 立即 connect 到 SW
+- `extension/sw.js` — 单一异步响应 listener + Port 通道
+- `extension/onset-worklet.js` — 连续 onset 检测 + 迟滞
+- `tools/machine_lock.py` — psutil 二次确认，修「死锁永远无法回收」
+- `tools/browser_probe.py` — 新增系统级 CPU/内存采集、`--lock-wait` 参数
+- `tests/test_next_instruction.py` — 真实项目断言改为语义不变量（不再写死编号）
+- `tests/test_ext_browser_contract.py` — 修 3 处错误断言 + 加注释剥离 + 加 B8/B9 契约
+- `.gitignore` — 新增 `.tmp/`（浏览器 profile / 探针日志 / 证据 JSON 全部不入库）
+
+**验证与自测结果**（本轮实跑）
+```
+tests/test_ext_selfcheck.py        → 34 PASS / 0 FAIL
+tests/test_echo_roundtrip.py       → 10 PASS / 0 FAIL   ← 抓到 bridge.py 漏传 first 的回归
+tests/test_next_instruction.py     → 19 PASS / 0 FAIL   ← 抓到「断言写死编号」的问题
+tests/test_ext_browser_contract.py → 43 PASS / 0 FAIL   ← C 段缺证据 ⇒ FAIL（不判 PASS）
+tools/player_perf_bench.js         →  8 PASS / 0 FAIL   ← 纯 Node 微基准
+```
+合计 **114 PASS / 0 FAIL**（5 套）。
+
+**实测证据（引自实际落盘文件）**
+- `.tmp/probe_uplink_5min/browser_probe.json`（1224 B, mtime 2026-10-27 22:52）
+  - P0① 修复前 5 分钟上行：seq=14191 / frameCount=14191 / gaps=**0** / bytesSent=9 687 688
+  - 但 `maxAbsSkewMs=595.48`（P50=18.40 / P95=29.01 / P99=130.48）⇒ **超过 50 ms 阈值** ⇒ 未达标
+  - `skewFirst=-21.33` → `skewLast=-12.60`，`driftMsPerMin=1.13` ⇒ 漂移不累积 ⇒ 尖峰是**卡顿**不是漂移
+- `.tmp/probe_uplink_90s/browser_probe.json`（1056 B, mtime 2026-10-27 22:31）
+  - 90 s 对照：seq=4337 / gaps=0 / `maxAbsSkewMs=47.41` ⇒ 尖峰随**时长**出现 ⇒ 指向累积型缺陷
+- `tools/player_perf_bench.js` 微基准（纯 Node，14191 帧规模）
+  - `pendingSched` 旧 maxLen=**13889** → 新 maxLen=**513**
+  - `subs` 旧 1062.78 ms → 新 1.55 ms（**686×**）
+  - `pct` 旧 23.34 ms → 新 0.32 ms（**73×**）
+  - `report` 跨上下文搬运 14400 B/次 → **0 B/次**（5 分钟 4219 KB → 0）
+
+**本轮修掉的 20 个真实缺陷**（详见 `STATUS_EXT.md` §2.4）
+A 组 10 个（协议/架构）：FIR 抽取永久卡死、32 抽头阻带衰减不足、`delay_sec` 未定义名、
+`_handle_messages` 漏传 `first`、MV3 多 listener 抢通道、SW 跨 await connect 失效、
+offscreen 里 AudioWorklet 不被驱动、时钟基准点偏 +131 ms、DelayNode maxDelayTime 被钳、
+onset 只报第一个。
+B 组 5 个（5 分钟长测暴露的性能缺陷）：`pendingSched` 无界、`subs` O(n² log n)、
+`report` 大数组搬运、`pct` 每次重排序、`computeLipSync` O(n²) 全表扫描。
+C 组 5 个（测试/工具自身）：闸门测试写死编号、3 处错误断言、静态断言匹配到注释、
+机器锁死锁永不回收、浏览器 WS 无自定义请求头。
+
+**明确未做 / 不宣称**
+- ⛔ **不宣称 P0① 达标**：修复后的 5 分钟复测**排队等共享锁**，本轮结束时刚取得锁（23:08:06），
+  落盘结果不在本记录内 ⇒ 未出结果前不写「已达标」。
+- ⛔ **不宣称 P0② 唇音同步误差数值**、**不宣称 P0③ 排程误差数值**：均需同一把锁，复测未出数据。
+- ⛔ **不跑推理**：ASR/MT/TTS 全未启动，未占 GPU.0 / NPU ⇒ 不与实时字幕 App 抢设备。
+- ⛔ **未抢共享锁**：App 模块 `app108_npu_ab.py --repeats 3`（PID 15684，22:55:53 起）持锁期间，
+  本模块探针**排队等待**（日志逐行记录「锁被 app PID=15684 持有（存活）⇒ 等待」），
+  **未抢锁、未删锁**；App 释放后（23:08:06）才取得锁。
+- ⛔ **引擎未接线**：三个引擎入口只做**只读定位**（见 `STATUS_EXT.md` §2.3），`ext/engines.py` 的
+  `EngineAdapter` 仍未注入 ⇒ 桥接服务仍跑回声模式。
+- ⛔ **P1/P2/P3 未开始**。

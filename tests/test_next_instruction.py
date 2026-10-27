@@ -119,8 +119,24 @@ def test_real_files():
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "status", "STATUS_EXT.md")
     rc = ni.main([])
-    check("真实项目当前应判「已执行/跳过」（本轮已做完 EXT-002）", rc == 1,
-          f"exit={rc}")
+    # ★ 这里**不能**写死「本轮应判已执行」——last_ack 会随每轮推进，
+    #   写死具体编号的断言下一轮就必然失效（等于把测试绑死在一个时间点）。
+    #   改为断言**语义不变量**：闸门的退出码必须与
+    #   「最新条目编号 vs last_ack」的真实关系一致，且不抛异常。
+    corr_txt = ni.read(ni.CORRECTIONS) if os.path.isfile(ni.CORRECTIONS) else ""
+    entries = ni.parse_entries(corr_txt)
+    stat_txt = ni.read(ni.STATUS) if os.path.isfile(ni.STATUS) else ""
+    last_ack = ni.parse_last_ack(stat_txt)
+    check("真实项目：纠偏文件可解析出条目", bool(entries),
+          f"entries={len(entries)}")
+    if entries and last_ack is not None:
+        latest_num = entries[-1]["num"]
+        expect = 1 if latest_num <= last_ack else 0
+        check("真实项目：退出码与 last_ack/最新编号关系一致", rc == expect,
+              f"exit={rc} expect={expect} latest=EXT-{latest_num:03d} "
+              f"last_ack=EXT-{last_ack:03d}")
+    else:
+        check("真实项目：退出码属于 {0,1,2}", rc in (0, 1, 2), f"exit={rc}")
 
 
 def main() -> int:

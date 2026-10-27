@@ -16,6 +16,11 @@ tts_speakers/
 results/
 reports/
 
+# 浏览器实测的临时产物（EXT-003 探针：profile 目录、日志、证据 JSON）
+# ★ 证据 JSON 也留在这里不入库：它们体积大、且是**单次实测**的产物，
+#   本轮结论引用的路径与数值写在 STATUS_EXT.md 的 §N 章节里。
+.tmp/
+
 # reviewer 独占写入的纠偏文件：只读，绝不入库
 # （沿用 App 模块约定：status/app/CORRECTIONS_APP.md 不提交）
 status/CORRECTIONS_EXT.md
