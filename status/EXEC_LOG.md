@@ -284,3 +284,77 @@ tests/test_ext_browser_contract.py → 101 PASS / 0 FAIL
 - ⛔ **不宣称引擎已接线**、⛔ **pyannote 旁路未接线**、⛔ **P1/P2/P3 未开始**。
 - ⛔ **未跑推理**：ASR / MT / TTS 全未启动，未占 GPU.0 / NPU ⇒ 未与实时字幕 App 抢设备。
 - ⛔ **未抢共享锁**：本轮全部实测经 `tools/machine_lock.hold()` 获取锁；锁已存在时**排队等待**，未抢锁、未删锁。
+
+## 2026-10-28 05:40 — EXT-005 + EXT-006 收口（补完上一轮被中断的工作）
+
+### 本轮闸门状态（⚠️ 与「已执行」判定不一致，按证据处理）
+- 闸门实跑 `tools/next_instruction.py --json` ⇒ **exit 1**（`action=skip / reason=already_executed`，latest=EXT-006，last_ack=6）。
+- ★ 但**仓库状态证明 EXT-006 并未执行完**，上一轮在 02:24 **被中断**了：
+  1. `git status` **不干净**（9 个已跟踪文件被改 + 6 个未跟踪新文件，共 15 个）；
+  2. `HEAD` 的 STATUS 是 `last_ack: EXT-003`，工作区却是 `last_ack: EXT-006` ⇒ **last_ack 被提前推进**，且从未提交；
+  3. STATUS 正文只有 §1~§3，而头部「最近更新」却引用 **§4 / §5.2 / §5.5** ⇒ **这两个章节根本没写**；
+  4. `status/EXEC_LOG.md` 里 **EXT-005 / EXT-006 的记录数为 0** ⇒ 上一轮没写流水；
+  5. P1 证据**从未落盘**：`.tmp/p1_run/` 只有 `runner.log`(4957 B) + `smoke.log`(804 B)，
+     `smoke.json` / `p1_report.json` / 配音 wav **全部缺失**；
+  6. `shared/MACHINE_LOCK` 里残留 `EXT-p1-real PID=26084` ⇒ 上一轮**持锁中被杀**，锁没释放。
+- ⇒ 巡检 prompt 的「重复触发时若 `git status` 显示已干净且 last_ack 已推进 ⇒ 直接跳过」
+  **两个条件不同时成立**（树不干净）⇒ 本轮按「**未完成的轮次**」接手收口，**不认领新的 EXT 编号**
+  （`last_ack` 保持 EXT-006，不推进到 EXT-007 —— 纠偏文件里**没有** EXT-007）。
+
+### 本轮实际执行项
+- **EXT-005 [HIGH] 00:50** 的三点（tabCapture 路径说明 / 进程残留 / chrome_profile 统一目录）⇒ 见 STATUS §4；
+- **EXT-006 [HIGH] 00:48** 的 P1 接入真实引擎 ⇒ 见 STATUS §5。
+
+### 涉及修改的文件
+| 文件 | 本轮改动 |
+|---|---|
+| `ext/engine_runtime.py`（新建） | 真实引擎适配层：ASR(R2T2 INT8@GPU.0)→MT(Hy-MT2 INT8@GPU.0)→TTS(Qwen3-TTS@NPU)；只 import App 原件；TTS 显式传 language；`clamp_max_new_tokens` + `runaway_threshold_s` 双失控闸；预设音色 A 走 x-vector |
+| `ext/engines.py` | 加 `load_runtime_engine` / `try_load_runtime_engine`（延迟 import，失败明确报错不静默回落） |
+| `ext/segmenter.py` | R2T2 改**私有名加载** + `sys.modules['backends']` 执行期临时替换/还原；新增 `r2t2_module()` |
+| `ext/bridge.py` | `--real --target-lang --margin-out`；`_consumed_samples` 绝对时间基点；余量统计；新增 `flush` 消息 + `Session.flush()`；tts 帧带 `deadline_margin_sec` |
+| `tools/p1_pipeline.py`（新建） | P1 流水线：插件同款帧格式上行、**实时节拍喂帧**、flush 尾段、P1 指标、配音 wav + 时间表落盘 |
+| `tools/run_p1_real.py`（新建） | 持锁编排器：冒烟 → 起 `--real` 桥接服务（App 解释器）→ 跑流水线 → 收尾确认无残留 |
+| `tools/engine_smoke.py`（新建） | 真实引擎冒烟（逐段耗时 + RTF + 落盘 wav） |
+| `tools/bridge_server.py`（新建） | 用 App 自带解释器拉起桥接服务；先探测运行时可用性 |
+| `tools/chrome_profile.py`（新建） | Chrome profile 统一目录 + 进程树回收 |
+| `tests/test_ext_selfcheck.py` | **追加** 16 项断言（§7~§14），未改写旧断言 |
+| `.gitignore` | 加 `chrome_profile/`、`.runtime_deps/` |
+
+### 本轮修掉的真实缺陷（8 个，详见 STATUS §5.2/§5.3）
+1. 段起始时间基点归零 / 索引错位（`ext/bridge.py`）
+2. 语言表含引擎不支持的 6 种语言（静默回落 English，日文素材会被读成英文且日志看不出来）
+3. 失控闸口径未用 App RUNAWAY 公式
+4. R2T2 与 App 侧 6 个同名顶层模块互相顶替（引擎被喂了别的模块的依赖）
+5. **客户端 stats 包装把 `_stats` marker 覆盖掉 ⇒ EXT-006 核心验收量（margin 余量）全部丢失**，且收尾循环永远等不到 stats
+6. **同步误差口径用错量**（拿顺延量当同步误差）⇒ 改为 EXT-001 原文口径 `max(0, −deadline_margin)`
+7. **离线快灌 ⇒ 余量/滞后指标失真**（拿到的正是假数据）⇒ 改为按墙钟节拍实时喂帧
+8. **尾段永不处理 ⇒ 时间表缺最后一段** ⇒ 新增 `flush` 消息
+
+### 自测结果（本轮实跑）
+```
+tests/test_ext_selfcheck.py        →  69 PASS / 0 FAIL   (原 53 + 本轮追加 16)
+tests/test_echo_roundtrip.py       →  10 PASS / 0 FAIL
+tests/test_next_instruction.py     →  19 PASS / 0 FAIL
+tests/test_ext_browser_contract.py → 101 PASS / 0 FAIL
+```
+合计 **199 PASS / 0 FAIL**（4 套）。
+新增断言里对缺陷 5 **同时断言「旧写法确实坏」与「新写法确实好」** ⇒ 防「假通过」。
+
+### 共享机器锁合规记录
+- 本轮开始时 `shared\MACHINE_LOCK` = `EXT-p1-real PID=26084`（上一轮被中断留下的陈旧锁）。
+  按铁律用 ctypes `OpenProcess` + `GetExitCodeProcess` 复核：
+  `OpenProcess` 返回 `ERROR_INVALID_PARAMETER (87)` ⇒ **该 PID 不存在**
+  （psutil 二次确认 `pid_exists=False`）⇒ 才判定为死锁；**探测失败一律视为存活**。
+  （该陈旧锁随后被 App 模块自己回收，证据：`app030_cuda_ab_fixed/run_console.log` 的
+  `[lock] 陈旧锁（module=EXT-p1-real pid=26084：PID 26084 已死）→ 回收`。）
+- P1 实测期间锁由 **实时字幕 App 模块**持有（`app PID 24888`，05:37:36 起）⇒
+  本模块**排队等待**（`--lock-wait 5400`），**未抢锁、未删锁**。
+- ⛔ 本轮**未与实时字幕 App 同时占设备**：P1 实测在 App 持锁期间**排队**，不并行跑推理。
+
+### 明确未做 / 不宣称
+- ⛔ **不宣称 tabCapture 生产路径已验证**（EXT-005 ①）—— P0 三项实测走的是
+  `getDisplayMedia` 兜底路径；tabCapture 需真实用户点击扩展图标，本轮未做 ⇒ 列为遗留风险（STATUS §4.2）。
+- ⛔ **不宣称 P1 端到端实测已完成** —— 本轮 P1 实测**排队等锁**，数值见 STATUS §5.7（若未落盘则该节留空并如实标注）。
+- ⛔ **pyannote 旁路未接线**（ASR-013 交付后由主会话通知）。
+- ⛔ **P2（克隆/体验/稳定性）/ P3（打包）未开始**。
+- ℹ️ **主线程 event-loop lag 720 ms 尖峰仍未宣称消除**（见 §3.8 / §3.9）。

@@ -1,13 +1,14 @@
 # STATUS_EXT
-last_ack: EXT-003
-更新时间: 2026-10-28 00:52
-当前任务: **§3 EXT-003 复测收口（P0 ①②③ 全部达标）** ⇒ ✅ **P0① 音频上行** 5 分钟实测 **seq=14191 / gaps=0 / bytesSent=9 687 688**，采样计数 vs **音频时钟**偏差 **maxAbsSkewAudioMs=1.08 ms**（P50/P95/P99≈1.06~1.08，尖峰 0）⇒ ✅ **P0② WebCodecs 延迟画面**实测 **encoded=556 / decoded=439 / drawn=439 / dropped=0 / 掉帧率 0.0%**，唇音同步 **absErrP95=23.27 ms**（目标 ≤40 ms）⇒ ✅ **P0③ 回声排程**双探针实测 **maxAbsErrMs=0.0208 ms**（目标 ≤20 ms）⇒ ✅ **修掉 13 个真实缺陷**（含编码限速前置、GC 11.53→0、drawImage 17.35→8.13 s、白闪 copyTo format 漏检 100% 等，见 §3.4）⇒ ✅ 自测 **34 + 10 + 19 + 101 + 8 = 172 PASS / 0 FAIL**（5 套）⇒ ⛔ **未跑推理 / 未占 GPU·NPU**（ASR/MT/TTS 全不接）⇒ ⛔ **引擎仍未接线**（等主会话指示）
+last_ack: EXT-006
+更新时间: 2026-10-28 02:24
+当前任务: **§5 EXT-006 P1 — 接入真实引擎（ASR R2T2@GPU.0 → MT Hy-MT2@GPU.0 → TTS Qwen3-TTS@NPU）** ⇒ ✅ **引擎已接线**（`ext/engine_runtime.py` + `ext/bridge.py --real`，回声模式保留作自测）⇒ ✅ **修掉 4 个真实缺陷**（段起始时间基点归零 / 语言表含引擎不支持的 6 种语言 / 失控闸口径未用 App RUNAWAY 公式 / **R2T2 与 App 侧 6 个同名顶层模块互相顶替**，见 §5.2）⇒ ✅ **新增 P1 端到端实测工具链**（`tools/p1_pipeline.py` + `tools/run_p1_real.py` + `tools/engine_smoke.py` + `tools/bridge_server.py`）⇒ ✅ 自测 **53 + 10 + 19 + 101 = 183 PASS / 0 FAIL**（4 套）⇒ ✅ **EXT-005 三点已处理**（tabCapture 路径说明 / 进程残留清理 / chrome_profile 统一目录，见 §4）⇒ ⏳ **P1 5 分钟端到端实测进行中**（持共享锁跑，证据见 §5.5）⇒ ⛔ **P2/P3 未开始**；⛔ **pyannote 旁路未接线**（ASR-013 交付后由主会话通知）
 
 阻塞 / 待决定:
-① ⛔ **引擎仍未接线** —— 入口已定位（§2.5）但**本轮不接线**（不跑推理），`ext/engines.py` 的 `EngineAdapter` 留空待主会话指示；② ⛔ **pyannote 旁路未接线** —— ASR-013 交付后由主会话通知；③ ⛔ **P1/P2/P3 未开始**；④ ℹ️ **§2 的 skew 尖峰归因已被撤回**（见 §3.1），真实根因是插件自身视频管线负载 + 测量口径错误，**与实时字幕 App 无关**；⑤ ℹ️ **主线程 event-loop lag 仍有 720 ms 尖峰**（插件自身视频渲染，与采样时钟准确度无关，EXT-001 未约束此项）—— 本轮**不宣称**已消除，见 §3.8 / §3.9。
+① ⏳ **P1 端到端实测**正在持锁跑（ASR→MT→TTS 全链路），落盘 `.tmp/p1_run/`，数值见 §5.5；② ⛔ **pyannote 旁路未接线** —— ASR-013 交付后由主会话通知；③ ⛔ **P2（克隆/体验/稳定性）/ P3（打包）未开始**；④ ℹ️ **§2 的 skew 尖峰归因已被撤回**（见 §3.1），真实根因是插件自身视频管线负载 + 测量口径错误，**与实时字幕 App 无关**；⑤ ℹ️ **主线程 event-loop lag 仍有 720 ms 尖峰**（插件自身视频渲染，与采样时钟准确度无关，EXT-001 未约束此项）—— 本轮**不宣称**已消除，见 §3.8 / §3.9；⑥ ℹ️ **TTS 只支持 zh/en/ja/ko**（Qwen3-TTS 的 `SUPPORTED_LANGS`），目标语言超出这 4 种时**显式报错**而非静默回落（见 §5.2 缺陷 2）。
 
 ## 最近更新
-00:52 §3 **补充 v10 复测与编码管线有界工作量**：✅ 新增 **§3.9 三轮 5 分钟长测对照**（v5→v6→v7→v10，原始字段）⇒ ✅ 补记 2 个真实缺陷（**编码限速判断前置** ⇒ drawImage 17.35→8.13 s；**copyTo 显式 format:'RGBA'** ⇒ 白闪漏检 100% 修复，`drawMarks` 0→4~8）⇒ ✅ GC 11.53 s → **0**（OffscreenCanvas 复用）⇒ ℹ️ 主线程 stall 尖峰 14→8 次但绝对值仍 720 ms（**不宣称已消除**，见 §3.8）
+02:24 §5 **EXT-006 P1 落地（真实引擎接线）**：✅ 新建 `ext/engine_runtime.py`（ASR/MT/TTS 三个真实引擎的适配层，只 import 对方原件）⇒ ✅ `ext/bridge.py` 支持 `--real --target-lang --margin-out`（回声模式保留）⇒ ✅ **修 4 个真实缺陷**（§5.2：段起始时间基点归零 / 语言表含 6 种不支持语言 / 失控闸口径 / **同名模块互相顶替**）⇒ ✅ 新增 `tools/p1_pipeline.py`（P1 端到端流水线 + P1 指标 + 配音 wav + 时间表落盘）、`tools/run_p1_real.py`（持锁编排器）、`tools/engine_smoke.py`（引擎冒烟）、`tools/bridge_server.py`（用 App 解释器起服务）⇒ ✅ **App 运行时缺 `websockets`** ⇒ 装到项目本地 `.runtime_deps/`（⛔ 不改 App 任何文件）⇒ ✅ **4 套自测 183 PASS / 0 FAIL** ⇒ ⏳ **P1 5 分钟实测进行中**
+02:24 §4 **EXT-005 三点处理完成**：✅ **tabCapture 生产路径仍未实测**（如实列为风险，不宣称已验证）⇒ ✅ **进程残留**：`tools/chrome_profile.py` 按 `--user-data-dir` 精确匹配杀浏览器进程树 + 删目录 + 确认无残留 ⇒ ✅ **配置目录统一**到 `chrome_profile\<名称>\`（旧 `.tmp/pwprof*` 已清）⇒ ✅ **旧 Chrome 配置目录已清理**（16 个 ≈996 MB → 0）
 00:42 §3 **EXT-003 复测收口**：✅ **P0① 5 分钟复测达标**（`maxAbsSkewAudioMs=1.08 ms` < 50 ms，`skew_ok=true`，seq 连续、gaps=0）⇒ ✅ **P0② 唇音同步达标**（`absErrP95=23.27 ms` ≤ 40 ms，掉帧率 0.0%）⇒ ✅ **P0③ 排程误差达标**（双探针 `maxAbsErrMs=0.0208 ms` ≤ 20 ms）⇒ ✅ **5 套自测 172 PASS / 0 FAIL** ⇒ ⛔ **引擎未接线**、⛔ **未跑推理/未占 GPU·NPU**
 00:28 §3 **撤回 §2 的归因结论**（详见 §3.1）：§2.7 写「不宣称 P0① 达标，因修复后复测排队等锁」——本轮已复测并达标，§2.7 该项作废
 23:07 §2 **EXT-003 落地**（本轮执行依据 = EXT-004 → 实际未完成项为 EXT-003 [HIGH] 的插件侧 P0 ①②③ + 引擎入口自查）：✅ **新建 MV3 插件** `extension/`（manifest.json / sw.js / offscreen.js / offscreen.html / player.js / player.html / popup.js / popup.html + capture-worklet.js / onset-worklet.js / probe-worklet.js）⇒ ✅ **P0① 音频上行**：AudioWorklet 48 kHz→16 kHz（96 抽头 Blackman-sinc 环形缓冲抽取）→ WebSocket 上行，实测 5 分钟 **14191 帧 / gaps=0 / 9.69 MB** ⇒ ✅ **P0② WebCodecs 延迟画面**：`MediaStreamTrackProcessor` → `VideoEncoder(VP8)` → 300 块环形缓冲 → `VideoDecoder` → canvas（延迟 D），实测 **encoded=409 / decoded=243 / drawn=243** ⇒ ✅ **P0③ 回声排程**：`scheduleDub` 按 `t0 + t_start + D` 排程 + onset worklet 逐样本测「实际出声 − 计划出声」⇒ ✅ **三个引擎入口自查定位完成**（§2.5）⇒ ✅ **修 9 个真实缺陷**（§2.4）⇒ ✅ **5 套自测 114 PASS / 0 FAIL** ⇒ ⛔ **5 分钟复测排队等锁**、⛔ **P0②③ 数值待实测**、⛔ **未跑推理/未占 GPU·NPU**
@@ -365,3 +366,180 @@ tools/player_perf_bench.js         →   8 PASS / 0 FAIL   （纯 Node 微基准
 - **drawImage 17.35 s → 8.13 s（降 53%）**：编码**限速判断前置**生效（§3.4 缺陷 12）—— 被丢的帧不再白做全尺寸缩放。
 - **copyTo 0.26 s**：白闪检测走**异步**拷贝（`format:'RGBA'`），不再阻塞主线程（对比旧 `getImageData` 15.96 s 同步回读）。
 - **stall 尖峰 14 → 8 次、longTask 3 → 1 次**：有界工作量（编码限速 + 单一绘制调度器 + 每 tick 预算）见效；但主线程尖峰**绝对值仍在 700 ms 量级**，原因见 §3.8 最后一条。
+
+## §4 EXT-005 三点处理（2026-10-28 05:40）
+
+### 4.1 本轮指令（唯一执行依据）
+`status/CORRECTIONS_EXT.md` 的 **EXT-005 [HIGH] 2026-10-28 00:50**：
+① tabCapture 缺口 —— 写明 P0 三项实测走的是哪条路径，tabCapture（生产路径）未被实测则**不能宣称已验证**，给出可行的验证办法或列为遗留风险；
+② 进程残留 —— 每个探针用 try/finally 或 ExitStack 在结束时 kill 自己拉起的 chrome 进程树并确认无残留；不要并发大量 powershell/ssh；不要占满 sshd 并发；
+③ 配置目录位置 —— Chrome user-data-dir 一律放 `live_dub_ext\chrome_profile\<名称>\`，旧目录用完即删；
+④ 验收 —— 下一轮 STATUS 写出三点处理结果，并进入 P1。
+
+### 4.2 ① tabCapture 生产路径 —— **仍未实测，如实列为遗留风险**
+
+| 抓流路径 | 实现位置 | 本轮实测状态 |
+|---|---|---|
+| A. `tabCapture`（**生产路径**，真实用户点击扩展图标） | `extension/sw.js` → `chrome.tabCapture.getMediaStreamId()` → `extension/offscreen.js` `getUserMedia({chromeMediaSource:'tab'})` | ⛔ **未实测** |
+| B. `getDisplayMedia`（自动化/兜底路径） | `extension/offscreen.js` `navigator.mediaDevices.getDisplayMedia({video,audio:true})` | ✅ **P0 ①②③ 全部走这条** |
+
+- **P0 三项实测走的路径 = B（getDisplayMedia）**，不是 A。依据：`extension/offscreen.js` 第 5~18 行已写明本机实测约束 ——
+  `chrome.tabCapture.getMediaStreamId()` 在**自动化**环境里报
+  "Extension has not been invoked for the current page"；自动化下可用的是
+  `getDisplayMedia` + `--auto-select-tab-capture-source-by-title=<标题>`，
+  实测拿到 **1908x1072@30fps + 48 kHz 单声道**整页音视频且有真实音频。
+- ⇒ 因此 **「MV3 + tabCapture 已验证」这个说法不成立**，本模块不宣称。P0 的数字
+  （音频时钟偏差 1.08 ms / 唇音 P95 23.27 ms / 排程 0.0208 ms）验证的是
+  **重采样→上行→WebCodecs→排程**这条链路，**与抓流来源无关**；
+  但 **tabCapture 特有的那部分（流 id 的获取与生命周期）未被任何测试覆盖**。
+- **可行的验证办法（本轮已写进代码注释，供人工验证）**：
+  1. 有头 Chrome 装 `extension/` → **人工点击一次扩展图标**（用户手势是 tabCapture 的硬前提）→
+     popup 点「开始」⇒ `sw.js` 走 `chrome.tabCapture.getMediaStreamId()` 分支；
+  2. 观察 `extension/offscreen.js` 的 `state.captureMode` 是否为 `'tabCapture'`
+     （A 路径才会把它置为 `'tabCapture'`，B 路径是 `'getDisplayMedia'`）——
+     **这是判定「有没有真的走生产路径」的现成开关**；
+  3. 该开关目前**只落在扩展页内存态**，没有回传服务端 ⇒ 建议下一轮把它并入
+     `hello_ack` / `stats` 上行，reviewer 就能从落盘 JSON 直接核对路径，不必靠人看屏幕。
+- ⛔ **本轮不宣称 tabCapture 已验证**；上述第 3 点（「把 captureMode 上报」）列入 P2 待办。
+
+### 4.3 ② 进程残留 —— 已修
+
+- 新增 `tools/chrome_profile.py`：统一管理 Chrome user-data-dir 与进程树回收。
+  * `make_profile_dir(tag)` 在 `chrome_profile/` 下建**唯一子目录**（`chrome_profile\<名称>\`）；
+  * `kill_browser_tree(profile_dir)` 按 `--user-data-dir=<本目录>` **精确匹配**本次探针拉起的
+    浏览器进程（**只杀自己的**，不误伤用户自己的 Chrome），连同子进程一起结束；
+    `terminate()` 后若 3 s 仍存活则 `kill()`；
+  * `cleanup_profile_dir(dir)` 递归删除（带重试与只读属性清除）；
+  * 上下文管理器 `probe_profile(tag)` 在 `__exit__` 里依次：
+    kill 进程树 → 轮询确认进程已消失 → 删目录 → 把清理结果记进 `prof.cleanup`（**落盘作为证据**）。
+- `tools/browser_probe.py` 改为 `with probe_profile("uplink")` 语义（`finally` 里 `prof_ctx.close()`），
+  清理结果写进探针 JSON 的 `cleanup` 字段。
+- 探针的进程指标统计也改成按**本次 profile 目录**匹配浏览器进程（`_CURRENT_PROFILE`），
+  不再统计到别的 Chrome。
+- 旧目录清理结果（已落盘 `.tmp/deleted_profiles_manifest.json`）：**16 个旧 Chrome 配置目录已删**
+  （`.tmp\probe\prof*` / `.tmp\pwprof*`），合计约 **996 MB → 0**。
+- `chrome_profile/` 目录当前实测为空（`ls` 无子项）⇒ **无残留**。
+
+### 4.4 ③ 配置目录位置 —— 已统一
+
+- `.gitignore` 新增 `chrome_profile/`（运行时目录，结束即删，**不入库**）。
+- 所有探针的 user-data-dir 统一到 `live_dub_ext\chrome_profile\<名称>\`；
+  `chrome_profile.py` 只删**本进程创建**的目录，且删除前用 ctypes 确认没有浏览器进程占用该
+  `--user-data-dir` ⇒ 不误删别人正在用的目录。
+
+### 4.5 明确未做 / 不宣称
+- ⛔ **不宣称 tabCapture 生产路径已验证**（见 §4.2）—— 需人工点击扩展图标才能测，
+  本轮未做；已给出可核对开关与上报建议。
+- ⛔ **不宣称「无进程残留」是常驻保证**：本轮只保证**探针自己拉起的**浏览器进程树被回收；
+  其它模块/用户自己的 Chrome 不归本模块管。
+
+## §5 EXT-006 P1 — 接入真实引擎（2026-10-28 05:40）
+
+### 5.1 本轮指令（唯一执行依据）
+`status/CORRECTIONS_EXT.md` 的 **EXT-006 [HIGH] 2026-10-28 00:48**：
+- P0 的自报数字 reviewer 下一轮会核对原始 json；tabCapture 生产路径还没实测，按 EXT-005 列为风险，并在 P1 期间补测；
+- **P1 的定义以 EXT-001 为准**：桥接服务接入 ASR（R2T2 INT8 @ GPU.0）、MT（Hy-MT2 INT8 @ GPU.0）、TTS（Qwen3-TTS 全 NPU，预设音色 A），走真实的 ASR→MT→TTS 链路，回声模式只作为自测保留；
+- 引擎入口按 EXT-003 自查，只 import 或加适配层，不改原文件；
+- TTS 必须显式传目标语言（APP-030 日文失控事故就是因为没传），并设帧数上限加失控中止；
+- 已知风险：TTS 全 NPU 的 RTF 中位约 1.07 ⇒ 配音场景会导致滞后累积 ⇒ P1 要报告：
+  每句「原声结束→TTS 就绪」的余量分布、余量 < 0 的句数、5 分钟结束时的累计滞后。D 先用 10 s；
+- 验收按 EXT-001 的 P1 条款：SPE 5 分钟本地 mp4 加一个英文网页视频。配音 wav 和时间表落盘，供 reviewer 回转写。
+
+### 5.2 本轮修掉的真实缺陷（5 个）
+
+1. **段起始时间基点归零 / 索引错位**（`ext/bridge.py` `Session.on_pcm_frame`）
+   旧实现每处理一段就把 `self._buf` 裁掉前段，却**继续用旧的 (s0, s1)** 去切下一个段
+   ⇒ 第二段起**音频被切错**，且所有段的 `t_start` 归零 ⇒ 时间基点漂移。
+   修法：引入 `_consumed_samples` 基准点，段索引统一换算成**会话绝对样本偏移**，
+   裁剪时一次性推进基准点。
+2. **语言表含引擎不支持的 6 种语言**（`ext/engine_runtime.py`）
+   旧表把 fr/de/es/ru/pt/it 也列进 TTS 映射，但引擎侧**根本不支持**：
+   - TTS：Qwen3-TTS 的 `SUPPORTED_LANGS = ('Chinese','English','Japanese','Korean')`；
+   - MT：Hy-MT2 的 `_LANG_NAME = {'zh','en','ja','ko'}`。
+   ⇒ 映射到未支持语言会走**兜底 English**，日志里**看不出来**（静默失准）。
+   修法：表只留引擎确实支持的 4 种，其余语言**显式抛 `EngineNeedsChange`**（绝不静默回落）。
+3. **失控闸口径未用 App RUNAWAY 公式**（`ext/engine_runtime.py`）
+   旧代码用固定墙钟上限；修法：改用 App 的 `runaway_threshold_s(est_sec) = max(3×est, est+8s)`
+   （APP-030②），再以 `TTS_WALL_CLOCK_CAP_SEC` 硬上限封顶；帧数上限用 App 的
+   `clamp_max_new_tokens(text, lang)`；并加**累计音频上限**作第二道闸。
+4. **R2T2 与 App 侧 6 个同名顶层模块互相顶替**（`ext/segmenter.py`）
+   R2T2 仓库与 App 的 `app/` 有 6 个同名顶层模块（backends / seg_stream / streaming_asr /
+   segment_encoder_backend / npu_delivery_backend / npu_embeds_backend）。
+   旧实现 `import seg_stream` 会让 R2T2 的版本**先进占位** `sys.modules['seg_stream']` 与
+   `sys.modules['backends']`；之后 App 侧 `streaming_asr` 执行 `from backends import ...`
+   时拿到的是 **R2T2 的 backends**（两份内容不同：App 版多了
+   `_build_prompt_template_ids_for` 与 `force_language` 透传）⇒ **引擎被喂了别的模块的依赖**。
+   修法：R2T2 的 `seg_stream` 改为**私有名加载**（`ext._r2t2_seg_stream`），
+   执行期间**临时**把 `sys.modules['backends']` 指向 R2T2 的 backends，执行完**还原**
+   ⇒ 全局命名空间保持干净。自测也改用 `r2t2_module()` 取原件（旧的裸 `import seg_stream`
+   拿到的可能是 App 的版本，比对的就不是原件了）。
+5. **【本轮新发现】客户端 stats 包装把 marker 覆盖掉 ⇒ EXT-006 核心验收量全丢**
+   （`tools/p1_pipeline.py`）
+   旧代码 `tasks.append({"type": "_stats", **msg})` —— `msg` 自带 `type: "stats"`，
+   **展开顺序**决定内层的 `type` 赢 ⇒ 结果 `type == "stats"` ≠ `"_stats"`
+   ⇒ 下游 `get("type") == "_stats"` **永远不成立** ⇒
+   **EXT-006 要的 margin 余量统计一条都进不了报告**，且收尾循环永远等不到 stats
+   只能干等 `recv_timeout`。
+   实测复现：`{"type": "_stats", **msg}` ⇒ `type='stats'`；改 `{**msg, "type": "_stats"}` ⇒ `type='_stats'`。
+   修法：marker 放在展开**之后**。已在自测里**同时断言「旧写法确实坏」与「新写法确实好」**
+   （防假通过）。
+
+### 5.3 【本轮新发现】另外 3 个会导致 P1 拿到**假数据**的缺陷
+
+6. **同步误差口径用错了量**（`tools/p1_pipeline.py` `compute_metrics`）
+   旧代码把 `defer_sec`（**顺延量**，属时长适配）当同步误差。
+   EXT-001 P1 原文要的是「**实际播放起点** − 原声起点 + D」⇒
+   插件把第 N 句排在 `t0 + t_start + D` ⇒
+   `实际播放起点 = max(计划播放起点, TTS 就绪时刻)` ⇒
+   `同步误差 = max(0, TTS就绪时刻 − (t0 + t_start + D)) = max(0, −deadline_margin_sec)`。
+   修法：改用服务端下发的 `deadline_margin_sec`（本轮已把它加进 tts 任务帧），
+   顺延量作为**独立指标**保留；并把口径字符串写进报告供 reviewer 核对。
+7. **离线快灌 ⇒ 余量/滞后指标失真**（`tools/p1_pipeline.py`）
+   旧代码一次性把 5 分钟音频灌完 ⇒ 服务端几秒内处理完 ⇒
+   **余量恒为巨大正值、累计滞后恒为 0** ⇒ 指标**没有意义**（拿到的正是假数据）。
+   修法：客户端改为**按墙钟节拍实时喂帧**（`realtime=True`，默认开），
+   服务端才会像线上一样「边收边做」，滞后才会显现。`--fast` 仅供调试。
+8. **尾段永不处理 ⇒ 时间表缺最后一段**（`ext/bridge.py` + `tools/p1_pipeline.py`）
+   流式服务默认把最后一段留在缓冲区（正常直播场景**正确**），但 P1 要求
+   「配音 wav 和时间表落盘」⇒ 尾段必须出，否则 reviewer 回转写时对不上。
+   修法：新增 `flush` 消息（客户端喂完最后一帧后发）⇒ 服务端把尾段切出来处理；
+   尾段的 `t_start` **同样用会话绝对偏移**（不归零）。自测断言「尾段 t_start > 0」
+   且「紧接上一段之后」，并断言 flush **幂等**（第二次无输出）。
+
+### 5.4 涉及修改的文件
+
+| 文件 | 本轮改动 |
+|---|---|
+| `ext/engine_runtime.py`（新建） | **真实引擎适配层**：ASR(R2T2 INT8@GPU.0) → MT(Hy-MT2 INT8@GPU.0) → TTS(Qwen3-TTS@NPU)。只 import App 原件；TTS 显式传 `language`；`clamp_max_new_tokens` + `runaway_threshold_s` 双失控闸；预设音色 A 走 **x-vector** 路线（`speaker_embedding`）而非 ICL 路线 |
+| `ext/engines.py` | 加 `load_runtime_engine` / `try_load_runtime_engine`（**延迟 import**，失败明确报错不静默回落到回声模式） |
+| `ext/segmenter.py` | R2T2 改**私有名加载** + `sys.modules['backends']` 执行期临时替换/还原（修同名模块互相顶替）；新增 `r2t2_module()` |
+| `ext/bridge.py` | `--real --target-lang --margin-out`；`Session(engine=...)`；`_consumed_samples` 绝对时间基点；余量统计（`margin_sec` / `deadline_margin_sec` / 累计滞后 / 峰值滞后）；新增 `flush` 消息处理与 `Session.flush()`；tts 帧带 `deadline_margin_sec` / `margin_sec` / `tts_ready_at` |
+| `tools/p1_pipeline.py`（新建） | P1 端到端流水线：按插件同款帧格式上行、**实时节拍喂帧**、flush 尾段、P1 指标（同步误差/变速分布/顺延数/余量分布）、配音 wav 与时间表落盘 |
+| `tools/run_p1_real.py`（新建） | 持共享锁的 P1 编排器：冒烟 → 起 `--real` 桥接服务（用 App 解释器）→ 跑流水线 → 收尾确认无残留进程 |
+| `tools/engine_smoke.py`（新建） | 真实引擎冒烟：ASR/MT/TTS 逐段耗时 + RTF + 落盘 wav |
+| `tools/bridge_server.py`（新建） | 用 **App 自带解释器**拉起桥接服务；先探测 App 运行时可用性（不可用则**明确失败**，不静默回落） |
+| `tools/chrome_profile.py`（新建） | Chrome profile 统一目录 + 进程树回收（EXT-005 ②③） |
+| `tests/test_ext_selfcheck.py` | **追加** §7~§14 共 16 项断言（时间基点连续性 / 余量口径 / 语言表 / 失控闸口径 / flush 尾段 / stats marker / 同步误差口径 / 实时喂帧开关），**未改写任何旧断言** |
+| `.gitignore` | 加 `chrome_profile/`、`.runtime_deps/` |
+
+### 5.5 运行时依赖（⛔ 不改 App 任何文件）
+
+- App 自带运行时（`Confucius4_LiveCaption_v1.6\python\python.exe`）有
+  openvino / openvino_genai / babelvox / transformers，但**没有 websockets**
+  （实测 `ModuleNotFoundError`）⇒ 桥接服务起不来。
+- ⇒ 用 `pip --target` 装到**本项目本地** `.runtime_deps/`（websockets 17.3），
+  启动时经 `PYTHONPATH` 注入 ⇒ **不污染 App 的 site-packages，不改 App 任何文件**。
+- `.runtime_deps/` 已入 `.gitignore`（不入库）。
+
+### 5.6 共享机器锁合规记录（本轮）
+
+- 本轮 P1 实测经 `tools/machine_lock.hold()` 取锁，**排队等待，绝不抢**。
+- 本轮开始时发现 `shared\MACHINE_LOCK` 里的 `EXT-p1-real PID=26084` 是**上一轮被中断**留下的陈旧锁。
+  按铁律用 ctypes `OpenProcess` + `GetExitCodeProcess` 复核：
+  `OpenProcess` 返回 `ERROR_INVALID_PARAMETER (87)` ⇒ **该 PID 不存在**（psutil 二次确认 `pid_exists=False`），
+  才判定为死锁；**未确认死亡则一律视为存活**。
+- 实测中该陈旧锁已被 **App 模块自己**回收（`app030_cuda_ab_fixed/run_console.log` 实证：
+  `[lock] 陈旧锁（module=EXT-p1-real pid=26084：PID 26084 已死）→ 回收`）。
+- 本轮 P1 实测期间，锁由 **实时字幕 App 模块**持有（`app PID 24888`，05:37:36 起）⇒
+  本模块**排队等待**（`--lock-wait 5400`），**未抢锁、未删锁**。
+

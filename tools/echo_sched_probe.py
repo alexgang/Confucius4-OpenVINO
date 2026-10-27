@@ -26,6 +26,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXT_DIR = os.path.join(ROOT, "extension")
 TMP_DIR = os.path.join(ROOT, ".tmp")
 sys.path.insert(0, ROOT)
+# ★ Chrome profile 统一管理（EXT-005 第 2、3 点）
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import chrome_profile  # noqa: E402
 
 EDGE_CANDIDATES = [
     r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
@@ -71,12 +74,20 @@ def _run_sched_probe(*, delay_sec: float = 10.0, out_dir: Optional[str] = None,
 
     os.makedirs(TMP_DIR, exist_ok=True)
     token_path = os.path.join(TMP_DIR, "sched_probe_token.txt")
+    # ★ 先建好 profile 上下文（在 try 之前，避免 finally 里 NameError）
+    prof_ctx = chrome_profile.probe_profile("sched")
+    prof_ctx.__enter__()          # 建目录（退出时由 finally 里的 __exit__ 清理）
     logf = open(os.path.join(TMP_DIR, "sched_probe_bridge.log"), "w", encoding="utf-8")
     bridge = subprocess.Popen(
         [sys.executable, os.path.join(ROOT, "tools", "bridge_echo_server.py"),
          "--port", str(port), "--delay", str(delay_sec),
          "--token-file", token_path],
         cwd=ROOT, stdout=logf, stderr=subprocess.STDOUT)
+    # ★ out 必须**在 try 之前**初始化：否则 try 内抛异常时，
+    #   finally 里的 out["cleanup"] = ... 会抛 NameError，把真实异常盖掉。
+    out: dict = {"ok": False, "delay_sec": delay_sec,
+                 "started_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                 "profile_dir": prof_ctx.path}
     try:
         import socket
         for _ in range(80):
@@ -91,10 +102,8 @@ def _run_sched_probe(*, delay_sec: float = 10.0, out_dir: Optional[str] = None,
             with open(token_path, "r", encoding="utf-8") as f:
                 token = f.read().strip()
 
-        prof = os.path.join(TMP_DIR, "pwprofile_sched_%d" % int(time.time()))
-        os.makedirs(prof, exist_ok=True)
-        out: dict = {"ok": False, "delay_sec": delay_sec,
-                     "started_at": time.strftime("%Y-%m-%d %H:%M:%S")}
+        # ★ Chrome user-data-dir 统一放 chrome_profile/<名称>/（EXT-005 第 3 点）
+        prof = prof_ctx.path
         with sync_playwright() as pw:
             ctx = pw.chromium.launch_persistent_context(
                 prof, executable_path=browser, headless=False,
@@ -169,6 +178,11 @@ def _run_sched_probe(*, delay_sec: float = 10.0, out_dir: Optional[str] = None,
             bridge.wait(timeout=5)
         except Exception:
             pass
+        # ★ kill 浏览器进程树 + 删 profile 目录 + 确认无残留（EXT-005 第 2 点 (a)）
+        try:
+            out["cleanup"] = prof_ctx.close()
+        except Exception as e:
+            out["cleanup_error"] = str(e)
 
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)

@@ -51,6 +51,10 @@ TMP_DIR = os.path.join(ROOT, ".tmp")
 # 让 `from tools import src_server` / `from ext import bridge` 可用
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
+# ★ Chrome profile 统一管理（EXT-005 第 2、3 点）：目录放 chrome_profile/，
+#   探针结束 kill 浏览器进程树 + 删目录 + 确认无残留。
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import chrome_profile  # noqa: E402
 
 EDGE_CANDIDATES = [
     r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
@@ -58,6 +62,10 @@ EDGE_CANDIDATES = [
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
     r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
 ]
+
+# ★ 本次探针的 profile 目录（供 _measure_sys_metrics 精确匹配浏览器进程）。
+#   单元素列表是为了在嵌套函数里可写（Python 闭包不能直接赋值外层变量）。
+_CURRENT_PROFILE = [""]
 
 SRC_PORT = 8891
 BRIDGE_PORT = 8791
@@ -139,11 +147,13 @@ def run_probe(*, mode: str = "all",
     bridge_proc = None
     data: dict = {"mode": mode, "duration_sec": duration_sec,
                   "delay_sec": delay_sec, "started_at": time.strftime("%Y-%m-%d %H:%M:%S")}
-    # ★ profile 用**带时间戳的唯一目录**，不做递归删除
-    #   （递归删一个上千文件的浏览器 profile 目录会触发安全删除钩子；
-    #     旧 profile 由 .tmp/ 统一保留，不入库即可）。
-    prof_dir = os.path.join(TMP_DIR, "pwprofile_probe_%d" % int(time.time()))
-    os.makedirs(prof_dir, exist_ok=True)
+    # ★ Chrome user-data-dir 统一放 chrome_profile/<名称>/（EXT-005 第 3 点）
+    #   旧做法在 .tmp\pwprofile_probe_* ⇒ 残留约 50 个目录、合计约 996 MB。
+    #   现在：唯一子目录 + 探针结束即删 + kill 浏览器进程树（EXT-005 第 2 点）。
+    prof_ctx = chrome_profile.probe_profile("uplink")
+    prof_ctx.__enter__()          # 建目录（退出时由 finally 里的 __exit__ 清理）
+    prof_dir = prof_ctx.path
+    _CURRENT_PROFILE[0] = prof_dir
     data["profile_dir"] = prof_dir
 
     def _run():
@@ -258,6 +268,12 @@ def run_probe(*, mode: str = "all",
                 bridge_proc.wait(timeout=5)
         except Exception:
             pass
+        # ★ kill 浏览器进程树 + 删 profile 目录 + 确认无残留（EXT-005 第 2 点 (a)）
+        #   reviewer 现场：探针退出后 chrome 进程残留 ⇒ 目标机 SSH 持续拒绝连接。
+        try:
+            data["cleanup"] = prof_ctx.close()
+        except Exception as e:
+            data["cleanup_error"] = str(e)
 
     data["finished_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
     if out_dir:
@@ -284,15 +300,19 @@ def _measure_sys_metrics(duration_sec: int) -> dict:
     except Exception as e:
         return {"error": f"psutil 不可用：{e}"}
 
-    # 找到属于本次 profile 的 Edge 进程
+    # 找到属于**本次 profile** 的浏览器进程
+    #   ★ 精确匹配 --user-data-dir=<本次 profile>（EXT-005 第 3 点后目录名变了，
+    #     旧代码按 "pwprofile_probe" 匹配已失效；且宽匹配会误抓其它探针的浏览器）
     try:
         procs = []
         others = []
+        target = os.path.normcase(os.path.abspath(_CURRENT_PROFILE[0] or ""))
         for p in psutil.process_iter(["pid", "name", "cmdline"]):
             try:
                 name = (p.info.get("name") or "")
                 cl = " ".join(p.info.get("cmdline") or [])
-                if "msedge" in name.lower() and "pwprofile_probe" in cl:
+                if target and target in os.path.normcase(cl) and \
+                        ("msedge" in name.lower() or "chrome" in name.lower()):
                     procs.append(p)
                 elif ("python" in name.lower() or "timeout" in name.lower()) and \
                         ("LiveCaption" in cl or "live_dub" in cl or "app108" in cl):

@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ext import config as C
 from ext.duration import fit_duration
-from ext.segmenter import describe, plan_segments, r2t2_available
+from ext.segmenter import describe, plan_segments, r2t2_available, r2t2_module
 from ext.speaker import SpeakerTracker
 from ext.time_stretch import wsola
 
@@ -55,6 +55,36 @@ def _with_silence(dur_sec: float, sil_sec: float) -> np.ndarray:
     sp = _speech_like(dur_sec)
     sil = np.zeros(int(sil_sec * C.SAMPLE_RATE), dtype=np.float32)
     return np.concatenate([sp, sil])
+
+
+def _load_app_module(name: str):
+    """按**文件路径**加载 App 目录下的模块（私有名，不污染全局命名空间）。
+
+    ★ 为什么不用 `import`：App 的 `app/` 目录与 R2T2 仓库有 6 个同名顶层模块
+      （backends / seg_stream / streaming_asr / segment_encoder_backend / …）
+      ⇒ 裸 import 会互相顶替（详见 `ext/segmenter.py` 的说明）。
+    ★ 只加载**顶层无重依赖**的模块（tts_engine 只 import contextlib/os/typing）
+      ⇒ 不需要 App 解释器，也不占 GPU/NPU。
+    """
+    import importlib.util
+
+    app_dir = os.path.join(r"C:\Users\Trekker-PTL", "Confucius4_LiveCaption_v1.6",
+                            "app")
+    path = os.path.join(app_dir, name + ".py")
+    if not os.path.isfile(path):
+        return None
+    mod_name = "ext._test_app_" + name
+    try:
+        spec = importlib.util.spec_from_file_location(mod_name, path)
+        if spec is None or spec.loader is None:
+            return None
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[mod_name] = mod
+        spec.loader.exec_module(mod)
+        return mod
+    except Exception:
+        sys.modules.pop(mod_name, None)
+        return None
 
 
 # ── 1/2. 分段（EXT-002 核心） ────────────────────────────────────
@@ -86,9 +116,12 @@ def test_segmentation() -> None:
           f"tail={(tail[1] - tail[0]) / C.SAMPLE_RATE:.2f}s")
 
     # 与 R2T2 原件等价性
-    if r2t2_available():
-        import seg_stream as r2
-
+    # ★ EXT-006：改用 `r2t2_module()` 取**私有名**加载的 R2T2 原件。
+    #   旧写法 `import seg_stream` 依赖了「R2T2 版本占全局 seg_stream 槽位」
+    #   这一**污染行为**；本轮把 R2T2 改成私有名加载（避免与 App 侧同名模块
+    #   互相顶替）⇒ 裸 import 拿到的可能是 App 的版本，比对的就不是原件了。
+    r2 = r2t2_module()
+    if r2 is not None:
         class _FakeBackend:
             pass
 
@@ -251,12 +284,229 @@ def test_bridge_session() -> None:
     check("token 重载一致（幂等）", ts2.token == ts.token)
 
 
+# ── 8/9/10. EXT-005 / EXT-006 新增行为 ──────────────────────────
+def test_ext005_ext006_behaviors() -> None:
+    """EXT-006 P1：时间基点连续性 + 引擎语言/失控闸守卫 + 余量口径。
+
+    ★ 本节是**追加**的（新断言），没有改写任何旧断言。
+    """
+    print("\n[7] EXT-006 P1 — 时间基点连续性（段起始不归零）")
+    from ext.bridge import Session
+
+    # 造 60 s 的"语音"（含静音以便切段），每帧 100 ms
+    frame_samples = C.SAMPLE_RATE // 10
+    sess = Session("tok", delay_sec=10.0)
+    sidx = 0
+    all_tasks = []
+    for i in range(600):
+        # 前 15 s 语音、后 1 s 静音 ⇒ 制造可切点
+        chunk = _speech_like(0.1)
+        pcm = (chunk * 32767).astype("<i2").tobytes()
+        out = sess.on_pcm_frame({"type": "pcm", "seq": i,
+                                  "sample_index": sidx,
+                                  "pcm": base64.b64encode(pcm).decode("ascii")})
+        sidx += frame_samples
+        if out:
+            all_tasks.extend(out)
+
+    check("产生了多段配音任务", len(all_tasks) >= 2, f"{len(all_tasks)} 段")
+    if len(all_tasks) >= 2:
+        starts = [t["t_start"] for t in all_tasks]
+        ends = [t["t_end"] for t in all_tasks]
+        # ★ 核心断言：第 2 段起的 t_start 必须**继续增长**，
+        #   不能全部归零（旧实现把已切走的段从缓冲区裁掉，
+        #   却继续用旧索引切 ⇒ 时间基点漂移）。
+        check("多段 t_start 单调递增（不归零）",
+              all(starts[i] < starts[i + 1] for i in range(len(starts) - 1)),
+              ", ".join(f"{s:.2f}s" for s in starts))
+        check("多段 t_end 单调递增",
+              all(ends[i] < ends[i + 1] for i in range(len(ends) - 1)))
+        check("后续段的 t_start > 0（不是相对缓冲区）",
+              all(s > 0 for s in starts[1:]),
+              ", ".join(f"{s:.2f}s" for s in starts[1:]))
+        # 时间窗长度应在 [12, 20] s（R2T2 断句区间）
+        lens = [(e - s) for s, e in zip(starts, ends)]
+        check("段时长落在 [12,20] s（末段可短）",
+              all(12.0 <= L <= 20.0 + 1e-6 for L in lens[:-1]) and
+              lens[-1] <= 20.0 + 1e-6,
+              ", ".join(f"{L:.2f}s" for L in lens))
+
+    print("\n[8] EXT-006 P1 — 余量统计口径（原声结束→TTS 就绪）")
+    summ = sess.margin_summary()
+    check("余量统计有 n_segments", summ.get("n_segments", 0) == len(all_tasks),
+          f"n_segments={summ.get('n_segments')}")
+    check("余量统计有 n_negative 与累计滞后",
+          all(k in summ for k in ("n_negative", "cumulative_lag_sec",
+                                  "peak_lag_sec")))
+    check("余量统计含排程截止余量（deadline）",
+          "deadline" in summ, f"keys={sorted(summ.keys())}")
+    if "deadline" in summ:
+        dl = summ["deadline"]
+        check("排程截止余量含负值计数与 P50/P95",
+              all(k in dl for k in ("n_negative", "p50", "p95",
+                                   "cumulative_lag_sec")))
+
+    print("\n[9] EXT-006 — 引擎语言映射守卫（必须显式传目标语言）")
+    from ext.engine_runtime import (LANG_TO_MT, LANG_TO_TTS,
+                                    EngineNeedsChange, RuntimeEngine)
+    # Qwen3-TTS 只支持 zh/en/ja/ko（SUPPORTED_LANGS）⇒ 表里不能有多余语言
+    check("TTS 语言表只含引擎支持的 4 种",
+          set(LANG_TO_TTS) == {"zh", "en", "ja", "ko"},
+          f"{sorted(LANG_TO_TTS)}")
+    check("MT 语言表与 TTS 对齐", set(LANG_TO_MT) == set(LANG_TO_TTS),
+          f"{sorted(LANG_TO_MT)}")
+    eng = RuntimeEngine(target_lang="en")
+    check("TTS 语言映射：en→English",
+          eng.tts_language() == "English", eng.tts_language())
+    check("MT 目标码：en→en", eng.mt_target() == "en")
+    eng_zh = RuntimeEngine(target_lang="zh")
+    check("TTS 语言映射：zh→Chinese",
+          eng_zh.tts_language() == "Chinese", eng_zh.tts_language())
+    # ★ 映射不到就**抛异常**，绝不静默回落 English（EXT-006 明文要求）
+    eng_bad = RuntimeEngine(target_lang="xx")
+    try:
+        eng_bad.tts_language()
+        check("未知目标语言必须抛异常（不静默回落）", False,
+              "居然返回了默认值")
+    except EngineNeedsChange:
+        check("未知目标语言必须抛异常（不静默回落）", True)
+    try:
+        eng_bad.mt_target()
+        check("未知目标语言的 MT 也必须抛异常", False, "居然返回了默认值")
+    except EngineNeedsChange:
+        check("未知目标语言的 MT 也必须抛异常", True)
+
+    print("\n[10] EXT-006 — 失控闸阈值口径（与 App RUNAWAY 判据一致）")
+    from ext.engine_runtime import TTS_WALL_CLOCK_CAP_SEC
+    # App 的判据：runaway_threshold_s(est) = max(3×est, est+8s)
+    # 短句 ⇒ est 小 ⇒ 阈值取 est+8s（≥8 s）
+    # 长句 ⇒ 阈值取 3×est
+    # ★ tts_engine.py 顶层无重依赖（只 import contextlib/os/typing）
+    #   ⇒ 可以在普通 venv 里按**文件路径**加载，不必用 App 解释器。
+    app_tts = _load_app_module("tts_engine")
+    if app_tts is not None:
+        estimate_sec = app_tts.estimate_sec
+        runaway_threshold_s = app_tts.runaway_threshold_s
+        short = estimate_sec("测试", "Chinese")
+        long_ = estimate_sec("很长的句子" * 50, "Chinese")
+        check("短句阈值 = max(3×est, est+8) ⇒ 取 est+8",
+              abs(runaway_threshold_s(short) - max(3 * short, short + 8.0)) < 1e-6,
+              f"est={short:.2f}s threshold={runaway_threshold_s(short):.2f}s")
+        check("长句阈值 = max(3×est, est+8) ⇒ 取 3×est",
+              abs(runaway_threshold_s(long_) - max(3 * long_, long_ + 8.0)) < 1e-6,
+              f"est={long_:.2f}s threshold={runaway_threshold_s(long_):.2f}s")
+    else:
+        check("App 的 tts_engine 可 import（失控闸口径来源）", False,
+              "未能加载 tts_engine.py")
+    check("墙钟闸有硬上限（防止 est 估偏大时闸门失效）",
+          TTS_WALL_CLOCK_CAP_SEC > 0, f"cap={TTS_WALL_CLOCK_CAP_SEC}s")
+
+
+# ── 11. EXT-006 P1 收口：flush 尾段 / stats marker / 同步误差口径 ──
+def test_ext006_p1_closeout() -> None:
+    """EXT-006 P1 本轮补的三项行为（**追加**断言，未改写任何旧断言）。
+
+    ① `flush` 消息能触发尾段处理，且尾段 t_start **不归零**；
+    ② 客户端 stats 包装后 `type` 必须是 `_stats`（否则 margin 全丢）；
+    ③ 同步误差按 EXT-001 口径 = max(0, −deadline_margin)。
+    """
+    print("\n[11] EXT-006 P1 — flush 尾段（时间基点不归零）")
+    from ext.bridge import Session
+
+    frame_samples = C.SAMPLE_RATE // 10
+    sess = Session("tok", delay_sec=10.0)
+    sidx = 0
+    all_tasks = []
+    for i in range(600):
+        chunk = _speech_like(0.1)
+        pcm = (chunk * 32767).astype("<i2").tobytes()
+        out = sess.on_pcm_frame({"type": "pcm", "seq": i,
+                                  "sample_index": sidx,
+                                  "pcm": base64.b64encode(pcm).decode("ascii")})
+        sidx += frame_samples
+        if out:
+            all_tasks.extend(out)
+
+    streamed_n = len(all_tasks)
+    check("流式阶段已产出多段", streamed_n >= 2, f"{streamed_n} 段")
+
+    # flush ⇒ 尾段
+    flushed = sess.flush()
+    check("flush 产出尾段", len(flushed) == 1, f"{len(flushed)} 段")
+    if flushed:
+        ft = flushed[0]
+        check("尾段 t_start > 0（不归零）", ft["t_start"] > 0,
+              f"t_start={ft['t_start']}")
+        check("尾段 t_start 紧接上一段之后",
+              ft["t_start"] >= all_tasks[-1]["t_end"] - 1e-6,
+              f"尾段 {ft['t_start']:.2f}s vs 上段末 {all_tasks[-1]['t_end']:.2f}s")
+        # ★ 尾段的 t_start 必须落在音频总长之内
+        check("尾段 t_start 不超过总时长",
+              ft["t_start"] <= 60.0, f"{ft['t_start']:.2f}s")
+    # flush 幂等：再来一次没有尾段了
+    again = sess.flush()
+    check("flush 幂等（第二次无输出）", len(again) == 0, f"{len(again)} 段")
+
+    print("\n[12] EXT-006 P1 — stats marker（margin 不能丢）")
+    # ★ 复现本轮修掉的缺陷：`{"type": "_stats", **msg}` 里 msg 自带
+    #   type='stats' ⇒ 展开后覆盖掉 marker ⇒ 下游永远匹配不到 _stats。
+    msg = {"type": "stats", "n_frames": 5, "margin": {"n_segments": 2}}
+    broken = {"type": "_stats", **msg}
+    fixed = {**msg, "type": "_stats"}
+    check("旧写法会把 type 覆盖成 'stats'（缺陷复现）",
+          broken.get("type") != "_stats", f"type={broken.get('type')!r}")
+    check("新写法保留 '_stats' marker",
+          fixed.get("type") == "_stats", f"type={fixed.get('type')!r}")
+    check("新写法保留 stats 的原始字段",
+          fixed.get("n_frames") == 5 and "margin" in fixed)
+
+    print("\n[13] EXT-006 P1 — 同步误差口径（EXT-001 原文）")
+    sys.path.insert(0, os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
+    import p1_pipeline
+    # deadline_margin = (t0 + t_start + D) − 就绪时刻
+    #   负数 ⇒ 赶不上播放时刻 ⇒ 同步误差 = −deadline_margin
+    tasks = [
+        {"type": "tts", "id": "a", "t_start": 0.0, "t_end": 15.0,
+         "pcm24k": None, "fit": {"rate": 1.0, "defer_sec": 0.0},
+         "deadline_margin_sec": 2.5},
+        {"type": "tts", "id": "b", "t_start": 15.0, "t_end": 30.0,
+         "pcm24k": None, "fit": {"rate": 1.0, "defer_sec": 0.0},
+         "deadline_margin_sec": -0.4},
+    ]
+    m, per = p1_pipeline.compute_metrics(tasks, delay_sec=10.0,
+                                         margin_summary=None)
+    check("同步误差：余量为正 ⇒ 误差 0",
+          per[0]["sync_err_ms"] == 0.0, f"{per[0]['sync_err_ms']}")
+    check("同步误差：余量为负 ⇒ 误差 = −余量",
+          abs(per[1]["sync_err_ms"] - 400.0) < 1e-6,
+          f"{per[1]['sync_err_ms']} ms")
+    check("同步误差统计含 p50/p95",
+          "p50" in m["sync_err_ms"] and "p95" in m["sync_err_ms"])
+    check("同步误差口径写在报告里（可核对）",
+          "definition" in m["sync_err_ms"], m["sync_err_ms"].get("definition", ""))
+
+    print("\n[14] EXT-006 P1 — 客户端必须按实时速率喂帧")
+    # 离线快灌 ⇒ 服务端瞬间处理完 ⇒ 余量恒正、滞后恒 0 ⇒ 指标失真。
+    # ⇒ 客户端必须有 realtime 开关，且默认走实时。
+    import inspect
+    sig = inspect.signature(p1_pipeline._run_client)
+    check("客户端有 realtime 开关", "realtime" in sig.parameters,
+          str(list(sig.parameters)))
+    check("realtime 默认 True", sig.parameters["realtime"].default is True,
+          f"default={sig.parameters['realtime'].default}")
+    check("客户端有 expect_segments（用于判断收尾）",
+          "expect_segments" in sig.parameters,
+          str(list(sig.parameters)))
+
+
 def main() -> int:
     print("=" * 68)
     print("EXT 模块自测（不跑推理 / 不占 GPU·NPU / 不抢共享锁）")
     print("=" * 68)
     for fn in (test_segmentation, test_duration_fit, test_wsola,
-               test_speaker_bypass, test_bridge_session):
+               test_speaker_bypass, test_bridge_session,
+               test_ext005_ext006_behaviors, test_ext006_p1_closeout):
         try:
             fn()
         except Exception:

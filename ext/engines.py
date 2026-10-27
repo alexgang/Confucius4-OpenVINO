@@ -112,3 +112,39 @@ class EngineAdapter:
 def load_default() -> EngineAdapter:
     """返回默认适配器（当前为空接线状态）。"""
     return EngineAdapter()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# EXT-006 [HIGH]：P1 接入**真实引擎**
+# ═══════════════════════════════════════════════════════════════════
+#
+# EXT-002 时这里只能返回空适配器（引擎入口未确认）。EXT-006 明确要求
+# 「P1 的定义以 EXT-001 为准：桥接服务接入 ASR/MT/TTS，走真实的
+#  ASR→MT→TTS 链路，回声模式只作为自测保留」。
+#
+# ⇒ 真实实现放在 `ext/engine_runtime.py`（适配层，**不改对方文件**），
+#   这里只做**延迟切换**：调用方显式要真实引擎时才 import 它。
+#
+# ⚠️ 真实引擎依赖 App 自带运行时（openvino / openvino_genai / babelvox），
+#   在普通 venv 里 import 会失败 ⇒ 延迟到真正要用时才 import，
+#   且失败时**降级为空适配器**并给出明确原因，不让整个桥接服务起不来。
+
+def load_runtime_engine(*, target_lang: str = "en", **kwargs):
+    """返回**真实引擎**适配器（EXT-006 P1）。
+
+    Raises
+    ------
+    RuntimeError
+        App 自带运行时不可用时抛出（调用方应把它当「明确失败」处理，
+        **不静默回落到回声模式** —— 否则 P1 验收会拿到假数据）。
+    """
+    from .engine_runtime import load_runtime
+    return load_runtime(target_lang=target_lang, **kwargs)
+
+
+def try_load_runtime_engine(*, target_lang: str = "en", **kwargs):
+    """返回真实引擎适配器；运行时不可用时返回 (None, 原因字符串)。"""
+    try:
+        return load_runtime_engine(target_lang=target_lang, **kwargs), ""
+    except Exception as e:
+        return None, "%s: %s" % (type(e).__name__, e)

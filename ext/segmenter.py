@@ -41,9 +41,39 @@ R2T2_ROOT = os.environ.get(
 _R2T2_MOD = None
 _R2T2_TRIED = False
 
+# ★ 本模块用**私有名**加载 R2T2 的 seg_stream，不占用全局 `seg_stream` 槽位。
+#   原因（EXT-006 P1 实测踩到）：R2T2 仓库与 App 的 `app/` 目录有 **6 个同名
+#   顶层模块**（backends / seg_stream / streaming_asr / segment_encoder_backend /
+#   npu_delivery_backend / npu_embeds_backend）。若按普通 `import seg_stream`
+#   加载，R2T2 的版本会**先进占位** `sys.modules['seg_stream']` 与
+#   `sys.modules['backends']`；之后 App 的 `streaming_asr` / `segment_encoder_backend`
+#   执行 `from backends import ...` 时会拿到 **R2T2 的 backends**（两份内容不同：
+#   App 版多了 `_build_prompt_template_ids_for` 与 `force_language` 透传）
+#   ⇒ 引擎被喂了**别的模块的依赖**。
+#   ⇒ 私有名加载 ⇒ R2T2 的 seg_stream 只在本模块内可见，不污染全局命名空间。
+_R2T2_MODULE_NAME = "ext._r2t2_seg_stream"
+_R2T2_BACKENDS_NAME = "ext._r2t2_backends"
+
+
+def _load_private(name: str, path: str):
+    """按文件路径加载一个模块到**私有名**下（不改对方文件）。"""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        return None
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    try:
+        spec.loader.exec_module(mod)
+    except Exception:
+        sys.modules.pop(name, None)
+        raise
+    return mod
+
 
 def _try_load_r2t2():
-    """尝试 import R2T2 的 seg_stream 模块。
+    """加载 R2T2 的 seg_stream 模块（**私有名**，不占用全局 `seg_stream`）。
 
     Returns
     -------
@@ -55,20 +85,51 @@ def _try_load_r2t2():
     _R2T2_TRIED = True
     if not os.path.isdir(R2T2_ROOT):
         return None
-    if R2T2_ROOT not in sys.path:
-        sys.path.insert(0, R2T2_ROOT)
-    try:
-        import seg_stream as _seg  # type: ignore
+    path = os.path.join(R2T2_ROOT, "seg_stream.py")
+    backends_path = os.path.join(R2T2_ROOT, "backends.py")
+    if not os.path.isfile(path):
+        return None
 
-        _R2T2_MOD = _seg
+    # ★ 隔离两件事：
+    #   ① `seg_stream` 本体用**私有名**加载 ⇒ 不占用全局 `sys.modules['seg_stream']`；
+    #   ② `seg_stream` 顶层有 `from backends import ...` ⇒ 执行期间若全局
+    #      `sys.modules['backends']` 为空，Python 会按 sys.path 找到
+    #      **R2T2 的 backends** 并**占进全局** ⇒ 之后 App 侧的
+    #      `streaming_asr` / `segment_encoder_backend` 执行
+    #      `from backends import ...` 时会拿到 **R2T2 的 backends**
+    #      （两份内容不同：App 版多了 `_build_prompt_template_ids_for`
+    #      与 `force_language` 透传）⇒ 引擎被喂了别的模块的依赖。
+    #   ⇒ 执行期间**临时**把 `sys.modules['backends']` 指向 R2T2 的 backends，
+    #      执行完**还原** ⇒ 全局命名空间保持干净。
+    saved_backends = sys.modules.get("backends")
+    try:
+        if os.path.isfile(backends_path):
+            sys.modules["backends"] = _load_private(
+                _R2T2_BACKENDS_NAME, backends_path)
+        _R2T2_MOD = _load_private(_R2T2_MODULE_NAME, path)
     except Exception:
         _R2T2_MOD = None
+    finally:
+        if saved_backends is None:
+            sys.modules.pop("backends", None)
+        else:
+            sys.modules["backends"] = saved_backends
     return _R2T2_MOD
 
 
 def r2t2_available() -> bool:
     """是否能直接 import R2T2 原件（用于自测报告里写明走的是哪条路）。"""
     return _try_load_r2t2() is not None
+
+
+def r2t2_module():
+    """返回已加载的 R2T2 `seg_stream` 模块（**私有名**加载，见 `_try_load_r2t2`）。
+
+    自测用它做「与 R2T2 原件逐段比对」；
+    ⚠️ **不要**再写裸 `import seg_stream` —— 那会拿到 App 侧或全局槽位里的
+    其它版本，比对的就不是 R2T2 原件了。
+    """
+    return _try_load_r2t2()
 
 
 # ── 复制的等价 VAD 逻辑（仅在 R2T2 不可 import 时使用） ─────────────

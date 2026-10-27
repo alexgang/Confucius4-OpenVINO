@@ -41,6 +41,10 @@ EXT_DIR = os.path.join(ROOT, "extension")
 TMP_DIR = os.path.join(ROOT, ".tmp")
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
+# ★ Chrome profile 统一管理（EXT-005 第 2、3 点）：目录放 chrome_profile/，
+#   探针结束 kill 浏览器进程树 + 删目录 + 确认无残留。
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import chrome_profile  # noqa: E402
 
 EDGE_CANDIDATES = [
     r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
@@ -108,8 +112,12 @@ def run_probe(*, delay_sec: float = 10.0, video_sec: int = 45,
     src_server = None
     bridge_proc = None
     token_path = os.path.join(TMP_DIR, "vlp_token.txt")
-    prof = os.path.join(TMP_DIR, "pwprofile_vlp_%d" % int(time.time()))
-    os.makedirs(prof, exist_ok=True)
+    # ★ Chrome user-data-dir 统一放 chrome_profile/<名称>/（EXT-005 第 3 点）
+    #   旧做法在 .tmp\pwprofile_vlp_* ⇒ 残留几十个目录、约 996 MB。
+    #   现在：唯一子目录 + 探针结束即删（见 chrome_profile.probe_profile）。
+    prof_ctx = chrome_profile.probe_profile("vlp")
+    prof_ctx.__enter__()          # 建目录（退出时由 finally 里的 __exit__ 清理）
+    prof = prof_ctx.path
     out["profile_dir"] = prof
 
     # ★ 铁律：计时/测速作业必须持共享机器锁。
@@ -281,6 +289,11 @@ def run_probe(*, delay_sec: float = 10.0, video_sec: int = 45,
             stack.close()      # 释放共享机器锁
         except Exception:
             pass
+        # ★ kill 浏览器进程树 + 删 profile 目录 + 确认无残留（EXT-005 第 2 点 (a)）
+        try:
+            out["cleanup"] = prof_ctx.close()
+        except Exception as e:
+            out["cleanup_error"] = str(e)
 
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
