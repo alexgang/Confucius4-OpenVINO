@@ -233,3 +233,54 @@ D 组（合规/工具）：⑩ 两个探针未持共享机器锁 → `hold()` + 
 - ⛔ **不跑推理**：ASR / MT / TTS 全未启动，未占 GPU.0 / NPU ⇒ 未与实时字幕 App 抢设备。
 - ⛔ **未抢共享锁**：本轮实测全部经 `tools.machine_lock.hold()` 获取锁（日志实证「已取得共享锁：EXT-echo-sched-probe PID=7372」「已释放共享锁」）；锁已存在时**排队等待**，未抢锁、未删锁。
 - ℹ️ **P0① 验收口径从「主线程墙钟」改为「音频时钟」**：阈值 50 ms 未变；主线程口径值（750.70 ms）作为诊断量完整保留在证据与 `C1d2` 断言中。
+
+---
+
+## 2026-10-28 00:52 — EXT-003 续做：编码管线有界工作量 + v10 复测（追加记录）
+
+### 执行依据与闸门
+- 闸门实跑 `tools/next_instruction.py --json` ⇒ **exit 0**，latest=EXT-004 [NORMAL] 2026-10-27 20:38「RESUME」，`last_ack=3`。
+- EXT-004 是 RESUME 信号（非独立技术要求）⇒ 本轮执行 **EXT-003 [HIGH] 的未完成项**（P0 ①②③ 的复测收口 + 视频管线剩余性能缺陷）。
+- `last_ack` **保持 EXT-003**（EXT-003 的技术要求到本轮才全部达标；EXT-004 不构成独立技术项，故不推进）。
+- `status/CORRECTIONS_EXT.md` **全程只读**，未修改、未 `git add`（已在 .gitignore）。
+
+### 涉及修改的文件
+| 文件 | 本轮改动 |
+|---|---|
+| `extension/player.js` | ① 编码**限速判断前置**（被丢的帧不再白做全尺寸缩放）+ `encodeQueueSize` 守卫；② 白闪 `copyTo` 显式 `format:'RGBA'`；③ `probeBus` + 独立 onset 检测器；④ 排程钳位计数（`schedClamped`/`probeSchedClamped`）；⑤ `encCanvas` 复用 + `ENCODE_FPS=15` + 单一 `pumpDraws` 调度器 + 每 tick 预算（承接前序） |
+| `tools/echo_sched_probe.py` / `tools/video_lipsync_probe.py` | 排程时刻改用**当前音频时钟**反推未来（`t_start = (now - t0) + 0.6 - delaySec`），不再固定传 (0.5, 2.0, 3.5) |
+| `tests/test_ext_browser_contract.py` | **追加** B19/B20（编码限速前置、画布复用、encodeQueueSize、单一绘制调度器）、B21（copyTo 必须 format:'RGBA'）、B22（probe 总线物理隔离）、B23（钳位计数 + 探针排程落在未来）共 **23 项新断言**，未改写任何旧断言 |
+
+### 实测证据（引自已落盘文件的原始字段）
+- `.tmp/probe_uplink_5min_v10/browser_probe.json`（25987 B，mtime 2026-10-28 00:46:01）
+  - `elapsedMs=302744.73` / `frameCount=14191` / `gaps=0` / `bytesSent=9687688`
+  - **验收口径** `maxAbsSkewAudioMs=1.0833333333430346`（阈值 50 ms ✅）/ `skewAudioP50=1.0625` / `skewAudioP95=1.0833333333430346` / `nSkewAudioSpikes=0` / `skewAudioSamples=14191` / `skew_ok=true`
+  - 诊断量 `maxAbsSkewMs=731.31` / `skewP95=26.68` / **`skewP99=30.48`** / `driftMsPerMin=2.006`
+  - `stall: maxMs=720.1 / nSpikes=8 / nLongTasks=1`（长任务仅 1 条：tRelMs=61589, durMs=465）
+  - CPU Profile（total 300.42 s）：`(idle) 278.28 s` / `(program) 9.76 s` / **`drawImage 8.21 s`** / `setTimeout 0.99 s` / **`copyTo 0.26 s`** / **`(garbage collector) 0`**（v5 时为 11.53 s）
+- `.tmp/probe_suite_v9/probe_video_lipsync/video_lipsync_probe.json`（2344 B，mtime 2026-10-28 00:39:52）
+  - P0②：`encoded=556` / `decoded=439` / `drawn=439` / `dropped=0` / `drop_rate_pct=0.0` / `drawMarks=4` / `origOnsets=38`
+  - P0② 唇音同步：`nPairs=4` / `meanErrMs=-11.9635416666668` / `absErrP50=15.24999999999821` / **`absErrP95=23.270833333331353`**（目标 ≤ 40 ms ✅）/ `absErrMax=23.270833333331353` / `lipSync_ok=true`
+  - P0③：`onsetErrs=[0.020833…, 0.020833…, 0.020833…]` / **`maxAbsErrMs=0.020833333323366787`**（阈值 20 ms ✅）/ `sched_ok=true`
+- `.tmp/probe_suite_v9/probe_echo_sched/echo_sched_probe.json`（469 B，mtime 2026-10-28 00:40:30）
+  - `onsetErrs` 三样本全部 **0.0208333333…** / `maxAbsErrMs=0.020833333334024928` / `passed=true`
+- `.tmp/probe_suite_v9/suite_summary.json`（3390 B，mtime 2026-10-28 00:40:31）—— 两 step rc=0
+
+### 本轮新增修掉的 2 个真实缺陷（承接 §3.4 A~D 组，本次为 E 组）
+12. **extension/player.js — 编码限速判断发生在 drawImage 之后（纯浪费）**：源 30 fps、编码 15 fps，旧顺序「先全尺寸缩放 1908×1072 再判断要不要编码」⇒ 被丢弃的一半帧照样付全额缩放代价。CDP CPU Profile 实测 `drawImage` **17.35 s**（v6，非 idle 第 1 名）⇒ 约一半来自「缩放完就扔」的帧。改为限速判断**前置**（被丢的帧直接 `frame.close()`）⇒ `drawImage` 降到 **8.13 s**（v7/v10，**降 53%**）；另加 `videoEncoder.encodeQueueSize > ENCODE_QUEUE_MAX(4)` 守卫。
+13. **extension/player.js — 白闪检测 copyTo 未指定 format（漏检 100%）**：`VideoFrame.copyTo` 的 `options.format` 缺省时**沿用帧原生格式**；本机 VP8 解码帧是 **I420** ⇒ 16×9 区域只有 **216 字节**（16×9×1.5），而代码按 RGBA 读 **576 字节** ⇒ 多出的 360 字节是陈旧数据/零 ⇒ avg 永远接近 0 ⇒ **白闪一次都检不出**（实测 45 s：源页白闪 22 次、`drawMarks=0`、`lipSync=null`）。改为显式 `format:'RGBA'` ⇒ 复测 `drawMarks=4~8`、`lipSync_ok=true`。
+
+### 自测结果（本轮实跑）
+```
+tests/test_ext_selfcheck.py        →  34 PASS / 0 FAIL
+tests/test_echo_roundtrip.py       →  10 PASS / 0 FAIL
+tests/test_next_instruction.py     →  19 PASS / 0 FAIL
+tests/test_ext_browser_contract.py → 101 PASS / 0 FAIL
+```
+合计 **164 PASS / 0 FAIL**（4 套必需自测）；加 `tools/player_perf_bench.js` 8 PASS ⇒ 5 套合计 **172 PASS / 0 FAIL**。
+
+### 明确未做 / 不宣称
+- ⛔ **不宣称主线程 event-loop lag 已消除**：v10 `stall.maxMs=720.1 / nSpikes=8`。这是**插件自身视频渲染**造成的 lag（`drawImage` 8.21 s + `(program)` 9.76 s / 300 s），与**采样时钟准确度无关**（音频时钟口径恒为 1.08 ms、尖峰 0）。EXT-001 未约束主线程不得卡顿 ⇒ 本轮不宣称解决；已写入 `STATUS_EXT.md` §3.8 / §3.9。
+- ⛔ **不宣称引擎已接线**、⛔ **pyannote 旁路未接线**、⛔ **P1/P2/P3 未开始**。
+- ⛔ **未跑推理**：ASR / MT / TTS 全未启动，未占 GPU.0 / NPU ⇒ 未与实时字幕 App 抢设备。
+- ⛔ **未抢共享锁**：本轮全部实测经 `tools/machine_lock.hold()` 获取锁；锁已存在时**排队等待**，未抢锁、未删锁。

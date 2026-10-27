@@ -1,12 +1,13 @@
 # STATUS_EXT
 last_ack: EXT-003
-更新时间: 2026-10-28 00:42
-当前任务: **§3 EXT-003 复测收口（P0 ①②③ 全部达标）** ⇒ ✅ **P0① 音频上行** 5 分钟实测 **seq=14199 / gaps=0 / bytesSent=9 693 150**，采样计数 vs **音频时钟**偏差 **maxAbsSkewAudioMs=1.08 ms**（P50/P95/P99≈1.06~1.08，尖峰 0）⇒ ✅ **P0② WebCodecs 延迟画面**实测 **encoded=556 / decoded=439 / drawn=439 / dropped=0 / 掉帧率 0.0%**，唇音同步 **absErrP95=23.27 ms**（目标 ≤40 ms）⇒ ✅ **P0③ 回声排程**双探针实测 **maxAbsErrMs=0.0208 ms**（目标 ≤20 ms）⇒ ✅ **修掉 4 个真实性能缺陷 + 2 个测量口径缺陷 + 2 个钳位/总线缺陷**（见 §3.4）⇒ ✅ 自测 **34 + 10 + 19 + 101 + 8 = 172 PASS / 0 FAIL**（5 套）⇒ ⛔ **未跑推理 / 未占 GPU·NPU**（ASR/MT/TTS 全不接）⇒ ⛔ **引擎仍未接线**（等主会话指示）
+更新时间: 2026-10-28 00:52
+当前任务: **§3 EXT-003 复测收口（P0 ①②③ 全部达标）** ⇒ ✅ **P0① 音频上行** 5 分钟实测 **seq=14191 / gaps=0 / bytesSent=9 687 688**，采样计数 vs **音频时钟**偏差 **maxAbsSkewAudioMs=1.08 ms**（P50/P95/P99≈1.06~1.08，尖峰 0）⇒ ✅ **P0② WebCodecs 延迟画面**实测 **encoded=556 / decoded=439 / drawn=439 / dropped=0 / 掉帧率 0.0%**，唇音同步 **absErrP95=23.27 ms**（目标 ≤40 ms）⇒ ✅ **P0③ 回声排程**双探针实测 **maxAbsErrMs=0.0208 ms**（目标 ≤20 ms）⇒ ✅ **修掉 13 个真实缺陷**（含编码限速前置、GC 11.53→0、drawImage 17.35→8.13 s、白闪 copyTo format 漏检 100% 等，见 §3.4）⇒ ✅ 自测 **34 + 10 + 19 + 101 + 8 = 172 PASS / 0 FAIL**（5 套）⇒ ⛔ **未跑推理 / 未占 GPU·NPU**（ASR/MT/TTS 全不接）⇒ ⛔ **引擎仍未接线**（等主会话指示）
 
 阻塞 / 待决定:
-① ⛔ **引擎仍未接线** —— 入口已定位（§2.5）但**本轮不接线**（不跑推理），`ext/engines.py` 的 `EngineAdapter` 留空待主会话指示；② ⛔ **pyannote 旁路未接线** —— ASR-013 交付后由主会话通知；③ ⛔ **P1/P2/P3 未开始**；④ ℹ️ **§2 的 skew 尖峰归因已被撤回**（见 §3.1），真实根因是插件自身视频管线负载 + 测量口径错误，**与实时字幕 App 无关**。
+① ⛔ **引擎仍未接线** —— 入口已定位（§2.5）但**本轮不接线**（不跑推理），`ext/engines.py` 的 `EngineAdapter` 留空待主会话指示；② ⛔ **pyannote 旁路未接线** —— ASR-013 交付后由主会话通知；③ ⛔ **P1/P2/P3 未开始**；④ ℹ️ **§2 的 skew 尖峰归因已被撤回**（见 §3.1），真实根因是插件自身视频管线负载 + 测量口径错误，**与实时字幕 App 无关**；⑤ ℹ️ **主线程 event-loop lag 仍有 720 ms 尖峰**（插件自身视频渲染，与采样时钟准确度无关，EXT-001 未约束此项）—— 本轮**不宣称**已消除，见 §3.8 / §3.9。
 
 ## 最近更新
+00:52 §3 **补充 v10 复测与编码管线有界工作量**：✅ 新增 **§3.9 三轮 5 分钟长测对照**（v5→v6→v7→v10，原始字段）⇒ ✅ 补记 2 个真实缺陷（**编码限速判断前置** ⇒ drawImage 17.35→8.13 s；**copyTo 显式 format:'RGBA'** ⇒ 白闪漏检 100% 修复，`drawMarks` 0→4~8）⇒ ✅ GC 11.53 s → **0**（OffscreenCanvas 复用）⇒ ℹ️ 主线程 stall 尖峰 14→8 次但绝对值仍 720 ms（**不宣称已消除**，见 §3.8）
 00:42 §3 **EXT-003 复测收口**：✅ **P0① 5 分钟复测达标**（`maxAbsSkewAudioMs=1.08 ms` < 50 ms，`skew_ok=true`，seq 连续、gaps=0）⇒ ✅ **P0② 唇音同步达标**（`absErrP95=23.27 ms` ≤ 40 ms，掉帧率 0.0%）⇒ ✅ **P0③ 排程误差达标**（双探针 `maxAbsErrMs=0.0208 ms` ≤ 20 ms）⇒ ✅ **5 套自测 172 PASS / 0 FAIL** ⇒ ⛔ **引擎未接线**、⛔ **未跑推理/未占 GPU·NPU**
 00:28 §3 **撤回 §2 的归因结论**（详见 §3.1）：§2.7 写「不宣称 P0① 达标，因修复后复测排队等锁」——本轮已复测并达标，§2.7 该项作废
 23:07 §2 **EXT-003 落地**（本轮执行依据 = EXT-004 → 实际未完成项为 EXT-003 [HIGH] 的插件侧 P0 ①②③ + 引擎入口自查）：✅ **新建 MV3 插件** `extension/`（manifest.json / sw.js / offscreen.js / offscreen.html / player.js / player.html / popup.js / popup.html + capture-worklet.js / onset-worklet.js / probe-worklet.js）⇒ ✅ **P0① 音频上行**：AudioWorklet 48 kHz→16 kHz（96 抽头 Blackman-sinc 环形缓冲抽取）→ WebSocket 上行，实测 5 分钟 **14191 帧 / gaps=0 / 9.69 MB** ⇒ ✅ **P0② WebCodecs 延迟画面**：`MediaStreamTrackProcessor` → `VideoEncoder(VP8)` → 300 块环形缓冲 → `VideoDecoder` → canvas（延迟 D），实测 **encoded=409 / decoded=243 / drawn=243** ⇒ ✅ **P0③ 回声排程**：`scheduleDub` 按 `t0 + t_start + D` 排程 + onset worklet 逐样本测「实际出声 − 计划出声」⇒ ✅ **三个引擎入口自查定位完成**（§2.5）⇒ ✅ **修 9 个真实缺陷**（§2.4）⇒ ✅ **5 套自测 114 PASS / 0 FAIL** ⇒ ⛔ **5 分钟复测排队等锁**、⛔ **P0②③ 数值待实测**、⛔ **未跑推理/未占 GPU·NPU**
@@ -295,6 +296,11 @@ onsetErrs 三样本全部 = 0.0208 ms（= 48 kHz 下的 **1 个音频采样**周
 10. **tools/video_lipsync_probe.py / tools/echo_sched_probe.py — 未持共享机器锁**：两个探针此前可在 App 模块持锁期间运行 ⇒ 违反铁律「不与实时字幕 App 抢设备」。改为 ExitStack + tools.machine_lock.hold(...) 包裹全程，新增 --no-lock / --lock-wait（默认 600 s），锁已存在 ⇒ **排队等待，绝不抢**。
 11. **tools/browser_probe.py — 缺归因手段**：新增 **CDP CPU Profile**（Profiler.enable / setSamplingInterval / start / stop ⇒ 聚合 self time 取前 25）、**event-loop lag 探针**、**PerformanceObserver('longtask')** 观察器，并把验收口径改为音频时钟 + 新增 **A/B 隔离开关** --no-video（?video=0）⇒ 把「主线程 stall 的来源」从猜测变成可测事实。
 
+**E 组：编码管线的有界工作量（v10 复测引入，§3.9 有对照数据）**
+
+12. **extension/player.js — 编码限速的判断发生在 drawImage 之后（纯浪费）**：源 30 fps、编码限速 15 fps，但旧顺序是「**先**全尺寸缩放 1908×1072，**再**判断要不要编码」⇒ 被丢弃的那**一半**帧照样付了一次全额缩放代价。CDP CPU Profile 实测 `drawImage` 自耗时 **17.35 s**（v6，非 idle 第 1 名）⇒ 约一半来自「缩放完就扔」的帧。改为**限速判断前置**：被丢的帧直接 `frame.close()`，不做缩放 ⇒ `drawImage` 降到 **8.13 s**（v7/v10，降 **53%**）。同时加 `videoEncoder.encodeQueueSize > ENCODE_QUEUE_MAX(4)` 守卫（浏览器规范 API）：编码器内部积压时直接丢帧，比等 output 回调再丢更早更准。
+13. **extension/player.js — 白闪检测 copyTo 未指定 format（漏检 100%）**：`VideoFrame.copyTo` 的 `options.format` **缺省时沿用帧的原生格式**；本机 VP8 解码帧是 **I420**（YUV420 平面）⇒ 16×9 区域只有 16×9×1.5 = **216 字节**，而代码按 RGBA 读 576 字节 ⇒ 多出的 360 字节是**上一帧的陈旧数据/零** ⇒ 算出的 avg 永远接近 0 ⇒ **白闪一次都检不出**（实测 45 s：源页白闪 22 次，`drawMarks=0`，`lipSync=null`）。改为显式 `format: 'RGBA'`（由 copyTo 负责色彩空间转换，16×9 = 576 字节，代价可忽略）⇒ 复测 `drawMarks=4~8`，`lipSync_ok=true`，`absErrP95=23.27 ms`（目标 ≤ 40 ms）。
+
 ### 3.5 验证与自测结果（本轮实跑）
 
 ```
@@ -313,6 +319,7 @@ tools/player_perf_bench.js         →   8 PASS / 0 FAIL   （纯 Node 微基准
 
 | 文件 | 字节 | mtime | 用途 |
 |---|---|---|---|
+| .tmp/probe_uplink_5min_v10/browser_probe.json | 25987 | 2026-10-28 00:46:01 | **P0① 5 分钟上行（最新·含编码限速前置修复）**（含 CPU Profile + stall） |
 | .tmp/probe_uplink_5min_v7/browser_probe.json | 38959 | 2026-10-28 00:27:39 | P0① 5 分钟上行（含 CPU Profile + stall） |
 | .tmp/probe_suite_v9/probe_video_lipsync/video_lipsync_probe.json | 2344 | 2026-10-28 00:39:52 | P0② 唇音同步 + P0③ 排程 |
 | .tmp/probe_suite_v9/probe_echo_sched/echo_sched_probe.json | 469 | 2026-10-28 00:40:30 | P0③ 回声排程（独立探针） |
@@ -332,3 +339,29 @@ tools/player_perf_bench.js         →   8 PASS / 0 FAIL   （纯 Node 微基准
 - ⛔ **不宣称 pyannote 旁路已接线**：ASR-013 交付后由主会话通知。
 - ⛔ **P1/P2/P3 未开始**。
 - ℹ️ **P0① 的验收口径已从「主线程墙钟」改为「音频时钟」**：这是**口径的修正**（原口径测的是主线程调度延迟，不是采样时钟误差），不是「放宽标准」——阈值 50 ms 未变，且主线程口径值仍作为诊断量完整保留在证据与 C1d2 断言中。
+- ℹ️ **主线程口径仍有 720 ms 尖峰，未宣称已消除**：v10 实测 `stall.maxMs=720.1 / nSpikes=8 / nLongTasks=1`。这是**插件自身视频渲染**造成的 event-loop lag（`drawImage` 8.21 s + `(program)` 9.76 s / 300 s，CPU Profile），与采样时钟**准确度无关**（音频时钟口径 1.08 ms 恒定）。EXT-001 只要求「缓冲 D 秒后播放、保持音画同步」，未规定主线程不得卡顿 ⇒ 本轮**不宣称**该项已解决；若后续 reviewer 要求，可继续按 `?video=0` A/B 对照 + CPU Profile 逐项压降（视频管线仍是非 idle 第 1~2 名开销）。
+
+### 3.9 三轮 5 分钟长测对照（同机、同一份代码演进、原始字段）
+
+| 指标 | v5（修前） | v6 | v7（限速前置） | v10（限速前置+探针修正） |
+|---|---|---|---|---|
+| 验收口径 maxAbsSkewAudioMs | —（口径错） | 1.08 | 1.08 | **1.08** ✅（阈值 50） |
+| skew_ok | false | true | true | **true** |
+| gaps | 0 | 0 | 0 | **0** |
+| frameCount | 14193 | 14195 | 14199 | 14191 |
+| bytesSent | 9 689 054 | 9 690 420 | 9 693 150 | 9 687 688 |
+| 主线程 maxAbsSkewMs（诊断量） | 534.40 | 480.90 | 750.70 | 731.31 |
+| skewP95（诊断量） | 27.11 | 26.48 | 27.40 | 26.68 |
+| skewP99（诊断量） | — | — | — | **30.48** |
+| stall.maxMs | 531.2 | 489.2 | 754.2 | 720.1 |
+| stall nSpikes / nLongTasks | 14 / — | 7 / 3 | 20 / 2 | **8 / 1** |
+| CPU Profile: drawImage | 19.24 s | 17.35 s | **8.13 s** | 8.21 s |
+| CPU Profile: (program) | 11.32 s | 9.48 s | 8.96 s | 9.76 s |
+| CPU Profile: (garbage collector) | 11.53 s | **0** | **0** | **0** |
+| CPU Profile: copyTo | —（未用） | — | — | **0.26 s** |
+
+读法：
+- **GC 11.53 s → 0**：OffscreenCanvas **复用**（`encCanvas`）生效（原来每帧 `new OffscreenCanvas(1908×1072)` = 每帧 8 MB 分配）。
+- **drawImage 17.35 s → 8.13 s（降 53%）**：编码**限速判断前置**生效（§3.4 缺陷 12）—— 被丢的帧不再白做全尺寸缩放。
+- **copyTo 0.26 s**：白闪检测走**异步**拷贝（`format:'RGBA'`），不再阻塞主线程（对比旧 `getImageData` 15.96 s 同步回读）。
+- **stall 尖峰 14 → 8 次、longTask 3 → 1 次**：有界工作量（编码限速 + 单一绘制调度器 + 每 tick 预算）见效；但主线程尖峰**绝对值仍在 700 ms 量级**，原因见 §3.8 最后一条。
