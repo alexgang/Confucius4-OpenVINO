@@ -837,7 +837,7 @@ class TTSService:
 
     # -- 提交 ------------------------------------------------------------
     def submit(self, text: str, seg: Optional[int] = None,
-               spk=None, spk_conf=None):
+               spk=None, spk_conf=None, lang: Optional[str] = None):
         """提交一条**定稿译文**。
 
         ⚠️ worker 还没 `ready` 时**不能直接下发** —— worker 的 stdin
@@ -847,6 +847,18 @@ class TTSService:
         🔴🔴 APP-022：`spk` / `spk_conf` **接口预留**（当前恒为 None）。
         ⇒ 透传给 worker 的 `synth` 命令（worker 侧**同样只预留不使用**）。
         ⇒ **不改变现有行为**：spk 为 None 时命令体与改造前逐字一致。
+
+        🔴🔴🔴 APP-030①：`lang` = **MT 当前目标语言**（显式下传）。
+          - 旧实现命令体只有 `{'cmd','id','text'}` ⇒ **不带语言**
+            ⇒ worker 只能靠 `_guess_lang()` **猜**（只分 zh/en）
+            ⇒ **TTS 永远收不到 Japanese**
+            ⇒ reviewer 实测 8 条日文样句：**5 条判 en、3 条判 zh**（8/8 全错）
+            ⇒ 判 en ⇒ 用 English 语言 token 读假名（分布外 ⇒ EOS 不稳
+              ⇒ 偶发撞 2048 帧上限 ⇒ 一句拖 106 s ⇒ 后续句全堵）
+            ⇒ 判 zh ⇒ 用 Chinese token 读日文 + `normalize_zh_numbers` 误作用
+          - 现在：`lang` 随命令下发 ⇒ worker **不再猜**。
+          ⚠️ **只有 `lang` 为真值时才加进命令体** ⇒ 旧调用方
+            （不传 lang）**命令体逐字不变** ⇒ 向后兼容。
         """
         text = (text or '').strip()
         if not text:
@@ -885,6 +897,9 @@ class TTSService:
         if spk is not None:
             cmd['spk'] = spk
             cmd['spk_conf'] = spk_conf
+        # 🔴🔴🔴 APP-030①：**目标语言显式下传**（同样「只在有值时加」）
+        if lang:
+            cmd['lang'] = str(lang)
         if action == 'send':
             # 🔴🔴 2026-10-25 §29 修：**命令送不出去时必须撤账**。
             #   `_send()` 旧实现只记日志、不返回成败 ⇒ 调用方以为已下发
@@ -1158,6 +1173,35 @@ class TTSService:
             # 🔴 计数**在锁内**完成 ⇒ 与「摘除」原子 ⇒ 不会与别的路径并发叠加。
             self.n_dropped += 1
         return True
+
+    # -- 🔴🔴🔴 APP-029：**说话人晚到 ⇒ 补发更新**（接口预留）-----------
+    def spk_update(self, jid: int, spk, spk_conf=None) -> bool:
+        """🔴🔴🔴 APP-029：`spk_update(id, spk, spk_conf)`（**接口预留**）。
+
+        ## APP-029 的新口径（2026-10-27 15:48 用户决定）
+
+        **pyannote/segmentation-3.0 只用来识别说话人，不再用来给 ASR 断句。**
+
+        依据（ASR-020 的 Opus 复算，SPE 前 5 分钟）：
+          - WER 是 baseline 7.39% 对 forced 7.52% ⇒ **没有实际差异**；
+          - 词内切点都是 3 处 ⇒ **也没有差异**；
+          - 而实时断句至少还要多等约 9.4 s 的右侧上下文
+            ⇒ 对实时字幕和 10 s 缓冲的配音插件**都不可接受**。
+
+        ⇒ **断句继续用 R2T2 原有的方式**；
+        ⇒ pyannote 和说话人 embedding 在**旁路**运行、**不阻塞定稿**：
+          定稿段先发出去，spk 晚到（可以晚 1~2 s）时，
+          用 id 补发一条 spk 更新；
+        ⇒ 这个更新用来**更新字幕标签**，以及**还没开始合成**的那几句的音色；
+        ⇒ **已经开始合成的句子不改。**
+
+        ⚠️ **本轮不集成**（APP-029 明文「现在不要集成」）
+        ⇒ 本方法**只把命令下发出去**（worker 侧只记日志）
+        ⇒ **不改变任何合成行为**、**不影响 `n_played`/`n_dropped` 账本**。
+        """
+        cmd = {'cmd': 'spk_update', 'id': jid,
+               'spk': spk, 'spk_conf': spk_conf}
+        return self._send(cmd)
 
     def cancel(self, jid: int):
         """通知 worker 丢弃某一句（还没开始播的整句）。

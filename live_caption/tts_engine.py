@@ -868,6 +868,225 @@ def _is_zh_language(language: str) -> bool:
     return s.startswith('zh') or s.startswith('chinese')
 
 
+# ════════════════════════════════════════════════════════════════════
+# 🔴🔴🔴 APP-030①：**目标语言显式下传**
+# ════════════════════════════════════════════════════════════════════
+#
+# ## 为什么要改（reviewer 已用会话日志定位的真缺陷）
+#
+#   `tts_service.submit()` 下发的 `synth` 命令**只有 `id/text`**，**不带目标语言**
+#   ⇒ `tts_worker._guess_lang()` 只能按「汉字占比 ≥ 25%」**二分 zh/en**
+#   ⇒ **TTS 永远收不到 Japanese**
+#   ⇒ 日文被当英文念（分布外 ⇒ EOS 不稳 ⇒ 偶发撞 2048 帧上限）
+#     或被当中文念（`normalize_zh_numbers` 把「2026年」读成「二零二六年」）。
+#
+#   reviewer 在本机用同一函数实测 8 条日文样句：
+#     **5 条判 en**（ありがとうございます。/はい、そうです。/これはテストです。/
+#                  2026年の売上は52%増えました。/プロセッサーのパフォーマンスが向上しました。）
+#     **3 条判 zh**（今日は会議があります。等）
+#
+# ## 映射表（babelvox / faster-qwen3-tts 都用这四个全称）
+#
+#   'zh' → 'Chinese'    'en' → 'English'
+#   'ja' → 'Japanese'   'ko' → 'Korean'
+#
+# ⚠️ **模型侧是否支持**：Qwen3-TTS 的 `codec_language_id` 实测（包内
+#   `models/qwen3tts/weights/config.json`）包含
+#   chinese/english/german/italian/portuguese/spanish/**japanese**/korean/french/russian
+#   ⇒ **Japanese / Korean 都有语言 id** ⇒ 不需要静默回落 English。
+#   ⚠️ 但 `babelvox.pipeline` 若拿不到 language_id 会退成
+#   「language-agnostic mode」⇒ 必须**显式告警**（见 `language_supported`）。
+#
+# ⚠️ **`normalize_zh_numbers` 只在 Chinese 时执行**（APP-030① 明文）：
+#   日文数字规则（2026年 → 2026年）交 TTS 模块定 ⇒ App 侧**保持原样不转**。
+
+LANG_MAP = {
+    'zh': 'Chinese', 'chinese': 'Chinese', 'zh-cn': 'Chinese',
+    'zh-tw': 'Chinese',
+    'en': 'English', 'english': 'English',
+    'ja': 'Japanese', 'japanese': 'Japanese', 'jp': 'Japanese',
+    'ko': 'Korean', 'korean': 'Korean',
+}
+
+#: babelvox / faster-qwen3-tts 侧**确认支持**的语言 id
+#: （来源：包内 `models/qwen3tts/weights/config.json` 的 `codec_language_id`）
+SUPPORTED_LANGS = ('Chinese', 'English', 'Japanese', 'Korean')
+
+
+def map_language(lang: str) -> str:
+    """把「目标语言代号」映射成引擎用的**全称**。
+
+    🔴 **兜底是 English**（不是 Auto）⇒ 与历史行为一致（`_guess_lang` 的 else 分支）。
+    ⚠️ 调用方应先用 `guess_language()` 拿到**显式**语言再调本函数。
+    """
+    s = (lang or '').strip().lower()
+    if not s:
+        return 'English'
+    if s in LANG_MAP:
+        return LANG_MAP[s]
+    # 'zh-CN' / 'ja-JP' 这类带区域的
+    base = s.split('-')[0]
+    if base in LANG_MAP:
+        return LANG_MAP[base]
+    return LANG_MAP.get(s, 'English')
+
+
+def language_supported(language: str) -> bool:
+    """引擎侧是否**确实**支持这个语言 id（用于**显式告警**，禁止静默回落）。"""
+    return (language or '').strip() in SUPPORTED_LANGS
+
+
+def _script_counts(s: str) -> dict:
+    """统计文本里各文字体系的**字符数**（不含空白）。
+
+    🔴 APP-030④：**必须补假名（U+3040–30FF）与谚文（U+AC00–D7AF）**
+      ⇒ 旧 `_estimate_sec` 只数汉字与英文词
+      ⇒ 日文长句被**大幅低估** ⇒ `split_long_text` 不切
+      ⇒ NPU 侧撞 478 帧桶上限（截断或失控）。
+    """
+    han = kana = hang = latin = digits = 0
+    for ch in s:
+        o = ord(ch)
+        if 0x4E00 <= o <= 0x9FFF:
+            han += 1
+        elif 0x3040 <= o <= 0x30FF:
+            kana += 1
+        elif 0xAC00 <= o <= 0xD7AF or 0x1100 <= o <= 0x11FF:
+            hang += 1
+        elif ('a' <= ch <= 'z') or ('A' <= ch <= 'Z'):
+            latin += 1
+        elif ch.isdigit():
+            digits += 1
+    return dict(han=han, kana=kana, hang=hang, latin=latin, digits=digits)
+
+
+def guess_language(text: str, hint: str = '') -> str:
+    """**兜底**判语言（APP-030①：`_guess_lang` 只作兜底）。
+
+    🔴 **优先用 hint**（主进程从 MT 目标显式下传的语言）
+    ⇒ 命中则**直接返回**，不做任何启发式判断。
+    ⇒ hint 缺失/不认识时才走文字体系启发式。
+
+    🔴 **启发式必须能区分日文**（reviewer 实测旧函数 5/8 判错）：
+      - **假名**（U+3040–30FF）出现 ⇒ 判 `ja`（**最强信号**）
+      - **谚文**（U+AC00–D7AF）出现 ⇒ 判 `ko`
+      - 汉字占比 ≥ 25% ⇒ `zh`
+      - 否则 ⇒ `en`
+    ⚠️ 旧函数用 `cjk * 4 >= len(text)`（**把空格也计入分母**）
+      ⇒ 含空格的日文/中文句会被**误判成 en** ⇒ 本版**只数非空白字符**。
+    """
+    h = (hint or '').strip().lower()
+    if h:
+        if h in LANG_MAP:
+            return h
+        base = h.split('-')[0]
+        if base in LANG_MAP:
+            return base
+    return guess_language_by_script(text)
+
+
+def guess_language_by_script(text: str) -> str:
+    """**纯启发式**语言判定（不看 hint）。返回 'zh'/'ja'/'ko'/'en'。"""
+    t = text or ''
+    c = _script_counts(t)
+    if c['kana'] > 0:
+        return 'ja'
+    if c['hang'] > 0:
+        return 'ko'
+    visible = c['han'] + c['kana'] + c['hang'] + c['latin'] + c['digits']
+    if visible <= 0:
+        return 'en'
+    if c['han'] * 4 >= visible:
+        return 'zh'
+    return 'en'
+
+
+# 🔴🔴🔴 APP-030②：**按语言估帧**（失控守卫的输入）
+#
+#   reviewer 给的参考值（APP-030② 明文）：
+#     ja ≈ 0.15 s/字、zh ≈ 0.25 s/字、en ≈ 0.07 s/字符
+#   ⇒ 帧率 12 fps ⇒ 帧数 = 秒 × 12
+#   ⚠️ 「起停另加余量」⇒ 公式里留了 `_LANG_TAIL_S` 的余量。
+#
+#   ⚠️ **这些是「秒/字符」不是「秒/词」** ⇒ 与 `_estimate_sec` 的
+#      「中文按字数、英文按词数」**口径不同** ⇒ 两套函数**不要混用**。
+#      本函数专门给**失控守卫**用（要的是帧数上限，不是切分估算）。
+
+#: 每字符的预计秒数（APP-030② 的参考值）
+_SEC_PER_CHAR = {'zh': 0.25, 'ja': 0.15, 'ko': 0.18, 'en': 0.07}
+
+#: 起停余量（秒）
+_LANG_TAIL_S = 0.6
+
+
+def estimate_frames(text: str, lang: str = 'en') -> int:
+    """按语言估「这句大概多少帧」（12 fps）。
+
+    🔴 APP-030②：失控守卫的**输入**。
+    ⚠️ 这是**估算**，不是精确值 ⇒ 客户端的 RUNAWAY 判据用
+      `max(3×估计, 估计+8 s)` 这种**宽松**阈值（宁可漏判也不误杀）。
+    """
+    n = len([c for c in (text or '') if not c.isspace()])
+    s = _SEC_PER_CHAR.get((lang or 'en').lower(), _SEC_PER_CHAR['en'])
+    sec = n * s + _LANG_TAIL_S
+    return max(8, int(sec * 12))
+
+
+#: 🔴 APP-030②：客户端**第二道闸**（RUNAWAY）的阈值系数
+#:   判据（APP-030② 明文）：本句已收音频 > max(3×估计, 估计 + 8 s) ⇒ RUNAWAY
+RUNAWAY_FACTOR = 3.0
+RUNAWAY_EXTRA_S = 8.0
+
+
+def runaway_threshold_s(est_sec: float) -> float:
+    """RUNAWAY 判据阈值（秒）。
+
+    🔴 APP-030② 明文：「本句已收音频 > `max(3×估计, 估计+8 s)` ⇒ 判 RUNAWAY」。
+    ⚠️ **故意宽松** ⇒ 宁可漏判也不误杀正常句（误杀会把好句截断）。
+    """
+    try:
+        e = float(est_sec)
+    except Exception:
+        e = 0.0
+    if e <= 0:
+        e = 0.0
+    return max(RUNAWAY_FACTOR * e, e + RUNAWAY_EXTRA_S)
+
+
+def estimate_sec(text: str, lang: str = 'en') -> float:
+    """按语言估「这句大概多少秒」（**失控守卫的第二道闸**用）。
+
+    ⚠️ 与 `_estimate_sec`（切分用）**口径不同**：
+      - `_estimate_sec`：中文按字数 / 英文按**词数** ⇒ 用于 `split_long_text`；
+      - 本函数：按**字符**（`_SEC_PER_CHAR`）⇒ 与 APP-030② 的估帧口径一致。
+    ⇒ 两套函数**不要混用**。
+    """
+    n = len([c for c in (text or '') if not c.isspace()])
+    s = _SEC_PER_CHAR.get((lang or 'en').lower(), _SEC_PER_CHAR['en'])
+    return n * s + _LANG_TAIL_S
+
+
+def clamp_max_new_tokens(text: str, lang: str = 'en') -> int:
+    """算**本句的生成帧数上限**（APP-030②）。
+
+    公式（APP-030② 明文）：
+        `clamp(3×估计帧数 + 36, 48, 2048)`
+
+    🔴 **为什么要有上限**（reviewer 的实测证据）：
+      边车**不传** `max_new_tokens` ⇒ 用库默认 **2048 帧**
+      ⇒ **2048 帧 = 163.8 s 音频**（12 fps）
+      ⇒ 一句 7 字的日文实测跑了 **106.61 s**、255 块、163.0 s 音频
+      ⇒ 用户听到的是 ~106 s 的低电平含糊气声，且**边车串行**
+      ⇒ 后续句全部排队堵住 1~2 分钟（APP-030 的真缺陷）。
+
+    ⇒ 传一个**按句估算**的上限 ⇒ 失控句在几秒内被截断，
+      而不是拖 100 秒把整条语音链堵死。
+    """
+    est = estimate_frames(text, lang)
+    v = 3 * est + 36
+    return max(48, min(2048, int(v)))
+
+
 def reset_ctx(eng) -> None:
     """🔴🔴 **生成新句子前必须调用**（TTS-010 左上下文纪律）。
 
@@ -889,6 +1108,8 @@ def stream(eng, text: str, language: str = 'English',
            speaker_embed=None,
            speaker: Optional[str] = None,
            cancel_event=None,
+           max_new_tokens: Optional[int] = None,
+           est_sec: Optional[float] = None,
            on_log=print) -> Iterator[Tuple]:
     """流式合成（**spkonly 路线**）。
 
@@ -935,6 +1156,28 @@ def stream(eng, text: str, language: str = 'English',
         _has_chunk = False
     if _has_chunk:
         kwargs['chunk_frames'] = CHUNK_FRAMES
+    # 🔴🔴🔴 APP-030②：**生成帧数上限**（失控守卫的第一道闸）。
+    #   旧实现**从不传** ⇒ 用库默认 512（babelvox）/ 2048（边车）
+    #   ⇒ 一句失控能拖 100 秒（reviewer 实测 163.0 s 音频）。
+    # ⚠️ **只在本模块自己算出的上限更严时才覆盖** ⇒ 绝不放大引擎的上限。
+    if max_new_tokens is not None:
+        try:
+            cur = _sig.parameters['max_new_tokens'].default
+        except Exception:
+            cur = None
+        if cur is None or int(max_new_tokens) < int(cur):
+            kwargs['max_new_tokens'] = int(max_new_tokens)
+    # 🔴🔴🔴 APP-030②：**第二道闸（客户端 RUNAWAY）**的输入。
+    #   `est_sec` = 本句预计音频秒数 ⇒ 客户端按
+    #   `max(3×估计, 估计+8 s)` 判 RUNAWAY。
+    #   ⚠️ **只对支持该参数的引擎传**（CUDA 边车客户端支持；
+    #     babelvox 原生**不认** ⇒ 传了会 TypeError）。
+    if est_sec is not None:
+        try:
+            if 'est_sec' in _sig.parameters:
+                kwargs['est_sec'] = float(est_sec)
+        except Exception:
+            pass
     return eng.generate_stream(**kwargs)
 
 
@@ -942,11 +1185,23 @@ def _estimate_sec(s: str) -> float:
     """粗估一段文本的朗读时长（秒）。
 
     中文按字数（1 字 ≈ 0.12 s），英文按词数（1 词 ≈ 0.38 s），另加 0.4 s 起停余量。
+
+    🔴🔴 APP-030④：**必须补假名与谚文**。
+      旧实现只数汉字（`[\u4e00-\u9fff]`）与英文词
+      ⇒ **日文句子一个字符都数不到**（假名不在汉字区）
+      ⇒ 估时恒等于「0.4 s 起停」⇒ 日文长句被**严重低估**
+      ⇒ `split_long_text` 判「没超上限」⇒ **不切**
+      ⇒ NPU 侧撞 478 帧桶上限（截断或失控）。
+      ⇒ 现在：假名按 0.13 s/字、谚文按 0.15 s/字。
     """
     import re
     zh = len(re.findall(r'[\u4e00-\u9fff]', s))
+    # 🔴 APP-030④：假名（U+3040–30FF，含浊音/半浊音与小写假名）
+    kana = len(re.findall(r'[\u3040-\u30ff]', s))
+    # 🔴 APP-030④：谚文音节（U+AC00–D7AF）
+    hang = len(re.findall(r'[\uac00-\ud7af]', s))
     en = len(re.findall(r"[A-Za-z']+", s))
-    return zh * 0.12 + en * 0.38 + 0.4
+    return zh * 0.12 + kana * 0.13 + hang * 0.15 + en * 0.38 + 0.4
 
 
 def split_long_text(text: str, max_frames: int = 478,

@@ -1,0 +1,235 @@
+{
+  "_src_root": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.6",
+  "_subdir": "app",
+  "A1_map": {
+    "zh": "Chinese",
+    "en": "English",
+    "ja": "Japanese",
+    "ko": "Korean"
+  },
+  "A2": [
+    "Japanese",
+    "Japanese",
+    "Chinese",
+    "English"
+  ],
+  "A3_supported": [
+    "Chinese",
+    "English",
+    "Japanese",
+    "Korean"
+  ],
+  "A4_ja_samples": [
+    [
+      "ありがとうございます。",
+      "ja"
+    ],
+    [
+      "はい、そうです。",
+      "ja"
+    ],
+    [
+      "これはテストです。",
+      "ja"
+    ],
+    [
+      "2026年の売上は52%増えました。",
+      "ja"
+    ],
+    [
+      "プロセッサーのパフォーマンスが向上しました。",
+      "ja"
+    ],
+    [
+      "今日は会議があります。",
+      "ja"
+    ],
+    [
+      "会議は三時から始まります。",
+      "ja"
+    ],
+    [
+      "ありがとうございます。",
+      "ja"
+    ]
+  ],
+  "A5_mixed": [
+    [
+      "这是中文测试句子。",
+      "zh"
+    ],
+    [
+      "今天有会议吗",
+      "zh"
+    ],
+    [
+      "你好世界",
+      "zh"
+    ],
+    [
+      "This is an English sentence.",
+      "en"
+    ],
+    [
+      "hello world",
+      "en"
+    ],
+    [
+      "안녕하세요",
+      "ko"
+    ],
+    [
+      "한국어 테스트",
+      "ko"
+    ]
+  ],
+  "A6_hint_priority": true,
+  "A7_worker_reads_lang": true,
+  "A8_service_submit_lang": true,
+  "A9_submit_with_lang_sites": 3,
+  "A10_zh_norm_only_chinese": true,
+  "B1_clamp_cases": [
+    [
+      "ありがとう",
+      "ja",
+      16,
+      84,
+      84
+    ],
+    [
+      "ありがとうございます。",
+      "ja",
+      27,
+      117,
+      117
+    ],
+    [
+      "今天有会议吗",
+      "zh",
+      25,
+      111,
+      111
+    ],
+    [
+      "hello world",
+      "en",
+      15,
+      81,
+      81
+    ],
+    [
+      "ああああああああああああ",
+      "ja",
+      367,
+      1137,
+      1137
+    ],
+    [
+      "aaaaaaaaaaaa",
+      "en",
+      427,
+      1317,
+      1317
+    ]
+  ],
+  "B2_short_ja_cap": 111,
+  "B2_short_ja_cap_sec": 9.25,
+  "B3_runaway_thresholds": [
+    [
+      1.0,
+      9.0,
+      9.0
+    ],
+    [
+      2.0,
+      10.0,
+      10.0
+    ],
+    [
+      5.0,
+      15.0,
+      15.0
+    ],
+    [
+      20.0,
+      60.0,
+      60.0
+    ],
+    [
+      60.0,
+      180.0,
+      180.0
+    ]
+  ],
+  "B4_runaway_sample": {
+    "text": "ありがとうございます",
+    "est_s": 2.1,
+    "threshold_s": 10.1,
+    "actual_s": 163.0,
+    "judged_runaway": true
+  },
+  "B5_cross_module_threshold": {
+    "cuda": 10.1,
+    "engine": 10.1,
+    "match": true
+  },
+  "B6_sidecar_passes_cap": true,
+  "B7_sidecar_reports_reason": true,
+  "B8_client_sends_cap": true,
+  "B9_worker_runaway_guard": true,
+  "B10_stream_passthrough": true,
+  "C1_q_get_timeout": "返回='object' 耗时=0.064 s",
+  "C2_q_get_no_raise": true,
+  "C3_timeout_returns_to_loop": true,
+  "C4_watchdog_thresholds": true,
+  "C5_sentinel_distinct": true,
+  "C6_start_handles_timeout": true,
+  "C7_sentinel_reachable": "哨兵可取到：True",
+  "D1_ja_estimate": [
+    [
+      "ありがとうございます。",
+      1.7000000000000002
+    ],
+    [
+      "今日は会議があります。",
+      1.6600000000000001
+    ],
+    [
+      "プロセッサーのパフォーマンス",
+      3.11
+    ]
+  ],
+  "D2_ko_estimate": 1.15,
+  "D3_zh_en_estimate": {
+    "zh": 1.36,
+    "en": 2.3
+  },
+  "D4_estimate_sec_has_kana_hangul": true,
+  "E1_telemetry_fields": [
+    "lang",
+    "lang_src",
+    "n_chars",
+    "est_frames",
+    "frames",
+    "end_reason"
+  ],
+  "E2_jsonl_keys": true,
+  "E3_anomaly_dir": true,
+  "E4_anomaly_keep": true,
+  "E5_target_switch_log": true,
+  "F1_bad_map_detected": true,
+  "F2_kana_removed_detected": true,
+  "F3_kana_count_removed_detected": true,
+  "F4_q_get_raises_detected": true,
+  "F5_bad_clamp_detected": true,
+  "F5_bad_clamp": 52,
+  "F5_good_clamp": 84,
+  "F6_start_timeout_branch_detected": true,
+  "summary": {
+    "pass": 42,
+    "fail": 0,
+    "failures": [],
+    "ts": "2026-10-27 21:24:56",
+    "note": "零推理、零 GPU、零 NPU（桩引擎 + ast/exec）"
+  }
+}

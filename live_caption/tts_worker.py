@@ -101,6 +101,16 @@ _APP028_JSONL_KEYS = (
     'queue_lag_s', 'queue_peak_s', 'queue_peak_mb',
 )
 
+# 🔴🔴🔴 APP-030⑤：**逐句语言 / 失控遥测**（`x.tts.jsonl`）。
+#   APP-030⑤ 明文要求「会话日志每句记
+#   `id / lang 实际下传值 / 字数 / 估计帧 / 实际帧 / 结束原因
+#   （eos|cap|runaway|cancel）`，切换翻译目标时记一行」
+#   ⇒ 必须**逐句落盘**（机器可算）⇒ 验收脚本可直接聚合。
+_APP030_JSONL_KEYS = (
+    'lang', 'lang_src', 'n_chars', 'est_frames', 'frames',
+    'end_reason', 'max_new_tokens',
+)
+
 
 def _out_write(text: str):
     """往 stdout 写一行（**兼容二进制管道**）。
@@ -1001,6 +1011,22 @@ class TTSWorker:
         #   ⇒ 这里只存**标签**（S1/S2…）与置信度，**不是**向量本身。
         self._last_spk = None
         self._last_spk_conf = None
+        # ── 🔴🔴🔴 APP-030⑤：逐句语言/失控可观测性 ────────────────────
+        #   `self._last_lang`           本句**实际下传**的语言代号
+        #   `self._last_lang_src`       'explicit'（主进程下传）/ 'guess'（兜底）
+        #   `self._last_max_new_tokens` 本句传给引擎的**生成帧数上限**
+        #   `self._last_end_reason`     结束原因：eos|cap|runaway|cancel|error
+        self._last_lang = None
+        self._last_lang_src = None
+        self._last_max_new_tokens = None
+        self._last_end_reason = None
+        self._last_est_frames = None
+        # 🔴 APP-030⑤：异常句落盘目录（`%LOCALAPPDATA%\Confucius4LiveCaption\tts_anomaly`）
+        #   ⚠️ **只在本机**，**不进客户包**（隐私 + 包体积纪律）。
+        self._anomaly_dir = None
+        self._anomaly_count = 0
+        # 🔴 APP-030⑤：异常句**最多保留 20 个**（FIFO 淘汰）
+        self.ANOMALY_KEEP = 20
 
     # -- 模型加载 --------------------------------------------------------
     def load(self):
@@ -1317,7 +1343,7 @@ class TTSWorker:
         return out
 
     # -- 合成 ------------------------------------------------------------
-    def synth(self, jid: int, text: str, spk=None, spk_conf=None):
+    def synth(self, jid: int, text: str, spk=None, spk_conf=None, lang=None):
         """合成一句并播放。
 
         三条路径：
@@ -1328,11 +1354,23 @@ class TTSWorker:
         ⚠️ **落盘模式**（`--out-wav`）：不实时播放，而是按**真实时间轴**
         把每句记到时间轴上，最后混成一个 wav（C-101 P4 第 6 条）。
 
-        🔴🔴 APP-022：`spk` / `spk_conf` **接口预留**（pyannote 强制断句）。
-        ⚠️ **本轮不集成**：等 TTS-019 交付「按句子取对应说话人的音色向量」
+        🔴🔴 APP-022：`spk` / `spk_conf` **接口预留**（说话人标签）。
+        🔴🔴🔴 APP-029（2026-10-27 15:48 用户决定）：
+          **pyannote/segmentation-3.0 只用来识别说话人，不再用来断句**
+          ⇒ 断句继续用 R2T2 原有的方式；
+          ⇒ pyannote 走**旁路**、**不阻塞定稿**（定稿段先发出去）；
+          ⇒ spk 晚到（可晚 1~2 s）时用 `spk_update(id, spk, spk_conf)` 补发
+            ⇒ 更新字幕标签 + **还没开始合成**的那几句的音色；
+            **已经开始合成的句子不改**。
+        ⚠️ **本轮不集成**（APP-029 明文「现在不要集成」）：
+          等 TTS-019 交付「按句子取对应说话人的音色向量」
         ⇒ 这里**只把字段接住并记进遥测**，**不改变任何合成行为**。
         ⇒ 隐私纪律（APP-022「共用约定」）：x-vector 只在内存里，
         会话结束就丢弃、**不落盘、不进客户包**。
+
+        🔴🔴🔴 APP-030①：`lang` = **主进程显式下传的目标语言**。
+          - 有 `lang` ⇒ **直接用**（不再猜）；
+          - 无 `lang`（旧命令）⇒ 退回 `_guess_lang()`（兜底）。
         """
         import numpy as np
 
@@ -1344,7 +1382,18 @@ class TTSWorker:
         t_dequeue = self._dequeue_at.pop(jid, None)
         if t_dequeue is None:
             t_dequeue = t_submit
-        lang = self._guess_lang(text)
+        # 🔴🔴🔴 APP-030①：**显式语言优先**
+        #   旧实现无条件 `lang = self._guess_lang(text)` ⇒ **永远收不到 Japanese**
+        #   （reviewer 实测 8 条日文样句 5 条判 en / 3 条判 zh）。
+        #   ⇒ 现在：有 `lang` 就用它；没有才猜（兜底）。
+        lang_src = 'explicit' if lang else 'guess'
+        if not lang:
+            lang = self._guess_lang(text)
+        lang = (lang or 'en').strip().lower()
+        # 🔴🔴🔴 APP-030⑤：**记录本句的语言口径**（可观测性的第一项）
+        self._last_lang = lang
+        self._last_lang_src = lang_src
+        self._last_end_reason = None
         is_babelvox = self.engine is not None
         # 🔴 APP-022：记住本句的说话人（**只在本进程内存里**）
         self._last_spk, self._last_spk_conf = spk, spk_conf
@@ -1391,7 +1440,28 @@ class TTSWorker:
         n_samples = 0
         n_parts = 0
         aborted = False
+        # 🔴🔴🔴 APP-030②：**RUNAWAY 标记**（worker 侧第三道闸触发时置 True）
+        runaway = False
+        # 🔴🔴🔴 APP-030②：**RUNAWAY 阈值（秒）**
+        #   公式（APP-030② 明文）：`max(3×估计, 估计+8 s)`
+        #   估计 = 按语言估的音频秒数（`tts_engine.estimate_sec`）
+        #   ⚠️ 估不出来 ⇒ 不做这道闸（宁可漏判也不误杀）。
+        try:
+            import tts_engine as _te
+            _runaway_s = _te.runaway_threshold_s(
+                _te.estimate_sec(text, lang))
+        except Exception:
+            _runaway_s = None
+        # 🔴🔴🔴 APP-030⑤：**本句的估计帧数**（遥测字段）
+        try:
+            self._last_est_frames = _te.estimate_frames(text, lang)
+        except Exception:
+            self._last_est_frames = None
         wav_parts = []
+        # 🔴🔴🔴 APP-030⑤：**异常句落盘的滚动缓冲**（**有界**）
+        #   `maxlen=48` 块 ≈ 48 s 音频（12 fps × 4 s/块）
+        #   ⇒ 失控句的「出事段」一定在里面 ⇒ reviewer 能拿到音频。
+        _anom_buf = deque(maxlen=48)
         # 🔴🔴 APP-021②：本句的**幅度/数值**统计（用于判定「合成出来是不是静音」）。
         #   ⚠️ 必须逐块累计，不能只在最后算一次（分块流式），
         #   也不能 import numpy 到模块顶层（numpy 预导入见 main()）。
@@ -1503,6 +1573,29 @@ class TTSWorker:
                     if self._stop.is_set() or self._is_cancelled(jid):
                         aborted = True
                         break
+                    # 🔴🔴🔴 APP-030⑤：**滚动保留最近若干块**（异常句落盘用）
+                    #   ⚠️ **有界**（deque maxlen）⇒ 不会无界增长
+                    #   ⚠️ 只在本句**还没结束**时累计 ⇒ 正常句也会留最近 48 块
+                    #     （≈48 s 音频）⇒ 足够覆盖失控句的「出事段」。
+                    _anom_buf.append(w)
+                    # 🔴🔴🔴 APP-030②：**worker 侧第三道闸（兜底的 RUNAWAY）**
+                    #   判据：本句**已收音频秒数** > `max(3×估计, 估计+8 s)`
+                    #   ⇒ 判 RUNAWAY ⇒ **停止播放该句剩余部分**
+                    #   ⚠️ 这是**引擎无关**的兜底（babelvox / 边车都适用）
+                    #      ⇒ 即使引擎侧上限没生效（老引擎 / 参数被忽略），
+                    #        这一道**仍然能挡住**「一句拖 100 秒」。
+                    #   ⚠️ 阈值**故意宽松** ⇒ 宁可漏判也不误杀正常句。
+                    try:
+                        _got_s = n_samples / float(self.sr or SR)
+                        if _runaway_s is not None and _got_s > _runaway_s:
+                            runaway = True
+                            self._last_end_reason = 'runaway'
+                            log('[tts_worker] 🔴 RUNAWAY id=%d lang=%s len=%d '
+                                '已收 %.1f s > 阈值 %.1f s ⇒ 中止本句'
+                                % (jid, lang, len(text), _got_s, _runaway_s))
+                            break
+                    except Exception:
+                        pass
                     if t_first is None:
                         t_first = time.perf_counter()
                         latency = t_first - t_submit
@@ -1723,6 +1816,27 @@ class TTSWorker:
         self._fill_app027_telemetry(tel, t_dequeue, t_first, t_last,
                                     dur, prebuffer_s, prebuffer_short,
                                     first_chunk_start, last_chunk_end)
+        # 🔴🔴🔴 APP-030⑤：**逐句语言/失控遥测**（reviewer 明文要的 5 项）
+        #   `lang`            实际下传值（'ja'/'zh'/'en'/'ko'）
+        #   `lang_src`        'explicit'（主进程下传）/ 'guess'（兜底）
+        #   `n_chars`         字数（非空白字符数）
+        #   `est_frames`      估计帧数（12 fps）
+        #   `frames`          实际帧数（引擎回报；CUDA 边车有，babelvox 无）
+        #   `end_reason`      结束原因（eos|cap|runaway|cancel|error）
+        tel['lang'] = self._last_lang
+        tel['lang_src'] = self._last_lang_src
+        tel['n_chars'] = len([c for c in (text or '') if not c.isspace()])
+        tel['est_frames'] = self._last_est_frames
+        try:
+            tel['frames'] = getattr(self.engine, '_last_frames', None)
+        except Exception:
+            tel['frames'] = None
+        # 🔴 APP-030②：**默认结束原因 = eos**（引擎正常收尾）
+        #   ⇒ `cap`（撞上限）/ `runaway`（中止）由引擎或守卫覆盖。
+        tel['end_reason'] = self._last_end_reason or 'eos'
+        tel['max_new_tokens'] = self._last_max_new_tokens
+        if runaway:
+            tel['runaway'] = True
         # ⚠️ 这一行是「**写完缓冲那一刻**」的快照 ⇒ `read_delta` 只到此刻
         #   ⇒ 它回答的是「**合成侧**产出了什么」（峰值/RMS/NaN/样本数），
         #   **不是**「播出去多少」⇒ 播完后的那一行才是权威的播放口径。
@@ -1737,6 +1851,22 @@ class TTSWorker:
         #      ⇒ 在连续会议里会**多丢句**。
         if not self.out_wav and self.player is not None:
             emit({'kind': 'written', 'id': jid, 'dur_s': round(dur, 3)})
+
+        # 🔴🔴🔴 APP-030⑤：**异常句落盘**（cap / runaway / 超时）
+        #   判据（APP-030⑤ 明文）：「异常句（cap/runaway/超时）自动把
+        #   wav 和文本落到 tts_anomaly\」
+        #   ⚠️ **正常句不落盘**（零副作用）⇒ 只在异常时才有文件。
+        #   ⚠️ 落盘失败**绝不影响**语音链路（整段包在 try 里）。
+        try:
+            _reason = tel.get('end_reason')
+            _is_abnormal = (runaway
+                            or _reason in ('cap', 'runaway', 'cancel')
+                            or silent)
+            if _is_abnormal:
+                self._anomaly_wav_parts = list(_anom_buf)
+                self._dump_anomaly(jid, text, str(_reason), tel)
+        except Exception:
+            pass
 
         # 🔴🔴 APP-021①：**等音频真的被播放回调取走**再发 `played`。
         #   旧行为：写进环形缓冲就发 ⇒ `played` ≠ 出声（缓冲还有 3 s 没播）。
@@ -2004,6 +2134,99 @@ class TTSWorker:
             log(f'[tts_worker] 分段 wav 落盘失败：{e}')
             return None
 
+    # -- 🔴🔴🔴 APP-030⑤：**异常句落盘** ---------------------------------
+    def _anomaly_dir_path(self) -> str:
+        """异常句目录：`%LOCALAPPDATA%\\Confucius4LiveCaption\\tts_anomaly`。
+
+        🔴 APP-030⑤ 明文：「异常句（cap/runaway/超时）自动把 wav 和文本
+          落到 `%LOCALAPPDATA%\\Confucius4LiveCaption\\tts_anomaly\\`
+          （**最多保留 20 个**，只留本机，**不进包**）」。
+        ⚠️ **只在本机** ⇒ 绝不写进客户包目录。
+        """
+        base = os.environ.get('LOCALAPPDATA') or os.path.expanduser('~')
+        return os.path.join(base, 'Confucius4LiveCaption', 'tts_anomaly')
+
+    def _dump_anomaly(self, jid: int, text: str, reason: str,
+                      tel: Optional[dict] = None):
+        """把**异常句**（cap / runaway / 超时）的 wav + 文本落盘。
+
+        🔴 APP-030⑤：reviewer 要「拿到出事的句子的音频和文本」才能复核
+          （reviewer 原话：「会话日志不记目标语言、不记译文、不落 wav
+          ⇒ 拿不到出事句音频」）。
+        ⚠️ **隐私**：
+          - 目录在 `%LOCALAPPDATA%` ⇒ **只留本机，不进客户包**；
+          - **最多保留 20 个**（FIFO 淘汰最旧的）；
+          - wav 用**合成侧**的音频（本句已收到的部分）⇒ 失控句就是那段
+            低电平长拖（reviewer 实测 `rms_dbfs=-37.9`）。
+        """
+        try:
+            d = self._anomaly_dir_path()
+            os.makedirs(d, exist_ok=True)
+            self._anomaly_count += 1
+            stamp = time.strftime('%Y%m%d_%H%M%S')
+            base = os.path.join(d, 'anom_%s_id%d_%s' % (stamp, int(jid),
+                                                        reason))
+            # ① 文本
+            try:
+                with open(base + '.txt', 'w', encoding='utf-8') as f:
+                    f.write(text or '')
+            except Exception:
+                pass
+            # ② 元数据（**机器可读** ⇒ reviewer 可直接聚合）
+            try:
+                meta = dict(id=int(jid), reason=reason, text=text or '',
+                            ts=time.strftime('%Y-%m-%d %H:%M:%S'))
+                if tel:
+                    for k in ('lang', 'lang_src', 'n_chars', 'est_frames',
+                              'frames', 'end_reason', 'max_new_tokens',
+                              'dur_s', 'n_samples', 'n_parts', 'peak',
+                              'rms_dbfs', 'synth_rtf'):
+                        if k in tel:
+                            meta[k] = tel[k]
+                with open(base + '.json', 'w', encoding='utf-8') as f:
+                    f.write(json.dumps(meta, ensure_ascii=False, indent=2))
+            except Exception:
+                pass
+            # ③ wav（本句已收到的音频）
+            try:
+                if self.out_wav or self.dump_dir:
+                    parts = getattr(self, '_anomaly_wav_parts', None)
+                    if parts:
+                        import numpy as np
+                        wav = (np.concatenate(parts) if len(parts) > 1
+                               else parts[0])
+                        try:
+                            import soundfile as sf
+                            sf.write(base + '.wav', wav, self.sr or SR)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+            # ④ **FIFO 淘汰**：最多保留 20 个
+            try:
+                files = sorted(
+                    [f for f in os.listdir(d) if f.startswith('anom_')])
+                # 每个异常句是 3 个文件（txt/json/wav）⇒ 按「组」淘汰
+                groups = {}
+                for f in files:
+                    key = f.rsplit('.', 1)[0]
+                    groups.setdefault(key, []).append(f)
+                keys = sorted(groups)
+                over = len(keys) - self.ANOMALY_KEEP
+                for k in keys[:max(0, over)]:
+                    for f in groups[k]:
+                        try:
+                            os.remove(os.path.join(d, f))
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+            log('[tts_worker] 异常句已落盘：%s（reason=%s）' % (base, reason))
+            return base
+        except Exception as e:
+            log('[tts_worker] 异常句落盘失败：%s' % e)
+            return None
+
     def _record_jsonl(self, jid, text, t_submit, dur_s=None, t_first=None,
                       dropped=False, error=None, tel=None):
         """记录一句的时间线（供 `x.tts.jsonl` 落盘）。
@@ -2031,6 +2254,16 @@ class TTSWorker:
             for k in _APP027_JSONL_KEYS:
                 if k in tel:
                     row[k] = tel[k]
+            # 🔴🔴🔴 APP-030⑤：**逐句语言 / 失控遥测**
+            for k in _APP030_JSONL_KEYS:
+                if k in tel:
+                    row[k] = tel[k]
+        else:
+            # 🔴 APP-030⑤：即使 `tel` 为空（失败/丢句的行），
+            #   **语言信息也必须留下** ⇒ 失败句也能查「是什么语言的句子失败」。
+            row['lang'] = self._last_lang
+            row['lang_src'] = self._last_lang_src
+            row['end_reason'] = self._last_end_reason or 'error'
         # 🔴🔴🔴 APP-028②：队列水位 / 峰值（**验收要「队列峰值（秒和 MB）」**）
         #   ⚠️ 不依赖 `tel` ⇒ 失败/丢句的行也能带上水位（诊断用）。
         try:
@@ -2098,8 +2331,20 @@ class TTSWorker:
         import numpy as np
         import tts_engine
 
-        # 语言映射：babelvox 用全称（'English' / 'Chinese'）
-        blang = 'Chinese' if lang.lower().startswith('zh') else 'English'
+        # 🔴🔴🔴 APP-030①：**显式语言 → 引擎全称**（不再二分 zh/en）
+        #   旧实现：`blang = 'Chinese' if zh else 'English'`
+        #   ⇒ **Japanese / Korean 永远拿不到**（reviewer 实测 8 条日文样句
+        #     5 条判 en / 3 条判 zh ⇒ 8/8 全错）
+        #   ⇒ 现在走 `tts_engine.map_language()`（唯一映射表）。
+        #   ⚠️ 未知语言兜底 English（与历史行为一致），**不静默回落**的是
+        #      「已知但不支持的语言」⇒ 那由 `language_supported()` 显式告警。
+        blang = tts_engine.map_language(lang)
+        if not tts_engine.language_supported(blang):
+            # 🔴 APP-030① 明文：「不得静默回落 English」
+            #   ⇒ 至少**大声告警**，让会话日志里能看见。
+            log('[tts_worker] 🔴 目标语言 %r → %r 不在引擎支持列表 %s'
+                '（会走 language-agnostic 模式）'
+                % (lang, blang, list(tts_engine.SUPPORTED_LANGS)))
 
         # 🔴🔴 TTS-006：**中文数字正则化要在分句之前**
         #   （分句按字数估帧数 ⇒ 若先分句再正则化，估的是「数字」的字数，
@@ -2107,7 +2352,12 @@ class TTSWorker:
         #   ⇒ 这里先正则化，再 split_long_text。
         #   ⚠️ `tts_engine.stream()` 里也有一层（幂等 ⇒ 不重复转换），
         #   那层负责覆盖**其它 stream 调用方**。
-        if lang.lower().startswith('zh'):
+        # 🔴🔴🔴 APP-030① 明文：**只在 Chinese 时执行**
+        #   ⇒ 旧实现 `if lang.startswith('zh')` 在 `lang='ja'` 时不触发，
+        #     但旧实现**根本没有 ja** ⇒ 一旦判 zh（reviewer 实测 3/8 判 zh）
+        #     就会把「2026年」读成「二零二六年」（中文读法）⇒ **错读**。
+        #   ⇒ 日文数字规则交 TTS 模块定，App 侧**保持原样不转**。
+        if blang == 'Chinese':
             text = tts_engine.normalize_zh_numbers(text)
 
         # 长句切分（保守上限 478 帧 ≈ 39.8 s）
@@ -2117,14 +2367,34 @@ class TTSWorker:
                 break
             if self._is_cancelled(self._cur_jid):
                 break
+            # 🔴🔴🔴 APP-030②：**按句/按段传生成帧数上限**（第一道闸）
+            #   公式：`clamp(3×估计帧数 + 36, 48, 2048)`
+            #   ⚠️ **按切分段**算（不是整句）⇒ 段越短上限越紧 ⇒ 更早截断。
+            #   ⚠️ `tts_engine.stream()` 内部**只收紧不放宽**引擎默认值。
+            _mnt = tts_engine.clamp_max_new_tokens(p, lang)
+            self._last_max_new_tokens = _mnt
+            # 🔴🔴🔴 APP-030②：**第二道闸（客户端 RUNAWAY）**的输入
+            #   `est_sec` = 本段的预计音频秒数（按语言估）
+            _est = tts_engine.estimate_sec(p, lang)
             for wav_chunk, sr in tts_engine.stream(
                     self.engine, p, language=blang,
                     speaker_embed=self.speaker_embed,
                     speaker=self.speaker_name if self.speaker_embed is None else None,
-                    cancel_event=self._stop):
+                    cancel_event=self._stop,
+                    max_new_tokens=_mnt,
+                    est_sec=_est):
                 w = np.asarray(wav_chunk, dtype=np.float32).reshape(-1)
                 self.sr = int(sr)
                 yield w
+            # 🔴🔴🔴 APP-030⑤：**取引擎回报的结束原因**
+            #   CUDA 边车回报 `eos`（正常）/ `cap`（撞上限被截断）/
+            #   `runaway`（客户端中止）⇒ 供本句遥测与异常句落盘。
+            try:
+                _er = getattr(self.engine, '_last_end_reason', None)
+                if _er:
+                    self._last_end_reason = _er
+            except Exception:
+                pass
 
     def _synth_ov(self, text: str, lang: str, cond: dict):
         """OV 整句合成（**不依赖 torch**）。返回 list[np.ndarray]（22050 Hz）。
@@ -2159,9 +2429,39 @@ class TTSWorker:
 
     @staticmethod
     def _guess_lang(text: str) -> str:
-        """粗判语言：CJK 字符占比高就是 zh，否则 en。"""
-        cjk = sum(1 for ch in text if '\u4e00' <= ch <= '\u9fff')
-        return 'zh' if cjk * 4 >= len(text) else 'en'
+        """粗判语言（**兜底**，APP-030①：主进程应显式下传 `lang`）。
+
+        🔴🔴🔴 APP-030①：**旧实现是个真缺陷**
+          旧：`cjk = 汉字数`；`return 'zh' if cjk * 4 >= len(text) else 'en'`
+          ⇒ 只分 zh/en ⇒ **Japanese / Korean 永远判不出来**
+          ⇒ reviewer 本机实测 8 条日文样句：**5 条判 en、3 条判 zh**
+            （`ありがとうございます。` / `はい、そうです。` / `これはテストです。`
+              / `2026年の売上は52%増えました。`
+              / `プロセッサーのパフォーマンスが向上しました。` / `今日は会議があります。` 等）
+          ⇒ 判 en ⇒ 用 English 语言 token 读假名（**分布外** ⇒ EOS 不稳
+            ⇒ 偶发撞 2048 帧上限 ⇒ 一句拖 106 s ⇒ 后续句全堵）
+          ⇒ 判 zh ⇒ 用 Chinese token 读日文 + `normalize_zh_numbers` 误作用
+        ⇒ 现在：复用 `tts_engine.guess_language_by_script()`
+          - **假名**（U+3040–30FF）⇒ `ja`（最强信号）
+          - **谚文**（U+AC00–D7AF）⇒ `ko`
+          - 汉字占比 ≥ 25% ⇒ `zh`（**只数非空白字符**）
+          - 否则 ⇒ `en`
+        ⚠️ **这仍是兜底**：主进程显式下传时**根本不调用**本函数。
+        """
+        try:
+            import tts_engine
+            return tts_engine.guess_language_by_script(text)
+        except Exception:
+            # 🔴 兜底也不能退回「只看汉字」的旧逻辑（那是 APP-030 的真缺陷）
+            cjk = sum(1 for ch in (text or '') if '\u4e00' <= ch <= '\u9fff')
+            kana = sum(1 for ch in (text or '') if '\u3040' <= ch <= '\u30ff')
+            hang = sum(1 for ch in (text or '') if '\uac00' <= ch <= '\ud7af')
+            if kana:
+                return 'ja'
+            if hang:
+                return 'ko'
+            vis = len([c for c in (text or '') if not c.isspace()])
+            return 'zh' if (vis and cjk * 4 >= vis) else 'en'
 
     def _is_cancelled(self, jid) -> bool:
         with self._cancel_lock:
@@ -2274,7 +2574,7 @@ class TTSWorker:
                 continue
             if item is None:            # 关闭哨兵
                 return
-            jid, text, spk, spk_conf = item
+            jid, text, spk, spk_conf, lang = item
             # ── 出队时刻（APP-027② 的 `t_dequeue` 真正的口径）──
             t_dequeue = time.perf_counter()
             with self._synth_state_lock:
@@ -2291,7 +2591,7 @@ class TTSWorker:
                 self._synth_rem_s = self._estimate_dur_s(text)
             self._emit_synth_state()
             try:
-                self.synth(jid, text, spk, spk_conf)
+                self.synth(jid, text, spk, spk_conf, lang)
             except Exception as e:
                 import traceback
                 log('[tts_worker] 🔴 合成线程异常：' + traceback.format_exc())
@@ -2419,6 +2719,18 @@ class TTSWorker:
                 #   等 TTS-019 交付「按说话人取音色向量」时在这里接上。
                 spk = msg.get('spk')
                 spk_conf = msg.get('spk_conf')
+                # 🔴🔴🔴 APP-030①：**目标语言显式下传**。
+                #   旧实现命令体只有 `id/text` ⇒ worker 只能靠
+                #   `_guess_lang()`（汉字占比二分 zh/en）**猜**
+                #   ⇒ **TTS 永远收不到 Japanese**
+                #   ⇒ reviewer 本机实测 8 条日文样句：**5 条判 en、3 条判 zh**
+                #   ⇒ 判 en ⇒ 用 English 语言 token 读假名（分布外 ⇒ EOS 不稳
+                #     ⇒ 偶发撞 2048 帧上限）
+                #   ⇒ 判 zh ⇒ `normalize_zh_numbers` 误作用（2026年 → 二零二六年）
+                # ⚠️ **缺 `lang` 的旧命令仍要能跑** ⇒ 兜底走 `_guess_lang`。
+                lang = msg.get('lang')
+                if not lang:
+                    lang = self._guess_lang(text)
                 # 🔴🔴 APP-024①：**dequeue 时刻** = worker 主循环从 stdin
                 #   真正取到这条命令的瞬间。
                 #   ⚠️ 为什么不直接在 `synth()` 入口取：`synth()` 是**独立线程**
@@ -2444,7 +2756,9 @@ class TTSWorker:
                 with self._synth_state_lock:
                     self._synth_queue_ids.append(jid)
                     self._synth_queue_est[jid] = est
-                self._synth_q.put((jid, text, spk, spk_conf))
+                # 🔴🔴🔴 APP-030①：**`lang` 随命令进合成队列**
+                #   ⇒ 合成线程拿得到**显式**语言 ⇒ 不再靠猜。
+                self._synth_q.put((jid, text, spk, spk_conf, lang))
                 self._emit_synth_state()
             elif cmd == 'cancel':
                 # 🔴🔴🔴 APP-028②：**cancel 的语义已变**。
@@ -2481,6 +2795,22 @@ class TTSWorker:
                 log(f'[tts_worker] 收到丢弃指令 id={jid}'
                     f'（已从队列摘除 {removed} 样本）')
                 emit({'kind': 'dropped', 'id': jid, 'count': 1})
+            elif cmd == 'spk_update':
+                # 🔴🔴🔴 APP-029：**说话人晚到 ⇒ 补发更新**（接口预留）
+                #   APP-029 明文：「定稿事件先按原样发出；另外增加
+                #   spk_update(id, spk, spk_conf) 事件，用来更新字幕标签，
+                #   以及**还没开始合成**的那几句的音色。
+                #   **已经开始合成的句子不改。**」
+                #   ⚠️ **本轮不集成**（APP-029 明文「现在不要集成」）
+                #   ⇒ 这里只把命令**接住并记进日志**（不改变任何合成行为）
+                #   ⇒ 真正的「更新还没开始合成的那几句的音色」要等
+                #      TTS-019 交付「按句子取对应说话人的音色向量」。
+                _jid = msg.get('id')
+                _spk = msg.get('spk')
+                _spk_conf = msg.get('spk_conf')
+                log('[tts_worker] 收到 spk_update id=%s spk=%s conf=%s'
+                    '（APP-029 预留接口，本轮不改变合成行为）'
+                    % (_jid, _spk, _spk_conf))
             elif cmd == 'clear_queue':
                 # 🔴🔴🔴 APP-028②：**用户手动停止 / 切换会话时清空队列**。
                 #   APP-028 明文：「用户手动停止或切换会话时才清空队列」

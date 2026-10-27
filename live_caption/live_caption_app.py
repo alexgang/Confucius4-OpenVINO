@@ -1611,9 +1611,28 @@ def _split_spk(final):
 
     ## 为什么需要它
 
-    ASR 侧（ASR-013，pyannote 强制断句）交付后，定稿段会**带上说话人**。
+    ASR 侧交付后，定稿段会**带上说话人**。
     但**当前的 ASR 实现只回纯字符串** ⇒ 现在这里**恒返回 `(text, None, None)`**
     ⇒ **行为与改造前逐位一致**。
+
+    ## 🔴🔴🔴 APP-029（2026-10-27 15:48 用户决定）
+
+    **pyannote/segmentation-3.0 只用来识别说话人，不再用来给 ASR 强制断句。**
+
+    依据（ASR-020 的 Opus 复算，SPE 前 5 分钟）：
+      - WER 是 baseline 7.39% 对 forced 7.52% ⇒ **没有实际差异**；
+      - 词内切点都是 3 处 ⇒ **也没有差异**；
+      - 而实时断句至少还要多等约 9.4 s 的右侧上下文
+        ⇒ 对实时字幕和 10 s 缓冲的配音插件**都不可接受**。
+
+    ⇒ **断句继续用 R2T2 原有的方式**；
+    ⇒ pyannote 和说话人 embedding 在**旁路**运行、**不阻塞定稿**：
+      定稿段先发出去，spk 晚到（可以晚 1~2 s）时，
+      用 id 补发一条 `spk_update` 事件；
+    ⇒ 说话人攒够约 3 s 干净语音之前，spk 为 null
+      ⇒ TTS 用上一句的音色或预设 A。
+
+    ⚠️ **本轮不集成**（APP-029 明文「现在不要集成」）⇒ 本函数行为不变。
 
     ## 支持的三种形态（**向后兼容**）
 
@@ -2839,6 +2858,16 @@ class App:
         key = self.mt_keys[[TARGET_LABELS[k] for k in self.mt_keys].index(self.var_mt.get())]
         self.mt.set_target(key)
         self.var_status.set('翻译：' + TARGET_LABELS[key])
+        # 🔴🔴🔴 APP-030⑤：**切换翻译目标时记一行**
+        #   APP-030⑤ 明文：「切换翻译目标时记一行」
+        #   ⇒ 否则事后无法区分「日文句子被当英文念」还是「本来就是英文」。
+        #   ⚠️ 写**会话日志**（不是界面）⇒ reviewer 复盘时能对齐时间轴。
+        try:
+            from tts_service import append_session_log
+            append_session_log('MT 目标语言切换 ⇒ %s（%s）'
+                               % (key, TARGET_LABELS[key]))
+        except Exception:
+            pass
 
     def _cur_mt_target(self):
         """GUI 下拉当前选中的目标语言（而不是 args.translate 启动快照）。"""
@@ -3186,7 +3215,15 @@ class App:
                 if kind == 'final' and ev['txt'] and ev['txt'].strip():
                     if self.tts is not None:
                         # 🔴 `seg` 用**真正的 ASR 段号**（方案 C 的 5 元组自带）
-                        self.tts.submit(ev['txt'], seg=ev['seg'])
+                        # 🔴🔴🔴 APP-030①：**显式下传 MT 当前目标语言**
+                        #   旧实现不传 ⇒ worker 靠 `_guess_lang()` 猜
+                        #   ⇒ 只分 zh/en ⇒ **永远收不到 Japanese**
+                        #   ⇒ 日文被当英文/中文念 ⇒ 偶发撞 2048 帧上限
+                        #     ⇒ 一句拖 106 s ⇒ 后续句全堵（用户实测两次）
+                        #   ⚠️ 用 `_cur_mt_target()`（**下拉当前值**）而不是
+                        #     `self.mt.target` ⇒ 会话中途改下拉立即生效。
+                        self.tts.submit(ev['txt'], seg=ev['seg'],
+                                        lang=self._cur_mt_target())
                 elif kind == 'draft' and ev['txt']:
                     # APP-015：草稿**只显示、不朗读** ⇒ 这里只记译文
                     # 🔴 **按单元 id 存**（不是翻译去重键）⇒ 与渲染层的
@@ -3954,7 +3991,9 @@ def run_cli(args):
                     print(f'\n[{tag}] {txt}', flush=True)
                     # ── TTS：只提交**定稿译文**（C-101 P4 第 1 条）──
                     if tts is not None and tts.active:
-                        tts.submit(txt, seg=ev['seg'])
+                        # 🔴🔴🔴 APP-030①：**显式下传 MT 目标语言**
+                        #   （CLI 没有下拉 ⇒ 用 `mt.target`）
+                        tts.submit(txt, seg=ev['seg'], lang=mt.target)
             if args.max_seconds and s.audio_s >= args.max_seconds:
                 s.stop()
     except KeyboardInterrupt:
@@ -3987,7 +4026,8 @@ def run_cli(args):
                 print(f'[{tag}] {txt}', flush=True)
                 # ── TTS：补交最后一批定稿译文 ──
                 if tts is not None and tts.active:
-                    tts.submit(txt, seg=ev['seg'])
+                    # 🔴🔴🔴 APP-030①：**显式下传 MT 目标语言**
+                    tts.submit(txt, seg=ev['seg'], lang=mt.target)
         sm = mt.summary()
         f = lambda v, d=1: ('—' if v is None else f'{v:.{d}f}')
         print(f'[{args.engine}] 翻译 target={mt.target} 后端={mt.engine_key} 设备 {mt.device} '

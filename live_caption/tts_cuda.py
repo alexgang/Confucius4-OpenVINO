@@ -59,6 +59,27 @@ def _trace(msg: str):
         pass
 
 
+#: 🔴🔴🔴 APP-030②：**RUNAWAY 判据阈值系数**
+#:   判据（APP-030② 明文）：本句已收音频 > `max(3×估计, 估计+8 s)` ⇒ RUNAWAY
+RUNAWAY_FACTOR = 3.0
+RUNAWAY_EXTRA_S = 8.0
+
+
+def runaway_threshold_s(est_sec) -> float:
+    """RUNAWAY 判据阈值（秒）。
+
+    ⚠️ **故意宽松** ⇒ 宁可漏判也不误杀正常句（误杀会把好句截断）。
+    ⚠️ 与 `tts_engine.runaway_threshold_s` **同一公式**（两侧口径一致）。
+    """
+    try:
+        e = float(est_sec)
+    except Exception:
+        e = 0.0
+    if e <= 0:
+        e = 0.0
+    return max(RUNAWAY_FACTOR * e, e + RUNAWAY_EXTRA_S)
+
+
 def _NO_WINDOW_FLAG():
     """🔴🔴 APP-023：子进程**不弹黑框**（Windows）。
 
@@ -165,6 +186,14 @@ class CudaTTSError(RuntimeError):
     pass
 
 
+#: 🔴🔴🔴 APP-030③：**「队列超时」哨兵**
+#:   必须与「边车已退出」（队列里的 `None`）**区分开**：
+#:     - `None`      = 读者线程读到 EOF ⇒ 边车真的退出了；
+#:     - `_TIMEOUT`  = 队列在超时窗口内**没有消息**（边车还活着，只是没产出）。
+#:   ⇒ 旧实现把两者混为一谈（都 `raise`）⇒ 2 s 无块就判失败。
+_TIMEOUT = object()
+
+
 def python_exe() -> str:
     return ENV_PY
 
@@ -223,6 +252,10 @@ class CudaTTSEngine:
         self._q: 'queue.Queue' = queue.Queue()
         self._reader_thread = None
         self._buf = b''
+        # 🔴🔴🔴 APP-030⑤：**本句的结束原因与实际帧数**（供 worker 遥测）
+        #   `end_reason` = eos | cap | runaway | error
+        self._last_end_reason = None
+        self._last_frames = None
         # 🔴🔴🔴 APP-027⑤：**stdin 写锁**
         #   `set_ref_audio()` 由 **worker 的命令处理线程**调用，
         #   而 `generate_stream()` 由 **合成线程**调用
@@ -285,6 +318,15 @@ class CudaTTSEngine:
         self._start_reader()
 
         line = self._q_get(timeout=READY_TIMEOUT_S)
+        # 🔴🔴🔴 APP-030③：**超时哨兵要在调用点区分**
+        #   `_q_get` 现在超时返回 `_TIMEOUT`（**不抛**）⇒ 这里是**唯一**
+        #   **必须**把它当失败的地方（等 ready 就是等一条消息）
+        #   ⚠️ 旧写法 `if not line:` ⇒ `_TIMEOUT`（object()）是**真值**
+        #   ⇒ 会走进 `json.loads(_TIMEOUT)` ⇒ TypeError ⇒ 启动路径崩。
+        if line is _TIMEOUT:
+            self.close()
+            raise CudaTTSError('CUDA 边车启动失败（%.0f s 内没有 ready）'
+                               % READY_TIMEOUT_S)
         if not line:
             self.close()
             raise CudaTTSError('CUDA 边车启动失败（%.0f s 内没有 ready）' % READY_TIMEOUT_S)
@@ -473,11 +515,28 @@ class CudaTTSEngine:
         self._reader_thread = t
 
     def _q_get(self, timeout):
-        """从队列取一行（**带真超时**）。返回 None = 边车已退出。"""
+        """从队列取一行（**带真超时**）。
+
+        🔴🔴🔴 APP-030③：**超时不再抛异常，而是返回哨兵**。
+          - 旧实现：`queue.Empty` ⇒ **直接 `raise CudaTTSError`**
+            ⇒ `generate_stream()` 用 `timeout=min(2.0, wl)` 调它
+            ⇒ **任何 2 s 无块都直接判失败**
+            ⇒ `WATCHDOG_FIRST_S=60` / `WATCHDOG_S=15` **从来没生效**
+              （reviewer 实测：每次 CUDA 会话的**第 0 句都被丢**，
+                16:31:22 / 16:47:10 `边车响应超时（2 s）`，
+                而边车 3.09 s 后其实 DONE）
+          - 现在：超时返回 `None`（=「暂时没消息」）
+            ⇒ 调用方**回到循环** ⇒ 看门狗的时间比较分支**才真正生效**
+            ⇒ 第 0 句不再丢。
+        ⚠️ **「边车已退出」与「暂时没消息」要能区分**：
+          读者线程在 EOF 时 `q.put(None)` ⇒ 队列里的 `None` 是**真退出**；
+          而本函数的**超时**返回的是另一个哨兵 `_TIMEOUT`。
+        """
         try:
             return self._q.get(timeout=timeout)
         except queue.Empty:
-            raise CudaTTSError('边车响应超时（%.0f s）' % timeout)
+            # 🔴 APP-030③：返回哨兵，**不抛**（让看门狗按设计生效）
+            return _TIMEOUT
 
     def _restart_sidecar(self, why: str):
         """杀掉卡死的边车并重启（**看门狗触发时调用**）。
@@ -544,13 +603,24 @@ class CudaTTSEngine:
 
     def generate_stream(self, text, language='English', speaker_embed=None,
                         speaker=None, split_on_silence=False,
-                        cancel_event=None, chunk_frames=None, **_kw):
+                        cancel_event=None, chunk_frames=None,
+                        max_new_tokens=None, est_sec=None, **_kw):
         """产出 `(list[float], 24000)`。
 
         🔴🔴🔴 APP-027③ 的三个改动：
         - **严格按 `rid` 过滤**（旧句的块 / 旧 `done` 一律丢弃）；
         - **队列取消息**（真能超时 ⇒ 看门狗能触发）；
         - **看门狗**：N 秒无块 ⇒ 杀并重启边车 ⇒ 本句记失败。
+
+        🔴🔴🔴 APP-030②：**失控守卫**（两道闸）
+          - **第一道闸（引擎侧）**：把 `max_new_tokens` 下发给边车
+            ⇒ 库默认 2048（= 163.8 s 音频）⇒ 失控句拖 106 s
+            ⇒ 客户端按句估算一个**更严**的上限下发。
+          - **第二道闸（客户端侧）**：本句已收音频秒数
+            > `max(3×估计, 估计+8 s)` ⇒ 判 **RUNAWAY**
+            ⇒ 停止播放该句剩余部分 + 通知边车停止。
+        ⚠️ `est_sec` 是**估计秒数**（由 `tts_engine.estimate_sec` 算）
+          ⇒ 没传 ⇒ **不做第二道闸**（宁可漏判也不误杀）。
         """
         import array
 
@@ -563,8 +633,17 @@ class CudaTTSEngine:
         rid = self._rid
         req = {'id': rid, 'text': text, 'language': language,
                'ref_audio': self.ref_audio, 'chunk_size': self._chunk_size}
+        # 🔴🔴🔴 APP-030②：**下发生成帧数上限**（第一道闸）
+        try:
+            if max_new_tokens is not None:
+                mnt = int(max_new_tokens)
+                if mnt > 0:
+                    req['max_new_tokens'] = mnt
+        except Exception:
+            pass
         t_req = time.monotonic()
-        _trace('REQ rid=%d len=%d' % (rid, len(text)))
+        _trace('REQ rid=%d len=%d mnt=%s lang=%s'
+               % (rid, len(text), req.get('max_new_tokens'), language))
         try:
             # 🔴🔴🔴 APP-027⑤：**持写锁**（与 `set_ref_audio` 串行）
             with self._stdin_wlock:
@@ -577,6 +656,15 @@ class CudaTTSEngine:
         n_chunks = 0
         t_first = None
         last_seen = time.monotonic()
+        # 🔴 APP-030②：**本句已收音频秒数**（RUNAWAY 判据的输入）
+        got_sec = 0.0
+        # 🔴 APP-030②：RUNAWAY 阈值（秒）；`None` ⇒ 不做第二道闸
+        runaway_s = None
+        if est_sec is not None:
+            try:
+                runaway_s = runaway_threshold_s(est_sec)
+            except Exception:
+                runaway_s = None
         while True:
             # 🔴 取消检查：**每条消息之前**都查一次
             if cancel_event is not None and getattr(
@@ -614,6 +702,12 @@ class CudaTTSEngine:
                 raise CudaTTSError('边车看门狗触发（%.0f s 无输出，已重启边车）'
                                    % (now - last_seen))
             line = self._q_get(timeout=min(2.0, wl))
+            # 🔴🔴🔴 APP-030③：**超时 = 回到循环**（不是失败）
+            #   ⇒ 看门狗的 `now - last_seen > wl` 分支**才真正生效**
+            #   ⇒ 第 0 句不再因为「2 s 内没块」被丢
+            #   （reviewer 实测每次 CUDA 会话第 0 句都被丢）。
+            if line is _TIMEOUT:
+                continue
             if line is None:
                 raise CudaTTSError('CUDA 边车意外退出（无响应）')
             last_seen = time.monotonic()
@@ -637,8 +731,19 @@ class CudaTTSEngine:
                 _trace('ERR rid=%d %s' % (rid, msg['error']))
                 raise CudaTTSError('CUDA 合成失败：%s' % msg['error'])
             if msg.get('done'):
-                _trace('DONE rid=%d chunks=%d first_s=%.2f'
-                       % (rid, n_chunks,
+                # 🔴🔴🔴 APP-030⑤：**结束原因**（eos | cap）
+                #   边车回报 `frames`（实际帧数）与 `end_reason`
+                #   ⇒ `cap` = 撞上限被截断 ⇒ **异常句** ⇒ 落盘
+                end_reason = msg.get('end_reason') or 'eos'
+                frames = msg.get('frames')
+                try:
+                    frames = int(frames) if frames is not None else None
+                except Exception:
+                    frames = None
+                self._last_end_reason = end_reason
+                self._last_frames = frames
+                _trace('DONE rid=%d chunks=%d frames=%s reason=%s first_s=%.2f'
+                       % (rid, n_chunks, frames, end_reason,
                           (t_first - t_req) if t_first else -1))
                 return
             n = int(msg.get('n') or 0)
@@ -654,7 +759,51 @@ class CudaTTSEngine:
             if t_first is None:
                 t_first = time.monotonic()
             n_chunks += 1
+            # 🔴🔴🔴 APP-030②：**第二道闸（RUNAWAY）**
+            #   判据（APP-030② 明文）：本句已收音频
+            #   > max(3×估计, 估计+8 s) ⇒ 判 RUNAWAY
+            #   ⇒ **停止播放该句剩余部分**，并让边车停止（cancel）
+            got_sec += len(arr) / float(sr or 24000)
+            if runaway_s is not None and got_sec > runaway_s:
+                _trace('RUNAWAY rid=%d len=%d frames=%d got_s=%.1f thr=%.1f'
+                       % (rid, len(text),
+                          int(got_sec * 12), got_sec, runaway_s))
+                try:
+                    self.on_log('[tts_cuda] 🔴 RUNAWAY rid=%d len=%d 音频 %.1f s '
+                                '> 阈值 %.1f s ⇒ 中止本句'
+                                % (rid, len(text), got_sec, runaway_s))
+                except Exception:
+                    pass
+                # 让边车停止（**做不到就杀掉重启**）⇒ 见 `_cancel_request`
+                self._cancel_request(rid)
+                self._last_end_reason = 'runaway'
+                return
             yield (list(arr), sr)
+
+    def _cancel_request(self, rid):
+        """🔴🔴🔴 APP-030②：**让边车停止当前请求**。
+
+        ⚠️ **边车不支持取消**（APP-027⑤ 明文）⇒ 这里先发 `cancel` 命令
+        （边车每块检查一次），**做不到就杀掉重启边车**
+        ⇒ 绝不能让一句失控把后续 1~2 分钟全堵住。
+        """
+        try:
+            if self.proc is not None and self.proc.poll() is None:
+                with self._stdin_wlock:
+                    self.proc.stdin.write(
+                        (json.dumps({'cmd': 'cancel', 'id': rid},
+                                    ensure_ascii=False) + '\n').encode('utf-8'))
+                    self.proc.stdin.flush()
+                _trace('CANCEL_SENT rid=%d' % rid)
+                return
+        except Exception as e:
+            _trace('CANCEL_SENT failed rid=%d: %s' % (rid, e))
+        # 兜底：杀掉重启（**必须真的杀**，否则边车还在算这一句）
+        try:
+            self._restart_sidecar('RUNAWAY rid=%d' % rid)
+            _trace('CANCEL_KILL rid=%d' % rid)
+        except Exception as e:
+            _trace('CANCEL_KILL failed rid=%d: %s' % (rid, e))
 
     def _start_drain(self, rid):
         """🔴🔴 APP-027③：取消后**后台排空**本请求的剩余消息。

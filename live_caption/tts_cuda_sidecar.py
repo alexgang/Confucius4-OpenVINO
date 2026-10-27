@@ -162,6 +162,20 @@ _LANG = {
     'ko': 'Korean', 'korean': 'Korean',
 }
 
+#: 🔴🔴🔴 APP-030②：**兜底的生成帧数上限**
+#:   客户端没传 `max_new_tokens` 时用它（**不是**库的默认 2048）。
+#:   2048 帧 = 163.8 s 音频（12 fps）⇒ reviewer 实测一句 7 字日文
+#:   跑了 106.61 s / 255 块 / 163.0 s 音频 ⇒ 后续句全被堵住。
+#:   ⇒ 这里取 512（≈42.7 s）作为「没有估算可用时的保守上限」。
+DEFAULT_MAX_NEW_TOKENS = int(
+    os.environ.get('LIVECAP_CUDA_MAX_NEW_TOKENS', '512'))
+
+#: 🔴🔴🔴 APP-030②：**待取消的请求 id 集合**
+#:   边车**串行**处理（一次一句）⇒ 取消命令只能在**当前句的解码循环**
+#:   里被检查 ⇒ 用模块级集合。
+#:   ⚠️ 客户端会「先发 cancel ⇒ 不行就杀并重启边车」⇒ 两条路都堵死。
+_CANCEL_RIDS = set()
+
 
 def _lang(s):
     t = (s or 'auto').strip().lower()
@@ -260,6 +274,15 @@ def main() -> int:
             send({'id': req.get('id'), 'set_ref': True,
                   'ref_audio': current_ref})
             continue
+        # 🔴🔴🔴 APP-030②：**取消当前请求**（失控守卫的第二道闸）
+        #   ⚠️ 边车**是串行**的（一次只处理一句）⇒ 取消命令只能在
+        #      **当前句的解码循环里**被检查 ⇒ 用一个模块级标志位。
+        #   ⇒ 客户端「先发 cancel ⇒ 不行就杀并重启」（见 `tts_cuda._cancel_request`）
+        if req.get('cmd') == 'cancel':
+            _CANCEL_RIDS.add(req.get('id'))
+            _trace('cancel: %s' % req.get('id'))
+            send({'id': req.get('id'), 'cancelled': True})
+            continue
 
         rid = req.get('id')
         text = (req.get('text') or '').strip()
@@ -268,28 +291,73 @@ def main() -> int:
             send({'id': rid, 'done': True})
             continue
         ref = req.get('ref_audio') or current_ref
-        _trace('REQ rid=%s len=%d ref=%s' % (rid, len(text), ref))
+        # 🔴🔴🔴 APP-030②：**生成帧数上限**（失控守卫的第一道闸）
+        #   旧实现**从不传** ⇒ 用库默认 `max_new_tokens=2048`
+        #   ⇒ **2048 帧 = 163.8 s 音频**（12 fps）
+        #   ⇒ reviewer 实测：一句 7 字日文跑了 **106.61 s**、255 块、163.0 s 音频
+        #   ⇒ 且**边车串行** ⇒ 后续句全部排队堵住 1~2 分钟
+        #   ⇒ 现在客户端按句估算上限并下发 ⇒ 失控句几秒内被截断。
+        try:
+            mnt = int(req.get('max_new_tokens') or 0)
+        except Exception:
+            mnt = 0
+        if mnt <= 0:
+            mnt = DEFAULT_MAX_NEW_TOKENS
+        mnt = max(48, min(2048, mnt))
+        _trace('REQ rid=%s len=%d mnt=%d ref=%s' % (rid, len(text), mnt, ref))
         try:
             # 🔴 只缓存**一块**：收到新块才发旧块（这样才能给最后一块打 last=True，
             #    且**绝不重复发送**同一块）。流式语义不受影响（滞后 1 块）。
             n = 0
             pending = None
             t_first = None
-            for chunk, sr, _timing in model.generate_voice_clone_streaming(
+            # 🔴🔴🔴 APP-030⑤：**实际帧数**（12 fps codec 帧）
+            #   `timing['total_steps_so_far']` 是库给的累计步数
+            #   ⇒ 用来判「撞上限」：`frames >= max_new_tokens` ⇒ 截断（cap）
+            #     否则 ⇒ 正常 EOS（eos）
+            frames = 0
+            cancelled = False
+            for chunk, sr, timing in model.generate_voice_clone_streaming(
                     text=text, language=_lang(req.get('language')),
                     ref_audio=ref, xvec_only=True,
+                    max_new_tokens=mnt,
                     chunk_size=int(req.get('chunk_size') or 8)):
+                # 🔴🔴🔴 APP-030②：**每块检查一次取消**（失控守卫）
+                if rid in _CANCEL_RIDS:
+                    _CANCEL_RIDS.discard(rid)
+                    cancelled = True
+                    _trace('CANCELLED rid=%s chunks=%d frames=%d'
+                           % (rid, n, frames))
+                    break
+                try:
+                    ts = int((timing or {}).get('total_steps_so_far') or 0)
+                    if ts > frames:
+                        frames = ts
+                except Exception:
+                    pass
                 if pending is not None:
                     send_chunk(pending[0], pending[1], False, rid)
                     n += 1
                 pending = (chunk, sr)
+            if cancelled:
+                send({'id': rid, 'done': True, 'chunks': n,
+                      'frames': int(frames), 'max_new_tokens': int(mnt),
+                      'end_reason': 'cancel'})
+                continue
             if pending is not None:
                 send_chunk(pending[0], pending[1], True, rid)
                 n += 1
                 t_first = time.monotonic()
-            send({'id': rid, 'done': True, 'chunks': n})
-            _trace('DONE rid=%s chunks=%d elapsed=%.2fs'
-                   % (rid, n, (t_first - t_req) if t_first else -1))
+            # 🔴🔴🔴 APP-030⑤：**结束原因**（eos | cap）
+            #   `frames >= max_new_tokens` ⇒ **撞上限被截断**（cap）
+            #   ⇒ 客户端据此判「异常句」并落盘（APP-030⑤）
+            reason = 'cap' if frames >= mnt else 'eos'
+            send({'id': rid, 'done': True, 'chunks': n,
+                  'frames': int(frames), 'max_new_tokens': int(mnt),
+                  'end_reason': reason})
+            _trace('DONE rid=%s chunks=%d frames=%d mnt=%d reason=%s elapsed=%.2fs'
+                   % (rid, n, frames, mnt, reason,
+                      (t_first - t_req) if t_first else -1))
         except Exception as e:
             traceback.print_exc(file=sys.stderr)
             _trace('ERR rid=%s %s: %s' % (rid, type(e).__name__, e))
