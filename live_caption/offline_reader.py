@@ -402,12 +402,23 @@ class OfflineReader:
                  pend_budget: float = PEND_BUDGET_S,
                  seg_budget: float = SEG_BUDGET_S,
                  seg_base: int = OFFLINE_SEG_BASE,
+                 lang: Optional[str] = None,
                  on_log=None):
         self.svc = svc
         self.ahead = max(0, int(ahead))
         self.pend_budget = float(pend_budget)
         self.seg_budget = float(seg_budget)
         self.seg_base = int(seg_base)
+        # 🔴🔴🔴 APP-030①（**本轮补的真实遗漏**）：
+        #   旧实现 `svc.submit(self.segs[i], seg=...)` **不带 `lang`**
+        #   ⇒ worker 侧 `msg.get('lang')` 为空 ⇒ 回落到 `_guess_lang()`
+        #   ⇒ 而 `_guess_lang()` **只分 zh/en** ⇒ **日文永远收不到 Japanese**
+        #   ⇒ 正是 APP-030 的原始根因路径（「日文发音偶发卡住」）。
+        #   ⚠️ 注意：离线朗读**不经过 ASR/MT**，译文就是用户输入的原文
+        #   ⇒ 目标语言**不是** MT 的目标（翻译可能关闭）⇒ 必须由调用方
+        #     **显式**给（GUI 侧给用户选的目标语言）。
+        #   ⚠️ `None` ⇒ 保持旧行为（worker 兜底猜）⇒ 向后兼容。
+        self.lang = lang
         self.on_log = on_log or (lambda m: None)
 
         self.segs: List[str] = []
@@ -520,7 +531,14 @@ class OfflineReader:
                 pend = self._pend_est()
                 nxt = est_seconds(self.segs[i])
                 if pend_n <= self.ahead and (pend + nxt) <= self.pend_budget:
-                    self.svc.submit(self.segs[i], seg=self.seg_base - i)
+                    # 🔴🔴🔴 APP-030①：**显式下传目标语言**（见 `__init__` 注释）。
+                    #   只有在 `lang` 有值时才传 ⇒ 不传时命令体与改造前**逐字一致**
+                    #   ⇒ 旧调用方（含自检里塞的假 service）行为不变。
+                    if self.lang:
+                        self.svc.submit(self.segs[i], seg=self.seg_base - i,
+                                         lang=self.lang)
+                    else:
+                        self.svc.submit(self.segs[i], seg=self.seg_base - i)
                     i += 1
                     self.n_fed = i
                     last_beat = time.time()

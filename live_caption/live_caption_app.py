@@ -3270,6 +3270,28 @@ class App:
         """给离线朗读对话框用：取当前 TTS service（可能为 None）。"""
         return self.tts
 
+    def _offline_get_lang(self):
+        """给离线朗读对话框用：**目标语言**（APP-030① 显式下传）。
+
+        🔴🔴🔴 **为什么离线朗读也要下传语言**（APP-030 的原始根因路径）：
+          worker 侧 `lang` 缺失 ⇒ 回落到 `_guess_lang()` ⇒ **只分 zh/en**
+          ⇒ **日文永远收不到 Japanese** ⇒ 用 English token 读假名
+          ⇒ 分布外 ⇒ EOS 不稳 ⇒ **偶发撞 2048 帧上限** ⇒ 一句拖 100 s
+          ⇒ 边车串行 ⇒ 后续句全堵（用户在 v1.5 上实测复现过两次）。
+
+        🔴 **口径**：离线朗读**不经过翻译** ⇒ 朗读的就是用户输入的原文
+          ⇒ 这里给的是**「翻译目标」下拉的当前值**（= 用户想用哪种语言念）
+          ⇒ 若下拉是「关闭」（`off`）⇒ 翻译目标不存在 ⇒ **返回 None**
+          ⇒ 不下传 ⇒ worker 兜底猜（**保持旧行为**）。
+        """
+        try:
+            key = self._cur_mt_target()
+        except Exception:
+            return None
+        if not key or key == 'off':
+            return None
+        return key
+
     def _offline_ensure_tts(self):
         """确保 TTS 已启动，返回 service（None = 起不来）。
 
@@ -3346,6 +3368,8 @@ class App:
                         self._offline_ensure_tts,
                         on_log=self._ui_log,
                         get_reason=self._offline_tts_reason,
+                        # 🔴🔴🔴 APP-030①：离线朗读也**显式下传目标语言**
+                        get_lang=self._offline_get_lang,
                         initial_dir=os.path.expanduser('~'))
         except Exception as e:
             self.var_tts_note.set(f'离线朗读打不开：{e}')

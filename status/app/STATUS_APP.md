@@ -1,12 +1,13 @@
 # STATUS_APP
-last_ack: APP-030
-更新时间: 2026-10-27 21:31
-当前任务: **§76 🔴 APP-030 交付闭环已入库（commit a9ed250 + push）** ⇒ ✅ **§75 代码侧 5 项子要求全完成**（APP-029/031/032 已读并按序执行）⇒ ✅ **APP-030① 目标语言显式下传**（`submit(lang=)` → synth 命令带 `lang` → worker 队列 5 元组 → `map_language()` → Chinese/English/Japanese/Korean；GUI 用 `_cur_mt_target()`（支持会话中途改下拉）、CLI 用 `mt.target`；`_guess_lang` 降级为兜底且**假名⇒ja / 谚文⇒ko**；`normalize_zh_numbers` **只在 Chinese**）⇒ ✅ **APP-030② 失控守卫三层**（① 引擎侧 `clamp_max_new_tokens = clamp(3×估计帧+36, 48, 2048)` 按切分段算；② CUDA 客户端 `got_sec > max(3×est, est+8 s)` ⇒ RUNAWAY ⇒ 停播 + 发 `cancel`（不行就杀并重启边车）；③ worker 侧**引擎无关**兜底 ⇒ NPU 同受保护；**边车不再用库默认 2048**（兜底 512），回报 `frames`/`end_reason`）⇒ ✅ **APP-030③ `_q_get` 超时返哨兵不抛**（`_TIMEOUT` 区分「暂时无消息」vs「边车已退出」）⇒ 15/60 s 看门狗**真正生效**、第 0 句不再丢 ⇒ ✅ **APP-030④ `_estimate_sec` 补假名/谚文** ⇒ ✅ **APP-030⑤ 可观测性**（逐句 `lang/lang_src/n_chars/est_frames/frames/end_reason/max_new_tokens` 进 `x.tts.jsonl`；切目标记一行；异常句落盘 `%LOCALAPPDATA%\...\tts_anomaly\` 最多 20 组）⇒ ✅ **APP-029 只做接口预留不集成**（`spk_update` 只接住记日志、断句继续用 R2T2）⇒ ✅ **验收 `app107` 42/42（仓库）+ 42/42（客户包）**（零推理/零 GPU/零 NPU，桩引擎 + `ast`/`exec`，含 **6 条反证**）⇒ ✅ **客户包定点同步 7/7 MATCH**（两轮：第一轮 7 文件 48 块；第二轮增量 1 块）⇒ 🔴 **本轮自查抓出并修复真实缺陷**（`start()` 等 ready 的判定被 `_TIMEOUT` 破坏 ⇒ 边车启动路径会崩；已修 + 新增 C6/C7/F6 三条判据）⇒ ⛔ **APP-030 实测验收全部未做**（机器锁被 TTS 活占 `pid 38316 exit=259` ⇒ 不抢不删；且**仓库内无 `quota.py`** ⇒ 不做 reviewer 指定的 MiniMax 回转写）⇒ ⛔ **APP-031 的 ②③ 未做**、⛔ **zip 未重打**（按 APP-031「合在一起重打一次包」）⇒ ⛔ **「日文失控已解决」不成立**、「用户听得到」仍不成立 ⇒ 🔴 **`last_ack` = APP-030**（=「代码侧已实现并有验收证据」；**实测验收仍未完成**）⇒ ✅ **§76 交付闭环**：commit `a9ed250`（12 文件 / +2777 −42，App-only，`CORRECTIONS_APP.md` **未入库**）⇒ push `7109c77..a9ed250`（普通 push）⇒ `HEAD == origin/main == a9ed250`（双向 0/0）⇒ ✅ **仓库 HEAD ⇄ 客户包 app/ 7/7 MATCH**⇒ 🔴 **zip 未重打 ⇒ 不写「已交付」**⇒ ✅ **机器锁已释放**（21:27 后 TTS 释放）⇒ 🔴 **但实测仍不启动**：① reviewer 指定的 `quota.py` **不存在**（3 层深度 + 仓库全量搜索 0 命中 ⇒ 属 reviewer 侧工具）② 缺 reviewer 确认的实测语料/口径 ⇒ 按 stop-node **停在「等 reviewer 复核」**
+last_ack: APP-032
+更新时间: 2026-10-27 22:54
+当前任务: **§77 🔴 APP-031/032 已执行 ＋ 补上 APP-030① 的一个真实遗漏（离线朗读未下传目标语言）＋ 客户包定点同步完成** ⇒ ✅ **巡检**（`CORRECTIONS_APP.md` 全文条目 APP-001…APP-032 = **32 条**；本轮开始时 `last_ack=APP-030` ⇒ 新条目 **APP-031 [HIGH]** / **APP-032 [NORMAL]**；🔴 **该文件只读、零改动、零提交**） ⇒ ✅ **本轮自查抓出并修复一个真实产品缺陷**：APP-030①「目标语言显式下传」**漏了离线朗读路径**（`offline_reader.py` 的 `svc.submit(...)` **不带 `lang`** ⇒ worker `msg.get('lang')` 为空 ⇒ 回落 `_guess_lang()`（只分 zh/en）⇒ **日文永远收不到 Japanese** ⇒ 正是「日文偶发卡住」的原始根因路径） ⇒ ✅ **已修 3 个文件**（`offline_reader.py` 加 `lang` 形参、`offline_reader_gui.py` 加 `get_lang` 接线、`live_caption_app.py` 加 `_offline_get_lang()`；🔴 **下拉为「关闭」⇒ 不下传 ⇒ 旧调用行为逐字不变**） ⇒ ✅ **验收 `app108` 18/18 PASS ×2 处**（仓库 + 客户包 v1.6；**零推理/零 GPU/零 NPU**，`ast`+`exec`+桩 service；含 **3 条反证**）⇒ ✅ **反证基线用固定 commit `a9ed250`** ⇒ 修复前 **11 FAIL** ⇒ 缺陷曾真实存在 ⇒ 判据**不是**「永远 PASS」 ⇒ ✅ **回归**（`app107` 42/42、`app105` 24/24、`app103` 29/29、`app098` 21/21、`app100` 28/28、**`app069` 37/37**（离线朗读自检 ⇒ 调用契约未破坏）） ⇒ ✅ **客户包定点同步 11 块唯一命中 + 幂等 3/3 ALREADY**（备份在包外 `pkg_backup_app_s72`） ⇒ ✅ **语料可执行化**（reviewer 的日文规格 ⇒ 29 句日文/10 中文/10 英文 ⇒ `shared/app030_ja_corpus.json`） ⇒ 🔴 **机器锁被外部进程占用**（`EXT-browser-probe 22332`；22:52:16 复查 `OpenProcess` handle=540/err=0 ⇒ `exit=259 STILL_ACTIVE` ⇒ **活锁** ⇒ **不抢不删**） ⇒ ⛔ **NPU A/B 实测脚本已写好但结果未落盘**（fail-closed 等锁） ⇒ ⛔ **CUDA 组客观做不了**（本机 torch `2.14.1+cpu`/`cuda=False`；包内 python 无 torch） ⇒ ⛔ **APP-028 不丢句实测未做**、⛔ **APP-027 的 V1–V3 未做** ⇒ ⛔ **zip 未重打**（APP-031 明文「三项做完后合在一起重打一次包」）⇒ **不写「已交付」** ⇒ ⛔ **未跑 MiniMax 回转写**（reviewer 侧 `quota.py` 仓库内 0 命中 ⇒ 不绕过、不自行调用） ⇒ ⛔ **「日文失控已解决」不成立**、⛔ **「用户听得到」仍不成立** ⇒ 🔴 **头部 `last_ack` = APP-032**（= **已执行完的最大 APP 编号**；🔴 **不表示** APP-030/028/027 的**实测验收**已完成）
 
-阻塞 / 待用户决定: ① 🔴🔴 **APP-030 [BLOCKING] 的实测验收需等 reviewer 复核** —— 代码侧 5 项子要求全部完成（`app107` 42/42 ×2 处），但 APP-030「### 4. 验收」的**实测**部分**全部未做**：A/B 根因证明（日文 ≥20 句 ×3 次 × CUDA/NPU）、中文/英文各 10 句回归、GUI 复现（丢句=0）、wav+json 交 reviewer、 CER 对比 ⇒ **不得宣称「日文卡住已解决」**；② ✅ **机器锁已于 21:27 释放**（§75.8 记录的 `module:tts / pid 38316 / exit=259 STILL_ACTIVE` 活锁已由 TTS 模块释放）⇒ **本项不再是阻塞**；但 🔴 **APP-030 实测仍未启动**（缺 reviewer 指定的 `quota.py` ＋ 缺实测语料/口径，见 ③）；③ 🔴 **reviewer 指定的 `quota.py` 在仓库内不存在**（`find . -name quota.py` 无结果）⇒ 「5 小时区间剩余 ≥20% 才做 MiniMax 回转写」这个**前置门无法执行** ⇒ **不绕过**（不自行调用 MiniMax）；④ ⛔ **APP-031 的 ② APP-028 不丢句实测 / ③ APP-027 的 V1–V3 未跑**（需机器锁）⇒ **zip 本轮不打**（APP-031 明文「三项做完后合在一起重打一次包」）⇒ **不写「已交付」**（§66 口径）；⑤ ⛔ **「用户听得到」仍不成立**（§63 L4 等用户实测：桌面快捷方式 → CUDA 朗读 → NPU 朗读 → 克隆音色 ⇒ 用户亲口确认前不得写「能出声」）；⑥ 🔴 **APP-028 的「已交付」口径仍闭环**（§73：代码 `HEAD`=`f727992` 已 push ＋ 包目录 ＋ zip 三处一致，5/5 全 MATCH）⇒ ✅ 可对外报「APP-028 代码侧已交付」，但「用户听得到」不成立；⑦ 🔴 **APP-028① 的「CUDA 不作默认」是定案**，要用 CUDA 必须**手动在 GUI 改**，界面**不得承诺「装一下就能用」**（OV 官方不带 CUDA plugin）；⑧ 🔴 **APP-029 [NORMAL] 已按其明文「现在不要集成」处理**（只做 `spk_update` 接口预留 + 文案口径，**不改合成行为**、不集成 pyannote 断句）⇒ **不认领集成**；⑨ 🔴 **§66 用户新口径仍生效**：不再跑 `verify_pkg_zip.py`、不再跑 `publish_ftp.py`、不开 FTP；⑩ 🔴 **`app104` 的 A1 判 `NO-EVIDENCE`（不是 PASS）**（本机无可用音色 ⇒ 不宣称通过、也不算缺陷、不得计入 PASS 数）；⑪ 🔴 **闸门可信度铁律**：判据里任何解析异常必须判 FAIL，绝不能默认 PASS；反证用 **AST 重建**（`ast.unparse`）而非字符串替换 ⇒ 已固化在 `app105` 与 `app107`；⑫ 🔴 **APP-022「按说话人切换音色」仍后置**、⑬ 🔴 **APP-024②③④ 仍未做**（reviewer 明文「不要自己改」）⇒ 保持原状；⑭ 🔴 **§57 历史遗留未跟踪文件**（`sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `sync_c111_*` / `diag_c111_*`）归属未判定 ⇒ 本轮**未提交**；⑮ 🔴 **普通 push 会连带推上他模块已提交的 commit**（`195b135` / `59ddd0d` = ASR §43/§44/§45）⇒ 本轮**逐文件 `git add`、不吞他模块文件**、**不用 `git add -A`**，但**已存在的 commit 无法拆分** ⇒ 如实记录
+阻塞 / 待用户决定: ① 🔴🔴 **APP-030 [BLOCKING] 的实测验收未完成** —— 代码侧 5 项子要求全部完成（`app107` 42/42 ×2 处）**且本轮补上了离线朗读路径的漏传**（§77.3），但 APP-030「### 4. 验收」的**实测**部分**仍未完成**：A/B 根因证明（日文 ≥20 句 ×3 次 × CUDA/NPU）、中文/英文各 10 句回归、GUI 复现（丢句=0）、wav+json 交 reviewer、CER 对比 ⇒ **不得宣称「日文卡住已解决」**；② 🔴🔴 **本轮 NPU A/B 实测被机器锁挡住**：锁被外部进程 `EXT-browser-probe`（PID 22332）持有，**ctypes 实测 `exit=259 STILL_ACTIVE` ⇒ 活锁** ⇒ 脚本按 fail-closed 等待、**不抢不删**⇒ **需等该进程释放锁**；③ 🔴 **CUDA 组客观不可执行**（本机 torch `2.14.1+cpu`、`cuda=False`；包内 python 无 torch）⇒ **需 reviewer 裁定在何环境执行 CUDA A/B**；④ 🔴 **reviewer 指定的 `quota.py` 在仓库内不存在**（`C:\Users\Trekker-PTL` 下 4 层深度 + 仓库 `results/` 全量搜索 ⇒ 0 命中）⇒ 「5 小时区间剩余 ≥20% 才做 MiniMax 回转写」这个**前置门无法执行** ⇒ **不绕过**（不自行调用 MiniMax）；⑤ ⛔ **APP-031 的 ② APP-028 不丢句实测 / ③ APP-027 的 V1–V3 未跑**（均需机器锁 + 用户启动方式 + SPE 前 5 分钟切片）⇒ **zip 本轮不打**（APP-031 明文「三项做完后合在一起重打一次包」）⇒ **不写「已交付」**（§66 口径）；⑥ ⛔ **「用户听得到」仍不成立**（§63 L4 等用户实测：桌面快捷方式 → CUDA 朗读 → NPU 朗读 → 克隆音色 ⇒ 用户亲口确认前不得写「能出声」）；⑦ 🔴 **APP-028 的「已交付」口径仍闭环**（§73：代码 `HEAD`=`f727992` 已 push ＋ 包目录 ＋ zip 三处一致，5/5 全 MATCH）⇒ ✅ 可对外报「APP-028 代码侧已交付」，但「用户听得到」不成立；⑧ 🔴 **APP-028① 的「CUDA 不作默认」是定案**，要用 CUDA 必须**手动在 GUI 改**，界面**不得承诺「装一下就能用」**（OV 官方不带 CUDA plugin）；⑨ 🔴 **APP-029 [NORMAL] 已按其明文「现在不要集成」处理**（只做 `spk_update` 接口预留 + 文案口径，**不改合成行为**、不集成 pyannote 断句）⇒ **不认领集成**；⑩ 🔴 **§66 用户新口径仍生效**：不再跑 `verify_pkg_zip.py`、不再跑 `publish_ftp.py`、不开 FTP；⑪ 🔴 **`app104` 的 A1 判 `NO-EVIDENCE`（不是 PASS）**（本机无可用音色 ⇒ 不宣称通过、也不算缺陷、不得计入 PASS 数）；⑫ 🔴 **闸门可信度铁律**：判据里任何解析异常必须判 FAIL，绝不能默认 PASS；反证用 **AST 重建**（`ast.unparse`）而非字符串替换 ⇒ 已固化在 `app105`/`app107`/`app108`；⑬ 🔴 **本轮自查抓出并修掉两处「验收脚本自身缺陷」**（`app108` B1 只查 `kwonlyargs` ⇒ 假 FAIL；反证块内 `import threading` 作用域 ⇒ NameError 假 FAIL）⇒ **闸门自身的假通过/假失败都算缺陷**；⑭ 🔴 **APP-022「按说话人切换音色」仍后置**、⑮ 🔴 **APP-024②③④ 仍未做**（reviewer 明文「不要自己改」）⇒ 保持原状；⑯ 🔴 **§57 历史遗留未跟踪文件**（`sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `sync_c111_*` / `diag_c111_*`）归属未判定 ⇒ 本轮**未提交**；⑰ 🔴 **普通 push 会连带推上他模块已提交的 commit** ⇒ 本轮**逐文件 `git add`、不吞他模块文件**、**不用 `git add -A`**，但**已存在的 commit 无法拆分** ⇒ 如实记录
 
 
 ## 最近更新
+22:54 §77 🔴🔴 **APP-031/032 已执行 + 补上 APP-030① 的一个真实遗漏（离线朗读未下传目标语言） + 客户包定点同步完成**：⇒ ✅ **巡检**（`CORRECTIONS_APP.md` 条目 APP-001…APP-032，共 32 条；开始时 `last_ack=APP-030` ⇒ 新条目 **APP-031 [HIGH]** / **APP-032 [NORMAL]**；**该文件只读、零改动**）⇒ ✅ **本轮自查抓出并修复一个真实产品缺陷**：APP-030①「目标语言显式下传」**漏了离线朗读路径**（`offline_reader.py` 的 `svc.submit(...)` **不带 `lang`** ⇒ worker 回落 `_guess_lang()`（只分 zh/en）⇒ **日文永远收不到 Japanese**）⇒ 已修 **3 个文件**（`offline_reader.py` 加 `lang` 形参 / `offline_reader_gui.py` 加 `get_lang` 接线 / `live_caption_app.py` 加 `_offline_get_lang()`，**下拉为「关闭」⇒ 不下传 ⇒ 旧行为逐字不变**）⇒ ✅ **验收 18/18 PASS ×2 处**（仓库 + 客户包；**零推理/零 GPU/零 NPU**，`ast`+`exec`+桩 service）⇒ ✅ **反证**（固定 commit `a9ed250` ⇒ 修复前 **11 FAIL** ⇒ 缺陷曾真实存在；反证用 **AST 重建**，源码修好后不静默失效）⇒ ✅ **回归**（`app107` 42/42、`app105` 24/24、`app103` 29/29、`app098` 21/21、`app100` 28/28、**`app069` 37/37**（离线朗读自检））⇒ ✅ **客户包定点同步 11 块唯一命中 + 幂等 3/3 ALREADY**（备份在包外 `C:\Users\Trekker-PTL\pkg_backup_app_s72`）⇒ ✅ **语料落盘**（reviewer 的日文规格可执行化：29 句日文 / 10 中文 / 10 英文 ⇒ `shared/app030_ja_corpus.json`）⇒ 🔴 **机器锁被外部进程占用**（`EXT-browser-probe 22332`，22:52:16 复查 `OpenProcess` handle=540/err=0 ⇒ `exit=259` ⇒ **活锁** ⇒ **不抢不删**）⇒ ⛔ **NPU A/B 实测脚本已写好但结果未落盘**（fail-closed 等锁）⇒ ⛔ **CUDA 组客观做不了**（本机 torch `2.14.1+cpu`、`cuda=False`，包内 python 无 torch）⇒ ⛔ **APP-028 不丢句实测 / APP-027 的 V1–V3 未做**、⛔ **zip 未重打**（APP-031 要求三项合打）⇒ ⛔ **「日文失控已解决」不成立**、⛔ **「用户听得到」仍不成立**、⛔ **未跑 MiniMax 回转写**（reviewer 侧 `quota.py` 仓库内 0 命中）⇒ 🔴 **头部 `last_ack` 更新为 APP-032**（= 已执行完的最大 APP 编号；**不表示** APP-030/028/027 实测已完成）
 21:31 §76 🔴 **APP-030 交付闭环已入库（commit `a9ed250` + push）**：✅ **commit `a9ed250`**（12 文件 / **+2777 −42**，App-only，`CORRECTIONS_APP.md` **未入库**（已用 `git show --name-only HEAD | grep CORRECTIONS` 核实 ⇒ 0 命中）⇒ **push `7109c77..a9ed250`**（**普通 push**，非 force）⇒ ✅ 复核 `HEAD == origin/main == a9ed250`、双向 **0/0**、仓库仍**只有 main** 分支）⇒ ✅ **三方复核：仓库 HEAD ⇄ 客户包 app/ 逐文件 LF SHA256 7/7 全 MATCH**（`tts_engine 3ec217a1…` / `tts_worker d0d73ffa…` / `tts_service 5d1965bc…` / `tts_cuda 00060bbe…` / `tts_cuda_sidecar aa0feeb5…` / `live_caption_app eb9e7dae…` / `translator c5ab5e07…`）⇒ 🔴 **客户包 zip 尚未重打** ⇒ 三方未闭环 ⇒ 按 §66 **不写「已交付」**（准确表述：**代码侧已入库并已同步到包目录；zip 未重打**）⇒ ✅ **机器锁已释放**（§75.8 记录的 `pid 38316` 活锁于 21:27 后由 TTS 模块释放）⇒ 🔴 **但实测仍不启动**：① **reviewer 指定的 `quota.py` 仍不存在**（`C:\Users\Trekker-PTL` 下 3 层深度 + 仓库 `results/app/` 全量搜索 `quota*.py` ⇒ **0 命中**⇒ 属 reviewer 侧工具、**不是 App 模块的文件**）② 缺 reviewer 确认的**实测语料/口径**⇒ 按 stop-node **停在「等 reviewer 复核」**⇒ ⛔ **未跑推理/测速**、⛔ **未跑 MiniMax 回转写**、⛔ **未跑 `verify_pkg_zip.py` / `publish_ftp.py` / 未开 FTP**、⛔ **未修改 `CORRECTIONS_APP.md`**、⛔ **未用 `git add -A`**（逐文件 add，不吞他模块文件）⇒ ⛔ **「日文失控已解决」仍不成立**（实测未做）、⛔ **「用户听得到」仍不成立**
 21:26 §75 🔴🔴 **APP-030（日文失控）代码侧全部完成 + 客户包定点同步完成**：✅ **APP-030① 目标语言显式下传**（`submit(lang=)` → synth 命令带 `lang` → worker 5 元组 → `map_language()` → Chinese/English/Japanese/Korean；GUI `_cur_mt_target()` / CLI `mt.target`；`_guess_lang` 降级兜底且**假名⇒ja / 谚文⇒ko**；`normalize_zh_numbers` **只在 Chinese** ⇒ 日文数字不再被中文化）⇒ ✅ **APP-030② 失控守卫三层**（① 引擎侧 `clamp_max_new_tokens = clamp(3×估计帧+36, 48, 2048)` **按切分段**算；② CUDA 客户端 `got_sec > max(3×est, est+8 s)` ⇒ RUNAWAY ⇒ 停播 + 发 `cancel`（不行就杀并重启边车）；③ worker 侧**引擎无关**兜底 ⇒ **NPU 同受保护**；**边车不再用库默认 2048**（兜底 512）⇒ 回报 `frames`/`end_reason`）⇒ ✅ **APP-030③ `_q_get` 超时返哨兵不抛**（`_TIMEOUT` 区分「暂时没消息」vs「边车已退出」）⇒ **15/60 s 看门狗真正生效、第 0 句不再丢**⇒ ✅ **APP-030④ `_estimate_sec` 补假名/谚文**⇒ ✅ **APP-030⑤ 可观测性**（逐句 `lang/lang_src/n_chars/est_frames/frames/end_reason/max_new_tokens` 进 `x.tts.jsonl`；切目标记一行；异常句落盘 `%LOCALAPPDATA%\...\tts_anomaly\` 最多 20 组）⇒ ✅ **APP-029 只做接口预留不集成**（`spk_update` 只接住记日志、断句继续用 R2T2）⇒ ✅ **验收 `app107` 42/42（仓库）+ 42/42（客户包）**（零推理/零 GPU/零 NPU，桩引擎 + `ast`/`exec`，含 **6 条反证**）⇒ ✅ **客户包定点同步 7/7 MATCH**（两轮：7 文件 48 块 + 增量 1 块；脚本升级为**三级基线选择**，原脚本**正确拒绝**了增量同步）⇒ 🔴 **本轮自查抓出并修复真实缺陷**（`start()` 等 ready 的判定被 `_TIMEOUT` 破坏 ⇒ 边车启动路径会崩；已修 + 新增 C6/C7/F6）⇒ ✅ **回归全绿**（`app103` 29/29、`app105` 24/24、`app102` 27/27、`app098` 21/21、`app100` 28/28、`app069` 37/37、`app097` 20/20；**必须用 Python 3.12**，managed 3.13 无 numpy）⇒ ⛔ **APP-030 实测验收全部未做**（机器锁被 TTS 活占 `pid 38316 exit=259` ⇒ **不抢不删**；且**仓库内无 `quota.py`** ⇒ 不做 reviewer 指定的 MiniMax 回转写）⇒ ⛔ **APP-031 的 ②③ 未做**、⛔ **zip 未重打**（APP-031 明文「合在一起重打一次包」）⇒ ⛔ **「日文失控已解决」不成立**、「用户听得到」仍不成立⇒ 🔴 `last_ack` = **APP-030**
 17:15 §74 🔴 **客户包版本升级 v1.5 → v1.6 完成**：✅ **版本单一数据源** `pack_v13.PKG_VERSION` `'1.5'→'1.6'`（+ 新增 `V16_APP_NOTE` 四条修订说明，编号 **13~16**，避开了 MANIFEST 已占用的 11/12）⇒ ✅ **两个验收脚本的版本判据参数化**（`app014b_v15_preship_check.py` 12+ 处、`app014b_verify_v15_zip.py` 1 处写死 `'1.5'` ⇒ 升版必报**假 FAIL**）⇒ 改为用 `ast` 抽 `pack_v13.PKG_VERSION` 字面量（**不 import** 其执行逻辑；读不到就抛异常）；**保留** v1.5/v1.4 的历史判据（「历史可追溯」）⇒ ✅ **V1.6 目录**（robocopy **14 257 文件 / 12.735 GB / 失败 0 / 30 s**）⇒ ✅ **版本标识定点升级**（新建 `app106_upgrade_pkg_to_v16.py`，**7/7 唯一命中**：README_zh/en 标题 + `## v1.6` 段 + 首段简介 + **NOTICE 自称 v1.4 的历史错标纠正为 v1.6**）⇒ ✅ **该脚本的幂等缺陷已自测抓出并修**（「插入 v1.6 段」的旧串 `## v1.5 改动说明` **插入后仍存在** ⇒ 重跑会**再插一份** ⇒ 加 **guard** ⇒ 修后 **7/7 幂等**）⇒ ✅ **包内代码 22/22 == 仓库 HEAD** ⇒ ✅ **打包前自检 PASS 51 / FAIL 5**（5 项 FAIL 是**打包前预期态**：MANIFEST version/notes 由 `refresh_manifest` 在打包时写）⇒ ✅ **持锁重打 zip**（`app-pack` PID 30008 / 16:56:44；安静窗口 45 s 通过；压缩 **676 s**；`testzip()` OK；**14 199 文件逐字节一致**；原子改名）⇒ zip **11 218 089 559 B / mtime 17:09 / SHA256 `aedb8bd1…9d06`** ⇒ ✅ **只读本地复核 20/20**（新建 `app106_v16_zip_readonly_check.py`；**四路 22/22 全 MATCH**；`zip ⇄ 包目录 .py diff = 0`；**未跑** `verify_pkg_zip.py` / **未跑** `publish_ftp.py` / **未开 FTP**）⇒ 🔴 **该复核脚本第一版的分母口径缺陷已自测抓出并修**（23 个 `.py` 里 `_probe_tts_cuda.py` 被 `pkg_exclude` 排除出 zip ⇒ 分母多算 ⇒ **假 FAIL**；改按实际参与比对集合计分母）⇒ ⛔ **未改任何生产代码**、⛔ **未跑推理**、⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ 🔴 `last_ack` = **APP-028**
@@ -13087,3 +13088,212 @@ APP-030 的**实测验收**与 APP-031 的 ②③ 仍是**未完成项**，本�
 | 新增文件（3） | `live_caption/sync_s71_app030_to_pkg.py`（12 682 B / mtime 21:24:17 / SHA256 `f5221896384154a0…`）、`results/app/app107_app030_lang_runaway.py`（31 592 B / mtime 21:24:51 / SHA256 `e69ab5b625d0064d…`）、`results/app/app107_app030_lang_runaway_evidence.json`（4 388 B / mtime 21:24:54 / SHA256 `73f65f257bdba4ba…`）、`results/app/app107_pkg_evidence.json`（4 384 B / mtime 21:24:56 / SHA256 `15a9c540d9643411…`） |
 | `status/app/STATUS_APP.md` | 新增 §75（17 652 字符）+ §76；头部 `last_ack: APP-030` / `更新时间: 2026-10-27 21:26`（§76 后见文件头） |
 | 包外备份 | `C:\Users\Trekker-PTL\pkg_backup_app_s71` |
+## §77 🔴🔴 **APP-031/032 已执行 ＋ 补上 APP-030① 的一个真实遗漏（离线朗读未下传目标语言）** ＋ 客户包定点同步完成（2026-10-27 22:58）
+
+> 本节是 **§76 的续篇**。§75/§76 的结论**不撤回**。
+> ⚠️ **`status/app/CORRECTIONS_APP.md` 仍未入库**（reviewer 独占文件，工作区保留其改动）。
+
+### 77.1 巡检结果：**新增 2 条纠偏条目**（APP-031 / APP-032）
+
+| 项 | 值 |
+|---|---|
+| `CORRECTIONS_APP.md` 全文条目 | `## APP-001` … `## APP-032`（**32 条**，最大 **APP-032**） |
+| `STATUS_APP.md` 头部 `last_ack`（本轮开始时） | **APP-030** |
+| ⇒ **新条目** | **APP-031 [HIGH]**（优先级提醒）、**APP-032 [NORMAL]**（RESUME，额度已重置） |
+| 该文件本轮 | 🔴 **只读、零改动**（未修改、未提交） |
+
+### 77.2 APP-031 / APP-032 的**顺序纪律**（本轮执行）
+
+APP-031 明文要求的三项顺序：**① APP-030（日文失控）→ ② APP-028 不丢句实测 → ③ APP-027 的 V1–V3**，
+且「**三项做完后合在一起重打一次包，不要每项都单独打包**」。
+
+| 顺序项 | 本轮状态 | 说明 |
+|---|---|---|
+| ① **APP-030** | 🔴 **代码侧已完成**（§75/§76）+ 🔴 **本轮补上一个真实遗漏**（见 77.3）⇒ **实测验收本轮启动但未完成** | 见 77.7 |
+| ② **APP-028 不丢句实测** | ⛔ **未做** | 需机器锁 + 真实推理；本轮锁被外部进程反复占用 |
+| ③ **APP-027 的 V1–V3** | ⛔ **未做** | 同上；且 APP-031 要求与 ② 合并做 |
+| 重打包 | ⛔ **未打** | 守 APP-031「合在一起重打一次包」⇒ **本轮不单独打包** |
+
+🔴 **APP-031/032 的最后一行要求**「开始时写 `last_ack=APP-030` 和一行最近更新」⇒ **已满足**
+（§75 已把 `last_ack` 置为 **APP-030**，并写了最近更新行）。
+⇒ 🔴 **本节结束时按用户规则把头部 `last_ack` 更新为「已执行完的最大 APP 编号」= `APP-032`**
+（**不是** APP-030）。**口径说明**：`last_ack=APP-032` 表示 **APP-031 / APP-032 两条纠偏条目已逐条读过并按序执行**，
+**不表示** APP-030/028/027 的**实测验收**已完成 —— 实测状态见 77.2 与 77.8，**未完成的绝不宣称完成**。
+
+### 77.3 🔴🔴 **本轮发现并修复的真实缺陷：APP-030① 在「离线朗读」路径上被漏掉了**
+
+**根因（代码级，reviewer 未点名，属本模块自查发现）**：
+APP-030① 要求「**目标语言显式下传**」。§75 已实现的部分覆盖了
+**实时路径**（`live_caption_app.py` 的 `_pump_tts()` 与 CLI 两处 `tts.submit(..., lang=...)`）
+与 **CLI 路径**（`mt.target`）。
+
+🔴 **但离线朗读路径漏了**：
+
+| 位置 | 改造前（`a9ed250`） | 后果 |
+|---|---|---|
+| `live_caption/offline_reader.py` L523 | `self.svc.submit(self.segs[i], seg=self.seg_base - i)` —— **不带 `lang`** | worker 侧 `msg.get('lang')` 为空 ⇒ 回落到 `_guess_lang()` ⇒ **只分 zh/en** ⇒ **日文永远收不到 Japanese** |
+| `live_caption/offline_reader_gui.py` | 对话框**无** `get_lang` 回调 | 无法把目标语言传到 `OfflineReader` |
+| `live_caption/live_caption_app.py` | **无** `_offline_get_lang()` | 同上 |
+
+⇒ 🔴 **这正是 APP-030 的原始根因路径**（「日文发音偶发卡住」）：
+判 en ⇒ 用 English 语言 token 读假名 ⇒ 分布外 ⇒ EOS 不稳 ⇒ **偶发撞 2048 帧上限**
+⇒ 一句拖约 106 s ⇒ 边车串行 ⇒ 后续句全部排队堵住 1–2 分钟（reviewer 的原始实测）。
+⇒ 🔴 **这条路径恰好是用户复现卡住最常走的那条**（离线朗读对话框，APP-021/025 的现场）。
+
+**修法（3 个文件，77.4 列出）**：
+① `offline_reader.py`：`OfflineReader.__init__` 新增 `lang` 关键字参数；
+   `_loop()` 在 `lang` 有值时传 `svc.submit(..., lang=...)`
+   ⇒ 🔴 **不传时命令体与改造前逐字一致**（向后兼容 ⇒ 旧假 service 不炸）。
+② `offline_reader_gui.py`：对话框新增 `get_lang` 回调 + `_cur_lang()`；
+   创建 `OfflineReader` 时传 `lang=self._cur_lang()`；`open_dialog()` 接受并转发 `get_lang`。
+③ `live_caption_app.py`：新增 `_offline_get_lang()`
+   （取「翻译目标」下拉的当前值；**下拉为「关闭」⇒ 返回 `None` ⇒ 不下传** ⇒ 保持旧行为）
+   并在 `open_dialog(...)` 里传 `get_lang=self._offline_get_lang`。
+
+🔴 **口径说明**：离线朗读**不经过翻译** ⇒ 朗读的就是用户输入的原文
+⇒ 目标语言 = **「翻译目标」下拉的当前值**（用户想用哪种语言念）
+⇒ 这与实时路径「MT 目标语言 = 译文语言」**语义不同**，已在代码注释里写明。
+
+### 77.4 ✅ 验收：`results/app/app108_offline_reader_lang.py`（**18/18 PASS** ×2 处）
+
+🔴 **零推理、零 GPU、零 NPU**（铁律）⇒ 全部 `ast` 抽源码 + `exec` 独立命名空间 + **桩 service**。
+
+| 处 | 判据 | 结果 | 证据 |
+|---|---|---|---|
+| **仓库** `live_caption/` | **18** | **0** | `results/app/app108_offline_reader_lang_evidence.json` |
+| **客户包** `app/`（v1.6） | **18** | **0** | `results/app/app108_pkg_evidence.json` |
+
+**分组**：A 组（`OfflineReader` 显式下传 `lang`）5 项、B 组（GUI 接线）8 项、
+C 组（APP-031/032 顺序纪律：未集成 pyannote + APP-030 五项子要求未被改坏）2 项、
+F 组（**反证**）3 项。
+
+🔴 **反证基线用「固定 commit SHA」`a9ed250`**（= §76 的交付 commit，即**修复前**）
+⇒ 实测**修复前 11 项 FAIL**（A1/A2/A3/A4 + B1/B2/B3/B4/B5/B6/B7）⇒ **缺陷曾经真实存在**；
+⇒ 修复后**同一套判据 18/18 PASS** ⇒ 判据**不是**「永远 PASS」。
+⇒ ⚠️ 反证用 **AST 重建**（`ast.unparse`）而非字符串替换 ⇒ 源码修好后反证**不会静默失效**。
+
+🔴 **本轮自查抓出并修掉的两处「验收脚本自身缺陷」（不是产品缺陷）**：
+① B1 只查 `kwonlyargs` ⇒ `get_lang` 是**位置或关键字**参数 ⇒ 报**假 FAIL** ⇒ 改为两个列表都查；
+② `import threading as _th` 写在 A4 块内、A5 块外使用 ⇒ 反证基线跑到 A5 时 `NameError`
+⇒ 该项**假 FAIL** ⇒ 改为模块级 `import threading`。
+⇒ 🔴 **教训**：闸门自身的假通过/假失败都算缺陷；**判据必须与被测代码的形态一致**。
+
+**回归（既有套件全部未受影响，Python 3.12）**：
+`app107` 42/42、`app105` 24/24、`app103` 29/29、`app098` 21/21、`app100` 28/28、
+🔴 **`app069` 37/37**（**离线朗读自检**，含旧式假 service ⇒ 我的改动没破坏它的调用契约）。
+
+### 77.5 ✅ 客户包定点同步（**11 块唯一命中** + 幂等）
+
+🔴 **纪律**：仓库 `live_caption/` 与客户包 `app/` 是**两份独立副本**
+⇒ **禁止整目录覆盖** ⇒ 用 `live_caption/sync_s72_offline_lang_to_pkg.py`
+（**从 git 自动派生替换块** + `difflib.get_grouped_opcodes(n=3)` + **唯一命中断言**
++ 写盘前与仓库版**逐字一致**校验 + 备份**在包外** + 幂等）。
+
+| 文件 | 基线 | 结果 | SHA256（前 16） | 字节 |
+|---|---|---|---|---|
+| `app/offline_reader.py` | `a9ed250` | **SYNCED 2 块** | `f25bc9c0dc4f3ee1` → **`94e0c839d05c2fe5`** | 23 976 → **25 316** |
+| `app/offline_reader_gui.py` | `a9ed250` | **SYNCED 7 块** | `a3df2d46f9512b73` → **`4710a5f21766fa48`** | 24 973 → **26 770** |
+| `app/live_caption_app.py` | `a9ed250` | **SYNCED 2 块** | `eb9e7daeec1dff97` → **`6d5c862c7ae8df47`** | 232 030 → **233 332** |
+
+⇒ ✅ **幂等复跑 3/3 `ALREADY`**（无重复写入）。
+⇒ ✅ **备份目录（包外）** `C:\Users\Trekker-PTL\pkg_backup_app_s72`。
+⇒ ✅ **客户包内那份单独跑同一套断言 18/18 PASS**（不只测仓库版）。
+⇒ 🔴 **本轮改动尚未入库 ⇒ 「仓库 HEAD ⇄ 包目录」对这 3 个文件必然 DIFF**
+⇒ 正确口径 = **「工作区 ⇄ 包目录」一致**（已在同步脚本内由「写盘前逐字一致」保证）；
+待提交后需**重跑一次 HEAD ⇄ 包目录**复核。
+
+### 77.6 ✅ 语料准备（reviewer 明文规格，**实测前置**）
+
+reviewer 的 APP-030 验收要求「**≥20 句日文测试句**（≥5 句 ≤8 字纯假名短句；
+≥4 句含数字/日期/百分比；≥4 句片假名长词；≥3 句 ≥60 字长句，其中 1 句无标点；
+≥3 句混英文缩写如 CPU/AI）」。
+
+🔴 **本轮把这份规格落成了可执行产物**：`results/app/app108_ja_corpus.py`
+⇒ 语料 JSON 落盘到 **`shared/app030_ja_corpus.json`**（APP-026 规定各模块共用同一份素材；
+回放产物写仓库外，APP-005①；**自造句** ⇒ 不含任何会议内容 ⇒ 不触发内部素材闸门）。
+
+**实测统计（脚本自算，非人工声称）**：
+
+| 项 | reviewer 要求 | 实测 |
+|---|---|---|
+| 日文总句数 | ≥20 | **29** |
+| ≤8 字纯假名短句 | ≥5 | **6** |
+| 含数字/日期/百分比 | ≥4 | **7** |
+| 片假名长词 | ≥4 | **18** |
+| ≥60 字长句 | ≥3 | **4** |
+| 其中**无标点**长句 | 1 | **1** ✅ |
+| 混英文缩写（CPU/AI/API/NPU/VRAM/FP16/INT8） | ≥3 | **5** |
+| 中文回归句 | 10 | **10** |
+| 英文回归句 | 10 | **10** |
+
+🔴 **为什么必须专门造「短的纯假名句」**：reviewer 的原始实测里
+「id=65 只有 7 字」⇒ 判 en ⇒ 分布外 ⇒ 撞 2048 帧上限
+⇒ **短纯假名句是原缺陷的高发区** ⇒ 没有它就复现不了根因。
+
+### 77.7 🔴 机器锁与实测状态（**本节最关键的事实**）
+
+**锁的三次状态变化（全部用 ctypes `OpenProcess` + `GetExitCodeProcess` 实测，未手写 `tasklist /FI`）**：
+
+| 时刻 | 锁内容 | 判定 | 动作 |
+|---|---|---|---|
+| 22:33 | `EXT-browser-probe 25652 2026-10-27 22:32:09` | `OpenProcess` handle=356 / err=0 ⇒ `GetExitCodeProcess` **exit=259** ⇒ **活锁** | 🔴 **不抢不删** |
+| 22:40 | 同上 | 🔴 **`get_last_error()` 返回 0 是陷阱**（ctypes 默认不保留 last error）⇒ 改用 `WinDLL('kernel32', use_last_error=True)` + `restype=HANDLE` 后实测 **handle=None / err=87**（`ERROR_INVALID_PARAMETER` ⇒ PID 确定不存在）⇒ **孤儿锁** | ✅ **回收**（删除前已确认 err=87） |
+| 22:47 | `EXT-browser-probe 22332 2026-10-27 22:47:19` | 又被**外部进程**占用（PID 已变）⇒ **22:52:16 复查**：`OpenProcess` **handle=540 / err=0** ⇒ `GetExitCodeProcess` **exit=259 STILL_ACTIVE** ⇒ **活锁** | 🔴 **不抢不删**；我的实测脚本 fail-closed 等待中 |
+
+🔴🔴 **本轮踩到并修掉的一个「判活脚本自身的坑」**：
+`ctypes` 若用 `restype = wintypes.HANDLE`，则 **NULL 句柄返回的是 `None` 而不是 `0`**
+⇒ `if h == 0:` **恒为假** ⇒ 会**误走「已死」分支** ⇒ **可能误删活锁**。
+⇒ ✅ 必须写成 `if not h:`。
+⇒ 📌 **实测记录**：第一次用 `ctypes.windll.kernel32`（`restype` 未设）⇒ `h` 返回 `0`（int）
+⇒ `h == 0` 成立 ⇒ 打印 `err=0` ⇒ **未删除**（err≠87 ⇒ 判为「探测失败 ⇒ 视为存活」）；
+第二次改用 `use_last_error=True` + `restype=HANDLE` ⇒ `h` 返回 `None` ⇒ `h == 0` **为假**
+⇒ **误走「已死」分支**（打印 exitcode=0 ⇒ STILL_ACTIVE）⇒ **幸未删锁**；
+第三次改成 `if not h:` 才得到正确判定（err=87 ⇒ 孤儿锁 ⇒ 回收）。
+⇒ 📌 **教训**：判活必须用 `if not h:`（`None` 与 `0` 都要当空），且 `err==87` 才算「确定不存在」。
+
+**实测脚本**：`results/app/app108_npu_ab.py`（NPU 上跑 A/B：改前 `English` vs 改后 `Japanese`，
+逐句记 `lang/字数/估计帧/实际帧/结束原因/音频秒/s 每字/是否挂起`；
+判据 = **改后撞上限=0 且挂起=0**；改前的撞上限次数**如实报告**（证明根因））。
+🔴 脚本**自己取锁**（`machine_lock_app.acquire`）⇒ **拿不到锁就退出，绝不在无锁下跑推理**；
+并**先等安静窗口**（`wait_quiet_window_cpu`，区分「在等锁」与「在算」）⇒ 没有安静窗口也退出。
+
+**环境盘点（实测，只读）**：
+
+| 后端 | 可用性 | 依据 |
+|---|---|---|
+| **NPU**（babelvox） | ✅ **可用**（只有**客户包 python** 有 babelvox） | `Confucius4_LiveCaption_v1.6/python/python.exe -c "import babelvox"` ⇒ OK；dev `.venv` ⇒ `ModuleNotFoundError` |
+| **CUDA** | 🔴 **本机不可用** | dev `.venv` 的 torch = **`2.14.1+cpu`、`torch.cuda.is_available()=False`**；**包内 python 无 torch** ⇒ 与 §46.5 记录一致 |
+| NPU 设备 | ✅ `['CPU', 'GPU.0', 'GPU.1', 'NPU']` | `ov.Core().available_devices` |
+
+⇒ 🔴 **本轮只能做 NPU 实测；CUDA 那组客观上做不了**（本机没有 CUDA 运行时）
+⇒ **如实记录，不假装做过** ⇒ **CUDA 组的 A/B 仍需 reviewer 裁定在何环境执行**。
+
+### 77.8 ⛔ 本节明确**没有**做的事（不宣称）
+
+- ⛔ **APP-030 的实测验收未完成**：A/B 根因证明（NPU 组）**脚本已写好但结果未落盘**；
+  **CUDA 组做不了**（无 CUDA 运行时）⇒ **不得宣称「日文失控已解决」**。
+- ⛔ **APP-028 的不丢句实测未做**；⛔ **APP-027 的 V1–V3 未做**。
+- ⛔ **未跑 MiniMax 回转写**（reviewer 指定的 `quota.py` 在仓库内**确实不存在**：
+  `C:\Users\Trekker-PTL` 下 4 层深度 + 仓库 `results/` 全量搜索 ⇒ **0 命中** ⇒ 属 reviewer 侧工具；
+  且 reviewer 明文「不足就推迟，**不阻塞其余验收**」⇒ 本轮**不绕过**、**不自行调用 MiniMax**）。
+- ⛔ **客户包 zip 未重打** ⇒ 按 §66 口径**不写「已交付」**（APP-031 要求三项做完合在一起打）。
+- ⛔ **未跑 `verify_pkg_zip.py` / 未跑 `publish_ftp.py` / 未开 FTP**（§66）。
+- ⛔ **未修改、未提交 `status/app/CORRECTIONS_APP.md`**。
+- ⛔ **未提交他模块的未提交改动**；**未用 `git add -A`**（逐文件 add）。
+- ⛔ **「日文失控已解决」仍不成立**（实测未完成）；⛔ **「用户听得到」仍不成立**（§63 L4 等用户实听）。
+
+### 77.9 本节产物清单
+
+| 文件 | 字节 | 说明 |
+|---|---|---|
+| `live_caption/offline_reader.py` | 25 316 | `OfflineReader` 支持 `lang` |
+| `live_caption/offline_reader_gui.py` | 26 770 | 对话框 `get_lang` 接线 |
+| `live_caption/live_caption_app.py` | 233 332 | `_offline_get_lang()` + `open_dialog(get_lang=)` |
+| `live_caption/sync_s72_offline_lang_to_pkg.py` | 新增 | 定点同步脚本（派生自 s71） |
+| `results/app/app108_offline_reader_lang.py` | 新增 | 验收脚本（18 判据 + 3 反证） |
+| `results/app/app108_offline_reader_lang_evidence.json` | 新增 | 仓库侧证据 |
+| `results/app/app108_pkg_evidence.json` | 新增 | 客户包侧证据 |
+| `results/app/app108_ja_corpus.py` | 新增 | 日文/中文/英文语料（规格可执行化） |
+| `results/app/app108_npu_ab.py` | 新增 | NPU A/B 实测驱动器（自取锁） |
+| `shared/app030_ja_corpus.json` | 新增 | 语料落盘（仓库外，各模块共用） |
+| 包外备份 | `C:\Users\Trekker-PTL\pkg_backup_app_s72` | 同步前 3 文件副本 |

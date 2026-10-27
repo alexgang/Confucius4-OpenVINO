@@ -1,0 +1,46 @@
+{
+  "_src_root": "C:\\Users\\Trekker-PTL\\confucius4-openvino",
+  "_subdir": "live_caption",
+  "A3_submit_kwargs": [
+    [
+      "seg",
+      "lang"
+    ],
+    [
+      "seg"
+    ]
+  ],
+  "A4_detail": "calls=[('これはテストです。', -1000000, {'lang': 'ja'})] / 无lang=[('こんにちは', -1000000, {})]",
+  "C2_items": [
+    [
+      "map_language 在 tts_engine.py",
+      true
+    ],
+    [
+      "clamp_max_new_tokens 在 tts_engine.py",
+      true
+    ],
+    [
+      "RUNAWAY 在 tts_cuda.py",
+      true
+    ],
+    [
+      "worker 侧 end_reason 遥测",
+      true
+    ],
+    [
+      "submit 支持 lang 参数",
+      true
+    ]
+  ],
+  "F1_detected": true,
+  "F2_detected": true,
+  "F3_detected": true,
+  "summary": {
+    "pass": 18,
+    "fail": 0,
+    "failures": [],
+    "ts": "2026-10-27 22:38:43",
+    "note": "零推理、零 GPU、零 NPU（ast/exec + 桩 service）"
+  }
+}

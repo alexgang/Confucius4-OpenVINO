@@ -54,7 +54,7 @@ class OfflineReaderDialog(tk.Toplevel):
     POLL_MS = 300
 
     def __init__(self, master, get_svc, ensure_svc, on_log=None,
-                 initial_dir=None, get_reason=None):
+                 initial_dir=None, get_reason=None, get_lang=None):
         super().__init__(master)
         self.title('离线朗读 — 文件 / 文本 → 语音播报')
         self.geometry('920x660')
@@ -66,6 +66,13 @@ class OfflineReaderDialog(tk.Toplevel):
         # 🔴 §52：故障原因提供者 —— 返回 `(last_error, 日志尾巴)`。
         #    没有它，界面只能说「TTS worker 故障（error）」，用户无从下手。
         self._get_reason = get_reason or (lambda: (None, []))
+        # 🔴🔴🔴 APP-030①（**本轮补的真实遗漏**）：**目标语言**提供者。
+        #   离线朗读**不经过 ASR/MT** ⇒ 译文 = 用户输入的原文
+        #   ⇒ 目标语言必须由调用方**显式**给（GUI 用「翻译目标」下拉的当前值）
+        #   ⇒ 否则 worker 只能靠 `_guess_lang()` 猜（只分 zh/en）
+        #   ⇒ **日文永远收不到 Japanese** ⇒ 正是 APP-030 的原始根因路径。
+        #   ⚠️ `None` ⇒ 不下传 ⇒ 保持旧行为（向后兼容）。
+        self._get_lang = get_lang or (lambda: None)
         self._reader = None
         self._last_dir = initial_dir or os.path.expanduser('~')
         self._src_info = ''            # 文件解析信息（用于状态栏）
@@ -223,6 +230,23 @@ class OfflineReaderDialog(tk.Toplevel):
             s += '\n最近日志：' + ' | '.join(t.strip() for t in tail[-4:])
         return s
 
+    def _cur_lang(self):
+        """当前**目标语言**（'ja'/'en'/'zh'/'ko'），供 APP-030① 显式下传。
+
+        🔴 **语义**（与实时路径不同）：
+          - 实时路径：`lang` = **MT 的目标语言**（译文语言）⇒ 由 `_cur_mt_target()` 给。
+          - 离线朗读：**不经过翻译** ⇒ 朗读的就是用户输入的原文
+            ⇒ 目标语言 = **用户想让 TTS 用什么语言念这段文字**。
+        ⚠️ 取不到（`get_lang` 未接 / 抛异常）⇒ 返回 `None`
+          ⇒ 不下传 ⇒ worker 兜底猜（**保持旧行为**，不引入回退风险）。
+        """
+        try:
+            v = self._get_lang()
+        except Exception:
+            return None
+        s = (v or '').strip().lower()
+        return s or None
+
     def _start(self):
         if self._running():
             return
@@ -254,7 +278,9 @@ class OfflineReaderDialog(tk.Toplevel):
             return
 
         self._reader = OR.OfflineReader(
-            svc, on_log=lambda m: self._on_log(f'[offline] {m}'))
+            svc, on_log=lambda m: self._on_log(f'[offline] {m}'),
+            # 🔴🔴🔴 APP-030①：显式下传目标语言（'ja'/'en'/'zh'/'ko'）
+            lang=self._cur_lang())
         # 🔴 APP-021⑥：勾了「同时保存 wav」⇒ 告诉 worker 落盘目录
         self._apply_dump_dir()
         n = self._reader.start(segs)
@@ -494,7 +520,7 @@ class OfflineReaderDialog(tk.Toplevel):
 
 
 def open_dialog(master, get_svc, ensure_svc, on_log=None, initial_dir=None,
-                get_reason=None):
+                get_reason=None, get_lang=None):
     """打开（或聚焦已打开的）离线朗读对话框。"""
     win = getattr(master, '_offline_dlg', None)
     if win is not None:
@@ -505,6 +531,9 @@ def open_dialog(master, get_svc, ensure_svc, on_log=None, initial_dir=None,
                 win._ensure_svc = ensure_svc
                 if get_reason is not None:
                     win._get_reason = get_reason
+                # 🔴🔴🔴 APP-030①：语言回调也要刷新（用户可能中途改了目标语言）
+                if get_lang is not None:
+                    win._get_lang = get_lang
                 win.deiconify()
                 win.lift()
                 win.focus_force()
@@ -512,6 +541,7 @@ def open_dialog(master, get_svc, ensure_svc, on_log=None, initial_dir=None,
         except Exception:
             pass
     win = OfflineReaderDialog(master, get_svc, ensure_svc, on_log=on_log,
-                              initial_dir=initial_dir, get_reason=get_reason)
+                              initial_dir=initial_dir, get_reason=get_reason,
+                              get_lang=get_lang)
     master._offline_dlg = win
     return win
