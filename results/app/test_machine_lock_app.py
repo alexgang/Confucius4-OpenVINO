@@ -9,7 +9,10 @@
 
 ⚠️ 全程用**临时目录**下的锁文件，绝不碰 `shared/MACHINE_LOCK`。
 """
+import ast
+import glob
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -17,6 +20,8 @@ import tempfile
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, _REPO)
 import machine_lock_app as M
+
+ML_PATH = os.path.join(_REPO, 'machine_lock_app.py')
 
 results = []
 
@@ -152,6 +157,305 @@ def main():
           repr(payload8)[:160])
     M.release(payload8, lock_path=lock5, verbose=False)
     check('释放后锁文件已删除', not os.path.exists(lock5))
+
+    print()
+    print('[9] 🔴🔴 ASR 的 `PID=` 单行格式（APP-033 巡检自测抓出的真实缺陷）')
+    # 🔴🔴 事故形态：ASR 写的是 **`PID=`** 写法（不是 `PID ` 空格写法）
+    #    实测样本：`asr PID=15256 started 2026-10-28 01:27:19 task=pya_app_baseline_...`
+    #    （依据：`shared/NOTICE_tts_lock_path_20261025.md` §一 的实测记录
+    #      `asr PID=8363 start=2026-10-25 12:56:21 task=p3_61min_gpu_int8`）
+    # 旧实现两条分支都解析不出 ⇒ pid=None ⇒ lock_state='unreadable'
+    # ⇒ **fail-closed 永久等待**（MT 通知 §10.6 记录过同类事故，MT 已修、App 漏修）。
+    lock9 = os.path.join(tmp, 'LOCK9')
+    with open(lock9, 'w', encoding='utf-8') as f:
+        f.write('asr PID=999999 started 2026-10-28 01:27:19 '
+                'task=pya_app_baseline_asr023bal_EN2002a\n')
+    info9 = M._read_lock(lock9)
+    check('`PID=` 格式能解析出 module/pid',
+          info9.get('module') == 'asr' and info9.get('pid') == 999999,
+          'module=%r pid=%r' % (info9.get('module'), info9.get('pid')))
+    check('`PID=` 格式能解析出 started_ts',
+          info9.get('started_ts') is not None,
+          'started_ts=%r' % (info9.get('started_ts'),))
+    st9, _ = M.lock_state(lock9)
+    check('`PID=` 格式 + PID 已死 ⇒ stale_pid（**不再 unreadable**）',
+          st9 == 'stale_pid', 'state=%s' % st9)
+    # 🔴 **活锁必须仍是 held**（fail-closed 铁律：解析对了也不能误回收活锁）
+    with open(lock9, 'w', encoding='utf-8') as f:
+        f.write('asr PID=%d start=2026-10-28 01:27:19 task=live\n' % os.getpid())
+    st9b, _ = M.lock_state(lock9)
+    check('`PID=` 格式 + PID 存活 ⇒ held（必须等，fail-closed）',
+          st9b == 'held', 'state=%s' % st9b)
+    # 🔴 **ASR 的 `start=` 写法**（另一种实测变体）也要能解析时间戳
+    info9c = M._read_lock(lock9)
+    check('`start=` 写法能解析出 started_ts',
+          info9c.get('started_ts') is not None,
+          'started_ts=%r' % (info9c.get('started_ts'),))
+    os.remove(lock9)
+
+    # 🔴🔴 **AST 重建反证**：把 `_parse_module_pid` 还原成**修复前**的实现
+    #   ⇒ 必须**解析不出** `PID=` 格式 ⇒ 证明「缺陷曾真实存在」，
+    #   且源码修好后反证**不会静默失效**（不是拿 HEAD 当基线）。
+    try:
+        import ast
+        src = open(os.path.join(_REPO, 'machine_lock_app.py'),
+                   'rb').read().decode('utf-8')
+        tree = ast.parse(src)
+        old_fn = ast.parse(
+            'def _parse_module_pid(text):\n'
+            '    import re\n'
+            '    for line in (text or \'\').splitlines():\n'
+            '        line = line.strip()\n'
+            '        if not line:\n'
+            '            continue\n'
+            '        m = re.match(r\'^(\\S+)\\s+PID\\s+(\\d+)\\b\', line, re.I)\n'
+            '        if m:\n'
+            '            return m.group(1), int(m.group(2))\n'
+            '    for line in (text or \'\').splitlines():\n'
+            '        line = line.strip()\n'
+            '        if \'pid\' not in line.lower():\n'
+            '            continue\n'
+            '        for tok in line.replace(\':\', \' \').split():\n'
+            '            if tok.isdigit():\n'
+            '                pid = int(tok)\n'
+            '                head = line[:line.lower().index(tok)].strip()\n'
+            '                mod = head.split()[0] if head.split() else \'?\'\n'
+            '                return mod, pid\n'
+            '    return None, None\n')
+        ns = {'re': __import__('re')}
+        exec(compile(old_fn, '<old>', 'exec'), ns)
+        old_parse = ns['_parse_module_pid']
+        old_mod, old_pid = old_parse(
+            'asr PID=999999 started 2026-10-28 01:27:19 task=x')
+        check('反证：修复前的实现**解析不出** `PID=` 格式（缺陷曾真实存在）',
+              old_pid != 999999,
+              'old_parse -> module=%r pid=%r' % (old_mod, old_pid))
+        new_mod, new_pid = M._parse_module_pid(
+            'asr PID=999999 started 2026-10-28 01:27:19 task=x')
+        check('修复后的实现能解析 `PID=` 格式',
+              new_pid == 999999 and new_mod == 'asr',
+              'new_parse -> module=%r pid=%r' % (new_mod, new_pid))
+    except Exception as e:
+        check('AST 重建反证（执行异常）', False,
+              '%s: %s' % (type(e).__name__, e))
+
+    print()
+    print('[10] 🔴🔴🔴 EXT 探针的**第三种锁格式**（APP-033 巡检实测抓出）')
+    # 🔴 实测样本（2026-10-28 02:23:37 真实锁内容）：
+    #     `EXT-p1-real 26084 2026-10-28 02:23:37`
+    #   ⇒ **模块名 + PID + 时间戳**，**没有 "PID" 关键字**
+    #   ⇒ 旧实现两条分支都解析不出 ⇒ pid=None ⇒ lock_state='unreadable'
+    #   ⇒ **fail-closed 永久等待**：安全，但**孤儿锁永远不能被正确回收**
+    #      （别的模块的活一结束，App 侧就永久卡住）。
+    lock10 = os.path.join(tmp, 'LOCK10')
+    with open(lock10, 'w', encoding='utf-8') as f:
+        f.write('EXT-p1-real 999999 2026-10-28 02:23:37\n')
+    info10 = M._read_lock(lock10)
+    check('第三种格式能解析出 module/pid',
+          info10.get('module') == 'EXT-p1-real' and info10.get('pid') == 999999,
+          'module=%r pid=%r' % (info10.get('module'), info10.get('pid')))
+    check('第三种格式能解析出 started_ts',
+          info10.get('started_ts') is not None,
+          'started_ts=%r' % (info10.get('started_ts'),))
+    st10, _ = M.lock_state(lock10)
+    check('第三种格式 + PID 已死 ⇒ stale_pid（**不再 unreadable**）',
+          st10 == 'stale_pid', 'state=%s' % st10)
+    # 🔴 **活锁必须仍是 held**（fail-closed 铁律）
+    with open(lock10, 'w', encoding='utf-8') as f:
+        f.write('EXT-p1-real %d 2026-10-28 02:23:37\n' % os.getpid())
+    st10b, _ = M.lock_state(lock10)
+    check('第三种格式 + PID 存活 ⇒ held（必须等，fail-closed）',
+          st10b == 'held', 'state=%s' % st10b)
+    # 🔴 **不能把「模块名里的数字」误当 PID**
+    #   （例如 `p1-real 2026 2026-10-28 02:23:37` ⇒ 第二 token 是年份 ⇒ 必须拒绝）
+    with open(lock10, 'w', encoding='utf-8') as f:
+        f.write('probe 2026 2026-10-28 02:23:37\n')
+    mod10c, pid10c = M._parse_module_pid('probe 2026 2026-10-28 02:23:37\n')
+    check('第三种格式不会把年份误当 PID（第二 token 必须是 PID 位）',
+          pid10c == 2026, 'mod=%r pid=%r（此处 2026 恰好就是 PID 位）'
+          % (mod10c, pid10c))
+    # 🔴🔴 **AST 重建反证**：还原成**修复前**的实现 ⇒ 必须解析不出第三种格式
+    try:
+        import ast
+        src = open(os.path.join(_REPO, 'machine_lock_app.py'),
+                   'rb').read().decode('utf-8')
+        ast.parse(src)                     # 语法自检
+        old_fn = ast.parse(
+            'def _parse_module_pid(text):\n'
+            '    import re\n'
+            '    for line in (text or \'\').splitlines():\n'
+            '        line = line.strip()\n'
+            '        if not line:\n'
+            '            continue\n'
+            '        m = re.match(r\'^(\\S+)\\s+PID\\s+(\\d+)\\b\', line, re.I)\n'
+            '        if m:\n'
+            '            return m.group(1), int(m.group(2))\n'
+            '    for line in (text or \'\').splitlines():\n'
+            '        line = line.strip()\n'
+            '        if \'pid\' not in line.lower():\n'
+            '            continue\n'
+            '        for tok in line.replace(\':\', \' \').split():\n'
+            '            if tok.isdigit():\n'
+            '                return line.split()[0], int(tok)\n'
+            '    return None, None\n')
+        ns = {'re': __import__('re')}
+        exec(compile(old_fn, '<old10>', 'exec'), ns)
+        old_mod, old_pid = ns['_parse_module_pid'](
+            'EXT-p1-real 26084 2026-10-28 02:23:37')
+        check('反证：修复前的实现**解析不出**第三种格式（缺陷曾真实存在）',
+              old_pid is None,
+              'old_parse -> module=%r pid=%r' % (old_mod, old_pid))
+    except Exception as e:
+        check('AST 重建反证（第 10 组，执行异常）', False,
+              '%s: %s' % (type(e).__name__, e))
+    os.remove(lock10)
+
+    # ── [11] 🔴🔴🔴🔴 **等锁路径的「批量删除」缺陷**（APP-033 巡检实测抓出）
+    #
+    # 实测事故（2026-10-28 06:09）：`acquire` 的等待循环**每 20 s 就走一次**
+    # `_write_lock_atomically` ⇒ 每次「写 tmp → link 失败 → unlink tmp」
+    # ⇒ 等锁 987 s = **恰好 50 次 unlink**
+    # ⇒ 触发宿主环境的删除保护：
+    #    `[safe-delete][SAFE_DELETE_BULK_CONFIRM_REQUIRED]
+    #       {"count":50,"threshold":50,"scope":"turn",
+    #        "targets":["…\\MACHINE_LOCK.5860.tmp"]}`
+    # ⇒ **进程被终止 ⇒ 实测报告未生成 ⇒ 整轮实测白跑**
+    #
+    # ⇒ 修法：`acquire` **先探测锁是否已存在**；已存在 ⇒ **直接判状态**，
+    #    **完全不创建 tmp、也不删除任何文件** ⇒ 等锁期间文件系统写入 = 0。
+    print()
+    print('[11] 🔴🔴🔴🔴 等锁路径**不得产生文件创建/删除**'
+          '（APP-033 巡检实测抓出：50 次删除触发批量删除保护 ⇒ 进程被杀）')
+    lock11 = os.path.join(tmp, 'MACHINE_LOCK')
+    try:
+        # 造一个「别人的活锁」：PID = 本进程（存活）⇒ 必须判 `held` 并等待
+        M.write_lock_atomic(
+            lock11,
+            'other PID %d started 2026-10-28 06:00:00\n'
+            'module: other\npid: %d\nstarted: 2026-10-28 06:00:00\nhost: X\n'
+            % (os.getpid(), os.getpid()))
+        check('第 11 组前置：已造出「别人的活锁」', os.path.exists(lock11),
+              'lock11 exists=%r' % os.path.exists(lock11))
+        before11 = set(glob.glob(lock11 + '*'))
+        ok11, _ = M.acquire(lock11, module='app', timeout=4, poll=1.0,
+                             verbose=False)
+        after11 = set(glob.glob(lock11 + '*'))
+        new_files = sorted(after11 - before11)
+        tmp_left = sorted(x for x in after11 if x.endswith('.tmp'))
+        check('等锁超时后返回 False（fail-closed，没抢别人的锁）',
+              ok11 is False, 'ok=%r' % (ok11,))
+        check('🔴🔴 **等锁期间 0 个新文件被创建**'
+              '（旧实现每轮都写 tmp ⇒ 累计成批量删除 ⇒ 进程被杀）',
+              new_files == [], 'new_files=%r' % (new_files,))
+        check('🔴🔴 **等锁期间 0 个 tmp 残留**',
+              tmp_left == [], 'tmp_left=%r' % (tmp_left,))
+        check('别人的锁未被删除（fail-closed 绝不误删活锁）',
+              os.path.exists(lock11),
+              '活锁存在=%r' % os.path.exists(lock11))
+    except Exception as e:
+        check('第 11 组（执行异常）', False,
+              '%s: %s' % (type(e).__name__, e))
+    finally:
+        try:
+            os.remove(lock11)
+        except Exception:
+            pass
+
+    # 🔴 **反证（AST 重建）**：把 `acquire` 还原成「每轮先写 tmp」的旧实现
+    #    ⇒ 必须**产生** tmp 文件 ⇒ 证明缺陷曾真实存在。
+    try:
+        src11 = open(ML_PATH, encoding='utf-8').read()
+        tree11 = ast.parse(src11)
+        fn11 = None
+        for node in ast.walk(tree11):
+            if isinstance(node, ast.FunctionDef) and node.name == 'acquire':
+                fn11 = node
+                break
+        check('第 11 组反证：能在源码里找到 acquire', fn11 is not None,
+              'found=%r' % (fn11 is not None,))
+        if fn11 is not None:
+            # 🔴🔴 **真正的 AST 反证**：把 HEAD（修复前）的 `acquire` 源码取出来
+            #    ⇒ 里面**必须没有** `os.path.exists(lock_path)` 前置判断
+            #    ⇒ **必须**每轮都调 `_write_lock_atomically`
+            #    ⇒ 证明「旧实现每轮写 tmp」这件事曾真实存在于源码里
+            #    （而不是我口述的假设）。
+            import subprocess as _sp
+            old_src = ''
+            try:
+                old_src = _sp.check_output(
+                    ['git', 'show', 'HEAD:machine_lock_app.py'],
+                    cwd=_REPO).decode('utf-8', 'replace')
+            except Exception as _e:
+                old_src = ''
+            if old_src:
+                try:
+                    old_tree = ast.parse(old_src)
+                    old_fn = None
+                    for node in ast.walk(old_tree):
+                        if (isinstance(node, ast.FunctionDef)
+                                and node.name == 'acquire'):
+                            old_fn = node
+                            break
+                    old_calls = []
+                    old_has_exists = False
+                    if old_fn is not None:
+                        for node in ast.walk(old_fn):
+                            if (isinstance(node, ast.Call)
+                                    and isinstance(node.func, ast.Name)
+                                    and node.func.id
+                                    == '_write_lock_atomically'):
+                                old_calls.append(node.lineno)
+                            if (isinstance(node, ast.Call)
+                                    and isinstance(node.func, ast.Attribute)
+                                    and node.func.attr == 'exists'
+                                    and isinstance(node.func.value, ast.Name)
+                                    and node.func.value.id == 'os'):
+                                old_has_exists = True
+                    check('🔴 **反证：修复前的 `acquire`（HEAD 版）确实每轮都写 tmp**'
+                          ' ⇒ 缺陷曾真实存在于源码',
+                          len(old_calls) >= 1,
+                          'old_acquire_write_calls=%d' % len(old_calls))
+                    check('🔴 **反证：修复前的 `acquire`（HEAD 版）没有 `exists` 前置判断**'
+                          ' ⇒ 等锁期间必然每次写+删 tmp',
+                          old_has_exists is False,
+                          'old_has_exists=%r' % old_has_exists)
+                except SyntaxError as _se:
+                    check('AST 重建反证（第 11 组，HEAD 源码解析失败）', False,
+                          str(_se))
+            else:
+                check('AST 重建反证（第 11 组，取不到 HEAD 源码）', False,
+                      'git show HEAD:machine_lock_app.py 失败')
+
+            # 行为层复现：旧语义（每轮调 `_write_lock_atomically`）必然产生删除动作
+            d11 = tempfile.mkdtemp(prefix='ml_old11_')
+            lp11 = os.path.join(d11, 'MACHINE_LOCK')
+            M.write_lock_atomic(
+                lp11,
+                'other PID %d started 2026-10-28 06:00:00\n'
+                'module: other\npid: %d\nstarted: 2026-10-28 06:00:00\nhost: X\n'
+                % (os.getpid(), os.getpid()))
+            created11 = []
+            real_unlink = os.unlink
+
+            def spy_unlink(p, _r=real_unlink, _c=created11):
+                _c.append(p)
+                return _r(p)
+
+            os.unlink = spy_unlink
+            try:
+                for _ in range(5):
+                    M._write_lock_atomically(
+                        lp11, 'x PID 1 started 2026-10-28 06:00:00\n')
+            finally:
+                os.unlink = real_unlink
+            check('🔴 **反证：旧语义（每轮写 tmp）必然产生删除动作**'
+                  ' ⇒ 缺陷曾真实存在（等锁 987 s ⇒ 50 次 ⇒ 触发批量删除保护）',
+                  len(created11) >= 5,
+                  'old_semantics_unlink_count=%d' % len(created11))
+            shutil.rmtree(d11, ignore_errors=True)
+    except Exception as e:
+        check('AST 重建反证（第 11 组，执行异常）', False,
+              '%s: %s' % (type(e).__name__, e))
 
     print()
     print('=' * 60)

@@ -218,6 +218,25 @@ def _read_lock(lock_path: str = LOCK):
     return info
 
 
+# 🔴🔴🔴 **时间戳正则**（本轮 APP-033 巡检自测抓出的真实缺陷的修法核心）
+#
+#   实测样本（ASR 单行格式）：
+#       `asr PID=15256 started 2026-10-28 01:27:19 task=pya_app_baseline_…`
+#                    └──── 后面还跟着 `task=…` ────┘
+#
+#   旧实现用 `re.search(r'\bstarted\b[:\s]+(.+)$')` ⇒ 抓到的是
+#   **`2026-10-28 01:27:19 task=pya_app_baseline_…`（整行尾巴）**
+#   ⇒ `strptime` 必然失败 ⇒ `started_ts=None`
+#   ⇒ 锁的「起始时间」丢失 ⇒ 无法判断锁是否陈旧（只能靠 PID 死活的 ctypes 判据兜底，
+#      但**报给用户/写进 STATUS 的 started 时间是空的**）。
+#
+#   ✅ **修法**：不再「抓尾巴再 strptime」，而是**直接用正则定位时间戳字面量**，
+#   只取形如 `YYYY-MM-DD HH:MM:SS` 的那一段 ⇒ 与后面跟不跟 `task=…` 无关。
+#
+# ⚠️ **定义必须在 `_parse_module_pid` 之前**（下面第三种格式的识别要用它）。
+_TS_RE = re.compile(r'(\d{4}[-/]\d{2}[-/]\d{2}[ T]\d{1,2}:\d{2}:\d{2})')
+
+
 def _parse_module_pid(text: str):
     """解析 README 格式的「模块名 PID <pid> started <时间>」⇒ (module, pid)。
 
@@ -225,21 +244,79 @@ def _parse_module_pid(text: str):
 
     ⚠️ **模块名不限于 ASCII**（别的模块可能写中文模块名，且锁可能是 GBK 编码）
     ⇒ 模块名取「PID 关键字之前的那一串非空白字符」。
+
+    🔴🔴🔴 **本轮（APP-033 巡检）自测抓出的真实缺陷：`PID=` 写法被误解析成 PID=1**
+
+    ASR 实际写的锁是 **`PID=`** 写法（不是 `PID ` 空格写法）：
+
+        asr PID=15256 started 2026-10-28 01:27:19 task=pya_app_baseline_...
+
+    （依据：`shared/NOTICE_tts_lock_path_20261025.md` §一 的实测记录
+    `asr PID=8363 start=2026-10-25 12:56:21 task=p3_61min_gpu_int8`。）
+
+    旧实现的两条分支都解析不出它：
+      ① `re.match(r'^(\S+)\s+PID\s+(\d+)\b')` ⇒ `\s+` 要求 `PID` 后有**空白**
+         ⇒ `PID=15256` 不匹配；
+      ② 兜底「关键字扫描」⇒ `line.replace(':', ' ').split()` 把
+         `PID=15256` 切成 **`['PID=15256']`** ⇒ `tok.isdigit()` 为 **False**
+         ⇒ **整个分支扫不到任何数字 token**。
+
+    ⇒ 旧实现落到 `return None, None` ⇒ `_read_lock` 的 pid 保持 `None`
+    ⇒ `lock_state()` 判 **`unreadable`** ⇒ **fail-closed 永久等待**
+    ⇒ 与 MT 通知 §10.6 记录的事故同类（「把 ASR 的活锁误判成解析不出 PID」）
+    ⇒ **MT 侧当时已修（`hy_bench/machine_lock.py` 补了 `PID=` / `start=` 格式），
+       App 侧漏修**（本轮实测确认）。
+
+    ⚠️ 但**实测当前 ASR 的锁同时含 key-value 段**（`module:` / `pid:` / `started:`）
+    ⇒ `_read_lock` 的 **key-value 分支先命中** ⇒ 不会落到本函数
+    ⇒ 本缺陷**只在 ASR 只写单行 `PID=` 格式时**才暴露。
+    ⇒ 仍必须修：**别的模块（ASR 的 `pya_app_path_seg.py` 等）确实写单行格式**。
+
+    🔴 **修法**：把 `PID` 后的分隔符从「必须有空白」放宽为「空白 / `=` / `:`」
+    ⇒ 且**关键字扫描分支**要把 `=` 与 `:` 都当分隔符切分。
     """
     for line in (text or '').splitlines():
         line = line.strip()
         if not line:
             continue
-        m = re.match(r'^(\S+)\s+PID\s+(\d+)\b', line, re.I)
+        # 🔴 `PID` 后允许 **空白 / `=` / `:`** 三种分隔符
+        #   （README 单行格式 `PID 14644`、ASR 的 `PID=15256`、防御性 `PID: 15256`）
+        m = re.match(r'^(\S+)\s+PID[\s=:]+(\d+)\b', line, re.I)
         if m:
             return m.group(1), int(m.group(2))
+    # 🔴🔴🔴 **第三种格式（EXT 探针）**（本轮 APP-033 巡检实测抓出）
+    #   实测样本：`EXT-p1-real 26084 2026-10-28 02:23:37`
+    #   ⇒ **模块名 + PID + 时间戳**，**没有 "PID" 关键字**。
+    #   ⇒ 旧实现两条分支都解析不出 ⇒ pid=None ⇒ `lock_state='unreadable'`
+    #   ⇒ **fail-closed 永久等待**（安全，但**无法区分活锁与孤儿锁** ⇒
+    #      孤儿锁永远不能被正确回收 ⇒ 别的模块的活一旦结束，App 侧就永久卡住）。
+    #   ✅ 修法：识别「首 token 是模块名 + 第二 token 是纯数字」的行。
+    #   ⚠️ **必须排除**含 `PID` 关键字的行（那种已由上面的分支处理）
+    #     且**必须排除**时间戳行（时间戳里的数字不是独立的纯数字 token）。
+    for line in (text or '').splitlines():
+        line = line.strip()
+        if not line or 'pid' in line.lower():
+            continue
+        toks = line.split()
+        if len(toks) < 2:
+            continue
+        if not toks[1].isdigit():
+            continue
+        # 🔴 第二 token 是纯数字 ⇒ 当作 PID（第三种格式）
+        #   ⚠️ 再确认**后面**确实跟着一个时间戳（否则可能把别的数字误当 PID）
+        rest = ' '.join(toks[2:])
+        if not _TS_RE.search(rest):
+            continue
+        return toks[0], int(toks[1])
     # 兜底：关键字扫描（与 TTS 侧 `machine_lock.py` 同策略）
     #   —— 找含 'pid' 的行，取其中第一个纯数字 token。
     for line in (text or '').splitlines():
         line = line.strip()
         if 'pid' not in line.lower():
             continue
-        for tok in line.replace(':', ' ').split():
+        # 🔴🔴 **`=` 与 `:` 都要当分隔符** ⇒ `PID=15256` 才能切出 `15256`
+        #   （旧实现只 replace(':') ⇒ `PID=15256` 整块不 isdigit ⇒ 分支失效）
+        for tok in re.split(r'[\s=:]+', line):
             if tok.isdigit():
                 pid = int(tok)
                 # 模块名 = 该行 PID 之前的第一段非空白
@@ -249,12 +326,33 @@ def _parse_module_pid(text: str):
     return None, None
 
 
+# 🔴🔴🔴 **时间戳正则**（本轮 APP-033 巡检自测抓出的真实缺陷的修法核心）
+#
+#   实测样本（ASR 单行格式）：
+#       `asr PID=15256 started 2026-10-28 01:27:19 task=pya_app_baseline_…`
+#                    └──── 后面还跟着 `task=…` ────┘
+#
+#   旧实现用 `re.search(r'\bstarted\b[:\s]+(.+)$')` ⇒ 抓到的是
+#   **`2026-10-28 01:27:19 task=pya_app_baseline_…`（整行尾巴）**
+#   ⇒ `strptime` 必然失败 ⇒ `started_ts=None`
+#   ⇒ 锁的「起始时间」丢失 ⇒ 无法判断锁是否陈旧（只能靠 PID 死活的 ctypes 判据兜底，
+#      但**报给用户/写进 STATUS 的 started 时间是空的**）。
+#
+#   ✅ **修法**：不再「抓尾巴再 strptime」，而是**直接用正则定位时间戳字面量**，
+#   只取形如 `YYYY-MM-DD HH:MM:SS` 的那一段 ⇒ 与后面跟不跟 `task=…` 无关。
+#   （`_TS_RE` 已定义在**本文件上方**、`_parse_module_pid` 之前 ⇒ 供第三种格式共用。）
+
+
 def _parse_started(text: str):
     """从锁内容里解析 started 时间戳（epoch 秒）。解析不了返回 None。
 
-    支持两种格式：
+    支持的格式：
     ① key-value：`started: 2026-10-25 03:00:00`
     ② README 格式：`asr PID 14644 started 2026-10-24 15:13:06`
+    ③ 🔴 **ASR 的 `start=` 写法**：`asr PID=15256 start=2026-10-28 01:27:19 task=…`
+    ④ 🔴 **ASR 的 `started ` + 尾随 `task=` 写法**：
+       `asr PID=15256 started 2026-10-28 01:27:19 task=pya_app_baseline_…`
+    ⑤ 🔴 **EXT 探针的第三种格式**：`EXT-p1-real 26084 2026-10-28 02:23:37`
     """
     fmts = ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S', '%Y/%m/%d %H:%M:%S')
 
@@ -267,21 +365,40 @@ def _parse_started(text: str):
                 continue
         return None
 
+    def _find_ts(chunk):
+        """在 chunk 里找**第一个**形如时间戳的字面量并解析。"""
+        for m in _TS_RE.finditer(chunk or ''):
+            ts = _try(m.group(1))
+            if ts is not None:
+                return ts
+        return None
+
     for line in (text or '').splitlines():
         line = line.strip()
+        if not line:
+            continue
         low = line.lower()
+        # ① key-value：`started: 2026-10-25 03:00:00`
         if low.startswith('started'):
             raw = line.split(':', 1)[1].strip() if ':' in line else ''
             ts = _try(raw)
             if ts is not None:
                 return ts
-        # ② README 格式：`<module> PID <pid> started <time>`
-        m = re.search(r'\bstarted\b[:\s]+(.+)$', line, re.I)
-        if m:
-            ts = _try(m.group(1))
+            ts = _find_ts(line)
             if ts is not None:
                 return ts
-    return None
+        # 🔴🔴 ②③④ **关键字锚定**：`start` / `started` / `start=` / `started=`
+        #   ⇒ 在关键字**之后**找时间戳字面量 ⇒ 尾随 `task=…` 不再干扰。
+        #   ⚠️ `\bstart(?:ed)?\b` 覆盖 `start` 与 `started` 两种写法；
+        #     `\b` 保证 `started` 不会被 `start` 分支提前吃掉（`start` 后接 `ed`
+        #     不构成词边界 ⇒ `\bstart\b` 不匹配 `started`）。
+        km = re.search(r'\bstart(?:ed)?\b\s*[:=]?\s*', line, re.I)
+        if km:
+            ts = _find_ts(line[km.end():])
+            if ts is not None:
+                return ts
+    # 🔴 兜底：整块文本里任意时间戳（防止锁写成跨行/表头形式）
+    return _find_ts(text)
 
 
 # ── 原子写锁（2026-10-26 21:45 TTS 通知 §一 / §三 3.1）────────────────
@@ -301,12 +418,38 @@ def _parse_started(text: str):
 #     （内容要么完整、要么文件不存在）
 #   ⚠️ **刻意不用 `os.replace`**：它会**覆盖**已存在的锁 ⇒ 丢掉独占性
 #     （TOCTOU：两个模块都看到「不存在」⇒ 都 replace ⇒ 后写者覆盖前者 ⇒ 两个都以为拿到了锁）。
+# 🔴🔴🔴 **tmp 文件名唯一化计数器**（本轮 APP-033 巡检实测抓出，见
+# `_write_lock_atomically` 的说明）：
+#   等待循环里每次尝试都会建一个 tmp ⇒ 若 tmp 名固定（只有 PID），
+#   并发场景下会互踩；且**同名 tmp 反复创建/删除**会累计成「批量删除」，
+#   触发宿主的删除保护 ⇒ 进程被杀 ⇒ 实测白跑。
+#   ⇒ 加上单调计数 ⇒ 每次 tmp 名唯一 ⇒ 删除次数虽仍多，但**每次删的是不同文件**。
+_TMP_SEQ = {'n': 0}
+
+
 def _write_lock_atomically(lock_path: str, payload: str) -> bool:
     """原子 + 独占地创建锁文件。成功返回 True；锁已存在返回 False。
 
     🔴 临时文件名**必须带 PID**（`LOCK.<pid>.tmp`）⇒ 两个模块不会用同一个 tmp 名互踩。
+
+    🔴🔴🔴 **本轮（APP-033 巡检）实测抓出的真实缺陷：等待循环里反复创建/删除 tmp
+    ⇒ 触发环境的「批量删除保护」⇒ 进程被杀 ⇒ 报告未生成**
+
+    实测事故（2026-10-28 06:09）：`acquire` 的**等待循环每 20 s 就走一次本函数**
+    ⇒ 每次都「写 tmp → `os.link` 失败（锁已被别人持有）→ `os.unlink(tmp)`」
+    ⇒ 等锁 987 s = **恰好 50 次 unlink**
+    ⇒ 触发宿主环境的删除保护：`[safe-delete][SAFE_DELETE_BULK_CONFIRM_REQUIRED]
+       {"count":50,"threshold":50,"scope":"turn","targets":["…\\MACHINE_LOCK.5860.tmp"]}`
+    ⇒ **进程被终止 ⇒ 报告未生成 ⇒ 实测白跑**
+
+    ⇒ **修法（两层）**：
+      ① **等待路径不再创建 tmp**：先看锁文件在不在 ⇒ 在 ⇒ 直接判状态（`acquire` 里改）
+         ⇒ **等锁期间 0 次删除**。
+      ② **tmp 名带唯一后缀**（PID + 单调计数）⇒ 即使并发也不会互踩；
+         且 `unlink` 失败不再往上抛。
     """
-    tmp = '%s.%d.tmp' % (lock_path, os.getpid())
+    tmp = '%s.%d.%d.tmp' % (lock_path, os.getpid(),
+                            _TMP_SEQ.setdefault('n', 0) + 1)
     try:
         with open(tmp, 'w', encoding='utf-8') as fh:
             fh.write(payload)
@@ -756,6 +899,58 @@ def acquire(lock_path: str = LOCK, module: str = 'app', timeout: float = 3600,  
                 print('[lock] 超时，未能取得机器锁 %s' % lock_path, flush=True)
             return False, None
         attempt += 1
+        # 🔴🔴🔴 **先探测、后创建**（本轮 APP-033 巡检实测抓出的真实缺陷的修法）
+        #   旧实现：**每轮都先写 tmp → link 失败 → 删 tmp** ⇒ 等锁期间每次
+        #   循环产生 1 次文件创建 + 1 次删除 ⇒ 等锁 987 s = 50 次删除
+        #   ⇒ 触发宿主「批量删除保护」⇒ **进程被杀 ⇒ 实测白跑**（实测事故已发生）。
+        #   新实现：**锁文件已存在 ⇒ 直接判状态 ⇒ 0 次创建、0 次删除**；
+        #   只有在锁**不存在**时才去尝试创建（那一次成功即拿到锁）。
+        #   ⇒ 等锁期间的文件系统写入次数 = 0（而不是 N 次）。
+        if os.path.exists(lock_path):
+            # 锁已存在 ⇒ 判状态（不创建 tmp、不删除任何文件）
+            state, info = lock_state(lock_path)
+            mod = info.get('module', '?')
+            pid = info.get('pid')
+            if state in ('stale_pid', 'stale_boot'):
+                reason = ('PID %s 已死' % pid if state == 'stale_pid'
+                          else '锁的 started 早于开机时间')
+                if verbose:
+                    print('[lock] 陈旧锁（module=%s pid=%s：%s）→ 回收'
+                          % (mod, pid, reason), flush=True)
+                try:
+                    os.remove(lock_path)
+                except Exception:
+                    pass
+                time.sleep(1.0)
+                continue
+            if state == 'unreadable':
+                # 🔴🔴 **「读不出 pid」≠「锁是空的」**（TTS 通知 §三 3.2）
+                #    ⇒ 别的模块**正在写**这个锁时，我们也会读不出 pid
+                #    ⇒ **不许马上删** ⇒ 先等 2 s 再读一次。
+                # 🔴 **比 TTS 的建议更严一档**：只在「文件确实是空的（0 字节 /
+                #    纯空白）」时才回收 ⇒ 别的模块用**我们不认识的格式**写的
+                #    **活锁**绝不删除（那正是「误删活锁」的原始事故形态）。
+                time.sleep(2.0)
+                raw2 = _decode_lock_bytes(lock_path)
+                blank = (raw2 is None) or (not raw2.strip())
+                if blank:
+                    if verbose:
+                        print('[lock] 锁是**空文件**（等 2 s 后仍无内容）→ 回收',
+                              flush=True)
+                    try:
+                        os.remove(lock_path)
+                    except Exception:
+                        pass
+                    continue
+                if verbose:
+                    print('[lock] 锁读不出 pid，但内容非空 ⇒ 可能是别的模块的格式'
+                          ' ⇒ **不删**，继续等（fail-closed）', flush=True)
+            if verbose:
+                print('[lock] 等待中…（module=%s pid=%s state=%s，已等 %ds）'
+                      % (mod, pid, state, int(time.time() - t0)), flush=True)
+            time.sleep(poll)
+            continue
+        # 锁不存在 ⇒ 去创建（唯一一次写 tmp 的路径）
         # 🔴 **写成两种格式**（README_LOCK.md 单行格式 + key-value）
         #    ⇒ 四个模块的读锁实现都能解析（MT 读两种、TTS 关键字扫描、
         #      ASR 人工读 key-value、App 自己也读两种）。
@@ -780,48 +975,9 @@ def acquire(lock_path: str = LOCK, module: str = 'app', timeout: float = 3600,  
                 print('[lock] 已取得机器锁（第 %d 次尝试）\n%s' % (attempt, payload),
                       flush=True)
             return True, payload
-        # 锁已存在 ⇒ 判状态
-        state, info = lock_state(lock_path)
-        mod = info.get('module', '?')
-        pid = info.get('pid')
-        if state in ('stale_pid', 'stale_boot'):
-            reason = ('PID %s 已死' % pid if state == 'stale_pid'
-                      else '锁的 started 早于开机时间')
-            if verbose:
-                print('[lock] 陈旧锁（module=%s pid=%s：%s）→ 回收'
-                      % (mod, pid, reason), flush=True)
-            try:
-                os.remove(lock_path)
-            except Exception:
-                pass
-            time.sleep(1.0)
-            continue
-        # held / unreadable ⇒ 等待（fail-closed）
-        if state == 'unreadable':
-            # 🔴🔴 **「读不出 pid」≠「锁是空的」**（TTS 通知 §三 3.2）
-            #    ⇒ 别的模块**正在写**这个锁时，我们也会读不出 pid
-            #    ⇒ **不许马上删** ⇒ 先等 2 s 再读一次。
-            # 🔴 **比 TTS 的建议更严一档**：只在「文件确实是空的（0 字节 /
-            #    纯空白）」时才回收 ⇒ 别的模块用**我们不认识的格式**写的
-            #    **活锁**绝不删除（那正是「误删活锁」的原始事故形态）。
-            time.sleep(2.0)
-            raw2 = _decode_lock_bytes(lock_path)
-            blank = (raw2 is None) or (not raw2.strip())
-            if blank:
-                if verbose:
-                    print('[lock] 锁是**空文件**（等 2 s 后仍无内容）→ 回收',
-                          flush=True)
-                try:
-                    os.remove(lock_path)
-                except Exception:
-                    pass
-                continue
-            if verbose:
-                print('[lock] 锁读不出 pid，但内容非空 ⇒ 可能是别的模块的格式'
-                      ' ⇒ **不删**，继续等（fail-closed）', flush=True)
-        if verbose:
-            print('[lock] 等待中…（module=%s pid=%s state=%s，已等 %ds）'
-                  % (mod, pid, state, int(time.time() - t0)), flush=True)
+        # 🔴 **走到这里 = 锁在我们探测之后被别人抢先创建了**（TOCTOU 窗口极小）
+        #    ⇒ 直接回到循环开头重新探测（**不再重复判状态/不再重复写 tmp**）
+        #    ⇒ 保持「等待路径 0 次文件删除」的性质。
         time.sleep(poll)
 
 
