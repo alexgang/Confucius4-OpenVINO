@@ -84,6 +84,17 @@ import caption_render
 #    ⇒ 不设上限会无界增长（与 `translator.py` 的 `CACHE_MAX` 同一口径）。
 _DRAFT_MT_CACHE_MAX = 2000
 
+# 🔴🔴🔴 APP-027⑤：**克隆采集参数**（主进程侧）
+#   - 最短 3 s（worker 侧硬要求：不足 3 s 拒绝更新）
+#   - 最长 10 s（APP-027 明文：「取最近 3–10 s 语音」）
+#   - 触发条件：每 30 s **或** 累计 ≥ 6 s 新语音（APP-027 明文）
+_CLONE_MIN_S = 3.0
+_CLONE_MAX_S = 10.0
+_CLONE_UPDATE_INTERVAL_S = 30.0
+_CLONE_NEW_VOICED_S = 6.0
+#   - 语音帧长（20 ms @ 16 kHz）
+_CLONE_FRAME = 320
+
 CHUNK_SEC = 0.64
 
 # 规则1 的最短段门槛（计时器兜底）：段长 ≥ MIN_SEG_SEC 且最近 SIL_LOOKBACK_SEC
@@ -1634,13 +1645,17 @@ class Session:
     麦克风 / 系统声音（WASAPI loopback）/ 音频文件三选一。
     """
 
-    def __init__(self, engine, source, on_final=None):
+    def __init__(self, engine, source, on_final=None, on_audio=None):
         self.engine = engine
         self.src = source
         # 必须复用音源自己的队列：音源是在外面构造的，它往自己的队列里送数据。
         # 这里另建一个队列的话，数据永远进不来（表现为「音频 0.0s，队列空」）。
         self.q = source.out_q
         self.on_final = on_final or (lambda t: None)
+        # 🔴🔴🔴 APP-027⑤：**原始音频回调**（16 kHz PCM）
+        #   ⇒ 主进程用它采集**克隆源语音**（最近 3–10 s，去静音）
+        #   ⇒ ⚠️ **不改变现有行为**：默认 None ⇒ 什么都不做。
+        self.on_audio = on_audio
         self.audio_s = 0.0
         self.running = False
         self.error = None
@@ -1671,6 +1686,14 @@ class Session:
                 pcm, t_cap = item
                 pcm = resample_to_16k(pcm, self.src.src_sr)
                 self.audio_s += len(pcm) / SR
+                # 🔴🔴🔴 APP-027⑤：**把原始 16 kHz PCM 交给克隆采集器**
+                #   ⚠️ 在 `engine.feed()` **之前**调用 ⇒ 采集到的就是
+                #      「麦克风/系统音的真实输入」⇒ 音色最准。
+                if self.on_audio is not None:
+                    try:
+                        self.on_audio(pcm)
+                    except Exception:
+                        pass
                 final = self.engine.feed(pcm, t_cap)
                 if final:
                     self.on_final(*_split_spk(final))
@@ -1930,6 +1953,20 @@ class App:
         self._spk_table = {}
         # 🔴 APP-022：ASR 侧送来的说话人信息（**当前恒为 None**）
         self._spk_by_seg = {}
+        # 🔴🔴🔴 APP-027⑤：**克隆采集器**（主进程侧）
+        #   ⇒ 从 ASR 输入的 16 kHz PCM 里挑出**有语音**的片段
+        #   ⇒ 每 30 s 或累计 ≥ 6 s 新语音时，把最近 3–10 s 语音发给 worker
+        #   ⚠️ **隐私**：语音只在内存里（不落盘、不进客户包）；
+        #      worker 侧若库只接受路径 ⇒ 落 `tempfile.gettempdir()` 的临时 wav，
+        #      **会话结束即删**。
+        self._clone_lock = threading.Lock()
+        self._clone_frames: list = []        # [np.float32(320)] 有语音的帧
+        self._clone_voiced_s = 0.0           # 当前缓冲里的语音秒数
+        self._clone_sent_voiced_s = 0.0      # 已发送出去的语音秒数（累计）
+        self._clone_last_update = 0.0        # 上次发送时刻（time.monotonic）
+        self._clone_enabled = False          # 用户是否选了「跟随说话人（克隆）」
+        self._clone_status = ''              # GUI 显示用（主线程写）
+        self._clone_noise_floor = 0.004      # 自适应静音阈值（初始值）
         # auto=False：翻译模型等 ASR 引擎就绪后再加载，避免两个模型在同一 GPU 上并行编译
         #
         # on_log 必须线程安全：翻译/引擎都在后台线程，直接 root.after() 会和主线程
@@ -2179,9 +2216,14 @@ class App:
         #
         # 🔴🔴 APP-022：**新增「跟随说话人（克隆）」选项**（接口预留）。
         #   ⚠️ **默认仍是「预设 A」**（APP-022 明文：「默认仍是预设 A」）。
-        #   ⚠️ **本轮不集成**（等 ASR-013 + TTS-019 交付）⇒
-        #     选它 ⇒ 日志写明「未启用（等 ASR-013 / TTS-019）」+ 回落预设 A
-        #     ⇒ **绝不静默**（§42 的教训：静默回落会让用户以为在用克隆音色）。
+        # 🔴🔴🔴 APP-027⑤：**本轮真正接入**「跟随说话人（克隆）」
+        #   ⇒ 采集器在 `App._collect_clone_pcm` ⇒ 每 30 s 或累计 ≥6 s 新语音
+        #      把最近 3–10 s 语音发给 worker ⇒ 换 x-vector / 换边车参考音频
+        #      ⇒ **下一句起生效**。
+        #   ⚠️ **仍保留一条铁律**：克隆**失败**时**显式回落预设 A** + 写日志
+        #      ⇒ 绝不静默（§42 的教训）。
+        #   ⚠️ **GUI 上显示的是「当前实际使用的音色」**（`_clone_voice_label`）
+        #      ⇒ 而**不是**用户选的那一项 ⇒ 用户能看见真实状态。
         self.tts_voices = ['A', 'follow_speaker']
         self._tts_voice_label = {'A': '预设 A',
                                  'follow_speaker': '跟随说话人（克隆）'}
@@ -2193,6 +2235,11 @@ class App:
             values=[self._tts_voice_label[k] for k in self.tts_voices])
         self.cb_tts_voice.pack(side='left', padx=(0, 8))
         self.cb_tts_voice.bind('<<ComboboxSelected>>', self._on_tts_voice_changed)
+        # 🔴🔴 APP-027⑤：**当前实际使用的音色**（独立标签，不在下拉里）
+        #   ⇒ 用户随时能看见「现在到底在用预设 A 还是克隆」。
+        self.var_tts_voice_now = tk.StringVar(value='预设 A')
+        ttk.Label(row_tts, textvariable=self.var_tts_voice_now,
+                  foreground='#1565c0').pack(side='left', padx=(0, 8))
         # 🔴🔴 APP-022：字幕上**可以选择显示说话人标签**（S1、S2…）。
         #   ⚠️ **默认关闭**（不改现有显示行为 ⇒ 老用户看不到任何变化）。
         self.var_show_spk = tk.BooleanVar(value=False)
@@ -2641,7 +2688,8 @@ class App:
             messagebox.showerror('音频源错误', f'{type(e).__name__}: {e}')
             self.var_status.set('音频源错误')
             return
-        self.session = Session(self.engine, src, on_final=self._on_final)
+        self.session = Session(self.engine, src, on_final=self._on_final,
+                               on_audio=self._collect_clone_pcm)
         self.session.start()
         self.btn.configure(text='■ 停止')
         kind = self._cur_source_key()
@@ -2660,6 +2708,117 @@ class App:
         except Exception:
             pass
         self.btn.configure(text='▶ 开始')
+
+    # -- 🔴🔴🔴 APP-027⑤：**克隆当前说话人**（主进程侧采集器）---------
+    def _collect_clone_pcm(self, pcm):
+        """🔴🔴🔴 APP-027⑤：收集**克隆源语音**（16 kHz PCM）。
+
+        🔴 **APP-027 明文要求**：
+          「主进程从 ASR 输入的 16 kHz PCM 取最近 3–10 s 语音（**去静音**），
+            定期（**每 30 s**，或累计 **≥ 6 s** 新语音时）发给 worker」
+
+        🔴 **去静音怎么做**：
+          按 20 ms 一帧算 RMS ⇒ 低于**自适应噪声门限**的帧丢掉。
+          ⚠️ 噪声门限**自适应**：初始 0.004（≈ -48 dBFS），
+             随观测到的最小 RMS 缓慢下调（避免在噪声大的环境里一句都收不到）。
+        🔴 **为什么在 `Session._loop` 里调**：
+          那里拿到的是**引擎真正吃进去的 PCM**（已重采样到 16 kHz）⇒
+          与 ASR 看到的完全一致 ⇒ 克隆音色最准。
+
+        ⚠️ **线程**：本方法由**会话线程**调用 ⇒
+          - 只碰 `self._clone_*`（有锁保护）
+          - **不碰 Tk 变量**（Tk 不是线程安全的）⇒ GUI 显示走 `_poll` 拉取
+          - 调用 `self.tts.set_clone_pcm()` ⇒ 它会写 worker 的 stdin
+            ⇒ `tts_service` 侧已加**写锁**（APP-027⑤）⇒ 不会与
+            `submit()`/`cancel()` 的命令交错。
+        """
+        if not self._clone_enabled:
+            return
+        try:
+            a = np.asarray(pcm, dtype=np.float32).reshape(-1)
+        except Exception:
+            return
+        if a.size == 0:
+            return
+        frame = _CLONE_FRAME
+        n = a.size // frame
+        if n <= 0:
+            return
+        frames = a[:n * frame].reshape(n, frame)
+        rms = np.sqrt(np.mean(frames.astype(np.float64) ** 2, axis=1))
+        # 🔴 自适应噪声门限：取本批的最小 RMS 作参考（保守 floor）
+        thr = max(self._clone_noise_floor, float(rms.min()) * 2.0, 0.0015)
+        voiced = rms > thr
+        # 🔴 门限缓慢跟随（升快降慢）⇒ 噪声环境里也能收够语音
+        self._clone_noise_floor = min(0.02, max(0.0015,
+                                                  self._clone_noise_floor * 0.995))
+        voiced_frames = frames[voiced]
+        if voiced_frames.size == 0:
+            return
+        need = False
+        with self._clone_lock:
+            self._clone_frames.append(voiced_frames)
+            self._clone_voiced_s += voiced_frames.shape[0] * frame / 16000.0
+            # 只保留最近 10 s 的语音
+            max_frames = int(_CLONE_MAX_S * 16000 / frame)
+            total = sum(f.shape[0] for f in self._clone_frames)
+            while total > max_frames and len(self._clone_frames) > 1:
+                total -= self._clone_frames.pop(0).shape[0]
+            new_voiced = self._clone_voiced_s - self._clone_sent_voiced_s
+            now = time.monotonic()
+            last = self._clone_last_update
+            if (new_voiced >= _CLONE_NEW_VOICED_S
+                    or (now - last) >= _CLONE_UPDATE_INTERVAL_S):
+                if self._clone_voiced_s >= _CLONE_MIN_S:
+                    need = True
+                    self._clone_last_update = now
+                    self._clone_sent_voiced_s = self._clone_voiced_s
+        if not need:
+            return
+        try:
+            sel = np.concatenate(self._clone_frames, axis=0).reshape(-1)
+        except Exception:
+            return
+        svc = getattr(self, 'tts', None)
+        if svc is None:
+            return
+        try:
+            ok = svc.set_clone_pcm(sel)
+        except Exception as e:
+            self._clone_status = f'克隆更新异常：{type(e).__name__}'
+            return
+        if ok:
+            self._clone_status = '已发送'
+        else:
+            self._clone_status = '发送失败（已回落预设 A）'
+
+    def _clone_voice_label(self) -> str:
+        """🔴🔴 APP-027⑤：**当前实际使用的音色**（GUI 显示用）。
+
+        🔴 **必须显示「实际使用的」而不是「用户选的」**——
+          §42 的教训：静默回落会让用户以为在用克隆音色。
+          ⇒ 这里读 worker 回报的 `clone_active`：
+             - 生效 ⇒ 「克隆（更新于 hh:mm:ss，x s 语音）」
+             - 未生效 ⇒ 「预设 A」
+        """
+        svc = getattr(self, 'tts', None)
+        if svc is None:
+            return '预设 A'
+        try:
+            st = svc.stats()
+        except Exception:
+            return '预设 A'
+        if st.get('clone_active'):
+            ts = st.get('clone_updated_at')
+            dur = st.get('clone_dur_s')
+            hh = '--:--:--'
+            try:
+                if ts:
+                    hh = datetime.fromtimestamp(float(ts)).strftime('%H:%M:%S')
+            except Exception:
+                pass
+            return f'克隆（更新于 {hh}，{float(dur or 0):.0f} s 语音）'
+        return '预设 A'
 
     def _on_mt_changed(self, *_a):
         key = self.mt_keys[[TARGET_LABELS[k] for k in self.mt_keys].index(self.var_mt.get())]
@@ -2802,14 +2961,28 @@ class App:
         try:
             from tts_service import TTSService
             voice = self._tts_voice_back.get(self.var_tts_voice.get(), 'A')
-            # 🔴🔴 APP-022：「跟随说话人（克隆）」**本轮未启用**。
-            #   等 ASR-013（pyannote 强制断句）+ TTS-019（按说话人取音色向量）
-            #   交付后才真正生效 ⇒ 现在**显式回落「预设 A」并写日志**
-            #   ⇒ **绝不静默**（§42 的教训：静默回落 ⇒ 用户以为在用克隆音色）。
-            if voice == 'follow_speaker':
-                self._ui_log('[tts] 「跟随说话人（克隆）」尚未启用'
-                             '（等 ASR-013 / TTS-019 交付）⇒ 本次使用预设 A')
-                voice = 'A'
+            # 🔴🔴🔴 APP-027⑤：「跟随说话人（克隆）」**本轮真正启用**。
+            #   旧逻辑（等 ASR-013 / TTS-019）已**删除** ⇒ 本轮就是那轮。
+            #   ⇒ 主进程采集器（`_collect_clone_pcm`）开始工作：
+            #     每 30 s 或累计 ≥6 s 新语音 ⇒ 把最近 3–10 s 语音发给 worker
+            #     ⇒ worker 换 x-vector（BabelVox）或换边车参考音频（CUDA）
+            #     ⇒ **下一句起生效**。
+            #   ⚠️ **失败仍显式回落预设 A**（worker 侧 `_fallback_to_preset`）
+            #      ⇒ 绝不静默（§42 的教训）。
+            self._clone_enabled = (voice == 'follow_speaker')
+            if self._clone_enabled:
+                self._ui_log('[tts] 「跟随说话人（克隆）」已启用：'
+                             '每 30 s 或累计 ≥6 s 新语音更新一次音色'
+                             '（更新前用预设 A）')
+                # 清掉上一轮的采集状态 ⇒ 避免用旧语音
+                with self._clone_lock:
+                    self._clone_frames = []
+                    self._clone_voiced_s = 0.0
+                    self._clone_sent_voiced_s = 0.0
+                    self._clone_last_update = 0.0
+                self._clone_status = '采集中…'
+            else:
+                self._clone_status = ''
             out_name = self.var_tts_out.get()
             out_id = self._out_label_back.get(out_name)
             # ⚠️ 用 **GUI 的实时选择**，不是 args 的启动快照：
@@ -2855,10 +3028,13 @@ class App:
     def _on_tts_voice_changed(self, *_a):
         """切换音色：需要重启 worker（音色条件在加载时绑定）。"""
         voice = self._tts_voice_back.get(self.var_tts_voice.get(), 'A')
-        # 🔴 APP-022：「跟随说话人」未启用 ⇒ 明确提示（不静默）
+        # 🔴🔴🔴 APP-027⑤：「跟随说话人（克隆）」**本轮已启用**
+        #   ⇒ 提示改成「已启用，正在采集语音…」
         if voice == 'follow_speaker':
-            self.var_tts_note.set('「跟随说话人（克隆）」尚未启用'
-                                  '（等 ASR-013 / TTS-019）⇒ 使用预设 A')
+            self.var_tts_note.set('「跟随说话人（克隆）」已启用：'
+                                  '正在采集语音，音色会在积累够语音后自动更新')
+        else:
+            self.var_tts_note.set('已切换到「预设 A」')
         if self.tts is not None:
             try:
                 self.tts.close()
@@ -3433,6 +3609,7 @@ class App:
         self._drain_ui_log()          # 后台线程的日志统一在这里上屏
         self._track_mt_state()
         self._track_tts_state()
+        self._track_clone_state()
         self._pump_tts()              # ← 把定稿译文提交给 TTS（GUI 侧链路）
         s, e = self.session, self.engine
         if s:
@@ -3471,6 +3648,26 @@ class App:
             self._selftest_done()
             return
         self.root.after(self.POLL_MS, self._poll)
+
+    def _track_clone_state(self):
+        """🔴🔴🔴 APP-027⑤：刷新「**当前实际使用的音色**」标签。
+
+        🔴 **为什么每帧都刷**：克隆是**异步**的（会话线程采集 → 发 worker
+          → worker 算 embedding → 回 `clone` 事件）
+          ⇒ 用户会在任意时刻看到「预设 A → 克隆」的切换
+          ⇒ 标签必须跟着 worker 的**真实回报**走
+          ⇒ **绝不**根据「用户选了什么」来显示。
+        """
+        try:
+            label = self._clone_voice_label()
+        except Exception:
+            return
+        if label != getattr(self, '_clone_label_last', None):
+            self._clone_label_last = label
+            try:
+                self.var_tts_voice_now.set(label)
+            except Exception:
+                pass
 
     def _track_mt_state(self):
         """记录翻译状态的进入时刻（用于「加载中…已等 N 秒」提示）。"""

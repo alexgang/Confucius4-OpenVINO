@@ -18,6 +18,7 @@ from __future__ import annotations
 import atexit
 import json
 import os
+import queue
 import shutil
 import subprocess
 import sys
@@ -29,6 +30,33 @@ ENV_PY = os.environ.get(
 SIDECAR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                        'tts_cuda_sidecar.py')
 READY_TIMEOUT_S = float(os.environ.get('LIVECAP_CUDA_READY_S', '180'))
+
+# 🔴🔴🔴 APP-027③：**看门狗阈值**（秒）。
+#   含义：已发出请求，但超过这么久**没有任何音频块**到达
+#   ⇒ 判定边车卡死 ⇒ 记日志 + **杀并重启边车** + 本句记失败。
+#   ⚠️ 默认 15 s（APP-027 明文「如 15 s 或 3×预计时长」）。
+#   ⚠️ 首块要等模型预热（首次可能更久）⇒ 首块用**更宽松**的阈值
+#      （`WATCHDOG_FIRST_S`），后续块用常规阈值。
+WATCHDOG_S = float(os.environ.get('LIVECAP_CUDA_WATCHDOG_S', '15'))
+WATCHDOG_FIRST_S = float(os.environ.get('LIVECAP_CUDA_WATCHDOG_FIRST_S', '60'))
+
+# 🔴🔴 APP-027③：**逐请求 trace 日志**（独立文件，便于复盘）。
+#   记录：rid、收到请求时刻、第一块、done、块数、异常。
+TRACE_PATH = os.path.join(
+    os.environ.get('LOCALAPPDATA') or os.path.expanduser('~'),
+    'Confucius4LiveCaption', 'tts_cuda_trace.log')
+
+
+def _trace(msg: str):
+    """追加一行到 `tts_cuda_trace.log`（**永不抛异常**）。"""
+    try:
+        d = os.path.dirname(TRACE_PATH)
+        if d:
+            os.makedirs(d, exist_ok=True)
+        with open(TRACE_PATH, 'a', encoding='utf-8', newline='\n') as f:
+            f.write('%s %s\n' % (time.strftime('%H:%M:%S'), msg))
+    except Exception:
+        pass
 
 
 def _NO_WINDOW_FLAG():
@@ -188,6 +216,20 @@ class CudaTTSEngine:
         self._chunk_size = int(chunk_size)
         # 🔴 APP-023：stderr 泵线程（daemon）；close() 时不 join（不等它退出）。
         self._stderr_thread = None
+        # 🔴🔴🔴 APP-027③：**读者线程 + 消息队列**
+        #   `_q`  = 协议消息（JSON 行，或 `(JSON 行, PCM 字节)` 的**配对**）
+        #   ⚠️ **PCM 必须与它的 JSON 行成对入队** ⇒ 否则 rid 过滤丢掉旧句的
+        #      JSON 时，它的 PCM 还留在队列里 ⇒ 下一句读到旧 PCM ⇒ 错位。
+        self._q: 'queue.Queue' = queue.Queue()
+        self._reader_thread = None
+        self._buf = b''
+        # 🔴🔴🔴 APP-027⑤：**stdin 写锁**
+        #   `set_ref_audio()` 由 **worker 的命令处理线程**调用，
+        #   而 `generate_stream()` 由 **合成线程**调用
+        #   ⇒ 两个线程**并发 write(同一 pipe)** ⇒ 命令行**交错**
+        #   ⇒ 边车收到半行 JSON ⇒ **解析失败 / 命令丢失**。
+        #   ⇒ 必须串行化。
+        self._stdin_wlock = threading.Lock()
         # 🔴🔴 §48：**不写死版本号** ⇒ 由 `default_pkg_dir()` 推导
         # （§48 前这里写死 `...\Confucius4_LiveCaption_v1.5`
         #   ⇒ 客户机换版本/换路径 ⇒ 音色文件找不到）。
@@ -238,7 +280,11 @@ class CudaTTSEngine:
         if stderr_target == subprocess.PIPE:
             self._start_stderr_pump()
 
-        line = self._readline(timeout=READY_TIMEOUT_S)
+        # 🔴🔴🔴 APP-027③：**先起读者线程**，再等 ready
+        #   （否则 ready 那一行没人读 ⇒ 卡死）。
+        self._start_reader()
+
+        line = self._q_get(timeout=READY_TIMEOUT_S)
         if not line:
             self.close()
             raise CudaTTSError('CUDA 边车启动失败（%.0f s 内没有 ready）' % READY_TIMEOUT_S)
@@ -296,13 +342,23 @@ class CudaTTSEngine:
 
     def close(self):
         p, self.proc = self.proc, None
+        # 🔴🔴🔴 APP-027③：**清空消息队列**
+        #   ⇒ 否则 close→start 之后，队列里还留着旧边车的消息
+        #   ⇒ 新句会先读到旧句的块 ⇒ **错位**（APP-027③ 要消灭的缺陷）
+        try:
+            while True:
+                self._q.get_nowait()
+        except Exception:
+            pass
+        self._buf = b''
         if p is None:
             return
         try:
             if p.poll() is None:
                 try:
-                    p.stdin.write(b'{"cmd":"quit"}\n')
-                    p.stdin.flush()
+                    with self._stdin_wlock:
+                        p.stdin.write(b'{"cmd":"quit"}\n')
+                        p.stdin.flush()
                 except Exception:
                     pass
                 try:
@@ -312,45 +368,190 @@ class CudaTTSEngine:
         except Exception:
             pass
 
-    # ── 协议 ──────────────────────────────────────────────────
-    def _readline(self, timeout=None):
-        """读一行 JSON（二进制读，避免文本层多读把 PCM 吃掉）。"""
-        buf = getattr(self, '_buf', b'')
-        t0 = time.monotonic()
-        while b'\n' not in buf:
-            if self.proc is None:
-                return None
-            if timeout is not None and time.monotonic() - t0 > timeout:
-                raise CudaTTSError('边车响应超时（%.0f s）' % timeout)
-            chunk = self.proc.stdout.read(4096)
-            if not chunk:
-                self._buf = b''
-                return None
-            buf += chunk
-        line, buf = buf.split(b'\n', 1)
-        self._buf = buf
-        return line.decode('utf-8', 'replace')
+    # ── 协议：读者线程 + 队列（APP-027③）────────────────────────
+    #
+    # 🔴🔴🔴 **旧实现的三个致命缺陷**（APP-027③ 的根因）：
+    #
+    # ① **阻塞读永不超时**
+    #    旧 `_readline(timeout=300)` 只在**两次 read 之间**检查超时
+    #    ⇒ 一旦卡在 `proc.stdout.read(4096)`（等边车产出）⇒ **永不返回**
+    #    ⇒ 持有 `_synth_lock` 的线程永久挂起 ⇒ **最后卡死**（用户实测
+    #      10:51:37 之后 worker 再无任何合成遥测，但 cancel 仍在来）。
+    #
+    # ② **不核对 `rid`** ⇒ 中途 break 后边车仍在写旧句剩余块 + 旧 `done`
+    #    ⇒ 下一句先读到**旧内容** ⇒ 10:51:25 id67 丢弃后 id69 只合成出
+    #      3840 样本 ⇒ **从此播出内容与字幕错位**。
+    #
+    # ③ **没有 trace** ⇒ 无法复盘「哪一句卡在哪」。
+    #
+    # ⇒ 现在：**专门读者线程**读 stdout → `queue.Queue`
+    #   ⇒ `generate_stream` 用 `queue.get(timeout=…)`（**真能超时**）
+    #   ⇒ **严格按 `rid` 过滤**（不符的消息直接丢弃，含旧 `done`）
+    #   ⇒ **看门狗**：N 秒无块 ⇒ 记日志 + 杀并重启边车 + 本句记失败
+    def _start_reader(self):
+        """启动**唯一的** stdout 读者线程。
 
-    def _read_exact(self, n):
-        buf = getattr(self, '_buf', b'')
-        while len(buf) < n:
-            chunk = self.proc.stdout.read(n - len(buf))
-            if not chunk:
-                self._buf = b''
-                raise CudaTTSError('边车在传输 PCM 时断开')
-            buf += chunk
-        out, self._buf = buf[:n], buf[n:]
-        return out
+        🔴🔴🔴 **必须按「字节」处理，不能按「行」处理**：
+          边车的协议是「**JSON 行 + 紧跟其后的 n×4 字节 PCM**」
+          ⇒ PCM 本身**没有换行符**
+          ⇒ 若用 `readline()` 读，PCM 会被**下一行**的读取顺带吃掉
+          ⇒ **数据错乱**（实测旧实现的 `_read_exact` 与 `_readline`
+             争抢同一个 `self._buf` ⇒ 块边界随机错位）。
+          ⇒ 现在：读者线程按**字节**缓冲，先切出完整 JSON 行，
+            解析出 `n` 后再从缓冲里取走 `n*4` 字节的 PCM
+            ⇒ **行与 PCM 各自进各自的队列**。
+        """
+        proc = self.proc
+        if proc is None or proc.stdout is None:
+            return
+        pipe = proc.stdout
+        q = self._q
+        buf = bytearray()
+
+        def _fill(n):
+            """保证 `buf` 里至少有 n 字节；返回是否成功。"""
+            while len(buf) < n:
+                chunk = pipe.read(65536)
+                if not chunk:
+                    return False
+                buf.extend(chunk)
+            return True
+
+        def _read():
+            try:
+                while True:
+                    # ① 找完整的一行 JSON
+                    while True:
+                        idx = buf.find(b'\n')
+                        if idx >= 0:
+                            break
+                        chunk = pipe.read(65536)
+                        if not chunk:
+                            q.put(None)
+                            return
+                        buf.extend(chunk)
+                    line = bytes(buf[:idx])
+                    del buf[:idx + 1]
+                    s = line.decode('utf-8', 'replace').strip()
+                    if not s:
+                        continue
+                    # ② 这行里若声明了 PCM 长度 ⇒ 紧接着取 PCM
+                    try:
+                        msg = json.loads(s)
+                    except Exception:
+                        q.put(s)
+                        continue
+                    n = 0
+                    if isinstance(msg, dict):
+                        try:
+                            n = int(msg.get('n') or 0)
+                        except Exception:
+                            n = 0
+                    if n > 0:
+                        need = n * 4
+                        if not _fill(need):
+                            q.put(None)
+                            return
+                        pcm = bytes(buf[:need])
+                        del buf[:need]
+                        # 🔴🔴 **PCM 与它的 JSON 行必须成对入队**
+                        #   ⇒ 否则 rid 过滤把旧句的 JSON 丢掉时，
+                        #      它的 PCM 还留在队列里 ⇒ **下一句读到旧 PCM**
+                        #      ⇒ 又变成「错位」⇒ APP-027③ 要消灭的那个缺陷。
+                        q.put((s, pcm))
+                    else:
+                        q.put(s)
+            except Exception as e:
+                try:
+                    self.on_log('[tts_cuda] stdout 读者线程退出：%s' % e)
+                except Exception:
+                    pass
+                q.put(None)
+
+        t = threading.Thread(target=_read, daemon=True)
+        t.start()
+        self._reader_thread = t
+
+    def _q_get(self, timeout):
+        """从队列取一行（**带真超时**）。返回 None = 边车已退出。"""
+        try:
+            return self._q.get(timeout=timeout)
+        except queue.Empty:
+            raise CudaTTSError('边车响应超时（%.0f s）' % timeout)
+
+    def _restart_sidecar(self, why: str):
+        """杀掉卡死的边车并重启（**看门狗触发时调用**）。
+
+        🔴 **必须真的杀掉**：旧边车持有 `_synth_lock` 的线程正卡在它的
+        管道读上 ⇒ 不杀就永远卡住。
+        """
+        try:
+            self.on_log('[tts_cuda] 🔴 看门狗触发（%s）⇒ 杀并重启边车' % why)
+        except Exception:
+            pass
+        _trace('WATCHDOG restart: %s' % why)
+        p, self.proc = self.proc, None
+        try:
+            if p is not None and p.poll() is None:
+                p.kill()
+                try:
+                    p.wait(timeout=5)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        # 清空队列里残留的旧消息（避免新句读到旧句的内容）
+        try:
+            while True:
+                self._q.get_nowait()
+        except Exception:
+            pass
+        self._buf = b''
+        try:
+            self.start()
+        except Exception as e:
+            raise CudaTTSError('边车重启失败：%s' % e)
 
     # ── 与 babelvox 同形的接口 ────────────────────────────────
     def extract_speaker_embedding(self, wav):      # 兼容旧调用路径
         return None
 
+    def set_ref_audio(self, path: str):
+        """🔴🔴🔴 APP-027⑤：切换**克隆参考音频**（CUDA 边车）。
+
+        ⚠️ 边车**不支持取消**，但**支持换参考** ⇒ 下一句起生效。
+        ⚠️ 参考音频路径可以是**临时文件**（用完即删）—— 本函数只传路径，
+          **不负责**创建/删除文件。
+        """
+        if not path:
+            return False
+        self.ref_audio = path
+        # 🔴 通知边车（边车侧也有 `current_ref` ⇒ 客户端重启后仍一致）
+        try:
+            if self.proc is not None and self.proc.poll() is None:
+                # 🔴🔴🔴 APP-027⑤：**持写锁**（与 `generate_stream` 串行）
+                with self._stdin_wlock:
+                    self.proc.stdin.write(
+                        (json.dumps({'cmd': 'set_ref', 'id': 0,
+                                     'ref_audio': path},
+                                    ensure_ascii=False) + '\n').encode('utf-8'))
+                    self.proc.stdin.flush()
+        except Exception as e:
+            _trace('set_ref_audio failed: %s' % e)
+            return False
+        _trace('set_ref_audio: %s' % path)
+        return True
+
     def generate_stream(self, text, language='English', speaker_embed=None,
                         speaker=None, split_on_silence=False,
                         cancel_event=None, chunk_frames=None, **_kw):
-        """产出 `(list[float], 24000)`；`speaker_embed` / `speaker` 在本后端**不使用**
-        （音色由 `ref_audio` 的 x-vector 决定，见 `USES_REF_AUDIO`）。"""
+        """产出 `(list[float], 24000)`。
+
+        🔴🔴🔴 APP-027③ 的三个改动：
+        - **严格按 `rid` 过滤**（旧句的块 / 旧 `done` 一律丢弃）；
+        - **队列取消息**（真能超时 ⇒ 看门狗能触发）；
+        - **看门狗**：N 秒无块 ⇒ 杀并重启边车 ⇒ 本句记失败。
+        """
         import array
 
         if not text or not text.strip():
@@ -362,33 +563,128 @@ class CudaTTSEngine:
         rid = self._rid
         req = {'id': rid, 'text': text, 'language': language,
                'ref_audio': self.ref_audio, 'chunk_size': self._chunk_size}
+        t_req = time.monotonic()
+        _trace('REQ rid=%d len=%d' % (rid, len(text)))
         try:
-            self.proc.stdin.write(
-                (json.dumps(req, ensure_ascii=False) + '\n').encode('utf-8'))
-            self.proc.stdin.flush()
+            # 🔴🔴🔴 APP-027⑤：**持写锁**（与 `set_ref_audio` 串行）
+            with self._stdin_wlock:
+                self.proc.stdin.write(
+                    (json.dumps(req, ensure_ascii=False) + '\n').encode('utf-8'))
+                self.proc.stdin.flush()
         except Exception as e:
+            _trace('ERR rid=%d send failed: %s' % (rid, e))
             raise CudaTTSError('向 CUDA 边车发送请求失败：%s' % e)
-
+        n_chunks = 0
+        t_first = None
+        last_seen = time.monotonic()
         while True:
-            if cancel_event is not None and getattr(cancel_event, 'is_set', lambda: False)():
+            # 🔴 取消检查：**每条消息之前**都查一次
+            if cancel_event is not None and getattr(
+                    cancel_event, 'is_set', lambda: False)():
                 # 取消：本句剩余块直接丢弃（不出声），记账由 worker 负责
-                self.on_log('[tts_cuda] 收到取消 ⇒ 丢弃本句剩余音频')
+                try:
+                    self.on_log('[tts_cuda] 收到取消 ⇒ 丢弃本句剩余音频')
+                except Exception:
+                    pass
+                _trace('CANCEL rid=%d chunks=%d' % (rid, n_chunks))
+                # 🔴🔴 APP-027③：取消后**必须把本请求的剩余部分读完并丢掉**
+                #   （否则边车还在写旧句的块 ⇒ 下一句会读到 ⇒ 错位）。
+                #   ⇒ 交给**后台排空线程**（不占合成锁、不阻塞下一句）。
+                self._start_drain(rid)
                 return
-            line = self._readline(timeout=300)
+            # 🔴🔴 看门狗：首块用宽松阈值，后续用常规阈值
+            wl = WATCHDOG_FIRST_S if t_first is None else WATCHDOG_S
+            now = time.monotonic()
+            if now - last_seen > wl:
+                # 🔴🔴 APP-027③：**不是直接抛异常**，而是**杀并重启边车**
+                #   ⇒ 本句记失败（由调用方处理）⇒ **后续句子还能用**。
+                try:
+                    self.on_log('[tts_cuda] 🔴 边车 %.0f s 无任何输出（rid=%d）'
+                                % (now - last_seen, rid))
+                except Exception:
+                    pass
+                _trace('WATCHDOG rid=%d waited=%.1fs chunks=%d'
+                       % (rid, now - last_seen, n_chunks))
+                try:
+                    self._restart_sidecar('rid=%d 无输出 %.1f s'
+                                          % (rid, now - last_seen))
+                except Exception as e:
+                    _trace('WATCHDOG restart failed: %s' % e)
+                    raise CudaTTSError('边车看门狗触发且重启失败：%s' % e)
+                raise CudaTTSError('边车看门狗触发（%.0f s 无输出，已重启边车）'
+                                   % (now - last_seen))
+            line = self._q_get(timeout=min(2.0, wl))
             if line is None:
                 raise CudaTTSError('CUDA 边车意外退出（无响应）')
-            msg = json.loads(line)
+            last_seen = time.monotonic()
+            # 🔴 队列里可能是「(JSON 行, PCM 字节)」的**配对**（带 PCM 的块）
+            pcm = None
+            if isinstance(line, tuple):
+                line, pcm = line
+            try:
+                msg = json.loads(line)
+            except Exception:
+                continue
+            # 🔴🔴🔴 **严格按 rid 过滤**（APP-027③ 的第 2 条硬要求）。
+            #   边车的协议**本来就带 `id`**（`send_chunk` 发 `{'id': rid, ...}`，
+            #   `done` / `error` 也带 rid）⇒ 旧实现**不核对**是客户端的 bug。
+            msg_rid = msg.get('id')
+            if msg_rid is not None and msg_rid != rid:
+                # 不属于本句 ⇒ **丢掉**（含旧句的 `done` 与旧句的 PCM）
+                _trace('DROP rid=%d got_rid=%s' % (rid, msg_rid))
+                continue
             if 'error' in msg:
+                _trace('ERR rid=%d %s' % (rid, msg['error']))
                 raise CudaTTSError('CUDA 合成失败：%s' % msg['error'])
             if msg.get('done'):
+                _trace('DONE rid=%d chunks=%d first_s=%.2f'
+                       % (rid, n_chunks,
+                          (t_first - t_req) if t_first else -1))
                 return
             n = int(msg.get('n') or 0)
             sr = int(msg.get('sr') or 24000)
             if not n:
                 continue
-            raw = self._read_exact(n * 4)
+            if pcm is None:
+                raise CudaTTSError('边车块缺少 PCM 数据（rid=%d）' % rid)
             arr = array.array('f')
-            arr.frombytes(raw)
+            arr.frombytes(pcm)
             if sys.byteorder != 'little':
                 arr.byteswap()
+            if t_first is None:
+                t_first = time.monotonic()
+            n_chunks += 1
             yield (list(arr), sr)
+
+    def _start_drain(self, rid):
+        """🔴🔴 APP-027③：取消后**后台排空**本请求的剩余消息。
+
+        ⚠️ 边车**不支持取消** ⇒ 本请求的剩余块与 `done` 仍会到达
+        ⇒ 必须读完并丢掉 ⇒ 否则**下一句会读到旧句的内容** ⇒ 错位。
+        ⇒ 用**后台线程**排空 ⇒ 不占合成锁、不阻塞下一句。
+        """
+        def _drain():
+            deadline = time.monotonic() + 30.0
+            while time.monotonic() < deadline:
+                try:
+                    line = self._q.get(timeout=0.5)
+                except queue.Empty:
+                    continue
+                if line is None:
+                    return
+                if isinstance(line, tuple):
+                    line = line[0]
+                try:
+                    msg = json.loads(line)
+                except Exception:
+                    continue
+                mr = msg.get('id')
+                if mr is not None and mr != rid:
+                    continue
+                if msg.get('done'):
+                    _trace('DRAIN done rid=%d' % rid)
+                    return
+            _trace('DRAIN timeout rid=%d' % rid)
+
+        t = threading.Thread(target=_drain, daemon=True)
+        t.start()

@@ -86,6 +86,9 @@ __all__ = [
     'THIRD_PARTY_NOISE_PREFIXES',
     'THIRD_PARTY_NOISE_FILE_RE',
     'is_third_party_noise',
+    'USER_CLONE_FILE_RE',
+    'USER_SPEAKER_DIR_NAMES',
+    'is_user_voice_artifact',
 ]
 
 # ── 按**目录名**排除（任意层级）──────────────────────────────────────
@@ -191,6 +194,53 @@ def is_third_party_noise(relpath: str) -> bool:
         if relpath.startswith(prefix):
             return True
     return bool(THIRD_PARTY_NOISE_FILE_RE.match(relpath))
+
+
+# ══════════════════════════════════════════════════════════════════════
+# 🔴🔴🔴 APP-027⑤：**用户音色 / 克隆产物**排除（隐私闸门）
+# ══════════════════════════════════════════════════════════════════════
+#
+# APP-027 明文：「删除 `_update_clone/_extract_cond_ov/_load_conds` 里写
+# `clone_C.npz` 的死代码，或改成只在内存保存；**打包闸门拦 `clone_*.npz`
+# 和 `tts_speakers/` 里的用户音色**」。
+#
+# 🔴 **为什么必须两道闸**：
+#   ① 代码侧：`_update_clone` 已改成**只在内存**存 x-vector；
+#     CUDA 路线因库只接受路径 ⇒ 落 `tempfile.gettempdir()` 的临时 wav
+#     ⇒ **会话结束即删**、**不在包目录里**。
+#   ② 打包侧：万一**旧版代码**或**别的路径**在包内留下用户音色
+#     ⇒ 打包时必须拦下来 ⇒ 否则**把用户的声音带进交付包**
+#     ⇒ 这是**隐私事故**，比体积重要得多。
+#
+# ⚠️ **精确匹配，不误伤**：
+#   - `clone_*.npz` 只匹配**文件名**（`voices/clone_C.npz` 等）
+#   - `tts_speakers/` 只匹配**目录名**（任意层级）
+#   ⇒ `models/qwen3tts/voices/preset_A.wav`（**预设音色**，不是用户音色）
+#     **绝不能**被排除（它是生产路线的依赖，删了 TTS 就没音色了）。
+
+#: 用户克隆音色的文件名（精确模式，锚定文件名本身）
+USER_CLONE_FILE_RE = re.compile(r'^clone_[A-Za-z0-9_]+\.npz$', re.I)
+
+#: 用户音色目录名（任意层级）
+USER_SPEAKER_DIR_NAMES = frozenset({'tts_speakers'})
+
+
+def is_user_voice_artifact(relpath: str) -> bool:
+    """判断相对路径是否属于**用户音色 / 克隆产物**（⇒ 绝不能进客户包）。
+
+    🔴 APP-027⑤ 的**隐私闸门**。两条规则：
+
+    1. 文件名形如 ``clone_*.npz``（旧版 `_extract_cond_ov` 的落盘产物）；
+    2. 任意层级存在 ``tts_speakers/`` 目录（用户音色库）。
+
+    ⚠️ **不误伤** ``preset_A.wav`` 等**预设音色**（生产路线依赖）。
+    """
+    if not relpath:
+        return False
+    segs = relpath.split('/')
+    if any(seg in USER_SPEAKER_DIR_NAMES for seg in segs[:-1]):
+        return True
+    return bool(USER_CLONE_FILE_RE.match(segs[-1]))
 
 
 # ── 供 pack_v13.py 做「目录前缀」断言用（带尾 '/'，零假阳性）──────
@@ -487,6 +537,11 @@ def is_excluded(relpath: str, top_dir: str = None) -> bool:
     if is_third_party_noise(relpath):
         return True
 
+    # 2.9) 🔴🔴🔴 用户音色 / 克隆产物（APP-027⑤ **隐私闸门**）
+    #   ⇒ `clone_*.npz` / `tts_speakers/` **绝不能**进客户包
+    if is_user_voice_artifact(relpath):
+        return True
+
     # 3) __pycache__：python/ 下保留，其余排除
     if '__pycache__' in relpath.split('/'):
         return top_dir not in KEEP_PYCACHE_UNDER
@@ -531,6 +586,10 @@ def iter_package_files(pkg_root: str):
             d_rel = d_rel.replace('\\', '/') + '/'
             if any(d_rel.startswith(p) for p in THIRD_PARTY_NOISE_PREFIXES):
                 continue
+            # 🔴🔴🔴 用户音色目录（APP-027⑤ 隐私闸门）—— 整目录 prune
+            #   （`tts_speakers/` ⇒ 用户音色库，绝不能进包）
+            if d in USER_SPEAKER_DIR_NAMES:
+                continue
             keep.append(d)
         dirnames[:] = sorted(keep)
 
@@ -558,6 +617,9 @@ def iter_package_files(pkg_root: str):
             #    只排音频文件，不整目录删）
             if is_third_party_noise(rel):
                 continue
+            # 🔴🔴🔴 用户音色 / 克隆产物（APP-027⑤ 隐私闸门）—— 文件级
+            if is_user_voice_artifact(rel):
+                continue
             try:
                 size = os.path.getsize(full)
             except OSError:
@@ -581,7 +643,8 @@ def iter_excluded(pkg_root: str):
             hit = d in SKIP_DIR_NAMES or (
                 BACKUP_DIR_RE.match(d)) or (
                 d == '__pycache__' and top_dir not in KEEP_PYCACHE_UNDER) or (
-                any(d_rel.startswith(p) for p in THIRD_PARTY_NOISE_PREFIXES))
+                any(d_rel.startswith(p) for p in THIRD_PARTY_NOISE_PREFIXES)) or (
+                d in USER_SPEAKER_DIR_NAMES)
             if not hit:
                 continue
             for p2, _d2, f2 in os.walk(os.path.join(dirpath, d)):

@@ -264,6 +264,14 @@ class TTSService:
 
         self.proc: Optional[subprocess.Popen] = None
         self.lock = threading.Lock()
+        # 🔴🔴🔴 APP-027⑤：**stdin 写锁**（命令**串行化**）
+        #   起因：`set_clone_pcm()` 由**会话线程**（`Session._loop` → `on_audio`）
+        #   调用，而 `submit()` / `cancel()` 由 **GUI 主线程**调用
+        #   ⇒ 两个线程**并发 write(同一 pipe)** ⇒ 命令行**交错**
+        #   ⇒ worker 收到的 JSON 变成半行拼接 ⇒ **解析失败 / 丢命令**。
+        #   ⚠️ `self.lock` **不能**复用（它保护的是 `pending` 等状态，
+        #      且 `_send()` 里已经 `with self.lock` 取过 proc ⇒ 非可重入会自死锁）。
+        self._stdin_wlock = threading.Lock()
         self.state = 'idle'
         self.err = None
         self.n_restart = 0             # worker 崩溃重启次数（C-101：最多 1 次）
@@ -350,6 +358,25 @@ class TTSService:
         #   ⚠️ `_queue` 是 `list`（要保顺序）⇒ 摘除是 O(n) ⇒ 另用 set 记成员
         #      以便 O(1) 判断「这个 jid 在不在待发队列里」。
         self._queued_ids: set = set()
+        # ── 🔴🔴🔴 APP-027④：**三段式积压**需要的、由 worker 报上来的状态 ──
+        #   ① `_ring_backlog_s`：环形缓冲里**实际剩下**的样本时长（只算一次）
+        #   ② `_synth_jid` / `_synth_rem_s`：正在合成的句子及其剩余预计时长
+        #   ③ `_wqueue_ids` / `_queue_est_s`：worker FIFO 里排队的句子及估时
+        #   ④ `_sec_per_char`：worker 实测的「音频秒/字」（估时校准）
+        self._ring_backlog_s = 0.0
+        self._synth_jid = None
+        self._synth_rem_s = 0.0
+        self._wqueue_ids: List = []
+        self._queue_est_s: dict = {}
+        self._sec_per_char = None
+        # 🔴 APP-027④：积压的三段明细（诊断用）
+        self.backlog_parts: dict = dict(ring_s=0.0, synth_s=0.0,
+                                        queued_s=0.0)
+        # 🔴🔴🔴 APP-027⑤：克隆音色状态（GUI 要显示「实际使用的音色」）
+        self.clone_active = False
+        self.clone_updated_at = None
+        self.clone_dur_s = None
+        self.clone_mode = None
 
         if auto:
             self.start()
@@ -1038,12 +1065,15 @@ class TTSService:
             #   （见 start() 的 Popen）⇒ 写 stdin 也必须写 **bytes**。
             #   ⚠️ 写 str 会抛 TypeError ⇒ 之前会表现为「发送失败」。
             line = (json.dumps(obj, ensure_ascii=False) + '\n').encode('utf-8')
-            try:
-                p.stdin.write(line)
-            except TypeError:
-                # 兼容旧的文本模式管道（例如外部注入的假 proc）
-                p.stdin.write(line.decode('utf-8'))
-            p.stdin.flush()
+            # 🔴🔴🔴 APP-027⑤：**必须持写锁** ⇒ 命令行不交错
+            #   （`submit`/`cancel` 来自 GUI 主线程，`clone` 来自会话线程）
+            with self._stdin_wlock:
+                try:
+                    p.stdin.write(line)
+                except TypeError:
+                    # 兼容旧的文本模式管道（例如外部注入的假 proc）
+                    p.stdin.write(line.decode('utf-8'))
+                p.stdin.flush()
             # 🔴🔴 APP-024①：**命令真正写进 worker stdin 的时刻**。
             #   ⇒ 主进程侧「排队等待」= `t_sent − t_submit`
             #     （同一个进程 ⇒ `time.perf_counter()` 时钟可比；
@@ -1184,6 +1214,13 @@ class TTSService:
             if jid in self._queued_ids:
                 self._queued_ids.discard(jid)
                 self._queue = [c for c in self._queue if c.get('id') != jid]
+            # 🔴🔴🔴 APP-027④：worker FIFO 队列里的句子也要摘掉
+            #   （否则主进程以为它还在排队 ⇒ 积压高估 ⇒ 又多丢几句）
+            self._queue_est_s.pop(jid, None)
+            try:
+                self._wqueue_ids.remove(jid)
+            except ValueError:
+                pass
             if was_pending:
                 # 🔴 2026-10-25 §30 修：登记「这句已被丢弃」。
                 #   worker 可能**无视 cancel 照样播出来**（它已越过自己的取消检查）
@@ -1390,6 +1427,53 @@ class TTSService:
                     it['written'] = True
                     it['dur_s'] = msg.get('dur_s')
             self._update_backlog()
+        elif kind == 'synth_state':
+            # 🔴🔴🔴 APP-027④：worker 报「合成队列状态」。
+            #   ⇒ 主进程据此算**三段式积压**（环形缓冲水位 + 正在合成的剩余
+            #     + 排队句子的预计时长）。
+            #   ⚠️ **旧口径为什么错**：每个「已写入」的句子各按
+            #      `min(3.0, dur_s)` 各算一次 ⇒ 两句同时已写入按 6 s 计
+            #      ⇒ **高估积压** ⇒ **多丢句**（用户实测「越拖越久、全丢」）。
+            #   ⇒ 现在这一项**只算一次**（来自 worker 的实际水位）。
+            with self.lock:
+                self._synth_jid = msg.get('synth_jid')
+                try:
+                    self._synth_rem_s = float(msg.get('synth_rem_s') or 0.0)
+                except Exception:
+                    self._synth_rem_s = 0.0
+                try:
+                    self._ring_backlog_s = float(
+                        msg.get('ring_backlog_s') or 0.0)
+                except Exception:
+                    self._ring_backlog_s = 0.0
+                self._wqueue_ids = list(msg.get('queue_ids') or [])
+                qe = msg.get('queue_est_s') or {}
+                self._queue_est_s = {int(k): float(v)
+                                     for k, v in qe.items()}
+                spc = msg.get('sec_per_char')
+                if spc:
+                    try:
+                        self._sec_per_char = float(spc)
+                    except Exception:
+                        pass
+            self._update_backlog()
+        elif kind == 'clone':
+            # 🔴🔴🔴 APP-027⑤：克隆音色更新结果。
+            #   ⇒ GUI 要能看见「**当前实际使用的音色**」
+            #     （「预设 A」/「克隆（更新于 hh:mm:ss，x s 语音）」）
+            #   ⇒ **绝不静默**（失败必须显式回落预设 A 并写日志）。
+            ok = bool(msg.get('ok'))
+            self.clone_active = ok
+            self.clone_updated_at = msg.get('updated_at')
+            self.clone_dur_s = msg.get('dur_s')
+            self.clone_mode = msg.get('mode')
+            if ok:
+                self.on_log('[TTS] 克隆音色已更新（%.1f s 语音，模式 %s）'
+                            % (float(self.clone_dur_s or 0.0),
+                               self.clone_mode or '?'))
+            else:
+                self.on_log('[TTS] 🔴 克隆音色更新失败：%s ⇒ 回落到预设 A'
+                            % (msg.get('message') or '未知原因'))
         elif kind == 'test_tone':
             # 🔴 APP-021④：「测试声音」的结果回传
             ok = bool(msg.get('ok'))
@@ -1437,91 +1521,178 @@ class TTSService:
     def set_dump_dir(self, path: Optional[str]) -> bool:
         return self._send({'cmd': 'set_dump_dir', 'dir': path or ''})
 
+    # 🔴🔴🔴 APP-027⑤：**更新克隆音色**（把 16 kHz PCM 发给 worker）。
+    def set_clone_pcm(self, pcm) -> bool:
+        """把一段 **16 kHz float32 PCM** 发给 worker ⇒ 更新克隆音色。
+
+        🔴 **隐私**：PCM **只在进程间传输**（base64）⇒
+        **不落盘到客户包**（worker 侧的临时 wav 在 `tempfile.gettempdir()`
+        下，会话结束即删）。
+        🔴 **失败不抛异常**：返回 False ⇒ 调用方显式回落预设 A。
+        """
+        try:
+            import base64
+            import numpy as np
+            a = np.asarray(pcm, dtype=np.float32).reshape(-1)
+            if a.size < 16000 * 3:
+                return False
+            b64 = base64.b64encode(a.tobytes()).decode('ascii')
+            return self._send({'cmd': 'clone', 'pcm': b64})
+        except Exception as e:
+            self.on_log(f'[TTS] 克隆音色更新失败：{e}')
+            return False
+
     def _emit(self, kind, payload):
         with self._outbox_lock:
             self._outbox.append((kind, payload))
 
     # -- 积压与丢句 ------------------------------------------------------
-    def _update_backlog(self):
-        """按**音频时长**估算积压（不是字数），超 8 s 就丢最旧的未播句。
+    def _estimate_dur_s(self, text: str) -> float:
+        """估计一句译文的音频时长（秒）。
 
-        ⚠️ **worker 还没 ready 时不丢句**（2026-10-22 修）：
-        worker 加载模型要几十秒（实测 CPU 37 s），这段时间里所有提交的句子
-        都堆在待发队列上，积压估算会瞬间超过阈值
-        ⇒ 实测 30 s 回放里 **8 句全被丢掉**，一句都没念。
-        但这段积压**不是播放跟不上造成的**，是模型还没加载完
-        ⇒ 此时丢句是误伤。改成：ready 之前只**记录**积压，不丢。
+        🔴🔴🔴 APP-027④：**用 worker 实测的「音频秒/字」校准，不写死 5 字/秒**。
+        - 旧实现写死「中文 5 字/秒、英文 15 字符/秒」
+          ⇒ 与实测偏差很大 ⇒ 积压估算失真 ⇒ **多丢句**。
+        - 现在：优先用 worker 报上来的 `sec_per_char`（实测 EWMA）
+          ⇒ 没有实测值时才用保守兜底（中文 0.12 s/字 ≈ 8.3 字/秒）。
+        """
+        try:
+            n = len([c for c in (text or '') if c.strip()])
+        except Exception:
+            n = 0
+        if n <= 0:
+            return 0.0
+        spc = self._sec_per_char
+        if spc:
+            return float(n) * float(spc)
+        return float(n) * 0.12
+
+    def _update_backlog(self):
+        """🔴🔴🔴 APP-027④：**三段式积压口径** + 「只丢没开始合成的整句」。
+
+        🔴 **口径（APP-027 明文）**：
+            积压 = ① 环形缓冲里**实际剩下**的样本时长（只算一次，最多 3 s）
+                 + ② **正在合成的句子**的剩余预计时长
+                 + ③ **排队中**（还没开始合成）的句子的预计时长
+
+        🔴🔴 **旧口径的三个错**（APP-027 问题③①③ 的根因）：
+        - 旧：**每个「已写入」的句子各按 `min(3.0, dur_s)` 计一次**
+          ⇒ 两句同时已写入 ⇒ 按最多 **6 s** 计 ⇒ **高估积压**
+          ⇒ ⇒ **多丢句**（用户实测「CUDA 连续播放越拖越久、最后全部被丢」）。
+          ⇒ 现在：① 直接读 **worker 报的缓冲实际水位**
+            （`synth_state` 的 `ring_backlog_s`）⇒ **只算一次**。
+        - 旧：**字数估算写死**「中文 5 字/秒、英文 15 字符/秒」
+          ⇒ 与实测偏差大 ⇒ 积压估算失真。
+          ⇒ 现在：用 **worker 实测的「音频秒/字」**
+            （`synth_state` 的 `sec_per_char`）⇒ 没有实测值时才用兜底。
+        - 旧：丢句时**把已写入 / 已开始播的句子也放进候选**
+          ⇒ 「丢了不减少积压」（APP-027 问题③②）
+          ⇒ 用户听到的是「刚播完的句子被丢」⇒ 越播越少。
+          ⇒ 现在：**已写入 / 正在合成 / 已开始播的句子一律不丢**，
+            只丢**还没开始合成的整句**（从最旧的开始）。
+
+        ⚠️ **worker 还没 ready 时不丢句**（2026-10-22 修）—— 保留原语义。
         """
         with self.lock:
-            pending = list(self.pending.values())
-        if not pending:
+            pending_map = dict(self.pending)
+        if not pending_map:
             self.backlog_s = 0.0
             return
-        # 粗略估算：中文 ~5 字/秒，英文 ~2.5 词/秒
-        est = 0.0
-        for it in pending:
-            # 🔴 APP-021③：**音频已写进环形缓冲**的句子 ⇒ 用**真实时长**
-            #   且**只算还没播的那部分**（环形缓冲容量 3 s ⇒ 最多 3 s 待播）
-            #   ⇒ 否则会把这句的**整段时长**都算进积压 ⇒ 高估 ⇒ 多丢句。
-            if it.get('written'):
-                try:
-                    d = float(it.get('dur_s') or 0.0)
-                except Exception:
-                    d = 0.0
-                est += min(3.0, d)
-                continue
-            t = it['text']
-            cjk = sum(1 for ch in t if '\u4e00' <= ch <= '\u9fff')
-            other = len(t) - cjk
-            est += cjk / 5.0 + other / 15.0
+
+        # ── ① 环形缓冲实际水位（worker 报）──
+        ring_s = float(self._ring_backlog_s or 0.0)
+
+        # ── ② 正在合成的句子：剩余预计时长 ──
+        with self.lock:
+            synth_jid = self._synth_jid
+            synth_rem = float(self._synth_rem_s or 0.0)
+            qest = dict(self._queue_est_s or {})
+            qids = list(self._wqueue_ids or [])
+
+        # ── ③ 排队中的句子（还没开始合成）──
+        queued_s = 0.0
+        for jid in qids:
+            d = qest.get(jid)
+            if d is None:
+                d = self._estimate_dur_s((pending_map.get(jid) or {}).get(
+                    'text', ''))
+            queued_s += float(d or 0.0)
+
+        est = ring_s + synth_rem + queued_s
         self.backlog_s = est
         self.max_backlog_s = max(self.max_backlog_s, est)
+        self.backlog_parts = dict(ring_s=round(ring_s, 3),
+                                  synth_s=round(synth_rem, 3),
+                                  queued_s=round(queued_s, 3))
 
         if est > BACKLOG_MAX_S:
             # ⚠️ **worker 还没 ready ⇒ 只记录，不丢**（见本方法 docstring）
             if self.state != 'ready':
                 self.on_log(f'[TTS] 积压 {est:.1f}s（模型尚未就绪，暂不丢弃）')
                 return
-            # 丢最旧的未播句（**整句为单位**，C-101 P4 第 2 条）
+            # 🔴🔴🔴 APP-027④：**只丢「还没开始合成」的整句**。
+            #   候选 = ① 还在主进程 `_queue` 里（没下发给 worker）的
+            #        ② 已下发但 worker 侧还在 FIFO 队列里排队的
+            #   ⇒ **绝不动**：正在合成的（`synth_jid`）、已写入缓冲的、已播的。
+            candidates = []
             with self.lock:
-                drop_ids = []
-                acc = 0.0
-                for jid, it in self.pending.items():
-                    # 🔴 APP-021③：已写进缓冲的句子 ⇒ 剩余待播 ≤ 3 s
-                    if it.get('written'):
-                        try:
-                            d = float(it.get('dur_s') or 0.0)
-                        except Exception:
-                            d = 0.0
-                        acc += min(3.0, d)
-                        drop_ids.append(jid)
-                        continue
-                    t = it['text']
-                    cjk = sum(1 for ch in t if '\u4e00' <= ch <= '\u9fff')
-                    d = cjk / 5.0 + (len(t) - cjk) / 15.0
-                    acc += d
-                    drop_ids.append(jid)
-                    if acc > BACKLOG_MAX_S * 0.5:
+                # ① 主进程还没下发的（最旧优先）
+                for jid in list(self._queued_ids):
+                    if jid in self.pending and jid not in candidates:
+                        candidates.append(jid)
+                # ② worker FIFO 里排队的（最旧优先）
+                for jid in qids:
+                    if jid in self.pending and jid not in candidates:
+                        candidates.append(jid)
+            # ⚠️ **绝不丢正在合成的那句**
+            if synth_jid is not None and synth_jid in candidates:
+                candidates.remove(synth_jid)
+            if not candidates:
+                self.on_log(
+                    f'[TTS] 积压 {est:.1f}s > {BACKLOG_MAX_S}s，但**没有可丢的'
+                    f'未开始合成的整句**（正在合成/已写入的句一律不丢）')
+                return
+            # 🔴 APP-027④：「丢时按『至少降到阈值以下』计算，**不要每次多丢一句**」
+            #   ⇒ **从当前积压 `est` 起算**，逐句丢，**降到阈值以下就停**
+            #      （不是「丢一批」也不是「多丢一句」）。
+            real_drop = []
+            with self.lock:
+                acc = est
+                for jid in candidates:
+                    if acc <= BACKLOG_MAX_S:
+                        # 已经降到阈值以下 ⇒ **停**（不要多丢）
                         break
-                for jid in drop_ids:
+                    d = qest.get(jid)
+                    if d is None:
+                        d = self._estimate_dur_s(
+                            (self.pending.get(jid) or {}).get('text', ''))
+                    d = float(d or 0.0)
+                    real_drop.append(jid)
+                    acc -= d
+                for jid in real_drop:
                     self.pending.pop(jid, None)
                     # 🔴🔴 2026-10-25 §29 修：**必须同时注销 `_inflight`**。
-                    #   旧实现只清 `pending` ⇒ 这些 jid 永远留在 `_inflight` 里
-                    #   ⇒ ① `_inflight` 集合无界增长（长会议内存单调上升）；
-                    #   ② 🔴 worker 崩溃时 `_on_worker_exit()` 会
-                    #      `lost = sorted(self._inflight)` ⇒ 把**早已丢弃**的
-                    #      句子**再算一次**丢句 ⇒ `n_dropped` 双记、统计虚高
-                    #      （实测：真实丢 8 句 ⇒ 统计成 9）。
+                    #   （否则 `_inflight` 无界增长，且 worker 崩溃时会把早已
+                    #    丢弃的句子**再算一次**丢句 ⇒ `n_dropped` 双记。）
                     self._inflight.discard(jid)
                     # 🔴 2026-10-25 §30 修：登记「这句已被丢弃」。
                     #   worker 可能无视 cancel 照样播出来 ⇒ 收到 `played` 时
                     #   **改记为已播**（`n_dropped -= 1`），避免双记。
                     self._dropped_ids.add(jid)
+                    self._queued_ids.discard(jid)
+                    self._queue_est_s.pop(jid, None)
+                    try:
+                        self._wqueue_ids.remove(jid)
+                    except ValueError:
+                        pass
             # 通知 worker 别播这些句子（否则丢弃白做了）
-            for jid in drop_ids:
+            for jid in real_drop:
                 self._send({'cmd': 'cancel', 'id': jid})
-            self.n_dropped += len(drop_ids)
-            self.on_log(f'[TTS] 积压 {est:.1f}s > {BACKLOG_MAX_S}s，丢弃 {len(drop_ids)} 句未播译文')
+            self.n_dropped += len(real_drop)
+            self.on_log(
+                f'[TTS] 积压 {est:.1f}s > {BACKLOG_MAX_S}s，丢弃 {len(real_drop)} 句'
+                f'**未开始合成**的译文（缓冲 {ring_s:.1f}s + 正在合成 '
+                f'{synth_rem:.1f}s + 排队 {queued_s:.1f}s）')
 
     def stats(self) -> dict:
         return dict(
@@ -1530,6 +1701,10 @@ class TTSService:
             first_packet_parts=self.first_packet_parts,
             backlog_s=round(self.backlog_s, 2),
             max_backlog_s=round(self.max_backlog_s, 2),
+            # 🔴🔴🔴 APP-027④：积压的**三段明细**（诊断用）
+            backlog_parts=dict(self.backlog_parts),
+            # 🔴 APP-027④：worker 实测的「音频秒/字」（估时校准）
+            sec_per_char=self._sec_per_char,
             n_dropped=self.n_dropped,
             n_played=self.n_played,
             n_submitted=self.n_submitted,
@@ -1538,6 +1713,11 @@ class TTSService:
             device=self.device,
             out_device=self.out_device,
             clone=self.clone,
+            # 🔴🔴🔴 APP-027⑤：**当前实际使用的音色**（GUI 显示用）
+            clone_active=self.clone_active,
+            clone_updated_at=self.clone_updated_at,
+            clone_dur_s=self.clone_dur_s,
+            clone_mode=self.clone_mode,
             # 🔴 §52：worker 级故障的**原文**（None = 没有故障）
             last_error=self.last_error,
             # 🔴 APP-021③：三个数（已播 / 丢句 / 失败）+ 最近一条句子级错误

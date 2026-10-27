@@ -189,6 +189,18 @@ def send_chunk(arr, sr, last, rid):
     _out.flush()
 
 
+# 🔴🔴🔴 APP-027③：**逐请求 trace**（边车侧）。
+#   记录：rid、收到请求时刻、第一块、done、块数、异常。
+#   ⚠️ **只写 stderr**（stdout 是协议出口 ⇒ 不能混）。
+#   ⚠️ 落盘由**客户端**（`tts_cuda.py`）做 `tts_cuda_trace.log`；
+#      这里只把**边车内部**的时序打进 stderr ⇒ 客户端的 stderr 泵会转进 on_log。
+def _trace(msg):
+    try:
+        print('[sidecar] %s' % msg, file=sys.stderr, flush=True)
+    except Exception:
+        pass
+
+
 def main() -> int:
     t0 = time.monotonic()
     import torch
@@ -213,6 +225,11 @@ def main() -> int:
           'device': torch.cuda.get_device_name(0),
           'torch': torch.__version__, 'model': MODEL_ID})
 
+    # 🔴🔴🔴 APP-027⑤：**当前克隆参考音频**（可在会话中切换）。
+    #   默认是预设 A；客户端可用 `set_ref` 命令换掉 ⇒ 下一句起生效。
+    #   ⚠️ **只存在内存里**，**不落盘**（隐私：APP-022「共用约定」）。
+    current_ref = DEFAULT_REF
+
     stdin = sys.stdin.buffer
     while True:
         line = stdin.readline()
@@ -231,18 +248,33 @@ def main() -> int:
             continue
         if req.get('cmd') == 'quit':
             return 0
+        # 🔴🔴🔴 APP-027⑤：**切换克隆参考音频**
+        #   ⚠️ 边车**不支持取消**，但**支持换参考** ⇒ 下一句起生效。
+        #   ⚠️ 路径可能是**临时文件**（客户端负责删除）⇒ 这里不校验存在性
+        #      （失败会在合成时报出来，由客户端显式回落预设 A）。
+        if req.get('cmd') == 'set_ref':
+            new_ref = req.get('ref_audio')
+            if new_ref:
+                current_ref = new_ref
+                _trace('set_ref: %s' % current_ref)
+            send({'id': req.get('id'), 'set_ref': True,
+                  'ref_audio': current_ref})
+            continue
 
         rid = req.get('id')
         text = (req.get('text') or '').strip()
+        t_req = time.monotonic()
         if not text:
             send({'id': rid, 'done': True})
             continue
-        ref = req.get('ref_audio') or DEFAULT_REF
+        ref = req.get('ref_audio') or current_ref
+        _trace('REQ rid=%s len=%d ref=%s' % (rid, len(text), ref))
         try:
             # 🔴 只缓存**一块**：收到新块才发旧块（这样才能给最后一块打 last=True，
             #    且**绝不重复发送**同一块）。流式语义不受影响（滞后 1 块）。
             n = 0
             pending = None
+            t_first = None
             for chunk, sr, _timing in model.generate_voice_clone_streaming(
                     text=text, language=_lang(req.get('language')),
                     ref_audio=ref, xvec_only=True,
@@ -254,9 +286,13 @@ def main() -> int:
             if pending is not None:
                 send_chunk(pending[0], pending[1], True, rid)
                 n += 1
+                t_first = time.monotonic()
             send({'id': rid, 'done': True, 'chunks': n})
+            _trace('DONE rid=%s chunks=%d elapsed=%.2fs'
+                   % (rid, n, (t_first - t_req) if t_first else -1))
         except Exception as e:
             traceback.print_exc(file=sys.stderr)
+            _trace('ERR rid=%s %s: %s' % (rid, type(e).__name__, e))
             send({'id': rid, 'error': '%s: %s' % (type(e).__name__, e)})
 
 

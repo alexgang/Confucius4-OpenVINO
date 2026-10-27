@@ -1,28 +1,27 @@
 # STATUS_APP
-last_ack: APP-023
-更新时间: 2026-10-27 11:05
-当前任务: **§66 🔴🔴🔴 【用户新口径】以后不做一致性校验、不开 FTP 服务** ⇒ 交付流程改写为 **定点同步 → 先提交 → 持锁重打 zip**（+ 只读本地「zip ⇄ 包目录 diff = 0」）⇒ **「已交付」口径改为「包目录 + zip 已含最新代码且已入库」** + ✅ **§65 §64 真正落盘**（修 2 处应用脚本缺陷 + 2 处 U+FFFD） + ✅ **已提交 `2d19402`**（APP-024① 首包拆两段 + app093/app096 去硬编码 + app097 验收） + ✅ **已定点同步客户包**（8 块全部唯一命中；🔴 换行差异让 diff 退化 ⇒ 归一化后才派生出精确块） + 🔴 **新交付代差**：APP-024① 改在打包之后 ⇒ zip 仍旧版 ⇒ **仍须重打包** + 🔴 **自曝一处自造事故**：备份目录放包内 ⇒ 复核误报 237 缺失 ⇒ 已移至包外 ⇒ 🔴 **停在等 ASR 活锁（PID 34724）释放** ⇒ 拿到锁即重打包（**不再**跑全量复核、**不再**跑 FTP） ⇒ 🔴 **APP-024②③④ 未做** ⇒ **`last_ack` 保持 APP-023** ⇒ ⛔ **同时仍停在 §63 的 L4 等用户实测**（桌面快捷方式 ⇒ 测试声音 → CUDA → NPU）
+last_ack: APP-027
+更新时间: 2026-10-27 12:30
+当前任务: **§68 🔴🔴 APP-026 + APP-027（BLOCKING）代码侧改造完成 · 验收待机器锁** ⇒ ✅ APP-026（统一 5 分钟切片 `shared/SPE_0000_0500.wav`，不再跑 61min）＋ ✅ APP-027①（逐句自适应预缓冲 + numpy 环形缓冲 + 遥测拆 `synth_rtf`/`prebuffer_s`/`underflow_in_sentence`）＋ ✅ APP-027②（CUDA 边车 **rid 过滤 + 读者线程 + 看门狗** ＋ **单一 FIFO 合成线程** ＋ **三段式积压**「已写入/已开播一律不丢」）＋ ✅ APP-027③（**克隆真正接入**：主进程采集 3–10 s 去静音语音 → worker 换 x-vector / 边车 `set_ref` → 下一句生效；**失败真回落预设 A**；GUI 显示**实际使用**的音色）＋ ✅ 删 `clone_C.npz` 死代码 ＋ ✅ `pkg_exclude` 隐私闸门 ＋ ✅ 桩测试隔离 `LOCALAPPDATA`⇒ ✅ 验收 `app098` 21/21 ＋ `app099` 13/13 ＋ `app100` 28/28（含 3 条反证）⇒ ⛔ **V1/V2/V3 未跑**（机器锁被 TTS 占用，`OpenProcess` err=87 ⇒ fail-closed 视为存活）⇒ ⛔ **客户包未同步 / zip 未重打**（当前 zip = 10:28:15 旧版 ⇒ **不写「已交付」**）⇒ ⛔ **V4 等用户实听**（CUDA / NPU / 克隆各一段；**只有用户确认才算 L4 关闭**）⇒ 🔴 **`last_ack` = APP-027**
 
-阻塞 / 待用户决定: ① 🔴 **§66 用户新口径生效**：**不再做一致性校验（`verify_pkg_zip.py`）、不再开 FTP 服务** ⇒ 交付流程 = **定点同步 → 先提交 → 持锁重打 zip**（+ 只读本地「zip ⇄ 包目录 diff = 0」）⇒ **FTP 服务保持关闭**；🔴 **「已交付」不再以「三方闭环」为准** ⇒ 改为「包目录 + zip 已含最新代码且已入库」；② 🔴 **§65.5 等 ASR 活锁释放**（`PID 34724` / `pya_app_baseline_base61` / exit=259 ⇒ 活锁）⇒ **不抢不删** ⇒ 释放后**只重打 zip**（**不再**跑全量复核、**不再**跑 FTP）；🔴 **当前 zip 不含 APP-024① ⇒ 仍不写「已交付」**；③ ⛔ **§63 的 L4 等用户实测**（需人）：桌面快捷方式 →「🔊 测试声音」→ CUDA 朗读一句 → NPU 朗读一句 ⇒ 反馈听到/听不到 + `%LOCALAPPDATA%\Confucius4LiveCaption\session_*.log` 路径 ⇒ **用户亲口确认前不得写「能出声」**；④ 🔴 **APP-024②③④ 未做**（加载期句子单独列 / 按 BRIEF 素材持锁重跑 ABBA / 「加载期攒句是否按 8 s 丢」—— reviewer 明文「**不要自己改**」）⇒ **`last_ack` 保持 APP-023**；⑤ ✅ **§65.2 已提交 `2d19402`**（逐文件 add、**未提交** `CORRECTIONS_APP.md`、**未吞**他模块 **479** 项）⇒ 🔴 **尚未 push**；⑥ 🔴 **§66.2 别误读**：取消的是**校验与 FTP**，**不是打包** ⇒ APP-024① 改代码（10:38）**在**打包（10:17–10:31）**之后** ⇒ **仍必须重打 zip**；⑦ 🔴 **§65.4 自造事故已修**：备份目录从**包内**移到**包外** `pkg_backup_app_s64` ⇒ 教训：**包目录内不许放备份/临时文件**（会被 `pkg_exclude`/MANIFEST 统计到）；⑧ 🔴 **APP-022 集成需等 ASR-013 + TTS-019 交付**（§55 只做接口预留，**未集成**）；⑨ 🔴 **术语表 / `packaging` 默认值待用户决定**（MT 通知 14 建议已被用户 09:01 **作废** ⇒ App 不改术语表）；⑩ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑪ 🔴 **§45.6①–⑤ / §44 `MAX_SEG_SPAN=2` / §46.5 / §42.3 / MT 通知 13 回复** ⇒ 等 reviewer 裁定；⑫ 🔴 **§56.9**：TTS-019 `single` 臂 / TTS-017① `A_CPU` 臂是否重跑由 TTS 自行决定；⑬ 🔴 **§56.2**：ASR/TTS 侧锁写法的**独占性**待其自评；⑭ 🔴 **§57**：历史遗留未跟踪文件（`sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `app073*` / `app074*` 等）**归属未判定** ⇒ 本轮**未提交**；⑮ 🔴 **§64.6**：`test_tts_cmp_orig.py` 因 `_orig_mod/` **从未入 git** 而无法运行 ⇒ **环境缺失非回归**
+阻塞 / 待用户决定: ① 🔴🔴 **§68：APP-027 是 BLOCKING，代码侧已改完但未在用户启动方式下复验** ⇒ **不写「语音输出可用」**；② ⛔ **V1（CUDA 连续实时）/ V2（NPU + 四配置 ABBA）/ V3（克隆）未跑** ⇒ **阻塞原因 = 共享机器锁被 TTS 模块占用**（`module: tts` / `pid: 14888` / started 11:28:49）⇒ ctypes `OpenProcess` **err=87** ⇒ **fail-closed ⇒ 视为存活** ⇒ **不抢、不删、不跑**；③ ⛔ **客户包 `app/` 未同步 + zip 未重打** ⇒ 当前 zip = **10:28:15 旧版**（11 216 287 107 B / SHA256 `c7f60bca…a667e4`）⇒ **不含本轮任何改动** ⇒ **不写「已交付」**（口径：包目录 + zip 已含最新代码**且已入库**）；④ ⛔ **§63 的 L4 仍等用户实测**（需人）：桌面快捷方式 → CUDA 朗读一句 → NPU 朗读一句 → 克隆音色一段 ⇒ 反馈听到/听不到 + `%LOCALAPPDATA%\Confucius4LiveCaption\session_*.log` 路径 ⇒ **用户亲口确认前不得写「能出声」**；⑤ 🔴 **§66 用户新口径仍生效**：**不再跑 `verify_pkg_zip.py`、不再跑 `publish_ftp.py`、不开 FTP** ⇒ 交付流程 = **定点同步 → 先提交 → 持锁重打 zip**（+ 只读本地「zip ⇄ 包目录 diff = 0」）；⑥ 🔴 **§68 之后拿锁要做的事顺序不可颠倒**：V1 → V2 → V3 → **V4 用户实听** ⇒ **过 V1–V3 才**定点同步客户包 ⇒ 先提交 ⇒ 持锁重打 zip；⑦ 🔴 **APP-022「按说话人切换音色」仍后置**（本轮只做「克隆**当前**说话人」的单音色路线，**不依赖 pyannote**）；⑧ 🔴 **§67 的 `app067_repack_after_lock.py`** = 等锁重打包的「替代校验」入口（**只读本地**闸门）；⑨ 🔴 **APP-024②③④ 仍未做**（reviewer 明文「不要自己改」）⇒ 保持原状；⑩ 🔴 **§57 历史遗留未跟踪文件**（`sync_c148b_to_pkg.py` 等）**归属未判定** ⇒ 本轮**未提交**；⑪ 🔴 **§64.6** `test_tts_cmp_orig.py` 因 `_orig_mod/` **从未入 git** 无法运行 ⇒ **环境缺失非回归**
 
 
 ## 最近更新
+12:30 §68 ✅ **APP-027⑤（克隆）真正接入**：主进程 `Session.on_audio` → `App._collect_clone_pcm`（20 ms 帧 RMS **去静音**、滚动 10 s、**≥6 s 新语音或每 30 s** 触发）→ `tts_service.set_clone_pcm`（base64 16 kHz PCM）→ worker `_update_clone`（BabelVox 换 x-vector / CUDA 边车 `set_ref`）⇒ **下一句起生效**；🔴 **失败真回落预设 A**（`_fallback_to_preset` 换回**缓存**的预设向量，不是只改标志位）；🔴 GUI 新增**独立标签**显示**实际使用**的音色（「预设 A」/「克隆（更新于 hh:mm:ss，x s 语音）」）⇒ **旧的「尚未启用 ⇒ 回落 A」死逻辑已删**
+12:30 §68 ✅ **APP-027③ 的两个并发缺口补上**：① `tts_service._send` 加 **`_stdin_wlock`**（`set_clone_pcm` 来自**会话线程**、`submit/cancel` 来自 **GUI 主线程** ⇒ 并发 write 同一 pipe ⇒ 命令行交错 ⇒ worker 收到半行 JSON）② `tts_cuda` 的 `set_ref_audio` 与 `generate_stream` 共用写锁；③ `tts_cuda.close()` 现在**清空消息队列**（否则 close→start 后新句会先读到旧句的块 ⇒ 又错位）
+12:30 §68 ✅ **APP-027 顺带两处**：① APP-025「pythonw 下测试音失败」已修并验证（`_out_write` 永不抛异常 ⇒ 成功播放 1.00 s / `read_delta=24000`）② 桩测试**隔离 `LOCALAPPDATA`**（`app099`/`app100` 在 exec/import 被测模块**之前**指到 `tempfile.mkdtemp()`）⇒ **不再污染**用户真实 `%LOCALAPPDATA%\Confucius4LiveCaption`
+12:30 §68 ✅ **隐私闸门**：`pkg_exclude.is_user_voice_artifact()` ⇒ 拦 `clone_*.npz` ＋ `tts_speakers/`（任意层级，整目录 prune）⇒ ⚠️ **不误伤** `preset_A.wav`（生产路线依赖）
+12:30 §68 ✅ **验收**：`app098` **21/21**、`app099` **13/13**、`app100` **28/28**（含 3 条反证）、`app097` 回归 **20/20 + BUG 3/3** ⇒ 🔴 **闸门自身的假通过比缺陷更危险** ⇒ C 组**故意写错**确认判据**确实 FAIL**
+12:30 §68 ⛔ **未跑 V1/V2/V3**（共享机器锁被 TTS 占用：`pid 14888`，`OpenProcess` **err=87** ⇒ **fail-closed 视为存活** ⇒ **不抢不删**）⇒ ⛔ **客户包未同步 / zip 未重打** ⇒ **不写「已交付」**；⛔ **V4 等用户实听**
+11:26 §68 🔴🔴🔴 **新纠偏 2 条已读**：`CORRECTIONS_APP.md` SHA `a4f4d3b0e52894dd…` / **77 399 B** / mtime **11:08:32** / **27 条**（最大 **APP-027**）⇒ `last_ack` → **APP-027**；**APP-026**（不再跑 61min，统一 SPE 前 **5 分钟**切片 `shared/SPE_0000_0500.wav`）+ **APP-027 [BLOCKING]**（NPU 卡顿 / CUDA 越拖越久全丢 / 克隆未接入）
+11:26 §68 🔴 **APP-026 即时生效**：ASR 的 61min 作业 `pya_app_baseline_base61` 已在 **53.9%** 时中止、11:20:17 换跑 **`pya_app_baseline_base5m_v2`（300 s = 5 分钟）** ⇒ 与新口径一致 ⇒ App 侧**不再**安排任何 61min 作业；需制作 `shared/SPE_0000_0500.wav` 供各模块共用
+11:26 §68 🔴 **APP-027 三项改造（本轮主任务）**：① NPU 卡顿（RTF 0.80→1.5，**句内**欠载 389/498 次）⇒ 逐句自适应预缓冲 + 环形缓冲改 numpy + 遥测拆 `synth_rtf`/`prebuffer_s`/`underflow_in_sentence` ② CUDA 全丢（积压口径错：**已写入的句子被丢**、边车 IPC **不核对 `rid` ⇒ 音频与字幕错位**、阻塞读**永不超时** ⇒ 合成线程卡死）⇒ rid 过滤 + 读者线程 + 看门狗 + 单一 FIFO 合成线程 + 积压口径改 ③ 克隆**功能未接入**（GUI 能选但只写日志）⇒ 本轮接入「克隆当前说话人」+ 删 `clone_C.npz` 死代码 + GUI 置灰/改名
 11:05 §66 🔴🔴🔴 **【用户明文新口径】以后不做一致性校验、不开 FTP 服务** ⇒ **覆盖 §61 的交付四步**：第 ③ 步 `verify_pkg_zip.py` 独立复核 **取消**、第 ④ 步 `publish_ftp.py` 重发 FTP **取消** ⇒ 新流程 = **定点同步 → 先提交 → 持锁重打 zip**（+ 一道**只读本地**的「zip ⇄ 包目录 diff = 0」）
 11:05 §66 🔴 **「已交付」口径改写**：**不再**以「三方闭环（源 zip = FTP 副本 = 包目录）」为准 ⇒ 改为 **「包目录 + zip 已含最新代码，且该代码已入库（`HEAD`）」** ⇒ §61/§64 的 FTP 结论**只作历史记录**，不得再作对外报数依据
 11:05 §66 ⚠️ **别把新口径读成「不用打包了」** —— 取消的是**校验与 FTP**，**不是打包** ⇒ APP-024① 代码（10:38）**在**上次打包（10:17–10:31）**之后** ⇒ 当前 zip 仍旧版 ⇒ **仍必须持锁重打 zip**
 11:05 §65 ✅ **§64 真正落盘**（前两次被脚本自身断言拦下 ⇒ STATUS 未被误改）：修 2 处「脚本缺陷」——① 章节计数用子串 `count(\'## §\')` ⇒ 改正则 `^## §\d+`（63→64）② 「最近更新」用 `re.search(.*?$)` ⇒ `$` 在 MULTILINE 下只吃 **1 行** ⇒ 旧的 **29 行会整体丢** ⇒ 改**按行切片**（保留 15 行）
 11:05 §65 🔴🔴 **发现并修掉 2 处 U+FFFD 损坏字符**（「保留在**工**作区」）⇒ 字节层修复 ⇒ 两文件 U+FFFD 计数 **0**（备份里本就是 0 ⇒ 未污染旧 STATUS）
 11:05 §65 ✅ **已提交 `2d19402`**（10 files / +1073 / −29）⇒ 逐文件 `git add`、**未提交** `CORRECTIONS_APP.md`、**未吞**他模块（提交前实测 **479** 项全留）
-11:05 §65 ✅ **已定点同步客户包**：新建 `sync_app024_to_pkg.py`（`git show 0d1be9d` + `get_grouped_opcodes(n=3)` **自动派生**，禁整目录覆盖）⇒ `tts_service.py` 4 块 + `tts_worker.py` 4 块**全部唯一命中** ⇒ 归一化后与仓库**逐字节相同**
-11:05 §65 🔴🔴 **踩到「换行差异让 diff 退化」**：仓库 `tts_service.py` 是 **CRLF 1550 处**、包侧 LF ⇒ 裸 diff 把整文件当一块（`-1503/+1550`）⇒ 修法 = **派生前归一化为 LF** ⇒ 块粒度回到 `-6/+N`
-11:05 §65 🔴🔴 **新交付代差（自查发现）**：APP-024① 改代码（10:38）**在打包（10:17–10:31）之后** ⇒ zip 仍是 10:28 旧版 ⇒ **必须重打包**
-11:05 §65 🔴 **自曝一处自造事故**：备份目录 `_pkg_backup_app_s64` 放**在包目录内** ⇒ 复核误报「237 个缺失」⇒ 已移至**包外** `C:\Users\Trekker-PTL\pkg_backup_app_s64`（合历史惯例）⇒ 教训：**包目录内不许放任何备份/临时文件**
-11:05 §65 🔴 **停在「等锁重打包」**：ASR 活锁 `PID 34724`（`pya_app_baseline_base61`，exit=259）⇒ **不抢不删**；TTS runner 也在等空闲 ⇒ **App 打包是解锁链的一环** ⇒ 拿到锁就尽快打包并释放
-11:00 §65 ✅ **§64 真正落盘**（前两次被脚本自身断言拦下 ⇒ STATUS 未被误改）：修 2 处「脚本缺陷」——① 章节计数用子串 `count(\'## §\')` ⇒ 改正则 `^## §\d+`（63→64）② 「最近更新」用 `re.search(.*?$)` ⇒ `$` 在 MULTILINE 下只吃 **1 行** ⇒ 旧的 **29 行会整体丢** ⇒ 改**按行切片**（保留 15 行）
-11:00 §65 🔴🔴 **发现并修掉 2 处 U+FFFD 损坏字符**（「保留在**工**作区」）⇒ 字节层修复 ⇒ 两文件 U+FFFD 计数 **0**（备份里本就是 0 ⇒ 未污染旧 STATUS）
-11:00 §65 ✅ **已提交 `2d19402`**（10 files / +1073 / −29）⇒ 逐文件 `git add`、**未提交** `CORRECTIONS_APP.md`、**未吞**他模块（提交前实测 **479** 项全留）
-11:00 §65 ✅ **已定点同步客户包**：新建 `sync_app024_to_pkg.py`（`git show 0d1be9d` + `get_grouped_opcodes(n=3)` **自动派生**，禁整目录覆盖）⇒ `tts_service.py` 4 块 + `tts_worker.py` 4 块**全部唯一命中** ⇒ 归一化后与仓库**逐字节相同**
-
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -11523,3 +11522,288 @@ APP-023 的 **L4** 原文：「通知用户从桌面快捷方式按 L1→L2→L3
 
 ### §67.4 ⚠️ 本轮纪律自检
 ✅ 未跑推理/测速｜✅ 未调 MiniMax｜✅ 未改 `CORRECTIONS_APP.md`｜✅ 未吞他模块改动｜✅ **未抢锁、未删活锁**｜✅ 仓库⇄包只做**定点替换**｜✅ 提交**逐文件 `git add`**｜✅ **普通 push，未 force**｜✅ **未开 FTP 服务**（新口径）｜✅ **未跑全量一致性复核**（新口径）｜🔴 **zip 尚未重打 ⇒ 不写「已交付」**。
+
+## §68 APP-026（5 分钟切片新口径）+ APP-027（BLOCKING：NPU 卡顿 / CUDA 全丢 / 克隆未接入）—— 代码侧改造完成，验收待机器锁（2026-10-27 12:30）
+
+### 68.0 纠偏文件指纹（只读，零修改）
+
+| 项 | 实测值 |
+|---|---|
+| 文件 | `status/app/CORRECTIONS_APP.md` |
+| SHA256 | `a4f4d3b0e52894dd9f5cc03236ad51db84355d3859354ca11296c6d465aee2c0` |
+| 字节数 | **77 399 B** |
+| mtime | **2026-10-27 11:08:32** |
+| 条目数 | `^## APP-\d+` 命中 **27**（APP-001…APP-027 连续无缺号） |
+| 本轮 `last_ack` | **APP-027**（含 APP-026 一并执行） |
+
+⚠️ **本文件全程只读**：reviewer 独占写入，App 侧 **零修改**（`git status` 里的 `M status/app/CORRECTIONS_APP.md` 是 reviewer 自己的 +268/−0 行改动，**未入库、未还原**）。
+
+---
+
+### 68.1 APP-026：5 分钟切片新口径 —— 即时生效
+
+- **不再安排任何 61 分钟长跑**（App 侧本轮**无** 61min 作业在跑或在排队）。
+- 统一素材：**`C:\Users\Trekker-PTL\shared\SPE_0000_0500.wav`**
+  （frames = 4 800 000 / dur = **300.00 s** / **9 600 044 B** / 16 kHz 单声道）。
+- 🔴 **口径限制（reviewer 明文）**：5 分钟约 900 词 ⇒ WER 的 CI 宽约 **±1.5–2 pp**
+  ⇒ **只用来判断「有无明显回退」** ⇒ **不得宣称「1 pp 以内改进显著」**。
+- 🔴 **WER 仍由 reviewer 用同一切片的 MiniMax baseline 复算** ⇒ App 侧**不自己调 MiniMax**。
+
+---
+
+### 68.2 APP-027① 「NPU 明显卡顿」→ 逐句自适应预缓冲 + numpy 环形缓冲 + 遥测拆字段
+
+#### 68.2.1 根因（reviewer 实测 + 本轮代码核对）
+
+| 现象 | 实测数据 | 归因 |
+|---|---|---|
+| NPU RTF 从 0.80 升到约 1.5 | 实时 13 句 墙钟/音频比均值 **1.61**、underflow 合计 **389**；离线② 14 句均值 **1.41**、underflow **498** | 资源争用把 RTF 推过 **1** ⇒ 合成追不上播放 ⇒ **句内**欠载 |
+| 落盘 wav 无问题 | — | ⇒ **卡顿全在播放侧欠载**，不在合成正确性 |
+| 遥测缺陷 | `underflow_delta` **从拿到锁开始计数** | ⇒ 把**首块前空等**也计入欠载 ⇒ 指标失真 |
+| 实现开销 | `_Ring.write/read` 是 **Python list 逐样本循环**、写入时持 `_cv`、`w.tolist()`、回调里逐样本 `read` | ⇒ 环形缓冲本身是 CPU 热点 |
+
+#### 68.2.2 改造内容（`live_caption/tts_worker.py`）
+
+1. **逐句自适应预缓冲**（reviewer 原话：`max(0.3 s, est_dur × (1 − 1/RTF_ewma))`）
+   - `RTF_ewma` 用**本会话最近 N 句实测值**（`_rtf_ewma`）；RTF ≤ 1 时只保留 **0.3 s 底线**。
+   - 🔴 **句间不插静音**。
+   - 🔴🔴 **关键实现细节（第一版方向错误，已自我修正）**：
+     若「攒够」判定放在 `player.write(w)` **之后** ⇒ 播放回调会**立刻取走**
+     ⇒ 缓冲永远攒不够 ⇒ **预缓冲形同虚设**。
+     ⇒ 正确做法 = **先在本地 `pending_chunks` 累加**，攒够后用 `_flush_prebuffer()` **一次性**写入环形缓冲；
+     合成结束仍不够 ⇒ `prebuffer_short=True` 且**照样播出**（宁可句内欠载，也不能不出声）。
+2. **环形缓冲改 numpy**（`live_caption/tts_worker.py` 的 `_Ring`）
+   - 预分配 **float32** 数组；切片拷贝（C 层 `memcpy`）；回绕拆两段；
+   - **锁只保护索引**；去掉 `tolist()`。
+3. **遥测拆开**（`_fill_app027_telemetry`）—— 逐句报：
+   | 字段 | 含义 |
+   |---|---|
+   | `t_dequeue` | 从 FIFO 队列**取出**本句的时刻（worker 内部时钟） |
+   | `t_first_chunk` | 第一块合成出来的时刻 |
+   | `t_last_chunk` | 最后一块合成出来的时刻 |
+   | `synth_rtf` | `(t_last_chunk − t_dequeue) / 音频时长` |
+   | `prebuffer_s` | 本句用的预缓冲量（秒） |
+   | `prebuffer_short` | 合成结束时预缓冲**仍不足**（⇒ 已如实标记） |
+   | `rtf_ewma` | 本会话 RTF 的 EWMA |
+   | `underflow_in_sentence` / `underflow_in_sentence_ms` | **首块播出之后**的欠载次数 / 静音总时长 |
+   | `underflow_pre_sentence` / `underflow_pre_sentence_ms` | 首块**之前**的空等（**单列，不计入卡顿**） |
+
+   ⇒ **首块前空等单列不计入卡顿**（reviewer 明确要求）。
+
+---
+
+### 68.3 APP-027② 「CUDA 连续播放越拖越久、最后全部被丢」→ IPC 协议 + FIFO 合成 + 三段式积压
+
+#### 68.3.1 根因（reviewer 实测 + 本轮代码核对）
+
+| # | 缺陷 | 证据 | 本轮修法 |
+|---|---|---|---|
+| ① | **积压估算偏高** | 已写进缓冲的句子**每句**按 `min(3.0, dur_s)` 计入 ⇒ 两句同时已写入按最多 6 s 计 | 积压改**三段式**（见 68.3.3） |
+| ② | **丢句丢的是快播完的句子，且丢了不减少积压** | 19 次「音频未被播放完」，其中 10 次剩余不到 1 s；`wait_consumed` 收到中止后不清空缓冲 | **已经写进缓冲或已经开始播的句子一律不丢**；只丢**还没开始合成的整句** |
+| ③ | **边车 IPC 中途丢弃后错位** | `tts_cuda.CudaTTSEngine.generate_stream` **不核对 `rid`** ⇒ worker break 后边车仍写旧句剩余块和旧 `done` ⇒ 10:51:25 id67 丢弃后 id69 只合成出 3840 样本 ⇒ **从此播出内容与字幕错位** | **严格按 `rid` 过滤**（含旧 `done`）；取消时**后台排空线程**读完并丢弃本请求剩余部分（**不占合成锁**） |
+| ④ | **最后卡死** | 10:51:37 之后 worker 再无任何合成遥测但 cancel 仍在来 ⇒ 持有 `_synth_lock` 的线程卡在 `generate_stream → _readline → proc.stdout.read(4096)` 阻塞读上（`_readline(timeout=300)` 的超时**只在两次 read 之间检查** ⇒ 阻塞读**永不超时**） | **读者线程 + `queue.Queue` + `queue.get(timeout=…)`**（**真能超时**）+ **看门狗**（首块 60 s / 后续 15 s 无块 ⇒ 记日志、杀并重启边车、本句记失败） |
+| ⑤ | **合成调度乱序** | worker 每收到一条 `synth` 就**新开一个线程**抢 `threading.Lock`（**不保证先来先得**） | **单一合成线程 + FIFO 队列**（`queue.Queue`）⇒ 播出顺序 == 提交顺序 ⇒ **字幕与声音不错位** |
+
+#### 68.3.2 CUDA 边车 IPC 协议改造（`live_caption/tts_cuda.py` + `live_caption/tts_cuda_sidecar.py`）
+
+- 🔴🔴 **协议是「JSON 行 + 紧跟 PCM」**，PCM **无换行符**
+  ⇒ **不能用 `readline()` 读**（会把 PCM 顺带吃掉）
+  ⇒ **必须按字节缓冲切出完整 JSON 行**，解析出 `n` 后再取 `n*4` 字节 PCM。
+- 🔴🔴 **PCM 与 JSON 必须成对入队**（`q.put((s, pcm))`）
+  ⇒ 否则 rid 过滤丢掉旧句 JSON 时旧 PCM 仍留在队列 ⇒ **下一句读到旧 PCM ⇒ 错位**。
+- **严格 `rid` 过滤**：`msg.get('id') != rid` ⇒ 丢弃并 `continue`（**含旧 `done`**）。
+- **每条消息前检查 `cancel_event`** ⇒ 取消 ⇒ `_start_drain(rid)` 后返回。
+- **看门狗**：`_q_get(timeout)` 超时 ⇒ `_trace` + `_restart_sidecar()` + 抛 `CudaTTSError`。
+- **边车逐请求 trace**（`tts_cuda_trace.log`，位于 `%LOCALAPPDATA%\Confucius4LiveCaption\`）：
+  `REQ rid=…` / `DONE rid=… chunks=… elapsed=…` / `ERR rid=…` / `DROP rid=…` / `WATCHDOG restart: …`。
+- 🔴 **旧实现已删**：`_readline()` / `_read_exact()`（项目铁律：死代码必须删，不留双路径）。
+- 🔴 **本轮追加**：`close()` 现在**清空消息队列**（否则 close→start 后新句会先读到旧句的块 ⇒ 又错位）；
+  `set_ref_audio()` 与 `generate_stream()` 共用 **`_stdin_wlock`**（两个线程并发 write 同一 pipe ⇒ 命令行交错 ⇒ 边车收到半行 JSON）。
+
+#### 68.3.3 积压口径（reviewer 原话：**不改 `BACKLOG_MAX_S=8`**，APP-024 已裁定）
+
+```
+积压 = 环形缓冲里实际剩下的样本时长（**只算一次**，最多 3 s）
+     + 正在合成的句子剩余预计时长
+     + 排队句子的预计时长
+```
+
+- **字数估算用本会话实测「音频秒/字」EWMA 校准**（`_sec_per_char`，16 句滑窗）
+  ⇒ **不写死 5 字/秒**（旧实现写死「中文 5 字/秒、英文 15 字符/秒」⇒ 与实测偏差大 ⇒ 误丢句）。
+- 🔴 **已经写进缓冲或已经开始播的句子一律不丢** ⇒ 只丢**还没开始合成的整句**（**从最旧的开始**）。
+- 🔴 **丢时按「至少降到阈值以下」计算，不要每次多丢一句**
+  ⇒ 实现：`acc = est`（**当前积压**）起算，逐句丢，`acc <= BACKLOG_MAX_S` 即**停**。
+  ⚠️ **自我发现并修掉的实现缺陷**：第一版写成 `acc = ring_s + synth_rem` ⇒ 丢句时**累加**而非**减去**
+  ⇒ 结果只丢 1 句而不是 `[1,2,3]` ⇒ 已修（由 `app098` 的 B5 抓出）。
+- **三段式必须由 worker 报状态**：主进程只有原文、**没有引擎进度**
+  ⇒ worker 新发 `synth_state` 事件（`synth_jid` / `synth_rem_s` / `queue_ids` / `queue_est_s` / `ring_backlog_s` / `sec_per_char`）
+  ⇒ `tts_service` 的 `_handle_event` 新增 `synth_state` 分支。
+- `stats()` 新增 `backlog_parts`（三段明细，诊断用）与 `sec_per_char`。
+
+---
+
+### 68.4 APP-027③ 「克隆没生效（还是预设 A 女声）」→ 本轮**真正接入**
+
+#### 68.4.1 根因：**不是隐性 bug，是功能根本没接入**
+
+| 证据 | 位置 |
+|---|---|
+| 会话日志 4 次「跟随说话人（克隆）尚未启用（等 ASR-013 / TTS-019 交付）⇒ 本次使用预设 A」 | `live_caption_app.py` L2805–2812（**旧逻辑，本轮已删**）⇒ 明确把 voice 改回 `'A'` |
+| App 与 `tts_service` **从不发 `clone` 命令**（grep 0 处） | 全链路无克隆指令 |
+| worker 的 `_update_clone/_extract_cond_ov` 是**旧 Confucius4-TTS 死代码**（依赖 `ov_runtime` 的 w2vbert/CAMPPlus/`clone_C.npz`；Qwen3-TTS/BabelVox 路径只看 `self.speaker_embed`），且**会把克隆音色写盘到 `voices/clone_C.npz`**（**违反 APP-022 隐私约定**） | `live_caption/tts_worker.py`（**本轮整段删除**） |
+| CUDA 边车 `ref_audio` **启动时固定为 preset_A**，`generate_stream` **忽略 `speaker_embed`** | `live_caption/tts_cuda.py`（**本轮加 `set_ref` 命令**） |
+
+#### 68.4.2 本轮接入内容
+
+**主进程（`live_caption/live_caption_app.py`）**
+- `Session.__init__` 新增 `on_audio=None`；`Session._loop` 在 **`engine.feed()` 之前**调 `self.on_audio(pcm)`
+  ⇒ 采集到的就是**引擎真正吃进去的 PCM**（已重采样到 16 kHz）⇒ 音色最准。
+  ⚠️ **默认 None ⇒ 什么都不做** ⇒ **不改变现有行为**。
+- 新增 `App._collect_clone_pcm(pcm)`：
+  - 按 **20 ms 一帧**算 RMS ⇒ **去静音**（自适应噪声门限：初始 0.004，随观测最小 RMS 缓慢跟随）；
+  - 滚动保留最近 **10 s** 语音；**最少 3 s**；
+  - **触发条件**：累计 **≥ 6 s 新语音** **或** 每 **30 s**（reviewer 原话）；
+  - 只发**有语音**的帧（静音不进克隆源）。
+- `App.start()` 接线：`Session(self.engine, src, on_final=self._on_final, on_audio=self._collect_clone_pcm)`。
+- GUI 新增**独立标签** `var_tts_voice_now` ⇒ 显示**当前实际使用的音色**
+  ⇒ 「预设 A」**或**「克隆（更新于 hh:mm:ss，x s 语音）」
+  ⇒ 🔴 **显示的是 worker 回报的真实状态**，**不是**用户选的那一项。
+- 🔴 **旧的「尚未启用 ⇒ 回落 A」死逻辑已删**（`_on_tts_toggled` / `_on_tts_voice_changed` 两处）。
+
+**传输（`live_caption/tts_service.py`）**
+- 新增 `set_clone_pcm(pcm)`：base64 编码 **16 kHz float32 PCM** ⇒ 发 `{'cmd':'clone','pcm':b64}`；
+  **< 3 s 返回 False**（worker 也会拒）；异常吞掉并写日志。
+- 新增 `clone` 事件处理 ⇒ 更新 `clone_active` / `clone_updated_at` / `clone_dur_s` / `clone_mode`；
+  **失败时显式写日志「回落到预设 A」**（**绝不静默**，§42 的教训）。
+- `stats()` 新增上述克隆字段（供 GUI 显示）。
+- 🔴🔴 **本轮追加：`_send` 加 `_stdin_wlock`**
+  ⇒ 起因：`set_clone_pcm()` 由**会话线程**（`Session._loop` → `on_audio`）调用，
+  而 `submit()` / `cancel()` 由 **GUI 主线程**调用
+  ⇒ 两个线程**并发 write(同一 pipe)** ⇒ 命令行**交错** ⇒ worker 收到半行 JSON ⇒ **解析失败 / 丢命令**。
+  ⚠️ **不能复用 `self.lock`**（它保护 `pending` 等状态，且 `_send` 里已 `with self.lock` 取过 proc ⇒ 非可重入会自死锁）。
+
+**worker（`live_caption/tts_worker.py`）**
+- `_update_clone(pcm)` 重写为**真正接入**，两条路线：
+  - **BabelVox（NPU / GPU.0）**：`tts_engine.speaker_embedding(eng, tmp)` ⇒ 换 `self.speaker_embed`
+    ⇒ `self.speaker_name = None` ⇒ **下一句起生效**。
+  - **CUDA 边车**：`eng.set_ref_audio(tmp)` ⇒ 边车换参考音频 ⇒ **下一句起生效**。
+- 🔴 **失败要显式写日志 + 回落预设 A** ⇒ 新增 `_fallback_to_preset()`：
+  ⚠️ **旧实现只写 `self._clone_active = False`** ⇒ **音色向量仍是上一次克隆的**
+  ⇒ 「回落」只是**嘴上说说** ⇒ 实际仍在用克隆音色 ⇒ 用户以为在用预设 A，其实一直在克隆。
+  ⇒ 现在**真正**把 `speaker_embed` / `speaker_name` 换回**预设 A 的缓存**
+  （`_setup_babelvox_voice()` 里把预设 A 的向量 / 参考 wav 路径**存一份**），
+  CUDA 路线额外把边车参考音频换回 `preset_A.wav`。
+- 🔴 **CUDA 切换参考后删掉旧的临时 wav**（`set_ref` 成功后才删 ⇒ 失败时旧 ref 仍在用）。
+- 🔴🔴 **隐私**：
+  - x-vector **只在内存里** ⇒ 会话结束就丢弃、**不落盘、不进客户包**；
+  - 库只接受路径时（babelvox `extract_speaker_embedding(audio_path)` /
+    `generate_voice_clone_streaming(ref_audio=...)`）
+    ⇒ 落 **`tempfile.gettempdir()/confucius4_clone/`** 的临时 wav（**不在客户包目录**）
+    ⇒ **会话结束即删除**（`_cleanup_clone_files()`，`run()` 收尾调用）。
+
+**CUDA 边车（`live_caption/tts_cuda.py` + `live_caption/tts_cuda_sidecar.py`）**
+- 新增 `set_ref` 命令（客户端 `set_ref_audio(path)` ⇒ 边车 `current_ref = path` ⇒ 回 `{'id':…,'set_ref':True,'ref_audio':…}`）。
+- 合成请求用 `ref = req.get('ref_audio') or current_ref` ⇒ **下一句起生效**。
+
+#### 68.4.3 打包闸门（隐私）
+
+`pkg_exclude.py` 新增 **`is_user_voice_artifact()`**：
+- 文件名 `clone_*.npz`（旧 `_extract_cond_ov` 的落盘产物）⇒ 排除；
+- 任意层级存在 `tts_speakers/` 目录（用户音色库）⇒ **整目录 prune**；
+- ⚠️ **不误伤** `models/qwen3tts/voices/preset_A.wav`（**预设音色**是生产路线依赖，删了 TTS 就没音色）。
+
+#### 68.4.4 未做（明确留待后续，不猜）
+
+- **按说话人切换音色**（APP-022）仍**后置**：本轮是「克隆**当前**说话人」的单音色路线，**不依赖 pyannote**。
+- **不承诺**克隆质量 ⇒ CAMPPlus 相似度与 CER 由 reviewer 在 V3 里判。
+
+---
+
+### 68.5 APP-027 顺带两处（不单独验收，随本轮一起改）
+
+1. **APP-025「本进程直接播放测试音」在 pythonw 下失败**
+   - 症状：`10:36:18 / 10:36:32` 两次 `打开输出设备失败：AttributeError: 'NoneType' object has no attribute 'write'`。
+   - 根因：pythonw（GUI 子系统、**无控制台**）下 `sys.stdout/stderr is None`
+     ⇒ 代码直接往上写 ⇒ 一行日志失败把整条「设备打开成功」路径打断，并被 `except` **误报**成「设备打开失败」。
+   - 修法：`_out_write` 改为**永不抛异常**（`getattr(sys.stdout,'write',None)` 为 None ⇒ 静默丢弃），
+     且**任何 stdout 故障都不影响功能**。
+   - ✅ **已验证**：同一 repro 从失败变为成功播放 1.00 s、`read_delta = 24000`。
+2. **桩测试污染了用户真实 LOCALAPPDATA**
+   - 症状：`10:42–10:46` 有 `PKG_HELLO_MARKER / PKG_CRASH_MARKER / STUB_BOOM` 写进用户 `session_*.log` 与 `tts_worker_error.log`（14 个短日志文件）。
+   - 修法：自动化测试**一律**设置**独立的 `LOCALAPPDATA`** ⇒ 本轮 `app099` / `app100` 已在
+     **import / exec 被测模块之前**把 `LOCALAPPDATA` 指到自己的 `tempfile.mkdtemp()` 目录并在结束时清理。
+
+---
+
+### 68.6 验收脚本（全部「不 import 被测模块」）
+
+| 脚本 | 覆盖 | 结果 |
+|---|---|---|
+| `results/app/app098_app027_fifo_backlog.py` | APP-027②：FIFO 合成顺序 + 三段式积压 + 只丢未开始合成的句 + 不多丢 | **PASS=21 / FAIL=0** |
+| `results/app/app099_app027_cuda_ipc.py` | APP-027③：rid 过滤 / 不无限阻塞 / 看门狗 / 边车崩溃 / `set_ref` / PCM 成对入队（**真子进程 + 真管道**端到端） | **PASS=13 / FAIL=0** |
+| `results/app/app100_app027_clone.py` | APP-027④：GUI 采集器接线 + 触发阈值 + 实际音色显示 + **stdin 写锁** + 失败真回落 + 隐私闸门（**含 3 条反证**） | **PASS=28 / FAIL=0** |
+| `results/app/app097_first_packet_split.py` | APP-024① 回归（R6/R7 在 FIFO 改造后仍成立） | **PASS=20 / FAIL=0 + BUG 3/3** |
+
+🔴 **闸门自身的假通过比缺陷更危险**（§62 的教训）⇒ `app100` 的 C 组**故意写错**（阈值改 600 s / 去掉写锁 / 重新写 `clone_C.npz`）
+⇒ 确认对应判据**确实 FAIL** ⇒ 3/3 反证通过。
+
+---
+
+### 68.7 🔴 本轮**未完成**的部分（**不写「已交付」**）
+
+| 项 | 状态 | 阻塞原因 |
+|---|---|---|
+| **V1 CUDA 连续实时**（5 分钟切片、`--speed 1`、GUI 实时、持锁） | ⛔ **未跑** | 🔴 **共享机器锁被 TTS 模块占用**（`module: tts` / `pid: 14888` / started **11:28:49**）⇒ ctypes `OpenProcess` 返回 **err=87** ⇒ **fail-closed ⇒ 视为存活** ⇒ **不抢、不删、不跑** |
+| **V2 NPU 连续实时 + 四配置 ABBA** | ⛔ **未跑** | 同上 |
+| **V3 克隆**（≥10 句 wav、CAMPPlus + MiniMax 回转写） | ⛔ **未跑** | 同上 |
+| **定点同步客户包** | ⛔ **未做** | 按 APP-027 明文：「代码改完后定点同步客户包，**等 V1–V3 通过再重打 zip**」⇒ **必须先过 V1–V3** |
+| **重打 zip** | ⛔ **未打** | 同上；且**当前 zip 是 10:28:15 旧版**（**11 216 287 107 B** / SHA256 `c7f60bcacda7e4d04d0cdd6776f34a91b928d30ad4fb6d5b1f64906da3a667e4`）⇒ **不含本轮任何改动** |
+| **V4 用户实听** | ⛔ **等用户** | reviewer 明文「**只有用户本人确认才算 L4 关闭**」 |
+
+🔴 **不写「语音输出可用」**：APP-027 是 **BLOCKING**，用户实测的 ①②③④ 四个问题**尚未在用户启动方式下复验**。
+
+#### 68.7.1 锁的探测记录（fail-closed 证据）
+
+```
+MACHINE_LOCK 内容: module: tts / pid: 14888 / started: 2026-10-27 11:28:49 / host: LAPTOP-0GDQGD3I
+ctypes OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 14888) → 失败，GetLastError() == 87
+⇒ 唯一「死」判据（err==87）不成立 ⇒ **按铁律一律视为存活**
+⇒ App 侧**不启动任何 python.exe**（连读 JSON 都不行）⇒ 本轮**零计时/零测速作业**
+```
+
+🔴 **别的模块的活只能等，不能杀**（机器锁铁律）。
+
+#### 68.7.2 拿到锁后要做的事（**顺序不可颠倒**）
+
+1. **V1**：CUDA 连续实时（5 分钟切片）⇒ 逐句报 `queued_s` / `synth_first_s` / `synth_rtf` / `prebuffer_s` / `underflow_in_sentence`；
+   丢句分「未合成就丢」与「已写入被丢」两类（**后者必须为 0**）；「没有产出音频」次数**必须为 0**；
+   看门狗触发次数**必须为 0**；积压曲线 csv（每 5 s 一点）；
+   **5 分钟全程不能出现超过 30 s 没有合成的空窗**；
+   开 `--tts-dump-dir` 落盘逐句 wav ⇒ 抽 10 句交 reviewer 回转写 ⇒ **核对 wav 与译文按 id 一一对应（防错位）**。
+2. **V2**：NPU 同素材同条件 + **四种配置 ABBA**（TTS 单独 / +ASR(GPU.0) / +ASR+MT(NPU) / +ASR+MT(GPU.0)）
+   ⇒ 报每种 `synth_rtf` 的 **P50 / P95**；
+   验收：句内 `underflow_in_sentence` **P95 = 0**（只允许句前等待）；
+   丢句率与 RTF 一起报告；**RTF > 1 导致的丢句只记录，不判失败但必须如实写**；
+   ⚠️ **RTF 仍 > 1 的部分只记录 ⇒ App 侧不要自己改模型**。
+3. **V3**：克隆（SPE 前 5 分钟切片，**单一男声**）⇒ 落盘 ≥ 10 句 wav；
+   reviewer 判：(a) MiniMax 回转写 CER 不劣于预设 A 同一批句子；(b) CAMPPlus 余弦相似度，
+   相对克隆源明显高于预设 A 输出相对克隆源（**每句差值 > 0，均值差 ≥ 0.15**）；CUDA 与 NPU 各一组。
+   🔴 **克隆源音频和嵌入不得落盘**（落盘的只有 TTS 输出 wav）。
+4. **V4**：通知用户按 CUDA / NPU / 克隆各听一段 ⇒ **只有用户本人确认才算 L4 关闭**。
+5. V1–V3 通过后 ⇒ **定点同步客户包**（`git show HEAD:` + `difflib.get_grouped_opcodes(n=3)` **自动派生**替换块
+   + **唯一命中断言** + **换行归一化为 LF**）⇒ **先提交** ⇒ **持锁重打 zip**（+ 只读本地「zip ⇄ 包目录 diff = 0」）。
+
+---
+
+### 68.8 交付状态（**当前 zip 仍是旧版 ⇒ 不写「已交付」**）
+
+| 项 | 状态 |
+|---|---|
+| 代码改动 | ✅ 已落盘（仓库工作区）：`live_caption/live_caption_app.py`、`tts_worker.py`、`tts_service.py`、`tts_cuda.py`、`tts_cuda_sidecar.py`、`pkg_exclude.py` |
+| 验收脚本 | ✅ `app098` / `app099` / `app100`（+ `app097` 回归） |
+| 客户包 `app/` | ⛔ **未同步**（须 V1–V3 通过后） |
+| zip | ⛔ **未重打**；当前 zip = **10:28:15 旧版**（**11 216 287 107 B** / SHA256 `c7f60bca…a667e4`）⇒ **不含本轮改动** |
+| 「已交付」 | ⛔ **不成立**（口径：包目录 + zip 已含最新代码**且已入库**） |
+| git | ⏳ **本轮尚未提交**（须先过 V1–V3 ⇒ 避免「打包后才入库」的代差） |
+
+⚠️ **§61 的 FTP 相关结论只作历史记录**：按 §66 用户新口径，**不再跑 `verify_pkg_zip.py`、不再跑 `publish_ftp.py`、不开 FTP 服务** ⇒ **不再报「FTP 副本 SHA256 一致」**。
