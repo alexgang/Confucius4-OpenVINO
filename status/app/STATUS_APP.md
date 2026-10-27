@@ -1,12 +1,13 @@
 # STATUS_APP
 last_ack: APP-032
-更新时间: 2026-10-27 22:54
-当前任务: **§77 🔴 APP-031/032 已执行 ＋ 补上 APP-030① 的一个真实遗漏（离线朗读未下传目标语言）＋ 客户包定点同步完成** ⇒ ✅ **巡检**（`CORRECTIONS_APP.md` 全文条目 APP-001…APP-032 = **32 条**；本轮开始时 `last_ack=APP-030` ⇒ 新条目 **APP-031 [HIGH]** / **APP-032 [NORMAL]**；🔴 **该文件只读、零改动、零提交**） ⇒ ✅ **本轮自查抓出并修复一个真实产品缺陷**：APP-030①「目标语言显式下传」**漏了离线朗读路径**（`offline_reader.py` 的 `svc.submit(...)` **不带 `lang`** ⇒ worker `msg.get('lang')` 为空 ⇒ 回落 `_guess_lang()`（只分 zh/en）⇒ **日文永远收不到 Japanese** ⇒ 正是「日文偶发卡住」的原始根因路径） ⇒ ✅ **已修 3 个文件**（`offline_reader.py` 加 `lang` 形参、`offline_reader_gui.py` 加 `get_lang` 接线、`live_caption_app.py` 加 `_offline_get_lang()`；🔴 **下拉为「关闭」⇒ 不下传 ⇒ 旧调用行为逐字不变**） ⇒ ✅ **验收 `app108` 18/18 PASS ×2 处**（仓库 + 客户包 v1.6；**零推理/零 GPU/零 NPU**，`ast`+`exec`+桩 service；含 **3 条反证**）⇒ ✅ **反证基线用固定 commit `a9ed250`** ⇒ 修复前 **11 FAIL** ⇒ 缺陷曾真实存在 ⇒ 判据**不是**「永远 PASS」 ⇒ ✅ **回归**（`app107` 42/42、`app105` 24/24、`app103` 29/29、`app098` 21/21、`app100` 28/28、**`app069` 37/37**（离线朗读自检 ⇒ 调用契约未破坏）） ⇒ ✅ **客户包定点同步 11 块唯一命中 + 幂等 3/3 ALREADY**（备份在包外 `pkg_backup_app_s72`） ⇒ ✅ **语料可执行化**（reviewer 的日文规格 ⇒ 29 句日文/10 中文/10 英文 ⇒ `shared/app030_ja_corpus.json`） ⇒ 🔴 **机器锁被外部进程占用**（`EXT-browser-probe 22332`；22:52:16 复查 `OpenProcess` handle=540/err=0 ⇒ `exit=259 STILL_ACTIVE` ⇒ **活锁** ⇒ **不抢不删**） ⇒ ⛔ **NPU A/B 实测脚本已写好但结果未落盘**（fail-closed 等锁） ⇒ ⛔ **CUDA 组客观做不了**（本机 torch `2.14.1+cpu`/`cuda=False`；包内 python 无 torch） ⇒ ⛔ **APP-028 不丢句实测未做**、⛔ **APP-027 的 V1–V3 未做** ⇒ ⛔ **zip 未重打**（APP-031 明文「三项做完后合在一起重打一次包」）⇒ **不写「已交付」** ⇒ ⛔ **未跑 MiniMax 回转写**（reviewer 侧 `quota.py` 仓库内 0 命中 ⇒ 不绕过、不自行调用） ⇒ ⛔ **「日文失控已解决」不成立**、⛔ **「用户听得到」仍不成立** ⇒ 🔴 **头部 `last_ack` = APP-032**（= **已执行完的最大 APP 编号**；🔴 **不表示** APP-030/028/027 的**实测验收**已完成）
+更新时间: 2026-10-27 23:44
+当前任务: **§78 🔴 APP-030 的 NPU 实测已跑完（29 句 ×3 次）＋ 自查抓出并修掉「失控守卫语言口径」的真实缺陷 ＋ 客户包定点同步完成** ⇒ ✅ **APP-030 的 NPU 组实测通过**（设备 = **NPU**、持机器锁、等安静窗口、自取锁）：**29 句日文 ×3 次**（共 87 组配对）⇒ 改后 **cap=0 / hang=0 / err=0**；中文回归 10 句、英文回归 10 句 ⇒ **cap=0 / hang=0 / err=0**；四个组全 194 行 ⇒ **`verdict_after_clean = true`** ⇒ 配对：wall 中位 改前 2.39 s / 改后 **2.23 s**，s/字 中位 0.1544 / **0.1428** ⇒ ✅ **客户包定点同步 3 块唯一命中 + 幂等 `ALREADY`**（备份在包外 `pkg_backup_app_s73`） ⇒ ✅ **验收 `app109` 34/34 PASS ×2 处**（仓库 + 客户包；零推理/零 GPU/零 NPU；含 **4 条 AST 重建反证**） ⇒ ✅ **回归全绿**（`app107` 42/42、`app105` 24/24、`app103` 29/29、`app098` 21/21、`app100` 28/28、**`app069` 37/37**、`app109` 34/34） ⇒ 🔴🔴 **本轮自查抓出的真实缺陷**：`tts_engine.estimate_frames()/estimate_sec()` 的取键逻辑**只认小写代号**，而同文件 `map_language()` **认得**全称与带区域写法 ⇒ **同一个语言标识被两套表解析** ⇒ `estimate_sec('Japanese')` 落**英文** 0.07（**低估 2.1×**）、`estimate_sec('zh-cn')` 落**英文** 0.07（**低估 3.6×**） ⇒ 后果 = **RUNAWAY 阈值偏低 ⇒ 易误杀正常长句**、**帧上限偏松 ⇒ 失控上限被放行** ⇒ **已修**（新增 `_lang_key()` ⇒ 统一走 `map_language()`） ⇒ 🔴 **生产路径（小写代号）逐字零回归**（`ja` 11.70 s/140 帧/`mnt`456、`zh` 19.10/229/723、`ko` 13.92/167/537、`en` 5.78/69/243） ⇒ 🔴 **首跑报 hang 的那次是「我的脚本口径不对」造的假阳性**（脚本传全称、引擎只认代号） ⇒ 📌 **教训**：**先证「是谁错」再改代码**；判据本身出错 ⇒ 结论必然错 ⇒ ✅ **§77 交付闭环已补全**：commit **`83cac33`**（10 文件 / +1521 −9，App-only）、**普通 push** `539b749..83cac33`、**`HEAD == origin/main`**、**仓库 HEAD ⇄ 客户包 9/9 全 MATCH** ⇒ ⛔ **CUDA 组客观做不了**（本机 torch `2.14.1+cpu`/`cuda=False`；包内 python 无 torch） ⇒ ⛔ **APP-030 的 GUI 复现 / wav+json / CER 对比未做**、⛔ **未跑 MiniMax 回转写**（reviewer 侧 `quota.py` 仓库内 0 命中） ⇒ ⛔ **APP-028 不丢句实测 / APP-027 的 V1–V3 未做**、⛔ **zip 未重打** ⇒ ⛔ **「日文失控已解决」仍不成立**（只覆盖 NPU 组）、⛔ **「用户听得到」仍不成立** ⇒ 🔴 **`last_ack` = APP-032**（已执行完的最大 APP 编号）
 
-阻塞 / 待用户决定: ① 🔴🔴 **APP-030 [BLOCKING] 的实测验收未完成** —— 代码侧 5 项子要求全部完成（`app107` 42/42 ×2 处）**且本轮补上了离线朗读路径的漏传**（§77.3），但 APP-030「### 4. 验收」的**实测**部分**仍未完成**：A/B 根因证明（日文 ≥20 句 ×3 次 × CUDA/NPU）、中文/英文各 10 句回归、GUI 复现（丢句=0）、wav+json 交 reviewer、CER 对比 ⇒ **不得宣称「日文卡住已解决」**；② 🔴🔴 **本轮 NPU A/B 实测被机器锁挡住**：锁被外部进程 `EXT-browser-probe`（PID 22332）持有，**ctypes 实测 `exit=259 STILL_ACTIVE` ⇒ 活锁** ⇒ 脚本按 fail-closed 等待、**不抢不删**⇒ **需等该进程释放锁**；③ 🔴 **CUDA 组客观不可执行**（本机 torch `2.14.1+cpu`、`cuda=False`；包内 python 无 torch）⇒ **需 reviewer 裁定在何环境执行 CUDA A/B**；④ 🔴 **reviewer 指定的 `quota.py` 在仓库内不存在**（`C:\Users\Trekker-PTL` 下 4 层深度 + 仓库 `results/` 全量搜索 ⇒ 0 命中）⇒ 「5 小时区间剩余 ≥20% 才做 MiniMax 回转写」这个**前置门无法执行** ⇒ **不绕过**（不自行调用 MiniMax）；⑤ ⛔ **APP-031 的 ② APP-028 不丢句实测 / ③ APP-027 的 V1–V3 未跑**（均需机器锁 + 用户启动方式 + SPE 前 5 分钟切片）⇒ **zip 本轮不打**（APP-031 明文「三项做完后合在一起重打一次包」）⇒ **不写「已交付」**（§66 口径）；⑥ ⛔ **「用户听得到」仍不成立**（§63 L4 等用户实测：桌面快捷方式 → CUDA 朗读 → NPU 朗读 → 克隆音色 ⇒ 用户亲口确认前不得写「能出声」）；⑦ 🔴 **APP-028 的「已交付」口径仍闭环**（§73：代码 `HEAD`=`f727992` 已 push ＋ 包目录 ＋ zip 三处一致，5/5 全 MATCH）⇒ ✅ 可对外报「APP-028 代码侧已交付」，但「用户听得到」不成立；⑧ 🔴 **APP-028① 的「CUDA 不作默认」是定案**，要用 CUDA 必须**手动在 GUI 改**，界面**不得承诺「装一下就能用」**（OV 官方不带 CUDA plugin）；⑨ 🔴 **APP-029 [NORMAL] 已按其明文「现在不要集成」处理**（只做 `spk_update` 接口预留 + 文案口径，**不改合成行为**、不集成 pyannote 断句）⇒ **不认领集成**；⑩ 🔴 **§66 用户新口径仍生效**：不再跑 `verify_pkg_zip.py`、不再跑 `publish_ftp.py`、不开 FTP；⑪ 🔴 **`app104` 的 A1 判 `NO-EVIDENCE`（不是 PASS）**（本机无可用音色 ⇒ 不宣称通过、也不算缺陷、不得计入 PASS 数）；⑫ 🔴 **闸门可信度铁律**：判据里任何解析异常必须判 FAIL，绝不能默认 PASS；反证用 **AST 重建**（`ast.unparse`）而非字符串替换 ⇒ 已固化在 `app105`/`app107`/`app108`；⑬ 🔴 **本轮自查抓出并修掉两处「验收脚本自身缺陷」**（`app108` B1 只查 `kwonlyargs` ⇒ 假 FAIL；反证块内 `import threading` 作用域 ⇒ NameError 假 FAIL）⇒ **闸门自身的假通过/假失败都算缺陷**；⑭ 🔴 **APP-022「按说话人切换音色」仍后置**、⑮ 🔴 **APP-024②③④ 仍未做**（reviewer 明文「不要自己改」）⇒ 保持原状；⑯ 🔴 **§57 历史遗留未跟踪文件**（`sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `sync_c111_*` / `diag_c111_*`）归属未判定 ⇒ 本轮**未提交**；⑰ 🔴 **普通 push 会连带推上他模块已提交的 commit** ⇒ 本轮**逐文件 `git add`、不吞他模块文件**、**不用 `git add -A`**，但**已存在的 commit 无法拆分** ⇒ 如实记录
+阻塞 / 待用户决定: ① 🔴🔴 **APP-030 [BLOCKING] 的实测验收只完成了 NPU 组** —— **NPU 组已通过**（29 句 ×3 次 + zh/en 各 10 句回归 ⇒ cap=0 / hang=0 / err=0，`verdict_after_clean=true`）；但 **CUDA 组客观做不了**（本机 torch `2.14.1+cpu`、`cuda=False`；包内 python 无 torch）⇒ **需 reviewer 裁定在何环境执行 CUDA A/B** ⇒ **不得宣称「日文卡住已解决」**；② ⛔ **APP-030 的 GUI 复现（丢句=0）、wav+json 交 reviewer、CER 对比未做**（NPU A/B 只覆盖引擎层，未覆盖完整 GUI 链路）⇒ **仍需 reviewer 复核**；③ 🔴 **reviewer 指定的 `quota.py` 在仓库内不存在**（`C:\Users\Trekker-PTL` 下 4 层深度 + 仓库 `results/` 全量搜索 ⇒ **0 命中**）⇒ 「5 小时区间剩余 ≥20% 才做 MiniMax 回转写」这个**前置门无法执行** ⇒ **不绕过**（不自行调用 MiniMax）；④ ⛔ **APP-031 的 ② APP-028 不丢句实测 / ③ APP-027 的 V1–V3 未跑**（需机器锁 + 用户启动方式 + SPE 前 5 分钟切片 `shared/SPE_0000_0500.wav`）⇒ **zip 本轮不打**（APP-031 明文「三项做完后合在一起重打一次包」）⇒ **不写「已交付」**（§66 口径）；⑤ ⛔ **「用户听得到」仍不成立**（§63 L4 等用户实测：桌面快捷方式 → CUDA 朗读 → NPU 朗读 → 克隆音色 ⇒ 用户亲口确认前不得写「能出声」）；⑥ 🔴 **APP-028 的「已交付」口径仍闭环**（§73：代码 `HEAD`=`f727992` 已 push ＋ 包目录 ＋ zip 三处一致，5/5 全 MATCH）⇒ ✅ 可对外报「APP-028 代码侧已交付」，但「用户听得到」不成立；⑦ 🔴 **APP-028① 的「CUDA 不作默认」是定案**，要用 CUDA 必须**手动在 GUI 改**，界面**不得承诺「装一下就能用」**（OV 官方不带 CUDA plugin）；⑧ 🔴 **APP-029 [NORMAL] 已按其明文「现在不要集成」处理**（只做 `spk_update` 接口预留 + 文案口径，**不改合成行为**、不集成 pyannote 断句）⇒ **不认领集成**；⑨ 🔴 **§66 用户新口径仍生效**：不再跑 `verify_pkg_zip.py`、不再跑 `publish_ftp.py`、不开 FTP；⑩ 🔴 **`app104` 的 A1 判 `NO-EVIDENCE`（不是 PASS）**（本机无可用音色 ⇒ 不宣称通过、也不算缺陷、不得计入 PASS 数）；⑪ 🔴 **闸门可信度铁律**：判据里任何解析异常必须判 FAIL，绝不能默认 PASS；反证用 **AST 重建**（`ast.unparse` / `ast.parse`）而非字符串替换 ⇒ 已固化在 `app105`/`app107`/`app108`/`app109`；⑫ 🔴 **本轮自查抓出并修掉三处「验收脚本自身缺陷」**（`app109` 的 `pass` 关键字冲突、反证组语义不等价、生产代码 `.get()` 防御性）⇒ **闸门自身的假通过/假失败都算缺陷**；⑬ 🔴 **NPU 实测的机器锁纪律**：外部进程（`EXT-browser-probe` / `browser_probe.py`）会持锁 ⇒ **ctypes 实测 `exit=259` ⇒ 活锁 ⇒ 不抢不删**；**孤儿锁**必须 `err==87` 才可回收；④ **孤儿 python 进程会继续写报告**（TaskStop 杀 shell 不杀子进程）⇒ **报告必须核对 `ts` 与口径字段**，不能只看文件名；⑮ 🔴 **APP-022「按说话人切换音色」仍后置**、⑯ 🔴 **APP-024②③④ 仍未做**（reviewer 明文「不要自己改」）⇒ 保持原状；⑰ 🔴 **§57 历史遗留未跟踪文件**归属未判定 ⇒ 本轮**未提交**；⑱ 🔴 **普通 push 会连带推上他模块已提交的 commit** ⇒ 本轮**逐文件 `git add`、不吞他模块文件**、**不用 `git add -A`**，但**已存在的 commit 无法拆分** ⇒ 如实记录
 
 
 ## 最近更新
+2026-10-27 23:44 §78 🔴🔴 **APP-030 的 NPU 实测已跑完（29 句 ×3 次）＋ 自查抓出并修掉「失控守卫语言口径」的真实缺陷** ＋ 客户包定点同步完成**：⇒ ✅ **NPU 组实测通过**（设备 NPU、持锁、安静窗口；**29 句日文 ×3 次 = 87 组配对** ⇒ 改后 **cap=0 / hang=0 / err=0**；**zh/en 各 10 句回归** ⇒ 同样 0/0/0；四组全 194 行 ⇒ **`verdict_after_clean=true`**；配对 wall 中位 改前 2.39 s / 改后 **2.23 s**、s/字 中位 0.1544 / **0.1428**） ⇒ 🔴🔴 **自查抓出真实缺陷**：`estimate_frames()/estimate_sec()` 只认小写代号，而同文件 `map_language()` 认全称/带区域 ⇒ **两套表解析同一标识** ⇒ `estimate_sec('Japanese')` 落**英文** 0.07（**低估 2.1×**）、`estimate_sec('zh-cn')` 落**英文**（**低估 3.6×**） ⇒ 后果 = **RUNAWAY 阈值偏低易误杀 + 帧上限偏松放行失控** ⇒ **已修**（新增 `_lang_key()` 统一走 `map_language()`） ⇒ 🔴 **生产路径逐字零回归**（ja 11.70 s/140 帧/456、zh 19.10/229/723、ko 13.92/167/537、en 5.78/69/243） ⇒ 🔴 **首跑那次 hang 是「我的脚本口径不对」造的假阳性**（脚本传全称、引擎只认代号） ⇒ 📌 **先证「是谁错」再改代码** ⇒ ✅ **`app109` 34/34 PASS ×2 处**（仓库 + 客户包；**4 条 AST 重建反证**） ⇒ ✅ **回归全绿**（42/24/29/21/28/37 + 34） ⇒ ✅ **客户包定点同步 3 块唯一命中 + 幂等 `ALREADY`**（`tts_engine.py` 56666 → 58587 B，`3ec217a141a3a7a2` → `d82e0d533ed79a58`） ⇒ ✅ **§77 交付闭环补全**：commit **`83cac33`**（10 文件 / +1521 −9）、**普通 push** `539b749..83cac33`、**HEAD == origin/main**、**HEAD ⇄ 包目录 9/9 全 MATCH** ⇒ ⛔ **CUDA 组客观做不了**（torch `2.14.1+cpu`/`cuda=False`；包内 python 无 torch） ⇒ ⛔ **GUI 复现 / wav+json / CER 对比未做**、⛔ **未跑 MiniMax 回转写**（`quota.py` 0 命中） ⇒ ⛔ **APP-028 不丢句实测 / APP-027 的 V1–V3 未做**、⛔ **zip 未重打**（APP-031 合打） ⇒ ⛔ **「日文失控已解决」仍不成立**（只覆盖 NPU 组）、⛔ **「用户听得到」仍不成立**
 22:54 §77 🔴🔴 **APP-031/032 已执行 + 补上 APP-030① 的一个真实遗漏（离线朗读未下传目标语言） + 客户包定点同步完成**：⇒ ✅ **巡检**（`CORRECTIONS_APP.md` 条目 APP-001…APP-032，共 32 条；开始时 `last_ack=APP-030` ⇒ 新条目 **APP-031 [HIGH]** / **APP-032 [NORMAL]**；**该文件只读、零改动**）⇒ ✅ **本轮自查抓出并修复一个真实产品缺陷**：APP-030①「目标语言显式下传」**漏了离线朗读路径**（`offline_reader.py` 的 `svc.submit(...)` **不带 `lang`** ⇒ worker 回落 `_guess_lang()`（只分 zh/en）⇒ **日文永远收不到 Japanese**）⇒ 已修 **3 个文件**（`offline_reader.py` 加 `lang` 形参 / `offline_reader_gui.py` 加 `get_lang` 接线 / `live_caption_app.py` 加 `_offline_get_lang()`，**下拉为「关闭」⇒ 不下传 ⇒ 旧行为逐字不变**）⇒ ✅ **验收 18/18 PASS ×2 处**（仓库 + 客户包；**零推理/零 GPU/零 NPU**，`ast`+`exec`+桩 service）⇒ ✅ **反证**（固定 commit `a9ed250` ⇒ 修复前 **11 FAIL** ⇒ 缺陷曾真实存在；反证用 **AST 重建**，源码修好后不静默失效）⇒ ✅ **回归**（`app107` 42/42、`app105` 24/24、`app103` 29/29、`app098` 21/21、`app100` 28/28、**`app069` 37/37**（离线朗读自检））⇒ ✅ **客户包定点同步 11 块唯一命中 + 幂等 3/3 ALREADY**（备份在包外 `C:\Users\Trekker-PTL\pkg_backup_app_s72`）⇒ ✅ **语料落盘**（reviewer 的日文规格可执行化：29 句日文 / 10 中文 / 10 英文 ⇒ `shared/app030_ja_corpus.json`）⇒ 🔴 **机器锁被外部进程占用**（`EXT-browser-probe 22332`，22:52:16 复查 `OpenProcess` handle=540/err=0 ⇒ `exit=259` ⇒ **活锁** ⇒ **不抢不删**）⇒ ⛔ **NPU A/B 实测脚本已写好但结果未落盘**（fail-closed 等锁）⇒ ⛔ **CUDA 组客观做不了**（本机 torch `2.14.1+cpu`、`cuda=False`，包内 python 无 torch）⇒ ⛔ **APP-028 不丢句实测 / APP-027 的 V1–V3 未做**、⛔ **zip 未重打**（APP-031 要求三项合打）⇒ ⛔ **「日文失控已解决」不成立**、⛔ **「用户听得到」仍不成立**、⛔ **未跑 MiniMax 回转写**（reviewer 侧 `quota.py` 仓库内 0 命中）⇒ 🔴 **头部 `last_ack` 更新为 APP-032**（= 已执行完的最大 APP 编号；**不表示** APP-030/028/027 实测已完成）
 21:31 §76 🔴 **APP-030 交付闭环已入库（commit `a9ed250` + push）**：✅ **commit `a9ed250`**（12 文件 / **+2777 −42**，App-only，`CORRECTIONS_APP.md` **未入库**（已用 `git show --name-only HEAD | grep CORRECTIONS` 核实 ⇒ 0 命中）⇒ **push `7109c77..a9ed250`**（**普通 push**，非 force）⇒ ✅ 复核 `HEAD == origin/main == a9ed250`、双向 **0/0**、仓库仍**只有 main** 分支）⇒ ✅ **三方复核：仓库 HEAD ⇄ 客户包 app/ 逐文件 LF SHA256 7/7 全 MATCH**（`tts_engine 3ec217a1…` / `tts_worker d0d73ffa…` / `tts_service 5d1965bc…` / `tts_cuda 00060bbe…` / `tts_cuda_sidecar aa0feeb5…` / `live_caption_app eb9e7dae…` / `translator c5ab5e07…`）⇒ 🔴 **客户包 zip 尚未重打** ⇒ 三方未闭环 ⇒ 按 §66 **不写「已交付」**（准确表述：**代码侧已入库并已同步到包目录；zip 未重打**）⇒ ✅ **机器锁已释放**（§75.8 记录的 `pid 38316` 活锁于 21:27 后由 TTS 模块释放）⇒ 🔴 **但实测仍不启动**：① **reviewer 指定的 `quota.py` 仍不存在**（`C:\Users\Trekker-PTL` 下 3 层深度 + 仓库 `results/app/` 全量搜索 `quota*.py` ⇒ **0 命中**⇒ 属 reviewer 侧工具、**不是 App 模块的文件**）② 缺 reviewer 确认的**实测语料/口径**⇒ 按 stop-node **停在「等 reviewer 复核」**⇒ ⛔ **未跑推理/测速**、⛔ **未跑 MiniMax 回转写**、⛔ **未跑 `verify_pkg_zip.py` / `publish_ftp.py` / 未开 FTP**、⛔ **未修改 `CORRECTIONS_APP.md`**、⛔ **未用 `git add -A`**（逐文件 add，不吞他模块文件）⇒ ⛔ **「日文失控已解决」仍不成立**（实测未做）、⛔ **「用户听得到」仍不成立**
 21:26 §75 🔴🔴 **APP-030（日文失控）代码侧全部完成 + 客户包定点同步完成**：✅ **APP-030① 目标语言显式下传**（`submit(lang=)` → synth 命令带 `lang` → worker 5 元组 → `map_language()` → Chinese/English/Japanese/Korean；GUI `_cur_mt_target()` / CLI `mt.target`；`_guess_lang` 降级兜底且**假名⇒ja / 谚文⇒ko**；`normalize_zh_numbers` **只在 Chinese** ⇒ 日文数字不再被中文化）⇒ ✅ **APP-030② 失控守卫三层**（① 引擎侧 `clamp_max_new_tokens = clamp(3×估计帧+36, 48, 2048)` **按切分段**算；② CUDA 客户端 `got_sec > max(3×est, est+8 s)` ⇒ RUNAWAY ⇒ 停播 + 发 `cancel`（不行就杀并重启边车）；③ worker 侧**引擎无关**兜底 ⇒ **NPU 同受保护**；**边车不再用库默认 2048**（兜底 512）⇒ 回报 `frames`/`end_reason`）⇒ ✅ **APP-030③ `_q_get` 超时返哨兵不抛**（`_TIMEOUT` 区分「暂时没消息」vs「边车已退出」）⇒ **15/60 s 看门狗真正生效、第 0 句不再丢**⇒ ✅ **APP-030④ `_estimate_sec` 补假名/谚文**⇒ ✅ **APP-030⑤ 可观测性**（逐句 `lang/lang_src/n_chars/est_frames/frames/end_reason/max_new_tokens` 进 `x.tts.jsonl`；切目标记一行；异常句落盘 `%LOCALAPPDATA%\...\tts_anomaly\` 最多 20 组）⇒ ✅ **APP-029 只做接口预留不集成**（`spk_update` 只接住记日志、断句继续用 R2T2）⇒ ✅ **验收 `app107` 42/42（仓库）+ 42/42（客户包）**（零推理/零 GPU/零 NPU，桩引擎 + `ast`/`exec`，含 **6 条反证**）⇒ ✅ **客户包定点同步 7/7 MATCH**（两轮：7 文件 48 块 + 增量 1 块；脚本升级为**三级基线选择**，原脚本**正确拒绝**了增量同步）⇒ 🔴 **本轮自查抓出并修复真实缺陷**（`start()` 等 ready 的判定被 `_TIMEOUT` 破坏 ⇒ 边车启动路径会崩；已修 + 新增 C6/C7/F6）⇒ ✅ **回归全绿**（`app103` 29/29、`app105` 24/24、`app102` 27/27、`app098` 21/21、`app100` 28/28、`app069` 37/37、`app097` 20/20；**必须用 Python 3.12**，managed 3.13 无 numpy）⇒ ⛔ **APP-030 实测验收全部未做**（机器锁被 TTS 活占 `pid 38316 exit=259` ⇒ **不抢不删**；且**仓库内无 `quota.py`** ⇒ 不做 reviewer 指定的 MiniMax 回转写）⇒ ⛔ **APP-031 的 ②③ 未做**、⛔ **zip 未重打**（APP-031 明文「合在一起重打一次包」）⇒ ⛔ **「日文失控已解决」不成立**、「用户听得到」仍不成立⇒ 🔴 `last_ack` = **APP-030**
@@ -13297,3 +13298,170 @@ reviewer 的 APP-030 验收要求「**≥20 句日文测试句**（≥5 句 ≤8
 | `results/app/app108_npu_ab.py` | 新增 | NPU A/B 实测驱动器（自取锁） |
 | `shared/app030_ja_corpus.json` | 新增 | 语料落盘（仓库外，各模块共用） |
 | 包外备份 | `C:\Users\Trekker-PTL\pkg_backup_app_s72` | 同步前 3 文件副本 |
+## §78 🔴🔴 **APP-030 的 NPU 实测跑完了（29 句 ×3 次）＋ 自查抓出并修掉「失控守卫语言口径」的真实缺陷** ＋ 客户包定点同步完成（2026-10-27 23:30）
+
+> 本节是 **§77 的续篇**。§75/§76/§77 的结论**不撤回**。
+> ⚠️ **`status/app/CORRECTIONS_APP.md` 仍未入库**（reviewer 独占文件，工作区保留其改动）。
+
+### 78.1 ✅ **APP-030 的 NPU 实测已跑完**（reviewer「### 4. 验收」A/B 项，NPU 组）
+
+🔴 **设备 = NPU**（不是 CPU）、**持机器锁**、**等安静窗口**、**自取锁**（拿不到锁就退出）。
+
+| 项 | reviewer 要求 | 实测 |
+|---|---|---|
+| 日文测试句 | ≥20 句 | **29 句**（`shared/app030_ja_corpus.json`） |
+| 重复次数 | ×3 | **×3** |
+| 改后（目标语言）撞帧上限 | **= 0** | **0**（`end_reason='cap'` 计数 = 0） |
+| 改后挂起 | **= 0** | **0** |
+| 改后异常 | 0 | **0** |
+| 中文回归 | 10 句 | **10 句**（cap=0 / hang=0 / err=0） |
+| 英文回归 | 10 句 | **10 句**（cap=0 / hang=0 / err=0） |
+
+🔴 **配对统计**（同一句、同一 rep，before=English vs after=目标语言，各 **87 组**）：
+
+| 指标 | 改前（English） | 改后（ja） |
+|---|---|---|
+| wall **中位** | 2.39 s | **2.23 s** |
+| wall **P95** | 12.38 s | 14.42 s |
+| wall **最大** | 17.14 s | **16.00 s** |
+| s/字 **中位** | 0.1544 | **0.1428** |
+| s/字 **最大** | 0.3294 | 0.3840 |
+
+🔴 **四个组逐项判据（全 194 行）**：
+`before` n=87 **cap=0 hang=0 err=0**｜`after` n=87 **cap=0 hang=0 err=0**｜
+`reg_zh` n=10 **cap=0 hang=0 err=0**｜`reg_en` n=10 **cap=0 hang=0 err=0**
+⇒ **`verdict_after_clean = true`**。
+
+🔴 **口径自证**（抽样，确认修复真的生效）：74 字日文长句
+`est_s=11.70`（ja 口径 0.15/字，**不是**英文口径的 5.78）、`est_f=140`、`mnt=456`
+⇒ 与 `app109` B2/B2b/B5 的权威值**逐字一致**。
+
+⚠️🔴 **CUDA 组客观做不了**（本机 torch `2.14.1+cpu`、`cuda=False`；**包内 python 无 torch**）
+⇒ **CUDA A/B 仍需 reviewer 裁定执行环境** ⇒ **不得宣称「日文失控已解决」**（只覆盖了 NPU 组）。
+
+### 78.2 🔴🔴🔴 **本轮又抓出一个真实缺陷（reviewer 未点名）：失控守卫的「语言口径」两套表不一致**
+
+**怎么发现的**：NPU 全量首跑（`npu_ab_report_full.json`）报 `verdict_after_clean = false`
+⇒ 改后出现 **1 次 hang**。**没有直接改代码，而是先定位这 1 次 hang 到底是谁的问题**。
+
+**定位过程（关键：差点误判）**：
+1. 那 1 次 hang 是 74 字日文长句：`est_sec=5.78 s`、`wall=18.15 s`、阈值 `max(3×est, est+8)=17.34 s`
+   ⇒ **只超 0.81 s**（边缘），且 `end_reason='eos'`（**没撞帧上限**）、`got_sec=19.44 s`。
+2. 🔴 **第一反应**：「`est_sec` 对 74 字日文只估 5.78 s ⇒ **估算严重低估** ⇒ 产品缺陷！」
+3. 🔴 **但必须先查生产路径到底传什么口径** ⇒ 查 `tts_worker.synth()`：
+   `lang = (lang or 'en').strip().lower()` ⇒ **生产路径传的是小写代号**（`zh`/`en`/`ja`/`ko`）
+   ⇒ `estimate_sec(text, 'ja')` = **11.70 s**（不是 5.78）⇒ **生产口径是对的**。
+4. 🔴 **再查我的脚本**：`app108_npu_ab.py` 传的是**全称** `'Japanese'`
+   ⇒ 而 `estimate_sec` 原实现是
+   `_SEC_PER_CHAR.get((lang or 'en').lower(), _SEC_PER_CHAR['en'])`
+   ⇒ `'japanese'` **不在表里** ⇒ 落**英文** 0.07 ⇒ 估算被砍到一半
+   ⇒ ⇒ **这 1 次 hang 是「我的脚本口径不对」造出来的假阳性**，不是产品缺陷。
+   ⇒ 📌 **教训**：**判据本身出错 ⇒ 结论必然错**；先证「是谁错」再改代码。
+
+**但顺着这条线，查出确实存在的真实缺陷**（同一处代码）：
+`estimate_frames()` / `estimate_sec()` 的取键逻辑**只认小写代号**，
+而同文件的 `map_language()` **认得**全称与带区域写法
+⇒ **同一个语言标识被两套表解析 ⇒ 口径不一致**：
+
+| `lang` 传入 | 修复前 sec/字 | 真实值 | 低估倍数 | 后果 |
+|---|---|---|---|---|
+| `'Japanese'` | 0.07（英文） | 0.15（日） | **2.1×** | RUNAWAY 阈值偏低 ⇒ **易误杀正常长句**；帧上限偏松 ⇒ **失控上限被放行** |
+| `'zh-cn'` | 0.07（英文） | 0.25（中） | **3.6×** | 同上 |
+| `'zh-tw'` | 0.07（英文） | 0.25（中） | **3.6×** | 同上 |
+
+⚠️ **当前生产路径恰好只传小写代号**（`translator.TARGETS` = zh/en/ja/ko）
+⇒ 缺陷**未暴露**；但这是「同一个标识两套口径」的**隐患**
+⇒ 一旦有人传全称或带区域写法就**静默失准**（无任何告警）。
+
+**修法**：`tts_engine.py` 新增 `_lang_key()` ⇒ **统一走 `map_language()`**（唯一映射表）再反查小写代号。
+
+🔴 **生产路径（小写代号）逐字零回归**（`app109` B 组 12 条判据）：
+`zh` 19.10 s/229 帧、`ja` 11.70 s/140 帧、`ko` 13.92 s/167 帧、`en` 5.78 s/69 帧
+⇒ sec / frames / clamp / RUNAWAY 阈值**全部与修复前逐字相同**。
+
+🔴 **全链路一致性已验证**（worker 的 `.lower()` 归一化之后仍一致）：
+`ja`/`Japanese`/`JA` ⇒ `ja`；`zh-CN`/`zh-cn` ⇒ `zh`；`ko-KR` ⇒ `ko`；
+`zh_CN`（下划线）⇒ 两边**都**落 `'en'`（**无分歧**）。
+
+### 78.3 ✅ 验收 `app109`：**34/34 PASS** ×2 处（零推理 / 零 GPU / 零 NPU）
+
+| 处 | 判据 | PASS | FAIL | 证据 |
+|---|---|---|---|---|
+| **仓库** `live_caption/` | **34** | **0** | `results/app/app109_lang_key_guard_evidence.json` |
+| **客户包** `app/`（v1.6） | **34** | **0** | `results/app/app109_pkg_evidence.json` |
+
+**分组**：A 组（口径正确性）12 条、B 组（生产路径零回归）12 条、
+C 组（**反证**）4 条、D 组（未知语言仍落 `en`）4 条。
+
+🔴 **反证用 AST 重建**（`ast.parse` 造旧版 `estimate_sec`/`estimate_frames`）
+⇒ C1「旧写法下 A 组至少 4 条失配」实测 **= 4**；
+C2「旧口径对 `Japanese` 低估」实测 **5.78 < 11.70**；
+C3「旧口径对 `zh-cn` 低估」实测 **5.78 < 19.10**；
+C4「旧写法对 `Japanese` 的 frames 低估」实测 **69 < 140**
+⇒ **判据不是「永远 PASS」**。
+
+🔴🔴 **本轮又抓出并修掉三处「验收脚本自身缺陷」（不是产品缺陷）**：
+① `dict(pass=...)` ⇒ **`pass` 是 Python 关键字** ⇒ SyntaxError ⇒ 改名 `ok`；
+② 反证组原设计是「替换 `_lang_key` 的返回语义」
+   ⇒ 但旧实现的语义是**直接 `.get()`**（不是 `_lang_key` 返回错值）
+   ⇒ 报 `KeyError: 'japanese'` ⇒ 改为**用 `ast.parse` 重建整个旧版函数**；
+③ 生产代码里我把 `.get()` 改成了 `[...]` ⇒ 若 `_lang_key` 意外返回表外键会 **KeyError**
+   ⇒ 改回 `.get()`（**保持防御性**，与旧实现同级）。
+⇒ 📌 **教训**：**闸门自身的假通过/假失败都算缺陷**；判据必须与被测代码形态一致。
+
+**回归（Python 3.12，既有套件全部未受影响）**：
+`app107` **42/42**、`app105` **24/24**、`app103` **29/29**、`app098` **21/21**、
+`app100` **28/28**、**`app069` 37/37**（离线朗读自检）、**`app109` 34/34**。
+
+### 78.4 ✅ 客户包定点同步（**3 块唯一命中** + 幂等）
+
+🔴 **纪律**：仓库 ⇄ 客户包是**两份独立副本** ⇒ **禁止整目录覆盖**
+⇒ 用 `live_caption/sync_s73_lang_key_guard_to_pkg.py`
+（**从 git 自动派生替换块** + `difflib.get_grouped_opcodes(n=3)` + **唯一命中断言**
++ 写盘前与仓库版**逐字一致**校验 + 备份**在包外** + 幂等）。
+
+| 文件 | 基线 | 结果 | SHA256（前 16） | 字节 |
+|---|---|---|---|---|
+| `app/tts_engine.py` | `83cac33` | **SYNCED 3 块** | `3ec217a141a3a7a2` → **`d82e0d533ed79a58`** | 56 666 → **58 587** |
+
+⇒ ✅ **幂等复跑 = `ALREADY`**（无重复写入）。
+⇒ ✅ **备份目录（包外）** `C:\Users\Trekker-PTL\pkg_backup_app_s73`。
+⇒ ✅ **客户包内那份单独跑同一套判据 34/34 PASS**（不只测仓库版）。
+
+### 78.5 ✅ §77 交付闭环已补全（本节之前已完成）
+
+| 项 | 值 |
+|---|---|
+| commit | **`83cac33`**（10 文件 / **+1521 −9**，App-only） |
+| 推送区间 | **`539b749..83cac33`**（**普通 push**，非 force） |
+| `HEAD == origin/main` | ✅ `83cac33cfef764e8386db0794aae7758796af7f8`（双向 **0/0**） |
+| 仓库分支 | ✅ 只有 `main` + `remotes/origin/main` |
+| `CORRECTIONS_APP.md` | 🔴 **未入库**（`git show --name-only HEAD \| grep CORRECTIONS` ⇒ 0 命中） |
+| 仓库 HEAD ⇄ 客户包 `app/` | ✅ **9/9 全 MATCH**（LF 归一化 SHA256；含 §77 新同步的 2 个文件） |
+| 机器锁 | ✅ 已释放（`[lock] 已释放` 两次打印） |
+
+### 78.6 🔴 本节明确**没有**做的事（不宣称）
+
+- ⛔ **CUDA 组 A/B 未做**（本机无 CUDA 运行时：torch `2.14.1+cpu` / `cuda=False`；包内 python 无 torch）
+  ⇒ **不得宣称「日文失控已解决」**（只覆盖 NPU 组）。
+- ⛔ **APP-030 的 GUI 复现（丢句=0）、wav+json 交 reviewer、CER 对比未做**。
+- ⛔ **未跑 MiniMax 回转写**（reviewer 侧 `quota.py` 仓库内 **0 命中** ⇒ 不绕过、不自行调用）。
+- ⛔ **APP-028 的不丢句实测未做**、⛔ **APP-027 的 V1–V3 未做**。
+- ⛔ **客户包 zip 未重打** ⇒ 按 §66 口径**不写「已交付」**（APP-031 要求三项合打）。
+- ⛔ **未跑 `verify_pkg_zip.py` / 未跑 `publish_ftp.py` / 未开 FTP**（§66）。
+- ⛔ **未修改、未提交 `status/app/CORRECTIONS_APP.md`**；⛔ **未提交他模块改动**；⛔ **未用 `git add -A`**。
+- ⛔ **「用户听得到」仍不成立**（§63 L4 等用户实听）。
+
+### 78.7 本节产物清单
+
+| 文件 | 字节 | SHA256（前 16） | 说明 |
+|---|---|---|---|
+| `live_caption/tts_engine.py` | 58 587 | `d82e0d533ed79a58` | `_lang_key()` 统一语言口径 |
+| `live_caption/sync_s73_lang_key_guard_to_pkg.py` | 10 374 | `fb6032b9252a0bdb` | 定点同步脚本（派生自 s72） |
+| `results/app/app109_lang_key_guard.py` | 10 270 | `5735687b02bf0438` | 验收脚本（34 判据 + 4 反证） |
+| `results/app/app109_lang_key_guard_evidence.json` | 6 079 | `34a513b7636fb1b0` | 仓库侧证据 |
+| `results/app/app109_pkg_evidence.json` | 6 074 | `0e3681c75f3d57c6` | 客户包侧证据 |
+| `results/app/app108_npu_ab.py` | 10 186 | `dd0d1adf6c402df8` | NPU A/B 驱动器（**口径已修正为生产口径**） |
+| `results/app/app108_head_pkg_recheck.py` | 2 469 | `e143efbc08461045` | HEAD ⇄ 包目录复核脚本 |
+| `C:\Users\Trekker-PTL\app030_npu_ab\npu_ab_report_full2.json` | 84 779 | `fe1526238904b4b9` | NPU 全量实测报告（仓库外；mtime 23:43:05） |
+| 包外备份 | `C:\Users\Trekker-PTL\pkg_backup_app_s73` | — | 同步前 `tts_engine.py` 副本 |

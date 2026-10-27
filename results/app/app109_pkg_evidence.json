@@ -1,0 +1,282 @@
+{
+  "src_root": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.6/app",
+  "ts": "2026-10-27 23:15:15",
+  "pass_count": 34,
+  "fail_count": 0,
+  "total": 34,
+  "checks": [
+    {
+      "id": "A1",
+      "group": "A",
+      "name": "estimate_sec('Japanese') == estimate_sec('ja')",
+      "ok": true,
+      "got": 11.7,
+      "want": 11.7
+    },
+    {
+      "id": "A2",
+      "group": "A",
+      "name": "estimate_sec('japanese') == estimate_sec('ja')",
+      "ok": true,
+      "got": 11.7,
+      "want": 11.7
+    },
+    {
+      "id": "A3",
+      "group": "A",
+      "name": "estimate_sec('jp') == estimate_sec('ja')",
+      "ok": true,
+      "got": 11.7,
+      "want": 11.7
+    },
+    {
+      "id": "A4",
+      "group": "A",
+      "name": "estimate_sec('zh-cn') == estimate_sec('zh')",
+      "ok": true,
+      "got": 19.1,
+      "want": 19.1
+    },
+    {
+      "id": "A5",
+      "group": "A",
+      "name": "estimate_sec('zh-tw') == estimate_sec('zh')",
+      "ok": true,
+      "got": 19.1,
+      "want": 19.1
+    },
+    {
+      "id": "A6",
+      "group": "A",
+      "name": "estimate_sec('Chinese') == estimate_sec('zh')",
+      "ok": true,
+      "got": 19.1,
+      "want": 19.1
+    },
+    {
+      "id": "A7",
+      "group": "A",
+      "name": "estimate_sec('English') == estimate_sec('en')",
+      "ok": true,
+      "got": 5.78,
+      "want": 5.78
+    },
+    {
+      "id": "A8",
+      "group": "A",
+      "name": "estimate_sec('Korean') == estimate_sec('ko')",
+      "ok": true,
+      "got": 13.92,
+      "want": 13.92
+    },
+    {
+      "id": "A9",
+      "group": "A",
+      "name": "estimate_frames('Japanese') == estimate_frames('ja')",
+      "ok": true,
+      "got": 140,
+      "want": 140
+    },
+    {
+      "id": "A10",
+      "group": "A",
+      "name": "estimate_frames('zh-cn') == estimate_frames('zh')",
+      "ok": true,
+      "got": 229,
+      "want": 229
+    },
+    {
+      "id": "A11",
+      "group": "A",
+      "name": "clamp_max_new_tokens('Japanese') == clamp_max_new_tokens('ja')",
+      "ok": true,
+      "got": 456,
+      "want": 456
+    },
+    {
+      "id": "A12",
+      "group": "A",
+      "name": "clamp_max_new_tokens('zh-cn') == clamp_max_new_tokens('zh')",
+      "ok": true,
+      "got": 723,
+      "want": 723
+    },
+    {
+      "id": "B1",
+      "group": "B",
+      "name": "sec('zh') 未变",
+      "ok": true,
+      "got": 19.1,
+      "want": 19.1
+    },
+    {
+      "id": "B1b",
+      "group": "B",
+      "name": "frames('zh') 未变",
+      "ok": true,
+      "got": 229,
+      "want": 229
+    },
+    {
+      "id": "B2",
+      "group": "B",
+      "name": "sec('ja') 未变",
+      "ok": true,
+      "got": 11.7,
+      "want": 11.7
+    },
+    {
+      "id": "B2b",
+      "group": "B",
+      "name": "frames('ja') 未变",
+      "ok": true,
+      "got": 140,
+      "want": 140
+    },
+    {
+      "id": "B3",
+      "group": "B",
+      "name": "sec('ko') 未变",
+      "ok": true,
+      "got": 13.92,
+      "want": 13.92
+    },
+    {
+      "id": "B3b",
+      "group": "B",
+      "name": "frames('ko') 未变",
+      "ok": true,
+      "got": 167,
+      "want": 167
+    },
+    {
+      "id": "B4",
+      "group": "B",
+      "name": "sec('en') 未变",
+      "ok": true,
+      "got": 5.78,
+      "want": 5.78
+    },
+    {
+      "id": "B4b",
+      "group": "B",
+      "name": "frames('en') 未变",
+      "ok": true,
+      "got": 69,
+      "want": 69
+    },
+    {
+      "id": "B5",
+      "group": "B",
+      "name": "clamp_max_new_tokens('ja') 未变",
+      "ok": true,
+      "got": 456,
+      "want": 456
+    },
+    {
+      "id": "B6",
+      "group": "B",
+      "name": "clamp_max_new_tokens('zh') 未变",
+      "ok": true,
+      "got": 723,
+      "want": 723
+    },
+    {
+      "id": "B7",
+      "group": "B",
+      "name": "clamp_max_new_tokens('en') 未变",
+      "ok": true,
+      "got": 243,
+      "want": 243
+    },
+    {
+      "id": "B8",
+      "group": "B",
+      "name": "clamp_max_new_tokens('ko') 未变",
+      "ok": true,
+      "got": 537,
+      "want": 537
+    },
+    {
+      "id": "B9",
+      "group": "B",
+      "name": "runaway_threshold_s('ja') 未变",
+      "ok": true,
+      "got": 35.099999999999994,
+      "want": 35.099999999999994
+    },
+    {
+      "id": "B10",
+      "group": "B",
+      "name": "runaway_threshold_s('zh') 未变",
+      "ok": true,
+      "got": 57.300000000000004,
+      "want": 57.300000000000004
+    },
+    {
+      "id": "C1",
+      "group": "C",
+      "name": "反证：旧写法下 A 组至少 4 条失配",
+      "ok": true,
+      "got": 4,
+      "want": 4
+    },
+    {
+      "id": "C2",
+      "group": "C",
+      "name": "反证：旧口径对 Japanese 低估（<新值）",
+      "ok": true,
+      "got": 5.78,
+      "want": ">= 11.7"
+    },
+    {
+      "id": "C3",
+      "group": "C",
+      "name": "反证：旧口径对 zh-cn 低估（<新值）",
+      "ok": true,
+      "got": 5.78,
+      "want": ">= 19.1"
+    },
+    {
+      "id": "C4",
+      "group": "C",
+      "name": "反证：旧写法对 Japanese 的 frames 低估",
+      "ok": true,
+      "got": 69,
+      "want": ">= 140"
+    },
+    {
+      "id": "D1",
+      "group": "D",
+      "name": "未知/空语言落 en（'xx'）",
+      "ok": true,
+      "got": 5.78,
+      "want": 5.78
+    },
+    {
+      "id": "D2",
+      "group": "D",
+      "name": "未知/空语言落 en（''）",
+      "ok": true,
+      "got": 5.78,
+      "want": 5.78
+    },
+    {
+      "id": "D3",
+      "group": "D",
+      "name": "未知/空语言落 en（None）",
+      "ok": true,
+      "got": 5.78,
+      "want": 5.78
+    },
+    {
+      "id": "D4",
+      "group": "D",
+      "name": "map_language 未知 → English",
+      "ok": true,
+      "got": "English",
+      "want": "English"
+    }
+  ],
+  "note": "零推理/零 GPU/零 NPU；ast 抽源码 + exec；含 AST 重建反证"
+}

@@ -1013,10 +1013,46 @@ def guess_language_by_script(text: str) -> str:
 #      本函数专门给**失控守卫**用（要的是帧数上限，不是切分估算）。
 
 #: 每字符的预计秒数（APP-030② 的参考值）
+#: 🔴🔴 **键必须是「小写语言代号」** ⇒ 取值前**必须**先过 `_lang_key()`。
 _SEC_PER_CHAR = {'zh': 0.25, 'ja': 0.15, 'ko': 0.18, 'en': 0.07}
 
 #: 起停余量（秒）
 _LANG_TAIL_S = 0.6
+
+
+def _lang_key(lang: str) -> str:
+    """把**任意形态**的语言标识归一成 `_SEC_PER_CHAR` 的键。
+
+    🔴🔴🔴 **本轮自查抓出的真实缺陷（§78）**：
+      `estimate_frames()` / `estimate_sec()` 原先直接
+      `_SEC_PER_CHAR.get((lang or 'en').lower(), _SEC_PER_CHAR['en'])`
+      ⇒ **只认小写代号**（`zh` / `ja` / `ko` / `en`）。
+      但同一份代码里 `map_language()` **认得**全称与带区域写法
+      （`'Japanese'` / `'zh-cn'` / `'zh-tw'` / `'jp'` …）
+      ⇒ **两套表解析同一个语言标识 ⇒ 口径不一致**：
+        - `estimate_sec(text, 'Japanese')` ⇒ 落**英文** 0.07 s/字
+          （日文真实 0.15 ⇒ **低估 2.1 倍**）
+        - `estimate_sec(text, 'zh-cn')`     ⇒ 落**英文** 0.07 s/字
+          （中文真实 0.25 ⇒ **低估 3.6 倍**）
+      ⇒ 后果 = **失控守卫的阈值被算得过低**：
+        `RUNAWAY` 阈值 `max(3×est, est+8)` 用小 est ⇒ **更容易误杀正常长句**，
+        而 `clamp_max_new_tokens` 用小 est ⇒ **帧数上限偏松**（= 失控上限放行）。
+      ⚠️ 当前生产路径**恰好**只传小写代号（`translator.TARGETS` = zh/en/ja/ko）
+      ⇒ 缺陷**未暴露**；但这属于「同一个标识两套口径」的隐患
+      ⇒ 一旦有人传全称或带区域写法就静默失准。
+
+    ⇒ 修法：**统一走 `map_language()`**（唯一映射表）再反查小写代号。
+      未知语言仍落 `'en'`（与历史行为一致）。
+    """
+    try:
+        full = map_language(lang)
+    except Exception:
+        full = 'English'
+    for k, v in LANG_MAP.items():
+        if v == full:
+            return k if k in _SEC_PER_CHAR else 'en'
+    # `LANG_MAP` 的值里只有 Chinese/English/Japanese/Korean ⇒ 上面必然命中
+    return 'en'
 
 
 def estimate_frames(text: str, lang: str = 'en') -> int:
@@ -1027,7 +1063,7 @@ def estimate_frames(text: str, lang: str = 'en') -> int:
       `max(3×估计, 估计+8 s)` 这种**宽松**阈值（宁可漏判也不误杀）。
     """
     n = len([c for c in (text or '') if not c.isspace()])
-    s = _SEC_PER_CHAR.get((lang or 'en').lower(), _SEC_PER_CHAR['en'])
+    s = _SEC_PER_CHAR.get(_lang_key(lang), _SEC_PER_CHAR['en'])
     sec = n * s + _LANG_TAIL_S
     return max(8, int(sec * 12))
 
@@ -1062,7 +1098,7 @@ def estimate_sec(text: str, lang: str = 'en') -> float:
     ⇒ 两套函数**不要混用**。
     """
     n = len([c for c in (text or '') if not c.isspace()])
-    s = _SEC_PER_CHAR.get((lang or 'en').lower(), _SEC_PER_CHAR['en'])
+    s = _SEC_PER_CHAR.get(_lang_key(lang), _SEC_PER_CHAR['en'])
     return n * s + _LANG_TAIL_S
 
 

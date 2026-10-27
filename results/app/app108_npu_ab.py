@@ -59,7 +59,10 @@ def main():
     ap.add_argument('--out', default=None)
     ap.add_argument('--limit', type=int, default=0,
                     help='只跑前 N 句（0 = 全部）')
-    ap.add_argument('--lang', default='Japanese')
+    ap.add_argument('--lang', default='ja',
+                    help='目标语言**代号**（生产路径口径：translator.TARGETS = zh/en/ja/ko）')
+    ap.add_argument('--before-lang', default='en',
+                    help='「改前」口径的语言代号（旧实现 _guess_lang 只分 zh/en）')
     ap.add_argument('--device', default='NPU')
     args = ap.parse_args()
 
@@ -111,17 +114,27 @@ def main():
         rows = []
 
         def run_one(text, language, tag, rep):
-            """跑一句，返回遥测行。"""
-            est_frames = TE.estimate_frames(text, language)
-            est_sec = TE.estimate_sec(text, language)
-            mnt = TE.clamp_max_new_tokens(text, language)
+            """跑一句，返回遥测行。
+
+            🔴🔴 **口径纪律（§78 自查发现）**：
+              `language` 传的是**语言代号**（`zh`/`en`/`ja`/`ko`）
+              ⇒ 与生产路径（`translator.TARGETS`）**逐字一致**；
+              但引擎侧要**全称**（`map_language(code)`）⇒ 这里分开传。
+              ⚠️ **旧版脚本传的是全称**（`'Japanese'`）⇒ 与生产口径**不一致**
+              ⇒ 连带把 `estimate_sec` 喂成了英文口径 ⇒ **产出了假的 hang 判定**。
+            """
+            lang_code = language
+            est_frames = TE.estimate_frames(text, lang_code)
+            est_sec = TE.estimate_sec(text, lang_code)
+            mnt = TE.clamp_max_new_tokens(text, lang_code)
+            engine_lang = TE.map_language(lang_code)
             got_sec = 0.0
             n_frames = 0
             reason = 'eos'
             t1 = time.perf_counter()
             try:
                 for chunk, sr in TE.stream(
-                        eng, text, language=language,
+                        eng, text, language=engine_lang,
                         max_new_tokens=mnt, est_sec=est_sec,
                         on_log=lambda m: None):
                     arr = np.asarray(chunk, dtype=np.float32)
@@ -135,7 +148,7 @@ def main():
             wall = time.perf_counter() - t1
             n_chars = len([c for c in text if not c.isspace()])
             return dict(
-                tag=tag, rep=rep, lang=language,
+                tag=tag, rep=rep, lang=lang_code, engine_lang=engine_lang,
                 text=text, n_chars=n_chars,
                 est_frames=int(est_frames), est_sec=round(est_sec, 3),
                 max_new_tokens=int(mnt),
@@ -146,11 +159,12 @@ def main():
                 hang=(wall > max(3 * est_sec, est_sec + 8.0)),
             )
 
-        # ── A/B：改前（English）vs 改后（Japanese）──────────────
-        print('\n=== A/B：改前 English vs 改后 %s ===' % args.lang)
+        # ── A/B：改前（English）vs 改后（目标语言）────────────────
+        print('\n=== A/B：改前 %s vs 改后 %s ==='
+              % (args.before_lang, args.lang))
         for i, s in enumerate(sentences):
             for rep in range(args.repeats):
-                row_b = run_one(s, 'English', 'before', rep)
+                row_b = run_one(s, args.before_lang, 'before', rep)
                 row_a = run_one(s, args.lang, 'after', rep)
                 rows.append(row_b)
                 rows.append(row_a)
@@ -168,7 +182,7 @@ def main():
         print('\n=== 回归：中文/英文各 10 句 ===')
         for tag, lst in (('zh', ZH_SENTENCES), ('en', EN_SENTENCES)):
             for i, s in enumerate(lst):
-                lang = 'Chinese' if tag == 'zh' else 'English'
+                lang = 'zh' if tag == 'zh' else 'en'
                 r = run_one(s, lang, 'reg_' + tag, 0)
                 rows.append(r)
                 print('  [%s %2d] est_f=%4d got=%6.2fs s/字=%.3f %s'
