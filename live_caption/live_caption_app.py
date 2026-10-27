@@ -574,6 +574,57 @@ def _cuda_tts_available():
         return False
 
 
+def _tts_log_dir() -> str:
+    """TTS 故障日志的落盘目录（`%LOCALAPPDATA%\\Confucius4LiveCaption`）。
+
+    🔴 APP-025③：界面必须**指向落盘日志路径** —— 用户 09:06 的原话是
+      界面只有「rc=3221226505」，既不知道为什么，也不知道去哪儿看。
+    """
+    base = os.environ.get('LOCALAPPDATA') or os.path.expanduser('~')
+    return os.path.join(base, 'Confucius4LiveCaption')
+
+
+# 🔴🔴 APP-025③：把 worker 的原始故障**翻译成人话**。
+#   判据全部来自 2026-10-27 08:56 / 09:01 的**实测会话日志**（不是猜）：
+#     - `WinError 50` + `DuplicateHandle`  → CUDA 边车起不了子进程（pythonw 无控制台）
+#     - `No module named 'babelvox'`        → 缺 Qwen3-TTS 运行时
+#     - `Can't compute total shape size on dynamic shape` → 旧引擎动态形状 IR（NPU 必崩）
+#     - `LLVM ERROR`                        → NPU/vpux 编译器崩溃
+#     - `rc=3221226505` (0xC0000409)        → 进程被强制终止（栈溢出/编译器 abort）
+#   ⚠️ **只在后面追加，不要改已有映射** —— 每条都对应一次真实事故。
+_TTS_FAILURE_HINTS = (
+    ('WinError 50', 'Windows 无法为 CUDA 语音后端创建子进程（句柄错误 WinError 50）'),
+    ('No module named \'babelvox\'',
+     '缺少 Qwen3-TTS 运行时（babelvox）—— 请用客户包自带的 python 启动'),
+    ('babelvox', 'Qwen3-TTS 运行时（babelvox）有问题'),
+    ("Can't compute total shape size on dynamic shape",
+     '旧的 Confucius4-TTS 动态形状 IR 无法在 NPU 上编译（该回落路径已删除）'),
+    ('LLVM ERROR', 'NPU 编译器崩溃（LLVM ERROR）'),
+    ('3221226505', '进程被强制终止（0xC0000409，多由 NPU 编译器崩溃引起）'),
+    ('3221225477', '进程访问冲突（0xC0000005）'),
+    ('3221226525', '进程栈溢出（0xC00000FD）'),
+    ('No module named \'tts_model\'',
+     '旧的 torch 参考实现不可用（该回落路径已删除）'),
+)
+
+
+def describe_tts_failure(raw) -> str:
+    """把 TTS 的 worker 级故障翻译成**一句用户能看懂、能处理**的话。
+
+    🔴 输入是 `TTSService.err`（可能是异常对象、字符串，或带 rc 的消息）。
+    🔴 输出**一定**包含「是什么原因」，且不会只剩一个 rc 数字。
+    ⚠️ 原始串**保留在末尾**（reviewer 要靠它复核，不能只给人话）。
+    """
+    s = str(raw or '').strip()
+    if not s:
+        return '未知错误（worker 没有给出原因）'
+    for key, human in _TTS_FAILURE_HINTS:
+        if key in s:
+            # 🔴 原始串一并附上 ⇒ 人话 + 证据，两边都不丢
+            return '%s；原文：%s' % (human, s)
+    return s
+
+
 def _tts_device_problem(dev: str, prec: Optional[str] = None) -> str:
     """该设备（**含精度**）用于 TTS 时**是否有已知问题**（返回描述，空串 = 没问题）。
 
@@ -2846,16 +2897,42 @@ class App:
     #   ⇒ 用户点一下就知道**声卡链路**通不通：
     #     听到 ⇒ 播放链路 OK，若 TTS 还是听不到 ⇒ 合成侧问题；
     #     听不到 ⇒ 设备/音量/系统问题（与 TTS 无关）。
+    #
+    # 🔴🔴🔴 APP-023④ / APP-025：**测试声音必须不依赖 TTS worker**。
+    #   旧实现是「发 `test_tone` 指令给 worker」⇒ worker 没起 / 起不来 / 崩了
+    #   ⇒ 直接报「语音输出还没启动」⇒ **用户没法先单独验证播放链路**
+    #   （而排查顺序恰恰是：先确认声卡通，再怀疑合成）。
+    #   ⇒ 现在：**优先在本进程直接播**（与 worker、与模型完全解耦）；
+    #     只有本地播放失败时才回落到 worker 路径（并如实说明）。
     def _on_tts_test_sound(self, *_a):
+        out_id = self._out_label_back.get(self.var_tts_out.get())
+        ok, diag, tel = self._play_test_tone_local(out_id)
+        if ok:
+            self.var_tts_note.set(
+                '🔊 已播放 1 秒测试音（440 Hz）到所选输出设备 —— '
+                '请确认是否听到（听到=播放链路正常）。'
+                '此测试**不依赖 TTS worker**。')
+            self.var_status.set('测试音已播放（不依赖 TTS worker）')
+            self._ui_log('[tts] 测试声音：本进程直接播放成功（%s）；'
+                         '已读 +%s / 目标 %s / 回调 +%s'
+                         % (diag, tel.get('read_delta', '-'),
+                            tel.get('n_samples', '-'),
+                            tel.get('cb_delta', '-')))
+            return
+        self._ui_log('[tts] 测试声音：本进程直接播放失败（%s）' % diag)
+        # ── 回落：worker 路径（worker 起不来时也会给明确原因）──
         svc = self.tts
         if svc is None:
-            self.var_tts_note.set('🔴 语音输出还没启动 ⇒ 先勾选「开启」')
-            self.var_status.set('语音输出未启动（无法测试声音）')
-            self._ui_log('[tts] 测试声音：TTS 未启动')
+            self.var_tts_note.set(
+                '🔴 测试声音失败：%s。'
+                '（这不依赖语音输出是否开启 —— 请先检查输出设备与音量）' % diag)
+            self.var_status.set('测试声音失败（与 TTS worker 无关）')
             return
         try:
             if not svc.test_tone():
-                self.var_tts_note.set('🔴 测试声音指令没能下发（worker 可能已退出）')
+                self.var_tts_note.set(
+                    '🔴 测试声音：本进程播放失败（%s），'
+                    '且指令没能下发给 worker（worker 可能已退出）' % diag)
                 self._ui_log('[tts] 测试声音：指令下发失败')
                 return
         except Exception as e:
@@ -2865,6 +2942,18 @@ class App:
         self.var_tts_note.set('🔊 正在播放 1 秒测试音（440 Hz）…'
                               '请确认是否听到（听到=播放链路正常）')
         self.var_status.set('正在播放测试音…')
+
+    @staticmethod
+    def _play_test_tone_local(out_id):
+        """在本进程直接播 440 Hz（不依赖 worker）。返回 `(ok, diag, tel)`。"""
+        try:
+            from tts_worker import play_test_tone_direct
+        except Exception as e:
+            return False, '无法加载播放模块（%s: %s）' % (type(e).__name__, e), {}
+        try:
+            return play_test_tone_direct(out_id)
+        except Exception as e:
+            return False, '%s: %s' % (type(e).__name__, e), {}
 
     def _pump_tts(self):
         """把**定稿译文**提交给 TTS（C-101 P4 第 1 条：只念定稿译文）。
@@ -3434,10 +3523,20 @@ class App:
             self.var_tts_note.set(
                 f'已就绪 设备 {tts.device} · 精度 {tts.precision} · 音色 {tts.voice}')
         elif st == 'error':
-            brief = str(getattr(tts, 'err', '') or '未知错误').split('(')[0].strip()
-            self.var_tts_note.set(f'🔴 语音输出不可用：{brief}')
+            # 🔴🔴🔴 APP-025③：错误提示**要让用户看得懂、能处理**。
+            #   旧实现 `str(err).split('(')[0]` 会把关键的英文细节
+            #   （`rc=3221226505` / `No module named 'babelvox'`）截掉，
+            #   剩下的只有「TTS worker 退出」⇒ 用户只知道「坏了」，
+            #   不知道为什么、更不知道怎么办（用户 09:06 原话）。
+            #   ⇒ 现在：① 把 rc/原始异常**翻译成人话**；② **指向落盘日志路径**。
+            raw = getattr(tts, 'err', '') or ''
+            brief = describe_tts_failure(raw)
+            log_path = (getattr(tts, 'last_error_path', None)
+                        or os.path.join(_tts_log_dir(), 'tts_worker_error.log'))
+            self.var_tts_note.set(
+                f'🔴 语音输出不可用：{brief}\n详细信息见日志：{log_path}')
             self.var_status.set('语音输出加载失败（不影响字幕与翻译）')
-            self._ui_log(f'[tts] worker error: {getattr(tts, "err", None)!r}')
+            self._ui_log(f'[tts] worker error: {raw!r}')
 
     def _retry_mt(self):
         """重新加载翻译模型（上次失败后用）。"""
@@ -3849,6 +3948,41 @@ def run_check():
             print(f'  [ OK ] {_pad(label, 16)} {ver}')
         except Exception as e:
             print(f'  [缺 ] {_pad(label, 16)} {type(e).__name__}: {e}')
+
+    # ── 1b. Qwen3-TTS 运行时（APP-023②：独立一项，可导入才算可用）────
+    #   🔴🔴 为什么单列：babelvox **不是**上面那串通用依赖之一，而
+    #     「缺它」的后果**极其严重** —— 旧实现会回落 Confucius4-TTS 旧引擎，
+    #     那条路的动态形状 IR 在 NPU 上必然编译失败，第三个 IR 直接把
+    #     vpux 编译器打崩 ⇒ **进程级 abort**（rc=3221226505），
+    #     用户只看到「TTS worker 退出」，真实原因被彻底掩盖。
+    #     ⇒ 现在把「babelvox 可导入」做成 `--check` 的**独立结论**，
+    #       让它变成「一眼看得出」的硬证据，而不是等崩溃才发现。
+    #   ⚠️ 还要顺带看**模型目录**在不在 —— 只有运行时没有模型同样跑不了
+    #     （实测：仓库 dev 树两个都没有 ⇒ NPU 语音输出**根本不可能**可用）。
+    try:
+        import babelvox as _bv
+        _bv_ver = getattr(_bv, '__version__', '')
+        try:
+            from importlib.metadata import version as _pkg_ver
+            _bv_ver = _bv_ver or _pkg_ver('babelvox')
+        except Exception:
+            pass
+        print(f'  [ OK ] {_pad("babelvox(Qwen3-TTS)", 16)} {_bv_ver}')
+    except Exception as e:
+        print(f'  [缺 ] {_pad("babelvox(Qwen3-TTS)", 16)} '
+              f'{type(e).__name__}: {e}')
+        print('         ⇒ 语音输出（TTS）不可用：'
+              '请用客户包自带的 python 启动（<包根>\\python\\python.exe）。')
+    try:
+        import tts_engine as _te
+        _root = _te.model_root()
+        _ok = os.path.isdir(os.path.join(_root, 'int8'))
+        print(('  [ OK ] ' if _ok else '  [缺 ] ')
+              + _pad('qwen3tts 模型', 16) + _root)
+        if not _ok:
+            print('         ⇒ 模型目录里没有 `int8/` ⇒ TTS 无法加载。')
+    except Exception as e:
+        print(f'  [缺 ] {_pad("qwen3tts 模型", 16)} {type(e).__name__}: {e}')
     print()
 
     # ── 2. 设备 ────────────────────────────────────────────────────

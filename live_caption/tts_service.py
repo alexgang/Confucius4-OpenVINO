@@ -47,6 +47,66 @@ from typing import List, Optional
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _WORKER = os.path.join(_HERE, "tts_worker.py")
 
+
+# 🔴🔴🔴 APP-023 根因 1（后半段）：拉 worker 要用**真实解释器**。
+#   旧实现：`cmd = [sys.executable, _WORKER, ...]`。
+#   ⇒ 用户的启动路径是**桌面快捷方式 → `.venv\Scripts\pythonw.exe`**
+#     （**venv 重定向器** + GUI 子系统、无控制台）
+#   ⇒ `sys.executable` 拿到的是**那个 pythonw** ⇒ worker 自己**也没有控制台**
+#     ⇒ worker 内部任何「`stderr=None` 走 `GetStdHandle(STD_ERROR_HANDLE)`」
+#     的 spawn 都会在 `DuplicateHandle` 处炸 **WinError 50**
+#     （实测 08:56 会话日志：CUDA 边车就是这么起不来的）。
+#   ⇒ 修法：优先用 `sys._base_executable`（**真实的基础解释器**，
+#     绕过 venv 的重定向器）；取不到就退回 `sys.executable`。
+#   ⚠️ **必须仍是同一个解释器体系**：`_base_executable` 与 `sys.executable`
+#     指向同一个 base 安装 ⇒ venv 的 site-packages 仍会生效（靠
+#     `pyvenv.cfg` + `sys.path` 的 `''`/venv 前缀），**不会**跑成裸解释器。
+#   ⚠️ 若 base 解释器是 `pythonw.exe`（无控制台）⇒ worker 自己也会缺 std 句柄
+#     ⇒ 下面再配 `CREATE_NO_WINDOW`（**不创建**控制台，但**不继承**伪句柄）。
+def _worker_python() -> str:
+    """拉 TTS worker 用的解释器路径（APP-023）。
+
+    🔴🔴 **为什么不能直接用 `sys._base_executable`**（本机实测）：
+      `sys._base_executable` 指向**基础安装**的 python.exe
+      （venv 下 = `AppData\\...\\Python312\\python.exe`）
+      ⇒ 直接跑它 ⇒ `sys.prefix` 变成**基础安装** ⇒ **venv 的 site-packages
+      整个失效**（实测 numpy 由 venv 的 **2.4.6** 变成 base 的 **2.5.4**）
+      ⇒ worker 会 import 不到本项目的包 ⇒ **比原来更糟**。
+
+    ⇒ 正确做法：**同一个环境，但换成带控制台的解释器**
+      （只把 `pythonw.exe` 换成同目录的 `python.exe`）：
+      - 仍是同一个 venv / 同一个客户包 ⇒ site-packages 不变；
+      - 控制台子系统 ⇒ `GetStdHandle` 拿到**真实** std 句柄
+        （pythonw 是 GUI 子系统、无控制台 ⇒ 三条 std 都是伪句柄/NULL）。
+
+    候选顺序：
+      ① `LIVECAP_TTS_PY`（显式指定，最高优先）；
+      ② 当前解释器同目录的 `python.exe`（当前是 pythonw 时）；
+      ③ 客户包 `<包根>/python/python.exe`；
+      ④ 退回 `sys.executable`。
+    """
+    env_py = os.environ.get('LIVECAP_TTS_PY')
+    if env_py and os.path.isfile(env_py):
+        return env_py
+    exe = sys.executable or ''
+    if os.path.basename(exe).lower() in ('pythonw.exe', 'pythonw'):
+        # ② 同目录的控制台解释器（保住 venv / 客户包的 site-packages）
+        alt = os.path.join(os.path.dirname(exe), 'python.exe')
+        if os.path.isfile(alt):
+            return alt
+        # ③ 客户包内解释器（`<包根>/python/python.exe`）
+        pkg_py = os.path.join(os.path.dirname(_HERE), 'python', 'python.exe')
+        if os.path.isfile(pkg_py):
+            return pkg_py
+    return exe
+
+
+def _no_window_flag() -> dict:
+    """🔴 APP-023：worker **不弹黑框**（用户走 pythonw 快捷方式启动）。"""
+    if os.name != 'nt':
+        return {}
+    return {'creationflags': getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000)}
+
 # 积压上限（秒）：超过就丢最旧的未播句
 BACKLOG_MAX_S = float(os.environ.get('LIVECAP_TTS_BACKLOG_MAX', '8'))
 # 单句最长（秒）：防止异常长句卡住
@@ -408,7 +468,14 @@ class TTSService:
             #      + 给 worker 的 env 也钉 `PYTHONIOENCODING=utf-8`（双向锁死）。
             env['PYTHONIOENCODING'] = 'utf-8'
             env['PYTHONUTF8'] = '1'
-            cmd = [sys.executable, _WORKER,
+            # 🔴🔴 APP-023 根因 1（后半段）：用**真实解释器**，别用 venv 的
+            #   pythonw 重定向器（旧代码是 `sys.executable`）。
+            #   ⇒ worker 自己**不带控制台** ⇒ 它内部再 spawn 时，
+            #     `stderr=None` 会踩同一个 `GetStdHandle(-1)` ⇒ WinError 50。
+            #   ⇒ `CREATE_NO_WINDOW`：**不创建**新控制台（不弹黑框），
+            #     同时 worker 的 std 句柄由 `PIPE` 显式给（见下）。
+            self._worker_python_used = _worker_python()
+            cmd = [self._worker_python_used, _WORKER,
                    '--device', self.device,
                    '--precision', self.precision,
                    '--voice', self.voice]
@@ -439,9 +506,13 @@ class TTSService:
                 #      按 utf-8 解；stderr（**混编码**：worker 的 utf-8 +
                 #      外部 exe 的 GBK）按「utf-8 严格 → gb18030 严格 → utf-8 替换」
                 #      三级判定逐行选编码。
+                # 🔴 APP-023：**不弹黑框**。worker 换成了控制台解释器
+                #   （`python.exe`，为了拿到真实 std 句柄）⇒ 不加这个 flag
+                #   就会在用户桌面上**闪一个 cmd 黑窗口**（用户是 pythonw 启动的）。
                 self.proc = subprocess.Popen(
                     cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE, bufsize=0, env=env)
+                    stderr=subprocess.PIPE, bufsize=0, env=env,
+                    **_no_window_flag())
             except Exception as e:
                 self.state = 'error'
                 self.err = e

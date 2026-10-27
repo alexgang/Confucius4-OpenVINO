@@ -301,23 +301,44 @@ class OfflineReaderDialog(tk.Toplevel):
 
     # ── 测试声音（APP-021④）────────────────────────────────────────────
     def _test_sound(self):
-        """播 1 s 440 Hz 正弦波（走**同一个 worker 的 Player**）。
+        """播 1 s 440 Hz 正弦波。
 
         🔴 这是 APP-021 验收 C 的第一步：
         **先点测试声音，再点离线朗读**。
         - 听到 440 Hz、但 TTS 听不到 ⇒ 看「峰值/RMS」⇒ 合成侧问题；
         - 440 Hz 也听不到 ⇒ 设备/音量/系统问题（与 TTS 无关）。
+
+        🔴🔴🔴 APP-023④ / APP-025：**不依赖 TTS worker**。
+        旧实现挂在 worker 上 ⇒ worker 起不来时按钮直接报
+        「语音输出未能启动」⇒ 用户**没法先单独验证播放链路**。
+        ⇒ 现在：**先在本进程直接播**（与 worker/模型完全解耦），
+          失败才回落到 worker 路径。
         """
+        ok, diag, tel = self._play_test_tone_local()
+        if ok:
+            self.var_last_err.set(
+                '🔊 已播放 1 秒测试音（440 Hz）到所选输出设备 —— '
+                '请确认是否听到（不依赖 TTS worker）。')
+            self._on_log('[offline] 测试声音：本进程直接播放成功（%s）；'
+                         '已读 +%s / 目标 %s / 回调 +%s'
+                         % (diag, tel.get('read_delta', '-'),
+                            tel.get('n_samples', '-'),
+                            tel.get('cb_delta', '-')))
+            return
+        self._on_log('[offline] 测试声音：本进程直接播放失败（%s）' % diag)
         svc = self._get_svc()
         if svc is None:
             svc = self._ensure_svc()
         if svc is None:
-            self.var_last_err.set('🔴 语音输出没能启动 ⇒ 无法测试声音')
-            self._on_log('[offline] 测试声音：TTS 未启动')
+            self.var_last_err.set(
+                '🔴 测试声音失败：%s。'
+                '（这不依赖语音输出是否开启 —— 请先检查输出设备与音量）' % diag)
             return
         try:
             if not svc.test_tone():
-                self.var_last_err.set('🔴 测试声音指令没能下发（worker 可能已退出）')
+                self.var_last_err.set(
+                    '🔴 测试声音：本进程播放失败（%s），'
+                    '且指令没能下发给 worker（worker 可能已退出）' % diag)
                 self._on_log('[offline] 测试声音：指令下发失败')
                 return
         except Exception as e:
@@ -326,6 +347,47 @@ class OfflineReaderDialog(tk.Toplevel):
             return
         self.var_last_err.set('🔊 正在播放 1 秒测试音（440 Hz）…请确认是否听到')
         self._on_log('[offline] 测试声音已触发（1 s 440 Hz）')
+
+    # ── APP-025④：按 worker 可用性置灰「开始朗读」 ──────────────────────
+    def _sync_availability(self):
+        """worker 不可用 ⇒ 置灰「▶ 开始朗读」+ 显示原因；可用 ⇒ 恢复。
+
+        🔴 为什么放在轮询里而不是只在 `_start` 里判：
+           worker 是**异步**加载的（十几到几十秒）⇒ 打开对话框时可能还在
+           loading ⇒ 只有持续轮询才能「加载完自动恢复按钮」。
+        ⚠️ 朗读进行中**不改**按钮（由 `_start` / `_stop` / `_poll` 的
+           reader 分支负责）⇒ 这里只在 `self._reader is None` 时调用。
+        """
+        svc = self._get_svc()
+        st = getattr(svc, 'state', None) if svc is not None else None
+        if st == 'error' or svc is None:
+            reason = self._reason_text()
+            if svc is None:
+                reason = reason or '语音输出未开启'
+            self.btn_start.configure(state='disabled')
+            self.var_note.set('🔴 语音输出不可用，朗读已停用：%s' % reason)
+            return
+        if st == 'loading':
+            self.btn_start.configure(state='disabled')
+            self.var_note.set('语音输出正在加载模型…加载完成后自动可朗读。')
+            return
+        # ready（或未启用 TTS 但有 svc）⇒ 恢复按钮
+        self.btn_start.configure(state='normal')
+
+    def _play_test_tone_local(self):
+        """在本进程直接播 440 Hz（不依赖 worker）。返回 `(ok, diag, tel)`。"""
+        out_id = None
+        svc = self._get_svc()
+        if svc is not None:
+            out_id = getattr(svc, 'out_device', None)
+        try:
+            from tts_worker import play_test_tone_direct
+        except Exception as e:
+            return False, '无法加载播放模块（%s: %s）' % (type(e).__name__, e), {}
+        try:
+            return play_test_tone_direct(out_id)
+        except Exception as e:
+            return False, '%s: %s' % (type(e).__name__, e), {}
 
     # 🔴 APP-021⑥：把「同时保存 wav」同步给 worker。
     def _apply_dump_dir(self):
@@ -379,6 +441,12 @@ class OfflineReaderDialog(tk.Toplevel):
             return
         try:
             self._refresh_counts()
+            # 🔴🔴 APP-025④：worker 不可用 ⇒ **按钮置灰并显示原因**，
+            #   不要等用户点了才开始报错（用户 09:06 原话：「点开始朗读，
+            #   提示 tts worker 故障（error）= 朗读中止」）。
+            #   ⚠️ 只在**空闲**时改状态：朗读进行中不碰按钮（否则会打断）。
+            if self._reader is None:
+                self._sync_availability()
             r = self._reader
             if r is not None:
                 s = r.snapshot()

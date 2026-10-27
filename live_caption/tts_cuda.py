@@ -21,6 +21,7 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 import time
 
 ENV_PY = os.environ.get(
@@ -28,6 +29,22 @@ ENV_PY = os.environ.get(
 SIDECAR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                        'tts_cuda_sidecar.py')
 READY_TIMEOUT_S = float(os.environ.get('LIVECAP_CUDA_READY_S', '180'))
+
+
+def _NO_WINDOW_FLAG():
+    """🔴🔴 APP-023：子进程**不弹黑框**（Windows）。
+
+    🔴 为什么必须加：本程序的用户启动路径是**桌面快捷方式 → pythonw.exe**
+      （GUI 子系统、无控制台）⇒ 任何 `subprocess.Popen` 若不带这个 flag，
+      Windows 会**给它分配一个新控制台** ⇒ 在用户桌面上**闪一个黑框**。
+    ⇒ `CREATE_NO_WINDOW`（0x08000000）= 不创建控制台窗口。
+    ⚠️ **Windows 专属** ⇒ 非 Windows 返回空 dict（`Popen` 不认这个 kwarg）。
+    """
+    if os.name != 'nt':
+        return {}
+    # 🔴 与 `tts_service.py` 用**同一个常量值**（两处独立 ⇒ 各自定义，
+    #   但注释互相指认，避免以后有人只改一处）。
+    return {'creationflags': getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000)}
 
 
 def _looks_like_pkg(d: str) -> bool:
@@ -169,6 +186,8 @@ class CudaTTSEngine:
         self._rid = 0
         self._py = python or ENV_PY
         self._chunk_size = int(chunk_size)
+        # 🔴 APP-023：stderr 泵线程（daemon）；close() 时不 join（不等它退出）。
+        self._stderr_thread = None
         # 🔴🔴 §48：**不写死版本号** ⇒ 由 `default_pkg_dir()` 推导
         # （§48 前这里写死 `...\Confucius4_LiveCaption_v1.5`
         #   ⇒ 客户机换版本/换路径 ⇒ 音色文件找不到）。
@@ -198,10 +217,26 @@ class CudaTTSEngine:
 
         t0 = time.monotonic()
         self.on_log('[tts_cuda] 启动 CUDA 边车：%s' % self._py)
+        # 🔴🔴🔴 APP-023 根因 1：三个 std 句柄**必须全部显式给**。
+        #   旧实现 `stderr=... else None` ⇒ 走 CPython 的
+        #   `GetStdHandle(STD_ERROR_HANDLE)` 分支 ⇒ 在 **pythonw.exe**
+        #   （GUI 子系统、**无控制台**）下拿到的是 **-1 伪句柄**
+        #   ⇒ 随后的 `DuplicateHandle(-1)` 直接抛
+        #   **`OSError: [WinError 50] 不支持该请求`**（实测 08:56 会话日志）。
+        #   ⇒ 控制台 python 下句柄是真的 ⇒ **测试全绿、用户全挂**
+        #     （APP-023 的核心教训：验收必须走用户真实启动路径）。
+        #   ⇒ 修法：stderr 恒为 `PIPE`（绝不 None），另开一个 daemon 线程
+        #     把它排空并转进 on_log ⇒ 既不丢错误信息，也不会写满管道缓冲区
+        #     （Windows 管道约 64 KB 写满会**阻塞** worker 进程）。
+        #   ⚠️ `stderr=PIPE` 时**必须有人读**，否则边车会卡在 write(stderr)。
+        stderr_target = subprocess.DEVNULL if os.environ.get(
+            'LIVECAP_CUDA_QUIET') else subprocess.PIPE
         self.proc = subprocess.Popen(
             [self._py, SIDECAR], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL if os.environ.get('LIVECAP_CUDA_QUIET') else None,
-            env=env, bufsize=0)
+            stderr=stderr_target, env=env, bufsize=0,
+            **(_NO_WINDOW_FLAG()))
+        if stderr_target == subprocess.PIPE:
+            self._start_stderr_pump()
 
         line = self._readline(timeout=READY_TIMEOUT_S)
         if not line:
@@ -219,6 +254,45 @@ class CudaTTSEngine:
                        self.load_s or -1, self.warmup_s or -1))
         self.on_log('[tts_cuda] 端到端启动耗时 %.1f s' % (time.monotonic() - t0))
         return self
+
+    # ── stderr 泵（APP-023 根因 1）─────────────────────────────────────
+    def _start_stderr_pump(self):
+        """把边车的 stderr **排空**并转进 `on_log`。
+
+        🔴🔴 **为什么必须有这个线程**（APP-023 根因 1）：
+          - `stderr=PIPE` 而**没人读** ⇒ Windows 管道缓冲（约 64 KB）写满后
+            边车会**阻塞在 write(stderr)** ⇒ 表现为「边车卡住 / 永不 ready」
+            （与 §15 的 import 死锁症状一样，极难定位）；
+          - ⇒ 必须有**独立的读者线程**，与读 stdout 的 `_readline` 分开
+            （stdout 是稀疏的 JSON 行；stderr 是连续的告警/traceback）。
+        ⚠️ **二进制读 + 逐行解码**：边车的 stderr 是**混编码**
+          （torch/库自己的 UTF-8 + 外部 exe 的 GBK）⇒ 统一按 utf-8 解、
+          失败用 'replace'（这里只是日志，丢一两个字节不影响判断）。
+        """
+        proc = self.proc
+        if proc is None or proc.stderr is None:
+            return
+        pipe = proc.stderr
+
+        def _pump():
+            try:
+                while True:
+                    # 🔴 `readline()` 在二进制管道上返回 bytes（bufsize=0）
+                    raw = pipe.readline()
+                    if not raw:
+                        break
+                    line = raw.decode('utf-8', 'replace').rstrip('\r\n')
+                    if line:
+                        try:
+                            self.on_log('[tts_cuda/stderr] %s' % line)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+
+        t = threading.Thread(target=_pump, daemon=True)
+        t.start()
+        self._stderr_thread = t
 
     def close(self):
         p, self.proc = self.proc, None

@@ -288,6 +288,96 @@ def _match_output_index(sd, name: str):
     return None
 
 
+# ── APP-023③：把「BabelVox 加载失败」翻译成人话 ──────────────────────────
+def _babelvox_import_error() -> str:
+    """探测 babelvox（Qwen3-TTS 运行时）是否可导入。返回错误串，'' 表示可用。
+
+    🔴 为什么单独探测：异常链里 `e` 可能是**任何**环节
+      （缺运行时 / 模型编译失败 / 设备不支持）⇒ 界面必须能区分。
+    """
+    try:
+        import babelvox  # noqa: F401
+        return ''
+    except Exception as e:
+        return '%s: %s' % (type(e).__name__, e)
+
+
+def _babelvox_failure_reason(e, device='', precision='') -> str:
+    """把 BabelVox 加载失败翻译成**一句用户能看懂、能处理**的话。
+
+    🔴🔴 APP-023③ / APP-025：旧实现只在日志里写「BabelVox 引擎不可用 ⇒
+       回落旧引擎」，而界面最终显示的是 `rc=3221226505`（进程级 abort）
+       ⇒ **用户完全无从下手**（这正是用户 09:06 反馈的原话）。
+
+    两种情形必须分开说：
+      ① **缺运行时**（`import babelvox` 都不行）⇒ 明确报「缺少 Qwen3-TTS
+         运行时（babelvox）」+ 指引（要用随包的 python）；
+      ② **运行时在、但引擎起不来**（模型/设备/编译）⇒ 报「Qwen3-TTS 引擎
+         加载失败」+ 原始异常，并说明**不会**回落旧引擎。
+    """
+    miss = _babelvox_import_error()
+    if miss:
+        return ('缺少 Qwen3-TTS 运行时（babelvox）：%s。'
+                '请用随客户包分发的 python（<包根>\\python\\python.exe）启动，'
+                '该运行时随包提供、无需联网安装。' % miss)
+    where = ''
+    if device or precision:
+        where = '（设备 %s / 精度 %s）' % (device or '-', precision or '-')
+    return ('Qwen3-TTS 引擎加载失败%s：%s。'
+            '已不再回落旧的 Confucius4-TTS 引擎 —— 它的动态形状 IR 在 '
+            'NPU/GPU 上必然编译失败并导致进程崩溃。' % (where, e))
+
+
+# ── APP-023④ / APP-025：**不依赖 worker** 的测试音 ─────────────────────
+def play_test_tone_direct(out_device=None, freq=440.0, dur_s=1.0, amp=0.3,
+                          sr=None):
+    """**直接在当前进程**用所选输出设备播一段 440 Hz（不经过 TTS worker）。
+
+    🔴🔴🔴 为什么必须独立（用户 09:06 原话 + APP-023 第 4 条 / APP-025）：
+      旧实现是「发一条 `test_tone` 指令给 worker」⇒ worker 没起来 / 起不来 /
+      已经崩了 ⇒ 按钮直接报「语音输出还没启动」
+      ⇒ 用户**没法先单独验证播放链路**（而排查顺序恰恰应该是：
+        先确认声卡通，再怀疑合成）。
+      ⇒ 现在：**测试音与 worker、与模型完全解耦** —— worker 有没有启动、
+        是不是坏了都能用。
+
+    🔴 判据复用：返回的 `tel` 与 `results/app/tts_audible_criterion.py` 的
+      `evaluate_audible()` **同形**（`read_delta` / `n_samples` / `peak`）
+      ⇒ 测试音也可以用同一套「真的出声」硬判据复核，不另立标准。
+
+    返回 `(ok: bool, diag: str, tel: dict)`。
+    """
+    use_sr = int(sr or TTS_SR)
+    try:
+        p = Player(device=out_device, sr=use_sr)
+    except Exception as e:
+        return False, ('打开输出设备失败：%s: %s' % (type(e).__name__, e)), {}
+    try:
+        if getattr(p, '_stream', None) is None:
+            return False, ('播放流未打开（所选输出设备不可用：%s）'
+                           % (getattr(p, 'out_desc', None) or out_device)), {}
+        before = p.telemetry()
+        ok, diag = p.test_tone(freq=freq, dur_s=dur_s, amp=amp)
+        after = p.telemetry()
+        n_samples = int(use_sr * dur_s)
+        tel = dict(after or {})
+        tel['sr'] = use_sr
+        tel['n_samples'] = n_samples
+        tel['peak'] = amp
+        tel['read_delta'] = max(0, int(after.get('n_read', 0))
+                                - int(before.get('n_read', 0)))
+        tel['cb_delta'] = max(0, int(after.get('n_cb', 0))
+                              - int(before.get('n_cb', 0)))
+        return bool(ok), diag, tel
+    except Exception as e:
+        return False, '测试音播放异常：%s: %s' % (type(e).__name__, e), {}
+    finally:
+        try:
+            p.close()
+        except Exception:
+            pass
+
+
 def resolve_out_device(device):
     """把「WASAPI 端点 id / 设备名 / 索引」统一解析成 sounddevice 认的输出设备。
 
@@ -605,42 +695,34 @@ class TTSWorker:
     def load(self):
         t0 = time.perf_counter()
 
-        # 🔴 优先走 **Qwen3-TTS（BabelVox）** 路线（APP-004 第 2 条：
+        # 🔴🔴 **只有 Qwen3-TTS（BabelVox）一条路**（APP-004 第 2 条：
         #   TTS 模型文件随客户包分发 ⇒ 客户机离线也能跑）。
-        #   旧引擎（confucius4-tts 的 OVSynth + BigVGAN）只作为回落。
-        engine = self._try_load_babelvox()
+        #
+        # 🔴🔴🔴 APP-023③：**旧的 Confucius4-TTS 引擎回落已整段删除**。
+        #   旧代码（`engine is None` 分支）会回落 `_try_load_ov()` / torch 参考实现，
+        #   而旧引擎的**动态形状 IR 在 NPU 上必然编译失败**：
+        #     ① `NPU_VCL ... Can't compute total shape size on dynamic shape`
+        #     ② 第三个 IR 把 vpux 编译器打崩：`LLVM ERROR: Failed to infer
+        #        result type(s)` ⇒ **进程级 abort**（`rc=3221226505` =
+        #        0xC0000409，Python 的 try/except **接不住**）
+        #   ⇒ 表现是「TTS worker 退出（rc=3221226505），已重启过一次仍失败」，
+        #     而**真实原因（缺 babelvox 运行时）被完全掩盖**（用户 09:06 原话）。
+        #   ⇒ 删除后：缺运行时就是缺运行时，界面会说人话（见
+        #     `_babelvox_failure_reason`），不再是进程崩溃。
+        #   ⚠️ 连带影响：`self.conds` / `self.ov_rt` / `self.tts_model` /
+        #      `self.NS` 这些**旧引擎专属字段**不再被设置 ⇒ 合成路径
+        #      （`_synth` 按 `self.engine is not None` 分派）只会走 BabelVox
+        #      分支 ⇒ 旧分支代码成为死代码（暂留，不动它们以免引入新风险）。
+        engine = self._try_load_babelvox()   # 🔴 失败即抛（不再返回 None）
 
-        if engine is None:
-            # 导入 tts_ov 运行时包（如果 P2 移植已完成，优先用 OV 版本）
-            ov_rt = self._try_load_ov()
-
-            if ov_rt is None:
-                # ── 回落：torch 参考实现 ──
-                log('[tts_worker] 使用 torch 参考实现（OpenVINO 版本尚未就绪）')
-                import tts_model
-                import native_stream as NS
-                self.tts_model = tts_model
-                self.NS = NS
-                self.model = tts_model.load_model(
-                    device='cuda' if self.device.upper() in ('GPU.0', 'GPU.1', 'GPU') else self.device,
-                    config=self.model_dir)
-            else:
-                # ── OV 路径：**不 import torch** ──
-                self.ov_rt = ov_rt
-                self.model = ov_rt          # 合成的调用方按 OV 路径走
-                log(f'[tts_worker] OpenVINO 运行时已加载，设备 {self.device}')
-
-            # 音色条件
-            self.conds = self._load_conds()
-        else:
-            # ── BabelVox 路线（spkonly）──
-            self.engine = engine
-            self.model = engine
-            self._setup_babelvox_voice()
-            # 🔴 BabelVox 输出 24000 Hz（旧的 22050 播放流会变调/加速）
-            #    ⇒ 播放流必须按新采样率**重建**。
-            self.sr = TTS_SR
-            self._reopen_player(TTS_SR)
+        # ── BabelVox 路线（spkonly）──
+        self.engine = engine
+        self.model = engine
+        self._setup_babelvox_voice()
+        # 🔴 BabelVox 输出 24000 Hz（旧的 22050 播放流会变调/加速）
+        #    ⇒ 播放流必须按新采样率**重建**。
+        self.sr = TTS_SR
+        self._reopen_player(TTS_SR)
 
         log(f'[tts_worker] 模型加载完成 {time.perf_counter() - t0:.1f}s')
         emit({'kind': 'ready', 'device': self.device, 'voice': self.voice})
@@ -667,7 +749,21 @@ class TTSWorker:
             self.player = None
 
     def _try_load_babelvox(self):
-        """加载 Qwen3-TTS 的 BabelVox 引擎。失败返回 None（回落旧引擎）。
+        """加载 Qwen3-TTS 的 BabelVox 引擎。
+
+        🔴🔴🔴 APP-023③：**不再返回 None、不再回落旧引擎**。
+        旧行为（实测 2026-10-27 08:56 会话日志）：
+          babelvox 缺失 ⇒ `return None` ⇒ `load()` 回落 `_try_load_ov()`
+          ⇒ 编译 **Confucius4-TTS 旧引擎**的动态形状 IR ⇒ 在 NPU 上
+          ① `Can't compute total shape size on dynamic shape`
+          ② 第三个 IR 直接把 vpux 编译器打崩
+             `LLVM ERROR: Failed to infer result type(s)`
+             ⇒ **进程级 abort**（`rc=3221226505` = 0xC0000409，try/except **接不住**）
+          ⇒ 用户看到的是「TTS worker 退出（rc=3221226505）」，
+             **真实原因（缺运行时）被彻底掩盖**。
+        ⇒ TTS 后端 10-22 起已换成 Qwen3-TTS ⇒ **旧引擎回落在 NPU/GPU 上
+          没有任何成功的可能，只会把「缺运行时」变成「进程崩溃」**。
+        ⇒ 现在：一律带真实原因抛出（不分设备），由上层翻译成人话。
 
         ⚠️ 这条路径**不 import torch**（babelvox 只用 transformers 的 tokenizer）。
         """
@@ -710,9 +806,14 @@ class TTSWorker:
                 log(f'[tts_worker] 🔴 CUDA 后端启动失败（不回落旧引擎）：{e}')
                 log(tb)
                 raise RuntimeError(f'CUDA 后端启动失败：{e}') from e
-            log(f'[tts_worker] BabelVox 引擎不可用（{e}）⇒ 回落旧引擎')
+            # 🔴🔴 APP-023③：**缺运行时** 与 **运行时有但加载失败** 要说不同的话
+            #   ⇒ 否则用户看到的都是同一句「BabelVox 引擎不可用」，无从下手。
+            log(f'[tts_worker] 🔴 Qwen3-TTS 引擎不可用（{e}）'
+                f'（不回落旧引擎 —— 见 _try_load_babelvox 的 docstring）')
             log(tb)
-            return None
+            raise RuntimeError(_babelvox_failure_reason(
+                e, getattr(self, 'device', ''),
+                getattr(self, 'precision', ''))) from e
 
     def _setup_babelvox_voice(self):
         """准备音色（spkonly 路线）。
