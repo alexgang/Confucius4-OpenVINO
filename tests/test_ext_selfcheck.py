@@ -500,13 +500,95 @@ def test_ext006_p1_closeout() -> None:
           str(list(sig.parameters)))
 
 
+def test_orchestrator_single_instance_guard() -> None:
+    """★ EXT-006 P1 实测修掉的缺陷 12：编排器单实例守卫。
+
+    实测现象：本轮 P1 实测时 `run_p1_real.py` 被**重复启动**，
+    出现多个独立根实例（实测 4 个匹配进程 / 2 个独立根实例）⇒
+    它们抢同一个端口、写同一个输出目录 ⇒ 桥接服务起不来或产物互相覆盖
+    ⇒ P1 实测结论无效。
+
+    守卫逻辑：`<out>/orchestrator.pid` 里记本次 PID；
+    启动时若该 PID **仍存活** ⇒ 拒绝重复启动（rc=5）。
+    ★ 探测失败一律视为存活（铁律：宁可多等，不误杀活进程）。
+
+    本自测断言：
+      ① 首次调用写自己的 PID 并放行；
+      ② PID 文件里是**存活**进程 ⇒ 拒绝（拦住重复启动）；
+      ③ PID 文件里是**已死** PID ⇒ 放行（接管）；
+      ④ PID 文件里是**自己** ⇒ 放行（重入不算重复）；
+      ⑤ 守卫函数真的被 `main()` 调用（源码级断言，不是靠注释）。
+    """
+    print("\n[EXT] EXT-006 — 编排器单实例守卫（重复启动回归）")
+    sys.path.insert(0, os.path.join(os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))), "tools"))
+    import run_p1_real as R
+
+    tmp = os.path.join(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))), ".tmp", "guard_test.pid")
+    os.makedirs(os.path.dirname(tmp), exist_ok=True)
+    try:
+        # ① 首次
+        ok, msg = R._single_instance_guard(tmp)
+        check("首次调用放行并写自己的 PID", ok and msg.startswith("单实例守卫就绪"),
+              msg)
+        written = int(open(tmp, encoding="utf-8").read().strip())
+        check("PID 文件内容 = 当前进程 PID", written == os.getpid(),
+              f"{written} vs {os.getpid()}")
+
+        # ② 存活 PID ⇒ 拒绝
+        try:
+            import psutil
+            alive = [p.pid for p in psutil.process_iter()
+                     if p.pid != os.getpid() and p.pid > 1000]
+        except Exception:
+            alive = []
+        if alive:
+            with open(tmp, "w", encoding="utf-8") as f:
+                f.write(str(alive[0]))
+            ok2, msg2 = R._single_instance_guard(tmp)
+            check("★ PID 文件里是存活进程 ⇒ 拦住重复启动", not ok2, msg2)
+            check("★ 拒绝信息说明了持有者 PID",
+                  str(alive[0]) in msg2, msg2)
+        else:
+            check("★ PID 文件里是存活进程 ⇒ 拦住重复启动", False,
+                  "找不到可用的存活 PID 做对照")
+
+        # ③ 已死 PID ⇒ 放行
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write("999999")
+        ok3, msg3 = R._single_instance_guard(tmp)
+        check("PID 文件里是已死进程 ⇒ 放行（接管）", ok3, msg3)
+
+        # ④ 自己 ⇒ 放行（重入）
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(str(os.getpid()))
+        ok4, msg4 = R._single_instance_guard(tmp)
+        check("PID 文件里是自己 ⇒ 放行（不算重复启动）", ok4, msg4)
+
+        # ⑤ 守卫真的被 main() 调用（源码级）
+        src = open(os.path.join(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__))), "tools", "run_p1_real.py"),
+            encoding="utf-8").read()
+        check("★ main() 里真的调用了守卫（不是只定义不用）",
+              "_single_instance_guard(pid_file)" in src, "源码含调用")
+        check("★ 守卫拒绝时返回 rc=5（可被 CI 识别）",
+              "return 5" in src, "源码含 return 5")
+    finally:
+        try:
+            os.remove(tmp)
+        except Exception:
+            pass
+
+
 def main() -> int:
     print("=" * 68)
     print("EXT 模块自测（不跑推理 / 不占 GPU·NPU / 不抢共享锁）")
     print("=" * 68)
     for fn in (test_segmentation, test_duration_fit, test_wsola,
                test_speaker_bypass, test_bridge_session,
-               test_ext005_ext006_behaviors, test_ext006_p1_closeout):
+               test_ext005_ext006_behaviors, test_ext006_p1_closeout,
+               test_orchestrator_single_instance_guard):
         try:
             fn()
         except Exception:

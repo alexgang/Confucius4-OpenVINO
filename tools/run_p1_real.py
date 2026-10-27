@@ -45,6 +45,56 @@ def _run(cmd, **kw):
     return subprocess.run(cmd, **kw)
 
 
+def _pid_alive(pid: int) -> bool:
+    """PID 是否存活。
+
+    ★ 与铁律一致：**探测失败一律视为存活**（宁可多等，也不误杀活进程）。
+    """
+    if pid <= 0:
+        return False
+    try:
+        import psutil
+        return psutil.pid_exists(pid)
+    except Exception:
+        pass
+    # psutil 不可用 ⇒ 退回 ctypes OpenProcess + GetExitCodeProcess
+    try:
+        import ctypes
+        k = ctypes.windll.kernel32
+        h = k.OpenProcess(0x1000, False, pid)   # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            # ERROR_INVALID_PARAMETER(87) ⇒ PID 不存在
+            return False
+        try:
+            code = ctypes.c_ulong()
+            if not k.GetExitCodeProcess(h, ctypes.byref(code)):
+                return True      # 探测失败 ⇒ 视为存活
+            return code.value != 0
+        finally:
+            k.CloseHandle(h)
+    except Exception:
+        return True              # 探测失败 ⇒ 视为存活
+
+
+def _single_instance_guard(pid_file: str):
+    """单实例守卫。返回 (ok, message)。
+
+    * 若 `pid_file` 里的 PID **仍存活** ⇒ 已有实例在跑 ⇒ (False, 说明)
+    * 否则（无文件 / PID 已死）⇒ 写入本次 PID ⇒ (True, 说明)
+    """
+    me = os.getpid()
+    try:
+        with open(pid_file, "r", encoding="utf-8") as f:
+            old = int((f.read() or "0").strip() or 0)
+    except Exception:
+        old = 0
+    if old and old != me and _pid_alive(old):
+        return False, ("已有实例在跑（PID=%d，存活）⇒ 拒绝重复启动" % old)
+    with open(pid_file, "w", encoding="utf-8") as f:
+        f.write(str(me))
+    return True, ("单实例守卫就绪（本次 PID=%d）" % me)
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="EXT P1 真实引擎实测编排器")
     ap.add_argument("--wav", required=True)
@@ -58,8 +108,23 @@ def main(argv=None) -> int:
     ap.add_argument("--skip-smoke", action="store_true")
     args = ap.parse_args(argv)
 
+    # ★★ 单实例守卫（本轮修掉的真实工程缺陷 12）。
+    #   实测现象：本脚本被**重复启动**时，会同时起多个实例
+    #   （本轮实测过 4 个匹配进程，其中 2 个是独立根实例）⇒
+    #   它们抢**同一个端口**、写**同一个输出目录** ⇒
+    #   桥接服务起不来（端口占用）或产物互相覆盖 ⇒ P1 实测结论无效。
+    #   根因：编排器没有任何「已经在跑」的判据。
+    #   修法：写一个 PID 文件（`<out>/orchestrator.pid`），里面记本次 PID；
+    #   启动时若发现该文件里的 PID **仍存活**（psutil 复核）⇒
+    #   直接退出（rc=5），绝不第二个实例再跑一遍。
     out_dir = os.path.abspath(args.out)
     os.makedirs(out_dir, exist_ok=True)
+    pid_file = os.path.join(out_dir, "orchestrator.pid")
+    _pid_ok, _pid_msg = _single_instance_guard(pid_file)
+    if not _pid_ok:
+        print("[p1-run] %s ⇒ 退出（不重复跑）" % _pid_msg, flush=True)
+        return 5
+
     summary: dict = {
         "started_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "wav": os.path.abspath(args.wav),
