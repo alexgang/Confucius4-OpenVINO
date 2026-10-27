@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 桥接服务运行时产物
+bridge_token.txt
+*.log
+
+# 音色克隆产物（EXT-001 总原则：克隆音色只放内存，不落盘）
+clone_*.npz
+tts_speakers/
+
+# 测试输出
+results/
+reports/
+
+# reviewer 独占写入的纠偏文件：只读，绝不入库
+# （沿用 App 模块约定：status/app/CORRECTIONS_APP.md 不提交）
+status/CORRECTIONS_EXT.md
