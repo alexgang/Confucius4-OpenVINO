@@ -306,3 +306,8 @@ reviewer 已在本机汇编报告草稿 `~/asr_baseline/report_asr007/ASR007_R2T
 - 从现在起，所有 ASR/App 测试（WER、RTF、端到端 ABBA、TTS 连续朗读）统一用 260902_SPE 的 **00:00–05:00 固定切片**。把切片文件放到 shared/（例如 shared/SPE_0000_0500.wav），各模块共用同一份。之前纠偏里写的"61 分钟"或"12–27 分钟切片"，一律改用这个 5 分钟切片。
 - **正在跑或排队的 61 分钟作业，除非已经接近跑完，否则停掉并改跑 5 分钟。** 在 STATUS 里记一行改了哪些。
 - 结论口径：5 分钟约 900 词，WER 的 CI 宽约 ±1.5–2pp，只用来判断有没有明显回退，不要宣称 1pp 以内的改进显著。WER 仍由 reviewer 用同一切片的 MiniMax baseline 复算。
+
+## ASR-018 [NORMAL] 2026-10-27 13:22 — FYI 用户决定默认设备摆放：ASR 用 R2T2 INT8 跑 GPU.0
+用户原话（2026-10-27 13:22）："默认配置，ASR/翻译都用 iGPU INT8，语音输出模型用 NPU。"
+- **默认设备摆放（定案）**：ASR（R2T2 INT8）→ GPU.0；MT（Hy-MT2 INT8）→ GPU.0；TTS（Qwen3-TTS 全 NPU 配置）→ NPU。NPU 只给 TTS 独占。用户仍可在 GUI 里改设备，但出厂默认就是这一套。CUDA 不作默认。
+- 交付默认是 R2T2 INT8 @ GPU.0。NPU 让给 TTS，ASR 的 NPU 路径只保留为可选项。pyannote 分段模型如果交付，默认也放 GPU.0（NPU 留给 TTS）。在这个前提下，报告它在 GPU.0 上对 ASR RTF 的增量（5 分钟切片）。
