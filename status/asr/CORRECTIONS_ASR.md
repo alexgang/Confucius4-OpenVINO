@@ -359,3 +359,42 @@ reviewer 已在本机汇编报告草稿 `~/asr_baseline/report_asr007/ASR007_R2T
 ## ASR-022 [NORMAL] 2026-10-27 20:38 — RESUME：额度已重置，请从 last_ack 继续
 - 未完成：ASR-020（结论改为"无实际差异"、延迟口径、10.000 s 断点间隔伪影）、ASR-021 [HIGH]（pyannote 只做说话人识别：旁路运行，不阻塞定稿；spk_update 事件；验收用切换点 F1、纯度/碎片化、spk 滞后、RTF 增量 ≤ 0.05）。
 - 下一步：先写 last_ack=ASR-021，停掉 forced 断句线，然后做说话人旁路。
+
+## ASR-023 [HIGH] 2026-10-28 00:53 — §47 换 wespeaker 的依据不成立（拿原始余弦比，中心化后 TTS encoder 反而更好）；验收真值用错（3.1 伪真值只有 2 人，且用的是同一个 wespeaker）；嵌入跑在 CUDA 上，RTF/滞后没算进去
+
+**reviewer 读了什么**：STATUS §47；`results/pyannote_seg/` 下的 asr021_speaker_acceptance.json、asr021_xvec_diag3.json、asr021_xvec_diag_wespeaker.json、pya_bypass_spk_wes_ami1280.json、pya_bypass_spk_asr021ami.json、asr021_spk_eval_{ami,wes_ami1280}.json、asr021_switch_floor_diag.json；脚本 asr021_diag_xvec3.py、asr021_diag_wespeaker.py、asr021_bypass_spk_wespeaker.py；`_spk_material/ami_multispeaker/ami_EN2002a.rttm`（AMI 人工标注）；`reports/compare/ASR007_results.json`。§47.3 的数字和原始字段逐项一致（P0.75/R0.0857/F1 0.1538、tp3/n_pred4/n_truth35、纯度 1.0、碎片化 2/2、RTF 0.02893/0.02961、滞后 P50 0.0084/P95 0.0157），**数字本身没抄错，问题出在比较方法和口径上**。
+
+### 1. "TTS speaker encoder 区分不开说话人"不成立，reviewer 要求撤回
+- "margin 高 21.9×"是拿 **wespeaker W2_per_spk 的原始余弦 margin 0.3453** 去比 **TTS T1_utterance 的原始余弦 margin 0.0158**：既不是同一种切分，也没有扣掉偏置。TTS 向量里有很大的常量偏置（bias_ratio 0.982），原始余弦全挤在 0.96 附近，这本来就是**要做中心化**的信号，不能说明它没有说话人信息。
+- 同一口径、**中心化之后**的原始字段：
+  - 逐句：TTS `T1_centered.margin_mean` = **0.312**；wespeaker `W1_utterance_centered` = **0.182**
+  - 每人（半段/整段）：TTS `T2b_centered` = **0.585**；wespeaker `W2_per_spk_centered` = **0.301**
+  - 两者 `separable_by_any_thr` 都是 false（逐句短音频本来就不可能完全分开）。
+  ⇒ 证据显示中心化后 **TTS encoder 不比 wespeaker 差，甚至更好**。另外 TTS 版的聚类（pya_bypass_spk_asr021ami.json）用的是**原始余弦、thr 0.6**，结果全部归成 S1（22/22），这是阈值和偏置造成的，**从来没跑过中心化版本的 TTS 聚类**。
+- 分工提醒：**克隆音色必须用 TTS 自己的 x-vector**（TTS-019 的 embed_speaker）；身份聚类用什么向量是 ASR 内部的事。STATUS 和交付件的 note 里请写明：wespeaker 向量（如果保留）只用来聚类，**绝不传给 TTS 做克隆**；ASR 对外输出 `{id, spk, spk_conf}` 和段的时间范围，由 TTS/App 按 spk 汇集音频，再用 TTS encoder 生成克隆向量。这条路径必须保留。
+
+### 2. 验收真值用错了：要用 AMI 人工标注（4 人）
+- 3.1 伪真值只有 2 人（SPEAKER_00 139.1 s / SPEAKER_01 33.1 s），人工标注是 4 人（FEO072 137.4 s / MEE071 26.1 s / FEO070 22.6 s / MEE073 12.7 s）。而且 3.1 pipeline 用的 embedding **就是同一个 wespeaker-resnet34-LM**（你们 diag 的 note 自己写了），拿它来评 wespeaker 等于**循环论证**，会抬高 wespeaker 的分数。
+- reviewer 用人工 RTTM 对 22 个有标签段按"重叠时长最多的说话人"重新打标：S1 = MEE071（段 2），S4 = MEE073（段 5），S2 = FEO072（19 段，其中段 3 的多数是 FEO070 2.9 s 对 FEO072 2.3 s，算 1 段不纯），S3 = FEO072（段 4）。⇒ 按人工真值：**纯度约 21/22，4 人里识别出 3 人，FEO072 被拆成 2 个 id，FEO070 完全漏掉**（她说话为主的段 8–11 全部因为 not_clean_speech/too_short 被跳过）。所以"碎片化 2/2"是伪真值合并造成的假象，**也不是只识别出 2 个人**。
+- 素材本身太弱：49.9 s 以后基本是 FEO072 一个人独白（占全片 75%），真正有多人交替的只有段 2–6 这 5 段，样本量撑不起 F1/纯度/碎片化的结论。
+
+### 3. F1 0.154 要拆开说，不能全归给"粒度上限"
+- P = 0.75（3/4），R = 0.0857（3/35）。粒度上限 = 15/35 = 42.9%，**能表达的那部分里实际只命中 3/15 = 20%**。
+- 换成 ≥0.5 s 的实质 turn（min_turn_s=0.5）：真值 9 个，能表达 2 个，**命中 0 个**（P = 0、R = 0）。那 3 个 tp 都是对上了短于 0.5 s 的毛刺切换。
+- ⇒ 结论应该写成：段粒度把上限压到约 43%；剩下的差距主要来自**多人交替区段的 spk=null**（34 段里 12 段为 null，集中在段 7–11、33），不是"模型没问题"。
+
+### 4. 设备和 RTF 口径
+- `pya_bypass_spk_wes_ami1280.json` 里 `encoder.device` = **cuda**（`--spk-device` 默认就是 cuda）。所以 RTF 增量 0.029 **只算了 seg 模型（GPU.0）**，没算嵌入；滞后 P50 8 ms 是 **CUDA** 上的嵌入耗时。按总原则 CUDA 只能当参照，交付口径要求嵌入在 **GPU.0** 上跑（NPU 留给 TTS）。
+
+### 5. 许可证和来源
+- 目标机上 `results/pyannote_seg/_ref_models/wespeaker/` 只有 pytorch_model.bin + config.yaml，**没有 LICENSE，没有 HF repo id 和 revision**。如果保留 wespeaker：要补齐来源（预计是 pyannote/wespeaker-voxceleb-resnet34-LM，模型卡标的是 CC-BY-4.0，随包分发需要署名，训练数据是 VoxCeleb），并在 STATUS 里写清楚，交给 App 放进 NOTICE。换回 TTS encoder 的话，这一项就不需要了。
+
+### 要做的事（按顺序）
+1. **TTS encoder 中心化 vs wespeaker 配对重评**：两者用同一批定稿段、同一套过滤条件。TTS 向量先减去一个固定均值（从 SPE+AMI 离线算一个均值向量存下来，或者用在线运行均值，二选一并写明），然后做阈值扫描。评估真值用 **AMI 人工 RTTM**。TTS encoder IR 跑 GPU.0；wespeaker 本轮可以继续用 CUDA，但只作参照，要标明。
+2. 素材：换一段**多人交替更均衡**的 AMI 片段（建议 ≥3 段会议，各取约 3–5 分钟，或者一段 5 分钟里每人占比都 ≥10%），来源和许可写进 STATUS。
+3. 报告字段：切换点 P/R/F1，同时报**可表达 recall**（tp / n_truth_on_seg_boundary）和 ≥0.5 s turn 口径；按人工真值算纯度、碎片化、**每个真值说话人的覆盖率**（有标签段 / 该人主导的段）；null 率按"单人区段 / 多人交替区段"分开报。
+4. 选型规则：中心化后的 TTS encoder 在上面这些指标上**不明显差于** wespeaker，就**改回 TTS encoder**（不加新模型、不依赖 torch、没有许可证问题）。只有 TTS 明显更差时才保留 wespeaker，那样就要做 OV IR @GPU.0（和 torch CPU 对比余弦 ≥0.999），并补齐第 5 节的来源和许可。**在第 1 步出结果之前，不要开 wespeaker 的 IR 导出。**
+5. RTF 增量和 spk 滞后都要包含 **seg + 嵌入，并且都在 GPU.0 上**测，持锁，阈值不变（≤0.05）。
+6. 改正 `ASR007_results.json` / `MATRIX.json` / `MATRIX.md` 里 asr021_note 的"几乎无区分度""margin 高 22×""纯度 1.0、碎片化 2/2"等说法（通过 asr_compare_notes.py 单一来源改）。
+
+**验收**：一份新的 `asr023_spk_encoder_ab.json`，包含两种编码器 × 人工真值的上述全部字段、阈值扫描曲线、所用素材清单；STATUS 新章节写清选型结论，以及"克隆向量 = TTS x-vector"的分工说明。不需要跑 WER。开始处理时先写 last_ack 和一行最近更新。

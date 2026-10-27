@@ -1,10 +1,12 @@
-last_ack: ASR-022
-更新时间: 2026-10-27 21:05
-当前任务: **ASR-020（§46）+ ASR-021（§47）落地**：① §46 —— reviewer 复算的 5 分钟口径 **WER baseline 7.39% vs forced 7.52%（Δ+0.12pp，CI95 [−0.89,+1.14]）⇒ 无实际差异**；词内切点**命中数 3→3**（6.67% vs 6.25% 的 −0.42pp 全来自分母 45→48）⇒ **撤回 §42.1/§42.3「forced 的词内切点确实更好」**；定稿延迟选 **(b) 口径**：forced 现有数字是**预知断点**口径、**实时增量未测**（预计 model_break 段 ≥9.4 s），baseline 的 `window_lag_ms` 已置 **null**；`params.seg_device` 两次都是 **GPU.0**（0.06487 / 0.06876）⇒ §44.2「慢 6%」作废、正确设备间差异是 **≈5.6 倍**；model_break「精确 10.000 s 间隔」根因 = `pick={"i": a + max_frames // 2}`（max_frames=1178 ⇒ 589 帧 = 10.000 s）**不是**窗边界伪影。② §47 —— **forced 断句线已停**（`pya_app_path_seg.py --strategy` 默认值 forced→**baseline**，代码保留但**不进交付、不进 App 默认**）；**旁路说话人识别已跑通**（分段模型 GPU.0 **不产生任何断点**、定稿段到达后取 x-vector 在线聚类）；验收（AMI EN2002a 多说话人）：切换点 **F1 P=0.75 / R=0.0857 / F1=0.1538**（n_pred=4 / n_truth=35 / tp=3 / tol=1.5 s）、**纯度 1.0**（22 个有标签段）、**碎片化 2/2**、spk 滞后 **P50 0.0084 s / P95 0.0157 s**、**RTF 增量 0.02893 ≤ 0.05 ✅**（stride 1280 ms）；SPE 5 分钟（1 人）：`n_speakers_final=1`、`n_switch_points=0` ✅ 未误报。③ 剩余：wespeaker 仍是 torch ⇒ **须导出 OV IR 才能进交付**。
-阻塞 / 待用户决定: ① 🔴 **wespeaker → OV IR 导出未做**（ASR-013 要求运行时不依赖 torch）⇒ 旁路说话人**当前只作评估/诊断，未进交付**；需用户确认是否本模块出 IR 导出任务。② 🔴 **WER 仍未算**（目标机不调用 MiniMax）⇒ ASR-020 的 WER 数字来自 reviewer 复算（已落档），但本模块自身交付件的 WER 格仍为 `null`，交 reviewer 汇编。③ ⚠️ **ASR-013 剩余**：说话人切换点 recall 0.0857 已被归因为**粒度上限**（段均长 5.3 s、35 个真值切换点仅 42.9% 落在段边界 ±1.5 s、54 个 turn 里 24 个 <0.5 s）⇒ 若要提高 recall 需改「段内切分」或「更细粒度说话人」方案，属新设计，需用户决定是否开。④ ⚠️ **`qwen3asr_06b` 不在 git 仓库内** ⇒ 本轮脚本/产物改动只在本机、交付需另行打包。⑤ ⚠️ `live_caption/` 的 spk 事件接入（`{id, spk, spk_conf}` 补发）与 TTS 音色切换属 App / TTS 模块边界（ASR-003），本模块**未代改**。⑥ ✅ 本轮 ASR-021 的计时作业（seg RTF / stride 扫描）**一律持共享锁执行并正常释放**（走 `asr_lock_common`）；收尾时 `shared/MACHINE_LOCK` 由 **TTS** 持有（`module: tts` pid 41116 @20:57:09，**晚于**本模块最后一次作业 20:55）⇒ 本模块**无孤儿锁**、未抢 TTS 的锁。
+last_ack: ASR-023
+更新时间: 2026-10-28 07:05
+当前任务: **ASR-023 已全部落地（§48）** —— reviewer 复核 §47 的 5 个问题已逐条重做并落档：① **撤回 §47 三条结论**（「TTS speaker encoder 几乎无区分度」「margin 高 22×」「段级纯度 1.0、碎片化 2/2」）+ **两条口径作废**（§47 的 RTF 0.02893 只算了 seg、滞后 P50 0.0084 是 CUDA 上且不含 seg）；② **验收真值换成 AMI 人工 RTTM**（3 段均衡素材，每人占比 ≥22.7%，CC BY 4.0），不用 3.1 伪真值（2 人 + 循环论证）；③ **段级选型判定（三臂配对 bootstrap）**：TTS-INT8@GPU.0 在 `purity` 0.6621 vs 0.8413（Δ −0.1792，CI95 [−0.2105,−0.1395]）、`coverage_mean` 0.3902 vs 0.4869（Δ −0.0967，CI95 [−0.1361,−0.0640]）、`auc` 0.7866 vs 0.8583（Δ −0.0718，CI95 [−0.1145,−0.0273]）上**明显更差且 3/3 片段方向一致** ⇒ 按 §4 规则 **保留 wespeaker**；④ **不是 INT8 量化的锅**（cos(INT8,FP32)=0.998006；FP32 纯度 0.6409 反而略降）⇒ 主因是 TTS encoder 段级可分性本身弱；⑤ **RTF/滞后含 seg + 嵌入且都在 GPU.0**：稳态总 RTF 0.0304~0.0305 ≤0.05 ✅，冷启动 0.0504~0.1422 超阈 ⇒ 须分档报；spk 滞后 ≈9.4~10.0 s 由 seg 侧 10 s 窗聚合主导；⑥ **交付件 note 已改正**（`asr_compare_notes.py` 单一事实来源，6 字段逐字一致、records 15 / cells 21 内容零差异）；⑦ **分工写明**：克隆向量 = TTS 自己的 x-vector，wespeaker 向量只做 ASR 内部聚类、绝不传给 TTS。
+阻塞 / 待用户决定: ① 🔴 **本轮未做 wespeaker 的 OV IR 导出**（遵守 ASR-023「第 1 步出结果之前不要开 IR 导出」）⇒ 保留 wespeaker 的前置条件（OV IR @GPU.0、与 torch CPU 对比余弦 ≥0.999 + 补 `pyannote/wespeaker-voxceleb-resnet34-LM` CC-BY-4.0 / VoxCeleb 来源）**属下一阶段任务，等用户指派后再启动**；② ⚠️ **`qwen3asr_06b` 不在 git 仓库内** ⇒ 本轮脚本/产物改动只在本机、交付需另行打包；③ ⚠️ `live_caption/` 的 spk 事件接入与 TTS 音色切换属 App / TTS 边界（ASR-003），本模块未代改；④ ⚠️ **WER 未跑**（目标机不调用 MiniMax；ASR-023 明说本轮不需要）⇒ 交 reviewer；⑤ ⚠️ 本轮计时作业全程持共享锁（走 `asr_lock_common`），遇 app / EXT-p1-real 活锁一律等待不抢占，`lock_probe_stolen`=0、`timing_valid`=true。
 
 
 ## 最近更新
+- 2026-10-28 07:05 **ASR-023 全部落地（§48）：说话人聚类向量选型 = 保留 wespeaker + 撤回 §47 三条结论 + 交付件 note 改正**：① 🔴 **撤回 §47 三条**（「TTS speaker encoder 几乎无区分度」「margin 高 22×」「纯度 1.0、碎片化 2/2」）+ **两条口径作废**（§47 RTF 0.02893 只算 seg；滞后 P50 0.0084 是 CUDA 且不含 seg）；② ✅ **选型 = 保留 wespeaker**（三臂配对 bootstrap，3 段）：TTS-INT8@GPU.0 `purity` 0.6621 vs 0.8413（Δ −0.1792 CI95[−0.2105,−0.1395]）、`coverage_mean` 0.3902 vs 0.4869（Δ −0.0967 CI95[−0.1361,−0.0640]）、`auc` 0.7866 vs 0.8583（Δ −0.0718 CI95[−0.1145,−0.0273]）**3/3 片段方向一致** ⇒ 按 §4 规则保留 wespeaker（`verdict.decision` 已落盘）；③ 🔴 **不是量化**（cos(INT8,FP32)=0.998006；FP32 纯度 0.6409 反而略降）；④ ✅ **RTF 稳态 0.0304~0.0305 ≤0.05**、冷启动 0.0504~0.1422 须分档；spk 滞后 ≈9.4~10.0 s 由 seg 10 s 窗聚合主导；⑤ ✅ **note 已改正**（6 字段逐字一致 / records 15 / cells 21 内容零差异）；⑥ ⚠️ **wespeaker 的 OV IR 导出本轮未做** ⇒ 下一阶段。 ⇒ `results/pyannote_seg/asr023_spk_encoder_ab.json`（679404 B @01:57:56）、`asr023_selection_summary.json`（19097 B @06:52:16）、`asr023_tts_precision_ab.json`（393442 B @06:51:37）、`asr023_seg_separation.json`（3723 B @05:53:25）、`asr023_lag_seg_embed_corrected.json`（57481 B @06:13:58）、`reports/compare/{ASR007_results.json,MATRIX.json,MATRIX.md}`
+- 2026-10-28 01:20 **ASR-023 已收（开工登记）**：reviewer 复核 §47 后指出 5 个问题 —— ① 「TTS speaker encoder 区分不开说话人 / margin 高 21.9×」**依据不成立**（比较口径不一致：原始余弦比原始余弦、切分不同、未扣偏置；同口径中心化后 TTS 反而不差）⇒ **撤回**；② 验收真值用错（3.1 伪真值只有 2 人，且 embedding 与被测 wespeaker 同源 ⇒ 循环论证）⇒ **改用 AMI 人工 RTTM（4 人）**；③ 素材太弱（FEO072 独占 75%）⇒ 换**多人交替更均衡**的 AMI 片段；④ 旧产物 `encoder.device`=**cuda** ⇒ RTF/滞后口径作废，须在 **GPU.0** 上重测 seg+嵌入；⑤ 交付件 `asr021_note` 表述须改正。**本轮不做 WER**；**第 1 步出结果前不开 wespeaker IR 导出**。产物：`results/pyannote_seg/asr023_spk_encoder_ab.json`（待产出）。
 - 2026-10-27 21:05 **ASR-020（§46）+ ASR-021（§47）落地**：① 🔴 **ASR-020 §1/§2 =「无实际差异」** —— reviewer 复算 5 分钟切片：WER baseline **7.39%** vs forced **7.52%**、Δ**+0.12pp** CI95**[−0.89,+1.14]**（825 词，全局对齐 + 36 块配对 bootstrap）⇒ 按用户口径（差距 <1pp 或不显著）**无实际差异**；词内切点 **baseline 3/45=6.67% vs forced 3/48=6.25%**，**命中数都是 3**，−0.42pp **全来自分母** ⇒ **撤回 §42.1/§42.3「forced 的词内切点确实更好」**；② 🔴 **ASR-020 §3 选 (b)** —— forced 的定稿延迟是**预知断点**口径（先离线跑完 `run_seg_model` 得全部断点，再在「已喂秒数 ≥ 断点绝对时刻」时切段）⇒ **实时增量未测**，预计 model_break 段定稿延迟 **≥9.4 s** 或断点来不及应用；baseline 的 `latency.window_lag_ms` 已按要求置 **null**（原 9360.0 是 forced 侧的数）；③ ✅ **ASR-020 §4 设备表述已改**：两次原始 json 的 `params.seg_device` 都是 **GPU.0**（forced5m_v2 0.06487 / asr018seg 0.06876）⇒ 「GPU.0 比 NPU 慢 6%」**不成立**（两次同为 GPU.0），设备间差异是 **≈5.6 倍**（0.06018 GPU.0 vs 0.01068 NPU）；④ ✅ **ASR-020 §5 诊断结论**：「精确 10.000 s 间隔」根因 = `find_breakpoints` 最长段兜底 `pick={"i": a + max_frames // 2}`（max_frames=1178 ⇒ 589 帧 = 10.000 s），**不是**窗首尾边界伪影（5 分钟 4/4、61 分钟 47/47 全为「无合法候选」兜底，`off_win_head_s` 0.104–0.401 均**不在**窗边界）；⑤ 🔴 **ASR-021 ①forced 断句线已停** —— `pya_app_path_seg.py --strategy` 默认值 forced→**baseline**（R2T2 原路径 = 交付口径），代码保留但**不进交付、不进 App 默认**；⑥ ✅ **ASR-021 ②旁路说话人已跑通**（分段模型在 **GPU.0** 旁路、**不产生任何断点**；定稿段到达后取 x-vector 做在线聚类，输出 `{id, spk, spk_conf}` 更新事件）；⑦ ✅ **ASR-021 ③验收通过** —— AMI EN2002a（2–3+ 人公开素材）：切换点 **P=0.75 / R=0.0857 / F1=0.1538**（n_pred=4 / n_truth=35 / tp=3 / tol ±1.5 s）、**纯度 1.0**（22 个有标签段）、**碎片化 2/2**、spk 滞后 **P50 0.0084 s / P95 0.0157 s**、**RTF 增量 0.02893 ≤ 0.05 ✅**（stride 1280 ms、帧覆盖 1.0）；SPE 5 分钟（1 人）：`n_speakers_final=1`、`n_switch_points=0` ✅ 未误报、RTF 0.02961；⑧ 🔴 **说话人 encoder 已换源** —— Qwen3-TTS INT8 speaker encoder **任何阈值都不可分**（raw margin 0.0158 / 偏置占比 0.982–0.993）⇒ 按 ASR-013 原文授权改用 **wespeaker-resnet34-LM**（margin 0.3453，高 22×），但仍是 **torch** ⇒ **未进交付**，须导出 OV IR；⑨ ⚠️ recall 0.0857 归因为**粒度上限**（段均长 5.3 s、35 个真值切换点仅 42.9% 落在段边界 ±1.5 s、54 个 turn 里 24 个 <0.5 s）不是模型缺陷；⑩ ✅ 交付件 `ASR007_results.json` / `MATRIX.json` / `MATRIX.md` 已写 `asr020_note` + `asr021_note`（单一事实来源 `asr_compare_notes.py`）；⑪ ✅ 全部计时作业**持共享锁**执行并正常释放，收尾锁由 TTS 持有（pid 41116 @20:57:09）；未动 `live_caption/`
 - 2026-10-27 15:50 **ASR-019 落地（§45）**：① 🔴 **更正 §44.2 的设备归属错误** —— 复核产物原始字段：`pya_app_forced_forced5m_v2.json` 的 `params.seg_device` = **GPU.0**（不是 NPU）⇒ `seg_model_rtf`=0.06487 是 **GPU.0** 的数；原「GPU.0 比 NPU 慢约 6%」**作废**；正确的 GPU.0 vs NPU 对照 = **0.06018**（`pya_app_forced_forced61.json`，61min App 路径，seg_device=GPU.0）/ **0.01068**（`pya_stream_full61_NPU.json`，device=NPU，字段名 `rtf_seg_model`，流式窗口径）⇒ **约 5.63 倍**，§42.6 的「5.6 倍」成立；② ✅ 全部 forced 产物 `params.seg_device` 一律 **GPU.0**（forced5m 0.05852 / forced5m_v2 0.06487 / forced61 0.06018 / asr018seg 0.06876）⇒ GPU.0 上分段模型 RTF 增量 ≈ **0.06–0.07**；③ ✅ **§44.2 结论不变**（ASR-018 定案：默认放 GPU.0、NPU 留给 TTS，增量 ≈0.069 可接受）；④ ✅ 已更正产物 `results/pyannote_seg/asr017_slice_unify.json`（8747→12226 B）新增 `comparison_gpu_vs_npu_corrected` 段 + 保留旧文 `comparison_npu_previous_text_asr019` 供追溯（备份 `_asr019_backup_asr017_slice_unify.json`）；⑤ ⚠️ **未重跑任何实验**（ASR-019 明确「不需要重跑」）⇒ 本轮**不占机器锁**；⑥ 🔴 WER 仍待 reviewer 用 `shared/SPE_0000_0500.wav` 复算
 - 2026-10-27 13:45 **ASR-017 + ASR-018 双落地（§43 / §44）**：① 🔴 ASR-017：统一切片 `shared/SPE_0000_0500.wav`（md5 `a10da6a3…` 9600044 B @11:24，与源前 300s 逐字节一致）；NEW `asr_slice_common.py` 单一事实来源 + `guard_minutes` 护栏 ⇒ 6 脚本改读切片（`pya_app_path_seg`/`r2t2_app_transcribe`/`p0_stream_seg`/`asr007_bench`/`p0_torch_ref`，py_compile OK）；② 中止的 61 分钟 baseline（pid 34724，53.9%）无产物/无 partial；陈旧 TTS 锁（pid 14888 已死）按 ASR-015 回收；③ 2 次 shared 切片 5 分钟验证跑：`pya_app_baseline_asr017verify.json`（14544 B @13:21，46 段 / rtf 0.6649 / 词内切点 6.67%）与 `pya_app_forced_asr018seg.json`（16427 B @13:31，49 段 / seg GPU.0 / seg_model_rtf **0.06876** / 词内切点 6.25%）；④ 🔴 ASR-018（用户 13:22 定案）默认设备摆放：ASR R2T2 INT8→GPU.0、TTS→NPU 独占、CUDA 不作默认；分段模型在 GPU.0 的 RTF 增量 0.06876（vs NPU 0.06487，差 ~6% 可忽略）；交付 `asr017_slice_unify.json`（含 asr018 段）。⑤ 未动 `live_caption/；未改 p1_export_*`；WER 仍交 reviewer 用 shared 切片复算
@@ -18,8 +20,6 @@ last_ack: ASR-022
 - 2026-10-27 00:45 **无新纠偏（last_ack 保持 ASR-013）+ 61 分钟 forced 长跑夭折根因修复（§36）**：① ✅ **无新纠偏**（`CORRECTIONS_ASR.md` mtime 2026-10-26 16:18:05、md5 `55c28c72…` 与上轮完全一致；最大编号仍 ASR-013）⇒ **last_ack 不改**；② 🔴★ **根因：61 分钟 forced 长跑连续两次夭折**（PID 12832 / PID 380 **均已死、锁没删** ⇒ 陈旧锁；日志只到「引擎加载完成」、`pya_app_forced_forced61.json` **从未落盘**）⇒ **不是模型问题，是后台进程被回收** ⇒ 光重跑没用；③ ✅ **加 checkpoint + 自动断点续跑**（`scripts/pya_app_path_seg.py`：每 60 s 落 `pya_app_forced_<tag>.partial.json`、启动自动续、`--no-resume` 从头跑、每 60 s 打进度）；🔴 续跑须同步 `rec.fed` 与 `eng._last_words/_last_text`（否则新段 start_s/end_s 算错 + 接缝判据②失效）；✅ 2 分钟冒烟验证续跑生效（「断点续跑：从 60.0s 起（已有 8 段）」）+ 跑完正常删锁；④ ⏳ **第 3 跑在途**（PID 17296，00:30:18 起，持规范锁）：分段模型断点 **108 个**、RTF **0.06018**；进度 660.0/3671.2 s（18.0%）、段数 108、中途 RTF **0.5851** ⇒ 文本正常，**最终产物尚未落盘**
 - 2026-10-26 23:20 **ASR-013 ②③④ 全部产出 + ASR-011 交付件刷新 + 61 分钟 forced 长跑重启（§35）**：① 🔴 **INT8 三条路径全部未过阈**（weight-only cos 0.995336/一致 0.981324、激活感知 calib cos 0.951184/一致 0.947368、head 保留 cos 0.986118/一致 0.920204）⇒ **FP16 暂作交付精度**（GPU.0 cos 0.99943/一致 1.0000、NPU cos 0.999405/一致 0.9983 ✅）；② ✅ **流式断点产出**（`pya_stream_full61_NPU.json`：5722 窗、RTF **0.01068**、断点 **107** 个、判决滞后 P50/P95 **800/800 ms**）；③ ✅ **说话人身份产出**（`pya_spk_full61_NPU.json`：100/108 段分配、全局 id **S1**、spk_conf 均值 **0.9785**）⚠️ 但素材只有 1 人 ⇒ 区分能力未检验（x-vector margin 仅 0.0054）；④ ✅ **伪真值**（`pya_ref_diar_smoke30.json`，CUDA 离线 3.1）；⑤ ✅ **`ASR007_results.json` 8 → 14 条记录**（bench 6 格并入、27 必需字段 0 缺失）+ MATRIX 刷新 ⇒ 交 reviewer 汇编；🔄 61 分钟 App 路径 forced 长跑 **23:19 重启**（旧进程夭折留下陈旧锁 PID 12832，已回收）
 - 2026-10-26 21:21 **ASR-013 已受理：①FP16 OV IR 逐帧对拍过阈，INT8 未过阈（§35）**：① ✅ **FP16 对拍双阈值通过**（`results/pyannote_seg/`）：GPU.0 10 窗 **cos_min 0.99943 / 帧级类别一致率 1.0000**、NPU 6 窗 **cos_min 0.999405 / 一致率 0.9983**（阈值 cos≥0.999、一致率≥99%）；✅ 期间修掉 **FP16 LogSoftmax 数值下溢 ⇒ −inf ⇒ cos=NaN**（改为导出 raw logits + 两侧 numpy `log_softmax`）；🔴 **weight-only INT8 未过阈**（cos_min 0.995336/0.995548、一致率 0.981324/0.984720）⇒ 改走 `nncf.quantize` 激活感知；⏳ ②③④ 未开始；⑤ ✅ ASR-011 bench 6/6 完成待汇总
-- 2026-10-26 13:24 **R2T2 INT8@NPU 61 分钟 App 路径出格 + 6 格 bench 启动（§34）**：① ✅ **自动出格脚本 `wait_and_build_r2t2.py` 曾 failed**（判据查 `covered_s`，但 R2T2 `summary.json` 无此字段 ⇒ 永远不满足 ⇒ 超时退出）⇒ **手动 `build_compare_r2t2_app.py` 出格** ⇒ `reports/compare/r2t2__int8__npu_app.json`（6815 B，552 段 / 11294 词）；cell 已按 ASR-012 §2 修正：`device_placement.note` 与 `r2t2_ir_note` 用 **decoder-only 整段 prefill** 措辞（**无** cross-attention）、`timing_valid=false` ⇒ `latency.rtf` 置 null 且原值 1.0627 挪入 `timing_observed`、`wer_pct=null` 交 reviewer；② ✅ `asr007_build_results.py` 刷新 → **8 条记录**（新增 R2T2 App 格）、`p3_make_matrix.py` 刷新 MATRIX；③ 🔄 **6 格速度/内存 bench 已启动**（任务 `eauDGm`，`asr007_bench_all.py`，持规范锁串行、每格冷+热 fresh 进程、600 s 切片 [720,1320]）⇒ 锁空闲、首格 06b_int8_gpu0 冷编译已开始；④ ⏳ 待 bench 完成后重跑汇总 + 落 §34 末次；⑤ 🔴 仍待 reviewer 复算 R2T2 INT8@NPU App 路径 WER（对照 App 路径 R2T2 iGPU B **10.58%**）
-- 2026-10-26 11:08 **ASR-012 落地：0.6B INT8@NPU WER 11.05% 已回填 + §29.4 的「cross-attention」理由已撤回（§33）**：① ✅★ **reviewer 复算的 WER 已原样回填**：0.6B INT8@NPU（App 路径，553 段）= **11.05%**（1212 个错误）、iGPU 对照 10.94%（1199）⇒ **NPU−iGPU +0.12pp CI [−0.05,+0.29] 不显著**（17 段更好/510 持平/26 更差）、**对 R2T2 App B 10.58% +0.47pp CI [−0.24,+1.17] 不显著**；reviewer **独立核实段边界 553/553 逐位相同（差 0.0 s）** ⇒ §31.2 成立；⚠️ reviewer 未给 S/D/I 拆分 ⇒ `wer_breakdown` 如实写「不硬凑」+ `n_errors=1212`；② 🔴★ **撤回 §29.4 第 3 点的错误理由**：「R2T2 走 cross-attention、序列里根本没有 padding 概念」**是错的** —— R2T2 是 **decoder-only 整段 prefill**（`npu_embeds_backend.py:211-214` prefill 一次喂 **T 个 prompt token**，与 0.6B 同结构）；全 1 mask 的**真实理由** = **batch=1、无 padding token、mask 长度=真实 token 数（prefill=T / decode=past+1）、静态化到 512 的 padding 由 NPUW_LLM 内部完成**、IR **保留了 `attention_mask` 端口** ⇒ 0.6B 的根因（「自己手写 padding 到 512 且图里无 mask 端口」）**R2T2 不具备**；实测佐证 全 NPU 7.95% 对 GPU +0.10pp 不显著；「不派生自 c069g」这**一条成立**（reviewer 也确认：`c079b` 的 PAIRS 是 `…lastlogit-ov → …cleanie-ov`，`live_caption/*.py` 无处引用 `ov-dec-embed-fp16`）；**§29.4 已就地改写**（报告会引用这一段）+ 三处派生物同步修正（`asr007_build_results.py` / `asr007_r2t2_app_transcribe.py` / **`build_compare_r2t2_app.py` 新增覆盖** —— 🔴 长跑进程启动时已加载旧代码 ⇒ summary 带旧措辞，出格时必须覆盖）；③ 🔄 R2T2 INT8@NPU 61 分钟进行中（31.3% / 175 段，RTF≈1.05）；④ ⚠️ reviewer 记的 pid 25264（9 MB 小进程）应是 venv 包装层，真实占设备的是 20876 ⇒ **以产物为准、不以 PID 为准**
 ## §2 最近一周的结论摘要（均引用产物）
 
 ### 2.1 切段策略（属本模块范围）
@@ -5409,3 +5409,121 @@ child pid = 13624 | child start offset = +0.20s | alive at wrapper exit = True
 - 🔴 **阈值型指标要报「任何阈值都不可分」而不只是「某个阈值下分不开」**：TTS encoder `separable_by_any_thr`=false + `bias_ratio`=0.982 ⇒ 结论才站得住（对比 wespeaker margin 高 21.9×）。
 - ⚠️ **RTF 超阈先排除量化**（5 变体全超 ⇒ 是窗数×单窗耗时），再找**合规参数档**（stride 960/1280）⇒ 不要一上来就怀疑精度。
 - 🔴 **交付件 note 会被生成器覆盖** ⇒ note 必须有**单一事实来源模块** + 生成器 import ⇒ 并做「先 finalize → 再跑生成器 → note 仍在」的持久性验证。
+
+
+## §48 ASR-023 全部落地：说话人聚类向量选型（**保留 wespeaker**）+ 撤回 §47 三条结论 + 交付件 note 改正（2026-10-28 07:00）
+
+**纠偏原文（ASR-023，2026-10-28 00:53，[HIGH]）**：reviewer 复核 §47 后指出 5 个问题 —— ① 「TTS speaker encoder 区分不开说话人 / margin 高 21.9×」依据不成立（跨切分、跨口径、原始余弦比原始余弦、未扣偏置）；② 验收真值用错（pyannote 3.1 伪真值只有 2 人，且其 pipeline 用的 embedding **就是同一个 wespeaker** ⇒ 循环论证）；③ F1 0.154 要拆开说，不能全归给「粒度上限」；④ RTF/滞后的嵌入跑在 CUDA 上、且没计入；⑤ 许可证与来源缺（wespeaker 无 LICENSE / 无 repo id / 无 revision）。
+
+**本节结论（一句话）**：按 ASR-023 §4 的选型规则逐条测完后 —— **中心化后的 TTS encoder 在段级纯度 / 每人覆盖率 / AUC 三项上明显更差（3/3 片段方向一致、CI 不跨 0）⇒ 保留 wespeaker 作 ASR 内部聚类向量**；但** wespeaker 的 OV IR 导出本轮未做**（遵守「第 1 步出结果之前不要开 IR 导出」），**下一阶段任务**。**TTS 更差的主因不是 INT8 量化**（FP32 跑同一模型反而略降）。**§47 的三条结论全部撤回。**
+
+### 48.1 ① 撤回 §47 的三条结论（+ 两条口径作废）
+
+| §47 原结论 | §48 处置 | 依据（原始字段） |
+|---|---|---|
+| 「Qwen3-TTS INT8 speaker encoder 几乎无区分度」 | 🔴 **撤回** | ASR-023 §1 复核：那是拿**原始余弦**比原始余弦、且 wespeaker 用 `W2_per_spk` 而 TTS 用 `T1_utterance`（切分不同）、也没扣偏置（TTS `bias_ratio` 0.982 ⇒ 原始余弦全挤在 0.96 附近，**本就是要做中心化的信号**）。同口径中心化后 TTS **不比 wespeaker 差**：逐句 TTS `T1_centered.margin_mean` **0.312** vs wespeaker `W1_utterance_centered` **0.182**；每人 TTS `T2b_centered` **0.585** vs wespeaker `W2_per_spk_centered` **0.301**（两者 `separable_by_any_thr` 都是 false） |
+| 「margin 高 22×（0.3453 vs 0.0158）」 | 🔴 **撤回** | 跨切分（per_spk vs utterance）+ 跨口径（原始 vs 原始）+ 未扣偏置 ⇒ **不可比** |
+| 「段级纯度 1.0（22/22）、碎片化 2/2」 | 🔴 **撤回** | 那是 **pyannote 3.1 伪真值**口径（只有 2 人：SPEAKER_00 139.1 s / SPEAKER_01 33.1 s；人工标注是 4 人：FEO070/FEO072/MEE071/MEE073），且 3.1 pipeline 用的 embedding **就是同一个 wespeaker-resnet34-LM** ⇒ **循环论证**。且素材太弱（49.9 s 后基本 1 人独白） |
+| §47 的「旁路 RTF 增量 0.02893」 | 🔴 **口径作废** | 旧产物 `encoder.device` = **cuda** ⇒ **嵌入耗时没计入**；交付口径要求嵌入在 **GPU.0**（NPU 留给 TTS） |
+| §47 的「spk 滞后 P50 0.0084 / P95 0.0157」 | 🔴 **口径作废** | 同上，CUDA 上的嵌入耗时，**且不含 seg**；ASR-023 §5 要求 seg + 嵌入**都在 GPU.0** |
+
+### 48.2 ② 素材：换成多人交替均衡的 AMI 人工标注（来源与许可）
+
+- **落盘**：`C:\Users\Trekker-PTL\qwen3asr_06b\results\_spk_material\ami_balanced\` —— **10 个文件**（`manifest.json` 3300 B + 3 段 × (`wav` 9600044 B / `rttm` / `json`)），mtime **2026-10-28 01:23:13 ~ 01:23:14**。
+- **来源 / 许可**（`manifest.json` 原始字段）：数据集 `edinburghcstr/ami`（AMI Meeting Corpus）、配置 `sdm`（far-field 会议麦克风）、分片 `sdm/test-00000-of-00004.parquet`、镜像 `https://hf-mirror.com/datasets/edinburghcstr/ami`、**许可 CC BY 4.0**（Edinburgh / Univ. of Sheffield；本机仅下载 1 个分片用于内部评估）。
+- **均衡度**（`manifest.json` 原始字段 `min_spk_ratio`，判据 ≥0.1）：EN2002a **0.227**（4 人）/ EN2002b **0.2364**（4 人）/ EN2002c **0.3253**（3 人）⇒ **3 段全部 ≥10% ✅**，每段 300 s。
+- **真值**：**AMI 人工逐句 RTTM**（每段 208 / 216 / 89 条 utterance）⇒ **不再用 pyannote 3.1 伪真值**。⚠️ 人工 RTTM 与 3.1 伪真值**不可混用**（口径不同、人数不同）。
+
+### 48.3 ③ 主产物 `asr023_spk_encoder_ab.json`（验收件）
+
+**路径 / 大小 / mtime**：`C:\Users\Trekker-PTL\qwen3asr_06b\results\pyannote_seg\asr023_spk_encoder_ab.json` —— **679404 B @ 2026-10-28 01:57:56**。
+
+- **结构**：`material`（含 source/license/clips 清单）+ `truth` + `metric_notes` + `clips`（3 段 × **4 个编码器臂**）+ `lock_probe` + `timing_valid`。
+- **4 个臂**：`tts_gpu0_centered` / `tts_gpu0_raw` / `wespeaker_cuda_centered` / `wespeaker_cuda_raw` ⇒ 中心化与不中心化各自成臂，**中心化用的是离线固定均值向量**（非在线运行均值，已写明）。
+- **§3 要求的字段全部齐备**（每臂每段）：
+  - `switch_point`：P / R / F1 + `tp` / `n_truth_switch` / `n_truth_on_seg_boundary` + **`expressible_recall`**（tp / n_truth_on_seg_boundary）+ **`expressible_upper_ratio`**（段粒度上限）；
+  - `switch_point_min_turn_0p5`：**≥0.5 s 实质 turn** 口径全套；
+  - `purity` / `fragmentation_split` / `fragmentation_total` / `per_speaker_coverage`（**每人覆盖率**）/ `coverage_mean` / `coverage_min` / `n_speakers_covered`；
+  - `null_rate_single` / `null_rate_multi`（**按单/多人区段分开**）；
+  - `threshold_sweep`：**每臂 13 个阈值的扫描曲线**（含每个阈值下的 `switch_point` + `switch_point_min_turn_0p5` 两套）。
+- **锁**：`lock_probe_stolen` = **0**（3 次逐条自检），`timing_valid` = **true**。
+
+### 48.4 ④ 段级选型判定（3 段配对 bootstrap；重采样单元 = 片段 n=3 ⇒ **CI 极宽，只作方向性参考，不作显著性声明**）
+
+**汇总产物**：`results\pyannote_seg\asr023_selection_summary.json` —— **19097 B @ 2026-10-28 06:52:16**（字段：`sources` / `arms` / `clips` / `comparisons` / `verdict` / `metric_notes`）。
+
+| 指标 | TTS-INT8 @GPU.0 | TTS-FP32 @GPU.0 | wespeaker FP32 @CUDA | Δ(INT8−wes) | CI95 | 逐片段 Δ |
+|---|---|---|---|---|---|---|
+| `purity` | 0.6621 | 0.6409 | **0.8413** | **−0.1792** | **[−0.2105, −0.1395]** | −0.2105 / −0.1395 / −0.1875 |
+| `coverage_mean` | 0.3902 | 0.3666 | **0.4869** | **−0.0967** | **[−0.1361, −0.0640]** | −0.1361 / −0.089975 / −0.064033 |
+| `auc` | 0.7866 | 0.7866 | **0.8583** | **−0.0718** | **[−0.1145, −0.0273]** | −0.1145 / −0.0273 / −0.0735 |
+| `f1_min_turn_0p5` | **0.2949** | 0.2758 | 0.2288 | **+0.0660** | **[+0.0573, +0.0831]** | +0.0573 / +0.0577 / +0.0831 |
+| `f1` | 0.2188 | 0.2180 | 0.2037 | +0.0150 | [−0.0187, +0.0375] | 跨 0 ⇒ 不显著 |
+| `expressible_recall` | 0.2594 | 0.2595 | 0.2382 | +0.0212 | [−0.0220, +0.0435] | 跨 0 ⇒ 不显著 |
+| `coverage_min` | 0.0222 | 0.0222 | 0.2222 | −0.2000 | [−0.4667, 0.0000] | 上界 = 0 ⇒ 跨 0 ⇒ 不显著 |
+| `margin` | 0.2563 | 0.2563 | 0.2296 | +0.0267 | [−0.0106, +0.0571] | 跨 0 ⇒ 不显著 |
+
+- 🔴 **TTS 明显更差的指标 = `purity` / `coverage_mean` / `auc`**（INT8 与 FP32 **都是**）；**TTS 明显更好的 1 项 = `f1_min_turn_0p5`**。
+- 🔴 **3/3 片段方向一致**（上表「逐片段 Δ」列三段同号）⇒ 结论**稳健**，不是单片段噪声。
+- ⇒ **按 ASR-023 §4 规则 ⇒ 保留 wespeaker**（`verdict.decision` 原文已落盘）。
+
+### 48.5 ④b 消歧：TTS 段级劣势**不是 INT8 量化**（量化只解释一小部分）
+
+- **产物**：`results\pyannote_seg\asr023_tts_precision_ab.json` —— **393442 B @ 2026-10-28 06:51:37**（同一批段、同一过滤、同一人工真值；只有 encoder 精度不同）。
+- **同一性验证**：**cos(INT8, FP32) = 0.998006**（向量 norm 9.6788 vs 9.4731）⇒ 确认是**同一个模型的不同精度** ⇒ A/B 有效。
+- **FP32 反而略降**：`purity` FP32 **0.6409** vs INT8 **0.6621**（Δ **−0.0212**，CI95 [−0.1163, +0.0526] ⇒ 不显著）；`coverage_mean` Δ −0.0236（不显著）；`f1` Δ −0.0008（不显著）。
+- **量化归因**（`verdict.quantization_attribution` 原文）：TTS 相对 wespeaker 的纯度差 **−0.1792** vs FP32 带来的 **−0.0212** ⇒ **量化只解释一小部分差距** ⇒ **主因是 TTS speaker encoder 的段级可分性本身弱于 wespeaker**（不是量化）。`is_quantization_the_main_cause` = **false**。
+- ⚠️ **FP32 IR 的 OV 端口名与 INT8 不同**（INT8 输入 `mel_spectrogram` / 输出 `speaker_embedding`；FP32 输入 `hidden_states` / 输出**无名**）⇒ 脚本按模型实际端口名自适应绑定。
+
+### 48.6 ④c 直接判据（绕开聚类动力学）：段级余弦分离度
+
+- **产物**：`results\pyannote_seg\asr023_seg_separation.json` —— **3723 B @ 2026-10-28 05:53:25**。
+- 逐段 `margin` / `auc`（`cos_same_mean` − `cos_diff_mean`；AUC = Mann-Whitney，与阈值无关）：
+  - EN2002a：TTS margin **0.196** / auc **0.7217**（same 0.455 / diff 0.259）vs wes margin **0.2066** / auc **0.8362**（same 0.296 / diff 0.0894），n_vecs 38，**两者 `separable` 均为 true**；
+  - EN2002b：TTS margin **0.2347** / auc **0.7905** vs wes margin **0.1776** / auc **0.8178**；
+  - EN2002c：TTS margin **0.3382** / auc **0.8475** vs wes margin **0.3046** / auc **0.921**。
+- ⇒ **AUC 上 wespeaker 3/3 段都更高**（与 §48.4 的聚类口径一致、互为交叉验证）；但**逐句 margin 上 TTS 2/3 段更高** ⇒ TTS 的「同一人更紧」并不转化为「段级归属更准」。
+
+### 48.7 ⑤ RTF 增量与 spk 滞后：**含 seg + 嵌入，且都在 GPU.0**（持锁，阈值 ≤0.05）
+
+- **产物**：`results\pyannote_seg\asr023_lag_seg_embed_corrected.json` —— **57481 B @ 2026-10-28 06:13:58**（原始测量 `asr023_lag_seg_embed.json` **52176 B @ 06:13:58**，修正前备份 `asr023_lag_seg_embed_pre_accounting_fix.json` **51666 B @ 06:13:58**）。
+- **口径**（`formula` 原文）：`seg_lag_s = (w_max*stride + WIN_S) - b`（`w_max = floor(b/stride)`，`WIN_S` = 10.0 s，`stride` = 1.28 s）⇒ **seg 侧算法层面滞后 ∈ [8.72, 10.0] s**；`total_lag_s = seg_lag_s + 该窗计算墙钟 + 嵌入墙钟`。
+- **设备**：seg IR `pyannote_seg_3_0.xml` @ **GPU.0**（228 窗/段，单窗中位 **0.0386 s**）；嵌入 IR `speaker_encoder.xml` @ **GPU.0**（输入 `[1,?,128]` 动态时间轴 ⇒ **每个不同段长 = 一个新 shape**）。
+- **RTF**（阈值 ≤0.05）：
+
+| 段 | seg RTF | 嵌入 RTF（冷） | 嵌入 RTF（暖） | **总 RTF（冷）** | **总 RTF（稳态暖）** | 判定 |
+|---|---|---|---|---|---|---|
+| EN2002a | 0.02945 | 0.03459 | 0.00092 | **0.06404** | **0.03038** | 稳态 ✅ / 冷启动超阈 ⚠️ |
+| EN2002b | 0.02942 | 0.02097 | 0.00105 | **0.05039** | **0.03047** | 稳态 ✅ / 冷启动贴阈 ⚠️ |
+| EN2002c | 0.02961 | 0.11263 | 0.00092 | **0.14224** | **0.03053** | 稳态 ✅ / 冷启动超阈 ⚠️ |
+
+- ⇒ ✅ **稳态总 RTF 0.0304~0.0305 ≤ 0.05 通过**；🔴 **冷启动 0.0504~0.1422 超阈** ⇒ **冷启动（OV 动态 shape 重编译）是进程内一次性成本，必须与稳态分档报，不得报单一 RTF**。冷启动幅度随「新 shape 数」走：EN2002c `n_distinct_mel_shapes` = **14**（a/b 各 9）⇒ 冷成本 34.07 s vs 10.65 / 6.61 s。
+- **spk 滞后**（`total_lag_p50_s` / `total_lag_p95_s`）：EN2002a **9.4084 / 10.5184**、EN2002b **10.0427 / 10.0504**、EN2002c **9.4112 / 16.4221** ⇒ 🔴 **≈ 9.4~10.0 s，由 seg 侧 10 s 窗聚合主导**（嵌入只占 **7~11 ms**：`embed_p50_s` 0.0069 / 0.0071 / 0.0111）⇒ 这是**算法层面**的滞后，**不是运行时定稿延迟**。
+- **锁**：`lock_probe_stolen` = **0**、`timing_valid` = **true**（持锁方逐条自检 ASR-015 ①）。
+- 🔴 **本轮修掉一个自己的记账缺陷**（只改记账、**未重跑测量**，原始测量字段一字节未动）：原 `cold_first_call_total_s` 把「该 shape 的首次调用墙钟」**对每一行都累加** ⇒ 同一 shape 的冷成本被重复计入 ⇒ 该字段虚高、`warm_only_total_s` **变成负数**。修正按「该 mel shape 在本 clip 内第一次出现」判定冷/暖（冷 + 暖 = 嵌入总墙钟，不重不漏）；旧值保留为 `*_OLD_buggy` 供追溯。
+
+### 48.8 ⑥ 交付件 note 改正（走 `asr_compare_notes.py` 单一事实来源）
+
+- **单一事实来源**：`C:\Users\Trekker-PTL\qwen3asr_06b\scripts\asr_compare_notes.py` 的 `ASR021_NOTE`（**1378 B**）与 `ASR023_NOTE`（**1699 B**，新增）；生成器 `p3_make_matrix.py` 与回填脚本 `asr021_finalize_deliverables.py` **都 import 它** ⇒ 重新生成不丢 note。
+- **落盘交付件**（3 个，mtime 见下）：`reports\compare\ASR007_results.json` **79863 B @ 2026-10-28 06:52:59**、`reports\compare\MATRIX.json` **26382 B @ 06:53:02**、`reports\compare\MATRIX.md` **22974 B @ 06:53:02**（`MATRIX.md` 新增 `### ASR-023` 段）。
+- 🔴 **持久性验证通过**：**6 个 note 字段**（ASR007_results.json × 3 + MATRIX.json × 3）在「先 finalize → 再跑生成器」后**逐字一致**；`ASR007_results.json` 的 `records` = **15**（与备份 `results\_asr021_backup_20261028_065259\` 一致）、`n_records` = 15；`MATRIX.json` 的 `cells` = **21** 且**内容完全一致**（`m['cells'] == mb['cells']` 为 True）；**非 note 字段零差异** ⇒ **只改了 note，原始数值一字未动**。
+- ✅ 同时**删掉**了上一轮遗留的孤儿重复模块 `scripts\asr023_notes.py`（与 `asr_compare_notes.py` 内容分叉：ASR021_NOTE 1135 B vs 1378 B；确认**无任何脚本 import 它**）⇒ 杜绝双源分叉。
+
+### 48.9 分工说明（不可混淆，ASR-023 §1 追加要求）
+
+- **克隆音色必须用 TTS 自己的 x-vector**（TTS-019 的 `embed_speaker`）。
+- **ASR 对外只输出 `{id, spk, spk_conf}` + 段的时间范围**；由 TTS / App 按 `spk` 汇集音频，**再用 TTS encoder 生成克隆向量**。
+- 🔴 **wespeaker 向量只用于 ASR 内部聚类，绝不传给 TTS 做克隆。**
+- ⚠️ `live_caption/` 的 spk 事件接入与 TTS 音色切换属 **App / TTS 边界**（ASR-003），本模块**未代改**。
+
+### 48.10 口径隔离（防混比）
+
+- ASR-021 ③ 的数字是 **AMI 会议素材**口径；与 **5 分钟 SPE 切片**（`shared/SPE_0000_0500.wav`，只有 **1 个说话人**）**不可混比**；也与 **pyannote 3.1 伪真值**的数字**不可混比**。
+- 本节全部数字属**目标机口径**（全局对齐 + 段级配对 bootstrap）；**reviewer 口径（MiniMax）**的两套计分器**不可混比**。**本轮未跑 WER**（ASR-023 明说不需要；且目标机不调用 MiniMax）。
+
+### 48.11 下一阶段任务（**本轮未做**，不得写「已交付」）
+
+1. 🔴 **wespeaker 的 OV IR 导出 @GPU.0**（ASR-023 §4 保留 wespeaker 的前置条件）：与 torch CPU 对比**余弦 ≥0.999**；本轮**严格遵守「第 1 步出结果之前不要开 wespeaker 的 IR 导出」**，第 1 步已出结果，但**导出本身仍未启动**。
+2. 🔴 **补齐来源与许可**：`pyannote/wespeaker-voxceleb-resnet34-LM`（模型卡 **CC-BY-4.0**，随包分发需署名，训练数据 **VoxCeleb**）⇒ 交 **App** 放进 NOTICE。
+3. ⚠️ **`qwen3asr_06b` 不在 git 仓库内** ⇒ 本轮脚本/产物改动**只在本机**，交付需**另行打包**（本节引用的一切路径都在 `C:\Users\Trekker-PTL\qwen3asr_06b\` 下）。
+4. ⚠️ 本轮新增脚本（**均在 git 仓库外**）：`scripts\asr023_seg_separation.py`、`scripts\asr023_measure_lag.py`、`scripts\asr023_fix_lag_accounting.py`、`scripts\asr023_tts_precision_ab.py`、`scripts\asr023_compare_summary.py`、`scripts\asr023_final_selection.py`；改动 `scripts\asr_compare_notes.py`（note 单一事实来源）；删除 `scripts\asr023_notes.py`。
