@@ -36,6 +36,8 @@ last_ack: EXT-002
 | `ext/engines.py` | 引擎适配层：延迟加载、静态探测、**不猜 API** |
 | `tests/test_ext_selfcheck.py` | 单元自测 34 项 |
 | `tests/test_echo_roundtrip.py` | P0 ③ 回声端到端 10 项 |
+| `tools/next_instruction.py` | **幂等闸门**：解析最新 EXT 条目 + 与 `last_ack` 比对（退出码 0/1/2） |
+| `tests/test_next_instruction.py` | 幂等闸门自测 18 项 |
 
 **未改动任何其他模块的文件**（`confucius4-openvino` 只读 import，`hy_bench` / `confucius4-tts` 只探测目录）。
 
@@ -52,6 +54,11 @@ tests/test_ext_selfcheck.py    → 34 PASS / 0 FAIL
 tests/test_echo_roundtrip.py   → 10 PASS / 0 FAIL
   桥接服务起于 127.0.0.1:8799；回声 PCM 与上行 PCM **逐样本一致**（3200 bytes）；
   hello_ack 带回 segmentation 来源；非法 Origin / 错 token / 空 Origin → 1008 拒绝
+
+tests/test_next_instruction.py → 18 PASS / 0 FAIL
+  幂等闸门：条目解析 / last_ack 只读头部 / 缺文件·空·不可解析 → 全部判 skip；
+  编号 ≤ last_ack → 判「已执行」；编号 > last_ack → 判「需执行」；
+  真实项目当前判定 = **已执行（exit 1）** ⇒ 下一轮会正确跳过
 ```
 
 ### 1.4 本轮修掉的真实缺陷（非风格调整）
