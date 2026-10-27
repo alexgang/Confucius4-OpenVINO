@@ -336,6 +336,27 @@ def write_dub_wavs(tasks: List[dict], out_dir: str) -> List[dict]:
     return made
 
 
+def expected_segment_count(audio, sample_rate: int = 16000) -> int:
+    """算**服务端会吐出几段**（客户端 `expect_segments` 用）。
+
+    ★ 与服务端 `ext/bridge.py` 的 `Session.flush()` **同一口径**：
+      服务端 flush 有「尾部不足 1.0 s ⇒ 丢弃」的规则
+      ⇒ 客户端也必须把**尾部不足 1 s 的残留段**从预期里去掉，
+      否则 `expect_segments` 比服务端实际产出多 1 ⇒ 收尾永远等不到
+      ⇒ 白等兜底超时，且报告里的段数与实际不符 ⇒ 指标失真。
+
+    （这是本轮实测抓到的缺陷 13，见 STATUS §5.8.2。）
+    """
+    from ext.segmenter import plan_segments
+    segs = plan_segments(audio)
+    if not segs:
+        return 0
+    tail_len = (segs[-1][1] - segs[-1][0]) / float(sample_rate)
+    if tail_len >= 1.0:
+        return len(segs)
+    return max(0, len(segs) - 1)
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="EXT P1 端到端流水线实测（真实引擎）")
     ap.add_argument("--wav", required=True, help="16 kHz 单声道 PCM16 wav")
@@ -393,10 +414,22 @@ def main(argv=None) -> int:
     # ★ 预期段数：用**与服务端同一套**断句逻辑算 ⇒ 收尾时能立刻判断
     #   「服务端是否已处理完全部段」，不必干等 recv_timeout。
     #   （服务端按 min=12s / max=20s + VAD 静音切；尾段由 flush 触发）
-    from ext.segmenter import plan_segments
-    expected_segs = len(plan_segments(audio))
+    #
+    # ⚠️★ 本轮实测抓到的口径错位（缺陷 13）：
+    #   `plan_segments()` 会把**尾部不足 1 s 的静音**也算成一段
+    #   （例：16 s 音频 = 15 s 语音 + 1 s 静音 ⇒ plan_segments 给 2 段，
+    #   第二段只有 0.8 s 的纯静音尾巴）；
+    #   但服务端 `Session.flush()` 有一条「尾部不足 1.0 s ⇒ 丢弃」的规则
+    #   （见 ext/bridge.py 的 flush()）⇒ 服务端只会吐出 1 段。
+    #   ⇒ 客户端 `expect_segments=2` 而服务端只给 1 段 ⇒ 收尾循环
+    #     **永远等不到预期段数**，只能靠「连续 4 轮无新增」的兜底超时退出
+    #     ⇒ 每轮实测**白等**（5 分钟音频 ⇒ 多等 2 s），
+    #     而且报告里的 `expected_segments` 会与实际段数不符 ⇒ **指标失真**。
+    #   ⇒ 修法：见 `expected_segment_count()`（与服务端 flush 同一条规则）。
+    expected_segs = expected_segment_count(audio, 16000)
     report["expected_segments"] = expected_segs
-    print("[p1] 预期段数（与服务端同一套断句）：%d" % expected_segs)
+    print("[p1] 预期段数（与服务端同一套断句，且与服务端同样丢弃 <1s 尾段）：%d"
+          % expected_segs)
 
     # ★ 持共享机器锁（铁律）
     #   `--no-lock` 只用于「外层编排器已经持锁」的场景

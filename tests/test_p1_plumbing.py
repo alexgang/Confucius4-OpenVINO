@@ -160,8 +160,15 @@ def test_p1_plumbing() -> None:
 
         frames = p1_pipeline.frame_payload(audio)
         from ext.segmenter import plan_segments
-        expected = len(plan_segments(audio))
-        check("预期段数可算出", expected >= 2, f"{expected} 段")
+        raw_segs = len(plan_segments(audio))
+        # ★ 客户端预期段数必须按**服务端 flush 的同一条规则**算
+        #   （丢弃尾部不足 1 s 的残留段）—— 否则 expect 比服务端多 1
+        #   ⇒ 收尾永远等不到 ⇒ 白等兜底超时 + 报告段数失真（缺陷 13）。
+        expected = p1_pipeline.expected_segment_count(audio, 16000)
+        check("预期段数可算出", expected >= 1, f"{expected} 段")
+        check("★ 预期段数与服务端 flush 口径一致（丢弃 <1s 尾段）",
+              expected <= raw_segs,
+              f"expected {expected} ≤ raw {raw_segs}")
 
         # ★ 实时喂帧用 realtime=False（桩引擎下不需要真实节拍，
         #   但**必须**走 flush / stats / 收尾这些路径）
@@ -434,13 +441,89 @@ def test_mt_model_dir_resolution() -> None:
             os.environ.pop("LIVECAP_MT_MODEL", None)
 
 
+def test_realtime_feed_path() -> None:
+    """★ EXT-006 P1：真实 P1 用的 **realtime=True** 路径必须通。
+
+    为什么补这条：`test_p1_plumbing` 一直用 `realtime=False`（快灌），
+    而**真实 P1 实测用 realtime=True**（按墙钟节拍喂帧）——
+    ⇒ 这条路径**从来没有被自测覆盖过**。
+    而它恰恰是最容易出问题的一条：
+      * 节拍靠 `asyncio.sleep` 实现，若事件循环被阻塞 ⇒ 帧会**堆在一起**涌出
+        ⇒ 服务端缓冲区瞬间膨胀 ⇒ 断句/时间基点算错 ⇒ 指标失真；
+      * 而且真实服务端的推理是**秒级**的，慢引擎 + 实时喂帧
+        更容易触发 websockets 的 keepalive（本轮已修的缺陷 11）。
+
+    本自测用**桩引擎 + 真实 websockets 服务**跑一遍 realtime=True：
+      ① 收到 hello_ack；
+      ② 段数达到预期（含 flush 尾段）；
+      ③ **喂帧确实按墙钟节奏**（总耗时应接近音频时长，而不是秒级快灌）；
+      ④ stats 带 `_stats` marker。
+    """
+    print("\n[P1] EXT-006 — realtime=True 路径（真实 P1 的默认模式）")
+    import p1_pipeline
+
+    tmp = os.path.join(ROOT, ".tmp", "p1_realtime")
+    os.makedirs(tmp, exist_ok=True)
+    wav_path = os.path.join(tmp, "realtime.wav")
+    token_path = os.path.join(tmp, "token.txt")
+    # 造 16 s 音频（15 s 语音 + 1 s 静音 ⇒ 1 段 + flush 尾段）
+    _make_wav(wav_path, 16.0)
+    with open(token_path, "w", encoding="utf-8") as f:
+        f.write("realtime-token-123")
+    with open(token_path, "r", encoding="utf-8") as f:
+        token = f.read().strip()
+
+    port = _free_port()
+    th, holder = _start_bridge(port, token, token_path)
+    try:
+        audio, sr = p1_pipeline.read_wav_16k_mono(wav_path)
+        frames = p1_pipeline.frame_payload(audio)
+        # ★ 与服务端 flush 同口径（丢弃尾部不足 1 s 的残留段）
+        expected = p1_pipeline.expected_segment_count(audio, 16000)
+        check("realtime 测试音频可读", sr == 16000 and audio.shape[0] > 0,
+              f"{audio.shape[0] / sr:.2f}s")
+        check("★ realtime 预期段数与服务端口径一致", expected >= 1,
+              f"{expected} 段")
+
+        t0 = time.perf_counter()
+        tasks, hello, t_cap = asyncio.run(p1_pipeline._run_client(
+            port=port, token=token, frames=frames, delay_sec=10.0,
+            recv_timeout=30.0, realtime=True, expect_segments=expected))
+        elapsed = time.perf_counter() - t0
+
+        segs = [t for t in tasks if t.get("type") == "tts"]
+        stats = [t for t in tasks if t.get("type") == "_stats"]
+
+        check("realtime 模式收到 hello_ack", hello.get("type") == "hello_ack",
+              str(hello.get("type")))
+        check("realtime 模式段数达到预期（含 flush 尾段）",
+              len(segs) == expected, f"收到 {len(segs)} / 预期 {expected}")
+        check("realtime 模式 stats 带 _stats marker", len(stats) >= 1,
+              f"{len(stats)} 条")
+        # ★ 关键断言：喂帧**按墙钟节奏** ⇒ 耗时应接近音频时长，
+        #   而不是快灌那样秒级完成。
+        audio_sec = audio.shape[0] / sr
+        check("★ realtime 喂帧按墙钟节奏（耗时接近音频时长）",
+              elapsed >= audio_sec * 0.8,
+              f"耗时 {elapsed:.2f}s vs 音频 {audio_sec:.2f}s")
+        check("★ realtime 喂帧没有异常快（不是快灌）",
+              elapsed < audio_sec + 20.0,
+              f"耗时 {elapsed:.2f}s vs 音频 {audio_sec:.2f}s")
+    finally:
+        try:
+            th.stop()
+        except Exception:
+            pass
+
+
 def main() -> int:
     print("=" * 68)
     print("EXT P1 管线连通性自测（桩引擎 / 不跑推理 / 不占 GPU·NPU / 不抢锁）")
     print("=" * 68)
     for fn in (test_p1_plumbing, test_flush_only_once,
                test_slow_engine_does_not_block_event_loop,
-               test_mt_model_dir_resolution):
+               test_mt_model_dir_resolution,
+               test_realtime_feed_path):
         try:
             fn()
         except Exception:
