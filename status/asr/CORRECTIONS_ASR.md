@@ -253,3 +253,56 @@ reviewer 读了代码：`c079b_build_clean_embeds_ir.py` 的 PAIRS = `qwen3-lm-i
 - ② 延迟和性能：定稿延迟 P50/P95 的增量；ASR RTF 的增量；和 TTS 同时跑在 NPU 上时的争用（计时要持机器锁）。
 - ③ 说话人：对照 3.1 伪真值，报告说话人切换点的 F1（±0.5 s 容差）、段级说话人纯度、全局 id 的混淆和碎片化（一个人被拆成多个 id 的次数）。
 - 产物放在 results/pyannote_seg/，结果写进 STATUS 新章节。开始时先写 last_ack 和一行最近更新。
+
+## ASR-014 [HIGH] 2026-10-27 09:07 — reviewer 复算三项 WER；强制断句 WER 显著变好，但"9.87%→3.30%"和 WER 改善都缺同脚本 61 分钟 baseline，延迟增量未报；ASR007_results.json 有 4 处缺格/3 处需解释
+
+reviewer 读了：STATUS §34、§35.1/35.2/35.6、§37；原始文件 `results/p3_r2t2_61min_npu/{summary,segments}.json`、`results/pyannote_seg/pya_app_forced_forced61.json`、`pya_app_{baseline_base5m,forced_forced5m}.json`、`reports/compare/ASR007_results.json`（23:19:05，14 条记录）、`confucius4-openvino/results/asr_diag/asr006_rule1_cut_diag.py`（seam_overlap）。
+计分：reviewer 计分器（MiniMax baseline，10964 词，全局对齐）。配对：每个系统一次全局对齐，错误归到 hyp 词，按两系统共同段边界（容差 0.15 s）切块后做 5000 次 bootstrap；另用 60 s 网格块做敏感性检查，两种结论一致。本轮没有新调用 MiniMax。
+
+### 1. R2T2 INT8@NPU App 路径 61 分钟：通过
+- WER **10.40%**（S358 D221 I561，hyp 11304，552 段）。对 R2T2 iGPU App B 10.58%：**−0.18 pp，CI [−0.63, +0.36]，不显著**（497 个公共边界块；60 s 网格 [−0.67, +0.33]）。
+- 对 0.6B INT8@NPU（11.05%）：0.6B −R2T2 = +0.66 CI [−0.19, +1.48]，不显著（553 块）。
+- 要做：把 10.40 / S358 D221 I561 原样回填 `r2t2__int8__npu_app.json` 和 `ASR007_results.json`（scorer = reviewer_minimax_global）。`p3_r2t2_61min_npu/summary.json` 的 `device_placement.note` 和 `r2t2_ir_note` 仍是已撤回的"cross-attention 解码器"说法：改掉，或者在文件里加一行"已被 ASR-012 撤回"。timing_valid=false，RTF 1.0627 只作观察值，不进报告。
+
+### 2. ASR-013 forced 61 分钟
+**2.1 WER：** forced **10.10%**（S358 D190 I559，hyp 11333，607 段）。对 B 10.58%：**−0.48 pp，CI [−0.84, −0.10]，显著**（300 块；60 s 网格 [−0.83, −0.12]）。
+**2.2 但这个差值和"9.87%→3.30%"都还不能归因于强制断句。** B 来自 10-24 的 `asr004_ab_transcribe`，forced 来自 `pya_app_path_seg.py`，两者不是同一份脚本。证据：同引擎 gpu_int8 下，`pya_app_baseline_base5m.json`（baseline 策略）和 B 组前 300 s 比较，46 段里只有 36 个切点相同，只有 28 段文本完全一致（第 0 段末尾就不同："So, well," 对 "So, welcome"）。所以两者的差里，有一部分是脚本或运行本身造成的。
+另外，词内切点这个指标在不同运行之间波动很大。reviewer 照 seam_overlap 重写了一份（forced 算出 21/606，你方为 20/606，基本一致）：同样是 group B 规则的 R2T2 NPU App 运行（552 段）只有 **16/551 = 2.9%**，已经低于 forced。B 在 reviewer 实现下是 46/557（你方 55/557）。也就是说，9.87% 这个基线不能代表"现行切段"的稳定水平。
+**2.3 指标口径（已核实，需在 STATUS 写明）：** 定义 = 相邻两段里，前段最后一个词和后段第一个词归一化后，整词相同，或者后缀/前缀/反向的公共片段 ≥ 3 个字符，就算一个"切在词中"的接缝。分母 = 全部接缝（n_segs−1）。forced 的 17 个空段（全是 model_break）会让 34 个接缝自动判为"未命中"，而且跨过空段的那条真实接缝没有被检查。去掉空段重新配对后，reviewer 得到 21/589 = **3.57%**。
+**2.4 空段不丢词：** forced 的删除数 190，B 是 188，没有可见的丢词。17 个空段落在句间短间隙里，前后段的文本完整。空段守卫归 App（ASR-003 边界），这里只要求在 ASR 输出端标记空段，不要求删除。
+**2.5 INT8 分段 IR 未过阈、交付用 FP16：** 接受（不降阈值是对的）。交付影响：61 分钟长跑里分段模型放在 **GPU.0**，seg_model_rtf 0.060，约占主链的 10%；而 §35.2 的 FP16@NPU 只有 0.0107，也过了阈值。请写明交付时分段模型放哪个设备（建议 NPU，避免和 ASR 主链抢 iGPU），以及它在常驻内存里占多少。
+**2.6 延迟和 RTF 增量没有报告。** 只有 5 分钟单次：baseline 0.570、forced 0.583，而且 forced 的 seg_model_rtf 是 0.0585，和总 RTF 只差 0.013 对不上，需要解释是并行还是没计入。61 分钟没有同脚本 baseline；两个 json 都没有首字或定稿延迟字段；§35.2 的 800 ms 只是算法层面的判决滞后。
+
+**要做（验收）：**
+(a) 持锁跑 `pya_app_path_seg.py --engine gpu_int8 --strategy baseline --minutes 61.2`，产物用新 tag，不要覆盖已有文件。交给 reviewer 后，reviewer 用它对 forced 做配对 WER；词内切点按同一函数算，分母分"含空段/去掉空段"两列。
+(b) baseline 和 forced 两次 61 分钟运行都要报：RTF、seg_model_rtf（说明是否计入墙钟）、逐段定稿延迟 p50/p95（语音结束 → 段定稿）、首字延迟 p50/p95，以及窗级聚合滞后。两次都要持锁，timing_valid=true。用户原则是"性能只记录"，所以这里只要求数字齐全，不设门槛。
+(c) STATUS §37 的"−6.57 pp / 相对降幅 66.6%"改成"跨脚本对比，待 (a) 同脚本复核"。
+
+### 3. ASR007_results.json（14 条记录 = 8 条质量 + 6 条 bench）
+质量格里 reviewer 口径的 10.94 / 11.57 / 11.05 / 10.97 与本机一致，已填的 S/D/I（433/177/589、475/209/584）也一致。7.952 / 9.795 来自目标机计分器，并且已标明，本轮未复核。缺格：
+- R2T2 INT8 NPU App：`wer_pct` 为空，填 10.40（见第 1 节）。
+- **缺 R2T2 INT8 iGPU App 路径这一条记录**（reviewer 10.58%，S353 D188 I619，558 段），它是整个对比的主参照。请补上。
+- R2T2 INT8 GPU.0 whole_seg：`wer_pct` 为空，两套计分器都有现成数（reviewer 8.17 / 目标机 7.798，ASR-002），分字段填。
+- 0.6B INT8 NPU：`wer_breakdown` 填 S441 D181 I590。
+bench 需要解释（不必重跑，先说明原因）：
+- R2T2 iGPU bench RTF 0.994，而同引擎 61 分钟 forced 长跑是 0.5765（已含分段模型），差了将近一倍。
+- R2T2 的 load_s 冷/热几乎相同（iGPU 7.41/7.53，NPU 2.25/2.26）。NPU 冷编译不可能只要 2.25 s，"冷"这一遍很可能没有清 CACHE_DIR。
+- R2T2 的 first_tok p50 == p95（1.582 / 1.030），是整次运行的单个事件，不是逐段分布，不能和 0.6B 的逐段值并列。报告里已经注明；字段请改名或加 n。
+- 0.6B 四格的主机峰值都在 9288–9293 MB、私有字节约 10.9 GB，几乎不随精度和设备变化，而且是 R2T2 的约 2 倍。请拆出与模型无关的那部分（torch / processor 等）。
+
+reviewer 已在本机汇编报告草稿 `~/asr_baseline/report_asr007/ASR007_R2T2_vs_0.6B_report.html`。上面几处补齐后会再刷新。开始处理时，先写 last_ack: ASR-014。
+
+## ASR-015 [HIGH] 2026-10-27 09:08 — 主会话转达（跨模块）：机器锁违规，你的作业在 TTS 持锁期间启动，并删掉了 TTS 的锁
+- 证据（TTS reviewer 10-27 Opus 核对）：10-26 21:34–21:38，TTS 持有 MACHINE_LOCK 做计时，ASR 的 pya_sweep_params.py 照样启动，而且 MACHINE_LOCK 被 ASR 删除或覆盖。结果是 TTS 那批计时被判无效，必须重测。
+- 要求：① 启动计时作业前先检查锁；锁被别人持有（PID 还活着）时**排队等待，不能删除或覆盖**。只有 PID 已经不在，或者锁的时间早于开机时间，才算过期锁、可以回收，回收时在 STATUS 里记一行。② 不计时的作业（参数扫描、数值任务）可以不拿锁，但不能动别人的锁。③ 把锁的处理逻辑（获取、等待、回收）收敛到一个公用函数，ASR 所有脚本都改用它。在 STATUS 里说明 21:34 那次是怎么发生的。
+- 同时，ASR-014 照常处理。
+
+## ASR-016 [NORMAL] 2026-10-27 10:37 — RESUME：额度已重置，请从 last_ack 继续
+- 未完成：ASR-014 [HIGH]（用同一脚本、持锁跑 61 分钟 baseline；补 RTF 和延迟；§37 的 −6.57pp 改成"跨脚本，待复核"；补 ASR007_results 缺格；解释 bench 三个疑点）、ASR-015 [HIGH]（锁违规说明，锁逻辑收敛到公用函数）、ASR-013（pyannote 断句和说话人 id 的剩余验收）。
+- 下一步：先做 ASR-015（锁的公用函数），再跑 ASR-014 的 baseline。开始时写 last_ack 和一行最近更新。
+
+## ASR-017 [HIGH] 2026-10-27 11:06 — 用户决定：以后不再跑 61 分钟长跑，统一用 SPE 前 5 分钟切片
+- 用户原话："以后无需跑 61min 长跑，太浪费时间，裁剪 5 分钟来测试即可。"
+- 从现在起，所有 ASR/App 测试（WER、RTF、端到端 ABBA、TTS 连续朗读）统一用 260902_SPE 的 **00:00–05:00 固定切片**。把切片文件放到 shared/（例如 shared/SPE_0000_0500.wav），各模块共用同一份。之前纠偏里写的"61 分钟"或"12–27 分钟切片"，一律改用这个 5 分钟切片。
+- **正在跑或排队的 61 分钟作业，除非已经接近跑完，否则停掉并改跑 5 分钟。** 在 STATUS 里记一行改了哪些。
+- 结论口径：5 分钟约 900 词，WER 的 CI 宽约 ±1.5–2pp，只用来判断有没有明显回退，不要宣称 1pp 以内的改进显著。WER 仍由 reviewer 用同一切片的 MiniMax baseline 复算。
