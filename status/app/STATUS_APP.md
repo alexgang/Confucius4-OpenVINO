@@ -13541,3 +13541,75 @@ TypeError: run_cli.<locals>.on_final() takes 1 positional argument but 3 were gi
 | commit | **`c89bbc8`**（4 文件 / +556 −1，App-only） |
 | push | **普通 push** `2f4a159..c89bbc8` ⇒ `HEAD == origin/main` |
 | HEAD ⇄ 客户包复核 | **9/9 全 MATCH**（`app108_head_pkg_recheck.py`；`live_caption_app.py` 由 DIFF 转 **MATCH**） |
+
+### 79.4 ✅ **APP-028② 实测：60 秒冒烟 **10/10 PASS**（CLI 修复后 CLI 不再崩，丢句 = 0）
+
+**执行条件**（reviewer APP-028 明文口径）：**用户启动方式等价**（CLI 回放）、**SPE 前 5 分钟切片**、
+**`--speed 1`**、**持机器锁**、**默认摆放**（ASR+MT@`GPU.0`、**TTS=NPU**）、**等安静窗口**、**自取锁**。
+
+🔴 **锁纪律实录**：23:58 前锁被外部 `EXT-browser-probe`（PID 36040）持有
+⇒ ctypes `OpenProcess` + `GetExitCodeProcess` 实测 **`exit=259`（STILL_ACTIVE）⇒ 活锁**
+⇒ **不抢、不删**，等其自然释放；`app110` 自身 `acquire` **fail-closed** 排队
+⇒ **第 4 次尝试**才取得（PID 9736 / started 23:58:22）⇒ **安静窗口通过后开跑**。
+
+**报告原始字段**（`C:\Users\Trekker-PTL\app028_soak\app028_soak_report.json`，`ts=2026-10-28 00:00:34`）：
+
+| 字段 | 值 |
+|---|---|
+| `device` / `duration` / `speed` / `translate` | `NPU` / `60.0` / `1.0` / `zh` |
+| `rc` / `wall_s` | **0** / 86.6 |
+| `cli_stat_line` | `[TTS] 首包 0.41s  积压 当前 0.00s / 最大 21.31s  提交 17  播完 17  丢弃 0  重启 0  state=ready` |
+| `n_submitted` / `n_played` / `n_dropped` / `n_restart` | **17 / 17 / 0 / 0** |
+| `n_dropped_jsonl` / `n_err_jsonl` | **0 / 0** |
+| `first_packet_s` / `max_backlog_s` / `end_lag_s` | 0.41 / 21.31 / **0.00** |
+| `seg_queue_p50` / `p95` / `max`（**逐句排队等待**） | 0.0 / **5.285** / 5.285 |
+| `seg_synth_p50` / `p95` / `max`（**逐句合成**） | 0.75 / **0.848** / 0.848 |
+| `synth_rtf_p50` / `p95` | **1.0165** / 1.3564 |
+| `underflow_in_sentence_p95`（**句内欠载**） | **0** |
+| `max_synth_gap_s`（**最大合成空窗**） | **7.4825**（阈值 ≤30） |
+| `n_jsonl_rows` | **17** |
+| `pass_count` / `fail_count` | **10 / 0** |
+
+**10 条判据逐条**（`SUMMARY: PASS=10 FAIL=0 TOTAL=10`）：
+
+| 判据 | 结果 | 实测值 |
+|---|---|---|
+| **A1** 丢句数 = 0 | ✅ PASS | `0` |
+| **A1b** 逐句 jsonl `dropped` 标记 = 0（**独立来源交叉验证**） | ✅ PASS | `0` |
+| **A1c** 逐句 jsonl `error` 非空 = 0 | ✅ PASS | `0` |
+| **A2** 不变式 `n_played + n_dropped == n_submitted` | ✅ PASS | `17 == 17` |
+| **A3** 「没有产出音频」次数 = 0 | ✅ PASS | `0` |
+| **A4** worker 重启次数 = 0 | ✅ PASS | `0` |
+| **A5** 撞帧上限 `cap` = 0 | ✅ PASS | `0` |
+| **A6** 失控 `runaway` = 0 | ✅ PASS | `0` |
+| **A7** 句内欠载 P95 = 0 | ✅ PASS | `0` |
+| **A8** 无 >30 s 合成空窗 | ✅ PASS | **7.4825 s** |
+
+🔴 **A1b 是本轮新加的交叉验证**：CLI 收尾统计行的「丢弃」与逐句遥测 jsonl 的 `dropped` 字段
+**是两个彼此独立的来源** ⇒ 两者都为 0 才写「丢句 = 0」⇒ **防单侧统计漏记**。
+
+🔴 **A2 不变式成立**（`17 + 0 == 17`）⇒ 与 MEMORY 铁律「`n_played+n_dropped==n_submitted`」一致。
+
+⚠️ **A8 的口径**：用**相邻两句合成完成时刻**（`t_last_chunk`）的间隔
+⇒ 覆盖「排队 + 合成」全链 ⇒ 才是 reviewer 说的「没有合成的空窗」；
+**不是**用「提交时刻」间隔（那会漏掉排队段）。
+
+**产物（包外 `C:\Users\Trekker-PTL\app028_soak\`，副本已入库 `results/app/app028_soak_60s/`）**：
+
+| 文件 | 字节 | SHA256[:16] |
+|---|---|---|
+| `app028_soak_report.json` | 2 735 | `a3b9d87d5e04f9fe` |
+| `app028_soak.wav.tts.jsonl`（**逐句遥测 17 行**） | 12 934 | `540fd82f12160afe` |
+| `app028_backlog_curve.csv`（**积压曲线**） | 132 | `fde2830d44bf5a24` |
+| `app028_soak_cli.log`（**CLI 完整日志**） | 18 177 | `0721b1a7fbd6eca5` |
+| `app028_subtitles.txt` / `app028_subtitles.mt.txt` | 888 / 1 050 | `d09fbbe2fb58dc18` / `6f8e094432022519` |
+| `app028_soak.wav`（**合成音频 63.88 s / 17 句 / 24000 Hz**） | 3 088 952 | `2d9705966340a889` |
+
+⛔ **本小节只是 60 秒冒烟**，**不等于** APP-028 明文的「**SPE 前 5 分钟**」完整实测
+⇒ 完整 5 分钟实测**正在跑**（`--duration 300`）⇒ 结果见 §79.5。
+
+⛔ **CUDA 对照组客观做不了**（本机 torch `2.14.1+cpu`、`cuda=False`；**包内 python 无 torch**）
+⇒ reviewer 明文「之后再用 CUDA 跑一次作对照」**无法在本机执行** ⇒ **需 reviewer 裁定执行环境**。
+
+⛔ **本实测走 CLI 回放，不是 GUI 启动方式**（工程等价，**不等于**用户启动方式）
+⇒ **V4 用户实听仍未做** ⇒ ⛔ **「用户听得到」仍不成立**。

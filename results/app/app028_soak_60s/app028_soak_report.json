@@ -1,0 +1,115 @@
+{
+  "ts": "2026-10-28 00:00:34",
+  "device": "NPU",
+  "duration": 60.0,
+  "speed": 1.0,
+  "translate": "zh",
+  "wall_s": 86.6,
+  "rc": 0,
+  "cli_stat_line": "[TTS] 首包 0.41s  积压 当前 0.00s / 最大 21.31s  提交 17  播完 17  丢弃 0  重启 0  state=ready",
+  "n_submitted": 17,
+  "n_played": 17,
+  "n_dropped": 0,
+  "n_restart": 0,
+  "n_dropped_jsonl": 0,
+  "n_err_jsonl": 0,
+  "first_packet_s": 0.41,
+  "max_backlog_s": 21.31,
+  "end_lag_s": 0.0,
+  "seg_queue_p50": 0.0,
+  "seg_queue_p95": 5.285,
+  "seg_queue_max": 5.285,
+  "seg_synth_p50": 0.75,
+  "seg_synth_p95": 0.848,
+  "seg_synth_max": 0.848,
+  "n_seg_queue": 17,
+  "n_seg_synth": 17,
+  "n_jsonl_rows": 17,
+  "synth_rtf_p50": 1.0165,
+  "synth_rtf_p95": 1.3564,
+  "underflow_in_sentence_p95": 0,
+  "queue_peak_s": 0,
+  "queue_peak_mb": 0,
+  "max_synth_gap_s": 7.4825000000419095,
+  "checks": [
+    {
+      "id": "A1",
+      "name": "丢句数 = 0",
+      "ok": true,
+      "got": 0,
+      "want": 0
+    },
+    {
+      "id": "A1b",
+      "name": "逐句 jsonl dropped 标记 = 0（独立来源交叉验证）",
+      "ok": true,
+      "got": 0,
+      "want": 0
+    },
+    {
+      "id": "A1c",
+      "name": "逐句 jsonl error 非空 = 0",
+      "ok": true,
+      "got": 0,
+      "want": 0
+    },
+    {
+      "id": "A2",
+      "name": "不变式 n_played + n_dropped == n_submitted",
+      "ok": true,
+      "got": 17,
+      "want": 17
+    },
+    {
+      "id": "A3",
+      "name": "「没有产出音频」次数 = 0",
+      "ok": true,
+      "got": 0,
+      "want": 0
+    },
+    {
+      "id": "A4",
+      "name": "worker 重启次数 = 0",
+      "ok": true,
+      "got": 0,
+      "want": 0
+    },
+    {
+      "id": "A5",
+      "name": "撞帧上限(cap) = 0",
+      "ok": true,
+      "got": 0,
+      "want": 0
+    },
+    {
+      "id": "A6",
+      "name": "失控(runaway) = 0",
+      "ok": true,
+      "got": 0,
+      "want": 0
+    },
+    {
+      "id": "A7",
+      "name": "句内欠载 P95 = 0",
+      "ok": true,
+      "got": 0,
+      "want": 0
+    },
+    {
+      "id": "A8",
+      "name": "无 >30 s 合成空窗",
+      "ok": true,
+      "got": 7.4825000000419095,
+      "want": "<=30"
+    }
+  ],
+  "pass_count": 10,
+  "fail_count": 0,
+  "artifacts": {
+    "wav": "C:\\Users\\Trekker-PTL\\app028_soak\\app028_soak.wav",
+    "jsonl": "C:\\Users\\Trekker-PTL\\app028_soak\\app028_soak.wav.tts.jsonl",
+    "csv": "C:\\Users\\Trekker-PTL\\app028_soak\\app028_backlog_curve.csv",
+    "cli_log": "C:\\Users\\Trekker-PTL\\app028_soak\\app028_soak_cli.log"
+  },
+  "note": "工程侧等价实测（CLI 回放 + NPU）；非 GUI/非 CUDA/非用户实听"
+}

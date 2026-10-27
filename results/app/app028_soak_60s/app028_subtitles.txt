@@ -1,0 +1,10 @@
+Good morning everyone. Good morning. Let's get started. So, welcome
+to our Q3 26 QGS.
+Agenda topics today, we'll talk about three. One, I want to share our engineering strategy.
+to realize the business growth that Alex spoke about in his last QGS. We'll then talk about engine
+engineering priorities and just general execution, and then Lisa will join me and go through all of the work that's done with the software team, who
+I think is probably one of the largest pivots to do to go enable to grow it ahead of us that I'll expose to.
+And then at the end we'll have plenty of time for Q&A, both in room and online. Okay.
+So you recall, Alex spoke about business growth, about client, agentic, edge and physically
+So the goal of this slide is to describe our strategy on a page, how we as an engineering organization, in this
+enable that growth. Again, we are the scale function
