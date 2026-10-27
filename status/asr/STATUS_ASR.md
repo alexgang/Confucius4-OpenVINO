@@ -1,10 +1,11 @@
-last_ack: ASR-018
-更新时间: 2026-10-27 13:45
-当前任务: **ASR-017 + ASR-018 落地（§43 / §44）**：① ASR-017 统一用 `shared/SPE_0000_0500.wav`（00:00–05:00 固定切片，md5 `a10da6a3b9fb685bc6b8a5805c354d23` 与源前 300s 逐字节一致）；6 脚本改读切片 + `asr_slice_common.py` 单一事实来源 + `>5min` 护栏；61 分钟 baseline 长跑（pid 34724，53.9%）已中止无产物；陈旧 TTS 锁（pid 14888 已死）按铁律回收；2 次 shared 切片 5 分钟验证跑（baseline rtf 0.6649 / forced GPU.0 rtf 0.7102）通过。② ASR-018 用户定案默认设备摆放：ASR R2T2 INT8→GPU.0、TTS→NPU 独占、CUDA 不作默认；按请求在 5 分钟切片上测得**分段模型在 GPU.0 的 RTF 增量 = 0.06876**（vs NPU 0.06487，差 ~6%，可忽略）。⚠️ 未改 `live_caption/`；`qwen3asr_06b` 不在 git 内 ⇒ 脚本/产物只在本机。
-阻塞 / 待用户决定: ① 🔴 **待 reviewer 用 shared 切片 MiniMax baseline 复算 WER**（5 分钟口径 ≈900 词、CI ±1.5–2pp，只判明显回退、不宣称 1pp 内改进显著；Δ 只和同一计分器 5 分钟基线比）；本轮交付 `results/pyannote_seg/asr017_slice_unify.json` + `pya_app_baseline_asr017verify.json` + `pya_app_forced_asr018seg.json`。② ⚠️ **ASR-013 说话人身份仍未被真正检验**（素材只有 1 人，x-vector margin 0.0054）⇒ 多说话人切换点 F1 / 碎片化仍无数据，需用户指派多说话人素材（本模块不自行开新实验）。③ ⚠️ **`qwen3asr_06b` 不在 git 仓库内** ⇒ 脚本/产物改动只在本机、交付需另行打包（不进 git）。④ 🔴 **WER 仍未算**（目标机不调用 MiniMax）。⑤ ⚠️ ASR-018 的「ASR 默认 GPU.0 / NPU 让 TTS」是设备摆放定案；若 App 模块据此改 `live_caption/` 默认设备，属 App 边界（ASR-003），本模块不代改。
+last_ack: ASR-019
+更新时间: 2026-10-27 15:50
+当前任务: **ASR-019 落地（§45）**：reviewer 指出的 §44.2 设备归属错误已更正 —— `pya_app_forced_forced5m_v2.json` 的 `params.seg_device` 原始字段是 **GPU.0**（不是 NPU），故 `seg_model_rtf`=0.06487 是 GPU.0 的数；原「GPU.0 比 NPU 慢约 6%」的对照**作废**，正确的 GPU.0 vs NPU 对照是 **0.06018 / 0.01068 = 约 5.6 倍**（§42.6 的 5.6 倍说法成立）。§44.2 结论**不变**（默认放 GPU.0、NPU 留给 TTS，分段模型 RTF 增量 ≈0.069 可接受）。本轮**未重跑任何实验**（ASR-019 明确不需要）。🔴 WER 仍待 reviewer 用 shared 5 分钟切片复算。
+阻塞 / 待用户决定: ① 🔴 **待 reviewer 用 `shared/SPE_0000_0500.wav` 的 MiniMax baseline 复算 WER**（5 分钟口径 ≈900 词、CI ±1.5–2pp，只判明显回退、不宣称 1pp 内改进显著；Δ 只和同一计分器的 5 分钟基线比；目标机计分器与 reviewer 计分器两套，不可混用）。本轮待复算的三个产物：`pya_app_baseline_asr017verify.json`（46 段）/ `pya_app_forced_forced5m_v2.json`（49 段）/ `pya_app_forced_asr018seg.json`（49 段，seg_device=GPU.0）。② ⚠️ **ASR-013 说话人身份仍未被真正检验**（素材仅 1 人，x-vector 同人/异人余弦 margin 仅 0.0054）⇒ 多说话人切换点 F1 / 段级纯度 / 碎片化仍无数据，需用户指派多说话人素材（本模块不自行开新实验）。③ ⚠️ **`qwen3asr_06b` 不在 git 仓库内** ⇒ 本轮脚本/产物改动只在本机、交付需另行打包。④ 🔴 **WER 仍未算**（目标机不调用 MiniMax）。⑤ ⚠️ 设备摆放定案（ASR-018：ASR→GPU.0、TTS→NPU 独占）若需落到 `live_caption/` 默认值，属 App 边界（ASR-003），本模块不代改。
 
 
 ## 最近更新
+- 2026-10-27 15:50 **ASR-019 落地（§45）**：① 🔴 **更正 §44.2 的设备归属错误** —— 复核产物原始字段：`pya_app_forced_forced5m_v2.json` 的 `params.seg_device` = **GPU.0**（不是 NPU）⇒ `seg_model_rtf`=0.06487 是 **GPU.0** 的数；原「GPU.0 比 NPU 慢约 6%」**作废**；正确的 GPU.0 vs NPU 对照 = **0.06018**（`pya_app_forced_forced61.json`，61min App 路径，seg_device=GPU.0）/ **0.01068**（`pya_stream_full61_NPU.json`，device=NPU，字段名 `rtf_seg_model`，流式窗口径）⇒ **约 5.63 倍**，§42.6 的「5.6 倍」成立；② ✅ 全部 forced 产物 `params.seg_device` 一律 **GPU.0**（forced5m 0.05852 / forced5m_v2 0.06487 / forced61 0.06018 / asr018seg 0.06876）⇒ GPU.0 上分段模型 RTF 增量 ≈ **0.06–0.07**；③ ✅ **§44.2 结论不变**（ASR-018 定案：默认放 GPU.0、NPU 留给 TTS，增量 ≈0.069 可接受）；④ ✅ 已更正产物 `results/pyannote_seg/asr017_slice_unify.json`（8747→12226 B）新增 `comparison_gpu_vs_npu_corrected` 段 + 保留旧文 `comparison_npu_previous_text_asr019` 供追溯（备份 `_asr019_backup_asr017_slice_unify.json`）；⑤ ⚠️ **未重跑任何实验**（ASR-019 明确「不需要重跑」）⇒ 本轮**不占机器锁**；⑥ 🔴 WER 仍待 reviewer 用 `shared/SPE_0000_0500.wav` 复算
 - 2026-10-27 13:45 **ASR-017 + ASR-018 双落地（§43 / §44）**：① 🔴 ASR-017：统一切片 `shared/SPE_0000_0500.wav`（md5 `a10da6a3…` 9600044 B @11:24，与源前 300s 逐字节一致）；NEW `asr_slice_common.py` 单一事实来源 + `guard_minutes` 护栏 ⇒ 6 脚本改读切片（`pya_app_path_seg`/`r2t2_app_transcribe`/`p0_stream_seg`/`asr007_bench`/`p0_torch_ref`，py_compile OK）；② 中止的 61 分钟 baseline（pid 34724，53.9%）无产物/无 partial；陈旧 TTS 锁（pid 14888 已死）按 ASR-015 回收；③ 2 次 shared 切片 5 分钟验证跑：`pya_app_baseline_asr017verify.json`（14544 B @13:21，46 段 / rtf 0.6649 / 词内切点 6.67%）与 `pya_app_forced_asr018seg.json`（16427 B @13:31，49 段 / seg GPU.0 / seg_model_rtf **0.06876** / 词内切点 6.25%）；④ 🔴 ASR-018（用户 13:22 定案）默认设备摆放：ASR R2T2 INT8→GPU.0、TTS→NPU 独占、CUDA 不作默认；分段模型在 GPU.0 的 RTF 增量 0.06876（vs NPU 0.06487，差 ~6% 可忽略）；交付 `asr017_slice_unify.json`（含 asr018 段）。⑤ 未动 `live_caption/；未改 p1_export_*`；WER 仍交 reviewer 用 shared 切片复算
 - 2026-10-27 13:25 **ASR-017 落地（§43）**：① 🔴 统一切片：所有 ASR 测试改用 `shared/SPE_0000_0500.wav`（00:00–05:00，md5 `a10da6a3…` 9600044 B @11:24，与源前 300s 逐字节一致）；② 新建单一事实来源 `scripts/asr_slice_common.py`（SLICE_SEC=300 / MAX_MIN=5 + `guard_minutes` 护栏）⇒ 6 脚本改读切片并加「>5min 需 --allow-long」（`pya_app_path_seg`/`r2t2_app_transcribe`/`p0_stream_seg`/`asr007_bench`/`p0_torch_ref`，均 py_compile OK）；③ 被中止的 61 分钟 baseline 长跑（pid 34724，1980/3671s=53.9%）无产物、无 `*.partial.json` 残留 ⇒ 改跑 5 分钟；④ 陈旧 TTS 锁（pid 14888 已死，11:28:49）按 ASR-015 铁律自动回收（验证跑结束正常释放、无 `.tmp`、无残留）；⑤ 用 shared 切片补跑 5 分钟 baseline 验证（`pya_app_baseline_asr017verify.json`，14544 B @13:21，46 段 / rtf 0.6649 / timing_valid=true / md5 一致 / 词内切点 6.67% 与 §42 base5m_v2 逐位一致）；⑥ 交付 `asr017_slice_unify.json`（口径：5min≈900词、CI ±1.5–2pp、不宣称 1pp 内显著）⇒ WER 交 reviewer 配对复算；⑦ 未动 `live_caption/`、未改 p1_export_*/p1_verify_e2e（属构建脚本非运行时测试）
 - 2026-10-27 11:40 **ASR-014/015/016 全部落地（§42）+ 依用户决策改用 5 分钟短测**：① ✅ **ASR-015 锁收敛完成** —— 锁逻辑统一到 `scripts/asr_lock_common.py`（唯一事实来源），3 个脚本改调 `asr_lock_common.read_lock`（只读快照）；审计 14 个脚本 import 它、**规范锁无直接删/覆盖点**；② 🔴 **撤回「21:34 锁违规源于 `pya_sweep_params.py`」的归因** —— 实测该脚本**全文零锁代码**、`pya_sweep.json` mtime 21:46:03；**真凶是 `pya_app_path_seg.py` 旧 fail-open 读锁逻辑**（21:41:48 / 21:45:16 两个产物为证）⇒ 详见 §42.2；③ ✅ **ASR-014 §2(a)(b) 同脚本 5 分钟 baseline↔forced 对照**（依用户 11:19 决策替代 61 分钟长跑）：baseline 46 段 / rtf 0.7069 / finalize 0.4420·0.4907 / first_tok 0.3690·0.4141 n=514，forced 49 段 / rtf 0.6779 / finalize 0.4219·0.4679 / first_tok 0.3513·0.3945 n=517，window_lag 均 9360.0 ms，**两者 `timing_valid`=true、`lock_probe_stolen`=0**；词内切点 **6.67%→6.25%（−0.42pp）**、新旧两次跑**逐位复现**；④ 🔴 **撤回 §37 的「−6.57pp / 相对降幅 66.6%」** ⇒ 「跨脚本对比，待同脚本复核」（§42.3）；⑤ ✅ **§3 交付件 4 处缺格全补** + bench 四疑点逐条写进 `bench_explanations` + 0.6B 主机峰值根因实测（**同一份 FP32 权重加载两次**，peakWS 9260.2 vs bench 9294.1 MB）；⑥ ✅ **§2.5 分段模型建议放 NPU**（常驻 WS 71.0 vs GPU.0 270.8 MB；seg_model_rtf 0.01068 vs 0.060）—— **未擅自改 `live_caption/`**；⑦ ⚠️ **ASR-013 剩余验收仍未完成**（多说话人素材待指派）；⑧ 🔴 **WER 未算**（不调用 MiniMax）⇒ 交 reviewer 对两个 5 分钟产物做配对复算
@@ -19,7 +20,6 @@ last_ack: ASR-018
 - 2026-10-26 13:24 **R2T2 INT8@NPU 61 分钟 App 路径出格 + 6 格 bench 启动（§34）**：① ✅ **自动出格脚本 `wait_and_build_r2t2.py` 曾 failed**（判据查 `covered_s`，但 R2T2 `summary.json` 无此字段 ⇒ 永远不满足 ⇒ 超时退出）⇒ **手动 `build_compare_r2t2_app.py` 出格** ⇒ `reports/compare/r2t2__int8__npu_app.json`（6815 B，552 段 / 11294 词）；cell 已按 ASR-012 §2 修正：`device_placement.note` 与 `r2t2_ir_note` 用 **decoder-only 整段 prefill** 措辞（**无** cross-attention）、`timing_valid=false` ⇒ `latency.rtf` 置 null 且原值 1.0627 挪入 `timing_observed`、`wer_pct=null` 交 reviewer；② ✅ `asr007_build_results.py` 刷新 → **8 条记录**（新增 R2T2 App 格）、`p3_make_matrix.py` 刷新 MATRIX；③ 🔄 **6 格速度/内存 bench 已启动**（任务 `eauDGm`，`asr007_bench_all.py`，持规范锁串行、每格冷+热 fresh 进程、600 s 切片 [720,1320]）⇒ 锁空闲、首格 06b_int8_gpu0 冷编译已开始；④ ⏳ 待 bench 完成后重跑汇总 + 落 §34 末次；⑤ 🔴 仍待 reviewer 复算 R2T2 INT8@NPU App 路径 WER（对照 App 路径 R2T2 iGPU B **10.58%**）
 - 2026-10-26 11:08 **ASR-012 落地：0.6B INT8@NPU WER 11.05% 已回填 + §29.4 的「cross-attention」理由已撤回（§33）**：① ✅★ **reviewer 复算的 WER 已原样回填**：0.6B INT8@NPU（App 路径，553 段）= **11.05%**（1212 个错误）、iGPU 对照 10.94%（1199）⇒ **NPU−iGPU +0.12pp CI [−0.05,+0.29] 不显著**（17 段更好/510 持平/26 更差）、**对 R2T2 App B 10.58% +0.47pp CI [−0.24,+1.17] 不显著**；reviewer **独立核实段边界 553/553 逐位相同（差 0.0 s）** ⇒ §31.2 成立；⚠️ reviewer 未给 S/D/I 拆分 ⇒ `wer_breakdown` 如实写「不硬凑」+ `n_errors=1212`；② 🔴★ **撤回 §29.4 第 3 点的错误理由**：「R2T2 走 cross-attention、序列里根本没有 padding 概念」**是错的** —— R2T2 是 **decoder-only 整段 prefill**（`npu_embeds_backend.py:211-214` prefill 一次喂 **T 个 prompt token**，与 0.6B 同结构）；全 1 mask 的**真实理由** = **batch=1、无 padding token、mask 长度=真实 token 数（prefill=T / decode=past+1）、静态化到 512 的 padding 由 NPUW_LLM 内部完成**、IR **保留了 `attention_mask` 端口** ⇒ 0.6B 的根因（「自己手写 padding 到 512 且图里无 mask 端口」）**R2T2 不具备**；实测佐证 全 NPU 7.95% 对 GPU +0.10pp 不显著；「不派生自 c069g」这**一条成立**（reviewer 也确认：`c079b` 的 PAIRS 是 `…lastlogit-ov → …cleanie-ov`，`live_caption/*.py` 无处引用 `ov-dec-embed-fp16`）；**§29.4 已就地改写**（报告会引用这一段）+ 三处派生物同步修正（`asr007_build_results.py` / `asr007_r2t2_app_transcribe.py` / **`build_compare_r2t2_app.py` 新增覆盖** —— 🔴 长跑进程启动时已加载旧代码 ⇒ summary 带旧措辞，出格时必须覆盖）；③ 🔄 R2T2 INT8@NPU 61 分钟进行中（31.3% / 175 段，RTF≈1.05）；④ ⚠️ reviewer 记的 pid 25264（9 MB 小进程）应是 venv 包装层，真实占设备的是 20876 ⇒ **以产物为准、不以 PID 为准**
 - 2026-10-26 11:00 **交付件 4 处字段语义错误已修 + 27 个必需字段校验通过（§32）**：① 🔴 **`mem_host_peak_mb` 塞的是系统级内存、不是进程峰值**（取的是 `GlobalMemoryStatusEx` 的 total/avail/used）⇒ 改为**只由 bench 格提供**（`GetProcessMemoryInfo`），原值另存 `mem_host_system_raw`；② 🔴★ **作废的 RTF 仍摆在 `latency.rtf` 里**（`timing_valid=false` 的 0.6B@NPU 那一格）⇒ **三层同步修**：格子 json 挪到 `timing_observed`（数值字段全置 null）、`MATRIX.md` RTF 列显示「**作废**」、`MATRIX.json` 加 `rtf_observed`（`rtf` 置 null）⇒ **连带**把 `r2t2__int8__npu` 那格自称 `timing_valid=false` 的 RTF 0.7722 也清出 RTF 列（**交付级 RTF 只来自 bench 格**）；③ 🔴 **`device_placement` 没有产品级出处**（是脚本参数推出来的）⇒ 补 `evidence`（引用 summary 原始字段 `device`=NPU / `enc_ir` / `dec_ir` / `mem_device.device` / `DEVICE_ARCHITECTURE`=5010）+ 推理链说明（`OVRunner` 同一 `device` 参数编译两个 IR ⇒ enc==dec）；④ 🔴 **`mem_device_mb` 恒 null**（设备内存被塞进 `mem_device_raw` ⇒ 不满足 ASR-010 §4.5 字段清单）⇒ 新增 `_device_mem_mb()` 归一（GPU 取 `GPU_MEMORY_STATISTICS` 的 usm_device/usm_host/…；**NPU 无此属性 ⇒ 只报 `DEVICE_ARCHITECTURE`，内存不硬凑**）；⑤ ✅ 附带：R2T2 的 `compile_s_cold/cached` 改用 `load_s_cold/load_s_cached` 合并值（OVEngine 合算加载+编译）+ MATRIX 顶部 reviewer 数字清单补 10.94%/11.57%；⑥ ✅ **27 个必需字段逐条核对 ⇒ 7 条记录 0 缺失**；⑦ ✅ 新增 `wait_and_build_r2t2.py`（R2T2 长跑结束自动出格，判据 = `n_segs>0` 且 `covered_s >= audio_sec−1.0`，**不是**「文件非空」）
-- 2026-10-26 10:22 **bench 脚本实战化：5 个真缺陷修完 + 冒烟验证通过（§30）**：① 🔴 **`BLOCK_MS` 从未定义**（原代码 `... if False else ...` 把左半边短路掉了 ⇒ 语法过、运行不报错，但名字不存在）；② 🔴★ **首字延迟测的根本不是首字**（原记「整次 `generate()` 耗时」）⇒ 给 `p3_ov_app.py::OVRunner.generate` 加**向后兼容**的 `on_first_token` 回调（默认 None ⇒ **已交付产物不受影响**），在第一个非 EOS/PAD token 被 argmax 时打点 ⇒ 实测 **p50 0.2748 s / p95 0.3331 s**；③ 🔴 **`GetProcessMemoryInfo` 恒返回 False**（未声明 `argtypes` ⇒ ctypes 把指针当 int 传 ⇒ 参数错位）⇒ 改 `WinDLL('psapi')` 显式加载 + `restype/argtypes` ⇒ 0.6B **peak WS 9294.5 MiB / peak private 10900.7 MiB**、R2T2 **5091.7 / 5028.4 MiB**（另修 `peak_private` 误用当前值 `PrivateUsage` ⇒ 改 `PeakPagefileUsage`）；④ 🔴 **导入顺序**让 transformers 走「无 torch」降级分支 ⇒ `transformers.generation` 部分初始化 ⇒ `GenerationMixin` ImportError ⇒ 修法：**先** import transformers 再 import App（与长跑成功顺序一致），已在 bench 两条路径 + R2T2 转写脚本修好；⑤ 🔴 **R2T2 设备内存被判「拿不到 core」是错的**（`npu_delivery_backend.py:136` 有 `be._core`）⇒ 实测读到 **usm_device 171.3 MB / usm_host 2043.8 MB**；⑥ ✅ **冒烟验证两条路径都跑通、文本正常**（0.6B INT8@GPU.0 3 段 59 词 / R2T2 INT8@GPU.0 3 段；**缓存确认生效**：冷编译 **12.26 s** → 热 **4.50 s**；⚠️ 20 s 切片含冷启动 ⇒ RTF 偏高，**不作交付**）；⑦ ✅ **新编排脚本 `asr007_bench_all.py`**（每格冷/热各一遍 fresh 进程、都持规范锁；只清**自己专用** CACHE_DIR，**绝不碰** App 的 `%LOCALAPPDATA%/Confucius4LiveCaption/*_cache`）；⑧ ✅ **质量长跑 `timing_valid` 强制 false**（`build_compare_mask2.py` 新增 `QUALITY_RUNS` ⇒ RTF/延迟一律作废，只交 transcript）；⑨ 🔄 **0.6B INT8 @NPU 61 分钟进行中**（64.0% / 355 段 / 2350.7 s，文本正常）
 ## §2 最近一周的结论摘要（均引用产物）
 
 ### 2.1 切段策略（属本模块范围）
@@ -5186,3 +5186,57 @@ child pid = 13624 | child start offset = +0.20s | alive at wrapper exit = True
 ### §44.3 交付件
 - 全部落在 `results/pyannote_seg/asr017_slice_unify.json`（`asr018_device_placement` 段：决策 + 实测原始字段 + NPU 对照）。
 - 本轮仅提交本模块 `status/asr/`（STATUS_ASR.md + CORRECTIONS_ASR.md 的 ASR-018 条目）；`qwen3asr_06b` 不在 git 内 ⇒ 脚本/产物改动只在本机。
+
+
+## §45 ASR-019 落地：更正 §44.2 的 `seg_device` 归属（0.06487 是 GPU.0，不是 NPU）+ 正确的 GPU.0/NPU 对照（2026-10-27 15:50）
+
+**纠偏原文（ASR-019，2026-10-27 15:39，[FYI]）**：reviewer 指出 §44.2 把 `seg_model_rtf` 0.06487 标成 NPU，与 §42.6 自相矛盾；0.06487 数值与 GPU 吻合，应是 GPU.0。要求核对 `pya_app_forced_forced5m_v2.json` 的 `seg_device` 字段，在 STATUS 和 `asr017_slice_unify.json` 里更正对照；GPU.0 对 NPU 实际约 5.6 倍，不是 6%；结论不变（默认放 GPU.0，增量 0.069 可接受）；**不需要重跑实验**；验收 = 新增一小节写出更正后的字段原值。
+
+### 45.1 🔴 更正后的字段原值（唯一判据 = 产物 `params.seg_device`）
+
+| 产物（`results/pyannote_seg/`） | 字节 / mtime | `params.seg_device` | `seg_model_rtf` | `seg_model_wall_s` | `audio_sec` / `n_segs` |
+|---|---|---|---|---|---|
+| `pya_app_forced_forced5m_v2.json`（**§44.2 误标为 NPU 的那一个**） | 16062 / 11:28 | **GPU.0** | **0.06487** | 19.46 | 300.0 / 49 |
+| `pya_app_forced_forced5m.json` | 12460 / 10-26 21:45 | **GPU.0** | 0.05852 | 17.56 | 300.0 / 49 |
+| `pya_app_forced_forced61.json` | 150639 / 10-27 01:09 | **GPU.0** | 0.06018 | 220.94 | 3671.19 / 607 |
+| `pya_app_forced_asr018seg.json` | 16427 / 13:31 | **GPU.0** | 0.06876 | 20.63 | 300.0 / 49 |
+| `pya_stream_full61_NPU.json` | 37299 / 10-26 21:49 | `device`=**NPU** | **0.01068**（字段名 `rtf_seg_model`） | `infer_wall_s`=39.2 | 3671.189 / 108 段 / 5722 窗 |
+
+- ✅ **二次交叉验证（不只看 json）**：`logs/pya_forced5m_v2.log` 第 92 行、**日志末尾打印的 summary 里 `"seg_device": "GPU.0"`**；`logs/pya_app_forced61.log` 第 122 行同样是 `"seg_device": "GPU.0"` ⇒ json 与运行日志一致，排除「写盘时被改」。
+- 🔴 **`asr014_5m_baseline_vs_forced.json` 的 `runs[1]`（forced_5m_v2）里根本没有 `seg_device` 字段** ⇒ §44.2 写「forced5m_v2（seg_device=**NPU**）」**既无产物字段支持，又与源产物 `params.seg_device="GPU.0"` 直接矛盾** ⇒ 这就是错误来源。
+- ⇒ **所有 forced 产物（5 分钟与 61 分钟）分段模型都在 GPU.0 上跑**；NPU 上只有独立的流式窗口径那一个数 0.01068。
+
+### 45.2 ✅ 更正后的 GPU.0 vs NPU 对照（原「6%」作废）
+
+| 口径 | 值 | 出处 | 路径性质 |
+|---|---|---|---|
+| **GPU.0**（App 路径喂音） | **0.06018** | `pya_app_forced_forced61.json`（`seg_device`=GPU.0，61 分钟） | App 路径喂音 |
+| **GPU.0**（App 路径喂音） | 0.06487 / 0.05852 / 0.06876 | `forced5m_v2` / `forced5m` / `asr018seg`（5 分钟三次） | App 路径喂音 |
+| **NPU**（流式窗） | **0.01068** | `pya_stream_full61_NPU.json`（`device`=NPU，字段名 `rtf_seg_model`，5722 窗 / 107 断点 / `timing_valid`=true） | 流式窗口径 |
+
+- ⇒ **GPU.0 / NPU = 0.06018 / 0.01068 = 5.6348 ⇒ 约 5.6 倍**（reviewer 给「约 5.6 倍」，与 §42.6 的「快约 5.6 倍」**一致**）。
+- 🔴 **撤回 §44.2 的「GPU.0 比 NPU 慢约 +0.004（~6%）」** —— 那是把 GPU.0 的两个数（0.06487 与 0.06876）当成了「GPU.0 vs NPU」的对照，实际上**两次都是 GPU.0**，比的是同一设备两次测量的波动（不是设备间差异）。真实设备间差异是 **5.6 倍**。
+- ⚠️ **口径提示（沿用 §42.6）**：0.06018 是 **GPU.0 + App 路径喂音**，0.01068 是 **NPU + 流式窗** ⇒ 同素材但**路径不同**，倍数只能作为量级参考，不可当严格同口径比值。
+- ✅ **§44.2 的结论不变**：按 ASR-018 用户定案，分段模型默认放 **GPU.0**（NPU 让给 TTS 独占），GPU.0 上的 RTF 增量 ≈ **0.069**（`asr018seg` 实测），**可接受**；ASR-014 §2.5 的「建议放 NPU」是**已撤回口径下的旧建议**，其数字依据同样是「GPU.0 0.060 vs NPU 0.01068」⇒ **5.6 倍这个依据本身没错**，但「因 GPU 只慢 6% 故可忽略」的表述要改（实际是慢 5.6 倍）。
+
+### 45.3 ✅ 已更正产物：`results/pyannote_seg/asr017_slice_unify.json`
+
+- 更正前 8747 B（13:32）⇒ 更正后 **12226 B**（15:4x，mtime 见文件）；备份 `_asr019_backup_asr017_slice_unify.json`（8747 B）。
+- 新增字段 **`asr018_device_placement.comparison_gpu_vs_npu_corrected`**：
+  `what_was_wrong`（§44.2 把 0.06487 当 NPU）/ `evidence_seg_device_fields`（上表 5 个产物的 `seg_device` + `seg_model_rtf` 原值）/
+  `corrected_ratio`（gpu0_rtf 0.06018 / npu_rtf 0.01068 / ratio 5.63 / 两边出处）/ `gpu0_app_path_increments_5min`（0.05852 / 0.06487 / 0.06876）/
+  `conclusion_unchanged` / `no_rerun_needed`=true。
+- `asr018_device_placement.comparison_npu` 文本已替换为更正版；**旧文原文保留在 `comparison_npu_previous_text_asr019`**（可追溯，不静默改写）。
+- 🔴 **原始产物一个字节都没改**：`pya_app_forced_forced5m_v2.json` / `asr014_5m_baseline_vs_forced.json` 等全部保持原样（更正只落在**汇总/叙述文件**上）。
+- ⚠️ `qwen3asr_06b` **不在 git 仓库内** ⇒ 本轮改动**只在本机**（`scripts/asr019_fix_seg_device.py` + 上述 json），不进 git，交付需另行打包。
+
+### 45.4 本轮未做
+- **未重跑任何实验**（ASR-019 明确「不需要重跑」）⇒ 本轮**不占机器锁**（`shared/MACHINE_LOCK` 全程不存在，无 `.tmp` 残留）；未动 `live_caption/` 任何文件（ASR-003 边界）。
+- 🔴 **WER 仍未算**（本线程不调用 MiniMax）⇒ 交 reviewer 用 `shared/SPE_0000_0500.wav`（md5 `a10da6a3b9fb685bc6b8a5805c354d23`）的 MiniMax baseline 复算：`pya_app_baseline_asr017verify.json`（46 段）/ `pya_app_forced_forced5m_v2.json`（49 段）/ `pya_app_forced_asr018seg.json`（49 段）。
+- ⚠️ **撤回 §42.6 里的「建议放 NPU」建议措辞**（不删旧章节，只在此声明）：其数字依据（GPU.0 0.060 vs NPU 0.01068）本身成立，但结论「GPU 只慢 6%」是 §44.2 的错值传导 ⇒ 正确表述是「**GPU.0 比 NPU 慢约 5.6 倍**」；按 ASR-018 定案仍**默认放 GPU.0**。
+- ASR-013 剩余验收（多说话人素材）仍未完成，等用户指派素材。
+
+### 45.5 工具/方法论备忘
+- 🔴 **「文档自述」不能当设备归属的判据**：本轮错误正是「上一轮自己写的『seg_device=NPU』被下一轮当成已核实事实引用」⇒ **设备/精度/摆放类字段必须回到原始产物的 `params`/`device` 字段取证**，并在 STATUS 里把**字段名 + 原值 + 文件路径**三者写全。
+- ⚠️ **汇总 json 可能丢字段**：`asr014_5m_baseline_vs_forced.json` 的 `runs[]` 条目**没有** `seg_device` ⇒ 引用汇总 json 的字段时要回源核对，否则会凭空多出一个「NPU」。
+- ✅ 校验技巧：把 `params` 里的设备字段和**运行日志末尾打印的 summary** 对照（`logs/pya_forced5m_v2.log:92`、`logs/pya_app_forced61.log:122`）⇒ 可排除「写盘时被改」的可能。

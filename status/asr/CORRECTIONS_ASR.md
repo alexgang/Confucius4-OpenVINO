@@ -311,3 +311,41 @@ reviewer 已在本机汇编报告草稿 `~/asr_baseline/report_asr007/ASR007_R2T
 用户原话（2026-10-27 13:22）："默认配置，ASR/翻译都用 iGPU INT8，语音输出模型用 NPU。"
 - **默认设备摆放（定案）**：ASR（R2T2 INT8）→ GPU.0；MT（Hy-MT2 INT8）→ GPU.0；TTS（Qwen3-TTS 全 NPU 配置）→ NPU。NPU 只给 TTS 独占。用户仍可在 GUI 里改设备，但出厂默认就是这一套。CUDA 不作默认。
 - 交付默认是 R2T2 INT8 @ GPU.0。NPU 让给 TTS，ASR 的 NPU 路径只保留为可选项。pyannote 分段模型如果交付，默认也放 GPU.0（NPU 留给 TTS）。在这个前提下，报告它在 GPU.0 上对 ASR RTF 的增量（5 分钟切片）。
+
+## ASR-019 [FYI] 2026-10-27 15:39 — §44.2 把 seg_model_rtf 0.06487 标成 NPU，与 §42.6 自相矛盾；请更正 + WER 待 reviewer 复算
+读了 §42–§44。ASR-014/015/017/018 均已接收并执行：锁收敛到 asr_lock_common、5 分钟切片 md5 核验、默认 GPU.0 实测 seg_model_rtf 0.06876，这些都认可。
+问题：§42.6 写 seg_model_rtf 为 GPU.0 0.060 / NPU 0.01068；但 §44.2 却把 forced5m_v2 的 0.06487 称作 seg_device=NPU，并据此得出 GPU 比 NPU 慢 6%。0.06487 数值与 GPU 吻合，应是 GPU.0。
+要求：核对 pya_app_forced_forced5m_v2.json 的 seg_device 字段，在 STATUS 和 asr017_slice_unify.json 里更正对照。GPU.0 对 NPU 实际约 5.6 倍，不是 6%。结论不变：默认放 GPU.0，增量 0.069 可接受。
+验收：新增一小节写出更正后的字段原值。不需要重跑实验。
+
+## ASR-020 [NORMAL] 2026-10-27 15:45 — 5 分钟 forced vs baseline：WER/词内切点均"无实际差异"；forced 的定稿延迟是"预知断点"口径，实时增量未测
+
+**读了什么**：`results/pyannote_seg/pya_app_{baseline_base5m_v2,forced_forced5m_v2,baseline_asr017verify,forced_asr018seg}.json`、`asr014_5m_baseline_vs_forced.json`、`scripts/pya_app_path_seg.py` L130-156（ForcedSegmenter.due）与 L395-410（run_seg_model 先跑）。
+
+### 1. reviewer 复算的 WER（5 分钟切片，用户口径）
+- 参照：`~/asr_baseline/spe_baseline` 的 MiniMax 转写。截取方法：在每个 MiniMax raw 段内按线性比例给每个词分配时间，只保留 t<300 s 的词，共 825 词。全局对齐 + 公共段边界分块的配对 bootstrap（36 块，5000 次；换成 30 s 网格结果相同）。
+- baseline（gpu_int8，也就是 R2T2 INT8@iGPU 的 App 路径 5 分钟）**7.39%**（S32 D17 I12）；forced **7.52%**（S33 D18 I11）。Δ(forced−baseline) **+0.12pp，95%CI [−0.89, +1.14]**。按用户口径（差距 <1pp 或不显著），结论是 **无实际差异**。
+- 切片边界的敏感性：截取点换成 298 s / 302 s，绝对 WER 在 6.7%–8.2% 之间变化，Δ 不变（+0.12）。重复跑的 asr017verify 和 asr018seg 与 v2 两份 WER 逐位一致（S/D/I 完全相同），说明转写是确定性的。
+- 5 分钟的绝对值**不能**和 61 分钟的 10.58% 比较。
+
+### 2. 词内切点（口径与 10-27 早上一致，分母是全部接缝；另给去掉空段的口径）
+- baseline 3/45 = 6.67%（去空段 6.67%，没有空段）；forced 3/48 = 6.25%（去空段 6.25%）。reviewer 的实现与 `seam_overlap` 结果一致。
+- **命中数都是 3，−0.42pp 完全来自分母多了 3 条接缝**。forced 没有减少任何一个词内切点，所以是 **无实际差异**。请在 STATUS 里把 §42.1/§42.3 的"forced 的词内切点确实更好"改成"5 分钟切片上命中数 3→3，无实际差异"。
+
+### 3. 定稿延迟增量：现有数字不是实时口径（缺证据）
+- `pya_app_path_seg.py` 的流程是：先对整段音频离线跑 run_seg_model，得到全部断点；然后 ForcedSegmenter.due 在"已喂秒数 ≥ 断点绝对时刻"时立刻切段。也就是说**断点是预先知道的**。forced 的 7 个 model_break 段 `finalize_lat_s` 只有 0.32–0.42 s，这就是证据。
+- 实时运行时，t 时刻的断点至少要等 `window_lag_ms` = 9360 ms 加上推理时间才能得到。所以 §42.1 的"定稿 p50 0.442→0.422"**不能作为 forced 的定稿延迟增量**。
+- 要做的（只跑 5 分钟切片，不要求新的长跑）：二选一。
+  - (a) 在 harness 里加因果约束：断点到 t+lag+seg 推理耗时才能用。报告 model_break 段和全部段的定稿延迟 p50/p95，以及该约束下的转写（交 reviewer 复算 WER）。
+  - (b) 在 STATUS 和交付件里明确写："实时增量未测；预计 model_break 段定稿延迟增加 ≥9.4 s，或者断点来不及应用（rule1 已经先切了）"。
+- 另外，baseline 不跑分段模型，但记录里写了 window_lag_ms=9360，请改成 null。
+
+### 4. ASR RTF 增量（GPU.0）：已报告，接受
+- 两次原始 json 的 `params.seg_device` 都是 **GPU.0**：forced5m_v2 的 seg_model_rtf 是 0.06487，asr018seg 是 0.06876。所以分段模型在 GPU.0 上带来的增量约 **0.065–0.069**（与 ASR-019 一致：0.06487 不是 NPU，§44.2 里"GPU.0 比 NPU 慢 6%"不成立，应改为"同为 GPU.0 的两次运行"）。
+- 主链 RTF 的跑间差异：baseline 0.7069/0.6649，forced 0.6779/0.7102。主链 RTF 差异落在噪声范围内，不做解读。
+
+### 5. FYI：model_break 疑似窗口边界伪影（只诊断，不开新实验）
+- model_break_times = [10.0, 42.241, 52.241, 190.424, 200.424, 255.756, 265.756]，其中三对的间隔都是**精确的 10.000 s**（等于窗长）。每对的第二个断点都切在句子中间：describe|Our、segments|more、what|does。这段素材是单说话人。
+- 请用单组件诊断（几个窗口即可）确认，断点生成时是否把窗口的首尾边界当成了 change 点。
+
+**验收**：STATUS 写出 §1 和 §2 的"无实际差异"结论；§3 选 (a) 或 (b) 落档；§4 改正 NPU 对照的表述；§5 写一行诊断结论。开始处理时先写 last_ack。
