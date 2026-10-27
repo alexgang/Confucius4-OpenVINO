@@ -1,12 +1,13 @@
 # STATUS_EXT
 last_ack: EXT-006
-更新时间: 2026-10-28 02:24
-当前任务: **§5 EXT-006 P1 — 接入真实引擎（ASR R2T2@GPU.0 → MT Hy-MT2@GPU.0 → TTS Qwen3-TTS@NPU）** ⇒ ✅ **引擎已接线**（`ext/engine_runtime.py` + `ext/bridge.py --real`，回声模式保留作自测）⇒ ✅ **修掉 4 个真实缺陷**（段起始时间基点归零 / 语言表含引擎不支持的 6 种语言 / 失控闸口径未用 App RUNAWAY 公式 / **R2T2 与 App 侧 6 个同名顶层模块互相顶替**，见 §5.2）⇒ ✅ **新增 P1 端到端实测工具链**（`tools/p1_pipeline.py` + `tools/run_p1_real.py` + `tools/engine_smoke.py` + `tools/bridge_server.py`）⇒ ✅ 自测 **53 + 10 + 19 + 101 = 183 PASS / 0 FAIL**（4 套）⇒ ✅ **EXT-005 三点已处理**（tabCapture 路径说明 / 进程残留清理 / chrome_profile 统一目录，见 §4）⇒ ⏳ **P1 5 分钟端到端实测进行中**（持共享锁跑，证据见 §5.5）⇒ ⛔ **P2/P3 未开始**；⛔ **pyannote 旁路未接线**（ASR-013 交付后由主会话通知）
+更新时间: 2026-10-28 05:42
+当前任务: **§5 EXT-006 P1 — 接入真实引擎（ASR R2T2@GPU.0 → MT Hy-MT2@GPU.0 → TTS Qwen3-TTS@NPU）** ⇒ ✅ **引擎已接线**（`ext/engine_runtime.py` + `ext/bridge.py --real`，回声模式保留作自测）⇒ ✅ **修掉 9 个真实缺陷**（§5.2/§5.3：段起始时间基点归零 / 语言表含引擎不支持的 6 种语言 / 失控闸口径未用 App RUNAWAY 公式 / **R2T2 与 App 侧 6 个同名顶层模块互相顶替** / **stats marker 被覆盖 ⇒ margin 余量全丢** / **同步误差口径拿顺延量当误差** / **离线快灌使余量失真** / **尾段永不处理** / **`CancelledError` 穿透 ⇒ P1 产物最后一步全丢**）⇒ ✅ **新增 P1 端到端实测工具链**（`tools/p1_pipeline.py` + `tools/run_p1_real.py` + `tools/engine_smoke.py` + `tools/bridge_server.py`）⇒ ✅ **新增桩引擎管线自测** `tests/test_p1_plumbing.py`（20 PASS，不占 GPU·NPU）⇒ ✅ 自测 **69 + 10 + 19 + 101 + 20 = 219 PASS / 0 FAIL**（5 套）⇒ ✅ **EXT-005 三点已处理**（tabCapture 路径说明 / 进程残留清理 / chrome_profile 统一目录，见 §4）⇒ ⏳ **P1 5 分钟端到端实测排队中**（实时字幕 App 持锁，排队等，不抢锁）⇒ ⛔ **P2/P3 未开始**；⛔ **pyannote 旁路未接线**（ASR-013 交付后由主会话通知）
 
 阻塞 / 待决定:
-① ⏳ **P1 端到端实测**正在持锁跑（ASR→MT→TTS 全链路），落盘 `.tmp/p1_run/`，数值见 §5.5；② ⛔ **pyannote 旁路未接线** —— ASR-013 交付后由主会话通知；③ ⛔ **P2（克隆/体验/稳定性）/ P3（打包）未开始**；④ ℹ️ **§2 的 skew 尖峰归因已被撤回**（见 §3.1），真实根因是插件自身视频管线负载 + 测量口径错误，**与实时字幕 App 无关**；⑤ ℹ️ **主线程 event-loop lag 仍有 720 ms 尖峰**（插件自身视频渲染，与采样时钟准确度无关，EXT-001 未约束此项）—— 本轮**不宣称**已消除，见 §3.8 / §3.9；⑥ ℹ️ **TTS 只支持 zh/en/ja/ko**（Qwen3-TTS 的 `SUPPORTED_LANGS`），目标语言超出这 4 种时**显式报错**而非静默回落（见 §5.2 缺陷 2）。
+① ⏳ **P1 端到端实测排队中** —— 实时字幕 App 模块持锁（`app PID 24888`，05:37:36 起，跑 CUDA A/B 测试）⇒ 本模块**排队等待**（`--lock-wait 5400`），**未抢锁、未删锁**；本轮**未宣称 P1 实测完成**（数值见 §5.7，未落盘则该节留空）；② ⛔ **pyannote 旁路未接线** —— ASR-013 交付后由主会话通知；③ ⛔ **P2（克隆/体验/稳定性）/ P3（打包）未开始**；④ ℹ️ **§2 的 skew 尖峰归因已被撤回**（见 §3.1），真实根因是插件自身视频管线负载 + 测量口径错误，**与实时字幕 App 无关**；⑤ ℹ️ **主线程 event-loop lag 仍有 720 ms 尖峰**（插件自身视频渲染，与采样时钟准确度无关，EXT-001 未约束此项）—— 本轮**不宣称**已消除，见 §3.8 / §3.9；⑥ ℹ️ **TTS 只支持 zh/en/ja/ko**（Qwen3-TTS 的 `SUPPORTED_LANGS`），目标语言超出这 4 种时**显式报错**而非静默回落（见 §5.2 缺陷 2）；⑦ ℹ️ **tabCapture 生产路径仍未实测**（EXT-005 ①）—— P0 三项实测走的是 `getDisplayMedia` 兜底路径，本轮**不宣称**「MV3+tabCapture 已验证」，见 §4.2。
 
 ## 最近更新
+05:42 §5 **EXT-006 P1 收口（补完上一轮被中断的轮次）**：⚠️ 闸门判 exit 1，但仓库状态证明上一轮 02:24 **被中断**（树脏 15 个文件 / HEAD 的 last_ack 还是 EXT-003 而工作区已推进到 EXT-006 / STATUS 缺 §4§5 / EXEC_LOG 无 EXT-005·006 记录 / P1 证据从未落盘 / 锁残留）⇒ 按「**未完成的轮次**」接手收口，**last_ack 保持 EXT-006**（纠偏文件里无 EXT-007，不认领新编号）⇒ ✅ 补写 §4（EXT-005 三点）/ §5（EXT-006 P1）⇒ ✅ **修掉 9 个真实缺陷**（其中 4 个会让 P1 拿到**假数据**或**丢光产物**）⇒ ✅ 新增 `tests/test_p1_plumbing.py`（桩引擎管线自测，20 PASS；**实测抓到第 9 个缺陷**：CancelledError 穿透）⇒ ✅ **5 套自测 219 PASS / 0 FAIL** ⇒ ⏳ **P1 5 分钟实测排队等实时字幕 App 的锁**
 02:24 §5 **EXT-006 P1 落地（真实引擎接线）**：✅ 新建 `ext/engine_runtime.py`（ASR/MT/TTS 三个真实引擎的适配层，只 import 对方原件）⇒ ✅ `ext/bridge.py` 支持 `--real --target-lang --margin-out`（回声模式保留）⇒ ✅ **修 4 个真实缺陷**（§5.2：段起始时间基点归零 / 语言表含 6 种不支持语言 / 失控闸口径 / **同名模块互相顶替**）⇒ ✅ 新增 `tools/p1_pipeline.py`（P1 端到端流水线 + P1 指标 + 配音 wav + 时间表落盘）、`tools/run_p1_real.py`（持锁编排器）、`tools/engine_smoke.py`（引擎冒烟）、`tools/bridge_server.py`（用 App 解释器起服务）⇒ ✅ **App 运行时缺 `websockets`** ⇒ 装到项目本地 `.runtime_deps/`（⛔ 不改 App 任何文件）⇒ ✅ **4 套自测 183 PASS / 0 FAIL** ⇒ ⏳ **P1 5 分钟实测进行中**
 02:24 §4 **EXT-005 三点处理完成**：✅ **tabCapture 生产路径仍未实测**（如实列为风险，不宣称已验证）⇒ ✅ **进程残留**：`tools/chrome_profile.py` 按 `--user-data-dir` 精确匹配杀浏览器进程树 + 删目录 + 确认无残留 ⇒ ✅ **配置目录统一**到 `chrome_profile\<名称>\`（旧 `.tmp/pwprof*` 已清）⇒ ✅ **旧 Chrome 配置目录已清理**（16 个 ≈996 MB → 0）
 00:42 §3 **EXT-003 复测收口**：✅ **P0① 5 分钟复测达标**（`maxAbsSkewAudioMs=1.08 ms` < 50 ms，`skew_ok=true`，seq 连续、gaps=0）⇒ ✅ **P0② 唇音同步达标**（`absErrP95=23.27 ms` ≤ 40 ms，掉帧率 0.0%）⇒ ✅ **P0③ 排程误差达标**（双探针 `maxAbsErrMs=0.0208 ms` ≤ 20 ms）⇒ ✅ **5 套自测 172 PASS / 0 FAIL** ⇒ ⛔ **引擎未接线**、⛔ **未跑推理/未占 GPU·NPU**
@@ -505,6 +506,28 @@ tools/player_perf_bench.js         →   8 PASS / 0 FAIL   （纯 Node 微基准
    修法：新增 `flush` 消息（客户端喂完最后一帧后发）⇒ 服务端把尾段切出来处理；
    尾段的 `t_start` **同样用会话绝对偏移**（不归零）。自测断言「尾段 t_start > 0」
    且「紧接上一段之后」，并断言 flush **幂等**（第二次无输出）。
+9. **【桩引擎自测实测复现】`CancelledError` 穿透 ⇒ P1 产物在最后一步全丢**
+   （`tools/p1_pipeline.py` `_run_client` 的 `finally`）
+   收尾时取消接收协程后 `await rx` 抛出的 `asyncio.CancelledError`
+   在 Python 3.8+ **继承自 `BaseException`（不是 `Exception`）**
+   ⇒ 原代码 `except Exception:` **捕不到它** ⇒ 异常**穿透出 `_run_client`**，
+   把整个 P1 流水线在**最后一步**打崩 ⇒ 已经算好的配音 wav / 时间表 / 指标
+   **全部拿不到**（连接以 1011 收尾、进程 traceback）。
+   ★ 这个缺陷是**本轮新增的桩引擎自测（`tests/test_p1_plumbing.py`）实测抓到的** ——
+   若没有它，真实 P1 实测会白跑 5 分钟推理、最后一步崩掉、**证据为零**。
+   修法：改捕 `BaseException`。自测里用真实 websockets 服务 + 桩引擎跑完整链路复现与验证。
+
+### 5.3.1 新增自测套件：`tests/test_p1_plumbing.py`（桩引擎，20 PASS / 0 FAIL）
+
+- **动机**：P1 真实实测要占 GPU.0 + NPU + 共享锁，跑起来很难中途修管道；
+  而本轮修的缺陷大量集中在**管道层** ⇒ 用**桩引擎**（毫秒级返回假 PCM，**不触任何设备**）
+  把「桥接服务 ⇄ 客户端」整条链路真跑一遍。
+- 覆盖：① 服务端收到 `flush` 并切出尾段（t_start 不归零）；② stats 带 `_stats` marker；
+  ③ tts 帧带 `deadline_margin_sec` / `margin_sec` / `tts_ready_at`；
+  ④ `compute_metrics` 算出正确同步误差；⑤ 客户端收尾等到**预期段数**而非干等；
+  ⑥ 服务端 `margin_summary` 有段数/负值数/累计滞后/排程截止余量组；
+  ⑦ 配音 wav 落盘且是 24 kHz PCM16；⑧ 时间表落盘；⑨ flush 幂等。
+- ⛔ **不占 GPU·NPU、不跑推理、不抢共享机器锁**。
 
 ### 5.4 涉及修改的文件
 

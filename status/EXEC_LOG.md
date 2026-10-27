@@ -320,7 +320,7 @@ tests/test_ext_browser_contract.py → 101 PASS / 0 FAIL
 | `tests/test_ext_selfcheck.py` | **追加** 16 项断言（§7~§14），未改写旧断言 |
 | `.gitignore` | 加 `chrome_profile/`、`.runtime_deps/` |
 
-### 本轮修掉的真实缺陷（8 个，详见 STATUS §5.2/§5.3）
+### 本轮修掉的真实缺陷（**9 个**，详见 STATUS §5.2/§5.3）
 1. 段起始时间基点归零 / 索引错位（`ext/bridge.py`）
 2. 语言表含引擎不支持的 6 种语言（静默回落 English，日文素材会被读成英文且日志看不出来）
 3. 失控闸口径未用 App RUNAWAY 公式
@@ -328,7 +328,20 @@ tests/test_ext_browser_contract.py → 101 PASS / 0 FAIL
 5. **客户端 stats 包装把 `_stats` marker 覆盖掉 ⇒ EXT-006 核心验收量（margin 余量）全部丢失**，且收尾循环永远等不到 stats
 6. **同步误差口径用错量**（拿顺延量当同步误差）⇒ 改为 EXT-001 原文口径 `max(0, −deadline_margin)`
 7. **离线快灌 ⇒ 余量/滞后指标失真**（拿到的正是假数据）⇒ 改为按墙钟节拍实时喂帧
-8. **尾段永不处理 ⇒ 时间表缺最后一段** ⇒ 新增 `flush` 消息
+8. **尾段永不处理 ⇒ 时间表缺最后一段** ⇒ 新增 `flush` 消息 + `Session.flush()`（尾段 t_start 不归零）
+9. **【桩引擎自测实测抓到】`CancelledError` 穿透 ⇒ P1 产物在最后一步全丢**
+   （`asyncio.CancelledError` 继承自 `BaseException` 而非 `Exception` ⇒ 收尾时
+   `await rx` 抛出的它**捕不到**、穿透出 `_run_client` ⇒ 已算好的配音 wav /
+   时间表 / 指标全部拿不到，连接以 1011 收尾）⇒ 改捕 `BaseException`。
+   ★ 若没有这套桩引擎自测，真实 P1 实测会白跑 5 分钟推理后崩在最后一步、**证据为零**。
+
+### 新增自测套件
+- `tests/test_p1_plumbing.py`（**新建**，20 PASS / 0 FAIL）—— 用**桩引擎**（毫秒级返回假 PCM，
+  **不触任何设备**）把「桥接服务 ⇄ 客户端」整条链路真跑一遍，覆盖：
+  flush 尾段（t_start 不归零）/ stats `_stats` marker / tts 帧带 `deadline_margin_sec`
+  / 同步误差口径 / 收尾等到预期段数 / 服务端 `margin_summary` 四项 / 配音 wav 是
+  24 kHz PCM16 / 时间表落盘 / flush 幂等。
+- ⛔ 该套件**不占 GPU·NPU、不跑推理、不抢共享机器锁**。
 
 ### 自测结果（本轮实跑）
 ```
@@ -336,8 +349,9 @@ tests/test_ext_selfcheck.py        →  69 PASS / 0 FAIL   (原 53 + 本轮追�
 tests/test_echo_roundtrip.py       →  10 PASS / 0 FAIL
 tests/test_next_instruction.py     →  19 PASS / 0 FAIL
 tests/test_ext_browser_contract.py → 101 PASS / 0 FAIL
+tests/test_p1_plumbing.py          →  20 PASS / 0 FAIL   (本轮新建)
 ```
-合计 **199 PASS / 0 FAIL**（4 套）。
+合计 **219 PASS / 0 FAIL**（5 套）。
 新增断言里对缺陷 5 **同时断言「旧写法确实坏」与「新写法确实好」** ⇒ 防「假通过」。
 
 ### 共享机器锁合规记录
@@ -358,3 +372,19 @@ tests/test_ext_browser_contract.py → 101 PASS / 0 FAIL
 - ⛔ **pyannote 旁路未接线**（ASR-013 交付后由主会话通知）。
 - ⛔ **P2（克隆/体验/稳定性）/ P3（打包）未开始**。
 - ℹ️ **主线程 event-loop lag 720 ms 尖峰仍未宣称消除**（见 §3.8 / §3.9）。
+
+### 补充记录（05:42）：桩引擎自测抓到的第 9 个缺陷
+- 新建 `tests/test_p1_plumbing.py`（桩引擎，不占 GPU·NPU）跑完整链路时**实测复现**：
+  `_run_client` 收尾里 `await rx` 抛出的 `asyncio.CancelledError`
+  （Python 3.8+ 继承自 **BaseException**）**穿透**出函数 ⇒ P1 流水线最后一步崩
+  （连接 1011、进程 traceback）⇒ **配音 wav / 时间表 / 指标全部拿不到**。
+- 修法：`except Exception` → `except BaseException`。
+- ⇒ 修完再跑：20 PASS / 0 FAIL（flush 尾段、stats marker、deadline_margin 下发、
+  同步误差口径、收尾等到预期段数、服务端 margin_summary 四项、
+  配音 wav 24 kHz PCM16、时间表落盘、flush 幂等）。
+- ★ 这个缺陷**只有跑通管道才会暴露**；真实 P1 实测要占 GPU.0+NPU+共享锁、
+  跑一次 5 分钟 ⇒ 不值得拿真机试错 ⇒ 桩引擎自测是本轮性价比最高的投入。
+
+### 提交
+- `b120f3f` EXT-005 + EXT-006 收口（引擎接线 + 8 个缺陷 + §4/§5/流水）
+- 后续提交：第 9 个缺陷（CancelledError）+ `tests/test_p1_plumbing.py`

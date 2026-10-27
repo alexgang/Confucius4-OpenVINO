@@ -196,7 +196,14 @@ async def _run_client(*, port: int, token: str, frames, delay_sec: float,
             rx.cancel()
             try:
                 await rx
-            except Exception:
+            except BaseException:
+                # ★ 必须捕获 BaseException，不能只捕 Exception：
+                #   `asyncio.CancelledError` 在 Python 3.8+ 继承自 **BaseException**
+                #   （不是 Exception）⇒ `except Exception` **捕不到它**
+                #   ⇒ 取消接收协程后 `await rx` 抛出的 CancelledError 会
+                #   **穿透出 _run_client**，把整个 P1 流水线在**最后一步**打崩
+                #   ⇒ 已经算好的配音 wav / 时间表 / 指标**全部拿不到**
+                #   （本轮用桩引擎自测实测复现：连接以 1011 收尾、进程 traceback）。
                 pass
     return tasks, hello, t_capture
 
