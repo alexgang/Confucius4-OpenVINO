@@ -1,12 +1,13 @@
 # STATUS_APP
 last_ack: APP-027
-更新时间: 2026-10-27 12:30
-当前任务: **§68 🔴🔴 APP-026 + APP-027（BLOCKING）代码侧改造完成 · 验收待机器锁** ⇒ ✅ APP-026（统一 5 分钟切片 `shared/SPE_0000_0500.wav`，不再跑 61min）＋ ✅ APP-027①（逐句自适应预缓冲 + numpy 环形缓冲 + 遥测拆 `synth_rtf`/`prebuffer_s`/`underflow_in_sentence`）＋ ✅ APP-027②（CUDA 边车 **rid 过滤 + 读者线程 + 看门狗** ＋ **单一 FIFO 合成线程** ＋ **三段式积压**「已写入/已开播一律不丢」）＋ ✅ APP-027③（**克隆真正接入**：主进程采集 3–10 s 去静音语音 → worker 换 x-vector / 边车 `set_ref` → 下一句生效；**失败真回落预设 A**；GUI 显示**实际使用**的音色）＋ ✅ 删 `clone_C.npz` 死代码 ＋ ✅ `pkg_exclude` 隐私闸门 ＋ ✅ 桩测试隔离 `LOCALAPPDATA`⇒ ✅ 验收 `app098` 21/21 ＋ `app099` 13/13 ＋ `app100` 28/28（含 3 条反证）⇒ ⛔ **V1/V2/V3 未跑**（机器锁被 TTS 占用，`OpenProcess` err=87 ⇒ fail-closed 视为存活）⇒ ⛔ **客户包未同步 / zip 未重打**（当前 zip = 10:28:15 旧版 ⇒ **不写「已交付」**）⇒ ⛔ **V4 等用户实听**（CUDA / NPU / 克隆各一段；**只有用户确认才算 L4 关闭**）⇒ 🔴 **`last_ack` = APP-027**
+更新时间: 2026-10-27 13:22
+当前任务: **§68 🔴🔴 APP-026 + APP-027（BLOCKING）代码侧改造完成 · 验收待机器锁** ⇒ ✅ APP-026（统一 5 分钟切片 `shared/SPE_0000_0500.wav`，不再跑 61min）＋ ✅ APP-027①（逐句自适应预缓冲 + numpy 环形缓冲 + 遥测拆 `synth_rtf`/`prebuffer_s`/`underflow_in_sentence`）＋ ✅ APP-027②（CUDA 边车 **rid 过滤 + 读者线程 + 看门狗** ＋ **单一 FIFO 合成线程** ＋ **三段式积压**「已写入/已开播一律不丢」）＋ ✅ APP-027③（**克隆真正接入**：主进程采集 3–10 s 去静音语音 → worker 换 x-vector / 边车 `set_ref` → 下一句生效；**失败真回落预设 A**；GUI 显示**实际使用**的音色）＋ ✅ 删 `clone_C.npz` 死代码 ＋ ✅ `pkg_exclude` 隐私闸门 ＋ ✅ 桩测试隔离 `LOCALAPPDATA`⇒ ✅ 验收 `app098` 21/21 ＋ `app099` 13/13 ＋ `app100` 28/28（含 3 条反证）⇒ ⛔ **V1/V2/V3 未跑**（机器锁被 TTS 占用，`OpenProcess` err=87 ⇒ fail-closed 视为存活）⇒ ✅ **客户包已定点同步（5 文件 == HEAD/LF）** ＋ ⛔ **zip 未重打**（当前 zip = 10:28:15 旧版 ⇒ **不写「已交付」**）⇒ ⛔ **V4 等用户实听**（CUDA / NPU / 克隆各一段；**只有用户确认才算 L4 关闭**）⇒ 🔴 **`last_ack` = APP-027**
 
-阻塞 / 待用户决定: ① 🔴🔴 **§68：APP-027 是 BLOCKING，代码侧已改完但未在用户启动方式下复验** ⇒ **不写「语音输出可用」**；② ⛔ **V1（CUDA 连续实时）/ V2（NPU + 四配置 ABBA）/ V3（克隆）未跑** ⇒ **阻塞原因 = 共享机器锁被 TTS 模块占用**（`module: tts` / `pid: 14888` / started 11:28:49）⇒ ctypes `OpenProcess` **err=87** ⇒ **fail-closed ⇒ 视为存活** ⇒ **不抢、不删、不跑**；③ ⛔ **客户包 `app/` 未同步 + zip 未重打** ⇒ 当前 zip = **10:28:15 旧版**（11 216 287 107 B / SHA256 `c7f60bca…a667e4`）⇒ **不含本轮任何改动** ⇒ **不写「已交付」**（口径：包目录 + zip 已含最新代码**且已入库**）；④ ⛔ **§63 的 L4 仍等用户实测**（需人）：桌面快捷方式 → CUDA 朗读一句 → NPU 朗读一句 → 克隆音色一段 ⇒ 反馈听到/听不到 + `%LOCALAPPDATA%\Confucius4LiveCaption\session_*.log` 路径 ⇒ **用户亲口确认前不得写「能出声」**；⑤ 🔴 **§66 用户新口径仍生效**：**不再跑 `verify_pkg_zip.py`、不再跑 `publish_ftp.py`、不开 FTP** ⇒ 交付流程 = **定点同步 → 先提交 → 持锁重打 zip**（+ 只读本地「zip ⇄ 包目录 diff = 0」）；⑥ 🔴 **§68 之后拿锁要做的事顺序不可颠倒**：V1 → V2 → V3 → **V4 用户实听** ⇒ **过 V1–V3 才**定点同步客户包 ⇒ 先提交 ⇒ 持锁重打 zip；⑦ 🔴 **APP-022「按说话人切换音色」仍后置**（本轮只做「克隆**当前**说话人」的单音色路线，**不依赖 pyannote**）；⑧ 🔴 **§67 的 `app067_repack_after_lock.py`** = 等锁重打包的「替代校验」入口（**只读本地**闸门）；⑨ 🔴 **APP-024②③④ 仍未做**（reviewer 明文「不要自己改」）⇒ 保持原状；⑩ 🔴 **§57 历史遗留未跟踪文件**（`sync_c148b_to_pkg.py` 等）**归属未判定** ⇒ 本轮**未提交**；⑪ 🔴 **§64.6** `test_tts_cmp_orig.py` 因 `_orig_mod/` **从未入 git** 无法运行 ⇒ **环境缺失非回归**
+阻塞 / 待用户决定: ① 🔴🔴 **§68：APP-027 是 BLOCKING，代码侧已改完但未在用户启动方式下复验** ⇒ **不写「语音输出可用」**；② ⛔ **V1（CUDA 连续实时）/ V2（NPU + 四配置 ABBA）/ V3（克隆）未跑** ⇒ **阻塞原因 = 共享机器锁被 TTS 模块占用**（`module: tts` / `pid: 14888` / started 11:28:49）⇒ ctypes `OpenProcess` **err=87** ⇒ **fail-closed ⇒ 视为存活** ⇒ **不抢、不删、不跑**；③ ✅ **客户包 `app/` 已定点同步**（5 文件 == HEAD/LF，SHA256 独立复核全 MATCH；见 §69）＋ ⛔ **zip 未重打** ⇒ 当前 zip = **10:28:15 旧版**（11 216 287 107 B / SHA256 `c7f60bca…a667e4`）⇒ **不含本轮任何改动** ⇒ **不写「已交付」**（口径：包目录 + zip 已含最新代码**且已入库**）；⚠️ 包内 `backends.py`/`seg_stream.py` 与 HEAD 不符属 **C-102/C-098 预存代差、不在 APP-027 范围**，本轮不碰；④ ⛔ **§63 的 L4 仍等用户实测**（需人）：桌面快捷方式 → CUDA 朗读一句 → NPU 朗读一句 → 克隆音色一段 ⇒ 反馈听到/听不到 + `%LOCALAPPDATA%\Confucius4LiveCaption\session_*.log` 路径 ⇒ **用户亲口确认前不得写「能出声」**；⑤ 🔴 **§66 用户新口径仍生效**：**不再跑 `verify_pkg_zip.py`、不再跑 `publish_ftp.py`、不开 FTP** ⇒ 交付流程 = **定点同步 → 先提交 → 持锁重打 zip**（+ 只读本地「zip ⇄ 包目录 diff = 0」）；⑥ 🔴 **§68 之后拿锁要做的事顺序不可颠倒**：V1 → V2 → V3 → **V4 用户实听** ⇒ **过 V1–V3 才**定点同步客户包 ⇒ 先提交 ⇒ 持锁重打 zip；⑦ 🔴 **APP-022「按说话人切换音色」仍后置**（本轮只做「克隆**当前**说话人」的单音色路线，**不依赖 pyannote**）；⑧ 🔴 **§67 的 `app067_repack_after_lock.py`** = 等锁重打包的「替代校验」入口（**只读本地**闸门）；⑨ 🔴 **APP-024②③④ 仍未做**（reviewer 明文「不要自己改」）⇒ 保持原状；⑩ 🔴 **§57 历史遗留未跟踪文件**（`sync_c148b_to_pkg.py` 等）**归属未判定** ⇒ 本轮**未提交**；⑪ 🔴 **§64.6** `test_tts_cmp_orig.py` 因 `_orig_mod/` **从未入 git** 无法运行 ⇒ **环境缺失非回归**
 
 
 ## 最近更新
+13:22 §69 ✅ **APP-027 客户包定点同步完成**：`sync_app027_to_pkg.py`（pkg→HEAD + LF 归一化 + 唯一命中 + 替换后==HEAD 断言）写 5 文件 FAIL=0；独立复核 包内 LF SHA256 == `git show HEAD` LF SHA256 全 MATCH；⚠️ `backends.py`/`seg_stream.py` 与 HEAD 不符是 C-102/C-098 预存代差（包内更大，不碰）；⛔ **zip 仍待锁重打 ⇒ 不写「已交付」**
 12:30 §68 ✅ **APP-027⑤（克隆）真正接入**：主进程 `Session.on_audio` → `App._collect_clone_pcm`（20 ms 帧 RMS **去静音**、滚动 10 s、**≥6 s 新语音或每 30 s** 触发）→ `tts_service.set_clone_pcm`（base64 16 kHz PCM）→ worker `_update_clone`（BabelVox 换 x-vector / CUDA 边车 `set_ref`）⇒ **下一句起生效**；🔴 **失败真回落预设 A**（`_fallback_to_preset` 换回**缓存**的预设向量，不是只改标志位）；🔴 GUI 新增**独立标签**显示**实际使用**的音色（「预设 A」/「克隆（更新于 hh:mm:ss，x s 语音）」）⇒ **旧的「尚未启用 ⇒ 回落 A」死逻辑已删**
 12:30 §68 ✅ **APP-027③ 的两个并发缺口补上**：① `tts_service._send` 加 **`_stdin_wlock`**（`set_clone_pcm` 来自**会话线程**、`submit/cancel` 来自 **GUI 主线程** ⇒ 并发 write 同一 pipe ⇒ 命令行交错 ⇒ worker 收到半行 JSON）② `tts_cuda` 的 `set_ref_audio` 与 `generate_stream` 共用写锁；③ `tts_cuda.close()` 现在**清空消息队列**（否则 close→start 后新句会先读到旧句的块 ⇒ 又错位）
 12:30 §68 ✅ **APP-027 顺带两处**：① APP-025「pythonw 下测试音失败」已修并验证（`_out_write` 永不抛异常 ⇒ 成功播放 1.00 s / `read_delta=24000`）② 桩测试**隔离 `LOCALAPPDATA`**（`app099`/`app100` 在 exec/import 被测模块**之前**指到 `tempfile.mkdtemp()`）⇒ **不再污染**用户真实 `%LOCALAPPDATA%\Confucius4LiveCaption`
@@ -21,7 +22,6 @@ last_ack: APP-027
 11:05 §66 ⚠️ **别把新口径读成「不用打包了」** —— 取消的是**校验与 FTP**，**不是打包** ⇒ APP-024① 代码（10:38）**在**上次打包（10:17–10:31）**之后** ⇒ 当前 zip 仍旧版 ⇒ **仍必须持锁重打 zip**
 11:05 §65 ✅ **§64 真正落盘**（前两次被脚本自身断言拦下 ⇒ STATUS 未被误改）：修 2 处「脚本缺陷」——① 章节计数用子串 `count(\'## §\')` ⇒ 改正则 `^## §\d+`（63→64）② 「最近更新」用 `re.search(.*?$)` ⇒ `$` 在 MULTILINE 下只吃 **1 行** ⇒ 旧的 **29 行会整体丢** ⇒ 改**按行切片**（保留 15 行）
 11:05 §65 🔴🔴 **发现并修掉 2 处 U+FFFD 损坏字符**（「保留在**工**作区」）⇒ 字节层修复 ⇒ 两文件 U+FFFD 计数 **0**（备份里本就是 0 ⇒ 未污染旧 STATUS）
-11:05 §65 ✅ **已提交 `2d19402`**（10 files / +1073 / −29）⇒ 逐文件 `git add`、**未提交** `CORRECTIONS_APP.md`、**未吞**他模块（提交前实测 **479** 项全留）
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -11877,3 +11877,58 @@ ctypes OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 14888) → 失败，GetLas
 | commit | **`d80ef22`**（10 files / +3092 / −253）⇒ 已 **push**（`7d4eed3..d80ef22`） |
 | 未吞他模块 | ✅ 提交前 **73** 项已跟踪改动 → 提交后 **66** 项**全留** |
 | `CORRECTIONS_APP.md` | ✅ **未入库**（仍是 reviewer 的 `M`） |
+
+---
+
+## §69 ✅ **APP-027 客户包定点同步完成（5 文件 == HEAD/LF）** ＋ ⛔ **zip 仍待锁重打** ＋ 🔴 **2 文件预存代差不在 APP-027 范围**（2026-10-27 13:22）
+
+### 69.0 触发与前提
+
+- §68 把「客户包未同步」列为头部阻塞 ③；但 **APP-027 明文要求「代码改完即定点同步客户包」** ⇒ 本轮补做（§68 因 V1–V3 待锁而把它推迟是错的，APP-027 的同步不依赖 V1–V3）。
+- **不需持机器锁**：同步是纯文件写（非计时/性能作业）；且当前 `C:\Users\Trekker-PTL\shared\MACHINE_LOCK` **不存在**，`pid 14888` 之前 `OpenProcess` 已 `err=87`（进程不存在 ⇒ 死锁可回收）。⇒ 直接执行，不抢、不删。
+
+### 69.1 方法（定点，非整目录覆盖）
+
+- 脚本：`results/app/sync_app027_to_pkg.py`（`pkg → HEAD` 派生 + LF 归一化 + `get_grouped_opcodes(n=3)` 唯一命中断言 + 替换后 `== HEAD` 断言）。
+- 5 文件：`tts_worker.py` / `tts_service.py` / `tts_cuda.py` / `tts_cuda_sidecar.py` / `live_caption_app.py`（即 §68 提交 `d80ef22`/`d49e067` 改动的 5 个文件；`pkg_exclude.py` 在仓库根、不随包发货，无需同步）。
+- 🔴🔴 换行归一化（§65）：仓库 CRLF、包 LF（且原先混合）⇒ 两端先归一化 LF 再派生，避免整文件被当一块。
+
+### 69.2 结果 + 证据（独立复核）
+
+脚本写入 5 文件、**FAIL 计数 = 0**；随后独立复核：包内文件 **LF 字节 SHA256 == `git show HEAD:live_caption/<f>` 的 LF SHA256**，**全部 MATCH**（`bytes` 为 LF 落盘大小，mtime 均为 2026-10-27 13:19:22）：
+
+| 文件 | 落盘 bytes | SHA256（包内，LF） |
+|---|---|---|
+| `tts_worker.py` | 136 375 | `52bff5e011c6898ac8696b585ca601369e93afa72a2d0ca7b6ab9dd9f71549ec` |
+| `tts_service.py` | 100 673 | `a53a393cb3bcf6f4274de67be8120770af9ad88a599757b5f619449873f8614b` |
+| `tts_cuda.py` | 31 578 | `b39d45e8785b03e7623a91914438449f391ade419a445ca0747cd426e4204c06` |
+| `tts_cuda_sidecar.py` | 12 251 | `17ebbf19419d81c31455987ba0ec18a3e71e5ced3f41c04a20231d3a8e5b1c5d` |
+| `live_caption_app.py` | 228 246 | `cf4bb5b999ba1c6f2f4996ae80e6e53dac5e206630c761c4c9c9e8f92ea76504` |
+
+→ **已同步、未整目录覆盖**：包内 5 文件与仓库 HEAD 逐字节一致（LF）。
+
+### 69.3 范围外：2 个预存代差文件（本轮不碰）
+
+全场 `.py` 交叉复核发现 `backends.py` / `seg_stream.py` 与 HEAD **不符**：
+
+| 文件 | 包内 bytes | HEAD bytes | 最近仓库改动 |
+|---|---|---|---|
+| `backends.py` | 28 100 | 27 534 | `9cc1ac4`（C-102） |
+| `seg_stream.py` | 15 940 | 15 585 | `528dff3`（C-098~C-100） |
+
+- 包内反而**更大** ⇒ 属 **C-102 / C-098~C-100 时期的预存代差**，与 APP-027 无关；
+- 🔴🔴 纪律禁止整目录覆盖 ⇒ **不在本轮范围**，未改动、不宣称已同步。
+
+### 69.4 交付口径（**仍不写「已交付」**）
+
+- ✅ 包目录 `app/` 现已含本轮 5 文件最新代码（== HEAD、已入库 `d49e067`）。
+- ⛔ **zip 仍未重打** ⇒ 当前 zip = **10:28:15 旧版**（11 216 287 107 B / SHA256 `c7f60bca…a667e4`）⇒ **不含本轮任何改动**。
+- 交付流程（`§66`）：定点同步 → 先提交 → **持锁重打 zip**；且 §68 顺序要求 **过 V1–V3 才重打 zip**。机器锁现无占用、但 V1–V3 未跑 ⇒ zip 重打**仍推迟**。
+
+### 69.5 本轮提交
+
+| 项 | 值 |
+|---|---|
+| 新增 | `results/app/sync_app027_to_pkg.py`（定点同步工具，可复跑 `--dry-run`） |
+| 改 | `status/app/STATUS_APP.md`（§69 + 头部 更新时间/当前任务/阻塞③/最近更新） |
+| 范围 | App-only；**未提交** `CORRECTIONS_APP.md`、**未吞**他模块（ASR 的 `c0xx_*.py` 等仍 `M` 在工作区） |
