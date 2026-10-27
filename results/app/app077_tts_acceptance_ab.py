@@ -30,6 +30,14 @@ import os
 import sys
 import time
 
+# 🔴🔴 2026-10-27 §62：**「真的出声」的唯一判据来源**（APP-021⑦ 的直接执行）
+#   ⚠️ 旧判据 `n_played >= 1` 是 APP-021 点名**作废**的弱判据
+#   ⇒ 现在用 APP-021 明文指定的硬判据：**n_read 增量 ≥ 本句样本数** 且 **峰值 > 1e-2**。
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from tts_audible_criterion import (  # noqa: E402
+    audible_verdict, describe_criterion, evaluate_audible,
+    played_snapshot, sentence_played, sentence_failed)
+
 try:
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
@@ -176,11 +184,23 @@ def main() -> int:
             # ── 验收 A：真实合成一句 + 落盘 wav ────────────────────
             print('%7.2fs >>> 提交一句（%d 字）' % (time.time() - t0,
                                               len(args.text)))
+            # 🔴🔴 §62：**提交前**抓基线快照 ⇒ 后面用**相对增量**判「本句播完」
+            #   ⚠️ 本脚本**先发过「🔊 测试声音」**⇒ `last_telemetry` 已被
+            #      **测试音**覆盖 ⇒ 若只看 `last_telemetry` 会把**测试音的遥测**
+            #      当成本句的证据 ⇒ **假通过** ⇒ 必须用相对增量 + id 校验。
+            played_before, tel_id_before = played_snapshot(svc.stats())
+            failed_before = int(svc.stats().get('n_failed') or 0)
             svc.submit(args.text, seg=0)
             t_play_end = time.time() + 120
             while time.time() < t_play_end:
                 st = svc.stats()
-                if st.get('n_played', 0) >= 1 or st.get('n_failed', 0) >= 1:
+                done, why = sentence_played(st, played_before, tel_id_before)
+                if done:
+                    print('%7.2fs >>> 本句已播完（%s）'
+                          % (time.time() - t0, why))
+                    break
+                if sentence_failed(st, failed_before):
+                    print('%7.2fs >>> 本句失败' % (time.time() - t0))
                     break
                 if st.get('state') == 'error':
                     break
@@ -233,7 +253,8 @@ def main() -> int:
         tone = results.get('test_tone') or {}
         checks = [
             ('A1 worker 成功 ready', results.get('state') in ('ready', 'idle')),
-            ('A2 播了 1 句（n_played >= 1）', (results.get('n_played') or 0) >= 1),
+            ('A2 本句链路级真的出声（read_delta ≥ n_samples 且 peak > 1e-2）',
+             evaluate_audible(results.get('last_telemetry'))[0]),
             ('A3 有句子级失败', not (results.get('n_failed') or 0)),
             ('A4 遥测里 n_read 增量 ≥ 本句样本数（音频真被取走）',
              (tel.get('read_delta') or 0) >= (tel.get('n_samples') or 1)),

@@ -1,0 +1,46 @@
+# ⚠️⚠️ 2026-10-27 §62 标注（**原始日志行一字未改**，只在本文件**顶部**加注）：
+#   下方第 32 行的「[app074] 判定：OK 端到端通过」是 APP-021⑦ **点名作废**的
+#   **弱判据**结论（判据 = `n_played >= 1`）⇒ **该结论不成立**，不得再引用。
+#   ⚠️ 这份产物产生于 **2026-10-26 15:46:47**（修复**之前**）⇒ 当时的脚本
+#     只看 `n_played`，**没有**任何本句遥测 ⇒ **无法证明**音频真的被声卡取走。
+#     ⇒ 另注意：判据③ 当时**根本没跑**（脚本无该判据）。
+#   ✅ 现在（§62）判据改为 APP-021 明文要求的硬数字：
+#      **C1** `read_delta >= n_samples`（本句全部样本被播放回调取走）
+#      **C2** `peak > 1e-2`（本句不是静音合成）
+#     单一来源 = `results/app/tts_audible_criterion.py`
+#   ⇒ **本文件只作历史留档**，不作为「能出声」的证据；
+#      「链路级真的出声」的现行证据见 `results/app/app077_tts_acceptance_ab.json`。
+#      ⚠️ 即便硬判据通过，也**只代表链路级出声**，**不代表用户听得见**（APP-021 验收 C）。
+# ----------------------------------------------------------------------
+# app074 端到端（cp936 父进程）  2026-10-26 15:46:47
+# pkg=C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5 device=CUDA precision=bf16
+# parent preferred encoding = cp936
+   1.69s [TTS] [tts_worker] 输出设备解析：'{0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}' ⇒ 端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3
+   2.08s [TTS] [tts_worker] 播放流已启动：sr=22050 device=3 ⇒ **实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）** blocksize=1024 latency=0.18575963718820862
+   2.10s [TTS] [tts_worker] 使用 PyTorch+CUDA 后端（faster-qwen3-tts 边车）
+   2.10s [TTS] [tts_cuda] 启动 CUDA 边车：C:\Users\Trekker-PTL\_fq3tts_env\Scripts\python.exe
+  19.26s [TTS][stderr] 'sox' �����ڲ����ⲿ���Ҳ���ǿ����еĳ���
+  19.26s [TTS][stderr] ���������ļ���
+  19.27s [TTS][stderr] SoX could not be found!
+  19.27s [TTS][stderr]     If you do not have SoX, proceed here:
+  19.27s [TTS][stderr]      - - - http://sox.sourceforge.net/ - - -
+  19.27s [TTS][stderr]     If you do (or think that you should) have SoX, double-check your
+  19.27s [TTS][stderr]     path variables.
+  19.27s [TTS][stderr]     
+  24.31s [TTS][stderr] Could not infer sample rate from base model; defaulting to 24000 Hz.
+  24.31s [TTS][stderr] Warming up predictor (3 runs)...
+  25.73s [TTS][stderr] Capturing CUDA graph for predictor...
+  26.19s [TTS][stderr] CUDA graph captured!
+  26.19s [TTS][stderr] Warming up talker graph (3 runs)...
+  26.71s [TTS][stderr] Capturing CUDA graph for talker decode...
+  26.86s [TTS][stderr] Talker CUDA graph captured!
+  26.86s [TTS] [tts_cuda] 就绪：NVIDIA GeForce RTX 5050 Laptop GPU / torch 2.11.0+cu128 / 加载 21.7s / 预热 2.5s
+  26.86s [TTS] [tts_cuda] 端到端启动耗时 24.8 s
+  30.88s [TTS][stderr] None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+  34.21s [TTS] [tts_worker] CUDA 后端自行使用参考音频做音色：C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5\models\qwen3tts\voices\preset_A.wav
+  34.46s [TTS] [tts_worker] 输出设备解析：'{0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}' ⇒ 端点 id → 「Speaker (Realtek(R) Audio)」→ 播放索引 3（缓存）
+  34.65s [TTS] [tts_worker] 播放流已启动：sr=24000 device=3 ⇒ **实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）** blocksize=1024 latency=0.21333333333333335
+  34.65s [TTS] [tts_worker] 播放流已按 24000 Hz 重建
+  34.65s [TTS] [tts_worker] 模型加载完成 32.6s
+  34.65s [TTS] 就绪：CUDA · 音色 A
+[app074] 判定：OK 端到端通过

@@ -30,6 +30,14 @@ import os
 import sys
 import time
 
+# 🔴🔴 2026-10-27 §62：**「真的出声」的唯一判据来源**（APP-021⑦ 的直接执行）
+#   ⚠️ 旧判据 `n_played >= 1` 是 APP-021 点名**作废**的弱判据
+#   ⇒ 现在用 APP-021 明文指定的硬判据：**n_read 增量 ≥ 本句样本数** 且 **峰值 > 1e-2**。
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from tts_audible_criterion import (  # noqa: E402
+    audible_verdict, describe_criterion, evaluate_audible,
+    played_snapshot, sentence_played)
+
 PKG = r"C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5"
 APP_DIR = os.path.join(PKG, "app")
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -116,6 +124,11 @@ def _run(args, TTSService) -> int:
         print()
         print("=== ② 提交一句，等合成 + 播放 ===")
         t1 = time.perf_counter()
+        # 🔴🔴 §62：**提交前**抓基线快照 ⇒ 后面用**相对增量**判「本句播完」
+        #   （`n_played` 是累计计数 ⇒ 常量阈值 `>= 1` 会把「历史上播过的别的句」
+        #    当成本句证据 ⇒ 假通过）。
+        played_before, tel_id_before = played_snapshot(svc.stats())
+        dropped_before = int(svc.stats().get('n_dropped') or 0)
         svc.submit(SENTENCE, seg=0)
         got_first, got_played = None, False
         last_st = {}
@@ -125,11 +138,14 @@ def _run(args, TTSService) -> int:
             if got_first is None and st.get('first_packet_s') is not None:
                 got_first = st['first_packet_s']
                 print("  [stats] first_packet_s=%r" % (got_first,))
-            if st.get('n_played', 0) >= 1:
+            # 🔴🔴 2026-10-27 §62 修：**不再**用 `n_played >= 1` 当「已出声」判据
+            #   （APP-021⑦ 的同族缺陷）⇒ 必须等**本句**的遥测齐了再停。
+            done, why = sentence_played(st, played_before, tel_id_before)
+            if done:
                 got_played = True
-                print("  [stats] n_played=%d" % st['n_played'])
+                print("  [stats] 本句已播完（%s）" % why)
                 break
-            if st.get('n_dropped', 0) >= 1:
+            if int(st.get('n_dropped') or 0) > dropped_before:
                 print("  [stats] 🔴 n_dropped=%d（句子被丢弃）" % st['n_dropped'])
                 break
             time.sleep(0.5)
@@ -142,10 +158,16 @@ def _run(args, TTSService) -> int:
         print()
         print("首包延迟 = %r s" % (got_first,))
         print("播放完成 = %s" % got_played)
-        ok = (got_first is not None) and got_played
+        # 🔴🔴 2026-10-27 §62 修：**弱判据 ⇒ 硬判据**（APP-021⑦ 的同族缺陷）。
+        #   ⚠️ 只判「链路级真的出声」⇒ **不代表用户听得见**（音量/外放另说）
+        #   ⇒ PASS 文案也不再说「语音输出真能用」。
+        tel = last_st.get('last_telemetry') or {}
+        audible_ok = evaluate_audible(tel)[0]
+        ok = (got_first is not None) and got_played and audible_ok
         print()
         print("=" * 60)
-        print("TTS 端到端：", "PASS（语音输出真能用）" if ok else "FAIL")
+        print("TTS 端到端：", "PASS（链路级真的出声）" if ok else "FAIL")
+        print("判据原始字段：", describe_criterion(tel))
         print("=" * 60)
         _dump(result)
         return 0 if ok else 1

@@ -1,6 +1,6 @@
 APP-021 自检：把播放链路做成可观测
-时间：2026-10-27 00:41:29
-结果：38 PASS / 0 FAIL（共 38 项）
+时间：2026-10-27 08:40:54
+结果：49 PASS / 0 FAIL（共 49 项）
 
 PASS  A0 抽到 Player 类
 PASS  A2 n_read 未追上 ⇒ 判失败（不是「已播完」）  |  diag=等待播放消费超时 0.3 s（已读 0 / 目标 24000，回调 0 次）
@@ -11,8 +11,8 @@ PASS  A6 测试声音：n_read 增量 ≈ sr×1 s（24000）  |  n_read +24000 /
 PASS  A7 无播放器 ⇒ 测试声音明确失败（不假装成功）  |  msg=播放流未打开（没有输出设备）
 PASS  A8 源码：`played` 只在 wait_consumed 之后发出  |  played emit 点 1 个；before_wait=[True]
 PASS  B0 抽到 append_session_log / session_log_path
-PASS  B1 会话日志文件已创建且追加了内容  |  路径=C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\session_20261027_004129.log
-PASS  B2 会话日志路径在 %LOCALAPPDATA%\Confucius4LiveCaption 下  |  C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\session_20261027_004129.log
+PASS  B1 会话日志文件已创建且追加了内容  |  路径=C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\session_20261027_084051.log
+PASS  B2 会话日志路径在 %LOCALAPPDATA%\Confucius4LiveCaption 下  |  C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\session_20261027_084051.log
 PASS  B3 service 有 n_failed（独立于 n_dropped）
 PASS  B4 service 有 last_sentence_error
 PASS  B5 stats() 带出 n_failed / last_sentence_error / session_log
@@ -40,6 +40,17 @@ PASS  D7 每句遥测写进 worker 日志
 PASS  D8 静音合成有显式标记
 PASS  D9 `_fmt_telemetry` 含峰值/RMS/NaN/回调/已读/欠载
 PASS  D10 `played` 事件带遥测
+PASS  E0 判据模块存在（单一事实来源）  |  C:\Users\Trekker-PTL\confucius4-openvino\results\app\tts_audible_criterion.py
+PASS  E1 判据模块含 C1（read_delta ≥ n_samples）
+PASS  E2 判据模块含 C2（峰值阈值 1e-2）
+PASS  E3 合格遥测 ⇒ 判通过  |  []
+PASS  E4 没有遥测 ⇒ 判失败（缺证据不放行）  |  ['没有遥测数据 ⇒ 无法证明出声（缺证据 ⇒ 判失败）']
+PASS  E5 read_delta < n_samples ⇒ 判失败  |  ['C1 不成立：read_delta=68608 < n_samples=120960（音频没被全部取走）']
+PASS  E6 峰值 ≤ 1e-2 ⇒ 判失败（静音合成）  |  ['C2 不成立：peak=0.000100 ≤ 0.01（静音合成）']
+PASS  E7 遥测缺字段 ⇒ 判失败  |  ['遥测缺 n_samples（无法核对「样本数」）']
+PASS  E8 弱判据扫描器本身可用（规则来自单一来源）  |  已跟踪文件解析失败=[]
+PASS  E9 全目录扫描：无脚本再用「n_played >= 1」判定出声  |  扫了 203 个文件，违规 0 处
+PASS  E10 5 个重点脚本都在扫描范围内（覆盖面不退化）  |  WEAK_SCRIPTS=5 个
 
 --- 证据 ---
 {
@@ -49,7 +60,7 @@ PASS  D10 `played` 事件带遥测
   },
   "A4_wait_consumed": {
     "ok": true,
-    "elapsed": 0.164
+    "elapsed": 0.162
   },
   "A6_test_tone": {
     "ok": true,
@@ -66,7 +77,24 @@ PASS  D10 `played` 事件带遥测
     }
   ],
   "B1_session_log": {
-    "path": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\session_20261027_004129.log",
+    "path": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\session_20261027_084051.log",
     "exists": true
+  },
+  "E_criterion_behaviour": {
+    "ok_case": true,
+    "missing": false,
+    "short_read": false,
+    "silent": false,
+    "partial": false
+  },
+  "E_weak_criterion_scan": {
+    "n_scanned": 203,
+    "n_violations": 0,
+    "violations": [],
+    "parse_fail_tracked": [],
+    "skipped": [
+      "app010_append_status.py（未跟踪历史遗留）: 源码无法解析（SyntaxError）⇒ 闸门失效"
+    ],
+    "gate_valid": true
   }
 }

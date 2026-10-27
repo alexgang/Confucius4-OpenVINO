@@ -266,6 +266,129 @@ def re_finditer_played(src):
 
 
 # ══════════════════════════════════════════════════════════════════════
+# E 组：🔴🔴 **「弱判据」这一类缺陷的闸门**（2026-10-27 §62 新增）
+# ══════════════════════════════════════════════════════════════════════
+# APP-021⑦ 明文要求：「app071 的判据改成：`n_read` 增量 ≥ 本句样本数，
+# 并且本句峰值 > 1e-2」+「不要用 "played ≥ 1" 宣称能出声」。
+# ⇒ §62 实测：**该要求从未被执行**（app071/app074/app075/app077/app039
+#    至今仍用 `n_played >= 1`）⇒ ⇒ 必须有**闸门**（§36 教训：
+#    「修掉一处」≠「这一类不会再来」）。
+WEAK_SCRIPTS = (
+    'results/app/app071_tts_worker_error_probe.py',
+    'results/app/app074_tts_e2e_cp936.py',
+    'results/app/app075_gui_offline_read_real.py',
+    'results/app/app077_tts_acceptance_ab.py',
+    'results/app/app039_tts_e2e_smoke.py',
+)
+
+
+def group_e():
+    section('E 组：弱判据闸门（`n_played >= 1` ⇒ 不得用来宣称「出声」）')
+
+    # ── E1：判据有**唯一来源**（单一事实来源）────────────────────────
+    crit_path = os.path.join(HERE, 'tts_audible_criterion.py')
+    check('E0 判据模块存在（单一事实来源）', os.path.isfile(crit_path),
+          crit_path)
+
+    crit_src = (open(crit_path, encoding='utf-8').read()
+                if os.path.isfile(crit_path) else '')
+    check('E1 判据模块含 C1（read_delta ≥ n_samples）',
+          'READ_DELTA_KEY' in crit_src and 'N_SAMPLES_KEY' in crit_src)
+    check('E2 判据模块含 C2（峰值阈值 1e-2）',
+          'PEAK_MIN = 1e-2' in crit_src)
+
+    # ── E3：判据模块的**行为**正确（不 import 被测模块 ⇒ 独立 exec）──
+    if crit_src:
+        ns = {'__name__': 'crit_probe'}
+        try:
+            exec(compile(crit_src, crit_path, 'exec'), ns)
+            ev = ns['evaluate_audible']
+            ok_tel = {'n_samples': 120960, 'read_delta': 120960, 'peak': 0.523438}
+            ok, reasons = ev(ok_tel)
+            check('E3 合格遥测 ⇒ 判通过', ok is True, str(reasons))
+            # 缺证据 ⇒ 判**失败**（不是「无法判断 ⇒ 放行」）
+            ok2, r2 = ev(None)
+            check('E4 没有遥测 ⇒ 判失败（缺证据不放行）', ok2 is False, str(r2))
+            # read_delta 不足 ⇒ 失败
+            ok3, r3 = ev({'n_samples': 120960, 'read_delta': 68608, 'peak': 0.5})
+            check('E5 read_delta < n_samples ⇒ 判失败', ok3 is False, str(r3))
+            # 峰值过低（静音合成）⇒ 失败
+            ok4, r4 = ev({'n_samples': 120960, 'read_delta': 120960, 'peak': 1e-4})
+            check('E6 峰值 ≤ 1e-2 ⇒ 判失败（静音合成）', ok4 is False, str(r4))
+            # 缺字段 ⇒ 失败
+            ok5, r5 = ev({'peak': 0.5})
+            check('E7 遥测缺字段 ⇒ 判失败', ok5 is False, str(r5))
+            EVIDENCE['E_criterion_behaviour'] = dict(
+                ok_case=ok, missing=ok2, short_read=ok3, silent=ok4,
+                partial=ok5)
+        except Exception as e:
+            check('E3 判据模块可独立 exec', False,
+                  '%s: %s' % (type(e).__name__, e))
+
+    # ── E8：**弱判据回归闸门** —— 扫描**整个** App 侧验收脚本目录 ────
+    #   判据：脚本里**不得**再出现「用 `n_played >= 1` 判定出声」这种写法。
+    #   🔴 扫描规则由 `audible_criterion_lint` **唯一定义**（单一事实来源）
+    #      ⇒ 本闸门与 `app092` 的 A9 跑**同一条规则** ⇒ 不会互相矛盾。
+    #   ⚠️ **不剥注释**：`ast.parse` 本来就不含注释节点；手工剥行会
+    #      **破坏多行字符串**（bytes 字面量）⇒ 解析失败 ⇒ 覆盖面悄悄缩水。
+    #   ⚠️ **解析失败必须判 FAIL**（闸门自己失效），绝不能当成「无违规」。
+    lint = _load_lint()
+    if lint is None:
+        check('E8 弱判据类别闸门（扫描器可用）', False,
+              'audible_criterion_lint 模块不可用 ⇒ 闸门失效')
+        return
+    # ⚠️ `_load_lint()` 返回的是**命名空间 dict** ⇒ 用**下标**取，不是属性
+    reports = lint['scan_dir'](os.path.join(HERE))
+    summary = lint['summarize'](reports)
+    EVIDENCE['E_weak_criterion_scan'] = summary
+
+    check('E8 弱判据扫描器本身可用（规则来自单一来源）',
+          summary['gate_valid'],
+          '已跟踪文件解析失败=%s' % summary['parse_fail_tracked'])
+    check('E9 全目录扫描：无脚本再用「n_played >= 1」判定出声',
+          summary['n_violations'] == 0,
+          '扫了 %d 个文件，违规 %d 处%s'
+          % (summary['n_scanned'], summary['n_violations'],
+             ('：' + '；'.join(summary['violations'][:5]))
+             if summary['violations'] else ''))
+    check('E10 5 个重点脚本都在扫描范围内（覆盖面不退化）',
+          all(any(r.name == os.path.basename(rel) for r in reports)
+              for rel in WEAK_SCRIPTS),
+          'WEAK_SCRIPTS=%d 个' % len(WEAK_SCRIPTS))
+    if summary['skipped']:
+        print('  ℹ️ 跳过的历史遗留文件（未跟踪，不判 FAIL）：%s'
+              % '；'.join(summary['skipped'][:4]))
+
+
+def _load_lint():
+    """加载 `audible_criterion_lint`（**不 import 被测模块** ⇒ 独立 exec）。"""
+    p = os.path.join(HERE, 'audible_criterion_lint.py')
+    if not os.path.isfile(p):
+        return None
+    ns = {'__name__': 'lint_probe'}
+    try:
+        exec(compile(open(p, encoding='utf-8').read(), p, 'exec'), ns)
+    except Exception:
+        return None
+    return ns
+
+
+def _find_weak_criteria(code: str):
+    """🔴🔴 **已废弃**（§62）⇒ 规则迁到 `audible_criterion_lint`（单一来源）。
+
+    ⚠️ 保留这个函数**只为**说明「闸门的第一版错在哪」：
+      ① `except SyntaxError: return []` ⇒ 解析失败被当成「无违规」
+         ⇒ **闸门永远 PASS** ⇒ **假通过**；
+      ② 「剥注释」破坏了多行字符串（bytes 字面量）⇒ 解析失败 ⇒ 覆盖面缩水；
+      ③ 只判 `GtE` ⇒ `> 0` / `== 1` 等价写法**漏检**；
+      ④ `out = []` 漏写 ⇒ 命中即 `NameError`（闸门直接崩）。
+
+    ⇒ 现在**唯一**的实现是 `audible_criterion_lint.find_weak_criteria()`。
+    """
+    return _load_lint()['find_weak_criteria'](code)
+
+
+# ══════════════════════════════════════════════════════════════════════
 # B 组：service 侧 —— 会话日志 / 三个计数 / 事件处理
 # ══════════════════════════════════════════════════════════════════════
 def group_b():
@@ -396,6 +519,11 @@ def main():
     except Exception:
         traceback.print_exc()
         check('D 组整体执行', False, traceback.format_exc()[-300:])
+    try:
+        group_e()
+    except Exception:
+        traceback.print_exc()
+        check('E 组整体执行', False, traceback.format_exc()[-300:])
 
     n_pass = sum(1 for _, ok, _ in RESULTS if ok)
     n_fail = len(RESULTS) - n_pass

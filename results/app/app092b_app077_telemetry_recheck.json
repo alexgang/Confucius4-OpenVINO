@@ -1,0 +1,44 @@
+{
+ "note": "本文件是 §62 对既有产物 app077_tts_acceptance_ab.json 的**判据复核**。**原始 JSON 一字未改**（它是 2026-10-26 16:53:17 的历史产物，其 checks[] 里 A2 的旧标签「播了 1 句（n_played >= 1）」是**作废的弱判据文案**）⇒ 这里用 §62 的新判据**重新判定**同一份遥测。",
+ "source_json": {
+  "path": "results/app/app077_tts_acceptance_ab.json",
+  "bytes": 5645,
+  "sha256": "0fb1e515ebfc747e150bd0e22c9d9e8bd87f1b865097f4ad8fbe2a522b5fbbb7",
+  "mtime": "2026-10-26 16:53:17"
+ },
+ "criterion_source": "results/app/tts_audible_criterion.py",
+ "telemetry_raw": {
+  "n_samples": 120960,
+  "n_parts": 8,
+  "peak": 0.523438,
+  "rms_dbfs": -17.57,
+  "n_nan_inf": 0,
+  "cb_delta": 158,
+  "read_delta": 120960,
+  "underflow_delta": 40,
+  "ring_level": 0,
+  "ring_cap": 72000,
+  "out_desc": "Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）",
+  "sr": 24000,
+  "n_cb_total": 188,
+  "n_read_total": 144960,
+  "rms": 0.132245,
+  "n_inf": 0,
+  "consumed": true
+ },
+ "c1_read_delta_ge_n_samples": {
+  "read_delta": 120960,
+  "n_samples": 120960,
+  "ok": true
+ },
+ "c2_peak_gt_1e-2": {
+  "peak": 0.523438,
+  "threshold": 0.01,
+  "ok": true
+ },
+ "evaluate_audible": true,
+ "reasons": [],
+ "verdict_text": "OK 链路级真的出声（n_samples=120960 / read_delta=120960 / peak=0.523438（阈值 0.01）） ⚠️ 不代表用户听得见 ⇒ 仍需抽听",
+ "scope_warning": "⚠️ 本判定**只代表链路级真的出声**（音频全部样本被播放回调取走 + 非静音合成）⇒ **不代表用户听得见**（系统音量 / 外放 / 耳机另说）⇒ APP-021 验收 C 仍需用户抽听。",
+ "old_a2_label_note": "原 JSON checks[] 里 A2 = 「播了 1 句（n_played >= 1）」⇒ 弱判据文案，**作废**；新 A2 = 「本句链路级真的出声（read_delta ≥ n_samples 且 peak > 1e-2）」"
+}

@@ -1,0 +1,156 @@
+{
+ "baseline_commit": "e2d7bc2",
+ "verdict": "PASS",
+ "n_pass": 24,
+ "n_fail": 0,
+ "checks": [
+  {
+   "name": "A1 判据模块存在",
+   "ok": true,
+   "detail": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\tts_audible_criterion.py"
+  },
+  {
+   "name": "A2 判据模块可独立 exec（不 import 被测模块）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "A3 合格遥测 ⇒ 通过",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "name": "A4 无遥测 ⇒ 失败（缺证据不放行）",
+   "ok": true,
+   "detail": "['没有遥测数据 ⇒ 无法证明出声（缺证据 ⇒ 判失败）']"
+  },
+  {
+   "name": "A5 read_delta 不足 ⇒ 失败",
+   "ok": true,
+   "detail": "['C1 不成立：read_delta=68608 < n_samples=120960（音频没被全部取走）']"
+  },
+  {
+   "name": "A6 峰值过低 ⇒ 失败",
+   "ok": true,
+   "detail": "['C2 不成立：peak=0.000100 ≤ 0.01（静音合成）']"
+  },
+  {
+   "name": "A7 缺字段 ⇒ 失败",
+   "ok": true,
+   "detail": "['遥测缺 n_samples（无法核对「样本数」）']"
+  },
+  {
+   "name": "A8 判定文本**不**宣称用户听得见",
+   "ok": true,
+   "detail": "OK 链路级真的出声（n_samples=100 / read_delta=100 / peak=0.5（阈值 0.01）） ⚠️ 不代表用户听得见 ⇒ 仍需抽听"
+  },
+  {
+   "name": "A9 5 个脚本都已改用硬判据（无 `n_played >= 1`）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "A10 5 个脚本都引用了判据单一来源",
+   "ok": true,
+   "detail": "5/5 ['app071_tts_worker_error_probe.py', 'app074_tts_e2e_cp936.py', 'app075_gui_offline_read_real.py', 'app077_tts_acceptance_ab.py', 'app039_tts_e2e_smoke.py']"
+  },
+  {
+   "name": "A11 提交前已播过别的句 ⇒ 本句未播 ⇒ 判「未播完」（防假通过）",
+   "ok": true,
+   "detail": "n_played 未增加（1 ≤ 提交前的 1）"
+  },
+  {
+   "name": "A12 本句真播完（相对增量 + 新遥测）⇒ 判「播完」",
+   "ok": true,
+   "detail": "n_played 1→2（相对增量）"
+  },
+  {
+   "name": "A13 遥测 id 未变（旧的/测试音的遥测）⇒ 判「未播完」",
+   "ok": true,
+   "detail": "遥测 id 仍是提交前的 7 ⇒ 是旧遥测（不是本句）"
+  },
+  {
+   "name": "A14 没有遥测 ⇒ 判「未播完」（缺证据不放行）",
+   "ok": true,
+   "detail": "还没有 last_telemetry（遥测没落下来）"
+  },
+  {
+   "name": "A15 played_snapshot 正确取基线（计数 + 遥测 id）",
+   "ok": true,
+   "detail": "(3, 11)"
+  },
+  {
+   "name": "A16 5 个脚本都改用「相对增量」等待（played_snapshot/sentence_played）",
+   "ok": true,
+   "detail": "未改：[]"
+  },
+  {
+   "name": "B1 基线 app071 确实用「n_played >= 1」判定出声",
+   "ok": true,
+   "detail": "[\"L125: st.get('n_played', 0) >= 1\", \"L114: st.get('n_played', 0) >= 1\"]"
+  },
+  {
+   "name": "B2 基线里**不存在**判据单一来源模块",
+   "ok": true,
+   "detail": "长度=0"
+  },
+  {
+   "name": "B3 基线 app071 用的是旧文案「OK 语音输出正常」",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "B4 基线 app071 **没有**引用判据模块",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "B5 影子目录（基线脚本）⇒ 闸门命中弱判据",
+   "ok": true,
+   "detail": "3 处：[\"app071_tts_worker_error_probe.py: L125: st.get('n_played', 0) >= 1\", \"app071_tts_worker_error_probe.py: L114: st.get('n_played', 0) >= 1\", \"app039_tts_e2e_smoke.py: L128: st.get('n_played', 0) >= 1\"]"
+  },
+  {
+   "name": "C1 app076 退出码 0",
+   "ok": true,
+   "detail": "rc=0"
+  },
+  {
+   "name": "C2 app076 全部 PASS（0 FAIL）",
+   "ok": true,
+   "detail": " 源码无法解析（SyntaxError）⇒ 闸门失效\n\n========================================================================\n结果：49 PASS / 0 FAIL（共 49 项）\n========================================================================\n\n证据已写入：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app076_tts_playback_observability.txt\n"
+  },
+  {
+   "name": "C3 app076 断言数 ≥ 49（原 47 + 新增 E8/E9/E10 三项闸门）",
+   "ok": true,
+   "detail": "结果：49 PASS / 0 FAIL（共 49 项）"
+  }
+ ],
+ "evidence": {
+  "A9_violations": [],
+  "A10_used": [
+   "app071_tts_worker_error_probe.py",
+   "app074_tts_e2e_cp936.py",
+   "app075_gui_offline_read_real.py",
+   "app077_tts_acceptance_ab.py",
+   "app039_tts_e2e_smoke.py"
+  ],
+  "A11_A15_wait_vs_judge": {
+   "old": "n_played 未增加（1 ≤ 提交前的 1）",
+   "new": "n_played 1→2（相对增量）",
+   "stale": "遥测 id 仍是提交前的 7 ⇒ 是旧遥测（不是本句）",
+   "none": "还没有 last_telemetry（遥测没落下来）",
+   "snapshot": "(3, 11)"
+  },
+  "A16_not_converted": [],
+  "B1_baseline_hits": [
+   "L125: st.get('n_played', 0) >= 1",
+   "L114: st.get('n_played', 0) >= 1"
+  ],
+  "B5_shadow_violations": [
+   "app071_tts_worker_error_probe.py: L125: st.get('n_played', 0) >= 1",
+   "app071_tts_worker_error_probe.py: L114: st.get('n_played', 0) >= 1",
+   "app039_tts_e2e_smoke.py: L128: st.get('n_played', 0) >= 1"
+  ],
+  "C3_app076_summary": "结果：49 PASS / 0 FAIL（共 49 项）"
+ }
+}

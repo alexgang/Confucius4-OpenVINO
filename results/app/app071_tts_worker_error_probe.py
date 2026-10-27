@@ -39,6 +39,16 @@ import os
 import sys
 import time
 
+# 🔴🔴 2026-10-27 §62：**「真的出声」的唯一判据来源**（APP-021⑦ 的直接执行）
+#   ⚠️ 旧判据 `n_played >= 1` 是 APP-021 点名**作废**的弱判据
+#   （`played` 只表示「写进缓冲」⇒ 不代表出声；且探针随后 `close()` 会 kill worker
+#     ⇒ 那句话可能整句还在缓冲里就被杀掉 ⇒ 什么都没证明）。
+#   ⇒ 现在用 APP-021 明文指定的硬判据：**n_read 增量 ≥ 本句样本数** 且 **峰值 > 1e-2**。
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from tts_audible_criterion import (  # noqa: E402
+    audible_verdict, describe_criterion, evaluate_audible,
+    played_snapshot, sentence_played)
+
 HOME = r'C:\Users\Trekker-PTL'
 
 
@@ -108,12 +118,23 @@ def main() -> int:
                 break
             if state == 'ready' and not submitted:
                 print(f'{time.time() - t0:7.2f}s >>> state=ready，提交一句', flush=True)
+                # 🔴🔴 §62：**提交前**抓快照 ⇒ 后面用**相对增量**判「本句播完」
+                #   （`n_played` 是累计计数 ⇒ 用常量阈值 `>= 1` 会把
+                #    「历史上播过的别的句」当成本句的证据 ⇒ 假通过）。
+                played_before, tel_id_before = played_snapshot(st)
                 svc.submit(args.text, seg=0)
                 submitted = True
                 t_end = min(t_end, time.time() + 90)
-            if submitted and st.get('n_played', 0) >= 1:
-                print(f'{time.time() - t0:7.2f}s >>> 已播放 1 句', flush=True)
-                break
+            # 🔴🔴 2026-10-27 §62 修：**不再**用 `n_played >= 1` 当「已出声」判据。
+            #   旧行为：见 played 就 break → 下面 finally 里 `svc.close()` 会 kill worker
+            #   ⇒ **本句遥测还没落下来** ⇒ 什么硬数字都没拿到 ⇒ 什么都没证明。
+            #   ⇒ 现在：**必须等到本句遥测齐了**才停（相对增量 + 新遥测）。
+            if submitted:
+                done, why = sentence_played(st, played_before, tel_id_before)
+                if done:
+                    print(f'{time.time() - t0:7.2f}s >>> 本句已播完（{why}）',
+                          flush=True)
+                    break
             time.sleep(0.3)
 
         st = svc.stats()
@@ -122,9 +143,15 @@ def main() -> int:
               f'played={st.get("n_played")} dropped={st.get("n_dropped")} '
               f'submitted={st.get("n_submitted")} '
               f'first_packet={st.get("first_packet_s")}')
-        verdict = ('OK 语音输出正常' if st.get('n_played', 0) >= 1
-                   else f'FAIL state={st.get("state")}')
+        # 🔴🔴 2026-10-27 §62 修（APP-021⑦ 的**直接执行**）：
+        #   APP-021 L256 明文：「app071 的判据改成：n_read 增量 ≥ 本句样本数，
+        #   并且本句峰值 > 1e-2」+「不要用 played ≥ 1 宣称能出声」
+        #   ⇒ 该要求**从未被执行** ⇒ 本轮补上（这是「ACK 了但没做完」的真实欠账）。
+        tel = st.get('last_telemetry') or {}
+        verdict = audible_verdict(tel)
+        print('[probe] 判据原始字段：%s' % describe_criterion(tel))
         print(f'[probe] 判定：{verdict}')
+        lines.append('[probe] 判据原始字段：%s' % describe_criterion(tel))
         lines.append(f'[probe] 判定：{verdict}')
     finally:
         if svc is not None:

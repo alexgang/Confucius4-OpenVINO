@@ -24,10 +24,10 @@
     },
     "C_gui_quit": {
       "flush_lines": [
-        2480
+        3212
       ],
       "wait_lines": [
-        2482
+        3214
       ],
       "has_guard": true
     },
@@ -35,7 +35,7 @@
       "device_config.py": {
         "utf8_ok": true,
         "u_fffd": 0,
-        "bytes": 10501
+        "bytes": 18601
       },
       "audio_source.py": {
         "utf8_ok": true,

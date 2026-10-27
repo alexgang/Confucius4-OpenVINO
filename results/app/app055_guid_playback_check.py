@@ -141,8 +141,13 @@ def main() -> int:
         rec['player_error'] = '%s: %s' % (type(e).__name__, e)
 
     rec['verdict'] = bool(ok)
+    # 🔴🔴 2026-10-27 §62 修：**撤回「⇒ 能出声」的过度断言**（APP-021 的口径）。
+    #   本脚本只验了 **Player 链路**（GUID→索引、回调在消费、缓冲被吃空）
+    #   ⇒ 它**不能**证明「TTS 合成 + 整句链路出声」⇒ 也不能证明「用户听得见」。
     rec['verdict_note'] = (
-        '修复有效：GUID 被解析成播放索引，回调在消费 ⇒ 能出声' if ok else
+        '修复有效：GUID 被解析成播放索引，回调在消费 '
+        '⇒ **Player 链路级通**（⚠️ 不代表 TTS 整句出声，更不代表用户听得见）'
+        if ok else
         '仍未通过：见 player_error / 回调次数')
     io.open(OUT, 'w', encoding='utf-8').write(
         json.dumps(rec, ensure_ascii=False, indent=1))
