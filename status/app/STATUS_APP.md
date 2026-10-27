@@ -1,12 +1,20 @@
 # STATUS_APP
 last_ack: APP-023
-更新时间: 2026-10-27 10:13
-当前任务: **§63 🔴🔴 执行 APP-023（BLOCKING）+ APP-025（BLOCKING）** —— 用户从**桌面快捷方式**（dev `.venv\pythonw.exe`，**GUI 子系统、无控制台**）启动 ⇒ CUDA `WinError 50` ×23、NPU 缺 babelvox ×18 ⇒ 回落旧引擎 ⇒ 动态形状 IR 在 NPU 必然编译失败并 `LLVM ERROR`（rc=3221226505 ×9）；① 边车 std 句柄显式化 + **stderr 抽水线程** + worker 换**同环境控制台解释器**（🔴 reviewer 建议的 `sys._base_executable` 实测丢 venv：numpy 2.4.6→2.5.4 ⇒ 已弃用）② **选方案一**：桌面快捷方式改指向 v1.5 客户包启动器（方案二要把 `.venv` 的 transformers 4.57.6→≥5.0、huggingface_hub 0.36.2→≥1.0 ⇒ 跨模块风险，且 dev 树**没有** `models/qwen3tts`）③ 去掉 NPU/GPU 的旧引擎回落，缺 babelvox 直接报「缺少 Qwen3-TTS 运行时（babelvox）」④ 测试音改为**本进程直放 440 Hz**、不依赖 TTS worker，报错经 `describe_tts_failure` 变人话 + 指到落盘日志，worker 不可用时离线朗读**置灰并给原因** ⇒ **三级验收用用户启动方式**（包内 `pythonw.exe` + `ShellExecuteW`，实测 `GetStdHandle(STD_ERROR_HANDLE)=None`）：`app095` **L1/L2/L3 全过**（`all_pass=true`）⇒ 回归闸门 `app096` = **13 PASS / 0 FAIL**（含反证：控制台 python 跑 ⇒ rc=2）⇒ 🔴 **本轮停在 L4，需用户亲测确认才写「能出声」**；🔴 **APP-024 未做**（reviewer 明令「APP-023 验收通过后再做」）⇒ **不进 last_ack**
+更新时间: 2026-10-27 10:48
+当前任务: **§64 🔴 巡检（APP-023 / APP-024 / APP-025 = 3 条新条目）** + ✅ **APP-024① 首包拆两段**（`queued_s` 主进程口径 + `synth_s` worker 口径；🔴 跨进程 `perf_counter()` 不可比） + ✅ **修掉「打包自检被自己的新验收脚本拦下」**（§48 闸门写死包路径 ⇒ 改用 `pkg_paths`） + ✅ **交付代差闭环**（zip 缺 5 个修复 ⇒ 持锁重打 14 min 7 s ⇒ 独立复核 PASS ⇒ FTP 重发 ⇒ 三方 SHA256 一致 `c7f60bca…`） + ✅ **APP-018② 第三方素材在 zip 内真清零** ⇒ ⛔ **停在 §63 的 L4 等用户实测**（桌面快捷方式 ⇒ 测试声音 → CUDA → NPU） ⇒ 🔴 **APP-024②③④ 未做**（§63 明文「APP-023 验收通过后再做」）⇒ **`last_ack` 保持 APP-023**
 
-阻塞 / 待用户决定: ① 🔴 **APP-022 集成阶段需等 ASR-013 + TTS-019 交付**（§55 只做接口预留，**未集成**）；② 🔴 **APP-021 验收 C 仍需用户配合**（需人）：交互会话里系统音量 ≥ 50%、戴耳机/外放 ⇒ **先点「🔊 测试声音」再点离线朗读念一句** ⇒ 把会话日志路径与遥测行写进本 STATUS；③ 🔴 **撤回后的口径**：在用户用耳朵确认之前，**不得**再宣称「离线朗读能出声」；④ ✅ **§61 已闭环**：v1.5 zip 已持锁重打 **两次**（最终 11 216 278 478 B / md5 `ad1428d0…` / SHA256 `e6eda70f…`）⇒ `verify_pkg_zip.py` 独立复核 **PASS**（[1] 13 986 逐字节一致 + [2] HEAD ⇄ 包目录 **22/22**）⇒ FTP 已重发（源⇄副本 SHA256 一致）⇒ **FTP 服务仍关闭**；⑤ 🔴 **散包目录仍有第三方素材残留**（babelvox speakers 8 + scipy 测试音频 22）⇒ `pkg_exclude.py` 排除规则**已在**（APP-018②/APP-019）但**散包目录未物理清理** ⇒ 需重打时由规则覆盖；⑥ ✅ **已关闭**（APP-023 FYI：用户 09:01 决定**不收窄术语表** ⇒ MT 通知 14 作废 ⇒ App 不改术语表）；⑦ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑧ 🔴 **§49.7 待裁定**（APP-020 明确「先不要定」⇒ 未动）；⑨ 🔴 **§45.6①–⑤ 等 reviewer 裁定**；⑩ 🔴 **等裁定**：是否采纳 `MAX_SEG_SPAN = 2`（§44 候选已备好）；⑪ 🔴 **需回复 MT 通知 13**；⑫ 🔴 **§46.5** 第三方依赖可满足性闸门；⑬ 🔴 **§42.3** 修复待用户实机确认；⑭ ⛔ **FTP 服务仍关闭**（守 APP-009③）；⑮ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑯ ⛔ 包体优化未做（用户已接受）；⑰ ⛔ V7 残句代价待确认；⑱ 🔴 **§56.9**：TTS-019 `single` 臂 / TTS-017① `A_CPU` 臂两轮数据**是否重跑由 TTS 自行决定**（App 已修根因，**不代跑尺子**）；⑲ 🔴 **§56.2**：ASR/TTS 侧锁写法的**独占性**待其自评（`os.replace` 会覆盖 ⇒ 丢独占性）；⑳ 🔴 **§57**：历史遗留未跟踪文件（`live_caption/sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `results/app/app073*` / `app074*` 等）**归属未判定** ⇒ 本轮**未提交**（§46「已产出未入库」教训 ⇒ 需单独裁定后再入库）；㉑ ✅ **§58.8 已闭环**：客户包侧 `test_tts_close_gui_quit_pkg.py` 的 **PE1** 在 §58 提交（`421d2d0`）后**复跑已转 PASS**（`96118245f4e275f0` vs `96118245f4e275f0`）；㉒ ✅ **§59 已闭环**：缺陷 A/B 已修并提交 `36e3d1e`（普通 push `6235df4..36e3d1e`，未 force）⇒ 客户包定点同步后 **仓库⇄包 SHA256 逐字节相同**（`db6f2412…` / 80 036 B）⇒ 包侧单独跑同一套断言 **17/17 + 反证 3/3** PASS ⇒ 🔴 **客户包 `app/` 目录仍未重打 zip**（守 APP-020：等 `cp_prefill` 同步后的最终版 + 机器锁）⇒ **不写「已交付」**；㉓ ✅ **§60 已闭环**：丢句「判定 + 计数」原子化（新增 `_drop_one()`）已修 ⇒ 验收 `app090` **REAL 16/16 + 反证 2/2** PASS（基线 `b3c5ebb`；反证实测修复前 `n_dropped=2 / sum=2 / submitted=1`）⇒ 客户包 v1.5 定点同步后 **仓库⇄包 SHA256 逐字节相同**（`615d69fb…` / 85 018 B）⇒ 包侧单独跑同一套断言 PASS ⇒ 🔴 **客户包 `app/` 目录仍未重打 zip**（守 APP-020）⇒ **不写「已交付」**；㉔ ✅ **§61 已闭环**：① 交付代差（zip 比包目录落后两代，`diff=7`）已修 ⇒ **持锁重打两次 + `verify_pkg_zip.py` PASS + FTP 重发**，三方 SHA256 全等 （`e6eda70f…`）；② APP-021⑥ 的 `--tts-dump-dir` CLI 半边已补齐（`37d06de`）⇒ 验收 `app091` **REAL 5/5 + 反证 3/3** PASS；③ 新增两道只读闸门：「zip ⇄ 包目录 `.py` diff = 0」+「HEAD ⇄ 包目录 **22/22**」⇒ 🔴 **仍不宜当最终交付版**（TTS 侧 `cp_prefill` 验收②「持锁计时」未完成）；㉕ ✅ **§62 已闭环**：① **APP-021⑦ 补做完成**（此前标「已完成」但**实测从未被执行** ⇒ 本轮补做：「真的出声」的**单一事实来源** `tts_audible_criterion.py`（C1 `read_delta >= n_samples` + C2 `peak > 1e-2`，**缺证据 ⇒ 判失败**）+ **等/判物理分离**（`played_snapshot()`/`sentence_played()` ⇒ **相对增量**，杜绝「把历史上播过的别的句当本句」的假通过）⇒ 5 个脚本全部改用硬判据；② **闸门自身的假通过已修**（五类）⇒ 新建 `audible_criterion_lint.py` **扫描规则单一来源** ⇒ 实测 `results/app` 下 **203 个 .py 全部可解析**、违规 **0** 处；③ 验收 `app092` **24 PASS / 0 FAIL**（原 18 + 新增 6）+ **BUG 反证基线固定 `e2d7bc2`**（提交后仍成立）⇒ B1 基线命中 2 处 / B5 影子目录命中 3 处；回归 `app076` **49 PASS / 0 FAIL** + 既有 **17 个套件全绿**；⚠️ **客户包 `app/` 目录本轮未动**（改动全在 `results/app/`，验收脚本**不进包**）⇒ **不写「已交付」**；㉖ 🔴 **APP-021 验收 C 仍需用户配合**（需人）：交互会话里系统音量 ≥ 50%、戴耳机/外放 ⇒ **先点「🔊 测试声音」再点离线朗读念一句** ⇒ 把会话日志路径与遥测行写进本 STATUS；🔴 **在用户用耳朵确认之前，不得宣称「离线朗读能出声」**（**链路级真的出声 ≠ 用户听得见**）㉔ 🔴 **APP-023 L4 待用户实测**：请双击桌面「Confucius4 实时字幕」（已指向 v1.5 包 `Start_LiveCaption.bat`）⇒ ①「🔊 测试声音」② CUDA 朗读一句 ③ NPU 朗读一句 ⇒ 说明听到/听不到，并提供 `%LOCALAPPDATA%\Confucius4LiveCaption\session_*.log` ⇒ **用户亲口确认前不得写「能出声」**；㉕ 🔴 **APP-024 未做**（reviewer 明令「APP-023 验收通过后」⇒ 待 L4 用户确认后再做） ⇒ 头部 `last_ack` **停 APP-023**，不跳到 025；㉖ ⚠️ **CUDA 的 `WinError 50` 本轮未能复现**（无继承句柄条件下实测 `stderr=None` 也未抛） ⇒ ① 的改动属**防御性加固**，不可宣称「已复现并修复」
+阻塞 / 待用户决定: ① 🔴 **§63 的 L4 等用户实测**（需人）：桌面快捷方式 →「🔊 测试声音」→ CUDA 朗读一句 → NPU 朗读一句 ⇒ 反馈听到/听不到 + `%LOCALAPPDATA%\Confucius4LiveCaption\session_*.log` 路径 ⇒ **用户亲口确认前不得写「能出声」**；② 🔴 **APP-022 集成需等 ASR-013 + TTS-019 交付**（§55 只做接口预留，**未集成**）；③ 🔴 **APP-024②③④ 未做**（加载期句子单独列 / 按 BRIEF 素材持锁重跑 ABBA / 「加载期攒句是否按 8 s 丢」——reviewer 明文「**不要自己改**，写进待用户决定」）⇒ **`last_ack` 保持 APP-023**；④ ✅ **§64 已闭环**：交付 zip **11 216 287 107 B** / SHA256 `c7f60bca…` / 13986 条目 / mtime 10:28 ⇒ `verify_pkg_zip.py` 独立复核 **PASS**（[1] 13986 逐字节 + [2] HEAD⇄包 **22/22**）⇒ FTP 副本 SHA256 一致 ⇒ **三方闭环**；⑤ ✅ **APP-018② 已真闭环**（zip 内 babelvox speakers **0** + scipy 测试 wav **0** + 音色只剩 `preset_A.wav`）⇒ 🔴 **散包目录**仍有 8+22（是打包源，靠 `pkg_exclude` 规则覆盖）；⑥ 🔴 **术语表 / `packaging` 默认值待用户决定**（MT 通知 14 建议已被用户 09:01 **作废** ⇒ App 不改术语表）；⑦ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑧ 🔴 **§45.6①–⑤ / §44 `MAX_SEG_SPAN=2` / §46.5 / §42.3 / MT 通知 13 回复** ⇒ 等 reviewer 裁定；⑨ ⛔ **FTP 服务仍关闭**（守 APP-009③）；⑩ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑪ ⛔ 包体优化未做（用户已接受）；⑫ ⛔ V7 残句代价待确认；⑬ 🔴 **§56.9**：TTS-019 `single` 臂 / TTS-017① `A_CPU` 臂是否重跑由 TTS 自行决定；⑭ 🔴 **§56.2**：ASR/TTS 侧锁写法的**独占性**待其自评；⑮ 🔴 **§57**：历史遗留未跟踪文件（`sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `app073*` / `app074*` 等）**归属未判定** ⇒ 本轮**未提交**；⑯ 🔴 **§64.6**：`test_tts_cmp_orig.py` 因 `_orig_mod/` **从未入 git** 而无法运行 ⇒ **环境缺失非回归**（基线须用固定 commit SHA）
 
 
 ## 最近更新
+10:48 §64 🔴 **巡检：本轮 3 条新条目**（APP-023 / APP-024 / APP-025）⇒ `CORRECTIONS_APP.md` SHA `32991dc9bd3a4f35…` / 59 279 B / mtime 09:06:18 ⇒ 最大 **APP-025**；该文件**只读零修改**
+10:48 §64 ✅ **独立核实**并发会话的 APP-023①③④ / APP-025（**不采信 §63 自述**）⇒ 边车 std 句柄 / worker 解释器 / 旧引擎回落删除 / 测试音不依赖 worker / 报错人话 / 按钮置灰 —— **全部真实落盘**
+10:48 §64 🔴🔴 **真实缺陷 —— 打包自检被「自己的新验收脚本」拦下**：`app093`/`app096` 写死包路径 ⇒ §48 闸门 FAIL ⇒ 改用 `pkg_paths` 单一数据源 ⇒ `app093` 19/19 + `app096` 13/13 + `--dry-run` **PASS**
+10:48 §64 ✅ **APP-024① 首包拆两段**：`queued_s`（主进程 `t_sent − t_submit`）+ `synth_s`（worker `t_first − t_dequeue`）⇒ 🔴 **跨进程 `perf_counter()` 不可比** ⇒ 各自算、不可相减；验收 `app097` REAL **20/20** + BUG **3/3**（基线固定 `0d1be9d`）
+10:48 §64 ✅ **交付代差闭环**（§61 四步）：复核报 zip 缺 **5 个修复** ⇒ 持锁 `app-pack` 重打 **14 min 7 s** ⇒ `verify_pkg_zip.py` **PASS**（13986 逐字节 + 22/22）⇒ FTP 重发 ⇒ **三方 SHA256 一致** `c7f60bca…` / **11 216 287 107 B**
+10:48 §64 ✅ **APP-018② 第三方素材在 zip 内真清零**：babelvox speakers **0** + scipy 测试 wav **0** + 音色只剩 `preset_A.wav` **1** 个（散包目录仍有 8+22 ⇒ 靠 `pkg_exclude` 规则覆盖）；🔴 FTP 服务仍关闭
+10:48 §64 ✅ **回归全绿**：`app092` 24/24 + `app093` 19/19 + `app096` 13/13 + `app097` 20/20 + TTS 记账 5 套件 + `test_tts_*` **19 个 PASS**；⚠️ `test_tts_cmp_orig.py` 失败=**环境缺失非回归**（`_orig_mod/` **从未入 git**）
+10:48 §64 ⛔ **停在 §63 的 L4（等用户）**：请双击桌面「Confucius4 实时字幕」⇒ ① 测试声音 ② CUDA 朗读 ③ NPU 朗读 ⇒ **用户亲口确认前不得写「能出声」**；🔴 APP-024②③④ 未做
 - 10:13 §63 🔴 **巡检：3 条新条目**（APP-023/024/025）⇒ `CORRECTIONS_APP.md` SHA256 `32991dc9bd3a4f35…` / 59 279 B / mtime 09:06:18 / **25 条**；`last_ack` APP-022 ⇒ 差 3；文件**只读零修改**
 - 10:13 §63 🔴🔴 **根因 = 既往测试从没覆盖用户启动路径**：app071/074/075/077 全是**控制台 python**；用户是 `.venv\pythonw.exe`（GUI 子系统、无控制台）⇒ CUDA `WinError 50` ×23 / NPU 缺 babelvox ×18 / `LLVM ERROR` rc=3221226505 ×9 ⇒ **测试全绿、用户那边全挂**
 - 10:13 §63 ✅ **①②③④ 全改**（边车三句柄显式 + stderr 抽水线程 + 免黑框；worker 换同环境控制台解释器；删旧引擎回落 + `_babelvox_failure_reason`；测试音本进程直放 + `describe_tts_failure` 人话 + 离线朗读置灰）⇒ 定点同步 5 文件到 v1.5 包 ⇒ **AST 级完整性 `app093` = 19 PASS / 0 FAIL**
@@ -14,28 +22,7 @@ last_ack: APP-023
 - 10:13 §63 ✅ **三级验收走用户启动方式**：包内 `pythonw.exe` + `ShellExecuteW`（`GetStdHandle(STD_ERROR_HANDLE)=None` ⇒ 真无句柄）⇒ `app095` **L1 测试音 / L2 CUDA / L3 NPU 全过**（`read_delta == n_samples`、`peak 0.3/0.6406/0.4703`、`consumed=true`；**bad_markers 全 False**）⇒ 两级 wav 各自落盘
 - 10:13 §63 ✅ **回归闸门 `app096` = 13 PASS / 0 FAIL**（含**反证**：控制台 python 跑 ⇒ 实测 rc=2、不覆盖结果 JSON、不产出新文件）⇒ 「pythonw + 快捷方式冒烟」已固化进回归
 - 10:13 §63 🔴 **撤回 4 条 + 3 个新坑**：撤回 `sys._base_executable` 可用（实测丢 venv）/ 撤回「A4 FAIL 是同步漏了」（是解包 + 大小写）/ 撤回「`sys.stdout is None` 可判无控制台」（bash 会继承管道）/ 撤回「测试音必须经 worker」；新坑：`IShellLink::GetPath` **4 参**（按 2 参调 ⇒ x64 栈崩、exit=127 无 traceback）、`ctypes` 无 `ctypes.ole32`、落盘目录共用 ⇒ L2 wav 被 L3 覆盖
-- 10:13 §63 ⛔ **停在 L4 等用户实测**（双击桌面图标：测试音 → CUDA 一句 → NPU 一句）；**APP-024 未做**（reviewer 明令在 APP-023 验收之后）⇒ `last_ack` 停 **APP-023**；⚠️ 未重打 zip ⇒ **不写「已交付」**；⚠️ 未在 CPU 跑推理/测速、`app095` 计时标 `timing_valid=false` 不得对外报、未碰机器锁、未调 MiniMax、未改 `CORRECTIONS_APP.md`、未吞其它模块改动（实测保留 240 项）
-- 08:45 §62 🔴 **巡检：无新 APP 纠偏条目**（`CORRECTIONS_APP.md` 最大 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0** ⇒ `last_ack` **保持 APP-022**，**第 26 次**同一口径复核）；`CORRECTIONS_APP.md` 全程**只读零修改**（SHA256 `682aced289a58d18b…` / 48 457 B / mtime 2026-10-26 16:18:08）
-- 08:45 §62 🔴🔴 **缺陷 —— APP-021⑦ 是「ACK 了但从未做」的欠账**：明文要求「app071 判据改成 `n_read` 增量 ≥ 本句样本数 且峰值 > 1e-2」+「不要用 played ≥ 1 宣称能出声」⇒ **实测从未被执行**（5 个脚本仍用 `n_played >= 1`，其中 4 个**一条硬数字都没有**）⇒ §36 同源教训再次命中
-- 08:45 §62 ✅ **修法 = 单一事实来源 + 等/判物理分离**：新建 `tts_audible_criterion.py`（C1 `read_delta >= n_samples` + C2 `peak > 1e-2`，**缺证据 ⇒ 判失败**）+ 新增 `played_snapshot()`/`sentence_played()`/`sentence_failed()` ⇒ **等事件用相对增量**（提交前抓基线）、**判出声用 `evaluate_audible()`** ⇒ 两者不再共用同一 AST 节点
-- 08:45 §62 🔴🔴 **闸门自身的假通过已修**（五类：`except SyntaxError: return []` / 剥注释丢缩进 / 只判 `GtE` 漏检等价写法 / `out=[]` 漏写 / 剥注释破坏多行字符串致 6 文件解析失败）⇒ 新建 `audible_criterion_lint.py` **扫描规则单一来源**（app076 的 E 组与 app092 的 A9 跑同一规则）⇒ 实测 **203 个 .py 全部可解析**、违规 **0** 处
-- 08:45 §62 ✅ **验收 app092 = 24 PASS / 0 FAIL**（原 18 + 新增 A11~A16 六项）+ **BUG 反证基线固定 `e2d7bc2`**（不是 HEAD）⇒ B1 基线 app071 命中 **2 处**、B5 影子目录命中 **3 处**；✅ **回归 app076 = 49 PASS / 0 FAIL**（原 47 + E8/E9/E10）+ **既有 17 个套件全绿**
-- 08:45 §62 🔴 **撤回 5 条旧结论**（APP-021⑦「已完成」/「`n_played >= 1` 可判出声」/「E8 闸门已生效」/「app055 通过 ⇒ 能出声」/「probe txt 的『OK 语音输出正常』可作证据」）⇒ **口径重申：链路级真的出声 ≠ 用户听得见**；⚠️ **本轮未动客户包**、**未跑推理/测速**、**未占 GPU**、**未碰机器锁**、**未调 MiniMax**、**未改 `CORRECTIONS_APP.md`**、**未吞其它模块改动**
-- 06:55 §61 🔴 **巡检：无新 APP 纠偏条目**（`CORRECTIONS_APP.md` 最大 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0** ⇒ `last_ack` **保持 APP-022**，**第 25 次**同一口径复核）；`CORRECTIONS_APP.md` 全程**只读零修改**（SHA256 `682aced289a58d18b…` / 48 457 B / mtime 2026-10-26 16:18:08）
-- 06:55 §61 🔴🔴 **缺陷 —— 交付代差**：旧 zip（11 216 226 254 B / 12:06）比包目录**落后两代** ⇒ zip ⇄ 包目录 `.py` **diff = 7** ⇒ 缺 `tts_engine.py`（`cp_prefill→NPU`）、`tts_service.py`（§57~§60，缺 `_drop_one`/`_queued_ids`）、`translator.py`（MT 方案 C）、`live_caption_app.py`（§54 可观测性）⇒ **客户拿到的 v1.5 是半成品**
-- 06:55 §61 🔴 **根因 = 缺「zip 是否已含最新」的闸门**（§36 同源教训）⇒ 已固化流程：**定点同步 → 重打 zip → `verify_pkg_zip.py` 独立复核 → `publish_ftp.py` 重发**（四步缺一不可）+ 只读判据「zip ⇄ 包目录 `.py` diff 计数 = 0」+「HEAD ⇄ 包目录 **22/22**」
-- 06:55 §61 ✅ **持锁重打 v1.5 两次**：第 1 次 13 min 3 s / md5 `ad91dd21…`；🔴 打完后 `verify_pkg_zip.py` [2] 报 **21/22**（真实缺口）⇒ 先入库 **`37d06de`** ⇒ 第 2 次 **13 min 24 s** / **11 216 278 478 B** / mtime 06:43:55 / md5 `ad1428d0…` / SHA256 `e6eda70f…` ⇒ **13 986 文件逐字节一致**、独立复核 **PASS（[1] 13986 + [2] 22/22）**、两道内部素材闸门 **命中 0**
-- 06:55 §61 ✅ **重新发布 FTP 两次**（最终：持锁 `app-ftppub` / 9.5 s / 1126.1 MB/s）⇒ 源⇄副本 SHA256 **一致**（`e6eda70f…` / 11 216 278 478 B / mtime 06:54:19）⇒ ✅ **三方闭环**（源 zip = FTP 副本 = 包目录）⇒ 🔴 **未重开 FTP 服务**（netstat 实测 21/2121 无监听，守 APP-009③）
-- 06:55 §61 ✅ **补齐 APP-021⑥ 的 `--tts-dump-dir` CLI 开关**：`TTSService` 早有 `dump_dir` 参数、`start()` 也会拼 `--dump-dir` 给 worker ⇒ **只差 App 这层接线** ⇒ 原先**从 App 命令行无法触发逐句 wav 落盘**；2 处改动（新增参数 + CLI 构造透传）
-- 06:55 §61 ✅ **验收 `app091` REAL 5/5 全 PASS + BUG 反证 3/3 成立**（基线固定 `3afaf7a`，**不是 HEAD**）；⚠️ **验收脚本踩的三个坑（已修）**：① argparse flag 名是**位置参数**（`node.args[0]`）② 影子目录写文件**必须按 bytes**（源文件是 **CRLF** ⇒ 文本模式变 `\r\r\n` ⇒ IndentationError）③ 影子目录**必须复制全部 .py**（扁平 import）
-- 06:55 §61 ✅ **客户包定点同步**（精确字符串替换 + 唯一命中断言，禁整目录覆盖；不手抄代码 ⇒ `git show 3afaf7a:` + `difflib.get_grouped_opcodes(n=3)` 派生 **2 块**）⇒ SHA256 `706cb589e22e8c5c`→`221e9df4a18085db`（214 244→214 693 B）、幂等 **ALREADY**、包外备份 `pkg_backup_app_s61`；⚠️ 裸 `get_opcodes()` 的纯新增块 old 是**空串** ⇒ 报「命中 161148 次」**误导性报错** ⇒ 已改 `get_grouped_opcodes(n=3)`
-- 06:55 §61 ✅ **回归 14 个既有套件全绿**（`app090`/`app089`/`app088`/`app086`/`app057` + 9 个 `test_tts_*`）⇒ §57~§60 三个既有反证**仍全命中**；⚠️ **未跑推理/测速、未占 GPU、未调 MiniMax、未改 `CORRECTIONS_APP.md`、未吞其它模块改动**
-- 06:55 §61 🔴 **未推进**：APP-021 验收 C（需用户配合）｜APP-022 集成（等 ASR-013 + TTS-019）｜检查点 3 实测（APP-018/019/020）｜§45.6①–⑤ / §44 `MAX_SEG_SPAN=2` / §46.5 / §42.3 / MT 通知 13 回复 / §49.7 ⇒ **均等裁定**
-- 04:59 §60 🔴 **巡检：无新 APP 纠偏条目**（`CORRECTIONS_APP.md` 最大 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0** ⇒ `last_ack` **保持 APP-022**，**第 24 次**同一口径复核）；`CORRECTIONS_APP.md` 全程**只读零修改**（SHA256 `682aced289a58d18b…` / 48 457 B / mtime 2026-10-26 16:18:08）
-- 04:59 §60 🔴🔴 **缺陷 —— 丢句双记**：`submit()` / `_flush_queue()` 里丢句的**判定**（`pending.pop`）与**计数**（`n_dropped += 1`）被**拆开**（判定在锁内、计数在锁外且**无条件**）⇒ 与「worker 级 error 的孤儿清理」（`pending.clear()` + `n_dropped += len(orphan)`）**交错** ⇒ 同一句被计**两次** ⇒ 不变式 `n_played + n_dropped + len(pending) == n_submitted` 破坏 ⇒ 底栏「丢句 + 已播」**超过**「提交」
-- 04:59 §60 🔴 **三条漏掉的口径**：`action=='send'` 发送失败 / `action=='dead'` worker 已故障 / `_flush_queue()` 补发失败（后者是**循环外** `n_dropped += n_failed` ⇒ **无法按句判定** ⇒ 一批里只要有一句已被别处定案就**整批**多计）；🔴 **不是理论构造**：`submit()` **每句都调**，worker 级 error 随时可能发生
-- 04:59 §60 ✅ **修法 —— 统一原子口径**：新增 `tts_service.py::_drop_one(jid, register_dropped=False)` ⇒ **摘除 + 注销 `_inflight` + 计数全部在同一把锁内** ⇒ **只有「这句此刻确实还在 `pending` 里」才计丢句**；四条调用点全部改用（发送失败 / `dead` / 第二临界区 `direct`+`dead` / `_flush_queue()` **按句**）
-- 04:59 §60 ✅ **验收 `app090` REAL 16/16 全 PASS + 反证 2/2 命中**（基线固定 `b3c5ebb`，该缺陷在基线**未修** ⇒ 提交后 HEAD 变修复版也不影响反证）；反证实测 `n_dropped=2 / sum=2 / submitted=1` ⇒ `over=True` ⇒ **证明缺陷曾真实存在**；复现 = **可注入锁包装器**在 `submit()` 第一个临界区**释放之后**同步触发 worker 级 error ⇒ **每次必现**
+
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -11333,3 +11320,86 @@ APP-023 的 **L4**：「通知用户从桌面快捷方式按 L1→L2→L3 再测
 | `results/app/Confucius4-shortcut-backup-20261027.lnk` | 1 502 | 2026-10-19 09:57:13 | `b5525b9a47ca44e7` |
 | `live_caption/sync_app023_to_pkg.py` | 4 985 | 09:51:46 | `720420321f255e00` |
 | `status/app/STATUS_APP.md` | 783 042 → 本 §63 追加后 | 10:13 | — |
+
+
+## §64 🔴 巡检（**APP-023 / APP-024 / APP-025 = 3 条新条目**）+ ✅ **APP-024① 首包拆两段** + ✅ **修掉「打包自检被自己的新验收脚本拦下」** + ✅ **交付代差闭环**（zip 三方一致）+ 🔴 **§63 的 L4 仍等用户**（2026-10-27 10:48）
+
+### §64.1 巡检：`CORRECTIONS_APP.md` 本轮有 **3 条新条目**
+`status/app/CORRECTIONS_APP.md` 指纹 **SHA256 `32991dc9bd3a4f35f94d731d7bdfb504dda225b587300879f1a4763bf9513431` / 59 279 B / mtime 2026-10-27 09:06:18**（上轮 `682aced289a58d18b…` / 48 457 B / 16:18:08）⇒ `^## APP-\d+` 命中 **25** 条，最大 **APP-025**；本轮进入前头部 `last_ack: APP-022` ⇒ 编号差 **3** ⇒ 触发 **APP-023 / APP-024 / APP-025**。
+`CORRECTIONS_APP.md` 全程 **只读零修改**（reviewer 独占文件，本轮未 `git add`、远端 blob 仍为 `7082400b…`）。
+
+### §64.2 ✅ 独立核实并发 App 会话的 APP-023①③④ / APP-025 成果（**全部真实落盘**）
+并发 App 会话已于 09:50（`6d7ef24`）与 10:16（`0d1be9d`）提交并推送 `§63`。本轮**独立逐条核实**（不采信 `§63` 的自述）：
+
+| APP-023 要求 | 独立核实方式 | 结论 |
+|---|---|---|
+| ① 边车 std 句柄 | `git show 6d7ef24 -- live_caption/tts_cuda.py` | ✅ `stderr` 恒 `PIPE` + daemon 抽水线程 + `_NO_WINDOW_FLAG()`（`CREATE_NO_WINDOW=0x08000000`）⇒ **绝不**走 `GetStdHandle`/`DuplicateHandle` |
+| ① worker 解释器 | 读 `tts_service.py::_worker_python()` | ✅ pythonw→同目录 python.exe；⚠️ **弃用 `sys._base_executable`**（实测丢 venv，`numpy 2.4.6→2.5.4`） |
+| ③ 去掉旧引擎回落 | AST 读 `tts_worker.py::load()` / `_try_load_babelvox()` | ✅ `load()` 内 **`_try_load_ov` 调用 0 处**；`_try_load_babelvox` **不再 `return None`**（抛 `RuntimeError(_babelvox_failure_reason(...))`）⇒ 缺 babelvox 直接报「缺少 Qwen3-TTS 运行时」 |
+| ④ 测试音不依赖 worker | 读 `play_test_tone_direct` + GUI 调用点 | ✅ 本进程直放 440 Hz（不建 `TTSService`） |
+| APP-025 报错可理解 | 读 `describe_tts_failure` / `_TTS_FAILURE_HINTS` | ✅ rc/`WinError 50`/缺 babelvox/`LLVM ERROR` → 一句人话 + **落盘日志路径** |
+| APP-025 按钮置灰 | 读 `offline_reader_gui.py::_sync_availability` | ✅ `_poll` 里持续调用 ⇒ worker 不可用即置灰「开始朗读」+ 写明原因 |
+
+### §64.3 🔴🔴 本轮真实缺陷 —— **打包自检被「自己的新验收脚本」拦下**（§48 闸门真的拦住了）
+`pack_v13.py --dry-run` 判 **FAIL**（不是打包失败，是**自检**失败）：
+```
+🔴 违规 2 处：
+  [A] results/app/app093_sync_integrity_check.py         行[29]
+      PKG = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5\app'
+  [A] results/app/app096_pythonw_launch_gate.py          行[33]
+      PKG = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5'
+⇒ 修法：用 `pkg_paths.discover_pkg_dir()` / `pkg_paths.pkg_app_dir()`（单一数据源），**不写死版本号**。
+```
+⇒ **根因 = 验收脚本自己写死了包路径**（§48 的「包路径写死」缺陷类别）⇒ 修法 = 改用 `pkg_paths` 单一数据源。
+⇒ ✅ 修后 `app093` **19 PASS / 0 FAIL**、`app096` **13 PASS / 0 FAIL**、`pack_v13.py --dry-run` **PASS**（关键文件全 `[OK]`、内部素材闸门 **0** 命中、第三方素材 **0** 命中）。
+⇒ 🔴 **这条同时说明「§48 闸门不是摆设」**：它拦下了**本轮自己产出的**违规文件。
+
+### §64.4 ✅ APP-024① —— **首包拆成两段上报**（本轮实现；APP-024②③④ 未做）
+**根因（§49.7 的实测）**：旧 `latency_s` = 「submit → 首块到达」一个总值，把**排队等待**与**合成首包**混在一起 ⇒ §49.7 的「首包 P50 17.29 s」量到的是**加载期攒下的队一次性倒出来**（7 句 `t_submit` 跨度仅 0.115 s）⇒ **根本分不开**。
+🔴🔴 **跨进程时钟不可比**（本轮的核心约束）：Windows `time.perf_counter()` 走 **QPC**、起点是**进程启动时刻** ⇒ 主进程与 worker 的 `perf_counter()` **基准不同** ⇒ **不能直接相减**。⇒ 拆分方案：
+| 段 | 谁算 | 公式 | 为什么 |
+|---|---|---|---|
+| **排队等待** `queued_s` | **主进程** | `t_sent − t_submit` | 同一进程 ⇒ `perf_counter()` 同源可比（`t_sent` = 命令真正写进 worker stdin 的时刻） |
+| **合成首包** `synth_s` | **worker** | `t_first − t_dequeue` | 同一进程 ⇒ 同源可比（`t_dequeue` = worker 主循环从 stdin 取到该命令的瞬间） |
+| `latency_s`（旧口径） | worker | `t_first − t_submit`（worker 内部） | **保留不删** ⇒ 旧消费方（ABBA 报告）不受影响 |
+
+改动（4 处）：`tts_service.py` `_send()` 在 flush 后回填 `pending[jid]['t_sent']` ｜ `tts_service.py` `first_packet` 分支算 `queued_s` 并写 `first_packet_parts`（进 `stats()`）｜ `tts_worker.py` 主循环记 `self._dequeue_at[jid]` ｜ `tts_worker.py` `synth()` 消费 `_dequeue_at`（`None` 兜底）+ `first_packet` 事件带 `synth_s`。
+⚠️ **worker 回传的 `t_dequeue` 只作诊断**，**不参与**主进程排队段计算（跨进程不可比）。
+**验收 `app097`**（新增）：REAL **20 PASS / 0 FAIL** + BUG **3/3 命中**（基线固定 `0d1be9d`，**不是 HEAD** ⇒ 提交后仍成立）。
+- R9 行为级实测：`queued_s = 0.300`（submit 100.000 → 写 stdin 100.300）、`synth_s = 0.420`（worker 5.000 → 5.420）⇒ **两段确实是不同的数**；
+- **R9d 反证**：若误用 worker 的 `t_dequeue` 去算排队段 ⇒ `100.000 − 5.000 = 95.0 s` ⇒ 完全离谱 ⇒ 证明「跨进程相减」这条铁律**有实测支撑**。
+🔴 **本轮验收脚本自身踩了两次「判据假通过」（§62 同源教训，已修）**：① `'synth_s' not in src` 命中了 **`synth_stream`** 的**子串** ⇒ 改 `has_ident()` 走 AST；② 找 `emit({'kind': 'first_packet'})` 时查的是**字典的 key 列表** ⇒ 而 `'first_packet'` 是 **`kind` 这个 key 的 value** ⇒ 改成解析 `key→value` 映射。⇒ **判据自身也会假通过，必须逐条自证**。
+
+### §64.5 ✅ 交付代差闭环（**§61 四步**全做，zip 三方一致）
+**发现**：§63 同步了包目录（09:52）但 **zip 是 06:43** ⇒ `verify_pkg_zip.py` 独立复核报 **FAIL**、**5 个文件内容不一致**（`live_caption_app.py` / `offline_reader_gui.py` / `tts_cuda.py` / `tts_service.py` / `tts_worker.py`）⇒ **客户拿到的 zip 不含 APP-023 的任何修复**。
+✅ **四步全做**（§61 定案顺序）：
+1. **定点同步**（`sync_app023_to_pkg.py`：`git show` + `difflib.get_grouped_opcodes(n=3)` 自动派生，**不手抄**、**禁整目录覆盖**）；
+2. **先提交 → 再打包** ⇒ 持共享锁 `app-pack` / **PID 32772** / 10:17:13 起 ⇒ `pack_v13.py` **14 min 7 s** ⇒ **PASS**、md5 `fcee4434ece1d49d0390f2879c9248be`、MANIFEST `version=1.5 / files=13985 / bytes=13668477340`、zip **13986** 条目**逐字节一致**、**原子改名**、锁已释放；
+3. **独立复核** `verify_pkg_zip.py` ⇒ **PASS**：[1] zip⇄包目录 **13986 全部逐字节一致** + [2] HEAD⇄包目录 **22/22**；
+4. **重发 FTP** `publish_ftp.py` 持锁 `app-ftppub` ⇒ **10.0 s / 1071.0 MB/s**、源⇄副本 SHA256 **一致** ⇒ ✅ **三方闭环**（源 zip = FTP 副本 = 包目录）。
+**交付物最终指纹**：**11 216 287 107 B** / SHA256 **`c7f60bcacda7e4d04d0cdd6776f34a91b928d30ad4fb6d5b1f64906da3a667e4`** / zip **13986** 条目 / mtime 10:28（FTP 副本 10:34）。
+✅ **zip 内已含 APP-023 的 5 个修复**（SHA256 与包目录/仓库逐字相同：`tts_cuda.py` `b5be4ce571abcc67` / `tts_service.py` `77c20a52f5767391` / `tts_worker.py` `77f189f7b1e3164b` / `live_caption_app.py` `b9e21d398ea42bc3` / `offline_reader_gui.py` `a3df2d46f9512b73`）。
+✅ **APP-018② 第三方素材在 zip 内真正清零**（**散包目录**仍有 8 + 22，但**交付 zip** 内实测 **0 + 0** ⇒ 规则生效）：`babelvox/data/speakers` **0**、`scipy/**/tests/*.wav` **0**、`voices/` 只剩 `preset_A.wav` **1** 个。
+🔴 **FTP 服务仍关闭**（netstat 实测 21/2121 无监听，守 APP-009③）；v1.4 保留。
+
+### §64.6 🔴 回归结果（全绿，1 项失败已定位为**环境缺失**而非回归）
+- `app097`（新增）REAL **20/20** + BUG **3/3**；
+- `app092` **24/24**、`app096` **13/13**、`app093` **19/19** ⇒ **全绿**；
+- TTS 记账 5 套件 `app057`/`app086`/`app088`/`app089`/`app090` ⇒ **全部「REAL 全过」**；
+- `test_tts_*` **19 个 PASS**；
+- ⚠️ **1 个失败：`test_tts_cmp_orig.py`** ⇒ `FileNotFoundError: results/app/_orig_mod/tts_service_orig.py`。**已定位为环境缺失、不是本轮回归**：`git ls-files` / `git log` 对 `_orig_mod/` **均无记录** ⇒ 它是 §21 时期的**临时备份目录**（**从未被 git 跟踪**）⇒ 早被清理 ⇒ 该套件**长期**无法运行。⇒ 🔴 **再次印证 §62 的教训**：「反证基线不能用临时备份目录」⇒ 本轮 `app097` 的基线用的是**固定 commit SHA `0d1be9d`**（`git show`）⇒ **不会**随清理失效。
+
+### §64.7 ⛔ **本轮停在 §63 的 L4**（等用户实测）—— 不自行推进
+APP-023 的 **L4** 原文：「通知用户从桌面快捷方式按 L1→L2→L3 再测一遍，并说明听到/听不到（会话日志由 reviewer 核对）。**用户亲口确认之前，仍不得写「能出声」**」。
+🔴 **本轮只做链路级与代码级闭环**（L1/L2/L3 自动化冒烟已在 `§63` 全绿 + 本轮交付 zip 已含修复），**未**宣称「用户听得见」。
+**请用户现在双击桌面「Confucius4 实时字幕」图标**（已指向 v1.5 包 `Start_LiveCaption.bat`）：① 点「🔊 测试声音」→ ② 选 **CUDA** 朗读一句 → ③ 选 **NPU** 朗读一句 → ④ 反馈听到/听不到 + `%LOCALAPPDATA%\Confucius4LiveCaption\session_*.log` 路径。
+
+### §64.8 🔴 **未推进**（等 reviewer 裁定 / 等用户）
+- 🔴 **APP-024②**（加载期提交的句子单独列）—— 本轮只做了 ①，② 需与实测一起做（APP-024 明文「APP-023 验收通过后再做这条」）；
+- 🔴 **APP-024③**（按 BRIEF 规定素材 SPE 12–27 分钟 + 中英混合音频、`--speed 1`、**持锁**重跑 ABBA）—— 等 L4 用户确认 + 机器锁；
+- 🔴 **APP-024④**（「加载期攒下的句子在 ready 那一刻也按 8 s 规则丢掉」是否改）—— reviewer 明文「**不要自己改**，写进待用户决定」；
+- 🔴 **APP-022** 集成（等 ASR-013 + TTS-019）；🔴 **§45.6①–⑤** / **§44 `MAX_SEG_SPAN=2`** / **§46.5** / **§42.3** / **MT 通知 13 回复** ⇒ 均等裁定。
+
+### §64.9 ⚠️ 本轮纪律自检
+✅ 未在 CPU 跑推理/测速（CUDA/NPU 是加速器）｜✅ 未调 MiniMax｜✅ 未改 `CORRECTIONS_APP.md`｜✅ 未吞其它模块改动（提交前 `git status` 实测 **474** 项，他模块全部保留在工作区）｜✅ 打包/发布**全程持共享机器锁**（`app-pack` PID 32772 / `app-ftppub`），锁**已释放**｜✅ 仓库⇄客户包只做**定点替换**（禁整目录覆盖）｜✅ 提交**逐文件 `git add`**（不用 `-A`），**不提交** `status/app/CORRECTIONS_APP.md`｜✅ **普通 push**，未 force。
+⚠️ 本轮 `app095`/`app097` 的耗时数字**一律标 `timing_valid=false`** ⇒ **不对外报**。

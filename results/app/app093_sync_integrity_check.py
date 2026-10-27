@@ -25,8 +25,14 @@ import io
 import os
 import sys
 
-REPO = r'C:\Users\Trekker-PTL\confucius4-openvino\live_caption'
-PKG = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5\app'
+# 🔴 §48 闸门：**不写死客户包版本号** ⇒ 用 `pkg_paths` 单一数据源
+#   （硬编码 `...\Confucius4_LiveCaption_v1.5` 会被打包自检拦下）
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))))
+import pkg_paths  # noqa: E402
+
+REPO = os.path.join(pkg_paths.repo_root(), 'live_caption')
+PKG = pkg_paths.pkg_app_dir()
 FILES = ['tts_cuda.py', 'tts_service.py', 'tts_worker.py',
          'live_caption_app.py', 'offline_reader_gui.py']
 

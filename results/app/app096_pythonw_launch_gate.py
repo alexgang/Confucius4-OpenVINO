@@ -30,7 +30,12 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PKG = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5'
+# 🔴 §48 闸门：**不写死客户包版本号** ⇒ 用 `pkg_paths` 单一数据源
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))))
+import pkg_paths  # noqa: E402
+
+PKG = pkg_paths.discover_pkg_dir()
 SMOKE = os.path.join(HERE, 'app095_pythonw_smoke.py')
 LAUNCHER = os.path.join(HERE, 'app095b_launch_via_shellexecute.py')
 OUT_JSON = os.path.join(HERE, 'app095_pythonw_smoke.json')

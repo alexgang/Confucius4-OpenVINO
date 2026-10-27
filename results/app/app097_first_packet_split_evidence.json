@@ -1,0 +1,126 @@
+{
+  "when": "2026-10-27 10:55:18",
+  "baseline_commit": "0d1be9d",
+  "real_pass": 20,
+  "real_total": 20,
+  "bug_hit": 3,
+  "bug_total": 3,
+  "checks": [
+    {
+      "group": "REAL",
+      "name": "R1a 找到 tts_service._send",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R1b 找到 tts_service._handle_event（first_packet 分支在这里）",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R1c _send 回填 t_sent（pending[jid]['t_sent'])",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R2a 找到 first_packet 分支",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R2b first_packet 分支算出 queued（两段之一）",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R2c first_packet 分支用到 t_submit",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R2d first_packet 分支用到 t_sent",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R3 排队段**不**用 worker 的 t_dequeue（跨进程时钟不可比）",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R4a 找到 tts_worker.synth",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R4b worker 发 first_packet 时带 synth_s",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R5 worker 的 synth_s 用 worker 自己的 t_dequeue",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R6a 找到 tts_worker.run（主循环）",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R6b 主循环记 _dequeue_at[jid]",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R7a synth() 消费 _dequeue_at",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R7b synth() 有 None 兜底（缺 t_dequeue 不崩）",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R8 stats() 带 first_packet_parts",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R9a 排队段算对（≈0.300 s）",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R9b 合成段算对（≈0.420 s）",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R9c 两段是**不同的数**（不是同一个值抄两遍）",
+      "pass": true
+    },
+    {
+      "group": "REAL",
+      "name": "R9d 跨进程相减确实离谱（⇒ 反证「不能直接用 t_dequeue」）",
+      "pass": true
+    },
+    {
+      "group": "BUG",
+      "name": "B1 基线 _send **没有**回填 t_sent（⇒ 缺陷曾真实存在）",
+      "pass": true
+    },
+    {
+      "group": "BUG",
+      "name": "B2 基线 first_packet 分支**没有** queued_s（⇒ 缺陷曾真实存在）",
+      "pass": true
+    },
+    {
+      "group": "BUG",
+      "name": "B3 基线 worker **没有** synth_s（⇒ 缺陷曾真实存在）",
+      "pass": true
+    }
+  ],
+  "timing_valid": false
+}

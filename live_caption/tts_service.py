@@ -282,6 +282,11 @@ class TTSService:
 
         # 统计
         self.first_packet_s: Optional[float] = None   # 首包延迟
+        # 🔴🔴 APP-024①：**首包的两段拆分**（最近一句）
+        #   `queued_s` = 命令写进 worker stdin − submit（**主进程**时钟，同源可比）
+        #   `synth_s`  = worker 内部「取到命令 → 第一块音频到达」（worker 时钟）
+        #   ⚠️ 两个数来自**两个进程** ⇒ 只能**各自解释**，不能跨进程相减。
+        self.first_packet_parts: Optional[dict] = None
         self.backlog_s = 0.0                          # 当前积压
         self.max_backlog_s = 0.0                     # 最大积压
         self.n_dropped = 0                            # 丢句数
@@ -1039,6 +1044,19 @@ class TTSService:
                 # 兼容旧的文本模式管道（例如外部注入的假 proc）
                 p.stdin.write(line.decode('utf-8'))
             p.stdin.flush()
+            # 🔴🔴 APP-024①：**命令真正写进 worker stdin 的时刻**。
+            #   ⇒ 主进程侧「排队等待」= `t_sent − t_submit`
+            #     （同一个进程 ⇒ `time.perf_counter()` 时钟可比；
+            #      跨进程时钟**不可比** ⇒ 排队段必须由主进程算）。
+            #   ⚠️ `submit()` 已把 `t_submit` 写进 `pending[jid]['t']` ⇒
+            #   这里只补 `t_sent` ⇒ 两条路径（直接下发 / `_flush_queue` 补发）
+            #   **都**能拿到完整的排队段。
+            jid = obj.get('id')
+            if jid is not None:
+                with self.lock:
+                    p = self.pending.get(jid)
+                    if p is not None:
+                        p['t_sent'] = time.perf_counter()
             return True
         except Exception as e:
             self.on_log(f'[TTS] 发送失败：{e}')
@@ -1295,6 +1313,34 @@ class TTSService:
         elif kind == 'first_packet':
             # 首包延迟：从 submit 到 worker 开始播这段
             self.first_packet_s = msg.get('latency_s')
+            # 🔴🔴 APP-024①：**首包拆成两段上报**（reviewer 验收标准：
+            #   「排队等待 `t_dequeue − t_submit`，合成首包 `t_first_packet − t_dequeue`」）。
+            #   ⚠️ **跨进程时钟不可比** ⇒ 排队段必须用**主进程自己的**两个时刻相减：
+            #     `t_sent`（命令写进 stdin）− `t_submit`（submit 时）
+            #     ⇒ worker 回传的 `t_dequeue` 只作**诊断参考**，不参与计算。
+            #   ⚠️ `pending[jid]` 可能已被清（句子已定案）⇒ 取不到就**不填**
+            #     （⇒ 该句的排队段为 None，**不编造数字**）。
+            jid = msg.get('id')
+            if jid is not None:
+                with self.lock:
+                    p = self.pending.get(jid)
+                    t_submit = p.get('t') if p else None
+                    t_sent = p.get('t_sent') if p else None
+                if t_submit is not None and t_sent is not None:
+                    queued = max(0.0, t_sent - t_submit)
+                    synth_s = msg.get('synth_s')
+                    self.first_packet_parts = dict(
+                        id=jid,
+                        queued_s=round(queued, 3),
+                        synth_s=(round(float(synth_s), 3)
+                                 if synth_s is not None else None),
+                        latency_s=msg.get('latency_s'),
+                    )
+                    self.on_log(
+                        '[TTS] 首包分段 id=%s：排队 %.3f s + 合成 %s s'
+                        % (jid, queued,
+                           ('%.3f' % float(synth_s)) if synth_s is not None
+                           else '?'))
         elif kind == 'played':
             jid = msg.get('id')
             # 🔴🔴 2026-10-25 §30 修：**这一句可能早先已被按积压丢弃**。
@@ -1481,6 +1527,7 @@ class TTSService:
         return dict(
             state=self.state,
             first_packet_s=self.first_packet_s,
+            first_packet_parts=self.first_packet_parts,
             backlog_s=round(self.backlog_s, 2),
             max_backlog_s=round(self.max_backlog_s, 2),
             n_dropped=self.n_dropped,

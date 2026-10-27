@@ -680,6 +680,9 @@ class TTSWorker:
         self._t0 = None
         self._jsonl_path = None      # 逐句记录文件（x.tts.jsonl）
         self._jsonl_rows = []
+        # 🔴🔴 APP-024①：**worker 取到命令的时刻**（主循环写入、`synth()` 消费）
+        #   ⇒ 用来把「首包」拆成「排队等待」与「合成首包」两段。
+        self._dequeue_at = {}
         # 🔴 APP-021⑥：逐句 wav 落盘目录（None = 不落盘）
         self.dump_dir = None
         self._dump_seq = 0
@@ -1018,6 +1021,13 @@ class TTSWorker:
         import numpy as np
 
         t_submit = time.perf_counter()
+        # 🔴🔴 APP-024①：合成段的起点 = **worker 取到命令**的时刻
+        #   （主循环已把它记在 `self._dequeue_at[jid]`）。
+        #   ⚠️ 兜底：若缺（异常路径）⇒ 退回 `t_submit`
+        #   ⇒ 此时 `synth_s` 会含一点线程启动延迟，但**不会崩**、不会缺字段。
+        t_dequeue = self._dequeue_at.pop(jid, None)
+        if t_dequeue is None:
+            t_dequeue = t_submit
         lang = self._guess_lang(text)
         is_babelvox = self.engine is not None
         # 🔴 APP-022：记住本句的说话人（**只在本进程内存里**）
@@ -1102,8 +1112,24 @@ class TTSWorker:
                     if t_first is None:
                         t_first = time.perf_counter()
                         latency = t_first - t_submit
+                        # 🔴🔴 APP-024①：**首包拆成两段上报**。
+                        #   旧实现只有 `latency_s` = 「submit → 首块到达」一个总值
+                        #   ⇒ 里面**混着**两件完全不同的事：
+                        #     ① **排队等待**（主进程提交 ⇒ worker 还没取到命令）
+                        #     ② **合成首包**（worker 内部真正在算的那一段）
+                        #   ⇒ §49.7 实测「首包 P50 17.29 s」量到的是
+                        #     **加载期攒下的队一次性倒出来**（批量提交 ⇒ 排队段巨大）
+                        #     ⇒ 混在一个数里**根本分不开** ⇒ 永远查不清。
+                        #   ⇒ 现在 worker 侧先报**自己口径**的合成段：
+                        #       `synth_s` = t_first − t_dequeue（worker 内部时钟）
+                        #     排队段由**主进程**算（跨进程时钟不可比）：
+                        #       `queued_s` = t_sent − t_submit
+                        #   ⇒ `latency_s` 保留（= queued_s + synth_s 的旧口径）
+                        #     **不删** ⇒ 旧消费方（ABBA 报告）不受影响。
                         emit({'kind': 'first_packet',
-                              'latency_s': round(latency, 3), 'id': jid})
+                              'latency_s': round(latency, 3), 'id': jid,
+                              'synth_s': round(t_first - t_dequeue, 3),
+                              't_dequeue': round(t_dequeue, 4)})
                     n_samples += len(w)
                     n_parts += 1
                     # ── APP-021②：本块幅度统计 ──────────────────────
@@ -1553,6 +1579,19 @@ class TTSWorker:
                 #   等 TTS-019 交付「按说话人取音色向量」时在这里接上。
                 spk = msg.get('spk')
                 spk_conf = msg.get('spk_conf')
+                # 🔴🔴 APP-024①：**dequeue 时刻** = worker 主循环从 stdin
+                #   真正取到这条命令的瞬间。
+                #   ⚠️ 为什么不直接在 `synth()` 入口取：`synth()` 是**独立线程**
+                #   ⇒ 线程启动延迟会把「排队」混进「合成」⇒ 又分不开了。
+                #   ⚠️ 为什么不用跨进程时钟：主进程与 worker 的
+                #   `time.perf_counter()` **基准不同**（Windows 上是 QPC，
+                #   起点是进程启动时刻）⇒ 不能直接相减
+                #   ⇒ 跨进程的那一段（排队）**由主进程算**
+                #     （`t_sent − t_submit`，同一个进程 ⇒ 时钟可比）。
+                #   ⇒ worker 只报**自己口径**的 `t_dequeue`（供诊断）
+                #     与**合成段** `synth_s = t_first − t_dequeue`。
+                t_dequeue = time.perf_counter()
+                self._dequeue_at[jid] = t_dequeue
                 t = threading.Thread(target=self.synth,
                                      args=(jid, text, spk, spk_conf),
                                      daemon=True)
