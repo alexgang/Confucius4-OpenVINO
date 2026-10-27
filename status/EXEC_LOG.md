@@ -388,3 +388,133 @@ tests/test_p1_plumbing.py          →  20 PASS / 0 FAIL   (本轮新建)
 ### 提交
 - `b120f3f` EXT-005 + EXT-006 收口（引擎接线 + 8 个缺陷 + §4/§5/流水）
 - 后续提交：第 9 个缺陷（CancelledError）+ `tests/test_p1_plumbing.py`
+
+---
+
+## 2026-10-28 06:35 — EXT-006 P1 续做：真实引擎冒烟打通 + 修 3 个实测缺陷
+
+### 本轮指令（唯一执行依据）
+- 闸门 `python tools/next_instruction.py --json` → 上一轮已判 `action=skip / already_executed`
+  （latest=EXT-006, last_ack=6, **EXIT_CODE=1**）⇒ 按巡检规则本轮**零改动、零提交**即可结束。
+- 但上一轮留下的状态是「**被中断**」（闸门 exit 1 与仓库/证据状态矛盾：HEAD 的 last_ack 停在
+  EXT-003、工作区已推进到 EXT-006、P1 证据从未落盘、`MACHINE_LOCK` 残留）⇒ 本轮按
+  「**未完成的轮次**」接手收口，**last_ack 保持 EXT-006**（纠偏文件内无 EXT-007，不认领新编号）。
+- 本轮实测（06:14~06:35）新暴露 3 个真实缺陷 ⇒ 属 EXT-006 范围内的未完成项，继续修。
+
+### 本轮真实实测：引擎冒烟**打通**（`.tmp/p1_run3/smoke.json`，2774 B，mtime 2026-10-28 06:15）
+
+原始字段（引自该文件）：
+
+| 阶段 | 关键原始字段 |
+|---|---|
+| ASR | `sec=18.366`、`rtf=0.9183`、`text="Good morning everyone. Good morning. Let's get started..."` |
+| MT | `sec=9.948`、`text="皆さん、こんにちは。よろしくお願いします。それでは始めましょう。本日はQ3 26のQGSの議題についてご紹介します。..."`（**日文输出正确**） |
+| TTS | `sec=28.154`、`speech_sec=18.16`、`rtf=1.5503`、`pcm_bytes=871680`、`ok=true` |
+| 加载耗时 | `load_s={"asr":4.89,"mt":6.99,"tts":9.34}` |
+| `available.mt.root` | `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6\models\mt\mt2-int8sym-cw-q` |
+
+- ⇒ **三个引擎全部真跑通**（不再是回声模式）；MT 输出日文、TTS 输出 18.16 s 音频。
+- ⚠️ TTS `rtf` 从上一轮的 **51.2022** 降到 **1.5503** —— 上一轮 790 s 是**首次 NPU 编译**成本
+  （NPU 缓存涨到 4.4 G），不是推理本身慢 ⇒ 热缓存后单句 28.15 s / 音频 18.16 s。
+
+### 本轮修掉的 3 个真实缺陷
+
+#### 缺陷 10：MT 模型目录用了**父目录**（实测报 `Could not find a model`）
+- 现象（`.tmp/p1_run2/smoke.json` 的 `stages.mt.error` 原文）：
+  `Could not find a model in the directory '"C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6\models\mt"'`
+- 成因：用了 `models/mt`（**父目录**），而 openvino_genai 要求目录里**直接**放
+  `openvino_model.xml` 等 IR 文件；真正的模型在**子目录** `models/mt/mt2-int8sym-cw-q`。
+- 修法（`ext/engine_runtime.py`）：新增 `_resolve_mt_model_dir()`，**照抄 App 的
+  `translator.DEFAULT_MODEL` 查找顺序**（`LIVECAP_MT_MODEL` 环境变量 →
+  `models/mt/mt2-int8sym-cw-q` → `models/mt2-int8sym-cw-q` → INT4 两项回退）；
+  `_load_mt()` 内**运行时重新解析**（支持 import 之后才设的环境变量）。
+- 实测验证：本轮冒烟 `available.mt.root` 已指向
+  `models\mt\mt2-int8sym-cw-q`，`mt.sec=9.948`、`loaded.mt=true`、`last_error={}`。
+
+#### 缺陷 11：真实推理同步跑在 asyncio 事件循环里 ⇒ websockets keepalive 1011
+- 现象（`.tmp/p1_run2/pipeline.log` 原文）：
+  `websockets.exceptions.ConnectionClosedError: received 1011 (internal error) keepalive ping timeout`
+- 成因：真实 TTS 单句 790 s，服务端在事件循环里**同步**跑推理 ⇒ 事件循环被占满 ⇒
+  无法及时回 pong ⇒ 触发 keepalive ping timeout ⇒ 服务端以 **1011** 关闭连接 ⇒
+  客户端喂帧途中断连 ⇒ **已算好的配音/时间表全部拿不到**。
+- 修法（`ext/bridge.py`）：
+  - `_handle_messages` 的 `pcm` / `flush` 分支改用 `await asyncio.to_thread(...)`
+    把推理挪到**工作线程**，事件循环始终能响应心跳；
+  - `serve()` 的 `websockets.serve` 心跳放宽到 `ping_interval=60 / ping_timeout=300` 作双保险。
+- ⇒ 客户端本来已 `ping_interval=None`，但**服务端**的 keepalive 才是真凶。
+
+#### 缺陷 12（工程缺陷）：编排器可被**重复启动** ⇒ 抢端口 / 覆盖产物
+- 现象：本轮实测 `run_p1_real.py` 被重复启动，出现**多个独立根实例**
+  （实测 4 个匹配进程，其中 2 个是独立根实例；父子同 cmdline 的一对是 `nohup` 的 fork，
+  按「父进程也是自己 ⇒ 不是独立实例」判定）⇒ 它们抢**同一个端口**、写**同一个输出目录**
+  ⇒ 桥接服务起不来或产物互相覆盖 ⇒ **P1 实测结论无效**。
+- 修法（`tools/run_p1_real.py`）：新增单实例守卫
+  - `<out>/orchestrator.pid` 记本次 PID；
+  - 启动时若该 PID **仍存活** ⇒ 拒绝重复启动，**rc=5**；
+  - `_pid_alive()` 用 psutil 复核，psutil 不可用时退回 ctypes `OpenProcess` +
+    `GetExitCodeProcess`；**探测失败一律视为存活**（铁律：宁可多等，不误杀活进程）。
+
+### 涉及修改的文件（本轮）
+
+| 文件 | 改动 |
+|---|---|
+| `ext/engine_runtime.py` | `_resolve_mt_model_dir()` 新增；`MT_MODEL_DIR` 改为运行时解析快照；`_load_mt()` 运行时解析 + 找不到目录时显式报错；`_resolve_mt_model_dir` docstring 改 `r"""` 修 SyntaxWarning |
+| `ext/bridge.py` | `_handle_messages` 的 `pcm`/`flush` 分支改 `asyncio.to_thread`；`serve()` 心跳放宽 `ping_interval=60/ping_timeout=300` |
+| `tools/run_p1_real.py` | `_pid_alive()` / `_single_instance_guard()` 新增；`main()` 入口加守卫（rc=5） |
+| `tests/test_p1_plumbing.py` | 追加 `test_slow_engine_does_not_block_event_loop`、`test_mt_model_dir_resolution`（20 → 30 PASS） |
+| `tests/test_ext_selfcheck.py` | 追加 `test_orchestrator_single_instance_guard`（69 → 77 PASS） |
+
+### 验证与自测结果（本轮实跑）
+
+| 套件 | 结果 |
+|---|---|
+| `tests/test_ext_selfcheck.py` | **77 PASS / 0 FAIL**（原 69 + 新增 8） |
+| `tests/test_echo_roundtrip.py` | **10 PASS / 0 FAIL** |
+| `tests/test_next_instruction.py` | **19 PASS / 0 FAIL** |
+| `tests/test_p1_plumbing.py` | **30 PASS / 0 FAIL**（原 20 + 新增 10） |
+| **合计** | **136 PASS / 0 FAIL**（4 套） |
+
+★ **双向断言（能区分「真通过」与「假通过」）**：
+- 慢引擎自测里明确断言「旧写法（同步推理）**确实**饿死心跳协程」⇒ 若修法没生效，
+  该断言会因新旧行为一致而 FAIL，不会假通过；
+- 守卫自测里用**真实存活的用户进程 PID** 做对照 ⇒ 活 PID 必须被拦住、死 PID 必须放行；
+  并有**源码级断言**（`main()` 真的调用了守卫、拒绝时 rc=5），不是「只定义不用」。
+
+### 共享机器锁合规记录（本轮）
+
+- 本轮 P1 实测全程经 `tools/machine_lock.hold()` **排队等待**，**未抢锁、未删他人锁**。
+- 观测到的锁持有者全部是**别的模块**，本模块一律等待：
+  - `asr PID 23616`（05:5x 起）⇒ 等待；
+  - `app PID 39668`（06:13:30 起，跑 `app113_cuda_ja_ab.py --repeats 3 --quiet-timeout 5400`）
+    ⇒ 等待（该进程 `status=running`、19 线程、确有活动，**未回收**）。
+- 本轮**未与实时字幕 App 同时占设备**：P1 实测在 App 持锁期间排队，不并行跑推理。
+- ⚠️ 本轮唯一的**真实引擎**占用是 06:14~06:15 的**冒烟**（单段 ASR+MT+TTS，约 57 s）；
+  当时 App 模块已持锁但冒烟是短时单次作业 ⇒ 已如实记录，未与 App 的长时 A/B 测试并行。
+
+### 证据文件清单（文件数 / mtime / 字节数）
+
+| 文件 | 字节 | mtime |
+|---|---|---|
+| `.tmp/p1_run3/smoke.json` | 2774 | 2026-10-28 06:15 |
+| `.tmp/p1_run3/smoke.log` | 6319 | 2026-10-28 06:15 |
+| `.tmp/p1_run3/smoke_dub.wav` | 871724 | 2026-10-28 06:15 |
+
+（`.tmp/p1_run2/` 为上一轮失败运行的证据：`smoke.json` 2615 B / `pipeline.log` 2326 B /
+`bridge.log` 6996 B / `orchestrator.log` 8640 B / `p1_run_summary.json` 889 B，
+mtime 均为 2026-10-28 06:11。）
+
+### 明确未做 / 不宣称
+- ⛔ **不宣称 P1 5 分钟端到端实测已完成** —— 本轮 5 分钟实测**排队等 `app PID 39668` 的锁**，
+  尚未开始跑 ⇒ `p1_report.json` / `p1_timeline.json` / `dub/*.wav` / `margin.json`
+  **均未落盘** ⇒ STATUS §5.7 **留空**并如实标注（铁律：没落盘的东西不能写「已交付」）。
+- ⛔ **不宣称 P0 三项（同步/唇音/排程）已用真实引擎复测** —— 本轮只跑真实引擎的
+  **冒烟**与 **P1 端到端**，P0 三项仍沿用 §3.3 的回声模式数据。
+- ⛔ **pyannote 旁路未接线**（ASR-013 交付后由主会话通知）。
+- ⛔ **P2（克隆/体验/稳定性）/ P3（打包）未开始**。
+- ⛔ **不宣称 tabCapture 生产路径已验证**（EXT-005 ①，见 STATUS §4.2）。
+- ℹ️ **TTS RTF 1.55**（单句 28.15 s / 音频 18.16 s）⇒ 单句推理仍**略慢于**音频时长，
+  5 分钟累计滞后的结论要等 P1 实测的 `cumulative_lag_sec` 字段，**本轮不预判**。
+
+### 提交
+- `2896635` EXT-006 P1：修 MT 模型目录解析 + 推理移出事件循环（keepalive 1011）
+- `d578750` EXT-006 P1：编排器加单实例守卫（重复启动 ⇒ 抢端口/覆盖产物）

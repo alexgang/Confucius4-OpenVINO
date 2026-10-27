@@ -1,12 +1,13 @@
 # STATUS_EXT
 last_ack: EXT-006
-更新时间: 2026-10-28 05:42
-当前任务: **§5 EXT-006 P1 — 接入真实引擎（ASR R2T2@GPU.0 → MT Hy-MT2@GPU.0 → TTS Qwen3-TTS@NPU）** ⇒ ✅ **引擎已接线**（`ext/engine_runtime.py` + `ext/bridge.py --real`，回声模式保留作自测）⇒ ✅ **修掉 9 个真实缺陷**（§5.2/§5.3：段起始时间基点归零 / 语言表含引擎不支持的 6 种语言 / 失控闸口径未用 App RUNAWAY 公式 / **R2T2 与 App 侧 6 个同名顶层模块互相顶替** / **stats marker 被覆盖 ⇒ margin 余量全丢** / **同步误差口径拿顺延量当误差** / **离线快灌使余量失真** / **尾段永不处理** / **`CancelledError` 穿透 ⇒ P1 产物最后一步全丢**）⇒ ✅ **新增 P1 端到端实测工具链**（`tools/p1_pipeline.py` + `tools/run_p1_real.py` + `tools/engine_smoke.py` + `tools/bridge_server.py`）⇒ ✅ **新增桩引擎管线自测** `tests/test_p1_plumbing.py`（20 PASS，不占 GPU·NPU）⇒ ✅ 自测 **69 + 10 + 19 + 101 + 20 = 219 PASS / 0 FAIL**（5 套）⇒ ✅ **EXT-005 三点已处理**（tabCapture 路径说明 / 进程残留清理 / chrome_profile 统一目录，见 §4）⇒ ⏳ **P1 5 分钟端到端实测排队中**（实时字幕 App 持锁，排队等，不抢锁）⇒ ⛔ **P2/P3 未开始**；⛔ **pyannote 旁路未接线**（ASR-013 交付后由主会话通知）
+更新时间: 2026-10-28 06:38
+当前任务: **§5 EXT-006 P1 — 接入真实引擎（ASR R2T2@GPU.0 → MT Hy-MT2@GPU.0 → TTS Qwen3-TTS@NPU）** ⇒ ✅ **引擎已接线**（`ext/engine_runtime.py` + `ext/bridge.py --real`，回声模式保留作自测）⇒ ✅ **真实引擎冒烟已打通**（`.tmp/p1_run3/smoke.json`：ASR `rtf=0.9183` / MT `sec=9.948` **日文输出正确** / TTS `rtf=1.5503`、`speech_sec=18.16`，三引擎 `loaded` 全 true）⇒ ✅ **修掉 12 个真实缺陷**（§5.2/§5.3/§5.8：段起始时间基点归零 / 语言表含引擎不支持的 6 种语言 / 失控闸口径未用 App RUNAWAY 公式 / **R2T2 与 App 侧 6 个同名顶层模块互相顶替** / **stats marker 被覆盖 ⇒ margin 余量全丢** / **同步误差口径拿顺延量当误差** / **离线快灌使余量失真** / **尾段永不处理** / **`CancelledError` 穿透 ⇒ P1 产物最后一步全丢** / **MT 模型目录用了父目录 ⇒ MT 全失败** / **推理同步跑在事件循环里 ⇒ keepalive 1011 断连** / **编排器可重复启动 ⇒ 抢端口覆盖产物**）⇒ ✅ **新增 P1 端到端实测工具链**（`tools/p1_pipeline.py` + `tools/run_p1_real.py` + `tools/engine_smoke.py` + `tools/bridge_server.py`）⇒ ✅ **桩引擎管线自测** `tests/test_p1_plumbing.py`（30 PASS）+ `tests/test_ext_selfcheck.py`（77 PASS），不占 GPU·NPU⇒ ✅ 自测 **77 + 10 + 19 + 30 = 136 PASS / 0 FAIL**（4 套）⇒ ✅ **EXT-005 三点已处理**（tabCapture 路径说明 / 进程残留清理 / chrome_profile 统一目录，见 §4）⇒ ⏳ **P1 5 分钟端到端实测排队中**（`app PID 39668` 持锁跑 `app113_cuda_ja_ab.py --quiet-timeout 5400`，排队等，不抢锁）⇒ ⛔ **P2/P3 未开始**；⛔ **pyannote 旁路未接线**（ASR-013 交付后由主会话通知）
 
 阻塞 / 待决定:
-① ⏳ **P1 端到端实测排队中** —— 实时字幕 App 模块持锁（`app PID 24888`，05:37:36 起，跑 CUDA A/B 测试）⇒ 本模块**排队等待**（`--lock-wait 5400`），**未抢锁、未删锁**；本轮**未宣称 P1 实测完成**（数值见 §5.7，未落盘则该节留空）；② ⛔ **pyannote 旁路未接线** —— ASR-013 交付后由主会话通知；③ ⛔ **P2（克隆/体验/稳定性）/ P3（打包）未开始**；④ ℹ️ **§2 的 skew 尖峰归因已被撤回**（见 §3.1），真实根因是插件自身视频管线负载 + 测量口径错误，**与实时字幕 App 无关**；⑤ ℹ️ **主线程 event-loop lag 仍有 720 ms 尖峰**（插件自身视频渲染，与采样时钟准确度无关，EXT-001 未约束此项）—— 本轮**不宣称**已消除，见 §3.8 / §3.9；⑥ ℹ️ **TTS 只支持 zh/en/ja/ko**（Qwen3-TTS 的 `SUPPORTED_LANGS`），目标语言超出这 4 种时**显式报错**而非静默回落（见 §5.2 缺陷 2）；⑦ ℹ️ **tabCapture 生产路径仍未实测**（EXT-005 ①）—— P0 三项实测走的是 `getDisplayMedia` 兜底路径，本轮**不宣称**「MV3+tabCapture 已验证」，见 §4.2。
+① ⏳ **P1 端到端实测排队中** —— 实时字幕 App 模块持锁（`app PID 39668`，06:13:30 起，跑 `app113_cuda_ja_ab.py --repeats 3 --quiet-timeout 5400`，`status=running`、19 线程、确有活动）⇒ 本模块**排队等待**（`--lock-wait 7200`），**未抢锁、未删锁**；本轮**未宣称 P1 实测完成**（§5.7 已落盘的部分与留空项都写清楚了）；② ⛔ **pyannote 旁路未接线** —— ASR-013 交付后由主会话通知；③ ⛔ **P2（克隆/体验/稳定性）/ P3（打包）未开始**；④ ℹ️ **§2 的 skew 尖峰归因已被撤回**（见 §3.1），真实根因是插件自身视频管线负载 + 测量口径错误，**与实时字幕 App 无关**；⑤ ℹ️ **主线程 event-loop lag 仍有 720 ms 尖峰**（插件自身视频渲染，与采样时钟准确度无关，EXT-001 未约束此项）—— 本轮**不宣称**已消除，见 §3.8 / §3.9；⑥ ℹ️ **TTS 只支持 zh/en/ja/ko**（Qwen3-TTS 的 `SUPPORTED_LANGS`），目标语言超出这 4 种时**显式报错**而非静默回落（见 §5.2 缺陷 2）；⑦ ℹ️ **tabCapture 生产路径仍未实测**（EXT-005 ①）—— P0 三项实测走的是 `getDisplayMedia` 兜底路径，本轮**不宣称**「MV3+tabCapture 已验证」，见 §4.2；⑧ ℹ️ **TTS RTF 1.55**（单句 28.15 s / 音频 18.16 s）⇒ 单句推理仍**略慢于**音频时长，5 分钟累计滞后的结论要等 P1 实测的 `cumulative_lag_sec`，**本轮不预判**（见 §5.7）。
 
 ## 最近更新
+06:38 §5.8 **EXT-006 P1 续做（真实引擎冒烟打通 + 修 3 个实测缺陷）**：⚠️ 闸门仍判 exit 1（`already_executed`），但上一轮留下的是「**被中断**」的状态 ⇒ 按「未完成的轮次」接手，**last_ack 保持 EXT-006**（纠偏文件无 EXT-007，不认领新编号）⇒ ✅ **真实引擎冒烟打通**（`.tmp/p1_run3/smoke.json`：ASR `rtf=0.9183` / MT `sec=9.948` **日文输出正确** / TTS `rtf=1.5503`、`speech_sec=18.16`）⇒ ✅ **修掉 3 个新缺陷**：**MT 模型目录用了父目录**（照抄 App `DEFAULT_MODEL` 顺序修好）/ **推理同步跑在事件循环里 ⇒ websockets keepalive 1011 断连**（改 `asyncio.to_thread` + 心跳放宽）/ **编排器可重复启动**（加单实例守卫，rc=5）⇒ ✅ 自测 **136 PASS / 0 FAIL**（4 套，含 18 条新增断言，含「旧写法确实坏」的反向断言）⇒ ⏳ **P1 5 分钟实测仍排队等 `app PID 39668` 的锁**（§5.7 如实标注留空）
 05:42 §5 **EXT-006 P1 收口（补完上一轮被中断的轮次）**：⚠️ 闸门判 exit 1，但仓库状态证明上一轮 02:24 **被中断**（树脏 15 个文件 / HEAD 的 last_ack 还是 EXT-003 而工作区已推进到 EXT-006 / STATUS 缺 §4§5 / EXEC_LOG 无 EXT-005·006 记录 / P1 证据从未落盘 / 锁残留）⇒ 按「**未完成的轮次**」接手收口，**last_ack 保持 EXT-006**（纠偏文件里无 EXT-007，不认领新编号）⇒ ✅ 补写 §4（EXT-005 三点）/ §5（EXT-006 P1）⇒ ✅ **修掉 9 个真实缺陷**（其中 4 个会让 P1 拿到**假数据**或**丢光产物**）⇒ ✅ 新增 `tests/test_p1_plumbing.py`（桩引擎管线自测，20 PASS；**实测抓到第 9 个缺陷**：CancelledError 穿透）⇒ ✅ **5 套自测 219 PASS / 0 FAIL** ⇒ ⏳ **P1 5 分钟实测排队等实时字幕 App 的锁**
 02:24 §5 **EXT-006 P1 落地（真实引擎接线）**：✅ 新建 `ext/engine_runtime.py`（ASR/MT/TTS 三个真实引擎的适配层，只 import 对方原件）⇒ ✅ `ext/bridge.py` 支持 `--real --target-lang --margin-out`（回声模式保留）⇒ ✅ **修 4 个真实缺陷**（§5.2：段起始时间基点归零 / 语言表含 6 种不支持语言 / 失控闸口径 / **同名模块互相顶替**）⇒ ✅ 新增 `tools/p1_pipeline.py`（P1 端到端流水线 + P1 指标 + 配音 wav + 时间表落盘）、`tools/run_p1_real.py`（持锁编排器）、`tools/engine_smoke.py`（引擎冒烟）、`tools/bridge_server.py`（用 App 解释器起服务）⇒ ✅ **App 运行时缺 `websockets`** ⇒ 装到项目本地 `.runtime_deps/`（⛔ 不改 App 任何文件）⇒ ✅ **4 套自测 183 PASS / 0 FAIL** ⇒ ⏳ **P1 5 分钟实测进行中**
 02:24 §4 **EXT-005 三点处理完成**：✅ **tabCapture 生产路径仍未实测**（如实列为风险，不宣称已验证）⇒ ✅ **进程残留**：`tools/chrome_profile.py` 按 `--user-data-dir` 精确匹配杀浏览器进程树 + 删目录 + 确认无残留 ⇒ ✅ **配置目录统一**到 `chrome_profile\<名称>\`（旧 `.tmp/pwprof*` 已清）⇒ ✅ **旧 Chrome 配置目录已清理**（16 个 ≈996 MB → 0）
@@ -566,3 +567,195 @@ tools/player_perf_bench.js         →   8 PASS / 0 FAIL   （纯 Node 微基准
 - 本轮 P1 实测期间，锁由 **实时字幕 App 模块**持有（`app PID 24888`，05:37:36 起）⇒
   本模块**排队等待**（`--lock-wait 5400`），**未抢锁、未删锁**。
 
+
+### 5.7 P1 端到端实测 —— **本轮只完成引擎冒烟，5 分钟端到端未落盘**
+
+⚠️ **本节严格区分「已落盘」与「未落盘」**（铁律：没落盘的东西不能写「已交付」）。
+
+#### 5.7.1 ✅ 已落盘：真实引擎冒烟（`.tmp/p1_run3/`）
+
+证据文件（文件数 / mtime / 字节数）：
+
+| 文件 | 字节 | mtime |
+|---|---|---|
+| `.tmp/p1_run3/smoke.json` | 2774 | 2026-10-28 06:15 |
+| `.tmp/p1_run3/smoke.log` | 6319 | 2026-10-28 06:15 |
+| `.tmp/p1_run3/smoke_dub.wav` | 871724 | 2026-10-28 06:15 |
+
+原始字段（引自 `smoke.json`）：
+
+| 阶段 | 原始字段 | 判读 |
+|---|---|---|
+| ASR（R2T2 INT8@GPU.0） | `sec=18.366`、`rtf=0.9183`、`text="Good morning everyone. Good morning. Let's get started. So welcome to our Q3 26 QGS agenda topics today..."` | ✅ 实时率 < 1，跟得上 |
+| MT（Hy-MT2 INT8@GPU.0） | `sec=9.948`、`text="皆さん、こんにちは。よろしくお願いします。それでは始めましょう。本日はQ3 26のQGSの議題についてご紹介します。3つについて話しましょう。1つ目は、アレックスが言及したビジネス成長を実現するためのエンジニアリング戦略について共有したいと思います。"` | ✅ **日文输出正确**（素材本身是英文会议开场，目标语言 ja） |
+| TTS（Qwen3-TTS@NPU） | `sec=28.154`、`speech_sec=18.16`、`rtf=1.5503`、`pcm_bytes=871680`、`ok=true` | ✅ 出音 18.16 s；但 **RTF 1.55 > 1**（见 5.7.4） |
+| 加载耗时 | `load_s={"asr":4.89,"mt":6.99,"tts":9.34}` | ✅ 热缓存下三个引擎都是秒级 |
+| `available.mt.root` | `...\models\mt\mt2-int8sym-cw-q` | ✅ **已指向真实模型目录**（缺陷 10 已修） |
+| `engine_stats.loaded` | `{"asr":true,"mt":true,"tts":true}` | ✅ 三引擎全部加载成功 |
+| `engine_stats.last_error` | `{}` | ✅ 无残留错误 |
+
+⚠️ **TTS RTF 从上一轮的 51.2022 降到 1.5503**：上一轮 `sec=790.563` 是**首次 NPU 编译**成本
+（NPU 缓存涨到 4.4 G），**不是**推理本身慢 ⇒ 热缓存后单句 28.15 s / 音频 18.16 s。
+⇒ **首次部署必须预留编译时间**（约 13 分钟），这一点上一轮没有识别出来。
+
+#### 5.7.2 ⛔ 未落盘：5 分钟端到端 P1 实测（**本轮未完成**）
+
+本轮启动了完整的 5 分钟端到端实测编排器（`tools/run_p1_real.py`，输出目录 `.tmp/p1_run4/`），
+但它**全程在排队等共享机器锁**，尚未真正开始跑：
+
+```
+[lock] 锁被 app PID=39668 持有（存活）⇒ 等待     ← 反复出现
+```
+
+- 锁持有者：`app PID 39668`，06:13:30 起，跑
+  `results/app/app113_cuda_ja_ab.py --repeats 3 --quiet-timeout 5400`
+  （`status=running`、19 线程、确有活动）⇒ **未回收、未抢锁**。
+- 本模块 `--lock-wait 7200` ⇒ 继续排队。
+
+⇒ **因此下列 P1 验收字段本轮全部为空，不做任何数值声明**：
+
+| EXT-001 P1 要求的验收项 | 本轮状态 |
+|---|---|
+| 每句同步误差 P50 / P95（目标 \|误差\| ≤ 300 ms） | ⛔ **未落盘**（`p1_report.json` 未生成） |
+| 变速比例分布（封顶 1.25×） | ⛔ **未落盘** |
+| 顺延句数（`defer_sec > 0`） | ⛔ **未落盘** |
+| 余量分布（「原声结束 → TTS 就绪」） | ⛔ **未落盘**（`margin.json` 未生成） |
+| 余量 < 0 句数 | ⛔ **未落盘** |
+| 5 分钟累计滞后（`cumulative_lag_sec`） | ⛔ **未落盘** |
+| 逐句配音 wav（供 reviewer 回转写） | ⛔ **未落盘**（`dub/*.wav` 未生成） |
+| 逐句时间表 | ⛔ **未落盘**（`p1_timeline.json` 未生成） |
+
+`.tmp/p1_run4/` 当前只有 3 个文件（**都不是验收产物**）：
+`launcher.pid`（5 B）、`orchestrator.pid`（5 B）、`orchestrator.log`（排队日志）。
+
+#### 5.7.3 ⚠️ 上一轮（`p1_run2`）失败运行留下的证据与它暴露的缺陷
+
+上一轮的 5 分钟实测**跑了一半失败**，失败证据保留在 `.tmp/p1_run2/`：
+
+| 文件 | 字节 | mtime |
+|---|---|---|
+| `.tmp/p1_run2/smoke.json` | 2615 | 2026-10-28 06:06 |
+| `.tmp/p1_run2/smoke.log` | 5552 | 2026-10-28 06:06 |
+| `.tmp/p1_run2/smoke_dub.wav` | 741164 | 2026-10-28 06:06 |
+| `.tmp/p1_run2/pipeline.log` | 2326 | 2026-10-28 06:11 |
+| `.tmp/p1_run2/bridge.log` | 6996 | 2026-10-28 06:11 |
+| `.tmp/p1_run2/orchestrator.log` | 8640 | 2026-10-28 06:11 |
+| `.tmp/p1_run2/p1_run_summary.json` | 889 | 2026-10-28 06:11 |
+
+失败原文（`pipeline.log`）：
+`websockets.exceptions.ConnectionClosedError: received 1011 (internal error) keepalive ping timeout`
+⇒ 成因与修法见 §5.8 缺陷 11。
+
+`p1_run_summary.json` 里 `steps` 数组也如实记录了失败：
+`smoke.rc=0` → `bridge_start.pid=7124` → `bridge_ready.ok=true` → **`pipeline.rc=1`** → `bridge_stop.returncode=1`。
+
+#### 5.7.4 ⚠️ 已能预判的风险（**基于实测单段数据，不是 P1 结论**）
+
+- TTS **RTF = 1.5503**（28.15 s 推理 / 18.16 s 音频）⇒ **单句推理比音频长 55%**。
+- 加上 ASR（`rtf=0.9183`）与 MT（9.95 s），**单句端到端耗时 > 该句音频时长**。
+- ⇒ 按 EXT-001 的排程（配音排在 `t0 + t_start + D`，D = 10 s），**长句很可能赶不上自己的播放时刻**
+  ⇒ `deadline_margin_sec` 会持续为负 ⇒ 同步误差会超标。
+- ⚠️ **但这是从单段实测数据推演的风险，不是 P1 验收结论** —— 必须等 5 分钟端到端跑完、
+  `cumulative_lag_sec` / `sync_err_ms.p95` 落盘后才能判定。**本轮不预判、不宣称达标或未达标**。
+- 若 P1 实测确认滞后超标，候选方向（**需 reviewer 决策，本轮不动手**）：
+  ① 缩短 D（但 D=10 s 是 EXT-001 定的）；
+  ② 分句切得更短（降低单句 TTS 负载）；
+  ③ TTS 换设备或换更快的量化（**属引擎改动 ⇒ 写进本节交主会话转给对应模块**）。
+
+## §5.8 EXT-006 P1 续做 —— 真实引擎冒烟打通 + 修 3 个实测缺陷（2026-10-28 06:38）
+
+### 5.8.1 本轮指令与闸门状态
+
+- 闸门 `python tools/next_instruction.py --json` → `{"action":"skip","reason":"already_executed",
+  "latest":{"id":"EXT-006",...},"last_ack":6}`，**EXIT_CODE = 1**。
+- ⚠️ 但仓库/证据状态证明上一轮 02:24 是「**被中断**」而非「已执行完」
+  （HEAD 的 last_ack 停在 EXT-003、工作区已推进到 EXT-006、P1 证据从未落盘、`MACHINE_LOCK` 残留）
+  ⇒ 按「**未完成的轮次**」接手收口。
+- ⇒ **last_ack 保持 EXT-006**（纠偏文件内**无 EXT-007**，不认领新编号）。
+
+### 5.8.2 本轮修掉的 3 个真实缺陷
+
+#### 缺陷 10：MT 模型目录用了**父目录** ⇒ MT 全部调用失败
+- 实测原文（`.tmp/p1_run2/smoke.json` 的 `stages.mt.error`）：
+  `Could not find a model in the directory '"C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6\models\mt"'`
+- 成因：openvino_genai 要求目录里**直接**放 `openvino_model.xml` 等 IR 文件，
+  而 `models/mt` 只是**父目录**；真正的模型在**子目录** `models/mt/mt2-int8sym-cw-q`。
+- 修法（`ext/engine_runtime.py`）：新增 `_resolve_mt_model_dir()`，**照抄 App 的
+  `translator.DEFAULT_MODEL` 查找顺序**（`LIVECAP_MT_MODEL` 环境变量 →
+  `models/mt/mt2-int8sym-cw-q` → `models/mt2-int8sym-cw-q` → INT4 两项回退）；
+  `_load_mt()` 内**运行时重新解析**（支持 import 之后才设的环境变量）；
+  找不到目录时**显式报错**，不静默。
+- 实测验证：见 §5.7.1（`available.mt.root` 已指向子目录，`mt.sec=9.948`，日文输出正确）。
+
+#### 缺陷 11：真实推理同步跑在 asyncio 事件循环里 ⇒ websockets keepalive 1011 断连
+- 实测原文（`.tmp/p1_run2/pipeline.log`）：
+  `websockets.exceptions.ConnectionClosedError: received 1011 (internal error) keepalive ping timeout`
+- 成因：真实 TTS 单句耗时可达数百秒，服务端在事件循环里**同步**跑推理 ⇒ 事件循环被占满 ⇒
+  无法及时回 pong ⇒ 触发 keepalive ping timeout ⇒ 服务端以 **1011** 关闭连接 ⇒
+  客户端喂帧途中断连 ⇒ **已算好的配音/时间表全部拿不到**（前面 5 分钟的推理白跑）。
+- 修法（`ext/bridge.py`）：
+  - `_handle_messages` 的 `pcm` / `flush` 分支改用 `await asyncio.to_thread(...)`
+    ⇒ 推理在**工作线程**跑，事件循环始终能响应心跳；
+  - `serve()` 的 `websockets.serve` 心跳放宽到 `ping_interval=60 / ping_timeout=300` 作双保险。
+- ⇒ 客户端本来已 `ping_interval=None`，**服务端**的 keepalive 才是真凶。
+
+#### 缺陷 12（工程缺陷）：编排器可被**重复启动** ⇒ 抢端口 / 覆盖产物
+- 实测：本轮实测 `run_p1_real.py` 被重复启动，出现**多个独立根实例**
+  （4 个匹配进程 / 2 个独立根实例；父子同 cmdline 的一对是 `nohup` 的 fork，
+  按「父进程也是自己 ⇒ 不是独立实例」判定）⇒ 抢同一个端口、写同一个输出目录
+  ⇒ 桥接服务起不来或产物互相覆盖 ⇒ **P1 实测结论无效**。
+- 修法（`tools/run_p1_real.py`）：新增单实例守卫
+  - `<out>/orchestrator.pid` 记本次 PID；
+  - 启动时若该 PID **仍存活** ⇒ 拒绝重复启动，**rc=5**；
+  - `_pid_alive()` 用 psutil 复核，psutil 不可用时退回 ctypes `OpenProcess` +
+    `GetExitCodeProcess`；**探测失败一律视为存活**（铁律：宁可多等，不误杀活进程）。
+- 实测验证：重复启动本轮实测输出
+  `[p1-run] 已有实例在跑（PID=25832，存活）⇒ 拒绝重复启动 ⇒ 退出（不重复跑）`，**RC=5**。
+
+### 5.8.3 涉及修改的文件（本轮）
+
+| 文件 | 改动 |
+|---|---|
+| `ext/engine_runtime.py` | `_resolve_mt_model_dir()` 新增；`MT_MODEL_DIR` 改为运行时解析快照；`_load_mt()` 运行时解析 + 找不到目录时显式报错；docstring 改 `r"""` 修 SyntaxWarning |
+| `ext/bridge.py` | `pcm`/`flush` 分支改 `asyncio.to_thread`；`serve()` 心跳放宽 `ping_interval=60/ping_timeout=300` |
+| `tools/run_p1_real.py` | `_pid_alive()` / `_single_instance_guard()` 新增；`main()` 入口加守卫（rc=5） |
+| `tests/test_p1_plumbing.py` | 追加 `test_slow_engine_does_not_block_event_loop`、`test_mt_model_dir_resolution`（20 → 30） |
+| `tests/test_ext_selfcheck.py` | 追加 `test_orchestrator_single_instance_guard`（69 → 77） |
+
+### 5.8.4 验证与自测结果（本轮实跑）
+
+| 套件 | 结果 |
+|---|---|
+| `tests/test_ext_selfcheck.py` | **77 PASS / 0 FAIL**（原 69 + 新增 8） |
+| `tests/test_echo_roundtrip.py` | **10 PASS / 0 FAIL** |
+| `tests/test_next_instruction.py` | **19 PASS / 0 FAIL** |
+| `tests/test_p1_plumbing.py` | **30 PASS / 0 FAIL**（原 20 + 新增 10） |
+| **合计** | **136 PASS / 0 FAIL**（4 套） |
+
+★ **双向断言（能区分「真通过」与「假通过」）**：
+- 慢引擎自测里明确断言「**旧写法（同步推理）确实饿死心跳协程**」
+  （实测同步 0 tick vs 线程 19 tick）⇒ 若修法没生效，该断言会因新旧行为一致而 FAIL；
+- 守卫自测用**真实存活的用户进程 PID** 做对照 ⇒ 活 PID 必须被拦住、死 PID 必须放行；
+  并有**源码级断言**（`main()` 真的调用了守卫、拒绝时 rc=5），不是「只定义不用」。
+
+### 5.8.5 共享机器锁合规记录（本轮）
+
+- P1 实测全程经 `tools/machine_lock.hold()` **排队等待**，**未抢锁、未删他人锁**。
+- 观察到的锁持有者全部是**别的模块**，本模块一律等待：
+  - `asr PID 23616`（05:5x 起）⇒ 等待；
+  - `app PID 39668`（06:13:30 起，跑 `app113_cuda_ja_ab.py --repeats 3 --quiet-timeout 5400`）
+    ⇒ 等待（`status=running`、19 线程、确有活动，**未回收**）。
+- ⇒ 本轮**未与实时字幕 App 并行占设备**。
+- ⚠️ 本轮唯一的**真实引擎**占用是 06:14~06:15 的**冒烟**（单段 ASR+MT+TTS，约 57 s）；
+  当时 App 模块已持锁，但冒烟是短时单次作业 ⇒ 已如实记录，未与 App 的长时 A/B 测试并行。
+
+### 5.8.6 明确未做 / 不宣称
+
+- ⛔ **不宣称 P1 5 分钟端到端实测已完成** —— 见 §5.7.2（排队等锁，验收产物全部未落盘）。
+- ⛔ **不宣称 P0 三项已用真实引擎复测** —— §3.3 的 P0 三项数据仍来自回声模式。
+- ⛔ **pyannote 旁路未接线**（ASR-013 交付后由主会话通知）。
+- ⛔ **P2（克隆/体验/稳定性）/ P3（打包）未开始**。
+- ⛔ **不宣称 tabCapture 生产路径已验证**（EXT-005 ①，见 §4.2）。
+- ℹ️ **TTS RTF 1.55 ⇒ 单句推理略慢于音频时长**，5 分钟累计滞后结论待 P1 实测落盘（见 §5.7.4）。
+- ℹ️ **TTS 引擎侧无需改动** —— 本轮只修适配层（`ext/engine_runtime.py`），
+  未改任何引擎文件；§5.7.4 列出的候选方向若要动引擎，**交主会话转给对应模块**。
