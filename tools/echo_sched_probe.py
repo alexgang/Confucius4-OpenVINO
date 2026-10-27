@@ -19,6 +19,7 @@ import struct
 import subprocess
 import sys
 import time
+from contextlib import ExitStack
 from typing import Optional
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -41,7 +42,27 @@ def _find_browser() -> Optional[str]:
 
 
 def run_sched_probe(*, delay_sec: float = 10.0, out_dir: Optional[str] = None,
-                    port: int = 8793) -> dict:
+                    port: int = 8793, lock: bool = True,
+                    lock_wait: float = 600.0) -> dict:
+    # ★ 铁律：计时/测速作业必须持共享机器锁。
+    #   本探针要拉起浏览器 + 桥接服务，属设备占用型作业。
+    #   锁已存在 ⇒ **排队等待**，绝不抢。
+    stack = ExitStack()
+    try:
+        if lock:
+            from tools.machine_lock import hold
+            stack.enter_context(
+                hold("EXT-echo-sched-probe", wait_timeout=lock_wait))
+        return _run_sched_probe(delay_sec=delay_sec, out_dir=out_dir, port=port)
+    finally:
+        try:
+            stack.close()      # 释放共享机器锁
+        except Exception:
+            pass
+
+
+def _run_sched_probe(*, delay_sec: float = 10.0, out_dir: Optional[str] = None,
+                     port: int = 8793) -> dict:
     from playwright.sync_api import sync_playwright
 
     browser = _find_browser()
@@ -99,7 +120,27 @@ def run_sched_probe(*, delay_sec: float = 10.0, out_dir: Optional[str] = None,
                     for i in range(n))
                 b64 = base64.b64encode(pcm).decode("ascii")
 
-                for t_start in (0.5, 2.0, 3.5):
+                # ★★ 排程时刻必须落在**未来**（真实缺陷，实测双峰 0.02 / 43.02 / 0.02 ms）：
+                #   selfTestSchedule 的 t_start 是**相对 t0（页面加载时刻）**的偏移，
+                #   插件算 planned = t0 + t_start + delaySec。
+                #   旧写法固定传 (0.5, 2.0, 3.5)：
+                #     第 1 次 currentTime≈1.5  ⇒ planned=10.5  未来 ✓
+                #     第 2 次 currentTime≈12.7 ⇒ planned=12.0  **已在过去** ✗
+                #     第 3 次 currentTime≈23.9 ⇒ planned=13.5  **远在过去** ✗
+                #   ⇒ 插件里的 Math.max(currentTime+0.005, planned) 把过去时刻钳到"立刻播"
+                #     而主线程读到的 audioCtx.currentTime 在繁忙时**滞后真实音频时钟约 43 ms**
+                #     ⇒ 稳定复现 **43.02 ms** 的假误差（两次独立探针数值完全相同）。
+                #   ⇒ 修法：用**当前音频时钟**推算未来的排程时刻（每次 +0.6 s 间隔）。
+                for k in range(3):
+                    t_start = page.evaluate(
+                        """() => {
+                             const t0 = window.__ext.getT0();
+                             const now = window.__ext.getAudioTime();
+                             // planned = t0 + t_start + delaySec ⇒
+                             // 要 planned = now + lead ⇒ t_start = now + lead − t0 − delaySec
+                             const delay = (window.__ext.metrics().delaySec) || 10;
+                             return (now - t0) + 0.6 - delay;
+                           }""")
                     page.evaluate(
                         """(o) => { window.__ext.selfTestSchedule(o.b64, o.tStart); }""",
                         {"b64": b64, "tStart": t_start})
@@ -143,8 +184,13 @@ def main(argv=None) -> int:
     ap.add_argument("--delay", type=float, default=10.0)
     ap.add_argument("--port", type=int, default=8793)
     ap.add_argument("--out", default=None)
+    ap.add_argument("--no-lock", action="store_true",
+                    help="不持共享机器锁（默认持；铁律：只能排队，不能抢）")
+    ap.add_argument("--lock-wait", type=float, default=600.0,
+                    help="等待共享锁的最长秒数")
     args = ap.parse_args(argv)
-    r = run_sched_probe(delay_sec=args.delay, out_dir=args.out, port=args.port)
+    r = run_sched_probe(delay_sec=args.delay, out_dir=args.out, port=args.port,
+                        lock=not args.no_lock, lock_wait=args.lock_wait)
     print(json.dumps(r, ensure_ascii=False, indent=2))
     return 0 if r.get("ok") else 1
 

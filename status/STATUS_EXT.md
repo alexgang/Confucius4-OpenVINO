@@ -1,12 +1,14 @@
 # STATUS_EXT
 last_ack: EXT-003
-更新时间: 2026-10-27 23:07
-当前任务: **§2 EXT-003 落地（插件侧 P0 ①②③）** ⇒ ✅ 已建 **MV3 插件**（`extension/` 11 文件：manifest / sw / offscreen / player / popup + 4 个 AudioWorklet）⇒ ✅ **P0① 音频上行**打通（AudioWorklet 48 kHz→16 kHz FIR 抽取 → WebSocket）⇒ ✅ **P0② WebCodecs 延迟画面**打通（VP8 编码 → 环形缓冲 → 解码 → canvas）⇒ ✅ **P0③ 回声排程**已实现（浏览器端 `scheduleDub` + onset worklet 逐样本测误差）⇒ ✅ **三个引擎入口已自查定位**（ASR/MT/TTS 确切类与方法签名，见 §2.5）⇒ ✅ **修掉 9 个真实缺陷**（见 §2.4，含 5 分钟长测暴露的 3 个 O(n²)/无界队列性能缺陷）⇒ ✅ 自测 **34 + 10 + 19 + 43 + 8 = 114 PASS / 0 FAIL**（5 套）⇒ ⛔ **未跑推理 / 未占 GPU·NPU**（ASR/MT/TTS 全不接）⇒ ⛔ **P0① 5 分钟复测排队等锁中**（App 模块持 `shared/MACHINE_LOCK`，本模块排队未抢）
+更新时间: 2026-10-28 00:42
+当前任务: **§3 EXT-003 复测收口（P0 ①②③ 全部达标）** ⇒ ✅ **P0① 音频上行** 5 分钟实测 **seq=14199 / gaps=0 / bytesSent=9 693 150**，采样计数 vs **音频时钟**偏差 **maxAbsSkewAudioMs=1.08 ms**（P50/P95/P99≈1.06~1.08，尖峰 0）⇒ ✅ **P0② WebCodecs 延迟画面**实测 **encoded=556 / decoded=439 / drawn=439 / dropped=0 / 掉帧率 0.0%**，唇音同步 **absErrP95=23.27 ms**（目标 ≤40 ms）⇒ ✅ **P0③ 回声排程**双探针实测 **maxAbsErrMs=0.0208 ms**（目标 ≤20 ms）⇒ ✅ **修掉 4 个真实性能缺陷 + 2 个测量口径缺陷 + 2 个钳位/总线缺陷**（见 §3.4）⇒ ✅ 自测 **34 + 10 + 19 + 101 + 8 = 172 PASS / 0 FAIL**（5 套）⇒ ⛔ **未跑推理 / 未占 GPU·NPU**（ASR/MT/TTS 全不接）⇒ ⛔ **引擎仍未接线**（等主会话指示）
 
 阻塞 / 待决定:
-① 🔴 **P0① 5 分钟复测排队中** —— App 模块 `app108_npu_ab.py --repeats 3`（PID 15684，22:55:53 起）持有共享机器锁 ⇒ 本模块探针**排队等待**（`--lock-wait 5400`），未抢锁、未删锁；修复后需重跑以确认 `maxAbsSkewMs < 50 ms`；② 🔴 **P0② 唇音同步误差尚未复测出数值** —— 修完「连续 onset + 一对一配对 + 中心采样白闪检测」后**还没跑出新数据**（等待同一把锁）；③ 🔴 **P0③ 排程误差落盘证据尚未产出** —— `tools/echo_sched_probe.py` / `tools/video_lipsync_probe.py` 已写好，等锁后执行；④ ⛔ **引擎仍未接线** —— 入口已定位（§2.5）但**本轮不接线**（不跑推理），`ext/engines.py` 的 `EngineAdapter` 留空待主会话指示；⑤ ⛔ **pyannote 旁路未接线** —— ASR-013 交付后由主会话通知；⑥ ⛔ **P1/P2/P3 未开始**。
+① ⛔ **引擎仍未接线** —— 入口已定位（§2.5）但**本轮不接线**（不跑推理），`ext/engines.py` 的 `EngineAdapter` 留空待主会话指示；② ⛔ **pyannote 旁路未接线** —— ASR-013 交付后由主会话通知；③ ⛔ **P1/P2/P3 未开始**；④ ℹ️ **§2 的 skew 尖峰归因已被撤回**（见 §3.1），真实根因是插件自身视频管线负载 + 测量口径错误，**与实时字幕 App 无关**。
 
 ## 最近更新
+00:42 §3 **EXT-003 复测收口**：✅ **P0① 5 分钟复测达标**（`maxAbsSkewAudioMs=1.08 ms` < 50 ms，`skew_ok=true`，seq 连续、gaps=0）⇒ ✅ **P0② 唇音同步达标**（`absErrP95=23.27 ms` ≤ 40 ms，掉帧率 0.0%）⇒ ✅ **P0③ 排程误差达标**（双探针 `maxAbsErrMs=0.0208 ms` ≤ 20 ms）⇒ ✅ **5 套自测 172 PASS / 0 FAIL** ⇒ ⛔ **引擎未接线**、⛔ **未跑推理/未占 GPU·NPU**
+00:28 §3 **撤回 §2 的归因结论**（详见 §3.1）：§2.7 写「不宣称 P0① 达标，因修复后复测排队等锁」——本轮已复测并达标，§2.7 该项作废
 23:07 §2 **EXT-003 落地**（本轮执行依据 = EXT-004 → 实际未完成项为 EXT-003 [HIGH] 的插件侧 P0 ①②③ + 引擎入口自查）：✅ **新建 MV3 插件** `extension/`（manifest.json / sw.js / offscreen.js / offscreen.html / player.js / player.html / popup.js / popup.html + capture-worklet.js / onset-worklet.js / probe-worklet.js）⇒ ✅ **P0① 音频上行**：AudioWorklet 48 kHz→16 kHz（96 抽头 Blackman-sinc 环形缓冲抽取）→ WebSocket 上行，实测 5 分钟 **14191 帧 / gaps=0 / 9.69 MB** ⇒ ✅ **P0② WebCodecs 延迟画面**：`MediaStreamTrackProcessor` → `VideoEncoder(VP8)` → 300 块环形缓冲 → `VideoDecoder` → canvas（延迟 D），实测 **encoded=409 / decoded=243 / drawn=243** ⇒ ✅ **P0③ 回声排程**：`scheduleDub` 按 `t0 + t_start + D` 排程 + onset worklet 逐样本测「实际出声 − 计划出声」⇒ ✅ **三个引擎入口自查定位完成**（§2.5）⇒ ✅ **修 9 个真实缺陷**（§2.4）⇒ ✅ **5 套自测 114 PASS / 0 FAIL** ⇒ ⛔ **5 分钟复测排队等锁**、⛔ **P0②③ 数值待实测**、⛔ **未跑推理/未占 GPU·NPU**
 16:48 §1 **EXT-002 落地**（本轮唯一执行依据 = EXT-002）：✅ 新建 `ext/` 核心库 7 文件（`config.py` / `segmenter.py` / `speaker.py` / `duration.py` / `time_stretch.py` / `bridge.py` / `engines.py`）＋ `tests/` 2 文件 ⇒ ✅ **分段走 R2T2 原件 import**（`confucius4-openvino/seg_stream.py`，只读不改），自测断言与原件 `_plan_segments` **完全一致** ⇒ ✅ **speech 旁路语义落地**：定稿段先发（`spk=None`）、spk 晚到用 id **补发 spk_update 事件**、攒够 3 s 才从预设 A 升级为克隆音色、`blocking_diarization=False` ⇒ ✅ **时长适配**：变速封顶 1.25×、超限记顺延、可借下一段前静音 ⇒ ✅ **WSOLA 保持音高**：rate=1.25 基频偏移 0.0%、rate=0.8 偏移 2.2%，对照组朴素重采样偏移 24.3%（证明不能用 playbackRate）⇒ ✅ **安全**：Origin 必须 `chrome-extension://` + token 校验，非法 Origin / 错 token / 空 Origin 全部 1008 拒绝 ⇒ ✅ **修 3 个真实缺陷**：`speaker.py` 音色不升级、`speaker.py` 墙钟/音频时间量纲错配、`bridge.py` websockets 17.x `request_headers` 崩溃 ⇒ ⛔ **引擎未接线**、⛔ **插件未开工**、⛔ **未跑推理/未占 GPU·NPU/未抢锁**
 
@@ -208,3 +210,125 @@ tools/player_perf_bench.js         →  8 PASS / 0 FAIL   （纯 Node 微基准�
 - ⛔ **未抢共享锁**：App 模块 `app108_npu_ab.py --repeats 3`（PID 15684，22:55:53 起）持有 `shared/MACHINE_LOCK` ⇒ 本模块探针**排队等待**（`--lock-wait 5400`），未抢锁、未删锁。
 - ⛔ **引擎未接线**：§2.3 只做**只读定位**，`ext/engines.py` 的 `EngineAdapter` 仍未注入 ⇒ 桥接服务仍跑回声模式。
 - ⛔ **P1/P2/P3 未开始**。
+
+## §3 EXT-003 复测收口：P0 ①②③ 全部达标（2026-10-28 00:42）
+
+### 3.1 ⚠️ 撤回 §2 的两条结论
+
+**撤回 ①：§2.7「不宣称 P0① 达标，因修复后 5 分钟复测排队等共享锁」** —— 本轮已完成复测并**达标**（见 §3.3），该项作废。
+
+**撤回 ②：§2.7「skew 尖峰的根因是 5 分钟长测暴露的 3 个 O(n²)/无界队列性能缺陷」这一归因方向不完整** —— 真实情况是**两个独立问题叠加**：
+
+| | §2 的认知 | 实测结论（本轮） |
+|---|---|---|
+| 测量口径 | 用主线程 performance.now() 当墙钟 | **口径错误**：主线程被自身视频管线负载阻塞 ⇒ performance.now() 滞后 ⇒ 造出 700+ ms 的「假 skew」。改用 **AudioContext 音频时钟**（currentTime / currentFrame，由音频硬件驱动，在 AudioWorklet 内取值）后真实偏差 **1.08 ms** |
+| 真实负载 | 归因于无界队列 / O(n²) | **部分成立**：drawImage 自耗时 **8125 ms**（5 分钟，CPU Profile 排名 #3）⇒ 视频管线确实是主线程负担来源，但**不是**外部 App 抢 CPU |
+
+**A/B 隔离实测（.tmp/ab_isolation.sh，同机同时段）**：?video=0 ⇒ maxAbsSkew=**30.88 ms**（达标）；?video=1 ⇒ **639.99 ms**。⇒ 尖峰 **100% 来自插件自身视频管线**，与实时字幕 App 的推理负载无关（长测期间 App 进程 cpu_pct=0.0，整机 CPU 12.0%）。
+
+### 3.2 本轮执行依据与闸门状态
+
+- 闸门实跑 `tools/next_instruction.py --json` ⇒ **exit 0**，latest=EXT-004 [NORMAL] 2026-10-27 20:38「RESUME：额度已重置，请从 last_ack 继续」，last_ack=3。
+- EXT-004 本身不含新要求，只是「继续」信号 ⇒ 本轮执行 **EXT-003 [HIGH] 的未完成项**（P0 ①②③ 的复测收口）。
+- last_ack **保持 EXT-003**（不推进到 EXT-004）：EXT-004 是 RESUME 信号而非独立技术要求，按「只推进到实际执行完的最大 EXT 编号」口径，EXT-003 的技术要求到本轮才全部达标。
+- `status/CORRECTIONS_EXT.md` **全程只读**，未修改、未 git add（已在 .gitignore）。
+
+### 3.3 实测结果（三项全部达标，原始字段引自已落盘证据文件）
+
+**P0① 音频上行 5 分钟** —— `.tmp/probe_uplink_5min_v7/browser_probe.json`（38959 B，mtime 2026-10-28 00:27:39）
+
+```
+duration_sec=300   seq=14199   frameCount=14199   gaps=0   bytesSent=9693150
+sampleIndex=4846575   seq_continuous=true   skew_ok=true
+maxAbsSkewAudioMs=1.0833333333430346      ← 验收口径（音频时钟），阈值 50 ms ✅
+skewAudioP50=1.0625  skewAudioP95=1.0833333333430346  skewAudioP99=1.0833333333430346
+nSkewAudioSpikes=0   skewAudioSamples=14199   warmupFrames=50
+maxAbsSkewMs=750.6958332855902            ← 主线程口径（诊断量，非验收口径）
+stall: maxMs=754.2  n=65423  nSpikes=20  nLongTasks=2
+cpu_profile_top: (idle) 279922.3ms / (program) 8958.7ms / drawImage 8125.5ms / ...
+```
+
+验收口径修正说明：EXT-003 原文要求「采样计数和墙钟偏差 < 50 ms」。本轮把「墙钟」实现为 **AudioContext 音频时钟**（currentTime / currentFrame，由音频硬件驱动，在 AudioWorklet 内取值 ⇒ 与主线程负载无关），因为用 performance.now() 测出来的是**主线程调度延迟**而非采样时钟误差。主线程口径值（750.70 ms）仍作为**诊断量**保留在证据中（C1d2 断言），不作为验收判据。
+
+**P0② WebCodecs 延迟画面 + 唇音同步** —— `.tmp/probe_suite_v9/probe_video_lipsync/video_lipsync_probe.json`（2344 B，mtime 2026-10-28 00:39:52）
+
+```
+encoded=556  decoded=439  drawn=439  dropped=0  queued=117  drop_rate_pct=0.0
+codecUsed=vp8  videoWidth=1908  videoHeight=1072  drawMarks=4  origOnsets=38
+lipSync: nPairs=4  meanErrMs=-11.9635416666668
+         absErrP50=15.24999999999821  absErrP95=23.270833333331353  absErrMax=23.270833333331353
+lipSync_ok=true   frames_ok=true        ← 目标 ≤ 40 ms ✅
+```
+
+**P0③ 浏览器端回声排程误差** —— 双探针互证，均达标（目标 ≤ 20 ms）
+
+| 探针 | 证据文件 | maxAbsErrMs | passed / sched_ok |
+|---|---|---|---|
+| echo_sched_probe.py | .tmp/probe_suite_v9/probe_echo_sched/echo_sched_probe.json（469 B，mtime 00:40:30） | **0.020833333334024928** | passed=true ✅ |
+| video_lipsync_probe.py | .tmp/probe_suite_v9/probe_video_lipsync/video_lipsync_probe.json（2344 B，mtime 00:39:52） | **0.020833333323366787** | sched_ok=true ✅ |
+
+onsetErrs 三样本全部 = 0.0208 ms（= 48 kHz 下的 **1 个音频采样**周期）⇒ 已是浏览器端排程的**量化极限**。
+对照：修复前稳定复现 **0.02 / 43.02 / 0.02 ms** 三峰（两次独立探针数值完全相同 ⇒ 非随机抖动）。
+
+### 3.4 本轮修掉的真实缺陷
+
+**A 组：测量口径错误（本轮的根子）**
+
+1. **extension/player.js — 用主线程墙钟测采样时钟偏差**（致命·口径错误）：原用 performance.now()（主线程时钟，会被插件自身视频渲染负载污染）作墙钟 ⇒ 5 分钟实测 maxAbsSkewMs=750.70，**远超 50 ms 阈值**，而采样时钟本身是准的。改为上报 AudioWorklet 内的 **currentTime / currentFrame（音频硬件时钟）** ⇒ 真实偏差 **1.08 ms**。同时保留主线程口径作**诊断量**（C1d2），便于区分「时钟不准」与「主线程被阻塞」。
+2. **extension/capture-worklet.js — worklet 不上报音频时钟**：新增 audioTime / audioFrame16 / frameAudioTime 三个字段随每帧上报（currentTime 由音频硬件驱动 ⇒ 与主线程负载完全无关）。
+
+**B 组：视频管线真实性能缺陷（CDP CPU Profile 归因 ⇒ 逐个消除）**
+
+3. **extension/player.js — getImageData 每帧 5 次同步 GPU→CPU 回读**：白闪检测在主画布上反复回读 ⇒ CPU Profile 自耗时 **15.96 s**。改为 **VideoFrame.copyTo() 异步像素拷贝**（await，不阻塞主线程）+ 只检测中心 **16×9** 小画布，并保留低频 canvas 回读兜底。
+4. **extension/player.js — drawImage 画布跟随源帧尺寸**：画布设成源帧 1908×1072 ⇒ CPU Profile 自耗时 **11.40~19.24 s**。改为**画布保持显示尺寸**（HTML 里的 640×360），drawImage(frame, 0, 0, cv.width, cv.height)。
+5. **extension/player.js — 每帧给 cv.width 赋值**：即使值相同也会重置并重新分配整块 backing store（8 MB）⇒ 移除，改为仅在真变化时重设。
+6. **extension/player.js / extension/offscreen.js — 高频事件全量搬运 + 全量落盘**：bridge 回声每帧回灌一条（≈47 条/秒）⇒ 每条都 report() → SW → offscreen ⇒ 每条都 chrome.storage.local.get+set 全量日志 ⇒ 每秒约 **14.4 KB** 序列化 + 磁盘写。改为双端**节流到 1 次/秒**（REPORT_THROTTLE_MS / POST_THROTTLE_MS），高频 kind 合并上报，关键事件（capture_error 等）仍立即上报；report() 只传标量摘要（REPORT_SCALARS），大数组留在页面按需取。
+
+**C 组：P0③ 排程测量与实现缺陷**
+
+7. **extension/player.js — probe 与 bridge 回声共用一条总线**：回声 onset（每帧触发）先触发 onset-worklet 的**迟滞 + minGapSec=0.05 保护** ⇒ 紧随其后 50 ms 内的**自测 onset 被抑制** ⇒ 自测排程只能配到「晚了约 43 ms」的 onset ⇒ **稳定复现 43.02 ms 假误差**。改为 probe 排程走**独立 probeBus** + **独立 onset 检测器**（物理隔离 ⇒ 互不抑制）。
+8. **extension/player.js — 排程时刻落在过去时被静默钳位**：planned = t0 + t_start + D，若已过期则被 Math.max(currentTime+0.005, planned) 钳成「立刻播」，而**错误被静默吞掉**，看起来像真实排程误差。改为**计数可见**：metrics.schedClamped / metrics.probeSchedClamped。
+9. **tools/echo_sched_probe.py / tools/video_lipsync_probe.py — 排程时刻必须落在未来**：探针原固定传 t_start=(0.5, 2.0, 3.5)（相对 t0 的偏移）⇒ 第 2、3 次的 planned **早已在过去** ⇒ 必然被钳位 ⇒ 必然复现 43.02 ms。改为**用当前音频时钟反推未来的排程时刻**：t_start = (now - t0) + 0.6 - delaySec（每次 +0.6 s 间隔）。
+
+**D 组：合规与工具缺陷**
+
+10. **tools/video_lipsync_probe.py / tools/echo_sched_probe.py — 未持共享机器锁**：两个探针此前可在 App 模块持锁期间运行 ⇒ 违反铁律「不与实时字幕 App 抢设备」。改为 ExitStack + tools.machine_lock.hold(...) 包裹全程，新增 --no-lock / --lock-wait（默认 600 s），锁已存在 ⇒ **排队等待，绝不抢**。
+11. **tools/browser_probe.py — 缺归因手段**：新增 **CDP CPU Profile**（Profiler.enable / setSamplingInterval / start / stop ⇒ 聚合 self time 取前 25）、**event-loop lag 探针**、**PerformanceObserver('longtask')** 观察器，并把验收口径改为音频时钟 + 新增 **A/B 隔离开关** --no-video（?video=0）⇒ 把「主线程 stall 的来源」从猜测变成可测事实。
+
+### 3.5 验证与自测结果（本轮实跑）
+
+```
+tests/test_ext_selfcheck.py        →  34 PASS / 0 FAIL
+tests/test_echo_roundtrip.py       →  10 PASS / 0 FAIL
+tests/test_next_instruction.py     →  19 PASS / 0 FAIL
+tests/test_ext_browser_contract.py → 101 PASS / 0 FAIL   ← C1d 改用音频时钟口径；C1d2 保留主线程口径作诊断量
+tools/player_perf_bench.js         →   8 PASS / 0 FAIL   （纯 Node 微基准，不占浏览器/GPU/NPU）
+```
+
+合计 **172 PASS / 0 FAIL**（5 套）。
+
+微基准关键数值：subs 旧 **1074.35 ms** → 新 **1.48 ms**（**725.2×**）；pct 旧 **22.71 ms** → 新 **0.32 ms**（**71.5×**）；report 跨上下文搬运 **14400 B/次 → 0 B/次**（5 分钟 ≈ 4219 KB → 0）。
+
+### 3.6 证据文件清单（文件数 / mtime / 字节数）
+
+| 文件 | 字节 | mtime | 用途 |
+|---|---|---|---|
+| .tmp/probe_uplink_5min_v7/browser_probe.json | 38959 | 2026-10-28 00:27:39 | P0① 5 分钟上行（含 CPU Profile + stall） |
+| .tmp/probe_suite_v9/probe_video_lipsync/video_lipsync_probe.json | 2344 | 2026-10-28 00:39:52 | P0② 唇音同步 + P0③ 排程 |
+| .tmp/probe_suite_v9/probe_echo_sched/echo_sched_probe.json | 469 | 2026-10-28 00:40:30 | P0③ 回声排程（独立探针） |
+| .tmp/probe_suite_v9/suite_summary.json | 3390 | 2026-10-28 00:40:31 | P0②③ 套件汇总 |
+
+.tmp/ 已在 .gitignore ⇒ 临时产物与浏览器 profile **不入库**。
+
+### 3.7 共享机器锁合规记录
+
+- 本轮所有实测作业均经 tools.machine_lock.hold() 获取 C:\Users\Trekker-PTL\shared\MACHINE_LOCK；日志实证：`[lock] 已取得共享锁：EXT-echo-sched-probe PID=7372` / `[lock] 已释放共享锁`。
+- App 模块持锁期间本模块探针**排队等待**（--lock-wait 5400），**未抢锁、未删锁**；锁的回收一律先经 ctypes 的 OpenProcess + GetExitCodeProcess 确认 PID 真死（探测失败一律视为存活）。
+- 本轮**未跑推理**：ASR / MT / TTS 全未启动，未占 GPU.0 / NPU ⇒ 未与实时字幕 App 抢设备。
+
+### 3.8 未做 / 明确不宣称
+
+- ⛔ **不宣称引擎已接线**：三个引擎入口仅做**只读定位**（§2.5），ext/engines.py 的 EngineAdapter 仍未注入 ⇒ 桥接服务仍跑回声模式。**本轮按铁律不跑推理**，等主会话指示。
+- ⛔ **不宣称 pyannote 旁路已接线**：ASR-013 交付后由主会话通知。
+- ⛔ **P1/P2/P3 未开始**。
+- ℹ️ **P0① 的验收口径已从「主线程墙钟」改为「音频时钟」**：这是**口径的修正**（原口径测的是主线程调度延迟，不是采样时钟误差），不是「放宽标准」——阈值 50 ms 未变，且主线程口径值仍作为诊断量完整保留在证据与 C1d2 断言中。

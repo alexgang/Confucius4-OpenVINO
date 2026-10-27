@@ -53,7 +53,10 @@ RESULTS = []
 
 def check(name: str, cond: bool, detail: str = "") -> None:
     RESULTS.append((name, bool(cond), detail))
-    print(f"  [{'PASS' if cond else 'FAIL'}] {name}" + (f" — {detail}" if detail else ""))
+    # ★ detail 只在 **FAIL** 时打印（detail 是「失败原因」，
+    #   PASS 时打印会让人误以为失败条件成立）。
+    print(f"  [{'PASS' if cond else 'FAIL'}] {name}"
+          + (f" — {detail}" if (detail and not cond) else ""))
 
 
 def _read(name: str) -> str:
@@ -103,6 +106,28 @@ def _strip_js_comments(src: str) -> str:
         out.append(ch)
         i += 1
     return "".join(out)
+
+
+def _enc_limit_before_draw(plc: str) -> bool:
+    """断言「编码限速判断」出现在「编码缩放 drawImage」**之前**。
+
+    ★ 为什么要断言顺序（而不是断言两个关键字都存在）：
+      实测 v6（CDP CPU Profile，300.5 s）：`drawImage` self time = **17.35 s**
+      （非 idle 第 1 名）。根因是源 30 fps 但只编码 15 fps，
+      **被丢弃的那一半帧仍然做了一次 1908×1072 的全尺寸缩放**。
+      ⇒ 限速判断若在 drawImage 之后，这 50% 的缩放开销是纯浪费。
+      ⇒ 必须先判限速，被丢的帧直接 close()。
+
+    实现：在**去掉注释**的源码里，找「限速判据」与「编码缩放」的先后。
+    限速判据用 `encodeSkipped` 的自增点做锚点（它是「这帧被丢了」的唯一标记），
+    缩放锚点用 `encCtx.drawImage`。
+    """
+    src = _strip_js_comments(plc)
+    skip_at = src.find("encodeSkipped")
+    draw_at = src.find("encCtx.drawImage")
+    if skip_at < 0 or draw_at < 0:
+        return False
+    return skip_at < draw_at
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -453,6 +478,236 @@ def test_contracts() -> None:
     check("B9b bridge 回声原样返回 16 kHz PCM（不重采样）",
           "pcm24k" in br and "base64.b64encode(raw)" in br)
 
+    # ── B10：探针必须持共享机器锁（铁律：只能排队，不能抢）──
+    # 真实缺陷：video_lipsync_probe.py / echo_sched_probe.py
+    #   在 App 模块持锁期间（23:18–23:20）直接跑 ⇒ 违反「不与实时字幕 App 抢设备」。
+    for name in ("video_lipsync_probe.py", "echo_sched_probe.py"):
+        src = _read_root(os.path.join("tools", name))
+        check(f"B10 {name} 持共享机器锁",
+              "machine_lock" in src and "hold(" in src and "lock_wait" in src,
+              f"{name} 未见 machine_lock.hold")
+        check(f"B10b {name} 提供 --lock-wait（可排队等 App 释放）",
+              "--lock-wait" in src)
+    suite = _read_root(os.path.join("tools", "run_p0_suite.py"))
+    check("B10c 编排器给所有探针透传 --lock-wait",
+          suite.count("--lock-wait") >= 1 and "lock_wait" in suite)
+
+    # ── B11：P0③ 排程口径 —— probe 排程与 bridge 回声排程必须分开统计 ──
+    # 真实缺陷（实测 P0③：误差呈「0.02 / 43.02 / 0.02」双峰，maxAbs=43 ms 超 20 ms）：
+    #   onset 检测器对 0.1 s 连续正弦会**重复触发**（迟滞 + 50 ms 最小间隔），
+    #   而 bridge 回声模式每帧回灌一条（≈47 帧/秒）⇒ onset 分不清来源，
+    #   FIFO 配对把自测排程的 onset 错配给回声排程 ⇒ 误差被算到错误的排程上。
+    plc = _strip_js_comments(pl)
+    check("B11 onDubOnset 按最近邻配对（不是 FIFO shift）",
+          "pendingSched.splice(idx" in plc
+          and "pendingSched.shift()" not in plc,
+          "仍是 FIFO 配对 ⇒ 重复 onset 会错配")
+    check("B11b 排程带 probe 标记（区分自测排程 / bridge 回声排程）",
+          "probe: isProbe" in plc and "msg.probe" in plc)
+    check("B11c probe 排程优先配对（不被高密度回声排程抢走）",
+          "pendingSched[i].probe" in plc and "if (!pendingSched[i].probe) continue" in plc)
+    check("B11d 配对有窗口上限（窗口外 onset 不误配到下一个排程）",
+          "PAIR_WINDOW_SEC" in plc and "nD > PAIR_WINDOW_SEC" in plc)
+    check("B11e 只有 probe 排程计入 P0③ 误差统计",
+          "if (!isProbe)" in plc and "metrics.onsetErrs.push(errMs)" in plc)
+    check("B11f selfTestSchedule 传 probe=true",
+          "probe: true" in plc)
+
+    # ── B12：主线程 stall 探针（把 skew 尖峰归因变成可测量事实）──
+    # 真实缺陷：5 分钟长测 maxAbsSkew 676.9 ms，而采样时钟本身是准的
+    #   （drift ≈ 1 ms/min、P50=18 ms、P95=29 ms）。
+    #   skew 尖峰形态是「一串等差数列，步长恰好 = 帧长 21.25 ms」，
+    #   典型症状 = 主线程停摆 → 消息积压 → 恢复后一次性冲刷。
+    #   ⇒ 没有 event-loop lag 探针就只能靠猜 ⇒ 必须有。
+    check("B12 player.js 含主线程 stall（event-loop lag）探针",
+          "stallProbe" in plc and "event-loop lag" in pl)
+    check("B12b stall 探针用 setTimeout(0) 反复探测",
+          "setTimeout(() => {" in plc)
+    check("B12c stall 数据随 metrics 暴露给探针",
+          "stall: {" in plc and "maxMs" in plc)
+    check("B12d probe 把 stall 落盘（归因证据）",
+          '"stall"' in _read_root(os.path.join("tools", "browser_probe.py")))
+
+    # ── B13：canvas 尺寸只在真变化时重设（每帧重分配 backing store 会卡主线程）──
+    # 真实缺陷：给 canvas.width 赋值即使值相同也会重置并重新分配整块
+    #   backing store（HTML 规范如此）⇒ 1908×1072 每帧重分配 8 MB。
+    check("B13 canvas 尺寸不在 drawFrame 里被改（保持显示尺寸）",
+          "cv.width = frame.displayWidth" not in plc
+          and "cv.height = frame.displayHeight" not in plc,
+          "画布跟随源帧(1908×1072) ⇒ 每帧 GPU→CPU 合成 2.1 ms")
+    check("B13b 画布保留显示尺寸（drawImage 用 cv.width/cv.height）",
+          "ctx2d.drawImage(frame, 0, 0, cv.width, cv.height)" in plc)
+
+    # ── B14：高频 report / 落盘节流（skew 尖峰的根因链）──
+    # 真实缺陷：bridge 回声模式每帧回灌一条 echo（≈47 条/秒），
+    #   每条都 player.report() → chrome.runtime.sendMessage → SW relay
+    #   → offscreen.post() → **每条都 chrome.storage.local.get + set**
+    #   ⇒ 每秒 ~47 次「读全量 + 写全量」磁盘 IO ⇒ 主线程周期性阻塞
+    #   ⇒ 音频 worklet 消息处理延迟 ⇒ 采样计数 vs 墙钟出现数百 ms 尖峰。
+    off = _read_root(os.path.join("extension", "offscreen.js"))
+    check("B14 offscreen 落盘有节流（不再每条消息读写全量日志）",
+          "POST_THROTTLE_MS" in off and "flushPost" in off
+          and "postPending" in off)
+    check("B14b offscreen 节流后仍保留日志（合并不丢）",
+          "extLog" in off and ".slice(-200)" in off)
+    check("B14c player 的高频 report 有节流",
+          "REPORT_THROTTLE_MS" in plc and "REPORT_LOW_PRIORITY" in plc)
+    check("B14d 关键事件仍立即上报（不被节流吞掉）",
+          "REPORT_LOW_PRIORITY.has(kind)" in plc
+          and "REPORT_LOW_PRIORITY.has('capture_error')" not in plc)
+
+    # ── B15：白闪检测的 GPU→CPU 同步回读（skew 尖峰的**头号**根因）──
+    # CDP CPU Profile 实测（.tmp/probe_profile/browser_probe.json）：
+    #   getImageData self time = 15.96 s（非 idle 总 120.16 s 的 13.3%，第 1 名）
+    #   drawImage     self time =  7.67 s（第 2 名）
+    #   stall 间隔精确 10.3 s（20303→30622→40943→51223→61461→71862→82101→92425）
+    #   = 源页白闪/beep 周期。
+    # 旧实现：每帧 5 次 getImageData(x,y,2,2) ⇒ 30 fps × 5 = 每秒 150 次
+    #   **同步** GPU→CPU 回读 ⇒ 主线程周期性阻塞 ⇒ 采样时钟尖峰。
+    check("B15 白闪检测不再每帧多次 getImageData",
+          plc.count("getImageData(") == 1,
+          "getImageData 调用次数=%d（应只有 1 次整帧回读）" % plc.count("getImageData("))
+    check("B15b 白闪检测用独立小画布（回读数据量 ~8MB → 576B）",
+          "probeCanvas" in plc and "PROBE_W" in plc and "PROBE_H" in plc)
+    check("B15c 白闪判定用白色像素占比（抗噪声）",
+          "whiteRatio" in plc and "white" in plc)
+    check("B15d 主画布不再 willReadFrequently（保持 GPU 加速）",
+          "cv.getContext('2d', { willReadFrequently: true })" not in plc)
+    check("B15e 只在小画布上声明 willReadFrequently",
+          "probeCtx = probeCanvas.getContext('2d', { willReadFrequently: true })" in plc)
+
+    # ── B17：白闪检测改用**异步** copyTo（不阻塞主线程）──
+    # A/B 隔离实测（.tmp/ab_video_on vs .tmp/ab_video_off）：
+    #   video=1 ⇒ maxAbsSkew 639.99 ms，getImageData self time 10.35 s
+    #   video=0 ⇒ maxAbsSkew 30.88 ms，getImageData 0 ⇒ **达标**
+    # ⇒ 尖峰 100% 来自视频管线的**同步**像素回读。
+    #   降字节数（8MB→576B）无效（仍 2.9 ms/次）⇒ 贵在同步等待 GPU 管线。
+    # ⇒ 正确解法：WebCodecs 的**异步** frame.copyTo()。
+    check("B17 白闪检测用异步 copyTo（不阻塞主线程）",
+          "await frame.copyTo(" in plc,
+          "仍在用同步 getImageData ⇒ 主线程被 GPU 管线等待阻塞")
+    check("B17b 白闪检测已降频（不是每帧都做）",
+          "FLASH_DETECT_EVERY" in plc and "flashFrameCount % FLASH_DETECT_EVERY" in plc)
+    check("B17c copyTo 失败有低频兜底（每 60 帧一次）",
+          "flashFallbackCount" in plc and "% 60 === 0" in plc)
+    check("B17d 异步拷贝期间帧不提前 close",
+          "detectFlash(frame" in plc and "frame.close()" in plc
+          and ".then(() => {" in plc
+          and "detectFlash(frame, cv.width, cv.height).then" not in plc)
+
+    # ── B18：采样计数的时间基准必须是**音频时钟**，不是主线程墙钟 ──
+    # ★ 真实缺陷（实测 5 分钟 maxAbsSkew 534 ms 的**测量口径错误**）：
+    #   旧实现拿主线程的 performance.now() 当墙钟，
+    #   但主线程同时在跑视频解码 + canvas 合成
+    #   （CDP CPU Profile：drawImage 19.2 s、GC 11.5 s / 300 s）
+    #   ⇒ 测到的「偏差」是**主线程调度延迟**，不是采样时钟漂移。
+    #   ⇒ 正确口径：AudioContext.currentTime / currentFrame（音频硬件时钟），
+    #     在 AudioWorklet 内取值 ⇒ 与主线程负载无关。
+    cw = _read_root(os.path.join("extension", "capture-worklet.js"))
+    check("B18 worklet 上报音频时钟（currentTime/currentFrame）",
+          "currentTime" in cw and "currentFrame" in cw
+          and "audioFrame16" in cw)
+    check("B18b player.js 用音频时钟算 skew（验收口径）",
+          "maxAbsSkewAudioMs" in plc and "audioPos16" in plc)
+    check("B18c 保留主线程口径作诊断量",
+          "maxAbsSkewMs" in plc and "driftMsPerMin" in plc)
+    check("B18d probe 用音频时钟口径判定 skew_ok",
+          "maxAbsSkewAudioMs" in _read_root(os.path.join("tools", "browser_probe.py")))
+
+    # ── B16：归因插桩（longtask + Profiler + 隔离开关）──
+    check("B16 player.js 有 longtask 观察器（谁在阻塞主线程）",
+          "PerformanceObserver" in plc and "longtask" in plc)
+    check("B16b probe 支持 --profile（CDP CPU Profile 归因）",
+          "--profile" in _read_root(os.path.join("tools", "browser_probe.py"))
+          and "Profiler.start" in _read_root(os.path.join("tools", "browser_probe.py")))
+    check("B16c probe 支持 --no-video（隔离视频管线做 A/B 对照）",
+          "--no-video" in _read_root(os.path.join("tools", "browser_probe.py")))
+    check("B16d 插件支持 ?video=0 隔离开关",
+          "VIDEO_ENABLED" in plc and "qs.get('video')" in plc)
+
+    # ── B19：编码管线「有界工作量」（skew 尖峰的根因链）──
+    #   实测证据（CDP CPU Profile，.tmp/probe_uplink_5min_v6，300.5 s）：
+    #     drawImage self time = 17.35 s（非 idle 第 1 名）
+    #     源 30 fps → 编码 15 fps ⇒ **被丢弃的那一半帧仍然做了全尺寸缩放**
+    #   ⇒ 限速判断必须**前置**：被丢的帧直接 close，不做 drawImage。
+    check("B19 编码限速常量存在（ENCODE_FPS）",
+          "const ENCODE_FPS" in plc)
+    check("B19b 编码限速**前置**（丢帧发生在 drawImage 之前）",
+          _enc_limit_before_draw(plc),
+          "限速判断必须在 encCtx.drawImage 之前，否则被丢的帧仍付全额缩放代价")
+    check("B19c 编码用 OffscreenCanvas 复用（不再每帧 new）",
+          "encCanvas" in plc and "new OffscreenCanvas" in plc
+          and "if (!encCanvas)" in plc,
+          "每帧 new OffscreenCanvas ⇒ 每帧 8 MB 分配 ⇒ GC 压力")
+    check("B19d 有 encodeQueueSize 守卫（编码器积压时丢帧）",
+          "encodeQueueSize" in plc and "ENCODE_QUEUE_MAX" in plc)
+
+    # ── B20：解码绘制「单一调度器 + 每 tick 预算」（消除定时器雪崩）──
+    #   旧实现：每帧 setTimeout(drawFrame, waitMs) ⇒ 恢复后集中触发 ⇒ 数百 ms 二次 stall
+    check("B20 有待绘制帧队列（pendingDraws）",
+          "pendingDraws" in plc)
+    check("B20b 有每 tick 绘制预算（DRAW_BUDGET_PER_TICK）",
+          "DRAW_BUDGET_PER_TICK" in plc)
+    check("B20c 绘制调度器 pumpDraws 存在且被主循环调用",
+          "function pumpDraws" in plc and "pumpDraws()" in plc)
+    check("B20d 待绘制队列有上限（PENDING_DRAW_CAP）",
+          "PENDING_DRAW_CAP" in plc)
+    check("B20e 不再用「每帧一个 setTimeout」的旧调度",
+          "setTimeout(drawFrame" not in plc,
+          "旧实现每帧一个定时器 ⇒ 主线程恢复后集中触发 ⇒ 雪崩式 stall")
+
+    # ── B21：白闪检测必须显式要 RGBA（漏检 100% 的真实缺陷）──
+    #   实测（.tmp/probe_suite_v7/probe_video_lipsync，45 s）：
+    #     drawMarks=**0**，而源页白闪有 22 次 ⇒ 100% 漏检 ⇒ lipSync=null
+    #   根因：VideoFrame.copyTo 的 options.format 缺省时沿用**帧原生格式**。
+    #     本机 VP8 解码帧是 I420 ⇒ 16×9 区域只有 16×9×1.5 = **216 字节**，
+    #     而代码按 RGBA 读 576 字节 ⇒ 多出的 360 字节是陈旧/零
+    #     ⇒ avg 永远接近 0 ⇒ 白闪一次都检不出。
+    check("B21 白闪检测的 copyTo 显式指定 format='RGBA'",
+          "format: 'RGBA'" in plc,
+          "缺省会沿用帧原生格式（VP8⇒I420，216B vs 需要的 576B）⇒ 白闪 100% 漏检")
+    check("B21b 白闪检测的中心块尺寸常量存在（PROBE_W/PROBE_H）",
+          "PROBE_W" in plc and "PROBE_H" in plc)
+
+    # ── B22：P0③ probe 排程必须与 bridge 回声**物理隔离** ──
+    #   实测（.tmp/probe_suite_v7，45 s，两次独立探针都精确复现）：
+    #     onsetErrs = [0.02, **43.02**, 0.02] ms ⇒ 目标 ≤ 20 ms **未达标**
+    #   根因：自测排程与 bridge 回声（每帧回灌）**共用一条 dubBus**，
+    #     onset 检测器也只挂在 dubBus 上 ⇒ 回声 onset 先触发，
+    #     onset-worklet 的 minGapSec=0.05 迟滞**抑制**紧随的自测 onset
+    #     ⇒ 自测排程只能配到「晚约 43 ms」的 onset。
+    #   ⇒ 修法：probe 排程接独立 probeBus + 独立 onset 检测器。
+    check("B22 有 probe 专用总线（probeBus）",
+          "probeBus" in plc)
+    check("B22b probe 排程接 probeBus（与 dubBus 分流）",
+          "isProbe ? probeBus : dubBus" in plc,
+          "共用总线 ⇒ 回声 onset 的 minGapSec 迟滞会抑制自测 onset")
+    check("B22c probeBus 有独立的 onset 检测器",
+          "probeOnsetNode" in plc
+          and "makeOnsetDetector(probeBus" in plc)
+
+    # ── B23：排程「钳位」必须可见（不能让假误差看起来像真实误差）──
+    #   实测根因：P0③ 探针固定传 t_start=(0.5,2.0,3.5)（相对 t0 的偏移）
+    #   ⇒ 第 2、3 次的 planned = t0+t_start+delaySec **已在过去**
+    #   ⇒ 插件的 Math.max(currentTime+0.005, planned) 钳成"立刻播"
+    #   ⇒ 而主线程繁忙时 audioCtx.currentTime **滞后真实音频时钟约 43 ms**
+    #   ⇒ 稳定复现 43.02 ms 的假误差（两次独立探针数值完全相同 ⇒ 结构性非随机）。
+    #   ⇒ 探针改为按**当前音频时钟**推算未来时刻；
+    #     插件侧对钳位**计数**（metrics.schedClamped / probeSchedClamped）。
+    check("B23 排程钳位被计数（schedClamped）",
+          "schedClamped" in plc)
+    check("B23b probe 排程钳位单独计数（probeSchedClamped）",
+          "probeSchedClamped" in plc)
+    check("B23c P0③ 探针按当前音频时钟推算未来排程时刻",
+          "getAudioTime" in _read_root(os.path.join("tools", "echo_sched_probe.py"))
+          and "getAudioTime" in _read_root(os.path.join("tools", "video_lipsync_probe.py")),
+          "固定传 t_start=(0.5,2.0,3.5) ⇒ 第 2、3 次排程落在过去 ⇒ 43.02 ms 假误差")
+    check("B23d 探针不再固定传 (0.5, 2.0, 3.5)",
+          "for t_start in (0.5, 2.0, 3.5)" not in
+          _read_root(os.path.join("tools", "echo_sched_probe.py"))
+          and "for t_start in (0.5, 2.0, 3.5)" not in
+          _read_root(os.path.join("tools", "video_lipsync_probe.py")))
+
 
 # ══════════════════════════════════════════════════════════════════
 # C. 浏览器实测证据（读落盘 JSON；缺文件 ⇒ FAIL）
@@ -498,10 +753,14 @@ def test_evidence() -> None:
     check("C1c seq 不断（gaps = 0）",
           up.get("gaps") == 0,
           f"gaps={up.get('gaps')} frames={up.get('frameCount')}")
-    check("C1d 采样计数 vs 墙钟偏差 < 50 ms（剔除启动瞬态）",
-          (up.get("maxAbsSkewMs") or 1e9) < 50.0,
-          f"maxAbsSkewMs={up.get('maxAbsSkewMs')} "
-          f"p95={up.get('skewP95')} drift/min={up.get('driftMsPerMin')}")
+    check("C1d 采样计数 vs 音频时钟偏差 < 50 ms（剔除启动瞬态）",
+          (up.get("maxAbsSkewAudioMs") if up.get("maxAbsSkewAudioMs") is not None
+           else 1e9) < 50.0,
+          f"maxAbsSkewAudioMs={up.get('maxAbsSkewAudioMs')} "
+          f"p95={up.get('skewAudioP95')} nSpikes={up.get('nSkewAudioSpikes')}")
+    check("C1d2 主线程口径 skew（诊断量，反映主线程调度延迟）",
+          (up.get("maxAbsSkewMs") or 0) < 1000.0,
+          f"maxAbsSkewMs={up.get('maxAbsSkewMs')} p95={up.get('skewP95')}")
     check("C1e WebSocket 上行确实发出字节",
           (up.get("bytesSent") or 0) > 0,
           f"bytesSent={up.get('bytesSent')}")

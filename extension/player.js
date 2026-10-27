@@ -23,11 +23,138 @@
 const qs = new URLSearchParams(location.search);
 const D_OVERRIDE = parseFloat(qs.get('d') || '');
 const AUTO_CAPTURE = qs.get('capture') === '1';
+// ★ 隔离开关：?video=0 关掉视频管线（只留音频上行）。
+//   用途：把「主线程 stall 的来源」拆开对照 ——
+//     video=1（默认）：完整管线（抓流 + 编码 + 解码 + 绘制 + 白闪检测）
+//     video=0        ：只跑音频上行（AudioWorklet + WebSocket）
+//   ⇒ 两者 stall 差异即可定位到具体子系统，而不是靠猜。
+const VIDEO_ENABLED = qs.get('video') !== '0';
 
 const cv = document.getElementById('cv');
-// ★ willReadFrequently：白闪检测每帧都要 getImageData ⇒ 声明可读频繁
-//   （否则浏览器每次都做 GPU→CPU 回读，掉帧并刷警告）
-const ctx2d = cv.getContext('2d', { willReadFrequently: true });
+// ★ 主画布**不要** willReadFrequently：
+//   白闪检测已改到独立的小画布（probeCanvas）上做，
+//   主画布不再需要像素回读 ⇒ 保持 GPU 加速路径，
+//   否则整个 1908×1072 画布走 CPU 软件光栅化（实测 drawImage self time 7.67 s）。
+const ctx2d = cv.getContext('2d');
+// ★ 白闪检测用的小画布：16×9 ⇒ 整帧回读只有 576 字节，
+//   取代旧实现「每帧 5 次 2×2 getImageData」（每次都是同步 GPU→CPU 回读）。
+const PROBE_W = 16, PROBE_H = 9;
+let probeCanvas = null;
+let probeCtx = null;
+// ★ 白闪检测的采样频率。
+//   ★ 真实缺陷（实测 P0② drawMarks=0，唇音同步无法配对）：
+//     源页白闪**只持续 1 帧**（≈33 ms，每 60 帧一次）。
+//     降频到每 15 帧（500 ms）⇒ 命中概率仅 33/500 ≈ 6.6%
+//     ⇒ 45 s 里 22 次白闪**一次都没抓到**（实测 drawMarks=0）。
+//   ⇒ 必须**每帧**检测。但因为用的是**异步** copyTo（不阻塞主线程），
+//     每帧一次的代价是「异步 GPU 读 576 字节」而非「同步等待 GPU 队列」，
+//     与旧实现（每帧 5 次**同步** getImageData）不是一个量级。
+//   ⇒ 设为 1（每帧检测）。
+const FLASH_DETECT_EVERY = 1;
+let flashFrameCount = 0;
+
+// ★ 编码限速（fps）。
+//   实测（5 分钟长测，.tmp/probe_uplink_5min_v5）：源 30 fps，
+//   但本机 VP8 软件编码实际吞吐只有 ~18 fps（encoded 8554 / 182 s ≈ 47 fps
+//   含降频后的效果；修复前 5 分钟只编出 ~5400 帧 ≈ 18 fps）。
+//   ⇒ 每帧都 encode 会把编码器灌爆 ⇒ 积压 ⇒ 解码端突发 ⇒ 主线程 stall。
+//   ⇒ 限到 15 fps：延迟画面允许掉帧（EXT-001 只要求「缓冲 D 秒后播放、保持音画同步」，
+//     掉帧不影响音画同步，因为音画各走各的时间轴），
+//     而 stall 会直接破坏「采样计数 vs 墙钟 < 50 ms」这条硬指标。
+//   ⇒ 取 15 fps（低于实测吞吐 18 fps，留出余量 ⇒ 编码器永不积压）。
+const ENCODE_FPS = 15;
+
+// ★ 编码器内部队列上限（浏览器规范 API `encodeQueueSize`）。
+//   积压 ⇒ 编码落后于实时 ⇒ 解码端会突发吐帧 ⇒ 主线程 stall。
+//   ⇒ 队列超过这个数就**直接丢帧**（延迟画面允许丢帧，音画同步不受影响）。
+const ENCODE_QUEUE_MAX = 4;
+
+// ★ 编码用的 OffscreenCanvas **复用**（避免每帧分配 8 MB）。
+let encCanvas = null;
+let encCtx = null;
+// ★ 白闪检测用**异步** VideoFrame.copyTo()，不用 canvas.getImageData。
+//   实测（CDP CPU Profile）：getImageData self time = 10.35 s（3600 次 ≈ 2.9 ms/次），
+//   即使回读只有 576 字节也一样贵 —— 因为它是**同步的 GPU→CPU 管线等待**
+//   （要等 GPU 队列排空），主线程被挂住 ⇒ 音频 worklet 消息处理延迟
+//   ⇒ 采样计数 vs 墙钟出现数百 ms 尖峰。
+//   ⇒ 改用 `await frame.copyTo(buffer)`：WebCodecs 的异步拷贝，
+//     不阻塞主线程；顺带把采样降到 16×9 ⇒ 每次只拷 576 字节。
+//   ⇒ 用一个「检测中」标志避免重入（同一时刻只允许一次拷贝在飞）。
+let flashBusy = false;
+async function detectFlash(frame, w, h) {
+  try {
+    // ★ 采样**中心区域**（源页白闪是整屏纯白，中心最可靠）
+    //   取 16×9 的中心块 ⇒ 每次只拷 576 字节
+    const cw = Math.min(PROBE_W, w), ch = Math.min(PROBE_H, h);
+    const size = cw * ch * 4;
+    if (!flashBuf || flashBuf.byteLength !== size) {
+      flashBuf = new Uint8Array(size);
+    }
+    const x0 = Math.max(0, Math.floor((w - cw) / 2));
+    const y0 = Math.max(0, Math.floor((h - ch) / 2));
+    // ★ 异步拷贝：不阻塞主线程
+    //   ★★ 必须显式指定 format: 'RGBA'（真实缺陷，实测 drawMarks=0）：
+    //     VideoFrame.copyTo 的 options.format 缺省时**沿用帧的原生格式**。
+    //     本机 VP8 解码出的帧是 **I420**（YUV420 平面）⇒ 16×9 区域只有
+    //       16×9×1.5 = **216 字节**（Y 144 + U 36 + V 36），
+    //     而我们按 RGBA 读 16×9×4 = **576 字节**
+    //     ⇒ 多出的 360 字节是**上一帧的陈旧数据/零**
+    //     ⇒ 算出来的 avg 永远接近 0 ⇒ **白闪一次都检不出**
+    //       （实测 45 s：drawMarks=0，而源页白闪有 22 次 ⇒ 100% 漏检）
+    //   ⇒ 显式要 RGBA，copyTo 负责做色彩空间转换（16×9 = 576 字节，代价可忽略）。
+    const layout = await frame.copyTo(flashBuf, {
+      format: 'RGBA',
+      rect: { x: x0, y: y0, width: cw, height: ch },
+    });
+    if (!layout) throw new Error('copyTo 返回空');
+    let sum = 0, n = 0, white = 0;
+    const d = flashBuf;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i + 1], b = d[i + 2];
+      sum += r + g + b; n += 3;
+      if (r > 235 && g > 235 && b > 235) white++;
+    }
+    const avg = n ? sum / n : 0;
+    const whiteRatio = n ? white / (n / 3) : 0;
+    if (avg > 200 && whiteRatio > 0.6) {
+      const at = audioCtx ? audioCtx.currentTime : performance.now() / 1000;
+      metrics.drawMarks.push(at);
+      if (metrics.drawMarks.length > 200) metrics.drawMarks.shift();
+    }
+  } catch (e) {
+    // ★ 兜底：copyTo 不可用（像素格式不支持等）⇒ 退回 canvas 回读，
+    //   但**大幅降频**（每 60 帧 = 每秒 1 次）⇒ 性能影响可忽略。
+    //   （旧实现是每帧 5 次 ⇒ 每秒 150 次）
+    try {
+      flashFallbackCount++;
+      if (flashFallbackCount % 60 === 0) {
+        if (!probeCanvas) {
+          probeCanvas = document.createElement('canvas');
+          probeCanvas.width = PROBE_W;
+          probeCanvas.height = PROBE_H;
+          probeCtx = probeCanvas.getContext('2d', { willReadFrequently: true });
+        }
+        probeCtx.drawImage(frame, 0, 0, PROBE_W, PROBE_H);
+        const d = probeCtx.getImageData(0, 0, PROBE_W, PROBE_H).data;
+        let sum = 0, n = 0, white = 0;
+        for (let i = 0; i < d.length; i += 4) {
+          const r = d[i], g = d[i + 1], b = d[i + 2];
+          sum += r + g + b; n += 3;
+          if (r > 235 && g > 235 && b > 235) white++;
+        }
+        const avg = n ? sum / n : 0;
+        const whiteRatio = n ? white / (n / 3) : 0;
+        if (avg > 200 && whiteRatio > 0.6) {
+          const at = audioCtx ? audioCtx.currentTime : performance.now() / 1000;
+          metrics.drawMarks.push(at);
+          if (metrics.drawMarks.length > 200) metrics.drawMarks.shift();
+        }
+      }
+    } catch (e2) { /* ignore */ }
+  }
+}
+let flashFallbackCount = 0;
+let flashBuf = null;
 
 const metrics = {
   queued: 0, encoded: 0, decoded: 0, dropped: 0, drawn: 0,
@@ -36,7 +163,7 @@ const metrics = {
   frames: 0, lastFrameAt: 0,
   videoWidth: 0, videoHeight: 0, sourceRate: 0,
   echoRecv: 0, echoSent: 0,
-  onsetErrs: [], lipErrs: [],
+  onsetErrs: [], lipErrs: [], schedDetail: [],
   drawMarks: [], origOnsets: [], dubOnsets: [],
   captureStarted: false, audioCtxOk: false,
 };
@@ -58,7 +185,6 @@ let videoEncoder = null;
 let videoDecoder = null;
 let decoderCfg = null;
 let lastEncTs = -1;
-const pendingDecode = [];
 
 /**
  * 本机可用编码器候选顺序。
@@ -129,49 +255,92 @@ async function ensureDecoder(cfg) {
   videoDecoder.configure(decoderCfg);
 }
 
+// ★ 待绘制帧队列 + **单一**调度器（取代旧实现的「每帧一个 setTimeout」）。
+//   旧实现：每帧 setTimeout(drawFrame, waitMs) ⇒ 最多 3000 个定时器同时挂起，
+//   一旦主线程被别的活堵住，恢复后这些定时器**集中触发** ⇒ 几十次
+//   drawImage 挤在一个 tick 里 ⇒ 数百 ms 的二次 stall（雪崩）。
+//   ⇒ 改为：帧进队列，由 pumpDecoder（40 ms 一次）按到期时间取出绘制，
+//     并且**每 tick 最多画 DRAW_BUDGET_PER_TICK 帧**，
+//     超预算就丢掉最旧的（预览画面允许丢帧；音画同步不受影响，
+//     因为音画各走各的时间轴，画面只是给人看）。
+const pendingDraws = [];
+const DRAW_BUDGET_PER_TICK = 3;   // 3 × ~2 ms ≈ 6 ms/tick，远低于 50 ms 尖峰阈值
+const PENDING_DRAW_CAP = 120;     // ≈ 8 s @15 fps
+
 function onDecodedFrame(frame) {
   metrics.decoded++;
   const target = (t0 + frame.timestamp / 1e6) + delaySec;
+  pendingDraws.push({ frame, target });
+  if (pendingDraws.length > PENDING_DRAW_CAP) {
+    // 丢掉最旧的（关掉它，释放 GPU 内存）
+    const old = pendingDraws.shift();
+    try { old.frame.close(); } catch (e) { /* ignore */ }
+    metrics.drawDropped = (metrics.drawDropped || 0) + 1;
+  }
+}
+
+/** 每 tick 最多画 DRAW_BUDGET_PER_TICK 帧，避免一次性突发绘制。 */
+function pumpDraws() {
+  if (!pendingDraws.length) return;
   const now = audioCtx ? audioCtx.currentTime : performance.now() / 1000;
-  const waitMs = (target - now) * 1000;
-  if (waitMs > 0) {
-    const id = setTimeout(() => { drawFrame(frame); }, waitMs);
-    pendingDecode.push(id);
-    if (pendingDecode.length > 3000) clearTimeout(pendingDecode.shift());
-  } else {
-    drawFrame(frame);
+  let drawn = 0;
+  while (pendingDraws.length && pendingDraws[0].target <= now &&
+         drawn < DRAW_BUDGET_PER_TICK) {
+    const item = pendingDraws.shift();
+    drawFrame(item.frame);
+    drawn++;
+  }
+  // 落后太多（> 1 s）⇒ 丢弃过期帧，别让队列越积越长
+  while (pendingDraws.length && now - pendingDraws[0].target > 1.0) {
+    const old = pendingDraws.shift();
+    try { old.frame.close(); } catch (e) { /* ignore */ }
+    metrics.drawDropped = (metrics.drawDropped || 0) + 1;
   }
 }
 
 function drawFrame(frame) {
   try {
-    if (frame.displayWidth) { cv.width = frame.displayWidth; cv.height = frame.displayHeight; }
+    // ★ 画布保持**显示尺寸**（HTML 里的 640×360），不要跟着源帧走。
+    //   真实缺陷（CDP CPU Profile 实测，修复 getImageData 之后）：
+    //     `drawImage` self time = **11.40 s**，取代 getImageData 成为头号开销。
+    //   原因：旧代码把 cv.width 设成 frame.displayWidth（**1908×1072**）
+    //   ⇒ 每帧把 GPU 的 VideoFrame 合成到 1908×1072 的画布上
+    //   ⇒ GPU→CPU 合成成本 ~11 s / 5400 帧 ≈ 2.1 ms/帧。
+    //   ⇒ 画布只要显示用（640×360 足够）⇒ 合成成本降 ~9 倍。
+    //   （视频编码用的是**源帧**，不受这里影响；画布只是预览。）
     ctx2d.drawImage(frame, 0, 0, cv.width, cv.height);
     metrics.frames++;
     metrics.drawn++;
     metrics.lastFrameAt = performance.now();
-    // ★ 白闪检测（唇音同步测试片）：画面接近纯白 ⇒ 记下绘制时刻
-    //   采样**中心区域**（源页白闪是整屏纯白，中心最可靠），
-    //   取多个采样点求平均，避免缩放/编码噪声误判。
-    try {
-      const w = cv.width, h = cv.height;
-      const pts = [[0.5, 0.5], [0.3, 0.3], [0.7, 0.7], [0.5, 0.2], [0.2, 0.5]];
-      let sum = 0, n = 0;
-      for (const [fx, fy] of pts) {
-        const x = Math.max(0, Math.min(w - 2, Math.floor(w * fx)));
-        const y = Math.max(0, Math.min(h - 2, Math.floor(h * fy)));
-        const d = ctx2d.getImageData(x, y, 2, 2).data;
-        for (let i = 0; i < d.length; i += 4) {
-          sum += d[i] + d[i + 1] + d[i + 2]; n += 3;
-        }
-      }
-      const avg = n ? sum / n : 0;
-      if (avg > 235) {
-        const at = audioCtx ? audioCtx.currentTime : performance.now() / 1000;
-        metrics.drawMarks.push(at);
-        if (metrics.drawMarks.length > 200) metrics.drawMarks.shift();
-      }
-    } catch (e) { /* ignore */ }
+    // ★ 白闪检测（唇音同步测试片）：画面接近纯白 ⇒ 记下绘制时刻。
+    //
+    // ★★ 真实缺陷（CDP CPU Profile 实测，.tmp/probe_profile/browser_probe.json）：
+    //   `getImageData` self time = **15.96 s**（非 idle 总 120.16 s 的 13.3%，
+    //   所有函数里第 1 名）；`drawImage` 7.67 s 第 2 名。
+    //   旧实现每帧调 **5 次** `getImageData(x,y,2,2)`：
+    //   每次都是一次**同步的 GPU→CPU 管线等待**（要等 GPU 队列排空）
+    //   ⇒ 30 fps × 5 = 每秒 150 次同步等待
+    //   ⇒ 主线程周期性阻塞 ⇒ 音频 worklet 消息处理延迟
+    //   ⇒ 采样计数 vs 墙钟出现数百 ms 尖峰。
+    //   A/B 隔离实测（.tmp/ab_video_on vs .tmp/ab_video_off）：
+    //     video=1 ⇒ maxAbsSkew **639.99 ms**（getImageData 10.35 s）
+    //     video=0 ⇒ maxAbsSkew **30.88 ms**（getImageData 0，达标）
+    //   ⇒ 尖峰 100% 来自视频管线的像素回读。
+    //
+    //   ⇒ 修复：**异步** `frame.copyTo()`（不阻塞主线程）+ 降频检测。
+    flashFrameCount++;
+    const needDetect = (flashFrameCount % FLASH_DETECT_EVERY === 0);
+    if (needDetect && !flashBusy) {
+      // ★ 拷贝是异步的 ⇒ 帧不能在拷贝完成前 close
+      //   ⇒ 把 close 交给 detectFlash 在拷贝结束后做。
+      flashBusy = true;
+      detectFlash(frame, frame.displayWidth || frame.codedWidth || 0,
+                frame.displayHeight || frame.codedHeight || 0).then(() => {
+        try { frame.close(); } catch (e) { /* ignore */ }
+        flashBusy = false;
+      });
+      return;   // 不再走下面的 close
+    }
     frame.close();
   } catch (e) { /* ignore */ }
 }
@@ -198,6 +367,12 @@ function pumpDecoder() {
 // 音频总线 + onset 精确测量
 // ══════════════════════════════════════════════════════════════
 let dubBus = null;        // 配音输出总线
+// ★ probe（自测）专用总线 —— 与 dubBus **物理隔离**。
+//   理由见 scheduleDub 内的说明：共用总线时，bridge 回声的 onset 会
+//   触发 onset-worklet 的 minGapSec=0.05 迟滞 ⇒ 抑制紧随的自测 onset
+//   ⇒ 实测稳定复现 43.02 ms 的假误差。
+let probeBus = null;
+let probeOnsetNode = null;
 let origGain = null;      // 延迟后的原声总线
 let origDelay = null;
 let origSource = null;
@@ -236,20 +411,70 @@ async function makeOnsetDetector(src, cb, threshold, count) {
 const PENDING_SCHED_CAP = 512;
 const pendingSched = [];
 
+// ★ 配对窗口：onset 与排程计划时刻的最大可接受偏差。
+//   超过窗口 ⇒ 该 onset **不属于**任何排程（忽略），
+//   否则重复 onset 会「跨排程」误配到下一个排程上，
+//   制造出 40+ ms 的假误差（实测双峰 0.02 / 43.02）。
+const PAIR_WINDOW_SEC = 0.25;
+
 function onDubOnset(at) {
-  if (pendingSched.length) {
-    const p = pendingSched.shift();
-    const errMs = (at - p.planned) * 1000;
-    metrics.onsetErrs.push(errMs);
-    if (metrics.onsetErrs.length > 500) metrics.onsetErrs.shift();
-    metrics.schedErrMs = errMs;
-    metrics.schedErrP50 = pct(metrics.onsetErrs, 0.5);
-    metrics.schedErrP95 = pct(metrics.onsetErrs, 0.95);
-    report({ kind: 'sched', id: p.id, planned: p.planned, actual: at, errMs });
-  } else {
+  if (!pendingSched.length) {
     metrics.dubOnsets.push(at);
     if (metrics.dubOnsets.length > 200) metrics.dubOnsets.shift();
+    return;
   }
+
+  // ★ 优先找最近的 **probe 排程**（P0③ 的统计口径）。
+  //   bridge 回声排程密度高（≈47 帧/秒）⇒ 若不优先，
+  //   probe 的 onset 会被最近的回声排程「抢走」⇒ probe 采不到样本。
+  let pIdx = -1, pD = Infinity;
+  for (let i = 0; i < pendingSched.length; i++) {
+    if (!pendingSched[i].probe) continue;
+    const d = Math.abs(pendingSched[i].planned - at);
+    if (d < pD) { pD = d; pIdx = i; }
+  }
+  let idx = pIdx, dist = pD;
+  let isProbe = true;
+  if (pIdx < 0 || pD > PAIR_WINDOW_SEC) {
+    // 没有 probe 候选（或太远）⇒ 退而配到最近的普通排程（只记「发生过」）
+    let nIdx = -1, nD = Infinity;
+    for (let i = 0; i < pendingSched.length; i++) {
+      if (pendingSched[i].probe) continue;
+      const d = Math.abs(pendingSched[i].planned - at);
+      if (d < nD) { nD = d; nIdx = i; }
+    }
+    if (nIdx < 0 || nD > PAIR_WINDOW_SEC) {
+      // ★ 窗口外 ⇒ 认是「不属于任何排程的 onset」（如重复触发）
+      metrics.dubOnsets.push(at);
+      if (metrics.dubOnsets.length > 200) metrics.dubOnsets.shift();
+      return;
+    }
+    idx = nIdx; dist = nD; isProbe = false;
+  }
+
+  const p = pendingSched.splice(idx, 1)[0];
+  p.matched = true;
+
+  if (!isProbe) {
+    // bridge 回声排程只记「发生过」，不污染 P0③ 的口径
+    metrics.dubOnsets.push(at);
+    if (metrics.dubOnsets.length > 200) metrics.dubOnsets.shift();
+    return;
+  }
+
+  const errMs = (at - p.planned) * 1000;
+  metrics.onsetErrs.push(errMs);
+  if (metrics.onsetErrs.length > 500) metrics.onsetErrs.shift();
+  metrics.schedErrMs = errMs;
+  metrics.schedErrP50 = pct(metrics.onsetErrs, 0.5);
+  metrics.schedErrP95 = pct(metrics.onsetErrs, 0.95);
+  metrics.schedDetail.push({
+    id: p.id, planned: p.planned, actual: at,
+    errMs: Math.round(errMs * 100) / 100,
+    absDiffMs: Math.round(dist * 1000 * 100) / 100,
+  });
+  if (metrics.schedDetail.length > 100) metrics.schedDetail.shift();
+  report({ kind: 'sched', id: p.id, planned: p.planned, actual: at, errMs });
 }
 
 function onOrigOnset(at) {
@@ -296,8 +521,28 @@ function scheduleDub(msg) {
   const planned = t0 + Number(msg.t_start || 0) + delaySec;
   const src = audioCtx.createBufferSource();
   src.buffer = buf;
-  src.connect(dubBus);
-  const when = Math.max(audioCtx.currentTime + 0.005, planned);
+  // ★★ probe（自测）排程走**独立总线**（真实缺陷，实测双峰 0.02 / 43.02 ms）：
+  //   原来所有排程都接同一条 dubBus，而 onset 检测器也只挂在 dubBus 上。
+  //   ⇒ bridge 回声（每帧回灌，47 帧/秒）的 onset 会先触发
+  //     onset-worklet 的**迟滞 + minGapSec=0.05 保护**
+  //   ⇒ 紧随其后 50 ms 内的**自测 onset 被抑制**
+  //   ⇒ 自测排程只能配到「晚了约 43 ms」的 onset
+  //     （实测两次独立探针都精确复现 0.02 / 43.02 / 0.02 ms 三峰）
+  //   ⇒ 修法：probe 排程接 **probeBus**，单独挂一个 onset 检测器，
+  //     与回声检测器**物理隔离** ⇒ 互不抑制。
+  const isProbe = !!msg.probe;
+  src.connect(isProbe ? probeBus : dubBus);
+  // ★ 钳位（排程时刻已在过去 ⇒ 立即播）**必须计数**，否则错误被静默吞掉。
+  //   实测：P0③ 探针固定传 t_start=(0.5,2.0,3.5) ⇒ 第 2、3 次的 planned 已在过去
+  //   ⇒ 被钳到 currentTime+0.005 ⇒ 稳定复现 43.02 ms 的假误差
+  //   （主线程繁忙时 audioCtx.currentTime 滞后真实音频时钟约 43 ms）。
+  //   ⇒ 计数后可见（metrics.schedClamped），不会再「看起来像真实误差」。
+  const earliest = audioCtx.currentTime + 0.005;
+  if (planned < earliest) {
+    metrics.schedClamped = (metrics.schedClamped || 0) + 1;
+    if (isProbe) metrics.probeSchedClamped = (metrics.probeSchedClamped || 0) + 1;
+  }
+  const when = Math.max(earliest, planned);
   src.start(when);
   // ★ 有界：超出上限丢弃最旧的，并计数（不静默丢）
   //   先裁剪再 push ⇒ 长度始终 ≤ CAP
@@ -306,7 +551,16 @@ function scheduleDub(msg) {
     pendingSched.splice(0, dropped);
     metrics.pendingSchedDropped = (metrics.pendingSchedDropped || 0) + dropped;
   }
-  pendingSched.push({ id: msg.id, planned: when, requested: planned });
+  // ★ probe 标记：P0③ 自测排程与 bridge 回声排程**必须分开统计**。
+  //   实测（修复前）：bridge 回声每帧回灌一条（47 帧/秒），
+  //   而 onset 检测到的声音分不清来源 ⇒ 自测排程的误差被回声的
+  //   onset「抢走」⇒ 出现 0.02 / 43.02 的双峰。
+  //   ⇒ 只有 probe 排程才计入 P0③ 的误差统计。
+  //   （isProbe 已在上面算好；总线也已按 isProbe 分流。）
+  pendingSched.push({
+    id: msg.id, planned: when, requested: planned,
+    matched: false, probe: isProbe,
+  });
   scheduleSub(msg, when);
   return { planned: when, requested: planned };
 }
@@ -375,6 +629,9 @@ const upState = {
   //   若尖峰时刻与外部推理任务的运行时段重合 ⇒ 外部干扰；
   //   若均匀散布 ⇒ 本模块自身的累积型缺陷。
   skewSpikes: [],
+  // ★ 音频时钟口径的 skew（EXT-003 的验收量）
+  skewAudioSamples: [], skewAudioSpikes: [],
+  maxAbsSkewAudioMs: 0, t0Audio16: null,
 };
 
 /** 启动瞬态帧数（前 N 帧不计入「稳定期最大偏差」）。 */
@@ -494,6 +751,51 @@ function onUplinkFrame(d) {
   const audioSec = sampleIndex / 16000;
   const wallSec = (performance.now() - upState.t0) / 1000;
   const skewMs = (audioSec - wallSec) * 1000;
+
+  // ★★ 采样计数 vs **音频时钟**（这才是 EXT-003 要验收的量）
+  //
+  //   ★ 真实缺陷（实测 5 分钟 maxAbsSkew 534 ms 的**测量口径错误**）：
+  //     上面那个 skewMs 是拿主线程的 performance.now() 当墙钟，
+  //     但主线程同时在跑视频解码 + canvas 合成
+  //     （CDP CPU Profile：drawImage 19.2 s、GC 11.5 s / 300 s）
+  //     ⇒ **主线程被自己的渲染负载拖慢**
+  //     ⇒ AudioWorklet 的消息要等主线程空出来才能被处理
+  //     ⇒ 测出来的「偏差」其实是**主线程调度延迟**，不是采样时钟漂移。
+  //
+  //   ★ 正确口径：音频时钟（AudioContext.currentTime / currentFrame）
+  //     由**音频硬件**驱动，在 AudioWorklet 内取值 ⇒ 与主线程负载无关。
+  //     采样计数（16 kHz 域累计）与音频时钟（48 kHz 域）都是硬件时基，
+  //     两者之差 = 真实的时钟偏差。
+  //
+  //   换算：audioFrame16 = currentFrame / decim（48 kHz → 16 kHz）
+  //        音频时钟在 16 kHz 域的位置 = audioFrame16
+  //        ⇒ skewAudio = (sampleIndex − audioFrame16) / 16000
+  let skewAudioMs = null;
+  if (d.audioFrame16 != null) {
+    if (upState.t0Audio16 == null) {
+      // 首帧建立基准：音频时钟域的起点 = 首帧 sampleIndex
+      upState.t0Audio16 = sampleIndex - d.audioFrame16;
+    }
+    const audioPos16 = upState.t0Audio16 + d.audioFrame16;
+    skewAudioMs = (sampleIndex - audioPos16) / 16000 * 1000;
+    if (upState.skewAudioSamples.length < 60000) {
+      upState.skewAudioSamples.push(skewAudioMs);
+    }
+    if (upState.skewAudioSamples.length > WARMUP_FRAMES) {
+      if (Math.abs(skewAudioMs) > upState.maxAbsSkewAudioMs) {
+        upState.maxAbsSkewAudioMs = Math.abs(skewAudioMs);
+      }
+      if (Math.abs(skewAudioMs) > 50) {
+        upState.skewAudioSpikes.push({
+          tRelMs: Math.round(performance.now() - upState.t0),
+          skewMs: Math.round(skewAudioMs * 100) / 100,
+          seq,
+        });
+        if (upState.skewAudioSpikes.length > 2000) upState.skewAudioSpikes.shift();
+      }
+    }
+  }
+
   if (upState.skewSamples.length < 60000) upState.skewSamples.push(skewMs);
   if (upState.skewSamples.length > WARMUP_FRAMES) {
     if (Math.abs(skewMs) > upState.maxAbsSkewMs) upState.maxAbsSkewMs = Math.abs(skewMs);
@@ -538,6 +840,10 @@ function uplinkSnapshot() {
   const sk = upState.skewSamples;
   const abs = sk.map(Math.abs).sort((a, b) => a - b);
   const pct = (p) => (abs.length ? abs[Math.min(abs.length - 1, Math.floor(abs.length * p))] : null);
+  // ★ 音频时钟口径（EXT-003 的验收量）：采样计数 ↔ 音频硬件时钟
+  const ska = upState.skewAudioSamples;
+  const absa = ska.map(Math.abs).sort((a, b) => a - b);
+  const pcta = (p) => (absa.length ? absa[Math.min(absa.length - 1, Math.floor(absa.length * p))] : null);
   // 漂移斜率：对 (时刻, skew) 做最小二乘直线拟合 ⇒ 每分钟漂移多少 ms
   let driftMsPerMin = null;
   if (sk.length >= 20) {
@@ -574,6 +880,16 @@ function uplinkSnapshot() {
     skewSpikes: upState.skewSpikes.slice(-200),
     nSkewSpikes: upState.skewSpikes.length,
     driftMsPerMin,
+    // ★★ 音频时钟口径（EXT-003 验收量）：采样计数 ↔ 音频硬件时钟
+    //   ⇒ 与主线程负载**无关**，是真实的时钟偏差。
+    maxAbsSkewAudioMs: upState.maxAbsSkewAudioMs,
+    skewAudioP50: pcta(0.50), skewAudioP95: pcta(0.95),
+    skewAudioP99: pcta(0.99),
+    skewAudioFirst: ska.length ? ska[0] : null,
+    skewAudioLast: ska.length ? ska[ska.length - 1] : null,
+    skewAudioSamples: ska.length,
+    skewAudioSpikes: upState.skewAudioSpikes.slice(-200),
+    nSkewAudioSpikes: upState.skewAudioSpikes.length,
     wsOpen: upState.wsOpen,
     elapsedMs: upState.t0 ? performance.now() - upState.t0 : 0,
     error: upState.error,
@@ -610,7 +926,7 @@ async function startCapture() {
       const up = await startUplink(stream, cfg.wsUrl, cfg.token);
       metrics.uplinkStart = up;
     }
-    if (vt) await attachVideoTrack(vt);
+    if (vt && VIDEO_ENABLED) await attachVideoTrack(vt);
     report({ kind: 'capture_ready', video: !!vt, audio: !!at,
              uplink: metrics.uplinkStart });
     return { ok: true, uplink: metrics.uplinkStart };
@@ -684,26 +1000,55 @@ async function attachVideoTrack(track) {
         }
 
         const tsUs = Math.round((audioCtx.currentTime - t0) * 1e6);
-        // ★ 统一走 OffscreenCanvas 缩放到编码尺寸（尺寸/格式不一致都会让编码失败）
-        const oc = new OffscreenCanvas(encSize.w, encSize.h);
-        const g = oc.getContext('2d');
-        g.drawImage(frame, 0, 0, encSize.w, encSize.h);
-        frame.close();
-        const out = new VideoFrame(oc, {
-          timestamp: tsUs, duration: Math.round(1e6 / 30),
-        });
 
-        if (videoEncoder && videoEncoder.state === 'configured') {
-          if (tsUs - lastEncTs >= 1e6 / 30) {
-            lastEncTs = tsUs;
-            // ★ 首帧强制关键帧（decoderConfig 只在关键帧的 meta 里出现）
-            const keyFrame = metrics.encoded === 0 || (metrics.encoded % 60) === 0;
-            try {
-              videoEncoder.encode(out, { keyFrame });
-            } catch (e) {
-              metrics.encodeError = String(e);
-            }
-          }
+        // ★★ 限速判断**前置**（真实缺陷，实测 v6 证据）：
+        //   旧顺序是「先 drawImage 缩放，再判断要不要编码」
+        //   ⇒ 被限速丢弃的那一半帧（源 30 fps → 编码 15 fps）
+        //     **照样做了一次 1908×1072 的全尺寸缩放**，然后被扔掉。
+        //   ⇒ 纯浪费。CDP CPU Profile（v6，300 s）：
+        //       drawImage self time = **17.35 s**（非 idle 第 1 名）
+        //     其中约一半来自「缩放完就丢」的帧。
+        //   ⇒ 现在**先判限速，被丢的帧直接 close，不做缩放**。
+        //
+        // ★ 编码限速的原因：源 30 fps，但本机 VP8 软件编码实际只有 ~18 fps
+        //   ⇒ 旧逻辑（每帧都 encode）会把编码器灌爆 ⇒ 编码队列积压
+        //   ⇒ 解码端在某一刻**突发**吐出几十帧 ⇒ 主线程一次性 drawImage
+        //     几十次 ⇒ 500 ms 级 stall（实测 stall.maxMs=531 ≈ maxAbsSkew=534）。
+        //   ⇒ 限到 ENCODE_FPS fps（低于实测吞吐 ⇒ 编码器永不积压）。
+        const minIntervalUs = 1e6 / ENCODE_FPS;
+        const encReady = videoEncoder && videoEncoder.state === 'configured';
+        // ★ encodeQueueSize 守卫（浏览器规范 API）：编码器内部队列积压时
+        //   直接丢帧，比等 output 回调再丢更早、更准。
+        const encBacklogged = encReady && (videoEncoder.encodeQueueSize || 0) > ENCODE_QUEUE_MAX;
+        if (!encReady || encBacklogged || (tsUs - lastEncTs < minIntervalUs)) {
+          metrics.encodeSkipped = (metrics.encodeSkipped || 0) + 1;
+          if (encBacklogged) metrics.encodeBacklogSkipped = (metrics.encodeBacklogSkipped || 0) + 1;
+          frame.close();
+          continue;
+        }
+
+        // ★ 统一走 OffscreenCanvas 缩放到编码尺寸（尺寸/格式不一致都会让编码失败）
+        //   ⇒ OffscreenCanvas **复用**（不再每帧 new）：
+        //   实测 5 分钟长测 `program` self time = 11.32 s、GC = 11.53 s，
+        //   每帧 new OffscreenCanvas(1908×1072) ⇒ 每帧一次 8 MB 显存分配 + GC 压力。
+        //   （v6 复测：GC 已从 11.53 s 降到 0 ⇒ 复用生效。）
+        if (!encCanvas) {
+          encCanvas = new OffscreenCanvas(encSize.w, encSize.h);
+          encCtx = encCanvas.getContext('2d', { alpha: false });
+        }
+        encCtx.drawImage(frame, 0, 0, encSize.w, encSize.h);
+        frame.close();
+
+        lastEncTs = tsUs;
+        const out = new VideoFrame(encCanvas, {
+          timestamp: tsUs, duration: Math.round(1e6 / ENCODE_FPS),
+        });
+        // ★ 首帧强制关键帧（decoderConfig 只在关键帧的 meta 里出现）
+        const keyFrame = metrics.encoded === 0 || (metrics.encoded % 60) === 0;
+        try {
+          videoEncoder.encode(out, { keyFrame });
+        } catch (e) {
+          metrics.encodeError = String(e);
         }
         out.close();
       }
@@ -764,6 +1109,7 @@ const REPORT_SCALARS = [
   'echoRecv', 'echoSent', 'captureStarted', 'audioCtxOk',
   'uplinkFrames', 'uplinkSeq', 'uplinkGaps', 'uplinkSkewMs',
   'pendingSchedDropped', 'subsDropped',
+  'schedClamped', 'probeSchedClamped', 'encodeSkipped', 'encodeBacklogSkipped',
 ];
 
 function reportSummary(obj) {
@@ -782,17 +1128,47 @@ function reportSummary(obj) {
   return out;
 }
 
-function report(obj) {
-  window.__extMetrics = window.__extMetrics || {};
-  if (obj && obj.kind) window.__extMetrics[obj.kind] = obj;
-  window.__extMetrics.last = obj;
-  // ★ 只发给 SW（SW 是唯一返回 true 的 listener），player 侧不再发
-  //   'ext-log'（会与其他上下文抢通道）。
-  //   只发标量摘要，不发数组（见 reportSummary 注释）。
+// ★ 高频事件的 report 节流。
+//   真实缺陷：bridge 回声模式每帧回灌一条 echo（≈47 条/秒），
+//   每条都 report() ⇒ 47 次/秒的 chrome.runtime.sendMessage 跨上下文往返，
+//   且下游 offscreen 每条都落盘 ⇒ 主线程周期性阻塞 ⇒ 采样时钟尖峰。
+//   ⇒ 高频 kind（dub/sched/...）合并到 1 秒一次；
+//     关键事件（capture/错误）仍**立即**上报，不被节流。
+const REPORT_THROTTLE_MS = 1000;
+const REPORT_LOW_PRIORITY = new Set(['dub', 'sched', 'lipsync', 'metrics']);
+let reportTimer = null;
+let reportPending = null;
+
+function flushReport() {
+  reportTimer = null;
+  const obj = reportPending;
+  reportPending = null;
+  if (!obj) return;
   try {
     chrome.runtime.sendMessage({ target: 'sw', cmd: 'metrics',
                                 metrics: reportSummary(obj) });
   } catch (e) { /* ignore */ }
+}
+
+function report(obj) {
+  window.__extMetrics = window.__extMetrics || {};
+  if (obj && obj.kind) window.__extMetrics[obj.kind] = obj;
+  window.__extMetrics.last = obj;
+
+  const kind = obj && obj.kind;
+  if (!REPORT_LOW_PRIORITY.has(kind)) {
+    // 关键事件立即上报
+    try {
+      chrome.runtime.sendMessage({ target: 'sw', cmd: 'metrics',
+                                  metrics: reportSummary(obj) });
+    } catch (e) { /* ignore */ }
+    return;
+  }
+
+  // 高频事件：合并（只保留最后一条），1 秒写一次
+  reportPending = obj;
+  if (reportTimer !== null) return;
+  reportTimer = setTimeout(flushReport, REPORT_THROTTLE_MS);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -878,6 +1254,65 @@ function computeLipSync() {
 }
 
 // ══════════════════════════════════════════════════════════════
+// ★ 主线程 stall 探针（event-loop lag）
+// ══════════════════════════════════════════════════════════════
+/**
+ * 测量**主线程事件循环延迟**：用 setTimeout(0) 反复探测，
+ * 每次「计划时刻 → 实际回调时刻」的差值 = 主线程被阻塞的时长。
+ *
+ * ★ 为什么要它：5 分钟长测实测 maxAbsSkew 676.9 ms，而
+ *   采样时钟本身是准的（drift ≈ 1 ms/min、P50=18 ms、P95=29 ms）。
+ *   skew 尖峰的形态是「一串等差数列，步长恰好 = 帧长（21.25 ms）」，
+ *   典型症状是「主线程停摆 → 消息积压 → 恢复后一次性冲刷」。
+ *   ⇒ 尖峰的**因**是主线程阻塞，skew 只是**果**。
+ *   没有 event-loop lag 探针就只能靠猜 ⇒ 这里补上，
+ *   让「谁在阻塞主线程」变成可测量、可归因的事实。
+ */
+const stall = {
+  last: 0, max: 0, n: 0, samples: [], worst: [],
+};
+function stallProbe() {
+  const planned = performance.now();
+  setTimeout(() => {
+    const lag = performance.now() - planned;
+    stall.last = lag;
+    stall.n++;
+    if (lag > stall.max) stall.max = lag;
+    if (lag > 50) {
+      stall.samples.push({ tRelMs: Math.round(planned - upState.t0), lagMs: Math.round(lag * 100) / 100 });
+      if (stall.samples.length > 2000) stall.samples.shift();
+    }
+    stallProbe();
+  }, 0);
+}
+
+// ★ longtask 观察器：把「谁在阻塞主线程」变成**归因数据**。
+//   PerformanceObserver('longtask') 给出每个 >50 ms 长任务的
+//   attribution（containerType / scriptURL / functionName）。
+//   ⇒ 与 stall 探针配合：stall 给出「阻塞了多久」，longtask 给出「被谁阻塞」。
+const longTasks = [];
+let longTaskObserver = null;
+function startLongTaskObserver() {
+  if (longTaskObserver || typeof PerformanceObserver === 'undefined') return;
+  try {
+    longTaskObserver = new PerformanceObserver((list) => {
+      for (const e of list.getEntries()) {
+        const a = e.attribution && e.attribution[0];
+        longTasks.push({
+          tRelMs: Math.round((e.startTime - (upState.t0 || 0))),
+          durMs: Math.round(e.duration * 100) / 100,
+          containerType: a ? a.containerType : null,
+          containerSrc: a && a.containerSrc ? String(a.containerSrc).split('/').pop() : null,
+          fn: a ? a.name : null,
+        });
+        if (longTasks.length > 500) longTasks.shift();
+      }
+    });
+    longTaskObserver.observe({ entryTypes: ['longtask'] });
+  } catch (e) { /* ignore */ }
+}
+
+// ══════════════════════════════════════════════════════════════
 // 测试钩子
 // ══════════════════════════════════════════════════════════════
 window.__ext = {
@@ -891,6 +1326,15 @@ window.__ext = {
     schedErrP50: pct(metrics.onsetErrs, 0.5),
     schedErrP95: pct(metrics.onsetErrs, 0.95),
     uplink: uplinkSnapshot(),
+    stall: {
+      lastMs: Math.round(stall.last * 100) / 100,
+      maxMs: Math.round(stall.max * 100) / 100,
+      n: stall.n,
+      spikes: stall.samples.slice(-200),
+      nSpikes: stall.samples.length,
+      longTasks: longTasks.slice(-100),
+      nLongTasks: longTasks.length,
+    },
   }),
   setDelay: (d) => { delaySec = d; },
   getAudioTime: () => (audioCtx ? audioCtx.currentTime : 0),
@@ -904,8 +1348,19 @@ window.__ext = {
   connectBridge,
   startUplink,
   uplinkSnapshot,
-  /** P0③ 自测：直接排程一段 PCM，测浏览器端排程误差 */
-  selfTestSchedule: (pcmB64, tStart) => scheduleDub({ id: 'selftest', t_start: tStart, pcm24k: pcmB64 }),
+  /** P0③ 自测：直接排程一段 PCM，测浏览器端排程误差（probe=true ⇒ 与回声排程分开统计） */
+  selfTestSchedule: (pcmB64, tStart) => scheduleDub({ id: 'selftest', t_start: tStart, pcm24k: pcmB64, probe: true }),
+  /** ★ 诊断：排程与配对的完整明细（归因 P0③ 的误差来源） */
+  schedDebug: () => ({
+    pendingSched: pendingSched.map((p) => ({
+      id: p.id, planned: p.planned, requested: p.requested,
+      matched: p.matched, probe: p.probe,
+    })),
+    schedDetail: metrics.schedDetail.slice(-50),
+    onsetErrs: metrics.onsetErrs.slice(-50),
+    dubOnsets: metrics.dubOnsets.slice(-50),
+    t0, now: audioCtx ? audioCtx.currentTime : 0, delaySec,
+  }),
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -932,17 +1387,30 @@ async function boot() {
   dubBus = audioCtx.createGain();
   dubBus.gain.value = 1.0;
   dubBus.connect(audioCtx.destination);
+  // ★ probe 专用总线 + **独立** onset 检测器（隔离回声干扰）
+  probeBus = audioCtx.createGain();
+  probeBus.gain.value = 1.0;
+  probeBus.connect(audioCtx.destination);
   try {
     onsetNode = await makeOnsetDetector(dubBus, onDubOnset, 0.02);
   } catch (e) {
     report({ kind: 'onset_error', error: String(e) });
   }
+  try {
+    probeOnsetNode = await makeOnsetDetector(probeBus, onDubOnset, 0.02);
+  } catch (e) {
+    report({ kind: 'probe_onset_error', error: String(e) });
+  }
 
-  setInterval(() => { pumpDecoder(); pumpSubs(); updateHud(); }, 40);
+  setInterval(() => { pumpDecoder(); pumpDraws(); pumpSubs(); updateHud(); }, 40);
   setInterval(() => {
     computeLipSync();
     report({ kind: 'metrics', ...metrics, queued: encQueue.length });
   }, 1000);
+
+  // ★ 主线程 stall 探针（定位 skew 尖峰的真正阻塞源）
+  stallProbe();
+  startLongTaskObserver();
 
   try {
     ws = await connectBridge(cfg.wsUrl || 'ws://127.0.0.1:8765/', cfg.token || '', 'player');

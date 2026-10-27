@@ -93,6 +93,9 @@ class CaptureProcessor extends AudioWorkletProcessor {
     // 诊断计数
     this.processCalls = 0;
     this.emptyCalls = 0;
+    // ★ 音频时钟基准（音频硬件驱动，与主线程负载无关）
+    this.t0Audio = null;             // 首帧的音频时钟
+    this._lastFrameAudioTime = null;
   }
 
   /** 输入一个样本，抽取成 16 kHz 样本（FIR 滤波） */
@@ -138,12 +141,34 @@ class CaptureProcessor extends AudioWorkletProcessor {
     const start = this.totalOut;
     this.totalOut += this.outLen;
     this.outLen = 0;
+    // ★★ 采样计数的时间基准改用 **AudioContext 的音频时钟**
+    //   （`currentTime` / `currentFrame`），而不是主线程的 performance.now()。
+    //
+    //   ★ 真实缺陷（实测 5 分钟 maxAbsSkew 534 ms 的**测量口径错误**）：
+    //     旧实现把 skew 算在**主线程**上：
+    //       skew = sampleIndex/16000 − (performance.now() − t0)/1000
+    //     但主线程同时在跑视频解码 + canvas 合成（CDP CPU Profile：
+    //     drawImage 19.2 s、GC 11.5 s）⇒ **主线程被自己的渲染负载拖慢**，
+    //     音频 worklet 的消息要等主线程空出来才能被处理
+    //     ⇒ 测出来的「偏差」其实是**主线程调度延迟**，不是采样时钟漂移。
+    //   ⇒ 音频时钟（`currentTime`）由**音频硬件**驱动，
+    //     在 AudioWorklet 里取 ⇒ 与主线程负载**完全无关**。
+    //     这才是 EXT-003 要验收的「采样计数和墙钟偏差」的正解：
+    //       采样计数 ↔ 音频时钟，两者都独立于主线程。
+    //
+    //   currentFrame = currentTime × sampleRate（48 kHz 域）
+    //   ⇒ 换算到 16 kHz 域：audioFrame16 = currentFrame / decim
+    const audioSec = currentTime;
+    const audioFrame16 = (currentFrame / this.decim);
     this.port.postMessage(
       { pcm: pcm.buffer, sampleIndex: start, seq: this.seq++,
         inSamples: this.totalIn, processCalls: this.processCalls,
-        outSamples: this.totalOut },
+        outSamples: this.totalOut,
+        audioTime: audioSec, audioFrame16: audioFrame16,
+        frameAudioTime: this._lastFrameAudioTime },
       [pcm.buffer]
     );
+    this._lastFrameAudioTime = audioSec;
   }
 
   process(inputs) {

@@ -33,6 +33,7 @@ import struct
 import subprocess
 import sys
 import time
+from contextlib import ExitStack
 from typing import Optional
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -93,7 +94,8 @@ def _read_token(path: str) -> str:
 
 def run_probe(*, delay_sec: float = 10.0, video_sec: int = 45,
               out_dir: Optional[str] = None,
-              src_port: int = SRC_PORT, bridge_port: int = BRIDGE_PORT) -> dict:
+              src_port: int = SRC_PORT, bridge_port: int = BRIDGE_PORT,
+              lock: bool = True, lock_wait: float = 600.0) -> dict:
     from playwright.sync_api import sync_playwright
 
     browser = _find_browser()
@@ -110,7 +112,15 @@ def run_probe(*, delay_sec: float = 10.0, video_sec: int = 45,
     os.makedirs(prof, exist_ok=True)
     out["profile_dir"] = prof
 
+    # ★ 铁律：计时/测速作业必须持共享机器锁。
+    #   本探针要拉起浏览器 + 抓标签页音视频，属设备占用型作业。
+    #   锁已存在 ⇒ **排队等待**，绝不抢。
+    stack = ExitStack()
     try:
+        if lock:
+            from tools.machine_lock import hold
+            stack.enter_context(
+                hold("EXT-lipsync-probe", wait_timeout=lock_wait))
         src_server = _start_src_server(src_port)
         bridge_proc = _start_bridge(bridge_port, delay_sec, token_path)
         token = _read_token(token_path)
@@ -216,12 +226,29 @@ def run_probe(*, delay_sec: float = 10.0, video_sec: int = 45,
                                 int(12000 * math.sin(2 * math.pi * 1000 * i / sr)))
                     for i in range(n))
                 b64 = base64.b64encode(pcm).decode("ascii")
-                for t_start in (0.5, 2.0, 3.5):
+                # ★★ 排程时刻必须落在**未来**（真实缺陷，实测双峰 0.02 / 43.02 / 0.02 ms）：
+                #   selfTestSchedule 的 t_start 是**相对 t0（页面加载时刻）**的偏移，
+                #   插件算 planned = t0 + t_start + delaySec。
+                #   旧写法固定传 (0.5, 2.0, 3.5) ⇒ 第 2、3 次的 planned **已在过去**
+                #     ⇒ 插件的 Math.max(currentTime+0.005, planned) 把它钳成"立刻播"
+                #     ⇒ 而主线程的 audioCtx.currentTime 在繁忙时滞后真实音频时钟约 43 ms
+                #     ⇒ 稳定复现 **43.02 ms** 的假误差（两次独立探针数值完全相同）。
+                #   ⇒ 修法：用**当前音频时钟**推算未来的排程时刻。
+                for k in range(3):
+                    t_start = player.evaluate(
+                        """() => {
+                             const t0 = window.__ext.getT0();
+                             const now = window.__ext.getAudioTime();
+                             const delay = (window.__ext.metrics().delaySec) || 10;
+                             return (now - t0) + 0.6 - delay;
+                           }""")
                     player.evaluate(
                         """(o) => { window.__ext.selfTestSchedule(o.b64, o.tStart); }""",
                         {"b64": b64, "tStart": t_start})
                     player.wait_for_timeout(int((delay_sec + 1.5) * 1000))
                 m2 = player.evaluate("() => window.__ext.metrics()") or {}
+                out["sched_debug"] = player.evaluate(
+                    "() => window.__ext.schedDebug ? window.__ext.schedDebug() : null")
                 errs = m2.get("onsetErrs") or []
                 out["sched"] = {
                     "onsetErrs": errs,
@@ -250,6 +277,10 @@ def run_probe(*, delay_sec: float = 10.0, video_sec: int = 45,
                 closer()
             except Exception:
                 pass
+        try:
+            stack.close()      # 释放共享机器锁
+        except Exception:
+            pass
 
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
@@ -267,10 +298,15 @@ def main(argv=None) -> int:
     ap.add_argument("--out", default=None)
     ap.add_argument("--src-port", type=int, default=SRC_PORT)
     ap.add_argument("--bridge-port", type=int, default=BRIDGE_PORT)
+    ap.add_argument("--no-lock", action="store_true",
+                    help="不持共享机器锁（默认持；铁律：只能排队，不能抢）")
+    ap.add_argument("--lock-wait", type=float, default=600.0,
+                    help="等待共享锁的最长秒数")
     args = ap.parse_args(argv)
     r = run_probe(delay_sec=args.delay, video_sec=args.video_sec,
                   out_dir=args.out, src_port=args.src_port,
-                  bridge_port=args.bridge_port)
+                  bridge_port=args.bridge_port,
+                  lock=not args.no_lock, lock_wait=args.lock_wait)
     print(json.dumps(r, ensure_ascii=False, indent=2))
     return 0 if r.get("ok") else 1
 

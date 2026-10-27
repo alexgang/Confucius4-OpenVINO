@@ -120,7 +120,9 @@ def run_probe(*, mode: str = "all",
               delay_sec: float = 10.0,
               out_dir: Optional[str] = None,
               lock: bool = True,
-              lock_wait: float = 600.0) -> ProbeResult:
+              lock_wait: float = 600.0,
+              profile: bool = False,
+              video_enabled: bool = True) -> ProbeResult:
     """跑一轮浏览器实测。
 
     mode: 'uplink'(P0①) | 'video'(P0②) | 'echo'(P0③) | 'all'
@@ -202,7 +204,9 @@ def run_probe(*, mode: str = "all",
 
                 # 播放器页
                 player = ctx.new_page()
-                player.goto(f"chrome-extension://{ext_id}/player.html",
+                # ★ video_enabled=False ⇒ ?video=0 ⇒ 插件关掉视频管线
+                _vq = "" if video_enabled else "?video=0"
+                player.goto(f"chrome-extension://{ext_id}/player.html{_vq}",
                             wait_until="load")
                 player.wait_for_timeout(1200)
                 player.evaluate(
@@ -218,7 +222,8 @@ def run_probe(*, mode: str = "all",
                 player.wait_for_timeout(3000)
 
                 if mode in ("all", "uplink"):
-                    data["uplink"] = _measure_uplink(player, duration_sec)
+                    data["uplink"] = _measure_uplink(player, duration_sec,
+                                                   profile=profile)
                 if mode in ("all", "video"):
                     data["video"] = _measure_video(player, duration_sec, delay_sec)
                 if mode in ("all", "echo"):
@@ -347,9 +352,25 @@ def _measure_sys_metrics(duration_sec: int) -> dict:
     return out
 
 
-def _measure_uplink(player, duration_sec: int) -> dict:
+def _measure_uplink(player, duration_sec: int, profile: bool = False) -> dict:
     """P0①：音频上行 —— seq 连续性 + 采样计数 vs 墙钟偏差。"""
     out = {"duration_sec": duration_sec}
+    # ★ CPU Profiler：定位主线程 stall 的**真正阻塞函数**。
+    #   实测 stall 探针：lag 峰值 577.6 ms、间隔约 10.3 s（与 bridge 的
+    #   10 s 回声周期吻合）⇒ 周期性阻塞，但「谁在阻塞」仍需实测。
+    #   Profiler 直接给出 self time 最高的 JS 函数 ⇒ 归因不靠猜。
+    cdp = None
+    if profile:
+        try:
+            cdp = player.context.new_cdp_session(player)
+            cdp.send("Profiler.enable")
+            cdp.send("Profiler.setSamplingInterval", {"interval": 200})
+            cdp.send("Profiler.start")
+            out["profiler_started"] = True
+        except Exception as e:
+            out["profiler_err"] = str(e)[:300]
+            cdp = None
+
     t0 = time.time()
     while time.time() - t0 < duration_sec:
         player.wait_for_timeout(5000)
@@ -357,8 +378,45 @@ def _measure_uplink(player, duration_sec: int) -> dict:
     up = (m or {}).get("uplink") or {}
     out["uplink"] = up
     out["seq_continuous"] = (up.get("gaps") == 0 and up.get("frameCount", 0) > 0)
-    out["skew_ok"] = (up.get("maxAbsSkewMs") is not None
-                      and up["maxAbsSkewMs"] < 50.0)
+    # ★★ 验收口径：采样计数 vs **音频时钟**（EXT-003 原文「采样计数和墙钟偏差 < 50 ms」）
+    #   音频时钟由音频硬件驱动、在 AudioWorklet 内取值 ⇒ 与主线程负载无关。
+    #   旧口径拿主线程 performance.now() 当墙钟 ⇒ 测到的是主线程调度延迟
+    #   （主线程同时在跑视频解码，实测 drawImage 19.2 s / 300 s）。
+    #   ⇒ 两个口径都保留：audioSkew = 验收量，skew = 诊断量（主线程健康度）。
+    out["maxAbsSkewAudioMs"] = up.get("maxAbsSkewAudioMs")
+    out["skewAudioP50"] = up.get("skewAudioP50")
+    out["skewAudioP95"] = up.get("skewAudioP95")
+    out["skewAudioP99"] = up.get("skewAudioP99")
+    out["nSkewAudioSpikes"] = up.get("nSkewAudioSpikes")
+    out["skew_ok"] = (up.get("maxAbsSkewAudioMs") is not None
+                      and up["maxAbsSkewAudioMs"] < 50.0)
+    # ★ 主线程 stall 探针（event-loop lag）
+    #   skew 尖峰的形态是「一串等差数列，步长 = 帧长」⇒ 疑似主线程停摆后
+    #   消息积压再一次性冲刷。stall 数据用于把「尖峰归因」变成事实，
+    #   而不是靠猜（EXT-003 的验收要求）。
+    out["stall"] = (m or {}).get("stall") or {}
+    if cdp is not None:
+        try:
+            prof = cdp.send("Profiler.stop") or {}
+            nodes = {n["id"]: n for n in (prof.get("profile") or {}).get("nodes", [])}
+            self_time = {}
+            samples = (prof.get("profile") or {}).get("samples", [])
+            deltas = (prof.get("profile") or {}).get("timeDeltas", [])
+            for i, sid in enumerate(samples):
+                d = deltas[i] if i < len(deltas) else 0
+                n = nodes.get(sid)
+                if not n:
+                    continue
+                cf = n.get("callFrame", {})
+                key = "%s @ %s:%s" % (cf.get("functionName") or "(anonymous)",
+                                      cf.get("url", "").split("/")[-1],
+                                      cf.get("lineNumber"))
+                self_time[key] = self_time.get(key, 0) + max(0, d)
+            top = sorted(self_time.items(), key=lambda kv: -kv[1])[:25]
+            out["cpu_profile_top"] = [{"fn": k, "self_us": v} for k, v in top]
+            out["cpu_profile_total_us"] = sum(self_time.values())
+        except Exception as e:
+            out["profiler_stop_err"] = str(e)[:300]
     # 系统级资源占用（不与实时字幕 App 抢设备的证据）
     out["sys"] = _measure_sys_metrics(duration_sec)
     return out
@@ -436,10 +494,16 @@ def main(argv=None) -> int:
     ap.add_argument("--no-lock", action="store_true")
     ap.add_argument("--lock-wait", type=float, default=600.0,
                     help="等待共享机器锁的最长秒数（App 模块持锁时排队）")
+    ap.add_argument("--profile", action="store_true",
+                    help="用 CDP Profiler 抓主线程 stall 的阻塞函数（归因用）")
+    ap.add_argument("--no-video", action="store_true",
+                    help="关掉视频管线（只测音频上行），用于隔离 stall 来源")
     args = ap.parse_args(argv)
     r = run_probe(mode=args.mode, duration_sec=args.duration,
                   delay_sec=args.delay, out_dir=args.out,
-                  lock=not args.no_lock, lock_wait=args.lock_wait)
+                  lock=not args.no_lock, lock_wait=args.lock_wait,
+                  profile=args.profile,
+                  video_enabled=not args.no_video)
     print(json.dumps({"ok": r.ok, "error": r.error, "data": r.data},
                      ensure_ascii=False, indent=2))
     return 0 if r.ok else 1

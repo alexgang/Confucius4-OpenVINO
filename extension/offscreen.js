@@ -49,15 +49,40 @@ const state = {
   echoFirst: null,
 };
 
-function post(msg) {
-  // ★ 不用 chrome.runtime.sendMessage（会与 SW 的 listener 抢通道）：
-  //   统一写进 chrome.storage.local.extLog，popup/探针可读取。
+// ★ 真实缺陷（实测 5 分钟长测 maxAbsSkew 676.9 ms 的**根因链**）：
+//   bridge 回声模式每帧回灌一条 echo（16 kHz / 20~100 ms 一帧 ⇒ ≈47 条/秒）。
+//   player 每收到一条就 report() 一次 ⇒ chrome.runtime.sendMessage
+//   ⇒ SW relayToOffscreen ⇒ 这里的 post()
+//   ⇒ **每条消息都做一次 chrome.storage.local.get + set**
+//      （get 整个 200 条日志数组、concat、再 set 整个数组）
+//   ⇒ 每秒 ~47 次「读全量 + 写全量」的磁盘 IO。
+//   ⇒ 主线程/扩展上下文被周期性阻塞 ⇒ 音频 worklet 的消息处理
+//     延迟 ⇒ 采样计数与墙钟出现数百 ms 的尖峰。
+//   ⇒ 修复：**节流 + 合并写入**（1 秒写一次，且只保留最后一条）。
+//     日志仍是「有则必留」，只是不再每条都落盘。
+const POST_THROTTLE_MS = 1000;
+let postTimer = null;
+let postPending = null;
+
+function flushPost() {
+  postTimer = null;
+  const msg = postPending;
+  postPending = null;
+  if (!msg) return;
   try {
     chrome.storage.local.get({ extLog: [] }).then((s) => {
       const arr = (s.extLog || []).concat([{ ts: Date.now(), ...msg }]).slice(-200);
       return chrome.storage.local.set({ extLog: arr });
     }).catch(() => {});
   } catch (e) { /* ignore */ }
+}
+
+function post(msg) {
+  // 不用 chrome.runtime.sendMessage（会与 SW 的 listener 抢通道）：
+  //   统一写进 chrome.storage.local.extLog，popup/探针可读取。
+  postPending = msg;
+  if (postTimer !== null) return;
+  postTimer = setTimeout(flushPost, POST_THROTTLE_MS);
 }
 function log(s) { post({ type: 'log', msg: s }); }
 

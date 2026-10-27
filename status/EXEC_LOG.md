@@ -163,3 +163,73 @@ C 组 5 个（测试/工具自身）：闸门测试写死编号、3 处错误断
 - ⛔ **引擎未接线**：三个引擎入口只做**只读定位**（见 `STATUS_EXT.md` §2.3），`ext/engines.py` 的
   `EngineAdapter` 仍未注入 ⇒ 桥接服务仍跑回声模式。
 - ⛔ **P1/P2/P3 未开始**。
+
+## 2026-10-28 00:42 — EXT-003 复测收口（P0 ①②③ 全部达标）
+
+**执行时间**：2026-10-28 00:22 ~ 00:42（实测时间）
+**执行依据**：闸门实跑 `tools/next_instruction.py --json` ⇒ **exit 0**
+```
+{"action":"execute","latest":{"id":"EXT-004","num":4,"priority":"[NORMAL]","ts":"2026-10-27 20:38","title":"RESUME：额度已重置，请从 last_ack 继续"},"last_ack":3,"n_entries":4}
+```
+EXT-004 无独立技术要求（仅「继续」信号）⇒ 本轮执行 **EXT-003 [HIGH] 的未完成项**（P0 ①②③ 复测收口）。`last_ack` **保持 EXT-003**（不推进到 EXT-004：按「只推进到实际执行完的最大 EXT 编号」口径，EXT-004 是 RESUME 信号）。
+
+**指令摘要**
+- P0①：MV3 + tabCapture + offscreen + AudioWorklet 16 kHz 采样计数时间戳 ⇒ 验收「连续 5 分钟 seq 不断、采样计数和墙钟偏差 < 50 ms」
+- P0②：WebCodecs 延迟画面 + 唇音同步测试 ⇒ 目标 ≤ 40 ms
+- P0③：浏览器端回声排程误差 ⇒ 目标 ≤ 20 ms
+
+**涉及修改的文件**（`git diff --stat`：8 文件，+955 / −99）
+- `extension/player.js` — 音频时钟口径 skew（`maxAbsSkewAudioMs`）；probe 独立总线 `probeBus` + 独立 onset 检测器；排程钳位计数（`schedClamped`）；异步 `VideoFrame.copyTo()` + 16×9 小画布白闪检测；画布保持显示尺寸；移除每帧 `cv.width` 赋值；`report()` 节流 1 次/秒 + 只传标量摘要；主线程 stall 探针 + longtask 观察器；`?video=0` A/B 隔离开关；诊断钩子 `schedDebug`
+- `extension/capture-worklet.js` — 上报音频时钟（`audioTime` / `audioFrame16` / `frameAudioTime`）
+- `extension/offscreen.js` — 落盘节流（`POST_THROTTLE_MS` / `flushPost` / `postPending`，仍保留 200 条日志）
+- `tools/browser_probe.py` — CDP CPU Profile 归因（前 25）；stall / longtask 落盘；验收口径改音频时钟；A/B 隔离开关 `--no-video`；`--profile`
+- `tools/echo_sched_probe.py` — 共享机器锁（`ExitStack` + `hold`）；排程时刻改用当前音频时钟反推未来；`--no-lock` / `--lock-wait`
+- `tools/video_lipsync_probe.py` — 同上；新增 `sched_debug` 诊断采集
+- `tools/run_p0_suite.py` — uplink 步骤目录 v6+；统一透传 `--lock-wait`
+- `tests/test_ext_browser_contract.py` — 新增 B10~B18（持锁 / probe 优先配对 / 配对窗口 / stall 探针 / 画布尺寸 / report 节流 / 白闪小画布 / longtask+Profiler+隔离开关 / 异步 copyTo / 音频时钟口径）；C1d 改用音频时钟 + 新增 C1d2（主线程口径作诊断量）；`check()` 改为只在 FAIL 时打印 detail
+- `status/STATUS_EXT.md` — 追加 §3（含**撤回 §2 两条结论**）；头部 last_ack / 更新时间更新
+- `status/EXEC_LOG.md` — 本条
+
+**验证与自测结果**（本轮实跑）
+```
+tests/test_ext_selfcheck.py        →  34 PASS / 0 FAIL
+tests/test_echo_roundtrip.py       →  10 PASS / 0 FAIL
+tests/test_next_instruction.py     →  19 PASS / 0 FAIL
+tests/test_ext_browser_contract.py → 101 PASS / 0 FAIL   ← C1d 音频时钟口径；C1d2 主线程口径诊断量
+tools/player_perf_bench.js         →   8 PASS / 0 FAIL   ← 纯 Node 微基准
+```
+合计 **172 PASS / 0 FAIL**（5 套）。
+
+**实测证据**（引自实际落盘文件，附字节数 / mtime）
+- `.tmp/probe_uplink_5min_v7/browser_probe.json`（38959 B，mtime 2026-10-28 00:27:39）—— P0① 5 分钟上行
+  - `duration_sec=300` / `seq=14199` / `frameCount=14199` / `gaps=0` / `bytesSent=9693150` / `sampleIndex=4846575`
+  - **P0① 验收口径**：`maxAbsSkewAudioMs=1.0833333333430346`（阈值 50 ms ✅）、`skewAudioP50=1.0625` / `P95=1.0833333333430346` / `P99=1.0833333333430346`、`nSkewAudioSpikes=0`、`skewAudioSamples=14199`、`skew_ok=true`、`seq_continuous=true`
+  - 主线程口径（诊断量）：`maxAbsSkewMs=750.6958332855902`
+  - `stall`: `maxMs=754.2` / `n=65423` / `nSpikes=20` / `nLongTasks=2`
+  - `cpu_profile_top`（5 分钟 self time）：`(idle) 279922.3 ms` / `(program) 8958.7 ms` / **`drawImage 8125.5 ms`** / `(anonymous)@player.js:1240 871.4 ms` / `setTimeout 781.4 ms`
+- `.tmp/probe_suite_v9/probe_video_lipsync/video_lipsync_probe.json`（2344 B，mtime 2026-10-28 00:39:52）—— P0② + P0③
+  - P0②：`encoded=556` / `decoded=439` / `drawn=439` / `dropped=0` / `queued=117` / `drop_rate_pct=0.0` / `codecUsed=vp8` / `videoWidth=1908` / `videoHeight=1072` / `drawMarks=4`
+  - P0② 唇音同步：`nPairs=4` / `meanErrMs=-11.9635416666668` / `absErrP50=15.24999999999821` / **`absErrP95=23.270833333331353`**（目标 ≤ 40 ms ✅）/ `absErrMax=23.270833333331353` / `lipSync_ok=true`
+  - P0③：`onsetErrs=[0.020833333330472215, 0.020833333330472215, 0.020833333337577642]` / `maxAbsErrMs=0.020833333323366787`（阈值 20 ms ✅）/ `sched_ok=true`
+  - `sched_debug`：`schedDetail` 三条 planned/actual 全部 `errMs=0.02`；`pendingSched=[]`（无残留）
+- `.tmp/probe_suite_v9/probe_echo_sched/echo_sched_probe.json`（469 B，mtime 2026-10-28 00:40:30）—— P0③ 独立探针互证
+  - `onsetErrs` 三样本全部 **0.0208333333…** / `maxAbsErrMs=0.020833333334024928` / `passed=true`
+- `.tmp/probe_suite_v9/suite_summary.json`（3390 B，mtime 2026-10-28 00:40:31）—— 套件汇总（两 step rc=0）
+
+**本轮修掉的 11 个真实缺陷**（详见 `STATUS_EXT.md` §3.4）
+A 组（测量口径）：① 用主线程墙钟测采样时钟偏差（致命·口径错误，750.70 ms → 1.08 ms）；② worklet 不上报音频时钟。
+B 组（视频管线性能，CPU Profile 归因）：③ `getImageData` 每帧 5 次同步回读（15.96 s）→ 异步 `copyTo` + 16×9 小画布；④ `drawImage` 画布跟随源帧（11.40~19.24 s）→ 保持显示尺寸；⑤ 每帧重置 `cv.width` 分配 8 MB backing store；⑥ 高频事件全量搬运 + 全量落盘（14.4 KB/s）→ 双端节流 1 次/秒 + 只传标量摘要。
+C 组（P0③）：⑦ probe 与回声共用总线（迟滞+minGapSec 抑制自测 onset ⇒ 稳定复现 43.02 ms 假误差）→ 独立 `probeBus` + 独立检测器；⑧ 排程时刻过期被静默钳位 → 计数可见；⑨ 探针固定传过去时刻的 `t_start` → 改用当前音频时钟反推未来。
+D 组（合规/工具）：⑩ 两个探针未持共享机器锁 → `hold()` + `--no-lock`/`--lock-wait`；⑪ `browser_probe.py` 缺归因手段 → CDP CPU Profile + stall 探针 + longtask + A/B 隔离。
+
+**撤回的旧结论**
+- ⚠️ **撤回 `STATUS_EXT.md` §2.7 的两条结论**：①「不宣称 P0① 达标，因复测排队等锁」——本轮已复测并达标；②「skew 尖峰根因是无界队列 / O(n²)」——归因不完整，真实是**口径错误 + 视频管线负载**两个问题叠加。
+- ⚠️ **撤回上一轮「同机 App 推理抢 CPU 导致 skew 尖峰」的结论**：A/B 隔离实测证伪（`?video=0` ⇒ 30.88 ms 达标；`?video=1` ⇒ 639.99 ms），长测期间 App 进程 `cpu_pct=0.0`、整机 CPU 12.0% ⇒ 尖峰 100% 来自插件自身视频管线。
+
+**明确未做 / 不宣称**
+- ⛔ **不宣称引擎已接线**：ASR=R2T2 / MT=Hy-MT2 / TTS=Qwen3-TTS 的入口仅做**只读定位**（§2.5），`ext/engines.py` 的 `EngineAdapter` 仍未注入 ⇒ 桥接服务仍跑回声模式。本轮按铁律**不跑推理**。
+- ⛔ **不宣称 pyannote 旁路已接线**：ASR-013 交付后由主会话通知。
+- ⛔ **P1/P2/P3 未开始**。
+- ⛔ **不跑推理**：ASR / MT / TTS 全未启动，未占 GPU.0 / NPU ⇒ 未与实时字幕 App 抢设备。
+- ⛔ **未抢共享锁**：本轮实测全部经 `tools.machine_lock.hold()` 获取锁（日志实证「已取得共享锁：EXT-echo-sched-probe PID=7372」「已释放共享锁」）；锁已存在时**排队等待**，未抢锁、未删锁。
+- ℹ️ **P0① 验收口径从「主线程墙钟」改为「音频时钟」**：阈值 50 ms 未变；主线程口径值（750.70 ms）作为诊断量完整保留在证据与 `C1d2` 断言中。

@@ -29,8 +29,8 @@ PY = sys.executable
 STEPS = {
     # name: (script, extra args, out subdir)
     "uplink": ("tools/browser_probe.py",
-               ["--mode", "uplink", "--duration", "300"],
-               "probe_uplink_5min_v4"),
+               ["--mode", "uplink", "--duration", "300", "--profile"],
+               "probe_uplink_5min_v6"),
     "video_lipsync": ("tools/video_lipsync_probe.py",
                       ["--video-sec", "45"],
                       "probe_video_lipsync"),
@@ -44,8 +44,9 @@ def run_step(name: str, out_root: str, lock_wait: float) -> dict:
     script, extra, sub = STEPS[name]
     out_dir = os.path.join(out_root, sub)
     cmd = [PY, os.path.join(ROOT, script)] + extra + ["--out", out_dir]
-    if name == "uplink":
-        cmd += ["--lock-wait", str(lock_wait)]
+    # ★ 所有探针都持共享机器锁（铁律：只能排队，不能抢）
+    #   ⇒ 统一把 --lock-wait 透传下去，避免排在 App 的长持锁后面时超时。
+    cmd += ["--lock-wait", str(lock_wait)]
     print(f"[suite] ▶ {name}: {' '.join(cmd)}", flush=True)
     t0 = time.time()
     env = dict(os.environ)
