@@ -1,12 +1,20 @@
 # STATUS_APP
-last_ack: APP-022
-更新时间: 2026-10-27 08:45
-当前任务: **§62 🔴 巡检（APP-022 = `last_ack` ⇒ **本轮无新 APP 纠偏条目**）+ 🔴🔴 修「**APP-021⑦ 明文要求从未被执行**（5 个脚本仍用 `n_played >= 1` 弱判据）」+ 🔴🔴 修「**闸门自身的假通过**」（剥注释丢缩进 ⇒ SyntaxError ⇒ 被 `return []` 吞掉 ⇒ 闸门永远 PASS）+ 🔴🔴 修「**`n_played` 是累计计数 ⇒ `>= 1` 会把『历史上播过的别的句』当本句证据 ⇒ 假通过**」（**本条已完成**）** ⇒ ① **无新条目**：`CORRECTIONS_APP.md` 最大编号 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0** ⇒ `last_ack` **保持 APP-022**（**第 26 次**同一口径复核，文件**只读零修改**，SHA256 `682aced289a58d18b…` / 48 457 B / mtime 2026-10-26 16:18:08 与 §57~§61 一致）；② 🔴 **缺陷 —— APP-021⑦ 是「ACK 了但从未做」的欠账**：明文要求「app071 判据改成 `n_read` 增量 ≥ 本句样本数 且峰值 > 1e-2」+「不要用 played ≥ 1 宣称能出声」⇒ **实测从未被执行**（app071/app074/app075/app077/app039 至今仍用 `n_played >= 1`，且其中 4 个**一条硬数字都没有**）⇒ §36 同源教训再次命中；③ ✅ **修法 = 单一事实来源 + 等/判物理分离**：新建 `tts_audible_criterion.py`（C1 `read_delta >= n_samples` + C2 `peak > 1e-2`，**缺证据 ⇒ 判失败**）+ 新增 `played_snapshot()`/`sentence_played()`/`sentence_failed()` ⇒ **等事件用相对增量**（提交前抓基线）、**判出声用 `evaluate_audible()`** ⇒ **两者不再共用同一 AST 节点** ⇒ 扫描器不必猜作者意图；④ ✅ **5 个脚本全部改用硬判据**（等待条件改为相对增量 + 提交前抓基线）+ `app055` 撤回「⇒ 能出声」过度断言 + `app071_tts_worker_probe.txt` 加顶部标注（**原始日志行一字未改**）；⑤ 🔴🔴 **闸门自身的假通过已修**（五类：解析失败 `return []` / 剥注释丢缩进 / 只判 `GtE` 漏检等价写法 / `out=[]` 漏写 / 剥注释破坏多行字符串致 6 文件解析失败）⇒ 新建 `audible_criterion_lint.py` **扫描规则单一来源**（app076 的 E 组与 app092 的 A9 跑同一规则 ⇒ 不会互相矛盾）⇒ 实测 `results/app` 下 **203 个 .py 全部可解析**、违规 **0** 处；⑥ ✅ **验收 app092 = 24 PASS / 0 FAIL**（原 18 + 新增 A11~A16 六项：防假通过/相对增量/旧遥测/缺证据/基线正确/全部改用相对增量）+ **BUG 反证基线固定 `e2d7bc2`**（不是 HEAD ⇒ 提交后仍成立）⇒ B1 基线 app071 命中 **2 处**、B5 影子目录命中 **3 处**；⑦ ✅ **回归 app076 = 49 PASS / 0 FAIL**（原 47 + E8/E9/E10 三项：扫描器可用/全目录 203 文件 0 违规/覆盖面不退化）+ **既有 17 个套件全绿**（app057~app091 + 9 个 `test_tts_*`）；⑧ ⚠️ **app091 的解释器陷阱（非本轮引入）**：影子目录要 import numpy ⇒ managed 3.13 **无 numpy** ⇒ A4/A5 FAIL（rc=1）；换 system 3.12（numpy 2.5.4）⇒ **REAL 5/5 + 反证 3/3 全 PASS** ⇒ **教训：验收脚本报错先分清「代码缺陷」还是「解释器/环境差异」**；⑨ ⚠️ **本轮未动客户包**（改动全在 `results/app/`，验收脚本**不进包** ⇒ 包内 `app/` 无 `audible*`）⇒ **不写「已交付」**；⑩ ⚠️ **未在 CPU 跑推理/测速、未占 GPU、未碰 `shared/MACHINE_LOCK`（全程不存在）、未调 MiniMax、未改 `CORRECTIONS_APP.md`、未吞其它模块改动**
+last_ack: APP-023
+更新时间: 2026-10-27 10:13
+当前任务: **§63 🔴🔴 执行 APP-023（BLOCKING）+ APP-025（BLOCKING）** —— 用户从**桌面快捷方式**（dev `.venv\pythonw.exe`，**GUI 子系统、无控制台**）启动 ⇒ CUDA `WinError 50` ×23、NPU 缺 babelvox ×18 ⇒ 回落旧引擎 ⇒ 动态形状 IR 在 NPU 必然编译失败并 `LLVM ERROR`（rc=3221226505 ×9）；① 边车 std 句柄显式化 + **stderr 抽水线程** + worker 换**同环境控制台解释器**（🔴 reviewer 建议的 `sys._base_executable` 实测丢 venv：numpy 2.4.6→2.5.4 ⇒ 已弃用）② **选方案一**：桌面快捷方式改指向 v1.5 客户包启动器（方案二要把 `.venv` 的 transformers 4.57.6→≥5.0、huggingface_hub 0.36.2→≥1.0 ⇒ 跨模块风险，且 dev 树**没有** `models/qwen3tts`）③ 去掉 NPU/GPU 的旧引擎回落，缺 babelvox 直接报「缺少 Qwen3-TTS 运行时（babelvox）」④ 测试音改为**本进程直放 440 Hz**、不依赖 TTS worker，报错经 `describe_tts_failure` 变人话 + 指到落盘日志，worker 不可用时离线朗读**置灰并给原因** ⇒ **三级验收用用户启动方式**（包内 `pythonw.exe` + `ShellExecuteW`，实测 `GetStdHandle(STD_ERROR_HANDLE)=None`）：`app095` **L1/L2/L3 全过**（`all_pass=true`）⇒ 回归闸门 `app096` = **13 PASS / 0 FAIL**（含反证：控制台 python 跑 ⇒ rc=2）⇒ 🔴 **本轮停在 L4，需用户亲测确认才写「能出声」**；🔴 **APP-024 未做**（reviewer 明令「APP-023 验收通过后再做」）⇒ **不进 last_ack**
 
-阻塞 / 待用户决定: ① 🔴 **APP-022 集成阶段需等 ASR-013 + TTS-019 交付**（§55 只做接口预留，**未集成**）；② 🔴 **APP-021 验收 C 仍需用户配合**（需人）：交互会话里系统音量 ≥ 50%、戴耳机/外放 ⇒ **先点「🔊 测试声音」再点离线朗读念一句** ⇒ 把会话日志路径与遥测行写进本 STATUS；③ 🔴 **撤回后的口径**：在用户用耳朵确认之前，**不得**再宣称「离线朗读能出声」；④ ✅ **§61 已闭环**：v1.5 zip 已持锁重打 **两次**（最终 11 216 278 478 B / md5 `ad1428d0…` / SHA256 `e6eda70f…`）⇒ `verify_pkg_zip.py` 独立复核 **PASS**（[1] 13 986 逐字节一致 + [2] HEAD ⇄ 包目录 **22/22**）⇒ FTP 已重发（源⇄副本 SHA256 一致）⇒ **FTP 服务仍关闭**；⑤ 🔴 **散包目录仍有第三方素材残留**（babelvox speakers 8 + scipy 测试音频 22）⇒ `pkg_exclude.py` 排除规则**已在**（APP-018②/APP-019）但**散包目录未物理清理** ⇒ 需重打时由规则覆盖；⑥ 🔴 **术语表 / `packaging` 默认值待用户决定**（MT 通知 14 建议：术语表只在芯片/半导体语境下开、`packaging` 放可选集 ⇒ 属 App 默认值 ⇒ 本轮**未擅自改**）；⑦ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑧ 🔴 **§49.7 待裁定**（APP-020 明确「先不要定」⇒ 未动）；⑨ 🔴 **§45.6①–⑤ 等 reviewer 裁定**；⑩ 🔴 **等裁定**：是否采纳 `MAX_SEG_SPAN = 2`（§44 候选已备好）；⑪ 🔴 **需回复 MT 通知 13**；⑫ 🔴 **§46.5** 第三方依赖可满足性闸门；⑬ 🔴 **§42.3** 修复待用户实机确认；⑭ ⛔ **FTP 服务仍关闭**（守 APP-009③）；⑮ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑯ ⛔ 包体优化未做（用户已接受）；⑰ ⛔ V7 残句代价待确认；⑱ 🔴 **§56.9**：TTS-019 `single` 臂 / TTS-017① `A_CPU` 臂两轮数据**是否重跑由 TTS 自行决定**（App 已修根因，**不代跑尺子**）；⑲ 🔴 **§56.2**：ASR/TTS 侧锁写法的**独占性**待其自评（`os.replace` 会覆盖 ⇒ 丢独占性）；⑳ 🔴 **§57**：历史遗留未跟踪文件（`live_caption/sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `results/app/app073*` / `app074*` 等）**归属未判定** ⇒ 本轮**未提交**（§46「已产出未入库」教训 ⇒ 需单独裁定后再入库）；㉑ ✅ **§58.8 已闭环**：客户包侧 `test_tts_close_gui_quit_pkg.py` 的 **PE1** 在 §58 提交（`421d2d0`）后**复跑已转 PASS**（`96118245f4e275f0` vs `96118245f4e275f0`）；㉒ ✅ **§59 已闭环**：缺陷 A/B 已修并提交 `36e3d1e`（普通 push `6235df4..36e3d1e`，未 force）⇒ 客户包定点同步后 **仓库⇄包 SHA256 逐字节相同**（`db6f2412…` / 80 036 B）⇒ 包侧单独跑同一套断言 **17/17 + 反证 3/3** PASS ⇒ 🔴 **客户包 `app/` 目录仍未重打 zip**（守 APP-020：等 `cp_prefill` 同步后的最终版 + 机器锁）⇒ **不写「已交付」**；㉓ ✅ **§60 已闭环**：丢句「判定 + 计数」原子化（新增 `_drop_one()`）已修 ⇒ 验收 `app090` **REAL 16/16 + 反证 2/2** PASS（基线 `b3c5ebb`；反证实测修复前 `n_dropped=2 / sum=2 / submitted=1`）⇒ 客户包 v1.5 定点同步后 **仓库⇄包 SHA256 逐字节相同**（`615d69fb…` / 85 018 B）⇒ 包侧单独跑同一套断言 PASS ⇒ 🔴 **客户包 `app/` 目录仍未重打 zip**（守 APP-020）⇒ **不写「已交付」**；㉔ ✅ **§61 已闭环**：① 交付代差（zip 比包目录落后两代，`diff=7`）已修 ⇒ **持锁重打两次 + `verify_pkg_zip.py` PASS + FTP 重发**，三方 SHA256 全等 （`e6eda70f…`）；② APP-021⑥ 的 `--tts-dump-dir` CLI 半边已补齐（`37d06de`）⇒ 验收 `app091` **REAL 5/5 + 反证 3/3** PASS；③ 新增两道只读闸门：「zip ⇄ 包目录 `.py` diff = 0」+「HEAD ⇄ 包目录 **22/22**」⇒ 🔴 **仍不宜当最终交付版**（TTS 侧 `cp_prefill` 验收②「持锁计时」未完成）；㉕ ✅ **§62 已闭环**：① **APP-021⑦ 补做完成**（此前标「已完成」但**实测从未被执行** ⇒ 本轮补做：「真的出声」的**单一事实来源** `tts_audible_criterion.py`（C1 `read_delta >= n_samples` + C2 `peak > 1e-2`，**缺证据 ⇒ 判失败**）+ **等/判物理分离**（`played_snapshot()`/`sentence_played()` ⇒ **相对增量**，杜绝「把历史上播过的别的句当本句」的假通过）⇒ 5 个脚本全部改用硬判据；② **闸门自身的假通过已修**（五类）⇒ 新建 `audible_criterion_lint.py` **扫描规则单一来源** ⇒ 实测 `results/app` 下 **203 个 .py 全部可解析**、违规 **0** 处；③ 验收 `app092` **24 PASS / 0 FAIL**（原 18 + 新增 6）+ **BUG 反证基线固定 `e2d7bc2`**（提交后仍成立）⇒ B1 基线命中 2 处 / B5 影子目录命中 3 处；回归 `app076` **49 PASS / 0 FAIL** + 既有 **17 个套件全绿**；⚠️ **客户包 `app/` 目录本轮未动**（改动全在 `results/app/`，验收脚本**不进包**）⇒ **不写「已交付」**；㉖ 🔴 **APP-021 验收 C 仍需用户配合**（需人）：交互会话里系统音量 ≥ 50%、戴耳机/外放 ⇒ **先点「🔊 测试声音」再点离线朗读念一句** ⇒ 把会话日志路径与遥测行写进本 STATUS；🔴 **在用户用耳朵确认之前，不得宣称「离线朗读能出声」**（**链路级真的出声 ≠ 用户听得见**）
+阻塞 / 待用户决定: ① 🔴 **APP-022 集成阶段需等 ASR-013 + TTS-019 交付**（§55 只做接口预留，**未集成**）；② 🔴 **APP-021 验收 C 仍需用户配合**（需人）：交互会话里系统音量 ≥ 50%、戴耳机/外放 ⇒ **先点「🔊 测试声音」再点离线朗读念一句** ⇒ 把会话日志路径与遥测行写进本 STATUS；③ 🔴 **撤回后的口径**：在用户用耳朵确认之前，**不得**再宣称「离线朗读能出声」；④ ✅ **§61 已闭环**：v1.5 zip 已持锁重打 **两次**（最终 11 216 278 478 B / md5 `ad1428d0…` / SHA256 `e6eda70f…`）⇒ `verify_pkg_zip.py` 独立复核 **PASS**（[1] 13 986 逐字节一致 + [2] HEAD ⇄ 包目录 **22/22**）⇒ FTP 已重发（源⇄副本 SHA256 一致）⇒ **FTP 服务仍关闭**；⑤ 🔴 **散包目录仍有第三方素材残留**（babelvox speakers 8 + scipy 测试音频 22）⇒ `pkg_exclude.py` 排除规则**已在**（APP-018②/APP-019）但**散包目录未物理清理** ⇒ 需重打时由规则覆盖；⑥ ✅ **已关闭**（APP-023 FYI：用户 09:01 决定**不收窄术语表** ⇒ MT 通知 14 作废 ⇒ App 不改术语表）；⑦ 🔴 **§50.5 需 TTS 模块配合**（App 不代跑尺子）；⑧ 🔴 **§49.7 待裁定**（APP-020 明确「先不要定」⇒ 未动）；⑨ 🔴 **§45.6①–⑤ 等 reviewer 裁定**；⑩ 🔴 **等裁定**：是否采纳 `MAX_SEG_SPAN = 2`（§44 候选已备好）；⑪ 🔴 **需回复 MT 通知 13**；⑫ 🔴 **§46.5** 第三方依赖可满足性闸门；⑬ 🔴 **§42.3** 修复待用户实机确认；⑭ ⛔ **FTP 服务仍关闭**（守 APP-009③）；⑮ ⛔ OV 的 CUDA plugin 不引入（§39.5）；⑯ ⛔ 包体优化未做（用户已接受）；⑰ ⛔ V7 残句代价待确认；⑱ 🔴 **§56.9**：TTS-019 `single` 臂 / TTS-017① `A_CPU` 臂两轮数据**是否重跑由 TTS 自行决定**（App 已修根因，**不代跑尺子**）；⑲ 🔴 **§56.2**：ASR/TTS 侧锁写法的**独占性**待其自评（`os.replace` 会覆盖 ⇒ 丢独占性）；⑳ 🔴 **§57**：历史遗留未跟踪文件（`live_caption/sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `results/app/app073*` / `app074*` 等）**归属未判定** ⇒ 本轮**未提交**（§46「已产出未入库」教训 ⇒ 需单独裁定后再入库）；㉑ ✅ **§58.8 已闭环**：客户包侧 `test_tts_close_gui_quit_pkg.py` 的 **PE1** 在 §58 提交（`421d2d0`）后**复跑已转 PASS**（`96118245f4e275f0` vs `96118245f4e275f0`）；㉒ ✅ **§59 已闭环**：缺陷 A/B 已修并提交 `36e3d1e`（普通 push `6235df4..36e3d1e`，未 force）⇒ 客户包定点同步后 **仓库⇄包 SHA256 逐字节相同**（`db6f2412…` / 80 036 B）⇒ 包侧单独跑同一套断言 **17/17 + 反证 3/3** PASS ⇒ 🔴 **客户包 `app/` 目录仍未重打 zip**（守 APP-020：等 `cp_prefill` 同步后的最终版 + 机器锁）⇒ **不写「已交付」**；㉓ ✅ **§60 已闭环**：丢句「判定 + 计数」原子化（新增 `_drop_one()`）已修 ⇒ 验收 `app090` **REAL 16/16 + 反证 2/2** PASS（基线 `b3c5ebb`；反证实测修复前 `n_dropped=2 / sum=2 / submitted=1`）⇒ 客户包 v1.5 定点同步后 **仓库⇄包 SHA256 逐字节相同**（`615d69fb…` / 85 018 B）⇒ 包侧单独跑同一套断言 PASS ⇒ 🔴 **客户包 `app/` 目录仍未重打 zip**（守 APP-020）⇒ **不写「已交付」**；㉔ ✅ **§61 已闭环**：① 交付代差（zip 比包目录落后两代，`diff=7`）已修 ⇒ **持锁重打两次 + `verify_pkg_zip.py` PASS + FTP 重发**，三方 SHA256 全等 （`e6eda70f…`）；② APP-021⑥ 的 `--tts-dump-dir` CLI 半边已补齐（`37d06de`）⇒ 验收 `app091` **REAL 5/5 + 反证 3/3** PASS；③ 新增两道只读闸门：「zip ⇄ 包目录 `.py` diff = 0」+「HEAD ⇄ 包目录 **22/22**」⇒ 🔴 **仍不宜当最终交付版**（TTS 侧 `cp_prefill` 验收②「持锁计时」未完成）；㉕ ✅ **§62 已闭环**：① **APP-021⑦ 补做完成**（此前标「已完成」但**实测从未被执行** ⇒ 本轮补做：「真的出声」的**单一事实来源** `tts_audible_criterion.py`（C1 `read_delta >= n_samples` + C2 `peak > 1e-2`，**缺证据 ⇒ 判失败**）+ **等/判物理分离**（`played_snapshot()`/`sentence_played()` ⇒ **相对增量**，杜绝「把历史上播过的别的句当本句」的假通过）⇒ 5 个脚本全部改用硬判据；② **闸门自身的假通过已修**（五类）⇒ 新建 `audible_criterion_lint.py` **扫描规则单一来源** ⇒ 实测 `results/app` 下 **203 个 .py 全部可解析**、违规 **0** 处；③ 验收 `app092` **24 PASS / 0 FAIL**（原 18 + 新增 6）+ **BUG 反证基线固定 `e2d7bc2`**（提交后仍成立）⇒ B1 基线命中 2 处 / B5 影子目录命中 3 处；回归 `app076` **49 PASS / 0 FAIL** + 既有 **17 个套件全绿**；⚠️ **客户包 `app/` 目录本轮未动**（改动全在 `results/app/`，验收脚本**不进包**）⇒ **不写「已交付」**；㉖ 🔴 **APP-021 验收 C 仍需用户配合**（需人）：交互会话里系统音量 ≥ 50%、戴耳机/外放 ⇒ **先点「🔊 测试声音」再点离线朗读念一句** ⇒ 把会话日志路径与遥测行写进本 STATUS；🔴 **在用户用耳朵确认之前，不得宣称「离线朗读能出声」**（**链路级真的出声 ≠ 用户听得见**）㉔ 🔴 **APP-023 L4 待用户实测**：请双击桌面「Confucius4 实时字幕」（已指向 v1.5 包 `Start_LiveCaption.bat`）⇒ ①「🔊 测试声音」② CUDA 朗读一句 ③ NPU 朗读一句 ⇒ 说明听到/听不到，并提供 `%LOCALAPPDATA%\Confucius4LiveCaption\session_*.log` ⇒ **用户亲口确认前不得写「能出声」**；㉕ 🔴 **APP-024 未做**（reviewer 明令「APP-023 验收通过后」⇒ 待 L4 用户确认后再做） ⇒ 头部 `last_ack` **停 APP-023**，不跳到 025；㉖ ⚠️ **CUDA 的 `WinError 50` 本轮未能复现**（无继承句柄条件下实测 `stderr=None` 也未抛） ⇒ ① 的改动属**防御性加固**，不可宣称「已复现并修复」
 
 
 ## 最近更新
+- 10:13 §63 🔴 **巡检：3 条新条目**（APP-023/024/025）⇒ `CORRECTIONS_APP.md` SHA256 `32991dc9bd3a4f35…` / 59 279 B / mtime 09:06:18 / **25 条**；`last_ack` APP-022 ⇒ 差 3；文件**只读零修改**
+- 10:13 §63 🔴🔴 **根因 = 既往测试从没覆盖用户启动路径**：app071/074/075/077 全是**控制台 python**；用户是 `.venv\pythonw.exe`（GUI 子系统、无控制台）⇒ CUDA `WinError 50` ×23 / NPU 缺 babelvox ×18 / `LLVM ERROR` rc=3221226505 ×9 ⇒ **测试全绿、用户那边全挂**
+- 10:13 §63 ✅ **①②③④ 全改**（边车三句柄显式 + stderr 抽水线程 + 免黑框；worker 换同环境控制台解释器；删旧引擎回落 + `_babelvox_failure_reason`；测试音本进程直放 + `describe_tts_failure` 人话 + 离线朗读置灰）⇒ 定点同步 5 文件到 v1.5 包 ⇒ **AST 级完整性 `app093` = 19 PASS / 0 FAIL**
+- 10:13 §63 ✅ **APP-023② 选方案一**：桌面快捷方式改指向 v1.5 包 `Start_LiveCaption.bat`（改前已备份、`--restore` 可还原、回读 4/4 一致）；**不选方案二**的实测理由：要跨升 transformers 4.57.6→≥5.0 + huggingface_hub 0.36.2→≥1.0（MT/ASR 同用 ⇒ 跨模块风险），且 dev 树没有 `models/qwen3tts`
+- 10:13 §63 ✅ **三级验收走用户启动方式**：包内 `pythonw.exe` + `ShellExecuteW`（`GetStdHandle(STD_ERROR_HANDLE)=None` ⇒ 真无句柄）⇒ `app095` **L1 测试音 / L2 CUDA / L3 NPU 全过**（`read_delta == n_samples`、`peak 0.3/0.6406/0.4703`、`consumed=true`；**bad_markers 全 False**）⇒ 两级 wav 各自落盘
+- 10:13 §63 ✅ **回归闸门 `app096` = 13 PASS / 0 FAIL**（含**反证**：控制台 python 跑 ⇒ 实测 rc=2、不覆盖结果 JSON、不产出新文件）⇒ 「pythonw + 快捷方式冒烟」已固化进回归
+- 10:13 §63 🔴 **撤回 4 条 + 3 个新坑**：撤回 `sys._base_executable` 可用（实测丢 venv）/ 撤回「A4 FAIL 是同步漏了」（是解包 + 大小写）/ 撤回「`sys.stdout is None` 可判无控制台」（bash 会继承管道）/ 撤回「测试音必须经 worker」；新坑：`IShellLink::GetPath` **4 参**（按 2 参调 ⇒ x64 栈崩、exit=127 无 traceback）、`ctypes` 无 `ctypes.ole32`、落盘目录共用 ⇒ L2 wav 被 L3 覆盖
+- 10:13 §63 ⛔ **停在 L4 等用户实测**（双击桌面图标：测试音 → CUDA 一句 → NPU 一句）；**APP-024 未做**（reviewer 明令在 APP-023 验收之后）⇒ `last_ack` 停 **APP-023**；⚠️ 未重打 zip ⇒ **不写「已交付」**；⚠️ 未在 CPU 跑推理/测速、`app095` 计时标 `timing_valid=false` 不得对外报、未碰机器锁、未调 MiniMax、未改 `CORRECTIONS_APP.md`、未吞其它模块改动（实测保留 240 项）
 - 08:45 §62 🔴 **巡检：无新 APP 纠偏条目**（`CORRECTIONS_APP.md` 最大 **APP-022** = 头部 `last_ack` ⇒ 编号差 **0** ⇒ `last_ack` **保持 APP-022**，**第 26 次**同一口径复核）；`CORRECTIONS_APP.md` 全程**只读零修改**（SHA256 `682aced289a58d18b…` / 48 457 B / mtime 2026-10-26 16:18:08）
 - 08:45 §62 🔴🔴 **缺陷 —— APP-021⑦ 是「ACK 了但从未做」的欠账**：明文要求「app071 判据改成 `n_read` 增量 ≥ 本句样本数 且峰值 > 1e-2」+「不要用 played ≥ 1 宣称能出声」⇒ **实测从未被执行**（5 个脚本仍用 `n_played >= 1`，其中 4 个**一条硬数字都没有**）⇒ §36 同源教训再次命中
 - 08:45 §62 ✅ **修法 = 单一事实来源 + 等/判物理分离**：新建 `tts_audible_criterion.py`（C1 `read_delta >= n_samples` + C2 `peak > 1e-2`，**缺证据 ⇒ 判失败**）+ 新增 `played_snapshot()`/`sentence_played()`/`sentence_failed()` ⇒ **等事件用相对增量**（提交前抓基线）、**判出声用 `evaluate_audible()`** ⇒ 两者不再共用同一 AST 节点
@@ -11203,3 +11211,125 @@ A2 的标签仍是旧文案「播了 1 句（`n_played >= 1`）」⇒ 🔴 **该
 | 分支 | 仅 `main`（`git branch -a` ⇒ `main` + `remotes/origin/main`，无其它分支） |
 | push | **普通 push 到 `origin/main`**，**不 force** ⇒ 实测 `bf600af..c30b642  main -> main`；推送后 `git rev-parse HEAD origin/main` **两侧同为 `c30b642cb79aa20e39ee9d7ad15538d7535a3aa6`** ✅ |
 | 🔴 提交后复跑 | `app092` = **24 PASS / 0 FAIL**、内嵌 `app076` = **49 PASS / 0 FAIL** ⇒ **BUG 反证基线固定 `e2d7bc2` ⇒ 提交后仍成立**（§31 纪律） |
+
+
+## §63 APP-023（BLOCKING）/ APP-025（BLOCKING）执行 —— 用户真实启动方式（pythonw + 桌面快捷方式）下 CUDA/NPU 两条 TTS 路径都起不来；①边车 std 句柄 + worker 解释器 ②快捷方式改指向 v1.5 包 ③去掉旧引擎回落 ④测试音不依赖 worker + 报错可理解（2026-10-27 10:13）
+
+### §63.1 巡检：本轮有 **3 条新条目**（APP-023 / APP-024 / APP-025）
+`status/app/CORRECTIONS_APP.md` 本轮指纹 **SHA256 `32991dc9bd3a4f35f94d731d7bdfb504dda225b587300879f1a4763bf9513431` / 59 279 B / mtime 2026-10-27 09:06:18**（上轮是 `682aced289a58d18b…` / 48 457 B / 16:18:08）⇒ `re.findall(r'^## (APP-\d+)')` 得 **25 条**，最大 **APP-025**；头部 `last_ack: APP-022` ⇒ 编号差 **3** ⇒ 触发 **APP-023、APP-024、APP-025**。`CORRECTIONS_APP.md` 全程 **只读零修改**（reviewer 独占）。
+- **APP-023 [BLOCKING] 09:03**：用户 08:55 起**从桌面快捷方式**实测，CUDA 与 NPU 两条 TTS 路径**都起不来**。4 个根因 + 三级验收（L1 测试音 / L2 CUDA 朗读一句 / L3 NPU 朗读一句）+ **L4 通知用户从桌面快捷方式复测**。
+- **APP-024 [NORMAL] 09:05**：§49.7 裁定 —— 方案二**不采纳**、方案一**不单做**、`BACKLOG_MAX_S` **保持 8**；首包 P50 17.29 s 是**测法**造成的（加载期攒句 + RTF≈1.45>1），不是稳态延迟。**明确要求「先做完 APP-023，再做这条」**。
+- **APP-025 [BLOCKING] 09:06**：补 APP-023 的 UI 要求 —— 缺 babelvox 要直接说「缺 Qwen3-TTS 运行时」不要伪装成 worker 崩溃；**测试声音按钮不得依赖 TTS worker**；报错要**可理解可行动**；worker 不可用时离线朗读**按钮置灰并给出原因**。
+
+### §63.2 🔴 用户真实启动路径 —— 与既往所有测试的根本差异
+| | 既往（§54/§61/§62 的 app071/074/075/077） | 用户实际 |
+|---|---|---|
+| 解释器 | 控制台 `python.exe` | **`.venv\Scripts\pythonw.exe`**（venv 重定向器 + **GUI 子系统，无控制台**） |
+| 代码树 | dev 仓库 `live_caption/` | 同上（dev 树） |
+| 结果 | 全绿 | **CUDA `WinError 50` ×23；NPU 缺 babelvox ×18；NPU 编译崩 ×7；rc=3221226505 ×9** |
+
+实测（本轮 `app094 --why` 复算）**dev 树为什么必然跑不了 Qwen3-TTS**：
+- `.venv`（Python 3.12.10）现装 **transformers 4.57.6 / huggingface_hub 0.36.2 / openvino 2026.4.1 / numpy 2.4.6 / librosa 1.0.0 / soundfile 0.14.0 / scipy 1.18.1 / torch 2.14.1**；
+- 客户包 babelvox **1.7.1** 的 METADATA 硬性要求 **`transformers>=5.0` + `huggingface_hub>=1.0` + `openvino>=2025.4` + `librosa>=0.11` + `soundfile>=0.13` + `scipy>=1.14` + `num2words` + `defusedxml`**；
+- ⇒ dev 树 **`models/qwen3tts` 根本不存在**（`models/` 下只有 ASR/MT 的 `c089_int4`/`hf-qwen3-lm`/`ov-dec-*`/`ov-encoder-*`）。
+
+### §63.3 ✅ APP-023① —— CUDA 边车 std 句柄 + worker 解释器
+| 改动 | 文件 | 内容 |
+|---|---|---|
+| 边车三句柄显式化 | `live_caption/tts_cuda.py` | `stderr` **不再**为 `None` ⇒ `subprocess.DEVNULL if LIVECAP_CUDA_QUIET else subprocess.PIPE`；`stdin/stdout` 也显式给 |
+| stderr 抽水线程 | 同上 | 新增 `_start_stderr_pump()`：守护线程按**二进制**读管道行 ⇒ 转发为 `[tts_cuda/stderr] ...`（守「Windows 子进程 stderr 是混编码管道 ⇒ 绝不能 `text=True`+`errors='replace'`」） |
+| 免弹黑框 | 同上 | 新增模块级 `_NO_WINDOW_FLAG()` ⇒ `Popen(..., **(_NO_WINDOW_FLAG()))`（`CREATE_NO_WINDOW = 0x08000000`） |
+| worker 用**真实解释器** | `live_caption/tts_service.py` | 新增 `_worker_python()`；`Popen([self._worker_python_used, _WORKER, ...], **_no_window_flag())` |
+
+🔴🔴 **必须记一笔：reviewer 建议的 `sys._base_executable` 实测会丢 venv，已弃用**。实测直接跑 base 解释器时 `sys.prefix` 指向 base 安装 ⇒ numpy 从 venv 的 **2.4.6** 变成 base 的 **2.5.4** ⇒ **venv 的 site-packages 整体失效** ⇒ worker 会连项目包都 import 不到（比不改更糟）。⇒ 改为**同环境控制台解释器**：当前 exe 是 `pythonw.exe` 就换同目录 `python.exe`；否则找包内 `<pkg>/python/python.exe`；再否则 `sys.executable`；可用 `LIVECAP_TTS_PY` 覆盖。
+
+⚠️ **未复现 `WinError 50`（诚实记录）**：本轮用 `ShellExecuteW`（等价 explorer 双击）在**无继承 stderr 句柄**条件下实测（`GetStdHandle(STD_ERROR_HANDLE)=None`），`stderr=None` 的旧写法**并没有**抛 WinError 50。⇒ 本项修法属**防御性加固**（彻底绕开 `GetStdHandle`/`DuplicateHandle` 那条路），**不能宣称「已复现并修复」**。
+
+### §63.4 ✅ APP-023② —— 选**方案一**：桌面快捷方式改指向 v1.5 客户包启动器
+**不选方案二（给 `.venv` 装 babelvox）的理由（实测）**：要跨升 `transformers` 4.57.6→≥5.0、`huggingface_hub` 0.36.2→≥1.0 ⇒ **MT/ASR 也在用 transformers ⇒ 跨模块风险，不该由 App 单方面做**；且**装完也仍然跑不起来**（dev 树没有 `models/qwen3tts`，还得再搬 2.6 GB）。
+
+| 项 | 改前 | 改后 |
+|---|---|---|
+| TargetPath | `…\confucius4-openvino\.venv\Scripts\pythonw.exe` | `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.5\Start_LiveCaption.bat` |
+| Arguments | `"…\live_caption\live_caption_app.py"` | （空） |
+| WorkingDirectory | `…\live_caption` | `…\Confucius4_LiveCaption_v1.5` |
+
+- 备份：`results/app/Confucius4-shortcut-backup-20261027.lnk`（1 502 B / mtime 2026-10-19 09:57:13 / SHA256 `b5525b9a47ca44e7…`）；`--restore` 可一键还原。
+- 工具 `app094` 用 **ctypes 直接调 `IShellLinkW` + `IPersistFile`**（PowerShell 的 `New-Object -ComObject WScript.Shell` 被本环境安全策略拦：「COM object instantiation can run arbitrary code」）。
+- 改后**回读校验 4/4 一致**。
+- ✅ 包内 `--check` 全绿：`babelvox(Qwen3-TTS) 1.7.1 [OK]`、`qwen3tts 模型 [OK]`、`GPU.0 / GPU.1 / NPU [OK]`。
+
+### §63.5 ✅ APP-023③ —— 去掉 NPU/GPU 分支的旧引擎回落
+`live_caption/tts_worker.py`：
+- `load()` 里**整段删除** `if engine is None:` 的 `_try_load_ov()` 回落（旧引擎动态形状 IR 在 NPU 上必然 `Can't compute total shape size on dynamic shape`，第三个 IR 直接 `LLVM ERROR` ⇒ 进程级 abort **rc=3221226505**，`try/except` 接不住）；
+- 新增模块级 `_babelvox_import_error()` / `_babelvox_failure_reason(e, device, precision)` ⇒ 缺 babelvox 直接报 **「缺少 Qwen3-TTS 运行时（babelvox）」**，**不再伪装成 worker 崩溃**；
+- `_try_load_babelvox` **不再** `return None` ⇒ 抛 `RuntimeError(_babelvox_failure_reason(...))`。
+
+### §63.6 ✅ APP-023④ / APP-025 —— 测试音不依赖 worker + 报错可理解 + 置灰
+- `tts_worker.py` 新增 `play_test_tone_direct(out_device=None, freq=440.0, dur_s=1.0, amp=0.3, sr=None)` ⇒ 返回 `(ok, diag, tel)`，遥测形状与 `evaluate_audible()` 一致（`read_delta`/`n_samples`/`peak`）。
+- `live_caption_app.py` / `offline_reader_gui.py` 的「🔊 测试声音」改为**先在本进程直接播 440 Hz**（`_play_test_tone_local()`），失败才回落 worker 路径。
+- `live_caption_app.py` 新增 `_TTS_FAILURE_HINTS` + `describe_tts_failure(raw)`：`WinError 50` / `No module named 'babelvox'` / `Can't compute total shape size on dynamic shape` / `LLVM ERROR` / `3221226505` / `3221225477` / `3221226525` / `No module named 'tts_model'` ⇒ 映射成**一句话人话 + 落盘日志路径**（不再只报 rc 数字）。
+- `offline_reader_gui.py` 新增 `_sync_availability()`，`_poll` 里持续调用 ⇒ worker 不可用/加载中 ⇒ **「开始朗读」置灰并写明原因**，不再是「点下去才知道」。
+- `--check` 新增 **1b 节**：babelvox 可导入性 + qwen3tts 模型目录（dev 树实测两项 `[缺 ]`；包 v1.5 实测两项 `[OK]`）。
+
+### §63.7 ✅ 定点同步到客户包 + AST 级完整性检查（`app093` = **19 PASS / 0 FAIL**）
+`live_caption/sync_app023_to_pkg.py`：`git show <base>:live_caption/<f>` + `difflib.get_grouped_opcodes(n=3)` 派生替换块 + **逐块唯一命中断言**（守「禁止整目录覆盖、不手抄代码」）。⚠️ 再用 **`n=0`** 会让纯新增块的 old 变**空串** ⇒ `str.count('')==len+1` ⇒ 报「命中 161478 次」并**静默跳过真块**（§61 同源坑）。
+同步 5 个文件：`tts_cuda.py` `b5be4ce571abcc67…` / `tts_service.py` `77c20a52f5767391…` / `tts_worker.py` `77f189f7b1e3164b…` / `live_caption_app.py` `b9e21d398ea42bc3…` / `offline_reader_gui.py`。
+🔴 **校验必须走 AST**（字符串匹配会命中注释里的「旧实现 `stderr=... else None`」⇒ 误报「残留」）。`app093` 判据：A0 找到 Popen(1) / A1 无 `stderr=None` / A2 stdin+stdout 显式 / A3 用 `_worker_python()` / **A4a worker 展开 `_no_window_flag()` + A4b 本体真返回 `creationflags` + A4c tts_cuda 也免黑框** / A5 `load()` 无 `_try_load_ov` / A6 `_try_load_babelvox` 无 `return None` / A7 有 `play_test_tone_direct` / A8a+b 有 `describe_tts_failure` 且被调用 / A9a+b 有 `_sync_availability` 且 `_poll` 调用 / A10 五个文件**仓库⇄包定义集合一致**（仅仓库有=[] / 仅包有=[]）。
+
+### §63.8 ✅ 三级验收（**用户启动方式**：包内 `pythonw.exe` + `ShellExecuteW` 无继承句柄）
+判据单一来源：`tts_audible_criterion.py`（**等本句** = `played_snapshot()` 提交前抓基线 + `sentence_played()` 相对增量；**判出声** = `evaluate_audible()`：C1 `read_delta >= n_samples` 且 C2 `peak > 1e-2`，**缺证据 ⇒ 判失败**）。
+`app095` 开局硬闸门：`GetStdHandle(STD_ERROR_HANDLE)` **为 NULL** 才准跑，否则 **rc=2 拒绝** ⇒ 实测 `sys.stdout is None = True`、`std_err_handle = None`、`has_console = False`、`no_stderr_handle = True`。
+结果：`results/app/app095_pythonw_smoke.json`（12 544 B / mtime 2026-10-27 10:12:35 / SHA256 `9e86afad8630aa4d…`），`launched_by = …\Confucius4_LiveCaption_v1.5\python\pythonw.exe`，**`all_pass = true`**，会话式日志 `%LOCALAPPDATA%\Confucius4LiveCaption\app095_pythonw_smoke.log`（29 888 B / mtime 10:12:48）。
+
+| 级 | 结果 | 日志原文（摘） | 遥测原始字段 |
+|---|---|---|---|
+| **L1 测试音**（TTS 未启用/模型未加载） | ✅ `audible=True` | `[tts_worker] 播放流已启动：sr=24000 … **实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）**`；`已播放 1.00 s 440 Hz 正弦波（幅度 0.30）；全部消费完毕` | `n_samples=24000 / read_delta=24000 / peak=0.3`（阈值 0.01） |
+| **L2 CUDA 朗读一句** | ✅ `ready=True played=True audible=True`，`load_s=51.02 / synth_s=8.01 / first_packet_s=2.753` | `[tts_worker] 使用 PyTorch+CUDA 后端（faster-qwen3-tts 边车）`；`[tts_cuda] 启动 CUDA 边车：C:\Users\Trekker-PTL\_fq3tts_env\Scripts\python.exe`；**`[tts_cuda/stderr] Capturing CUDA graph for predictor... / CUDA graph captured!`**（← 新加的 stderr 抽水线程在干活）；`[TTS] 就绪：CUDA · 音色 A`。**无 `WinError`** | `samples=122880 / read_delta=122880 / peak=0.6406 / rms_dbfs=-17.5 / nan_inf=0 / consumed=true` |
+| **L3 NPU 朗读一句** | ✅ `ready=True played=True audible=True`，`load_s=21.01 / synth_s=6.01 / first_packet_s=0.878` | `[tts_engine] 使用 MultiDecoderBabelVox`；`加载模型：device=NPU root=…\models\qwen3tts`；`cp_decode: NPU`；`cp_prefill: NPU`；`[TTS] 就绪：NPU · 音色 A`。**不出现** `[tts_ov]` / `t2s_stateful` / `LLVM ERROR` / `rc=3221226505` | `samples=119040 / read_delta=119040 / peak=0.4703 / rms_dbfs=-18.8 / nan_inf=0 / consumed=true` |
+
+反向标记（`bad_markers`）**全 False**：`WinError 50` / `[tts_ov]` / `t2s_stateful` / `LLVM ERROR` / `3221226505` / `No module named 'babelvox'` / `total shape size on dynamic shape`。
+落盘 wav（reviewer 可拉回复算）：`results/app/app095_wav/L2_CUDA/seg_0_0001.wav`（265 004 B / SHA256 `9b1e7c37109194e6…`）、`results/app/app095_wav/L3_NPU/seg_0_0001.wav`（257 324 B / SHA256 `4d9fd57130e893f2…`）。
+
+### §63.9 ✅ 回归闸门固化（`app096` = **13 PASS / 0 FAIL**）
+APP-023 原话要求「把『用户真实启动方式（pythonw + 快捷方式）下的冒烟』**加进回归闸门**，避免再出现『测试全绿、用户那边全挂』」。`results/app/app096_pythonw_launch_gate.py`（7 014 B / SHA256 `6c83335033234e52…`）：
+G1 快捷方式指向 v1.5 包启动器且文件存在 ✅｜G2 冒烟脚本**有**「无继承句柄」闸门且拒绝时 `return 2`（AST 级）✅｜G3 启动器用 `ShellExecuteW` ✅｜G4a 结果 `no_stderr_handle=True` / G4b `all_pass=true` / G4c 解释器是包内 pythonw ✅｜**G5 反证：控制台 python 跑 app095 ⇒ 实测 `rc=2`（闸门真会拒绝），且不覆盖已有结果 JSON、不产出新文件** ✅✅✅｜G6 判据用到 `GetStdHandle`（不是只看 `sys.stdout is None`）✅｜G7 三级 wav 各自落盘且 **L2/L3 不是同一个文件** ✅。
+
+### §63.10 🔴 撤回 / 修正的旧结论（本轮）
+1. **撤回「reviewer 建议的 `sys._base_executable` 可直接用」** —— 实测丢 venv（`numpy 2.4.6 → 2.5.4`）⇒ 已改同环境控制台解释器（§63.3）。
+2. **撤回「`app093` A4 FAIL 是同步漏了」** —— 是**检查器判据不足**：源码写 `**_no_window_flag()` 是字典**解包**，AST 里 `creationflags` 不是字面量关键字 ⇒ `k.arg == 'creationflags'` 恒 False；且两个文件命名**不一致**（`_no_window_flag` / `_NO_WINDOW_FLAG`）⇒ 判据已改**大小写不敏感**。
+3. **撤回「用 `sys.stdout is None` 可判『无控制台』」** —— 从 Git Bash 启动的 pythonw 会**继承 bash 的管道句柄** ⇒ `sys.stdout` 不是 None（本轮实测 `= False`）。正解 = `GetStdHandle(STD_ERROR_HANDLE) == NULL`。
+4. **撤回「测试音必须经 TTS worker」的既有实现** —— 已改为本进程直放（§63.6）。
+5. ⚠️ **本轮修复性质需如实标注**：CUDA 的 `WinError 50` **未能复现**（§63.3）⇒ 该改动是**防御性加固**，不是「复现—定位—修复」的完整闭环。
+
+### §63.11 🔴 本轮踩的三个新坑（值得进记忆）
+1. **`IShellLink::GetPath` 是 4 个参数**（`pszFile, cchMaxPath, pfd, fFlags`）⇒ 按 2 参调 ⇒ **x64 下栈被搅、进程硬崩，exit=127 且**连 traceback 都没有**。⇒ 手写 COM vtable 必须逐个核对 MSDN 参数个数。
+2. **`ctypes` 没有 `ctypes.ole32`** ⇒ 必须 `ctypes.windll.ole32`。
+3. **落盘目录不能共用** ⇒ L2/L3 都写 `seg_0_0001.wav` ⇒ **L2 的 wav 被 L3 覆盖**（首轮只剩 1 个文件）⇒ 已按级分子目录。
+
+### §63.12 ⛔ 本轮**停在 L4**，等用户实测（不自行推进）
+APP-023 的 **L4**：「通知用户从桌面快捷方式按 L1→L2→L3 再测一遍，并说明听到/听不到（会话日志由 reviewer 核对）。**用户亲口确认之前，仍不得写『能出声』**」。
+⇒ 本轮**只做到 L1/L2/L3 的自动化冒烟**（链路级判据全过），**未**宣称「用户听得见」。**请用户现在双击桌面「Confucius4 实时字幕」图标**（已指向 v1.5 包 `Start_LiveCaption.bat`），依次：① 点「🔊 测试声音」② 选 CUDA 朗读一句 ③ 选 NPU 朗读一句，并把听到的情况与 `%LOCALAPPDATA%\Confucius4LiveCaption\session_*.log` 反馈。
+🔴 **APP-024 未做**（reviewer 明文要求「**APP-023 验收通过后再做**」，而 L4 需用户确认）⇒ **不进 `last_ack`**。
+
+### §63.13 其它
+- ✅ **MT 通知 14（术语表收窄）作废**（用户 09:01 决定不收窄，App 不改术语表）⇒ **阻塞项 ⑥ 关闭**。
+- ⚠️ 本轮**未在 CPU 跑推理/测速**（CUDA/NPU 是加速器）；`app095` 结果标 `timing_valid=false` ⇒ 其中的 `load_s` / `synth_s` / `first_packet_s` **不得对外报**；全程**未碰** `C:\Users\Trekker-PTL\shared\MACHINE_LOCK`。
+- ⚠️ **未重打客户包 zip**（守 §61 四步：先提交 → 再打包 → 再复核 → 再发布）⇒ **不写「已交付」**。
+- ⚠️ 未调 MiniMax、未改 `CORRECTIONS_APP.md`、未吞其它模块改动（提交前 `git status` 实测其它模块 **240** 项改动全部保留）。
+
+### §63.14 产物清单（文件数 12 / 全部落盘）
+| 文件 | 字节 | mtime | SHA256（前 16） |
+|---|---|---|---|
+| `results/app/app093_sync_integrity_check.py` | 11 426 | 09:56:37 | `a25f5daf0268f148` |
+| `results/app/app094_fix_desktop_shortcut.py` | 10 574 | 10:02:25 | `c35d0f2710fb208d` |
+| `results/app/app095_pythonw_smoke.py` | 13 444 | 10:09:09 | `52bce70099e1db2b` |
+| `results/app/app095b_launch_via_shellexecute.py` | 4 529 | 10:06:28 | `919ba76a25e0894e` |
+| `results/app/app096_pythonw_launch_gate.py` | 7 014 | 10:11:05 | `6c83335033234e52` |
+| `results/app/app095_pythonw_smoke.json` | 12 544 | 10:12:35 | `9e86afad8630aa4d` |
+| `%LOCALAPPDATA%\Confucius4LiveCaption\app095_pythonw_smoke.log` | 29 888 | 10:12:48 | — |
+| `results/app/app095_wav/L2_CUDA/seg_0_0001.wav` | 265 004 | — | `9b1e7c37109194e6` |
+| `results/app/app095_wav/L3_NPU/seg_0_0001.wav` | 257 324 | — | `4d9fd57130e893f2` |
+| `results/app/Confucius4-shortcut-backup-20261027.lnk` | 1 502 | 2026-10-19 09:57:13 | `b5525b9a47ca44e7` |
+| `live_caption/sync_app023_to_pkg.py` | 4 985 | 09:51:46 | `720420321f255e00` |
+| `status/app/STATUS_APP.md` | 783 042 → 本 §63 追加后 | 10:13 | — |
