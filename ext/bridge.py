@@ -408,7 +408,8 @@ def _get_header(websocket, name: str) -> Optional[str]:
 
 async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
                     echo_mode: bool, engine=None,
-                    session_holder: Optional[dict] = None) -> None:
+                    session_holder: Optional[dict] = None,
+                    margin_out: Optional[str] = None) -> None:
     """单连接的握手与消息循环。"""
     origin = _get_header(websocket, "Origin") or ""
     if not check_origin(origin):
@@ -441,7 +442,11 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
         if session_holder is not None:
             session_holder["session"] = session
         await _handle_messages(websocket, session=session,
-                               first=first, echo_mode=echo_mode, delay_sec=delay_sec)
+                               first=first, echo_mode=echo_mode,
+                               delay_sec=delay_sec,
+                               engine=engine,
+                               margin_out=margin_out,
+                               session_holder=session_holder)
         return
     if not tokens.verify(token):
         _log("拒绝连接：token 不匹配")
@@ -453,7 +458,10 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
     if session_holder is not None:
         session_holder["session"] = session
     await _handle_messages(websocket, session=session, first=None,
-                           echo_mode=echo_mode, delay_sec=delay_sec)
+                           echo_mode=echo_mode, delay_sec=delay_sec,
+                           engine=engine,
+                           margin_out=margin_out,
+                           session_holder=session_holder)
 
 
 async def _recv_first(websocket) -> Optional[dict]:
@@ -470,7 +478,10 @@ async def _recv_first(websocket) -> Optional[dict]:
 
 
 async def _handle_messages(websocket, *, session: "Session", first: Optional[dict],
-                           echo_mode: bool, delay_sec: float) -> None:
+                           echo_mode: bool, delay_sec: float,
+                           engine=None,
+                           margin_out: Optional[str] = None,
+                           session_holder: Optional[dict] = None) -> None:
     """消息循环。`first` 若已读过则先处理它。"""
     try:
         pending = [first] if first else []
@@ -519,6 +530,26 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                     for task in (out if isinstance(out, list) else [out]):
                         await websocket.send(json.dumps(task))
                 continue
+            if mtype == "dump_margin":
+                # ★★ EXT-006 P1 实测修掉的缺陷 14：余量统计**主动落盘**。
+                #   成因：编排器停服务时用 `bridge.terminate()`（SIGTERM），
+                #     进程被直接终止 ⇒ Python 的 `finally` **不会执行**
+                #     ⇒ `margin.json` 永远不落盘
+                #     （实测：p1_run4 的 pipeline rc=0、19 个 wav 都在，
+                #       但 margin.json 缺失、报告里 `bridge_stats: null`
+                #       ⇒ EXT-006 要求的「余量分布 / 余量<0 句数 /
+                #       累计滞后」**全部拿不到**）。
+                #   修法：客户端在断开前发一条 `dump_margin` ⇒ 服务端
+                #     **立刻**把余量统计写盘（不依赖进程退出路径）。
+                if margin_out:
+                    _log("收到 dump_margin 请求 ⇒ 落盘 %s" % margin_out)
+                    _dump_margin(session_holder or {}, margin_out,
+                                 engine)
+                    await websocket.send(json.dumps({
+                        "type": "margin_dumped", "path": margin_out}))
+                else:
+                    _log("收到 dump_margin 请求，但未配置 --margin-out（不落盘）")
+                continue
             if mtype == "flush":
                 # ★ EXT-006 P1：客户端说「音频喂完了」⇒ 把**尾段**也处理掉。
                 #   流式服务默认把最后一段留在缓冲区（等后续音频），
@@ -549,7 +580,8 @@ async def serve(host: str, port: int, *, delay_sec: float, echo_mode: bool,
     async with websockets.serve(
         lambda ws: handle_ws(ws, tokens=tokens, delay_sec=delay_sec,
                               echo_mode=echo_mode, engine=engine,
-                              session_holder=session_holder),
+                              session_holder=session_holder,
+                              margin_out=margin_out),
         host, port,
         origins=None,
         max_size=32 * 1024 * 1024,

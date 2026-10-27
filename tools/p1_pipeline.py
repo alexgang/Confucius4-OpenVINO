@@ -123,12 +123,17 @@ async def _run_client(*, port: int, token: str, frames, delay_sec: float,
         raw = await asyncio.wait_for(ws.recv(), timeout=30)
         hello = json.loads(raw)
 
+        margin_dumped = asyncio.Event()
+
         async def _recv_loop():
             while True:
                 raw = await ws.recv()
                 msg = json.loads(raw)
                 if msg.get("type") == "tts":
                     tasks.append(msg)
+                elif msg.get("type") == "margin_dumped":
+                    # ★ 服务端确认余量统计已写盘（缺陷 14）
+                    margin_dumped.set()
                 elif msg.get("type") == "stats":
                     # ★ 必须把 marker 放在**展开之后**，否则内层的
                     #   `type: "stats"` 会把 `"_stats"` 覆盖掉
@@ -187,6 +192,23 @@ async def _run_client(*, port: int, token: str, frames, delay_sec: float,
             # 主动要一份 stats（服务端回包里带 margin 汇总）
             await ws.send(json.dumps({"type": "stats"}))
             await asyncio.sleep(1.5)
+            # ★★ 缺陷 14 修复：让服务端**主动把余量统计写盘**。
+            #   服务端的 `finally` 落盘路径在 SIGTERM 下**不会执行**
+            #   （编排器停服务用 terminate ⇒ 进程直接死 ⇒ finally 跳过）
+            #   ⇒ margin.json 永远缺失 ⇒ EXT-006 要求的
+            #   「余量分布 / 余量<0 句数 / 累计滞后」全部拿不到
+            #   （实测 p1_run4：pipeline rc=0、19 个 wav 都在，
+            #     但 margin.json 缺失、报告 `bridge_stats: null`）。
+            #   ⇒ 客户端在断开前发一条 `dump_margin`，服务端立刻写盘。
+            await ws.send(json.dumps({"type": "dump_margin"}))
+            # ★ 等服务端**确认**落盘（服务端回 `margin_dumped`），
+            #   不能只 sleep 一下就断开 —— 服务端此刻可能还在处理
+            #   最后一段推理，连接一断消息就丢了 ⇒ margin.json 又缺失。
+            try:
+                await asyncio.wait_for(margin_dumped.wait(), timeout=10.0)
+            except Exception:
+                print("[p1] ⚠️ 未收到 margin_dumped 确认"
+                      "（margin.json 可能缺失）", flush=True)
             t_done = time.perf_counter()
             print("[p1] 喂帧 %.1f s，收尾 %.1f s，共 %d 段"
                   % (t_sent - t_capture, t_done - t_sent,

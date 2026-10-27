@@ -30,6 +30,7 @@ import os
 import subprocess
 import sys
 import time
+from typing import Optional
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
@@ -93,6 +94,55 @@ def _single_instance_guard(pid_file: str):
     with open(pid_file, "w", encoding="utf-8") as f:
         f.write(str(me))
     return True, ("单实例守卫就绪（本次 PID=%d）" % me)
+
+
+def _request_margin_dump(port: int, token_file: Optional[str] = None,
+                         timeout: float = 8.0) -> bool:
+    """请服务端**主动**把余量统计写盘（缺陷 14 修复）。
+
+    为什么需要：服务端停服务时收到 SIGTERM ⇒ 进程直接退出 ⇒
+    Python 的 `finally` **不会执行** ⇒ `margin.json` 永远不落盘。
+    ⇒ 这里走正常的 WebSocket 通道发一条 `dump_margin`，
+      服务端收到后立刻写盘（不依赖进程退出路径）。
+    """
+    try:
+        import json as _json
+        import websockets
+        import asyncio
+    except Exception:
+        return False
+
+    token = ""
+    try:
+        if token_file and os.path.isfile(token_file):
+            with open(token_file, "r", encoding="utf-8") as f:
+                token = f.read().strip()
+    except Exception:
+        token = ""
+
+    async def _do():
+        uri = "ws://127.0.0.1:%d" % port
+        async with websockets.connect(
+                uri,
+                origin="chrome-extension://kekgmfkijphpfndbbpakjaokamkeooib",
+                additional_headers={"X-Bridge-Token": token},
+                max_size=8 * 1024 * 1024,
+                ping_interval=None) as ws:
+            await ws.send(_json.dumps({"type": "hello", "role": "p1_dumper",
+                                       "token": token}))
+            await asyncio.wait_for(ws.recv(), timeout=timeout)  # hello_ack
+            await ws.send(_json.dumps({"type": "dump_margin"}))
+            try:
+                await asyncio.wait_for(ws.recv(), timeout=timeout)
+            except Exception:
+                pass
+
+    try:
+        asyncio.run(_do())
+        return True
+    except Exception as e:
+        print("[p1-run] dump_margin 请求异常：%s" % e, flush=True)
+        return False
 
 
 def main(argv=None) -> int:
@@ -220,6 +270,18 @@ def main(argv=None) -> int:
             print("[p1-run] 流水线 rc=%d（日志：%s）" % (rc, pipe_log), flush=True)
         finally:
             if bridge is not None:
+                # ★★ 缺陷 14 修复：停服务**之前**先请服务端把余量统计写盘。
+                #   `bridge.terminate()`（SIGTERM）会让进程直接退出 ⇒
+                #   Python 的 `finally` 不执行 ⇒ margin.json 永远缺失。
+                #   ⇒ 先发一条 `dump_margin`（走正常的 WebSocket 通道），
+                #     让服务端主动落盘；再 terminate。
+                try:
+                    _request_margin_dump(
+                        args.port,
+                        token_file=os.path.join(ROOT, "bridge_token.txt"))
+                except Exception as e:
+                    print("[p1-run] 请求余量落盘失败（不影响已落盘产物）：%s" % e,
+                          flush=True)
                 try:
                     bridge.terminate()
                     bridge.wait(timeout=15)

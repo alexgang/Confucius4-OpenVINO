@@ -87,7 +87,8 @@ def _free_port() -> int:
         return s.getsockname()[1]
 
 
-def _start_bridge(port: int, token: str, token_file: str):
+def _start_bridge(port: int, token: str, token_file: str,
+                  margin_out: str = None):
     """在后台线程里跑 websockets 服务（桩引擎）。返回 (server, holder, stop_fn)。"""
     import websockets
 
@@ -102,7 +103,8 @@ def _start_bridge(port: int, token: str, token_file: str):
         async with websockets.serve(
             lambda ws: handle_ws(ws, tokens=tokens, delay_sec=10.0,
                                   echo_mode=False, engine=StubEngine(),
-                                  session_holder=holder),
+                                  session_holder=holder,
+                                  margin_out=margin_out),
             "127.0.0.1", port, origins=None, max_size=32 * 1024 * 1024,
         ):
             loop.call_soon(ready.set)
@@ -516,6 +518,92 @@ def test_realtime_feed_path() -> None:
             pass
 
 
+def test_dump_margin_on_demand() -> None:
+    """★ EXT-006 P1 实测修掉的缺陷 14：余量统计**主动落盘**。
+
+    实测现象（`.tmp/p1_run4/`）：`pipeline rc=0`、19 个配音 wav 全部落盘、
+    `p1_report.json` 也有完整指标 —— 但 **`margin.json` 缺失**，
+    报告里 `bridge_stats: null` ⇒ EXT-006 要求的「余量分布 /
+    余量 < 0 句数 / 累计滞后」**全部拿不到**。
+
+    成因：编排器停服务用 `bridge.terminate()`（SIGTERM）⇒ 进程被直接终止 ⇒
+    Python 的 `finally` **不执行** ⇒ 服务端那条落盘路径永远跑不到。
+
+    修法：客户端在断开前发一条 `dump_margin` ⇒ 服务端**立刻**写盘
+    （不依赖进程退出路径）。
+
+    本自测断言：
+      ① 服务端收到 `dump_margin` 后**确实**把 margin.json 写到磁盘；
+      ② 落盘内容含 `margin_summary` / `per_segment` / `engine_calls`；
+      ③ 客户端在收尾时**确实**发了 `dump_margin`（源码级断言）。
+    """
+    print("\n[P1] EXT-006 — 余量统计主动落盘（SIGTERM 不落盘回归）")
+    import p1_pipeline
+
+    tmp = os.path.join(ROOT, ".tmp", "p1_margin")
+    os.makedirs(tmp, exist_ok=True)
+    wav_path = os.path.join(tmp, "margin.wav")
+    token_path = os.path.join(tmp, "token.txt")
+    margin_path = os.path.join(tmp, "margin.json")
+    _make_wav(wav_path, 45.0)
+    with open(token_path, "w", encoding="utf-8") as f:
+        f.write("margin-token-123")
+    with open(token_path, "r", encoding="utf-8") as f:
+        token = f.read().strip()
+    if os.path.exists(margin_path):
+        os.remove(margin_path)
+
+    port = _free_port()
+    th, holder = _start_bridge(port, token, token_path,
+                                margin_out=margin_path)
+    try:
+        audio, sr = p1_pipeline.read_wav_16k_mono(wav_path)
+        frames = p1_pipeline.frame_payload(audio)
+        expected = p1_pipeline.expected_segment_count(audio, 16000)
+
+        tasks, hello, t_cap = asyncio.run(p1_pipeline._run_client(
+            port=port, token=token, frames=frames, delay_sec=10.0,
+            recv_timeout=30.0, realtime=False, expect_segments=expected))
+
+        # ① 落盘
+        check("★ 客户端收尾后 margin.json 已落盘",
+              os.path.isfile(margin_path), margin_path)
+        if os.path.isfile(margin_path):
+            with open(margin_path, encoding="utf-8") as f:
+                data = json.load(f)
+            check("★ 落盘内容含 margin_summary",
+                  isinstance(data.get("margin_summary"), dict)
+                  and "n_segments" in data["margin_summary"],
+                  str(list((data.get("margin_summary") or {}).keys()))[:120])
+            check("★ 落盘内容含 per_segment（逐句余量）",
+                  isinstance(data.get("per_segment"), list)
+                  and len(data["per_segment"]) > 0,
+                  f"{len(data.get('per_segment') or [])} 条")
+            check("★ 落盘内容含 engine_calls（逐句引擎耗时）",
+                  isinstance(data.get("engine_calls"), list),
+                  f"{len(data.get('engine_calls') or [])} 条")
+            # 逐句余量里必须有 deadline_margin_sec（同步误差的输入）
+            ps = data.get("per_segment") or []
+            check("★ 逐句余量带 deadline_margin_sec",
+                  bool(ps) and "deadline_margin_sec" in ps[0],
+                  str(list(ps[0].keys()))[:120] if ps else "空")
+    finally:
+        try:
+            th.stop()
+        except Exception:
+            pass
+
+    # ③ 源码级断言：客户端收尾确实发了 dump_margin
+    src = open(os.path.join(ROOT, "tools", "p1_pipeline.py"),
+               encoding="utf-8").read()
+    check("★ 客户端收尾确实发 dump_margin（源码级）",
+          '"type": "dump_margin"' in src, "源码含 dump_margin")
+    src2 = open(os.path.join(ROOT, "ext", "bridge.py"),
+                encoding="utf-8").read()
+    check("★ 服务端确实处理 dump_margin（源码级）",
+          'mtype == "dump_margin"' in src2, "源码含 dump_margin 处理")
+
+
 def main() -> int:
     print("=" * 68)
     print("EXT P1 管线连通性自测（桩引擎 / 不跑推理 / 不占 GPU·NPU / 不抢锁）")
@@ -523,7 +611,8 @@ def main() -> int:
     for fn in (test_p1_plumbing, test_flush_only_once,
                test_slow_engine_does_not_block_event_loop,
                test_mt_model_dir_resolution,
-               test_realtime_feed_path):
+               test_realtime_feed_path,
+               test_dump_margin_on_demand):
         try:
             fn()
         except Exception:
