@@ -1,0 +1,82 @@
+{
+  "src_root": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption",
+  "ts": "2026-10-27 23:48:31",
+  "pass_count": 9,
+  "fail_count": 0,
+  "total": 9,
+  "checks": [
+    {
+      "id": "A1",
+      "group": "A",
+      "name": "CLI on_final 能接 3 个位置参数",
+      "ok": true,
+      "got": 3,
+      "want": ">=3"
+    },
+    {
+      "id": "A2",
+      "group": "A",
+      "name": "CLI on_final 有默认值的可选参数（向后兼容 1 参调用）",
+      "ok": true,
+      "got": 3,
+      "want": "has defaults"
+    },
+    {
+      "id": "B1",
+      "group": "B",
+      "name": "Session._loop 用 * 展开调用 on_final",
+      "ok": true,
+      "got": 2,
+      "want": ">=1"
+    },
+    {
+      "id": "C1",
+      "group": "C",
+      "name": "_split_spk('str') 返回 3 元组",
+      "ok": true,
+      "got": 3,
+      "want": 3
+    },
+    {
+      "id": "C2",
+      "group": "C",
+      "name": "_split_spk('dict') 返回 3 元组",
+      "ok": true,
+      "got": 3,
+      "want": 3
+    },
+    {
+      "id": "C3",
+      "group": "C",
+      "name": "_split_spk('tuple') 返回 3 元组",
+      "ok": true,
+      "got": 3,
+      "want": 3
+    },
+    {
+      "id": "D1",
+      "group": "D",
+      "name": "GUI App._on_final 仍接受 3 个位置参数",
+      "ok": true,
+      "got": 4,
+      "want": ">=3"
+    },
+    {
+      "id": "E1",
+      "group": "E",
+      "name": "反证：旧签名 `def on_final(t)` 只有 1 个位置参数",
+      "ok": true,
+      "got": 1,
+      "want": 1
+    },
+    {
+      "id": "E2",
+      "group": "E",
+      "name": "反证：旧签名下 A 组判据必须 FAIL",
+      "ok": true,
+      "got": 1,
+      "want": "<3 ⇒ A1 FAIL"
+    }
+  ],
+  "note": "零推理；ast 抽源码；含 AST 重建反证"
+}

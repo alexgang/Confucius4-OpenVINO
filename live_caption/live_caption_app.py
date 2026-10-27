@@ -3978,9 +3978,25 @@ def run_cli(args):
             print(f'[TTS] 启动失败（不影响字幕与翻译）：{e}', flush=True)
     finals = []
 
-    def on_final(t):
+    # 🔴🔴🔴 2026-10-27 §78 **修真实缺陷**：CLI 模式的 `on_final` **签名对不上**
+    #   ⇒ **CLI 模式一收到定稿就崩**（`TypeError: on_final() takes 1 positional
+    #     argument but 3 were given`）。
+    #
+    #   **根因**：`Session._loop` 调的是 `self.on_final(*_split_spk(final))`
+    #   而 `_split_spk()` **恒返回 3 元组** `(text, spk, spk_conf)`
+    #   ⇒ 必然传 **3 个**位置参数；
+    #   但这里旧实现写的是 `def on_final(t)`（只收 **1 个**）⇒ **必然 TypeError**。
+    #   ⚠️ **GUI 侧不受影响**（`App._on_final(self, text, spk=None, spk_conf=None)`
+    #   接受 3 参）⇒ 这就是「GUI 能跑、CLI 崩」的原因。
+    #   ⚠️ **该缺陷在 `a9ed250`（§76 交付 commit）就已存在** ⇒ **不是本轮引入**。
+    #
+    #   **修法**：签名与 `_split_spk` 的契约对齐（3 参，后两个有默认值）
+    #   ⇒ **对 1 参调用仍然兼容**（向后兼容）。
+    def on_final(t, spk=None, spk_conf=None):
         finals.append(t)
         print(f'\n[定稿] {t}', flush=True)
+        # 🔴 APP-022：`spk` / `spk_conf` **接口预留**（当前恒为 None）
+        #   ⇒ 透传给 MT（MT 侧同样只预留不使用）⇒ 行为不变。
         mt.submit(t, seg=len(finals) - 1)
 
     s = Session(eng, _cli_source(args), on_final=on_final)
