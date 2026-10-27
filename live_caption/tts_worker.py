@@ -58,6 +58,17 @@ TTS_SR = 24000
 #    ⇒ `NameError: name '_HERE' is not defined` ⇒ 音色加载必崩 ⇒ `ready=False`。
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
+# 🔴🔴🔴 APP-027②：**写进 `x.tts.jsonl` 的逐句遥测字段**
+#   ⇒ V1/V2 验收要的是**机器可算的逐句指标**，不是会话日志里的散文。
+#   ⇒ 只挑 APP-027 明文点名的字段 ⇒ 行不膨胀。
+_APP027_JSONL_KEYS = (
+    't_dequeue', 't_first_chunk', 't_last_chunk',
+    'synth_rtf', 'prebuffer_s', 'prebuffer_short', 'rtf_ewma',
+    'underflow_in_sentence', 'underflow_in_sentence_ms',
+    'underflow_pre_sentence', 'underflow_pre_sentence_ms',
+    'n_samples', 'n_parts', 'peak', 'rms', 'consumed',
+)
+
 
 def _out_write(text: str):
     """往 stdout 写一行（**兼容二进制管道**）。
@@ -1441,7 +1452,10 @@ class TTSWorker:
                                   'message': f'播放缓冲写满：{e}',
                                   'id': jid, 'dropped': True})
                             self._record_jsonl(jid, text, t_submit,
-                                               dropped=True, t_first=t_first)
+                                               dropped=True, t_first=t_first,
+                                               tel=self._app027_partial_tel(
+                                                   t_dequeue, t_first, t_last,
+                                                   prebuffer_s, prebuffer_short))
                             return
                         except Exception as e:
                             diag = ''
@@ -1459,7 +1473,10 @@ class TTSWorker:
                                   'message': f'播放写入失败：{e}{diag}',
                                   'id': jid})
                             self._record_jsonl(jid, text, t_submit,
-                                               error=(str(e) + diag)[:300])
+                                               error=(str(e) + diag)[:300],
+                                               tel=self._app027_partial_tel(
+                                                   t_dequeue, t_first, t_last,
+                                                   prebuffer_s, prebuffer_short))
                             return
                 # 🔴🔴 APP-027①：合成**结束**时，若预缓冲**还没攒够**
                 #   ⇒ **照样写进去**（宁可句内欠载，也不能不出声）
@@ -1474,14 +1491,20 @@ class TTSWorker:
                               'message': f'播放缓冲写满：{e}',
                               'id': jid, 'dropped': True})
                         self._record_jsonl(jid, text, t_submit,
-                                           dropped=True, t_first=t_first)
+                                           dropped=True, t_first=t_first,
+                                           tel=self._app027_partial_tel(
+                                               t_dequeue, t_first, t_last,
+                                               prebuffer_s, prebuffer_short))
                         return
                     except Exception as e:
                         log(f'[tts_worker] 播放写入失败：{e}')
                         emit({'kind': 'error',
                               'message': f'播放写入失败：{e}', 'id': jid})
                         self._record_jsonl(jid, text, t_submit,
-                                           error=str(e)[:300])
+                                           error=str(e)[:300],
+                                           tel=self._app027_partial_tel(
+                                               t_dequeue, t_first, t_last,
+                                               prebuffer_s, prebuffer_short))
                         return
                 # 🔴🔴 APP-021①：**在锁内**记下「本句最后样本的写入位置」。
                 #   ⚠️ 必须在 `_synth_lock` **内**取 ⇒ 否则下一句的 `synth()`
@@ -1614,7 +1637,7 @@ class TTSWorker:
                 emit({'kind': 'error', 'id': jid, 'message': msg,
                       'telemetry': tel})
                 self._record_jsonl(jid, text, t_submit, dur_s=dur,
-                                   t_first=t_first, error=msg)
+                                   t_first=t_first, error=msg, tel=tel)
                 return
             # 🔴🔴 **必须在这里重算遥测**！
             #   上面的快照是**写完缓冲那一刻**的 ⇒ `read_delta` 只统计到
@@ -1647,13 +1670,41 @@ class TTSWorker:
                 self._synth_jid = None
                 self._synth_rem_s = 0.0
 
-        self._record_jsonl(jid, text, t_submit, dur_s=dur, t_first=t_first)
+        self._record_jsonl(jid, text, t_submit, dur_s=dur, t_first=t_first,
+                           tel=tel)
         emit({'kind': 'played', 'id': jid,
               'dur_s': round(dur, 3),
               'latency_s': round(latency, 3),
               'telemetry': tel})
 
     # -- 🔴🔴🔴 APP-027②：遥测拆字段 ---------------------------------
+    @staticmethod
+    def _app027_partial_tel(t_dequeue, t_first, t_last, prebuffer_s,
+                            prebuffer_short):
+        """🔴 APP-027②：**失败/丢句路径**的**部分遥测**。
+
+        🔴 **为什么需要**：合成途中的失败（缓冲写满 / 播放写入失败 /
+          引擎异常）发生在**完整遥测算出来之前** ⇒ 那几条 jsonl 行
+          若不带任何 APP-027 字段 ⇒ **V1/V2 验收会漏掉它们**
+          ⇒ 「RTF > 1 导致的丢句只记录不判失败但必须如实写」
+          这条要求就**无法从数据上核对**。
+
+        ⚠️ 这里只给**已经知道**的字段（时刻、预缓冲量）⇒ 欠载等
+          需要播放器状态的字段留空（**不编造**）。
+        """
+        tel = {}
+        if t_dequeue is not None:
+            tel['t_dequeue'] = round(float(t_dequeue), 4)
+        if t_first is not None:
+            tel['t_first_chunk'] = round(float(t_first), 4)
+        if t_last is not None:
+            tel['t_last_chunk'] = round(float(t_last), 4)
+        if prebuffer_s is not None:
+            tel['prebuffer_s'] = round(float(prebuffer_s), 3)
+        if prebuffer_short:
+            tel['prebuffer_short'] = True
+        return tel
+
     def _fill_app027_telemetry(self, tel: dict, t_dequeue, t_first, t_last,
                                dur: float, prebuffer_s: float,
                                prebuffer_short: bool,
@@ -1760,10 +1811,18 @@ class TTSWorker:
             return None
 
     def _record_jsonl(self, jid, text, t_submit, dur_s=None, t_first=None,
-                      dropped=False, error=None):
+                      dropped=False, error=None, tel=None):
         """记录一句的时间线（供 `x.tts.jsonl` 落盘）。
 
         每条字段：译文、入队时间、首包时间、播完时间、是否被丢弃。
+
+        🔴🔴🔴 APP-027②：**把 APP-027 的遥测字段一并写进 jsonl**
+          ⇒ 否则 V1/V2 验收只能去翻会话日志（散文），
+          ⇒ 而验收要的是**逐句的机器可算指标**：
+          `synth_rtf` / `prebuffer_s` / `underflow_in_sentence` /
+          `underflow_in_sentence_ms` / `underflow_pre_sentence` /
+          `t_dequeue` / `t_first_chunk` / `t_last_chunk`。
+        ⚠️ `tel` 是**可选**的 ⇒ 失败/丢句的行照样写（字段为空）。
         """
         row = dict(id=jid, text=text,
                    t_submit=round(t_submit, 4),
@@ -1773,6 +1832,11 @@ class TTSWorker:
                    dur_s=round(dur_s, 3) if dur_s is not None else None,
                    dropped=bool(dropped),
                    error=error)
+        # 🔴 APP-027②：逐句遥测（**只挑 APP-027 关心的字段** ⇒ 行不膨胀）
+        if tel:
+            for k in _APP027_JSONL_KEYS:
+                if k in tel:
+                    row[k] = tel[k]
         self._jsonl_rows.append(row)
         # 实时追加到文件（崩溃也能留下已完成的行）
         if self._jsonl_path:
