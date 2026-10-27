@@ -271,11 +271,176 @@ def test_flush_only_once() -> None:
     check("第二次 flush 无输出（幂等）", len(second) == 0, f"{len(second)} 段")
 
 
+def test_slow_engine_does_not_block_event_loop() -> None:
+    """★ EXT-006 P1 实测修掉的缺陷 10：慢引擎**不能阻塞事件循环**。
+
+    实测现象（`.tmp/p1_run2/pipeline.log`）：
+        websockets.exceptions.ConnectionClosedError: received 1011
+        (internal error) keepalive ping timeout
+
+    成因：服务端在 asyncio 事件循环里**同步**跑真实推理（真实 TTS 单句
+    790 s），事件循环被占满 ⇒ 无法及时回 pong ⇒ websockets 判定
+    keepalive 超时 ⇒ 服务端以 1011 关闭连接 ⇒ 客户端喂帧途中断连，
+    已算好的配音/时间表全部拿不到。
+
+    本自测用**慢桩引擎**（每段阻塞 1.2 s）复现：
+      - 若推理在事件循环里 ⇒ 事件循环被占 ⇒ 心跳协程被饿死；
+      - 若推理在工作线程里 ⇒ 事件循环始终可响应。
+    ⇒ 断言「慢引擎工作时事件循环仍能立即调度其它协程」。
+    """
+    print("\n[P1] EXT-006 — 慢引擎不阻塞事件循环（keepalive 1011 回归）")
+    from ext.bridge import Session
+
+    class SlowEngine(StubEngine):
+        def __init__(self) -> None:
+            super().__init__()
+            self.in_call = threading.Event()
+            self.done_call = threading.Event()
+
+        def tts(self, text: str, *, voice: str):
+            self.n_calls["tts"] += 1
+            self.in_call.set()
+            time.sleep(1.2)          # ★ 模拟真实 TTS 的秒级阻塞
+            self.done_call.set()
+            n = int(0.5 * 24000)
+            return (np.zeros(n, dtype=np.int16)).tobytes(), 0.5
+
+    engine = SlowEngine()
+    sess = Session("tok", delay_sec=10.0, engine=engine)
+
+    # 造「15 s 语音 + 1 s 静音」⇒ 断句能切出 1 段（照抄 _make_wav 的造法）
+    sr = C.SAMPLE_RATE
+    seg = np.zeros(int(sr * 15), dtype=np.float32)
+    tt = np.arange(seg.shape[0]) / sr
+    seg += (0.3 * np.sin(2 * np.pi * 220 * tt)).astype(np.float32)
+    sil = np.zeros(int(sr * 1), dtype=np.float32)
+    audio = np.concatenate([seg, sil])
+    n = audio.shape[0]
+    pcm = base64.b64encode((audio * 32767).astype("<i2").tobytes()).decode()
+
+    loop_ticks = []
+
+    async def _scenario() -> None:
+        tick_task = None
+
+        async def _ticker():
+            while True:
+                loop_ticks.append(time.perf_counter())
+                await asyncio.sleep(0.05)
+
+        tick_task = asyncio.ensure_future(_ticker())
+        # ★ 推理走 to_thread（与服务端 _handle_messages 现在的写法一致）
+        await asyncio.to_thread(sess.on_pcm_frame,
+                               {"type": "pcm", "seq": 0, "sample_index": 0,
+                                "pcm": pcm})
+        tick_task.cancel()
+        try:
+            await tick_task
+        except BaseException:
+            pass
+
+    asyncio.run(_scenario())
+
+    check("慢引擎确实被调用过", engine.n_calls["tts"] >= 1,
+          f"tts 调用 {engine.n_calls['tts']} 次")
+    # 事件循环在整个推理期间仍应被调度 ⇒ 心跳协程有多个 tick
+    check("推理期间事件循环仍在调度（心跳未被饿死）",
+          len(loop_ticks) >= 3, f"tick 数 {len(loop_ticks)}")
+
+    # ★ 反向断言：老写法（同步跑在事件循环里）**必须**饿死心跳协程
+    loop_ticks2 = []
+
+    async def _scenario_sync() -> None:
+        async def _ticker2():
+            while True:
+                loop_ticks2.append(time.perf_counter())
+                await asyncio.sleep(0.05)
+
+        tick_task = asyncio.ensure_future(_ticker2())
+        sess2 = Session("tok", delay_sec=10.0, engine=SlowEngine())
+        sess2.on_pcm_frame({"type": "pcm", "seq": 0, "sample_index": 0,
+                            "pcm": pcm})          # ★ 同步调用（老写法）
+        tick_task.cancel()
+        try:
+            await tick_task
+        except BaseException:
+            pass
+
+    asyncio.run(_scenario_sync())
+    check("旧写法（同步推理）确实会饿死心跳 ⇒ 本自测能区分真/假通过",
+          len(loop_ticks2) < len(loop_ticks),
+          f"同步 {len(loop_ticks2)} tick vs 线程 {len(loop_ticks)} tick")
+
+
+def test_mt_model_dir_resolution() -> None:
+    """★ EXT-006 P1 实测修掉的缺陷 11：MT 模型目录解析。
+
+    实测现象（`.tmp/p1_run2/smoke.json` 的 `stages.mt.error`）：
+        Could not find a model in the directory
+        '"C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\models\\mt"'
+
+    成因：用了 `models/mt`（**父目录**），而 openvino_genai 要求目录里
+    **直接**放 `openvino_model.xml` 等 IR 文件；真正的模型在**子目录**
+    `models/mt/mt2-int8sym-cw-q`。
+
+    断言：
+      ① 解析结果**不是**父目录 `models/mt`；
+      ② 解析结果指向的目录里**确实有** `openvino_model.xml`（真实可加载）；
+      ③ 顺序与 App 的 `translator.DEFAULT_MODEL` 一致（INT8 优先于 INT4）。
+    """
+    print("\n[P1] EXT-006 — MT 模型目录解析（父目录 vs 真实模型子目录）")
+    from ext import engine_runtime as ER
+
+    resolved = ER._resolve_mt_model_dir()
+    check("能解析出 MT 模型目录", bool(resolved), f"{resolved}")
+
+    if resolved:
+        parent = os.path.join(ER.MODELS_DIR, "mt")
+        check("解析结果**不是**父目录 models/mt",
+              os.path.normcase(os.path.abspath(resolved)) !=
+              os.path.normcase(os.path.abspath(parent)),
+              f"{resolved} vs {parent}")
+        xml = os.path.join(resolved, "openvino_model.xml")
+        check("解析目录里确实有 openvino_model.xml（真实可加载）",
+              os.path.isfile(xml), xml)
+        check("解析结果是具体模型目录名（含 mt2- 前缀）",
+              os.path.basename(resolved).startswith("mt2-"),
+              os.path.basename(resolved))
+
+    # ③ 顺序：INT8 优先于 INT4（照抄 App 的 DEFAULT_MODEL 顺序）
+    order = [os.path.join(ER.MODELS_DIR, "mt", "mt2-int8sym-cw-q"),
+             os.path.join(ER.MODELS_DIR, "mt2-int8sym-cw-q"),
+             os.path.join(ER.MODELS_DIR, "mt", "mt2-int4sym-cw-q"),
+             os.path.join(ER.MODELS_DIR, "mt2-int4sym-cw-q")]
+    src = open(os.path.join(ROOT, "ext", "engine_runtime.py"),
+               encoding="utf-8").read()
+    check("INT8 候选排在 INT4 候选之前",
+          src.index("mt2-int8sym-cw-q") < src.index("mt2-int4sym-cw-q"),
+          "int8 先于 int4")
+    check("候选顺序与 App 一致（4 项）", len(order) == 4, f"{len(order)} 项")
+
+    # ★ 运行时解析：环境变量后设也生效（导入后设 LIVECAP_MT_MODEL）
+    tmp = os.path.join(ER.MODELS_DIR, "mt", "mt2-int4sym-cw-q")
+    if os.path.isdir(tmp):
+        os.environ["LIVECAP_MT_MODEL"] = tmp
+        try:
+            again = ER._resolve_mt_model_dir()
+            check("环境变量 LIVECAP_MT_MODEL 运行时生效（优先于默认顺序）",
+                  again is not None and
+                  os.path.normcase(os.path.abspath(again)) ==
+                  os.path.normcase(os.path.abspath(tmp)),
+                  f"{again}")
+        finally:
+            os.environ.pop("LIVECAP_MT_MODEL", None)
+
+
 def main() -> int:
     print("=" * 68)
     print("EXT P1 管线连通性自测（桩引擎 / 不跑推理 / 不占 GPU·NPU / 不抢锁）")
     print("=" * 68)
-    for fn in (test_p1_plumbing, test_flush_only_once):
+    for fn in (test_p1_plumbing, test_flush_only_once,
+               test_slow_engine_does_not_block_event_loop,
+               test_mt_model_dir_resolution):
         try:
             fn()
         except Exception:

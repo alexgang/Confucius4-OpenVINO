@@ -71,8 +71,42 @@ MODELS_DIR = os.path.join(APP_ROOT, "models")
 # ⇒ EXT-001 要求的「R2T2 INT8」= encoder-int8 + decoder-gpu-int8
 ASR_ENCODER_DIR = os.path.join(MODELS_DIR, "encoder-int8")
 ASR_DECODER_DIR = os.path.join(MODELS_DIR, "decoder-gpu-int8")
-MT_MODEL_DIR = os.path.join(MODELS_DIR, "mt")
 TTS_MODEL_DIR = os.path.join(MODELS_DIR, "qwen3tts")
+
+
+def _first_existing(*paths: str) -> Optional[str]:
+    """返回第一个**存在**的路径；全不存在则返回 None（照抄 App 的同名工具）。"""
+    for p in paths:
+        if p and os.path.isdir(p):
+            return p
+    return None
+
+
+def _resolve_mt_model_dir() -> Optional[str]:
+    r"""定位 Hy-MT2 的模型目录（**照抄 App 的 `translator.DEFAULT_MODEL` 顺序**）。
+
+    ★ 本轮修掉的真实缺陷：原来直接用 `models/mt`（**父目录**），
+      而 openvino_genai 要求目录里**直接**放 `openvino_model.xml` 等 IR 文件
+      ⇒ 实测报 `Could not find a model in the directory '...\models\mt'`。
+      真正的模型在**子目录**里：
+        `models/mt/mt2-int8sym-cw-q`（INT8 per-channel，GPU/NPU 通吃）
+        `models/mt/mt2-int4sym-cw-q`（INT4 回退）
+      ⇒ 与 App 的 `DEFAULT_MODEL` 保持同一套查找顺序（含开发机 hy_bench 回退）。
+    """
+    return _first_existing(
+        os.environ.get("LIVECAP_MT_MODEL", ""),
+        os.path.join(MODELS_DIR, "mt", "mt2-int8sym-cw-q"),
+        os.path.join(MODELS_DIR, "mt2-int8sym-cw-q"),
+        os.path.join(MODELS_DIR, "mt", "mt2-int4sym-cw-q"),
+        os.path.join(MODELS_DIR, "mt2-int4sym-cw-q"),
+    )
+
+
+# MT 模型目录在**运行时**解析（不是常量）—— 因为要用 App 的 fallback 顺序，
+# 且 `LIVECAP_MT_MODEL` 环境变量可能在 import 之后才被设置。
+# ★ 但 `available()` 之类的**探测**接口要一个立即可用的值 ⇒ 保留一份
+#   import 时的快照；真正加载模型时用 `_resolve_mt_model_dir()` 重新解析。
+MT_MODEL_DIR = _resolve_mt_model_dir()
 
 # ── ASR 行为参数（照抄 App：live_caption_app.py CHUNK_SEC=0.64） ────
 ASR_CHUNK_SEC = 0.64
@@ -285,16 +319,23 @@ class RuntimeEngine:
             from translator import HunyuanTranslator
         except Exception as e:
             raise EngineNeedsChange("Hy-MT2", "import HunyuanTranslator 失败: %s" % e)
+        # ★ 运行时重新解析（支持 import 之后才设的环境变量）
+        model_dir = _resolve_mt_model_dir()
+        if not model_dir:
+            raise EngineNeedsChange(
+                "Hy-MT2",
+                "找不到 MT 模型目录（已查：LIVECAP_MT_MODEL / models/mt/mt2-int8sym-cw-q "
+                "/ models/mt2-int8sym-cw-q / models/mt/mt2-int4sym-cw-q）")
         try:
             self._mt = HunyuanTranslator(
-                model_dir=MT_MODEL_DIR, device=self.mt_device,
+                model_dir=model_dir, device=self.mt_device,
                 cache_dir=os.path.join(os.environ.get("LOCALAPPDATA", "."),
                                        "Confucius4LiveCaption", "ext_mt_cache"),
                 on_log=self.on_log)
         except Exception as e:
             raise EngineNeedsChange(
-                "Hy-MT2", "HunyuanTranslator 构造失败（device=%s）: %s"
-                % (self.mt_device, e))
+                "Hy-MT2", "HunyuanTranslator 构造失败（device=%s, dir=%s）: %s"
+                % (self.mt_device, model_dir, e))
         self.load_s["mt"] = time.perf_counter() - t0
         self.on_log("MT 就绪（Hy-MT2 INT8 @ %s，%.1fs）"
                     % (self.mt_device, self.load_s["mt"]))

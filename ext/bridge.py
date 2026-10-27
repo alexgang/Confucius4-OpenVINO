@@ -500,7 +500,21 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                 await websocket.send(json.dumps({"type": "stats", **session.stats()}))
                 continue
             if mtype == "pcm":
-                out = session.echo(msg) if echo_mode else session.on_pcm_frame(msg)
+                if echo_mode:
+                    out = session.echo(msg)
+                else:
+                    # ★★ 推理必须**离开事件循环**（EXT-006 P1 实测修掉的真缺陷）。
+                    #   真实 TTS 单句要几十秒～几百秒（首次 NPU 编译更久），
+                    #   若在事件循环里同步跑 ⇒ 事件循环被阻塞 ⇒ 服务端
+                    #   无法及时处理客户端的 pong ⇒ websockets 的
+                    #   keepalive ping timeout（ping_interval=20s /
+                    #   ping_timeout=20s）触发 ⇒ 服务端以 **1011** 关闭连接
+                    #   ⇒ 客户端在喂帧途中断连，本轮所有已算好的配音/时间表
+                    #   **全部拿不到**（实测：pipeline.log 报
+                    #   `received 1011 (internal error) keepalive ping timeout`）。
+                    #   `asyncio.to_thread` 让推理在**工作线程**里跑，
+                    #   事件循环始终能响应心跳。
+                    out = await asyncio.to_thread(session.on_pcm_frame, msg)
                 if out:
                     for task in (out if isinstance(out, list) else [out]):
                         await websocket.send(json.dumps(task))
@@ -512,7 +526,8 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                 #   否则时间表缺最后一段，reviewer 回转写时对不上。
                 #   回声模式不适用（echo 是逐帧原样返回，无需切段）。
                 if not echo_mode:
-                    out = session.flush()
+                    # ★ 同上：尾段也要走线程，避免尾段推理阻塞心跳
+                    out = await asyncio.to_thread(session.flush)
                     if out:
                         for task in out:
                             await websocket.send(json.dumps(task))
@@ -538,6 +553,14 @@ async def serve(host: str, port: int, *, delay_sec: float, echo_mode: bool,
         host, port,
         origins=None,
         max_size=32 * 1024 * 1024,
+        # ★ 心跳放宽（EXT-006 P1 实测）：默认 ping_interval=20s /
+        #   ping_timeout=20s。真实推理单句可能耗时数十秒（首次 NPU 编译
+        #   可达数百秒）⇒ 服务端若在事件循环里处理推理，就来不及回 pong
+        #   ⇒ 触发 keepalive timeout ⇒ 以 1011 关闭连接。
+        #   现在推理已挪到工作线程（见 _handle_messages），这里再放宽一次
+        #   作为双保险：即便个别步骤仍慢，也不至于误杀长连接。
+        ping_interval=60,
+        ping_timeout=300,
     ):
         await asyncio.Future()   # 永久运行
 
