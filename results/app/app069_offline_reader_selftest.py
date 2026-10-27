@@ -83,9 +83,14 @@ def read_max_chars_from_source() -> int:
 class FakeTTSService:
     """`lock` / `pending` / `state` / `submit` / `cancel` / 三个计数。
 
-    🔴 `_update_backlog()` 是**逐条复刻**真实现的：
+    🔴🔴🔴 **APP-028② 口径变更（2026-10-27）**：
+       真实现的 `_update_backlog()` 的**丢句分支已整段删除**
+       （不再因积压丢句）⇒ 本假 service 仍**保留**旧的丢句复刻，
+       目的是**更严**：即便按旧规则也不丢句 ⇒ 真实实现更不会丢。
+    🔴 `_update_backlog()` 是**逐条复刻**APP-027 时期的真实现：
        pending 估算 > BACKLOG_MAX_S ⇒ 从**最旧**的开始丢，累计丢到
-       `acc > BACKLOG_MAX_S * 0.5` 为止（真实现见 tts_service.py L725-760）。
+       `acc > BACKLOG_MAX_S * 0.5` 为止（真实现见 tts_service.py 的
+       `_update_backlog`，该分支已在 APP-028② 删除）。
     播放用 `speed` 倍速模拟（duration/speed），且**播放期间该项仍在 pending 里**
     （真实现是收到 `played` 事件才清 pending）⇒ 本测试比真实情况**更严**。
     """

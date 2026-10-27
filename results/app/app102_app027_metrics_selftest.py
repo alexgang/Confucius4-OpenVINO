@@ -166,8 +166,14 @@ def main():
           'before=%d after=%d' % (a2['n_dropped_before_synth'],
                                   a2['n_dropped_after_write']))
     c2, o2 = verdict(a2, log_a, 'T')
-    check('B2b 「未合成就丢」**不**导致总体 FAIL（明文只卡「已写入被丢」）',
-          o2 is True, str(c2))
+    # 🔴🔴🔴 APP-028②：口径已变 ——
+    #   旧口径（APP-027）：「未合成就丢」**不**导致总体 FAIL
+    #      （明文只卡「已写入被丢」）。
+    #   新口径（APP-028②）：**丢句数必须为 0**（取消了积压丢句）
+    #      ⇒ 「未合成就丢」也**是**硬性失败。
+    check('B2b APP-028②：「未合成就丢」**也**导致总体 FAIL'
+          '（APP-028 明文「丢句数必须为 0」）',
+          o2 is False, str(c2))
 
     # B3 —— 注入「没有产出音频」⇒ FAIL
     bad3 = good_rows(20)

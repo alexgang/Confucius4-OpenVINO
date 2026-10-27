@@ -138,20 +138,57 @@ check('A8 _update_backlog 不再用「每个 written 各算 min(3.0,dur)」',
 check('A9 _update_backlog 不把 written 句子放进 drop 候选',
       "'written'" not in upd_src)
 
-# A10：排除正在合成的句子
-check('A10 丢句候选排除正在合成的句子（synth_jid）',
-      'synth_jid' in upd_src and 'candidates.remove(synth_jid)' in upd_src)
+# A10：🔴🔴🔴 APP-028②：**丢句逻辑已整段删除**。
+#   旧判据（要求 `_update_backlog` 含 `synth_jid` + `candidates.remove(synth_jid)`）
+#   在 APP-028② 之后**必然 FAIL**（因为那段代码已被删掉）。
+#   ⇒ 现在改成**反向判据**：`_update_backlog` **不得**再有丢句相关的东西。
+#   ⚠️ 用 **AST** 判断（不看注释/字符串）⇒ docstring 里提到
+#      「不再下发 {'cmd':'cancel'}」不会误判。
+_upd_names = set()
+for _n in (ast.walk(upd_fn) if upd_fn else []):
+    if isinstance(_n, ast.Name):
+        _upd_names.add(_n.id)
+_has_drop_attr = any(
+    isinstance(_n, ast.Attribute) and _n.attr == 'n_dropped'
+    for _n in (ast.walk(upd_fn) if upd_fn else []))
+_has_cancel_cmd = False
+for _n in (ast.walk(upd_fn) if upd_fn else []):
+    if isinstance(_n, ast.Dict):
+        for _k, _v in zip(_n.keys, _n.values):
+            if (isinstance(_k, ast.Constant) and _k.value == 'cmd'
+                    and isinstance(_v, ast.Constant)
+                    and _v.value == 'cancel'):
+                _has_cancel_cmd = True
+_has_backlog_cmp = any(
+    isinstance(_c, ast.Name) and _c.id == 'BACKLOG_MAX_S'
+    for _n in (ast.walk(upd_fn) if upd_fn else [])
+    for _c in getattr(_n, 'comparators', []))
+check('A10 APP-028②：_update_backlog 已无「丢正在合成的句子」逻辑'
+      '（丢句整段删除）',
+      'BACKLOG_MAX_S' not in _upd_names
+      and not _has_backlog_cmp
+      and not _has_drop_attr
+      and not _has_cancel_cmd,
+      '残留：BACKLOG_MAX_S=%s n_dropped=%s cancel=%s'
+      % ('BACKLOG_MAX_S' in _upd_names, _has_drop_attr, _has_cancel_cmd))
 
-# A11：不多丢（累加到阈值以下就停）
-check('A11 丢句不多丢（降到阈值以下即停）',
-      'if acc <= BACKLOG_MAX_S' in upd_src
-      and 'acc = est' in upd_src)
+# A11：🔴🔴🔴 APP-028②：**不再有「丢到阈值以下即停」的逻辑**（因为根本不丢）。
+check('A11 APP-028②：_update_backlog 不再有「多丢/少丢」的选择逻辑',
+      'real_drop' not in upd_src and 'candidates' not in upd_src,
+      '仍残留候选/丢弃逻辑')
 
 # A12：不写死 5 字/秒
 check('A12 字数估算用实测 sec_per_char 校准（非写死）',
       '_sec_per_char' in svc_src and 'cjk / 5.0' not in svc_src)
 
 print('=== B 组（BUG，行为级复算）===')
+# 🔴🔴🔴 APP-028② 说明（2026-10-27）：
+#   下面的 B3 / B4 / B5 复算的是 **APP-027 时期的「丢句选择算法」**。
+#   ⚠️ 该算法在 **APP-028② 里已被整段删除**（不再丢句）⇒ 这几条现在只是
+#      **「旧算法确实有这些性质」的历史复算**（保留是为了证明
+#      「已写入的句子被丢 / 正在合成的句子被丢」这类缺陷**曾真实存在**）。
+#   ⇒ **不再**代表当前生产行为；当前行为由
+#      `results/app/app103_app028_no_drop_unbounded_queue.py` 的 C1 判据保证。
 
 BACKLOG_MAX_S = 8.0
 

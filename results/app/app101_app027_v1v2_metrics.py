@@ -127,6 +127,11 @@ def analyze_jsonl(path):
         'idle_gaps': [],
         'max_idle_gap_s': 0.0,
         'n_prebuffer_short': 0,
+        # 🔴🔴🔴 APP-028②：队列水位 / 峰值 / 结尾滞后
+        'queue_lag_s': [],
+        'queue_peak_s': [],
+        'queue_peak_mb': [],
+        'final_lag_s': None,
     }
     for r in rows:
         if r.get('dropped'):
@@ -164,6 +169,16 @@ def analyze_jsonl(path):
         v = r.get('dur_s')
         if isinstance(v, (int, float)):
             out['dur_s'].append(float(v))
+        # 🔴🔴🔴 APP-028②：队列水位 / 峰值
+        v = r.get('queue_lag_s')
+        if isinstance(v, (int, float)):
+            out['queue_lag_s'].append(float(v))
+        v = r.get('queue_peak_s')
+        if isinstance(v, (int, float)):
+            out['queue_peak_s'].append(float(v))
+        v = r.get('queue_peak_mb')
+        if isinstance(v, (int, float)):
+            out['queue_peak_mb'].append(float(v))
 
     # 🔴 「没有合成的空窗」：按 `t_submit` 排序 ⇒ 相邻两句的间隔
     ts = sorted(float(r['t_submit']) for r in rows
@@ -173,6 +188,14 @@ def analyze_jsonl(path):
         out['idle_gaps'].append(gap)
         if gap > out['max_idle_gap_s']:
             out['max_idle_gap_s'] = gap
+    # 🔴🔴🔴 APP-028②：**结尾时的滞后**（最后一句写入完成时的队列水位）。
+    #   ⇒ 按 `t_submit` 取**最后一行**（最接近会话末尾）的 `queue_lag_s`。
+    _lag_rows = [r for r in sorted(
+        (r for r in rows if isinstance(r.get('t_submit'), (int, float))),
+        key=lambda r: float(r['t_submit']))
+        if isinstance(r.get('queue_lag_s'), (int, float))]
+    if _lag_rows:
+        out['final_lag_s'] = float(_lag_rows[-1]['queue_lag_s'])
     return out
 
 
@@ -272,6 +295,36 @@ def verdict(a, log_a, label):
        '句前空等次数 P50=%s P95=%s'
        % (pct(pre, 50), pct(pre, 95)))
 
+    # ── 🔴🔴🔴 APP-028② 新增判据 ──────────────────────────────────
+    # ⑦ **丢句数必须为 0**（APP-028 验收明文：「丢句数必须为 0」）
+    #    ⚠️ 口径：jsonl 里的 `dropped` 行 = 「这一句被放弃」。
+    #    APP-028② 取消了**积压丢句** ⇒ 正常会话应当**一句都不丢**。
+    n_drop_total = (a['n_dropped_before_synth'] + a['n_dropped_after_write'])
+    ck('APP-028② 丢句数 = 0（取消积压丢句）',
+       n_drop_total == 0,
+       '实际 %d（未合成 %d / 已写入 %d）'
+       % (n_drop_total, a['n_dropped_before_synth'],
+          a['n_dropped_after_write']))
+
+    # ⑧ **队列峰值（秒）**（APP-028 验收明文要报）
+    #    ⚠️ **只记录，不判失败**（峰值大不代表有缺陷；RTF>1 时会自然累积）
+    pk_s = a['queue_peak_s']
+    ck('APP-028② 队列峰值（秒）已记录', True,
+       'peak_s=%s（句内水位 P50=%s / P95=%s / max=%s）'
+       % (max(pk_s) if pk_s else None, pct(a['queue_lag_s'], 50),
+          pct(a['queue_lag_s'], 95),
+          max(a['queue_lag_s']) if a['queue_lag_s'] else None))
+
+    # ⑨ **队列峰值（MB）**（APP-028 验收明文要报）
+    pk_mb = a['queue_peak_mb']
+    ck('APP-028② 队列峰值（MB）已记录', True,
+       'peak_mb=%s' % (max(pk_mb) if pk_mb else None))
+
+    # ⑩ **结尾时的滞后**（APP-028 验收明文要报）
+    #    ⚠️ **只记录**（滞后大 ≠ 缺陷；RTF>1 时必然累积）
+    ck('APP-028② 结尾时的语音滞后已记录', True,
+       'final_lag_s=%s' % a['final_lag_s'])
+
     # overall：**硬性判据**（①②③④⑤）全过才算过
     #   🔴🔴 **判据自身的缺陷（本脚本自测 B7 抓出来的）**：
     #     旧写法 `all(c['pass'] for c in hard)` 会把 **`None`（= 未能核对）
@@ -332,6 +385,16 @@ def main():
     print('最大合成空窗        : %.1f s（上限 %.0f s）'
           % (a['max_idle_gap_s'], MAX_SILENCE_GAP_S))
     print('看门狗触发          : %s' % log_a.get('n_watchdog'))
+    # 🔴🔴🔴 APP-028②：队列水位 / 峰值 / 结尾滞后
+    pk_s = a['queue_peak_s']
+    pk_mb = a['queue_peak_mb']
+    print('队列水位 queue_lag_s: P50=%s P95=%s max=%s (n=%d)'
+          % (pct(a['queue_lag_s'], 50), pct(a['queue_lag_s'], 95),
+             max(a['queue_lag_s']) if a['queue_lag_s'] else None,
+             len(a['queue_lag_s'])))
+    print('队列峰值（秒）      : %s' % (max(pk_s) if pk_s else None))
+    print('队列峰值（MB）      : %s' % (max(pk_mb) if pk_mb else None))
+    print('结尾时语音滞后（秒）: %s' % a['final_lag_s'])
     print('-' * 66)
     for c in checks:
         if c['pass'] is True:

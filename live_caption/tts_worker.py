@@ -24,9 +24,26 @@ worker → 主进程（stdout，每行一个 JSON）：
 
 ## 播放
 
-`sounddevice.OutputStream`（22050 Hz、单声道、float32）+ 环形缓冲。
-合成线程把波形塞进环形缓冲，音频回调线程从中取数据播。
-缓冲满时丢弃**最旧**的音频（宁可开头少一句，也不能让实时性崩掉）。
+🔴🔴🔴 **APP-028②：生产者 / 消费者架构**（2026-10-27）。
+
+`sounddevice.OutputStream`（24000 Hz 或 22050 Hz、单声道、float32）
++ **无界内存音频队列**（`AudioQueue`）：
+
+    合成线程（唯一，FIFO）──写──▶ AudioQueue（无界、保序）──取──▶ 播放回调
+
+- **合成线程拿到 final 译文就连续合成**，不等上一句播完；
+- 音频块写进内存里的**无界队列**（按句保持顺序、句内按块）⇒ **不设丢句上限**；
+- **播放回调只从队列取数据**；队列空了 ⇒ **输出静音 + 计一次欠载**（**不丢句**）；
+- **等播完 + 发 `played`** 由**独立的看门狗线程**（`_played_loop`）负责
+  ⇒ 合成线程**不被播放速度卡住**；
+- **用户手动停止 / 切换会话**时才清空队列（`clear_queue` 指令）。
+
+⚠️ 旧实现（**已删除**）：`RingBuffer` = 3 s 有界环形缓冲 + 写满**反压阻塞**
+⇒ 合成被播放速度卡住 ⇒ 谈不上「连续推理」；
+主进程侧还叠了一层 `BACKLOG_MAX_S = 8` 的**丢句**逻辑 ⇒ 一律删除。
+
+⚠️ **代价**：队列无界 ⇒ 若 RTF > 1，**语音滞后会持续累积**
+⇒ 底栏实时显示「**语音滞后 X 秒**」⇒ 让用户看得见，但**不丢句**。
 
 合成用**流式**路径（`native_stream.synth_stream`）：首块 25 token，之后每 50 token，
 overlap 10，交叉淡化。这样第一包能早出来。
@@ -58,6 +75,11 @@ TTS_SR = 24000
 #    ⇒ `NameError: name '_HERE' is not defined` ⇒ 音色加载必崩 ⇒ `ready=False`。
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
+# 🔴🔴🔴 APP-028②：**stdout 写锁**（模块级）。
+#   多个线程同时 `emit()` / `log()` ⇒ 行会**交错** ⇒ 主进程 JSON 解析失败。
+#   ⚠️ 必须在 `import threading` 之后定义。
+_OUT_WLOCK = threading.Lock()
+
 # 🔴🔴🔴 APP-027②：**写进 `x.tts.jsonl` 的逐句遥测字段**
 #   ⇒ V1/V2 验收要的是**机器可算的逐句指标**，不是会话日志里的散文。
 #   ⇒ 只挑 APP-027 明文点名的字段 ⇒ 行不膨胀。
@@ -67,6 +89,16 @@ _APP027_JSONL_KEYS = (
     'underflow_in_sentence', 'underflow_in_sentence_ms',
     'underflow_pre_sentence', 'underflow_pre_sentence_ms',
     'n_samples', 'n_parts', 'peak', 'rms', 'consumed',
+)
+
+# 🔴🔴🔴 APP-028②：**队列水位 / 语音滞后 / 队列峰值**（逐句 jsonl）。
+#   APP-028 验收明文要求：「报告 5 分钟测试里队列的**峰值（秒和 MB）**」
+#   ⇒ 必须**逐句落盘** ⇒ 否则验收只能翻会话日志（散文）。
+#   - `queue_lag_s`   ：本句写入完成时，队列里还没播的音频时长（秒）
+#   - `queue_peak_s`  ：到本句为止的**队列峰值**（秒）
+#   - `queue_peak_mb` ：到本句为止的**队列峰值**（MB）
+_APP028_JSONL_KEYS = (
+    'queue_lag_s', 'queue_peak_s', 'queue_peak_mb',
 )
 
 
@@ -101,28 +133,36 @@ def _out_write(text: str):
       ⇒ `sys.stdout` 不为 None 但 `buffer` 可能为 None ⇒ 两种情况都要覆盖）。
     """
     data = text + '\n'
-    try:
-        buf = getattr(sys.stdout, 'buffer', None)
-    except Exception:
-        buf = None
-    if buf is not None:
+    # 🔴🔴🔴 APP-028②：**多线程写 stdout 必须加锁**。
+    #   起因：APP-028② 把「等播完」挪到**独立的播放看门狗线程**
+    #   ⇒ 现在有「合成线程」+「看门狗线程」+「主循环线程」**同时**写 stdout
+    #   ⇒ 无锁时两行的字节会**交错** ⇒ 主进程 JSON 解析失败
+    #     （实测形态：`{"kind": "played"...}{"kind": "log"...` 拼成一行）
+    #   ⇒ **独立**写锁（不能复用 `self.lock` 之类 ⇒ 那是实例级、
+    #     且非可重入 ⇒ 会自死锁）。
+    with _OUT_WLOCK:
         try:
-            buf.write(data.encode('utf-8', 'replace'))
-            buf.flush()
-            return
+            buf = getattr(sys.stdout, 'buffer', None)
         except Exception:
-            pass
-    # 🔴 文本流（或**根本没有** stdout ⇒ pythonw）
-    w = getattr(sys.stdout, 'write', None)
-    if w is None:
-        return                       # 🔴 pythonw：**静默丢掉**，不抛异常
-    try:
-        w(data)
-        fl = getattr(sys.stdout, 'flush', None)
-        if fl is not None:
-            fl()
-    except Exception:
-        pass                       # 🔴 任何 stdout 故障都**不能**影响功能
+            buf = None
+        if buf is not None:
+            try:
+                buf.write(data.encode('utf-8', 'replace'))
+                buf.flush()
+                return
+            except Exception:
+                pass
+        # 🔴 文本流（或**根本没有** stdout ⇒ pythonw）
+        w = getattr(sys.stdout, 'write', None)
+        if w is None:
+            return                       # 🔴 pythonw：**静默丢掉**，不抛异常
+        try:
+            w(data)
+            fl = getattr(sys.stdout, 'flush', None)
+            if fl is not None:
+                fl()
+        except Exception:
+            pass                       # 🔴 任何 stdout 故障都**不能**影响功能
 
 
 def emit(obj: dict):
@@ -132,7 +172,6 @@ def emit(obj: dict):
 
 def log(msg: str):
     _out_write(str(msg))
-
 
 # ── APP-021②：每句一行播放遥测 ────────────────────────────────────────
 def _fmt_telemetry(tel: dict) -> str:
@@ -154,184 +193,225 @@ def _fmt_telemetry(tel: dict) -> str:
                (' [静音合成]' if tel.get('silent_synth') else '')))
 
 
-class RingBuffer:
-    """线程安全的 float32 环形缓冲（**整句原子写入 + 写满时阻塞**）。
+class AudioQueue:
+    """🔴🔴🔴 APP-028②：**无界内存音频队列**（生产者 / 消费者）。
 
-    ## 语义（C-101 第 3 条）
+    ## 为什么必须换成无界队列（用户 13:22 原话）
 
-    原实现是「写满时丢最旧的样本」—— **不行**：
-    在播放层丢样本会让一句话中间突然被切掉，听感很差。
+    > 「语音播放的时候，直接连续推理 TTS 音频流，不要等待播放完成，
+    >   还没有播放的部分存内存缓存，这样提高系统利用率，
+    >   **不要使用丢句这个方式**。」
 
-    现在的语义：
-    1. **整句原子写入**：`write()` 要么整句进去，要么整句不进（不会出现半句）。
-    2. **写满时阻塞（反压）**：调用方（合成线程）被 `write()` 阻塞住，
-       合成自然暂停，音频播放追上来后写入继续。
-       这就是「缓冲容量 ≥ 2 块」的意义：宁可合成慢，不要播放断句。
-    3. **丢弃不在这一层做**：整句级丢弃由 `tts_service` 层负责
-       （丢的是**尚未开始播放**的整句），见 C-101 P4 第 2 条。
+    旧实现（`RingBuffer`）是**有界**环形缓冲（3 s）+ **写满阻塞（反压）**：
+    - 合成线程写满 ⇒ 被 `write()` **阻塞** ⇒ 合成被迫降速到播放速度
+      ⇒ **完全没有「连续推理」**，也拿不到「提高系统利用率」的好处；
+    - 主进程侧再叠一层 `BACKLOG_MAX_S = 8` 的**丢句**逻辑
+      ⇒ RTF 稍大于 1 就开始丢用户要听的句子（用户实测「越拖越久、最后全丢」）。
 
-    实现：用 `threading.Condition` 做生产者-消费者同步。
+    ⇒ 本类实现 **APP-028② 的明文要求**：
+      1. **合成线程拿到 final 译文就连续合成**，不等上一句播完；
+      2. 音频块写进**内存里的无界队列**（按句保持顺序、句内按块）；
+      3. **播放回调只从队列取数据**；队列空了 ⇒ 输出静音 + 计一次欠载
+         （**不丢句**）；
+      4. **不设丢句上限**。
 
-    ## 🔴🔴 APP-027① 改 numpy 存储（2026-10-27）
+    ## 保序（句间不交叉）
 
-    旧实现是 **Python list 逐样本循环**：
-        for j in range(take):
-            self._buf[self._w] = data[i + j]
-    ⇒ 一块 0.64 s（约 15k 样本）要跑 15k 次 Python 层赋值，**且写入期间
-      持有 `_cv`** ⇒ 播放回调被锁挡住 ⇒ 在 RTF 接近 1 时**放大欠载**
-      （APP-027 问题② 的实现层开销之一）。
+    队列是**块级 FIFO**：合成线程按句→块顺序 `put`，播放回调按同一顺序 `get`
+    ⇒ 句内块顺序、句与句顺序都严格保持 ⇒ 不会交叉。
 
-    现在改成：**预分配 numpy float32 环形数组 + 切片拷贝**。
-    - 写入：`self._buf[w:w+take] = data[i:i+take]`（C 层 memcpy）
-    - 读取：**一次切片** `out = self._buf[r:r+take].copy()`（回绕时两段）
-    - 锁**只保护索引**（`_w` / `_r` / `_count`），**不覆盖数据拷贝**
+    ## 🔴 内存与「语音滞后」
 
-    ⚠️ 语义**完全不变**：分片写入、写满阻塞（反压）、不丢样本、不切断句子。
+    队列**无界** ⇒ 若 RTF > 1（合成比播放慢），队列会**持续增长**
+    ⇒ 这正是 APP-028 要求 GUI 底栏显示「**语音滞后 X 秒**」的原因：
+      **不丢句**的代价就是滞后会累积，必须让用户看得见。
+    ⇒ 本类同时维护：
+      - `n_written` / `n_read`（样本数，与旧环形缓冲同口径 ⇒ 遥测字段兼容）
+      - `lag_s`（队列里尚未播放的样本时长 ⇒ **语音滞后秒数**）
+      - `peak_lag_s` / `peak_bytes`（峰值，供验收报告）
+
+    ## ⚠️ 与旧 `RingBuffer` 的兼容
+
+    保留了旧类**同名方法**（`write` / `read` / `level` / `close`）与
+    **同名计数器**（`n_written` / `n_read` / `n_blocks` / `_cap`）
+    ⇒ 遥测字段（`read_delta` / `ring_level` / `ring_cap`）与
+    `results/app/tts_audible_criterion.py` 的**出声判据**全部不受影响。
+
+    🔴 `n_blocks` 语义**变了**：旧版 = 「因写满而阻塞的次数」；
+       新版 = 「**队空**导致播放回调补静音的次数」（= 欠载次数）
+       ⇒ 这正是 APP-028② 要的「队列空了就输出静音，同时计一次欠载」。
     """
 
     def __init__(self, capacity: int = SR * 30, timeout_s: float = 30.0):
+        # 🔴 兼容旧字段：`_cap` 仍存在（遥测里报 `ring_cap`）
+        #   ⚠️ 新实现**没有容量上限** ⇒ `_cap` 只是一个**名义值**，
+        #      不再参与任何截断逻辑（不丢样本 ⇒ 绝不截断）。
         self._cap = capacity
-        # 🔴 预分配 float32 环形数组（一次分配，容量固定）
-        try:
-            import numpy as _np
-            self._buf = _np.zeros(capacity, dtype=_np.float32)
-            self._np = _np
-        except Exception:
-            # 🔴 numpy 不可用 ⇒ 退化到 list（**不崩**，只是慢）
-            self._buf = [0.0] * capacity
-            self._np = None
-        self._w = 0
-        self._r = 0
-        self._count = 0
+        self.timeout_s = timeout_s
         self._cv = threading.Condition()
         self._closed = False
-        self.timeout_s = timeout_s
-        self.n_written = 0
-        self.n_read = 0              # 累计被播放回调取走的样本数（诊断用）
-        self.n_blocks = 0            # 因写满而阻塞的次数
-        # 🔴 播放回调**完全没消费**时的判定阈值：超过这么久没有任何进展
-        #    ⇒ 直接抛「回调没消费」而不是傻等 30 s（见 write() 的说明）。
-        self.stall_s = min(5.0, float(timeout_s))
+        # 🔴 队列元素 = `[numpy float32 块, 句子 jid, 该块在本句内的起始样本偏移]`
+        #   ⇒ 播放回调可据此判断「这句播完了没有」（供 `played` 语义）。
+        self._chunks: list = []
+        self._cur_off = 0                # 队首块已取走的样本数（分片取用）
+        self._queued_samples = 0         # 队列里尚未被取走的样本数
+        self.n_written = 0               # 累计写入的样本数（与旧环形缓冲同口径）
+        self.n_read = 0                  # 累计被播放回调取走的样本数
+        self.n_blocks = 0                # 🔴 新语义：**队空次数**（= 欠载次数）
+        self.n_underflow = 0             # 欠载次数（与 Player.n_underflow 对齐）
+        self.n_silence_fill = 0          # 补了多少个静音样本
+        self._sr = SR
+        # 🔴 峰值（验收报告要「队列峰值（秒和 MB）」）
+        self.peak_lag_s = 0.0
+        self.peak_bytes = 0
 
-    def write(self, data, should_stop=None):
-        """整句写入 —— **按空位分片推进**（不再要求「整句一次装下」）。
+    # -- 生产者 -------------------------------------------------------
+    def write(self, data, should_stop=None, jid=None, offset=0):
+        """把一块音频**追加**到队尾（**永不阻塞、永不丢弃**）。
 
-        🔴🔴 **2026-10-25 修（用户反馈「语音输出无论 NPU/GPU 都听不到声音」）**：
+        🔴 与旧 `write()` 的**根本区别**：
+          旧：有界环形缓冲，写满 ⇒ **阻塞**（反压）⇒ 合成被迫降速；
+          新：**无界** ⇒ 写进去就走 ⇒ 合成线程可以**连续推理**。
 
-           旧实现是「**整句原子写入**」：:
+        `should_stop`：可选无参可调用对象；返回 True 时**中止本句**
+        （返回 False），已入队的部分留在队列里自然播完（不制造爆音）。
 
-               while self._count + n > self._cap:   # 等播放消费
-                   ...
-
-           ⇒ **只要整句样本数 n > 容量，`count + n > cap` 就永远成立**
-             （`count` 最小是 0：`0 + n > cap`）⇒ 等满 `timeout_s` 必然
-             `TimeoutError` ⇒ 该句被判「合成失败（已丢弃）」⇒ **一声都不响**。
-
-           实测（`results/app/app044_player_probe.py`）：
-             - 容量 = `sr*3` = **72 000 样本（3.00 s）**；
-             - BabelVox 一句 19 字 = **138 240 样本（5.76 s）**；
-             - ⇒ **每一句都 > 容量 ⇒ 每一句都必然写入失败**。
-             - ⚠️ **与设备/精度/NPU/GPU 全都无关**；也**与回调在不在跑无关**
-               —— 实测「有消费者」时仍然超时（70 次回调、消费 0 样本），
-               因为要求的是「整句一次装下」，消费再多也腾不出 138 240 个空位。
-
-           ⇒ 现改为**分片写入**：缓冲一有空位就写一段，直到整句写完。
-             **仍然不丢样本、不切断句子**（语义不变），只是不再要求「一次装下」。
-             `n_blocks` 仍记录「被反压阻塞的次数」，供诊断。
-
-        `should_stop`：可选的无参可调用对象；返回 True 时**中止**本句
-        （返回 False），已写入的部分留在缓冲里自然播完（不制造爆音）。
+        返回 True = 整块已入队；False = 被中止。
         """
         n = len(data)
         if n == 0:
             return True
-        # 🔴 numpy 路径：把输入转成 float32 一维数组（**只做一次**）
-        if self._np is not None:
-            arr = self._np.asarray(data, dtype=self._np.float32)
+        if should_stop is not None and should_stop():
+            return False
+        try:
+            import numpy as _np
+            arr = _np.asarray(data, dtype=_np.float32)
             if arr.ndim > 1:
                 arr = arr.reshape(-1)
-        else:
+        except Exception:
             arr = data
-        i = 0
-        last_progress = time.monotonic()
-        base_read = self.n_read
-        while i < n:
-            if should_stop is not None and should_stop():
-                return False
-            with self._cv:
-                if self._closed:
-                    raise RuntimeError('环形缓冲已关闭')
-                if self._count < self._cap:
-                    space = self._cap - self._count
-                    take = min(space, n - i)
-                    w = self._w
-                    if self._np is not None:
-                        # 🔴 切片拷贝（C 层），**回绕时拆两段**
-                        if w + take <= self._cap:
-                            self._buf[w:w + take] = arr[i:i + take]
-                        else:
-                            first = self._cap - w
-                            self._buf[w:] = arr[i:i + first]
-                            self._buf[:take - first] = arr[i + first:i + take]
-                    else:
-                        for j in range(take):
-                            self._buf[(w + j) % self._cap] = arr[i + j]
-                    self._w = (w + take) % self._cap
-                    self._count += take
-                    self.n_written += take
-                    i += take
-                    self._cv.notify_all()
-                    continue
-                # ── 缓冲已满 ⇒ 等播放消费（反压）──
-                if self.n_read != base_read:
-                    base_read = self.n_read
-                    last_progress = time.monotonic()
-                stalled = time.monotonic() - last_progress
-                if stalled > self.stall_s:
-                    # 🔴 把「30 s 静默挂起」变成一条**能定位**的报错
-                    raise RuntimeError(
-                        '播放回调没有消费音频（%.1f s 无进展：容量 %d，已有 %d，'
-                        '累计已写 %d，累计已读 %d）⇒ 请检查播放设备是否被占用/静音'
-                        % (stalled, self._cap, self._count,
-                           self.n_written, self.n_read))
-                self.n_blocks += 1
-                self._cv.wait(timeout=min(0.5, max(0.05,
-                                                    self.stall_s - stalled)))
+        with self._cv:
+            if self._closed:
+                raise RuntimeError('音频队列已关闭')
+            self._chunks.append((arr, jid, int(offset)))
+            self._queued_samples += int(arr.size)
+            self.n_written += int(arr.size)
+            # 🔴 峰值（验收报告要「队列峰值（秒 / MB）」）
+            lag = self._queued_samples / float(self._sr or SR or 1)
+            if lag > self.peak_lag_s:
+                self.peak_lag_s = lag
+            nbytes = sum(int(a.nbytes) for a, _j, _o in self._chunks)
+            if nbytes > self.peak_bytes:
+                self.peak_bytes = nbytes
+            self._cv.notify_all()
         return True
 
-    def read(self, n) -> list:
+    # -- 消费者 -------------------------------------------------------
+    def read(self, n):
+        """取**至多 n** 个样本（不足就少给 ⇒ 调用方补静音）。
+
+        🔴 与旧 `read()` 的区别：**不等待**。
+          旧：环形缓冲空 ⇒ `read()` 立刻返回空（播放回调补静音）—— 一样；
+          新：队列空 ⇒ 立刻返回空（**播放回调补静音 + 计欠载**）—— 一样。
+        ⇒ **播放语义没变**，只是「空」的含义从「缓冲瞬时为空」
+          变成「队列已排空（合成跟不上播放）」。
+        """
         with self._cv:
-            take = min(n, self._count)
-            if take <= 0:
+            if not self._chunks:
                 return []
-            r = self._r
-            if self._np is not None:
-                # 🔴 **一次切片**（回绕时两段）⇒ 不再有逐样本 Python 循环
-                if r + take <= self._cap:
-                    out_arr = self._buf[r:r + take].copy()
-                else:
-                    first = self._cap - r
-                    out_arr = self._np.concatenate(
-                        (self._buf[r:], self._buf[:take - first]))
-            else:
-                out = []
-                for _ in range(take):
-                    out.append(self._buf[r])
-                    self._buf[r] = 0.0
-                    r = (r + 1) % self._cap
-                self._cv.notify_all()
-                self.n_read += len(out)
-                return out
-            self._r = (r + take) % self._cap
-            self._count -= take
-            self.n_read += take
-            self._cv.notify_all()
-            # 🔴 返回 **numpy 数组**（播放回调直接用，不再需要 tolist()）
-            return out_arr
+            need = int(n)
+            out_parts = []
+            got = 0
+            while self._chunks and got < need:
+                arr, _jid, _off = self._chunks[0]
+                remain = int(arr.size) - self._cur_off
+                take = min(need - got, remain)
+                if take <= 0:
+                    # 上一块的尾巴已经取完 ⇒ 弹出这一块
+                    self._chunks.pop(0)
+                    self._cur_off = 0
+                    continue
+                out_parts.append(arr[self._cur_off:self._cur_off + take])
+                self._cur_off += take
+                got += take
+                if self._cur_off >= int(arr.size):
+                    self._chunks.pop(0)
+                    self._cur_off = 0
+            self._queued_samples = max(0, self._queued_samples - got)
+            self.n_read += got
+            if not out_parts:
+                return []
+            try:
+                import numpy as _np
+                if len(out_parts) == 1:
+                    return out_parts[0].copy()
+                return _np.concatenate(out_parts)
+            except Exception:
+                flat = []
+                for p in out_parts:
+                    try:
+                        flat.extend(p.tolist())
+                    except Exception:
+                        flat.extend(list(p))
+                return flat
 
     def level(self) -> int:
+        """队列里**尚未播放**的样本数。"""
         with self._cv:
-            return self._count
+            return self._queued_samples
+
+    def lag_s(self, sr: int = 0) -> float:
+        """🔴🔴 APP-028②：**语音滞后秒数**（队列里还没播的音频时长）。
+
+        ⇒ GUI 底栏显示「语音滞后 X 秒」用的就是它。
+        """
+        with self._cv:
+            n = self._queued_samples
+        s = float(sr or self._sr or SR)
+        return (n / s) if s > 0 else 0.0
+
+    def drop_jid(self, jid) -> int:
+        """🔴🔴 APP-028②：**把某一句已入队的音频整句摘掉**。
+
+        用途：**用户主动停止 / 切换会话**时，把这一句**还没播完**的音频
+        从队列里去掉 ⇒ 避免「半句话突然被切断」（爆音 + 语义残缺）。
+
+        🔴 **为什么以前会出现「半句被切断」**：
+          旧实现里 `cancel` 只是给句子打一个标记 ⇒ `synth()` 在**块之间**
+          检查到标记就 `break` ⇒ 但**已经写进缓冲的那部分音频还在**
+          ⇒ 播放回调照样把它播出来 ⇒ 用户听到的是「一句话说到一半没了」。
+          ⇒ 这就是 APP-028 明文要删的「**中止已写入句子**」的路径。
+
+        返回被摘掉的样本数（0 = 这一句不在队列里）。
+        """
+        if jid is None:
+            return 0
+        with self._cv:
+            keep = []
+            removed = 0
+            for arr, j, off in self._chunks:
+                if j == jid:
+                    removed += int(arr.size)
+                else:
+                    keep.append((arr, j, off))
+            if not removed:
+                return 0
+            self._chunks = keep
+            self._cur_off = 0
+            self._queued_samples = max(0, self._queued_samples - removed)
+            return removed
+
+    def clear(self) -> int:
+        """🔴🔴 APP-028②：**清空整个队列**（用户手动停止 / 切换会话时）。
+
+        返回被清掉的样本数。
+        """
+        with self._cv:
+            removed = int(self._queued_samples)
+            self._chunks = []
+            self._cur_off = 0
+            self._queued_samples = 0
+            return removed
 
     def close(self):
         with self._cv:
@@ -568,20 +648,26 @@ def _describe_out(sd, dev):
 
 
 class Player:
-    """sounddevice 输出流 + 环形缓冲。
+    """sounddevice 输出流 + **无界内存音频队列**（APP-028②）。
 
-    音频回调在独立线程里跑（sounddevice 自己开线程），从环形缓冲取数据。
-    缓冲欠载时补静音（不补静音会爆音）。
+    音频回调在独立线程里跑（sounddevice 自己开线程），从队列取数据。
+    队列欠载时补静音（不补静音会爆音）**并计一次欠载**（**不丢句**）。
+
+    🔴🔴 APP-028② 的架构变更：
+      旧：合成线程 → **有界 3 s 环形缓冲**（写满阻塞）→ 播放回调
+          ⇒ 合成被反压卡住，无法连续推理；
+      新：合成线程 → **无界内存队列**（写入即走）→ 播放回调
+          ⇒ 合成**连续推理**，未播放部分留在内存缓存里
+          ⇒ 代价 = 语音滞后会累积 ⇒ 底栏显示「语音滞后 X 秒」。
     """
 
     def __init__(self, device=None, sr: int = SR):
         import sounddevice as sd
         self.sr = sr
-        # 容量 ≥ 2 块（约 2–3 s）：写满时靠阻塞反压，不靠丢样本
-        # （C-101 第 3 条：播放层丢样本会让一句话中间被切断）。
-        # 🔴 容量只影响「反压多早触发」，**不再影响能否写进去**
-        #    （write() 已改为分片推进，见其 docstring）。
-        self.ring = RingBuffer(capacity=sr * 3, timeout_s=30.0)
+        # 🔴🔴 APP-028②：**无界**内存队列（`AudioQueue`）。
+        #   `capacity` 只作为**名义容量**（遥测字段 `ring_cap` 保留同名），
+        #   **不再有任何截断 / 反压 / 丢样本逻辑**。
+        self.ring = AudioQueue(capacity=sr * 3, timeout_s=30.0)
         self._sd = sd
         self._stream = None
         self._lock = threading.Lock()
@@ -652,9 +738,17 @@ class Player:
         n = len(data)
         if n < frames:
             # 🔴 APP-021②：欠载计数（诊断用；不影响播放语义）
+            # 🔴🔴 APP-028②：队空 = 欠载 ⇒ 补静音 + 计一次欠载，**绝不丢句**。
             self.n_underflow += 1
             miss = frames - n
             self.n_silence_fill += miss
+            # 同步到队列（`n_blocks` 新语义 = 队空次数）
+            try:
+                self.ring.n_underflow = self.n_underflow
+                self.ring.n_silence_fill = self.n_silence_fill
+                self.ring.n_blocks += 1
+            except Exception:
+                pass
             # 🔴🔴 APP-027②：登记**欠载事件**（位置 + 静音样本数 + 时刻）
             #   ⇒ 之后能区分「句内欠载」与「首块前空等」。
             self._uf_events.append((pos_before, miss, time.monotonic()))
@@ -693,10 +787,16 @@ class Player:
                 in_ms += miss
         return pre_n, pre_ms, in_n, in_ms
 
-    def write(self, wav, should_stop=None):
+    def write(self, wav, should_stop=None, jid=None, offset=0):
+        """把一块音频写进**无界队列**（不阻塞、不丢弃）。
+
+        🔴 APP-028②：`jid` / `offset` 会随块一起入队（供后续按句判定
+        「这句播完没有」），旧调用方不传也不受影响。
+        """
         if self._stream is None:
             raise RuntimeError('播放流未打开（无法播出声音）')
-        return self.ring.write(wav, should_stop=should_stop)
+        return self.ring.write(wav, should_stop=should_stop, jid=jid,
+                               offset=offset)
 
     # 🔴🔴 APP-021①：**等音频真的被播放回调取走**（而不是"写进缓冲"）。
     #
@@ -747,6 +847,10 @@ class Player:
                 n_blocks=ring.n_blocks,
                 ring_level=ring.level(),
                 ring_cap=ring._cap,
+                # 🔴🔴 APP-028②：**语音滞后秒数**（队列里还没播的音频时长）
+                lag_s=(ring.lag_s(self.sr) if hasattr(ring, 'lag_s') else 0.0),
+                peak_lag_s=getattr(ring, 'peak_lag_s', 0.0),
+                peak_bytes=getattr(ring, 'peak_bytes', 0),
                 stream_open=(self._stream is not None),
             )
         except Exception as e:
@@ -825,6 +929,18 @@ class TTSWorker:
         #   ⇒ 现在：**一个**合成线程 + `queue.Queue`（FIFO）⇒ 顺序有保证。
         self._synth_q: 'queue.Queue' = queue.Queue()
         self._synth_thread = None
+        # ── 🔴🔴🔴 APP-028②：**独立的「等播完」看门狗线程** ──
+        #   起因（APP-028② 明文）：「语音播放的时候，**直接连续推理** TTS
+        #   音频流，**不要等待播放完成**，还没有播放的部分存内存缓存」。
+        #   ⇒ 旧实现里 `synth()` 结尾要 `wait_consumed()` 等本句音频
+        #     **真的被声卡取走**才发 `played` ⇒ **合成线程被播放速度卡住**
+        #     ⇒ 根本谈不上「连续推理」。
+        #   ⇒ 现在：合成线程写完音频**立刻返回**（继续下一句），
+        #     由**独立的看门狗线程**按 FIFO 顺序等「播完」并发 `played`。
+        #   🔴 FIFO 保序：看门狗用一个 `queue.Queue` ⇒ `played` 的顺序
+        #      == 合成的顺序（APP-027④ 的顺序保证**不能破**）。
+        self._played_q: 'queue.Queue' = queue.Queue()
+        self._played_thread = None
         # ── 🔴🔴🔴 APP-027②：**RTF 的 EWMA**（用于逐句自适应预缓冲）──
         #   `rtf` = 合成耗时 / 音频时长 ⇒ >1 表示「追不上播放」。
         #   预缓冲量 = `est_dur × (1 − 1/RTF_ewma)`（RTF ≤ 1 ⇒ 只留 0.3 s 底线）。
@@ -1624,40 +1740,40 @@ class TTSWorker:
 
         # 🔴🔴 APP-021①：**等音频真的被播放回调取走**再发 `played`。
         #   旧行为：写进环形缓冲就发 ⇒ `played` ≠ 出声（缓冲还有 3 s 没播）。
-        if not self.out_wav and self.player is not None:
-            target = target_written
-            ok, diag = self.player.wait_consumed(
-                target, timeout_s=30.0,
-                should_stop=lambda: (self._is_cancelled(jid)
-                                     or self._stop.is_set()))
-            tel['consumed'] = ok
-            if not ok:
-                msg = ('音频未被播放完（%s）' % diag)
-                log(f'[tts_worker] 🔴 句子 id={jid}：{msg}')
-                emit({'kind': 'error', 'id': jid, 'message': msg,
-                      'telemetry': tel})
-                self._record_jsonl(jid, text, t_submit, dur_s=dur,
-                                   t_first=t_first, error=msg, tel=tel)
-                return
-            # 🔴🔴 **必须在这里重算遥测**！
-            #   上面的快照是**写完缓冲那一刻**的 ⇒ `read_delta` 只统计到
-            #   「此刻已被取走」的部分（实测 68 608 / 本句 120 960）
-            #   ⇒ **判据「n_read 增量 ≥ 本句样本数」会被误判成失败**。
-            #   ⇒ 等播完之后重算 ⇒ `read_delta` 才是「本句期间真正被取走的量」。
-            tel = self._telemetry_snapshot(n_samples, n_parts, peak, rms_dbfs,
-                                           n_nan + n_inf, base_cb, base_read,
-                                           base_underflow)
-            tel['rms'] = round(rms, 6)
-            tel['n_inf'] = n_inf
-            tel['consumed'] = ok
-            if silent:
-                tel['silent_synth'] = True
-            # 🔴🔴 APP-027②：**播完之后重算**欠载切分
-            #   （此刻 `last_chunk_end` 才是终值 ⇒ 「句内」的切分才准）
-            self._fill_app027_telemetry(tel, t_dequeue, t_first, t_last,
-                                        dur, prebuffer_s, prebuffer_short,
-                                        first_chunk_start, last_chunk_end)
-            log('[tts_worker] 遥测 id=%d %s' % (jid, _fmt_telemetry(tel)))
+        #
+        # 🔴🔴🔴 APP-028②：**这里不再等**！
+        #   APP-028② 明文：「语音播放的时候，**直接连续推理** TTS 音频流，
+        #   **不要等待播放完成**，还没有播放的部分存内存缓存」
+        #   ⇒ 合成线程**必须**在写完音频后**立刻返回**（继续下一句）；
+        #   否则合成被播放速度卡住 ⇒ 谈不上「连续推理」。
+        #   ⇒ 「等播完 + 发 `played`」挪到**独立的看门狗线程**（`_played_loop`）。
+        #   🔴 **保序**：看门狗只从 `queue.Queue` 取 ⇒ `played` 的顺序
+        #      == 合成的顺序（APP-027④ 的顺序保证**不能破**）。
+        wait_play = (not self.out_wav) and (self.player is not None)
+        if wait_play:
+            # 🔴🔴 **超时口径必须跟着滞后走**：
+            #   队列无界 ⇒ 一句可能在队列里排很久（滞后累积）
+            #   ⇒ 固定 30 s 会把「只是还没轮到它播」误判成「音频没播完」
+            #   ⇒ 用户看到「失败 N 句」，而实际声音正常。
+            #   ⇒ 超时 = 「按当前队列剩余时长」+ 30 s 余量。
+            try:
+                _sr = float(self.sr or SR)
+                _ring = self.player.ring
+                pending_s = max(0.0, (target_written - _ring.n_read) / _sr)
+            except Exception:
+                pending_s = 0.0
+            self._played_q.put(dict(
+                jid=jid, text=text, t_submit=t_submit, dur=dur,
+                t_first=t_first, t_dequeue=t_dequeue, t_last=t_last,
+                latency=latency, silent=silent, target=target_written,
+                timeout_s=pending_s + 30.0,
+                n_samples=n_samples, n_parts=n_parts, peak=peak,
+                rms=rms, rms_dbfs=rms_dbfs, nan_inf=n_nan + n_inf,
+                base_cb=base_cb, base_read=base_read,
+                base_underflow=base_underflow,
+                prebuffer_s=prebuffer_s, prebuffer_short=prebuffer_short,
+                first_chunk_start=first_chunk_start,
+                last_chunk_end=last_chunk_end))
 
         # 🔴🔴 APP-027②：把本句实测 RTF / 秒每字记进 EWMA
         #   ⇒ 下一句的预缓冲与积压估算都用**本会话实测**校准。
@@ -1670,11 +1786,89 @@ class TTSWorker:
                 self._synth_jid = None
                 self._synth_rem_s = 0.0
 
+        if not wait_play:
+            # 🔴 落盘模式 / 无播放器 ⇒ 不等播放，直接定案（保持旧语义）
+            self._record_jsonl(jid, text, t_submit, dur_s=dur, t_first=t_first,
+                               tel=tel)
+            emit({'kind': 'played', 'id': jid,
+                  'dur_s': round(dur, 3),
+                  'latency_s': round(latency, 3),
+                  'telemetry': tel})
+
+    # -- 🔴🔴🔴 APP-028②：**播放看门狗线程**（等播完 ⇒ 发 played）────
+    def _played_loop(self):
+        """🔴🔴🔴 APP-028②：独立的「等播完」看门狗线程。
+
+        职责：等「本句音频真的被声卡取走」⇒ 再发 `played` + 落 jsonl。
+
+        🔴 **为什么不能放在合成线程里**（APP-028② 明文）：
+          「语音播放的时候，直接连续推理 TTS 音频流，不要等待播放完成」
+          ⇒ 合成线程一旦等播放，就被**播放速度**卡住
+          ⇒ 合成只能以播放速率进行 ⇒ 完全没有「提高系统利用率」。
+
+        🔴 **FIFO 保序**：本线程只从 `queue.Queue` 取
+          ⇒ `played` 的顺序 == 合成的顺序（APP-027④ 的顺序保证不能破）。
+        """
+        while True:
+            try:
+                job = self._played_q.get(timeout=0.2)
+            except queue.Empty:
+                if self._stop.is_set():
+                    return
+                continue
+            if job is None:
+                return
+            try:
+                self._finish_played(job)
+            except Exception:
+                import traceback
+                log('[tts_worker] 🔴 播放看门狗异常：'
+                    + traceback.format_exc())
+
+    def _finish_played(self, job: dict):
+        """等本句播完 ⇒ 发 `played`（APP-021① 的出声语义，APP-028② 挪到看门狗）。"""
+        jid = job['jid']
+        text = job['text']
+        t_submit = job['t_submit']
+        dur = job['dur']
+        t_first = job['t_first']
+        ok, diag = self.player.wait_consumed(
+            job['target'], timeout_s=job['timeout_s'],
+            should_stop=lambda: (self._is_cancelled(jid)
+                                 or self._stop.is_set()))
+        if not ok:
+            msg = ('音频未被播放完（%s）' % diag)
+            log(f'[tts_worker] 🔴 句子 id={jid}：{msg}')
+            emit({'kind': 'error', 'id': jid, 'message': msg})
+            self._record_jsonl(jid, text, t_submit, dur_s=dur, t_first=t_first,
+                               error=msg)
+            return
+        # 🔴🔴 **必须在这里重算遥测**（APP-021①）：
+        #   合成线程那边的快照是「写完队列那一刻」⇒ `read_delta` 只统计到
+        #   「此刻已被取走」的部分 ⇒ 判据「n_read 增量 ≥ 本句样本数」
+        #   会被误判成失败。
+        #   ⇒ 等播完之后重算 ⇒ `read_delta` 才是「本句期间真正被取走的量」。
+        tel = self._telemetry_snapshot(
+            job['n_samples'], job['n_parts'], job['peak'], job['rms_dbfs'],
+            job['nan_inf'], job['base_cb'], job['base_read'],
+            job['base_underflow'])
+        tel['rms'] = round(job['rms'], 6)
+        tel['n_inf'] = job['nan_inf']
+        tel['consumed'] = ok
+        if job['silent']:
+            tel['silent_synth'] = True
+        # 🔴🔴 APP-027②：**播完之后重算**欠载切分
+        #   （此刻 `last_chunk_end` 才是终值 ⇒ 「句内」的切分才准）
+        self._fill_app027_telemetry(
+            tel, job['t_dequeue'], job['t_first'], job['t_last'],
+            job['dur'], job['prebuffer_s'], job['prebuffer_short'],
+            job['first_chunk_start'], job['last_chunk_end'])
+        log('[tts_worker] 遥测 id=%d %s' % (jid, _fmt_telemetry(tel)))
         self._record_jsonl(jid, text, t_submit, dur_s=dur, t_first=t_first,
                            tel=tel)
         emit({'kind': 'played', 'id': jid,
-              'dur_s': round(dur, 3),
-              'latency_s': round(latency, 3),
+              'dur_s': round(job['dur'], 3),
+              'latency_s': round(job['latency'], 3),
               'telemetry': tel})
 
     # -- 🔴🔴🔴 APP-027②：遥测拆字段 ---------------------------------
@@ -1837,6 +2031,20 @@ class TTSWorker:
             for k in _APP027_JSONL_KEYS:
                 if k in tel:
                     row[k] = tel[k]
+        # 🔴🔴🔴 APP-028②：队列水位 / 峰值（**验收要「队列峰值（秒和 MB）」**）
+        #   ⚠️ 不依赖 `tel` ⇒ 失败/丢句的行也能带上水位（诊断用）。
+        try:
+            p = self.player
+            if p is not None and p.ring is not None:
+                _sr = float(self.sr or SR)
+                row['queue_lag_s'] = round(p.ring.lag_s(_sr), 3)
+                row['queue_peak_s'] = round(
+                    float(getattr(p.ring, 'peak_lag_s', 0.0)), 3)
+                row['queue_peak_mb'] = round(
+                    float(getattr(p.ring, 'peak_bytes', 0)) / (1024.0 * 1024.0),
+                    3)
+        except Exception:
+            pass
         self._jsonl_rows.append(row)
         # 实时追加到文件（崩溃也能留下已完成的行）
         if self._jsonl_path:
@@ -2117,25 +2325,33 @@ class TTSWorker:
                 qest = {k: float(v or 0.0)
                         for k, v in self._synth_queue_est.items()}
                 spc = self._sec_per_char
-            # 🔴🔴🔴 APP-027④：**环形缓冲里实际剩下的样本时长**（只算一次）。
+            # 🔴🔴🔴 APP-028②：**无界队列里实际剩下的样本时长**（只算一次）。
             #   ⚠️ 旧口径是「每个已写入的句子按 min(3.0, dur) 各算一次」
             #      ⇒ 两句同时已写入就按最多 6 s 计 ⇒ **高估积压** ⇒ 多丢句
             #      （APP-027 问题③① 的根因之一）。
-            #   ⇒ 现在：直接读**缓冲实际水位**（上限 3 s = 缓冲容量）。
+            #   ⇒ 现在：直接读**队列实际水位**。
+            #   🔴🔴 APP-028②：队列**无界** ⇒ **不再截断到 3 s**
+            #      （截断会让主进程低估滞后 ⇒ 用户看不到真实的「越拖越久」）。
             ring_s = 0.0
+            lag_s = 0.0
             try:
                 p = self.player
                 if p is not None and p.ring is not None:
                     sr = float(self.sr or p.sr or SR)
-                    ring_s = min(3.0, p.ring.level() / sr)
+                    ring_s = p.ring.level() / sr
+                    # 🔴 APP-028②：**语音滞后秒数**（= 队列里还没播的音频时长）
+                    lag_s = p.ring.lag_s(sr) if hasattr(p.ring, 'lag_s') else ring_s
             except Exception:
                 ring_s = 0.0
+                lag_s = 0.0
             emit({'kind': 'synth_state',
                   'synth_jid': jid,
                   'synth_rem_s': round(rem, 3),
                   'queue_ids': qids,
                   'queue_est_s': qest,
                   'ring_backlog_s': round(ring_s, 3),
+                  # 🔴🔴 APP-028②：**语音滞后**（底栏显示「语音滞后 X 秒」）
+                  'lag_s': round(lag_s, 3),
                   # 🔴 APP-027④：实测「音频秒/字」⇒ 主进程估时用同一口径
                   #   （**不写死 5 字/秒**）
                   'sec_per_char': (round(float(spc), 5)
@@ -2161,6 +2377,12 @@ class TTSWorker:
         self._synth_thread = threading.Thread(target=self._synth_loop,
                                               daemon=True)
         self._synth_thread.start()
+
+        # 🔴🔴🔴 APP-028②：**播放看门狗线程**（等播完 ⇒ 发 `played`）
+        #   ⇒ 合成线程**不等播放** ⇒ 可以连续推理。
+        self._played_thread = threading.Thread(target=self._played_loop,
+                                               daemon=True)
+        self._played_thread.start()
 
         # 🔴🔴 APP-021§54.10：**按字节读 stdin**。
         #   起因：主进程为了正确解码 stderr（GBK/utf-8 混编码），
@@ -2225,14 +2447,28 @@ class TTSWorker:
                 self._synth_q.put((jid, text, spk, spk_conf))
                 self._emit_synth_state()
             elif cmd == 'cancel':
-                # 主进程判定积压超限，丢弃这一句（整句为单位，C-101 P4 第 2 条）
+                # 🔴🔴🔴 APP-028②：**cancel 的语义已变**。
+                #   旧语义：主进程因**积压超限**丢句 ⇒ 通知 worker 别播这句。
+                #   ⇒ **该路径已整段删除**（见 `tts_service._update_backlog`）
+                #      ⇒ 主进程**不再**因积压下发 cancel。
+                #   新语义：**用户主动停止 / 切换会话** ⇒ 整句摘除。
+                #   🔴 **关键**：「中止已写入句子」的路径（APP-028 明文要删）
+                #      在这里被**替换**为「**把整句从队列里摘掉**」
+                #      ⇒ 不是「播到一半切断」，而是「这一句**根本没播**」。
                 jid = msg.get('id')
                 with self._cancel_lock:
                     self._cancelled.add(jid)
-                # 🔴🔴🔴 APP-027④：**cancel 只把队列条目标记为丢弃**。
+                # 🔴 APP-028②：**整句摘除**（已入队的那部分也不播了）
+                removed = 0
+                try:
+                    if self.player is not None and self.player.ring is not None:
+                        removed = self.player.ring.drop_jid(jid)
+                except Exception:
+                    removed = 0
+                # 🔴🔴🔴 APP-027④：cancel 把句子标记为丢弃。
                 #   ⇒ 若是**还在 FIFO 里排队**（还没开始合成）的句子
                 #      ⇒ 直接把它从队列状态里摘掉（否则主进程一直以为
-                #      它还在排队 ⇒ 积压高估 ⇒ 又多丢几句）。
+                #      它还在排队 ⇒ 积压高估）。
                 #   ⇒ 若是**正在合成**的 ⇒ 由 `synth()` 内部的逐块检查处理。
                 with self._synth_state_lock:
                     try:
@@ -2242,8 +2478,26 @@ class TTSWorker:
                     self._synth_queue_est.pop(jid, None)
                     self._synth_text.pop(jid, None)
                 self._emit_synth_state()
-                log(f'[tts_worker] 收到丢弃指令 id={jid}')
+                log(f'[tts_worker] 收到丢弃指令 id={jid}'
+                    f'（已从队列摘除 {removed} 样本）')
                 emit({'kind': 'dropped', 'id': jid, 'count': 1})
+            elif cmd == 'clear_queue':
+                # 🔴🔴🔴 APP-028②：**用户手动停止 / 切换会话时清空队列**。
+                #   APP-028 明文：「用户手动停止或切换会话时才清空队列」
+                #   ⇒ 这是**唯一**允许清空队列的入口。
+                #   🔴 顺带把「已取消」的标记清掉（下一轮会话是新的一句）
+                #      ⇒ 否则新一轮的 jid 撞上旧标记会被误丢。
+                n = 0
+                try:
+                    if self.player is not None and self.player.ring is not None:
+                        n = self.player.ring.clear()
+                except Exception:
+                    n = 0
+                with self._cancel_lock:
+                    self._cancelled.clear()
+                self._emit_synth_state()
+                log(f'[tts_worker] 队列已清空（{n} 样本）')
+                emit({'kind': 'queue_cleared', 'removed_samples': int(n)})
             elif cmd == 'clone':
                 # 克隆说话人：更新最近 ≥3 s 的 16 kHz PCM 的条件
                 try:
@@ -2278,6 +2532,12 @@ class TTSWorker:
                 emit({'kind': 'dump_dir', 'dir': d})
 
         self._stop.set()
+        # 🔴🔴🔴 APP-028②：**叫停播放看门狗线程**（否则它会一直阻塞在
+        #   `wait_consumed` 里 ⇒ 进程退不干净）。
+        try:
+            self._played_q.put_nowait(None)
+        except Exception:
+            pass
         if self.player is not None:
             self.player.close()
         # 🔴🔴 APP-027⑤：**删除克隆临时文件**（隐私：会话结束即清）

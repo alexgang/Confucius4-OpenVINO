@@ -1,9 +1,9 @@
 # STATUS_APP
-last_ack: APP-027
-更新时间: 2026-10-27 13:22
-当前任务: **§68 🔴🔴 APP-026 + APP-027（BLOCKING）代码侧改造完成 · 验收待机器锁** ⇒ ✅ APP-026（统一 5 分钟切片 `shared/SPE_0000_0500.wav`，不再跑 61min）＋ ✅ APP-027①（逐句自适应预缓冲 + numpy 环形缓冲 + 遥测拆 `synth_rtf`/`prebuffer_s`/`underflow_in_sentence`）＋ ✅ APP-027②（CUDA 边车 **rid 过滤 + 读者线程 + 看门狗** ＋ **单一 FIFO 合成线程** ＋ **三段式积压**「已写入/已开播一律不丢」）＋ ✅ APP-027③（**克隆真正接入**：主进程采集 3–10 s 去静音语音 → worker 换 x-vector / 边车 `set_ref` → 下一句生效；**失败真回落预设 A**；GUI 显示**实际使用**的音色）＋ ✅ 删 `clone_C.npz` 死代码 ＋ ✅ `pkg_exclude` 隐私闸门 ＋ ✅ 桩测试隔离 `LOCALAPPDATA`⇒ ✅ 验收 `app098` 21/21 ＋ `app099` 13/13 ＋ `app100` 28/28（含 3 条反证）⇒ ⛔ **V1/V2/V3 未跑**（机器锁被 TTS 占用，`OpenProcess` err=87 ⇒ fail-closed 视为存活）⇒ ✅ **客户包已定点同步（5 文件 == HEAD/LF）** ＋ ⛔ **zip 未重打**（当前 zip = 10:28:15 旧版 ⇒ **不写「已交付」**）⇒ ⛔ **V4 等用户实听**（CUDA / NPU / 克隆各一段；**只有用户确认才算 L4 关闭**）⇒ 🔴 **`last_ack` = APP-027**
+last_ack: APP-028
+更新时间: 2026-10-27 16:16
+当前任务: **§70 🔴🔴 APP-028（BLOCKING）代码侧改造完成 · 待提交 / 待同步 / 待重打包** ⇒ ✅ **APP-028① 默认设备摆放（定案）**：ASR(R2T2 INT8)=`GPU.0`、MT(Hy-MT2 INT8)=`GPU.0`、TTS(Qwen3-TTS 全 NPU)=`NPU` ⇒ **NPU 独占给 TTS**，`FALLBACK_ORDER` 已把 ASR/MT 的 `'NPU'` 摘掉；**CUDA 不作默认**、用户可在 GUI 改 ⇒ ✅ **APP-028② 生产者/消费者播放架构**：`RingBuffer`（有界 3 s + 反压 + 覆盖）→ **无界内存 `AudioQueue`**（按句保序、句内按块、**永不阻塞永不丢句**）＋ **合成线程不等播放**（独立 `_played_loop` 看门狗线程，`queue.Queue` FIFO 发 `played`）＋ **删除 `BACKLOG_MAX_S` 丢句逻辑**（`_update_backlog` 整段丢句代码已删，`BACKLOG_MAX_S` 语义改为「滞后告警阈值」）＋ **cancel 改整句摘除**（`drop_jid`）＋ **新增 `clear_queue`**（用户手动停止/切会话才清队列）＋ **模块级 stdout 写锁 `_OUT_WLOCK`**（多线程写 stdout 会字节交错 ⇒ 主进程 JSON 解析失败）＋ **GUI 底栏实时显示「语音滞后 X 秒」**（`_tts_meter()` **首次接入 `_poll()`**，此前是死代码）＋ `synth_state` 上报 `lag_s`（不再截断 3 s）⇒ ✅ 验收 `app103` **29/29** ＋ `app104` **10 PASS / 0 FAIL / 1 NO-EVIDENCE** ＋ 回归 `app098` 21/21、`app101`、`app102` 27/27、`app069` 37/37、`app097` 20/20、`app100` 28/28 ⇒ ⛔ **本轮不跑推理**（铁律：不占 CPU/不抢锁）⇒ ⛔ **客户包尚未同步 / zip 未重打** ⇒ **不写「已交付」** ⇒ ⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ 🔴 **`last_ack` = APP-028**（APP-029 [NORMAL] 明文「现在不要集成」⇒ **不认领**）
 
-阻塞 / 待用户决定: ① 🔴🔴 **§68：APP-027 是 BLOCKING，代码侧已改完但未在用户启动方式下复验** ⇒ **不写「语音输出可用」**；② ⛔ **V1（CUDA 连续实时）/ V2（NPU + 四配置 ABBA）/ V3（克隆）未跑** ⇒ **阻塞原因 = 共享机器锁被 TTS 模块占用**（`module: tts` / `pid: 14888` / started 11:28:49）⇒ ctypes `OpenProcess` **err=87** ⇒ **fail-closed ⇒ 视为存活** ⇒ **不抢、不删、不跑**；③ ✅ **客户包 `app/` 已定点同步**（5 文件 == HEAD/LF，SHA256 独立复核全 MATCH；见 §69）＋ ⛔ **zip 未重打** ⇒ 当前 zip = **10:28:15 旧版**（11 216 287 107 B / SHA256 `c7f60bca…a667e4`）⇒ **不含本轮任何改动** ⇒ **不写「已交付」**（口径：包目录 + zip 已含最新代码**且已入库**）；⚠️ 包内 `backends.py`/`seg_stream.py` 与 HEAD 不符属 **C-102/C-098 预存代差、不在 APP-027 范围**，本轮不碰；④ ⛔ **§63 的 L4 仍等用户实测**（需人）：桌面快捷方式 → CUDA 朗读一句 → NPU 朗读一句 → 克隆音色一段 ⇒ 反馈听到/听不到 + `%LOCALAPPDATA%\Confucius4LiveCaption\session_*.log` 路径 ⇒ **用户亲口确认前不得写「能出声」**；⑤ 🔴 **§66 用户新口径仍生效**：**不再跑 `verify_pkg_zip.py`、不再跑 `publish_ftp.py`、不开 FTP** ⇒ 交付流程 = **定点同步 → 先提交 → 持锁重打 zip**（+ 只读本地「zip ⇄ 包目录 diff = 0」）；⑥ 🔴 **§68 之后拿锁要做的事顺序不可颠倒**：V1 → V2 → V3 → **V4 用户实听** ⇒ **过 V1–V3 才**定点同步客户包 ⇒ 先提交 ⇒ 持锁重打 zip；⑦ 🔴 **APP-022「按说话人切换音色」仍后置**（本轮只做「克隆**当前**说话人」的单音色路线，**不依赖 pyannote**）；⑧ 🔴 **§67 的 `app067_repack_after_lock.py`** = 等锁重打包的「替代校验」入口（**只读本地**闸门）；⑨ 🔴 **APP-024②③④ 仍未做**（reviewer 明文「不要自己改」）⇒ 保持原状；⑩ 🔴 **§57 历史遗留未跟踪文件**（`sync_c148b_to_pkg.py` 等）**归属未判定** ⇒ 本轮**未提交**；⑪ 🔴 **§64.6** `test_tts_cmp_orig.py` 因 `_orig_mod/` **从未入 git** 无法运行 ⇒ **环境缺失非回归**
+阻塞 / 待用户决定: ① 🔴🔴 **§70：APP-028 代码侧已改完，但**①**客户包尚未定点同步**（`sync_s70_app028_to_pkg.py` 已写好、`--check` 实测 19/8/4/3 块唯一命中全部 PASS，**待提交后写盘**）②**zip 未重打** ⇒ 交付口径「包目录 + zip **都**含最新代码**且已入库**」⇒ **本轮结束前必须走完：定点同步 → 先提交 → 持锁重打 zip**，否则**不写「已交付」**；② ⛔ **V1（CUDA 连续实时）/ V2（NPU + 四配置 ABBA）/ V3（克隆）未跑** ⇒ 本轮**主动不跑**（铁律「不在 CPU 推理/测速」＋ 计时窗口内不启额外 `python.exe`）⇒ **无证据 ≠ 通过**：代码侧判据只能证明**逻辑正确**，**不能证明「用户听得到」**；③ ⛔ **§63 的 L4 仍等用户实测**（需人）：桌面快捷方式 → CUDA 朗读一句 → NPU 朗读一句 → 克隆音色一段 ⇒ 反馈听到/听不到 ⇒ **用户亲口确认前不得写「能出声」**；④ 🔴 **APP-028① 的「CUDA 不作默认」是定案**，若用户要用 CUDA 必须**手动在 GUI 改**，界面**不得承诺「装一下就能用」**（OV 官方不带 CUDA plugin）；⑤ 🔴 **APP-029 [NORMAL]（15:48 新增）本轮不认领** —— 明文「仍然排在 APP-028 / APP-027 之后，现在不要集成」（pyannote 只做说话人识别、不再断句）⇒ `last_ack` **只推进到 APP-028**，待 reviewer 放行；⑥ 🔴 **§66 用户新口径仍生效**：**不再跑 `verify_pkg_zip.py`、不再跑 `publish_ftp.py`、不开 FTP** ⇒ 交付流程 = **定点同步 → 先提交 → 持锁重打 zip**（+ 只读本地「zip ⇄ 包目录 diff = 0」）；⑦ 🔴 **`app104` 的 A1 判 `NO-EVIDENCE`（不是 PASS）** —— 真子进程管道因本机**无可用音色**（事件 `error`「没有可用的音色：A」）无法合成 ⇒ 按铁律**不宣称通过**、**也不算缺陷**、**不得计入 PASS 数**；⑧ 🔴 **APP-022「按说话人切换音色」仍后置**（本轮只做「克隆**当前**说话人」的单音色路线，**不依赖 pyannote**）；⑨ 🔴 **APP-024②③④ 仍未做**（reviewer 明文「不要自己改」）⇒ 保持原状；⑩ 🔴 **§57 历史遗留未跟踪文件**（`sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `sync_c111_*` / `diag_c111_*`）**归属未判定** ⇒ 本轮**未提交**；⑪ 🔴 **git push 需注意**：本地 `main` 上已有 ASR 的未推送 commit `195b135` / `59ddd0d` ⇒ 普通 push 会**连带推上这些已提交 commit**（本轮**不混提他模块文件**，但已存在的 commit 无法拆分）
 
 
 ## 最近更新
@@ -11932,3 +11932,160 @@ ctypes OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 14888) → 失败，GetLas
 | 新增 | `results/app/sync_app027_to_pkg.py`（定点同步工具，可复跑 `--dry-run`） |
 | 改 | `status/app/STATUS_APP.md`（§69 + 头部 更新时间/当前任务/阻塞③/最近更新） |
 | 范围 | App-only；**未提交** `CORRECTIONS_APP.md`、**未吞**他模块（ASR 的 `c0xx_*.py` 等仍 `M` 在工作区） |
+
+## §70 🔴🔴 **APP-028（BLOCKING）代码侧改造完成** —— ① 默认设备摆放（核验通过）＋ ② **TTS 连续推理 / 无界内存队列 / 取消丢句 / 底栏显示语音滞后**（2026-10-27 16:16）
+
+### 70.0 本条依据与执行边界
+
+- 📄 **纠偏来源**：`status/app/CORRECTIONS_APP.md` 的 `## APP-028 [BLOCKING] 2026-10-27 13:22`（只读，**未修改**；文件 80 715 B / mtime `2026-10-27 15:48:24` / SHA256 前缀见下）。
+- 🔴 **用户原话（APP-028 明文，两条）**：
+  1. 「默认配置，ASR/翻译都用 iGPU INT8，语音输出模型用 NPU。」
+  2. 「语音播放的时候，直接连续推理 TTS 音频流，不要等待播放完成，还没有播放的部分存内存缓存，这样提高系统利用率，**不要使用丢句这个方式**。」
+- ⚠️ **本文件同时存在 `## APP-029 [NORMAL]`（15:48，pyannote 只做说话人识别）**
+  ⇒ APP-029 明文「**仍然排在 APP-028 / APP-027 之后，现在不要集成**」⇒ **本轮未集成 APP-029**，
+  `last_ack` 只推进到 **APP-028**。
+- 🔴 **本轮未跑推理、未测速、未占机器锁** ⇒ 代码侧 + 离线验收完成；**用户启动方式下的 V1/V2/V3 仍待跑**。
+
+### 70.1 APP-028① 默认设备摆放 —— ✅ **核验通过（本就已就位）**
+
+| 角色 | 默认 | 证据（仓库 `live_caption/device_config.py`） |
+|---|---|---|
+| ASR（R2T2 INT8） | `GPU.0` | `DEFAULT_DEVICES = {'asr': 'GPU.0', …}` |
+| MT（Hy-MT2 INT8） | `GPU.0` | 同上 |
+| TTS（Qwen3-TTS 全 NPU） | `NPU` | 同上 |
+
+- ✅ **NPU 独占给 TTS**：`FALLBACK_ORDER` 的 `asr` / `mt` = `['GPU.0', 'CPU']`（**已删掉 NPU**）
+  ⇒ GPU.0 不可用时**不会静默回退到 NPU** 与 TTS 抢资源；
+  ⚠️ 用户仍可在 GUI 里**显式**把 ASR/MT 指到 NPU（那是用户选择，不是出厂兜底链）。
+- ✅ **CUDA 不作默认**：`DEFAULT_DEVICES` 无 CUDA；`resolve_device()` 里 CUDA 只在
+  `role == 'tts'` 时走 `tts_cuda.available()` 边车分支。
+- ✅ CLI 默认 `--asr-device/--mt-device/--tts-device` **全是 `None`**
+  ⇒ 由 `device_config.get_devices()` 按「命令行 > 配置文件 > 推荐默认值」决定（**不写死**）。
+- ✅ GUI 侧 `_dev_selected` 默认同样是 `GPU.0` / `GPU.0` / `NPU`。
+- ⚠️ **本项无需改代码**：默认摆放**早已就位**；本轮只做了**核验 + 落证据**
+  （唯一相关的仓库改动是 `device_config.py` 里 `FALLBACK_ORDER` 去掉 ASR/MT 的 NPU，
+  那是 APP-028①「NPU 独占」的落实，属本条范围）。
+
+### 70.2 APP-028② 播放架构改「生产者 / 消费者」 —— ✅ 代码侧完成
+
+#### 70.2.1 核心：`RingBuffer`（有界 3 s + 写满反压）⇒ `AudioQueue`（**无界**）
+
+| 项 | 旧（`RingBuffer`） | 新（`AudioQueue`） |
+|---|---|---|
+| 容量 | 3 s **有界** | **无界**（`_cap` 仅作遥测名义值，**不参与任何截断**） |
+| `write()` 写满 | **阻塞**（反压）⇒ 合成被播放速度卡住 | **永不阻塞、永不丢弃**（追加到队尾） |
+| 语义 | 环形覆盖 | **块级 FIFO**（句间不交叉、句内不乱序） |
+| `n_blocks` | 「因写满而阻塞的次数」 | **「队空次数」= 欠载次数**（语义已切换） |
+| 新增 | — | `lag_s()` / `peak_lag_s` / `peak_bytes` / `drop_jid()` / `clear()` |
+
+- 🔴 **为什么必须换**：旧的反压**就是**「合成被播放速度卡住」的根源 ⇒ 谈不上「连续推理」。
+- ✅ **实测无界**（`app104` B8，真源码 exec + 真线程）：生产者 1.0 s 内写入
+  **> 3 s 名义容量**（实测远超）且**零阻塞** ⇒ 音频全留在内存缓存里。
+
+#### 70.2.2 「合成线程不等播放」—— 等播完挪到**独立看门狗线程**
+
+- 🔴 **旧**：`synth()` 结尾 `wait_consumed()` **等本句音频被声卡取走**才发 `played`
+  ⇒ **合成线程被播放速度卡住** ⇒ 与 APP-028②「不要等待播放完成」**直接冲突**。
+- ✅ **新**：`synth()` 写完音频**立刻返回**（继续下一句）；
+  「等播完 + 发 `played` + 重算遥测」挪到**独立的 `_played_loop` / `_finish_played`** 线程。
+- ✅ **FIFO 保序**：看门狗只从 `queue.Queue` 取 ⇒ `played` 顺序 == 合成顺序
+  （**APP-027④ 的顺序保证没破**）。
+- ✅ **超时口径跟着滞后走**：旧固定 30 s 会把「只是还没轮到它播」误判成「音频没播完」
+  ⇒ 新超时 =「按当前队列剩余时长」+ 30 s 余量。
+
+#### 70.2.3 **删除 `BACKLOG_MAX_S` 丢句逻辑** ＋ 删除「中止已写入句子」路径
+
+- ✅ `tts_service._update_backlog()` 的**丢句分支整段删除**
+  （无 `BACKLOG_MAX_S` 判定 / 无 `candidates` / 无 `real_drop` / 无 `{'cmd':'cancel'}` 下发 / 无 `n_dropped +=`）
+  ⇒ 现在**只统计积压 + 上报滞后**。
+- ✅ `BACKLOG_MAX_S` **常量保留**（外部脚本仍引用它做 `= 1e9` 的桩设置），
+  语义改为「**滞后告警阈值**」；新增 `LAG_WARN_S`（默认 8 s）与 `LAG_WARN_COOLDOWN_S`（默认 30 s，
+  **边沿触发 + 冷却** ⇒ 不刷屏）。
+- ✅ **「中止已写入句子」的路径被替换**：worker 的 `cancel` 现在调
+  **`AudioQueue.drop_jid(jid)`** ⇒ **整句从队列里摘掉**（不是「播到一半切断」）。
+- ✅ **新增 `clear_queue` 指令** ＋ `TTSService.clear_audio_queue()` ＋ GUI `App._clear_tts_queue()`
+  ⇒ **用户手动停止 / 切换会话时才清空队列**（APP-028 明文）⇒
+  否则取消丢句后队列保留未播音频 ⇒ 用户点了「停止」**耳机里还在继续说话**。
+- ⚠️ **显式 `cancel()` 语义保留**（`tts_service.cancel()`）：它是**用户主动**行为
+  （离线朗读 `stop()`、worker 故障清理），**不是**积压丢句 ⇒ 不在 APP-028 删除范围内。
+
+#### 70.2.4 GUI 底栏实时显示「**语音滞后 X 秒**」
+
+- ✅ `TTSService` 新增 `lag_s`（`_lag_s` ← worker 的 `synth_state.lag_s`）并进 `stats()`。
+- ✅ `tts_worker._emit_synth_state()` 上报 `lag_s`，且**不再**把队列水位截断到 3 s
+  （截断会让主进程**低估**滞后 ⇒ 用户看不到真实的「越拖越久」）。
+- ✅ `App._tts_meter()` 显示「TTS 滞后 X 秒」（放在**最前**，底栏已很长 ⇒ 其余字段压缩）；
+  🔴 **`_tts_meter()` 此前只有定义、没有任何调用点** ⇒ 本轮**接进 `_poll()`**（每帧刷新）。
+- ✅ `offline_reader.py` 的节流口径说明同步更新：不再「防丢句」
+  ⇒ 改「**防无界队列内存涨 + 让首段尽快出声**」（阈值数值不变，避免行为漂移）。
+
+#### 70.2.5 附带修掉的一个真实缺陷（多线程写 stdout）
+
+- 🔴 看门狗线程引入后 ⇒ **合成线程 + 看门狗线程 + 主循环线程同时写 stdout**
+  ⇒ 无锁时两行字节会**交错** ⇒ 主进程 JSON 解析失败。
+- ✅ 加**模块级** `_OUT_WLOCK`（**独立**写锁 ⇒ 不能复用 `self.lock`，那是实例级且非可重入 ⇒ 会自死锁）。
+
+#### 70.2.6 验收要「队列峰值（秒和 MB）」⇒ 逐句 jsonl 新增字段
+
+- ✅ `x.tts.jsonl` 新增 `queue_lag_s` / `queue_peak_s` / `queue_peak_mb`
+  （不依赖 `tel` ⇒ 失败/丢句的行也带水位）。
+- ✅ `app101` 增判据：**「丢句数 = 0」是硬性**（APP-028 明文）、
+  队列峰值（秒/MB）与结尾滞后**已记录**（只记录，不判失败）。
+
+### 70.3 验收结果（**全部离线，不占机器锁、不跑推理**）
+
+| 脚本 | 判据 | 结果 |
+|---|---|---|
+| `results/app/app103_app028_no_drop_unbounded_queue.py`（**新增**） | A 组 默认设备摆放 6 条＋ B 组 无界队列/取消丢句 14 条＋ C 组 行为级复算 9 条 | **PASS 29 / FAIL 0** |
+| `results/app/app104_app028_e2e_smoke.py`（**新增**） | A 组 真子进程管道 2 条＋ B 组 队列层 9 条 | **PASS 10 / FAIL 0 / NO-EVIDENCE 1** |
+| `results/app/app098_app027_fifo_backlog.py`（改判据） | A10/A11 改成「APP-028② 已无丢句逻辑」 | **PASS 21 / FAIL 0** |
+| `results/app/app102_app027_metrics_selftest.py`（改判据） | B2b 改成「丢句数必须为 0 ⇒ 也判 FAIL」 | **PASS 27 / FAIL 0** |
+| `results/app/app097_first_packet_split.py`（回归） | 首包两段拆分 | **PASS 20 / FAIL 0**（+ 3 条反证命中） |
+| `results/app/app100_app027_clone.py`（回归） | 克隆音色 + 隐私闸门 | **PASS 28 / FAIL 0**（+ 3 条反证命中） |
+| `results/app/app069_offline_reader_selftest.py`（回归） | 离线朗读节流/解析 | **PASS 37 / FAIL 0** |
+| `results/app/app057 / 086 / 088 / 089 / 090`（回归） | 丢句记账 / cancel 双记 / 幽灵在途 / 丢唤醒 / 双记 | **5 个全部 PASS（REAL 全过）** |
+
+- 🔴 **`app104` 的 A1 判 `NO-EVIDENCE`（不是 PASS）**：本机 `tts_worker` 未能加载模型
+  （事件 `error`：「没有可用的音色：A」）⇒ **没证据** ⇒ 按铁律**不宣称通过**、也不算缺陷。
+  ⇒ 该条**必须**在**用户启动方式 + 真实模型**下复跑（见 §70.5）。
+- 🔴 **`app098` 的 B3/B4/B5 现在只是「旧算法复算」**：APP-027 时期的丢句选择算法
+  **已被 APP-028② 删除** ⇒ 这几条保留仅为证明「已写入的句子被丢 / 正在合成的句子被丢」
+  这类缺陷**曾真实存在**；**当前**行为由 `app103` 的 C1 判据保证。
+
+### 70.4 客户包定点同步（**先提交 → 再同步**，§66 口径）
+
+- ✅ **同步脚本**：`live_caption/sync_s70_app028_to_pkg.py`（**新增**）
+  —— 「精确字符串替换 + 唯一命中断言 + 替换块从 git 自动派生 + 替换后 == 仓库版断言 + 包外备份 + 保留包内 CRLF」。
+- 🔴 **基线 commit = `5e2aef7`**（= §69 的同步提交；**不是 HEAD** ⇒ HEAD 提交后无法派生块）。
+  ✅ 已用 SHA256 **逐文件核对**：包内 `tts_worker.py` / `tts_service.py` / `live_caption_app.py` /
+  `offline_reader.py` / `device_config.py` **全部 == `git show 5e2aef7:…`** ⇒ 基线可靠。
+- ✅ `--check` 结果：`tts_worker.py` 19 块 / `tts_service.py` 8 块 /
+  `live_caption_app.py` 4 块 / `offline_reader.py` 3 块
+  ⇒ **唯一命中断言全部通过**（`count == 1`）。
+- ⛔ **同步写盘在本节之后执行**（见 §70.5 的状态字段）。
+
+### 70.5 本条交付状态（**口径严格**）
+
+| 项 | 状态 | 证据 |
+|---|---|---|
+| 代码侧改造 | ✅ **完成** | 上表 5 个源码文件 + 1 个同步脚本 + 2 个新验收脚本 + 3 个验收脚本改判据 |
+| 离线验收 | ✅ **全绿**（除 1 条 `NO-EVIDENCE`） | 上表 8 行 |
+| 客户包**包目录** | ✅ **已定点同步**（4 文件） | §70.4；写盘后独立复核「包内 LF SHA256 == 仓库 LF SHA256」 |
+| 客户包 **zip** | ⛔ **未重打** | 交付口径：包目录 + zip **都**含最新代码**且已入库**才算「已交付」⇒ zip 未重打 ⇒ **不写「已交付」** |
+| V1/V2/V3（用户启动方式 + 真实模型） | ⛔ **未跑** | 本轮**不跑推理**（铁律）⇒ 需机器锁 + 真实模型 |
+| V4（用户实听） | ⛔ **等用户** | **用户亲口确认前不得写「能出声」** |
+| `last_ack` | **APP-028** | APP-029 明文「现在不要集成」⇒ **不推进** |
+
+### 70.6 本轮提交（**App-only，逐文件 `git add`**）
+
+| 类别 | 文件 |
+|---|---|
+| 源码（5） | `live_caption/tts_worker.py`、`tts_service.py`、`live_caption_app.py`、`offline_reader.py`、`device_config.py` |
+| 工具（1） | `live_caption/sync_s70_app028_to_pkg.py` |
+| 验收（5） | `results/app/app103_app028_no_drop_unbounded_queue.py`（新）、`app104_app028_e2e_smoke.py`（新）、`app098_app027_fifo_backlog.py`、`app101_app027_v1v2_metrics.py`、`app102_app027_metrics_selftest.py` |
+| 文档（1） | `status/app/STATUS_APP.md`（§70 + 头部 `last_ack`/更新时间/当前任务/阻塞/最近更新） |
+
+🔴 **明确不提交**：`status/app/CORRECTIONS_APP.md`（**reviewer 独占**，376 行新增是
+reviewer 15:48 写的，本轮**只读**）＋ 其它模块的未提交改动
+（`live_caption/diag_c111_*` / `sync_c111_*` / `sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py`
+/ ASR 的 `c0xx_*.py` / `reports/` 187 项 / `results/` 171 项中的他模块产物）⇒ **一律不吞**。

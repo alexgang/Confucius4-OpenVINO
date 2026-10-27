@@ -107,8 +107,15 @@ def _no_window_flag() -> dict:
         return {}
     return {'creationflags': getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000)}
 
-# 积压上限（秒）：超过就丢最旧的未播句
+# 🔴🔴🔴 APP-028②：**积压上限已取消**（不再丢句）。
+#   保留这个名字（外部脚本 / 文档可能引用）⇒ 但**只作为「滞后告警阈值」**：
+#   超过它 ⇒ 只在日志里提示「语音滞后 X 秒」⇒ **绝不丢句**。
+#   ⚠️ APP-027④ 的丢句实现已**整段删除**（见 `_update_backlog`）。
 BACKLOG_MAX_S = float(os.environ.get('LIVECAP_TTS_BACKLOG_MAX', '8'))
+# 🔴 APP-028②：语音滞后的**告警阈值**（秒）—— 只提示、不丢句。
+LAG_WARN_S = float(os.environ.get('LIVECAP_TTS_LAG_WARN', '8'))
+# 🔴 APP-028②：滞后告警的**冷却**（秒）—— 防止刷屏
+LAG_WARN_COOLDOWN_S = float(os.environ.get('LIVECAP_TTS_LAG_WARN_CD', '30'))
 # 单句最长（秒）：防止异常长句卡住
 MAX_TEXT_CHARS = int(os.environ.get('LIVECAP_TTS_MAX_CHARS', '200'))
 
@@ -369,6 +376,14 @@ class TTSService:
         self._wqueue_ids: List = []
         self._queue_est_s: dict = {}
         self._sec_per_char = None
+        # 🔴🔴 APP-028②：**语音滞后秒数**（队列里还没播的音频时长）。
+        #   ⇒ 这是「用户实际听到的延迟」；`backlog_s` 是「系统内部总积压」。
+        #   ⇒ GUI 底栏显示「语音滞后 X 秒」用的就是它。
+        self._lag_s = 0.0
+        self.lag_s = 0.0
+        # 🔴 APP-028②：滞后告警的边沿触发 + 冷却（避免刷屏）
+        self._lag_warned = False
+        self._lag_warn_last = 0.0
         # 🔴 APP-027④：积压的三段明细（诊断用）
         self.backlog_parts: dict = dict(ring_s=0.0, synth_s=0.0,
                                         queued_s=0.0)
@@ -1446,6 +1461,15 @@ class TTSService:
                         msg.get('ring_backlog_s') or 0.0)
                 except Exception:
                     self._ring_backlog_s = 0.0
+                # 🔴🔴 APP-028②：**语音滞后秒数**（队列里还没播的音频时长）
+                #   ⇒ 底栏显示「语音滞后 X 秒」。
+                #   ⚠️ worker 是旧版（没这个字段）时回落成队列水位。
+                try:
+                    _lag = msg.get('lag_s')
+                    self._lag_s = (float(_lag) if _lag is not None
+                                   else float(self._ring_backlog_s or 0.0))
+                except Exception:
+                    self._lag_s = float(self._ring_backlog_s or 0.0)
                 self._wqueue_ids = list(msg.get('queue_ids') or [])
                 qe = msg.get('queue_est_s') or {}
                 self._queue_est_s = {int(k): float(v)
@@ -1513,6 +1537,20 @@ class TTSService:
         return self._send({'cmd': 'test_tone', 'freq': freq,
                            'dur_s': dur_s, 'amp': amp})
 
+    # 🔴🔴🔴 APP-028②：**用户手动停止 / 切换会话** ⇒ 清空队列。
+    def clear_audio_queue(self) -> bool:
+        """🔴🔴🔴 APP-028②：让 worker **清空音频队列**。
+
+        APP-028 明文：「**用户手动停止或切换会话时才清空队列**」
+        ⇒ 这是**唯一**允许清空的入口（正常播放期间**绝不**清空）。
+
+        🔴 为什么需要清空：APP-028② 取消了丢句 ⇒ 队列会保留所有已合成
+          但还没播的音频 ⇒ 用户手动停止后，若不清空 ⇒ 停止之后**声音还在继续**
+          ⇒ 用户以为「停了」但耳机里还在说话。
+        ⇒ 同时也把「已取消」标记清掉（下一轮会话是新的一句）。
+        """
+        return self._send({'cmd': 'clear_queue'})
+
     # 🔴 APP-021②：拉一次播放器遥测（不含模型）。
     def request_telemetry(self) -> bool:
         return self._send({'cmd': 'telemetry'})
@@ -1568,30 +1606,29 @@ class TTSService:
         return float(n) * 0.12
 
     def _update_backlog(self):
-        """🔴🔴🔴 APP-027④：**三段式积压口径** + 「只丢没开始合成的整句」。
+        """🔴🔴🔴 APP-028②：**只统计积压，不再丢句**。
 
-        🔴 **口径（APP-027 明文）**：
-            积压 = ① 环形缓冲里**实际剩下**的样本时长（只算一次，最多 3 s）
+        🔴🔴🔴 **APP-028② 的明文要求**（用户 2026-10-27 13:22 原话）：
+
+        > 「语音播放的时候，直接连续推理 TTS 音频流，不要等待播放完成，
+        >   还没有播放的部分存内存缓存，这样提高系统利用率，
+        >   **不要使用丢句这个方式**。」
+
+        ⇒ 本方法**不再有任何丢句分支**：
+          - 不再选候选（`_queued_ids` / `_wqueue_ids`）；
+          - 不再下发 `{'cmd':'cancel'}`；
+          - 不再 `n_dropped += ...`。
+        ⇒ 代价 = **语音滞后会累积**（RTF > 1 时）⇒ 必须让用户看得见：
+          `backlog_s` / `backlog_parts` / `lag_s` 全部照常上报，
+          GUI 底栏显示「语音滞后 X 秒」。
+
+        🔴 **口径不变**（APP-027④ 的三段式仍保留，只是不再用于丢句）：
+            积压 = ① 音频队列里**实际剩下**的样本时长（只算一次，**不截断**）
                  + ② **正在合成的句子**的剩余预计时长
                  + ③ **排队中**（还没开始合成）的句子的预计时长
 
-        🔴🔴 **旧口径的三个错**（APP-027 问题③①③ 的根因）：
-        - 旧：**每个「已写入」的句子各按 `min(3.0, dur_s)` 计一次**
-          ⇒ 两句同时已写入 ⇒ 按最多 **6 s** 计 ⇒ **高估积压**
-          ⇒ ⇒ **多丢句**（用户实测「CUDA 连续播放越拖越久、最后全部被丢」）。
-          ⇒ 现在：① 直接读 **worker 报的缓冲实际水位**
-            （`synth_state` 的 `ring_backlog_s`）⇒ **只算一次**。
-        - 旧：**字数估算写死**「中文 5 字/秒、英文 15 字符/秒」
-          ⇒ 与实测偏差大 ⇒ 积压估算失真。
-          ⇒ 现在：用 **worker 实测的「音频秒/字」**
-            （`synth_state` 的 `sec_per_char`）⇒ 没有实测值时才用兜底。
-        - 旧：丢句时**把已写入 / 已开始播的句子也放进候选**
-          ⇒ 「丢了不减少积压」（APP-027 问题③②）
-          ⇒ 用户听到的是「刚播完的句子被丢」⇒ 越播越少。
-          ⇒ 现在：**已写入 / 正在合成 / 已开始播的句子一律不丢**，
-            只丢**还没开始合成的整句**（从最旧的开始）。
-
-        ⚠️ **worker 还没 ready 时不丢句**（2026-10-22 修）—— 保留原语义。
+        ⚠️ **不丢句 ≠ 不记账**：`n_dropped` 只在**真正失败**的路径
+        （命令送不出去 / worker 故障 / 显式 cancel）里增加。
         """
         with self.lock:
             pending_map = dict(self.pending)
@@ -1599,7 +1636,7 @@ class TTSService:
             self.backlog_s = 0.0
             return
 
-        # ── ① 环形缓冲实际水位（worker 报）──
+        # ── ① 音频队列实际水位（worker 报）──
         ring_s = float(self._ring_backlog_s or 0.0)
 
         # ── ② 正在合成的句子：剩余预计时长 ──
@@ -1624,75 +1661,28 @@ class TTSService:
         self.backlog_parts = dict(ring_s=round(ring_s, 3),
                                   synth_s=round(synth_rem, 3),
                                   queued_s=round(queued_s, 3))
+        # 🔴🔴 APP-028②：**语音滞后**（队列里还没播的音频时长）
+        #   ⇒ 与 `backlog_s`（含排队句）**分开报**：
+        #     前者是「用户实际听到的延迟」，后者是「系统内部的总积压」。
+        self.lag_s = float(self._lag_s or 0.0)
 
-        if est > BACKLOG_MAX_S:
-            # ⚠️ **worker 还没 ready ⇒ 只记录，不丢**（见本方法 docstring）
-            if self.state != 'ready':
-                self.on_log(f'[TTS] 积压 {est:.1f}s（模型尚未就绪，暂不丢弃）')
-                return
-            # 🔴🔴🔴 APP-027④：**只丢「还没开始合成」的整句**。
-            #   候选 = ① 还在主进程 `_queue` 里（没下发给 worker）的
-            #        ② 已下发但 worker 侧还在 FIFO 队列里排队的
-            #   ⇒ **绝不动**：正在合成的（`synth_jid`）、已写入缓冲的、已播的。
-            candidates = []
-            with self.lock:
-                # ① 主进程还没下发的（最旧优先）
-                for jid in list(self._queued_ids):
-                    if jid in self.pending and jid not in candidates:
-                        candidates.append(jid)
-                # ② worker FIFO 里排队的（最旧优先）
-                for jid in qids:
-                    if jid in self.pending and jid not in candidates:
-                        candidates.append(jid)
-            # ⚠️ **绝不丢正在合成的那句**
-            if synth_jid is not None and synth_jid in candidates:
-                candidates.remove(synth_jid)
-            if not candidates:
-                self.on_log(
-                    f'[TTS] 积压 {est:.1f}s > {BACKLOG_MAX_S}s，但**没有可丢的'
-                    f'未开始合成的整句**（正在合成/已写入的句一律不丢）')
-                return
-            # 🔴 APP-027④：「丢时按『至少降到阈值以下』计算，**不要每次多丢一句**」
-            #   ⇒ **从当前积压 `est` 起算**，逐句丢，**降到阈值以下就停**
-            #      （不是「丢一批」也不是「多丢一句」）。
-            real_drop = []
-            with self.lock:
-                acc = est
-                for jid in candidates:
-                    if acc <= BACKLOG_MAX_S:
-                        # 已经降到阈值以下 ⇒ **停**（不要多丢）
-                        break
-                    d = qest.get(jid)
-                    if d is None:
-                        d = self._estimate_dur_s(
-                            (self.pending.get(jid) or {}).get('text', ''))
-                    d = float(d or 0.0)
-                    real_drop.append(jid)
-                    acc -= d
-                for jid in real_drop:
-                    self.pending.pop(jid, None)
-                    # 🔴🔴 2026-10-25 §29 修：**必须同时注销 `_inflight`**。
-                    #   （否则 `_inflight` 无界增长，且 worker 崩溃时会把早已
-                    #    丢弃的句子**再算一次**丢句 ⇒ `n_dropped` 双记。）
-                    self._inflight.discard(jid)
-                    # 🔴 2026-10-25 §30 修：登记「这句已被丢弃」。
-                    #   worker 可能无视 cancel 照样播出来 ⇒ 收到 `played` 时
-                    #   **改记为已播**（`n_dropped -= 1`），避免双记。
-                    self._dropped_ids.add(jid)
-                    self._queued_ids.discard(jid)
-                    self._queue_est_s.pop(jid, None)
-                    try:
-                        self._wqueue_ids.remove(jid)
-                    except ValueError:
-                        pass
-            # 通知 worker 别播这些句子（否则丢弃白做了）
-            for jid in real_drop:
-                self._send({'cmd': 'cancel', 'id': jid})
-            self.n_dropped += len(real_drop)
+        # 🔴🔴🔴 APP-028②：**到此为止 —— 不丢句**。
+        #   只在日志里**低频**提示滞后（不刷屏、不改任何账本）。
+        #   🔴 边沿触发 + 冷却 ⇒ 只有「跨过阈值」或「每 30 s」才记一条
+        #      （否则 synth_state 每次事件都记 ⇒ 刷屏）。
+        now = time.monotonic()
+        over = self.lag_s > LAG_WARN_S
+        if over and (not self._lag_warned
+                     or now - self._lag_warn_last > LAG_WARN_COOLDOWN_S):
+            self._lag_warned = True
+            self._lag_warn_last = now
             self.on_log(
-                f'[TTS] 积压 {est:.1f}s > {BACKLOG_MAX_S}s，丢弃 {len(real_drop)} 句'
-                f'**未开始合成**的译文（缓冲 {ring_s:.1f}s + 正在合成 '
-                f'{synth_rem:.1f}s + 排队 {queued_s:.1f}s）')
+                f'[TTS] 语音滞后 {self.lag_s:.1f}s'
+                f'（队列 {ring_s:.1f}s + 正在合成 {synth_rem:.1f}s'
+                f' + 排队 {queued_s:.1f}s）'
+                f'⇒ **按 APP-028 不丢句**，音频继续连续合成')
+        elif not over:
+            self._lag_warned = False
 
     def stats(self) -> dict:
         return dict(
@@ -1701,6 +1691,9 @@ class TTSService:
             first_packet_parts=self.first_packet_parts,
             backlog_s=round(self.backlog_s, 2),
             max_backlog_s=round(self.max_backlog_s, 2),
+            # 🔴🔴 APP-028②：**语音滞后秒数**（队列里还没播的音频时长）
+            #   ⇒ GUI 底栏显示「语音滞后 X 秒」。
+            lag_s=round(self.lag_s, 2),
             # 🔴🔴🔴 APP-027④：积压的**三段明细**（诊断用）
             backlog_parts=dict(self.backlog_parts),
             # 🔴 APP-027④：worker 实测的「音频秒/字」（估时校准）

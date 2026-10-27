@@ -2707,7 +2707,22 @@ class App:
                 self.mt.flush(seg=len(self.blocks) - 1 if self.blocks else None)
         except Exception:
             pass
+        # 🔴🔴🔴 APP-028②：**用户手动停止 ⇒ 清空音频队列**。
+        #   APP-028 明文：「用户手动停止或切换会话时才清空队列」
+        #   ⇒ 取消丢句后队列会保留所有已合成但还没播的音频
+        #   ⇒ 不清空的话，用户点了「停止」**耳机里还在继续说话**。
+        self._clear_tts_queue()
         self.btn.configure(text='▶ 开始')
+
+    def _clear_tts_queue(self):
+        """🔴🔴 APP-028②：清空 TTS 音频队列（**失败绝不打断停止流程**）。"""
+        svc = self.tts
+        if svc is None:
+            return
+        try:
+            svc.clear_audio_queue()
+        except Exception as e:
+            self._ui_log(f'[tts] 清空音频队列失败（已忽略）：{e!r}')
 
     # -- 🔴🔴🔴 APP-027⑤：**克隆当前说话人**（主进程侧采集器）---------
     def _collect_clone_pcm(self, pcm):
@@ -3190,7 +3205,12 @@ class App:
             self._ui_log(f'tts submit failed: {e!r}')
 
     def _tts_meter(self):
-        """底栏的 TTS 统计（首包 / 积压 / 丢句）。"""
+        """底栏的 TTS 统计（首包 / **语音滞后** / 积压 / 丢句）。
+
+        🔴🔴 APP-028②：新增「**语音滞后 X 秒**」。
+          取消丢句后，若合成比播放慢（RTF > 1），滞后会**累积**
+          ⇒ 必须让用户**看得见**，否则「越拖越久」变成不可解释的故障。
+        """
         if self.tts is None:
             return ''
         try:
@@ -3200,7 +3220,10 @@ class App:
         fp = st.get('first_packet_s')
         f = lambda v, d=1: ('—' if v is None else f'{v:.{d}f}')
         # 🔴 APP-021③：把「失败」也摆出来（已播 / 丢句 / 失败）
-        return (f'  |  TTS 首包 {f(fp, 2)}s  积压 {f(st.get("backlog_s"))}s'
+        # 🔴🔴 APP-028②：**语音滞后**放在**最前面**（用户最关心的那个数）
+        #   ⇒ 底栏已经很长 ⇒ 其余字段压缩（去掉重复的空格 / 缩短标签）
+        return (f'  |  TTS 滞后 {f(st.get("lag_s"))}s  首包 {f(fp, 2)}s'
+                f'  积压 {f(st.get("backlog_s"))}s'
                 f'/最大 {f(st.get("max_backlog_s"))}s  丢句 {st.get("n_dropped", 0)}'
                 f'  失败 {st.get("n_failed", 0)}'
                 f'  已播 {st.get("n_played", 0)}')
@@ -3639,7 +3662,7 @@ class App:
                 f'设备 {e.device_desc if e else "—"}  RTF {rtf}  '
                 f'出字延迟 {f"{lag:.0f} ms" if lag is not None else "—"}  '
                 f'积压 {backlog:.1f}s  段 {e.stats["segs"] if e else 0}'
-                f'{self._mt_meter()}')
+                f'{self._mt_meter()}{self._tts_meter()}')
             self.lbl_meter.configure(foreground='#c0392b' if backlog > 2.0 else '#333')
             if not s.running and self.btn.cget('text') == '■ 停止':
                 self.btn.configure(text='▶ 开始')

@@ -53,7 +53,9 @@ CONFIG_DIR = _config_dir()
 CONFIG_PATH = os.path.join(CONFIG_DIR, 'device_config.json')
 
 # ── 三个模型的默认摆放（各模块 reviewer 推荐的配置）────────────────────
-# ASR：GPU.0（集显）。NPU 全 INT8 也能跑但会与 MT/TTS 争用。
+# 🔴🔴 APP-028①（用户 2026-10-27 13:22 定案）：「默认配置，ASR/翻译都用
+#   iGPU INT8，语音输出模型用 NPU」⇒ **NPU 只给 TTS 独占**。
+# ASR：GPU.0（集显）。
 # MT：GPU.0（INT8-CW 在集显上 37.5 tok/s，实时够用）。
 # TTS：NPU（交接单 §1.1 推荐，RTF 1.04 / 首包 0.67 s）。
 DEFAULT_DEVICES: Dict[str, str] = {
@@ -63,9 +65,16 @@ DEFAULT_DEVICES: Dict[str, str] = {
 }
 
 # 兜底候选（用户选的设备本机不存在时，依次尝试）
+# 🔴🔴 APP-028①：**ASR / MT 的回退链里**不能有 NPU** —— NPU 独占给 TTS。
+#   ⚠️ 旧实现 ASR/MT 的兜底里带 NPU（'asr': ['GPU.0','NPU','CPU']）
+#      ⇒ 当 GPU.0 不可用时会把 ASR/MT **静默回退到 NPU**
+#      ⇒ 与 TTS 抢 NPU ⇒ 与「NPU 独占给 TTS」冲突。
+#      ⇒ 现在 ASR/MT 只在 **GPU.x → CPU** 之间回退。
+#      （用户仍可在 GUI 里手动把 ASR/MT 指到 NPU —— 那是**用户显式选择**，
+#        不属于「出厂默认的兜底链」。）
 FALLBACK_ORDER: Dict[str, List[str]] = {
-    'asr': ['GPU.0', 'NPU', 'CPU'],
-    'mt': ['GPU.0', 'NPU', 'CPU'],
+    'asr': ['GPU.0', 'CPU'],
+    'mt': ['GPU.0', 'CPU'],
     'tts': ['NPU', 'GPU.0', 'CPU'],
 }
 
