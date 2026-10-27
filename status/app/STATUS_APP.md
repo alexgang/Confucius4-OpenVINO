@@ -1,12 +1,13 @@
 # STATUS_APP
 last_ack: APP-030
-更新时间: 2026-10-27 21:26
-当前任务: **§75 🔴🔴 APP-030（日文失控）代码侧全部完成 + 客户包定点同步完成**（APP-029/031/032 已读并按序执行）⇒ ✅ **APP-030① 目标语言显式下传**（`submit(lang=)` → synth 命令带 `lang` → worker 队列 5 元组 → `map_language()` → Chinese/English/Japanese/Korean；GUI 用 `_cur_mt_target()`（支持会话中途改下拉）、CLI 用 `mt.target`；`_guess_lang` 降级为兜底且**假名⇒ja / 谚文⇒ko**；`normalize_zh_numbers` **只在 Chinese**）⇒ ✅ **APP-030② 失控守卫三层**（① 引擎侧 `clamp_max_new_tokens = clamp(3×估计帧+36, 48, 2048)` 按切分段算；② CUDA 客户端 `got_sec > max(3×est, est+8 s)` ⇒ RUNAWAY ⇒ 停播 + 发 `cancel`（不行就杀并重启边车）；③ worker 侧**引擎无关**兜底 ⇒ NPU 同受保护；**边车不再用库默认 2048**（兜底 512），回报 `frames`/`end_reason`）⇒ ✅ **APP-030③ `_q_get` 超时返哨兵不抛**（`_TIMEOUT` 区分「暂时无消息」vs「边车已退出」）⇒ 15/60 s 看门狗**真正生效**、第 0 句不再丢 ⇒ ✅ **APP-030④ `_estimate_sec` 补假名/谚文** ⇒ ✅ **APP-030⑤ 可观测性**（逐句 `lang/lang_src/n_chars/est_frames/frames/end_reason/max_new_tokens` 进 `x.tts.jsonl`；切目标记一行；异常句落盘 `%LOCALAPPDATA%\...\tts_anomaly\` 最多 20 组）⇒ ✅ **APP-029 只做接口预留不集成**（`spk_update` 只接住记日志、断句继续用 R2T2）⇒ ✅ **验收 `app107` 42/42（仓库）+ 42/42（客户包）**（零推理/零 GPU/零 NPU，桩引擎 + `ast`/`exec`，含 **6 条反证**）⇒ ✅ **客户包定点同步 7/7 MATCH**（两轮：第一轮 7 文件 48 块；第二轮增量 1 块）⇒ 🔴 **本轮自查抓出并修复真实缺陷**（`start()` 等 ready 的判定被 `_TIMEOUT` 破坏 ⇒ 边车启动路径会崩；已修 + 新增 C6/C7/F6 三条判据）⇒ ⛔ **APP-030 实测验收全部未做**（机器锁被 TTS 活占 `pid 38316 exit=259` ⇒ 不抢不删；且**仓库内无 `quota.py`** ⇒ 不做 reviewer 指定的 MiniMax 回转写）⇒ ⛔ **APP-031 的 ②③ 未做**、⛔ **zip 未重打**（按 APP-031「合在一起重打一次包」）⇒ ⛔ **「日文失控已解决」不成立**、「用户听得到」仍不成立 ⇒ 🔴 **`last_ack` = APP-030**（=「代码侧已实现并有验收证据」；**实测验收仍未完成**）
+更新时间: 2026-10-27 21:31
+当前任务: **§76 🔴 APP-030 交付闭环已入库（commit a9ed250 + push）** ⇒ ✅ **§75 代码侧 5 项子要求全完成**（APP-029/031/032 已读并按序执行）⇒ ✅ **APP-030① 目标语言显式下传**（`submit(lang=)` → synth 命令带 `lang` → worker 队列 5 元组 → `map_language()` → Chinese/English/Japanese/Korean；GUI 用 `_cur_mt_target()`（支持会话中途改下拉）、CLI 用 `mt.target`；`_guess_lang` 降级为兜底且**假名⇒ja / 谚文⇒ko**；`normalize_zh_numbers` **只在 Chinese**）⇒ ✅ **APP-030② 失控守卫三层**（① 引擎侧 `clamp_max_new_tokens = clamp(3×估计帧+36, 48, 2048)` 按切分段算；② CUDA 客户端 `got_sec > max(3×est, est+8 s)` ⇒ RUNAWAY ⇒ 停播 + 发 `cancel`（不行就杀并重启边车）；③ worker 侧**引擎无关**兜底 ⇒ NPU 同受保护；**边车不再用库默认 2048**（兜底 512），回报 `frames`/`end_reason`）⇒ ✅ **APP-030③ `_q_get` 超时返哨兵不抛**（`_TIMEOUT` 区分「暂时无消息」vs「边车已退出」）⇒ 15/60 s 看门狗**真正生效**、第 0 句不再丢 ⇒ ✅ **APP-030④ `_estimate_sec` 补假名/谚文** ⇒ ✅ **APP-030⑤ 可观测性**（逐句 `lang/lang_src/n_chars/est_frames/frames/end_reason/max_new_tokens` 进 `x.tts.jsonl`；切目标记一行；异常句落盘 `%LOCALAPPDATA%\...\tts_anomaly\` 最多 20 组）⇒ ✅ **APP-029 只做接口预留不集成**（`spk_update` 只接住记日志、断句继续用 R2T2）⇒ ✅ **验收 `app107` 42/42（仓库）+ 42/42（客户包）**（零推理/零 GPU/零 NPU，桩引擎 + `ast`/`exec`，含 **6 条反证**）⇒ ✅ **客户包定点同步 7/7 MATCH**（两轮：第一轮 7 文件 48 块；第二轮增量 1 块）⇒ 🔴 **本轮自查抓出并修复真实缺陷**（`start()` 等 ready 的判定被 `_TIMEOUT` 破坏 ⇒ 边车启动路径会崩；已修 + 新增 C6/C7/F6 三条判据）⇒ ⛔ **APP-030 实测验收全部未做**（机器锁被 TTS 活占 `pid 38316 exit=259` ⇒ 不抢不删；且**仓库内无 `quota.py`** ⇒ 不做 reviewer 指定的 MiniMax 回转写）⇒ ⛔ **APP-031 的 ②③ 未做**、⛔ **zip 未重打**（按 APP-031「合在一起重打一次包」）⇒ ⛔ **「日文失控已解决」不成立**、「用户听得到」仍不成立 ⇒ 🔴 **`last_ack` = APP-030**（=「代码侧已实现并有验收证据」；**实测验收仍未完成**）⇒ ✅ **§76 交付闭环**：commit `a9ed250`（12 文件 / +2777 −42，App-only，`CORRECTIONS_APP.md` **未入库**）⇒ push `7109c77..a9ed250`（普通 push）⇒ `HEAD == origin/main == a9ed250`（双向 0/0）⇒ ✅ **仓库 HEAD ⇄ 客户包 app/ 7/7 MATCH**⇒ 🔴 **zip 未重打 ⇒ 不写「已交付」**⇒ ✅ **机器锁已释放**（21:27 后 TTS 释放）⇒ 🔴 **但实测仍不启动**：① reviewer 指定的 `quota.py` **不存在**（3 层深度 + 仓库全量搜索 0 命中 ⇒ 属 reviewer 侧工具）② 缺 reviewer 确认的实测语料/口径 ⇒ 按 stop-node **停在「等 reviewer 复核」**
 
-阻塞 / 待用户决定: ① 🔴🔴 **APP-030 [BLOCKING] 的实测验收需等 reviewer 复核** —— 代码侧 5 项子要求全部完成（`app107` 42/42 ×2 处），但 APP-030「### 4. 验收」的**实测**部分**全部未做**：A/B 根因证明（日文 ≥20 句 ×3 次 × CUDA/NPU）、中文/英文各 10 句回归、GUI 复现（丢句=0）、wav+json 交 reviewer、 CER 对比 ⇒ **不得宣称「日文卡住已解决」**；② 🔴 **机器锁被 TTS 模块活占**（`module:tts / pid 38316 / started 21:19:50`；`ctypes OpenProcess` handle_ok + `GetExitCodeProcess=1` + `exit=259 STILL_ACTIVE`）⇒ **fail-closed：不抢、不删、不做任何计时/测速/推理作业**（别人活只能等不能杀）；③ 🔴 **reviewer 指定的 `quota.py` 在仓库内不存在**（`find . -name quota.py` 无结果）⇒ 「5 小时区间剩余 ≥20% 才做 MiniMax 回转写」这个**前置门无法执行** ⇒ **不绕过**（不自行调用 MiniMax）；④ ⛔ **APP-031 的 ② APP-028 不丢句实测 / ③ APP-027 的 V1–V3 未跑**（需机器锁）⇒ **zip 本轮不打**（APP-031 明文「三项做完后合在一起重打一次包」）⇒ **不写「已交付」**（§66 口径）；⑤ ⛔ **「用户听得到」仍不成立**（§63 L4 等用户实测：桌面快捷方式 → CUDA 朗读 → NPU 朗读 → 克隆音色 ⇒ 用户亲口确认前不得写「能出声」）；⑥ 🔴 **APP-028 的「已交付」口径仍闭环**（§73：代码 `HEAD`=`f727992` 已 push ＋ 包目录 ＋ zip 三处一致，5/5 全 MATCH）⇒ ✅ 可对外报「APP-028 代码侧已交付」，但「用户听得到」不成立；⑦ 🔴 **APP-028① 的「CUDA 不作默认」是定案**，要用 CUDA 必须**手动在 GUI 改**，界面**不得承诺「装一下就能用」**（OV 官方不带 CUDA plugin）；⑧ 🔴 **APP-029 [NORMAL] 已按其明文「现在不要集成」处理**（只做 `spk_update` 接口预留 + 文案口径，**不改合成行为**、不集成 pyannote 断句）⇒ **不认领集成**；⑨ 🔴 **§66 用户新口径仍生效**：不再跑 `verify_pkg_zip.py`、不再跑 `publish_ftp.py`、不开 FTP；⑩ 🔴 **`app104` 的 A1 判 `NO-EVIDENCE`（不是 PASS）**（本机无可用音色 ⇒ 不宣称通过、也不算缺陷、不得计入 PASS 数）；⑪ 🔴 **闸门可信度铁律**：判据里任何解析异常必须判 FAIL，绝不能默认 PASS；反证用 **AST 重建**（`ast.unparse`）而非字符串替换 ⇒ 已固化在 `app105` 与 `app107`；⑫ 🔴 **APP-022「按说话人切换音色」仍后置**、⑬ 🔴 **APP-024②③④ 仍未做**（reviewer 明文「不要自己改」）⇒ 保持原状；⑭ 🔴 **§57 历史遗留未跟踪文件**（`sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `sync_c111_*` / `diag_c111_*`）归属未判定 ⇒ 本轮**未提交**；⑮ 🔴 **普通 push 会连带推上他模块已提交的 commit**（`195b135` / `59ddd0d` = ASR §43/§44/§45）⇒ 本轮**逐文件 `git add`、不吞他模块文件**、**不用 `git add -A`**，但**已存在的 commit 无法拆分** ⇒ 如实记录
+阻塞 / 待用户决定: ① 🔴🔴 **APP-030 [BLOCKING] 的实测验收需等 reviewer 复核** —— 代码侧 5 项子要求全部完成（`app107` 42/42 ×2 处），但 APP-030「### 4. 验收」的**实测**部分**全部未做**：A/B 根因证明（日文 ≥20 句 ×3 次 × CUDA/NPU）、中文/英文各 10 句回归、GUI 复现（丢句=0）、wav+json 交 reviewer、 CER 对比 ⇒ **不得宣称「日文卡住已解决」**；② ✅ **机器锁已于 21:27 释放**（§75.8 记录的 `module:tts / pid 38316 / exit=259 STILL_ACTIVE` 活锁已由 TTS 模块释放）⇒ **本项不再是阻塞**；但 🔴 **APP-030 实测仍未启动**（缺 reviewer 指定的 `quota.py` ＋ 缺实测语料/口径，见 ③）；③ 🔴 **reviewer 指定的 `quota.py` 在仓库内不存在**（`find . -name quota.py` 无结果）⇒ 「5 小时区间剩余 ≥20% 才做 MiniMax 回转写」这个**前置门无法执行** ⇒ **不绕过**（不自行调用 MiniMax）；④ ⛔ **APP-031 的 ② APP-028 不丢句实测 / ③ APP-027 的 V1–V3 未跑**（需机器锁）⇒ **zip 本轮不打**（APP-031 明文「三项做完后合在一起重打一次包」）⇒ **不写「已交付」**（§66 口径）；⑤ ⛔ **「用户听得到」仍不成立**（§63 L4 等用户实测：桌面快捷方式 → CUDA 朗读 → NPU 朗读 → 克隆音色 ⇒ 用户亲口确认前不得写「能出声」）；⑥ 🔴 **APP-028 的「已交付」口径仍闭环**（§73：代码 `HEAD`=`f727992` 已 push ＋ 包目录 ＋ zip 三处一致，5/5 全 MATCH）⇒ ✅ 可对外报「APP-028 代码侧已交付」，但「用户听得到」不成立；⑦ 🔴 **APP-028① 的「CUDA 不作默认」是定案**，要用 CUDA 必须**手动在 GUI 改**，界面**不得承诺「装一下就能用」**（OV 官方不带 CUDA plugin）；⑧ 🔴 **APP-029 [NORMAL] 已按其明文「现在不要集成」处理**（只做 `spk_update` 接口预留 + 文案口径，**不改合成行为**、不集成 pyannote 断句）⇒ **不认领集成**；⑨ 🔴 **§66 用户新口径仍生效**：不再跑 `verify_pkg_zip.py`、不再跑 `publish_ftp.py`、不开 FTP；⑩ 🔴 **`app104` 的 A1 判 `NO-EVIDENCE`（不是 PASS）**（本机无可用音色 ⇒ 不宣称通过、也不算缺陷、不得计入 PASS 数）；⑪ 🔴 **闸门可信度铁律**：判据里任何解析异常必须判 FAIL，绝不能默认 PASS；反证用 **AST 重建**（`ast.unparse`）而非字符串替换 ⇒ 已固化在 `app105` 与 `app107`；⑫ 🔴 **APP-022「按说话人切换音色」仍后置**、⑬ 🔴 **APP-024②③④ 仍未做**（reviewer 明文「不要自己改」）⇒ 保持原状；⑭ 🔴 **§57 历史遗留未跟踪文件**（`sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `sync_c111_*` / `diag_c111_*`）归属未判定 ⇒ 本轮**未提交**；⑮ 🔴 **普通 push 会连带推上他模块已提交的 commit**（`195b135` / `59ddd0d` = ASR §43/§44/§45）⇒ 本轮**逐文件 `git add`、不吞他模块文件**、**不用 `git add -A`**，但**已存在的 commit 无法拆分** ⇒ 如实记录
 
 
 ## 最近更新
+21:31 §76 🔴 **APP-030 交付闭环已入库（commit `a9ed250` + push）**：✅ **commit `a9ed250`**（12 文件 / **+2777 −42**，App-only，`CORRECTIONS_APP.md` **未入库**（已用 `git show --name-only HEAD | grep CORRECTIONS` 核实 ⇒ 0 命中）⇒ **push `7109c77..a9ed250`**（**普通 push**，非 force）⇒ ✅ 复核 `HEAD == origin/main == a9ed250`、双向 **0/0**、仓库仍**只有 main** 分支）⇒ ✅ **三方复核：仓库 HEAD ⇄ 客户包 app/ 逐文件 LF SHA256 7/7 全 MATCH**（`tts_engine 3ec217a1…` / `tts_worker d0d73ffa…` / `tts_service 5d1965bc…` / `tts_cuda 00060bbe…` / `tts_cuda_sidecar aa0feeb5…` / `live_caption_app eb9e7dae…` / `translator c5ab5e07…`）⇒ 🔴 **客户包 zip 尚未重打** ⇒ 三方未闭环 ⇒ 按 §66 **不写「已交付」**（准确表述：**代码侧已入库并已同步到包目录；zip 未重打**）⇒ ✅ **机器锁已释放**（§75.8 记录的 `pid 38316` 活锁于 21:27 后由 TTS 模块释放）⇒ 🔴 **但实测仍不启动**：① **reviewer 指定的 `quota.py` 仍不存在**（`C:\Users\Trekker-PTL` 下 3 层深度 + 仓库 `results/app/` 全量搜索 `quota*.py` ⇒ **0 命中**⇒ 属 reviewer 侧工具、**不是 App 模块的文件**）② 缺 reviewer 确认的**实测语料/口径**⇒ 按 stop-node **停在「等 reviewer 复核」**⇒ ⛔ **未跑推理/测速**、⛔ **未跑 MiniMax 回转写**、⛔ **未跑 `verify_pkg_zip.py` / `publish_ftp.py` / 未开 FTP**、⛔ **未修改 `CORRECTIONS_APP.md`**、⛔ **未用 `git add -A`**（逐文件 add，不吞他模块文件）⇒ ⛔ **「日文失控已解决」仍不成立**（实测未做）、⛔ **「用户听得到」仍不成立**
 21:26 §75 🔴🔴 **APP-030（日文失控）代码侧全部完成 + 客户包定点同步完成**：✅ **APP-030① 目标语言显式下传**（`submit(lang=)` → synth 命令带 `lang` → worker 5 元组 → `map_language()` → Chinese/English/Japanese/Korean；GUI `_cur_mt_target()` / CLI `mt.target`；`_guess_lang` 降级兜底且**假名⇒ja / 谚文⇒ko**；`normalize_zh_numbers` **只在 Chinese** ⇒ 日文数字不再被中文化）⇒ ✅ **APP-030② 失控守卫三层**（① 引擎侧 `clamp_max_new_tokens = clamp(3×估计帧+36, 48, 2048)` **按切分段**算；② CUDA 客户端 `got_sec > max(3×est, est+8 s)` ⇒ RUNAWAY ⇒ 停播 + 发 `cancel`（不行就杀并重启边车）；③ worker 侧**引擎无关**兜底 ⇒ **NPU 同受保护**；**边车不再用库默认 2048**（兜底 512）⇒ 回报 `frames`/`end_reason`）⇒ ✅ **APP-030③ `_q_get` 超时返哨兵不抛**（`_TIMEOUT` 区分「暂时没消息」vs「边车已退出」）⇒ **15/60 s 看门狗真正生效、第 0 句不再丢**⇒ ✅ **APP-030④ `_estimate_sec` 补假名/谚文**⇒ ✅ **APP-030⑤ 可观测性**（逐句 `lang/lang_src/n_chars/est_frames/frames/end_reason/max_new_tokens` 进 `x.tts.jsonl`；切目标记一行；异常句落盘 `%LOCALAPPDATA%\...\tts_anomaly\` 最多 20 组）⇒ ✅ **APP-029 只做接口预留不集成**（`spk_update` 只接住记日志、断句继续用 R2T2）⇒ ✅ **验收 `app107` 42/42（仓库）+ 42/42（客户包）**（零推理/零 GPU/零 NPU，桩引擎 + `ast`/`exec`，含 **6 条反证**）⇒ ✅ **客户包定点同步 7/7 MATCH**（两轮：7 文件 48 块 + 增量 1 块；脚本升级为**三级基线选择**，原脚本**正确拒绝**了增量同步）⇒ 🔴 **本轮自查抓出并修复真实缺陷**（`start()` 等 ready 的判定被 `_TIMEOUT` 破坏 ⇒ 边车启动路径会崩；已修 + 新增 C6/C7/F6）⇒ ✅ **回归全绿**（`app103` 29/29、`app105` 24/24、`app102` 27/27、`app098` 21/21、`app100` 28/28、`app069` 37/37、`app097` 20/20；**必须用 Python 3.12**，managed 3.13 无 numpy）⇒ ⛔ **APP-030 实测验收全部未做**（机器锁被 TTS 活占 `pid 38316 exit=259` ⇒ **不抢不删**；且**仓库内无 `quota.py`** ⇒ 不做 reviewer 指定的 MiniMax 回转写）⇒ ⛔ **APP-031 的 ②③ 未做**、⛔ **zip 未重打**（APP-031 明文「合在一起重打一次包」）⇒ ⛔ **「日文失控已解决」不成立**、「用户听得到」仍不成立⇒ 🔴 `last_ack` = **APP-030**
 17:15 §74 🔴 **客户包版本升级 v1.5 → v1.6 完成**：✅ **版本单一数据源** `pack_v13.PKG_VERSION` `'1.5'→'1.6'`（+ 新增 `V16_APP_NOTE` 四条修订说明，编号 **13~16**，避开了 MANIFEST 已占用的 11/12）⇒ ✅ **两个验收脚本的版本判据参数化**（`app014b_v15_preship_check.py` 12+ 处、`app014b_verify_v15_zip.py` 1 处写死 `'1.5'` ⇒ 升版必报**假 FAIL**）⇒ 改为用 `ast` 抽 `pack_v13.PKG_VERSION` 字面量（**不 import** 其执行逻辑；读不到就抛异常）；**保留** v1.5/v1.4 的历史判据（「历史可追溯」）⇒ ✅ **V1.6 目录**（robocopy **14 257 文件 / 12.735 GB / 失败 0 / 30 s**）⇒ ✅ **版本标识定点升级**（新建 `app106_upgrade_pkg_to_v16.py`，**7/7 唯一命中**：README_zh/en 标题 + `## v1.6` 段 + 首段简介 + **NOTICE 自称 v1.4 的历史错标纠正为 v1.6**）⇒ ✅ **该脚本的幂等缺陷已自测抓出并修**（「插入 v1.6 段」的旧串 `## v1.5 改动说明` **插入后仍存在** ⇒ 重跑会**再插一份** ⇒ 加 **guard** ⇒ 修后 **7/7 幂等**）⇒ ✅ **包内代码 22/22 == 仓库 HEAD** ⇒ ✅ **打包前自检 PASS 51 / FAIL 5**（5 项 FAIL 是**打包前预期态**：MANIFEST version/notes 由 `refresh_manifest` 在打包时写）⇒ ✅ **持锁重打 zip**（`app-pack` PID 30008 / 16:56:44；安静窗口 45 s 通过；压缩 **676 s**；`testzip()` OK；**14 199 文件逐字节一致**；原子改名）⇒ zip **11 218 089 559 B / mtime 17:09 / SHA256 `aedb8bd1…9d06`** ⇒ ✅ **只读本地复核 20/20**（新建 `app106_v16_zip_readonly_check.py`；**四路 22/22 全 MATCH**；`zip ⇄ 包目录 .py diff = 0`；**未跑** `verify_pkg_zip.py` / **未跑** `publish_ftp.py` / **未开 FTP**）⇒ 🔴 **该复核脚本第一版的分母口径缺陷已自测抓出并修**（23 个 `.py` 里 `_probe_tts_cuda.py` 被 `pkg_exclude` 排除出 zip ⇒ 分母多算 ⇒ **假 FAIL**；改按实际参与比对集合计分母）⇒ ⛔ **未改任何生产代码**、⛔ **未跑推理**、⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ 🔴 `last_ack` = **APP-028**
 16:47 §73 🔴🔴 **APP-028 zip 重打完成 + 交付口径闭环**：✅ 等锁过程 fail-closed（16:23:10 锁被 `module:tts`/`pid 39352` 持有 ⇒ `OpenProcess` handle=668/err=0 ⇒ `exit=259 STILL_ACTIVE` ⇒ **活锁，不抢不删**；16:23:25 TTS 释放 ⇒ 16:23:26 `app-pack` PID 9900 持锁打包；16:45:33 退出码=0 / 耗时 1328.1 s；16:45:34 `[lock] 已释放`）⇒ ✅ **zip 已重打**：**11 218 087 123 B / mtime 16:41:02 / SHA256 `907a1caa…2589f` / md5 `501f7699…e8e40` / 14 199 文件逐文件 SHA256 全一致**；`testzip()` 通过 ⇒ 原子改名；MANIFEST 硬校验全过（音色 B/C/克隆 0 条命中、`_` 前缀脚本 0 条命中、确定缺失本地模块 0 条）⇒ ✅ **只读本地检查**（§66 口径，**未跑** `verify_pkg_zip.py` / **未跑** `publish_ftp.py` / **未开 FTP**）：**zip ⇄ 包目录 `.py` diff = 0**（23 个）+ **HEAD ⇄ 包目录 = 22/22** ⇒ ✅ **独立四路复核**（自写脚本直读 zip 内字节 ⇒ 仓库 == 包目录 == zip == HEAD，**5/5 全 MATCH**）⇒ ✅ **`app105` 独立复跑 24/24 PASS** ⇒ ✅ **「已交付」成立**（仅指**代码与包**）⇒ ⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ ⛔ **「用户听得到」不成立**
@@ -19,7 +20,6 @@ last_ack: APP-030
 12:30 §68 ✅ **APP-027 顺带两处**：① APP-025「pythonw 下测试音失败」已修并验证（`_out_write` 永不抛异常 ⇒ 成功播放 1.00 s / `read_delta=24000`）② 桩测试**隔离 `LOCALAPPDATA`**（`app099`/`app100` 在 exec/import 被测模块**之前**指到 `tempfile.mkdtemp()`）⇒ **不再污染**用户真实 `%LOCALAPPDATA%\Confucius4LiveCaption`
 12:30 §68 ✅ **隐私闸门**：`pkg_exclude.is_user_voice_artifact()` ⇒ 拦 `clone_*.npz` ＋ `tts_speakers/`（任意层级，整目录 prune）⇒ ⚠️ **不误伤** `preset_A.wav`（生产路线依赖）
 12:30 §68 ✅ **验收**：`app098` **21/21**、`app099` **13/13**、`app100` **28/28**（含 3 条反证）、`app097` 回归 **20/20 + BUG 3/3** ⇒ 🔴 **闸门自身的假通过比缺陷更危险** ⇒ C 组**故意写错**确认判据**确实 FAIL**
-12:30 §68 ⛔ **未跑 V1/V2/V3**（共享机器锁被 TTS 占用：`pid 14888`，`OpenProcess` **err=87** ⇒ **fail-closed 视为存活** ⇒ **不抢不删**）⇒ ⛔ **客户包未同步 / zip 未重打** ⇒ **不写「已交付」**；⛔ **V4 等用户实听**
 
 ## §1 现状汇总（2026-10-23）
 
@@ -13014,3 +13014,76 @@ APP-030 的**实测验收**与 APP-031 的 ②③ 仍是**未完成项**，本�
 | `app/translator.py` | 84 109 | 2026-10-27 21:20:57 | `c5ab5e0760e2ea881099335a55cc740d5617ec91f9775c4df87d2f18bfadf14a` |
 
 **包外备份**：`C:\Users\Trekker-PTL\pkg_backup_app_s71`（**在包外**，不会被 `pkg_exclude.BACKUP_DIR_RE` 命中而污染包）。
+
+
+## §76 🔴 **APP-030 交付闭环已入库（commit `a9ed250` + push）** ＋ 机器锁已释放但实测前置仍缺（2026-10-27 21:31）
+
+> 本节是 **§75 的收尾闭环**（提交 → push → 三方复核）。
+> ⚠️ **`status/app/CORRECTIONS_APP.md` 仍未入库**（reviewer 独占文件，工作区保留其 428 行新增）。
+> ⚠️ **§75 的结论不撤回**；本节只补 §75 之后发生的事实。
+
+### 76.1 git 交付闭环
+
+| 项 | 值 |
+|---|---|
+| commit | **`a9ed250`**（12 文件 / **+2777 −42**） |
+| 提交文件清单 | `live_caption/tts_engine.py`、`tts_worker.py`、`tts_service.py`、`tts_cuda.py`、`tts_cuda_sidecar.py`、`live_caption_app.py`、`translator.py`、`live_caption/sync_s71_app030_to_pkg.py`（新）、`results/app/app107_app030_lang_runaway.py`（新）、`results/app/app107_app030_lang_runaway_evidence.json`（新）、`results/app/app107_pkg_evidence.json`（新）、`status/app/STATUS_APP.md` |
+| **未入库** | 🔴 **`status/app/CORRECTIONS_APP.md`**（已用 `git show --pretty=format: --name-only HEAD \| grep CORRECTIONS` 核实 ⇒ 0 命中；工作区仍为 `M` ⇒ reviewer 的内容**原样保留在本地**） |
+| push | `7109c77..a9ed250  main -> main`（**普通 push**，非 force） |
+| 复核 | `HEAD == origin/main == a9ed2504af7c4324a98f7d5179a5dc548b520c3e`；`origin/main..HEAD` = **0**、`HEAD..origin/main` = **0** |
+| 分支 | 仓库仍**只有 `main`**（`git branch -a` = `main` + `remotes/origin/main`） |
+
+🔴 **只提交 App 模块负责的文件**：本轮**逐文件 `git add`**（12 个路径），**未用 `git add -A`** ⇒ 工作区里 ASR/MT/TTS 的既有未跟踪文件（`diag_c111_*` / `sync_c148b_to_pkg.py` 等）**未被卷入**。
+🔴 **普通 push 的已知副作用照旧如实记录**：`7109c77` 之前的 commit 链含 ASR 模块的 `195b135` / `59ddd0d` ⇒ push 会连带推上**他模块已提交的 commit**（这是**已存在的事实，无法拆分**），但**他模块的「文件」没有被本轮混提**。
+
+### 76.2 三方一致性复核（独立脚本，不依赖同步脚本自身输出）
+
+**仓库 `HEAD` ⇄ 客户包 `app/` 逐文件 LF 归一化 SHA256 比对 ⇒ 7/7 MATCH**：
+
+| 文件 | HEAD SHA256（前 16） | 包内 SHA256（前 16） | 结果 |
+|---|---|---|---|
+| `app/tts_engine.py` | `3ec217a141a3a7a2` | `3ec217a141a3a7a2` | ✅ MATCH |
+| `app/tts_worker.py` | `d0d73ffa3192acb6` | `d0d73ffa3192acb6` | ✅ MATCH |
+| `app/tts_service.py` | `5d1965bc21182ede` | `5d1965bc21182ede` | ✅ MATCH |
+| `app/tts_cuda.py` | `00060bbee8254e03` | `00060bbee8254e03` | ✅ MATCH |
+| `app/tts_cuda_sidecar.py` | `aa0feeb5035db948` | `aa0feeb5035db948` | ✅ MATCH |
+| `app/live_caption_app.py` | `eb9e7daeec1dff97` | `eb9e7daeec1dff97` | ✅ MATCH |
+| `app/translator.py` | `c5ab5e0760e2ea88` | `c5ab5e0760e2ea88` | ✅ MATCH |
+
+🔴 **客户包 zip 尚未重打** ⇒ **三方（仓库 / 包目录 / zip）尚未闭环** ⇒ 按 §66 口径**不写「已交付」**。
+⇒ 当前准确表述是：**「APP-030 代码侧已入库并已同步到客户包目录；zip 未重打」**。
+
+### 76.3 机器锁状态更新（§75.8 之后的**新事实**）
+
+§75.8 记录的阻塞是 21:26 的探测结果（`module:tts / pid 38316 / exit=259 STILL_ACTIVE` ⇒ 活锁 ⇒ 不抢不删）。
+🔴 **21:27 之后 TTS 模块已释放锁**（`C:\Users\Trekker-PTL\shared\MACHINE_LOCK` 已不在 `shared/` 目录中）。
+
+**⇒ 机器锁这个阻塞项已解除。** 但 APP-030 的实测验收**仍然不能在本轮启动**，原因是另外两个**独立**的前置条件：
+
+| 前置 | 状态 | 说明 |
+|---|---|---|
+| 机器锁 | ✅ **已释放**（21:27 后） | 可持锁 |
+| **`quota.py`** | 🔴 **仍不存在** | reviewer 明文要求「**先跑 `quota.py`**，5 小时区间剩余 ≥20% 才做 MiniMax 回转写」⇒ 本轮**已在 `C:\Users\Trekker-PTL` 下 3 层深度 + 仓库 `results/app/` 内全量搜索 `quota*.py`** ⇒ **0 命中** ⇒ 该脚本属 reviewer 侧工具，**不是 App 模块的文件** ⇒ 需 reviewer 提供路径/口径 |
+| 真实推理环境 + 测速纪律 | 🔴 **需重新评估** | APP-030 的 A/B 证明要求 **CUDA 与 NPU 各一组、每句 ×3 次**、中文/英文各 10 句回归、GUI 复现 ⇒ 属**长时推理 + 计时窗口**作业 ⇒ 按铁律必须**持锁且独占机器**，且需 reviewer 确认**语料与判据口径** |
+
+🔴 **因此本节仍不启动任何推理/测速**：不是锁的问题，而是**① 缺 reviewer 指定的前置脚本 `quota.py`；② 缺 reviewer 确认的实测语料/口径** ⇒ 按 stop-node 纪律**停在「等 reviewer 复核」**。
+
+### 76.4 本节明确**没有**做的事（不宣称）
+
+- ⛔ **未跑任何推理 / 测速**（尽管锁已释放）⇒ 不写任何 RTF / 延迟 / s-per-char 数字。
+- ⛔ **未跑 `quota.py`**（不存在）⇒ 未做 MiniMax 回转写 ⇒ **未做 CER 对比**。
+- ⛔ **未重打客户包 zip** ⇒ **不写「已交付」**。
+- ⛔ **未跑 `verify_pkg_zip.py` / 未跑 `publish_ftp.py` / 未开 FTP**（§66）。
+- ⛔ **未修改、未提交 `status/app/CORRECTIONS_APP.md`**。
+- ⛔ **未提交他模块的未提交改动**；**未用 `git add -A`**。
+- ⛔ **「日文失控已解决」仍不成立**（实测未做）；⛔ **「用户听得到」仍不成立**（§63 L4 等用户实听）。
+
+### 76.5 本节产物
+
+| 项 | 值 |
+|---|---|
+| commit | `a9ed250`（12 文件 / +2777 −42） |
+| 推送区间 | `7109c77..a9ed250`（普通 push） |
+| 新增文件（3） | `live_caption/sync_s71_app030_to_pkg.py`（12 682 B / mtime 21:24:17 / SHA256 `f5221896384154a0…`）、`results/app/app107_app030_lang_runaway.py`（31 592 B / mtime 21:24:51 / SHA256 `e69ab5b625d0064d…`）、`results/app/app107_app030_lang_runaway_evidence.json`（4 388 B / mtime 21:24:54 / SHA256 `73f65f257bdba4ba…`）、`results/app/app107_pkg_evidence.json`（4 384 B / mtime 21:24:56 / SHA256 `15a9c540d9643411…`） |
+| `status/app/STATUS_APP.md` | 新增 §75（17 652 字符）+ §76；头部 `last_ack: APP-030` / `更新时间: 2026-10-27 21:26`（§76 后见文件头） |
+| 包外备份 | `C:\Users\Trekker-PTL\pkg_backup_app_s71` |
