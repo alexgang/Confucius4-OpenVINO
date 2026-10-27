@@ -1,0 +1,25 @@
+{
+  "D2": "asr_has_npu=False mt_has_npu=False tts_has_npu=True",
+  "D3": "{'asr': 'GPU.0', 'mt': 'GPU.0', 'tts': 'NPU'}",
+  "D1_app103_a6_false_pass": true,
+  "D1_detail": "FALLBACK_ORDER 是 AnnAssign=True；app103 只认 Assign=True；app103 取到的段为空=True；旧判据的 asr_npu=False",
+  "E1": "源码解析失败：invalid syntax (<unknown>, line 1)",
+  "E2": "源码解析失败：invalid syntax (<unknown>, line 1)",
+  "E3": "ASR/MT 也用了 NPU：{'asr': 'NPU', 'mt': 'GPU.0', 'tts': 'NPU'}",
+  "E4": "源码解析失败：closing parenthesis '}' does not match opening parenthesis '[' on line 75 (<unkn",
+  "E5": "write() 里出现截断/丢弃语义：['self._chunks.pop(']",
+  "E6": "_update_backlog 仍含丢句关键字",
+  "E7": "_emit_synth_state 代码里仍有 min(3.0, ...) 截断",
+  "F1": "n_written=6615000 期望=6615000",
+  "F6": "capacity=1024 时 n_written=40960 期望=40960",
+  "F2": "写入 12 块 / 读出 12 块 / 顺序一致=True",
+  "F3": "empty_read=True",
+  "F5": "lag_s=1.0 期望=1.0",
+  "F4": "peak_lag_s=2.0（读后仍=2.0）",
+  "summary": {
+    "pass": 24,
+    "fail": 0,
+    "failures": [],
+    "ts": "2026-10-27 16:24:06"
+  }
+}

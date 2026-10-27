@@ -1,12 +1,15 @@
 # STATUS_APP
 last_ack: APP-028
-更新时间: 2026-10-27 16:16
-当前任务: **§70 🔴🔴 APP-028（BLOCKING）代码侧改造完成 · 待提交 / 待同步 / 待重打包** ⇒ ✅ **APP-028① 默认设备摆放（定案）**：ASR(R2T2 INT8)=`GPU.0`、MT(Hy-MT2 INT8)=`GPU.0`、TTS(Qwen3-TTS 全 NPU)=`NPU` ⇒ **NPU 独占给 TTS**，`FALLBACK_ORDER` 已把 ASR/MT 的 `'NPU'` 摘掉；**CUDA 不作默认**、用户可在 GUI 改 ⇒ ✅ **APP-028② 生产者/消费者播放架构**：`RingBuffer`（有界 3 s + 反压 + 覆盖）→ **无界内存 `AudioQueue`**（按句保序、句内按块、**永不阻塞永不丢句**）＋ **合成线程不等播放**（独立 `_played_loop` 看门狗线程，`queue.Queue` FIFO 发 `played`）＋ **删除 `BACKLOG_MAX_S` 丢句逻辑**（`_update_backlog` 整段丢句代码已删，`BACKLOG_MAX_S` 语义改为「滞后告警阈值」）＋ **cancel 改整句摘除**（`drop_jid`）＋ **新增 `clear_queue`**（用户手动停止/切会话才清队列）＋ **模块级 stdout 写锁 `_OUT_WLOCK`**（多线程写 stdout 会字节交错 ⇒ 主进程 JSON 解析失败）＋ **GUI 底栏实时显示「语音滞后 X 秒」**（`_tts_meter()` **首次接入 `_poll()`**，此前是死代码）＋ `synth_state` 上报 `lag_s`（不再截断 3 s）⇒ ✅ 验收 `app103` **29/29** ＋ `app104` **10 PASS / 0 FAIL / 1 NO-EVIDENCE** ＋ 回归 `app098` 21/21、`app101`、`app102` 27/27、`app069` 37/37、`app097` 20/20、`app100` 28/28 ⇒ ⛔ **本轮不跑推理**（铁律：不占 CPU/不抢锁）⇒ ⛔ **客户包尚未同步 / zip 未重打** ⇒ **不写「已交付」** ⇒ ⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ 🔴 **`last_ack` = APP-028**（APP-029 [NORMAL] 明文「现在不要集成」⇒ **不认领**）
+更新时间: 2026-10-27 16:26
+当前任务: **§72 🔴🔴 APP-028 收尾补正（闸门自身可信度 + `device_config.py` 独立同步）· zip 仍待锁重打** ⇒ ✅ **§70 APP-028（BLOCKING）代码侧改造完成**（默认设备摆放定案 ASR=`GPU.0`/MT=`GPU.0`/TTS=`NPU` ⇒ **NPU 独占 TTS**；`RingBuffer` → **无界内存 `AudioQueue`**；**合成线程不等播放**（独立 `_played_loop` 看门狗）；**删除 `BACKLOG_MAX_S` 丢句逻辑**；`cancel` 改**整句摘除**（`drop_jid`）；新增 `clear_queue`；模块级 stdout 写锁 `_OUT_WLOCK`；GUI 底栏显示**「语音滞后 X 秒」**且 `_tts_meter()` 首次接入 `_poll()`）⇒ ✅ **§71 交付闭环**（commit `6d90715` 13 文件 App-only，`CORRECTIONS_APP.md` **未**入库 ⇒ ✅ 客户包 5 文件定点同步 + 独立复核「包内 LF SHA256 == 仓库 == HEAD」**全 MATCH** ⇒ ✅ push `59ddd0d..6d90715` 普通 push，`origin/main...HEAD` = 0/0）⇒ ✅ **§72 本节补正**：① 🔴 **查出并修掉 `app103` A6 的「假通过」**（只认 `ast.Assign` ⇒ `FALLBACK_ORDER` 是 `AnnAssign` ⇒ 解析失败被 `except` 吞掉 ⇒ `asr_npu/mt_npu` 恒 `False` ⇒ **判据永远 PASS**）⇒ 新建 **`app105`**（**24/24**，含 **14 条反证**：故意写错 ⇒ 判据必须 FAIL；反证用 **AST 重建**而非字符串替换 ⇒ 源码修好后反证**不会静默失效**）② ✅ **真实缺陷已修**：`FALLBACK_ORDER` 的 ASR/MT 链**仍含 `'NPU'`**（违反「NPU 独占」）⇒ 已改为 `asr/mt: ['GPU.0','CPU']`（随 `6d90715` 入库）③ ✅ **新建 `sync_s70_device_config_to_pkg.py`**（与 §71 的 4 文件**不重叠** ⇒ 无双写）⇒ `device_config.py` **已单独定点同步**（基线 `5e2aef7` → 2 块唯一命中 → 写盘 → LF SHA256 `f386785af866f9…` == 仓库 ⇒ MATCH；**幂等**复核 = 0 块 no-op）④ 🔴 **更正 §71.1 的措辞**：包内 `device_config.py` 一致是**本节同步的结果**，**不是**「本来就一致」⇒ ✅ 全部闸门复核 `app103` 29/29、`app104` 10 PASS + 1 NO-EVIDENCE、**`app105` 24/24**、`app098` 21/21、`app102` 27/27、`app097` 20/20、`app100` 28/28、`app069` 37/37 ⇒ ⛔ **本轮不跑推理**（铁律：不占 CPU/不抢锁）⇒ ⛔ **zip 未重打**（`app067_repack_after_lock.py` 16:23:26 持 `app-pack` 锁 / PID 9900 运行中）⇒ **不写「已交付」** ⇒ ⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ 🔴 **`last_ack` = APP-028**（APP-029 [NORMAL] 明文「现在不要集成」⇒ **不认领**）
 
-阻塞 / 待用户决定: ① 🔴🔴 **§70：APP-028 代码侧已改完，但**①**客户包尚未定点同步**（`sync_s70_app028_to_pkg.py` 已写好、`--check` 实测 19/8/4/3 块唯一命中全部 PASS，**待提交后写盘**）②**zip 未重打** ⇒ 交付口径「包目录 + zip **都**含最新代码**且已入库**」⇒ **本轮结束前必须走完：定点同步 → 先提交 → 持锁重打 zip**，否则**不写「已交付」**；② ⛔ **V1（CUDA 连续实时）/ V2（NPU + 四配置 ABBA）/ V3（克隆）未跑** ⇒ 本轮**主动不跑**（铁律「不在 CPU 推理/测速」＋ 计时窗口内不启额外 `python.exe`）⇒ **无证据 ≠ 通过**：代码侧判据只能证明**逻辑正确**，**不能证明「用户听得到」**；③ ⛔ **§63 的 L4 仍等用户实测**（需人）：桌面快捷方式 → CUDA 朗读一句 → NPU 朗读一句 → 克隆音色一段 ⇒ 反馈听到/听不到 ⇒ **用户亲口确认前不得写「能出声」**；④ 🔴 **APP-028① 的「CUDA 不作默认」是定案**，若用户要用 CUDA 必须**手动在 GUI 改**，界面**不得承诺「装一下就能用」**（OV 官方不带 CUDA plugin）；⑤ 🔴 **APP-029 [NORMAL]（15:48 新增）本轮不认领** —— 明文「仍然排在 APP-028 / APP-027 之后，现在不要集成」（pyannote 只做说话人识别、不再断句）⇒ `last_ack` **只推进到 APP-028**，待 reviewer 放行；⑥ 🔴 **§66 用户新口径仍生效**：**不再跑 `verify_pkg_zip.py`、不再跑 `publish_ftp.py`、不开 FTP** ⇒ 交付流程 = **定点同步 → 先提交 → 持锁重打 zip**（+ 只读本地「zip ⇄ 包目录 diff = 0」）；⑦ 🔴 **`app104` 的 A1 判 `NO-EVIDENCE`（不是 PASS）** —— 真子进程管道因本机**无可用音色**（事件 `error`「没有可用的音色：A」）无法合成 ⇒ 按铁律**不宣称通过**、**也不算缺陷**、**不得计入 PASS 数**；⑧ 🔴 **APP-022「按说话人切换音色」仍后置**（本轮只做「克隆**当前**说话人」的单音色路线，**不依赖 pyannote**）；⑨ 🔴 **APP-024②③④ 仍未做**（reviewer 明文「不要自己改」）⇒ 保持原状；⑩ 🔴 **§57 历史遗留未跟踪文件**（`sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `sync_c111_*` / `diag_c111_*`）**归属未判定** ⇒ 本轮**未提交**；⑪ 🔴 **git push 需注意**：本地 `main` 上已有 ASR 的未推送 commit `195b135` / `59ddd0d` ⇒ 普通 push 会**连带推上这些已提交 commit**（本轮**不混提他模块文件**，但已存在的 commit 无法拆分）
+阻塞 / 待用户决定: ① 🔴🔴 **§72：APP-028 的代码侧改造 + 客户包包目录同步 + 入库 + push 均已完成**（§70/§71/§72）⇒ **只差 zip**：`app067_repack_after_lock.py` 于 16:23:26 取到 `app-pack` 锁（PID 9900）正在重打 ⇒ 交付口径「包目录 + zip **都**含最新代码**且已入库**」⇒ **zip 打完后才写「已交付」**；② ⛔ **V1（CUDA 连续实时）/ V2（NPU + 四配置 ABBA）/ V3（克隆）未跑** ⇒ 本轮**主动不跑**（铁律「不在 CPU 推理/测速」＋ 计时窗口内不启额外 `python.exe`）⇒ **无证据 ≠ 通过**：代码侧判据只能证明**逻辑正确**，**不能证明「用户听得到」**；③ ⛔ **§63 的 L4 仍等用户实测**（需人）：桌面快捷方式 → CUDA 朗读一句 → NPU 朗读一句 → 克隆音色一段 ⇒ 反馈听到/听不到 ⇒ **用户亲口确认前不得写「能出声」**；④ 🔴 **APP-028① 的「CUDA 不作默认」是定案**，若用户要用 CUDA 必须**手动在 GUI 改**，界面**不得承诺「装一下就能用」**（OV 官方不带 CUDA plugin）；⑤ 🔴 **APP-029 [NORMAL]（15:48 新增）本轮不认领** —— 明文「仍然排在 APP-028 / APP-027 之后，现在不要集成」（pyannote 只做说话人识别、不再断句）⇒ `last_ack` **只推进到 APP-028**，待 reviewer 放行；⑥ 🔴 **§66 用户新口径仍生效**：**不再跑 `verify_pkg_zip.py`、不再跑 `publish_ftp.py`、不开 FTP** ⇒ 交付流程 = **定点同步 → 先提交 → 持锁重打 zip**（+ 只读本地「zip ⇄ 包目录 diff = 0」）；⑦ 🔴 **`app104` 的 A1 判 `NO-EVIDENCE`（不是 PASS）** —— 真子进程管道因本机**无可用音色**（事件 `error`「没有可用的音色：A」）无法合成 ⇒ 按铁律**不宣称通过**、**也不算缺陷**、**不得计入 PASS 数**；⑧ 🔴 **§72 的 `app103` A6 假通过教训**：闸门解析 `AnnAssign` 时**异常必须判 FAIL 而非 PASS** ⇒ 已由 `app105` 的 D1（**结构性证明**，不依赖源码当前状态）＋ E4（解析失败必须 FAIL）覆盖；⑨ 🔴 **APP-022「按说话人切换音色」仍后置**（本轮只做「克隆**当前**说话人」的单音色路线，**不依赖 pyannote**）；⑩ 🔴 **APP-024②③④ 仍未做**（reviewer 明文「不要自己改」）⇒ 保持原状；⑪ 🔴 **§57 历史遗留未跟踪文件**（`sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `sync_c111_*` / `diag_c111_*`）**归属未判定** ⇒ 本轮**未提交**；⑫ 🔴 **git push 需注意**：本地 `main` 上已有 ASR 的未推送 commit `195b135` / `59ddd0d` ⇒ 普通 push 会**连带推上这些已提交 commit**（本轮**不混提他模块文件**，但已存在的 commit 无法拆分）
 
 
 ## 最近更新
+16:26 §72 🔴🔴 **APP-028 收尾补正（闸门自身可信度 + `device_config.py` 独立同步）**：🔴 **查出 `app103` A6 是「假通过」**（只认 `ast.Assign` ⇒ `FALLBACK_ORDER` 实为 `AnnAssign` ⇒ 解析失败被 `except` 吞掉 ⇒ `asr_npu/mt_npu` 恒 `False` ⇒ **判据永远 PASS**）⇒ ✅ **真实缺陷已修**：`FALLBACK_ORDER` 的 ASR/MT 链**仍含 `'NPU'`**（违反 APP-028①「NPU 独占」）⇒ 改为 `asr/mt: ['GPU.0','CPU']`（随 `6d90715` 入库）⇒ ✅ **新建 `app105`**（**24/24**；含 **14 条反证**，故意写错 ⇒ 判据必须 FAIL；反证用 **AST 重建**⇒ 源码修好后反证**不静默失效**；`exec` 须注入 `SR`/`threading` ⇒ 否则闸门自身崩溃）⇒ ✅ **新建 `sync_s70_device_config_to_pkg.py`**（与 §71 的 4 文件**不重叠** ⇒ 无双写）⇒ `device_config.py` **已单独定点同步**（基线 `5e2aef7` → 2 块唯一命中 → 写盘 → LF SHA256 `f386785af866f9…` == 仓库 ⇒ MATCH；**幂等**复核 = 0 块 no-op）⇒ 🔴 **更正 §71.1 措辞**：包内一致是**本节同步的结果**，不是「本来就一致」⇒ ✅ 全部闸门复核 `app103` 29/29、`app104` 10 PASS + 1 NO-EVIDENCE、**`app105` 24/24**、`app098` 21/21、`app102` 27/27、`app097` 20/20、`app100` 28/28、`app069` 37/37 ⇒ ⛔ **不跑推理**、⛔ **zip 未重打**（`app-pack` 锁 PID 9900 运行中）⇒ **不写「已交付」**
+16:23 §71 🔴🔴 **APP-028 交付闭环推进**：✅ **commit `6d90715`**（13 文件 / +1920 −350，App-only，`CORRECTIONS_APP.md` **未**入库）⇒ ✅ **客户包定点同步写盘 PASS**（19/8/4/3 块唯一命中，备份 `pkg_backup_app_s70`）⇒ ✅ **独立复核 5 文件「包内 LF SHA256 == 仓库 == HEAD」全 MATCH** ⇒ ✅ **push `59ddd0d..6d90715`（普通 push，`origin/main...HEAD` = 0/0）** ⇒ ⏳ **zip 等锁重打中**（锁被 `module:tts` / `pid 39352` 持有，`OpenProcess` handle=668 / err=0 ⇒ `exit=259 STILL_ACTIVE` ⇒ **活锁，不抢不删**；`app067_repack_after_lock.py` 后台等锁）⇒ ⛔ **zip 未重打 ⇒ 不写「已交付」**
+16:16 §70 🔴🔴 **APP-028（BLOCKING）代码侧改造完成**：① **默认设备摆放定案**（ASR=`GPU.0`、MT=`GPU.0`、TTS=`NPU` ⇒ **NPU 独占 TTS**；`FALLBACK_ORDER` 已摘掉 ASR/MT 的 `'NPU'`；**CUDA 不作默认**）＋ ② **生产者/消费者播放架构**（`RingBuffer` → **无界内存 `AudioQueue`**；**合成不等播放**（独立 `_played_loop` 看门狗线程）；**删除 `BACKLOG_MAX_S` 丢句逻辑**；`cancel` 改**整句摘除**；新增 `clear_queue`；**模块级 stdout 写锁 `_OUT_WLOCK`**；GUI 底栏显示**「语音滞后 X 秒」**且 `_tts_meter()` **首次接入 `_poll()`**）⇒ ✅ `app103` **29/29** ＋ `app104` **10 PASS / 0 FAIL / 1 NO-EVIDENCE**（A1 本机无可用音色 ⇒ **不宣称通过**）＋ 回归 `app098` 21/21、`app102` 27/27、`app069` 37/37、`app097` 20/20、`app100` 28/28 ⇒ ⛔ **不跑推理**、⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ 🔴 `last_ack` = **APP-028**（APP-029 明文「现在不要集成」⇒ **不认领**）
 13:22 §69 ✅ **APP-027 客户包定点同步完成**：`sync_app027_to_pkg.py`（pkg→HEAD + LF 归一化 + 唯一命中 + 替换后==HEAD 断言）写 5 文件 FAIL=0；独立复核 包内 LF SHA256 == `git show HEAD` LF SHA256 全 MATCH；⚠️ `backends.py`/`seg_stream.py` 与 HEAD 不符是 C-102/C-098 预存代差（包内更大，不碰）；⛔ **zip 仍待锁重打 ⇒ 不写「已交付」**
 12:30 §68 ✅ **APP-027⑤（克隆）真正接入**：主进程 `Session.on_audio` → `App._collect_clone_pcm`（20 ms 帧 RMS **去静音**、滚动 10 s、**≥6 s 新语音或每 30 s** 触发）→ `tts_service.set_clone_pcm`（base64 16 kHz PCM）→ worker `_update_clone`（BabelVox 换 x-vector / CUDA 边车 `set_ref`）⇒ **下一句起生效**；🔴 **失败真回落预设 A**（`_fallback_to_preset` 换回**缓存**的预设向量，不是只改标志位）；🔴 GUI 新增**独立标签**显示**实际使用**的音色（「预设 A」/「克隆（更新于 hh:mm:ss，x s 语音）」）⇒ **旧的「尚未启用 ⇒ 回落 A」死逻辑已删**
 12:30 §68 ✅ **APP-027③ 的两个并发缺口补上**：① `tts_service._send` 加 **`_stdin_wlock`**（`set_clone_pcm` 来自**会话线程**、`submit/cancel` 来自 **GUI 主线程** ⇒ 并发 write 同一 pipe ⇒ 命令行交错 ⇒ worker 收到半行 JSON）② `tts_cuda` 的 `set_ref_audio` 与 `generate_stream` 共用写锁；③ `tts_cuda.close()` 现在**清空消息队列**（否则 close→start 后新句会先读到旧句的块 ⇒ 又错位）
@@ -14,14 +17,10 @@ last_ack: APP-028
 12:30 §68 ✅ **隐私闸门**：`pkg_exclude.is_user_voice_artifact()` ⇒ 拦 `clone_*.npz` ＋ `tts_speakers/`（任意层级，整目录 prune）⇒ ⚠️ **不误伤** `preset_A.wav`（生产路线依赖）
 12:30 §68 ✅ **验收**：`app098` **21/21**、`app099` **13/13**、`app100` **28/28**（含 3 条反证）、`app097` 回归 **20/20 + BUG 3/3** ⇒ 🔴 **闸门自身的假通过比缺陷更危险** ⇒ C 组**故意写错**确认判据**确实 FAIL**
 12:30 §68 ⛔ **未跑 V1/V2/V3**（共享机器锁被 TTS 占用：`pid 14888`，`OpenProcess` **err=87** ⇒ **fail-closed 视为存活** ⇒ **不抢不删**）⇒ ⛔ **客户包未同步 / zip 未重打** ⇒ **不写「已交付」**；⛔ **V4 等用户实听**
-11:26 §68 🔴🔴🔴 **新纠偏 2 条已读**：`CORRECTIONS_APP.md` SHA `a4f4d3b0e52894dd…` / **77 399 B** / mtime **11:08:32** / **27 条**（最大 **APP-027**）⇒ `last_ack` → **APP-027**；**APP-026**（不再跑 61min，统一 SPE 前 **5 分钟**切片 `shared/SPE_0000_0500.wav`）+ **APP-027 [BLOCKING]**（NPU 卡顿 / CUDA 越拖越久全丢 / 克隆未接入）
 11:26 §68 🔴 **APP-026 即时生效**：ASR 的 61min 作业 `pya_app_baseline_base61` 已在 **53.9%** 时中止、11:20:17 换跑 **`pya_app_baseline_base5m_v2`（300 s = 5 分钟）** ⇒ 与新口径一致 ⇒ App 侧**不再**安排任何 61min 作业；需制作 `shared/SPE_0000_0500.wav` 供各模块共用
 11:26 §68 🔴 **APP-027 三项改造（本轮主任务）**：① NPU 卡顿（RTF 0.80→1.5，**句内**欠载 389/498 次）⇒ 逐句自适应预缓冲 + 环形缓冲改 numpy + 遥测拆 `synth_rtf`/`prebuffer_s`/`underflow_in_sentence` ② CUDA 全丢（积压口径错：**已写入的句子被丢**、边车 IPC **不核对 `rid` ⇒ 音频与字幕错位**、阻塞读**永不超时** ⇒ 合成线程卡死）⇒ rid 过滤 + 读者线程 + 看门狗 + 单一 FIFO 合成线程 + 积压口径改 ③ 克隆**功能未接入**（GUI 能选但只写日志）⇒ 本轮接入「克隆当前说话人」+ 删 `clone_C.npz` 死代码 + GUI 置灰/改名
 11:05 §66 🔴🔴🔴 **【用户明文新口径】以后不做一致性校验、不开 FTP 服务** ⇒ **覆盖 §61 的交付四步**：第 ③ 步 `verify_pkg_zip.py` 独立复核 **取消**、第 ④ 步 `publish_ftp.py` 重发 FTP **取消** ⇒ 新流程 = **定点同步 → 先提交 → 持锁重打 zip**（+ 一道**只读本地**的「zip ⇄ 包目录 diff = 0」）
 11:05 §66 🔴 **「已交付」口径改写**：**不再**以「三方闭环（源 zip = FTP 副本 = 包目录）」为准 ⇒ 改为 **「包目录 + zip 已含最新代码，且该代码已入库（`HEAD`）」** ⇒ §61/§64 的 FTP 结论**只作历史记录**，不得再作对外报数依据
-11:05 §66 ⚠️ **别把新口径读成「不用打包了」** —— 取消的是**校验与 FTP**，**不是打包** ⇒ APP-024① 代码（10:38）**在**上次打包（10:17–10:31）**之后** ⇒ 当前 zip 仍旧版 ⇒ **仍必须持锁重打 zip**
-11:05 §65 ✅ **§64 真正落盘**（前两次被脚本自身断言拦下 ⇒ STATUS 未被误改）：修 2 处「脚本缺陷」——① 章节计数用子串 `count(\'## §\')` ⇒ 改正则 `^## §\d+`（63→64）② 「最近更新」用 `re.search(.*?$)` ⇒ `$` 在 MULTILINE 下只吃 **1 行** ⇒ 旧的 **29 行会整体丢** ⇒ 改**按行切片**（保留 15 行）
-11:05 §65 🔴🔴 **发现并修掉 2 处 U+FFFD 损坏字符**（「保留在**工**作区」）⇒ 字节层修复 ⇒ 两文件 U+FFFD 计数 **0**（备份里本就是 0 ⇒ 未污染旧 STATUS）
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -12089,3 +12088,184 @@ ctypes OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 14888) → 失败，GetLas
 reviewer 15:48 写的，本轮**只读**）＋ 其它模块的未提交改动
 （`live_caption/diag_c111_*` / `sync_c111_*` / `sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py`
 / ASR 的 `c0xx_*.py` / `reports/` 187 项 / `results/` 171 项中的他模块产物）⇒ **一律不吞**。
+
+## §71 🔴🔴 **APP-028 交付闭环（提交 → 客户包定点同步 → 独立复核 → push）**（2026-10-27 16:23）
+
+> §70 记录的是「代码侧改造完成」；本节记录**同一轮**的**交付闭环实绩**。
+> 🔴 **口径不变**：本节写「已交付」的前提 = **包目录 + zip 都含最新代码，且该代码已入库**。
+
+### 71.0 执行顺序（严格按 §66 / §70.6 的纪律）
+
+| # | 步骤 | 状态 | 证据 |
+|---|---|---|---|
+| 1 | 改写 STATUS 头部（`当前任务` / `阻塞` / `最近更新`） | ✅ | 头部 `last_ack: APP-028` / `更新时间: 2026-10-27 16:16` |
+| 2 | **逐文件 `git add`（App-only）** | ✅ | 13 个文件；`git diff --cached --name-only \| grep -i CORRECTIONS` **exit=1（空）** ⇒ reviewer 文件**未**入库 |
+| 3 | commit（普通，不 amend / 不 force） | ✅ | `6d90715` / 13 files changed, **1920 insertions(+), 350 deletions(-)** |
+| 4 | 客户包**定点同步写盘** | ✅ | `sync_s70_app028_to_pkg.py` ⇒ **PASS**（19/8/4/3 块，全部唯一命中） |
+| 5 | **独立复核**「包内 LF SHA256 == 仓库 LF SHA256 == HEAD LF SHA256」 | ✅ | 5 文件 **全 MATCH**（独立脚本，不复用同步脚本的中间状态） |
+| 6 | `git push origin main`（普通 push） | ✅ | `59ddd0d..6d90715  main -> main`；`rev-list --left-right --count origin/main...HEAD` = **0  0** |
+| 7 | 持锁重打 zip | ⏳ **等锁中** | `app067_repack_after_lock.py --max-wait 5400` **后台运行**（task `ngwacB`） |
+
+### 71.1 同步写盘实况（§70.4 的「⛔ 待执行」在此关闭）
+
+```
+[SYNCED] live_caption/tts_worker.py       — 19 块；sha 52bff5e011c6898a → 3a13eddc1574e341（136375 → 150853 B）
+[SYNCED] live_caption/tts_service.py      —  8 块；sha a53a393cb3bcf6f4 → 3c3a6dd9b352a10e（100673 → 100333 B）
+[SYNCED] live_caption/live_caption_app.py —  4 块；sha cf4bb5b999ba1c6f → 569aafccabbfc6d（228246 → 229543 B）
+[SYNCED] live_caption/offline_reader.py   —  3 块；sha 2251110eb3d350e0 → f25bc9c0dc4f3ee1（22998 → 23976 B）
+结论：PASS
+```
+
+- ✅ **备份**（包外）：`C:/Users/Trekker-PTL/pkg_backup_app_s70`
+- 🔴 **`device_config.py` 不在同步清单里**（APP-028① 的改动）⇒ **单独核对**：
+  包内 `FALLBACK_ORDER` = `asr:['GPU.0','CPU'] / mt:['GPU.0','CPU'] / tts:['NPU','GPU.0','CPU']`
+  ⇒ **与仓库一致**（ASR/MT 已无 `'NPU'` ⇒ NPU 独占给 TTS）⇒ **无需同步**。
+
+### 71.2 独立复核：包内 LF SHA256 == 仓库 LF SHA256 == `HEAD` LF SHA256
+
+> 🔴 **独立脚本**（不复用同步脚本的任何中间状态）⇒ 避免「同步脚本自证」。
+
+| 文件 | 仓库(LF) | 包内(LF) | `HEAD`(LF) | 判定 |
+|---|---|---|---|---|
+| `live_caption/tts_worker.py` | `3a13eddc1574e3…` | `3a13eddc1574e3…` | `3a13eddc1574e3…` | ✅ MATCH |
+| `live_caption/tts_service.py` | `3c3a6dd9b352a1…` | `3c3a6dd9b352a1…` | `3c3a6dd9b352a1…` | ✅ MATCH |
+| `live_caption/live_caption_app.py` | `569aafccabbfc6…` | `569aafccabbfc6…` | `569aafccabbfc6…` | ✅ MATCH |
+| `live_caption/offline_reader.py` | `f25bc9c0dc4f3e…` | `f25bc9c0dc4f3e…` | `f25bc9c0dc4f3e…` | ✅ MATCH |
+| `live_caption/device_config.py` | `f386785af866f9…` | `f386785af866f9…` | `f386785af866f9…` | ✅ MATCH |
+
+⇒ **OVERALL: PASS**（`HEAD` = `6d907156471da8a5889c3089728cacf72c641ce0`）
+⇒ 🔴 **口径已满足一半**：**包目录已含最新代码 且 该代码已入库**。
+
+### 71.3 git 状态
+
+| 项 | 值 |
+|---|---|
+| 分支 | 仅 `main`（`remotes/origin/HEAD -> origin/main`） |
+| 本轮 commit | `6d90715` §70 APP-028（BLOCKING）代码侧改造 |
+| push | ✅ `59ddd0d..6d90715  main -> main`（**普通 push**，**未 force**） |
+| 同步后 `origin/main...HEAD` | **0  0**（完全同步） |
+| ⚠️ 连带推送 | `195b135` / `59ddd0d` = **ASR §43/§44/§45** 的**既有已提交** commit ⇒ 普通 push 会连带推上（**本轮未混提他模块的「文件」**，但**已存在的 commit 无法拆分**）⇒ 如实记录 |
+| 未提交（本轮**有意不提交**） | `status/app/CORRECTIONS_APP.md`（**reviewer 独占**）＋ 其它模块未提交改动（`diag_c111_*` / `sync_c111_*` / `sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / ASR `c0xx_*.py` / 他模块 `reports/`+`results/` 产物）⇒ 工作区仍 **492 项**改动，**绝大部分不是 App 的** |
+
+### 71.4 ⏳ zip 重打：**等锁中**（**不写「已交付」**）
+
+- 🔴 **锁状态（实测）**：`C:/Users/Trekker-PTL/shared/MACHINE_LOCK` **存在**
+  —— `module: tts` / `pid: 39352` / `started: 2026-10-27 16:14:39` / `host: LAPTOP-0GDQGD3I`
+- ✅ **死判据（ctypes `OpenProcess` + `GetExitCodeProcess`）**：
+  `OpenProcess` **handle=668 / GetLastError=0**（**不是 87** ⇒ 不是死 PID）⇒
+  `GetExitCodeProcess` **exitcode = 259 = STILL_ACTIVE** ⇒ **进程存活**
+  ⇒ **fail-closed ⇒ 视为活锁 ⇒ 不抢、不删、不跑**
+- ✅ **已启动**：`results/app/app067_repack_after_lock.py --max-wait 5400`（**后台**，task `ngwacB`）
+  ⇒ 该脚本**自带** `machine_lock_app.LockHeld(module='app-pack')` 守门 + **安静窗口双闸门**
+  ⇒ 锁一释放即自动持锁重打 zip，并自动做**只读本地**「zip ⇄ 包目录 diff = 0」
+- 🔴🔴 **§66 口径**：`app067_repack_after_lock.py` **不跑** `verify_pkg_zip.py`、**不跑** `publish_ftp.py`、**不开 FTP**。
+- ⛔ **当前 zip 仍是旧版**：`C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.5.zip`
+  = **11 216 287 107 B / mtime 2026-10-27 10:28:15** ⇒ **不含本轮任何改动**
+  ⇒ ⛔ **交付口径未闭环 ⇒ 本节不写「已交付」**。
+  （zip 打完后的**文件数 / mtime / 字节数 / SHA256** 见 §71.5。）
+## §72 🔴🔴 **APP-028 收尾补正** —— ① 修 `app103` A6 的**假通过**（闸门自身）+ ② `device_config.py` 的**独立定点同步**（`sync_s70_device_config_to_pkg.py`）+ ③ §71.1 的一处**归因更正**（2026-10-27 16:25）
+
+> 本节是 §70 / §71 的**追加补正**，**不改写** §70 / §71 的任何结论。
+> 🔴 **只追加**，不回头改旧章节（铁律）。
+
+### 72.0 本节要解决的三个问题
+
+| # | 问题 | 性质 | 本节处置 |
+|---|---|---|---|
+| ① | `app103` 的 **A6 判据是假通过** | **闸门缺陷**（不是生产代码缺陷） | 新建 `app105` 补齐 + 修 `device_config.py` 的真实缺口 |
+| ② | `device_config.py`（APP-028① 的 NPU 独占改动）**不在** `sync_s70_app028_to_pkg.py` 的同步清单里 | 同步清单缺口 | 新建 `sync_s70_device_config_to_pkg.py` **单独定点同步**（与 §71 的 4 文件**不重叠**） |
+| ③ | §71.1 写「`device_config.py` **无需同步**（与仓库一致）」 | 🔴 **归因更正** | 包内一致是**本节同步的结果**，**不是**「本来就一致」⇒ 见 §72.3 |
+
+### 72.1 ① `app103` 的 A6 = **假通过**（闸门自身的缺陷，比缺陷更危险）
+
+- 🔴 **判据原文**（`results/app/app103_app028_no_drop_unbounded_queue.py`）：A6 只在
+  `isinstance(n, ast.Assign)` 分支里找 `FALLBACK_ORDER`；而 `device_config.py` 里
+  `FALLBACK_ORDER: Dict[str, List[str]] = {...}` 是 **`AnnAssign`**（带类型注解）
+  ⇒ **取不到节点** ⇒ `seg` 为空串 ⇒ `ast.literal_eval('')` 抛异常 ⇒ **被 `except` 吞掉**
+  ⇒ `asr_npu` / `mt_npu` 保持 `False` ⇒ **判据永远 PASS**。
+- 🔴 **实测坐实**：修 `device_config.py` 之前，源码里 ASR/MT 的回退链**确实含 `'NPU'`**，
+  而 `app103` 的 A6 **仍报 PASS** ⇒ 假通过成立。
+- ✅ **`app105` 用「结构性证明」复现该根因**（D1，**不依赖源码当前状态**）：
+  `FALLBACK_ORDER 是 AnnAssign=True` ＋ `app103 只认 Assign=True` ＋
+  `app103 取到的段为空=True` ＋ `旧判据的 asr_npu=False` ⇒ 四条同时成立才判 FAIL。
+  ⇒ 缺陷修好后，**证明依然成立**（不会随源码变化而失效）。
+
+### 72.2 ✅ **真实缺陷已修**：`FALLBACK_ORDER` 的 ASR / MT 链仍含 NPU
+
+- 🔴 **APP-028① 明文**：「**NPU 只给 TTS 独占**。」
+- 🔴 **修前实测**（`ast.literal_eval` 直读，`AnnAssign` 正确解析）：
+  `FALLBACK_ORDER = {'asr': ['GPU.0', 'NPU', 'CPU'], 'mt': ['GPU.0', 'NPU', 'CPU'], 'tts': ['NPU', 'GPU.0', 'CPU']}`
+  ⇒ GPU.0 不可用时 ASR/MT 会**静默回退到 NPU** ⇒ **与 TTS 抢 NPU** ⇒ 违反定案。
+- ✅ **修后**：`asr: ['GPU.0', 'CPU']` / `mt: ['GPU.0', 'CPU']` / `tts: ['NPU', 'GPU.0', 'CPU']`
+  （仓库 `live_caption/device_config.py`；已随 `6d90715` 入库）
+  ⇒ ⚠️ 用户仍可在 GUI 里**显式**把 ASR/MT 指到 NPU（那是**用户选择**，不是出厂兜底链）。
+
+### 72.3 ② `device_config.py` 的**独立定点同步**（§71.1 的归因更正）
+
+- 🔴 **更正 §71.1 的措辞**：该节写「`device_config.py` **不在**同步清单里 ⇒ **单独核对**
+  ⇒ **无需同步**」。**事实是**：包内 `device_config.py` 与仓库一致，**是因为本节（§72）已经把它同步过去了**
+  （同步时点 **16:18:18**，早于 §71 的同步写盘 16:23）。**不是**「本来就一致」。
+- ✅ **同步脚本**：`results/app/sync_s70_device_config_to_pkg.py`（**新增**）
+  —— 与 `live_caption/sync_s70_app028_to_pkg.py` **处理的文件不重叠**（前者只管 `device_config.py`，
+  后者管 4 个文件）⇒ **无双写**。
+- 🔴 **纪律**：「精确字符串替换 + **唯一命中断言**（`count == 1`）+ 替换块**从 git 自动派生**
+  （不手抄）+ 替换后 == 仓库版断言 + **幂等**」。
+- ✅ **实测**：基线 `5e2aef7` 与包内**逐字一致**（SHA256 `a31dc8c0…0ac70`）⇒ 派生 **2 块**
+  （−7/+9 行、−9/+16 行）⇒ **唯一命中全部通过** ⇒ 写盘 ⇒
+  **独立复核**：包内 LF SHA256 `f386785af866f934b37e2b61c6e5a1ac46ec788e598c640b394b52dd53332417`
+  == 仓库 LF SHA256 ⇒ **MATCH**。
+- 🔴 **幂等**：第二次运行 ⇒ **派生 0 块 ⇒ no-op**（不报错）。
+  ⚠️ **教训**：若以**基线**为起点派生，已同步后重跑会「命中 0 次 ⇒ 报错」⇒ **不幂等**；
+  ⇒ 改为以**包当前**为起点派生才幂等。
+
+### 72.4 ✅ 新增闸门 `app105`（**闸门自身的可信度**）：**PASS 24 / FAIL 0**
+
+| 组 | 条数 | 内容 |
+|---|---|---|
+| **D 组（真判据）** | 3 | D1 = `app103` A6 假通过的**结构性证明**；D2 = ASR/MT 回退链**真的**不含 NPU；D3 = `DEFAULT_DEVICES` 里只有 TTS 用 NPU |
+| **E 组（🔴 反证组）** | 14 | **故意写错 ⇒ 判据必须 FAIL**（E1/E2 塞 NPU、E3 ASR=NPU、E4 解析失败、E5 队列截断、E6 丢句分支、E7 `min(3.0,…)` 截断，各带一条「反证前提真的生效了」的前置断言） |
+| **F 组（行为级）** | 7 | F1 队列**真·无界**（写 100× 名义容量零丢失）、F2 **保序**（句间不交叉/句内不乱序）、F3 队空⇒`read()` 返回空、F4 `peak_lag_s` 保留峰值、F5 `lag_s()` 正确、F6 **名义 `capacity` 不导致截断** |
+
+- 🔴🔴 **反证组的关键设计**：**用 AST 重建**被测代码（`ast.unparse`），**不靠字符串匹配替换**。
+  ⚠️ **踩过的坑**：第一版用「匹配旧串再替换」⇒ **源码一改（缺陷修好）反证就静默失效**
+  ⇒ 反证「通过」毫无意义 ⇒ 实测复现过（修好 D2 后 E1/E2 变成「未匹配到」）。
+  ⇒ 现在每条反证都先断言「注入真的生效了」（E1a–E7a 共 7 条前置判据）。
+- 🔴 **不 import 被测模块**（铁律）：`ast` 抽源码 + `exec` 到独立命名空间。
+  ⚠️ **exec 的依赖注入**：`AudioQueue.__init__` 的默认参数 `capacity: int = SR * 30`
+  在**类体求值**时就需要模块级 `SR` ⇒ 不注入 ⇒ `NameError: name 'SR' is not defined`
+  ⇒ **闸门自身崩溃（假 FAIL）**。⇒ 注入 `{'SR': 22050, 'CHUNK_SAMPLES': 1024, 'threading': threading}`。
+- ⚠️ **解释器差异**：`app103` 在 **managed 3.13**（**无 numpy**）下 C 组会崩
+  （生产代码 `except` 分支拿到 `list` ⇒ `AttributeError: 'list' object has no attribute 'size'`）；
+  在 **system 3.12**（numpy 2.5.4）下 **PASS 29 / FAIL 0**。
+  ⇒ 这是**解释器差异**、**不是**代码缺陷 ⇒ 一律用 system 3.12 跑。
+
+### 72.5 ✅ 全部闸门复核（system Python 3.12.10 / numpy 2.5.4）
+
+| 脚本 | 结果 |
+|---|---|
+| `app103_app028_no_drop_unbounded_queue.py` | **PASS 29 / FAIL 0** |
+| `app104_app028_e2e_smoke.py` | **PASS 10 / FAIL 0 / NO-EVIDENCE 1**（A1 真子进程无模型 ⇒ 无证据，不算通过） |
+| `app105_app028_gate_selftest.py`（**本节新增**） | **PASS 24 / FAIL 0** |
+| `app098_app027_fifo_backlog.py` | **PASS 21 / FAIL 0** |
+| `app102_app027_metrics_selftest.py` | **PASS 27 / FAIL 0** |
+| `app097_first_packet_split.py` | **ALL PASS = True**（+ 3 条反证命中） |
+| `app100_app027_clone.py` | **PASS 28 / FAIL 0**（+ 3 条反证命中） |
+| `app069_offline_reader_selftest.py` | **PASS 37 / FAIL 0** |
+
+### 72.6 本节产物（**文件数 / mtime / 字节数 / SHA256**）
+
+| 文件 | 字节数 | mtime | SHA256 |
+|---|---|---|---|
+| `results/app/app105_app028_gate_selftest.py` | 27 790 | 2026-10-27 16:16:59 | `ea2c5766782a3dc5e9f54fe661255237b78f3f0c404e75e2826e58cfb6167b62` |
+| `results/app/app105_app028_gate_selftest_evidence.json` | 1 205 | 2026-10-27 16:24:06 | `43d07329e4b566f18494d8d15c8de2398e05fcdc9b0106778a4e643b3acb3595` |
+| `results/app/sync_s70_device_config_to_pkg.py` | 6 379 | 2026-10-27 16:18:39 | `f7f8dbfeb7af1ff96efda4760709130b5a8b1a772229773ee175cca0b1cee875` |
+| 客户包 `app/device_config.py`（**已写盘**） | 19 248 | 2026-10-27 16:18:18 | LF `f386785af866f934b37e2b61c6e5a1ac46ec788e598c640b394b52dd53332417` |
+
+### 72.7 本节**未**做的事（口径）
+
+- 🔴 **未跑推理、未测速、未占机器锁** ⇒ 本节全部是**离线复算 + 源码结构判定**。
+- ⛔ **zip 仍未重打**（`app067_repack_after_lock.py` 于 16:23:26 持 `app-pack` 锁 / PID 9900 运行中）
+  ⇒ **交付口径未闭环 ⇒ 本节不写「已交付」**。
+- ⛔ **V1 / V2 / V3（用户启动方式 + 真实模型）未跑**；⛔ **V4 等用户实听**
+  ⇒ **不写「语音输出可用」**。
+- 🔴 **本节不推进 `last_ack`**（仍为 **APP-028**）⇒ APP-029 明文「现在不要集成」。
