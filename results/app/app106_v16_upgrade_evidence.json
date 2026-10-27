@@ -1,0 +1,50 @@
+{
+ "pkg": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.6",
+ "check": false,
+ "n_hit": 7,
+ "n_skip": 0,
+ "replacements": [
+  {
+   "file": "README_zh.md",
+   "desc": "标题版本号 v1.5 → v1.6",
+   "hits": 1,
+   "status": "HIT(唯一)"
+  },
+  {
+   "file": "README_zh.md",
+   "desc": "插入 v1.6 改动说明段（保留 v1.5 段）",
+   "hits": 1,
+   "status": "HIT(唯一)"
+  },
+  {
+   "file": "README_zh.md",
+   "desc": "首段简介补 v1.6 一句",
+   "hits": 1,
+   "status": "HIT(唯一)"
+  },
+  {
+   "file": "README_en.md",
+   "desc": "标题版本号 v1.5 → v1.6",
+   "hits": 1,
+   "status": "HIT(唯一)"
+  },
+  {
+   "file": "README_en.md",
+   "desc": "插入 v1.6 段（保留 v1.5 段）",
+   "hits": 1,
+   "status": "HIT(唯一)"
+  },
+  {
+   "file": "README_en.md",
+   "desc": "首段简介补 v1.6 一句",
+   "hits": 1,
+   "status": "HIT(唯一)"
+  },
+  {
+   "file": "NOTICE",
+   "desc": "NOTICE 标题版本号 v1.4 → v1.6（历史错标纠正）",
+   "hits": 1,
+   "status": "HIT(唯一)"
+  }
+ ]
+}

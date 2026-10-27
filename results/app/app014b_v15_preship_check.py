@@ -1,11 +1,19 @@
 #!/usr/bin/env python
-r"""app014b_v15_preship_check.py —— v1.5 打包前自检（APP-014② 第③④步）
+r"""app014b_v15_preship_check.py —— 客户包打包前自检（APP-014② 第③④步）
+
+🔴 **版本判据参数化**（2026-10-27，APP-028 升 v1.6 时修）
+---------------------------------------------------------
+本脚本原先把 `'1.5'` 写死**十几处**判据里 ⇒ 包一升版就**必然报一堆假 FAIL**，
+而实际内容可能完全正确 ⇒ 判据过期被伪装成「验收不通过」。
+⇒ 现在版本号统一从 **`pack_v13.PKG_VERSION`（单一数据源）**读
+（`ast` 抽字面量，**不 import** 其执行逻辑），也可用 `--version` 覆盖；
+**脚本文件名保留 v15**（历史命名，不改）。
 
 验四组：
   1. **包内代码 == 仓库代码**（逐文件 SHA256）—— 防止「改了仓库忘了同步进包」；
-  2. **v1.5 标识就位**（标题版本号 / MANIFEST version / README v1.5 段）；
-  3. **本轮四条改动的 README 落地**（假设备清零 / CUDA 警示 / 接缝去重 /
-     TTS 转正式默认开启）；
+  2. **版本标识就位**（标题版本号 / MANIFEST version / README 改动说明段）；
+  3. **各版本改动说明的 README 落地**（假设备清零 / CUDA 警示 / 接缝去重 /
+     TTS 转正式默认开启 / v1.6 架构修订）；
   4. **内部素材闸门 + GUI 冒烟复跑**（复用现有脚本，只做只读/无推理的部分）。
 
 🔴 **口径**：
@@ -16,8 +24,8 @@ r"""app014b_v15_preship_check.py —— v1.5 打包前自检（APP-014② 第③
 
 用法
 ----
-    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\python\\python.exe" \
-        app014b_v15_preship_check.py --pkg <v1.5目录>
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\python\\python.exe" \
+        app014b_v15_preship_check.py --pkg <v1.6目录>
 """
 from __future__ import annotations
 
@@ -75,14 +83,45 @@ def head_bytes(rel):
         return None
 
 
+def _expected_version():
+    """期望的包版本（**单一数据源** = `pack_v13.PKG_VERSION`）。
+
+    🔴 2026-10-27（APP-028 升 v1.6 时修）：本脚本原先把 `'1.5'`
+    写死在**十幾处**判据里 ⇒ 包一升版就**必然报一堆假 FAIL**，
+    而实际内容可能完全正确。
+    ⇒ 现在统一从 `pack_v13.PKG_VERSION` 读（用 `ast` 抽字面量，
+    **不 import** 被测/被依赖模块的执行逻辑）。
+    ⇒ 读不到 ⇒ **抛异常**（绝不静默回退到硬编码版本）。
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    repo = os.path.dirname(os.path.dirname(here))
+    src = os.path.join(repo, 'pack_v13.py')
+    if not os.path.isfile(src):
+        raise FileNotFoundError('找不到 pack_v13.py（版本单一数据源）: %s' % src)
+    import ast
+    with open(src, 'r', encoding='utf-8') as f:
+        tree = ast.parse(f.read())
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            for t in node.targets:
+                if isinstance(t, ast.Name) and t.id == 'PKG_VERSION':
+                    val = node.value
+                    if isinstance(val, ast.Constant) and isinstance(val.value, str):
+                        return val.value
+    raise RuntimeError('pack_v13.py 里取不到 PKG_VERSION 字面量')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--pkg', required=True)
+    ap.add_argument('--version', default=None,
+                    help='期望的包版本（默认从 pack_v13.PKG_VERSION 读）')
     args = ap.parse_args()
     PKG = args.pkg
+    VER = args.version or _expected_version()
 
     print('=' * 70)
-    print('v1.5 打包前自检 ——', PKG)
+    print('v%s 打包前自检 ——' % VER, PKG)
     print('=' * 70)
 
     # ── ① 包内代码 == 仓库代码（基准 = **HEAD**，不是工作区）──────────
@@ -114,13 +153,13 @@ def main():
               'head=%s pkg=%s%s' % (hashlib.sha256(a).hexdigest()[:12],
                                     hashlib.sha256(b).hexdigest()[:12], note))
 
-    # ── ② v1.5 标识就位 ───────────────────────────────────────
+    # ── ② 版本标识就位 ───────────────────────────────────────
     print()
-    print('--- (2) v1.5 标识 ---')
+    print('--- (2) v%s 标识 ---' % VER)
     import json
     man_path = os.path.join(PKG, 'app', 'MANIFEST.json')
     man = json.load(open(man_path, encoding='utf-8'))
-    check("MANIFEST version == '1.5'", man.get('version') == '1.5',
+    check("MANIFEST version == %r" % VER, man.get('version') == VER,
           'version=%r' % man.get('version'))
     notes = man.get('notes') or ''
     check('MANIFEST notes 含 v1.5 修订（设备全名）',
@@ -139,19 +178,35 @@ def main():
           '（9）**TTS（译文语音输出）转为正式功能，默认开启**' in notes)
     check('MANIFEST notes 仍含 v1.4 TTS/INT8 修订',
           '（4）**TTS（Qwen3-TTS / BabelVox）随包分发**' in notes)
+    # 🔴 v1.6（APP-028）：本轮修订说明必须进 notes（否则 MANIFEST 对客户
+    #    描述的内容与包内实际能力不符 = C-133 的教训）。
+    check('MANIFEST notes 含 v%s 修订（默认设备摆放定案）' % VER,
+          '（13）**默认设备摆放定案**' in notes)
+    check('MANIFEST notes 含 v%s 修订（生产/消费者架构）' % VER,
+          '（14）**语音输出改为「边合成边播」的生产/消费者架构**' in notes)
+    check('MANIFEST notes 含 v%s 修订（不再丢句）' % VER,
+          '（15）**不再丢句**' in notes)
+    check('MANIFEST notes 含 v%s 修订（语音滞后 HUD）' % VER,
+          '（16）**界面底栏实时显示「语音滞后 X 秒」**' in notes)
 
-    # ── ③ README v1.5 落地 ─────────────────────────────────────
+    # ── ③ README 落地 ───────────────────────────────────────
     print()
-    print('--- (3) README v1.5 落地 ---')
+    print('--- (3) README v%s 落地 ---' % VER)
     zh = open(os.path.join(PKG, 'README_zh.md'), encoding='utf-8').read()
     en = open(os.path.join(PKG, 'README_en.md'), encoding='utf-8').read()
 
-    check('README_zh 标题是 v1.5',
-          zh.startswith('# Confucius4-R2T2 实时字幕（技术评估版 v1.5）'))
-    check('README_en 标题是 v1.5',
-          en.startswith('# Confucius4-R2T2 Live Captions (technical evaluation build v1.5)'))
-    check('README_zh 有「## v1.5 改动说明」', '## v1.5 改动说明' in zh)
-    check('README_en 有 "## What\'s new in v1.5"', "## What's new in v1.5" in en)
+    check('README_zh 标题是 v%s' % VER,
+          zh.startswith('# Confucius4-R2T2 实时字幕（技术评估版 v%s）' % VER))
+    check('README_en 标题是 v%s' % VER,
+          en.startswith('# Confucius4-R2T2 Live Captions (technical evaluation build v%s)' % VER))
+    check('README_zh 有「## v%s 改动说明」' % VER,
+          '## v%s 改动说明' % VER in zh)
+    check('README_en 有 "## What\'s new in v%s"' % VER,
+          "## What's new in v%s" % VER in en)
+    check('README_zh 保留 v1.5 改动说明（历史可追溯）',
+          '## v1.5 改动说明' in zh)
+    check('README_en 保留 v1.5 改动说明（历史可追溯）',
+          "## What's new in v1.5" in en)
     check('README_zh 保留 v1.4 改动说明（历史可追溯）',
           '## v1.4 改动说明' in zh)
     check('README_en 保留 v1.4 改动说明（历史可追溯）',
@@ -292,7 +347,8 @@ def main():
 
     print()
     print('=' * 70)
-    print('v1.5 打包前自检：PASS %d 项 / FAIL %d 项' % (len(PASS), len(FAIL)))
+    print('v%s 打包前自检：PASS %d 项 / FAIL %d 项'
+          % (VER, len(PASS), len(FAIL)))
     for f in FAIL:
         print('  x %s' % f)
     print('=' * 70)

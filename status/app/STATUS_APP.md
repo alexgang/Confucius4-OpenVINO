@@ -1,12 +1,13 @@
 # STATUS_APP
 last_ack: APP-028
-更新时间: 2026-10-27 16:47
-当前任务: **§73 🔴🔴 APP-028 交付闭环完成（代码 / 包目录 / zip 三处一致且已入库）** ⇒ ✅ **§70 代码侧改造**（默认设备摆放定案 ASR=`GPU.0`/MT=`GPU.0`/TTS=`NPU` ⇒ **NPU 独占 TTS**；`RingBuffer` → **无界内存 `AudioQueue`**；**合成线程不等播放**（独立 `_played_loop` 看门狗）；**删除 `BACKLOG_MAX_S` 丢句逻辑**；`cancel` 改**整句摘除**（`drop_jid`）；新增 `clear_queue`；模块级 stdout 写锁 `_OUT_WLOCK`；GUI 底栏显示**「语音滞后 X 秒」**且 `_tts_meter()` 首次接入 `_poll()`）⇒ ✅ **§71 交付闭环**（commit `6d90715` 13 文件 App-only，`CORRECTIONS_APP.md` **未**入库 ⇒ 客户包 5 文件定点同步 + 独立复核「包内 LF SHA256 == 仓库 == HEAD」全 MATCH ⇒ push `59ddd0d..6d90715`）⇒ ✅ **§72 收尾补正**（`app103` A6 **假通过**已修 + 真实缺陷 `FALLBACK_ORDER` ASR/MT 含 `'NPU'` 已修 + `device_config.py` 独立定点同步 + `app105` **24/24**）⇒ ✅ **§73 zip 已重打 + 交付闭环**：zip **11 218 087 123 B / mtime 16:41:02 / SHA256 `907a1caa…2589f` / 14 199 文件逐字节一致**；**独立四路复核（仓库 == 包目录 == zip 内字节 == HEAD）5/5 全 MATCH**；`zip ⇄ 包目录 .py diff = 0`；`origin/main...HEAD` = **0/0**⇒ ✅ **「已交付」成立**（仅指**代码与包**）⇒ ⛔ **本轮不跑推理**（铁律）⇒ ⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ 🔴 **`last_ack` = APP-028**（APP-029 [NORMAL] 明文「现在不要集成」⇒ **不认领**）
+更新时间: 2026-10-27 17:15
+当前任务: **§74 🔴 客户包版本升级 v1.5 → v1.6 完成（目录 + 版本标识 + README/NOTICE + 版本判据参数化 + 持锁重打 zip）** ⇒ ✅ **§70 代码侧改造**（默认设备摆放定案 ASR=`GPU.0`/MT=`GPU.0`/TTS=`NPU` ⇒ **NPU 独占 TTS**；`RingBuffer` → **无界内存 `AudioQueue`**；**合成线程不等播放**（独立 `_played_loop` 看门狗）；**删除 `BACKLOG_MAX_S` 丢句逻辑**；`cancel` 改**整句摘除**（`drop_jid`）；新增 `clear_queue`；模块级 stdout 写锁 `_OUT_WLOCK`；GUI 底栏显示**「语音滞后 X 秒」**且 `_tts_meter()` 首次接入 `_poll()`）⇒ ✅ **§71 交付闭环**（commit `6d90715` 13 文件 App-only，`CORRECTIONS_APP.md` **未**入库 ⇒ 客户包 5 文件定点同步 + 独立复核「包内 LF SHA256 == 仓库 == HEAD」全 MATCH ⇒ push `59ddd0d..6d90715`）⇒ ✅ **§72 收尾补正**（`app103` A6 **假通过**已修 + 真实缺陷 `FALLBACK_ORDER` ASR/MT 含 `'NPU'` 已修 + `device_config.py` 独立定点同步 + `app105` **24/24**）⇒ ✅ **§73 v1.5 zip 已重打**（zip **11 218 087 123 B / mtime 16:41:02 / SHA256 `907a1caa…2589f`**）⇒ ✅ **§74 v1.6 升版完成**（`pack_v13.py` `PKG_VERSION` `'1.5'→'1.6'`；**新建** `app106_upgrade_pkg_to_v16.py`（7/7 唯一命中 + **guard 幂等**）与 `app106_v16_zip_readonly_check.py`（**20/20**）；**两个验收脚本的版本判据参数化**（`ast` 抽 `pack_v13.PKG_VERSION`，不再写死 `'1.5'`）；**NOTICE 自称 v1.4 的历史错标已纠正为 v1.6**；V1.6 目录 **14 257 文件 / 12.735 GB**；zip **11 218 089 559 B / mtime 17:09 / SHA256 `aedb8bd1…9d06`**；**四路复核 22/22 全 MATCH**、`zip ⇄ 包目录 .py diff = 0`）⇒ ⛔ **本轮未改任何生产代码**（v1.6 的代码内容 == v1.5，差别只在版本标识/目录名/说明）⇒ ⛔ **本轮不跑推理**（铁律）⇒ ⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ 🔴 **`last_ack` = APP-028**（APP-029 [NORMAL] 明文「现在不要集成」⇒ **不认领**）
 
 阻塞 / 待用户决定: ① 🔴🔴 **§73：APP-028 的「已交付」口径已闭环** —— 代码（`HEAD`=`f727992`，已 push `origin/main`，`origin/main...HEAD`=0/0）＋ 客户包包目录 ＋ 客户包 zip **三处一致**（独立四路复核 5/5 全 MATCH）⇒ ✅ **可以对外报「APP-028 代码侧已交付」**；⚠️ 但 **「用户听得到」仍不成立** ⇒ ② ⛔ **V1（CUDA 连续实时）/ V2（NPU + 四配置 ABBA）/ V3（克隆）未跑** ⇒ 本轮**主动不跑**（铁律「不在 CPU 推理/测速」＋ 计时窗口内不启额外 `python.exe`）⇒ **无证据 ≠ 通过**：代码侧判据只能证明**逻辑正确**，**不能证明「用户听得到」**；③ ⛔ **§63 的 L4 等用户实测**（需人）：桌面快捷方式 → CUDA 朗读一句 → NPU 朗读一句 → 克隆音色一段 ⇒ 反馈听到/听不到 ⇒ **用户亲口确认前不得写「能出声」**；④ 🔴 **APP-028① 的「CUDA 不作默认」是定案**，若用户要用 CUDA 必须**手动在 GUI 改**，界面**不得承诺「装一下就能用」**（OV 官方不带 CUDA plugin）；⑤ 🔴 **APP-029 [NORMAL]（15:48 新增）本轮不认领** —— 明文「仍然排在 APP-028 / APP-027 之后，现在不要集成」（pyannote 只做说话人识别、不再断句）⇒ `last_ack` **只推进到 APP-028**，待 reviewer 放行；⑥ 🔴 **§66 用户新口径仍生效**：**不再跑 `verify_pkg_zip.py`、不再跑 `publish_ftp.py`、不开 FTP** ⇒ 本轮只跑了**只读本地**「zip ⇄ 包目录 diff = 0」；⑦ 🔴 **`app104` 的 A1 判 `NO-EVIDENCE`（不是 PASS）** —— 真子进程管道因本机**无可用音色**（事件 `error`「没有可用的音色：A」）无法合成 ⇒ 按铁律**不宣称通过**、**也不算缺陷**、**不得计入 PASS 数**；⑧ 🔴 **§72/§73 的闸门可信度教训**：判据里**任何解析异常必须判 FAIL，绝不能默认 PASS**；反证必须用 **AST 重建**（`ast.unparse`）而非字符串替换（否则源码一修好反证就静默失效）⇒ 已固化在 `app105`（D1 结构性证明 + E4 解析失败必须 FAIL）；⑨ 🔴 **APP-022「按说话人切换音色」仍后置**（本轮只做「克隆**当前**说话人」的单音色路线，**不依赖 pyannote**）；⑩ 🔴 **APP-024②③④ 仍未做**（reviewer 明文「不要自己改」）⇒ 保持原状；⑪ 🔴 **§57 历史遗留未跟踪文件**（`sync_c148b_to_pkg.py` / `sync_c150_to_pkg.py` / `sync_c111_*` / `diag_c111_*`）**归属未判定** ⇒ 本轮**未提交**；⑫ 🔴 **普通 push 会连带推上他模块已提交的 commit**（`195b135` / `59ddd0d` = ASR §43/§44/§45）⇒ 本轮**未混提他模块的「文件」**，但**已存在的 commit 无法拆分** ⇒ 如实记录
 
 
 ## 最近更新
+17:15 §74 🔴 **客户包版本升级 v1.5 → v1.6 完成**：✅ **版本单一数据源** `pack_v13.PKG_VERSION` `'1.5'→'1.6'`（+ 新增 `V16_APP_NOTE` 四条修订说明，编号 **13~16**，避开了 MANIFEST 已占用的 11/12）⇒ ✅ **两个验收脚本的版本判据参数化**（`app014b_v15_preship_check.py` 12+ 处、`app014b_verify_v15_zip.py` 1 处写死 `'1.5'` ⇒ 升版必报**假 FAIL**）⇒ 改为用 `ast` 抽 `pack_v13.PKG_VERSION` 字面量（**不 import** 其执行逻辑；读不到就抛异常）；**保留** v1.5/v1.4 的历史判据（「历史可追溯」）⇒ ✅ **V1.6 目录**（robocopy **14 257 文件 / 12.735 GB / 失败 0 / 30 s**）⇒ ✅ **版本标识定点升级**（新建 `app106_upgrade_pkg_to_v16.py`，**7/7 唯一命中**：README_zh/en 标题 + `## v1.6` 段 + 首段简介 + **NOTICE 自称 v1.4 的历史错标纠正为 v1.6**）⇒ ✅ **该脚本的幂等缺陷已自测抓出并修**（「插入 v1.6 段」的旧串 `## v1.5 改动说明` **插入后仍存在** ⇒ 重跑会**再插一份** ⇒ 加 **guard** ⇒ 修后 **7/7 幂等**）⇒ ✅ **包内代码 22/22 == 仓库 HEAD** ⇒ ✅ **打包前自检 PASS 51 / FAIL 5**（5 项 FAIL 是**打包前预期态**：MANIFEST version/notes 由 `refresh_manifest` 在打包时写）⇒ ✅ **持锁重打 zip**（`app-pack` PID 30008 / 16:56:44；安静窗口 45 s 通过；压缩 **676 s**；`testzip()` OK；**14 199 文件逐字节一致**；原子改名）⇒ zip **11 218 089 559 B / mtime 17:09 / SHA256 `aedb8bd1…9d06`** ⇒ ✅ **只读本地复核 20/20**（新建 `app106_v16_zip_readonly_check.py`；**四路 22/22 全 MATCH**；`zip ⇄ 包目录 .py diff = 0`；**未跑** `verify_pkg_zip.py` / **未跑** `publish_ftp.py` / **未开 FTP**）⇒ 🔴 **该复核脚本第一版的分母口径缺陷已自测抓出并修**（23 个 `.py` 里 `_probe_tts_cuda.py` 被 `pkg_exclude` 排除出 zip ⇒ 分母多算 ⇒ **假 FAIL**；改按实际参与比对集合计分母）⇒ ⛔ **未改任何生产代码**、⛔ **未跑推理**、⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ 🔴 `last_ack` = **APP-028**
 16:47 §73 🔴🔴 **APP-028 zip 重打完成 + 交付口径闭环**：✅ 等锁过程 fail-closed（16:23:10 锁被 `module:tts`/`pid 39352` 持有 ⇒ `OpenProcess` handle=668/err=0 ⇒ `exit=259 STILL_ACTIVE` ⇒ **活锁，不抢不删**；16:23:25 TTS 释放 ⇒ 16:23:26 `app-pack` PID 9900 持锁打包；16:45:33 退出码=0 / 耗时 1328.1 s；16:45:34 `[lock] 已释放`）⇒ ✅ **zip 已重打**：**11 218 087 123 B / mtime 16:41:02 / SHA256 `907a1caa…2589f` / md5 `501f7699…e8e40` / 14 199 文件逐文件 SHA256 全一致**；`testzip()` 通过 ⇒ 原子改名；MANIFEST 硬校验全过（音色 B/C/克隆 0 条命中、`_` 前缀脚本 0 条命中、确定缺失本地模块 0 条）⇒ ✅ **只读本地检查**（§66 口径，**未跑** `verify_pkg_zip.py` / **未跑** `publish_ftp.py` / **未开 FTP**）：**zip ⇄ 包目录 `.py` diff = 0**（23 个）+ **HEAD ⇄ 包目录 = 22/22** ⇒ ✅ **独立四路复核**（自写脚本直读 zip 内字节 ⇒ 仓库 == 包目录 == zip == HEAD，**5/5 全 MATCH**）⇒ ✅ **`app105` 独立复跑 24/24 PASS** ⇒ ✅ **「已交付」成立**（仅指**代码与包**）⇒ ⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ ⛔ **「用户听得到」不成立**
 16:26 §72 🔴🔴 **APP-028 收尾补正（闸门自身可信度 + `device_config.py` 独立同步）**：🔴 **查出 `app103` A6 是「假通过」**（只认 `ast.Assign` ⇒ `FALLBACK_ORDER` 实为 `AnnAssign` ⇒ 解析失败被 `except` 吞掉 ⇒ `asr_npu/mt_npu` 恒 `False` ⇒ **判据永远 PASS**）⇒ ✅ **真实缺陷已修**：`FALLBACK_ORDER` 的 ASR/MT 链**仍含 `'NPU'`**（违反 APP-028①「NPU 独占」）⇒ 改为 `asr/mt: ['GPU.0','CPU']`（随 `6d90715` 入库）⇒ ✅ **新建 `app105`**（**24/24**；含 **14 条反证**，故意写错 ⇒ 判据必须 FAIL；反证用 **AST 重建**⇒ 源码修好后反证**不静默失效**；`exec` 须注入 `SR`/`threading` ⇒ 否则闸门自身崩溃）⇒ ✅ **新建 `sync_s70_device_config_to_pkg.py`**（与 §71 的 4 文件**不重叠** ⇒ 无双写）⇒ `device_config.py` **已单独定点同步**（基线 `5e2aef7` → 2 块唯一命中 → 写盘 → LF SHA256 `f386785af866f9…` == 仓库 ⇒ MATCH；**幂等**复核 = 0 块 no-op）⇒ 🔴 **更正 §71.1 措辞**：包内一致是**本节同步的结果**，不是「本来就一致」⇒ ✅ 全部闸门复核 `app103` 29/29、`app104` 10 PASS + 1 NO-EVIDENCE、**`app105` 24/24**、`app098` 21/21、`app102` 27/27、`app097` 20/20、`app100` 28/28、`app069` 37/37 ⇒ ⛔ **不跑推理**、⛔ **zip 未重打**（`app-pack` 锁 PID 9900 运行中）⇒ **不写「已交付」**
 16:23 §71 🔴🔴 **APP-028 交付闭环推进**：✅ **commit `6d90715`**（13 文件 / +1920 −350，App-only，`CORRECTIONS_APP.md` **未**入库）⇒ ✅ **客户包定点同步写盘 PASS**（19/8/4/3 块唯一命中，备份 `pkg_backup_app_s70`）⇒ ✅ **独立复核 5 文件「包内 LF SHA256 == 仓库 == HEAD」全 MATCH** ⇒ ✅ **push `59ddd0d..6d90715`（普通 push，`origin/main...HEAD` = 0/0）** ⇒ ⏳ **zip 等锁重打中**（锁被 `module:tts` / `pid 39352` 持有，`OpenProcess` handle=668 / err=0 ⇒ `exit=259 STILL_ACTIVE` ⇒ **活锁，不抢不删**；`app067_repack_after_lock.py` 后台等锁）⇒ ⛔ **zip 未重打 ⇒ 不写「已交付」**
@@ -18,8 +19,8 @@ last_ack: APP-028
 12:30 §68 ✅ **隐私闸门**：`pkg_exclude.is_user_voice_artifact()` ⇒ 拦 `clone_*.npz` ＋ `tts_speakers/`（任意层级，整目录 prune）⇒ ⚠️ **不误伤** `preset_A.wav`（生产路线依赖）
 12:30 §68 ✅ **验收**：`app098` **21/21**、`app099` **13/13**、`app100` **28/28**（含 3 条反证）、`app097` 回归 **20/20 + BUG 3/3** ⇒ 🔴 **闸门自身的假通过比缺陷更危险** ⇒ C 组**故意写错**确认判据**确实 FAIL**
 12:30 §68 ⛔ **未跑 V1/V2/V3**（共享机器锁被 TTS 占用：`pid 14888`，`OpenProcess` **err=87** ⇒ **fail-closed 视为存活** ⇒ **不抢不删**）⇒ ⛔ **客户包未同步 / zip 未重打** ⇒ **不写「已交付」**；⛔ **V4 等用户实听**
-11:26 §68 🔴 **APP-026 即时生效**：ASR 的 61min 作业 `pya_app_baseline_base61` 已在 **53.9%** 时中止、11:20:17 换跑 **`pya_app_baseline_base5m_v2`（300 s = 5 分钟）** ⇒ 与新口径一致 ⇒ App 侧**不再**安排任何 61min 作业；需制作 `shared/SPE_0000_0500.wav` 供各模块共用
-11:26 §68 🔴 **APP-027 三项改造（本轮主任务）**：① NPU 卡顿（RTF 0.80→1.5，**句内**欠载 389/498 次）⇒ 逐句自适应预缓冲 + 环形缓冲改 numpy + 遥测拆 `synth_rtf`/`prebuffer_s`/`underflow_in_sentence` ② CUDA 全丢（积压口径错：**已写入的句子被丢**、边车 IPC **不核对 `rid` ⇒ 音频与字幕错位**、阻塞读**永不超时** ⇒ 合成线程卡死）⇒ rid 过滤 + 读者线程 + 看门狗 + 单一 FIFO 合成线程 + 积压口径改 ③ 克隆**功能未接入**（GUI 能选但只写日志）⇒ 本轮接入「克隆当前说话人」+ 删 `clone_C.npz` 死代码 + GUI 置灰/改名
+
+
 11:05 §66 🔴🔴🔴 **【用户明文新口径】以后不做一致性校验、不开 FTP 服务** ⇒ **覆盖 §61 的交付四步**：第 ③ 步 `verify_pkg_zip.py` 独立复核 **取消**、第 ④ 步 `publish_ftp.py` 重发 FTP **取消** ⇒ 新流程 = **定点同步 → 先提交 → 持锁重打 zip**（+ 一道**只读本地**的「zip ⇄ 包目录 diff = 0」）
 11:05 §66 🔴 **「已交付」口径改写**：**不再**以「三方闭环（源 zip = FTP 副本 = 包目录）」为准 ⇒ 改为 **「包目录 + zip 已含最新代码，且该代码已入库（`HEAD`）」** ⇒ §61/§64 的 FTP 结论**只作历史记录**，不得再作对外报数依据
 ## §1 现状汇总（2026-10-23）
@@ -12399,3 +12400,262 @@ reviewer 15:48 写的，本轮**只读**）＋ 其它模块的未提交改动
    ⇒ **规则**：**判据里任何解析异常都必须判 FAIL，绝不能默认 PASS**；
    ⇒ 且**反证要用 AST 重建**（`ast.unparse`），**不靠字符串匹配替换**（否则源码一修好反证就静默失效）。
    ⇒ 固化在 `app105`（D1 = **结构性证明**，不依赖源码当前状态；E4 = 解析失败必须 FAIL）。
+
+
+## §74 🔴 **客户包版本升级 v1.5 → v1.6** —— 目录/版本标识/README/NOTICE + 版本判据参数化 + 持锁重打 zip（2026-10-27 17:15）
+
+> 本节是**用户指令「升级版本到 V1.6」**的执行记录。
+> ⚠️ 与 §73（并发会话写的 V1.5 zip 重打闭环）**不冲突**：§73 闭的是 **v1.5 的 zip**，
+> 本节闭的是 **v1.6 的目录 + zip**。§73 的结论**不撤回**。
+
+### 74.1 指令与边界
+
+| 项 | 内容 |
+|---|---|
+| 用户指令 | 「升级版本到 V1.6」 |
+| 范围 | 客户包 `Confucius4_LiveCaption_v1.5` → **`Confucius4_LiveCaption_v1.6`**（目录 + zip + 版本号标识） |
+| 不在范围 | 🔴 **未改任何生产代码**（本轮 `live_caption/` 零改动）；🔴 **未跑推理/测速**；🔴 **未跑 `verify_pkg_zip.py` / 未跑 `publish_ftp.py` / 未开 FTP**（§66 口径）；🔴 **未认领 APP-029**（明文「现在不要集成」） |
+| 版本号单一数据源 | `pack_v13.py` 的 `PKG_VERSION`（APP-007 确立的规矩）⇒ 本轮只改**这一个常量** |
+
+### 74.2 侦察阶段的三处真实发现（都不是「照抄版本号」能发现的）
+
+**① 打包脚本不在 `live_caption/` 里** —— 上一轮遗留的未解问题（`ls live_caption/pack*.py` → *No such file or directory*）本轮定位清楚：
+打包脚本在**仓库根** `pack_v13.py`（45 898 B，mtime 2026-10-26 09:38），由 `results/app/app067_repack_after_lock.py` 调用。
+⇒ `pack_v13.py` 是 App 模块负责的文件，**在本轮提交范围内**。
+
+**② `app014b_v15_preship_check.py` 与 `app014b_verify_v15_zip.py` 把 `'1.5'` 写死在判据里** ——
+这是**必然会踩的坑**：包一升版，这两个脚本就报 FAIL，而实际内容可能完全正确 ⇒ **假 FAIL**。
+实测（改之前）：
+
+```
+results/app/app014b_v15_preship_check.py:123  check("MANIFEST version == '1.5'", man.get('version') == '1.5', ...)
+results/app/app014b_verify_v15_zip.py:208     check("MANIFEST version == '1.5'", man.get('version') == '1.5', ...)
+```
+且 preship 里还有 **10+ 处** `'1.5'`（README 标题、`## v1.5 改动说明` 段、notes 编号 11/12 …）。
+
+**③ `NOTICE` 自称 `v1.4`** —— **历史遗留错标**（v1.5 打包时没改）⇒ 客户按 NOTICE 核对版本会得到错误结论
+⇒ 本轮一并纠正到 `v1.6`（并在 §74.4 的替换块表里留痕）。
+
+### 74.3 版本判据参数化（把「第二个数据源」消灭掉）
+
+🔴 纪律：版本号**只能有一个来源**（`pack_v13.PKG_VERSION`）。
+⇒ 两个验收脚本改为用 `ast` 从 `pack_v13.py` 源码里**抽 `PKG_VERSION` 的字面量**，
+**不 import** 其执行逻辑（避免同源缺陷 + 避免执行期副作用）；也保留 `--version` 显式覆盖。
+
+```python
+def _expected_version():
+    src = os.path.join(repo, 'pack_v13.py')
+    tree = ast.parse(open(src, encoding='utf-8').read())
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            for t in node.targets:
+                if isinstance(t, ast.Name) and t.id == 'PKG_VERSION':
+                    if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+                        return node.value.value
+    raise RuntimeError('pack_v13.py 里取不到 PKG_VERSION 字面量')
+```
+🔴 **读不到就抛异常**，绝不静默回退到某个硬编码版本 ⇒ 否则「判据过期」又会被伪装成「验收通过」。
+
+实测抽取结果：`EXPECT_VERSION from source = 1.6` ✅
+
+⚠️ **保留不动**：两个脚本里**针对 v1.5 / v1.4 的历史判据**（notes 的 `（6）`~`（12）`、
+README 的 `## v1.5 改动说明` / `## v1.4 改动说明` 段）**必须保留** ——
+它们是「历史可追溯」要求，删掉反而是缺陷。
+
+### 74.4 目录与版本标识升级（`results/app/app106_upgrade_pkg_to_v16.py`，本轮新建）
+
+**复制**：`robocopy /E /COPY:DAT /DCOPY:DAT /MT:8` ⇒ **14 257 文件 / 12.735 GB / 失败 0 / 耗时 30 s**
+（⚠️ Git Bash 下 `robocopy /E` 会被当成路径 `E:/` 报「无效参数 #3」⇒ 改用 PowerShell 调用，**实测通过**）。
+
+**定点替换**（不是整目录覆盖）：只动客户包根的 **3 个文本文件**，`app/` 下的代码**一个字节都没碰**
+（代码一致性由 §74.5 单独核验）。每个替换块**唯一命中断言**（命中 0 次或 >1 次 ⇒ **报错退出**，绝不静默跳过）。
+
+| # | 文件 | 替换 | 锚点（唯一命中） | 命中 |
+|---|---|---|---|---|
+| 1 | `README_zh.md` | 标题 `v1.5` → `v1.6` | `# Confucius4-R2T2 实时字幕（技术评估版 v1.5）` | 1 |
+| 2 | `README_zh.md` | **插入** `## v1.6 改动说明` 段（4 小节：默认设备摆放定案 / 边合成边播 / 不再丢句 / 语音滞后 HUD） | `## v1.5 改动说明` | 1 |
+| 3 | `README_zh.md` | 首段简介**补** v1.6 一句 | `**v1.5 起设备列表按本机真实硬件显示` | 1 |
+| 4 | `README_en.md` | 标题 `v1.5` → `v1.6` | `# Confucius4-R2T2 Live Captions (technical evaluation build v1.5)` | 1 |
+| 5 | `README_en.md` | **插入** `## What's new in v1.6` 段（同上 4 小节） | `## What's new in v1.5` | 1 |
+| 6 | `README_en.md` | 首段简介**补** v1.6 一句 | `**In v1.5 the device list reflects the hardware actually present` | 1 |
+| 7 | `NOTICE` | 标题 `v1.4` → `v1.6`（**历史错标纠正**） | `Confucius4 LiveCaption v1.4 — 第三方组件归属与许可证` | 1 |
+
+⇒ **7 / 7 唯一命中**，写盘后：
+
+| 文件 | 字节 | SHA256（前 16） |
+|---|---|---|
+| `README_zh.md` | 38 962 | `64411aeee611e790` |
+| `README_en.md` | 43 482 | `e2a873eafdad8b44` |
+| `NOTICE` | 2 403 | `826cb16f4a36f070` |
+
+#### 🔴 74.4.1 本脚本第一版的一个**真实幂等缺陷**（自测抓出并已修）
+
+第一版的「插入 v1.6 段」旧串是 `## v1.5 改动说明\n` —— 而 v1.5 段按「历史可追溯」要求**必须保留**
+⇒ 插入之后旧串**依然命中 1 次** ⇒ 脚本**重跑会再插一份 v1.6 段** ⇒ 交付出「重复段」的坏包。
+同理「首段补 v1.6 一句」是**前缀插入**，原句保留 ⇒ 重跑也重复。
+
+**实测复现**（第一版，未加 guard 时）：
+
+```
+  [SKIP] README_zh.md —— 标题版本号 v1.5 → v1.6
+  [HIT ] README_zh.md —— 插入 v1.6 改动说明段（保留 v1.5 段）   ← 🔴 会重复插入
+  [HIT ] README_zh.md —— 首段简介补 v1.6 一句                    ← 🔴 会重复插入
+  替换块: 唯一命中 4 / 未命中(幂等跳过) 3
+```
+
+**修法**：每个替换块加一个 **guard**（本次插入产生的**特征串**）⇒ **guard 已存在 ⇒ 视为已完成 ⇒ 幂等跳过**；
+guard 必须是**本次插入独有的串**（不能是旧串本身）。
+**修后实测**：
+
+```
+  [SKIP] README_zh.md —— 标题版本号 v1.5 → v1.6（guard 已存在）
+  [SKIP] README_zh.md —— 插入 v1.6 改动说明段（保留 v1.5 段）（guard 已存在）
+  [SKIP] README_zh.md —— 首段简介补 v1.6 一句（guard 已存在）
+  [SKIP] README_en.md —— 标题版本号 v1.5 → v1.6（guard 已存在）
+  [SKIP] README_en.md —— 插入 v1.6 段（保留 v1.5 段）（guard 已存在）
+  [SKIP] README_en.md —— 首段简介补 v1.6 一句（guard 已存在）
+  [SKIP] NOTICE —— NOTICE 标题版本号 v1.4 → v1.6（历史错标纠正）（guard 已存在）
+  替换块: 唯一命中 0 / 未命中(幂等跳过) 7
+```
+⇒ **7/7 幂等** ✅（且落盘后 `grep -c` 复核：`## v1.6 改动说明` = 1、`v1.6 起语音输出改为` = 1、
+`What's new in v1.6` = 1、`In v1.6 speech output synthesizes` = 1 ⇒ **无重复**）
+
+### 74.5 包内代码一致性（**独立核验**，不靠「复制过来就一定对」）
+
+`app/` 下 **22 个 .py** 逐个对比「仓库 `git show HEAD:live_caption/<f>`（行尾归一化）vs 包内」：
+
+```
+可比对 .py = 22
+DIFF: 无
+MISS(包内有/仓库无): ['_probe_tts_cuda.py']   ← 包内开发探针，本就不在仓库 ⇒ 非差异
+```
+⇒ **22/22 全一致** ✅（`device_config.py` / `tts_service.py` / `tts_worker.py` / `live_caption_app.py` /
+`offline_reader.py` / `translator.py` / `tts_engine.py` 的 SHA256 前 12 位逐个 MATCH）
+
+### 74.6 打包前自检（`app014b_v15_preship_check.py`，**已参数化**）
+
+```
+v1.6 打包前自检 —— C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.6
+--- (1) 包内代码 vs 仓库 HEAD ---      8/8 PASS
+--- (2) v1.6 标识 ---                   5 FAIL（MANIFEST version/notes 由 refresh_manifest 在打包时写 ⇒ 预期内）
+--- (3) README v1.6 落地 ---            23/23 PASS
+--- (4) 本轮改动在包内代码里就位 ---      12/12 PASS
+--- (5) 内部素材闸门 ---                  PASS（命中 0 个内部素材）
+--- (6) GUI / CLI 冒烟 ---                PASS 16 项 / FAIL 0 项
+v1.6 打包前自检：PASS 51 项 / FAIL 5 项
+```
+🔴 **那 5 项 FAIL 是「打包前」的预期状态**，不是缺陷：MANIFEST 的 `version` / `notes`
+由 `pack_v13.refresh_manifest()` 在**打包时**写（APP-007 确立的机制）⇒ 打包后必然为 `1.6` 且含 v1.6 notes。
+
+### 74.7 持锁重打 zip（§66 口径）
+
+| 项 | 实测 |
+|---|---|
+| 守门 | 打包前**无锁**（`shared/MACHINE_LOCK` 不存在）＋ **外部 python 进程数 = 0** ⇒ 两条同时满足 |
+| 锁 | `app-pack` PID **30008** started **2026-10-27 16:56:44**（`machine_lock_app.LockHeld` 第 1 次尝试即取得） |
+| 安静窗口 | `[quiet] ✅ 安静窗口已持续 45 s ⇒ 可以开始计时`（第二道闸门通过） |
+| 命令 | `python pack_v13.py --pkg ...v1.6 --zip ...v1.6.zip --prefix Confucius4_LiveCaption_v1.6` |
+| 日志 | `results/app/pack_v16_log.txt` |
+
+（打包结果见 §74.8）
+
+### 74.8 打包与复核结果
+
+**打包（`pack_v13.py`，持锁）**：
+
+| 项 | 实测值 |
+|---|---|
+| MANIFEST 刷新 | `files 14198 -> 14198`；`bytes 13672704794 -> 13672709489`（12.73 GB）；**`version: '1.5' -> '1.6'`**；`notes: 已追加本轮修订说明` |
+| 文件数 | **14 199**（zip 条目，不含 MANIFEST 自身时 14 198） |
+| 原始字节 | 13 672 732 070 |
+| 压缩后字节 | **11 218 089 559（10.45 GB）**，压缩率 **82.0 %** |
+| 压缩耗时 | **676 s**（约 11 分 16 秒） |
+| `testzip()` | **Everything is Ok** |
+| 关键文件抽查 | **43/43 [OK]**（含 `models/mt/mt2-int8sym-cw-q/openvino_model.bin` 1 792 991 738 B、`models/qwen3tts/int8/talker.bin` 444 373 680 B、`models/qwen3tts/voices/preset_A.wav` 192 044 B …） |
+| MANIFEST 硬校验 | `[OK] zip 条目 14198 == MANIFEST files 14198`；`[OK] zip 原始体积 13672732070 == MANIFEST bytes 13672709489 + MANIFEST 自身 22581` |
+| 内容一致性 | **比对 14 199 个文件 ⇒ 全部逐字节一致** |
+| 原子改名 | `[info] 校验通过 ⇒ 已原子改名到正式路径: C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.6.zip` |
+| 结论 | **PASS**，`md5=852142cb367781efd86cbf1033b7e2be`，`[lock] 已释放` |
+
+⚠️ **zip 指纹（两路独立实测一致）**：
+
+| 项 | 值 |
+|---|---|
+| 字节数 | **11 218 089 559** |
+| mtime | **2026-10-27 17:09** |
+| SHA256 | **`aedb8bd16ec4089757253bcdde257fff67e317268dad75b92ee97539fdee9d06`** |
+
+#### 74.8.1 只读本地复核（`results/app/app106_v16_zip_readonly_check.py`，本轮新建）
+
+🔴 **口径**：**纯只读**；**未跑** `verify_pkg_zip.py`；**未跑** `publish_ftp.py`；**未开 FTP**（§66）。
+
+**复核结论：PASS 20 项 / FAIL 0 项**
+
+| 组 | 结果 |
+|---|---|
+| ① zip 指纹与结构 | 字节数 / SHA256 / 顶层目录名（全部以 `Confucius4_LiveCaption_v1.6/` 开头）/ **14 199 条目** ✅ |
+| ② **四路独立复核** | **HEAD == 包目录（22/22）**、**HEAD == zip 内字节（22/22）**、**包目录 == zip 内字节（22/22）** ✅ |
+| ③ §66 那道只读检查 | **`zip ⇄ 包目录 .py diff = 0`（比对 22 个，两侧都在的 .py）** ✅ |
+| ④ 版本标识三方一致 | `MANIFEST.version == '1.6'`；**v1.6 的 4 条 notes 全在**；`README_zh` / `README_en` 标题与 `## v1.6` 段在 zip 内；**v1.5 段保留（历史可追溯）**；`NOTICE` 自称 `v1.6` ✅ |
+| ⑤ MANIFEST files/bytes **独立重算** | `files` 14 198 == 14 198 ✅；`bytes` 13 672 709 489 == 13 672 709 489 ✅ |
+| ⑥ 关键文件齐备 | **12/12** 全在 zip 内 ✅ |
+
+#### 🔴 74.8.2 本复核脚本第一版的一个**分母口径缺陷**（自测抓出并已修）
+
+第一版把 **23 个 `.py`** 当分母，但 `pkg_exclude` 会把 `_` 前缀的**开发脚本**排除出 zip
+⇒ `app/_probe_tts_cuda.py` **在包目录有、在 zip 内无** ⇒ 它被 `continue` 跳过，
+**分母却仍按 23 算** ⇒ **必然假 FAIL**。
+
+实测（第一版）：
+
+```
+  [FAIL] HEAD == 包目录（23 个 .py）  <- match=22 / cmp=23 []
+  [FAIL] HEAD == zip 内字节（23 个 .py）  <- match=22
+  [FAIL] 包目录 == zip 内字节（23 个 .py）  <- match=22
+  [PASS] zip ⇄ 包目录 `.py` diff = 0（共 23 个 .py）  <- diff=0 []
+复核结论：PASS 17 项 / FAIL 3 项
+```
+
+🔴 **注意这里的危害方向**：第 ③ 项明明 `diff=0` 却报 PASS、第 ② 项 `match=22` 全对却报 FAIL
+⇒ **判据自身不可信**（与 §72 的 `app103` A6「假通过」同源，只是方向相反：这次是**假 FAIL**）。
+⇒ **修法**：分母改成「**实际参与比对的集合大小**」（`n_cmp` 计数到位的才算），
+并把「包目录有 / zip 内无」「包内有 / 仓库无」两类**单列成 [注]**（**不静默吞掉**）。
+
+**修后实测**：
+
+```
+  [PASS] HEAD == 包目录（22 个 .py）  <- match=22 / cmp=22 []
+  [PASS] HEAD == zip 内字节（22 个 .py）  <- match=22
+  [PASS] 包目录 == zip 内字节（22 个 .py）  <- match=22
+  [注] 包目录有 / zip 内无（pkg_exclude 排除的 `_` 前缀开发脚本，**不是**内容差异）: _probe_tts_cuda.py
+  [PASS] zip ⇄ 包目录 `.py` diff = 0（比对 22 个，两侧都在的 .py）  <- diff=0 []
+复核结论：PASS 20 项 / FAIL 0 项
+```
+
+#### 74.8.3 产物清单（文件数 / mtime / 字节数 / SHA256）
+
+| 产物 | 字节 | mtime | SHA256 |
+|---|---|---|---|
+| `Confucius4_LiveCaption_v1.6.zip` | **11 218 089 559** | **2026-10-27 17:09** | **`aedb8bd16ec4089757253bcdde257fff67e317268dad75b92ee97539fdee9d06`** |
+| `Confucius4_LiveCaption_v1.6/`（目录） | 12.735 GB / **14 257 文件** | — | — |
+| `…v1.6/README_zh.md` | 38 962 | 2026-10-27 16:53 | `64411aeee611e790…` |
+| `…v1.6/README_en.md` | 43 482 | 2026-10-27 16:53 | `e2a873eafdad8b44…` |
+| `…v1.6/NOTICE` | 2 403 | 2026-10-27 16:53 | `826cb16f4a36f070…` |
+| `…v1.6/app/MANIFEST.json` | 22 581 | 2026-10-27 17:09（打包时刷新） | `version=1.6` / `files=14198` / `bytes=13672709489` |
+
+**证据文件**（仓库内）：
+- `results/app/app106_v16_upgrade_evidence.json`（版本标识升级 7 块）
+- `results/app/app106_v16_zip_readonly_evidence.json`（只读复核 20/20）
+- `results/app/pack_v16_log.txt`（打包完整日志）
+
+### 74.9 本节明确**没有**做的事（不宣称）
+
+- ⛔ **未跑推理 / 未测速**（铁律）⇒ 不写任何 RTF / 延迟数字。
+- ⛔ **V1（CUDA 连续实时）/ V2（NPU + 四配置 ABBA）/ V3（克隆）未跑** ⇒ **「丢句数为 0」只到「代码已实现」这一层**，
+  README 里已明写「⚠️ 本条只保证代码已实现；『丢句数为 0』的实听验收需由使用方在真实会话中确认」。
+- ⛔ **V4 等用户实听**（CUDA / NPU / 克隆各一段）⇒ 用户亲口确认前**不得**写「能出声」。
+- ⛔ **未跑 `verify_pkg_zip.py` / 未跑 `publish_ftp.py` / 未开 FTP**（§66 用户明文新口径）。
+- ⛔ **未提交 `status/app/CORRECTIONS_APP.md`**（reviewer 独占文件）。
+- ⛔ **未改 `live_caption/` 下任何生产代码** ⇒ v1.6 的**代码内容 == v1.5 的代码内容**，
+  两版**唯一差别**是「版本标识 + 目录名 + README/NOTICE 说明」。
+- ⛔ **未认领 APP-029** ⇒ `last_ack` 仍为 **APP-028**。

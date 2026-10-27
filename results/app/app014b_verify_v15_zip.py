@@ -1,4 +1,11 @@
-r"""app014b_verify_v15_zip.py —— v1.5 客户包 zip 的**独立**复核（APP-014② 第⑤步）
+r"""app014b_verify_v15_zip.py —— 客户包 zip 的**独立**复核（APP-014② 第⑤步）
+
+🔴 **版本判据参数化**（2026-10-27，APP-028 升 v1.6 时修）
+---------------------------------------------------------
+本脚本原先把 `MANIFEST version == '1.5'` **写死**在判据里 ⇒ 包一升版
+（v1.6）就**必然报 FAIL**，而实际代码可能完全正确 ⇒ **假 FAIL**。
+⇒ 现在版本号从 **`pack_v13.PKG_VERSION`（单一数据源）**读，
+也可用 `--version` 显式覆盖；**脚本文件名保留 v15**（历史命名，不改）。
 
 为什么要有独立复核脚本
 ----------------------
@@ -12,6 +19,10 @@ r"""app014b_verify_v15_zip.py —— v1.5 客户包 zip 的**独立**复核（AP
   - 逐文件 SHA256（读 zip 内字节 vs 读磁盘字节）；
   - MANIFEST 的 files/bytes **独立重算**（全量遍历 zip 条目，不套用任何排除规则）。
 
+⚠️ **版本号是唯一例外**：为避免「版本判据自己过期」，
+这里只从 `pack_v13.py` **读一个常量**（不 import 它的任何逻辑）⇒
+不存在「同源缺陷」风险（读常量不引入打包逻辑）。
+
 验五组：
   1. **zip 结构**：可打开、`testzip()` 无损坏、顶层目录名正确；
   2. **内容一致**：zip 内每个文件 == 包目录对应文件（SHA256）；
@@ -22,6 +33,8 @@ r"""app014b_verify_v15_zip.py —— v1.5 客户包 zip 的**独立**复核（AP
 用法
 ----
     python app014b_verify_v15_zip.py --zip <zip> --pkg <包目录> --prefix <顶层名>
+    python app014b_verify_v15_zip.py --zip <zip> --pkg <包目录> --prefix <顶层名> \
+        --version 1.6
 """
 from __future__ import annotations
 
@@ -31,6 +44,39 @@ import json
 import os
 import re
 import zipfile
+
+
+def _expected_version():
+    """期望的包版本（**单一数据源** = `pack_v13.PKG_VERSION`）。
+
+    ⚠️ 只**读常量**：用 `ast` 从源码里抽出 `PKG_VERSION = '...'`
+    的字面量，**不 import** `pack_v13`（避免它的执行期副作用，
+    同时避免与被复核对象同源）。
+    ⇒ 读不到 ⇒ **抛异常**（绝不静默回退到某个硬编码版本，
+    否则又会把「判据过期」伪装成「验收通过」）。
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    repo = os.path.dirname(os.path.dirname(here))
+    src = os.path.join(repo, 'pack_v13.py')
+    if not os.path.isfile(src):
+        raise FileNotFoundError('找不到 pack_v13.py（版本单一数据源）: %s' % src)
+    import ast
+    with open(src, 'r', encoding='utf-8') as f:
+        tree = ast.parse(f.read())
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            for t in node.targets:
+                if isinstance(t, ast.Name) and t.id == 'PKG_VERSION':
+                    val = node.value
+                    if isinstance(val, ast.Constant) and isinstance(val.value, str):
+                        return val.value
+    raise RuntimeError('pack_v13.py 里取不到 PKG_VERSION 字面量')
+
+
+#: 期望的包版本 —— 默认 **None**，在 main() 里解析（单一数据源
+#: `pack_v13.PKG_VERSION` 或 `--version`）。⚠️ 模块级**不放字面量**，
+#: 否则「判据里的版本」又会变成第二个需要手工同步的数据源。
+EXPECT_VERSION = None
 
 PASS = []
 FAIL = []
@@ -135,14 +181,18 @@ def main():
     ap.add_argument('--prefix', required=True)
     ap.add_argument('--no-content', action='store_true',
                     help='跳过逐文件 SHA256（内容级复核）')
+    ap.add_argument('--version', default=None,
+                    help='期望的包版本（默认从 pack_v13.PKG_VERSION 读）')
     args = ap.parse_args()
 
     ZIP = args.zip
     PKG = args.pkg
     PREFIX = args.prefix
+    global EXPECT_VERSION
+    EXPECT_VERSION = args.version or _expected_version()
 
     print('=' * 70)
-    print('v1.5 zip 独立复核')
+    print('v%s zip 独立复核' % EXPECT_VERSION)
     print('  zip   :', ZIP)
     print('  pkg   :', PKG)
     print('  prefix:', PREFIX)
@@ -205,7 +255,8 @@ def main():
         check('MANIFEST 可读', False, str(e))
         man = {}
     if man:
-        check("MANIFEST version == '1.5'", man.get('version') == '1.5',
+        check("MANIFEST version == %r" % EXPECT_VERSION,
+              man.get('version') == EXPECT_VERSION,
               'version=%r' % man.get('version'))
         # 独立重算：**只减 MANIFEST 自身**（它不计入 files/bytes）
         ent_wo = [n for n in entries if n != man_arc]

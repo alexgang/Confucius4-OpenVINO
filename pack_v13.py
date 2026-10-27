@@ -1,4 +1,4 @@
-r"""pack_v13.py —— 打包客户包并校验（当前版本 v1.5，见 ``PKG_VERSION``）。
+r"""pack_v13.py —— 打包客户包并校验（当前版本 v1.6，见 ``PKG_VERSION``）。
 
 步骤：刷新 MANIFEST → zip → testzip() → 抽查关键文件（MT 模型、translator.py、
 MANIFEST、README）→ 硬校验 MANIFEST 的 files/bytes。
@@ -43,9 +43,12 @@ except Exception:                       # pragma: no cover
 # 且 MANIFEST 的 version 是**手填**的（refresh_manifest 从不写它）⇒
 # 打包出来的东西自称 v1.3、实际是 v1.4。
 # ⇒ 现在版本号只有一个来源（PKG_VERSION），三个常量由它派生。
-# APP-014②：打 v1.5（本轮 = 假设备标签修复 + TTS CUDA 选项 + 接缝去重 +
+# APP-014②：打 v1.5（假设备标签修复 + TTS CUDA 选项 + 接缝去重 +
 #            TTS 转正式功能默认开启）。
-PKG_VERSION = '1.5'
+# APP-028：打 v1.6（**生产/消费者音频架构**：合成不等播完、无界内存队列
+#            按句保序、**丢句数为 0**、GUI 底栏「语音滞后 X 秒」；
+#            + 默认设备摆放定案：ASR→GPU.0 / MT→GPU.0 / TTS→NPU，**NPU 独占给 TTS**）。
+PKG_VERSION = '1.6'
 _PKG_NAME = f'Confucius4_LiveCaption_v{PKG_VERSION}'
 DEFAULT_PKG = rf'C:\Users\Trekker-PTL\{_PKG_NAME}'
 DEFAULT_ZIP = rf'C:\Users\Trekker-PTL\{_PKG_NAME}.zip'
@@ -257,11 +260,39 @@ V15_APP_NOTE = (
 )
 
 
+# 🔴 APP-028（v1.6）：本轮 notes 必须写「对客户成立」的内容。
+#    ⚠️ 只写**已在包内代码里落地**的事实 ⇒ 未跑验收的项写成「已实现/待实测」，
+#    **不写**「已验证可用」（§66 口径：没落盘的东西不能写「已交付」）。
+V16_APP_NOTE = (
+    'v1.6 修订（2026-10-27，APP-028 执行后）：'
+    '（13）**默认设备摆放定案** —— ASR → Intel 集显（GPU.0）、'
+    '翻译 → Intel 集显（GPU.0）、**语音输出 → Intel NPU**，'
+    '**NPU 只给语音输出独占使用**（ASR / 翻译的回退链里**不含 NPU**，'
+    '避免与语音输出抢同一个加速器）。CUDA **不作为默认**。'
+    '（14）**语音输出改为「边合成边播」的生产/消费者架构** —— '
+    '旧实现里合成线程要等这一句**播完**才开始下一句 ⇒ 句与句之间'
+    '白白串行等待、越积越慢。现改为：合成线程写完音频**立刻**返回去合成下一句，'
+    '音频按**句**进无界内存队列，由独立播放看门狗按原顺序取出播放 ⇒ '
+    '**句内句间严格保序**，队列空时输出静音并计入欠载次数。'
+    '（15）**不再丢句** —— 旧实现在语音积压超过阈值时会「中止已写入的句子」，'
+    '导致**说过的内容直接消失**。本版**删除该丢句逻辑**（含所有'
+    '「中止已写入句子」的路径），积压只做提示不再丢内容；'
+    '「取消」改为把整句从队列里摘除。⚠️ **本项只保证代码已实现**；'
+    '「丢句数为 0」的实听验收需由使用方在真实会话中确认。'
+    '（16）**界面底栏实时显示「语音滞后 X 秒」** —— 便于直接观察'
+    '合成与播放的积压，而不必猜测。'
+)
+
+
 def ensure_v14_notes(data):
-    """幂等地保证 notes 里有 v1.4 的 TTS / INT8 修订说明 + v1.5 的本轮修订。
+    """幂等地保证 notes 里有 v1.4 的 TTS / INT8 修订说明 + v1.5 / v1.6 的本轮修订。
 
     APP-005②：MANIFEST 的 notes 必须与包内实际内容一致，
     否则就是「对客户不成立的承诺」（C-133 的教训）。
+
+    🔴 **幂等性**：每条 note 用**稳定特征串**判存在性 ⇒ 重复打包不会重复追加。
+    ⚠️ 特征串必须**取自本 note 自身**，不能取「短且易撞」的片段
+    （如只取版本号）⇒ 否则新版本会误判「已存在」而跳过追加。
     """
     notes = data.get('notes') or ''
     changed = False
@@ -270,6 +301,9 @@ def ensure_v14_notes(data):
         changed = True
     if '（6）**设备下拉按实际硬件显示全名**' not in notes:
         notes = V15_APP_NOTE + notes
+        changed = True
+    if '（13）**默认设备摆放定案**' not in notes:
+        notes = V16_APP_NOTE + notes
         changed = True
     data['notes'] = notes
     return changed
