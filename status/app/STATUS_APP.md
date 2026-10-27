@@ -11189,3 +11189,17 @@ A2 的标签仍是旧文案「播了 1 句（`n_played >= 1`）」⇒ 🔴 **该
 | 不提交 `CORRECTIONS_APP.md` | ✅ **未入暂存** |
 | 不吞别的模块改动 | ✅ 他模块改动**全部保留在工作区**（逐文件 `git add`，**不用 `-A`**） |
 | 只保留 main 分支、普通 push、**不 force** | ✅ 见 §62.11 |
+
+### §62.11 git
+
+| 项 | 值 |
+|---|---|
+| 代码提交 | **`15eedf6`** `feat(app): §62 补做 APP-021⑦「真的出声」硬判据 + 修闸门自身的假通过` |
+| 文档提交 | **`c30b642`** `docs(app): §62 —— 巡检无新 APP 条目 + APP-021⑦ 补做 + 闸门假通过修复` |
+| 提交文件（18 个，**逐个 `git add`，未用 `-A`**） | **新建（9）**：`results/app/tts_audible_criterion.py`、`results/app/audible_criterion_lint.py`、`results/app/app092_audible_criterion_gate_test.py`、`results/app/app092_audible_criterion_gate_evidence.json`、`results/app/app092b_app077_telemetry_recheck.json`、`results/app/app074_tts_e2e_cp936.py`、`results/app/app074_tts_e2e_cp936.txt`、`results/app/app075_gui_offline_read_real.py`、`results/app/app075_gui_offline_read_real.txt`<br>**修改（9）**：`results/app/app071_tts_worker_error_probe.py`、`results/app/app071_tts_worker_probe.txt`、`results/app/app077_tts_acceptance_ab.py`、`results/app/app039_tts_e2e_smoke.py`、`results/app/app055_guid_playback_check.py`、`results/app/app076_tts_playback_observability.py`、`results/app/app076_tts_playback_observability.txt`、`results/app/test_tts_close_gui_quit_evidence.json`、`results/app/test_tts_close_gui_quit_pkg_evidence.json` |
+| 🔴 **未提交** | `status/app/CORRECTIONS_APP.md`（reviewer 的 ` M`，**不在暂存区**；推送后复核 SHA256 `682aced289a58d18b…` / 48 457 B / mtime `2026-10-26 16:18:08` ⇒ **与 §62.1 记录逐位一致**）<br>他模块改动**全部保留在工作区**（`git status --porcelain` = **464** 项，本轮**零吞并**） |
+| 🔴 **未动产品代码** | `live_caption/` 下**零改动**（本轮只改验收脚本与 STATUS ⇒ **客户包无需同步**、**无需重打 zip**） |
+| 提交前核对 | `git diff --cached --name-only` ⇒ 代码提交**只含上述 18 个 App 文件**；文档提交**只含** `status/app/STATUS_APP.md` ⇒ `CORRECTIONS_APP.md` **全程不在暂存区** |
+| 分支 | 仅 `main`（`git branch -a` ⇒ `main` + `remotes/origin/main`，无其它分支） |
+| push | **普通 push 到 `origin/main`**，**不 force** ⇒ 实测 `bf600af..c30b642  main -> main`；推送后 `git rev-parse HEAD origin/main` **两侧同为 `c30b642cb79aa20e39ee9d7ad15538d7535a3aa6`** ✅ |
+| 🔴 提交后复跑 | `app092` = **24 PASS / 0 FAIL**、内嵌 `app076` = **49 PASS / 0 FAIL** ⇒ **BUG 反证基线固定 `e2d7bc2` ⇒ 提交后仍成立**（§31 纪律） |
