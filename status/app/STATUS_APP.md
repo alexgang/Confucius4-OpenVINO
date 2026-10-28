@@ -1,12 +1,13 @@
 # STATUS_APP
 last_ack: APP-033
-更新时间: 2026-10-28 06:33
-当前任务: **§80 🔴🔴 APP-033 三条全部执行完毕（CUDA 组判据**已过** `verdict_after_clean=true` ＋ APP-028 5 分钟实测已跑完）＋ 自查抓出并修掉 4 处真实缺陷** ⇒ ✅ **APP-033①**：`quota.py` 在 reviewer 本机 ⇒ **不是 App 的阻塞项**（wav+json+逐句 jsonl 已落盘）⇒ ✅ **APP-033②**：CUDA 组日文 A/B **已跑完并通过**（边车解释器 `C:\Users\Trekker-PTL\_fq3tts_env\Scripts\python.exe` ⇒ torch `2.11.0+cu128` / `cuda_available True` / RTX 5050；持锁 + 安静窗口；**零 CPU 推理**；**未调 MiniMax**）⇒ 改前臂（`d80ef22`）**cap=2 / hang=2**，第 9 句「2026年の売上は52%増えました」被判 `lang=en` ⇒ **frames=2038 / got_sec=163.04 / chunks=255 / hang=true** ⇒ 与 reviewer 记录的「255 块 / 163.0 s」**逐项吻合**（根因成立）⇒ 改后臂（HEAD）**cap=0 / runaway=0 / hang=0 / err=0**，87 组配对**异常行 0 条** ⇒ **`verdict_after_clean=true`**（判据已过）⇒ 回归（zh/en 各 10 句）同样 0/0/0 ⇒ got_sec 中位 2.88（两臂同）/ s/字 中位 0.1094→**0.1031**（无回退）⇒ ✅ **APP-033③**：APP-028 的 **SPE 前 5 分钟完整实测已跑完并 10/10 PASS**（76 句 / `n_played=76` / `n_dropped=0` / `n_restart=0` / `max_backlog_s=68.79` / `synth_rtf_p95=1.1511` / `max_synth_gap_s=9.61`）⇒ **「丢句=0」现在才成立**（§79.4 的 60 秒冒烟不构成）⇒ 🔴🔴 **自查抓出并修掉 4 处真实缺陷**（`machine_lock_app.py`）：① 解析不出 ASR 的 `PID=` 格式 ② 解析不出锁的起始时间戳 ③ 解析不出 EXT 探针的**第三种锁格式** ④🔴🔴🔴 **等锁循环每 20 s「创建 tmp + 删除 tmp」⇒ 等锁 987 s = 50 次删除 ⇒ 触发批量删除保护 ⇒ 进程被杀 ⇒ 报告未生成 ⇒ 整轮实测白跑**（本轮实测事故，已修 + 实测复验：等锁 40 s 零 tmp 残留）⇒ ✅ **验收 `test_machine_lock_app.py` 40/40 PASS**（含 **3 条 AST 重建反证**）⇒ ✅ **撤回 §78/§79 头部「CUDA 对照组客观做不了」**（那是主/包内 python 的事实，不是边车的）⇒ ⛔ **APP-027 的 V1–V3 未跑**（V2/ABBA 因安静窗口 900 s 超时 fail-closed 退出 ⇒ `app027_v2/` 实测为空 ⇒ 无产物）⇒ ⛔ **GUI 复现 / CER 对比 / 用户实听未做**、⛔ **zip 未重打**（APP-031 合打）⇒ ⛔ **「用户听得到」仍不成立** ⇒ 🔴 **`last_ack` = APP-033**
+更新时间: 2026-10-28 11:16
+当前任务: **§81 🔴🔴 APP-027 V2 争用定量 ABBA 实测已跑完（4 臂真实播放路径）＋ 补齐「TTS 单独」引擎级基线 → 实测证据已落盘（原始字段见 §81.2 / §81.3）＋ 自查抓出并修掉 2 处真实缺陷（整目录删除触发批量删除保护 → 实测进程被杀；`device_desc` AttributeError → 46 句算力白跑）＋ 客户包定点同步 3 文件（仓库⇄包 10/10 MATCH）＋ 交付闭环已入库（commit `20da2de`）＋ 达到 §81.11 停在等 reviewer 复核⇒ ✅ **本条已完成**（代码侧）⇒ 🔴 **本条需等 reviewer 复核**（赋量归因边界、解决方案优先级、GUI 复现、V1/V3、zip 重打）
 
-阻塞 / 待用户决定: ① 🔴 **APP-030 的 CUDA 组判据已过**（§80.2：`verdict_after_clean=true`，改后臂 cap/runaway/hang/err 全 0），**NPU 组亦已过**（§78）⇒ ✅ **两个引擎组的 A/B 判据都过了** ⇒ 但 **GUI 复现（丢句=0）未做**（§80.5 走 CLI 回放）⇒ **仍不得写「日文问题全链路已解决」**；② 🔴 **APP-033① 的口径已更正**：`quota.py` 与 MiniMax 回转写**在 reviewer 本机** ⇒ **不是 App 的阻塞项** ⇒ App 侧只负责 wav+json+逐句 jsonl 落盘（**已完成**）⇒ ⛔ **本轮未调 MiniMax**（质量判定交 reviewer）；③ 🔴 **CER 对比未做**（改后日文 CER 不得劣于改前非失控句）⇒ **wav+json 已落盘** ⇒ **回转写由 reviewer 做**；④ ⛔ **APP-027 的 V1（CUDA 连续实时）/ V2（ABBA）/ V3（MiniMax+CAMPPlus）未跑**（V2 因安静窗口 900 s 超时 fail-closed 退出）⇒ **需重跑**；⑤ ⛔ **「用户听得到」仍不成立**（§63 L4 等用户实测：桌面快捷方式 → CUDA 朗读 → NPU 朗读 → 克隆音色 ⇒ 用户亲口确认前不得写「能出声」）；⑥ 🔴 **「句首标点」的产品侧处理策略待 reviewer 裁定**（§80.3：实测唯一触发条件 = **句子以全角标点开头**；句中逗号/句号都不触发）⇒ 本轮**只修语料、未改生产代码**（MT 译文确实可能以标点开头 ⇒ 是真实输入面 ⇒ 修哪一层属产品决策）；⑦ ⛔ **zip 未重打**（APP-031 明文「三项做完后合在一起重打一次包」⇒ APP-027 未完）⇒ 按 §66 口径**不写「已交付」**；⑧ 🔴 **机器锁纪律**：外部 `EXT-p1-real` / `asr` 会持锁 ⇒ ctypes 实测 `exit=259` ⇒ **活锁 ⇒ 不抢不删**；**孤儿锁必须 `err==87` 才可回收**；等锁路径已改为 **0 次文件写入**（§80.4 缺陷④）；⑨ 🔴 **闸门可信度铁律**：解析异常必须判 FAIL；反证用 **AST 重建** ⇒ 已固化在 `app105`/`app107`/`app108`/`app109`/`test_machine_lock_app`；⑩ 🔴 **本轮自查还抓出并修掉 `app113` 脚本自身的 2 处缺陷**（jsonl 路径写死会覆盖正式产物；帧率折算系数 12.5 而非 12.0）⇒ **闸门自身的假通过/假失败都算缺陷**；⑪ 🔴 **§66 用户新口径仍生效**：不再跑 `verify_pkg_zip.py`、不再跑 `publish_ftp.py`、不开 FTP；⑫ 🔴 **普通 push 会连带推上他模块已提交的 commit** ⇒ 本轮**逐文件 `git add`、不吞他模块文件**、**不用 `git add -A`**；⑬ 🔴 **APP-029 [NORMAL] 仍不认领集成**（reviewer 明文「现在不要集成」）；⑭ 🔴 **APP-022/APP-024②③④ 仍未做**（reviewer 明文「不要自己改」）⇒ 保持原状。
+阻塞 / 待用户决定: ① 🔴 **APP-027 V2 已完成**（§81）⇒ 四臂 ABBA 全部落盘（原始字段），**唯一 FAIL = `V2-1` 句内欠载 P95 = 0**（MT@NPU **53** > MT@GPU.0 **13** > 无 MT **0/1**）⇒ 【争用结论成立】；② 🔴 **默认摆放（APP-028①：ASR=GPU.0 / MT=GPU.0 / TTS=NPU）虽为四臂最优，但两个 MT 臂的 `synth_rtf_p50` 已越过 1.0**（1.0074 / 1.0165）⇒ 【仍不满足实时】⇒ 解法优先级（cp_decode 减负 > MT 迁 GPU.1 独显）**待 reviewer 决策**（MT 迁设备属 MT 模块，App 不自行改）；③ 🔴 **跨臂归因边界待裁定**（无 MT 臂 = 英文原文 / MT 臂 = 中文译文 ⇒ 绝对 RTF 不可直接归因给「MT 加载」）；④ 🔴 **`app118` 的 `device_desc=null` / `load_s=null`**（引擎未暴露该属性）⇒ 【是否真在 NPU 上跑需另证】；⑤ ⛔ **APP-027 的 V1（CUDA 连续实时）/ V3（MiniMax + CAMPPlus）仍未跑** ⇒ **APP-027 未完** ⇒ **zip 不重打**（APP-031 合打）⇒ 按 §66 口径 **不写「已交付」**（准确表述：**代码侧已入库、已同步到包目录；zip 未重打**）；⑥ ⛔ **本轮是 CLI 回放 + 真实播放路径（走声卡），非 GUI 非用户启动方式**（§63 L4）⇒ ⛔ **「用户听得到」仍不成立**（机器判据已足：`consumed=True` + `read_delta ≥ n_samples` + 无 `consumed=False`，但人耳未确认）；⑦ ⛔ **CER 对比 / MiniMax 回转写未做**（§80 遗留）；⑧ 🔴 **GUI 复现（丢句=0）仍未做**；⑨ 🔴 **引擎基线的 NPU 身份需另证**；⑩ 🔴 **本轮自查修掉 2 处缺陷**（① 整目录删除触发批量删除保护 → 进程被杀白跑；② `device_desc` AttributeError → 46 句算力白跑）⇒ 【是否全局排查同类脆弱点，待 reviewer 定】；⑪ 🔴 **旧的阻塞项仍然有效**：§80.1–80.5 的 CUDA 组判据已过（NPU 组 §78）、回转写由 reviewer 做、「句首标点」产品策略待裁定、APP-022/APP-024②③④ 仍不做、APP-029 不认领集成；⑫ 🔴 **机器锁纪律**：写本节时当前锁属外部 `EXT-p1-real 27024` ⇒ ctypes `handle=512/err=0` ⇒ `exit=259`⇒ **活锁 ⇒ 不抢不删**（孤儿锁必须 `err==87` 才可回收）；⑬ 🔴 **本轮未修改 `CORRECTIONS_APP.md`**（只读、零改动）、未向 MiniMax、未开 FTP、未跑 `verify_pkg_zip.py`、**未用 `git add -A`**（逐文件 add）
 
 
 ## 最近更新
+11:16 §81 🔴🔴 **APP-027 V2 争用定量 ABBA 实测已跑完（4 臂真实播放路径）＋ 补齐「TTS 单独」引擎级基线**：⇒ ✓ **4 臂全部落盘**（ABBA 汇总 2971 B / SHA256 `e422c558…c57cb5`；基线报告 1652 B / `c44c0519…83aea`；证据清单 102 629 B / `237a736d…c5037b`）⇒ ✓ **唯一 FAIL = `V2-1`**（句内欠载 P95 = 0）：**MT@NPU 53 > MT@GPU.0 13 > 无 MT 0/1** ⇒ **【争用结论成立】**⇒ ✓ `synth_rtf_p50`：引擎基线 **0.7849** → +ASR **0.9558/0.9663** → +MT@NPU **1.0074** → +MT@GPU.0 **1.0165**（**两个 MT 臂均越过 1.0**）⇒ ✓ 四臂不变式 `n_played+n_dropped==n_submitted`（46/46、76/76、76/76、46/46）+ `n_drop_written=0` / `n_no_audio=0` / `n_watchdog=0`⇒ ✓ 真实播放硬证据（`consumed=True` 与 `read_delta ≥ n_samples` 均 = 46/76/76/46，无 `consumed=False`）⇒ 🔴🔴 **自查修掉 2 处真实缺陷**（① 整目录 `shutil.rmtree` → 触发批量删除保护 → **进程被杀·报告未生成·实测白跑**（已改时间戳子目录、0 次删除）；② `device_desc` AttributeError → **46 句算力白跑**（已修 + `--report-only`））⇒ ✓ 客户包定点同步 3 文件 + 仓库⇄包 **10/10 MATCH**（包外备份 `pkg_backup_app_s81`）⇒ ✓ 交付闭环已入库：commit **`20da2de`**（11 文件 / +1964 −2 / App-only）、**普通 push** `3b326a5..20da2de`、**`HEAD == origin/main`**⇒ ✓ `CORRECTIONS_APP.md` **未入库**（`grep -c CORRECTIONS` = 0）、仓库仍只有 main、未吞他模块改动⇒ ⛔ **跨臂归因边界待裁定**、⛔ **MT 臂 p50 已越过 1.0 → 解法优先级待决策**（MT 迁 GPU.1 属 MT 模块）、⛔ **`device_desc=null` → NPU 身份需另证**、⛔ **V1/V3 未跑 → zip 不重打 → 不写「已交付」**、⛔ **CLI 而非 GUI → 「用户听得到」仍不成立**
 06:33 §80 🔴🔴 **APP-033 三条全部执行完毕（CUDA 组判据**已过** `verdict_after_clean=true` ＋ APP-028 5 分钟实测 10/10 PASS）＋ 自查抓出并修掉 4 处真实缺陷**：⇒ ✅ **①`quota.py` 在 reviewer 本机 ⇒ 不是 App 阻塞项**（wav+json+jsonl 已落盘）⇒ ✅ **② CUDA 组 A/B 已跑完并通过**（边车 `torch 2.11.0+cu128`/`cuda_available True`/RTX 5050；持锁+安静窗口；零 CPU 推理；未调 MiniMax）⇒ 改前臂（`d80ef22`）**cap=2/hang=2**（第 9 句 `lang=en` ⇒ **2038 帧 / 163.04 s / 255 块 / hang=true** ⇒ 与 reviewer 记录**逐项吻合**）⇒ 改后臂（HEAD）**cap/runaway/hang/err 全 0**、87 配对**异常 0 条** ⇒ **`verdict_after_clean=true`**；回归 zh/en 同样 0/0/0；s/字 0.1094→**0.1031**（无回退）⇒ ✅ **③ APP-028 的 SPE 前 5 分钟完整实测 10/10 PASS**（76 句 / `n_played=76` / `n_dropped=0` / `max_backlog_s=68.79` / `synth_rtf_p95=1.1511`）⇒ **「丢句=0」现在才成立**（§79.4 的 60 秒冒烟不构成）⇒ 🔴🔴 **修掉 4 处真实缺陷**（`machine_lock_app.py`：① ASR `PID=` 格式 ② 起始时间戳 ③ EXT 第三种锁格式 ④🔴🔴🔴 **等锁每 20 s「建 tmp+删 tmp」⇒ 987 s = 50 删 ⇒ 触发批量删除保护 ⇒ 进程被杀 ⇒ 报告未生成 ⇒ 实测白跑**（已修 + 实测复验零 tmp 残留））⇒ ✅ **验收 40/40 PASS**（含 **3 条 AST 重建反证**）⇒ ✅ **撤回 §78/§79「CUDA 对照组客观做不了」**⇒ ⛔ **APP-027 V1–V3 未跑**（V2/ABBA 安静窗口超时 ⇒ 目录实测为空 ⇒ 无产物）、⛔ **GUI 复现/CER 对比/用户实听未做**、⛔ **zip 未重打** ⇒ ⛔ **「用户听得到」仍不成立**
 23:58 §79 🔴🔴 **APP-028② 不丢句实测进行中：首跑直接暴露并修掉一个预先存在的真实产品缺陷「CLI 模式 `on_final` 签名与 `_split_spk` 的 3 元组契约对不上 ⇒ CLI 一收到定稿就必崩」** ⇒ ✅ **已修**（签名对齐 3 参 + 后两个带默认值 ⇒ 向后兼容）⇒ ✅ **验收 `app111` 9/9 PASS**（含 **E 组 AST 重建反证 2**；零推理/零 GPU/零 NPU）⇒ ✅ **客户包定点同步 s74**（1 块唯一命中 + 幂等 `ALREADY`；`live_caption_app.py` 233 332 → **234 518 B**，SHA256 `6d5c862c7ae8df47` → **`3b0cf75886215517`**）⇒ ✅ **交付闭环已入库**：commit **`c89bbc8`**（4 文件 / +556 −1，App-only）、**普通 push** `2f4a159..c89bbc8`、**`HEAD == origin/main`**、**HEAD ⇄ 客户包 9/9 全 MATCH** ⇒ 🔴 **实测仍在等机器锁**（外部 `EXT-browser-probe` PID 36040 自 23:55:48 起持锁 ⇒ ctypes 实测 `exit=259` ⇒ **活锁 ⇒ 不抢不删**；`app110` 自取锁 fail-closed 排队中）⇒ ⛔ **APP-028 的 5 分钟完整实测结果尚未落盘**、⛔ **APP-027 的 V1–V3 未跑**、⛔ **zip 未重打**（APP-031 明文「三项做完后合在一起重打一次包」）⇒ ⛔ **CUDA 对照组客观做不了** ⇒ ⛔ **「用户听得到」仍不成立**
 2026-10-27 23:44 §78 🔴🔴 **APP-030 的 NPU 实测已跑完（29 句 ×3 次）＋ 自查抓出并修掉「失控守卫语言口径」的真实缺陷** ＋ 客户包定点同步完成**：⇒ ✅ **NPU 组实测通过**（设备 NPU、持锁、安静窗口；**29 句日文 ×3 次 = 87 组配对** ⇒ 改后 **cap=0 / hang=0 / err=0**；**zh/en 各 10 句回归** ⇒ 同样 0/0/0；四组全 194 行 ⇒ **`verdict_after_clean=true`**；配对 wall 中位 改前 2.39 s / 改后 **2.23 s**、s/字 中位 0.1544 / **0.1428**） ⇒ 🔴🔴 **自查抓出真实缺陷**：`estimate_frames()/estimate_sec()` 只认小写代号，而同文件 `map_language()` 认全称/带区域 ⇒ **两套表解析同一标识** ⇒ `estimate_sec('Japanese')` 落**英文** 0.07（**低估 2.1×**）、`estimate_sec('zh-cn')` 落**英文**（**低估 3.6×**） ⇒ 后果 = **RUNAWAY 阈值偏低易误杀 + 帧上限偏松放行失控** ⇒ **已修**（新增 `_lang_key()` 统一走 `map_language()`） ⇒ 🔴 **生产路径逐字零回归**（ja 11.70 s/140 帧/456、zh 19.10/229/723、ko 13.92/167/537、en 5.78/69/243） ⇒ 🔴 **首跑那次 hang 是「我的脚本口径不对」造的假阳性**（脚本传全称、引擎只认代号） ⇒ 📌 **先证「是谁错」再改代码** ⇒ ✅ **`app109` 34/34 PASS ×2 处**（仓库 + 客户包；**4 条 AST 重建反证**） ⇒ ✅ **回归全绿**（42/24/29/21/28/37 + 34） ⇒ ✅ **客户包定点同步 3 块唯一命中 + 幂等 `ALREADY`**（`tts_engine.py` 56666 → 58587 B，`3ec217a141a3a7a2` → `d82e0d533ed79a58`） ⇒ ✅ **§77 交付闭环补全**：commit **`83cac33`**（10 文件 / +1521 −9）、**普通 push** `539b749..83cac33`、**HEAD == origin/main**、**HEAD ⇄ 包目录 9/9 全 MATCH** ⇒ ⛔ **CUDA 组客观做不了**（torch `2.14.1+cpu`/`cuda=False`；包内 python 无 torch） ⇒ ⛔ **GUI 复现 / wav+json / CER 对比未做**、⛔ **未跑 MiniMax 回转写**（`quota.py` 0 命中） ⇒ ⛔ **APP-028 不丢句实测 / APP-027 的 V1–V3 未做**、⛔ **zip 未重打**（APP-031 合打） ⇒ ⛔ **「日文失控已解决」仍不成立**（只覆盖 NPU 组）、⛔ **「用户听得到」仍不成立**
@@ -20,8 +21,6 @@ last_ack: APP-033
 16:16 §70 🔴🔴 **APP-028（BLOCKING）代码侧改造完成**：① **默认设备摆放定案**（ASR=`GPU.0`、MT=`GPU.0`、TTS=`NPU` ⇒ **NPU 独占 TTS**；`FALLBACK_ORDER` 已摘掉 ASR/MT 的 `'NPU'`；**CUDA 不作默认**）＋ ② **生产者/消费者播放架构**（`RingBuffer` → **无界内存 `AudioQueue`**；**合成不等播放**（独立 `_played_loop` 看门狗线程）；**删除 `BACKLOG_MAX_S` 丢句逻辑**；`cancel` 改**整句摘除**；新增 `clear_queue`；**模块级 stdout 写锁 `_OUT_WLOCK`**；GUI 底栏显示**「语音滞后 X 秒」**且 `_tts_meter()` **首次接入 `_poll()`**）⇒ ✅ `app103` **29/29** ＋ `app104` **10 PASS / 0 FAIL / 1 NO-EVIDENCE**（A1 本机无可用音色 ⇒ **不宣称通过**）＋ 回归 `app098` 21/21、`app102` 27/27、`app069` 37/37、`app097` 20/20、`app100` 28/28 ⇒ ⛔ **不跑推理**、⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ 🔴 `last_ack` = **APP-028**（APP-029 明文「现在不要集成」⇒ **不认领**）
 13:22 §69 ✅ **APP-027 客户包定点同步完成**：`sync_app027_to_pkg.py`（pkg→HEAD + LF 归一化 + 唯一命中 + 替换后==HEAD 断言）写 5 文件 FAIL=0；独立复核 包内 LF SHA256 == `git show HEAD` LF SHA256 全 MATCH；⚠️ `backends.py`/`seg_stream.py` 与 HEAD 不符是 C-102/C-098 预存代差（包内更大，不碰）；⛔ **zip 仍待锁重打 ⇒ 不写「已交付」**
 12:30 §68 ✅ **APP-027⑤（克隆）真正接入**：主进程 `Session.on_audio` → `App._collect_clone_pcm`（20 ms 帧 RMS **去静音**、滚动 10 s、**≥6 s 新语音或每 30 s** 触发）→ `tts_service.set_clone_pcm`（base64 16 kHz PCM）→ worker `_update_clone`（BabelVox 换 x-vector / CUDA 边车 `set_ref`）⇒ **下一句起生效**；🔴 **失败真回落预设 A**（`_fallback_to_preset` 换回**缓存**的预设向量，不是只改标志位）；🔴 GUI 新增**独立标签**显示**实际使用**的音色（「预设 A」/「克隆（更新于 hh:mm:ss，x s 语音）」）⇒ **旧的「尚未启用 ⇒ 回落 A」死逻辑已删**
-12:30 §68 ✅ **APP-027③ 的两个并发缺口补上**：① `tts_service._send` 加 **`_stdin_wlock`**（`set_clone_pcm` 来自**会话线程**、`submit/cancel` 来自 **GUI 主线程** ⇒ 并发 write 同一 pipe ⇒ 命令行交错 ⇒ worker 收到半行 JSON）② `tts_cuda` 的 `set_ref_audio` 与 `generate_stream` 共用写锁；③ `tts_cuda.close()` 现在**清空消息队列**（否则 close→start 后新句会先读到旧句的块 ⇒ 又错位）
-12:30 §68 ✅ **APP-027 顺带两处**：① APP-025「pythonw 下测试音失败」已修并验证（`_out_write` 永不抛异常 ⇒ 成功播放 1.00 s / `read_delta=24000`）② 桩测试**隔离 `LOCALAPPDATA`**（`app099`/`app100` 在 exec/import 被测模块**之前**指到 `tempfile.mkdtemp()`）⇒ **不再污染**用户真实 `%LOCALAPPDATA%\Confucius4LiveCaption`
 
 ## §1 现状汇总（2026-10-23）
 
@@ -13864,3 +13863,162 @@ reviewer 明文：「§79.4 只是 60 秒冒烟（17 句，最大积压 21.31 s�
 ⚠️ **本轮自查还抓出并修掉 `app113` 脚本自身的 2 处缺陷**：① `jsonl` 路径写死 ⇒ 定向复跑会**覆盖正式产物的逐句 jsonl**
 （**实测已发生一次** ⇒ 已从 `report.json` 的 `rows` **完整恢复 194 行**）⇒ 已改为**与 report 同名联动**；
 ② 「撞上限」阈值与帧率折算系数（`FRAME_SAMPLES=1920` ⇒ **12.5 fps**，不是 12.0）。
+
+## §81 🔴🔴 **APP-027 V2 争用定量 ABBA 实测跑完（4 臂真实播放路径 ＋ 引擎级「TTS 单独」基线）＋ 自查抓出并修掉 2 处真实缺陷**（2026-10-28 11:16）｜**本条已完成**｜**本条需等 reviewer 复核**
+
+### 81.1 🔴 **巡检结论：无新 reviewer 纠偏条目**（`last_ack` 保持 **APP-033**）
+
+- 全文通读 `status/app/CORRECTIONS_APP.md`（**只读，零改动**）⇒ 编号条目 **APP-001 … APP-033，共 33 条**（`grep -c "^## APP-"` = **33**）。
+- 最大编号 = **APP-033**（2026-10-28 00:50「回应 STATUS 头部阻塞③/CUDA 组」）⇒ 与头部 `last_ack: APP-033` **相等** ⇒ **不存在编号大于 `last_ack` 的新条目** ⇒ 本轮**无需执行 APP-034+**，按 §43 教训（「做出来了但没入库的闸门」）改做**存量补齐**。
+- ⚠️ `status/app/CORRECTIONS_APP.md` 在 `git status` 里显示 `M`（**+434 行**）是 **reviewer 自己写的** ⇒ 本轮**绝不提交该文件**（已用 `git show --name-only HEAD | grep -c CORRECTIONS` = **0** 复核）。
+
+### 81.2 ✅ **APP-027 V2 的「NPU 连续实时 + 争用定量 ABBA」已实跑（4 臂 · 真实播放路径 · CLI 回放）**
+
+- **口径**：`device=NPU`、`duration=300.0 s`（= APP-026 规定的 SPE 前 5 分钟切片）、`translate=zh`；**真实播放路径**（**不用 `--tts-out`** ⇒ 走声卡播放 ⇒ 逐句遥测由 `--tts-jsonl` 单独落盘）。
+- 🔴 **为什么必须用 `--tts-jsonl` 而不是 `--tts-out`**：`--tts-out` 会让 worker `continue`（不播放）⇒ `underflow_in_sentence` / `queue_peak` **结构性恒为 0** ⇒ **假通过**。本轮新增 `--tts-jsonl`（`live_caption_app.py` / `tts_service.py`）让遥测与播放解耦。
+- 🔴 **为什么新增 `--tts-source mt|asr`**：`asr` 臂让 TTS 直接订阅 ASR 原文、MT `target='off'`（**模型不加载**）⇒ 「+ASR 无 MT」这一臂才成立（否则「无 MT 臂」根本造不出来）。
+- **原始字段**（源：`C:\Users\Trekker-PTL\app027_v2\app027_v2_abba_summary.json`，2971 B，SHA256 `e422c558b5a47a460044cbf467b86e64de58d65485607bda83505a87f1c57cb5`）：
+
+| # | 臂 `cfg` | `asr_device` | `mt_device` | `tts_source` | `synth_rtf_p50` | `synth_rtf_p95` | `underflow_in_sentence_p95` | `underflow_pre_sentence_p95` | `queue_peak_s` | `max_backlog_s` | `end_lag_s` | `n_submitted` | `n_played` | `n_dropped` | P/F |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | `tts_asr`（第 1 臂） | GPU.0 | `null` | `asr` | **0.9558** | 1.013 | **0** | 19 | 17.798 | 43.12 | 16.35 | 46 | 46 | 0 | **15/0** |
+| 2 | `tts_asr_mt_npu` | GPU.0 | **NPU** | `mt` | **1.0074** | **1.3964** | **53** | 1173 | 26.86 | 89.70 | 24.68 | 76 | 76 | 0 | 14/1 |
+| 3 | `tts_asr_mt_gpu0` | GPU.0 | GPU.0 | `mt` | **1.0165** | 1.1924 | **13** | 309 | 18.535 | 64.49 | 17.03 | 76 | 76 | 0 | 14/1 |
+| 4 | `tts_asr`（第 2 臂 · ABBA 回归） | GPU.0 | `null` | `asr` | 0.9663 | 1.0443 | **1** | 19 | 5.863 | 26.37 | 5.29 | 46 | 46 | 0 | 14/1 |
+
+- **唯一 FAIL 项全部是 `V2-1`**（源：各臂 `v2_*_report.json` 的 `checks[]` 原始条目）：
+
+| 臂 | `checks[]` 里的 FAIL 原文 | `got` | `want` |
+|---|---|---|---|
+| `tts_asr_mt_npu` | `{"id": "V2-1", "name": "句内 underflow_in_sentence P95 = 0（只允许句前等待）", "ok": false, "got": 53, "want": 0}` | **53** | 0 |
+| `tts_asr_mt_gpu0` | `{"id": "V2-1", "name": "句内 underflow_in_sentence P95 = 0（只允许句前等待）", "ok": false, "got": 13, "want": 0}` | **13** | 0 |
+| `tts_asr`（第 2 臂） | `{"id": "V2-1", "name": "句内 underflow_in_sentence P95 = 0（只允许句前等待）", "ok": false, "got": 1, "want": 0}` | **1** | 0 |
+| `tts_asr`（第 1 臂） | **无 FAIL**（15/15 全过） | — | — |
+
+- ✅ **「已写入被丢」= 0**（`V2-2`）：四臂 `n_drop_unbuilt=0` / `n_drop_written=0` / `n_no_audio=0` / `n_watchdog=0` / `n_restart=0` / `n_err_jsonl=0` / `n_player_err=0`；且**不变式 `V2-6` 四臂全过**（`n_played + n_dropped == n_submitted`：46/46、76/76、76/76、46/46）。
+- ✅ **真实播放硬证据**（`V2-0a/0b/0c/12` 四臂全过）：`consumed=True` 的句数 = **46 / 76 / 76 / 46**（>0）；`read_delta ≥ n_samples` 的句数 = **46 / 76 / 76 / 46**；**无 `consumed=False` 的句子**（`V2-12` got=0）⇒ **音频确实被播出了**（不只是「合成了」）。
+
+### 81.3 ✅ **补齐「真·TTS 单独」引擎级基线**（第四臂的对照锚点 · `app118`）
+
+- 源：`C:\Users\Tker-PTL\app027_v2\tts_only_engine_baseline.json`（1652 B，mtime 2026-10-28 11:14:21，SHA256 `c44c0519a0f81376733cc76945455d872b2cb2bc506de1f903ff56be7ba83aea`）。
+- 口径：`tts_engine.make_engine(device='NPU')` + `tts_engine.stream(...)` **直驱**，**不跑 ASR / 不跑 MT / 不跑声卡播放**；语料取自 `tts_asr` 臂已落盘的逐句原文（报告 `artifacts.source_corpus` = `...\tts_asr\v2_tts_asr.tts.jsonl`）。
+- **原始字段**：`n_sentences=46`、`n_err=0`、`n_cap=0`、`n_runaway=0`、**`synth_rtf_p50=0.7849`**、**`synth_rtf_p95=0.8086`**、`synth_rtf_min=0.7472`、`synth_rtf_max=0.8407`、`wall_p50=5.1893`、`wall_p95=6.8647`、`audio_p50=6.56`、`audio_total=310.0`、`wall_total=244.49`、`pass_count=5` / `fail_count=0`（判据 `E0-a`…`E0-e` 全 `ok=true`）。
+- 逐句 jsonl：`tts_only_engine_baseline.tts.jsonl`（12601 B，mtime 11:12:57，SHA256 `d87c156f853f11cfb52e51a8dcb421374332dc30aa7793965265084b61590437`），**46 行**，字段 = `id/text/lang/n_chars/n_parts/n_chunks/wall_s/audio_s/synth_rtf/end_reason/error`；46 行 `synth_rtf` 全非空（min 0.7472 / max 0.8407）、`end_reason` 全 `eos`、`error` 全 `null`。
+- ⚠️ **播放侧字段（`underflow` / `queue_peak` / `consumed`）在本臂是结构性 NO-EVIDENCE**（根本不播放）⇒ **只能与 81.2 各臂比 `synth_rtf`**，**不可比播放侧**（报告 `note` 字段已明文写死这一点）。
+
+### 81.4 🔴 **争用定量结论（RTF 分解）**
+
+| 环节 | `synth_rtf_p50` | 相对引擎基线增量 |
+|---|---|---|
+| 引擎基线（真·TTS 单独，NPU） | **0.7849** | — |
+| ＋ ASR@GPU.0（无 MT） | **0.9558 / 0.9663**（两臂） | **≈ +0.17 RTF** |
+| ＋ ASR@GPU.0 ＋ MT@NPU | **1.0074** | **≈ +0.22 RTF**，**p50 越过 1.0** |
+| ＋ ASR@GPU.0 ＋ MT@GPU.0 | **1.0165** | **≈ +0.23 RTF**，**p50 越过 1.0** |
+
+- 🔴 **句内欠载（`underflow_in_sentence` P95）梯度**：**MT@NPU 53 > MT@GPU.0 13 > 无 MT 0/1** ⇒ **「MT 与 TTS 同在 NPU 会造成句内欠载」**这一命题**成立**（有量化支撑）。
+- 🔴 **句前等待（`underflow_pre_sentence` P95）梯度**：**MT@NPU 1173 > MT@GPU.0 309 > 无 MT 19/19** ⇒ **同一物理引擎上的排队放大**，量级差 **≈ 62× / ≈ 16×**。
+- 🔴 **两个 MT 臂的 p50 都越过 1.0**（1.0074 / 1.0165）⇒ **加 MT 后 TTS 合成速度不再快于实时**；而**无 MT 臂两臂 p50 都 < 1.0**（0.9558 / 0.9663）⇒ **「不加载 MT 模型」是当前唯一能让 TTS 留在实时线内的手段**。
+- 📌 **口径边界（重要）**：`synth_rtf` 是**逐句合成 RTF**，与「整链实时性」不等价；且 **MT 臂的语料是中文译文、无 MT 臂是英文原文** ⇒ **跨臂的绝对 RTF 不可直接归因给「MT 加载」**；能站住的是**同语料下的 MT@NPU vs MT@GPU.0**（53 vs 13）与 **ABBA 回归的重复性**（第 1 臂 0 / 第 2 臂 1 ⇒ 幅度极小、方向一致）。
+- ⚠️ **本轮不据此改生产配置**：APP-028① 的默认摆放（ASR=`GPU.0`、MT=`GPU.0`、TTS=`NPU`）**就是本轮实测里最好的「MT@GPU.0」方案**，但它**仍然 p50 > 1.0** ⇒ **解法优先级应按「cp_decode 减负」→「MT 迁独立设备」推进**（**MT 迁 GPU.1 属 MT 模块决策，App 不自行决定**）。
+
+### 81.5 🔴🔴 **本轮自查抓出并修掉 2 处真实缺陷**
+
+1. 🔴🔴 **`app114` 用 `shutil.rmtree(tag)` 整目录删除旧臂目录 ⇒ 触发宿主批量删除保护 ⇒ 进程当场被杀 ⇒ 报告未生成 ⇒ 整轮实测白跑**（**实测事故**，非理论推演）。
+   - 实测现象：`[safe-delete][SAFE_DELETE_BULK_CONFIRM_REQUIRED] {"count":52,"threshold":50,...,"targets":["...\app027_v2\tts_asr"]}` ⇒ 进程被终止。
+   - 根因：旧臂目录累积 **46 个 wav + 6 个文件 = 52** ⇒ 超过阈值 50。
+   - ✅ **修复**：改为**带时间戳的 `run_<YYYYmmdd_HHMMSS>/` 子目录**，**0 次删除** ⇒ 旧产物原样保留、可追溯（与 §80.4 缺陷④「等锁循环反复建 tmp + 删 tmp」同类同源）。
+2. 🔴 **`app118` 报告阶段 AttributeError ⇒ 46 句算力白跑**：`'MultiDecoderBabelVox' object has no attribute 'device_desc'`（发生在 `report = dict(...)` 处）。
+   - ✅ **修复**：`getattr(eng, 'device_desc', None) or getattr(eng, 'device', None) or args.device` 兜底；并把聚合逻辑抽成独立函数 + 新增 `--report-only`（**只从已落盘 jsonl 重算报告，不跑推理、不取锁**）⇒ **无需重跑 244 s 算力**即可修正报告。
+   - 📌 **口径教训**：报告阶段的字段缺失会让**前面的算力全部作废** ⇒ 闸门/报告代码的健壮性属于**交付质量的一部分**，不是「辅助脚本」。
+
+### 81.6 ✅ **客户包定点同步完成（仓库 ⇄ 客户包 = 两份独立副本 ⇒ 只做定点替换）**
+
+- ✅ 新增 `live_caption/sync_s81_to_pkg.py`：基线 = `git show HEAD:<rel>`、候选 = 工作区、`difflib.SequenceMatcher.get_grouped_opcodes(n=3)` 派生替换块、**唯一命中断言**、**幂等 `ALREADY`**、**包外备份** `C:\Users\Trekker-PTL\pkg_backup_app_s81\`、**包内私有行护栏**。
+- ✅ **定点同步 3 文件**（`tts_service.py` / `live_caption_app.py` / `tts_worker.py`）⇒ **包内 LF-SHA256 == 仓库 HEAD**。
+- ✅ **独立复核（只读）**：仓库 `live_caption/` ⇄ 客户包 `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6\app\` 归一化 SHA256 比对 **10/10 全 MATCH**：
+
+| 文件 | 仓库 LF-SHA256（前 16） | 包 LF-SHA256（前 16） | 结果 |
+|---|---|---|---|
+| `live_caption_app.py` | `9f5e5eb6847d1466` | `9f5e5eb6847d1466` | MATCH |
+| `tts_service.py` | `b4800b5042c1207f` | `b4800b5042c1207f` | MATCH |
+| `tts_worker.py` | `2f50f082485f852d` | `2f50f082485f852d` | MATCH |
+| `tts_cuda.py` | `00060bbee8254e03` | `00060bbee8254e03` | MATCH |
+| `tts_engine.py` | `d82e0d533ed79a58` | `d82e0d533ed79a58` | MATCH |
+| `translator.py` | `c5ab5e0760e2ea88` | `c5ab5e0760e2ea88` | MATCH |
+| `device_config.py` | `f386785af866f934` | `f386785af866f934` | MATCH |
+| `tts_cuda_sidecar.py` | `aa0feeb5035db948` | `aa0feeb5035db948` | MATCH |
+| `offline_reader.py` | `94e0c839d05c2fe5` | `94e0c839d05c2fe5` | MATCH |
+| `offline_reader_gui.py` | `4710a5f21766fa48` | `4710a5f21766fa48` | MATCH |
+
+- ⚠️ **包目录 mtime**（本轮同步写入时刻）：`live_caption_app.py` 2026-10-28 08:03:38 / 237 534 B；`tts_service.py` 07:50:14 / 104 066 B；`tts_worker.py` 07:55:58 / 171 297 B。
+- ⚠️ **包外备份**：`pkg_backup_app_s81\`（3 文件：`live_caption_app.py.before_s81` 235 063 B @ 07:50、`tts_service.py.before_s81` 103 005 B @ 10-27 21:20、`tts_worker.py.before_s81` 170 272 B @ 10-27 21:20）。
+
+### 81.7 ✅ **Git 交付闭环已入库**
+
+- ✅ **commit `20da2de`**「App §81: APP-027 V2 争用定量 ABBA 实测(4 臂) + 补齐「TTS 单独」引擎级基线 + 修掉整目录删除触发批量删除保护」——**11 文件 / +1964 −2**，**全部 App 侧**：
+  `live_caption/live_caption_app.py`、`live_caption/tts_service.py`、`live_caption/tts_worker.py`、`live_caption/sync_s81_to_pkg.py`、`results/app/app114_app027_v2_real_playback.py`、`results/app/app115_tts_jsonl_plumbing_test.py` + `app115_tts_jsonl_plumbing_evidence.json`、`results/app/app116_collect_v2_evidence.py`、`results/app/app117_tts_source_switch_test.py` + `app117_tts_source_switch_evidence.json`、`results/app/app118_engine_baseline_tts_only.py`。
+- ✅ **`CORRECTIONS_APP.md` 未入库**（`git show --name-only HEAD | grep -c CORRECTIONS` = **0**）。
+- ✅ **普通 push** `3b326a5..20da2de`（**非 force**）⇒ `HEAD == origin/main == 20da2de6601e1ad9f68a5cab96aadba5e787b933`，`git rev-list --count origin/main..HEAD` = **0**。
+- ✅ **仓库仍只有 main 分支**（`git branch -a` = `main` + `remotes/origin/main`，`remotes/origin/HEAD -> origin/main`）。
+- ✅ **未吞其它模块的未提交改动**：`git add` **逐文件**、**不用 `-A`**；ASR/MT/TTS 的 `c0xx_*.py` / `status/asr/*` / `status/mt/*` / `status/tts/*` 一律未动。
+- ⚠️ **本节（§81 章节 + 头部）单独作为一次 commit 追加**（代码 commit 已在 `20da2de` 内）。
+
+### 81.8 ✅ **本轮闸门验收（全绿 · 零推理 / 零 GPU / 零 NPU）**
+
+| 脚本 | 判据 | 结果 | 备注 |
+|---|---|---|---|
+| `app115_tts_jsonl_plumbing_test.py` | `--tts-jsonl` 链路 | **13/13 PASS** | 含 **3 条反证** |
+| `app117_tts_source_switch_test.py` | `--tts-source` 开关 | **8/8 PASS** | 含 **1 条反证** |
+| `app114`（4 臂） | V2 判据 | 15/0、14/1、14/1、14/1 | 唯一 FAIL = `V2-1`（见 81.2） |
+| `app118`（引擎基线） | E0-a…E0-e | **5/0 PASS** | 见 81.3 |
+
+### 81.9 📦 **本轮落盘产物清单（文件数 / mtime / 字节数 / SHA256）**
+
+**目录级**（各臂 `run_<时间戳>/` 子目录，**0 次删除**）：
+
+| 目录 | 文件数 | 总字节 | mtime 区间 |
+|---|---|---|---|
+| `app027_v2\tts_asr\run_20261028_104319\`（第 1 臂） | **51** | **15 011 564** | 2026-10-28 10:43:52 ~ 10:49:02 |
+| `app027_v2\tts_asr_mt_npu\run_20261028_104902\` | **82** | **16 090 904** | 2026-10-28 10:49:22 ~ 10:55:45 |
+| `app027_v2\tts_asr_mt_gpu0\run_20261028_105545\` | **82** | **16 205 729** | 2026-10-28 10:56:10 ~ 11:01:59 |
+| `app027_v2\tts_asr\run_20261028_110159\`（第 2 臂 · ABBA 回归） | **51** | **14 679 785** | 2026-10-28 11:02:21 ~ 11:07:24 |
+
+**文件级**：
+
+| 文件 | 字节 | mtime | SHA256 |
+|---|---|---|---|
+| `app027_v2\app027_v2_abba_summary.json`（**ABBA 汇总主文件**） | 2 971 | 2026-10-28 11:07:24 | `e422c558b5a47a460044cbf467b86e64de58d65485607bda83505a87f1c57cb5` |
+| `app027_v2\tts_only_engine_baseline.json`（**引擎基线主报告**） | 1 652 | 2026-10-28 11:14:21 | `c44c0519a0f81376733cc76945455d872b2cb2bc506de1f903ff56be7ba83aea` |
+| `app027_v2\tts_only_engine_baseline.tts.jsonl`（**引擎基线逐句**，46 行） | 12 601 | 2026-10-28 11:12:57 | `d87c156f853f11cfb52e51a8dcb421374332dc30aa7793965265084b61590437` |
+| `app027_v2\app116_v2_evidence.json`（**V2 产物证据清单**，递归 文件数/字节/mtime/SHA256 + 原始字段） | 102 629 | 2026-10-28 11:14:26 | `237a736d9b99e756e02334fcc371997765649147f3837373df6d3886b0c5037b` |
+
+**逐臂报告**（`v2_<cfg>_report.json`，均含 `checks[]` 原始条目；完整 文件数/字节/mtime/SHA256 见 `app116_v2_evidence.json` 的 `dirs[].files[]`，**由 `app116_collect_v2_evidence.py` 机器生成**）：
+
+| 报告文件（相对 `app027_v2\`） | P/F | 唯一 FAIL |
+|---|---|---|
+| `tts_asr\run_20261028_104319\v2_tts_asr_report.json` | **15/0** | — |
+| `tts_asr_mt_npu\run_20261028_104902\v2_tts_asr_mt_npu_report.json` | 14/1 | `V2-1` got=**53** |
+| `tts_asr_mt_gpu0\run_20261028_105545\v2_tts_asr_mt_gpu0_report.json` | 14/1 | `V2-1` got=**13** |
+| `tts_asr\run_20261028_110159\v2_tts_asr_report.json` | 14/1 | `V2-1` got=**1** |
+
+### 81.10 ⚠️ **本轮纪律与边界（**必须一起读，否则会过度解读上面的数字**）**
+
+⚠️ **未在 CPU 上跑推理或测速**：本轮四臂设备 = **NPU**（TTS）/ GPU.0（ASR、MT@GPU.0 臂）/ NPU（MT@NPU 臂）；引擎基线设备 = **NPU** ⇒ **零 CPU 推理**。
+⚠️ **未调 MiniMax**（质量判定交 reviewer；`quota.py` 在 reviewer 本机 ⇒ 见 §80.1）。
+⚠️ **非 GUI 路径**：本轮是 **CLI 回放 + 真实播放路径**（走声卡）⇒ **不等于用户启动方式**（§63 L4：桌面快捷方式 → `.venv\Scripts\pythonw.exe`）⇒ ⛔ **「用户听得到」仍不成立**。
+⚠️ **未做 CER 对比 / 未做 MiniMax 回转写**（§80 遗留项）。
+⚠️ **「出声」判据只到机器可判层**：`consumed=True` + `read_delta ≥ n_samples` + 无 `consumed=False` ⇒ **播放侧硬证据成立**；但 **人耳确认未做**。
+⚠️ **zip 未重打**（APP-031 明文「三项做完后合在一起重打一次包」⇒ APP-027 的 V1/V3 未完）⇒ 按 §66 口径 ⛔ **不得写「已交付」**（准确表述：**代码侧已入库、已同步到包目录；zip 未重打**）。
+⚠️ **APP-027 的 V1（CUDA 连续实时）/ V3（MiniMax + CAMPPlus）仍未跑**（本轮只补了 V2）。
+⚠️ **机器锁纪律**：本轮 ABBA 用 `machine_lock_app`（PID 42232，10:42:33 起）、引擎基线用 PID 35236（11:07:38 起）⇒ 均**正常释放**；写入本节时的**当前锁属外部进程** `EXT-p1-real 27024 2026-10-28 11:15:28` ⇒ ctypes 实测 `handle=512 / err=0` ⇒ `GetExitCodeProcess` → `exit=259`（**STILL_ACTIVE**）⇒ **活锁 ⇒ 不抢不删**（**孤儿锁必须 `err==87` 才可回收**）。
+⚠️ **本轮改了 12 个文件**：3 个生产文件（`live_caption_app.py` / `tts_service.py` / `tts_worker.py`）+ 1 个同步脚本（`sync_s81_to_pkg.py`）+ 5 个 App 侧工具（`app114` / `app115` / `app116` / `app117` / `app118`）+ 2 个证据 json + 本 STATUS 文件。
+⚠️ **本轮未改任何生产逻辑的既有行为**：`--tts-jsonl` / `--tts-source` 都是**新增可选开关**，默认关闭时路径逐字不变。
+
+### 81.11 🔴 **待 reviewer 决定 / 需 reviewer 复核（停在这里，不自行推进）**
+
+1. 🔴 **§81.4 的 RTF 分解是否采信**：跨臂语料不同（无 MT 臂 = 英文原文 / MT 臂 = 中文译文）⇒ **绝对 RTF 不可直接归因给「MT 加载」**；能站住的是「同语料 MT@NPU(53) vs MT@GPU.0(13)」与「ABBA 重复性（0 / 1）」。**请 reviewer 裁定这个归因边界是否够**。
+2. 🔴 **MT 臂 p50 已越过 1.0（1.0074 / 1.0165）⇒ 默认摆放（APP-028①：ASR=GPU.0、MT=GPU.0、TTS=NPU）虽为四臂最优，但**仍不满足实时** ⇒ 解法优先级（**cp_decode 减负** > **MT 迁 GPU.1 独显**）需 reviewer 决策；**MT 迁设备属 MT 模块决策，App 不自行改**。
+3. 🔴 **`app118` 引擎基线的 `device_desc=null` / `load_s=null`**（引擎对象未暴露这两个属性 ⇒ 兜底为 `null`）⇒ **「是否真在 NPU 上跑」需另证**（`--report-only` 重算路径不重跑推理，本轮未补证）。
+4. 🔴 **APP-027 的 V1（CUDA 连续实时）/ V3（MiniMax + CAMPPlus）仍未跑** ⇒ **APP-027 未完** ⇒ **zip 不重打**。
+5. 🔴 **GUI 复现（§63 L4：用户真实启动方式 → 丢句=0）仍未做** ⇒ **不得写「用户听得到」**。
+6. 🟡 **§81.5 缺陷②（`device_desc` AttributeError）已修但只覆盖了本脚本** ⇒ 是否需要**全局排查其它报告脚本的同类脆弱点**，请 reviewer 定。
