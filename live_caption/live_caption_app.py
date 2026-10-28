@@ -80,6 +80,11 @@ from audio_source import (BLOCK_MS, SR, default_output_device_id,
 #    而本文件顶部就 import numpy/openvino ⇒ **不能**被离线验收脚本 import。
 import caption_render
 
+# 🔴🔴🔴 APP-027 V3（2026-10-28 §84）：**克隆源语音采集器**（独立模块）
+#   ⇒ GUI 与 CLI **共用同一份实现**（避免逻辑漂移 ⇒ 假证据）。
+#   ⇒ 旧常量 `_CLONE_*` 改为从这里 import（**值逐字不变**）。
+import clone_collector
+
 # 🔴 **草稿译文缓存上限**（APP-015）：草稿每 ~1.5 s 一条 ⇒ 4 小时 ≈ 9 600 条
 #    ⇒ 不设上限会无界增长（与 `translator.py` 的 `CACHE_MAX` 同一口径）。
 _DRAFT_MT_CACHE_MAX = 2000
@@ -88,12 +93,17 @@ _DRAFT_MT_CACHE_MAX = 2000
 #   - 最短 3 s（worker 侧硬要求：不足 3 s 拒绝更新）
 #   - 最长 10 s（APP-027 明文：「取最近 3–10 s 语音」）
 #   - 触发条件：每 30 s **或** 累计 ≥ 6 s 新语音（APP-027 明文）
-_CLONE_MIN_S = 3.0
-_CLONE_MAX_S = 10.0
-_CLONE_UPDATE_INTERVAL_S = 30.0
-_CLONE_NEW_VOICED_S = 6.0
+#   🔴🔴 **2026-10-28 §84：常量搬到 `clone_collector` 模块**
+#     ⇒ 原因：CLI 路径（`run_cli`）原先**没有克隆采集器**
+#     ⇒ **V3（克隆实测）在 CLI 下客观做不了**
+#     ⇒ 采集逻辑抽成 `clone_collector.CloneCollector` ⇒ **GUI 与 CLI 共用一份**
+#     ⇒ 这里保留别名（**向后兼容**：外部脚本可能 import 这几个常量）。
+_CLONE_MIN_S = clone_collector._CLONE_MIN_S
+_CLONE_MAX_S = clone_collector._CLONE_MAX_S
+_CLONE_UPDATE_INTERVAL_S = clone_collector._CLONE_UPDATE_INTERVAL_S
+_CLONE_NEW_VOICED_S = clone_collector._CLONE_NEW_VOICED_S
 #   - 语音帧长（20 ms @ 16 kHz）
-_CLONE_FRAME = 320
+_CLONE_FRAME = clone_collector._CLONE_FRAME
 
 CHUNK_SEC = 0.64
 
@@ -1986,6 +1996,10 @@ class App:
         self._clone_enabled = False          # 用户是否选了「跟随说话人（克隆）」
         self._clone_status = ''              # GUI 显示用（主线程写）
         self._clone_noise_floor = 0.004      # 自适应静音阈值（初始值）
+        # 🔴🔴🔴 APP-027 V3（§84）：**共享采集器**（GUI 与 CLI 共用一份实现）
+        #   ⇒ `get_service` 用 lambda 延迟取 ⇒ worker 起好之前不报错。
+        self._clone_col = clone_collector.CloneCollector(
+            lambda: getattr(self, 'tts', None))
         # auto=False：翻译模型等 ASR 引擎就绪后再加载，避免两个模型在同一 GPU 上并行编译
         #
         # on_log 必须线程安全：翻译/引擎都在后台线程，直接 root.after() 会和主线程
@@ -2765,6 +2779,40 @@ class App:
           - 调用 `self.tts.set_clone_pcm()` ⇒ 它会写 worker 的 stdin
             ⇒ `tts_service` 侧已加**写锁**（APP-027⑤）⇒ 不会与
             `submit()`/`cancel()` 的命令交错。
+
+        🔴🔴🔴 **2026-10-28 §84：实现已搬到 `clone_collector.CloneCollector`**
+          ⇒ 原因：CLI 路径原先**没有**采集器 ⇒ **APP-027 V3（克隆实测）
+          在 CLI 下客观做不了** ⇒ 抽成独立类后 **GUI 与 CLI 共用一份实现**
+          ⇒ 避免逻辑漂移 ⇒ 假证据。
+          ⚠️ **本方法现在是薄封装**（行为逐字不变）：
+          - `self._clone_enabled` ⇒ 采集器的 `enabled`
+          - `self._clone_status`  ⇒ 采集器的 `status`
+          - `self._clone_frames` / `_clone_voiced_s` / `_clone_sent_voiced_s` /
+            `_clone_last_update` / `_clone_noise_floor`
+            ⇒ 仍由 GUI 保留（**别的代码可能读**）⇒ 采集器每次 feed 后同步回来。
+        """
+        col = self._clone_col
+        if col is None:
+            return
+        col.enabled = bool(self._clone_enabled)
+        if not col.enabled:
+            return
+        col.feed(pcm)
+        # 🔴 同步回 GUI 的旧字段（**向后兼容**：外部脚本可能读）
+        with self._clone_lock:
+            self._clone_frames = col._frames
+            self._clone_voiced_s = col._voiced_s
+            self._clone_sent_voiced_s = col._sent_voiced_s
+            self._clone_last_update = col._last_update
+            self._clone_noise_floor = col._noise_floor
+        self._clone_status = col.status
+        return
+
+    def _collect_clone_pcm_legacy(self, pcm):
+        """🔴🔴🔴 **旧实现（保留作对照，勿删）** —— §84 已搬到 `clone_collector`。
+
+        ⚠️ **保留理由**：它是「修复前」的逐字基线 ⇒ §84 的验收脚本可拿它做
+        **等价性反证**（新实现与旧实现对同一段 PCM 必须给出**同样的触发时机**）。
         """
         if not self._clone_enabled:
             return
@@ -3971,6 +4019,17 @@ def run_cli(args):
     # ── TTS（C-101 P4 第 5 条：加载顺序 ASR → MT → TTS）──
     #    TTS 加载失败**不能影响字幕和翻译** ⇒ 整段 try/except。
     tts = None
+    # 🔴🔴🔴 APP-027 V3（§84）：**CLI 的克隆采集器**
+    #   🔴 **根因**：旧实现里采集器是 `App._collect_clone_pcm`（**GUI 实例方法**）
+    #     ⇒ CLI 的 `run_cli` **既没接 `Session(on_audio=...)`**，也没给 worker 传
+    #       `--clone` ⇒ **克隆源 PCM 从不发给 worker** ⇒ 克隆永不生效
+    #     ⇒ **APP-027 V3（克隆实测）在 CLI 下客观做不了**。
+    #   ⇒ 现在：CLI 与 GUI **共用 `clone_collector.CloneCollector`**。
+    #   ⚠️ **默认行为逐字不变**：只有显式 `--tts-voice follow_speaker`
+    #     （或新增的 `--tts-clone`）才启用 ⇒ 其余路径一字不改。
+    _clone_col = None
+    _want_clone = (str(getattr(args, 'tts_voice', 'A') or 'A')
+                   == 'follow_speaker')
     # 🔴 **默认开启**（APP-014）：`--tts` 默认 None ⇒ 视为 on；
     #    显式 `--tts off` ⇒ 关闭。
     if getattr(args, 'tts', None) != 'off':
@@ -3982,12 +4041,21 @@ def run_cli(args):
                              out_wav=args.tts_out,
                              dump_dir=args.tts_dump_dir,
                              jsonl_path=args.tts_jsonl,
+                             # 🔴🔴🔴 APP-027 V3：CLI 也要把「克隆」告诉 worker
+                             #   ⇒ 否则 worker 的 `clone_mode` 恒为 False。
+                             clone=_want_clone,
                              on_log=lambda m: print(f'  [TTS] {m}', flush=True))
             print(f'[TTS] worker 已启动（设备 {args.tts_device}，'
                   f'音色 {args.tts_voice}，精度 {args.tts_precision}）', flush=True)
         except Exception as e:
             tts = None
             print(f'[TTS] 启动失败（不影响字幕与翻译）：{e}', flush=True)
+    if _want_clone:
+        _clone_col = clone_collector.CloneCollector(lambda: tts)
+        _clone_col.enabled = True
+        _clone_col.reset()
+        print('[TTS] 克隆（跟随说话人）已启用：每 30 s 或累计 ≥6 s 新语音'
+              '更新一次音色（更新前用预设 A）', flush=True)
     finals = []
 
     # 🔴🔴🔴 2026-10-27 §78 **修真实缺陷**：CLI 模式的 `on_final` **签名对不上**
@@ -4020,7 +4088,13 @@ def run_cli(args):
         #   ⇒ 透传给 MT（MT 侧同样只预留不使用）⇒ 行为不变。
         mt.submit(t, seg=len(finals) - 1)
 
-    s = Session(eng, _cli_source(args), on_final=on_final)
+    # 🔴🔴🔴 APP-027 V3（§84）：**CLI 接上克隆采集器**
+    #   ⇒ `on_audio` 是 `Session._loop` 里**唯一**把 16 kHz PCM 交出来的地方
+    #   ⇒ 不接 ⇒ 克隆源语音永远采集不到 ⇒ **V3 客观做不了**。
+    #   ⚠️ **默认行为逐字不变**：`_clone_col is None` ⇒ `on_audio=None`
+    #   ⇒ `Session._loop` 里的 `if self.on_audio is not None` 短路 ⇒ 零开销。
+    s = Session(eng, _cli_source(args), on_final=on_final,
+                on_audio=(_clone_col.feed if _clone_col is not None else None))
     t0 = time.perf_counter()
     s.start()
     last, lags, max_backlog = '', [], 0.0
@@ -4140,6 +4214,20 @@ def run_cli(args):
             if args.tts_out:
                 print(f'[TTS] 语音已写 {args.tts_out}，'
                       f'逐句时间线 {args.tts_out}.tts.jsonl', flush=True)
+            # 🔴🔴🔴 APP-027 V3（§84）：**克隆状态的收尾行**（可观测证据）
+            #   ⇒ reviewer 需要知道「本场到底有没有真的克隆成功」
+            #   ⇒ 只看 wav 目录**证明不了**（wav 里没有音色来源信息）。
+            if _clone_col is not None:
+                cs = _clone_col.summary()
+                stc = tts.stats()
+                print('[TTS] 克隆采集：'
+                      f'语音 {cs["voiced_s"]}s / 已发 {cs["sent_voiced_s"]}s  '
+                      f'更新 {cs["n_updates"]} 次  失败 {cs["n_sent_fail"]} 次  '
+                      f'状态「{cs["status"]}」', flush=True)
+                print('[TTS] 克隆生效：'
+                      f'clone_active={stc.get("clone_active")}  '
+                      f'clone_mode={stc.get("clone_mode")}  '
+                      f'clone_dur_s={stc.get("clone_dur_s")}', flush=True)
         except Exception as e:
             print(f'[TTS] 收尾异常（不影响字幕）：{e}', flush=True)
         finally:
@@ -4461,7 +4549,9 @@ def main():
                     help='音色：预设 A（客户包只随包分发音色 A；'
                          '音色 B / 克隆说话人素材按 BRIEF 不进包）；'
                          'follow_speaker = 跟随说话人（克隆）—— '
-                         'APP-022 接口预留，尚未启用（等 ASR-013 / TTS-019）')
+                         '🔴🔴 APP-027 V3（§84）：**已真正启用**'
+                         '（CLI 与 GUI 共用 `clone_collector`）⇒ '
+                         '**CLI 也能开**（V3 实测用）')
     ap.add_argument('--tts-out', default=None,
                     help='CLI 回放测试：把语音按真实时间轴混成一个 wav 落盘；'
                          '同时写 <out>.tts.jsonl（逐句时间线）')

@@ -1,0 +1,93 @@
+{
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6",
+  "n_dist_info": 47,
+  "notice_table_rows": 47,
+  "pass": 12,
+  "fail": 0,
+  "checks": [
+    {
+      "id": "G1",
+      "name": "NOTICE 表格覆盖包内全部 dist-info",
+      "ok": true,
+      "got": "表格行=47, 包内 dist-info=47",
+      "want": "两者均为 47"
+    },
+    {
+      "id": "G2",
+      "name": "NOTICE 每个包恰好一行（无重复、无遗漏）",
+      "ok": true,
+      "got": "异常包=无 (表格行=47, dist-info=47)",
+      "want": "无重复且无遗漏"
+    },
+    {
+      "id": "G3",
+      "name": "NOTICE 版本号 == dist-info METADATA 的 Version",
+      "ok": true,
+      "got": "[]",
+      "want": "全部一致"
+    },
+    {
+      "id": "G4",
+      "name": "NOTICE 标注的「随包许可证全文路径」全部真实存在",
+      "ok": true,
+      "got": "[]",
+      "want": "全部存在"
+    },
+    {
+      "id": "G4b",
+      "name": "被标注为「未自带许可证文件」的包确实没有许可证文件",
+      "ok": true,
+      "got": "[('tokenizers', 0)]",
+      "want": "[('tokenizers', 0)]"
+    },
+    {
+      "id": "G5",
+      "name": "num2words 许可 = LGPL-2.1（METADATA + COPYING 双重取证，且 NOTICE 已改正）",
+      "ok": true,
+      "got": "METADATA.License=LGPL | Classifier=['License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)'] | NOTICE=**LGPL-2.1（或更高版本）** | COPYING首行=GNU Lesser General Public License",
+      "want": "LGPL / LGPL / 含LGPL / GNU Lesser General Public License"
+    },
+    {
+      "id": "G6",
+      "name": "NOTICE 不再声称「所有组件均为 Apache License 2.0」",
+      "ok": true,
+      "got": "命中=None",
+      "want": "无此表述"
+    },
+    {
+      "id": "G7",
+      "name": "NOTICE 表格行里 num2words 的许可列不再写 MIT（行级提取，非相邻正则）",
+      "ok": true,
+      "got": "表格行数=1, 命中=无",
+      "want": "表格行数=1 且无 MIT"
+    },
+    {
+      "id": "G8",
+      "name": "NOTICE 的许可标识与包内 METADATA/Classifier 无冲突",
+      "ok": true,
+      "got": "[]",
+      "want": "无冲突"
+    },
+    {
+      "id": "G9",
+      "name": "THIRD_PARTY.md 覆盖包内全部 dist-info",
+      "ok": true,
+      "got": "缺=[] (已列=47)",
+      "want": "无缺失"
+    },
+    {
+      "id": "G10",
+      "name": "THIRD_PARTY.md 的 num2words 许可 = LGPL",
+      "ok": true,
+      "got": "THIRD_PARTY='LGPL-2.1-or-later'",
+      "want": "含 LGPL"
+    },
+    {
+      "id": "G11",
+      "name": "【自检】把 NOTICE 的 num2words 改成 MIT 后，G5 判据应当失败",
+      "ok": true,
+      "got": "沙盒串='num2words | 0.5.14 | **MIT** | num2words-0.5.14.dist-info/COPYING |'",
+      "want": "判据可 FAIL"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "ts": "2026-10-28 14:40:08",
+  "apply": true,
+  "pkg_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\app",
+  "files": [
+    {
+      "repo_rel": "live_caption/live_caption_app.py",
+      "pkg_rel": "live_caption_app.py",
+      "is_new": false,
+      "repo_bytes": 247994,
+      "repo_sha256": "17f8f0547bb55b4a495eacb9f38cc5fd64c9b74d19853aa3e7567449726c02e3",
+      "repo_crlf": 4631,
+      "pkg_bytes_before": 243363,
+      "pkg_sha256_before": "7c062bb013c545755961105a9cb1bc9b0460752ba13198fa190e8240b48f5208",
+      "base_is_head": false,
+      "base_is_pkg_current": true,
+      "pkg_is_ahead_of_head": true,
+      "ok": true,
+      "identical_after": true,
+      "n_blocks": 0,
+      "note": "包内已是最新 ⇒ 无需替换",
+      "written": false
+    },
+    {
+      "repo_rel": "live_caption/tts_worker.py",
+      "pkg_rel": "tts_worker.py",
+      "is_new": false,
+      "repo_bytes": 177319,
+      "repo_sha256": "71e8fcc861d2ee29677e9239db9324e01bcc63d1d8917ea2e0293354e39048b2",
+      "repo_crlf": 0,
+      "pkg_bytes_before": 175462,
+      "pkg_sha256_before": "f4b8cdb7736f3d64e12add3cbd0506aa3324e78659a0137237189d4e3c2bb4bc",
+      "base_is_head": false,
+      "base_is_pkg_current": true,
+      "pkg_is_ahead_of_head": true,
+      "n_blocks": 2,
+      "block_lines": [
+        [
+          1956,
+          1963
+        ],
+        [
+          2046,
+          2052
+        ]
+      ],
+      "identical_after": true,
+      "written": true,
+      "pkg_bytes_after": 177319,
+      "pkg_sha256_after": "71e8fcc861d2ee29677e9239db9324e01bcc63d1d8917ea2e0293354e39048b2",
+      "pkg_mtime_after": "2026-10-28 14:40:08",
+      "verify_identical": true,
+      "ok": true
+    },
+    {
+      "repo_rel": "live_caption/clone_collector.py",
+      "pkg_rel": "clone_collector.py",
+      "is_new": true,
+      "repo_bytes": 10703,
+      "repo_sha256": "f1a0f0bc8f5e7a3a8465576b5d4b51780fe570348740877a8de1bfb337cfd34a",
+      "repo_crlf": 0,
+      "pkg_existed_before": true,
+      "pkg_already_same": true,
+      "ok": true
+    }
+  ],
+  "all_ok": true
+}

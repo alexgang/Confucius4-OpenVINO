@@ -1,0 +1,77 @@
+{
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6",
+  "pass": 10,
+  "fail": 0,
+  "checks": [
+    {
+      "id": "R1-1",
+      "name": "【反证】修正前 NOTICE：G6（不得声称全部 Apache）必须 FAIL",
+      "ok": true,
+      "got": "G6=False",
+      "want": "False（修正前确实 FAIL）"
+    },
+    {
+      "id": "R1-2",
+      "name": "【反证】修正前 NOTICE：G1（表格覆盖 47 包）必须 FAIL",
+      "ok": true,
+      "got": "G1=False（表格行数=0）",
+      "want": "False"
+    },
+    {
+      "id": "R2-1",
+      "name": "【反证】修正前 THIRD_PARTY：G10（num2words 必须 LGPL）必须 FAIL",
+      "ok": true,
+      "got": "G10=False",
+      "want": "False（修正前确实 FAIL）"
+    },
+    {
+      "id": "R3-G6",
+      "name": "【反证】当前实文件：NOTICE 顶部不得声称全部 Apache 必须 PASS",
+      "ok": true,
+      "got": "G6=True",
+      "want": "True"
+    },
+    {
+      "id": "R3-G7",
+      "name": "【反证】当前实文件：NOTICE 不得出现 num2words=MIT 必须 PASS",
+      "ok": true,
+      "got": "G7=True",
+      "want": "True"
+    },
+    {
+      "id": "R3-G1",
+      "name": "【反证】当前实文件：NOTICE 表格覆盖 47 包 必须 PASS",
+      "ok": true,
+      "got": "G1=True",
+      "want": "True"
+    },
+    {
+      "id": "R3-G10",
+      "name": "【反证】当前实文件：THIRD_PARTY 的 num2words = LGPL 必须 PASS",
+      "ok": true,
+      "got": "G10=True",
+      "want": "True"
+    },
+    {
+      "id": "R4-1",
+      "name": "【反证】把当前 NOTICE 的 num2words 改成 MIT 后，G7 必须 FAIL",
+      "ok": true,
+      "got": "G7=False",
+      "want": "False"
+    },
+    {
+      "id": "R4-2",
+      "name": "【反证】把当前 THIRD_PARTY 的 num2words 改成 MIT 后，G10 必须 FAIL",
+      "ok": true,
+      "got": "G10=False",
+      "want": "False"
+    },
+    {
+      "id": "R5-1",
+      "name": "【反证】包内 dist-info 数 = 47（判据前提可被验证）",
+      "ok": true,
+      "got": "实测=47",
+      "want": "47"
+    }
+  ]
+}

@@ -1,12 +1,14 @@
 # STATUS_APP
 last_ack: APP-033
-更新时间: 2026-10-28 12:59
-当前任务: **§82 🔴 APP-027 V1（CUDA 连续实时）实测已跑完 → 16 PASS / 2 FAIL（原始字段见 §82.1）＋ 两条新根因（「越拖越久」以语音滞后累积 259 s 形式仍在；「首包 4.53 s」实为边车「只缓存一块」⇒ first_s 是整句 DONE 时间，非首块时间）＋ §81.11 第 3 条「NPU 身份未证」正面实证已补齐（app120：speaker_enc/cp_prefill/cp_decode/tok_decoder 四组件全部落 NPU，CPU 上 0 个）＋ 同类脆弱点全局排查完成（app062 判据有实质问题，已如实记录未重做）＋ 客户包定点同步完成（sha_disk == sha_cand，identical=True）＋ §83 Git 交付闭环已入库（commit `b0f7a43`，已 push，HEAD == origin/main）⇒ ✅ **本条已完成**（代码侧）⇒ 🔴 **本条需等 reviewer 复核**（RTF 归因边界、「首包」指标定义、app062 A/B 是否重做、是否改三段式不变式判据）＋ ⛔ **zip 未重打 ⇒ 不写「已交付」**（APP-027 V3/V4 未做，APP-031 要求三项合打）
+更新时间: 2026-10-28 16:27
+当前任务: **§85 🔴🔴 客户包 `NOTICE` / `THIRD_PARTY.md` 许可不实表述已修正（原称「所有组件均为 Apache License 2.0」且 `num2words MIT` ⇒ 实测 `num2words` 为 **LGPL-2.1**；两文件合计只覆盖包内 47 个 vendored 分发包的 10/28 个 ⇒ 已逐包实测重写为 **47/47 全覆盖**，每包附随包许可证全文真实路径）＋ ASR 的 WeSpeaker CC BY 4.0 署名义务判定为**免除**（包内 0 个 wespeaker/权重文件、site-packages 无 torch/pyannote/speechbrain ⇒ 走「不带」分支）⇒ 已回告 ASR（`shared/NOTICE_app_to_asr_wespeaker_license_reply_20261028.md`）＋ 验收 `app124` **12 PASS / 0 FAIL** ＋ 反证 `app125` **10 PASS / 0 FAIL**（反证中抓出**判据自身 2 处缺陷**：G7 过弱致假通过 / G7 过严致误伤说明句）⇒ ✅ **本条已完成**（客户包文件侧 + 回告侧）⇒ 🔴 **本条需等 reviewer 复核**（旧 NOTICE 是否已随 v1.6 zip 分发出去、`tokenizers` 无随包许可证是否补全文、`pillow` 多许可口径、多许可第三方条款是否逐条摘录）＋ ⛔ **zip 未重打 ⇒ 不写「已交付」**（`NOTICE` 在 zip 内 ⇒ 本次修改进入下次打包；APP-031 要求 APP-027 的 V1–V4 合打，V4 用户实听未做）
 
-阻塞 / 待用户决定: ① 🔴 **APP-027 V2 已完成**（§81）⇒ 四臂 ABBA 全部落盘（原始字段），**唯一 FAIL = `V2-1` 句内欠载 P95 = 0**（MT@NPU **53** > MT@GPU.0 **13** > 无 MT **0/1**）⇒ 【争用结论成立】；② 🔴 **默认摆放（APP-028①：ASR=GPU.0 / MT=GPU.0 / TTS=NPU）虽为四臂最优，但两个 MT 臂的 `synth_rtf_p50` 已越过 1.0**（1.0074 / 1.0165）⇒ 【仍不满足实时】⇒ 解法优先级（cp_decode 减负 > MT 迁 GPU.1 独显）**待 reviewer 决策**（MT 迁设备属 MT 模块，App 不自行改）；③ 🔴 **跨臂归因边界待裁定**（无 MT 臂 = 英文原文 / MT 臂 = 中文译文 ⇒ 绝对 RTF 不可直接归因给「MT 加载」）；④ 🔴 **`app118` 的 `device_desc=null` / `load_s=null`**（引擎未暴露该属性）⇒ 【是否真在 NPU 上跑需另证】；⑤ ⛔ **APP-027 的 V1（CUDA 连续实时）/ V3（MiniMax + CAMPPlus）仍未跑** ⇒ **APP-027 未完** ⇒ **zip 不重打**（APP-031 合打）⇒ 按 §66 口径 **不写「已交付」**（准确表述：**代码侧已入库、已同步到包目录；zip 未重打**）；⑥ ⛔ **本轮是 CLI 回放 + 真实播放路径（走声卡），非 GUI 非用户启动方式**（§63 L4）⇒ ⛔ **「用户听得到」仍不成立**（机器判据已足：`consumed=True` + `read_delta ≥ n_samples` + 无 `consumed=False`，但人耳未确认）；⑦ ⛔ **CER 对比 / MiniMax 回转写未做**（§80 遗留）；⑧ 🔴 **GUI 复现（丢句=0）仍未做**；⑨ 🔴 **引擎基线的 NPU 身份需另证**；⑩ 🔴 **本轮自查修掉 2 处缺陷**（① 整目录删除触发批量删除保护 → 进程被杀白跑；② `device_desc` AttributeError → 46 句算力白跑）⇒ 【是否全局排查同类脆弱点，待 reviewer 定】；⑪ 🔴 **旧的阻塞项仍然有效**：§80.1–80.5 的 CUDA 组判据已过（NPU 组 §78）、回转写由 reviewer 做、「句首标点」产品策略待裁定、APP-022/APP-024②③④ 仍不做、APP-029 不认领集成；⑫ 🔴 **机器锁纪律**：写本节时当前锁属外部 `EXT-p1-real 27024` ⇒ ctypes `handle=512/err=0` ⇒ `exit=259`⇒ **活锁 ⇒ 不抢不删**（孤儿锁必须 `err==87` 才可回收）；⑬ 🔴 **本轮未修改 `CORRECTIONS_APP.md`**（只读、零改动）、未向 MiniMax、未开 FTP、未跑 `verify_pkg_zip.py`、**未用 `git add -A`**（逐文件 add）
+阻塞 / 待用户决定: ① 🔴 **§84 的 APP-027 V3（克隆）机器判据已过**（CUDA 20 PASS / 0 FAIL、NPU 20 PASS / 0 FAIL；两组各 76 句 wav、逐句含音色来源字段、隐私判据 `clone_leaks` / `tmp_clone_residue` 均空；独立复核 wav↔id 76/76、SHA256 76/76 两组全中）⇒ 【本模块侧已完成】；② 🔴 **V3-CER（MiniMax 回转写）与 V3-CAMPPlus（CAMPPlus 余弦）仍归 reviewer**（§84 判据标 `[NO-EVIDENCE]`）⇒ APP-027 **仍未完**；③ 🔴 **V4 用户实听未做**（本轮是 CLI 回放 + 真实播放路径，走声卡，机器判据 `consumed=True` 76/76 + `read_delta ≥ n_samples` + 无 `consumed=False`，**但人耳未确认** ⇒ 「用户听得到」仍不成立）；④ 🔴 **§85 的 `NOTICE` 修正已进入「下次打包」**（`NOTICE` 在 zip 内）⇒ **旧的 v1.6 zip 若已分发，即带过不实许可声明** ⇒ **是否需要重打并重新分发，待 reviewer 裁定**（App 不自行决定，受 APP-031 合打约束）；⑤ ⛔ **zip 未重打**（APP-031 明文「三项做完后合在一起重打一次包」）⇒ 按 §66 口径 **不写「已交付」**（准确表述：**代码侧已入库、已同步到包目录；zip 未重打**）；⑥ 🔴 **§84 缺陷②的连带影响**：V1/V2 两轮报告（真实播放路径）的 `lang`/`end_reason` 字段原本缺失 ⇒ 若要补「按语言分组」的字段需用修好后的代码重跑（本轮**未重跑**）；⑦ 🔴 **§83.5 的 4 项裁定仍然有效**（RTF 归因边界 / 「首包」指标定义 / app062 A/B 是否重做 / 不变式是否改三段式）⇒ 本轮**未自行推进**；⑧ 🔴 **MT notice 15 §3.4 的真实时序「草稿行计数」端到端证据缺口** 仍是 App 侧遗留项；⑨ 🔴 **本轮未修改 `CORRECTIONS_APP.md`**（只读、零改动）、未向 MiniMax、未开 FTP、未跑 `verify_pkg_zip.py`、**未用 `git add -A`**（逐文件 add）
 
 
 ## 最近更新
+16:27 §85 🔴🔴 **客户包 `NOTICE`/`THIRD_PARTY.md` 许可不实表述已修正（num2words 实为 **LGPL-2.1** 非 MIT；原「所有组件均为 Apache-2.0」不实；覆盖 10/28 ⇒ **47/47 全覆盖**）＋ ASR WeSpeaker 署名义务判定**免除**并回告**⇒ ✅ `app124` 12 PASS/0 FAIL ＋ `app125` 反证 10 PASS/0 FAIL（抓出判据自身 2 处缺陷）⇒ ⛔ `NOTICE` 在 zip 内 ⇒ 修改进入下次打包、**本轮 zip 未重打 ⇒ 不写「已交付」**
+16:18 §84 🔴🔴 **APP-027 V3（克隆）实测跑完（CUDA + NPU 两组，各 20 PASS / 0 FAIL）＋ 自查抓出并修掉 2 个真实缺陷（CLI 路径根本没有克隆链路 / 真实播放路径逐句遥测整组字段丢失）＋ 客户包定点同步完成** ⇒ ✅ 两组各 76 句 wav、逐句带音色来源、隐私判据空 ⇒ ✅ 独立复核 wav↔id 76/76、SHA256 76/76 ⇒ ⛔ **CER/CAMPPlus 归 reviewer、V4 用户实听未做 ⇒ APP-027 未完 ⇒ zip 不重打 ⇒ 不写「已交付」**
 11:16 §81 🔴🔴 **APP-027 V2 争用定量 ABBA 实测已跑完（4 臂真实播放路径）＋ 补齐「TTS 单独」引擎级基线**：⇒ ✓ **4 臂全部落盘**（ABBA 汇总 2971 B / SHA256 `e422c558…c57cb5`；基线报告 1652 B / `c44c0519…83aea`；证据清单 102 629 B / `237a736d…c5037b`）⇒ ✓ **唯一 FAIL = `V2-1`**（句内欠载 P95 = 0）：**MT@NPU 53 > MT@GPU.0 13 > 无 MT 0/1** ⇒ **【争用结论成立】**⇒ ✓ `synth_rtf_p50`：引擎基线 **0.7849** → +ASR **0.9558/0.9663** → +MT@NPU **1.0074** → +MT@GPU.0 **1.0165**（**两个 MT 臂均越过 1.0**）⇒ ✓ 四臂不变式 `n_played+n_dropped==n_submitted`（46/46、76/76、76/76、46/46）+ `n_drop_written=0` / `n_no_audio=0` / `n_watchdog=0`⇒ ✓ 真实播放硬证据（`consumed=True` 与 `read_delta ≥ n_samples` 均 = 46/76/76/46，无 `consumed=False`）⇒ 🔴🔴 **自查修掉 2 处真实缺陷**（① 整目录 `shutil.rmtree` → 触发批量删除保护 → **进程被杀·报告未生成·实测白跑**（已改时间戳子目录、0 次删除）；② `device_desc` AttributeError → **46 句算力白跑**（已修 + `--report-only`））⇒ ✓ 客户包定点同步 3 文件 + 仓库⇄包 **10/10 MATCH**（包外备份 `pkg_backup_app_s81`）⇒ ✓ 交付闭环已入库：commit **`20da2de`**（11 文件 / +1964 −2 / App-only）、**普通 push** `3b326a5..20da2de`、**`HEAD == origin/main`**⇒ ✓ `CORRECTIONS_APP.md` **未入库**（`grep -c CORRECTIONS` = 0）、仓库仍只有 main、未吞他模块改动⇒ ⛔ **跨臂归因边界待裁定**、⛔ **MT 臂 p50 已越过 1.0 → 解法优先级待决策**（MT 迁 GPU.1 属 MT 模块）、⛔ **`device_desc=null` → NPU 身份需另证**、⛔ **V1/V3 未跑 → zip 不重打 → 不写「已交付」**、⛔ **CLI 而非 GUI → 「用户听得到」仍不成立**
 06:33 §80 🔴🔴 **APP-033 三条全部执行完毕（CUDA 组判据**已过** `verdict_after_clean=true` ＋ APP-028 5 分钟实测 10/10 PASS）＋ 自查抓出并修掉 4 处真实缺陷**：⇒ ✅ **①`quota.py` 在 reviewer 本机 ⇒ 不是 App 阻塞项**（wav+json+jsonl 已落盘）⇒ ✅ **② CUDA 组 A/B 已跑完并通过**（边车 `torch 2.11.0+cu128`/`cuda_available True`/RTX 5050；持锁+安静窗口；零 CPU 推理；未调 MiniMax）⇒ 改前臂（`d80ef22`）**cap=2/hang=2**（第 9 句 `lang=en` ⇒ **2038 帧 / 163.04 s / 255 块 / hang=true** ⇒ 与 reviewer 记录**逐项吻合**）⇒ 改后臂（HEAD）**cap/runaway/hang/err 全 0**、87 配对**异常 0 条** ⇒ **`verdict_after_clean=true`**；回归 zh/en 同样 0/0/0；s/字 0.1094→**0.1031**（无回退）⇒ ✅ **③ APP-028 的 SPE 前 5 分钟完整实测 10/10 PASS**（76 句 / `n_played=76` / `n_dropped=0` / `max_backlog_s=68.79` / `synth_rtf_p95=1.1511`）⇒ **「丢句=0」现在才成立**（§79.4 的 60 秒冒烟不构成）⇒ 🔴🔴 **修掉 4 处真实缺陷**（`machine_lock_app.py`：① ASR `PID=` 格式 ② 起始时间戳 ③ EXT 第三种锁格式 ④🔴🔴🔴 **等锁每 20 s「建 tmp+删 tmp」⇒ 987 s = 50 删 ⇒ 触发批量删除保护 ⇒ 进程被杀 ⇒ 报告未生成 ⇒ 实测白跑**（已修 + 实测复验零 tmp 残留））⇒ ✅ **验收 40/40 PASS**（含 **3 条 AST 重建反证**）⇒ ✅ **撤回 §78/§79「CUDA 对照组客观做不了」**⇒ ⛔ **APP-027 V1–V3 未跑**（V2/ABBA 安静窗口超时 ⇒ 目录实测为空 ⇒ 无产物）、⛔ **GUI 复现/CER 对比/用户实听未做**、⛔ **zip 未重打** ⇒ ⛔ **「用户听得到」仍不成立**
 23:58 §79 🔴🔴 **APP-028② 不丢句实测进行中：首跑直接暴露并修掉一个预先存在的真实产品缺陷「CLI 模式 `on_final` 签名与 `_split_spk` 的 3 元组契约对不上 ⇒ CLI 一收到定稿就必崩」** ⇒ ✅ **已修**（签名对齐 3 参 + 后两个带默认值 ⇒ 向后兼容）⇒ ✅ **验收 `app111` 9/9 PASS**（含 **E 组 AST 重建反证 2**；零推理/零 GPU/零 NPU）⇒ ✅ **客户包定点同步 s74**（1 块唯一命中 + 幂等 `ALREADY`；`live_caption_app.py` 233 332 → **234 518 B**，SHA256 `6d5c862c7ae8df47` → **`3b0cf75886215517`**）⇒ ✅ **交付闭环已入库**：commit **`c89bbc8`**（4 文件 / +556 −1，App-only）、**普通 push** `2f4a159..c89bbc8`、**`HEAD == origin/main`**、**HEAD ⇄ 客户包 9/9 全 MATCH** ⇒ 🔴 **实测仍在等机器锁**（外部 `EXT-browser-probe` PID 36040 自 23:55:48 起持锁 ⇒ ctypes 实测 `exit=259` ⇒ **活锁 ⇒ 不抢不删**；`app110` 自取锁 fail-closed 排队中）⇒ ⛔ **APP-028 的 5 分钟完整实测结果尚未落盘**、⛔ **APP-027 的 V1–V3 未跑**、⛔ **zip 未重打**（APP-031 明文「三项做完后合在一起重打一次包」）⇒ ⛔ **CUDA 对照组客观做不了** ⇒ ⛔ **「用户听得到」仍不成立**
@@ -20,7 +22,6 @@ last_ack: APP-033
 16:23 §71 🔴🔴 **APP-028 交付闭环推进**：✅ **commit `6d90715`**（13 文件 / +1920 −350，App-only，`CORRECTIONS_APP.md` **未**入库）⇒ ✅ **客户包定点同步写盘 PASS**（19/8/4/3 块唯一命中，备份 `pkg_backup_app_s70`）⇒ ✅ **独立复核 5 文件「包内 LF SHA256 == 仓库 == HEAD」全 MATCH** ⇒ ✅ **push `59ddd0d..6d90715`（普通 push，`origin/main...HEAD` = 0/0）** ⇒ ⏳ **zip 等锁重打中**（锁被 `module:tts` / `pid 39352` 持有，`OpenProcess` handle=668 / err=0 ⇒ `exit=259 STILL_ACTIVE` ⇒ **活锁，不抢不删**；`app067_repack_after_lock.py` 后台等锁）⇒ ⛔ **zip 未重打 ⇒ 不写「已交付」**
 16:16 §70 🔴🔴 **APP-028（BLOCKING）代码侧改造完成**：① **默认设备摆放定案**（ASR=`GPU.0`、MT=`GPU.0`、TTS=`NPU` ⇒ **NPU 独占 TTS**；`FALLBACK_ORDER` 已摘掉 ASR/MT 的 `'NPU'`；**CUDA 不作默认**）＋ ② **生产者/消费者播放架构**（`RingBuffer` → **无界内存 `AudioQueue`**；**合成不等播放**（独立 `_played_loop` 看门狗线程）；**删除 `BACKLOG_MAX_S` 丢句逻辑**；`cancel` 改**整句摘除**；新增 `clear_queue`；**模块级 stdout 写锁 `_OUT_WLOCK`**；GUI 底栏显示**「语音滞后 X 秒」**且 `_tts_meter()` **首次接入 `_poll()`**）⇒ ✅ `app103` **29/29** ＋ `app104` **10 PASS / 0 FAIL / 1 NO-EVIDENCE**（A1 本机无可用音色 ⇒ **不宣称通过**）＋ 回归 `app098` 21/21、`app102` 27/27、`app069` 37/37、`app097` 20/20、`app100` 28/28 ⇒ ⛔ **不跑推理**、⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ 🔴 `last_ack` = **APP-028**（APP-029 明文「现在不要集成」⇒ **不认领**）
 13:22 §69 ✅ **APP-027 客户包定点同步完成**：`sync_app027_to_pkg.py`（pkg→HEAD + LF 归一化 + 唯一命中 + 替换后==HEAD 断言）写 5 文件 FAIL=0；独立复核 包内 LF SHA256 == `git show HEAD` LF SHA256 全 MATCH；⚠️ `backends.py`/`seg_stream.py` 与 HEAD 不符是 C-102/C-098 预存代差（包内更大，不碰）；⛔ **zip 仍待锁重打 ⇒ 不写「已交付」**
-12:30 §68 ✅ **APP-027⑤（克隆）真正接入**：主进程 `Session.on_audio` → `App._collect_clone_pcm`（20 ms 帧 RMS **去静音**、滚动 10 s、**≥6 s 新语音或每 30 s** 触发）→ `tts_service.set_clone_pcm`（base64 16 kHz PCM）→ worker `_update_clone`（BabelVox 换 x-vector / CUDA 边车 `set_ref`）⇒ **下一句起生效**；🔴 **失败真回落预设 A**（`_fallback_to_preset` 换回**缓存**的预设向量，不是只改标志位）；🔴 GUI 新增**独立标签**显示**实际使用**的音色（「预设 A」/「克隆（更新于 hh:mm:ss，x s 语音）」）⇒ **旧的「尚未启用 ⇒ 回落 A」死逻辑已删**
 
 ## §1 现状汇总（2026-10-23）
 
@@ -14362,3 +14363,376 @@ To github.com:alexgang/Confucius4-OpenVINO.git
 
 - `last_ack` = **APP-033**（**保持不变**：本轮无新 reviewer 纠偏条目 ⇒ 无编号可 ack）。
 - 「更新时间」= **2026-10-28 12:59**（`Get-Date -Format "yyyy-MM-dd HH:mm"` **实测值**，非推算）。
+
+## §84 🔴🔴 **APP-027 V3（克隆）实测跑完（CUDA + NPU 两组，各 20 PASS / 0 FAIL）＋ 自查抓出并修掉 2 个真实缺陷（CLI 路径根本没有克隆链路 / 真实播放路径的逐句遥测整组字段丢失）**（2026-10-28 16:18）｜**本条已完成**｜**本条需等 reviewer 复核**
+
+### §84.0 本节结论（一句话）
+
+**APP-027 的 V3（克隆）从「客观做不了」变成「两组都跑完并通过」** ⇒ 但 **CER 对比（MiniMax 回转写）与 CAMPPlus 余弦相似度仍归 reviewer**（本模块**不自己调 MiniMax**，APP-033 第 1 条）⇒ **APP-027 仍未完**（V4 用户实听未做）⇒ ⛔ **zip 不重打**（APP-031 合打）⇒ 按 §66 口径 **不写「已交付」**。
+
+### §84.1 🔴 为什么本轮做 V3（巡检结论 + 依据）
+
+- ✅ **巡检**：`status/app/CORRECTIONS_APP.md` 条目 = **APP-001 … APP-033**（33 条）；本模块 `last_ack` = **APP-033** ⇒ **无新条目** ⇒ 依据自动化记忆「若无新条目 ⇒ 补做遗留的 App 职责内事项」推进 §81.11 列出的遗留项。
+- 🔴 **该文件只读、零改动**（SHA256 `bb2896ee9143cd89e4bd2f8a3d0e8f8327079945237ccffc6c6bbd0d825ea043`，90 321 B，mtime 2026-10-28 00:47:55）。
+- 📌 **本轮目标 = APP-027 V3**（明文：「**V3 克隆**：用 SPE 前 5 分钟切片（单一男声）实时跑，**开启克隆**，落盘 ≥ 10 句 wav。reviewer 在本机做两件事：(a) MiniMax 回转写，CER 不劣于预设 A 同一批句子；(b) 用 CAMPPlus 算余弦相似度，**相对克隆源的相似度要明显高于预设 A 输出相对克隆源的相似度**（每句差值 > 0，且均值差 ≥ 0.15）。CUDA 和 NPU 各一组。克隆用的源音频和嵌入**不得落盘**」）。
+
+### §84.2 🔴🔴🔴 自查抓出的**真实缺陷①**：CLI 路径**根本没有克隆链路** ⇒ V3 客观做不了
+
+#### 根因（三条，都在 `live_caption_app.py` 的 CLI 侧）
+
+1. **采集器是 GUI 实例方法** ⇒ `run_cli` 构造 `Session(eng, src, on_final=on_final)` ⇒ **没传 `on_audio`** ⇒ `Session._loop` 里的 `self.on_audio(pcm)` **永远不执行** ⇒ **克隆源 PCM 从不离开主进程**；
+2. **`run_cli` 构造 `TTSService(...)` 时没传 `clone=True`** ⇒ worker 侧 `--clone` 参数**不加** ⇒ `clone_mode` 恒为 False；
+3. **worker 的逐句 jsonl 里没有「这句用的音色来源」字段** ⇒ reviewer 拿到 wav **无法判断某句是不是克隆音色的产物** ⇒ 只能靠「目录名」猜 ⇒ **结论不可核**。
+
+⇒ **V3 在 CLI 下客观做不了**（GUI 需要人操作桌面快捷方式，无法自动化实测）。
+
+#### 修法（3 个文件）
+
+| 文件 | 改动 |
+|---|---|
+| `live_caption/clone_collector.py`（**新建**） | 采集逻辑抽成独立类 `CloneCollector` ⇒ **GUI 与 CLI 共用同一份实现**（避免逻辑漂移 ⇒ 假证据）；常量 `_CLONE_MIN_S=3.0` / `_CLONE_MAX_S=10.0` / `_CLONE_UPDATE_INTERVAL_S=30.0` / `_CLONE_NEW_VOICED_S=6.0` / `_CLONE_FRAME=320` 与旧 GUI 实现**逐字一致** |
+| `live_caption/live_caption_app.py` | ① 常量改为从 `clone_collector` 取别名（**值逐字不变**，向后兼容）；② `App._collect_clone_pcm` 改为**薄封装**（委托共享采集器 + 同步回旧 GUI 字段）；③ 原实现保留为 `_collect_clone_pcm_legacy`（**作等价性反证基线，勿删**）；④ `run_cli` 接上 `Session(..., on_audio=_clone_col.feed)` + `TTSService(..., clone=_want_clone)`；⑤ CLI 收尾新增克隆证据行（`n_updates`/`n_sent_fail`/`clone_active`/`clone_mode`/`clone_dur_s`） |
+| `live_caption/tts_worker.py` | `_APP030_JSONL_KEYS` 追加 `clone_active` / `clone_mode` / `clone_audio_s`；两条克隆路线分别记路线（`xvector` = BabelVox / `ref_audio` = CUDA 边车）；`_fallback_to_preset()` 回落时同时清 `clone_mode`（避免字段自相矛盾）；**合成之前**取快照（不是会话结束时） |
+
+### §84.3 🔴🔴🔴 自查抓出的**真实缺陷②**：**真实播放路径**的逐句遥测**整组字段丢失**
+
+#### 现象（首跑实测抓到的）
+
+首跑 V3 CUDA 组：**V3-2 / V3-5 / V3-5b 三条 FAIL** ⇒ 查原始 jsonl（`v3_cuda_run_20261028_143216`）发现 **76 行里 `clone_active` / `clone_mode` / `clone_audio_s` 一个都没有**，连 APP-030⑤ 明文要求的 `lang` / `lang_src` / `end_reason` / `n_chars` / `est_frames` / `frames` / `max_new_tokens` **也全都没有**。
+
+#### 根因
+
+- 真实播放路径下，**逐句 jsonl 行是看门狗线程**（`TTSWorker._finish_played`）用**重算出来的 tel** 写的（重算原因：播放侧的 `read_delta`/`cb_delta`/欠载必须用「播完之后」的值）；
+- 而 APP-030⑤ 的 7 个字段与 APP-027 V3 的 3 个字段**只在合成线程的 `synth()` 里填过**（`tel['lang'] = ...` / `tel['clone_active'] = ...`）；
+- ⇒ **看门狗重算的 tel 里这些字段全丢** ⇒ **播放路径整组字段缺失**。
+
+⚠️ **这个缺陷不只影响 V3**：它同时让 **APP-030⑤ 的逐句语言/失控遥测在真实播放路径下完全不可用**（reviewer 想按语言分组核对「日文失控」就查不到）⇒ **影响 §78 的日文实测口径** ⇒ 已一并修好。
+
+#### 修法
+
+- 合成线程把**合成那一刻**的这些字段**快照**进 `_played_q` 的 job（`meta={k: tel.get(k) for k in _APP030_JSONL_KEYS}`）；
+- 看门狗重算完 tel 后**再覆盖回去**（`for k, v in _meta.items(): if v is not None: tel[k] = v`）；
+- ⚠️ **必须在合成时快照**（不能在看门狗执行时读 `self._last_*`）⇒ 否则并发合成下一句会把上一句的值冲掉；
+- ⚠️ 只覆盖 APP-030⑤ + clone 这组字段 ⇒ 播放侧遥测（`consumed`/`read_delta`/`cb_delta`/欠载）**保持看门狗重算的值**（那才是播完后的权威口径）。
+
+### §84.4 ✅ 验收（`results/app/app121_app027_v3_clone_cli.py`）：**28 PASS / 0 FAIL**（零推理、零 GPU、零 NPU、不调 MiniMax）
+
+| 组 | 判据 | 结果 |
+|---|---|---|
+| **A 等价性** | A1 新采集器与旧实现「触发时机」完全一致｜A2 确实发出更新｜A3 发的是去静音后的语音｜A4 `enabled=False` 零副作用｜A5 语音时长落在 APP-027 明文的 [3, 10] s｜A6 旧新实现发出的语音时长**逐次一致**｜A7 旧新「已发送累计秒数」一致 | **7/7 PASS** |
+| **B CLI 接线** | B1 `Session(...)` 带 `on_audio=` 且**不是常量 None**｜B2 `TTSService(...)` 带 `clone=`｜B3 构造了 `CloneCollector`｜B4 `on_audio` 传的是采集器的 `feed` | **4/4 PASS** |
+| **C worker 遥测** | C1×3 三个新键｜C2 失败/丢句行（tel 为空）也带音色来源｜C3 有「合成那一刻」的快照｜C4 回落时清路线｜**C5 播放路径把字段快照进 job**｜**C6 看门狗把 meta 覆盖回 tel** | **8/8 PASS** |
+| **D 反证** | D1 去掉 `on_audio=` ⇒ B1 **FAIL**｜D2 去掉 `clone=` ⇒ B2 **FAIL**｜D3 去掉 worker 新键 ⇒ C1 **FAIL**｜**D4 去掉 meta 快照 ⇒ C5 FAIL** | **4/4 PASS** |
+| **E 基线** | E1 修复前（`a2bb97a`）的 `run_cli` 没有 `on_audio` ⇒ 缺陷曾真实存在｜E2 修复前不存在 `clone_collector.py` | **2/2 PASS** |
+| **F 包同步** | 客户包内 `live_caption_app.py` / `tts_worker.py` / `clone_collector.py` 与仓库**逐字一致**（LF 归一化） | **3/3 PASS** |
+
+> ⚠️ **反证用固定 commit `a2bb97a`**（§83 的 commit = 本轮修复前的最后一个入库点）⇒ 不用 HEAD（HEAD 修好后反证会落空 ⇒ 假证据，§31 教训）。
+> ⚠️ **闸门自检**：B1 判据在第一次写时**太弱**（`on_audio=None` 也算通过）⇒ 被反证 D1 抓出来 ⇒ 已改成「值不能是常量 None」⇒ D1 才 PASS。**这正是反证存在的意义。**
+
+### §84.5 ✅ APP-027 V3 实测（`results/app/app123_app027_v3_clone_real.py`）：**CUDA 组 20 PASS / 0 FAIL ＋ NPU 组 20 PASS / 0 FAIL**
+
+#### 口径（与 APP-027 V3 明文逐条对齐）
+
+| APP-027 V3 明文 | 本轮落实 |
+|---|---|
+| 用 SPE 前 5 分钟切片（单一男声）实时跑 | `--file C:\Users\Trekker-PTL\shared\SPE_0000_0500.wav --speed 1.0 --max-seconds 300` |
+| **开启克隆** | `--tts-voice follow_speaker`（CLI 与 GUI 共用 `clone_collector`） |
+| 落盘 **≥ 10 句 wav** | `--tts-dump-dir` ⇒ **CUDA 76 句 / NPU 76 句** |
+| **CUDA 和 NPU 各一组** | ✅ 两组都跑（持机器锁 + 45 s 安静窗口） |
+| 克隆源音频和嵌入**不得落盘** | 判据 `V3-6` / `V3-6b` **PASS**（见 §84.5.3） |
+| reviewer 做 MiniMax 回转写 + CAMPPlus | ⛔ **本模块不做** ⇒ 判据 `V3-CER` / `V3-CAMP` 标 **`[NO-EVIDENCE]`** |
+
+#### §84.5.1 两组的关键原始字段（全部取自 `v3_*_report.json`）
+
+| 字段 | **CUDA 组** | **NPU 组** |
+|---|---|---|
+| 判据 | **PASS=20 / FAIL=0** | **PASS=20 / FAIL=0** |
+| 设备 | TTS=`CUDA`（RTX 5050）｜ASR=`GPU.0`｜MT=`GPU.0` | TTS=`NPU`（f16）｜ASR=`GPU.0`｜MT=`GPU.0` |
+| 实测跨度 `wall_s` | **309.0**（`wall_source=jsonl-span`） | **312.2**（`wall_source=jsonl-span`） |
+| 退出码 | **0** | **0** |
+| 克隆更新次数 `clone_updates` | **18** | **18** |
+| 采集语音 `clone_voiced_s` | **107.22 s** | **107.22 s** |
+| 已发语音 `clone_sent_voiced_s` | **105.38 s** | **105.38 s** |
+| `clone_active` | **True** | **True** |
+| `clone_mode` | **`ref_audio`**（CUDA 边车路线） | **`xvector`**（BabelVox 路线） |
+| `clone_dur_s` | **10.0** | **10.0** |
+| 逐句 jsonl 行数 | **76** | **76** |
+| 其中 `clone_active=True` | **76** | **70** |
+| 落盘 wav | **76**（克隆 **76** / 预设 **0**） | **76**（克隆 **70** / 预设 **6**） |
+| `n_submitted` / `n_played` / `n_dropped` | **76 / 76 / 0** | **76 / 76 / 0** |
+| `n_drop_written` / `n_no_audio` / 逐句 error | **0 / 0 / 0** | **0 / 0 / 0** |
+| `n_consumed` / `n_not_consumed` | **76 / 0** | **76 / 0** |
+| 守恒（jsonl 独立核算） | **76 == 76+0+0** ✅ | **76 == 76+0+0** ✅ |
+| `synth_rtf` P50 / P95 | **0.5862 / 0.7009** | **0.9935 / 1.1644** |
+| 句内欠载 P95 | 37（只记录） | 20（只记录） |
+| 字段矛盾（`clone_active=True` 但 mode 空 / 反之） | **0 / 0** | **0 / 0** |
+
+#### §84.5.2 为什么 **CUDA 组 76/76 全是克隆组、NPU 组只有 70 句是克隆组**
+
+- CUDA 组：日志第 43 行「✅ 克隆音色已更新（CUDA 边车 ref_audio，**3.0 s**）」**早于**第 53 行「首包分段 id=0」⇒ 采集器在 ASR 首句定稿期间就攒够了 3 s 语音 ⇒ **id=0 起就是克隆音色** ⇒ 76/76 是**事实**，不是 bug；
+- NPU 组：x-vector 路线要跑 `extract_speaker_embedding`（比 `set_ref` 重）⇒ **前 6 句（id 0–5）用的还是预设 A**，第 6 句后才切到克隆 ⇒ **70 克隆 + 6 预设** ⇒ **恰好同时具备「同批句子的两组」** ⇒ reviewer 做 CER/CAMPPlus 对比**需要的就是这个**。
+
+#### §84.5.3 隐私明文（V3：克隆源音频和嵌入**不得落盘**）—— 两条判据都 PASS
+
+- `V3-6` 扫 `run/`、`dump/`、**客户包**（含 `voices/`、`tts_speakers/`、`clone_*.npz`）⇒ **`clone_leaks = []`**；
+- `V3-6b` 扫 `%TEMP%\confucius4_clone\`（worker 落临时参考 wav 的目录）⇒ **`tmp_clone_residue = []`**（会话结束即删，**实测零残留**）；
+- ⇒ **落盘的只有 TTS 输出的 wav**（CUDA 76 个 / NPU 76 个）。
+
+#### §84.5.4 给 reviewer 的清单（**防错位**，APP-027 V1 同款要求）
+
+`v3_{cuda,npu}_wav_manifest.json`：**每句一行**，含 `id` / `text` / `wavs[]`（绝对路径）/ `wav_bytes[]` / `wav_sha256[]` / **`clone_active`** / **`clone_mode`** / **`clone_audio_s`** / `n_samples` / `dur_s` / `synth_rtf` / `consumed` / `dropped` ⇒ **wav ↔ 文本 ↔ 音色来源 一一对应** ⇒ reviewer 可直接按 `clone_active` 分组做 MiniMax 回转写与 CAMPPlus 对比。
+
+#### §84.5.5 ⚠️ 边界（诚实声明）
+
+- ⛔ **本轮是 CLI 回放 + 真实播放路径（走声卡）**，**不是 GUI**、**不是用户启动方式**（§63 L4：桌面快捷方式 → `.venv\Scripts\pythonw.exe`）⇒ ⛔ **「用户听得到」仍不成立**（机器判据已足：`consumed=True` 76/76 + `read_delta ≥ n_samples` + 无 `consumed=False`，**但人耳未确认**）。
+- ⛔ **V4（用户实听）未做** ⇒ **APP-027 未完**。
+- ⛔ **CER 与 CAMPPlus 未做**（本模块**不自己调 MiniMax**，APP-033 第 1 条）⇒ 判据标 `[NO-EVIDENCE]`。
+- ✅ **不在 CPU 上跑推理**：TTS 走 **CUDA 边车**（torch `2.11.0+cu128` / CUDA 12.8 / RTX 5050 Laptop GPU）或 **NPU**；ASR/MT 走 **GPU.0**（集显）。
+- ✅ **机器锁纪律**：两组**各自持锁**（`shared/MACHINE_LOCK`，内容含模块名/PID/开始时间）⇒ 先取锁、再等 **45 s 安静窗口**（`wait_quiet_window_cpu`，`n_busy_samples=0`）⇒ 结束**删锁**；等锁期间**0 次文件写入**（`machine_lock_app.acquire` 的「先探测后创建」实现）。
+- ✅ **0 次删除**：用**带时间戳的 `v3_<group>_run_<YYYYmmdd_HHMMSS>/` 子目录** ⇒ 旧产物原样保留（§81.5 缺陷①的教训）。
+- ✅ **未修改 `CORRECTIONS_APP.md`**（只读、零改动）、**未向 MiniMax**、**未开 FTP**、**未跑 `verify_pkg_zip.py`**。
+
+### §84.6 ✅ 客户包定点同步（`results/app/app122_sync_pkg_clone.py`）
+
+- 🔴 **双副本**（仓库 `live_caption/` 与客户包 `Confucius4_LiveCaption_v1.6/app/`）⇒ **禁止整目录覆盖**；
+- 同步方式：**基线 = 包内当前内容**（不是 HEAD —— 包内已比 HEAD 新 ⇒ 强行以 HEAD 为基线会把包内已有内容**删掉**）⇒ `difflib.get_grouped_opcodes(n=3)` 派生**增量替换块** ⇒ **唯一命中断言**（命中数 ≠ 1 ⇒ 立即中止）；
+- **备份**（包外）：`C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6\_backup_app_20261028_preclone\`（`live_caption_app.py` 237 534 B / `tts_worker.py` 171 297 B）；
+- 同步结果：`live_caption_app.py` **0 块**（首轮已是最新）｜`tts_worker.py` **9 块**（首轮）→ **2 块**（缺陷②的增量）｜`clone_collector.py` **新增**（原本不存在）⇒ **独立复核：包内逐字 == 仓库**（LF 归一化）⇒ 判据 `F.*` **3/3 PASS**；
+- ⚠️ 换行风格：仓库 `live_caption_app.py` 是 **CRLF**，客户包那份是 **LF** ⇒ 同步时**统一按 LF 写入包**（与包内既有风格一致）。
+
+### §84.7 ✅ 本轮改动文件清单（App 侧）
+
+| 文件 | 类型 | 说明 |
+|---|---|---|
+| `live_caption/clone_collector.py` | **新建** | 克隆源语音采集器（GUI 与 CLI 共用） |
+| `live_caption/live_caption_app.py` | 改 | CLI 接上克隆链路；常量改别名；`_collect_clone_pcm` 改薄封装；旧实现保留为 `_collect_clone_pcm_legacy` |
+| `live_caption/tts_worker.py` | 改 | 逐句音色来源遥测 3 键 + 两条路线标记 + 回落清路线 + **播放路径 meta 快照（缺陷②的修法）** |
+| `results/app/app121_app027_v3_clone_cli.py` | 新建 | 前置修复验收（28 判据，含 4 条反证） |
+| `results/app/app121_app027_v3_clone_cli_evidence.json` | 新建 | 验收证据 |
+| `results/app/app122_sync_pkg_clone.py` | 新建 | 客户包定点同步（增量替换块 + 唯一命中断言） |
+| `results/app/app122_pkg_sync_evidence.json` | 新建 | 同步证据 |
+| `results/app/app123_app027_v3_clone_real.py` | 新建 | **APP-027 V3 实测驱动**（CUDA + NPU 两组；持锁 + 安静窗口；`--reanalyze` 支持离线重算） |
+| `status/app/STATUS_APP.md` | 追加 | 本节 §84（**只追加，未改旧章节**） |
+
+### §84.8 ⛔ 待 reviewer 裁定 / 待用户确认
+
+1. 🔴 **V3 的 CER 对比** —— reviewer 在本机做 MiniMax 回转写：**CER 不劣于预设 A 同一批句子**。可用材料：CUDA 组 76 句（克隆 76 / 预设 0）、NPU 组 76 句（克隆 70 / 预设 6）⇒ `v3_{cuda,npu}_wav_manifest.json`（含逐句文本与 wav 的 SHA256）。
+2. 🔴 **V3 的 CAMPPlus 对比** —— **每句差值 > 0 且均值差 ≥ 0.15**（克隆组相对克隆源的相似度 > 预设组相对克隆源的相似度）。⚠️ **NPU 组有 6 句预设 A**，是**同语料 A/B** 的天然对照组 ⇒ **建议优先用 NPU 组做这个对比**（CUDA 组无预设组可比）。
+3. 🔴 **NPU 组「前 6 句还是预设 A」是否算缺陷** —— 事实是 x-vector 提取比 `set_ref` 重 ⇒ 生效较晚。**若 reviewer 认为「克隆必须从第 1 句就生效」⇒ 需要预热机制**（例如会话开始时先采集并完成一次 x-vector 提取，再放开合成）⇒ **本轮未自行推进**。
+4. 🔴 **CUDA 组 76/76 全克隆 ⇒ 没有「预设 A 对照」** —— 是否需要**再跑一组「预设 A（`--tts-voice A`）」**作同批对照？本轮**未自行推进**（APP-027 V3 明文只要求「开启克隆」，对照组的必要性由 reviewer 定）。
+5. ⛔ **V4 用户实听** —— 通知用户按 **CUDA / NPU / 克隆**各听一段，**只有用户本人确认才算 L4 关闭**。
+6. ⛔ **zip 未重打** —— APP-027 的 V1 ✅ / V2 ✅ / V3 ✅（机器判据）但 **V4 未做**、**CER/CAMPPlus 未做** ⇒ 按 APP-031「三项做完后合在一起重打一次包」⇒ **本轮不重打** ⇒ **不写「已交付」**（准确表述：**代码侧已入库、已同步到包目录；zip 未重打**）。
+7. ⛔ **§83.5 的 4 项待裁定仍然有效**（RTF 归因边界 / 「首包」指标定义 / `app062` A/B 是否重做 / 不变式是否改三段式）—— 本轮**未自行推进**。
+8. 🔴 **新发现的待裁定项（§84.3 缺陷②的连带影响）** —— 缺陷②让 **APP-030⑤ 的逐句语言/失控遥测在真实播放路径下原本完全不可用** ⇒ §78 的日文实测（29 句 ×3 次）当时是**用落盘模式**跑的（`--tts-out`）⇒ 落盘模式走的是**合成线程**的 tel ⇒ **§78 的结论不受影响**；但 **V1/V2 的实测（真实播放路径）里 `lang`/`end_reason` 字段是缺失的** ⇒ 那两轮报告若要补「按语言分组」的字段，**需要用本轮修好的代码重跑**（本轮**未重跑 V1/V2**）。
+
+### §84.9 头部字段
+
+- `last_ack` = **APP-033**（**保持不变**：本轮**无新 reviewer 纠偏条目** ⇒ 无编号可 ack；APP-027 是**已 ack 的历史条目**，本节只是补做它的 V3 验收段）。
+- 「更新时间」= **2026-10-28 16:18**（`Get-Date -Format "yyyy-MM-dd HH:mm"` **实测值**，非推算）。
+
+## §85 🔴🔴 **客户包 `NOTICE` / `THIRD_PARTY.md` 许可不实表述已修正（num2words 实为 LGPL-2.1，非 MIT；47 个 vendored 包署名全覆盖）＋ ASR 的 WeSpeaker 署名义务判定回告（包内不带权重 ⇒ 义务免除）**（2026-10-28 16:27）｜**本条已完成**｜**本条需等 reviewer 复核**
+
+### §85.0 本节结论（一句话）
+
+🔴 **查出一个真实合规缺陷并已修掉**：客户包 `NOTICE` 顶部声称「**所有组件均为 Apache License 2.0 授权**」，
+而同文件下方又把 `num2words` 标为 `MIT` —— **两处都与包内实测矛盾**（`num2words-0.5.14` 实为 **LGPL-2.1**），
+且两个文件合计只覆盖了包内 **47 个** vendored 分发包中的 **10 / 28 个** ⇒ **已按实测逐包重写为 47/47 全覆盖**；
+⛔ **`NOTICE` 在 zip 内 ⇒ 本次修改会进入下一次打包，但本轮按 APP-031 不重打 zip**；
+✅ **ASR 的 WeSpeaker CC BY 4.0 署名义务判定为「免除」（包内不带权重）⇒ 已回告 ASR**。
+
+### §85.1 🔴 缺陷本体（实测取证，不是推测）
+
+**取证方法**：直接读包内 `python/Lib/site-packages/<包>.dist-info/METADATA` 的
+`License` / `Classifier: License` 字段，并与各包自带的 `LICENSE` / `COPYING` / `licenses/` **正文交叉核对**。
+
+#### §85.1.1 缺陷①：顶部「所有组件均为 Apache License 2.0」不实
+
+原 `NOTICE` 第 4–5 行原文：
+
+```
+本软件包含或依赖以下第三方组件。所有组件均为 Apache License 2.0 授权，
+可自由再分发。
+```
+
+⇒ **实测包内 47 个 vendored 分发包的许可并非统一 Apache**，其中至少包含
+**LGPL-2.1（`num2words`、`soxr`）、MPL-2.0（`certifi`）、PSF-2.0（`defusedxml`、`typing_extensions`）、
+ISC（`librosa`）、MIT（`urllib3`、`tqdm` 之一等）、BSD 变体、HPND（`pillow`）、MIT-0（`cffi`）**。
+
+⚠️ **这个表述的危害是实质性的**：它会让拿到包的接收方**误以为可以按 Apache-2.0 条款统一处置**，
+而实际上 LGPL-2.1 组件有**独立的再分发与反向引用义务** ⇒ 属**合规风险**，不只是文字瑕疵。
+
+#### §85.1.2 缺陷②：`num2words` 的许可写错（MIT → 实为 LGPL-2.1）
+
+原 `NOTICE` 第 45 行：`num2words           MIT`
+
+**实测（双重取证）**：
+
+| 取证点 | 原始内容 |
+|---|---|
+| `num2words-0.5.14.dist-info/METADATA` | `License: LGPL` |
+| 同上 `Classifier:` | `License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)` |
+| 同上 `License-File:` | `COPYING` |
+| `num2words-0.5.14.dist-info/COPYING` 首行 | `GNU Lesser General Public License` / `Version 2.1, February 1999` |
+
+⇒ **MIT 是错的，LGPL-2.1 是对的**。
+
+#### §85.1.3 缺陷③：署名覆盖率严重不足
+
+| 文件 | 原覆盖 | 包内实际 dist-info | 缺口 |
+|---|---|---|---|
+| `NOTICE`「运行时 Python 依赖」段 | **10** 个 | **47** | **缺 37** |
+| `THIRD_PARTY.md` 表格 | **28** 个（且**完全没有 `num2words`**） | **47** | **缺 19** |
+
+⇒ 已补齐为 **47/47**，并为每个包标注**随包许可证全文的真实路径**。
+
+#### §85.1.4 附带查明的事实（不是缺陷，但此前无人记录）
+
+- **46 / 47** 个包自带 LICENSE/COPYING 文件；**唯一例外是 `tokenizers 0.22.2`**（dist-info 内**无**任何许可证文件）
+  ⇒ 已在 `NOTICE` 中**显式标注**该缺失，并指明其许可标识来自 METADATA 的
+  `Classifier: License :: OSI Approved :: Apache Software License`。
+- `numpy` 除 BSD-3-Clause 外还带 0BSD / MIT / Zlib / CC0-1.0（`licenses/` 下 **16** 个嵌套许可文件）；
+  `openvino` 带 oneDNN / oneTBB 第三方条款（`licensing/` 下 3 个文件）；
+  `openvino-genai` / `openvino-tokenizers` 各带 `third-party-programs.txt`；
+  `llvmlite` 带 `LICENSE.thirdparty`（LLVM Apache-2.0 with LLVM-exception）；`numba` 带 `LICENSES.third-party`。
+  ⇒ 这些**多许可**情形已在 `NOTICE` 与 `THIRD_PARTY.md` 中**如实标注**，不再压成单一 SPDX。
+
+### §85.2 ✅ 验收（`results/app/app124_notice_license_audit.py`）：**12 PASS / 0 FAIL**
+
+（零推理、零 GPU、零 NPU、不调 MiniMax、**只读核对**，不改客户包任何文件）
+
+| 判据 | 内容 | 结果 |
+|---|---|---|
+| G1 | `NOTICE` 表格覆盖包内**全部 47** 个 dist-info | PASS |
+| G2 | 每个包**恰好一行**（无重复、无遗漏） | PASS |
+| G3 | `NOTICE` 版本号 == 各包 `METADATA` 的 `Version`（逐包核对） | PASS |
+| G4 | `NOTICE` 标注的**随包许可证全文路径全部真实存在** | PASS |
+| G4b | 被标注为「未自带许可证文件」的包**确实没有** | PASS（`tokenizers` = 0） |
+| G5 | `num2words` = LGPL-2.1（**METADATA + COPYING 双重取证**，且 `NOTICE` 已改正） | PASS |
+| G6 | `NOTICE` 不再声称「所有组件均为 Apache License 2.0」 | PASS |
+| G7 | `NOTICE` **表格行**里 `num2words` 许可列不再写 MIT（行级提取） | PASS |
+| G8 | `NOTICE` 的许可标识与包内 METADATA/Classifier **无冲突** | PASS |
+| G9 | `THIRD_PARTY.md` 覆盖**全部 47** 个 dist-info | PASS |
+| G10 | `THIRD_PARTY.md` 的 `num2words` = LGPL | PASS |
+| G11 | 【自检】把 `NOTICE` 的 `num2words` 改成 MIT ⇒ G5 判据**必须 FAIL** | PASS |
+
+证据：`results/app/app124_notice_license_audit_evidence.json`（2 811 B @ 16:26:59，
+SHA256 `dae03752d4e71227f10e22e87331856a5ec59246ecfe23c48b6b87faea13bcd0`）。
+
+### §85.3 ✅ 反证（`results/app/app125_notice_license_counterproof.py`）：**10 PASS / 0 FAIL**
+
+**反证基准 = 本轮修正前的实际原文**（把修正前的 `NOTICE` / `THIRD_PARTY.md` 片段**内嵌**进反证脚本，
+**不用 HEAD** —— HEAD 若已修好，反证会落空 ⇒ 假证据，§31 教训）。
+
+| 判据 | 内容 | 结果 |
+|---|---|---|
+| R1-1 | 修正前 `NOTICE` ⇒ **G6 必须 FAIL**（缺陷①曾真实存在） | PASS |
+| R1-2 | 修正前 `NOTICE` ⇒ **G1 必须 FAIL**（表格 0 行 vs 47） | PASS |
+| R2-1 | 修正前 `THIRD_PARTY.md` ⇒ **G10 必须 FAIL**（无 `num2words` 行） | PASS |
+| R3-G6/G7/G1/G10 | **当前实文件** ⇒ 四条判据**必须全 PASS**（证明判据非恒 FAIL） | PASS |
+| R4-1 | 把当前 `NOTICE` 的 `num2words` 改成 MIT ⇒ **G7 必须 FAIL** | PASS |
+| R4-2 | 把当前 `THIRD_PARTY.md` 的 `num2words` 改成 MIT ⇒ **G10 必须 FAIL** | PASS |
+| R5-1 | 「包内确有 47 个 dist-info」这一**前提本身可被验证** | PASS |
+
+证据：`results/app/app125_notice_license_counterproof_evidence.json`（2 080 B @ 16:27:00，
+SHA256 `cef3d24c1669cbf8f9dc4ec0aa1477e86fb1c98050217aa86551023142d01061`）。
+
+#### §85.3.1 🔴 反证过程中抓到的**判据自身缺陷（2 处，均已修）**
+
+⚠️ **这是本节最值得记的部分** —— 判据自己也会骗人：
+
+1. **G7 第一版过弱**（相邻正则 `num2words\s*\S*\s*MIT`）——
+   表格行实际是 `| num2words | 0.5.14 | MIT | ...` ⇒ **相邻正则匹配不到**
+   ⇒ 把该行许可改成 MIT 后判据**仍然 PASS（假通过）** ⇒ 被 R4-1 反证抓出
+   ⇒ 改为**行级提取许可列**。
+2. **G7 第二版过严** —— 把说明句「…的许可经实测确认为 **LGPL-2.1**，**不是 MIT**。」也误判为 FAIL
+   ⇒ 改为**只判表格行**（以 `|` 开头且能解析出许可列）。
+3. 附带：**G2/G3/G4 的包名键未与 dist-info 归一化对齐**（`openvino-genai` 被首段切分压成 `openvino`、
+   `charset_normalizer` 与 `charset-normalizer` 不匹配）⇒ 首跑 FAIL ⇒ 改为
+   **去版本号段 + 下划线转连字符 + 小写**的归一化 ⇒ 再跑全 PASS。
+
+⇒ 📌 **教训**：**审计脚本「跑出 PASS」不等于「审计脚本是对的」** ⇒ 必须做**双向反证**
+（修正前 FAIL + 修正后 PASS + 沙盒注入 FAIL）。本节两处判据缺陷都是这样抓出来的。
+
+### §85.4 ✅ ASR 的 WeSpeaker 署名义务判定（**免除**）＋ 回告
+
+#### §85.4.1 判定依据（可复核实测）
+
+在 `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6` 全目录实测：
+
+| 检查项 | 结果 |
+|---|---|
+| `find . -iname "*wespeaker*" -o -iname "*resnet34*"` | **0 命中** |
+| `find . \( -name "pytorch_model.bin" -o -name "*.pt" -o -name "*.pth" -o -name "*.ckpt" -o -name "*.safetensors" \)` | **0 命中** |
+| `site-packages/` 内 `torch` / `pyannote` / `speechbrain` | **均不存在** |
+
+⇒ ASR 来文 `NOTICE_asr_to_app_wespeaker_license_20261028.md` §五.3 的分支判定：
+**「如果最终决定不带 ⇒ 署名义务可免除（届时请回告 ASR 模块）」⇒ 走「不带」分支 ⇒ 义务免除。**
+
+#### §85.4.2 来文 §四「绝不把 wespeaker 向量传给 TTS 做克隆音色」—— App 侧**未被违反**
+
+| 环节 | 实测实现 | 接触 wespeaker？ |
+|---|---|---|
+| 克隆向量（CPU 路线） | `live_caption/tts_engine.py:891` → `eng.extract_speaker_embedding(wav)`（**BabelVox** x-vector） | **否** |
+| 克隆向量（CUDA 路线） | `live_caption/tts_cuda.py` / `tts_cuda_sidecar.py` → `set_ref` + `ref_audio` | **否** |
+| ASR 说话人聚类 | `pyannote/segmentation-3.0` **旁路**，只识别说话人、不阻塞定稿、不参与断句 | 是（仅 ASR 侧，且不在本包内） |
+
+⇒ 克隆向量**只来自 Qwen3-TTS 自己的 x-vector**，与来文限制**完全一致**。
+
+#### §85.4.3 回告文件
+
+`C:\Users\Trekker-PTL\shared\NOTICE_app_to_asr_wespeaker_license_reply_20261028.md`
+（**5 605 B @ 2026-10-28 16:27:40**，SHA256 `b37b30d0a2e3a1d44e47e0308d6eaff1ae317b1ead16de859384bc9d559ddf42`）
+
+内容要点：① 结论「署名义务免除」；② 判定依据（§85.4.1 的三条实测 + §85.4.2 的代码路径表）；
+③ 对 ASR 的 4 项请求（更新 STATUS 头部第 ④ 项的「App 侧未确认」/ 若后续要带权重**必须先回告**/
+运行时加载场景由 ASR 自行判定 / 确认 App 从未把「wespeaker 已可交付」当既定事实）；
+④ 同时告知 ASR：App 已**独立修正**了 `NOTICE` 的许可不实表述（与 WeSpeaker 无关，但影响同一文件）。
+
+### §85.5 🔴⚠️ **交付影响（必须说清）**
+
+- 🔴 **`NOTICE` 与 `THIRD_PARTY.md` 都在 zip 内**（`Confucius4_LiveCaption_v1.6/NOTICE`）
+  ⇒ **本次修改会进入下一次打包**。
+- ⛔ **本轮未重打 zip** —— APP-031 明文「**三项做完后合在一起重打一次包**」，
+  而 APP-027 的 **V4（用户实听）未做** ⇒ 不满足合打条件 ⇒ **不重打**。
+- ⛔ 按 §66 口径 **不写「已交付」**。准确表述：
+  **代码侧已入库、已同步到包目录；zip 未重打**。
+- ⚠️ **本轮未跑 `verify_pkg_zip.py`、未开 FTP、未跑 `publish_ftp.py`**。
+
+### §85.6 ✅ 本轮改动文件清单（App 侧）
+
+| 文件 | 类型 | 字节 | SHA256 |
+|---|---|---|---|
+| `Confucius4_LiveCaption_v1.6/NOTICE` | 改（客户包，非 git 跟踪） | 8 289 | `11cda5c0a41660390cfc1b0888ca07cc7b0e8358db2938d72d1869d44f5ace7e` |
+| `Confucius4_LiveCaption_v1.6/THIRD_PARTY.md` | 改（客户包，非 git 跟踪） | 3 310 | `b00115217aa819b8268eeaacd5ca3851e02a7e17cfd9885bc0aa29fd6366850e` |
+| `shared/NOTICE_app_to_asr_wespeaker_license_reply_20261028.md` | 新建（跨模块回告） | 5 605 | `b37b30d0a2e3a1d44e47e0308d6eaff1ae317b1ead16de859384bc9d559ddf42` |
+| `results/app/app124_notice_license_audit.py` | 新建（审计，12 判据） | 11 960 | `9872dcec949958ac4a0262a387141a5a8405fee98db3bf2de8201ca401d9b7e5` |
+| `results/app/app124_notice_license_audit_evidence.json` | 新建 | 2 811 | `dae03752d4e71227f10e22e87331856a5ec59246ecfe23c48b6b87faea13bcd0` |
+| `results/app/app125_notice_license_counterproof.py` | 新建（反证，10 判据） | 6 189 | `ad6f4e9252b32ad18178071213d5f3ccfce6cb87d682554af33e875e36fa3b79` |
+| `results/app/app125_notice_license_counterproof_evidence.json` | 新建 | 2 080 | `cef3d24c1669cbf8f9dc4ec0aa1477e86fb1c98050217aa86551023142d01061` |
+| `status/app/STATUS_APP.md` | 追加 | — | 本节 §85（**只追加，未改旧章节**） |
+
+### §85.7 ⛔ 待 reviewer 裁定 / 待用户确认
+
+1. 🔴 **§85.1 的「所有组件均为 Apache License 2.0」表述是否曾进入过已交付的 zip** ——
+   若 v1.6 的 zip（11 218 087 123 B / SHA256 `907a1caa…2589f`）已含旧 `NOTICE`
+   ⇒ **该 zip 分发出去时即带不实许可声明** ⇒ **是否需要重新打包并重新分发，请 reviewer 裁定**
+   （App 不自行决定，因为重打 zip 受 APP-031 的合打约束约束）。
+2. 🔴 **`tokenizers 0.22.2` 无随包许可证文件** —— 是否需要在打包时**补一份** Apache-2.0 全文进 zip？
+   （当前做法：在 `NOTICE` 中显式标注缺失 + 给出官方全文链接。）
+3. 🔴 **`pillow` 的许可标识** —— `METADATA` 无 `License` 字段、`Classifier` 也无 License 项，
+   其 `licenses/LICENSE` 正文含 Apache-2.0 / MIT / BSD / GNU 段落的**多许可组合**（HPND 主体），
+   本轮按 **HPND** 标注 ⇒ **是否需要按更细的多许可口径展开，请 reviewer 裁定**。
+4. 🔴 **`soxr` 与 `llvmlite` / `numba` / `numpy` / `openvino` 的第三方条款** ——
+   本轮已在 `NOTICE` / `THIRD_PARTY.md` 中**指明随包路径**（如 `licensing/`、`LICENSES.third-party`）
+   ⇒ **是否需要在 `NOTICE` 正文中逐条摘录其关键义务，请 reviewer 裁定**。
+5. 🔴 **§84 的待裁定项仍然有效**：V3-CER（MiniMax 回转写）/ V3-CAMPPlus（余弦）/
+   V4 用户实听 / CUDA 组无「预设 A 对照」是否补跑 / NPU 前 6 句是否算缺陷 / §83.5 的 4 项。
+6. ⛔ **zip 未重打** ⇒ **不写「已交付」**（准确表述：**代码侧已入库、已同步到包目录；zip 未重打**）。
+7. 🔴 **MT notice 15 §3.4 的真实时序「草稿行计数」端到端证据缺口** ——
+   `hy_bench` 侧建议 App 在真实时序下补跑 ⇒ **仍是 App 侧遗留项，本轮未处理**。
+
+### §85.8 头部字段
+
+- `last_ack` = **APP-033**（**保持不变**：本轮**无新 reviewer 纠偏条目** ⇒ 无编号可 ack；
+  §84 / §85 都是对**已 ack 的历史条目**（APP-027 / ASR-023 的许可义务）做遗留事项的补做）。
+- 「更新时间」= **2026-10-28 16:27**（`Get-Date -Format "yyyy-MM-dd HH:mm"` **实测值**，非推算）。

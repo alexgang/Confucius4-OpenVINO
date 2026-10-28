@@ -121,6 +121,19 @@ _APP028_JSONL_KEYS = (
 _APP030_JSONL_KEYS = (
     'lang', 'lang_src', 'n_chars', 'est_frames', 'frames',
     'end_reason', 'max_new_tokens',
+    # 🔴🔴🔴 APP-027 V3：**逐句的音色来源**（可观测性的第四项）
+    #   ⇒ **为什么必须有**：APP-027 V3 要 reviewer 对「克隆 wav」做
+    #     MiniMax 回转写 CER + CAMPPlus 余弦相似度对比。
+    #   ⇒ 但 **jsonl 里原本没有「这句用的是克隆还是预设 A」** ⇒
+    #     reviewer 拿到 wav **无法判断某句是不是克隆音色的产物**
+    #     ⇒ 只能靠「目录名」猜 ⇒ **结论不可核**。
+    #   ⇒ 本字段记录**本句合成时**的克隆状态：
+    #     `clone_active` = 当时克隆是否已生效
+    #     `clone_mode`    = xvector（BabelVox）/ ref_audio（CUDA 边车）
+    #     `clone_audio_s` = 克隆源语音秒数
+    #   ⚠️ **记录的是「合成那一刻」的状态**，不是会话结束时的状态
+    #     ⇒ 前几句必然是 `clone_active=False`（还没攒够语音）⇒ 正确。
+    'clone_active', 'clone_mode', 'clone_audio_s',
 )
 
 
@@ -994,6 +1007,19 @@ class TTSWorker:
         self._clone_updated_at = 0.0 # 克隆更新时刻（perf_counter）
         self._clone_audio_s = 0.0    # 克隆源音频时长（秒）
         self._clone_active = False   # 克隆是否**已生效**（失败时回落预设 A）
+        # 🔴🔴🔴 APP-027 V3：**克隆音色向量/参考音频的「路线」**
+        #   （`xvector` = BabelVox 的 spkonly 路线 / `ref_audio` = CUDA 边车）
+        #   ⚠️ **必须单独记**：`_clone_active=True` 只说明「克隆已生效」，
+        #   没说「走的是哪条路」⇒ 两条路的**音色来源证据完全不同**
+        #   （x-vector 是 1024 维向量 / ref_audio 是参考 wav）
+        #   ⇒ reviewer 做 CAMPPlus 对比时**需要知道这个**。
+        self._clone_mode = None
+        # 🔴🔴🔴 APP-027 V3：**本句合成时的音色快照**（逐句遥测用）
+        #   ⚠️ 必须是「**合成那一刻**」的状态 ⇒ 不能用会话结束时的状态
+        #   （会话结束时克隆可能已生效，但**前 20 句**用的是预设 A）。
+        self._last_clone_active = False
+        self._last_clone_mode = None
+        self._last_clone_audio_s = 0.0
         # 🔴🔴 APP-027⑤：**克隆临时文件**（wav）
         #   ⚠️ 只在 `tempfile.gettempdir()` 下 ⇒ **不在客户包目录**
         #   ⚠️ **会话结束即删除**（`_cleanup_clone_files`）
@@ -1406,6 +1432,16 @@ class TTSWorker:
         self._last_lang = lang
         self._last_lang_src = lang_src
         self._last_end_reason = None
+        # 🔴🔴🔴 APP-027 V3：**本句合成时的「音色来源」快照**
+        #   ⇒ **必须在合成之前取**（不是会话结束时）⇒
+        #     前若干句（还没攒够语音）天然是 `clone_active=False`
+        #     ⇒ 这正是事实（那几句确实用的是预设 A）。
+        #   ⚠️ **不能**用会话结束时的 `_clone_active` ⇒
+        #     那会把**前 20 句**也标成克隆 ⇒ reviewer 的 CER/CAMPPlus 对比
+        #     会把「预设 A 的音」算进「克隆组」⇒ **结论失真**。
+        self._last_clone_active = bool(self._clone_active)
+        self._last_clone_mode = self._clone_mode
+        self._last_clone_audio_s = float(self._clone_audio_s or 0.0)
         is_babelvox = self.engine is not None
         # 🔴 APP-022：记住本句的说话人（**只在本进程内存里**）
         self._last_spk, self._last_spk_conf = spk, spk_conf
@@ -1847,6 +1883,12 @@ class TTSWorker:
         #   ⇒ `cap`（撞上限）/ `runaway`（中止）由引擎或守卫覆盖。
         tel['end_reason'] = self._last_end_reason or 'eos'
         tel['max_new_tokens'] = self._last_max_new_tokens
+        # 🔴🔴🔴 APP-027 V3：**逐句的「音色来源」**（可观测性的第四项）
+        #   ⚠️ 取的是 `self._last_clone_*`（**合成那一刻**的快照）
+        #   ⇒ 前几句天然是 `False`（还没攒够语音）⇒ 这正是事实。
+        tel['clone_active'] = bool(self._last_clone_active)
+        tel['clone_mode'] = self._last_clone_mode
+        tel['clone_audio_s'] = round(float(self._last_clone_audio_s or 0.0), 2)
         if runaway:
             tel['runaway'] = True
         # ⚠️ 这一行是「**写完缓冲那一刻**」的快照 ⇒ `read_delta` 只到此刻
@@ -1915,7 +1957,22 @@ class TTSWorker:
                 base_underflow=base_underflow,
                 prebuffer_s=prebuffer_s, prebuffer_short=prebuffer_short,
                 first_chunk_start=first_chunk_start,
-                last_chunk_end=last_chunk_end))
+                last_chunk_end=last_chunk_end,
+                # 🔴🔴🔴 APP-027 V3（§84）：**本句的「元信息」随 job 传递**
+                #   ⚠️ **为什么必须传**：真实播放路径下 jsonl 行是**看门狗线程**
+                #     （`_finish_played`）用**重算出来的 tel** 写的
+                #     ⇒ 而 APP-030⑤ 的 `lang`/`lang_src`/`n_chars`/`est_frames`/
+                #       `frames`/`end_reason`/`max_new_tokens`
+                #       与 APP-027 V3 的 `clone_active`/`clone_mode`/`clone_audio_s`
+                #       **只在合成线程的 tel 里**填过
+                #     ⇒ **播放路径整组字段全丢**（实测：76 行 jsonl 里
+                #       `lang`/`end_reason`/`clone_*` **一个都没有**）
+                #     ⇒ reviewer 无法按语言/音色来源分组 ⇒ **结论不可核**。
+                #   ⇒ 这里把**合成那一刻**的这些字段**快照**带进 job
+                #     ⇒ 看门狗重算完 tel 后再覆盖回去 ⇒ **逐句字段齐全**。
+                #   🔴 **必须在合成时快照**（不是看门狗执行时读 `self._last_*`）
+                #     ⇒ 否则并发合成下一句会把上一句的值冲掉。
+                meta={k: tel.get(k) for k in _APP030_JSONL_KEYS}))
 
         # 🔴🔴 APP-027②：把本句实测 RTF / 秒每字记进 EWMA
         #   ⇒ 下一句的预缓冲与积压估算都用**本会话实测**校准。
@@ -2005,6 +2062,15 @@ class TTSWorker:
             tel, job['t_dequeue'], job['t_first'], job['t_last'],
             job['dur'], job['prebuffer_s'], job['prebuffer_short'],
             job['first_chunk_start'], job['last_chunk_end'])
+        # 🔴🔴🔴 APP-027 V3（§84）：**把合成那一刻的元信息覆盖回 tel**
+        #   ⇒ 播放路径的 jsonl 行才有 `lang` / `end_reason` / `clone_*`。
+        #   ⚠️ **只覆盖「合成线程算出来的」那些**（APP-030⑤ + clone）
+        #     ⇒ 播放侧的遥测（`consumed`/`read_delta`/`cb_delta`/欠载）
+        #     **保持看门狗重算的值**（那才是播完后的权威口径）。
+        _meta = job.get('meta') or {}
+        for k, v in _meta.items():
+            if v is not None:
+                tel[k] = v
         log('[tts_worker] 遥测 id=%d %s' % (jid, _fmt_telemetry(tel)))
         self._record_jsonl(jid, text, t_submit, dur_s=dur, t_first=t_first,
                            tel=tel)
@@ -2275,6 +2341,13 @@ class TTSWorker:
             #   **语言信息也必须留下** ⇒ 失败句也能查「是什么语言的句子失败」。
             row['lang'] = self._last_lang
             row['lang_src'] = self._last_lang_src
+            # 🔴🔴🔴 APP-027 V3：**失败/丢句的行也要带音色来源**
+            #   ⇒ 否则 reviewer 统计「克隆组句子数」时会漏掉这些行
+            #   ⇒ 分母变小 ⇒ **对比失真**。
+            row['clone_active'] = bool(self._last_clone_active)
+            row['clone_mode'] = self._last_clone_mode
+            row['clone_audio_s'] = round(
+                float(self._last_clone_audio_s or 0.0), 2)
             row['end_reason'] = self._last_end_reason or 'error'
         # 🔴🔴🔴 APP-028②：队列水位 / 峰值（**验收要「队列峰值（秒和 MB）」**）
         #   ⚠️ 不依赖 `tel` ⇒ 失败/丢句的行也能带上水位（诊断用）。
@@ -2984,6 +3057,8 @@ class TTSWorker:
                 self._clone_audio_s = dur_s
                 self._clone_updated_at = time.time()
                 self._clone_active = True
+                # 🔴🔴🔴 APP-027 V3：**记下路线**（逐句遥测要能区分）
+                self._clone_mode = 'xvector'
                 log('[tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，%.1f s）'
                     % dur_s)
                 emit({'kind': 'clone', 'ok': True, 'dur_s': round(dur_s, 2),
@@ -3019,6 +3094,8 @@ class TTSWorker:
                 self._clone_audio_s = dur_s
                 self._clone_updated_at = time.time()
                 self._clone_active = True
+                # 🔴🔴🔴 APP-027 V3：**记下路线**（逐句遥测要能区分）
+                self._clone_mode = 'ref_audio'
                 log('[tts_worker] ✅ 克隆音色已更新（CUDA 边车 ref_audio，%.1f s）'
                     % dur_s)
                 emit({'kind': 'clone', 'ok': True, 'dur_s': round(dur_s, 2),
@@ -3050,6 +3127,11 @@ class TTSWorker:
         ⚠️ 预设 A 的缓存来自 `_setup_babelvox_voice()`（加载时算一次）。
         """
         self._clone_active = False
+        # 🔴🔴🔴 APP-027 V3：回落时**路线也要清**
+        #   ⇒ 否则逐句遥测会写 `clone_mode='xvector'` 而 `clone_active=False`
+        #   ⇒ reviewer 看到「路线是 xvector」会误判「这句是克隆音色的」
+        #   ⇒ **矛盾字段** ⇒ 结论不可核。
+        self._clone_mode = None
         try:
             self.speaker_embed = self._preset_embed
             self.speaker_name = self._preset_name

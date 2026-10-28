@@ -1,0 +1,464 @@
+{
+  "ts": "2026-10-28 16:14:42",
+  "baseline_commit": "a2bb97a",
+  "repo": "C:\\Users\\Trekker-PTL\\confucius4-openvino",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6",
+  "groups": {
+    "A_equivalence": [
+      {
+        "id": "A1",
+        "name": "新采集器与旧实现的「触发时机」完全一致",
+        "ok": true,
+        "got": [
+          71
+        ],
+        "want": [
+          71
+        ]
+      },
+      {
+        "id": "A2",
+        "name": "新采集器确实发出了更新（>0 次）",
+        "ok": true,
+        "got": 1,
+        "want": ">0"
+      },
+      {
+        "id": "A3",
+        "name": "新采集器发的是**去静音后**的语音（短于原始输入）",
+        "ok": true,
+        "got": 51200,
+        "want": "< 640000"
+      },
+      {
+        "id": "A4",
+        "name": "enabled=False 时**完全不采集**（零副作用）",
+        "ok": true,
+        "got": 0.0,
+        "want": 0.0
+      },
+      {
+        "id": "A5",
+        "name": "发给 worker 的语音时长落在 APP-027 明文的 [3, 10] s",
+        "ok": true,
+        "got": [
+          3.2
+        ],
+        "want": "全部 ∈ [3, 10]"
+      },
+      {
+        "id": "A6",
+        "name": "旧实现发出的语音时长与新实现**逐次一致**",
+        "ok": true,
+        "got": [
+          3.2
+        ],
+        "want": [
+          3.2
+        ]
+      },
+      {
+        "id": "A7",
+        "name": "旧实现与新实现的「已发送累计语音秒数」一致",
+        "ok": true,
+        "got": 3.2,
+        "want": 3.2
+      }
+    ],
+    "B_cli_wiring": [
+      {
+        "id": "B1",
+        "name": "run_cli 里 Session(...) 带 on_audio=（克隆源 PCM 的唯一出口）",
+        "ok": true,
+        "got": true,
+        "want": true
+      },
+      {
+        "id": "B2",
+        "name": "run_cli 里 TTSService(...) 带 clone=（worker 才知道要克隆）",
+        "ok": true,
+        "got": true,
+        "want": true
+      },
+      {
+        "id": "B3",
+        "name": "run_cli 里构造了 CloneCollector",
+        "ok": true,
+        "got": true,
+        "want": true
+      },
+      {
+        "id": "B4",
+        "name": "on_audio 传的是采集器的 feed 方法",
+        "ok": true,
+        "got": true,
+        "want": true
+      }
+    ],
+    "C_worker_telemetry": [
+      {
+        "id": "C1.clone_active",
+        "name": "逐句 jsonl 键含 clone_active",
+        "ok": true,
+        "got": true,
+        "want": true
+      },
+      {
+        "id": "C1.clone_mode",
+        "name": "逐句 jsonl 键含 clone_mode",
+        "ok": true,
+        "got": true,
+        "want": true
+      },
+      {
+        "id": "C1.clone_audio_s",
+        "name": "逐句 jsonl 键含 clone_audio_s",
+        "ok": true,
+        "got": true,
+        "want": true
+      },
+      {
+        "id": "C2",
+        "name": "失败/丢句的行（tel 为空）也带音色来源字段",
+        "ok": true,
+        "got": true,
+        "want": true
+      },
+      {
+        "id": "C3",
+        "name": "worker 有「合成那一刻」的音色快照字段",
+        "ok": true,
+        "got": true,
+        "want": true
+      },
+      {
+        "id": "C4",
+        "name": "回落预设 A 时同时清掉 clone_mode（字段不矛盾）",
+        "ok": true,
+        "got": true,
+        "want": true
+      },
+      {
+        "id": "C5",
+        "name": "真实播放路径：合成时把 APP-030⑤+clone 字段快照进 job",
+        "ok": true,
+        "got": true,
+        "want": true
+      },
+      {
+        "id": "C6",
+        "name": "真实播放路径：看门狗把 meta 覆盖回 tel（逐句字段齐全）",
+        "ok": true,
+        "got": true,
+        "want": true
+      }
+    ],
+    "D_counterproof": [
+      {
+        "id": "D1",
+        "name": "反证：去掉 on_audio= ⇒ B1 判据 FAIL（闸门不是摆设）",
+        "ok": true,
+        "got": true,
+        "want": true
+      },
+      {
+        "id": "D2",
+        "name": "反证：去掉 clone= ⇒ B2 判据 FAIL（闸门不是摆设）",
+        "ok": true,
+        "got": true,
+        "want": true
+      },
+      {
+        "id": "D3",
+        "name": "反证：去掉 worker 新键 ⇒ C1 判据 FAIL（闸门不是摆设）",
+        "ok": true,
+        "got": true,
+        "want": true
+      },
+      {
+        "id": "D4",
+        "name": "反证：去掉 meta 快照 ⇒ C5 判据 FAIL（闸门不是摆设）",
+        "ok": true,
+        "got": true,
+        "want": true
+      }
+    ],
+    "E_baseline": [
+      {
+        "id": "E1",
+        "name": "修复前（a2bb97a）的 run_cli 没有 on_audio ⇒ 缺陷曾真实存在",
+        "ok": true,
+        "got": false,
+        "want": false
+      },
+      {
+        "id": "E2",
+        "name": "修复前（a2bb97a）不存在 clone_collector.py ⇒ 缺陷曾真实存在",
+        "ok": true,
+        "got": false,
+        "want": false
+      }
+    ],
+    "F_pkg_sync": [
+      {
+        "id": "F.live_caption_app.py",
+        "name": "客户包内 live_caption_app.py 与仓库逐字一致（LF 归一化）",
+        "ok": true,
+        "got": 185079,
+        "want": 185079
+      },
+      {
+        "id": "F.tts_worker.py",
+        "name": "客户包内 tts_worker.py 与仓库逐字一致（LF 归一化）",
+        "ok": true,
+        "got": 134626,
+        "want": 134626
+      },
+      {
+        "id": "F.clone_collector.py",
+        "name": "客户包内 clone_collector.py 与仓库逐字一致（LF 归一化）",
+        "ok": true,
+        "got": 8412,
+        "want": 8412
+      }
+    ]
+  },
+  "checks": [
+    {
+      "id": "A1",
+      "name": "新采集器与旧实现的「触发时机」完全一致",
+      "ok": true,
+      "got": [
+        71
+      ],
+      "want": [
+        71
+      ],
+      "group": "A_equivalence"
+    },
+    {
+      "id": "A2",
+      "name": "新采集器确实发出了更新（>0 次）",
+      "ok": true,
+      "got": 1,
+      "want": ">0",
+      "group": "A_equivalence"
+    },
+    {
+      "id": "A3",
+      "name": "新采集器发的是**去静音后**的语音（短于原始输入）",
+      "ok": true,
+      "got": 51200,
+      "want": "< 640000",
+      "group": "A_equivalence"
+    },
+    {
+      "id": "A4",
+      "name": "enabled=False 时**完全不采集**（零副作用）",
+      "ok": true,
+      "got": 0.0,
+      "want": 0.0,
+      "group": "A_equivalence"
+    },
+    {
+      "id": "A5",
+      "name": "发给 worker 的语音时长落在 APP-027 明文的 [3, 10] s",
+      "ok": true,
+      "got": [
+        3.2
+      ],
+      "want": "全部 ∈ [3, 10]",
+      "group": "A_equivalence"
+    },
+    {
+      "id": "A6",
+      "name": "旧实现发出的语音时长与新实现**逐次一致**",
+      "ok": true,
+      "got": [
+        3.2
+      ],
+      "want": [
+        3.2
+      ],
+      "group": "A_equivalence"
+    },
+    {
+      "id": "A7",
+      "name": "旧实现与新实现的「已发送累计语音秒数」一致",
+      "ok": true,
+      "got": 3.2,
+      "want": 3.2,
+      "group": "A_equivalence"
+    },
+    {
+      "id": "B1",
+      "name": "run_cli 里 Session(...) 带 on_audio=（克隆源 PCM 的唯一出口）",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "group": "B_cli_wiring"
+    },
+    {
+      "id": "B2",
+      "name": "run_cli 里 TTSService(...) 带 clone=（worker 才知道要克隆）",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "group": "B_cli_wiring"
+    },
+    {
+      "id": "B3",
+      "name": "run_cli 里构造了 CloneCollector",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "group": "B_cli_wiring"
+    },
+    {
+      "id": "B4",
+      "name": "on_audio 传的是采集器的 feed 方法",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "group": "B_cli_wiring"
+    },
+    {
+      "id": "C1.clone_active",
+      "name": "逐句 jsonl 键含 clone_active",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "group": "C_worker_telemetry"
+    },
+    {
+      "id": "C1.clone_mode",
+      "name": "逐句 jsonl 键含 clone_mode",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "group": "C_worker_telemetry"
+    },
+    {
+      "id": "C1.clone_audio_s",
+      "name": "逐句 jsonl 键含 clone_audio_s",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "group": "C_worker_telemetry"
+    },
+    {
+      "id": "C2",
+      "name": "失败/丢句的行（tel 为空）也带音色来源字段",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "group": "C_worker_telemetry"
+    },
+    {
+      "id": "C3",
+      "name": "worker 有「合成那一刻」的音色快照字段",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "group": "C_worker_telemetry"
+    },
+    {
+      "id": "C4",
+      "name": "回落预设 A 时同时清掉 clone_mode（字段不矛盾）",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "group": "C_worker_telemetry"
+    },
+    {
+      "id": "C5",
+      "name": "真实播放路径：合成时把 APP-030⑤+clone 字段快照进 job",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "group": "C_worker_telemetry"
+    },
+    {
+      "id": "C6",
+      "name": "真实播放路径：看门狗把 meta 覆盖回 tel（逐句字段齐全）",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "group": "C_worker_telemetry"
+    },
+    {
+      "id": "D1",
+      "name": "反证：去掉 on_audio= ⇒ B1 判据 FAIL（闸门不是摆设）",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "group": "D_counterproof"
+    },
+    {
+      "id": "D2",
+      "name": "反证：去掉 clone= ⇒ B2 判据 FAIL（闸门不是摆设）",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "group": "D_counterproof"
+    },
+    {
+      "id": "D3",
+      "name": "反证：去掉 worker 新键 ⇒ C1 判据 FAIL（闸门不是摆设）",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "group": "D_counterproof"
+    },
+    {
+      "id": "D4",
+      "name": "反证：去掉 meta 快照 ⇒ C5 判据 FAIL（闸门不是摆设）",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "group": "D_counterproof"
+    },
+    {
+      "id": "E1",
+      "name": "修复前（a2bb97a）的 run_cli 没有 on_audio ⇒ 缺陷曾真实存在",
+      "ok": true,
+      "got": false,
+      "want": false,
+      "group": "E_baseline"
+    },
+    {
+      "id": "E2",
+      "name": "修复前（a2bb97a）不存在 clone_collector.py ⇒ 缺陷曾真实存在",
+      "ok": true,
+      "got": false,
+      "want": false,
+      "group": "E_baseline"
+    },
+    {
+      "id": "F.live_caption_app.py",
+      "name": "客户包内 live_caption_app.py 与仓库逐字一致（LF 归一化）",
+      "ok": true,
+      "got": 185079,
+      "want": 185079,
+      "group": "F_pkg_sync"
+    },
+    {
+      "id": "F.tts_worker.py",
+      "name": "客户包内 tts_worker.py 与仓库逐字一致（LF 归一化）",
+      "ok": true,
+      "got": 134626,
+      "want": 134626,
+      "group": "F_pkg_sync"
+    },
+    {
+      "id": "F.clone_collector.py",
+      "name": "客户包内 clone_collector.py 与仓库逐字一致（LF 归一化）",
+      "ok": true,
+      "got": 8412,
+      "want": 8412,
+      "group": "F_pkg_sync"
+    }
+  ],
+  "pass_count": 28,
+  "fail_count": 0
+}
