@@ -80,6 +80,26 @@ class StubEngine:
         return {"stub": True, "n_calls": dict(self.n_calls)}
 
 
+class SlowStubEngine(StubEngine):
+    """★ 每段**故意慢一点**的桩引擎（用来制造服务端消息积压）。
+
+    缺陷 16 的根因：服务端消息循环**单线程串行**，一帧 `pcm` 要跑完
+    ASR→MT→TTS 才回到循环读下一条消息。
+    ⇒ 客户端在收尾时发的 `stats` / `dump_margin` 排在积压队列后面。
+    ⇒ 用**慢引擎**制造积压，才能复现「sleep 一下就断开 ⇒ 收不到 stats」。
+
+    ⚠️ 只 sleep，**不触任何设备**（不占 GPU·NPU），自测可在普通机器跑。
+    """
+
+    def __init__(self, target_lang: str = "ja", *, per_seg_sec: float = 0.35):
+        super().__init__(target_lang=target_lang)
+        self.per_seg_sec = per_seg_sec
+
+    def asr(self, audio, t_start, t_end) -> str:
+        time.sleep(self.per_seg_sec)
+        return super().asr(audio, t_start, t_end)
+
+
 # ── 起一个真的桥接服务（桩引擎） ───────────────────────────────────
 def _free_port() -> int:
     with socket.socket() as s:
@@ -88,7 +108,7 @@ def _free_port() -> int:
 
 
 def _start_bridge(port: int, token: str, token_file: str,
-                  margin_out: str = None):
+                  margin_out: str = None, engine=None):
     """在后台线程里跑 websockets 服务（桩引擎）。返回 (server, holder, stop_fn)。"""
     import websockets
 
@@ -102,7 +122,9 @@ def _start_bridge(port: int, token: str, token_file: str,
     async def _main():
         async with websockets.serve(
             lambda ws: handle_ws(ws, tokens=tokens, delay_sec=10.0,
-                                  echo_mode=False, engine=StubEngine(),
+                                  echo_mode=False,
+                                  engine=(engine if engine is not None
+                                          else StubEngine()),
                                   session_holder=holder,
                                   margin_out=margin_out),
             "127.0.0.1", port, origins=None, max_size=32 * 1024 * 1024,
@@ -174,7 +196,7 @@ def test_p1_plumbing() -> None:
 
         # ★ 实时喂帧用 realtime=False（桩引擎下不需要真实节拍，
         #   但**必须**走 flush / stats / 收尾这些路径）
-        tasks, hello, t_cap = asyncio.run(p1_pipeline._run_client(
+        tasks, hello, t_cap, _timing = asyncio.run(p1_pipeline._run_client(
             port=port, token=token, frames=frames, delay_sec=10.0,
             recv_timeout=30.0, realtime=False, expect_segments=expected))
 
@@ -488,7 +510,7 @@ def test_realtime_feed_path() -> None:
               f"{expected} 段")
 
         t0 = time.perf_counter()
-        tasks, hello, t_cap = asyncio.run(p1_pipeline._run_client(
+        tasks, hello, t_cap, _timing = asyncio.run(p1_pipeline._run_client(
             port=port, token=token, frames=frames, delay_sec=10.0,
             recv_timeout=30.0, realtime=True, expect_segments=expected))
         elapsed = time.perf_counter() - t0
@@ -561,7 +583,7 @@ def test_dump_margin_on_demand() -> None:
         frames = p1_pipeline.frame_payload(audio)
         expected = p1_pipeline.expected_segment_count(audio, 16000)
 
-        tasks, hello, t_cap = asyncio.run(p1_pipeline._run_client(
+        tasks, hello, t_cap, _timing = asyncio.run(p1_pipeline._run_client(
             port=port, token=token, frames=frames, delay_sec=10.0,
             recv_timeout=30.0, realtime=False, expect_segments=expected))
 
@@ -776,6 +798,206 @@ def test_orchestrator_margin_dump_path() -> None:
             pass
 
 
+def test_client_waits_for_stats_not_sleep() -> None:
+    """★ 缺陷 16（本轮实测抓到的真缺陷）：客户端收尾**必须等 stats 回包**。
+
+    实测现象（`.tmp/p1_run6/`）：
+      * `pipeline.log` 打出「⚠️ 未收到 margin_dumped 确认（margin.json 可能缺失）」；
+      * `p1_report.json` 里 `bridge_stats: null`、`margin: null`
+        ⇒ **EXT-006 的三项核心验收量（余量分布 / 余量<0 句数 / 累计滞后）
+          在报告里依然拿不到**（虽然 `margin.json` 最后由编排器的另一条
+          连接侥幸落盘了，但那是「双保险」，不是正常路径）；
+      * 客户端代码当时是「发 stats → `sleep(1.5)` → 发 dump_margin → 断开」。
+
+    成因：服务端消息循环是**单线程串行**的 —— 一帧 `pcm` 就要
+    `await asyncio.to_thread(session.on_pcm_frame, msg)` 跑完
+    ASR→MT→TTS（真实引擎单段 30~60 s）才回到循环读下一条消息。
+    ⇒ 客户端收尾时发的 `stats` / `dump_margin` **排在积压队列后面**，
+      服务端要清完积压才看得到它们
+    ⇒ `sleep(1.5)` 远远不够 ⇒ 客户端断开 ⇒ 这两条消息被丢掉。
+
+    修法：客户端**真的等 stats 事件**（拿到 stats 即证明服务端已清空积压、
+    回到消息循环）⇒ 随后的 `dump_margin` 才会被立刻处理。
+
+    本自测用一个**慢桩引擎**（每段 sleep 0.35 s）制造积压，
+    断言：
+      ① 客户端**确实等到了** stats（`report["bridge_stats"]` 非空）；
+      ② 报告里 `margin` 非空且含 `n_segments`；
+      ③ 反向断言：**旧写法**（sleep 后不等 stats）在同样条件下拿不到 stats
+        ⇒ 证明这条断言**有区分力**，不是恒真。
+    """
+    print("\n[P1] EXT-006 — 缺陷 16：收尾必须等 stats 回包（不能 sleep）")
+    import p1_pipeline
+
+    tmp = os.path.join(ROOT, ".tmp", "p1_stats_wait")
+    os.makedirs(tmp, exist_ok=True)
+    wav_path = os.path.join(tmp, "sw.wav")
+    token_path = os.path.join(tmp, "token.txt")
+    margin_path = os.path.join(tmp, "margin.json")
+    with open(token_path, "w", encoding="utf-8") as f:
+        f.write("stats-wait-token-789")
+    with open(token_path, "r", encoding="utf-8") as f:
+        token = f.read().strip()
+    _make_wav(wav_path, 45.0)
+    if os.path.exists(margin_path):
+        os.remove(margin_path)
+
+    port = _free_port()
+    # ★ 用**慢桩引擎**（每段 0.35 s）制造服务端积压，
+    #   并配 margin_out ⇒ 服务端才会真的落盘 margin.json。
+    th, holder = _start_bridge(port, token, token_path,
+                                margin_out=margin_path,
+                                engine=SlowStubEngine(per_seg_sec=0.35))
+    try:
+        audio, sr = p1_pipeline.read_wav_16k_mono(wav_path)
+        frames = p1_pipeline.frame_payload(audio)
+        expected = p1_pipeline.expected_segment_count(audio, 16000)
+        tasks, hello, t_cap, timing = asyncio.run(p1_pipeline._run_client(
+            port=port, token=token, frames=frames, delay_sec=10.0,
+            recv_timeout=60.0, realtime=False, expect_segments=expected))
+
+        stats = [t for t in tasks if t.get("type") == "_stats"]
+        check("★ 客户端**等到了** stats 回包（不是 sleep 硬等）",
+              len(stats) >= 1, f"{len(stats)} 条 stats")
+        if stats:
+            m = stats[-1].get("margin") or {}
+            check("★ stats 里带 margin 汇总",
+                  "n_segments" in m, str(list(m.keys()))[:120])
+            check("★ margin 汇总里 n_segments > 0（真有数据）",
+                  int(m.get("n_segments") or 0) > 0,
+                  f"n_segments={m.get('n_segments')}")
+            # ★★ 缺陷 17：顶层必须是**排程口径**（否则读出「零滞后」假结论）
+            check("★ margin 汇总顶层标明口径（basis=deadline）",
+                  m.get("basis") == "deadline", f"basis={m.get('basis')}")
+            check("★ margin 汇总顶层含 definition（可核对口径）",
+                  isinstance(m.get("definition"), str)
+                  and len(m.get("definition")) > 5,
+                  str(m.get("definition"))[:100])
+
+        # 走一遍真实的报告组装路径 ⇒ 确认 bridge_stats / margin 不再是 null
+        seg_tasks = [t for t in tasks if t.get("type") == "tts"]
+        metrics, per_seg = p1_pipeline.compute_metrics(
+            seg_tasks, delay_sec=10.0,
+            margin_summary=(stats[-1].get("margin") if stats else None))
+        check("★ 报告里的 margin 字段非空（EXT-006 三项验收量入口）",
+              isinstance(metrics.get("margin"), dict)
+              and "n_segments" in (metrics.get("margin") or {}),
+              str(metrics.get("margin"))[:160])
+        # ★ 缺陷 16 的落盘侧：客户端这一路就该把 margin.json 写出来
+        #   （旧写法：客户端断开 ⇒ 服务端还在积压 ⇒ 拿不到确认 ⇒ 文件缺失）
+        check("★ 客户端收尾后 margin.json 已落盘（正常路径，不靠编排器双保险）",
+              os.path.isfile(margin_path), margin_path)
+    finally:
+        try:
+            th.stop()
+        except Exception:
+            pass
+
+    # ★ 反向断言：证明「等 stats」这个条件**有区分力**
+    #    —— 若不等 stats（等价于旧写法），stats 列表就是空的。
+    src = open(os.path.join(ROOT, "tools", "p1_pipeline.py"),
+               encoding="utf-8").read()
+    check("★ 反向断言：源码里 stats 回包是**等事件**而非 sleep 硬等",
+          "stats_got.wait()" in src and "stats_got = asyncio.Event()" in src,
+          "源码含 stats_got.wait()")
+    check("★ 反向断言：旧写法（只 sleep 不等 stats）已不在源码里",
+          'await asyncio.sleep(1.5)\n            await ws.send(json.dumps({"type": "dump_margin"}))'
+          not in src,
+          "旧的 sleep(1.5) 路径已移除")
+
+    # ★★★ 缺陷 16 的**行为级**反向断言 ★★★
+    #   上面的源码字符串检查只能证明「代码长这样」，不能证明
+    #   「不等 stats 就真的拿不到 stats」⇒ 假通过风险。
+    #   ⇒ 这里**真的跑一遍旧写法**：发 stats → sleep(1.5) → 发 dump_margin
+    #     → 立刻断开，统计它收到几条 stats。
+    #   期望：旧写法收到 **0 条** stats（服务端还在积压，看不到 stats 请求）
+    #         新写法收到 **≥1 条**（上面已断言）
+    #   ⇒ 两者一对比 ⇒ 这条断言**有区分力**，不是恒真。
+    print("\n[P1] EXT-006 — 缺陷 16 行为级反向断言（旧写法拿不到 stats）")
+    port2 = _free_port()
+    # ★ 慢引擎 3.0 s/段 ⇒ 3 段共 **9 s** 服务端处理时间。
+    #   实测时序（探针 .tmp/probe_legacy.py）：
+    #     客户端喂 750 帧要 4.32 s；旧写法的等待窗口 = 1.5 + 0.2 = 1.7 s
+    #   ⇒ 需要 3 × per_seg_sec > 4.32 + 1.7 = 6.02 s 才有确定性的积压
+    #   ⇒ 取 3.0 s/段（9 s）⇒ 余量充足，**不靠运气**。
+    th2, holder2 = _start_bridge(port2, token, token_path,
+                                  engine=SlowStubEngine(per_seg_sec=3.0))
+    try:
+        got = asyncio.run(_legacy_no_wait_stats_run(port2, token, frames))
+        check("★ 反向断言（旧写法）：不等 stats ⇒ **收不到 stats 回包**",
+              got == 0, f"旧写法收到 {got} 条 stats（期望 0）")
+        check("★ 反向断言有区分力：新写法拿到 ≥1 条 vs 旧写法 0 条",
+              len(stats) >= 1 and got == 0,
+              f"新 {len(stats)} 条 / 旧 {got} 条")
+    finally:
+        try:
+            th2.stop()
+        except Exception:
+            pass
+
+
+async def _legacy_no_wait_stats_run(port: int, token: str, frames) -> int:
+    """★ 缺陷 16 的**旧写法**复现（仅用于自测，证明断言有区分力）。
+
+    旧写法：发 `stats` → `sleep(1.5)` → 发 `dump_margin` → 立刻断开。
+    服务端此时还在处理积压的 `pcm`（慢引擎每段 0.35 s）⇒
+    根本看不到 `stats` 请求 ⇒ 客户端**收不到任何 stats 回包**。
+
+    Returns
+    -------
+    int
+        收到的 stats 条数（旧写法下应为 0）。
+    """
+    import websockets
+
+    got = {"n": 0}
+
+    async def _run():
+        uri = "ws://127.0.0.1:%d" % port
+        async with websockets.connect(
+                uri,
+                origin="chrome-extension://kekgmfkijphpfndbbpakjaokamkeooib",
+                additional_headers={"X-Bridge-Token": token},
+                max_size=32 * 1024 * 1024,
+                ping_interval=None) as ws:
+            await ws.send(json.dumps({"type": "hello", "role": "p1_probe",
+                                      "token": token}))
+            await asyncio.wait_for(ws.recv(), timeout=30)
+
+            async def _recv():
+                while True:
+                    raw = await ws.recv()
+                    msg = json.loads(raw)
+                    if msg.get("type") == "stats":
+                        got["n"] += 1
+
+            rx = asyncio.ensure_future(_recv())
+            try:
+                for seq, sidx, pcm in frames:
+                    await ws.send(json.dumps({
+                        "type": "pcm", "seq": seq, "sample_index": sidx,
+                        "pcm": base64.b64encode(pcm).decode("ascii"),
+                    }))
+                await ws.send(json.dumps({"type": "flush"}))
+                # ★ 旧写法：不等 stats，只 sleep 一下就发 dump_margin
+                await ws.send(json.dumps({"type": "stats"}))
+                await asyncio.sleep(1.5)
+                await ws.send(json.dumps({"type": "dump_margin"}))
+                await asyncio.sleep(0.2)
+            finally:
+                rx.cancel()
+                try:
+                    await rx
+                except BaseException:
+                    pass
+
+    try:
+        await _run()
+    except Exception:
+        pass
+    return got["n"]
+
+
 def main() -> int:
     print("=" * 68)
     print("EXT P1 管线连通性自测（桩引擎 / 不跑推理 / 不占 GPU·NPU / 不抢锁）")
@@ -786,7 +1008,8 @@ def main() -> int:
                test_realtime_feed_path,
                test_dump_margin_on_demand,
                test_expected_segment_count_strict,
-               test_orchestrator_margin_dump_path):
+               test_orchestrator_margin_dump_path,
+               test_client_waits_for_stats_not_sleep):
         try:
             fn()
         except Exception:

@@ -346,6 +346,50 @@ def test_ext005_ext006_behaviors() -> None:
               all(k in dl for k in ("n_negative", "p50", "p95",
                                    "cumulative_lag_sec")))
 
+    # ★★ 缺陷 17：顶层口径必须是**排程口径**，否则读出「零滞后」假结论。
+    #   实测（.tmp/p1_run6/margin.json）：旧顶层用「就绪延迟」口径
+    #   ⇒ n_negative=0 / cumulative_lag_sec=0.0（假），
+    #   而 deadline 组是 n_negative=19 / -2841.3498（真）。
+    #   ⇒ 断言：顶层 basis 必须是 deadline，且顶层值 == deadline 组值。
+    check("★ 顶层余量口径标注为 deadline（缺陷 17）",
+          summ.get("basis") == "deadline", f"basis={summ.get('basis')}")
+    check("★ 顶层余量带 definition（reviewer 可核对口径）",
+          isinstance(summ.get("definition"), str)
+          and len(summ.get("definition")) > 5,
+          str(summ.get("definition"))[:100])
+    if "deadline" in summ:
+        check("★ 顶层 n_negative == deadline 组 n_negative（口径一致）",
+              summ.get("n_negative") == summ["deadline"].get("n_negative"),
+              f"top={summ.get('n_negative')} "
+              f"dl={summ['deadline'].get('n_negative')}")
+        check("★ 顶层累计滞后 == deadline 组累计滞后（口径一致）",
+              abs(float(summ.get("cumulative_lag_sec") or 0.0)
+                  - float(summ["deadline"].get("cumulative_lag_sec") or 0.0))
+              < 1e-6,
+              f"top={summ.get('cumulative_lag_sec')} "
+              f"dl={summ['deadline'].get('cumulative_lag_sec')}")
+    check("★ 就绪延迟口径保留为子组（原始信息不丢）",
+          "ready_after_orig_end" in summ,
+          f"keys={sorted(summ.keys())}")
+
+    # ★★ 反向断言：证明「顶层用排程口径」这条**有区分力**。
+    #   构造一组「就绪延迟恒正、排程余量恒负」的逐句数据
+    #   （= 实测 p1_run6 的形态）⇒
+    #   旧口径读出 n_negative=0（假：零滞后）
+    #   新口径读出 n_negative=全部（真：全部赶不上播放时刻）
+    from ext.bridge import summarize_margins
+    _fake = [{"margin_sec": 40.0 + i, "deadline_margin_sec": -(40.0 + i)}
+             for i in range(5)]
+    _s = summarize_margins(_fake)
+    check("★ 反向断言：就绪延迟恒正时，旧口径会读出 n_negative=0（假结论）",
+          sum(1 for m in _fake if m["margin_sec"] < 0) == 0,
+          "旧口径确实是 0")
+    check("★ 反向断言：新口径读出 n_negative=5（真结论，非恒真）",
+          _s.get("n_negative") == 5, f"n_negative={_s.get('n_negative')}")
+    check("★ 反向断言：新口径累计滞后为负（真滞后）",
+          float(_s.get("cumulative_lag_sec") or 0.0) < 0,
+          f"cumulative_lag_sec={_s.get('cumulative_lag_sec')}")
+
     print("\n[9] EXT-006 — 引擎语言映射守卫（必须显式传目标语言）")
     from ext.engine_runtime import (LANG_TO_MT, LANG_TO_TTS,
                                     EngineNeedsChange, RuntimeEngine)

@@ -95,7 +95,9 @@ def frame_payload(audio: np.ndarray, frame_ms: int = FRAME_MS):
 async def _run_client(*, port: int, token: str, frames, delay_sec: float,
                       recv_timeout: float, realtime: bool = True,
                       frame_ms: int = FRAME_MS, expect_segments: int = 0,
-                      flush: bool = True):
+                      flush: bool = True,
+                      stats_timeout: float = 300.0,
+                      dump_timeout: float = 60.0):
     """连桥接服务、喂帧、收配音任务。返回 (tasks, hello_ack, t_capture)。
 
     ★ `realtime=True`（P1 验收必须）：按**墙钟节拍**逐帧上行，模拟插件真实行为。
@@ -103,11 +105,19 @@ async def _run_client(*, port: int, token: str, frames, delay_sec: float,
       若一次性把 5 分钟音频灌进去，服务端会在几秒内处理完 ⇒ 余量恒为巨大正值、
       滞后恒为 0 ⇒ 指标**失去意义**（拿到的是假数据）。
       只有按真实速率喂，服务端才会像线上一样「边收边做」，滞后才会显现。
+
+    ★ `stats_timeout` / `dump_timeout`（缺陷 16）：服务端消息循环是**单线程串行**的，
+      一帧 `pcm` 就要跑完 ASR→MT→TTS（真实引擎单段 30~60 s）。
+      ⇒ 收尾时客户端发的 `stats` / `dump_margin` 会排在积压队列后面，
+      服务端要清完积压才看得到 ⇒ 必须**真的等回包**（事件），
+      不能 sleep 一下就当拿到（详见函数体内「缺陷 16」注释）。
+      默认 300 s / 60 s：够跑完最后几段的推理。
     """
     import websockets
 
     tasks: List[dict] = []
     hello: dict = {}
+    timing: dict = {}
     uri = "ws://127.0.0.1:%d" % port
 
     async with websockets.connect(
@@ -124,6 +134,7 @@ async def _run_client(*, port: int, token: str, frames, delay_sec: float,
         hello = json.loads(raw)
 
         margin_dumped = asyncio.Event()
+        stats_got = asyncio.Event()
 
         async def _recv_loop():
             while True:
@@ -142,6 +153,7 @@ async def _run_client(*, port: int, token: str, frames, delay_sec: float,
                     #   ⇒ EXT-006 的核心验收量（margin 余量统计）**全部丢失**，
                     #   且收尾循环永远等不到 stats 只能干等 recv_timeout。
                     tasks.append({**msg, "type": "_stats"})
+                    stats_got.set()
 
         rx = asyncio.ensure_future(_recv_loop())
         t_capture = time.perf_counter()
@@ -190,8 +202,26 @@ async def _run_client(*, port: int, token: str, frames, delay_sec: float,
                     stable_rounds = 0
                 last_n = n_seg
             # 主动要一份 stats（服务端回包里带 margin 汇总）
+            # ★★ 缺陷 16（本轮实测抓到的真缺陷）：**不能 sleep 一下就当拿到 stats**。
+            #   服务端的消息循环是**单线程串行**的：每来一帧 `pcm`，
+            #   它要 `await asyncio.to_thread(session.on_pcm_frame, msg)`
+            #   跑完 ASR→MT→TTS（真实引擎单段要 30~60 s！）才回到循环读下一条消息。
+            #   ⇒ 客户端在收尾时发的 `stats` / `dump_margin` 会**排在积压队列后面**，
+            #     服务端要先把积压的 pcm 全处理完才会看到它们。
+            #   ⇒ 实测（.tmp/p1_run6/）：客户端 sleep 1.5 s 后就发 dump_margin 并断开
+            #     ⇒ 报「⚠️ 未收到 margin_dumped 确认」
+            #     ⇒ 报告里 `bridge_stats: null`、`report.margin: null`
+            #     ⇒ 最后是**编排器另开一条连接**才把 margin.json 落盘
+            #       （靠那条「新连接」侥幸成功，不是正常路径）。
+            #   修法：**真的等 stats 回来**（事件），拿到 stats 说明服务端
+            #     已经把积压处理完、回到了消息循环 ⇒ 随后的 dump_margin
+            #     才**立刻**被处理 ⇒ margin_dumped 确认能及时到达。
             await ws.send(json.dumps({"type": "stats"}))
-            await asyncio.sleep(1.5)
+            try:
+                await asyncio.wait_for(stats_got.wait(), timeout=stats_timeout)
+            except Exception:
+                print("[p1] ⚠️ 未收到 stats 回包（服务端积压未清空？）",
+                      flush=True)
             # ★★ 缺陷 14 修复：让服务端**主动把余量统计写盘**。
             #   服务端的 `finally` 落盘路径在 SIGTERM 下**不会执行**
             #   （编排器停服务用 terminate ⇒ 进程直接死 ⇒ finally 跳过）
@@ -205,13 +235,16 @@ async def _run_client(*, port: int, token: str, frames, delay_sec: float,
             #   不能只 sleep 一下就断开 —— 服务端此刻可能还在处理
             #   最后一段推理，连接一断消息就丢了 ⇒ margin.json 又缺失。
             try:
-                await asyncio.wait_for(margin_dumped.wait(), timeout=10.0)
+                await asyncio.wait_for(margin_dumped.wait(),
+                                       timeout=dump_timeout)
             except Exception:
                 print("[p1] ⚠️ 未收到 margin_dumped 确认"
                       "（margin.json 可能缺失）", flush=True)
             t_done = time.perf_counter()
+            timing = {"feed_sec": t_sent - t_capture,
+                      "drain_sec": t_done - t_sent}
             print("[p1] 喂帧 %.1f s，收尾 %.1f s，共 %d 段"
-                  % (t_sent - t_capture, t_done - t_sent,
+                  % (timing["feed_sec"], timing["drain_sec"],
                      sum(1 for t in tasks if t.get("type") == "tts")),
                   flush=True)
         finally:
@@ -227,7 +260,7 @@ async def _run_client(*, port: int, token: str, frames, delay_sec: float,
                 #   ⇒ 已经算好的配音 wav / 时间表 / 指标**全部拿不到**
                 #   （本轮用桩引擎自测实测复现：连接以 1011 收尾、进程 traceback）。
                 pass
-    return tasks, hello, t_capture
+    return tasks, hello, t_capture, timing
 
 
 # ── 指标 ────────────────────────────────────────────────────────────
@@ -461,7 +494,7 @@ def main(argv=None) -> int:
 
     realtime = not args.fast
     if args.no_lock:
-        tasks, hello, t_capture = asyncio.run(_run_client(
+        tasks, hello, t_capture, timing = asyncio.run(_run_client(
             port=args.port, token=token, frames=frames,
             delay_sec=args.delay, recv_timeout=args.recv_timeout,
             realtime=realtime, expect_segments=expected_segs))
@@ -470,7 +503,7 @@ def main(argv=None) -> int:
         try:
             with lock_ctx:
                 print("[p1] 已取得共享锁")
-                tasks, hello, t_capture = asyncio.run(_run_client(
+                tasks, hello, t_capture, timing = asyncio.run(_run_client(
                     port=args.port, token=token, frames=frames,
                     delay_sec=args.delay, recv_timeout=args.recv_timeout,
                     realtime=realtime, expect_segments=expected_segs))
@@ -483,6 +516,24 @@ def main(argv=None) -> int:
     seg_tasks = [t for t in tasks if t.get("type") == "tts"]
     stats_msgs = [t for t in tasks if t.get("type") == "_stats"]
     margin_summary = (stats_msgs[-1].get("margin") if stats_msgs else None)
+    margin_source = ("stats" if margin_summary else None)
+    # ★★ 兜底：stats 没到（例如服务端还在积压、客户端提前断开）时，
+    #   服务端**可能已经把 margin.json 写盘了** ⇒ 从磁盘读回来，
+    #   避免 EXT-006 的三项核心验收量在报告里是 null。
+    #   （实测 p1_run6：报告 bridge_stats=null / margin=null，
+    #     但 margin.json 里有 19 段真数据。）
+    if not margin_summary:
+        _mjson = os.path.join(out_dir, "margin.json")
+        if os.path.isfile(_mjson):
+            try:
+                with open(_mjson, "r", encoding="utf-8") as f:
+                    _d = json.load(f)
+                _ms = _d.get("margin_summary") or {}
+                if _ms.get("n_segments"):
+                    margin_summary = _ms
+                    margin_source = "margin.json"
+            except Exception:
+                pass
 
     metrics, per_seg = compute_metrics(seg_tasks, delay_sec=args.delay,
                                        margin_summary=margin_summary)
@@ -497,6 +548,14 @@ def main(argv=None) -> int:
         "dub_wavs": wavs,
         "per_segment": per_seg,
         "bridge_stats": (stats_msgs[-1] if stats_msgs else None),
+        # ★ margin_summary 的来源（"stats" = 收到 stats 回包；
+        #   "margin.json" = 从磁盘兜底读回；None = 都没有 ⇒ 真拿不到）
+        "margin_source": margin_source,
+        # ★ 喂帧 / 收尾两段耗时分开记（缺陷 16）：
+        #   `feed_sec` ≈ 音频时长（证明按墙钟节拍喂、不是快灌）；
+        #   `drain_sec` = 等服务端清积压（stats/dump_margin 回包）的时长
+        #   ⇒ 真实引擎下单段推理 30~60 s，这个值会很大（不是异常）。
+        "timing": timing,
     })
     _dump(os.path.join(out_dir, "p1_report.json"), report)
     _dump(os.path.join(out_dir, "p1_timeline.json"), {

@@ -98,12 +98,19 @@ def _single_instance_guard(pid_file: str):
 
 def _request_margin_dump(port: int, token_file: Optional[str] = None,
                          timeout: float = 8.0) -> bool:
-    """请服务端**主动**把余量统计写盘（缺陷 14 修复）。
+    """请服务端**主动**把余量统计写盘（缺陷 14 修复 / 缺陷 15 后的双保险）。
 
     为什么需要：服务端停服务时收到 SIGTERM ⇒ 进程直接退出 ⇒
     Python 的 `finally` **不会执行** ⇒ `margin.json` 永远不落盘。
     ⇒ 这里走正常的 WebSocket 通道发一条 `dump_margin`，
       服务端收到后立刻写盘（不依赖进程退出路径）。
+
+    ★ 缺陷 15：这条连接**不会**顶替真会话 —— 服务端 `handle_ws` 现在
+      遇到已有活跃会话时不再改写 `session_holder["session"]`，
+      而 `dump_margin` 落盘读的是 `session_holder["session"]`（= 真会话）
+      ⇒ 这条「双保险」路**既能落盘、又不会把真数据清空**
+      （实测 .tmp/p1_run6/：「已有活跃会话 ⇒ 本连接不顶替」，
+        「余量统计已落盘（19 段）」）。
     """
     try:
         import json as _json

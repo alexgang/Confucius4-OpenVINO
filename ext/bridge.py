@@ -70,6 +70,96 @@ def check_origin(origin: Optional[str]) -> bool:
     return origin.startswith(C.ALLOWED_ORIGIN_PREFIX)
 
 
+# ── EXT-006 P1：余量汇总（★ 缺陷 17：顶层口径修正） ──────────────
+def _percentile(sorted_vals: List[float], p: float) -> float:
+    """线性近似的分位数（与 `tools/p1_pipeline.py::_pct` 同口径）。"""
+    if not sorted_vals:
+        return 0.0
+    k = min(len(sorted_vals) - 1,
+            max(0, int(round(p * (len(sorted_vals) - 1)))))
+    return sorted_vals[k]
+
+
+def summarize_margins(margins: List[dict]) -> dict:
+    """汇总逐句余量 ⇒ EXT-006 P1 的三项核心验收量。
+
+    ★ 缺陷 17：**顶层必须是 deadline（排程）口径**。
+
+    EXT-001 P1 原文要的是「每句『原声结束 → TTS 就绪』的**余量分布**、
+    **余量 < 0 的句数**、**累计漂移**」。
+
+    ⚠️ 这里的「余量」必须**先厘清基准**，否则会读出假结论：
+
+    | 口径 | 定义 | 负数意味着 |
+    |---|---|---|
+    | **排程余量**（顶层，`basis="deadline"`） | `(t0 + t_start + D) − TTS就绪时刻` | **赶不上自己的播放时刻** ⇒ 这句会压后播 ⇒ **这才是「滞后」** |
+    | 就绪延迟（`ready_after_orig_end`） | `TTS就绪时刻 − (t0 + t_end)` | 几乎恒为正 ⇒ 负数**没有**滞后含义 |
+
+    实测（`.tmp/p1_run6/margin.json`）：就绪延迟口径下顶层读出
+    `n_negative=0`、`cumulative_lag_sec=0.0`（**假结论：零滞后**），
+    而排程口径的真值是 `n_negative=19`、`cumulative_lag_sec=-2841.3498`。
+
+    ⇒ 顶层用排程口径；就绪延迟口径保留为子组（原始信息不丢）。
+
+    Parameters
+    ----------
+    margins : list of dict
+        每段一条，至少含 `deadline_margin_sec`（可缺）与 `margin_sec`。
+
+    Returns
+    -------
+    dict
+        顶层 = 排程口径验收量；`deadline` = 同值别名（向后兼容）；
+        `ready_after_orig_end` = 就绪延迟口径。
+    """
+    dl = [float(m.get("deadline_margin_sec") or 0.0) for m in margins
+          if m.get("deadline_margin_sec") is not None]
+    rd = [float(m.get("margin_sec") or 0.0) for m in margins]
+
+    def _group(vals: List[float]) -> dict:
+        cum = 0.0
+        peak = 0.0
+        for v in vals:
+            cum += min(0.0, v)
+            peak = min(peak, cum)
+        g = {
+            "n_negative": sum(1 for v in vals if v < 0),
+            "cumulative_lag_sec": round(cum, 4),
+            "peak_lag_sec": round(peak, 4),
+        }
+        if vals:
+            s = sorted(vals)
+            g.update({
+                "min": round(s[0], 4),
+                "p50": round(_percentile(s, 0.50), 4),
+                "p95": round(_percentile(s, 0.95), 4),
+                "max": round(s[-1], 4),
+                "mean": round(sum(vals) / len(vals), 4),
+            })
+        return g
+
+    out = {"n_segments": len(margins)}
+    out.update(_group(dl))
+    out["basis"] = "deadline"
+    out["definition"] = ("排程余量 = (t0 + t_start + D) − TTS就绪时刻；"
+                         "负数 = 该句赶不上自己的播放时刻（滞后）")
+    # 向后兼容：旧读取方读 out["deadline"] 取排程口径
+    out["deadline"] = {
+        "n_negative": out["n_negative"],
+        "cumulative_lag_sec": out["cumulative_lag_sec"],
+        "peak_lag_sec": out["peak_lag_sec"],
+        **({"min": out["min"], "p50": out["p50"], "p95": out["p95"],
+            "max": out["max"], "mean": out["mean"]} if "min" in out else {}),
+    }
+    # 就绪延迟口径（原始信息保留，不作为验收量）
+    out["ready_after_orig_end"] = {
+        **_group(rd),
+        "definition": ("就绪延迟 = TTS就绪时刻 − (t0 + t_end)；"
+                       "正数 = 配音比原声结束晚多久可用（不是滞后）"),
+    }
+    return out
+
+
 class Session:
     """一次配音会话。
 
@@ -325,66 +415,35 @@ class Session:
     def margin_summary(self) -> dict:
         """★ EXT-006 P1 核心验收量。
 
-        「原声结束 → TTS 就绪」的余量分布、余量 < 0 的句数、累计滞后。
+        ★★ 缺陷 17（本轮实测抓到的真缺陷）：**顶层的口径曾经是错的**。
 
-        * `margin_sec` 负数 ⇒ 配音**来不及**在该段原声结束前就绪
-          ⇒ 播放时该段配音会**压后**（顺延），连续负值 ⇒ 滞后累积。
-        * `cumulative_lag_sec` = 负余量的**累计**（不抵消），
-          近似「5 分钟结束时的累计滞后」。
-        * `deadline` 一组 = **排程截止余量**（EXT-001 的实际排程时刻
-          `t0 + t_start + D` 减去就绪时刻）⇒ 负数 = 这句**赶不上自己的播放时刻**
-          ⇒ 这是比 `margin_sec` 更贴近「用户能不能听上配音」的口径。
+        旧实现顶层用 `margin_sec`（= TTS就绪时刻 − (t0 + t_end)，
+        即「原声结束后**多久**配音才可用」的**延迟**）来算
+        `n_negative` / `cumulative_lag_sec` ⇒ 在**按墙钟实时喂帧**的
+        P1 实测里，这个延迟**恒为正**（37~250 s）⇒
+        顶层读出来是 **`n_negative=0`、`cumulative_lag_sec=0.0`**
+        ⇒ 读的人会得出「**零句超时、零累计滞后**」的**假结论**，
+        而同一份文件里的 `deadline` 组却是
+        `n_negative=19`、`cumulative_lag_sec=-2841.3498`（实测真值）。
+
+        ⇒ 根因：**EXT-001 的「余量 < 0 的句数」必须是「赶不上播放时刻」
+          的口径**（负数 = 配音赶不上 `t0 + t_start + D`），
+          而不是「比原声结束晚了多久」的延迟口径。
+          延迟口径下「负数」几乎没有意义（配音比原声结束更早可用是好事）。
+
+        ⇒ 修法：顶层**改用 deadline 口径**（EXT-001 排程口径），
+          延迟口径降级为 `ready_after_orig_end` 子组（保留原始信息，不丢）。
+          两组都带 `definition` 字符串 ⇒ reviewer 可自行核对口径。
+
+        返回结构：
+          * 顶层 = EXT-001 验收量（deadline 口径）：
+            `n_segments` / `n_negative` / `cumulative_lag_sec` /
+            `peak_lag_sec` / `min` / `p50` / `p95` / `max` / `mean`
+            + `basis` / `definition`
+          * `deadline` 子组 = 顶层同值的**别名**（向后兼容旧读取方）
+          * `ready_after_orig_end` 子组 = 旧的延迟口径（保留原始信息）
         """
-        ms = [m["margin_sec"] for m in self.margins]
-        neg = [m for m in ms if m < 0]
-        cum = 0.0
-        peak = 0.0
-        for v in ms:
-            cum += min(0.0, v)
-            peak = min(peak, cum)
-        out = {
-            "n_segments": len(ms),
-            "n_negative": len(neg),
-            "cumulative_lag_sec": round(cum, 4),
-            "peak_lag_sec": round(peak, 4),
-        }
-        if ms:
-            s = sorted(ms)
-            def _pct(p):
-                k = min(len(s) - 1, max(0, int(round(p * (len(s) - 1)))))
-                return round(s[k], 4)
-            out.update({
-                "min": round(s[0], 4),
-                "p50": _pct(0.50),
-                "p95": _pct(0.95),
-                "max": round(s[-1], 4),
-                "mean": round(sum(ms) / len(ms), 4),
-            })
-        # ── 排程截止余量 ──────────────────────────────────────
-        dl = [m.get("deadline_margin_sec") for m in self.margins
-              if m.get("deadline_margin_sec") is not None]
-        if dl:
-            sd = sorted(dl)
-            cum_d = 0.0
-            peak_d = 0.0
-            for v in dl:
-                cum_d += min(0.0, v)
-                peak_d = min(peak_d, cum_d)
-
-            def _pct_d(p):
-                k = min(len(sd) - 1, max(0, int(round(p * (len(sd) - 1)))))
-                return round(sd[k], 4)
-            out["deadline"] = {
-                "n_negative": sum(1 for v in dl if v < 0),
-                "cumulative_lag_sec": round(cum_d, 4),
-                "peak_lag_sec": round(peak_d, 4),
-                "min": round(sd[0], 4),
-                "p50": _pct_d(0.50),
-                "p95": _pct_d(0.95),
-                "max": round(sd[-1], 4),
-                "mean": round(sum(dl) / len(dl), 4),
-            }
-        return out
+        return summarize_margins(self.margins)
 
 
 def _get_header(websocket, name: str) -> Optional[str]:
@@ -581,9 +640,20 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                     _dump_margin(session_holder or {}, margin_out,
                                  engine)
                     await websocket.send(json.dumps({
-                        "type": "margin_dumped", "path": margin_out}))
+                        "type": "margin_dumped", "path": margin_out,
+                        "dumped": True}))
                 else:
+                    # ★★ 缺陷 18：即使**没配 --margin-out**，也**必须**回确认。
+                    #   旧实现：不回确认 ⇒ 客户端只能干等 `dump_timeout`
+                    #   （默认 60 s）才放弃 ⇒ 每个没配落盘的会话都要白等 60 s
+                    #   （实测：桩引擎自测里「realtime 喂帧」耗时 76.55 s
+                    #     而音频只有 16.00 s ⇒ **超时的不是喂帧，是收尾**）。
+                    #   ⇒ 现在无论是否落盘都回 `margin_dumped`，
+                    #     用 `dumped` 字段区分「真落盘了」与「没配落盘路径」。
                     _log("收到 dump_margin 请求，但未配置 --margin-out（不落盘）")
+                    await websocket.send(json.dumps({
+                        "type": "margin_dumped", "path": None,
+                        "dumped": False}))
                 continue
             if mtype == "flush":
                 # ★ EXT-006 P1：客户端说「音频喂完了」⇒ 把**尾段**也处理掉。

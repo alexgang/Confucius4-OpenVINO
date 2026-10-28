@@ -518,3 +518,152 @@ mtime 均为 2026-10-28 06:11。）
 ### 提交
 - `2896635` EXT-006 P1：修 MT 模型目录解析 + 推理移出事件循环（keepalive 1011）
 - `d578750` EXT-006 P1：编排器加单实例守卫（重复启动 ⇒ 抢端口/覆盖产物）
+
+## 2026-10-28 11:28 — EXT-006 P1 续做：修掉 3 个「假数据」缺陷 + 重跑 P1 端到端实测
+
+### 闸门与接手判定
+
+- 闸门实跑 `tools/next_instruction.py --json` ⇒ **exit 1**
+  （`action=skip / reason=already_executed`，latest=EXT-006，last_ack=6，EXIT_CODE=1）。
+- ★ 但按本模块的**交叉证据**规则（闸门 exit 1 **不等于**真做完），
+  仓库状态证明上一轮在 commit `a170391`（§5.9）之后**被中断**：
+  1. `git status` **脏**（`tools/p1_pipeline.py` / `tools/run_p1_real.py` /
+     `tests/test_p1_plumbing.py`）⇒ 缺陷 16 的修复**从未提交**；
+  2. STATUS 正文有 §5.9 但**无 §5.10**（缺陷 16 的结论从未成文）；
+  3. `status/EXEC_LOG.md` **无 EXT-006 §5.9/§5.10 的流水记录**；
+  4. 上一轮新加的「缺陷 16」自测**本身跑不过**（4 FAIL，
+     `ValueError: too many values to unpack`）。
+- ⇒ 按「**未完成的轮次**」接手收口，**last_ack 保持 EXT-006**
+  （纠偏文件内**无 EXT-007**，不认领新编号）。
+
+### 本轮修掉的 3 个真实缺陷
+
+1. **缺陷 16 —— 客户端收尾必须等 stats 回包，不能 sleep 硬等**
+   - 成因：服务端消息循环**单线程串行**，一帧 `pcm` 要跑完
+     ASR→MT→TTS（真实引擎单段 30~60 s）才回到循环读下一条消息
+     ⇒ 收尾时发的 `stats`/`dump_margin` **排在积压队列后面**
+     ⇒ 旧的 `sleep(1.5)` 远远不够 ⇒ 客户端断开 ⇒ 这两条消息被丢掉
+     ⇒ 实测（`.tmp/p1_run6/`）报告里 `bridge_stats: null`、`margin: null`。
+   - 修法：**真的等 stats 事件**（拿到 stats 即证明服务端已清空积压），
+     新增 `stats_timeout=300.0` / `dump_timeout=60.0`；
+     报告新增 `timing`（`feed_sec` / `drain_sec`）与 `margin_source`；
+     **stats 缺失时从 `margin.json` 磁盘兜底**读回三项验收量。
+
+2. **缺陷 17（★ 最关键）—— 余量汇总的顶层口径是错的 ⇒ 读出「零滞后」假结论**
+   - 实测（`.tmp/p1_run6/margin.json`，19 段真数据）：
+     **旧顶层** `n_negative=0` / `cumulative_lag_sec=0.0`
+     vs 同文件 `deadline` 组 `19` / `−2841.3498`
+     ⇒ 顶层读出来是「**零句超时、零累计滞后**」，与事实**完全相反**。
+   - 根因：旧顶层用 `margin_sec`（= `TTS就绪时刻 − (t0 + t_end)`，
+     即「原声结束后**多久**配音才可用」的**延迟**）⇒ 在按墙钟实时喂帧时
+     **恒为正**（实测 37~250 s）⇒ 负数分支永不触发。
+     而 EXT-001 要的「余量<0 的句数 / 累计漂移」语义是
+     「**赶不上自己的播放时刻**」⇒ 必须用**排程口径**。
+   - 修法：`ext/bridge.py` 新增模块级 `summarize_margins()`，
+     **顶层改用排程口径**（带 `basis="deadline"` + `definition` 字符串）；
+     `deadline` 子组保留为同值别名（向后兼容）；
+     旧延迟口径降级为 `ready_after_orig_end` 子组（**原始信息不丢**）。
+
+3. **缺陷 18 —— 不配 `--margin-out` 时不回确认 ⇒ 客户端每次白等 60 s**
+   - 实测（桩引擎自测）：「realtime 喂帧」耗时 **76.55 s** 而音频只有 **16.00 s**
+     ⇒ 超时的**不是喂帧，是收尾** ⇒ 在等一个永远不会来的 `margin_dumped`。
+   - 修法：无论是否配落盘，**都回 `margin_dumped`**，
+     用 `dumped: true/false` 区分两种情况。
+
+### 修好上一轮遗留的「坏自测」（接手时发现的，不是本轮引入）
+
+- 上一轮把 `_run_client` 的返回值从 3 元组改成 4 元组（加 `timing`），
+  但**有 4 个调用点仍按 3 元组解包** ⇒ 该自测**直接抛异常**（4 FAIL）。
+- 上一轮的自测号称用「慢桩引擎制造积压」，实际却用**毫秒级返回**的
+  `StubEngine` ⇒ 根本没有积压 ⇒ **断言恒真**（假通过）。
+- ⇒ 本轮修好这两点，并把断言升级为**行为级**
+  （**真的跑一遍旧写法**：发 stats → `sleep(1.5)` → 发 dump_margin → 断开，
+  慢引擎 3.0 s/段制造 9 s 积压 ⇒ 断言旧写法收到 **0** 条 stats、
+  新写法收到 **≥1** 条 ⇒ 有区分力）。
+
+### 自测（四套全跑、0 FAIL）
+
+| 套件 | 结果 | 变化 |
+|---|---|---|
+| `tests/test_ext_selfcheck.py` | **85 PASS / 0 FAIL** | 原 77 ⇒ **+8**（缺陷 17 口径断言 + 反向断言） |
+| `tests/test_echo_roundtrip.py` | **10 PASS / 0 FAIL** | 未变 |
+| `tests/test_next_instruction.py` | **19 PASS / 0 FAIL** | 未变 |
+| `tests/test_p1_plumbing.py` | **69 PASS / 0 FAIL** | 原 58（HEAD `a170391`）⇒ **+11** |
+| **合计** | **183 PASS / 0 FAIL** | |
+
+### P1 端到端实测重跑（真实三引擎，`.tmp/p1_run7/`）
+
+- 编排器 `tools/run_p1_real.py --wav shared/SPE_0000_0500.wav --target-lang ja
+  --port 8791 --out .tmp/p1_run7 --lock-wait 5400` ⇒ **pipeline rc=0**。
+- 冒烟原始字段：ASR `sec=20.373`/`rtf=1.0186`、MT `sec=5.61`（**日文输出正确**）、
+  TTS `sec=31.738`/`rtf=1.5997`/`speech_sec=19.84`；`runtime_ok=true`。
+  ⇒ **端到端 RTF = (20.373+5.61+31.738)÷20.0 = 2.886**
+  （与 §5.9 的 2.861 一致 ⇒ 架构级结论稳定）。
+- **三项核心验收量（EXT-006 要的那三项）首次正常拿到**：
+
+  | 验收量 | run7 实测 | 修前（run6 顶层） |
+  |---|---|---|
+  | 余量分布 | `p50=−182.5328` / `min=−304.3427` / `max=−42.9135` | ⛔ **null** |
+  | 余量<0 句数 | `n_negative=**22**` | ⛔ 顶层读出 **0**（假结论） |
+  | 5 分钟累计滞后 | `cumulative_lag_sec=**−3969.5098**` | ⛔ 顶层读出 **0.0**（假结论） |
+
+  ⇒ `bridge_stats` 不再为 null（`margin_source="stats"` ⇒ **正常路径**，
+  非编排器双保险兜底）；`margin.json` 落盘 **22 段**真数据。
+- P1 指标**仍不达标**：`sync_err_ms` p50=**170 153.2** / p95=**297 884.7** /
+  max=**304 342.7** / `n_over_target=**22**`（22/22 全部超标）；
+  变速 `p95=1.25`/`max=1.25` 未超封顶；`n_dub_wavs=22`；
+  `timing={"feed_sec":570.96,"drain_sec":32.90}`（喂帧 571 s ⇒ 按墙钟节拍，非快灌）。
+- ⚠️ 新发现：**离线估段数 19 ≠ 流式实际段数 22**（流式 VAD 切点随缓冲区变化）
+  ⇒ 这**放大了缺陷 16 的危害**（旧写法会丢 3 段）⇒ 如实记录，**本轮不改**该估算逻辑。
+
+### 证据文件清单（文件数 / mtime / 字节数）
+
+| 文件 | 字节 | mtime |
+|---|---|---|
+| `.tmp/p1_run7/smoke.json` | 2784 | 2026-10-28 11:16 |
+| `.tmp/p1_run7/smoke.log` | 6147 | 2026-10-28 11:16 |
+| `.tmp/p1_run7/smoke_dub.wav` | 952364 | 2026-10-28 11:16 |
+| `.tmp/p1_run7/bridge.log` | 3229 | 2026-10-28 11:26 |
+| `.tmp/p1_run7/pipeline.log` | 1975 | 2026-10-28 11:26 |
+| `.tmp/p1_run7/p1_report.json` | 28576 | 2026-10-28 11:26 |
+| `.tmp/p1_run7/p1_timeline.json` | 19428 | 2026-10-28 11:26 |
+| `.tmp/p1_run7/p1_run_summary.json` | 890 | 2026-10-28 11:26 |
+| `.tmp/p1_run7/margin.json` | 13686 | 2026-10-28 11:26 |
+| `.tmp/p1_run7/dub/*.wav` | **22 个文件**，合计 17 292 488 B（单文件 234 284 ~ 1 071 404 B） | 2026-10-28 11:26 |
+
+### 共享机器锁合规记录（本轮）
+
+- 10:48 探到锁持有者是**别的模块**（`app PID 42232`）⇒
+  用 `tools/machine_lock.probe_pid_alive()` 复核**存活** ⇒ **不抢、不删**。
+- 11:15 App 模块释放锁 ⇒ 本模块才取得锁开始实测（**全程持锁**）。
+- 实测结束：锁文件**已删除**（`read_lock() → None`）⇒ 无残留。
+- 残留进程检查：EXT 相关进程 **0 个**（EXT-005 第 2 点）。
+- ⚠️ 本轮**确实占用 GPU.0 + NPU**（真实引擎跑完 5 分钟），
+  但**未与实时字幕 App 同时占设备**（先等 App 释放锁）。
+
+### 涉及修改的文件（**仅本模块**，未动任何引擎文件）
+
+- `ext/bridge.py` —— 新增 `summarize_margins()`（缺陷 17）+ `margin_summary()` 改用它；
+  `dump_margin` 无论是否配落盘都回确认（缺陷 18）。
+- `tools/p1_pipeline.py` —— 收尾等 stats 事件（缺陷 16）+ 两个超时参数；
+  报告新增 `timing` / `margin_source`；stats 缺失时从 `margin.json` 磁盘兜底。
+- `tools/run_p1_real.py` —— 仅注释（缺陷 15 双保险路径已实测有效）。
+- `tests/test_p1_plumbing.py` —— 修 4 处解包 bug；修「慢引擎没真用上」的假通过；
+  新增 `SlowStubEngine`、缺陷 16 行为级反向断言、缺陷 18 断言。
+- `tests/test_ext_selfcheck.py` —— 新增 8 条缺陷 17 口径断言（含反向断言）。
+- `status/STATUS_EXT.md` —— 追加 §5.10；头部 `last_ack` 保持 EXT-006、
+  「更新时间」改为实测时间 2026-10-28 11:28。
+- `status/EXEC_LOG.md` —— 本记录。
+
+⛔ **未改 `status/CORRECTIONS_EXT.md`**（只读，绝不入库；已在 `.gitignore`）。
+⛔ **未改任何引擎文件**（ASR R2T2 / MT Hy-MT2 / TTS Qwen3-TTS 全部只 import）。
+
+### 明确未做 / 不宣称
+
+- ⛔ **不宣称 P1 指标达标** —— 22/22 段超标（P50 170 153 ms / P95 297 885 ms）。
+- ⛔ **不宣称「端到端实时率已解决」** —— 根因仍是 §5.9.6 的架构级约束
+  （RTF 2.886，单线程串行 ASR→MT→TTS）⇒ **待 reviewer 决策**。
+- ⛔ **不宣称 tabCapture 生产路径已验证**（EXT-005 ①，见 §4.2）。
+- ⛔ **pyannote 旁路未接线**（run7 的 22 段全部 `spk=null`/`voice="A"`
+  ⇒ **克隆音色路径未被 P1 覆盖**）。
+- ⛔ **P2（克隆/体验/稳定性）/ P3（打包）未开始**。
