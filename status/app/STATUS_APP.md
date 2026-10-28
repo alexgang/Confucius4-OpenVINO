@@ -1,12 +1,13 @@
 # STATUS_APP
 last_ack: APP-033
-更新时间: 2026-10-28 16:27
-当前任务: **§85 🔴🔴 客户包 `NOTICE` / `THIRD_PARTY.md` 许可不实表述已修正（原称「所有组件均为 Apache License 2.0」且 `num2words MIT` ⇒ 实测 `num2words` 为 **LGPL-2.1**；两文件合计只覆盖包内 47 个 vendored 分发包的 10/28 个 ⇒ 已逐包实测重写为 **47/47 全覆盖**，每包附随包许可证全文真实路径）＋ ASR 的 WeSpeaker CC BY 4.0 署名义务判定为**免除**（包内 0 个 wespeaker/权重文件、site-packages 无 torch/pyannote/speechbrain ⇒ 走「不带」分支）⇒ 已回告 ASR（`shared/NOTICE_app_to_asr_wespeaker_license_reply_20261028.md`）＋ 验收 `app124` **12 PASS / 0 FAIL** ＋ 反证 `app125` **10 PASS / 0 FAIL**（反证中抓出**判据自身 2 处缺陷**：G7 过弱致假通过 / G7 过严致误伤说明句）⇒ ✅ **本条已完成**（客户包文件侧 + 回告侧）⇒ 🔴 **本条需等 reviewer 复核**（旧 NOTICE 是否已随 v1.6 zip 分发出去、`tokenizers` 无随包许可证是否补全文、`pillow` 多许可口径、多许可第三方条款是否逐条摘录）＋ ⛔ **zip 未重打 ⇒ 不写「已交付」**（`NOTICE` 在 zip 内 ⇒ 本次修改进入下次打包；APP-031 要求 APP-027 的 V1–V4 合打，V4 用户实听未做）
+更新时间: 2026-10-28 18:14
+当前任务: **§86 ✅ APP-031 合打完成：v1.6 客户包已持锁重打（zip 11 218 123 293 B / mtime 2026-10-28 17:57:22 / SHA256 `266917dd…32d`；`testzip()` 通过；14 200 文件逐字节一致；原子改名）＋ 打包前三道闸门各抓到并修掉 5 个真实缺陷**（① `pkg_exclude` 漏排除 `_backup*.md` ⇒ 内部 STATUS 全文会进客户包【最严重，已修 + 物理移出包外】；② `check_internal_material` 误伤生产模块 `clone_collector.py` ⇒ 打包假 FAIL【已修】；③ `tts_engine.py` 带 2 个 U+FFFD 乱码（§82 `b0f7a43` 引入）【已修，U+FFFD=0】；④ §48 闸门把 docstring 误判成代码行【已修 + 删 2 条过期白名单 + 新增过期白名单自动报告】；⑤ `_app81_check_pkg_match.py` 写死客户包路径【已改走 `pkg_paths`】）⇒ ✅ 验收 `app126` **PASS 30 / FAIL 0**（双向反证，基线固定 `b0f7a43`）+ `app049` **PASS 7 / FAIL 0** + §48 闸门 **0 处违规** ⇒ ✅ 定点同步 `app/tts_engine.py`（**SYNCED** → 复跑 **ALREADY** 幂等）⇒ ✅ 只读三方复核 `app126_zip_pkg_verify` **PASS**（`.py` 清单 6 589 一致 / 内容 6 589 逐字节一致 / 仓库⇄包目录⇄zip 三方一致 / zip 内排除项 0 / 内部特征串 0）⇒ ✅ Git 闭环：commit **`d14b1f8`**（11 文件）＋ **`1b8a99c`**（2 文件），均**普通 push**，`HEAD == origin/main`，`CORRECTIONS_APP.md` **未入库**（`grep -c` = 0）、仓库只有 main、未吞他模块改动 ⇒ ✅ **「已交付」成立（仅指代码 + 包 zip）** ⇒ ⛔ **APP-027 仍未完**（V3-CER/V3-CAMPPlus 归 reviewer、V4 用户实听未做）⇒ 🔴 **本条需等 reviewer 复核**（旧 zip 若已分发是否需重发 / §83.5 四项裁定 / MT notice 15 §3.4 缺口）
 
-阻塞 / 待用户决定: ① 🔴 **§84 的 APP-027 V3（克隆）机器判据已过**（CUDA 20 PASS / 0 FAIL、NPU 20 PASS / 0 FAIL；两组各 76 句 wav、逐句含音色来源字段、隐私判据 `clone_leaks` / `tmp_clone_residue` 均空；独立复核 wav↔id 76/76、SHA256 76/76 两组全中）⇒ 【本模块侧已完成】；② 🔴 **V3-CER（MiniMax 回转写）与 V3-CAMPPlus（CAMPPlus 余弦）仍归 reviewer**（§84 判据标 `[NO-EVIDENCE]`）⇒ APP-027 **仍未完**；③ 🔴 **V4 用户实听未做**（本轮是 CLI 回放 + 真实播放路径，走声卡，机器判据 `consumed=True` 76/76 + `read_delta ≥ n_samples` + 无 `consumed=False`，**但人耳未确认** ⇒ 「用户听得到」仍不成立）；④ 🔴 **§85 的 `NOTICE` 修正已进入「下次打包」**（`NOTICE` 在 zip 内）⇒ **旧的 v1.6 zip 若已分发，即带过不实许可声明** ⇒ **是否需要重打并重新分发，待 reviewer 裁定**（App 不自行决定，受 APP-031 合打约束）；⑤ ⛔ **zip 未重打**（APP-031 明文「三项做完后合在一起重打一次包」）⇒ 按 §66 口径 **不写「已交付」**（准确表述：**代码侧已入库、已同步到包目录；zip 未重打**）；⑥ 🔴 **§84 缺陷②的连带影响**：V1/V2 两轮报告（真实播放路径）的 `lang`/`end_reason` 字段原本缺失 ⇒ 若要补「按语言分组」的字段需用修好后的代码重跑（本轮**未重跑**）；⑦ 🔴 **§83.5 的 4 项裁定仍然有效**（RTF 归因边界 / 「首包」指标定义 / app062 A/B 是否重做 / 不变式是否改三段式）⇒ 本轮**未自行推进**；⑧ 🔴 **MT notice 15 §3.4 的真实时序「草稿行计数」端到端证据缺口** 仍是 App 侧遗留项；⑨ 🔴 **本轮未修改 `CORRECTIONS_APP.md`**（只读、零改动）、未向 MiniMax、未开 FTP、未跑 `verify_pkg_zip.py`、**未用 `git add -A`**（逐文件 add）
+阻塞 / 待用户决定: ① 🔴 **§86 的 zip 已重打 ⇒ 「已交付」成立（仅指代码 + 包 zip）**，但 **APP-027 仍未完**（V3-CER / V3-CAMPPlus 归 reviewer、V4 用户实听未做）⇒ **「用户听得到」仍不成立**；② 🔴 **旧 v1.6 zip（11 218 089 559 B / mtime 2026-10-27 17:09）若已分发** ⇒ 带 §85 修正前的**不实许可声明** ⇒ **本包已修正，是否需重新分发待 reviewer 裁定**（App 不自行决定）；③ 🔴 **§83.5 的 4 项裁定仍然有效**（RTF 归因边界 / 「首包」指标定义 / app062 A/B 是否重做 / 不变式是否改三段式）⇒ 本轮**未自行推进**；④ 🔴 **MT notice 15 §3.4 的真实时序「草稿行计数」端到端证据缺口** ⇒ 仍是 App 侧遗留项，本轮未处理；⑤ 🔴 **§84 缺陷②的连带影响**：V1/V2 报告的 `lang`/`end_reason` 字段缺失 ⇒ 补「按语言分组」需用修好后的代码**重跑**（本轮**未重跑**）；⑥ 🔴 **本轮未修改 `CORRECTIONS_APP.md`**（只读、零改动）、未向 MiniMax、未开 FTP、未跑 `verify_pkg_zip.py`、**未用 `git add -A`**（逐文件 add）
 
 
 ## 最近更新
+18:14 §86 🔴🔴 **APP-031 合打完成：v1.6 zip 已持锁重打（11 218 123 293 B / mtime 17:57:22 / SHA256 `266917dd…32d`；`testzip()` 通过；14 200 文件逐字节一致）＋ 打包前三道闸门抓到并修掉 5 个真实缺陷**（内部 STATUS 备份会进 zip / `clone_collector.py` 误伤假 FAIL / `tts_engine.py` U+FFFD / §48 docstring 误判 / 写死包路径）⇒ ✅ `app126` **30 PASS/0 FAIL**（双向反证，基线 `b0f7a43`）＋ `app049` **7 PASS/0 FAIL** ⇒ ✅ 定点同步幂等 **ALREADY** ⇒ ✅ 只读三方复核 **PASS**（6 589 一致 / 排除项 0 / 内部特征串 0）⇒ ✅ commit **`d14b1f8`**＋**`1b8a99c`** 普通 push、`HEAD == origin/main`、`CORRECTIONS_APP.md` 未入库 ⇒ ✅ **「已交付」成立（代码 + 包 zip）** ⇒ ⛔ **APP-027 未完（V3 归 reviewer、V4 未做）**
 16:27 §85 🔴🔴 **客户包 `NOTICE`/`THIRD_PARTY.md` 许可不实表述已修正（num2words 实为 **LGPL-2.1** 非 MIT；原「所有组件均为 Apache-2.0」不实；覆盖 10/28 ⇒ **47/47 全覆盖**）＋ ASR WeSpeaker 署名义务判定**免除**并回告**⇒ ✅ `app124` 12 PASS/0 FAIL ＋ `app125` 反证 10 PASS/0 FAIL（抓出判据自身 2 处缺陷）⇒ ⛔ `NOTICE` 在 zip 内 ⇒ 修改进入下次打包、**本轮 zip 未重打 ⇒ 不写「已交付」**
 16:18 §84 🔴🔴 **APP-027 V3（克隆）实测跑完（CUDA + NPU 两组，各 20 PASS / 0 FAIL）＋ 自查抓出并修掉 2 个真实缺陷（CLI 路径根本没有克隆链路 / 真实播放路径逐句遥测整组字段丢失）＋ 客户包定点同步完成** ⇒ ✅ 两组各 76 句 wav、逐句带音色来源、隐私判据空 ⇒ ✅ 独立复核 wav↔id 76/76、SHA256 76/76 ⇒ ⛔ **CER/CAMPPlus 归 reviewer、V4 用户实听未做 ⇒ APP-027 未完 ⇒ zip 不重打 ⇒ 不写「已交付」**
 11:16 §81 🔴🔴 **APP-027 V2 争用定量 ABBA 实测已跑完（4 臂真实播放路径）＋ 补齐「TTS 单独」引擎级基线**：⇒ ✓ **4 臂全部落盘**（ABBA 汇总 2971 B / SHA256 `e422c558…c57cb5`；基线报告 1652 B / `c44c0519…83aea`；证据清单 102 629 B / `237a736d…c5037b`）⇒ ✓ **唯一 FAIL = `V2-1`**（句内欠载 P95 = 0）：**MT@NPU 53 > MT@GPU.0 13 > 无 MT 0/1** ⇒ **【争用结论成立】**⇒ ✓ `synth_rtf_p50`：引擎基线 **0.7849** → +ASR **0.9558/0.9663** → +MT@NPU **1.0074** → +MT@GPU.0 **1.0165**（**两个 MT 臂均越过 1.0**）⇒ ✓ 四臂不变式 `n_played+n_dropped==n_submitted`（46/46、76/76、76/76、46/46）+ `n_drop_written=0` / `n_no_audio=0` / `n_watchdog=0`⇒ ✓ 真实播放硬证据（`consumed=True` 与 `read_delta ≥ n_samples` 均 = 46/76/76/46，无 `consumed=False`）⇒ 🔴🔴 **自查修掉 2 处真实缺陷**（① 整目录 `shutil.rmtree` → 触发批量删除保护 → **进程被杀·报告未生成·实测白跑**（已改时间戳子目录、0 次删除）；② `device_desc` AttributeError → **46 句算力白跑**（已修 + `--report-only`））⇒ ✓ 客户包定点同步 3 文件 + 仓库⇄包 **10/10 MATCH**（包外备份 `pkg_backup_app_s81`）⇒ ✓ 交付闭环已入库：commit **`20da2de`**（11 文件 / +1964 −2 / App-only）、**普通 push** `3b326a5..20da2de`、**`HEAD == origin/main`**⇒ ✓ `CORRECTIONS_APP.md` **未入库**（`grep -c CORRECTIONS` = 0）、仓库仍只有 main、未吞他模块改动⇒ ⛔ **跨臂归因边界待裁定**、⛔ **MT 臂 p50 已越过 1.0 → 解法优先级待决策**（MT 迁 GPU.1 属 MT 模块）、⛔ **`device_desc=null` → NPU 身份需另证**、⛔ **V1/V3 未跑 → zip 不重打 → 不写「已交付」**、⛔ **CLI 而非 GUI → 「用户听得到」仍不成立**
@@ -14736,3 +14737,192 @@ SHA256 `cef3d24c1669cbf8f9dc4ec0aa1477e86fb1c98050217aa86551023142d01061`）。
 - `last_ack` = **APP-033**（**保持不变**：本轮**无新 reviewer 纠偏条目** ⇒ 无编号可 ack；
   §84 / §85 都是对**已 ack 的历史条目**（APP-027 / ASR-023 的许可义务）做遗留事项的补做）。
 - 「更新时间」= **2026-10-28 16:27**（`Get-Date -Format "yyyy-MM-dd HH:mm"` **实测值**，非推算）。
+
+## §86 🔴🔴 **APP-031 合打完成：v1.6 客户包已持锁重打 ＋ 仓库⇄包目录⇄zip 三方只读复核全 PASS（打包前三道闸门各抓到并修掉 5 个真实缺陷）**（2026-10-28 18:14）｜**本条已完成**｜**本条需等 reviewer 复核**
+
+### §86.0 本节结论（一句话）
+
+✅ **APP-031 要求的「三项做完合在一起重打一次包」已闭环**：v1.6 zip 已**持锁重打**并**原子改名**到正式路径
+（11 218 123 293 B / mtime 2026-10-28 17:57:22 / SHA256 `266917dd715d84e21d2292f549208f6b6cc54234bd765045881124b5bb20432d`），
+`testzip()` 通过，**14 200 个文件逐字节一致**；
+🔴🔴 但**打包前三道闸门各抓到 1 个真实缺陷（共 5 个）**，其中 3 个是**会真的污染客户包或让打包假 FAIL** 的缺陷
+（内部 STATUS 全文备份文件会进 zip / `clone_collector.py` 被误判成克隆素材导致打包被拒 / `tts_engine.py` 带 2 个 U+FFFD 乱码），
+**全部已修并落盘验证**；
+✅ **「已交付」在本节成立**（仅指**代码 + 客户包 zip**）——代码已入库（`d14b1f8` / `1b8a99c`，均**普通 push**，
+`HEAD == origin/main`），包目录与 zip 均已含最新代码；
+⛔ **APP-027 仍未完**（V3-CER / V3-CAMPPlus 归 reviewer、V4 用户实听未做）⇒ **「用户听得到」仍不成立**。
+
+### §86.1 巡检结论：**无新 reviewer 纠偏条目**
+
+- `status/app/CORRECTIONS_APP.md`：最大编号 = **APP-033**（第 505 行），共 **33** 条；
+  SHA256 `bb2896ee9143cd89e4bd2f8a3d0e8f8327079945237ccffc6c6bbd0d825ea043` / 90 321 B / mtime 2026-10-28 00:47:55。
+- `status/app/STATUS_APP.md` 头部 `last_ack` = **APP-033** ⇒ **编号 > last_ack 的新条目数 = 0**。
+- ⇒ **本轮无「按新条目执行」的工作，也未触发任何「需要停下来等 reviewer 复核」的 stop-node**；
+  本节转而闭环 **App 模块职责内、已 ack 条目（APP-031）的遗留打包交付缺口**。
+
+### §86.2 🔴🔴 打包前三道闸门：各抓到 1 个真实缺陷（共 5 个），全部已修
+
+#### 缺陷①：`pkg_exclude` **漏排除备份文件** ⇒ 内部 STATUS 全文会进客户包（最严重）
+
+- **本体**：`pkg_exclude.BACKUP_DIR_RE` 只匹配**目录名**（`^_backup`），
+  备份**文件** `_backup_status_app_pre_s84.md` / `_backup_status_app_pre_s85.md`（各约 1 MB）
+  **不被任何规则覆盖** ⇒ `is_excluded()` 返回 `False` ⇒ 实测 `iter_package_files()` 会把它们**列入 zip**
+  ⇒ **内部 STATUS 全文（含会议特征串 `QGS` / `260902`）会进客户包**。
+- **修复**（`pkg_exclude.py`）：新增 `BACKUP_FILE_RE = re.compile(r'^_backup', re.I)`，
+  并在 `is_excluded()` 与 `iter_package_files()` **两处**接入（只改一处会漏）。
+- **实测**：zip 清单中 `_backup` 条目 **2 → 0**（总文件数 14 202 → 14 200）。
+- **物理清理**：两个备份文件已**移出客户包**到包外 `C:\Users\Trekker-PTL\pkg_backup_app_s86\`
+  （先 `copy2` + SHA256 校验一致，再 `os.remove` 源文件，**未用 `rm -rf`**）：
+  `_backup_status_app_pre_s84.md` 1 059 478 B / SHA256 `f31b5020050a7710…`；
+  `_backup_status_app_pre_s85.md` 1 077 531 B / SHA256 `b6117770ebf2be50…`。
+
+#### 缺陷②：`check_internal_material` **误伤生产模块** ⇒ 打包被拒（假 FAIL）
+
+- **本体**：`NAME_PATTERNS` 中 `re.compile(r'clone_[A-Z]', re.I)` 会命中**任何** `clone_<字母>` 开头的文件名
+  ⇒ 误伤生产模块 **`app/clone_collector.py`**（该文件是 APP-027⑤「采集克隆源语音」的**生产代码**，**本身不是素材**）
+  ⇒ 打包被拒（假 FAIL）。
+- **修复**：收窄为「克隆**素材**」`^clone_[A-Za-z0-9_]+\.(npz|wav|pt|pth|npy)$`，
+  并补齐用户音色库目录规则 `USER_SPEAKER_DIR_RE = ^tts_speakers$`（目录名命中即判素材）。
+- **实测**：`app/clone_collector.py` → `is_excluded()=False`（**不误伤**）、
+  `app/clone_C.npz` → `True`、`app/tts_speakers/a.npz` → `True`。
+
+#### 缺陷③：`live_caption/tts_engine.py` 带 **2 个 U+FFFD 乱码**（回归）
+
+- **本体**：L336 有 2 个 U+FFFD（字节 `ef bf bd ef bf bd`），**由 §82 提交 `b0f7a43` 引入**
+  （`83cac33` 时 U+FFFD = 0）；原始行为 `⇒ ��审问「**是否真在 NPU 上跑**」⇒ **无法回答**。`
+- **修复**：按**整行替换**（不是字节片段替换 —— 第一次用字节替换导致文本重复且 `**` 奇数）成与同文件 L638 同口径的
+  `⇒ **审问「是否真在 NPU 上跑」时无法回答**。`
+- **实测**：U+FFFD = **0**，AST 可解析，**生产路径逐字无回归**。
+
+#### 缺陷④：§48 路径硬编码闸门**把 docstring 误判成代码行**
+
+- **本体**：docstring 在 AST 里是 `Expr(Constant(str))` **两层**，外层 `ast.Expr` 不是 `ast.Constant`
+  ⇒ 原实现跳过 `Constant` 后仍由 `Expr` 节点把整段行号标为「代码行」
+  ⇒ **文档里提到包名的文件一律报错**；原先 `app014b_v15_preship_check.py` / `app049_pkg_path_hardcode_gate.py`
+  两条白名单**正是为掩盖此 bug 而加**。
+- **修复**：显式跳过「裸字符串表达式」（`ast.Expr` 且 value 是字符串常量）——
+  **不能**跳过所有 `ast.Expr`（`f(x)` 调用表达式也是 `Expr`）。
+- **连带**：白名单 **7 → 5**（删 2 条因此过期者）；**保留** `app049_gate_selftest.py`，
+  因其命中是**真实代码行**（把「真缺陷形态」样例字面量写进临时文件），不是 docstring 误判。
+- **新增**：**过期白名单自动报告**（白名单条目不再命中时打印「已过期」并写入证据）⇒ 防白名单悄悄腐烂。
+
+#### 缺陷⑤：`results/app/_app81_check_pkg_match.py` **写死客户包路径**
+
+- **本体**：第 7 行 `PKG = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6\app'` 写死
+  ⇒ **包一升版就指向旧包**（正是 §48 闸门要拦的缺陷类别）。
+- **修复**：改走 `pkg_paths` 单一数据源（`pkg_paths.pkg_app_dir()`），与 §48 口径一致。
+- **实测**：修后实跑 `MATCH 10 / 10`。
+
+### §86.3 ✅ 验收：**双向反证**（反证用**固定 commit SHA** `b0f7a43`，源码修好后不静默失效）
+
+`results/app/app126_prepack_gate_defects.py` ⇒ **PASS 30 / FAIL 0**（G1–G5 五组共 30 条判据）
+证据：`results/app/app126_prepack_gate_defects_evidence.json` / **2 035 B** / mtime 2026-10-28 17:44:14 /
+SHA256 `f728625fdd40f95f…`（原始字段 `verdict: PASS`、`baseline_commit: b0f7a43`）。
+
+| 组 | 判据要点 | 反证方式 |
+|---|---|---|
+| G1 | §81 helper 代码行无客户包名 + 用 `pkg_paths` + 实跑 10/10 MATCH | — |
+| G2 | docstring 里的包名**不**判为代码行 | **旧 AST 算法实跑**证明缺陷曾真实存在（`old_hits` 非空） |
+| G3 | 备份文件被排除、正常文件不误伤 | **旧规则确实放行** + 端到端实际包目录 → zip 清单 `_backup` = 0 |
+| G4 | 当前 `tts_engine.py` U+FFFD = 0 | **固定基线 `b0f7a43` 确实含 2 个 U+FFFD** |
+| G5 | 7 个必拦样本 + 4 个不误伤样本 | **旧规则确实误伤 `clone_collector.py`** |
+
+`results/app/app049_gate_selftest.py` ⇒ **PASS 7 / FAIL 0**
+证据：`results/app/app049_gate_selftest_evidence.json` / **366 B** / mtime 2026-10-28 18:13:52 / SHA256 `217ea35f5d8c1510…`。
+§48 闸门复跑：`命中「代码行里有客户包名」的文件数 = 72` ⇒ **✅ 0 处违规 ⇒ 总判定 PASS**。
+
+### §86.4 ✅ 客户包定点同步（§66「定点同步」步）
+
+- 新增 `live_caption/sync_s86_to_pkg.py`：**基线 = `git show HEAD:<rel>`**，候选 = 工作区，
+  `difflib.SequenceMatcher.get_grouped_opcodes(n=3)` **自动派生**替换块，
+  块在包内**唯一命中**（count == 1）才替换，**幂等**报 `ALREADY`，
+  写盘后**逐字节复核 == 候选**，包内私有行护栏检查，备份写**包外** `C:\Users\Trekker-PTL\pkg_backup_app_s86\`。
+- 同步对象：**仅** `app/tts_engine.py`（仓库侧乱码修复 → 包内）。
+- 实测：首次 `[SYNCED] app\tts_engine.py`，`sha_pkg = sha_cand = 788d5ca29fd7345b…` / 49 385 B / CRLF=False；
+  **二次运行 `[ALREADY]` ⇒ 幂等成立**。
+  （原始字段以 `results/app/app126_sync_s86_report.json` 为准：`sha_pkg == sha_cand == 788d5ca29fd7345b…`）
+- 证据：`results/app/app126_sync_s86_report.json` / **443 B** / mtime 2026-10-28 17:44:01 / SHA256 `5aa5810ec641b749…`。
+- ✅ 仓库 ⇄ 包目录复核：`results/app/_app81_check_pkg_match.py` 实跑 **MATCH 10 / 10**。
+
+### §86.5 ✅ 持锁重打 zip（§66「持锁重打」步）
+
+- 机器锁：`shared/MACHINE_LOCK` 内容 `app-pack PID 21760 started 2026-10-28 17:47:13`，
+  `module/pid/started/host` 四字段齐全；**第 1 次尝试即取得**（此前确认锁不存在 ⇒ 走「锁不存在 ⇒ 创建」唯一路径，
+  **等待路径 0 次文件写入**，符合「等锁不得反复建 tmp+删 tmp」铁律）；
+  **安静窗口 45 s 通过**（`[quiet] 外部 python 进程均「在等锁/在睡」⇒ 视为安静`）⇒ 打包期间**无外部 python 进程**。
+- 打包实况（`results/app/_pack_s86_run.log` / 8 866 B / mtime 2026-10-28 18:01:47 / SHA256 `40155f7223ba11f3…`）：
+
+| 项 | 值 |
+|---|---|
+| MANIFEST 刷新 | files 14 198 → **14 199** / bytes 13 672 709 489 → **13 672 808 745**（12.73 GB） |
+| zip 文件数 | **14 200**（含 MANIFEST 自身；MANIFEST files = 14 199） |
+| 内容一致性 | **14 200 个文件逐字节一致** ⇒ `[info] 校验通过 ⇒ 已原子改名到正式路径` |
+| 打包结论 | **PASS** / md5 `177e0d054c305c6af73b53f6ae65b5de` |
+| 锁释放 | ✅ `[lock] 已释放`（事后复核 `MACHINE_LOCK` **不存在**） |
+
+- **产物（zip）**：
+  `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6.zip` /
+  **11 218 123 293 B** / mtime **2026-10-28 17:57:22** /
+  SHA256 **`266917dd715d84e21d2292f549208f6b6cc54234bd765045881124b5bb20432d`**。
+  （重打前旧 zip：11 218 089 559 B / mtime 2026-10-27 17:09 ⇒ **确已更新**。）
+
+### §86.6 ✅ 只读三方复核（**不跑** `verify_pkg_zip.py` / **不跑** `publish_ftp.py` / **不开 FTP**）
+
+新增 `results/app/app126_zip_pkg_verify.py`（只读，零推理 / 零 GPU / 零 NPU / 不调 MiniMax）。
+实测结果 ⇒ `results/app/app126_zip_pkg_verify_evidence.json` / **1 123 B** / mtime 2026-10-28 18:13:25 /
+SHA256 `92f4c46e5c0bbc89…`（原始字段 `verdict: PASS`）：
+
+| 复核项 | 结果 |
+|---|---|
+| `testzip()` | ✅ 通过（`zip_testzip_bad_entry = None`） |
+| zip 条目总数 | 14 200 |
+| `.py` 清单（整包根，含内置解释器 `python/Lib/**`） | ✅ 一致 **6 589** 个 |
+| `.py` 内容逐字节 SHA256（zip ⇄ 包目录） | ✅ 一致 **6 589** 个 |
+| 仓库 HEAD `live_caption/*` ⇄ 包目录 ⇄ zip 三方（换行归一化） | ✅ 一致 |
+| zip 内含 `pkg_exclude` 排除项 | ✅ **0**（备份 / 克隆素材 / 音色库 / 缓存） |
+| zip 内含内部会议特征串（`QGS` / `260902`） | ✅ **0** |
+| `clone_collector.py` 不误伤反证 | ✅ 在 zip 内 **且** 未被排除 |
+
+- 🔴 **本复核脚本自身的第一版有两处口径缺陷，已在本节内抓出并修**（否则会**假 FAIL**，即「闸门自身假通过/假失败比缺陷更危险」）：
+  ① 比对范围只写 `app/` ⇒ 把 zip 内置解释器 `python/Lib/**`（6 566 个 `.py`）全判成「仅 zip」；
+  ② 内容比对时把**相对包根**的 `app/xxx` 拼到 `PKG_APP` 下 ⇒ 变成 `app/app/xxx` ⇒ 「包目录无此文件」6 589 个。
+  ⇒ 均已改为**整包根（`PKG_ROOT`）**口径并复跑 PASS。
+- ✅ §85 修正后的许可声明**已进 zip**：`NOTICE` 8 289 B、`THIRD_PARTY.md` 3 310 B（均在**包根**，
+  mtime 2026-10-28 16:25）⇒ §85 阻塞项④（旧 zip 若已分发即带不实许可声明）**在本包已消解**。
+
+### §86.7 ✅ Git 交付闭环（§66「先提交」步 + 两次普通 push）
+
+| 提交 | 内容 | push |
+|---|---|---|
+| `d14b1f8` | 11 文件 / +861 −9：闸门 5 缺陷修复 + `live_caption/sync_s86_to_pkg.py` + `app126` 验收 | `201e47e..d14b1f8`（**普通 push**，非 force） |
+| `1b8a99c` | 2 文件 / +284：`app126_zip_pkg_verify.py` + 证据 JSON | `d14b1f8..1b8a99c`（**普通 push**，非 force） |
+
+- ✅ `git rev-list --left-right --count origin/main...HEAD` = **`0 0`**（HEAD == origin/main）；
+- ✅ `git show --name-only --format="" HEAD | grep -c CORRECTIONS` = **0**
+  ⇒ **`status/app/CORRECTIONS_APP.md` 未入库**（reviewer 文件零改动）；
+- ✅ 仓库**只有 main 分支**（`git branch -a` = `main` + `remotes/origin/main`）；
+- ✅ **未用 `git add -A`**（逐文件 `git add --`）；**未吞** ASR/MT/TTS 其它模块的未提交改动
+  （实测暂存时曾混入 `status/asr/STATUS_ASR.md` ⇒ 已 `git restore --staged` 取消，未提交）；
+- ✅ `results/app/_pack_s86_run.log` 被 `.gitignore:19 (*.log)` 忽略 ⇒ **未强行 `-f`**，
+  其 SHA256 已在本节 §86.5 记录（按「证据留痕」纪律，不入库但留指纹）。
+
+### §86.8 🔴 遗留 / 待 reviewer 裁定（本节**未**推进）
+
+1. 🔴 **APP-027 仍未完**：V3-CER（MiniMax 回转写）/ V3-CAMPPlus（CAMPPlus 余弦）**归 reviewer**；
+   **V4 用户实听未做** ⇒ **「用户听得到」仍不成立**（本节的「已交付」仅指**代码 + 包 zip**）。
+2. 🔴 **旧 v1.6 zip 若已分发**（重打前那份 11 218 089 559 B / mtime 2026-10-27 17:09），
+   即带 §85 修正前的**不实许可声明** ⇒ **本包已修正、是否需重新分发待 reviewer 裁定**
+   （App 不自行决定；重打**已**完成，**重发**属分发动作）。
+3. 🔴 **§83.5 的 4 项裁定仍然有效**（RTF 归因边界 / 「首包」指标定义 / app062 A/B 是否重做 / 不变式是否改三段式）
+   ⇒ 本轮**未自行推进**。
+4. 🔴 **MT notice 15 §3.4 的真实时序「草稿行计数」端到端证据缺口** ⇒ 仍是 App 侧遗留项，**本轮未处理**。
+5. 🔴 **§84 缺陷②的连带影响**：V1/V2 两轮报告的 `lang`/`end_reason` 字段原本缺失
+   ⇒ 若要补「按语言分组」需用修好后的代码**重跑**（本轮**未重跑**）。
+6. ⛔ 本轮**未跑推理 / 未跑测速**（打包为压缩 + 哈希，非推理）；**未向 MiniMax**；
+   **未跑 `verify_pkg_zip.py` / `publish_ftp.py` / 未开 FTP**；**未修改 `CORRECTIONS_APP.md`**。
+
+### §86.9 头部字段
+
+- `last_ack` = **APP-033**（**保持不变**：本轮**无新 reviewer 纠偏条目** ⇒ 无编号可 ack；
+  §84 / §85 / §86 都是对**已 ack 的历史条目**（APP-027 / APP-031 / ASR-023 的许可义务）做遗留事项的补做）。
+- 「更新时间」= **2026-10-28 18:14**（`Get-Date -Format "yyyy-MM-dd HH:mm"` **实测值**，非推算）。
