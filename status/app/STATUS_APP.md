@@ -1,7 +1,7 @@
 # STATUS_APP
 last_ack: APP-033
-更新时间: 2026-10-28 12:56
-当前任务: **§81 🔴🔴 APP-027 V2 争用定量 ABBA 实测已跑完（4 臂真实播放路径）＋ 补齐「TTS 单独」引擎级基线 → 实测证据已落盘（原始字段见 §81.2 / §81.3）＋ 自查抓出并修掉 2 处真实缺陷（整目录删除触发批量删除保护 → 实测进程被杀；`device_desc` AttributeError → 46 句算力白跑）＋ 客户包定点同步 3 文件（仓库⇄包 10/10 MATCH）＋ 交付闭环已入库（commit `20da2de`）＋ 达到 §81.11 停在等 reviewer 复核⇒ ✅ **本条已完成**（代码侧）⇒ 🔴 **本条需等 reviewer 复核**（赋量归因边界、解决方案优先级、GUI 复现、V1/V3、zip 重打）
+更新时间: 2026-10-28 12:59
+当前任务: **§82 🔴 APP-027 V1（CUDA 连续实时）实测已跑完 → 16 PASS / 2 FAIL（原始字段见 §82.1）＋ 两条新根因（「越拖越久」以语音滞后累积 259 s 形式仍在；「首包 4.53 s」实为边车「只缓存一块」⇒ first_s 是整句 DONE 时间，非首块时间）＋ §81.11 第 3 条「NPU 身份未证」正面实证已补齐（app120：speaker_enc/cp_prefill/cp_decode/tok_decoder 四组件全部落 NPU，CPU 上 0 个）＋ 同类脆弱点全局排查完成（app062 判据有实质问题，已如实记录未重做）＋ 客户包定点同步完成（sha_disk == sha_cand，identical=True）＋ §83 Git 交付闭环已入库（commit `b0f7a43`，已 push，HEAD == origin/main）⇒ ✅ **本条已完成**（代码侧）⇒ 🔴 **本条需等 reviewer 复核**（RTF 归因边界、「首包」指标定义、app062 A/B 是否重做、是否改三段式不变式判据）＋ ⛔ **zip 未重打 ⇒ 不写「已交付」**（APP-027 V3/V4 未做，APP-031 要求三项合打）
 
 阻塞 / 待用户决定: ① 🔴 **APP-027 V2 已完成**（§81）⇒ 四臂 ABBA 全部落盘（原始字段），**唯一 FAIL = `V2-1` 句内欠载 P95 = 0**（MT@NPU **53** > MT@GPU.0 **13** > 无 MT **0/1**）⇒ 【争用结论成立】；② 🔴 **默认摆放（APP-028①：ASR=GPU.0 / MT=GPU.0 / TTS=NPU）虽为四臂最优，但两个 MT 臂的 `synth_rtf_p50` 已越过 1.0**（1.0074 / 1.0165）⇒ 【仍不满足实时】⇒ 解法优先级（cp_decode 减负 > MT 迁 GPU.1 独显）**待 reviewer 决策**（MT 迁设备属 MT 模块，App 不自行改）；③ 🔴 **跨臂归因边界待裁定**（无 MT 臂 = 英文原文 / MT 臂 = 中文译文 ⇒ 绝对 RTF 不可直接归因给「MT 加载」）；④ 🔴 **`app118` 的 `device_desc=null` / `load_s=null`**（引擎未暴露该属性）⇒ 【是否真在 NPU 上跑需另证】；⑤ ⛔ **APP-027 的 V1（CUDA 连续实时）/ V3（MiniMax + CAMPPlus）仍未跑** ⇒ **APP-027 未完** ⇒ **zip 不重打**（APP-031 合打）⇒ 按 §66 口径 **不写「已交付」**（准确表述：**代码侧已入库、已同步到包目录；zip 未重打**）；⑥ ⛔ **本轮是 CLI 回放 + 真实播放路径（走声卡），非 GUI 非用户启动方式**（§63 L4）⇒ ⛔ **「用户听得到」仍不成立**（机器判据已足：`consumed=True` + `read_delta ≥ n_samples` + 无 `consumed=False`，但人耳未确认）；⑦ ⛔ **CER 对比 / MiniMax 回转写未做**（§80 遗留）；⑧ 🔴 **GUI 复现（丢句=0）仍未做**；⑨ 🔴 **引擎基线的 NPU 身份需另证**；⑩ 🔴 **本轮自查修掉 2 处缺陷**（① 整目录删除触发批量删除保护 → 进程被杀白跑；② `device_desc` AttributeError → 46 句算力白跑）⇒ 【是否全局排查同类脆弱点，待 reviewer 定】；⑪ 🔴 **旧的阻塞项仍然有效**：§80.1–80.5 的 CUDA 组判据已过（NPU 组 §78）、回转写由 reviewer 做、「句首标点」产品策略待裁定、APP-022/APP-024②③④ 仍不做、APP-029 不认领集成；⑫ 🔴 **机器锁纪律**：写本节时当前锁属外部 `EXT-p1-real 27024` ⇒ ctypes `handle=512/err=0` ⇒ `exit=259`⇒ **活锁 ⇒ 不抢不删**（孤儿锁必须 `err==87` 才可回收）；⑬ 🔴 **本轮未修改 `CORRECTIONS_APP.md`**（只读、零改动）、未向 MiniMax、未开 FTP、未跑 `verify_pkg_zip.py`、**未用 `git add -A`**（逐文件 add）
 
@@ -14264,3 +14264,101 @@ reviewer 明文：「§79.4 只是 60 秒冒烟（17 句，最大积压 21.31 s�
 
 ---
 
+## §83 §82 Git 交付闭环已入库（commit `b0f7a43` + 普通 push）＋ 交付口径最终确认（2026-10-28 12:59）
+
+> 🔴 **本节只追加，不回头改旧章节**；`CORRECTIONS_APP.md` 本轮**只读、零改动**（文件 mtime = `2026-10-28 00:47:55`，早于本轮全部操作）。
+
+### §83.0 本节范围
+
+- §82 已完成「实测 + 同步 + STATUS 写入」，但**写在 commit 之前** ⇒ §82 章节内**不含 commit 号与 push 证据**。
+- 本节**只补记 git 收尾闭环**这一件事（§82 本身不重写、不撤回）。
+- **本轮无新 reviewer 纠偏条目**（`CORRECTIONS_APP.md` = APP-001…APP-033 共 33 条；`last_ack` = APP-033 ⇒ 编号 > last_ack = **0 条**）⇒ 本节**不推进任何新功能**。
+
+### §83.1 ✅ Git 交付闭环（逐文件 add ⇒ commit ⇒ 普通 push）
+
+**提交元数据（`git log -1` 实测）**：
+
+| 字段 | 实测值 |
+|---|---|
+| 完整 SHA | `b0f7a43acd034d3e6ea8e59eb4fb3228bb4b44d3` |
+| 短 SHA | `b0f7a43` |
+| 提交时间 | `2026-10-28 12:58:56 +0800` |
+| 父提交 | `a56722d`（§81） |
+| 提交信息 | `App §82: APP-027 V1（CUDA 连续实时）实测已跑完 + NPU 身份正面实证 + 同类脆弱点全局排查 + 客户包定点同步（zip 未重打）` |
+| diffstat | `7 files changed, 1844 insertions(+), 3 deletions(-)` |
+
+**push 记录（`git push origin main` 原样输出）**：
+
+```
+To github.com:alexgang/Confucius4-OpenVINO.git
+   a56722d..b0f7a43  main -> main
+```
+
+⇒ **普通 push（fast-forward，非 force）**：`a56722d..b0f7a43`（`..` 而非 `+`）⇒ **未使用 force push**。
+
+**入库文件清单（`git show --name-only --format="" HEAD` 实测，恰好 7 个）**：
+
+| 文件 | 状态 |
+|---|---|
+| `live_caption/tts_engine.py` | 改（新增 `execution_devices()` 取证 + `load_s` / `device_desc` 字段） |
+| `live_caption/sync_s82_to_pkg.py` | 新（§82 客户包定点同步脚本） |
+| `results/app/app119_app027_v1_cuda_real_playback.py` | 新（APP-027 V1 实测驱动） |
+| `results/app/app120_npu_exec_device_proof.py` | 新（NPU 身份正面实证） |
+| `results/app/app120_sync_s82_report.json` | 新（同步报告） |
+| `results/app/_app82_write_status.py` | 新（§82 写入脚本） |
+| `status/app/STATUS_APP.md` | 改（追加 §82） |
+
+### §83.2 ✅ 纪律核验（逐条实测，非声明）
+
+| 纪律项 | 核验命令 | 实测结果 | 判定 |
+|---|---|---|---|
+| **不提交 `CORRECTIONS_APP.md`** | `git show --name-only HEAD \| grep -c CORRECTIONS` | **0** | ✅ |
+| 同上（工作区侧） | `git status --porcelain -- status/app/CORRECTIONS_APP.md` | ` M`（reviewer 的本地改动，**未暂存、未入库**） | ✅ |
+| 同上（文件零改动） | `stat status/app/CORRECTIONS_APP.md` | mtime = `2026-10-28 00:47:55`（早于本轮 12 点全部操作） | ✅ |
+| **不吞其它模块改动** | `git status --porcelain` 提交后 | **491** 个改动仍在工作区（提交前 498 ⇒ 恰好减少本轮 7 个） | ✅ |
+| 同上（归属抽样） | `git status --porcelain \| grep -v "live_caption/\|results/app/\|status/app/" \| wc -l` | **240** 个（ASR/MT/TTS 侧 `c045_*`/`c046_*`/… 等） | ✅ |
+| **只用逐文件 add（禁 `-A`）** | 7 次 `git add -- <path>` | 暂存区 `git diff --cached --name-only \| wc -l` = **7** | ✅ |
+| **仓库只保留 main** | `git branch -a` | `* main` / `remotes/origin/HEAD -> origin/main` / `remotes/origin/main`（**无其它分支**） | ✅ |
+| **普通 push / 非 force** | `git push origin main` | `a56722d..b0f7a43` | ✅ |
+| **`HEAD == origin/main`** | `git rev-list --left-right --count origin/main...HEAD` | `0\t0` | ✅ |
+
+### §83.3 🔴 **交付口径最终确认（§82.5.1 的收尾复核）**
+
+**准确表述（唯一可用的口径）**：
+
+> **代码侧已入库（commit `b0f7a43`，已 push 至 `origin/main`）、已同步到客户包目录（`Confucius4_LiveCaption_v1.6\app\tts_engine.py`，`sha_disk == sha_cand`）；zip 未重打。**
+
+⛔ **仍不写「已交付」** —— 依据：
+- **§66 口径**：「已交付」= 包目录 + zip **已含最新代码**且**已入库** ⇒ 本轮 zip **未重打** ⇒ 三方（仓库 / 包目录 / zip）**未闭环**。
+- **APP-031 明文**：「三项做完合在一起重打一次包」⇒ APP-027 的 **V3（克隆 MiniMax + CAMPPlus）**、**V4（用户实听）** 仍未做 ⇒ **APP-027 未完** ⇒ **不得单独重打 zip**。
+- 本轮 `git show --name-only HEAD` 中**无任何 zip 产物**，与该口径一致（**没落盘的东西不能写「已交付」**）。
+
+### §83.4 ⛔ **本轮「未做/ 未成立」清单（逐条重申，防止被误读为已闭环）**
+
+1. ⛔ **APP-027 未完**：V1（CUDA 连续实时）本轮已跑完（§82）；**V2** 已于 §81 跑完；**V3（克隆 MiniMax + CAMPPlus）未跑**、**V4（用户实听）未跑** ⇒ **APP-027 整体未完**。
+2. ⛔ **zip 未重打** ⇒ 客户包 zip 内**不含** §82 的 `tts_engine.py` 改动 ⇒ **「已交付」不成立**。
+3. ⛔ **「用户听得到」仍不成立**：§82 走的是 **CLI + 真实播放路径**（走声卡），**不等于用户真实启动方式**（§63 L4：桌面快捷方式 → `.venv\Scripts\pythonw.exe`）⇒ **GUI 复现未做**。
+4. ⛔ **「首包」指标定义未裁定**：边车「只缓存一块」机制 ⇒ 客户端量到的 `first_s` 实为**整句 DONE 时间**而非首块时间（与 APP-027⑤「记录第一块」不符）⇒ **待 reviewer 裁定**。
+5. ⛔ **RTF 归因边界未裁定**：`synth_rtf_p50=3.6184` / `p95=3.6515` ⇒ 合成仅实时 ~1/3.6 ⇒ 句内必然持续欠载（`underflow_in_sentence` P95 = 399 ≠ 0）⇒ **未改代码**，属 reviewer 裁定项。
+6. ⛔ **`app062` A/B 判据本身有实质问题**（手动标志位 `cp_on_cpu` + 基线已过时）⇒ **未重做**（见 §82.3）⇒ **不作为结论引用**。
+7. ⛔ **「不变式」判据口径**：本轮 V1 的 `V1-5` 用两段式 `n_played + n_dropped == n_submitted` ⇒ 报 `got=25 / want=76` **FAIL**，但这是**判据口径问题不是产品缺陷**（真实状态：25 播 + 0 丢 + 51 未构建完 = 76 守恒，`close()` 收尾才计丢句，计数发生在状态行打印之后）⇒ **正确口径应为三段式** ⇒ **是否改判据待 reviewer 裁定**（§82.1 与 §82.5.2 第 4 项）。
+8. ⛔ **未向 MiniMax 回转写**（质量判定归 reviewer）；**未跑 `verify_pkg_zip.py`**、**未开 FTP**（§66 口径）。
+
+### §83.5 🔴 **待 reviewer 裁定（4 项，与 §82.5.2 一致，本轮**未自行推进**）**
+
+1. 🔴 **RTF 归因边界** —— 是否接受「双侧争用」作为主因解法优先级依据（cp_decode 减负 > ASR 迁 `GPU.1` 独显）？**ASR 迁设备属 ASR 模块决策，App 不自行改**。
+2. 🔴 **「首包」指标的定义** —— 边车侧是否需要暴露**真正的首块时间**（而非整句 DONE 时间）？是否要求改 `tts_cuda_sidecar.py`？
+3. 🔴 **`app062` A/B 是否重做** —— 判据已过时，是否重跑基线？
+4. 🔴 **是否把「不变式」判据改成三段式**（`n_played + n_dropped + n_drop_unbuilt == n_submitted`）？
+
+### §83.6 本节涉及文件清单（本次仅新增 1 个写入脚本）
+
+| 文件 | 字节 | 说明 |
+|---|---|---|
+| `results/app/_app83_write_status.py` | 本节追加脚本 | 只追加 + 头部字段保持 + `newline=''` 保 LF |
+| `status/app/STATUS_APP.md` | — | 追加 §83（**只追加，未改旧章节**） |
+
+### §83.7 头部字段
+
+- `last_ack` = **APP-033**（**保持不变**：本轮无新 reviewer 纠偏条目 ⇒ 无编号可 ack）。
+- 「更新时间」= **2026-10-28 12:59**（`Get-Date -Format "yyyy-MM-dd HH:mm"` **实测值**，非推算）。
