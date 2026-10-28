@@ -1,10 +1,11 @@
 last_ack: ASR-023
-更新时间: 2026-10-28 23:30
-当前任务: **无新纠偏（last_ack 保持 ASR-023）+ 补上 §56 自检的**结构性盲区**：§56 的 `recipe_self_audit` 只覆盖「**参数值**级」（18 项），而 §55.4 抓到的 preemphasis 漏项恰恰是**「漏项」类**缺陷 ⇒ 一份**漏掉整步操作**的配方**照样能通过 §56 的 `all_match=true`** ⇒ 本轮把「**程序级规格**（几何 + 操作顺序 + 边界语义）」真正落回**机读产物**并加装**源码锚定自检**，同时量化出 🔴 **ASR-023 §4 的验收门槛「余弦 ≥0.999」本身鉴别力不足**（3 类缺陷余弦仍 >0.999 会误判为通过）—— 本轮检查 `status/asr/CORRECTIONS_ASR.md`（**62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f28bc2b7`）与上一轮（21:55）**逐字节一致**，`grep -n '^## ASR-'` 仍为 **23 条（ASR-001 … ASR-023）**，全盘 `grep -rn -E "ASR-0(2[4-9]|[3-9][0-9])"` 命中 **0** ⇒ **无新纠偏，last_ack 不变**；但本轮**不是空跑** —— ① 🔴 **更正 ④：配方新增 `procedure_spec`**（`frame_geometry` 4 项 + `operation_order` **9 步** + `boundary_semantics` 5 项 + `centering_side` 3 项）⇒ 补上「窗口 400 / 移 160 / 补齐到 512 / FFT 256 点 / 帧数公式 / 操作顺序 / 预加重 replicate 边界 / hamming symmetric / mel 右补 1 列 0 / log eps 钳位 / 中心化在 fbank 侧」等**只给参数就实现不出来的信息**；② 🔴 **更正 ⑤：修掉 §56 自检的「对照一边也会漂移」** —— 原先 `pyannote_explicit_overrides` 是**硬编码在脚本里**的（与 §55.4 同一 bug 类，只是换了位置）⇒ 改为**从 live 实例读** `inst._fbank.keywords`（config.yaml → `WeSpeakerResNet34(**model)` → `partial(kaldi.fbank,...)`）；③ ✅ **加装 `procedure_self_audit`**（19 条**源码锚点**逐条回查 live 源码 + 4 个必需分节齐全性 + **6 条「散文 ↔ 锚点」一致性**判据）⇒ `all_anchored` = **true**（19/19）、`all_sections_present` = **true**、`all_prose_consistent` = **true**、`all_pass` = **true**；④ 🔴 **量化出 §4 验收门槛的鉴别力缺口**（新脚本 `asr032_procedure_spec_audit.py` + `asr032_procedure_spec_audit.json`）⇒ 照 `procedure_spec` 实现 ⇒ 3 段真实素材余弦 **0.9999999999973841 / 0.9999999999977892 / 0.9999999999998118**（**证明规格真的可实施**），但注入 7 类缺陷后 🔴 **3 类余弦仍 >0.999 会误判为通过**（`pre_dc_order` 0.9990327 / `no_dc_offset` 0.9997528 / `hamming_periodic` 0.9999982）⇒ **相对 max_abs_diff ≤1e-3 抓住 7/7** ⇒ §4 验收须**同时**看 max_abs_diff 或跑 `procedure_self_audit`；⑤ ✅ **判据有鉴别力（7 个反证，全部被对应判据抓住）**：删 `operation_order` 整节 ⇒ `missing_sections=['operation_order']` + `all_pass=false`；预加重边界语义反转（replicate→补零，锚点+散文同时改）⇒ `preemphasis_boundary_semantics` 失败；只改散文不改锚点 ⇒ 同判据失败；**去直流/预加重两步对调** ⇒ `dc_offset_before_preemphasis` 失败（用**步骤序号**而非字符串位置比对）；还原 `energy_floor` 错值 ⇒ 参数级 `all_match=false` + 2 条回归护栏失败；删 `preemphasis_coefficient` ⇒ 参数级 `all_match=false` + `preemphasis_0p97_present=false`；还原 `(batch, 80, frames)` ⇒ `input_shape_consistent=false`；⑥ 🔴 **本轮修掉自己新判据里的 2 个真 bug**（都是反证暴露的）：① `log_epsilon_clamp` 判据搜的关键词（`float32_eps`）与规格正文逐字写法（`torch.finfo(float32).eps`）**不一致** ⇒ 该判据**恒失败**；② `dc_offset_before_preemphasis` 用**字符串位置**比对 ⇒ 在「步骤内容互换、编号也跟着换」时**失真**（反证实测：去直流 idx 142 < 预加重 idx 181 却漏检）⇒ 改为比对**步骤序号**（正则 `^(\d+)\.`）；③ **另修一处 JSON 判据的 nan 误判**：缺陷导致余弦为 `nan` 时，`nan < 0.999` 为 False ⇒ 会把**硬失败误报成「漏检」** ⇒ 改为 nan **判为「抓住」**（数值不可用 ⇒ 必然不合格）⇒ 漏检数由 4 更正为 **3**；⑦ 🔴 **不动 §4 验收门槛的数值**（≥0.999 保留）只**加严**判据组合 ⇒ **本轮仍不启动 OV IR 导出**（属新开实验，等用户指派 + 需拍板 A/B/C）。
-阻塞 / 待用户决定: ① 🔴 **用户仍需拍板 wespeaker OV IR 的导出边界（A / B / C）** —— §51 的推荐仍是 **方案 A（IR 只含 resnet 子图、输入 = fbank 特征 (B,T,80)、输出 (B,256)）**；**本轮把 A 的规格从「参数级 + 自检」升级为「参数级 + 程序级(9 步操作顺序 + 边界语义) + 源码锚定自检 + 7 个反证」** ⇒ A 已具备**可实施且可验收**的规格；② 🔴 **导出本身仍未启动**（属新开实验：需新脚本 + GPU.0 实测 + 持锁计时 + 与 torch CPU **全链路**比余弦 ≥0.999）⇒ **等用户指派**；在此之前 wespeaker 仍是 **torch 依赖**，「运行时不依赖 torch」的交付约束（ASR-013）**尚未满足**；③ 🔴 **本轮新发现、需用户知悉的验收口径变更**：ASR-023 §4 原文只写「余弦 ≥0.999」，实测该门槛**单独用会误判**（3/7 缺陷漏检）⇒ §4 验收须**同时**满足「余弦 ≥0.999」**且**「相对 max_abs_diff ≤1e-3」**且** `procedure_self_audit.all_pass=true` ⇒ **不修改 ASR-023 原文**（纠偏文件由 reviewer 维护），只在本模块 STATUS 与机读配方里加严；④ ⚠️ **口径提醒**：§55 的前端余弦、§57 的 `procedure_spec` 可实施性余弦、§57 自检的 `all_pass=true` **都不等于** §4 的验收结论 —— §4 仍须**全链路**（IR + resnet + 中心化）判定，**不得**用前端证据冒充；⑤ ⚠️ **署名义务虽免除，但两条残留风险仍在**（App NOTICE §三.2「若 ASR 把 wespeaker 权重纳入客户包，必须先回告 App 补署名」/ §三.3「运行期加载的署名要求由 ASR 自行判定」）⇒ **在 wespeaker 真正进交付之前必须重新走一遍**；⑥ ⚠️ **App 侧 zip 重打留有待裁定项（属 App 职责，本模块不代决）**：`status/app/STATUS_APP.md` §85.7 第 1 条（旧 zip `907a1caa…` 是否已带不实许可声明发出）；⑦ ⚠️ **本轮脚本/产物在 git 仓库外**（`qwen3asr_06b` 不在 repo 内）⇒ 只在本机，交付需另行打包；⑧ ⚠️ **WER 仍未跑**（目标机不调用 MiniMax）⇒ 质量判定交 reviewer；⑨ ⚠️ 本轮**未动 `live_caption/`**、**未申请共享机器锁**（纯 CPU 数值诊断 + 源码读取：无推理/计时/测速 ⇒ 无需锁；检查时 `shared/MACHINE_LOCK` 由 **app** 持有（pid 5056 @23:18:09，`tasklist` 确认存活）⇒ **活锁，未回收、未干扰**）；⑩ ⚠️ 既有遗留项不变：碎片化 2/2、说话人切换点 recall 0.0857（粒度上限，ASR-023 §3 已拆开说明）未处理。
+更新时间: 2026-10-29 07:30
+当前任务: **无新纠偏（last_ack 保持 ASR-023）+ 把 §57 的验收结论真正落回机读产物（§58）**：§57 测出「余弦 ≥0.999 单独用会误判」（3/7 类缺陷余弦仍 >0.999 却判过）⇒ 该结论**只写在 STATUS 散文和 asr032 的 verdict 里**，而 **precheck 产物的 `recommended_recipe_A.verification` 仍只是一句「比余弦 ≥0.999」**、`asr032.acceptance_threshold` 也**只有 `cosine_min` 一个字段** ⇒ 未来实现者/工具只读机读字段 ⇒ 只会用余弦 ⇒ **误判会原样复发** ⇒ 这正是 §41「结论写进报告 ≠ 结论落进产物」的**同型复发**；本轮把**加严后的完整判据**（余弦 ≥0.999 **且** 相对 max_abs_diff ≤1e-3 **且** `procedure_self_audit.all_pass=true`）**落成两处产物的机读字段**并**加交叉核对**；同时修掉 2 处**产物内部自相矛盾**（precheck 散文里硬编码的实测余弦与 asr032 实测**对不上**；asr032 产物写出裸 `NaN` = **非标准 JSON** ⇒ 严格解析器读不出来）—— 本轮检查 `status/asr/CORRECTIONS_ASR.md`（**62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f28bc2b7`）与上一轮（10-28 23:30）**逐字节一致**，`grep -n '^## ASR-'` 仍为 **23 条（ASR-001 … ASR-023）**，全盘 `grep -rn -E "ASR-0(2[4-9]|[3-9][0-9])"` 命中 **0** ⇒ **无新纠偏，last_ack 不变**；但本轮**不是空跑** —— ① 🔴 **更正 ①：产物写出裸 `NaN` = 非标准 JSON** （`asr032_procedure_spec_audit.json` 的 `no_eps_clamp` 行有 3 个 `NaN`）⇒ RFC 8259 不允许 NaN/Infinity ⇒ 严格解析器（Go/Rust/JS `JSON.parse`）**整个产物读不出来** ⇒ 机读性归零；② 🔴 **更正 ②：precheck 的散文硬编码的实测余弦与实测不符** （写「预加重/去直流顺序互换 = 0.999975、hamming 用 periodic = 0.99999984」，实测是 **0.9990326900715717 / 0.9999981589591781**）⇒ **同一产物内部自相矛盾** ⇒ 根因同 §41/§46：**数字是手抄的、不是从产物读回来的**；③ ✅ **更正 ③：验收判据落回机读产物** —— precheck 新增 `verification_gate`、asr032 的 `acceptance_threshold` 补齐 4 个字段（`rel_max_abs_diff_max` / `require_procedure_self_audit_all_pass` / `gate_logic` / `gate_is_single_metric=false`）⇒ 未来只读机读字段也拿得到加严判据；④ ✅ **加装两处产物的交叉核对**（asr032 `cross_check` 段，9 项判据 + `all_consistent`）⇒ 同一件事的两个副本不会再各自漂移；⑤ ✅ **判据有鉴别力（6 条反证 6/6 全过）** —— 注入 NaN ⇒ writer 护栏抛 ValueError；删 `verification_gate` / 改 `rel_max_abs_diff_max` / 重新硬编码余弦 ⇒ `cross_check` 三次都判**不一致**；基线两次全过 ⇒ 判据**非恒真也非恒假**；⑥ 🔴 **writer 级护栏**：两个脚本的 `json.dump` 加 `allow_nan=False` ⇒ 以后再出现 NaN 会**直接抛错**而不是默默写出非标准 JSON；⑦ 🔴 **本轮仍不启动 OV IR 导出**（属新开实验，等用户指派 + 需拍板 A/B/C）。
+阻塞 / 待用户决定: ① 🔴 **用户仍需拍板 wespeaker OV IR 的导出边界（A / B / C）** —— §51 的推荐仍是 **方案 A（IR 只含 resnet 子图、输入 = fbank 特征 (B,T,80)、输出 (B,256)）**；**§58 已把 A 的验收判据从「散文」升级为「两处产物的机读字段 + 交叉核对」** ⇒ A 已具备**可实施且可验收**的规格；② 🔴 **导出本身仍未启动**（属新开实验：需新脚本 + GPU.0 实测 + 持锁计时 + 与 torch CPU **全链路**比余弦 ≥0.999 **且** 相对 max_abs_diff ≤1e-3）⇒ **等用户指派**；在此之前 wespeaker 仍是 **torch 依赖**，「运行时不依赖 torch」的交付约束（ASR-013）**尚未满足**；③ ⚠️ **§4 验收口径不变（原文不动）**：ASR-023 §4 原文只写「余弦 ≥0.999」，**纠偏文件由 reviewer 维护，本模块不改原文**，只在本模块机读产物中加严；④ ⚠️ **口径提醒**：§55 的前端余弦、§57 的 `procedure_spec` 可实施性余弦、§57/§58 自检的 `all_pass=true` **都不等于** §4 的验收结论 —— §4 仍须**全链路**（IR + resnet + 中心化）判定，**不得**用前端证据冒充；⑤ ⚠️ **署名义务虽免除，但两条残留风险仍在**（App NOTICE §三.2「若 ASR 把 wespeaker 权重纳入客户包，必须先回告 App 补署名」/ §三.3「运行期加载的署名要求由 ASR 自行判定」）⇒ **在 wespeaker 真正进交付之前必须重新走一遍**；⑥ ⚠️ **App 侧 zip 重打留有待裁定项（属 App 职责，本模块不代决）**：`status/app/STATUS_APP.md` §85.7 第 1 条（旧 zip `907a1caa…` 是否已带不实许可声明发出）；⑦ ⚠️ **本轮脚本/产物在 git 仓库外**（`qwen3asr_06b` 不在 repo 内）⇒ 只在本机，交付需另行打包；⑧ ⚠️ **WER 仍未跑**（目标机不调用 MiniMax）⇒ 质量判定交 reviewer；⑨ ⚠️ 本轮**未动 `live_caption/`**、**未申请共享机器锁**（纯 CPU 数值诊断 + 源码读取 + JSON 严格性校验：无推理/计时/测速 ⇒ 无需锁；检查时 `shared/MACHINE_LOCK` **不存在** ⇒ 无活锁需回避）；⑩ ⚠️ 既有遗留项不变：碎片化 2/2、说话人切换点 recall 0.0857（粒度上限，ASR-023 §3 已拆开说明）未处理。
 
 
 ## 最近更新
+- 2026-10-29 07:30 **无新纠偏（last_ack 保持 ASR-023）+ 把 §57 的验收结论真正落回****机读产物**（§58）+ 修掉 2 处**产物内部自相矛盾**（硬编码余弦与实测不符 / 裸 `NaN` = 非标准 JSON）+ 加装**两处产物交叉核对** + 6 条反证**：① ✅ **无新纠偏** —— `CORRECTIONS_ASR.md` **62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f28bc2b7` 与上一轮（10-28 23:30）**逐字节一致**；`grep -n '^## ASR-'` = **23 条（ASR-001 … ASR-023）**；全盘 `grep -rn -E "ASR-0(2[4-9]|[3-9][0-9])"` 命中 **0** ⇒ **last_ack 保持 ASR-023 不变**；② 🔴 **更正 ①（产物内部自相矛盾）**：precheck 产物 `verification_caveat` 硬编码「预加重/去直流顺序互换余弦 = 0.999975、hamming 用 periodic = 0.99999984」，而 asr032 的**实测**是 **0.9990326900715717 / 0.9999981589591781** ⇒ **两个数字都错** ⇒ 根因同 §41/§46（**数字是手抄的、不是从产物读回来的**）⇒ 改为**不复制数字**，数字的唯一事实来源 = asr032 `discriminative_power.rows`；③ 🔴 **更正 ②（机读性归零）**：`asr032_procedure_spec_audit.json` 的 `no_eps_clamp` 行有 **3 个裸 `NaN`** ⇒ **非标准 JSON**（RFC 8259 不允许）⇒ 严格解析器（Go/Rust/JS `JSON.parse`）**整个产物读不出来** ⇒ 已改为写 `null` + `*_is_usable` 标记，并给两个脚本的 `json.dump` 加 **`allow_nan=False`** writer 级护栏（再出现 NaN 直接抛 ValueError）；④ ✅ **更正 ③（验收判据落回机读产物）**：precheck 新增 `recommended_recipe_A.verification_gate`、asr032 的 `acceptance_threshold` 由**只有 `cosine_min`** 补齐为 4 个字段（`rel_max_abs_diff_max`=0.001 / `require_procedure_self_audit_all_pass`=true / `gate_logic`=AND 三条 / `gate_is_single_metric`=false）⇒ 未来**只读机读字段**也拿得到加严判据；⑤ ✅ **加装两处产物交叉核对**：asr032 新增 `cross_check` 段（9 项判据 + `all_consistent`）⇒ `all_consistent` = **true**（4 项门槛字段逐一相等 + 3 项反证位全过）；⑥ ✅ **判据有鉴别力（6 条反证 6/6 全过）**：注入 NaN ⇒ writer 护栏抛 ValueError；删 `verification_gate` ⇒ `all_consistent=false`；改 `rel_max_abs_diff_max`（1e-3→1e-2）⇒ `all_consistent=false`；散文重新硬编码余弦 ⇒ `all_consistent=false`；基线（未变异判一致 + 两个产物均严格 JSON）2/2 全过 ⇒ 判据**非恒真也非恒假**；⑦ ✅ **重跑后自检仍全绿**：`recipe_self_audit` 18 项 `all_match=true`、`procedure_self_audit` 19 条 `all_pass=true`、3 段素材余弦 **0.9999999999973841 / 0.9999999999977892 / 0.9999999999998118**、鉴别力 **3 类余弦漏检 / 7 类全被 rel_max_abs_diff 抓住**（与 §57 一致 ⇒ 重跑可复现）；⑧ 🔴 **不动 ASR-023 原文**（纠偏文件由 reviewer 维护），只在本模块机读产物中加严；⑨ 🔴 **不启动 OV IR 导出**（属新开实验，等用户指派 + 拍板 A/B/C）；⑩ 🔴 纪律：全程**只读源码 + 纯 CPU 数值诊断 + JSON 严格性校验**（不跑模型推理、不计时）⇒ **未申请共享机器锁**（`shared/MACHINE_LOCK` 不存在）、**未跑 WER**（交 reviewer）、**未动 `live_caption/`**。 ⇒ 产物：`qwen3asr_06b/scripts/asr023_wespeaker_export_precheck.py`（**46139 B @ 07:28**）、`qwen3asr_06b/scripts/asr032_procedure_spec_audit.py`（**23691 B @ 07:29**）、`qwen3asr_06b/scripts/asr033_s58_counterproofs.py`（**10386 B @ 07:30**）、`qwen3asr_06b/results/pyannote_seg/asr023_wespeaker_export_precheck.json`（**28521 B @ 07:29**）、`qwen3asr_06b/results/pyannote_seg/asr032_procedure_spec_audit.json`（**7942 B @ 07:29**）、`qwen3asr_06b/results/pyannote_seg/asr033_s58_counterproofs.json`（**5152 B @ 07:30**）、改前备份 `results/_cp_s58/`（4 个 .bak + `STATUS_ASR_before_s58.md`）
 - 2026-10-28 23:30 **无新纠偏（last_ack 保持 ASR-023）+ 补上 §56 自检的**结构性盲区**（参数级 ⇒ 程序级）+ 量化出 §4 验收门槛「余弦 ≥0.999」的**鉴别力缺口**（§57）**：① ✅ **无新纠偏** —— `CORRECTIONS_ASR.md` **62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f28bc2b7` 与上轮（21:55）**逐字节一致**；`grep -n '^## ASR-'` = **23 条（ASR-001 … ASR-023）**；全盘 `ASR-0(2[4-9]|[3-9][0-9])` 命中 **0** ⇒ **last_ack 保持 ASR-023**；② 🔴 **本轮抓到的真缺口**：§56 的 `recipe_self_audit` **只覆盖「参数值」级**（18 项）⇒ 一份**漏掉整步操作**的配方**照样能通过 `all_match=true`**（§55.4 抓到的 preemphasis 漏项正是「漏项」类 ⇒ 同一 bug 类）；③ 🔴 **更正 ④：配方新增 `procedure_spec`**（`frame_geometry` 4 + `operation_order` **9 步** + `boundary_semantics` 5 + `centering_side` 3）⇒ 补上「窗口 400 / 移 160 / 补齐 512 / FFT 256 点 / 帧数公式 / 操作顺序 / 预加重 replicate 边界 / hamming symmetric / mel 右补 1 列 0 / log eps 钳位 / 中心化在 fbank 侧」等**只给参数就实现不出来**的信息；④ 🔴 **更正 ⑤**：§56 自检的 `pyannote_explicit_overrides` 原是**硬编码在脚本里**的（对照的一边也会漂移 ⇒ 与 §55.4 同一 bug 类）⇒ 改为**从 live 实例读** `inst._fbank.keywords`（config.yaml → `WeSpeakerResNet34(**model)` → `partial(kaldi.fbank,...)`）；⑤ ✅ **加装 `procedure_self_audit`**（19 条**源码锚点**回查 live 源码 + 4 个必需分节齐全性 + **6 条「散文 ↔ 锚点」一致性**）⇒ `all_anchored` = **true**（19/19）、`all_sections_present` = **true**、`all_prose_consistent` = **true**、`all_pass` = **true**；⑥ 🔴 **量化出 §4 验收门槛的鉴别力缺口**（`asr032_procedure_spec_audit.py` / `.json`）⇒ 照 `procedure_spec` 实现 ⇒ 3 段素材余弦 **0.9999999999973841 / 0.9999999999977892 / 0.9999999999998118**（**规格真的可实施**），但注入 7 类缺陷后 🔴 **3 类余弦仍 >0.999 会误判为通过**（`pre_dc_order` 0.9990327 / `no_dc_offset` 0.9997528 / `hamming_periodic` 0.9999982）⇒ **相对 max_abs_diff ≤1e-3 抓住 7/7** ⇒ §4 验收须**同时**看 max_abs_diff；⑦ ✅ **判据有鉴别力（7 个反证全部被对应判据抓住）**：删 `operation_order` ⇒ `missing_sections=['operation_order']`；预加重语义反转 ⇒ `preemphasis_boundary_semantics` 失败；只改散文 ⇒ 同判据失败；**去直流/预加重对调** ⇒ `dc_offset_before_preemphasis` 失败；还原 `energy_floor` 错值 ⇒ 参数级 `all_match=false`；删 `preemphasis_coefficient` ⇒ `preemphasis_0p97_present=false`；还原 `(batch, 80, frames)` ⇒ `input_shape_consistent=false`；⑧ 🔴 **本轮修掉自己新判据里的 2 个真 bug**（反证暴露）：① `log_epsilon_clamp` 搜的关键词与规格正文**逐字不一致** ⇒ **恒失败**；② 顺序判据用**字符串位置**比对 ⇒ 步骤互换时**失真**（实测 idx 142 < 181 却漏检）⇒ 改为比对**步骤序号**；③ 另修 JSON 判据的 **nan 误判**（`nan < 0.999` 为 False ⇒ 把硬失败误报成「漏检」）⇒ nan 判为「抓住」⇒ 漏检数 4 更正为 **3**；⑨ 🔴 **不启动 OV IR 导出**（属新开实验，等用户指派 + 拍板 A/B/C）；⑩ 🔴 纪律：全程**只读源码 + 纯 CPU 数值诊断**（不跑模型推理、不计时）⇒ **未申请共享机器锁**（`MACHINE_LOCK` 由 app 持有 pid 5056 存活 ⇒ 活锁未动）、**未跑 WER**（交 reviewer）、**未动 `live_caption/`**。 ⇒ 产物：`qwen3asr_06b/scripts/asr023_wespeaker_export_precheck.py`（**43867 B @ 23:17**）、`qwen3asr_06b/results/pyannote_seg/asr023_wespeaker_export_precheck.json`（**27577 B @ 23:18**）、`qwen3asr_06b/scripts/asr032_procedure_spec_audit.py`（**17146 B @ 23:13**）、`qwen3asr_06b/results/pyannote_seg/asr032_procedure_spec_audit.json`（**6318 B @ 23:13**）、反证 7 份 + 汇总 `qwen3asr_06b/results/_cp_s57/counterproofs_s57.json`（**4317 B @ 23:19**）、改前备份 `results/_cp_s57/asr023_wespeaker_export_precheck.py.bak`（26509 B @ 23:12）+ `.json.bak`（16284 B @ 23:12）
 - 2026-10-28 21:55 **无新纠偏（last_ack 保持 ASR-023）+ 把 §55.4 的规格更正真正落回****机读配方**（原修正只在 STATUS 散文里）+ 修掉同 JSON 内 option A 与 recipe 的**输入形状自相矛盾**+ 加装「配方 ↔ torchaudio 实源码默认值」自检（§56）**：① ✅ **无新纠偏** —— `CORRECTIONS_ASR.md` **62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f28bc2b7` 与上轮（20:25）**逐字节一致**；`grep -n '^## ASR-'` = **23 条（ASR-001 … ASR-023）**；全盘 `ASR-0(2[4-9]|[3-9][0-9])` 命中 **0** ⇒ **last_ack 保持 ASR-023**；② 🔴 **本轮抓到的真缺口**：§55.4 的 2 处规格更正**只落在 STATUS 散文**，**机读产物** `results/pyannote_seg/asr023_wespeaker_export_precheck.json` 的 `recommended_recipe_A.caller_must_replicate_kaldi_fbank` **仍写着错值**（`energy_floor = "0 (torchaudio kaldi 默认)"`、**无 `preemphasis_coefficient`**）⇒ **照产物实现 = 照 §51 旧表实现 ⇒ 余弦掉到 0.9853~0.9902 ⇒ 违反 ASR-023 §4 的 ≥0.999 门槛**；③ ✅ **修正落回机读产物**：配方改为 `preemphasis_coefficient = 0.97`（torchaudio 默认、pyannote 未覆盖）、`energy_floor = 1.0`（原写 0 有误；本配置 `use_energy=False` 故数值无影响、表述要改），并补齐 **9 项影响数值但原配方未列**的参数（`use_power=True` / `use_log_fbank=True` / `subtract_mean=False` / `low_freq=20.0` / `high_freq=0.0` / `vtln_warp_factor=1.0` / mel 标度 = **Kaldi HTK `1127*log(1+f/700)`** / `mel_freq_delta` 分母 = `num_bins+1`）；④ 🔴 **更正第 3 处（本轮新发现）**：同一 JSON 内 `export_boundary_options[A].desc` 写输入 `(batch, 80, frames)`、`recommended_recipe_A.input_shape` 写 `(batch, frames, 80)` ⇒ **自相矛盾**；实测真值（pyannote `wespeaker/resnet.py::forward` 源码 `fbank.permute(0, 2, 1)  # (B,T,F) => (B,F,T)`）⇒ **输入是 (B,T,F)** ⇒ 已统一为 `(batch, frames, 80)`；⑤ ✅ **加装 `recipe_self_audit` 自检段（18 项）**：口径 = **「有效值 = torchaudio kaldi.fbank 默认值，被 pyannote `partial(kaldi.fbank, ...)` 显式覆盖者覆盖」**（pyannote 只覆盖 9 个参数，其余沿用默认值 ⇒ 这正是 §55.4 漏列的机制根源）⇒ `all_match` = **true**、`n_checks` = **18**、`n_mismatch` = **0**、3 项 regression guard 全 **true**、`input_shape_consistent` = **true**；⑥ ✅ **判据有鉴别力（3 个反证，原 JSON 见 `results/_cp_s56/`）**：注入 ① 还原 `energy_floor` 错值 ⇒ `all_match=false` + `energy_floor_is_1p0_not_0=false` + `no_stale_energy_floor_zero_string=false`；② 删掉 `preemphasis_coefficient` ⇒ `all_match=false` + `preemphasis_0p97_present=false` + `MISSING_IN_RECIPE preemphasis_coefficient`；③ 还原 `(batch, 80, frames)` ⇒ `input_shape_consistent=false`；⑦ ✅ **与 §55 实测独立交叉核对一致**：recipe 的 15 个参数与 `asr030_kaldi_fbank_fidelity.py`（§55 实测余弦 **0.9999999999999571** 所用常量）**逐项一致** ⇒ 反证 recipe 未漏项；⑧ 🔴 **不动 §4 验收口径**：≥0.999 仍须**全链路**（IR + resnet + 中心化）判定，**导出本身仍未启动**（属新开实验，等用户指派）；⑨ 🔴 纪律：全程**只读取证 + 数值对账**（不导出 IR、不跑模型前向、不计时 ⇒ **未申请共享机器锁**，`shared/MACHINE_LOCK` 不存在）、**未跑 WER**（交 reviewer）、**未动 `live_caption/`**；⚠️ **本轮脚本/产物在 git 仓库外** （`qwen3asr_06b` 不在 repo 内）⇒ 只在本机，交付需另行打包。 ⇒ 产物：`qwen3asr_06b/scripts/asr023_wespeaker_export_precheck.py`（**26509 B @ 21:43**）、`qwen3asr_06b/results/pyannote_seg/asr023_wespeaker_export_precheck.json`（**16284 B @ 21:43**）、反证 3 份 `results/_cp_s56/asr023_wespeaker_export_precheck_{energy_floor,no_preemph,shape}.json`
 - 2026-10-28 20:25 **无新纠偏（last_ack 保持 ASR-023）+ 把 ASR-023 §4 的 A/B/C 待决项从「凭预检拍板」收敛为「有实测依据可拍板」（§55）**：① ✅ **无新纠偏** —— `CORRECTIONS_ASR.md` **62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f6c28bc2b7` 与上轮（19:20）**逐字节一致**；`grep -n '^## ASR-'` = **23 条（ASR-001 … ASR-023）**；全盘 `ASR-0(2[4-9]|[3-9][0-9])` 命中 **0** ⇒ **last_ack 保持 ASR-023**；② 🔴 **本轮不是空跑**：§51 把方案 A 风险写成「MEDIUM：需逐字复刻 kaldi.fbank ⇒ 数值差异直接决定余弦能否 ≥0.999」，而**用户拍板 A/B/C 正卡在这条风险上** ⇒ 本轮做**纯数值取证**（不导出 IR / 不跑模型前向 / 不计时 ⇒ 无需共享锁）；③ ✅ **方案 A 的前端实测可行**：脚本 `qwen3asr_06b/scripts/asr030_kaldi_fbank_fidelity.py` + `qwen3asr_06b/results/pyannote_seg/asr030_kaldi_fbank_fidelity.json`（**8862 B @ 20:34**）⇒ 3 段真实素材（SPE 5 分钟切片 / ami_EN2002a / ami_bal_EN2002a）上，numpy 逐行复刻 Kaldi fbank vs torch 参考：**余弦 = 0.9999999999999571**、相对最大偏差 **3.61e-05**（中心化后 0.9999999999973841 / 2.73e-05）；④ 🔴 **§51 规格表有 2 处需更正**（照原表实现会踩）：`must_replicate_kaldi_fbank` **漏了 `preemphasis_coefficient=0.97`** （漏掉后余弦掉到 **0.9853~0.9902**、相对偏差 **~0.5**）、`energy_floor` 写成「0 (torchaudio 默认)」**实为 1.0**（本配置 `use_energy=False` ⇒ 数值无影响，只是表述要改）；⑤ 🔴 **本轮修掉自己脚本的 2 处口径错配**（反证暴露）：首版「参考侧不缩放 / 复刻侧缩放」混比 ⇒ 余弦为负（**口径错配，非复刻失败**），且中心化把 2-D `(frames, mel)` 直接喂进 `dim=1` ⇒ 轴向错成 mel 维 ⇒ 已改为 pyannote 真实语义（`features` 为 (batch, frames, mel) ⇒ `dim=1` = **帧维**）并加 `like_for_like_guard` 反证段钉死口径；⑥ ✅ **交付运行时核对**（决定「A 的复刻工作必须由调用方承担」）：脚本 `asr031_delivery_runtime_frontend_check.py` + `asr031_delivery_runtime_frontend_check.json`（**5124 B @ 20:34**）⇒ 客户包 **14200 条目**里 `torch` / `torchaudio` / `speechbrain` / `pyannote` **全量交叉验证命中 0** ⇒ 交付侧**无 torchaudio 可调** ⇒ 只能走 numpy 复刻；同时 **numpy / scipy / soundfile / librosa / openvino 均已在包内** ⇒ **A/B/C 三案依赖可行性都成立** ⇒ **瓶颈不在依赖，在数值保真与实现复杂度**；⑦ ⚠️ **librosa 捷径不成立**：librosa 默认 slaney mel 标度 vs Kaldi 的 HTK 标度，mel bin 中心频率最大差 **263.57 Hz** ⇒ 不能用 librosa 滤波器组替代；⑧ 🔴 **口径纪律**：§55 只证明**前端 fbank 一段**，ASR-023 §4 的余弦 ≥0.999 仍需**全链路**（IR + resnet + 中心化）判定，**不得**用前端余弦冒充 §4 验收结论；导出本身**仍未启动**（等用户指派）；⑨ 🔴 纪律：全程**只读 + 纯 CPU 数值诊断**（不跑模型推理、不计时）⇒ **未申请共享机器锁**（`shared/MACHINE_LOCK` 不存在）、**未跑 WER**（交 reviewer）、**未动 `live_caption/`**；⑩ ⚠️ **本轮脚本/产物在 git 仓库外**（`qwen3asr_06b` 不在 repo 内）⇒ 只在本机，交付需另行打包。
@@ -19,7 +20,6 @@ last_ack: ASR-023
 - 2026-10-27 13:25 **ASR-017 落地（§43）**：① 🔴 统一切片：所有 ASR 测试改用 `shared/SPE_0000_0500.wav`（00:00–05:00，md5 `a10da6a3…` 9600044 B @11:24，与源前 300s 逐字节一致）；② 新建单一事实来源 `scripts/asr_slice_common.py`（SLICE_SEC=300 / MAX_MIN=5 + `guard_minutes` 护栏）⇒ 6 脚本改读切片并加「>5min 需 --allow-long」（`pya_app_path_seg`/`r2t2_app_transcribe`/`p0_stream_seg`/`asr007_bench`/`p0_torch_ref`，均 py_compile OK）；③ 被中止的 61 分钟 baseline 长跑（pid 34724，1980/3671s=53.9%）无产物、无 `*.partial.json` 残留 ⇒ 改跑 5 分钟；④ 陈旧 TTS 锁（pid 14888 已死，11:28:49）按 ASR-015 铁律自动回收（验证跑结束正常释放、无 `.tmp`、无残留）；⑤ 用 shared 切片补跑 5 分钟 baseline 验证（`pya_app_baseline_asr017verify.json`，14544 B @13:21，46 段 / rtf 0.6649 / timing_valid=true / md5 一致 / 词内切点 6.67% 与 §42 base5m_v2 逐位一致）；⑥ 交付 `asr017_slice_unify.json`（口径：5min≈900词、CI ±1.5–2pp、不宣称 1pp 内显著）⇒ WER 交 reviewer 配对复算；⑦ 未动 `live_caption/`、未改 p1_export_*/p1_verify_e2e（属构建脚本非运行时测试）
 - 2026-10-27 11:40 **ASR-014/015/016 全部落地（§42）+ 依用户决策改用 5 分钟短测**：① ✅ **ASR-015 锁收敛完成** —— 锁逻辑统一到 `scripts/asr_lock_common.py`（唯一事实来源），3 个脚本改调 `asr_lock_common.read_lock`（只读快照）；审计 14 个脚本 import 它、**规范锁无直接删/覆盖点**；② 🔴 **撤回「21:34 锁违规源于 `pya_sweep_params.py`」的归因** —— 实测该脚本**全文零锁代码**、`pya_sweep.json` mtime 21:46:03；**真凶是 `pya_app_path_seg.py` 旧 fail-open 读锁逻辑**（21:41:48 / 21:45:16 两个产物为证）⇒ 详见 §42.2；③ ✅ **ASR-014 §2(a)(b) 同脚本 5 分钟 baseline↔forced 对照**（依用户 11:19 决策替代 61 分钟长跑）：baseline 46 段 / rtf 0.7069 / finalize 0.4420·0.4907 / first_tok 0.3690·0.4141 n=514，forced 49 段 / rtf 0.6779 / finalize 0.4219·0.4679 / first_tok 0.3513·0.3945 n=517，window_lag 均 9360.0 ms，**两者 `timing_valid`=true、`lock_probe_stolen`=0**；词内切点 **6.67%→6.25%（−0.42pp）**、新旧两次跑**逐位复现**；④ 🔴 **撤回 §37 的「−6.57pp / 相对降幅 66.6%」** ⇒ 「跨脚本对比，待同脚本复核」（§42.3）；⑤ ✅ **§3 交付件 4 处缺格全补** + bench 四疑点逐条写进 `bench_explanations` + 0.6B 主机峰值根因实测（**同一份 FP32 权重加载两次**，peakWS 9260.2 vs bench 9294.1 MB）；⑥ ✅ **§2.5 分段模型建议放 NPU**（常驻 WS 71.0 vs GPU.0 270.8 MB；seg_model_rtf 0.01068 vs 0.060）—— **未擅自改 `live_caption/`**；⑦ ⚠️ **ASR-013 剩余验收仍未完成**（多说话人素材待指派）；⑧ 🔴 **WER 未算**（不调用 MiniMax）⇒ 交 reviewer 对两个 5 分钟产物做配对复算
 - 2026-10-27 08:20 **无新纠偏（last_ack 保持 ASR-013）+ 修掉「TOCTOU 窗口 ⇒ 孤儿子进程占设备」真缺陷（§41）**：① ✅ **无新纠偏**（`CORRECTIONS_ASR.md` mtime **2026-10-26 16:18:05**、md5 `55c28c72…`、37954 B 与上轮完全一致；`grep -n '^#\{1,3\} '` 最大编号仍 **ASR-013**；`grep -o 'ASR-[0-9]\{3\}' | sort -u` 无 ASR-014+）⇒ **last_ack 不改**；② 🔴★ **抓出真缺陷（§40 统一后的遗留）**：`p3_run_with_lock.py` / `run_wait_calib_mask2.py` 写法是「**等锁 → 起子进程 → 写锁**」⇒「等锁返回空闲」与「真正写锁」之间有 **TOCTOU 窗口**；别的模块正好在窗口里抢到锁 ⇒ `write_lock_exclusive` 抛错、包装器 abort ⇒ **但子进程已被拉起**（正在占 GPU/NPU 或 CPU 满载），旧代码**没人终止它** ⇒ 它带着**无锁**继续跑 ⇒ 其它模块看到「机器空闲」⇒ 也开始跑计时作业 ⇒ **计时数据被静默污染**（比崩溃更危险：产物看着完整）；③ ✅ **已实证复现**（隔离测试，规范锁全程未触碰）：包装器 rc=1 后子进程 **alive=True**（父退它还在跑）；④ ✅ **已修**：新增单一事实来源 `asr_lock_common.kill_child()`（terminate → 5 s 宽限 → kill → 轮询确认），两个包装器在 `write_lock` 抛错的 `except BaseException` 里**必须收掉已起的子进程**（杀不掉时**告警并打印 pid**，不静默放过）；⑤ ✅ **新增针对性回归 9/9 PASS**（`results/lock_verify/asr_lock_orphan_20261027.log`，1640 B，08:17；含 **T10 反证**：同一测试跑**旧实现**必然复现孤儿 `alive=True` ⇒ 测试有鉴别力；含 **T8 隔离断言**：规范锁全程不存在）；⑥ ✅ **既有验收无回归**：19/19 PASS（`asr_lock_verify_20261027.log`，1732 B，08:17 复跑）+ 跨进程互斥 PASS（`asr_lock_xproc_20261027.log`，873 B，08:17；6 进程持有区间**零重叠**、无死锁、无孤儿锁）；⑦ ✅ **机器锁纪律**：全部测试**重指向到临时目录的 TEST_LOCK**，规范锁**全程未被创建**（跑完 `shared/MACHINE_LOCK` 不存在、无 `.tmp` 残留）；`Get-Process python*` count=**0** ⇒ 无遗留进程；⑧ ⚠️ **`qwen3asr_06b` 不在 git 仓库内** ⇒ 脚本改动**只在本机、不进 git**；⑨ 🔴 **WER 仍未算**（不调用 MiniMax）⇒ 交 reviewer 对照 App 路径 R2T2 iGPU INT8 B **10.58%** 复算
-- 2026-10-27 07:08 **无新纠偏（last_ack 保持 ASR-013）+ 撤回 §39「5 脚本已统一」的表述 + 补上两个漏网脚本并修掉「跨会话陈旧锁永不回收」（§40）**：① ✅ **无新纠偏**（`CORRECTIONS_ASR.md` mtime **2026-10-26 16:18:05**、md5 `55c28c72…` 与上轮完全一致；`grep -n '^#\{1,3\} '` 最大编号仍 **ASR-013**；`grep -rn "ASR-01[4-9]" status/` 命中 **0**）⇒ **last_ack 不改**；② 🔴★ **撤回 §39.2 的「5 个持锁脚本统一调用 `asr_lock_common`」** —— 实测 `grep -ln asr_lock_common scripts/*.py` 只有 **3 个**（`pya_app_path_seg.py` / `pya_bench_one_window.py` / `pya_stream_segment.py`），`run_wait_calib_mask2.py` / `p3_run_with_lock.py` **各自仍抄本地实现** ⇒ 上一轮「单一事实来源」只落地 3/5；③ 🔴★ **统一时抓出并修掉一个真缺陷**：`run_wait_calib_mask2.py` 判陈旧写成 `t.timestamp() < boot_time()`，而 `boot_time()` 返回**「开机至今秒数」**（实测 ~5.1e5）**不是时间戳**（~1.79e9）⇒ **恒为 False** ⇒ 「锁早于开机时间 ⇒ 可回收」**永不触发** ⇒ 跨会话残留陈旧锁会**永久阻塞**校准集生成（而该脚本的存在意义正是「等锁+采校准集」）⇒ 改为正确口径 `st < (time.time() - boot_time())`；④ ✅ **两个脚本真正并入单一事实来源**（本地 `read_lock`/`write_lock`/`release_lock`/`wait_free`/`lock_is_stale`/`pid_alive`/`boot_time` 全删）⇒ `grep -ln asr_lock_common scripts/*.py` 现为 **5/5**；⑤ ✅ **验收 19/19 PASS**（`results/lock_verify/asr_lock_verify_20261027.log`，1728 B，复跑 07:07 仍 19/19）+ ✅ **新增针对性回归 15/15 PASS**（`results/lock_verify/asr_lock_stale_reclaim_20261027.log`，1067 B，07:08；含 **T6 反证**：旧比较式实测恒 False ⇒ 缺陷真实存在非测试假象）+ ✅ **E2E 冒烟 rc=0**（`p3_run_with_lock.py --task smoke_migrated` ⇒ 取锁→子进程→释放锁、**无 `.tmp` 残留**、真实锁路径跑完为空）+ ✅ **`run_wait_calib_mask2.wait_free()` 冒烟**（True / 0.00 s / 不建锁）；⑥ ✅ **机器锁纪律**：唯一占锁的是 2 秒级 E2E 冒烟 ⇒ 跑完 `shared/MACHINE_LOCK` **不存在** ⇒ 无孤儿锁；⑦ ⚠️ **`qwen3asr_06b` 不在 git 仓库内** ⇒ 本轮脚本改动**只在本机、不进 git**（交付需另行打包）；⑧ 🔴 **WER 仍未算**（不调用 MiniMax）⇒ 交 reviewer 对照 App 路径 R2T2 iGPU INT8 B **10.58%** 复算
 ## §2 最近一周的结论摘要（均引用产物）
 
 ### 2.1 切段策略（属本模块范围）
@@ -6656,3 +6656,229 @@ energy_floor = '0 (torchaudio kaldi 默认)'      ← §55.4 已判为错，仍�
   §57 已把 A 的规格补到「可实施 + 可验收」）② §5 许可/署名三层闭环（进包前须重新确认）
   ③ WER 交 reviewer ④ 碎片化 / 切换点 recall 0.0857（粒度上限）未处理
   ⑤ `qwen3asr_06b` 不在 git 仓库内 ⑥ App 侧 `app/tts_worker.py` 注释引用内部 STATUS 路径（属 App 侧）。
+
+## §58 无新纠偏（last_ack 保持 ASR-023）+ 把 §57 的验收结论真正落回**机读产物** + 修掉 2 处产物内部自相矛盾 + 加装两处产物交叉核对（2026-10-29 07:30）
+
+### 一句话结论
+
+🔴 **无新纠偏（ASR-024+ 不存在，`last_ack` 保持 ASR-023）**；
+但本轮**不是空跑** —— §57 测出的「余弦 ≥0.999 单独用会误判」这个结论
+**当时只落在 STATUS 散文和 asr032 的 `verdict` 字符串里**，
+**机读产物里的验收字段仍是旧的** ⇒ 未来实现者/工具只读机读字段 ⇒ 误判会原样复发
+⇒ 本轮把加严判据**落回两处产物的机读字段**并**加交叉核对**，
+同时修掉 **2 处产物内部自相矛盾**。
+
+---
+
+### ① 无新纠偏（先确认，再动手）
+
+| 检查项 | 实测 | 结论 |
+|---|---|---|
+| `CORRECTIONS_ASR.md` 大小 / mtime | **62477 B @ 2026-10-28 00:53:08** | 与上一轮（10-28 23:30）**逐字节一致** |
+| `CORRECTIONS_ASR.md` md5 | `2db94ec491495528f3b7c5f28bc2b7` | 同上 |
+| `grep -n '^## ASR-'` | **23 条（ASR-001 … ASR-023）** | 最大编号 **ASR-023** |
+| 全盘 `grep -rn -E "ASR-0(2[4-9]|[3-9][0-9])"`（`confucius4-openvino` + `qwen3asr_06b`，限 `.md`/`.json`/`.py`） | 命中 **0**（排除 `STATUS_ASR.md` 自身与备份副本） | 确认**无 ASR-024 及以后** |
+
+⇒ **`last_ack` 保持 `ASR-023` 不变**。
+
+---
+
+### ② 🔴 本轮抓到的真缺口：§57 的结论**没有落进机读产物**（§41 同型复发）
+
+§57（2026-10-28 23:30）已经**实测**证明：ASR-023 §4 的「余弦 ≥0.999」**单独用会误判**——
+注入 7 类缺陷后，仍有 **3 类**余弦 >0.999 会被判过：
+
+| 缺陷 | 余弦 | 相对 max_abs_diff | 余弦门槛抓到？ |
+|---|---|---|---|
+| `pre_dc_order`（去直流/预加重对调） | **0.9990326900715717** | 0.23011766923727725 | ❌ 漏检 |
+| `no_dc_offset`（漏去直流） | **0.9997528046675997** | 0.15376892097093187 | ❌ 漏检 |
+| `hamming_periodic`（hamming 用 periodic） | **0.9999981589591781** | 0.023330377161624425 | ❌ 漏检 |
+| `no_preemphasis` | 0.992864368906687 | 0.2580439746784402 | ✅ |
+| `no_power` | 0.9761087069623245 | 0.3806135233891859 | ✅ |
+| `no_mel_rpad` | 抛 ValueError（257 vs 256 维度不匹配） | — | ✅（硬失败） |
+| `no_eps_clamp` | 数值不可用（NaN） | — | ✅（硬失败） |
+
+（原始字段：`qwen3asr_06b/results/pyannote_seg/asr032_procedure_spec_audit.json`
+→ `discriminative_power.rows`；`n_missed_by_cosine_gate` = **3**、
+`n_caught_by_rel_max_abs_diff` = **7**/`n_defects` = **7**）
+
+🔴 **但 §57 当时的落点只有两处散文**：
+① `STATUS_ASR.md` 的散文；② asr032 产物的 `verdict` **字符串**。
+**机读字段没动** —— 实测（改前）：
+
+| 位置 | 改前实际内容 | 问题 |
+|---|---|---|
+| `asr023_wespeaker_export_precheck.json` → `recommended_recipe_A.verification` | `'与 torch CPU 逐段比余弦 ≥0.999（ASR-023 §4 门槛）'` | **只有余弦**，工具/人只读到这一句 |
+| `asr032_procedure_spec_audit.json` → `acceptance_threshold` | `{"cosine_min": 0.999, "source": "..."}` | **只有 1 个门槛字段**，没有 max_abs_diff、没有 self_audit |
+
+⇒ **未来实现者照机读字段实现 = 只用余弦 = §57 测出的 3 类误判会原样复发**
+⇒ 这正是 §41「**结论写进报告 ≠ 结论落进产物**」的**同型复发**（§56 已犯过一次，§58 是第二次）。
+
+---
+
+### ③ 🔴 更正 ①：precheck 产物的散文**硬编码的实测余弦与实测不符**（产物内部自相矛盾）
+
+改前 `asr023_wespeaker_export_precheck.py` 的 `verification_caveat` 里**写死**：
+
+```
+'实测「预加重/去直流顺序互换」余弦 = 0.999975、'
+'「hamming 用 periodic」余弦 = 0.99999984，**两者都 >0.999 却会判过**'
+```
+
+🔴 而 asr032 的**实测**是 **0.9990326900715717 / 0.9999981589591781**
+⇒ **两个数字都与实测不符** ⇒ **同一份产物内部自相矛盾**。
+
+**根因**与 §41 / §46 同型：**这些数字是手抄进脚本的，不是从产物读回来的**
+⇒ 只要重跑一次 asr032（素材/实现一动），手抄值就与实测脱钩。
+
+⇒ **处置**：precheck 的散文**不再复制任何实测数字**，
+数字的**唯一事实来源** = asr032 的 `discriminative_power.rows`；
+precheck 只保留**结构性**陈述（哪 3 类缺陷、余弦单独不够 ⇒ 必须同时看相对 max_abs_diff）。
+并加一条**反证位**（见 §⑤）：散文里若又出现硬编码余弦 ⇒ `cross_check` 判不一致。
+
+---
+
+### ④ 🔴 更正 ②：asr032 产物写出裸 `NaN` = **非标准 JSON**（机读性归零）
+
+改前 `asr032_procedure_spec_audit.json` 的 `no_eps_clamp` 行含 **3 个裸 `NaN`**
+（`cosine` / `max_abs_diff` / `rel_max_abs_diff`）：
+
+```json
+"cosine": NaN,
+"max_abs_diff": NaN,
+"rel_max_abs_diff": NaN,
+```
+
+🔴 Python 的 `json.dump` 默认 `allow_nan=True` ⇒ 会写出裸 `NaN`；
+但 **RFC 8259 不允许 NaN / Infinity** ⇒ 这是**非标准 JSON**
+⇒ 任何严格解析器（Go 的 `encoding/json`、Rust 的 `serde_json`、JS 的 `JSON.parse`）
+**直接报错**，**整个产物读不出来** ⇒ 机读性归零。
+
+**实测证据**（改前）：
+
+```
+json.loads(text, parse_constant=<拒绝 NaN>) → ValueError: non-standard JSON constant: NaN
+```
+
+⇒ **处置**（两层）：
+1. **数据层**：数值不可用时写 `null`，并用 `cosine_is_usable` 显式标记「不可用」
+   （**保留** §57 已有的「nan 判为「抓住」」语义：数值不可用 ⇒ 必然不合格）；
+2. **writer 层**：两个脚本的 `json.dump` 加 **`allow_nan=False`**
+   ⇒ 以后再出现任何 NaN/Infinity **直接抛 ValueError**，而不是默默写出非标准 JSON。
+
+---
+
+### ⑤ ✅ 更正 ③ + 加装交叉核对：验收判据**落回机读产物**
+
+#### ⑤-1 precheck 新增 `recommended_recipe_A.verification_gate`
+
+```json
+{
+  "cosine_min": 0.999,
+  "rel_max_abs_diff_max": 0.001,
+  "require_procedure_self_audit_all_pass": true,
+  "gate_logic": "AND（余弦 ≥0.999 且 相对 max_abs_diff ≤1e-3 且 procedure_self_audit.all_pass=true）",
+  "gate_is_single_metric": false,
+  "cosine_alone_is_sufficient": false,
+  "source": "ASR-023 §4（余弦门槛）+ 本模块 §57/§58 实测加严",
+  "measured_evidence": "results/pyannote_seg/asr032_procedure_spec_audit.json → discriminative_power（7 类注入缺陷）",
+  "original_asr023_text_not_modified": "ASR-023 §4 原文只写「余弦 ≥0.999」；纠偏文件由 reviewer 维护，本模块**不修改原文**，只在本机读产物中加严"
+}
+```
+
+#### ⑤-2 asr032 的 `acceptance_threshold` 由 1 个字段补齐为 11 个
+
+`cosine_min` / `source` / **`rel_max_abs_diff_max`=0.001** /
+**`require_procedure_self_audit_all_pass`=true** / **`gate_logic`** /
+**`gate_is_single_metric`=false** / `rel_max_abs_diff_note` /
+`procedure_self_audit_note` / `gate_basis` / `original_asr023_text_not_modified`
+
+#### ⑤-3 ✅ 加装**两处产物的交叉核对**（asr032 新增 `cross_check` 段）
+
+🔴 同一件事在两处产物各写一遍 ⇒ **必然漂移**（§42 就是这么漂的）
+⇒ 必须**互相核对**，不一致就判失败。
+
+改后实测 `cross_check` = **`all_consistent` = `true`**，9 项判据：
+
+| 判据 | 实测 |
+|---|---|
+| `precheck_has_verification_gate` | `true` |
+| `gate_cosine_min_match` | `true` |
+| `gate_rel_max_abs_diff_match` | `true` |
+| `gate_requires_self_audit_match` | `true` |
+| `gate_logic_match` | `true` |
+| `caveat_has_no_hardcoded_cosine` | `true`（散文里已无硬编码余弦） |
+| `precheck_gate_not_single_metric` | `true` |
+| `precheck_cosine_alone_insufficient` | `true` |
+
+---
+
+### ⑥ ✅ 判据有鉴别力（6 条反证 **6/6 全过**）
+
+🔴 §43 铁律：**任何新判据必须配反证** —— 注入缺陷必须失败，否则恒真判据会把缺陷当通过。
+
+脚本：`qwen3asr_06b/scripts/asr033_s58_counterproofs.py`
+产物：`qwen3asr_06b/results/pyannote_seg/asr033_s58_counterproofs.json`（**5152 B @ 07:30**）
+
+| # | 反证 | 注入什么 | 期望 | 实测 |
+|---|---|---|---|---|
+| 1 | `nan_injection_blocked_by_writer_guard` | 产物里放 NaN | writer 必须抛错 | ✅ **PASS**：`ValueError: Out of range float values are not JSON compliant: nan` |
+| 2 | `gate_removed_cross_check_must_fail` | 删掉 `verification_gate` | `all_consistent=false` | ✅ **PASS** |
+| 3 | `gate_rel_threshold_drift_cross_check_must_fail` | `rel_max_abs_diff_max` 1e-3→1e-2 | `all_consistent=false` | ✅ **PASS** |
+| 4 | `hardcoded_cosine_returns_cross_check_must_fail` | 散文里重新硬编码余弦 | `all_consistent=false` | ✅ **PASS** |
+| 5 | `baseline_cross_check_must_be_consistent` | 不变异 | 判**一致** | ✅ **PASS**（基线全过 ⇒ 判据非恒假） |
+| 6 | `existing_artifacts_strict_json` | — | 两产物均严格 JSON | ✅ **PASS** |
+
+⇒ `n_pass` = **6** / `n_fail` = **0** / `all_pass` = **true**。
+（反证 2–4 在**临时目录**里跑变异副本，**不碰**正式产物。）
+
+---
+
+### ⑦ ✅ 重跑后自检仍全绿（结果**可复现**，不是只跑通一次）
+
+改后重跑 precheck + asr032，实测原始字段：
+
+| 字段 | 值 | 位置 |
+|---|---|---|
+| `recipe_self_audit.all_match` | **true**（`n_checks`=18 / `n_mismatch`=0） | precheck `export_path.recipe_self_audit` |
+| `recipe_self_audit.all_regression_guards_pass` | **true** | 同上 |
+| `recipe_self_audit.input_shape_consistent` | **true** | 同上 |
+| `procedure_self_audit.all_pass` | **true**（`n_checks`=19 / `n_not_anchored`=0） | precheck `export_path.procedure_self_audit` |
+| `procedure_self_audit.all_prose_consistent` | **true**（`n_prose_checks`=6 / `n_prose_inconsistent`=0） | 同上 |
+| 3 段素材余弦 | **0.9999999999973841 / 0.9999999999977892 / 0.9999999999998118** | asr032 `materials[].procedure_spec_implementation.cosine` |
+| `n_missed_by_cosine_gate` | **3**（`pre_dc_order` / `no_dc_offset` / `hamming_periodic`） | asr032 `discriminative_power` |
+| `n_caught_by_rel_max_abs_diff` / `n_defects` | **7 / 7** | 同上 |
+| `cross_check.all_consistent` | **true** | asr032 `cross_check` |
+| asr033 `all_pass` | **true**（6/6） | asr033 `asr033_s58_counterproofs.json` |
+
+⇒ 与 §57 的数值**完全一致** ⇒ 重跑可复现。
+
+---
+
+### ⑧ 产物清单（文件数 + 实测 mtime）
+
+| 文件 | 大小 | mtime |
+|---|---|---|
+| `qwen3asr_06b/scripts/asr023_wespeaker_export_precheck.py` | 46139 B | 2026-10-29 07:28 |
+| `qwen3asr_06b/scripts/asr032_procedure_spec_audit.py` | 23691 B | 2026-10-29 07:29 |
+| `qwen3asr_06b/scripts/asr033_s58_counterproofs.py` | 10386 B | 2026-10-29 07:30 |
+| `qwen3asr_06b/results/pyannote_seg/asr023_wespeaker_export_precheck.json` | 28521 B | 2026-10-29 07:29 |
+| `qwen3asr_06b/results/pyannote_seg/asr032_procedure_spec_audit.json` | 7942 B | 2026-10-29 07:29 |
+| `qwen3asr_06b/results/pyannote_seg/asr033_s58_counterproofs.json` | 5152 B | 2026-10-29 07:30 |
+| `qwen3asr_06b/results/_cp_s58/`（4 个 `.bak` + `STATUS_ASR_before_s58.md`） | 7 文件 | 2026-10-29 07:28~07:31 |
+
+md5：`asr023_wespeaker_export_precheck.json` = `275fdfffc847e86e03c9bb497af3c4ef`、
+`asr032_procedure_spec_audit.json` = `6cea7bdd37e512c5aa04138dbf0958de`、
+`asr033_s58_counterproofs.json` = `62ed93d04212db9ee215777057a208ad`。
+
+---
+
+### ⑨ 纪律自检
+
+- 🔴 **未启动 OV IR 导出**（属新开实验：需新脚本 + GPU.0 实测 + 持锁计时 + 全链路比余弦）⇒ **等用户指派**。
+- 🔴 **本轮全程只读源码 + 纯 CPU 数值诊断 + JSON 严格性校验** ⇒ 无推理 / 无计时 / 无测速
+  ⇒ **未申请共享机器锁**（检查时 `shared/MACHINE_LOCK` **不存在** ⇒ 无活锁需回避）。
+- 🔴 **未跑 WER**（目标机不调用 MiniMax）⇒ 质量判定交 reviewer。
+- 🔴 **未动 `live_caption/`**。
+- 🔴 **未修改 `CORRECTIONS_ASR.md`**（纠偏文件由 reviewer 维护）。
+- ⚠️ 本轮脚本/产物在 **git 仓库外**（`qwen3asr_06b` 不在 repo 内）⇒ 只在本机，交付需另行打包。
