@@ -1,0 +1,25 @@
+{
+  "results": [
+    {
+      "file": "app\\tts_cuda_sidecar.py",
+      "repo_rel": "live_caption/tts_cuda_sidecar.py",
+      "pkg_abs": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\app\\tts_cuda_sidecar.py",
+      "repo_abs": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_cuda_sidecar.py",
+      "sha_pkg_before": "68f8903a0dd258840500d0577799f17b30c4539a22efdb8905bf0569514406e7",
+      "sha_base_head": "aa0feeb5035db94856593ffd00ee3df0b9c6a8d7582a6ea2ef9b9d317875ba1b",
+      "sha_cand": "68f8903a0dd258840500d0577799f17b30c4539a22efdb8905bf0569514406e7",
+      "bytes_pkg_before": 17967,
+      "mtime_pkg_before": "2026-10-28 23:30:32",
+      "pkg_equals_head": false,
+      "status": "ALREADY",
+      "n_blocks": 0,
+      "note": "包内已是候选 ⇒ 幂等，不重复写"
+    }
+  ],
+  "rc": 0,
+  "pkg_root": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6",
+  "pkg_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\app",
+  "backup_dir": "C:\\Users\\Trekker-PTL\\pkg_backup_app_s89",
+  "dry_run": false,
+  "ts": "2026-10-28 23:30:35"
+}

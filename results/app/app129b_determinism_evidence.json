@@ -1,0 +1,27 @@
+{
+  "quiet": {
+    "ok": true,
+    "waited_s": 105.07148766517639
+  },
+  "d1_same_process_greedy_same_text": [
+    36480,
+    42240,
+    40320
+  ],
+  "d1_consistent": false,
+  "d2_same_process_greedy_x6": [
+    30720,
+    34560,
+    36480,
+    32640,
+    40320,
+    44160
+  ],
+  "d2_consistent": false,
+  "d3_same_process_sampling_x3": [
+    26880,
+    30720,
+    44160
+  ],
+  "d3_consistent": false
+}

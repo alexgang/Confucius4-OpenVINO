@@ -16,6 +16,12 @@
   ④ 结束：`{"id": 1, "done": true}`
   ⑤ 出错：`{"id": 1, "error": "..."}`（不崩进程，下一句还能用）
 
+🔴🔴🔴 §89：**结束判据是 ④ 的 `done`，不是 ③ 的 `last`**。
+   `last` 是旧实现留下的字段（旧边车为了给最后一块打标记而**扣住一块**），
+   但**全仓库 / 客户包 / TTS 模块都没有任何代码读它**
+   ⇒ 旧实现为它付出的代价（**首块被挡一块**）是**纯浪费**
+   ⇒ 现已**删掉扣留**（每块产出来就下发），`last` 恒为 `false`（线格式兼容）。
+
 🔴 **stdout 只能走协议**：第三方库（transformers / tqdm）会往 stdout 打印
    ⇒ 启动时立刻 `sys.stdout = sys.stderr`，真正的协议出口留在 `out = sys.stdout.buffer`。
 """
@@ -306,11 +312,24 @@ def main() -> int:
         mnt = max(48, min(2048, mnt))
         _trace('REQ rid=%s len=%d mnt=%d ref=%s' % (rid, len(text), mnt, ref))
         try:
-            # 🔴 只缓存**一块**：收到新块才发旧块（这样才能给最后一块打 last=True，
-            #    且**绝不重复发送**同一块）。流式语义不受影响（滞后 1 块）。
+            # 🔴🔴🔴 §89：**不再扣留一块**。
+            #   旧实现用 `pending` 缓冲**扣住最新一块**（收到下一块才发上一块），
+            #   唯一目的 = 给「最后一块」打 `last=True`。
+            #   🔴 **但 `last` 没有任何消费者**：
+            #     - 仓库 `live_caption/` 全量 grep（`get('last')` / `['last']`）= **0 命中**；
+            #     - 客户包 `v1.6/app/` 全量 grep = **0 命中**；
+            #     - TTS 模块 `qwen3tts_eval/` 全量 grep = **0 命中**。
+            #   ⇒ 端到端判据**本来就是** `done` 消息（协议头 L16 写的也是 `done`）。
+            #   ⇒ 扣留一块 = **纯粹白等「下一块的生成时间」**（chunk_size=8 帧
+            #      ⇒ 12 fps 下每块 ≈ 0.667 s 音频，RTF≈0.6 时 ≈ 0.4 s 墙钟）
+            #   ⇒ 🔴 **客户端量到的「首包」实际是第 2 块到达的时刻**
+            #      （真首包被第 2 块挡住）⇒ **系统性偏晚**。
+            #   ⇒ 现在**每块产出来就立刻下发**（真流式）⇒ 首包不再被挡。
+            #   ⚠️ `last` 字段**保留**（线格式兼容）但恒为 `False`
+            #      ⇒ 端到端的结束判据是 `done`（见客户端 `msg.get('done')`）。
             n = 0
-            pending = None
             t_first = None
+            t_end = None
             # 🔴🔴🔴 APP-030⑤：**实际帧数**（12 fps codec 帧）
             #   `timing['total_steps_so_far']` 是库给的累计步数
             #   ⇒ 用来判「撞上限」：`frames >= max_new_tokens` ⇒ 截断（cap）
@@ -335,19 +354,17 @@ def main() -> int:
                         frames = ts
                 except Exception:
                     pass
-                if pending is not None:
-                    send_chunk(pending[0], pending[1], False, rid)
-                    n += 1
-                pending = (chunk, sr)
+                # 🔴🔴🔴 §89：**产出来就立刻下发**（不再扣留一块）
+                send_chunk(chunk, sr, False, rid)
+                n += 1
+                if t_first is None:
+                    t_first = time.monotonic()
+            t_end = time.monotonic()
             if cancelled:
                 send({'id': rid, 'done': True, 'chunks': n,
                       'frames': int(frames), 'max_new_tokens': int(mnt),
                       'end_reason': 'cancel'})
                 continue
-            if pending is not None:
-                send_chunk(pending[0], pending[1], True, rid)
-                n += 1
-                t_first = time.monotonic()
             # 🔴🔴🔴 APP-030⑤：**结束原因**（eos | cap）
             #   `frames >= max_new_tokens` ⇒ **撞上限被截断**（cap）
             #   ⇒ 客户端据此判「异常句」并落盘（APP-030⑤）
@@ -355,9 +372,15 @@ def main() -> int:
             send({'id': rid, 'done': True, 'chunks': n,
                   'frames': int(frames), 'max_new_tokens': int(mnt),
                   'end_reason': reason})
-            _trace('DONE rid=%s chunks=%d frames=%d mnt=%d reason=%s elapsed=%.2fs'
+            # 🔴🔴🔴 §89：**同时报「首块时刻」与「整句结束时刻」**
+            #   ⇒ 客户端/日志能区分「首包」与「整句合成完」
+            #   ⇒ 旧字段 `elapsed` **保留**（语义 = 首块时刻）⇒ 旧消费方不受影响；
+            #      新增 `total_s` = 整句合成耗时。
+            _trace('DONE rid=%s chunks=%d frames=%d mnt=%d reason=%s '
+                   'elapsed=%.2fs total_s=%.2fs'
                    % (rid, n, frames, mnt, reason,
-                      (t_first - t_req) if t_first else -1))
+                      (t_first - t_req) if t_first else -1,
+                      (t_end - t_req) if t_end else -1))
         except Exception as e:
             traceback.print_exc(file=sys.stderr)
             _trace('ERR rid=%s %s: %s' % (rid, type(e).__name__, e))

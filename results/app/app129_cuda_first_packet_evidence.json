@@ -1,0 +1,697 @@
+{
+  "checks": {
+    "S0-基线可取": {
+      "ok": true,
+      "detail": "12874 B"
+    },
+    "S1-当前边车无 pending 缓冲": {
+      "ok": true,
+      "detail": "pending refs=[]"
+    },
+    "S2-当前边车每块即发（send_chunk 调用数>0）": {
+      "ok": true,
+      "detail": "calls=1"
+    },
+    "S3-当前边车不再发 last=True": {
+      "ok": true,
+      "detail": "sends_last_true=False"
+    },
+    "S3b-当前边车仍写 last 字段（线格式兼容）": {
+      "ok": true,
+      "detail": "writes_last_field=True"
+    },
+    "S4-当前边车同时报首块与整句耗时": {
+      "ok": true,
+      "detail": ""
+    },
+    "S5-反证：基线版确有 pending 缓冲": {
+      "ok": true,
+      "detail": "pending refs=[312, 341, 347, 338, 348, 348, 339, 339]"
+    },
+    "S6-反证：基线版会给最后一块发 last=True": {
+      "ok": true,
+      "detail": ""
+    },
+    "S6b-当前边车的 send_chunk 唯一发起点（每块即发）": {
+      "ok": true,
+      "detail": "cand calls=1（基线有 2 处：循环内 + 收尾）"
+    },
+    "S7-只有 main 函数有差异（其余顶层函数逐字一致）": {
+      "ok": true,
+      "detail": "有差异的函数=['main']"
+    },
+    "S7b-调模型的实参逐字一致（文本/语言/参考音频/上限/块大小未改）": {
+      "ok": true,
+      "detail": "baseline 有调用=True，dump 相同=True"
+    },
+    "R0-CUDA 边车解释器存在": {
+      "ok": true,
+      "detail": "C:\\Users\\Trekker-PTL\\_fq3tts_env\\Scripts\\python.exe"
+    },
+    "R0-取得共享机器锁": {
+      "ok": true,
+      "detail": "state=held module=app pid=32292"
+    },
+    "R0b-安静窗口通过（45 s）": {
+      "ok": true,
+      "detail": "waited_s=45.04099750518799 n_busy=0"
+    },
+    "R1-五臂都产出逐句数据": {
+      "ok": true,
+      "detail": "base=3/3 cand=3/3 greedy=3"
+    },
+    "R2-候选臂首块逐句不晚于基线（容差 0.05 s）": {
+      "ok": true,
+      "detail": "gain=[0.374, 0.297, 0.297, 0.078, 0.343, 0.282]"
+    },
+    "R2b-候选臂首块平均至少提前 0.05 s": {
+      "ok": true,
+      "detail": "mean_gain=0.2785 s"
+    },
+    "R3b-确定性内容等价（引用 app129c：PCM 逐字节相同 + 滞后 2→1）": {
+      "ok": true,
+      "detail": "app129c verdict=PASS（10 PASS / 0 FAIL）；PCM 逐字节相同=True；生成-发送滞后 基线=2 候选=1"
+    },
+    "R4b-候选臂未出现基线臂没有的 end_reason": {
+      "ok": true,
+      "detail": "base 原因集合=['eos'] cand 原因集合=['eos'] 多出=[]"
+    },
+    "R5-候选臂无 cap/cancel（失控守卫仍生效）": {
+      "ok": true,
+      "detail": "cand=['eos', 'eos', 'eos', 'eos', 'eos', 'eos']"
+    },
+    "R8-贪心对照臂与采样臂结果不同（证明采样随机性真实存在）": {
+      "ok": true,
+      "detail": "采样基线=[44160, 51840, 76800, 28800, 82560, 72960] 贪心对照=[36480, 61440, 78720]"
+    },
+    "R6-基线臂确实发过 last=True（缺陷在线证据）": {
+      "ok": true,
+      "detail": "base n_last_true=[1, 1, 1, 1, 1, 1]"
+    },
+    "R6b-候选臂不再发 last=True": {
+      "ok": true,
+      "detail": "cand n_last_true=[0, 0, 0, 0, 0, 0]"
+    }
+  },
+  "static": {
+    "current": {
+      "has_pending": false,
+      "send_chunk_calls": 1,
+      "sends_last_true": false,
+      "writes_last_field": true,
+      "has_total_s": true,
+      "pending_assign_lines": []
+    },
+    "baseline": {
+      "has_pending": true,
+      "send_chunk_calls": 2,
+      "sends_last_true": true,
+      "writes_last_field": true,
+      "has_total_s": true,
+      "pending_assign_lines": [
+        312,
+        341,
+        347,
+        338,
+        348,
+        348,
+        339,
+        339
+      ]
+    },
+    "funcs_changed": [
+      "main"
+    ],
+    "gen_call_identical": true
+  },
+  "lock": {
+    "state": "held",
+    "module": "app",
+    "pid": 32292,
+    "path": "C:\\Users\\Trekker-PTL\\shared\\MACHINE_LOCK"
+  },
+  "quiet_window": {
+    "ok": true,
+    "info": {
+      "quiet_seconds": 45.0,
+      "timeout": 1800.0,
+      "waited_s": 45.04099750518799,
+      "n_samples": 4,
+      "n_busy_samples": 0,
+      "n_idle_samples": 4,
+      "n_unknown_samples": 0,
+      "last_busy_pids": [],
+      "last_idle_pids": [],
+      "classifier": "cpu-delta",
+      "quiet_since": 1793201303.7866523
+    }
+  },
+  "arms": {
+    "base1": {
+      "lines": [
+        {
+          "ready": {
+            "ready": true,
+            "load_s": 8.66,
+            "warmup_s": 1.05,
+            "device": "NVIDIA GeForce RTX 5050 Laptop GPU",
+            "torch": "2.11.0+cu128",
+            "model": "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
+          }
+        },
+        {
+          "id": 1,
+          "text": "大家早上好。",
+          "first_chunk_s": 1.406,
+          "total_s": 1.703,
+          "n_chunks": 3,
+          "n_samples": 44160,
+          "end_reason": "eos",
+          "frames": 23,
+          "n_last_true": 1,
+          "chunk_ns": [
+            15360,
+            15360,
+            13440
+          ]
+        },
+        {
+          "id": 2,
+          "text": "今天我们讨论第三个议题。",
+          "first_chunk_s": 0.641,
+          "total_s": 1.109,
+          "n_chunks": 4,
+          "n_samples": 51840,
+          "end_reason": "eos",
+          "frames": 27,
+          "n_last_true": 1,
+          "chunk_ns": [
+            15360,
+            15360,
+            15360,
+            5760
+          ]
+        },
+        {
+          "id": 3,
+          "text": "这个季度的收入增长百分之十二。",
+          "first_chunk_s": 0.625,
+          "total_s": 1.547,
+          "n_chunks": 5,
+          "n_samples": 76800,
+          "end_reason": "eos",
+          "frames": 40,
+          "n_last_true": 1,
+          "chunk_ns": [
+            15360,
+            15360,
+            15360,
+            15360,
+            15360
+          ]
+        }
+      ],
+      "_wall_s": 15.109,
+      "_rc": 0,
+      "_stdout": "",
+      "_stderr": "",
+      "_sidecar_stderr": "\r\n'sox' �����ڲ����ⲿ���Ҳ���ǿ����еĳ���\r\n���������ļ���\r\nSoX could not be found!\n\n    If you do not have SoX, proceed here:\n     - - - http://sox.sourceforge.net/ - - -\n\n    If you do (or think that you should) have SoX, double-check your\n    path variables.\n    \nCould not infer sample rate from base model; defaulting to 24000 Hz.\nWarming up predictor (3 runs)...\r\nCapturing CUDA graph for predictor...\r\nCUDA graph captured!\r\nWarming up talker graph (3 runs)...\r\nCapturing CUDA graph for talker decode...\r\nTalker CUDA graph captured!\r\n[sidecar] REQ rid=1 len=6 mnt=512 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\models\\qwen3tts\\voices\\preset_A.wav\n[sidecar] DONE rid=1 chunks=3 frames=23 mnt=512 reason=eos elapsed=1.70s\n[sidecar] REQ rid=2 len=12 mnt=512 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\models\\qwen3tts\\voices\\preset_A.wav\n[sidecar] DONE rid=2 chunks=4 frames=27 mnt=512 reason=eos elapsed=1.11s\n[sidecar] REQ rid=3 len=15 mnt=512 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\models\\qwen3tts\\voices\\preset_A.wav\n[sidecar] DONE rid=3 chunks=5 frames=40 mnt=512 reason=eos elapsed=1.55s\n",
+      "_shadow": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app129_base1_hec452hh"
+    },
+    "cand1": {
+      "lines": [
+        {
+          "ready": {
+            "ready": true,
+            "load_s": 7.59,
+            "warmup_s": 1.08,
+            "device": "NVIDIA GeForce RTX 5050 Laptop GPU",
+            "torch": "2.11.0+cu128",
+            "model": "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
+          }
+        },
+        {
+          "id": 1,
+          "text": "大家早上好。",
+          "first_chunk_s": 1.032,
+          "total_s": 1.328,
+          "n_chunks": 2,
+          "n_samples": 28800,
+          "end_reason": "eos",
+          "frames": 15,
+          "n_last_true": 0,
+          "chunk_ns": [
+            15360,
+            13440
+          ]
+        },
+        {
+          "id": 2,
+          "text": "今天我们讨论第三个议题。",
+          "first_chunk_s": 0.344,
+          "total_s": 1.188,
+          "n_chunks": 4,
+          "n_samples": 55680,
+          "end_reason": "eos",
+          "frames": 29,
+          "n_last_true": 0,
+          "chunk_ns": [
+            15360,
+            15360,
+            15360,
+            9600
+          ]
+        },
+        {
+          "id": 3,
+          "text": "这个季度的收入增长百分之十二。",
+          "first_chunk_s": 0.328,
+          "total_s": 1.25,
+          "n_chunks": 4,
+          "n_samples": 61440,
+          "end_reason": "eos",
+          "frames": 32,
+          "n_last_true": 0,
+          "chunk_ns": [
+            15360,
+            15360,
+            15360,
+            15360
+          ]
+        }
+      ],
+      "_wall_s": 13.516,
+      "_rc": 0,
+      "_stdout": "",
+      "_stderr": "",
+      "_sidecar_stderr": "\r\n'sox' �����ڲ����ⲿ���Ҳ���ǿ����еĳ���\r\n���������ļ���\r\nSoX could not be found!\n\n    If you do not have SoX, proceed here:\n     - - - http://sox.sourceforge.net/ - - -\n\n    If you do (or think that you should) have SoX, double-check your\n    path variables.\n    \nCould not infer sample rate from base model; defaulting to 24000 Hz.\nWarming up predictor (3 runs)...\r\nCapturing CUDA graph for predictor...\r\nCUDA graph captured!\r\nWarming up talker graph (3 runs)...\r\nCapturing CUDA graph for talker decode...\r\nTalker CUDA graph captured!\r\n[sidecar] REQ rid=1 len=6 mnt=512 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\models\\qwen3tts\\voices\\preset_A.wav\n[sidecar] DONE rid=1 chunks=2 frames=15 mnt=512 reason=eos elapsed=1.03s total_s=1.33s\n[sidecar] REQ rid=2 len=12 mnt=512 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\models\\qwen3tts\\voices\\preset_A.wav\n[sidecar] DONE rid=2 chunks=4 frames=29 mnt=512 reason=eos elapsed=0.34s total_s=1.19s\n[sidecar] REQ rid=3 len=15 mnt=512 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\models\\qwen3tts\\voices\\preset_A.wav\n[sidecar] DONE rid=3 chunks=4 frames=32 mnt=512 reason=eos elapsed=0.33s total_s=1.25s\n",
+      "_shadow": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app129_cand1_epbfnotu"
+    },
+    "cand2": {
+      "lines": [
+        {
+          "ready": {
+            "ready": true,
+            "load_s": 7.56,
+            "warmup_s": 1.14,
+            "device": "NVIDIA GeForce RTX 5050 Laptop GPU",
+            "torch": "2.11.0+cu128",
+            "model": "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
+          }
+        },
+        {
+          "id": 1,
+          "text": "大家早上好。",
+          "first_chunk_s": 1.219,
+          "total_s": 1.437,
+          "n_chunks": 2,
+          "n_samples": 24960,
+          "end_reason": "eos",
+          "frames": 13,
+          "n_last_true": 0,
+          "chunk_ns": [
+            15360,
+            9600
+          ]
+        },
+        {
+          "id": 2,
+          "text": "今天我们讨论第三个议题。",
+          "first_chunk_s": 0.36,
+          "total_s": 1.36,
+          "n_chunks": 5,
+          "n_samples": 63360,
+          "end_reason": "eos",
+          "frames": 33,
+          "n_last_true": 0,
+          "chunk_ns": [
+            15360,
+            15360,
+            15360,
+            15360,
+            1920
+          ]
+        },
+        {
+          "id": 3,
+          "text": "这个季度的收入增长百分之十二。",
+          "first_chunk_s": 0.359,
+          "total_s": 1.515,
+          "n_chunks": 5,
+          "n_samples": 74880,
+          "end_reason": "eos",
+          "frames": 39,
+          "n_last_true": 0,
+          "chunk_ns": [
+            15360,
+            15360,
+            15360,
+            15360,
+            13440
+          ]
+        }
+      ],
+      "_wall_s": 14.109,
+      "_rc": 0,
+      "_stdout": "",
+      "_stderr": "",
+      "_sidecar_stderr": "\r\n'sox' �����ڲ����ⲿ���Ҳ���ǿ����еĳ���\r\n���������ļ���\r\nSoX could not be found!\n\n    If you do not have SoX, proceed here:\n     - - - http://sox.sourceforge.net/ - - -\n\n    If you do (or think that you should) have SoX, double-check your\n    path variables.\n    \nCould not infer sample rate from base model; defaulting to 24000 Hz.\nWarming up predictor (3 runs)...\r\nCapturing CUDA graph for predictor...\r\nCUDA graph captured!\r\nWarming up talker graph (3 runs)...\r\nCapturing CUDA graph for talker decode...\r\nTalker CUDA graph captured!\r\n[sidecar] REQ rid=1 len=6 mnt=512 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\models\\qwen3tts\\voices\\preset_A.wav\n[sidecar] DONE rid=1 chunks=2 frames=13 mnt=512 reason=eos elapsed=1.22s total_s=1.44s\n[sidecar] REQ rid=2 len=12 mnt=512 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\models\\qwen3tts\\voices\\preset_A.wav\n[sidecar] DONE rid=2 chunks=5 frames=33 mnt=512 reason=eos elapsed=0.36s total_s=1.36s\n[sidecar] REQ rid=3 len=15 mnt=512 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\models\\qwen3tts\\voices\\preset_A.wav\n[sidecar] DONE rid=3 chunks=5 frames=39 mnt=512 reason=eos elapsed=0.36s total_s=1.52s\n",
+      "_shadow": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app129_cand2_du6vcbbn"
+    },
+    "base2": {
+      "lines": [
+        {
+          "ready": {
+            "ready": true,
+            "load_s": 7.53,
+            "warmup_s": 1.09,
+            "device": "NVIDIA GeForce RTX 5050 Laptop GPU",
+            "torch": "2.11.0+cu128",
+            "model": "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
+          }
+        },
+        {
+          "id": 1,
+          "text": "大家早上好。",
+          "first_chunk_s": 1.297,
+          "total_s": 1.297,
+          "n_chunks": 2,
+          "n_samples": 28800,
+          "end_reason": "eos",
+          "frames": 15,
+          "n_last_true": 1,
+          "chunk_ns": [
+            15360,
+            13440
+          ]
+        },
+        {
+          "id": 2,
+          "text": "今天我们讨论第三个议题。",
+          "first_chunk_s": 0.703,
+          "total_s": 1.781,
+          "n_chunks": 6,
+          "n_samples": 82560,
+          "end_reason": "eos",
+          "frames": 43,
+          "n_last_true": 1,
+          "chunk_ns": [
+            15360,
+            15360,
+            15360,
+            15360,
+            15360,
+            5760
+          ]
+        },
+        {
+          "id": 3,
+          "text": "这个季度的收入增长百分之十二。",
+          "first_chunk_s": 0.641,
+          "total_s": 1.485,
+          "n_chunks": 5,
+          "n_samples": 72960,
+          "end_reason": "eos",
+          "frames": 38,
+          "n_last_true": 1,
+          "chunk_ns": [
+            15360,
+            15360,
+            15360,
+            15360,
+            11520
+          ]
+        }
+      ],
+      "_wall_s": 14.218,
+      "_rc": 0,
+      "_stdout": "",
+      "_stderr": "",
+      "_sidecar_stderr": "\r\n'sox' �����ڲ����ⲿ���Ҳ���ǿ����еĳ���\r\n���������ļ���\r\nSoX could not be found!\n\n    If you do not have SoX, proceed here:\n     - - - http://sox.sourceforge.net/ - - -\n\n    If you do (or think that you should) have SoX, double-check your\n    path variables.\n    \nCould not infer sample rate from base model; defaulting to 24000 Hz.\nWarming up predictor (3 runs)...\r\nCapturing CUDA graph for predictor...\r\nCUDA graph captured!\r\nWarming up talker graph (3 runs)...\r\nCapturing CUDA graph for talker decode...\r\nTalker CUDA graph captured!\r\n[sidecar] REQ rid=1 len=6 mnt=512 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\models\\qwen3tts\\voices\\preset_A.wav\n[sidecar] DONE rid=1 chunks=2 frames=15 mnt=512 reason=eos elapsed=1.30s\n[sidecar] REQ rid=2 len=12 mnt=512 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\models\\qwen3tts\\voices\\preset_A.wav\n[sidecar] DONE rid=2 chunks=6 frames=43 mnt=512 reason=eos elapsed=1.78s\n[sidecar] REQ rid=3 len=15 mnt=512 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\models\\qwen3tts\\voices\\preset_A.wav\n[sidecar] DONE rid=3 chunks=5 frames=38 mnt=512 reason=eos elapsed=1.48s\n",
+      "_shadow": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app129_base2_ywtxkr62"
+    },
+    "base_greedy": {
+      "lines": [
+        {
+          "ready": {
+            "ready": true,
+            "load_s": 7.64,
+            "warmup_s": 1.09,
+            "device": "NVIDIA GeForce RTX 5050 Laptop GPU",
+            "torch": "2.11.0+cu128",
+            "model": "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
+          }
+        },
+        {
+          "id": 1,
+          "text": "大家早上好。",
+          "first_chunk_s": 1.375,
+          "total_s": 1.532,
+          "n_chunks": 3,
+          "n_samples": 36480,
+          "end_reason": "eos",
+          "frames": 19,
+          "n_last_true": 1,
+          "chunk_ns": [
+            15360,
+            15360,
+            5760
+          ]
+        },
+        {
+          "id": 2,
+          "text": "今天我们讨论第三个议题。",
+          "first_chunk_s": 0.672,
+          "total_s": 1.312,
+          "n_chunks": 4,
+          "n_samples": 61440,
+          "end_reason": "eos",
+          "frames": 32,
+          "n_last_true": 1,
+          "chunk_ns": [
+            15360,
+            15360,
+            15360,
+            15360
+          ]
+        },
+        {
+          "id": 3,
+          "text": "这个季度的收入增长百分之十二。",
+          "first_chunk_s": 0.641,
+          "total_s": 1.641,
+          "n_chunks": 6,
+          "n_samples": 78720,
+          "end_reason": "eos",
+          "frames": 41,
+          "n_last_true": 1,
+          "chunk_ns": [
+            15360,
+            15360,
+            15360,
+            15360,
+            15360,
+            1920
+          ]
+        }
+      ],
+      "_wall_s": 14.296,
+      "_rc": 0,
+      "_stdout": "",
+      "_stderr": "",
+      "_sidecar_stderr": "\r\n'sox' �����ڲ����ⲿ���Ҳ���ǿ����еĳ���\r\n���������ļ���\r\nSoX could not be found!\n\n    If you do not have SoX, proceed here:\n     - - - http://sox.sourceforge.net/ - - -\n\n    If you do (or think that you should) have SoX, double-check your\n    path variables.\n    \nCould not infer sample rate from base model; defaulting to 24000 Hz.\nWarming up predictor (3 runs)...\r\nCapturing CUDA graph for predictor...\r\nCUDA graph captured!\r\nWarming up talker graph (3 runs)...\r\nCapturing CUDA graph for talker decode...\r\nTalker CUDA graph captured!\r\n[sidecar] REQ rid=1 len=6 mnt=512 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\models\\qwen3tts\\voices\\preset_A.wav\n[sidecar] DONE rid=1 chunks=3 frames=19 mnt=512 reason=eos elapsed=1.53s\n[sidecar] REQ rid=2 len=12 mnt=512 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\models\\qwen3tts\\voices\\preset_A.wav\n[sidecar] DONE rid=2 chunks=4 frames=32 mnt=512 reason=eos elapsed=1.31s\n[sidecar] REQ rid=3 len=15 mnt=512 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\models\\qwen3tts\\voices\\preset_A.wav\n[sidecar] DONE rid=3 chunks=6 frames=41 mnt=512 reason=eos elapsed=1.64s\n",
+      "_shadow": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app129_base_greedy_tf_tykfu"
+    }
+  },
+  "ab": {
+    "order": "ABBA(base1,cand1,cand2,base2)",
+    "baseline_first_chunk_s": [
+      1.406,
+      0.641,
+      0.625,
+      1.297,
+      0.703,
+      0.641
+    ],
+    "candidate_first_chunk_s": [
+      1.032,
+      0.344,
+      0.328,
+      1.219,
+      0.36,
+      0.359
+    ],
+    "first_chunk_gain_s": [
+      0.374,
+      0.297,
+      0.297,
+      0.078,
+      0.343,
+      0.282
+    ],
+    "mean_gain_s": 0.2785,
+    "baseline_total_s": [
+      1.703,
+      1.109,
+      1.547,
+      1.297,
+      1.781,
+      1.485
+    ],
+    "candidate_total_s": [
+      1.328,
+      1.188,
+      1.25,
+      1.437,
+      1.36,
+      1.515
+    ],
+    "baseline_samples": [
+      44160,
+      51840,
+      76800,
+      28800,
+      82560,
+      72960
+    ],
+    "candidate_samples": [
+      28800,
+      55680,
+      61440,
+      24960,
+      63360,
+      74880
+    ],
+    "baseline_chunks": [
+      3,
+      4,
+      5,
+      2,
+      6,
+      5
+    ],
+    "candidate_chunks": [
+      2,
+      4,
+      4,
+      2,
+      5,
+      5
+    ],
+    "baseline_end_reason": [
+      "eos",
+      "eos",
+      "eos",
+      "eos",
+      "eos",
+      "eos"
+    ],
+    "candidate_end_reason": [
+      "eos",
+      "eos",
+      "eos",
+      "eos",
+      "eos",
+      "eos"
+    ],
+    "baseline_n_last_true": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "candidate_n_last_true": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "non_eos_rows": [],
+    "eos_only_index": [
+      0,
+      1,
+      2
+    ],
+    "eos_only_sentences": 3,
+    "aa_noise_samples": [
+      15360,
+      30720,
+      3840
+    ],
+    "ab_diff_samples": [
+      15360,
+      3840,
+      15360
+    ],
+    "aa_noise_chunks": [
+      1,
+      2,
+      0
+    ],
+    "ab_diff_chunks": [
+      1,
+      0,
+      1
+    ],
+    "aa_noise_max_samples": 30720,
+    "ab_diff_max_samples": 15360,
+    "aa_noise_max_chunks": 2,
+    "ab_diff_max_chunks": 1,
+    "R3_stat_aa_noise": [
+      15360,
+      30720,
+      3840
+    ],
+    "R3_stat_ab_diff": [
+      15360,
+      3840,
+      15360
+    ],
+    "R4_stat_aa_noise": [
+      1,
+      2,
+      0
+    ],
+    "R4_stat_ab_diff": [
+      1,
+      0,
+      1
+    ],
+    "baseline_self_consistent": false,
+    "greedy_arm_samples": [
+      36480,
+      61440,
+      78720
+    ],
+    "sampling_arm_samples": [
+      44160,
+      51840,
+      76800,
+      28800,
+      82560,
+      72960
+    ]
+  },
+  "app129c_equivalence": {
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app129c_emission_equivalence_evidence.json",
+    "ok": true,
+    "detail": "app129c verdict=PASS（10 PASS / 0 FAIL）；PCM 逐字节相同=True；生成-发送滞后 基线=2 候选=1"
+  },
+  "verdict": "PASS",
+  "pass_count": 23,
+  "fail_count": 0,
+  "real_fail": [],
+  "baseline_commit": "6cd8248",
+  "pkg_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\app",
+  "pkg_root": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6",
+  "cuda_py": "C:\\Users\\Trekker-PTL\\_fq3tts_env\\Scripts\\python.exe",
+  "texts": [
+    "大家早上好。",
+    "今天我们讨论第三个议题。",
+    "这个季度的收入增长百分之十二。"
+  ]
+}

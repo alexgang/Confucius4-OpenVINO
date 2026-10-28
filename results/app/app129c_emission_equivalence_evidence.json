@@ -1,0 +1,145 @@
+{
+  "checks": {
+    "E0-基线可取": {
+      "ok": true,
+      "detail": "commit=6cd8248"
+    },
+    "E1-两臂发出的 PCM 字节流逐字节相同": {
+      "ok": true,
+      "detail": "base sha=9de29a05475cb76b cand sha=9de29a05475cb76b（40000 B）"
+    },
+    "E2-两臂块数相同": {
+      "ok": true,
+      "detail": "base=4 cand=4"
+    },
+    "E3-两臂逐块样本数序列相同": {
+      "ok": true,
+      "detail": "base=[1000, 2000, 3000, 4000] cand=[1000, 2000, 3000, 4000]"
+    },
+    "E4-唯一差异 = 最后一块的 last 标志（基线 True / 候选 False；线格式兼容）": {
+      "ok": true,
+      "detail": "base last_true=1 cand last_true=0"
+    },
+    "E4b-两臂都以 done 结束（结束判据不变）": {
+      "ok": true,
+      "detail": "base done=True cand done=True"
+    },
+    "E4c-候选臂 done 消息仍带 end_reason": {
+      "ok": true,
+      "detail": "done_msg={'id': 1, 'done': True, 'chunks': 4, 'frames': 32, 'max_new_tokens': 512, 'end_reason': 'eos'}"
+    },
+    "E5-基线：第 1 块发出时，生成器已推进 ≥2 块（真首块被挡住）": {
+      "ok": true,
+      "detail": "基线首个 send 时生成器已 yield 2 块"
+    },
+    "E6-候选：第 1 块发出时，生成器刚推进 1 块（每块即发）": {
+      "ok": true,
+      "detail": "候选首个 send 时生成器已 yield 1 块"
+    },
+    "E7-反证：两臂的「生成-发送滞后」不同（判据对缺陷敏感）": {
+      "ok": true,
+      "detail": "基线=2 候选=1"
+    }
+  },
+  "baseline": {
+    "chunks": [
+      {
+        "n": 1000,
+        "last": false
+      },
+      {
+        "n": 2000,
+        "last": false
+      },
+      {
+        "n": 3000,
+        "last": false
+      },
+      {
+        "n": 4000,
+        "last": true
+      }
+    ],
+    "n_chunks": 4,
+    "chunk_ns": [
+      1000,
+      2000,
+      3000,
+      4000
+    ],
+    "n_last_true": 1,
+    "done": true,
+    "done_msg": {
+      "id": 1,
+      "done": true,
+      "chunks": 4,
+      "frames": 32,
+      "max_new_tokens": 512,
+      "end_reason": "eos"
+    },
+    "pcm_bytes": 40000,
+    "pcm_sha256": "9de29a05475cb76bd8759231e5b47a2ed1ade4b4bc1641360d4d5eb0e9afbbc6"
+  },
+  "candidate": {
+    "chunks": [
+      {
+        "n": 1000,
+        "last": false
+      },
+      {
+        "n": 2000,
+        "last": false
+      },
+      {
+        "n": 3000,
+        "last": false
+      },
+      {
+        "n": 4000,
+        "last": false
+      }
+    ],
+    "n_chunks": 4,
+    "chunk_ns": [
+      1000,
+      2000,
+      3000,
+      4000
+    ],
+    "n_last_true": 0,
+    "done": true,
+    "done_msg": {
+      "id": 1,
+      "done": true,
+      "chunks": 4,
+      "frames": 32,
+      "max_new_tokens": 512,
+      "end_reason": "eos"
+    },
+    "pcm_bytes": 40000,
+    "pcm_sha256": "9de29a05475cb76bd8759231e5b47a2ed1ade4b4bc1641360d4d5eb0e9afbbc6"
+  },
+  "stub_chunks": [
+    1000,
+    2000,
+    3000,
+    4000
+  ],
+  "baseline_send_lag_blocks": {
+    "first_send_after_gen": 2,
+    "first_send_gen_at": 2,
+    "gen_count": 4,
+    "send_count": 4
+  },
+  "candidate_send_lag_blocks": {
+    "first_send_after_gen": 1,
+    "first_send_gen_at": 1,
+    "gen_count": 4,
+    "send_count": 4
+  },
+  "verdict": "PASS",
+  "pass_count": 10,
+  "fail_count": 0,
+  "real_fail": [],
+  "baseline_commit": "6cd8248"
+}
