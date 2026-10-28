@@ -1,0 +1,44 @@
+{
+  "ts": "2026-10-28 12:54:52",
+  "pkg_root": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6",
+  "backup_dir": "C:\\Users\\Trekker-PTL\\pkg_backup_app_s82",
+  "results": [
+    {
+      "file": "app\\tts_engine.py",
+      "ok": true,
+      "status": "SYNCED",
+      "sha_pkg": "ba8d6e482993abd7636b263f341e5a90084bd2d6406e621928f2916a479659d6",
+      "sha_cand": "ba8d6e482993abd7636b263f341e5a90084bd2d6406e621928f2916a479659d6",
+      "n_blocks": 4,
+      "applied": [
+        {
+          "tag": "(72, 78, 72, 79)",
+          "status": "ALREADY"
+        },
+        {
+          "tag": "fine-granularity",
+          "status": "FINE",
+          "applied": 0,
+          "skipped": 5,
+          "orig": "(325, 331, 326, 466)"
+        },
+        {
+          "tag": "pkg-baseline",
+          "status": "PKG_BASE",
+          "applied": 1,
+          "pkg_private_lines": 0
+        }
+      ]
+    }
+  ],
+  "verify": [
+    {
+      "file": "app\\tts_engine.py",
+      "identical": true,
+      "sha_disk": "ba8d6e482993abd7636b263f341e5a90084bd2d6406e621928f2916a479659d6",
+      "sha_cand": "ba8d6e482993abd7636b263f341e5a90084bd2d6406e621928f2916a479659d6",
+      "bytes": 66461
+    }
+  ],
+  "all_ok": true
+}

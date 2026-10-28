@@ -73,6 +73,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import time
 from typing import Iterator, List, Optional, Tuple
 
 # ── 目录 ──────────────────────────────────────────────────────────────
@@ -326,6 +327,140 @@ def _load_patch_class():
     return None
 
 
+def execution_devices(eng, on_log=print) -> dict:
+    """🔴🔴🔴 **实测「每个 IR 到底跑在哪个设备上」**（不是「请求了什么设备」）。
+
+    ## 为什么必须有这个函数（§81.11 第 3 条的根因）
+
+    §81 的引擎基线报告里 `device_desc=null` / `load_s=null`
+    ⇒ ��审问「**是否真在 NPU 上跑**」⇒ **无法回答**。
+
+    根因是**两个不同的问题被混为一谈**：
+    - 「**请求**的设备」= `make_engine(device='NPU')` 的参数
+      ⇒ 只能证明「**我们要求**它跑在 NPU 上」；
+    - 「**实际**执行设备」= OV 编译产物**真正落在哪个 plugin 上**
+      ⇒ 才能证明「它**确实**跑在 NPU 上」。
+
+    ⚠️ **两者会不一致**，且**不会报错**：
+    - `babelvox.pipeline._compile_npu()` 在 NPU 编译失败时
+      **`fallback_cpu=True` ⇒ 静默回落 CPU**（`pipeline.py` L271-281）
+      ⇒ 日志里仍写着「device=NPU」；
+    - `pipeline.py` L297/L347-350 把 `talker_prefill` / `cp_prefill` /
+      `cp_decode` **显式编到 CPU** ⇒ 即使整体「在 NPU 上」，
+      **有一部分计算在 CPU 上**；
+    - App 侧的 `_move_cp_decode_to_npu` / `_move_cp_prefill_to_npu`
+      是**事后重新编译**这两个 IR ⇒ 它们的真实落点**只能事后查**。
+
+    ## 判据：OV 的 `EXECUTION_DEVICES` 属性（本机实测可用）
+
+    `CompiledModel.get_property('EXECUTION_DEVICES')` 返回
+    **该模型实际执行的设备名列表**（本机实测：
+    CPU 档 = `['CPU']`；NPU 档 = `['NPU']`）⇒ **这是决定性证据**。
+
+    ⚠️ **OV 版本差异**：本机 OV `2026.4.1` 的 `CompiledModel`
+    **没有** `get_device_name()`（实测 `AttributeError`）
+    ⇒ 必须用 `get_property('EXECUTION_DEVICES')`。
+    ⇒ 且**必须 try/except** ⇒ 老版本上取不到就返回 `None`（**不猜、不编**）。
+
+    ## 返回值
+
+    ```python
+    dict(ok=bool,            # 是否成功取到至少一个设备
+         devices={名称: [设备, ...]},   # 每个组件的实际执行设备
+         unknown=[组件名, ...],          # 取不到的组件（**不猜**）
+         requested='NPU')                # 只是「请求」值，不是证据
+    ```
+    """
+    out = dict(ok=False, devices={}, unknown=[], requested=None)
+    try:
+        out['requested'] = str(getattr(eng, 'device', '') or '') or None
+    except Exception:
+        pass
+
+    # 🔴 组件名 → 引擎上的属性名（babelvox pipeline 里就是这些属性）
+    #   ⚠️ **属性名必须与 `babelvox/pipeline.py` 完全一致**，否则取不到
+    #   （本轮实测踩过：`speaker_encoder` / `tokenizer_decoder` 是**文件名**，
+    #   不是**属性名** ⇒ 实测属性名是 `speaker_enc` / `tok_decoder`
+    #   ⇒ 写错 ⇒ 组件被误判成 unknown ⇒ **假装测到了，其实没测到**）。
+    _COMPONENTS = (
+        ('speaker_enc', 'speaker_enc'),
+        ('talker_prefill', 'talker_prefill'),
+        ('talker_decode', 'talker_decode'),
+        ('talker', 'talker'),
+        ('cp_prefill', 'cp_prefill'),
+        ('cp_decode', 'cp_decode'),
+        ('code_predictor', 'code_predictor'),
+        ('tok_decoder', 'tok_decoder'),
+    )
+    # 🔴 多桶解码器（`MultiDecoderBabelVox`）的桶模型在 `talker_buckets` 字典里
+    buckets = getattr(eng, 'talker_buckets', None)
+    if isinstance(buckets, dict) and buckets:
+        for b in sorted(buckets.keys()):
+            _COMPONENTS = _COMPONENTS + (('talker_bucket@%s' % b,
+                                          'talker_bucket@%s' % b),)
+
+    for label, attr in _COMPONENTS:
+        if attr.startswith('talker_bucket@'):
+            b = attr.split('@', 1)[1]
+            obj = buckets.get(b) if isinstance(buckets, dict) else None
+        else:
+            obj = getattr(eng, attr, None)
+        if obj is None:
+            continue
+        devs = None
+        try:
+            devs = obj.get_property('EXECUTION_DEVICES')
+        except Exception:
+            devs = None
+        if not devs:
+            out['unknown'].append(label)
+        else:
+            out['devices'][label] = list(devs)
+
+    out['ok'] = bool(out['devices'])
+    if out['ok']:
+        # 🔴🔴🔴 **NPU 插件返回的是「设备缩写 + fallback 链」，不是 `NPU` 字面量**
+        #   （本轮实测，OV 2026.4.1 + intel_npu_plugin）：
+        #   - 直接 `compile_model(m, 'NPU')` ⇒ `EXECUTION_DEVICES == 'NPU'`（字符串）
+        #   - 经 App 的 `_ov_precision`（`set_property('NPU', {...})`）后 ⇒
+        #     `EXECUTION_DEVICES == ['N', 'P', 'U']`
+        #     （= NPU plugin / CPU fallback / Unknown 的**缩写 fallback 链**）
+        #   - CPU 档 ⇒ `['CPU']`
+        # ⇒ **判据 = 链首（首选设备）** ⇒ `N` ⇒ 首选 NPU ⇒ 实际跑在 NPU 上；
+        #   `P` ⇒ 首选 CPU ⇒ **实际落在 CPU 上**（= NPU 编译静默回落的实证）。
+        # ⇒ ⚠️ 只按 `startswith('NPU')` 判 ⇒ **全部落空**（实测踩过）。
+        _norm_dev = {'N': 'NPU', 'P': 'CPU', 'U': 'UNKNOWN'}
+        out['devices_norm'] = {
+            k: [_norm_dev.get(str(d).upper(), str(d)) for d in v]
+            for k, v in out['devices'].items()
+        }
+        # 🔴 **实际落点 = fallback 链首元素**
+        out['actual'] = {k: (v[0] if v else None)
+                         for k, v in out['devices_norm'].items()}
+        out['on_npu'] = sorted(k for k, v in out['actual'].items() if v == 'NPU')
+        out['on_cpu'] = sorted(k for k, v in out['actual'].items() if v == 'CPU')
+        out['on_unknown'] = sorted(k for k, v in out['actual'].items()
+                                   if v not in ('NPU', 'CPU'))
+        # 🔴 汇总成一句人话（便于写进日志 / 报告）
+        flat = sorted({d for d in out['actual'].values() if d})
+        on_log('[tts_engine] 实测执行设备（fallback 链首 = 实际落点）：%s'
+               % ('/'.join(flat)))
+        on_log('[tts_engine] 各组件落点：%s'
+               % '，'.join('%s=%s' % (k, v)
+                           for k, v in sorted(out['actual'].items())))
+        on_log('[tts_engine] 落点统计：NPU 上 %d 个组件 %s；'
+               'CPU 上 %d 个组件 %s'
+               % (len(out['on_npu']), out['on_npu'],
+                  len(out['on_cpu']), out['on_cpu']))
+        if out['unknown']:
+            on_log('[tts_engine] ⚠️ 取不到执行设备的组件：%s'
+                   % '，'.join(out['unknown']))
+    else:
+        on_log('[tts_engine] ⚠️ 取不到任何组件的 EXECUTION_DEVICES '
+               '（OV 版本可能不支持）⇒ 无法证明实际执行设备')
+    return out
+
+
 def _class_supports_param(cls, name: str) -> bool:
     """探测类是否支持某个构造参数（**能力探测**，不是版本号判断）。
 
@@ -492,13 +627,24 @@ def make_engine(device: str = 'NPU',
                '且**无左上下文** ⇒ 边界失真/杂音）')
 
     on_log(f'[tts_engine] 加载模型：device={device} root={root} cache={cdir}')
-    t0 = os.times()
+    t0 = time.perf_counter()
     with _ov_precision(prec, device, on_log=on_log):
         try:
             eng = cls(**kwargs)
         except Exception as e:
             raise TTSEngineError(f'模型加载失败：{type(e).__name__}: {e}') from e
-    on_log('[tts_engine] 模型加载完成')
+    # 🔴🔴 **加载耗时**（§81.11 第 3 条：`app118` 的 `load_s=null` 的根因）
+    #   ⇒ 引擎对象上**必须自带**这两个字段，否则报告脚本只能靠 `getattr`
+    #   猜 ⇒ 猜不到就写 `null` ⇒ **审问「是否真在 NPU 上跑」时无法回答**。
+    try:
+        eng.load_s = round(time.perf_counter() - t0, 2)
+    except Exception:
+        pass
+    try:
+        eng.device_desc = str(device)
+    except Exception:
+        pass
+    on_log('[tts_engine] 模型加载完成（%.1f s）' % (time.perf_counter() - t0))
 
     # 🔴🔴🔴 **cp_decode 放 NPU**（APP-018 第 1 条 —— 补上从未实现的生产配置）
     #   原生 babelvox 把它编译到 **CPU**（pipeline L347-350）⇒
@@ -530,6 +676,16 @@ def make_engine(device: str = 'NPU',
     # `SpeakerLibrary(dir, copy_builtins=True)` 会把它们复制到库目录。
     # ⇒ 只建 `SpeakerLibrary` 而不设 `eng.speaker_library` 是无效的。
     _attach_speaker_library(eng, on_log=on_log)
+
+    # 🔴🔴🔴 **实测每个 IR 的真实执行设备**（§81.11 第 3 条的正面解法）
+    #   ⇒ 放在**最后**（cp_prefill / cp_decode 搬运之后）⇒ 反映**最终状态**。
+    #   ⚠️ **绝不抛异常** ⇒ 取不到只记日志（诊断增强，不能搞挂引擎）。
+    try:
+        eng.exec_devices = execution_devices(eng, on_log=on_log)
+    except Exception as e:
+        on_log('[tts_engine] ⚠️ 执行设备探测失败：%r' % (e,))
+        eng.exec_devices = dict(ok=False, devices={}, unknown=[],
+                                requested=str(device))
     return eng
 
 
