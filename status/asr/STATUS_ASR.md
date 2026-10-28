@@ -1,11 +1,11 @@
 last_ack: ASR-023
-更新时间: 2026-10-28 19:20
-当前任务: **无新纠偏（last_ack 保持 ASR-023）+ 客户包 zip 的**内容级**独立复核（§54）** —— 本轮检查 `status/asr/CORRECTIONS_ASR.md`（**62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f6c28bc2b7`）与上一轮（18:15）**逐字节一致**，`grep -n '^## ASR-'` 仍为 **23 条（ASR-001 … ASR-023）**，全盘 `grep -rn -E "ASR-0(2[4-9]|[3-9][0-9])"`（confucius4-openvino + qwen3asr_06b，.md/.json/.py，排除 STATUS_ASR.md 自身与备份副本）命中 **0** ⇒ **无新纠偏，last_ack 不变**；本轮**不是空跑** —— 🔴 App 在 **18:14/18:16** 完成了 v1.6 客户包的**持锁重打**（`Confucius4_LiveCaption_v1.6.zip`，**11 218 123 293 B**，mtime **2026-10-28 17:57:22**，SHA256 `266917dd…32d`）⇒ 这是**自 §53（18:13 复核）之后唯一一次客户包变动**，必须由 ASR 独立复验；本轮补上 §52/§53 都**未覆盖**的第三层：**文件内容级**扫描（§52 审解压目录、§53 只审 zip 的**条目名**，两者都没读过正文）⇒ 脚本 `asr028_zip_content_scan.py` + JSON `asr028_zip_content_scan.json`（**1540 B @ 19:19:51**）⇒ zip **14200 条目**中**文本类 6891** 个逐个读完（7303 个非文本跳过、6 个 >8 MB 跳过、读错误 **0**）⇒ 第三方权重扩展名（`.pt/.pth/.ckpt/.safetensors/.h5/.keras/.pb/.tflite/.onnx`）命中 **0**、`wespeaker|resnet34|pyannote/wespeaker|voxceleb` **正文命中 0 个条目** ⇒ **`attribution_obligation_from_weights` 仍 = `waived`** ⇒ **ASR-023 §5 义务在「目录级 / 条目名级 / 内容级」三层全部闭环，§52 §53 结论均不撤回**。
-阻塞 / 待用户决定: ① 🔴 **用户需拍板 wespeaker OV IR 的导出边界（A / B / C）** —— §51 预检的推荐仍是 **方案 A（IR 只含 resnet 子图、输入 = fbank 特征 (B,T,80)、输出 (B,256)）**；② 🔴 **导出本身仍未启动**（属新开实验：需新脚本 + GPU.0 实测 + 持锁计时 + 与 torch CPU 比余弦 ≥0.999）⇒ **等用户指派**；在此之前 wespeaker 仍是 **torch 依赖**，「运行时不依赖 torch」的交付约束（ASR-013）**尚未满足**；③ ⚠️ **署名义务虽免除，但两条残留风险仍在**：App 回告 §三.2「若 ASR 后续把 wespeaker 权重纳入客户包，必须先回告 App，由 App 在同一次打包里补署名文本」、§三.3「若未来在客户包运行期（而非仅研发机）加载 wespeaker，属『运行时加载、不随包分发』，该场景署名要求由 ASR 自行判定」⇒ **在 wespeaker 真正进交付之前，这两条必须重新走一遍**；④ ⚠️ **App 侧 zip 重打本身留了待裁定项（属 App 职责，本模块不代决）**：`status/app/STATUS_APP.md` §85.7 第 1 条「v1.6 的旧 zip（SHA256 `907a1caa…`）是否已带不实许可声明发出、是否需重新分发」—— 本轮只从 ASR 侧核实了**重打后 zip 的三层内容都不含 wespeaker**，**不构成**对 App 那个待裁定项的答复；⑤ ⚠️ **本轮脚本/产物在 git 仓库外**（`qwen3asr_06b` 不在 repo 内）⇒ 只在本机，交付需另行打包；⑥ ⚠️ **WER 仍未跑**（目标机不调用 MiniMax）⇒ 质量判定交 reviewer；⑦ ⚠️ 本轮**未动 `live_caption/`**、**未申请共享机器锁**（纯只读 zip 内容扫描，无推理/计时/测速 ⇒ 无需锁）；⑧ ⚠️ 既有遗留项不变：碎片化 / 说话人切换点 recall 0.0857（粒度上限，ASR-023 §3 已拆开说明）未处理。
+更新时间: 2026-10-28 20:25
+当前任务: **无新纠偏（last_ack 保持 ASR-023）+ 把 ASR-023 §4「wespeaker OV IR 导出」的待决项从「凭预检拍板」收敛为「有实测依据可拍板」（§55）** —— 本轮检查 `status/asr/CORRECTIONS_ASR.md`（**62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5c28bc2b7`）与上一轮（19:20）**逐字节一致**，`grep -n '^## ASR-'` 仍为 **23 条（ASR-001 … ASR-023）**，全盘 `grep -rn -E "ASR-0(2[4-9]|[3-9][0-9])"`（confucius4-openvino + qwen3asr_06b，.md/.json/.py，排除 STATUS_ASR.md 自身与备份副本）命中 **0** ⇒ **无新纠偏，last_ack 不变**；但**本轮不是空跑** —— 🔴 §51 预检把方案 A 的风险写成「MEDIUM：需**逐字复刻** torchaudio kaldi.fbank ⇒ 数值差异会直接决定余弦能否 ≥0.999」，而**用户拍板 A/B/C 正卡在这条风险上** ⇒ 本轮用**纯数值取证**（不导出 IR、不跑模型前向、不计时 ⇒ 无需共享锁）把这个待决项从「凭预检推测」变成「有实测依据」：① 脚本 `asr030_kaldi_fbank_fidelity.py` + JSON `asr030_kaldi_fbank_fidelity.json`（**8862 B @ 20:24**）⇒ 在 3 段真实素材上，numpy 侧逐行复刻 Kaldi fbank 与 torch 参考的**余弦 = 0.9999999999999571**、相对最大偏差 **3.61e-05** ⇒ **方案 A 的前端可行**，风险不在「复刻不出来」而在「**漏项**」；② 🔴 **§51 的规格表有 2 处需更正**：`must_replicate_kaldi_fbank` **漏了 `preemphasis_coefficient=0.97`**（漏掉后余弦掉到 **0.9853~0.9902**、相对偏差 **~0.5**）、`energy_floor` 写成「0 (torchaudio 默认)」**实为 1.0**（本配置 `use_energy=False` 故数值无影响）；③ 脚本 `asr031_delivery_runtime_frontend_check.py` + JSON `asr031_delivery_runtime_frontend_check.json`（**5124 B @ 20:25**）⇒ **客户包内无 torch / torchaudio / speechbrain / pyannote**（全量 14200 条目交叉验证命中 0）⇒ 交付侧**只能**走 numpy 复刻（正好与方案 A 一致），且 **numpy / scipy / soundfile / librosa / openvino 均已在包内** ⇒ **A/B/C 三案的依赖可行性都成立** ⇒ **选型瓶颈不在依赖，而在数值保真与实现复杂度**。
+阻塞 / 待用户决定: ① 🔴 **用户需拍板 wespeaker OV IR 的导出边界（A / B / C）** —— §51 的推荐仍是 **方案 A（IR 只含 resnet 子图、输入 = fbank 特征 (B,T,80)、输出 (B,256)）**，且本轮 §55 已把 A 的前端风险**实测降到「可复现」**（余弦 1.000000000000），**但 A 的「调用方复刻 Kaldi fbank」工作量仍需计入**（含 §55.3 的 2 处规格更正）；② 🔴 **导出本身仍未启动**（属新开实验：需新脚本 + GPU.0 实测 + 持锁计时 + 与 torch CPU 全链路比余弦 ≥0.999）⇒ **等用户指派**；在此之前 wespeaker 仍是 **torch 依赖**，「运行时不依赖 torch」的交付约束（ASR-013）**尚未满足**；③ ⚠️ **ASR-023 §4 的验收口径提醒**：余弦 ≥0.999 的最终门槛只能在**全链路**（IR 前端 + resnet + 中心化）上判定，§55 只证明了**前端 fbank** 一段 ⇒ **不得**用 §55 的前端余弦冒充 §4 的验收结论；④ ⚠️ **署名义务虽免除，但两条残留风险仍在**（App NOTICE §三.2「若 ASR 把 wespeaker 权重纳入客户包，必须先回告 App 补署名」/ §三.3「运行期加载的署名要求由 ASR 自行判定」）⇒ **在 wespeaker 真正进交付之前必须重新走一遍**；⑤ ⚠️ **App 侧 zip 重打留有待裁定项（属 App 职责，本模块不代决）**：`status/app/STATUS_APP.md` §85.7 第 1 条（旧 zip `907a1caa…` 是否已带不实许可声明发出）；⑥ ⚠️ **本轮脚本/产物在 git 仓库外**（`qwen3asr_06b` 不在 repo 内）⇒ 只在本机，交付需另行打包；⑦ ⚠️ **WER 仍未跑**（目标机不调用 MiniMax）⇒ 质量判定交 reviewer；⑧ ⚠️ 本轮**未动 `live_caption/`**、**未申请共享机器锁**（纯数值取证：无推理/计时/测速 ⇒ 无需锁；`shared/MACHINE_LOCK` 不存在）、**未跑 WER**；⑨ ⚠️ 既有遗留项不变：碎片化 2/2、说话人切换点 recall 0.0857（粒度上限，ASR-023 §3 已拆开说明）未处理。
 
 
 ## 最近更新
-- 2026-10-28 19:20 **无新纠偏（last_ack 保持 ASR-023）+ 客户包 zip 的**内容级**独立复核（§54）**：① ✅ **无新纠偏** —— `CORRECTIONS_ASR.md` **62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f6c28bc2b7` 与上轮（18:15）**逐字节一致**；`grep -n '^## ASR-'` = **23 条（ASR-001 … ASR-023）**；全盘 `ASR-0(2[4-9]|[3-9][0-9])` 命中 **0** ⇒ **last_ack 保持 ASR-023**；② 🔴 **本轮不是空跑**：App **18:14/18:16 持锁重打**了 v1.6 客户包（zip **11 218 123 293 B** / mtime **17:57:22** / SHA256 `266917dd…32d`）⇒ 自 §53（18:13）之后唯一一次客户包变动 ⇒ ASR 必须独立复验；③ ✅ **补上第三层「内容级」复核**（§52 审解压目录、§53 只审条目名，**都没读过正文**）：脚本 `qwen3asr_06b/scripts/asr028_zip_content_scan.py`（**7110 B @ 19:19:43**）+ `qwen3asr_06b/results/pyannote_seg/asr028_zip_content_scan.json`（**1540 B @ 19:19:51**）⇒ zip **14200 条目**、文本类 **6891** 个逐个读完（7303 非文本 + 6 个 >8 MB 跳过、**读错误 0**）⇒ 第三方权重扩展名命中 **0**、`wespeaker|resnet34|pyannote/wespeaker|voxceleb` **正文命中 0 条目** ⇒ `attribution_obligation_from_weights` = **waived** ⇒ **§5 义务三层全闭环，§52/§53 结论不撤回**；④ 🔴 **本轮修掉了自己脚本的一处假阴性**（反证暴露）：首版只在「关键词命中的条目」里筛第三方权重扩展名 ⇒ 反证 zip 内塞了 `.pth`/`.ckpt` 却仍报 **0**（二进制权重正文无关键词 ⇒ 必漏检）⇒ 改为**独立按扩展名全量扫 14200 条目** ⇒ 反证重跑正确翻成 `triggered`（**2**）⇒ 判据有鉴别力；⑤ ⚠️ **1 处内部痕迹**：`app/tts_worker.py` 的**代码注释**里引用了 `status/app/STATUS_APP.md §15`（正文路径字符串，非内部文档内容）⇒ 与 App §86「内部特征串 0」不冲突（App 判的是内部**文档/特征串内容**），但属可清理项，**本模块不代改 `live_caption/`**；⑥ ✅ 客户包 zip 的 SHA256 实测 = `266917dd715d84e21d2292f549208f6b6cc54234bd765045881124b5bb20432d`（与 App §86 所记一致）；⑦ 🔴 纪律：全程**只读、零推理、零测速** ⇒ **未申请共享机器锁**（`shared/MACHINE_LOCK` 不存在）、未跑 WER（交 reviewer）、**未动 `live_caption/`**；⑧ ⚠️ **本轮脚本/产物在 git 仓库外**（`qwen3asr_06b` 不在 repo 内）⇒ 只在本机，交付需另行打包。
+- 2026-10-28 20:25 **无新纠偏（last_ack 保持 ASR-023）+ 把 ASR-023 §4 的 A/B/C 待决项从「凭预检拍板」收敛为「有实测依据可拍板」（§55）**：① ✅ **无新纠偏** —— `CORRECTIONS_ASR.md` **62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f6c28bc2b7` 与上轮（19:20）**逐字节一致**；`grep -n '^## ASR-'` = **23 条（ASR-001 … ASR-023）**；全盘 `ASR-0(2[4-9]|[3-9][0-9])` 命中 **0** ⇒ **last_ack 保持 ASR-023**；② 🔴 **本轮不是空跑**：§51 把方案 A 风险写成「MEDIUM：需逐字复刻 kaldi.fbank ⇒ 数值差异直接决定余弦能否 ≥0.999」，而**用户拍板 A/B/C 正卡在这条风险上** ⇒ 本轮做**纯数值取证**（不导出 IR / 不跑模型前向 / 不计时 ⇒ 无需共享锁）；③ ✅ **方案 A 的前端实测可行**：脚本 `qwen3asr_06b/scripts/asr030_kaldi_fbank_fidelity.py` + `qwen3asr_06b/results/pyannote_seg/asr030_kaldi_fbank_fidelity.json`（**8862 B @ 20:24**）⇒ 3 段真实素材（SPE 5 分钟切片 / ami_EN2002a / ami_bal_EN2002a）上，numpy 逐行复刻 Kaldi fbank vs torch 参考：**余弦 = 0.9999999999999571**、相对最大偏差 **3.61e-05**（中心化后 0.9999999999973841 / 2.73e-05）；④ 🔴 **§51 规格表有 2 处需更正**（照原表实现会踩）：`must_replicate_kaldi_fbank` **漏了 `preemphasis_coefficient=0.97`** （漏掉后余弦掉到 **0.9853~0.9902**、相对偏差 **~0.5**）、`energy_floor` 写成「0 (torchaudio 默认)」**实为 1.0**（本配置 `use_energy=False` ⇒ 数值无影响，只是表述要改）；⑤ 🔴 **本轮修掉自己脚本的 2 处口径错配**（反证暴露）：首版「参考侧不缩放 / 复刻侧缩放」混比 ⇒ 余弦为负（**口径错配，非复刻失败**），且中心化把 2-D `(frames, mel)` 直接喂进 `dim=1` ⇒ 轴向错成 mel 维 ⇒ 已改为 pyannote 真实语义（`features` 为 (batch, frames, mel) ⇒ `dim=1` = **帧维**）并加 `like_for_like_guard` 反证段钉死口径；⑥ ✅ **交付运行时核对**（决定「A 的复刻工作必须由调用方承担」）：脚本 `asr031_delivery_runtime_frontend_check.py` + `asr031_delivery_runtime_frontend_check.json`（**5124 B @ 20:25**）⇒ 客户包 **14200 条目**里 `torch` / `torchaudio` / `speechbrain` / `pyannote` **全量交叉验证命中 0** ⇒ 交付侧**无 torchaudio 可调** ⇒ 只能走 numpy 复刻；同时 **numpy / scipy / soundfile / librosa / openvino 均已在包内** ⇒ **A/B/C 三案依赖可行性都成立** ⇒ **瓶颈不在依赖，在数值保真与实现复杂度**；⑦ ⚠️ **librosa 捷径不成立**：librosa 默认 slaney mel 标度 vs Kaldi 的 HTK 标度，mel bin 中心频率最大差 **263.57 Hz** ⇒ 不能用 librosa 滤波器组替代；⑧ 🔴 **口径纪律**：§55 只证明**前端 fbank 一段**，ASR-023 §4 的余弦 ≥0.999 仍需**全链路**（IR + resnet + 中心化）判定，**不得**用前端余弦冒充 §4 验收结论；导出本身**仍未启动**（等用户指派）；⑨ 🔴 纪律：全程**只读 + 纯 CPU 数值诊断**（不跑模型推理、不计时）⇒ **未申请共享机器锁**（`shared/MACHINE_LOCK` 不存在）、**未跑 WER**（交 reviewer）、**未动 `live_caption/`**；⑩ ⚠️ **本轮脚本/产物在 git 仓库外**（`qwen3asr_06b` 不在 repo 内）⇒ 只在本机，交付需另行打包。
 - 2026-10-28 15:55 **无新纠偏（last_ack 保持 ASR-023）+ ASR-023 §4 剩余义务（wespeaker OV IR 导出）零开销可行性预检（§51）**：① ✅ **无新纠偏** —— `CORRECTIONS_ASR.md` **62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f6c28bc2b7`，与上轮逐字节一致；`grep -n '^## ASR-'` = **23 条（ASR-001 … ASR-023）**；全盘 `ASR-0(2[4-9]|[3-9][0-9])` 命中 **0** ⇒ **last_ack 不变**；② ✅ **权重侧 READY（取证，不导出）** —— 预检脚本 `qwen3asr_06b/scripts/asr023_wespeaker_export_precheck.py`（**18733 B @ 15:54:40**）、预检 JSON `qwen3asr_06b/results/pyannote_seg/asr023_wespeaker_export_precheck.json`（**9189 B @ 15:54:53**）⇒ `state_dict.load_ok` = **true**、顶层是 **Lightning ckpt 包装**（3 个顶层键 `state_dict` / `pyannote.audio` / `pytorch-lightning_version`）、内层 **218 个参数张量、单前缀 `resnet.`**、`arch_hint` = **resnet34**、`single_prefix` = **true**、`export_difficulty` = **LOW**（纯 Conv2d/BatchNorm/Linear，**无 MFA / 无 attention / 无自定义算子**）、`n_params` = **6634336**；③ 🔴 **真正的阻塞点不在权重，在 fbank 边界** —— `compute_fbank` 走 **torchaudio kaldi**（`uses_torchaudio_kaldi`=**true**、`uses_vmap`=**true**、`uses_einops_rearrange`=**true**（在 `resnet.py` 的 TSTP 里））⇒ 必须先定 IR 边界；本轮给出 **A（只导 resnet，输入 fbank (B,T,80)）/ B（IR 含自写 fbank）/ C（IR 从波形起）** 三方案 + 风险（MEDIUM / MEDIUM-HIGH / HIGH），**推荐 A**；④ ✅ **导出配方已备好（方案 A 精确形状）**：`export_target` = `model.resnet`、`input_shape` = (batch, frames, 80)、`output_shape` = (batch, 256)；**必须复刻**的 4 项 = StatsPool（`mean(dim=-1)` + `std(dim=-1, correction=1)` **无偏**）、`seg_1 = Linear(5120→256)`、`two_emb_layer=False`（无 seg_2/seg_bn_1）、**帧中心化落在 fbank 侧**（`fbank_centering_span=None` ⇒ `features - mean(features, dim=1, keepdim=True)`）⇒ **不在 IR 内**；⑤ ✅ **调用方须复刻的 kaldi fbank 参数已逐条落盘**：80 mel / 25 ms 帧长 / 10 ms 帧移 / hamming / `dither=0` / `round_to_power_of_two=True` / `snip_edges=True` / `use_energy=False` / 16 kHz / 去直流 / `energy_floor=0` / 波形 `×(1<<15)`；⑥ ⚠️ **与现有 TTS encoder IR 不是同一个模型**（TTS：输入 `mel_spectrogram` [1,?,128]、输出 `speaker_embedding` [1,1024]；wespeaker：80 mel、**256 维**、波形入口）⇒ **口径不可混比**；⑦ ⚠️ **导出本身未启动**（属新开实验：需新脚本 + GPU.0 实测 + 持锁计时 + 与 torch CPU 比余弦 ≥0.999）⇒ **等用户指派**（§48.11 已列为下一阶段任务）；⑧ ⚠️ 本轮**未跑 WER**（交 reviewer）、**未申请共享锁**（无计时作业）、**未动 `live_caption/`**
 - 2026-10-28 14:40 **无新纠偏（last_ack 保持 ASR-023）+ 补齐 ASR-023 §5「来源与许可」（§50）**：① ✅ **无新纠偏** —— `CORRECTIONS_ASR.md` **62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f6c28bc2b7`，与上轮逐字节一致；`grep -n '^## ASR-'` = **23 条（ASR-001 … ASR-023）**；全盘 `ASR-0(2[4-9]|[3-9][0-9])` 命中 **0** ⇒ **last_ack 不变**；② 🔴 **ASR-023 §4 的条件义务已触发** —— §4 选型结果 = **保留 wespeaker** ⇒ §5「补齐来源与许可」不再是可选项；本轮完成 §5 的取证（**只读、零机器开销、未开新实验**）：repo id `pyannote/wespeaker-voxceleb-resnet34-LM`、revision sha `837717ddb9ff5507820346191109dc79c958d614`、`license` = **cc-by-4.0**、`datasets` = **["voxceleb"]**（tags 含 `dataset:voxceleb`）、**仓库内无独立 LICENSE 文件**（许可只在模型卡 metadata）⇒ 随包分发**必须署名**；③ ✅ **本机权重 = 该 revision**（双证：`md5sum` 逐文件 + `cmp` 逐字节）：`config.yaml` 221 B md5 `ce9f2609a81b53337241fef233c8e965`、`pytorch_model.bin` 26645418 B md5 `95d4927d156bb99c972e152a93ad0f3f` ⇒ `all_files_byte_identical_to_revision` = **true**；④ ✅ **产出**：取证脚本 `qwen3asr_06b/scripts/asr023_wespeaker_provenance.py`（**6140 B @ 2026-10-28 14:33:36**）、取证 JSON `qwen3asr_06b/results/pyannote_seg/asr023_wespeaker_provenance.json`（**3518 B @ 14:33:40**）、比对副本 `_ref_models/_verify_rev/`（**2 文件** @ 14:33:39~40）、给 App 的 NOTICE `shared/NOTICE_asr_to_app_wespeaker_license_20261028.md`（**5422 B @ 14:34:03**，含署名文本 + 使用范围限制）；⑤ 🔴 **wespeaker 的 OV IR 导出仍未做**（ASR-023 §4 另一条腿）⇒ 在此之前 wespeaker 仍是 torch 依赖，「运行时不依赖 torch」（ASR-013）**尚未满足** ⇒ **等用户指派**（§48.11 已列为下一阶段任务，本轮未擅自开新实验）；⑥ ⚠️ 本轮**未跑 WER**（交 reviewer）、**未申请共享锁**（无计时作业）、**未动 `live_caption/`**
 - 2026-10-28 10:15 **无新纠偏（last_ack 保持 ASR-023）+ 回收跨模块陈旧机器锁（§49）**：① ✅ **无新纠偏** —— `CORRECTIONS_ASR.md` **62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f6c28bc2b7` 与上一轮（07:58）**逐字节一致**；`grep -n '^## ASR-'` = **23 条**（ASR-001 … **ASR-023**）；全盘 `grep -rn "ASR-024\|ASR-025"`（confucius4-openvino + qwen3asr_06b，含 .md/.json/.py）命中 **0** ⇒ **last_ack 不改**；② 🔴★ **抓出并回收跨模块陈旧锁** —— `shared/MACHINE_LOCK` 内容 `app PID 14732 started 2026-10-28 08:22:04`（121 B）：持锁 PID **14732 已死**（`pid_alive`=false）、**机器上 python 进程数 = 0**、`lock_is_stale`=**true**、`owned_by_self`=false、锁 mtime 08:22:04 **晚于**开机时间（10-21 09:29:11）⇒ 属**协议允许回收**的死锁；③ ✅ **用单一事实来源回收**（`scripts/asr_lock_common.py`：`read_lock` → `pid_alive` → `lock_is_stale` → **回收前复核 pid 仍 = 14732** → `os.remove`，与 `acquire()` 内部陈旧锁分支**同一条路径**，不另抄判据）⇒ 回收后 `shared/MACHINE_LOCK` **不存在**、`shared/*.tmp` 残留 **0**、机器 python 进程仍 **0**；④ ⚠️ **根因在 App/TTS 侧**（TTS `machine_lock.py` 仍 `tmp+os.replace` 且不回收陈旧锁；App 持锁进程异常退出即留永久阻塞的锁）⇒ **属他模块职责，本模块只做只读核查 + 按协议回收，未代改他模块代码**；⑤ ⚠️ 本轮**无计时/测速作业** ⇒ **未申请共享锁**、未干扰其它模块；未算 WER（交 reviewer）；未动 `live_caption/`。⇒ 证据：`qwen3asr_06b/results/lock_verify/asr024_stale_lock_reclaim_20261028.log`（421 B @10:13）
@@ -6158,3 +6158,170 @@ App 侧 `status/app/STATUS_APP.md` §85.7 第 1 条留了一个待裁定项：
 4. ⚠️ 碎片化 / 说话人切换点 recall 0.0857（粒度上限，ASR-023 §3 已拆开说明）未处理。
 5. ⚠️ `qwen3asr_06b` 不在 git 仓库内 ⇒ 一切 ASR 侧脚本/产物**只在本机**，交付需另行打包。
 6. ⚠️ **新增可清理项**：`app/tts_worker.py` 注释引用内部 STATUS 路径（§54.5）⇒ 属 App 侧，本模块不代改。
+
+
+## §55 无新纠偏（last_ack 保持 ASR-023）+ 把 ASR-023 §4 的 A/B/C 待决项收敛为「有实测依据可拍板」（2026-10-28 20:25）
+
+### 55.0 本节结论（一句话）
+
+**无新纠偏**（`CORRECTIONS_ASR.md` 与上轮逐字节一致，md5 `2db94ec491495528f3b7c5f6c28bc2b7`，条目仍 23 条）；
+但本轮把**用户拍板 A/B/C 时唯一卡住的那条风险**（方案 A 要「逐字复刻 Kaldi fbank」）
+用**纯数值取证**做实了 ⇒ **方案 A 的前端实测可行**（余弦 0.9999999999999571），
+同时**抓到 §51 规格表的 2 处缺项/错项**（照原表实现会踩）⇒
+**待决项从「凭预检推测」变为「有实测依据可拍板」**，但**导出本身仍未启动**（等用户指派）。
+
+### 55.1 ✅ 无新纠偏（与上轮逐字节一致）
+
+| 检查项 | 值 |
+|---|---|
+| `status/asr/CORRECTIONS_ASR.md` | **62477 B** @ **2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f6c28bc2b7`、400 行 |
+| 与上一轮（19:20）比较 | **逐字节一致，未被追加** |
+| `grep -n '^## ASR-'` | **23 条**（ASR-001 … **ASR-023**），最大 = **ASR-023** |
+| `grep -o 'ASR-[0-9]\{3\}' \| sort -u` | 无 ASR-024+ |
+| 全盘 `grep -rn -E "ASR-0(2[4-9]\|[3-9][0-9])"`（confucius4-openvino + qwen3asr_06b，.md/.json/.py，排除 STATUS 自身与备份副本） | **0** |
+| `STATUS_ASR.md` 开头 `last_ack` | **ASR-023** ⇒ **保持不变** |
+| 判定 | **无新纠偏** ⇒ 未改 last_ack、未写新章节以外的东西 |
+
+### 55.2 🔴 为什么本轮不是空跑：待决项就卡在「方案 A 的复刻风险」上
+
+§51（15:55）对方案 A 的风险原文：
+
+> `"cons": "需**逐字复刻** torchaudio kaldi.fbank（hamming/去直流/mel 滤波器组/log/energy_floor）⇒ 与 torch 的数值差异会直接决定余弦能否 ≥0.999"`，`"risk": "MEDIUM"`
+
+而 §51 的推荐结论是「**A**」，同时 §51.9 / §54 头部都把「**用户需拍板 A / B / C**」列为**头号阻塞**。
+⇒ 也就是说：**用户要拍板的那件事，其唯一的实质风险点一直没被实测过**，只有一句「MEDIUM」。
+本轮用**不导出 IR、不跑模型前向、不计时**的方式把这条风险量化（数值作业**不需要共享锁**）。
+
+### 55.3 ✅ 方案 A 的前端**实测可行**（numpy 复刻 Kaldi fbank vs torch）
+
+产物：
+- 脚本 `qwen3asr_06b/scripts/asr030_kaldi_fbank_fidelity.py`（**只读 + 纯数值**，不导出 IR、不跑 resnet 前向）
+- JSON `qwen3asr_06b/results/pyannote_seg/asr030_kaldi_fbank_fidelity.json`（**8862 B @ 2026-10-28 20:24**）
+
+素材（3 段真实音频，各取前 20 s，16 kHz 单声道）：
+`shared/SPE_0000_0500.wav`、`results/_spk_material/ami_multispeaker/ami_EN2002a.wav`、
+`results/_spk_material/ami_balanced/ami_bal_EN2002a.wav`
+
+原始字段（`full_replication_raw` / `full_replication_centered`）：
+
+| 素材 | 帧数 | 余弦（未中心化） | 相对最大偏差 | 余弦（含中心化） | 相对最大偏差 |
+|---|---|---|---|---|---|
+| SPE_0000_0500 | 1998 | **1.000000000** | 3.607e-05 | **1.000000000** | 2.735e-05 |
+| ami_EN2002a | 1998 | **1.000000000** | 3.308e-06 | **1.000000000** | 3.063e-06 |
+| ami_bal_EN2002a | 1998 | **1.000000000** | 1.632e-06 | **1.000000000** | 1.364e-06 |
+
+聚合（`verdict.numpy_replication_matches_torch_raw`）：
+**`min_cosine` = 0.9999999999999571**、`max_rel_abs_diff` = **3.6074336343802304e-05**
+（中心化：`min_cosine` = **0.9999999999973841**、`max_rel_abs_diff` = **2.734864898283126e-05**）。
+
+⇒ **结论：方案 A 的前端不是「复刻不出来」，而是「能不能不漏项」**；
+§51 写的 `risk: MEDIUM` 应据此**下调**为「前端风险 LOW / 规格表需补 2 项」。
+
+### 55.4 🔴🔴 §51 的规格表有 **2 处**需更正（照原表实现会踩）
+
+| # | §51 原文 | 实测事实（来源：torchaudio `compliance/kaldi.py` 实源码） | 后果 |
+|---|---|---|---|
+| ① | `must_replicate_kaldi_fbank` 列出 `window_type` / `remove_dc_offset` / `mel 滤波器组` / `log` / `energy_floor` / `scale` 等，**未列 `preemphasis_coefficient`** | torchaudio `kaldi.fbank` 默认 **`preemphasis_coefficient = 0.97`**；pyannote 的 `partial(kaldi.fbank, ...)` **未覆盖**该参数 ⇒ 实际生效 | 🔴 漏掉后余弦从 **1.000000000** 掉到 **0.985308~0.990195**，相对最大偏差 **~0.50** ⇒ **直接威胁 ASR-023 §4 的 ≥0.999 门槛** |
+| ② | `"energy_floor": "0 (torchaudio kaldi 默认)"` | torchaudio `kaldi.fbank` 的默认是 **`energy_floor = 1.0`** | ⚠️ 表述错误；本配置 `use_energy=False` ⇒ energy 不进输出 ⇒ **数值上无影响**，但规格表要改 |
+
+**量化证据（`variant_without_preemphasis_0p97`）**：
+
+| 素材 | 余弦（漏 preemphasis） | 相对最大偏差 |
+|---|---|---|
+| SPE_0000_0500 | **0.990194931** | 4.996e-01 |
+| ami_EN2002a | **0.986684580** | 4.952e-01 |
+| ami_bal_EN2002a | **0.985308594** | 5.877e-01 |
+
+⇒ **修订后的方案 A 前端规格**（在 §51 原表基础上）**必须**增列：
+`preemphasis_coefficient = 0.97`（replicate-pad 语义：`x[j] -= 0.97 * x[j-1]`，`x[-1]` 取 `x[0]`）、
+并把 `energy_floor` 更正为 `1.0`。
+⚠️ 另注：§51 已写对的项本轮复核**无误** —— `scale = waveforms * (1 << 15)`（**由 pyannote 在调用 kaldi.fbank 之前施加**，不是 kaldi.fbank 自身做的）、
+`window_type = hamming`（`alpha=0.54, beta=0.46`, **非 periodic**）、`round_to_power_of_two = true`（400 → **512**，故 FFT bin = 256）、
+`snip_edges = true`、`use_energy = false`、`remove_dc_offset = true`、
+mel 标度 = **HTK `1127*log(1+f/700)`**（`mel_freq_delta` 分母为 `num_bins+1`，Kaldi 端效应）。
+
+### 55.5 🔴 中心化的轴向：§51 表述正确，但实现极易踩（已实测钉死）
+
+pyannote `WeSpeakerResNet34.compute_fbank` 的中心化原文：
+`features - torch.mean(features, dim=1, keepdim=True)`，
+其中 `features` 经 `torch.vmap` 后形状是 **(batch, num_frames, num_mel_bins)**
+⇒ `dim=1` 是**帧维** ⇒ **每个 mel bin 减去它自身沿时间轴的均值**。
+
+⚠️ 若把 2-D `(frames, mel)` 数组直接喂进 `dim=1`，`dim=1` 会变成 **mel 维** ⇒ **语义完全错**。
+本轮 `like_for_like_guard` 的反证显示两种轴向的结果**最大差 7.503470420837402** ⇒ 判据有鉴别力。
+
+### 55.6 🔴 本轮修掉自己脚本的 2 处口径错配（反证暴露，教训入册）
+
+| 坑 | 现象 | 根因 | 处置 |
+|---|---|---|---|
+| ① 缩放口径 | 首版余弦 = **−0.63 ~ −0.81**（看起来像复刻彻底失败） | 参考侧调 `kaldi.fbank` **未**施加 `1<<15`，复刻侧施加了 ⇒ 差 2^15 ⇒ `max_abs_diff` 爆掉 | 参考侧补上同一缩放（与 pyannote 真实管线同口径）⇒ 余弦 1.000000000000；并加反证：参考侧**不**缩放时偏差 `rel_max_abs_diff` = **0.797**（证明「一致」不是尺度巧合） |
+| ② 中心化轴向 | 首版中心化结果对不上 | 2-D `(frames, mel)` 上 `dim=1` = mel 维 | 改为 pyannote 真实语义（3-D `(B, frames, mel)` 的 `dim=1` = 帧维），numpy 侧对应 `axis=0`；并加反证：错轴 vs 对轴最大差 **7.503** |
+
+⇒ **通用教训**：比对「自写复刻 vs 参考实现」时，**先钉死口径**（缩放、轴向、dtype），
+否则会把**口径错配**误判成**实现失败**，进而错杀一条本来可行的路。
+⇒ 已在脚本内固化为 `like_for_like_guard` 段（3 项检查 + 2 项反证），可复用。
+
+### 55.7 ✅ 交付运行时核对：交付侧**没有 torchaudio** ⇒ 复刻工作**必须**落在调用方
+
+产物：
+- 脚本 `qwen3asr_06b/scripts/asr031_delivery_runtime_frontend_check.py`
+- JSON `qwen3asr_06b/results/pyannote_seg/asr031_delivery_runtime_frontend_check.json`（**5124 B @ 2026-10-28 20:25**）
+- 审计对象：`C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6.zip`（**11 218 123 293 B**，mtime **2026-10-28 17:57:22**），
+  **14200 条目**，用 `zipfile` 只读逐条目核对（**不解压落盘**）
+
+原始字段（`site_packages.packages` / `forbidden_runtime_deps`）：
+
+| 包 | 客户包内 | 说明 |
+|---|---|---|
+| `numpy` | ✅ 在（1041 条目） | 方案 A/B 的复刻所需 |
+| `scipy` | ✅ 在（2494 条目） | 同上 |
+| `soundfile` / `librosa` | ✅ 在 | 波形读取 |
+| `openvino` | ✅ 在（2026.4.1，1069 条目） | 方案 C 所需 |
+| **`torch`** | ❌ **不在**（全量交叉验证命中 **0**） | 符合 ASR-013「运行时不依赖 torch」 |
+| **`torchaudio`** | ❌ **不在**（命中 **0**） | ⇒ **交付侧无法直接调用 `kaldi.fbank`** |
+| **`speechbrain`** / **`pyannote`** | ❌ **不在**（命中 **0**） | 同上 |
+
+⇒ **三案在交付运行时的依赖可行性都成立**（`options.*.feasible_in_delivery_runtime` 全 **true**，`missing_in_package` 全为空）
+⇒ **选型瓶颈不在依赖，而在数值保真与实现复杂度**。
+⚠️ 附带确认（§54 遗留的可清理项，本轮同源复核）：包内 `babelvox/pipeline.py` 有 `mel_spectrogram_np`
+（**librosa mel / 128 mel bins / 24 kHz**）⇒ 那是 **TTS speaker encoder 的前端**，
+与 wespeaker 的 **80 mel / 16 kHz / Kaldi HTK 标度** **不是同一个口径，不可混用**（同源 §51 的口径隔离提醒）。
+
+### 55.8 ⚠️ librosa 这条捷径**不成立**（避免下一轮有人走偏）
+
+`librosa_shortcut_check`（librosa **1.0.0**，默认 `htk=False`）：
+Kaldi 用 **HTK** 标度 `1127*log(1+f/700)`，librosa 默认用 **slaney** 标度
+⇒ 两者 mel bin **中心频率**逐 bin 最大差 **263.57 Hz**
+（Kaldi 首 5 bin = 42.49 / 65.69 / 89.61 / 114.28 / 139.72 Hz；
+librosa = 20.0 / 57.93 / 95.86 / 133.79 / 171.72 Hz）
+⇒ **不能用 librosa 的 mel 滤波器组替代 Kaldi 的** ⇒ 方案 A 的 mel 滤波器组**必须自己按 Kaldi 公式构造**
+（本轮脚本 `kaldi_mel_bank()` 已给出可复用的构造式）。
+
+### 55.9 🔴 口径纪律：§55 **不能**替代 ASR-023 §4 的验收
+
+- §55 证明的是 **前端 fbank 一段**的数值保真度（余弦 1.000000000000）。
+- ASR-023 §4 的门槛是 **「OV IR @GPU.0 与 torch CPU 全链路余弦 ≥0.999」**
+  ⇒ 仍需「导出 IR + GPU.0 实测 + 全链路比对」才能判定，**本轮未启动**（属新开实验，等用户指派）。
+- ⇒ **禁止**把 §55 的前端余弦写成 §4 的验收结论。**§51 / §54 的结论均不撤回**，
+  仅**新增** §55.4 的 2 处规格更正 + §55.3/§55.7 的实测支撑。
+
+### 55.10 本轮纪律与未做的事
+
+- ✅ 全程**只读 + 纯 CPU 数值诊断**：**不导出 OV IR**、**不跑 resnet/模型前向**、**不计时/不测速**
+  ⇒ 按用户硬性纪律「数值和质量作业不需要锁」⇒ **未申请共享机器锁**
+  （`shared/MACHINE_LOCK` 检查时**不存在**；`shared/GIT_FREEZE` 不存在）。
+- ✅ **未跑 WER**（目标机不调用 MiniMax）⇒ 质量判定交 reviewer。
+- ✅ **未动 `live_caption/`**（ASR-003 起归 App 模块）。
+- ✅ **未提交他模块文件**；本轮只提交 `status/asr/STATUS_ASR.md`。
+- ⚠️ **本轮脚本/产物在 git 仓库外**（`qwen3asr_06b` 不在 repo 内）⇒ 只在本机，交付需另行打包。
+- ⚠️ 遗留项不变：碎片化 2/2、说话人切换点 recall 0.0857（粒度上限）未处理。
+
+### 55.11 给用户的一句话建议（不代替拍板）
+
+**建议选 A**，理由已从「预检推测」升级为「实测」：
+① 前端复刻实测余弦 **0.9999999999999571**（不是「复刻不出来」）；
+② 交付包**已有 numpy/scipy** ⇒ 复刻工作落在调用方、**不新增依赖**；
+③ 交付包**无 torchaudio** ⇒ B/C 想省掉调用方复刻，就得把 fbank 塞进 IR（实现复杂度显著更高）；
+④ 唯一的**真实成本**是：调用方要按 §55.4 修订后的规格（含 `preemphasis_coefficient=0.97`）实现并维护 Kaldi fbank。
+⇒ 但**这是「是否新增一个长期维护的 numpy 前端」的产品取舍**，**属用户拍板**，本模块不自行决定；
+一旦拍板，本模块即按 §4 启动「导出 + GPU.0 实测 + 全链路余弦比对」。
