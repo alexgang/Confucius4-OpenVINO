@@ -29,7 +29,9 @@ from __future__ import annotations
 
 import json
 import os
+import queue
 import sys
+import threading
 import time
 import traceback
 
@@ -180,7 +182,54 @@ DEFAULT_MAX_NEW_TOKENS = int(
 #:   边车**串行**处理（一次一句）⇒ 取消命令只能在**当前句的解码循环**
 #:   里被检查 ⇒ 用模块级集合。
 #:   ⚠️ 客户端会「先发 cancel ⇒ 不行就杀并重启边车」⇒ 两条路都堵死。
+#:
+#: 🔴🔴🔴 §90：**修掉「cancel 永远不可达」**
+#:   旧实现的致命点：边车主循环**只在两次请求之间**读 stdin
+#:   ⇒ 生成期间（`generate_voice_clone_streaming`）主循环**被阻塞**
+#:   ⇒ `{'cmd':'cancel'}` 这行 JSON **在生成结束前根本不会被读到**
+#:   ⇒ `_CANCEL_RIDS` 在本次生成期间**恒为空**
+#:   ⇒ 「边车每块检查一次」= **永远为 False** = **从未生效**
+#:   ⇒ APP-030② 的「做不到就杀掉重启」在客户端侧也没实现（写命令成功就 return）
+#:   ⇒ **合起来：失控守卫在 CUDA 路径上从未成立**
+#:   （reviewer 实测：一句 7 字日文跑 106.61 s / 255 块，把后续句全堵住）
+#:
+#:   修法：**独立命令读取线程**（daemon）持续读 stdin ⇒ 命令在生成期间
+#:   也能到达；生成循环**每块检查一次** `_CANCEL_RIDS`。
+#:   ⚠️ 线程安全：`_CANCEL_RIDS` 的读写都用**同一把锁**保护
+#:   （读线程写、主循环读 ⇒ 否则 CPython 的 set 操作虽原子，
+#:      但「读-判断-删」三步之间可能被插入 ⇒ 取消标志被吞）。
+#:   ⚠️ **命令处理与生成是两条路径**：`cancel` / `set_ref` 由读线程直接处理；
+#:      **合成请求**仍必须由主循环串行处理（边车一次只做一句）。
+#:      ⇒ 读线程**只处理控制类命令**，遇到合成请求就**放回队列**给主循环。
 _CANCEL_RIDS = set()
+_CANCEL_LOCK = threading.Lock()
+
+#: 🔴 §90：**待主循环处理的合成请求**（由命令读取线程投递）
+_REQ_Q: 'queue.Queue' = queue.Queue()
+
+#: 🔴 §90：**协议写锁**
+#:   §90 起有**两条线程**会写 stdout（主循环发块 / 读线程回 ack）
+#:   ⇒ 不加锁 ⇒ JSON 行与 PCM 字节**交错** ⇒ 客户端协议解析错乱。
+_OUT_LOCK = threading.Lock()
+
+#: 🔴 §90：**当前克隆参考音频**（读线程可改 ⇒ 用锁保护）
+_REF_LOCK = threading.Lock()
+_CURRENT_REF = None
+
+#: 🔴 §90：**退出标志**（读线程收到 `quit` 时置位）
+_EXIT = threading.Event()
+
+
+def _get_ref():
+    with _REF_LOCK:
+        return _CURRENT_REF or DEFAULT_REF
+
+
+def _set_ref(path):
+    global _CURRENT_REF
+    with _REF_LOCK:
+        _CURRENT_REF = path
+        return _CURRENT_REF
 
 
 def _lang(s):
@@ -197,16 +246,21 @@ def _lang(s):
 
 
 def send(obj):
-    _out.write((json.dumps(obj, ensure_ascii=False) + '\n').encode('utf-8'))
-    _out.flush()
+    with _OUT_LOCK:
+        _out.write((json.dumps(obj, ensure_ascii=False) + '\n').encode('utf-8'))
+        _out.flush()
 
 
 def send_chunk(arr, sr, last, rid):
     import numpy as np
     a = np.ascontiguousarray(np.asarray(arr, dtype='<f4').reshape(-1))
-    send({'id': rid, 'sr': int(sr), 'n': int(a.size), 'last': bool(last)})
-    _out.write(a.tobytes())
-    _out.flush()
+    # 🔴 §90：**头与 PCM 必须原子写出**（否则与 ack 行交错 ⇒ 协议解析错乱）
+    with _OUT_LOCK:
+        _out.write((json.dumps({'id': rid, 'sr': int(sr), 'n': int(a.size),
+                                'last': bool(last)},
+                               ensure_ascii=False) + '\n').encode('utf-8'))
+        _out.write(a.tobytes())
+        _out.flush()
 
 
 # 🔴🔴🔴 APP-027③：**逐请求 trace**（边车侧）。
@@ -219,6 +273,109 @@ def _trace(msg):
         print('[sidecar] %s' % msg, file=sys.stderr, flush=True)
     except Exception:
         pass
+
+
+# 🔴🔴🔴 §90：**控制命令处理**（由**命令读取线程**调用）。
+#:   ⚠️ 这些命令**必须能与生成并行** ⇒ cancel 才可能真的生效。
+#:   ⚠️ 合成请求**不在这里处理**（边车一次只做一句 ⇒ 交给主循环串行）。
+def _handle_control(req):
+    """处理控制类命令。返回 True = 已处理；False = 这是合成请求（交给主循环）。"""
+    cmd = req.get('cmd')
+    if cmd == 'ping':
+        send({'id': req.get('id'), 'pong': True})
+        return True
+    if cmd == 'quit':
+        _EXIT.set()
+        _REQ_Q.put(None)          # 唤醒主循环 ⇒ 退出
+        return True
+    # 🔴🔴🔴 APP-027⑤：**切换克隆参考音频**
+    #   ⚠️ 路径可能是**临时文件**（客户端负责删除）⇒ 这里不校验存在性
+    #      （失败会在合成时报出来，由客户端显式回落预设 A）。
+    if cmd == 'set_ref':
+        new_ref = req.get('ref_audio')
+        if new_ref:
+            _set_ref(new_ref)
+            _trace('set_ref: %s' % new_ref)
+        send({'id': req.get('id'), 'set_ref': True,
+              'ref_audio': _get_ref()})
+        return True
+    # 🔴🔴🔴 APP-030② + §90：**取消当前请求**（失控守卫的第二道闸）
+    #   🔴 **§90 的关键修复点**：本命令现在由**独立的读取线程**执行
+    #      ⇒ 即使主循环正阻塞在生成器里，cancel **也能立刻到达**
+    #      ⇒ `_CANCEL_RIDS` 在生成期间**真的会被置位**
+    #      ⇒ 生成循环「每块检查一次」才**第一次真正生效**。
+    #   ⇒ 客户端仍保留「等不到确认就杀掉重启」的兜底（见 `tts_cuda._cancel_request`）。
+    if cmd == 'cancel':
+        rid = req.get('id')
+        with _CANCEL_LOCK:
+            _CANCEL_RIDS.add(rid)
+        _trace('cancel: %s' % rid)
+        send({'id': rid, 'cancelled': True})
+        return True
+    return False
+
+
+def _cancel_pending(rid):
+    """本句是否已被请求取消（**线程安全**）。"""
+    with _CANCEL_LOCK:
+        return rid in _CANCEL_RIDS
+
+
+def _take_cancel(rid):
+    """取出并清除本句的取消标志（**线程安全**）。"""
+    with _CANCEL_LOCK:
+        if rid in _CANCEL_RIDS:
+            _CANCEL_RIDS.discard(rid)
+            return True
+        return False
+
+
+def _start_command_reader(stdin):
+    """🔴🔴🔴 §90：**独立命令读取线程**。
+
+    为什么必须有（这是本轮修掉的**根因**）：
+      旧实现的边车主循环**只在两次请求之间**读 stdin
+      ⇒ 生成期间（`generate_voice_clone_streaming`）主循环**被阻塞**
+      ⇒ `{'cmd':'cancel'}` **在生成结束前根本不会被读到**
+      ⇒ `_CANCEL_RIDS` 恒为空 ⇒ 「每块检查一次」= 永远 False
+      ⇒ **APP-030② 的失控守卫在 CUDA 路径上从未成立**。
+
+    职责边界（**关键**）：
+      - **控制类命令**（`ping` / `quit` / `set_ref` / `cancel`）**在这里处理**
+        ⇒ 才能与生成**并行** ⇒ cancel 才可能真的生效；
+      - **合成请求**（带 `text` 的）**投递到 `_REQ_Q`**
+        ⇒ 仍由**主循环串行**处理（边车一次只做一句 ⇒ 不得并发合成）。
+    """
+    def _read():
+        while True:
+            try:
+                line = stdin.readline()
+            except Exception:
+                line = b''
+            if not line:
+                # 父进程关了 stdin ⇒ 退出
+                _EXIT.set()
+                _REQ_Q.put(None)
+                return
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                req = json.loads(line.decode('utf-8'))
+            except Exception as e:
+                send({'error': 'bad request: %s' % e})
+                continue
+            try:
+                if _handle_control(req):
+                    continue
+            except Exception as e:
+                _trace('ERR cmd: %s' % e)
+            # 合成请求 ⇒ 交给主循环串行处理
+            _REQ_Q.put(req)
+
+    t = threading.Thread(target=_read, daemon=True)
+    t.start()
+    return t
 
 
 def main() -> int:
@@ -248,47 +405,17 @@ def main() -> int:
     # 🔴🔴🔴 APP-027⑤：**当前克隆参考音频**（可在会话中切换）。
     #   默认是预设 A；客户端可用 `set_ref` 命令换掉 ⇒ 下一句起生效。
     #   ⚠️ **只存在内存里**，**不落盘**（隐私：APP-022「共用约定」）。
-    current_ref = DEFAULT_REF
+    #   🔴 §90：现在**跨线程**可见（读取线程可改）⇒ 用 `_REF_LOCK` 保护。
+    _set_ref(DEFAULT_REF)
 
     stdin = sys.stdin.buffer
+    # 🔴🔴🔴 §90：**先起命令读取线程**（否则 cancel 在生成期间不可达）
+    _start_command_reader(stdin)
+
     while True:
-        line = stdin.readline()
-        if not line:
-            return 0                        # 父进程关了 stdin ⇒ 退出
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            req = json.loads(line.decode('utf-8'))
-        except Exception as e:
-            send({'error': 'bad request: %s' % e})
-            continue
-        if req.get('cmd') == 'ping':
-            send({'id': req.get('id'), 'pong': True})
-            continue
-        if req.get('cmd') == 'quit':
-            return 0
-        # 🔴🔴🔴 APP-027⑤：**切换克隆参考音频**
-        #   ⚠️ 边车**不支持取消**，但**支持换参考** ⇒ 下一句起生效。
-        #   ⚠️ 路径可能是**临时文件**（客户端负责删除）⇒ 这里不校验存在性
-        #      （失败会在合成时报出来，由客户端显式回落预设 A）。
-        if req.get('cmd') == 'set_ref':
-            new_ref = req.get('ref_audio')
-            if new_ref:
-                current_ref = new_ref
-                _trace('set_ref: %s' % current_ref)
-            send({'id': req.get('id'), 'set_ref': True,
-                  'ref_audio': current_ref})
-            continue
-        # 🔴🔴🔴 APP-030②：**取消当前请求**（失控守卫的第二道闸）
-        #   ⚠️ 边车**是串行**的（一次只处理一句）⇒ 取消命令只能在
-        #      **当前句的解码循环里**被检查 ⇒ 用一个模块级标志位。
-        #   ⇒ 客户端「先发 cancel ⇒ 不行就杀并重启」（见 `tts_cuda._cancel_request`）
-        if req.get('cmd') == 'cancel':
-            _CANCEL_RIDS.add(req.get('id'))
-            _trace('cancel: %s' % req.get('id'))
-            send({'id': req.get('id'), 'cancelled': True})
-            continue
+        req = _REQ_Q.get()
+        if req is None:
+            return 0                        # stdin 关闭 / quit ⇒ 退出
 
         rid = req.get('id')
         text = (req.get('text') or '').strip()
@@ -296,7 +423,16 @@ def main() -> int:
         if not text:
             send({'id': rid, 'done': True})
             continue
-        ref = req.get('ref_audio') or current_ref
+        ref = req.get('ref_audio') or _get_ref()
+        # 🔴🔴🔴 §90：**这一句在排队期间就已被取消** ⇒ 立即放弃
+        #   （否则「取消 ⇒ 仍合成一遍」⇒ 白烧 GPU）
+        if _cancel_pending(rid):
+            _take_cancel(rid)
+            _trace('CANCELLED-BEFORE rid=%s' % rid)
+            send({'id': rid, 'done': True, 'chunks': 0,
+                  'frames': 0, 'max_new_tokens': 0,
+                  'end_reason': 'cancel'})
+            continue
         # 🔴🔴🔴 APP-030②：**生成帧数上限**（失控守卫的第一道闸）
         #   旧实现**从不传** ⇒ 用库默认 `max_new_tokens=2048`
         #   ⇒ **2048 帧 = 163.8 s 音频**（12 fps）
@@ -342,8 +478,9 @@ def main() -> int:
                     max_new_tokens=mnt,
                     chunk_size=int(req.get('chunk_size') or 8)):
                 # 🔴🔴🔴 APP-030②：**每块检查一次取消**（失控守卫）
-                if rid in _CANCEL_RIDS:
-                    _CANCEL_RIDS.discard(rid)
+                #   🔴 §90：改用**线程安全**的 `_take_cancel()`
+                #      （读取线程正在并发写 `_CANCEL_RIDS`）
+                if _take_cancel(rid):
                     cancelled = True
                     _trace('CANCELLED rid=%s chunks=%d frames=%d'
                            % (rid, n, frames))

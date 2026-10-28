@@ -40,6 +40,13 @@ READY_TIMEOUT_S = float(os.environ.get('LIVECAP_CUDA_READY_S', '180'))
 WATCHDOG_S = float(os.environ.get('LIVECAP_CUDA_WATCHDOG_S', '15'))
 WATCHDOG_FIRST_S = float(os.environ.get('LIVECAP_CUDA_WATCHDOG_FIRST_S', '60'))
 
+# 🔴🔴🔴 §90：**cancel 确认等待上限**（秒）。
+#:   边车回 `{'cancelled': true}` 表示「已收到取消指令」。
+#:   ⚠️ **确认只代表「边车知道要取消」**，不代表「已停止」——
+#:      边车会在**下一块**边界检查 ⇒ 最多再多生成一块。
+#:   ⚠️ 等不到就**杀并重启**（APP-030② 明文要求的兜底）。
+CANCEL_ACK_TIMEOUT_S = float(os.environ.get('LIVECAP_CUDA_CANCEL_ACK_S', '3'))
+
 # 🔴🔴 APP-027③：**逐请求 trace 日志**（独立文件，便于复盘）。
 #   记录：rid、收到请求时刻、第一块、done、块数、异常。
 TRACE_PATH = os.path.join(
@@ -781,29 +788,103 @@ class CudaTTSEngine:
             yield (list(arr), sr)
 
     def _cancel_request(self, rid):
-        """🔴🔴🔴 APP-030②：**让边车停止当前请求**。
+        """🔴🔴🔴 APP-030② + §90：**让边车停止当前请求**。
 
-        ⚠️ **边车不支持取消**（APP-027⑤ 明文）⇒ 这里先发 `cancel` 命令
-        （边车每块检查一次），**做不到就杀掉重启边车**
-        ⇒ 绝不能让一句失控把后续 1~2 分钟全堵住。
+        APP-030② 明文：「**加 cancel 命令，边车每块检查一次；做不到就杀掉重启**」
+        ⇒ 这两句**都必须实现**。
+
+        🔴🔴🔴 §90：**修掉「写命令成功就直接 return」的空壳兜底**
+          旧实现：写命令**成功** ⇒ `return` ⇒ **永远不会**触发「杀掉重启」
+          ⇒ 即使边车**根本不处理** `cancel`（修前的真实状态：
+             边车主循环阻塞在生成器里 ⇒ 命令在生成结束前根本读不到），
+             客户端也**以为**取消已生效 ⇒ 失控句照跑 106 s，
+             后续句继续被堵 1~2 分钟。
+          现在：**发命令 ⇒ 等边车回 `{'cancelled': true}` 确认 ⇒ 确认了才算数**；
+          **等不到确认 ⇒ 杀掉并重启边车**（兜底兑现）。
         """
+        if self.proc is None or self.proc.poll() is not None:
+            # 边车已经没了 ⇒ 无需取消（但也不该静默返回 ⇒ 走兜底）
+            self._cancel_kill(rid, '边车已退出')
+            return
         try:
-            if self.proc is not None and self.proc.poll() is None:
-                with self._stdin_wlock:
-                    self.proc.stdin.write(
-                        (json.dumps({'cmd': 'cancel', 'id': rid},
-                                    ensure_ascii=False) + '\n').encode('utf-8'))
-                    self.proc.stdin.flush()
-                _trace('CANCEL_SENT rid=%d' % rid)
-                return
+            with self._stdin_wlock:
+                self.proc.stdin.write(
+                    (json.dumps({'cmd': 'cancel', 'id': rid},
+                                ensure_ascii=False) + '\n').encode('utf-8'))
+                self.proc.stdin.flush()
+            _trace('CANCEL_SENT rid=%d' % rid)
         except Exception as e:
             _trace('CANCEL_SENT failed rid=%d: %s' % (rid, e))
-        # 兜底：杀掉重启（**必须真的杀**，否则边车还在算这一句）
+            self._cancel_kill(rid, '写 cancel 命令失败')
+            return
+        # 🔴🔴🔴 §90：**等确认**（不确认就当没取消成功 ⇒ 走兜底）
+        ack = self._wait_cancel_ack(rid, timeout=CANCEL_ACK_TIMEOUT_S)
+        if ack:
+            _trace('CANCEL_ACK rid=%d' % rid)
+            return
+        _trace('CANCEL_NO_ACK rid=%d ⇒ 杀并重启边车' % rid)
+        self._cancel_kill(rid, '等不到 cancel 确认')
+
+    def _wait_cancel_ack(self, rid, timeout):
+        """等待边车回 `{'id': rid, 'cancelled': true}` 确认。
+
+        🔴 §90：**必须有真超时**（不能白等）⇒ 返回 True/False。
+        ⚠️ 排空期间**只认本 rid 的确认**（其它 rid 的消息**不能丢**
+           ⇒ 见 `_start_drain` 的同类缺陷）。
+        """
+        deadline = time.monotonic() + max(0.1, float(timeout))
+        while time.monotonic() < deadline:
+            remain = deadline - time.monotonic()
+            line = self._q_get(timeout=min(0.5, max(0.05, remain)))
+            if line is _TIMEOUT:
+                continue
+            if line is None:
+                return False            # 边车退出 ⇒ 视为没确认
+            if isinstance(line, tuple):
+                line = line[0]
+            try:
+                msg = json.loads(line)
+            except Exception:
+                continue
+            if not isinstance(msg, dict):
+                continue
+            if msg.get('cancelled') and msg.get('id') == rid:
+                return True
+        return False
+
+    def _cancel_kill(self, rid, why):
+        """兜底：**杀掉并重启边车**（必须真的杀，否则边车还在算这一句）。"""
         try:
-            self._restart_sidecar('RUNAWAY rid=%d' % rid)
+            self.on_log('[tts_cuda] 🔴 cancel 未生效（%s）⇒ 杀并重启边车' % why)
+        except Exception:
+            pass
+        try:
+            self._restart_sidecar('RUNAWAY rid=%d（%s）' % (rid, why))
             _trace('CANCEL_KILL rid=%d' % rid)
         except Exception as e:
             _trace('CANCEL_KILL failed rid=%d: %s' % (rid, e))
+
+    def _q_put_front(self, item):
+        """🔴🔴🔴 §90：把消息**插回队首**（保序 + 立刻唤醒等待者）。
+
+        ⚠️ 为什么不能简单 `put()`（插队尾）：
+          插队尾会把**旧消息排到新消息之后** ⇒ 下一句的音频块**乱序**
+          ⇒ 播出来的音频顺序错乱。
+        ⚠️ 为什么不能直接丢弃：
+          丢的是**别的 rid 的消息** ⇒ 下一句**少块或整句无输出**（静默丢音频）。
+        ⇒ 队首插回 = **顺序正确 + 不丢 + 立刻唤醒**。
+        """
+        try:
+            with self._q.mutex:
+                self._q.queue.appendleft(item)
+                self._q.not_empty.notify()
+            return True
+        except Exception:
+            try:
+                self._q.put(item)
+                return True
+            except Exception:
+                return False
 
     def _start_drain(self, rid):
         """🔴🔴 APP-027③：取消后**后台排空**本请求的剩余消息。
@@ -811,24 +892,32 @@ class CudaTTSEngine:
         ⚠️ 边车**不支持取消** ⇒ 本请求的剩余块与 `done` 仍会到达
         ⇒ 必须读完并丢掉 ⇒ 否则**下一句会读到旧句的内容** ⇒ 错位。
         ⇒ 用**后台线程**排空 ⇒ 不占合成锁、不阻塞下一句。
+
+        🔴🔴🔴 §90：**修掉「排空线程偷走并丢弃下一句的消息」**
+          旧实现：拿到消息后判 `mr != rid` ⇒ **`continue`（直接丢弃）**
+          ⇒ 排空线程与主合成线程**共用** `self._q`
+          ⇒ 排空线程会把**下一句刚到的块 / cancel 确认**当成「别人的」丢掉
+          ⇒ 下一句**少块或整句无输出**（静默丢音频）。
+          修法：**不是本 rid 的消息 ⇒ 插回队首**（保序 + 不丢 + 唤醒等待者）。
         """
         def _drain():
             deadline = time.monotonic() + 30.0
             while time.monotonic() < deadline:
                 try:
-                    line = self._q.get(timeout=0.5)
+                    item = self._q.get(timeout=0.5)
                 except queue.Empty:
                     continue
-                if line is None:
+                if item is None:
                     return
-                if isinstance(line, tuple):
-                    line = line[0]
+                line = item[0] if isinstance(item, tuple) else item
                 try:
                     msg = json.loads(line)
                 except Exception:
                     continue
                 mr = msg.get('id')
                 if mr is not None and mr != rid:
+                    # 🔴 §90：**不是本句的 ⇒ 插回队首**（不能丢！）
+                    self._q_put_front(item)
                     continue
                 if msg.get('done'):
                     _trace('DRAIN done rid=%d' % rid)

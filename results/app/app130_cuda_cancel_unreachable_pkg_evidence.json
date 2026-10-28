@@ -1,0 +1,194 @@
+{
+  "checks": {
+    "A0-修前基线可取": {
+      "ok": true,
+      "detail": "commit=ef830d6"
+    },
+    "A1-修前：生成期间 `_CANCEL_RIDS` 恒为空（cancel 从未被读到）": {
+      "ok": true,
+      "detail": "cancel_seen=[False, False, False, False]"
+    },
+    "A2-修前：cancel 后**全部 4 块照发**且 end_reason=eos（守卫失效）": {
+      "ok": true,
+      "detail": "chunks=4 end_reason=eos"
+    },
+    "A3-修前：S1（cancel 预先在管道）同样完全失效": {
+      "ok": true,
+      "detail": "chunks=4 end_reason=eos"
+    },
+    "A4-修前：客户端写 cancel 命令成功 ⇒ **直接返回**（不杀重启）": {
+      "ok": true,
+      "detail": "restart=False written=1"
+    },
+    "A5-修前：客户端**从不**等确认（ack_waited=False ⇒ 兜底是空壳）": {
+      "ok": true,
+      "detail": "ack_waited=False"
+    },
+    "B1-候选：生成期间能读到 cancel（`_CANCEL_RIDS` 非空）": {
+      "ok": true,
+      "detail": "cancel_seen=[False, True]"
+    },
+    "B2-候选：cancel 后**提前停止**（块数 < 4）且 end_reason=cancel": {
+      "ok": true,
+      "detail": "chunks=1 end_reason=cancel"
+    },
+    "B3-候选：S1（cancel 预先在管道）也能取消（块数 < 4）": {
+      "ok": true,
+      "detail": "chunks=0 end_reason=cancel"
+    },
+    "B4-回归：候选在**无 cancel**时行为不变（4 块 / eos）": {
+      "ok": true,
+      "detail": "chunks=4 end_reason=eos"
+    },
+    "B5-回归：候选无 cancel 时的 PCM 字节流与修前逐字节相同": {
+      "ok": true,
+      "detail": "base sha=9de29a05475cb76b cand sha=9de29a05475cb76b（40000 B）"
+    },
+    "B6-候选：边车源码含**命令读取线程**（cancel 得以在生成期间到达）": {
+      "ok": true,
+      "detail": "_start_command_reader in src = True"
+    },
+    "B7-候选：客户端**会等确认**（ack_waited=True）": {
+      "ok": true,
+      "detail": "ack_waited=True"
+    },
+    "B9-候选：**等不到确认 ⇒ 杀掉并重启边车**（APP-030② 的兜底兑现）": {
+      "ok": true,
+      "detail": "restart=True"
+    },
+    "B10-候选：**收到确认 ⇒ 不杀重启**（正常路径不误杀）": {
+      "ok": true,
+      "detail": "restart=False written=1"
+    },
+    "B8-候选：客户端含「杀并重启」兜底分支（做不到就杀掉重启）": {
+      "ok": true,
+      "detail": "源码级锚定"
+    },
+    "B11-候选：`_start_drain` 对**非本 rid** 的消息**插回队首**（不丢弃）": {
+      "ok": true,
+      "detail": "_q_put_front in src = True"
+    },
+    "C0-注入成功（删掉了生成循环里的取消检查）": {
+      "ok": true,
+      "detail": "删除数=1"
+    },
+    "C1-删掉取消检查 ⇒ 守卫重新失效（4 块 / eos）": {
+      "ok": true,
+      "detail": "chunks=4 end_reason=eos"
+    },
+    "C2a-注入成功（删掉了命令读取线程的启动）": {
+      "ok": true,
+      "detail": "删除数=1"
+    },
+    "C2b-删掉读取线程 ⇒ 请求**根本到不了**主循环（0 块 / 无 end_reason）": {
+      "ok": true,
+      "detail": "chunks=0 end_reason=None"
+    }
+  },
+  "_src_root": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.6",
+  "_subdir": "app",
+  "baseline_S1": {
+    "n_chunks": 4,
+    "chunk_ns": [
+      1000,
+      2000,
+      3000,
+      4000
+    ],
+    "end_reason": "eos",
+    "cancel_seen": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "stdin_read_calls": 3
+  },
+  "candidate_S1": {
+    "n_chunks": 0,
+    "chunk_ns": [],
+    "end_reason": "cancel",
+    "cancel_seen": [
+      true
+    ],
+    "stdin_read_calls": 3
+  },
+  "baseline_S2": {
+    "n_chunks": 4,
+    "chunk_ns": [
+      1000,
+      2000,
+      3000,
+      4000
+    ],
+    "end_reason": "eos",
+    "cancel_seen": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "stdin_read_calls": 3
+  },
+  "candidate_S2": {
+    "n_chunks": 1,
+    "chunk_ns": [
+      1000
+    ],
+    "end_reason": "cancel",
+    "cancel_seen": [
+      false,
+      true
+    ],
+    "stdin_read_calls": 3
+  },
+  "candidate_S3": {
+    "n_chunks": 4,
+    "chunk_ns": [
+      1000,
+      2000,
+      3000,
+      4000
+    ],
+    "end_reason": "eos",
+    "pcm_sha256": "9de29a05475cb76bd8759231e5b47a2ed1ade4b4bc1641360d4d5eb0e9afbbc6",
+    "pcm_bytes": 40000
+  },
+  "baseline_S3": {
+    "n_chunks": 4,
+    "chunk_ns": [
+      1000,
+      2000,
+      3000,
+      4000
+    ],
+    "end_reason": "eos",
+    "pcm_sha256": "9de29a05475cb76bd8759231e5b47a2ed1ade4b4bc1641360d4d5eb0e9afbbc6",
+    "pcm_bytes": 40000
+  },
+  "broken_no_check_S2": {
+    "n_chunks": 4,
+    "end_reason": "eos",
+    "cancel_seen": [
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "broken_no_reader_S2": {
+    "n_chunks": 0,
+    "end_reason": null
+  },
+  "verdict": "PASS",
+  "pass_count": 21,
+  "fail_count": 0,
+  "real_fail": [],
+  "baseline_commit": "ef830d6",
+  "stub_chunks": [
+    1000,
+    2000,
+    3000,
+    4000
+  ]
+}
