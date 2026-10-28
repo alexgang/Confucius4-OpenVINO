@@ -410,7 +410,28 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
                     echo_mode: bool, engine=None,
                     session_holder: Optional[dict] = None,
                     margin_out: Optional[str] = None) -> None:
-    """单连接的握手与消息循环。"""
+    """单连接的握手与消息循环。
+
+    ★★ 缺陷 15（EXT-006 P1 实测抓到的真缺陷）：**不能覆盖已有 session**。
+
+    成因：每条 WebSocket 连接都会新建一个 `Session`，并把它写进
+    `session_holder["session"]`。而编排器 `tools/run_p1_real.py` 的
+    `_request_margin_dump()`（缺陷 14 的「双保险」）会**另开一条连接**来
+    请求落盘 ⇒ 那条连接建了一个**全新的空 Session** ⇒
+    把 `session_holder["session"]` 指向了空会话 ⇒
+    随后 `dump_margin` 落盘的是**空统计**（`n_segments=0`、
+    `per_segment=[]`）⇒ **把客户端刚写好的真余量数据覆盖掉了**。
+
+    ⇒ 后果：EXT-006 要求的「余量分布 / 余量<0 句数 / 累计滞后」
+       在**最后一步**被清空 —— 比「不落盘」更隐蔽（文件在、内容是空的）。
+
+    修法：**已有活跃 session 时，本连接不再顶替它**（`session_holder`
+       保持指向原会话）。这样：
+       * 客户端那条连接写进去的真数据不会被第二条连接冲掉；
+       * 第二条连接发的 `dump_margin` 依然能触发落盘 ——
+         `_dump_margin` 读的是 `session_holder["session"]`（= **真会话**），
+         不是这条连接自己的空会话。
+    """
     origin = _get_header(websocket, "Origin") or ""
     if not check_origin(origin):
         _log(f"拒绝连接：Origin 非法 ({origin!r})")
@@ -439,8 +460,7 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
             return
         _log(f"已通过首个 hello 消息鉴权（role={first.get('role')}）")
         session = Session(token, delay_sec=delay_sec, engine=engine)
-        if session_holder is not None:
-            session_holder["session"] = session
+        _register_session(session_holder, session)
         await _handle_messages(websocket, session=session,
                                first=first, echo_mode=echo_mode,
                                delay_sec=delay_sec,
@@ -455,13 +475,28 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
 
     _log(f"已连接（origin={origin}）")
     session = Session(token, delay_sec=delay_sec, engine=engine)
-    if session_holder is not None:
-        session_holder["session"] = session
+    _register_session(session_holder, session)
     await _handle_messages(websocket, session=session, first=None,
                            echo_mode=echo_mode, delay_sec=delay_sec,
                            engine=engine,
                            margin_out=margin_out,
                            session_holder=session_holder)
+
+
+def _register_session(session_holder: Optional[dict], session) -> None:
+    """把会话登记进 holder —— **但绝不顶替已有的活跃会话**（缺陷 15）。
+
+    为什么要这样：见 `handle_ws` 的缺陷 15 说明。
+    编排器的「双保险」会另开一条连接来请求落盘；若那条连接顶替了
+    真会话，`dump_margin` 落的就是**空统计**，把真数据覆盖掉。
+    """
+    if session_holder is None:
+        return
+    existing = session_holder.get("session")
+    if existing is not None:
+        _log("已有活跃会话 ⇒ 本连接不顶替（缺陷 15 修复：避免落盘空统计）")
+        return
+    session_holder["session"] = session
 
 
 async def _recv_first(websocket) -> Optional[dict]:
@@ -659,7 +694,13 @@ def main(argv=None) -> int:
 
 
 def _dump_margin(holder: dict, out_path: Optional[str], engine) -> None:
-    """把余量统计与逐句时间表落盘（EXT-006 P1 验收要求）。"""
+    """把余量统计与逐句时间表落盘（EXT-006 P1 验收要求）。
+
+    ★★ 缺陷 15 的第二道防线：**绝不用空统计覆盖已有的真数据**。
+    若本次要写的 `n_segments` 为 0，而磁盘上已有文件含更多段
+    ⇒ 判定为「拿错了会话 / 会话还没数据」⇒ **跳过写盘**并记日志。
+    （宁可少写一份，也不能把 EXT-006 的核心验收量清空。）
+    """
     if not out_path:
         return
     sess = holder.get("session")
@@ -671,11 +712,26 @@ def _dump_margin(holder: dict, out_path: Optional[str], engine) -> None:
         "engine_calls": (sess.engine_calls if sess else []),
         "engine_stats": (engine.stats() if engine is not None else {}),
     }
+    n_new = len(data.get("per_segment") or [])
+
+    # ★ 第二道防线：不用空统计覆盖真数据
+    try:
+        if n_new == 0 and os.path.isfile(out_path):
+            with open(out_path, "r", encoding="utf-8") as f:
+                old = json.load(f)
+            n_old = len(old.get("per_segment") or [])
+            if n_old > 0:
+                _log(f"拒绝落盘空统计（本次 0 段，磁盘已有 {n_old} 段）"
+                     f"⇒ 保留原文件：{out_path}")
+                return
+    except Exception as e:
+        _log(f"覆盖保护检查失败（继续写盘）：{e}")
+
     try:
         os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        _log(f"余量统计已落盘：{out_path}")
+        _log(f"余量统计已落盘：{out_path}（{n_new} 段）")
     except Exception as e:
         _log(f"余量统计落盘失败：{e}")
 

@@ -604,6 +604,178 @@ def test_dump_margin_on_demand() -> None:
           'mtype == "dump_margin"' in src2, "源码含 dump_margin 处理")
 
 
+def test_expected_segment_count_strict() -> None:
+    """★ 缺陷 13 的**严格**口径断言（原先只有 `expected <= raw` 的弱断言）。
+
+    为什么补这条：原断言 `expected <= raw` 在**任何**输入上都成立
+    （`expected_segment_count()` 永远 ≤ `len(plan_segments())`）⇒
+    **无法区分「口径真的对齐」与「函数随便返回个小数字」** ⇒ 假通过风险。
+    本条改成**强断言**：构造两类输入，逐一对上服务端的真实行为。
+
+    服务端真实规则（`ext/bridge.py`）：
+      * 流式：`plan_segments(buf)` 取 `segs[:-1]` 逐段处理，最后一段留缓冲；
+      * 收尾 `flush()`：把剩余缓冲当**一段**处理，
+        但**缓冲长度 < 1.0 s ⇒ 直接丢弃**（不计为段）；
+      ⇒ 因此服务端总段数 = `plan_segments` 的段数，
+        **除非**尾段（= 最后一段）长度 < 1.0 s。
+
+    断言：
+      ① 尾段 ≥ 1.0 s ⇒ expected == raw（**不能少算**，否则提前收尾丢段）；
+      ② 尾段 < 1.0 s ⇒ expected == raw − 1（**必须少算 1**，与 flush 对齐）；
+      ③ `expected` 永远 ≤ raw（结构性质）。
+    """
+    print("\n[P1] EXT-006 — 缺陷 13 严格口径断言（避免弱断言假通过）")
+    import p1_pipeline
+    from ext.segmenter import plan_segments
+
+    sr = 16000
+    rng = np.random.default_rng(20261028)
+
+    def _make(tail_sec: float) -> np.ndarray:
+        """构造「一段有声 + 指定长度的尾段」。"""
+        body = (rng.standard_normal(int(15.2 * sr)) * 0.05).astype(np.float32)
+        tail = np.zeros(int(tail_sec * sr), dtype=np.float32)
+        return np.concatenate([body, tail])
+
+    # ① 尾段 ≥ 1.0 s ⇒ 期望 == raw
+    #    ⚠️ 尾部静音会被 VAD（silence_db=-40dB, min_silence_ms=300）在
+    #    min_segment_sec(=12s) 之后切一刀 ⇒ 尾段长度 ≈ 尾静音 − 0.5 s。
+    #    故用 3.0 s 尾静音 ⇒ 尾段 ≈ 1.5 s（≥1 s）。
+    a_long = _make(3.0)
+    raw_long = len(plan_segments(a_long))
+    exp_long = p1_pipeline.expected_segment_count(a_long, sr)
+    tail_long = ((plan_segments(a_long)[-1][1]
+                  - plan_segments(a_long)[-1][0]) / sr)
+    check("★ 尾段≥1s ⇒ expected == raw（不许少算）",
+          exp_long == raw_long,
+          f"expected={exp_long} raw={raw_long} tail={round(tail_long,3)}s")
+    check("★ 尾段≥1s 的用例**确实**构造出了 ≥1s 的尾段",
+          tail_long >= 1.0, f"tail={round(tail_long,3)}s")
+
+    # ② 尾段 < 1.0 s ⇒ 期望 == raw − 1（与服务端 flush 的丢弃规则对齐）
+    a_short = _make(0.4)
+    raw_short = len(plan_segments(a_short))
+    exp_short = p1_pipeline.expected_segment_count(a_short, sr)
+    tail_len = (plan_segments(a_short)[-1][1]
+                - plan_segments(a_short)[-1][0]) / sr
+    check("★ 尾段<1s ⇒ expected == raw−1（与服务端 flush 对齐）",
+          exp_short == raw_short - 1,
+          f"expected={exp_short} raw={raw_short} tail={round(tail_len,3)}s")
+    check("★ 尾段<1s 的用例**确实**构造出了 <1s 的尾段",
+          tail_len < 1.0, f"tail={round(tail_len,3)}s")
+
+    # ③ 结构性质
+    check("★ expected 恒 ≤ raw（结构性质）",
+          exp_long <= raw_long and exp_short <= raw_short,
+          f"{exp_long}≤{raw_long}, {exp_short}≤{raw_short}")
+
+    # ④ 反向断言：旧的错误实现（直接取 len(plan_segments)）在尾段<1s 时**会算错**
+    #    ⇒ 证明这条断言**不是恒真**（能区分真通过 / 假通过）。
+    check("★ 反向断言：旧实现（直接取 len）在尾段<1s 时确实算错",
+          raw_short != exp_short,
+          f"旧写法={raw_short} vs 新写法={exp_short} ⇒ 断言有区分力")
+
+
+def test_orchestrator_margin_dump_path() -> None:
+    """★ 缺陷 14 的**编排器侧**路径（`run_p1_real._request_margin_dump`）。
+
+    为什么补这条：缺陷 14 修了两处 —— 客户端（`p1_pipeline`）与服务端
+    （`ext/bridge`）—— 但**编排器**（`tools/run_p1_real.py`）里那个
+    `_request_margin_dump()` 是「停服务前再请一次」的双保险，
+    **它从未被真正执行过**（只在源码里存在 ⇒ 无法证明它能工作）。
+    而它恰恰是**最容易被 API 变更打断**的一段（websockets 17.x 的
+    `additional_headers` / `origin` 参数、`hello` 鉴权握手）。
+
+    本条用**真 websockets 服务 + 桩引擎**跑一遍编排器那个函数，
+    断言它**真的**让服务端落盘了 margin.json。
+    """
+    print("\n[P1] EXT-006 — 编排器侧余量落盘路径（双保险从未被执行过）")
+    import p1_pipeline
+    import run_p1_real
+
+    tmp = os.path.join(ROOT, ".tmp", "p1_orch_margin")
+    os.makedirs(tmp, exist_ok=True)
+    token_path = os.path.join(tmp, "token.txt")
+    margin_path = os.path.join(tmp, "margin.json")
+    with open(token_path, "w", encoding="utf-8") as f:
+        f.write("orch-margin-token-456")
+    with open(token_path, "r", encoding="utf-8") as f:
+        token = f.read().strip()
+    if os.path.exists(margin_path):
+        os.remove(margin_path)
+
+    port = _free_port()
+    th, holder = _start_bridge(port, token, token_path,
+                                margin_out=margin_path)
+    try:
+        # 先用客户端跑一遍，让服务端**有段可统计**（否则 summary 是空的）
+        wav_path = os.path.join(tmp, "orch.wav")
+        _make_wav(wav_path, 45.0)
+        audio, sr = p1_pipeline.read_wav_16k_mono(wav_path)
+        frames = p1_pipeline.frame_payload(audio)
+        expected = p1_pipeline.expected_segment_count(audio, 16000)
+        asyncio.run(p1_pipeline._run_client(
+            port=port, token=token, frames=frames, delay_sec=10.0,
+            recv_timeout=30.0, realtime=False, expect_segments=expected))
+
+        # 客户端那一路应该已经落了盘（含真实逐句余量）
+        check("★ 前置：客户端那一路已落盘 margin.json",
+              os.path.isfile(margin_path), margin_path)
+        n_client = 0
+        if os.path.isfile(margin_path):
+            with open(margin_path, encoding="utf-8") as f:
+                n_client = len((json.load(f).get("per_segment")) or [])
+        check("★ 前置：客户端落盘含逐句余量（非空）",
+              n_client > 0, f"{n_client} 段")
+
+        # ★★★ 缺陷 15 的核心断言 ★★★
+        #   编排器的「双保险」会**另开一条 WebSocket 连接**。
+        #   旧实现：那条连接建了一个**全新的空 Session** 并顶替了真会话
+        #   ⇒ dump_margin 落盘的是**空统计**
+        #   ⇒ 把客户端刚写好的真余量数据**覆盖掉了**。
+        #   修法：服务端遇到已有活跃会话时不再顶替（`_register_session`）。
+        # 本断言验证：编排器跑完一遍后，**磁盘上的数据没被清空**。
+        ok = run_p1_real._request_margin_dump(port, token_file=token_path)
+        check("★ 编排器 _request_margin_dump 返回 True", ok is True, f"ok={ok}")
+        check("★ 编排器这一路跑完后 margin.json 仍在", os.path.isfile(margin_path),
+              margin_path)
+        n_after = 0
+        if os.path.isfile(margin_path):
+            with open(margin_path, encoding="utf-8") as f:
+                data = json.load(f)
+            n_after = len(data.get("per_segment") or [])
+            ms = data.get("margin_summary") or {}
+            check("★ 落盘内容含 margin_summary.n_segments",
+                  "n_segments" in ms, str(ms)[:160])
+        # ★ 关键：条数不能变少 —— 旧实现会把它清成 0
+        check("★ 编排器这一路**没有把真数据清空**（缺陷 15 回归）",
+              n_after >= n_client and n_after > 0,
+              f"客户端落盘 {n_client} 段 → 编排器跑完后 {n_after} 段")
+
+        # 反向断言：证明这个断言**有区分力**（不是恒真）
+        #   —— 手工模拟「空会话顶替」⇒ 落盘会变成 0 段
+        old_holder = {"session": holder.get("session")}
+        holder["session"] = Session_like_empty = type(
+            "E", (), {"margin_summary": lambda self: {}, "margins": [],
+                      "engine_calls": []})()
+        try:
+            # 直接调服务端的落盘函数（模拟旧行为：空会话）
+            from ext.bridge import _dump_margin
+            _dump_margin(holder, margin_path, None)
+            with open(margin_path, encoding="utf-8") as f:
+                n_bad = len((json.load(f).get("per_segment")) or [])
+            check("★ 反向断言：空会话落盘会被拒绝（第二道防线生效）",
+                  n_bad == n_client,
+                  f"空会话落盘后 {n_bad} 段（原 {n_client} 段应保留）")
+        finally:
+            holder["session"] = old_holder.get("session")
+    finally:
+        try:
+            th.stop()
+        except Exception:
+            pass
+
+
 def main() -> int:
     print("=" * 68)
     print("EXT P1 管线连通性自测（桩引擎 / 不跑推理 / 不占 GPU·NPU / 不抢锁）")
@@ -612,7 +784,9 @@ def main() -> int:
                test_slow_engine_does_not_block_event_loop,
                test_mt_model_dir_resolution,
                test_realtime_feed_path,
-               test_dump_margin_on_demand):
+               test_dump_margin_on_demand,
+               test_expected_segment_count_strict,
+               test_orchestrator_margin_dump_path):
         try:
             fn()
         except Exception:
