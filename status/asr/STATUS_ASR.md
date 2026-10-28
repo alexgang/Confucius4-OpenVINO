@@ -1,10 +1,11 @@
 last_ack: ASR-023
-更新时间: 2026-10-28 17:05
-当前任务: **无新纠偏（last_ack 保持 ASR-023）+ ASR-023 §5「来源与许可」义务闭环（§52）** —— 本轮检查 `status/asr/CORRECTIONS_ASR.md`（**62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f6c28bc2b7`）与上一轮**逐字节一致**，`grep -n '^## ASR-'` 仍为 **23 条（ASR-001 … ASR-023）**，全盘 `grep -rn -E "ASR-0(2[4-9]|[3-9][0-9])"`（confucius4-openvino + qwen3asr_06b，.md/.json/.py，排除 STATUS_ASR.md 自身与备份副本）命中 **0** ⇒ **无新纠偏，last_ack 不变**；但本轮**不是空跑** —— §50 末尾留的「App 侧是否把 wespeaker 权重纳入客户包」的义务在 **2026-10-28 16:30** 被 App 模块回告（`shared/NOTICE_app_to_asr_wespeaker_license_reply_20261028.md`，5605 B @ 16:27），结论 = **客户包 v1.6 内不含任何 WeSpeaker/ResNet34 权重 ⇒ 「随包分发」触发条件不成立 ⇒ CC BY 4.0 署名义务免除**；本轮**独立复核**该结论（不采信对方口径，全部自己实测，落盘脚本 `asr025_wespeaker_notice_closure_audit.py` + JSON）⇒ **6/6 触发条件全部满足**，`attribution_obligation` = **waived** ⇒ ASR-023 §5 第 1 项**正式闭环**。
-阻塞 / 待用户决定: ① 🔴 **用户需拍板 wespeaker OV IR 的导出边界（A / B / C）** —— §51 预检的推荐仍是 **方案 A（IR 只含 resnet 子图、输入 = fbank 特征 (B,T,80)、输出 (B,256)）**；② 🔴 **导出本身仍未启动**（属新开实验：需新脚本 + GPU.0 实测 + 持锁计时 + 与 torch CPU 比余弦 ≥0.999）⇒ **等用户指派**；在此之前 wespeaker 仍是 **torch 依赖**，「运行时不依赖 torch」的交付约束（ASR-013）**尚未满足**；③ ⚠️ **签名义务虽免除，但两条残留风险仍在**：App 回告 §三.2「若 ASR 后续把 wespeaker 权重纳入客户包，必须先回告 App，由 App 在同一次打包里补署名文本」、§三.3「若未来在客户包运行期（而非仅研发机）加载 wespeaker，属『运行时加载、不随包分发』，该场景署名要求由 ASR 自行判定」⇒ **在 wespeaker 真正进交付之前，这两条必须重新走一遍**；④ ⚠️ **本轮脚本/产物在 git 仓库外**（`qwen3asr_06b` 不在 repo 内）⇒ 只在本机，交付需另行打包；⑤ ⚠️ **WER 仍未跑**（目标机不调用 MiniMax）⇒ 质量判定交 reviewer；⑥ ⚠️ 本轮**未动 `live_caption/`**、**未申请共享机器锁**（无推理/计时/测速作业 ⇒ 无需锁）；⑦ ⚠️ 既有遗留项不变：碎片化 / 说话人切换点 recall 0.0857（粒度上限，ASR-023 §3 已拆开说明）未处理。
+更新时间: 2026-10-28 18:15
+当前任务: **无新纠偏（last_ack 保持 ASR-023）+ ASR-023 §5「来源与许可」义务闭环的**分发产物级**复核（§53）** —— 本轮检查 `status/asr/CORRECTIONS_ASR.md`（**62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f6c28bc2b7`）与上一轮（17:05）**逐字节一致**，`grep -n '^## ASR-'` 仍为 **23 条（ASR-001 … ASR-023）**，全盘 `grep -rn -E "ASR-0(2[4-9]|[3-9][0-9])"`（confucius4-openvino + qwen3asr_06b，.md/.json/.py，排除 STATUS_ASR.md 自身与备份副本）命中 **0** ⇒ **无新纠偏，last_ack 不变**；但本轮**不是空跑** —— 🔴 抓出 §52 的一处**证据缺口**并已闭环：§52（17:03）审计的是**解压目录** `Confucius4_LiveCaption_v1.6/`，而**真正分发给客户的是 zip** `Confucius4_LiveCaption_v1.6.zip`，该 zip 在 **2026-10-28 17:57:22 被重新打包**（11218123293 B）⇒ **晚于 §52 审计 54.1 分钟** ⇒ §52 的证据相对「实际分发产物」**已过期**；本轮补做 zip 级复核（脚本 `asr026_zip_closure_recheck.py` + JSON）⇒ zip 内 **14200 个条目**，第三方权重扩展名命中 **0**、`wespeaker|resnet34` 名字命中 **0**、自有 OpenVINO IR `.bin` **22** 个（与 §52 目录版计数一致）、zip 内 `NOTICE`/`THIRD_PARTY.md` 与**已审计版本逐字节一致**（md5 `a3a44983…` / `34ed00e3…`，`dir_equals_zip`=**true**）⇒ **7/7 触发条件全满足** ⇒ `attribution_obligation` 仍 = **waived** ⇒ **ASR-023 §5 第 1 项在分发产物层面同样闭环**。
+阻塞 / 待用户决定: ① 🔴 **用户需拍板 wespeaker OV IR 的导出边界（A / B / C）** —— §51 预检的推荐仍是 **方案 A（IR 只含 resnet 子图、输入 = fbank 特征 (B,T,80)、输出 (B,256)）**；② 🔴 **导出本身仍未启动**（属新开实验：需新脚本 + GPU.0 实测 + 持锁计时 + 与 torch CPU 比余弦 ≥0.999）⇒ **等用户指派**；在此之前 wespeaker 仍是 **torch 依赖**，「运行时不依赖 torch」的交付约束（ASR-013）**尚未满足**；③ ⚠️ **签名义务虽免除，但两条残留风险仍在**：App 回告 §三.2「若 ASR 后续把 wespeaker 权重纳入客户包，必须先回告 App，由 App 在同一次打包里补署名文本」、§三.3「若未来在客户包运行期（而非仅研发机）加载 wespeaker，属『运行时加载、不随包分发』，该场景署名要求由 ASR 自行判定」⇒ **在 wespeaker 真正进交付之前，这两条必须重新走一遍**；④ ⚠️ **App 侧 zip 重打本身留了 2 个待裁定项（属 App 职责，本模块不代决）**：`status/app/STATUS_APP.md` §85.7 第 1 条「v1.6 的旧 zip（SHA256 `907a1caa…`）是否已带不实许可声明发出、是否需重新分发」—— 本轮只从 ASR 侧核实了**重打后的 zip 内 NOTICE/THIRD_PARTY.md 不含 wespeaker 条目**，**不构成**对 App 那个待裁定项的答复；⑤ ⚠️ **本轮脚本/产物在 git 仓库外**（`qwen3asr_06b` 不在 repo 内）⇒ 只在本机，交付需另行打包；⑥ ⚠️ **WER 仍未跑**（目标机不调用 MiniMax）⇒ 质量判定交 reviewer；⑦ ⚠️ 本轮**未动 `live_caption/`**、**未申请共享机器锁**（无推理/计时/测速作业 ⇒ 无需锁）；⑧ ⚠️ 既有遗留项不变：碎片化 / 说话人切换点 recall 0.0857（粒度上限，ASR-023 §3 已拆开说明）未处理。
 
 
 ## 最近更新
+- 2026-10-28 18:15 **无新纠偏（last_ack 保持 ASR-023）+ ASR-023 §5 义务闭环的**分发产物级**复核（§53）**：① ✅ **无新纠偏** —— `CORRECTIONS_ASR.md` **62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f6c28bc2b7`，与 17:05 轮**逐字节一致**；`grep -n '^## ASR-'` = **23 条（ASR-001 … ASR-023）**；全盘 `ASR-0(2[4-9]|[3-9][0-9])` 命中 **0** ⇒ **last_ack 不变**；② 🔴★ **抓出 §52 的证据缺口**：§52（**17:03:19**）审计的是**解压目录** `Confucius4_LiveCaption_v1.6/`，而**真正分发的是 zip** `Confucius4_LiveCaption_v1.6.zip`（**11218123293 B**）—— 该 zip 于 **17:57:22 被重新打包**，**晚于 §52 审计 54.1 分钟** ⇒ §52 的证据相对「实际分发产物」**已过期** ⇒ 必须补 zip 级复核；③ ✅ **zip 级复核完成**（脚本 `qwen3asr_06b/scripts/asr026_zip_closure_recheck.py`、JSON `qwen3asr_06b/results/pyannote_seg/asr026_zip_closure_recheck.json`）⇒ zip 内 **14200 条目**、第三方权重扩展名（`.pt/.pth/.ckpt/.safetensors/.h5/.keras/.pb/.tflite/.onnx`）命中 **0**、`wespeaker|resnet34` 名字命中 **0**、自有 OpenVINO IR `.bin` **22** 个（**与 §52 目录版计数一致**，`bin_count_match`=**true**）；zip 内 `NOTICE` **8289 B** md5 `a3a449838f16d564354a287cd00decc3` / `THIRD_PARTY.md` **3310 B** md5 `34ed00e3d397b688f4525003e47b1edf` ⇒ **与解压目录版逐字节一致**（`dir_equals_zip`=**true**）⇒ **7/7 触发条件全满足** ⇒ `attribution_obligation` 仍 = **waived** ⇒ **ASR-023 §5 第 1 项在分发产物层面同样闭环**（§52 结论**无需撤回**）；④ ✅ **判据有鉴别力（反证通过）** —— 构造临时 zip 内含 `wespeaker/pytorch_model.bin` + `model.ckpt` ⇒ `no_wespeaker_named_entry` / `no_thirdparty_weight_file` 均翻成 **false** ⇒ 判据能真正抓出第三方权重（反证件已隔离到 `_trash_asr026/`）；⑤ ⚠️ **本轮修正了自己的一处时序误判** —— 首版用**文件系统 mtime** 比时序，而 `cp` 备份会刷新 mtime ⇒ 得出「zip 没有晚于审计、缺口 −13.2 分钟」的**错误结论**；改为读 JSON 内的 **`generated_at` 内容时间戳**（17:03:19）后，正确得出 **+54.1 分钟缺口**；⑥ ⚠️ **不越界**：App `STATUS_APP.md` §85.7 第 1 条（重打前旧 zip 是否已带不实许可声明发出、是否需重新分发）**属 App 职责**，本模块只核实了重打后 zip 内许可文本**不含 wespeaker 条目**，**不构成**对该待裁定项的答复；⑦ ⚠️ 本轮**未跑 WER**（交 reviewer）、**未申请共享锁**（无推理/计时/测速 ⇒ 无需锁）、**未动 `live_caption/`**、**未开新实验**。
 - 2026-10-28 15:55 **无新纠偏（last_ack 保持 ASR-023）+ ASR-023 §4 剩余义务（wespeaker OV IR 导出）零开销可行性预检（§51）**：① ✅ **无新纠偏** —— `CORRECTIONS_ASR.md` **62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f6c28bc2b7`，与上轮逐字节一致；`grep -n '^## ASR-'` = **23 条（ASR-001 … ASR-023）**；全盘 `ASR-0(2[4-9]|[3-9][0-9])` 命中 **0** ⇒ **last_ack 不变**；② ✅ **权重侧 READY（取证，不导出）** —— 预检脚本 `qwen3asr_06b/scripts/asr023_wespeaker_export_precheck.py`（**18733 B @ 15:54:40**）、预检 JSON `qwen3asr_06b/results/pyannote_seg/asr023_wespeaker_export_precheck.json`（**9189 B @ 15:54:53**）⇒ `state_dict.load_ok` = **true**、顶层是 **Lightning ckpt 包装**（3 个顶层键 `state_dict` / `pyannote.audio` / `pytorch-lightning_version`）、内层 **218 个参数张量、单前缀 `resnet.`**、`arch_hint` = **resnet34**、`single_prefix` = **true**、`export_difficulty` = **LOW**（纯 Conv2d/BatchNorm/Linear，**无 MFA / 无 attention / 无自定义算子**）、`n_params` = **6634336**；③ 🔴 **真正的阻塞点不在权重，在 fbank 边界** —— `compute_fbank` 走 **torchaudio kaldi**（`uses_torchaudio_kaldi`=**true**、`uses_vmap`=**true**、`uses_einops_rearrange`=**true**（在 `resnet.py` 的 TSTP 里））⇒ 必须先定 IR 边界；本轮给出 **A（只导 resnet，输入 fbank (B,T,80)）/ B（IR 含自写 fbank）/ C（IR 从波形起）** 三方案 + 风险（MEDIUM / MEDIUM-HIGH / HIGH），**推荐 A**；④ ✅ **导出配方已备好（方案 A 精确形状）**：`export_target` = `model.resnet`、`input_shape` = (batch, frames, 80)、`output_shape` = (batch, 256)；**必须复刻**的 4 项 = StatsPool（`mean(dim=-1)` + `std(dim=-1, correction=1)` **无偏**）、`seg_1 = Linear(5120→256)`、`two_emb_layer=False`（无 seg_2/seg_bn_1）、**帧中心化落在 fbank 侧**（`fbank_centering_span=None` ⇒ `features - mean(features, dim=1, keepdim=True)`）⇒ **不在 IR 内**；⑤ ✅ **调用方须复刻的 kaldi fbank 参数已逐条落盘**：80 mel / 25 ms 帧长 / 10 ms 帧移 / hamming / `dither=0` / `round_to_power_of_two=True` / `snip_edges=True` / `use_energy=False` / 16 kHz / 去直流 / `energy_floor=0` / 波形 `×(1<<15)`；⑥ ⚠️ **与现有 TTS encoder IR 不是同一个模型**（TTS：输入 `mel_spectrogram` [1,?,128]、输出 `speaker_embedding` [1,1024]；wespeaker：80 mel、**256 维**、波形入口）⇒ **口径不可混比**；⑦ ⚠️ **导出本身未启动**（属新开实验：需新脚本 + GPU.0 实测 + 持锁计时 + 与 torch CPU 比余弦 ≥0.999）⇒ **等用户指派**（§48.11 已列为下一阶段任务）；⑧ ⚠️ 本轮**未跑 WER**（交 reviewer）、**未申请共享锁**（无计时作业）、**未动 `live_caption/`**
 - 2026-10-28 14:40 **无新纠偏（last_ack 保持 ASR-023）+ 补齐 ASR-023 §5「来源与许可」（§50）**：① ✅ **无新纠偏** —— `CORRECTIONS_ASR.md` **62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f6c28bc2b7`，与上轮逐字节一致；`grep -n '^## ASR-'` = **23 条（ASR-001 … ASR-023）**；全盘 `ASR-0(2[4-9]|[3-9][0-9])` 命中 **0** ⇒ **last_ack 不变**；② 🔴 **ASR-023 §4 的条件义务已触发** —— §4 选型结果 = **保留 wespeaker** ⇒ §5「补齐来源与许可」不再是可选项；本轮完成 §5 的取证（**只读、零机器开销、未开新实验**）：repo id `pyannote/wespeaker-voxceleb-resnet34-LM`、revision sha `837717ddb9ff5507820346191109dc79c958d614`、`license` = **cc-by-4.0**、`datasets` = **["voxceleb"]**（tags 含 `dataset:voxceleb`）、**仓库内无独立 LICENSE 文件**（许可只在模型卡 metadata）⇒ 随包分发**必须署名**；③ ✅ **本机权重 = 该 revision**（双证：`md5sum` 逐文件 + `cmp` 逐字节）：`config.yaml` 221 B md5 `ce9f2609a81b53337241fef233c8e965`、`pytorch_model.bin` 26645418 B md5 `95d4927d156bb99c972e152a93ad0f3f` ⇒ `all_files_byte_identical_to_revision` = **true**；④ ✅ **产出**：取证脚本 `qwen3asr_06b/scripts/asr023_wespeaker_provenance.py`（**6140 B @ 2026-10-28 14:33:36**）、取证 JSON `qwen3asr_06b/results/pyannote_seg/asr023_wespeaker_provenance.json`（**3518 B @ 14:33:40**）、比对副本 `_ref_models/_verify_rev/`（**2 文件** @ 14:33:39~40）、给 App 的 NOTICE `shared/NOTICE_asr_to_app_wespeaker_license_20261028.md`（**5422 B @ 14:34:03**，含署名文本 + 使用范围限制）；⑤ 🔴 **wespeaker 的 OV IR 导出仍未做**（ASR-023 §4 另一条腿）⇒ 在此之前 wespeaker 仍是 torch 依赖，「运行时不依赖 torch」（ASR-013）**尚未满足** ⇒ **等用户指派**（§48.11 已列为下一阶段任务，本轮未擅自开新实验）；⑥ ⚠️ 本轮**未跑 WER**（交 reviewer）、**未申请共享锁**（无计时作业）、**未动 `live_caption/`**
 - 2026-10-28 10:15 **无新纠偏（last_ack 保持 ASR-023）+ 回收跨模块陈旧机器锁（§49）**：① ✅ **无新纠偏** —— `CORRECTIONS_ASR.md` **62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f6c28bc2b7` 与上一轮（07:58）**逐字节一致**；`grep -n '^## ASR-'` = **23 条**（ASR-001 … **ASR-023**）；全盘 `grep -rn "ASR-024\|ASR-025"`（confucius4-openvino + qwen3asr_06b，含 .md/.json/.py）命中 **0** ⇒ **last_ack 不改**；② 🔴★ **抓出并回收跨模块陈旧锁** —— `shared/MACHINE_LOCK` 内容 `app PID 14732 started 2026-10-28 08:22:04`（121 B）：持锁 PID **14732 已死**（`pid_alive`=false）、**机器上 python 进程数 = 0**、`lock_is_stale`=**true**、`owned_by_self`=false、锁 mtime 08:22:04 **晚于**开机时间（10-21 09:29:11）⇒ 属**协议允许回收**的死锁；③ ✅ **用单一事实来源回收**（`scripts/asr_lock_common.py`：`read_lock` → `pid_alive` → `lock_is_stale` → **回收前复核 pid 仍 = 14732** → `os.remove`，与 `acquire()` 内部陈旧锁分支**同一条路径**，不另抄判据）⇒ 回收后 `shared/MACHINE_LOCK` **不存在**、`shared/*.tmp` 残留 **0**、机器 python 进程仍 **0**；④ ⚠️ **根因在 App/TTS 侧**（TTS `machine_lock.py` 仍 `tmp+os.replace` 且不回收陈旧锁；App 持锁进程异常退出即留永久阻塞的锁）⇒ **属他模块职责，本模块只做只读核查 + 按协议回收，未代改他模块代码**；⑤ ⚠️ 本轮**无计时/测速作业** ⇒ **未申请共享锁**、未干扰其它模块；未算 WER（交 reviewer）；未动 `live_caption/`。⇒ 证据：`qwen3asr_06b/results/lock_verify/asr024_stale_lock_reclaim_20261028.log`（421 B @10:13）
@@ -19,7 +20,6 @@ last_ack: ASR-023
 - 2026-10-27 07:08 **无新纠偏（last_ack 保持 ASR-013）+ 撤回 §39「5 脚本已统一」的表述 + 补上两个漏网脚本并修掉「跨会话陈旧锁永不回收」（§40）**：① ✅ **无新纠偏**（`CORRECTIONS_ASR.md` mtime **2026-10-26 16:18:05**、md5 `55c28c72…` 与上轮完全一致；`grep -n '^#\{1,3\} '` 最大编号仍 **ASR-013**；`grep -rn "ASR-01[4-9]" status/` 命中 **0**）⇒ **last_ack 不改**；② 🔴★ **撤回 §39.2 的「5 个持锁脚本统一调用 `asr_lock_common`」** —— 实测 `grep -ln asr_lock_common scripts/*.py` 只有 **3 个**（`pya_app_path_seg.py` / `pya_bench_one_window.py` / `pya_stream_segment.py`），`run_wait_calib_mask2.py` / `p3_run_with_lock.py` **各自仍抄本地实现** ⇒ 上一轮「单一事实来源」只落地 3/5；③ 🔴★ **统一时抓出并修掉一个真缺陷**：`run_wait_calib_mask2.py` 判陈旧写成 `t.timestamp() < boot_time()`，而 `boot_time()` 返回**「开机至今秒数」**（实测 ~5.1e5）**不是时间戳**（~1.79e9）⇒ **恒为 False** ⇒ 「锁早于开机时间 ⇒ 可回收」**永不触发** ⇒ 跨会话残留陈旧锁会**永久阻塞**校准集生成（而该脚本的存在意义正是「等锁+采校准集」）⇒ 改为正确口径 `st < (time.time() - boot_time())`；④ ✅ **两个脚本真正并入单一事实来源**（本地 `read_lock`/`write_lock`/`release_lock`/`wait_free`/`lock_is_stale`/`pid_alive`/`boot_time` 全删）⇒ `grep -ln asr_lock_common scripts/*.py` 现为 **5/5**；⑤ ✅ **验收 19/19 PASS**（`results/lock_verify/asr_lock_verify_20261027.log`，1728 B，复跑 07:07 仍 19/19）+ ✅ **新增针对性回归 15/15 PASS**（`results/lock_verify/asr_lock_stale_reclaim_20261027.log`，1067 B，07:08；含 **T6 反证**：旧比较式实测恒 False ⇒ 缺陷真实存在非测试假象）+ ✅ **E2E 冒烟 rc=0**（`p3_run_with_lock.py --task smoke_migrated` ⇒ 取锁→子进程→释放锁、**无 `.tmp` 残留**、真实锁路径跑完为空）+ ✅ **`run_wait_calib_mask2.wait_free()` 冒烟**（True / 0.00 s / 不建锁）；⑥ ✅ **机器锁纪律**：唯一占锁的是 2 秒级 E2E 冒烟 ⇒ 跑完 `shared/MACHINE_LOCK` **不存在** ⇒ 无孤儿锁；⑦ ⚠️ **`qwen3asr_06b` 不在 git 仓库内** ⇒ 本轮脚本改动**只在本机、不进 git**（交付需另行打包）；⑧ 🔴 **WER 仍未算**（不调用 MiniMax）⇒ 交 reviewer 对照 App 路径 R2T2 iGPU INT8 B **10.58%** 复算
 - 2026-10-27 04:50 **无新纠偏（last_ack 保持 ASR-013）+ 共享机器锁的独占性/fail-closed 修复（§39）**：① ✅ **无新纠偏**（`CORRECTIONS_ASR.md` mtime **2026-10-26 16:18:05**、md5 `55c28c72…` 与上轮完全一致；`grep -n '^#\{1,3\} '` 最大编号仍 **ASR-013**；`grep -rn "ASR-01[4-9]" status/` 命中 **0**）⇒ **last_ack 不改**；② 🔴★ **修掉 ASR 侧共享锁的 3 个真缺陷**（触发源 `shared/NOTICE_app_to_tts_asr_20261026_s56.md` §六.2，**App 点名 ASR**）—— 新建单一事实来源 `scripts/asr_lock_common.py`（17345 B，04:43），5 个持锁脚本统一调用：**(a) 丢独占性**（4 个脚本 `tmp+os.replace`、1 个 `open(path,'w')`）⇒ 改 `tmp+fsync+os.link`（`FileExistsError` ⇒ 独占）；**(b) 读锁 fail-open**（解析不出 pid 就删 ⇒ 误删别的模块活锁 ⇒ TTS 侧 21:21~21:38 有 **40 行 `timing_valid=false`** 作废）⇒ 改 **fail-closed**；**(c) 🔴 本轮新发现：跨模块 pid 格式地雷** —— 本模块历史写 `PID=424242 start=…`（等号），TTS 关键字扫描取到**第一个纯数字 token = `04`（=4）** ⇒ TTS 误判我们的活锁已死 ⇒ **删掉我们的活锁** ⇒ 统一改成**空格分隔**（与 App 一致）；③ ✅ **验收 19/19 PASS**（`results/lock_verify/asr_lock_verify_20261027.log`，1728 B，04:48；REAL 组全成立 + **BUG 组 2 项均命中** ⇒ 有鉴别力）+ **跨进程互斥 PASS**（`asr_lock_xproc_20261027.log`，873 B；6 独立进程抢锁 ⇒ **持有区间零重叠**、无死锁、无孤儿锁）+ **反证**（`old_impl_counterproof_20261027.log`，497 B：旧实现 **重叠 5 对** ⇒ 确实互斥失效）+ **C1–C4 四模块解析器全通**（ASR/TTS/MT 真实解析器都读出 pid=424242）；④ ✅ **2 分钟实跑冒烟 rc=0**（`--tag locksmoke`）⇒ 20 段 / rtf 0.6045 / seg_model_rtf 0.05655 ⇒ 跑完**锁正常释放、无 `.tmp` 残留、checkpoint 自动清理** ⇒ 产物已删；⑤ ✅ **清掉最后一个残留 checkpoint**（`pya_app_forced_smoke2.partial.json`，4049 B）⇒ 全盘 `*.partial.json` **归零**；⑥ 🔴 **WER 仍未算**（不调用 MiniMax）⇒ 交 reviewer 对照 App 路径 R2T2 iGPU INT8 B **10.58%** 复算；⑦ ⚠️ **TTS 侧同一锁缺陷本模块未代改**（属 TTS 职责）⇒ 但格式已改 ⇒ TTS 现在能正确读出本模块 pid ⇒ 修好前也不会误删本模块活锁
 - 2026-10-27 03:25 **无新纠偏（last_ack 保持 ASR-013）+ §37 遗留的 checkpoint 隐患已修（§38）**：① ✅ **无新纠偏**（`CORRECTIONS_ASR.md` mtime **2026-10-26 16:18:05**、md5 `55c28c72…` 与上轮完全一致；`grep -n '^#\{1,3\} '` 最大编号仍 **ASR-013**；`grep -rn "ASR-01[4-9]" status/` 命中 **0**）⇒ **last_ack 不改**；② 🔴 **修掉「跑完不删 checkpoint」隐患**（§37 遗留）：`scripts/pya_app_path_seg.py` 写完最终 json 后**不删** `*.partial.json` ⇒ 下次同 tag 跑会误续到 `fed_s`=3660.0（已覆盖 99.7%）⇒ **静默产出少了最后 11.19 s 的截断结果却看着像跑完** ⇒ 已在最终产物落盘后加 `os.remove(ckpt_path)`（失败只告警、不中断）；③ ✅ **2 分钟冒烟验证通过**（`logs/pya_ckptsmoke.log`，1939 B，03:22:37，rc=0）：日志打印「[pya] 已清理 checkpoint → …ckptsmoke.partial.json」、跑完**无残留 partial**、`MACHINE_LOCK` **正常释放**；④ ✅ **清掉 forced61 陈旧 checkpoint**（`pya_app_forced_forced61.partial.json`，129183 B，`fed_s`=3660.0/605 段）⇒ 最终产物 `pya_app_forced_forced61.json`（150639 B，01:09:22，`n_segs`=607 / `audio_sec`=3671.19 / `rtf`=0.5765）**未受影响**；⑤ 🔴 **WER 仍未算**（本线程不调用 MiniMax）⇒ 交 reviewer 对照 App 路径 R2T2 iGPU INT8 B **10.58%** 复算
-- 2026-10-27 01:20 **ASR-013 ②验收① 闭环：61 分钟 forced 跑完 + 词内切点 9.87% → 3.30%（§37）**：① 🔴 **长跑夭折根因修复（§36 续）** —— 后台进程随会话结束被回收 ⇒ 已加 **每 60 s checkpoint + 自动断点续跑**（`scripts/pya_app_path_seg.py`）+ `--no-resume` + 进度日志，2 分钟冒烟验证生效；② ✅ **61 分钟 App 路径 forced 长跑跑完**（`pya_app_forced_forced61.json`，150639 B，01:09:22；`audio_sec` **3671.19** 全覆盖、`n_segs` **607**、`rule_counts` rule1 **479** / model_break **108** / rule2 **20**、`rtf` **0.5765**、`seg_model_rtf` **0.06018**、总词数 **11322**、拉丁 0.8326 / 三连 0 / 非 ASCII 0 ⇒ 文本健康）；③ ✅★ **词内切点 9.87% → 3.30%**（同口径 `asr006_rule1_cut_diag.seam_overlap(N=3)`：App 路径 B 基线 557 接缝 / 55 命中 / 9.87% ⇒ 本轮 606 接缝 / **20 命中 / 3.30%**；rule1 10.24% → **3.55%**）；④ 🔴 **WER 未算（不调用 MiniMax）** ⇒ 交 reviewer 对照 App 路径 R2T2 iGPU INT8 B **10.58%** 复算；⑤ 🔴 **代价**：段数 **+49**（558→607）、**空文本段 17**（全为 `model_break`）⇒ 需 App 空段守卫或 ASR 最小段过滤（未擅自改）
 ## §2 最近一周的结论摘要（均引用产物）
 
 ### 2.1 切段策略（属本模块范围）
@@ -5903,4 +5903,133 @@ App 回告 §三.2 / §三.3 明确留了两条口子，**在 wespeaker 真正�
 4. ⚠️ 碎片化 / 说话人切换点 recall 0.0857（粒度上限，ASR-023 §3 已拆开说明）未处理。
 5. ⚠️ `qwen3asr_06b` 不在 git 仓库内 ⇒ 一切 ASR 侧脚本/产物**只在本机**，交付需另行打包。
 
+
+## §53 无新纠偏（last_ack 保持 ASR-023）+ ASR-023 §5 义务闭环的**分发产物级**复核（2026-10-28 18:15）
+
+### 53.1 ✅ 无新纠偏（`last_ack` 保持 **ASR-023**）
+
+| 检查项 | 实测 | 结论 |
+|---|---|---|
+| `status/asr/CORRECTIONS_ASR.md` 大小 / mtime | **62477 B** @ **2026-10-28 00:53:08** | 与 17:05 轮**逐字节一致** |
+| `status/asr/CORRECTIONS_ASR.md` md5 | `2db94ec491495528f3b7c5f6c28bc2b7` | 未被追加 |
+| `grep -n '^## ASR-'` | **23 条**（ASR-001 … **ASR-023**） | 无第 24 条 |
+| 全盘 `grep -rn -E "ASR-0(2[4-9]|[3-9][0-9])"`（confucius4-openvino + qwen3asr_06b，`.md`/`.json`/`.py`，排除 STATUS_ASR.md 自身与备份副本） | 命中 **0** | 确认**无 ASR-024 及以后** |
+
+⇒ **无新纠偏，`last_ack` 保持 ASR-023 不变。**
+
+### 53.2 🔴 抓出 §52 的**证据缺口**：审计对象 ≠ 实际分发产物
+
+§52（**2026-10-28 17:03:19**）做的义务闭环审计，扫描的是**解压目录**：
+
+```
+C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6\        ← §52 审计的是这个
+```
+
+而**真正分发给客户的是 zip**：
+
+```
+C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6.zip     ← 客户拿到的是这个
+```
+
+🔴 **关键时序**（`asr026_zip_closure_recheck.json` 的 `crosscheck_with_asr025_audit`）：
+
+| 事实 | 值 |
+|---|---|
+| §52 审计生成时间（JSON 内 `generated_at`） | **2026-10-28 17:03:19** |
+| zip 重打包时间（文件系统 mtime） | **2026-10-28 17:57:22** |
+| **证据过期缺口** | **+54.1 分钟**（`stale_evidence_gap_minutes` = **54.1**） |
+| `zip_repacked_after_audit` | **true** |
+
+⇒ 即：**§52 审计之后，包又被重打了一次** ⇒ §52 的证据（目录级）相对「实际分发产物」**已过期**
+⇒ ASR-023 §5 的义务判定（「若 wespeaker 权重**随包分发** ⇒ 必须署名」）**必须落在真正分发的那个文件上**。
+
+### 53.3 ✅ zip 级复核：7/7 触发条件全满足 ⇒ 义务**仍然免除**（§52 结论无需撤回）
+
+复核脚本 `qwen3asr_06b/scripts/asr026_zip_closure_recheck.py`（**只读、零机器开销**）
+⇒ 产物 `qwen3asr_06b/results/pyannote_seg/asr026_zip_closure_recheck.json`（**5451 B @ 18:13:01**）。
+
+> 口径与 §52 **完全一致**（不另抄判据）：第三方权重扩展名 = `.pt/.pth/.ckpt/.safetensors/.h5/.keras/.pb/.tflite/.onnx`；
+> `.bin` **不**当第三方权重（包内 `.bin` 全是本项目自有 OpenVINO IR）⇒ **单列统计**。
+
+| # | 触发条件 | 实测 | 满足 |
+|---|---|---|---|
+| 1 | `zip_exists` | zip 存在，**11218123293 B** @ 17:57:22 | ✅ |
+| 2 | `no_wespeaker_named_entry` | zip 内 `wespeaker\|resnet34` 名字命中 = **0** | ✅ |
+| 3 | `no_thirdparty_weight_file` | 第三方权重扩展名命中 = **0** | ✅ |
+| 4 | `notice_no_wespeaker_entry` | zip 内 `NOTICE` 中 `wespeaker\|resnet34` 条目 = **0** | ✅ |
+| 5 | `thirdparty_no_wespeaker_entry` | zip 内 `THIRD_PARTY.md` 中条目 = **0** | ✅ |
+| 6 | `zip_notice_matches_audited_version` | zip 内 `NOTICE` **8289 B** md5 `a3a449838f16d564354a287cd00decc3`，`dir_equals_zip` = **true** | ✅ |
+| 7 | `zip_thirdparty_matches_audited_version` | zip 内 `THIRD_PARTY.md` **3310 B** md5 `34ed00e3d397b688f4525003e47b1edf`，`dir_equals_zip` = **true** | ✅ |
+
+⇒ `all_trigger_conditions_met` = **true** ⇒ `verdict.attribution_obligation` = **waived**（**署名义务免除**）。
+
+**zip 与 §52 目录版的逐项交叉核对**：
+
+| 项 | §52（目录版） | 本轮（zip 版） | 一致 |
+|---|---|---|---|
+| 条目 / 文件总数 | — | **14200** | — |
+| 第三方权重命中数 | **0** | **0** | ✅ `thirdparty_count_match` = **true** |
+| 自有 OpenVINO IR `.bin` 数 | **22** | **22** | ✅ `bin_count_match` = **true** |
+| `NOTICE` md5 | `a3a449838f16d564354a287cd00decc3` | 同 | ✅ `notice_md5_match` = **true** |
+| `THIRD_PARTY.md` md5 | `34ed00e3d397b688f4525003e47b1edf` | 同 | ✅ `thirdparty_md5_match` = **true** |
+
+⇒ **§52 的结论（waived）在实际分发产物上同样成立 ⇒ 不撤回 §52**，
+只是把证据链从「目录级」**补齐到「分发产物级」**。
+
+### 53.4 ✅ 判据有鉴别力（反证通过）
+
+构造临时 zip，内含 `pkg/models/wespeaker/pytorch_model.bin` 与 `pkg/models/other/model.ckpt`：
+
+| 条件 | 真实包 | 反证包 | 期望 |
+|---|---|---|---|
+| `no_wespeaker_named_entry` | **true** | **false** | ✅ 正确翻转 |
+| `no_thirdparty_weight_file` | **true** | **false** | ✅ 正确翻转 |
+
+⇒ 判据**能真正抓出**第三方权重 ⇒ 「命中 0」不是因为判据失效，而是真的没有。
+反证件已隔离到 `qwen3asr_06b/results/pyannote_seg/_trash_asr026/`（不混入正式产物目录）。
+
+### 53.5 ⚠️ 本轮修正了自己的一处**时序误判**（可复用教训）
+
+首版脚本用**文件系统 mtime** 做时序判定（`os.stat(audit).st_mtime < os.stat(zip).st_mtime`），
+而本轮为了留证做过 `cp` 备份 ⇒ **`cp` 会刷新 mtime** ⇒ 得出
+
+> `audit_predates_zip` = **false**、`stale_evidence_gap_minutes` = **−13.2**（即「zip 并没有晚于审计」）
+
+—— 这与事实**相反**（zip 确实 17:57 重打，晚于 17:03 的审计）。
+
+**修正**：时序判定改用 **JSON 内容里的 `generated_at` 字段**（内容时间戳，不受 `cp`/`mv` 触碰 mtime 影响）
+⇒ 正确得出 `audit_predates_zip` = **true**、`zip_repacked_after_audit` = **true**、缺口 **+54.1 分钟**。
+
+> **教训（可复用）**：**「证据是否过期」这类时序判定，必须用内容时间戳（脚本写入 JSON 的 `generated_at`），
+> 不能用文件系统 mtime** —— 任何一次 `cp` / `git checkout` / 备份操作都会刷新 mtime，
+> 从而让「产物被重做、证据已过期」这一事实**被误判成未过期**（本例是**漏做了一次必要复核**的方向，
+> 比误报过期更危险：会让人以为证据仍然有效）。
+
+### 53.6 ⚠️ 边界声明：**不代 App 裁定**（不越界）
+
+App 侧 `status/app/STATUS_APP.md` §85.7 第 1 条留了一个待裁定项：
+
+> 「§85.1 的『所有组件均为 Apache License 2.0』表述是否曾进入过已交付的 zip …… 是否需要重新打包并重新分发，
+> **请 reviewer 裁定**（App 不自行决定，因为重打 zip 受 APP-031 的合打约束约束）。」
+
+本轮**只从 ASR 侧核实**了「**重打后**的 zip 内 `NOTICE` / `THIRD_PARTY.md` **不含** wespeaker/resnet34 条目」，
+**不构成**对上述待裁定项的答复 —— 那个问题（重打**前**的旧 zip 是否已带不实许可声明发出、是否需重新分发）
+**属 App / reviewer 职责**，本模块**不代决**、**不回告结论**。
+
+### 53.7 本轮**未做**的事（纪律留痕）
+
+- **未算 WER**（目标机不调用 MiniMax）⇒ 质量判定仍交 reviewer。
+- **未做 wespeaker 的 OV IR 导出**（ASR-023 §4 剩余义务，仍在 §51 预检后等用户拍板 A/B/C）⇒ 本轮**未开新实验**。
+- **未申请共享机器锁**（无推理 / 计时 / 测速作业 ⇒ 无需锁）；核查时 `shared/MACHINE_LOCK` **不存在**、
+  `shared/*.tmp` 残留 **0**、全盘 `*.partial.json` **0**。
+- **未动 `live_caption/`**（ASR-003 起 C-111 已移交 App 模块）；git 只提交 `status/asr/`。
+- ⚠️ **本轮脚本与产物均在 git 仓库外**（`qwen3asr_06b` 不在 repo 内）⇒ 只在本机，交付需**另行打包**。
+
+### 53.8 遗留项（不变）
+
+1. 🔴 **wespeaker 的 OV IR 导出 @GPU.0**（ASR-023 §4）—— 仍**等用户拍板导出边界 A/B/C**（§51 推荐 **A**）。
+2. 🔴 **§5 义务已闭环**（§52 目录级 + **§53 分发产物级**）⇒ 但**进包前须重新确认**（见 52.6）。
+3. 🔴 **WER 仍未算** ⇒ 交 reviewer。
+4. ⚠️ 碎片化 / 说话人切换点 recall 0.0857（粒度上限，ASR-023 §3 已拆开说明）未处理。
+5. ⚠️ `qwen3asr_06b` 不在 git 仓库内 ⇒ 一切 ASR 侧脚本/产物**只在本机**，交付需另行打包。
 
