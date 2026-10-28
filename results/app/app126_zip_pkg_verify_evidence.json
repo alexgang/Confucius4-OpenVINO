@@ -1,0 +1,32 @@
+{
+  "zip_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6.zip",
+  "pkg_root": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6",
+  "pkg_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\app",
+  "prefix": "Confucius4_LiveCaption_v1.6",
+  "repo_live": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption",
+  "checks": {},
+  "zip_size": 11218123293,
+  "zip_mtime": "2026-10-28 17:57:22",
+  "zip_sha256": "266917dd715d84e21d2292f549208f6b6cc54234bd765045881124b5bb20432d",
+  "zip_entries_total": 14200,
+  "zip_testzip_bad_entry": null,
+  "py_count_zip": 6589,
+  "py_count_pkg": 6592,
+  "py_excluded_from_pkg": [
+    "_backup_app_20261028_preclone/live_caption_app.py",
+    "_backup_app_20261028_preclone/tts_worker.py",
+    "app/_probe_tts_cuda.py"
+  ],
+  "py_only_in_pkg": [],
+  "py_only_in_zip": [],
+  "py_content_mismatch": [],
+  "trio_inconsistent": [],
+  "zip_forbidden_names": [],
+  "zip_forbidden_name_count": 0,
+  "clone_collector_in_zip": true,
+  "clone_collector_excluded": false,
+  "zip_internal_text_hits": [],
+  "zip_internal_text_hit_count": 0,
+  "fails": [],
+  "verdict": "PASS"
+}
