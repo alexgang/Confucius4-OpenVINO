@@ -1,12 +1,13 @@
 # STATUS_APP
 last_ack: APP-033
-更新时间: 2026-10-28 18:14
-当前任务: **§86 ✅ APP-031 合打完成：v1.6 客户包已持锁重打（zip 11 218 123 293 B / mtime 2026-10-28 17:57:22 / SHA256 `266917dd…32d`；`testzip()` 通过；14 200 文件逐字节一致；原子改名）＋ 打包前三道闸门各抓到并修掉 5 个真实缺陷**（① `pkg_exclude` 漏排除 `_backup*.md` ⇒ 内部 STATUS 全文会进客户包【最严重，已修 + 物理移出包外】；② `check_internal_material` 误伤生产模块 `clone_collector.py` ⇒ 打包假 FAIL【已修】；③ `tts_engine.py` 带 2 个 U+FFFD 乱码（§82 `b0f7a43` 引入）【已修，U+FFFD=0】；④ §48 闸门把 docstring 误判成代码行【已修 + 删 2 条过期白名单 + 新增过期白名单自动报告】；⑤ `_app81_check_pkg_match.py` 写死客户包路径【已改走 `pkg_paths`】）⇒ ✅ 验收 `app126` **PASS 30 / FAIL 0**（双向反证，基线固定 `b0f7a43`）+ `app049` **PASS 7 / FAIL 0** + §48 闸门 **0 处违规** ⇒ ✅ 定点同步 `app/tts_engine.py`（**SYNCED** → 复跑 **ALREADY** 幂等）⇒ ✅ 只读三方复核 `app126_zip_pkg_verify` **PASS**（`.py` 清单 6 589 一致 / 内容 6 589 逐字节一致 / 仓库⇄包目录⇄zip 三方一致 / zip 内排除项 0 / 内部特征串 0）⇒ ✅ Git 闭环：commit **`d14b1f8`**（11 文件）＋ **`1b8a99c`**（2 文件），均**普通 push**，`HEAD == origin/main`，`CORRECTIONS_APP.md` **未入库**（`grep -c` = 0）、仓库只有 main、未吞他模块改动 ⇒ ✅ **「已交付」成立（仅指代码 + 包 zip）** ⇒ ⛔ **APP-027 仍未完**（V3-CER/V3-CAMPPlus 归 reviewer、V4 用户实听未做）⇒ 🔴 **本条需等 reviewer 复核**（旧 zip 若已分发是否需重发 / §83.5 四项裁定 / MT notice 15 §3.4 缺口）
+更新时间: 2026-10-28 19:53
+当前任务: **§87 🔴🔴 MT notice 15 §3.4「真实时序下不残留草稿行」的端到端证据缺口已补齐（真实 `TranslationService` + 真工作线程 + 真 outbox + 真实 `render_lines()`）＋ 随机语料模糊测试 120/120 全绿＋ 自查抓出并修掉验收脚本自身的 2 处判据口径缺陷** ⇒ ✅ `app127` **PASS 17 / FAIL 0**（三语料终态 `n_draft_lines` **全为 0** = notice 15 §3.4 要的那一格；含 **3 条源码突变反证** + 1 条基线反证）⇒ ✅ `app128` 模糊测试 **120 / 120 PASS**、`max_draft_lines=0`（seed 20261028）⇒ 🔴🔴 `app128` 首跑 **42 组 FAIL** ⇒ 逐案复现确认根因是**验收脚本判据口径缺陷**（渲染层 `caption_render.py` 用 `' '.join(parts)` 把**同 seg 多翻译单元拼成一行** ⇒ 「单元译文==整行」的精确相等口径 ⇒ 假 FAIL）⇒ 已改为**子串包含** ＋ 新增 `mid_expected` 条件判据 ⇒ ✅ `app128_judge_selftest` **5 / 5 PASS**（注入 4 类真缺陷 ⇒ 修正后判据**必须 FAIL**；不注入 ⇒ **必须 PASS** ⇒ 证明**未退化成永远 PASS**）⇒ ✅ **产品实现未暴露缺陷** ⇒ **无需改生产代码** ⇒ **无需客户包同步 / 无需重打 zip**（§86 的 v1.6 zip 与包目录**保持不变**）⇒ ⛔ **本节不写「已交付」**（本节交付的是**验收脚本 + 证据**）⇒ 🔴 **本条需等 reviewer 复核**（APP-027 V3 归 reviewer / V4 用户实听未做 / §83.5 四项裁定 / 旧 zip 是否重发）
 
-阻塞 / 待用户决定: ① 🔴 **§86 的 zip 已重打 ⇒ 「已交付」成立（仅指代码 + 包 zip）**，但 **APP-027 仍未完**（V3-CER / V3-CAMPPlus 归 reviewer、V4 用户实听未做）⇒ **「用户听得到」仍不成立**；② 🔴 **旧 v1.6 zip（11 218 089 559 B / mtime 2026-10-27 17:09）若已分发** ⇒ 带 §85 修正前的**不实许可声明** ⇒ **本包已修正，是否需重新分发待 reviewer 裁定**（App 不自行决定）；③ 🔴 **§83.5 的 4 项裁定仍然有效**（RTF 归因边界 / 「首包」指标定义 / app062 A/B 是否重做 / 不变式是否改三段式）⇒ 本轮**未自行推进**；④ 🔴 **MT notice 15 §3.4 的真实时序「草稿行计数」端到端证据缺口** ⇒ 仍是 App 侧遗留项，本轮未处理；⑤ 🔴 **§84 缺陷②的连带影响**：V1/V2 报告的 `lang`/`end_reason` 字段缺失 ⇒ 补「按语言分组」需用修好后的代码**重跑**（本轮**未重跑**）；⑥ 🔴 **本轮未修改 `CORRECTIONS_APP.md`**（只读、零改动）、未向 MiniMax、未开 FTP、未跑 `verify_pkg_zip.py`、**未用 `git add -A`**（逐文件 add）
+阻塞 / 待用户决定: ① 🔴 **MT notice 15 §3.4 的真实时序「草稿行计数」端到端证据缺口 ⇒ 本轮已闭环**（`app127` 17 PASS/0 FAIL ＋ `app128` 120/120 ＋ `app128_judge_selftest` 5/5）⇒ **该遗留项不再是阻塞**；② 🔴 **§86 的 zip 已重打 ⇒ 「已交付」成立（仅指代码 + 包 zip）**，但 **APP-027 仍未完**（V3-CER / V3-CAMPPlus 归 reviewer、V4 用户实听未做）⇒ **「用户听得到」仍不成立**；③ 🔴 **旧 v1.6 zip（11 218 089 559 B / mtime 2026-10-27 17:09）若已分发** ⇒ 带 §85 修正前的**不实许可声明** ⇒ **本包已修正，是否需重新分发待 reviewer 裁定**（App 不自行决定）；④ 🔴 **§83.5 的 4 项裁定仍然有效**（RTF 归因边界 / 「首包」指标定义 / app062 A/B 是否重做 / 不变式是否改三段式）⇒ 本轮**未自行推进**；⑤ 🔴 **§84 缺陷②的连带影响**：V1/V2 报告的 `lang`/`end_reason` 字段缺失 ⇒ 补「按语言分组」需用修好后的代码**重跑**（本轮**未重跑**）；⑥ 🔴 **本轮未修改 `CORRECTIONS_APP.md`**（只读、零改动，指纹 90 321 B / sha256 `bb2896ee…a043` / mtime 00:47:55）、未向 MiniMax、未开 FTP、未跑 `verify_pkg_zip.py`、**未用 `git add -A`**（逐文件 add）
 
 
 ## 最近更新
+19:53 §87 🔴🔴 **MT notice 15 §3.4「真实时序下不残留草稿行」端到端证据缺口已补齐**（真实 `TranslationService` + 真工作线程 + 真 outbox + 真实 `render_lines()`）⇒ ✅ `app127` **17 PASS/0 FAIL**（三语料终态 `n_draft_lines` **全 0** ＋ 3 条突变反证 ＋ 1 条基线反证）⇒ ✅ `app128` 随机语料 **120/120 PASS**、`max_draft_lines=0`⇒ 🔴🔴 首跑 **42 组 FAIL** ⇒ 定位为**验收脚本判据口径缺陷**（渲染层 join 同 seg 多单元 ⇒ 精确相等口径失效）⇒ 已修判据 ＋ 补 `app128_judge_selftest` **5/5 PASS**（注入 4 类真缺陷 ⇒ 判据必须 FAIL）⇒ ✅ **产品未暴露缺陷** ⇒ **无需改生产代码 / 无需同步客户包 / 无需重打 zip** ⇒ ⛔ **不写「已交付」**⇒ ⛔ **APP-027 未完（V3 归 reviewer、V4 未做）**
 18:14 §86 🔴🔴 **APP-031 合打完成：v1.6 zip 已持锁重打（11 218 123 293 B / mtime 17:57:22 / SHA256 `266917dd…32d`；`testzip()` 通过；14 200 文件逐字节一致）＋ 打包前三道闸门抓到并修掉 5 个真实缺陷**（内部 STATUS 备份会进 zip / `clone_collector.py` 误伤假 FAIL / `tts_engine.py` U+FFFD / §48 docstring 误判 / 写死包路径）⇒ ✅ `app126` **30 PASS/0 FAIL**（双向反证，基线 `b0f7a43`）＋ `app049` **7 PASS/0 FAIL** ⇒ ✅ 定点同步幂等 **ALREADY** ⇒ ✅ 只读三方复核 **PASS**（6 589 一致 / 排除项 0 / 内部特征串 0）⇒ ✅ commit **`d14b1f8`**＋**`1b8a99c`** 普通 push、`HEAD == origin/main`、`CORRECTIONS_APP.md` 未入库 ⇒ ✅ **「已交付」成立（代码 + 包 zip）** ⇒ ⛔ **APP-027 未完（V3 归 reviewer、V4 未做）**
 16:27 §85 🔴🔴 **客户包 `NOTICE`/`THIRD_PARTY.md` 许可不实表述已修正（num2words 实为 **LGPL-2.1** 非 MIT；原「所有组件均为 Apache-2.0」不实；覆盖 10/28 ⇒ **47/47 全覆盖**）＋ ASR WeSpeaker 署名义务判定**免除**并回告**⇒ ✅ `app124` 12 PASS/0 FAIL ＋ `app125` 反证 10 PASS/0 FAIL（抓出判据自身 2 处缺陷）⇒ ⛔ `NOTICE` 在 zip 内 ⇒ 修改进入下次打包、**本轮 zip 未重打 ⇒ 不写「已交付」**
 16:18 §84 🔴🔴 **APP-027 V3（克隆）实测跑完（CUDA + NPU 两组，各 20 PASS / 0 FAIL）＋ 自查抓出并修掉 2 个真实缺陷（CLI 路径根本没有克隆链路 / 真实播放路径逐句遥测整组字段丢失）＋ 客户包定点同步完成** ⇒ ✅ 两组各 76 句 wav、逐句带音色来源、隐私判据空 ⇒ ✅ 独立复核 wav↔id 76/76、SHA256 76/76 ⇒ ⛔ **CER/CAMPPlus 归 reviewer、V4 用户实听未做 ⇒ APP-027 未完 ⇒ zip 不重打 ⇒ 不写「已交付」**
@@ -20,8 +21,6 @@ last_ack: APP-033
 17:15 §74 🔴 **客户包版本升级 v1.5 → v1.6 完成**：✅ **版本单一数据源** `pack_v13.PKG_VERSION` `'1.5'→'1.6'`（+ 新增 `V16_APP_NOTE` 四条修订说明，编号 **13~16**，避开了 MANIFEST 已占用的 11/12）⇒ ✅ **两个验收脚本的版本判据参数化**（`app014b_v15_preship_check.py` 12+ 处、`app014b_verify_v15_zip.py` 1 处写死 `'1.5'` ⇒ 升版必报**假 FAIL**）⇒ 改为用 `ast` 抽 `pack_v13.PKG_VERSION` 字面量（**不 import** 其执行逻辑；读不到就抛异常）；**保留** v1.5/v1.4 的历史判据（「历史可追溯」）⇒ ✅ **V1.6 目录**（robocopy **14 257 文件 / 12.735 GB / 失败 0 / 30 s**）⇒ ✅ **版本标识定点升级**（新建 `app106_upgrade_pkg_to_v16.py`，**7/7 唯一命中**：README_zh/en 标题 + `## v1.6` 段 + 首段简介 + **NOTICE 自称 v1.4 的历史错标纠正为 v1.6**）⇒ ✅ **该脚本的幂等缺陷已自测抓出并修**（「插入 v1.6 段」的旧串 `## v1.5 改动说明` **插入后仍存在** ⇒ 重跑会**再插一份** ⇒ 加 **guard** ⇒ 修后 **7/7 幂等**）⇒ ✅ **包内代码 22/22 == 仓库 HEAD** ⇒ ✅ **打包前自检 PASS 51 / FAIL 5**（5 项 FAIL 是**打包前预期态**：MANIFEST version/notes 由 `refresh_manifest` 在打包时写）⇒ ✅ **持锁重打 zip**（`app-pack` PID 30008 / 16:56:44；安静窗口 45 s 通过；压缩 **676 s**；`testzip()` OK；**14 199 文件逐字节一致**；原子改名）⇒ zip **11 218 089 559 B / mtime 17:09 / SHA256 `aedb8bd1…9d06`** ⇒ ✅ **只读本地复核 20/20**（新建 `app106_v16_zip_readonly_check.py`；**四路 22/22 全 MATCH**；`zip ⇄ 包目录 .py diff = 0`；**未跑** `verify_pkg_zip.py` / **未跑** `publish_ftp.py` / **未开 FTP**）⇒ 🔴 **该复核脚本第一版的分母口径缺陷已自测抓出并修**（23 个 `.py` 里 `_probe_tts_cuda.py` 被 `pkg_exclude` 排除出 zip ⇒ 分母多算 ⇒ **假 FAIL**；改按实际参与比对集合计分母）⇒ ⛔ **未改任何生产代码**、⛔ **未跑推理**、⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ 🔴 `last_ack` = **APP-028**
 16:47 §73 🔴🔴 **APP-028 zip 重打完成 + 交付口径闭环**：✅ 等锁过程 fail-closed（16:23:10 锁被 `module:tts`/`pid 39352` 持有 ⇒ `OpenProcess` handle=668/err=0 ⇒ `exit=259 STILL_ACTIVE` ⇒ **活锁，不抢不删**；16:23:25 TTS 释放 ⇒ 16:23:26 `app-pack` PID 9900 持锁打包；16:45:33 退出码=0 / 耗时 1328.1 s；16:45:34 `[lock] 已释放`）⇒ ✅ **zip 已重打**：**11 218 087 123 B / mtime 16:41:02 / SHA256 `907a1caa…2589f` / md5 `501f7699…e8e40` / 14 199 文件逐文件 SHA256 全一致**；`testzip()` 通过 ⇒ 原子改名；MANIFEST 硬校验全过（音色 B/C/克隆 0 条命中、`_` 前缀脚本 0 条命中、确定缺失本地模块 0 条）⇒ ✅ **只读本地检查**（§66 口径，**未跑** `verify_pkg_zip.py` / **未跑** `publish_ftp.py` / **未开 FTP**）：**zip ⇄ 包目录 `.py` diff = 0**（23 个）+ **HEAD ⇄ 包目录 = 22/22** ⇒ ✅ **独立四路复核**（自写脚本直读 zip 内字节 ⇒ 仓库 == 包目录 == zip == HEAD，**5/5 全 MATCH**）⇒ ✅ **`app105` 独立复跑 24/24 PASS** ⇒ ✅ **「已交付」成立**（仅指**代码与包**）⇒ ⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ ⛔ **「用户听得到」不成立**
 16:26 §72 🔴🔴 **APP-028 收尾补正（闸门自身可信度 + `device_config.py` 独立同步）**：🔴 **查出 `app103` A6 是「假通过」**（只认 `ast.Assign` ⇒ `FALLBACK_ORDER` 实为 `AnnAssign` ⇒ 解析失败被 `except` 吞掉 ⇒ `asr_npu/mt_npu` 恒 `False` ⇒ **判据永远 PASS**）⇒ ✅ **真实缺陷已修**：`FALLBACK_ORDER` 的 ASR/MT 链**仍含 `'NPU'`**（违反 APP-028①「NPU 独占」）⇒ 改为 `asr/mt: ['GPU.0','CPU']`（随 `6d90715` 入库）⇒ ✅ **新建 `app105`**（**24/24**；含 **14 条反证**，故意写错 ⇒ 判据必须 FAIL；反证用 **AST 重建**⇒ 源码修好后反证**不静默失效**；`exec` 须注入 `SR`/`threading` ⇒ 否则闸门自身崩溃）⇒ ✅ **新建 `sync_s70_device_config_to_pkg.py`**（与 §71 的 4 文件**不重叠** ⇒ 无双写）⇒ `device_config.py` **已单独定点同步**（基线 `5e2aef7` → 2 块唯一命中 → 写盘 → LF SHA256 `f386785af866f9…` == 仓库 ⇒ MATCH；**幂等**复核 = 0 块 no-op）⇒ 🔴 **更正 §71.1 措辞**：包内一致是**本节同步的结果**，不是「本来就一致」⇒ ✅ 全部闸门复核 `app103` 29/29、`app104` 10 PASS + 1 NO-EVIDENCE、**`app105` 24/24**、`app098` 21/21、`app102` 27/27、`app097` 20/20、`app100` 28/28、`app069` 37/37 ⇒ ⛔ **不跑推理**、⛔ **zip 未重打**（`app-pack` 锁 PID 9900 运行中）⇒ **不写「已交付」**
-16:23 §71 🔴🔴 **APP-028 交付闭环推进**：✅ **commit `6d90715`**（13 文件 / +1920 −350，App-only，`CORRECTIONS_APP.md` **未**入库）⇒ ✅ **客户包定点同步写盘 PASS**（19/8/4/3 块唯一命中，备份 `pkg_backup_app_s70`）⇒ ✅ **独立复核 5 文件「包内 LF SHA256 == 仓库 == HEAD」全 MATCH** ⇒ ✅ **push `59ddd0d..6d90715`（普通 push，`origin/main...HEAD` = 0/0）** ⇒ ⏳ **zip 等锁重打中**（锁被 `module:tts` / `pid 39352` 持有，`OpenProcess` handle=668 / err=0 ⇒ `exit=259 STILL_ACTIVE` ⇒ **活锁，不抢不删**；`app067_repack_after_lock.py` 后台等锁）⇒ ⛔ **zip 未重打 ⇒ 不写「已交付」**
-16:16 §70 🔴🔴 **APP-028（BLOCKING）代码侧改造完成**：① **默认设备摆放定案**（ASR=`GPU.0`、MT=`GPU.0`、TTS=`NPU` ⇒ **NPU 独占 TTS**；`FALLBACK_ORDER` 已摘掉 ASR/MT 的 `'NPU'`；**CUDA 不作默认**）＋ ② **生产者/消费者播放架构**（`RingBuffer` → **无界内存 `AudioQueue`**；**合成不等播放**（独立 `_played_loop` 看门狗线程）；**删除 `BACKLOG_MAX_S` 丢句逻辑**；`cancel` 改**整句摘除**；新增 `clear_queue`；**模块级 stdout 写锁 `_OUT_WLOCK`**；GUI 底栏显示**「语音滞后 X 秒」**且 `_tts_meter()` **首次接入 `_poll()`**）⇒ ✅ `app103` **29/29** ＋ `app104` **10 PASS / 0 FAIL / 1 NO-EVIDENCE**（A1 本机无可用音色 ⇒ **不宣称通过**）＋ 回归 `app098` 21/21、`app102` 27/27、`app069` 37/37、`app097` 20/20、`app100` 28/28 ⇒ ⛔ **不跑推理**、⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ 🔴 `last_ack` = **APP-028**（APP-029 明文「现在不要集成」⇒ **不认领**）
 13:22 §69 ✅ **APP-027 客户包定点同步完成**：`sync_app027_to_pkg.py`（pkg→HEAD + LF 归一化 + 唯一命中 + 替换后==HEAD 断言）写 5 文件 FAIL=0；独立复核 包内 LF SHA256 == `git show HEAD` LF SHA256 全 MATCH；⚠️ `backends.py`/`seg_stream.py` 与 HEAD 不符是 C-102/C-098 预存代差（包内更大，不碰）；⛔ **zip 仍待锁重打 ⇒ 不写「已交付」**
 
 ## §1 现状汇总（2026-10-23）
@@ -14926,3 +14925,253 @@ SHA256 `92f4c46e5c0bbc89…`（原始字段 `verdict: PASS`）：
 - `last_ack` = **APP-033**（**保持不变**：本轮**无新 reviewer 纠偏条目** ⇒ 无编号可 ack；
   §84 / §85 / §86 都是对**已 ack 的历史条目**（APP-027 / APP-031 / ASR-023 的许可义务）做遗留事项的补做）。
 - 「更新时间」= **2026-10-28 18:14**（`Get-Date -Format "yyyy-MM-dd HH:mm"` **实测值**，非推算）。
+
+## §87 🔴🔴 **MT notice 15 §3.4「真实时序下不残留草稿行」的端到端证据缺口已补齐（真实 `TranslationService` + 真工作线程 + 真 outbox + 真实 `render_lines()`）＋ 随机语料模糊测试 120/120 全绿 ＋ 自查抓出并修掉验收脚本自身的 2 处判据口径缺陷**（2026-10-28 19:53）｜**本条已完成**｜**本条需等 reviewer 复核**
+
+### §87.0 本节结论（一句话）
+
+✅ **§84 / §85 / §86 头部持续标记的「MT notice 15 §3.4 端到端证据缺口」已闭环**：
+新建 `app127` 用**真实时序**（真 `TranslationService` + 真 `queue.Queue` + 真工作线程 + 真锁 + 真 outbox
+→ App 式 outbox 消费 → 真实 `caption_render.render_lines()`）跑通「翻译 → 事件 → 渲染」全链，
+**终态 `n_draft_lines` 三组语料全为 0**（= notice 15 §3.4 要的那一格），
+判定 **PASS 17 / FAIL 0**（含 **3 条源码突变反证** + 1 条基线反证）；
+🔴🔴 随后自建 `app128` 随机语料模糊测试（**120 组**、固定 seed）⇒ 首跑报 **42 组 FAIL**，
+**逐案复现后确认根因是验收脚本自身的判据口径缺陷**（不是产品缺陷）⇒ 已修判据并复跑 **120/120 PASS**、
+`max_draft_lines=0`；
+🔴🔴🔴 为防止「放宽判据 ⇒ 变成永远 PASS」这个**最危险的退化方向**，又建 `app128_judge_selftest`
+做**双向反证**（注入 4 类真缺陷 ⇒ 修正后的判据**必须 FAIL**；不注入 ⇒ **必须 PASS**）⇒ **5/5 PASS**；
+✅ **结论：产品实现本身未暴露缺陷** ⇒ **无需修改生产代码** ⇒ **无需客户包定点同步 / 无需重打 zip**
+（§86 的 v1.6 zip 与包目录**保持不变**、**不写「已交付」**——本节只交付**验收脚本 + 证据**）；
+⛔ 本节**未跑推理 / 未跑测速 / 未占 GPU·NPU / 未取机器锁 / 未调 MiniMax / 未开 FTP /
+未跑 `verify_pkg_zip.py` / 未改 `CORRECTIONS_APP.md` / 未用 `git add -A`**。
+
+### §87.1 巡检结论：**无新 reviewer 纠偏条目**（本节做的是遗留事项补做）
+
+- `status/app/CORRECTIONS_APP.md`：最大编号 = **APP-033**（条目 APP-001 … APP-033，共 33 条）；
+  SHA256 `bb2896ee9143cd89e4bd2f8a3d0e8f8327079945237ccffc6c6bbd0d825ea043` / **90 321 B** /
+  mtime **2026-10-28 00:47:55** —— 与本轮巡检开始时**逐项一致** ⇒ 🔴 **reviewer 文件零改动**。
+- `status/app/STATUS_APP.md` 头部 `last_ack` = **APP-033** ⇒ **编号 > last_ack 的新条目数 = 0**
+  ⇒ **本轮无「按新条目执行」的工作**，也未触发任何 stop-node；
+  本节转而闭环 **App 模块职责内、已 ack 历史条目的遗留证据缺口**
+  （MT notice 15 §3.4 ⇒ 由 `shared/NOTICE_mt_to_app_20261027_notice15.md` §3.4 提出）。
+- 遗留项来源（`shared/NOTICE_mt_to_app_20261027_notice15.md` §3.4 原文）：
+  > ⚠️ **仍缺端到端实跑证据**（§75.2 的「真实时序下不残留草稿行」）——
+  > 本轮是**纯离线纯函数**验证、不依赖任何时序采样 ⇒ **该验收项仍待 App 侧
+  > 在真实时序下补跑**（建议下次跑批附带「草稿行计数」，正式稿到达后
+  > `n_draft_lines` 应归零）。
+
+### §87.2 🔴🔴 为什么 MT 侧的 46/46 纯函数验收**证明不了**这一格
+
+`app127` 的脚本头把这条写成了硬结论（原文摘录）：
+
+> MT 侧验的是**纯函数契约**：`submit()` / `flush()` 的 `_used_uids` 护栏、
+> 事件 5 元组、守恒逻辑。
+> 但「草稿行归零」是**渲染层 + 事件流**的**联合**性质，需要三件事同时成立：
+> ① **translator 侧**：草稿与正式稿**共用同一个单元 id**（`C:<起始段>:<序号>`）—— MT 侧验了；
+> ② **App 事件消费侧**：outbox 的 `draft` 事件必须**真的到达**消费者，
+>    且消费者**按同一个 id** 存下译文（`ev['id']` ↔ 单元的 `unit_id`）—— ⚠️ 这一段 MT 侧**验不到**；
+> ③ **渲染层侧**：`render_lines()` 必须用**同一个 id** 把草稿行**原地替换**成
+>    正式稿行，且**不残留** `kind=='mt_draft'` 的行。
+
+⇒ 本节把 ①②③ **串成一条真实的时序链**（见 §87.3），并用 **E1 基线反证**证明这条缺口是**真实的**。
+
+### §87.3 ✅ `app127` 的真实时序验收链（**17 PASS / 0 FAIL**）
+
+#### §87.3.1 链路的「真」在哪里（不是「把结果塞进 outbox」）
+
+| 环节 | 真实性来源 |
+|---|---|
+| 翻译调度 | **真实 `translator.TranslationService`**（真 `queue.Queue` + 真工作线程 + 真锁 + 真 `outbox` + 真 `done`） |
+| 事件产出 | **真实 `_run_jobs()`**（先写 `svc.done[key]`、**再** `svc.outbox.append(...)`） |
+| 事件解包 | **真实 `caption_render.unpack_event()`**（5 元组分支） |
+| 消费者 | **App `_pump_tts()` 同口径**：按 `ev['id']` 存草稿译文（`_DRAFT_MT_CACHE_MAX=2000` 有界缓存） |
+| 渲染 | **真实 `caption_render.render_lines()`** + **真实 `svc.mt_units()`** + 真实 `svc.seg_carry` |
+| 翻译器 | **桩 `StubTranslator`**（可控延迟 ＋ 每次调用产出**唯一**译文）⇒ **不加载模型 / 不跑推理 / 不占 GPU·NPU / 不取机器锁** |
+
+- 🔴 **每组语料分两种快照**：
+  **中间态**（`submit()` 后**立刻**取，不等队列排空 ⇒ 拿到「草稿已到、正式稿还没到」的真实时序）
+  ＋ **终态**（`flush()` 收尾补翻之后）。
+- 🔴 **三组语料**（覆盖三种典型形态）：
+  `chain_close`（链自然闭合）/ `forced_cut`（跨段 ≥3 且超 N 字触发**强制切出**）/
+  `flush_close`（末段无标点，由 `flush()` 收尾补翻）。
+
+#### §87.3.2 判定结果（原始字段，摘自 `app127_c111_real_timing_draft_lines_evidence.json`）
+
+| 语料 | `n_units` | `n_finals` | `n_drafts` | `n_draft_uids_matched` | **`n_draft_lines`** | `n_mt_lines` | `n_mid_snapshots` | `mid_n_draft_nonempty` | `n_none_text_total` |
+|---|---|---|---|---|---|---|---|---|---|
+| `chain_close` | 6 | 5 | 1 | 1/1 | **0** | 5 | 2 | 1 | 0 |
+| `forced_cut` | 6 | 4 | 2 | 2/2 | **0** | 4 | 3 | 1 | 0 |
+| `flush_close` | 3 | 2 | 1 | 1/1 | **0** | 2 | 2 | 1 | 0 |
+
+⇒ 🔴 **`n_draft_lines` 三组全为 0** = notice 15 §3.4 要的那一格 **已取到**。
+
+#### §87.3.3 全部 17 条判据（`checks[]` 逐条）
+
+| 组 | 判据 | 结果 | 原始 detail（摘要） |
+|---|---|---|---|
+| REAL | R1 真实时序跑完后正式稿全部就绪 | PASS | `not_ready=0 ev=5` / `not_ready=0 ev=4` / `not_ready=0 ev=2` |
+| REAL | **R2 ★ 终态 `n_draft_lines == 0`** | PASS | `chain_close: 0; forced_cut: 0; flush_close: 0` |
+| REAL | R3 原文守恒（渲染 src 拼接 == 提交原文拼接） | PASS | `True; True; True` |
+| REAL | R4 正式稿译文守恒（不丢不重，已忽略 `…` 承接前缀） | PASS | `miss=0 dup=0` ×3 |
+| REAL | R5 草稿译文不单独残留 | PASS | `0; 0; 0` |
+| REAL | R6 同 id 替换（每个草稿 id 恰有一条正式单元） | PASS | `ok=True matched=1/1` / `2/2` / `1/1` |
+| REAL | R7 事件层守恒（final 事件 src 拼接 == 提交原文拼接） | PASS | `True; True; True` |
+| REAL | R8 中间态草稿可见**且有译文** | PASS | `mid=True nonempty=1` ×3 |
+| REAL | R9 中间态不丢已就绪的正式稿（§47 老坑） | PASS | `missing=0` ×3 |
+| REAL | R10 全程没有 `text=None` 的行（GUI 拼接会崩） | PASS | `0; 0; 0` |
+| BUG | B1 一个 `unit_id` 至多一条正式单元 | PASS | `{}` ×3 |
+| BUG | B2 正式稿还在途 ⇒ 草稿行照常显示、正式稿不被提前剔除 | PASS | `draft=1 mt=0` / `draft=2 mt=0` / `draft=1 mt=0` |
+| BUG | B3 已就绪的正式稿不重复显示 | PASS | `n=5 uniq=5` / `n=4 uniq=4` / `n=2 uniq=2` |
+| D1 | 抽掉「同 id 原地替换」⇒ 终态 `n_draft_lines > 0` | PASS | `chain_close: 1; forced_cut: 2; flush_close: 1` |
+| D2 | 抽掉「正式稿就绪才剔除」⇒ 出现 `text=None` 的行 | PASS | 突变命中 `{'forced_cut': 1}` ‖ 未突变三语料均 `0` |
+| D3 | App 消费者按翻译去重键存草稿 ⇒ 中间态草稿取不到译文 | PASS | `nonempty=0` ×3 |
+| E | **E1 纯函数口径在 D3 缺陷下依然全绿 ⇒ 46/46 证明不了这一格** | PASS | 纯函数 `n_draft_lines=0` ×3 ‖ 真实时序(D3) `mid_nonempty=0` ×3 |
+
+#### §87.3.4 三条源码突变反证的**具体做法**（全部**不改动工作区文件**，在内存中独立重建模块）
+
+| 突变 | 锚点（`caption_render.py`） | 预期现象 | 实测 |
+|---|---|---|---|
+| **D1** | 抽掉 `fj = final_idx_by_id.get(uid)` 的取用 ⇒ 「同 id 原地替换」失效 | 终态 `n_draft_lines > 0` | `1 / 2 / 1`（三语料全部命中） |
+| **D2** | 抽掉 `if final_units[fi].get('mt')` 的「就绪才剔除」条件 ⇒ 正式稿还在途就被提前剔除 | 中间态出现 `text=None` 的行 | 命中 `forced_cut`（`n_none_text_total=1`）；⚠️ **该突变只在「草稿已配到正式单元、但该正式单元译文还没就绪」的那个快照上生效** ⇒ 只有**部分**语料命中 ⇒ 判据按「**至少一个语料命中**」计（并逐语料列出明细），**不**要求三语料全中 |
+| **D3** | App 消费者改按**翻译去重键** `DRAFT::<id>` 存草稿（对应 `DRAFT_KEY_PREFIX`）⇒ 与单元 `unit_id` 对不上 | 中间态草稿取不到译文 | 三语料 `mid_nonempty` 全为 `0` |
+
+> 🔴 **D2 的判据设计修正**（本轮第三次迭代才定案）：
+> 首版要求「三语料全中」⇒ **假 FAIL**（把「突变不适用」误判成「判据失效」）；
+> 现改为「**至少一个语料命中** 且 **未突变时三语料均为 0**」。
+
+#### §87.3.5 ✅ E1 基线反证：**这条缺口是真实的**（不是我们自找的活）
+
+- **纯函数口径**（手工构造 units 喂渲染层，**完全绕开**事件流与消费者）：
+  三语料 `n_draft_lines` **全为 0** ⇒ **看起来通过**；
+- **真实时序口径 + D3 缺陷**（消费者按去重键存草稿）：三语料 `mid_nonempty` **全为 0**（草稿行**整个消失**）
+  ⇒ **中间态草稿取不到译文**这个真实缺陷，**纯函数口径完全测不出来**；
+- ⇒ **MT 侧的 46/46 纯函数验收确实证明不了 notice 15 §3.4 要的那一格** ⇒ **本节的补跑是必要的**。
+
+### §87.4 🔴🔴 `app128` 随机语料模糊测试：首跑 42 组 FAIL ⇒ **自查抓出验收脚本自身的 2 处判据口径缺陷**（已修）
+
+#### §87.4.1 首跑结果（**假 FAIL**，已定位根因）
+
+`app128_draft_lines_fuzz.py`：固定 **seed `20261028`**、**120 组**随机语料
+（随机段数 1~12 / 随机段长 1~25 词 / 60% 带句末标点、40% 无标点 ⇒ 覆盖 `flush()` 收尾路径），
+每组都跑**真实时序**，判据与 app127 同口径。
+
+- 首跑：**PASS 78 / FAIL 42**，`max_draft_lines = 0`（**终态草稿行本来就全是 0**）；
+- 42 组的 `errs` 集中在两类：
+  `missing_final_mt=2`（**31 组**）、`missing_final_mt=2 + mid_lost_ready=2`（**9 组**）、
+  以及 `no_mid_snapshot`（**2 组**，单段语料）。
+
+#### §87.4.2 🔴 根因一：**渲染层会把同一 seg 的多个翻译单元 join 成一行** ⇒ 判据口径不适配
+
+**逐案复现**（临时诊断脚本，已用后删除，不入库）打印出的原始渲染行：
+
+```
+【case i=2 case_787  n_segments=11】
+-- 同 seg 多正式单元的段 --
+   seg=9  n=2
+       uid=C:8:8   mt='译文#11:hiring strategy market agenda hiring quarterly numbers ...'
+       uid=C:9:9   mt='译文#12:quarterly board strategy!'
+   seg=10 n=2
+       uid=C:10:10 mt='译文#13:engineering agenda market board quarterly budget ...'
+       uid=C:10:11 mt='译文#14:priorities timeline region expansion detail.'
+-- 渲染行（mt / mt_draft）--
+   kind=mt  seg=9  text='…译文#12:quarterly board strategy!'
+   kind=mt  seg=10 text='译文#13:engineering agenda market board ... 译文#14:priorities timeline region expansion detail.'
+```
+
+- **产品代码位置**：`live_caption/caption_render.py` 的 `render_lines()`（`'seg'` 粒度分支）——
+  正式稿译文按段聚合 `mt_by_seg`，然后 **`txt = ' '.join(parts)`** 拼成**一行**；
+- ⇒ **一段里被切成多个翻译单元**（MT 侧的 `PEND_MAX_SEGS=3` / `PEND_MAX_CHARS=120` 强制切出，
+  或 `flush()` 收尾）**是正常业务形态**，
+  ⇒ 一行里可能有 **N 条**正式单元的译文；
+- 🔴🔴 而我最初的 R4 / R9 判据用的是「**单元译文 == 整行**」的**精确相等**
+  ⇒ 把「译文**都在行内**、只是**被 join 了**」误判成「译文丢失」⇒ **假 FAIL**；
+- ✅ **正确口径 = 子串包含**（与 join 语义一致）⇒ 已把 R4 / R9 从精确相等改为子串包含，
+  并把「重复」判据补成「**同一译文出现在多于一行**，或**在同一行里出现多于一次**」。
+
+> 📌 这是**判据缺陷**，**不是产品缺陷**：
+> 渲染层的这条行为是它**已文档化的不变式 2**（「被关联的正式稿，其译文**只**出现在草稿那一行的位置，
+> 不在段聚合里重复出现」），join 正是「同 seg 多单元」的正确呈现方式。
+
+#### §87.4.3 🔴 根因二：「找不到中间态」是**语料形态**决定的，不是缺陷
+
+- 首跑有 **2 组**报 `no_mid_snapshot`：语料只有 **1 段** ⇒ `submit()` 完**立刻成稿** ⇒
+  **压根没有草稿单元** ⇒ 自然没有「草稿已到、正式稿还没到」的中间态；
+- ⇒ 修正：新增 `mid_expected` 字段（「本语料是否**应当**出现中间态」＝ 有没有快照带草稿行），
+  R8 改为**条件判据**：期望有中间态时必须「可见**且**有译文」；**不**期望时不报；
+  （`app128` 侧同样按此口径修正。）
+
+#### §87.4.4 ✅ 修正后复跑：**120 / 120 PASS**，`max_draft_lines = 0`
+
+证据（`app128_draft_lines_fuzz_evidence.json` 原始字段）：
+`seed=20261028`、`n_cases=120`、`n_pass=120`、`n_fail=0`、**`max_draft_lines=0`**、
+`elapsed_s=222.18`、`no_model_loaded=true`、`no_machine_lock=true`、`failures=[]`。
+
+#### §87.4.5 🔴🔴🔴 关键：**放宽判据 ≠ 判据失效** ⇒ 补做双向反证（`app128_judge_selftest.py`，5/5 PASS）
+
+🔴 「把判据从精确相等放宽成子串包含」有**把真缺陷一起放过**的风险
+（「改成永远 PASS」是验收脚本**最危险的退化方向**）⇒ 故补 `app128_judge_selftest.py`：
+
+| 判据 | 做法 | 结果 | 明细 |
+|---|---|---|---|
+| **B0** | **不注入**任何缺陷 | PASS | `miss=0 dup=0 midmiss=0 none=0` ×3 |
+| **I1** | 注入「**正式稿译文丢失**」（渲染层剔除某条就绪正式稿） | PASS | 命中 `['chain_close','flush_close']` ‖ 未注入时 `miss` 全 `0` |
+| **I2** | 注入「**正式稿译文重复显示**」（两条正式单元共用同一译文） | PASS | 命中 `['chain_close','forced_cut','flush_close']` ‖ 未注入时 `dup` 全 `0` |
+| **I3** | 注入「**中间态丢掉已就绪的正式稿**」（§47 老坑） | PASS | 命中 `['chain_close','flush_close']` ‖ 未注入时 `midmiss` 全 `0` |
+| **I4** | 注入「**消费者按去重键存草稿**」（草稿译文为空 ⇒ 草稿行整个消失） | PASS | 命中三语料 ‖ 基线 `midnonempty` 全 `1` |
+
+⇒ **5 / 5 PASS** ⇒ 修正后的判据**仍然能抓出 4 类真缺陷**，**没有退化成永远 PASS**。
+
+> 📌 **I4 首跑 FAIL 的自证**：首版把「注入后的 `mid_expected`」当前提
+> ⇒ 注入后草稿行整个消失 ⇒ `mid_expected` 变 `False` ⇒ 前提自相矛盾 ⇒ 判据 FAIL。
+> 修正为「用**基线（正常口径）**的 `mid_expected` 做前提」后 PASS。
+> 🔴 **这条本身就是「验收脚本自身缺陷」的实例** ⇒ 与 §85 的「审计脚本 PASS ≠ 脚本是对的」同一教训。
+
+### §87.5 ✅ 产物清单（**已落盘**，附文件数 / mtime / 字节数 / SHA256）
+
+> 🔴 纪律：以下 **6 个文件**均**已落盘**在仓库 `results/app/`；本节**不涉及客户包**，
+> 故「文件数」= 该目录下**本轮新增/改动的 App 产物文件数 = 6**（不含临时诊断脚本，已用后删除）。
+
+| 产物 | 字节数 | mtime | SHA256 |
+|---|---|---|---|
+| `results/app/app127_c111_real_timing_draft_lines.py` | 37 941 | 2026-10-28 19:47:51 | `2ae66da9dd7e8fb3ed0abb2813a82afe64b66ea1c2689b8f8a5ec1bd1df7562e` |
+| `results/app/app127_c111_real_timing_draft_lines_evidence.json` | 16 442 | 2026-10-28 19:53:15 | `52a4f2e7cc89ca2638ad564c546d8e7ba4f601dab516b2cb75c775eeab60c0a4` |
+| `results/app/app128_draft_lines_fuzz.py` | 7 172 | 2026-10-28 19:47:56 | `33e43b2dcf4e83a1df08a9154d1041d7437899fff388190c95775efe6a9789f8` |
+| `results/app/app128_draft_lines_fuzz_evidence.json` | 38 615 | 2026-10-28 19:51:55 | `31ab1da60f02c7353931a7e8cda9da1fc10b20fe0e94a6987c587b1f9087dbd9` |
+| `results/app/app128_judge_selftest.py` | 12 333 | 2026-10-28 19:52:49 | `4d05a404e8e43d0034e234a904547bb88a0f881dedf76b03b72387aff4877dd5` |
+| `results/app/app128_judge_selftest_evidence.json` | 2 037 | 2026-10-28 19:53:02 | `6eca57f6d1f98608032cdbd19a8f4e98b454ec33b3a906ec87987e81cfad3f92` |
+
+- 运行环境：`Python 3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]`
+  （🔴 **必须用 system 3.12**：managed 3.13 无 numpy，而 `translator.py` 顶层 `import numpy` ⇒ import 阶段即 abort）。
+- 证据 JSON 的 `generated_at`：`app127` = **2026-10-28 19:53:15**、`app128` = **2026-10-28 19:51:55**、
+  `app128_judge_selftest` = **2026-10-28 19:53:02**。
+
+### §87.6 ✅ 交付口径（本节**不**涉及客户包 ⇒ 不写「已交付」）
+
+| 项 | 状态 |
+|---|---|
+| 生产代码改动 | **无**（`live_caption/translator.py` / `caption_render.py` / `live_caption_app.py` **本轮零改动**） |
+| 客户包定点同步 | **不需要**（无生产代码改动 ⇒ 仓库与包目录**天然一致**，§86 的 v1.6 包目录**保持不变**） |
+| 客户包 zip 重打 | **不需要**（同上；§86 的 zip 11 218 123 293 B / mtime 2026-10-28 17:57:22 / SHA256 `266917dd…32d` **不变**） |
+| 「已交付」 | ⛔ **本节不写「已交付」**——本节交付的是**验收脚本 + 证据**（已入库），**不是**新的客户包；「已交付」仍沿用 §86 的口径（代码 + 包 zip） |
+| 机器锁 | **未创建/未占用**：本轮是**正确性验收**（无推理、无测速）⇒ 按纪律**不属计时/测速作业** ⇒ 不取锁；且巡检时 `C:\Users\Trekker-PTL\shared\MACHINE_LOCK` **不存在** |
+
+### §87.7 🔴 遗留 / 待 reviewer 裁定（本节**未**推进）
+
+1. 🔴 **APP-027 仍未完**：V3-CER（MiniMax 回转写）/ V3-CAMPPlus（CAMPPlus 余弦）**归 reviewer**；
+   **V4 用户实听未做** ⇒ **「用户听得到」仍不成立**（沿用 §84 / §85 / §86 的口径，本节**未变**）。
+2. 🔴 **旧 v1.6 zip 若已分发**（重打前那份 11 218 089 559 B / mtime 2026-10-27 17:09）
+   ⇒ 带 §85 修正前的**不实许可声明** ⇒ **是否需重新分发待 reviewer 裁定**（App 不自行决定）。
+3. 🔴 **§83.5 的 4 项裁定仍然有效**（RTF 归因边界 / 「首包」指标定义 / app062 A/B 是否重做 / 不变式是否改三段式）
+   ⇒ 本节**未自行推进**。
+4. 🔴 **§84 缺陷②的连带影响**：V1/V2 两轮报告的 `lang`/`end_reason` 字段缺失
+   ⇒ 若要补「按语言分组」需用修好后的代码**重跑**（本节**未重跑**）。
+5. ✅ **MT notice 15 §3.4 的真实时序「草稿行计数」端到端证据缺口** ⇒ **本节已闭环**（不再列为遗留项）。
+6. ⛔ 本节**未跑推理 / 未跑测速**（桩翻译器）；**未向 MiniMax**；**未开 FTP**；
+   **未跑 `verify_pkg_zip.py` / `publish_ftp.py`**；**未修改 `CORRECTIONS_APP.md`**（零改动，指纹见 §87.1）；
+   **未用 `git add -A`**（逐文件 `git add --`）。
+
+### §87.8 头部字段
+
+- `last_ack` = **APP-033**（**保持不变**：本轮**无新 reviewer 纠偏条目** ⇒ 无编号可 ack；
+  本节是对**已 ack 的历史条目**（APP-031 的打包交付 / MT notice 15 §3.4 的证据缺口）做遗留事项补做）。
+- 「更新时间」= **2026-10-28 19:53**（`Get-Date -Format "yyyy-MM-dd HH:mm"` **实测值**，非推算）。

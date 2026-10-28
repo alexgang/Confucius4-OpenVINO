@@ -1,0 +1,579 @@
+{
+  "script": "app127_c111_real_timing_draft_lines.py",
+  "purpose": "MT notice 15 §3.4 真实时序「无残留草稿行」端到端证据",
+  "generated_at": "2026-10-28 19:53:15",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "corpora": {
+    "chain_close": [
+      "Good morning everyone and welcome to the quarterly review meeting.",
+      "We have three agenda items today. The first one is the market expansion",
+      "plan for the second quarter of next year across the whole region",
+      "and we will review the numbers in detail.",
+      "That concludes the first agenda item for today."
+    ],
+    "forced_cut": [
+      "First we will discuss the overall strategy for the coming year and how the",
+      "team should align on the priorities across all three regions including the",
+      "budget for the second half of the year and the hiring plan for engineering",
+      "and finally we will review the timeline with the executive staff before the",
+      "board meeting next month."
+    ],
+    "flush_close": [
+      "Welcome to the meeting today. Let us start with the numbers",
+      "from the last quarter and then move to the roadmap discussion"
+    ]
+  },
+  "real_run": {
+    "chain_close": {
+      "n_draft_lines": 0,
+      "n_mt_lines": 5,
+      "n_units": 6,
+      "n_finals": 5,
+      "n_drafts": 1,
+      "n_final_events": 5,
+      "n_not_ready": 0,
+      "src_ok": true,
+      "missing_final_mt": [],
+      "dup_final_mt": {},
+      "residual_draft_mt": [],
+      "same_id_ok": true,
+      "n_draft_uids_matched": 1,
+      "n_draft_uids": 1,
+      "ev_src_ok": true,
+      "ambiguous_uid": {},
+      "draft_uids": [
+        "C:1:2"
+      ],
+      "final_uids": [
+        "C:0:1",
+        "C:1:3",
+        "C:1:2",
+        "C:3:4",
+        "C:4:5"
+      ],
+      "n_snapshots": 5,
+      "n_mid_snapshots": 2,
+      "mid_found": true,
+      "mid_expected": true,
+      "mid_n_draft_lines": 1,
+      "mid_n_draft_nonempty": 1,
+      "mid_missing_ready": [],
+      "mid_none_text": 0,
+      "n_none_text_total": 0
+    },
+    "forced_cut": {
+      "n_draft_lines": 0,
+      "n_mt_lines": 4,
+      "n_units": 6,
+      "n_finals": 4,
+      "n_drafts": 2,
+      "n_final_events": 4,
+      "n_not_ready": 0,
+      "src_ok": true,
+      "missing_final_mt": [],
+      "dup_final_mt": {},
+      "residual_draft_mt": [],
+      "same_id_ok": true,
+      "n_draft_uids_matched": 2,
+      "n_draft_uids": 2,
+      "ev_src_ok": true,
+      "ambiguous_uid": {},
+      "draft_uids": [
+        "C:0:1",
+        "C:1:2"
+      ],
+      "final_uids": [
+        "C:0:1",
+        "C:1:2",
+        "C:3:3",
+        "C:4:4"
+      ],
+      "n_snapshots": 5,
+      "n_mid_snapshots": 3,
+      "mid_found": true,
+      "mid_expected": true,
+      "mid_n_draft_lines": 1,
+      "mid_n_draft_nonempty": 1,
+      "mid_missing_ready": [],
+      "mid_none_text": 0,
+      "n_none_text_total": 0
+    },
+    "flush_close": {
+      "n_draft_lines": 0,
+      "n_mt_lines": 2,
+      "n_units": 3,
+      "n_finals": 2,
+      "n_drafts": 1,
+      "n_final_events": 2,
+      "n_not_ready": 0,
+      "src_ok": true,
+      "missing_final_mt": [],
+      "dup_final_mt": {},
+      "residual_draft_mt": [],
+      "same_id_ok": true,
+      "n_draft_uids_matched": 1,
+      "n_draft_uids": 1,
+      "ev_src_ok": true,
+      "ambiguous_uid": {},
+      "draft_uids": [
+        "C:0:1"
+      ],
+      "final_uids": [
+        "C:0:2",
+        "C:0:1"
+      ],
+      "n_snapshots": 2,
+      "n_mid_snapshots": 2,
+      "mid_found": true,
+      "mid_expected": true,
+      "mid_n_draft_lines": 1,
+      "mid_n_draft_nonempty": 1,
+      "mid_missing_ready": [],
+      "mid_none_text": 0,
+      "n_none_text_total": 0
+    }
+  },
+  "counter_evidence_d1": {
+    "chain_close": {
+      "n_draft_lines": 1,
+      "n_mt_lines": 4,
+      "n_units": 6,
+      "n_finals": 5,
+      "n_drafts": 1,
+      "n_final_events": 5,
+      "n_not_ready": 0,
+      "src_ok": true,
+      "missing_final_mt": [],
+      "dup_final_mt": {},
+      "residual_draft_mt": [
+        "译文#4:The first one is the market expansion plan for the second quarter of next year across the whole region"
+      ],
+      "same_id_ok": true,
+      "n_draft_uids_matched": 1,
+      "n_draft_uids": 1,
+      "ev_src_ok": true,
+      "ambiguous_uid": {},
+      "draft_uids": [
+        "C:1:2"
+      ],
+      "final_uids": [
+        "C:0:1",
+        "C:1:3",
+        "C:1:2",
+        "C:3:4",
+        "C:4:5"
+      ],
+      "n_snapshots": 5,
+      "n_mid_snapshots": 4,
+      "mid_found": true,
+      "mid_expected": true,
+      "mid_n_draft_lines": 1,
+      "mid_n_draft_nonempty": 1,
+      "mid_missing_ready": [],
+      "mid_none_text": 0,
+      "n_none_text_total": 0
+    },
+    "forced_cut": {
+      "n_draft_lines": 2,
+      "n_mt_lines": 3,
+      "n_units": 6,
+      "n_finals": 4,
+      "n_drafts": 2,
+      "n_final_events": 4,
+      "n_not_ready": 0,
+      "src_ok": true,
+      "missing_final_mt": [],
+      "dup_final_mt": {},
+      "residual_draft_mt": [
+        "译文#1:First we will discuss the overall strategy for the coming year and how the",
+        "译文#4:across all three regions including the budget for the second half of the year and the hiring plan for engineering"
+      ],
+      "same_id_ok": true,
+      "n_draft_uids_matched": 2,
+      "n_draft_uids": 2,
+      "ev_src_ok": true,
+      "ambiguous_uid": {},
+      "draft_uids": [
+        "C:0:1",
+        "C:1:2"
+      ],
+      "final_uids": [
+        "C:0:1",
+        "C:1:2",
+        "C:3:3",
+        "C:4:4"
+      ],
+      "n_snapshots": 5,
+      "n_mid_snapshots": 5,
+      "mid_found": true,
+      "mid_expected": true,
+      "mid_n_draft_lines": 1,
+      "mid_n_draft_nonempty": 1,
+      "mid_missing_ready": [],
+      "mid_none_text": 0,
+      "n_none_text_total": 0
+    },
+    "flush_close": {
+      "n_draft_lines": 1,
+      "n_mt_lines": 2,
+      "n_units": 3,
+      "n_finals": 2,
+      "n_drafts": 1,
+      "n_final_events": 2,
+      "n_not_ready": 0,
+      "src_ok": true,
+      "missing_final_mt": [],
+      "dup_final_mt": {},
+      "residual_draft_mt": [
+        "译文#3:Let us start with the numbers from the last quarter and then move to the roadmap discussion"
+      ],
+      "same_id_ok": true,
+      "n_draft_uids_matched": 1,
+      "n_draft_uids": 1,
+      "ev_src_ok": true,
+      "ambiguous_uid": {},
+      "draft_uids": [
+        "C:0:1"
+      ],
+      "final_uids": [
+        "C:0:2",
+        "C:0:1"
+      ],
+      "n_snapshots": 2,
+      "n_mid_snapshots": 2,
+      "mid_found": true,
+      "mid_expected": true,
+      "mid_n_draft_lines": 1,
+      "mid_n_draft_nonempty": 1,
+      "mid_missing_ready": [],
+      "mid_none_text": 0,
+      "n_none_text_total": 0
+    }
+  },
+  "counter_evidence_d2": {
+    "chain_close": {
+      "n_draft_lines": 0,
+      "n_mt_lines": 5,
+      "n_units": 6,
+      "n_finals": 5,
+      "n_drafts": 1,
+      "n_final_events": 5,
+      "n_not_ready": 0,
+      "src_ok": true,
+      "missing_final_mt": [],
+      "dup_final_mt": {},
+      "residual_draft_mt": [],
+      "same_id_ok": true,
+      "n_draft_uids_matched": 1,
+      "n_draft_uids": 1,
+      "ev_src_ok": true,
+      "ambiguous_uid": {},
+      "draft_uids": [
+        "C:1:2"
+      ],
+      "final_uids": [
+        "C:0:1",
+        "C:1:3",
+        "C:1:2",
+        "C:3:4",
+        "C:4:5"
+      ],
+      "n_snapshots": 5,
+      "n_mid_snapshots": 2,
+      "mid_found": true,
+      "mid_expected": true,
+      "mid_n_draft_lines": 1,
+      "mid_n_draft_nonempty": 1,
+      "mid_missing_ready": [],
+      "mid_none_text": 0,
+      "n_none_text_total": 0
+    },
+    "forced_cut": {
+      "n_draft_lines": 0,
+      "n_mt_lines": 4,
+      "n_units": 6,
+      "n_finals": 4,
+      "n_drafts": 2,
+      "n_final_events": 4,
+      "n_not_ready": 0,
+      "src_ok": true,
+      "missing_final_mt": [],
+      "dup_final_mt": {},
+      "residual_draft_mt": [],
+      "same_id_ok": true,
+      "n_draft_uids_matched": 2,
+      "n_draft_uids": 2,
+      "ev_src_ok": true,
+      "ambiguous_uid": {},
+      "draft_uids": [
+        "C:0:1",
+        "C:1:2"
+      ],
+      "final_uids": [
+        "C:0:1",
+        "C:1:2",
+        "C:3:3",
+        "C:4:4"
+      ],
+      "n_snapshots": 5,
+      "n_mid_snapshots": 3,
+      "mid_found": true,
+      "mid_expected": true,
+      "mid_n_draft_lines": 1,
+      "mid_n_draft_nonempty": 1,
+      "mid_missing_ready": [],
+      "mid_none_text": 0,
+      "n_none_text_total": 1
+    },
+    "flush_close": {
+      "n_draft_lines": 0,
+      "n_mt_lines": 2,
+      "n_units": 3,
+      "n_finals": 2,
+      "n_drafts": 1,
+      "n_final_events": 2,
+      "n_not_ready": 0,
+      "src_ok": true,
+      "missing_final_mt": [],
+      "dup_final_mt": {},
+      "residual_draft_mt": [],
+      "same_id_ok": true,
+      "n_draft_uids_matched": 1,
+      "n_draft_uids": 1,
+      "ev_src_ok": true,
+      "ambiguous_uid": {},
+      "draft_uids": [
+        "C:0:1"
+      ],
+      "final_uids": [
+        "C:0:2",
+        "C:0:1"
+      ],
+      "n_snapshots": 2,
+      "n_mid_snapshots": 2,
+      "mid_found": true,
+      "mid_expected": true,
+      "mid_n_draft_lines": 1,
+      "mid_n_draft_nonempty": 1,
+      "mid_missing_ready": [],
+      "mid_none_text": 0,
+      "n_none_text_total": 0
+    }
+  },
+  "counter_evidence_d3": {
+    "chain_close": {
+      "n_draft_lines": 0,
+      "n_mt_lines": 5,
+      "n_units": 6,
+      "n_finals": 5,
+      "n_drafts": 1,
+      "n_final_events": 5,
+      "n_not_ready": 0,
+      "src_ok": true,
+      "missing_final_mt": [],
+      "dup_final_mt": {},
+      "residual_draft_mt": [],
+      "same_id_ok": true,
+      "n_draft_uids_matched": 1,
+      "n_draft_uids": 1,
+      "ev_src_ok": true,
+      "ambiguous_uid": {},
+      "draft_uids": [
+        "C:1:2"
+      ],
+      "final_uids": [
+        "C:0:1",
+        "C:1:3",
+        "C:1:2",
+        "C:3:4",
+        "C:4:5"
+      ],
+      "n_snapshots": 5,
+      "n_mid_snapshots": 0,
+      "mid_found": false,
+      "mid_expected": false,
+      "mid_n_draft_lines": 0,
+      "mid_n_draft_nonempty": 0,
+      "mid_missing_ready": [],
+      "mid_none_text": 0,
+      "n_none_text_total": 0
+    },
+    "forced_cut": {
+      "n_draft_lines": 0,
+      "n_mt_lines": 4,
+      "n_units": 6,
+      "n_finals": 4,
+      "n_drafts": 2,
+      "n_final_events": 4,
+      "n_not_ready": 0,
+      "src_ok": true,
+      "missing_final_mt": [],
+      "dup_final_mt": {},
+      "residual_draft_mt": [],
+      "same_id_ok": true,
+      "n_draft_uids_matched": 2,
+      "n_draft_uids": 2,
+      "ev_src_ok": true,
+      "ambiguous_uid": {},
+      "draft_uids": [
+        "C:0:1",
+        "C:1:2"
+      ],
+      "final_uids": [
+        "C:0:1",
+        "C:1:2",
+        "C:3:3",
+        "C:4:4"
+      ],
+      "n_snapshots": 5,
+      "n_mid_snapshots": 0,
+      "mid_found": false,
+      "mid_expected": false,
+      "mid_n_draft_lines": 0,
+      "mid_n_draft_nonempty": 0,
+      "mid_missing_ready": [],
+      "mid_none_text": 0,
+      "n_none_text_total": 0
+    },
+    "flush_close": {
+      "n_draft_lines": 0,
+      "n_mt_lines": 2,
+      "n_units": 3,
+      "n_finals": 2,
+      "n_drafts": 1,
+      "n_final_events": 2,
+      "n_not_ready": 0,
+      "src_ok": true,
+      "missing_final_mt": [],
+      "dup_final_mt": {},
+      "residual_draft_mt": [],
+      "same_id_ok": true,
+      "n_draft_uids_matched": 1,
+      "n_draft_uids": 1,
+      "ev_src_ok": true,
+      "ambiguous_uid": {},
+      "draft_uids": [
+        "C:0:1"
+      ],
+      "final_uids": [
+        "C:0:2",
+        "C:0:1"
+      ],
+      "n_snapshots": 2,
+      "n_mid_snapshots": 0,
+      "mid_found": false,
+      "mid_expected": false,
+      "mid_n_draft_lines": 0,
+      "mid_n_draft_nonempty": 0,
+      "mid_missing_ready": [],
+      "mid_none_text": 0,
+      "n_none_text_total": 0
+    }
+  },
+  "n_pass": 17,
+  "n_fail": 0,
+  "checks": [
+    {
+      "group": "REAL",
+      "name": "R1 真实时序跑完后正式稿全部就绪",
+      "ok": true,
+      "detail": "chain_close: not_ready=0 ev=5; forced_cut: not_ready=0 ev=4; flush_close: not_ready=0 ev=2"
+    },
+    {
+      "group": "REAL",
+      "name": "R2 ★ 终态 n_draft_lines == 0（notice 15 §3.4 要的那一格）",
+      "ok": true,
+      "detail": "chain_close: 0; forced_cut: 0; flush_close: 0"
+    },
+    {
+      "group": "REAL",
+      "name": "R3 原文守恒（渲染 src 拼接 == 提交原文拼接）",
+      "ok": true,
+      "detail": "chain_close: True; forced_cut: True; flush_close: True"
+    },
+    {
+      "group": "REAL",
+      "name": "R4 正式稿译文守恒（不丢不重，已忽略 `…` 承接前缀）",
+      "ok": true,
+      "detail": "chain_close: miss=0 dup=0; forced_cut: miss=0 dup=0; flush_close: miss=0 dup=0"
+    },
+    {
+      "group": "REAL",
+      "name": "R5 草稿译文不单独残留",
+      "ok": true,
+      "detail": "chain_close: 0; forced_cut: 0; flush_close: 0"
+    },
+    {
+      "group": "REAL",
+      "name": "R6 同 id 替换（每个草稿 id 恰有一条正式单元）",
+      "ok": true,
+      "detail": "chain_close: ok=True matched=1/1; forced_cut: ok=True matched=2/2; flush_close: ok=True matched=1/1"
+    },
+    {
+      "group": "REAL",
+      "name": "R7 事件层守恒（final 事件 src 拼接 == 提交原文拼接）",
+      "ok": true,
+      "detail": "chain_close: True; forced_cut: True; flush_close: True"
+    },
+    {
+      "group": "REAL",
+      "name": "R8 中间态草稿可见**且有译文**",
+      "ok": true,
+      "detail": "chain_close: mid=True nonempty=1 expect=True; forced_cut: mid=True nonempty=1 expect=True; flush_close: mid=True nonempty=1 expect=True"
+    },
+    {
+      "group": "REAL",
+      "name": "R9 中间态不丢已就绪的正式稿（§47 老坑）",
+      "ok": true,
+      "detail": "chain_close: missing=0; forced_cut: missing=0; flush_close: missing=0"
+    },
+    {
+      "group": "REAL",
+      "name": "R10 全程没有 text=None 的行（GUI 拼接会崩）",
+      "ok": true,
+      "detail": "chain_close: 0; forced_cut: 0; flush_close: 0"
+    },
+    {
+      "group": "BUG",
+      "name": "B1 一个 unit_id 至多一条正式单元",
+      "ok": true,
+      "detail": "chain_close: {}; forced_cut: {}; flush_close: {}"
+    },
+    {
+      "group": "BUG",
+      "name": "B2 正式稿还在途 ⇒ 草稿行照常显示、正式稿不被提前剔除",
+      "ok": true,
+      "detail": "chain_close: draft=1 mt=0; forced_cut: draft=2 mt=0; flush_close: draft=1 mt=0"
+    },
+    {
+      "group": "BUG",
+      "name": "B3 已就绪的正式稿不重复显示",
+      "ok": true,
+      "detail": "chain_close: n=5 uniq=5; forced_cut: n=4 uniq=4; flush_close: n=2 uniq=2"
+    },
+    {
+      "group": "D1",
+      "name": "D1 抽掉「同 id 原地替换」⇒ 终态 n_draft_lines > 0（判据能抓出缺陷）",
+      "ok": true,
+      "detail": "chain_close: 1; forced_cut: 2; flush_close: 1"
+    },
+    {
+      "group": "D2",
+      "name": "D2 抽掉「正式稿就绪才剔除」⇒ 出现 text=None 的行（判据能抓出缺陷）",
+      "ok": true,
+      "detail": "突变命中语料: {'forced_cut': 1} ‖ 未突变时各语料 n_none_text_total: {'chain_close': 0, 'forced_cut': 0, 'flush_close': 0}"
+    },
+    {
+      "group": "D3",
+      "name": "D3 App 消费者按翻译去重键存草稿 ⇒ 中间态草稿取不到译文",
+      "ok": true,
+      "detail": "chain_close: nonempty=0; forced_cut: nonempty=0; flush_close: nonempty=0"
+    },
+    {
+      "group": "E",
+      "name": "E1 纯函数口径在 D3 缺陷下**依然全绿** ⇒ 46/46 证明不了这一格",
+      "ok": true,
+      "detail": "纯函数口径: chain_close: n_draft_lines=0; forced_cut: n_draft_lines=0; flush_close: n_draft_lines=0  ‖  真实时序口径(D3): chain_close: mid_nonempty=0; forced_cut: mid_nonempty=0; flush_close: mid_nonempty=0"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "script": "app128_judge_selftest.py",
+  "purpose": "证明「为适配渲染层 join 语义而放宽后的判据」**仍然能抓出真缺陷**（防止验收脚本退化成永远 PASS）",
+  "generated_at": "2026-10-28 19:53:02",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "n_pass": 5,
+  "n_fail": 0,
+  "checks": [
+    {
+      "group": "BASE",
+      "name": "B0 修正后判据在无缺陷时必须全 PASS",
+      "ok": true,
+      "detail": "chain_close: miss=0 dup=0 midmiss=0 none=0; forced_cut: miss=0 dup=0 midmiss=0 none=0; flush_close: miss=0 dup=0 midmiss=0 none=0"
+    },
+    {
+      "group": "I1",
+      "name": "I1 注入「正式稿译文丢失」⇒ 修正后的 R4 必须 FAIL（能抓出）",
+      "ok": true,
+      "detail": "命中语料: ['chain_close', 'flush_close'] ‖ 未注入时各语料 miss: {'chain_close': 0, 'forced_cut': 0, 'flush_close': 0}"
+    },
+    {
+      "group": "I2",
+      "name": "I2 注入「正式稿译文重复显示」⇒ 修正后的 R4 必须 FAIL（能抓出）",
+      "ok": true,
+      "detail": "命中语料: ['chain_close', 'forced_cut', 'flush_close'] ‖ 未注入时各语料 dup: {'chain_close': 0, 'forced_cut': 0, 'flush_close': 0}"
+    },
+    {
+      "group": "I3",
+      "name": "I3 注入「中间态丢掉已就绪的正式稿」⇒ 修正后的 R9 必须 FAIL（能抓出）",
+      "ok": true,
+      "detail": "命中语料: ['chain_close', 'flush_close'] ‖ 未注入时各语料 midmiss: {'chain_close': 0, 'forced_cut': 0, 'flush_close': 0}"
+    },
+    {
+      "group": "I4",
+      "name": "I4 注入「消费者按去重键存草稿」⇒ 修正后的 R8 必须 FAIL（能抓出）",
+      "ok": true,
+      "detail": "命中语料: ['chain_close', 'forced_cut', 'flush_close'] ‖ 明细: chain_close: mid_found=False nonempty=0; forced_cut: mid_found=False nonempty=0; flush_close: mid_found=False nonempty=0 ‖ 基线 midnonempty: {'chain_close': 1, 'forced_cut': 1, 'flush_close': 1}"
+    }
+  ]
+}
