@@ -1,7 +1,7 @@
 last_ack: ASR-023
-更新时间: 2026-10-28 15:55
-当前任务: **无新纠偏（last_ack 保持 ASR-023）+ ASR-023 §4 剩余义务（wespeaker OV IR 导出）的零开销可行性预检（§51）** —— 本轮检查 `status/asr/CORRECTIONS_ASR.md`（**62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f6c28bc2b7`）与上一轮**逐字节一致**，`grep -n '^## ASR-'` 仍为 **23 条（ASR-001 … ASR-023）**，全盘 `grep -rn -E "ASR-0(2[4-9]|[3-9][0-9])"`（confucius4-openvino + qwen3asr_06b，.md/.json/.py，排除 STATUS_ASR.md 自身与备份副本）命中 **0** ⇒ **无新纠偏，last_ack 不变**；本轮把 **ASR-023 §4 的另一条腿（wespeaker 的 OV IR 导出）做「能否做」的取证**，**不导出、不推理、不占机器锁**：结论 = **权重侧 READY（单一 `resnet.` 前缀 / 218 参数张量 / 无自定义算子）**，但**真正的阻塞点不在权重而在 fbank 边界** —— `compute_fbank` 走 **torchaudio kaldi**（`torch.vmap` + `kaldi.fbank`）⇒ 必须先选定「IR 边界放哪」的三种方案之一（A：IR 只含 resnet、输入 fbank 特征；B：IR 含自写 fbank；C：IR 从波形起）。§48.11 把它列为「下一阶段任务，等用户指派后再启动」⇒ **本轮只交付决策材料，等用户指派后再真正导出**。
-阻塞 / 待用户决定: ① 🔴 **用户需拍板 wespeaker OV IR 的导出边界（A / B / C）** —— 本轮预检给出的推荐是 **方案 A（IR 只含 resnet 子图、输入 = fbank 特征 (B,T,80)、输出 (B,256)）**，理由：权重侧无任何自定义算子，导出最容易；而 kaldi fbank 复刻留在调用方但**必须逐字对齐**（hamming / 去直流 / 80 mel / log / energy_floor=0 / dither=0 / 波形 ×(1<<15) / 帧中心化在 fbank 侧），否则「余弦 ≥0.999」这一验收门槛会直接被 fbank 数值差打掉；② 🔴 **导出本身仍未启动**（属新开实验：需新脚本 + GPU.0 实测 + 持锁计时 + 与 torch CPU 比余弦 ≥0.999）⇒ **等用户指派**；在此之前 wespeaker 仍是 **torch 依赖**，「运行时不依赖 torch」的交付约束（ASR-013）**尚未满足**；③ ⚠️ **本轮预检脚本/产物在 git 仓库外**（`qwen3asr_06b` 不在 repo 内）⇒ 只在本机，交付需另行打包；④ ⚠️ **NOTICE 已交 App 但 App 侧未确认**：上轮写的 `shared/NOTICE_asr_to_app_wespeaker_license_20261028.md`（5422 B @ 14:34:03）仍待 App 并入客户包 NOTICE；若 App 最终不带 wespeaker 权重，署名义务可免除（请回告）；⑤ ⚠️ **WER 仍未跑**（目标机不调用 MiniMax）⇒ 质量判定交 reviewer；⑥ ⚠️ 本轮**未动 `live_caption/`**、**未申请共享机器锁**（无计时/测速作业 ⇒ 无需锁）；⑦ ⚠️ 既有遗留项不变：碎片化 / 说话人切换点 recall 0.0857（粒度上限，ASR-023 §3 已拆开说明）未处理。
+更新时间: 2026-10-28 17:05
+当前任务: **无新纠偏（last_ack 保持 ASR-023）+ ASR-023 §5「来源与许可」义务闭环（§52）** —— 本轮检查 `status/asr/CORRECTIONS_ASR.md`（**62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f6c28bc2b7`）与上一轮**逐字节一致**，`grep -n '^## ASR-'` 仍为 **23 条（ASR-001 … ASR-023）**，全盘 `grep -rn -E "ASR-0(2[4-9]|[3-9][0-9])"`（confucius4-openvino + qwen3asr_06b，.md/.json/.py，排除 STATUS_ASR.md 自身与备份副本）命中 **0** ⇒ **无新纠偏，last_ack 不变**；但本轮**不是空跑** —— §50 末尾留的「App 侧是否把 wespeaker 权重纳入客户包」的义务在 **2026-10-28 16:30** 被 App 模块回告（`shared/NOTICE_app_to_asr_wespeaker_license_reply_20261028.md`，5605 B @ 16:27），结论 = **客户包 v1.6 内不含任何 WeSpeaker/ResNet34 权重 ⇒ 「随包分发」触发条件不成立 ⇒ CC BY 4.0 署名义务免除**；本轮**独立复核**该结论（不采信对方口径，全部自己实测，落盘脚本 `asr025_wespeaker_notice_closure_audit.py` + JSON）⇒ **6/6 触发条件全部满足**，`attribution_obligation` = **waived** ⇒ ASR-023 §5 第 1 项**正式闭环**。
+阻塞 / 待用户决定: ① 🔴 **用户需拍板 wespeaker OV IR 的导出边界（A / B / C）** —— §51 预检的推荐仍是 **方案 A（IR 只含 resnet 子图、输入 = fbank 特征 (B,T,80)、输出 (B,256)）**；② 🔴 **导出本身仍未启动**（属新开实验：需新脚本 + GPU.0 实测 + 持锁计时 + 与 torch CPU 比余弦 ≥0.999）⇒ **等用户指派**；在此之前 wespeaker 仍是 **torch 依赖**，「运行时不依赖 torch」的交付约束（ASR-013）**尚未满足**；③ ⚠️ **签名义务虽免除，但两条残留风险仍在**：App 回告 §三.2「若 ASR 后续把 wespeaker 权重纳入客户包，必须先回告 App，由 App 在同一次打包里补署名文本」、§三.3「若未来在客户包运行期（而非仅研发机）加载 wespeaker，属『运行时加载、不随包分发』，该场景署名要求由 ASR 自行判定」⇒ **在 wespeaker 真正进交付之前，这两条必须重新走一遍**；④ ⚠️ **本轮脚本/产物在 git 仓库外**（`qwen3asr_06b` 不在 repo 内）⇒ 只在本机，交付需另行打包；⑤ ⚠️ **WER 仍未跑**（目标机不调用 MiniMax）⇒ 质量判定交 reviewer；⑥ ⚠️ 本轮**未动 `live_caption/`**、**未申请共享机器锁**（无推理/计时/测速作业 ⇒ 无需锁）；⑦ ⚠️ 既有遗留项不变：碎片化 / 说话人切换点 recall 0.0857（粒度上限，ASR-023 §3 已拆开说明）未处理。
 
 
 ## 最近更新
@@ -5785,4 +5785,122 @@ host: LAPTOP-0GDQGD3I
 3. ⚠️ **App 侧仍需确认**上轮的 NOTICE（`shared/NOTICE_asr_to_app_wespeaker_license_20261028.md`，5422 B @ 14:34:03）是否并入客户包 NOTICE；
    若 App 最终决定**不带** wespeaker 权重 ⇒ 署名义务可免除（请回告本模块）。
 4. ⚠️ **交付打包**：`qwen3asr_06b` 不在 git 仓库内 ⇒ 本轮预检脚本/产物 + 未来的 IR 需**另行打包**才能进客户包。
+
+## §52 无新纠偏（last_ack 保持 ASR-023）+ ASR-023 §5「来源与许可」义务闭环（2026-10-28 17:05）
+
+### 52.1 本轮判定：仍**无新纠偏**，last_ack 保持 ASR-023
+
+| 项 | 值 |
+|---|---|
+| 纠偏文件 | `C:\Users\Trekker-PTL\confucius4-openvino\status\asr\CORRECTIONS_ASR.md` |
+| 大小 / mtime | **62477 B** / **2026-10-28 00:53:08** |
+| md5 | `2db94ec491495528f3b7c5f6c28bc2b7`（与 10:15 / 11:20 / 12:22 / 13:23 / 14:40 / 15:55 **六轮逐字节一致**） |
+| 条目数 | `grep -n '^## ASR-'` = **23 条**（ASR-001 … **ASR-023**） |
+| 全盘搜 ASR-024+ | `grep -rn -E "ASR-0(2[4-9]|[3-9][0-9])"`（confucius4-openvino + qwen3asr_06b，.md/.json/.py，排除 STATUS_ASR.md 自身与备份副本）命中 **0** |
+| 判定 | **无新纠偏** ⇒ `last_ack` **不变**（ASR-023），未因本节改写 |
+| STATUS 末节 | 写档前 = **§51**（15:55） |
+
+⇒ 按规则**不改 last_ack**、**不改旧章节**；本节只追加。
+
+### 52.2 但本轮不是空跑：App 模块回告打通了 ASR-023 §5 的最后一个条件
+
+§50 已补齐 wespeaker 的**来源与许可**（repo / revision / license / datasets），并在 §50 末尾留了一个**条件义务**：
+
+> 「若 App 最终决定**不带** wespeaker 权重 ⇒ 署名义务可免除（**请回告本模块**）」
+
+**该回告已于 2026-10-28 16:30 到达**：
+
+| 项 | 值 |
+|---|---|
+| 来文 | `C:\Users\Trekker-PTL\shared\NOTICE_app_to_asr_wespeaker_license_reply_20261028.md` |
+| 大小 / mtime | **5605 B** / **2026-10-28 16:27** |
+| 发件方 | App 模块（`status/app/STATUS_APP.md` §85） |
+| 关联来文 | 本模块 14:34 的 `shared/NOTICE_asr_to_app_wespeaker_license_20261028.md`（5422 B） |
+
+**App 的结论**：客户包 `Confucius4_LiveCaption_v1.6` 内**不含任何 WeSpeaker / ResNet34 权重**
+⇒ 「随包分发」这一触发条件**不成立** ⇒ **CC BY 4.0 署名义务免除** ⇒ 本包**不需要**携带署名文本。
+
+### 52.3 ✅ 本模块**独立复核**（不采信对方口径，全部自己实测）
+
+> 纪律：跨模块 NOTICE 是**对方的结论**，不是**本模块的事实**。凡要写进 STATUS 的结论，必须由本模块自己复核。
+
+**审计脚本**（**只读、零机器开销**）：`C:\Users\Trekker-PTL\qwen3asr_06b\scripts\asr025_wespeaker_notice_closure_audit.py`
+**证据 JSON**：`C:\Users\Trekker-PTL\qwen3asr_06b\results\pyannote_seg\asr025_wespeaker_notice_closure_audit.json`（**4465 B @ 2026-10-28 17:04**）
+
+**6 项触发条件的原始字段（全部 true）**：
+
+| 判据（JSON 字段） | 值 | 实测依据 |
+|---|---|---|
+| `pkg_exists` | **true** | 客户包目录存在 |
+| `no_wespeaker_file` | **true** | 包内文件名匹配 `wespeaker|resnet34` = **0 命中** |
+| `no_thirdparty_weight_file` | **true** | 第三方生态扩展名（`.pt/.pth/.ckpt/.safetensors/.h5/.keras/.pb/.tflite/.onnx`）命中 **0** |
+| `no_torch_in_pkg` | **true** | `python/Lib/site-packages/` 内 `^(torch|pyannote|speechbrain)` = **0 命中** |
+| `notice_no_entry` | **true** | 包内 `NOTICE` 的 `wespeaker|resnet34` 条目数 = **0** |
+| `thirdparty_no_entry` | **true** | 包内 `THIRD_PARTY.md` 的 `wespeaker|resnet34` 条目数 = **0** |
+
+⇒ `all_trigger_conditions_met` = **true**，`verdict.attribution_obligation` = **waived**（**署名义务免除**）。
+
+**交付件侧复核的原始文件事实**：
+
+| 文件 | 大小 | mtime | md5 | `wespeaker\|resnet34` 条目数 |
+|---|---|---|---|---|
+| `Confucius4_LiveCaption_v1.6/NOTICE` | **8289 B** | 2026-10-28 16:25:30 | `a3a449838f16d564354a287cd00decc3` | **0** |
+| `Confucius4_LiveCaption_v1.6/THIRD_PARTY.md` | **3310 B** | 2026-10-28 16:25:56 | `34ed00e3d397b688f4525003e47b1edf` | **0** |
+
+### 52.4 🔴 本轮修正了自己的一处误判（审计脚本首版 `all_trigger_conditions_met` = false）
+
+审计脚本**首版**把包内**所有 `.bin` 一律当作第三方权重** ⇒ `no_weight_file` = **false** ⇒
+`all_trigger_conditions_met` = **false**、初判 `verdict` = **not_waived**（与 App 的结论相反）。
+
+**实测查清**：包内 **22 个 `.bin` 全部是本项目自有的 OpenVINO IR**，不是第三方模型权重 ——
+`models/decoder-gpu-int4|int8`、`models/encoder-fp16|int4|int8`、`models/mt/mt2-int4sym-cw-q|int8sym-cw-q`、
+`models/qwen3tts/int8/{talker,talker_decode,talker_prefill,code_predictor,cp_decode,cp_prefill,speaker_encoder,tokenizer_*}`。
+
+⇒ **判据修正**：第三方权重只看**第三方生态扩展名**（`.pt/.pth/.ckpt/.safetensors/.h5/.keras/.pb/.tflite/.onnx`），
+`.bin` 归入**自有 IR** 单列统计 ⇒ 第三方权重命中 **0**、自有 IR **22** 个 ⇒ `all_trigger_conditions_met` = **true**。
+
+> **教训（可复用）**：「包内含权重文件」这种判据**不能按扩展名一刀切** ⇒ 必须先分清「自有 IR 产物」与「第三方权重」，
+> 否则会把「自有模型」误判成「随包分发第三方权重」而得出**相反结论**。修正后的判据在 JSON 里用
+> `thirdparty_weight_file_hits`（=0）与 `own_openvino_bin_count`（=22）**两个字段分开记录**，可复核、可反证。
+
+### 52.5 ✅ 口径隔离仍然成立（ASR-023 §1 的分工要求未被破坏）
+
+| 环节 | 实测 | 是否接触 wespeaker |
+|---|---|---|
+| ASR 侧说话人聚类 | `qwen3asr_06b/scripts/asr021_bypass_spk_wespeaker.py` 等 **10 个脚本**引用 wespeaker | 是（**仅 ASR 侧，且不在客户包内**） |
+| 交付件 `live_caption/` | 全目录 `wespeaker|resnet34` 命中 = **0** | **否** |
+| TTS 克隆向量（CPU 路线） | `live_caption/tts_engine.py:891` `eng.extract_speaker_embedding(wav)`（**TTS 自己的 x-vector**） | **否** |
+| TTS 克隆向量（CUDA 路线） | `live_caption/tts_cuda.py` / `tts_cuda_sidecar.py` 的 `set_ref` + `ref_audio` | **否** |
+
+⇒ 客户包**从未**接触 wespeaker 向量；「克隆向量 = TTS x-vector」这条路径**完整保留**（ASR-023 §1 硬要求）。
+
+### 52.6 ⚠️ 两条**残留风险**（**签名义务免除 ≠ 风险清零**）
+
+App 回告 §三.2 / §三.3 明确留了两条口子，**在 wespeaker 真正进交付之前**必须重新走一遍：
+
+1. **若 ASR 后续决定把 wespeaker 权重纳入客户包** ⇒ **必须先回告 App**，由 App 在**同一次打包**里补上 CC BY 4.0 署名文本
+   （本轮豁免**只对「不带权重的这一包」有效**，不构成对未来包的豁免）。
+2. **若未来在客户包运行期加载 wespeaker**（而非仅在研发机）⇒ 属「运行时加载、不随包分发」⇒
+   该场景的署名要求**由 ASR 自行判定**（App 侧口径仅覆盖「随包分发」一种）。
+
+⇒ 本节**不撤回**「保留 wespeaker」的选型结论（§48 仍然成立），但把「许可/署名」这一项的状态从
+「待 App 确认」更新为「**本包已免除；进包前须重新确认**」。
+
+### 52.7 本轮**未做**的事（纪律留痕）
+
+- **未算 WER**（目标机不调用 MiniMax）⇒ 质量判定仍交 reviewer。
+- **未做 wespeaker 的 OV IR 导出**（ASR-023 §4 的剩余义务，仍在 §51 预检后等用户拍板 A/B/C）⇒ 本轮**未开新实验**。
+- **未申请共享机器锁**（无推理 / 计时 / 测速作业 ⇒ 无需锁）；核查时 `shared/MACHINE_LOCK` **不存在**、
+  `shared/*.tmp` 残留 **0**、机器 python 进程 **0**、全盘 `*.partial.json` **0**。
+- **未动 `live_caption/`**（ASR-003 起 C-111 已移交 App 模块）；git 只提交 `status/asr/`。
+- ⚠️ **本轮脚本与产物均在 git 仓库外**（`qwen3asr_06b` 不在 repo 内）⇒ 只在本机，交付需**另行打包**。
+
+### 52.8 遗留项（不变）
+
+1. 🔴 **wespeaker 的 OV IR 导出 @GPU.0**（ASR-023 §4）—— 仍**等用户拍板导出边界 A/B/C**（§51 推荐 **A**）。
+2. 🔴 **§5 义务已闭环**（本节）⇒ 但**进包前须重新确认**（见 52.6）。
+3. 🔴 **WER 仍未算** ⇒ 交 reviewer。
+4. ⚠️ 碎片化 / 说话人切换点 recall 0.0857（粒度上限，ASR-023 §3 已拆开说明）未处理。
+5. ⚠️ `qwen3asr_06b` 不在 git 仓库内 ⇒ 一切 ASR 侧脚本/产物**只在本机**，交付需另行打包。
+
 
