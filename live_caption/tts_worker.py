@@ -89,6 +89,18 @@ _APP027_JSONL_KEYS = (
     'underflow_in_sentence', 'underflow_in_sentence_ms',
     'underflow_pre_sentence', 'underflow_pre_sentence_ms',
     'n_samples', 'n_parts', 'peak', 'rms', 'consumed',
+    # 🔴🔴🔴 **本轮（APP-027 V2 修正）补的三个「出声硬证据」字段**
+    #   ⇒ **实测缺口**：`read_delta` / `cb_delta` 只存在于**人可读遥测行**
+    #     （`_fmt_telemetry`，L194-202），**没进逐句 jsonl**
+    #   ⇒ 而「这句的音频**真的被声卡取走了多少样本**」的**唯一逐句可算证据**
+    #     就是 `read_delta` ⇒ 缺它 ⇒ 「真出声」只能在事后翻散文日志
+    #     ⇒ **验收脚本无法机器判定**「这句到底播没播」。
+    #   ⇒ `consumed` 只是 **bool**（等 `ring.n_read` 追平的**结果**），
+    #     **不含数量** ⇒ 「播了 24960 个样本」这种事实**无法核对**。
+    #   ⇒ 两个字段一起补齐（`rms` 本来就在列表里）：
+    #     `read_delta`  ：本句期间**被播放回调取走的样本数**（≥ n_samples ⇒ 整句交到声卡）
+    #     `cb_delta`    ：本句期间的**音频回调次数**（>0 ⇒ 回调真的在跑）
+    'read_delta', 'cb_delta',
 )
 
 # 🔴🔴🔴 APP-028②：**队列水位 / 语音滞后 / 队列峰值**（逐句 jsonl）。

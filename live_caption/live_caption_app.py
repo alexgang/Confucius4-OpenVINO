@@ -3948,15 +3948,26 @@ def _cli_source(args):
 def run_cli(args):
     asr_lang = None if (getattr(args, 'asr_lang', ASR_LANG_AUTO) or
                          ASR_LANG_AUTO) == ASR_LANG_AUTO else args.asr_lang
+    # 🔴🔴🔴 **APP-027「争用定量」四臂对照**：TTS 的**取料来源**。
+    #   `mt`（默认）= 朗读定稿译文（现有行为，逐字不变）；
+    #   `asr`        = **直接朗读 ASR 原文**，**不经过 MT**。
+    _tts_source = (getattr(args, 'tts_source', None) or 'mt')
     eng = make_engine(args.engine, on_log=lambda m: print(m, flush=True),
                       force_language=asr_lang, device=args.asr_device)
     print(f'[{args.engine}] 加载 {eng.load_s:.1f} s，设备 {eng.device_desc}，'
           f'识别语种 {asr_lang or "自动检测"}', flush=True)
-    mt = TranslationService(target=args.translate, device=args.mt_device,
+    # 🔴 `tts_source=asr` ⇒ **不加载 MT 模型**（否则那一臂就不是「无 MT」了）
+    #   ⇒ 用 `target='off'` 让 `TranslationService.active` 为假（不加载模型），
+    #   但**保留**实例（后面 `mt.pop_outbox()` 等调用照旧 ⇒ 不崩）。
+    _mt_target = 'off' if _tts_source == 'asr' else args.translate
+    mt = TranslationService(target=_mt_target, device=args.mt_device,
                             engine_key=args.mt_engine, use_ctx=args.mt_ctx,
                             glossary=args.mt_glossary,
                             draft=_init_draft_flag(args),
                             on_log=lambda m: print(f'  [翻译] {m}', flush=True))
+    if _tts_source == 'asr':
+        print('[TTS] 取料来源 = **ASR 原文**（不经过 MT ⇒ MT 模型不加载）',
+              flush=True)
     # ── TTS（C-101 P4 第 5 条：加载顺序 ASR → MT → TTS）──
     #    TTS 加载失败**不能影响字幕和翻译** ⇒ 整段 try/except。
     tts = None
@@ -3970,6 +3981,7 @@ def run_cli(args):
                              precision=args.tts_precision,
                              out_wav=args.tts_out,
                              dump_dir=args.tts_dump_dir,
+                             jsonl_path=args.tts_jsonl,
                              on_log=lambda m: print(f'  [TTS] {m}', flush=True))
             print(f'[TTS] worker 已启动（设备 {args.tts_device}，'
                   f'音色 {args.tts_voice}，精度 {args.tts_precision}）', flush=True)
@@ -3995,6 +4007,15 @@ def run_cli(args):
     def on_final(t, spk=None, spk_conf=None):
         finals.append(t)
         print(f'\n[定稿] {t}', flush=True)
+        # 🔴🔴🔴 **APP-027「争用定量」四臂对照**：`--tts-source asr` 时
+        #   **直接把 ASR 原文喂给 TTS**（**不经过 MT**）⇒
+        #   「TTS 单独」与「+ASR（无 MT）」两臂才可能成立。
+        #   ⚠️ **默认 `mt` 模式下这段完全不执行** ⇒ 现有行为逐字不变。
+        if _tts_source == 'asr' and tts is not None and tts.active:
+            # 🔴 语言必须**显式下传**（APP-030①）：ASR 原文是**英文**，
+            #   不下传 ⇒ worker 靠 `_guess_lang()` 猜（只分 zh/en）
+            #   ⇒ 这里按 ASR 原文语种给 'en'。
+            tts.submit(t, seg=len(finals) - 1, lang='en')
         # 🔴 APP-022：`spk` / `spk_conf` **接口预留**（当前恒为 None）
         #   ⇒ 透传给 MT（MT 侧同样只预留不使用）⇒ 行为不变。
         mt.submit(t, seg=len(finals) - 1)
@@ -4451,6 +4472,23 @@ def main():
                          '不给 = 不落盘。供 reviewer 算峰值/RMS 与回转写'
                          '（与 `--tts-out` 的「整段混音时间轴」是两个独立功能，'
                          '可以同时开）')
+    ap.add_argument('--tts-jsonl', default=None,
+                    help='🔴 APP-027 V1/V2 验收：**逐句遥测** JSONL 落盘路径。'
+                         '⚠️ `--tts-out` 只在**落盘模式**下写 JSONL'
+                         '（该模式**不播放** ⇒ 欠载/积压字段无意义）；'
+                         '要测**真实播放**的欠载/积压/语音滞后，'
+                         '**必须**用这个开关（可与 `--tts-out` 互斥使用）')
+    ap.add_argument('--tts-source', choices=['mt', 'asr'], default='mt',
+                    help='🔴🔴🔴 **APP-027「争用定量」四臂对照**所需的最小开关。'
+                         '`mt`（默认）= 朗读**定稿译文**（现有行为）；'
+                         '`asr` = **直接朗读 ASR 原文**，**完全不经过 MT**。'
+                         '⚠️ 为什么需要：TTS 原本**只订阅 MT 输出** ⇒ '
+                         '`--translate off` 时 TTS 一句都收不到 '
+                         '（translator.active=False ⇒ 无 final 事件）'
+                         '⇒ 「TTS 单独」与「+ASR（无 MT）」两臂**在本 CLI 下无法实现**'
+                         '⇒ 四臂对照（reviewer 明文）**整个失效**。'
+                         '⚠️ `asr` 模式下**不加载 MT 模型**（省 GPU/NPU 占用）'
+                         '⇒ 该臂测的才是「只有 ASR + TTS」的争用。')
 
     # ── 推理设备（APP-004 第 3 条）──
     # 三个模型各一个设备；不给就用配置文件里的（再没有就用推荐默认值）。

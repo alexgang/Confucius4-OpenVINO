@@ -256,7 +256,8 @@ class TTSService:
                  on_log=print, auto: bool = True, clone: bool = False,
                  precision: str = 'f32', out_wav: Optional[str] = None,
                  bigvgan_ir: Optional[str] = None,
-                 dump_dir: Optional[str] = None):
+                 dump_dir: Optional[str] = None,
+                 jsonl_path: Optional[str] = None):
         self.on_log = on_log
         self.device = device
         self.voice = voice            # 'A' | 'B' | 'clone'
@@ -268,6 +269,14 @@ class TTSService:
         self.bigvgan_ir = bigvgan_ir  # BigVGAN IR 覆盖（多相分解版 / NPU 窗口版）
         # 🔴 APP-021⑥：逐句 wav 落盘目录（None = 不落盘）
         self.dump_dir = dump_dir
+        # 🔴🔴🔴 **逐句遥测 JSONL 路径**（APP-027 V1/V2 验收用）。
+        #   ⚠️ **为什么必须显式传**：worker 侧 `_jsonl_path` **只在有 `--out-wav` 时**
+        #   才被自动设成 `<out-wav>.tts.jsonl`（`tts_worker.py` L3179-3182）
+        #   ⇒ **真实播放路径（不带 `--out-wav`）本来拿不到逐句 JSONL**
+        #   ⇒ 而 APP-027 的验收字段（`synth_rtf` / `prebuffer_s` /
+        #     `underflow_in_sentence` / `queue_peak_s` …）**只在 JSONL 里**
+        #   ⇒ 不传这个 ⇒ 真实播放路径的验收**字段全缺**。
+        self.jsonl_path = jsonl_path
 
         self.proc: Optional[subprocess.Popen] = None
         self.lock = threading.Lock()
@@ -539,6 +548,11 @@ class TTSService:
             # 🔴 APP-021⑥：逐句 wav 落盘目录
             if self.dump_dir:
                 cmd += ['--dump-dir', self.dump_dir]
+            # 🔴🔴🔴 **逐句遥测 JSONL**（APP-027 V1/V2 验收字段的**唯一来源**）
+            #   ⚠️ worker 侧只在有 `--out-wav` 时才自动设 JSONL 路径
+            #   ⇒ 真实播放路径**必须显式传**，否则逐句遥测**无处可落盘**。
+            if self.jsonl_path:
+                cmd += ['--jsonl', self.jsonl_path]
             try:
                 # 🔴 §53：`encoding='utf-8'` **必须显式写** ⇒ 不依赖 locale/环境变量
                 #   （详见上面 env 那段注释里的完整根因）。

@@ -1,0 +1,90 @@
+{
+  "ts": "2026-10-28 10:38:44",
+  "before_commit": "3b07811",
+  "results": [
+    {
+      "id": "S1",
+      "name": "CLI 定义 --tts-source（choices=[mt, asr]）",
+      "ok": true,
+      "got": "'mt', 'asr'",
+      "want": "'mt','asr'",
+      "note": ""
+    },
+    {
+      "id": "S2",
+      "name": "默认 default='mt'（⇒ 现有行为逐字不变）",
+      "ok": true,
+      "got": "mt",
+      "want": "mt",
+      "note": ""
+    },
+    {
+      "id": "S3",
+      "name": "asr 模式 ⇒ MT target 置 off（⇒ 模型不加载）",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "note": ""
+    },
+    {
+      "id": "S4",
+      "name": "asr 模式 ⇒ on_final 直接 tts.submit(ASR 原文)",
+      "ok": true,
+      "got": [
+        true,
+        true
+      ],
+      "want": [
+        true,
+        true
+      ],
+      "note": ""
+    },
+    {
+      "id": "S5",
+      "name": "on_final 里 tts.submit 只在 asr 分支（mt 模式不重复朗读）",
+      "ok": true,
+      "got": 4,
+      "want": ">=1 且在 asr 分支内",
+      "note": ""
+    },
+    {
+      "id": "S6",
+      "name": "worker _APP027_JSONL_KEYS 含 read_delta / cb_delta",
+      "ok": true,
+      "got": [
+        true,
+        true
+      ],
+      "want": [
+        true,
+        true
+      ],
+      "note": ""
+    },
+    {
+      "id": "S7",
+      "name": "app114 的 tts_only 臂标为 NOT-APPLICABLE（不冒充基线）",
+      "ok": true,
+      "got": [
+        true,
+        true
+      ],
+      "want": [
+        true,
+        true
+      ],
+      "note": ""
+    },
+    {
+      "id": "B1",
+      "name": "反证：修复前 app **没有** --tts-source（证明缺口曾真实存在）",
+      "ok": true,
+      "got": "'--tts-source' in old_app",
+      "want": false,
+      "note": ""
+    }
+  ],
+  "pass_count": 8,
+  "fail_count": 0
+}

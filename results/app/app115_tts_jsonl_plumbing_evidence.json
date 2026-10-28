@@ -1,0 +1,115 @@
+{
+  "ts": "2026-10-28 10:38:44",
+  "before_commit": "3b07811",
+  "results": [
+    {
+      "id": "T1a",
+      "name": "CLI 定义 --tts-jsonl 参数",
+      "ok": true,
+      "got": "'--tts-jsonl' in app_src",
+      "want": true,
+      "note": ""
+    },
+    {
+      "id": "T1b",
+      "name": "run_cli 把 jsonl_path=args.tts_jsonl 传给 TTSService",
+      "ok": true,
+      "got": "n_blocks=2 hit=True",
+      "want": true,
+      "note": ""
+    },
+    {
+      "id": "T1c",
+      "name": "TTSService.__init__ 接受 jsonl_path 参数",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "note": ""
+    },
+    {
+      "id": "T1d",
+      "name": "service 把 jsonl_path 转成 worker 的 ['--jsonl', path]",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "note": ""
+    },
+    {
+      "id": "T1e",
+      "name": "service 保存 self.jsonl_path",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "note": ""
+    },
+    {
+      "id": "T2",
+      "name": "worker：--jsonl 优先于 --out-wav 自动推导（if/elif 顺序）",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "note": ""
+    },
+    {
+      "id": "T3a",
+      "name": "回归护栏：out_wav 模式下音频不进播放队列（continue）",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "note": ""
+    },
+    {
+      "id": "T3b",
+      "name": "回归护栏：wait_play 仍排除 out_wav 模式",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "note": ""
+    },
+    {
+      "id": "T4a",
+      "name": "worker 的 out_wav 只来自 --out-wav（不来自 --jsonl）",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "note": ""
+    },
+    {
+      "id": "T4b",
+      "name": "行为断言：传 --jsonl ⇒ JSONL 路径生效 **且 out_wav 仍为 None**",
+      "ok": true,
+      "got": {
+        "jsonl": "ONLY_JSONL.tts.jsonl",
+        "out_wav": null
+      },
+      "want": "jsonl=ONLY_JSONL.tts.jsonl, out_wav=None",
+      "note": ""
+    },
+    {
+      "id": "B1",
+      "name": "反证：修复前 app **没有** --tts-jsonl（证明缺口曾真实存在）",
+      "ok": true,
+      "got": "'--tts-jsonl' in old_app",
+      "want": false,
+      "note": ""
+    },
+    {
+      "id": "B2",
+      "name": "反证：修复前 service **没有** jsonl_path（证明缺口曾真实存在）",
+      "ok": true,
+      "got": "'jsonl_path' in old_svc",
+      "want": false,
+      "note": ""
+    },
+    {
+      "id": "B3",
+      "name": "反证：app112 确实传了 --tts-out（⇒ 落盘模式 ⇒ 不播放）",
+      "ok": true,
+      "got": true,
+      "want": true,
+      "note": ""
+    }
+  ],
+  "pass_count": 13,
+  "fail_count": 0
+}
