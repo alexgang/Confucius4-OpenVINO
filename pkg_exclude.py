@@ -125,6 +125,20 @@ SKIP_PATH_PREFIXES = (
 # 后者会漏掉 .bak_instruct_20261022 / .bak_mtdev_20261019 / .bak_audio_20261020。
 SKIP_FILE_RE = re.compile(r'\.bak', re.I)
 
+# 🔴🔴 §86 修正：**备份「文件」也要排除**（此前只排除了备份「目录」）
+# ------------------------------------------------------------------
+# 真实缺陷（2026-10-28 实测，打包前闸门抓到）：
+#   `BACKUP_DIR_RE` 只匹配**目录名**（`_backup*`）⇒ 而**备份文件**
+#   （`_backup_status_app_pre_s84.md` / `_backup_status_app_pre_s85.md`，
+#   各约 1 MB）**不被任何规则覆盖** ⇒ `is_excluded()` 返回 False
+#   ⇒ `iter_package_files()` 实测把它们**列入 zip**
+#   ⇒ **内部 STATUS 全文（含会议特征串 `QGS` / `260902`）会进客户包**。
+#   ⇒ 而 `SKIP_FILE_RE`（`\.bak`）也漏：文件名里没有 `.bak`。
+# ⇒ 修法：新增 `BACKUP_FILE_RE`（文件名以 `_backup` 开头）⇒ 排除。
+#   ⚠️ 与 `BACKUP_DIR_RE` 语义一致：**凡「备份」一律不进包**（目录 + 文件）。
+#   ⚠️ 只匹配**文件名开头**的 `_backup`，避免误伤正常文档。
+BACKUP_FILE_RE = re.compile(r'^_backup', re.I)
+
 # ── 🔴 内部会议内容排除（APP-003①）─────────────────────────────────
 # 客户包 `results/` 下有**内部会议录音**的转写/翻译，属于 BRIEF 规定的
 # 「会议录音不能进客户包」。这里按**两条独立规则**排除：
@@ -514,7 +528,11 @@ def is_excluded(relpath: str, top_dir: str = None) -> bool:
         top_dir = _top_dir(relpath)
 
     # 1) 文件名命中备份规则
-    if SKIP_FILE_RE.search(relpath.rsplit('/', 1)[-1]):
+    base_name = relpath.rsplit('/', 1)[-1]
+    if SKIP_FILE_RE.search(base_name):
+        return True
+    # 🔴 §86：**备份文件**（`_backup*.md` 等）⇒ 与备份目录同等对待
+    if BACKUP_FILE_RE.match(base_name):
         return True
 
     # 2) 路径前缀
@@ -601,6 +619,9 @@ def iter_package_files(pkg_root: str):
             rel = os.path.relpath(full, pkg_root).replace('\\', '/')
             # 文件级规则（备份文件等）——目录级已在 prune 里处理
             if SKIP_FILE_RE.search(fn):
+                continue
+            # 🔴 §86：备份**文件**（`_backup*.md`）⇒ 与备份目录同等对待
+            if BACKUP_FILE_RE.match(fn):
                 continue
             if any(rel.startswith(p) for p in SKIP_PATH_PREFIXES):
                 continue

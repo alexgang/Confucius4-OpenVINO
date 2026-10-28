@@ -1,0 +1,14 @@
+{
+  "results": [
+    {
+      "file": "app\\tts_engine.py",
+      "status": "ALREADY",
+      "sha_pkg": "788d5ca29fd7345b5836eb9ff5eebc6b71403d68d1bed1eebe2cc376b1a8bf15",
+      "sha_cand": "788d5ca29fd7345b5836eb9ff5eebc6b71403d68d1bed1eebe2cc376b1a8bf15",
+      "n_blocks": 0
+    }
+  ],
+  "rc": 0,
+  "pkg_root": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6",
+  "backup_dir": "C:\\Users\\Trekker-PTL\\pkg_backup_app_s86"
+}

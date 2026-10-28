@@ -57,6 +57,18 @@ ACTIVE_RE = re.compile(r'(^test_|_gate|_check|_verify|_probe)', re.I)
 SCAN_ROOTS = ('results/app', 'live_caption')
 
 #: 🔴 白名单：**每条都必须写明理由**（不许无声放过）
+#:
+#: 🔴 §86 修正：**删掉 2 条已过期的白名单** ——
+#:   `app014b_v15_preship_check.py` / `app049_pkg_path_hardcode_gate.py`
+#:   之前进白名单，**唯一原因是闸门把 docstring 误判成代码**
+#:   （`ast.Expr` 包着字符串常量 ⇒ 外层节点不是 `ast.Constant` ⇒ 被标成代码行）
+#:   ⇒ 闸门修好后这两条**已不再命中** ⇒ 留着就成了「永远绿的逃逸口」⇒ 删除。
+#:   （闸门现在会**主动报告过期白名单条目**。）
+#:
+#: ⚠️ 但 `app049_gate_selftest.py` **必须保留** ——
+#:   它的命中是**真实代码行**（把「真缺陷形态」的字面量**写进临时文件**）
+#:   ⇒ 不是 docstring 误判 ⇒ 白名单理由依然成立。
+#:   （实测：误把它一并删掉 ⇒ 闸门在**干净仓库**上也 FAIL ⇒ 自检 S1/S2/S7 全红。）
 WHITELIST = {
     # FTP 上的 **zip 文件名** —— 这是「要下载哪个包」的业务参数，
     # **不是**本地包目录的路径推导 ⇒ 写死不算缺陷。
@@ -66,11 +78,8 @@ WHITELIST = {
     # 写死 v1.3 是**有意的**（就是要复现当时的状态）⇒ 不是缺陷。
     'live_caption/diag_c111_revert_verify.py': '一次性历史诊断（复现 C-111 当时状态），有意写死',
     'live_caption/diag_c111_v3_verify.py': '一次性历史诊断（复现 C-111 当时状态），有意写死',
-    # 文档字符串里的**用法示例**（真代码走 `--pkg` 参数）
-    'results/app/app014b_v15_preship_check.py': '命中在 docstring 用法示例里，真代码用 --pkg 参数',
-    # 🔴 **本闸门自身** —— docstring 里描述事故时写了包名（那是**要检出的形态**本身）
-    'results/app/app049_pkg_path_hardcode_gate.py': '闸门自身（docstring 描述事故时写了包名）',
     # 🔴 **闸门自检脚本** —— 它**必须**包含「真缺陷形态」的样例字符串才能自检
+    #    （这里是**真实代码行**：把样例字面量写进临时文件，不是 docstring）。
     'results/app/app049_gate_selftest.py': '闸门自检脚本（含「真缺陷形态」样例，用于自检）',
 }
 
@@ -92,10 +101,28 @@ def code_lines_with_pkg_name(path):
         return hits
 
     # 收集「非注释、非字符串」的行号
+    #
+    # 🔴🔴 §86 修正（原实现有**真实缺陷**）：
+    #   原来的写法是「跳过 `ast.Constant`（字符串字面量）」，但 **docstring 在 AST 里是
+    #   `Expr(Constant(str))` 两层** ⇒ 外层的 `ast.Expr` 节点**不是** Constant
+    #   ⇒ `ast.walk` 照样会把它整个 `lineno..end_lineno` 区间标成「代码行」
+    #   ⇒ **模块/函数/类的 docstring 全部被误判成代码** ⇒ 闸门对**文档里提到包名**
+    #   的文件一律报错。
+    #   ⇒ 实证：`results/app/_app81_check_pkg_match.py` 的修复说明写在 docstring 里
+    #      （第 5 行）⇒ 被判成「代码行里的包名」⇒ 闸门 FAIL ⇒ 打包被拒。
+    #   ⇒ 修法：**显式跳过「裸字符串表达式」**（`ast.Expr` 且其 value 是字符串常量）
+    #      —— 这才是 docstring 的精确形态；
+    #      ⚠️ 不能跳过所有 `ast.Expr`（`f(x)` 这种调用表达式也是 Expr）。
+    #   ⇒ 注意：**赋值语句里的字符串**（`X = "...Confucius4..."`）**仍然要判**
+    #      —— 那才是真缺陷（真路径常量）。
     code_lines = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
-            continue                      # 字符串字面量（含 docstring）
+            continue                      # 字符串字面量（作为值使用时）
+        if isinstance(node, ast.Expr):
+            v = getattr(node, 'value', None)
+            if isinstance(v, ast.Constant) and isinstance(v.value, str):
+                continue                  # 🔴🔴 裸字符串表达式 = docstring ⇒ 不算代码
         lineno = getattr(node, 'lineno', None)
         if lineno is None:
             continue                      # 例：`ast.Module` 没有 lineno
@@ -138,6 +165,10 @@ def main():
     pkg_mods = pkg_module_names()
     violations = []
     checked = 0
+    # 🔴 §86：记录「白名单里已经不再命中」的条目 ⇒ 防止白名单**悄悄腐烂**
+    #   （修好闸门的 docstring 误判后，原先靠误判才需要的三条白名单就失效了）
+    #   ⇒ 白名单条目失效后应当**删掉**（否则「白名单」会变成一个永远绿的逃逸口）。
+    stale_whitelist = []
 
     for root in SCAN_ROOTS:
         root_abs = os.path.join(REPO, root.replace('/', os.sep))
@@ -150,9 +181,12 @@ def main():
                     continue
                 fp = os.path.join(dirpath, fn)
                 rel = os.path.relpath(fp, REPO).replace(os.sep, '/')
-                if rel in WHITELIST:
-                    continue
                 hits = code_lines_with_pkg_name(fp)
+                if rel in WHITELIST:
+                    if not hits:
+                        # 🔴 白名单条目已不再命中 ⇒ 记为「过期」，提示删除
+                        stale_whitelist.append(rel)
+                    continue
                 if not hits:
                     continue
                 checked += 1
@@ -179,6 +213,12 @@ def main():
     for k, v in WHITELIST.items():
         print('   - %-44s %s' % (k, v))
     print()
+    if stale_whitelist:
+        print('⚠️ 白名单**已过期**（不再命中）= %d 条 ⇒ 应当删除，'
+              '否则白名单会变成永远绿的逃逸口：' % len(stale_whitelist))
+        for k in stale_whitelist:
+            print('   - %s' % k)
+        print()
     print('命中「代码行里有客户包名」的文件数 = %d' % checked)
 
     if violations:
@@ -204,6 +244,7 @@ def main():
         with open(args.json, 'w', encoding='utf-8') as f:
             json.dump(dict(verdict=verdict, n_violations=len(violations),
                            violations=violations, whitelist=WHITELIST,
+                           stale_whitelist=stale_whitelist,
                            pkg_module_count=len(pkg_mods)),
                       f, ensure_ascii=False, indent=2)
         print('证据已落盘：%s' % args.json)

@@ -333,7 +333,7 @@ def execution_devices(eng, on_log=print) -> dict:
     ## 为什么必须有这个函数（§81.11 第 3 条的根因）
 
     §81 的引擎基线报告里 `device_desc=null` / `load_s=null`
-    ⇒ ��审问「**是否真在 NPU 上跑**」⇒ **无法回答**。
+    ⇒ **审问「是否真在 NPU 上跑」时无法回答**。
 
     根因是**两个不同的问题被混为一谈**：
     - 「**请求**的设备」= `make_engine(device='NPU')` 的参数

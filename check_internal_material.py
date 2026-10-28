@@ -46,10 +46,27 @@ NAME_PATTERNS = [
     (re.compile(r'_spoken', re.I), '内部会议口语子集（spoken）转写/译文'),
     (re.compile(r'preset_B', re.I), '音色 B（禁止进包）'),
     (re.compile(r'preset_C', re.I), '音色 C（禁止进包）'),
-    (re.compile(r'clone_[A-Z]', re.I), '克隆音色素材（禁止进包）'),
+    # 🔴🔴 §86 修正：**克隆「素材」不是「克隆相关的任何文件」**
+    # ------------------------------------------------------------------
+    # 原规则 `clone_[A-Z]`（带 `re.I`）⇒ 命中**任何** `clone_<字母>` 开头的文件名
+    # ⇒ **误伤**了 APP-027⑤ 的**生产模块** `app/clone_collector.py`
+    #    （它只是「采集克隆源语音」的代码，**本身不是素材**）
+    #    ⇒ 闸门把**正常生产代码**判成内部素材 ⇒ 打包被拒（假 FAIL）。
+    #
+    # ⇒ 真正的「克隆音色素材」是**音频/嵌入文件**，与 `pkg_exclude.py`
+    #    的 `USER_CLONE_FILE_RE`（`^clone_[A-Za-z0-9_]+\.npz$`）对齐：
+    #    ① `clone_*.npz`（旧 `_extract_cond_ov` 的落盘产物）；
+    #    ② `clone_*.wav`（克隆源音频）。
+    # ⇒ 另加 `tts_speakers/` 目录名（用户音色库）⇒ 见 `NAME_PATTERNS` 下方。
+    (re.compile(r'^clone_[A-Za-z0-9_]+\.(npz|wav|pt|pth|npy)$', re.I),
+     '克隆音色素材（禁止进包）'),
     (re.compile(r'^transcript_.*\.txt$', re.I), '会议录音转写文本'),
     (re.compile(r'^segments_.*\.json$', re.I), '会议录音逐句分段'),
 ]
+
+# 🔴 §86：**用户音色目录**（任意层级）⇒ 目录名命中即判素材
+#   （`pkg_exclude.py` 的 `USER_SPEAKER_DIR_NAMES` 同口径）
+USER_SPEAKER_DIR_RE = re.compile(r'^tts_speakers$', re.I)
 
 # ── B. 内容关键词 ────────────────────────────────────────────────────
 # 只读文件**前 N 字节**做匹配（够覆盖会议文本开头），避免读 1.7 GB 的 IR。
@@ -170,6 +187,11 @@ def _scan_name(rel: str):
     for rx, why in NAME_PATTERNS:
         if rx.search(base):
             return why
+    # 🔴 §86：用户音色目录（`tts_speakers/`）⇒ 目录名命中即判素材
+    #   （与 `pkg_exclude.py::USER_SPEAKER_DIR_NAMES` 同口径）
+    for seg in rel.replace('\\', '/').split('/')[:-1]:
+        if USER_SPEAKER_DIR_RE.match(seg):
+            return '用户音色库（禁止进包）'
     return None
 
 
