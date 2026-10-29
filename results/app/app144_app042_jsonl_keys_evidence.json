@@ -1,0 +1,96 @@
+{
+  "script": "app144_app042_jsonl_keys.py",
+  "correction": "APP-042",
+  "target": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_worker.py",
+  "python": "3.12.10",
+  "total": 16,
+  "n_pass": 12,
+  "n_fail": 4,
+  "real_total": 7,
+  "real_fail": 0,
+  "bug_total": 9,
+  "bug_hit": 4,
+  "results": [
+    {
+      "name": "[REAL] 静态: _APP042_JSONL_KEYS 存在",
+      "ok": true,
+      "detail": "consts=['_APP027_JSONL_KEYS', '_APP028_JSONL_KEYS', '_APP030_JSONL_KEYS', '_APP036_JSONL_KEYS', '_APP042_JSONL_KEYS']"
+    },
+    {
+      "name": "[REAL] 静态: 白名单含 7 个关键字段",
+      "ok": true,
+      "detail": "missing=[]"
+    },
+    {
+      "name": "[REAL] 静态: _record_jsonl 遍历了 _APP042_JSONL_KEYS",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[REAL] 静态: 看门狗 meta 快照带 _APP042_JSONL_KEYS",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[REAL] 行为: row 里 7 个 APP-042 字段齐全",
+      "ok": true,
+      "detail": "absent=[] row_keys=['dropped', 'dur_s', 'error', 'id', 'in_dur_s', 'out_dur_s', 'play_lag_s', 'play_wall', 'queue_lag_s', 'queue_peak_mb', 'queue_peak_s', 'speed', 'speed_gain', 't_done', 't_first_packet', 't_submit', 'target_wall', 'text']"
+    },
+    {
+      "name": "[REAL] 行为: row[\"speed\"] 值正确",
+      "ok": true,
+      "detail": "1.25"
+    },
+    {
+      "name": "[REAL] 行为: row[\"play_lag_s\"] 值正确",
+      "ok": true,
+      "detail": "12.34"
+    },
+    {
+      "name": "[反证准备] 注入「白名单拷贝整块被删」",
+      "ok": true,
+      "detail": "n=1"
+    },
+    {
+      "name": "[反证] 静态: _APP042_JSONL_KEYS 存在",
+      "ok": true,
+      "detail": "consts=['_APP027_JSONL_KEYS', '_APP028_JSONL_KEYS', '_APP030_JSONL_KEYS', '_APP036_JSONL_KEYS', '_APP042_JSONL_KEYS']"
+    },
+    {
+      "name": "[反证] 静态: 白名单含 7 个关键字段",
+      "ok": true,
+      "detail": "missing=[]"
+    },
+    {
+      "name": "[反证] 静态: _record_jsonl 遍历了 _APP042_JSONL_KEYS",
+      "ok": false,
+      "detail": ""
+    },
+    {
+      "name": "[反证] 静态: 看门狗 meta 快照带 _APP042_JSONL_KEYS",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[反证] 行为: row 里 7 个 APP-042 字段齐全",
+      "ok": false,
+      "detail": "absent=['speed', 'in_dur_s', 'out_dur_s', 'speed_gain', 'target_wall', 'play_wall', 'play_lag_s'] row_keys=['dropped', 'dur_s', 'error', 'id', 'queue_lag_s', 'queue_peak_mb', 'queue_peak_s', 't_done', 't_first_packet', 't_submit', 'text']"
+    },
+    {
+      "name": "[反证] 行为: row[\"speed\"] 值正确",
+      "ok": false,
+      "detail": "None"
+    },
+    {
+      "name": "[反证] 行为: row[\"play_lag_s\"] 值正确",
+      "ok": false,
+      "detail": "None"
+    },
+    {
+      "name": "[反证] 删掉拷贝后判据 FAIL（判据不恒真）",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "verdict": true
+}

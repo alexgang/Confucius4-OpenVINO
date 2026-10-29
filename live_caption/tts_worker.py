@@ -166,6 +166,22 @@ _APP036_JSONL_KEYS = (
     'lead_punct_stripped', 'lead_punct_chars',
 )
 
+# 🔴🔴🔴 APP-042：**自适应加速**的逐句遥测字段（必须进 jsonl）。
+#
+# 🔴🔴🔴 **为什么必须有这个白名单**（2026-10-29 21:29 实测抓到）：
+#   `_record_jsonl()` 只把 `_APP027/030/036` 三个白名单里的字段拷进 row
+#   ⇒ 而 APP-042 的 `speed` / `play_lag_s` / `out_dur_s` / `in_dur_s` /
+#     `speed_gain` / `target_wall` / `play_wall` **只写进了 `tel`**
+#     （`tel` 是**会话日志**的来源）⇒ **逐句 jsonl 里一个都没有**。
+#   ⇒ 后果：**验收脚本无法算滞后曲线与倍率占比**（`app143` 实测
+#     `n_telemetry=0` ⇒ 7 项判据直接 FAIL）
+#   ⇒ 根因 = **「遥测写进了会话日志」≠「遥测落进了逐句 jsonl」**
+#     ⇒ 凡是「reviewer 要机器可算的逐句指标」，字段必须登记进白名单。
+_APP042_JSONL_KEYS = (
+    'speed', 'in_dur_s', 'out_dur_s', 'speed_gain',
+    'target_wall', 'play_wall', 'play_lag_s',
+)
+
 # 🔴🔴🔴 APP-037 C（reviewer 裁定）：**句首标点**的规范化集合。
 #   reviewer 原文：
 #     「在 **tts_worker 合成前统一规范化**：去掉句首的标点和空白（全角/半角），
@@ -2224,7 +2240,8 @@ class TTSWorker:
                 #   🔴 **必须在合成时快照**（不是看门狗执行时读 `self._last_*`）
                 #     ⇒ 否则并发合成下一句会把上一句的值冲掉。
                 meta={k: tel.get(k) for k in (_APP030_JSONL_KEYS
-                                             + _APP036_JSONL_KEYS)}))
+                                             + _APP036_JSONL_KEYS
+                                             + _APP042_JSONL_KEYS)}))
 
         # 🔴🔴 APP-027②：把本句实测 RTF / 秒每字记进 EWMA
         #   ⇒ 下一句的预缓冲与积压估算都用**本会话实测**校准。
@@ -2622,6 +2639,10 @@ class TTSWorker:
                     row[k] = tel[k]
             # 🔴🔴🔴 APP-036 C1 + APP-037 C：**排队等待 / 句首标点**
             for k in _APP036_JSONL_KEYS:
+                if k in tel:
+                    row[k] = tel[k]
+            # 🔴🔴🔴 APP-042：**自适应加速**的逐句遥测（倍率 / 滞后）
+            for k in _APP042_JSONL_KEYS:
                 if k in tel:
                     row[k] = tel[k]
         else:
