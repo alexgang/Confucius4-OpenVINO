@@ -1,0 +1,81 @@
+{
+ "script": "app138_pack_version_autobump.py",
+ "n_pass": 12,
+ "n_fail": 0,
+ "verdict": "PASS",
+ "rows": [
+  {
+   "group": "REAL",
+   "name": "R1 三个函数都抽到了",
+   "ok": true,
+   "detail": "ok"
+  },
+  {
+   "group": "REAL",
+   "name": "R2 现存 v1.6 ⇒ 自动升到 1.7",
+   "ok": true,
+   "detail": "max=1.6 bump=1.7"
+  },
+  {
+   "group": "REAL",
+   "name": "R3 现存 v1.7 ⇒ 再翻倍 rounds ⇒ 1.8（不重复已用过的号）",
+   "ok": true,
+   "detail": "bump=1.8"
+  },
+  {
+   "group": "REAL",
+   "name": "R4 1.9 ⇒ 1.10（元组比较，不是字符串排序）",
+   "ok": true,
+   "detail": "bump=1.10"
+  },
+  {
+   "group": "REAL",
+   "name": "R5 空目录 ⇒ 落到 VERSION_FLOOR 的下一个版本",
+   "ok": true,
+   "detail": "bump=1.7"
+  },
+  {
+   "group": "REAL",
+   "name": "R6 带后缀的备份目录也按版本识别（不 > 1.6）",
+   "ok": true,
+   "detail": "max=1.6"
+  },
+  {
+   "group": "REAL",
+   "name": "R7 目录 / zip / 前缀三者同版本",
+   "ok": true,
+   "detail": "dir=Confucius4_LiveCaption_v1.7 zip=Confucius4_LiveCaption_v1.7.zip prefix=Confucius4_LiveCaption_v1.7"
+  },
+  {
+   "group": "REAL",
+   "name": "R8 MANIFEST 的 version 由 PKG_VERSION 写入（不是手填常量）",
+   "ok": true,
+   "detail": "assigns=[\"data['version'] = PKG_VERSION\"]"
+  },
+  {
+   "group": "REAL",
+   "name": "R9 PKG_VERSION 不再是写死的字符串常量",
+   "ok": true,
+   "detail": "ok"
+  },
+  {
+   "group": "BUG",
+   "name": "B1 版本号写死（旧行为）",
+   "ok": true,
+   "detail": "ok"
+  },
+  {
+   "group": "BUG",
+   "name": "B2 bump 用字符串比较（1.9 ⇒ 1.10 会错）",
+   "ok": true,
+   "detail": "bump=1.10"
+  },
+  {
+   "group": "BUG",
+   "name": "B3 只看目录、看不到 zip ⇒ 已发布的版本号会被重用",
+   "ok": true,
+   "detail": "ok"
+  }
+ ],
+ "time": "2026-10-29 15:45:46"
+}

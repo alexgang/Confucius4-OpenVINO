@@ -225,6 +225,31 @@ def match_draft_to_final(drafts, finals):
 
 
 # ── 渲染 ────────────────────────────────────────────────────────────
+def spk_id_of(value):
+    """🔴🔴 APP-040④：**说话人 id 归一化**（契约修正）。
+
+    `render_lines` 的文档契约是 `spk_by_seg = {seg: spk_id}`（`str`），
+    但 App 侧 `App._on_final` 实际写入的是 **`(spk, spk_conf)` 元组**：
+
+    ```python
+    self._spk_by_seg[seg] = (spk, spk_conf)      # live_caption_app.py
+    ```
+
+    ⇒ 原样 `.get(i)` 取出来当标签用 ⇒ 字幕上会显示成 `[('S1', 0.87)]`
+    （**用户可见的错标签**）。
+
+    🔴 该缺陷**当前潜伏**：ASR 侧尚未交付 spk ⇒ `_spk_by_seg` 恒为空
+    ⇒ 一直没暴露。APP-040④ 要求「原文与译文字幕每句前都显示说话人标签」
+    ⇒ 一旦 ASR 交付就会当场炸出来 ⇒ 必须在交付前修掉。
+
+    ⇒ 这里**同时接受两种形态**（`str` 走原路 / `tuple|list` 取第 0 项）
+    ⇒ 对既有调用方（`spk_by_seg={0: 'S1'}`）**逐位不变**。
+    """
+    if isinstance(value, (tuple, list)):
+        return value[0] if value else None
+    return value
+
+
 def render_lines(blocks, units, drafts=None, granularity='seg',
                  seg_carry=None, show_pending=False, spk_by_seg=None):
     """把「ASR 段 + 句单元 + 草稿」渲染成显示行。
@@ -404,7 +429,7 @@ def render_lines(blocks, units, drafts=None, granularity='seg',
     lines = []
     for i, src in enumerate(blocks):
         lines.append({'kind': 'src', 'text': src, 'seg': i, 'draft': False,
-                      'spk': (spk_by_seg or {}).get(i)})
+                      'spk': spk_id_of((spk_by_seg or {}).get(i))})
         parts = mt_by_seg.get(i) or []
         if parts:
             txt = ' '.join(parts)

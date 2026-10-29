@@ -39,16 +39,69 @@ except Exception:                       # pragma: no cover
     machine_lock_app = None
 
 # ── 客户包版本（单一数据源）────────────────────────────────────────────
-# APP-007：打 v1.4。原先三个常量各自写死 "v1.3"，改版本要改三处
-# 且 MANIFEST 的 version 是**手填**的（refresh_manifest 从不写它）⇒
-# 打包出来的东西自称 v1.3、实际是 v1.4。
+# APP-007：原先三个常量各自写死 "v1.3"，改版本要改三处
+# 且 MANIFEST 的 version 是**手填**的 ⇒ 打包出来的东西自称 v1.3、实际是 v1.4。
 # ⇒ 现在版本号只有一个来源（PKG_VERSION），三个常量由它派生。
-# APP-014②：打 v1.5（假设备标签修复 + TTS CUDA 选项 + 接缝去重 +
-#            TTS 转正式功能默认开启）。
-# APP-028：打 v1.6（**生产/消费者音频架构**：合成不等播完、无界内存队列
-#            按句保序、**丢句数为 0**、GUI 底栏「语音滞后 X 秒」；
-#            + 默认设备摆放定案：ASR→GPU.0 / MT→GPU.0 / TTS→NPU，**NPU 独占给 TTS**）。
-PKG_VERSION = '1.6'
+#
+# 🔴🔴 **2026-10-29 用户决定：每次打新包都要自动升级版本号，不要一直沿用旧版本号**
+#   旧做法：`PKG_VERSION` **写死** ⇒ 一连十几轮都叫 v1.6 ⇒
+#   ① 无法区分「用户手里的那份」是哪次打的；
+#   ② 旧的 v1.6 zip 被新包**原地覆盖** ⇒ 一旦要回滚，旧包已经没了；
+#   ③ STATUS 里「已交付」写的是同一个版本号 ⇒ 事后对不上时间线。
+#   ⇒ 现在：**每次打包 = 一个新版本号**（默认 minor + 1，自动推算）。
+#
+#   ⚠️ 保底：仍可用 `--version X.Y` 显式指定、`--same-version` 覆盖重打当前版本
+#      （例如打包失败后重试，不应白白吃掉一个版本号）。
+VERSION_FLOOR = '1.6'      # 历史基线：推算结果永不低于这个版本
+HOME_DIR = r'C:\Users\Trekker-PTL'
+
+
+def _ver_key(ver: str):
+    try:
+        return tuple(int(x) for x in str(ver).split('.'))
+    except Exception:
+        return (0,)
+
+
+def discover_max_version(root: str = HOME_DIR, floor: str = VERSION_FLOOR):
+    """扫 `root` 下所有 `Confucius4_LiveCaption_vX.Y`（**目录与 zip 都算**），
+    返回其中**最大**的版本号。"""
+    best = _ver_key(floor)
+    best_s = floor
+    try:
+        names = os.listdir(root)
+    except Exception:
+        return best_s
+    for name in names:
+        m = re.search(r'Confucius4_LiveCaption_v(\d+(?:\.\d+)+)', name)
+        if not m:
+            continue
+        v = m.group(1)
+        if _ver_key(v) > best:
+            best, best_s = _ver_key(v), v
+    return best_s
+
+
+def bump_version(root: str = HOME_DIR, floor: str = VERSION_FLOOR) -> str:
+    """**自动升级版本号**：现存最大版本号的 **minor + 1**。
+
+    `1.6 ⇒ 1.7`；遇到 `1.9` 也正确地进到 `1.10`（字符串比较会错，
+    这里用元组比较，不存在 "1.10 < 1.9" 的坑）。
+    """
+    k = _ver_key(discover_max_version(root, floor))
+    if len(k) == 1:
+        k = (k[0], 0)
+    return '%d.%d' % (k[0], k[1] + 1)
+
+
+def _names_for(ver: str):
+    name = f'Confucius4_LiveCaption_v{ver}'
+    return (os.path.join(HOME_DIR, name),
+            os.path.join(HOME_DIR, name + '.zip'),
+            name)
+
+
+PKG_VERSION = bump_version()
 _PKG_NAME = f'Confucius4_LiveCaption_v{PKG_VERSION}'
 DEFAULT_PKG = rf'C:\Users\Trekker-PTL\{_PKG_NAME}'
 DEFAULT_ZIP = rf'C:\Users\Trekker-PTL\{_PKG_NAME}.zip'
@@ -576,10 +629,27 @@ def check_pkg_path_hardcode():
 
 def main():
     ap = argparse.ArgumentParser(
-        description=f'打包客户包 v{PKG_VERSION} 并校验')
-    ap.add_argument('--pkg', default=DEFAULT_PKG, help='客户包源目录')
-    ap.add_argument('--zip', default=DEFAULT_ZIP, help='输出 zip 路径')
-    ap.add_argument('--prefix', default=DEFAULT_PREFIX, help='zip 内顶层目录名')
+        description='打包客户包并校验（版本号**自动递增**：%s ⇒ 新包）'
+                    % discover_max_version())
+    ap.add_argument('--version', default=None,
+                    help='显式指定版本号（X.Y）。默认**自动递增** minor：'
+                         '取本机现存最大版本号 +1（2026-10-29 用户决定：'
+                         '每次打新包都要换新版本号，不要一直沿用旧的）')
+    ap.add_argument('--same-version', action='store_true',
+                    help='**不**递增，沿用现存最大版本号（覆盖重打当前版本；'
+                         '适用「上一轮打包失败、重试不该白吃一个版本号」）')
+    ap.add_argument('--rename-pkg-dir', dest='rename_pkg_dir',
+                    action='store_true', default=True,
+                    help='版本号变了 ⇒ 源目录同步改名到新版本（默认开；'
+                         '同卷 os.rename ⇒ 秒级、不复制 14 k 文件）'
+                         '⇒ 保证「目录版本 == zip 版本 == MANIFEST version」三者一致')
+    ap.add_argument('--no-rename-pkg-dir', dest='rename_pkg_dir',
+                    action='store_false',
+                    help='不动源目录名（⇒ 目录版本会落后于 zip 版本，仅在'
+                         '明确知道自己在干什么时用）')
+    ap.add_argument('--pkg', default=None, help='客户包源目录（默认由版本号派生）')
+    ap.add_argument('--zip', default=None, help='输出 zip 路径（默认由版本号派生）')
+    ap.add_argument('--prefix', default=None, help='zip 内顶层目录名（默认由版本号派生）')
     ap.add_argument('--level', type=int, default=6,
                     help='压缩级别（默认 6；实测 1/6/9 差异 <1%%，不建议改）')
     ap.add_argument('--dry-run', action='store_true',
@@ -606,6 +676,45 @@ def main():
                     help='跳过安静窗口检查（默认**不跳过**；'
                          '仅在明确知道机器空闲时使用）')
     args = ap.parse_args()
+
+    # ── 版本号定案（含源目录改名）───────────────────────────────────
+    cur_max = discover_max_version()
+    if args.version:
+        ver = args.version
+    elif args.same_version:
+        ver = cur_max
+    else:
+        ver = bump_version()
+
+    # 若源目录的版本号落后于目标版本 ⇒ 连同目录一起改到新版本
+    cur_dir, _, _ = _names_for(cur_max)
+    if (args.rename_pkg_dir and ver != cur_max
+            and os.path.isdir(cur_dir) and not os.path.exists(_names_for(ver)[0])):
+        new_dir, _, _ = _names_for(ver)
+        if args.dry_run:
+            print('[dry-run] 源目录将改名：%s ⇒ %s' % (cur_dir, new_dir))
+        else:
+            os.rename(cur_dir, new_dir)
+            print('[version] 源目录已改名：%s ⇒ %s（同卷改名，内容不变）'
+                  % (os.path.basename(cur_dir), os.path.basename(new_dir)))
+
+    global PKG_VERSION, _PKG_NAME, DEFAULT_PKG, DEFAULT_ZIP, DEFAULT_PREFIX
+    PKG_VERSION = ver
+    _PKG_NAME = f'Confucius4_LiveCaption_v{PKG_VERSION}'
+    DEFAULT_PKG, DEFAULT_ZIP, DEFAULT_PREFIX = _names_for(PKG_VERSION)
+    if args.pkg is None:
+        args.pkg = DEFAULT_PKG
+    if args.zip is None:
+        args.zip = DEFAULT_ZIP
+    if args.prefix is None:
+        args.prefix = DEFAULT_PREFIX
+    print('[version] 本机现存最大版本 = %s ⇒ 本轮打包版本 = **%s**'
+          % (cur_max, PKG_VERSION))
+    print('         源目录：%s' % args.pkg)
+    print('         zip   ：%s' % args.zip)
+    if not args.dry_run and os.path.exists(args.zip) and not args.same_version:
+        print('         ⚠️ 该 zip 已存在 ⇒ 会被**覆盖**（同版本号重打请加 '
+              '`--same-version`）')
 
     # 🔴 打包是**长时重活**（压缩 13.7 GB + 逐文件 SHA256 复核 11.2 GB zip）
     #    ⇒ 必须持共享机器锁，否则别的模块测速会把它当干扰源（或被它干扰）。

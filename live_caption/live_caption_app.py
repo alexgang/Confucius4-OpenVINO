@@ -1667,6 +1667,36 @@ def _split_spk(final):
     return (str(final or ''), None, None)
 
 
+# 🔴🔴 APP-040④：**说话人 id 归一化**（与 `caption_render.spk_id_of` 同一口径）
+_SPK_COLOR_PALETTE = ('#1565c0', '#00695c', '#6a1b9a', '#c62828', '#ef6c00',
+                      '#00838f', '#4e342e', '#4527a0', '#2e7d32', '#b71c1c')
+
+
+def _spk_id(value):
+    """从 `_spk_by_seg` 的值里取**说话人 id**。
+
+    App 侧写的是 `(spk, spk_conf)` 元组（`App._on_final`），
+    而显示只需要 id ⇒ 统一在这里拆（**单一职责**，避免每处各自 `v[0]`）。
+    """
+    if isinstance(value, (tuple, list)):
+        return value[0] if value else None
+    return value
+
+
+def _spk_color(spk):
+    """🔴 APP-040④：**同一个说话人颜色固定**。
+
+    用 `hash` 会随进程变（`PYTHONHASHSEED`）⇒ 同一个人**每次启动换颜色**
+    ⇒ 违背「颜色固定」。
+    ⇒ 用**确定性**做法：把 id 的字节求和取模 ⇒ 与进程无关。
+    """
+    try:
+        s = str(spk)
+        return _SPK_COLOR_PALETTE[sum(s.encode('utf-8')) % len(_SPK_COLOR_PALETTE)]
+    except Exception:
+        return _SPK_COLOR_PALETTE[0]
+
+
 class Session:
     """把音频源和引擎接起来的后台推理循环（GUI 与 CLI 共用）。
 
@@ -2268,8 +2298,14 @@ class App:
         #   ⚠️ **GUI 上显示的是「当前实际使用的音色」**（`_clone_voice_label`）
         #      ⇒ 而**不是**用户选的那一项 ⇒ 用户能看见真实状态。
         self.tts_voices = ['A', 'follow_speaker']
+        # 🔴🔴 APP-039：**克隆模式标注「实验」**
+        #   APP-039 明文：「克隆模式先标'实验'」
+        #   ⇒ 用户对它不满意的正是这里（音色切换滞后 >10 s / 换人时渐变 /
+        #     后台一直采样）⇒ 正确设计（音色按句绑定 spk + 检测到换人才取样）
+        #     **要等 ASR 的说话人旁路接口（ASR-029）** ⇒ 在按新设计重做完之前，
+        #     界面必须如实告诉用户它是**实验性**的，不能让默认状态看起来像成品。
         self._tts_voice_label = {'A': '预设 A',
-                                 'follow_speaker': '跟随说话人（克隆）'}
+                                 'follow_speaker': '跟随说话人（克隆·实验）'}
         self._tts_voice_back = {v: k for k, v in self._tts_voice_label.items()}
         self.var_tts_voice = tk.StringVar(
             value=self._tts_voice_label.get(args.tts_voice, '预设 A'))
@@ -2284,8 +2320,14 @@ class App:
         ttk.Label(row_tts, textvariable=self.var_tts_voice_now,
                   foreground='#1565c0').pack(side='left', padx=(0, 8))
         # 🔴🔴 APP-022：字幕上**可以选择显示说话人标签**（S1、S2…）。
-        #   ⚠️ **默认关闭**（不改现有显示行为 ⇒ 老用户看不到任何变化）。
-        self.var_show_spk = tk.BooleanVar(value=False)
+        # 🔴🔴🔴 APP-040④：**默认改为打开**
+        #   APP-040④ 明文：「GUI 加一个开关，**默认打开**」
+        #   ⇒ 旧实现默认 `False`（当时理由是「不改现有显示行为」），
+        #     那是**接口预留期**的口径；现在 ASR 说话人旁路是必做项 ⇒ 默认打开。
+        #   ⚠️ **当前仍看不到标签**：`_spk_by_seg` 恒为空（ASR 侧还没交付 spk）
+        #     ⇒ `spk` 为真值时才加前缀 ⇒ **今天的显示逐字不变**；
+        #     ASR 一旦交付就立即生效（见 `_render`）。
+        self.var_show_spk = tk.BooleanVar(value=True)
         cb_show_spk = ttk.Checkbutton(
             row_tts, text='显示说话人', variable=self.var_show_spk)
         cb_show_spk.pack(side='left', padx=(0, 8))
@@ -2912,6 +2954,44 @@ class App:
             return f'克隆（更新于 {hh}，{float(dur or 0):.0f} s 语音）'
         return '预设 A'
 
+    def _spk_now_label(self) -> str:
+        """🔴🔴 APP-039：**本句实际用的说话人**（GUI 显示用）。
+
+        APP-039 明文：「**GUI 上显示每句实际用的是哪个 spk 和哪个音色**」
+        ⇒ 上半段音色已经有 `_clone_voice_label()`；**说话人这一半以前没有**
+        ⇒ 这里补上（取最近一段登记的说话人）。
+
+        ⚠️ **ASR 侧还没交付 spk** ⇒ `_spk_by_seg` 恒为空 ⇒ 显示
+        「说话人：—（未标注）」⇒ **如实说没有**，不编一个假的。
+        """
+        try:
+            segs = sorted(self._spk_by_seg)
+        except Exception:
+            return '说话人：—（未标注）'
+        if not segs:
+            return '说话人：—（未标注）'
+        spk = _spk_id(self._spk_by_seg.get(segs[-1]))
+        return '说话人：%s' % (spk if spk else '—（未标注）')
+
+    def _spk_tag(self, spk):
+        """🔴 APP-040④：**同一个人颜色固定**（Tk tag，按 id 确定性配色）。
+
+        返回 tag 名；`spk` 为空或 Tk 不可用时返回 `None`（调用方按没有 tag 处理）
+        ⇒ **绝不**因为显示层异常影响字幕本身。
+        """
+        import re as _re
+        if not spk:
+            return None
+        key = _re.sub(r'[^0-9A-Za-z_]', '_', str(spk)) or 'unknown'
+        name = 'spk_' + key
+        try:
+            names = self.txt.tag_names()
+            if name not in names:
+                self.txt.tag_configure(name, foreground=_spk_color(spk))
+        except Exception:
+            return None
+        return name
+
     def _on_mt_changed(self, *_a):
         key = self.mt_keys[[TARGET_LABELS[k] for k in self.mt_keys].index(self.var_mt.get())]
         self.mt.set_target(key)
@@ -3073,7 +3153,7 @@ class App:
             #      ⇒ 绝不静默（§42 的教训）。
             self._clone_enabled = (voice == 'follow_speaker')
             if self._clone_enabled:
-                self._ui_log('[tts] 「跟随说话人（克隆）」已启用：'
+                self._ui_log('[tts] 「跟随说话人（克隆·实验）」已启用：'
                              '每 30 s 或累计 ≥6 s 新语音更新一次音色'
                              '（更新前用预设 A）')
                 # 清掉上一轮的采集状态 ⇒ 避免用旧语音
@@ -3133,8 +3213,10 @@ class App:
         # 🔴🔴🔴 APP-027⑤：「跟随说话人（克隆）」**本轮已启用**
         #   ⇒ 提示改成「已启用，正在采集语音…」
         if voice == 'follow_speaker':
-            self.var_tts_note.set('「跟随说话人（克隆）」已启用：'
-                                  '正在采集语音，音色会在积累够语音后自动更新')
+            self.var_tts_note.set('「跟随说话人（克隆·实验）」已启用：'
+                                  '正在采集语音，音色会在积累够语音后自动更新；'
+                                  '🔴 实验性：切换可能滞后且呈渐变，'
+                                  '正式版改为「检测到换人才取样」（APP-039/040）')
         else:
             self.var_tts_note.set('已切换到「预设 A」')
         if self.tts is not None:
@@ -3719,22 +3801,31 @@ class App:
     def _render(self, partial):
         self.txt.configure(state='normal')
         self.txt.delete('1.0', 'end')
-        # 🔴🔴 APP-022：**可选显示说话人标签**（S1、S2…）。
-        #   ⚠️ **默认关闭**（`var_show_spk`）⇒ 现有显示行为**逐位不变**。
+        # 🔴🔴🔴 APP-040④：**说话人标签（原文行 + 译文行都要）**
+        #   APP-040④ 明文：「原文字幕和译文字幕每句前面都显示说话人标签
+        #   （S1、S2…，同一个人颜色固定）」
+        #   ⇒ 旧实现**只给原文行加**（`mt` / `mt_draft` 一律没有）
+        #     ⇒ 用户看译文字幕时根本不知道这句话是谁说的（恰恰是使用主场景）。
+        #   ⚠️ **译文行自己没有 `spk` 键**（`render_lines` 只给 `src` 行带）
+        #     ⇒ 用行上的 `seg` 回查 `self._spk_by_seg`（同一段 ⇒ 同一人）。
+        #   ⚠️ 标签**加在行首**（不改 `l['text']` 本身）
+        #     ⇒ 渲染层「原文守恒」不变式**依然成立**。
         show_spk = bool(self.var_show_spk.get())
         for l in self._render_lines():
+            seg = l.get('seg')
+            spk = _spk_id(self._spk_by_seg.get(seg) if seg is not None else None)
+            pre = ('[%s] ' % spk) if (show_spk and spk) else ''
+            tag = self._spk_tag(spk) if (show_spk and spk) else None
             if l['kind'] == 'src':
-                # ⚠️ 标签**加在行首**（不改 `l['text']` 本身）
-                #   ⇒ 渲染层「原文守恒」不变式**依然成立**。
-                spk = l.get('spk')
-                pre = ('[%s] ' % spk) if (show_spk and spk) else ''
-                self.txt.insert('end', pre + l['text'] + '\n')
+                self.txt.insert('end', pre + l['text'] + '\n',
+                                tag if tag else ())
             elif l['kind'] == 'mt':
-                self.txt.insert('end', '    〔译〕' + l['text'] + '\n', 'mt')
+                self.txt.insert('end', '    ' + pre + '〔译〕' + l['text'] + '\n',
+                                (tag, 'mt') if tag else 'mt')
             elif l['kind'] == 'mt_draft':
                 # 浅色（未定稿）—— APP-015 方案 C
-                self.txt.insert('end', '    〔译〕' + l['text'] + '\n',
-                                'mt_partial')
+                self.txt.insert('end', '    ' + pre + '〔译〕' + l['text'] + '\n',
+                                (tag, 'mt_partial') if tag else 'mt_partial')
             # 'mt_pending' 不上屏（旧行为：屏幕字幕不显示「译文生成中…」）
         if partial:
             self.txt.insert('end', partial, 'partial')
@@ -3809,7 +3900,10 @@ class App:
           ⇒ **绝不**根据「用户选了什么」来显示。
         """
         try:
-            label = self._clone_voice_label()
+            # 🔴🔴 APP-039：**音色 + 本句说话人**一起显示
+            #   （reviewer 明文：「GUI 上显示每句实际用的是哪个 spk 和哪个音色」）
+            label = '%s · %s' % (self._clone_voice_label(),
+                                 self._spk_now_label())
         except Exception:
             return
         if label != getattr(self, '_clone_label_last', None):
@@ -4628,10 +4722,14 @@ def main():
     ap.add_argument('--tts-voice', default='A', choices=['A', 'follow_speaker'],
                     help='音色：预设 A（客户包只随包分发音色 A；'
                          '音色 B / 克隆说话人素材按 BRIEF 不进包）；'
-                         'follow_speaker = 跟随说话人（克隆）—— '
+                         'follow_speaker = 跟随说话人（克隆·实验）—— '
                          '🔴🔴 APP-027 V3（§84）：**已真正启用**'
                          '（CLI 与 GUI 共用 `clone_collector`）⇒ '
-                         '**CLI 也能开**（V3 实测用）')
+                         '**CLI 也能开**（V3 实测用）；'
+                         '🔴🔴 APP-039：标注为**实验性**——当前实现是'
+                         '「滑动窗口 + 每 30 s 重算」，音色切换会滞后 >10 s'
+                         '且换人时表现为渐变；正确设计（按句绑定 spk、'
+                         '检测到换人才取样）需等 ASR 说话人旁路接口')
     ap.add_argument('--tts-out', default=None,
                     help='CLI 回放测试：把语音按真实时间轴混成一个 wav 落盘；'
                          '同时写 <out>.tts.jsonl（逐句时间线）')

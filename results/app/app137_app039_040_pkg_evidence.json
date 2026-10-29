@@ -1,0 +1,114 @@
+{
+ "script": "app137_app039_040_spk_ui.py",
+ "time": "2026-10-29 15:14:48",
+ "baseline_commit": "f724769",
+ "app_sha256": "6d81361d8436443bcc1b4506c5a76173c81b4e0586839999fa889c60be0631b4",
+ "cr_sha256": "be9e1d43918424c3bdbda5d512f7a567bb6a783887b744f530d0c5006975064c",
+ "n_pass": 17,
+ "n_fail": 0,
+ "verdict": "PASS",
+ "rows": [
+  {
+   "group": "REAL",
+   "name": "R1 spk_id_of 元组/字符串/空值三种形态",
+   "ok": true,
+   "detail": "tuple='S1' str='S2' none=None"
+  },
+  {
+   "group": "REAL",
+   "name": "R2 render_lines 元组值 ⇒ spk 仍为 id（不是元组）",
+   "ok": true,
+   "detail": "spk='S1'"
+  },
+  {
+   "group": "REAL",
+   "name": "R2b 旧调用方（str 值）行为逐位不变",
+   "ok": true,
+   "detail": "ok"
+  },
+  {
+   "group": "REAL",
+   "name": "R3 原文行带说话人标签",
+   "ok": true,
+   "detail": "src=['[S1] Hello everyone.\\n', '[S2] Thanks for having me.\\n']"
+  },
+  {
+   "group": "REAL",
+   "name": "R3b 译文行**也**带说话人标签（APP-040④）",
+   "ok": true,
+   "detail": "mt_with_spk=['    [S1] 〔译〕大家好。\\n', '    [S2] 〔译〕谢谢邀请我。\\n']"
+  },
+  {
+   "group": "REAL",
+   "name": "R3c 没有 spk 的段 ⇒ 不加标签（不编造）",
+   "ok": true,
+   "detail": "mt_no_spk=['    〔译〕有问题吗？\\n']"
+  },
+  {
+   "group": "REAL",
+   "name": "R4 标签走 Tk tag（同一说话人颜色固定）",
+   "ok": true,
+   "detail": "tags=[('mt',), ('spk_S1',), ('spk_S1', 'mt'), ('spk_S2',), ('spk_S2', 'mt_partial')]"
+  },
+  {
+   "group": "REAL",
+   "name": "R4b 配色确定性（**不用 hash** ⇒ 不随进程变）",
+   "ok": true,
+   "detail": "S1=#6a1b9a S2=#c62828"
+  },
+  {
+   "group": "REAL",
+   "name": "R5 开关关闭 ⇒ 一个标签都不加（回归旧行为）",
+   "ok": true,
+   "detail": "rows=['Hello everyone.\\n', '    〔译〕大家好。\\n', 'Thanks for having me', '    〔译〕谢谢邀请我。\\n', 'Any questions?\\n', '    〔译〕有问题吗？\\n']"
+  },
+  {
+   "group": "REAL",
+   "name": "R6 本句说话人：无标注 ⇒ 如实显示「未标注」；有 ⇒ 显示 id",
+   "ok": true,
+   "detail": "empty='说话人：—（未标注）' set='说话人：S2'"
+  },
+  {
+   "group": "REAL",
+   "name": "R7 「显示说话人」默认打开（APP-040④ 明文）",
+   "ok": true,
+   "detail": "default=True"
+  },
+  {
+   "group": "REAL",
+   "name": "R8 克隆模式标注「实验」（APP-039 明文）",
+   "ok": true,
+   "detail": "label='跟随说话人（克隆·实验）'"
+  },
+  {
+   "group": "BUG",
+   "name": "B1 译文字幕缺说话人标签（APP-040④）",
+   "ok": true,
+   "detail": "missing=[]"
+  },
+  {
+   "group": "BUG",
+   "name": "B2 元组泄漏成标签文本（如 [('S1', 0.91)]）",
+   "ok": true,
+   "detail": "rows=['[S1] Hello everyone.\\n', '    [S1] 〔译〕大家好。\\n', '[S2] Thanks for having me.\\n', '    [S2] 〔译〕谢谢邀请我。\\n', 'Any questions?\\n', '    〔译〕有问题吗？\\n']"
+  },
+  {
+   "group": "BUG",
+   "name": "B3 开关默认是关的",
+   "ok": true,
+   "detail": "default=True"
+  },
+  {
+   "group": "BUG",
+   "name": "B4 克隆模式没标「实验」",
+   "ok": true,
+   "detail": "label='跟随说话人（克隆·实验）'"
+  },
+  {
+   "group": "BUG",
+   "name": "B5 没标注时编造/隐匿说话人",
+   "ok": true,
+   "detail": "label='说话人：—（未标注）'"
+  }
+ ]
+}
