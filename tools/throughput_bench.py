@@ -88,6 +88,51 @@ def _dump(path: Optional[str], data) -> None:
         print("[bench] 落盘失败：%s" % e)
 
 
+def plan_production_segments(audio, sr: int):
+    """按**生产同款**断句把音频切成段（与 `ext.segmenter.plan_segments` 一致）。
+
+    ★ 为什么必须切段（实测踩坑）：
+      R2T2 的 ASR 有**段长硬上限 24.3 s**（2400 mel frames）；
+      把 5 分钟素材**整段**喂给 ASR 会直接报
+      「segment too long: 2432 > 2400 mel frames」⇒ **调用失败、RTF 无效**。
+      ⇒ 本基准的 ASR 一律**逐段**跑（与生产一致：服务端也是按断句段调 ASR）。
+    """
+    from ext.segmenter import plan_segments
+
+    segs = plan_segments(audio)
+    # 尾部不足 1 s 的丢弃（与服务端 flush 同规则）
+    if segs:
+        tail = (segs[-1][1] - segs[-1][0]) / float(sr)
+        if tail < 1.0:
+            segs = segs[:-1]
+    return segs
+
+
+def asr_over_segments(eng, audio, sr: int, segs=None):
+    """逐段跑 ASR，返回 (文本列表, 耗时列表, 音频秒列表)。
+
+    ★ RTF 分母 = **输入音频秒**（各段时长之和）⇒ 与「整段喂」口径一致，
+      但**不会**触发 ASR 的段长上限。
+    """
+    if segs is None:
+        segs = plan_production_segments(audio, sr)
+    texts, times, secs = [], [], []
+    for (s0, s1) in segs:
+        seg = audio[s0:s1]
+        seg_sec = (s1 - s0) / float(sr)
+        t0 = time.perf_counter()
+        try:
+            txt = eng.asr(seg, s0 / sr, s1 / sr) or ""
+        except Exception as e:
+            txt = ""
+            print("[bench] ⚠️ ASR 段失败（%s…%s）：%s: %s"
+                  % (s0 / sr, s1 / sr, type(e).__name__, e), flush=True)
+        times.append(time.perf_counter() - t0)
+        secs.append(seg_sec)
+        texts.append(txt)
+    return texts, times, secs
+
+
 def _stats(vals: List[float]) -> dict:
     if not vals:
         return {}
@@ -146,17 +191,30 @@ def cmd_cold_hot(args) -> int:
         out["error"] = "引擎接线失败: %s" % err
         _dump(args.out, out)
         return 1
+    # ★ 逐段跑（不能整段喂：ASR 段长硬上限 24.3 s）
+    segs = plan_production_segments(audio, sr)
+    out["n_segments"] = len(segs)
+    out["segmentation_note"] = ("按生产同款断句（ext.segmenter.plan_segments）"
+                                 "逐段调 ASR；R2T2 ASR 段长硬上限 24.3 s ⇒ "
+                                 "整段喂会被拒绝。")
+    print("[bench] 音频 %.2f s → %d 段" % (audio_sec, len(segs)), flush=True)
     asr_runs = []
     for i in range(args.reps):
         t0 = time.perf_counter()
-        text = eng.asr(audio, 0.0, audio_sec) or ""
+        texts, times, secs = asr_over_segments(eng, audio, sr, segs)
         dt = time.perf_counter() - t0
+        text = " ".join(t for t in texts if t)
+        fed = sum(secs)
+        n_fail = sum(1 for x in texts if not x)
         asr_runs.append({
             "run": i + 1, "kind": ("cold" if i == 0 else "hot"),
-            "sec": round(dt, 3), "rtf": round(dt / audio_sec, 4),
+            "sec": round(dt, 3), "rtf": round(dt / fed, 4) if fed else None,
+            "audio_fed_sec": round(fed, 3),
+            "n_segments": len(segs),
+            "n_segments_empty": n_fail,
             "text_len": len(text), "text_head": text[:80]})
-        print("[bench] ASR %s #%d: %.3f s  RTF=%.4f"
-              % ("冷" if i == 0 else "热", i + 1, dt, dt / audio_sec), flush=True)
+        print("[bench] ASR %s #%d: %.3f s  音频 %.1f s  RTF=%.4f"
+              % ("冷" if i == 0 else "热", i + 1, dt, fed, dt / fed), flush=True)
     out["asr"] = {
         "runs": asr_runs,
         "cold_rtf": asr_runs[0]["rtf"] if asr_runs else None,
@@ -168,6 +226,15 @@ def cmd_cold_hot(args) -> int:
             if len(asr_runs) > 1 else None),
         "engine_load_s": eng.stats().get("load_s"),
     }
+    out["data_validity"] = {
+        "n_segments": len(segs),
+        "n_segments_empty_asr": sum(r.get("n_segments_empty") or 0
+                                    for r in asr_runs),
+        "all_asr_ok": all((r.get("n_segments_empty") or 0) == 0
+                          for r in asr_runs),
+        "note": ("ASR 有空产出段 ⇒ 该轮 RTF 不可用于结论"
+                 "（整段喂会触发 R2T2 的 24.3 s 段长上限 ⇒ 本工具已改逐段）。"),
+    }
 
     # ── 第 2 段：**新实例**，TTS 冷/热各 3 次 ──────────────────
     #   ⇒ ASR 已经把 GPU 跑热了，但 TTS 是 NPU ⇒ 与 ASR 不同设备，
@@ -177,8 +244,9 @@ def cmd_cold_hot(args) -> int:
         out["tts_error"] = "第二段引擎接线失败: %s" % err2
         _dump(args.out, out)
         return 1
-    # 先跑一次 ASR 拿到**源文**（TTS 需要文本）
-    src_text = eng2.asr(audio, 0.0, audio_sec) or ""
+    # 先跑一次 ASR 拿到**源文**（TTS 需要文本）—— 同样逐段
+    _texts, _times, _secs = asr_over_segments(eng2, audio, sr, segs)
+    src_text = " ".join(t for t in _texts if t)
     if not src_text:
         out["error"] = "ASR 没产出文本 ⇒ 无法测 TTS"
         _dump(args.out, out)
@@ -278,11 +346,20 @@ def cmd_steady(args) -> int:
     per_seg = []
     tot_asr = tot_mt = tot_tts = 0.0
     tot_speech = 0.0
+    n_asr_failed = 0
     for (s0, s1) in segs:
         seg = audio[s0:s1]
         seg_sec = (s1 - s0) / float(sr)
         t0 = time.perf_counter()
-        text = eng.asr(seg, s0 / sr, s1 / sr) or ""
+        asr_err = None
+        try:
+            text = eng.asr(seg, s0 / sr, s1 / sr) or ""
+        except Exception as e:
+            text = ""
+            asr_err = "%s: %s" % (type(e).__name__, e)
+            n_asr_failed += 1
+            print("[bench] ⚠️ ASR 段失败（%6.1f–%6.1f）：%s"
+                  % (s0 / sr, s1 / sr, asr_err), flush=True)
         asr_s = time.perf_counter() - t0
         t0 = time.perf_counter()
         tgt = eng.mt(text) if text else ""
@@ -304,6 +381,7 @@ def cmd_steady(args) -> int:
             "tts_rtf": round(tts_s / speech, 4) if speech else None,
             "speech_sec": round(speech or 0.0, 3),
             "src_len": len(text), "tgt_len": len(tgt or ""),
+            "asr_error": asr_err,
         })
         print("[bench] seg %6.1f–%6.1f  asr %5.2f (%.3f×)  mt %5.2f  tts %6.2f (%.3f×)"
               % (s0 / sr, s1 / sr, asr_s, asr_s / seg_sec, mt_s, tts_s,
@@ -336,6 +414,14 @@ def cmd_steady(args) -> int:
         "tts_rtf": round(warm_tts / warm_speech, 4) if warm_speech else None,
         "end_to_end_rtf": round(
             (warm_asr + warm_mt + warm_tts) / warm_sec, 4) if warm_sec else None,
+    }
+    # ★ 数据有效性：ASR 有失败段 ⇒ 该轮 RTF **不可用于结论**（必须显式标注）
+    out["data_validity"] = {
+        "n_segments": len(segs),
+        "n_segments_asr_failed": n_asr_failed,
+        "all_asr_ok": n_asr_failed == 0,
+        "note": ("ASR 有失败段 ⇒ 该轮的 MT/TTS 输入不完整 ⇒ "
+                 "RTF 只反映『跑通的段』，不能当作全量吞吐结论。"),
     }
     out["per_segment"] = per_seg
     out["engine_stats"] = eng.stats()
@@ -386,8 +472,19 @@ def cmd_interference(args) -> int:
         _dump(args.out, out)
         return 1
 
+    # ★ 逐段（ASR 段长硬上限 24.3 s，不能整段喂）
+    segs = plan_production_segments(audio, sr)
+    out["n_segments"] = len(segs)
+    fed_sec = sum((s1 - s0) / float(sr) for (s0, s1) in segs)
+    out["audio_fed_sec"] = round(fed_sec, 3)
+    out["segmentation_note"] = ("按生产同款断句逐段调 ASR；"
+                                 "R2T2 ASR 段长硬上限 24.3 s。")
+    print("[bench] 音频 %.2f s → %d 段（喂 %.1f s）"
+          % (audio_sec, len(segs), fed_sec), flush=True)
+
     # 先拿一批真实文本（TTS 需要）
-    text = eng.asr(audio, 0.0, audio_sec) or ""
+    _texts, _times, _secs = asr_over_segments(eng, audio, sr, segs)
+    text = " ".join(t for t in _texts if t)
     if not text:
         out["error"] = "ASR 没产出文本"
         _dump(args.out, out)
@@ -399,7 +496,7 @@ def cmd_interference(args) -> int:
 
     # ── 串行基线 ────────────────────────────────────────────
     t0 = time.perf_counter()
-    eng.asr(audio, 0.0, audio_sec)
+    asr_over_segments(eng, audio, sr, segs)
     serial_asr = time.perf_counter() - t0
     t0 = time.perf_counter()
     pcm, speech = eng.tts(tgt, voice="A")
@@ -412,7 +509,7 @@ def cmd_interference(args) -> int:
 
     def _worker_asr():
         t = time.perf_counter()
-        eng.asr(audio, 0.0, audio_sec)
+        asr_over_segments(eng, audio, sr, segs)
         res["asr"] = time.perf_counter() - t
 
     def _worker_tts():
@@ -433,14 +530,15 @@ def cmd_interference(args) -> int:
 
     out["serial"] = {
         "asr_sec": round(serial_asr, 3),
-        "asr_rtf": round(serial_asr / audio_sec, 4),
+        "asr_rtf": round(serial_asr / fed_sec, 4) if fed_sec else None,
         "tts_sec": round(serial_tts, 3),
         "tts_rtf": round(serial_tts / speech, 4) if speech else None,
         "sum_sec": round(serial_asr + serial_tts, 3),
     }
     out["concurrent"] = {
         "asr_sec": round(res.get("asr", 0.0), 3),
-        "asr_rtf": round(res.get("asr", 0.0) / audio_sec, 4),
+        "asr_rtf": (round(res.get("asr", 0.0) / fed_sec, 4)
+                    if fed_sec else None),
         "tts_sec": round(res.get("tts", 0.0), 3),
         "tts_rtf": (round(res.get("tts", 0.0) / speech, 4)
                     if speech else None),

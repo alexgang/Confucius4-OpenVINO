@@ -1193,6 +1193,66 @@ def test_ext008_feed_backpressure() -> None:
               f"{fad2.get('n_frames_measured')}")
 
 
+def test_ext008_bench_segments_under_asr_limit() -> None:
+    """★ EXT-008 实测踩坑的**回归自测**：基准工具不得产出超 ASR 段长上限的段。
+
+    背景（2026-10-29 实测）：`tools/throughput_bench.py` 的 (a)(c) 原本把
+    5 分钟素材**整段**喂给 ASR ⇒ R2T2 直接报
+    「segment too long: 2432 > 2400 mel frames (≈24.3s)」⇒
+    **调用失败、RTF 数值完全无效**（却不会抛异常 ⇒ 静默拿到假数）。
+
+    ⇒ 现在 ASR 一律**逐段**跑（与生产同一套断句）。
+    ⇒ 本自测断言：
+      1. 分段助手产出的**每段都 ≤ 24.0 s**（留 0.3 s 余量）；
+      2. 段数 > 1（真的切了，不是整段）；
+      3. 段时长合计 ≈ 音频总长（不丢内容）；
+      4. 尾段 < 1 s 的丢弃规则生效；
+      5. **区分力**：喂一段**人为超长**的音频时，仍不得产出超限段
+         （否则断言可能恒真）。
+    """
+    print("\n[P1] EXT-008 — 基准分段不得超 ASR 段长上限（24.3 s）")
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    import throughput_bench as TB
+
+    ASR_LIMIT_SEC = 24.0   # R2T2 实测上限 24.3 s，留余量
+
+    # 用合成音频（不依赖外部素材，保证自测可重复）
+    sr = 16000
+    dur = 120.0
+    t = np.arange(int(dur * sr)) / float(sr)
+    audio = (0.2 * np.sin(2 * np.pi * 220.0 * t)).astype(np.float32)
+    segs = TB.plan_production_segments(audio, sr)
+    check("★ EXT-008：基准分段助手可用", isinstance(segs, list),
+          f"type={type(segs).__name__}")
+    check("★ EXT-008：确实切成了多段（不是整段）", len(segs) > 1,
+          f"n_segments={len(segs)}")
+    lens = [(s1 - s0) / float(sr) for (s0, s1) in segs]
+    over = [l for l in lens if l > ASR_LIMIT_SEC]
+    check("★ EXT-008：★ 没有段超过 ASR 段长上限（否则 RTF 全是假数）",
+          not over,
+          f"max={max(lens) if lens else None:.2f}s over={over}")
+    total = sum(lens)
+    check("★ EXT-008：段时长合计 ≈ 音频总长（不丢内容）",
+          abs(total - dur) < 2.0, f"total={total:.2f}s vs {dur}s")
+
+    # 区分力：喂**超长**音频（10 分钟）⇒ 仍不得产出超限段
+    dur2 = 600.0
+    t2 = np.arange(int(dur2 * sr)) / float(sr)
+    audio2 = (0.2 * np.sin(2 * np.pi * 220.0 * t2)).astype(np.float32)
+    segs2 = TB.plan_production_segments(audio2, sr)
+    lens2 = [(s1 - s0) / float(sr) for (s0, s1) in segs2]
+    over2 = [l for l in lens2 if l > ASR_LIMIT_SEC]
+    check("★ EXT-008 区分力：10 分钟素材也不产出超限段",
+          not over2 and len(segs2) > len(segs),
+          f"n={len(segs2)} max={max(lens2) if lens2 else None:.2f}s "
+          f"over={over2}")
+
+    # 尾段 < 1 s 的丢弃规则（与服务端 flush 同规则）
+    check("★ EXT-008：末段不是 <1 s 的碎片",
+          (not lens) or lens[-1] >= 1.0,
+          f"last={lens[-1] if lens else None}")
+
+
 def main() -> int:
     print("=" * 68)
     print("EXT P1 管线连通性自测（桩引擎 / 不跑推理 / 不占 GPU·NPU / 不抢锁）")
@@ -1206,7 +1266,8 @@ def main() -> int:
                test_orchestrator_margin_dump_path,
                test_client_waits_for_stats_not_sleep,
                test_ext008_lag_metrics,
-               test_ext008_feed_backpressure):
+               test_ext008_feed_backpressure,
+               test_ext008_bench_segments_under_asr_limit):
         try:
             fn()
         except Exception:
