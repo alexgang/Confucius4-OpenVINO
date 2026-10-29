@@ -1,0 +1,188 @@
+{
+  "ts": "2026-10-30 00:27:03",
+  "device": "NPU",
+  "duration": 300.0,
+  "speed": 1.0,
+  "translate": "zh",
+  "wall_s": 1118.9,
+  "rc": 0,
+  "cli_stat_line": "[TTS] 最终统计（close 后）：提交 76  播完 76  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 5.50s  积压 最大 17.00s",
+  "n_submitted": 76,
+  "n_played": 76,
+  "n_dropped": 0,
+  "n_restart": 0,
+  "n_dropped_jsonl": 0,
+  "n_err_jsonl": 0,
+  "first_packet_s": 0.43,
+  "max_backlog_s": 17.0,
+  "end_lag_s": 0.0,
+  "n_jsonl_rows": 76,
+  "app042": {
+    "n_telemetry": 76,
+    "lag_start_s": 20.282,
+    "lag_peak_s": 809.146,
+    "lag_end_s": 809.146,
+    "lag_peak_at_t_s": 745075.7487,
+    "lag_min_s": 20.282,
+    "lag_median_s": 470.57,
+    "speed_min": 1.1,
+    "speed_max": 1.3,
+    "speed_time_s": {
+      "1.1": 1.02,
+      "1.2": 0.96,
+      "1.3": 256.53
+    },
+    "speed_ratio": {
+      "1.1": 0.0039,
+      "1.2": 0.0037,
+      "1.3": 0.9923
+    },
+    "speed_n_sent": {
+      "1.1": 1,
+      "1.2": 1,
+      "1.3": 74
+    }
+  },
+  "clips": [
+    {
+      "jid": 1,
+      "speed": 1.2,
+      "lag_s": 21.046,
+      "out_dur_s": 0.96,
+      "path": "C:\\Users\\Trekker-PTL\\app042_soak\\clips_1p2_to_1p3\\clip_jid1_speed1.2.wav",
+      "bytes": 46124
+    },
+    {
+      "jid": 2,
+      "speed": 1.3,
+      "lag_s": 22.279,
+      "out_dur_s": 1.32,
+      "path": "C:\\Users\\Trekker-PTL\\app042_soak\\clips_1p2_to_1p3\\clip_jid2_speed1.3.wav",
+      "bytes": 63404
+    },
+    {
+      "jid": 3,
+      "speed": 1.3,
+      "lag_s": 32.497,
+      "out_dur_s": 4.02,
+      "path": "C:\\Users\\Trekker-PTL\\app042_soak\\clips_1p2_to_1p3\\clip_jid3_speed1.3.wav",
+      "bytes": 193002
+    }
+  ],
+  "checks": [
+    {
+      "id": "B1",
+      "name": "丢句数 = 0（CLI 统计行）",
+      "ok": true,
+      "got": 0,
+      "want": 0
+    },
+    {
+      "id": "B2",
+      "name": "逐句 jsonl dropped = 0（独立来源交叉验证）",
+      "ok": true,
+      "got": 0,
+      "want": 0
+    },
+    {
+      "id": "B3",
+      "name": "逐句 jsonl error = 0",
+      "ok": true,
+      "got": 0,
+      "want": 0
+    },
+    {
+      "id": "B4",
+      "name": "不变式 n_played + n_dropped == n_submitted",
+      "ok": true,
+      "got": 76,
+      "want": 76
+    },
+    {
+      "id": "B5",
+      "name": "「没有产出音频」= 0",
+      "ok": true,
+      "got": 0,
+      "want": 0
+    },
+    {
+      "id": "B6",
+      "name": "worker 重启 = 0",
+      "ok": true,
+      "got": [
+        0,
+        0
+      ],
+      "want": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "B7",
+      "name": "cap / runaway = 0",
+      "ok": true,
+      "got": [
+        0,
+        0
+      ],
+      "want": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "B8",
+      "name": "APP-042 遥测有 speed 字段（加速链路真的生效）",
+      "ok": true,
+      "got": 76,
+      "want": ">0"
+    },
+    {
+      "id": "B9",
+      "name": "APP-042 遥测有 play_lag_s（滞后口径可算）",
+      "ok": true,
+      "got": 76,
+      "want": ">0"
+    },
+    {
+      "id": "B10",
+      "name": "至少 1 句被加速（speed > 1.0）",
+      "ok": true,
+      "got": 1.3,
+      "want": ">1.0"
+    },
+    {
+      "id": "B11",
+      "name": "倍率不超上限 1.30",
+      "ok": true,
+      "got": 1.3,
+      "want": "<=1.30"
+    },
+    {
+      "id": "B12",
+      "name": "倍率不低于下限 1.0",
+      "ok": true,
+      "got": 1.1,
+      "want": ">=1.0"
+    },
+    {
+      "id": "B13",
+      "name": "已落盘 3 段 1.2–1.3× 配音（供用户抽听）",
+      "ok": true,
+      "got": 3,
+      "want": 3
+    }
+  ],
+  "pass_count": 13,
+  "fail_count": 0,
+  "artifacts": {
+    "wav": "C:\\Users\\Trekker-PTL\\app042_soak\\app042_soak.wav",
+    "jsonl": "C:\\Users\\Trekker-PTL\\app042_soak\\app042_soak.wav.tts.jsonl",
+    "lag_csv": "C:\\Users\\Trekker-PTL\\app042_soak\\app042_lag_curve.csv",
+    "speed_csv": "C:\\Users\\Trekker-PTL\\app042_soak\\app042_speed_distribution.csv",
+    "cli_log": "C:\\Users\\Trekker-PTL\\app042_soak\\app042_soak_cli.log",
+    "clip_dir": "C:\\Users\\Trekker-PTL\\app042_soak\\clips_1p2_to_1p3"
+  },
+  "note": "工程侧等价实测（CLI 回放 + NPU）；非 GUI / 非 CUDA / 非用户实听 / 非 MiniMax 回转写"
+}

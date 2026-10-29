@@ -180,6 +180,8 @@ _APP036_JSONL_KEYS = (
 _APP042_JSONL_KEYS = (
     'speed', 'in_dur_s', 'out_dur_s', 'speed_gain',
     'target_wall', 'play_wall', 'play_lag_s',
+    # 🔴🔴🔴 APP-042（§97 修复）：**定速时点的 lag**（≠ `play_lag_s`）
+    'speed_lag_s',
 )
 
 # 🔴🔴🔴 APP-037 C（reviewer 裁定）：**句首标点**的规范化集合。
@@ -1119,6 +1121,10 @@ class TTSWorker:
         self._last_clone_active = False
         self._last_clone_mode = None
         self._last_clone_audio_s = 0.0
+        # 🔴🔴🔴 APP-042：**worker 侧自适应加速的状态**
+        #   `_last_speed` = 上一句的倍率（供 `speed_for_lag` 的步长限制/滞回）
+        #   ⚠️ 单一合成线程 ⇒ **无需加锁**（只有这一个线程读写）。
+        self._last_speed = 1.0
         # 🔴🔴 APP-027⑤：**克隆临时文件**（wav）
         #   ⚠️ 只在 `tempfile.gettempdir()` 下 ⇒ **不在客户包目录**
         #   ⚠️ **会话结束即删除**（`_cleanup_clone_files`）
@@ -1130,6 +1136,18 @@ class TTSWorker:
         self._preset_embed = None      # 预设 A 的 x-vector (1, 1024)
         self._preset_name = None       # 预设 A 的 speaker 名（None = 用向量）
         self._preset_ref_path = None   # 预设 A 的参考 wav 路径（CUDA 后端）
+        # 🔴🔴🔴 APP-039/040：**按句绑定的说话人音色表**（只在内存里）
+        #   ⇒ spk -> {'vec': (1,1024) ndarray, 'ref_path': str|None}
+        #   ⚠️ **绝不落盘**（APP-039「说话人表只放内存，会话结束清空，不落盘」）。
+        #   ⚠️ **与 `_clone_embed` 的区别**：`_clone_embed` 是「**当前**全局音色」
+        #      （旧的滑动窗口路线的产物）⇒ 本表是「**按句**选音色」。
+        self._spk_voices = {}          # spk -> dict(vec=..., ref_path=...)
+        self._spk_voice_lock = threading.Lock()
+        # 🔴🔴🔴 APP-039/040：**本句实际用的音色来源**（逐句遥测）
+        #   'clone' = 用了该 spk 自己的克隆向量；'preset' = 用预设 A。
+        #   ⇒ reviewer 可直接核对「这句用的是哪个 spk 的音色」。
+        self._last_voice_spk = None
+        self._last_voice_kind = None
         # ── 落盘模式（--tts-out 回放测试）──
         self._timeline = []          # [(t_start_s, wav)]
         self._t0 = None
@@ -1608,6 +1626,17 @@ class TTSWorker:
         is_babelvox = self.engine is not None
         # 🔴 APP-022：记住本句的说话人（**只在本进程内存里**）
         self._last_spk, self._last_spk_conf = spk, spk_conf
+        # 🔴🔴🔴 APP-039/040：**按句绑定音色**（本句用「这句的 spk」的声音）
+        #   ⚠️ **必须在合成之前**切换 ⇒ 句内音色恒定（与「按句变速」同一纪律）。
+        #   ⚠️ **没有该 spk 的音色 ⇒ 回落预设 A**（不用别人冒充）。
+        #   ⚠️ **切换是一次性的** ⇒ 这里**不插值、不渐变、不平滑**。
+        #   ⚠️ `spk` 为 None（没有说话人标签）⇒ 用**当前全局音色**
+        #     （即旧的 `clone` 路线留下的）⇒ **旧行为逐字不变**。
+        if spk:
+            self._apply_spk_voice(spk)
+        else:
+            self._last_voice_spk = None
+            self._last_voice_kind = 'preset'
 
         if is_babelvox:
             # BabelVox 路线：音色由 speaker_embed / 内置 speaker 提供
@@ -1716,14 +1745,51 @@ class TTSWorker:
         prebuffer_short = False
         # 🔴🔴🔴 APP-042：主进程下发的**目标开播墙钟**（跨进程可比口径）
         _target_wall = target_wall
-        # 🔴🔴🔴 APP-042：本句的**自适应加速倍率**（主进程按 lag 算好）
+        # 🔴🔴🔴 APP-042：本句的**自适应加速倍率**
         #   ⚠️ **句内恒定**（APP-042「按句变速、句内不变」）⇒ 只在句首算一次。
         #   ⚠️ `speed == 1.0` ⇒ **完全不走变速路径**（逐位不变 ⇒ 零风险）。
-        _stretcher = None
+        #
+        # 🔴🔴🔴 **APP-042 真实缺陷修复（2026-10-29 §97 实测暴露）**：
+        #   **定速的「时点」原来错了** ⇒ 实测 76 句**全部** speed=1.0
+        #   ⇒ 加速链路**从未真正生效**（B13 FAIL）。
+        #
+        #   ⚠️ **reviewer APP-042 明文口径**：
+        #     「滞后 lag 定义为『这句的**实际开播时刻** − 这句的目标开播时刻』」
+        #   ⚠️ **旧实现（错）**：主进程在 `submit()`（**提交时刻**）算
+        #     `lag = now − target_play_at` ⇒ 那只含「翻译延迟」
+        #     （实测 2–3 s ⇒ 落在 3 s 死区里 ⇒ speed 恒 1.0）
+        #     ⇒ **worker 侧累积的滞后（实测出队时已 13–73 s）完全没被看见**
+        #   ⚠️ **新实现（对）**：**worker 出队时**算 lag
+        #     （`time.time() − target_wall`，墙钟 ⇒ 跨进程可比）
+        #     ⇒ 这才是「实际开播时刻」的**上界**（开播必在出队之后）
+        #     ⇒ 实测回放数据模拟：**75/76 句**落在 1.2–1.3×。
+        #
+        #   ⚠️ **保持向后兼容**：主进程仍会下发 `speed`（老逻辑照旧算出），
+        #     但 worker **自己重算**（有 `target_wall` 时）⇒ **以 worker 为准**。
+        #     ⇒ 老 worker（没这段代码）⇒ 仍用主进程下发的 `speed`（行为不变）。
+        _sp = None
         try:
             _sp = float(speed) if speed else 1.0
         except Exception:
             _sp = 1.0
+        _lag_at_dequeue = None
+        if _target_wall is not None:
+            try:
+                import time_stretch as _ts
+                _now_wall = time.time()
+                _lag_at_dequeue = round(_now_wall - float(_target_wall), 3)
+                # 🔴 步长限制需要「上一句的倍率」⇒ worker 侧自己维护
+                #   （单一合成线程 ⇒ 无需加锁）。
+                _prev_sp = float(self._last_speed or 1.0)
+                _sp = float(_ts.speed_for_lag(_lag_at_dequeue, _prev_sp))
+                self._last_speed = _sp
+                log('[tts_worker] APP-042 定速：出队 lag=%.3f s ⇒ speed=%.4f'
+                    % (_lag_at_dequeue, _sp))
+            except Exception as e:
+                _sp = float(speed) if speed else 1.0
+                log('[tts_worker] APP-042 worker 侧定速失败 ⇒ 用主进程下发值：%s'
+                    % e)
+        _stretcher = None
         if _sp > 1.0000001:
             try:
                 import time_stretch as _ts
@@ -2135,6 +2201,12 @@ class TTSWorker:
         #   `target_wall`  主进程下发的**目标开播墙钟**（跨进程可比）
         #   `play_lag_s`   **实际开播**墙钟 − 目标开播墙钟（APP-042 的 lag）
         tel['speed'] = round(float(_sp), 4)
+        # 🔴🔴🔴 APP-042（§97 修复）：**定速时点的 lag**（可观测性）
+        #   ⚠️ 这是**定速用的 lag**（worker 出队时刻）⇒ 与 `play_lag_s`
+        #     （实际开播时刻）**不是同一个数**（开播更晚 ⇒ lag 更大）。
+        #   ⇒ 验收必须能区分这两个口径 ⇒ 否则会把「出队时定速」误判成「没加速」。
+        tel['speed_lag_s'] = (_lag_at_dequeue
+                             if _lag_at_dequeue is not None else None)
         tel['in_dur_s'] = round(dur, 3)
         _out_dur = _out_samples / float(self.sr if self.sr else SR)
         tel['out_dur_s'] = round(_out_dur, 3)
@@ -3272,6 +3344,26 @@ class TTSWorker:
                     self._update_clone(pcm)
                 except Exception as e:
                     log(f'[tts_worker] 克隆更新失败：{e}')
+            elif cmd == 'spk_voice':
+                # 🔴🔴🔴 APP-039/040：**登记某个 spk 的音色**（按句绑定用）
+                #   ⇒ 主进程算好这个 spk 的 x-vector（用它**自己**的干净语音）
+                #     ⇒ 发给 worker 存起来 ⇒ 后续**按句**选用。
+                #   ⚠️ **与 `clone` 的区别**：`clone` 改的是「**当前全局**音色」
+                #     （旧滑动窗口路线）⇒ 本命令**不**改全局音色
+                #     ⇒ 只往「spk → 音色」表里加一条 ⇒ **切换是一次性的**。
+                #   ⚠️ **不落盘**（只在本进程内存里）。
+                try:
+                    self._register_spk_voice(msg)
+                except Exception as e:
+                    log(f'[tts_worker] 说话人音色登记失败：{e}')
+            elif cmd == 'spk_voice_drop':
+                # 🔴 APP-039：**会话结束清空**说话人音色表（隐私）
+                try:
+                    with self._spk_voice_lock:
+                        self._spk_voices.clear()
+                    log('[tts_worker] 说话人音色表已清空（会话结束）')
+                except Exception as e:
+                    log(f'[tts_worker] 清空说话人音色表失败：{e}')
             elif cmd == 'test_tone':
                 # 🔴 APP-021④：**测试声音**（1 s 440 Hz 正弦波，走同一个 Player）
                 #   ⇒ 把「播放链路」与「TTS 合成」彻底拆开：
@@ -3461,6 +3553,146 @@ class TTSWorker:
 
         log('[tts_worker] ⚠️ 没有可用引擎 ⇒ 克隆无法生效（仍用预设 A）')
         return False
+
+    def _register_spk_voice(self, msg):
+        """🔴🔴🔴 APP-039/040：**登记「某个 spk 的音色」**（按句绑定用）。
+
+        ## 命令体
+
+        ```json
+        {"cmd": "spk_voice", "spk": "S2", "pcm": "<base64 float32 16k>"}
+        ```
+
+        🔴 **只接受 PCM**（不直接传向量）⇒ 向量由 **worker 自己的
+        speaker encoder** 算 ⇒ **保证是「TTS 自己的 x-vector」**
+        （ASR-026/§50 铁律：wespeaker 的向量只用于 ASR 内部聚类）。
+        ⇒ **主进程不必也不应该把 ASR 的嵌入向量传过来**。
+
+        🔴 **不落盘**：算完只存在 `self._spk_voices`（内存）⇒
+        会话结束由 `spk_voice_drop` 清空。
+
+        ⚠️ **失败不静默**：算不出来 ⇒ 记日志 + **不改**该 spk 的既有音色
+        ⇒ 后续该 spk 的句子回落预设 A（**不用别人冒充**）。
+        """
+        import numpy as np
+
+        spk = str(msg.get('spk') or '').strip()
+        if not spk:
+            log('[tts_worker] 🔴 spk_voice 命令缺少 spk ⇒ 忽略')
+            return False
+        try:
+            import base64
+            pcm = np.frombuffer(base64.b64decode(msg.get('pcm', '')),
+                                dtype=np.float32)
+        except Exception as e:
+            log(f'[tts_worker] 🔴 spk_voice 的 PCM 解码失败（{e}）⇒ 忽略')
+            return False
+        if pcm.size < 16000:      # 至少 0.1 s
+            log('[tts_worker] 🔴 spk_voice 的 PCM 太短 ⇒ 忽略')
+            return False
+
+        eng = self.engine
+        if eng is None:
+            log('[tts_worker] 🔴 没有可用引擎 ⇒ spk 音色登记失败')
+            return False
+
+        # ── BabelVox 路线：x-vector ────────────────────────────
+        if not getattr(eng, 'USES_REF_AUDIO', False):
+            try:
+                import tts_engine
+                tmp = self._clone_tmp_wav(pcm)
+                try:
+                    vec = tts_engine.speaker_embedding(eng, tmp, on_log=log)
+                finally:
+                    self._safe_unlink(tmp)
+                if vec is None:
+                    raise RuntimeError('speaker_embedding 返回 None')
+                with self._spk_voice_lock:
+                    self._spk_voices[spk] = dict(vec=vec, ref_path=None)
+                log(f'[tts_worker] ✅ 说话人 {spk} 的音色已登记'
+                    f'（x-vector，{pcm.size / 16000.0:.1f} s）')
+                emit({'kind': 'spk_voice', 'spk': spk, 'ok': True,
+                      'dur_s': round(pcm.size / 16000.0, 2)})
+                return True
+            except Exception as e:
+                log(f'[tts_worker] 🔴 说话人 {spk} 的音色登记失败：{e}')
+                emit({'kind': 'spk_voice', 'spk': spk, 'ok': False,
+                      'message': str(e)})
+                return False
+
+        # ── CUDA 边车路线：参考音频路径 ─────────────────────────
+        try:
+            tmp = self._clone_tmp_wav(pcm)
+            with self._spk_voice_lock:
+                old = self._spk_voices.get(spk)
+                self._spk_voices[spk] = dict(vec=None, ref_path=tmp)
+            if old and old.get('ref_path') and old['ref_path'] != tmp:
+                self._safe_unlink(old['ref_path'])
+                try:
+                    self._clone_tmp_paths.remove(old['ref_path'])
+                except ValueError:
+                    pass
+            log(f'[tts_worker] ✅ 说话人 {spk} 的音色已登记'
+                f'（ref_audio，{pcm.size / 16000.0:.1f} s）')
+            emit({'kind': 'spk_voice', 'spk': spk, 'ok': True,
+                  'dur_s': round(pcm.size / 16000.0, 2)})
+            return True
+        except Exception as e:
+            log(f'[tts_worker] 🔴 说话人 {spk} 的音色登记失败：{e}')
+            emit({'kind': 'spk_voice', 'spk': spk, 'ok': False,
+                  'message': str(e)})
+            return False
+
+    def _apply_spk_voice(self, spk):
+        """🔴🔴🔴 APP-039/040：**把本句的音色切成「这句的 spk」**。
+
+        🔴 **切换是一次性的**（APP-039「切换是一次性的：spk 变了，下一句直接用
+        新说话人的向量，不插值、不渐变」）⇒ 这里**直接换**，
+        **没有任何平滑 / 插值 / EMA**。
+
+        ⚠️ **该 spk 没有登记音色** ⇒ 回落**预设 A**
+        ⇒ **绝不用上一个人的声音冒充新的人**（APP-040②）。
+
+        返回：实际使用的音色来源（`'clone'` / `'preset'`）。
+        """
+        if not spk:
+            self._last_voice_spk = None
+            self._last_voice_kind = 'preset'
+            return 'preset'
+        with self._spk_voice_lock:
+            row = self._spk_voices.get(str(spk))
+        if row is None:
+            # 🔴 没有这个 spk 的音色 ⇒ 预设 A（**不冒充**）
+            self._last_voice_spk = None
+            self._last_voice_kind = 'preset'
+            self.speaker_embed = self._preset_embed
+            self.speaker_name = self._preset_name
+            return 'preset'
+        vec = row.get('vec')
+        ref = row.get('ref_path')
+        eng = self.engine
+        if eng is not None and getattr(eng, 'USES_REF_AUDIO', False):
+            if not ref:
+                self._last_voice_spk = None
+                self._last_voice_kind = 'preset'
+                return 'preset'
+            try:
+                eng.set_ref_audio(ref)
+            except Exception as e:
+                log(f'[tts_worker] 🔴 切换到 {spk} 的参考音频失败：{e}')
+                self._last_voice_spk = None
+                self._last_voice_kind = 'preset'
+                return 'preset'
+        else:
+            if vec is None:
+                self._last_voice_spk = None
+                self._last_voice_kind = 'preset'
+                return 'preset'
+            self.speaker_embed = vec
+            self.speaker_name = None
+        self._last_voice_spk = str(spk)
+        self._last_voice_kind = 'clone'
+        return 'clone'
 
     def _fallback_to_preset(self, why: str = ''):
         """🔴🔴🔴 APP-027⑤：**显式回落预设 A**（克隆失败时）。

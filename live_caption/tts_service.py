@@ -1002,6 +1002,14 @@ class TTSService:
         #       ⇒ 跨进程可比）。⚠️ 目标时刻由调用方按同一口径给出。
         #   ⚠️ `speed_for_lag` 是纯函数 ⇒ 无副作用 ⇒ 锁外算安全；
         #      但 `prev_speed` 的更新要**加锁**（并发提交时不能丢更新）。
+        #
+        # 🔴🔴🔴 **§97 实测修正（重要）**：这里的 `lag` **不是** APP-042
+        #   定义的 lag（那是「实际开播 − 目标」⇒ **只有 worker 知道**）。
+        #   本处算的是「**提交时刻** − 目标」⇒ 只含**翻译延迟**
+        #   （实测 2–3 s ⇒ 恒在 3 s 死区内 ⇒ speed 恒 1.0）。
+        #   ⇒ **权威定速已移到 worker 出队时**（见 `tts_worker.synth()`）。
+        #   ⇒ 本处**保留**下发，仅为**向后兼容老 worker**（无新代码时行为不变）。
+        #   ⇒ `cmd['lag_s']` 保留旧值语义（提交时刻滞后）⇒ 不改旧字段口径。
         if target_play_at is not None:
             try:
                 import time_stretch as _ts
@@ -1804,6 +1812,43 @@ class TTSService:
             return self._send({'cmd': 'clone', 'pcm': b64})
         except Exception as e:
             self.on_log(f'[TTS] 克隆音色更新失败：{e}')
+            return False
+
+    # 🔴🔴🔴 APP-039/040：**登记某个 spk 的音色**（按句绑定用）。
+    def register_spk_voice(self, spk: str, pcm) -> bool:
+        """把「某个 spk 的干净语音」发给 worker ⇒ 登记该 spk 的音色。
+
+        🔴🔴🔴 **与 `set_clone_pcm()` 的区别**（这是 APP-039 的核心）：
+        - `set_clone_pcm()` 改的是「**当前全局**音色」⇒ 旧的滑动窗口路线
+          ⇒ 每 30 s 重算 ⇒ **渐变 + 滞后 + 一直采样**（用户报的三宗罪）。
+        - 本方法**只往「spk → 音色」表里加一条** ⇒ **不改全局音色**
+          ⇒ 后续**按句**选用 ⇒ **切换是一次性的、不渐变**。
+
+        🔴 **隐私**：PCM 只在进程间传输（base64）⇒ **不落盘**；
+        worker 侧算出的向量只在**进程内存**里 ⇒ 会话结束清空。
+        🔴 **失败不抛异常**：返回 False ⇒ 调用方回落预设 A。
+        """
+        if not spk:
+            return False
+        try:
+            import base64
+            import numpy as np
+            a = np.asarray(pcm, dtype=np.float32).reshape(-1)
+            if a.size < 16000 * 1:      # 至少 0.1 s
+                return False
+            b64 = base64.b64encode(a.tobytes()).decode('ascii')
+            return self._send({'cmd': 'spk_voice', 'spk': str(spk),
+                               'pcm': b64})
+        except Exception as e:
+            self.on_log(f'[TTS] 说话人音色登记失败：{e}')
+            return False
+
+    def clear_spk_voices(self) -> bool:
+        """🔴 APP-039：**会话结束清空**说话人音色表（隐私纪律）。"""
+        try:
+            return self._send({'cmd': 'spk_voice_drop'})
+        except Exception as e:
+            self.on_log(f'[TTS] 清空说话人音色表失败：{e}')
             return False
 
     def _emit(self, kind, payload):

@@ -84,6 +84,9 @@ import caption_render
 #   ⇒ GUI 与 CLI **共用同一份实现**（避免逻辑漂移 ⇒ 假证据）。
 #   ⇒ 旧常量 `_CLONE_*` 改为从这里 import（**值逐字不变**）。
 import clone_collector
+# 🔴🔴🔴 APP-039/040：说话人旁路（ASR-029 接口桥接）+ 说话人音色表
+import speaker_tracker
+import speaker_voice
 
 # 🔴 **草稿译文缓存上限**（APP-015）：草稿每 ~1.5 s 一条 ⇒ 4 小时 ≈ 9 600 条
 #    ⇒ 不设上限会无界增长（与 `translator.py` 的 `CACHE_MAX` 同一口径）。
@@ -1704,7 +1707,8 @@ class Session:
     麦克风 / 系统声音（WASAPI loopback）/ 音频文件三选一。
     """
 
-    def __init__(self, engine, source, on_final=None, on_audio=None):
+    def __init__(self, engine, source, on_final=None, on_audio=None,
+                 on_audio_span=None):
         self.engine = engine
         self.src = source
         # 必须复用音源自己的队列：音源是在外面构造的，它往自己的队列里送数据。
@@ -1715,6 +1719,12 @@ class Session:
         #   ⇒ 主进程用它采集**克隆源语音**（最近 3–10 s，去静音）
         #   ⇒ ⚠️ **不改变现有行为**：默认 None ⇒ 什么都不做。
         self.on_audio = on_audio
+        # 🔴🔴🔴 APP-039/040：**带时间轴的音频回调**
+        #   ⇒ `on_audio_span(pcm, t_start, t_end)`：给「说话人旁路」用
+        #     （ASR 的 `SpeakerTracker.feed(pcm, t_end)` 需要**块结束时刻**
+        #     才能把缓冲对齐到全局时间轴 ⇒ `on_final` 的 `t_start/t_end` 才对得上）。
+        #   ⚠️ **默认 None ⇒ 行为与改造前逐字一致**。
+        self.on_audio_span = on_audio_span
         self.audio_s = 0.0
         self.running = False
         self.error = None
@@ -1749,6 +1759,12 @@ class Session:
                     break
                 pcm, t_cap = item
                 pcm = resample_to_16k(pcm, self.src.src_sr)
+                # 🔴🔴🔴 APP-039/040：**先算这一块的全局时间区间**
+                #   ⇒ ASR 旁路的 `feed(pcm, t_end)` 需要**块结束时刻**
+                #     ⇒ `on_final(t_start, t_end)` 才能对上全局时间轴。
+                #   ⚠️ `self.audio_s` 是「已消费秒数」⇒ 换算成
+                #     `[audio_s - 本块时长, audio_s]`。
+                _chunk_start = self.audio_s
                 self.audio_s += len(pcm) / SR
                 # 🔴🔴🔴 APP-027⑤：**把原始 16 kHz PCM 交给克隆采集器**
                 #   ⚠️ 在 `engine.feed()` **之前**调用 ⇒ 采集到的就是
@@ -1756,6 +1772,13 @@ class Session:
                 if self.on_audio is not None:
                     try:
                         self.on_audio(pcm)
+                    except Exception:
+                        pass
+                # 🔴🔴🔴 APP-039/040：**带时间轴的音频回调**（说话人旁路）
+                #   ⚠️ 默认 None ⇒ **零开销、行为逐字不变**。
+                if self.on_audio_span is not None:
+                    try:
+                        self.on_audio_span(pcm, _chunk_start, self.audio_s)
                     except Exception:
                         pass
                 final = self.engine.feed(pcm, t_cap)
@@ -2022,6 +2045,34 @@ class App:
         self._spk_table = {}
         # 🔴 APP-022：ASR 侧送来的说话人信息（**当前恒为 None**）
         self._spk_by_seg = {}
+        # 🔴🔴🔴 APP-039/040：**说话人旁路桥接器**（ASR-029 接口）
+        #   ⇒ ASR 侧判断「这句是谁说的」+ 给出**干净单人区间**；
+        #   ⇒ **本模块不做任何声纹计算**（只转交 spk 与 clean_ranges）。
+        #   ⚠️ **降级友好**：ASR 模块不在 ⇒ `available=False`
+        #     ⇒ 字幕无说话人标签 ⇒ **行为与改造前逐字一致**。
+        self._spk_bridge = speaker_tracker.SpeakerBridge(
+            on_log=lambda m: self._ui_log(f'[spk] {m}'))
+        # 🔴🔴🔴 APP-039/040：**说话人 → 音色**表（**只在内存里**，绝不落盘）
+        #   ⇒ 「音色按句绑定」的核心状态；
+        #   ⇒ **只在 `is_new_spk` 时取样一次**（不渐变、不滞后、不一直采样）。
+        self._spk_voices = speaker_voice.SpeakerVoiceTable(
+            on_event=lambda k, p: self._ui_log(f'[spk] {k} {p}'))
+        # 🔴🔴🔴 APP-039/040：**原始 PCM 环形缓冲**（16 kHz）
+        #   ⇒ 用途：从 ASR 给的 `clean_ranges` 里**切出该 spk 自己的语音**
+        #     ⇒ 交给 worker 提 x-vector。
+        #   ⚠️ **有界**（最多 30 s）⇒ 长会话不无界增长。
+        self._spk_pcm_buf = np.zeros(0, dtype=np.float32)
+        self._spk_pcm_lock = threading.Lock()
+        # 🔴 APP-039/040：**主进程侧**的「每段时间区间」（App 自己的切段口径）
+        #   ⇒ 交给 ASR 旁路做说话人判定。
+        self._seg_span = {}
+        # 🔴🔴🔴 APP-039/040：**等待提 x-vector 的新 spk**（队列）
+        #   ⇒ 只有 `is_new_spk=True` 的说话人才进这里 ⇒ **声纹计算次数极少**
+        #     （APP-039「没有新 spk 时不做任何声纹计算」）。
+        self._spk_pending_embed = []
+        # 🔴🔴🔴 APP-039/040：**已消费的源音频秒数**（最新值）
+        #   ⇒ `_on_final` 里给 ASR 旁路一个「这段时间区间」的近似。
+        self._seg_audio_end = 0.0
         # 🔴🔴🔴 APP-027⑤：**克隆采集器**（主进程侧）
         #   ⇒ 从 ASR 输入的 16 kHz PCM 里挑出**有语音**的片段
         #   ⇒ 每 30 s 或累计 ≥ 6 s 新语音时，把最近 3–10 s 语音发给 worker
@@ -2879,7 +2930,11 @@ class App:
             self.var_status.set('音频源错误')
             return
         self.session = Session(self.engine, src, on_final=self._on_final,
-                               on_audio=self._collect_clone_pcm)
+                               on_audio=self._collect_clone_pcm,
+                               # 🔴🔴🔴 APP-039/040：**喂说话人旁路**
+                               #   ⇒ ASR 侧判断「这句是谁说的」
+                               #   ⚠️ **降级友好**：旁路不可用 ⇒ 内部安静降级。
+                               on_audio_span=self._on_audio_span)
         # 🔴🔴🔴 APP-042：**会话起点墙钟**（目标开播时刻的基准）
         #   ⚠️ 用 `time.time()`（墙钟）⇒ 与 worker 进程**跨进程可比**。
         self._session_wall0 = time.time()
@@ -3484,6 +3539,14 @@ class App:
                         #     `self.mt.target` ⇒ 会话中途改下拉立即生效。
                         self.tts.submit(ev['txt'], seg=ev['seg'],
                                         lang=self._cur_mt_target(),
+                                        # 🔴🔴🔴 APP-039/040：**按句绑定音色**
+                                        #   ⇒ 这一句该用**谁的**声音，
+                                        #     与合成时刻无关（APP-039 核心）。
+                                        #   ⚠️ 该 spk 还没有可用音色 ⇒ `''`
+                                        #     ⇒ worker 用**预设 A**
+                                        #     ⇒ **绝不用上一个人的声音冒充**。
+                                        spk=(self._spk_voices.voice_for_sentence(
+                                            ev['seg']) or None),
                                         # 🔴🔴🔴 APP-042：**目标开播墙钟**
                                         #   ⇒ 服务端据此算 lag 与加速倍率。
                                         #   ⚠️ 查不到 ⇒ None ⇒ 服务端不下发
@@ -3652,11 +3715,114 @@ class App:
         """定稿段的译文（按段序号查）。"""
         return self.mt.mt_of_seg(seg)
 
+    # 🔴🔴🔴 APP-039/040：**说话人旁路的音频入口**（16 kHz PCM + 时间轴）
+    def _on_audio_span(self, pcm, t_start: float, t_end: float):
+        """🔴🔴🔴 APP-039/040：**喂 ASR 旁路 + 维护 PCM 环形缓冲**。
+
+        由 `Session._loop` 在**会话线程**里调用。
+
+        🔴 **两件事**：
+        1. 把 PCM 喂给 ASR 的 `SpeakerTracker`（它要**块结束时刻**才能对齐时间轴）
+        2. 把 PCM 追加进**有界环形缓冲**（供 `clean_ranges` 切样）
+
+        ⚠️ **降级友好**：旁路不可用 ⇒ 只维护缓冲（不崩）。
+        ⚠️ **线程**：只碰带锁的状态 ⇒ 不碰 Tk 对象。
+        """
+        self._seg_audio_end = float(t_end)
+        # ── ① PCM 环形缓冲（有界 30 s）──
+        try:
+            a = np.asarray(pcm, dtype=np.float32).reshape(-1)
+            if a.size:
+                with self._spk_pcm_lock:
+                    self._spk_pcm_buf = np.concatenate(
+                        (self._spk_pcm_buf, a))[-int(30.0 * SR):]
+        except Exception:
+            pass
+        # ── ② 喂 ASR 旁路 ──
+        if self._spk_bridge is not None:
+            try:
+                self._spk_bridge.feed(pcm, t_end)
+            except Exception:
+                pass
+
+    # 🔴🔴🔴 APP-039/040：**取样 + 提 x-vector + 按句提交**
+    def _pump_spk_voices(self):
+        """🔴🔴🔴 APP-039/040：**给新 spk 取样并登记音色**。
+
+        🔴 **取样策略**（APP-040②）：
+        - ≥ `MIN_S`(1.5 s) ⇒ 立刻用 ⇒ 标记 `clone`
+        - ≥ `REFINE_S`(3.0 s) ⇒ 用**这个人自己的段**重算一次 ⇒ 之后不再更新
+
+        🔴 **不变量**：
+        - 取样区间**只含该 spk 自己的** `clean_ranges` ⇒ **不混入别人**
+        - 声纹计算次数 ≈ 说话人数 × 1–2 次
+        - 声纹**只在内存里**（worker 侧）⇒ 会话结束清空
+        """
+        if self.tts is None or not getattr(self.tts, 'active', False):
+            return
+        pending = list(self._spk_pending_embed)
+        if not pending:
+            return
+        for seg, spk in pending:
+            try:
+                if not self._spk_voices.has_voice(spk):
+                    # ── 先看能不能取到「该 spk 自己的干净语音」──
+                    pcm = self._spk_pcm_for(spk, seg)
+                    if pcm is None or pcm.size < int(speaker_voice.MIN_S * SR):
+                        continue          # 还不够 ⇒ **等下一段**（不阻塞）
+                    ok = self.tts.register_spk_voice(spk, pcm)
+                    if not ok:
+                        self._spk_voices.mark_fallback(spk, 'register_failed')
+                        self._spk_pending_embed = [
+                            (s, k) for (s, k) in self._spk_pending_embed
+                            if k != spk]
+                        continue
+                    self._spk_voices.mark_embedded(spk, refined=False)
+                    self._spk_pending_embed = [
+                        (s, k) for (s, k) in self._spk_pending_embed
+                        if k != spk]
+                    self._ui_log('[spk] %s 已登记音色（≥%.1f s 干净语音）'
+                                 % (spk, speaker_voice.MIN_S))
+                else:
+                    # ── 已登记：够 `REFINE_S` 就用**自己的段**重算一次 ──
+                    if self._spk_voices.ready_to_embed(spk):
+                        pcm = self._spk_pcm_for(spk, seg)
+                        if pcm is not None and \
+                                pcm.size >= int(speaker_voice.REFINE_S * SR):
+                            if self.tts.register_spk_voice(spk, pcm):
+                                self._spk_voices.mark_embedded(spk,
+                                                                refined=True)
+                                self._spk_pending_embed = [
+                                    (s, k) for (s, k)
+                                    in self._spk_pending_embed if k != spk]
+                                self._ui_log('[spk] %s 音色已细化'
+                                             % spk)
+            except Exception as e:
+                self._ui_log('[spk] 取样失败（忽略）：%s' % e)
+
+    def _spk_pcm_for(self, spk: str, seg: int):
+        """🔴 按 `clean_ranges` 切出**该 spk 自己的**干净 PCM。
+
+        ⚠️ **区间只含该 spk** ⇒ 结构性保证「不渐变、不混入别人」。
+        """
+        try:
+            with self._spk_pcm_lock:
+                buf = self._spk_pcm_buf
+            rngs = self._spk_voices.clean_ranges_of(spk)
+            if not rngs:
+                return None
+            return self._spk_bridge.pcm_for_ranges(rngs, keep=buf, max_s=10.0)
+        except Exception:
+            return None
+
     def _on_final(self, text, spk=None, spk_conf=None):
         """定稿段入库（🔴🔴 APP-022：`spk` / `spk_conf` **接口预留**）。
 
         ⚠️ **当前 ASR 侧只回纯字符串** ⇒ `spk` 恒为 None
         ⇒ **行为与改造前逐位一致**。
+
+        🔴🔴🔴 **APP-039/040（§97 接线）**：若 ASR 旁路可用 ⇒
+        在这里问「这句是谁说的」，并把结果**按句绑定**到音色表。
         """
         self.final_text += text + '\n'
         self.blocks.append(text)
@@ -3667,6 +3833,33 @@ class App:
             self._spk_table.setdefault(spk, {'conf': spk_conf, 'vec': None})
         # 🔴🔴🔴 APP-042：登记目标开播墙钟（供自适应加速追赶滞后）
         self._seg_target_wall[seg] = self._target_play_wall()
+        # 🔴🔴🔴 APP-039/040：问 ASR 旁路「这句是谁说的」
+        #   ⚠️ **降级友好**：旁路不可用 ⇒ 返回 `spk=None` ⇒ 行为不变。
+        #   ⚠️ **不等**（ASR-029 方案 A）：`pending=True` ⇒ 不阻塞。
+        if self._spk_bridge is not None:
+            try:
+                _t0, _t1 = self._seg_span.get(seg, (None, None))
+                if _t0 is None:
+                    _t0 = float(self._seg_audio_end)
+                    _t1 = _t0
+                _res = self._spk_bridge.on_final(seg, _t0, _t1)
+                _spk2 = _res.get('spk')
+                if _spk2:
+                    spk = _spk2
+                    spk_conf = _res.get('spk_conf', spk_conf)
+                    self._spk_by_seg[seg] = (spk, spk_conf)
+                    self._spk_table.setdefault(spk, {'conf': spk_conf,
+                                                    'vec': None})
+                # 🔴 **按句绑定**（与合成时刻无关 ⇒ APP-039 核心）
+                #   ⇒ 这一步**不做任何声纹计算**。
+                _is_new = self._spk_voices.note_final(
+                    seg, spk, _res.get('clean_ranges'))
+                # 🔴 APP-039/040：**新 spk 才取样**
+                #   ⇒ 老 spk 直接用缓存（不重算）⇒ 声纹计算次数极少。
+                if _is_new:
+                    self._spk_pending_embed.append((seg, spk))
+            except Exception as e:
+                self._ui_log('[spk] 定稿旁路异常（忽略）：%s' % e)
         self.mt.submit(text, seg=seg, spk=spk, spk_conf=spk_conf)
 
     def _target_play_wall(self):
@@ -3695,6 +3888,32 @@ class App:
         #   （隐私纪律：x-vector 只在内存里 ⇒ 必须在这里丢弃）
         self._spk_table.clear()
         self._spk_by_seg.clear()
+        # 🔴🔴🔴 APP-039/040：**清空说话人音色表**（隐私纪律）
+        #   ⇒ 主进程侧（PCM + 绑定表）+ worker 侧（x-vector）**两边都清**
+        #   ⇒ **绝不落盘** ⇒ 会话结束就没有声纹残留。
+        try:
+            self._spk_voices.reset()
+        except Exception:
+            pass
+        try:
+            self._spk_bridge.reset()
+        except Exception:
+            pass
+        try:
+            if self.tts is not None and getattr(self.tts, 'active', False):
+                self.tts.clear_spk_voices()
+        except Exception:
+            pass
+        try:
+            with self._spk_pcm_lock:
+                self._spk_pcm_buf = np.zeros(0, dtype=np.float32)
+        except Exception:
+            pass
+        try:
+            self._spk_pending_embed = []
+            self._seg_span.clear()
+        except Exception:
+            pass
         self._render('')
 
     def _reset_mt_session(self):
@@ -4008,6 +4227,9 @@ class App:
         #   （ASR 就绪 + MT 就绪/失败之后 ⇒ 起 TTS；**只调用一次**）
         self._maybe_startup_tts()
         self._pump_tts()              # ← 把定稿译文提交给 TTS（GUI 侧链路）
+        # 🔴🔴🔴 APP-039/040：**给新 spk 取样 + 登记音色**
+        #   ⇒ 只在有新 spk 时才做事（老 spk 直接用缓存）⇒ 声纹计算次数极少。
+        self._pump_spk_voices()
         s, e = self.session, self.engine
         if s:
             if s.error:
@@ -4342,6 +4564,87 @@ def run_cli(args):
     _seg_target_wall = {}   # 段号 → 目标开播墙钟
     s = None                # 供下面的闭包在 `Session` 建好后引用
 
+    # 🔴🔴🔴 APP-039/040（§97 接线）：**CLI 侧**的说话人旁路 + 音色表
+    #   ⚠️ **降级友好**：ASR 模块不在 ⇒ `available=False`
+    #     ⇒ 无说话人标签 ⇒ **CLI 行为与改造前逐字一致**。
+    #   ⚠️ **与 GUI 同一份实现**（`speaker_tracker` / `speaker_voice`）
+    #     ⇒ 避免逻辑漂移 ⇒ 假证据。
+    _spk_bridge = speaker_tracker.SpeakerBridge(
+        on_log=lambda m: print(f'  [spk] {m}', flush=True))
+    _spk_voices = speaker_voice.SpeakerVoiceTable(
+        on_event=lambda k, p: print(f'  [spk] {k} {p}', flush=True))
+    _spk_pcm_buf = np.zeros(0, dtype=np.float32)
+    _spk_pcm_lock = threading.Lock()
+    _spk_pending_embed = []
+    _spk_audio_end = [0.0]          # [0] = 已消费秒数（闭包内可变）
+
+    def _cli_on_audio_span(pcm, t_start, t_end):
+        """🔴 APP-039/040：喂 ASR 旁路 + 维护 PCM 环形缓冲（有界 30 s）。"""
+        # 🔴🔴🔴 §97 **修真实缺陷**：本函数**重绑**了 `_spk_pcm_buf`
+        #   ⇒ Python 静态判定它是**本函数的局部变量** ⇒ 读取时未赋值
+        #   ⇒ `UnboundLocalError` ⇒ 但被下面的 `except Exception: pass`
+        #     **静默吞掉** ⇒ PCM 环形缓冲**永远为空** ⇒ 取样永远失败
+        #     ⇒ 音色永远登记不上 ⇒ APP-039/040 在 CLI 路径**完全失效**
+        #   ⇒ **必须显式 `nonlocal`**（`self.` 属性版 GUI 侧无此问题）。
+        nonlocal _spk_pcm_buf
+        _spk_audio_end[0] = float(t_end)
+        try:
+            a = np.asarray(pcm, dtype=np.float32).reshape(-1)
+            if a.size:
+                with _spk_pcm_lock:
+                    _spk_pcm_buf = np.concatenate(
+                        (_spk_pcm_buf, a))[-int(30.0 * SR):]
+        except Exception:
+            pass
+        try:
+            _spk_bridge.feed(pcm, t_end)
+        except Exception:
+            pass
+
+    def _cli_pump_spk_voices():
+        """🔴 APP-039/040：给新 spk 取样 + 登记音色（只在新 spk 时做事）。"""
+        # 🔴🔴🔴 §97 **修真实缺陷**：本函数**重绑**了 `_spk_pending_embed`
+        #   ⇒ Python 静态判定它是**本函数的局部变量** ⇒ 第 4601 行
+        #     `for seg, spk in list(_spk_pending_embed)` 读取时**未赋值**
+        #   ⇒ `UnboundLocalError` ⇒ **CLI 启动即崩**（run4 实测死因）。
+        #   ⇒ **必须显式 `nonlocal`**。
+        nonlocal _spk_pending_embed
+        if tts is None or not getattr(tts, 'active', False):
+            return
+        for seg, spk in list(_spk_pending_embed):
+            try:
+                if not _spk_voices.has_voice(spk):
+                    rngs = _spk_voices.clean_ranges_of(spk)
+                    with _spk_pcm_lock:
+                        buf = _spk_pcm_buf
+                    pcm = _spk_bridge.pcm_for_ranges(rngs, keep=buf, max_s=10.0)
+                    if pcm is None or pcm.size < int(speaker_voice.MIN_S * SR):
+                        continue
+                    if not tts.register_spk_voice(spk, pcm):
+                        _spk_voices.mark_fallback(spk, 'register_failed')
+                        _spk_pending_embed = [
+                            (x, k) for (x, k) in _spk_pending_embed if k != spk]
+                        continue
+                    _spk_voices.mark_embedded(spk, refined=False)
+                    _spk_pending_embed = [
+                        (x, k) for (x, k) in _spk_pending_embed if k != spk]
+                    print(f'  [spk] {spk} 已登记音色', flush=True)
+                elif _spk_voices.ready_to_embed(spk):
+                    rngs = _spk_voices.clean_ranges_of(spk)
+                    with _spk_pcm_lock:
+                        buf = _spk_pcm_buf
+                    pcm = _spk_bridge.pcm_for_ranges(rngs, keep=buf, max_s=10.0)
+                    if pcm is not None and \
+                            pcm.size >= int(speaker_voice.REFINE_S * SR):
+                        if tts.register_spk_voice(spk, pcm):
+                            _spk_voices.mark_embedded(spk, refined=True)
+                            _spk_pending_embed = [
+                                (x, k) for (x, k)
+                                in _spk_pending_embed if k != spk]
+                            print(f'  [spk] {spk} 音色已细化', flush=True)
+            except Exception as e:
+                print(f'  [spk] 取样失败（忽略）：{e}', flush=True)
+
     def _cli_target_wall(seg):
         """CLI 版 `_target_play_wall()`：段号 → **目标开播墙钟**。
 
@@ -4378,6 +4681,23 @@ def run_cli(args):
         # 🔴🔴🔴 APP-042：**登记这句的目标开播墙钟**（CLI 版）
         #   ⚠️ 必须在任何 `tts.submit` **之前**登记 ⇒ 否则第一句拿不到目标时刻。
         _seg_target_wall[len(finals) - 1] = _cli_target_wall(len(finals) - 1)
+        # 🔴🔴🔴 APP-039/040：问 ASR 旁路「这句是谁说的」
+        #   ⚠️ **降级友好**：旁路不可用 ⇒ `spk=None` ⇒ 行为不变。
+        #   ⚠️ **按句绑定**（与合成时刻无关 ⇒ APP-039 核心）。
+        _seg = len(finals) - 1
+        try:
+            _res = _spk_bridge.on_final(_seg, _spk_audio_end[0],
+                                         _spk_audio_end[0])
+            _spk2 = _res.get('spk')
+            if _spk2:
+                spk = _spk2
+                spk_conf = _res.get('spk_conf', spk_conf)
+            _is_new = _spk_voices.note_final(_seg, spk,
+                                             _res.get('clean_ranges'))
+            if _is_new:
+                _spk_pending_embed.append((_seg, spk))
+        except Exception as e:
+            print(f'  [spk] 定稿旁路异常（忽略）：{e}', flush=True)
         # 🔴🔴🔴 **APP-027「争用定量」四臂对照**：`--tts-source asr` 时
         #   **直接把 ASR 原文喂给 TTS**（**不经过 MT**）⇒
         #   「TTS 单独」与「+ASR（无 MT）」两臂才可能成立。
@@ -4387,6 +4707,10 @@ def run_cli(args):
             #   不下传 ⇒ worker 靠 `_guess_lang()` 猜（只分 zh/en）
             #   ⇒ 这里按 ASR 原文语种给 'en'。
             tts.submit(t, seg=len(finals) - 1, lang='en',
+                       # 🔴🔴🔴 APP-039/040：**按句绑定音色**
+                       #   ⇒ 该 spk 没音色 ⇒ `None` ⇒ worker 用预设 A。
+                       spk=(_spk_voices.voice_for_sentence(
+                           len(finals) - 1) or None),
                        # 🔴🔴🔴 APP-042：**目标开播墙钟**（CLI 版）
                        #   ⇒ 与 GUI 同口径 ⇒ 服务端据此算 lag 与加速倍率。
                        target_play_at=_seg_target_wall.get(len(finals) - 1))
@@ -4400,7 +4724,9 @@ def run_cli(args):
     #   ⚠️ **默认行为逐字不变**：`_clone_col is None` ⇒ `on_audio=None`
     #   ⇒ `Session._loop` 里的 `if self.on_audio is not None` 短路 ⇒ 零开销。
     s = Session(eng, _cli_source(args), on_final=on_final,
-                on_audio=(_clone_col.feed if _clone_col is not None else None))
+                on_audio=(_clone_col.feed if _clone_col is not None else None),
+                # 🔴🔴🔴 APP-039/040：**喂说话人旁路**（CLI 与 GUI 同一份实现）
+                on_audio_span=_cli_on_audio_span)
     # 🔴🔴🔴 APP-042：**会话起点墙钟**（目标开播时刻的基准）
     #   ⚠️ 用 `time.time()`（墙钟）⇒ 与 worker 进程**跨进程可比**
     #     （`perf_counter()` 各进程基准不同 ⇒ 不可比）。
@@ -4440,8 +4766,15 @@ def run_cli(args):
                         # 🔴🔴🔴 APP-030①：**显式下传 MT 目标语言**
                         #   （CLI 没有下拉 ⇒ 用 `mt.target`）
                         tts.submit(txt, seg=ev['seg'], lang=mt.target,
+                                   # 🔴🔴🔴 APP-039/040：**按句绑定音色**
+                                   #   ⇒ 该 spk 没音色 ⇒ `None` ⇒ 预设 A。
+                                   spk=(_spk_voices.voice_for_sentence(
+                                       ev['seg']) or None),
                                    # 🔴🔴🔴 APP-042：**目标开播墙钟**（CLI 版）
                                    target_play_at=_seg_target_wall.get(ev['seg']))
+            # 🔴🔴🔴 APP-039/040：**给新 spk 取样 + 登记音色**
+            #   ⚠️ 只在有新 spk 时才做事 ⇒ 声纹计算次数极少。
+            _cli_pump_spk_voices()
             if args.max_seconds and s.audio_s >= args.max_seconds:
                 s.stop()
     except KeyboardInterrupt:
@@ -4476,8 +4809,13 @@ def run_cli(args):
                 if tts is not None and tts.active:
                     # 🔴🔴🔴 APP-030①：**显式下传 MT 目标语言**
                     tts.submit(txt, seg=ev['seg'], lang=mt.target,
+                               # 🔴🔴🔴 APP-039/040：**按句绑定音色**
+                               spk=(_spk_voices.voice_for_sentence(
+                                   ev['seg']) or None),
                                # 🔴🔴🔴 APP-042：**目标开播墙钟**（CLI 版）
                                target_play_at=_seg_target_wall.get(ev['seg']))
+        # 🔴🔴🔴 APP-039/040：收尾时再 pump 一次（补最后一批新 spk 的取样）
+        _cli_pump_spk_voices()
         sm = mt.summary()
         f = lambda v, d=1: ('—' if v is None else f'{v:.{d}f}')
         print(f'[{args.engine}] 翻译 target={mt.target} 后端={mt.engine_key} 设备 {mt.device} '
@@ -4588,6 +4926,18 @@ def run_cli(args):
         except Exception as e:
             print(f'[TTS] 收尾异常（不影响字幕）：{e}', flush=True)
         finally:
+            # 🔴🔴🔴 APP-039/040：**会话结束清空说话人音色表**（隐私纪律）
+            #   ⇒ worker 侧的 x-vector 必须丢弃（**绝不落盘**）。
+            try:
+                if tts is not None and getattr(tts, 'active', False):
+                    tts.clear_spk_voices()
+            except Exception:
+                pass
+            try:
+                _spk_voices.reset()
+                _spk_bridge.reset()
+            except Exception:
+                pass
             try:
                 tts.close()
             except Exception:

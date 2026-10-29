@@ -1,0 +1,270 @@
+{
+  "ts": "2026-10-30 00:31:04",
+  "source_dir": "C:\\Users\\Trekker-PTL\\app042_soak",
+  "out_dir": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app042_soak_run4",
+  "run": "run4",
+  "parent_run": "run3",
+  "report_ts": "2026-10-30 00:27:03",
+  "report_mtime": "2026-10-30 00:27:03",
+  "new_telemetry_key": "speed_lag_s",
+  "jsonl_rows": 76,
+  "jsonl_rows_with_new_key": 76,
+  "jsonl_speed_max": 1.3,
+  "jsonl_speed_n_1p0": 0,
+  "jsonl_speed_n_1p2_to_1p3": 75,
+  "jsonl_speed_lag_s_max": 807.421,
+  "report": {
+    "ts": "2026-10-30 00:27:03",
+    "device": "NPU",
+    "duration": 300.0,
+    "speed": 1.0,
+    "translate": "zh",
+    "wall_s": 1118.9,
+    "rc": 0,
+    "cli_stat_line": "[TTS] 最终统计（close 后）：提交 76  播完 76  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 5.50s  积压 最大 17.00s",
+    "n_submitted": 76,
+    "n_played": 76,
+    "n_dropped": 0,
+    "n_restart": 0,
+    "n_dropped_jsonl": 0,
+    "n_err_jsonl": 0,
+    "first_packet_s": 0.43,
+    "max_backlog_s": 17.0,
+    "end_lag_s": 0.0,
+    "n_jsonl_rows": 76,
+    "app042": {
+      "n_telemetry": 76,
+      "lag_start_s": 20.282,
+      "lag_peak_s": 809.146,
+      "lag_end_s": 809.146,
+      "lag_peak_at_t_s": 745075.7487,
+      "lag_min_s": 20.282,
+      "lag_median_s": 470.57,
+      "speed_min": 1.1,
+      "speed_max": 1.3,
+      "speed_time_s": {
+        "1.1": 1.02,
+        "1.2": 0.96,
+        "1.3": 256.53
+      },
+      "speed_ratio": {
+        "1.1": 0.0039,
+        "1.2": 0.0037,
+        "1.3": 0.9923
+      },
+      "speed_n_sent": {
+        "1.1": 1,
+        "1.2": 1,
+        "1.3": 74
+      }
+    },
+    "clips": [
+      {
+        "jid": 1,
+        "speed": 1.2,
+        "lag_s": 21.046,
+        "out_dur_s": 0.96,
+        "path": "C:\\Users\\Trekker-PTL\\app042_soak\\clips_1p2_to_1p3\\clip_jid1_speed1.2.wav",
+        "bytes": 46124
+      },
+      {
+        "jid": 2,
+        "speed": 1.3,
+        "lag_s": 22.279,
+        "out_dur_s": 1.32,
+        "path": "C:\\Users\\Trekker-PTL\\app042_soak\\clips_1p2_to_1p3\\clip_jid2_speed1.3.wav",
+        "bytes": 63404
+      },
+      {
+        "jid": 3,
+        "speed": 1.3,
+        "lag_s": 32.497,
+        "out_dur_s": 4.02,
+        "path": "C:\\Users\\Trekker-PTL\\app042_soak\\clips_1p2_to_1p3\\clip_jid3_speed1.3.wav",
+        "bytes": 193002
+      }
+    ],
+    "checks": [
+      {
+        "id": "B1",
+        "name": "丢句数 = 0（CLI 统计行）",
+        "ok": true,
+        "got": 0,
+        "want": 0
+      },
+      {
+        "id": "B2",
+        "name": "逐句 jsonl dropped = 0（独立来源交叉验证）",
+        "ok": true,
+        "got": 0,
+        "want": 0
+      },
+      {
+        "id": "B3",
+        "name": "逐句 jsonl error = 0",
+        "ok": true,
+        "got": 0,
+        "want": 0
+      },
+      {
+        "id": "B4",
+        "name": "不变式 n_played + n_dropped == n_submitted",
+        "ok": true,
+        "got": 76,
+        "want": 76
+      },
+      {
+        "id": "B5",
+        "name": "「没有产出音频」= 0",
+        "ok": true,
+        "got": 0,
+        "want": 0
+      },
+      {
+        "id": "B6",
+        "name": "worker 重启 = 0",
+        "ok": true,
+        "got": [
+          0,
+          0
+        ],
+        "want": [
+          0,
+          0
+        ]
+      },
+      {
+        "id": "B7",
+        "name": "cap / runaway = 0",
+        "ok": true,
+        "got": [
+          0,
+          0
+        ],
+        "want": [
+          0,
+          0
+        ]
+      },
+      {
+        "id": "B8",
+        "name": "APP-042 遥测有 speed 字段（加速链路真的生效）",
+        "ok": true,
+        "got": 76,
+        "want": ">0"
+      },
+      {
+        "id": "B9",
+        "name": "APP-042 遥测有 play_lag_s（滞后口径可算）",
+        "ok": true,
+        "got": 76,
+        "want": ">0"
+      },
+      {
+        "id": "B10",
+        "name": "至少 1 句被加速（speed > 1.0）",
+        "ok": true,
+        "got": 1.3,
+        "want": ">1.0"
+      },
+      {
+        "id": "B11",
+        "name": "倍率不超上限 1.30",
+        "ok": true,
+        "got": 1.3,
+        "want": "<=1.30"
+      },
+      {
+        "id": "B12",
+        "name": "倍率不低于下限 1.0",
+        "ok": true,
+        "got": 1.1,
+        "want": ">=1.0"
+      },
+      {
+        "id": "B13",
+        "name": "已落盘 3 段 1.2–1.3× 配音（供用户抽听）",
+        "ok": true,
+        "got": 3,
+        "want": 3
+      }
+    ],
+    "pass_count": 13,
+    "fail_count": 0,
+    "artifacts": {
+      "wav": "C:\\Users\\Trekker-PTL\\app042_soak\\app042_soak.wav",
+      "jsonl": "C:\\Users\\Trekker-PTL\\app042_soak\\app042_soak.wav.tts.jsonl",
+      "lag_csv": "C:\\Users\\Trekker-PTL\\app042_soak\\app042_lag_curve.csv",
+      "speed_csv": "C:\\Users\\Trekker-PTL\\app042_soak\\app042_speed_distribution.csv",
+      "cli_log": "C:\\Users\\Trekker-PTL\\app042_soak\\app042_soak_cli.log",
+      "clip_dir": "C:\\Users\\Trekker-PTL\\app042_soak\\clips_1p2_to_1p3"
+    },
+    "note": "工程侧等价实测（CLI 回放 + NPU）；非 GUI / 非 CUDA / 非用户实听 / 非 MiniMax 回转写"
+  },
+  "items": [
+    {
+      "rel": "app042_soak_report.json",
+      "kind": "file",
+      "bytes": 4435,
+      "sha256": "aa81db0b203a9d81e88559736af16c9a7b2a14acd2d82130b928eb404004a09f"
+    },
+    {
+      "rel": "app042_soak.wav.tts.jsonl",
+      "kind": "file",
+      "bytes": 92771,
+      "sha256": "ae925fc4c1aa8b6a6c4008ae879fea693f09c69d39d1b3c7bddfa001c57347dd"
+    },
+    {
+      "rel": "app042_lag_curve.csv",
+      "kind": "file",
+      "bytes": 3424,
+      "sha256": "c29a4a5ef1323dacef1514d9b6c076a4dd1839edf7fa968ff67855e57d5c1162"
+    },
+    {
+      "rel": "app042_speed_distribution.csv",
+      "kind": "file",
+      "bytes": 86,
+      "sha256": "18fc218997aceedd3781f0888f3dfa131795fcbd4f1394d4139b5091722df1ae"
+    },
+    {
+      "rel": "app042_soak_cli.log",
+      "kind": "file",
+      "bytes": 82992,
+      "sha256": "9f9cce7885f1cf90586ed7f8f0c81599dc0fbeaa78268c75d0177bb0b55b04c9"
+    },
+    {
+      "rel": "app042_subtitles.txt",
+      "kind": "file",
+      "bytes": 4704,
+      "sha256": "b4632dd8cdf2bb133e62772adfb615d7a80e7c7704ed02c7bd3dde96ad10b526"
+    },
+    {
+      "rel": "app042_subtitles.mt.txt",
+      "kind": "file",
+      "bytes": 5044,
+      "sha256": "d540cf67ca95db7a6a43909c87819b644aa320d242d373bfe94c483009e6a757"
+    },
+    {
+      "rel": "clips_1p2_to_1p3",
+      "kind": "dir",
+      "n_files": 3,
+      "files": [
+        {
+          "path": "clip_jid1_speed1.2.wav",
+          "bytes": 46124,
+          "sha256": "2acb3e5539c50a46e71d6026cf15cc739e3520a29e7b1dc6d57982c07e7b2f2e"
+        },
+        {
+          "path": "clip_jid2_speed1.3.wav",
+          "bytes": 63404,
+          "sha256": "469e471cdb3e27fd197a61bdb32e02b13565a49a1f81c4ff7b9cf0509bbc04e3"
+        },
+        {
+          "path": "clip_jid3_speed1.3.wav",
+          "bytes": 193002,
+          "sha256": "ef0e429fe88fd57fe638c77fa66369037a178a23a8dd036d8f81ea116232ac06"
+        }
+      ]
+    }
+  ]
+}
