@@ -1,12 +1,13 @@
 # STATUS_APP
 last_ack: APP-042
-更新时间: 2026-10-29 20:49
-当前任务: **§95 🔴 APP-041 + APP-042 已实施：APP-041「启动时默认开启却没初始化」已在产品代码修掉（同一入口 `_on_tts_toggled()`，失败自动回关）；APP-042「自适应加速播放」全链已接通（WSOLA 保音高 + 统一参数 + 底栏显示）**；✅ 客户包 **v1.8 已重打**（zip 11 218 155 024 B / SHA256 `0e3b4d26…` / 14 201 条目 / zip⇄包目录 6 590 文件 0 差异 / MANIFEST version=1.8）⇒ **代码侧「已交付」成立**；⛔ **APP-042 的 SPE 5 分钟真机实测未做**（ASR 持锁 asr027-cpu-rerun-base，本轮守纪律未抢锁）、⛔ **APP-041 的桌面快捷方式真机验收未做** ⇒ 🔴 **本条需等 reviewer 复核**
+更新时间: 2026-10-29 22:02
+当前任务: **§96 🔴 APP-042 真机实测暴露并修掉「CLI 路径加速链路永不触发」的真机缺陷**（run2 证据：jsonl 76 行 `target_wall` 0 条 / `play_lag_s` 0 条 / speed 全 1.0⇒ **撤回 §95「全链已接通」表述**）⇒ ✅ 已修：`_cli_wall0` + `_cli_target_wall()` + CLI 三处 `tts.submit(..., target_play_at=)`（与 GUI 同口径，墙钟 `time.time()`）⇒ ✅ 已定点同步客户包 **v1.8 包目录**（`sync_c159`：`[SYNCED]` + 幂等 `[ALREADY]`，归一化 SHA `a9c95777…`）⇒ ✅ 闸门 `app145` REAL 9/9 + 反证识破、`app146` REAL 8/8 + 反证 3/3 ⇒ ⛔ **zip 未重打 ⇒ 不写「已交付」**（zip 内实测仍是旧代码）、⛔ **修复后的真机实测仍在等 ASR 释放共享机器锁** ⇒ 🔴 **本条需等 reviewer 复核**
 
-阻塞 / 待用户决定: ① 🔴 **APP-042 真机验收未做**（SPE 前 5 分钟、默认设备摆放、持锁：滞后曲线起点/峰值/结尾、各倍率时间占比、**丢句 = 0**、挑 3 段 1.2–1.3× 配音落盘给用户抽听确认不变调）⇒ 本轮 `shared/MACHINE_LOCK` 被 **ASR** 持有（`asr PID 23644 started 2026-10-29 20:44:47 task=asr027-cpu-rerun-base`）⇒ **未抢锁**；② 🔴 **APP-041 真机验收未做**（须走用户真实启动方式：桌面快捷方式 → `pythonw.exe`，冷启动什么都不点直接出声；并测「所选输出设备不存在 ⇒ 开关自动回关闭」）；③ 🔴 **APP-039/040 核心仍未做**（音色按句绑定 spk + 说话人音色表）⇒ 卡在 ASR 说话人旁路接口未交付（实测 `shared/spe_qa_spk.json` 不存在、`_split_spk()` 恒返 None、`App._spk_by_seg` 恒空）；④ 🔴 **APP-039/040 实测验收未做**（SPE Q&A 段多人对话走实时路径、混淆表、延迟拆解、声纹次数、CAMPPlus 余弦）；⑤ 🔴 **APP-036/037 真机实测仍未做**（SPE 前 5 分钟播放模式 + 日文 CLI/GUI）；⑥ 🔴 **APP-027 仍未完**（V3-CER/CAMPPlus 归 reviewer、V4 用户实听未做）；⑦ 🔴 FTP 已永久关闭（APP-035）⇒ 分发方式 = reviewer 用 SSH/SFTP 拉取本机 zip（**v1.8**）；⑧ 🔴 本轮**未修改** `CORRECTIONS_APP.md`（只读，108 783 B / SHA256 `c50dcdd1…`）
+阻塞 / 待用户决定: ① 🔴 **修复后的 APP-042 真机实测仍在等锁**（SPE 前 5 分钟、默认设备摆放、持锁：滞后曲线起点/峰值/结尾、各倍率时间占比、**丢句 = 0**、挑 3 段 1.2–1.3× 配音落盘给用户抽听）⇒ 本轮 `shared/MACHINE_LOCK` 被 **ASR** 持有（`asr PID 41264 started 2026-10-29 21:56:33 task=asr028-ref-diarize`，ctypes `exitcode=259` ⇒ **活锁**）⇒ **不抢不删**，fail-closed 排队中；② 🔴 **zip 未重打** ⇒ 客户包 zip 内仍是修复前代码 ⇒ **本轮不写「已交付」**；③ 🔴 **reviewer 回转写 + 用户实听未做**（APP-042 明文要求，本模块不得自做）；④ 🔴 **APP-041 桌面快捷方式 → `pythonw.exe` 冷启动真机验收未做**；⑤ 🔴 **APP-039/040 核心未做**（卡 ASR 说话人旁路接口未交付）；⑥ 🔴 本轮**未修改** `CORRECTIONS_APP.md`（只读）
 
 
 ## 最近更新
+2026-10-29 22:02 §96 🔴 **APP-042 真机实测暴露并修掉「CLI 路径加速链路永不触发」的真机缺陷**（run2 证据：jsonl 76 行 `target_wall` 0 条 / `play_lag_s` 0 条 / speed 全 1.0 ⇒ 撤回 §95「全链已接通」表述）⇒ ✅ 修复：`_cli_wall0` + `_cli_target_wall()` + 三处 `tts.submit(..., target_play_at=)`（CLI 与 GUI 同口径，墙钟 `time.time()`）⇒ ✅ 闸门 `app145` REAL 9/9 + 反证 FAIL（判据不恒真）⇒ ✅ 验收脚本判据自身缺陷已修（全角冒号 ⇒ `pick()` 恒 None ⇒ B4/B6 假 FAIL）⇒ ✅ 定点同步 v1.8 包目录（`sync_c159`：`[SYNCED]` + 幂等 `[ALREADY]`，归一化 SHA `a9c95777…`）⇒ ⛔ **zip 未重打 ⇒ 不写「已交付」**、⛔ reviewer 回转写 / 用户实听未做 ⇒ 🔴 **本条需等 reviewer 复核**
 2026-10-29 20:49 §95 🔴 **APP-041 + APP-042 已实施并交付 v1.8**（zip 11 218 155 024 B / 17:37:13 / SHA256 `0e3b4d26…` / 14 201 条目 / zip⇄包目录 6 590 `.py` 逐字节 0 差异 / MANIFEST version=1.8）⇒ ✅ APP-041「启动时默认开启却没初始化」已修（同一入口 `_on_tts_toggled()`，失败自动回关闭）⇒ ✅ APP-042「自适应加速播放」全链接通（WSOLA 保音高 + `clamp(1.0+(lag−3)×0.025,1.0,1.30)` + 滞回 + 相邻句 ≤0.1× + 底栏显示语速/播放滞后）⇒ ✅ 验收 `app139` 21/21、`app140` 22/22、`app141_end_to_end` 24/24、`app141_integration` 62/62、`app142` 22/22（含反证基线 commit `f724769`）⇒ ⛔ **APP-042 的 SPE 5 分钟真机实测未做**（ASR 持锁，未抢锁）、⛔ **APP-041 桌面快捷方式真机验收未做** ⇒ 🔴 **本条需等 reviewer 复核**
 16:14 §94 🔴 **APP-039/040 的显示层部分已完成并交付 v1.7**（zip 11 218 140 640 B / 15:59:47 / SHA256 `43857883…`；14 200 条目逐字节一致；MANIFEST `version='1.7'`；独立三方复核 23/23 + 23/23）⇒ ✅ 6 个真实缺陷：标签默认关闭 / **译文行没有标签** / 元组泄漏成 `[('S1', 0.87)]` / 说话人颜色不固定 / 克隆未标实验 / GUI 不显示本句说话人 ⇒ ✅ `app137` **REAL 12/12 + BUG 5 落空 + JUDGE 2/2 + BASELINE 5/5**（反证基线固定 commit `f724769` ⇒ 逐条复现修前缺陷）⇒ ✅ 回归 `app079` 15/15、`app015` 23/23、`app073` 11/11 ⇒ ✅ **版本号改为每次打包自动递增**（`pack_v13` minor+1 + 源目录同卷改名 + MANIFEST 同步；`app138` **12/12**）⇒ ⛔ **APP-039/040 的核心（音色按句绑定 spk）未做**（等 ASR 说话人旁路接口）、⛔ **APP-041/042 已接收但未实施** ⇒ 🔴 **本条需等 reviewer 复核**
 13:28 §93 🔴🔴 **客户包 v1.6 已持锁重打 zip ⇒「已交付」成立（代码 + 包目录 + zip 三方闭环）** ⇒ ✅ zip **11 218 138 008 B / mtime 13:20:04 / SHA256 `376c4832…31b8`**（较旧版 +8 538 B ⇒ 确实换了内容）＋ **14 200 文件逐字节一致** ＋ `testzip()` OK ＋ 打包脚本 PASS（md5 `f78d7fd3…cd90a`）⇒ ✅ **独立只读三方复核 `app136` PASS**（仓库⇄包目录 23/23 ＋ 包目录⇄zip 23/23 ＋ 3 个改动文件三方指纹全 MATCH）⇒ ✅ **反向自证**：注入 1 处真实差异 ⇒ 判据 **FAIL** 且精确定位到 `tts_worker.py` ⇒ 恢复后复跑 PASS（判据不恒真）⇒ 🔴 **自查抓出 2 个真实缺陷**（`app136`/`app132` **写死客户包版本号** ⇒ 触发 §48 闸门 ⇒ **第一次打包被正确拦下** ⇒ 改用 `pkg_paths` 单一数据源；② 打包须等 45 s 安静窗口 ⇒ 自跑复现脚本被识别「在算」⇒ 重新计时）⇒ ✅ 同步后**包内代码复跑** `app133`/`app134` 各 **50/50 PASS**⇒ ✅ commit **`dc7603b`** ＋ 普通 push ＋ `HEAD == origin/main` ＋ `CORRECTIONS_APP.md` 未入库⇒ ⛔ **APP-036/037 真机 NPU 实测未做（守纪律）⇒「用户听得到」仍不成立**、⛔ **APP-027 未完**⇒ 🔴 **本条需等 reviewer 复核**
@@ -21,7 +22,6 @@ last_ack: APP-042
 11:16 §81 🔴🔴 **APP-027 V2 争用定量 ABBA 实测已跑完（4 臂真实播放路径）＋ 补齐「TTS 单独」引擎级基线**：⇒ ✓ **4 臂全部落盘**（ABBA 汇总 2971 B / SHA256 `e422c558…c57cb5`；基线报告 1652 B / `c44c0519…83aea`；证据清单 102 629 B / `237a736d…c5037b`）⇒ ✓ **唯一 FAIL = `V2-1`**（句内欠载 P95 = 0）：**MT@NPU 53 > MT@GPU.0 13 > 无 MT 0/1** ⇒ **【争用结论成立】**⇒ ✓ `synth_rtf_p50`：引擎基线 **0.7849** → +ASR **0.9558/0.9663** → +MT@NPU **1.0074** → +MT@GPU.0 **1.0165**（**两个 MT 臂均越过 1.0**）⇒ ✓ 四臂不变式 `n_played+n_dropped==n_submitted`（46/46、76/76、76/76、46/46）+ `n_drop_written=0` / `n_no_audio=0` / `n_watchdog=0`⇒ ✓ 真实播放硬证据（`consumed=True` 与 `read_delta ≥ n_samples` 均 = 46/76/76/46，无 `consumed=False`）⇒ 🔴🔴 **自查修掉 2 处真实缺陷**（① 整目录 `shutil.rmtree` → 触发批量删除保护 → **进程被杀·报告未生成·实测白跑**（已改时间戳子目录、0 次删除）；② `device_desc` AttributeError → **46 句算力白跑**（已修 + `--report-only`））⇒ ✓ 客户包定点同步 3 文件 + 仓库⇄包 **10/10 MATCH**（包外备份 `pkg_backup_app_s81`）⇒ ✓ 交付闭环已入库：commit **`20da2de`**（11 文件 / +1964 −2 / App-only）、**普通 push** `3b326a5..20da2de`、**`HEAD == origin/main`**⇒ ✓ `CORRECTIONS_APP.md` **未入库**（`grep -c CORRECTIONS` = 0）、仓库仍只有 main、未吞他模块改动⇒ ⛔ **跨臂归因边界待裁定**、⛔ **MT 臂 p50 已越过 1.0 → 解法优先级待决策**（MT 迁 GPU.1 属 MT 模块）、⛔ **`device_desc=null` → NPU 身份需另证**、⛔ **V1/V3 未跑 → zip 不重打 → 不写「已交付」**、⛔ **CLI 而非 GUI → 「用户听得到」仍不成立**
 06:33 §80 🔴🔴 **APP-033 三条全部执行完毕（CUDA 组判据**已过** `verdict_after_clean=true` ＋ APP-028 5 分钟实测 10/10 PASS）＋ 自查抓出并修掉 4 处真实缺陷**：⇒ ✅ **①`quota.py` 在 reviewer 本机 ⇒ 不是 App 阻塞项**（wav+json+jsonl 已落盘）⇒ ✅ **② CUDA 组 A/B 已跑完并通过**（边车 `torch 2.11.0+cu128`/`cuda_available True`/RTX 5050；持锁+安静窗口；零 CPU 推理；未调 MiniMax）⇒ 改前臂（`d80ef22`）**cap=2/hang=2**（第 9 句 `lang=en` ⇒ **2038 帧 / 163.04 s / 255 块 / hang=true** ⇒ 与 reviewer 记录**逐项吻合**）⇒ 改后臂（HEAD）**cap/runaway/hang/err 全 0**、87 配对**异常 0 条** ⇒ **`verdict_after_clean=true`**；回归 zh/en 同样 0/0/0；s/字 0.1094→**0.1031**（无回退）⇒ ✅ **③ APP-028 的 SPE 前 5 分钟完整实测 10/10 PASS**（76 句 / `n_played=76` / `n_dropped=0` / `max_backlog_s=68.79` / `synth_rtf_p95=1.1511`）⇒ **「丢句=0」现在才成立**（§79.4 的 60 秒冒烟不构成）⇒ 🔴🔴 **修掉 4 处真实缺陷**（`machine_lock_app.py`：① ASR `PID=` 格式 ② 起始时间戳 ③ EXT 第三种锁格式 ④🔴🔴🔴 **等锁每 20 s「建 tmp+删 tmp」⇒ 987 s = 50 删 ⇒ 触发批量删除保护 ⇒ 进程被杀 ⇒ 报告未生成 ⇒ 实测白跑**（已修 + 实测复验零 tmp 残留））⇒ ✅ **验收 40/40 PASS**（含 **3 条 AST 重建反证**）⇒ ✅ **撤回 §78/§79「CUDA 对照组客观做不了」**⇒ ⛔ **APP-027 V1–V3 未跑**（V2/ABBA 安静窗口超时 ⇒ 目录实测为空 ⇒ 无产物）、⛔ **GUI 复现/CER 对比/用户实听未做**、⛔ **zip 未重打** ⇒ ⛔ **「用户听得到」仍不成立**
 23:58 §79 🔴🔴 **APP-028② 不丢句实测进行中：首跑直接暴露并修掉一个预先存在的真实产品缺陷「CLI 模式 `on_final` 签名与 `_split_spk` 的 3 元组契约对不上 ⇒ CLI 一收到定稿就必崩」** ⇒ ✅ **已修**（签名对齐 3 参 + 后两个带默认值 ⇒ 向后兼容）⇒ ✅ **验收 `app111` 9/9 PASS**（含 **E 组 AST 重建反证 2**；零推理/零 GPU/零 NPU）⇒ ✅ **客户包定点同步 s74**（1 块唯一命中 + 幂等 `ALREADY`；`live_caption_app.py` 233 332 → **234 518 B**，SHA256 `6d5c862c7ae8df47` → **`3b0cf75886215517`**）⇒ ✅ **交付闭环已入库**：commit **`c89bbc8`**（4 文件 / +556 −1，App-only）、**普通 push** `2f4a159..c89bbc8`、**`HEAD == origin/main`**、**HEAD ⇄ 客户包 9/9 全 MATCH** ⇒ 🔴 **实测仍在等机器锁**（外部 `EXT-browser-probe` PID 36040 自 23:55:48 起持锁 ⇒ ctypes 实测 `exit=259` ⇒ **活锁 ⇒ 不抢不删**；`app110` 自取锁 fail-closed 排队中）⇒ ⛔ **APP-028 的 5 分钟完整实测结果尚未落盘**、⛔ **APP-027 的 V1–V3 未跑**、⛔ **zip 未重打**（APP-031 明文「三项做完后合在一起重打一次包」）⇒ ⛔ **CUDA 对照组客观做不了** ⇒ ⛔ **「用户听得到」仍不成立**
-2026-10-27 23:44 §78 🔴🔴 **APP-030 的 NPU 实测已跑完（29 句 ×3 次）＋ 自查抓出并修掉「失控守卫语言口径」的真实缺陷** ＋ 客户包定点同步完成**：⇒ ✅ **NPU 组实测通过**（设备 NPU、持锁、安静窗口；**29 句日文 ×3 次 = 87 组配对** ⇒ 改后 **cap=0 / hang=0 / err=0**；**zh/en 各 10 句回归** ⇒ 同样 0/0/0；四组全 194 行 ⇒ **`verdict_after_clean=true`**；配对 wall 中位 改前 2.39 s / 改后 **2.23 s**、s/字 中位 0.1544 / **0.1428**） ⇒ 🔴🔴 **自查抓出真实缺陷**：`estimate_frames()/estimate_sec()` 只认小写代号，而同文件 `map_language()` 认全称/带区域 ⇒ **两套表解析同一标识** ⇒ `estimate_sec('Japanese')` 落**英文** 0.07（**低估 2.1×**）、`estimate_sec('zh-cn')` 落**英文**（**低估 3.6×**） ⇒ 后果 = **RUNAWAY 阈值偏低易误杀 + 帧上限偏松放行失控** ⇒ **已修**（新增 `_lang_key()` 统一走 `map_language()`） ⇒ 🔴 **生产路径逐字零回归**（ja 11.70 s/140 帧/456、zh 19.10/229/723、ko 13.92/167/537、en 5.78/69/243） ⇒ 🔴 **首跑那次 hang 是「我的脚本口径不对」造的假阳性**（脚本传全称、引擎只认代号） ⇒ 📌 **先证「是谁错」再改代码** ⇒ ✅ **`app109` 34/34 PASS ×2 处**（仓库 + 客户包；**4 条 AST 重建反证**） ⇒ ✅ **回归全绿**（42/24/29/21/28/37 + 34） ⇒ ✅ **客户包定点同步 3 块唯一命中 + 幂等 `ALREADY`**（`tts_engine.py` 56666 → 58587 B，`3ec217a141a3a7a2` → `d82e0d533ed79a58`） ⇒ ✅ **§77 交付闭环补全**：commit **`83cac33`**（10 文件 / +1521 −9）、**普通 push** `539b749..83cac33`、**HEAD == origin/main**、**HEAD ⇄ 包目录 9/9 全 MATCH** ⇒ ⛔ **CUDA 组客观做不了**（torch `2.14.1+cpu`/`cuda=False`；包内 python 无 torch） ⇒ ⛔ **GUI 复现 / wav+json / CER 对比未做**、⛔ **未跑 MiniMax 回转写**（`quota.py` 0 命中） ⇒ ⛔ **APP-028 不丢句实测 / APP-027 的 V1–V3 未做**、⛔ **zip 未重打**（APP-031 合打） ⇒ ⛔ **「日文失控已解决」仍不成立**（只覆盖 NPU 组）、⛔ **「用户听得到」仍不成立**
 
 ## §1 现状汇总（2026-10-23）
 
@@ -16871,3 +16871,208 @@ reviewer 给了三条推测，逐条对代码：
 - 章节数 94 → **95**（写后 `grep -c "^## §"`；原有章节**一个不少**）。
 - 旧正文（自 `## §1 ` 起的全部内容）**逐字未变**。
 - 头部只改 4 字段行：`last_ack` / `更新时间` / `当前任务` / `阻塞 / 待用户决定`；「最近更新」区块 **≤15 行**（插入新行 + 裁掉最旧行）。
+
+## §96 🔴🔴🔴 **APP-042 真机实测暴露并修掉「CLI 路径加速链路永不触发」的真机缺陷 ⇒ 客户包 v1.8 已定点同步** ｜ **本条已完成** ｜ **本条需等 reviewer 复核**（2026-10-29 21:58）
+
+> ⚠️ **本节不修改任何旧章节**；旧结论若被本节推翻，在本节内写明「撤回 §x」。
+> ⚠️ **本节不写「已交付」** —— 本轮**未重打 zip**（见 96.7）⇒ 客户包 **zip 内仍是旧代码**。
+
+### 96.1 本轮起因：§95 声称「APP-042 代码侧全部完成」，但**真机实测推翻**
+
+§95（2026-10-29 20:49）写「APP-042『自适应加速播放』全链已接通」。本轮按 §95 的遗留项
+（⛔ APP-042 的 SPE 5 分钟真机实测未做）补做实测，**实测结果推翻该结论**：
+
+- 🔴 实测落盘证据（`results/app/app042_soak_run2/`，源目录 `C:\Users\Trekker-PTL\app042_soak\`）：
+  - `app042_soak.wav.tts.jsonl` **76 行**，逐句统计：
+    - `with speed = 76`（字段**在**）
+    - `with target_wall = 0` ⇒ **`target_wall` 恒为 `None`**
+    - `with play_lag_s = 0` ⇒ **滞后口径永远算不出来**
+    - `speed>1.0 句数 = 0`，`speed` 分布 `Counter({1.0: 76})`
+  - `app042_speed_distribution.csv` 唯一一行：`speed,n_sent,out_dur_s,ratio` → `1.0,76,339.04,1.0000`
+  - `app042_lag_curve.csv` **76 行全部 `lag_s = None`**、`speed = 1.0`
+  - `app042_soak_report.json` 字段：`app042.lag_start_s / lag_peak_s / lag_end_s /
+    lag_peak_at_t_s / lag_min_s / lag_median_s` **全为 `null`**；
+    `clips = []`；`pass_count = 8`、`fail_count = 5`
+  - CLI 收尾统计行（`app042_soak_cli.log` 第 553 行，原文）：
+    `[TTS] 最终统计（close 后）：提交 76  播完 76  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 62.94s  积压 最大 82.98s`
+    ⇒ **结尾滞后 62.94 s、积压峰值 82.98 s** ⇒ **正是 APP-042 要处理的场景，
+      却一句都没加速**
+- ⇒ 🔴 **撤回 §95 中「APP-042 全链已接通」这一表述**（代码在，但**链路在 CLI 下从未闭合**）。
+
+### 96.2 🔴🔴 缺陷根因（代码定位，精确到行）
+
+APP-042 的「目标开播墙钟」机制**只做在 GUI `App` 类**：
+
+| 位置 | 事实 |
+|---|---|
+| `live_caption/live_caption_app.py` L2373 | `self._session_wall0 = None`（**仅 GUI 实例属性**） |
+| `live_caption/live_caption_app.py` L2886 | `self._session_wall0 = time.time()` —— **只在 `App.start()` 里赋值** |
+| `live_caption/live_caption_app.py` L3669 | `self._seg_target_wall[seg] = self._target_play_wall()` —— **只在 `App._on_final()` 里登记** |
+| `live_caption/live_caption_app.py` L3491 | GUI 的 `tts.submit(...)` 传了 `target_play_at=self._seg_target_wall.get(ev['seg'])` ✅ |
+| `live_caption/live_caption_app.py` L4392 / L4444 / L4480（修前） | **CLI 的三处 `tts.submit(...)` 全都不传 `target_play_at`** ❌ |
+
+⇒ CLI 下 `tts_service.submit()` 的 `target_play_at is None` ⇒ **不下发 `speed` / `target_wall`**
+⇒ worker 侧 `tel['target_wall']` 恒 `None` ⇒ `tel['play_lag_s']` 恒 `None`
+⇒ **自适应加速链路在 CLI 下永不触发**（⇒ 本轮真机实测用 CLI 回放 ⇒ 必然测不出效果）。
+
+> 🔴 **这条缺陷的教训**：§95 的「代码侧全部完成」是**按 GUI 路径审的**，
+> 而**验收脚本走 CLI 路径** ⇒ 「代码写了」≠「链路闭合」。凡跨路径（GUI/CLI）的能力，
+> 必须**逐路径核**。
+
+### 96.3 ✅ 修法（CLI 与 GUI 同一口径，跨进程可比）
+
+修改文件：`live_caption/live_caption_app.py`（仓库）+ 客户包 `app/live_caption_app.py`（定点同步）。
+
+1. **会话起点墙钟**：`_cli_wall0 = time.time()`
+   - 位置在 `s.start()` **之前**（L4408）⇒ **首句**的目标时刻不是 `None`。
+   - 🔴 用**墙钟 `time.time()`** 而非 `perf_counter()`：APP-042 的 lag 跨
+     **主进程（目标时刻）** 与 **worker 进程（开播时刻）** ⇒ `perf_counter()`
+     各进程基准不同 ⇒ **不可比**（与 GUI 侧同理由）。
+2. **目标墙钟计算**：新增闭包 `_cli_target_wall(seg)`（L4345）
+   - 口径 = `t0 + session.audio_s`，与 GUI `App._target_play_wall()` **完全一致**
+   - ⚠️ ASR 不给段级时间戳 ⇒ 用「已消费源音频时长」近似（GUI 同口径）。
+   - ⚠️ 查不到 ⇒ 返回 `None` ⇒ 服务端不下发加速参数 ⇒ **旧行为逐字不变**。
+3. **登记时机**：`on_final()` 里**先登记**段号→目标墙钟（**L4380**），**再** submit
+   ⇒ 首句也能拿到目标时刻（闸门 C7 验证登记位置早于 submit 位置）。
+4. **三处 submit 全传**：L4392（ASR 原文臂）/ L4444（MT 译文主循环）/ L4480（收尾补交）。
+
+### 96.4 ✅ 回归闸门 `app145`（判据不恒真）
+
+新增 `results/app/app145_app042_cli_target_wall.py` +
+`results/app/app145_app042_cli_target_wall_evidence.json`。
+
+- **REAL 组 9/9 PASS**：
+  `C1_run_cli_found` / `C2_cli_has_submit_calls`（= 3）/ `C3_all_cli_submit_pass_target_play_at`
+  （缺 `target_play_at` 的 submit 序号 = `[]`）/ `C4_cli_session_wall0_assigned` /
+  `C5_cli_target_wall_fn` / `C6_on_final_registers_target_wall` /
+  `C7_register_before_submit`（登记位置 174263 < submit 位置 174759）/
+  `C8_gui_still_uses_target_play_at`（GUI 路径未被破坏）/ `C9_service_accepts_target_play_at`。
+- **反证组 FAIL**（证明判据不恒真）：在 **AST 层**剥离 CLI 三处 `target_play_at` keyword
+  ⇒ `C3` FAIL（`缺 target_play_at 的 submit 序号 = [0, 1, 2]`）⇒ `verdict = true`
+  （规则：**REAL 组全 PASS 且 反证组有 FAIL**）。
+- 🔴 **判据自身踩坑两处（已修，记录在案）**：
+  1. **正则按行删 `target_play_at=` 会破坏语法** —— GUI 那处是**多行续行**
+     （`target_play_at=self._seg_target_wall.get(\n    ev['seg']))`）
+     ⇒ 按行删留下孤立括号 ⇒ `SyntaxError: unmatched ')'` ⇒ **反证脚本自己崩**
+     ⇒ 看起来像「缺陷没复现」⇒ **判据失效**。
+     ⇒ 改用 `ast` 找 Call → 删 keyword → `ast.unparse` 回源码 ⇒ **语法永远合法**。
+  2. **只按 `attr == 'submit'` 会把 `mt.submit` 也算进来** ⇒ C3 恒 FAIL
+     ⇒ **判据 FAIL 先怀疑判据**。⇒ 改为**按接收者名 `tts` 筛选**。
+
+### 96.5 ✅ 客户包定点同步（`sync_c159_to_pkg.py`）
+
+新增 `live_caption/sync_c159_to_pkg.py`（**OLD 取自「包内实际内容」，不是基线 commit**）。
+
+| 项 | 值 |
+|---|---|
+| 客户包 | `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.8` |
+| 目标文件 | `app/live_caption_app.py` |
+| `--check` | `[WOULD-SYNC] blocks=6 applied=6` |
+| 实同步 | `[SYNCED] blocks=6 applied=6` |
+| 幂等复跑 | `[ALREADY]` ✅ |
+| 同步前字节数 / SHA256 | 263 664 B / `c123cdfbf70b2685a208eff323dc865140564a4fb8104e4a0dc385f114f186be` |
+| 同步后字节数 / SHA256 | 266 820 B / `a9c957770553591d313ee87bb939138c4ec3bd07757251c4a52efae41c8eb46d` |
+| 归一化换行后仓库 SHA256 | `a9c957770553591d313ee87bb939138c4ec3bd07757251c4a52efae41c8eb46d` ⇒ **与包内一致** |
+| 包外备份 | `C:\Users\Trekker-PTL\pkg_backup_app_c159\live_caption_app.py.c123cdfbf70b.bak` |
+
+🔴 **仓库 CRLF / 包内 LF ⇒ 原始字节 SHA 必然不同 ⇒ 交付等价性按「归一化换行后」判定**
+（同时报 raw + norm 两个 SHA，避免假报警）。
+
+### 96.5b ✅ 离线数学验证闸门 `app146`（纯函数层，不占共享锁）
+
+新增 `results/app/app146_app042_speed_math.py` +
+`results/app/app146_app042_speed_math_evidence.json`。
+**为什么要离线验**：真机实测要抢共享锁、耗 5 分钟；而「速度公式」与「lag→speed 映射」
+是**纯函数** ⇒ 可先用离线单测把数学口径钉死，再等锁做真机确认 ⇒ **两层证据互不替代**。
+
+- **REAL 8/8 PASS**：
+  | 项 | 断言 | 实测 |
+  |---|---|---|
+  | V1 | `lag ≤ 3 s ⇒ speed = 1.0` | `[1.0, 1.0, 1.0, 1.0]` |
+  | V2 | `lag = 15 s ⇒ 累积收敛到 1.30` | `1.3` |
+  | V3 | `lag > 15 s ⇒ 截断 1.30` | `[1.3, 1.3, 1.3]` |
+  | V4 | 滞回：`lag=2.5` 保持 / `lag=1.5` 连两句回 1.0 | `{2.5: 1.2, 1.5#1: 1.1, 1.5#2: 1.0}` |
+  | V5 | 线性段 `lag=7 s ⇒ 1.10` | `1.1` |
+  | V6 | 相邻句单次变化 ≤ 0.1× | `1.1` |
+  | V7 | **WSOLA 保音高**（变调检测） | `f_in 220.18 Hz → f_out 220.18 Hz（ratio = 1.0）`，长度 `24000 → 20000` |
+  | V8 | CLI 目标墙钟口径 = `t0 + audio_s` | 源码三项齐备 |
+- **反证 3/3 全部被识破**：公式恒 1.0 / 去掉相邻句限幅 / 剥离 CLI 目标墙钟源码
+  ⇒ `counterfactual_not_caught = []` ⇒ **判据不恒真**。
+
+🔴 **判据自身踩坑（已修，记录在案）**：
+1. **V2/V3/V4 初版 FAIL 是「判据写错」** —— `speed_for_lag` 还受「相邻句变化 ≤ 0.1×」
+   步长限制 ⇒ **单次调用**从 `prev=1.0` 最多只能到 **1.1**
+   ⇒ 直接断言「单次 = 1.30」必然 FAIL。⇒ 正确口径 = **逐句累积**（每句 `prev` = 上一句结果）。
+   ⚠️ **「判据 FAIL 先怀疑判据」**，本轮据此避免了一次「误判产品回归」。
+2. **`exec` 抽源码时丢了 `import`** —— 只保留 `FunctionDef/ClassDef/Assign`
+   ⇒ `time_stretch.py` 顶层 `import numpy as np` 被丢 ⇒ exec 后 `np` 未定义
+   ⇒ `time_stretch()` 内 `np.xxx` ⇒ **NameError** ⇒ 判 V7 **假 FAIL**。
+   ⇒ 修法：保留 `Import`/`ImportFrom` 节点。
+3. **解释器口径** —— managed 3.13 **无 numpy** ⇒ V7 客观做不了
+   ⇒ 改用 **system 3.12**（`numpy 2.5.4`）运行（与 §91 记录的同一条铁律）。
+
+### 96.6 ✅ 验收脚本判据自身缺陷（已修，非产品回归）
+
+`results/app/app143_app042_soak.py` 的 `pick()` 旧实现按 **token 相等**取字段，
+但 close 后的最终统计行是**全角冒号紧贴**（`最终统计（close 后）：提交 76`）
+⇒ token 为 `后）：提交` ⇒ `pick('提交')` **恒返回 `None`**
+⇒ **B4（不变式）/ B6（worker 重启）假 FAIL**。
+
+修法：① 收集**所有**候选统计行（运行时那行含「重启」，close 后那行没有）
+⇒ 遍历取值；② 取值改为**正则**（兼容全角/半角冒号 + 可选空格）。
+
+用**本轮 run2 的真实 CLI 日志**离线验证修好的取值逻辑：
+
+```
+提交 = 76   播完 = 76   丢弃 = 0   重启 = 0
+最大 = 82.98   首包 = 0.43   当前 = 0.0
+```
+
+⇒ B4（76 + 0 == 76）✅ PASS、B6（重启 = 0）✅ PASS
+⇒ **run2 的 5 项 FAIL 中有 2 项属判据缺陷**，真实产品 FAIL 是 **B9 / B10 / B13** 三项
+（`play_lag_s` 恒 None、无 `speed>1.0` 句、无 1.2–1.3× 配音落盘）—— **正是本轮修的缺陷**。
+
+### 96.7 ⛔ 本轮**未**做的事（不写「已交付」）
+
+- ⛔ **zip 未重打** ⇒ **客户包 zip 内仍是修复前的代码**（已**实测核验**，非推断）：
+  - `Confucius4_LiveCaption_v1.8.zip` = 11 218 155 024 B / mtime **2026-10-29 17:37:13**
+    （**早于**本轮 22:0x 的修复）
+  - `zipfile` 读 `Confucius4_LiveCaption_v1.8/app/live_caption_app.py`：
+    `_cli_wall0` 存在 = **False**、`_cli_target_wall` 存在 = **False**、
+    `target_play_at=_seg_target_wall` 出现 **0** 次
+  - ⇒ 严格说「交付」只在**包目录**层面成立，**zip 层面未成立**
+    ⇒ 本节**不写「已交付」**（按纪律：没落盘的东西不能写已交付）。
+- ⛔ **APP-042 验收仍缺 reviewer / 用户两项**（reviewer 明文要求，本模块**不得自做**）：
+  - 🔴 **reviewer 做回转写**，确认加速后错误率不明显上升（**不自己调用 MiniMax**）；
+  - 🔴 **用户抽听 3 段 1.2–1.3× 配音**，确认不变调、可懂。
+- ⛔ **APP-041 桌面快捷方式 → `pythonw.exe` 冷启动真机验收**仍未做。
+- ⛔ **APP-039/040 核心**（音色按句绑定 spk + 说话人音色表）仍未做（卡 ASR 旁路接口）。
+
+### 96.8 git 交付闭环
+
+| commit | 内容 |
+|---|---|
+| `423c14e` | 仓库 `live_caption_app.py` 修复 + `sync_c159_to_pkg.py` + `app143` 判据修正 + `app145` 闸门与 evidence（5 文件） |
+| `76c199d` | `app146` 离线数学闸门与 evidence + run2 缺陷复现证据归档（6 文件） |
+
+- 普通 push：`3e4ea82..423c14e`、`423c14e..76c199d`（**无 force push**）
+- `HEAD == origin/main`
+- `git show --name-only --format="" HEAD | grep -c CORRECTIONS` = **0**
+  ⇒ `CORRECTIONS_APP.md` **未入库**（只读，绝不提交）
+- 他模块未提交改动 **485 项全部保留**（未吞）
+
+### 96.9 结论
+
+- ✅ **本条已完成**：APP-042 的 CLI 路径缺陷**已定位、已修、已定点同步到客户包 v1.8**；
+  回归闸门 `app145`（REAL 9/9 + 反证识破）与离线数学闸门 `app146`（REAL 8/8 + 反证 3/3）
+  双双通过且**判据不恒真**；验收脚本判据缺陷已修并用真实日志离线复验。
+- 🔴 **本条需等 reviewer 复核**：
+  ① 重打 zip（⇒ 「已交付」成立）；
+  ② reviewer 的 MiniMax 回转写错误率对比；
+  ③ 用户抽听 3 段 1.2–1.3× 配音（不变调、可懂）；
+  ④ APP-041 桌面快捷方式冷启动验收。
+  ⑤ 🔴 **修复后的真机实测（run3）仍在等 ASR 释放共享机器锁**
+  （`asr PID 41264 started 2026-10-29 21:56:33 task=asr028-ref-diarize`，
+  ctypes `exitcode=259` ⇒ **活锁** ⇒ **不抢不删**，fail-closed 排队中）
+  ⇒ 修复后的「`target_wall` 有值 / `play_lag_s` 有值 / 有 `speed>1.0` 句 /
+  有 1.2–1.3× 配音落盘」**尚未经真机确认** ⇒ 本节**不宣称加速已在真机生效**。
