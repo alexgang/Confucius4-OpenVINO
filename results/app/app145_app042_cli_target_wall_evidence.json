@@ -1,0 +1,104 @@
+{
+  "script": "app145_app042_cli_target_wall",
+  "source": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\live_caption_app.py",
+  "real_group": [
+    {
+      "check": "C1_run_cli_found",
+      "pass": true,
+      "detail": "run_cli 函数存在"
+    },
+    {
+      "check": "C2_cli_has_submit_calls",
+      "pass": true,
+      "detail": "CLI 内 tts.submit 调用数 = 3（期望 >= 3）"
+    },
+    {
+      "check": "C3_all_cli_submit_pass_target_play_at",
+      "pass": true,
+      "detail": "缺 target_play_at 的 submit 序号 = []（期望 []）"
+    },
+    {
+      "check": "C4_cli_session_wall0_assigned",
+      "pass": true,
+      "detail": "_cli_wall0 = time.time() 存在"
+    },
+    {
+      "check": "C5_cli_target_wall_fn",
+      "pass": true,
+      "detail": "_cli_target_wall() 存在"
+    },
+    {
+      "check": "C6_on_final_registers_target_wall",
+      "pass": true,
+      "detail": "on_final 登记 _seg_target_wall"
+    },
+    {
+      "check": "C7_register_before_submit",
+      "pass": true,
+      "detail": "登记位置 174263 < submit 位置 174759"
+    },
+    {
+      "check": "C8_gui_still_uses_target_play_at",
+      "pass": true,
+      "detail": "GUI App._on_final 路径仍在传 target_play_at"
+    },
+    {
+      "check": "C9_service_accepts_target_play_at",
+      "pass": true,
+      "detail": "tts_service.submit 签名支持 target_play_at"
+    }
+  ],
+  "real_failed": [],
+  "counterfactual_group": [
+    {
+      "check": "C1_run_cli_found",
+      "pass": true,
+      "detail": "run_cli 函数存在"
+    },
+    {
+      "check": "C2_cli_has_submit_calls",
+      "pass": true,
+      "detail": "CLI 内 tts.submit 调用数 = 3（期望 >= 3）"
+    },
+    {
+      "check": "C3_all_cli_submit_pass_target_play_at",
+      "pass": false,
+      "detail": "缺 target_play_at 的 submit 序号 = [0, 1, 2]（期望 []）"
+    },
+    {
+      "check": "C4_cli_session_wall0_assigned",
+      "pass": true,
+      "detail": "_cli_wall0 = time.time() 存在"
+    },
+    {
+      "check": "C5_cli_target_wall_fn",
+      "pass": true,
+      "detail": "_cli_target_wall() 存在"
+    },
+    {
+      "check": "C6_on_final_registers_target_wall",
+      "pass": true,
+      "detail": "on_final 登记 _seg_target_wall"
+    },
+    {
+      "check": "C7_register_before_submit",
+      "pass": true,
+      "detail": "登记位置 128318 < submit 位置 128468"
+    },
+    {
+      "check": "C8_gui_still_uses_target_play_at",
+      "pass": true,
+      "detail": "GUI App._on_final 路径仍在传 target_play_at"
+    },
+    {
+      "check": "C9_service_accepts_target_play_at",
+      "pass": true,
+      "detail": "tts_service.submit 签名支持 target_play_at"
+    }
+  ],
+  "counterfactual_failed": [
+    "C3_all_cli_submit_pass_target_play_at"
+  ],
+  "verdict": true,
+  "verdict_rule": "REAL 组全 PASS 且 反证组有 FAIL"
+}

@@ -4326,6 +4326,38 @@ def run_cli(args):
               '更新一次音色（更新前用预设 A）', flush=True)
     finals = []
 
+    # 🔴🔴🔴 APP-042：**CLI 侧补齐「目标开播墙钟」**（真机实测暴露的缺陷）
+    #   ⚠️ **实测证据**：真机 CLI 回放（SPE 前 5 分钟）落盘的逐句 jsonl 里
+    #     `speed` 有值但 `target_wall` **恒为 None** ⇒ 加速参数**从未下发**
+    #     ⇒ **CLI 下自适应加速链路永不触发**。
+    #   ⚠️ **根因**：APP-042 的目标墙钟机制**只做在 GUI `App` 类**
+    #     （`_session_wall0` 只在 `App.start()` 里赋值；`App._on_final()` 里
+    #     登记 `_seg_target_wall`）⇒ CLI 的 `tts.submit(...)`
+    #     **三处全都不传 `target_play_at`** ⇒ 服务端 `target_play_at is None`
+    #     ⇒ **不下发 `speed`/`target_wall`**。
+    #   ⇒ 现在 CLI 与 GUI **同一口径**：墙钟 `time.time()`（跨进程可比），
+    #     目标 = 会话起点墙钟 + 已消费源音频秒数（`Session.audio_s`）。
+    #   ⚠️ **查不到 ⇒ 传 None** ⇒ 服务端不下发加速参数 ⇒ 旧行为逐字不变。
+    _cli_wall0 = None       # 会话起点墙钟（`time.time()` 口径）
+    _seg_target_wall = {}   # 段号 → 目标开播墙钟
+    s = None                # 供下面的闭包在 `Session` 建好后引用
+
+    def _cli_target_wall(seg):
+        """CLI 版 `_target_play_wall()`：段号 → **目标开播墙钟**。
+
+        ⚠️ 口径与 GUI `App._target_play_wall()` **完全一致**：
+          目标 = 「源音频中这句的结束时刻」对应的墙钟
+               = 会话起点墙钟 `t0` + 已消费的源音频秒数 `session.audio_s`。
+        ⚠️ **ASR 不给段级时间戳** ⇒ 用已消费音频时长近似（与 GUI 同）。
+        """
+        if _cli_wall0 is None:
+            return None
+        try:
+            a = float(s.audio_s) if s is not None else 0.0
+        except Exception:
+            a = 0.0
+        return _cli_wall0 + a
+
     # 🔴🔴🔴 2026-10-27 §78 **修真实缺陷**：CLI 模式的 `on_final` **签名对不上**
     #   ⇒ **CLI 模式一收到定稿就崩**（`TypeError: on_final() takes 1 positional
     #     argument but 3 were given`）。
@@ -4343,6 +4375,9 @@ def run_cli(args):
     def on_final(t, spk=None, spk_conf=None):
         finals.append(t)
         print(f'\n[定稿] {t}', flush=True)
+        # 🔴🔴🔴 APP-042：**登记这句的目标开播墙钟**（CLI 版）
+        #   ⚠️ 必须在任何 `tts.submit` **之前**登记 ⇒ 否则第一句拿不到目标时刻。
+        _seg_target_wall[len(finals) - 1] = _cli_target_wall(len(finals) - 1)
         # 🔴🔴🔴 **APP-027「争用定量」四臂对照**：`--tts-source asr` 时
         #   **直接把 ASR 原文喂给 TTS**（**不经过 MT**）⇒
         #   「TTS 单独」与「+ASR（无 MT）」两臂才可能成立。
@@ -4351,7 +4386,10 @@ def run_cli(args):
             # 🔴 语言必须**显式下传**（APP-030①）：ASR 原文是**英文**，
             #   不下传 ⇒ worker 靠 `_guess_lang()` 猜（只分 zh/en）
             #   ⇒ 这里按 ASR 原文语种给 'en'。
-            tts.submit(t, seg=len(finals) - 1, lang='en')
+            tts.submit(t, seg=len(finals) - 1, lang='en',
+                       # 🔴🔴🔴 APP-042：**目标开播墙钟**（CLI 版）
+                       #   ⇒ 与 GUI 同口径 ⇒ 服务端据此算 lag 与加速倍率。
+                       target_play_at=_seg_target_wall.get(len(finals) - 1))
         # 🔴 APP-022：`spk` / `spk_conf` **接口预留**（当前恒为 None）
         #   ⇒ 透传给 MT（MT 侧同样只预留不使用）⇒ 行为不变。
         mt.submit(t, seg=len(finals) - 1)
@@ -4363,6 +4401,11 @@ def run_cli(args):
     #   ⇒ `Session._loop` 里的 `if self.on_audio is not None` 短路 ⇒ 零开销。
     s = Session(eng, _cli_source(args), on_final=on_final,
                 on_audio=(_clone_col.feed if _clone_col is not None else None))
+    # 🔴🔴🔴 APP-042：**会话起点墙钟**（目标开播时刻的基准）
+    #   ⚠️ 用 `time.time()`（墙钟）⇒ 与 worker 进程**跨进程可比**
+    #     （`perf_counter()` 各进程基准不同 ⇒ 不可比）。
+    #   ⚠️ 必须在 `s.start()` **之前**赋值 ⇒ 首句的目标时刻才不是 None。
+    _cli_wall0 = time.time()
     t0 = time.perf_counter()
     s.start()
     last, lags, max_backlog = '', [], 0.0
@@ -4396,7 +4439,9 @@ def run_cli(args):
                     if tts is not None and tts.active:
                         # 🔴🔴🔴 APP-030①：**显式下传 MT 目标语言**
                         #   （CLI 没有下拉 ⇒ 用 `mt.target`）
-                        tts.submit(txt, seg=ev['seg'], lang=mt.target)
+                        tts.submit(txt, seg=ev['seg'], lang=mt.target,
+                                   # 🔴🔴🔴 APP-042：**目标开播墙钟**（CLI 版）
+                                   target_play_at=_seg_target_wall.get(ev['seg']))
             if args.max_seconds and s.audio_s >= args.max_seconds:
                 s.stop()
     except KeyboardInterrupt:
@@ -4430,7 +4475,9 @@ def run_cli(args):
                 # ── TTS：补交最后一批定稿译文 ──
                 if tts is not None and tts.active:
                     # 🔴🔴🔴 APP-030①：**显式下传 MT 目标语言**
-                    tts.submit(txt, seg=ev['seg'], lang=mt.target)
+                    tts.submit(txt, seg=ev['seg'], lang=mt.target,
+                               # 🔴🔴🔴 APP-042：**目标开播墙钟**（CLI 版）
+                               target_play_at=_seg_target_wall.get(ev['seg']))
         sm = mt.summary()
         f = lambda v, d=1: ('—' if v is None else f'{v:.{d}f}')
         print(f'[{args.engine}] 翻译 target={mt.target} 后端={mt.engine_key} 设备 {mt.device} '

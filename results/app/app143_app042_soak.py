@@ -131,23 +131,33 @@ def main():
         print('[run] 退出码=%s  墙钟=%.1f s' % (rc, wall))
 
         # ── 解析 CLI 收尾统计行 ────────────────────────────────
-        stat_line = None
+        # 🔴🔴🔴 **判据自身缺陷修正（本轮实测踩到）**：
+        #   旧实现用「按 `]` 切分后的 token 相等」来取字段
+        #   ⇒ 但 close 后的最终统计行是
+        #     `[TTS] 最终统计（close 后）：提交 76  播完 76  丢弃 0 ...`
+        #   ⇒ **全角冒号「：」紧贴「提交」** ⇒ token 是 `后）：提交`
+        #   ⇒ `pick('提交')` **永远返回 None**
+        #   ⇒ B4（不变式）/ B6（worker 重启）**假 FAIL**（不是产品回归）。
+        #   ⇒ 修法：① 收集**所有**候选统计行（不只最后一行），
+        #     因为「重启」只出现在运行时那行、close 后那行没有；
+        #     ② 取值改为**正则**（兼容全角/半角冒号 + 可选空格）。
+        stat_lines = []
         for l in reversed(lines):
             if '[TTS]' in l and '提交' in l and '丢弃' in l:
-                stat_line = l
-                break
+                stat_lines.append(l)
+        stat_line = stat_lines[0] if stat_lines else None
 
         def pick(key, default=None):
-            if not stat_line:
-                return default
-            toks = stat_line.replace(']', ' ').split()
-            for i, t in enumerate(toks):
-                if t == key and i + 1 < len(toks):
-                    v = toks[i + 1].rstrip('s')
+            # 🔴 按顺序遍历**所有**候选行 ⇒ 运行时行补齐 close 后行缺的字段
+            for ln in stat_lines:
+                m = re.search(re.escape(key) + r'\s*[:：]?\s*(\d+(?:\.\d+)?)',
+                              ln)
+                if m:
+                    v = m.group(1).rstrip('s')
                     try:
                         return float(v) if '.' in v else int(v)
                     except ValueError:
-                        return default
+                        continue
             return default
 
         n_submitted = pick('提交')
