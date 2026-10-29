@@ -1,13 +1,13 @@
 # STATUS_APP
 last_ack: APP-042
-更新时间: 2026-10-29 22:02
+更新时间: 2026-10-29 22:06
 当前任务: **§96 🔴 APP-042 真机实测暴露并修掉「CLI 路径加速链路永不触发」的真机缺陷**（run2 证据：jsonl 76 行 `target_wall` 0 条 / `play_lag_s` 0 条 / speed 全 1.0⇒ **撤回 §95「全链已接通」表述**）⇒ ✅ 已修：`_cli_wall0` + `_cli_target_wall()` + CLI 三处 `tts.submit(..., target_play_at=)`（与 GUI 同口径，墙钟 `time.time()`）⇒ ✅ 已定点同步客户包 **v1.8 包目录**（`sync_c159`：`[SYNCED]` + 幂等 `[ALREADY]`，归一化 SHA `a9c95777…`）⇒ ✅ 闸门 `app145` REAL 9/9 + 反证识破、`app146` REAL 8/8 + 反证 3/3 ⇒ ⛔ **zip 未重打 ⇒ 不写「已交付」**（zip 内实测仍是旧代码）、⛔ **修复后的真机实测仍在等 ASR 释放共享机器锁** ⇒ 🔴 **本条需等 reviewer 复核**
 
 阻塞 / 待用户决定: ① 🔴 **修复后的 APP-042 真机实测仍在等锁**（SPE 前 5 分钟、默认设备摆放、持锁：滞后曲线起点/峰值/结尾、各倍率时间占比、**丢句 = 0**、挑 3 段 1.2–1.3× 配音落盘给用户抽听）⇒ 本轮 `shared/MACHINE_LOCK` 被 **ASR** 持有（`asr PID 41264 started 2026-10-29 21:56:33 task=asr028-ref-diarize`，ctypes `exitcode=259` ⇒ **活锁**）⇒ **不抢不删**，fail-closed 排队中；② 🔴 **zip 未重打** ⇒ 客户包 zip 内仍是修复前代码 ⇒ **本轮不写「已交付」**；③ 🔴 **reviewer 回转写 + 用户实听未做**（APP-042 明文要求，本模块不得自做）；④ 🔴 **APP-041 桌面快捷方式 → `pythonw.exe` 冷启动真机验收未做**；⑤ 🔴 **APP-039/040 核心未做**（卡 ASR 说话人旁路接口未交付）；⑥ 🔴 本轮**未修改** `CORRECTIONS_APP.md`（只读）
 
 
 ## 最近更新
-2026-10-29 22:02 §96 🔴 **APP-042 真机实测暴露并修掉「CLI 路径加速链路永不触发」的真机缺陷**（run2 证据：jsonl 76 行 `target_wall` 0 条 / `play_lag_s` 0 条 / speed 全 1.0 ⇒ 撤回 §95「全链已接通」表述）⇒ ✅ 修复：`_cli_wall0` + `_cli_target_wall()` + 三处 `tts.submit(..., target_play_at=)`（CLI 与 GUI 同口径，墙钟 `time.time()`）⇒ ✅ 闸门 `app145` REAL 9/9 + 反证 FAIL（判据不恒真）⇒ ✅ 验收脚本判据自身缺陷已修（全角冒号 ⇒ `pick()` 恒 None ⇒ B4/B6 假 FAIL）⇒ ✅ 定点同步 v1.8 包目录（`sync_c159`：`[SYNCED]` + 幂等 `[ALREADY]`，归一化 SHA `a9c95777…`）⇒ ⛔ **zip 未重打 ⇒ 不写「已交付」**、⛔ reviewer 回转写 / 用户实听未做 ⇒ 🔴 **本条需等 reviewer 复核**
+2026-10-29 22:06 §96 🔴 **APP-042 真机实测暴露并修掉「CLI 路径加速链路永不触发」的真机缺陷**（run2 证据：jsonl 76 行 `target_wall` 0 条 / `play_lag_s` 0 条 / speed 全 1.0 ⇒ 撤回 §95「全链已接通」表述）⇒ ✅ 修复：`_cli_wall0` + `_cli_target_wall()` + 三处 `tts.submit(..., target_play_at=)`（CLI 与 GUI 同口径，墙钟 `time.time()`）⇒ ✅ 闸门 `app145` REAL 9/9 + 反证 FAIL（判据不恒真）⇒ ✅ 验收脚本判据自身缺陷已修（全角冒号 ⇒ `pick()` 恒 None ⇒ B4/B6 假 FAIL）⇒ ✅ 定点同步 v1.8 包目录（`sync_c159`：`[SYNCED]` + 幂等 `[ALREADY]`，归一化 SHA `a9c95777…`）⇒ ⛔ **zip 未重打 ⇒ 不写「已交付」**、⛔ reviewer 回转写 / 用户实听未做 ⇒ 🔴 **本条需等 reviewer 复核**
 2026-10-29 20:49 §95 🔴 **APP-041 + APP-042 已实施并交付 v1.8**（zip 11 218 155 024 B / 17:37:13 / SHA256 `0e3b4d26…` / 14 201 条目 / zip⇄包目录 6 590 `.py` 逐字节 0 差异 / MANIFEST version=1.8）⇒ ✅ APP-041「启动时默认开启却没初始化」已修（同一入口 `_on_tts_toggled()`，失败自动回关闭）⇒ ✅ APP-042「自适应加速播放」全链接通（WSOLA 保音高 + `clamp(1.0+(lag−3)×0.025,1.0,1.30)` + 滞回 + 相邻句 ≤0.1× + 底栏显示语速/播放滞后）⇒ ✅ 验收 `app139` 21/21、`app140` 22/22、`app141_end_to_end` 24/24、`app141_integration` 62/62、`app142` 22/22（含反证基线 commit `f724769`）⇒ ⛔ **APP-042 的 SPE 5 分钟真机实测未做**（ASR 持锁，未抢锁）、⛔ **APP-041 桌面快捷方式真机验收未做** ⇒ 🔴 **本条需等 reviewer 复核**
 16:14 §94 🔴 **APP-039/040 的显示层部分已完成并交付 v1.7**（zip 11 218 140 640 B / 15:59:47 / SHA256 `43857883…`；14 200 条目逐字节一致；MANIFEST `version='1.7'`；独立三方复核 23/23 + 23/23）⇒ ✅ 6 个真实缺陷：标签默认关闭 / **译文行没有标签** / 元组泄漏成 `[('S1', 0.87)]` / 说话人颜色不固定 / 克隆未标实验 / GUI 不显示本句说话人 ⇒ ✅ `app137` **REAL 12/12 + BUG 5 落空 + JUDGE 2/2 + BASELINE 5/5**（反证基线固定 commit `f724769` ⇒ 逐条复现修前缺陷）⇒ ✅ 回归 `app079` 15/15、`app015` 23/23、`app073` 11/11 ⇒ ✅ **版本号改为每次打包自动递增**（`pack_v13` minor+1 + 源目录同卷改名 + MANIFEST 同步；`app138` **12/12**）⇒ ⛔ **APP-039/040 的核心（音色按句绑定 spk）未做**（等 ASR 说话人旁路接口）、⛔ **APP-041/042 已接收但未实施** ⇒ 🔴 **本条需等 reviewer 复核**
 13:28 §93 🔴🔴 **客户包 v1.6 已持锁重打 zip ⇒「已交付」成立（代码 + 包目录 + zip 三方闭环）** ⇒ ✅ zip **11 218 138 008 B / mtime 13:20:04 / SHA256 `376c4832…31b8`**（较旧版 +8 538 B ⇒ 确实换了内容）＋ **14 200 文件逐字节一致** ＋ `testzip()` OK ＋ 打包脚本 PASS（md5 `f78d7fd3…cd90a`）⇒ ✅ **独立只读三方复核 `app136` PASS**（仓库⇄包目录 23/23 ＋ 包目录⇄zip 23/23 ＋ 3 个改动文件三方指纹全 MATCH）⇒ ✅ **反向自证**：注入 1 处真实差异 ⇒ 判据 **FAIL** 且精确定位到 `tts_worker.py` ⇒ 恢复后复跑 PASS（判据不恒真）⇒ 🔴 **自查抓出 2 个真实缺陷**（`app136`/`app132` **写死客户包版本号** ⇒ 触发 §48 闸门 ⇒ **第一次打包被正确拦下** ⇒ 改用 `pkg_paths` 单一数据源；② 打包须等 45 s 安静窗口 ⇒ 自跑复现脚本被识别「在算」⇒ 重新计时）⇒ ✅ 同步后**包内代码复跑** `app133`/`app134` 各 **50/50 PASS**⇒ ✅ commit **`dc7603b`** ＋ 普通 push ＋ `HEAD == origin/main` ＋ `CORRECTIONS_APP.md` 未入库⇒ ⛔ **APP-036/037 真机 NPU 实测未做（守纪律）⇒「用户听得到」仍不成立**、⛔ **APP-027 未完**⇒ 🔴 **本条需等 reviewer 复核**
@@ -17011,6 +17011,37 @@ APP-042 的「目标开播墙钟」机制**只做在 GUI `App` 类**：
 3. **解释器口径** —— managed 3.13 **无 numpy** ⇒ V7 客观做不了
    ⇒ 改用 **system 3.12**（`numpy 2.5.4`）运行（与 §91 记录的同一条铁律）。
 
+### 96.5c ✅ 端到端计算链闸门 `app147`（不启 worker、不占锁）
+
+新增 `results/app/app147_app042_submit_target_wall.py` +
+`results/app/app147_app042_submit_target_wall_evidence.json`。
+**验证什么**：从「调用方给出目标墙钟」到「命令体里出现 `speed` / `target_wall` / `lag_s`」
+这条链，在**不启动 worker、不占共享锁**的前提下可测。
+**怎么测**：`ast` 抽出 `TTSService.submit` + **模块级常量注入** + **假实例**（`FakeSelf`）。
+
+- **REAL 6/6 PASS**：
+  | 项 | 断言 | 实测 |
+  |---|---|---|
+  | W1 | `target_play_at=None` ⇒ 命令体**不含** `speed`/`target_wall`/`lag_s`（旧调用方逐字不变） | 三者皆无 |
+  | W2 | `target_play_at` 有值 ⇒ 三字段皆在 | `{speed 1.0, target_wall …, lag_s 0.005}` |
+  | W3 | `lag ≈ 0 ⇒ speed = 1.0` | `1.0` |
+  | W4 | `lag ≈ 60 s ⇒ 单次限幅 speed = 1.1`、`lag_s ≈ 60` | `{1.1, 60.0}` |
+  | W5 | `target_wall == 传入值`（round 4 位） | 一致 |
+  | W6 | 上一句 1.2 ⇒ 本句单次最多 1.3（步长限制生效） | `1.3` |
+- **反证 2/2 全部被识破** ⇒ `counterfactual_not_caught = []` ⇒ **判据不恒真**。
+
+🔴 **判据自身踩坑三处（已修，记录在案）**：
+1. **只抽方法、不抽模块级常量** ⇒ `submit` 内 `MAX_TEXT_CHARS` ⇒ `NameError`
+   ⇒ **反证组因异常而「没识破」** ⇒ 判据看起来「不恒真」，实际是**脚本崩了**
+   （自踩坑：**脚本崩了 ≠ 判据失效**）⇒ 修法：**逐个常量单独 exec**（一个出错不影响其它）。
+2. **反证改的是源码文本、`exec` 的却是原 AST** ⇒ **反证永远不生效**
+   ⇒ 修法：`extract_submit(src)` 支持传入改后源码并**重新抽 AST**。
+3. **反证注入点选错** —— 把 `if target_play_at is not None:` 改成 `if True:`
+   ⇒ `target_play_at=None` 时 `float(None)` **抛异常**并被 `submit` 内的 `except` 吞掉
+   ⇒ **命令体里根本没有 `speed`** ⇒ 「speed 出现了」这个判据**识破不了**。
+   ⇒ 修法：改用**等价的假实现**（`None` 时给 `speed=1.0`）—— 这正是
+   「旧调用方命令体被污染」的真实失效模式。
+
 ### 96.6 ✅ 验收脚本判据自身缺陷（已修，非产品回归）
 
 `results/app/app143_app042_soak.py` 的 `pick()` 旧实现按 **token 相等**取字段，
@@ -17054,8 +17085,10 @@ APP-042 的「目标开播墙钟」机制**只做在 GUI `App` 类**：
 |---|---|
 | `423c14e` | 仓库 `live_caption_app.py` 修复 + `sync_c159_to_pkg.py` + `app143` 判据修正 + `app145` 闸门与 evidence（5 文件） |
 | `76c199d` | `app146` 离线数学闸门与 evidence + run2 缺陷复现证据归档（6 文件） |
+| `baec486` | `app147` 端到端计算链闸门与 evidence（2 文件） |
 
-- 普通 push：`3e4ea82..423c14e`、`423c14e..76c199d`（**无 force push**）
+- 普通 push：`3e4ea82..423c14e`、`423c14e..76c199d`、`76c199d..baec486`
+  （**无 force push**）
 - `HEAD == origin/main`
 - `git show --name-only --format="" HEAD | grep -c CORRECTIONS` = **0**
   ⇒ `CORRECTIONS_APP.md` **未入库**（只读，绝不提交）
@@ -17064,8 +17097,11 @@ APP-042 的「目标开播墙钟」机制**只做在 GUI `App` 类**：
 ### 96.9 结论
 
 - ✅ **本条已完成**：APP-042 的 CLI 路径缺陷**已定位、已修、已定点同步到客户包 v1.8**；
-  回归闸门 `app145`（REAL 9/9 + 反证识破）与离线数学闸门 `app146`（REAL 8/8 + 反证 3/3）
-  双双通过且**判据不恒真**；验收脚本判据缺陷已修并用真实日志离线复验。
+  三道闸门全部通过且**判据不恒真**：
+  `app145`（源码结构，REAL 9/9 + 反证识破）、
+  `app146`（纯函数数学，REAL 8/8 + 反证 3/3）、
+  `app147`（端到端命令体计算链，REAL 6/6 + 反证 2/2）；
+  验收脚本判据缺陷已修并用真实日志离线复验。
 - 🔴 **本条需等 reviewer 复核**：
   ① 重打 zip（⇒ 「已交付」成立）；
   ② reviewer 的 MiniMax 回转写错误率对比；

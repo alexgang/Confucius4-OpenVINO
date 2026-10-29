@@ -137,6 +137,37 @@ APP-042 的「目标开播墙钟」机制**只做在 GUI `App` 类**：
 3. **解释器口径** —— managed 3.13 **无 numpy** ⇒ V7 客观做不了
    ⇒ 改用 **system 3.12**（`numpy 2.5.4`）运行（与 §91 记录的同一条铁律）。
 
+### 96.5c ✅ 端到端计算链闸门 `app147`（不启 worker、不占锁）
+
+新增 `results/app/app147_app042_submit_target_wall.py` +
+`results/app/app147_app042_submit_target_wall_evidence.json`。
+**验证什么**：从「调用方给出目标墙钟」到「命令体里出现 `speed` / `target_wall` / `lag_s`」
+这条链，在**不启动 worker、不占共享锁**的前提下可测。
+**怎么测**：`ast` 抽出 `TTSService.submit` + **模块级常量注入** + **假实例**（`FakeSelf`）。
+
+- **REAL 6/6 PASS**：
+  | 项 | 断言 | 实测 |
+  |---|---|---|
+  | W1 | `target_play_at=None` ⇒ 命令体**不含** `speed`/`target_wall`/`lag_s`（旧调用方逐字不变） | 三者皆无 |
+  | W2 | `target_play_at` 有值 ⇒ 三字段皆在 | `{speed 1.0, target_wall …, lag_s 0.005}` |
+  | W3 | `lag ≈ 0 ⇒ speed = 1.0` | `1.0` |
+  | W4 | `lag ≈ 60 s ⇒ 单次限幅 speed = 1.1`、`lag_s ≈ 60` | `{1.1, 60.0}` |
+  | W5 | `target_wall == 传入值`（round 4 位） | 一致 |
+  | W6 | 上一句 1.2 ⇒ 本句单次最多 1.3（步长限制生效） | `1.3` |
+- **反证 2/2 全部被识破** ⇒ `counterfactual_not_caught = []` ⇒ **判据不恒真**。
+
+🔴 **判据自身踩坑三处（已修，记录在案）**：
+1. **只抽方法、不抽模块级常量** ⇒ `submit` 内 `MAX_TEXT_CHARS` ⇒ `NameError`
+   ⇒ **反证组因异常而「没识破」** ⇒ 判据看起来「不恒真」，实际是**脚本崩了**
+   （自踩坑：**脚本崩了 ≠ 判据失效**）⇒ 修法：**逐个常量单独 exec**（一个出错不影响其它）。
+2. **反证改的是源码文本、`exec` 的却是原 AST** ⇒ **反证永远不生效**
+   ⇒ 修法：`extract_submit(src)` 支持传入改后源码并**重新抽 AST**。
+3. **反证注入点选错** —— 把 `if target_play_at is not None:` 改成 `if True:`
+   ⇒ `target_play_at=None` 时 `float(None)` **抛异常**并被 `submit` 内的 `except` 吞掉
+   ⇒ **命令体里根本没有 `speed`** ⇒ 「speed 出现了」这个判据**识破不了**。
+   ⇒ 修法：改用**等价的假实现**（`None` 时给 `speed=1.0`）—— 这正是
+   「旧调用方命令体被污染」的真实失效模式。
+
 ### 96.6 ✅ 验收脚本判据自身缺陷（已修，非产品回归）
 
 `results/app/app143_app042_soak.py` 的 `pick()` 旧实现按 **token 相等**取字段，
@@ -180,8 +211,10 @@ APP-042 的「目标开播墙钟」机制**只做在 GUI `App` 类**：
 |---|---|
 | `423c14e` | 仓库 `live_caption_app.py` 修复 + `sync_c159_to_pkg.py` + `app143` 判据修正 + `app145` 闸门与 evidence（5 文件） |
 | `76c199d` | `app146` 离线数学闸门与 evidence + run2 缺陷复现证据归档（6 文件） |
+| `baec486` | `app147` 端到端计算链闸门与 evidence（2 文件） |
 
-- 普通 push：`3e4ea82..423c14e`、`423c14e..76c199d`（**无 force push**）
+- 普通 push：`3e4ea82..423c14e`、`423c14e..76c199d`、`76c199d..baec486`
+  （**无 force push**）
 - `HEAD == origin/main`
 - `git show --name-only --format="" HEAD | grep -c CORRECTIONS` = **0**
   ⇒ `CORRECTIONS_APP.md` **未入库**（只读，绝不提交）
@@ -190,8 +223,11 @@ APP-042 的「目标开播墙钟」机制**只做在 GUI `App` 类**：
 ### 96.9 结论
 
 - ✅ **本条已完成**：APP-042 的 CLI 路径缺陷**已定位、已修、已定点同步到客户包 v1.8**；
-  回归闸门 `app145`（REAL 9/9 + 反证识破）与离线数学闸门 `app146`（REAL 8/8 + 反证 3/3）
-  双双通过且**判据不恒真**；验收脚本判据缺陷已修并用真实日志离线复验。
+  三道闸门全部通过且**判据不恒真**：
+  `app145`（源码结构，REAL 9/9 + 反证识破）、
+  `app146`（纯函数数学，REAL 8/8 + 反证 3/3）、
+  `app147`（端到端命令体计算链，REAL 6/6 + 反证 2/2）；
+  验收脚本判据缺陷已修并用真实日志离线复验。
 - 🔴 **本条需等 reviewer 复核**：
   ① 重打 zip（⇒ 「已交付」成立）；
   ② reviewer 的 MiniMax 回转写错误率对比；
