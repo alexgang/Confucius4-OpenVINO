@@ -667,3 +667,103 @@ mtime 均为 2026-10-28 06:11。）
 - ⛔ **pyannote 旁路未接线**（run7 的 22 段全部 `spk=null`/`voice="A"`
   ⇒ **克隆音色路径未被 P1 覆盖**）。
 - ⛔ **P2（克隆/体验/稳定性）/ P3（打包）未开始**。
+
+---
+
+## 2026-10-29 11:41 → 12:0x — EXT-008（P1 口径修正 + 分阶段吞吐实测）
+
+**执行时间**：2026-10-29 11:41（任务启动）→ 实测段落待补
+
+**闸门**：第 0 步跑 `tools/next_instruction.py --json` ⇒ **exit 0**（有新指令）
+⇒ 最新指令 = **EXT-008 [HIGH] 2026-10-29 10:15**，本轮**唯一执行依据**。
+（`last_ack` 当时为 EXT-006，纠偏文件共 8 条 ⇒ 认领 EXT-008。）
+
+**指令摘要**
+1. 「5 分钟累计滞后」口径错（`cumulative_lag_sec=-3969.5` 是 22 段余量**求和**）
+   ⇒ 改成**末句滞后** + **滞后增长斜率**，**删除求和量**；
+2. 「喂帧 570.96 s / 音频 300 s」⇒ 说明**是谁阻塞**，核对滞后里有多少是
+   **喂帧慢**造成的；**t0 的定义要写清**；
+3. 「并行化即根治」尚无证据 ⇒ 先测 (a) 冷/热各 3 次、(b) 三阶段单独跑
+   5 分钟素材的**稳态 RTF**、(c) ASR 与 TTS **同时**跑的**互相干扰**；
+4. **不要自行改 D、不动引擎文件**；方向由主会话/用户决定；
+   要把 (b) 的 TTS 稳态 RTF 数字写进 STATUS 供主会话转达。
+
+**实测与结论**
+
+* **第 1 点（口径）✅**
+  * `ext/bridge.py::summarize_margins()` 重写：删 `cumulative_lag_sec`、
+    `peak_lag_sec`；新增 `last_segment_lag_sec` / `lag_growth_slope_sec_per_sec` /
+    `lag_growth_intercept_sec` / `lag_growth_r2` / `lag_n_fit_points` / `lag_definition`。
+  * 新增 `_linfit()`（最小二乘 + r²）。
+  * **run7 重算**（`tools/recompute_lag.py`，只读旧 `margin.json`、只写新文件
+    ⇒ **未重跑 5 分钟实测、未再占设备**）：
+    **末句滞后 297.8847 s** / **最大滞后 304.3427 s** /
+    **斜率 -0.892163 sec/sec（r² = 0.995403）** / 截距 -48.822 / 拟合点 22。
+  * 产物：`.tmp/p1_run7/lag_recompute.json`（1 个文件，mtime 2026-10-29 11:47，
+    14736 字节）。
+* **第 2 点（阻塞归因）✅**
+  * **t0 定义**（写进 STATUS §6.4.1）：服务端 `Session.__init__` 里的
+    `time.perf_counter()` = **会话起点**；客户端 `t_capture` **不同源**、不可相减。
+  * **阻塞方 = 服务端背压**（消息循环单线程串行，跑引擎时不读 socket）。
+    证据：喂帧 570.963 s / 300 s ⇒ 倍速 **0.5254×**；端到端 RTF 1.9589 ⇒
+    `1/1.9589 = 0.5105` ⇒ **同量级** ⇒ 喂帧速度由引擎吞吐决定。
+  * ⚠️ **客户端 `ws.send()` 阻塞时长不可靠**（实测 `0/267` 帧，TCP 内核缓冲吸收）
+    ⇒ 改用**服务端侧逐帧到达延迟**（`arrival_delay = 帧到达墙钟 − (t0 + sample_index/16000)`），
+    已落到 `Session.stats().feed_arrival_delay`。
+  * ★ **精确三分量分解**（`ext/bridge.py::decompose_lag_exact`，逐段闭合）：
+    `lag = backlog(喂帧/背压) + struct(段长超窗) + proc(引擎)`，
+    run7 22 段 **残差 ≤ 0.0006 s（`identity_closed = true`）**：
+    **backlog 83.18 %** / struct 2.02 % / **proc 14.80 %**。
+  * ⚠️ **如实记录**：run7 的 `margin.json` 是**旧格式**，无 `audio_ready_rel_sec`
+    ⇒ backlog 是**重建的推算值**（`n_segments_backlog_reconstructed = 22`）。
+    新代码已把该字段落盘，下次实测即为直接实测。
+* **第 3 点（分阶段吞吐）⏳ 实测排队等锁**
+  * 新工具 `tools/throughput_bench.py`：`cold-hot` / `steady` / `interference` /
+    `all`（**一把锁内**跑完三组）。
+  * 从 run7 逐段数据**推算**的冷/热对照（**推算值，非独立实测**）：
+    首段 TTS RTF **1.8876** / ASR RTF **1.0660**；
+    去首段稳态 TTS RTF **0.9264** / ASR **0.6312** / MT **0.1539** /
+    端到端 **1.9143**（含首段端到端 1.9589）。
+    ⇒ **冒烟的 RTF 确实含首次编译/预热成分**（TTS 冷热差 0.96、ASR 0.43）。
+  * **共享锁合规**：11:41 起排队，锁被 **`tts` 模块（PID 9964，
+    started 2026-10-29 11:36:10）** 持有 ⇒ `probe_pid_alive(9964)`（ctypes
+    `OpenProcess`+`GetExitCodeProcess`）复核**存活** ⇒ **不抢、不删、不回收**，
+    每 2 s 轮询等待（日志逐条记录）。⚠️ **未与 TTS 模块/实时字幕 App 同时占设备**。
+
+**涉及修改的文件（**仅本模块**，未动任何引擎文件）**
+
+- `ext/bridge.py` —— `_linfit()`；`summarize_margins()` 重写；
+  `decompose_lag_exact()`（精确三分量）；`Session.on_pcm_frame()` 记服务端侧
+  逐帧到达延迟；`_process_segment()` 落 `proc_sec`/`audio_ready_rel_sec`/
+  `feed_lag_sec`/`intrinsic_lag_sec`；`stats()` 加 `lag_decomposition` +
+  `feed_arrival_delay`。
+- `tools/p1_pipeline.py` —— 逐帧时序记录；`timing` 加 `feed_speed_x` 等；
+  新增 `compute_lag_metrics()`。
+- `tools/recompute_lag.py`（新建）—— 用新口径重算已有实测，只读输入只写新文件。
+- `tools/throughput_bench.py`（新建）—— 分阶段吞吐基准（4 个子命令）。
+- `tests/test_ext_selfcheck.py` —— 新口径断言 + 区分力断言 + 精确三分量闭合/反向断言。
+- `tests/test_p1_plumbing.py` —— 新口径断言；新增 `test_ext008_lag_metrics()`、
+  `test_ext008_feed_backpressure()`。
+- `tests/test_ext_browser_contract.py` —— 修好连续 14 轮红的 B5b **假 FAIL**
+  （旧断言靠整行字面量匹配 ⇒ 断言过时；改成 AST + 行为级的**更强**断言）。
+- `status/STATUS_EXT.md` —— 追加 §6；头部 `last_ack` 推到 EXT-008。
+- `status/EXEC_LOG.md` —— 本记录。
+
+⛔ **未改 `status/CORRECTIONS_EXT.md`**（只读，绝不入库；已在 `.gitignore`）。
+⛔ **未改任何引擎文件**；⛔ **未改 D（缓冲窗）**。
+
+**验证与自测结果**
+
+* 五套自测**全跑、逐套取真实退出码，全部 rc=0**：
+  `test_ext_selfcheck.py` **103 PASS / 0 FAIL**、
+  `test_echo_roundtrip.py` **10 PASS / 0 FAIL**、
+  `test_next_instruction.py` **19 PASS / 0 FAIL**、
+  `test_p1_plumbing.py` **91 PASS / 0 FAIL**、
+  `test_ext_browser_contract.py` **102 PASS / 0 FAIL**
+  ⇒ **合计 325 PASS / 0 FAIL**。
+* ⚠️ **解释器差异（如实记录）**：App 解释器**有 numpy 无 psutil**
+  ⇒ 用它跑 `test_ext_selfcheck.py` 会有 **1 FAIL**
+  （「PID 文件里是存活进程」用例需要 psutil 找对照 PID）
+  ⇒ **是测试环境依赖缺失，不是产品缺陷**；本轮统一用
+  `C:\Users\Trekker-PTL\miniforge3\envs\ov_env_py312\python.exe` 跑自测 ⇒ 全绿。
+  **真实引擎实测**仍必须用 App 解释器 + `PYTHONPATH` 注入 `.runtime_deps/`。
