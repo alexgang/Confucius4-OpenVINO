@@ -1,0 +1,237 @@
+{
+  "script": "app136_s92_threeway_check.py",
+  "zip": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6.zip",
+  "prefix": "Confucius4_LiveCaption_v1.6",
+  "repo_app": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption",
+  "pkg_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\app",
+  "zip_file": {
+    "bytes": 11218138008,
+    "mtime": "2026-10-29 13:20:04",
+    "sha256": "376c483201007ce2805df126df8241cf01ddc8757a2447226981090ae06631b8"
+  },
+  "n_compare": 23,
+  "exclude": [
+    "_probe_tts_cuda.py"
+  ],
+  "zip_entries": 14200,
+  "n_repo_eq_pkg": 23,
+  "n_pkg_eq_zip": 23,
+  "mismatches": [],
+  "per_file": [
+    {
+      "name": "audio_check.py",
+      "repo_sha16": "30332dfbb70414d2",
+      "pkg_sha16": "30332dfbb70414d2",
+      "zip_sha16": "30332dfbb70414d2",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "audio_source.py",
+      "repo_sha16": "38ded238a9f713bd",
+      "pkg_sha16": "38ded238a9f713bd",
+      "zip_sha16": "38ded238a9f713bd",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "backends.py",
+      "repo_sha16": "7530bba7e6a90639",
+      "pkg_sha16": "7530bba7e6a90639",
+      "zip_sha16": "7530bba7e6a90639",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "caption_render.py",
+      "repo_sha16": "3642555a536c4d66",
+      "pkg_sha16": "3642555a536c4d66",
+      "zip_sha16": "3642555a536c4d66",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "clone_collector.py",
+      "repo_sha16": "f1a0f0bc8f5e7a3a",
+      "pkg_sha16": "f1a0f0bc8f5e7a3a",
+      "zip_sha16": "f1a0f0bc8f5e7a3a",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "device_config.py",
+      "repo_sha16": "f386785af866f934",
+      "pkg_sha16": "f386785af866f934",
+      "zip_sha16": "f386785af866f934",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "live_caption_app.py",
+      "repo_sha16": "5aa3269aa9b0b740",
+      "pkg_sha16": "5aa3269aa9b0b740",
+      "zip_sha16": "5aa3269aa9b0b740",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "npu_delivery_backend.py",
+      "repo_sha16": "983c39f209e80bff",
+      "pkg_sha16": "983c39f209e80bff",
+      "zip_sha16": "983c39f209e80bff",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "npu_embeds_backend.py",
+      "repo_sha16": "0254c64697e6860b",
+      "pkg_sha16": "0254c64697e6860b",
+      "zip_sha16": "0254c64697e6860b",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "offline_reader.py",
+      "repo_sha16": "94e0c839d05c2fe5",
+      "pkg_sha16": "94e0c839d05c2fe5",
+      "zip_sha16": "94e0c839d05c2fe5",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "offline_reader_gui.py",
+      "repo_sha16": "4710a5f21766fa48",
+      "pkg_sha16": "4710a5f21766fa48",
+      "zip_sha16": "4710a5f21766fa48",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "seg_stream.py",
+      "repo_sha16": "90e28e41ea6b57d1",
+      "pkg_sha16": "90e28e41ea6b57d1",
+      "zip_sha16": "90e28e41ea6b57d1",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "segment_encoder_backend.py",
+      "repo_sha16": "c2c701dd928cff61",
+      "pkg_sha16": "c2c701dd928cff61",
+      "zip_sha16": "c2c701dd928cff61",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "selftest_audio_sources.py",
+      "repo_sha16": "a6f8bd1f763a1383",
+      "pkg_sha16": "a6f8bd1f763a1383",
+      "zip_sha16": "a6f8bd1f763a1383",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "streaming_asr.py",
+      "repo_sha16": "3b4ba85f1411393c",
+      "pkg_sha16": "3b4ba85f1411393c",
+      "zip_sha16": "3b4ba85f1411393c",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "translator.py",
+      "repo_sha16": "c5ab5e0760e2ea88",
+      "pkg_sha16": "c5ab5e0760e2ea88",
+      "zip_sha16": "c5ab5e0760e2ea88",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "tts_cuda.py",
+      "repo_sha16": "884d90d26838dcf3",
+      "pkg_sha16": "884d90d26838dcf3",
+      "zip_sha16": "884d90d26838dcf3",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "tts_cuda_sidecar.py",
+      "repo_sha16": "269d02f319906a6c",
+      "pkg_sha16": "269d02f319906a6c",
+      "zip_sha16": "269d02f319906a6c",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "tts_engine.py",
+      "repo_sha16": "788d5ca29fd7345b",
+      "pkg_sha16": "788d5ca29fd7345b",
+      "zip_sha16": "788d5ca29fd7345b",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "tts_engine_patch.py",
+      "repo_sha16": "c5cf9566abddf337",
+      "pkg_sha16": "c5cf9566abddf337",
+      "zip_sha16": "c5cf9566abddf337",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "tts_service.py",
+      "repo_sha16": "ec2ef04a5c6f9276",
+      "pkg_sha16": "ec2ef04a5c6f9276",
+      "zip_sha16": "ec2ef04a5c6f9276",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "tts_worker.py",
+      "repo_sha16": "90835802f79a47e1",
+      "pkg_sha16": "90835802f79a47e1",
+      "zip_sha16": "90835802f79a47e1",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "win_clickthrough.py",
+      "repo_sha16": "db376c52bfe20f26",
+      "pkg_sha16": "db376c52bfe20f26",
+      "zip_sha16": "db376c52bfe20f26",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    }
+  ],
+  "s92_files": [
+    {
+      "name": "tts_worker.py",
+      "repo_sha256": "90835802f79a47e11acaf4b8cfba47743b50868e21c4372c05084ba3f8d8463a",
+      "pkg_sha256": "90835802f79a47e11acaf4b8cfba47743b50868e21c4372c05084ba3f8d8463a",
+      "zip_sha256": "90835802f79a47e11acaf4b8cfba47743b50868e21c4372c05084ba3f8d8463a",
+      "all_equal": true,
+      "repo_bytes": 188451,
+      "pkg_bytes": 188451
+    },
+    {
+      "name": "tts_service.py",
+      "repo_sha256": "ec2ef04a5c6f9276328f08bfee15a9e8f8df6c80dbd5caeafc70ef3b4ab1b1a8",
+      "pkg_sha256": "ec2ef04a5c6f9276328f08bfee15a9e8f8df6c80dbd5caeafc70ef3b4ab1b1a8",
+      "zip_sha256": "ec2ef04a5c6f9276328f08bfee15a9e8f8df6c80dbd5caeafc70ef3b4ab1b1a8",
+      "all_equal": true,
+      "repo_bytes": 115173,
+      "pkg_bytes": 115173
+    },
+    {
+      "name": "live_caption_app.py",
+      "repo_sha256": "5aa3269aa9b0b7407abdf8dde6d422c294e69a46e6a846b026403e06401a33c4",
+      "pkg_sha256": "5aa3269aa9b0b7407abdf8dde6d422c294e69a46e6a846b026403e06401a33c4",
+      "zip_sha256": "5aa3269aa9b0b7407abdf8dde6d422c294e69a46e6a846b026403e06401a33c4",
+      "all_equal": true,
+      "repo_bytes": 253195,
+      "pkg_bytes": 248484
+    }
+  ],
+  "testzip_bad": null,
+  "verdict": "PASS"
+}

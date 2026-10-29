@@ -112,19 +112,19 @@
       "group": "C1",
       "name": "行含 t_recv",
       "pass": true,
-      "detail": "t_recv = 703752.4349"
+      "detail": "t_recv = 704279.9305"
     },
     {
       "group": "C1",
       "name": "行含 t_enqueue",
       "pass": true,
-      "detail": "t_enqueue = 703753.6352"
+      "detail": "t_enqueue = 704281.1309"
     },
     {
       "group": "C1",
       "name": "worker_fifo_wait_s ≈ 1.2（入队前等待）",
       "pass": true,
-      "detail": "实际 = 1.2003"
+      "detail": "实际 = 1.2004"
     },
     {
       "group": "C1",
@@ -136,13 +136,13 @@
       "group": "C1",
       "name": "**老口径量不到排队**（t_submit−t_dequeue ≈ 0）",
       "pass": true,
-      "detail": "t_submit=703754.0044 vs t_dequeue=703753.9357 ⇒ 差 0.06869999994523823 s"
+      "detail": "t_submit=704281.5186 vs t_dequeue=704281.4312 ⇒ 差 0.08739999996032566 s"
     },
     {
       "group": "C1",
       "name": "**新口径量得到排队**（t_dequeue−t_recv ≈ 1.5）",
       "pass": true,
-      "detail": "t_dequeue=703753.9357 vs t_recv=703752.4349 ⇒ 差 1.500800000037998 s"
+      "detail": "t_dequeue=704281.4312 vs t_recv=704279.9305 ⇒ 差 1.5006999999750406 s"
     },
     {
       "group": "C2",
@@ -178,7 +178,7 @@
       "group": "C2",
       "name": "write_curve_csv 成功",
       "pass": true,
-      "detail": "路径 = C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app134_gh0u23zj\\curve.csv"
+      "detail": "路径 = C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app134_hywbzmwm\\curve.csv"
     },
     {
       "group": "C2",
@@ -196,7 +196,7 @@
       "group": "C2",
       "name": "t_s 非递减",
       "pass": true,
-      "detail": "首/尾 = 0.001 / 20.86"
+      "detail": "首/尾 = 0.001 / 20.851"
     },
     {
       "group": "C2",
@@ -232,7 +232,7 @@
       "group": "C3",
       "name": "played 事件 ⇒ _last_out_t 被更新",
       "pass": true,
-      "detail": "实际 = 703775.1073019"
+      "detail": "实际 = 704302.6203529"
     },
     {
       "group": "C3",

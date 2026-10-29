@@ -30,10 +30,15 @@ import zipfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 REPO_APP = os.path.join(REPO, 'live_caption')
-PKG = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6'
-PKG_APP = os.path.join(PKG, 'app')
-ZIP = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6.zip'
-PREFIX = 'Confucius4_LiveCaption_v1.6'
+
+# 🔴 §48 闸门：**不写死包路径/版本号** ⇒ 用 `pkg_paths`（单一数据源）自动发现。
+sys.path.insert(0, REPO)
+import pkg_paths  # noqa: E402
+
+PKG = pkg_paths.discover_pkg_dir()
+PKG_APP = pkg_paths.pkg_app_dir(PKG)
+PREFIX = os.path.basename(PKG.rstrip('\\/'))
+ZIP = PKG + '.zip'
 
 #: 包内但**不参与交付**的文件（打包时排除项 / 探针脚本）
 EXCLUDE = {'_probe_tts_cuda.py'}
