@@ -157,19 +157,35 @@ async def _run_client(*, port: int, token: str, frames, delay_sec: float,
 
         rx = asyncio.ensure_future(_recv_loop())
         t_capture = time.perf_counter()
+        # ★★ EXT-008 第 2 点：**逐帧**记录「本该发的时刻」与「实际发的时刻」
+        #   ⇒ 直接定位「是谁阻塞了喂帧」：
+        #     * 若某一帧的 `late_sec` 突然跳到几十秒 ⇒ 服务端在那一刻
+        #       **没在读 socket**（服务端消息循环是单线程串行的，
+        #       跑 ASR→MT→TTS 时不读 ⇒ 客户端 `ws.send()` 被**反压**卡住）
+        #       ⇒ **阻塞方 = 服务端推理（背压）**，不是客户端、也不是网络。
+        #     * 若所有帧都均匀落后 ⇒ 客户端自己的问题。
+        frame_timing: List[dict] = []
         try:
             # ── 喂帧 ─────────────────────────────────────────────
             for seq, sidx, pcm in frames:
+                target = t_capture + (seq + 1) * frame_ms / 1000.0
                 if realtime:
-                    # 目标发送时刻 = 首帧时刻 + (seq+1)×帧长
-                    target = t_capture + (seq + 1) * frame_ms / 1000.0
                     now = time.perf_counter()
                     if target > now:
                         await asyncio.sleep(target - now)
+                t_before_send = time.perf_counter()
                 await ws.send(json.dumps({
                     "type": "pcm", "seq": seq, "sample_index": sidx,
                     "pcm": base64.b64encode(pcm).decode("ascii"),
                 }))
+                t_after_send = time.perf_counter()
+                # late_sec = 实际开始发这一帧的时刻 − 本该发的时刻
+                # send_dur_sec = `ws.send()` 本身阻塞了多久（**反压的直接证据**）
+                frame_timing.append({
+                    "seq": seq,
+                    "late_sec": round(t_before_send - target, 4),
+                    "send_dur_sec": round(t_after_send - t_before_send, 4),
+                })
             t_sent = time.perf_counter()
 
             # ── 收尾：让服务端把尾段也处理掉 ────────────────────
@@ -241,12 +257,59 @@ async def _run_client(*, port: int, token: str, frames, delay_sec: float,
                 print("[p1] ⚠️ 未收到 margin_dumped 确认"
                       "（margin.json 可能缺失）", flush=True)
             t_done = time.perf_counter()
-            timing = {"feed_sec": t_sent - t_capture,
-                      "drain_sec": t_done - t_sent}
-            print("[p1] 喂帧 %.1f s，收尾 %.1f s，共 %d 段"
-                  % (timing["feed_sec"], timing["drain_sec"],
+            # ★ EXT-008 第 2 点：喂帧耗时与音频时长**分开报**，
+            #   并算「喂帧倍速」⇒ 直接暴露「被反压拖慢到 0.5 倍速」这类问题。
+            audio_sec = len(frames) * frame_ms / 1000.0
+            feed_sec = t_sent - t_capture
+            # ── 逐帧时序 → 谁阻塞了喂帧 ──────────────────────
+            late = [f["late_sec"] for f in frame_timing]
+            sdur = [f["send_dur_sec"] for f in frame_timing]
+            n_blocked = sum(1 for v in sdur if v > 1.0)
+            timing = {
+                "feed_sec": feed_sec,
+                "drain_sec": t_done - t_sent,
+                "total_sec": t_done - t_capture,
+                # 音频本身的时长（按帧长算，不依赖文件）
+                "audio_sec": round(audio_sec, 3),
+                # ★ 喂帧倍速：>1 = 比实时快；<1 = 比实时慢（被反压拖慢）
+                "feed_speed_x": round(audio_sec / feed_sec, 4)
+                if feed_sec > 1e-9 else None,
+                # ★ 喂帧超出音频时长的部分（= 被拖慢的绝对量）
+                "feed_overrun_sec": round(feed_sec - audio_sec, 3),
+                # ★★ 阻塞方定位（EXT-008 第 2 点的直接证据）
+                "frame_timing_summary": {
+                    "n_frames": len(frame_timing),
+                    # `send_dur_sec` = `ws.send()` 本身阻塞的时长
+                    #   ⇒ **服务端背压**的直接证据（客户端写不进去）
+                    "send_dur_total_sec": round(sum(sdur), 3),
+                    "send_dur_max_sec": round(max(sdur), 3) if sdur else 0.0,
+                    "n_frames_send_blocked_gt_1s": n_blocked,
+                    "send_blocked_frames_ratio": (round(n_blocked / len(sdur), 4)
+                                                  if sdur else None),
+                    # `late_sec` = 实际发这一帧的时刻 − 本该发的时刻
+                    "late_max_sec": round(max(late), 3) if late else 0.0,
+                    "late_final_sec": round(late[-1], 3) if late else 0.0,
+                    "interpretation": (
+                        "n_frames_send_blocked_gt_1s > 0 ⇒ 客户端的 ws.send() "
+                        "被**服务端背压**卡住 ⇒ 阻塞方 = **服务端推理**"
+                        "（消息循环单线程串行，跑 ASR→MT→TTS 时不读 socket）。"
+                        "若该值为 0 而 late_sec 仍大 ⇒ 阻塞在客户端自身。"),
+                },
+                # t0 的定义（EXT-008 明确要求写清）
+                "t0_definition": (
+                    "t0 = 服务端 Session 创建时刻（time.perf_counter()），"
+                    "即第一条 PCM 帧被服务端接收前的会话起点；"
+                    "客户端 t_capture = 连接建立后开始喂帧的时刻，"
+                    "两者不同源 ⇒ 客户端的墙钟不能直接与服务端的 t0 相减，"
+                    "所有服务端侧时刻都以 t0 为基准。"),
+            }
+            print("[p1] 喂帧 %.1f s（音频 %.1f s，倍速 %.3f×），收尾 %.1f s，共 %d 段"
+                  % (timing["feed_sec"], timing["audio_sec"],
+                     (timing["feed_speed_x"] or 0.0), timing["drain_sec"],
                      sum(1 for t in tasks if t.get("type") == "tts")),
                   flush=True)
+            print("[p1] 喂帧阻塞诊断：%d/%d 帧的 send() 被卡 >1s（合计 %.1f s）"
+                  % (n_blocked, len(sdur), sum(sdur)), flush=True)
         finally:
             rx.cancel()
             try:
@@ -290,6 +353,10 @@ def compute_metrics(tasks: List[dict], *, delay_sec: float,
       ★ 旧实现用 `defer_sec`（顺延量）当同步误差 —— 那是**时长适配**的
         另一个量（语音放不进窗口），与「实际播放起点」无关 ⇒ 口径错了。
         本轮改为上面的定义，并**同时**保留顺延量作为独立指标。
+
+    ★★ EXT-008 第 1 点：**「累计滞后」口径修正**。
+      客户端自己再算一遍「末句滞后」与「滞后增长斜率」
+      （与服务端 `summarize_margins()` 同口径），⇒ 两边可交叉核对。
     """
     segs = [t for t in tasks if t.get("type") == "tts"]
     per_seg = []
@@ -364,9 +431,63 @@ def compute_metrics(tasks: List[dict], *, delay_sec: float,
             },
         },
     }
+    # ★★ EXT-008 第 1 点：客户端自算「末句滞后 + 滞后增长斜率」
+    #   （与服务端同口径 ⇒ 可交叉核对；**不再**有「余量求和」量）。
+    out["lag"] = compute_lag_metrics(per_seg)
     if margin_summary:
         out["margin"] = margin_summary
     return out, per_seg
+
+
+def compute_lag_metrics(per_seg: List[dict]) -> dict:
+    """★ EXT-008 第 1 点：**修正后的滞后口径**。
+
+    旧口径（`cumulative_lag_sec`）= 22 段余量**求和** ⇒ 数值随段数线性放大，
+    **没有物理含义** ⇒ EXT-008 要求删除。
+
+    新口径（两个**有物理含义**的量）：
+      1. `last_segment_lag_sec` = 末句 `max(0, −排程余量)`
+         （末句「TTS 就绪时刻 − 它应播的时刻」）；
+      2. `lag_growth_slope_sec_per_sec` = 对 `(t_start, 排程余量)`
+         **线性拟合**的斜率（负数 = 滞后随时间在累积）。
+    """
+    pairs = [(float(p.get("t_start") or 0.0),
+              float(p.get("deadline_margin_sec")))
+             for p in per_seg if p.get("deadline_margin_sec") is not None]
+    if not pairs:
+        return {"n_fit_points": 0,
+                "last_segment_lag_sec": None,
+                "max_lag_sec": None,
+                "lag_growth_slope_sec_per_sec": None,
+                "lag_growth_intercept_sec": None,
+                "lag_growth_r2": None}
+    xs = [p[0] for p in pairs]
+    ys = [p[1] for p in pairs]
+    n = len(xs)
+    mx = sum(xs) / n
+    my = sum(ys) / n
+    sxx = sum((x - mx) ** 2 for x in xs)
+    if sxx <= 1e-12:
+        slope, intercept = 0.0, my
+        r2 = 0.0
+    else:
+        slope = sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / sxx
+        intercept = my - slope * mx
+        ss_tot = sum((y - my) ** 2 for y in ys)
+        ss_res = sum((y - (slope * x + intercept)) ** 2 for x, y in zip(xs, ys))
+        r2 = (1.0 - ss_res / ss_tot) if ss_tot > 1e-12 else 0.0
+    return {
+        "n_fit_points": n,
+        "last_segment_lag_sec": round(max(0.0, -ys[-1]), 4),
+        "max_lag_sec": round(max(0.0, -min(ys)), 4),
+        "lag_growth_slope_sec_per_sec": round(slope, 6),
+        "lag_growth_intercept_sec": round(intercept, 4),
+        "lag_growth_r2": round(r2, 6),
+        "definition": ("末句滞后 = max(0, −末句排程余量)；"
+                       "滞后增长斜率 = 对 (t_start, 排程余量) 线性拟合的斜率"
+                       "（负数 = 滞后随时间累积）。"
+                       "⚠️ 不再有「余量求和」量（EXT-008 判定无物理含义，已删除）。"),
+    }
 
 
 # ── 落盘 ────────────────────────────────────────────────────────────

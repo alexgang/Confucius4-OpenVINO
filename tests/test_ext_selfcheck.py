@@ -335,16 +335,19 @@ def test_ext005_ext006_behaviors() -> None:
     summ = sess.margin_summary()
     check("余量统计有 n_segments", summ.get("n_segments", 0) == len(all_tasks),
           f"n_segments={summ.get('n_segments')}")
-    check("余量统计有 n_negative 与累计滞后",
-          all(k in summ for k in ("n_negative", "cumulative_lag_sec",
-                                  "peak_lag_sec")))
+    check("余量统计有 n_negative 与新滞后口径（末句滞后 + 斜率）",
+          all(k in summ for k in ("n_negative", "last_segment_lag_sec",
+                                  "lag_growth_slope_sec_per_sec",
+                                  "max_lag_sec")),
+          f"keys={sorted(summ.keys())}")
     check("余量统计含排程截止余量（deadline）",
           "deadline" in summ, f"keys={sorted(summ.keys())}")
     if "deadline" in summ:
         dl = summ["deadline"]
         check("排程截止余量含负值计数与 P50/P95",
               all(k in dl for k in ("n_negative", "p50", "p95",
-                                   "cumulative_lag_sec")))
+                                   "last_segment_lag_sec",
+                                   "lag_growth_slope_sec_per_sec")))
 
     # ★★ 缺陷 17：顶层口径必须是**排程口径**，否则读出「零滞后」假结论。
     #   实测（.tmp/p1_run6/margin.json）：旧顶层用「就绪延迟」口径
@@ -362,14 +365,34 @@ def test_ext005_ext006_behaviors() -> None:
               summ.get("n_negative") == summ["deadline"].get("n_negative"),
               f"top={summ.get('n_negative')} "
               f"dl={summ['deadline'].get('n_negative')}")
-        check("★ 顶层累计滞后 == deadline 组累计滞后（口径一致）",
-              abs(float(summ.get("cumulative_lag_sec") or 0.0)
-                  - float(summ["deadline"].get("cumulative_lag_sec") or 0.0))
+        check("★ 顶层末句滞后 == deadline 组末句滞后（口径一致）",
+              abs(float(summ.get("last_segment_lag_sec") or 0.0)
+                  - float(summ["deadline"].get("last_segment_lag_sec") or 0.0))
               < 1e-6,
-              f"top={summ.get('cumulative_lag_sec')} "
-              f"dl={summ['deadline'].get('cumulative_lag_sec')}")
+              f"top={summ.get('last_segment_lag_sec')} "
+              f"dl={summ['deadline'].get('last_segment_lag_sec')}")
+        check("★ 顶层斜率 == deadline 组斜率（口径一致）",
+              abs(float(summ.get("lag_growth_slope_sec_per_sec") or 0.0)
+                  - float(summ["deadline"].get(
+                      "lag_growth_slope_sec_per_sec") or 0.0)) < 1e-6,
+              f"top={summ.get('lag_growth_slope_sec_per_sec')} "
+              f"dl={summ['deadline'].get('lag_growth_slope_sec_per_sec')}")
     check("★ 就绪延迟口径保留为子组（原始信息不丢）",
           "ready_after_orig_end" in summ,
+          f"keys={sorted(summ.keys())}")
+
+    # ★★ EXT-008 第 1 点：**「余量求和」量必须被删除**。
+    #   旧口径 `cumulative_lag_sec` = 22 段余量求和 ⇒ 数值随段数线性放大，
+    #   **没有物理含义**（reviewer 明确要求删除）。
+    #   ⇒ 断言：新口径里**不再有**这个键（而不是"值变了"）。
+    check("★ EXT-008：顶层已删除「余量求和」量 cumulative_lag_sec",
+          "cumulative_lag_sec" not in summ,
+          f"keys={sorted(summ.keys())}")
+    check("★ EXT-008：deadline 子组也已删除 cumulative_lag_sec",
+          "cumulative_lag_sec" not in summ.get("deadline", {}),
+          f"deadline keys={sorted(summ.get('deadline', {}).keys())}")
+    check("★ EXT-008：旧口径 peak_lag_sec 也一并删除（同样是求和量）",
+          "peak_lag_sec" not in summ,
           f"keys={sorted(summ.keys())}")
 
     # ★★ 反向断言：证明「顶层用排程口径」这条**有区分力**。
@@ -386,9 +409,36 @@ def test_ext005_ext006_behaviors() -> None:
           "旧口径确实是 0")
     check("★ 反向断言：新口径读出 n_negative=5（真结论，非恒真）",
           _s.get("n_negative") == 5, f"n_negative={_s.get('n_negative')}")
-    check("★ 反向断言：新口径累计滞后为负（真滞后）",
-          float(_s.get("cumulative_lag_sec") or 0.0) < 0,
-          f"cumulative_lag_sec={_s.get('cumulative_lag_sec')}")
+    check("★ 反向断言：新口径末句滞后为正（真滞后）",
+          float(_s.get("last_segment_lag_sec") or 0.0) > 0,
+          f"last_segment_lag_sec={_s.get('last_segment_lag_sec')}")
+
+    # ★★ EXT-008：斜率口径的**区分力**断言。
+    #   构造「余量随时间越来越负」的一组数据 ⇒ 斜率必须为**负**；
+    #   再构造「余量恒定」的一组 ⇒ 斜率必须为 **0**（不是负）。
+    #   ⇒ 证明斜率不是恒真的「负数」。
+    _grow = [{"t_start": float(i) * 10.0,
+              "deadline_margin_sec": -10.0 * i, "margin_sec": 1.0}
+             for i in range(1, 11)]
+    _sg = summarize_margins(_grow)
+    check("★ EXT-008 反向断言：余量随时间变负 ⇒ 斜率为负（滞后在累积）",
+          float(_sg.get("lag_growth_slope_sec_per_sec") or 0.0) < 0,
+          f"slope={_sg.get('lag_growth_slope_sec_per_sec')}")
+    _flat = [{"t_start": float(i) * 10.0,
+              "deadline_margin_sec": -50.0, "margin_sec": 1.0}
+             for i in range(1, 11)]
+    _sf = summarize_margins(_flat)
+    check("★ EXT-008 反向断言：余量恒定 ⇒ 斜率为 0（不是恒真的负数）",
+          abs(float(_sf.get("lag_growth_slope_sec_per_sec") or 0.0)) < 1e-9,
+          f"slope={_sf.get('lag_growth_slope_sec_per_sec')}")
+    check("★ EXT-008 反向断言：余量恒定时末句滞后 = 50（= 单句值，不是求和）",
+          abs(float(_sf.get("last_segment_lag_sec") or 0.0) - 50.0) < 1e-6,
+          f"last={_sf.get('last_segment_lag_sec')}")
+    # ★ 求和量会给出 10×50=500 ⇒ 与新口径明确不同（证明真的换了口径）
+    check("★ EXT-008 反向断言：旧求和量会读出 500（=10×50），新口径是 50",
+          10 * 50.0 == 500.0
+          and abs(float(_sf.get("last_segment_lag_sec") or 0.0) - 500.0) > 1.0,
+          f"new_last={_sf.get('last_segment_lag_sec')}")
 
     print("\n[9] EXT-006 — 引擎语言映射守卫（必须显式传目标语言）")
     from ext.engine_runtime import (LANG_TO_MT, LANG_TO_TTS,

@@ -24,7 +24,7 @@ import os
 import secrets
 import struct
 import time
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -80,6 +80,31 @@ def _percentile(sorted_vals: List[float], p: float) -> float:
     return sorted_vals[k]
 
 
+def _linfit(xs: List[float], ys: List[float]) -> Tuple[float, float, float]:
+    """最小二乘线性拟合 `y = a*x + b`。返回 `(a, b, r2)`。
+
+    ★ EXT-008：用于「滞后随时间的斜率」。
+      点数不足 2 ⇒ `(0.0, 0.0, 0.0)`（无斜率可言）。
+      x 全同（退化）⇒ 斜率不可定义 ⇒ 返回 0。
+    """
+    n = len(xs)
+    if n < 2:
+        return (0.0, 0.0, 0.0)
+    mx = sum(xs) / n
+    my = sum(ys) / n
+    sxx = sum((x - mx) ** 2 for x in xs)
+    if sxx <= 1e-12:
+        return (0.0, my, 0.0)
+    sxy = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+    a = sxy / sxx
+    b = my - a * mx
+    # r²（判定拟合是否有意义）
+    ss_tot = sum((y - my) ** 2 for y in ys)
+    ss_res = sum((y - (a * x + b)) ** 2 for x, y in zip(xs, ys))
+    r2 = (1.0 - ss_res / ss_tot) if ss_tot > 1e-12 else 0.0
+    return (a, b, r2)
+
+
 def summarize_margins(margins: List[dict]) -> dict:
     """汇总逐句余量 ⇒ EXT-006 P1 的三项核心验收量。
 
@@ -97,14 +122,29 @@ def summarize_margins(margins: List[dict]) -> dict:
 
     实测（`.tmp/p1_run6/margin.json`）：就绪延迟口径下顶层读出
     `n_negative=0`、`cumulative_lag_sec=0.0`（**假结论：零滞后**），
-    而排程口径的真值是 `n_negative=19`、`cumulative_lag_sec=-2841.3498`。
+    而排程口径的真值是 `n_negative=19`。
 
     ⇒ 顶层用排程口径；就绪延迟口径保留为子组（原始信息不丢）。
+
+    ★★ EXT-008：**「累计滞后」口径再次修正 —— 删除「余量求和」量**。
+
+    旧实现把 22 段余量**求和**当「累计滞后」（`cumulative_lag_sec`），
+    实测读出 `-3969.5098`（run7）⇒ **这是 22 个独立量之和，不是累计滞后**，
+    数值随段数线性放大，**没有物理含义**，reviewer 明确要求删除。
+
+    ⇒ 改成两个**有物理含义**的量（EXT-008 原文口径）：
+      1. `last_segment_lag_sec` = **末句滞后** = 末句 `max(0, −排程余量)`
+         （= 末句「TTS 就绪时刻 − 它应播的时刻」）；
+      2. `lag_growth_slope_sec_per_sec` = **滞后增长斜率**
+         = 对 `(t_start, 排程余量)` 做**线性拟合**得到的斜率
+         （负数 = 余量随时间越来越负 ⇒ 滞后在**累积**）。
+      另保留 `max_lag_sec`（= 各句滞后的最大值，即「最坏的一句晚多少」）。
 
     Parameters
     ----------
     margins : list of dict
-        每段一条，至少含 `deadline_margin_sec`（可缺）与 `margin_sec`。
+        每段一条，至少含 `deadline_margin_sec`（可缺）、`margin_sec`
+        与 `t_start`（斜率拟合要用）。
 
     Returns
     -------
@@ -115,18 +155,14 @@ def summarize_margins(margins: List[dict]) -> dict:
     dl = [float(m.get("deadline_margin_sec") or 0.0) for m in margins
           if m.get("deadline_margin_sec") is not None]
     rd = [float(m.get("margin_sec") or 0.0) for m in margins]
+    # ★ EXT-008：斜率拟合需要 (t_start, 排程余量) 配对
+    pairs = [(float(m.get("t_start") or 0.0),
+              float(m.get("deadline_margin_sec") or 0.0))
+             for m in margins if m.get("deadline_margin_sec") is not None]
 
     def _group(vals: List[float]) -> dict:
-        cum = 0.0
-        peak = 0.0
-        for v in vals:
-            cum += min(0.0, v)
-            peak = min(peak, cum)
-        g = {
-            "n_negative": sum(1 for v in vals if v < 0),
-            "cumulative_lag_sec": round(cum, 4),
-            "peak_lag_sec": round(peak, 4),
-        }
+        """分布统计（**不含**求和量 —— EXT-008 要求删除）。"""
+        g = {"n_negative": sum(1 for v in vals if v < 0)}
         if vals:
             s = sorted(vals)
             g.update({
@@ -143,11 +179,37 @@ def summarize_margins(margins: List[dict]) -> dict:
     out["basis"] = "deadline"
     out["definition"] = ("排程余量 = (t0 + t_start + D) − TTS就绪时刻；"
                          "负数 = 该句赶不上自己的播放时刻（滞后）")
+
+    # ── ★ EXT-008：滞后口径（替换旧的「求和」量） ──────────────
+    if pairs:
+        last_dm = pairs[-1][1]
+        slope, intercept, r2 = _linfit([p[0] for p in pairs],
+                                       [p[1] for p in pairs])
+        out["last_segment_lag_sec"] = round(max(0.0, -last_dm), 4)
+        out["max_lag_sec"] = round(max(0.0, -min(p[1] for p in pairs)), 4)
+        out["lag_growth_slope_sec_per_sec"] = round(slope, 6)
+        out["lag_growth_intercept_sec"] = round(intercept, 4)
+        out["lag_growth_r2"] = round(r2, 6)
+        out["lag_n_fit_points"] = len(pairs)
+    else:
+        out["last_segment_lag_sec"] = None
+        out["max_lag_sec"] = None
+        out["lag_growth_slope_sec_per_sec"] = None
+        out["lag_growth_intercept_sec"] = None
+        out["lag_growth_r2"] = None
+        out["lag_n_fit_points"] = 0
+    out["lag_definition"] = (
+        "last_segment_lag_sec = 末句 max(0, −排程余量)；"
+        "lag_growth_slope_sec_per_sec = 对 (t_start, 排程余量) 线性拟合的斜率"
+        "（负数 = 滞后随时间累积）；max_lag_sec = 各句滞后的最大值。"
+        "⚠️ 不再有「余量求和」量（EXT-008 判定它没有物理含义，已删除）。")
+
     # 向后兼容：旧读取方读 out["deadline"] 取排程口径
     out["deadline"] = {
         "n_negative": out["n_negative"],
-        "cumulative_lag_sec": out["cumulative_lag_sec"],
-        "peak_lag_sec": out["peak_lag_sec"],
+        "last_segment_lag_sec": out["last_segment_lag_sec"],
+        "max_lag_sec": out["max_lag_sec"],
+        "lag_growth_slope_sec_per_sec": out["lag_growth_slope_sec_per_sec"],
         **({"min": out["min"], "p50": out["p50"], "p95": out["p95"],
             "max": out["max"], "mean": out["mean"]} if "min" in out else {}),
     }
@@ -158,6 +220,127 @@ def summarize_margins(margins: List[dict]) -> dict:
                        "正数 = 配音比原声结束晚多久可用（不是滞后）"),
     }
     return out
+
+
+def _seg_proc_sec(m: dict) -> Optional[float]:
+    """这一句的管线耗时（ASR+MT+TTS）。缺字段时用逐段耗时求和。"""
+    if m.get("proc_sec") is not None:
+        return float(m["proc_sec"])
+    parts = [m.get("asr_sec"), m.get("mt_sec"), m.get("tts_sec")]
+    if any(p is None for p in parts):
+        return None
+    return sum(float(p) for p in parts)
+
+
+def _seg_audio_ready_rel(m: dict) -> Optional[float]:
+    """这一句的**音频完整到达服务端**的时刻（相对会话起点 t0）。
+
+    ★ 新版实测数据里服务端直接记了 `audio_ready_rel_sec`。
+    ★ **旧版**实测数据（如 run7）没记这个字段 ⇒ **重建**：
+      服务端的消息循环是**单线程串行**的 ⇒ 一句的推理**紧接着**
+      「那一帧到达」开始 ⇒ 推理开始时刻 ≈ `ready_at − 管线耗时`；
+      而 `t0` 可由 `orig_end − t_end` 反推 ⇒
+          audio_ready_rel ≈ (ready_at − proc_sec) − t0
+      ⇒ 这是**重建值**（不是直接实测），本函数返回 (值, 是否重建)。
+    """
+    if m.get("audio_ready_rel_sec") is not None:
+        return float(m["audio_ready_rel_sec"])
+    ready_at = m.get("ready_at")
+    orig_end = m.get("orig_end")
+    t_end = m.get("t_end")
+    proc = _seg_proc_sec(m)
+    if ready_at is None or orig_end is None or t_end is None or proc is None:
+        return None
+    t0 = float(orig_end) - float(t_end)
+    return (float(ready_at) - proc) - t0
+
+
+def decompose_lag(margins: List[dict], *, delay_sec: float) -> dict:
+    """把「末句滞后」拆成**喂帧慢**与**引擎慢**两部分（EXT-008 第 2 点）。
+
+    ★ 为什么必须拆：EXT-008 问「喂帧 570.96 s / 音频 300 s ⇒
+      是谁阻塞？核对『滞后』里有多少是喂帧慢造成的」。
+
+    对第 i 句（`t_start` = 该段在音频里的起点，会话秒）：
+
+      * 该句的**应播时刻** = `t0 + t_start + D`
+      * 该句的**音频完整到达服务端的时刻** = `t0 + audio_ready_rel_sec`
+      * ⇒ `feed_lag_sec` = 音频到达时刻 − 应播时刻
+        （>0 ⇒ **音频本身就送晚了** ⇒ 上行/反压造成的滞后）
+      * ⇒ `intrinsic_lag_sec` = max(0, 管线耗时 − (D − 段长))
+        （这段音频**即使准时送到**，光跑 ASR→MT→TTS 也赶不上 ⇒ 引擎慢）
+      * 两者相加 ≈ 该句滞后（`max(0, −排程余量)`），差额是排程/分段误差。
+
+    Returns
+    -------
+    dict
+        含 `n_segments` / 末句各项 / 各分项的累计与均值。
+    """
+    if not margins:
+        return {"n_segments": 0}
+    feeds: List[float] = []
+    intr: List[float] = []
+    lags: List[float] = []
+    n_reconstructed = 0
+    for m in margins:
+        dm = float(m.get("deadline_margin_sec") or 0.0)
+        lag = max(0.0, -dm)
+        proc = _seg_proc_sec(m)
+        arel = _seg_audio_ready_rel(m)
+        t_start = float(m.get("t_start") or 0.0)
+        t_end = float(m.get("t_end") or 0.0)
+        if arel is None:
+            feed = 0.0
+        else:
+            if m.get("audio_ready_rel_sec") is None:
+                n_reconstructed += 1
+            feed = arel - (t_start + delay_sec)
+        if proc is None:
+            intrinsic = 0.0
+        else:
+            intrinsic = max(0.0, proc - max(0.0, delay_sec - (t_end - t_start)))
+        feeds.append(feed)
+        intr.append(intrinsic)
+        lags.append(lag)
+    last = margins[-1]
+    return {
+        "n_segments": len(margins),
+        "definition": ("feed_lag_sec = 音频完整到达服务端的时刻 − 该句应播时刻"
+                       "(t0+t_start+D)；>0 = 音频送晚了（上行/反压）。"
+                       "intrinsic_lag_sec = max(0, 管线耗时 − (D − 段长))"
+                       "= 即使准时送到也赶不上的部分（引擎慢）。"),
+        "n_segments_audio_ready_reconstructed": n_reconstructed,
+        "reconstruction_note": (
+            "audio_ready_rel_sec 缺失时按 (ready_at − 管线耗时) − t0 重建"
+            "（服务端消息循环单线程串行 ⇒ 推理紧接帧到达开始）。"
+            "重建段数 >0 ⇒ 该值为推算而非直接实测。"),
+        "last_segment": {
+            "id": last.get("id"),
+            "t_start": last.get("t_start"),
+            "lag_sec": round(lags[-1], 4),
+            "feed_lag_sec": round(feeds[-1], 4),
+            "intrinsic_lag_sec": round(intr[-1], 4),
+            "proc_sec": (round(_seg_proc_sec(last), 4)
+                         if _seg_proc_sec(last) is not None else None),
+            "audio_ready_rel_sec": (
+                round(_seg_audio_ready_rel(last), 3)
+                if _seg_audio_ready_rel(last) is not None else None),
+        },
+        "sum_feed_lag_sec": round(sum(feeds), 4),
+        "sum_intrinsic_lag_sec": round(sum(intr), 4),
+        "mean_feed_lag_sec": round(sum(feeds) / len(feeds), 4),
+        "mean_intrinsic_lag_sec": round(sum(intr) / len(intr), 4),
+        "sum_lag_sec": round(sum(lags), 4),
+        "n_segments_feed_lagged": sum(1 for v in feeds if v > 0),
+        "n_segments_intrinsic_lagged": sum(1 for v in intr if v > 0),
+        "per_segment": [
+            {"id": m.get("id"), "t_start": m.get("t_start"),
+             "lag_sec": round(l, 4),
+             "feed_lag_sec": round(f, 4),
+             "intrinsic_lag_sec": round(i, 4)}
+            for m, l, f, i in zip(margins, lags, feeds, intr)
+        ],
+    }
 
 
 class Session:
@@ -196,10 +379,25 @@ class Session:
         self._seg_ready: Dict[str, float] = {}      # seg_id → TTS 就绪（会话秒）
         self.margins: List[dict] = []               # 每句一条
         self.engine_calls: List[dict] = []          # 引擎各阶段耗时
+        # ★ EXT-008 第 2 点：逐帧的「到达延迟」（实测「喂帧慢」）
+        self._frame_arrival_delays: List[dict] = []
+        self._n_frames_late = 0
+        self._max_frame_arrival_delay = 0.0
 
     # ── 接收一帧 ────────────────────────────────────────────────
-    def on_pcm_frame(self, msg: dict) -> Optional[dict]:
+    def on_pcm_frame(self, msg: dict, *,
+                     recv_at: Optional[float] = None) -> Optional[dict]:
         """处理一帧上行 PCM。
+
+        Parameters
+        ----------
+        msg : dict
+            一帧上行 PCM。
+        recv_at : float or None
+            ★ EXT-008：**这一帧到达服务端消息循环**的墙钟时刻
+            （`time.perf_counter()`）。缺省则用进入本函数的时刻。
+            ⇒ 用来把「喂帧慢」（服务端收到音频晚于实时）与
+              「服务端排队慢」区分开（见 `decompose_lag()`）。
 
         Returns
         -------
@@ -226,6 +424,25 @@ class Session:
 
         self._buf = np.concatenate([self._buf, arr])
         self.n_frames += 1
+        if recv_at is None:
+            recv_at = time.perf_counter()
+        # ★★ EXT-008 第 2 点：**这一帧到达服务端的延迟**（直接测「喂帧慢」）。
+        #   帧的 `sample_index` 就是它的**音频时间**（EXT-001：用累计采样数换算，
+        #   不用墙钟）⇒ 它「本该」在 `t0 + sidx/16000` 到达。
+        #   ⇒ `arrival_delay_sec` = 实际到达时刻 − 本该到达时刻
+        #     > 0 ⇒ **音频送晚了**（客户端被**服务端背压**卡住，或客户端自己慢）。
+        #   ⇒ 这是**服务端侧的直接实测**，不受 TCP 缓冲大小影响
+        #     （客户端侧的 `ws.send()` 阻塞时长可能被内核缓冲吸收 ⇒ 不可靠）。
+        _should_arrive = self.t0 + (sidx / float(C.SAMPLE_RATE))
+        _delay = recv_at - _should_arrive
+        self._frame_arrival_delays.append({
+            "seq": seq, "sidx": sidx,
+            "delay_sec": round(_delay, 4),
+            "recv_at": round(recv_at, 3)})
+        # 汇总（滚动统计，不必每次都遍历全表）
+        self._n_frames_late += 1 if _delay > 1.0 else 0
+        if _delay > self._max_frame_arrival_delay:
+            self._max_frame_arrival_delay = _delay
 
         # 分段：以 R2T2 原有断句为准（EXT-002）
         segs = plan_segments(self._buf)
@@ -245,7 +462,8 @@ class Session:
             seg_audio = self._buf[s0:s1]
             abs0 = self._consumed_samples + s0
             abs1 = self._consumed_samples + s1
-            tasks.extend(self._process_segment(seq, abs0, abs1, seg_audio))
+            tasks.extend(self._process_segment(seq, abs0, abs1, seg_audio,
+                                               audio_complete_at=recv_at))
         # 一次性裁掉所有已处理的段，并把基准点推进
         cut = ready[-1][1]
         self._buf = self._buf[cut:]
@@ -280,7 +498,8 @@ class Session:
         return tasks
 
     def _process_segment(self, seq: int, s0: int, s1: int,
-                         audio: np.ndarray) -> list:
+                         audio: np.ndarray, *,
+                         audio_complete_at: Optional[float] = None) -> list:
         t_start = s0 / C.SAMPLE_RATE
         t_end = s1 / C.SAMPLE_RATE
         seg_id = f"seg_{s0}"
@@ -288,6 +507,10 @@ class Session:
         # ★ EXT-006：原声结束时刻（会话秒）—— 余量的基准
         orig_end = self.t0 + t_end
         self._seg_orig_end[seg_id] = orig_end
+        # ★ EXT-008：这一段的**音频已经完整到达服务端**的时刻。
+        #   缺省用「进入本函数」的时刻（等价于该帧到达后立刻开跑）。
+        if audio_complete_at is None:
+            audio_complete_at = time.perf_counter()
 
         # ASR 定稿：引擎未接入时留空（不猜内容）
         text = ""
@@ -337,6 +560,19 @@ class Session:
         #   ⇒ 负数 ⇒ 这句配音**赶不上**自己的播放时刻（真正的滞后）。
         deadline = self.t0 + t_start + self.delay_sec
         deadline_margin = deadline - ready_at
+        # ★★ EXT-008：把这一段的**滞后拆成三项**，才能回答
+        #   「有多少滞后是『喂帧慢』造成的、不是引擎慢造成的」。
+        #   （定义见 `decompose_lag()`）
+        proc_sec = asr_s + mt_s + tts_s
+        # ① 音频完整到达服务端的时刻（相对会话起点）
+        audio_ready_rel = audio_complete_at - self.t0
+        # ② 「音频到达」相对「这段原声应播时刻（t_start + D）」的落后量
+        #    —— 这就是**喂帧/上行慢**造成的部分（>0 = 音频到得太晚）
+        feed_lag_sec = audio_ready_rel - (t_start + self.delay_sec)
+        # ③ **引擎自身**的落后量：音频到齐后，光跑管线就花了 proc_sec
+        #    ⇒ 这一句光靠引擎就已经赶不上了（与喂帧速度无关）
+        intrinsic_lag_sec = max(0.0, proc_sec - max(0.0, self.delay_sec
+                                                      - (t_end - t_start)))
         self.margins.append({
             "id": seg_id,
             "t_start": round(t_start, 3),
@@ -353,6 +589,11 @@ class Session:
             "src_len": len(text or ""),
             "tgt_len": len(tgt or ""),
             "has_tts": pcm24k is not None,
+            # ★ EXT-008：滞后分解（新增字段）
+            "proc_sec": round(proc_sec, 4),
+            "audio_ready_rel_sec": round(audio_ready_rel, 3),
+            "feed_lag_sec": round(feed_lag_sec, 4),
+            "intrinsic_lag_sec": round(intrinsic_lag_sec, 4),
         })
         self.engine_calls.append({
             "id": seg_id, "asr_sec": round(asr_s, 4),
@@ -410,6 +651,29 @@ class Session:
             "buffered_sec": round(self._buf.shape[0] / C.SAMPLE_RATE, 2),
             "speaker": self.tracker.stats(),
             "margin": self.margin_summary(),
+            # ★ EXT-008：滞后分解（喂帧慢 vs 引擎慢）
+            "lag_decomposition": decompose_lag(self.margins,
+                                              delay_sec=self.delay_sec),
+            # ★★ EXT-008 第 2 点：**逐帧到达延迟**（服务端侧直接实测）
+            #   ⇒ 直接回答「喂帧慢了多少、是不是被服务端背压卡住」
+            "feed_arrival_delay": {
+                "n_frames_measured": len(self._frame_arrival_delays),
+                "n_frames_late_gt_1s": self._n_frames_late,
+                "late_ratio": (round(self._n_frames_late
+                                     / len(self._frame_arrival_delays), 4)
+                               if self._frame_arrival_delays else None),
+                "max_delay_sec": round(self._max_frame_arrival_delay, 4),
+                "mean_delay_sec": (
+                    round(sum(d["delay_sec"]
+                              for d in self._frame_arrival_delays)
+                          / len(self._frame_arrival_delays), 4)
+                    if self._frame_arrival_delays else None),
+                "last_delay_sec": (self._frame_arrival_delays[-1]["delay_sec"]
+                                   if self._frame_arrival_delays else None),
+                "definition": ("arrival_delay_sec = 帧到达服务端的墙钟时刻 − "
+                               "(t0 + sample_index/16000)；"
+                               ">0 ⇒ 这一帧的音频**送晚了**。"),
+            },
         }
 
     def margin_summary(self) -> dict:
@@ -605,6 +869,12 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                 await websocket.send(json.dumps({"type": "stats", **session.stats()}))
                 continue
             if mtype == "pcm":
+                # ★ EXT-008：记下**这一帧到达消息循环**的墙钟时刻。
+                #   客户端是按墙钟节拍喂帧的（真实时间）⇒
+                #   `recv_at` 与「客户端本该发出的时刻」一比，
+                #   就知道**是客户端送得晚，还是服务端排队晚**
+                #   （区别于「引擎算得慢」）。
+                _recv_at = time.perf_counter()
                 if echo_mode:
                     out = session.echo(msg)
                 else:
@@ -619,7 +889,8 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                     #   `received 1011 (internal error) keepalive ping timeout`）。
                     #   `asyncio.to_thread` 让推理在**工作线程**里跑，
                     #   事件循环始终能响应心跳。
-                    out = await asyncio.to_thread(session.on_pcm_frame, msg)
+                    out = await asyncio.to_thread(session.on_pcm_frame, msg,
+                                                  recv_at=_recv_at)
                 if out:
                     for task in (out if isinstance(out, list) else [out]):
                         await websocket.send(json.dumps(task))
@@ -774,6 +1045,9 @@ def _dump_margin(holder: dict, out_path: Optional[str], engine) -> None:
     if not out_path:
         return
     sess = holder.get("session")
+    # ★ EXT-008：滞后分解落盘（喂帧慢 vs 引擎慢）
+    #   ⚠️ 用 getattr 取 delay_sec ⇒ 桩 session（自测用的假对象）也不会崩。
+    _dl = float(getattr(sess, "delay_sec", 10.0) or 10.0) if sess else 10.0
     data = {
         "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "target_lang": getattr(engine, "target_lang", None),
@@ -781,6 +1055,8 @@ def _dump_margin(holder: dict, out_path: Optional[str], engine) -> None:
         "per_segment": (sess.margins if sess else []),
         "engine_calls": (sess.engine_calls if sess else []),
         "engine_stats": (engine.stats() if engine is not None else {}),
+        "lag_decomposition": (decompose_lag(sess.margins, delay_sec=_dl)
+                              if sess else {}),
     }
     n_new = len(data.get("per_segment") or [])
 

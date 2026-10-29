@@ -429,8 +429,80 @@ def test_contracts() -> None:
     check("B5 bridge._handle_messages 显式带 delay_sec 形参",
           "delay_sec" in sig, sig.strip().replace("\n", " "))
     # 旧 bug 的特征：函数体里直接用 delay_sec 却没有形参
-    check("B5b bridge.py 已修「delay_sec 未定义」",
-          "delay_sec: float) -> None:" in bsrc)
+    #
+    # ★★ 原断言是**整行字面量**匹配（`"delay_sec: float) -> None:" in bsrc`）
+    #   ⇒ 2026-10-28 06:54 的 `3dbf9fc` 给 `_handle_messages` 加了 kwonly 形参，
+    #     签名从 `delay_sec: float) -> None:` 变成 `delay_sec: float,` + 续行
+    #     ⇒ 字面量失配 ⇒ **假 FAIL**（连续 14 轮同一个 FAIL）。
+    #   ⇒ 改成 **AST + 行为级**（比原断言**更强**，不是放宽）：
+    #     ① AST：`delay_sec` 必须是 `_handle_messages` 的**形参**
+    #        （kwonly 或 positional 都算），否则函数体用它是 NameError；
+    #     ② AST：模块级**不得**有 `delay_sec` 绑定（否则会遮蔽形参）；
+    #     ③ 行为级：缺参调用必须抛 **TypeError**（缺形参）
+    #        —— 而**不是**旧 bug 的 **NameError**（用了未定义的变量）。
+    #        ⚠️ 这一条才是「delay_sec 未定义」这个 bug 的**直接反证**。
+    _b5b_ok = False
+    _b5b_detail = ""
+    try:
+        import ast as _ast
+        _tree = _ast.parse(bsrc)
+        _fn = None
+        for _n in _ast.walk(_tree):
+            if isinstance(_n, (_ast.AsyncFunctionDef, _ast.FunctionDef)) \
+                    and _n.name == "_handle_messages":
+                _fn = _n
+                break
+        if _fn is None:
+            _b5b_detail = "找不到 _handle_messages"
+        else:
+            _a = _fn.args
+            _params = ([x.arg for x in _a.args]
+                       + [x.arg for x in _a.kwonlyargs])
+            _mod_names = set()
+            for _n2 in _tree.body:
+                if isinstance(_n2, (_ast.FunctionDef, _ast.AsyncFunctionDef,
+                                   _ast.ClassDef)):
+                    _mod_names.add(_n2.name)
+                if isinstance(_n2, _ast.Assign):
+                    for _t in _n2.targets:
+                        if isinstance(_t, _ast.Name):
+                            _mod_names.add(_t.id)
+            _has_param = "delay_sec" in _params
+            _shadows = "delay_sec" in _mod_names
+            _b5b_ok = _has_param and not _shadows
+            _b5b_detail = ("params=%s module_level_shadow=%s"
+                           % (_params, _shadows))
+    except Exception as _e:
+        _b5b_detail = "AST 解析失败: %s: %s" % (type(_e).__name__, _e)
+    check("★ B5b bridge.py 已修「delay_sec 未定义」（AST：形参存在且无遮蔽）",
+          _b5b_ok, _b5b_detail)
+
+    # ★ 行为级反证：旧 bug 是 **NameError**（用了未定义的变量）；
+    #   修好后缺参调用是 **TypeError**（缺形参）⇒ 两者可区分。
+    _b5b_behavior_ok = False
+    _b5b_behavior_detail = ""
+    try:
+        import asyncio as _aio
+        import importlib as _il
+        _bridge = _il.import_module("ext.bridge")
+        async def _probe():
+            return await _bridge._handle_messages(None)
+        try:
+            _aio.run(_probe())
+            _b5b_behavior_detail = "缺参调用**没有抛异常**（异常！）"
+        except TypeError as _te:
+            _b5b_behavior_ok = ("delay_sec" in str(_te))
+            _b5b_behavior_detail = "TypeError: %s" % str(_te)[:120]
+        except NameError as _ne:
+            _b5b_behavior_detail = ("NameError（★ 旧 bug 仍在！）: %s"
+                                    % str(_ne)[:120])
+        except BaseException as _be:
+            _b5b_behavior_detail = ("%s: %s" % (type(_be).__name__,
+                                                str(_be)[:120]))
+    except Exception as _e:
+        _b5b_behavior_detail = "行为级探测失败: %s: %s" % (type(_e).__name__, _e)
+    check("★ B5b 行为级反证：缺参抛 TypeError（**不是**旧 bug 的 NameError）",
+          _b5b_behavior_ok, _b5b_behavior_detail)
 
     # B6 sw.js：SW↔offscreen 走 Port
     sw = _read("sw.js")

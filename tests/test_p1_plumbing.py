@@ -237,9 +237,15 @@ def test_p1_plumbing() -> None:
                   "n_segments" in summ and "n_negative" in summ,
                   f"n_segments={summ.get('n_segments')} "
                   f"n_negative={summ.get('n_negative')}")
-            check("服务端 margin_summary 有累计滞后",
-                  "cumulative_lag_sec" in summ,
-                  f"cumulative_lag_sec={summ.get('cumulative_lag_sec')}")
+            check("服务端 margin_summary 有新滞后口径（末句滞后 + 斜率）",
+                  all(k in summ for k in ("last_segment_lag_sec",
+                                          "lag_growth_slope_sec_per_sec",
+                                          "max_lag_sec")),
+                  f"last={summ.get('last_segment_lag_sec')} "
+                  f"slope={summ.get('lag_growth_slope_sec_per_sec')}")
+            check("★ EXT-008：服务端已删除「余量求和」量 cumulative_lag_sec",
+                  "cumulative_lag_sec" not in summ,
+                  f"keys={sorted(summ.keys())}")
             check("服务端 margin_summary 有排程截止余量组",
                   "deadline" in summ, f"keys={sorted(summ.keys())}")
         else:
@@ -998,6 +1004,195 @@ async def _legacy_no_wait_stats_run(port: int, token: str, frames) -> int:
     return got["n"]
 
 
+def test_ext008_lag_metrics() -> None:
+    """★ EXT-008 第 1 点：**滞后口径修正**的自测。
+
+    要验的三件事：
+      1. **旧口径（余量求和）被删除** —— 不是「值变了」，而是**键没了**；
+      2. **末句滞后** = 末句 `max(0, −排程余量)`（**不是**求和）；
+      3. **滞后增长斜率** = 对 `(t_start, 排程余量)` 线性拟合的斜率，
+         且**有区分力**：
+         - 余量越来越负 ⇒ 斜率为**负**；
+         - 余量恒定     ⇒ 斜率为 **0**（证明不是恒真的负数）。
+    """
+    print("\n[P1] EXT-008 — 滞后口径（末句滞后 + 斜率；删除求和量）")
+    import p1_pipeline
+    from ext.bridge import decompose_lag, summarize_margins
+
+    # ── 构造一组「余量随时间越来越负」的逐句数据 ────────────
+    segs = [{"id": "s%d" % i, "type": "tts",
+             "t_start": float(i) * 10.0,
+             "t_end": float(i) * 10.0 + 12.0,
+             "deadline_margin_sec": -5.0 * i,
+             "margin_sec": 1.0}
+            for i in range(1, 6)]
+
+    # 客户端口径
+    m, _per = p1_pipeline.compute_metrics(segs, delay_sec=10.0,
+                                          margin_summary=None)
+    lag = m.get("lag") or {}
+    check("★ EXT-008：客户端指标含新滞后口径 lag",
+          all(k in lag for k in ("last_segment_lag_sec",
+                                 "lag_growth_slope_sec_per_sec",
+                                 "max_lag_sec")),
+          f"keys={sorted(lag.keys())}")
+    # 末句 = i=5 ⇒ 排程余量 −25 ⇒ 末句滞后 25
+    check("★ EXT-008：客户端末句滞后 = 25（不是求和 75）",
+          abs(float(lag.get("last_segment_lag_sec") or 0.0) - 25.0) < 1e-6,
+          f"last={lag.get('last_segment_lag_sec')}")
+    check("★ EXT-008：客户端最大滞后 = 25",
+          abs(float(lag.get("max_lag_sec") or 0.0) - 25.0) < 1e-6,
+          f"max={lag.get('max_lag_sec')}")
+    check("★ EXT-008：客户端斜率为负（余量随时间变负）",
+          float(lag.get("lag_growth_slope_sec_per_sec") or 0.0) < 0,
+          f"slope={lag.get('lag_growth_slope_sec_per_sec')}")
+    check("★ EXT-008：客户端已无 cumulative_lag_sec 键",
+          "cumulative_lag_sec" not in lag, f"keys={sorted(lag.keys())}")
+
+    # 服务端口径
+    summ = summarize_margins(segs)
+    check("★ EXT-008：服务端顶层已删除 cumulative_lag_sec",
+          "cumulative_lag_sec" not in summ, f"keys={sorted(summ.keys())}")
+    check("★ EXT-008：服务端末句滞后 = 25（与客户端一致）",
+          abs(float(summ.get("last_segment_lag_sec") or 0.0) - 25.0) < 1e-6,
+          f"last={summ.get('last_segment_lag_sec')}")
+    check("★ EXT-008：服务端斜率 == 客户端斜率（口径一致）",
+          abs(float(summ.get("lag_growth_slope_sec_per_sec") or 0.0)
+              - float(lag.get("lag_growth_slope_sec_per_sec") or 0.0)) < 1e-6,
+          f"srv={summ.get('lag_growth_slope_sec_per_sec')} "
+          f"cli={lag.get('lag_growth_slope_sec_per_sec')}")
+    check("★ EXT-008：服务端带 lag_definition（reviewer 可核对口径）",
+          isinstance(summ.get("lag_definition"), str)
+          and len(summ.get("lag_definition")) > 10,
+          str(summ.get("lag_definition"))[:80])
+
+    # ── 区分力：余量恒定 ⇒ 斜率必须为 0 ────────────────────
+    flat = [{"id": "f%d" % i, "type": "tts",
+             "t_start": float(i) * 10.0,
+             "t_end": float(i) * 10.0 + 12.0,
+             "deadline_margin_sec": -50.0, "margin_sec": 1.0}
+            for i in range(1, 6)]
+    sf = summarize_margins(flat)
+    check("★ EXT-008 区分力：余量恒定 ⇒ 斜率为 0（不是恒真的负数）",
+          abs(float(sf.get("lag_growth_slope_sec_per_sec") or 0.0)) < 1e-9,
+          f"slope={sf.get('lag_growth_slope_sec_per_sec')}")
+    check("★ EXT-008 区分力：余量恒定 ⇒ 末句滞后 = 50（旧求和量会给 250）",
+          abs(float(sf.get("last_segment_lag_sec") or 0.0) - 50.0) < 1e-6,
+          f"last={sf.get('last_segment_lag_sec')}")
+
+    # ── 滞后分解（喂帧慢 vs 引擎慢） ────────────────────────
+    decomp = decompose_lag(segs, delay_sec=10.0)
+    check("★ EXT-008：滞后分解含末句与两项分解",
+          all(k in decomp for k in ("last_segment", "sum_feed_lag_sec",
+                                    "sum_intrinsic_lag_sec")),
+          f"keys={sorted(decomp.keys())}")
+    check("★ EXT-008：滞后分解逐段有 feed/intrinsic 两项",
+          all(("feed_lag_sec" in r and "intrinsic_lag_sec" in r)
+              for r in decomp.get("per_segment") or []),
+          f"n={len(decomp.get('per_segment') or [])}")
+
+
+def test_ext008_feed_backpressure() -> None:
+    """★ EXT-008 第 2 点：**喂帧被谁阻塞**——用桩引擎复现「服务端背压」。
+
+    为什么要这条自测：EXT-008 问「喂帧 570.96 s / 音频 300 s ⇒ 是谁阻塞？」
+    答案要能被**复现**，而不是只对一次实测的解读。
+
+    ⚠️ **测量点选在服务端，不在客户端**：
+      客户端侧的 `ws.send()` 阻塞时长**不可靠** —— TCP 内核缓冲会把
+      小写入吸收掉，`send()` 往往立刻返回 ⇒ 看不到阻塞，
+      但服务端其实**很久之后**才收到那一帧。
+      ⇒ 真正可信的量是**服务端侧**的「帧到达延迟」：
+          arrival_delay = 帧到达服务端的墙钟 − (t0 + sample_index/16000)
+      （`sample_index` 是音频时间 ⇒ 不用墙钟换算 ⇒ 天然抗漂移）
+
+    做法：用**慢桩引擎**（`SlowStubEngine`，只 sleep、不触设备）
+    ⇒ 服务端消息循环被推理占住 ⇒ 帧到达延迟变大
+    ⇒ 断言：服务端的 `stats.feed_arrival_delay` 显示
+      * `n_frames_late_gt_1s > 0`（帧送晚了 ⇒ **服务端没在及时读**）
+      * `max_delay_sec` 明显 > 0
+    ⇒ **同时**断言「快引擎下不出现这种情况」——否则断言恒真。
+    """
+    print("\n[P1] EXT-008 — 喂帧背压定位（服务端侧逐帧到达延迟）")
+    import p1_pipeline
+
+    tmp = os.path.join(ROOT, ".tmp", "p1_ext008_bp")
+    os.makedirs(tmp, exist_ok=True)
+    wav_path = os.path.join(tmp, "bp.wav")
+    token_path = os.path.join(tmp, "token.txt")
+    _make_wav(wav_path, 16.0)
+    with open(token_path, "w", encoding="utf-8") as f:
+        f.write("ext008-bp-token")
+    with open(token_path, "r", encoding="utf-8") as f:
+        token = f.read().strip()
+
+    audio, sr = p1_pipeline.read_wav_16k_mono(wav_path)
+    frames = p1_pipeline.frame_payload(audio)
+    expected = p1_pipeline.expected_segment_count(audio, 16000)
+
+    # ── 场景 A：慢引擎 ⇒ 制造服务端积压 ────────────────────
+    port = _free_port()
+    th, holder = _start_bridge(port, token, token_path,
+                                engine=SlowStubEngine(per_seg_sec=1.5))
+    try:
+        tasks, _h, _tc, timing = asyncio.run(p1_pipeline._run_client(
+            port=port, token=token, frames=frames, delay_sec=10.0,
+            recv_timeout=30.0, realtime=True, expect_segments=expected))
+    finally:
+        try:
+            th.stop()
+        except Exception:
+            pass
+
+    check("★ EXT-008：慢引擎下拿到喂帧时序",
+          isinstance(timing, dict) and "frame_timing_summary" in timing,
+          f"timing keys={sorted((timing or {}).keys())}")
+    check("★ EXT-008：喂帧耗时与音频时长分开记录",
+          "feed_sec" in (timing or {}) and "audio_sec" in (timing or {}),
+          f"feed={(timing or {}).get('feed_sec')} "
+          f"audio={(timing or {}).get('audio_sec')}")
+    check("★ EXT-008：t0 定义写进报告（reviewer 可核对）",
+          isinstance((timing or {}).get("t0_definition"), str)
+          and "t0" in (timing or {}).get("t0_definition", ""),
+          str((timing or {}).get("t0_definition"))[:80])
+
+    # 服务端侧的逐帧到达延迟（**真正的证据**）
+    sess = holder.get("session")
+    check("★ EXT-008：能取到服务端 session（查逐帧到达延迟）",
+          sess is not None, "holder 里没有 session")
+    if sess is not None:
+        fad = sess.stats().get("feed_arrival_delay") or {}
+        check("★ EXT-008：服务端记录了逐帧到达延迟",
+              int(fad.get("n_frames_measured") or 0) > 0,
+              f"n={fad.get('n_frames_measured')}")
+        check("★ EXT-008：★ 慢引擎下有帧送晚 > 1s ⇒ **服务端未及时读**",
+              int(fad.get("n_frames_late_gt_1s") or 0) > 0,
+              f"late={fad.get('n_frames_late_gt_1s')} / "
+              f"{fad.get('n_frames_measured')}")
+        check("★ EXT-008：最大到达延迟明显 > 0",
+              float(fad.get("max_delay_sec") or 0.0) > 1.0,
+              f"max={fad.get('max_delay_sec')}s")
+        # 区分力：快引擎 ⇒ 不该有送晚的帧
+        port2 = _free_port()
+        th2, holder2 = _start_bridge(port2, token, token_path,
+                                     engine=StubEngine())
+        try:
+            asyncio.run(p1_pipeline._run_client(
+                port=port2, token=token, frames=frames, delay_sec=10.0,
+                recv_timeout=30.0, realtime=True, expect_segments=expected))
+        finally:
+            try:
+                th2.stop()
+            except Exception:
+                pass
+        sess2 = holder2.get("session")
+        fad2 = (sess2.stats().get("feed_arrival_delay") or {}) if sess2 else {}
+        check("★ EXT-008 区分力：快引擎下无帧送晚 > 1s（否则上面断言恒真）",
+              int(fad2.get("n_frames_late_gt_1s") or 0) == 0,
+              f"late={fad2.get('n_frames_late_gt_1s')} / "
+              f"{fad2.get('n_frames_measured')}")
+
+
 def main() -> int:
     print("=" * 68)
     print("EXT P1 管线连通性自测（桩引擎 / 不跑推理 / 不占 GPU·NPU / 不抢锁）")
@@ -1009,7 +1204,9 @@ def main() -> int:
                test_dump_margin_on_demand,
                test_expected_segment_count_strict,
                test_orchestrator_margin_dump_path,
-               test_client_waits_for_stats_not_sleep):
+               test_client_waits_for_stats_not_sleep,
+               test_ext008_lag_metrics,
+               test_ext008_feed_backpressure):
         try:
             fn()
         except Exception:
