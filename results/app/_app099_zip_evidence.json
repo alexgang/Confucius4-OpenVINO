@@ -1,0 +1,29 @@
+{
+  "zip_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.10.zip",
+  "pkg_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.10",
+  "zip_exists": true,
+  "zip_bytes": 11218209418,
+  "zip_mtime_epoch": 1793304824.2824728,
+  "zip_mtime": "2026-10-30 04:13:44",
+  "zip_sha256": "35aab2563419a48dd5c18868f5a4e45e8c99150ce649e4fa44635984c0074371",
+  "n_entries": 14203,
+  "testzip_bad_entry": null,
+  "manifest_entry": "Confucius4_LiveCaption_v1.10/app/MANIFEST.json",
+  "manifest_version": "1.10",
+  "manifest_files": 14202,
+  "manifest_keys": [
+    "bytes",
+    "files",
+    "notes",
+    "packages",
+    "version"
+  ],
+  "n_py_checked": 6592,
+  "n_py_diff": 0,
+  "py_diff_detail": "全部 6592 个 .py 逐字一致（归一化 LF）",
+  "py_diff_summary": "6592/6592 一致",
+  "manifest_check": "目录版本 == zip 版本 == MANIFEST version（1.10）三者一致 ✅",
+  "lock_pid": "5448",
+  "lock_started": "2026-10-30 04:02:16",
+  "lock_module": "app-pack"
+}
