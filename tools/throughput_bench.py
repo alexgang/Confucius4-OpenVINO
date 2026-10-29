@@ -468,6 +468,46 @@ def cmd_interference(args) -> int:
 
 
 # ── 主入口 ──────────────────────────────────────────────────────────
+def cmd_all(args) -> int:
+    """★ 把 (a)(b)(c) **在一把锁内**跑完（避免三次抢锁、避免别人插队）。
+
+    铁律：整段测速作业持**一把**共享机器锁 ⇒ 不与实时字幕 App / TTS 模块
+    抢设备。三个子测量各自落一份 json，另有汇总。
+    """
+    from machine_lock import hold
+    out_dir = os.path.abspath(args.out or os.path.join(ROOT, ".tmp",
+                                                        "ext008_bench"))
+    os.makedirs(out_dir, exist_ok=True)
+    summary = {"started_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+               "wav": os.path.abspath(args.wav),
+               "target_lang": args.target_lang,
+               "steps": []}
+
+    with hold("EXT-throughput-all", wait_timeout=args.lock_wait):
+        print("[bench] 已取得共享锁", flush=True)
+        for name, fn in (("cold_hot", cmd_cold_hot),
+                         ("steady", cmd_steady),
+                         ("interference", cmd_interference)):
+            sub_out = os.path.join(out_dir, "%s.json" % name)
+            _a = argparse.Namespace(**vars(args))
+            _a.out = sub_out
+            print("[bench] ===== 开始 %s =====" % name, flush=True)
+            try:
+                rc = fn(_a)
+            except Exception as e:
+                rc = 1
+                print("[bench] %s 异常：%s: %s" % (name, type(e).__name__, e),
+                      flush=True)
+            summary["steps"].append({"step": name, "rc": rc, "json": sub_out})
+            print("[bench] ===== %s 结束 rc=%d =====" % (name, rc), flush=True)
+    summary["finished_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    with open(os.path.join(out_dir, "all_summary.json"), "w",
+              encoding="utf-8") as f:
+        json.dump(summary, f, ensure_ascii=False, indent=2)
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+    return 0 if all(s["rc"] == 0 for s in summary["steps"]) else 1
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="EXT-008 分阶段吞吐基准")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -485,8 +525,11 @@ def main(argv=None) -> int:
     _common(sub.add_parser("cold-hot", help="(a) 冷/热各 3 次"))
     _common(sub.add_parser("steady", help="(b) 三阶段单独跑 5 分钟素材"))
     _common(sub.add_parser("interference", help="(c) ASR 与 TTS 同时跑"))
+    _common(sub.add_parser("all", help="(a)+(b)+(c) 在一把锁内跑完"))
 
     args = ap.parse_args(argv)
+    if args.cmd == "all":
+        return cmd_all(args)
     handler = {"cold-hot": cmd_cold_hot, "steady": cmd_steady,
                "interference": cmd_interference}[args.cmd]
 
