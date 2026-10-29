@@ -23,6 +23,7 @@ import json
 import os
 import secrets
 import struct
+import threading
 import time
 from typing import Dict, List, Optional, Tuple
 
@@ -31,6 +32,7 @@ import numpy as np
 from . import config as C
 from .adaptive_speed import combine_rates, decide_speed
 from .duration import fit_duration
+from .pipeline import EnginePipeline, SegmentJob, _FairLock
 from .segmenter import plan_segments, describe as describe_segmenter
 from .speaker import SpeakerTracker
 from .time_stretch import wsola
@@ -565,13 +567,29 @@ class Session:
             seg_audio = self._buf[s0:s1]
             abs0 = self._consumed_samples + s0
             abs1 = self._consumed_samples + s1
-            tasks.extend(self._process_segment(seq, abs0, abs1, seg_audio,
-                                               audio_complete_at=recv_at))
+            tasks.extend(self._dispatch_segment(seq, abs0, abs1, seg_audio,
+                                                audio_complete_at=recv_at))
         # 一次性裁掉所有已处理的段，并把基准点推进
         cut = ready[-1][1]
         self._buf = self._buf[cut:]
         self._consumed_samples += cut
         return tasks or None
+
+    # ── 段派发（串行 vs 流水线） ────────────────────────────────
+    def _dispatch_segment(self, seq: int, abs0: int, abs1: int,
+                          seg_audio: np.ndarray, *,
+                          audio_complete_at: float) -> list:
+        """把一段交给处理路径。
+
+        * **串行**（基类）⇒ 同步跑完 ASR→MT→TTS，返回这一段的配音任务；
+        * **流水线**（`PipelineSession`）⇒ 提交到流水线线程，
+          返回「**已经就绪**」的任务（未就绪的稍后由 drain 取回）。
+
+        ★ 分开这个钩子是为了**不改动**基类的串行行为
+          （旧自测全部针对串行路径，行为必须完全一致）。
+        """
+        return self._process_segment(seq, abs0, abs1, seg_audio,
+                                     audio_complete_at=audio_complete_at)
 
     # ── 处理一段 → 配音任务 ──────────────────────────────────────
     def flush(self) -> list:
@@ -603,6 +621,11 @@ class Session:
     def _process_segment(self, seq: int, s0: int, s1: int,
                          audio: np.ndarray, *,
                          audio_complete_at: Optional[float] = None) -> list:
+        """**串行**处理一段（EXT-006 原有路径，保留作回退与自测基线）。
+
+        ★ EXT-010：真实引擎模式下改走**流水线**（`ext/pipeline.py`），
+          本方法只在 `pipeline=None` 时被调用（回声模式 / 桩引擎自测）。
+        """
         t_start = s0 / C.SAMPLE_RATE
         t_end = s1 / C.SAMPLE_RATE
         seg_id = f"seg_{s0}"
@@ -651,8 +674,32 @@ class Session:
                 _log(f"TTS 失败（段 {seg_id}）: {e}")
         tts_s = time.perf_counter() - t_tts
 
+        # ★ EXT-010：把「算指标 + 自适应加速 + 变速 + 产出任务」抽成
+        #   `_finalize_segment()`，让**串行**与**流水线**共用同一份口径。
+        return self._finalize_segment(
+            seg_id=seg_id, t_start=t_start, t_end=t_end, orig_end=orig_end,
+            audio_complete_at=audio_complete_at,
+            text=text, tgt=tgt, spk=spk, voice=voice,
+            pcm24k=pcm24k, speech_sec=speech_sec,
+            asr_s=asr_s, mt_s=mt_s, tts_s=tts_s,
+            ready_at=time.perf_counter(), error=None)
+
+    def _finalize_segment(self, *, seg_id: str, t_start: float, t_end: float,
+                          orig_end: float, audio_complete_at: float,
+                          text: str, tgt: str, spk, voice: str,
+                          pcm24k: Optional[bytes], speech_sec: float,
+                          asr_s: float, mt_s: float, tts_s: float,
+                          ready_at: float,
+                          error: Optional[str] = None) -> list:
+        """算指标 + 自适应加速 + 主机侧变速 + 产出配音任务。
+
+        ★ EXT-010：**串行路径与流水线路径共用**这一段 ⇒
+          两者的余量/滞后/倍率口径**逐字一致**（指标可比）。
+        ★ 本方法**只允许一个线程同时调用**
+          （串行路径天然满足；流水线里由**收口线程**串行调用）
+          ⇒ `self._prev_adapt_speed` 的「相邻句 0.1×」约束在两条路径上都成立。
+        """
         # ★ EXT-006：TTS 就绪时刻 + 余量
-        ready_at = time.perf_counter()
         self._seg_ready[seg_id] = ready_at
         # EXT-006 原文要的余量：「原声结束 → TTS 就绪」
         margin = ready_at - orig_end
@@ -763,6 +810,8 @@ class Session:
             "adapt_reason": dec.reason,
             "defer_total_sec": round(defer_total, 4),
             "stretch_sec": round(stretch_sec, 4),
+            # ★ EXT-010：流水线化后某阶段失败时**如实记录**（不丢段）
+            "error": error,
         })
         self.engine_calls.append({
             "id": seg_id, "asr_sec": round(asr_s, 4),
@@ -820,7 +869,7 @@ class Session:
         }
 
     def stats(self) -> dict:
-        return {
+        out = {
             "n_frames": self.n_frames,
             "n_dropped": self.n_dropped,
             "buffered_sec": round(self._buf.shape[0] / C.SAMPLE_RATE, 2),
@@ -854,6 +903,10 @@ class Session:
                                ">0 ⇒ 这一帧的音频**送晚了**。"),
             },
         }
+        # ★ EXT-010：流水线诊断（串行模式下为 None）
+        out["pipeline"] = self.pipeline_stats() \
+            if isinstance(self, PipelineSession) else None
+        return out
 
     def margin_summary(self) -> dict:
         """★ EXT-006 P1 核心验收量。
@@ -966,6 +1019,168 @@ class Session:
         }
 
 
+
+class PipelineSession(Session):
+    """★ EXT-010：**句级流水线**会话（ASR / MT / TTS / 主机侧收口 各一线程）。
+
+    与基类 `Session` 的差别只有一个：**段的处理从"同步跑完"变成"提交给流水线"**。
+    其它（分段、时间基点、余量统计、自适应加速、顺序下发）**完全复用**基类实现。
+
+    ★ 为什么继承而不是复制：
+      - EXT-009 的自适应加速（`decide_speed` / `combine_rates` / WSOLA）
+        与 EXT-008 的滞后分解都在基类的 `_process_segment` 里；
+      - 流水线化只改**执行方式**，不改**语义** ⇒ 继承复用是最小改动。
+    """
+
+    def __init__(self, token: str, *, delay_sec: float = 10.0,
+                 engine=None) -> None:
+        super().__init__(token, delay_sec=delay_sec, engine=engine)
+        # ★ GPU 设备互斥：ASR 与 MT 都在 GPU.0 ⇒ 二者互斥串行。
+        #   （TTS 在 NPU，不参与互斥 —— interference 实测已验证
+        #     ASR ∥ TTS 并发时互不拖慢，见 ext/pipeline.py 顶部。）
+        #   ★ 用**公平锁**（FIFO）：普通 `threading.Lock` 不保证公平
+        #     ⇒ ASR 连续拿锁、MT 饿死 ⇒ 三个阶段退化成串行
+        #     ⇒ 流水线反而比串行更慢（实测过，见 §8 的缺陷记录）。
+        self._device_lock = _FairLock()
+        self._pipeline = EnginePipeline(
+            asr_fn=self._stage_asr,
+            mt_fn=self._stage_mt,
+            tts_fn=self._stage_tts,
+            emit_fn=self._stage_emit,
+            device_lock=self._device_lock,
+            on_log=_log,
+        )
+        self._seg_index = 0
+
+    # ── 阶段函数（各自在流水线线程里跑） ────────────────────────
+    def _stage_asr(self, job) -> None:
+        """ASR 阶段（在 ASR 线程里跑）。"""
+        t0 = time.perf_counter()
+        text = ""
+        if self._engine is not None:
+            try:
+                text = self._engine.asr(job.audio, job.t_start, job.t_end) or ""
+            except Exception as e:
+                _log(f"ASR 失败（段 {job.seg_id}）: {e}")
+                # ★ EXT-010：如实标记（**不丢段**）⇒ 收口时进 `error` 字段
+                job.mark_error("asr", e)
+        job.asr_sec = time.perf_counter() - t0
+        job.text = text
+
+    def _stage_mt(self, job) -> None:
+        """MT 阶段（在 MT 线程里跑）。"""
+        t0 = time.perf_counter()
+        tgt = ""
+        if self._engine is not None and job.text:
+            try:
+                tgt = self._engine.mt(job.text) or ""
+            except Exception as e:
+                _log(f"MT 失败（段 {job.seg_id}）: {e}")
+                job.mark_error("mt", e)
+        job.mt_sec = time.perf_counter() - t0
+        job.tgt = tgt
+
+    def _stage_tts(self, job) -> None:
+        """TTS 阶段（在 TTS 线程里跑）。"""
+        # spk / voice：EXT-002 —— 定稿先出，spk 可能为 None
+        #   ⇒ 这段在**提交时**就已确定（spk 旁路不阻塞定稿）。
+        job.spk = self.tracker.spk_for_final(job.seg_id, job.t_start, job.t_end)
+        self.tracker.register_pending(job.seg_id, job.spk,
+                                       job.t_start, job.t_end)
+        job.voice = self.tracker.voice_for(job.spk)
+
+        t0 = time.perf_counter()
+        pcm24k = None
+        speech_sec = 0.0
+        if self._engine is not None:
+            try:
+                pcm24k, speech_sec = self._engine.tts(job.tgt or job.text,
+                                                      voice=job.voice)
+            except Exception as e:
+                _log(f"TTS 失败（段 {job.seg_id}）: {e}")
+                job.mark_error("tts", e)
+        job.tts_sec = time.perf_counter() - t0
+        job.pcm24k = pcm24k
+        job.speech_sec = speech_sec
+        job.ready_at = time.perf_counter()
+
+    def _stage_emit(self, job) -> Optional[dict]:
+        """主机侧收口阶段（**单线程** ⇒ WSOLA 变速不占满 CPU）。
+
+        ★ 复用基类的全部 EXT-008/EXT-009 口径（`_finalize_segment`）。
+        """
+        result = self._finalize_segment(
+            seg_id=job.seg_id, t_start=job.t_start, t_end=job.t_end,
+            orig_end=job.orig_end, audio_complete_at=job.audio_complete_at,
+            text=job.text, tgt=job.tgt, spk=job.spk, voice=job.voice,
+            pcm24k=job.pcm24k, speech_sec=job.speech_sec,
+            asr_s=job.asr_sec, mt_s=job.mt_sec, tts_s=job.tts_sec,
+            ready_at=job.ready_at, error=job.error)
+        # `_finalize_segment` 返回 **list**（串行路径直接 extend 用），
+        # 而流水线的收口阶段要的是**单个**任务 dict ⇒ 这里拆开。
+        if isinstance(result, list):
+            return result[0] if result else None
+        return result
+
+    # ── 派发钩子：提交到流水线 ──────────────────────────────────
+    def _dispatch_segment(self, seq: int, abs0: int, abs1: int,
+                          seg_audio: np.ndarray, *,
+                          audio_complete_at: float) -> list:
+        """提交一段到流水线；返回**已就绪**的任务（通常为空）。"""
+        t_start = abs0 / C.SAMPLE_RATE
+        t_end = abs1 / C.SAMPLE_RATE
+        seg_id = f"seg_{abs0}"
+        job = SegmentJob(
+            index=self._seg_index, seg_id=seg_id,
+            t_start=t_start, t_end=t_end, audio=seg_audio,
+            orig_end=self.t0 + t_end,
+            audio_complete_at=audio_complete_at)
+        self._seg_index += 1
+        self._pipeline.submit(job)
+        # 已就绪的（流水线跑得比提交快时）顺手取走
+        return self._pipeline.pop_ready(block=False)
+
+    # ── 收尾 ────────────────────────────────────────────────────
+    def flush(self) -> list:
+        """★ EXT-010：尾段也**走流水线**（不能走串行路径！）。
+
+        ⚠️ **为什么必须重写**：基类的 `flush()` 调用 `_process_segment()`，
+        那会**同步**跑完 ASR→MT→TTS 并调 `_finalize_segment()`；
+        而流水线的**收口线程**也在调 `_finalize_segment()`
+        ⇒ 两者**并发** ⇒ `_finalize_segment` 里读的
+        `self._prev_adapt_speed`（EXT-009「相邻句 0.1×」约束）
+        与 `self.margins.append(...)` 会被**两个线程同时改**
+        ⇒ 口径可能错乱 ⇒ **必须让尾段也走流水线**（收口线程串行调用）。
+        """
+        if self._buf.shape[0] < int(1.0 * C.SAMPLE_RATE):
+            # 尾部不足 1 s ⇒ 没有有意义的语音段，丢弃（不计为段）
+            self._buf = np.zeros((0,), dtype=np.float32)
+            return []
+        abs0 = self._consumed_samples
+        abs1 = self._consumed_samples + self._buf.shape[0]
+        seg_audio = self._buf
+        self._buf = np.zeros((0,), dtype=np.float32)
+        self._consumed_samples += seg_audio.shape[0]
+        # 走流水线（与 `_dispatch_segment` 同一路径）
+        self._dispatch_segment(0, abs0, abs1, seg_audio,
+                               audio_complete_at=time.perf_counter())
+        # 返回「已就绪」的任务（尾段通常还没跑完 ⇒ 返回空列表）
+        return self._pipeline.pop_ready(block=False)
+
+    def drain(self, timeout: float = 300.0) -> list:
+        """等流水线把**所有**段跑完，取回全部任务（按段序）。"""
+        return self._pipeline.wait_all(timeout=timeout)
+
+    def pipeline_stats(self) -> dict:
+        return self._pipeline.snapshot()
+
+    def close(self) -> None:
+        try:
+            self._pipeline.stop()
+        except Exception:
+            pass
+
+
 def _get_header(websocket, name: str) -> Optional[str]:
     """跨 websockets 版本取请求头。
 
@@ -985,10 +1200,27 @@ def _get_header(websocket, name: str) -> Optional[str]:
         return None
 
 
+def _make_session(token: str, *, delay_sec: float, engine,
+                  use_pipeline: bool = False) -> "Session":
+    """建会话（★ EXT-010：可选**流水线**模式）。
+
+    * `use_pipeline=False` ⇒ 串行 `Session`（**原有行为完全不变**，
+      旧自测全部针对这条路径）；
+    * `use_pipeline=True`  ⇒ `PipelineSession`（句级并行）。
+
+    ⚠️ **回声模式不用流水线**（echo 是逐帧原样返回，没有分段/推理）。
+    """
+    if use_pipeline and engine is not None:
+        _log("★ 使用流水线会话（EXT-010：ASR/MT/TTS/收口 各一线程）")
+        return PipelineSession(token, delay_sec=delay_sec, engine=engine)
+    return Session(token, delay_sec=delay_sec, engine=engine)
+
+
 async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
                     echo_mode: bool, engine=None,
                     session_holder: Optional[dict] = None,
-                    margin_out: Optional[str] = None) -> None:
+                    margin_out: Optional[str] = None,
+                    use_pipeline: bool = False) -> None:
     """单连接的握手与消息循环。
 
     ★★ 缺陷 15（EXT-006 P1 实测抓到的真缺陷）：**不能覆盖已有 session**。
@@ -1038,7 +1270,8 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
             await websocket.close(code=1008, reason="bad token")
             return
         _log(f"已通过首个 hello 消息鉴权（role={first.get('role')}）")
-        session = Session(token, delay_sec=delay_sec, engine=engine)
+        session = _make_session(token, delay_sec=delay_sec, engine=engine,
+                                 use_pipeline=use_pipeline)
         _register_session(session_holder, session)
         await _handle_messages(websocket, session=session,
                                first=first, echo_mode=echo_mode,
@@ -1053,7 +1286,8 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
         return
 
     _log(f"已连接（origin={origin}）")
-    session = Session(token, delay_sec=delay_sec, engine=engine)
+    session = _make_session(token, delay_sec=delay_sec, engine=engine,
+                             use_pipeline=use_pipeline)
     _register_session(session_holder, session)
     await _handle_messages(websocket, session=session, first=None,
                            echo_mode=echo_mode, delay_sec=delay_sec,
@@ -1122,6 +1356,11 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                 }))
                 continue
             if mtype == "stats":
+                # ★★ EXT-010：流水线模式下，先把**已就绪**的任务下发，
+                #   再回 stats（否则 stats 会比任务先到，客户端会误判段数）。
+                if isinstance(session, PipelineSession):
+                    for task in session._pipeline.pop_ready(block=False):
+                        await websocket.send(json.dumps(task))
                 await websocket.send(json.dumps({"type": "stats", **session.stats()}))
                 continue
             if mtype == "pcm":
@@ -1149,6 +1388,12 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                                                   recv_at=_recv_at)
                 if out:
                     for task in (out if isinstance(out, list) else [out]):
+                        await websocket.send(json.dumps(task))
+                # ★★ EXT-010：流水线模式下，段是**异步**跑完的 ⇒
+                #   每次收到帧后**顺手把已就绪的任务取走**下发。
+                #   （未就绪的继续在流水线里跑，稍后由下一帧/flush/stats 取走。）
+                if isinstance(session, PipelineSession):
+                    for task in session._pipeline.pop_ready(block=False):
                         await websocket.send(json.dumps(task))
                 continue
             if mtype == "dump_margin":
@@ -1194,6 +1439,12 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                     if out:
                         for task in out:
                             await websocket.send(json.dumps(task))
+                    # ★★ EXT-010：流水线模式下，尾段也**异步**跑
+                    #   ⇒ flush 之后必须**等流水线把剩下的段都跑完**，
+                    #   否则尾段的配音任务来不及下发（客户端会等不到段数达标）。
+                    if isinstance(session, PipelineSession):
+                        for task in await asyncio.to_thread(session.drain):
+                            await websocket.send(json.dumps(task))
                 continue
     except Exception as e:
         _log(f"连接异常: {e}")
@@ -1203,17 +1454,20 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
 
 async def serve(host: str, port: int, *, delay_sec: float, echo_mode: bool,
                 token_path: str, engine=None, margin_out: Optional[str] = None,
-                session_holder: Optional[dict] = None) -> None:
+                session_holder: Optional[dict] = None,
+                use_pipeline: bool = False) -> None:
     import websockets
 
     tokens = TokenStore(token_path)
     _log(f"token 文件：{token_path}")
-    _log(f"监听 ws://{host}:{port}（echo={echo_mode}, D={delay_sec}s）")
+    _log(f"监听 ws://{host}:{port}（echo={echo_mode}, D={delay_sec}s，"
+         f"pipeline={use_pipeline}）")
     async with websockets.serve(
         lambda ws: handle_ws(ws, tokens=tokens, delay_sec=delay_sec,
                               echo_mode=echo_mode, engine=engine,
                               session_holder=session_holder,
-                              margin_out=margin_out),
+                              margin_out=margin_out,
+                              use_pipeline=use_pipeline),
         host, port,
         origins=None,
         max_size=32 * 1024 * 1024,
@@ -1243,6 +1497,10 @@ def main(argv=None) -> int:
                     help="目标语言（en/zh/ja/...），TTS 会显式传给它")
     ap.add_argument("--margin-out", default=None,
                     help="把余量统计与时间表落盘到这个 JSON")
+    # ── ★ EXT-010：句级流水线 ────────────────────────────────
+    ap.add_argument("--pipeline", action="store_true",
+                    help="用流水线会话（ASR/MT/TTS/收口 各一线程，句级并行）；"
+                         "依据 EXT-008 (c) interference 实测（ASR ∥ TTS 互不拖慢）")
     args = ap.parse_args(argv)
 
     try:
@@ -1282,7 +1540,8 @@ def main(argv=None) -> int:
         asyncio.run(serve(args.host, args.port, delay_sec=args.delay,
                           echo_mode=args.echo, token_path=token_path,
                           engine=engine, margin_out=args.margin_out,
-                          session_holder=holder))
+                          session_holder=holder,
+                          use_pipeline=args.pipeline))
     except KeyboardInterrupt:
         _log("已停止")
     finally:

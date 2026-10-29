@@ -171,6 +171,9 @@ def main(argv=None) -> int:
     ap.add_argument("--smoke-sec", type=float, default=20.0)
     ap.add_argument("--lock-wait", type=float, default=7200.0)
     ap.add_argument("--skip-smoke", action="store_true")
+    # ── ★ EXT-010：句级流水线 ────────────────────────────────
+    ap.add_argument("--pipeline", action="store_true",
+                    help="用流水线会话（ASR/MT/TTS/收口 各一线程，句级并行）")
     args = ap.parse_args(argv)
 
     # ★★ 单实例守卫（本轮修掉的真实工程缺陷 12）。
@@ -233,6 +236,9 @@ def main(argv=None) -> int:
                       "--delay", str(args.delay),
                       "--real", "--target-lang", args.target_lang,
                       "--margin-out", margin_out]
+        # ★ EXT-010：可选**流水线**（句级并行）
+        if args.pipeline:
+            bridge_cmd.append("--pipeline")
         env = dict(os.environ)
         env["PYTHONPATH"] = os.pathsep.join(
             [ROOT, os.path.join(ROOT, ".runtime_deps")] +

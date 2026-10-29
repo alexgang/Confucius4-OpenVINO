@@ -921,3 +921,94 @@ mtime 均为 2026-10-28 06:11。）
 ⇒ **验收数字尚未产出，不宣称已达成**；
 并补写 **§7.10 待下一轮接手的事项**（明确交接清单：先查 `.tmp/p1_ext009/` 取数、
 流水线化待 reviewer 拍板、TTS 转达数字以 **1.0022** 为准（旧 0.9264 已撤回））。
+
+## 2026-10-29 20:24 → 20:58 — EXT-010（RESUME）⇒ EXT-008 收口 + EXT-009 落地 + 句级流水线
+
+**执行时间**：2026-10-29 20:24:19 → 20:58（实测时钟；两次真实引擎实测区间 20:24:19 → 20:33:14 与 20:45:55 → 20:54:33）
+
+**指令摘要（唯一执行依据 = `status/CORRECTIONS_EXT.md` 的 EXT-010 [NORMAL] 2026-10-29 15:38）**：
+> - 未完成：EXT-008 的 interference 臂（parallel_speedup_x）和 STATUS §6.5 回填；EXT-009（自适应加速播放统一参数，叠加单句时长适配，总倍率 ≤ 1.30×）；之后根据数据改流水线。
+> - 下一步：写 last_ack=EXT-009，先补完 EXT-008 的数据。
+
+**闸门判定**：第 0 步实跑 `tools/next_instruction.py --json` ⇒ **退出码 0**（最新 = EXT-010，接手前 `last_ack = EXT-009`）⇒ 存在未执行的新指令，**非重复触发**，继续执行。
+
+**接手核对**：`.tmp/p1_ext009/` **不存在** ⇒ 上一轮 EXT-009 实测（编排器 PID 38836）**已被中断、产物未落盘** ⇒ 本轮**重跑**；树脏 = `ext/bridge.py` 改 + `tools/run_p1_real.py` 改 + `ext/pipeline.py`、`tests/test_ext010_pipeline.py` 新增（上一轮未完成的改动）⇒ 接手续做。
+
+**涉及修改的文件**（仅 EXT 模块内，⛔ 未改其他模块文件、⛔ 未改引擎、⛔ 未改纠偏文件）：
+
+| 文件 | 类型 | 说明 |
+|---|---|---|
+| `ext/pipeline.py` | 新建 | 425 行：`_FairLock`（严格 FIFO 公平锁）+ `SegmentJob` + `EnginePipeline`（ASR/MT/TTS/收口 4 线程句级流水线，`QUEUE_MAXSIZE=64`，ASR∥MT 共用 GPU 互斥锁） |
+| `ext/bridge.py` | 修改 | +281 行：`PipelineSession`（继承 `Session`）、`_finalize_segment()` 共享抽取、`_dispatch_segment()` 派发钩子、`PipelineSession.flush()` 重写、`serve(use_pipeline=)` + `--pipeline` CLI、`stats()["pipeline"]`、消息循环三处取走已就绪任务 |
+| `tools/run_p1_real.py` | 修改 | +6 行：`--pipeline` 开关 |
+| `tests/test_ext010_pipeline.py` | 新建 | 396 行 / 23 项专项自测（含反向对照） |
+| `status/STATUS_EXT.md` | 修改 | 追加 §8（232 行）；头部 `last_ack` EXT-009 → **EXT-010**、更新时间 → **2026-10-29 20:53**（实测时间） |
+| `status/EXEC_LOG.md` | 修改 | 追加本条 |
+
+**验证与自测结果**：
+
+* **EXT-009 五分钟真实实测（本轮重跑）**：`.tmp/p1_ext009/`，`SPE_0000_0500.wav`（300.0 s / 5000 帧）→ en，`--delay 10`，真实三引擎（ASR=R2T2 / MT=Hy-MT2 / TTS=Qwen3-TTS），**20:24:19 → 20:33:14**，`pipeline rc=0`，锁正常释放。
+  * 产物：`p1_report.json` 44 453 B / `margin.json` 27 565 B / `p1_timeline.json` 21 548 B / `p1_run_summary.json` 680 B（均 mtime 20:33）；`dub/*.wav` **22 个**；`accel/*.wav` **3 个**（`seg_410720_x1.30.wav` 564 154 B / `seg_644800_x1.30.wav` 614 370 B / `seg_902560_x1.30.wav` 614 370 B）。
+  * 原始字段：`n_segments=22` / `n_without_tts=0` / `n_deferred=0` / **`n_dropped_dub=0`**；
+    `speed_time_share = {"1.00":0.0,"1.00-1.10":0.045,"1.10-1.20":0.0406,"1.20-1.30":0.9144,">1.30":0.0}`；
+    `speed_count_share = {"1.00":0,"1.00-1.10":1,"1.10-1.20":1,"1.20-1.30":20,">1.30":0}`；
+    `lag_curve = {start_sec:70.287, peak_sec:234.644, peak_at_t_start:282.84, end_sec:227.986}`；
+    `lag.last_segment_lag_sec=227.9863` / `max_lag_sec=234.6442` / `lag_growth_slope_sec_per_sec=−0.565947` / `r2=0.992763`；
+    `margin = {basis:"deadline", n_negative:22, p50:−157.1446, p95:−74.5309}`；
+    `sync_err_ms = {p50:150866.1, p95:227986.3, max:234644.2, n_over_target:22}`；
+    `timing.feed_speed_x=0.5949` / `n_frames_send_blocked_gt_1s=20` / `send_dur_max_sec=58.453`；
+    `margin_source="stats"` / `adaptive_source="stats"`（正常路径，非兜底）。
+  * vs run7 串行基线：末句滞后 **297.885 → 227.986 s（↓69.9 s）**；斜率 **−0.892 → −0.566 sec/sec（↓36.6 %）** ⇒ 自适应加速对「追滞后」有效。
+* **★ 缺陷 23（真架构缺陷，实测抓到）**：普通 `threading.Lock` **不保证公平** ⇒ ASR 连续抢锁、MT 饿死 ⇒ 时间线实测三阶段**零重叠**、加速仅 **1.02×** ⇒ 改 **`_FairLock` 严格 FIFO** ⇒ 修后 **ASR ∩ TTS 重叠 0.300 s**、流水线墙钟 **1.52 s** vs 串行 **2.76 s** ⇒ **加速 1.82×**。
+* **★ 缺陷 24**：`_finalize_segment()` 返回 list（串行用 `extend`）与流水线收口要的单个 dict 不一致 ⇒ `TypeError: list indices must be integers or slices, not str` ⇒ `_stage_emit()` 内拆包修正。
+* **★ 缺陷 25**：`flush()`（尾段）走串行路径 ⇒ 与收口线程**并发**调 `_finalize_segment`、并发改 `margins` / `_prev_adapt_speed` ⇒ `PipelineSession` 重写 `flush()`，尾段也走流水线。
+* **★ 缺陷 26**：阶段函数内 `except Exception` 吞异常 ⇒ 失败段未标 error ⇒ 三阶段 `except` 内调 `job.mark_error("asr"/"mt"/"tts", e)`（只保留第一个错误，第一个才是根因）。
+* **自测（逐套取真实退出码）**：
+
+  | 套件 | 结果 | 退出码 |
+  |---|---|---|
+  | `tests/test_ext_selfcheck.py` | 103 PASS / 0 FAIL | 0 |
+  | `tests/test_echo_roundtrip.py` | 10 PASS / 0 FAIL | 0 |
+  | `tests/test_next_instruction.py` | 19 PASS / 0 FAIL | 0 |
+  | `tests/test_p1_plumbing.py` | 97 PASS / 0 FAIL | 0 |
+  | `tests/test_ext_browser_contract.py` | 102 PASS / 0 FAIL | 0 |
+  | `tests/test_ext009_adaptive_speed.py` | 57 PASS / 0 FAIL | 0 |
+  | `tests/test_ext010_pipeline.py` | 23 PASS / 0 FAIL | 0 |
+  | **合计** | **411 PASS / 0 FAIL** | — |
+
+  * 解释器：`C:\Users\Trekker-PTL\miniforge3\envs\ov_env_py312\python.exe` + `PYTHONPATH=<项目根>;<项目根>/.runtime_deps`；真实引擎实测用 App 解释器。
+  * **区分力设计**（不假通过）：桩引擎记录各阶段**执行时间区间**（sleep 在区间内）⇒ 断言 ASR∩TTS 重叠 > 0；**反向对照**同一套桩跑串行路径 ⇒ 断言重叠 ≤ 0（证明断言有区分力）；断言流水线墙钟 < 串行墙钟；`_make_pcm_speechy()`（1.4 s 语音 + 0.6 s 静音、400 帧）⇒ VAD 实测切出 3 段（纯正弦波切不开会让「顺序 / 不丢句」断言假失效）。
+* **共享机器锁纪律**：本轮真实实测持锁区间 20:24:17 → 20:33:17（`tools/machine_lock.py` 的 `hold()`），结束后释放；期间先后由 `tts`（PID 13200）与 `asr`（PID **23644**，`task=asr027-cpu-rerun-base`，20:44:47 起）持锁 ⇒ `probe_pid_alive(23644)` 复核**存活** ⇒ **不抢、不删、不回收**；回收前一律用 ctypes `OpenProcess` + `GetExitCodeProcess` 确认 PID 真死，**探测失败一律视为存活**。全程**未在 CPU 上跑推理**、**未与实时字幕 App 抢设备**。
+
+**未做 / 不宣称**：⛔ 端到端仍不实时（`feed_speed_x=0.5949`、`sync_err_ms.p50=150866.1`）；⛔ WSOLA 变调质量由 reviewer 抽听 + MiniMax 回转写判定，本轮不自己判定；⛔ TTS 未提速（RTF 仍 1.0022，建议 ≤ 0.85，**由主会话转达 TTS 模块**）；⛔ tabCapture 生产路径仍未实测；⛔ pyannote 旁路未接线；⛔ P2/P3 未开始。
+
+### ★ 补充：流水线真实引擎端到端实测（20:45:55 → 20:54:33，rc=0）
+
+等锁期间由 `asr` 模块持锁（PID **23644**，`task=asr027-cpu-rerun-base`，20:44:47 起）⇒ `probe_pid_alive(23644)` 复核**存活** ⇒ **不抢、不删、不回收**，按 §7.10「继续等，不重跑」执行；锁释放后自动取得锁，结束后**锁已释放**。
+
+**产物**：`.tmp/p1_pipe/p1_report.json` 44 668 B / `margin.json` 27 910 B / `p1_timeline.json` 21 488 B / `p1_run_summary.json` 674 B（均 mtime 20:54）；`dub/*.wav` **22 个**；`accel/*.wav` **3 个**（584 830 / 578 924 / 581 876 B）。
+**流水线路径生效证据**：`bridge.log` 原始行 `pipeline=True` + `★ 使用流水线会话（EXT-010：ASR/MT/TTS/收口 各一线程）`；且 `bridge_stats.pipeline` 非空（串行路径该字段为 `None`）。
+
+**★ 串行 vs 流水线 严格对照**（同输入、同引擎、同后处理口径）：
+
+| 指标 | 串行（`p1_ext009`） | **流水线（`p1_pipe`）** | 变化 |
+|---|---|---|---|
+| `timing.feed_speed_x` | 0.5949 | **1.0** | 喂帧从落后实时 40 % → 刚好实时 |
+| `timing.feed_sec` | 504.27 s | **300.01 s** | ↓ 204.26 s |
+| `timing.drain_sec` / `total_sec` | 30.01 / 534.28 s | 77.58 / **377.59 s** | 总墙钟 ↓ 156.69 s（**加速 1.415×**） |
+| `n_frames_send_blocked_gt_1s` | 20 | **0** | 服务端背压消失 |
+| `send_dur_max_sec` | 58.453 s | **0.007 s** | 单帧最长阻塞 58.5 s → 7 ms |
+| `late_final_sec` | 204.27 s | **0.006 s** | ↓ |
+| `lag.last_segment_lag_sec` | 227.9863 s | **71.2074 s** | **↓ 68.8 %** |
+| `lag.max_lag_sec` | 234.6442 s | **86.2166 s** | ↓ 63.3 % |
+| `lag.lag_growth_slope_sec_per_sec` | −0.565947 | **−0.106051** | **↓ 81.3 %** |
+| `sync_err_ms.p50 / p95 / max` | 150 866.1 / 227 986.3 / 234 644.2 | **67 289.3 / 85 317.2 / 86 216.6** | ↓ 55.4 % / 62.6 % / 63.3 % |
+| `margin.p50 / p95` | −157.1446 / −74.5309 | **−68.4317 / −50.6766** | 余量改善 88.76 s / 23.85 s |
+
+**`bridge_stats.pipeline` 原始字段**：`n_submitted=22` / `n_emitted=22` / **`n_error=0`** / `n_pending=0`；`stage_wall_sec = {asr: 234.912, mt: 2.397, tts: 343.64}`；`emit_sec = 26.998`；`gpu_serial_stages = ["asr","mt"]`（GPU 互斥按设计生效）。
+**并行度判读**：串行时 ASR+TTS 墙钟相加约 578 s，流水线总墙钟仅 377.59 s ⇒ **ASR 与 TTS 确实重叠运行**。
+**倍率高保真证据**：两轮 `speed_time_share` **完全一致**（1.00–1.10× 0.045 / 1.10–1.20× 0.0406 / 1.20–1.30× 0.9144 / >1.30× 0.0）⇒ 倍率决策只依赖滞后、与执行路径解耦 ⇒ 实证「收口按 index 严格有序 ⇒ 口径不变」。
+**结论**：✅ 流水线真实引擎**确实生效且显著改善全部时延指标**；⛔ **但仍未实时**（`sync_err_ms.p50=67289.3`、`n_over_target=22`、`last_segment_lag_sec=71.2074`）；⛔ **瓶颈已明确转移到 TTS**（`stage_wall_sec.tts=343.64 s` 为最长杆）⇒ **TTS 提速（RTF 目标 ≤ 0.85）是从「不实时」走向「实时」的必要前置**。
+
+
+**`last_ack` 推进**：EXT-009 与 EXT-008 均已收口、EXT-010 本身已执行完毕 ⇒ **`last_ack` = EXT-010**（§8.9 说明「不回头改旧章节」的处置）。
