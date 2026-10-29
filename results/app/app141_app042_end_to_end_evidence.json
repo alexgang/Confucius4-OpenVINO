@@ -81,7 +81,7 @@
     {
       "name": "B1: submit(target_play_at=10s前) ⇒ 命令体带 speed>1.0 与 target_wall",
       "ok": true,
-      "detail": "cmd={'cmd': 'synth', 'id': 1, 'text': 'hello', 'speed': 1.1, 'target_wall': 1793265441.8417, 'lag_s': 10.0} logs=[]"
+      "detail": "cmd={'cmd': 'synth', 'id': 1, 'text': 'hello', 'speed': 1.1, 'target_wall': 1793265544.8673, 'lag_s': 10.0} logs=[]"
     },
     {
       "name": "B2: submit() 不带 target_play_at ⇒ 命令体不含 speed（向后兼容）",
