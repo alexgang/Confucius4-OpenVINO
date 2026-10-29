@@ -1,12 +1,13 @@
 # STATUS_APP
 last_ack: APP-033
-更新时间: 2026-10-28 23:52
-当前任务: **§89 🔴🔴🔴 CUDA 边车「扣留一块」缺陷已定位并修掉 ⇒ 客户端量到的「首包」不再被第 2 块挡住（真实 CUDA A/B 实测首包平均提前 0.2785 s）＋ 内容等价用「确定性字节级证明」而非统计推断（`app129c` 10 PASS/0 FAIL：两臂发出的 PCM **逐字节相同**、生成-发送滞后 2→1）** ⇒ 🔴🔴🔴 **撤回 §88.4.2 对 `elapsed` 语义的误用**（旧 `elapsed` 实为「整句结束时刻」，非首块时刻） ⇒ ✅ **「已交付」成立（代码 + 客户包 zip）**（zip 已持锁重打：11 218 124 039 B / mtime 2026-10-28 23:44:53 / SHA256 `4d9e97de…d64`，14 200 文件逐字节一致，`testzip()` 通过） ⇒ 🔴 **本条需等 reviewer 复核**
+更新时间: 2026-10-29 08:01
+当前任务: **§90 🔴🔴🔴 CUDA 边车「cancel 不可达」已定位并修掉 ⇒ APP-030② 的失控守卫在 CUDA 路径上**从未生效**（确定性证明：修前 cancel 后仍发满 4 块 / `end_reason=eos`；客户端「做不到就杀掉重启」也是空壳）＋ 顺手修掉「排空线程偷丢下一句的块」⇒ ✅ 边车独立命令读取线程（cancel 与生成并行）＋ `_CANCEL_RIDS` 锁保护 ＋ 协议写锁 ＋ 客户端等确认（等不到就杀重启）＋ 排空消息插回队首 ⇒ ✅ `app130` **21/21 PASS（仓库）＋ 21/21 PASS（客户包 v1.6 内那份）**（A 组 5 条命中修前缺陷 / B 组 11 条修复后全过 / C 组 3 条反证 ⇒ 判据不恒真）⇒ ✅ 回归 `app107` 42/42、`app129c` 10/10 ⇒ ✅ 客户包定点同步（3+7 块唯一命中 + 幂等 ALREADY + 包外备份 `pkg_backup_app_c153`）⇒ ✅ **zip 已持锁重打 ⇒「已交付」成立**（11 218 127 265 B / mtime 2026-10-29 07:57:34 / SHA256 `3b79ad2a…ae017` / 14 200 文件逐字节一致 / 三方只读复核 2/2 MATCH）⇒ 🔴 **本条需等 reviewer 复核**
 
-阻塞 / 待用户决定: ① 🔴🔴 **§83.5 第 2 项「首包指标定义」的根因已闭环**（扣留一块）＋ **字段已修正**（`elapsed` = 首块时刻 / 新增 `total_s` = 整句耗时）＋ **实测**（首包平均提前 0.2785 s）⇒ **待 reviewer 复核并裁定是否关闭**；② 🔴 **§83.5 第 1 项「RTF 归因边界」仍需重新裁定**（§88 的**归因结论仍成立**，但 §88.4.2 的 `elapsed` 推理链已按 §89.6 **撤回**）⇒ **待 reviewer 裁定**；③ 🔴 **APP-027 仍未完**（V3-CER / V3-CAMPPlus 归 reviewer、V4 用户实听未做）⇒ **「用户听得到」仍不成立**；④ 🔴 **v1.6 zip 已持锁重打完成**（11 218 124 039 B / mtime 23:44:53 / SHA256 `4d9e97de…d64`）⇒ 若此 zip 此前已分发，**是否需重新分发仍待 reviewer 裁定**（App 不自行决定）；⑤ 🔴 **CUDA 合成本身不可复现**（`app129b` 实测：同进程同句 3 次 frames 19/22/21）⇒ **任何「样本数/frames 逐句相等」口径在本项目都不成立** ⇒ 后续评测须改用统计口径并显式声明噪声基准；⑥ 🔴 **本轮未修改 `CORRECTIONS_APP.md`**（只读、零改动，指纹 90 321 B / sha256 `bb2896ee…a043` / mtime 00:47:55）、未向 MiniMax、未开 FTP、未跑 `verify_pkg_zip.py`、**未用 `git add -A`**（逐文件 add）
+阻塞 / 待用户决定: 阻塞 / 待用户决定: ① 🔴🔴 **本轮修的是「失控守卫的可达性」**（确定性证明已成立）⇒ **真实 CUDA 实测未做**（未跑推理/测速 ⇒ 守纪律）⇒ **「用户听得到」仍不成立** ⇒ 待 reviewer 复核；② 🔴 **v1.6 未发布到 FTP**（本轮只做只读本地复核；未跑 `publish_ftp.py`、未开 FTP）⇒ `FTP_Share/` 仍只有 v1.4/v1.5 ⇒ 客户从 FTP 拿到的仍是旧的 ⇒ **是否重发待 reviewer 裁定**；③ 🔴 **APP-027 仍未完**（V3-CER / V3-CAMPPlus 归 reviewer、V4 用户实听未做）；④ 🔴 **本轮未修改 `CORRECTIONS_APP.md`**（只读、零改动，指纹 90 321 B / sha256 `bb2896ee…a043` / mtime 2026-10-28 00:47:55）、未向 MiniMax、未跑 `verify_pkg_zip.py`、未开 FTP、**未用 `git add -A`**（逐文件 add）
 
 
 ## 最近更新
+08:01 §90 🔴🔴🔴 **CUDA 边车「cancel 不可达」已定位并修掉 ⇒ APP-030② 失控守卫在 CUDA 路径上从未生效**（修前 cancel 后仍发满 4 块 / eos；客户端兜底也是空壳）＋ 顺手修掉「排空线程偷丢下一句的块」⇒ ✅ 边车独立命令读取线程 + 锁保护 + 协议写锁 ＋ 客户端等确认（等不到就杀重启）＋ 排空消息插回队首 ⇒ ✅ `app130` **21/21（仓库）＋ 21/21（客户包内那份）**（A 组命中修前 / B 组全过 / C 组反证）⇒ ✅ 回归 `app107` 42/42、`app129c` 10/10 ⇒ ✅ 定点同步（3+7 块唯一命中 + 幂等）⇒ ✅ **zip 已持锁重打 ⇒「已交付」成立**（11 218 127 265 B / 07:57:34 / SHA256 `3b79ad2a…ae017` / 14 200 文件一致 / 三方复核 2/2 MATCH）⇒ ⛔ **真实 CUDA 实测未做（守纪律）⇒「用户听得到」仍不成立**、⛔ **v1.6 未发布 FTP** ⇒ 🔴 **本条需等 reviewer 复核**
 23:31 §89 🔴🔴🔴 **CUDA 边车「扣留一块」缺陷已定位并修掉 ⇒ 首包不再被第 2 块挡住（真实 CUDA A/B 实测首包平均提前 0.2785 s）＋ 确定性字节级内容等价证明（`app129c` 10 PASS/0 FAIL）**⇒ ✅ 删 `pending` 扣留（每块即发）+ `last` 恒 False（线格式兼容）+ `elapsed` 语义改为首块时刻 + 新增 `total_s` ⇒ ✅ `app129` **23 PASS/0 FAIL**（ABBA 5 臂、持锁 + 45 s 安静窗口、零 CPU 推理、未调 MiniMax）⇒ ✅ `app129c` **10 PASS/0 FAIL**（两臂 PCM **逐字节相同**，生成-发送滞后 **2→1**）⇒ ✅ `app129b` 证明 **CUDA 合成不可复现**（⇒ 统计口径无分辨力 ⇒ 判据降级为信息性）⇒ ✅ 客户包定点同步（4 块唯一命中 + 幂等 `ALREADY` + 包外备份 `pkg_backup_app_s89`）⇒ 🔴🔴🔴 **撤回 §88.4.2 对 `elapsed` 语义的误用**⇒ ✅ **zip 已持锁重打 ⇒ 「已交付」成立（代码 + 客户包 zip）**（11 218 124 039 B / mtime 23:44:53 / SHA256 `4d9e97de…d64` / 14 200 文件逐字节一致 / `testzip()` 通过 / 只读三方复核 PASS） ⇒ ⛔ **APP-027 未完（V3 归 reviewer、V4 未做）**
 19:53 §87 🔴🔴 **MT notice 15 §3.4「真实时序下不残留草稿行」端到端证据缺口已补齐**（真实 `TranslationService` + 真工作线程 + 真 outbox + 真实 `render_lines()`）⇒ ✅ `app127` **17 PASS/0 FAIL**（三语料终态 `n_draft_lines` **全 0** ＋ 3 条突变反证 ＋ 1 条基线反证）⇒ ✅ `app128` 随机语料 **120/120 PASS**、`max_draft_lines=0`⇒ 🔴🔴 首跑 **42 组 FAIL** ⇒ 定位为**验收脚本判据口径缺陷**（渲染层 join 同 seg 多单元 ⇒ 精确相等口径失效）⇒ 已修判据 ＋ 补 `app128_judge_selftest` **5/5 PASS**（注入 4 类真缺陷 ⇒ 判据必须 FAIL）⇒ ✅ **产品未暴露缺陷** ⇒ **无需改生产代码 / 无需同步客户包 / 无需重打 zip** ⇒ ⛔ **不写「已交付」**⇒ ⛔ **APP-027 未完（V3 归 reviewer、V4 未做）**
 18:14 §86 🔴🔴 **APP-031 合打完成：v1.6 zip 已持锁重打（11 218 123 293 B / mtime 17:57:22 / SHA256 `266917dd…32d`；`testzip()` 通过；14 200 文件逐字节一致）＋ 打包前三道闸门抓到并修掉 5 个真实缺陷**（内部 STATUS 备份会进 zip / `clone_collector.py` 误伤假 FAIL / `tts_engine.py` U+FFFD / §48 docstring 误判 / 写死包路径）⇒ ✅ `app126` **30 PASS/0 FAIL**（双向反证，基线 `b0f7a43`）＋ `app049` **7 PASS/0 FAIL** ⇒ ✅ 定点同步幂等 **ALREADY** ⇒ ✅ 只读三方复核 **PASS**（6 589 一致 / 排除项 0 / 内部特征串 0）⇒ ✅ commit **`d14b1f8`**＋**`1b8a99c`** 普通 push、`HEAD == origin/main`、`CORRECTIONS_APP.md` 未入库 ⇒ ✅ **「已交付」成立（代码 + 包 zip）** ⇒ ⛔ **APP-027 未完（V3 归 reviewer、V4 未做）**
@@ -21,8 +22,6 @@ last_ack: APP-033
 21:26 §75 🔴🔴 **APP-030（日文失控）代码侧全部完成 + 客户包定点同步完成**：✅ **APP-030① 目标语言显式下传**（`submit(lang=)` → synth 命令带 `lang` → worker 5 元组 → `map_language()` → Chinese/English/Japanese/Korean；GUI `_cur_mt_target()` / CLI `mt.target`；`_guess_lang` 降级兜底且**假名⇒ja / 谚文⇒ko**；`normalize_zh_numbers` **只在 Chinese** ⇒ 日文数字不再被中文化）⇒ ✅ **APP-030② 失控守卫三层**（① 引擎侧 `clamp_max_new_tokens = clamp(3×估计帧+36, 48, 2048)` **按切分段**算；② CUDA 客户端 `got_sec > max(3×est, est+8 s)` ⇒ RUNAWAY ⇒ 停播 + 发 `cancel`（不行就杀并重启边车）；③ worker 侧**引擎无关**兜底 ⇒ **NPU 同受保护**；**边车不再用库默认 2048**（兜底 512）⇒ 回报 `frames`/`end_reason`）⇒ ✅ **APP-030③ `_q_get` 超时返哨兵不抛**（`_TIMEOUT` 区分「暂时没消息」vs「边车已退出」）⇒ **15/60 s 看门狗真正生效、第 0 句不再丢**⇒ ✅ **APP-030④ `_estimate_sec` 补假名/谚文**⇒ ✅ **APP-030⑤ 可观测性**（逐句 `lang/lang_src/n_chars/est_frames/frames/end_reason/max_new_tokens` 进 `x.tts.jsonl`；切目标记一行；异常句落盘 `%LOCALAPPDATA%\...\tts_anomaly\` 最多 20 组）⇒ ✅ **APP-029 只做接口预留不集成**（`spk_update` 只接住记日志、断句继续用 R2T2）⇒ ✅ **验收 `app107` 42/42（仓库）+ 42/42（客户包）**（零推理/零 GPU/零 NPU，桩引擎 + `ast`/`exec`，含 **6 条反证**）⇒ ✅ **客户包定点同步 7/7 MATCH**（两轮：7 文件 48 块 + 增量 1 块；脚本升级为**三级基线选择**，原脚本**正确拒绝**了增量同步）⇒ 🔴 **本轮自查抓出并修复真实缺陷**（`start()` 等 ready 的判定被 `_TIMEOUT` 破坏 ⇒ 边车启动路径会崩；已修 + 新增 C6/C7/F6）⇒ ✅ **回归全绿**（`app103` 29/29、`app105` 24/24、`app102` 27/27、`app098` 21/21、`app100` 28/28、`app069` 37/37、`app097` 20/20；**必须用 Python 3.12**，managed 3.13 无 numpy）⇒ ⛔ **APP-030 实测验收全部未做**（机器锁被 TTS 活占 `pid 38316 exit=259` ⇒ **不抢不删**；且**仓库内无 `quota.py`** ⇒ 不做 reviewer 指定的 MiniMax 回转写）⇒ ⛔ **APP-031 的 ②③ 未做**、⛔ **zip 未重打**（APP-031 明文「合在一起重打一次包」）⇒ ⛔ **「日文失控已解决」不成立**、「用户听得到」仍不成立⇒ 🔴 `last_ack` = **APP-030**
 17:15 §74 🔴 **客户包版本升级 v1.5 → v1.6 完成**：✅ **版本单一数据源** `pack_v13.PKG_VERSION` `'1.5'→'1.6'`（+ 新增 `V16_APP_NOTE` 四条修订说明，编号 **13~16**，避开了 MANIFEST 已占用的 11/12）⇒ ✅ **两个验收脚本的版本判据参数化**（`app014b_v15_preship_check.py` 12+ 处、`app014b_verify_v15_zip.py` 1 处写死 `'1.5'` ⇒ 升版必报**假 FAIL**）⇒ 改为用 `ast` 抽 `pack_v13.PKG_VERSION` 字面量（**不 import** 其执行逻辑；读不到就抛异常）；**保留** v1.5/v1.4 的历史判据（「历史可追溯」）⇒ ✅ **V1.6 目录**（robocopy **14 257 文件 / 12.735 GB / 失败 0 / 30 s**）⇒ ✅ **版本标识定点升级**（新建 `app106_upgrade_pkg_to_v16.py`，**7/7 唯一命中**：README_zh/en 标题 + `## v1.6` 段 + 首段简介 + **NOTICE 自称 v1.4 的历史错标纠正为 v1.6**）⇒ ✅ **该脚本的幂等缺陷已自测抓出并修**（「插入 v1.6 段」的旧串 `## v1.5 改动说明` **插入后仍存在** ⇒ 重跑会**再插一份** ⇒ 加 **guard** ⇒ 修后 **7/7 幂等**）⇒ ✅ **包内代码 22/22 == 仓库 HEAD** ⇒ ✅ **打包前自检 PASS 51 / FAIL 5**（5 项 FAIL 是**打包前预期态**：MANIFEST version/notes 由 `refresh_manifest` 在打包时写）⇒ ✅ **持锁重打 zip**（`app-pack` PID 30008 / 16:56:44；安静窗口 45 s 通过；压缩 **676 s**；`testzip()` OK；**14 199 文件逐字节一致**；原子改名）⇒ zip **11 218 089 559 B / mtime 17:09 / SHA256 `aedb8bd1…9d06`** ⇒ ✅ **只读本地复核 20/20**（新建 `app106_v16_zip_readonly_check.py`；**四路 22/22 全 MATCH**；`zip ⇄ 包目录 .py diff = 0`；**未跑** `verify_pkg_zip.py` / **未跑** `publish_ftp.py` / **未开 FTP**）⇒ 🔴 **该复核脚本第一版的分母口径缺陷已自测抓出并修**（23 个 `.py` 里 `_probe_tts_cuda.py` 被 `pkg_exclude` 排除出 zip ⇒ 分母多算 ⇒ **假 FAIL**；改按实际参与比对集合计分母）⇒ ⛔ **未改任何生产代码**、⛔ **未跑推理**、⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ 🔴 `last_ack` = **APP-028**
 16:47 §73 🔴🔴 **APP-028 zip 重打完成 + 交付口径闭环**：✅ 等锁过程 fail-closed（16:23:10 锁被 `module:tts`/`pid 39352` 持有 ⇒ `OpenProcess` handle=668/err=0 ⇒ `exit=259 STILL_ACTIVE` ⇒ **活锁，不抢不删**；16:23:25 TTS 释放 ⇒ 16:23:26 `app-pack` PID 9900 持锁打包；16:45:33 退出码=0 / 耗时 1328.1 s；16:45:34 `[lock] 已释放`）⇒ ✅ **zip 已重打**：**11 218 087 123 B / mtime 16:41:02 / SHA256 `907a1caa…2589f` / md5 `501f7699…e8e40` / 14 199 文件逐文件 SHA256 全一致**；`testzip()` 通过 ⇒ 原子改名；MANIFEST 硬校验全过（音色 B/C/克隆 0 条命中、`_` 前缀脚本 0 条命中、确定缺失本地模块 0 条）⇒ ✅ **只读本地检查**（§66 口径，**未跑** `verify_pkg_zip.py` / **未跑** `publish_ftp.py` / **未开 FTP**）：**zip ⇄ 包目录 `.py` diff = 0**（23 个）+ **HEAD ⇄ 包目录 = 22/22** ⇒ ✅ **独立四路复核**（自写脚本直读 zip 内字节 ⇒ 仓库 == 包目录 == zip == HEAD，**5/5 全 MATCH**）⇒ ✅ **`app105` 独立复跑 24/24 PASS** ⇒ ✅ **「已交付」成立**（仅指**代码与包**）⇒ ⛔ **V1/V2/V3 未跑**、⛔ **V4 等用户实听** ⇒ ⛔ **「用户听得到」不成立**
-16:26 §72 🔴🔴 **APP-028 收尾补正（闸门自身可信度 + `device_config.py` 独立同步）**：🔴 **查出 `app103` A6 是「假通过」**（只认 `ast.Assign` ⇒ `FALLBACK_ORDER` 实为 `AnnAssign` ⇒ 解析失败被 `except` 吞掉 ⇒ `asr_npu/mt_npu` 恒 `False` ⇒ **判据永远 PASS**）⇒ ✅ **真实缺陷已修**：`FALLBACK_ORDER` 的 ASR/MT 链**仍含 `'NPU'`**（违反 APP-028①「NPU 独占」）⇒ 改为 `asr/mt: ['GPU.0','CPU']`（随 `6d90715` 入库）⇒ ✅ **新建 `app105`**（**24/24**；含 **14 条反证**，故意写错 ⇒ 判据必须 FAIL；反证用 **AST 重建**⇒ 源码修好后反证**不静默失效**；`exec` 须注入 `SR`/`threading` ⇒ 否则闸门自身崩溃）⇒ ✅ **新建 `sync_s70_device_config_to_pkg.py`**（与 §71 的 4 文件**不重叠** ⇒ 无双写）⇒ `device_config.py` **已单独定点同步**（基线 `5e2aef7` → 2 块唯一命中 → 写盘 → LF SHA256 `f386785af866f9…` == 仓库 ⇒ MATCH；**幂等**复核 = 0 块 no-op）⇒ 🔴 **更正 §71.1 措辞**：包内一致是**本节同步的结果**，不是「本来就一致」⇒ ✅ 全部闸门复核 `app103` 29/29、`app104` 10 PASS + 1 NO-EVIDENCE、**`app105` 24/24**、`app098` 21/21、`app102` 27/27、`app097` 20/20、`app100` 28/28、`app069` 37/37 ⇒ ⛔ **不跑推理**、⛔ **zip 未重打**（`app-pack` 锁 PID 9900 运行中）⇒ **不写「已交付」**
-
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -15765,3 +15764,170 @@ rid=4 `frames` 58 vs 52（不同）、rid=8 `frames` 77 vs 69（不同）⇒ ⇒
 - `last_ack` = **APP-033**（**保持不变**：本轮**无新 reviewer 纠偏条目** ⇒ 无编号可 ack；
   本节是对**已 ack 的历史条目**（APP-027 的 V1/V2 证据缺口、§83.5 第 2 项）做遗留事项补做）。
 - 「更新时间」= **2026-10-28 23:31**（`Get-Date -Format "yyyy-MM-dd HH:mm:ss"` **实测值**，非推算）。
+
+## §90 🔴🔴🔴 **CUDA 边车「cancel 不可达」已定位并修掉 ⇒ APP-030② 的失控守卫在 CUDA 路径上**从未生效**（确定性证明：修前 cancel 后仍发满 4 块 / `end_reason=eos`）＋ 顺手修掉「排空线程偷丢下一句的块」的真实缺陷 ＋ 客户包 v1.6 已持锁重打 ⇒「已交付」成立**（2026-10-29 08:01）｜**本条已完成**｜**本条需等 reviewer 复核**
+
+### §90.1 巡检（无新 reviewer 纠偏 ⇒ `last_ack` 不变）
+
+- `status/app/CORRECTIONS_APP.md`：**只读、零改动**。指纹实测：
+  **90 321 B / mtime 2026-10-28 00:47:55 / SHA256 `bb2896ee9143cd89e4bd2f8a3d0e8f8327079945237ccffc6c6bbd0d825ea043`**。
+- `## APP-xxx` 条目共 **33** 条，最大编号 **APP-033** = 头部 `last_ack` ⇒ **无编号更大的新条目**
+  ⇒ **本轮无「按 APP 编号执行」的 reviewer 条目，无对应 stop-node**。
+- 🔴 `git status --short -- status/app/` 实测只有 ` M status/app/CORRECTIONS_APP.md`
+  ⇒ 那是 **reviewer 自己**的未提交改动 ⇒ **本轮绝不暂存、绝不提交**（提交后已用
+  `git diff --cached --name-only | grep -c CORRECTIONS` = **0** 复核）。
+
+### §90.2 本轮核心缺陷（**App 职责内的真实承重 bug**）
+
+**缺陷本体**：APP-030②「### 3. 要做」② 明文写的是
+
+> 客户端再加一道：本句已收音频 > max(3×估计, 估计+8 s) ⇒ 判 RUNAWAY ⇒ 停止播放本句剩余部分，
+> 并让边车停止（**加 cancel 命令，边车每块检查一次；做不到就杀掉重启**）
+
+这**两半**在 CUDA 路径上**都是空壳**：
+
+1. 🔴🔴🔴 **「边车每块检查一次」= 永远为 False ⇒ 从未生效**
+   - 边车主循环**只在两次请求之间**执行 `stdin.readline()`；
+   - 生成期间（`model.generate_voice_clone_streaming(...)`）**主循环被阻塞**；
+   - ⇒ `{'cmd':'cancel','id':rid}` 这行 JSON **在生成结束前根本不会被读到**；
+   - ⇒ `_CANCEL_RIDS` 在本次生成期间**恒为空**；
+   - ⇒ 生成循环里的 `if rid in _CANCEL_RIDS` **永远不成立**。
+2. 🔴🔴🔴 **「做不到就杀掉重启」= 空壳**
+   - `tts_cuda.py::_cancel_request()` 写命令**成功**就 `return`；
+   - ⇒ **永远不会**触发「杀掉并重启边车」；
+   - ⇒ 即使边车根本不处理 cancel，客户端也**以为**取消已生效。
+
+⇒ **合起来：APP-030② 想要的「失控句立刻中止、不再把后续句堵住 1~2 分钟」在 CUDA 路径上从未成立**
+（reviewer 实测：一句 7 字日文跑 **106.61 s / 255 块**，后续句全被堵住）。
+
+**第二个同源缺陷（顺手修掉）**：`_start_drain()` 对**非本 rid** 的消息执行 `continue`（**直接丢弃**）
+⇒ 排空线程与主合成线程**共用 `self._q`** ⇒ 排空线程会把**下一句刚到的块 / cancel 确认**当成「别人的」丢掉
+⇒ 下一句**少块或整句无输出**（静默丢音频）。
+
+### §90.3 修法（6 处）
+
+**`live_caption/tts_cuda_sidecar.py`（边车侧）**
+
+| # | 改动 | 作用 |
+|---|---|---|
+| ① | **独立 daemon 命令读取线程** `_start_command_reader()` | 控制命令（`ping`/`quit`/`set_ref`/`cancel`）**与生成并行** ⇒ cancel **在生成期间也能到达**；合成请求投递到 `_REQ_Q`，**仍由主循环串行**（边车一次只做一句） |
+| ② | `_CANCEL_RIDS` **锁保护**（`_CANCEL_LOCK` / `_cancel_pending()` / `_take_cancel()`） | 读线程写、主循环读 ⇒ 「读-判断-删」三步之间可能被插入 ⇒ 取消标志被吞 |
+| ③ | **协议写锁** `_OUT_LOCK` | §90 起有**两条线程**写 stdout（主循环发块 / 读线程回 ack）⇒ 不加锁 ⇒ JSON 行与 PCM 字节**交错** ⇒ 客户端协议解析错乱 |
+| ④ | **排队期间即被取消 ⇒ 立即放弃**（`end_reason='cancel'`，0 块） | 不白烧 GPU |
+
+**`live_caption/tts_cuda.py`（客户端侧）**
+
+| # | 改动 | 作用 |
+|---|---|---|
+| ⑤ | `_cancel_request()` **等确认**：发命令 ⇒ 等 `{'cancelled': true}`（`_wait_cancel_ack()`，上限 `CANCEL_ACK_TIMEOUT_S=3 s`）⇒ **等不到就 `_cancel_kill()` 杀并重启** | 「做不到就杀掉重启」这半句**兑现** |
+| ⑥ | `_start_drain()` 对非本 rid 消息**插回队首**（新 `_q_put_front()`） | 不再偷丢下一句的块；插队首而非队尾 ⇒ **保序** |
+
+### §90.4 验收（`results/app/app130_cuda_cancel_unreachable.py` —— **零 GPU / 零推理 / 毫秒级**）
+
+**做法**：边车源码用 `exec` 跑在**独立命名空间**（铁律：**不 import 被测模块**），模型换成**桩**
+（`torch` / `faster_qwen3_tts` 都换掉），stdin 换成**可动态注入**的桩
+⇒ 可在「生成进行到第 N 块之前」把 `cancel` **塞进管道**（这正是真实 RUNAWAY 发生的时刻）；
+客户端侧用 `ast` 抽出 `_cancel_request` / `_wait_cancel_ack` / `_cancel_kill`，绑到**假 proc / 假队列**上做行为级测试。
+
+**结果：仓库 21/21 PASS ＋ 客户包 v1.6 内那份 21/21 PASS**（同一套判据、同一脚本，只换 `APP130_SRC_ROOT`）
+
+| 组 | 语义 | 条数 | 结果 |
+|---|---|---|---|
+| **A** | **修前**（固定 commit `ef830d6`）上的观察 ⇒ 期望**缺陷全部命中** | 5 | **5/5 命中** |
+| **B** | **候选**（工作区）上的观察 ⇒ 期望**全部 PASS** | 11 | **11/11 PASS** |
+| **C** | **判据敏感性反证**（注入删除 ⇒ 必须复现失效） | 3 | **3/3 PASS** |
+
+**A 组关键实测值（缺陷曾真实存在）**
+
+- `A1` 生成期间 `_CANCEL_RIDS` **恒为空** ⇒ `cancel_seen=[False, False, False, False]`；
+- `A2` cancel 后**全部 4 块照发**、`end_reason=eos` ⇒ 守卫失效；
+- `A3` 连「cancel 预先在管道里」这种最宽松形态也**完全失效**；
+- `A4` 客户端写命令成功 ⇒ `restart=False written=1` ⇒ **直接 return**；
+- `A5` 客户端 `ack_waited=False` ⇒ **从不**等确认 ⇒ 兜底是空壳。
+
+**B 组关键实测值（修复后）**
+
+- `B1` 生成期间 `_CANCEL_RIDS` **非空** ⇒ `cancel_seen=[False, True]`；
+- `B2` cancel 后**提前停止** ⇒ `chunks=1`（< 4）、`end_reason=cancel`；
+- `B3` 「预先在管道」形态 ⇒ `chunks=0`、`end_reason=cancel`；
+- `B5` **回归**：无 cancel 时 PCM 字节流与修前**逐字节相同**
+  （`sha256 = 9de29a05475cb76b…`，40 000 B，两臂全等）⇒ **本次改动只改时序、不改音频内容**；
+- `B9` 等不到确认 ⇒ `restart=True`（**兜底兑现**）；`B10` 收到确认 ⇒ `restart=False`（**不误杀**）。
+
+**C 组反证（证明判据不是恒真）**
+
+- `C1` **删掉生成循环里的取消检查** ⇒ 重新出现 `chunks=4 / end_reason=eos`（守卫重新失效）；
+- `C2b` **删掉命令读取线程的启动** ⇒ `chunks=0 / end_reason=None`（请求**根本到不了**主循环）。
+
+**回归**：`app107`（APP-030 全量）**42/42 PASS**、`app129c`（§89 字节级等价）**10/10 PASS**
+⇒ **本轮改动未破坏 §89 的流式语义**。
+🔴 `test_tts_drop_crash.py` / `test_tts_exit_played.py` 有 FAIL，但**与本轮无关**
+（这两个套件**全文件 0 命中** `tts_cuda`/`cuda`，且 `tts_service.py` / `tts_worker.py` 与 `HEAD` **逐字节一致**
+⇒ 是**既有失败**，本轮未触碰其代码路径）。
+
+### §90.5 客户包定点同步（**未做整目录覆盖**）
+
+`live_caption/sync_c153_to_pkg.py`（新增）—— 沿用 §59 的「`git show <基线commit>` + `difflib` **自动派生替换块**」法
+（**不手抄代码** ⇒ 抄错风险归零；「唯一命中」断言仍成立）：
+
+- 基线 commit：**`ef830d6`**（修前版本，**不是 HEAD** ⇒ 否则推导出零变更块）；
+- `tts_cuda.py`：**3 块**唯一命中；`tts_cuda_sidecar.py`：**7 块**唯一命中；
+- 幂等复跑 ⇒ 两文件均 **ALREADY**；
+- 备份在**包外** `C:\Users\Trekker-PTL\pkg_backup_app_c153\`
+  （`tts_cuda.py` 39 290 B / `tts_cuda_sidecar.py` 17 967 B）；
+- **仓库 ⇄ 包目录 归一化 SHA256 2/2 MATCH**（`tts_cuda.py` `05562512fd14df1e`、
+  `tts_cuda_sidecar.py` `269d02f319906a6c`）；
+- 🔴 **包内那份单独跑同一套断言 21/21 PASS**（记忆铁律：「仓库里测过」≠「包里那份是对的」）。
+
+### §90.6 交付闭环（zip 已持锁重打 ⇒「已交付」成立）
+
+- 打包前 **`--dry-run` PASS**（内部素材闸门 **0 命中**、源目录残留 **0**）；
+- 🔴 **持共享机器锁**（`app-pack` / PID 13520 / 2026-10-29 07:47:15）
+  ⇒ 安静窗口 45 s 通过 ⇒ **压缩 568 s**；
+- **内容级校验 14 200 个文件逐字节一致** ⇒ **原子改名**到正式路径 ⇒ **锁已释放**；
+- MANIFEST：`version=1.6` / `files=14199` / `bytes=13 672 821 050`（12.73 GB）
+  ⇒ 硬校验全过（`[OK] zip 条目 14199（不含 MANIFEST 自身；含则 14200）`）。
+
+**交付物指纹**
+
+| 项 | 值 |
+|---|---|
+| zip 路径 | `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6.zip` |
+| 字节数 | **11 218 127 265 B** |
+| mtime | **2026-10-29 07:57:34.335200500 +0800** |
+| SHA256 | **`3b79ad2ad305a04c50beea3d71b1fa54d9906188afa9de4f3dd29881a4aae017`** |
+| md5 | `75bd4257e180e9dac51e38af71f9f746` |
+| zip 条目数 | **14 200** |
+
+**独立只读复核**（自写脚本直读 zip 内字节）：**仓库 == 包目录 == zip，2/2 逐字节全 MATCH**
+（`tts_cuda.py` `05562512fd14df1e`、`tts_cuda_sidecar.py` `269d02f319906a6c`）⇒ `ALL MATCH: True`。
+
+🔴 **口径声明**：本轮**只**做了「只读本地复核」；
+**未跑 `verify_pkg_zip.py`**、**未跑 `publish_ftp.py`**、**未开 FTP 服务**（守 §66 / APP-009③）。
+⇒ **`FTP_Share/` 里仍只有 v1.4 与 v1.5** ⇒ **v1.6 尚未发布到 FTP** ⇒ **客户从 FTP 拿到的仍是旧的**。
+
+### §90.7 git 闭环
+
+- commit **`1782253`**（**6 个 App 职责内文件**，逐文件 `git add`，**未用 `-A`**）：
+  `live_caption/tts_cuda.py`、`live_caption/tts_cuda_sidecar.py`、`live_caption/sync_c153_to_pkg.py`、
+  `results/app/app130_cuda_cancel_unreachable.py`、
+  `results/app/app130_cuda_cancel_unreachable_evidence.json`、
+  `results/app/app130_cuda_cancel_unreachable_pkg_evidence.json`；
+- 🔴 **未提交 `status/app/CORRECTIONS_APP.md`**（暂存区 `grep -c CORRECTIONS` = **0**）；
+- 🔴 **未吞他模块改动**：提交图上我的 `1782253` 在 **ASR 并发会话**的 `7211605`（ASR §58）**之上**
+  ⇒ `origin/main` = `7211605` ⇒ 我的是**普通快进**（**未 force push**）；
+- 仓库仍**只有 `main`** 分支。
+
+### §90.8 本轮未做 / 仍等 reviewer
+
+- ⛔ **「用户听得到」仍不成立**：本轮修的是**失控守卫的可达性**（确定性证明），**未做真实 CUDA 实测**
+  （未跑推理/测速 ⇒ 守纪律）；真实「7 字日文 106.61 s」场景**未经真实硬件复测**；
+- ⛔ **APP-027 仍未完**（V3-CER / V3-CAMPPlus 归 reviewer、V4 用户实听未做）；
+- ⛔ **v1.6 未发布到 FTP** ⇒ 是否需要重发 FTP **待 reviewer 裁定**（App 不自行决定）；
+- ⛔ **本轮未跑 MiniMax 回转写**（质量判定交 reviewer）、未开 FTP、未跑 `verify_pkg_zip.py`；
+- 🔴 **本轮未修改 `CORRECTIONS_APP.md`**（只读、零改动，指纹见 §90.1）。
+
+### §90.9 头部
+
+- `last_ack`：**保持 APP-033**（本轮**无新的 reviewer 纠偏条目** ⇒ 不变）；
+- 「更新时间」：**2026-10-29 08:01**（`Get-Date` 实测）。
