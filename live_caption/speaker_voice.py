@@ -152,6 +152,7 @@ class SpeakerVoiceTable:
                 n_switch=int(self.n_switch),
                 n_seg=len(self._seg_spk),
                 spks={k: dict(dur_s=round(v['dur_s'], 2),
+                              clean_dur_s=round(v.get('clean_dur_s', 0.0), 2),
                               voice=v['voice'],
                               refined=bool(v['refined']))
                       for k, v in sorted(self._table.items())},
@@ -176,18 +177,53 @@ class SpeakerVoiceTable:
             self._seg_spk[seg] = str(spk)
             if spk not in self._table:
                 self._table[spk] = dict(
-                    chunks=[], dur_s=0.0, voice=None, vec=None,
+                    chunks=[], dur_s=0.0, clean_dur_s=0.0,
+                    clean_spans=[], voice=None, vec=None,
                     refined=False, first_seen=time.time())
                 is_new = True
             if clean_ranges:
                 self._clean_ranges.append((str(spk),
                                            [(float(a), float(b))
                                             for a, b in clean_ranges]))
+                # 🔴🔴🔴 §99（断链 B）：**登记时就把区间并集算进去**
+                #   ⇒ 不必等外部再调 `add_clean_ranges` 才有时长
+                #   ⇒ `dur_s` 不再恒为 0 ⇒ APP-040② 的「攒够 3 s 重算」
+                #      才有可能发生。
+                self._merge_clean_spans(str(spk), clean_ranges)
             if prev is not None and prev != spk:
                 self.n_switch += 1
         if is_new:
             self._emit('new_spk', dict(spk=spk))
         return is_new
+
+    def _merge_clean_spans(self, spk: str, ranges) -> None:
+        """🔴 §99（断链 B）：把区间并进该 spk 的并集集合，并更新时长。
+
+        ⚠️ **调用方必须已持有 `self._lock`**（`note_final` / `add_clean_ranges`）。
+        """
+        row = self._table.get(str(spk))
+        if row is None:
+            return
+        try:
+            items = [(float(a), float(b)) for a, b in (ranges or [])
+                     if float(b) > float(a)]
+        except Exception:
+            return
+        if not items:
+            return
+        merged = list(row.get('clean_spans') or [])
+        merged.extend(items)
+        merged.sort()
+        out = []
+        for a, b in merged:
+            if out and a <= out[-1][1] + 1e-9:
+                if b > out[-1][1]:
+                    out[-1] = (out[-1][0], b)
+            else:
+                out.append((a, b))
+        row['clean_spans'] = out
+        row['clean_dur_s'] = sum((b - a) for a, b in out)
+        row['dur_s'] = row['clean_dur_s']
 
     def rebind(self, seg: int, spk: str) -> bool:
         """🔴 APP-040④：**标签晚到时补标签**（`on_spk_update`）。
@@ -202,7 +238,8 @@ class SpeakerVoiceTable:
             self._seg_spk[seg] = str(spk)
             if spk not in self._table:
                 self._table[spk] = dict(
-                    chunks=[], dur_s=0.0, voice=None, vec=None,
+                    chunks=[], dur_s=0.0, clean_dur_s=0.0,
+                    clean_spans=[], voice=None, vec=None,
                     refined=False, first_seen=time.time())
                 self.n_switch += 1
                 new = True
@@ -213,6 +250,61 @@ class SpeakerVoiceTable:
         return True
 
     # ── ② 取样：攒「该 spk 自己的」干净语音 ────────────────────
+    def add_clean_ranges(self, spk: Optional[str], ranges) -> bool:
+        """🔴🔴🔴 §99（断链 B）：按 `clean_ranges` **累计干净语音时长**。
+
+        ## 为什么必须有这个方法（§97 的断链）
+
+        §97 声称「APP-040②：攒到 ≥ 3 s 时用他自己的段重算一次」已实施，
+        但生产代码里**没有任何地方调用 `add_sample`** ⇒
+        ⇒ `dur_s` **恒为 0** ⇒ `ready_to_embed` **恒为 False**
+        ⇒ **「攒够 3 s 重算一次」这条永远不发生**。
+        ⇒ 而 `add_sample` 要传 PCM，主进程手上只有**时间区间**
+        （`clean_ranges`）⇒ 缺一个「按区间累计时长」的入口。
+
+        ## 🔴 为什么必须按「并集」而不是「求和」
+
+        同一段音频会被**多次引用**：每句定稿都会把该 spk 的**全部**干净区间
+        再登记一次 ⇒ 若用求和 ⇒ 时长**虚高**（同一秒被数好几遍）
+        ⇒ `ready_to_embed` 会**提前**为 True
+        ⇒ APP-040②「攒到 3 s 重算一次」在**还没攒够**时就触发
+        ⇒ 音色用**不足 3 s** 的样本算出来 ⇒ 音色质量下降。
+        ⇒ 修法：**维护区间并集**（合并重叠区间）⇒ 时长**不重复计**。
+
+        返回：是否成功登记（`spk` 未知 ⇒ False）。
+        """
+        if not spk:
+            return False
+        try:
+            items = [(float(a), float(b)) for a, b in (ranges or [])
+                     if float(b) > float(a)]
+        except Exception:
+            return False
+        if not items:
+            return False
+        with self._lock:
+            row = self._table.get(str(spk))
+            if row is None:
+                return False
+            # 🔴 合并区间（并集）
+            merged = list(row.get('clean_spans') or [])
+            for a, b in items:
+                merged.append((a, b))
+            merged.sort()
+            out = []
+            for a, b in merged:
+                if out and a <= out[-1][1] + 1e-9:
+                    # 重叠 / 相接 ⇒ 合并
+                    if b > out[-1][1]:
+                        out[-1] = (out[-1][0], b)
+                else:
+                    out.append((a, b))
+            row['clean_spans'] = out
+            # 🔴 **时长 = 并集的总长**（不重复计）
+            row['clean_dur_s'] = sum((b - a) for a, b in out)
+            row['dur_s'] = row['clean_dur_s']
+        return True
+
     def add_sample(self, spk: Optional[str], pcm) -> bool:
         """把一段**属于该 spk 的**干净 PCM 攒进它的表项。
 

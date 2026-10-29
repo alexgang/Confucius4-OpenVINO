@@ -1,0 +1,121 @@
+{
+  "ts": "2026-10-30 04:01:29",
+  "target": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\live_caption_app.py",
+  "target_bytes": 298518,
+  "target_mtime": "2026-10-30 03:50:04",
+  "defect": "run_cli 闭包 _spk_pcm_buf/_spk_pending_embed 重绑 ⇒ UnboundLocalError",
+  "pass_count": 7,
+  "fail_count": 0,
+  "total": 7,
+  "checks": [
+    {
+      "id": "A1",
+      "name": "run_cli 内无「重绑外层变量却没有 nonlocal」的闭包",
+      "ok": true,
+      "got": [],
+      "want": []
+    },
+    {
+      "id": "A2",
+      "name": "两个闭包均显式 nonlocal 声明关键变量",
+      "ok": true,
+      "got": {
+        "pump": true,
+        "span": true
+      },
+      "want": {
+        "pump": true,
+        "span": true
+      }
+    },
+    {
+      "id": "A3",
+      "name": "真实调用 _cli_pump_spk_voices() 不抛 UnboundLocalError",
+      "ok": true,
+      "got": null,
+      "want": null
+    },
+    {
+      "id": "A4",
+      "name": "_cli_on_audio_span 写入对**外层作用域**可见（非局部副本）",
+      "ok": true,
+      "got": {
+        "error": null,
+        "result": {
+          "outer_buf_len": 320,
+          "audio_end": [
+            1.5
+          ]
+        }
+      },
+      "want": {
+        "error": null,
+        "outer_buf_len_gt_0": true
+      }
+    },
+    {
+      "id": "B1",
+      "name": "修正前源码（去 nonlocal）静态+运行时判据均 FAIL",
+      "ok": true,
+      "got": {
+        "n_conflicts": 1,
+        "pump_error": "UnboundLocalError: cannot access local variable '_spk_pending_embed' where it is not associated with a value",
+        "span_probe": {
+          "error": null,
+          "result": {
+            "outer_buf_len": 320,
+            "audio_end": [
+              1.5
+            ]
+          }
+        },
+        "git_head_has_closures": true
+      },
+      "want": "conflicts>0 且 pump 抛 UnboundLocalError"
+    },
+    {
+      "id": "B2",
+      "name": "注入① 删 nonlocal(_spk_pending_embed) ⇒ A1/A3 FAIL",
+      "ok": true,
+      "got": {
+        "n_conflicts": 1,
+        "error": "UnboundLocalError: cannot access local variable '_spk_pending_embed' where it is not associated with a value"
+      },
+      "want": "conflicts>0 且 error 含 UnboundLocalError"
+    },
+    {
+      "id": "B3",
+      "name": "注入② 删 nonlocal(_spk_pcm_buf) ⇒ A4 FAIL",
+      "ok": true,
+      "got": {
+        "error": null,
+        "outer_buf_len": 0
+      },
+      "want": {
+        "outer_buf_len": 0
+      }
+    }
+  ],
+  "static_conflicts": [],
+  "runtime_probe_pump": {
+    "error": null,
+    "result": {
+      "outer_buf_len": 0,
+      "audio_end": [
+        0.0
+      ]
+    }
+  },
+  "runtime_probe_span": {
+    "error": null,
+    "result": {
+      "outer_buf_len": 320,
+      "audio_end": [
+        1.5
+      ]
+    }
+  },
+  "git_head_check": {
+    "has_closures": true
+  }
+}

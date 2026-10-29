@@ -1,0 +1,150 @@
+{
+  "schema": "app.app039.spk_bound_voice.v1",
+  "files": {
+    "speaker_voice.py": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\speaker_voice.py",
+    "tts_worker.py": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_worker.py"
+  },
+  "behavior": {
+    "note_final_new_s1": true,
+    "note_final_old_s1": false,
+    "v0_before_embed": "",
+    "dur_s1": 4.0,
+    "ready_s1": true,
+    "v0_after_embed": "S1",
+    "v1_after_embed": "S1",
+    "note_final_new_s2": true,
+    "v2_no_voice": "",
+    "has_voice_s2": false,
+    "ready_s2_refine": true,
+    "v2_after_embed": "S2",
+    "note_final_back_s1": false,
+    "v3_back_s1": "S1",
+    "n_embed_unchanged": true,
+    "ready_s1_before_refine": true,
+    "ready_s1_after_refine": false,
+    "ready_s2_after_refine": false,
+    "n_speakers": 2,
+    "n_embed": 3,
+    "n_switch": 0,
+    "after_reset_n_speakers": 0,
+    "after_reset_v0": "",
+    "after_reset_n_embed": 0,
+    "_MIN_S": 1.5,
+    "_REFINE_S": 3.0
+  },
+  "worker_static": {
+    "found_apply_fn": true,
+    "no_ema": true,
+    "fallback_to_preset": true,
+    "per_sentence": true,
+    "applied_before_synth": true
+  },
+  "falsify": {
+    "A_ignore_seg": {
+      "v2_after_embed": "",
+      "judgment_failed": true
+    },
+    "B_gradient": {
+      "no_ema": false,
+      "judgment_failed": true
+    },
+    "C_always_new": {
+      "note_final_old_s1": true,
+      "judgment_failed": true
+    },
+    "D_reuse_prev": {
+      "v2_no_voice": "S1",
+      "judgment_failed": true
+    }
+  },
+  "results": [
+    {
+      "name": "A1 新 spk 才返回 is_new_spk（老 spk 不重新取样）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A2 该 spk 音色未就绪 ⇒ 回落预设（返回空）⇒ 不用别人冒充",
+      "ok": true,
+      "detail": "v0='' v2=''"
+    },
+    {
+      "name": "A3 音色登记后按句生效（S1 的句 ⇒ S1）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A4 S2 登记后按句生效（S2 的句 ⇒ S2）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A5 换回老 spk 直接用缓存（不重新取样 ⇒ n_embed 不变）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A6 细化后不再更新（ready_to_embed 恒 False）",
+      "ok": true,
+      "detail": "s1=False s2=False"
+    },
+    {
+      "name": "A6b 未细化但攒够 REFINE_S ⇒ 可细化（APP-040② 的正向门槛）",
+      "ok": true,
+      "detail": "ready_s1_before_refine=True"
+    },
+    {
+      "name": "A7 声纹计算次数 ≤ 说话人数 × 2（APP-039 验收③）",
+      "ok": true,
+      "detail": "n_embed=3 n_speakers=2"
+    },
+    {
+      "name": "A8 reset 后全部清空（隐私：绝不落盘、结束即清）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "B1 worker 侧有「按句切换」的函数",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "B2 worker 侧切换是**一次性**（无 EMA/插值/渐变）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "B3 worker 侧未登记 ⇒ 回落预设 A",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "B4 worker 侧在**合成之前**应用音色（否则「按句绑定」失效）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "C 反证 A：注入「忽略 seg」后按句判据 FAIL",
+      "ok": true,
+      "detail": "v2=''"
+    },
+    {
+      "name": "C 反证 B：注入「渐变」后 worker 判据 FAIL",
+      "ok": true,
+      "detail": "no_ema=False"
+    },
+    {
+      "name": "C 反证 C：注入「每次新 spk」后 is_new 判据 FAIL",
+      "ok": true,
+      "detail": "old_s1=True"
+    },
+    {
+      "name": "C 反证 D：注入「沿用上一个人」后回落判据 FAIL",
+      "ok": true,
+      "detail": "v2='S1'"
+    }
+  ],
+  "pass_count": 17,
+  "fail_count": 0,
+  "note": "离线判据（真实代码行为 + 静态检查 + 沙盒反证）；非真机实测、非 GUI、非用户实听、非 MiniMax 回转写"
+}

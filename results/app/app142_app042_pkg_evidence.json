@@ -1,26 +1,26 @@
 {
   "script": "app142_app042_pkg_check.py",
   "correction": "APP-041/042",
-  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.7",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.9",
   "verdict": "PASS",
   "n_pass": 22,
   "n_fail": 0,
   "n_total": 22,
   "pkg_files": {
     "live_caption_app.py": {
-      "bytes": 263664,
-      "mtime": 1793265284.105641,
-      "sha256": "c123cdfbf70b2685a208eff323dc865140564a4fb8104e4a0dc385f114f186be"
+      "bytes": 293051,
+      "mtime": 1793303947.99898,
+      "sha256": "6d930e429b9d9b9991339937424f6566a46e12caa1bf55ed4eaa49b9480e6c08"
     },
     "tts_service.py": {
-      "bytes": 121254,
-      "mtime": 1793265283.97588,
-      "sha256": "b55bf25a6fe6f2c0f90f78b3c31a07dcd968752587ea584d857cb520194cf68c"
+      "bytes": 125332,
+      "mtime": 1793303948.0209918,
+      "sha256": "4b34e8015d6ad53879b9c4e4c5162798d9ad1eab05c4595fa3852d61947ee509"
     },
     "tts_worker.py": {
-      "bytes": 196391,
-      "mtime": 1793265283.89886,
-      "sha256": "83d500c6a94fdae2620f61fc156f46bd18acf9225c991af4bc66512e01f2952b"
+      "bytes": 210027,
+      "mtime": 1793289718.884823,
+      "sha256": "496ecce3f9ceb3bf34c8a434a6bd1734ecfa045109898ae55f39e3c1eb930788"
     },
     "time_stretch.py": {
       "bytes": 19765,
@@ -32,37 +32,37 @@
     {
       "name": "P1 包内存在 live_caption_app.py",
       "ok": true,
-      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.7\\app\\live_caption_app.py"
+      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.9\\app\\live_caption_app.py"
     },
     {
       "name": "P1 包内存在 tts_service.py",
       "ok": true,
-      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.7\\app\\tts_service.py"
+      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.9\\app\\tts_service.py"
     },
     {
       "name": "P1 包内存在 tts_worker.py",
       "ok": true,
-      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.7\\app\\tts_worker.py"
+      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.9\\app\\tts_worker.py"
     },
     {
       "name": "P1 包内存在 time_stretch.py",
       "ok": true,
-      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.7\\app\\time_stretch.py"
+      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.9\\app\\time_stretch.py"
     },
     {
       "name": "P2 包内 live_caption_app.py 与仓库**逐字一致**（归一化换行）",
       "ok": true,
-      "detail": "sha_pkg=c123cdfbf70b2685 sha_repo=b1759e6a532dab3f"
+      "detail": "sha_pkg=6d930e429b9d9b99 sha_repo=85e83a6bdf68e5c2"
     },
     {
       "name": "P2 包内 tts_service.py 与仓库**逐字一致**（归一化换行）",
       "ok": true,
-      "detail": "sha_pkg=b55bf25a6fe6f2c0 sha_repo=dc9c9bd79172b1a5"
+      "detail": "sha_pkg=4b34e8015d6ad538 sha_repo=6520cc0b261e0b83"
     },
     {
       "name": "P2 包内 tts_worker.py 与仓库**逐字一致**（归一化换行）",
       "ok": true,
-      "detail": "sha_pkg=83d500c6a94fdae2 sha_repo=ba6a2b0ad0bc3d1a"
+      "detail": "sha_pkg=496ecce3f9ceb3bf sha_repo=acc7fef0a804cd83"
     },
     {
       "name": "P2 包内 time_stretch.py 与仓库**逐字一致**（归一化换行）",

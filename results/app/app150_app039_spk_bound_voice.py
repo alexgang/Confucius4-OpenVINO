@@ -183,8 +183,21 @@ def run_behavior(voice_ns):
     out['n_embed_unchanged'] = (tbl.stats()['n_embed'] == n_embed_before)
 
     # ── 场景 4：细化后不再更新 ──
-    tbl.add_sample('S1', fake_pcm(int(5.0 * SR)))
+    # 🔴🔴🔴 §99 **判据纠偏**：原场景是
+    #     `add_sample('S1', 5 s)` ⇒ 直接查 `ready_to_embed('S1')` ⇒ 期望 False。
+    #   ⇒ **判据写错了**：此时 S1 只 `mark_embedded(refined=False)`
+    #     （**还没细化过**）⇒ 按 APP-040②，攒够 `REFINE_S(3 s)` 后
+    #     **应该**返回 True（该细化了）⇒ 正确行为就是 True。
+    #   ⇒ 之前在 HEAD 上「恰好 PASS」是因为**断链 B** 让 `dur_s` 恒 0
+    #     ⇒ `ready_to_embed` 恒 False ⇒ **假通过**（记忆铁律 §十一）。
+    #   ⇒ 现在改成**真正的语义**：先 `refined=True`（已细化）
+    #     ⇒ 再攒更多语音 ⇒ 必须仍然 False（**之后不再更新**）。
+    out['ready_s1_before_refine'] = bool(tbl.ready_to_embed('S1'))
+    tbl.mark_embedded('S1', vec=FakeArray([0.1, 0.2]), refined=True)
     out['ready_s1_after_refine'] = bool(tbl.ready_to_embed('S1'))
+    # 额外：S2 细化过一次后也不应再更新
+    tbl.add_sample('S2', fake_pcm(int(4.0 * SR)))
+    out['ready_s2_after_refine'] = bool(tbl.ready_to_embed('S2'))
 
     # ── 场景 5：统计 ──
     st = tbl.stats()
@@ -315,7 +328,12 @@ def main():
     add('A5 换回老 spk 直接用缓存（不重新取样 ⇒ n_embed 不变）',
         obs['v3_back_s1'] == 'S1' and obs['n_embed_unchanged'])
     add('A6 细化后不再更新（ready_to_embed 恒 False）',
-        not obs['ready_s1_after_refine'])
+        not obs['ready_s1_after_refine'] and not obs['ready_s2_after_refine'],
+        's1=%s s2=%s' % (obs.get('ready_s1_after_refine'),
+                         obs.get('ready_s2_after_refine')))
+    add('A6b 未细化但攒够 REFINE_S ⇒ 可细化（APP-040② 的正向门槛）',
+        obs.get('ready_s1_before_refine'),
+        'ready_s1_before_refine=%s' % obs.get('ready_s1_before_refine'))
     add('A7 声纹计算次数 ≤ 说话人数 × 2（APP-039 验收③）',
         obs['n_embed'] <= obs['n_speakers'] * 2,
         'n_embed=%d n_speakers=%d' % (obs['n_embed'], obs['n_speakers']))

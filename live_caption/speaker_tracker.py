@@ -60,6 +60,56 @@ _ASR_SCRIPTS = r'C:\Users\Trekker-PTL\qwen3asr_06b\scripts'
 
 _SR = 16000
 
+# 🔴🔴🔴 §99（断链 A）：**ASR 侧判「段太短」的硬门槛**。
+#   ASR-029 的 `SpeakerTracker.on_final` 里：
+#     `if dur < self.min_dur_s:` ⇒ 返 `reason='too_short'`（或 `audio_not_buffered`）
+#   而 `min_dur_s` 的**默认值 = 2.0 s**（ASR 侧构造参数，App 侧无法覆盖）。
+#   ⇒ **App 传给旁路的段区间，长度必须 ≥ 2.0 s**，否则**永远拿不到 spk**
+#      ⇒ 说话人旁路 100% 失效 ⇒ 每句都是预设 A。
+# 🔴 借一点余量（2.5 s）⇒ 避免浮点边界把「刚好 2.0」判成太短。
+SPAN_MIN_S = 2.5
+
+
+def span_for_final(t_end: float, min_s: float = SPAN_MIN_S):
+    """🔴🔴🔴 §99（断链 A）：**给出「这段」的区间**，长度不足就**往前借**。
+
+    ## 为什么必须往前借
+
+    ASR 侧 `on_final(t_start, t_end)` 会取 `t_start..t_end` 这段音频算嵌入，
+    而 `dur < min_dur_s(=2.0)` ⇒ 直接返 `too_short` ⇒ **没有 spk**。
+    ⇒ 而**定稿段常常只有几百毫秒到 1~2 s**（说话人是在句中换的）
+    ⇒ 必须**向前借用**前面的音频，把区间补到 ≥ `min_s`。
+
+    🔴 **借用是安全的**：借的是**同一个人在说话**的那一段之前的内容
+       ⇒ 只用于**判断「这段是谁说的」**，不用于取 x-vector
+       （取样用的是 ASR 自己给的 `clean_ranges`，**天然只含本人**）。
+
+    ## 语义
+
+    - `(t_end, t_end)`（旧口径）⇒ 区间长度 0 ⇒ **旁路必然失效**。
+    - 返回 `(t0, t_end)`，其中 `t0 = max(0, t_end - min_s)`。
+      ⚠️ `t_end` **保持不变**（不能往后借 ⇒ 往后是**未来**的音频，
+      ASR 侧还没 buffer ⇒ 会变成 `audio_not_buffered` ⇒ 同样拿不到 spk）。
+    - `t_end - t0 >= min_s` ⇒ 恒成立（除非 `t_end < min_s`，
+      此时从 0 开始，长度 = `t_end`）。
+
+    返回：`(t0, t_end)`。
+    """
+    try:
+        te = float(t_end)
+    except Exception:
+        te = 0.0
+    try:
+        need = float(min_s)
+    except Exception:
+        need = SPAN_MIN_S
+    if need <= 0:
+        return (0.0, te)
+    t0 = te - need
+    if t0 < 0.0:
+        t0 = 0.0
+    return (t0, te)
+
 
 class SpeakerBridge:
     """🔴🔴🔴 App 侧的**说话人旁路桥接器**（降级友好）。
@@ -226,7 +276,7 @@ class SpeakerBridge:
 
     # ── ⑤ 取样区间 → PCM ───────────────────────────────────────
     def pcm_for_ranges(self, ranges, keep: Optional['np.ndarray'] = None,
-                        max_s: float = 10.0):
+                        max_s: float = 10.0, keep_t0: Optional[float] = None):
         """🔴 APP-039/040：**按 `clean_ranges` 取 PCM**（给 TTS 提 x-vector）。
 
         🔴 **取样区间只含该 spk 自己的干净语音** ⇒ **天然不会混入别人**
@@ -234,6 +284,17 @@ class SpeakerBridge:
 
         ⚠️ `keep` = 主进程持有的**原始 PCM 环形缓冲**（16 kHz float32）
         ⇒ 本方法**不自己存音频**（避免第二份内存）。
+
+        🔴🔴🔴 **§99 修真实缺陷（断链 E）**：**时间轴必须换算**。
+          - `ranges`（= ASR 给的 `clean_ranges`）是**全局时间轴**的秒；
+          - 而 `keep` 是**环形缓冲**，其下标 0 对应的是**缓冲起点**的时刻，
+            **不是** t=0。
+          - ⇒ 旧实现直接 `int(a * _SR)` 当下标 ⇒ **整体错位**
+            ⇒ 取到的根本不是这个人的语音（长会话越错得离谱）。
+          - ⇒ 修法：**新增 `keep_t0`**（缓冲起点在全局时间轴上的时刻）
+            ⇒ 下标 = `(t - keep_t0) * _SR`。
+          - ⚠️ `keep_t0` **不传** ⇒ 退化到旧口径（t=0）
+            ⇒ **保持向后兼容**（老调用方行为逐字不变）。
         """
         if keep is None or not ranges:
             return None
@@ -242,10 +303,12 @@ class SpeakerBridge:
             buf = np.asarray(keep, dtype=np.float32).reshape(-1)
             if buf.size == 0:
                 return None
+            base = 0.0 if keep_t0 is None else float(keep_t0)
             parts = []
             for a, b in ranges:
-                i = max(0, int(round(float(a) * _SR)))
-                j = min(buf.size, int(round(float(b) * _SR)))
+                # 🔴 **相对缓冲起点**的下标（§99 修：原为 `a * _SR`）
+                i = max(0, int(round((float(a) - base) * _SR)))
+                j = min(buf.size, int(round((float(b) - base) * _SR)))
                 if j > i:
                     parts.append(buf[i:j])
             if not parts:

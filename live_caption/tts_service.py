@@ -303,6 +303,10 @@ class TTSService:
         #   都会调 `close()` ⇒ 每次都漏一个孤儿。
         self._closing = False
         self._reader_threads: List = []
+        # 🔁§99（断链 C）：**worker 的说话人音色登记结果**
+        #   主进程不能「发命令就算成功」，必须等 worker 确认。
+        #   而之前 **没有任何分派分支** ⇒ 已经发出去的命令也标成「成功」。
+        self._spk_voice_status = {}
 
         # 统计
         self.first_packet_s: Optional[float] = None   # 首包延迟
@@ -1746,6 +1750,20 @@ class TTSService:
             tel = msg.get('telemetry') or {}
             self.last_telemetry = tel
             self.on_log('[TTS] 遥测快照：%s' % tel)
+        elif kind == 'spk_voice':
+            # 🔁§99（断链 C）：worker 登记结果回执
+            #   → 主进程必须**等这个确认**才能标「已有音色」。
+            #   ok=True → 已成功；ok=False → 登记失败（回落预设 A）。
+            _spk = str(msg.get('spk') or '').strip()
+            if _spk:
+                self._spk_voice_status[_spk] = dict(
+                    ok=bool(msg.get('ok')),
+                    dur_s=msg.get('dur_s'),
+                    message=msg.get('message') or '')
+            self.on_log('[TTS] 说话人音色登记 %s：%s'
+                        % (_spk, '成功' if msg.get('ok')
+                           else '失败（%s）'
+                           % (msg.get('message') or '')))
         elif kind == 'dropped':
             # ⚠️ **不再计数**（2026-10-22 修）：
             # worker 的 `dropped` 事件是对主进程 `cancel` 指令的**回执**，
@@ -1842,6 +1860,18 @@ class TTSService:
         except Exception as e:
             self.on_log(f'[TTS] 说话人音色登记失败：{e}')
             return False
+
+    def spk_voice_status(self, spk: str):
+        """🔁§99（断链 C）：**取用**已收到的说话人音色登记结果。
+
+        → 返回 `None` 表示「worker 还没回」；
+        → 返回 `dict(ok=..., dur_s=..., message=...)` 表示「已回」。
+        → **取出即消费**（一个 spk 只能被结算一次）。
+        """
+        if not spk:
+            return None
+        with self.lock:
+            return self._spk_voice_status.pop(str(spk), None)
 
     def clear_spk_voices(self) -> bool:
         """🔴 APP-039：**会话结束清空**说话人音色表（隐私纪律）。"""

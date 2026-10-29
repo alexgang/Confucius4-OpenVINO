@@ -2062,6 +2062,7 @@ class App:
         #     ⇒ 交给 worker 提 x-vector。
         #   ⚠️ **有界**（最多 30 s）⇒ 长会话不无界增长。
         self._spk_pcm_buf = np.zeros(0, dtype=np.float32)
+        self._spk_pcm_t0 = 0.0        # 🔁 §99: 缓冲起点的全局时刻
         self._spk_pcm_lock = threading.Lock()
         # 🔴 APP-039/040：**主进程侧**的「每段时间区间」（App 自己的切段口径）
         #   ⇒ 交给 ASR 旁路做说话人判定。
@@ -2070,6 +2071,11 @@ class App:
         #   ⇒ 只有 `is_new_spk=True` 的说话人才进这里 ⇒ **声纹计算次数极少**
         #     （APP-039「没有新 spk 时不做任何声纹计算」）。
         self._spk_pending_embed = []
+        # 🔴 §99（断链 C）：**已发出登记命令但尚未被 worker 确认**的 spk。
+        #   ⇒ 元素为 `(spk, refined)`；收到 worker 回执才 `mark_embedded`。
+        #   ⚠️ **绝不**在 `register_spk_voice()` 返回 True 的那一刻就标成功
+        #     （那只是「命令写出去了」，不是「worker 真的算出来了」）。
+        self._spk_voice_sent = set()
         # 🔴🔴🔴 APP-039/040：**已消费的源音频秒数**（最新值）
         #   ⇒ `_on_final` 里给 ASR 旁路一个「这段时间区间」的近似。
         self._seg_audio_end = 0.0
@@ -3730,12 +3736,19 @@ class App:
         """
         self._seg_audio_end = float(t_end)
         # ── ① PCM 环形缓冲（有界 30 s）──
+        # 🔴🔴🔴 §99（断链 E）：**必须记住「缓冲起点」的全局时刻**。
+        #   `clean_ranges` 是**全局时间轴**的秒，而环形缓冲下标 0 对应的
+        #   是**缓冲起点**（不是 t=0）⇒ 切样时必须换算。
+        #   ⇒ 这里维护 `self._spk_pcm_t0`（缓冲里**最老**样本的全局时刻）。
         try:
             a = np.asarray(pcm, dtype=np.float32).reshape(-1)
             if a.size:
                 with self._spk_pcm_lock:
                     self._spk_pcm_buf = np.concatenate(
                         (self._spk_pcm_buf, a))[-int(30.0 * SR):]
+                    # 缓冲起点 = 最新的结束时刻 − 缓冲里已有的总时长
+                    self._spk_pcm_t0 = (float(t_end)
+                                        - self._spk_pcm_buf.size / float(SR))
         except Exception:
             pass
         # ── ② 喂 ASR 旁路 ──
@@ -3763,8 +3776,51 @@ class App:
         pending = list(self._spk_pending_embed)
         if not pending:
             return
+        # 🔴 §99（断链 C）：**先查 worker 回执**。
+        #   ⇒ `register_spk_voice()` 返回 True 只代表「命令写进管道了」，
+        #     **不代表 worker 真的算出了 x-vector**。
+        #   ⇒ 旧实现在这里直接 `mark_embedded` ⇒ 登记失败仍被当成成功
+        #     ⇒ 该 spk **永远**显示「已登记音色」，实际用的是**预设 A**。
+        #   ⇒ 现在：**只有收到 worker 的 `ok=True` 回执**才标成功。
+        for _sent in list(self._spk_voice_sent):
+            _s, _refined = _sent
+            try:
+                _st = self.tts.spk_voice_status(_s)
+            except Exception:
+                _st = None
+            if _st is None:
+                continue          # worker 还没回 ⇒ 继续等（不阻塞）
+            if _st.get('ok'):
+                self._spk_voices.mark_embedded(_s, refined=_refined)
+                self._spk_voice_sent.discard(_sent)
+                if _refined:
+                    # 🔴 §99（断链 F）：细化完成 ⇒ 这条路走完了 ⇒ 移出 pending
+                    self._spk_pending_embed = [
+                        (s, k) for (s, k) in self._spk_pending_embed
+                        if k != _s]
+                    self._ui_log('[spk] %s 音色已细化' % _s)
+                else:
+                    # 🔴🔴🔴 §99（断链 F）：**不要**把 spk 从 pending 移除！
+                    #   ⇒ 否则「攒够 REFINE_S 再用自己的段重算一次」
+                    #     （APP-040②）**永远不会发生**。
+                    #   ⇒ 保留在 pending 里，继续观察它有没有攒够 3 s。
+                    self._ui_log('[spk] %s 已登记音色（≥%.1f s 干净语音）'
+                                 % (_s, speaker_voice.MIN_S))
+            else:
+                # 🔴 worker 明确失败 ⇒ 回落预设 A（**不用别人冒充**）
+                self._spk_voices.mark_fallback(
+                    _s, 'worker_failed:%s' % (_st.get('message') or ''))
+                self._spk_voice_sent.discard(_sent)
+                self._spk_pending_embed = [
+                    (s, k) for (s, k) in self._spk_pending_embed
+                    if k != _s]
+                self._ui_log('[spk] %s 音色登记失败（回落预设 A）：%s'
+                             % (_s, _st.get('message') or '未知原因'))
         for seg, spk in pending:
             try:
+                # 🔴 §99：**已经在等回执** ⇒ 本轮不再重复发命令
+                if any(s == spk for s, _r in self._spk_voice_sent):
+                    continue
                 if not self._spk_voices.has_voice(spk):
                     # ── 先看能不能取到「该 spk 自己的干净语音」──
                     pcm = self._spk_pcm_for(spk, seg)
@@ -3777,12 +3833,9 @@ class App:
                             (s, k) for (s, k) in self._spk_pending_embed
                             if k != spk]
                         continue
-                    self._spk_voices.mark_embedded(spk, refined=False)
-                    self._spk_pending_embed = [
-                        (s, k) for (s, k) in self._spk_pending_embed
-                        if k != spk]
-                    self._ui_log('[spk] %s 已登记音色（≥%.1f s 干净语音）'
-                                 % (spk, speaker_voice.MIN_S))
+                    # 🔴 §99（断链 C）：**不立即 mark_embedded**
+                    #   ⇒ 等 worker 回执（见本函数开头）。
+                    self._spk_voice_sent.add((spk, False))
                 else:
                     # ── 已登记：够 `REFINE_S` 就用**自己的段**重算一次 ──
                     if self._spk_voices.ready_to_embed(spk):
@@ -3790,13 +3843,8 @@ class App:
                         if pcm is not None and \
                                 pcm.size >= int(speaker_voice.REFINE_S * SR):
                             if self.tts.register_spk_voice(spk, pcm):
-                                self._spk_voices.mark_embedded(spk,
-                                                                refined=True)
-                                self._spk_pending_embed = [
-                                    (s, k) for (s, k)
-                                    in self._spk_pending_embed if k != spk]
-                                self._ui_log('[spk] %s 音色已细化'
-                                             % spk)
+                                # 🔴 §99（断链 C）：细化也等回执
+                                self._spk_voice_sent.add((spk, True))
             except Exception as e:
                 self._ui_log('[spk] 取样失败（忽略）：%s' % e)
 
@@ -3811,7 +3859,9 @@ class App:
             rngs = self._spk_voices.clean_ranges_of(spk)
             if not rngs:
                 return None
-            return self._spk_bridge.pcm_for_ranges(rngs, keep=buf, max_s=10.0)
+            # 🔁 §99（断链 E）：传给缓冲起点，出口不对应全局时间轴。
+            return self._spk_bridge.pcm_for_ranges(
+                rngs, keep=buf, max_s=10.0, keep_t0=self._spk_pcm_t0)
         except Exception:
             return None
 
@@ -3838,10 +3888,17 @@ class App:
         #   ⚠️ **不等**（ASR-029 方案 A）：`pending=True` ⇒ 不阻塞。
         if self._spk_bridge is not None:
             try:
-                _t0, _t1 = self._seg_span.get(seg, (None, None))
-                if _t0 is None:
-                    _t0 = float(self._seg_audio_end)
-                    _t1 = _t0
+                # 🔴🔴🔴 §99（断链 A）：**段区间必须有足够长度**。
+                #   ASR 侧 `on_final` 的硬门槛是 `dur < min_dur_s(=2.0)` ⇒
+                #   区间太短 ⇒ 返 `too_short`/`audio_not_buffered` ⇒
+                #   **永远拿不到 spk** ⇒ 旁路 100% 失效。
+                #   旧实现在这里传的是 `_t0 = _t1 = _seg_audio_end`
+                #   ⇒ **长度恒为 0** ⇒ 必然拿不到 spk。
+                #   ⇒ 修法：用 `span_for_final()` **往前借**到 ≥ 2.5 s
+                #   （借的是「同一个人在说话」的那段之前的内容）。
+                _t0, _t1 = speaker_tracker.span_for_final(
+                    float(self._seg_audio_end))
+                self._seg_span[seg] = (_t0, _t1)
                 _res = self._spk_bridge.on_final(seg, _t0, _t1)
                 _spk2 = _res.get('spk')
                 if _spk2:
@@ -3911,6 +3968,7 @@ class App:
             pass
         try:
             self._spk_pending_embed = []
+            self._spk_voice_sent = set()
             self._seg_span.clear()
         except Exception:
             pass
@@ -4574,8 +4632,12 @@ def run_cli(args):
     _spk_voices = speaker_voice.SpeakerVoiceTable(
         on_event=lambda k, p: print(f'  [spk] {k} {p}', flush=True))
     _spk_pcm_buf = np.zeros(0, dtype=np.float32)
+    _spk_pcm_t0 = [0.0]      # 🔁 §99: 缓冲起点的全局时刻（闭包内可变）
     _spk_pcm_lock = threading.Lock()
     _spk_pending_embed = []
+    # 🔴 §99（断链 C）：**已发出登记命令但尚未被 worker 确认**的 spk。
+    #   ⇒ 元素为 `(spk, refined)`；收到 worker 回执才 `mark_embedded`。
+    _spk_voice_sent = set()
     _spk_audio_end = [0.0]          # [0] = 已消费秒数（闭包内可变）
 
     def _cli_on_audio_span(pcm, t_start, t_end):
@@ -4594,6 +4656,9 @@ def run_cli(args):
                 with _spk_pcm_lock:
                     _spk_pcm_buf = np.concatenate(
                         (_spk_pcm_buf, a))[-int(30.0 * SR):]
+                    # 🔁 §99（断链 E）：缓冲起点：会话的全局时刻
+                    _spk_pcm_t0[0] = (float(t_end)
+                                      - _spk_pcm_buf.size / float(SR))
         except Exception:
             pass
         try:
@@ -4608,16 +4673,56 @@ def run_cli(args):
         #     `for seg, spk in list(_spk_pending_embed)` 读取时**未赋值**
         #   ⇒ `UnboundLocalError` ⇒ **CLI 启动即崩**（run4 实测死因）。
         #   ⇒ **必须显式 `nonlocal`**。
-        nonlocal _spk_pending_embed
+        # 🔴 §99：`_spk_voice_sent` 也要 `nonlocal`（下面有 `.add()`/`.discard()`
+        #   ⇒ 只读不写不触发 UnboundLocalError，但 `.add()` 是**方法调用**
+        #   ⇒ 不算绑定 ⇒ 安全；这里仍显式声明以免歧义）。
+        nonlocal _spk_pending_embed, _spk_voice_sent
         if tts is None or not getattr(tts, 'active', False):
             return
+        # 🔴🔴🔴 §99（断链 C）：**先查 worker 回执**。
+        #   ⇒ `register_spk_voice()` 返回 True 只代表「命令写进管道了」，
+        #     **不代表 worker 真的算出了 x-vector**。
+        for _sent in list(_spk_voice_sent):
+            _s, _refined = _sent
+            try:
+                _st = tts.spk_voice_status(_s)
+            except Exception:
+                _st = None
+            if _st is None:
+                continue          # worker 还没回 ⇒ 继续等（不阻塞）
+            if _st.get('ok'):
+                _spk_voices.mark_embedded(_s, refined=_refined)
+                _spk_voice_sent.discard(_sent)
+                if _refined:
+                    _spk_pending_embed = [
+                        (x, k) for (x, k) in _spk_pending_embed if k != _s]
+                    print(f'  [spk] {_s} 音色已细化', flush=True)
+                else:
+                    # 🔴🔴🔴 §99（断链 F）：**不要**把 spk 从 pending 移除！
+                    #   ⇒ 否则「攒够 REFINE_S 再用自己的段重算一次」
+                    #     （APP-040②）**永远不会发生**。
+                    #   ⇒ 保留在 pending 里，继续观察它有没有攒够 3 s。
+                    print(f'  [spk] {_s} 已登记音色', flush=True)
+            else:
+                # 🔴 worker 明确失败 ⇒ 回落预设 A（**不用别人冒充**）
+                _spk_voices.mark_fallback(
+                    _s, 'worker_failed:%s' % (_st.get('message') or ''))
+                _spk_voice_sent.discard(_sent)
+                _spk_pending_embed = [
+                    (x, k) for (x, k) in _spk_pending_embed if k != _s]
+                print(f'  [spk] {_s} 音色登记失败（回落预设 A）：'
+                      f'{_st.get("message") or "未知原因"}', flush=True)
         for seg, spk in list(_spk_pending_embed):
             try:
+                # 🔴 §99：**已经在等回执** ⇒ 本轮不再重复发命令
+                if any(s == spk for s, _r in _spk_voice_sent):
+                    continue
                 if not _spk_voices.has_voice(spk):
                     rngs = _spk_voices.clean_ranges_of(spk)
                     with _spk_pcm_lock:
                         buf = _spk_pcm_buf
-                    pcm = _spk_bridge.pcm_for_ranges(rngs, keep=buf, max_s=10.0)
+                    pcm = _spk_bridge.pcm_for_ranges(
+                        rngs, keep=buf, max_s=10.0, keep_t0=_spk_pcm_t0[0])
                     if pcm is None or pcm.size < int(speaker_voice.MIN_S * SR):
                         continue
                     if not tts.register_spk_voice(spk, pcm):
@@ -4625,23 +4730,19 @@ def run_cli(args):
                         _spk_pending_embed = [
                             (x, k) for (x, k) in _spk_pending_embed if k != spk]
                         continue
-                    _spk_voices.mark_embedded(spk, refined=False)
-                    _spk_pending_embed = [
-                        (x, k) for (x, k) in _spk_pending_embed if k != spk]
-                    print(f'  [spk] {spk} 已登记音色', flush=True)
+                    # 🔴 §99（断链 C）：**不立即 mark_embedded** ⇒ 等 worker 回执
+                    _spk_voice_sent.add((spk, False))
                 elif _spk_voices.ready_to_embed(spk):
                     rngs = _spk_voices.clean_ranges_of(spk)
                     with _spk_pcm_lock:
                         buf = _spk_pcm_buf
-                    pcm = _spk_bridge.pcm_for_ranges(rngs, keep=buf, max_s=10.0)
+                    pcm = _spk_bridge.pcm_for_ranges(
+                        rngs, keep=buf, max_s=10.0, keep_t0=_spk_pcm_t0[0])
                     if pcm is not None and \
                             pcm.size >= int(speaker_voice.REFINE_S * SR):
                         if tts.register_spk_voice(spk, pcm):
-                            _spk_voices.mark_embedded(spk, refined=True)
-                            _spk_pending_embed = [
-                                (x, k) for (x, k)
-                                in _spk_pending_embed if k != spk]
-                            print(f'  [spk] {spk} 音色已细化', flush=True)
+                            # 🔴 §99（断链 C）：细化也等回执
+                            _spk_voice_sent.add((spk, True))
             except Exception as e:
                 print(f'  [spk] 取样失败（忽略）：{e}', flush=True)
 
@@ -4686,8 +4787,12 @@ def run_cli(args):
         #   ⚠️ **按句绑定**（与合成时刻无关 ⇒ APP-039 核心）。
         _seg = len(finals) - 1
         try:
-            _res = _spk_bridge.on_final(_seg, _spk_audio_end[0],
-                                         _spk_audio_end[0])
+            # 🔴🔴🔴 §99（断链 A）：CLI 侧同样要**往前借**。
+            #   旧实现传的是 `_spk_audio_end[0]` **两次** ⇒ 区间长度恒 0
+            #   ⇒ ASR 侧 `dur=0 < min_dur_s(2.0)` ⇒ **永远拿不到 spk**。
+            _t0, _t1 = speaker_tracker.span_for_final(
+                float(_spk_audio_end[0]))
+            _res = _spk_bridge.on_final(_seg, _t0, _t1)
             _spk2 = _res.get('spk')
             if _spk2:
                 spk = _spk2
