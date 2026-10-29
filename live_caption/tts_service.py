@@ -320,6 +320,28 @@ class TTSService:
         #   旧实现只有 已播/丢弃 ⇒ 「句子级失败」（合成失败 / 播放器不可用 /
         #   音频没播完）被**混进 n_dropped** ⇒ 界面分不清「被丢弃」和「失败」。
         self.n_failed = 0                             # 句子级失败数
+        # 🔴🔴🔴 APP-036 C4：**关闭时作废的句子数**（`n_discard_on_close`）
+        #   reviewer APP-036 C4 原话：
+        #     「CLI 收尾的统计行在 `close()` 之前打印（L4205 drain(120) → stats
+        #       → close），所以 §82 那次『丢弃 0』实际作废了 51 句。
+        #       改成 close() 之后再打印一次最终统计，或者把 drain 超时设为
+        #       max(120, 1.5×当前积压)，并在报告里列出 `n_discard_on_close`。」
+        #   ⇒ 这里**单独计数**（不混进 `n_dropped`）⇒ 验收脚本可独立核对。
+        self.n_discard_on_close = 0
+        # 🔴🔴🔴 APP-037 C：**空句数**（句首标点剥离后为空 ⇒ 未合成）
+        #   ⇒ **既不播也不丢**（reviewer 明文「不计丢句」）
+        #   ⇒ 不变式变成三段式：
+        #     `n_played + n_dropped + n_empty == n_submitted`
+        self.n_empty = 0
+        # 🔴🔴🔴 APP-036 C3：**结尾滞后**（真实定义）
+        #   reviewer 原话：「`end_lag_s=0.0` 是 drain 之后取的值，没有意义。
+        #     新增 `end_lag_s = 最后一句播完（或写完）的时刻 − 源音频结束时刻`」
+        #   ⚠️ **跨进程时钟不可比** ⇒ 只能由**主进程**在收到最后一条
+        #     `played` / `written` 时，用**主进程自己的时钟**与
+        #     「源音频结束时刻」相减 ⇒ 由 App 侧在 `set_source_end()` 里打点。
+        self._source_end_t: Optional[float] = None
+        self._last_out_t: Optional[float] = None
+        self.end_lag_s: Optional[float] = None
         # 🔴 APP-021③：最近一条**句子级**错误原文（对话框要显示）
         self.last_sentence_error: Optional[str] = None
         # 🔴 APP-021②：最近一行的播放遥测（供界面显示 / 日志核对）
@@ -401,6 +423,20 @@ class TTSService:
         self.clone_updated_at = None
         self.clone_dur_s = None
         self.clone_mode = None
+        # ── 🔴🔴🔴 APP-036 C2：**积压随时间的曲线**（每 1–2 s 采一点）──
+        #   reviewer APP-036 C2 原话：
+        #     「`app028_backlog_curve.csv` 只有收尾时的 1 行，不算曲线。
+        #       改成每 1–2 s 采样一次 `backlog_s / backlog_parts / lag_s`
+        #       （在落盘模式下也要采），并按 1 s 粒度用 `source_t` 对齐。」
+        #   ⇒ 旧实现是**从 CLI 日志里 grep 统计行**⇒ 那些行只在收尾时打印
+        #     ⇒ 1 个采样点 ⇒ **不是曲线**。
+        #   ⇒ 现在：**service 内部**起一个采样线程 ⇒ 与播放/落盘模式无关
+        #     ⇒ 两个模式都有曲线。
+        self._curve_rows: List = []
+        self._curve_t0 = time.perf_counter()
+        self._curve_stop = threading.Event()
+        self._curve_thread: Optional[threading.Thread] = None
+        self._curve_interval_s = 1.5
 
         if auto:
             self.start()
@@ -496,6 +532,9 @@ class TTSService:
             self._dropped_ids.clear()
             self.state = 'loading'
             self.err = None
+            # 🔴🔴🔴 APP-036 C2：**起积压曲线采样线程**
+            #   ⇒ worker 起来之后曲线才有内容 ⇒ 放在这里（不是 `__init__`）
+            self.start_curve_sampler()
             env = dict(os.environ)
             # 让 worker 里的 tts_ov 能被 import 到
             env['LIVECAP_TTS_DIR'] = env.get('LIVECAP_TTS_DIR', '')
@@ -787,6 +826,13 @@ class TTSService:
             p = self.proc
             self.proc = None
             self.state = 'idle'
+            # 🔴🔴🔴 APP-036 C2：**停曲线采样线程**（在清 pending 之前
+            #   ⇒ 最后再采一个收尾点 ⇒ 曲线包含收尾时刻）
+            try:
+                self._sample_curve()
+            except Exception:
+                pass
+            self.stop_curve_sampler()
             # 🔴 §31：在途句子的**唯一放弃点** ⇒ 清干净 + 计丢句
             orphan = sorted(self.pending.keys())
             self.pending.clear()
@@ -813,6 +859,13 @@ class TTSService:
         if orphan:
             # ⚠️ `_queue` 的 jid ⊆ `pending` ⇒ 只按 `pending` 计一次
             self.n_dropped += len(orphan)
+            # 🔴🔴🔴 APP-036 C4：**单独记「关闭时作废」**
+            #   reviewer 原话：「§82 那次『丢弃 0』实际作废了 51 句
+            #     ⇒ ……并在报告里列出 `n_discard_on_close`。」
+            #   ⇒ 这一类是 `close()` **主动**作废的 ⇒ 与「积压丢句」性质不同
+            #   ⇒ 单独计数，验收脚本可独立核对「收尾前统计行」与
+            #     「close() 之后真实作废数」是否一致。
+            self.n_discard_on_close += len(orphan)
             self.on_log(f'[TTS] 关闭语音输出，{len(orphan)} 句未播译文作废'
                         f'（已计丢句），{n_queued} 句待发作废')
         try:
@@ -1474,6 +1527,10 @@ class TTSService:
                 self.on_log(f'[TTS] 第 {jid} 句已按积压丢弃，但 worker 仍播了出来'
                             f'（改记为已播）')
             self.n_played += 1
+            # 🔴🔴🔴 APP-036 C3：**记录「最后一句播完」的时刻**（主进程时钟）
+            #   ⇒ 与「源音频结束时刻」相减 = `end_lag_s`。
+            self._last_out_t = time.perf_counter()
+            self._recompute_end_lag()
             # 🔴🔴 APP-021②：`played` 现在带**每句遥测** ⇒ 存下来供界面显示，
             #   并**追加进会话日志**（复盘时能看到「这一句到底播了没有」）。
             #   ⚠️ 语义（APP-021①）：`played` 现在**只在音频已被播放回调
@@ -1499,7 +1556,30 @@ class TTSService:
                 if it is not None:
                     it['written'] = True
                     it['dur_s'] = msg.get('dur_s')
+            # 🔴🔴🔴 APP-036 C3：落盘模式（`--tts-out`）下**没有 `played`**
+            #   ⇒ 「写完」就是终点 ⇒ 这里也记一次「最后输出时刻」。
+            if self.out_wav:
+                self._last_out_t = time.perf_counter()
+                self._recompute_end_lag()
             self._update_backlog()
+        elif kind == 'empty':
+            # 🔴🔴🔴 APP-037 C（reviewer 裁定）：**空句**（剥掉句首标点后为空）
+            #   ⇒ worker **没有合成**（没有音频、也没有失败）
+            #   ⇒ **既不播也不丢** ⇒ **不能** `n_played += 1`（没出声）
+            #   ⇒ **也不能** `n_dropped += 1`（reviewer 明文「不计丢句」）
+            #   ⇒ 但这一句**必须从 `pending` 里摘掉** ⇒ 否则
+            #     `drain()` 永远等不到它 ⇒ **必超时**。
+            #   ⚠️ `n_submitted` 已经把它算进去了 ⇒ 不变式变成
+            #     `n_played + n_dropped + n_empty == n_submitted`
+            #     ⇒ 单独用 `n_empty` 记这一类（不混进 dropped）。
+            jid = msg.get('id')
+            with self.lock:
+                was_pending = self.pending.pop(jid, None) is not None
+                self._inflight.discard(jid)
+            if was_pending:
+                self.n_empty += 1
+            self.on_log('[TTS] 第 %s 句句首标点剥离后为空，未合成'
+                        '（不计丢句）' % jid)
         elif kind == 'synth_state':
             # 🔴🔴🔴 APP-027④：worker 报「合成队列状态」。
             #   ⇒ 主进程据此算**三段式积压**（环形缓冲水位 + 正在合成的剩余
@@ -1663,6 +1743,29 @@ class TTSService:
             return float(n) * float(spc)
         return float(n) * 0.12
 
+    def set_source_end(self, t: Optional[float] = None):
+        """🔴🔴🔴 APP-036 C3：**打「源音频结束」的点**（主进程时钟）。
+
+        reviewer APP-036 C3 原话：
+          「新增 `end_lag_s = 最后一句播完（或写完）的时刻 − 源音频结束时刻`，
+            播放模式和落盘模式各自给出。」
+
+        ⚠️ **必须用主进程自己的时钟** ⇒ worker 的 `perf_counter()` 与主进程
+          **基准不同**（Windows 上是 QPC，起点是进程启动时刻）⇒ 跨进程不能相减。
+        ⇒ 由 **App 侧**在源音频播完时调用本方法打点。
+        """
+        self._source_end_t = (time.perf_counter() if t is None else float(t))
+        self._recompute_end_lag()
+
+    def _recompute_end_lag(self):
+        """🔴🔴🔴 APP-036 C3：算 `end_lag_s`（两个点都在主进程 ⇒ 时钟可比）。"""
+        if self._source_end_t is None or self._last_out_t is None:
+            return
+        try:
+            self.end_lag_s = round(self._last_out_t - self._source_end_t, 3)
+        except Exception:
+            self.end_lag_s = None
+
     def _update_backlog(self):
         """🔴🔴🔴 APP-028②：**只统计积压，不再丢句**。
 
@@ -1742,6 +1845,106 @@ class TTSService:
         elif not over:
             self._lag_warned = False
 
+    # -- 🔴🔴🔴 APP-036 C2：**积压曲线采样** --------------------------
+    def start_curve_sampler(self, interval_s: Optional[float] = None):
+        """🔴🔴🔴 APP-036 C2：**起一个采样线程**，每 1–2 s 记一行曲线。
+
+        reviewer 原话：「改成每 1–2 s 采样一次 `backlog_s / backlog_parts /
+          `lag_s`（**在落盘模式下也要采**），并按 1 s 粒度用 `source_t` 对齐。」
+
+        ⚠️ **为什么必须在 service 内部采**：
+          旧实现是从 **CLI 日志**里 grep `[TTS] …积压…` 行
+          ⇒ 那些行**只在收尾时打印一次** ⇒ csv 只有 1 行 ⇒ **不是曲线**。
+          ⇒ 现在与日志无关 ⇒ 播放模式 / 落盘模式**都有曲线**。
+        ⚠️ **采样线程不碰音频、不跑推理** ⇒ 只是读几个数值 ⇒ 开销可忽略。
+        """
+        if self._curve_thread is not None:
+            return
+        if interval_s is not None:
+            self._curve_interval_s = max(0.2, float(interval_s))
+        self._curve_t0 = time.perf_counter()
+        self._curve_stop.clear()
+
+        def _run():
+            while not self._curve_stop.is_set():
+                try:
+                    self._sample_curve()
+                except Exception:
+                    pass
+                if self._curve_stop.wait(self._curve_interval_s):
+                    return
+
+        self._curve_thread = threading.Thread(target=_run, daemon=True,
+                                              name='tts-curve')
+        self._curve_thread.start()
+
+    def _sample_curve(self):
+        """采一个曲线点。"""
+        try:
+            parts = dict(self.backlog_parts or {})
+        except Exception:
+            parts = {}
+        row = {
+            't_s': round(time.perf_counter() - self._curve_t0, 3),
+            'backlog_s': round(float(self.backlog_s or 0.0), 3),
+            'lag_s': round(float(self.lag_s or 0.0), 3),
+            'ring_s': round(float(parts.get('ring_s') or 0.0), 3),
+            'synth_s': round(float(parts.get('synth_s') or 0.0), 3),
+            'queued_s': round(float(parts.get('queued_s') or 0.0), 3),
+            'n_played': int(self.n_played),
+            'n_dropped': int(self.n_dropped),
+            'n_empty': int(self.n_empty),
+            'n_submitted': int(self.n_submitted),
+        }
+        self._curve_rows.append(row)
+        return row
+
+    def stop_curve_sampler(self):
+        """停采样线程（并再采一个收尾点）。"""
+        self._curve_stop.set()
+        th = self._curve_thread
+        if th is not None:
+            try:
+                th.join(timeout=2.0)
+            except Exception:
+                pass
+        self._curve_thread = None
+
+    def curve_rows(self) -> List:
+        """返回曲线采样点（副本）。"""
+        try:
+            return list(self._curve_rows)
+        except Exception:
+            return []
+
+    def write_curve_csv(self, path: str) -> bool:
+        """🔴🔴🔴 APP-036 C2：**把曲线写成 csv**（供 reviewer 直接画）。
+
+        列：`t_s,backlog_s,lag_s,ring_s,synth_s,queued_s,n_played,n_dropped,
+             n_empty,n_submitted`
+        ⇒ **1 s 粒度**（默认 1.5 s ⇒ reviewer 可按 `source_t` 对齐）。
+        """
+        try:
+            rows = self.curve_rows()
+            d = os.path.dirname(os.path.abspath(path))
+            if d and not os.path.isdir(d):
+                os.makedirs(d, exist_ok=True)
+            with open(path, 'w', encoding='utf-8', newline='\n') as f:
+                f.write('t_s,backlog_s,lag_s,ring_s,synth_s,queued_s,'
+                        'n_played,n_dropped,n_empty,n_submitted\n')
+                for r in rows:
+                    f.write('%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' % (
+                        r['t_s'], r['backlog_s'], r['lag_s'], r['ring_s'],
+                        r['synth_s'], r['queued_s'], r['n_played'],
+                        r['n_dropped'], r['n_empty'], r['n_submitted']))
+            return True
+        except Exception as e:
+            try:
+                self.on_log(f'[TTS] 曲线 csv 写入失败：{e}')
+            except Exception:
+                pass
+            return False
+
     def stats(self) -> dict:
         return dict(
             state=self.state,
@@ -1759,6 +1962,12 @@ class TTSService:
             n_dropped=self.n_dropped,
             n_played=self.n_played,
             n_submitted=self.n_submitted,
+            # 🔴🔴🔴 APP-036 C3：**结尾滞后**（真实定义）
+            end_lag_s=self.end_lag_s,
+            # 🔴🔴🔴 APP-036 C4：**关闭时作废的句子数**
+            n_discard_on_close=self.n_discard_on_close,
+            # 🔴🔴🔴 APP-037 C：**空句数**（句首标点剥离后为空 ⇒ 未合成）
+            n_empty=self.n_empty,
             n_restart=self.n_restart,
             voice=self.voice,
             device=self.device,

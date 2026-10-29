@@ -1689,6 +1689,11 @@ class Session:
         self.running = False
         self.error = None
         self.ended = threading.Event()
+        # 🔴🔴🔴 APP-036 C3：**源音频结束的时刻**（主进程时钟）
+        #   ⇒ `end_lag_s` = 「最后一句播完（或写完）」−「源音频结束」
+        #   ⚠️ **必须在音频真的停的那一刻打点** ⇒ 不能在 `ended.wait()` 之后
+        #     才取（那可能已经过了几十秒 ⇒ 滞后被低估）。
+        self.source_end_t = None
 
     def start(self):
         self.running = True
@@ -1732,6 +1737,11 @@ class Session:
         except Exception as e:
             self.error = e
         finally:
+            # 🔴🔴🔴 APP-036 C3：**源音频结束的点**
+            #   ⚠️ **必须在 `flush()` 之后立刻打点**（源真的停了）
+            #     ⇒ 否则 `end_lag_s` 会把「收尾翻译/等待」的时间也算进去
+            #     ⇒ **滞后被低估** ⇒ 结论失真。
+            self.source_end_t = time.perf_counter()
             self.running = False
             self.ended.set()
 
@@ -3628,6 +3638,14 @@ class App:
         except Exception:
             pass
         if self.tts is not None:
+            # 🔴🔴🔴 APP-036 C3：**源音频结束的点**（主进程时钟）
+            #   ⇒ GUI 侧也给 `end_lag_s` 一个真实口径。
+            try:
+                _sess = getattr(self, 'session', None)
+                _st = getattr(_sess, 'source_end_t', None) if _sess else None
+                self.tts.set_source_end(_st)
+            except Exception:
+                pass
             try:
                 self.tts.drain(timeout=30)
             except Exception:
@@ -4202,7 +4220,26 @@ def run_cli(args):
     if tts is not None:
         try:
             time.sleep(0.2)
-            tts.drain(timeout=120)
+            # 🔴🔴🔴 APP-036 C3：**源音频结束的点**（主进程时钟）
+            #   ⇒ `end_lag_s` = 「最后一句播完（或写完）」−「源音频结束」
+            #   ⚠️ **必须在 close() 之前打点** ⇒ close() 会杀掉 worker，
+            #     之后就没有「播完」事件了。
+            #   ⚠️ **用 `Session.source_end_t`**（源真正停的那一刻）
+            #     ⇒ 不是「现在」⇒ 否则收尾等待的时间被算进滞后。
+            try:
+                tts.set_source_end(getattr(s, 'source_end_t', None))
+            except Exception:
+                pass
+            # 🔴🔴🔴 APP-036 C4：drain 超时按**当前积压**放大
+            #   reviewer 原话：「或者把 drain 超时设为 max(120, 1.5×当前积压)」
+            #   ⇒ 旧实现固定 120 s ⇒ 积压大时必然超时 ⇒ **收尾作废一堆句子**
+            #     （§82 实测「丢弃 0」实际作废 51 句）。
+            try:
+                _bl = float(getattr(tts, 'backlog_s', 0.0) or 0.0)
+            except Exception:
+                _bl = 0.0
+            _drain_to = max(120.0, 1.5 * _bl)
+            tts.drain(timeout=_drain_to)
             st = tts.stats()
             f = lambda v, d=2: ('—' if v is None else f'{v:.{d}f}')
             print(f'[TTS] 首包 {f(st.get("first_packet_s"))}s  '
@@ -4211,9 +4248,32 @@ def run_cli(args):
                   f'提交 {st.get("n_submitted")}  播完 {st.get("n_played")}  '
                   f'丢弃 {st.get("n_dropped")}  重启 {st.get("n_restart")}  '
                   f'state={st.get("state")}', flush=True)
+            # 🔴🔴🔴 APP-036 C3/C4：**收尾指标**（在这行统计**之前**打点）
+            #   ⚠️ `end_lag_s` / `n_discard_on_close` 在这一行里可能还是旧值
+            #     ⇒ 真正权威的数字在**下面 close() 之后的最终统计行**。
+            print(f'[TTS] 收尾（close 前）：'
+                  f'结尾滞后 {f(st.get("end_lag_s"))}s  '
+                  f'关闭作废 {st.get("n_discard_on_close")}  '
+                  f'空句 {st.get("n_empty")}  '
+                  f'积压 最大 {f(st.get("max_backlog_s"))}s', flush=True)
             if args.tts_out:
                 print(f'[TTS] 语音已写 {args.tts_out}，'
                       f'逐句时间线 {args.tts_out}.tts.jsonl', flush=True)
+            # 🔴🔴🔴 APP-036 C2：**把积压曲线写成 csv**（≥100 个采样点）
+            #   ⚠️ **必须用 service 自己采的曲线** ⇒ 不能从日志里 grep
+            #     （旧实现那样做 ⇒ 收尾时只有 1 行 ⇒ 不是曲线）。
+            try:
+                _curve_csv = (args.tts_out + '.backlog_curve.csv'
+                              if args.tts_out else None)
+                if _curve_csv is None:
+                    _curve_csv = os.path.join(
+                        os.path.dirname(os.path.abspath(args.out or '.')),
+                        'tts_backlog_curve.csv')
+                if tts.write_curve_csv(_curve_csv):
+                    print(f'[TTS] 积压曲线已写 {_curve_csv}（'
+                          f'{len(tts.curve_rows())} 个采样点）', flush=True)
+            except Exception as e:
+                print(f'[TTS] 积压曲线写入失败（不影响字幕）：{e}', flush=True)
             # 🔴🔴🔴 APP-027 V3（§84）：**克隆状态的收尾行**（可观测证据）
             #   ⇒ reviewer 需要知道「本场到底有没有真的克隆成功」
             #   ⇒ 只看 wav 目录**证明不了**（wav 里没有音色来源信息）。
@@ -4233,6 +4293,26 @@ def run_cli(args):
         finally:
             try:
                 tts.close()
+            except Exception:
+                pass
+            # 🔴🔴🔴 APP-036 C4：**close() 之后再打印一次最终统计**
+            #   reviewer 原话：「CLI 收尾的统计行在 `close()` 之前打印
+            #     （L4205 drain(120) → stats → close），所以 §82 那次『丢弃 0』
+            #     实际作废了 51 句。改成 close() 之后再打印一次最终统计……」
+            #   ⇒ 这一行是**权威口径**：包含 close() 时作废的句子。
+            try:
+                _st = tts.stats()
+                _f = lambda v, d=2: ('—' if v is None else f'{v:.{d}f}')
+                print(f'[TTS] 最终统计（close 后）：'
+                      f'提交 {_st.get("n_submitted")}  '
+                      f'播完 {_st.get("n_played")}  '
+                      f'丢弃 {_st.get("n_dropped")}  '
+                      f'关闭作废 {_st.get("n_discard_on_close")}  '
+                      f'空句 {_st.get("n_empty")}  '
+                      f'失败 {_st.get("n_failed")}  '
+                      f'结尾滞后 {_f(_st.get("end_lag_s"))}s  '
+                      f'积压 最大 {_f(_st.get("max_backlog_s"))}s',
+                      flush=True)
             except Exception:
                 pass
     mt.close()

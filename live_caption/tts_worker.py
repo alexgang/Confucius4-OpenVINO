@@ -136,6 +136,89 @@ _APP030_JSONL_KEYS = (
     'clone_active', 'clone_mode', 'clone_audio_s',
 )
 
+# 🔴🔴🔴 APP-036 C1：**worker 内部的排队等待**（jsonl 新增字段）。
+#   reviewer APP-036 C1 的原话：
+#     「worker jsonl 的 `t_submit` 是在 `_synth_babelvox` 开头取的
+#       `perf_counter()`（L1415），也就是**开始合成的时刻**，
+#       所以 `t_dequeue==t_submit`、`queue_lag_s` 恒为 0；
+#       App 侧『首包分段 排队 X s』= t_sent−t_submit，只算了 App 自己那段。
+#       ⇒ soak 报告的 `seg_queue_p50=0.0`、id≥4 的『排队 0.000 s』都是假的，
+#         worker 里实际排队 7–55 s。
+#     改法：worker 读到 stdin 命令时记 `t_recv`，jsonl 里加
+#       `worker_fifo_wait_s = t_dequeue − t_recv`，报告给出 P50/P95/max。」
+#
+#   ⇒ **三个字段**：
+#     `t_recv`            —— worker 主循环**从 stdin 读到这条命令**的时刻
+#     `t_enqueue`        —— worker 主循环**把它放进合成 FIFO 队列**的时刻
+#     `worker_fifo_wait_s` = `t_enqueue − t_recv`
+#         （**主循环内的等待**：读命令 → 入队，中间只隔一次锁）
+#     `worker_fifo_wait_total_s` = `t_dequeue − t_recv`
+#         （**真正的排队**：从读到命令到被合成线程取走 ⇒ **这才是 reviewer 要的**）
+#
+#   ⚠️ **为什么不能只报 `t_dequeue − t_submit`**：
+#     `t_submit` 在 `synth()` 入口取 ⇒ 与 `t_dequeue` 几乎相等 ⇒ 恒 0
+#     ⇒ **测不出排队**。必须另记 `t_recv`（主循环侧）。
+_APP036_JSONL_KEYS = (
+    't_recv', 't_enqueue', 'worker_fifo_wait_s', 'worker_fifo_wait_total_s',
+    # 🔴🔴🔴 APP-036 C3：**结尾滞后**（真实定义，见 `_record_jsonl`）
+    'end_lag_s',
+    # 🔴🔴🔴 APP-037 C：**句首标点剥离**的可观测字段
+    'lead_punct_stripped', 'lead_punct_chars',
+)
+
+# 🔴🔴🔴 APP-037 C（reviewer 裁定）：**句首标点**的规范化集合。
+#   reviewer 原文：
+#     「在 **tts_worker 合成前统一规范化**：去掉句首的标点和空白（全角/半角），
+#       去掉后为空就不合成，记 `end_reason=empty`，**不计丢句**。」
+#
+#   ⚠️ **只剥句首**（不剥句尾、不改句中）⇒ 语义零影响
+#   ⇒ 句首的「，」「、」「。」「…」等只是翻译输出的排版残留
+#   ⇒ 剥掉后合成器不必「念一个逗号」（Qwen3-TTS 对前导标点敏感
+#   ⇒ 可能影响第一块的稳定性）。
+#   ⚠️ **全角/半角都要**：`，`(U+FF0C) / `,`(U+002C) / `、`(U+3001)
+#     / `。`(U+3002) / `.`(U+002E) / `…`(U+2026) / `!`(U+0021) / `!`(U+FF01)
+#     / `?`(U+003F) / `?`(U+FF1F) / `;`(U+003B) / `;`(U+FF1B) / `:`(U+003A)
+#     / `:`(U+FF1A) / `-`(U+002D) / `~`(U+007E) / `～`(U+FF5E)
+#     / `*`(U+002A) / `>`(U+003E) / `>`(U+FF1E) / `|`(U+007C) / `\u3008` 等。
+_LEAD_PUNCT_CHARS = (
+    '\uff0c,\u3001\u3002.\u2026\u2025'
+    '!\uff01?\uff1f;\uff1b:\uff1a-\u2014\u2013~\uff5e'
+    '*\u00bb\u3009\u300b\u300d\u300f\u3011\u3015'
+    '\u3001\u3002\u3008\u300a\u300c\u300e'
+)
+
+
+def _strip_lead_punct(text: str):
+    """🔴🔴🔴 APP-037 C：**剥掉句首的标点与空白**。
+
+    返回 `(处理后的文本, 被剥掉的标点字符串)`。
+
+    ⚠️ **语义**：
+      - 只剥**句首**的标点与空白（**不改句中、不改句尾**）
+        ⇒ 译文的语义零影响；
+      - **不剥掉数字/字母/汉字**（那些是内容，不是标点）
+        ⇒ 「2026年の売上」不会被剥成「年の売上」；
+      - 剥到第一个**非标点非空白**字符为止。
+    ⚠️ **空结果**（整句只有标点）⇒ 返回 `('', 被剥掉的标点)`
+      ⇒ 调用方**不合成**、记 `end_reason=empty`、**不计丢句**
+      （reviewer APP-037 C 明文）。
+    """
+    if not text:
+        return '', ''
+    s = text
+    n = 0
+    while n < len(s):
+        ch = s[n]
+        if ch.isspace():
+            n += 1
+            continue
+        if ch in _LEAD_PUNCT_CHARS:
+            n += 1
+            continue
+        break
+    stripped = s[n:]
+    return stripped, s[:n]
+
 
 def _out_write(text: str):
     """往 stdout 写一行（**兼容二进制管道**）。
@@ -1039,6 +1122,12 @@ class TTSWorker:
         # 🔴🔴 APP-024①：**worker 取到命令的时刻**（主循环写入、`synth()` 消费）
         #   ⇒ 用来把「首包」拆成「排队等待」与「合成首包」两段。
         self._dequeue_at = {}
+        # 🔴🔴🔴 APP-036 C1：**「读到命令」与「入队」的时刻**
+        #   ⇒ 用来算 worker 内部的排队等待（reviewer 要的 P50/P95/max）
+        #   ⚠️ **为什么不能用 `t_submit`**：`t_submit` 在 `synth()` 入口取
+        #     ⇒ 与 `t_dequeue` 几乎相等 ⇒ 排队恒为 0 ⇒ **测不出排队**。
+        self._recv_at = {}
+        self._enqueue_at = {}
         # 🔴 APP-021⑥：逐句 wav 落盘目录（None = 不落盘）
         self.dump_dir = None
         self._dump_seq = 0
@@ -1059,6 +1148,9 @@ class TTSWorker:
         self._last_max_new_tokens = None
         self._last_end_reason = None
         self._last_est_frames = None
+        # 🔴🔴🔴 APP-037 C：**句首标点剥离**的可观测状态
+        self._last_lead_punct = ''
+        self._last_lead_punct_n = 0
         # 🔴 APP-030⑤：异常句落盘目录（`%LOCALAPPDATA%\Confucius4LiveCaption\tts_anomaly`）
         #   ⚠️ **只在本机**，**不进客户包**（隐私 + 包体积纪律）。
         self._anomaly_dir = None
@@ -1381,7 +1473,8 @@ class TTSWorker:
         return out
 
     # -- 合成 ------------------------------------------------------------
-    def synth(self, jid: int, text: str, spk=None, spk_conf=None, lang=None):
+    def synth(self, jid: int, text: str, spk=None, spk_conf=None, lang=None,
+              t_recv=None):
         """合成一句并播放。
 
         三条路径：
@@ -1420,6 +1513,53 @@ class TTSWorker:
         t_dequeue = self._dequeue_at.pop(jid, None)
         if t_dequeue is None:
             t_dequeue = t_submit
+        # 🔴🔴🔴 APP-036 C1：**worker 内部的排队等待**
+        #   `t_recv`      = 主循环**从 stdin 读到这条命令**的时刻
+        #   `t_enqueue`   = 主循环**把它放进合成 FIFO**的时刻
+        #   ⇒ `worker_fifo_wait_s`       = t_enqueue − t_recv（主循环内等待）
+        #   ⇒ `worker_fifo_wait_total_s` = t_dequeue − t_recv（**真正的排队**）
+        #   ⚠️ **这才是 reviewer 要的数**（旧的 `t_submit` 口径恒为 0）。
+        _t_recv = self._recv_at.pop(jid, None) if t_recv is None else t_recv
+        _t_enqueue = self._enqueue_at.pop(jid, None)
+        _fifo_wait = (round(_t_enqueue - _t_recv, 4)
+                      if (_t_enqueue is not None and _t_recv is not None)
+                      else None)
+        _fifo_wait_total = (round(t_dequeue - _t_recv, 4)
+                            if _t_recv is not None else None)
+        # 🔴🔴🔴 APP-037 C（reviewer 裁定）：**句首标点统一规范化**
+        #   「去掉句首的标点和空白（全角/半角），去掉后为空就不合成，
+        #     记 `end_reason=empty`，**不计丢句**。」
+        #   ⚠️ **三道失控守卫保持不变**（reviewer 明文）⇒ 本段只改文本。
+        #   ⚠️ **空句不合成、不计丢句** ⇒ 走一条**独立**的早退路径：
+        #     既不发句子级 error（那会让主进程计丢句），也不发 `played`
+        #     （那会让主进程计已播）⇒ 改发一个**专用事件** `kind='empty'`
+        #     ⇒ 主进程收到后**既不播也不丢**（只记日志）。
+        _stripped_text, _lead_punct = _strip_lead_punct(text)
+        _n_lead = len([c for c in _lead_punct if not c.isspace()])
+        if not _stripped_text.strip():
+            # 整句只有标点/空白 ⇒ 不合成
+            self._last_lang = (lang or 'en').strip().lower() or 'en'
+            self._last_lang_src = 'explicit' if lang else 'guess'
+            self._last_end_reason = 'empty'
+            self._last_lead_punct = _lead_punct
+            self._last_lead_punct_n = _n_lead
+            log(f'[tts_worker] 句子 id={jid} 去掉句首标点后为空 ⇒ 不合成'
+                f'（end_reason=empty，不计丢句）')
+            try:
+                self._record_jsonl(jid, text, t_submit,
+                                   tel=self._empty_tel(t_dequeue, _t_recv,
+                                                       _t_enqueue,
+                                                       _fifo_wait,
+                                                       _fifo_wait_total,
+                                                       _lead_punct, _n_lead))
+            except Exception:
+                pass
+            emit({'kind': 'empty', 'id': jid,
+                  'message': '句首标点剥离后为空，未合成'})
+            return
+        text = _stripped_text
+        self._last_lead_punct = _lead_punct
+        self._last_lead_punct_n = _n_lead
         # 🔴🔴🔴 APP-030①：**显式语言优先**
         #   旧实现无条件 `lang = self._guess_lang(text)` ⇒ **永远收不到 Japanese**
         #   （reviewer 实测 8 条日文样句 5 条判 en / 3 条判 zh）。
@@ -1883,6 +2023,19 @@ class TTSWorker:
         #   ⇒ `cap`（撞上限）/ `runaway`（中止）由引擎或守卫覆盖。
         tel['end_reason'] = self._last_end_reason or 'eos'
         tel['max_new_tokens'] = self._last_max_new_tokens
+        # 🔴🔴🔴 APP-036 C1：**worker 内部的排队等待**（reviewer 要的数）
+        #   ⚠️ 旧的 `t_submit` 口径 ⇒ `t_dequeue==t_submit` ⇒ 恒 0
+        #   ⇒ 这里报**三个新字段**：`t_recv` / `t_enqueue` /
+        #     `worker_fifo_wait_total_s`（= t_dequeue − t_recv）。
+        tel['t_recv'] = (round(float(_t_recv), 4)
+                         if _t_recv is not None else None)
+        tel['t_enqueue'] = (round(float(_t_enqueue), 4)
+                            if _t_enqueue is not None else None)
+        tel['worker_fifo_wait_s'] = _fifo_wait
+        tel['worker_fifo_wait_total_s'] = _fifo_wait_total
+        # 🔴🔴🔴 APP-037 C：**句首标点剥离**的可观测字段
+        tel['lead_punct_stripped'] = self._last_lead_punct
+        tel['lead_punct_chars'] = int(self._last_lead_punct_n or 0)
         # 🔴🔴🔴 APP-027 V3：**逐句的「音色来源」**（可观测性的第四项）
         #   ⚠️ 取的是 `self._last_clone_*`（**合成那一刻**的快照）
         #   ⇒ 前几句天然是 `False`（还没攒够语音）⇒ 这正是事实。
@@ -1972,7 +2125,8 @@ class TTSWorker:
                 #     ⇒ 看门狗重算完 tel 后再覆盖回去 ⇒ **逐句字段齐全**。
                 #   🔴 **必须在合成时快照**（不是看门狗执行时读 `self._last_*`）
                 #     ⇒ 否则并发合成下一句会把上一句的值冲掉。
-                meta={k: tel.get(k) for k in _APP030_JSONL_KEYS}))
+                meta={k: tel.get(k) for k in (_APP030_JSONL_KEYS
+                                             + _APP036_JSONL_KEYS)}))
 
         # 🔴🔴 APP-027②：把本句实测 RTF / 秒每字记进 EWMA
         #   ⇒ 下一句的预缓冲与积压估算都用**本会话实测**校准。
@@ -2106,6 +2260,36 @@ class TTSWorker:
         if prebuffer_short:
             tel['prebuffer_short'] = True
         return tel
+
+    def _empty_tel(self, t_dequeue, t_recv, t_enqueue,
+                   fifo_wait, fifo_wait_total,
+                   lead_punct, n_lead):
+        """🔴🔴🔴 APP-037 C：**空句（剥掉句首标点后为空）的遥测**。
+
+        ⚠️ 这类句子**没有合成、没有音频** ⇒ 遥测里
+          `n_samples` / `n_parts` / `peak` / `rms` 等**全部为 0**
+          ⇒ **不能**被验收脚本误判成「没有产出音频」⇒
+          `end_reason='empty'` 是**权威标记**。
+        """
+        return {
+            't_dequeue': (round(float(t_dequeue), 4)
+                          if t_dequeue is not None else None),
+            't_recv': (round(float(t_recv), 4)
+                       if t_recv is not None else None),
+            't_enqueue': (round(float(t_enqueue), 4)
+                          if t_enqueue is not None else None),
+            'worker_fifo_wait_s': fifo_wait,
+            'worker_fifo_wait_total_s': fifo_wait_total,
+            'lead_punct_stripped': lead_punct,
+            'lead_punct_chars': int(n_lead or 0),
+            'n_samples': 0,
+            'n_parts': 0,
+            'peak': 0.0,
+            'rms': 0.0,
+            'rms_dbfs': -99.0,
+            'synth_rtf': None,
+            'end_reason': 'empty',
+        }
 
     def _fill_app027_telemetry(self, tel: dict, t_dequeue, t_first, t_last,
                                dur: float, prebuffer_s: float,
@@ -2334,6 +2518,10 @@ class TTSWorker:
                     row[k] = tel[k]
             # 🔴🔴🔴 APP-030⑤：**逐句语言 / 失控遥测**
             for k in _APP030_JSONL_KEYS:
+                if k in tel:
+                    row[k] = tel[k]
+            # 🔴🔴🔴 APP-036 C1 + APP-037 C：**排队等待 / 句首标点**
+            for k in _APP036_JSONL_KEYS:
                 if k in tel:
                     row[k] = tel[k]
         else:
@@ -2659,7 +2847,9 @@ class TTSWorker:
                 continue
             if item is None:            # 关闭哨兵
                 return
-            jid, text, spk, spk_conf, lang = item
+            jid, text, spk, spk_conf, lang = item[0], item[1], item[2], item[3], item[4]
+            # 🔴🔴🔴 APP-036 C1：队列元组可能带 `t_recv`（老元组没有 ⇒ 兜底）
+            t_recv = item[5] if len(item) > 5 else None
             # ── 出队时刻（APP-027② 的 `t_dequeue` 真正的口径）──
             t_dequeue = time.perf_counter()
             with self._synth_state_lock:
@@ -2676,7 +2866,7 @@ class TTSWorker:
                 self._synth_rem_s = self._estimate_dur_s(text)
             self._emit_synth_state()
             try:
-                self.synth(jid, text, spk, spk_conf, lang)
+                self.synth(jid, text, spk, spk_conf, lang, t_recv)
             except Exception as e:
                 import traceback
                 log('[tts_worker] 🔴 合成线程异常：' + traceback.format_exc())
@@ -2783,6 +2973,10 @@ class TTSWorker:
         except Exception:
             _stdin = sys.stdin
         for _raw in _stdin:
+            # 🔴🔴🔴 APP-036 C1：**读到命令的时刻**（`t_recv`）
+            #   ⇒ 必须在**解析之前**取（否则解析耗时也混进去）
+            #   ⇒ 这是 reviewer 要的「worker 内部排队」的**起点**。
+            t_recv = time.perf_counter()
             if isinstance(_raw, (bytes, bytearray)):
                 line = bytes(_raw).decode('utf-8', 'replace').strip()
             else:
@@ -2837,13 +3031,21 @@ class TTSWorker:
                 #      ⇒ 不会把 `t_dequeue` 弄丢（`synth()` 里 pop 不到就兜底）。
                 t_enqueue = time.perf_counter()
                 self._dequeue_at[jid] = t_enqueue
+                # 🔴🔴🔴 APP-036 C1：**记住「读到命令的时刻」**
+                #   ⇒ 合成线程取走这句时（`t_dequeue`）就能算出
+                #     `worker_fifo_wait_total_s = t_dequeue − t_recv`
+                #     ⇒ 这才是 reviewer 要的「worker 内部排队」。
+                self._recv_at[jid] = t_recv
+                self._enqueue_at[jid] = t_enqueue
                 est = self._estimate_dur_s(text)
                 with self._synth_state_lock:
                     self._synth_queue_ids.append(jid)
                     self._synth_queue_est[jid] = est
                 # 🔴🔴🔴 APP-030①：**`lang` 随命令进合成队列**
                 #   ⇒ 合成线程拿得到**显式**语言 ⇒ 不再靠猜。
-                self._synth_q.put((jid, text, spk, spk_conf, lang))
+                # 🔴🔴🔴 APP-036 C1：队列元组多带一个 `t_recv`
+                #   （**纯附加** ⇒ 老元组解包不兼容 ⇒ 同步改合成线程）。
+                self._synth_q.put((jid, text, spk, spk_conf, lang, t_recv))
                 self._emit_synth_state()
             elif cmd == 'cancel':
                 # 🔴🔴🔴 APP-028②：**cancel 的语义已变**。

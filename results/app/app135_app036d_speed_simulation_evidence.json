@@ -1,0 +1,67 @@
+{
+  "source_jsonl": "C:\\Users\\Trekker-PTL\\app028_soak\\app028_soak.wav.tts.jsonl",
+  "n_segments": 76,
+  "total_audio_s": 338.8,
+  "spe_seconds": 300.0,
+  "start_delay_s": 0.0,
+  "ratio_audio_per_source_speech_R": 1.1293,
+  "cross_check_reviewer_rate_model": {
+    "formula": "lag(t) ≈ (R − v)·t",
+    "R": 1.1293,
+    "at_300s_v1.0": 38.8,
+    "note": "reviewer 原文「5 分钟下来至少 35–40 s」⇒ 与 (R−1)×300 = 38.8 s 同量级"
+  },
+  "speeds": {
+    "1.0": {
+      "end_lag_s": 38.98,
+      "max_lag_s": 40.48,
+      "lag_at_60s": 7.94,
+      "lag_at_120s": 9.14,
+      "lag_at_180s": 12.98,
+      "lag_at_240s": 18.1,
+      "lag_at_300s": 38.98,
+      "n_stall_steps": 12,
+      "audio_played_s": 294.7,
+      "t_start_s": 1.837
+    },
+    "1.1": {
+      "end_lag_s": 22.84,
+      "max_lag_s": 24.49,
+      "lag_at_60s": 6.49,
+      "lag_at_120s": 3.88,
+      "lag_at_180s": 3.8,
+      "lag_at_240s": 6.15,
+      "lag_at_300s": 22.84,
+      "n_stall_steps": 43,
+      "audio_played_s": 310.84,
+      "t_start_s": 1.837
+    },
+    "1.2": {
+      "end_lag_s": 18.24,
+      "max_lag_s": 20.04,
+      "lag_at_60s": 6.04,
+      "lag_at_120s": 2.6,
+      "lag_at_180s": 3.2,
+      "lag_at_240s": 5.76,
+      "lag_at_300s": 18.24,
+      "n_stall_steps": 88,
+      "audio_played_s": 315.44,
+      "t_start_s": 1.837
+    },
+    "1.3": {
+      "end_lag_s": 13.64,
+      "max_lag_s": 15.59,
+      "lag_at_60s": 5.59,
+      "lag_at_120s": 1.95,
+      "lag_at_180s": 2.6,
+      "lag_at_240s": 5.66,
+      "lag_at_300s": 13.64,
+      "n_stall_steps": 124,
+      "audio_played_s": 320.04,
+      "t_start_s": 1.837
+    }
+  },
+  "csv": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app135_app036d_lag_curves.csv",
+  "model_note": "内容轴 = t_submit 线性重映射到 [0,300s]；产出时刻 = 内容时刻 + 合成耗时；lag(t) = 已产出音频 − 已播音频（= APP-028 的 lag_s 口径）；播放速率 = v，受「已产出」限制 ⇒ 欠载会停顿",
+  "synth_total_s": 333.663
+}

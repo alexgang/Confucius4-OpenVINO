@@ -1,0 +1,375 @@
+{
+  "script": "app134_app036c_telemetry.py",
+  "src_root": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.6",
+  "subdir": "app",
+  "python": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+  "groups": {
+    "C1": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "C2": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "C3": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "C4": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "X": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "checks": [
+    {
+      "group": "C1",
+      "name": "jsonl 键集含 t_recv",
+      "pass": true,
+      "detail": "_APP036_JSONL_KEYS = ['t_recv', 't_enqueue', 'worker_fifo_wait_s', 'worker_fifo_wait_total_s', 'end_lag_s', 'lead_punct_stripped', 'lead_punct_chars']"
+    },
+    {
+      "group": "C1",
+      "name": "jsonl 键集含 t_enqueue",
+      "pass": true,
+      "detail": "_APP036_JSONL_KEYS = ['t_recv', 't_enqueue', 'worker_fifo_wait_s', 'worker_fifo_wait_total_s', 'end_lag_s', 'lead_punct_stripped', 'lead_punct_chars']"
+    },
+    {
+      "group": "C1",
+      "name": "jsonl 键集含 worker_fifo_wait_s",
+      "pass": true,
+      "detail": "_APP036_JSONL_KEYS = ['t_recv', 't_enqueue', 'worker_fifo_wait_s', 'worker_fifo_wait_total_s', 'end_lag_s', 'lead_punct_stripped', 'lead_punct_chars']"
+    },
+    {
+      "group": "C1",
+      "name": "jsonl 键集含 worker_fifo_wait_total_s",
+      "pass": true,
+      "detail": "_APP036_JSONL_KEYS = ['t_recv', 't_enqueue', 'worker_fifo_wait_s', 'worker_fifo_wait_total_s', 'end_lag_s', 'lead_punct_stripped', 'lead_punct_chars']"
+    },
+    {
+      "group": "C1",
+      "name": "主循环记 t_recv（读到 stdin 的时刻）",
+      "pass": true,
+      "detail": "源码含 `t_recv = time.perf_counter()`"
+    },
+    {
+      "group": "C1",
+      "name": "入队时记 t_enqueue",
+      "pass": true,
+      "detail": "源码含 `t_enqueue = time.perf_counter()`"
+    },
+    {
+      "group": "C1",
+      "name": "jsonl 有 1 行",
+      "pass": true,
+      "detail": "实际 = 1"
+    },
+    {
+      "group": "C1",
+      "name": "行含 t_recv",
+      "pass": true,
+      "detail": "t_recv = 703752.4349"
+    },
+    {
+      "group": "C1",
+      "name": "行含 t_enqueue",
+      "pass": true,
+      "detail": "t_enqueue = 703753.6352"
+    },
+    {
+      "group": "C1",
+      "name": "worker_fifo_wait_s ≈ 1.2（入队前等待）",
+      "pass": true,
+      "detail": "实际 = 1.2003"
+    },
+    {
+      "group": "C1",
+      "name": "worker_fifo_wait_total_s ≈ 1.5（**排队真的被量到**）",
+      "pass": true,
+      "detail": "实际 = 1.5008"
+    },
+    {
+      "group": "C1",
+      "name": "**老口径量不到排队**（t_submit−t_dequeue ≈ 0）",
+      "pass": true,
+      "detail": "t_submit=703754.0044 vs t_dequeue=703753.9357 ⇒ 差 0.06869999994523823 s"
+    },
+    {
+      "group": "C1",
+      "name": "**新口径量得到排队**（t_dequeue−t_recv ≈ 1.5）",
+      "pass": true,
+      "detail": "t_dequeue=703753.9357 vs t_recv=703752.4349 ⇒ 差 1.500800000037998 s"
+    },
+    {
+      "group": "C2",
+      "name": "**落盘模式**也有曲线（老实现只有 1 行）",
+      "pass": true,
+      "detail": "采样点 = 102"
+    },
+    {
+      "group": "C2",
+      "name": "曲线行含 backlog_s / lag_s",
+      "pass": true,
+      "detail": "首行键 = ['backlog_s', 'lag_s', 'n_dropped', 'n_empty', 'n_played', 'n_submitted', 'queued_s', 'ring_s', 'synth_s', 't_s']"
+    },
+    {
+      "group": "C2",
+      "name": "曲线行含三段式 ring/synth/queued",
+      "pass": true,
+      "detail": "首行键 = ['backlog_s', 'lag_s', 'n_dropped', 'n_empty', 'n_played', 'n_submitted', 'queued_s', 'ring_s', 'synth_s', 't_s']"
+    },
+    {
+      "group": "C2",
+      "name": "曲线行含 n_empty（APP-037 C 三段式）",
+      "pass": true,
+      "detail": "首行键 = ['backlog_s', 'lag_s', 'n_dropped', 'n_empty', 'n_played', 'n_submitted', 'queued_s', 'ring_s', 'synth_s', 't_s']"
+    },
+    {
+      "group": "C2",
+      "name": "默认采样间隔在 1–2 s 之间",
+      "pass": true,
+      "detail": "实际 = 1.5"
+    },
+    {
+      "group": "C2",
+      "name": "write_curve_csv 成功",
+      "pass": true,
+      "detail": "路径 = C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app134_gh0u23zj\\curve.csv"
+    },
+    {
+      "group": "C2",
+      "name": "csv 有 ≥101 行（表头 + ≥100 采样点）",
+      "pass": true,
+      "detail": "实际 = 103 行"
+    },
+    {
+      "group": "C2",
+      "name": "csv 表头含 backlog_s/lag_s/ring_s/synth_s/queued_s",
+      "pass": true,
+      "detail": "表头 = t_s,backlog_s,lag_s,ring_s,synth_s,queued_s,n_played,n_dropped,n_empty,n_submitted"
+    },
+    {
+      "group": "C2",
+      "name": "t_s 非递减",
+      "pass": true,
+      "detail": "首/尾 = 0.001 / 20.86"
+    },
+    {
+      "group": "C2",
+      "name": "t_s 严格递增（毫秒级）",
+      "pass": true,
+      "detail": "唯一值 102 / 总数 102（相等说明同一毫秒内采样 ⇒ 允许）"
+    },
+    {
+      "group": "C3",
+      "name": "未打点时 end_lag_s = None（老口径是 0.0，没意义）",
+      "pass": true,
+      "detail": "实际 = None"
+    },
+    {
+      "group": "C3",
+      "name": "end_lag_s > 0（= 播完时刻 − 源结束时刻）",
+      "pass": true,
+      "detail": "实际 = 0.05"
+    },
+    {
+      "group": "C3",
+      "name": "源结束晚于播完 ⇒ end_lag_s < 0（是相减不是取绝对值）",
+      "pass": true,
+      "detail": "实际 = -1.0"
+    },
+    {
+      "group": "C3",
+      "name": "**worker 侧不计算** end_lag_s（跨进程时钟不可相减）",
+      "pass": true,
+      "detail": "worker 源码含 end_lag_s 减法 = False"
+    },
+    {
+      "group": "C3",
+      "name": "played 事件 ⇒ _last_out_t 被更新",
+      "pass": true,
+      "detail": "实际 = 703775.1073019"
+    },
+    {
+      "group": "C3",
+      "name": "played 后 end_lag_s 有值",
+      "pass": true,
+      "detail": "实际 = 0.0"
+    },
+    {
+      "group": "C4",
+      "name": "n_discard_on_close = 3（close 主动作废的句子）",
+      "pass": true,
+      "detail": "实际 = 3"
+    },
+    {
+      "group": "C4",
+      "name": "n_dropped 也 +3（**同时**计丢句，账本仍自洽）",
+      "pass": true,
+      "detail": "实际 = 3"
+    },
+    {
+      "group": "C4",
+      "name": "不变式 n_played+n_dropped+n_empty == n_submitted 仍成立",
+      "pass": true,
+      "detail": "0 + 3 + 0 == 3"
+    },
+    {
+      "group": "C4",
+      "name": "stats() 含 n_discard_on_close",
+      "pass": true,
+      "detail": "实际 = 3"
+    },
+    {
+      "group": "C4",
+      "name": "stats() 含 end_lag_s",
+      "pass": true,
+      "detail": "实际 = None"
+    },
+    {
+      "group": "C4",
+      "name": "stats() 含 n_empty",
+      "pass": true,
+      "detail": "实际 = 0"
+    },
+    {
+      "group": "C4",
+      "name": "CLI 有「最终统计（close 后）」行",
+      "pass": true,
+      "detail": "位置 = 172848"
+    },
+    {
+      "group": "C4",
+      "name": "**最终统计行在 close() 之后**",
+      "pass": true,
+      "detail": "close()=119568  最终统计=172848"
+    },
+    {
+      "group": "C4",
+      "name": "最终统计行含 n_discard_on_close",
+      "pass": true,
+      "detail": "在最终统计行附近 800 字符内"
+    },
+    {
+      "group": "C4",
+      "name": "最终统计行含 end_lag_s",
+      "pass": true,
+      "detail": "在最终统计行附近 800 字符内"
+    },
+    {
+      "group": "C4",
+      "name": "drain 超时用 max(120, 1.5×积压)",
+      "pass": true,
+      "detail": "源码含 `max(120.0, 1.5 * _bl)`"
+    },
+    {
+      "group": "C4",
+      "name": "CLI 调 set_source_end",
+      "pass": true,
+      "detail": "源码含 `tts.set_source_end(`"
+    },
+    {
+      "group": "C4",
+      "name": "Session 记 source_end_t",
+      "pass": true,
+      "detail": "源码含 `self.source_end_t`"
+    },
+    {
+      "group": "X",
+      "name": "① C1 反证：注入点命中",
+      "pass": true,
+      "detail": "替换 t_recv 赋值行"
+    },
+    {
+      "group": "X",
+      "name": "① C1 反证：排队量不到 ⇒ C1 判据必 FAIL",
+      "pass": true,
+      "detail": "注入后 worker_fifo_wait_total_s = None（应为 None ⇒ 判 FAIL）"
+    },
+    {
+      "group": "X",
+      "name": "② C2 反证：注入点命中",
+      "pass": true,
+      "detail": "替换 _curve_interval_s = 1.5"
+    },
+    {
+      "group": "X",
+      "name": "② C2 反证：默认间隔越界 ⇒ C2 判据必 FAIL",
+      "pass": true,
+      "detail": "注入后 _curve_interval_s = 10.0"
+    },
+    {
+      "group": "X",
+      "name": "③ C3 反证：注入点命中",
+      "pass": true,
+      "detail": "替换 end_lag_s 计算"
+    },
+    {
+      "group": "X",
+      "name": "③ C3 反证：负值被吞 ⇒ C3 判据必 FAIL",
+      "pass": true,
+      "detail": "注入后 end_lag_s = 1.0（应为正 ⇒ 判 FAIL）"
+    },
+    {
+      "group": "X",
+      "name": "④ C4 反证：注入点命中",
+      "pass": true,
+      "detail": "替换 n_discard_on_close 累加"
+    },
+    {
+      "group": "X",
+      "name": "④ C4 反证：不记作废 ⇒ C4 判据必 FAIL",
+      "pass": true,
+      "detail": "注入后 n_discard_on_close = 0（应为 0 ⇒ 判 FAIL）"
+    }
+  ],
+  "summary": {
+    "total": 50,
+    "pass": 50,
+    "fail": 0
+  }
+}
