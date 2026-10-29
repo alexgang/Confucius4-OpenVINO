@@ -53,9 +53,11 @@ def main(argv=None) -> int:
     lag_client = compute_lag_metrics(client_like)
 
     # 服务端口径（与 ext.bridge.summarize_margins 同算法）
-    from ext.bridge import decompose_lag, summarize_margins
+    from ext.bridge import decompose_lag, decompose_lag_exact, summarize_margins
     summ = summarize_margins(per_seg)
     decomp = decompose_lag(per_seg, delay_sec=10.0)
+    # ★ 精确三分量：lag = backlog(喂帧/背压) + struct(段长超窗) + proc(引擎)
+    exact = decompose_lag_exact(per_seg, delay_sec=10.0)
 
     out = {
         "source_margin_file": os.path.abspath(args.margin),
@@ -63,6 +65,7 @@ def main(argv=None) -> int:
         "lag_metrics": lag_client,
         "margin_summary_new": summ,
         "lag_decomposition": decomp,
+        "lag_decomposition_exact": exact,
         "old_cumulative_lag_sec_RETRACTED": (
             (data.get("margin_summary") or {}).get("cumulative_lag_sec")),
         "note": ("旧口径 cumulative_lag_sec 是「22 段余量求和」，"

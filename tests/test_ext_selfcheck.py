@@ -440,6 +440,72 @@ def test_ext005_ext006_behaviors() -> None:
           and abs(float(_sf.get("last_segment_lag_sec") or 0.0) - 500.0) > 1.0,
           f"new_last={_sf.get('last_segment_lag_sec')}")
 
+    # ★★ EXT-008 第 2 点：**精确三分量**分解（喂帧慢 / 结构 / 引擎）。
+    #   恒等式 lag = backlog + struct + proc 必须**逐段精确闭合**。
+    from ext.bridge import decompose_lag_exact
+    _D = 10.0
+    # 构造一段「音频送晚 30 s、段长 15 s（超窗 5 s）、管线 8 s」的句子：
+    #   ⇒ lag 应为 30 + 5 + 8 = 43 s
+    _ex = decompose_lag_exact([{
+        "id": "seg_x", "t_start": 0.0, "t_end": 15.0,
+        "deadline_margin_sec": -43.0,
+        "ready_at": 1000.0, "orig_end": 985.0,
+        "asr_sec": 3.0, "mt_sec": 1.0, "tts_sec": 4.0,
+        "audio_ready_rel_sec": 45.0,   # 音频 45 s 时才完整到达（段结束在 15 s）
+    }], delay_sec=_D)
+    _row = _ex["per_segment"][0]
+    check("★ EXT-008：精确分解逐段闭合（残差 < 0.01 s）",
+          _ex.get("identity_closed") is True,
+          f"max_residual={_ex.get('max_abs_residual_sec')}")
+    check("★ EXT-008：喂帧慢（backlog）= 45−15 = 30 s",
+          abs(_row["backlog_sec"] - 30.0) < 1e-6,
+          f"backlog={_row['backlog_sec']}")
+    check("★ EXT-008：结构项（struct）= 段长 15 − 缓冲窗 10 = 5 s",
+          abs(_row["struct_sec"] - 5.0) < 1e-6,
+          f"struct={_row['struct_sec']}")
+    check("★ EXT-008：引擎项（proc）= ASR+MT+TTS = 8 s",
+          abs(_row["proc_sec"] - 8.0) < 1e-6,
+          f"proc={_row['proc_sec']}")
+    check("★ EXT-008：三分量之和 = 该句滞后 43 s",
+          abs((_row["backlog_sec"] + _row["struct_sec"] + _row["proc_sec"])
+              - _row["lag_sec"]) < 1e-6,
+          f"{_row['backlog_sec']}+{_row['struct_sec']}+{_row['proc_sec']}"
+          f" vs lag={_row['lag_sec']}")
+    # ★★ 区分力：**只有喂帧慢**（引擎很快、音频准时到）⇒ 滞后应当
+    #    **几乎全部**记在 backlog 上 ⇒ 占比接近 100%。
+    _fast = decompose_lag_exact([{
+        "id": "seg_y", "t_start": 0.0, "t_end": 5.0,
+        "deadline_margin_sec": -2.0,
+        "ready_at": 1000.0, "orig_end": 995.0,
+        "asr_sec": 1.0, "mt_sec": 0.5, "tts_sec": 0.5,
+        "audio_ready_rel_sec": 5.0,   # 音频准时在段结束时到达
+    }], delay_sec=_D)
+    _fy = _fast["per_segment"][0]
+    check("★ EXT-008 反向断言：音频准时到达 ⇒ backlog ≈ 0（不是恒正）",
+          abs(_fy["backlog_sec"]) < 1e-6,
+          f"backlog={_fy['backlog_sec']}")
+    check("★ EXT-008 反向断言：音频准时到达 ⇒ 该句滞后只剩引擎耗时",
+          abs(_fy["lag_sec"] - _fy["proc_sec"]) < 1e-6,
+          f"lag={_fy['lag_sec']} proc={_fy['proc_sec']}")
+    # ★★ 区分力：**只有引擎慢**（音频准时、段长小于窗）⇒ struct 为负、
+    #    滞后应小于 proc（因为有缓冲窗的提前量）。
+    check("★ EXT-008 反向断言：段长 < 缓冲窗 ⇒ struct 为负（有提前量）",
+          _fy["struct_sec"] < 0, f"struct={_fy['struct_sec']}")
+    # ★★ 区分力：**音频送晚但引擎快** ⇒ backlog 应是滞后主体
+    _slowfeed = decompose_lag_exact([{
+        "id": "seg_z", "t_start": 0.0, "t_end": 5.0,
+        "deadline_margin_sec": -50.0,
+        "ready_at": 1000.0, "orig_end": 995.0,
+        "asr_sec": 1.0, "mt_sec": 0.5, "tts_sec": 0.5,
+        "audio_ready_rel_sec": 50.0,   # 音频晚了 45 s
+    }], delay_sec=_D)
+    check("★ EXT-008 反向断言：音频送晚 ⇒ backlog 占比 > 80%（喂帧慢是主体）",
+          float(_slowfeed.get("backlog_share_of_lag_pct") or 0.0) > 80.0,
+          f"backlog_share={_slowfeed.get('backlog_share_of_lag_pct')}%")
+    check("★ EXT-008 反向断言：喂帧慢时引擎占比 < 20%（不是引擎的锅）",
+          float(_slowfeed.get("proc_share_of_lag_pct") or 0.0) < 20.0,
+          f"proc_share={_slowfeed.get('proc_share_of_lag_pct')}%")
+
     print("\n[9] EXT-006 — 引擎语言映射守卫（必须显式传目标语言）")
     from ext.engine_runtime import (LANG_TO_MT, LANG_TO_TTS,
                                     EngineNeedsChange, RuntimeEngine)

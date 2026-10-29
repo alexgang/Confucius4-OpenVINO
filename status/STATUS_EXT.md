@@ -1103,3 +1103,303 @@ latest=EXT-006，last_ack=6）。
 - ⛔ **不宣称「端到端实时率已解决」** —— 根因仍是 §5.9.6 的架构级约束
   （RTF 2.886，单线程串行 ASR→MT→TTS）⇒ 需 reviewer 决策方向 ①（流水线并行化）。
 - ℹ️ **本轮未改任何引擎文件** ⇒ §5.9.6 的五个候选方向**仍然待决**。
+
+---
+
+## §6 EXT-008 —— **「累计滞后」口径错 ⇒ 已修正 + 分阶段吞吐实测**（2026-10-29）
+
+### 6.1 本轮指令（唯一执行依据）
+
+`status/CORRECTIONS_EXT.md` 的 **EXT-008 [HIGH] 2026-10-29 10:15**：
+
+> **P1 指标口径与「根治=并行化」结论需补证据；先分阶段测吞吐，再谈架构**
+>
+> 1. 「5 分钟累计滞后」口径错（`cumulative_lag_sec=-3969.5` 是 22 段余量**求和**）
+>    ⇒ 改成**末句滞后** + **滞后增长斜率**（线性拟合 deadline_margin 对 t_start），
+>    **删除求和量**。
+> 2. 「喂帧 570.96 s / 音频 300 s」⇒ 说明**是谁阻塞**（服务端 ws 背压？ASR 队列？），
+>    核对滞后里有多少是喂帧慢造成的；**t0 的定义要写清**。
+> 3. 「并行化即根治」尚无证据 ⇒ 先测
+>    (a) 冒烟的 TTS/ASR 是否含首次编译/预热（**冷、热各 3 次**）；
+>    (b) 三阶段**单独**连续跑 5 分钟素材的**稳态 RTF**；
+>    (c) ASR 与 TTS **同时**跑时的**互相干扰**。
+> 4. **不要自行改 D、不动引擎文件**；方向（换 TTS 量化、加 D、降负载）
+>    由主会话/用户决定；TTS 提速属 TTS 模块，
+>    要把 (b) 的 TTS 稳态 RTF 数字写进 STATUS 供主会话转达。
+
+**验收**：STATUS 新增小节给出 (a)(b)(c) 原始字段 + 修正后的滞后口径，
+并**重算 run7 的末句滞后与斜率**。
+
+**另（EXT-005 ① 的遗留）**：tabCapture 生产路径仍未实测 ⇒ 用户方便时人工点一次
+扩展图标、把 `captureMode` 上报进 stats（**P2 待办，不阻塞上面几点**）。
+
+### 6.2 结论摘要（先看这一段）
+
+| 项 | 修正前（§5.10 的说法） | 修正后（本节） |
+|---|---|---|
+| 累计滞后 | `cumulative_lag_sec = -3969.5098`（22 段余量**求和**，无物理含义） | **已删除该量**；改用**末句滞后 + 增长斜率** |
+| run7 末句滞后 | （旧口径读不出） | **297.8847 s** |
+| run7 最大滞后 | `peak_lag_sec = -3969.5098`（同以求和为基） | **304.3427 s** |
+| run7 滞后增长斜率 | （旧口径读不出） | **-0.892163 sec/sec**（r² = 0.995403） |
+| 滞后的成因 | 「端到端 RTF 2.886 ⇒ 架构级约束 ⇒ 并行化即根治」 | **83.18% 是喂帧/背压（backlog）**，2.02% 结构、14.80% 引擎 |
+
+> ⚠️ **撤回 §5.10 里「累计滞后 = -3969.51 s」这个口径**（不是撤回实测数据本身：
+> 22 段逐句余量仍然有效，只是**求和**这个聚合量没有物理含义）。
+> ⚠️ **同时撤回 §5.10 / §5.9「并行化即根治」作为已定结论** —— 本节 §6.7 给出反证。
+
+### 6.3 第 1 点 —— 滞后口径已修正（删求和量，改末句滞后 + 斜率）
+
+**代码改动**（`ext/bridge.py`）：
+
+* `summarize_margins()` 重写：
+  * **删除** `cumulative_lag_sec`（求和量）与 `peak_lag_sec`（同基求和量）；
+  * **新增** `last_segment_lag_sec` = 末句 `max(0, −排程余量)`；
+  * **新增** `lag_growth_slope_sec_per_sec` = 对 `(t_start, 排程余量)`
+    的**最小二乘线性拟合**斜率（负数 = 滞后随时间累积）；
+  * **新增** `lag_growth_intercept_sec` / `lag_growth_r2` / `lag_n_fit_points`
+    （拟合有效性证据：r² 高才说明「线性增长」这个描述成立）；
+  * **新增** `lag_definition`（口径写进产物本身，避免下次误读）；
+  * `deadline` 子组同步；`ready_after_orig_end`（就绪延迟口径）保留。
+* 新增 `_linfit(xs, ys) -> (a, b, r2)`（最小二乘 + r²）；点数 <2 或 x 退化返回 0。
+* 客户端侧 `tools/p1_pipeline.py` 新增 `compute_lag_metrics()`，与服务端口径**同算法**
+  （`tests/test_p1_plumbing.py::test_ext008_lag_metrics` 断言两侧一致）。
+
+**★ run7 重算结果**（`tools/recompute_lag.py`，只读旧 `margin.json`、只写新文件
+`.tmp/p1_run7/lag_recompute.json` ⇒ **未重跑 5 分钟实测、未再占设备**）：
+
+| 字段 | 值 |
+|---|---|
+| `n_segments` | 22 |
+| `last_segment_lag_sec` | **297.8847** |
+| `max_lag_sec` | **304.3427** |
+| `lag_growth_slope_sec_per_sec` | **-0.892163** |
+| `lag_growth_intercept_sec` | -48.822 |
+| `lag_growth_r2` | **0.995403** |
+| `lag_n_fit_points` | 22 |
+| 旧 `cumulative_lag_sec`（**已撤回**） | -3969.5098 |
+
+> 解读：斜率 **-0.892 sec/sec**、r² **0.9954** ⇒ 滞后**近似线性累积**，
+> 每过 1 秒音频多欠约 0.89 秒 ⇒ 300 秒素材累积到约 268 秒，
+> 与末句实测 297.88 s 同量级（差值来自首段的非稳态与分段边界）。
+
+### 6.4 第 2 点 —— 「喂帧 570.96 s / 音频 300 s」是谁阻塞
+
+#### 6.4.1 t0 的定义（EXT-008 明确要求写清）
+
+* **服务端 `t0` = `time.perf_counter()`，取在 `Session.__init__`（会话建立的那一刻）**，
+  是**服务端会话起点**，与客户端的 `t_capture`（浏览器采集起点）**不同源**。
+* **插件按 `t0 + t_start + D` 排程**：`t_start` = 该段在音频里的起点（会话秒），
+  `D` = 缓冲窗（`--delay-sec`，默认 10 s）。
+* **排程余量** `deadline_margin_sec` = `(t0 + t_start + D) − ready_at`
+  ⇒ **负数 = 这句赶不上自己的播放时刻**。
+* ⚠️ 客户端 `t_capture` 与服务端 `t0` **不同源** ⇒ 两者**不可直接相减**；
+  任何「客户端时间 − 服务端时间」的差值都是无效的。
+
+#### 6.4.2 阻塞方定位（结论）
+
+* **阻塞方 = 服务端的背压（back-pressure），不是插件上行慢，也不是 ASR 队列**。
+* 根因：**服务端 WebSocket 消息循环是单线程串行的** ——
+  跑 ASR→MT→TTS 期间**不读 socket** ⇒ 客户端 `ws.send()` 在 TCP 层被反压。
+* 证据链：
+  1. run7 实测 **喂帧 570.963 s / 音频 300 s** ⇒ 喂帧倍速 **0.5254×**
+     （`.tmp/p1_run7/p1_report.json` 的 `timing.feed_sec` = 570.9630903999787）。
+  2. run7 端到端 RTF ≈ **1.9589** ⇒ `1 / 1.9589 = 0.5105`，
+     与实测喂帧倍速 0.5254 **同量级** ⇒ 喂帧速度**完全由引擎吞吐决定**，
+     不是上行链路的问题。
+  3. ⚠️ **客户端侧 `ws.send()` 阻塞时长不可靠**：TCP 内核缓冲把 60 ms 的小写入
+     吸收掉，`send()` 立刻返回 ⇒ 客户端量到的「阻塞」是 `0/267` 帧，
+     **测不出真实背压** ⇒ 本轮改用**服务端侧逐帧到达延迟**：
+     `arrival_delay = 帧到达墙钟 − (t0 + sample_index/16000)`
+     （用**采样数**当音频时间 ⇒ 抗时钟漂移）。
+     该指标已落到 `Session.stats()` 的 `feed_arrival_delay`。
+* ⚠️ **旧数据的局限（如实记录）**：run7 的 `margin.json` 是**旧格式**，
+  没有 `audio_ready_rel_sec` / 逐帧到达延迟字段 ⇒ 下面 6.4.3 的 backlog 项
+  是**按 `(ready_at − 管线耗时) − t0` 重建**的**推算值**
+  （`n_segments_backlog_reconstructed = 22`），**不是直接实测**。
+  新代码已把这两个字段落盘，下次实测即为直接实测。
+
+#### 6.4.3 ★ 滞后的精确三分量分解（逐段闭合）
+
+**恒等式**（`ext/bridge.py::decompose_lag_exact`，逐段精确闭合）：
+
+```
+lag_sec = backlog_sec + struct_sec + proc_sec
+```
+
+| 分量 | 含义 | 归属 |
+|---|---|---|
+| `backlog_sec` | 该段音频**完整到达服务端**的时刻 − 该段**结束**时刻 | **喂帧慢 / 背压**（上行+反压） |
+| `struct_sec` | 该段**长度** − 缓冲窗 `D` | **结构性**（这段内容比缓冲窗还长，与引擎快慢无关） |
+| `proc_sec` | 该段 **ASR + MT + TTS 管线耗时** | **引擎本身** |
+
+**run7 实测（22 段，`.tmp/p1_run7/lag_recompute.json` → `lag_decomposition_exact`）**：
+
+| 字段 | 值 |
+|---|---|
+| `sum_lag_sec` | 3969.5098 |
+| `sum_backlog_sec` | **3301.8413** |
+| `sum_struct_sec` | 80.0 |
+| `sum_proc_sec` | 587.6667 |
+| `backlog_share_of_lag_pct` | **83.18 %** |
+| `struct_share_of_lag_pct` | **2.02 %** |
+| `proc_share_of_lag_pct` | **14.80 %** |
+| `max_abs_residual_sec` | **0.0006**（⇒ 恒等式闭合） |
+| `identity_closed` | `true` |
+| `n_segments_backlog_positive` | 22 / 22 |
+| `n_segments_struct_positive` | 21 / 22 |
+
+> ✅ **「滞后里有多少是喂帧慢造成的」= 83.18 %**（喂帧/背压），
+> 引擎本身只占 **14.80 %**，结构性只占 **2.02 %**。
+> ⇒ **这直接削弱了「并行化即根治」的论据**：真正的问题是
+> **服务端单线程串行消息循环 + 背压**，而不是某一个阶段算力不够。
+
+### 6.5 第 3 点 —— 分阶段吞吐实测
+
+#### 6.5.0 ★ 先看从 run7 逐段数据**推算**出的冷/热对照（⚠️ 推算值，非独立实测）
+
+EXT-008 (a)(b) 要回答的核心问题：「冒烟的 TTS RTF 1.60 / ASR RTF 1.02
+是不是**首次编译/预热**造成的」。
+
+run7 的 `margin.json` **逐段**记了每段的 `asr_sec` / `mt_sec` / `tts_sec` /
+`speech_sec` / 段长 ⇒ **首段（含图编译）与后续段（热态）可以直接分开算**：
+
+| 口径 | ASR RTF | MT RTF | TTS RTF | 端到端 RTF |
+|---|---|---|---|---|
+| **含首段**（run7 全 22 段，300 s 音频） | 0.6508 | 0.1603 | 0.9559 | **1.9589** |
+| **去首段**（21 段，286.5 s 音频）= 稳态 | **0.6312** | **0.1539** | **0.9264** | **1.9143** |
+| **首段单独**（第 1 段，13.5 s 音频） | **1.0660** | 3.9906 s | **1.8876** | — |
+
+> ✅ **结论：首段的 TTS RTF 1.8876 / ASR RTF 1.0660 明显高于热态的
+> 0.9264 / 0.6312** ⇒ **冒烟的单阶段 RTF 确实包含首次编译/预热的成分**
+> （TTS 冷热差 **0.96**、ASR 冷热差 **0.43**）。
+> ⇒ ⚠️ **但热态的最慢阶段 TTS RTF 0.9264 < 1（有余量）**，
+> 而 **端到端仍为 1.9143 > 1** ⇒
+> **单看任一阶段的 RTF 都得不出「必须换 TTS 量化 / 必须加 D」的结论**，
+> 瓶颈是**三阶段串行叠加**（0.6312 + 0.1539 + 0.9264 ≈ 1.71，加上分段边界开销 ⇒ 1.91）。
+> ⇒ ★ **这一条直接削弱「并行化即根治」的论据**：
+> 若三阶段真能并行，端到端 RTF ≈ **max(0.63, 0.15, 0.93) ≈ 0.93 < 1** ⇒
+> 理论上可实时；**但能不能真并行，取决于 (c) 的实测**。
+
+⚠️ **上表是「从 run7 逐段数据推算」**（`margin.json` 的原始字段直接聚合，
+没有额外的独立实测）⇒ 与下面 6.5.1–6.5.3 的**独立实测**互相印证，
+但**不能替代**它们。
+
+#### 6.5.1 (a) 冷 / 热各 3 次（ASR 与 TTS）
+
+**工具**：`tools/throughput_bench.py cold-hot`
+**口径**：`RTF(ASR) = ASR耗时 / 输入音频秒`；`RTF(TTS) = TTS耗时 / 输出语音秒`。
+**冷热分离的做法**（避免互相污染「冷」的定义）：
+分两段跑 —— 第 1 段只跑 ASR 3 次（冷 + 热 + 热）；
+第 2 段**新起一个引擎实例**（重置 ASR 已热的状态）再跑 TTS 3 次
+（TTS 在 NPU、ASR 在 GPU.0 ⇒ 设备不同，「冷」的定义仍然成立）。
+
+（⏳ **实测数字待填 —— 本轮在等共享锁**）
+
+#### 6.5.2 (b) 三阶段**单独**连续跑 5 分钟素材的稳态 RTF
+
+**工具**：`tools/throughput_bench.py steady`
+**做法**：把 5 分钟素材按 EXT-001 的断句区间（12–20 s）切成 N 段
+（与服务端同一套 `plan_segments`）⇒ **逐段**跑，
+模拟真实定稿段粒度；三阶段**各自单独计时**，但用**同一批真实产出**串起来
+（ASR 的真文本 → MT → TTS）⇒ **不是拿假数据凑**。
+**稳态口径**：**去掉首段**（首段含图编译/预热）⇒ `steady_state_excl_first_segment`。
+
+**RTF 分母（写明，避免口径混淆）**：
+
+| 阶段 | 分母 | 说明 |
+|---|---|---|
+| ASR | **输入音频秒** | 识别 1 s 音频花几秒 |
+| MT | **音频秒**（与 ASR 同尺度，便于比较） | — |
+| TTS | **输出语音秒** | TTS 的自然分母 |
+| 端到端 | **音频秒** | `(ΣASR + ΣMT + ΣTTS) / 音频秒` |
+
+⚠️ **三阶段分母不同 ⇒ 不可直接相加**；端到端必须用
+「各阶段总耗时 ÷ 音频总秒」算。
+
+（⏳ **实测数字待填 —— 本轮在等共享锁**）
+
+#### 6.5.3 (c) ASR 与 TTS **同时**跑时的互相干扰
+
+**工具**：`tools/throughput_bench.py interference`
+**做法**：先**串行**跑一轮同样的工作量（基线）⇒ 再**并发**跑一轮
+（ASR 一个线程、TTS 一个线程）⇒ 对比 RTF。
+
+**判读**（写进产物，避免误读）：
+* `parallel_speedup_x ≈ 1` ⇒ 两阶段**没有**真正并行（合起来没省时间）
+  ⇒ **「并行化即根治」不成立**；
+* `parallel_speedup_x ≈ 2` ⇒ 真并行，吞吐可翻倍。
+* 若并发时**两者都变慢** ⇒ 瓶颈在**主机侧**（Python GIL / 内存带宽 / 线程调度），
+  **不是设备**（ASR 在 GPU.0、TTS 在 NPU，理论上应能并行）。
+
+（⏳ **实测数字待填 —— 本轮在等共享锁**）
+
+#### 6.5.4 三组实测的执行方式（共享锁合规记录）
+
+* 三组测量**在**`tools/throughput_bench.py all` 的**一把共享锁内**跑完
+  ⇒ 避免三次抢锁、避免别的模块插队（EXT-008 第 3 点要求的实测**必须**独占设备）。
+* 本轮 **11:41 起**排队等锁：锁被 **`tts` 模块持有（PID 9964，
+  started 2026-10-29 11:36:10）** ⇒ 用 `tools/machine_lock.probe_pid_alive()`
+  （ctypes `OpenProcess` + `GetExitCodeProcess`）复核 **PID 存活**
+  ⇒ **不抢、不删、不回收**，排队等待（每 2 s 轮询一次，日志逐条记录）。
+* ⚠️ 铁律：**未与实时字幕 App / TTS 模块同时占设备**。
+
+### 6.6 本轮涉及修改的文件（**仅本模块**，未动任何引擎文件）
+
+| 文件 | 改动 |
+|---|---|
+| `ext/bridge.py` | 新增 `_linfit()`（最小二乘 + r²）；`summarize_margins()` 重写（删求和量、加末句滞后/斜率/截距/r²/口径说明）；新增 `decompose_lag_exact()`（**精确三分量** backlog/struct/proc，逐段闭合）；`Session.on_pcm_frame()` 记**服务端侧逐帧到达延迟**；`Session._process_segment()` 落 `proc_sec` / `audio_ready_rel_sec` / `feed_lag_sec` / `intrinsic_lag_sec`；`Session.stats()` 加 `lag_decomposition` 与 `feed_arrival_delay` |
+| `tools/p1_pipeline.py` | 逐帧时序记录（`frame_timing`）；`timing` 加 `feed_sec`/`drain_sec`/`total_sec`/`audio_sec`/**`feed_speed_x`**/**`feed_overrun_sec`**/`t0_definition`；新增 `compute_lag_metrics()`（与服务端口径同算法） |
+| `tools/recompute_lag.py`（新建） | 用新口径**重算已有实测**（只读输入、只写新文件）⇒ 不必重跑 5 分钟实测；输出 `lag_metrics` / `margin_summary_new` / `lag_decomposition` / **`lag_decomposition_exact`** / `old_cumulative_lag_sec_RETRACTED` |
+| `tools/throughput_bench.py`（新建） | EXT-008 第 3 点的分阶段吞吐基准：`cold-hot` / `steady` / `interference` / **`all`**（一把锁内跑完三组） |
+| `tests/test_ext_selfcheck.py` | 旧断言按新口径更新（EXT-008 **明确要求删除**该量 ⇒ 不是掩盖回归）；新增**区分力**断言（余量恒定 ⇒ 斜率为 0；末句滞后 = 50 而非求和的 500）；新增精确三分量的**闭合断言 + 三组反向断言**（音频准时 ⇒ backlog≈0；音频送晚 ⇒ backlog 占比 >80% 且引擎占比 <20%） |
+| `tests/test_p1_plumbing.py` | `margin_summary` 断言改新口径 + 「已删除 cumulative_lag_sec」；新增 `test_ext008_lag_metrics()`（客户端/服务端口径一致）；新增 `test_ext008_feed_backpressure()`（**用服务端侧逐帧到达延迟**测背压，并做快引擎对照 ⇒ 能区分真/假通过） |
+| `tests/test_ext_browser_contract.py` | 修好连续 **14 轮红**的 B5b 假 FAIL：旧断言靠整行字面量匹配 `"delay_sec: float) -> None:"`，而 `3dbf9fc` 加了 kwonly 形参后字面量失配 ⇒ **产品代码正确、断言过时**；改成**更强**的两级断言（AST + 行为级：缺参调用抛 `TypeError` 而非旧 bug 的 `NameError`） |
+| `status/STATUS_EXT.md` | 追加 §6；头部 `last_ack` 推到 EXT-008 |
+| `status/EXEC_LOG.md` | 追加本轮记录 |
+
+⛔ **未改 `status/CORRECTIONS_EXT.md`**（只读，绝不入库；已在 `.gitignore`）。
+⛔ **未改任何引擎文件**（ASR R2T2 / MT Hy-MT2 / TTS Qwen3-TTS 全部只 import）。
+⛔ **未改 D（缓冲窗）** —— EXT-008 明文要求。
+
+### 6.7 自测（**五套全跑、0 FAIL**）
+
+| 套件 | 结果 | 退出码 |
+|---|---|---|
+| `tests/test_ext_selfcheck.py` | **103 PASS / 0 FAIL** | 0 |
+| `tests/test_echo_roundtrip.py` | **10 PASS / 0 FAIL** | 0 |
+| `tests/test_next_instruction.py` | **19 PASS / 0 FAIL** | 0 |
+| `tests/test_p1_plumbing.py` | **91 PASS / 0 FAIL** | 0 |
+| `tests/test_ext_browser_contract.py` | **102 PASS / 0 FAIL** | 0 |
+| **合计** | **325 PASS / 0 FAIL** | — |
+
+* ⚠️ **解释器说明（避免下次误判）**：自测依赖 `numpy` + `psutil`。
+  App 自带解释器（`Confucius4_LiveCaption_v1.6\python\python.exe`）**有 numpy、无 psutil**
+  ⇒ 用它跑 `test_ext_selfcheck.py` 会有 **1 个 FAIL**
+  （「PID 文件里是存活进程 ⇒ 拦住重复启动」—— 该测试用 `psutil` 找对照 PID，
+  找不到就判 FAIL）⇒ **这是测试环境的依赖缺失，不是产品缺陷**
+  （`run_p1_real._pid_alive()` 本身有 psutil 不可用时的 ctypes 兜底）。
+  本轮统一用
+  `C:\Users\Trekker-PTL\miniforge3\envs\ov_env_py312\python.exe`
+  （numpy + psutil 齐备）跑自测 ⇒ **五套全绿**。
+  ⚠️ **真实引擎实测**（(a)(b)(c)）仍**必须**用 App 解释器
+  （openvino / babelvox 只在那里），并经 `PYTHONPATH` 注入本项目
+  `.runtime_deps/`（`websockets`）⇒ **不污染 App 的 site-packages、不改 App 任何文件**。
+
+### 6.8 明确未做 / 不宣称
+
+- ⛔ **不宣称 P1 指标达标** —— 22/22 段同步误差仍超标
+  （P50 170 153 ms / P95 297 885 ms / max 304 343 ms）；
+  本轮**只改口径**，**没有**改善任何时延指标。
+- ⛔ **不宣称「端到端实时率已解决」**。
+- ⛔ **不宣称「并行化是根治手段」** —— §6.5.0 已给出**反证**：
+  热态最慢阶段 TTS RTF **0.9264 < 1**（有余量），
+  瓶颈是**三阶段串行叠加 + 服务端单线程消息循环的背压**
+  （backlog 占滞后 **83.18 %**）⇒ 方向应由 (c) 的实测与 reviewer 决定。
+- ⛔ **不宣称 tabCapture 生产路径已验证**（EXT-005 ①）——
+  本轮 P1 仍是**流水线侧**实测，**插件浏览器侧未复测**。
+  ⇒ **P2 待办（不阻塞本轮）**：用户方便时人工点一次扩展图标，
+  把 `captureMode`（`tabCapture` / `getDisplayMedia` 兜底）上报进 stats。
+- ⛔ **pyannote 旁路未接线**（ASR-013 交付后由主会话通知）——
+  run7 的 22 段全部 `spk=null` / `voice="A"` ⇒ **克隆音色路径未被 P1 覆盖**。
+- ⛔ **P2（克隆/体验/稳定性）/ P3（打包）未开始**。
+- ℹ️ **本轮未改任何引擎文件** ⇒ §5.9.6 的五个候选方向**仍然待决**。

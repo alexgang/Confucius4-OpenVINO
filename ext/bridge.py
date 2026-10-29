@@ -343,6 +343,101 @@ def decompose_lag(margins: List[dict], *, delay_sec: float) -> dict:
     }
 
 
+def decompose_lag_exact(margins: List[dict], *, delay_sec: float) -> dict:
+    """★ EXT-008 第 2 点：把每句滞后**精确**拆成三个可归因的分量。
+
+    恒等式（逐段精确闭合）::
+
+        lag_sec = backlog_sec + struct_sec + proc_sec
+
+    * `backlog_sec` = 该段音频**完整到达服务端**的时刻 − 该段**结束**时刻
+      （>0 ⇒ **音频送晚了** ⇒ 上行/反压造成；这才是「喂帧慢」的量化）。
+    * `struct_sec` = 该段**长度** − 缓冲窗 `D`
+      （>0 ⇒ 这段内容本身就比缓冲窗长 ⇒ 结构性滞后，与引擎快慢无关）。
+    * `proc_sec` = 该段的 **ASR + MT + TTS 管线耗时**
+      （= 引擎本身的耗时）。
+
+    ⚠️ `struct_sec` 可为负（该段比缓冲窗短 ⇒ 这部分是「提前量」）。
+    ⚠️ `backlog_sec` 由 `audio_ready_rel_sec` 推得；该字段缺失时按
+      `(ready_at − 管线耗时) − t0` **重建**（服务端消息循环单线程串行 ⇒
+      推理紧接帧到达开始）⇒ `n_segments_backlog_reconstructed > 0`
+      表示该项为**推算**而非直接实测。
+
+    「喂帧慢占了多少滞后」= `sum_backlog_sec / sum_lag_sec`（见输出
+    `backlog_share_of_lag_pct`）。
+    """
+    if not margins:
+        return {"n_segments": 0}
+    rows: List[dict] = []
+    n_recon = 0
+    for m in margins:
+        dm = float(m.get("deadline_margin_sec") or 0.0)
+        lag = max(0.0, -dm)
+        proc = _seg_proc_sec(m)
+        arel = _seg_audio_ready_rel(m)
+        t_start = float(m.get("t_start") or 0.0)
+        t_end = float(m.get("t_end") or 0.0)
+        seg_len = max(0.0, t_end - t_start)
+        if arel is None:
+            backlog = 0.0
+        else:
+            if m.get("audio_ready_rel_sec") is None:
+                n_recon += 1
+            backlog = arel - t_end
+        struct = seg_len - delay_sec
+        p = proc or 0.0
+        resid = lag - (backlog + struct + p)
+        rows.append({
+            "id": m.get("id"), "t_start": m.get("t_start"),
+            "seg_len_sec": round(seg_len, 3),
+            "lag_sec": round(lag, 4),
+            "backlog_sec": round(backlog, 4),
+            "struct_sec": round(struct, 4),
+            "proc_sec": round(p, 4),
+            "residual_sec": round(resid, 4),
+        })
+    sum_lag = sum(r["lag_sec"] for r in rows)
+    sum_bk = sum(r["backlog_sec"] for r in rows)
+    sum_st = sum(r["struct_sec"] for r in rows)
+    sum_pr = sum(r["proc_sec"] for r in rows)
+    max_resid = max((abs(r["residual_sec"]) for r in rows), default=0.0)
+    return {
+        "n_segments": len(rows),
+        "identity": "lag_sec = backlog_sec + struct_sec + proc_sec（逐段精确闭合）",
+        "definitions": {
+            "backlog_sec": ("该段音频完整到达服务端的时刻 − 该段结束时刻；"
+                            ">0 = 音频送晚了（上行/反压）⇒ 喂帧慢的量化"),
+            "struct_sec": "该段长度 − 缓冲窗 D（>0 = 这段内容比缓冲窗还长）",
+            "proc_sec": "该段 ASR + MT + TTS 管线耗时（引擎本身）",
+        },
+        "delay_sec": delay_sec,
+        "n_segments_backlog_reconstructed": n_recon,
+        "reconstruction_note": (
+            "audio_ready_rel_sec 缺失时按 (ready_at − 管线耗时) − t0 重建 ⇒ "
+            "该项为推算值（服务端消息循环单线程串行 ⇒ 推理紧接帧到达开始）。"),
+        "sum_lag_sec": round(sum_lag, 4),
+        "sum_backlog_sec": round(sum_bk, 4),
+        "sum_struct_sec": round(sum_st, 4),
+        "sum_proc_sec": round(sum_pr, 4),
+        "mean_lag_sec": round(sum_lag / len(rows), 4),
+        "mean_backlog_sec": round(sum_bk / len(rows), 4),
+        "mean_struct_sec": round(sum_st / len(rows), 4),
+        "mean_proc_sec": round(sum_pr / len(rows), 4),
+        "backlog_share_of_lag_pct": (round(sum_bk / sum_lag * 100, 2)
+                                     if abs(sum_lag) > 1e-9 else None),
+        "struct_share_of_lag_pct": (round(sum_st / sum_lag * 100, 2)
+                                    if abs(sum_lag) > 1e-9 else None),
+        "proc_share_of_lag_pct": (round(sum_pr / sum_lag * 100, 2)
+                                  if abs(sum_lag) > 1e-9 else None),
+        "max_abs_residual_sec": round(max_resid, 6),
+        "identity_closed": bool(max_resid < 0.01),
+        "n_segments_backlog_positive": sum(1 for r in rows if r["backlog_sec"] > 0),
+        "n_segments_struct_positive": sum(1 for r in rows if r["struct_sec"] > 0),
+        "last_segment": rows[-1],
+        "per_segment": rows,
+    }
+
+
 class Session:
     """一次配音会话。
 
