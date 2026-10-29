@@ -1,0 +1,124 @@
+{
+  "script": "app139_app041_startup_tts.py",
+  "correction": "APP-041",
+  "target": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\live_caption_app.py",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "interpreter": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+  "total": 21,
+  "n_pass": 21,
+  "n_fail": 0,
+  "groups": {
+    "静态结构": true,
+    "行为": true,
+    "基线反证": true,
+    "反证（判据不恒真）": true
+  },
+  "results": [
+    {
+      "name": "static: 存在且仅有一个 _on_tts_toggled 定义",
+      "ok": true,
+      "detail": "def 数=1"
+    },
+    {
+      "name": "static: 启动流程调用 _on_tts_toggled()（同一入口）",
+      "ok": true,
+      "detail": "found"
+    },
+    {
+      "name": "static: 有 _tts_startup_done（只初始化一次）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "static: _on_tts_toggled 失败分支把开关置回 False",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "static: _engine_ready 里登记启动待办（ASR 就绪之后）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "static: 其它默认开启开关（overlay/draft）启动时已生效",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "static: var_show_spk 默认 True（纯显示，无副作用）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "B1: ASR 未就绪 ⇒ 不初始化 TTS（等顺序）",
+      "ok": true,
+      "detail": "svc_instances=0 pending=True"
+    },
+    {
+      "name": "B2: MT 还在 loading ⇒ 不初始化 TTS（防并行编译）",
+      "ok": true,
+      "detail": "svc_instances=0"
+    },
+    {
+      "name": "B3a: ASR+MT 就绪 ⇒ 初始化 TTS 一次",
+      "ok": true,
+      "detail": "svc_instances=1"
+    },
+    {
+      "name": "B3b: 重复轮询 5 次 ⇒ 仍只初始化 1 次（不重复起 worker）",
+      "ok": true,
+      "detail": "svc_instances=1"
+    },
+    {
+      "name": "B4: 初始化失败 ⇒ 开关自动回 False 且写明原因",
+      "ok": true,
+      "detail": "on=False note=🔴 启动失败：stub-boom（已自动关闭，详见日志）"
+    },
+    {
+      "name": "B5: _on_tts_toggled 成功 ⇒ 开关保持开启、worker 已建",
+      "ok": true,
+      "detail": "tts=FakeSvc"
+    },
+    {
+      "name": "B6: _on_tts_toggled 异常 ⇒ 开关自动回 False",
+      "ok": true,
+      "detail": "on=False note=🔴 启动失败：stub-boom（已自动关闭，详见日志）"
+    },
+    {
+      "name": "B7: 用户主动关闭 ⇒ 撤掉启动待办",
+      "ok": true,
+      "detail": "pending=False"
+    },
+    {
+      "name": "B8: ASR 加载失败 ⇒ 语音输出自动关闭",
+      "ok": true,
+      "detail": "on=False"
+    },
+    {
+      "name": "B9: _engine_ready ⇒ 登记启动待办",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "基线: 取出修前源码",
+      "ok": true,
+      "detail": "188939 字符"
+    },
+    {
+      "name": "基线: 修前**没有**启动初始化机制 ⇒ 判据 FAIL",
+      "ok": true,
+      "detail": "修前确实缺少该机制"
+    },
+    {
+      "name": "反证准备: 注入「启动流程不再调用初始化」",
+      "ok": true,
+      "detail": "mutated"
+    },
+    {
+      "name": "反证: 启动流程不调用初始化 ⇒ 判据 FAIL（判据不恒真）",
+      "ok": true,
+      "detail": "svc_instances=0 (期望 0)"
+    }
+  ],
+  "verdict": true
+}

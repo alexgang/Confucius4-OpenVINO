@@ -412,6 +412,16 @@ class TTSService:
         #   ⇒ GUI 底栏显示「语音滞后 X 秒」用的就是它。
         self._lag_s = 0.0
         self.lag_s = 0.0
+        # 🔴🔴🔴 APP-042：**上一句用的加速倍率**（滞回 + 步长限制的基准）
+        self._last_speed = 1.0
+        # 🔴🔴🔴 APP-042：**当前正在播放的倍率 / 滞后**（GUI 底栏显示）
+        self.cur_speed = 1.0
+        self.play_lag_s = 0.0
+        self.peak_play_lag_s = 0.0
+        # 🔴🔴 APP-042：**各倍率的时间占比**（验收报告要）
+        #   key = 倍率×100（整数），value = 该倍率下的**音频秒数**
+        self.speed_time_s: dict = {}
+        self.n_speed_adjusted = 0
         # 🔴 APP-028②：滞后告警的边沿触发 + 冷却（避免刷屏）
         self._lag_warned = False
         self._lag_warn_last = 0.0
@@ -904,7 +914,8 @@ class TTSService:
 
     # -- 提交 ------------------------------------------------------------
     def submit(self, text: str, seg: Optional[int] = None,
-               spk=None, spk_conf=None, lang: Optional[str] = None):
+               spk=None, spk_conf=None, lang: Optional[str] = None,
+               target_play_at: Optional[float] = None):
         """提交一条**定稿译文**。
 
         ⚠️ worker 还没 `ready` 时**不能直接下发** —— worker 的 stdin
@@ -926,6 +937,20 @@ class TTSService:
           - 现在：`lang` 随命令下发 ⇒ worker **不再猜**。
           ⚠️ **只有 `lang` 为真值时才加进命令体** ⇒ 旧调用方
             （不传 lang）**命令体逐字不变** ⇒ 向后兼容。
+
+        🔴🔴🔴 APP-042：**自适应加速播放**（按句变速，追赶语音滞后）。
+          - `target_play_at` = **这句的目标开播时刻**（主进程时钟，
+            `time.perf_counter()` 口径）⇒ App 侧 = 「源音频中这句的结束
+            时刻」对应的墙钟；插件侧 = `t0 + t_start + D`。
+          - `lag` = 「这句的**实际**开播时刻 − 目标开播时刻」。
+            ⚠️ **提交时刻**不是开播时刻 ⇒ 这里用**提交时刻**算 lag 是
+            **下界**（真正开播还要排队 + 合成 + 预缓冲）。
+            ⇒ 真正的 lag 由 worker 在**播出时**回报（`played` 事件里的
+              `play_lag_s`）⇒ **主进程用回报值**做闭环修正。
+          - `speed` = `time_stretch.speed_for_lag(lag, prev_speed)`
+            （**统一参数**，与插件一致）⇒ 随命令下发。
+          - ⚠️ **只有 `target_play_at` 为真值时才加进命令体**
+            ⇒ 旧调用方**命令体逐字不变** ⇒ 向后兼容。
         """
         text = (text or '').strip()
         if not text:
@@ -967,6 +992,42 @@ class TTSService:
         # 🔴🔴🔴 APP-030①：**目标语言显式下传**（同样「只在有值时加」）
         if lang:
             cmd['lang'] = str(lang)
+        # 🔴🔴🔴 APP-042：**自适应加速**（按句变速）
+        #   ⚠️ **只在有 `target_play_at` 时才加** ⇒ 旧调用方命令体逐字不变。
+        #   ⚠️ **时钟口径**：APP-042 的 lag 是「实际开播 − 目标开播」，
+        #     这两个时刻分别发生在 **worker 进程**（开播）和 **主进程**
+        #     （目标）⇒ **跨进程** ⇒ `time.perf_counter()` **基准不同**
+        #     （Windows 上是 QPC，起点是各进程启动时刻）⇒ **不可比**。
+        #     ⇒ 统一改用 **墙钟 `time.time()`**（同一台机器的系统时钟
+        #       ⇒ 跨进程可比）。⚠️ 目标时刻由调用方按同一口径给出。
+        #   ⚠️ `speed_for_lag` 是纯函数 ⇒ 无副作用 ⇒ 锁外算安全；
+        #      但 `prev_speed` 的更新要**加锁**（并发提交时不能丢更新）。
+        if target_play_at is not None:
+            try:
+                import time_stretch as _ts
+                now_wall = time.time()
+                _lag_target = now_wall - float(target_play_at)
+                # 🔴 滞后取**两个来源的较大者**：
+                #   ① 目标滞后 = 「现在 − 目标开播时刻」（翻译+排队的延迟）
+                #   ② 队列积压 = `lag_s`（用户实际听到的延迟，APP-028②）
+                #   ⇒ 加速是为了**追赶用户听到的落后**⇒ ② 才是关键量。
+                try:
+                    _lag_queue = float(self.lag_s or 0.0)
+                except Exception:
+                    _lag_queue = 0.0
+                _lag = max(_lag_target, _lag_queue)
+                with self.lock:
+                    _prev = float(self._last_speed or 1.0)
+                _sp = float(_ts.speed_for_lag(_lag, _prev))
+                with self.lock:
+                    self._last_speed = _sp
+                cmd['speed'] = round(_sp, 4)
+                cmd['target_wall'] = round(float(target_play_at), 4)
+                cmd['lag_s'] = round(_lag, 3)
+            except Exception as e:
+                # 🔴 变速参数算不出来 ⇒ **不加速**（宁可不变调，也不崩）
+                self.on_log('[TTS] APP-042 速度计算失败 ⇒ 本句按 1.0× 播放：%s'
+                            % e)
         if action == 'send':
             # 🔴🔴 2026-10-25 §29 修：**命令送不出去时必须撤账**。
             #   `_send()` 旧实现只记日志、不返回成败 ⇒ 调用方以为已下发
@@ -1543,6 +1604,33 @@ class TTSService:
                             % (jid, tel.get('peak'), tel.get('rms_dbfs'),
                                tel.get('read_delta'), tel.get('consumed'),
                                (' [静音合成]' if tel.get('silent_synth') else '')))
+            # 🔴🔴🔴 APP-042：**回收 worker 回报的实际倍率 / 播放滞后**
+            #   ⇒ 底栏显示「当前语速倍率 + 滞后秒数」（APP-042 明文）。
+            #   ⇒ 同时累计「各倍率的时间占比」（验收报告要）。
+            try:
+                _sp = float(tel.get('speed') or 1.0) if tel else 1.0
+            except Exception:
+                _sp = 1.0
+            self.cur_speed = _sp
+            if _sp > 1.0000001:
+                self.n_speed_adjusted += 1
+            try:
+                _plag = float(tel.get('play_lag_s')) if tel else None
+            except Exception:
+                _plag = None
+            if _plag is not None:
+                self.play_lag_s = _plag
+                if _plag > self.peak_play_lag_s:
+                    self.peak_play_lag_s = _plag
+            # 各倍率的**音频秒数**占比
+            try:
+                _od = float(tel.get('out_dur_s') or 0.0) if tel else 0.0
+            except Exception:
+                _od = 0.0
+            if _od > 0:
+                _k = int(round(_sp * 100))
+                self.speed_time_s[_k] = (self.speed_time_s.get(_k, 0.0)
+                                         + _od)
         elif kind == 'written':
             # 🔴 APP-021③：本句音频已**全部写进**环形缓冲（**还没播完**）。
             #   ⇒ 主进程用它更新**真实积压**（缓冲里的音频只剩几秒待播，
@@ -1985,6 +2073,19 @@ class TTSService:
             last_sentence_error=self.last_sentence_error,
             # 🔴 APP-021②：最近一行的播放遥测
             last_telemetry=self.last_telemetry,
+            # 🔴🔴🔴 APP-042：**自适应加速**的状态（GUI 底栏显示）
+            #   `cur_speed`        上一句用的倍率
+            #   `play_lag_s`       上一句的**实际开播滞后**（worker 回报）
+            #   `peak_play_lag_s`  峰值滞后
+            #   `n_speed_adjusted` 被加速的句数
+            #   `speed_time_s`     各倍率下的**音频秒数**（占比统计）
+            cur_speed=round(float(self.cur_speed or 1.0), 3),
+            play_lag_s=(round(float(self.play_lag_s), 3)
+                        if self.play_lag_s is not None else None),
+            peak_play_lag_s=round(float(self.peak_play_lag_s or 0.0), 3),
+            n_speed_adjusted=int(self.n_speed_adjusted or 0),
+            speed_time_s={int(k): round(float(v), 3)
+                          for k, v in (self.speed_time_s or {}).items()},
             # 🔴 APP-021③：会话日志路径（用户报障时给这一个文件即可复盘）
             session_log=session_log_path(),
         )

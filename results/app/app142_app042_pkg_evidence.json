@@ -1,0 +1,143 @@
+{
+  "script": "app142_app042_pkg_check.py",
+  "correction": "APP-041/042",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.7",
+  "verdict": "PASS",
+  "n_pass": 22,
+  "n_fail": 0,
+  "n_total": 22,
+  "pkg_files": {
+    "live_caption_app.py": {
+      "bytes": 263664,
+      "mtime": 1793265284.105641,
+      "sha256": "c123cdfbf70b2685a208eff323dc865140564a4fb8104e4a0dc385f114f186be"
+    },
+    "tts_service.py": {
+      "bytes": 121254,
+      "mtime": 1793265283.97588,
+      "sha256": "b55bf25a6fe6f2c0f90f78b3c31a07dcd968752587ea584d857cb520194cf68c"
+    },
+    "tts_worker.py": {
+      "bytes": 196391,
+      "mtime": 1793265283.89886,
+      "sha256": "83d500c6a94fdae2620f61fc156f46bd18acf9225c991af4bc66512e01f2952b"
+    },
+    "time_stretch.py": {
+      "bytes": 19765,
+      "mtime": 1793265283.81916,
+      "sha256": "f1f7f5e1c18c3e1e57f7e717abbacb5830309515bcef1897b2940060fae4c629"
+    }
+  },
+  "results": [
+    {
+      "name": "P1 包内存在 live_caption_app.py",
+      "ok": true,
+      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.7\\app\\live_caption_app.py"
+    },
+    {
+      "name": "P1 包内存在 tts_service.py",
+      "ok": true,
+      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.7\\app\\tts_service.py"
+    },
+    {
+      "name": "P1 包内存在 tts_worker.py",
+      "ok": true,
+      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.7\\app\\tts_worker.py"
+    },
+    {
+      "name": "P1 包内存在 time_stretch.py",
+      "ok": true,
+      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.7\\app\\time_stretch.py"
+    },
+    {
+      "name": "P2 包内 live_caption_app.py 与仓库**逐字一致**（归一化换行）",
+      "ok": true,
+      "detail": "sha_pkg=c123cdfbf70b2685 sha_repo=b1759e6a532dab3f"
+    },
+    {
+      "name": "P2 包内 tts_service.py 与仓库**逐字一致**（归一化换行）",
+      "ok": true,
+      "detail": "sha_pkg=b55bf25a6fe6f2c0 sha_repo=dc9c9bd79172b1a5"
+    },
+    {
+      "name": "P2 包内 tts_worker.py 与仓库**逐字一致**（归一化换行）",
+      "ok": true,
+      "detail": "sha_pkg=83d500c6a94fdae2 sha_repo=ba6a2b0ad0bc3d1a"
+    },
+    {
+      "name": "P2 包内 time_stretch.py 与仓库**逐字一致**（归一化换行）",
+      "ok": true,
+      "detail": "sha_pkg=f1f7f5e1c18c3e1e sha_repo=f1f7f5e1c18c3e1e"
+    },
+    {
+      "name": "P3 包内 WSOLA speed=1.10 时长比 ≈ 1/1.10",
+      "ok": true,
+      "detail": "ratio=0.9150"
+    },
+    {
+      "name": "P3 包内 WSOLA speed=1.10 **音高不变**",
+      "ok": true,
+      "detail": "f0 200.00→200.00"
+    },
+    {
+      "name": "P3 包内 WSOLA speed=1.25 时长比 ≈ 1/1.25",
+      "ok": true,
+      "detail": "ratio=0.8100"
+    },
+    {
+      "name": "P3 包内 WSOLA speed=1.25 **音高不变**",
+      "ok": true,
+      "detail": "f0 200.00→200.00"
+    },
+    {
+      "name": "P3 包内 WSOLA speed=1.30 时长比 ≈ 1/1.30",
+      "ok": true,
+      "detail": "ratio=0.7800"
+    },
+    {
+      "name": "P3 包内 WSOLA speed=1.30 **音高不变**",
+      "ok": true,
+      "detail": "f0 200.00→200.00"
+    },
+    {
+      "name": "P3 包内 speed=1.0 **逐位原样**",
+      "ok": true,
+      "detail": "逐位一致"
+    },
+    {
+      "name": "P4 包内 App 有 APP-041 启动机制",
+      "ok": true,
+      "detail": "三件套齐"
+    },
+    {
+      "name": "P4 包内 App 有 APP-042 目标时刻登记",
+      "ok": true,
+      "detail": "登记 + 传递"
+    },
+    {
+      "name": "P4 包内 service 有 speed 下发",
+      "ok": true,
+      "detail": "算 + 下发"
+    },
+    {
+      "name": "P4 包内 worker 有 StreamWSOLA",
+      "ok": true,
+      "detail": "流式 WSOLA + 命令解析"
+    },
+    {
+      "name": "P4 包内 worker 遥测含 play_lag_s",
+      "ok": true,
+      "detail": "遥测字段齐"
+    },
+    {
+      "name": "P5 反证：换成线性重采样 ⇒ **音高判据 FAIL**（判据不恒真）",
+      "ok": true,
+      "detail": "f0 200.00→250.00 偏差=25.0%"
+    },
+    {
+      "name": "P6 反证：删掉包内 cmd[speed] ⇒ P4 判据 **FAIL**（不恒真）",
+      "ok": true,
+      "detail": "静态判据被打掉"
+    }
+  ]
+}

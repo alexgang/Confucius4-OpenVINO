@@ -2352,6 +2352,25 @@ class App:
                                        command=self._on_tts_test_sound)
         self.btn_tts_test.pack(side='left', padx=(0, 8))
         self.tts = None                      # TTSService 实例
+        # 🔴🔴🔴 APP-041：**启动流程待办**（默认「开启」必须真的初始化）。
+        #   旧实现：`var_tts_on` 初值 True，但唯一的初始化入口
+        #   `_on_tts_toggled()` **只挂在 Checkbutton 的 command 上**
+        #   ⇒ 冷启动时复选框显示「开启」，而 worker / 输出设备 / 播放流
+        #     **一个都没建** ⇒ 用户必须「取消再勾一次」才能用。
+        #   ⇒ 这里用两个标志把「启动时该起 TTS」这件事**显式化**：
+        #     `_tts_startup_pending` = 待办（等 ASR→MT 就绪）
+        #     `_tts_startup_done`    = 已处理（保证**只初始化一次**）
+        self._tts_startup_pending = False
+        self._tts_startup_done = False
+        # 🔴 APP-041：ASR 引擎就绪 / 失败的标记（用于启动顺序判断）
+        self._asr_ready = False
+        self._asr_failed = False
+        # 🔴🔴🔴 APP-042：**自适应加速播放**的状态
+        #   `_seg_target_wall` = 段号 → 这句的**目标开播墙钟**（`time.time()`）
+        #   `_session_wall0`    = 会话起点墙钟（目标时刻的基准）
+        #   ⚠️ **有界**（与 `_spk_by_seg` 同一纪律）⇒ 长会话不无界增长。
+        self._seg_target_wall: dict = {}
+        self._session_wall0 = None
         self._offline_dlg = None             # 离线朗读对话框（Toplevel）
         self.var_tts_note = tk.StringVar(value='')
 
@@ -2739,6 +2758,7 @@ class App:
 
     def _engine_ready(self, key, eng, dev=None):
         self.engine, self.engine_key, self._loading = eng, key, False
+        self._asr_ready = True
         self._asr_effective_device = dev
         self.cb_asr_combo.configure(state='readonly')
         self.btn.configure(state='normal')
@@ -2748,16 +2768,101 @@ class App:
         # 用户在下拉里改过翻译后，任何一次切换 ASR 后端都会把翻译重置回启动值，
         # 表现为「改设备之后翻译再也不跑了」。
         self.mt.set_target(self._cur_mt_target())
+        # 🔴🔴🔴 APP-041①：ASR 就绪 ⇒ **登记**「启动时该起 TTS」，
+        #   真正的初始化在 `_maybe_startup_tts()` 里等 MT 也就绪后再做
+        #   （沿用「依次加载、auto=False 防 GPU 编译死锁」的既有顺序）。
+        self._arm_startup_tts()
         if self.args.autostart:
             self.args.autostart = False
             self.start()
 
     def _engine_failed(self, msg):
         self._loading = False
+        self._asr_failed = True
+        # 🔴🔴 APP-041②：ASR 加载失败 ⇒ **不能**在它之后起 TTS
+        #   （那会把「同一张卡上并行编译」的风险重新引入）。
+        #   ⇒ 开关**自动回到「关闭」**，状态栏写明原因并指向日志
+        #   ⇒ 绝不显示「开启」却不工作。
+        if self.var_tts_on.get() and not self._tts_startup_done:
+            self._tts_startup_pending = False
+            self.var_tts_on.set(False)
+            self.var_tts_note.set('🔴 语音输出已自动关闭：ASR 后端加载失败，'
+                                  '为避免与 ASR 争用设备，未启动 TTS')
+            self._ui_log('[tts] ASR 加载失败 ⇒ 启动流程不初始化 TTS（已自动关闭）')
         self.cb_asr_combo.configure(state='readonly')
         self.var_status.set('加载失败')
         from tkinter import messagebox
         messagebox.showerror('后端加载失败', msg)
+
+    # ── 🔴🔴🔴 APP-041：启动时初始化 TTS ──────────────────────────────
+    def _arm_startup_tts(self):
+        """🔴🔴 APP-041①：**登记**「启动流程该起 TTS」。
+
+        ⚠️ **为什么不在这里直接起**：
+          APP-041 明文要求初始化放在「**ASR → MT 就绪之后**」
+          ⇒ ASR 就绪只是**第一步**，MT 可能还在加载。
+          ⇒ 这里只登记待办，由 `_maybe_startup_tts()` 在 MT 就绪后执行。
+
+        ⚠️ **只在「用户没显式关掉」时登记**：
+          命令行给了 `--tts off` ⇒ `var_tts_on` 初值就是 False ⇒ 不登记。
+        """
+        if self._tts_startup_done or self._tts_startup_pending:
+            return
+        if not self.var_tts_on.get():
+            return
+        self._tts_startup_pending = True
+        # 🔴 APP-041：**如实显示**「在等什么」⇒ 绝不让界面显示「开启」
+        #   却什么都不发生（这正是 APP-041 要消灭的现象）。
+        self.var_tts_note.set('等待 ASR / 翻译就绪后自动初始化语音输出…')
+        self._ui_log('[tts] 启动流程：检测到「语音输出」默认开启 ⇒ '
+                     '将在 ASR/MT 就绪后初始化 TTS（APP-041）')
+
+    def _maybe_startup_tts(self):
+        """🔴🔴🔴 APP-041①：**启动流程真正初始化 TTS**（每个 `_poll` 调一次）。
+
+        🔴 **调用的是同一个 `_on_tts_toggled()`**（APP-041 明文：
+          「启动流程里显式调用和点击『开启』完全相同的那个初始化函数
+          （同一入口，不要另写一套）」）⇒ 手动勾选与启动自动的**行为逐字一致**。
+
+        🔴🔴 **顺序**：ASR 就绪 → MT 就绪（或 MT 关闭）→ 才起 TTS。
+          ⇒ 沿用「依次加载、auto=False 防 GPU 编译死锁」的既有顺序。
+          ⚠️ 若 MT 一直加载不出来 ⇒ TTS **永远不启动** ⇒ 用户界面显示
+            「语音输出已开启」却没声音 ⇒ 这正是 APP-041 要消灭的现象。
+          ⇒ **兜底**：MT 加载失败（state=='error'）⇒ 照样起 TTS
+            （TTS 与 MT 用不同设备时互不影响），并写明原因。
+        """
+        if not self._tts_startup_pending or self._tts_startup_done:
+            return
+        if not self._asr_ready:
+            return                      # ASR 还没就绪 ⇒ 等
+        mt_state = getattr(self.mt, 'state', 'idle')
+        if mt_state == 'loading':
+            return                      # MT 还在加载 ⇒ 等（防并行编译）
+        if mt_state == 'error':
+            self._ui_log('[tts] 启动流程：MT 加载失败 ⇒ 仍启动 TTS'
+                         '（语音输出与翻译相互独立）')
+        # 🔴 **只初始化一次**（APP-041 验收：「只调用一次」）
+        self._tts_startup_done = True
+        self._tts_startup_pending = False
+        self._ui_log('[tts] 启动流程：调用 _on_tts_toggled() 初始化语音输出'
+                     '（与手动点击「开启」同一入口）')
+        try:
+            self._on_tts_toggled()
+        except Exception as e:
+            self._ui_log(f'[tts] 启动初始化异常：{type(e).__name__}: {e}')
+            self._tts_startup_failed(e)
+
+    def _tts_startup_failed(self, err):
+        """🔴🔴 APP-041②：初始化失败 ⇒ **开关自动回到「关闭」**。
+
+        ⇒ 绝不出现「界面显示『开启』但设备没初始化、一点声音都没有」，
+          且状态栏**写明原因并指向日志**。
+        """
+        self.var_tts_on.set(False)
+        self.var_tts_note.set(f'🔴 语音输出启动失败：{err}（已自动关闭，'
+                              f'修复后可重新勾选；详见日志）')
+        self.var_status.set('语音输出启动失败（已自动关闭）')
+        self._ui_log(f'[tts] 启动初始化失败，已自动关闭开关：{err!r}')
 
     # -- 控制 -------------------------------------------------------------
     def toggle(self):
@@ -2775,6 +2880,10 @@ class App:
             return
         self.session = Session(self.engine, src, on_final=self._on_final,
                                on_audio=self._collect_clone_pcm)
+        # 🔴🔴🔴 APP-042：**会话起点墙钟**（目标开播时刻的基准）
+        #   ⚠️ 用 `time.time()`（墙钟）⇒ 与 worker 进程**跨进程可比**。
+        self._session_wall0 = time.time()
+        self._seg_target_wall.clear()
         self.session.start()
         self.btn.configure(text='■ 停止')
         kind = self._cur_source_key()
@@ -3131,6 +3240,9 @@ class App:
         """
         on = self.var_tts_on.get()
         if not on:
+            # 🔴 APP-041：用户主动关掉 ⇒ 撤掉「启动待办」，
+            #   否则启动流程会在稍后把它又打开（违反用户意图）。
+            self._tts_startup_pending = False
             if self.tts is not None:
                 try:
                     self.tts.close()
@@ -3185,9 +3297,14 @@ class App:
                 alt = _first_usable_tts_device(self._dev_avail, skip=dev,
                                                prec=prec)
                 if alt is None:
+                    # 🔴🔴 APP-041②：**没有任何可用设备** ⇒ 初始化失败
+                    #   ⇒ 开关**自动回到「关闭」**（绝不显示「开启」却不工作）
+                    self.var_tts_on.set(False)
                     self.var_tts_note.set(f'🔴 语音输出不可用：{bad}；'
-                                          f'且本机没有其它可用设备')
+                                          f'且本机没有其它可用设备'
+                                          f'（已自动关闭，详见日志）')
                     self.var_status.set('语音输出不可用（不影响字幕与翻译）')
+                    self._ui_log('[tts] 无可用设备 ⇒ 启动失败，开关已自动关闭')
                     return
                 self.var_status.set(
                     f'语音输出设备 {dev} 不可用（{bad}）⇒ 已自动改用 {alt}')
@@ -3203,7 +3320,10 @@ class App:
             self.var_status.set('语音输出已开启（正在加载 TTS 模型）')
         except Exception as e:
             self.tts = None
-            self.var_tts_note.set(f'启动失败：{e}')
+            # 🔴🔴 APP-041②：初始化失败 ⇒ 开关**自动回到「关闭」**
+            #   ⇒ 状态栏写明原因并指向日志，绝不显示「开启」却不工作。
+            self.var_tts_on.set(False)
+            self.var_tts_note.set(f'🔴 启动失败：{e}（已自动关闭，详见日志）')
             self.var_status.set('语音输出启动失败（不影响字幕与翻译）')
             self._ui_log(f'tts start failed: {type(e).__name__}: {e}')
 
@@ -3363,7 +3483,13 @@ class App:
                         #   ⚠️ 用 `_cur_mt_target()`（**下拉当前值**）而不是
                         #     `self.mt.target` ⇒ 会话中途改下拉立即生效。
                         self.tts.submit(ev['txt'], seg=ev['seg'],
-                                        lang=self._cur_mt_target())
+                                        lang=self._cur_mt_target(),
+                                        # 🔴🔴🔴 APP-042：**目标开播墙钟**
+                                        #   ⇒ 服务端据此算 lag 与加速倍率。
+                                        #   ⚠️ 查不到 ⇒ None ⇒ 服务端不下发
+                                        #     加速参数 ⇒ 旧行为逐字不变。
+                                        target_play_at=self._seg_target_wall.get(
+                                            ev['seg']))
                 elif kind == 'draft' and ev['txt']:
                     # APP-015：草稿**只显示、不朗读** ⇒ 这里只记译文
                     # 🔴 **按单元 id 存**（不是翻译去重键）⇒ 与渲染层的
@@ -3396,10 +3522,17 @@ class App:
             return ''
         fp = st.get('first_packet_s')
         f = lambda v, d=1: ('—' if v is None else f'{v:.{d}f}')
-        # 🔴 APP-021③：把「失败」也摆出来（已播 / 丢句 / 失败）
+        # 🔴🔴🔴 APP-042：**当前语速倍率 + 实际播放滞后**（底栏显示）
+        #   ⇒ `cur_speed` = 上一句用的倍率；`play_lag_s` = 上一句的实际
+        #     开播滞后（worker 回报，跨进程墙钟口径）。
+        sp = st.get('cur_speed')
+        plag = st.get('play_lag_s')
+        sp_txt = ('—' if sp is None else f'{float(sp):.2f}×')
+        # 🔴🔴 APP-021③：把「失败」也摆出来（已播 / 丢句 / 失败）
         # 🔴🔴 APP-028②：**语音滞后**放在**最前面**（用户最关心的那个数）
         #   ⇒ 底栏已经很长 ⇒ 其余字段压缩（去掉重复的空格 / 缩短标签）
         return (f'  |  TTS 滞后 {f(st.get("lag_s"))}s  首包 {f(fp, 2)}s'
+                f'  语速 {sp_txt}  播放滞后 {f(plag)}s'
                 f'  积压 {f(st.get("backlog_s"))}s'
                 f'/最大 {f(st.get("max_backlog_s"))}s  丢句 {st.get("n_dropped", 0)}'
                 f'  失败 {st.get("n_failed", 0)}'
@@ -3532,7 +3665,27 @@ class App:
         if spk is not None:
             self._spk_by_seg[seg] = (spk, spk_conf)
             self._spk_table.setdefault(spk, {'conf': spk_conf, 'vec': None})
+        # 🔴🔴🔴 APP-042：登记目标开播墙钟（供自适应加速追赶滞后）
+        self._seg_target_wall[seg] = self._target_play_wall()
         self.mt.submit(text, seg=seg, spk=spk, spk_conf=spk_conf)
+
+    def _target_play_wall(self):
+        """🔴🔴🔴 APP-042：**这句的目标开播墙钟**（`time.time()` 口径）。
+
+        目标 = 「源音频中这句的结束时刻」对应的墙钟。
+        ⚠️ **当前 ASR 不给段级时间戳** ⇒ 用「已消费的源音频时长」近似：
+          - `session.audio_s` = 已经喂进引擎的源音频秒数；
+          - 会话起点墙钟 `self._session_wall0` ⇒ 目标墙钟 = `t0 + audio_s`。
+        ⚠️ **没有会话**（未 start）⇒ 返回 None ⇒ 不下发加速参数
+          ⇒ 旧行为逐字不变。
+        """
+        if self._session_wall0 is None:
+            return None
+        try:
+            a = float(self.session.audio_s) if self.session else 0.0
+        except Exception:
+            a = 0.0
+        return self._session_wall0 + a
 
     def clear(self):
         self.final_text = ''
@@ -3851,6 +4004,9 @@ class App:
         self._track_mt_state()
         self._track_tts_state()
         self._track_clone_state()
+        # 🔴🔴🔴 APP-041：启动流程的 TTS 初始化在此**轮询**触发
+        #   （ASR 就绪 + MT 就绪/失败之后 ⇒ 起 TTS；**只调用一次**）
+        self._maybe_startup_tts()
         self._pump_tts()              # ← 把定稿译文提交给 TTS（GUI 侧链路）
         s, e = self.session, self.engine
         if s:

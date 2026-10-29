@@ -1474,7 +1474,7 @@ class TTSWorker:
 
     # -- 合成 ------------------------------------------------------------
     def synth(self, jid: int, text: str, spk=None, spk_conf=None, lang=None,
-              t_recv=None):
+              t_recv=None, speed: float = 1.0, target_wall=None):
         """合成一句并播放。
 
         三条路径：
@@ -1502,6 +1502,13 @@ class TTSWorker:
         🔴🔴🔴 APP-030①：`lang` = **主进程显式下传的目标语言**。
           - 有 `lang` ⇒ **直接用**（不再猜）；
           - 无 `lang`（旧命令）⇒ 退回 `_guess_lang()`（兜底）。
+
+        🔴🔴🔴 APP-042：**`speed` = 本句的自适应加速倍率**（按句变速）。
+          - 主进程按 `lag` 用 `time_stretch.speed_for_lag()` 算好，随命令下发；
+          - 本句**句内速度恒定**（APP-042「按句变速、句内不变」）；
+          - 变速用 **WSOLA**（保持音高）⇒ **不得**改采样率 / playbackRate；
+          - **流式**做（边收块边变边播）⇒ 首块即可出声 ⇒ 不额外增加延迟；
+          - `speed == 1.0`（默认）⇒ **完全走原路径**（逐位不变 ⇒ 零风险）。
         """
         import numpy as np
 
@@ -1646,6 +1653,11 @@ class TTSWorker:
         except Exception:
             self._last_est_frames = None
         wav_parts = []
+        # 🔴🔴🔴 APP-042：**加速后**的逐句音频（供抽听落盘）
+        #   ⚠️ 只在 `dump_dir` 且确实变速时才有内容。
+        acc_parts = []
+        # 🔴🔴 APP-042：**实际输出**的样本数（加速后）⇒ 遥测用
+        _out_samples = 0
         # 🔴🔴🔴 APP-030⑤：**异常句落盘的滚动缓冲**（**有界**）
         #   `maxlen=48` 块 ≈ 48 s 音频（12 fps × 4 s/块）
         #   ⇒ 失控句的「出事段」一定在里面 ⇒ reviewer 能拿到音频。
@@ -1686,6 +1698,24 @@ class TTSWorker:
         synth_started = False
         # 🔴 APP-027①：预缓冲**没攒够**就播了（宁可句内欠载也不能不出声）
         prebuffer_short = False
+        # 🔴🔴🔴 APP-042：主进程下发的**目标开播墙钟**（跨进程可比口径）
+        _target_wall = target_wall
+        # 🔴🔴🔴 APP-042：本句的**自适应加速倍率**（主进程按 lag 算好）
+        #   ⚠️ **句内恒定**（APP-042「按句变速、句内不变」）⇒ 只在句首算一次。
+        #   ⚠️ `speed == 1.0` ⇒ **完全不走变速路径**（逐位不变 ⇒ 零风险）。
+        _stretcher = None
+        try:
+            _sp = float(speed) if speed else 1.0
+        except Exception:
+            _sp = 1.0
+        if _sp > 1.0000001:
+            try:
+                import time_stretch as _ts
+                _stretcher = _ts.StreamWSOLA(speed=_sp, sr=(self.sr or SR))
+            except Exception as e:
+                _stretcher = None
+                log('[tts_worker] APP-042 变速模块不可用 ⇒ 本句按 1.0× 播放：%s'
+                    % e)
         try:
             with self._synth_lock:
                 if self._is_cancelled(jid):
@@ -1808,6 +1838,21 @@ class TTSWorker:
                     t_last = time.perf_counter()
                     n_samples += len(w)
                     n_parts += 1
+                    # 🔴🔴🔴 APP-042：**本块的加速输出**（WSOLA，保持音高）。
+                    #   ⚠️ `speed == 1.0` ⇒ `w_out` 就是 `w`（**逐位不变**）。
+                    #   ⚠️ **流式**⇒ 第一块即可开始出声（不额外增加延迟）。
+                    w_out = w
+                    if _stretcher is not None:
+                        try:
+                            w_out = _stretcher.process(w)
+                            if w_out is None:
+                                w_out = w
+                        except Exception as e:
+                            log('[tts_worker] APP-042 变速失败 ⇒ 本句按 1.0× 播放：%s'
+                                % e)
+                            _stretcher = None
+                            w_out = w
+                    _out_samples += int(np.asarray(w_out).size)
                     # ── APP-021②：本块幅度统计 ──────────────────────
                     try:
                         if len(w):
@@ -1829,6 +1874,12 @@ class TTSWorker:
                         #   （与旧实现语义一致：一句话 = 一个时间点）。
                         # 🔴 APP-021⑥：需要逐句 wav 时也整句累加（供落盘）。
                         wav_parts.append(w)
+                        # 🔴🔴🔴 APP-042：**逐句 wav 另存「加速后」版本**
+                        #   （供 reviewer「挑 3 段 1.2–1.3× 的配音落盘抽听」）
+                        #   ⚠️ `out_wav` 的**时间轴混音仍用原始音频**
+                        #     （时间轴按真实时间戳放置 ⇒ 变速会破坏时间轴语义）
+                        if self.dump_dir and _stretcher is not None:
+                            acc_parts.append(w_out)
                     if self.out_wav:
                         # 🔴 APP-021⑥：落盘模式下**不实时播放**
                         #   （与旧语义一致：只混时间轴，不出声）。
@@ -1836,8 +1887,8 @@ class TTSWorker:
                     if self.player is None:
                         continue
                     # 🔴🔴 APP-027①：**先攒进预缓冲区**，攒够才写进环形缓冲。
-                    pending_chunks.append(w)
-                    pending_samples += len(w)
+                    pending_chunks.append(w_out)
+                    pending_samples += len(w_out)
                     if pending_samples >= need_samples:
                         # 🔴 预缓冲**达成** ⇒ 一次性写进去 ⇒ 本句开始出声
                         #   ⇒ 之后的欠载才算「**句内欠载**」（卡顿）。
@@ -1875,6 +1926,23 @@ class TTSWorker:
                                                    t_dequeue, t_first, t_last,
                                                    prebuffer_s, prebuffer_short))
                             return
+                # 🔴🔴🔴 APP-042：变速器的**收尾块**（最后一帧的尾巴）
+                #   ⇒ 必须在本句**所有块都处理完**之后、预缓冲判定**之前**
+                #     追加 ⇒ 否则尾块会**丢**（⇒ 句尾被截 ⇒ 可懂度下降）。
+                if _stretcher is not None and not aborted:
+                    try:
+                        _tail = _stretcher.flush()
+                        if _tail is not None and len(_tail):
+                            pending_chunks.append(np.asarray(
+                                _tail, dtype=np.float32))
+                            pending_samples += int(len(_tail))
+                            _out_samples += int(len(_tail))
+                            if self.dump_dir:
+                                acc_parts.append(np.asarray(
+                                    _tail, dtype=np.float32))
+                    except Exception as e:
+                        log('[tts_worker] APP-042 变速收尾失败（不影响播放）：%s'
+                            % e)
                 # 🔴🔴 APP-027①：合成**结束**时，若预缓冲**还没攒够**
                 #   ⇒ **照样写进去**（宁可句内欠载，也不能不出声）
                 #   ⇒ 记 `prebuffer_short=True`（遥测里能看到）。
@@ -1973,6 +2041,16 @@ class TTSWorker:
         if self.dump_dir and wav_parts:
             wav = np.concatenate(wav_parts) if len(wav_parts) > 1 else wav_parts[0]
             self._dump_segment_wav(jid, wav)
+        # 🔴🔴🔴 APP-042：**加速后**的逐句 wav（供 reviewer 抽听）
+        #   ⚠️ 文件名带 `_acc{倍率}` ⇒ 不会与原始 wav 混淆。
+        if self.dump_dir and acc_parts:
+            try:
+                acc = (np.concatenate(acc_parts) if len(acc_parts) > 1
+                       else acc_parts[0])
+                self._dump_segment_wav(jid, acc, suffix='_acc%03d'
+                                      % int(round(_sp * 100)))
+            except Exception as e:
+                log('[tts_worker] APP-042 加速 wav 落盘失败：%s' % e)
 
         # 🔴🔴 APP-021②：本句的**一行遥测**（写进 worker 日志 + 事件带回主进程）。
         rms = 0.0
@@ -2033,6 +2111,26 @@ class TTSWorker:
                             if _t_enqueue is not None else None)
         tel['worker_fifo_wait_s'] = _fifo_wait
         tel['worker_fifo_wait_total_s'] = _fifo_wait_total
+        # 🔴🔴🔴 APP-042：**自适应加速**的逐句遥测
+        #   `speed`        本句实际用的倍率（1.0 = 未加速）
+        #   `out_dur_s`    **变速后**实际输出时长
+        #   `in_dur_s`     变速前的原始音频时长
+        #   `speed_gain`   实际时长达成的压缩比（= in/out，≈ speed）
+        #   `target_wall`  主进程下发的**目标开播墙钟**（跨进程可比）
+        #   `play_lag_s`   **实际开播**墙钟 − 目标开播墙钟（APP-042 的 lag）
+        tel['speed'] = round(float(_sp), 4)
+        tel['in_dur_s'] = round(dur, 3)
+        _out_dur = _out_samples / float(self.sr if self.sr else SR)
+        tel['out_dur_s'] = round(_out_dur, 3)
+        tel['speed_gain'] = (round(dur / _out_dur, 4)
+                             if _out_dur > 1e-6 else None)
+        # 🔴🔴🔴 APP-042：**跨进程墙钟**（`time.time()` ⇒ 与主进程可比）
+        #   ⚠️ **不能用 `perf_counter()`**：Windows 上它的基准是**各进程
+        #     自己的启动时刻** ⇒ 跨进程相减得到的是无意义的值。
+        tel['play_wall'] = round(time.time(), 4)
+        if _target_wall is not None:
+            tel['target_wall'] = round(float(_target_wall), 4)
+            tel['play_lag_s'] = round(time.time() - float(_target_wall), 3)
         # 🔴🔴🔴 APP-037 C：**句首标点剥离**的可观测字段
         tel['lead_punct_stripped'] = self._last_lead_punct
         tel['lead_punct_chars'] = int(self._last_lead_punct_n or 0)
@@ -2374,11 +2472,12 @@ class TTSWorker:
             pass
         return tel
 
-    def _dump_segment_wav(self, jid: int, wav):
+    def _dump_segment_wav(self, jid: int, wav, suffix: str = ''):
         """🔴 APP-021⑥：逐句落盘 wav（供 reviewer 算 RMS / 回转写）。
 
         目录：`--dump-dir` 指定；未指定 ⇒ **不落盘**（默认零副作用）。
         文件名：`seg_<jid>_<序号>.wav`。
+        🔴🔴🔴 APP-042：`suffix` 非空 ⇒ 文件名加后缀（加速版用 `_acc120`）。
         """
         if not self.dump_dir:
             return None
@@ -2387,7 +2486,8 @@ class TTSWorker:
             os.makedirs(self.dump_dir, exist_ok=True)
             self._dump_seq += 1
             path = os.path.join(self.dump_dir,
-                                'seg_%d_%04d.wav' % (jid, self._dump_seq))
+                                'seg_%d_%04d%s.wav' % (jid, self._dump_seq,
+                                                      suffix))
             sf.write(path, wav, self.sr)
             self._dump_paths.append(path)
             log(f'[tts_worker] 已落盘分段 wav：{path}')
@@ -2850,6 +2950,10 @@ class TTSWorker:
             jid, text, spk, spk_conf, lang = item[0], item[1], item[2], item[3], item[4]
             # 🔴🔴🔴 APP-036 C1：队列元组可能带 `t_recv`（老元组没有 ⇒ 兜底）
             t_recv = item[5] if len(item) > 5 else None
+            # 🔴🔴🔴 APP-042：队列元组可能带 `speed`（老元组没有 ⇒ 兜底 1.0）
+            speed = item[6] if len(item) > 6 else 1.0
+            # 🔴🔴🔴 APP-042：队列元组可能带 `target_wall`（老元组没有 ⇒ None）
+            target_wall = item[7] if len(item) > 7 else None
             # ── 出队时刻（APP-027② 的 `t_dequeue` 真正的口径）──
             t_dequeue = time.perf_counter()
             with self._synth_state_lock:
@@ -2866,7 +2970,8 @@ class TTSWorker:
                 self._synth_rem_s = self._estimate_dur_s(text)
             self._emit_synth_state()
             try:
-                self.synth(jid, text, spk, spk_conf, lang, t_recv)
+                self.synth(jid, text, spk, spk_conf, lang, t_recv, speed,
+                           target_wall)
             except Exception as e:
                 import traceback
                 log('[tts_worker] 🔴 合成线程异常：' + traceback.format_exc())
@@ -3010,6 +3115,25 @@ class TTSWorker:
                 lang = msg.get('lang')
                 if not lang:
                     lang = self._guess_lang(text)
+                # 🔴🔴🔴 APP-042：**本句的自适应加速倍率**（主进程算好）
+                #   ⚠️ **缺 `speed` 的旧命令仍要能跑** ⇒ 兜底 1.0（不加速）。
+                #   ⚠️ **句内恒定** ⇒ 这里只取一次，合成线程全程用同一个值。
+                try:
+                    speed = float(msg.get('speed') or 1.0)
+                except Exception:
+                    speed = 1.0
+                if speed < 1.0:
+                    speed = 1.0
+                if speed > 1.30:
+                    speed = 1.30
+                # 🔴🔴🔴 APP-042：**目标开播墙钟**（跨进程可比 ⇒ 用 `time.time()`）
+                #   ⚠️ 缺这个字段的旧命令仍要能跑 ⇒ 兜底 None。
+                target_wall = msg.get('target_wall')
+                if target_wall is not None:
+                    try:
+                        target_wall = float(target_wall)
+                    except Exception:
+                        target_wall = None
                 # 🔴🔴 APP-024①：**dequeue 时刻** = worker 主循环从 stdin
                 #   真正取到这条命令的瞬间。
                 #   ⚠️ 为什么不直接在 `synth()` 入口取：`synth()` 是**独立线程**
@@ -3045,7 +3169,9 @@ class TTSWorker:
                 #   ⇒ 合成线程拿得到**显式**语言 ⇒ 不再靠猜。
                 # 🔴🔴🔴 APP-036 C1：队列元组多带一个 `t_recv`
                 #   （**纯附加** ⇒ 老元组解包不兼容 ⇒ 同步改合成线程）。
-                self._synth_q.put((jid, text, spk, spk_conf, lang, t_recv))
+                # 🔴🔴🔴 APP-042：再带一个 `speed`（**纯附加**）。
+                self._synth_q.put((jid, text, spk, spk_conf, lang, t_recv,
+                                   speed, target_wall))
                 self._emit_synth_state()
             elif cmd == 'cancel':
                 # 🔴🔴🔴 APP-028②：**cancel 的语义已变**。

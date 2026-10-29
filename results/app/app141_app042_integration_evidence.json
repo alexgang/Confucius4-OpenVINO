@@ -1,0 +1,330 @@
+{
+  "script": "app141_app042_integration.py",
+  "correction": "APP-042",
+  "verdict": "PASS",
+  "n_pass": 62,
+  "n_fail": 0,
+  "n_total": 62,
+  "groups": {
+    "静态结构": true,
+    "B1 速度公式": true,
+    "B2 流式 WSOLA": true,
+    "B3/B4 命令体": true,
+    "B5 worker 变速": true,
+    "B6-B9 遥测/显示": true,
+    "反证（注入）": true,
+    "反证（基线 commit）": true
+  },
+  "results": [
+    {
+      "name": "S1 App 侧登记 `_seg_target_wall`",
+      "ok": true,
+      "detail": "App 有 seg→目标墙钟 的登记"
+    },
+    {
+      "name": "S2 App 侧 `submit(..., target_play_at=...)`",
+      "ok": true,
+      "detail": "submit 带上目标开播时刻"
+    },
+    {
+      "name": "S3 App 侧底栏显示语速与播放滞后",
+      "ok": true,
+      "detail": "底栏含「语速」与「播放滞后」"
+    },
+    {
+      "name": "S4 service 的 `submit` 支持 `target_play_at`",
+      "ok": true,
+      "detail": "签名含 target_play_at"
+    },
+    {
+      "name": "S5 service 用 `speed_for_lag` 算倍率",
+      "ok": true,
+      "detail": "统一参数函数被调用"
+    },
+    {
+      "name": "S6 service 把 `speed` 放进 synth 命令",
+      "ok": true,
+      "detail": "命令体含 'speed'"
+    },
+    {
+      "name": "S7 service `stats()` 暴露 cur_speed / play_lag_s",
+      "ok": true,
+      "detail": "stats 暴露加速状态"
+    },
+    {
+      "name": "S8 worker 的 `synth()` 接受 speed 参数",
+      "ok": true,
+      "detail": "synth 签名含 speed"
+    },
+    {
+      "name": "S9 worker 用 **StreamWSOLA**（不是改采样率）",
+      "ok": true,
+      "detail": "使用流式 WSOLA"
+    },
+    {
+      "name": "S10 worker 遥测回报 speed / play_lag_s / out_dur_s",
+      "ok": true,
+      "detail": "遥测含加速字段"
+    },
+    {
+      "name": "S11 worker 命令解析读 speed / target_wall",
+      "ok": true,
+      "detail": "主循环读 speed 与 target_wall"
+    },
+    {
+      "name": "S12 time_stretch 提供 StreamWSOLA",
+      "ok": true,
+      "detail": "流式实现存在"
+    },
+    {
+      "name": "S13 **禁止改采样率 / playbackRate**",
+      "ok": true,
+      "detail": "代码里无 playbackRate 调用（注释不计）"
+    },
+    {
+      "name": "S14 worker 未用改采样率式变速",
+      "ok": true,
+      "detail": "可疑调用=[]"
+    },
+    {
+      "name": "B1.1 lag=0s ⇒ 1.00×",
+      "ok": true,
+      "detail": "1.0"
+    },
+    {
+      "name": "B1.2 lag=3s ⇒ 1.00×（死区边界）",
+      "ok": true,
+      "detail": "1.0"
+    },
+    {
+      "name": "B1.3 lag=7s ⇒ 1.10×（(7-3)*0.025）",
+      "ok": true,
+      "detail": "1.1"
+    },
+    {
+      "name": "B1.4 lag=15s ⇒ 1.30×（上限）",
+      "ok": true,
+      "detail": "1.3"
+    },
+    {
+      "name": "B1.5 lag=99s ⇒ 仍 ≤ 1.30×（clamp）",
+      "ok": true,
+      "detail": "1.3"
+    },
+    {
+      "name": "B1.6 滞回：prev=1.20, lag=2.5s ⇒ **保持 1.20×**（不降）",
+      "ok": true,
+      "detail": "1.2"
+    },
+    {
+      "name": "B1.7 滞回触发 + 步长限制：prev=1.20, lag=1.5s ⇒ 1.10×",
+      "ok": true,
+      "detail": "1.0999999999999999"
+    },
+    {
+      "name": "B1.7.1 滞回触发 + 步长允许：prev=1.05, lag=1.5s ⇒ 1.00×",
+      "ok": true,
+      "detail": "1.0"
+    },
+    {
+      "name": "B1.8 步长限制：prev=1.00, lag=99s ⇒ 只到 1.10×",
+      "ok": true,
+      "detail": "1.1"
+    },
+    {
+      "name": "B1.9 步长限制：prev=1.25, lag=99s ⇒ 只到 1.30×",
+      "ok": true,
+      "detail": "1.3"
+    },
+    {
+      "name": "B1.10 步长限制（降速侧）：prev=1.30, lag=0s ⇒ 不低于 1.20×",
+      "ok": true,
+      "detail": "1.2"
+    },
+    {
+      "name": "B2.0 输入基频 ≈200 Hz",
+      "ok": true,
+      "detail": "f0_in=200.00"
+    },
+    {
+      "name": "B2.1.1 流式 WSOLA 时长比 ≈ 1/1.1",
+      "ok": true,
+      "detail": "ratio=0.9150 期望≈0.9091"
+    },
+    {
+      "name": "B2.1.1 流式 WSOLA **音高不变**（<2%）",
+      "ok": true,
+      "detail": "f0 200.00→200.00 Hz 偏差=0.00%"
+    },
+    {
+      "name": "B2.1.25 流式 WSOLA 时长比 ≈ 1/1.25",
+      "ok": true,
+      "detail": "ratio=0.8100 期望≈0.8000"
+    },
+    {
+      "name": "B2.1.25 流式 WSOLA **音高不变**（<2%）",
+      "ok": true,
+      "detail": "f0 200.00→200.00 Hz 偏差=0.00%"
+    },
+    {
+      "name": "B2.1.3 流式 WSOLA 时长比 ≈ 1/1.3",
+      "ok": true,
+      "detail": "ratio=0.7800 期望≈0.7692"
+    },
+    {
+      "name": "B2.1.3 流式 WSOLA **音高不变**（<2%）",
+      "ok": true,
+      "detail": "f0 200.00→200.00 Hz 偏差=0.00%"
+    },
+    {
+      "name": "B2.1 speed=1.0 ⇒ **逐位原样**（零风险）",
+      "ok": true,
+      "detail": "逐位一致"
+    },
+    {
+      "name": "B4 不传 target_play_at ⇒ 命令体**不含加速字段**（向后兼容）",
+      "ok": true,
+      "detail": "keys=['cmd', 'id', 'lang', 'text']"
+    },
+    {
+      "name": "B3 传 target_play_at ⇒ 命令体带 speed / target_wall / lag_s",
+      "ok": true,
+      "detail": "keys=['cmd', 'id', 'lag_s', 'lang', 'speed', 'target_wall', 'text']"
+    },
+    {
+      "name": "B3.1 滞后 10 s ⇒ 倍率 = 1.10×（公式 1.175 受步长限制）",
+      "ok": true,
+      "detail": "speed=1.1（公式值 1.175，步长上限 1.10）"
+    },
+    {
+      "name": "B3.2 命令体 speed 在 [1.0, 1.30] 内",
+      "ok": true,
+      "detail": "speed=1.1"
+    },
+    {
+      "name": "B3.3 目标时刻在未来 ⇒ speed=1.0（不加速）",
+      "ok": true,
+      "detail": "speed=1.0"
+    },
+    {
+      "name": "B5 worker 路径的 WSOLA 时长确实变短",
+      "ok": true,
+      "detail": "24000→19440 samples"
+    },
+    {
+      "name": "B5.1 worker 路径的 WSOLA **音高不变**",
+      "ok": true,
+      "detail": "f0 200.00→200.00"
+    },
+    {
+      "name": "B5.2 worker 源码调用 `_stretcher.process(`",
+      "ok": true,
+      "detail": "流式处理被接进合成循环"
+    },
+    {
+      "name": "B5.3 worker 收尾调用 `_stretcher.flush()`（不丢句尾）",
+      "ok": true,
+      "detail": "收尾块被追加"
+    },
+    {
+      "name": "B6 worker 遥测含 speed / play_lag_s / out_dur_s",
+      "ok": true,
+      "detail": "遥测字段齐"
+    },
+    {
+      "name": "B6.1 worker 用**墙钟**（time.time）算 play_lag_s",
+      "ok": true,
+      "detail": "跨进程可比口径"
+    },
+    {
+      "name": "B7 service.stats 暴露 cur_speed / play_lag_s / speed_time_s",
+      "ok": true,
+      "detail": "stats 字段齐"
+    },
+    {
+      "name": "B8 GUI 底栏含「语速」与「播放滞后」",
+      "ok": true,
+      "detail": "底栏字段"
+    },
+    {
+      "name": "B9 App 把目标开播时刻传给 submit",
+      "ok": true,
+      "detail": "传递链完整"
+    },
+    {
+      "name": "B9.1 App 用**墙钟**算目标开播时刻",
+      "ok": true,
+      "detail": "time.time 口径"
+    },
+    {
+      "name": "R1 反证：线性重采样 ⇒ 时长判据**仍通过**（证明时长判据不够）",
+      "ok": true,
+      "detail": "ratio=0.8000"
+    },
+    {
+      "name": "R1.1 反证：线性重采样 ⇒ **音高判据 FAIL**（判据有分辨力）",
+      "ok": true,
+      "detail": "f0 200.00→250.00 Hz 偏差=25.0%"
+    },
+    {
+      "name": "R2 反证：删掉 cmd['speed'] 后源码确实变化",
+      "ok": true,
+      "detail": "变异成功"
+    },
+    {
+      "name": "R2.1 反证：删掉 speed 下发 ⇒ B3 判据 **FAIL**（不恒真）",
+      "ok": true,
+      "detail": "keys=['cmd', 'id', 'lag_s', 'lang', 'target_wall', 'text']"
+    },
+    {
+      "name": "R3 反证：删掉底栏语速字段后源码确实变化",
+      "ok": true,
+      "detail": "变异成功"
+    },
+    {
+      "name": "R3.1 反证：删掉底栏语速 ⇒ B8 判据 **FAIL**（不恒真）",
+      "ok": true,
+      "detail": "B8 判据被打掉"
+    },
+    {
+      "name": "基线：能取到 e8ff70f 的四个文件",
+      "ok": true,
+      "detail": "取到 ['live_caption_app.py', 'tts_service.py', 'tts_worker.py']"
+    },
+    {
+      "name": "基线：`time_stretch.py` 在基线**不存在**（⇒ WSOLA 模块是本轮新增 ⇒ 判据必然 FAIL）",
+      "ok": true,
+      "detail": "新增文件"
+    },
+    {
+      "name": "基线：service.submit **无** target_play_at 参数",
+      "ok": true,
+      "detail": "基线无该参数"
+    },
+    {
+      "name": "基线：service **无** speed_for_lag 调用",
+      "ok": true,
+      "detail": "基线无加速逻辑"
+    },
+    {
+      "name": "基线：worker **无** StreamWSOLA",
+      "ok": true,
+      "detail": "基线无 WSOLA"
+    },
+    {
+      "name": "基线：App 底栏**无**「语速」字段",
+      "ok": true,
+      "detail": "基线无底栏加速显示"
+    },
+    {
+      "name": "基线真跑：传 target_play_at ⇒ **TypeError**（缺陷在基线确实存在）",
+      "ok": true,
+      "detail": "submit() got an unexpected keyword argument 'target_play_at'"
+    },
+    {
+      "name": "基线真跑：基线**未生成任何命令**（TypeError 提前中止）",
+      "ok": true,
+      "detail": "n_sent=0"
+    }
+  ]
+}

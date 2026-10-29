@@ -1,0 +1,143 @@
+{
+  "script": "app141_app042_end_to_end.py",
+  "correction": "APP-042",
+  "targets": [
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_service.py",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_worker.py",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\live_caption_app.py",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\time_stretch.py"
+  ],
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "interpreter": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+  "total": 24,
+  "n_pass": 24,
+  "n_fail": 0,
+  "groups": {
+    "静态链路完整性": true,
+    "行为": true,
+    "反证（判据不恒真）": true
+  },
+  "results": [
+    {
+      "name": "A1: TTSService.submit 形参含 target_play_at",
+      "ok": true,
+      "detail": "def submit(self, text: str, seg: Optional[int] = None,\n               spk=None, spk_conf=None, lang: Optional[str] = Non"
+    },
+    {
+      "name": "A2: submit 里调用 time_stretch.speed_for_lag(...)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A3: submit 把 speed 写进命令体 cmd['speed']",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A4: submit 把 target_wall 写进命令体（跨进程墙钟口径）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A5: worker 解析 msg.get(\"speed\") 并 clamp 到 [1.0, 1.30]",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A6: worker 把 speed 传给 self.synth(...)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A7: worker 的 synth() 签名含 speed 形参",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A8: worker 用 StreamWSOLA 做流式变速（首块即可出声）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A9: worker 遥测回报 speed / out_dur_s / speed_gain",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A10: worker 遥测回报 play_lag_s（实际开播墙钟 − 目标开播墙钟）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A11: GUI 底栏显示「语速倍率」与「播放滞后」",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A12: GUI 把 target_play_at=self._seg_target_wall.get(seg) 传给 submit",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "B1: submit(target_play_at=10s前) ⇒ 命令体带 speed>1.0 与 target_wall",
+      "ok": true,
+      "detail": "cmd={'cmd': 'synth', 'id': 1, 'text': 'hello', 'speed': 1.1, 'target_wall': 1793265441.8417, 'lag_s': 10.0} logs=[]"
+    },
+    {
+      "name": "B2: submit() 不带 target_play_at ⇒ 命令体不含 speed（向后兼容）",
+      "ok": true,
+      "detail": "cmd={'cmd': 'synth', 'id': 1, 'text': 'hello'}"
+    },
+    {
+      "name": "B3: lag≈1s ⇒ speed == 1.0（不加速）",
+      "ok": true,
+      "detail": "speed=1.0"
+    },
+    {
+      "name": "B4: lag≈60s ⇒ 速度逐句 +0.1 收敛到 clamp 上限 1.30（且不超）",
+      "ok": true,
+      "detail": "speeds=[1.1, 1.2, 1.3, 1.3, 1.3, 1.3]"
+    },
+    {
+      "name": "B5: 连续两句 ⇒ 速度变化 ≤ 0.1×（听感平滑）",
+      "ok": true,
+      "detail": "speeds=[1.1, 1.2]"
+    },
+    {
+      "name": "B6: stats() 含 cur_speed / play_lag_s / speed_time_s / n_speed_adjusted",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "B7: worker 把命令里的 speed 原样传给 synth()",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "反证准备: 注入「submit 不写 speed」",
+      "ok": true,
+      "detail": "mutated"
+    },
+    {
+      "name": "反证: submit 不写 speed ⇒ A3 判据 FAIL（判据不恒真）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "反证准备: 注入「worker 不传 speed 给 synth」",
+      "ok": true,
+      "detail": "mutated (替换 1 处)"
+    },
+    {
+      "name": "反证: worker 不传 speed ⇒ A6 判据 FAIL（判据不恒真）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "反证: 换成变调做法 ⇒ 音高判据 FAIL（判据有分辨力）",
+      "ok": true,
+      "detail": "WSOLA偏差=0.00% 线性重采样偏差=25.00%"
+    }
+  ],
+  "verdict": true
+}
