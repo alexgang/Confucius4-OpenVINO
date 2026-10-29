@@ -1,10 +1,12 @@
-last_ack: ASR-029
-更新时间: 2026-10-29 23:55
-当前任务: **ASR-024 … ASR-030 全部落地（§60）**：本轮处理 **7 条新纠偏**（ASR-024 … ASR-030，`last_ack` 从 **ASR-023 → ASR-029**）。① ✅ **ASR-027 ②**：`asr040` 两臂**改标 `timing_valid=false`**（`asr051`；原值挪 `timing_valid_observed`，**实测数值一律未改**）⇒ 依据 = TTS 持锁期间运行 + `LockProbe.check()` **从未被调用**（原产物 `lock_probe_checks=0`）+ 只跑了 60 s 而非 5 分钟切片；② ✅ **ASR-026/027 持锁重跑**（`asr049`，5 分钟切片，**每 2 s `probe.check()`**）：**base 臂 7.8074 核 / RTF 0.6444** vs **ovthreads 臂 0.9981 核 / RTF 0.5302**，定稿段数同为 45 ⇒ **CPU 降到 ≤2 核的验收线通过且 RTF 不降反升**；**DLL 归因 = `libiomp5md.dll`（torch 的 OpenMP）6.8483 核** ⇒ CPU 不是花在 OV 的 CPU 插件上，而是**花在 torch 的 OpenMP 线程池**；③ 🔴 **更正 §40**：`gpu_engines.py` 第 78 行正则**丢 LUID** ⇒ `phys_0` 无法区分适配器 ⇒ 「ASR 走 NPU 也占集显 74–82%」**归属需重判**（`asr043` 实测：旧口径 36 个命中里 **集显 26 个 / NPU 10 个**，真实 LUID 0x13075=集显 / 0x148cf=NPU / 0x135a0=NVIDIA）；④ ✅ **ASR-028**（SPE 38:00→结尾，**207 个定稿段**，OV IR 编码器）：**识别出 5 人**、**29 个换人点**、**spk 滞后 P50 0.0159 s / P95 0.5907 s**、11 段无标签 ⇒ 已交付 `shared/spe_qa_spk.json`；⑤ ✅ **ASR-028 ②③**（`asr055`）：伪真值（pyannote 3.1，239 段 / 6 人）⇒ **可比口径（Q&A 窗内）**换人点 **P 0.2759 / R 0.16 / F1 0.2025**、**可表达 recall 0.5333**、**段级纯度 0.9147**（183 段）⇒ 导出 **79 个换人点 ±3 s 片段**供抽听；⑥ ✅ **ASR-029**：**`SpeakerTracker` 可 import 接口**已封装（`asr052`）+ **接口说明**已写 `shared/NOTICE_asr_to_app_speaker_api.md`（由主会话转交 App）+ **接口自检 19/19 全过**（`asr054`）；⑦ ✅ **ASR-025** 方案 A 导出**已完成**（`asr046`：218/218 张量加载、embedding cos **0.999998775537715**）**但双指标门槛 `gate_pass` = False**（`rel_max_abs_diff` = 0.001432037985732332 > 0.001）；⑧ ✅ **ASR-025 ③**（`asr053`，5 分钟切片**持锁**实测）：**RTF 增量 0.0564**、**spk 滞后 P50 0.0152 s / P95 1.2132 s**；⑨ 🔴 **本轮修掉 5 个真实缺陷**（详见 §60.8）。
-阻塞 / 待用户决定: ① 🔴 **ASR-025 的 embedding 双指标门槛未过**（`asr046`：`cos` = 0.999998775537715 **过了**，但 `rel_max_abs_diff` = 0.001432037985732332 **> 0.001** ⇒ `gate_pass` = **False**）⇒ **不得**宣布「方案 A 已验收通过」；② ⚠️ **ASR-028 的说话人质量结论仍需人工抽听** —— 伪真值（pyannote 3.1）**与本 ASR 同源 wespeaker** ⇒ **「自己评自己」偏置** ⇒ 已导出**换人点 ±3 s 音频片段清单**（79 个，Q&A 窗内）供 reviewer / 用户**抽听人工判定**（本模块不判定「谁是谁」）；③ ⚠️ **WER 仍未跑**（目标机不调用 MiniMax）⇒ `asr049` 已出两臂转写文本供 reviewer 复算（ASR-026 的「WER 差 <1pp 视为不变」**待 reviewer 判**）；④ ⚠️ **本轮脚本/产物在 git 仓库外**（`qwen3asr_06b` 不在 repo 内）⇒ 只在本机，**交付需另行打包**（App 集成 `asr052` 时尤其要注意）；⑤ ⚠️ **既有遗留项不变**：碎片化 2/2、说话人切换点 recall 0.0857（粒度上限）**未处理**（ASR-028 的 23 分钟 Q&A 段提供了新的评估场景，但结论依赖人工抽听）；⑥ ⚠️ **§5 许可/署名三层闭环**在 wespeaker 权重真正进交付前**须重走一遍**；⑦ ⚠️ **ASR-024 方案 A**（TTS 不等 spk）已按通知落地，**spk 滞后只报告、不设硬上限**；⑧ ⚠️ **ASR-027 ② 的 relabel 只改标记不改数值** ⇒ reviewer 若引用过 asr040 的 `avg_cores`/`rtf`，**数值不变，只是 validity 被纠正**。
+last_ack: ASR-030
+更新时间: 2026-10-30 01:20
+当前任务: **ASR-030（RESUME）已接续**；本轮收口 ASR-025 ② 唯一未闭环项：embedding 双指标门槛 ⇒ **归因定性 = FP16 格式固有精度，非 IR 缺陷**（FP32 对照 rel 远小于 1e-3），**不自行改门槛**（§41 铁律）；**FP32 IR 过门槛**，代价 bin 体积 ×2、嵌入耗时 ×3.56 ⇒ 交付形态交 reviewer/用户裁定。另抓出「相对最大偏差随参考侧 torch 线程数漂移」的可复现性缺口（两个读数都 > 1e-3 ⇒ 门槛结论稳健）。
+阻塞 / 待用户决定: ① 🔴 **ASR-025 ② 的交付形态待裁定** —— FP16（保真不过门槛，聚类实测可用）/ FP32（过门槛，体积 ×2、耗时 ×3.56）/ INT8（**未测**）三选一；② **ASR-028 说话人质量需人工抽听** `asr055` 导出的 79 个 ±3 s 片段（伪真值同源 wespeaker ⇒ 偏乐观）；③ **WER 交 reviewer**（`asr049_transcript_{base,ovthreads}.txt` 已备）；④ `qwen3asr_06b` **不在 git 仓库内** ⇒ 脚本/产物只在本机，交付需另行打包；⑤ 碎片化 / 切换点 recall 0.0857（粒度上限）未处理。
 
 
 ## 最近更新
+- 2026-10-30 01:20 **ASR-030（RESUME）接续 + ASR-025 ② **精度归因**定性（§61）**：① ✅ **纠偏检查** —— `CORRECTIONS_ASR.md` **70850 B @ 2026-10-29 15:38:04**、md5 `025bef47a37f4eddb2361a7d0c64395a`（与上轮**逐字节一致**）⇒ **无编号 > ASR-029 的新纠偏**（ASR-030 本身是 RESUME 条）；② ✅ **归因结论（`asr060`，持锁）** —— **FP16 格式固有精度，不是 IR 缺陷**：FP32 对照 rel = **1.1163879303042469e-06**（远小于 1e-3，实测确实跑 float32）、FP16 对照 rel = **0.001432037985732332**、torch FP16 固有下界 rel = **3.141538654183992e-04** ⇒ `implementation_defect_suspected` = **false**、`format_is_main_cause` = **true**；③ ✅ **出路探测（`asr065`，持锁）** —— **FP32 IR 过门槛**（rel 1.1163879303042469e-06），代价 bin 13260222→26520384 B（×2.00）、嵌入中位耗时 0.00807→0.02874 s（×3.56）⇒ **交付形态交 reviewer/用户裁定**；④ 🔴🔴 **新发现** —— 相对最大偏差会随**参考侧 torch 线程数**漂移（`OMP/MKL_NUM_THREADS=1` ⇒ 参考值与 rel 同步改变；根因 = torch CPU conv 的 reduction 顺序）⇒ **两个读数都 > 1e-3 ⇒ 门槛结论稳健**，但引用数字必须带口径，且**保真测量不得套用 ASR-026 的限线程环境**（已从 `asr061`/`asr066` 移除）；⑤ 🔴 **抓出 `asr047` 从未执行过**（产物与 FP32 IR 目录都不存在）⇒ §60「已写好归因脚本」是**未经核验的断言**；本轮重写为 `asr060` 并跑通；⑥ ✅ **反证 2/2 全过**（`seg_1` 偏置置零 ⇒ rel 0.16370033569900155 被抓住）+ **产品自检 8/8 全过**（`status` = VALID）；⑦ ✅ **NOTICE 追加精度口径节**（`shared/NOTICE_asr_to_app_speaker_api.md` **11687 B @ 2026-10-30 01:14:43**）
+- 2026-10-30 01:10 **ASR-030（RESUME）接续 + ASR-025 精度归因实验开工登记（§61 进行中）**：① ✅ **纠偏检查** —— `CORRECTIONS_ASR.md` **70850 B @ 2026-10-29 15:38:04**、md5 `025bef47a37f4eddb2361a7d0c64395a`（与上一轮**逐字节一致**）；`grep -n '^## ASR-'` = **30 条（ASR-001 … ASR-030）** ⇒ **无编号 > ASR-029 的新纠偏**（ASR-030 本身是 RESUME 条）；② ✅ **ASR-030 列出的 4 项已在 §60 落地**（ASR-026/027 持锁重测、ASR-028 SPE Q&A、ASR-029 可 import 接口、ASR-025 ①②③④）；③ 🔴 **本轮唯一未闭环 = ASR-025 的 embedding 双指标门槛**（`asr046`：`cos` = 0.999998775537715 过、`rel_max_abs_diff` = 0.001432037985732332 > 0.001）⇒ 执行 `asr047` **精度归因**（FP32 对照 / FP16 可达下界 / FP16↔FP32 隔离 + 反证），**不自行改门槛**（§41 铁律）；④ ⚠️ **`shared/MACHINE_LOCK` 是陈旧锁**（`app-pack` pid 41412，`pid_alive`=False）⇒ 按 §13 走 `asr_lock_common` 回收路径复核后回收，未直接 `rm`。
 - 2026-10-29 23:55 **ASR-024 … ASR-029 全部落地（§60）**：① ✅ **ASR-027 ②** —— asr040 两臂**改标 `timing_valid=false`**（`asr051`；原值挪 `timing_valid_observed`，**实测数值一律未改**）；② ✅ **ASR-026/027 持锁重跑**（`asr049`，5 分钟切片，**每 2 s `probe.check()`**）—— **base 7.8074 核 / RTF 0.6444** vs **ovthreads 0.9981 核 / RTF 0.5302**（定稿段同为 45）⇒ **≤2 核达标且 RTF 不降反升**；**DLL 归因 = `libiomp5md.dll`（torch OpenMP）6.8483 核**；③ 🔴 **更正 §40** —— `gpu_engines.py` 第 78 行正则**丢 LUID** ⇒ 「ASR 走 NPU 也占集显 74–82%」**归属需重判**（`asr043`：旧口径 36 命中 = 集显 26 + NPU 10）；④ ✅ **ASR-028** —— SPE 38:00→结尾 **207 个定稿段**，**识别 5 人**、**29 个换人点**、**spk 滞后 P50 0.0159 s / P95 0.5907 s**、11 段无标签 ⇒ 交付 `shared/spe_qa_spk.json`；⑤ ✅ **ASR-028 ②③**（`asr055`）—— 伪真值 （pyannote 3.1，239 段 / 6 人）⇒ **可比口径（Q&A 窗内）**换人点 **P 0.2759 / R 0.16 / F1 0.2025**、**可表达 recall 0.5333**、**段级纯度 0.9147**（183 段）⇒ 导出 **79 个换人点 ±3 s 片段**供抽听；⑥ ✅ **ASR-029** —— **`SpeakerTracker` 可 import 接口**（`asr052`）+ 说明 `shared/NOTICE_asr_to_app_speaker_api.md` + **接口自检 19/19**（`asr054`）；⑦ ✅ **ASR-025 方案 A 导出完成**（`asr046`：218/218 张量、embedding cos **0.999998775537715**）**但 `gate_pass` = False**（`rel_max_abs_diff` 0.001432037985732332 > 0.001）；⑧ ✅ **ASR-025 ③**（`asr053`，5 分钟切片**持锁**）—— **RTF 增量 0.0564**、**spk 滞后 P50 0.0152 s / P95 1.2132 s**；⑨ 🔴 **修掉 5 个真缺陷**（`asr053` 未调 `probe.check()` / `asr055` 读不到 `turns` 键 ⇒ **指标全空却无报错** / `asr055` `substantial_switches` 形参类型错 / `asr055` 参照与预测**时间窗不一致** / `asr050` 写盘 import 缺失 ⇒ 29 分钟白跑）；⑩ ⚠️ **WER 未跑**（交 reviewer）；**未动 `live_caption/`**。 ⇒ 产物（**均在 git 仓库外**）：`qwen3asr_06b/scripts/asr049…asr058*.py`、`results/pyannote_seg/asr049_cpu_attribution_rerun_{base,ovthreads}.json`、`asr049_cpu_attribution_rerun_summary.json`、`asr049_transcript_{base,ovthreads}.txt`、`asr050_spk_qa_speaker_test.json`、`asr051_relabel_asr040_timing_invalid.json`、`asr053_wespeaker_rtf_lag.json`、`asr054_speaker_tracker_selftest.json`、`asr055_spk_qa_reference_eval.json`、`pya_ref_diar_speqa38.{json,rttm}`、`_asr055_clips/`（79 片段 + manifest）；`C:/Users/Trekker-PTL/shared/spe_qa_spk.json`、`shared/NOTICE_asr_to_app_speaker_api.md`
 - 2026-10-29 23:20 **ASR-024 … ASR-030 开工登记（§60 进行中）**：① ✅ **7 条新纠偏**（`CORRECTIONS_ASR.md` **70850 B @ 2026-10-29 15:38:04**、md5 `025bef47a37f4eddb2361a7d0c64395a`，与上轮 62477 B **不同** ⇒ 有更新）⇒ `last_ack` 从 **ASR-023 → ASR-029**（按 ASR-030「先写 last_ack=ASR-029」）；② 🟡 **ASR-026/027/028/029 的实测产物已落盘**（`asr049` 两臂持锁重跑 / `asr050` SPE Q&A 段 spk / `asr051` asr040 改标 `timing_valid=false` / `asr052` `SpeakerTracker` 接口 / `asr054` 接口自检）；③ 🔴 **ASR-025 ③（`asr053`，3 臂持锁实测）正在跑**；④ 🔴 **ASR-028 ② 伪真值参照无解**：`pyannote/speaker-diarization-3.1` **不在本地 HF 缓存**（只有 `pyannote/wespeaker-voxceleb-resnet34-LM` 与 `tensorlake/segmentation-3.0`）且**本机无外网**（HF API 超时）⇒ `asr055` 取锁后即失败；⑤ ⚠️ **WER 未跑**（交 reviewer）；**未动 `live_caption/`**。 ⇒ 产物（**均在 git 仓库外**）：`qwen3asr_06b/scripts/asr049…asr056*.py`、`results/pyannote_seg/asr049_cpu_attribution_rerun_{base,ovthreads}.json`、`asr049_cpu_attribution_rerun_summary.json`、`asr050_spk_qa_speaker_test.json`、`asr051_relabel_asr040_timing_invalid.json`、`asr046_wespeaker_export_a_fixed.json`、`asr054_speaker_tracker_selftest.json`；`C:/Users/Trekker-PTL/shared/spe_qa_spk.json`、`shared/NOTICE_asr_to_app_speaker_api.md`
 - 2026-10-29 08:55 **无新纠偏（last_ack 保持 ASR-023）+ 把 §58 的「严格 JSON」结论从 2 个产物推广到**全模块门禁**（§59）+ 归一 4 个非标准 JSON 产物 + 更正 ②「§58 的护栏自身有缺陷」**：① ✅ **无新纠偏** —— `CORRECTIONS_ASR.md` **62477 B @ 2026-10-28 00:53:08**、md5 `2db94ec491495528f3b7c5f28bc2b7` 与上一轮（10-29 07:30）**逐字节一致**；`grep -n '^## ASR-'` = **23 条（ASR-001 … ASR-023）**；全盘 `grep -rn -E "ASR-0(2[4-9]|[3-9][0-9])"` 命中 **0** ⇒ **last_ack 保持 ASR-023 不变**；② 🔴 **更正 ①（§41 第三次复发）**：§58 的结论是「产物必须是严格 RFC 8259 JSON」，但**落地范围只有 precheck / asr032 两个产物** ⇒ 全模块实测 **532 个 JSON 里仍有 4 个不合规** ⇒ **只在局部装护栏 = 结论未落地**；③ 🔴 **归一 4 个产物**（`asr035`）：`p1_decoder_export_mask.json`（裸 NaN × 4）、`p3_diag_bool_mask_sem.json`（裸 NaN × 8）、`asr021_xvec_diag3.json`（裸 NaN × 5，**reviewer 在 ASR-023 §1 引用过**）、`p3_diag_dec_real_vs_rand.json`（**文件截断** 1385 B，停在 `"A_fp16_port": [`）⇒ 全部改为 `null` + 显式 `*_is_usable` / `*_all_nan_measured` 标记，**保留「OV 整行屏蔽确实返回 NaN」这一真实测量语义**（§23.2 的结论本身）；④ 🔴 **顺带修掉一个被漏掉的报告缺陷**：`asr021_xvec_diag3.json` 的 `t2_per_spk.n_same` 报 **1**，**真实同说话人对数 = 0**（脚本 `asr021_diag_xvec3.py::cos_stats` 在 `same` 为空时塞 `np.array([np.nan])` 占位 ⇒ `int(len(same))`=1）⇒ 已纠正为 **0** 并标注；且原 `separable_by_any_thr=false` 是靠 **NaN 比较（`nan > x` 恒 False）蒙对的** ⇒ 已加 `_separable_by_any_thr_note` 说明「结论同为 false，但依据不同（样本不足）」；⑤ 🔴 **更正 ②（§58 护栏自身的缺陷，本轮新发现）**：§58 的写法是 `open(OUT,"w")` + `json.dump(..., allow_nan=False)` ⇒ **打开即截断目标文件** ⇒ **护栏触发（抛 ValueError）时磁盘上留下半截文件**（实测 **53 B**、`json.load` 报 `Expecting value`）⇒ **比原缺陷更糟**（原本是「非标准但完整」，现在成「截断的坏文件」）⇒ 同一 bug 类**独立复现**于 `p3_diag_dec_real_vs_rand.py`（OV `Dimension` 对象不可 JSON 序列化 ⇒ `TypeError` ⇒ 半截文件）⇒ 新增单一事实来源 `scripts/asr_json_write.py`（原子写 tmp→flush+fsync→`os.replace`）并把 3 个脚本迁过去；⑥ ✅ **落成全模块门禁**（`asr036` 巡检）：ASR 自有产物 **532/532 全部为严格 RFC 8259 JSON**（`asr_owned_all_compliant=true`），脚本自带**鉴别力自检**（注入 NaN / 截断必须被抓 + 正常 JSON 必须放行）⇒ §58 的结论**不再只在局部生效**；⑦ ✅ **判据有鉴别力（8 条反证 8/8 全过）**：注入裸 NaN ⇒ 门禁判不合规；注入截断 ⇒ 判不合规；正常 JSON ⇒ 放行；写 NaN ⇒ **抛错且目标文件完好**；**旧写法确实把好文件变成坏文件**（⇒ 证明反证「原子写」非恒真）；把 null 改回 NaN ⇒ 归一自检抓出回退；基线 4 个产物合规 + 门禁 rc=0；⑧ ⚠️ **跨模块只读核查**：`confucius4-openvino/reports/c078c_rewire_inputs_embeds.json`（**截断**）+ `c078e_npu_zero_diagnosis.json`（**裸 NaN**）不合规 ⇒ 属 **LM 主线 `status/STATUS.md` 的 C-078 系列、不属 ASR**（`status/asr/STATUS_ASR.md` 对 `c078` 命中 **0**）⇒ 按模块边界**只记录不改动**，已列 `cross_module_findings`；⑨ ✅ **reviewer 引用结论未受影响**：ASR-023 §1 引用的 `T1_utterance.margin_mean` **0.015798981259265266** / `T1_centered` **0.31192492082701573** / `T2b_centered` **0.5850299640248219** / `T1_bias.bias_ratio` **0.9822737574577332** **逐字未改**（改动只落在 `t2_per_spk`，而它**不在** reviewer 的引用清单内）；⑩ ✅ **重跑可复现**：改造后 `asr032` 两次运行输出**除 `elapsed_sec` 外逐字节相同** ⇒ 原子写改造**未改变任何内容**；`asr033` 的 6 条 §58 反证**仍 6/6 全过**；⑪ 🔴 **不动 ASR-023 原文**（纠偏文件由 reviewer 维护）；⑫ 🔴 **不启动 OV IR 导出**（属新开实验，等用户指派 + 拍板 A/B/C）；⑬ 🔴 纪律：全程**只读源码 + 纯 CPU 数值诊断 + JSON 严格性校验 + 反证**（不跑模型推理、不计时）⇒ **未申请共享机器锁**（`shared/MACHINE_LOCK` 由 **app-pack** pid 12564 @08:26:21 持有 ⇒ **他模块活锁，未动**）、**未跑 WER**（交 reviewer）、**未动 `live_caption/`**、**未改** `CORRECTIONS_ASR.md`。 ⇒ 产物：`qwen3asr_06b/scripts/asr_json_write.py`（**3771 B @ 08:51**）、`scripts/asr035_s59_json_normalize.py`（**17978 B @ 08:50**）、`scripts/asr036_s59_json_audit.py`（**9919 B @ 08:54**）、`scripts/asr037_s59_counterproofs.py`（**10277 B @ 08:54**）、改写后的 `scripts/asr023_wespeaker_export_precheck.py`（**46617 B @ 08:51**）、`scripts/asr032_procedure_spec_audit.py`（**24323 B @ 08:51**）、`scripts/asr033_s58_counterproofs.py`（**10875 B @ 08:51**）、`results/pyannote_seg/asr035_s59_json_normalization.json`（**3118 B @ 08:50**）、`results/pyannote_seg/asr036_s59_json_audit.json`（**144729 B @ 08:54**）、`results/pyannote_seg/asr037_s59_counterproofs.json`（**3618 B @ 08:54**）、归一后 4 个产物（`p1_decoder_export_mask.json` **8631 B @ 08:50** / `p3_diag_bool_mask_sem.json` **3525 B @ 08:50** / `asr021_xvec_diag3.json` **4718 B @ 08:50** / `p3_diag_dec_real_vs_rand.json` **2580 B @ 08:50**）、改前备份 `results/_cp_s59/`（**4 个 .json.bak** + `STATUS_ASR_before_s59.md`）
@@ -18,8 +20,6 @@ last_ack: ASR-029
 - 2026-10-28 01:20 **ASR-023 已收（开工登记）**：reviewer 复核 §47 后指出 5 个问题 —— ① 「TTS speaker encoder 区分不开说话人 / margin 高 21.9×」**依据不成立**（比较口径不一致：原始余弦比原始余弦、切分不同、未扣偏置；同口径中心化后 TTS 反而不差）⇒ **撤回**；② 验收真值用错（3.1 伪真值只有 2 人，且 embedding 与被测 wespeaker 同源 ⇒ 循环论证）⇒ **改用 AMI 人工 RTTM（4 人）**；③ 素材太弱（FEO072 独占 75%）⇒ 换**多人交替更均衡**的 AMI 片段；④ 旧产物 `encoder.device`=**cuda** ⇒ RTF/滞后口径作废，须在 **GPU.0** 上重测 seg+嵌入；⑤ 交付件 `asr021_note` 表述须改正。**本轮不做 WER**；**第 1 步出结果前不开 wespeaker IR 导出**。产物：`results/pyannote_seg/asr023_spk_encoder_ab.json`（待产出）。
 - 2026-10-27 21:05 **ASR-020（§46）+ ASR-021（§47）落地**：① 🔴 **ASR-020 §1/§2 =「无实际差异」** —— reviewer 复算 5 分钟切片：WER baseline **7.39%** vs forced **7.52%**、Δ**+0.12pp** CI95**[−0.89,+1.14]**（825 词，全局对齐 + 36 块配对 bootstrap）⇒ 按用户口径（差距 <1pp 或不显著）**无实际差异**；词内切点 **baseline 3/45=6.67% vs forced 3/48=6.25%**，**命中数都是 3**，−0.42pp **全来自分母** ⇒ **撤回 §42.1/§42.3「forced 的词内切点确实更好」**；② 🔴 **ASR-020 §3 选 (b)** —— forced 的定稿延迟是**预知断点**口径（先离线跑完 `run_seg_model` 得全部断点，再在「已喂秒数 ≥ 断点绝对时刻」时切段）⇒ **实时增量未测**，预计 model_break 段定稿延迟 **≥9.4 s** 或断点来不及应用；baseline 的 `latency.window_lag_ms` 已按要求置 **null**（原 9360.0 是 forced 侧的数）；③ ✅ **ASR-020 §4 设备表述已改**：两次原始 json 的 `params.seg_device` 都是 **GPU.0**（forced5m_v2 0.06487 / asr018seg 0.06876）⇒ 「GPU.0 比 NPU 慢 6%」**不成立**（两次同为 GPU.0），设备间差异是 **≈5.6 倍**（0.06018 GPU.0 vs 0.01068 NPU）；④ ✅ **ASR-020 §5 诊断结论**：「精确 10.000 s 间隔」根因 = `find_breakpoints` 最长段兜底 `pick={"i": a + max_frames // 2}`（max_frames=1178 ⇒ 589 帧 = 10.000 s），**不是**窗首尾边界伪影（5 分钟 4/4、61 分钟 47/47 全为「无合法候选」兜底，`off_win_head_s` 0.104–0.401 均**不在**窗边界）；⑤ 🔴 **ASR-021 ①forced 断句线已停** —— `pya_app_path_seg.py --strategy` 默认值 forced→**baseline**（R2T2 原路径 = 交付口径），代码保留但**不进交付、不进 App 默认**；⑥ ✅ **ASR-021 ②旁路说话人已跑通**（分段模型在 **GPU.0** 旁路、**不产生任何断点**；定稿段到达后取 x-vector 做在线聚类，输出 `{id, spk, spk_conf}` 更新事件）；⑦ ✅ **ASR-021 ③验收通过** —— AMI EN2002a（2–3+ 人公开素材）：切换点 **P=0.75 / R=0.0857 / F1=0.1538**（n_pred=4 / n_truth=35 / tp=3 / tol ±1.5 s）、**纯度 1.0**（22 个有标签段）、**碎片化 2/2**、spk 滞后 **P50 0.0084 s / P95 0.0157 s**、**RTF 增量 0.02893 ≤ 0.05 ✅**（stride 1280 ms、帧覆盖 1.0）；SPE 5 分钟（1 人）：`n_speakers_final=1`、`n_switch_points=0` ✅ 未误报、RTF 0.02961；⑧ 🔴 **说话人 encoder 已换源** —— Qwen3-TTS INT8 speaker encoder **任何阈值都不可分**（raw margin 0.0158 / 偏置占比 0.982–0.993）⇒ 按 ASR-013 原文授权改用 **wespeaker-resnet34-LM**（margin 0.3453，高 22×），但仍是 **torch** ⇒ **未进交付**，须导出 OV IR；⑨ ⚠️ recall 0.0857 归因为**粒度上限**（段均长 5.3 s、35 个真值切换点仅 42.9% 落在段边界 ±1.5 s、54 个 turn 里 24 个 <0.5 s）不是模型缺陷；⑩ ✅ 交付件 `ASR007_results.json` / `MATRIX.json` / `MATRIX.md` 已写 `asr020_note` + `asr021_note`（单一事实来源 `asr_compare_notes.py`）；⑪ ✅ 全部计时作业**持共享锁**执行并正常释放，收尾锁由 TTS 持有（pid 41116 @20:57:09）；未动 `live_caption/`
 - 2026-10-27 15:50 **ASR-019 落地（§45）**：① 🔴 **更正 §44.2 的设备归属错误** —— 复核产物原始字段：`pya_app_forced_forced5m_v2.json` 的 `params.seg_device` = **GPU.0**（不是 NPU）⇒ `seg_model_rtf`=0.06487 是 **GPU.0** 的数；原「GPU.0 比 NPU 慢约 6%」**作废**；正确的 GPU.0 vs NPU 对照 = **0.06018**（`pya_app_forced_forced61.json`，61min App 路径，seg_device=GPU.0）/ **0.01068**（`pya_stream_full61_NPU.json`，device=NPU，字段名 `rtf_seg_model`，流式窗口径）⇒ **约 5.63 倍**，§42.6 的「5.6 倍」成立；② ✅ 全部 forced 产物 `params.seg_device` 一律 **GPU.0**（forced5m 0.05852 / forced5m_v2 0.06487 / forced61 0.06018 / asr018seg 0.06876）⇒ GPU.0 上分段模型 RTF 增量 ≈ **0.06–0.07**；③ ✅ **§44.2 结论不变**（ASR-018 定案：默认放 GPU.0、NPU 留给 TTS，增量 ≈0.069 可接受）；④ ✅ 已更正产物 `results/pyannote_seg/asr017_slice_unify.json`（8747→12226 B）新增 `comparison_gpu_vs_npu_corrected` 段 + 保留旧文 `comparison_npu_previous_text_asr019` 供追溯（备份 `_asr019_backup_asr017_slice_unify.json`）；⑤ ⚠️ **未重跑任何实验**（ASR-019 明确「不需要重跑」）⇒ 本轮**不占机器锁**；⑥ 🔴 WER 仍待 reviewer 用 `shared/SPE_0000_0500.wav` 复算
-- 2026-10-27 13:45 **ASR-017 + ASR-018 双落地（§43 / §44）**：① 🔴 ASR-017：统一切片 `shared/SPE_0000_0500.wav`（md5 `a10da6a3…` 9600044 B @11:24，与源前 300s 逐字节一致）；NEW `asr_slice_common.py` 单一事实来源 + `guard_minutes` 护栏 ⇒ 6 脚本改读切片（`pya_app_path_seg`/`r2t2_app_transcribe`/`p0_stream_seg`/`asr007_bench`/`p0_torch_ref`，py_compile OK）；② 中止的 61 分钟 baseline（pid 34724，53.9%）无产物/无 partial；陈旧 TTS 锁（pid 14888 已死）按 ASR-015 回收；③ 2 次 shared 切片 5 分钟验证跑：`pya_app_baseline_asr017verify.json`（14544 B @13:21，46 段 / rtf 0.6649 / 词内切点 6.67%）与 `pya_app_forced_asr018seg.json`（16427 B @13:31，49 段 / seg GPU.0 / seg_model_rtf **0.06876** / 词内切点 6.25%）；④ 🔴 ASR-018（用户 13:22 定案）默认设备摆放：ASR R2T2 INT8→GPU.0、TTS→NPU 独占、CUDA 不作默认；分段模型在 GPU.0 的 RTF 增量 0.06876（vs NPU 0.06487，差 ~6% 可忽略）；交付 `asr017_slice_unify.json`（含 asr018 段）。⑤ 未动 `live_caption/；未改 p1_export_*`；WER 仍交 reviewer 用 shared 切片复算
-- 2026-10-27 13:25 **ASR-017 落地（§43）**：① 🔴 统一切片：所有 ASR 测试改用 `shared/SPE_0000_0500.wav`（00:00–05:00，md5 `a10da6a3…` 9600044 B @11:24，与源前 300s 逐字节一致）；② 新建单一事实来源 `scripts/asr_slice_common.py`（SLICE_SEC=300 / MAX_MIN=5 + `guard_minutes` 护栏）⇒ 6 脚本改读切片并加「>5min 需 --allow-long」（`pya_app_path_seg`/`r2t2_app_transcribe`/`p0_stream_seg`/`asr007_bench`/`p0_torch_ref`，均 py_compile OK）；③ 被中止的 61 分钟 baseline 长跑（pid 34724，1980/3671s=53.9%）无产物、无 `*.partial.json` 残留 ⇒ 改跑 5 分钟；④ 陈旧 TTS 锁（pid 14888 已死，11:28:49）按 ASR-015 铁律自动回收（验证跑结束正常释放、无 `.tmp`、无残留）；⑤ 用 shared 切片补跑 5 分钟 baseline 验证（`pya_app_baseline_asr017verify.json`，14544 B @13:21，46 段 / rtf 0.6649 / timing_valid=true / md5 一致 / 词内切点 6.67% 与 §42 base5m_v2 逐位一致）；⑥ 交付 `asr017_slice_unify.json`（口径：5min≈900词、CI ±1.5–2pp、不宣称 1pp 内显著）⇒ WER 交 reviewer 配对复算；⑦ 未动 `live_caption/`、未改 p1_export_*/p1_verify_e2e（属构建脚本非运行时测试）
 ## §2 最近一周的结论摘要（均引用产物）
 
 ### 2.1 切段策略（属本模块范围）
@@ -7356,3 +7356,182 @@ App 侧三条硬约束、设备与 CPU 纪律、已知限制）。
 - ✅ **未动 `live_caption/`**；**未修改 `CORRECTIONS_ASR.md`**（纠偏文件由 reviewer 维护）。
 - ✅ **未开新实验**：只做纠偏要求的四件事 + 修自己跑出来的缺陷。
 - ⚠️ **`enable_hallucination_reset` 未触碰**（受 C-036 用户决策约束）。
+
+## §61 ASR-030（RESUME）接续：ASR-025 ② 的**精度归因**定性（FP16 格式问题，非 IR 缺陷）+ FP32 出路探测 + 抓出「指标随参考侧线程数漂移」的可复现性缺口（2026-10-30 01:00–01:15）
+
+### 61.0 纠偏检查：**无编号 > ASR-029 的新纠偏** ⇒ `last_ack` ASR-029 → **ASR-030**
+- `CORRECTIONS_ASR.md` **70850 B @ 2026-10-29 15:38:04**、md5 `025bef47a37f4eddb2361a7d0c64395a`
+  ⇒ 与上一轮（§60）**逐字节一致，未被追加**。
+- `grep -n '^## ASR-'` = **30 条（ASR-001 … ASR-030）** ⇒ 编号 > ASR-029 的只有
+  **ASR-030**，而它本身是 **RESUME 条目**（无独立要求）。
+- ✅ **ASR-030 列出的 4 项已在 §60 全部落地**（ASR-026/027 持锁重测、
+  ASR-028 SPE Q&A 说话人切换、ASR-029 可 import 接口、ASR-025 ①②③④）。
+- 🔴 **本轮不是空跑**：ASR-030 链条上**唯一未闭环**的是
+  **ASR-025 ② 的 embedding 双指标门槛**（§60.9 第 1 条明列）⇒ 本轮做**归因**。
+- ✅ **开工登记先做**（ASR-030 明文「先写 last_ack」）：`asr059` 于 01:10 先写
+  `last_ack: ASR-030` + 一行最近更新，**早于**任何耗时作业。
+
+### 61.1 🔴 纠偏原文与问题定位（不改门槛，先定性）
+ASR-025 ② 的验收原文：「端到端 embedding 和 torch CPU 的 **cos ≥ 0.999**」。
+§57.5 已量化「余弦单指标会误判」，§58/§59 已把门槛**加严**为双指标（AND）：
+`cos ≥ 0.999` **且** `rel_max_abs_diff ≤ 1e-3`。
+
+`asr046` 的实测读数（产物 `asr046_wespeaker_export_a_fixed.json` 的 `embedding_check`）：
+`cos` = 0.999998775537715（**过**）、`rel_max_abs_diff` = 0.001432037985732332（**> 1e-3**）
+⇒ `gate_pass` = **false** ⇒ §60.9 第 1 条「不得宣布方案 A 已验收」。
+
+🔴 **本轮明确不做的事**：**不因为自己的产物没过就调门槛**（§41 铁律）
+⇒ 改为做**归因实验**，让数据决定「这 0.00143 是 FP16 格式的固有精度，还是 IR 实现缺陷」。
+
+⚠️ **发现一个此前不存在的隐患**：`asr047`（归因脚本，2026-10-29 15:55 写就）
+**从未执行过** —— 产物 `asr047_wespeaker_precision_attrib.json` **不存在**、
+`models/wespeaker-resnet34-fp32/` **不存在** ⇒ §60 写「已写好归因脚本」时
+**并未验证它能跑**。⇒ 本轮**重写**为 `asr060`，并修掉 `asr047` 的 3 个隐患（见 §61.4）。
+
+### 61.2 ✅ 归因实验结论（`asr060`，持锁跑）：**FP16 格式问题，不是 IR 缺陷**
+**产物**：`results/pyannote_seg/asr060_wespeaker_precision_attrib.json`
+（**6182 B @ 2026-10-30 01:13:43**），
+`product_self_check.status` = **VALID**、8 项检查**全过**。
+
+**5 个对照臂的原始字段**（输入 = 同一段真实音频的 numpy 复刻 kaldi fbank +
+fbank 侧中心化，n_frames = 998；参考 = 原始 pyannote `resnet.forward` torch CPU）：
+
+| 臂 | `cos` | `rel_max_abs_diff` | 说明 |
+|---|---|---|---|
+| `ov_fp32_vs_torch_fp32` | 0.9999999999995199 | **1.1163879303042469e-06** | 🔴 **FP32 对照**（隔离 IR 实现） |
+| `ov_fp16_vs_torch_fp32` | 0.999998775537715 | **0.001432037985732332** | = `asr046` 的原口径（可复算） |
+| `ov_delivered_f16_vs_torch_fp32` | 0.999998775537715 | 0.001432037985732332 | 已交付 IR 臂 |
+| `torch_fp16_vs_torch_fp32` | 0.9999999782488057 | **0.0003141538654183992** | **FP16 格式固有下界**（torch 自身降 f16） |
+| `ov_fp16_vs_ov_fp32` | 0.9999987754713864 | 0.00143199221281295 | 格式项隔离 |
+
+⇒ **定性结论**（产物字段 `experiments.attribution`）：
+- `implementation_defect_suspected` = **false**
+- `format_is_main_cause` = **true**
+- `fp32_arm_actually_fp32` = **true**（实测 `actual_precision` = `<Type: 'float32'>`）
+⇒ **IR 导出实现没有缺陷**；偏差**主因是 FP16 格式的固有精度**。
+
+🔴 **但还有一个不能忽略的读数**：`ov_at_format_floor` = **false**
+⇒ OV 的 f16 偏差（0.001432037985732332）是**格式固有下界（0.0003141538654183992）的约 4.558 倍**
+⇒ **除格式外仍有约 4.6 倍的差距可优化**（如 f16 下的累加顺序/中间张量精度）。
+
+### 61.3 ✅ 出路探测（`asr065`，持锁跑）：**FP32 IR 过门槛**
+**产物**：`results/pyannote_seg/asr065_fp32_gate_probe.json`
+（**2629 B @ 2026-10-30 01:14:19**）。
+
+| IR 形态 | bin 体积 | 嵌入中位耗时 | `cos` | `rel_max_abs_diff` | `gate_pass` |
+|---|---|---|---|---|---|
+| **FP16**（已交付） | 13260222 B | 0.008070000098086894 s | 0.999998775537715 | 0.001432037985732332 | ❌ **false** |
+| **FP32** | 26520384 B（**×2.00**） | 0.028738600085489452 s（**×3.56**） | 0.9999999999995199 | **1.1163879303042469e-06** | ✅ **true** |
+
+（`comparison.rel_improvement_factor` = **1282.742268041237**；
+`bin_size_ratio` = 1.9999954751888769；`latency_ratio` = 3.5611647752398836。）
+
+🔴 **不自行决定交付形态**：ASR-025 只写「cos ≥ 0.999」，**FP32 显然满足**；
+但**代价是 bin 体积 ×2、嵌入耗时 ×3.56** ⇒ 这是**取舍**，**交 reviewer/用户裁定**。
+（ASR-008 的 INT4 经验：**配方不可跨模型照搬、不支持的组合会静默回落** ⇒ INT8 未测不猜。）
+
+### 61.4 🔴 本轮修掉/抓到的 5 个真问题
+1. 🔴 **`asr047` 从未执行过** ⇒ §60 的「已写好归因脚本」是**未经核验的断言**
+   （与 §60.8 缺陷 #1 同型）⇒ 本轮重写为 `asr060` 并**实际跑通**。
+2. 🔴 **`asr047` 首版会覆盖已交付的 f16 IR** ——
+   `export_ir(model, IR_DIR_F16, True)` 写的是 `models/wespeaker-resnet34-fp16/`
+   （**`asr046` 的已交付产物**！）⇒ 本轮把归因 IR 全部导到 `models/_attrib_*`，
+   **已交付 IR 一个字节不动**（实测两者 bin md5 相同 = **5873498c7636f2e02e149f6dfc4b63f1**）。
+3. 🔴 **OV 2026.4 没有 `get_rt_info()`** ⇒ 首版写精度探测会**静默失败**
+   （`CompiledModel` 只有 `get_property`/`set_property`/`export_model`）
+   ⇒ 改用 `get_property('INFERENCE_PRECISION_HINT')`，**实测**得到
+   `float16` / `float32` ⇒ **FP32 对照确实是 FP32**（否则「归因」根本无效）。
+4. 🔴 **「归因结论」必须带「FP32 臂真的跑了 FP32」这道口径守卫**
+   ⇒ 产物字段 `attribution_valid` + 自检项 `attribution_valid`；
+   若 FP32 臂实际仍跑 f16 ⇒ **归因无效**，必须另找路径重做。
+5. 🔴🔴 **抓出「指标随参考侧 torch 线程数漂移」的可复现性缺口**（见 §61.5）。
+
+### 61.5 🔴🔴 新发现：**`rel_max_abs_diff` 不是「OV 的性质」，而是「OV × 参考侧线程配置」的联合量**
+`asr060` 首次跑出的读数与 `asr046` **对不上**（0.001513 vs 0.001432），
+而 IR 逐字节相同 ⇒ 差异必然在**参考侧**。三步实测把根因钉死：
+
+| 步骤 | 脚本 | 结论 |
+|---|---|---|
+| ① 同进程内调 `asr046` 自己的函数 | `asr062`（**2063 B @ 2026-10-30 01:10:32**） | **完全复现** `asr046`（`delta_cos` = **0.0**、`delta_rel` = **0.0**）⇒ 不是「历史读数不可复现」（drift_class = IDENTICAL） |
+| ② torch 线程数 1/2/4/8/16 | `asr063`（**2599 B @ 2026-10-30 01:11:07**） | **5 档逐位相同** ⇒ **线程数本身不是原因**（`torch.set_num_threads` 不改 `OMP_NUM_THREADS` 生效路径） |
+| ③ **环境变量**逐档扫（子进程） | `asr064`（**2768 B @ 2026-10-30 01:13:12**） | 🔴 **根因锁定**：`OMP_NUM_THREADS=1`（或 `MKL_NUM_THREADS=1`）⇒ 读数变为 asr060 那组；**不设**这两个变量 ⇒ 读数 = `asr046` 那组 |
+
+**asr064 的 5 档原始读数**：
+
+| 环境 | `cos` | `rel_max_abs_diff` | 对应 |
+|---|---|---|---|
+| `baseline_no_override` | 0.999998775537715 | 0.001432037985732332 | = `asr046` |
+| `omp_mkl_1` | 0.999998751846292 | 0.0015126142686873068 | = `asr060` 首跑 |
+| `omp_mkl_16` | 0.999998775537715 | 0.001432037985732332 | = `asr046` |
+| `omp_mkl_1_plus_blas` | 0.999998751846292 | 0.0015126142686873068 | = `asr060` 首跑 |
+| `asr061_exact` | 0.999998751846292 | 0.0015126142686873068 | = `asr060` 首跑 |
+| `OMP=MKL=1` | 0.999998751846292 | 0.0015126142686873068 | = `asr060` 首跑 |
+| `OMP=MKL=16` | 0.999998775537715 | 0.001432037985732332 | = `asr046` |
+| `OMP=MKL=1` + BLAS 全 1 | 0.999998751846292 | 0.0015126142686873068 | = `asr060` 首跑 |
+| `OMP=MKL=1` + `PYTHONPATH` | 0.999998751846292 | 0.0015126142686873068 | = `asr060` 首跑 |
+
+🔴 **机制**：`OMP_NUM_THREADS=1` 改变 torch CPU conv 的 **reduction 顺序**
+⇒ 浮点加法不满足结合律 ⇒ **参考值本身**变了（`max_abs_ref`
+0.6473612785339355 → 0.6473609805107117）⇒ `rel_max_abs_diff` 随之变。
+
+🔴🔴 **这条发现的重要性（比它看起来大）**：
+1. 🔴 **ASR-026 的「限线程 1 核」结论与 embedding 保真测量存在口径交互**
+   ⇒ ASR-026 的限线程做法**不能**套到保真测量上（测量必须与参照同口径）
+   ⇒ `asr061`（持锁运行器）**已移除** `OMP/MKL_NUM_THREADS=1` 的覆盖。
+2. 🔴 **门槛结论是稳健的**：两个读数（0.001432037985732332 / 0.0015126142686873068）**都 > 1e-3**
+   ⇒ 「ASR-025 双指标门槛未过」的结论**与线程配置无关**。
+3. 🔴 **但引用具体数字必须带口径** ⇒ 产物新增字段
+   `reference_side_caliber`（记录 `torch.get_num_threads()` 与 4 个 `*_NUM_THREADS`）。
+
+### 61.6 🔴 判据有鉴别力（反证 2/2 全过）
+- **反证 A（注入真实实现缺陷）**：把 `seg_1` 的偏置置零 ⇒ 等价于换了个模型
+  ⇒ 实测 `rel_max_abs_diff` = **0.16370033569900155**（≫ 1e-3）、
+  `cos` = 0.9890869385723927 ⇒ `caught_by_fp32_rel_gate` = **true**、
+  `cos_gate_also_catches` = **true** ⇒ **判据非恒真**。
+- **反证 B（口径守卫）**：`asr060` 首跑因「口径漂移」被判
+  `caliber_matches_asr046` = **false** ⇒ 自检**拒绝放行**（退出码 2），
+  并逼出了 §61.5 的根因 ⇒ **门禁有鉴别力**。
+- ✅ **产品自检 8/8 全过** ⇒ `product_self_check.status` = **VALID**；
+  且**自检不过时仍落盘**（标 `INVALID_SELF_CHECK`）⇒ 不丢诊断数据。
+
+### 61.7 ✅ 交付件同步（NOTICE）
+`C:\Users\Trekker-PTL\shared\NOTICE_asr_to_app_speaker_api.md`
+（**11687 B @ 2026-10-30 01:14:43**，md5 `4919ce136ddd67a8e87418f3e8f1cf96`）
+**追加**「## 8. 说话人嵌入的精度口径（ASR-025 ② 归因结论，2026-10-30）」，
+含 FP16/FP32 两臂实测表、归因结论、对 App 的 3 条影响、复现入口、口径提醒。
+🔴 **只追加不改旧**（脚本自检 `chk.startswith(t)` 通过）；该 NOTICE 用 **LF** 换行
+⇒ 追加时按 LF 写入（避免混排）。
+
+### 61.8 🔴 本轮**未完成 / 待补**（不含糊）
+1. 🔴 **ASR-025 的验收仍需裁定**（本轮只做了定性 + 出路探测，**未改门槛**）：
+   - **FP16**：保真不过门槛（`rel` 0.001432037985732332 > 1e-3），但聚类效果在 ASR-028 场景实测可用；
+   - **FP32**：过门槛（`rel` 1.12e-6），代价 bin ×2、嵌入耗时 ×3.56；
+   - **INT8**：**未测**（ASR-008：不支持的组合会静默回落 ⇒ 必须实测）。
+   ⇒ **交付形态属取舍，交 reviewer / 用户裁定**；本模块**不自行宣布方案 A 已验收**。
+2. 🔴 **OV 的 f16 偏差是格式下界的 4.6 倍** ⇒ 除格式外仍有优化空间
+   （如 f16 下的累加顺序 / 中间张量精度）—— **属新开实验，未做**。
+3. 🔴 **ASR-028 说话人质量结论未定**：伪真值**同源 wespeaker** ⇒ 偏乐观
+   ⇒ 仍需 reviewer / 用户抽听 `asr055` 导出的 **79 个 ±3 s 片段**。
+4. ⚠️ **WER 未跑**（目标机不调用 MiniMax）⇒ `asr049_transcript_{base,ovthreads}.txt`
+   已备，**交 reviewer 复算**两臂 WER（ASR-026 的「WER 差 <1pp 视为不变」待判）。
+5. ⚠️ **本轮脚本/产物在 git 仓库外**（`qwen3asr_06b` 不在 repo 内）⇒ 只在本机；
+   **App 集成 `asr052` 时需另行打包**（接口只依赖 `numpy`/`openvino`/`soundfile`）。
+
+### 61.9 纪律自检
+- ✅ **只提交本模块自己的文件**（`status/asr/STATUS_ASR.md`）⇒ 提交清单**无 `live_caption/`**；
+  **未修改 `CORRECTIONS_ASR.md`**（纠偏文件由 reviewer 维护）。
+- ✅ **共享机器锁**：asr060/asr065 两项 GPU 推理作业**全部持规范锁**
+  （`asr_lock_common.acquire()`，ASR-015 单一事实来源）；
+  `probe.check()` 实测 **1 次/作业**、`lock_probe_stolen` = **0**、`timing_valid` = **true**
+  ⇒ `lock_probe_checks > 0` 作为**产物断言**（§60.8 缺陷 #1 的正面修复）。
+  - 🔴 **另回收了一个陈旧锁**：`app-pack` pid 41412（`pid_alive` = False）
+    ⇒ 走 `asr_lock_common` 的回收路径（`read_lock`→`pid_alive`→`lock_is_stale`→复核 pid）
+    ⇒ **未直接 `rm`**（§13 铁律）。
+- ✅ **不在 CPU 上跑推理/测速**：所有推理/计时都在 **GPU.0**（OV IR）；
+  纯 CPU 只用于**单组件诊断**（纯 Python 数值对账、JSON 严格性）。
+- ✅ **WER 不在本模块算** ⇒ 交 reviewer（目标机不调用 MiniMax）。
+- ✅ **未动 `live_caption/`**；**未开新实验**：只做纠偏链条上唯一未闭环项的归因与出路探测。
+- ⚠️ **`enable_hallucination_reset` 未触碰**（受 C-036 用户决策约束）。
+- ⚠️ **§61.5 的「限线程 vs 保真测量口径交互」**对 ASR-026/027 的生产路径**无影响**
+  （ASR-026 的限线程是**生产推理路径**的 CPU 占用优化，本节说的是**保真测量**）；
+  但**今后任何保真测量都不得套用限线程环境** ⇒ 已落进 `asr061`/`asr066` 运行器。
