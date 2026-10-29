@@ -1,0 +1,114 @@
+{
+  "script": "app146_app042_speed_math",
+  "checks": [
+    {
+      "id": "V1",
+      "name": "lag ≤ 3 s ⇒ speed = 1.0",
+      "pass": true,
+      "got": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "want": "全 1.0"
+    },
+    {
+      "id": "V2",
+      "name": "lag = 15 s ⇒ 累积收敛到 1.30（单次受 0.1× 限幅）",
+      "pass": true,
+      "got": 1.3,
+      "want": 1.3
+    },
+    {
+      "id": "V3",
+      "name": "lag > 15 s ⇒ 截断到 1.30",
+      "pass": true,
+      "got": [
+        1.3,
+        1.3,
+        1.3
+      ],
+      "want": "全 1.30"
+    },
+    {
+      "id": "V4",
+      "name": "滞回：lag=2.5 保持 / lag=1.5 连两句回到 1.0",
+      "pass": true,
+      "got": {
+        "lag2.5": 1.2,
+        "lag1.5_first": 1.1,
+        "lag1.5_second": 1.0
+      },
+      "want": "hold>1.0 且 两句后=1.0"
+    },
+    {
+      "id": "V5",
+      "name": "线性段 lag=7 s ⇒ 1.10",
+      "pass": true,
+      "got": 1.1,
+      "want": 1.1
+    },
+    {
+      "id": "V6",
+      "name": "相邻句单次变化 ≤ 0.1×",
+      "pass": true,
+      "got": 1.1,
+      "want": 1.1
+    },
+    {
+      "id": "V7",
+      "name": "WSOLA 拉伸后基频不变（变调检测）",
+      "pass": true,
+      "got": {
+        "f_in": 220.18,
+        "f_out": 220.18,
+        "ratio": 1.0,
+        "in_len": 24000,
+        "out_len": 20000
+      },
+      "want": "ratio≈1.0 且变短"
+    },
+    {
+      "id": "V8",
+      "name": "CLI 目标墙钟口径 = t0 + audio_s",
+      "pass": true,
+      "got": "源码含 _cli_wall0=time.time() / return _cli_wall0 + a / audio_s 取值",
+      "want": "三者齐备"
+    }
+  ],
+  "real_failed": [],
+  "counterfactual": [
+    {
+      "id": "CF1",
+      "name": "公式恒 1.0 ⇒ V2/V5 应 FAIL",
+      "pass": true,
+      "got": {
+        "v2_ramp": 1.0,
+        "v5": 1.0
+      },
+      "want": "V2/V5 均 FAIL"
+    },
+    {
+      "id": "CF2",
+      "name": "去掉限幅 ⇒ V6 应 FAIL（单次即到 1.3）",
+      "pass": true,
+      "got": {
+        "single": 1.3,
+        "ramp": 1.3
+      },
+      "want": "单次≠1.1 且 累积=1.30"
+    },
+    {
+      "id": "CF3",
+      "name": "CLI 目标墙钟源码缺失 ⇒ V8 应 FAIL",
+      "pass": true,
+      "got": "剥离后 V8 条件不成立",
+      "want": "V8 FAIL"
+    }
+  ],
+  "counterfactual_not_caught": [],
+  "verdict": true,
+  "verdict_rule": "REAL 组全 PASS 且 反证组的假实现**全部被识破**",
+  "note": "离线数学验证；不替代真机实测"
+}
