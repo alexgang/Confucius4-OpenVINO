@@ -1,5 +1,6 @@
 {
   "schema": "app.app039.wiring_gap.v2",
+  "live_dir": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption",
   "behavior_E": {
     "has_keep_t0_param": true,
     "pcm_is_none": false,

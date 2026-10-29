@@ -1,0 +1,217 @@
+{
+  "schema": "app.app039.wiring_gap.v2",
+  "live_dir": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.10/app",
+  "behavior_E": {
+    "has_keep_t0_param": true,
+    "pcm_is_none": false,
+    "n_samples": 32000,
+    "n_expected": 32000,
+    "len_ok": true,
+    "first_val": 101.0,
+    "last_val": 102.9999,
+    "content_ok": true,
+    "old_call_is_none": true
+  },
+  "behavior_A": {
+    "has_span_fn": true,
+    "len_short": 2.5,
+    "len_ok": true,
+    "t1_ok": true,
+    "long_len": 2.5,
+    "long_ok": true,
+    "zero_start": 0.0,
+    "zero_ok": true
+  },
+  "behavior_B": {
+    "has_add_clean_ranges": true,
+    "dur": 3.0,
+    "dur_ok": true,
+    "ready": true,
+    "dur_after_dup": 3.0,
+    "dup_ok": true,
+    "dur_after_disjoint": 4.0,
+    "disjoint_ok": true,
+    "refine_ready": true
+  },
+  "behavior_F": {
+    "ran": true,
+    "sent_after_round1": [
+      [
+        "S1",
+        true
+      ]
+    ],
+    "pending_after_round1": [
+      [
+        0,
+        "S1"
+      ]
+    ],
+    "pending_after_round2": [
+      [
+        0,
+        "S1"
+      ]
+    ],
+    "spk_still_pending": true,
+    "voice_marked_clone": true,
+    "refine_reachable": true,
+    "n_register_calls": 2,
+    "refine_command_sent": true
+  },
+  "struct_A": {
+    "has_seg_span_write": true,
+    "cli_same_args": false
+  },
+  "struct_C": {
+    "has_spk_voice_branch": true,
+    "mark_embedded_callers": [
+      "_cli_pump_spk_voices",
+      "_pump_spk_voices",
+      "run_cli"
+    ],
+    "mark_embedded_sites": [
+      "_pump_spk_voices@3794 guarded=True",
+      "_cli_pump_spk_voices@4694 guarded=True"
+    ],
+    "guarded_sites": [
+      "_cli_pump_spk_voices@4694",
+      "_pump_spk_voices@3794"
+    ],
+    "unconfirmed_callers": [],
+    "refine_dead_callers": []
+  },
+  "falsify": {
+    "E_ignore_keep_t0": {
+      "pcm_is_none": true,
+      "content_ok": false,
+      "judge_failed": true
+    },
+    "A_disable_borrow": {
+      "len_short": 0.0,
+      "judge_failed": true
+    },
+    "B_sum_not_union": {
+      "dur_after_dup": 0.0,
+      "judge_failed": true
+    },
+    "C_unconditional_mark": {
+      "unconfirmed": [
+        "_pump_spk_voices@3763"
+      ],
+      "judge_failed": true
+    },
+    "F_remove_on_first_register": {
+      "spk_still_pending": false,
+      "refine_dead_callers": [],
+      "judge_failed": true
+    }
+  },
+  "results": [
+    {
+      "name": "E1 `pcm_for_ranges` 支持 `keep_t0`（环形缓冲起点时间）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "E2 按全局时间轴取到正确的样本（不是 None / 不是错位）",
+      "ok": true,
+      "detail": "n=32000 exp=32000 first=101.0 last=102.9999"
+    },
+    {
+      "name": "E3 旧行为（不传 keep_t0）确实取不到 ⇒ 判据能分辨新旧",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A1 App 真正写入 `_seg_span`（段区间不是恒空）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A2 CLI 传给旁路的两个时间实参**不相同**（区间长度 > 0）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A3 `span_for_final` 存在且给出 ≥2.0 s 的区间",
+      "ok": true,
+      "detail": "len=2.5"
+    },
+    {
+      "name": "A4 `span_for_final` 长句不借用、短句往前借、起点不为负",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "B1 `add_clean_ranges` 存在（生产路径能累计干净语音时长）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "B2 并集累计（重叠区间不重复计）",
+      "ok": true,
+      "detail": "dur=3.0 dup=3.0 disjoint=4.0"
+    },
+    {
+      "name": "B3 登记后 `ready_to_embed` 为 True（可细化）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "C1 `tts_service` 有 `spk_voice` 事件分派",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "C2 `mark_embedded` 只在「worker 确认后」的函数里调用",
+      "ok": true,
+      "detail": "unconfirmed=[]"
+    },
+    {
+      "name": "F1 初次登记确认后 spk **仍在 pending**（细化分支可达）",
+      "ok": true,
+      "detail": "pending_after_round2=[(0, 'S1')]"
+    },
+    {
+      "name": "F2 细化命令确实发出（第 2 次 register）",
+      "ok": true,
+      "detail": "n_register=2"
+    },
+    {
+      "name": "F3 结构判据：没有「初次登记即移出 pending」的 pump",
+      "ok": true,
+      "detail": "refine_dead=[]"
+    },
+    {
+      "name": "D 反证 E：注入「忽略 keep_t0」⇒ E 判据 FAIL",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "D 反证 A：注入「禁用借用」⇒ A 判据 FAIL",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "D 反证 B：注入「求和代替并集」⇒ B 判据 FAIL",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "D 反证 C：注入「无条件 mark_embedded」⇒ C 判据 FAIL",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "D 反证 F：注入「初次登记即移出 pending」⇒ F 判据 FAIL",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "summary": {
+    "pass": 20,
+    "fail": 0,
+    "total": 20
+  }
+}

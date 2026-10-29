@@ -46,6 +46,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..'))
 LIVE = os.path.join(REPO, 'live_caption')
 
+# 🔴 §99：可用环境变量 `APP154_LIVE_DIR` 指向**客户包内**那份源码，
+#    对「包内副本」做同一套验收（默认仍跑仓库那份 ⇒ 行为不变）。
+LIVE = os.environ.get('APP154_LIVE_DIR') or LIVE
+
 EVIDENCE = os.path.join(HERE, 'app154_app039_wiring_gap_evidence.json')
 
 
@@ -794,6 +798,7 @@ def main():
 
     evidence = {
         'schema': 'app.app039.wiring_gap.v2',
+        'live_dir': LIVE,
         'behavior_E': e,
         'behavior_A': a,
         'behavior_B': b,
