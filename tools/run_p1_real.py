@@ -34,9 +34,17 @@ from typing import Optional
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
+sys.path.insert(0, ROOT)
 
-APP_ROOT = os.environ.get("EXT_APP_ROOT",
-                          r"C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6")
+# ★ 缺陷 22：**不再硬编码 App 版本号** —— 按目录实际存在情况解析
+#   （实测 2026-10-29 App 升级到 v1.7、v1.6 目录已被删除 ⇒ 硬编码全线失效）
+from ext.app_root import resolve_app_root as _resolve_app_root
+
+_APP_ROOT = _resolve_app_root()
+if not _APP_ROOT:
+    raise RuntimeError(
+        "找不到实时字幕 App 的安装目录；可用环境变量 EXT_APP_ROOT 显式指定。")
+APP_ROOT = _APP_ROOT
 APP_PYTHON = os.path.join(APP_ROOT, "python", "python.exe")
 PY = sys.executable
 

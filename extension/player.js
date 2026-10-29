@@ -166,6 +166,23 @@ const metrics = {
   onsetErrs: [], lipErrs: [], schedDetail: [],
   drawMarks: [], origOnsets: [], dubOnsets: [],
   captureStarted: false, audioCtxOk: false,
+  // ★ EXT-009：自适应加速播放的当前状态（底栏显示）
+  //   speed     —— 当前句采用的语速倍率（1.00 ~ 1.30）
+  //   lagSec    —— 当前句的滞后秒数（实际开播 − 目标开播）
+  adaptSpeed: 1.0, adaptLagSec: 0, adaptLagPeak: 0,
+  adaptSpeedHistory: [],       // {id, speed, lagSec, at}
+  adaptTotalSpeed: 1.0,        // 时长适配 × 自适应加速 的总倍率
+};
+
+// ★ EXT-009：自适应加速播放的**统一参数**
+//   （与 App 一致；服务端 `ext/adaptive_speed.py` 是权威实现，
+//     这里只做播放侧的应用与显示）
+const ADAPT = {
+  lagFreeSec: 3.0,      // lag ≤ 3 s ⇒ 1.0×
+  lagHystSec: 2.0,      // 降速滞回门槛
+  gainPerSec: 0.025,    // 每秒滞后的加速系数
+  speedMax: 1.30,       // 上限
+  maxStep: 0.10,        // 相邻句变化上限
 };
 
 // ── 全局时钟：画面与原声共用同一个 AudioContext ────────────────
@@ -514,7 +531,16 @@ function b64ToAudioBuffer(b64, sampleRate) {
   return buf;
 }
 
-/** 排程一句配音到 t0 + t_start + D（AudioContext 绝对时刻） */
+/**
+ * 排程一句配音到 t0 + t_start + D（AudioContext 绝对时刻）
+ *
+ * ★ EXT-009：这里同时应用「自适应加速播放」的**播放侧**语义：
+ *   - 服务端已把「保持音高」的变速（WSOLA）做完（`pcm24k` 已是加速后的波形），
+ *     并把倍率放在 `msg.speed` 里；
+ *   - 插件侧**不再**对音频做任何变速（绝不能用 `playbackRate` —— 会变调），
+ *     只负责：① 记录/显示倍率与滞后；② 按 EXT-009 的公式**本地复核**一遍，
+ *     便于发现「服务端算的 lag」与「插件实测的 lag」差多少。
+ */
 function scheduleDub(msg) {
   if (!audioCtx || !msg.pcm24k) return null;
   const buf = b64ToAudioBuffer(msg.pcm24k, msg.sample_rate || 16000);
@@ -544,6 +570,34 @@ function scheduleDub(msg) {
   }
   const when = Math.max(earliest, planned);
   src.start(when);
+
+  // ★★ EXT-009：自适应加速播放的**播放侧记录**（不改变音频波形）
+  //   - `msg.speed` 是服务端算好的**总倍率**（时长适配 × 自适应加速，封顶 1.30×）
+  //     ⇒ 音频**已经是**这个倍率的波形（WSOLA 在服务端做的）⇒
+  //       这里**绝不能**再对 buffer 做 playbackRate（会二次加速 + 变调）。
+  //   - 插件侧实测 lag = 实际开播时刻 − 目标开播时刻
+  //     （目标开播时刻 = t0 + t_start + D；实际开播时刻 = when，含钳位）
+  //   - 本地按 EXT-009 公式**复核**一遍倍率，便于发现两侧口径差异。
+  if (!isProbe) {
+    const targetStart = t0 + Number(msg.t_start || 0) + delaySec;
+    const actualStart = when;
+    const lagSec = actualStart - targetStart;
+    const serverSpeed = Number(msg.speed || 1.0);
+    // 本地按 EXT-009 公式复核（纯对照，不用于播放）
+    const localRaw = Math.max(1.0, Math.min(ADAPT.speedMax,
+      1.0 + (Math.max(0, lagSec) - ADAPT.lagFreeSec) * ADAPT.gainPerSec));
+    metrics.adaptSpeed = serverSpeed;
+    metrics.adaptTotalSpeed = serverSpeed;
+    metrics.adaptLagSec = lagSec;
+    if (lagSec > metrics.adaptLagPeak) metrics.adaptLagPeak = lagSec;
+    metrics.adaptSpeedHistory.push({
+      id: msg.id, speed: serverSpeed, lagSec: Math.round(lagSec * 1000) / 1000,
+      localRaw: Math.round(localRaw * 10000) / 10000,
+      at: Math.round(audioCtx.currentTime * 1000) / 1000,
+      clamped: planned < earliest,
+    });
+    if (metrics.adaptSpeedHistory.length > 500) metrics.adaptSpeedHistory.shift();
+  }
   // ★ 有界：超出上限丢弃最旧的，并计数（不静默丢）
   //   先裁剪再 push ⇒ 长度始终 ≤ CAP
   if (pendingSched.length >= PENDING_SCHED_CAP) {
@@ -1325,6 +1379,11 @@ window.__ext = {
     t0,
     schedErrP50: pct(metrics.onsetErrs, 0.5),
     schedErrP95: pct(metrics.onsetErrs, 0.95),
+    // ★ EXT-009：自适应加速的当前状态（供测试钩子/探针读取）
+    adaptSpeed: metrics.adaptSpeed,
+    adaptLagSec: metrics.adaptLagSec,
+    adaptLagPeak: metrics.adaptLagPeak,
+    adaptSpeedHistory: metrics.adaptSpeedHistory.slice(-100),
     uplink: uplinkSnapshot(),
     stall: {
       lastMs: Math.round(stall.last * 100) / 100,
@@ -1444,6 +1503,10 @@ function updateHud() {
   set('mSched', m.schedErrMs == null ? '—' : m.schedErrMs.toFixed(2));
   set('mCpu', m.cpuPct == null ? '—' : m.cpuPct.toFixed(1));
   set('mMem', m.memMB == null ? '—' : m.memMB.toFixed(1));
+  // ★ EXT-009：底栏显示当前语速倍率与滞后秒数
+  set('mSpeed', (m.adaptSpeed == null ? 1.0 : m.adaptSpeed).toFixed(2));
+  set('mLag', (m.adaptLagSec == null ? 0 : m.adaptLagSec).toFixed(1));
+  set('mLagPeak', (m.adaptLagPeak == null ? 0 : m.adaptLagPeak).toFixed(1));
 }
 
 boot();

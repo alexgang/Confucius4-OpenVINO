@@ -767,3 +767,150 @@ mtime 均为 2026-10-28 06:11。）
   ⇒ **是测试环境依赖缺失，不是产品缺陷**；本轮统一用
   `C:\Users\Trekker-PTL\miniforge3\envs\ov_env_py312\python.exe` 跑自测 ⇒ 全绿。
   **真实引擎实测**仍必须用 App 解释器 + `PYTHONPATH` 注入 `.runtime_deps/`。
+
+## 2026-10-29 16:58 → 17:12 — EXT-010（RESUME）⇒ 实做 EXT-008 收口 + EXT-009 落地
+
+**本轮执行依据**：`status/CORRECTIONS_EXT.md` 的 **EXT-010 [NORMAL] 2026-10-29 15:38
+—— RESUME：额度已重置，请从 last_ack 继续**。
+闸门 `tools/next_instruction.py --json` 退出码 **0**：
+`{"action":"execute","latest":{"id":"EXT-010","num":10,"priority":"[NORMAL]",
+"ts":"2026-10-29 15:38","title":"RESUME：额度已重置，请从 last_ack 继续"},
+"last_ack":6,"n_entries":10}`。
+
+**接手判定（不是「重复触发」）**：仓库状态证明上一轮在 **EXT-008 的 interference 臂**被中断 ——
+树脏（12 改 + 3 新）、`§6.5.1/6.5.2/6.5.3` 三处仍是「⏳ 实测数字待填」、
+`EXEC_LOG` 的 EXT-008 条目写着「实测段落待补」、
+`.tmp/ext008_bench/` 只有 `cold_hot.json` / `steady.json` / `all.log`（**无 `interference.json`**），
+且 `all.log` 停在「开始 interference」。
+⇒ 按「**未完成的轮次**」接手。
+
+**指令摘要与逐条落地**
+
+* EXT-008 第 3 点 (c) **interference 臂** ⇒ ✅ **本轮补跑完成**
+  （`.tmp/ext008_bench/interference.json`，**1114 字节**，mtime **2026-10-29 16:56:51**，
+  19 段 / 300.0 s，`started_at 16:44:47` → `finished_at 16:56:51`，`ok: true`）：
+  * 串行基线 `asr_sec=211.384 / asr_rtf=0.7046 / tts_sec=61.919 / tts_rtf=1.5731 / sum_sec=273.303`
+  * 并发 `asr_sec=200.77 / asr_rtf=0.6692 / tts_sec=60.917 / tts_rtf=1.5477 / wall_sec=200.77`
+  * `asr_slowdown_x=0.9498`、**`tts_slowdown_x=0.9838`**、**`parallel_speedup_x=1.3613`**
+  * ⇒ **真并行成立（两者都没变慢）但加速比只有 1.36×，不是 2×**
+    ⇒ **「并行化即根治」被修正为「并行化是必要但不充分的一步」**
+  * ⚠️ **如实标注**：并发段有一句 TTS 触发失控中止
+    （`interference.log` 第 305 行
+    `[ext-engine] 🔴 TTS 失控中止：wall_clock>60.9s (limit 60.0s)（已丢弃该句）`）
+    ⇒ `eng.tts()` 返回 `(None, 0.0)` 未抛异常 ⇒ `tts_sec` 是**空跑耗时**、
+    `tts_rtf` 的分母沿用串行基线 ⇒ **该 RTF 口径不严谨、不可直接采信**
+    （但「并发时 ASR 不变慢」的结论不受影响）
+* EXT-008 第 3 点 (a)(b)(c) **原始字段回填 STATUS §6.5** ⇒ ✅
+  * (a) `cold_hot.json`（**3304 字节**，mtime 12:29:55）：
+    ASR 冷 0.7403 / 热 [0.6176, 0.6016]（中位 0.6096，冷热差 **0.1307**）；
+    TTS 冷 1.6328 / 热 [1.1752, 1.1612]（中位 1.1682，冷热差 **0.4646**）；
+    `all_asr_ok=true`
+  * (b) `steady.json`（**7834 字节**，mtime 12:40:23）：
+    全段 19 段 / 300.0 s ⇒ ASR 0.6819 / MT 0.1568 / **TTS 1.022** / 端到端 **2.0866**；
+    **去首段稳态 18 段 / 286.32 s ⇒ ASR 0.6563 / MT 0.1507 / TTS 1.0022 / 端到端 2.0507**
+  * ⇒ ★★ **撤回 §6.5.0 / §6.8 / §6.9 的「TTS 稳态 RTF 0.9264 < 1（有余量）」**
+    （那是**从 run7 跨轮次借用分母的推算值**，实测为 **1.0022**）
+* EXT-008 第 1 点 **run7 末句滞后与斜率** ⇒ ✅ 重算落盘
+  `.tmp/p1_run7/recompute_lag.json`：
+  `last_segment_lag_sec=297.8847`、`max_lag_sec=304.3427`、
+  `lag_growth_slope_sec_per_sec=−0.892163`、`lag_growth_r2=0.995403`、
+  `old_cumulative_lag_sec_RETRACTED=−3969.5098`；
+  精确三分量 `backlog 83.18 % / struct 2.02 % / proc 14.80 %`，
+  `identity_closed=true`、`max_abs_residual_sec=0.0006`
+* EXT-008 第 4 点 **TTS 稳态 RTF 写进 STATUS 供转达** ⇒ ✅ **§7.3 修正版**
+  （**1.0022**，并说明「TTS 提速是流水线上线的前置条件，建议目标 ≤ 0.85」）
+* EXT-009 **自适应加速播放（统一参数）** ⇒ ✅ **完整落地**
+  * **缺陷 21**（★ 本轮修的真实缺陷）：`ext/time_stretch.py` 的 WSOLA 相似度搜索
+    **恒取偏移 0** —— `np.correlate(seg, ref, mode="valid")` 在**等长**数组上
+    返回长度 1 ⇒ `argmax` 恒 0 ⇒ **从未真正搜索过**，退化成朴素 OLA
+    ⇒ 新增 `_normalized_xcorr_best()`（`sliding_window_view` 向量化归一化互相关）；
+    `wsola()` 新增 `sample_rate` 形参（TTS 输出 24 kHz）
+  * **缺陷 22**（★ 本轮修的真实缺陷）：App 升级到 **v1.7**、**v1.6 目录被删** ⇒
+    5 处硬编码（`ext/engine_runtime.py` / `tools/bridge_server.py` /
+    `tools/run_p1_real.py` / `tools/throughput_bench.py` /
+    `tests/test_ext_selfcheck.py`）全部失效 ⇒ `test_ext_selfcheck` 实测 **101 PASS / 1 FAIL**
+    （FAIL = 失控闸口径来源 `tts_engine` 加载不到）⇒ 新建 `ext/app_root.py` 做
+    **版本自适应**解析（`EXT_APP_ROOT` 优先；显式指定但不存在 ⇒ **不静默回退**）
+    ⇒ 实测解析到 `Confucius4_LiveCaption_v1.7` ⇒ **103 PASS / 0 FAIL**
+  * **统一参数**（`ext/config.py` 唯一实现处）：
+    `ADAPT_LAG_FREE_SEC=3.0` / `ADAPT_LAG_HYST_SEC=2.0` / `ADAPT_GAIN_PER_SEC=0.025` /
+    `ADAPT_SPEED_MAX=1.30` / `ADAPT_MAX_STEP=0.10` / `ADAPT_TOTAL_RATE_MAX=1.30`
+  * **新增** `ext/adaptive_speed.py`（**纯函数**权威实现）：
+    `raw_speed_for_lag()` / `decide_speed()`（公式 → 滞回 → 步长 → 上限）/
+    `combine_rates()`（总倍率封顶 1.30×）/ `lag_from_schedule()` / `target_start_for()`
+  * **服务端接线** `ext/bridge.py`：lag 估计 → `decide_speed` → `combine_rates`
+    → **主机侧单线程 WSOLA 变速** → 下发 `speed / adapt / rates / lag_est_sec /
+    speech_sec_out / stretch_sec / defer_total_sec`；
+    新增 `adaptive_speed_stats()`（滞后曲线 + 倍率时间占比 + `n_dropped_dub`）
+  * **插件侧** `extension/player.js` / `player.html`：
+    `ADAPT` 本地常量（与服务端一致）、`scheduleDub()` 记录 lag/speed 序列、
+    底栏新增「**语速 / 滞后 / 滞后峰值**」
+  * **补齐验收数据落盘链路**（本轮发现的缺口）：
+    `margin.json` 加 `adaptive_speed`；`tools/p1_pipeline.py` 新增
+    `pick_accelerated_segments()` / `copy_accelerated_wavs()`，
+    报告加 `accelerated_segments`，落 `accel/` 目录（供 reviewer 抽听）
+  * ⛔ **EXT-009 的 5 分钟真实实测本轮仍在排共享锁** ⇒ **验收数字（滞后曲线 /
+    倍率占比 / 丢句数 / 3 段 1.2–1.3× 加速音频）尚未产出，不宣称已达成**
+* EXT-010 末句「**之后根据数据改流水线**」 ⇒ ⛔ **本轮不做**
+  （EXT-009 末句写「等 EXT-008 的 interference 数据确认后再做」；
+  本轮**已拿到数据**，但**流水线化属架构改动，需 reviewer / 用户拍板**）
+  ⇒ 只把 interference 数据如实给出
+
+**涉及修改的文件（**仅本模块**，未动任何引擎文件）**
+
+- `ext/adaptive_speed.py`（**新建**）—— EXT-009 纯函数权威实现。
+- `ext/app_root.py`（**新建**）—— 修缺陷 22：App 版本自适应解析。
+- `ext/config.py` —— 新增 EXT-009 统一参数常量（8 个）。
+- `ext/bridge.py` —— EXT-009 接线；`adaptive_speed_stats()`；`_dump_margin()` 加 `adaptive_speed`。
+- `ext/time_stretch.py` —— 修缺陷 21：`_normalized_xcorr_best()`；`wsola(sample_rate=)`。
+- `ext/engine_runtime.py` —— 改用 `resolve_app_root()`，删硬编码 v1.6，解析失败显式报错。
+- `extension/player.js` —— EXT-009 metrics / `ADAPT` / `scheduleDub()` 记录 / HUD。
+- `extension/player.html` —— 底栏新增语速 / 滞后 / 滞后峰值。
+- `tools/throughput_bench.py` / `tools/bridge_server.py` / `tools/run_p1_real.py` / `tools/engine_smoke.py`
+  —— 改用 `resolve_app_root()`；docstring 版本号更新。
+- `tools/p1_pipeline.py` —— 补 EXT-009 验收落盘（`pick_accelerated_segments` /
+  `copy_accelerated_wavs` / `accelerated_segments` / `adaptive_speed`）；`per_segment` 补 EXT-009 字段。
+- `tests/test_ext009_adaptive_speed.py`（**新建**）—— EXT-009 专项自测 **57 项**。
+- `tests/test_ext_selfcheck.py` —— `_load_app_module()` 改用 `resolve_app_root()`。
+- `status/STATUS_EXT.md` —— 追加 **§7**；头部 `last_ack` 推到 **EXT-009**；
+  「更新时间」= 实测时间 **2026-10-29 17:12**。
+- `status/EXEC_LOG.md` —— 本记录。
+
+⛔ **未改 `status/CORRECTIONS_EXT.md`**（只读，绝不入库；已在 `.gitignore`，**绝不 `git add -f`**）。
+⛔ **未改任何引擎文件**（ASR R2T2 / MT Hy-MT2 / TTS Qwen3-TTS 全部只 import）。
+⛔ **未改 D（缓冲窗）** —— EXT-008 第 4 点明文要求。
+
+**验证与自测结果**
+
+* 六套自测**全跑、逐套取真实退出码，全部 rc=0**：
+  `test_ext_selfcheck.py` **103 PASS / 0 FAIL**、
+  `test_echo_roundtrip.py` **10 PASS / 0 FAIL**、
+  `test_next_instruction.py` **19 PASS / 0 FAIL**、
+  `test_p1_plumbing.py` **97 PASS / 0 FAIL**、
+  `test_ext_browser_contract.py` **102 PASS / 0 FAIL**、
+  `test_ext009_adaptive_speed.py` **57 PASS / 0 FAIL**
+  ⇒ **合计 388 PASS / 0 FAIL**。
+* ⚠️ **解释器与 PYTHONPATH（如实记录，避免下次误判为回归）**：
+  自测依赖 `numpy` + `psutil` + `websockets`；
+  `websockets` 装在**项目本地** `.runtime_deps/`（**不污染 App 的 site-packages**）
+  ⇒ 必须带 `PYTHONPATH=<项目根>;<项目根>/.runtime_deps`，
+  否则 `test_echo_roundtrip` / `test_p1_plumbing` 会因
+  `ModuleNotFoundError: No module named 'websockets'` 报 1 + 6 个 FAIL
+  —— **那是环境缺依赖，不是产品缺陷**（本轮实测复现过，已用正确环境变量跑到全绿）；
+  App 自带解释器**有 numpy 无 psutil** ⇒ 用它跑 `test_ext_selfcheck` 有 1 FAIL。
+  本轮统一用 `C:\Users\Trekker-PTL\miniforge3\envs\ov_env_py312\python.exe` + `PYTHONPATH`。
+* **真实引擎实测**（(a)(b)(c)）用 App 解释器 + `PYTHONPATH` 注入 `.runtime_deps/`。
+
+**共享锁合规记录**
+
+* (a)(b) 于 12:14–12:40 在 `tools/throughput_bench.py all` 的**一把锁内**跑完；
+  11:41 起排队，锁被 **`tts` 模块（PID 9964，started 11:36:10）** 持有 ⇒
+  用 `probe_pid_alive()`（ctypes `OpenProcess` + `GetExitCodeProcess`）复核**存活**
+  ⇒ **不抢、不删、不回收**，每 2 s 轮询等待。
+* (c) 本轮 16:44:47–16:56:51 在**自己持有的锁内**跑完，结束时正常释放
+  （锁内容变为 `EXT-throughput-interference 13876 2026-10-29 16:44:47`）。
+* 本轮 17:00 起排 **EXT-009 的 5 分钟实测**，锁被 **`tts` 模块（PID 13200，
+  started 16:56:57）** 持有 ⇒ `probe_pid_alive(13200)` 复核**存活**
+  ⇒ **不抢、不删、不回收**，排队等待（日志逐条记录）。
+* ⚠️ **铁律**：**全程未与实时字幕 App / TTS 模块同时占设备**；
+  **未在 CPU 上跑推理**（ASR@GPU.0 / MT@GPU.0 / TTS@NPU，设备摆放未改）。

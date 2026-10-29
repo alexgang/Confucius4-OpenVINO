@@ -3,7 +3,7 @@
 ## 为什么需要这个包装脚本
 
 真实引擎依赖 `openvino` / `openvino_genai` / `babelvox` / `transformers`，
-这些**只在** `Confucius4_LiveCaption_v1.6/python/` 这个运行时里存在
+这些**只在** `Confucius4_LiveCaption_v*/python/` 这个运行时里存在
 （普通 venv 里 `import openvino` 直接 ModuleNotFoundError，实测过）。
 
 ⇒ 桥接服务在 `--real` 模式下**必须**用那个解释器跑。
@@ -27,8 +27,17 @@ import sys
 import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-APP_ROOT = os.environ.get("EXT_APP_ROOT",
-                          r"C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6")
+sys.path.insert(0, ROOT)
+
+# ★ 缺陷 22：**不再硬编码 App 版本号** —— 按目录实际存在情况解析
+#   （实测 2026-10-29 App 升级到 v1.7、v1.6 目录已被删除 ⇒ 硬编码全线失效）
+from ext.app_root import resolve_app_root as _resolve_app_root
+
+_APP_ROOT = _resolve_app_root()
+if not _APP_ROOT:
+    raise RuntimeError(
+        "找不到实时字幕 App 的安装目录；可用环境变量 EXT_APP_ROOT 显式指定。")
+APP_ROOT = _APP_ROOT
 APP_PYTHON = os.path.join(APP_ROOT, "python", "python.exe")
 
 # ★ 本模块自带的第三方依赖（装在**项目本地目录**，不污染 App 的 site-packages）

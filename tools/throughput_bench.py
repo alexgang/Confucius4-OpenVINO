@@ -23,7 +23,7 @@ EXT-008 第 3 点：reviewer 指出「**并行化即根治**」尚无证据 —�
     python tools\\throughput_bench.py interference --wav <wav> --target-lang ja --out <json>
 
 ⚠️ **必须用 App 自带解释器**跑（openvino / babelvox 只在那里）：
-    C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\python\\python.exe
+    C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v<版本>\\python\\python.exe
 
 ⚠️ **必须持共享机器锁**（铁律）：本工具默认走 `machine_lock.hold()`，
    锁被别的模块持有时**排队等待**，绝不抢占。
@@ -56,8 +56,15 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 
-APP_ROOT = os.environ.get("EXT_APP_ROOT",
-                          r"C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6")
+# ★ 缺陷 22：**不再硬编码 App 版本号** —— 按目录实际存在情况解析
+#   （实测 2026-10-29 App 升级到 v1.7、v1.6 目录已被删除 ⇒ 硬编码全线失效）
+from ext.app_root import resolve_app_root as _resolve_app_root
+
+_APP_ROOT = _resolve_app_root()
+if not _APP_ROOT:
+    raise RuntimeError(
+        "找不到实时字幕 App 的安装目录；可用环境变量 EXT_APP_ROOT 显式指定。")
+APP_ROOT = _APP_ROOT
 APP_PYTHON = os.path.join(APP_ROOT, "python", "python.exe")
 
 

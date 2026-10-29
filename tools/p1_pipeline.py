@@ -400,6 +400,17 @@ def compute_metrics(tasks: List[dict], *, delay_sec: float,
             "feasible": fit.get("feasible"),
             "deadline_margin_sec": dm,
             "sync_err_ms": round(err_ms, 3),
+            # ★ EXT-009：自适应加速的逐段字段
+            #   `speed` = 最终倍率（时长适配 × 自适应加速，封顶 1.30×）
+            #   `adapt_speed` = 自适应加速那一层（1.0 ~ 1.30）
+            #   `lag_est_sec` = 服务端估计的滞后
+            #   `stretch_sec` = WSOLA 变速耗时
+            "speed": t.get("speed"),
+            "adapt_speed": (t.get("adapt") or {}).get("speed"),
+            "adapt_reason": (t.get("adapt") or {}).get("reason"),
+            "lag_est_sec": t.get("lag_est_sec"),
+            "stretch_sec": t.get("stretch_sec"),
+            "defer_total_sec": t.get("defer_total_sec"),
             "pcm_bytes": (len(base64.b64decode(t["pcm24k"]))
                           if t.get("pcm24k") else 0),
         })
@@ -509,6 +520,67 @@ def write_dub_wavs(tasks: List[dict], out_dir: str) -> List[dict]:
         made.append({"id": seg_id, "path": path, "bytes": len(pcm),
                      "speech_sec": round(len(pcm) / 2.0 / 24000.0, 3),
                      "t_start": t.get("t_start"), "t_end": t.get("t_end")})
+    return made
+
+
+def pick_accelerated_segments(tasks: List[dict], wavs: List[dict],
+                              *, lo: float = 1.20, hi: float = 1.30,
+                              n: int = 3) -> List[dict]:
+    """★ EXT-009 验收：挑出 1.2–1.3× 的配音单独落盘，供 reviewer 抽听。
+
+    EXT-009 原文：
+    > 挑 3 段 1.2–1.3× 的配音落盘，供用户抽听，确认**不变调、可懂**。
+
+    ⇒ 这里只做「挑 + 拷贝」，**不做任何质量判定**
+      （质量判定由 reviewer 用 MiniMax 回转写，不自己调用 MiniMax）。
+
+    Returns
+    -------
+    list of dict
+        每项含 `id` / `path` / `speed` / `adapt_speed` / `lag_est_sec`
+        / `speech_sec` / `tgt`。
+    """
+    by_id = {w["id"]: w for w in wavs}
+    picks = []
+    for t in tasks:
+        if t.get("type") != "tts" or not t.get("pcm24k"):
+            continue
+        sp = float(t.get("speed", 1.0) or 1.0)
+        if not (lo - 1e-6 <= sp <= hi + 1e-6):
+            continue
+        w = by_id.get(str(t.get("id") or ""))
+        if not w:
+            continue
+        picks.append({
+            "id": str(t.get("id")),
+            "path": w["path"],
+            "speed": round(sp, 4),
+            "adapt_speed": round(float(t.get("adapt", {}).get("speed", 1.0)
+                                       or 1.0), 4),
+            "lag_est_sec": t.get("lag_est_sec"),
+            "speech_sec": w.get("speech_sec"),
+            "t_start": t.get("t_start"),
+            "tgt": t.get("tgt"),
+        })
+    # 取倍率最高的前 n 段（最接近 1.30× ⇒ 变调风险最高 ⇒ 最值得抽听）
+    picks.sort(key=lambda d: -float(d["speed"]))
+    return picks[:n]
+
+
+def copy_accelerated_wavs(picks: List[dict], out_dir: str) -> List[dict]:
+    """把挑出的加速段配音拷到独立目录（方便 reviewer 直接找）。"""
+    import shutil
+    os.makedirs(out_dir, exist_ok=True)
+    made = []
+    for p in picks:
+        dst = os.path.join(out_dir, "%s_x%.2f.wav" % (p["id"], p["speed"]))
+        try:
+            shutil.copyfile(p["path"], dst)
+        except Exception:
+            continue
+        made.append({**p, "picked_path": dst,
+                     "bytes": os.path.getsize(dst)
+                     if os.path.isfile(dst) else None})
     return made
 
 
@@ -638,27 +710,39 @@ def main(argv=None) -> int:
     stats_msgs = [t for t in tasks if t.get("type") == "_stats"]
     margin_summary = (stats_msgs[-1].get("margin") if stats_msgs else None)
     margin_source = ("stats" if margin_summary else None)
+    # ★ EXT-009：自适应加速统计（滞后曲线 / 各倍率时间占比 / 丢句数）
+    #   优先从 stats 回包拿；拿不到就从磁盘的 margin.json 读回。
+    adaptive_stats = (stats_msgs[-1].get("adaptive_speed")
+                      if stats_msgs else None)
+    adaptive_source = ("stats" if adaptive_stats else None)
     # ★★ 兜底：stats 没到（例如服务端还在积压、客户端提前断开）时，
     #   服务端**可能已经把 margin.json 写盘了** ⇒ 从磁盘读回来，
     #   避免 EXT-006 的三项核心验收量在报告里是 null。
     #   （实测 p1_run6：报告 bridge_stats=null / margin=null，
     #     但 margin.json 里有 19 段真数据。）
-    if not margin_summary:
+    if not margin_summary or not adaptive_stats:
         _mjson = os.path.join(out_dir, "margin.json")
         if os.path.isfile(_mjson):
             try:
                 with open(_mjson, "r", encoding="utf-8") as f:
                     _d = json.load(f)
                 _ms = _d.get("margin_summary") or {}
-                if _ms.get("n_segments"):
+                if not margin_summary and _ms.get("n_segments"):
                     margin_summary = _ms
                     margin_source = "margin.json"
+                _ad = _d.get("adaptive_speed") or {}
+                if not adaptive_stats and _ad.get("n_segments"):
+                    adaptive_stats = _ad
+                    adaptive_source = "margin.json"
             except Exception:
                 pass
 
     metrics, per_seg = compute_metrics(seg_tasks, delay_sec=args.delay,
                                        margin_summary=margin_summary)
     wavs = write_dub_wavs(seg_tasks, os.path.join(out_dir, "dub"))
+    # ★ EXT-009 验收：挑 3 段 1.2–1.3× 的配音单独落盘（供 reviewer 抽听）
+    acc_picks = pick_accelerated_segments(seg_tasks, wavs)
+    acc_made = copy_accelerated_wavs(acc_picks, os.path.join(out_dir, "accel"))
 
     report.update({
         "ok": True,
@@ -667,11 +751,17 @@ def main(argv=None) -> int:
         "metrics": metrics,
         "n_dub_wavs": len(wavs),
         "dub_wavs": wavs,
+        # ★ EXT-009 验收：加速段清单（1.2–1.3×）
+        "accelerated_segments": acc_made,
+        "n_accelerated_segments": len(acc_made),
         "per_segment": per_seg,
         "bridge_stats": (stats_msgs[-1] if stats_msgs else None),
         # ★ margin_summary 的来源（"stats" = 收到 stats 回包；
         #   "margin.json" = 从磁盘兜底读回；None = 都没有 ⇒ 真拿不到）
         "margin_source": margin_source,
+        # ★ EXT-009 验收：自适应加速统计（滞后曲线 + 倍率占比 + 丢句）
+        "adaptive_speed": adaptive_stats,
+        "adaptive_source": adaptive_source,
         # ★ 喂帧 / 收尾两段耗时分开记（缺陷 16）：
         #   `feed_sec` ≈ 音频时长（证明按墙钟节拍喂、不是快灌）；
         #   `drain_sec` = 等服务端清积压（stats/dump_margin 回包）的时长

@@ -29,9 +29,14 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 
 from . import config as C
+from .adaptive_speed import combine_rates, decide_speed
 from .duration import fit_duration
 from .segmenter import plan_segments, describe as describe_segmenter
 from .speaker import SpeakerTracker
+from .time_stretch import wsola
+
+# TTS 输出采样率（Qwen3-TTS 输出 24 kHz PCM16）
+TTS_SAMPLE_RATE = 24000
 
 # ── 引擎接入点（复用现有交付版本；此处只做延迟 import，不改对方文件） ──
 ENGINE_ADAPTER = None  # 由 main() 注入：见 ext/engines.py
@@ -478,6 +483,9 @@ class Session:
         self._frame_arrival_delays: List[dict] = []
         self._n_frames_late = 0
         self._max_frame_arrival_delay = 0.0
+        # ★ EXT-009：上一句实际采用的**自适应加速倍率**
+        #   （用于「相邻句变化 ≤ 0.1×」与「滞回」两条约束）
+        self._prev_adapt_speed = 1.0
 
     # ── 接收一帧 ────────────────────────────────────────────────
     def on_pcm_frame(self, msg: dict, *,
@@ -668,6 +676,65 @@ class Session:
         #    ⇒ 这一句光靠引擎就已经赶不上了（与喂帧速度无关）
         intrinsic_lag_sec = max(0.0, proc_sec - max(0.0, self.delay_sec
                                                       - (t_end - t_start)))
+
+        # ═══ ★ EXT-009：自适应加速播放（App 与插件统一参数） ═══
+        #
+        # 统一参数（EXT-009 明文）：
+        #   lag   = 实际开播时刻 − 目标开播时刻
+        #           （插件的目标开播时刻 = t0 + t_start + D）
+        #   speed = clamp(1.0 + (lag − 3 s) × 0.025, 1.0, 1.30)
+        #
+        # ★ 本模块在**服务端**算 lag，理由与口径（务必如实理解）：
+        #   服务端的 `deadline` = `t0 + t_start + D`（同一套 t0/D，
+        #   与插件排程用的是**同一组参数**）⇒
+        #   `lag_est = ready_at − deadline = −deadline_margin_sec`
+        #   就是「这句配音**最早**能开播的时刻 − 它的目标开播时刻」
+        #   ⇒ 插件若按时排程成功，这就是它的实际 lag；
+        #     插件若被钳位到「立刻播」，实际 lag 还要再加钳位量（≤ 几十 ms）。
+        #   ⚠️ **跨时钟的诚实说明**：插件自己的 t0（AudioContext 启动时刻）
+        #   与服务端 t0（会话建立时刻）**不同源**（§6.4.1 已记录），
+        #   两者的**常量偏差**会平移这个 lag 估计。
+        #   但滞后的主导项是**管线 backlog**（占 83.18%，§6.4.3）
+        #   ⇒ 偏差是二阶效应；且速度曲线在 lag=15 s 就饱和到 1.30×，
+        #   小偏差在饱和区无影响。本轮如实记录该口径，不宣称「精确」。
+        lag_est = max(0.0, -deadline_margin)
+        dec = decide_speed(lag_est, prev_speed=self._prev_adapt_speed)
+
+        # 时长适配（单句超长时压缩）—— EXT-009 明文「保留」
+        fit = fit_duration(seg_id, t_start=t_start, t_end=t_end,
+                           speech_sec=speech_sec, max_rate=C.TTS_RATE_MAX)
+        # ★ EXT-009 EXT 侧：时长适配（1.0~1.25×）与自适应加速（1.0~1.30×）
+        #   **相乘**，总倍率封顶 1.30×，超出的部分顺延。
+        rates = combine_rates(fit.rate, dec.speed)
+        total_rate = rates["total_rate"]
+        self._prev_adapt_speed = dec.speed
+
+        # ★ 保持音高变速在**主机侧单线程**做（EXT-009 明文：
+        #   「时间伸缩在主机侧做，不能占满 CPU（单线程）」）。
+        #   ★ 绝不用 playbackRate / 改采样率（会变调）⇒ 用 WSOLA。
+        #   ★ 采样率必须传对：TTS 输出是 24 kHz。
+        pcm_out = pcm24k
+        speech_out = speech_sec
+        stretch_sec = 0.0
+        if pcm24k is not None and total_rate > 1.0 + 1e-6:
+            try:
+                t_stretch = time.perf_counter()
+                arr = np.frombuffer(pcm24k, dtype="<i2").astype(np.float32) / 32768.0
+                stretched = wsola(arr, total_rate, sample_rate=TTS_SAMPLE_RATE)
+                pcm_out = (np.clip(stretched, -1.0, 1.0) * 32767.0).astype("<i2").tobytes()
+                speech_out = len(pcm_out) / 2.0 / float(TTS_SAMPLE_RATE)
+                stretch_sec = time.perf_counter() - t_stretch
+            except Exception as e:
+                _log(f"WSOLA 变速失败（段 {seg_id}）：{e} ⇒ 保持原速")
+                pcm_out = pcm24k
+                speech_out = speech_sec
+
+        # 顺延量：按**实际采用的**总倍率算（封顶掉的部分排不进窗口 ⇒ 顺延）
+        budget = fit.target_sec + fit.extend_sec
+        defer_total = fit.defer_sec
+        if budget > 0 and speech_out > budget:
+            defer_total = max(defer_total, speech_out - budget)
+
         self.margins.append({
             "id": seg_id,
             "t_start": round(t_start, 3),
@@ -689,13 +756,17 @@ class Session:
             "audio_ready_rel_sec": round(audio_ready_rel, 3),
             "feed_lag_sec": round(feed_lag_sec, 4),
             "intrinsic_lag_sec": round(intrinsic_lag_sec, 4),
+            # ★ EXT-009：自适应加速（倍率 / lag 估计 / 顺延）
+            "speed": round(total_rate, 4),
+            "lag_est_sec": round(lag_est, 4),
+            "adapt_speed": round(dec.speed, 4),
+            "adapt_reason": dec.reason,
+            "defer_total_sec": round(defer_total, 4),
+            "stretch_sec": round(stretch_sec, 4),
         })
         self.engine_calls.append({
             "id": seg_id, "asr_sec": round(asr_s, 4),
             "mt_sec": round(mt_s, 4), "tts_sec": round(tts_s, 4)})
-
-        fit = fit_duration(seg_id, t_start=t_start, t_end=t_end,
-                           speech_sec=speech_sec, max_rate=C.TTS_RATE_MAX)
 
         return [{
             "type": "tts",
@@ -706,10 +777,19 @@ class Session:
             "tgt": tgt,
             "spk": spk,
             "voice": voice,
-            "pcm24k": (base64.b64encode(pcm24k).decode("ascii")
-                       if pcm24k is not None else None),
+            "pcm24k": (base64.b64encode(pcm_out).decode("ascii")
+                       if pcm_out is not None else None),
             "fit": fit.to_dict(),
             "delay_sec": self.delay_sec,
+            # ★ EXT-009：自适应加速的决策与最终倍率
+            #   （插件侧按 `speed` 播放，并把它显示在底栏）
+            "speed": round(total_rate, 4),
+            "adapt": dec.to_dict(),
+            "rates": rates,
+            "lag_est_sec": round(lag_est, 4),
+            "speech_sec_out": round(speech_out, 4),
+            "stretch_sec": round(stretch_sec, 4),
+            "defer_total_sec": round(defer_total, 4),
             # ★ EXT-006 P1：把排程截止余量带给客户端 ⇒
             #   客户端可按 EXT-001 口径算「实际播放起点 − 原声起点 + D」，
             #   不必自己猜就绪时刻。
@@ -746,6 +826,10 @@ class Session:
             "buffered_sec": round(self._buf.shape[0] / C.SAMPLE_RATE, 2),
             "speaker": self.tracker.stats(),
             "margin": self.margin_summary(),
+            # ★ EXT-009：自适应加速的**各倍率时间占比**与滞后曲线
+            #   （EXT-009 验收：「报告滞后随时间的曲线（起点、峰值、结尾）
+            #   和各倍率的时间占比」）
+            "adaptive_speed": self.adaptive_speed_stats(),
             # ★ EXT-008：滞后分解（喂帧慢 vs 引擎慢）
             "lag_decomposition": decompose_lag(self.margins,
                                               delay_sec=self.delay_sec),
@@ -803,6 +887,83 @@ class Session:
           * `ready_after_orig_end` 子组 = 旧的延迟口径（保留原始信息）
         """
         return summarize_margins(self.margins)
+
+    # ── ★ EXT-009：自适应加速的统计 ────────────────────────────
+    def adaptive_speed_stats(self) -> dict:
+        """EXT-009 验收要的「各倍率时间占比」与「滞后曲线」。
+
+        EXT-009 明文：
+        > 报告滞后随时间的曲线（起点、峰值、结尾）和**各倍率的时间占比**，
+        > **丢句 = 0**。
+
+        Returns
+        -------
+        dict
+            * `n_segments` — 参与统计的句数；
+            * `speed_time_share` — 按**句的音频时长**加权的倍率占比
+              （比按句数更贴近「时间占比」的真实含义）；
+            * `speed_count_share` — 按**句数**的倍率占比；
+            * `lag_curve` — 滞后曲线（起点 / 峰值 / 结尾 / 逐段序列）；
+            * `n_dropped_dub` — 丢句数（EXT-009 要求 **丢句 = 0**）。
+        """
+        rows = [m for m in self.margins if m.get("speed") is not None]
+        if not rows:
+            return {"n_segments": 0,
+                    "speed_time_share": {}, "speed_count_share": {},
+                    "lag_curve": {}, "n_dropped_dub": 0,
+                    "note": "尚无带 speed 的段（自适应加速未启用或还没出句）"}
+
+        def _bucket(v: float) -> str:
+            if v <= 1.001:
+                return "1.00"
+            if v <= 1.10:
+                return "1.00-1.10"
+            if v <= 1.20:
+                return "1.10-1.20"
+            if v <= 1.30 + 1e-6:
+                return "1.20-1.30"
+            return ">1.30"
+
+        buckets = ["1.00", "1.00-1.10", "1.10-1.20", "1.20-1.30", ">1.30"]
+        time_share = {b: 0.0 for b in buckets}
+        count_share = {b: 0 for b in buckets}
+        total_sec = 0.0
+        for m in rows:
+            sp = float(m.get("speed") or 1.0)
+            b = _bucket(sp)
+            seg_sec = float(m.get("t_end", 0)) - float(m.get("t_start", 0))
+            time_share[b] += max(0.0, seg_sec)
+            count_share[b] += 1
+            total_sec += max(0.0, seg_sec)
+        for b in buckets:
+            time_share[b] = (round(time_share[b] / total_sec, 4)
+                             if total_sec > 0 else 0.0)
+
+        lags = [(float(m.get("t_start", 0)),
+                 max(0.0, float(m.get("lag_est_sec", 0.0) or 0.0)))
+                for m in rows]
+        peak_i = max(range(len(lags)), key=lambda i: lags[i][1]) \
+            if lags else 0
+        return {
+            "n_segments": len(rows),
+            "speed_time_share": time_share,
+            "speed_count_share": count_share,
+            "total_audio_sec": round(total_sec, 3),
+            "lag_curve": {
+                "start_sec": round(lags[0][1], 3) if lags else None,
+                "peak_sec": round(lags[peak_i][1], 3) if lags else None,
+                "peak_at_t_start": round(lags[peak_i][0], 3) if lags else None,
+                "end_sec": round(lags[-1][1], 3) if lags else None,
+                "series_t_start": [round(a, 3) for a, _ in lags],
+                "series_lag_sec": [round(b, 3) for _, b in lags],
+            },
+            # ★ EXT-009：丢句必须为 0（不改译文、不丢句、不回退到丢句）
+            "n_dropped_dub": sum(1 for m in rows if not m.get("has_tts")),
+            "definition": ("lag_est_sec = −deadline_margin_sec = "
+                           "(这句最早能开播的时刻) − (t0 + t_start + D)；"
+                           "speed = 时长适配倍率 × 自适应加速倍率，"
+                           "总倍率封顶 1.30×。"),
+        }
 
 
 def _get_header(websocket, name: str) -> Optional[str]:
@@ -1152,6 +1313,11 @@ def _dump_margin(holder: dict, out_path: Optional[str], engine) -> None:
         "engine_stats": (engine.stats() if engine is not None else {}),
         "lag_decomposition": (decompose_lag(sess.margins, delay_sec=_dl)
                               if sess else {}),
+        # ★ EXT-009：自适应加速统计（滞后曲线 + 各倍率时间占比 + 丢句数）
+        #   ⚠️ 用 getattr 取 ⇒ 桩 session（自测用的假对象）也不会崩。
+        "adaptive_speed": (sess.adaptive_speed_stats()
+                           if sess is not None
+                           and hasattr(sess, "adaptive_speed_stats") else {}),
     }
     n_new = len(data.get("per_segment") or [])
 

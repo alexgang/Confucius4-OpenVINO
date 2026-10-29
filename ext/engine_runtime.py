@@ -11,7 +11,7 @@ EXT-006 要求 P1 走**真实的 ASR → MT → TTS 链路**（回声模式只�
 ## 铁律（EXT-001 总原则，EXT-006 复述）
 
 * **不改其他模块的文件** —— 下面所有 import 都是**只读**引用
-  `Confucius4_LiveCaption_v1.6/app/` 与 `.../models/` 里的原件；
+  `Confucius4_LiveCaption_v*/app/` 与 `.../models/` 里的原件（版本自适应）；
 * **只在 import 或复制适配层范围内复用** —— 本文件就是那个适配层；
 * **不在 CPU 上跑推理** —— ASR/MT 放 GPU.0，TTS 放 NPU；
 * **发现引擎需要改动，写进 STATUS_EXT.md 由主会话转给对应模块** —— 本文件
@@ -41,7 +41,7 @@ EXT-006 要求 P1 走**真实的 ASR → MT → TTS 链路**（回声模式只�
 
 引擎依赖 `openvino` / `openvino_genai` / `babelvox` / `transformers`，
 这些**只在 App 自带的 Python 运行时里**存在
-（`Confucius4_LiveCaption_v1.6/python/python.exe`）。
+（`Confucius4_LiveCaption_v*/python/python.exe`；目录由 `ext/app_root.py` 解析）。
 
 ⇒ 因此 `RuntimeEngine` 必须在**那个解释器**里运行。
    桥接服务的启动脚本（`tools/bridge_server.py`）负责用该解释器拉起本模块。
@@ -59,9 +59,19 @@ import numpy as np
 
 from .config import DEVICE_ASR, DEVICE_MT, DEVICE_TTS, SAMPLE_RATE
 
-# ── 运行时位置（可用环境变量覆盖） ─────────────────────────────────
-APP_ROOT = os.environ.get(
-    "EXT_APP_ROOT", r"C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.6")
+# ── 运行时位置（★ 缺陷 22：**不再硬编码版本号**） ──────────────────
+#   原实现把路径硬编码成 `..._v1.6`；实测 2026-10-29 App 升级到 v1.7、
+#   v1.6 目录**已被删除** ⇒ 引擎接线全线失效（自测实测 1 FAIL）。
+#   ⇒ 改用 `ext/app_root.py` **按目录实际存在情况**解析（版本自适应）。
+#   环境变量 `EXT_APP_ROOT` 仍然最高优先（便于离线复现/CI）。
+from .app_root import resolve_app_root as _resolve_app_root
+
+_APP_ROOT_RESOLVED = _resolve_app_root()
+if not _APP_ROOT_RESOLVED:
+    raise RuntimeError(
+        "找不到实时字幕 App 的安装目录（需要 app/ + models/ + python/python.exe）。"
+        "可用环境变量 EXT_APP_ROOT 显式指定。")
+APP_ROOT = _APP_ROOT_RESOLVED
 APP_DIR = os.path.join(APP_ROOT, "app")
 MODELS_DIR = os.path.join(APP_ROOT, "models")
 

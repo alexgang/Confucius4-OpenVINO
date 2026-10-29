@@ -68,8 +68,14 @@ def _load_app_module(name: str):
     """
     import importlib.util
 
-    app_dir = os.path.join(r"C:\Users\Trekker-PTL", "Confucius4_LiveCaption_v1.6",
-                            "app")
+    # ★ 缺陷 22：**不再硬编码 App 版本号** —— 按目录实际存在情况解析
+    #   （实测 2026-10-29 App 升级到 v1.7、v1.6 目录已被删除
+    #     ⇒ 本用例此前直接 FAIL）
+    from ext.app_root import resolve_app_root
+    _root = resolve_app_root()
+    if not _root:
+        return None
+    app_dir = os.path.join(_root, "app")
     path = os.path.join(app_dir, name + ".py")
     if not os.path.isfile(path):
         return None

@@ -6,7 +6,7 @@ ASR(R2T2 INT8@GPU.0) → MT(Hy-MT2 INT8@GPU.0) → TTS(Qwen3-TTS@NPU)
 
 ⚠️ **必须用 App 自带的 Python 解释器**跑（依赖 openvino / openvino_genai /
 babelvox / transformers 只在那里）：
-    C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\python\\python.exe
+    C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v<版本>\\python\\python.exe
 
 用法：
     <app-python> tools\\engine_smoke.py --wav <16k单声道wav> --target-lang en \\
