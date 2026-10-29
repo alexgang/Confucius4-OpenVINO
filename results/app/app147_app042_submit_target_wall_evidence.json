@@ -1,0 +1,82 @@
+{
+  "script": "app147_app042_submit_target_wall",
+  "checks": [
+    {
+      "id": "W1",
+      "name": "target_play_at=None ⇒ 命令体不含 speed/target_wall/lag_s",
+      "pass": true,
+      "got": {
+        "speed": null,
+        "target_wall": null,
+        "lag_s": null
+      },
+      "want": "三者皆无"
+    },
+    {
+      "id": "W2",
+      "name": "target_play_at 有值 ⇒ 命令体含 speed/target_wall/lag_s",
+      "pass": true,
+      "got": {
+        "speed": 1.0,
+        "target_wall": 1793282745.3555,
+        "lag_s": 0.005
+      },
+      "want": "三者皆有"
+    },
+    {
+      "id": "W3",
+      "name": "lag ≈ 0 ⇒ speed = 1.0",
+      "pass": true,
+      "got": 1.0,
+      "want": 1.0
+    },
+    {
+      "id": "W4",
+      "name": "lag ≈ 60 s ⇒ 单次限幅 speed = 1.1，lag_s ≈ 60",
+      "pass": true,
+      "got": {
+        "speed": 1.1,
+        "lag_s": 60.0
+      },
+      "want": {
+        "speed": 1.1,
+        "lag_s": "≈60"
+      }
+    },
+    {
+      "id": "W5",
+      "name": "target_wall == 传入的 target_play_at（round 4 位）",
+      "pass": true,
+      "got": 1793282733.0143,
+      "want": 1793282733.0143
+    },
+    {
+      "id": "W6",
+      "name": "上一句 1.2 ⇒ 本句单次最多到 1.3",
+      "pass": true,
+      "got": 1.3,
+      "want": 1.3
+    }
+  ],
+  "real_failed": [],
+  "counterfactual": [
+    {
+      "id": "CF1",
+      "name": "去掉 `if target_play_at is not None` ⇒ W1 应 FAIL",
+      "caught": true,
+      "got": "speed 出现在 None 调用里",
+      "want": "识破"
+    },
+    {
+      "id": "CF2",
+      "name": "去掉 `cmd['speed'] = ...` ⇒ W2 应 FAIL",
+      "caught": true,
+      "got": "speed 缺失",
+      "want": "识破"
+    }
+  ],
+  "counterfactual_not_caught": [],
+  "verdict": true,
+  "verdict_rule": "REAL 组全 PASS 且 反证组的假实现全部被识破",
+  "note": "不启 worker、不占共享锁；仅验证命令体计算链"
+}
