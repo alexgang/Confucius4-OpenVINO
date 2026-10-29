@@ -1,0 +1,106 @@
+{
+  "script": "app131_cuda_queue_contention.py",
+  "baseline_commit": "b3d2eca",
+  "src_root": "C:\\Users\\Trekker-PTL\\confucius4-openvino",
+  "subdir": "live_caption",
+  "checks": [
+    {
+      "name": "A0-修前基线可取",
+      "pass": true,
+      "detail": "commit=b3d2eca"
+    },
+    {
+      "name": "A1-修前：`_wait_cancel_ack` **吞掉**别 rid 的消息（D2 丢音频）",
+      "pass": true,
+      "detail": "kept=False ⇒ 消息被永久丢弃"
+    },
+    {
+      "name": "A2-修前：`_start_drain` 对别 rid 消息**忙循环插回**（D3）",
+      "pass": true,
+      "detail": "插回 677893 次/秒"
+    },
+    {
+      "name": "A3-修前：旧 reader 线程的 EOF 哨兵**污染新边车队列**（D5'）",
+      "pass": true,
+      "detail": "污染=True"
+    },
+    {
+      "name": "B1-候选：`_wait_cancel_ack` **不吞**别 rid 的消息（D2 已修）",
+      "pass": true,
+      "detail": "kept=True"
+    },
+    {
+      "name": "B2-候选：`_start_drain` **不忙循环**（D3 已修）",
+      "pass": true,
+      "detail": "插回 0 次/秒"
+    },
+    {
+      "name": "B3-候选：旧 reader 线程**不污染**新边车队列（D5' 已修）",
+      "pass": true,
+      "detail": "污染=False（换代=True）"
+    },
+    {
+      "name": "B4-候选：源码含**按 rid 分流**（`_q_get_rid` / `_rid_q`）与**世代号**（`_gen`）两个机制",
+      "pass": true,
+      "detail": "源码级锚定"
+    },
+    {
+      "name": "C0-注入成功（删掉了 `_bump_gen` 换代方法）",
+      "pass": true,
+      "detail": "删除数=1"
+    },
+    {
+      "name": "C1-删掉换代 ⇒ 旧线程**重新污染**新边车队列（D5' 复现）",
+      "pass": true,
+      "detail": "污染=True（换代=False）"
+    },
+    {
+      "name": "C2a-注入成功（删掉了 `_q_get_rid` 分流方法）",
+      "pass": true,
+      "detail": "删除数=1"
+    },
+    {
+      "name": "C2b-删掉分流 ⇒ `_wait_cancel_ack` **重新吞掉**别 rid 的消息（D2 复现）",
+      "pass": true,
+      "detail": "kept=False"
+    }
+  ],
+  "pass": 12,
+  "fail": 0,
+  "a_group": {
+    "d2": {
+      "kept": false,
+      "drained": true,
+      "has_rid_split": false
+    },
+    "d3": {
+      "put_front_calls": 677893,
+      "busy": true,
+      "has_rid_split": false
+    },
+    "d5": {
+      "polluted": true,
+      "gen_bumped": false,
+      "queue_after": [
+        null
+      ]
+    }
+  },
+  "b_group": {
+    "d2": {
+      "kept": true,
+      "drained": false,
+      "has_rid_split": true
+    },
+    "d3": {
+      "put_front_calls": 0,
+      "busy": false,
+      "has_rid_split": true
+    },
+    "d5": {
+      "polluted": false,
+      "gen_bumped": true,
+      "queue_after": []
+    }
+  }
+}

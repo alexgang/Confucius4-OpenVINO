@@ -15,6 +15,7 @@
 """
 from __future__ import annotations
 
+import array
 import atexit
 import json
 import os
@@ -256,7 +257,28 @@ class CudaTTSEngine:
         #   `_q`  = 协议消息（JSON 行，或 `(JSON 行, PCM 字节)` 的**配对**）
         #   ⚠️ **PCM 必须与它的 JSON 行成对入队** ⇒ 否则 rid 过滤丢掉旧句的
         #      JSON 时，它的 PCM 还留在队列里 ⇒ 下一句读到旧 PCM ⇒ 错位。
+        # 🔴🔴🔴 §91：**按 rid 分流的消息仓库**（不再是「一条队列给四个消费者抢」）。
+        #   §90 之前只有**一个**消费者（主合成线程）⇒ 一条 FIFO 够用。
+        #   §90 之后多了**三个**消费者（`_start_drain` / `_wait_cancel_ack` /
+        #   旧 reader 线程的 EOF 哨兵）⇒ 一条队列 ⇒ **互相抢消息**：
+        #     - `_wait_cancel_ack` 取到**别的 rid** 的消息 ⇒ 旧实现 `continue`
+        #       ⇒ **永久丢弃** ⇒ 下一句少块；
+        #     - `_start_drain` 取到别的 rid ⇒ 旧实现插回队首 ⇒ **立刻又被自己取到**
+        #       ⇒ **忙循环**（实测 67 万次/秒）且队尾真正的目标永远排不到；
+        #     - 旧边车 reader 线程的 EOF 哨兵 `None` 在 `_restart_sidecar` 之后
+        #       才到达 ⇒ **污染新边车的队列** ⇒ 新句误报「边车意外退出」。
+        #   ⇒ 现在：**每个 rid 一个独立队列** ⇒ 别的 rid 的消息**根本不会**
+        #     被本消费者取到 ⇒ 既不丢、也不抢、也不忙循环。
+        #   ⚠️ `self._q` 保留：只承载**无 rid 的消息**（`ready` / `pong`）与
+        #     **EOF 哨兵 `None`**（边车退出）。
         self._q: 'queue.Queue' = queue.Queue()
+        #: 🔴 §91：**rid → 队列**（本 rid 的消息只进它自己的队列）
+        self._rid_q = {}
+        self._rid_q_lock = threading.Lock()
+        #: 🔴 §91：**世代号**（边车每次启动 +1）
+        #:   ⇒ 旧边车的 reader 线程在**重启后**才吐出的 EOF 哨兵/残留消息
+        #:     **被丢弃**（不再污染新边车的队列）。
+        self._gen = 0
         self._reader_thread = None
         self._buf = b''
         # 🔴🔴🔴 APP-030⑤：**本句的结束原因与实际帧数**（供 worker 遥测）
@@ -282,6 +304,8 @@ class CudaTTSEngine:
     def start(self):
         if self.proc is not None and self.proc.poll() is None:
             return self
+        # 🔴 §91：**新边车 ⇒ 新世代**（旧 reader 线程即刻失效）
+        self._bump_gen()
         if not os.path.isfile(self._py):
             raise CudaTTSError('CUDA 环境不存在：%s（见 README 的 CUDA 后端说明）' % self._py)
         if not os.path.isfile(SIDECAR):
@@ -391,12 +415,20 @@ class CudaTTSEngine:
 
     def close(self):
         p, self.proc = self.proc, None
+        # 🔴 §91：**换代**（旧 reader 线程即刻失效 ⇒ 不再投递残留消息）
+        self._bump_gen()
         # 🔴🔴🔴 APP-027③：**清空消息队列**
         #   ⇒ 否则 close→start 之后，队列里还留着旧边车的消息
         #   ⇒ 新句会先读到旧句的块 ⇒ **错位**（APP-027③ 要消灭的缺陷）
         try:
             while True:
                 self._q.get_nowait()
+        except Exception:
+            pass
+        # 🔴 §91：**各 rid 的队列也要清**
+        try:
+            with self._rid_q_lock:
+                self._rid_q.clear()
         except Exception:
             pass
         self._buf = b''
@@ -456,6 +488,40 @@ class CudaTTSEngine:
         pipe = proc.stdout
         q = self._q
         buf = bytearray()
+        # 🔴 §91：**世代号**（边车每次启动 +1）
+        #   ⇒ 旧边车的 reader 线程在**重启之后**才吐出的 EOF 哨兵 / 残留消息
+        #     **被丢弃** ⇒ 不再污染**新边车**的队列。
+        gen = self._gen
+
+        def _emit(item):
+            """按 rid 分流投递（🔴 §91）。"""
+            if gen != self._gen:
+                return                      # 🔴 旧世代 ⇒ 丢弃
+            rid = None
+            if isinstance(item, tuple):
+                line = item[0]
+            else:
+                line = item
+            try:
+                m = json.loads(line)
+                if isinstance(m, dict):
+                    rid = m.get('id')
+            except Exception:
+                rid = None
+            if rid is None or rid == 0:
+                q.put(item)               # 无 rid 的消息（ready / set_ref ack）
+            else:
+                self._q_put_rid(rid, item)
+
+        def _eof():
+            """边车退出：通知**所有**等待者（含各 rid 队列）。"""
+            if gen != self._gen:
+                return                      # 🔴 旧世代 ⇒ 不发哨兵
+            q.put(None)
+            with self._rid_q_lock:
+                rids = list(self._rid_q.keys())
+            for r in rids:
+                self._q_put_rid(r, None)
 
         def _fill(n):
             """保证 `buf` 里至少有 n 字节；返回是否成功。"""
@@ -476,7 +542,7 @@ class CudaTTSEngine:
                             break
                         chunk = pipe.read(65536)
                         if not chunk:
-                            q.put(None)
+                            _eof()
                             return
                         buf.extend(chunk)
                     line = bytes(buf[:idx])
@@ -488,7 +554,7 @@ class CudaTTSEngine:
                     try:
                         msg = json.loads(s)
                     except Exception:
-                        q.put(s)
+                        _emit(s)
                         continue
                     n = 0
                     if isinstance(msg, dict):
@@ -499,7 +565,7 @@ class CudaTTSEngine:
                     if n > 0:
                         need = n * 4
                         if not _fill(need):
-                            q.put(None)
+                            _eof()
                             return
                         pcm = bytes(buf[:need])
                         del buf[:need]
@@ -507,15 +573,15 @@ class CudaTTSEngine:
                         #   ⇒ 否则 rid 过滤把旧句的 JSON 丢掉时，
                         #      它的 PCM 还留在队列里 ⇒ **下一句读到旧 PCM**
                         #      ⇒ 又变成「错位」⇒ APP-027③ 要消灭的那个缺陷。
-                        q.put((s, pcm))
+                        _emit((s, pcm))
                     else:
-                        q.put(s)
+                        _emit(s)
             except Exception as e:
                 try:
                     self.on_log('[tts_cuda] stdout 读者线程退出：%s' % e)
                 except Exception:
                     pass
-                q.put(None)
+                _eof()
 
         t = threading.Thread(target=_read, daemon=True)
         t.start()
@@ -545,17 +611,76 @@ class CudaTTSEngine:
             # 🔴 APP-030③：返回哨兵，**不抛**（让看门狗按设计生效）
             return _TIMEOUT
 
+    # 🔴🔴🔴 §91：**按 rid 分流的队列工具**
+    def _q_get_rid(self, rid, timeout):
+        """取**指定 rid** 的消息（**带真超时**）。
+
+        🔴 §91 的意义：别的 rid 的消息**根本不会**出现在本队列里
+          ⇒ 消费者**不可能**误取别人的消息
+          ⇒ 「吞消息」「忙循环插回」「抢消息」三类缺陷**从结构上消失**。
+        ⚠️ 边车退出时 reader 线程会往**所有** rid 队列塞 `None`
+          ⇒ 本函数会返回 `None` ⇒ 调用方据此判「边车已退出」。
+        """
+        q = self._rid_q_get(rid, create=True)
+        try:
+            return q.get(timeout=max(0.0, float(timeout)))
+        except queue.Empty:
+            return _TIMEOUT
+
+    def _q_put_rid(self, rid, item):
+        """投递消息到**指定 rid** 的队列。"""
+        q = self._rid_q_get(rid, create=True)
+        q.put(item)
+
+    def _rid_q_get(self, rid, create=True):
+        """取（或建）某个 rid 的队列。"""
+        with self._rid_q_lock:
+            q = self._rid_q.get(rid)
+            if q is None and create:
+                q = queue.Queue()
+                self._rid_q[rid] = q
+            return q
+
+    def _rid_q_drop(self, rid):
+        """丢弃某 rid 的队列（该句结束/被取消后清理）。"""
+        with self._rid_q_lock:
+            return self._rid_q.pop(rid, None)
+
+    # 🔴🔴🔴 §91：**换代**（边车世代 +1）
+    #   ⇒ 旧边车的 reader 线程**即刻失效** ⇒ 不再投递残留消息 / EOF 哨兵
+    #   ⇒ 新边车的队列**不会被旧线程污染**。
+    #   ⚠️ 抽成**独立方法**（而不是散落在各处的一行 `self._gen += 1`）
+    #     ⇒ 反证脚本能**精确删掉它** ⇒ C 组反证才有效
+    #     （否则脚本只能"猜"源码里有没有它 ⇒ 判据会恒真）。
+    def _bump_gen(self):
+        """推进世代号 ⇒ 旧边车的 reader 线程失效。"""
+        self._gen += 1
+        return self._gen
+
     def _restart_sidecar(self, why: str):
         """杀掉卡死的边车并重启（**看门狗触发时调用**）。
 
         🔴 **必须真的杀掉**：旧边车持有 `_synth_lock` 的线程正卡在它的
         管道读上 ⇒ 不杀就永远卡住。
+
+        🔴🔴🔴 §91：**先推进世代号，再杀边车**
+          旧边车的 reader 线程是**阻塞在 `pipe.read()`** 上的
+          ⇒ 边车被 kill 后它才拿到 EOF ⇒ **然后**才 `put(None)`
+          ⇒ 而 §90 的顺序是「kill → 清队列 → start()」
+          ⇒ 旧线程的 `put(None)` **落在「清队列」之后**
+          ⇒ **污染新边车的队列** ⇒ 新句读到 `None` 哨兵
+          ⇒ **误报「边车意外退出」**（实测复现）。
+          ⇒ 修法：**kill 之前**就把 `self._gen` +1
+          ⇒ 旧 reader 线程发现自己已过期 ⇒ **不再投递任何消息**
+          ⇒ 污染**从结构上消失**（不是靠时序碰运气）。
         """
         try:
             self.on_log('[tts_cuda] 🔴 看门狗触发（%s）⇒ 杀并重启边车' % why)
         except Exception:
             pass
         _trace('WATCHDOG restart: %s' % why)
+        # 🔴 §91：**先换代**（旧 reader 线程即刻失效）
+        self._bump_gen()
         p, self.proc = self.proc, None
         try:
             if p is not None and p.poll() is None:
@@ -570,6 +695,18 @@ class CudaTTSEngine:
         try:
             while True:
                 self._q.get_nowait()
+        except Exception:
+            pass
+        # 🔴 §91：**各 rid 的队列也要清**（旧句的残留块）
+        try:
+            with self._rid_q_lock:
+                for rq in self._rid_q.values():
+                    try:
+                        while True:
+                            rq.get_nowait()
+                    except Exception:
+                        pass
+                self._rid_q.clear()
         except Exception:
             pass
         self._buf = b''
@@ -628,9 +765,12 @@ class CudaTTSEngine:
             ⇒ 停止播放该句剩余部分 + 通知边车停止。
         ⚠️ `est_sec` 是**估计秒数**（由 `tts_engine.estimate_sec` 算）
           ⇒ 没传 ⇒ **不做第二道闸**（宁可漏判也不误杀）。
-        """
-        import array
 
+        🔴🔴🔴 §91：**消息按 rid 分流**（本句只从**自己**的队列取）
+          ⇒ 别的 rid 的消息**根本不会**被本消费者取到
+          ⇒ 「等确认时吞掉下一句的块」「排空线程忙循环插回」
+            这两类缺陷**从结构上消失**（不再依赖时序或补救）。
+        """
         if not text or not text.strip():
             return
         if self.proc is None or self.proc.poll() is not None:
@@ -660,11 +800,6 @@ class CudaTTSEngine:
         except Exception as e:
             _trace('ERR rid=%d send failed: %s' % (rid, e))
             raise CudaTTSError('向 CUDA 边车发送请求失败：%s' % e)
-        n_chunks = 0
-        t_first = None
-        last_seen = time.monotonic()
-        # 🔴 APP-030②：**本句已收音频秒数**（RUNAWAY 判据的输入）
-        got_sec = 0.0
         # 🔴 APP-030②：RUNAWAY 阈值（秒）；`None` ⇒ 不做第二道闸
         runaway_s = None
         if est_sec is not None:
@@ -672,6 +807,27 @@ class CudaTTSEngine:
                 runaway_s = runaway_threshold_s(est_sec)
             except Exception:
                 runaway_s = None
+        # 🔴🔴🔴 §91：**本句的 rid 队列在「本生成器结束」时回收**
+        #   ⚠️ 用 `try/finally` ⇒ **所有出口**（正常 done / RUNAWAY / 异常 raise）
+        #     都回收 ⇒ 不会漏。
+        #   ⚠️ **取消分支例外**：那里 `_start_drain(rid)` 还要继续用这个队列
+        #     把剩余块排空 ⇒ 由**排空线程自己**在结束时回收。
+        #     ⇒ 用一个标志位区分。
+        self._keep_rid_q = False
+        try:
+            for _chunk in self._gen_loop(
+                    rid, text, cancel_event, runaway_s, t_req):
+                yield _chunk
+        finally:
+            if not self._keep_rid_q:
+                self._rid_q_drop(rid)
+
+    def _gen_loop(self, rid, text, cancel_event, runaway_s, t_req):
+        """`generate_stream` 的**主循环**（§91 抽出，便于 `try/finally` 统一回收）。"""
+        n_chunks = 0
+        t_first = None
+        last_seen = time.monotonic()
+        got_sec = 0.0
         while True:
             # 🔴 取消检查：**每条消息之前**都查一次
             if cancel_event is not None and getattr(
@@ -685,6 +841,9 @@ class CudaTTSEngine:
                 # 🔴🔴 APP-027③：取消后**必须把本请求的剩余部分读完并丢掉**
                 #   （否则边车还在写旧句的块 ⇒ 下一句会读到 ⇒ 错位）。
                 #   ⇒ 交给**后台排空线程**（不占合成锁、不阻塞下一句）。
+                # 🔴 §91：**取消分支不回收 rid 队列**（排空线程还要用它）
+                #   ⇒ 由**排空线程**在结束时自己回收。
+                self._keep_rid_q = True
                 self._start_drain(rid)
                 return
             # 🔴🔴 看门狗：首块用宽松阈值，后续用常规阈值
@@ -708,7 +867,7 @@ class CudaTTSEngine:
                     raise CudaTTSError('边车看门狗触发且重启失败：%s' % e)
                 raise CudaTTSError('边车看门狗触发（%.0f s 无输出，已重启边车）'
                                    % (now - last_seen))
-            line = self._q_get(timeout=min(2.0, wl))
+            line = self._q_get_rid(rid, timeout=min(2.0, wl))
             # 🔴🔴🔴 APP-030③：**超时 = 回到循环**（不是失败）
             #   ⇒ 看门狗的 `now - last_seen > wl` 分支**才真正生效**
             #   ⇒ 第 0 句不再因为「2 s 内没块」被丢
@@ -752,6 +911,7 @@ class CudaTTSEngine:
                 _trace('DONE rid=%d chunks=%d frames=%s reason=%s first_s=%.2f'
                        % (rid, n_chunks, frames, end_reason,
                           (t_first - t_req) if t_first else -1))
+                # 🔴 §91：**rid 队列的回收由 `generate_stream` 的 `finally` 统一做**
                 return
             n = int(msg.get('n') or 0)
             sr = int(msg.get('sr') or 24000)
@@ -784,6 +944,7 @@ class CudaTTSEngine:
                 # 让边车停止（**做不到就杀掉重启**）⇒ 见 `_cancel_request`
                 self._cancel_request(rid)
                 self._last_end_reason = 'runaway'
+                # 🔴 §91：**rid 队列的回收由 `generate_stream` 的 `finally` 统一做**
                 return
             yield (list(arr), sr)
 
@@ -829,13 +990,14 @@ class CudaTTSEngine:
         """等待边车回 `{'id': rid, 'cancelled': true}` 确认。
 
         🔴 §90：**必须有真超时**（不能白等）⇒ 返回 True/False。
-        ⚠️ 排空期间**只认本 rid 的确认**（其它 rid 的消息**不能丢**
-           ⇒ 见 `_start_drain` 的同类缺陷）。
+        🔴🔴🔴 §91：**只从本 rid 的队列取**（不再从共享队列取）
+          ⇒ 别的 rid 的消息**不会被本函数碰到**
+          ⇒ §91 修掉的「等确认时吞掉下一句的块」不再可能发生。
         """
         deadline = time.monotonic() + max(0.1, float(timeout))
         while time.monotonic() < deadline:
             remain = deadline - time.monotonic()
-            line = self._q_get(timeout=min(0.5, max(0.05, remain)))
+            line = self._q_get_rid(rid, timeout=min(0.5, max(0.05, remain)))
             if line is _TIMEOUT:
                 continue
             if line is None:
@@ -864,28 +1026,6 @@ class CudaTTSEngine:
         except Exception as e:
             _trace('CANCEL_KILL failed rid=%d: %s' % (rid, e))
 
-    def _q_put_front(self, item):
-        """🔴🔴🔴 §90：把消息**插回队首**（保序 + 立刻唤醒等待者）。
-
-        ⚠️ 为什么不能简单 `put()`（插队尾）：
-          插队尾会把**旧消息排到新消息之后** ⇒ 下一句的音频块**乱序**
-          ⇒ 播出来的音频顺序错乱。
-        ⚠️ 为什么不能直接丢弃：
-          丢的是**别的 rid 的消息** ⇒ 下一句**少块或整句无输出**（静默丢音频）。
-        ⇒ 队首插回 = **顺序正确 + 不丢 + 立刻唤醒**。
-        """
-        try:
-            with self._q.mutex:
-                self._q.queue.appendleft(item)
-                self._q.not_empty.notify()
-            return True
-        except Exception:
-            try:
-                self._q.put(item)
-                return True
-            except Exception:
-                return False
-
     def _start_drain(self, rid):
         """🔴🔴 APP-027③：取消后**后台排空**本请求的剩余消息。
 
@@ -893,36 +1033,41 @@ class CudaTTSEngine:
         ⇒ 必须读完并丢掉 ⇒ 否则**下一句会读到旧句的内容** ⇒ 错位。
         ⇒ 用**后台线程**排空 ⇒ 不占合成锁、不阻塞下一句。
 
-        🔴🔴🔴 §90：**修掉「排空线程偷走并丢弃下一句的消息」**
-          旧实现：拿到消息后判 `mr != rid` ⇒ **`continue`（直接丢弃）**
-          ⇒ 排空线程与主合成线程**共用** `self._q`
-          ⇒ 排空线程会把**下一句刚到的块 / cancel 确认**当成「别人的」丢掉
-          ⇒ 下一句**少块或整句无输出**（静默丢音频）。
-          修法：**不是本 rid 的消息 ⇒ 插回队首**（保序 + 不丢 + 唤醒等待者）。
+        🔴🔴🔴 §90：修掉「排空线程偷走并丢弃下一句的消息」
+          （旧实现：拿到消息后判 `mr != rid` ⇒ **`continue`（直接丢弃）**）。
+
+        🔴🔴🔴 §91：**修掉 §90 修复引入的「忙循环插回」**
+          §90 的修法是「不是本 rid 的消息 ⇒ **插回队首**」
+          ⇒ 但排空线程**下一次 get 到的又是它** ⇒ **立刻再插回**
+          ⇒ **无限忙循环**（实测 **67 万次/秒**）
+          ⇒ 且队尾**真正的目标**（本 rid 的 `done`）**永远排不到**
+          ⇒ 排空线程直到 30 s 超时才退出 ⇒ **白占一个线程**。
+          §91 的修法：**按 rid 分流** ⇒ 排空线程**只从本 rid 的队列取**
+          ⇒ 别的 rid 的消息**根本不会**被它取到
+          ⇒ 既不丢（消息在它自己的队列里）、也不忙循环、也保序。
         """
         def _drain():
             deadline = time.monotonic() + 30.0
             while time.monotonic() < deadline:
-                try:
-                    item = self._q.get(timeout=0.5)
-                except queue.Empty:
+                # 🔴 §91：**只取本 rid 的队列**（别的 rid 的消息不在这里）
+                item = self._q_get_rid(rid, timeout=0.5)
+                if item is _TIMEOUT:
                     continue
                 if item is None:
+                    self._rid_q_drop(rid)
                     return
                 line = item[0] if isinstance(item, tuple) else item
                 try:
                     msg = json.loads(line)
                 except Exception:
                     continue
-                mr = msg.get('id')
-                if mr is not None and mr != rid:
-                    # 🔴 §90：**不是本句的 ⇒ 插回队首**（不能丢！）
-                    self._q_put_front(item)
-                    continue
                 if msg.get('done'):
                     _trace('DRAIN done rid=%d' % rid)
+                    # 🔴 §91：**排空完毕 ⇒ 回收队列**（否则长会话会堆积）
+                    self._rid_q_drop(rid)
                     return
             _trace('DRAIN timeout rid=%d' % rid)
+            self._rid_q_drop(rid)
 
         t = threading.Thread(target=_drain, daemon=True)
         t.start()

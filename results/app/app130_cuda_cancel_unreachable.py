@@ -389,6 +389,16 @@ def run_cancel_request(src, ack=True):
                 return json.dumps({'id': 7, 'cancelled': True})
             return ns['_TIMEOUT']
         fake._q_get = _fake_q_get
+        # 🔴🔴 §91：**§91 起按 rid 分流**（`_wait_cancel_ack` 改用 `_q_get_rid`）
+        #   ⚠️ 必须**同时**提供两个接口 ⇒ 同一套脚本既能跑**修前**（A 组反证）
+        #   也能跑**候选**（B 组）⇒ 否则「改接口」会把 A 组判据一起弄失效
+        #   （⇒ 失去反证能力 ⇒ 闸门恒真）。
+        def _fake_q_get_rid(rid, timeout):
+            events['ack_waited'] = True
+            if ack:
+                return json.dumps({'id': rid, 'cancelled': True})
+            return ns['_TIMEOUT']
+        fake._q_get_rid = _fake_q_get_rid
 
     ns['_cancel_request'](fake, 7)
     return events
@@ -525,11 +535,19 @@ def main():
                         cuda_src) is not None,
           '源码级锚定')
     # 🔴 §90 第二个缺陷：排空线程偷走并丢弃下一句的消息
-    check('B11-候选：`_start_drain` 对**非本 rid** 的消息**插回队首**（不丢弃）',
-          '_q_put_front' in cuda_src
-          and re.search(r'_start_drain[\s\S]{0,3000}_q_put_front',
-                        cuda_src) is not None,
-          '_q_put_front in src = %s' % ('_q_put_front' in cuda_src))
+    # 🔴🔴🔴 §91：**判据升级** —— §90 的修法是「插回队首」，
+    #   但「插回队首」本身**引入了忙循环**（自己取到 → 插回 → 又取到）
+    #   ⇒ §91 改为**按 rid 分流**（消息根本不会跑到别的消费者面前）
+    #   ⇒ 判据随之从「有没有 `_q_put_front`」改成「有没有 `_q_get_rid` 分流」
+    #   ⚠️ **同时**要求 `_q_put_front` **已被移除**（它是 §90 的错误补救 ⇒ 死代码）
+    check('B11-候选：消息**按 rid 分流**（`_q_get_rid`），'
+          '且**不再**用「插回队首」这个补救（§90 的忙循环源）',
+          '_q_get_rid' in cuda_src
+          and re.search(r'_start_drain[\s\S]{0,2000}_q_get_rid', cuda_src)
+          is not None
+          and '_q_put_front' not in cuda_src,
+          '_q_get_rid in src = %s / _q_put_front in src = %s'
+          % ('_q_get_rid' in cuda_src, '_q_put_front' in cuda_src))
 
     # ══ C 组：判据敏感性反证（注入删除 ⇒ 必须复现失效）══
     print('\n  === C 组：反证（注入删除 ⇒ 必须复现失效）===')

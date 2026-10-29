@@ -64,9 +64,9 @@
       "ok": true,
       "detail": "源码级锚定"
     },
-    "B11-候选：`_start_drain` 对**非本 rid** 的消息**插回队首**（不丢弃）": {
+    "B11-候选：消息**按 rid 分流**（`_q_get_rid`），且**不再**用「插回队首」这个补救（§90 的忙循环源）": {
       "ok": true,
-      "detail": "_q_put_front in src = True"
+      "detail": "_q_get_rid in src = True / _q_put_front in src = False"
     },
     "C0-注入成功（删掉了生成循环里的取消检查）": {
       "ok": true,
@@ -85,7 +85,7 @@
       "detail": "chunks=0 end_reason=None"
     }
   },
-  "_src_root": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.6",
+  "_src_root": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6",
   "_subdir": "app",
   "baseline_S1": {
     "n_chunks": 4,

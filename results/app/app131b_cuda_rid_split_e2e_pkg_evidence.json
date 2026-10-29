@@ -1,0 +1,44 @@
+{
+  "script": "app131b_cuda_rid_split_e2e.py",
+  "src_root": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6",
+  "subdir": "app",
+  "checks": [
+    {
+      "name": "E0-桩边车能 ready（客户端 start() 成功）",
+      "pass": true,
+      "detail": "device=STUB"
+    },
+    {
+      "name": "E1-正常句能合成（不抛异常）",
+      "pass": true,
+      "detail": "chunks=3"
+    },
+    {
+      "name": "E2-正常句拿到**全部 3 块**（PCM 未被吞）",
+      "pass": true,
+      "detail": "chunks=3 lens=[100, 100, 100]"
+    },
+    {
+      "name": "E3-PCM 采样值正确（0.25 float32 LE）",
+      "pass": true,
+      "detail": "first=0.25"
+    },
+    {
+      "name": "E4-句结束后**本 rid 的队列被回收**（无内存泄漏）",
+      "pass": true,
+      "detail": "残留 rid 队列=[]"
+    },
+    {
+      "name": "E5-连续 5 句互不干扰（每句都拿满 3 块）",
+      "pass": true,
+      "detail": "各句块数=[3, 3, 3, 3, 3]"
+    },
+    {
+      "name": "E6-连续多句后 rid 队列仍为空",
+      "pass": true,
+      "detail": "残留=[]"
+    }
+  ],
+  "pass": 7,
+  "fail": 0
+}

@@ -409,25 +409,69 @@ c2_ok = not q_get_raises(cuda_ns and ast.parse(cuda_src))
 check('C2 `_q_get` 源码里**没有** `raise`', c2_ok, '')
 EVIDENCE['C2_q_get_no_raise'] = c2_ok
 
-# C3：**源码结构** —— `generate_stream` 必须把超时当「回到循环」
+# C3：**源码结构** —— 合成主循环必须把超时当「回到循环」
 #   ⚠️ 用 **AST** 判定（不靠子串）⇒ 注释里的 "continue" 不会干扰。
+#   🔴🔴 §91：**不要写死函数名**！§91 把合成主循环从 `generate_stream`
+#     抽到了 `_gen_loop`（为了让 `try/finally` 能统一回收 rid 队列）
+#     ⇒ 判据若只搜 `generate_stream` ⇒ **锚点失效 ⇒ 假 FAIL**
+#     ⇒ 教训：**判据锚点要绑「语义」而非「函数名」**
+#     （源码重构不应让判据失效；反之判据也要能发现真退化）。
 def timeout_leads_to_continue(tree):
+    """宽松版：**任意**函数里，`_TIMEOUT` 分支的 body 里有 `continue`。
+
+    ⚠️ 修 §91 引入的假 FAIL：旧版在**第一个** `_TIMEOUT` 分支就 `return`，
+      而那个分支可能落在 `_wait_cancel_ack`（它的 body 也是 `continue`，
+      但**不是**合成主循环）⇒ 判据结果取决于「遍历顺序」⇒ 不稳定。
+    ⇒ 改成：**扫完所有分支**，只要**存在**一个满足的就 True
+      （配合下面的严格版一起用，严格版负责「必须在合成主循环里」）。
+    """
+    saw_any = False
     for n in ast.walk(tree):
-        if isinstance(n, ast.FunctionDef) and n.name == 'generate_stream':
+        if isinstance(n, ast.FunctionDef):
             for m in ast.walk(n):
                 if isinstance(m, ast.If):
                     test = ast.get_source_segment(cuda_src, m.test) or ''
                     if '_TIMEOUT' in test:
-                        # 该 if 的 body 里必须有 `continue`
+                        saw_any = True
                         for b in m.body:
                             if isinstance(b, ast.Continue):
                                 return True
-                        return False
-    return False
+    return False if saw_any else False
+
+
+def timeout_branch_is_in_synth_loop(tree):
+    """🔴 收紧版：`_TIMEOUT` 分支必须落在**真正消费合成队列**的函数里。
+
+    ⚠️ 为什么不能只靠「全文件搜 `_TIMEOUT` + `continue`」：
+      那会匹配到**不相关**的 `_TIMEOUT` 分支（例如 `_wait_cancel_ack` 的
+      `if line is _TIMEOUT: continue`）⇒ 判据**恒真** ⇒ 失去分辨力。
+    ⇒ 判据必须同时满足：
+      ① 存在 `_TIMEOUT` ⇒ `continue` 的分支；
+      ② 该分支所在的函数**确实在消费合成队列**（调用 `_q_get_rid` /
+         `_q_get`，即合成主循环 / 等确认）；
+      ③ 且**合成主循环**里必须有这样一个分支。
+    """
+    synth_fns = ('_gen_loop', 'generate_stream')
+    found_in_synth = False
+    for n in ast.walk(tree):
+        if isinstance(n, ast.FunctionDef) and n.name in synth_fns:
+            body_src = ast.get_source_segment(cuda_src, n) or ''
+            if ('_q_get_rid' in body_src or '_q_get(' in body_src):
+                for m in ast.walk(n):
+                    if isinstance(m, ast.If):
+                        test = ast.get_source_segment(cuda_src, m.test) or ''
+                        if '_TIMEOUT' in test:
+                            for b in m.body:
+                                if isinstance(b, ast.Continue):
+                                    found_in_synth = True
+    return found_in_synth
 
 
 c3_ok = timeout_leads_to_continue(ast.parse(cuda_src))
-check('C3 `generate_stream` 遇超时**回到循环**（看门狗才生效）', c3_ok, '')
+c3_strict = timeout_branch_is_in_synth_loop(ast.parse(cuda_src))
+check('C3 合成主循环遇超时**回到循环**（看门狗才生效）',
+      c3_ok and c3_strict,
+      '宽松=%s / 严格(在消费队列的函数里)=%s' % (c3_ok, c3_strict))
 EVIDENCE['C3_timeout_returns_to_loop'] = c3_ok
 
 # C4：**源码结构** —— 看门狗阈值仍在（60/15）

@@ -86,7 +86,7 @@
   "A6_hint_priority": true,
   "A7_worker_reads_lang": true,
   "A8_service_submit_lang": true,
-  "A9_submit_with_lang_sites": 3,
+  "A9_submit_with_lang_sites": 4,
   "A10_zh_norm_only_chinese": true,
   "B1_clamp_cases": [
     [
@@ -178,7 +178,7 @@
   "B8_client_sends_cap": true,
   "B9_worker_runaway_guard": true,
   "B10_stream_passthrough": true,
-  "C1_q_get_timeout": "返回='object' 耗时=0.070 s",
+  "C1_q_get_timeout": "返回='object' 耗时=0.056 s",
   "C2_q_get_no_raise": true,
   "C3_timeout_returns_to_loop": true,
   "C4_watchdog_thresholds": true,
@@ -229,7 +229,7 @@
     "pass": 42,
     "fail": 0,
     "failures": [],
-    "ts": "2026-10-27 21:24:54",
+    "ts": "2026-10-29 09:42:57",
     "note": "零推理、零 GPU、零 NPU（桩引擎 + ast/exec）"
   }
 }
