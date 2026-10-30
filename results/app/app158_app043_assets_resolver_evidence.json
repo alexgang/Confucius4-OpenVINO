@@ -1,0 +1,74 @@
+{
+ "script": "app158_app043_assets_resolver.py",
+ "live": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption",
+ "pass_": 13,
+ "fail": 0,
+ "verdict": "PASS",
+ "detail": [
+  {
+   "name": "R1 speaker_assets.py 可 import",
+   "ok": true,
+   "msg": "ok"
+  },
+  {
+   "name": "R2 空包 ⇒ ok=False 且 reason 非空（降级语义）",
+   "ok": true,
+   "msg": "reason=缺少：ASR 说话人接口代码（app/asr_spk/）、wespeaker 的 OV IR、pyannote/segmentation-3.0 的 OV IR"
+  },
+  {
+   "name": "R3 造全的包 ⇒ ok=True 且三个路径都在包内",
+   "ok": true,
+   "msg": "ok=True scripts=C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app158_assets_785jthx2\\full\\app\\asr_spk"
+  },
+  {
+   "name": "R4 缺 pyannote ⇒ ok=False",
+   "ok": true,
+   "msg": "reason=缺少：pyannote/segmentation-3.0 的 OV IR"
+  },
+  {
+   "name": "R5 缺 wespeaker ⇒ ok=False",
+   "ok": true,
+   "msg": "reason=缺少：wespeaker 的 OV IR"
+  },
+  {
+   "name": "R6 fp32 与 fp16 同时存在 ⇒ 选中 fp32（ASR-025 归因）",
+   "ok": true,
+   "msg": "wes=wespeaker fp32 seg=pyannote_seg_3_0 fp32"
+  },
+  {
+   "name": "R7 只有 fp16 ⇒ 选中 fp16（裁定未到也能工作）",
+   "ok": true,
+   "msg": "wes=wespeaker fp16 seg=pyannote_seg_3_0 fp16"
+  },
+  {
+   "name": "R8 xml/bin 不成对 ⇒ 不可用（不能只拷 xml）",
+   "ok": true,
+   "msg": "ok=False reason=缺少：wespeaker 的 OV IR、pyannote/segmentation-3.0 的 OV IR"
+  },
+  {
+   "name": "R9 ASR 目录缺入口模块 ⇒ 不可用",
+   "ok": true,
+   "msg": "reason=缺少：ASR 说话人接口代码（app/asr_spk/）"
+  },
+  {
+   "name": "R10 summary() 给出可读中文提示（含「说话人识别不可用」）",
+   "ok": true,
+   "msg": "summary=说话人识别不可用：缺少：ASR 说话人接口代码（app/asr_spk/）、wespeaker 的 OV IR、pyannote/segmentation-3.0 的 OV IR"
+  },
+  {
+   "name": "D-R2① 造全的包 ⇒ 必须 ok=True（R2 的「不可用」断言不再成立）",
+   "ok": true,
+   "msg": "ok=True reason="
+  },
+  {
+   "name": "D-R6 只有 fp16 ⇒ 「选中 fp32」必须为 False",
+   "ok": true,
+   "msg": "ok=True wes=wespeaker fp16"
+  },
+  {
+   "name": "D-R8 只拷 xml 不拷 bin ⇒ 必须判为不可用",
+   "ok": true,
+   "msg": "ok=False"
+  }
+ ]
+}

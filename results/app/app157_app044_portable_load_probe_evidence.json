@@ -1,0 +1,76 @@
+{
+ "script": "app157_app044_portable_load_probe.py",
+ "asr_root": "C:\\Users\\Trekker-PTL\\qwen3asr_06b",
+ "tmp": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app157_spk_probe_igvjrecb",
+ "pass_": 9,
+ "fail": 0,
+ "verdict": "PASS",
+ "copied_files": [
+  "asr021_bypass_spk_wespeaker.py",
+  "asr030_kaldi_fbank_fidelity.py",
+  "asr050_spk_qa_speaker_test.py",
+  "asr052_speaker_tracker_api.py",
+  "asr_json_write.py",
+  "asr_lock_common.py",
+  "asr_slice_common.py",
+  "pya_app_path_seg.py",
+  "pya_bypass_spk.py",
+  "pya_ref_shim.py",
+  "pya_stream_segment.py"
+ ],
+ "ir_copies": [
+  "wespeaker-resnet34-fp16\\openvino_encoder_model.xml",
+  "wespeaker-resnet34-fp16\\openvino_encoder_model.bin",
+  "pyannote_seg_3_0\\pyannote_seg_3_0.xml",
+  "pyannote_seg_3_0\\pyannote_seg_3_0.bin"
+ ],
+ "import_error": "",
+ "ctor_error": "",
+ "detail": [
+  {
+   "name": "P1 11 个闭包文件复制到临时目录",
+   "ok": true,
+   "msg": "copied=11 missing=[]"
+  },
+  {
+   "name": "P2 两个 OV IR 的 xml/bin 复制成功",
+   "ok": true,
+   "msg": "copied=4 missing=[]"
+  },
+  {
+   "name": "P3 SpeakerTracker 从临时目录 import 成功（**不改源码**）",
+   "ok": true,
+   "msg": "ok"
+  },
+  {
+   "name": "P4 构造成功（传入包内 IR 路径）",
+   "ok": true,
+   "msg": "ok"
+  },
+  {
+   "name": "P4a 实例 seg_ir 指向包内路径",
+   "ok": true,
+   "msg": "seg_ir=C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app157_spk_probe_igvjrecb\\models\\spk\\pyannote_seg_3_0"
+  },
+  {
+   "name": "P4b 实例 wes_ir 指向包内路径",
+   "ok": true,
+   "msg": "wes_ir=C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app157_spk_probe_igvjrecb\\models\\spk\\wespeaker-resnet34-fp16"
+  },
+  {
+   "name": "P5 实际路径 ≠ 源码硬编码默认值（证明传参生效）",
+   "ok": true,
+   "msg": "default_seg=C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\pyannote_seg\\ov-fp16 default_wes=C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\wespeaker-resnet34-fp16"
+  },
+  {
+   "name": "P6 临时目录里没有 torch（与客户机形态一致）",
+   "ok": true,
+   "msg": "has_torch=False"
+  },
+  {
+   "name": "D-P4 反证：不传参 ⇒ seg_ir 落到硬编码默认值 ⇒ P4a 必 FAIL",
+   "ok": true,
+   "msg": "default_seg_ir=C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\pyannote_seg\\ov-fp16"
+  }
+ ]
+}

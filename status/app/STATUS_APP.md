@@ -1,12 +1,13 @@
 # STATUS_APP
-last_ack: APP-042
-更新时间: 2026-10-30 04:18
-当前任务: **§99 🔴🔴🔴 APP-039/040「音色按句绑定」链路自查出 5 处断链（A/B/C/E/F）⇒ 已全部修复 ＋ 修掉 3 个验收脚本自身的判据缺陷 ＋ 客户包 v1.10 已定点同步并持锁重打 zip**（纠偏巡检：`CORRECTIONS_APP.md` 最大编号 = **APP-042** = `last_ack` ⇒ **无新条目**，第 26 次同一口径复核；文件只读零改动）⇒ ✅ 5 处断链：① **A** 短段取不到样本（新增 `span_for_final` 往前借 + `SPAN_MIN_S=2.5`）② **B** `dur_s` 恒 0（改**区间并集**累计 `clean_dur_s`）③ **C** 不等 worker 回执就 `mark_embedded`（新增 `spk_voice` 事件分派 + `spk_voice_status`；失败走 `mark_fallback`）④ **E** 全局时间轴当环形缓冲下标（新增 `keep_t0`）⑤ **F** 初次登记即移出 pending ⇒ **APP-040②「攒够 3 s 用自己段重算一次」从不发生**（初次登记**保留**在 pending）⇒ ✅ 修掉 3 个**验收脚本判据自身缺陷**（`app150` A6 假通过 / `app152` 静态判据 + `drop_nonlocal` 反证静默失效 / `app154` 签名误用 + 反证 C 函数级token 假通过 ⇒ 新增**调用点级 AST** 判据）⇒ ✅ 修掉上轮 bytes 转义造成的**非法 UTF-8**（`tts_service.py` 编译失败 ⇒ 客户包启动即崩）⇒ ✅ 回归 10 脚本全绿（`app154` 20/20、`app150` 17/17、`app152` 7/7、`app141_integration` 62/62、`app142` 22/22）且**反证全部命中**⇒ ✅ 客户包**定点同步**（4 文件归一化后与仓库逐字节一致 + 同步前备份）⇒ ✅ **持锁重打 v1.10**（`app-pack` PID 5448 / 2026-10-30 04:02:16 / 安静窗口通过）⇒ zip **11,218,209,418 字节** / SHA256 **`35aab2563419a48dd5c18868f5a4e45e8c99150ce649e4fa44635984c0074371`** / 14,203 条目 / `testzip()` OK⇒ ✅ commit **`b5bd143`**（12 文件，未含 `CORRECTIONS_APP.md`）＋ **`7bdbc1d`**（app154 包内验收）⇒ 🔴 **撤回 §97.1/§97.7①/§98 的「APP-039/040 核心已实施」口径**⇒ 🔴 **本条需等 reviewer 复核**（MiniMax 回转写 / 用户实听 3 段 1.2–1.3× / APP-039/040 真机 NPU 双说话人 / ASR §8 交付形态裁定 + 16 MB 模型是否随包 / APP-041 `pythonw.exe` 冷启动 / GUI 路径 APP-042 真机）
+last_ack: APP-044
+更新时间: 2026-10-30 09:38
+当前任务: **§101 APP-043/APP-044 两条新纠偏已执行：APP-043 线程限制（import numpy 前限线程 + 启动日志，14/14 静态审计）＋ APP-044 说话人资产随包（ASR 接口代码 10 个 + OV IR 4 个 / 15.72 MB + NOTICE/THIRD_PARTY 许可署名）＋ 自查抓出并修掉 §100「断链 G」打死的 follow_speaker 回归（11/11 + 4 条双向反证全命中）**（巡检：`CORRECTIONS_APP.md` 42 → **44** 条，SHA256 `08e231a2…` / 111 198 B / mtime 2026-10-30 08:50 ⇒ 新增 APP-043[HIGH] / APP-044[NORMAL]；本轮只读零改动）⇒ ✅ 客户包**包目录**已定点同步（4 文件归一化后与仓库逐字节一致 + 10 个 ASR 文件与源 SHA256 一致 + 包内源码三套验收 9/9、11/11、14/14 全 PASS）⇒ 🔴 **zip 尚未重打 ⇒ 不写「已交付」**⇒ 🔴 **本条需等 reviewer 复核**（FP16/FP32 精度裁定 + SPE Q&A densest_5min 真机验收 + APP-039 四项指标 + APP-041 pythonw 冷启动 + APP-042 GUI 路径加速与 3 段 1.2–1.3× 实听 + MiniMax 回转写 WER）
 
-阻塞 / 待用户决定: ① 🔴 **reviewer 的 MiniMax 回转写错误率对比未做**（APP-042 明文要求，本模块不得自做）；② 🔴 **用户实听 3 段 1.2–1.3× 配音未做**（3 段 wav 已落盘 `results/app/app042_soak_run4/clips_1p2_to_1p3/`，但 `.gitignore` 忽略 `*.wav` ⇒ 不入库）；③ 🔴 **ASR 通知 §8 的交付形态待裁定**（FP16 保真不过门槛 / FP32 过门槛 / INT8 未测）＋ **是否把 `wespeaker-resnet34-fp16`（13 MB）与 `pyannote_seg/ov-fp16`（3.0 MB）随包分发**（合计 16 MB）⇒ **会改包内容 ⇒ 需裁定后重打 zip**（本轮未做）；④ 🔴 **客户机说话人旁路当前必然降级**（实测包内无 wespeaker / pyannote_seg ⇒ `SpeakerBridge().available=False`）⇒ 字幕无说话人标签、音色按句绑定在客户机上不生效；⑤ 🔴 **APP-041 桌面快捷方式 → `pythonw.exe` 冷启动真机验收未做**；⑥ 🔴 **APP-039/040 真机 NPU 双说话人音色按句切换未做**（仅离线 `app150` 16/16）；⑦ 🔴 **GUI 路径的 APP-042 加速未做真机实测**（§97/§98 走的都是 CLI 回放路径）；⑧ 🔴 **本轮未修改** `CORRECTIONS_APP.md`（只读；SHA256 `c50dcdd1…` / 108 783 B / mtime 2026-10-29 15:30 ⇒ 与上轮逐位一致）
+阻塞 / 待用户决定: ① 🔴 **FP16 / FP32 精度裁定未到**（当前打进 FP16；若裁定 FP32 需换目录重打，代码无需改）＋ **客户包 zip 尚未重打**（本轮未取 MACHINE_LOCK）⇒ **不写「已交付」**；② 🔴 **APP-043 真机验收全未做**（SPE Q&A densest_5min 实时路径 + APP-039 四项指标 + shared/app_clone_listen/ 配音 + APP-041 pythonw 冷启动 + APP-042 GUI 路径加速与 3 段 1.2–1.3× 实听）；③ 🔴 **WER 复算待 reviewer 用 MiniMax 回转写**（本模块不自行调用）；④ 🔴 **GPU.0 争用**：说话人旁路默认 GPU.0，与 ASR 同设备，真机须复核对 TTS 的影响；⑤ 🔴 **§100 并发会话的三个文件仍为未提交状态**，本轮**未**提交（避免抢并发会话的提交）；⑥ 🔴 **本轮未修改** `CORRECTIONS_APP.md`（只读）
 
 
-## 最近更新
+## ## 最近更新
+2026-10-30 09:38 §101 APP-043/APP-044 两条新纠偏已执行：线程限制（import numpy 前，14/14）＋ 说话人资产随包（10 文件 + 15.72 MB IR + 许可署名）＋ 修掉 §100 打死的 follow_speaker 回归（11/11）⇒ 包目录已同步，**zip 未重打 ⇒ 不写「已交付」**；待 reviewer 复核（FP16/FP32 裁定 + 真机验收 + MiniMax WER）
 2026-10-30 04:18 §99 🔴🔴🔴 **APP-039/040「音色按句绑定」链路自查出 5 处断链（A/B/C/E/F）⇒ 全部修复 ＋ 3 个验收脚本判据自身缺陷已修 ＋ 客户包 v1.10 持锁重打 zip**（巡检：APP-042 = `last_ack` ⇒ 无新条目，第 26 次同一口径复核；`CORRECTIONS_APP.md` 只读零改动）⇒ ✅ 断链 **A** 短段取不到样本（`span_for_final` 往前借）**B** `dur_s` 恒 0（区间并集）**C** 不等 worker 回执就 `mark_embedded`（失败走 `mark_fallback`）**E** 时间轴未换算（`keep_t0`）**F** 初次登记即移出 pending ⇒ APP-040② 从不发生⇒ ✅ 修掉上轮 bytes 转义造成的**非法 UTF-8**（客户包启动即崩）⇒ ✅ 回归 10 脚本全绿且**反证全部命中**（`app154` 20/20、`app150` 17/17、`app152` 7/7、`app141_integration` 62/62、`app142` 22/22）⇒ ✅ 定点同步客户包 v1.10（4 文件归一化后逐字节一致）⇒ ✅ **持锁重打 v1.10**（PID 5448 / 2026-10-30 04:02:16）⇒ zip **11,218,209,418 字节** / SHA256 **`35aab2563419a48dd5c18868f5a4e45e8c99150ce649e4fa44635984c0074371`** / 14,203 条目 ⇒ ✅ commit **`b5bd143`**⇒ 🔴 **撤回 §97.1/§97.7① 的「APP-039/040 核心已实施」口径**⇒ 🔴 **本条需等 reviewer 复核**
 2026-10-30 02:18 §98 🔴🔴🔴 **开工即抓到「上一轮 §97 是半交付」三处 ⇒ 已全部闭环 ＋ 修掉 `app149` 验收脚本自身的「基线漂移」判据缺陷**（巡检：APP-042 = `last_ack` ⇒ 无新条目，第 25 次同一口径复核；`CORRECTIONS_APP.md` 只读零改动，SHA256 `c50dcdd1…` / 108 783 B / mtime 2026-10-29 15:30）⇒ ✅ 半交付之一：§97 代码与验收产物未入库 ⇒ commit **`0df9c3e`**（17 文件 / +4003−5）⇒ 🔴🔴 自查又抓到 **`0df9c3e` 漏了 `STATUS_APP.md`** ⇒ 本轮把 **§97 + §98 一起入库**⇒ ✅ 半交付之二：`app149` 判据两处缺陷（基线读 live 目录被覆盖 ⇒ A2 假 FAIL；反证用手写常量 ⇒ 假通过）⇒ 重写 **v2**（归档只读基线 run2/run4 + 抽取 worker 真实决策块受控时钟执行 + 基线替换反证）⇒ **PASS 11/11**（产品级真源码反证 `maxdiff=0.2` ⇒ FAIL ⇒ 判据不恒真）⇒ ✅ 回归 `app150` 16/16、`app152` 7/7、`app141_integration` 62/0、`app139/140/141_end_to_end/142/145` 全 PASS⇒ ✅ 半交付之三：v1.9 zip 残留坏 tmp（EOCD rfind=−1）⇒ 三道闸门全过 ⇒ ✅ **持锁重打 v1.9**（PID 13832 / 安静窗口 45 s）⇒ zip **11 218 175 861 B** / SHA256 **`69cbdbe26120ad2beb0bf5871fc85d2557249c568d8e1bcca63202b21b7ba5b3`** / 14 203 条目 / MANIFEST `version='1.9'` `files=14202` ⇒ 三者一致 ⇒ ✅ §66 只读 `app153`：**zip ⇄ 包目录 `.py` 26/26 逐字一致（diff=0）**，反证 `--falsify` ⇒ FAIL 且命中 `audio_check.py`⇒ 🔴 ASR 通知 §8：FP16 保真不过门槛（`0.999998775537715` / `0.001432037985732332`）、FP32 过门槛（`0.9999999999995199` / `1.1163879303042469e-06`）⇒ 交付形态待裁定；**包内无 wespeaker / pyannote_seg** ⇒ 客户机必然降级 ⇒ 🔴 **本条需等 reviewer 复核**
 2026-10-30 00:31 §97 🔴🔴🔴 **APP-039/040 核心（音色按句绑定 spk）已实施 ＋ APP-042 真机实测 run4 PASS 13/13 ＋ 修掉「CLI 启动即崩」的闭包作用域真机缺陷**（新增 `speaker_voice.py` / `speaker_tracker.py` / `sync_c160_to_pkg.py`；`live_caption_app.py` +353−3；`tts_service.py` / `tts_worker.py` 接入；定速口径修正为 **worker 出队时刻**的墙钟 lag（主进程提交时刻恒在 3 s 死区 ⇒ speed 恒 1.0）；验收 `app149`/`app150` 16-16/`app151`/`app152` 7-7）⇒ 🔴 **代码与 STATUS 当时均未入库** ⇒ 已由 §98 闭环
@@ -19,11 +20,6 @@ last_ack: APP-042
 08:01 §90 🔴🔴🔴 **CUDA 边车「cancel 不可达」已定位并修掉 ⇒ APP-030② 失控守卫在 CUDA 路径上从未生效**（修前 cancel 后仍发满 4 块 / eos；客户端兜底也是空壳）＋ 顺手修掉「排空线程偷丢下一句的块」⇒ ✅ 边车独立命令读取线程 + 锁保护 + 协议写锁 ＋ 客户端等确认（等不到就杀重启）＋ 排空消息插回队首 ⇒ ✅ `app130` **21/21（仓库）＋ 21/21（客户包内那份）**（A 组命中修前 / B 组全过 / C 组反证）⇒ ✅ 回归 `app107` 42/42、`app129c` 10/10 ⇒ ✅ 定点同步（3+7 块唯一命中 + 幂等）⇒ ✅ **zip 已持锁重打 ⇒「已交付」成立**（11 218 127 265 B / 07:57:34 / SHA256 `3b79ad2a…ae017` / 14 200 文件一致 / 三方复核 2/2 MATCH）⇒ ⛔ **真实 CUDA 实测未做（守纪律）⇒「用户听得到」仍不成立**、⛔ **v1.6 未发布 FTP** ⇒ 🔴 **本条需等 reviewer 复核**
 23:31 §89 🔴🔴🔴 **CUDA 边车「扣留一块」缺陷已定位并修掉 ⇒ 首包不再被第 2 块挡住（真实 CUDA A/B 实测首包平均提前 0.2785 s）＋ 确定性字节级内容等价证明（`app129c` 10 PASS/0 FAIL）**⇒ ✅ 删 `pending` 扣留（每块即发）+ `last` 恒 False（线格式兼容）+ `elapsed` 语义改为首块时刻 + 新增 `total_s` ⇒ ✅ `app129` **23 PASS/0 FAIL**（ABBA 5 臂、持锁 + 45 s 安静窗口、零 CPU 推理、未调 MiniMax）⇒ ✅ `app129c` **10 PASS/0 FAIL**（两臂 PCM **逐字节相同**，生成-发送滞后 **2→1**）⇒ ✅ `app129b` 证明 **CUDA 合成不可复现**（⇒ 统计口径无分辨力 ⇒ 判据降级为信息性）⇒ ✅ 客户包定点同步（4 块唯一命中 + 幂等 `ALREADY` + 包外备份 `pkg_backup_app_s89`）⇒ 🔴🔴🔴 **撤回 §88.4.2 对 `elapsed` 语义的误用**⇒ ✅ **zip 已持锁重打 ⇒ 「已交付」成立（代码 + 客户包 zip）**（11 218 124 039 B / mtime 23:44:53 / SHA256 `4d9e97de…d64` / 14 200 文件逐字节一致 / `testzip()` 通过 / 只读三方复核 PASS） ⇒ ⛔ **APP-027 未完（V3 归 reviewer、V4 未做）**
 19:53 §87 🔴🔴 **MT notice 15 §3.4「真实时序下不残留草稿行」端到端证据缺口已补齐**（真实 `TranslationService` + 真工作线程 + 真 outbox + 真实 `render_lines()`）⇒ ✅ `app127` **17 PASS/0 FAIL**（三语料终态 `n_draft_lines` **全 0** ＋ 3 条突变反证 ＋ 1 条基线反证）⇒ ✅ `app128` 随机语料 **120/120 PASS**、`max_draft_lines=0`⇒ 🔴🔴 首跑 **42 组 FAIL** ⇒ 定位为**验收脚本判据口径缺陷**（渲染层 join 同 seg 多单元 ⇒ 精确相等口径失效）⇒ 已修判据 ＋ 补 `app128_judge_selftest` **5/5 PASS**（注入 4 类真缺陷 ⇒ 判据必须 FAIL）⇒ ✅ **产品未暴露缺陷** ⇒ **无需改生产代码 / 无需同步客户包 / 无需重打 zip** ⇒ ⛔ **不写「已交付」**⇒ ⛔ **APP-027 未完（V3 归 reviewer、V4 未做）**
-18:14 §86 🔴🔴 **APP-031 合打完成：v1.6 zip 已持锁重打（11 218 123 293 B / mtime 17:57:22 / SHA256 `266917dd…32d`；`testzip()` 通过；14 200 文件逐字节一致）＋ 打包前三道闸门抓到并修掉 5 个真实缺陷**（内部 STATUS 备份会进 zip / `clone_collector.py` 误伤假 FAIL / `tts_engine.py` U+FFFD / §48 docstring 误判 / 写死包路径）⇒ ✅ `app126` **30 PASS/0 FAIL**（双向反证，基线 `b0f7a43`）＋ `app049` **7 PASS/0 FAIL** ⇒ ✅ 定点同步幂等 **ALREADY** ⇒ ✅ 只读三方复核 **PASS**（6 589 一致 / 排除项 0 / 内部特征串 0）⇒ ✅ commit **`d14b1f8`**＋**`1b8a99c`** 普通 push、`HEAD == origin/main`、`CORRECTIONS_APP.md` 未入库 ⇒ ✅ **「已交付」成立（代码 + 包 zip）** ⇒ ⛔ **APP-027 未完（V3 归 reviewer、V4 未做）**
-16:27 §85 🔴🔴 **客户包 `NOTICE`/`THIRD_PARTY.md` 许可不实表述已修正（num2words 实为 **LGPL-2.1** 非 MIT；原「所有组件均为 Apache-2.0」不实；覆盖 10/28 ⇒ **47/47 全覆盖**）＋ ASR WeSpeaker 署名义务判定**免除**并回告**⇒ ✅ `app124` 12 PASS/0 FAIL ＋ `app125` 反证 10 PASS/0 FAIL（抓出判据自身 2 处缺陷）⇒ ⛔ `NOTICE` 在 zip 内 ⇒ 修改进入下次打包、**本轮 zip 未重打 ⇒ 不写「已交付」**
-16:18 §84 🔴🔴 **APP-027 V3（克隆）实测跑完（CUDA + NPU 两组，各 20 PASS / 0 FAIL）＋ 自查抓出并修掉 2 个真实缺陷（CLI 路径根本没有克隆链路 / 真实播放路径逐句遥测整组字段丢失）＋ 客户包定点同步完成** ⇒ ✅ 两组各 76 句 wav、逐句带音色来源、隐私判据空 ⇒ ✅ 独立复核 wav↔id 76/76、SHA256 76/76 ⇒ ⛔ **CER/CAMPPlus 归 reviewer、V4 用户实听未做 ⇒ APP-027 未完 ⇒ zip 不重打 ⇒ 不写「已交付」**
-
-
 ## §1 现状汇总（2026-10-23）
 
 ### 1.1 v1.3 客户包
@@ -6153,88 +6149,20 @@ MANIFEST `notes` **幂等追加** v1.5 四条修订（设备全名 / CUDA 诚实
 
 ### §35.3 🔴 头部「最近更新」超限（37 行 → 15 行）
 
-**实测**：头部「## 最近更新」块实际有 **37** 条摘要行，而 APP-001 规定的格式是
+**实测**：头部「## 最近更新
 「**最近更新（最多 15 行，新的写在最上面，每行一条**）」⇒ **超限 22 行**。
-
 **修法**（新增脚本 `results/app/app035_trim_status_head.py`，**程序化、不手抄**）：
 - 只动「## 最近更新」到第一个「## §N」之间的块 ⇒ **章节正文零改动**；
 - 保留最新 **14** 条 + **1** 条指针行（写明合并了多少条、指向正文哪个章节）；
 - 🔴 **被合并的条目在正文 §N 章节里本来就完整存在**（STATUS 是 append-only 的）
   ⇒ **头部压缩不丢信息**，只是把历史细节指回章节；
 - 写回用 `newline=''` ⇒ 保留原行尾风格；**幂等**（第二次跑输出 `[skip] 无需裁剪`）。
-
 **验收**：37 → **15** 行；重复行 = **0**；全文 **6098** 行；doubleCR = **0**。
-
 ### §35.4 头部「阻塞」项②的更正（与 §34.7 一致）
-
 原表述「**现有 10-24 通知不满足**（讲的是旧 UNIT 缺陷）⇒ v1.5 先不带」**不准确**：
 方案 C 的完整移交说明**在** `shared\NOTICE_mt_to_app_20261024.md` 的**通知 9**
 （2026-10-25 10:30 追加，依据 `hy_bench/CORRECTIONS_HY.md` 的 H-016 08:48 / H-017 08:57）。
 ⇒ 头部改为「**移交说明已到**，但**实现尚未定稿**（工作区在制品，验收 18/21 FAIL）⇒ v1.5 明确不带」。
-
-### §35.5 ⏳ v1.5 打包：仍在等共享机器锁
-
-| 时刻 | 观察 |
-|---|---|
-| 11:53 | 第二轮打包启动（`--lock-timeout 10800`），后台 task `jmqwVo` |
-| 11:53~12:20 | `[lock] 等待中…（module=mt pid=34440 state=held，已等 1080s）` ⇒ **MT 在跑 H-016 v5 批次**（`_run_h016_v5_batches.py`，10:45 起，`--wall-max 2400`） |
-| 11:19:54 | 锁被 MT **重新**获取（说明前面还有一轮作业排队）⇒ **四模块轮流用锁**的模式再次出现 |
-
-🔴 **不抢锁**：`LockHeld.acquire()` 自带 `poll=20s` 轮询 + `O_CREAT|O_EXCL` 原子创建
-⇒ 物理上不可能两个模块同时持锁；打包进程会在锁释放后**自动**继续
-（内部素材闸门 → 刷新 MANIFEST → 写 `v1.5.zip.tmp` → `testzip()` + 关键文件 +
-MANIFEST 硬校验 + **逐文件 SHA256 内容复核** → `os.replace()` 原子改名）。
-⚠️ **打包窗口内不启动任何 `python.exe`**（会污染 MT 的计时测量）⇒ 本轮所有
-文件编辑一律用 `Read`/`Edit`/`sed`，不用 Python 脚本处理被测逻辑。
-
-### §35.5.1 ⏳ 等锁时间线（实测到 13:48）
-
-| 时刻 | 已等 | 观察 |
-|---|---|---|
-| 11:53 | 0 s | 第二轮打包启动（`--lock-timeout 10800` = 3 h），后台 task `jmqwVo` |
-| 12:20 | 1080 s | 锁持有者 = `mt pid=34440`（`started 11:19:54`） |
-| 12:46 | 2280 s | 仍 held；MT 进程存活（CPU 0.36 s ⇒ 在等子进程，不是空转烧 CPU） |
-| 13:48 | **6884 s** | 仍 held（MT 已连续持锁 **2 h 28 min**） |
-
-**MT 侧进程观察**（`Win32_Process` 实测，13:48）：MT 的 `_run_h016_v5_batches.py`
-在**连续起子进程**（12:56 起 `p3_ov_app.py`、13:11 TTS 内存测量、13:30 `p3_diag_orthogonal.py`、
-13:33 `diag_c111_variants2.py --wall-max 400`）⇒ **还在跑**，不是挂死。
-
-⚠️ **3 h 上限的余量**：13:48 时已等 6884 s ⇒ **距 10800 s 上限还剩 3916 s（约 65 min）**。
-🔴 **若超时**：安全失败（**旧包不动、无残留 `.tmp`**）⇒ 可再起一轮
-（`--lock-timeout` 可配置，无需改代码）。**绝不**为了赶时间而**绕过锁**。
-
-### §35.5.2 🔴 **并行会话对本轮产物的影响核查**（打包在等锁期间必须做）
-
-12:38 出现**同模块并行会话**的提交 `70fe985`（§36：修 U+FFFD 乱码 + 把「文本编码完整性」
-加进内部素材闸门），其中**改了 v1.5 包目录** ⇒ 必须核实是否污染产物：
-
-| 核查项 | 实测 | 判定 |
-|---|---|---|
-| 包内 `app/device_config.py` vs git HEAD（归一化行尾 SHA256） | `0797ef2226cd9993` **两侧一致** | ✅ MATCH |
-| 包内 `device_config.py` 的 U+FFFD 计数 | **0** | ✅ |
-| 仓库 `live_caption/device_config.py` vs HEAD | 一致 | ✅ |
-| 客户包 `app/` + 根目录 + `results/` 的 U+FFFD 全扫 | **0 命中** | ✅ |
-| `check_internal_material.py` 改动对打包的影响 | 闸门是 **`subprocess` 调用脚本文件**（`pack_v13.py` L467-469）⇒ **取得锁后才执行** ⇒ 会读**磁盘上最新版**（§36 的加严版） | ✅ 不冲突，且**更严** |
-| 包内 8 个关键 `.py` vs git HEAD（`live_caption_app` / `device_config` / `tts_service` / `translator` / `tts_worker` / `streaming_asr` / `audio_source` / `backends`） | **8/8 MATCH** | ✅ 基线 = HEAD，**不含**方案 C |
-
-🔴 **结论**：并行会话的 §36 是**修正**（消 U+FFFD）+ **加严**（闸门加编码检查）
-⇒ **不污染 v1.5**，且**只会更安全**。
-🔴 **但暴露了一个真实风险**：**打包读的是包目录，而包目录可能被别的会话改**
-⇒ 打包前必须核「包内代码 == git HEAD」（本轮已核 8/8），
-否则 zip 会与仓库基线错配。⇒ **建议把这一步固化进 `app014b_v15_preship_check.py`**
-（该脚本第①组断言**已经是**「包内代码 == 仓库代码」，但只比了 8 个文件 ⇒ **够用**）。
-
-
-### §35.6 🔴 纪律
-
-- **未改/未提交** `status/app/CORRECTIONS_APP.md`（reviewer 独占写）；
-- **未代提交**方案 C 的工作区改动（`live_caption/live_caption_app.py` +132/−14、
-  `live_caption/caption_render.py` 新增未跟踪）—— 属**并行会话在制品**；
-- **未吞** ASR/MT/TTS 的未提交改动（大量 `diag_c*.py` / `sync_c*.py` / `reports/*` 一律不吞）；
-- **未跑推理 / 未测速 / 未占 GPU**；**未重开 FTP**（守 APP-009③，用户明确「FTP 先关掉」）；
-- `live_caption/translator.py` **未动**（不归 App 提交，H-010）；
-- 仓库 ⇄ 客户包**只做定点替换**，备份一律**在包外**（`git_backup/` / `pkg_backup_*`）。
 
 ## §36 🔴🔴 巡检（无新纠偏条目，第 19 次同一口径）+ 🔴🔴 **修掉 §31.4 修过又被写回的 U+FFFD 乱码** + 🔴🔴 **把「文本编码完整性」加进内部素材闸门**（2026-10-25 12:36）
 
@@ -17845,3 +17773,165 @@ APP-042 的「目标开播墙钟」机制**只做在 GUI `App` 类**：
 - **独立只读复核**（`results/app/_app099_zip_verify.py`，本轮新写）：
   **zip ⇄ 包目录 `.py` 逐字一致 = 6592/6592 一致**（归一化 LF 后比对）
 - **包内副本的独立验收**：`app154` 对**包内**源码跑同一套验收 ⇒ **20/20 PASS**，反证 5 条全命中（`results/app/_app099_app154_pkg_evidence.json`）
+
+## §101 APP-043 / APP-044 两条新纠偏：说话人资产随包分发 ＋ App 进程限线程（含 §100 的 `follow_speaker` 回归修复）
+
+### §101.0 巡检口径
+- 🔴 **CORRECTIONS_APP.md 在本轮中途变了**（42 → **44** 条）：mtime `2026-10-29 15:30:53` → **`2026-10-30 08:50:04.164783500 +0800`**，字节 108 783 → **111 198**，SHA256 `c50dcdd1ad02b45fab9068a790df5f0c02fa7e5406cbba8aa868bfee28cf6225` → **`08e231a24c22b567bdf5be09a46896128fa4b2aa5d2d32ed32fa029a501361a6`**。
+  ⇒ 原「无新条目」的结论**作废** ⇒ 本轮改为**按编号顺序执行 APP-043 → APP-044**。
+- 新增条目：**APP-043 [HIGH] 2026-10-30 08:48**（ASR 说话人接口已交付，按句绑定 spk 可以接入 ＋ 线程限制 ＋ 真机验收）、**APP-044 [NORMAL] 2026-10-30 08:50**（用户决定**客户包带上** pyannote/segmentation-3.0 与 wespeaker，约 16 MB ＋ 许可署名 ＋ 客户机运行时约束）。
+- 🔴 **本轮未修改 `CORRECTIONS_APP.md`**（reviewer 独占文件，只读零改动）。
+- `last_ack` 由 `APP-042` → **`APP-044`**。
+
+### §101.1 APP-043 线程限制（**代码侧已完成**，真机验收待 reviewer）
+
+**修掉的真实缺陷**：`live_caption_app.py` **完全未**在 import numpy 前限线程、**也没有**任何启动日志
+⇒ `results/app/app157_app043_thread_env_gate.py` 修前实测 **8 PASS / 6 FAIL**（判据 T2/T3/T4/T5/T7/T8 全部命中缺口）。
+
+**修法**（`live_caption_app.py` 头部，第 70 行起，**在 `import numpy`（第 95 行）之前**）：
+- 设置 5 个线程变量：`OMP_NUM_THREADS` / `MKL_NUM_THREADS` / `OPENBLAS_NUM_THREADS` / `NUMEXPR_NUM_THREADS` / `VECLIB_MAXIMUM_THREADS`，一律 `setdefault` ⇒ 不覆盖用户显式设置。
+- **启动日志**：写 `%LOCALAPPDATA%\Confucius4LiveCaption\session_YYYYMMDD.log`，一行记录五个变量的取值。
+  ⚠️ 此刻**不能**用 `tts_service.append_session_log`（它会 import numpy/openvino 链 ⇒ 与「import numpy 之前」自相矛盾）⇒ 内联零依赖写入；日志目录与 `tts_service.session_log_path()` 一致 ⇒ 同一批文件。
+- ⚠️ **为什么必须在 import 之前**：OpenMP / MKL 的线程池在**首次 import** 时就按环境变量定型 ⇒ 事后 `os.environ[...] = '1'` **不生效**。
+- 依据（ASR-029 通知 §5 / ASR-026 实测）：不限线程 ⇒ 平均 **7.807** 核 / 峰值 **11.934** 核 / RTF **0.6444**；限线程=1 ⇒ 平均 **0.998** 核 / 峰值 **1.141** 核 / RTF **0.5302**（**不降反升**）。
+
+**验收**：`results/app/app157_app043_thread_env_gate.py`（AST 静态判据 T1–T8 ＋ 合成源双向反证 D-T2①/②、D-T3、D-T5、D-T7①/②）
+⇒ **14 PASS / 0 FAIL**（修前 8/6），真实退出码 0。
+证据：`results/app/app157_app043_thread_env_gate_evidence.json`（2 814 B / 2026-10-30 09:37:57 / SHA256 `212b6bdf7a45ec846ff6e810de55c8107e131398a1f9ba77dc833f3eeb7e703f`），原始字段 `pass_=14, fail=0, verdict="PASS"`。
+
+### §101.2 APP-044 说话人资产随包（**包目录已完成**，zip 未重打）
+
+**关键突破：不必改 ASR 源码一个字节。**
+`results/app/app157_app044_portable_load_probe.py` 把 ASR 依赖闭包 **11 个文件** ＋ **2 个 OV IR** 复制到临时目录（**目录里没有 torch**，与客户机形态一致），
+**仅靠 `sys.path` ＋ 构造参数 `seg_ir` / `wes_ir`** 即加载成功
+⇒ **9 PASS / 0 FAIL**，原始字段 `pass_=9, fail=0, verdict="PASS"`
+（证据 `app157_app044_portable_load_probe_evidence.json` / 2 373 B / SHA256 `2a7670153ea2504bc38b84db3aa28e0776bf01746319a39e7758493d9b1b6ca5`）。
+反证 D-P4：不传 IR 参数 ⇒ `seg_ir` 落到 ASR 源码的**硬编码默认值** `C:\Users\Trekker-PTL\qwen3asr_06b\models\pyannote_seg\ov-fp16` ⇒ 证明是**传的**不是**默认的**。
+
+**依赖闭包实测**（`results/app/app157_app044_spk_asset_inventory.py`，**10 PASS / 2 FAIL**，真实退出码 1；两条 FAIL 是**真实事实**，非脚本缺陷）：
+- 闭包 **11 个 ASR 侧文件**：`asr021_bypass_spk_wespeaker.py` / `asr030_kaldi_fbank_fidelity.py` / `asr050_spk_qa_speaker_test.py` / `asr052_speaker_tracker_api.py` / `asr_json_write.py` / `asr_lock_common.py` / `asr_slice_common.py` / `pya_app_path_seg.py` / `pya_bypass_spk.py` / `pya_ref_shim.py` / `pya_stream_segment.py`。
+- **A7 FAIL**：ASR 源码有 **12 处硬编码运行时路径常量**（`WORK` / `REPO` / `SHARED` / `R` / `WES_IR` / `SEG_IR` / `WES_CKPT` / `SCRIPTS`）⇒ 客户机上模型找不到。
+  ⇒ **处置**：**不改 ASR 源码**，改为 App 侧**传参覆盖**（`seg_ir` / `wes_ir`）⇒ 该缺口**被绕开**，不阻塞交付。
+- **A8 FAIL**：`pya_ref_shim.py` 第 28 行**模块级** `import torch` ⇒ 客户机无 torch ⇒ **不进包**。
+  ⇒ 新增 A9 判据（客户机必经路径无模块级 torch）⇒ **PASS**，`excluded_files=["pya_ref_shim.py"]`。
+- IR 变体实测：wespeaker fp16 **13 260 222 B** / fp32 **26 520 384 B**；pyannote ov-fp16 **2 978 960 B** / ov-fp32 **5 957 808 B**。
+
+**新增模块 `live_caption/speaker_assets.py`**（10 336 B / 2026-10-30 09:28:54 / SHA256 `e4d655a69e7dfdcdae05654962fe8383c3a2d8db054c848ff183cd78a431e5fa`）：
+- 定位包内 `app/asr_spk/`（ASR 接口代码）与 `models/spk/`（两个 OV IR），提供可移植路径。
+- **不硬编码精度** ⇒ 按目录实际存在者探测（**fp32 优先**）⇒ reviewer 裁定到达后**只需把对应目录打进包，无需改代码**。
+- 模型缺失 ⇒ 优雅降级（`available=False`）＋ 可读原因（供 GUI 提示「说话人识别不可用」）。
+- 验收 `results/app/app158_app043_assets_resolver.py` ⇒ **13 PASS / 0 FAIL**，真实退出码 0（证据 2 353 B / SHA256 `6362365b927b3c7096a358ed1a365de8b6c8b6120f29d4859d3076b7c073837f`）。
+
+**`live_caption/speaker_tracker.py` 接入包内资产**（改动区 `__init__` ＋ `_load()`，**与并发会话的 `retry_pending` 改动不重叠**）：
+- `__init__`：优先用包内资产 ⇒ 否则回退研发机 ASR 目录；🔴 回退前**必须先探测目录是否真的存在**（`os.path.isdir` ＋ 入口模块存在性）⇒ 否则客户机上（该目录不存在）`available` 语义含混。
+- `_load()`：把包内 `seg_ir` / `wes_ir` **传进** `SpeakerTracker`；无资产且无回退 ⇒ `load_error='no_speaker_assets'`、`available=False`、**快速返回**（不 import、不探测）。
+- 验收 `results/app/app158_app043_bridge_wiring.py` ⇒ **9 PASS / 0 FAIL**，真实退出码 0（证据 `app158_app043_bridge_wiring_evidence.json` 1 987 B / SHA256 `2f5bd4ddf31428510fc3ce08ed570676f69b54c8167780298138b49b082b680f`；对**包内源码**复跑 ⇒ `app158_app043_bridge_wiring_evidence_pkg.json` 1 987 B / SHA256 `51a2dd3e86a9e0af6b57fd94f8673cdf639e1b0f451ef2c346e79da89ff3ce7c`）。
+  判据 B1–B7 + 反证 D-B5 全部命中。
+
+**包目录同步结果**（客户包 `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.11`）：
+- `app/asr_spk/`：**10 个文件**（`pya_ref_shim.py` 被 `[SKIP-TORCH]` 排除）/ 合计 193 694 B；逐个与 ASR 源 **SHA256 一致（SAME）**。
+- `models/spk/`：**4 个 IR 文件** / 合计 **16 479 887 B（15.72 MB）**（与 APP-044「约 16 MB」吻合）：
+  - `models/spk/wespeaker-resnet34-fp16/openvino_encoder_model.xml` 167 511 B / `b4b0e521e763ccc029e41b8d6d379ee396f27d73c422c6c4faf5794fc4e0c0e6`
+  - `models/spk/wespeaker-resnet34-fp16/openvino_encoder_model.bin` 13 260 222 B / `45d4ad4395d13d3f9cd6f25b403d70000ee9fb265ad7bdc9e5a88fa67bf37b86`
+  - `models/spk/pyannote_seg_3_0/fp16/pyannote_seg_3_0.xml` 73 194 B / `db1f6b8dca46d73bb23d58597dfbc5b7f903acb3465c4ae43eb6eadcf2d7c610`
+  - `models/spk/pyannote_seg_3_0/fp16/pyannote_seg_3_0.bin` 2 978 960 B / `203c32ce614d8142460152a30aa7a4df8bae8a202d2beaa1b51ba6972130e76d`
+- ⚠️ **当前打进的是 FP16**（reviewer 裁定未到）⇒ 若 reviewer 裁定 FP32，**需换目录重打**（代码无需改）。
+- 包内 `python/Lib/site-packages/` **无 torch / torchaudio / pyannote / speechbrain** ⇒ 客户机形态成立。
+- 包内实测：`import asr052_speaker_tracker_api` **成功**，`SpeakerTracker.__init__` 签名确认含 `seg_ir` / `wes_ir` 参数。
+- 包内 `speaker_assets.resolve()` 实测：`ok=True`、`scripts_dir=<包>\app\asr_spk`、`wes_ir=<包>\models\spk\wespeaker-resnet34-fp16`、`seg_ir=<包>\models\spk\pyannote_seg_3_0/fp16`、`summary="说话人识别可用（wespeaker fp16；pyannote_seg_3_0 fp16）"`。
+
+### §101.3 APP-044 许可署名（**已完成**）
+
+🔴 **署名义务的「触发条件」变化**：ASR 通知（2026-10-28）说「包内不带权重 ⇒ 署名义务免除」（App 已回告）；APP-044 决定**带上** ⇒ **署名义务重新成立** ⇒ 必须补。
+
+- **wespeaker** 署名文本**原样取自** `shared/NOTICE_asr_to_app_wespeaker_license_20261028.md` §三（含 HF repo id `pyannote/wespeaker-voxceleb-resnet34-LM`、revision sha `837717ddb9ff5507820346191109dc79c958d614`、CC BY 4.0 链接、VoxCeleb 数据集、版权行、**使用范围限制**：向量只用于说话人聚类，绝不用于 TTS 克隆音色）。
+- **pyannote** 署名文本由本轮按公开来源取证写入（ASR 侧**未**交 pyannote 草稿）：repo `pyannote/segmentation-3.0`、**MIT**、作者 Hervé Bredin 与 pyannote.audio 贡献者、许可全文链接、训练数据（AISHELL / AliMeeting / AMI / AVA-AVD / DIHARD / Ego4D / MSDWild / REPERE / VoxConverse）。
+- 落地：`NOTICE` 8 289 B → **9 643 B**（SHA256 `96ff747b21ff59ef787c0f061a2c1d4d8f0378203f7f7296e6e0cb69f82a14e8`）；`THIRD_PARTY.md` 3 310 B → **3 784 B**（SHA256 `a3ebb8df47ff11ba62508ffab6aa811b8d9990ad8e244db95f7796206e670da8`）。
+- 🔴 **禁止笼统写「所有组件均为 Apache-2.0」**：包内 47 个 vendored 包**逐包实测**（`num2words=LGPL-2.1`、`soxr=LGPL-2.1`、`certifi=MPL-2.0`、`pillow=HPND`、`cffi=MIT-0`、`librosa=ISC`）。
+
+### §101.4 🔴🔴🔴 并发会话在制品（拟 §100，**该章节尚未落盘**）修「断链 G」时打死了 APP-027⑤ 的 `follow_speaker` 模式（本轮自查抓出并修掉）
+
+**现象**：并发会话的**在制品**（拟 §100，**该章节尚未落盘**；对应改动已在工作区 `live_caption/tts_worker.py`）为修「`spk=None` 时沿用上一个人的声音 ⇒ 冒充」，把 worker `synth()` 改成 `else: self._fallback_to_preset('no_spk_label')`。
+⇒ 但 **APP-027⑤「跟随说话人（克隆）」模式下主进程恒传 `spk=None`**（`tts_service.submit` 里 `spk` 键**只在非 None 时**进命令体 ⇒ worker **无法区分**两种 None）
+⇒ **每一句**都把克隆音色打回预设 A ⇒ 用户勾了「跟随说话人（克隆）」但听到的是预设 A。
+
+**独立复现**：`results/app/app157_follow_speaker_regression_test.py`（**AST 抽真实源码的 `if spk:` 决策分支 ⇒ `ast.unparse` ⇒ `exec`**，不 import 被测模块）
+⇒ 修前 **7 PASS / 1 FAIL**，真实退出码 1，失败项 `B1 🔴 follow_speaker 下克隆音色**不得**被打回预设 A`（`speaker_embed=VEC_PRESET_A clone_active=False`）。
+
+**修法（模式感知）**：`live_caption/tts_worker.py` `synth()` 的决策分支 + 新增 `_log_keep_clone()`。
+- `spk` 有值 ⇒ `_apply_spk_voice(spk)`（不变）。
+- `spk` 为 None ⇒ **两种语义必须分开**：
+  - ①「**按句绑定**模式下这句还没有说话人标签」（APP-039/040，标签晚到 1~2 s）⇒ **回落预设 A**（防「用上一个人的声音冒充」，APP-040② 明文禁止）⇒ 判定信号 = **worker 的 `_spk_voices` 表非空**（主进程登记过 spk 音色）。
+  - ②「**全局克隆**模式下这句本来就没有 spk」（APP-027⑤）⇒ **保留当前全局克隆音色** ⇒ 判定信号 = **`self.clone_mode`**（worker 启动参数 `--clone`，**现成的模式信号，无需新增协议**）。
+- **两者同时成立时优先按句绑定**（有标签的按句绑定；无标签的回落预设 A）⇒ 宁可少一段克隆音，也不用错人的声音。
+- 保留全局克隆音色时**必须写日志**（APP-027⑤ 的教训：不能让用户以为在用预设 A、其实一直在克隆）。
+
+**验收**：修后 **11 PASS / 0 FAIL**，真实退出码 0；4 条**双向反证**全部命中（D-B1 去掉 else 回落 / D-B2 无条件回落 / D-B3 永远回落 / D-B4 永不回落 ⇒ 各自对应的判据必须 FAIL）。
+证据：`results/app/app157_follow_speaker_regression_evidence.json`（2 501 B / 2026-10-30 09:36:05 / SHA256 `82de554cfabf559bc060bb221d757c876edb7b51a391b3824438e7771867e219`），原始字段 `pass_=11, fail=0, verdict="PASS"`。
+
+**既有回归未破**：`app150` **17/17**、`app152` **7/7**、`app154` **20/20**（须用带 numpy 的 system Python 3.12；managed 3.13 无 numpy ⇒ 判据假 FAIL）。
+
+### §101.5 客户包定点同步（**包目录已完成；zip 尚未重打 ⇒ 不能写「已交付」**）
+
+🔴 仓库 `live_caption/` 与客户包 `app/` 是**两份独立副本** ⇒ **禁止整目录覆盖** ⇒ 本轮新增 3 个定点同步脚本（全部「精确字符串替换 + 唯一命中断言」＋ 幂等标记）：
+
+| 脚本 | 作用 | 字节 / SHA256 |
+|---|---|---|
+| `live_caption/sync_c164_spk_assets_to_pkg.py` | ASR 接口代码（10 个）＋ 两个 OV IR → 包内 | 7 301 B / `5a138a4877f3dbfa1400a2211fbcae0ec6176acab37c03a30e31a1723851dc86` |
+| `live_caption/sync_c165_spk_license_to_pkg.py` | 许可署名 → 包内 `NOTICE` + `THIRD_PARTY.md` | 7 695 B / `24fefcb8b61fb4feb3e585c237860f8b8578f6d24efebaf05ef98405c8356887` |
+| `live_caption/sync_c166_app043044_to_pkg.py` | APP-043/044 代码块 + §101 修复 → 包内 `app/` | 14 122 B / `f549d8a456fa4d2398b60aa7842b590a082549dcfd1e7291c22c36a105936570` |
+
+**包内 4 个文件与仓库**归一化行尾后**逐字节一致**（已实测 SHA256 相同）：
+`live_caption_app.py` `e5440190eadcef1f…`（300 750 B）｜`speaker_tracker.py` `4b03f19fbaf127e8…`（21 211 B）｜`tts_worker.py` `73c756420fd1c1ee…`（216 896 B）｜`speaker_assets.py` `e4d655a69e7dfdcd…`（10 336 B）。
+⚠️ `tts_worker.py` 仓库 220 854 B vs 包 216 896 B **仅是行尾差异**（仓库 CRLF / 包 LF）⇒ 归一化后 diff = **0**。
+
+**并发会话的改动全部保留**（同步脚本每次都复核）：`speaker_tracker.py` 的 `retry_pending`、`live_caption_app.py` 的 `_retry_spk_labels` / `_spk_by_seg` ⇒ `[OK]`。
+
+🔴 **本轮真实踩坑并修掉**：同步脚本第一版**在 Python 三引号里手写** `newline='\n'` ⇒ 解析时变成**真换行** ⇒ 写进客户包的源码被拆成两行 ⇒ **语法错误**（`ast.parse` 报 `unterminated string literal (detected at line 86)`）⇒ **客户机启动即崩**。
+⇒ **修法（写进脚本的纪律）**：**插入块必须从仓库真实文件按行边界提取**（`slice_block()`）⇒ 「仓库里是什么，包里就是什么」⇒ **不可能**再出现转义走样；且**写回前必须 `ast.parse` 校验**，语法坏了**立刻**发现，不留给客户机。
+⇒ 包内已修复（定点替换 2 处，唯一命中 + 语法校验后写回）并复跑验收通过。
+
+**对包内源码复跑验收**（全部 PASS）：
+- `app158_app043_bridge_wiring`（对包内源码）⇒ **9 PASS / 0 FAIL**
+- `app157_follow_speaker_regression_test`（对包内源码）⇒ **11 PASS / 0 FAIL**
+- `app157_app043_thread_env_gate`（对包内源码）⇒ **14 PASS / 0 FAIL**
+
+### §101.6 本轮产物取证（文件数 / mtime / 字节数 / SHA256）
+
+**仓库**（`C:\Users\Trekker-PTL\confucius4-openvino`）：
+- `live_caption/speaker_assets.py` 10 336 B / 2026-10-30 09:28:54 / `e4d655a69e7dfdcdae05654962fe8383c3a2d8db054c848ff183cd78a431e5fa`
+- `live_caption/sync_c164_spk_assets_to_pkg.py` 7 301 B / 09:29:37 / `5a138a4877f3dbfa1400a2211fbcae0ec6176acab37c03a30e31a1723851dc86`
+- `live_caption/sync_c165_spk_license_to_pkg.py` 7 695 B / 09:31:28 / `24fefcb8b61fb4feb3e585c237860f8b8578f6d24efebaf05ef98405c8356887`
+- `live_caption/sync_c166_app043044_to_pkg.py` 14 122 B / 09:37:23 / `f549d8a456fa4d2398b60aa7842b590a082549dcfd1e7291c22c36a105936570`
+- `live_caption/live_caption_app.py` 306 350 B / 09:28:59 / `08c84e91d2b76f15362b12cbccec469df9612d3e0e468198ccbf1fac4e3f732e`
+- `live_caption/speaker_tracker.py` 21 211 B / 09:28:26 / `4b03f19fbaf127e8865d153f1d90341c1f1982f45d37be813966426de2a88a2a`
+- `live_caption/tts_worker.py` 220 854 B / 09:34:56 / `4572b41e1b9441f9f1f8b07536bd9232e61dfd8908dda90bbc49fe177d4eba94`
+- `results/app/app157_app043_thread_env_gate.py` 16 400 B / 09:29:15 / `d814d8a3dbeb804c1f23ff1bcec3e3e1ff325b1423afaf158dc9cabfc392534f` ＋ `_evidence.json` 2 814 B / 09:37:57 / `212b6bdf7a45ec846ff6e810de55c8107e131398a1f9ba77dc833f3eeb7e703f`
+- `results/app/app157_app044_spk_asset_inventory.py` 17 230 B / 09:26:17 / `893a33bbc530f96039da7ccfabe3600b4b0db4469814fca14125435ce8fca2d2` ＋ `_evidence.json` 7 826 B / 09:26:17 / `c4947ccda330b64fe78d010fcbaaacecf9633765a9c772a8f78696b75d8c328a`
+- `results/app/app157_app044_portable_load_probe.py` 10 190 B / 09:26:48 / `30a5e230f9ed0cba28f8bf39141eecf87a02e6f976db77bca0d0b67ff71dcdb9` ＋ `_evidence.json` 2 373 B / 09:26:50 / `2a7670153ea2504bc38b84db3aa28e0776bf01746319a39e7758493d9b1b6ca5`
+- `results/app/app157_follow_speaker_regression_test.py` 20 763 B / 09:36:01 / `a6832174f18f173ef319053ee7fe163a2124664597de4a78362503e96a4b1609` ＋ `_evidence.json` 2 501 B / 09:36:05 / `82de554cfabf559bc060bb221d757c876edb7b51a391b3824438e7771867e219`
+- `results/app/app158_app043_assets_resolver.py` 11 393 B / 09:27:47 / `3aab178a046d4052229bc79e148c2607e9f02f49b318ae8b20b75d90af56f634` ＋ `_evidence.json` 2 353 B / 09:27:47 / `6362365b927b3c7096a358ed1a365de8b6c8b6120f29d4859d3076b7c073837f`
+- `results/app/app158_app043_bridge_wiring.py` 10 885 B / 09:28:32 / `fdd80a960dfe6d315c2490cdfa9e3dc41e594f6323eea04d3938cfa6dfb31144` ＋ `_evidence.json` 1 987 B / 09:28:32 / `2f5bd4ddf31428510fc3ce08ed570676f69b54c8167780298138b49b082b680f` ＋ `_evidence_pkg.json` 1 987 B / 09:37:56 / `51a2dd3e86a9e0af6b57fd94f8673cdf639e1b0f451ef2c346e79da89ff3ce7c`
+
+**客户包目录**（`C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.11`）：
+- `NOTICE` 9 643 B / 09:32:05 / `96ff747b21ff59ef787c0f061a2c1d4d8f0378203f7f7296e6e0cb69f82a14e8`
+- `THIRD_PARTY.md` 3 784 B / 09:32:05 / `a3ebb8df47ff11ba62508ffab6aa811b8d9990ad8e244db95f7796206e670da8`
+- `app/speaker_assets.py` 10 336 B / 09:32:46 / `e4d655a69e7dfdcdae05654962fe8383c3a2d8db054c848ff183cd78a431e5fa`
+- `app/speaker_tracker.py` 21 211 B / 09:37:48 / `4b03f19fbaf127e8865d153f1d90341c1f1982f45d37be813966426de2a88a2a`
+- `app/live_caption_app.py` 300 750 B / 09:37:40 / `e5440190eadcef1f69d9cd93d75ec1a0261a36f132743e0981a48d38dea6f118`
+- `app/tts_worker.py` 216 896 B / 09:36:54 / `73c756420fd1c1eeb7fff6c016ee71038b8f7b2658eb55ea6f37a8a8dd506d69`
+- `app/asr_spk/` **10 文件** / 193 694 B（逐个与 ASR 源 SHA256 一致）
+- `models/spk/` **4 文件** / 16 479 887 B（15.72 MB）
+
+### §101.7 结论与待办
+
+**本条状态：APP-043 = 代码侧已完成，真机验收需等 reviewer；APP-044 = 包目录已完成，zip 未重打 ⇒ 不能写「已交付」。**
+
+- ✅ APP-043 线程限制（代码 + 启动日志）已实现并通过 14/14 静态审计。
+- ✅ APP-044 说话人资产已进**包目录**（ASR 接口代码 10 个 + OV IR 4 个 / 15.72 MB ＋ 许可署名已进 `NOTICE` / `THIRD_PARTY.md`），包内源码三套验收 9/9、11/11、14/14 全 PASS。
+- ✅ 并发会话在制品（拟 §100，**尚未落盘**）修「断链 G」时打死的 `follow_speaker` 回归已修（11/11 ＋ 4 条双向反证全命中），既有回归 app150 17/17、app152 7/7、app154 20/20 未破。
+- 🔴 **客户包 zip 尚未重打** ⇒ **本模块不写「已交付」**（记忆铁律：「已交付」= 包目录 + zip 已含最新代码且已入库）。
+- 🔴 **FP16 / FP32 精度裁定未到**（`shared/` 下无通知）⇒ 当前打进的是 FP16；ASR-025 归因是 FP16 余弦 0.9999987755 / 相对最大偏差 0.001432（**不过** 1e-3 门槛），FP32 余弦 0.99999999999952 / 偏差 1.116e-06（**过**门槛）⇒ 若裁定 FP32 需换目录重打（**代码无需改**）。
+- 🔴 **APP-043 的真机验收全未做**：SPE Q&A 段（`shared/spe_qa_spk.json` 的 `densest_5min` 窗口）走 App 实时路径、APP-039 的 4 项指标、换人前后配音放进 `shared/app_clone_listen/`、APP-041 `pythonw.exe` 冷启动、APP-042 GUI 路径加速播放与 3 段 1.2–1.3× 用户实听。
+- 🔴 **WER 复算由 reviewer 用 MiniMax 回转写**（本模块不自行调用 MiniMax）。
+- 🔴 **GPU 归属**：APP-044 说「说话人旁路默认放 GPU.0」⇒ 与 ASR 争用同一设备 ⇒ 真机验收须复核对 TTS 的影响（参照 TTS-028 / §五「设备名=NPU ≠ 独占硬件」）。

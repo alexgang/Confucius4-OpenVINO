@@ -1,0 +1,304 @@
+{
+ "script": "app157_app044_spk_asset_inventory.py",
+ "asr_root": "C:\\Users\\Trekker-PTL\\qwen3asr_06b",
+ "pass_": 10,
+ "fail": 2,
+ "verdict": "FAIL",
+ "closure_modules": [],
+ "closure_files": [
+  "scripts\\asr021_bypass_spk_wespeaker.py",
+  "scripts\\asr030_kaldi_fbank_fidelity.py",
+  "scripts\\asr050_spk_qa_speaker_test.py",
+  "scripts\\asr052_speaker_tracker_api.py",
+  "scripts\\asr_json_write.py",
+  "scripts\\asr_lock_common.py",
+  "scripts\\asr_slice_common.py",
+  "scripts\\pya_app_path_seg.py",
+  "scripts\\pya_bypass_spk.py",
+  "scripts\\pya_ref_shim.py",
+  "scripts\\pya_stream_segment.py"
+ ],
+ "closure_edges": [
+  [
+   "asr052_speaker_tracker_api",
+   "asr021_bypass_spk_wespeaker"
+  ],
+  [
+   "asr052_speaker_tracker_api",
+   "asr050_spk_qa_speaker_test"
+  ],
+  [
+   "asr052_speaker_tracker_api",
+   "pya_bypass_spk"
+  ],
+  [
+   "asr052_speaker_tracker_api",
+   "pya_stream_segment"
+  ],
+  [
+   "pya_stream_segment",
+   "asr_lock_common"
+  ],
+  [
+   "asr050_spk_qa_speaker_test",
+   "asr021_bypass_spk_wespeaker"
+  ],
+  [
+   "asr050_spk_qa_speaker_test",
+   "asr030_kaldi_fbank_fidelity"
+  ],
+  [
+   "asr050_spk_qa_speaker_test",
+   "asr_json_write"
+  ],
+  [
+   "asr050_spk_qa_speaker_test",
+   "pya_app_path_seg"
+  ],
+  [
+   "pya_app_path_seg",
+   "asr_slice_common"
+  ],
+  [
+   "asr021_bypass_spk_wespeaker",
+   "pya_ref_shim"
+  ]
+ ],
+ "missing": [],
+ "wespeaker_variants": [
+  {
+   "label": "wespeaker-resnet34-fp16",
+   "dir": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\wespeaker-resnet34-fp16",
+   "xml_bytes": 167511,
+   "bin_bytes": 13260222
+  },
+  {
+   "label": "wespeaker-resnet34-fp32",
+   "dir": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\_attrib_wespeaker-resnet34-fp32",
+   "xml_bytes": 123202,
+   "bin_bytes": 26520384
+  }
+ ],
+ "pyannote_variants": [
+  {
+   "label": "pyannote_seg/ov-fp16",
+   "xml_bytes": 73194,
+   "bin_bytes": 2978960
+  },
+  {
+   "label": "pyannote_seg/ov-fp32",
+   "xml_bytes": 55755,
+   "bin_bytes": 5957808
+  }
+ ],
+ "hardcoded_runtime_paths": [
+  [
+   "asr021_bypass_spk_wespeaker.py",
+   "C:\\Users\\Trekker-PTL\\qwen3asr_06b"
+  ],
+  [
+   "asr050_spk_qa_speaker_test.py",
+   "C:\\Users\\Trekker-PTL\\qwen3asr_06b"
+  ],
+  [
+   "asr050_spk_qa_speaker_test.py",
+   "C:\\Users\\Trekker-PTL\\confucius4-openvino"
+  ],
+  [
+   "asr050_spk_qa_speaker_test.py",
+   "C:\\Users\\Trekker-PTL\\shared"
+  ],
+  [
+   "asr052_speaker_tracker_api.py",
+   "C:\\Users\\Trekker-PTL\\qwen3asr_06b"
+  ],
+  [
+   "asr052_speaker_tracker_api.py",
+   "C:\\Users\\Trekker-PTL\\confucius4-openvino"
+  ],
+  [
+   "asr052_speaker_tracker_api.py",
+   "C:\\Users\\Trekker-PTL\\shared"
+  ],
+  [
+   "pya_app_path_seg.py",
+   "C:\\Users\\Trekker-PTL\\qwen3asr_06b"
+  ],
+  [
+   "pya_app_path_seg.py",
+   "C:\\Users\\Trekker-PTL\\confucius4-openvino"
+  ],
+  [
+   "pya_bypass_spk.py",
+   "C:\\Users\\Trekker-PTL\\qwen3asr_06b"
+  ],
+  [
+   "pya_stream_segment.py",
+   "C:\\Users\\Trekker-PTL\\qwen3asr_06b"
+  ],
+  [
+   "pya_stream_segment.py",
+   "C:\\Users\\Trekker-PTL\\confucius4-openvino"
+  ]
+ ],
+ "hardcoded_other_paths": [
+  [
+   "asr030_kaldi_fbank_fidelity.py",
+   "C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\\\\.venv\\\\Scripts\\\\python.exe"
+  ],
+  [
+   "asr030_kaldi_fbank_fidelity.py",
+   "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav"
+  ],
+  [
+   "asr030_kaldi_fbank_fidelity.py",
+   "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\results\\_spk_material\\ami_multispeaker\\ami_EN2002a.wav"
+  ],
+  [
+   "asr030_kaldi_fbank_fidelity.py",
+   "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\results\\_spk_material\\ami_balanced\\ami_bal_EN2002a.wav"
+  ],
+  [
+   "asr050_spk_qa_speaker_test.py",
+   "C:\\Users\\Trekker-PTL\\shared\\spe_qa_spk.json`，同时找出**换人最密集的"
+  ],
+  [
+   "asr_lock_common.py",
+   "C:\\Users\\Trekker-PTL\\shared\\MACHINE_LOCK"
+  ],
+  [
+   "asr_slice_common.py",
+   "C:\\Users\\Trekker-PTL\\shared"
+  ],
+  [
+   "asr_slice_common.py",
+   "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\260902_SPE_audio.wav"
+  ],
+  [
+   "pya_app_path_seg.py",
+   "C:\\Users\\Trekker-PTL\\shared\\MACHINE_LOCK"
+  ],
+  [
+   "pya_bypass_spk.py",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5"
+  ],
+  [
+   "pya_bypass_spk.py",
+   "C:\\Users\\Trekker-PTL\\shared\\MACHINE_LOCK"
+  ],
+  [
+   "pya_stream_segment.py",
+   "C:\\Users\\Trekker-PTL\\shared\\MACHINE_LOCK"
+  ]
+ ],
+ "torch_imports_top_level": [
+  [
+   "pya_ref_shim.py",
+   28
+  ]
+ ],
+ "torch_imports_lazy": [
+  [
+   "asr021_bypass_spk_wespeaker.py",
+   "_install_torch_shim"
+  ],
+  [
+   "asr021_bypass_spk_wespeaker.py",
+   "_install_torch_shim"
+  ],
+  [
+   "asr030_kaldi_fbank_fidelity.py",
+   "torch_kaldi_fbank"
+  ],
+  [
+   "asr030_kaldi_fbank_fidelity.py",
+   "torch_kaldi_fbank"
+  ],
+  [
+   "asr030_kaldi_fbank_fidelity.py",
+   "torch_centered_fbank"
+  ],
+  [
+   "asr030_kaldi_fbank_fidelity.py",
+   "torch_centered_fbank"
+  ],
+  [
+   "asr030_kaldi_fbank_fidelity.py",
+   "main"
+  ],
+  [
+   "asr030_kaldi_fbank_fidelity.py",
+   "main"
+  ],
+  [
+   "pya_ref_shim.py",
+   "install"
+  ],
+  [
+   "pya_ref_shim.py",
+   "install"
+  ]
+ ],
+ "detail": [
+  {
+   "name": "A1 依赖闭包根存在（asr052_speaker_tracker_api）",
+   "ok": true,
+   "msg": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\scripts\\asr052_speaker_tracker_api.py"
+  },
+  {
+   "name": "A2 闭包内每个文件都真实存在",
+   "ok": true,
+   "msg": "missing=[]"
+  },
+  {
+   "name": "A3 闭包内不含 torch 权重文件",
+   "ok": true,
+   "msg": "hits=[]"
+  },
+  {
+   "name": "A4 闭包内模块顶层无重副作用（可 import 即用）",
+   "ok": true,
+   "msg": "side_effects=[]"
+  },
+  {
+   "name": "A5 wespeaker OV IR 存在且 xml/bin 成对",
+   "ok": true,
+   "msg": "variants=[('wespeaker-resnet34-fp16', 13260222), ('wespeaker-resnet34-fp32', 26520384)]"
+  },
+  {
+   "name": "A6 pyannote OV IR 存在且 xml/bin 成对",
+   "ok": true,
+   "msg": "variants=[('pyannote_seg/ov-fp16', 2978960), ('pyannote_seg/ov-fp32', 5957808)]"
+  },
+  {
+   "name": "A7 闭包内无硬编码的**运行时路径常量**（客户机可移植）★核心",
+   "ok": false,
+   "msg": "runtime_hits=12 [('asr021_bypass_spk_wespeaker.py', 'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b'), ('asr050_spk_qa_speaker_test.py', 'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b'), ('asr050_spk_qa_speaker_test.py', 'C:\\\\Users\\\\Trekker-PTL\\\\confucius4-openvino'), ('asr050_spk_qa_speaker_test.py', 'C:\\\\Users\\\\Trekker-PTL\\\\shared'), ('asr052_speaker_tracker_api.py', 'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b'), ('asr052_speaker_tracker_api.py', 'C:\\\\Users\\\\Trekker-PTL\\\\confucius4-openvino'), ('asr052_speaker_tracker_api.py', 'C:\\\\Users\\\\Trekker-PTL\\\\shared'), ('pya_app_path_seg.py', 'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b')]"
+  },
+  {
+   "name": "A8 闭包内无**模块级** import torch/torchaudio（客户机可 import）",
+   "ok": false,
+   "msg": "top_level=[('pya_ref_shim.py', 28)]"
+  },
+  {
+   "name": "A9 客户机必经路径的模块级 import 无 torch/torchaudio",
+   "ok": true,
+   "msg": "hits=[] excluded_files=['pya_ref_shim.py']"
+  },
+  {
+   "name": "D-A7① 含本机绝对路径的源码 ⇒ A7 必须 FAIL",
+   "ok": true,
+   "msg": "hits=['C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\\\\models']"
+  },
+  {
+   "name": "D-A7② 无本机绝对路径的源码 ⇒ A7 必须 PASS",
+   "ok": true,
+   "msg": "hits=[]"
+  },
+  {
+   "name": "D-A3 塞入 torch 权重后 ⇒ A3 必须 FAIL",
+   "ok": true,
+   "msg": "hits=['C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\\\\scripts\\\\_fake_pytorch_model.bin']"
+  }
+ ]
+}

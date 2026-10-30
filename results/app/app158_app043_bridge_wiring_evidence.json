@@ -1,0 +1,55 @@
+{
+ "script": "app158_app043_bridge_wiring.py",
+ "live": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption",
+ "fake_pkg": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app158_bridge_kqzijl1b\\pkg",
+ "pass_": 9,
+ "fail": 0,
+ "verdict": "PASS",
+ "detail": [
+  {
+   "name": "B1 SpeakerBridge 自动发现包内 ASR 接口代码",
+   "ok": true,
+   "msg": "scripts_dir=C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app158_bridge_kqzijl1b\\pkg\\app\\asr_spk"
+  },
+  {
+   "name": "B2 _load() 成功 ⇒ available=True",
+   "ok": true,
+   "msg": "available=True err="
+  },
+  {
+   "name": "B3 tracker.seg_ir 指向包内",
+   "ok": true,
+   "msg": "seg_ir=C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app158_bridge_kqzijl1b\\pkg\\models\\spk\\pyannote_seg_3_0/fp16"
+  },
+  {
+   "name": "B4 tracker.wes_ir 指向包内",
+   "ok": true,
+   "msg": "wes_ir=C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app158_bridge_kqzijl1b\\pkg\\models\\spk\\wespeaker-resnet34-fp16"
+  },
+  {
+   "name": "B5 实例路径 ≠ ASR 源码硬编码默认值（证明是「传的」）",
+   "ok": true,
+   "msg": "default_seg=C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\pyannote_seg\\ov-fp16"
+  },
+  {
+   "name": "B6 客户机形态（无包内资产 + 无研发机目录）⇒ available=False 不抛异常",
+   "ok": true,
+   "msg": "available=False load_error=no_speaker_assets raised="
+  },
+  {
+   "name": "B6b 降级时给出可读原因（供 GUI 提示「说话人识别不可用」）",
+   "ok": true,
+   "msg": "load_error=no_speaker_assets"
+  },
+  {
+   "name": "B7 SpeakerBridge 暴露资产可用性信息（供 GUI 提示）",
+   "ok": true,
+   "msg": "assets_keys=['ok', 'reason', 'scripts_dir', 'seg_ir', 'seg_note', 'wes_ir', 'wes_note']"
+  },
+  {
+   "name": "D-B5 不传 IR 参数 ⇒ 落到硬编码默认值 ⇒ B5 必须 FAIL",
+   "ok": true,
+   "msg": "default_seg_ir=C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\pyannote_seg\\ov-fp16"
+  }
+ ]
+}
