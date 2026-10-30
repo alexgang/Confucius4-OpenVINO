@@ -54,11 +54,29 @@ SECRET_PATTERNS = (
     (re.compile(rb'L[i]sa will join', re.I), '会议人名片段'),
 )
 
-# §101.4 模式感知 `spk=None` 的关键标记（必须真的在 zip 内）
+# 🔴🔴🔴 §101.4 模式感知 `spk=None` 的**结构性**标志（必须真的在 zip 内）
+#
+# ⚠️ **首版判据恒真**（干跑 v1.11 已确认）：只查
+#   `_fallback_to_preset('no_spk_label')` / `self.clone_mode` / `self._spk_voices`
+#   三个弱标记 ⇒ **缺陷版**（无条件回落，§100 首版）**也全部命中** ⇒ 判 PASS。
+# ⇒ 改查**模式感知分支本体**：必须有
+#   ① `self.clone_mode`（worker 启动参数）
+#   ② `self._spk_voices`（按句绑定表非空 ⇒ 判据）
+#   ③ 二者组合出的**模式分支**（clone_mode 成立时**保留**克隆音色）
+# ⇒ 缺陷版三者缺 ③ ⇒ 必 FAIL。
 S101_MARKERS = (
     "_fallback_to_preset('no_spk_label')",
     'self.clone_mode',
     'self._spk_voices',
+)
+# 🔴 模式感知分支的**最小结构特征**（缺陷版没有）
+S101_MODE_AWARE = (
+    # 「clone_mode 成立 ⇒ 保留克隆音色」这一分支
+    'clone_mode and not',
+    # 判据用的「按句绑定表是否非空」
+    'bool(self._spk_voices)',
+    # 保留克隆音色时写入的遥测字段
+    "voice_kind",
 )
 
 PASS = 0
@@ -177,11 +195,18 @@ def main() -> int:
         cand = find_in_zip('app/tts_worker.py')
         if not cand:
             add('V7 §101 模式感知修复在 zip 内', False, 'app/tts_worker.py NOT IN ZIP')
+            ev['s101'] = dict(found=False)
         else:
             src = z.read(cand).decode('utf-8', 'replace')
             miss = [m for m in S101_MARKERS if m not in src]
-            add('V7 §101 模式感知修复在 zip 内', not miss,
-                ('缺标记 %s' % miss) if miss else '3 个标记全在 ✅')
+            miss_ma = [m for m in S101_MODE_AWARE if m not in src]
+            ok = (not miss) and (not miss_ma)
+            add('V7 §101 模式感知修复在 zip 内', ok,
+                ('缺弱标记 %s' % miss) if miss
+                else (('缺模式感知特征 %s' % miss_ma) if miss_ma
+                      else '3 弱标记 + 3 模式感知特征全在 ✅'))
+            ev['s101'] = dict(found=True, miss=miss, miss_mode_aware=miss_ma,
+                              ok=ok)
 
         # ── V8 §102 脱敏真在 zip 内 ────────────────────────────────
         spk_py = [n for n in names if ASR_SPK in n and n.endswith('.py')]
