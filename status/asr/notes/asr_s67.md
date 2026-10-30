@@ -170,9 +170,9 @@
 
 | 文件 | size / mtime | 说明 |
 |---|---|---|
-| `scripts/asr099_status_gate_v4.py` | **20 828 B @ 2026-10-31 07:30:17** | v4 守卫脚本（新增） |
-| `scripts/asr100_status_verify_s67.py` | **18 746 B @ 2026-10-31 07:30:39** | §67 **独立复核**脚本（§43 新写，不复用写入脚本自检） |
-| `scripts/asr101_status_write_s67.py` | **26 649 B @ 2026-10-31 07:32:17** | §67 STATUS 写入脚本（干跑→转绿→才写真实） |
+| `scripts/asr099_status_gate_v4.py` | 🔴 **不引 size/mtime**（§68 D6）⇒ 只引**内容事实** | v4 守卫脚本（新增）：判据 **12** 条（G1–G12）+ 反证 **10** 条 |
+| `scripts/asr100_status_verify_s67.py` | 🔴 **不引 size/mtime**（§56②：复核脚本**自身**被改 ⇒ 引用即过期 ⇒ 自指 churn）⇒ 只引**内容事实** | §67 **独立复核**脚本（§43 新写，不复用写入脚本自检）：判据 **14** 条（V1–V14）、反证 **9** 条 |
+| `scripts/asr101_status_write_s67.py` | 🔴 **不引 size/mtime**（§68 D6）⇒ 只引**内容事实** | §67 STATUS 写入脚本（干跑→转绿→才写真实） |
 | `scripts/asr093_status_gate_v3.py` | 改动（拆基线/注入产物 + 基线携带证据指针） | v3 守卫（**D2 修法**） |
 | `scripts/asr096_legacy_consistency_gate.py` | 改动（显式落 `n_json_scanned`） | 遗留一致性守卫（**D3 修法**） |
 | `results/pyannote_seg/asr099_status_gate_v4.json` | 每次重跑都会变 ⇒ **只引内容事实** | v4 守卫基线：`status` = `PASS` / `n_checks` = **18** |

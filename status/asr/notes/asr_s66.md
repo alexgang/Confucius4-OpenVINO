@@ -240,9 +240,9 @@ clip_points = sorted(set(pred_switch + substantial_qa))
 
 | 路径 | size / mtime | 说明 |
 |---|---|---|
-| `qwen3asr_06b/scripts/asr095_fix_legacy_timing_and_clips_v2.py` | **27 955 B @ 2026-10-31 01:28:01** | 修复脚本（干跑→转绿→才写真实） |
-| `qwen3asr_06b/scripts/asr096_legacy_consistency_gate.py` | **22 452 B @ 2026-10-31 01:31:31** | 守卫脚本（判据 G1–G6 + 反证） |
-| `qwen3asr_06b/scripts/asr097_status_write_s66.py` | **21 925 B @ 2026-10-31 01:33:28** | §66 STATUS 写入脚本（干跑→转绿→才写真实） |
+| `qwen3asr_06b/scripts/asr095_fix_legacy_timing_and_clips_v2.py` | 🔴 **不引 size/mtime**（§68 D6）⇒ 只引**内容事实** | 修复脚本（干跑→转绿→才写真实） |
+| `qwen3asr_06b/scripts/asr096_legacy_consistency_gate.py` | 🔴 **不引 size/mtime**（§68 D6）⇒ 只引**内容事实** | 守卫脚本（判据 G1–G6 + 反证）；🔴 **§67 D3 修正**：原写 22 452 B @ 2026-10-31 01:31:31 是**过期值**（§67 给它加了 `n_json_scanned` 字段 ⇒ 脚本被改） |
+| `qwen3asr_06b/scripts/asr097_status_write_s66.py` | 🔴 **不引 size/mtime**（§68 D6）⇒ 只引**内容事实** | §66 STATUS 写入脚本（干跑→转绿→才写真实） |
 | `qwen3asr_06b/scripts/asr098_status_verify_s66.py` | 内容事实：基线 **ALL PASS**（**42** 项判据）+ 注入反证 **9/9** | §66 **独立复核**脚本（§43：不复用写入脚本自检）。🔴 **不引 size/mtime**（§55 循环依赖：复核脚本与 notes 互引 ⇒ 自指 churn） |
 | `qwen3asr_06b/results/pyannote_seg/asr095_fix_legacy_timing_and_clips_v2.json` | 内容事实：`passes` = **true**；改标 **3/3**、v2 **71** 事件 | 修复产物（**可重跑** ⇒ 只引内容事实，**不引 size/mtime**，见 §60 铁律） |
 | `qwen3asr_06b/results/pyannote_seg/asr096_legacy_consistency_gate.json` | 内容事实：`status` = **PASS**、`n_checks` = **9**、扫描 **123** 个 JSON | 基线守卫产物（**可重跑** ⇒ 不引 size/mtime） |

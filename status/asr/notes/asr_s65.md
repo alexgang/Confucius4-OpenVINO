@@ -142,9 +142,9 @@
 
 | 对象 | size / mtime | 说明 |
 |---|---|---|
-| `scripts/asr092_status_write_s65.py` | **20 176 B @ 2026-10-30 23:54:15** | §65 写入脚本（新增；干跑→转绿→才写真实 STATUS） |
-| `scripts/asr093_status_gate_v3.py` | **11 469 B @ 2026-10-30 23:52:54** | v3 守卫脚本（新增） |
-| `scripts/asr094_status_verify_s65.py` | **12 131 B @ 2026-10-30 23:55:07** | §65 **独立复核**脚本（不复用写入脚本的自检，§43） |
+| `scripts/asr092_status_write_s65.py` | 🔴 **不引 size/mtime**（§68 D6）⇒ 只引**内容事实** | §65 写入脚本（新增；干跑→转绿→才写真实 STATUS） |
+| `scripts/asr093_status_gate_v3.py` | 🔴 **不引 size/mtime**（§68 D6）⇒ 只引**内容事实** | v3 守卫脚本（新增）；🔴 **§67 D2 修正**：原写 11 469 B @ 2026-10-30 23:52:54 是**过期值**（§67 把它拆成基线/注入两个产物 ⇒ 脚本被改） |
+| `scripts/asr094_status_verify_s65.py` | 🔴 **不引 size/mtime**（§68 D6）⇒ 只引**内容事实** | §65 **独立复核**脚本（不复用写入脚本的自检，§43） |
 | `results/pyannote_seg/asr093_status_gate_v3.json` | **每次重跑都会变** ⇒ 只引**内容事实** | v3 守卫产物：`n_counterproofs` = **8** / `n_counterproofs_caught` = **8** / `all_counterproofs_caught` = **true** |
 | `results/pyannote_seg/asr094_status_verify_s65.json` | **每次重跑都会变** ⇒ 只引**内容事实** | 独立复核产物：`passes` = **true**（35 项全过）/ 注入反证 `n_counterproofs` = **7** / `n_counterproofs_ok` = **7** / `all_pass` = **true** |
 | `results/pyannote_seg/_cp_s65/` | — | 本轮改前备份（STATUS + notes + 干跑副本） |

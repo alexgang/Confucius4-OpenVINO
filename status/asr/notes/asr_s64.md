@@ -171,9 +171,9 @@ v1 判 `historical`（豁免，不判失败）的条件之一是「**整句含�
 
 | 项 | 大小 / mtime | 说明 |
 |---|---|---|
-| `scripts/asr088_selfref_size_gate_v2.py` | 18 077 B @ 2026-10-30 21:54:13 | v2 守卫脚本（新增；v1 冻结不动） |
+| `scripts/asr088_selfref_size_gate_v2.py` | 🔴 **不引 size/mtime**（§68 D6：脚本会被改 ⇒ 引用必过期 ⇒ 自指 churn）⇒ 只引**内容事实** | v2 守卫脚本（新增；v1 冻结不动）：判据含真值点唯一性 + current/historical 逐处分类 |
 | `results/pyannote_seg/asr088_selfref_size_gate_v2.json` | **每次重跑都会变** ⇒ 只引**内容事实** | v2 守卫产物：`passes` = **true**、`all_counterproofs_caught` = **true**、`n_counterproofs` = **9**、`n_current` = **1** / `n_historical` = **15** / current 不匹配 = **0** |
-| `scripts/asr089_status_write_s64.py` | 21 358 B @ 2026-10-30 22:30:27 | §64 写入脚本（**本轮修掉 4 个 bug**） |
+| `scripts/asr089_status_write_s64.py` | 🔴 **不引 size/mtime**（§68 D6）⇒ 只引**内容事实** | §64 写入脚本（**本轮修掉 4 个 bug**） |
 | `scripts/asr090_status_verify_s64.py` | 11 389 B @ 2026-10-30 22:34:03 | §64 独立复核脚本（**修掉 D3**）；🔴 **§65 D6 修正**：原写 9 406 B @ 22:28:00 是**过期值**（§64 补记 22:33–22:40 改过脚本，notes 没跟改） |
 | `scripts/asr091_s64_counterproofs.py` | 6 015 B @ 2026-10-30 22:34:10 | 复核脚本的**注入测试**；🔴 **§65 D6 修正**：原写 5 088 B @ 22:27:57 是**过期值** |
 | `results/pyannote_seg/asr091_s64_counterproofs.json` | **每次重跑都会变** ⇒ 只引**内容事实** | 注入测试产物：`n_counterproofs` = **9** / `n_counterproofs_ok` = **9** / `all_pass` = **true** |
