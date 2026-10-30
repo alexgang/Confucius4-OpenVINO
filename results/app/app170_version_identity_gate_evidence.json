@@ -1,0 +1,27 @@
+{
+ "script": "app170_version_identity_gate.py",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12",
+ "pkg_version": "1.12",
+ "pass": 18,
+ "fail": 0,
+ "verdict": "PASS",
+ "advisories": [],
+ "fails": [],
+ "files": {
+  "README_zh.md": {
+   "bytes": 41258,
+   "sha256": "3aa5259493cff418e67dc72a724ed67bf645679ecaedec2e4c06576b2241915f",
+   "mtime": 1793362877.9510162
+  },
+  "README_en.md": {
+   "bytes": 45929,
+   "sha256": "9e5afc0008818ee196834f8f21d54ab847e0484b334970807ba18c360c488b24",
+   "mtime": 1793362877.9510162
+  },
+  "NOTICE": {
+   "bytes": 9644,
+   "sha256": "69f3335db178873677f83e977cb3064126111090281f917ec8c1e17d051f62c0",
+   "mtime": 1793362877.9523456
+  }
+ }
+}

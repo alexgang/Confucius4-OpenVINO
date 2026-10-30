@@ -25,6 +25,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 import zipfile
@@ -627,6 +628,103 @@ def check_pkg_path_hardcode():
     return 0
 
 
+def check_version_identity(pkg_dir):
+    """打包前「版本标识一致 + NOTICE 许可署名」闸门（§113）。
+
+    为什么要有这道闸门（**已复现的真实事故**，2026-10-30 22:0x）
+    ------------------------------------------------------------
+    升版时本脚本只做两件事：
+      ① `os.rename` 改源目录名（`Confucius4_LiveCaption_v1.12` ⇒ `..._v1.13`）；
+      ② `refresh_manifest()` 写 `app/MANIFEST.json` 的 `version`。
+    ⇒ **README_zh.md / README_en.md / NOTICE 三个文件的版本号一个都没动**
+    ⇒ 而这三个文件**只存在于客户包里**（仓库里没有）⇒ **没有任何脚本会改它们**
+    ⇒ ⇒ **每打一个新版本号，这三个文件就自动落后一版**。
+
+    实测：交付 zip `Confucius4_LiveCaption_v1.12.zip`（11:20 生成）内
+    `README_zh.md` 首行仍是「技术评估版 **v1.6**」、`NOTICE` 首行仍是
+    「Confucius4 LiveCaption **v1.6**」⇒ **客户拿到的 v1.12 包自称 v1.6**。
+
+    ⇒ 复用独立脚本 `results/app/app170_version_identity_gate.py`
+    （**单一数据源**）⇒ 命中即 **FAIL**，不允许打包。
+    ⇒ 修法：`python live_caption/sync_c172_version_identity_to_pkg.py --pkg <包目录>`
+    （**通用版**，不写死任何版本号 ⇒ 任意版本都能升）。
+    """
+    import subprocess
+    script = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           'results', 'app', 'app170_version_identity_gate.py')
+    if not os.path.isfile(script):
+        print('[warn] 未找到 app170_version_identity_gate.py，'
+              '跳过「版本标识一致」闸门')
+        return 0
+    print()
+    print('=' * 70)
+    print('版本标识一致闸门（§113）')
+    print('=' * 70)
+    try:
+        r = subprocess.run([sys.executable, script, '--pkg', pkg_dir],
+                           capture_output=True, timeout=600)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        print(f'!! 版本标识一致闸门执行失败: {e}')
+        return 1
+    out = r.stdout.decode('utf-8', errors='replace')
+    err = r.stderr.decode('utf-8', errors='replace')
+    print(out.rstrip())
+    if err.strip():
+        print(err.rstrip())
+    if r.returncode != 0:
+        print('⚠️ 「版本标识一致」闸门未通过 ⇒ 拒绝打包')
+        print('   修法：python live_caption/sync_c172_version_identity_to_pkg.py '
+              '--pkg "%s"' % pkg_dir)
+        print('   （该脚本**不写死**版本号 ⇒ 任意版本都能升）')
+        return 1
+    return 0
+
+
+def sync_version_identity(pkg_dir):
+    """🔴🔴🔴 升版后**自动**把 README/NOTICE 的版本号同步到新版本（§113）。
+
+    为什么必须**自动**（而不是靠人记得手改）
+    -----------------------------------------
+    `README_zh.md` / `README_en.md` / `NOTICE` **只存在于客户包里**（仓库里没有）
+    ⇒ 仓库侧没有任何机制会改它们
+    ⇒ 而升版时本脚本**只改目录名 + MANIFEST.version**
+    ⇒ ⇒ **每打一个新版本号，这三个文件就自动落后一版**
+    ⇒ ⇒ 客户拿到的包自称旧版本（v1.12 的 zip 实测自称 v1.6）。
+
+    ⇒ 修法：**在打包流程里自动跑** `sync_c172_version_identity_to_pkg.py`
+      （**通用版**：不写死任何版本号，目标版本从**包目录名**解析
+        ⇒ 任意版本都能升；旧版本号从**文件内容**读 ⇒ 不需要人工维护）。
+
+    ⚠️ 失败即**拒绝打包**（宁可不做，也不要交付一个自称旧版本的包）。
+    ⚠️ `--dry-run` **不写任何文件** ⇒ 本函数在 dry-run 下只做只读检查。
+    """
+    script = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           'live_caption', 'sync_c172_version_identity_to_pkg.py')
+    if not os.path.isfile(script):
+        print('[warn] 未找到 sync_c172_version_identity_to_pkg.py，'
+              '跳过「版本标识自动同步」')
+        return 0
+    print()
+    print('=' * 70)
+    print('版本标识自动同步（§113）')
+    print('=' * 70)
+    try:
+        r = subprocess.run([sys.executable, script, '--pkg', pkg_dir],
+                           capture_output=True, timeout=300)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        print(f'!! 版本标识自动同步执行失败: {e}')
+        return 1
+    out = r.stdout.decode('utf-8', errors='replace')
+    err = r.stderr.decode('utf-8', errors='replace')
+    print(out.rstrip())
+    if err.strip():
+        print(err.rstrip())
+    if r.returncode != 0:
+        print('⚠️ 版本标识自动同步失败 ⇒ 拒绝打包')
+        return 1
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(
         description='打包客户包并校验（版本号**自动递增**：%s ⇒ 新包）'
@@ -716,6 +814,17 @@ def main():
         print('         ⚠️ 该 zip 已存在 ⇒ 会被**覆盖**（同版本号重打请加 '
               '`--same-version`）')
 
+    # 🔴🔴🔴 **升版后自动同步 README / NOTICE 的版本号**（§113）
+    #    ⇒ 必须放在**目录改名之后**（目标版本从目录名解析）
+    #    ⇒ 必须放在**打包之前**（zip 从包目录取内容）
+    #    ⚠️ `--dry-run` 不写任何文件 ⇒ 只做只读检查（闸门在 `_run` 里跑）
+    if not args.dry_run:
+        rc = sync_version_identity(args.pkg)
+        if rc:
+            print()
+            print('结论：FAIL（版本标识自动同步失败）')
+            return rc
+
     # 🔴 打包是**长时重活**（压缩 13.7 GB + 逐文件 SHA256 复核 11.2 GB zip）
     #    ⇒ 必须持共享机器锁，否则别的模块测速会把它当干扰源（或被它干扰）。
     #    证据：shared/NOTICE_tts_to_app_20261024.md 通知 2；
@@ -771,6 +880,16 @@ def _run(args):
     if rc:
         print()
         print('结论：FAIL（包路径写死闸门未通过）')
+        return rc
+
+    # 🔴🔴🔴 **打包前闸门②**（§113）：版本标识一致 + NOTICE 许可署名
+    #    ⇒ 「客户拿到的包自称旧版本」是**静默**缺陷（打包流水线本身全绿）。
+    #    ⇒ 放在 dry-run **之前** ⇒ 只读、几秒 ⇒ 打包前就能看到问题。
+    #    ⚠️ 在 `--dry-run` 下也跑：dry-run 应该反映**真实**能不能打。
+    rc = check_version_identity(PKG)
+    if rc:
+        print()
+        print('结论：FAIL（版本标识一致闸门未通过）')
         return rc
 
     if args.dry_run:

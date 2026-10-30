@@ -54,7 +54,11 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..'))
-PKG_ROOT_PARENT = os.path.join(os.path.expanduser('~'), 'Confucius4_LiveCaption_v1.12')
+# 🔴🔴 **不写死客户包版本**（§48 闸门：`results/app/app168_*` 曾把
+#    `Confucius4_LiveCaption_v1.12` 写成常量 ⇒ 闸门 FAIL ⇒ 打包被拒；
+#    且升版后该常量会指向**旧包** ⇒ 验收跑错对象）。
+#    ⇒ 包目录一律由 `pkg_paths.discover_pkg_dir()` **自动发现**
+#    （排除 `.bak_*` / `*_backup`、元组比较版本）。
 
 
 # ── 工具 ────────────────────────────────────────────────────────────

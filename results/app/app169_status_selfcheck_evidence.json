@@ -1,9 +1,9 @@
 {
  "script": "app169_status_selfcheck.py",
  "status_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
- "status_bytes": 23522,
- "status_lines": 147,
- "status_sha256": "ccbebff7dfee428e94e039ae1f21e56a623e271374ba5fd1ada157ca82778afd",
+ "status_bytes": 33971,
+ "status_lines": 204,
+ "status_sha256": "528e66bef3c24b8a7a75c130813fb474935265c6c94996c443c1a0df11c504f6",
  "corrections_sha256": "bb07c52697ecb5aa954169cf32d389095e60b2b35dd4f8ae99752292505d5ec3",
  "last_ack": "APP-049",
  "max_app_no": 49,
@@ -14,12 +14,12 @@
   {
    "name": "V1 STATUS ≤ 40 KB 且 ≤ 300 行",
    "ok": true,
-   "msg": "bytes=23522 (<=40960)  lines=147 (<=300)"
+   "msg": "bytes=33971 (<=40960)  lines=204 (<=300)"
   },
   {
    "name": "V2 自指大小一致（文内写的 == 实际）",
    "ok": true,
-   "msg": "**本文件 23522 B / 147 行** | actual 23522 B / 147 行"
+   "msg": "**本文件 33971 B / 204 行** | actual 33971 B / 204 行"
   },
   {
    "name": "V3 头部字段「last_ack」只出现一次",
@@ -54,17 +54,17 @@
   {
    "name": "V5 章节号连续且无重号",
    "ok": true,
-   "msg": "sections=['109', '110', '111', '112']"
+   "msg": "sections=['109', '110', '111', '112', '113']"
   },
   {
    "name": "V6 每章节 ≤ 60 行（APP-049 限额）",
    "ok": true,
-   "msg": "最长节='### §112 ✅ **客户包「运行时可加载性」独立验收：21 PASS / ' → 40 行"
+   "msg": "最长节='### §113 ✅ **修掉「版本标识在打包时复发」的路径：新增打包前闸门 +' → 53 行"
   },
   {
    "name": "V7 「最近更新」条目 ≤ 15 行",
    "ok": true,
-   "msg": "n=5"
+   "msg": "n=6"
   },
   {
    "name": "V8 CORRECTIONS_APP.md 零改动（reviewer 独占文件）",

@@ -101,7 +101,7 @@
   {
    "name": "B3 反证：注入包外 PYTHONPATH ⇒ R9 必须 FAIL（证明 R9 不是恒真）",
    "ok": true,
-   "msg": "foreign=['C:\\\\Users\\\\Trekker-PTL\\\\confucius4-openvino\\\\results\\\\app', 'C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\app168_shim_sjs2h4ov']"
+   "msg": "foreign=['C:\\\\Users\\\\Trekker-PTL\\\\confucius4-openvino\\\\results\\\\app', 'C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\app168_shim_m7vqxl6a']"
   },
   {
    "name": "B1 反证：不在 sys.path 时 asr052_speaker_tracker_api 必须 ImportError（证明 R4 不是恒真）",
