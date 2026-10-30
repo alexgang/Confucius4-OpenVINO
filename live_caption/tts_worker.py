@@ -134,6 +134,20 @@ _APP030_JSONL_KEYS = (
     #   ⚠️ **记录的是「合成那一刻」的状态**，不是会话结束时的状态
     #     ⇒ 前几句必然是 `clone_active=False`（还没攒够语音）⇒ 正确。
     'clone_active', 'clone_mode', 'clone_audio_s',
+    # 🔴🔴🔴 §100（断链 H）：**按句绑定的音色来源**（APP-039 验收①的硬要求）
+    #   ⇒ **为什么必须有**：APP-039 验收①明文要求
+    #     「**每句实际用的音色和该句 spk 一致的比例**（报告混淆表）」
+    #     ⇒ 要算这个比例，**必须逐句**同时知道：
+    #       ① 这句**属于谁**（`voice_spk` = 主进程下传的 spk）
+    #       ② 这句**实际用了谁的声音**（`voice_kind` = 'clone'/'preset'）
+    #   ⇒ **旧实现两个都没有** ⇒ reviewer 拿到 jsonl **无法算混淆表**
+    #     ⇒ 验收①**客观做不了**。
+    #   ⚠️ `voice_kind` 取值：
+    #     'clone'  = 用了该 spk 自己的克隆向量（按句绑定成功）
+    #     'preset' = 用预设 A（该 spk 还没音色 / 没有 spk 标签）
+    #   ⚠️ `voice_spk` = **主进程下传的 spk**（字符串；None ⇒ 落 `null`）
+    #     ⇒ 与 `voice_kind` 合起来即可算出「该 spk 的句子里有多少句真的用了克隆音」。
+    'voice_spk', 'voice_kind',
 )
 
 # 🔴🔴🔴 APP-036 C1：**worker 内部的排队等待**（jsonl 新增字段）。
@@ -1630,13 +1644,54 @@ class TTSWorker:
         #   ⚠️ **必须在合成之前**切换 ⇒ 句内音色恒定（与「按句变速」同一纪律）。
         #   ⚠️ **没有该 spk 的音色 ⇒ 回落预设 A**（不用别人冒充）。
         #   ⚠️ **切换是一次性的** ⇒ 这里**不插值、不渐变、不平滑**。
-        #   ⚠️ `spk` 为 None（没有说话人标签）⇒ 用**当前全局音色**
-        #     （即旧的 `clone` 路线留下的）⇒ **旧行为逐字不变**。
+        #   ⚠️ `spk` 为 None（没有说话人标签）⇒ **必须回落预设 A**。
+        #   🔴🔴🔴 §100（断链 G）：旧实现这里**什么都不做**
+        #     ⇒ `self.speaker_embed` / `self.speaker_name` **仍留着上一个人的音色**
+        #     ⇒ 下一句**没有说话人标签**时，用的是**上一个人的声音**
+        #     ⇒ **冒充**（APP-040② 明文：「不能用上一个人的声音冒充新的人」）。
+        #   ⚠️ **为什么以前"看起来没问题"**：旧 `clone` 路线只在**用户显式勾选**
+        #     「跟随说话人（克隆）」时才把全局音色换成克隆音 ⇒ 常态下
+        #     `speaker_embed` 就是预设 A ⇒ 不显现。
+        #   ⚠️ 但 **APP-039/040 的按句绑定**把这件事**变成了常态**
+        #     ⇒ 上一句是 S2 的克隆音、这一句 `spk=None`（标签晚到）
+        #     ⇒ 就会**用 S2 的声音念一句未知说话人的话** ⇒ 用户听到「串音」。
+        #   ⇒ 修法：`spk` 为 None ⇒ **显式回落预设 A**（`_fallback_to_preset`）。
+        #     ⇒ 代价：标签晚到的头几句用预设 A ⇒ **这是 APP-040② 明文接受的**
+        #       （「新说话人第一段如果 < 1.5 s，就等他下一段，期间这几句先保留
+        #         上一句的音色，并在日志里标出」—— 注意：**保留上一句的音色**
+        #         是 ASR 侧对**新 spk 的第一段**的处置；
+        #         而**完全不知道是谁说的**（`spk=None`）时用**预设 A**
+        #         更安全 ⇒ 本模块取**预设 A**）。
+        #   ⚠️ **降级友好**：`spk` 为 None 且**从未**切过音色 ⇒ 回落是无意义的
+        #     （本来就是预设 A）⇒ `_fallback_to_preset` 幂等 ⇒ 代价为零。
+        # 🔴🔴🔴 §101（follow_speaker 回归）：`spk=None` 有**两种完全不同的语义**
+        #   | 语义 | 场景 | 正确行为 |
+        #   |---|---|---|
+        #   | ① 「按句绑定模式下，这句**还没有**说话人标签」 | APP-039/040 按句绑定；标签晚到 1~2 s | **回落预设 A**（防「用上一个人的声音冒充」）|
+        #   | ② 「**全局克隆**模式下，这句本来就没有 spk」 | APP-027⑤「跟随说话人（克隆）」；主进程恒传 `spk=None` | **保留当前全局克隆音色**（回落 = 打死用户显式勾选的克隆音色）|
+        #   ⇒ 判据：**worker 是否持有按句绑定音色**（`_spk_voices` 非空）
+        #     ⇒ 非空 ⇒ 主进程已在 APP-039/040 按句绑定模式 ⇒ 走 ①
+        #     ⇒ 为空 且 `clone_mode=True` ⇒ 走 ②
+        #   ⚠️ **为什么不能用 `spk is None` 单独判**：主进程**恒传** `spk=None`
+        #     （`tts_service.submit` 里 `spk` 键只在非 None 时进命令体）
+        #     ⇒ worker **无法区分**两种 None ⇒ 必须靠**模式信号**。
+        #   ⚠️ **优先按句绑定**：两者同时成立时（用户既勾了 follow_speaker，
+        #     主进程又登记了 spk 音色）⇒ 有 spk 标签的句子按句绑定；
+        #     无标签的句子**回落预设 A**（宁可少一段克隆音，也不用错人的声音）。
         if spk:
             self._apply_spk_voice(spk)
         else:
-            self._last_voice_spk = None
-            self._last_voice_kind = 'preset'
+            with self._spk_voice_lock:
+                _bound = bool(self._spk_voices)
+            if self.clone_mode and not _bound:
+                # 🔴 语义 ②：全局克隆模式 ⇒ **保留**当前克隆音色
+                self._last_voice_spk = None
+                self._last_voice_kind = ('clone' if self._clone_active
+                                         else 'preset')
+                self._log_keep_clone()
+            else:
+                # 🔴 语义 ①：按句绑定模式（或没有克隆模式）⇒ 回落预设 A
+                self._fallback_to_preset('no_spk_label')
 
         if is_babelvox:
             # BabelVox 路线：音色由 speaker_embed / 内置 speaker 提供
@@ -2228,6 +2283,15 @@ class TTSWorker:
         tel['clone_active'] = bool(self._last_clone_active)
         tel['clone_mode'] = self._last_clone_mode
         tel['clone_audio_s'] = round(float(self._last_clone_audio_s or 0.0), 2)
+        # 🔴🔴🔴 §100（断链 H）：**逐句的「按句绑定」结果**
+        #   ⇒ `voice_spk`  = 这句**属于谁**（主进程下传的 spk）
+        #   ⇒ `voice_kind` = 这句**实际用了谁的声音**（'clone' / 'preset'）
+        #   ⇒ 二者合起来 ⇒ APP-039 验收①的**混淆表**可算。
+        #   ⚠️ **必须在合成之后取**（`_apply_spk_voice` 在 synth 开头调用
+        #     ⇒ 合成完这两个字段才是**本句**的真实值，不是上一句的残留）。
+        tel['voice_spk'] = (str(self._last_voice_spk)
+                            if self._last_voice_spk else None)
+        tel['voice_kind'] = self._last_voice_kind or 'preset'
         if runaway:
             tel['runaway'] = True
         # ⚠️ 这一行是「**写完缓冲那一刻**」的快照 ⇒ `read_delta` 只到此刻
@@ -2729,6 +2793,12 @@ class TTSWorker:
             row['clone_mode'] = self._last_clone_mode
             row['clone_audio_s'] = round(
                 float(self._last_clone_audio_s or 0.0), 2)
+            # 🔴🔴🔴 §100（断链 H）：失败/丢句的行**也要带**按句绑定结果
+            #   ⇒ 否则 reviewer 算混淆表时**分母会变小**（只算成功句）
+            #   ⇒ **对比失真**（与 `clone_active` 同样的道理）。
+            row['voice_spk'] = (str(self._last_voice_spk)
+                                if self._last_voice_spk else None)
+            row['voice_kind'] = self._last_voice_kind or 'preset'
             row['end_reason'] = self._last_end_reason or 'error'
         # 🔴🔴🔴 APP-028②：队列水位 / 峰值（**验收要「队列峰值（秒和 MB）」**）
         #   ⚠️ 不依赖 `tel` ⇒ 失败/丢句的行也能带上水位（诊断用）。
@@ -3694,6 +3764,20 @@ class TTSWorker:
         self._last_voice_kind = 'clone'
         return 'clone'
 
+    def _log_keep_clone(self):
+        """🔴 §101：**保留全局克隆音色**时的一致日志（语义 ②）。
+
+        ⚠️ **为什么必须有日志**：APP-027⑤ 的教训是「用户以为在用预设 A，
+        其实一直在克隆」⇒ 必须**显式**写出来，不留暗改。
+        """
+        if self._clone_active:
+            self._last_voice_kind = 'clone'
+        else:
+            self._last_voice_kind = 'preset'
+        log('[tts_worker] spk=None 且处于「跟随说话人（克隆）」模式 '
+            '⇒ 保留当前全局克隆音色（clone_active=%s）'
+            % (self._clone_active,))
+
     def _fallback_to_preset(self, why: str = ''):
         """🔴🔴🔴 APP-027⑤：**显式回落预设 A**（克隆失败时）。
 
@@ -3713,6 +3797,11 @@ class TTSWorker:
         #   ⇒ reviewer 看到「路线是 xvector」会误判「这句是克隆音色的」
         #   ⇒ **矛盾字段** ⇒ 结论不可核。
         self._clone_mode = None
+        # 🔴🔴🔴 §100（断链 G/H）：回落预设 A ⇒ **逐句遥测的音色来源也要回落**
+        #   ⇒ 否则 jsonl 会写 `voice_kind='clone'` 而实际用的是预设 A
+        #   ⇒ **矛盾字段** ⇒ reviewer 的混淆表**失真**。
+        self._last_voice_spk = None
+        self._last_voice_kind = 'preset'
         try:
             self.speaker_embed = self._preset_embed
             self.speaker_name = self._preset_name

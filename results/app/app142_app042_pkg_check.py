@@ -41,7 +41,11 @@ def discover_pkg():
     for name in os.listdir(HOME):
         if not name.startswith('Confucius4_LiveCaption_v'):
             continue
-        m = re.search(r'_v(\d+(?:\.\d+)+)', name)
+        # 🔴🔴🔴 §100：排除**备份/中间目录** ⇒ 否则 `*_bak_c162_*` 这类
+        #   名字会被版本正则误判成「v1.10」⇒ 脚本会选中**备份目录**
+        #   ⇒ 全部判据 FileNotFoundError（假 FAIL，掩盖真实结果）。
+        #   ⚠️ 判据：目录名必须**以版本号结尾**（后面不再有别的词）。
+        m = re.search(r'_v(\d+(?:\.\d+)+)$', name)
         if not m:
             continue
         p = os.path.join(HOME, name)

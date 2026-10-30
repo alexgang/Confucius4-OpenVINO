@@ -135,7 +135,7 @@ class SpeakerBridge:
     """
 
     def __init__(self, device: str = 'GPU.0', seg_device: str = 'GPU.0',
-                 scripts_dir: str = _ASR_SCRIPTS,
+                 scripts_dir: str = None,
                  thr: float = 0.35,
                  on_log=None):
         self._on_log = on_log or (lambda m: None)
@@ -153,8 +153,44 @@ class SpeakerBridge:
         self._seg_span = {}
         # seg -> 等待补标签的段（`pending=True`）
         self._pending = set()
-        self._scripts_dir = scripts_dir
         self._thr = thr
+        # 🔴🔴🔴 APP-044：**优先用包内资产**（客户机形态）
+        #   ⇒ 包内 `app/asr_spk/`（ASR 接口代码）+ `models/spk/`（两个 OV IR）
+        #   ⇒ 研发机（无包内资产）⇒ 回退到 ASR 的实验目录。
+        #   ⚠️ 关键：**不改 ASR 源码一个字节** —— `SpeakerTracker.__init__`
+        #     接受 `seg_ir` / `wes_ir` 参数 ⇒ 直接把包内 IR 路径传进去即可。
+        #     （实测见 `results/app/app157_app044_portable_load_probe.py` 9/9 PASS）
+        self._assets = None
+        self._scripts_dir = scripts_dir or _ASR_SCRIPTS
+        try:
+            import speaker_assets
+            self._assets = speaker_assets.resolve()
+            if self._assets.get('ok'):
+                self._scripts_dir = self._assets['scripts_dir']
+                self._log('说话人资产（包内）：%s；%s'
+                          % (self._assets['wes_note'],
+                             self._assets['seg_note']))
+            else:
+                # 🔴🔴🔴 研发机回退**必须先探测目录是否真的存在**
+                #   ⇒ 否则在**客户机**上（ASR 实验目录不存在）仍会走回退分支
+                #      ⇒ `_load()` 因找不到模块而失败（虽然不会崩），
+                #      但 `available` 的语义会含混。
+                #   ⇒ 客户机形态：包内无资产 ⇒ **旁路关闭** + GUI 提示
+                #      （APP-044 明文：「模型文件缺失时，旁路自动关闭，
+                #        GUI 提示"说话人识别不可用"，其他功能不受影响」）。
+                if os.path.isdir(self._scripts_dir) and os.path.isfile(
+                        os.path.join(self._scripts_dir,
+                                     'asr052_speaker_tracker_api.py')):
+                    self._log('包内无说话人资产（%s）⇒ 回退到研发机 ASR 目录：%s'
+                              % (self._assets.get('reason', ''),
+                                 self._scripts_dir))
+                else:
+                    self._scripts_dir = ''
+                    self._log('说话人识别不可用：%s'
+                              % self._assets.get('reason', '缺少说话人资产'))
+        except Exception as e:
+            self._assets = None
+            self._log('说话人资产探测异常（忽略）：%s' % e)
 
     # ── ① 加载（惰性）──────────────────────────────────────────
     def _load(self) -> bool:
@@ -169,12 +205,26 @@ class SpeakerBridge:
             if self._tracker is not None:
                 return True
             try:
+                # 🔴 APP-044：包内无资产且无研发机回退 ⇒ 直接降级
+                #   （不 import、不探测，避免无谓的文件系统访问）
+                if not self._scripts_dir:
+                    self.load_error = 'no_speaker_assets'
+                    self.available = False
+                    self._log('说话人识别不可用（缺少说话人资产）')
+                    return False
                 if self._scripts_dir not in sys.path:
                     sys.path.insert(0, self._scripts_dir)
                 from asr052_speaker_tracker_api import SpeakerTracker
-                self._tracker = SpeakerTracker(device=self.device,
-                                               seg_device=self.seg_device,
-                                               thr=self._thr)
+                # 🔴🔴🔴 APP-044：**把包内 IR 路径传进去**
+                #   （ASR 侧 `SpeakerTracker.__init__` 支持 `seg_ir`/`wes_ir`）
+                #   ⇒ 不需要改 ASR 源码一个字。
+                #   ⚠️ 研发机回退时**不传** ⇒ 用 ASR 自己的默认（硬编码本机路径）。
+                kwargs = dict(device=self.device, seg_device=self.seg_device,
+                              thr=self._thr)
+                if self._assets and self._assets.get('ok'):
+                    kwargs['seg_ir'] = self._assets['seg_ir']
+                    kwargs['wes_ir'] = self._assets['wes_ir']
+                self._tracker = SpeakerTracker(**kwargs)
                 self.available = True
                 self._log('说话人旁路已加载（ASR-029 接口）')
                 return True
@@ -252,6 +302,65 @@ class SpeakerBridge:
         return out
 
     # ── ④ 标签晚到 ─────────────────────────────────────────────
+    def retry_pending(self, max_n: int = 8) -> list:
+        """🔴🔴🔴 §100（断链 J）：**重新问一遍 ASR**（拿晚到的标签）。
+
+        ## 断链 J 的根因（实测）
+
+        ASR 侧 `SpeakerTracker.on_final()` 在旁路分段**还没覆盖到该段**时
+        返回 `spk=None` + `pending=True`，并把该 seg 存进 `self._pending`。
+        ⇒ 标签「稍后由 `on_spk_update` 补发」（ASR 侧文档原话）。
+
+        🔴 **但实测**：`on_spk_update` **没有任何调用方** ——
+        ASR 侧的 `_pending` 只在 `on_spk_update` 里被 `pop`，
+        而 ASR 模块自己**从不调用它** ⇒
+        ⇒ **`pending=True` 的段，标签**永远**不会到** ⇒
+        ⇒ APP-040④「spk 晚到时用 spk_update 补标签」**客观做不了**。
+
+        ## 修法（App 侧，**不代改 ASR**）
+
+        ASR 侧 `on_final()` 的判定依赖 `_seg_frames`，而它**随 `feed()` 推进**
+        ⇒ ⇒ **过一段时间再问一次同一个 seg**，就能拿到标签。
+        ⇒ 所以 App 侧把「待补标签的 seg」记下来，**每轮轮询重试一次**。
+
+        ⚠️ **不阻塞**（守 APP-034 方案 A：「TTS 不等说话人标签」）：
+        重试在**后台轮询**里做 ⇒ 字幕/翻译/语音**不为**说话人识别增加延迟。
+
+        ⚠️ **不覆盖已定稿的标签**：只有 `spk` 真的拿到了才返回。
+
+        返回：`[(seg, spk, spk_conf), ...]`（本次**新拿到**标签的段）。
+        """
+        out = []
+        with self._lock:
+            pending = sorted(self._pending)
+        if not pending:
+            return out
+        tr = self._tracker
+        if tr is None:
+            return out
+        for seg in pending[:max(1, int(max_n))]:
+            try:
+                with self._lock:
+                    span = self._seg_span.get(seg)
+                if span is None:
+                    continue
+                t_start, t_end = span
+                res = tr.on_final(seg_id=seg, t_start=float(t_start),
+                                  t_end=float(t_end))
+            except Exception as e:
+                self._log('说话人标签重试失败（忽略）：%s' % e)
+                continue
+            spk = (res or {}).get('spk')
+            if not spk:
+                # 仍拿不到 ⇒ 继续挂着（下一轮再试）
+                continue
+            # ✅ 拿到了 ⇒ 出队（不再重试这个 seg）
+            with self._lock:
+                self._pending.discard(seg)
+            self.n_update += 1
+            out.append((seg, str(spk), (res or {}).get('spk_conf')))
+        return out
+
     def on_spk_update(self, seg: int, spk: str) -> dict:
         """🔴 APP-040④：标签晚到时补标签。
 

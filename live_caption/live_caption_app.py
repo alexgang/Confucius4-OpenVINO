@@ -57,6 +57,41 @@ os.environ.setdefault('USE_TORCH', '0')
 os.environ.setdefault('PYTHONUTF8', '1')
 os.environ.setdefault('PYTHONIOENCODING', 'utf-8')
 
+# 🔴🔴🔴 APP-043：**在任何 numpy / OpenVINO import 之前**限线程。
+#   依据（ASR-029 通知 §5 / ASR-026 实测）：
+#     ASR 在 GPU.0 上跑时，torch 的 OpenMP（libiomp5md.dll）会吃掉 **6.85 个核**
+#     ⇒ 把 NPU 上的 TTS 拖慢（TTS 的 CPU 时间 ×2.24、RTF 0.77 → 1.07）。
+#     ASR 实测（5 分钟切片，持锁）：
+#       不限线程 ⇒ 平均 7.807 核 / 峰值 11.934 核 / RTF 0.6444
+#       限线程=1 ⇒ 平均 0.998 核 / 峰值 1.141 核 / RTF 0.5302（**不降反升**）
+#   ⚠️ **必须在这里**（import numpy 之前）：OpenMP / MKL 的线程池在**首次 import**
+#     时就按环境变量定型 ⇒ 事后 `os.environ[...] = '1'` **不生效**。
+#   ⚠️ 这里的 `setdefault` 只在**未设置**时写入 ⇒ 不覆盖用户显式的设置。
+for _thr_v in ('OMP_NUM_THREADS', 'MKL_NUM_THREADS', 'OPENBLAS_NUM_THREADS',
+                'NUMEXPR_NUM_THREADS', 'VECLIB_MAXIMUM_THREADS'):
+    os.environ.setdefault(_thr_v, '1')
+
+# 🔴 APP-043：「**并记进日志**」⇒ 启动期就把线程设置落盘。
+#   ⚠️ 此刻**不能**用 `tts_service.append_session_log`（它会 import numpy/openvino
+#     链 ⇒ 与「import numpy 之前」自相矛盾）⇒ 这里内联一个零依赖写入。
+#   ⚠️ 日志目录与 `tts_service.session_log_path()` 一致 ⇒ 同一批文件。
+try:
+    import time as _thr_time
+    _thr_logdir = os.path.join(
+        os.environ.get('LOCALAPPDATA') or os.path.expanduser('~'),
+        'Confucius4LiveCaption')
+    os.makedirs(_thr_logdir, exist_ok=True)
+    with open(os.path.join(_thr_logdir,
+                           'session_%s.log' % _thr_time.strftime('%Y%m%d')),
+              'a', encoding='utf-8', newline='\n') as _thr_f:
+        _thr_f.write('%s App 线程环境变量：%s\n' % (
+            _thr_time.strftime('%H:%M:%S'),
+            {k: os.environ.get(k) for k in (
+                'OMP_NUM_THREADS', 'MKL_NUM_THREADS', 'OPENBLAS_NUM_THREADS',
+                'NUMEXPR_NUM_THREADS', 'VECLIB_MAXIMUM_THREADS')}))
+except Exception:
+    pass    # 🔴 日志失败**绝不**影响启动
+
 import numpy as np
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -3865,6 +3900,51 @@ class App:
         except Exception:
             return None
 
+    def _retry_spk_labels(self):
+        """🔴🔴🔴 §100（断链 J）：**补晚到的说话人标签**。
+
+        ## 为什么需要（实测根因）
+
+        ASR 侧 `on_final()` 在旁路分段**还没覆盖到该段**时返回
+        `spk=None` + `pending=True`，文档说「标签随后由 `on_spk_update` 补发」。
+        🔴 **但实测 `on_spk_update` 没有任何调用方** ⇒
+        ⇒ 那些段的标签**永远**不会到 ⇒ APP-040④「补标签」**客观做不了**。
+
+        ## 修法
+
+        ASR 侧的判定依赖 `_seg_frames`，而它**随 `feed()` 推进**
+        ⇒ ⇒ **过一段时间再问一次同一个 seg** 就能拿到标签。
+        ⇒ 本方法每轮 `_poll` 调一次（**不阻塞**）⇒ 守 APP-034 方案 A
+        （「字幕、翻译、语音都**不为**说话人识别增加延迟」）。
+
+        ## 补到之后做什么（两处，缺一不可）
+
+        ① **字幕标签**：更新 `self._spk_by_seg` ⇒ 渲染层下一帧就有 `[S2]`。
+        ② **音色按句绑定**：`note_final()` 重新登记该 seg ⇒
+        **还没开始合成**的该句会用新 spk 的音色（APP-040④）。
+        ⚠️ **已经合成的句子不改**（APP-039 明文）⇒ 这里只改**绑定**，
+          worker 侧对**已出队**的句子无能为力 ⇒ 由 worker 的
+          `spk_update` 预留接口负责（尚未集成，属 APP-029 范围）。
+        """
+        if self._spk_bridge is None:
+            return
+        try:
+            got = self._spk_bridge.retry_pending()
+        except Exception:
+            return
+        if not got:
+            return
+        for seg, spk, spk_conf in got:
+            try:
+                self._spk_by_seg[seg] = (spk, spk_conf)
+                self._spk_table.setdefault(spk, {'conf': spk_conf,
+                                                'vec': None})
+                # 🔴 按句绑定：重新登记（含 clean_ranges）⇒ 音色表更新
+                self._spk_voices.note_final(seg, spk, None)
+                self._ui_log('[spk] 标签补到：第 %d 段 = %s' % (seg, spk))
+            except Exception as e:
+                self._ui_log('[spk] 标签补发处理异常（忽略）：%s' % e)
+
     def _on_final(self, text, spk=None, spk_conf=None):
         """定稿段入库（🔴🔴 APP-022：`spk` / `spk_conf` **接口预留**）。
 
@@ -4288,6 +4368,10 @@ class App:
         # 🔴🔴🔴 APP-039/040：**给新 spk 取样 + 登记音色**
         #   ⇒ 只在有新 spk 时才做事（老 spk 直接用缓存）⇒ 声纹计算次数极少。
         self._pump_spk_voices()
+        # 🔴🔴🔴 §100（断链 J）：**补晚到的说话人标签**
+        #   ⇒ ASR 侧 `pending=True` 的段，标签**永远**不会自己到
+        #     （实测：`on_spk_update` **没有任何调用方**）⇒ 这里重试。
+        self._retry_spk_labels()
         s, e = self.session, self.engine
         if s:
             if s.error:
@@ -4635,6 +4719,11 @@ def run_cli(args):
     _spk_pcm_t0 = [0.0]      # 🔁 §99: 缓冲起点的全局时刻（闭包内可变）
     _spk_pcm_lock = threading.Lock()
     _spk_pending_embed = []
+    # 🔴🔴🔴 §100（断链 I）：CLI 侧**说话人标签表**（seg → (spk, spk_conf)）
+    #   ⇒ GUI 侧有 `self._spk_by_seg`，CLI 侧**完全没有** ⇒
+    #     APP-040④「原文字幕和译文字幕每句前面都显示说话人标签」
+    #     在 **CLI 路径上从未实现**（GUI 有、CLI 无 ⇒ 两条路径不一致）。
+    _spk_by_seg = {}
     # 🔴 §99（断链 C）：**已发出登记命令但尚未被 worker 确认**的 spk。
     #   ⇒ 元素为 `(spk, refined)`；收到 worker 回执才 `mark_embedded`。
     _spk_voice_sent = set()
@@ -4746,6 +4835,25 @@ def run_cli(args):
             except Exception as e:
                 print(f'  [spk] 取样失败（忽略）：{e}', flush=True)
 
+    def _cli_retry_spk_labels():
+        """🔴🔴🔴 §100（断链 J）：CLI 版**补晚到的说话人标签**。
+
+        ⇒ 与 GUI `App._retry_spk_labels()` **同一口径**（同一修法）。
+        ⇒ ASR 侧 `on_spk_update` **无调用方** ⇒ 只能靠**重问**拿到标签。
+        ⚠️ **不阻塞**（守 APP-034 方案 A）。
+        """
+        try:
+            got = _spk_bridge.retry_pending()
+        except Exception:
+            return
+        for seg, spk, spk_conf in got or []:
+            try:
+                _spk_by_seg[seg] = (spk, spk_conf)
+                _spk_voices.note_final(seg, spk, None)
+                print(f'  [spk] 标签补到：第 {seg} 段 = {spk}', flush=True)
+            except Exception as e:
+                print(f'  [spk] 标签补发处理异常（忽略）：{e}', flush=True)
+
     def _cli_target_wall(seg):
         """CLI 版 `_target_play_wall()`：段号 → **目标开播墙钟**。
 
@@ -4778,6 +4886,11 @@ def run_cli(args):
     #   ⇒ **对 1 参调用仍然兼容**（向后兼容）。
     def on_final(t, spk=None, spk_conf=None):
         finals.append(t)
+        # 🔴🔴🔴 §100（断链 I）：**说话人标签**（APP-040④）
+        #   ⇒ 原文字幕前面显示 `[S2]`（与 GUI 侧同一口径）。
+        #   ⚠️ **标签此刻可能还没有**（旁路 `pending`）⇒ 先不显示
+        #     ⇒ 后面 `_cli_retry_spk_labels()` 补到时**不会再补打这一行**
+        #     ⇒ 字幕文件（`--out`）里才有完整标签 ⇒ 以文件为准。
         print(f'\n[定稿] {t}', flush=True)
         # 🔴🔴🔴 APP-042：**登记这句的目标开播墙钟**（CLI 版）
         #   ⚠️ 必须在任何 `tts.submit` **之前**登记 ⇒ 否则第一句拿不到目标时刻。
@@ -4797,6 +4910,10 @@ def run_cli(args):
             if _spk2:
                 spk = _spk2
                 spk_conf = _res.get('spk_conf', spk_conf)
+                # 🔴🔴🔴 §100（断链 I）：登记**字幕标签**
+                #   ⇒ GUI 侧同一份数据在 `self._spk_by_seg` ⇒ CLI 侧补齐
+                #     ⇒ 两条路径**口径一致**（APP-040④）。
+                _spk_by_seg[_seg] = (spk, spk_conf)
             _is_new = _spk_voices.note_final(_seg, spk,
                                              _res.get('clean_ranges'))
             if _is_new:
@@ -4880,6 +4997,8 @@ def run_cli(args):
             # 🔴🔴🔴 APP-039/040：**给新 spk 取样 + 登记音色**
             #   ⚠️ 只在有新 spk 时才做事 ⇒ 声纹计算次数极少。
             _cli_pump_spk_voices()
+            # 🔴🔴🔴 §100（断链 J）：**补晚到的说话人标签**（不阻塞）
+            _cli_retry_spk_labels()
             if args.max_seconds and s.audio_s >= args.max_seconds:
                 s.stop()
     except KeyboardInterrupt:
@@ -4921,6 +5040,8 @@ def run_cli(args):
                                target_play_at=_seg_target_wall.get(ev['seg']))
         # 🔴🔴🔴 APP-039/040：收尾时再 pump 一次（补最后一批新 spk 的取样）
         _cli_pump_spk_voices()
+        # 🔴🔴🔴 §100（断链 J）：收尾时再补一次晚到的标签
+        _cli_retry_spk_labels()
         sm = mt.summary()
         f = lambda v, d=1: ('—' if v is None else f'{v:.{d}f}')
         print(f'[{args.engine}] 翻译 target={mt.target} 后端={mt.engine_key} 设备 {mt.device} '
@@ -4933,7 +5054,14 @@ def run_cli(args):
         if _outdir:
             os.makedirs(_outdir, exist_ok=True)
         with open(args.out, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(finals) + '\n')
+            # 🔴🔴🔴 §100（断链 I）：**原文字幕也带说话人标签**（APP-040④）
+            #   ⇒ GUI 侧原文行有 `[S2]` 前缀 ⇒ CLI 侧补齐 ⇒ 两条路径一致。
+            #   ⚠️ **只加前缀，不改文本本身** ⇒ 「原文守恒」不变式仍成立。
+            _out_lines = []
+            for _i, _t in enumerate(finals):
+                _s = _spk_id(_spk_by_seg.get(_i))
+                _out_lines.append(('[%s] %s' % (_s, _t)) if _s else _t)
+            f.write('\n'.join(_out_lines) + '\n')
         if mt.active:
             mtp = os.path.splitext(args.out)[0] + '.mt.txt'
             # APP-015（方案 C）：改用**渲染层** ⇒ 与 GUI 屏幕显示一致
@@ -4945,14 +5073,19 @@ def run_cli(args):
                 units = []
             rl = caption_render.render_lines(
                 finals, units, granularity='seg', show_pending=True,
-                seg_carry=getattr(mt, 'seg_carry', None) or {})
+                seg_carry=getattr(mt, 'seg_carry', None) or {},
+                spk_by_seg=_spk_by_seg)
             by_seg = {}
             for l in rl:
                 if l['kind'] in ('mt', 'mt_draft', 'mt_pending'):
                     by_seg.setdefault(l['seg'], []).append(l)
             for i, t in enumerate(finals):
                 parts = by_seg.get(i) or []
-                lines.append('\n'.join(p['text'] for p in parts))
+                # 🔴🔴🔴 §100（断链 I）：**译文行也带说话人标签**
+                #   ⇒ APP-040④ 明文「原文字幕和译文字幕每句前面都显示标签」。
+                _s = _spk_id(_spk_by_seg.get(i))
+                _pre = ('[%s] ' % _s) if _s else ''
+                lines.append(_pre + '\n'.join(p['text'] for p in parts))
             with open(mtp, 'w', encoding='utf-8') as f:
                 f.write('\n'.join(lines) + '\n')
             print(f'[{args.engine}] 译文已写 {mtp}', flush=True)
