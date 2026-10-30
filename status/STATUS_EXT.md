@@ -1,8 +1,8 @@
 # STATUS_EXT
 last_ack: EXT-017
-更新时间: 2026-10-30 21:06
+更新时间: 2026-10-30 22:27
 已压缩: 原文见 archive/STATUS_EXT_upto_20261030.md（224 833 B）；本精简版 ≤ 40 KB / ≤ 300 行
-当前任务: **§12 EXT-016 收口（接手被中断的一轮）+ EXT-017②「2 秒内可见输出」补行为级验收** ⇒ ✅ 接手上一轮被中断的 EXT-016（压缩 STATUS + CORRECTIONS）并提交 ⇒ ✅ 修 2 个真缺陷（`_caption_app_running()` 4.208 s 阻塞 start / 自测固定端口+8 s 超时假 FAIL）⇒ ✅ 补 EXT-017② 行为级自测（`start()` 实测 0.032 s）⇒ ✅ 13 套自测 739 PASS / 0 FAIL ⇒ ⛔ 端到端仍不实时（TTS 稳态 RTF 1.0022）
+当前任务: **§13 P2 待办收口（`captureMode` 上报进 stats + 扩展图标）** ⇒ ✅ 插件把**实际抓流方式**上报桥接（hello/capture_info）⇒ ✅ 服务端 `stats()` 与 `margin.json` 都带 `capture_mode`/`client_source`/`source_rate` ⇒ ✅ manifest 加 `icons`（4 个真实 PNG，**key 未动 ⇒ 扩展 ID 不变**）⇒ ✅ 新增 `tests/test_ext018_capture_mode_stats.py`（38 项，**含反证：回退实现 ⇒ 4 FAIL rc=1**）⇒ ✅ **14 套自测 777 PASS / 0 FAIL**（全 rc=0）⇒ ⚠️ **本轮未认领新 EXT 编号**（reviewer 未下发 EXT-018）⇒ **`last_ack` 保持 EXT-017**（依据 EXT-014 ② 做 STATUS 里明列的未完成项）⇒ ⛔ tabCapture 生产路径**仍未人工实测**（需真实用户手势），但**从今以后可从数据核对**；⛔ 端到端仍不实时（TTS 稳态 RTF 1.0022）
 
 阻塞 / 待决定:
 ① ⛔ **端到端仍不实时，TTS 提速是上线的唯一前置** —— 稳态端到端 RTF **2.0507**（ASR 0.6563 / MT 0.1507 / **TTS 1.0022**，源 `.tmp/ext008_bench/steady.json`）⇒ 建议目标 ≤ 0.85，**由主会话转达 TTS 模块**
@@ -36,7 +36,9 @@ last_ack: EXT-017
 | 用户方式验收 | 6 张截图 / 321 900 B 落 `C:\Users\Trekker-PTL\shared\ext_launcher_fix\` | §10.4 |
 | 启动器 `start()` 反馈延迟 | **0.032 s**（修前 4.244 s）⇒ 满足 EXT-017②「2 秒内」 | §12 实测 |
 | 桥接冷启动（回声模式，不含引擎） | **5.0–5.7 s**（10/10 实测，min 4.948 / max 5.581 / 均值 5.324） | §12 实测 |
-| 自测套件 | **13 套 / 739 PASS / 0 FAIL**（全 rc=0） | 本轮实测 |
+| 自测套件 | **14 套 / 777 PASS / 0 FAIL**（全 rc=0） | 本轮实测 |
+| 抓流方式（capture_mode） | 由**客户端实际上报**（hello / capture_info）；未上报 = `null`（**绝不臆造**） | `ext/bridge.py` → `stats()` / `margin.json` |
+| 扩展图标 | 16/32/48/128 四个真实 PNG（116/152/180/443 B）；**manifest.key 未动 ⇒ 扩展 ID 不变** | `extension/icons/` + `tools/make_icons.py` |
 
 ## 未完成纠偏清单
 
@@ -46,11 +48,69 @@ last_ack: EXT-017
 | EXT-017 ④余项 | 浏览器端人工验收（tabCapture 需真实用户手势） | 需用户本人操作；本机只有 Edge |
 | EXT-017 ② | start 后 2 秒内可见输出 | ✅ **已修好并补行为级验收**（0.032 s，见 §12） |
 | EXT-015 | 机器锁让给 TTS-033：本轮不要再拿锁 | 已过该窗口；TTS-033 已由 TTS 模块处理 |
-| EXT-005 ① | tabCapture 生产路径实测 | P2 待办 |
+| EXT-005 ① | tabCapture 生产路径实测 | ⏳ **代码侧已就绪**（`capture_mode` 会进 stats / margin.json ⇒ 可从数据核对）；**仍需用户点一次扩展图标**（见 §13） |
 | EXT-014 ② | 巡检规则：last_ack 追平后仍要继续下一项 | ✅ 已落地为常设规则 |
 | EXT-011/012/013 | 线程限制重测 / 用户试用件 / 对照表 | ✅ 已收口（§9） |
+| P2 其余 | 克隆音色 / ducking / 字幕 / 设置持久化 / 暂停拖动 / 30 分钟不崩 | ⛔ 未开始（多数需真实浏览器 + 真实引擎） |
 
 ## 最近章节
+
+### §13 P2 待办收口 —— `captureMode` 上报进 stats + 扩展图标（2026-10-30 22:27）
+
+**依据**：闸门 `tools/next_instruction.py --json` → **exit 1**（`already_executed`，latest=EXT-017 / last_ack=17）；
+**六项交叉证据全部一致**（树干净 / HEAD `f8c7510` 含 §12 / STATUS 含 §1~§12 / EXEC_LOG 有 21:06 那轮 /
+`.tmp/p1_ext009`+`.tmp/p1_pipe` 产物齐全 / `shared/` 无本模块锁 / 纠偏文件仍止于 EXT-007~017 共 5 条）
+⇒ **无新纠偏指令**；但 **EXT-014 ②**（常设规则）要求「`last_ack` 追平后、STATUS 仍有未完成项就继续下一项，不要空转」
+⇒ 本轮做 STATUS 里**明列且不需要 reviewer 决策**的 P2 待办两项。
+
+⇒ **① `captureMode` 上报进 stats（EXT-005 ① 的前置）**
+**问题**：插件侧**早就知道**自己走的哪条抓流路（`offscreen.js` 的 `state.captureMode`、
+`player.js` 的 `upState.captureMode`，取值 `'tabCapture' | 'getDisplayMedia'`），
+但此前**只在插件内部/弹窗里显示** ⇒ 服务端 `stats()` 与落盘的 `margin.json`
+**根本没有这个字段** ⇒ reviewer 拿到 P1 产物**无法判断**「这轮跑的是生产路径(tabCapture)
+还是兜底路径(getDisplayMedia)」⇒ 只能人工翻日志 —— 正是 EXT-005 ① 想避免的「宣称已验证但没法证明」。
+**修法（最小改动，4 个文件）**：
+- `extension/player.js`：`hello` 消息带 `capture_mode: upState.captureMode`
+  （player 的抓流在 WS 连接**之前**完成 ⇒ 那一刻已知实际值）；
+- `extension/offscreen.js`：新增 `reportCaptureMode()`，抓流成功后**补发** `capture_info` 消息
+  （offscreen 的 `hello` 在 `connectWs` 里发，而**抓流在其之后** ⇒ hello 时 `state.captureMode` 仍是 null
+  ⇒ 只能补报）；
+- `ext/bridge.py`：`Session.note_client()` 记录 `capture_mode`/`client_source`/`source_rate`；
+  `stats()` 输出三字段；`_dump_margin()` 落盘 `margin.json` 也输出三字段；
+  新增 `capture_info` 消息分支；`hello_ack` **回显**服务端记到的 `capture_mode`（向后兼容：旧客户端不受影响）。
+**取值白名单**：只接受 `'tabCapture'` / `'getDisplayMedia'`，**其它一律记 `None`**
+（不静默接受未知字符串）⇒ **没上报就是 `null`，绝不臆造 `'tabCapture'`**。
+
+⇒ **② 扩展图标**
+`extension/manifest.json` 此前**没有 `icons` 字段** ⇒ 工具栏显示的是默认灰块。
+新增 `tools/make_icons.py`（纯标准库 `zlib`+`struct` 写 PNG，**无第三方依赖、可复现**）
+生成 16/32/48/128 四个图标（深色圆角方块 + 三条浅蓝声波竖条），
+并在 `manifest.json` 挂 `icons` + `action.default_icon`。
+⚠️ **`manifest.key` 绝不能动**（扩展 ID 由 key 决定）⇒ 实测
+`resolve_extension_id()` = **`kekgmfkijphpfndbbpakjaokamkeooib`**（与 EXT-017④ 的 Origin 校验一致，未变）。
+
+⇒ **③ 自测（新增 `tests/test_ext018_capture_mode_stats.py`，38 项）**
+**行为级**（真起桥接服务 + 真 WebSocket，**回声模式、不跑推理**）：
+- ★ **对照组**：不带 `capture_mode` 的 hello ⇒ stats 里必须是 `None`
+  ⇒ **证明服务端不会自己编一个 `'tabCapture'`**（防假通过的关键）；
+- ★ **实验组**：hello 带 `capture_mode` ⇒ stats 回包 `'tabCapture'`、`hello_ack` 回显一致；
+- ★ **第三条路径**：hello 后补发 `capture_info` ⇒ stats 拿到 `'getDisplayMedia'`（offscreen 的真实时序）；
+- ★ **白名单**：未知取值被丢弃 ⇒ stats 里仍是 `None`；
+- **B 落盘**：`_dump_margin` 写出的 `margin.json` 带 `capture_mode='tabCapture'` + `client_source`；
+- **C 插件契约**：hello 带 `capture_mode`、补发 `capture_info`、报的是**实际值**而非 `sw.js` 的**计划值**（降级陷阱防护）；
+- **D 图标**：`icons` 字段存在、四个文件**真实存在且是合法 PNG**（尺寸对、非 0 字节）、`manifest.key` 未变。
+★ **反证（区分力验证）**：把 `note_client` 改成「不记 capture_mode」⇒ 该套自测 **34 PASS / 4 FAIL、rc=1**
+⇒ 断言**不是恒真**，能真正抓到回归（随后已还原，`git diff --stat` = 77 insertions）。
+
+⇒ **④ 自测套件：14 套 / 777 PASS / 0 FAIL**（全 rc=0，逐套取**真实退出码**、不用 pipe）：
+echo_roundtrip 11 / ext009 57 / ext010 23 / ext011 29 / ext012 75 / ext013_compare 51 /
+ext013_cpu_watch 25 / ext016_compression 39 / ext017_user_report 108 /
+**ext018_capture_mode_stats 38** / browser_contract 102 / ext_selfcheck 103 / next_instruction 19 / p1_plumbing 97。
+
+⇒ ⛔ **tabCapture 生产路径仍未人工实测**（需真实用户点一次扩展图标；本机只有 Edge 126、无 Chrome）
+⇒ **本轮只是把「可核对性」准备好了，不宣称已验证**；
+⛔ 端到端仍不实时（TTS 稳态 RTF 1.0022）⇒ TTS 提速仍是唯一前置；
+⛔ 本轮**未跑任何真实推理、未占 GPU/NPU**（全程 CPU 侧 + 回声模式桩）。
 
 ### §12 EXT-016 收口（接手被中断的一轮）+ EXT-017②「2 秒内可见输出」补行为级验收（2026-10-30 21:06）
 

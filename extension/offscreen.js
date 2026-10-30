@@ -86,6 +86,31 @@ function post(msg) {
 }
 function log(s) { post({ type: 'log', msg: s }); }
 
+/**
+ * ★ EXT-018：把**实际用的抓流方式**补报给桥接服务。
+ *
+ * 背景：hello 消息在 connectWs 里发出，而抓流在 startCapture 之后才发生
+ * ⇒ hello 那一刻 `state.captureMode` 还是 null。
+ * ⇒ 抓流成功后再补发一条 `capture_info`。
+ *
+ * 服务端（ext/bridge.py）收到后记进会话 ⇒ `stats()` 回包与
+ * `margin.json` 都会带上 `capture_mode`
+ * ⇒ EXT-005 ①「tabCapture 生产路径有没有被实测过」可从数据核对。
+ */
+function reportCaptureMode() {
+  if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return false;
+  try {
+    state.ws.send(JSON.stringify({
+      type: 'capture_info',
+      capture_mode: state.captureMode,
+      source_rate: state.sourceRate,
+    }));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 // ── WebSocket 上行 ───────────────────────────────────────────────
 function connectWs(wsUrl, token) {
   return new Promise((resolve, reject) => {
@@ -317,6 +342,16 @@ async function handleOffscreen(msg) {
         if (state.running) return { ok: true, already: true };
         await connectWs(msg.wsUrl, msg.token);
         await startCapture(msg);
+        // ★★ EXT-018：抓流成功之后，把**实际用的抓流方式**补报给桥接服务。
+        //   为什么不能只靠 hello：hello 是在 connectWs 里发的，而
+        //   **抓流发生在之后**（startCapture）⇒ hello 那一刻还不知道
+        //   到底是 tabCapture 还是 getDisplayMedia 兜底。
+        //   ⇒ 现在补发一条 capture_info，服务端记进会话
+        //     ⇒ stats 回包与 margin.json 都带上它。
+        //   ⚠️ 报的是**实际值**（state.captureMode 在拿到流时才赋值），
+        //     不是 sw.js 里的**计划值**（那个可能因为拿不到 stream id
+        //     而被降级成 getDisplayMedia）。
+        reportCaptureMode();
         return {
           ok: true, started: true, captureMode: state.captureMode,
           acRate: state.acRate, sourceRate: state.sourceRate,

@@ -721,6 +721,13 @@ async function startUplink(stream, wsUrl, token) {
         ws.send(JSON.stringify({
           type: 'hello', token, role: 'uplink', sample_rate: 16000,
           source: 'player', delay_sec: delaySec,
+          // ★★ EXT-018：把**抓流方式**上报给桥接服务。
+          //   服务端会把它记进会话 ⇒ stats 回包与 margin.json 都带上
+          //   ⇒ EXT-005 ①「tabCapture 生产路径到底有没有被实测过」
+          //   **可以从落盘数据核对**，不用人读日志猜。
+          //   ⚠️ 这里报的是**实际用的那条路**（上面的 upState.captureMode
+          //     就是在拿到流的那一刻赋的值，不是计划值）。
+          capture_mode: upState.captureMode,
         }));
         resolve();
       };

@@ -1361,3 +1361,109 @@ test_p1_plumbing           ::  97 PASS / 0 FAIL
 
 **`last_ack`**：**保持 EXT-017 不变**（本轮接手的是被中断的 EXT-016 收口 + EXT-017② 余项修复，
 EXT-016/EXT-017 均未认领为新编号；§12 的两项都在已认领编号的范围内）。
+
+---
+
+## 2026-10-30 22:13 → 22:27 — P2 待办收口：`captureMode` 上报进 stats + 扩展图标
+
+**闸门**：`tools/next_instruction.py --json` → **exit 1**（`already_executed`，latest=EXT-017 / last_ack=17）⇒ **无新纠偏指令**。
+
+**六项交叉证据（全部一致 ⇒ 上一轮确实做完了，不存在被中断的轮次）**：
+
+| 证据 | 实测 |
+|---|---|
+| `git status --porcelain` | **空**（树干净） |
+| HEAD | `f8c7510`（2026-10-30 21:11:14，标题含 EXT-016/EXT-017）的 `last_ack: EXT-017` == 工作区 |
+| STATUS 正文 | 含 §1~§12（`## §12` 在第 56 行前），头部「最近更新」首条即 §12 ⇒ 一致 |
+| EXEC_LOG | 上一轮记录在（`## 2026-10-30 20:33 → 21:06 — EXT-016 收口…`） |
+| 产物 | `.tmp/p1_ext009/`（dub 22 wav / accel 3 wav / margin.json 27 565 B / p1_report.json 44 453 B）+ `.tmp/p1_pipe/`（dub 22 wav / margin.json 27 910 B / p1_report.json 44 668 B）+ `.tmp/ext008_bench/interference.json` 1 114 B —— 均齐全 |
+| 纠偏文件 | mtime 2026-10-30 19:02、9 689 B、`^## EXT-` 条目 **5 条**（EXT-013~017）⇒ **无 EXT-018** |
+
+⇒ **闸门 exit 1 是「真跳过」**（无新指令）。
+但 **EXT-014 ②**（常设巡检规则）：「`last_ack` 追平后，只要还有未完成项，就自己继续做，不要空转」
+⇒ 本轮做 STATUS 里**明列且不需要 reviewer 决策**的 P2 待办两项。
+
+### 本轮改动（4 改 + 2 新增，共 6 个文件）
+
+**① `captureMode` 上报进 stats（EXT-005 ① 的前置 —— 让「tabCapture 有没有被实测过」可从数据核对）**
+
+- `extension/player.js`（+7）：`hello` 消息带 `capture_mode: upState.captureMode`
+  （player 的抓流在 WS 连接**之前**完成 ⇒ 那一刻已知**实际值**）。
+- `extension/offscreen.js`（+35）：新增 `reportCaptureMode()`，抓流成功后**补发** `capture_info`
+  （offscreen 的 `hello` 在 `connectWs` 里发、**抓流在其之后** ⇒ hello 时 `state.captureMode` 仍是 null ⇒ 只能补报）。
+- `ext/bridge.py`（+77）：`Session.note_client()` 记 `capture_mode`/`client_source`/`source_rate`；
+  `stats()` 输出三字段；`_dump_margin()` 落盘 `margin.json` 也输出三字段；
+  新增 `capture_info` 消息分支；`hello_ack` **回显**服务端记到的 `capture_mode`（**向后兼容**：旧客户端不受影响）。
+- **取值白名单**：只接受 `'tabCapture'` / `'getDisplayMedia'`，其它一律记 `None`
+  ⇒ **没上报就是 `null`，绝不臆造 `'tabCapture'`**。
+
+**② 扩展图标**
+
+- `tools/make_icons.py`（新增，标准库 `zlib`+`struct` 写 PNG，**无第三方依赖、可复现**）：
+  生成 16/32/48/128 四个图标（深色圆角方块 + 三条浅蓝声波竖条）。
+- `extension/manifest.json`（+16/−2）：挂 `icons` + `action.default_icon`。
+  ⚠️ **`manifest.key` 绝不能动**（扩展 ID 由 key 决定）⇒ 实测 `resolve_extension_id()` =
+  **`kekgmfkijphpfndbbpakjaokamkeooib`**（与 EXT-017④ 的 Origin 校验一致，**未变**）。
+
+**③ `tests/test_ext018_capture_mode_stats.py`（新增，38 项）**
+行为级（真起桥接服务 + 真 WebSocket，**回声模式、不跑推理、不占 GPU/NPU**）：
+★ 对照组（不带 `capture_mode` ⇒ stats 为 `None`，**证明服务端不编造**）/ ★ 实验组 / ★ 第三条路径（`capture_info` 补报）/
+★ 白名单（未知取值丢弃）/ B 落盘（`margin.json`）/ C 插件契约（含 **sw.js 计划值 vs 实际值**的降级陷阱防护）/ D 图标（合法 PNG + key 未变）。
+
+### 验证与自测结果
+
+**14 套自测全部 0 FAIL（全 rc=0，逐套取**真实退出码**，不用 pipe）**：
+
+```
+test_echo_roundtrip        ::  11 PASS / 0 FAIL
+test_ext009_adaptive_speed ::  57 PASS / 0 FAIL
+test_ext010_pipeline       ::  23 PASS / 0 FAIL
+test_ext011_thread_limits  ::  29 PASS / 0 FAIL
+test_ext012_user_guide     ::  75 PASS / 0 FAIL
+test_ext013_compare        ::  51 PASS / 0 FAIL
+test_ext013_cpu_watch      ::  25 PASS / 0 FAIL
+test_ext016_compression    ::  39 PASS / 0 FAIL
+test_ext017_user_report    :: 108 PASS / 0 FAIL
+test_ext018_capture_mode_stats ::  38 PASS / 0 FAIL   <- 本轮新增
+test_ext_browser_contract  :: 102 PASS / 0 FAIL
+test_ext_selfcheck         :: 103 PASS / 0 FAIL
+test_next_instruction      ::  19 PASS / 0 FAIL
+test_p1_plumbing           ::  97 PASS / 0 FAIL
+合计                       :: 777 PASS / 0 FAIL
+```
+
+★ **反证（区分力验证）**：把 `note_client` 改成「不记 capture_mode」⇒ 该套自测
+**34 PASS / 4 FAIL、rc=1** ⇒ 断言**不是恒真**，能真正抓到回归（随后已还原，`git diff --stat` = 77 insertions）。
+★ **JS 语法**：`node --check` 对 player.js / offscreen.js / popup.js / sw.js **全部通过**。
+
+### 产物（文件数 / mtime / 字节数）
+
+| 产物 | 文件数 | mtime | 字节数 |
+|---|---|---|---|
+| `extension/icons/icon16.png` | 1 | 2026-10-30 22:22 | 116 |
+| `extension/icons/icon32.png` | 1 | 2026-10-30 22:22 | 152 |
+| `extension/icons/icon48.png` | 1 | 2026-10-30 22:22 | 180 |
+| `extension/icons/icon128.png` | 1 | 2026-10-30 22:22 | 443 |
+| `tools/make_icons.py` | 1 | 2026-10-30 22:21 | — |
+| `tests/test_ext018_capture_mode_stats.py` | 1 | 2026-10-30 22:23 | — |
+| `status/STATUS_EXT.md`（精简版，含新 §13） | 1 | 2026-10-30 22:27 | 22 290（205 行，≤ 40 KB / ≤ 300 行 ✅） |
+
+### ⛔ 明确未做 / 未宣称
+
+- ⛔ **tabCapture 生产路径仍未人工实测**（需真实用户点一次扩展图标；本机只有 Edge 126、无 Chrome）
+  ⇒ 本轮只把「**可核对性**」准备好了，**不宣称已验证**。
+- ⛔ 端到端仍不实时（TTS 稳态 RTF **1.0022**）⇒ **TTS 提速仍是唯一前置**。
+- ⛔ **本轮未跑任何真实推理、未占 GPU / NPU**（全程 CPU 侧 + 回声模式）。
+- ⛔ **未改任何引擎文件**（ASR/MT/TTS 均未动）；⛔ `status/CORRECTIONS_EXT.md` **只读、未改、未入库**（`.gitignore:34`）。
+
+### 机器锁
+
+本轮**未创建锁、未跑任何推理、未占 GPU / NPU**。
+巡检期间 `shared/MACHINE_LOCK` 存在（78 B / 2026-10-30 21:16:56），内容 = **`tts` 模块** PID 15900
+⇒ `probe_pid_alive(15900)` = **False**（该 PID 已死 ⇒ 陈旧锁）⇒ 但属**他人模块**所有，
+且实时字幕 App 模块会自行回收 ⇒ **本轮未创建 / 未删除 / 未回收**。
+
+### `last_ack`
+
+**保持 EXT-017 不变** —— 本轮**未认领任何新的 EXT 编号**（reviewer 未下发 EXT-018；
+闸门也确认纠偏文件里最新的仍是 EXT-017）⇒ 不自行占用 reviewer 的编号命名空间。

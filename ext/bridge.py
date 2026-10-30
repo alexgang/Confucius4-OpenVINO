@@ -533,6 +533,55 @@ class Session:
         # ★ EXT-009：上一句实际采用的**自适应加速倍率**
         #   （用于「相邻句变化 ≤ 0.1×」与「滞回」两条约束）
         self._prev_adapt_speed = 1.0
+        # ── ★ EXT-018：抓流方式（captureMode）────────────────────
+        #   **为什么需要**：EXT-005 ① / EXT-008 都要求「tabCapture 生产路径
+        #   到底有没有被实测过」必须**能从数据核对**，而不是靠人读日志。
+        #   插件侧其实**早就知道**自己走的是哪条路
+        #   （offscreen.js 的 state.captureMode / player.js 的 upState.captureMode，
+        #     取值 'tabCapture' | 'getDisplayMedia'），
+        #   但此前**只在插件内部/弹窗里显示**（popup.js 的「抓流方式：…」），
+        #   **没有上报到桥接服务** ⇒ 服务端 stats / margin.json 里
+        #   根本没有这个字段 ⇒ reviewer 无法从落盘产物判断
+        #   「这次跑的是 tabCapture 还是 getDisplayMedia 兜底」。
+        #   ⇒ 现在：hello 消息带 capture_mode ⇒ 会话记住 ⇒ stats() 与
+        #     margin.json 都带上它（**默认值 None** ⇒ 未上报时是 null，
+        #     绝不臆造 'tabCapture'）。
+        self.capture_mode: Optional[str] = None
+        # 客户端身份（'offscreen' / 'player' / 'p1_probe'）——
+        # 由 hello 的 source/role 填 ⇒ reviewer 能判断「这条数据是谁跑出来的」。
+        self.client_source: Optional[str] = None
+        # 客户端抓到的原始采样率（没报就是 None）。
+        self.source_rate: Optional[int] = None
+
+    def note_client(self, hello: Optional[dict]) -> None:
+        """★ EXT-018：从客户端的 hello 消息里记录**抓流方式**等元信息。
+
+        放在 Session 上而不是全局，是因为**每个连接一个会话**，
+        客户端自己的 hello 才是可信来源。
+
+        只接受白名单取值：'tabCapture' / 'getDisplayMedia' / None。
+        其它值一律记 None（不静默接受未知字符串，避免报告里出现
+        含义不明的字段值）。
+        """
+        if not isinstance(hello, dict):
+            return
+        raw = hello.get("capture_mode") or hello.get("captureMode")
+        if raw in ("tabCapture", "getDisplayMedia"):
+            self.capture_mode = raw
+        # 顺带记下客户端身份（'offscreen' / 'player' / 'p1_probe'）——
+        # 与 capture_mode 一起，reviewer 能判断「这条数据是谁跑出来的」。
+        role = hello.get("source") or hello.get("role")
+        if isinstance(role, str) and role:
+            self.client_source = role
+        # 源采样率（客户端抓到的原始采样率）——
+        # ★ 不是验收必需项，但和 capture_mode 一起能帮 reviewer 确认
+        #   「这轮抓到的是不是预期的音频规格」。没报就是 None。
+        try:
+            sr = hello.get("source_rate")
+            if sr is not None:
+                self.source_rate = int(sr)
+        except (TypeError, ValueError):
+            pass
 
     # ── 接收一帧 ────────────────────────────────────────────────
     def on_pcm_frame(self, msg: dict, *,
@@ -918,6 +967,13 @@ class Session:
             "n_frames": self.n_frames,
             "n_dropped": self.n_dropped,
             "buffered_sec": round(self._buf.shape[0] / C.SAMPLE_RATE, 2),
+            # ★★ EXT-018：抓流方式（'tabCapture' | 'getDisplayMedia' | None）
+            #   ⇒ EXT-005 ①「tabCapture 生产路径有没有被实测过」
+            #     **终于可以从数据核对**，不用人读日志猜。
+            #   ⚠️ 没上报就是 None（null）—— 绝不臆造 'tabCapture'。
+            "capture_mode": self.capture_mode,
+            "client_source": self.client_source,
+            "source_rate": self.source_rate,
             "speaker": self.tracker.stats(),
             "margin": self.margin_summary(),
             # ★ EXT-009：自适应加速的**各倍率时间占比**与滞后曲线
@@ -1400,12 +1456,27 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                 continue
             mtype = msg.get("type")
             if mtype == "hello":
+                # ★★ EXT-018：hello 里带 **capture_mode**（抓流方式）⇒
+                #   记进会话 ⇒ 后面 stats / margin.json 都能报出来。
+                #   （旧的客户端不带这个字段 ⇒ 记成 None ⇒ 输出 null，
+                #     **向后兼容**：不改 hello_ack 的结构，旧客户端不受影响。）
+                session.note_client(msg)
                 await websocket.send(json.dumps({
                     "type": "hello_ack",
                     "delay_sec": delay_sec,
                     "sample_rate": C.SAMPLE_RATE,
                     "segmentation": describe_segmenter(),
+                    # ★ EXT-018：回显服务端**实际记到的**抓流方式，
+                    #   让客户端能立刻确认「服务端认出我这条路径了」。
+                    "capture_mode": getattr(session, "capture_mode", None),
                 }))
+                continue
+            if mtype == "capture_info":
+                # ★★ EXT-018：客户端补报**实际抓流方式**。
+                #   （offscreen 的 hello 早于抓流 ⇒ hello 里拿不到；
+                #     player 的 hello 在抓流之后 ⇒ 直接带在 hello 里。）
+                #   两条路径都汇到 `note_client`，字段口径一致。
+                session.note_client(msg)
                 continue
             if mtype == "stats":
                 # ★★ EXT-010：流水线模式下，先把**已就绪**的任务下发，
@@ -1702,6 +1773,12 @@ def _dump_margin(holder: dict, out_path: Optional[str], engine) -> None:
     data = {
         "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "target_lang": getattr(engine, "target_lang", None),
+        # ★★ EXT-018：抓流方式落盘 ⇒ reviewer 直接看 margin.json 就能知道
+        #   这一轮到底跑的是 tabCapture（生产路径）还是 getDisplayMedia（兜底）。
+        #   ⚠️ 用 getattr 取 ⇒ 桩 session（自测用的假对象）也不会崩。
+        "capture_mode": (getattr(sess, "capture_mode", None) if sess else None),
+        "client_source": (getattr(sess, "client_source", None) if sess else None),
+        "source_rate": (getattr(sess, "source_rate", None) if sess else None),
         "margin_summary": (sess.margin_summary() if sess else {}),
         "per_segment": (sess.margins if sess else []),
         "engine_calls": (sess.engine_calls if sess else []),
