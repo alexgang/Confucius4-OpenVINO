@@ -27,6 +27,7 @@
 from __future__ import annotations
 
 import os
+import socket
 import subprocess
 import sys
 import threading
@@ -112,6 +113,143 @@ def _has_tkinter(exe: Optional[str]) -> bool:
         return r.returncode == 0
     except Exception:
         return False
+
+
+# ── ★ EXT-018：端口占用预检 ──────────────────────────────────────
+def _port_in_use(host: str, port: int) -> bool:
+    """这个端口**是不是已经被别人占着**？
+
+    ★ 为什么需要（2026-10-30 22:41 用户实测报错，根因）：
+    旧实现**没有**任何「已在运行」的检测 ⇒ 用户把启动器**再点一次**时，
+    新子进程照样去 bind 8765 ⇒ Windows 返回
+    `OSError: [Errno 10048] 端口只允许使用一次` ⇒
+    桥接进程**带着一整屏 Python traceback 崩掉**。
+    更糟的是：崩溃发生在**加载完 24 秒模型之后**（`main()` 里
+    `asyncio.run(serve(...))` 在预热**之后**才执行）
+    ⇒ 用户等了 24 秒，看到的是一段没人看得懂的 traceback。
+
+    修法（两道）：
+      ① **启动器**在拉子进程**之前**就检查端口 ⇒ 占用则**不启动**，
+         直接给人话提示（见 `BridgeRunner.start()`）。
+      ② **桥接**把 bind 提前到预热**之前**（见 `ext/bridge.py`），
+         ⇒ 就算绕过启动器，也不会白等 24 秒才崩。
+
+    实现要点：
+    * 用 `socket.connect_ex` 试连 —— **不需要**管理员权限，
+      也不需要 `psutil`（★ App 自带的 pythonw **没有 psutil**，
+      实测 `ModuleNotFoundError: No module named 'psutil'`）。
+    * 连不上 ⇒ 端口空闲（真空闲；不是「被防火墙挡住」的误判，
+      因为监听中的 socket 一定能连上）。
+    """
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(1.0)
+            return s.connect_ex((host, port)) == 0
+    except Exception:
+        # 探测失败**不当作「占用」**（宁可放行，让真正的 bind 去报错），
+        # 但也不抛异常打断启动流程。
+        return False
+
+
+def _find_port_owner(host: str, port: int) -> Optional[int]:
+    """谁占着这个端口？返回 PID（查不到返回 None）。
+
+    ★ **只作提示用**（让用户知道该去找谁/杀谁），**判定不依赖它** ——
+      端口占用与否一律以 `_port_in_use` 的实际连接结果为准。
+    ★ 为什么用 netstat 而不是 psutil：
+      App 自带的 pythonw **没有 psutil**（实测）⇒ 只能用标准库
+      `subprocess` 调 netstat。
+    """
+    try:
+        r = subprocess.run(
+            ["netstat", "-ano"], capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=10)
+    except Exception:
+        return None
+    needle = ":%d" % port
+    for line in (r.stdout or "").splitlines():
+        # ⚠️ netstat 的行**前面有空格**（"  TCP    127.0.0.1:8765 ..."）
+        #   ⇒ 不能用 startswith("TCP")（实测会漏掉所有行）⇒ 先 strip。
+        parts = line.strip().split()
+        if not parts or parts[0].upper() != "TCP":
+            continue
+        if needle not in line:
+            continue
+        if "LISTENING" not in line:
+            continue
+        if len(parts) >= 5 and parts[-1].isdigit():
+            return int(parts[-1])
+    return None
+
+
+def _pid_alive(pid: int) -> bool:
+    """这个 PID 还活着吗？
+
+    ★ **必须用 ctypes 的 OpenProcess + GetExitCodeProcess**
+      （与 `tools/machine_lock.py` 的口径一致）：
+      - Git Bash 下 `tasklist /FI "PID eq ..."` 会被**当成路径** ⇒ 误判；
+      - `psutil` 在 App 自带的 pythonw 里**不存在**（实测）⇒ 不能依赖它。
+
+    ★ **与 `machine_lock.probe_pid_alive` 同样的坑**：
+      Win32 层面**分不清**「进程已完全消失」与「进程活着但权限不足」
+      （两者 `OpenProcess` 都返回 NULL）⇒ 需要**二次确认**。
+      这里没有 psutil ⇒ 用 **Windows 自带的 `tasklist`**
+      （`tasklist /FI "PID eq <n>" /NH`）查有没有那个 PID。
+      ⚠️ Git Bash 下 `tasklist` 带 `/FI` 会被当成**路径** ——
+        所以这里**必须**用 `subprocess` 传**参数数组**（不经 shell），
+        且用 `/NH`（不带头部行）来避免解析表头。
+        解析不出来 ⇒ **一律视为存活**（宁可误报「已在运行」）。
+    """
+    if not pid or pid <= 0:
+        return False
+    try:
+        import ctypes
+        from ctypes import wintypes
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        STILL_ACTIVE = 259
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION,
+                                       False, int(pid))
+        if handle:
+            try:
+                code = wintypes.DWORD()
+                if not kernel32.GetExitCodeProcess(handle, ctypes.byref(code)):
+                    return True          # 探测失败 ⇒ 视为存活
+                return code.value == STILL_ACTIVE
+            finally:
+                kernel32.CloseHandle(handle)
+        # OpenProcess 失败 ⇒ 二次确认（tasklist）
+        return _pid_in_tasklist(pid)
+    except Exception:
+        return True   # ★ 探测失败 ⇒ 视为存活（保守）
+
+
+def _pid_in_tasklist(pid: int) -> bool:
+    """tasklist 里还有这个 PID 吗？（`OpenProcess` 失败时的二次确认）
+
+    ★ 探测失败 ⇒ 返回 **True**（视为存活，保守）。
+    """
+    try:
+        r = subprocess.run(
+            ["tasklist", "/FI", "PID eq %d" % int(pid), "/NH", "/FO", "CSV"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=15)
+        out = (r.stdout or "")
+        if not out.strip():
+            # 没有输出 ⇒ tasklist 自己没跑起来（探测失败）⇒ 视为存活。
+            return True
+        for line in out.splitlines():
+            line = line.strip()
+            if not line or line.lower().startswith("info:"):
+                continue
+            # CSV 形如 "python.exe","5464","Console","1","8,000 K"
+            cols = [c.strip().strip('"') for c in line.split('","')]
+            if len(cols) >= 2 and cols[1].strip('"') == str(pid):
+                return True
+        # 没找到该 PID ⇒ 确认已死。
+        return False
+    except Exception:
+        return True
 
 
 def _caption_app_running() -> bool:
@@ -209,6 +347,44 @@ class BridgeRunner:
                    "  · 或者关掉本窗口，直接用实时字幕 App。")
             self._emit_state("互斥冲突", "err")
             return False, msg
+
+        # ★★ EXT-018：**启动前**先查端口占用（2026-10-30 22:41 用户实测报错根因）。
+        #   旧实现没有这道检查 ⇒ 用户把启动器再点一次 ⇒ 新子进程 bind 8765 失败
+        #   ⇒ `OSError 10048 端口只允许使用一次` ⇒ 桥接进程带着整屏 traceback 崩掉；
+        #   而且崩在**加载完 24 秒模型之后**（bind 在预热之后）⇒ 用户白等 24 秒
+        #   才看到一句看不懂的报错。
+        #   ⇒ 现在：**先查** ⇒ 占用就**不启动**，直接给人话提示。
+        if self.cmd_override is None:
+            _host = "127.0.0.1"
+            if _port_in_use(_host, self.port):
+                owner = _find_port_owner(_host, self.port)
+                who = ("（占用者 PID=%d）" % owner) if owner else ""
+                # ★ 区分两种情况：**本模块**已有实例 vs **别的程序**占用了端口。
+                mine = False
+                old_pid = 0
+                try:
+                    with open(self.pid_path or PID_PATH, "r",
+                              encoding="utf-8") as f:
+                        old_pid = int((f.read() or "0").strip() or 0)
+                    mine = bool(old_pid) and _pid_alive(old_pid)
+                except Exception:
+                    mine = False
+                if mine:
+                    msg = ("桥接服务**已经在运行**了（PID=%d，端口=%d）%s\n\n"
+                           "不需要重复启动 —— 直接在浏览器里点扩展图标即可。\n"
+                           "如果你想重新启动，请先点「停止」再点「启动」。"
+                           % (old_pid, self.port, who))
+                else:
+                    msg = ("端口 %d **已被占用**%s\n\n"
+                           "可能是：\n"
+                           "  · 上一次启动的桥接进程还没退出（先点「停止」，"
+                           "或在任务管理器里结束 PID %s）；\n"
+                           "  · 别的程序占用了这个端口（换个端口再试）。\n\n"
+                           "日志：%s"
+                           % (self.port, who, owner if owner else "?", LOG_PATH))
+                self._emit_state("端口已被占用", "err")
+                self._emit_log("❌ " + msg)
+                return False, msg
 
         # ★ 自测注入点：给了 cmd 就用它 ⇒ 不需要 App 解释器、不占设备。
         if self.cmd_override is not None:

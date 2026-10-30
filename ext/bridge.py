@@ -1575,6 +1575,76 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
         _log("连接关闭")
 
 
+def _probe_port_free(host: str, port: int) -> tuple[bool, str]:
+    """★ EXT-018：这个端口现在**能不能绑**？返回 (ok, 原因)。
+
+    **为什么要在预热模型之前查**（2026-10-30 22:41 用户实测报错的根因）：
+    旧流程是「先加载 24 秒模型 → 再 `serve()` 去 bind 端口」⇒
+    端口被占用时，用户**白等 24 秒**才看到一整屏
+    `OSError: [Errno 10048] 端口只允许使用一次` 的 Python traceback。
+
+    ⇒ 现在：**预热之前**先 bind 一下试试 ⇒ 不行就**立刻**退出，
+    给出人话提示（哪个端口、被谁占了、怎么办），退出码 6。
+
+    实现：用 `socket.socket` + `bind` + `listen` 真试一次 ⇒ 绑完立刻关掉。
+    ⚠️ 试完就释放 ⇒ 与真正的 bind 之间有个极小的竞态窗口；
+      真 bind 那一层另有 `OSError` 兜底（见 `main()`），两道防线都在。
+    """
+    import socket as _socket
+    s = None
+    try:
+        s = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+        # ★ Windows 上必须显式 SO_EXCLUSIVEADDRUSE：
+        #   否则本机探测用的 bind 可能与后面真正的 bind「共存」，
+        #   探测就会**假报空闲**。
+        try:
+            s.setsockopt(_socket.SOL_SOCKET, _socket.SO_EXCLUSIVEADDRUSE, 1)
+        except (AttributeError, OSError):
+            pass
+        s.bind((host, port))
+        s.listen(1)
+        return True, ""
+    except OSError as e:
+        winerr = getattr(e, "winerror", None)
+        if winerr == 10048 or e.errno in (10048, 48, 98):
+            return False, ("端口 %d 已被占用（%s）"
+                           % (port, getattr(e, "strerror", None) or e))
+        return False, ("端口 %d 无法绑定：%s" % (port, e))
+    except Exception as e:
+        # 探测本身出错 ⇒ **放行**（不因为探测失败而拒绝启动）。
+        return True, ""
+    finally:
+        try:
+            if s is not None:
+                s.close()
+        except Exception:
+            pass
+
+
+def _describe_port_owner(port: int) -> str:
+    """尽力查一下端口被谁占着（只作提示，不作判定）。"""
+    try:
+        import subprocess as _sp
+        r = _sp.run(["netstat", "-ano"], capture_output=True, text=True,
+                    encoding="utf-8", errors="replace", timeout=10)
+    except Exception:
+        return ""
+    needle = ":%d" % port
+    for line in (r.stdout or "").splitlines():
+        # ⚠️ netstat 的行**前面有空格**（"  TCP    127.0.0.1:8765 ..."）
+        #   ⇒ 不能用 startswith("TCP")（实测会漏掉所有行）⇒ 先 strip。
+        parts = line.strip().split()
+        if not parts or parts[0].upper() != "TCP":
+            continue
+        if needle not in line:
+            continue
+        if "LISTENING" not in line:
+            continue
+        if parts and parts[-1].isdigit():
+            return "占用者 PID=%s" % parts[-1]
+    return ""
+
+
 async def serve(host: str, port: int, *, delay_sec: float, echo_mode: bool,
                 token_path: str, engine=None, margin_out: Optional[str] = None,
                 session_holder: Optional[dict] = None,
@@ -1682,6 +1752,29 @@ def main(argv=None) -> int:
     #   ⚠️ 预热**失败**不静默：要么拒绝启动（--warmup-strict），
     #      要么明确告警后继续（默认，用户仍可用回声/部分能力）。
     holder: dict = {}
+
+    # ★★ EXT-018：**预热模型之前**先探端口（2026-10-30 22:41 用户实测报错根因）。
+    #   旧流程：先加载 24 秒模型 → 再 serve() 去 bind ⇒ 端口被占用时
+    #   用户**白等 24 秒**才看到一整屏 `OSError 10048` 的 Python traceback。
+    #   ⇒ 现在：**先探** ⇒ 占用则**立刻**退出（退出码 6）并给人话提示。
+    #
+    #   ★ 查**两个**端口：8765（WS，致命）与 8766（配对 HTTP）。
+    #     实测事实：配对端点在**预热之前**就 bind 了 ⇒ 端口被占时它只会
+    #     「⚠️ 配对端点不可用」告警后继续 ⇒ 用户**看不到任何异常**，
+    #     然后白等 24 秒，最后崩在 8765 上 ⇒ 现象就是「启动报错但看不懂」。
+    for _p in (args.port, args.pair_port):
+        if not _p:
+            continue
+        _port_ok, _port_why = _probe_port_free(args.host, _p)
+        if not _port_ok:
+            _owner = _describe_port_owner(_p)
+            _log(f"❌ {_port_why}{('（' + _owner + '）') if _owner else ''}")
+            _log("   这通常意味着**桥接服务已经在运行**（重复启动）。")
+            _log(f"   解决办法：① 在启动器窗口点「停止」后再启动；"
+                 f"② 或结束占用该端口的进程；③ 或换一个端口。")
+            _log(f"   （本轮**没有**加载模型 —— 端口检查在预热之前，"
+                 f"所以不用白等 20–40 秒）")
+            return 6
     # ★★ EXT-017②：预热期间 `/status` 就要能报「正在加载」。
     #   ⇒ 配对端点必须**在预热之前**起来（否则预热那 20–40 秒里
     #     /status 根本不在线 ⇒ 启动器/popup 轮询一直失败
@@ -1746,6 +1839,21 @@ def main(argv=None) -> int:
                           use_pipeline=args.pipeline))
     except KeyboardInterrupt:
         _log("已停止")
+    except OSError as e:
+        # ★★ EXT-018：bind 失败的**兜底**（端口检查与真正的 bind 之间有个
+        #   极小的竞态窗口；也可能被别的程序抢占）。
+        #   ⇒ **不要**抛一整屏 traceback 给用户 ⇒ 给人话提示 + 退出码 6。
+        _win = getattr(e, "winerror", None)
+        if _win == 10048 or e.errno in (10048, 48, 98):
+            _owner = _describe_port_owner(args.port)
+            _log(f"❌ 端口 {args.port} 已被占用{('（' + _owner + '）') if _owner else ''}"
+                 f" ⇒ 无法启动监听。")
+            _log("   这通常意味着**桥接服务已经在运行**（重复启动）。")
+            _log(f"   解决办法：① 在启动器窗口点「停止」后再启动；"
+                 f"② 或结束占用该端口的进程；③ 或换一个端口。")
+            return 6
+        _log(f"❌ 监听 {args.host}:{args.port} 失败：{e}")
+        raise
     finally:
         if pair_server is not None:
             try:

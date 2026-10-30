@@ -1,8 +1,8 @@
 # STATUS_EXT
 last_ack: EXT-017
-更新时间: 2026-10-30 22:27
+更新时间: 2026-10-30 22:54
 已压缩: 原文见 archive/STATUS_EXT_upto_20261030.md（224 833 B）；本精简版 ≤ 40 KB / ≤ 300 行
-当前任务: **§13 P2 待办收口（`captureMode` 上报进 stats + 扩展图标）** ⇒ ✅ 插件把**实际抓流方式**上报桥接（hello/capture_info）⇒ ✅ 服务端 `stats()` 与 `margin.json` 都带 `capture_mode`/`client_source`/`source_rate` ⇒ ✅ manifest 加 `icons`（4 个真实 PNG，**key 未动 ⇒ 扩展 ID 不变**）⇒ ✅ 新增 `tests/test_ext018_capture_mode_stats.py`（38 项，**含反证：回退实现 ⇒ 4 FAIL rc=1**）⇒ ✅ **14 套自测 777 PASS / 0 FAIL**（全 rc=0）⇒ ⚠️ **本轮未认领新 EXT 编号**（reviewer 未下发 EXT-018）⇒ **`last_ack` 保持 EXT-017**（依据 EXT-014 ② 做 STATUS 里明列的未完成项）⇒ ⛔ tabCapture 生产路径**仍未人工实测**（需真实用户手势），但**从今以后可从数据核对**；⛔ 端到端仍不实时（TTS 稳态 RTF 1.0022）
+当前任务: **§14 修「重复启动 → 端口占用 → 整屏 traceback 崩溃」**（用户实测报错）⇒ ✅ **两道防线**：启动器 `start()` **拉子进程前**探端口（`_port_in_use`/`_find_port_owner`/`_pid_alive`）⇒ 占用则**不启动**并给人话提示；桥接侧 `_probe_port_free` **前置到 `engine.warmup` 之前** ⇒ 命中 10048 立即 `return 6` ⇒ ✅ 实测重复启动从「预热 24 s 后整屏 traceback」变为 **400 ms 退出码 6 + 人话提示、无 Traceback**；启动器 `start()` **0.250 s** 返回 False ⇒ ✅ 新增 `tests/test_ext019_port_guard.py`（28 项，含反证）⇒ ✅ **15 套自测 805 PASS / 0 FAIL**（全 rc=0）⇒ ⚠️ **本轮未认领新 EXT 编号**（reviewer 未下发 EXT-019）⇒ **`last_ack` 保持 EXT-017** ⇒ ⛔ tabCapture 生产路径**仍未人工实测**；⛔ 端到端仍不实时（TTS 稳态 RTF 1.0022）
 
 阻塞 / 待决定:
 ① ⛔ **端到端仍不实时，TTS 提速是上线的唯一前置** —— 稳态端到端 RTF **2.0507**（ASR 0.6563 / MT 0.1507 / **TTS 1.0022**，源 `.tmp/ext008_bench/steady.json`）⇒ 建议目标 ≤ 0.85，**由主会话转达 TTS 模块**
@@ -35,8 +35,9 @@ last_ack: EXT-017
 | 引擎加载耗时 | 17.9–26.9 s（预热阶段逐引擎 emit 进度） | §10.4 启动日志 |
 | 用户方式验收 | 6 张截图 / 321 900 B 落 `C:\Users\Trekker-PTL\shared\ext_launcher_fix\` | §10.4 |
 | 启动器 `start()` 反馈延迟 | **0.032 s**（修前 4.244 s）⇒ 满足 EXT-017②「2 秒内」 | §12 实测 |
+| **重复启动失败耗时** | **400 ms 退出码 6**（修前：预热 24 s 后整屏 traceback） | §14 实测 |
 | 桥接冷启动（回声模式，不含引擎） | **5.0–5.7 s**（10/10 实测，min 4.948 / max 5.581 / 均值 5.324） | §12 实测 |
-| 自测套件 | **14 套 / 777 PASS / 0 FAIL**（全 rc=0） | 本轮实测 |
+| 自测套件 | **15 套 / 805 PASS / 0 FAIL**（全 rc=0） | 本轮实测 |
 | 抓流方式（capture_mode） | 由**客户端实际上报**（hello / capture_info）；未上报 = `null`（**绝不臆造**） | `ext/bridge.py` → `stats()` / `margin.json` |
 | 扩展图标 | 16/32/48/128 四个真实 PNG（116/152/180/443 B）；**manifest.key 未动 ⇒ 扩展 ID 不变** | `extension/icons/` + `tools/make_icons.py` |
 
@@ -56,41 +57,60 @@ last_ack: EXT-017
 ## 最近章节
 
 > §9 及更早的章节全文在 **`status/archive/STATUS_EXT_upto_20261030.md`**（224 833 B）；
-> §13 的逐条明细在 **`status/notes/sec13_ext018_p2_capture_mode_and_icons.md`**（EXT-016 写作规则）。
+> §13 的逐条明细在 **`status/notes/sec13_ext018_p2_capture_mode_and_icons.md`**；
+> §14 的逐条明细在 **`status/notes/sec14_ext019_port_guard.md`**（EXT-016 写作规则）。
+
+### §14 修「重复启动 → 端口占用 → 整屏 traceback 崩溃」（2026-10-30 22:54）
+
+**依据**：用户实测反馈「无法正常工作，启动报错」⇒ 日志实锤 `OSError [Errno 10048] ('127.0.0.1', 8765)`，
+traceback 终点 `ext/bridge.py` → `websockets.serve(...)`。
+**根因两条叠加**：① 启动器**只查实时字幕 App，从不查本模块自己的端口** ⇒ 重复点「启动」必崩；
+② **bind 排在 `engine.warmup()` 之后** ⇒ 用户白等 24 s 才看到崩溃。
+⚠️ **未认领新 EXT 编号**（reviewer 未下发 EXT-019）⇒ `last_ack` **保持 EXT-017**。
+★ **明细全文见 `status/notes/sec14_ext019_port_guard.md`**。
+
+⇒ **① 防线 1（启动器 `tools/ext_launcher.py`）**：`start()` **拉子进程之前**探端口 ——
+`_port_in_use`（`connect_ex`，探测异常⇒放行）/ `_find_port_owner`（`netstat -ano`，★ 必须先 `strip()` —— 行首有空格）/
+`_pid_alive`（ctypes `OpenProcess`+`GetExitCodeProcess`；失败⇒`tasklist` CSV 二次确认，不经 shell）/
+`_pid_in_tasklist`。占用时**不启动子进程**，区分「本模块已有实例（PID 还活）」与「别的程序占用」，给人话 + 日志路径。
+
+⇒ **② 防线 2（桥接 `ext/bridge.py`）**：`_probe_port_free`（真 `bind`+`listen` 试探 + `SO_EXCLUSIVEADDRUSE`）
+**前置到 `engine.warmup()` 之前**（同时查 8765 与 8766）⇒ 命中 10048 立即 `return 6`（**不加载模型**）；
+`_describe_port_owner` 报占用者 PID；`asyncio.run(serve(...))` 加 `except OSError` 兜底（不再抛栈）。
+
+⇒ **③ 实测对比**：重复启动 **预热 24 s → 整屏 traceback** ⇒ **400 ms 退出码 6 + 人话提示、无 Traceback**；
+启动器 `start()` **0.250 s** 返回 False、`proc is None`、状态灯 `err`。
+★ 踩坑：`_pid_alive` 最初「`OpenProcess` 失败⇒保守判活」⇒ 把**已死 PID 28728** 报成「已在运行」；
+本机 App 的 `pythonw` **无 psutil**（实测 `ModuleNotFoundError`）⇒ 改用 `tasklist` 二次确认
+（实测 5464=True / 28728=False / 999999=False）。
+
+⇒ **④ 自测**：新增 `tests/test_ext019_port_guard.py`（**28 项**：启动器行为级 7 / `_probe_port_free` 判别力 4 /
+真起进程打被占端口 6 / 源码契约 + `_pid_alive` 判别力 11）⇒ 28 PASS / 0 FAIL。
+⇒ **15 套 / 805 PASS / 0 FAIL**（全 rc=0，逐套实测）。
+
+⇒ ⛔ tabCapture 生产路径**仍未人工实测**（需真实用户手势）；⛔ 端到端仍不实时（TTS 稳态 RTF 1.0022）；
+⛔ 本轮**未跑真实推理、未占 GPU/NPU**；⛔ **未 kill 用户自己的桥接进程**（PID 5464，正做真实推理）；⛔ 未回收他人模块的 `MACHINE_LOCK`。
 
 ### §13 P2 待办收口 —— `captureMode` 上报进 stats + 扩展图标（2026-10-30 22:27）
 
 **依据**：闸门 → **exit 1**（latest=EXT-017 / last_ack=17），六项交叉证据一致 ⇒ **无新纠偏指令**；
-但按 **EXT-014 ②**（常设规则「`last_ack` 追平后仍要继续下一项」）做 STATUS 里明列、不需 reviewer 决策的 P2 待办。
+按 **EXT-014 ②**（常设规则「`last_ack` 追平后仍要继续下一项」）做 STATUS 里明列、不需 reviewer 决策的 P2 待办。
 ⚠️ **未认领新 EXT 编号**（reviewer 未下发 EXT-018）⇒ `last_ack` **保持 EXT-017**。
-★ **明细全文见 `status/notes/sec13_ext018_p2_capture_mode_and_icons.md`**（EXT-016 写作规则）。
+★ **明细全文见 `status/notes/sec13_ext018_p2_capture_mode_and_icons.md`**（EXT-016 写作规则；本节只留骨架）。
 
-⇒ **① `captureMode` 上报进 stats**：插件早就知道走的哪条抓流路（`state.captureMode` / `upState.captureMode`），
-却只显示在插件内部 ⇒ 服务端 `stats()` 与 `margin.json` **没这个字段** ⇒ reviewer 无法从 P1 产物判断
-「这轮跑的是生产路径(tabCapture)还是兜底路径(getDisplayMedia)」⇒ 只能人工翻日志（正是 EXT-005 ① 要避免的）。
-改法：`player.js` 的 hello 带 `capture_mode`（抓流在 WS 之前完成 ⇒ 已知实际值）；
-`offscreen.js` 抓流成功后补发 `capture_info`（hello 早于抓流 ⇒ 那时还是 null）；
-`bridge.py` 的 `Session.note_client()` 记录 ⇒ `stats()` 与 `margin.json` 输出，`hello_ack` 回显（向后兼容）。
-★ **白名单**：只接受 `tabCapture`/`getDisplayMedia`；**没上报就是 `null`，绝不臆造**；报的是**实际值**不是 `sw.js` 的**计划值**。
+⇒ **① `captureMode` 上报进 stats**：`player.js` hello 带 `capture_mode` / `offscreen.js` 抓流成功后补发 `capture_info`
+⇒ `Session.note_client()` 记录 ⇒ `stats()` 与 `margin.json` 输出、`hello_ack` 回显。
+★ 白名单只收 `tabCapture`/`getDisplayMedia`；**没上报就是 `null`，绝不臟造**；报**实际值**不是计划值。
 
-⇒ **② 扩展图标**：manifest 此前**没有 `icons` 字段**（工具栏显示默认灰块）。
-新增 `tools/make_icons.py`（纯标准库写 PNG，**无依赖、可复现**）生成 16/32/48/128 四个图标并挂进 manifest。
-⚠️ **`manifest.key` 未动** ⇒ 扩展 ID 实测仍是 `kekgmfkijphpfndbbpakjaokamkeooib`（EXT-017④ 的 Origin 校验依赖它）。
+⇒ **② 扩展图标**：manifest 此前**没有 `icons`** ⇒ 新增 `tools/make_icons.py`（纯标准库写 PNG，无依赖可复现）生成 16/32/48/128 四图。
+⚠️ **`manifest.key` 未动** ⇒ 扩展 ID 实测仍 `kekgmfkijphpfndbbpakjaokamkeooib`。
 
-⇒ **③ 自测**：新增 `tests/test_ext018_capture_mode_stats.py`（38 项，行为级：真起服务 + 真 WebSocket）。
-★ 含**对照组**（不带 capture_mode ⇒ stats 为 `None` ⇒ 证明服务端不编造）与**反证**
-（回退实现 ⇒ **34 PASS / 4 FAIL、rc=1** ⇒ 断言不是恒真）。
-★ **14 套 / 777 PASS / 0 FAIL**（全 rc=0）；`node --check` 四个 JS 文件全通过。
+⇒ **③ 自测**：`tests/test_ext018_capture_mode_stats.py`（38 项，含对照组「不报⇒`None`」与反证「回退⇒4 FAIL rc=1」）；
+**14 套 / 777 PASS / 0 FAIL**。
 
-⇒ **④ ★ 附带**：**用户 22:31:29 双击了桌面快捷方式**（`pythonw ext_launcher.py` ⇒ 子进程 `ext.bridge --real --pipeline --port 8765`）
-⇒ **不是自测拉起的** ⇒ 按铁律**未 kill**（它正做真实推理）。**意外收获**：在**真实运行的三引擎桥接**上验证了新字段
-（不带 ⇒ `None`；带 `'tabCapture'` ⇒ `hello_ack` 与 `stats` **都是 `'tabCapture'`** ✅）。
-**顺带确认 EXT-017② 在用户真实一次启动里成立**：`bridge.log` 显示 **引擎预热成功 3/3、总耗时 25.1 s**、
-`✅ 模型加载完成（ASR/MT/TTS 就绪）` @ 22:32:06（日志证据，非桩）。
-
-⇒ ⛔ **tabCapture 生产路径仍未人工实测**（需真实用户手势；本机只有 Edge 126）⇒ **只把可核对性准备好了，不宣称已验证**；
-⛔ 端到端仍不实时（TTS 稳态 RTF 1.0022）⇒ TTS 提速仍是唯一前置；
-⛔ 本轮**未跑真实推理、未占 GPU/NPU**；⛔ 未改任何引擎文件。
+⇒ **④ ★ 附带**：**用户 22:31:29 双击了桌面快捷方式**（非自测拉起）⇒ 按铁律**未 kill**。
+**意外收获**：在**真实运行的三引擎桥接**上验证新字段（不带⇒`None`；带 `'tabCapture'`⇒`hello_ack`+`stats` 都对 ✅）；
+`bridge.log` 显示**预热成功 3/3、25.1 s** ⇒ **EXT-017② 在用户真实一次启动里成立**（日志证据，非桩）。
 
 ### §12 EXT-016 收口（接手被中断的一轮）+ EXT-017②「2 秒内可见输出」补行为级验收（2026-10-30 21:06）
 

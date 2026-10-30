@@ -1484,3 +1484,132 @@ test_p1_plumbing           ::  97 PASS / 0 FAIL
 
 **保持 EXT-017 不变** —— 本轮**未认领任何新的 EXT 编号**（reviewer 未下发 EXT-018；
 闸门也确认纠偏文件里最新的仍是 EXT-017）⇒ 不自行占用 reviewer 的编号命名空间。
+
+---
+
+## 2026-10-30 22:41 → 22:55 — 修「重复启动 → 端口占用 → 整屏 traceback 崩溃」（用户实测报错）
+
+### 触发与闸门
+
+用户反馈「**实测无法正常工作，启动报错**」⇒ 读用户日志 `%LOCALAPPDATA%\LiveDubEXT\bridge.log` 实锤：
+
+```
+OSError: [Errno 10048] Only one usage of each socket address ... ('127.0.0.1', 8765)
+```
+
+traceback 终点：`ext/bridge.py` → `websockets.serve(...)`（原第 1588 行）绑定 8765 失败。
+
+（`tools/next_instruction.py --json` 仍为 exit 1 / latest=EXT-017 / last_ack=EXT-017 ⇒ 闸门本身无新指令；
+本轮按**用户直接反馈的故障**执行，**未认领新 EXT 编号** ⇒ `last_ack` 保持 **EXT-017**。）
+
+### 根因（两条独立成因叠加）
+
+| # | 成因 | 后果 |
+|---|---|---|
+| A | **启动器完全没有「本模块已在运行」检测** —— `BridgeRunner.start()` 只检查 `_caption_app_running()`（实时字幕 App），**从不检查本模块自己的端口** | 用户重复点「启动」⇒ 拉起第二个子进程 ⇒ bind 8765 失败 ⇒ **整屏 traceback 崩给用户看** |
+| B | **端口 bind 排在模型预热之后**（`engine.warmup()` 先跑，bind 后跑） | 用户**白等 24 秒**加载模型，才看到崩溃 |
+
+日志佐证 B：该次真实启动「引擎预热成功 3/3、总耗时 **24.1 s**、TTS 就绪 @ 22:41:38」之后立刻 10048 崩溃 ⇒ 顺序确实是「先预热、后 bind」。
+
+### 修复（两道防线）
+
+**防线 1 —— 启动器 `tools/ext_launcher.py`（前置拦截，不拉子进程）**
+
+新增 4 个辅助函数：
+
+- `_port_in_use(host, port)`：`socket.connect_ex` 探测；★ 探测自身异常 ⇒ 返回 False（**放行**），绝不让探测故障挡住正常启动。
+- `_find_port_owner(host, port)`：解析 `netstat -ano` 的 LISTENING 行。★ **必须先 `line.strip().split()`** —— netstat 行首有空格，用 `startswith("TCP")` 会全部漏掉。
+- `_pid_alive(pid)`：ctypes `OpenProcess` + `GetExitCodeProcess`（`STILL_ACTIVE=259`）；★ **失败 ⇒ 走二次确认，绝不直接判活**。
+- `_pid_in_tasklist(pid)`：`subprocess.run(["tasklist","/FI","PID eq %d"%pid,"/NH","/FO","CSV"])`；★ **必须用参数数组、不经 shell**（Git Bash 会把 `/FI` 当路径）；★ 解析不出 ⇒ **保守判活 True**。
+
+`BridgeRunner.start()` 在 `_caption_app_running()` 检查之后、**拉子进程之前**拦截：
+
+- 端口空闲 ⇒ 行为完全不变（生产路径零影响）；
+- 端口被占 **且 PID 文件里的 PID 还活着** ⇒ 提示「桥接服务**已经在运行**了（PID=…, 端口=…）」，明确告知「**不需要重复启动**，直接在浏览器点扩展图标即可；要重启请先点『停止』」；
+- 端口被占但 **那个 PID 已死 / 不是本模块的** ⇒ 提示「端口 N **已被占用**」+ 两条可能原因（上次进程没退出 / 别的程序占用）+ 日志路径；
+- 两种情况都：**不拉子进程**（`proc is None`）、状态灯切 `err`。
+
+**★ 踩坑**：`_pid_alive` 最初写成「`OpenProcess` 失败 ⇒ 保守返回 True（视为存活）」，
+结果把**已死的 PID 28728** 报成「桥接服务已经在运行（PID=28728）」。
+本机 App 自带 `pythonw` **没有 psutil**（实测 `ModuleNotFoundError: No module named 'psutil'`）⇒
+改用 `tasklist` CSV 二次确认。实测判别力：`_pid_alive(5464)=True`（真占用者）/ `_pid_alive(28728)=False`（死 PID）/ `_pid_alive(999999)=False`（不存在）。
+
+**防线 2 —— 桥接 `ext/bridge.py`（预检前移，快速失败）**
+
+- 新增 `_probe_port_free(host, port)`：真 `bind` + `listen` 试探（权威口径；不是 `connect_ex`）+ `SO_EXCLUSIVEADDRUSE`（Windows：否则 bind 成功但 listen 仍可能 10048）；
+  命中 10048 ⇒ `(False, "端口 N 已被占用(...)")`；其他 OSError ⇒ `(False, "端口 N 无法绑定：...")`；★ **探测本身抛异常 ⇒ 放行**，绝不因探测故障阻止启动。
+- 新增 `_describe_port_owner(port)`：`netstat -ano` ⇒ `占用者 PID=5464`。
+- `main()` 插入点 —— **`holder: dict = {}` 之后、`engine.warmup()` 之前**：同时查 `args.port` 与 `args.pair_port`，
+  命中即打人话提示（含占用者 PID + 三条解决办法 + 「**本轮没有加载模型**，端口检查在预热之前」）并 **`return 6`**。
+- `asyncio.run(serve(...))` 加 `except OSError` 兜底：命中 10048 ⇒ 人话提示 + `return 6`（不再抛栈）。
+
+### 实测对比（真实进程，非桩）
+
+| 场景 | 修前 | 修后 |
+|---|---|---|
+| 重复启动（8765 已被 PID 5464 占用） | 预热 **24 s** → 整屏 traceback 崩溃 | **400 ms 退出码 6**、人话提示、**无 Traceback** |
+| 启动器 `start()` | 拉起注定失败的子进程 | **0.250 s** 返回 `False`、`proc is None`、状态灯 `err` |
+
+修后真实输出：
+
+```
+[bridge 22:47:22] ❌ 端口 8765 已被占用（通常每个套接字地址(协议/网络地址/端口)只允许使用一次。）（占用者 PID=5464）
+[bridge 22:47:22]    这通常意味着**桥接服务已经在运行**（重复启动）。
+[bridge 22:47:22]    解决办法：① 在启动器窗口点「停止」后再启动；② 或结束占用该端口的进程；③ 或换一个端口。
+[bridge 22:47:22]    （本轮**没有**加载模型 —— 端口检查在预热之前，所以不用白等 20–40 秒）
+```
+
+### 自测
+
+新增 `tests/test_ext019_port_guard.py`（**28 项**，行为级）：
+
+| 组 | 内容 | 项数 |
+|---|---|---|
+| A | **启动器行为级**：真占住端口 ⇒ `start()` 返回 False / 不启动子进程 / 提示含端口号 / 含人话 / 快速 ≤ 5 s / 状态灯 `err` | 7 |
+| B | `_probe_port_free` 判别力：空闲 ⇒ True；被占 ⇒ False | 4 |
+| C | **真起 `ext.bridge --echo`** 打被占端口 ⇒ rc=6 / 无 `Traceback` / 输出含端口号 / ≤ 15 s / 明示未加载模型 | 6 |
+| D | 源码契约（`_probe_port_free` 在 `engine.warmup` **之前** / `return 6` / `_pid_alive` 用 `OpenProcess`+`GetExitCodeProcess`）+ `_pid_alive` 判别力（0⇒False、自己⇒True、999999⇒False） | 11 |
+
+⇒ **28 PASS / 0 FAIL**，rc=0。
+
+**完整回归（本轮实测，逐套真实退出码）—— 15 套 / 805 PASS / 0 FAIL**（全 rc=0）：
+echo_roundtrip 11 / ext009 57 / ext010 23 / ext011 29 / ext012 75 / ext013_compare 51 /
+ext013_cpu_watch 25 / ext016_compression 39 / ext017_user_report 108 / ext018_capture_mode 38 /
+**ext019_port_guard 28** / browser_contract 102 / selfcheck 103 / next_instruction 19 / p1_plumbing 97。
+
+### 涉及修改文件
+
+| 文件 | 改动 |
+|---|---|
+| `ext/bridge.py` | +108 行（`_probe_port_free` / `_describe_port_owner` / 预检前移 / `except OSError` 兜底） |
+| `tools/ext_launcher.py` | +176 行（`_port_in_use` / `_find_port_owner` / `_pid_alive` / `_pid_in_tasklist` / `start()` 前置拦截） |
+| `tests/test_ext019_port_guard.py` | 新增，28 项 |
+| `status/STATUS_EXT.md` | 新增 §14 + 更新头部「更新时间」为实测时间 22:55 |
+| `status/notes/sec14_ext019_port_guard.md` | 新增（§14 逐条明细全文，EXT-016 写作规则） |
+| `status/EXEC_LOG.md` | 追加本轮记录 |
+
+### 产物（文件数 / mtime / 字节数）
+
+| 产物 | 文件数 | mtime | 字节数 |
+|---|---|---|---|
+| `tests/test_ext019_port_guard.py` | 1 | 2026-10-30 22:48 | 11 320 |
+| `status/notes/sec14_ext019_port_guard.md` | 1 | 2026-10-30 22:53 | 8 142 |
+| `status/STATUS_EXT.md`（精简版，含新 §14） | 1 | 2026-10-30 22:54 | 20 702（195 行，≤ 40 KB / ≤ 300 行 ✅） |
+
+### ⛔ 明确未做 / 未宣称
+
+- ⛔ **tabCapture 生产路径仍未人工实测**（需真实用户点一次扩展图标；本机只有 Edge 126）⇒ 不宣称已验证。
+- ⛔ 端到端仍不实时（TTS 稳态 RTF **1.0022**）⇒ **TTS 提速仍是上线的唯一前置**。
+- ⛔ **本轮未跑任何真实推理、未占 GPU / NPU**（全程 CPU 侧 + 回声模式 / 端口探测）。
+- ⛔ **未 kill 用户自己的桥接进程**（PID 5464 `ext.bridge --real --pipeline --port 8765`，父 `pythonw ext_launcher.py` PID 30872）—— 它正做真实推理，不能打断用户操作。
+- ⛔ **未改任何引擎文件**（ASR/MT/TTS 均未动）。
+- ⛔ `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**（`.gitignore:34` 仍在；`git log --all` 查无此文件）。
+
+### 机器锁
+
+本轮**未创建锁、未跑任何推理、未占 GPU / NPU**。
+巡检期间 `shared/MACHINE_LOCK` 属 **`tts` 模块**（PID 15900，`probe_pid_alive`=False ⇒ 陈旧锁）⇒ 属他人所有 ⇒ **本轮未创建 / 未删除 / 未回收**。
+
+### `last_ack`
+
+**保持 EXT-017 不变** —— 本轮**未认领任何新的 EXT 编号**（reviewer 未下发 EXT-019）⇒ 不自行占用 reviewer 的编号命名空间。
