@@ -1,19 +1,19 @@
 last_ack: ASR-036
-更新时间: 2026-10-31 01:40
-当前任务: **无新纠偏**（last_ack = ASR-036 = 纠偏文件最大编号；`CORRECTIONS_ASR.md` 12493 B @ 2026-10-30 15:44:31、md5 与 §63/§64/§65 三轮**逐字节一致**；全仓扫 `ASR-0(3[7-9]|[4-9][0-9])` 命中 0）。本轮按 **ASR-034**「last_ack 追平后继续做未完成项」⇒ 修掉两个**遗留**真缺陷：🔴 ① **`timing_valid = true` 但 `lock_probe_checks = 0`**（实测 **3 个**产物，STATUS 原先只点了 `asr050`）⇒ 全部改标 `timing_valid = null`（**实测数值一律未改**）；🔴 ② **`clips_manifest` 的 `n_both = 0` 却 `tp = 8`**（根因 = v1 用 `set()` 精确相等去重，而 8 对命中点两侧时间差仅 0.024–0.388 s < 容差 0.5 s）⇒ 建 **v2 清单**（**71** 事件，`n_both = 8` = `tp = 8`，v1 一字未动）；并加装**独立复核** `asr098_status_verify_s66.py`（§43：不复用写入脚本自检）⇒ 基线 **ALL PASS**（**42** 项判据）+ 注入反证 **9/9**；复核过程又抓出 **3 个**自身 bug（notes 漏列 `asr097`；🔴 **复跑 `asr096` 后守卫产物 mtime 即变 ⇒ notes 引用可重跑产物的 size/mtime 立刻脱节**（§60 铁律复发）；复核脚本自身被引用会形成自指 churn）⇒ 新增判据 **V17** + 反证 **cp9**。
-阻塞 / 待用户决定: 无。⚠️ 遗留（非纠偏项，等用户指派）：① **OV f16 偏差高于 torch FP16 固有下界** ⇒ 精度优化空间未做；② **`qwen3asr_06b` 不在 git 仓库内** ⇒ 脚本/产物只在本机，App 集成需另行打包；③ 🔴 **8 个 `pya_*` 历史产物 `timing_valid=true` 但**无 `lock_probe` 块**（锁探针机制 @ 2026-10-27 引入**之前**）⇒ 同样未经核验，但**只被归档章节引用**（当前 STATUS 引用 0 次）⇒ **追溯改 = 改旧结论**，等用户指派再动（`asr096_legacy_consistency_gate.json` → `legacy_no_lock_probe`）。
+更新时间: 2026-10-31 07:32
+当前任务: **无新纠偏**（last_ack = ASR-036 = 纠偏文件最大编号；`CORRECTIONS_ASR.md` 12 493 B @ 2026-10-30 15:44:31、md5 与 §63/§64/§65/§66 四轮**逐字节一致**；全仓扫 `ASR-0(3[7-9]|[4-9][0-9])` 命中 0）。本轮按 **ASR-034**「last_ack 追平后继续做未完成项」⇒ 做**只读复核** ⇒ 抓出 **3 类**新真缺陷：🔴 ① **「关键数字」表的字段路径不可解析**（实测 **11 处**：4 处路径**不存在**、3 处指向**对象**而非数值、若干处「同上」**跨产物误指** ⇒ 读者按路径查会落空；§41 数字手抄的**第 7 次复发**，但这次是**路径错**不是数值错）；🔴 ② **`asr093` 基线与 `--inject` 写同一个产物文件** ⇒ 注入反证证据**被基线覆盖** ⇒ §65 声称的「反证 8/8 全过」**当前产物里查无实据**（`n_counterproofs` 字段**根本不存在**）—— 这正是 §66 已在 `asr096` 上修过、却在 `asr093` 上**复发**的同一类 bug；🔴 ③ **`asr096` 的扫描数只 print 不落盘** ⇒ STATUS 里「123 个 JSON」**无字段可溯源**。✅ 已修：① STATUS 全部字段路径改成**实测可解析**（新增 `asr099` v4 守卫 + 反证**证明有鉴别力**）；② `asr093` 拆成**基线/注入两个产物**，基线**显式携带**反证证据指针；③ `asr096` 显式落 `n_json_scanned`。
+阻塞 / 待用户决定: 无。⚠️ 遗留（非纠偏项，等用户指派）：① **OV f16 偏差高于 torch FP16 固有下界** ⇒ 精度优化空间未做；② **`qwen3asr_06b` 不在 git 仓库内** ⇒ 脚本/产物只在本机，App 集成需另行打包；③ 🔴 **8 个 `pya_*` 历史产物 `timing_valid=true` 但**无 `lock_probe` 块**（锁探针机制 @ 2026-10-27 引入**之前**）⇒ 同样未经核验，但**只被归档章节引用** ⇒ **追溯改 = 改旧结论**，等用户指派再动（`asr096_legacy_consistency_gate.json` → `legacy_no_lock_probe.count`）。
 已压缩: 原文见 `status/archive/STATUS_ASR_upto_20261030.md`；纠偏归档见 `status/archive/CORRECTIONS_ASR_closed_upto_20261030.md`（全量原文备份 `CORRECTIONS_ASR_full_before_compress_20261030.md`）。
-自指大小: 30 348 B / 237 行
+已压缩: 原文见 `status/archive/STATUS_ASR_upto_20261030.md`；纠偏归档见 `status/archive/CORRECTIONS_ASR_closed_upto_20261030.md`（全量原文备份 `CORRECTIONS_ASR_full_before_compress_20261030.md`）。
+自指大小: 29 700 B / 224 行
 
 
 ## 最近更新
+- 2026-10-31 07:40 **§67 —— 无新纠偏（last_ack 保持 ASR-036）+ 只读复核抓出 3 类新真缺陷 + 加装 `asr099` v4 守卫**：🔴 ① **「关键数字」表的字段路径不可解析**（实测 **11 处**：4 处路径**不存在**、3 处指向**对象**、若干处「同上」**跨产物误指** ⇒ 读者按路径查会落空；§41 数字手抄的**第 7 次复发**，但这次是**路径错**不是数值错 —— 数值本身实测全部一致）；🔴 ② **`asr093` 基线与 `--inject` 写同一个产物文件** ⇒ 注入反证证据**被基线覆盖** ⇒ §65 声称的「反证 **8/8** 全过」**查无实据**（`n_counterproofs` 字段**根本不存在**）—— **§66 已在 `asr096` 上修过同一类 bug，此处复发**；🔴 ③ **`asr096` 的扫描数只 print 不落盘** ⇒ STATUS 里「123 个 JSON」**无字段可溯源**。✅ 已修：① STATUS 全部字段路径改成**实测可解析**（新增 `asr099` v4 守卫，逐条解析**全文**的 `产物 → 路径` 引用）；② `asr093` 拆成**基线/注入两个产物**，基线**显式携带**反证证据指针；③ `asr096` 显式落 `n_json_scanned`。⚠️ 本轮**无新纠偏**。
 - 2026-10-31 01:40 **§66 —— 无新纠偏（last_ack 保持 ASR-036）+ 修掉 2 个遗留真缺陷 + 加装守卫**：🔴 ① **`timing_valid = true` 但 `lock_probe_checks = 0`**（§31 铁律：探针从未调用 ⇒ 「未发现锁被抢」是**未经核验的断言**）⇒ 实测 **3 个**产物 （`asr050` 在 **`timing` 子块**里、原先漏点；+ `asr055` + `_smoke_asr040_base`）全部改标 **`timing_valid = null`**（原值挪 `timing_valid_observed`，**实测数值一律未改**；锁探针的假断言原文挪 `lock_probe_note_original` 并就地改正）；🔴 ② **`clips_manifest` 的 `n_both = 0` 却 `tp = 8`** ⇒ 根因 = v1 用 `set()` **精确相等**去重，而 8 对命中点两侧时间差仅 **0.024–0.388 s** < 容差 **0.5 s** ⇒ 同一事件被拆成两条 ⇒ 建 **v2 清单**（**71** 事件 = 29 预测 + 50 真值 − 8 合并；`n_both = 8` = `tp = 8` **自洽**，且与 `asr055` 的 `tp = 8` **一致**；v1 清单与 79 音频 **md5 锚定一字未动**）；已加装守卫 `asr096_legacy_consistency_gate.py`（判据 **9** 项全过 + 反证 **10/10** 全过）；并加装**独立复核** `asr098_status_verify_s66.py`（§43：不复用写入脚本自检）⇒ 基线 **ALL PASS**（**42** 项判据）+ 注入反证 **9/9**；🔴 复核过程又抓出 **3 个**自身 bug：notes 漏列 `asr097` 的 size/mtime、**复跑 `asr096` 后守卫产物 mtime 即变 ⇒ notes 引用可重跑产物的 size/mtime 立刻脱节**（§60 铁律**复发**）、复核脚本自身被引用会形成**自指 churn** ⇒ 新增判据 **V17**（notes 不得引用可重跑产物的 size/mtime）+ 反证 **cp9**。⚠️ 本轮**无新纠偏**。
 - 2026-10-30 23:55 **§65 —— 无新纠偏（last_ack 保持 ASR-036）+ 只读复核抓出 4 个新真缺陷**：🔴 ① **notes 引用的 `asr090`/`asr091` size/mtime 是过期值**（实测 11389/6015 B，文档写 9 406/5 088）⇒ §41 数字手抄第 6 次复发；② **章节行数门禁只覆盖 §64** ⇒ §63 = **70 行** 超 60 行上限却只记 INFO；③ **「最近章节」实测 5 节**，违反 ASR-036 明文「只保留最近 3 节」⇒ §60/§61/§62 移回归档；④ **§60/§61 摘要数字无法逐字回溯**（0.0015126 vs 产物 0.0015126142686873068）⇒ 同上移回归档。已加装 v3 守卫 `asr093_status_gate_v3.py`（反证 8/8 全过）。⚠️ 本轮**无新纠偏**。
 - 2026-10-30 22:30 **§64 —— 无新纠偏（last_ack 保持 ASR-036）+ 只读复核抓出 5 个真缺陷**：🔴 ① **反证条数手抄**（§63 写「5 条 / 5-5」，asr086 产物实测 6 条）⇒ §41 第 5 次复发；② **asr086 豁免盲区**（同句含历史标记 ⇒ 整句豁免 ⇒ 漏检）⇒ 注入实证 v1 漏检、v2 抓住；③ **§63 复核脚本依赖不存在的路径** ⇒ 「复核全 PASS」不可复现；④ **§63 章节超 60 行**（实测 70 行，ASR-036 上限）⇒ 明细搬 `status/asr/notes/`；⑤ **in-flight 写入脚本 2 个 bug**（裸 LF + 章节超限）⇒ 干跑抓出，未污染真实 STATUS。已修并加装 v2 守卫 `asr088_selfref_size_gate_v2.py`（反证 9/9 全过 + 盲区实证）。⚠️ 本轮**无新纠偏**。
 - 2026-10-30 20:17 **§63 —— 抓出并修掉 §62-⑧ 的「自指大小守卫」假 PASS**：🔴 只读复核发现 §62-⑧ 声称「正则抓 `→ N B / M 行`…2 处全 PASS ⇒ 今后由机器拦住」，**但该正则只覆盖 `→` 句式**，漏掉「最近更新」里 `== N B / M 行` 句式的断言 ⇒ **假 PASS**；且已提交的 STATUS 内**同时存在两条互斥的「当前大小」断言**（陈旧的 `== 16 143 B / 145 行` vs `→ 17 508 B / 153 行`）⇒ 前者是**错误断言**。已修：① 头部新增**唯一真值点** `自指大小: N B / M 行`（§63 当时的实测 = 23 941 B / 224 行；数值以头部唯一真值点为准）；② 陈旧断言改标为历史并指向真值点；③ 新增守卫 `asr086_selfref_size_gate.py`（扫全文 + 分 current/historical + 5 条反证）。⚠️ 本轮**无新纠偏**（last_ack 保持 ASR-036）。
 - 2026-10-30 16:05 **§62 补记 —— 自指大小数字修正 + 复核加固**：🔴 **抓出「STATUS 内写的自身大小与实际不符」**（生成脚本的不动点循环在占位符被替换后提前 `break` ⇒ 写入的是替换**前**的长度，偏差 34 B）⇒ 已修正为「每轮都从带占位符的模板重新计算」并重生成，现 **`os.path.getsize` == 文内数字 == 16 143 B / 145 行（⚠️ **那一版（16:05）的实测值，属历史**；当前值见头部 `自指大小` 唯一真值点）**；独立复核脚本新增**自指大小一致性**检查项（2 处全部 PASS）⇒ 该类缺陷今后由机器拦住，不靠人眼。
-- 2026-10-30 15:45 **ASR-036 落地（§62）**：① ✅ **压缩完成** —— `STATUS_ASR.md` **614 722 B / 7 538 行 → 17 508 B / 153 行**（§62 当时的压缩结果；当前大小见头部 `自指大小` 唯一真值点）；`CORRECTIONS_ASR.md` **84 715 B → 12 493 B**（36 条 → 索引表 + 进行中 1 条全文 + 最近 4 条全文）；归档落 `status/archive/`（STATUS 全量 + 纠偏已完成条目 + 纠偏全量原文备份）；② ✅ **压缩无内容丢失**（独立复核脚本：编号并集 == 原 36 条、标题/级别/日期逐字一致、已完成条目正文逐字在归档中、标题格式不变 ⇒ reviewer 推送工具可继续追加）；③ ✅ **ASR-033 ①** 重跑 `asr079` 闸门（`passes=true`、关键字 0、越界 0、隔离自洽 true、反证 4/4）；④ ✅ **ASR-035 ②** NOTICE 占位符化（`asr085` 闸门：命中 0、反证 4/4）；⑤ 🔴 **抓出 NOTICE §11.1 的数字溯源缺陷**（表里的 8 个数字在**任何产物里都不存在** ⇒ 属 §41 第 4 次复发）⇒ 已按 `asr081` 实值改写并加字段路径；⑥ ✅ **ASR-031…035** 结论全部落 §62；⑦ ⚠️ **WER 未跑**（交 reviewer）；**未动 `live_caption/`**。
-- 2026-10-30 09:45 **ASR-031（开工登记）**：收到 2 条新纠偏（ASR-031 HIGH / ASR-032 NORMAL）⇒ `last_ack` ASR-030 → ASR-031；4 项待做（限线程交付默认 / 聚类一致性重放 / RTF 增量归因 / ASR-028 结构合格）。
 
 
 ## 当前有效结论
@@ -43,13 +43,13 @@ last_ack: ASR-036
 | 锁自检次数（两臂） | 88 / 73 | 同上 → `lock_probe.lock_probe_checks`（stolen 均 0） |
 | 说话人聚类：FP16 vs FP32 不一致段数 | **0 / 196**（diff_rate 0.0） | `asr067_fp16_vs_fp32_cluster.json` → `arm_consistency.n_diff_segments` |
 | 说话人：段级纯度 vs 伪真值 | 0.9147（n=183 段） | 同上 → `per_arm_vs_pseudo_truth.A_fp16.purity_and_fragmentation.segment_purity_vs_pseudo_truth` |
-| 说话人：换人点 F1（±0.5 s / ±3.2 s） | 0.2025 / 0.6582 | 同上 → `switch_points_vs_pseudo_truth.tol_0p5s.f1` / `tol_3p2s.f1` |
+| 说话人：换人点 F1（±0.5 s / ±3.2 s） | 0.2025 / 0.6582 | 同上 → `per_arm_vs_pseudo_truth.A_fp16.switch_points_vs_pseudo_truth.tol_0p5s.f1` / `per_arm_vs_pseudo_truth.A_fp16.switch_points_vs_pseudo_truth.tol_3p2s.f1` |
 | 说话人：识别人数 | 5（伪真值 6 人） | `asr055_spk_qa_reference_eval.json` → `asr_side_report.n_speakers` / `ref_meta.n_speakers` |
 | 嵌入 RTF 增量（改法① 落地前 / 后） | 0.0494 / **0.0315** | `asr081_range_hi_coverage.json` → `arms.embed_dynamic.rtf_increment_vs_asr_only` / `arms.embed_range_2048.rtf_increment_vs_asr_only` |
-| 嵌入墙钟（落地前 / 后） | 5.921 s / **0.551 s** | 同上 → `embed_wall_s` |
-| 嵌入向量一致性（落地后 vs 动态） | 43 段逐段，cos 最小 1.0、rel 最大 0.0 | 同上 → `consistency_vs_dynamic.embed_range_2048` |
-| 生产段帧数上界 | 1998 帧（= MAX_SEG_SEC 20.0 s）；落地取 EMBED_RANGE_HI **2048** | 同上 → `offline_segment_length` |
-| FP16 嵌入保真（余弦 / rel） | 0.999998775537715 / 0.001432037985732332（**不过** 1e-3 门槛） | `asr060_wespeaker_precision_attrib.json` → `experiments.ov_fp16_vs_torch_fp32` |
+| 嵌入墙钟（落地前 / 后） | 5.921 s / **0.551 s** | 同上 → `arms.embed_dynamic.embed_wall_s` / `arms.embed_range_2048.embed_wall_s` |
+| 嵌入向量一致性（落地后 vs 动态） | 43 段逐段，cos 最小 1.0、rel 最大 0.0 | 同上 → `consistency_vs_dynamic.embed_range_2048.n` / `.cos_min` / `per_segment[].rel_max_abs_diff` |
+| 生产段帧数上界 | 1998 帧（= MAX_SEG_SEC 20.0 s）；落地取 EMBED_RANGE_HI **2048** | 同上 → `offline_segment_length.prod_frame_upper_bound` / `.app_MAX_SEG_SEC` / `.landed_EMBED_RANGE_HI` |
+| FP16 嵌入保真（余弦 / rel） | 0.999998775537715 / 0.001432037985732332（**不过** 1e-3 门槛） | `asr060_wespeaker_precision_attrib.json` → `experiments.ov_fp16_vs_torch_fp32.cos` / `.rel_max_abs_diff` |
 | FP32 对照 rel | 1.1163879303042469e-06（**过**门槛）⇒ 归因 = FP16 格式固有精度，非 IR 缺陷 | 同上 → `experiments.ov_fp32_vs_torch_fp32.rel_max_abs_diff` |
 | `SpeakerTracker` 接口自检 | 19/19 全过 | `asr054_speaker_tracker_selftest.json` → `n_pass`/`n_checks` |
 | 交付集合闸门（3 文件） | 关键字 0、运行时链越界 0、隔离自洽 True、反证 4/4 | `asr079_delivery_set_gate.json` |
@@ -78,62 +78,6 @@ last_ack: ASR-036
 ## 最近章节
 
 > 只保留最近 3 节；更早的章节见 `status/archive/STATUS_ASR_upto_20261030.md`。
-
-### §64 无新纠偏（last_ack 保持 ASR-036）+ 只读复核抓出 5 个真缺陷 + 加固自指大小守卫（2026-10-30 21:18–22:20）
-
-> 🔴 **明细见 `status/asr/notes/asr_s64.md`**（ASR-036 定的规则：长日志 / 逐条明细 / 大表格写 `notes/`，STATUS 只留结论、数字和链接）。
-
-**背景**：本轮**无新纠偏**（`CORRECTIONS_ASR.md` 最大编号 = **ASR-036** = `last_ack`），按 **ASR-034**「last_ack 追平后只要还有未完成项就继续做，不要空转」⇒ 做**只读复核**（不跑模型、不计时）⇒ 复核**不是空跑**：在本模块**已提交的产物内部**抓出 **5 个真缺陷**（D1–D4 在 §63 的产物里；D5 在本轮 in-flight 脚本里）。
-
-**① 🔴 D1 —— §63 的「反证条数」与产物不符（§41 数字手抄，第 5 次复发）**
-
-- §63 写「反证 **5 条**」/「**5/5** 全过」；🔴 **实测** `asr086_selfref_size_gate.json` → `n_counterproofs` = **6**、`n_counterproofs_caught` = **6** ⇒ 不符。
-  根因：数字**抄自 `pre_fix` 快照**（§63 修 bug **前**；该快照实测 `n_counterproofs` = **5** / caught = **3**）⇒ 修完没重新读产物。
-- 🔴 **撤回 §63 的「反证 5 条」与「5/5 全过」两处表述**（§63 正文**逐字保留**，按「只追加新章节、不回头改旧章节」的规则在此撤回）。
-- ✅ 修法：唯一事实来源改为 `asr088_selfref_size_gate_v2.json` → `n_counterproofs` / `n_counterproofs_caught` = **9 / 9**。
-  ⚠️ 旧守卫只校验自指大小、**不校验「文中计数 == 产物计数」** ⇒ 这类缺陷只能靠**独立复核**抓。
-
-**② 🔴 D2 —— asr086 的 historical 豁免有盲区（漏检，注入实证）**
-
-- 根因：v1 判 historical 的条件是「**整句含历史标记**」⇒ 同子句里若既有历史标记、又有**错的当前断言** ⇒ 整句被豁免 ⇒ **漏检**（2 条注入样本 v1 均**没抓住**）。
-- ✅ 修法：新增 `scripts/asr088_selfref_size_gate_v2.py`（**asr086 v1 冻结**为 §63 的历史证据）—— 引入「**强当前指示词优先**」；**数值之后**的历史标记仍算历史 ⇒ 不误伤。
-- ✅ **鉴别力实证**：同一注入 v1 `v1_caught=false` ×2、v2 `v2_caught=true` ×2 ⇒ 产物字段 `blindspot_proof` ⇒ **证明修复有鉴别力**（不是恒真）。
-- ✅ **收紧未引入误伤**：v1/v2 分类**逐处一致**（`baseline_v1_comparison.n_kind_diffs` = **0**）。
-
-**③ 🔴 D3 —— §63 的独立复核脚本依赖一个**不存在**的路径 ⇒ 复核不可复现**
-
-- `_tmp_verify_status_s63.py` 读 `status/asr/STATUS_ASR.md.clean_base_asr087` ⇒ 该路径**不存在**（干净起点实际在 `qwen3asr_06b/results/pyannote_seg/`）⇒ 干净环境重跑**必然 FAIL**（**实测** FAIL 项 = 「干净起点存在」）⇒ §63 的「独立复核全 PASS」**不可复现**。
-- ✅ 修法：§64 的独立复核脚本**自己**从 `qwen3asr_06b` 的只读副本**生成**干净起点（不手工造、不依赖上一轮的临时文件），并新增 **D1 专项**（文中反证计数 ↔ 产物字段逐处比对）。
-
-**④ 🔴 D4 —— §63 的章节长度违反 ASR-036 自己定的写作规则**
-
-- ASR-036 明文「每个新章节 **≤ 60 行**」；🔴 **实测 §63 = 70 行**（口径：正文行数，不含尾部空段）⇒ 超限 10 行。
-- ✅ 修法：§64 起明细进 `status/asr/notes/asr_s64.md` ⇒ §64 ≤ 60 行；写入脚本**自检**含「每个新章节 ≤ 60 行」⇒ 今后由机器拦住。
-  ⚠️ §63 的 71 行属**已提交旧章节** ⇒ 按「不回头改旧章节」**不删不改**，事实记于 notes。
-
-**⑤ 🔴 D5 —— 本轮 in-flight 的写入脚本有 2 个真 bug（干跑抓出，未污染真实 STATUS）**
-
-- ⚠️ §64 的写入脚本 `asr089_status_write_s64.py` 在**上一会话中断时从未执行过** ⇒ 「写好了 ≠ 能跑」（§40 铁律）⇒ 本轮**先干跑**（把 STATUS 路径改到沙箱副本）⇒ 抓出 **2 个 bug**：
-  ① **裸 LF**：§64 模板内部是纯 LF ⇒ 拼进正文后**裸 LF ≠ 0** ⇒ 被自检拦下；
-  ② **§64 = 62 行 > 60**（ASR-036 上限）⇒ 同样被自检拦下。
-- ✅ 修法：① 模板插入前**归一为 CRLF**；② §64 正文**压到 ≤ 60 行**（明细搬 `notes/`）⇒ 干跑转绿后才写真实 STATUS。
-- ✅ 干跑的**自检拦下即还原**路径**实测有效**：真实 STATUS 被写坏后**自动从备份还原**，md5 复核 == 改前值。
-
-**⑥ 守卫加固产物（实测）**
-
-| 项 | 值 | 来源 |
-|---|---|---|
-| v2 守卫脚本 | `scripts/asr088_selfref_size_gate_v2.py`（**新增**；v1 冻结不动） | — |
-| v2 反证 | **9/9** 全过 | `asr088_selfref_size_gate_v2.json` → `all_counterproofs_caught` |
-| 盲区实证 | v1 `v1_caught=false` ×2、v2 `v2_caught=true` ×2 | 同上 → `blindspot_proof` |
-| v1 产物（冻结） | `results/pyannote_seg/asr086_selfref_size_gate.json`（6 654 B @ 2026-10-30 21:31:04） | — |
-| 修复前快照（冻结） | `results/pyannote_seg/asr086_selfref_size_gate_pre_fix.json`（3 896 B @ 2026-10-30 20:13:21） | — |
-
-**⑦ 纪律**
-
-- 本轮**纯只读 + 文本守卫**（不跑模型、不计时）⇒ **未申请共享机器锁**；复核期间 `shared/MACHINE_LOCK` 由 **TTS** 持有 ⇒ 本模块**不干扰**。
-- **未动** `live_caption/`；**未改** `CORRECTIONS_ASR.md`（reviewer 维护）；`last_ack` 保持 **ASR-036**（ASR-036 在索引表里仍是「进行中」——**该文件由 reviewer 维护**，本模块不代改）。
-- ⚠️ **WER 未跑**（交 reviewer）；**未开新实验**。
 
 ### §65 无新纠偏（last_ack 保持 ASR-036）+ 只读复核抓出 4 个新真缺陷 + 加装 v3 守卫（2026-10-30 23:35–23:55）
 
@@ -170,7 +114,7 @@ last_ack: ASR-036
 | 项 | 值 | 来源 |
 |---|---|---|
 | v3 守卫脚本 | `scripts/asr093_status_gate_v3.py`（**新增**） | — |
-| v3 反证 | **8/8** 全过 | `asr093_status_gate_v3.json` → `n_counterproofs` / `n_counterproofs_caught` |
+| v3 反证 | **8/8** 全过 | `asr093_status_gate_v3.json` → `counterproof_evidence.n_counterproofs` / `.n_counterproofs_caught`（反证本体在 `asr093_status_gate_v3_inject.json`）|
 | D6 实证 | notes 的 `asr090`/`asr091` size/mtime **实测与文档不符** | 同上 → `defects_found` |
 | D7 实证 | `asr090` 只判 §64 行数 ⇒ §63 = **70 行** 超限仅 INFO | 同上 → `defects_found` |
 | D8 实证 | 「最近章节」实测 **5 节** > ASR-036 的 3 节 | 同上 → `defects_found` |
@@ -207,8 +151,8 @@ last_ack: ASR-036
 |---|---|---|
 | 基线守卫 | **ALL PASS**（**9** 项判据） | `asr096_legacy_consistency_gate.json` → `status` / `n_checks` |
 | 注入反证 | **10/10** 全过 | `asr096_legacy_consistency_gate_inject.json` → `n_counterproofs_caught` / `n_counterproofs` |
-| 扫描产物 | **123** 个 JSON | 同上 → `checks` |
-| ②类历史遗留 | **8** 个（`pya_*` 家族，**只记录**） | 同上 → `legacy_no_lock_probe.count` |
+| 扫描产物 | **127** 个 JSON | `asr096_legacy_consistency_gate.json` → `n_json_scanned` |
+| ②类历史遗留 | **8** 个（`pya_*` 家族，**只记录**） | `asr096_legacy_consistency_gate.json` → `legacy_no_lock_probe.count` |
 
 - 🔴 **两类必须分开**：产物**自带 `lock_probe` 块**且 `checks == 0` ⇒ **判 FAIL**；产物**没有该块** ⇒ 是**锁探针机制（`asr_lock_common.py` @ 2026-10-27）引入之前**的产物 ⇒ 同样未经核验，但**只被归档章节引用** ⇒ **只记录，不追溯改旧结论**。
 - 判据含 **G4b / G4c**：**点集逐字比对**（不只比计数）—— 🔴 只比计数**看不见**「时间戳被改但个数不变」这类缺陷。
@@ -225,7 +169,7 @@ last_ack: ASR-036
 |---|---|---|
 | 基线复核 | **ALL PASS**（**42** 项判据） | `asr098_status_verify_s66.json` → `status` / `n_checks` |
 | 注入反证 | **9/9** 全过 | `asr098_status_verify_s66_inject.json` → `n_counterproofs_caught` / `n_counterproofs` |
-| 新增判据 | **V17**：notes **不得**引用**可重跑产物**的 size/mtime | 同上 → `checks`（配反证 cp9） |
+| 新增判据 | **V17**：notes **不得**引用**可重跑产物**的 size/mtime | `asr098_status_verify_s66.json` → `checks`（配反证 cp9） |
 
 - 🔴 ⑧ 的修法：notes 里**可重跑** JSON 产物改引**内容事实**（`status` / `n_checks` / 计数），**只对冻结脚本**引 size/mtime；🔴 **不引复核脚本自身**（否则「改脚本 → 引用过期 → 再改脚本」⇒ 自指 churn，§55 循环依赖）。
 
@@ -234,3 +178,46 @@ last_ack: ASR-036
 - 本轮**不跑任何模型推理**（只做文件读写 + 音频切片 + 数值重算）⇒ **未申请共享机器锁**（检查时 `shared/MACHINE_LOCK` 不存在、`shared/*.tmp` 残留 0、`GIT_FREEZE` 不存在）。
 - 🔴 **未动 `live_caption/`**；🔴 **未改** `CORRECTIONS_ASR.md`；`last_ack` 保持 **ASR-036**。
 - 🔴 **未覆盖已交付产物**（v1 清单与 79 音频 md5 锚定）；⚠️ **WER 未跑**（交 reviewer）；**未开新实验**；**未打包**。
+
+
+### §67 无新纠偏（last_ack 保持 ASR-036）+ 只读复核抓出 3 类新真缺陷 + 加装 `asr099` v4 守卫（2026-10-31 07:20–07:40）
+
+> 🔴 **明细见 `status/asr/notes/asr_s67.md`**（ASR-036：长日志 / 逐条明细写 `notes/`，STATUS 只留结论、数字和链接）。
+
+**背景**：本轮**无新纠偏**（`CORRECTIONS_ASR.md` **12 493 B @ 2026-10-30 15:44:31**，md5 与 §63/§64/§65/§66 **逐字节一致**；最大编号 = **ASR-036** = `last_ack`）⇒ 按 **ASR-034** 继续做**只读复核**（不跑模型、不计时）⇒ 复核**不是空跑**：在本模块**已提交的产物内部**抓出 **3 类**新真缺陷（D1–D3）。
+
+**① 🔴 D1 —— 「关键数字」表的字段路径**不可解析**（§41 第 7 次复发，但这次是**路径错**）**
+
+- 🔴 **实测 11 处**（脚本只读扫描全文 `产物 → 字段路径` 引用：**4 处路径不存在** + **3 处指向对象** + 头部/表格各若干处「同上」跨产物误指）：读者按 STATUS 写的路径去查产物**会落空**。
+- 根因：§62 压缩时把「来源产物 / 字段」列**手工简化**过（省掉中间层级）⇒ **数值本身是对的**（实测全部一致），但**路径指不到那个值**。
+- ✅ 修法：每处路径按**实测**改成**可直接解析**的完整路径（数值**一律未改**）；新增 **`asr099` v4 守卫**逐条解析**全文**的 `产物 → 路径` 引用（不只查长小数）。
+- 🔴 **为什么 §66 的独立复核（`asr098`）没抓到**：它的 V13 只查「**长小数**能否在产物/notes 里**逐字找到**」⇒ **路径错但数值对** ⇒ 天然漏检（**判据无鉴别力**）。
+
+**② 🔴 D2 —— `asr093` 基线与 `--inject` 写**同一个**产物文件 ⇒ 反证证据被覆盖 ⇒ 查无实据**
+
+- 🔴 **实测**：`asr093_status_gate_v3.json` 顶层字段 = `['probe','status','passes','n_checks','defects_found','checks','generated_at']` ⇒ **没有** `n_counterproofs` / `n_counterproofs_caught` ⇒ §65 声称的「反证 **8/8** 全过」**在产物里查无实据**（STATUS §65 表格写 `asr093_status_gate_v3.json` → `n_counterproofs`，**该路径不存在**）。
+- 根因：`asr093` 的 `--inject` 分支与基线分支**都写** `asr093_status_gate_v3.json` ⇒ 跑完注入后基线产物被**覆盖**（§66 已在 `asr096` 上**修过同一类 bug** ⇒ **此处复发**）。
+- ✅ 修法：拆成**两个产物**（`asr093_status_gate_v3.json` 基线 / `asr093_status_gate_v3_inject.json` 注入）；基线产物**显式携带** `counterproof_evidence`（注入产物名 + 实测条数）⇒ 读者按路径查**不再落空**。
+
+**③ 🔴 D3 —— `asr096` 的扫描数只 print 不落盘 ⇒ 「123 个 JSON」无字段可溯源**
+
+- 🔴 **实测**：`asr096_legacy_consistency_gate.json` **无** `n_json_scanned` / `n_scanned` 字段（脚本 `scan_timing_valid()` 返回 `n_scanned` 但**只 print**）⇒ STATUS §66 表格「扫描产物 **123** 个 JSON」**无字段可溯源**。
+- ✅ 修法：显式落 `n_json_scanned` 字段；STATUS 路径改为该字段。
+
+**④ 加装 `asr099` v4 守卫（实测）**
+
+| 项 | 值 | 来源 |
+|---|---|---|
+| v4 守卫脚本 | `scripts/asr099_status_gate_v4.py`（**新增**） | — |
+| v4 基线守卫 | **ALL PASS**（**18** 项判据） | `asr099_status_gate_v4.json` → `status` / `n_checks` |
+| v4 注入反证 | **8/8** 全过 | `asr099_status_gate_v4_inject.json` → `n_counterproofs_caught` / `n_counterproofs` |
+| §67 独立复核 | **ALL PASS**（**23** 项判据） | `asr100_status_verify_s67.json` → `status` / `n_checks` |
+| §67 复核注入反证 | **9/9** 全过 | `asr100_status_verify_s67_inject.json` → `n_counterproofs_caught` / `n_counterproofs` |
+| asr093 反证（§67 D2 修后） | **8/8** 全过 | `asr093_status_gate_v3.json` → `counterproof_evidence.n_counterproofs` / `.n_counterproofs_caught` |
+| asr096 扫描数（§67 D3 修后） | **127** 个 JSON | `asr096_legacy_consistency_gate.json` → `n_json_scanned` |
+
+**⑤ 纪律**
+
+- 本轮**纯只读 + 文本守卫**（不跑任何模型推理、不计时）⇒ **未申请共享机器锁**（检查时 `shared/MACHINE_LOCK` 不存在、`shared/*.tmp` 残留 0、`GIT_FREEZE` 不存在）。
+- 🔴 **未动 `live_caption/`**；🔴 **未改 `CORRECTIONS_ASR.md`**；`last_ack` 保持 **ASR-036**。
+- 🔴 **未覆盖已交付产物**；⚠️ **WER 未跑**（交 reviewer）；**未开新实验**；**未打包**。

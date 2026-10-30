@@ -7663,3 +7663,60 @@ fbank 侧中心化，n_frames = 998；参考 = 原始 pyannote `resnet.forward` 
   复核期间 `shared/MACHINE_LOCK` 由 **TTS** 持有（`module: tts`）⇒ 本模块**不干扰**。
 - **未动** `live_caption/`；**未改** `CORRECTIONS_ASR.md`（纠偏文件由 reviewer 维护）。
 - `last_ack` 保持 **ASR-036**（无新纠偏）。
+
+
+## §64 无新纠偏（last_ack 保持 ASR-036）+ 只读复核抓出 5 个真缺陷 + 加固自指大小守卫（2026-10-30 21:18–22:20）
+
+> 🔴 **明细见 `status/asr/notes/asr_s64.md`**（ASR-036 定的规则：长日志 / 逐条明细 / 大表格写 `notes/`，STATUS 只留结论、数字和链接）。
+
+**背景**：本轮**无新纠偏**（`CORRECTIONS_ASR.md` 最大编号 = **ASR-036** = `last_ack`），按 **ASR-034**「last_ack 追平后只要还有未完成项就继续做，不要空转」⇒ 做**只读复核**（不跑模型、不计时）⇒ 复核**不是空跑**：在本模块**已提交的产物内部**抓出 **5 个真缺陷**（D1–D4 在 §63 的产物里；D5 在本轮 in-flight 脚本里）。
+
+**① 🔴 D1 —— §63 的「反证条数」与产物不符（§41 数字手抄，第 5 次复发）**
+
+- §63 写「反证 **5 条**」/「**5/5** 全过」；🔴 **实测** `asr086_selfref_size_gate.json` → `n_counterproofs` = **6**、`n_counterproofs_caught` = **6** ⇒ 不符。
+  根因：数字**抄自 `pre_fix` 快照**（§63 修 bug **前**；该快照实测 `n_counterproofs` = **5** / caught = **3**）⇒ 修完没重新读产物。
+- 🔴 **撤回 §63 的「反证 5 条」与「5/5 全过」两处表述**（§63 正文**逐字保留**，按「只追加新章节、不回头改旧章节」的规则在此撤回）。
+- ✅ 修法：唯一事实来源改为 `asr088_selfref_size_gate_v2.json` → `n_counterproofs` / `n_counterproofs_caught` = **9 / 9**。
+  ⚠️ 旧守卫只校验自指大小、**不校验「文中计数 == 产物计数」** ⇒ 这类缺陷只能靠**独立复核**抓。
+
+**② 🔴 D2 —— asr086 的 historical 豁免有盲区（漏检，注入实证）**
+
+- 根因：v1 判 historical 的条件是「**整句含历史标记**」⇒ 同子句里若既有历史标记、又有**错的当前断言** ⇒ 整句被豁免 ⇒ **漏检**（2 条注入样本 v1 均**没抓住**）。
+- ✅ 修法：新增 `scripts/asr088_selfref_size_gate_v2.py`（**asr086 v1 冻结**为 §63 的历史证据）—— 引入「**强当前指示词优先**」；**数值之后**的历史标记仍算历史 ⇒ 不误伤。
+- ✅ **鉴别力实证**：同一注入 v1 `v1_caught=false` ×2、v2 `v2_caught=true` ×2 ⇒ 产物字段 `blindspot_proof` ⇒ **证明修复有鉴别力**（不是恒真）。
+- ✅ **收紧未引入误伤**：v1/v2 分类**逐处一致**（`baseline_v1_comparison.n_kind_diffs` = **0**）。
+
+**③ 🔴 D3 —— §63 的独立复核脚本依赖一个**不存在**的路径 ⇒ 复核不可复现**
+
+- `_tmp_verify_status_s63.py` 读 `status/asr/STATUS_ASR.md.clean_base_asr087` ⇒ 该路径**不存在**（干净起点实际在 `qwen3asr_06b/results/pyannote_seg/`）⇒ 干净环境重跑**必然 FAIL**（**实测** FAIL 项 = 「干净起点存在」）⇒ §63 的「独立复核全 PASS」**不可复现**。
+- ✅ 修法：§64 的独立复核脚本**自己**从 `qwen3asr_06b` 的只读副本**生成**干净起点（不手工造、不依赖上一轮的临时文件），并新增 **D1 专项**（文中反证计数 ↔ 产物字段逐处比对）。
+
+**④ 🔴 D4 —— §63 的章节长度违反 ASR-036 自己定的写作规则**
+
+- ASR-036 明文「每个新章节 **≤ 60 行**」；🔴 **实测 §63 = 70 行**（口径：正文行数，不含尾部空段）⇒ 超限 10 行。
+- ✅ 修法：§64 起明细进 `status/asr/notes/asr_s64.md` ⇒ §64 ≤ 60 行；写入脚本**自检**含「每个新章节 ≤ 60 行」⇒ 今后由机器拦住。
+  ⚠️ §63 的 71 行属**已提交旧章节** ⇒ 按「不回头改旧章节」**不删不改**，事实记于 notes。
+
+**⑤ 🔴 D5 —— 本轮 in-flight 的写入脚本有 2 个真 bug（干跑抓出，未污染真实 STATUS）**
+
+- ⚠️ §64 的写入脚本 `asr089_status_write_s64.py` 在**上一会话中断时从未执行过** ⇒ 「写好了 ≠ 能跑」（§40 铁律）⇒ 本轮**先干跑**（把 STATUS 路径改到沙箱副本）⇒ 抓出 **2 个 bug**：
+  ① **裸 LF**：§64 模板内部是纯 LF ⇒ 拼进正文后**裸 LF ≠ 0** ⇒ 被自检拦下；
+  ② **§64 = 62 行 > 60**（ASR-036 上限）⇒ 同样被自检拦下。
+- ✅ 修法：① 模板插入前**归一为 CRLF**；② §64 正文**压到 ≤ 60 行**（明细搬 `notes/`）⇒ 干跑转绿后才写真实 STATUS。
+- ✅ 干跑的**自检拦下即还原**路径**实测有效**：真实 STATUS 被写坏后**自动从备份还原**，md5 复核 == 改前值。
+
+**⑥ 守卫加固产物（实测）**
+
+| 项 | 值 | 来源 |
+|---|---|---|
+| v2 守卫脚本 | `scripts/asr088_selfref_size_gate_v2.py`（**新增**；v1 冻结不动） | — |
+| v2 反证 | **9/9** 全过 | `asr088_selfref_size_gate_v2.json` → `all_counterproofs_caught` |
+| 盲区实证 | v1 `v1_caught=false` ×2、v2 `v2_caught=true` ×2 | 同上 → `blindspot_proof.inject_a.v1_caught` / `.inject_a.v2_caught` / `.inject_b.v1_caught` / `.inject_b.v2_caught` |
+| v1 产物（冻结） | `results/pyannote_seg/asr086_selfref_size_gate.json`（6 654 B @ 2026-10-30 21:31:04） | — |
+| 修复前快照（冻结） | `results/pyannote_seg/asr086_selfref_size_gate_pre_fix.json`（3 896 B @ 2026-10-30 20:13:21） | — |
+
+**⑦ 纪律**
+
+- 本轮**纯只读 + 文本守卫**（不跑模型、不计时）⇒ **未申请共享机器锁**；复核期间 `shared/MACHINE_LOCK` 由 **TTS** 持有 ⇒ 本模块**不干扰**。
+- **未动** `live_caption/`；**未改** `CORRECTIONS_ASR.md`（reviewer 维护）；`last_ack` 保持 **ASR-036**（ASR-036 在索引表里仍是「进行中」——**该文件由 reviewer 维护**，本模块不代改）。
+- ⚠️ **WER 未跑**（交 reviewer）；**未开新实验**。
