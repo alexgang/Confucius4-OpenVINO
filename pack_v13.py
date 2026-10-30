@@ -859,7 +859,43 @@ def _run(args):
             pass
         print(f'!! 校验阶段异常（已保留原有 zip 不变）: {type(e).__name__}: {e}')
         raise
-    return _finish(ZIP, tmp_zip, ok)
+    rc = _finish(ZIP, tmp_zip, ok)
+    # 🔴🔴🔴 APP-045②：**打包成功后更新桌面快捷方式**。
+    #   ⇒ 只有**打包成功**才走这一步（校验失败 ⇒ 旧包不动 ⇒ 入口也不动）。
+    #   ⇒ 快捷方式模块**自带真机验收门**（包目录缺 `ACCEPTED.json`
+    #      ⇒ 不指过去）⇒ 「还没通过真机验收的版本不要指过去」。
+    if rc == 0:
+        _update_shortcut_after_pack(PKG, args)
+    return rc
+
+
+def _update_shortcut_after_pack(PKG, args):
+    """🔴🔴🔴 APP-045②：打包成功后把桌面快捷方式指向新版本。
+
+    🔴 **失败不影响打包结论**：快捷方式更新失败**只告警**，
+      不把已成功的打包判成 FAIL（交付物本身已就绪）。
+    """
+    try:
+        import shortcut_update
+    except Exception as e:
+        print('[shortcut] ⚠️ 无法加载 shortcut_update 模块：%s' % e)
+        return None
+    # 版本号：从前缀/目录名里取（如 `Confucius4_LiveCaption_v1.12`）
+    ver = ''
+    base = os.path.basename(PKG.rstrip('\\/'))
+    m = re.search(r'_v(\d+\.\d+)$', base)
+    if m:
+        ver = m.group(1)
+    if not ver:
+        ver = getattr(args, 'version', None) or ''
+    try:
+        r = shortcut_update.update_desktop_shortcut(
+            PKG, ver, dry_run=bool(getattr(args, 'dry_run', False)))
+        print('[shortcut] 结论：%s' % r.get('reason', ''))
+        return r
+    except Exception as e:
+        print('[shortcut] ⚠️ 更新失败（不影响打包结论）：%r' % e)
+        return None
 
 
 def _verify_and_report(ZIP, args, PKG, PREFIX):

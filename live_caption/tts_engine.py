@@ -695,6 +695,20 @@ def _attach_speaker_library(eng, on_log=print) -> bool:
     库目录放 `%LOCALAPPDATA%\\Confucius4LiveCaption\\tts_speakers`
     （**不写进客户包目录**，同编译缓存的纪律）。
     失败只告警不抛 —— 内置音色是可选路径，参考 wav（spkonly）才是主路径。
+
+    🔴🔴🔴 APP-045④：**不再把内置音色复制到用户目录**。
+      旧实现 `SpeakerLibrary(lib_dir, copy_builtins=True)` 会
+      **自动把 babelvox 的示例音色（cindy/lou/phil/steve）复制到
+      `%LOCALAPPDATA%\\...\\tts_speakers`** ⇒
+        ① 用户目录里**凭空多出 4 个第三方音色**（用户从没要求过）
+        ② reviewer APP-045④ 要求「确认来源和许可」—— 实测确认：
+           它们是 babelvox 自带的**示例**音色
+           （`babelvox/data/speakers/`，tags 含 `example`，
+             `source_audio` 指向 babelvox 仓库的 `tools/reference_audio/`）
+        ③ APP-018② 已要求「包里不要带不用的第三方数据」
+           （zip 层已排除，实测 0 命中 ✅）⇒ **运行时也不该复制**
+      ⇒ 现在改成：**用户目录只放用户自建音色**（`copy_builtins=False`）
+        ＋ 内置音色走**只读回退**（`_SpeakerLibraryWithBuiltinFallback`）。
     """
     try:
         from babelvox.speakers import SpeakerLibrary
@@ -704,7 +718,12 @@ def _attach_speaker_library(eng, on_log=print) -> bool:
         return False
     lib_dir = _cache_dir('tts_speakers')
     try:
-        eng.speaker_library = SpeakerLibrary(lib_dir, copy_builtins=True)
+        # 🔴🔴🔴 APP-045④：`copy_builtins=False`
+        #   ⇒ **不再把 babelvox 示例音色复制到用户目录**
+        #   ⇒ 用户目录只放用户自建音色
+        eng.speaker_library = _SpeakerLibraryWithBuiltinFallback(
+            SpeakerLibrary(lib_dir, copy_builtins=False),
+            on_log=on_log)
     except Exception as e:
         on_log(f'[tts_engine] ⚠️ SpeakerLibrary 初始化失败（{e}）'
                f' ⇒ 内置音色不可用')
@@ -714,8 +733,90 @@ def _attach_speaker_library(eng, on_log=print) -> bool:
     except Exception:
         names = []
     on_log(f'[tts_engine] SpeakerLibrary 就绪：{lib_dir}'
-           f'（{len(names)} 个音色：{", ".join(names) if names else "无"}）')
+           f'（{len(names)} 个音色：{", ".join(names) if names else "无"}；'
+           f'内置音色走**只读回退**，**不复制**到用户目录）')
     return True
+
+
+class _SpeakerLibraryWithBuiltinFallback:
+    """🔴🔴🔴 APP-045④：音色库包装 —— **用户目录优先，内置只读回退**。
+
+    🔴 **为什么需要它**：
+      `SpeakerLibrary(lib_dir, copy_builtins=True)` 会**把 babelvox 的示例音色
+      复制到用户目录** ⇒ 用户目录凭空多出 4 个第三方音色。
+      改成 `copy_builtins=False` 后，内置音色就查不到了 ⇒
+      但 `--voice cindy` 这条 CLI 路径仍应可用（只是**不复制**）。
+
+    ⇒ 本包装：**接口与 `SpeakerLibrary` 完全一致**
+      （`load` / `list_profiles` / `save` / `delete` / `search`）
+      ⇒ babelvox 内部 `self.speaker_library.load(speaker)` **不用改**。
+
+    🔴 **回退是只读的**：内置目录里的文件**只读不写、不复制**。
+    """
+
+    def __init__(self, inner, on_log=print):
+        self._inner = inner
+        self._on_log = on_log
+        self._builtin = None
+        try:
+            import babelvox.speakers as _bs
+            base = getattr(_bs, 'BUILTIN_SPEAKERS_DIR', None)
+            if base and os.path.isdir(base):
+                from babelvox.speakers import SpeakerLibrary
+                # 🔴 只读：指向内置目录，**不复制**（copy_builtins=False）
+                self._builtin = SpeakerLibrary(base, copy_builtins=False)
+        except Exception as e:
+            self._on_log(f'[tts_engine] ⚠️ 内置音色只读回退不可用：{e}')
+
+    # ── 透传 ────────────────────────────────────────────────────────
+    def load(self, name):
+        """先查用户目录，再回退到**内置目录（只读）**。"""
+        try:
+            return self._inner.load(name)
+        except Exception:
+            if self._builtin is not None:
+                return self._builtin.load(name)
+            raise
+
+    def list_profiles(self):
+        """用户目录的音色 + 内置目录的音色（**去重**，用户优先）。"""
+        out = []
+        seen = set()
+        for src in (self._inner, self._builtin):
+            if src is None:
+                continue
+            try:
+                for p in src.list_profiles():
+                    n = p.get('name')
+                    if n and n not in seen:
+                        seen.add(n)
+                        out.append(p)
+            except Exception:
+                continue
+        return out
+
+    def save(self, profile):
+        return self._inner.save(profile)
+
+    def delete(self, name):
+        return self._inner.delete(name)
+
+    def search(self, language=None, gender=None, tag=None):
+        """合并两个目录的搜索结果（用户目录优先）。"""
+        out = []
+        seen = set()
+        for src in (self._inner, self._builtin):
+            if src is None:
+                continue
+            try:
+                for p in src.search(language=language, gender=gender, tag=tag):
+                    n = p.get('name')
+                    if n and n not in seen:
+                        seen.add(n)
+                        out.append(p)
+            except Exception:
+                continue
+        return out
 
 
 def _cp_ir_path(eng, name: str) -> Optional[str]:
@@ -895,6 +996,129 @@ def speaker_embedding(eng, ref_wav: Optional[str] = None,
         return None
     spk = np.asarray(spk, dtype=np.float32).reshape(1, -1)
     on_log(f'[tts_engine] speaker embedding 就绪：{wav} -> {spk.shape}')
+    return spk
+
+
+# ══════════════════════════════════════════════════════════════════════
+# 🔴🔴🔴 APP-045①：**克隆音色纯内存化**（不再落临时 wav）
+# ══════════════════════════════════════════════════════════════════════
+#
+# 🔴 **为什么必须改**（reviewer APP-045 原文）：
+#   「用户 10:49 那次会话里，『音色 follow_speaker』每隔约 20 s 就把一段
+#     clone_*.wav 写到 %TEMP%\confucius4_clone\ 再提取 embedding。
+#     这正是用户说的『持续采样』，而且**克隆音频落了盘**，
+#     违反『克隆只放内存』的规则。」
+#
+# 🔴 **根因**：babelvox 的 `extract_speaker_embedding(audio_path)`
+#   **只接受路径**（pipeline.py:384 第一行就是 `os.path.isfile`）
+#   ⇒ 旧实现只能先 `sf.write()` 落一个临时 wav，用完再 unlink。
+#   ⇒ **隐私违规**：用户的声纹曾**明文躺在磁盘上**。
+#
+# 🔴🔴 **解法（本函数）**：**完全复刻** babelvox 内部的计算步骤，
+#   但**把「读文件」换成「收 numpy 数组」** ⇒ **全程不碰磁盘**：
+#     ① `librosa.resample(pcm, orig_sr=16000, target_sr=24000)`
+#        ← 等价于 `librosa.load(path, sr=24000)` 里的重采样
+#     ② `mel_spectrogram_np(audio)`（babelvox 自己的纯 numpy 实现）
+#     ③ `eng.speaker_enc({"mel_spectrogram": mel})`
+#   ⚠️ **必须与 babelvox 逐参数对齐**（sr=24000 / n_fft=1024 / hop=256
+#     / win=1024 / n_mels=128 / fmin=0 / fmax=12000 / hann / center=False
+#     / reflect-pad / log(clip(·,1e-5))）⇒ 任何一项漂移都会让音色失真。
+#
+# 🔴 **判据**：本函数与 `eng.extract_speaker_embedding(path)` 对**同一段音频**
+#   算出的 embedding 必须**数值一致**（见 results/app/app161_*）。
+#   ⇒ 不能只靠「代码写了」就算完成。
+#
+# 🔴 **NPU 分支**：`eng.is_npu` 时必须**pad 到固定帧数**
+#   （`eng.max_speaker_frames`）⇒ 与 babelvox 完全一致。
+#
+# ⚠️ **不新增协议**：只在本模块内部加一个函数，不改 worker↔engine 接口。
+# ══════════════════════════════════════════════════════════════════════
+
+def _mel_spectrogram_np_24000(audio):
+    """复刻 babelvox `pipeline.mel_spectrogram_np`（纯 numpy，**不落盘**）。
+
+    🔴 **参数必须与 babelvox 逐字对齐**（babelvox/pipeline.py:82）：
+       sr=24000, n_fft=1024, hop_length=256, win_length=1024,
+       n_mels=128, fmin=0, fmax=12000
+    ⚠️ 任何一项漂移 ⇒ speaker embedding 失真 ⇒ 音色不对。
+    """
+    import numpy as np
+    import librosa
+    from librosa.filters import mel as librosa_mel_fn
+
+    sr, n_fft, hop_length = 24000, 1024, 256
+    win_length, n_mels, fmin, fmax = 1024, 128, 0, 12000
+
+    padding = (n_fft - hop_length) // 2
+    audio_padded = np.pad(audio, (padding, padding), mode='reflect')
+
+    stft = librosa.stft(audio_padded, n_fft=n_fft, hop_length=hop_length,
+                        win_length=win_length, window='hann', center=False)
+    spec = np.sqrt(np.abs(stft) ** 2 + 1e-9)
+
+    mel_basis = librosa_mel_fn(sr=sr, n_fft=n_fft, n_mels=n_mels,
+                               fmin=fmin, fmax=fmax)
+    mel_spec = mel_basis @ spec
+    mel_spec = np.log(np.clip(mel_spec, a_min=1e-5, a_max=None))
+    return mel_spec  # (n_mels, T)
+
+
+def speaker_embedding_from_pcm(eng, pcm, sr: int = 16000,
+                               on_log=print) -> Optional['np.ndarray']:
+    """**纯内存**计算 speaker embedding（APP-045①）—— **不写任何临时文件**。
+
+    🔴 **这是 APP-045① 的落点**：以前必须先落 `%TEMP%\\confucius4_clone\\`
+       的临时 wav（**用户声纹明文落盘**）⇒ 现在**全程在内存**。
+
+    参数：
+      - `eng`   ：babelvox `BabelVox` 实例（需有 `speaker_enc`）
+      - `pcm`   ：float32/64 单声道 numpy 数组（**原始采样率 `sr`**）
+      - `sr`    ：`pcm` 的采样率（采集侧是 16000）
+
+    返回：shape `(1, 1024)` 的 numpy 数组；失败返回 `None`（**不抛异常**）。
+    """
+    import numpy as np
+
+    try:
+        pcm = np.asarray(pcm, dtype=np.float32).reshape(-1)
+    except Exception as e:
+        on_log(f'[tts_engine] ⚠️ 克隆 PCM 形状非法：{e}')
+        return None
+    if pcm.size == 0:
+        on_log('[tts_engine] ⚠️ 克隆 PCM 为空 ⇒ 无法提取 embedding')
+        return None
+
+    try:
+        import librosa
+        # 🔴 等价于 `librosa.load(path, sr=24000)` 里的重采样环节
+        if sr != 24000:
+            audio = librosa.resample(pcm, orig_sr=sr, target_sr=24000)
+        else:
+            audio = pcm
+        mel = _mel_spectrogram_np_24000(audio)          # (128, T)
+        mel_np = mel.T[np.newaxis, :, :].astype(np.float32)   # (1, T, 128)
+    except Exception as e:
+        on_log(f'[tts_engine] ⚠️ 克隆音频 mel 计算失败：{e}')
+        return None
+
+    try:
+        if getattr(eng, 'is_npu', False):
+            # 🔴 NPU 固定帧 ⇒ 必须 pad（与 babelvox 完全一致）
+            mel_frames = mel_np.shape[1]
+            max_frames = int(getattr(eng, 'max_speaker_frames', mel_frames))
+            padded = np.zeros((1, max_frames, 128), dtype=np.float32)
+            n = min(mel_frames, max_frames)
+            padded[:, :n, :] = mel_np[:, :n, :]
+            result = eng.speaker_enc({"mel_spectrogram": padded})
+        else:
+            result = eng.speaker_enc({"mel_spectrogram": mel_np})
+    except Exception as e:
+        on_log(f'[tts_engine] ⚠️ 克隆 speaker encoder 失败：{e}')
+        return None
+
+    spk = np.asarray(result, dtype=np.float32).reshape(1, -1)
+    on_log(f'[tts_engine] speaker embedding 就绪（内存直算，无临时文件）'
+           f' -> {spk.shape}')
     return spk
 
 

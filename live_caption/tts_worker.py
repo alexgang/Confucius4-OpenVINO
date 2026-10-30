@@ -3552,16 +3552,15 @@ class TTSWorker:
         if eng is not None and not getattr(eng, 'USES_REF_AUDIO', False):
             try:
                 import tts_engine
-                # ⚠️ babelvox 的 `extract_speaker_embedding` 只接受**路径**
-                #   ⇒ 必须先落一个临时 wav（**用完即删**）。
-                tmp = self._clone_tmp_wav(pcm)
-                try:
-                    spk = tts_engine.speaker_embedding(eng, tmp,
-                                                       on_log=log)
-                finally:
-                    self._safe_unlink(tmp)
+                # 🔴🔴🔴 APP-045①：**纯内存**提取 embedding（**不落盘**）。
+                #   旧实现必须先写 `%TEMP%\confucius4_clone\clone_*.wav`
+                #   （babelvox 的 `extract_speaker_embedding` 只接受路径）
+                #   ⇒ **用户声纹明文落盘** ⇒ 违反「克隆只放内存」。
+                #   ⇒ 现在把 numpy 数组直接送 speaker encoder。
+                spk = tts_engine.speaker_embedding_from_pcm(
+                    eng, pcm, sr=16000, on_log=log)
                 if spk is None:
-                    raise RuntimeError('speaker_embedding 返回 None')
+                    raise RuntimeError('speaker_embedding_from_pcm 返回 None')
                 self.speaker_embed = spk
                 self.speaker_name = None
                 self._clone_embed = spk
@@ -3585,6 +3584,11 @@ class TTSWorker:
                 return False
 
         # ── 路线 2：CUDA 边车 —— 换参考音频 ────────────────────────
+        # 🔴🔴🔴 APP-045①：**这条路线仍需落临时文件**（边车库只接受路径），
+        #   但 **交付包内无 torch / 无 faster_qwen3_tts**
+        #   ⇒ 客户机上**根本不可达** ⇒ 用户实测走的是上面的 BabelVox 路线
+        #   ⇒ **用户反馈的「落盘」已在主路径消除**。
+        #   ⚠️ 若将来把 torch 打进包，**必须**同步把这条路径改成内存传输。
         if eng is not None and getattr(eng, 'USES_REF_AUDIO', False):
             try:
                 tmp = self._clone_tmp_wav(pcm)
@@ -3670,13 +3674,12 @@ class TTSWorker:
         if not getattr(eng, 'USES_REF_AUDIO', False):
             try:
                 import tts_engine
-                tmp = self._clone_tmp_wav(pcm)
-                try:
-                    vec = tts_engine.speaker_embedding(eng, tmp, on_log=log)
-                finally:
-                    self._safe_unlink(tmp)
+                # 🔴🔴🔴 APP-045①：**纯内存**（不落盘）—— 这正是用户反馈的
+                #   「follow_speaker 每隔约 20 s 写一个 clone_*.wav」的那条路。
+                vec = tts_engine.speaker_embedding_from_pcm(
+                    eng, pcm, sr=16000, on_log=log)
                 if vec is None:
-                    raise RuntimeError('speaker_embedding 返回 None')
+                    raise RuntimeError('speaker_embedding_from_pcm 返回 None')
                 with self._spk_voice_lock:
                     self._spk_voices[spk] = dict(vec=vec, ref_path=None)
                 log(f'[tts_worker] ✅ 说话人 {spk} 的音色已登记'
@@ -3691,6 +3694,8 @@ class TTSWorker:
                 return False
 
         # ── CUDA 边车路线：参考音频路径 ─────────────────────────
+        # 🔴🔴🔴 APP-045①：同上 —— **仅边车路线**需落临时文件；
+        #   **交付包内无 torch ⇒ 客户机不可达** ⇒ 用户反馈的落盘已消除。
         try:
             tmp = self._clone_tmp_wav(pcm)
             with self._spk_voice_lock:
@@ -3821,15 +3826,24 @@ class TTSWorker:
             + (f'（原因：{why}）' if why else ''))
 
     def _clone_tmp_wav(self, pcm):
-        """把克隆源 PCM 落成**临时 wav**（**用完即删**）。
+        """把克隆源 PCM 落成**临时 wav**（**仅 CUDA 边车路线**，用完即删）。
 
-        🔴 **为什么必须落文件**：babelvox 的 `extract_speaker_embedding(audio_path)`
-        与 `generate_voice_clone_streaming(ref_audio=...)` **都只接受路径**。
-        🔴 **隐私**：这是**临时文件** ⇒
-        - 目录用 `tempfile.gettempdir()`（**不在客户包目录里**）
-        - 文件名带进程 id ⇒ 不会互相覆盖
-        - **会话结束即删除**（见 `close()` / `__del__`）
-        - ⇒ **绝不会**进客户包（打包闸门另有一道）
+        🔴🔴🔴 APP-045①：**主路径（BabelVox）已完全不再调用本函数**
+          （改为 `tts_engine.speaker_embedding_from_pcm()` **纯内存**计算）。
+          ⇒ 用户实测反馈的「follow_speaker 每隔 20 s 写一个 clone_*.wav」
+            **已从根上消除**（那条路就是 BabelVox 路线）。
+
+        🔴 **为什么这里还必须落文件**：
+          `faster_qwen3_tts.generate_voice_clone_streaming(ref_audio=...)`
+          **只接受路径**（且该库**不在交付包内** ⇒ 包内无 torch ⇒
+          这条路线在客户机上**不可达**）⇒ 保留仅为开发期 CUDA 调试。
+
+        🔴 **隐私加固**（APP-045①）：
+          - 目录用 `tempfile.gettempdir()`（**不在客户包目录里**）
+          - 文件名带进程 id ⇒ 不会互相覆盖
+          - **会话结束即删除**（见 `close()` / `__del__`）
+          - 🆕 **目录本身在清理完后一并删掉** ⇒ 不留空目录
+          - ⇒ **绝不会**进客户包（打包闸门另有一道）
         """
         import tempfile
         import soundfile as sf
@@ -3850,11 +3864,23 @@ class TTSWorker:
             pass
 
     def _cleanup_clone_files(self):
-        """🔴 APP-027⑤：**删除所有克隆临时文件**（会话结束 / 关闭时）。"""
+        """🔴 APP-027⑤：**删除所有克隆临时文件**（会话结束 / 关闭时）。
+
+        🔴🔴🔴 APP-045①：**连目录一起删** ⇒ 磁盘上**不留任何痕迹**。
+        （旧实现只删文件 ⇒ `%TEMP%\\confucius4_clone\\` 空目录常驻。）
+        """
         for p in list(self._clone_tmp_paths):
             self._safe_unlink(p)
         try:
             self._clone_tmp_paths.clear()
+        except Exception:
+            pass
+        # 🔴 APP-045①：删掉空目录（只删自己这个固定名字的目录）
+        try:
+            import tempfile
+            d = os.path.join(tempfile.gettempdir(), 'confucius4_clone')
+            if os.path.isdir(d) and not os.listdir(d):
+                os.rmdir(d)
         except Exception:
             pass
 

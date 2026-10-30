@@ -1,0 +1,59 @@
+{
+  "schema": "app.app045.clone_inmemory_equivalence.v1",
+  "pass_": 10,
+  "fail": 0,
+  "verdict": "PASS",
+  "falsify": false,
+  "checks": [
+    {
+      "name": "判据②a 内存 resample 与 float32 无损基准逐位相同",
+      "ok": true,
+      "detail": "max|Δ|=0.000e+00 len(120000 vs 120000)"
+    },
+    {
+      "name": "判据②b 与旧 PCM_16 落盘路径差异 ≤ 量化误差量级(1e-4)",
+      "ok": true,
+      "detail": "max|Δ|=4.101e-05（PCM_16 量化误差 ⇒ 内存路径更精确）"
+    },
+    {
+      "name": "判据①a mel 形状一致",
+      "ok": true,
+      "detail": "ref=(128, 468) new=(128, 468)"
+    },
+    {
+      "name": "判据①b mel 逐位相同（max|Δ| == 0）",
+      "ok": true,
+      "detail": "max|Δ|=0.000e+00"
+    },
+    {
+      "name": "判据③a 端到端入参形状一致",
+      "ok": true,
+      "detail": "old=(1, 468, 128) new=(1, 468, 128)"
+    },
+    {
+      "name": "判据③b 端到端入参逐位相同（max|Δ| == 0）",
+      "ok": true,
+      "detail": "max|Δ|=0.000e+00"
+    },
+    {
+      "name": "判据③c NPU 分支已 pad 到固定帧数",
+      "ok": true,
+      "detail": "shape=(1, 64, 128)（期望 (1, 64, 128)）"
+    },
+    {
+      "name": "判据④a 新函数不产生任何临时文件",
+      "ok": true,
+      "detail": "新增=[] 目录=C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\confucius4_clone"
+    },
+    {
+      "name": "判据④b 临时目录内无任何 clone_*.wav 残留",
+      "ok": true,
+      "detail": "残留 wav=[]"
+    },
+    {
+      "name": "判据④c 终态：临时目录内无任何 wav 残留",
+      "ok": true,
+      "detail": "终态残留=[] 目录=C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\confucius4_clone"
+    }
+  ]
+}

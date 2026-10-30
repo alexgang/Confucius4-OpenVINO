@@ -1,0 +1,59 @@
+{
+  "schema": "app.app045.shortcut_update.v1",
+  "pass_": 10,
+  "fail": 0,
+  "verdict": "PASS",
+  "falsify": false,
+  "checks": [
+    {
+      "name": "判据⑥a 未验收 ⇒ 不更新（保持原样）",
+      "ok": true,
+      "detail": "ret.ok=False 桌面=['Confucius4 实时字幕.lnk']"
+    },
+    {
+      "name": "判据⑥b 已验收 ⇒ 更新成功",
+      "ok": true,
+      "detail": "reason='已更新桌面快捷方式：C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\app163_sandbox_dp2th9o6\\\\Desktop\\\\Confucius4 实时字幕 v1.13.lnk ⇒ C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\app163_sandbox_dp2th9o6\\\\Confucius4_LiveCaption_v1.13\\\\Start_LiveCaption.bat（清理旧 1 个）'"
+    },
+    {
+      "name": "判据② 只保留一个快捷方式",
+      "ok": true,
+      "detail": "桌面=['Confucius4 实时字幕 v1.13.lnk']"
+    },
+    {
+      "name": "判据③ 名称带版本号",
+      "ok": true,
+      "detail": "实际=['Confucius4 实时字幕 v1.13.lnk']"
+    },
+    {
+      "name": "判据④ 旧的无版本号快捷方式已删除",
+      "ok": true,
+      "detail": "legacy 存在=False"
+    },
+    {
+      "name": "判据①a .lnk 头部长度正确（76 字节）",
+      "ok": true,
+      "detail": "HeaderSize=76 实际字节=794"
+    },
+    {
+      "name": "判据①b 独立解析能还原目标路径",
+      "ok": true,
+      "detail": "还原目标='C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\app163_sandbox_dp2th9o6\\\\Confucius4_LiveCaption_v1.13\\\\Start_LiveCaption.bat'"
+    },
+    {
+      "name": "判据①c 名称串正确",
+      "ok": true,
+      "detail": "name='Confucius4 实时字幕 v1.13'"
+    },
+    {
+      "name": "判据①d lnk_target_of 反解一致",
+      "ok": true,
+      "detail": "反解='C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\app163_sandbox_dp2th9o6\\\\Confucius4_LiveCaption_v1.13\\\\Start_LiveCaption.bat' 期望='C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\app163_sandbox_dp2th9o6\\\\Confucius4_LiveCaption_v1.13\\\\Start_LiveCaption.bat'"
+    },
+    {
+      "name": "判据⑤ 幂等（重复执行不改内容）",
+      "ok": true,
+      "detail": "reason='已指向当前版本（幂等，无需重建）' 内容相同=True"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "schema": "app.app045.speakerlib_no_copy.v1",
+  "pass_": 5,
+  "fail": 0,
+  "verdict": "PASS",
+  "falsify": false,
+  "checks": [
+    {
+      "name": "① _attach_speaker_library 返回 True",
+      "ok": true,
+      "detail": "ret=True"
+    },
+    {
+      "name": "判据① 用户目录未被写入任何内置音色文件",
+      "ok": true,
+      "detail": "用户目录=C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app162_sandbox_x2jkifuh\\tts_speakers 内容=[]"
+    },
+    {
+      "name": "判据② 内置音色 cindy 仍可按名加载（只读回退）",
+      "ok": true,
+      "detail": "embedding shape=(1, 1024)"
+    },
+    {
+      "name": "判据③ list_profiles 仍含 4 个内置音色",
+      "ok": true,
+      "detail": "names=['cindy', 'lou', 'phil', 'steve']"
+    },
+    {
+      "name": "判据④ 用户自建音色可存可取（未被本次改动破坏）",
+      "ok": true,
+      "detail": "ok"
+    }
+  ]
+}
