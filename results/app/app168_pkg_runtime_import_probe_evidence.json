@@ -1,0 +1,118 @@
+{
+ "script": "app168_pkg_runtime_import_probe.py",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12",
+ "pkg_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12\\app",
+ "pkg_python": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12\\python\\python.exe",
+ "pkg_python_sha256": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a",
+ "n_pass": 21,
+ "n_fail": 0,
+ "verdict": "PASS",
+ "detail": [
+  {
+   "name": "R1 客户包自带 python 存在",
+   "ok": true,
+   "msg": "exe=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12\\python\\python.exe"
+  },
+  {
+   "name": "R1b 包内 python 版本可读且 >= 3.10",
+   "ok": true,
+   "msg": "ver=3.12.10"
+  },
+  {
+   "name": "R2 包内 gui_status.py 可 import",
+   "ok": true,
+   "msg": "file=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12\\app\\gui_status.py"
+  },
+  {
+   "name": "R2b gui_status.build_sections() 返回 3 个区（ASR/翻译/TTS）",
+   "ok": true,
+   "msg": "n=3 keys=['asr', 'mt', 'tts']"
+  },
+  {
+   "name": "R2c gui_status 三区 render() 均可执行（纯逻辑，不碰 tkinter）",
+   "ok": true,
+   "msg": ""
+  },
+  {
+   "name": "R3 包内 live_caption_app.py 可 import",
+   "ok": true,
+   "msg": "file=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12\\app\\live_caption_app.py"
+  },
+  {
+   "name": "R3b live_caption_app.App 存在",
+   "ok": true,
+   "msg": ""
+  },
+  {
+   "name": "R4 包内 asr_spk/asr052_speaker_tracker_api 真实加载路径可 import",
+   "ok": true,
+   "msg": "file=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12\\app\\asr_spk\\asr052_speaker_tracker_api.py"
+  },
+  {
+   "name": "R4 包内 asr_spk/asr052_spk_runtime 真实加载路径可 import",
+   "ok": true,
+   "msg": "file=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12\\app\\asr_spk\\asr052_spk_runtime.py"
+  },
+  {
+   "name": "R4 包内 asr_spk/asr_thread_defaults 真实加载路径可 import",
+   "ok": true,
+   "msg": "file=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12\\app\\asr_spk\\asr_thread_defaults.py"
+  },
+  {
+   "name": "R5 EMBED_RANGE_LO/HI == [100, 2048]（ASR-031 §11.2）",
+   "ok": true,
+   "msg": "LO=100 HI=2048"
+  },
+  {
+   "name": "R6 THREAD_VARS 含 OMP/MKL/OPENBLAS（APP-043 线程限制）",
+   "ok": true,
+   "msg": "THREAD_VARS=['MKL_NUM_THREADS', 'NUMEXPR_NUM_THREADS', 'OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'VECLIB_MAXIMUM_THREADS']"
+  },
+  {
+   "name": "R7 speaker_assets.resolve() ⇒ ok=true",
+   "ok": true,
+   "msg": "reason="
+  },
+  {
+   "name": "R7b 包内 wespeaker OV IR 目录真实存在（APP-044）",
+   "ok": true,
+   "msg": "wes_ir=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12\\models\\spk\\wespeaker-resnet34-fp16"
+  },
+  {
+   "name": "R7c 包内 pyannote/segmentation-3.0 OV IR 目录真实存在（APP-044）",
+   "ok": true,
+   "msg": "seg_ir=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12\\models\\spk\\pyannote_seg_3_0/fp16"
+  },
+  {
+   "name": "R7d 包内 asr_spk/ 接口代码目录真实存在",
+   "ok": true,
+   "msg": "scripts=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12\\app\\asr_spk"
+  },
+  {
+   "name": "R8 包内 torch/qwen_asr 存在性（**只记录事实**，§46.5 另议）",
+   "ok": true,
+   "msg": "torch=ModuleNotFoundError qwen_asr=ModuleNotFoundError"
+  },
+  {
+   "name": "R9 包内 python 的 sys.path 不含包外路径（无宿主 PYTHONPATH 污染）",
+   "ok": true,
+   "msg": "foreign=[]"
+  },
+  {
+   "name": "B3 反证：注入包外 PYTHONPATH ⇒ R9 必须 FAIL（证明 R9 不是恒真）",
+   "ok": true,
+   "msg": "foreign=['C:\\\\Users\\\\Trekker-PTL\\\\confucius4-openvino\\\\results\\\\app', 'C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\app168_shim_sjs2h4ov']"
+  },
+  {
+   "name": "B1 反证：不在 sys.path 时 asr052_speaker_tracker_api 必须 ImportError（证明 R4 不是恒真）",
+   "ok": true,
+   "msg": "import_ok=False err=ModuleNotFoundError: No module named 'asr052_speaker_tracker_api'"
+  },
+  {
+   "name": "B2 反证：影子目录（无 models/spk 资产）⇒ resolve().ok 必须 false（证明 R7 不是恒真，且**真包零改动**）",
+   "ok": true,
+   "msg": "ok=False reason=缺少：ASR 说话人接口代码（app/asr_spk/）、wespeaker 的 OV IR、pyannote/segmentation-3.0 的 OV IR"
+  }
+ ],
+ "note": "本脚本只做 import 与路径解析：不跑推理 / 不测速 / 不占 GPU；不写客户包（B2 反证用影子目录）。"
+}

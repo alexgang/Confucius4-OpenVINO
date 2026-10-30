@@ -1,0 +1,85 @@
+{
+ "script": "app169_status_selfcheck.py",
+ "status_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+ "status_bytes": 23522,
+ "status_lines": 147,
+ "status_sha256": "ccbebff7dfee428e94e039ae1f21e56a623e271374ba5fd1ada157ca82778afd",
+ "corrections_sha256": "bb07c52697ecb5aa954169cf32d389095e60b2b35dd4f8ae99752292505d5ec3",
+ "last_ack": "APP-049",
+ "max_app_no": 49,
+ "n_pass": 14,
+ "n_fail": 0,
+ "verdict": "PASS",
+ "detail": [
+  {
+   "name": "V1 STATUS ≤ 40 KB 且 ≤ 300 行",
+   "ok": true,
+   "msg": "bytes=23522 (<=40960)  lines=147 (<=300)"
+  },
+  {
+   "name": "V2 自指大小一致（文内写的 == 实际）",
+   "ok": true,
+   "msg": "**本文件 23522 B / 147 行** | actual 23522 B / 147 行"
+  },
+  {
+   "name": "V3 头部字段「last_ack」只出现一次",
+   "ok": true,
+   "msg": "count=1"
+  },
+  {
+   "name": "V3 头部字段「更新时间」只出现一次",
+   "ok": true,
+   "msg": "count=1"
+  },
+  {
+   "name": "V3 头部字段「当前任务」只出现一次",
+   "ok": true,
+   "msg": "count=1"
+  },
+  {
+   "name": "V3 头部字段「阻塞 / 待用户决定」只出现一次",
+   "ok": true,
+   "msg": "count=1"
+  },
+  {
+   "name": "V3 头部字段「已压缩」只出现一次",
+   "ok": true,
+   "msg": "count=1"
+  },
+  {
+   "name": "V4 last_ack == CORRECTIONS_APP.md 最大 APP 编号",
+   "ok": true,
+   "msg": "last_ack=APP-049  最大编号=APP-049（共 49 条）"
+  },
+  {
+   "name": "V5 章节号连续且无重号",
+   "ok": true,
+   "msg": "sections=['109', '110', '111', '112']"
+  },
+  {
+   "name": "V6 每章节 ≤ 60 行（APP-049 限额）",
+   "ok": true,
+   "msg": "最长节='### §112 ✅ **客户包「运行时可加载性」独立验收：21 PASS / ' → 40 行"
+  },
+  {
+   "name": "V7 「最近更新」条目 ≤ 15 行",
+   "ok": true,
+   "msg": "n=5"
+  },
+  {
+   "name": "V8 CORRECTIONS_APP.md 零改动（reviewer 独占文件）",
+   "ok": true,
+   "msg": "sha256=bb07c52697ecb5aa954169cf32d389095e60b2b35dd4f8ae99752292505d5ec3（§112 开工实测 bb07c52697ecb5aa954169cf32d389095e60b2b35dd4f8ae99752292505d5ec3）"
+  },
+  {
+   "name": "V9 归档目录存在且 6 个文件可读",
+   "ok": true,
+   "msg": "archive=['CORRECTIONS_APP_closed_upto_20261030.md', 'CORRECTIONS_APP_full_before_compress_20261030.md', 'CORRECTIONS_ASR_closed_upto_20261030.md', 'CORRECTIONS_ASR_full_before_compress_20261030.md', 'STATUS_APP_upto_20261030.md', 'STATUS_ASR_upto_20261030.md']"
+  },
+  {
+   "name": "V10 头部「阻塞 / 待用户决定」非空（APP-046 必须写明为何停下）",
+   "ok": true,
+   "msg": "① 🔴 **v1.13 未打包**（用户 11:30 指令：未经通知不主动打包；且 v1.12 zip 生成于 11:2…"
+  }
+ ]
+}
