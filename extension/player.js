@@ -216,6 +216,35 @@ let subsOn = true;
 //   duckDb 只在**新设置生效时**写入 origGain.gain（见 applyDuckDb），
 //   而 origGain 在抓流成功后才存在 ⇒ 设置值与生效值可能短暂不同。
 let duckDbApplied = null;
+// ★★ EXT-021：面板上的**目标语言**与**音色**。
+//   此前 player.js **从不读**这两个设置 ⇒ 在 player 这条上行链路上
+//   服务端拿不到它们 ⇒ 面板上的选择在这条路径上**完全丢失**。
+//   ⇒ 现在读出来，随 hello 上报（⇒ 服务端真正用它翻译/合成）。
+let targetLang = null;
+let voicePref = null;
+
+// ★★ EXT-021：语言 / 音色的归一化（与 popup.js 同一口径）。
+//   ⚠️ popup.js 里也有同名函数 —— 两边**必须**保持一致，
+//     否则会出现「popup 显示日语、player 上报英语」这类不一致。
+//   ★ 语言白名单 = 引擎只认的 4 种（zh/en/ja/ko）；
+//     老配置里的语言**全称**（Chinese/English/…）自动迁移成引擎码。
+const LANG_ALIASES = {
+  chinese: 'zh', zh: 'zh', '中文': 'zh',
+  english: 'en', en: 'en',
+  japanese: 'ja', ja: 'ja', '日本語': 'ja',
+  korean: 'ko', ko: 'ko', '한국어': 'ko',
+};
+
+function normalizeLang(v) {
+  const k = String(v == null ? '' : v).trim().toLowerCase();
+  return LANG_ALIASES[k] || 'zh';
+}
+
+/** 音色只有两个合法值：`A`（预设 A）与 `clone`（克隆说话人）。 */
+function normalizeVoice(v) {
+  const k = String(v == null ? '' : v).trim().toLowerCase();
+  return (k === 'clone') ? 'clone' : 'A';
+}
 
 // ══════════════════════════════════════════════════════════════
 // P0②：WebCodecs 延迟画面管线
@@ -770,6 +799,12 @@ async function startUplink(stream, wsUrl, token) {
           //   ⚠️ 这里报的是**实际用的那条路**（上面的 upState.captureMode
           //     就是在拿到流的那一刻赋的值，不是计划值）。
           capture_mode: upState.captureMode,
+          // ★★ EXT-021：把**目标语言**与**音色**也带上来。
+          //   此前只有 offscreen 的 hello 带了这两个字段，
+          //   而 player 这条上行链路（getDisplayMedia 兜底路径）**没带**
+          //   ⇒ 服务端拿不到 ⇒ 面板上选的语言/音色在这条路径上**完全丢失**。
+          target_lang: targetLang || null,
+          voice: voicePref || null,
         }));
         resolve();
       };
@@ -1494,7 +1529,12 @@ window.__ext = {
     subsOn,
     metricsSubsOn: metrics.subsOn,
     subsQueued: subs.length,
+    // ★★ EXT-021：目标语言 / 音色（供自测核对「上报给服务端的值」）
+    targetLang,
+    voicePref,
   }),
+  normalizeLang,
+  normalizeVoice,
   dbToGain,
   getAudioTime: () => (audioCtx ? audioCtx.currentTime : 0),
   getT0: () => t0,
@@ -1531,12 +1571,19 @@ async function boot() {
     // ★★ EXT-020：把 duckDb / subsOn 一并读出来（此前只有 popup 读，
     //   player 从不读 ⇒ 两个控件都是死控件）。
     duckDb: -15, subsOn: true,
+    // ★★ EXT-021：把目标语言 / 音色也读出来（此前 player 从不读
+    //   ⇒ 服务端拿不到 ⇒ 面板上的选择在这条路径上完全丢失）。
+    targetLang: 'zh', voice: 'A',
   });
   delaySec = isNaN(D_OVERRIDE) ? (cfg.delaySec || 10) : D_OVERRIDE;
   // ★★ EXT-020：应用原声压低量与字幕开关。
   duckDb = (cfg.duckDb === undefined || cfg.duckDb === null || cfg.duckDb === '')
     ? -15 : Number(cfg.duckDb);
   subsOn = (cfg.subsOn === undefined || cfg.subsOn === null) ? true : !!cfg.subsOn;
+  // ★★ EXT-021：目标语言 / 音色（★ 用与 popup 相同的白名单口径，
+  //   老配置里的语言全称迁移成引擎码 ⇒ 避免「选了但服务端不认」）。
+  targetLang = normalizeLang(cfg.targetLang);
+  voicePref = normalizeVoice(cfg.voice);
   applyDuckDb();     // origGain 还不存在 ⇒ 只记录意图，等抓流后自动套用
   metrics.subsOn = subsOn;
 
@@ -1559,6 +1606,17 @@ async function boot() {
           subsOn = (v === undefined || v === null) ? true : !!v;
           metrics.subsOn = subsOn;
           report({ kind: 'settings', subsOn });
+        }
+        // ★★ EXT-021：目标语言 / 音色改了也要跟上
+        //   （★ 注意：**已建立的 WS 连接不会重发 hello** ⇒
+        //     本次改动只对**下一次**上行连接生效 ⇒ 如实记录，不假装即时生效）
+        if ('targetLang' in changes) {
+          targetLang = normalizeLang(changes.targetLang.newValue);
+          report({ kind: 'settings', targetLang });
+        }
+        if ('voice' in changes) {
+          voicePref = normalizeVoice(changes.voice.newValue);
+          report({ kind: 'settings', voice: voicePref });
         }
       });
     }

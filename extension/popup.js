@@ -76,7 +76,7 @@ async function loadCfg() {
   // ★★ EXT-020：若存量配置里存的是旧的语言全称（Chinese/English/Japanese），
   //   迁移成引擎码，避免下拉框选不中任何一项（value 匹配不到 ⇒ 显示空白）。
   $('lang').value = normalizeLang(cfg.targetLang);
-  $('voice').value = cfg.voice;
+  $('voice').value = normalizeVoice(cfg.voice);
   $('duck').value = cfg.duckDb;
   $('subs').checked = !!cfg.subsOn;
   $('player').checked = !!cfg.playerOpen;
@@ -100,6 +100,19 @@ const LANG_ALIASES = {
 function normalizeLang(v) {
   const k = String(v == null ? '' : v).trim().toLowerCase();
   return LANG_ALIASES[k] || 'zh';
+}
+
+/**
+ * ★★ EXT-021：音色归一（只有两个合法值）。
+ *
+ * ★ 为什么 popup 也要归一：服务端只认 `A` / `clone`，
+ *   而存储里的值可能来自旧版本或被手工改过 ⇒ 不归一就会把
+ *   乱七八糟的值发给服务端（服务端会记进 `client_voice`）。
+ *   ★ 必须与 `player.js` 的同名函数**保持一致**。
+ */
+function normalizeVoice(v) {
+  const k = String(v == null ? '' : v).trim().toLowerCase();
+  return (k === 'clone') ? 'clone' : 'A';
 }
 
 /**
@@ -182,7 +195,7 @@ $('btnStart').addEventListener('click', async () => {
       //   旧写法这两个字段只存进了 storage，**从没进过 start 消息**
       //   ⇒ 用户在面板上选语言/音色完全不起作用。
       targetLang: normalizeLang(cfg.targetLang),
-      voice: cfg.voice || 'A',
+      voice: normalizeVoice(cfg.voice),
     });
     if (!res || !res.ok) throw new Error((res && res.error) || '启动失败');
 
@@ -194,7 +207,7 @@ $('btnStart').addEventListener('click', async () => {
     setStatus(
       `已启动\n标签页：${tab.title || tab.id}\n延迟 D=${cfg.delaySec}s\n` +
       `目标语言：${normalizeLang(cfg.targetLang)}\n` +
-      `音色：${cfg.voice || 'A'}\n` +
+      `音色：${normalizeVoice(cfg.voice)}\n` +
       `原声压低：${cfg.duckDb} dB\n` +
       `字幕：${cfg.subsOn ? '开' : '关'}\n` +
       `抓流方式：${res.captureMode || '?'}`,

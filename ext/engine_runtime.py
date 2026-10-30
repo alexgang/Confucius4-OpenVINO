@@ -220,6 +220,11 @@ class RuntimeEngine:
         self._tts_eng = None
         self._tts_spk_embed = None
 
+        # ★★ EXT-021：最后一次**真正用于翻译/合成**的目标语言。
+        #   （构造时的 `target_lang` 是服务端启动参数；
+        #     客户端按句覆盖后，这里记的是**实际生效**的那个。）
+        self.applied_target_lang: Optional[str] = None
+
         self.needs_change: List[str] = []
         self.load_s: Dict[str, float] = {}
         self.n_calls = {"asr": 0, "mt": 0, "tts": 0}
@@ -442,12 +447,25 @@ class RuntimeEngine:
         self.on_log("MT 就绪（Hy-MT2 INT8 @ %s，%.1fs）"
                     % (self.mt_device, self.load_s["mt"]))
 
-    def mt(self, text: str) -> str:
-        """翻译一句。`target_lang` 走 MT 的 `tgt` 参数。"""
+    def mt(self, text: str, *, target_lang: Optional[str] = None) -> str:
+        """翻译一句。`target_lang` 走 MT 的 `tgt` 参数。
+
+        ★★ EXT-021：支持**按调用覆盖**目标语言。
+          此前 `target_lang` 只在**构造时**定死（= 服务端 `--target-lang`），
+          而插件面板上的「目标语言」虽然已经传到服务端，
+          却只被**记录**（`client_target_lang`）、**从不生效**
+          ⇒ 用户在面板上选日语，MT 仍然按服务端的语言译。
+          ⇒ 现在允许调用方按句传入目标语言（不传则沿用构造时的默认值）。
+          ⚠️ 传入的码**必须**是引擎认识的（zh/en/ja/ko），
+            映射不到就**抛异常**，绝不静默回落。
+        """
         if not text:
             return ""
         self._load_mt()
-        tgt = self.mt_target()
+        tgt = self.mt_target(target_lang)
+        # ★★ EXT-021：记下**实际生效**的目标语言（按句覆盖后的那个）。
+        self.applied_target_lang = (target_lang if target_lang is not None
+                                    else self.target_lang)
         try:
             r = self._mt.translate(text, tgt)
         except Exception as e:
@@ -457,20 +475,25 @@ class RuntimeEngine:
         self.n_calls["mt"] += 1
         return (r or {}).get("text", "") or ""
 
-    def mt_target(self) -> str:
+    def mt_target(self, target_lang: Optional[str] = None) -> str:
         """把目标语言映射成 MT 的 `tgt` 参数值。
 
         ★ 映射不到就**抛异常**，绝不静默传一个引擎不认的码
           （Hy-MT2 的 `_LANG_NAME` 只有 zh/en/ja/ko ⇒ 传别的会 KeyError
             或让 `_LANG_NAME[tgt]` 崩在渲染 prompt 的路上）。
+
+        ★★ EXT-021：`target_lang` 给了就用它（**按调用覆盖**），
+          不给（或为空）才沿用构造时的 `self.target_lang`。
         """
-        key = (self.target_lang or "").strip().lower()
+        key = (target_lang if target_lang is not None
+               else (self.target_lang or "")).strip().lower()
         if key in LANG_TO_MT:
             return LANG_TO_MT[key]
         raise EngineNeedsChange(
             "Hy-MT2",
             "目标语言 %r 没有对应的 MT tgt（已知：%s）"
-            % (self.target_lang, ", ".join(sorted(LANG_TO_MT))))
+            % (target_lang if target_lang is not None else self.target_lang,
+               ", ".join(sorted(LANG_TO_MT))))
 
     # ── TTS ────────────────────────────────────────────────────
     def _load_tts(self) -> None:
@@ -522,26 +545,33 @@ class RuntimeEngine:
         self._tts_spk_embed = emb
         self.on_log("预设音色 A embedding 就绪：shape=%s" % (emb.shape,))
 
-    def tts_language(self) -> str:
+    def tts_language(self, target_lang: Optional[str] = None) -> str:
         """把目标语言映射成 TTS 的 `language` 参数值。
 
         ★ EXT-006：TTS **必须**显式传目标语言（APP-030 日文失控事故的根因）。
         ⇒ 映射不到就**抛异常**，绝不静默退回 English。
+
+        ★★ EXT-021：同 `mt_target` —— 支持**按调用覆盖**目标语言
+          （面板上选的语言要真正作用到 TTS，而不只是被记录）。
         """
-        key = (self.target_lang or "").strip().lower()
+        key = (target_lang if target_lang is not None
+               else (self.target_lang or "")).strip().lower()
         if key in LANG_TO_TTS:
             return LANG_TO_TTS[key]
         raise EngineNeedsChange(
             "Qwen3-TTS",
             "目标语言 %r 没有对应的 TTS language（已知：%s）"
-            % (self.target_lang, ", ".join(sorted(LANG_TO_TTS))))
+            % (target_lang if target_lang is not None else self.target_lang,
+               ", ".join(sorted(LANG_TO_TTS))))
 
-    def tts(self, text: str, *, voice: str) -> Tuple[Optional[bytes], float]:
+    def tts(self, text: str, *, voice: str,
+            target_lang: Optional[str] = None) -> Tuple[Optional[bytes], float]:
         """合成配音。
 
         ★ 显式传 `language`（EXT-006 / APP-030）
         ★ 显式传 `max_new_tokens`（失控闸第一道，APP-030②）
         ★ 墙钟与音频双上限 ⇒ 失控中止（EXT-006 明文要求）
+        ★★ EXT-021：`target_lang` 支持**按调用覆盖**（面板上的选择要真正生效）
 
         Returns
         -------
@@ -554,7 +584,7 @@ class RuntimeEngine:
         from tts_engine import (clamp_max_new_tokens, estimate_sec,
                                 runaway_threshold_s)
 
-        language = self.tts_language()          # ★ 必传，映射不到就抛
+        language = self.tts_language(target_lang)   # ★ 必传，映射不到就抛
         max_tok = clamp_max_new_tokens(text, language)
         # ★ 第二道闸的输入（APP-030② 的口径）：用 `estimate_sec`
         #   （按字符口径，与 clamp 同源）而不是 `estimate_frames/12`
@@ -626,6 +656,9 @@ class RuntimeEngine:
     def stats(self) -> dict:
         return {
             "target_lang": self.target_lang,
+            # ★★ EXT-021：客户端按句覆盖过的目标语言（最后一次）。
+            #   ⇒ reviewer 能从引擎产物核对「面板上选的语言真的生效了吗」。
+            "applied_target_lang": self.applied_target_lang,
             "devices": {"asr": self.asr_device, "mt": self.mt_device,
                         "tts": self.tts_device},
             "loaded": {"asr": self._asr_backend is not None,

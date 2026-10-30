@@ -1758,3 +1758,183 @@ STATUS 内压缩为骨架 + 链接。压缩后实测 **21 673 B / 206 行 / 头�
 ### `last_ack`
 
 **保持 EXT-017 不变** —— 本轮**未认领任何新的 EXT 编号**（reviewer 未下发 EXT-020）⇒ 不自行占用 reviewer 的编号命名空间。
+## 2026-10-31 07:05 → 07:42 — §16 修「目标语言」死控件（EXT-020 只修了一半）
+
+**执行时间**：2026-10-31 07:05（任务启动）→ 07:42（本轮完成）
+
+**指令摘要**
+
+* 闸门第 0 步：`tools/next_instruction.py --json` → **exit 1**
+  （`action=skip` / `reason=already_executed` / `latest=EXT-017` / `last_ack=17`）
+  ⇒ 按铁律本应「无新指令，跳过本轮」；但另把闸门解析对着
+  `status/CORRECTIONS_EXT.md` **原始文件**核过一遍：条目只有 **EXT-013~EXT-017**，
+  **不存在 EXT-018+** ⇒ exit 1 是**真的**，不是解析漏掉。
+* 按 **EXT-014 ② 常设规则**（「`last_ack` 追平后，只要还有未完成项就继续做，不要空转」）
+  ⇒ 继续 STATUS「未完成纠偏清单」里的 **P2 待办**：
+  **「面板『目标语言』只修了一半 ⇒ 仍是死控件」**。
+* ⚠️ **本轮未认领任何新的 EXT 编号**（reviewer 未下发 EXT-021）
+  ⇒ **`last_ack` 保持 EXT-017**，不自行占用 reviewer 的编号命名空间。
+
+**缺陷（读代码定位，不是「看着像」）**
+
+EXT-020（§15）把面板 4 个死控件接上线，但「目标语言」**只修了一半**：
+popup 存码 ✅ → 进 `start`/offscreen hello ✅ → 服务端**记录** `client_target_lang` ✅
+→ ★ **服务端用它去翻译/合成** ❌。
+根因三条：`RuntimeEngine.target_lang` **构造时定死**；`mt()`/`tts()` **不接**按调用语言参数；
+`bridge.py` 的**串行** `_process_segment()` 与**流水线路径（生产默认）**
+`_stage_mt()/_stage_tts()` 调的都是**不带语言**的 `mt(text)`/`tts(text, voice=...)`。
+★ 顺带发现：`extension/player.js` 的上行 hello **完全没带** `target_lang`/`voice`
+⇒ player 这条链路（getDisplayMedia 兜底路径）上选择**彻底丢失**。
+
+**修复（最小范围，只动本模块）**
+
+* `ext/engine_runtime.py`：`mt()`/`tts()` 支持 `target_lang` **按调用覆盖**；
+  `mt_target()`/`tts_language()` 同口径；非法码**照旧抛 `EngineNeedsChange`**（不静默回落）；
+  新增 `applied_target_lang`。
+* `ext/bridge.py`：新增 `_effective_target_lang()` / `_mt_with_lang()` / `_tts_with_lang()`；
+  **串行 + 流水两条路径同一口径**；老引擎不接 `target_lang` 关键字 ⇒ 捕获 `TypeError`
+  ⇒ 回落旧调用并**如实**记 `applied_target_lang=None`（**不假装生效**）+ 打日志；
+  `stats()` 与落盘 `margin.json` 新增 `applied_target_lang`
+  ⇒ reviewer 可直接比对「面板选的」与「实际生效的」。
+* `extension/player.js`：新增 `targetLang`/`voicePref` 状态 + `normalizeLang()`/`normalizeVoice()`；
+  `boot()` 从 `chrome.storage.local` 读并归一；`storage.onChanged` 运行中跟随；
+  ★ **上行 hello 补上** `target_lang`/`voice`。
+* `extension/popup.js`：新增 `normalizeVoice()`；音色存/读/显示都走归一。
+* **未改任何引擎文件**（ASR/MT/TTS 对方模块一行未动；只在适配层加可选参数）。
+  查过对方接口确认本就支持按调用传语言：Hy-MT2 `translate(text, tgt)`、
+  Qwen3-TTS `stream(..., language=...)`。
+
+**涉及修改的文件**
+
+| 文件 | 改动 |
+|---|---|
+| `ext/engine_runtime.py` | `mt()`/`tts()` 支持 `target_lang` 覆盖；`mt_target()`/`tts_language()` 同口径；新增 `applied_target_lang` |
+| `ext/bridge.py` | `_effective_target_lang()` / `_mt_with_lang()` / `_tts_with_lang()`；串行 + 流水线路径都真正用上面板语言；`stats()`/`margin.json` 新增 `applied_target_lang` |
+| `extension/player.js` | 新增 `targetLang`/`voicePref` + `normalizeLang`/`normalizeVoice`；`boot()` 读设置；`storage.onChanged` 跟随；上行 hello 带 `target_lang`/`voice` |
+| `extension/popup.js` | 新增 `normalizeVoice()`；音色存/读/显示都走归一 |
+| `USER_GUIDE.md` / `extension/USER_GUIDE.md` | 补 EXT-021 修正说明（含三个字段含义 + 「会话中途改需重新开始」的诚实提示）；两份保持**逐字节一致** |
+| `tests/test_ext021_target_lang_effect.py` | **新增**（50 项，五组） |
+| `tests/ext021_lang_harness.js` | **新增**（28 项，四组；node `vm` 沙箱跑 `player.js` **真函数**） |
+| `status/STATUS_EXT.md` | 新增 §16 + 头部「更新时间 07:36」+「当前有效结论」新增「面板目标语言**实际生效**」行 + 下沉 §10~§13 明细以满足压缩硬约束 |
+| `status/notes/sec16_ext021_target_lang_effect.md` | **新增**（§16 明细全文，13 069 B） |
+| `status/EXEC_LOG.md` | 追加本轮记录 |
+
+**验证**
+
+* 引擎侧（真起 `RuntimeEngine`，**不加载权重**）：`mt_target('ja')='ja'`、
+  `tts_language('ja')='Japanese'`；不传则沿用构造默认；非法码 `xx`/`Chinese`/`''`/`jp`
+  **抛异常**（不静默回落）。
+* 服务端行为级（桩引擎，**不触任何设备**）：报 `'ja'` ⇒ **MT 收到 `'ja'`**、
+  **TTS 收到 `'ja'`**、`applied_target_lang='ja'`；不报 ⇒ 引擎不带该 kwarg、
+  `applied_target_lang=None`（**不臆造**）；非法码 ⇒ 不传给引擎；
+  **老引擎** ⇒ **不崩**、回落旧行为、`applied_target_lang` 记 `None`；
+  流水线路径同样通过。
+* 真起桥接（回声模式 + 真 WebSocket）：`stats` 有 `client_target_lang='ja'` 与
+  `applied_target_lang` 字段；回声模式没跑引擎 ⇒ `applied_target_lang` 为 `None`；
+  `hello_ack` **结构不变**（向后兼容）。
+* 插件侧：`tests/ext021_lang_harness.js` 从**真实** `player.js` 源文件
+  **原样抽出** `normalizeLang`/`normalizeVoice`/`LANG_ALIASES`（花括号配对抽取，
+  **不复刻品**）在 `vm` 沙箱执行 ⇒ **28 PASS / 0 FAIL**（rc=0）。
+
+**★ 反证（断言必须有区分力）**
+
+反证①（拆服务端接线：`_mt_with_lang` → `self._engine.mt(text)`）：
+
+```
+结果：46 PASS / 4 FAIL / 共 50   rc=1
+FAIL 明细：
+ - ★★★ MT 真的收到了 'ja'（不是服务端的默认 'en'） — 实测 mt_calls=[('测试原稿', None)]
+ - ★★★ TTS 真的收到了 'ja' — 实测 tts_calls=[('translated-to-en', 'A', None)]
+ - ★★★ applied_target_lang 如实记成 'ja' — 实测 None
+ - ★★ stats 里的 applied_target_lang = 'ja' — 实测 None
+```
+
+反证②（从 `player.js` 的 hello 载荷去掉 `target_lang`/`voice`）：
+
+```
+harness 结果：24 PASS / 4 FAIL / 共 28   rc=1
+FAIL 明细：
+ - ★★★ player.js 的 hello 载荷里含 target_lang
+ - ★★★ player.js 的 hello 载荷里含 voice
+ - ★★ player.js 的 hello 用的是归一后的 targetLang
+ - ★★ player.js 的 hello 用的是归一后的 voicePref
+```
+
+⇒ **两组反证都让断言全红 rc=1** ⇒ 断言**不是恒真**。
+
+**自测结果（逐套实测真实退出码）**
+
+```
+test_ext_selfcheck.py          103 PASS / 0 FAIL  rc=0
+test_echo_roundtrip.py           11 PASS / 0 FAIL  rc=0
+test_next_instruction.py         19 PASS / 0 FAIL  rc=0
+test_ext016_compression.py       39 PASS / 0 FAIL  rc=0
+test_ext021_target_lang_effect.py 50 PASS / 0 FAIL  rc=0
+test_ext009_adaptive_speed.py    57 PASS / 0 FAIL  rc=0
+test_ext010_pipeline.py          23 PASS / 0 FAIL  rc=0
+test_ext011_thread_limits.py     29 PASS / 0 FAIL  rc=0
+test_ext012_user_guide.py        75 PASS / 0 FAIL  rc=0
+test_ext013_compare.py           51 PASS / 0 FAIL  rc=0
+test_ext013_cpu_watch.py         25 PASS / 0 FAIL  rc=0
+test_ext017_user_report.py      108 PASS / 0 FAIL  rc=0
+test_ext018_capture_mode_stats.py 38 PASS / 0 FAIL rc=0
+test_ext019_port_guard.py         28 PASS / 0 FAIL  rc=0
+test_ext020_dead_controls.py     53 PASS / 0 FAIL  rc=0
+test_ext_browser_contract.py     102 PASS / 0 FAIL  rc=0
+test_p1_plumbing.py               97 PASS / 0 FAIL  rc=0
+```
+
+⇒ **17 套 / 908 PASS / 0 FAIL**，全 rc=0。
+★ 三套**明文要求**的自测（selfcheck / echo_roundtrip / next_instruction）
+已单独确认 rc=0。
+★ 闸门复测仍 **exit 1 / `latest=EXT-017`** ⇒ **没弄坏闸门**。
+
+**产物（文件数 / mtime / 字节数）**
+
+| 产物 | 文件数 | mtime | 字节数 |
+|---|---|---|---|
+| `tests/test_ext021_target_lang_effect.py` | 1 | 2026-10-31 07:29 | 22 719 |
+| `tests/ext021_lang_harness.js` | 1 | 2026-10-31 07:29 | 12 883 |
+| `status/notes/sec16_ext021_target_lang_effect.md` | 1 | 2026-10-31 07:40 | 13 069 |
+| `status/STATUS_EXT.md`（精简版，含 §16） | 1 | 2026-10-31 07:36 | 20 664（205 行，≤ 40 KB / ≤ 300 行 / 头部 15 行 ✅） |
+| `USER_GUIDE.md` / `extension/USER_GUIDE.md` | 各 1 | 2026-10-31 07:30 | 各 16 793（逐字节一致 ✅ `cmp` 通过） |
+| `status/EXEC_LOG.md`（本轮追加后） | 1 | 2026-10-31 07:42 | 141 956 |
+
+**⛔ 明确未做 / 未宣称**
+
+- ⛔ **未认领新 EXT 编号** ⇒ `last_ack` **保持 EXT-017**。
+- ⛔ **未跑真实推理** ⇒ 「选日语 ⇒ 真的译成日语」**没有**在真实 ASR/MT/TTS 上
+  端到端跑过（要占 GPU/NPU + 机器锁）⇒ 验证到的是「语言确实传到了引擎调用点，
+  且引擎按它映射（MT `tgt` / TTS `language`）」+「面板语言确实到达服务端」，
+  **不宣称**「真机听感已验证」。
+- ⛔ **浏览器端人工验收仍未做**（本机**无 playwright、无 Chrome**，只有 Edge 126）
+  ⇒ 插件侧只做到 node 沙箱级行为验证，**不宣称**真浏览器链路已验证。
+- ⛔ **`克隆说话人` 仍不生效**（依赖 pyannote 旁路 ⇒ 未接线 ⇒ 回落预设 A）。
+- ⛔ **会话中途改语言/音色不会即时生效**（已建立的 WS 连接不重发 hello）
+  ⇒ 已**如实写进 USER_GUIDE**，提示重新点「开始」。
+- ⛔ 端到端仍不实时（TTS 稳态 RTF **1.0022**）⇒ TTS 提速仍是上线的唯一前置。
+- ⛔ tabCapture 生产路径仍未人工实测（需真实用户手势）。
+- ⛔ **未改任何引擎文件**（ASR/MT/TTS 对方模块一行未动）。
+- ⛔ `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**（`.gitignore:34` 仍在；
+  未执行 `git add -f`）。
+
+**机器锁**
+
+本轮**未创建锁、未跑任何推理、未占 GPU/NPU**。
+* 开工时 `shared/MACHINE_LOCK` 内容为 `module: tts / pid: 15788`
+  ⇒ ctypes `OpenProcess`+`GetExitCodeProcess` 探得 PID 15788 **ALIVE**
+  ⇒ 属他人模块 ⇒ **未创建、未动、未回收**。
+* 收尾复核（07:40）：`shared/MACHINE_LOCK` **已不存在**（`ls shared/` 实测只剩 6 个
+  `NOTICE_*.md`）⇒ 属**他人自行释放**，**不是本轮回收的**。
+
+**进程**
+
+* 开工时用户自己的桥接 PID 5464（`ext.bridge --real --pipeline --port 8765`）
+  探得 **ALIVE** ⇒ 未打断（它正做真实推理）。
+* 收尾复核（07:40）：`psutil` 扫不到 `ext.bridge` 进程、`netstat` 查 8765/8766
+  **无监听** ⇒ 该桥接**已自行退出**，**不是本轮 kill 的**（本轮全程未执行任何 kill）。
+
+**`last_ack`**
+
+**保持 EXT-017 不变** —— 本轮**未认领任何新的 EXT 编号**（reviewer 未下发 EXT-021）
+⇒ 不自行占用 reviewer 的编号命名空间。

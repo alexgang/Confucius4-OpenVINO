@@ -560,6 +560,73 @@ class Session:
         #   ⇒ 记下来（**没报就是 None**，绝不臆造）。
         self.client_target_lang: Optional[str] = None
         self.client_voice: Optional[str] = None
+        # ★★ EXT-021：这一轮**真正用于翻译/合成**的目标语言。
+        #   ★ 为什么需要这个字段：`client_target_lang` 只说明「面板上选了什么」，
+        #     而这个字段说明「**实际生效**的是什么」——
+        #     两者不一致时（例如引擎不接受该码 ⇒ 回落到服务端默认），
+        #     reviewer 才能一眼看出「面板选了但没生效」。
+        #   ⚠️ 初始为 None（还没跑过任何一句）⇒ 绝不臆造。
+        self.applied_target_lang: Optional[str] = None
+
+    # ── 目标语言（EXT-021） ──────────────────────────────────────
+    def _effective_target_lang(self) -> Optional[str]:
+        """这一句该用哪个目标语言。
+
+        ★★ EXT-021 的核心：**面板上选的目标语言必须真正生效**。
+          此前 `client_target_lang` 只被**记录**、**从不用于翻译**
+          ⇒ 用户在面板上选日语，MT/TTS 仍按服务端 `--target-lang` 走
+          ⇒ 面板上的「目标语言」**依然是死控件**（EXT-020 只修了一半）。
+
+        ⇒ 现在：客户端报了**白名单内**的语言码 ⇒ **按句覆盖**引擎的默认语言；
+          没报 / 报的不是白名单内的码 ⇒ 沿用引擎默认（服务端启动参数）。
+
+        ⚠️ 引擎侧映射不到会**抛异常**（EngineNeedsChange），
+          绝不在这里静默回落。
+        """
+        return self.client_target_lang or None
+
+    def _mt_with_lang(self, text: str, lang: Optional[str]) -> str:
+        """按**目标语言**翻译一句（EXT-021）。
+
+        ⚠️ **向后兼容**：引擎的 `mt` 若不接 `target_lang` 关键字
+          （老适配层 / 自测桩）⇒ TypeError ⇒ **回落**成不传语言的旧调用
+          ⇒ 不让旧引擎/旧桩直接崩掉。
+          ⇒ 但回落时**如实记** `applied_target_lang=None`（不假装生效）。
+        """
+        if not lang:
+            return self._engine.mt(text)
+        try:
+            r = self._engine.mt(text, target_lang=lang)
+        except TypeError as e:
+            if "target_lang" not in str(e):
+                raise
+            # 老引擎/桩：不接该关键字 ⇒ 回落旧行为（如实记未生效）
+            self.applied_target_lang = None
+            _log("⚠️ 引擎的 mt() 不接 target_lang ⇒ 本句沿用引擎默认语言"
+                 "（面板选择未生效）")
+            return self._engine.mt(text)
+        self.applied_target_lang = lang
+        return r
+
+    def _tts_with_lang(self, text: str, voice: str,
+                        lang: Optional[str]) -> Tuple[Optional[bytes], float]:
+        """按**目标语言**合成一句（EXT-021）。
+
+        ⚠️ 向后兼容说明同 `_mt_with_lang`。
+        """
+        if not lang:
+            return self._engine.tts(text, voice=voice)
+        try:
+            r = self._engine.tts(text, voice=voice, target_lang=lang)
+        except TypeError as e:
+            if "target_lang" not in str(e):
+                raise
+            self.applied_target_lang = None
+            _log("⚠️ 引擎的 tts() 不接 target_lang ⇒ 本句沿用引擎默认语言"
+                 "（面板选择未生效）")
+            return self._engine.tts(text, voice=voice)
+        self.applied_target_lang = lang
+        return r
 
     def note_client(self, hello: Optional[dict]) -> None:
         """★ EXT-018：从客户端的 hello 消息里记录**抓流方式**等元信息。
@@ -796,11 +863,15 @@ class Session:
         voice = self._pick_voice(spk)
 
         # 译文
+        # ★★ EXT-021：把**面板上选的目标语言**真正用起来
+        #   （此前只被记录成 client_target_lang，从不参与翻译
+        #     ⇒ 面板上的「目标语言」仍是死控件）。
+        _tgt_lang = self._effective_target_lang()
         tgt = ""
         t_mt = time.perf_counter()
         if self._engine is not None and text:
             try:
-                tgt = self._engine.mt(text) or ""
+                tgt = self._mt_with_lang(text, _tgt_lang) or ""
             except Exception as e:
                 _log(f"MT 失败（段 {seg_id}）: {e}")
         mt_s = time.perf_counter() - t_mt
@@ -811,11 +882,11 @@ class Session:
         t_tts = time.perf_counter()
         if self._engine is not None:
             try:
-                pcm24k, speech_sec = self._engine.tts(tgt or text, voice=voice)
+                pcm24k, speech_sec = self._tts_with_lang(tgt or text, voice,
+                                                          _tgt_lang)
             except Exception as e:
                 _log(f"TTS 失败（段 {seg_id}）: {e}")
         tts_s = time.perf_counter() - t_tts
-
         # ★ EXT-010：把「算指标 + 自适应加速 + 变速 + 产出任务」抽成
         #   `_finalize_segment()`，让**串行**与**流水线**共用同一份口径。
         return self._finalize_segment(
@@ -1027,6 +1098,11 @@ class Session:
             #   ⚠️ 没上报就是 None（null）—— 绝不臆造。
             "client_target_lang": self.client_target_lang,
             "client_voice": self.client_voice,
+            # ★★ EXT-021：这一轮**实际生效**的目标语言。
+            #   ⚠️ 与 `client_target_lang` 区分开：
+            #     前者 = 面板上选了什么；后者 = 真正用来翻译/合成的是什么。
+            #   ⚠️ 没跑过任何一句 = None（null）⇒ 绝不臆造。
+            "applied_target_lang": self.applied_target_lang,
             "speaker": self.tracker.stats(),
             "margin": self.margin_summary(),
             # ★ EXT-009：自适应加速的**各倍率时间占比**与滞后曲线
@@ -1228,9 +1304,12 @@ class PipelineSession(Session):
         """MT 阶段（在 MT 线程里跑）。"""
         t0 = time.perf_counter()
         tgt = ""
+        # ★★ EXT-021：流水线路径同样要真正用上**面板上选的目标语言**
+        #   （与串行路径 `_process_segment` 同一口径）。
+        _tgt_lang = self._effective_target_lang()
         if self._engine is not None and job.text:
             try:
-                tgt = self._engine.mt(job.text) or ""
+                tgt = self._mt_with_lang(job.text, _tgt_lang) or ""
             except Exception as e:
                 _log(f"MT 失败（段 {job.seg_id}）: {e}")
                 job.mark_error("mt", e)
@@ -1249,10 +1328,12 @@ class PipelineSession(Session):
         t0 = time.perf_counter()
         pcm24k = None
         speech_sec = 0.0
+        # ★★ EXT-021：与串行路径同一口径 —— 真正用上面板选的目标语言。
+        _tgt_lang = self._effective_target_lang()
         if self._engine is not None:
             try:
-                pcm24k, speech_sec = self._engine.tts(job.tgt or job.text,
-                                                      voice=job.voice)
+                pcm24k, speech_sec = self._tts_with_lang(job.tgt or job.text,
+                                                          job.voice, _tgt_lang)
             except Exception as e:
                 _log(f"TTS 失败（段 {job.seg_id}）: {e}")
                 job.mark_error("tts", e)
@@ -1945,6 +2026,11 @@ def _dump_margin(holder: dict, out_path: Optional[str], engine) -> None:
         "client_target_lang": (getattr(sess, "client_target_lang", None)
                                if sess else None),
         "client_voice": (getattr(sess, "client_voice", None) if sess else None),
+        # ★★ EXT-021：这一轮**实际生效**的目标语言（没跑过句子 = None）。
+        #   ⇒ reviewer 可直接比对 client_target_lang（面板选的）
+        #     与 applied_target_lang（真正用的）⇒ 一眼看出「选了没生效」。
+        "applied_target_lang": (getattr(sess, "applied_target_lang", None)
+                                if sess else None),
         "margin_summary": (sess.margin_summary() if sess else {}),
         "per_segment": (sess.margins if sess else []),
         "engine_calls": (sess.engine_calls if sess else []),
