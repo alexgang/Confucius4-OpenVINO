@@ -172,15 +172,22 @@ v1 判 `historical`（豁免，不判失败）的条件之一是「**整句含�
 | 项 | 大小 / mtime | 说明 |
 |---|---|---|
 | `scripts/asr088_selfref_size_gate_v2.py` | 18 077 B @ 2026-10-30 21:54:13 | v2 守卫脚本（新增；v1 冻结不动） |
-| `results/pyannote_seg/asr088_selfref_size_gate_v2.json` | 8 345 B @ 2026-10-30 22:30:45 | v2 守卫产物（**§64 写入后重跑**） |
+| `results/pyannote_seg/asr088_selfref_size_gate_v2.json` | **每次重跑都会变** ⇒ 只引**内容事实** | v2 守卫产物：`passes` = **true**、`all_counterproofs_caught` = **true**、`n_counterproofs` = **9**、`n_current` = **1** / `n_historical` = **15** / current 不匹配 = **0** |
 | `scripts/asr089_status_write_s64.py` | 21 358 B @ 2026-10-30 22:30:27 | §64 写入脚本（**本轮修掉 4 个 bug**） |
 | `scripts/asr090_status_verify_s64.py` | 9 406 B @ 2026-10-30 22:28:00 | §64 独立复核脚本（**修掉 D3**） |
 | `scripts/asr091_s64_counterproofs.py` | 5 088 B @ 2026-10-30 22:27:57 | 复核脚本的**注入测试** |
-| `results/pyannote_seg/asr091_s64_counterproofs.json` | 1 664 B @ 2026-10-30 22:30:48 | 注入测试产物（9/9） |
+| `results/pyannote_seg/asr091_s64_counterproofs.json` | **每次重跑都会变** ⇒ 只引**内容事实** | 注入测试产物：`n_counterproofs` = **9** / `n_counterproofs_ok` = **9** / `all_pass` = **true** |
 | `results/pyannote_seg/asr086_selfref_size_gate.json` | 6 654 B @ 2026-10-30 21:31:04 | v1 产物（**冻结**，不改） |
 | `results/pyannote_seg/asr086_selfref_size_gate_pre_fix.json` | 3 896 B @ 2026-10-30 20:13:21 | 修复前证据（**冻结**） |
 | `results/_cp_s64/` | — | 本轮改前备份（守卫脚本 v1 / v1 产物快照 / STATUS 改前） |
 | `status/asr/notes/asr_s64.md` | — | 本文件（明细） |
+
+> 🔴 **口径说明**：**只对「冻结」产物引用 size/mtime**（`asr086` v1 / `pre_fix`）——
+> 它们不再重跑 ⇒ 引用永不过期。
+> ⚠️ **可重跑产物**（`asr088` v2 / `asr091`）**每跑一次 mtime 就变** ⇒ 若在文档里引用其 mtime，
+> 则**每跑一次守卫文档就过期一次** ⇒ **自指式churn 循环**（本轮实测踩到：
+> 重跑守卫 ⇒ notes 里的 mtime 立即过期 ⇒ 复核判 FAIL）。
+> ⇒ 对可重跑产物**只引内容事实**（`passes` / 计数），**不引 size/mtime**。
 
 ## 8. 纪律
 
