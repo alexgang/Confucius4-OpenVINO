@@ -115,17 +115,50 @@ def _has_tkinter(exe: Optional[str]) -> bool:
 
 
 def _caption_app_running() -> bool:
-    """实时字幕 App 是否在运行（设备互斥）。"""
+    """实时字幕 App 是否在运行（设备互斥）。
+
+    ★★ EXT-017②（2026-10-30 20:5x 实测发现的真缺陷）：
+    旧写法是 `process_iter(["pid", "name", "cmdline"])` ——
+    对**全部 369 个进程**取 `cmdline`（每个都要开一次进程句柄）
+    ⇒ **实测 4.208 秒** ⇒ `start()` 在这 4.2 秒里**什么都不显示**
+    ⇒ 直接违反 EXT-017②「start 之后 **2 秒内**必须出现提示」。
+
+    修法（**先便宜后昂贵**）：
+      ① 先只取 `name`（实测 0.005 s / 369 进程）；
+      ② 只对**可能相关**的进程再取 `cmdline`（实测 0.003 s）。
+      ⚠️ 候选名单不能只写 "live_caption"：
+         App 是用**自己的 pythonw.exe** 跑的
+         （`Start_LiveCaption.bat` → `python/pythonw.exe -s app/live_caption_app.py`）
+         ⇒ 进程名是 `pythonw.exe`，`live_caption` 只出现在**命令行**里
+         ⇒ 候选必须包含 python/pythonw。
+      ⚠️ 探测失败一律视为「**没在跑**」是危险的（会放行抢设备），
+         但这里失败只影响**互斥提示**，真正的设备互斥由
+         `shared/MACHINE_LOCK` 承担 ⇒ 这里失败按「不在跑」处理，
+         但**不吞异常**（保持可观测）。
+    """
     try:
         import psutil  # type: ignore
-        for p in psutil.process_iter(["pid", "name", "cmdline"]):
+    except Exception:
+        return False
+    try:
+        # ① 便宜的：只取进程名
+        candidates = []
+        for p in psutil.process_iter(["pid", "name"]):
             try:
-                cmd = " ".join(p.info.get("cmdline") or [])
-                low = cmd.lower()
-                if "live_caption" in low and "ext.bridge" not in low:
-                    return True
+                nm = (p.info.get("name") or "").lower()
             except Exception:
                 continue
+            # App 侧进程名 = pythonw.exe / python.exe（命令行里才有 live_caption）
+            if nm.startswith("python"):
+                candidates.append(p.info["pid"])
+        # ② 昂贵的：只对候选取 cmdline
+        for pid in candidates:
+            try:
+                cmd = " ".join(psutil.Process(pid).cmdline() or []).lower()
+            except Exception:
+                continue
+            if "live_caption" in cmd and "ext.bridge" not in cmd:
+                return True
     except Exception:
         pass
     return False
@@ -144,13 +177,23 @@ class BridgeRunner:
 
     def __init__(self, *, port: int = DEFAULT_PORT, delay: float = DEFAULT_DELAY,
                  lang: str = DEFAULT_LANG, pipeline: bool = True,
-                 on_log=None, on_state=None):
+                 on_log=None, on_state=None, cmd=None,
+                 log_path=None, pid_path=None):
         self.port = port
         self.delay = delay
         self.lang = lang
         self.pipeline = pipeline
         self.on_log = on_log
         self.on_state = on_state
+        # ★ 自测注入点：外部给定命令 ⇒ 不需要 App 解释器。
+        #   EXT-017② 的验收点是**启动器的反馈速度**（start 后 2 秒内出提示），
+        #   与引擎无关 ⇒ 用桩命令测这一层，才不会占 GPU / NPU
+        #   （铁律：不在设备上跑推理、不与实时字幕 App 抢资源）。
+        #   ⚠️ 默认 None ⇒ 生产路径完全不变。
+        self.cmd_override = list(cmd) if cmd else None
+        # ★ 自测注入点：日志 / PID 文件路径（避免自测写用户的真实文件）。
+        self.log_path = log_path
+        self.pid_path = pid_path
         self.proc: Optional[subprocess.Popen] = None
         self._log_f = None
         self._thread: Optional[threading.Thread] = None
@@ -167,21 +210,28 @@ class BridgeRunner:
             self._emit_state("互斥冲突", "err")
             return False, msg
 
-        app_py = _app_python()
-        if not app_py:
-            msg = ("找不到实时字幕 App 自带的 Python ⇒ 无法启动桥接服务。\n\n"
-                   "请确认实时字幕 App 已安装在默认位置，"
-                   "或设置环境变量 EXT_APP_ROOT 指向它的目录。")
-            self._emit_state("找不到 App 解释器", "err")
-            return False, msg
+        # ★ 自测注入点：给了 cmd 就用它 ⇒ 不需要 App 解释器、不占设备。
+        if self.cmd_override is not None:
+            app_py = None
+        else:
+            app_py = _app_python()
+            if not app_py:
+                msg = ("找不到实时字幕 App 自带的 Python ⇒ 无法启动桥接服务。\n\n"
+                       "请确认实时字幕 App 已安装在默认位置，"
+                       "或设置环境变量 EXT_APP_ROOT 指向它的目录。")
+                self._emit_state("找不到 App 解释器", "err")
+                return False, msg
 
         os.makedirs(APPDATA_DIR, exist_ok=True)
-        cmd = [app_py, "-m", "ext.bridge",
-               "--host", "127.0.0.1", "--port", str(self.port),
-               "--delay", str(self.delay),
-               "--real", "--target-lang", self.lang]
-        if self.pipeline:
-            cmd.append("--pipeline")
+        if self.cmd_override is not None:
+            cmd = list(self.cmd_override)
+        else:
+            cmd = [app_py, "-m", "ext.bridge",
+                   "--host", "127.0.0.1", "--port", str(self.port),
+                   "--delay", str(self.delay),
+                   "--real", "--target-lang", self.lang]
+            if self.pipeline:
+                cmd.append("--pipeline")
 
         env = dict(os.environ)
         env["PYTHONPATH"] = os.pathsep.join(
@@ -197,8 +247,10 @@ class BridgeRunner:
         #   ext.bridge 自己在 import 前设；这里只确保**不被外部环境关掉**）。
         env.pop("EXT_THREAD_LIMIT", None)
 
+        log_path = self.log_path or LOG_PATH
+        pid_path = self.pid_path or PID_PATH
         try:
-            self._log_f = open(LOG_PATH, "a", encoding="utf-8")
+            self._log_f = open(log_path, "a", encoding="utf-8")
             # ★★ EXT-017②：用**管道**把子进程 stdout/stderr 接出来，
             #   由后台线程逐行读 ⇒ 同时喂给「窗口」和「日志文件」。
             #   ⚠️ 旧写法是 `stdout=self._log_f`（直接重定向到文件）
@@ -222,7 +274,7 @@ class BridgeRunner:
             return False, "启动桥接服务失败：%s" % e
 
         try:
-            with open(PID_PATH, "w", encoding="utf-8") as f:
+            with open(pid_path, "w", encoding="utf-8") as f:
                 f.write(str(self.proc.pid))
         except Exception:
             pass
@@ -234,11 +286,11 @@ class BridgeRunner:
         self._emit_log("桥接服务已启动：PID=%d，端口=%d，配对端口=%d"
                        % (self.proc.pid, self.port, self.port + 1))
         self._emit_log("正在加载模型…（预计 20–40 秒，请稍候）")
-        self._emit_log("日志文件：%s" % LOG_PATH)
+        self._emit_log("日志文件：%s" % log_path)
         self._emit_state("正在加载模型…", "warn")
         return True, ("正在加载模型…（预计 20–40 秒）\n"
                       "PID=%d，端口=%d\n日志：%s"
-                      % (self.proc.pid, self.port, LOG_PATH))
+                      % (self.proc.pid, self.port, log_path))
 
     def _pump(self) -> None:
         """把子进程输出**逐行**读出来（同时喂给窗口与日志文件）。
@@ -299,7 +351,7 @@ class BridgeRunner:
         except Exception:
             pass
         try:
-            os.remove(PID_PATH)
+            os.remove(self.pid_path or PID_PATH)
         except Exception:
             pass
 

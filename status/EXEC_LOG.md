@@ -1241,3 +1241,123 @@ test_p1_plumbing          ::  97 PASS / 0 FAIL
 
 **`last_ack` 推进**：EXT-017 四项全部执行完毕并实测验收 ⇒ **`last_ack` = EXT-017**。
 ℹ️ EXT-016（压缩 STATUS/CORRECTIONS 至 ≤ 40 KB）**本轮未认领**（唯一执行依据是 EXT-017）。
+
+---
+
+## 2026-10-30 20:33 → 21:06 — EXT-016 收口（接手被中断的一轮）+ EXT-017②「2 秒内可见输出」修缺陷 29/30
+
+### 闸门
+
+```
+tools/next_instruction.py --json  ⇒  exit 1
+{"action": "skip", "reason": "already_executed", "latest": {"id": "EXT-017", "num": 17,
+ "priority": "[BLOCKING]", "ts": "2026-10-30 13:06",
+ "title": "用户试用\"实时配音桥接\"报错：① 输出乱码；② 执行 start 之后没有任何输出"},
+ "last_ack": 17}
+```
+
+⇒ 按闸门字面**应跳过**；但**交叉证据表明上一轮（EXT-016 压缩）被中断** ⇒
+按「接手未完成的轮次」处理，**不认领新编号**（`last_ack` 保持 **EXT-017**）。
+
+### 交叉证据（判定为「被中断」）
+
+| 证据 | 正常做完 | 本轮实测 |
+|---|---|---|
+| `git status --porcelain` | 干净 | **脏**：staged rename + 3 个未跟踪文件 |
+| HEAD | 含 §11 / 归档 | `2de0fa0`（EXT-017）⇒ **不含 §11** |
+| 归档与精简版入库 | 都已提交 | 都**未入库**（`archive/STATUS_EXT_upto_20261030.md` 224 833 B、`STATUS_EXT.md` 11 043 B） |
+| `tests/test_ext016_compression.py` | 已入库 | **未入库** |
+| EXEC_LOG | 有该轮记录 | **无 EXT-016 记录**（最新仍是 16:11 EXT-017） |
+
+### EXT-016 收口（只补提交，不重做）
+
+* `status/archive/STATUS_EXT_upto_20261030.md` 与 HEAD 的 `status/STATUS_EXT.md` **逐字节一致**（`cmp` 通过）⇒ 归档无损。
+* `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**（`.gitignore:34` 仍在；`git log --all -- status/CORRECTIONS_EXT.md` 为空 ⇒ 从未入库）。
+* 已关闭条目归档 `status/archive/CORRECTIONS_EXT_closed_upto_20261030.md`（**23 067 B** / EXT-001~EXT-014 **14 条**全文）**入库**
+  ⇒ 与 app / hy / tts 模块的同名归档做法一致（`confucius4-openvino/status/archive/CORRECTIONS_APP_closed_upto_20261030.md` 等）。
+* 压缩后**闸门仍正常**：exit 1 / latest=EXT-017（编号与标题格式未变，reviewer 推送工具仍可追加）。
+
+### ★ 本轮抓到 2 个真缺陷（上一轮 691 PASS 把它掩盖了）
+
+**缺陷 29（★ 产品缺陷）`_caption_app_running()` 阻塞 `start()` 4.208 秒**
+
+* 旧写法：`psutil.process_iter(["pid", "name", "cmdline"])` ⇒ 对**全部 369 个进程**取 `cmdline`
+  （每个都要开一次进程句柄）⇒ **实测 4.208 s**。
+* ⇒ `start()` 在这 4.2 秒里**什么都不显示** ⇒ **直接违反 EXT-017②「start 之后 2 秒内必须出现『正在加载模型…』」**。
+* 修法（**先便宜后昂贵**）：① 只取 `name`（实测 **0.005 s**）② 只对候选进程再取 `cmdline`（**0.003 s**）
+  ⇒ **4.208 s → 0.0015–0.022 s**。
+* ⚠️ 候选名单必须含 **python/pythonw**：App 是用自己的 `pythonw.exe` 跑的
+  （`Start_LiveCaption.bat` → `python\pythonw.exe -s app\live_caption_app.py`）
+  ⇒ `live_caption` 只出现在**命令行**里，进程名看不到。
+* **检出正确性已验证**（行为级，非源码检查）：造一个命令行含 `live_caption` 的 python 进程
+  ⇒ 检出 **True**（0.021 s）；杀掉后 ⇒ **False**（0.006 s）。
+
+**缺陷 30（测试缺陷）`test_ext017_user_report.py` 假 FAIL**
+
+* 固定端口 **18811 / 18812** + 固定 **8 s** 超时，而桥接冷启动**实测就要 5.0–5.7 s**
+  ⇒ 只剩 ~2.3 s 余量 ⇒ 机器一忙就超时 ⇒ `terminate()` 把子进程**杀在启动途中**
+  ⇒ 后面 3 条断言因拿不到日志而**一起**失败 ⇒ 表现为「4 条同时红」。
+* **本轮首次批量跑即复现**（95 PASS / 4 FAIL）；**HEAD worktree 复跑 99 PASS / 0 FAIL**；
+  本仓库复跑 99 PASS / 0 FAIL ⇒ 判定为**冷启动抖动**（非回归）。
+* 冷启动实测（10/10 次，动态端口）：**min 4.948 s / max 5.581 s / 均值 5.324 s**；
+  6 路并发负载下 5.686–5.696 s ⇒ **8 s 阈值确实太紧**。
+* 修法：端口改**动态分配**（新增 `_free_port()`，bind 0 由内核分配）；
+  超时 8 s → **45 s**（是上限，不是性能指标）；并**单独**加一条「冷启动耗时 ≤ 30 s」的性能口径（实测 5.28 s）。
+
+### ★ 补上 EXT-017② 的行为级验收（此前只有源码字符串检查）
+
+* 上一轮只做了 `"正在加载模型" in lsrc` ⇒ **只能证明「代码长这样」，不能证明「用户真能 2 秒内看到」**。
+* 新增 `test_launcher_feedback_within_2s()`：真跑 `BridgeRunner.start()`，
+  子进程用**桩命令**（**不加载真模型、不占 GPU / NPU**）⇒
+  实测 `start()` **4.244 s → 0.032 s**（连跑 8 次 0.033–0.048 s，**8/8 绿**）✅ 满足 2 秒口径。
+* 同时断言：提示带 **PID / 端口 / 日志路径**、状态灯同步切到「正在加载模型…」、
+  子进程输出**既转发到窗口**（含引擎进度 `(1/3)`）**又落进日志文件**。
+* 配套改动：`tools/ext_launcher.py` 的 `BridgeRunner` 新增**自测注入点**
+  （`cmd=` / `log_path=` / `pid_path=`）⇒ 默认 `None` ⇒ **生产路径完全不变**（不碰 App 解释器、不碰真实日志文件）。
+
+### 涉及文件
+
+* **修改**：`tools/ext_launcher.py`（缺陷 29 修法 + 自测注入点）、`tests/test_ext017_user_report.py`（缺陷 30 修法 + 新增行为级验收）、`status/STATUS_EXT.md`（§12）
+* **新增并入库**：`tests/test_ext016_compression.py`（上一轮写好未提交）、`status/archive/CORRECTIONS_EXT_closed_upto_20261030.md`
+* **入库（归档）**：`status/archive/STATUS_EXT_upto_20261030.md`（rename）
+* **只读、未改、未入库**：`status/CORRECTIONS_EXT.md`（`.gitignore:34`）
+
+### 验证与自测结果
+
+**13 套自测全部 0 FAIL（全 rc=0）**：
+
+```
+test_echo_roundtrip        ::  11 PASS / 0 FAIL
+test_ext009_adaptive_speed ::  57 PASS / 0 FAIL
+test_ext010_pipeline       ::  23 PASS / 0 FAIL
+test_ext011_thread_limits  ::  29 PASS / 0 FAIL
+test_ext012_user_guide     ::  75 PASS / 0 FAIL
+test_ext013_compare        ::  51 PASS / 0 FAIL
+test_ext013_cpu_watch      ::  25 PASS / 0 FAIL
+test_ext016_compression    ::  39 PASS / 0 FAIL   <- 上一轮写好，本轮入库
+test_ext017_user_report    :: 108 PASS / 0 FAIL   <- 本轮 +9（含 8 条新行为级断言）
+test_ext_browser_contract  :: 102 PASS / 0 FAIL
+test_ext_selfcheck         :: 103 PASS / 0 FAIL
+test_next_instruction      ::  19 PASS / 0 FAIL
+test_p1_plumbing           ::  97 PASS / 0 FAIL
+合计                       :: 739 PASS / 0 FAIL
+```
+
+**关键实测数字**：`_caption_app_running()` **4.208 s → 0.0015–0.022 s**；
+`BridgeRunner.start()` **4.244 s → 0.032 s**（8/8 绿）；
+桥接冷启动 **5.0–5.7 s**（10/10 实测）。
+
+**产物**（文件数 / mtime / 字节数）：
+
+| 产物 | 文件数 | mtime | 字节数 |
+|---|---|---|---|
+| `status/STATUS_EXT.md`（精简版） | 1 | 2026-10-30 21:06 | 16 238 |
+| `status/archive/STATUS_EXT_upto_20261030.md` | 1 | 2026-10-30 16:11 | 224 833 |
+| `status/archive/CORRECTIONS_EXT_closed_upto_20261030.md` | 1 | 2026-10-30 19:01 | 23 067 |
+| `tests/test_ext016_compression.py` | 1 | 2026-10-30 19:03 | 11 852 |
+
+**机器锁**：本轮**未创建锁、未跑任何推理、未占 GPU / NPU**（全程 CPU 侧纯自测 + 桩进程）。
+`shared/MACHINE_LOCK` 全程由 **`tts` 模块**（PID 41364 / started 2026-10-30 20:13:40）持有 ⇒ **非本模块所有，未创建 / 未删除 / 未回收**。
+
+**`last_ack`**：**保持 EXT-017 不变**（本轮接手的是被中断的 EXT-016 收口 + EXT-017② 余项修复，
+EXT-016/EXT-017 均未认领为新编号；§12 的两项都在已认领编号的范围内）。
