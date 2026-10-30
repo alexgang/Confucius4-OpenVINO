@@ -39,15 +39,19 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Callable, Optional
 
+from .extension_id import origin_is_this_extension, resolve_extension_id
+
 DEFAULT_PAIR_PORT = 8766
 
 
 def _make_handler(token_provider: Callable[[], str],
-                  status_provider: Callable[[], dict]):
+                  status_provider: Callable[[], dict],
+                  extension_id: Optional[str] = None):
     """构造请求处理类。
 
     * `token_provider` —— 返回当前 token 的函数；
-    * `status_provider` —— 返回状态字典的函数（可返回空 dict）。
+    * `status_provider` —— 返回状态字典的函数（可返回空 dict）；
+    * `extension_id` —— 本插件的扩展 id；``None`` ⇒ 现场解析。
     """
 
     class Handler(BaseHTTPRequestHandler):
@@ -57,8 +61,15 @@ def _make_handler(token_provider: Callable[[], str],
             return
 
         def _origin_ok(self) -> bool:
+            """★ EXT-017④：Origin 必须是**本插件**（精确 id），不是任意扩展。
+
+            旧实现是 `origin.startswith("chrome-extension://")`
+            ⇒ **任何**扩展都能拿 token ⇒ 比 EXT-001 的原始口径宽。
+            ⇒ 现在要求精确等于 `chrome-extension://<本插件 id>`。
+            ★ 本插件 id 解析不出来 ⇒ **一律拒绝**（不静默放宽）。
+            """
             origin = self.headers.get("Origin") or ""
-            return origin.startswith("chrome-extension://")
+            return origin_is_this_extension(origin, extension_id)
 
         def _send_json(self, code: int, obj: dict) -> None:
             body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
@@ -117,24 +128,35 @@ class PairServer:
 
     def __init__(self, *, port: int = DEFAULT_PAIR_PORT, host: str = "127.0.0.1",
                  token_provider: Callable[[], str],
-                 status_provider: Optional[Callable[[], dict]] = None):
+                 status_provider: Optional[Callable[[], dict]] = None,
+                 extension_id: Optional[str] = None):
         self.port = port
         self.host = host
         self.token_provider = token_provider
         self.status_provider = status_provider or (lambda: {})
+        # ★ EXT-017④：本插件的扩展 id（None ⇒ 现场解析）。
+        self.extension_id = extension_id
         self._srv: Optional[ThreadingHTTPServer] = None
         self._thread: Optional[threading.Thread] = None
 
     def start(self) -> tuple[bool, str]:
         try:
-            handler = _make_handler(self.token_provider, self.status_provider)
+            eid = self.extension_id or resolve_extension_id()
+            handler = _make_handler(self.token_provider, self.status_provider,
+                                    eid)
             self._srv = ThreadingHTTPServer((self.host, self.port), handler)
             self._srv.daemon_threads = True
             self._thread = threading.Thread(target=self._srv.serve_forever,
                                             kwargs={"poll_interval": 0.5},
                                             daemon=True)
             self._thread.start()
-            return True, "配对端点已启动：http://%s:%d/pair" % (self.host, self.port)
+            msg = ("配对端点已启动：http://%s:%d/pair" % (self.host, self.port))
+            if eid:
+                msg += "（仅接受本扩展 Origin: chrome-extension://%s）" % eid
+            else:
+                # ★ 解析不出本插件 id ⇒ token 端点实际不可用（安全优先）。
+                msg += "（⚠️ 未能解析本扩展 id ⇒ /pair 将拒绝所有请求）"
+            return True, msg
         except Exception as e:
             self._srv = None
             return False, "配对端点启动失败：%s" % e

@@ -58,6 +58,8 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 from .config import DEVICE_ASR, DEVICE_MT, DEVICE_TTS, SAMPLE_RATE
+# ★ EXT-017①：日志写出必须不因编码问题抛异常（GBK 控制台 + 🔴/⇒ ⇒ 崩）。
+from .utf8_io import safe_print as _safe_print
 
 # ── 运行时位置（★ 缺陷 22：**不再硬编码版本号**） ──────────────────
 #   原实现把路径硬编码成 `..._v1.6`；实测 2026-10-29 App 升级到 v1.7、
@@ -181,8 +183,14 @@ def _ensure_app_on_path() -> None:
 
 
 def _log(msg: str) -> None:
-    sys.stderr.write("[ext-engine] %s\n" % msg)
-    sys.stderr.flush()
+    """引擎层日志（写 stderr）。
+
+    ★ EXT-017①：同样**绝不因编码问题抛异常** ——
+      中文 Windows 控制台是 GBK，`🔴` 在 GBK 下无法编码 ⇒
+      直接 `sys.stderr.write` 会抛 `UnicodeEncodeError` ⇒ 引擎加载中断。
+      ⇒ 走 `safe_print`（降级替换，不抛异常）。
+    """
+    _safe_print("[ext-engine] %s" % msg, stream=sys.stderr)
 
 
 class RuntimeEngine:
@@ -240,6 +248,90 @@ class RuntimeEngine:
             return False
         return os.path.isdir(os.path.join(APP_ROOT, "python", "Lib",
                                           "site-packages", "babelvox"))
+
+    # ── ★ EXT-017②：预热（启动即加载，把「加载模型」变成**可见**的过程） ──
+    def warmup(self, *, stages: Tuple[str, ...] = ("asr", "mt", "tts"),
+               on_progress=None) -> dict:
+        """**主动**加载三个引擎，并把每一步的进度回报出去。
+
+        ## 为什么要这个方法（EXT-017② 的根因）
+
+        原先三个引擎都是**懒加载**（第一次真正用到某引擎时才 load）：
+
+        * `_load_asr` 只在 `asr()` 里被调；
+        * `_load_mt` 只在 `mt()` 里被调；
+        * `_load_tts` 只在 `tts()` 里被调。
+
+        ⇒ 桥接服务 `start` 之后**屏幕上什么都没有**，
+          用户要等到第一句音频真的流进来才看到「ASR 就绪」。
+          这正是用户报的「start 之后没有任何输出」。
+
+        ⇒ 本方法让**启动阶段**就把三个引擎加载好，并逐条回报进度：
+
+            [engine] (1/3) 正在加载 ASR（R2T2 INT8 @ GPU.0）……
+            [engine] ASR 就绪（R2T2 INT8 @ GPU.0，12.3s）
+            ...
+
+        ## 返回值
+
+        ``{"ok": bool, "loaded": [...], "failed": {stage: reason},
+          "load_s": {...}, "elapsed_sec": float}``
+
+        ★ **失败不抛异常**：任何一个阶段加载失败，都**记下来并继续**
+          （引擎是独立的：MT 挂了不该让 ASR 也起不来）。
+          ⇒ 调用方（`ext.bridge.main`）据此决定要不要拒绝启动。
+        """
+        report = {
+            "ok": True,
+            "loaded": [],
+            "failed": {},
+            "load_s": {},
+            "elapsed_sec": 0.0,
+        }
+        t_all = time.perf_counter()
+
+        def emit(msg: str) -> None:
+            try:
+                if on_progress is not None:
+                    on_progress(msg)
+                else:
+                    self.on_log(msg)
+            except Exception:
+                # ★ 进度回报失败**绝不影响**加载本身。
+                pass
+
+        total = len(stages)
+        for i, stage in enumerate(stages, 1):
+            label = {"asr": "ASR（R2T2 INT8）", "mt": "MT（Hy-MT2 INT8）",
+                     "tts": "TTS（Qwen3-TTS）"}.get(stage, stage)
+            device = {"asr": self.asr_device, "mt": self.mt_device,
+                      "tts": self.tts_device}.get(stage, "?")
+            emit("(%d/%d) 正在加载 %s @ %s ……" % (i, total, label, device))
+            t0 = time.perf_counter()
+            try:
+                if stage == "asr":
+                    self._load_asr()
+                elif stage == "mt":
+                    self._load_mt()
+                elif stage == "tts":
+                    self._load_tts()
+                else:
+                    raise EngineNeedsChange(stage, "未知阶段：%s" % stage)
+            except Exception as e:
+                reason = "%s: %s" % (type(e).__name__, e)
+                report["failed"][stage] = reason
+                report["ok"] = False
+                emit("(%d/%d) %s 加载失败 ⇒ %s" % (i, total, label, reason))
+                continue
+            dt = time.perf_counter() - t0
+            report["loaded"].append(stage)
+            report["load_s"][stage] = round(dt, 2)
+            emit("(%d/%d) %s 加载完成（%.1f 秒）" % (i, total, label, dt))
+
+        report["elapsed_sec"] = round(time.perf_counter() - t_all, 2)
+        emit("引擎预热完成：成功 %d/%d，总耗时 %.1f 秒"
+             % (len(report["loaded"]), total, report["elapsed_sec"]))
+        return report
 
     # ── ASR ─────────────────────────────────────────────────────
     def _load_asr(self) -> None:

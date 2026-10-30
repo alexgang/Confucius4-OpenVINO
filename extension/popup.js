@@ -208,6 +208,9 @@ async function refreshStatus() {
     $('mLag').textContent = '—';
     $('mSpeed').textContent = '—';
     $('mDelay').textContent = '—';
+    // ★★ EXT-017②：桥接没起来 ⇒ 明确告诉用户「引擎未加载」
+    const me = $('mEngine');
+    if (me) me.textContent = '桥接未启动';
     return;
   }
   setBadge(st.has_session ? '已连接' : '桥接就绪', st.has_session ? 'ok' : 'warn');
@@ -219,6 +222,25 @@ async function refreshStatus() {
     if ((sp[k] || 0) > bestV) { bestV = sp[k] || 0; best = k; }
   }
   $('mSpeed').textContent = best ? best + '×' : '—';
+
+  // ★★ EXT-017②：引擎加载状态
+  //   用户点「开始」后要能立刻看到「正在加载模型…」还是「TTS 就绪」。
+  const me = $('mEngine');
+  if (me) {
+    const state = st.engine_state || 'unknown';
+    const loaded = st.engine_loaded || [];
+    const failed = st.engine_failed || {};
+    if (state === 'ready') {
+      me.textContent = 'TTS 就绪';
+    } else if (state === 'partial') {
+      const keys = Object.keys(failed);
+      me.textContent = '未就绪：' + (keys.length ? keys.join('/') + ' 加载失败' : '未知');
+    } else if (loaded && loaded.length) {
+      me.textContent = '加载中…（' + loaded.join('/') + ' 已就绪）';
+    } else {
+      me.textContent = '正在加载模型…';
+    }
+  }
 }
 
 // ★ EXT-012 ③：打开说明

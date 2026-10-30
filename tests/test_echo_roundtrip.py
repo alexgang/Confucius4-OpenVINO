@@ -33,7 +33,17 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ext import config as C
 
 RESULTS = []
-ORIGIN = "chrome-extension://exttestpluginid0000000000000000000000"
+# ★ EXT-017④：服务端现在按**本插件的精确扩展 id** 校验 Origin
+#   （旧口径是 `startswith("chrome-extension://")` ⇒ 任何扩展都能连）。
+#   ⇒ 这里必须用**真实**的扩展 id，否则「正确 Origin」这一项会被正确地拒掉。
+#   真实 id 由 `ext.extension_id` 从 manifest 的 key 现场推导（与浏览器实测一致）。
+from ext.extension_id import resolve_extension_id
+
+_EID = resolve_extension_id()
+if not _EID:
+    # 解析不出 ⇒ 用已知值兜底（manifest 的 key 是确定的）。
+    _EID = "kekgmfkijphpfndbbpakjaokamkeooib"
+ORIGIN = "chrome-extension://%s" % _EID
 PORT = 8799
 
 
@@ -123,6 +133,12 @@ async def main_async() -> int:
     # 5) 空 Origin
     status, msg, _ = await _probe(tokens.token, None, send_pcm=False)
     check("空 Origin 被拒", status == "rejected", str(msg)[:80])
+
+    # 6) ★ EXT-017④：**别的**扩展（Origin 前缀对、id 不对）必须被拒
+    status, msg, _ = await _probe(tokens.token,
+                                  "chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                                  send_pcm=False)
+    check("★ 别的扩展（id 不对）被拒", status == "rejected", str(msg)[:80])
 
     # 清理
     for t in proc_holder:

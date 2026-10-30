@@ -159,7 +159,22 @@ def test_launcher() -> None:
         check("★ _make_shortcut 能生成快捷方式文件", bool(out) and os.path.isfile(out),
               str(out))
         if out and os.path.isfile(out):
-            content = _read(out)
+            # ★ EXT-017①：`.cmd` 现在按 **GBK（cp936）** 写
+            #   （.cmd 默认按 OEM 代码页解读 ⇒ UTF-8 会变乱码）。
+            #   ⇒ 读端也要按 GBK 读；同时验证「按 GBK 读得出来、
+            #     且按 UTF-8 读**读不出来**」（证明编码确实是 GBK 而非 UTF-8）。
+            with open(out, "rb") as f:
+                raw = f.read()
+            content = raw.decode("gbk", errors="replace")
+            check("★ 快捷方式能按 GBK 正确解码（中文不乱码）",
+                  "实时翻译配音" in content, content[:60])
+            try:
+                raw.decode("utf-8")
+                utf8_decodable = True
+            except UnicodeDecodeError:
+                utf8_decodable = False
+            check("★ 快捷方式确实是 GBK 编码（不是 UTF-8）", not utf8_decodable,
+                  "按 UTF-8 也能解码 ⇒ 可能被误写成 UTF-8")
             check("★ 快捷方式内容含 pythonw 目标", "pythonw.exe" in content)
             # ★ 断言「内容含传入的启动脚本路径」（不是写死某个字符串）
             check("★ 快捷方式内容含启动脚本路径", launcher_py in content,
@@ -169,6 +184,13 @@ def test_launcher() -> None:
             check("★ 快捷方式内容与传入 args 一致（不是写死模板）",
                   ('start "" "%s" "%s"' % (r"C:\Python\pythonw.exe",
                                          launcher_py)) in content)
+            # ★★ EXT-017①：必须切控制台代码页 + 设 UTF-8 环境变量
+            check("★ ★ 快捷方式切了控制台代码页（chcp 65001）",
+                  "chcp 65001" in content, content[:200])
+            check("★ ★ 快捷方式设了 PYTHONUTF8=1",
+                  "set PYTHONUTF8=1" in content)
+            check("★ ★ 快捷方式设了 PYTHONIOENCODING=utf-8",
+                  "set PYTHONIOENCODING=utf-8" in content)
         # 清理
         try:
             os.remove(out)
@@ -270,6 +292,18 @@ def test_pair_server() -> None:
             check("★ 非扩展 Origin 被拒", False, "居然返回了 200")
         except urllib.error.HTTPError as e:
             check("★ 非扩展 Origin 被拒", e.code == 403, "HTTP %s" % e.code)
+
+        # (c2) ★★ EXT-017④：**别的**扩展（前缀对、id 不对）⇒ 必须被拒
+        #   旧口径 `startswith("chrome-extension://")` 会放行 ⇒ 这里必须 403。
+        try:
+            req3 = urllib.request.Request(
+                "http://127.0.0.1:%d/pair" % port,
+                headers={"Origin": "chrome-extension://"
+                                   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"})
+            urllib.request.urlopen(req3, timeout=8)
+            check("★★ 别的扩展（id 不对）被拒", False, "居然返回了 200")
+        except urllib.error.HTTPError as e:
+            check("★★ 别的扩展（id 不对）被拒", e.code == 403, "HTTP %s" % e.code)
 
         # (d) status 端点可用（只读诊断，不含 secret）
         st = json.loads(urllib.request.urlopen(

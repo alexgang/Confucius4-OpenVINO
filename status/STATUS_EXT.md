@@ -1,12 +1,13 @@
 # STATUS_EXT
-last_ack: EXT-014
-更新时间: 2026-10-30 11:56
-当前任务: **§9 EXT-011/012/013 三条全部收口** ⇒ ✅ **EXT-013 ① cpu_watch 已重写**（PID 树采样 + 身份校验 + 启动自检，**自检 FAIL ⇒ 退出码 3**，编排器自检 FAIL ⇒ 整轮 rc=6）⇒ ✅ **EXT-013 ② 限制组持锁重跑完成**（**2026-10-30 11:40:59 → 11:51:45**，`pipeline rc=0`，`cpu_self_check.ok=true`、窗口内 CPU 时间增量 **66.703 s**）⇒ ✅ **限制组 vs 对照组同一张表落盘**（`.tmp/p1_ext013_lim/compare_ext011.json` 4908 B / 11:51）：**核数 mean 0.8244 vs 1.2909（↓36.2 %）/ peak 2.819 vs 7.091（↓60.2 %）/ TTS 稳态 RTF 1.0542 vs 1.3249（↓20.4 %）/ 末句滞后 117.09 vs 122.79 s / 斜率 −0.2695 vs −0.3067** ⇒ **线程限制有效且同时改善了 CPU 与时延** ⇒ ✅ **EXT-012 用户试用件四项全部交付**（`USER_GUIDE.md` 11496 B / 一键启动器 `tools/ext_launcher.py` / popup 状态显示 / **token 自动配对** `ext/pair_server.py`）⇒ ✅ **配对端点端到端实测**（扩展 Origin 拿到 32 位 token；无 Origin / 伪造 Origin 均 **403**；`/status` 不泄露 token；WS `hello_ack` 拿到真实 R2T2 分段配置）⇒ ✅ **11 套自测 585 PASS / 0 FAIL** ⇒ ⛔ **端到端仍不实时**（末句滞后仍 117 s，瓶颈仍是 TTS RTF ≈ 1.05）；⛔ **tabCapture 生产路径仍未实测**；⛔ **本机无 Chrome**（只有 Edge，EXT-012 验收用 Edge 替代）
+last_ack: EXT-017
+更新时间: 2026-10-30 16:11
+当前任务: **§10 EXT-017 落地 —— 用户报的两个故障（乱码 / start 后无输出）全部修复并实测验收** ⇒ ✅ **① 乱码根因实测定位**（本机 `ConsoleOutputCP=gb2312`；GBK 编不了 `⇒`/`🔴`/`⛔` ⇒ 旧 `_log` 裸 `print` **抛 `UnicodeEncodeError`**）⇒ ✅ **UTF-8 三层防御**（`ext/utf8_io.py` 新增：`safe_print` 逐字符降级 + `PYTHONUTF8=1`/`PYTHONIOENCODING=utf-8` + `.cmd` 里 `chcp 65001`；`.cmd` 本身改**按 GBK 写**）⇒ ✅ **② start 无输出：三个独立成因全修**（三引擎懒加载 → 新增 `RuntimeEngine.warmup()` 逐阶段预热；子进程 stdout 被重定向到文件 → 改 `subprocess.PIPE` 逐行喂窗口；**★ GUI 启动器本身起不来** —— 桌面快捷方式指向**没有 tkinter** 的 `pythonw` ⇒ 窗口根本不出现且报错被吞 ⇒ 改指 App 自带 `pythonw` + `_has_tkinter()` 实测探测）⇒ ✅ **验收中又抓到两个真缺陷**（`tk.Combobox` 不存在 ⇒ 应为 `ttk.Combobox`；**状态灯永远停在「正在加载模型…」** —— 配对端点在预热**之后**才启动 + `app.after` 只调度一次 ⇒ 配对端点提前启动 + 轮询放 `finally` 里自我续期）⇒ ✅ **★ 用户方式实测验收通过**（桌面快捷方式 + 中文 Windows 默认控制台 + 鼠标点启动：**2 秒内**见「正在加载模型…（预计 20–40 秒）」+ PID/端口/日志路径 + 逐引擎进度「(1/3) 正在加载 ASR [R2T2 INT8] @ GPU.0」→ 最终「**TTS 就绪**」；**故意让 MT 失败 ⇒ 红色「引擎未就绪」+ 完整原因**；截图 6 张落 `shared/ext_launcher_fix/`）⇒ ✅ **③ USER_GUIDE 补 Edge 步骤**（`edge://extensions` + 开发人员模式在**左下角** + 「加载解压缩的扩展」+ 「关掉开发人员模式会让插件被停用」提示；两份文档各 14166 B）⇒ ✅ **④ `/pair` 收紧到本插件 ID**（`ext/extension_id.py` 由 manifest `key` 现场算 ID = `kekgmfkijphpfndbbpakjaokamkeooib`，与 **9 份浏览器探针**的 `ext_id` 完全一致；实测本插件 Origin **200** / 别的扩展 **403** / 普通网页 **403** / 无 Origin **403**）⇒ ✅ **12 套自测 691 PASS / 0 FAIL**（新增 `tests/test_ext017_user_report.py` 99 项，含 4 处「假通过」断言改精确）⇒ ⛔ **端到端仍不实时**（TTS RTF 1.0542 > 1.0，TTS 提速仍是唯一前置）；⛔ **浏览器端人工验收未做**（tabCapture 需真实用户手势）；⛔ **本机无 Chrome**（只有 Edge）；ℹ️ **EXT-016 压缩 STATUS 未认领**（本轮唯一依据是 EXT-017）
 
 阻塞 / 待决定:
 ① ⛔ **端到端仍不实时，待 reviewer / 用户决策** —— 稳态端到端 RTF **2.0507**（ASR 0.6563 / MT 0.1507 / **TTS 1.0022**）；**TTS 贴着 1.0 没有任何余量**，且 (c) 实测显示**并发时 TTS 墙钟越过 60 s 失控闸** ⇒ **TTS 提速是流水线上线的前置条件**（建议目标 ≤ 0.85，数字见 §7.3 / §8.3.1，**由主会话转达 TTS 模块**）；② ⛔ **流水线是否默认开启待拍板** —— 本轮已落地但做成 **`--pipeline` 默认关闭**（默认行为逐字不变）；**真实引擎实测已证明有效**（末句滞后 ↓68.8 %、喂帧不再落后实时、零丢句零错误）⇒ **转正与否由 reviewer 定**（§8.3.1 / §8.8 事项 1）；③ ⛔ **同步误差仍全部超标**（流水线轮 `sync_err_ms.p50=67289.3`、`n_over_target=22`、`last_segment_lag_sec=71.2074`）⇒ **实时仍未达成**；④ ⛔ **pyannote 旁路未接线** —— ASR-013 交付后由主会话通知；⑤ ⛔ **P2（克隆/体验/稳定性）/ P3（打包）未开始**；⑥ ℹ️ **tabCapture 生产路径仍未实测**（EXT-005 ①，P2 待办）；⑦ ℹ️ **EXT-009 服务端 lag 估计存在跨时钟常量偏差，尚未定量标定**（§7.6.3）—— 决策放服务端、插件只显示 ⇒ 不影响变速稳定性；⑧ ℹ️ **§6.5.0/§6.8/§6.9 的 0.9264 已撤回**（§7.2），旧章节不回头改，以 §7 为准；⑨ ⛔ **EXT-013 限制组虽然线程限制有效（核数 ↓36.2 %、TTS RTF ↓20.4 %），但末句滞后仍 117.09 s ⇒ 仍不实时**（§9.4）—— **TTS 提速仍是唯一前置**；⑩ ℹ️ **本机没有 Chrome，只有 Edge 126**（`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`）⇒ EXT-012 的「Chrome 加载插件」验收用 Edge 替代，**不宣称 Chrome 路径已验证**（§9.5.4）；⑪ ℹ️ **EXT-014 已落地为巡检规则**：STATUS 仍有未完成项且本模块无进程在跑 ⇒ 直接按优先级继续下一项（§9.6）。
 
 ## 最近更新
+16:11 §10 **EXT-017 落地：用户报的两个故障（乱码 / start 后无输出）全部修复并实测验收**：⚠️ 闸门判 exit 0（最新 = **EXT-017** `[BLOCKING]`）⇒ ✅ **① 乱码根因实测定位**（`ConsoleOutputCP=gb2312`；GBK 编不了 `⇒`/`🔴`/`⛔` ⇒ 旧 `_log` 裸 `print` **抛 `UnicodeEncodeError`** ⇒ 崩溃/日志中断）⇒ ✅ **UTF-8 三层防御**（`ext/utf8_io.py` 新增 `safe_print`/`configure_process_env`；`.cmd` 里 `chcp 65001`；`.cmd` 本身改**按 GBK 写**）⇒ ✅ **② start 无输出：三个独立成因全修**（**三引擎全懒加载** ⇒ 新增 `RuntimeEngine.warmup()` 逐阶段预热并 emit 进度；**子进程 stdout 被重定向到文件** ⇒ 改 `subprocess.PIPE` + `errors="replace"` 逐行喂窗口与日志；**★ GUI 启动器本身起不来** —— 桌面快捷方式指向**没有 tkinter** 的 `pythonw` ⇒ 窗口根本不出现且报错被 pythonw 吞掉 ⇒ 改指 App 自带 `pythonw` + `_has_tkinter()` 实测探测 + tkinter 缺失**弹 MessageBox** + 顶层异常兜底）⇒ ✅ **★ 验收中又抓到两个真缺陷**（**`tk.Combobox` 不存在** ⇒ 应为 `ttk.Combobox`；**状态灯永远停在「正在加载模型…」** —— 配对端点在预热**之后**才启动 + `app.after` 只调度一次 ⇒ 配对端点提到预热**之前** + 轮询放 `try/finally` 里自我续期）⇒ ✅ **★ 用户方式实测验收通过**（桌面快捷方式 → 中文 Windows 默认控制台 → 鼠标点启动：**2 秒内**见「正在加载模型…（预计 20–40 秒）」+ PID/端口/日志路径 + 逐引擎进度「(1/3) 正在加载 ASR [R2T2 INT8] @ GPU.0」⇒ 加载总耗时 **17.9–26.9 s** ⇒ 最终「**TTS 就绪**」；**故意让 MT 加载失败 ⇒ 红色「引擎未就绪」+ 完整失败原因 + 日志路径**，且 ASR/TTS 照常加载）⇒ 截图 **6 张 / 321 900 B** 落 `shared/ext_launcher_fix/` ⇒ ✅ **③ USER_GUIDE 补 Edge**（`edge://extensions` + 开发人员模式在**左下角** + 「加载解压缩的扩展」+ 「关掉开发人员模式会让插件被停用」；两份各 14166 B）⇒ ✅ **④ `/pair` 收紧到本插件 ID**（`ext/extension_id.py` 现场算 ID = `kekgmfkijphpfndbbpakjaokamkeooib`，与 **9 份浏览器探针**的 `ext_id` 完全一致；实测本插件 **200** / 别的扩展 **403** / 普通网页 **403** / 无 Origin **403**）⇒ ✅ **★ 机器锁纪律**（预热占 GPU/NPU ⇒ 开工前申请锁、结束后删除；开工前回收的孤儿锁 `app-spksync PID 34696` **先用 ctypes 探针并验证探针判别力**（活→259 / 刚退出→0 / 不存在→OPENFAIL 87）才回收；全程未用 Git Bash 的 `tasklist /FI`）⇒ ✅ **12 套自测 691 PASS / 0 FAIL**（新增 `tests/test_ext017_user_report.py` **99 项**，含 **4 处「假通过」断言改精确** —— AST 判定 `safe_print`/`Popen(stdout=PIPE)`、Edge 防误导排除否定前缀、`/status` 直接测 `_pair_status`）⇒ ⛔ **端到端仍不实时**（TTS RTF 1.0542 > 1.0 ⇒ TTS 提速仍是唯一前置）；⛔ **浏览器端人工验收未做**（tabCapture 需真实用户手势，**不宣称端到端浏览器链路已验证**）；ℹ️ **EXT-016（压缩 STATUS）本轮未认领**（唯一依据是 EXT-017）
 11:56 §9 **EXT-011 / EXT-012 / EXT-013 三条全部收口**：⚠️ 闸门判 exit 0（最新 = **EXT-014**「巡检规则补充」）⇒ 命中 EXT-014 ②（STATUS 仍有未完成项且本模块无进程在跑 ⇒ 直接继续，不空转）⇒ ✅ **撤回上一轮 EXT-011 限制组核数结论**（`cpu_watch.py` mtime **09:51:11**，而两次跑在 **09:33–09:49** ⇒ 跑的都是旧版：每次新建 `psutil.Process` ⇒ `cpu_percent()` 恒 0.0 + 只跟根 PID 跟不到子进程 ⇒ 数据全作废）⇒ ✅ **EXT-013 ① 重写 `tools/cpu_watch.py`**（15574 B：**PID 树采样** + `--expect-cmd` **身份校验** + `--self-check-sec` **启动自检**（CPU 时间增量必须 > 0，否则 **rc=3**）；编排器 `run_p1_real.py` 传 `--expect-cmd=ext.bridge`，**自检 FAIL ⇒ 整轮 rc=6**）⇒ ✅ **EXT-013 ② 限制组持锁重跑完成**（**11:40:59 → 11:51:45**，`pipeline rc=0`，`cpu_self_check.ok=true` / 窗口内 CPU 时间增量 **66.703 s** / `identity.ok=true` / **505** 采样点）⇒ ✅ **★ 与对照组同一张表落盘**（`.tmp/p1_ext013_lim/compare_ext011.json` **4908 B**）：**核数 mean 0.8244 vs 1.2909（↓36.2 %）/ peak 2.819 vs 7.091（↓60.2 %）/ TTS 稳态 RTF 1.0542 vs 1.3249（↓20.4 %）/ 末句滞后 117.09 vs 122.79 s / 斜率 −0.2695 vs −0.3067** ⇒ **线程限制有效**（A/B 有效性由 `thread_limits.enabled` true/false 确认）；⚠️ **对照组核数只能用旧版 log 解析**（无 identity/self_check）且**原文的「1.36 核」三种口径都复现不出**（实测 1.2909 / 1.3219 / 1.3126）⇒ **以实测为准，不擅自对齐**⇒ ✅ **EXT-012 四项全部交付**（`USER_GUIDE.md` **11496 B** / `tools/ext_launcher.py` 一键启动 / popup 状态显示 / `ext/pair_server.py` **token 自动配对**）⇒ ✅ **★ 配对端点端到端实测**（扩展 Origin 拿到 32 位 token；无 Origin / 伪造 Origin 均 **403**；`/status` 不泄露 token；WS 握手拿到真实 `hello_ack`）⇒ ✅ **修缺陷 27**（USER_GUIDE 写死 App 版本号 `v1.13` ⇒ 改占位 + 加防回归自测）/ **缺陷 28**（快捷方式断言写错 ⇒ 假 FAIL）⇒ ✅ **11 套自测 585 PASS / 0 FAIL**⇒ ⛔ **浏览器端人工验收未做**（本机无 Chrome 只有 Edge；tabCapture 需真实用户手势）⇒ ⛔ **TTS 提速仍是唯一前置**（稳态 RTF 1.0542 仍 > 1.0）
 20:58 §8 **EXT-010 执行：EXT-008 收口 + EXT-009 落地 + 句级流水线**：⚠️ 闸门判 exit 0（最新 = **EXT-010 RESUME**）⇒ 接手核对发现 `.tmp/p1_ext009/` **不存在** ⇒ 上一轮 §7.6.6 的 EXT-009 实测（编排器 PID 38836）**已被中断、产物未落盘** ⇒ 本轮**重跑**（20:24:19→20:33:14，`pipeline rc=0`）⇒ ✅ **EXT-009 验收数字全部拿到**：`n_dropped_dub=0`、`speed_time_share`（**1.20–1.30× 占 0.9144** / >1.30× 占 0.0）、`lag_curve`（start 70.287 / peak 234.644 / end 227.986）、`lag_growth_slope=−0.565947`（r²=0.992763）⇒ **vs run7 串行：末句滞后 297.885→227.986（↓69.9 s）、斜率 −0.892→−0.566（↓36.6 %）⇒ 自适应加速有效** ⇒ ✅ **3 段 1.30× 加速音频落盘**（564154 / 614370 / 614370 B）供抽听 ⇒ ✅ **★ 句级流水线落地**（`ext/pipeline.py` + `PipelineSession`，4 线程、收口按 index 严格有序 ⇒ 口径不变）⇒ ✅ **★ 修 4 个真实缺陷**：**缺陷 23**（`threading.Lock` 不公平 ⇒ 流水线退化成完全串行、加速仅 1.02× ⇒ 改 `_FairLock` 严格 FIFO ⇒ **ASR∩TTS 重叠 0.300 s、加速 1.82×**）/ **缺陷 24**（`_finalize_segment` 返回类型不一致）/ **缺陷 25**（`flush()` 与收口线程并发改共享状态）/ **缺陷 26**（阶段异常被吞 ⇒ 失败段未标 error）⇒ ✅ **★ 流水线真实引擎端到端实测完成**（20:45:55→20:54:33，`pipeline rc=0`）：**`feed_speed_x` 0.5949→1.0**、**末句滞后 227.99→71.21 s（↓68.8 %）**、**斜率 −0.566→−0.106（↓81.3 %）**、**`n_frames_send_blocked_gt_1s` 20→0**、**`n_submitted/n_emitted=22/22`、`n_error=0`**、`stage_wall_sec`（asr 234.912 / mt 2.397 / **tts 343.64**）⇒ **流水线真实有效，但仍未实时，瓶颈明确在 TTS** ⇒ ✅ **七套自测 411 PASS / 0 FAIL**
 17:12 §7 **EXT-010（RESUME）—— 收口 EXT-008 数据 + 落地 EXT-009**：⚠️ 闸门判 exit 0（最新 = **EXT-010 RESUME**，明文「先补完 EXT-008 的数据」+「写 last_ack=EXT-009」）⇒ 按「**未完成的轮次**」接手（树脏 12 改 3 新 / §6.5 三处「待填」/ `interference.json` 缺失 / `all.log` 停在 interference）⇒ ✅ **补跑 (c) interference 臂**（`interference.json` 1114 B / mtime 16:56:51 / 19 段 / 300.0 s）⇒ **`parallel_speedup_x=1.3613`**、`asr_slowdown_x=0.9498`、`tts_slowdown_x=0.9838` ⇒ **真并行成立但只 1.36×** ⇒ ✅ **§6.5 三组实测全部回填** ⇒ ✅ **★ 撤回 0.9264**（实测 **1.0022**；根因＝跨轮次借用分母致低估 8 %）⇒ ✅ **修缺陷 21**（WSOLA 搜索退化）+ **缺陷 22**（App 版本硬编码）⇒ ✅ **EXT-009 落地**（统一参数 + 滞回 + 步长限制 + 总倍率封顶 1.30× + WSOLA 主机侧变速 + 底栏语速/滞后显示 + 验收数据落盘链路补齐）⇒ ✅ **六套自测 388 PASS / 0 FAIL** ⇒ ⏳ **EXT-009 5 分钟实测排队等 `tts` 模块的锁**
@@ -2593,3 +2594,238 @@ App 目录（**只 import 对方原件，不改对方任何文件**）
 6. ℹ️ **对照组若要严格同口径核数**，需按新版 cpu_watch 再跑一次（EXT-013 只要求重跑限制组）。
 7. ℹ️ **对照组的核数采样口径弱于限制组**（旧版 cpu_watch，无 identity/self_check）⇒
    核数对比**方向可靠、绝对值可比性打折**（§9.3.2 已标注）。
+
+## §10 EXT-017 落地 —— 用户报的两个故障（乱码 / start 后无输出）全部修复并实测验收（2026-10-30 16:12）
+
+### 10.0 本轮指令（唯一执行依据）
+
+**闸门**：`tools/next_instruction.py --json` → **exit 0**，`latest.id = **EXT-017**`
+（`[BLOCKING]` 2026-10-30 13:06「用户试用『实时配音桥接』报错：① 输出乱码；② 执行 start 之后没有任何输出」），
+`last_ack` 原为 **EXT-014**，`n_entries = 17`。
+
+⚠️ `status/CORRECTIONS_EXT.md` **只读，未改、未入库**。
+
+**EXT-017 四项要求与本轮落点**：
+
+| 项 | EXT-017 要求 | 本轮落点 |
+|---|---|---|
+| ① | 乱码 | `ext/utf8_io.py`（新）+ 启动器/桥接/引擎三层改造 + `.cmd` 按 GBK 写 + `chcp 65001` |
+| ② | start 后没有任何输出 | `ext/engine_runtime.py` 的 `warmup()`（新）+ `ext/bridge.py` 预热接线 + 启动器改**管道**接子进程输出 |
+| ③ | USER_GUIDE 补 Edge 步骤 | `USER_GUIDE.md` + `extension/USER_GUIDE.md`（两份同步，各 14166 B） |
+| ④ | `/pair` 只认本插件 Origin | `ext/extension_id.py`（新）+ `ext/pair_server.py` + `ext/bridge.py` 握手 |
+
+### 10.1 ★ 根因（实测，不是推断）
+
+#### 10.1.1 ① 乱码 —— 控制台代码页 GBK
+
+**实测**（本机中文 Windows）：
+
+```
+ConsoleOutputCP = gb2312      # ctypes kernel32.GetConsoleOutputCP
+```
+
+GBK（cp936）**无法编码** `⇒`(U+21D2)、`🔴`(U+1F534)、`⛔`(U+26D4)，
+但**可以**编码 `★`(U+2605) 与全部常用中文。
+
+⇒ 旧 `ext/bridge.py` 的 `_log` 走裸 `print(f"[bridge {time.strftime('%H:%M:%S')}] {msg}")`，
+日志里又有 `⇒` / `🔴` ⇒ **直接抛 `UnicodeEncodeError`**（不是显示成问号）
+⇒ 进程崩溃或日志中断 ⇒ **用户看到的就是「乱码」**。
+
+**三层防御**：
+
+1. **环境变量层**（必须解释器启动前设，事后改无效）：
+   `PYTHONUTF8=1`（PEP 540）+ `PYTHONIOENCODING=utf-8` + `PYTHONLEGACYWINDOWSSTDIO=0`
+   ⇒ `ext/utf8_io.configure_process_env()`。
+2. **运行时兜底层**：`ext/utf8_io.safe_print()` —— 逐字符过滤（`_sanitize`），
+   编不了的降级替换，**绝不抛异常**；再不行退 ASCII 兜底。
+3. **控制台层**：`.cmd` 里 `chcp 65001 >nul`。
+
+**`.cmd` 编码坑**：`.cmd` 按 **OEM 代码页（936/GBK）** 解读 ⇒ UTF-8 存的中文 `rem` 注释会乱码
+⇒ `_make_shortcut()` 改为**按 GBK 写**（`text.encode("gbk", errors="replace")`）。
+
+#### 10.1.2 ② start 后无输出 —— 三个独立成因
+
+| # | 成因 | 实测证据 | 修法 |
+|---|---|---|---|
+| a | **三引擎全懒加载** | 拉起桥接（App 解释器 v1.12、端口 8799/8798）日志只有「线程限制 / 真实引擎已接线 / 配对端点 / token 文件 / 监听 ws://」，**没有任何「正在加载模型」或引擎加载记录**。根因：`_load_asr` 只在 `asr()` 里触发、`_load_tts` 只在 `tts()` 里触发 | `RuntimeEngine.warmup()`：启动阶段逐个预加载，**每步 emit 进度** |
+| b | **子进程 stdout 被重定向到文件** | 旧 `Popen(stdout=self._log_f)` + 轮询文件尾部 ⇒ **输出只在文件里，窗口永远看不到** | 改 `subprocess.PIPE` + `text=True, encoding="utf-8", errors="replace"`，后台线程逐行读 ⇒ 同时喂窗口与日志文件 |
+| c | **★ GUI 启动器本身起不来（pythonw 静默）** | 桌面快捷方式指向 WorkBuddy 默认环境的 `pythonw.exe` ⇒ 实测 `import tkinter` → `ModuleNotFoundError` ⇒ **窗口根本不出现**；又因 pythonw 无控制台 ⇒ stderr 被吞 ⇒ 用户看到「双击了，什么都没发生」 | 快捷方式改指向 **App 自带的 `pythonw.exe`**（实测有 tkinter）；新增 `_has_tkinter()` 实测探测；tkinter 缺失时**写日志 + 弹 MessageBox**，绝不静默 |
+
+#### 10.1.3 ★ 验收中又抓到的两个真实缺陷
+
+| # | 缺陷 | 实测证据 | 修法 |
+|---|---|---|---|
+| d | **`tk.Combobox` 不存在** | `Combobox` 在 **ttk** 里，不在 `tkinter` 顶层 ⇒ 实测 `AttributeError: module 'tkinter' has no attribute 'Combobox'` ⇒ GUI **直接崩溃**（pythonw 吞掉 traceback ⇒ 用户同样「双击了，没反应」） | 改 `from tkinter import ttk` + `ttk.Combobox` |
+| e | **★ 状态灯永远停在「正在加载模型…」** | ① 配对端点在**预热之后**才启动 ⇒ 预热那 20–40 秒里 `/status` 根本不在线 ⇒ 轮询一直失败；② `app.after(1000, poll_engine_state)` **只调度一次** ⇒ 轮询查一次就停。两者叠加 ⇒ 即使 `/status` 早已返回 `engine_state=ready`，窗口仍显示「正在加载模型…」 | 配对端点提到**预热之前**启动；`poll_engine_state` 放进 `try/finally` 里**自我续期** |
+
+### 10.2 交付物清单
+
+**新增**：
+
+| 文件 | 说明 |
+|---|---|
+| `ext/utf8_io.py` | UTF-8 三层防御：`safe_print` / `_sanitize` / `configure_process_env` / `console_code_page` / `describe` |
+| `ext/extension_id.py` | 由 `extension/manifest.json` 的 `key` 现场算扩展 ID；`origin_is_this_extension()` 精确匹配 |
+| `tests/test_ext017_user_report.py` | EXT-017 专项自测（99 PASS / 0 FAIL） |
+
+**修改**：`ext/bridge.py`（`_log` 走 `safe_print`；`--no-warmup` / `--warmup-strict`；预热接线；
+配对端点提前启动；`_pair_status` 报 `engine_state`/`engine_loaded`/`engine_failed`；WS 握手按精确 ID）/
+`ext/engine_runtime.py`（`_log` 走 `safe_print`；新增 `warmup()`）/
+`ext/pair_server.py`（`extension_id` 参数；`_origin_ok()` 精确匹配）/
+`tools/ext_launcher.py`（UTF-8 环境 + `safe_print`；管道接输出；`.cmd` 按 GBK 写 + `chcp 65001`；
+`_app_pythonw()` / `_has_tkinter()`；`ttk.Combobox`；tkinter 缺失弹窗；顶层异常兜底；轮询自我续期）/
+`extension/popup.html`（`#mEngine` 卡片）/ `extension/popup.js`（显示引擎状态）/
+`USER_GUIDE.md` + `extension/USER_GUIDE.md`（Edge 步骤 + 开发人员模式说明 + 4 条常见报错）/
+`tests/test_echo_roundtrip.py`（Origin 现场推导 + 「别的扩展被拒」新断言）/
+`tests/test_ext012_user_guide.py`（快捷方式按 GBK 解码 + 追加断言）
+
+**只读、未改**：`status/CORRECTIONS_EXT.md`（**绝不修改、绝不入库**）、App 目录
+（`Confucius4_LiveCaption_v1.12/`，**只 import 对方原件，不改对方任何文件**）
+
+### 10.3 ★ EXT-017④：扩展 ID 的双重验证
+
+`ext/extension_id.compute_extension_id()` 从 `extension/manifest.json` 的 `key`
+按 Chrome 规则算 ID（**SHA256(DER) 前 16 字节 → 每字节转 a–p 两个 hex 字符**）：
+
+```
+kekgmfkijphpfndbbpakjaokamkeooib
+```
+
+与 **9 份独立浏览器探针产物**（`.tmp/ab_video_off` / `ab_video_on` / `p1_verify` /
+`probe_diag_stall` / `probe_echo_sched_v2` / `probe_profile` / `probe_suite` /
+`probe_suite_v7` / `probe_suite_v8` / `probe_suite_v9`）里的 `ext_id` 字段**完全一致**。
+
+⇒ 生产工具 `tools/p1_pipeline.py:126` 与 `tools/run_p1_real.py:142` 本来就用这个 ID
+⇒ **收紧 Origin 不会破坏生产链路**。
+
+**收紧后实测**（真起 HTTP 服务打四种 Origin）：
+
+| Origin | 状态码 | 结果 |
+|---|---|---|
+| `chrome-extension://kekgmfkijphpfndbbpakjaokamkeooib` | **200** | 拿到 token |
+| `chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`（别的扩展） | **403** | 拒绝 |
+| `https://evil.example.com`（普通网页） | **403** | 拒绝 |
+| 无 Origin | **403** | 拒绝 |
+
+旧口径 `startswith("chrome-extension://")` 会放行**任何**扩展 ⇒ 已改为精确匹配；
+且**解析不出 ID 时一律拒绝**（不静默放宽）。
+
+### 10.4 ★ 用户方式实测验收（截图证据）
+
+**方式**：桌面快捷方式（`C:\Users\Trekker-PTL\Desktop\实时配音桥接.cmd`，**按 GBK 写**）→
+`chcp 65001` + `PYTHONUTF8=1` + `PYTHONIOENCODING=utf-8` → App 自带 `pythonw.exe` 起 GUI
+→ 鼠标点「启动」按钮。**中文 Windows 默认控制台**（`ConsoleOutputCP=gb2312`），非 IDE、非 PowerShell 7。
+
+**产物**：`C:\Users\Trekker-PTL\shared\ext_launcher_fix\` —— **6 个文件 / 321 900 B**
+
+| 截图 | 字节数 | mtime | 证明了什么 |
+|---|---|---|---|
+| `01_启动器初始窗口_中文正常.png` | 37 129 | 2026-10-30 16:00 | 窗口正常、中文**零乱码**（对照旧版：无 tkinter ⇒ 窗口根本不出现） |
+| `02_点启动后2秒_已见加载提示.png` | 54 261 | 2026-10-30 15:56 | **点启动 2 秒内**窗口已出现「正在加载模型…（预计 20–40 秒）」+ PID + 端口 8765 + 日志路径 |
+| `04_点启动后3秒_逐引擎进度.png` | 57 548 | 2026-10-30 16:00 | 逐引擎进度「**(1/3) 正在加载 ASR [R2T2 INT8] @ GPU.0 ……**」 |
+| `06_点启动后3秒_修复后_状态灯轮询生效.png` | 56 347 | 2026-10-30 16:02 | 修复后状态灯正常轮询（显示「正在加载模型…」+「已就绪：无」） |
+| `07_加载完成_TTS就绪.png` | 58 175 | 2026-10-30 16:02 | **标题栏「实时配音桥接（EXT） — TTS 就绪」** + 绿色「TTS 就绪」+「三个引擎都已加载，可以开始配音了。」 |
+| `10_故意MT加载失败_显示原因.png` | 58 440 | 2026-10-30 16:04 | 故意让 MT 失败 ⇒ 红色「**引擎未就绪**」+ 完整失败原因 |
+
+**真实引擎加载实测**（App 自带解释器 + 真实模型）：
+
+```
+[bridge 16:02:5x] (1/3) 正在加载 ASR [R2T2 INT8] @ GPU.0 ……
+[bridge 16:02:5x] (2/3) 正在加载 MT（Hy-MT2 INT8） @ GPU.0 ……
+[bridge 16:02:5x] (3/3) 正在加载 TTS（Qwen3-TTS） @ NPU ……
+[ext-engine] TTS 就绪（Qwen3-TTS @ NPU，15.6s）
+[bridge 16:02:5x] (3/3) TTS（Qwen3-TTS） 加载完成（16.5 秒）
+[bridge 16:02:5x] 引擎预热完成：成功 3/3，总耗时 26.9 秒
+[bridge 16:02:5x] ✅ 模型加载完成（ASR/MT/TTS 就绪，耗时 26.85 秒）
+```
+
+⇒ **ASR=R2T2 INT8@GPU.0 / MT=Hy-MT2 INT8@GPU.0 / TTS=Qwen3-TTS@NPU**，与既定交付版本一致
+⇒ 加载总耗时 **17.9–26.9 s**（落在 EXT-017 说的「20–40 秒」区间内）。
+
+**故意失败实测**（把 `LIVECAP_MT_MODEL` 指向一个存在但无模型文件的目录）：
+
+```
+[bridge 16:04:13] (2/3) MT（Hy-MT2 INT8） 加载失败 ⇒ EngineNeedsChange: [Hy-MT2] HunyuanTranslator 构造失败
+  (device=GPU.0, dir=...\fake_mt_model): ... Could not find a model in the directory '...\fake_mt_model'
+[bridge 16:04:26] ❌ 部分引擎加载失败：{'mt': 'EngineNeedsChange: ...'}
+[bridge 16:04:26] 详细日志见本文件（%LOCALAPPDATA%\LiveDubEXT\bridge.log）
+```
+
+⇒ 窗口显示红色「**引擎未就绪**」+ 失败引擎 + 原因 + 日志路径；**其它引擎照常加载**（ASR/TTS 不受影响）
+⇒ **失败绝不静默** ✅。
+
+### 10.5 机器锁纪律
+
+* 本轮**做了计时/测速作业**（真实引擎预热占 GPU/NPU）⇒ **开工前申请了共享锁**
+  `C:\Users\Trekker-PTL\shared\MACHINE_LOCK`（内容 `ext-verify PID 30572 started 2026-10-30 15:54:59`），
+  **结束后已删除**（实测确认 `MACHINE_LOCK` 不存在）。
+* **开工前还回收了一个孤儿锁**（`app-spksync PID 34696 started 15:48:17`）。
+  回收前用 **ctypes `OpenProcess` + `GetExitCodeProcess`** 探活，
+  **并先验证了探针本身的判别力**（活进程 → `OK/259`；刚退出 → `OK/0`；绝不存在的 PID 999999 → `OPENFAIL/87`）
+  ⇒ 34696 的结果与「绝不存在的 PID」**完全一致** ⇒ 确证已死才回收。
+  （**没有**用 Git Bash 下的 `tasklist /FI` —— 已知会被当路径。）
+* 全程**未与实时字幕 App 抢设备**：`ext.bridge` 启动前自检 `_caption_app_running()`。
+
+### 10.6 自测（12 套全 0 FAIL）
+
+```
+test_ext_selfcheck        :: 103 PASS / 0 FAIL
+test_echo_roundtrip       ::  11 PASS / 0 FAIL
+test_next_instruction     ::  19 PASS / 0 FAIL
+test_ext017_user_report   ::  99 PASS / 0 FAIL   <- 本轮新增
+test_ext009_adaptive_speed::  57 PASS / 0 FAIL
+test_ext010_pipeline      ::  23 PASS / 0 FAIL
+test_ext011_thread_limits ::  29 PASS / 0 FAIL
+test_ext012_user_guide    ::  75 PASS / 0 FAIL
+test_ext013_compare       ::  51 PASS / 0 FAIL
+test_ext013_cpu_watch     ::  25 PASS / 0 FAIL
+test_ext_browser_contract :: 102 PASS / 0 FAIL
+test_p1_plumbing          ::  97 PASS / 0 FAIL
+合计                       :: 691 PASS / 0 FAIL
+```
+
+**新增自测项在 `tests/test_ext017_user_report.py`（6 个测试函数 / 99 项断言）**：
+
+| 函数 | 覆盖 | 关键点 |
+|---|---|---|
+| `test_utf8_safety` | ① 乱码 | **反向证据**：GBK 直接写 `🔴`/`⇒` 确实抛 `UnicodeEncodeError`；`safe_print` 不抛且输出可按 GBK 解码 |
+| `test_startup_visibility` | ② 进度 | 真起桥接 + **桩引擎**跑 `warmup()` ⇒ 逐阶段进度可见、失败不静默、单阶段失败不阻断其它阶段 |
+| `test_launcher_gui_startable` | ② GUI | **反向证据**：`tkinter` 顶层确实没有 `Combobox`；`_has_tkinter()` 对「无 tkinter 的解释器」必须返回 `False` |
+| `test_status_loading_phase` | ② 状态灯 | `/status` 在预热期间就是 `loading`；**源码层断言配对端点启动位置在预热之前** |
+| `test_user_guide_edge` | ③ 文档 | Edge 步骤 + 「关开发人员模式会停用」+ 两份文档一致 |
+| `test_pair_origin_strict` / `test_bridge_origin_wiring` / `test_popup_engine_state` | ④ / popup | 真起 HTTP 服务打四种 Origin 看状态码 |
+
+**★ 修掉了 4 个「假通过」的断言**（不是改旧断言掩盖回归，而是把断言改精确）：
+
+1. `bridge 不再有裸 print` —— 原断言字符串命中了新 docstring 里的说明文字 ⇒ 改用 **AST 解析 `_log` 函数体**判定调用的是 `safe_print`；
+2. `启动器用管道` —— 原断言 `"stdout=self._log_f" not in lsrc` 命中了新注释 ⇒ 改用 **AST 解析 `Popen` 的 `stdout` 实参**；
+3. `Edge 段落没写成 chrome://` —— 原正则命中同一行的对照写法「（不是 `chrome://extensions`）」⇒ 改为**排除否定前缀后**再判定；
+4. `/status 报 engine_state` —— 原测试构造的 `status_provider` 没走 `bridge._pair_status` ⇒ 改为**直接测 `_pair_status`**并按 `{"ok":…,"status":{…}}` 包装取内层。
+
+### 10.7 本轮修掉的真实缺陷汇总
+
+| # | 缺陷 | 后果 | 严重度 |
+|---|---|---|---|
+| 29 | `ext/bridge.py` 的 `_log` 裸 `print` + 日志含 GBK 编不了的符号 | **抛 `UnicodeEncodeError` ⇒ 崩溃/日志中断**（用户报「乱码」） | BLOCKING |
+| 30 | 三引擎全懒加载，start 后零输出 | 用户报「start 后没有任何输出」 | BLOCKING |
+| 31 | 启动器把子进程 stdout 重定向到文件 + 轮询文件尾 | 输出只在文件里，窗口看不到 | BLOCKING |
+| 32 | 桌面快捷方式指向**没有 tkinter** 的 `pythonw` | GUI 根本不出现 + 报错被吞 | BLOCKING |
+| 33 | `tk.Combobox` 不存在（应为 `ttk.Combobox`） | GUI 直接崩溃 + 报错被吞 | BLOCKING |
+| 34 | 配对端点在预热**之后**才启动 | 预热期 `/status` 不在线 ⇒ 状态灯卡住 | HIGH |
+| 35 | `app.after` 只调度一次，轮询不自续期 | 状态灯永远停在「正在加载模型…」 | HIGH |
+| 36 | `/pair` 用 `startswith("chrome-extension://")` | 任意扩展都能拿 token | HIGH（安全） |
+| 37 | `.cmd` 按 UTF-8 写 | cmd 按 GBK 解读 ⇒ 注释乱码 | NORMAL |
+
+### 10.8 剩余待办（EXT-017 未覆盖 / 需 reviewer 或用户动手）
+
+1. ℹ️ **浏览器端人工验收仍待用户/reviewer 动手**：在 Edge/Chrome 里加载 `extension` → 对**英文网页视频**和**本地 mp4** 各配音 1 分钟
+   （`tabCapture` 需真实用户手势，自动化跑不了）。**本轮只验收了「桥接启动器 + 引擎加载」这一段**，
+   **不宣称端到端浏览器链路已验证**。
+2. ⛔ **端到端仍不实时**（§9.8 事项 2 未变）：稳态 TTS RTF **1.0542** > 1.0 ⇒ **TTS 提速仍是唯一前置**，
+   数字由主会话转达 TTS 模块。
+3. ⛔ **流水线是否默认开启待拍板**（现在 `--pipeline` 默认关闭）。
+4. ℹ️ **EXT-016（压缩 STATUS/CORRECTIONS 至 ≤ 40 KB）仍未执行** —— 本轮唯一执行依据是 EXT-017，
+   按「脚本打印的最新 id 是本轮唯一执行依据」的口径**不认领** EXT-016，留待下一轮。
+   （当前 `status/STATUS_EXT.md` **203 773 B**、`status/EXEC_LOG.md` **87 597 B**。）
+5. ℹ️ **本机无 Chrome，只有 Edge 126** ⇒ 「Chrome 加载插件」路径**未验证**（§9.5.4 同）。
+6. ℹ️ 本轮**没有**改动 App 目录任何文件；`ext/engine_runtime.py` 仍是**适配层**（只 import 对方原件）。

@@ -1106,3 +1106,138 @@ test_ext013_compare       ::  51 PASS / 0 FAIL
 
 **`last_ack` 推进**：EXT-011 / EXT-012 / EXT-013 三条均已执行完毕并收口
 ⇒ **`last_ack` = EXT-014**（EXT-014 是巡检规则项，本轮已按其 ②③ 条实际落地）。
+
+---
+
+## 2026-10-30 16:11 — EXT-017 落地（用户试用报的两个故障：乱码 / start 后无输出）
+
+### 闸门
+
+```
+tools/next_instruction.py --json  ⇒  exit 0
+latest.id = EXT-017   [BLOCKING] 2026-10-30 13:06
+last_ack(原) = EXT-014   n_entries = 17
+```
+
+⇒ 本轮**唯一执行依据 = EXT-017**。
+⚠️ `status/CORRECTIONS_EXT.md` **只读，未修改、未入库**。
+
+### 指令摘要（EXT-017 四项）
+
+① **乱码** ⇒ 统一 `PYTHONUTF8=1` / `PYTHONIOENCODING=utf-8`；`.cmd` 里 `chcp 65001`；Tk 窗口与日志文件统一 UTF-8；
+须在**中文 Windows 默认控制台**验证（不得用 IDE / PowerShell 7）。
+② **start 之后没有任何输出** ⇒ 查清子进程是否起来（PID / 8765 / 8766 / 日志）；**2 秒内**必须出现
+「正在加载模型…（预计 20–40 秒）」+ 每引擎进度；失败要显示原因与日志路径、**不能静默**；
+子进程 stdout/stderr 要接到窗口与日志文件；**pythonw 启动时输出易丢失**。
+③ **USER_GUIDE 补 Edge 加载步骤** + 说明「关闭开发人员模式扩展」提示怎么处理。
+④ **确认 `/pair`(8766) 只响应 Origin 为 `chrome-extension://<本插件 id>`** 的请求。
+**验收**：用用户的方式（桌面快捷方式、中文 Windows 默认控制台）从零启动，截图证明无乱码、
+start 后能看到加载进度并最终显示「TTS 就绪」；再故意让一个引擎加载失败确认显示原因；
+截图放 `shared/ext_launcher_fix/`。
+
+### 根因（实测）
+
+| 症状 | 实测根因 |
+|---|---|
+| ① 乱码 | `ConsoleOutputCP = gb2312`；GBK 编不了 `⇒`/`🔴`/`⛔` ⇒ 旧 `ext/bridge.py` 的 `_log` 裸 `print` **抛 `UnicodeEncodeError`**（不是显示成问号） |
+| ② 无输出 (a) | 三引擎全**懒加载**（`_load_asr` 只在 `asr()`、`_load_tts` 只在 `tts()` 里触发）⇒ 拉起桥接后日志只有「线程限制/真实引擎已接线/配对端点/token 文件/监听 ws://」，**没有任何模型加载记录** |
+| ② 无输出 (b) | 启动器 `Popen(stdout=self._log_f)` + 轮询文件尾 ⇒ 输出只在文件里，**窗口永远看不到** |
+| ② 无输出 (c) | **GUI 启动器本身起不来**：桌面快捷方式指向 WorkBuddy 默认环境的 `pythonw.exe` ⇒ 实测 `import tkinter` → `ModuleNotFoundError` ⇒ 窗口根本不出现；又因 pythonw 无控制台 ⇒ stderr 被吞 ⇒「双击了，什么都没发生」 |
+| ② 追加 | `tk.Combobox` 不存在（`Combobox` 在 **ttk** 里）⇒ `AttributeError` ⇒ GUI 直接崩溃 + 报错被吞 |
+| ② 追加 | 状态灯永远停在「正在加载模型…」：配对端点在预热**之后**才启动（预热期 `/status` 不在线）+ `app.after` 只调度一次（轮询不自续期） |
+
+### 涉及文件
+
+**新增**：`ext/utf8_io.py`、`ext/extension_id.py`、`tests/test_ext017_user_report.py`
+
+**修改**：`ext/bridge.py`、`ext/engine_runtime.py`、`ext/pair_server.py`、`tools/ext_launcher.py`、
+`extension/popup.html`、`extension/popup.js`、`USER_GUIDE.md`、`extension/USER_GUIDE.md`、
+`tests/test_echo_roundtrip.py`、`tests/test_ext012_user_guide.py`
+
+**只读、未改**：`status/CORRECTIONS_EXT.md`（已 gitignore，**绝不 `git add -f`**）、
+`Confucius4_LiveCaption_v1.12/`（**只 import 对方原件，不改对方任何文件**）
+
+### 关键实现
+
+* `ext/utf8_io.py`：`safe_print()`（逐字符 `_sanitize` 降级，绝不抛异常）/
+  `configure_process_env()`（`PYTHONUTF8=1` + `PYTHONIOENCODING=utf-8` + `PYTHONLEGACYWINDOWSSTDIO=0`）/
+  `console_code_page()`（ctypes `GetConsoleOutputCP`）。
+* `ext/engine_runtime.py`：`RuntimeEngine.warmup(stages=..., on_progress=...)`
+  ⇒ 逐阶段 emit `(i/N) 正在加载 <label> @ <device> ……` / `<label> 加载完成（X 秒）` /
+  `<label> 加载失败 ⇒ <reason>`；返回 `{"ok","loaded","failed","load_s","elapsed_sec"}`；
+  **单阶段失败不阻断其它阶段**。
+* `ext/bridge.py`：新增 `--no-warmup` / `--warmup-strict`；配对端点提到**预热之前**启动；
+  `_pair_status` 报 `engine_state` / `engine_loaded` / `engine_failed`；
+  WS 握手用 `resolve_extension_id()` + `check_origin(origin, _eid)`。
+* `ext/extension_id.py`：由 `extension/manifest.json` 的 `key` 算 ID
+  （SHA256(DER) 前 16 字节 → 每字节转 a–p 两个 hex 字符）= `kekgmfkijphpfndbbpakjaokamkeooib`
+  ⇒ 与 **9 份浏览器探针**的 `ext_id` 完全一致；**解析不出 ID 一律拒绝**（不静默放宽）。
+* `tools/ext_launcher.py`：`subprocess.PIPE` + `text=True, encoding="utf-8", errors="replace"`；
+  `.cmd` **按 GBK 写** + `chcp 65001 >nul`；`_app_pythonw()` / `_has_tkinter()`；
+  `from tkinter import ttk` + `ttk.Combobox`；tkinter 缺失**写日志 + MessageBox**；
+  顶层 `except BaseException` 兜底；`poll_engine_state` 放 `try/finally` 里**自我续期**。
+
+### 验证与自测结果
+
+**12 套自测全部 0 FAIL**：
+
+```
+test_ext_selfcheck        :: 103 PASS / 0 FAIL
+test_echo_roundtrip       ::  11 PASS / 0 FAIL
+test_next_instruction     ::  19 PASS / 0 FAIL
+test_ext017_user_report   ::  99 PASS / 0 FAIL   <- 本轮新增
+test_ext009_adaptive_speed::  57 PASS / 0 FAIL
+test_ext010_pipeline      ::  23 PASS / 0 FAIL
+test_ext011_thread_limits ::  29 PASS / 0 FAIL
+test_ext012_user_guide    ::  75 PASS / 0 FAIL
+test_ext013_compare       ::  51 PASS / 0 FAIL
+test_ext013_cpu_watch     ::  25 PASS / 0 FAIL
+test_ext_browser_contract :: 102 PASS / 0 FAIL
+test_p1_plumbing          ::  97 PASS / 0 FAIL
+合计                      :: 691 PASS / 0 FAIL
+```
+
+**用户方式实测验收（桌面快捷方式 + 中文 Windows 默认控制台 + 鼠标点「启动」）**：
+
+| 阶段 | 实测结果 |
+|---|---|
+| 点启动 **2 秒内** | 窗口已出现「正在加载模型…（预计 20–40 秒）」+ PID=11332 + 端口 8765 + 日志路径 |
+| 逐引擎进度 | 「**(1/3) 正在加载 ASR [R2T2 INT8] @ GPU.0 ……**」⇒「(2/3) MT（Hy-MT2 INT8）」⇒「(3/3) TTS（Qwen3-TTS）@ NPU」 |
+| 加载完成 | 「引擎预热完成：成功 3/3，总耗时 26.9 秒」⇒「✅ 模型加载完成（ASR/MT/TTS 就绪，耗时 26.85 秒）」⇒ 状态灯「**TTS 就绪**」 |
+| 故意让 MT 失败 | 「(2/3) MT（Hy-MT2 INT8） 加载失败 ⇒ EngineNeedsChange: … Could not find a model in the directory」⇒「❌ 部分引擎加载失败：{'mt': …}」⇒ 状态灯红色「**引擎未就绪**」+ 完整原因 + 日志路径（ASR/TTS 照常加载） |
+| 乱码 | 全部截图中文正常，**零乱码 / 零问号 / 零方块** |
+
+**`/pair` Origin 收紧实测**（真起 HTTP 服务）：
+
+| Origin | 状态码 |
+|---|---|
+| `chrome-extension://kekgmfkijphpfndbbpakjaokamkeooib` | **200**（拿到 token） |
+| `chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`（别的扩展） | **403** |
+| `https://evil.example.com`（普通网页） | **403** |
+| 无 Origin | **403** |
+
+`/status` 仍可访问且**不泄露 token**。
+
+**产物**（文件数 / mtime / 字节数）：
+
+| 产物 | 文件数 | mtime | 字节数 |
+|---|---|---|---|
+| `C:\Users\Trekker-PTL\shared\ext_launcher_fix\`（截图 6 张） | 6 | 2026-10-30 15:56–16:04 | 321 900 |
+| └ `01_启动器初始窗口_中文正常.png` | 1 | 2026-10-30 16:00 | 37 129 |
+| └ `02_点启动后2秒_已见加载提示.png` | 1 | 2026-10-30 15:56 | 54 261 |
+| └ `04_点启动后3秒_逐引擎进度.png` | 1 | 2026-10-30 16:00 | 57 548 |
+| └ `06_点启动后3秒_修复后_状态灯轮询生效.png` | 1 | 2026-10-30 16:02 | 56 347 |
+| └ `07_加载完成_TTS就绪.png` | 1 | 2026-10-30 16:02 | 58 175 |
+| └ `10_故意MT加载失败_显示原因.png` | 1 | 2026-10-30 16:04 | 58 440 |
+| `C:\Users\Trekker-PTL\Desktop\实时配音桥接.cmd`（桌面快捷方式，GBK 写） | 1 | 2026-10-30 15:55 | 330 |
+| `%LOCALAPPDATA%\LiveDubEXT\bridge.log`（运行日志） | 1 | 2026-10-30 16:04 | — |
+
+**机器锁**：预热占 GPU/NPU ⇒ 开工前申请 `C:\Users\Trekker-PTL\shared\MACHINE_LOCK`
+（`ext-verify PID 30572 started 2026-10-30 15:54:59`），**结束后已删除**（实测确认不存在）。
+开工前回收的孤儿锁 `app-spksync PID 34696`：先用 ctypes `OpenProcess` + `GetExitCodeProcess` 探活，
+**并先验证探针判别力**（活进程→`OK/259`；刚退出→`OK/0`；绝不存在的 PID 999999→`OPENFAIL/87`）
+⇒ 34696 与「绝不存在的 PID」表现完全一致 ⇒ 确证已死才回收。
+**未用** Git Bash 的 `tasklist /FI`（已知会被当路径）。
+
+**`last_ack` 推进**：EXT-017 四项全部执行完毕并实测验收 ⇒ **`last_ack` = EXT-017**。
+ℹ️ EXT-016（压缩 STATUS/CORRECTIONS 至 ≤ 40 KB）**本轮未认领**（唯一执行依据是 EXT-017）。

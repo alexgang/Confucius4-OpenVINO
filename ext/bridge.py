@@ -37,7 +37,17 @@ from typing import Dict, List, Optional, Tuple
 #      所以这个调用点本身没有把「晚一步」的问题带进来。
 from .thread_limits import apply_thread_limits as _apply_thread_limits
 
-THREAD_LIMIT_RECORD = _apply_thread_limits(log=print)
+# ★★ EXT-017①：日志输出必须**绝不因编码问题抛异常**。
+#   本机中文 Windows 控制台代码页实测 = gb2312（cp936 系），
+#   而 `print("🔴 ...")` 在 GBK 编码下会抛 `UnicodeEncodeError`
+#   ⇒ 一条日志写不出去 ⇒ 进程崩溃 / 日志中断在那一行（用户看到的「乱码」）。
+#   ⇒ 所有对外日志一律走 `safe_print`（不可编码字符降级替换，绝不抛异常）。
+#   （环境变量层的 PYTHONUTF8=1 由启动器负责，见 tools/ext_launcher.py。）
+from .utf8_io import safe_print as _safe_print
+# ★ EXT-017④：解析本插件的扩展 id（/pair 与 WS 握手都按**精确 id** 校验）。
+from .extension_id import resolve_extension_id
+
+THREAD_LIMIT_RECORD = _apply_thread_limits(log=lambda m: _safe_print(m))
 
 import numpy as np
 
@@ -57,7 +67,15 @@ ENGINE_ADAPTER = None  # 由 main() 注入：见 ext/engines.py
 
 
 def _log(msg: str) -> None:
-    print(f"[bridge {time.strftime('%H:%M:%S')}] {msg}", flush=True)
+    """写一行桥接日志。
+
+    ★ EXT-017①：**绝不抛异常**。
+      中文 Windows 控制台代码页是 GBK，`🔴` / `⇒` / `⛔` 这些符号
+      在 GBK 下**无法编码** ⇒ 直接 `print()` 会抛 `UnicodeEncodeError`
+      ⇒ 进程崩溃或日志中断（用户报告的「乱码」）。
+      ⇒ 统一走 `safe_print`：不可编码的字符降级替换，**日志继续往下走**。
+    """
+    _safe_print(f"[bridge {time.strftime('%H:%M:%S')}] {msg}")
 
 
 class TokenStore:
@@ -82,11 +100,26 @@ class TokenStore:
         return bool(candidate) and secrets.compare_digest(candidate, self.token)
 
 
-def check_origin(origin: Optional[str]) -> bool:
-    """校验 Origin 必须是 chrome-extension://<id>。"""
+def check_origin(origin: Optional[str], extension_id: Optional[str] = None) -> bool:
+    """校验 Origin。
+
+    Parameters
+    ----------
+    origin
+        请求头里的 Origin。
+    extension_id
+        本插件的扩展 id。
+
+        * ``None``（默认）⇒ 只校验**前缀** `chrome-extension://`
+          （旧的宽松口径，保留给通用场景）；
+        * 给了 id ⇒ **精确匹配** `chrome-extension://<本插件 id>`
+          （★ EXT-017④ 的收紧口径）。
+    """
     if not origin:
         return False
-    return origin.startswith(C.ALLOWED_ORIGIN_PREFIX)
+    if extension_id is None:
+        return origin.startswith(C.ALLOWED_ORIGIN_PREFIX)
+    return origin.strip() == "chrome-extension://%s" % extension_id
 
 
 # ── EXT-006 P1：余量汇总（★ 缺陷 17：顶层口径修正） ──────────────
@@ -1259,8 +1292,12 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
          不是这条连接自己的空会话。
     """
     origin = _get_header(websocket, "Origin") or ""
-    if not check_origin(origin):
-        _log(f"拒绝连接：Origin 非法 ({origin!r})")
+    # ★★ EXT-017④：Origin 必须是**本插件**（精确 id），不是任意扩展。
+    #   解析不出本插件 id ⇒ 一律拒绝（不静默放宽）。
+    _eid = resolve_extension_id()
+    if not check_origin(origin, _eid):
+        _log(f"拒绝连接：Origin 非法 ({origin!r})"
+             + (f"，本插件 id={_eid}" if _eid else "（未能解析本插件 id）"))
         await websocket.close(code=1008, reason="bad origin")
         return
 
@@ -1519,6 +1556,12 @@ def main(argv=None) -> int:
     # ── ★ EXT-012：配对 HTTP 端点（插件自动取 token） ──
     ap.add_argument("--pair-port", type=int, default=C.PAIR_PORT,
                     help="配对/状态 HTTP 端点端口（0 = 关闭）")
+    # ── ★ EXT-017②：启动即预热引擎（让「正在加载模型…」可见） ──
+    ap.add_argument("--no-warmup", action="store_true",
+                    help="不预热引擎（启动后等第一句音频再懒加载；"
+                         "默认是**启动即预热**）")
+    ap.add_argument("--warmup-strict", action="store_true",
+                    help="任一引擎加载失败就拒绝启动（默认：告警后继续）")
     args = ap.parse_args(argv)
 
     try:
@@ -1560,7 +1603,21 @@ def main(argv=None) -> int:
     else:
         _log("回声模式（未接引擎）—— 仅供 P0 ③ 自测")
 
+    # ★★ EXT-017②：**启动即预热引擎**，让「正在加载模型…」可见。
+    #   根因：三个引擎原先都是**懒加载**（第一句音频进来才 load）
+    #         ⇒ start 之后屏幕上什么都没有（用户报的「无任何输出」）。
+    #   ⇒ 现在启动阶段就把 ASR/MT/TTS 逐个加载好，每步都有进度提示。
+    #   ⚠️ 预热会占 GPU/NPU ⇒ 与实时字幕 App 互斥（上面已检查）。
+    #   ⚠️ 预热**失败**不静默：要么拒绝启动（--warmup-strict），
+    #      要么明确告警后继续（默认，用户仍可用回声/部分能力）。
     holder: dict = {}
+    # ★★ EXT-017②：预热期间 `/status` 就要能报「正在加载」。
+    #   ⇒ 配对端点必须**在预热之前**起来（否则预热那 20–40 秒里
+    #     /status 根本不在线 ⇒ 启动器/popup 轮询一直失败
+    #     ⇒ 状态灯永远停在「正在加载模型…」，不会翻成「TTS 就绪」）。
+    holder["engine_state"] = "loading" if (args.real and engine is not None) \
+        else "unknown"
+
     # ★★ EXT-012：配对 HTTP 端点（**用户不需要手动复制 token**）
     #   插件从 http://127.0.0.1:<pair_port>/pair 自动取 token
     #   ⇒ 安全口径不变：仅接受 Origin: chrome-extension:// 的请求。
@@ -1582,6 +1639,33 @@ def main(argv=None) -> int:
     except Exception as e:
         _log(f"⚠️ 配对端点不可用：{e}（插件将需要手动粘贴 token）")
         pair_server = None
+
+    warm_report: dict = {}
+    if args.real and engine is not None and not args.no_warmup:
+        _log("正在加载模型…（预计 20–40 秒，请稍候）")
+        try:
+            warm_report = engine.warmup(on_progress=_log)
+        except Exception as e:
+            warm_report = {"ok": False, "loaded": [], "failed": {"warmup": str(e)}}
+            _log(f"❌ 引擎预热异常：{type(e).__name__}: {e}")
+        if warm_report.get("ok"):
+            _log(f"✅ 模型加载完成（ASR/MT/TTS 就绪，"
+                 f"耗时 {warm_report.get('elapsed_sec')} 秒）")
+        else:
+            failed = warm_report.get("failed") or {}
+            _log(f"❌ 部分引擎加载失败：{failed}")
+            _log(f"   详细日志见本文件（%LOCALAPPDATA%\\LiveDubEXT\\bridge.log）")
+            if args.warmup_strict:
+                _log("已按 --warmup-strict 拒绝启动（引擎不完整 ⇒ 配音会有问题）")
+                return 5
+
+    # ★★ EXT-017②：预热结果放进 holder ⇒ /status 能报告引擎状态
+    #   （popup 显示「正在加载模型…」/「TTS 就绪」/「某引擎失败」）。
+    if warm_report:
+        holder["warmup"] = warm_report
+    holder["engine_ready"] = bool(warm_report.get("ok")) if warm_report else False
+    if warm_report:
+        holder["engine_state"] = "ready" if warm_report.get("ok") else "partial"
 
     try:
         asyncio.run(serve(args.host, args.port, delay_sec=args.delay,
@@ -1676,7 +1760,25 @@ def _pair_status(holder: dict) -> dict:
         "n_segments": 0,
         "speed_time_share": {},
         "n_dropped_dub": 0,
+        # ★ EXT-017②：引擎加载状态（popup 显示「正在加载模型…」/「TTS 就绪」）
+        "engine_state": "unknown",
+        "engine_loaded": [],
+        "engine_failed": {},
     }
+    holder = holder if isinstance(holder, dict) else {}
+    # 引擎加载状态（由 main() 在预热后写入 holder）
+    warm = holder.get("warmup") or {}
+    if isinstance(warm, dict) and warm:
+        out["engine_loaded"] = list(warm.get("loaded") or [])
+        out["engine_failed"] = dict(warm.get("failed") or {})
+        out["engine_state"] = "ready" if warm.get("ok") else "partial"
+    else:
+        # ★★ EXT-017②：预热**还没结束**（或被 --no-warmup 关掉）时，
+        #   holder 里的 engine_state 说明当前阶段
+        #   （"loading" = 正在加载 / "unknown" = 未预热）。
+        st = holder.get("engine_state")
+        if isinstance(st, str) and st in ("loading", "unknown", "ready", "partial"):
+            out["engine_state"] = st
     sess = holder.get("session") if isinstance(holder, dict) else None
     if sess is None:
         return out
