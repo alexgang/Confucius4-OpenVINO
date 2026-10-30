@@ -1,0 +1,119 @@
+{
+  "ver": "1.12",
+  "zip_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12.zip",
+  "pkg_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12",
+  "zip_bytes": 11233373363,
+  "zip_mtime": "2026-10-30 11:20:14",
+  "zip_sha256": "28cf34de3514680e12440c11b63ad9c95d34e827b1a64bea8808bcd1d08a72b6",
+  "n_entries": 14218,
+  "testzip": null,
+  "py_same": 6603,
+  "py_diff": 0,
+  "py_diffs": [],
+  "manifest_version": "1.12",
+  "manifest_files": 14217,
+  "s101": {
+    "found": true,
+    "miss": [],
+    "miss_mode_aware": [],
+    "ok": true
+  },
+  "zip_asr_spk_py": 10,
+  "zip_secret_hits": [],
+  "zip_spk_ir_files": 4,
+  "zip_spk_ir_bytes": 16479887,
+  "license": {
+    "NOTICE": {
+      "bytes": 9643,
+      "wespeaker": true,
+      "cc_by4": true,
+      "pyannote": true,
+      "mit": true
+    },
+    "THIRD_PARTY.md": {
+      "bytes": 3784,
+      "wespeaker": true,
+      "cc_by4": true,
+      "pyannote": true,
+      "mit": true
+    }
+  },
+  "zip_asr_spk_bad": [],
+  "dir_ver": "1.12",
+  "zip_ver": "1.12",
+  "pass": 14,
+  "fail": 0,
+  "verdict": "PASS",
+  "details": [
+    {
+      "name": "V1 zip 存在",
+      "ok": true,
+      "msg": "11,233,373,363 字节"
+    },
+    {
+      "name": "V2 testzip() 无 CRC 错误",
+      "ok": true,
+      "msg": "testzip=None"
+    },
+    {
+      "name": "V3 zip ⇄ 包目录 .py 逐字一致",
+      "ok": true,
+      "msg": "一致 6603 / 差异 0"
+    },
+    {
+      "name": "V4 §100 修复在 zip 内：live_caption_app.py",
+      "ok": true,
+      "msg": "zip=e5440190eadc pkg=e5440190eadc"
+    },
+    {
+      "name": "V4 §100 修复在 zip 内：tts_worker.py",
+      "ok": true,
+      "msg": "zip=73c756420fd1 pkg=73c756420fd1"
+    },
+    {
+      "name": "V4 §100 修复在 zip 内：speaker_tracker.py",
+      "ok": true,
+      "msg": "zip=4b03f19fbaf1 pkg=4b03f19fbaf1"
+    },
+    {
+      "name": "V5 MANIFEST version == 1.12",
+      "ok": true,
+      "msg": "version='1.12' files=14217"
+    },
+    {
+      "name": "V7 §101 模式感知修复在 zip 内",
+      "ok": true,
+      "msg": "3 弱标记 + 3 模式感知特征全在 ✅"
+    },
+    {
+      "name": "V8 zip 内 app/asr_spk/ 无内部编号",
+      "ok": true,
+      "msg": "10 个 .py，0 命中 ✅"
+    },
+    {
+      "name": "V9 APP-044 说话人资产在 zip 内",
+      "ok": true,
+      "msg": "4 个 IR / 16,479,887 字节（15.72 MB）"
+    },
+    {
+      "name": "V9b APP-044 接口代码在 zip 内",
+      "ok": true,
+      "msg": "10 个 .py"
+    },
+    {
+      "name": "V10 APP-044 许可署名在 zip 内",
+      "ok": true,
+      "msg": "NOTICE/third_party 均含 wespeaker CC BY 4.0 + pyannote"
+    },
+    {
+      "name": "V11 zip 内 asr_spk 语法全合法",
+      "ok": true,
+      "msg": "10 文件全合法 ✅"
+    },
+    {
+      "name": "V6 版本号三处一致（目录/zip/MANIFEST）",
+      "ok": true,
+      "msg": "dir=1.12 zip=1.12 manifest=1.12"
+    }
+  ]
+}
