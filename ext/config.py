@@ -54,6 +54,10 @@ BRIDGE_PORT = 8765
 BRIDGE_TOKEN_FILE = "bridge_token.txt"
 ALLOWED_ORIGIN_PREFIX = "chrome-extension://"
 
+# ★★ EXT-012：配对 HTTP 端点（插件自动取 token ⇒ 用户不手动复制）
+#   桥接端口 + 1（8765 ⇒ 8766）
+PAIR_PORT = BRIDGE_PORT + 1
+
 # ── 引擎设备摆放（EXT-001 总原则） ──────────────────────────────
 DEVICE_ASR = "GPU.0"         # R2T2 INT8
 DEVICE_MT = "GPU.0"          # Hy-MT2 INT8

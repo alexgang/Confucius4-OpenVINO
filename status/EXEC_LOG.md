@@ -1012,3 +1012,97 @@ mtime 均为 2026-10-28 06:11。）
 
 
 **`last_ack` 推进**：EXT-009 与 EXT-008 均已收口、EXT-010 本身已执行完毕 ⇒ **`last_ack` = EXT-010**（§8.9 说明「不回头改旧章节」的处置）。
+
+---
+
+## 2026-10-30 11:56 — EXT-011 / EXT-012 / EXT-013 三条全部收口
+
+**执行时间**：2026-10-30 11:31 – 11:56（实测）
+**闸门**：`tools/next_instruction.py --json` → **exit 0**，`latest.id = EXT-014`
+（`[HIGH]` 2026-10-30 11:25「巡检规则补充」），`last_ack` 原为 EXT-010，`n_entries = 14`。
+**接手核对**：HEAD = `bd3068c`（EXT-010），工作树脏（6 改 9 新）⇒ 上一轮 EXT-011/012/013 **未完成**。
+**本轮执行依据**：EXT-013（明文三项工作）；EXT-014 是巡检规则项，按其 ②③ 条落地（见 §9.6）。
+
+### 指令摘要与逐条落实
+
+| EXT-013 要求 | 落实情况 |
+|---|---|
+| ① 修 `cpu_watch`，按服务进程及其子进程的 PID 树采样，启动后先自检能读到非零 CPU | ✅ `tools/cpu_watch.py` 重写（15574 B）：PID 树采样 + `--expect-cmd` 身份校验 + `--self-check-sec` 启动自检（CPU 时间增量必须 > 0，否则 **rc=3**）；编排器自检 FAIL ⇒ 整轮 **rc=6** |
+| ② 持锁重跑限制组，和对照组放进同一张表（核数、TTS 稳态 RTF、末句滞后、斜率） | ✅ 限制组 **11:40:59 → 11:51:45**（`pipeline rc=0`，`cpu_self_check.ok=true`，CPU 时间增量 **66.703 s**）；对比表 `.tmp/p1_ext013_lim/compare_ext011.json`（**4908 B**） |
+| ③ `thread_limits.py`、`cpu_watch.py` 和对应测试提交到 git | ✅ 本次提交内含 `ext/thread_limits.py` / `tools/cpu_watch.py` / `tools/compare_ext011_cores.py` / `tests/test_ext011_thread_limits.py` / `tests/test_ext012_user_guide.py` / `tests/test_ext013_cpu_watch.py` / `tests/test_ext013_compare.py` |
+| 顺序：先做 EXT-012，再持锁重跑限制组 | ✅ 锁在 11:38–11:40 被 `asr` 持有（PID 31152，经 `probe_pid_alive()` 复核存活）⇒ 用 `--lock-wait 7200` **排队**（不抢不删），等待期先做 EXT-012 不计时部分；限制组跑批随后完成 |
+
+### ★ 对比表（限制组 vs 对照组，同一张表）
+
+| 指标 | 限制组（ON） | 对照组（OFF） | 变化 |
+|---|---|---|---|
+| 核数 mean | **0.8244** | 1.2909 | ↓ 36.2 % |
+| 核数 peak | **2.819** | 7.091 | ↓ 60.2 % |
+| TTS 稳态 RTF | **1.0542** | 1.3249 | ↓ 20.4 % |
+| 末句滞后 | **117.0879** s | 122.789 s | ↓ 5.70 s |
+| 滞后斜率 | **−0.269455** | −0.306699 | 绝对值 ↓ 12.1 % |
+| `thread_limits.enabled` | **true** | **false** | ✔ A/B 有效 |
+
+**⚠️ 诚实标注**：对照组的核数只能用**旧版** `cpu_watch.log` 解析（423 行；无 `identity`/`self_check`）
+⇒ 采样口径弱于限制组；且 **EXT-013 原文给的「平均 1.36 核」无法复现**
+（全量 1.290894 / 去启动期 1.321927 / 仅非零行 1.312615）⇒ **以实测 1.2909 为准**。
+**峰值 7.091 与原文完全吻合**。
+
+### EXT-012 交付（用户试用件）
+
+| 项 | 交付 | 实测证据 |
+|---|---|---|
+| ① `USER_GUIDE.md` | `USER_GUIDE.md` + `extension/USER_GUIDE.md`（各 11496 B） | 自测覆盖明文每项；UTF-8 无 BOM |
+| ② 一键启动 | `tools/ext_launcher.py`（13042 B）+ 桌面 `实时配音桥接.cmd` | 用 **App 解释器 v1.12** 按 launcher 同款 cmd/env 真起桥接 ⇒ `/health` 200 + 拿到 32 位 token ⇒ 正常停止 |
+| ③ popup 状态 | `extension/popup.html` + `popup.js`（`#conn`/`#mDelay`/`#mSpeed`/`#mLag`/`#btnGuide`） | `node --check` 通过 |
+| ④ token 自动配对 | `ext/pair_server.py`（5513 B）+ `bridge.py` `--pair-port` 接线 | 扩展 Origin → 200 + 32 位 token；**无 Origin 403**；**伪造 Origin 403**；`/status` **不含 token**；WS 握手 → 真实 `hello_ack` |
+
+### 本轮修掉的真实缺陷
+
+* **缺陷 27**：USER_GUIDE **写死** `Confucius4_LiveCaption_v1.13` ⇒ App 升级后用户照抄跑不起来
+  （本机实际 **v1.12**）⇒ 改 `<版本号>` 占位 + 给 `dir` 命令 + **加防回归自测**（不许出现 `v\d+` 字面量）。
+* **缺陷 28**：`test_ext012_user_guide.py` 快捷方式断言**写错了**（传假 args 却断言真实路径）⇒ **假 FAIL**
+  ⇒ 改成「与传入 args 一致」+ 加「不是写死模板」反向断言。
+
+### 涉及修改的文件
+
+**新增**：`USER_GUIDE.md` / `extension/USER_GUIDE.md` / `ext/pair_server.py` / `ext/thread_limits.py` /
+`tools/ext_launcher.py` / `tools/cpu_watch.py` / `tools/compare_ext011_cores.py` /
+`tests/test_ext011_thread_limits.py` / `tests/test_ext012_user_guide.py` /
+`tests/test_ext013_cpu_watch.py` / `tests/test_ext013_compare.py`
+
+**修改**：`ext/bridge.py` / `ext/config.py` / `extension/popup.html` / `extension/popup.js` /
+`tools/run_p1_real.py` / `tools/engine_smoke.py` / `status/STATUS_EXT.md` / `status/EXEC_LOG.md`
+
+**只读未改**：`status/CORRECTIONS_EXT.md`（**绝不修改、绝不入库**）、`ext/engine_runtime.py`、App 目录
+
+### 验证与自测结果
+
+**11 套自测全部 0 FAIL**：
+
+```
+test_ext_selfcheck        :: 103 PASS / 0 FAIL
+test_echo_roundtrip       ::  10 PASS / 0 FAIL
+test_next_instruction     ::  19 PASS / 0 FAIL
+test_ext010_pipeline      ::  23 PASS / 0 FAIL
+test_ext_browser_contract :: 102 PASS / 0 FAIL
+test_p1_plumbing          ::  97 PASS / 0 FAIL
+test_ext009_adaptive_speed::  57 PASS / 0 FAIL
+test_ext011_thread_limits ::  29 PASS / 0 FAIL
+test_ext012_user_guide    ::  69 PASS / 0 FAIL
+test_ext013_cpu_watch     ::  25 PASS / 0 FAIL
+test_ext013_compare       ::  51 PASS / 0 FAIL
+合计                      :: 585 PASS / 0 FAIL
+```
+
+**产物**（文件数 / mtime / 字节数）：
+
+| 产物 | 文件数 | mtime | 字节数 |
+|---|---|---|---|
+| `.tmp/p1_ext013_lim/`（限制组） | 38 | 2026-10-30 11:51:51 | 13 912 280 |
+| `.tmp/p1_ext013_lim/compare_ext011.json` | 1 | 2026-10-30 11:51 | 4 908 |
+| `.tmp/p1_ext013_lim/cpu_usage.json` | 1 | 2026-10-30 11:51 | 116 231 |
+| `.tmp/p1_ext011_ctl/`（对照组） | 33 | 2026-10-30 09:49:57 | 12 987 722 |
+
+**`last_ack` 推进**：EXT-011 / EXT-012 / EXT-013 三条均已执行完毕并收口
+⇒ **`last_ack` = EXT-014**（EXT-014 是巡检规则项，本轮已按其 ②③ 条实际落地）。

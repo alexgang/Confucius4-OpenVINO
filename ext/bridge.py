@@ -27,6 +27,18 @@ import threading
 import time
 from typing import Dict, List, Optional, Tuple
 
+# ★★ EXT-011：**必须早于任何 numpy / openvino import**。
+#   OpenMP / MKL 运行时在**库被加载**（= `import numpy` 那一刻）读取
+#   OMP_NUM_THREADS / MKL_NUM_THREADS / OPENBLAS_NUM_THREADS /
+#   NUMEXPR_NUM_THREADS ⇒ 之后再设**无效**。
+#   依据：ASR §60.2 持锁实测（OMP/MKL/OPENBLAS/NUMEXPR=1 ⇒ ASR CPU
+#   7.81 核 → 约 1 核，libiomp5md 原本占 6.85 核，RTF 也改善）。
+#   ⚠️ `ext.thread_limits` 自身**不 import numpy / openvino**，
+#      所以这个调用点本身没有把「晚一步」的问题带进来。
+from .thread_limits import apply_thread_limits as _apply_thread_limits
+
+THREAD_LIMIT_RECORD = _apply_thread_limits(log=print)
+
 import numpy as np
 
 from . import config as C
@@ -906,6 +918,9 @@ class Session:
         # ★ EXT-010：流水线诊断（串行模式下为 None）
         out["pipeline"] = self.pipeline_stats() \
             if isinstance(self, PipelineSession) else None
+        # ★★ EXT-011：线程限制的**实际生效记录**（reviewer 可直接核对，
+        #   不必猜这个进程到底有没有限过线程）
+        out["thread_limits"] = THREAD_LIMIT_RECORD
         return out
 
     def margin_summary(self) -> dict:
@@ -1501,6 +1516,9 @@ def main(argv=None) -> int:
     ap.add_argument("--pipeline", action="store_true",
                     help="用流水线会话（ASR/MT/TTS/收口 各一线程，句级并行）；"
                          "依据 EXT-008 (c) interference 实测（ASR ∥ TTS 互不拖慢）")
+    # ── ★ EXT-012：配对 HTTP 端点（插件自动取 token） ──
+    ap.add_argument("--pair-port", type=int, default=C.PAIR_PORT,
+                    help="配对/状态 HTTP 端点端口（0 = 关闭）")
     args = ap.parse_args(argv)
 
     try:
@@ -1519,6 +1537,13 @@ def main(argv=None) -> int:
         token_path = os.path.join(os.path.dirname(os.path.dirname(
             os.path.abspath(__file__))), token_path)
 
+    # ★★ EXT-012：配对端点要**复用同一个 TokenStore** ⇒ token 与 WebSocket
+    #   鉴权用的是同一个值（不会各自生成不同的 token）。
+    try:
+        _tokens = TokenStore(token_path)
+    except Exception:
+        _tokens = None
+
     # ── EXT-006：注入真实引擎 ────────────────────────────────
     engine = None
     if args.real:
@@ -1536,6 +1561,28 @@ def main(argv=None) -> int:
         _log("回声模式（未接引擎）—— 仅供 P0 ③ 自测")
 
     holder: dict = {}
+    # ★★ EXT-012：配对 HTTP 端点（**用户不需要手动复制 token**）
+    #   插件从 http://127.0.0.1:<pair_port>/pair 自动取 token
+    #   ⇒ 安全口径不变：仅接受 Origin: chrome-extension:// 的请求。
+    pair_server = None
+    try:
+        from .pair_server import PairServer
+        pair_server = PairServer(
+            port=args.pair_port,
+            host=args.host,
+            token_provider=lambda: (_tokens.token if _tokens else ""),
+            status_provider=lambda: _pair_status(holder),
+        )
+        ok, msg = pair_server.start()
+        if ok:
+            _log(f"配对端点：{msg}（EXT-012：插件自动取 token）")
+        else:
+            _log(f"⚠️ {msg}（插件将需要手动粘贴 token）")
+            pair_server = None
+    except Exception as e:
+        _log(f"⚠️ 配对端点不可用：{e}（插件将需要手动粘贴 token）")
+        pair_server = None
+
     try:
         asyncio.run(serve(args.host, args.port, delay_sec=args.delay,
                           echo_mode=args.echo, token_path=token_path,
@@ -1545,6 +1592,11 @@ def main(argv=None) -> int:
     except KeyboardInterrupt:
         _log("已停止")
     finally:
+        if pair_server is not None:
+            try:
+                pair_server.stop()
+            except Exception:
+                pass
         _dump_margin(holder, args.margin_out, engine)
     return 0
 
@@ -1577,6 +1629,8 @@ def _dump_margin(holder: dict, out_path: Optional[str], engine) -> None:
         "adaptive_speed": (sess.adaptive_speed_stats()
                            if sess is not None
                            and hasattr(sess, "adaptive_speed_stats") else {}),
+        # ★★ EXT-011：线程限制记录（4 个环境变量的实际值 + 开关状态）
+        "thread_limits": dict(THREAD_LIMIT_RECORD),
     }
     n_new = len(data.get("per_segment") or [])
 
@@ -1600,6 +1654,62 @@ def _dump_margin(holder: dict, out_path: Optional[str], engine) -> None:
         _log(f"余量统计已落盘：{out_path}（{n_new} 段）")
     except Exception as e:
         _log(f"余量统计落盘失败：{e}")
+
+
+def _pair_status(holder: dict) -> dict:
+    """★ EXT-012：给插件 popup 用的**实时状态**摘要。
+
+    popup 要显示（EXT-012 明文 ③）：
+    * 桥接连接状态；
+    * 当前延迟（D）；
+    * 当前语速倍率；
+    * ⇒ 滞后（lag）也一并给出（用户最关心的就是「落后多少秒」）。
+
+    ⚠️ 只返回**只读**的标量摘要，不含 token、不含原始音频。
+    """
+    out: dict = {
+        "checked_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "has_session": False,
+        "delay_sec": None,
+        "lag_sec": None,
+        "speed": None,
+        "n_segments": 0,
+        "speed_time_share": {},
+        "n_dropped_dub": 0,
+    }
+    sess = holder.get("session") if isinstance(holder, dict) else None
+    if sess is None:
+        return out
+    out["has_session"] = True
+    try:
+        out["delay_sec"] = float(getattr(sess, "delay_sec", 0) or 0) or None
+    except Exception:
+        pass
+    try:
+        m = sess.margin_summary()
+        out["lag_sec"] = m.get("last_segment_lag_sec")
+        out["n_segments"] = m.get("n_segments") or 0
+    except Exception:
+        pass
+    try:
+        a = sess.adaptive_speed_stats()
+        out["speed_time_share"] = a.get("speed_time_share") or {}
+        out["n_dropped_dub"] = a.get("n_dropped_dub") or 0
+        curve = a.get("lag_curve") or {}
+        # ★ 当前倍率 = 最近的倍率（lag_curve 末值 ≈ 当前倍率对应的滞后）
+        #   ⇒ 用「各倍率占比里最大的那个」作为「当前大致倍率」的可读近似。
+        shares = out["speed_time_share"]
+        if shares:
+            out["speed"] = max(shares, key=lambda k: shares[k] or 0)
+        out["lag_curve"] = {k: curve.get(k) for k in
+                            ("start_sec", "peak_sec", "peak_at_t_start", "end_sec")}
+    except Exception:
+        pass
+    try:
+        out["thread_limits"] = dict(THREAD_LIMIT_RECORD)
+    except Exception:
+        pass
+    return out
 
 
 def _caption_app_running() -> bool:

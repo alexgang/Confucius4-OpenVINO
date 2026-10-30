@@ -24,6 +24,12 @@ import wave
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
+# ★★ EXT-011：线程限制必须在任何 numpy / openvino import 之前
+#   （本工具**直接**跑引擎，不经过 ext.bridge ⇒ 这里要自己设一次）
+from ext.thread_limits import apply_thread_limits as _apply_thread_limits
+
+THREAD_LIMIT_RECORD = _apply_thread_limits(log=print)
+
 
 def read_wav_16k_mono(path: str):
     """读 16 kHz 单声道 PCM16 wav → (float32 numpy, sample_rate)。"""
@@ -135,6 +141,8 @@ def main(argv=None) -> int:
             print("[smoke] TTS wav 已落盘：%s" % args.dump_wav)
 
     out["engine_stats"] = eng.stats()
+    # ★★ EXT-011：线程限制的**实际生效记录**（reviewer 可直接核对）
+    out["thread_limits"] = dict(THREAD_LIMIT_RECORD)
     out["ok"] = True
     out["finished_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
     _dump(args.out, out)

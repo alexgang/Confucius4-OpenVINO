@@ -1,12 +1,13 @@
 # STATUS_EXT
-last_ack: EXT-010
-更新时间: 2026-10-29 20:53
-当前任务: **§8 EXT-010 执行：EXT-008 收口 + EXT-009 落地 + 句级流水线** ⇒ ✅ **EXT-008 interference 臂数据已在（`interference.json` 1114 B / 16:56:51），无需重跑；§6.5 三组回填已在 §7.1** ⇒ ✅ **★ EXT-009 五分钟真实实测本轮重跑完成**（上一轮编排器被中断、产物未落盘 ⇒ 本轮重跑）：**2026-10-29 20:24:19 → 20:33:14**，`pipeline rc=0`，`n_segments=22` / `n_without_tts=0` / `n_deferred=0` / **`n_dropped_dub=0`** ⇒ **`speed_time_share`：1.20–1.30× 占 0.9144（91.44 % 音频时长）/ 1.00–1.10× 0.045 / 1.10–1.20× 0.0406 / >1.30× 0.0**（总倍率封顶 1.30× 未被突破）⇒ **`lag_curve`：start 70.287 / peak 234.644（@t_start 282.84）/ end 227.986**、`lag_growth_slope_sec_per_sec=−0.565947`（r²=0.992763）⇒ **vs run7 串行：末句滞后 297.885→227.986（↓69.9 s）、斜率 −0.892→−0.566（↓36.6 %）⇒ 自适应加速确实有效** ⇒ ✅ **3 段 1.30× 加速音频已落盘**（`accel/` 3 个 wav：564154 / 614370 / 614370 B）供 reviewer 抽听 ⇒ ✅ **★ 句级流水线落地**（`ext/pipeline.py` 425 行 + `ext/bridge.py` `PipelineSession`，ASR/MT/TTS/收口 各一线程，收口按 `index` 严格有序 ⇒ 排程与指标口径不变）⇒ ✅ **★ 修掉 4 个真实缺陷**：**缺陷 23**（普通 `threading.Lock` 不公平 ⇒ ASR 抢锁、MT 饿死 ⇒ 流水线退化成完全串行，加速只有 1.02× ⇒ 改 **_FairLock** 严格 FIFO ⇒ 修后 ASR∩TTS 重叠 0.300 s、墙钟 1.52 s vs 2.76 s、**加速 1.82×**）/ **缺陷 24**（`_finalize_segment` 返回 list 与流水线要的单个 dict 不一致 ⇒ TypeError）/ **缺陷 25**（`flush()` 尾段走串行 ⇒ 与收口线程并发改 `margins`/`_prev_adapt_speed`）/ **缺陷 26**（阶段内异常被吞 ⇒ 失败段未标 error）⇒ ✅ **★ 流水线真实引擎端到端实测完成**（20:45:55→20:54:33，`pipeline rc=0`）：**`feed_speed_x` 0.5949 → 1.0**（喂帧从落后实时 40 % 变为刚好实时）、**末句滞后 227.99 → 71.21 s（↓68.8 %）**、**斜率 −0.566 → −0.106（↓81.3 %）**、**`n_frames_send_blocked_gt_1s` 20 → 0**、`send_dur_max_sec` 58.453 → 0.007、**`n_submitted/n_emitted = 22/22`、`n_error = 0`**、`stage_wall_sec`（asr 234.912 / mt 2.397 / **tts 343.64**）、`gpu_serial_stages=["asr","mt"]` ⇒ **流水线真实有效但仍未实时，瓶颈已明确在 TTS** ⇒ ✅ **七套自测全绿 411 PASS / 0 FAIL**（含新增 `tests/test_ext010_pipeline.py` 23 项，带反向对照区分力）⇒ ⛔ **端到端仍不实时**（流水线轮 `sync_err_ms.p50=67289.3`、`n_over_target=22`、末句仍滞后 71.21 s）；⛔ **TTS 未提速**（RTF 仍 1.0022，流水线里 TTS 墙钟 343.64 s 是最长杆 ⇒ 建议目标 ≤ 0.85）；⛔ **流水线默认关闭待拍板**；⛔ **pyannote 旁路未接线**；⛔ **P2/P3 未开始**
+last_ack: EXT-014
+更新时间: 2026-10-30 11:56
+当前任务: **§9 EXT-011/012/013 三条全部收口** ⇒ ✅ **EXT-013 ① cpu_watch 已重写**（PID 树采样 + 身份校验 + 启动自检，**自检 FAIL ⇒ 退出码 3**，编排器自检 FAIL ⇒ 整轮 rc=6）⇒ ✅ **EXT-013 ② 限制组持锁重跑完成**（**2026-10-30 11:40:59 → 11:51:45**，`pipeline rc=0`，`cpu_self_check.ok=true`、窗口内 CPU 时间增量 **66.703 s**）⇒ ✅ **限制组 vs 对照组同一张表落盘**（`.tmp/p1_ext013_lim/compare_ext011.json` 4908 B / 11:51）：**核数 mean 0.8244 vs 1.2909（↓36.2 %）/ peak 2.819 vs 7.091（↓60.2 %）/ TTS 稳态 RTF 1.0542 vs 1.3249（↓20.4 %）/ 末句滞后 117.09 vs 122.79 s / 斜率 −0.2695 vs −0.3067** ⇒ **线程限制有效且同时改善了 CPU 与时延** ⇒ ✅ **EXT-012 用户试用件四项全部交付**（`USER_GUIDE.md` 11496 B / 一键启动器 `tools/ext_launcher.py` / popup 状态显示 / **token 自动配对** `ext/pair_server.py`）⇒ ✅ **配对端点端到端实测**（扩展 Origin 拿到 32 位 token；无 Origin / 伪造 Origin 均 **403**；`/status` 不泄露 token；WS `hello_ack` 拿到真实 R2T2 分段配置）⇒ ✅ **11 套自测 585 PASS / 0 FAIL** ⇒ ⛔ **端到端仍不实时**（末句滞后仍 117 s，瓶颈仍是 TTS RTF ≈ 1.05）；⛔ **tabCapture 生产路径仍未实测**；⛔ **本机无 Chrome**（只有 Edge，EXT-012 验收用 Edge 替代）
 
 阻塞 / 待决定:
-① ⛔ **端到端仍不实时，待 reviewer / 用户决策** —— 稳态端到端 RTF **2.0507**（ASR 0.6563 / MT 0.1507 / **TTS 1.0022**）；**TTS 贴着 1.0 没有任何余量**，且 (c) 实测显示**并发时 TTS 墙钟越过 60 s 失控闸** ⇒ **TTS 提速是流水线上线的前置条件**（建议目标 ≤ 0.85，数字见 §7.3 / §8.3.1，**由主会话转达 TTS 模块**）；② ⛔ **流水线是否默认开启待拍板** —— 本轮已落地但做成 **`--pipeline` 默认关闭**（默认行为逐字不变）；**真实引擎实测已证明有效**（末句滞后 ↓68.8 %、喂帧不再落后实时、零丢句零错误）⇒ **转正与否由 reviewer 定**（§8.3.1 / §8.8 事项 1）；③ ⛔ **同步误差仍全部超标**（流水线轮 `sync_err_ms.p50=67289.3`、`n_over_target=22`、`last_segment_lag_sec=71.2074`）⇒ **实时仍未达成**；④ ⛔ **pyannote 旁路未接线** —— ASR-013 交付后由主会话通知；⑤ ⛔ **P2（克隆/体验/稳定性）/ P3（打包）未开始**；⑥ ℹ️ **tabCapture 生产路径仍未实测**（EXT-005 ①，P2 待办）；⑦ ℹ️ **EXT-009 服务端 lag 估计存在跨时钟常量偏差，尚未定量标定**（§7.6.3）—— 决策放服务端、插件只显示 ⇒ 不影响变速稳定性；⑧ ℹ️ **§6.5.0/§6.8/§6.9 的 0.9264 已撤回**（§7.2），旧章节不回头改，以 §7 为准。
+① ⛔ **端到端仍不实时，待 reviewer / 用户决策** —— 稳态端到端 RTF **2.0507**（ASR 0.6563 / MT 0.1507 / **TTS 1.0022**）；**TTS 贴着 1.0 没有任何余量**，且 (c) 实测显示**并发时 TTS 墙钟越过 60 s 失控闸** ⇒ **TTS 提速是流水线上线的前置条件**（建议目标 ≤ 0.85，数字见 §7.3 / §8.3.1，**由主会话转达 TTS 模块**）；② ⛔ **流水线是否默认开启待拍板** —— 本轮已落地但做成 **`--pipeline` 默认关闭**（默认行为逐字不变）；**真实引擎实测已证明有效**（末句滞后 ↓68.8 %、喂帧不再落后实时、零丢句零错误）⇒ **转正与否由 reviewer 定**（§8.3.1 / §8.8 事项 1）；③ ⛔ **同步误差仍全部超标**（流水线轮 `sync_err_ms.p50=67289.3`、`n_over_target=22`、`last_segment_lag_sec=71.2074`）⇒ **实时仍未达成**；④ ⛔ **pyannote 旁路未接线** —— ASR-013 交付后由主会话通知；⑤ ⛔ **P2（克隆/体验/稳定性）/ P3（打包）未开始**；⑥ ℹ️ **tabCapture 生产路径仍未实测**（EXT-005 ①，P2 待办）；⑦ ℹ️ **EXT-009 服务端 lag 估计存在跨时钟常量偏差，尚未定量标定**（§7.6.3）—— 决策放服务端、插件只显示 ⇒ 不影响变速稳定性；⑧ ℹ️ **§6.5.0/§6.8/§6.9 的 0.9264 已撤回**（§7.2），旧章节不回头改，以 §7 为准；⑨ ⛔ **EXT-013 限制组虽然线程限制有效（核数 ↓36.2 %、TTS RTF ↓20.4 %），但末句滞后仍 117.09 s ⇒ 仍不实时**（§9.4）—— **TTS 提速仍是唯一前置**；⑩ ℹ️ **本机没有 Chrome，只有 Edge 126**（`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`）⇒ EXT-012 的「Chrome 加载插件」验收用 Edge 替代，**不宣称 Chrome 路径已验证**（§9.5.4）；⑪ ℹ️ **EXT-014 已落地为巡检规则**：STATUS 仍有未完成项且本模块无进程在跑 ⇒ 直接按优先级继续下一项（§9.6）。
 
 ## 最近更新
+11:56 §9 **EXT-011 / EXT-012 / EXT-013 三条全部收口**：⚠️ 闸门判 exit 0（最新 = **EXT-014**「巡检规则补充」）⇒ 命中 EXT-014 ②（STATUS 仍有未完成项且本模块无进程在跑 ⇒ 直接继续，不空转）⇒ ✅ **撤回上一轮 EXT-011 限制组核数结论**（`cpu_watch.py` mtime **09:51:11**，而两次跑在 **09:33–09:49** ⇒ 跑的都是旧版：每次新建 `psutil.Process` ⇒ `cpu_percent()` 恒 0.0 + 只跟根 PID 跟不到子进程 ⇒ 数据全作废）⇒ ✅ **EXT-013 ① 重写 `tools/cpu_watch.py`**（15574 B：**PID 树采样** + `--expect-cmd` **身份校验** + `--self-check-sec` **启动自检**（CPU 时间增量必须 > 0，否则 **rc=3**）；编排器 `run_p1_real.py` 传 `--expect-cmd=ext.bridge`，**自检 FAIL ⇒ 整轮 rc=6**）⇒ ✅ **EXT-013 ② 限制组持锁重跑完成**（**11:40:59 → 11:51:45**，`pipeline rc=0`，`cpu_self_check.ok=true` / 窗口内 CPU 时间增量 **66.703 s** / `identity.ok=true` / **505** 采样点）⇒ ✅ **★ 与对照组同一张表落盘**（`.tmp/p1_ext013_lim/compare_ext011.json` **4908 B**）：**核数 mean 0.8244 vs 1.2909（↓36.2 %）/ peak 2.819 vs 7.091（↓60.2 %）/ TTS 稳态 RTF 1.0542 vs 1.3249（↓20.4 %）/ 末句滞后 117.09 vs 122.79 s / 斜率 −0.2695 vs −0.3067** ⇒ **线程限制有效**（A/B 有效性由 `thread_limits.enabled` true/false 确认）；⚠️ **对照组核数只能用旧版 log 解析**（无 identity/self_check）且**原文的「1.36 核」三种口径都复现不出**（实测 1.2909 / 1.3219 / 1.3126）⇒ **以实测为准，不擅自对齐**⇒ ✅ **EXT-012 四项全部交付**（`USER_GUIDE.md` **11496 B** / `tools/ext_launcher.py` 一键启动 / popup 状态显示 / `ext/pair_server.py` **token 自动配对**）⇒ ✅ **★ 配对端点端到端实测**（扩展 Origin 拿到 32 位 token；无 Origin / 伪造 Origin 均 **403**；`/status` 不泄露 token；WS 握手拿到真实 `hello_ack`）⇒ ✅ **修缺陷 27**（USER_GUIDE 写死 App 版本号 `v1.13` ⇒ 改占位 + 加防回归自测）/ **缺陷 28**（快捷方式断言写错 ⇒ 假 FAIL）⇒ ✅ **11 套自测 585 PASS / 0 FAIL**⇒ ⛔ **浏览器端人工验收未做**（本机无 Chrome 只有 Edge；tabCapture 需真实用户手势）⇒ ⛔ **TTS 提速仍是唯一前置**（稳态 RTF 1.0542 仍 > 1.0）
 20:58 §8 **EXT-010 执行：EXT-008 收口 + EXT-009 落地 + 句级流水线**：⚠️ 闸门判 exit 0（最新 = **EXT-010 RESUME**）⇒ 接手核对发现 `.tmp/p1_ext009/` **不存在** ⇒ 上一轮 §7.6.6 的 EXT-009 实测（编排器 PID 38836）**已被中断、产物未落盘** ⇒ 本轮**重跑**（20:24:19→20:33:14，`pipeline rc=0`）⇒ ✅ **EXT-009 验收数字全部拿到**：`n_dropped_dub=0`、`speed_time_share`（**1.20–1.30× 占 0.9144** / >1.30× 占 0.0）、`lag_curve`（start 70.287 / peak 234.644 / end 227.986）、`lag_growth_slope=−0.565947`（r²=0.992763）⇒ **vs run7 串行：末句滞后 297.885→227.986（↓69.9 s）、斜率 −0.892→−0.566（↓36.6 %）⇒ 自适应加速有效** ⇒ ✅ **3 段 1.30× 加速音频落盘**（564154 / 614370 / 614370 B）供抽听 ⇒ ✅ **★ 句级流水线落地**（`ext/pipeline.py` + `PipelineSession`，4 线程、收口按 index 严格有序 ⇒ 口径不变）⇒ ✅ **★ 修 4 个真实缺陷**：**缺陷 23**（`threading.Lock` 不公平 ⇒ 流水线退化成完全串行、加速仅 1.02× ⇒ 改 `_FairLock` 严格 FIFO ⇒ **ASR∩TTS 重叠 0.300 s、加速 1.82×**）/ **缺陷 24**（`_finalize_segment` 返回类型不一致）/ **缺陷 25**（`flush()` 与收口线程并发改共享状态）/ **缺陷 26**（阶段异常被吞 ⇒ 失败段未标 error）⇒ ✅ **★ 流水线真实引擎端到端实测完成**（20:45:55→20:54:33，`pipeline rc=0`）：**`feed_speed_x` 0.5949→1.0**、**末句滞后 227.99→71.21 s（↓68.8 %）**、**斜率 −0.566→−0.106（↓81.3 %）**、**`n_frames_send_blocked_gt_1s` 20→0**、**`n_submitted/n_emitted=22/22`、`n_error=0`**、`stage_wall_sec`（asr 234.912 / mt 2.397 / **tts 343.64**）⇒ **流水线真实有效，但仍未实时，瓶颈明确在 TTS** ⇒ ✅ **七套自测 411 PASS / 0 FAIL**
 17:12 §7 **EXT-010（RESUME）—— 收口 EXT-008 数据 + 落地 EXT-009**：⚠️ 闸门判 exit 0（最新 = **EXT-010 RESUME**，明文「先补完 EXT-008 的数据」+「写 last_ack=EXT-009」）⇒ 按「**未完成的轮次**」接手（树脏 12 改 3 新 / §6.5 三处「待填」/ `interference.json` 缺失 / `all.log` 停在 interference）⇒ ✅ **补跑 (c) interference 臂**（`interference.json` 1114 B / mtime 16:56:51 / 19 段 / 300.0 s）⇒ **`parallel_speedup_x=1.3613`**、`asr_slowdown_x=0.9498`、`tts_slowdown_x=0.9838` ⇒ **真并行成立但只 1.36×** ⇒ ✅ **§6.5 三组实测全部回填** ⇒ ✅ **★ 撤回 0.9264**（实测 **1.0022**；根因＝跨轮次借用分母致低估 8 %）⇒ ✅ **修缺陷 21**（WSOLA 搜索退化）+ **缺陷 22**（App 版本硬编码）⇒ ✅ **EXT-009 落地**（统一参数 + 滞回 + 步长限制 + 总倍率封顶 1.30× + WSOLA 主机侧变速 + 底栏语速/滞后显示 + 验收数据落盘链路补齐）⇒ ✅ **六套自测 388 PASS / 0 FAIL** ⇒ ⏳ **EXT-009 5 分钟实测排队等 `tts` 模块的锁**
 11:28 §5.10 **EXT-006 P1 续做（修掉 3 个让 P1 拿到「假数据」的缺陷 + 重跑实测）**：⚠️ 闸门仍判 exit 1（`already_executed`），但仓库状态证明上一轮在 commit `a170391`（§5.9）之后**被中断**（树脏 3 个文件 / STATUS 缺 §5.10 / EXEC_LOG 无本轮记录 / **上一轮新加的「缺陷 16」自测本身跑不过：4 FAIL**）⇒ 按「**未完成的轮次**」接手，**last_ack 保持 EXT-006**（纠偏文件无 EXT-007，不认领新编号）⇒ ✅ **修掉 3 个真缺陷**：**缺陷 16**（客户端收尾**必须等 stats 回包**，不能 sleep 硬等 —— 服务端单线程串行，`sleep(1.5)` 远不够 ⇒ 报告里 `margin: null` 且丢段）/ **缺陷 17（★ 最关键）**（余量汇总**顶层口径错** ⇒ 实测顶层读出 `n_negative=0`、`cumulative_lag_sec=0.0` 的**假结论**，而同文件 `deadline` 组是 `19` / `−2841.35` ⇒ 顶层改用**排程口径**，旧延迟口径降级为 `ready_after_orig_end` 子组）/ **缺陷 18**（不配 `--margin-out` 时**不回确认** ⇒ 客户端每次白等 60 s）⇒ ✅ **重跑 P1 端到端实测**（`.tmp/p1_run7/`，真实三引擎，`pipeline rc=0`）⇒ ✅ **三项核心验收量首次正常拿到**：`n_negative=**22**`、`cumulative_lag_sec=**−3969.5098**`、余量分布 `p50=−182.53`（修前报告里是 **null**）、`margin_source="stats"`（**正常路径**，非双保险兜底）、`margin.json` 落盘 **22 段**、**22 个 wav** 全出 ⇒ ⛔ **但指标仍不达标**（`sync_err_ms` p50=170 153 / p95=297 885 / `n_over_target=22`；RTF 2.886 架构级约束）⇒ ✅ 自测 **183 PASS / 0 FAIL**（4 套）⇒ ✅ **修好上一轮遗留的坏自测**（4 处解包 bug + 「慢引擎没真用上」导致的假通过）⇒ ✅ 追加**行为级反向断言**（真跑旧写法证明拿不到 stats）
@@ -2280,3 +2281,315 @@ run_p1_real.py --wav shared/SPE_0000_0500.wav --target-lang en \
 * 本轮**已把 EXT-008 数据补齐、EXT-009 落地并跑完实测**⇒ 两个未完成轮次均已收口。
 * EXT-010 本身（RESUME + 「之后根据数据改流水线」）**也已在本轮执行完毕**（§8.3）。
 * ⇒ **`last_ack` 推进到 `EXT-010`**（实际执行完的最大 EXT 编号），**不回头改旧章节**。
+
+---
+
+## §9 EXT-011 / EXT-012 / EXT-013 三条全部收口（2026-10-30 11:56）
+
+### 9.0 本轮指令与接手核对
+
+**闸门**：`tools/next_instruction.py --json` → **exit 0**，`latest.id = **EXT-014**`
+（`[HIGH]` 2026-10-30 11:25「巡检规则补充」），`last_ack` 原为 **EXT-010**，`n_entries = 14`。
+
+**接手核对**（工作树脏 ⇒ 说明上一轮**未完成**，不是重复触发）：
+
+| 核对项 | 观察到的**事实** | 判定 |
+|---|---|---|
+| HEAD | `bd3068c`（EXT-010） | 上一轮 **EXT-011 未提交** |
+| 已改未提交 | `ext/bridge.py` / `ext/config.py` / `extension/popup.html` / `extension/popup.js` / `tools/engine_smoke.py` / `tools/run_p1_real.py` | EXT-011 线程限制 + EXT-012 接线已写但未落 STATUS |
+| 新增未跟踪 | `USER_GUIDE.md` / `ext/pair_server.py` / `ext/thread_limits.py` / `extension/USER_GUIDE.md` / `tools/cpu_watch.py` / `tools/ext_launcher.py` / `tests/test_ext011_thread_limits.py` / `tests/test_ext012_user_guide.py` / `tests/test_ext013_cpu_watch.py` | EXT-012 交付物已在，**未验收未提交** |
+| STATUS | 头部 `last_ack = EXT-010`，无 §9 | EXT-011/012/013 **都还没收口** |
+
+⇒ **本轮执行依据 = EXT-013（明文三项工作）**，并按 EXT-013 明文「顺序」先补 EXT-012。
+⇒ EXT-014 是**巡检规则**（非功能项），按其 ②③ 条执行（§9.6）。
+
+### 9.1 ★ 撤回上一轮的 EXT-011 限制组结论
+
+**撤回 §8 中任何引用 `p1_ext011` 限制组核数的说法**（若 §8 未写，则本节为唯一权威口径）。
+
+**撤回理由（实测证据，不是推断）**：
+
+* `tools/cpu_watch.py` 的 **mtime = 09:51:11**；
+* 而限制组 `p1_ext011` 跑于 **09:33–09:41**、对照组 `p1_ext011_ctl` 跑于 **09:42–09:49**
+  ⇒ **两次跑的都是 09:51 之前的旧版 cpu_watch**；
+* 旧版每次**新建** `psutil.Process` 对象再读 `cpu_percent()` ⇒ psutil 把「上次采样时刻」
+  记在**对象**上 ⇒ 新建对象的第一次读数**恒为 0.0**；
+* 旧版只跟踪**根 PID**，不跟子进程 ⇒ venv 的 `python.exe` 是**启动器**、真正干活的是子进程
+  ⇒ 跟不到 ⇒ 累计 `cores=0.000`、`pids=1`。
+
+⇒ **限制组的历史核数数据全部作废**，本轮重跑。
+
+### 9.2 ★ EXT-013 ①：重写 `tools/cpu_watch.py`
+
+**文件**：`tools/cpu_watch.py`（15574 B，本轮重写）
+
+| 改动 | 说明 |
+|---|---|
+| **PID 树采样** | `_tree_pids()` 递归收集服务进程**及其全部子进程**；`cpu_percent` 复用**同一批 `Process` 对象**（不再每次新建） |
+| **身份校验** | 新增 `--expect-cmd`：校验目标 PID 的命令行含该串，防 **PID 复用**；不匹配 ⇒ `identity.ok=false`、`samples` 为空、`failed=true` |
+| **★ 启动自检** | 新增 `--self-check-sec`（默认 45 s）：窗口内**累计 CPU 时间增量必须 > 0**；不满足 ⇒ `self_check.ok=false` ⇒ **退出码 3** |
+| **退出码语义** | `0` 正常 / `2` 参数错 / **`3` 自检或身份校验 FAIL** |
+| **产物新增字段** | `identity` / `self_check` / `failed` |
+
+**关键代码**：
+
+```python
+# ★ 自检 FAIL ⇒ 退出码 3（调用方据此判 FAIL，而不是默默接受 0.000）
+if self_check_ok is False:
+    return 3
+return 0
+```
+
+**编排器接线**（`tools/run_p1_real.py`）：新增 `--cpu-self-check-sec`（默认 60.0）；启动 cpu_watch 时传
+`--expect-cmd=ext.bridge` 与 `--self-check-sec`；`finally` 里读回 `cpu_usage.json` 的 `self_check`
+写入 `summary["cpu_self_check"]`；**自检 FAIL ⇒ `summary["ok"]=False` 且整轮 `return 6`**。
+
+### 9.3 ★ EXT-013 ②：限制组持锁重跑 + 与对照组同一张表
+
+#### 9.3.1 跑批证据
+
+| 项 | 值 |
+|---|---|
+| 起止时间 | **2026-10-30 11:40:59 → 11:51:45**（实测） |
+| 输出目录 | `.tmp/p1_ext013_lim/`（**38 个文件 / 13 912 280 B** / newest mtime **11:51:51**） |
+| `pipeline rc` | **0** |
+| `cpu_self_check.ok` | **true**（窗口 60.0 s，**CPU 时间增量 66.703 s**） |
+| `identity.ok` | **true**（命令行含 `ext.bridge`） |
+| CPU 采样点 | **505** 个，`wall_sec = 513.612` |
+| 线程限制 | `enabled=true`，`OMP/MKL/OPENBLAS/NUMEXPR` 全部 = `1` |
+
+**`cpu_usage.json` 原始字段**：`identity.ok=true`、`self_check={"ok":true,"cputime_delta_sec":66.703,"window_sec":60.0}`、`n_samples=505`。
+
+#### 9.3.2 ★ 限制组 vs 对照组（**同一张表**）
+
+> 对比表落盘：`.tmp/p1_ext013_lim/compare_ext011.json`（**4908 B / mtime 11:51**）
+> 生成脚本：`tools/compare_ext011_cores.py`
+> 口径全部写进产物的 `metric_definitions` 字段，reviewer 可逐项核对。
+
+| 指标 | **限制组**（线程限制 ON） | **对照组**（OFF） | 变化 |
+|---|---|---|---|
+| 核数 **mean**（cores） | **0.8244** | 1.2909 | **↓ 36.2 %** |
+| 核数 **peak**（cores） | **2.819** | 7.091 | **↓ 60.2 %** |
+| **TTS 稳态 RTF** | **1.0542** | 1.3249 | **↓ 20.4 %** |
+| **末句滞后**（s） | **117.0879** | 122.789 | ↓ 5.70 s |
+| **滞后斜率**（s/s） | **−0.269455** | −0.306699 | 斜率绝对值 ↓ 12.1 % |
+| 滞后拟合 r² | 0.814857 | 0.915118 | — |
+| `stage_wall_sec` | asr 282.935 / mt 2.218 / **tts 390.55** | asr 292.75 / mt 2.352 / **tts 396.262** | — |
+| `n_dropped_dub` | **0** | 0 | — |
+| `timing.total_sec` | 423.546 | 429.272 | ↓ 5.73 s |
+| `thread_limits.enabled` | **true** | **false** | ✔ A/B 有效性 |
+
+**口径（写进产物 `metric_definitions`）**：
+
+* **核数**：`cores = psutil cpu_percent/100`（100 % = 1 核）；采样对象 = **服务进程及其全部子进程的 PID 树**；`mean_cores` = 采样点算术平均，`peak_cores` = 最大值。
+* **TTS 稳态 RTF**：数据取自 `margin.json` 的 `per_segment`（逐段 `tts_sec` / `speech_sec`）；
+  **稳态窗口 = 后 50 % 段**（按 `id` 起始毫秒排序，剔除模型冷启动）；
+  `tts_steady_rtf = sum(tts_sec)/sum(speech_sec)`（用**总 RTF**，不是逐段 RTF 的平均，避免短段被过度加权）。
+* **末句滞后**：`metrics.lag.last_segment_lag_sec`。
+* **滞后斜率**：`metrics.lag.lag_growth_slope_sec_per_sec`（对 `(t_start, 排程余量)` 线性拟合）。
+
+**对照组的核数来源说明（诚实标注）**：对照组是 09:42 跑的，用的是**旧版** cpu_watch
+⇒ 它的核数只能从 `cpu_watch.log` 解析（**423 行**，`mean=1.2909`、`peak=7.091`），
+**没有** `identity` / `self_check` 字段（`null`）。
+⇒ **EXT-013 原文给的对照组「平均 1.36 核、峰值 7.09 核」**：
+**峰值 7.091 与原文完全吻合**；**平均值实测 1.2909，与原文的 1.36 有差异**。
+逐行复核：全部 423 行算术平均 = **1.290894**；去掉启动期前 10 s 后 = **1.321927**；
+仅统计非零行 = **1.312615** ⇒ **三种口径都落在 1.29–1.32，都不等于 1.36**。
+⇒ **原文的 1.36 无法从原始日志复现，本轮以实测 1.2909 为准**，不擅自对齐原文。
+
+**⚠️ 对照组的核数采样口径比限制组弱**（旧版只跟根 PID、不带身份校验与自检）⇒
+**核数对比结论方向可靠（限制组 CPU 明显更低），但绝对值的可比性打折**。
+若 reviewer 需要**严格同口径**的对照，需要**按新版 cpu_watch 再跑一次对照组**（本轮未做，
+因为 EXT-013 只要求重跑限制组）。
+
+#### 9.3.3 结论（不夸大）
+
+✅ **线程限制确实有效**：在**同一份输入、同一套引擎、同一套后处理**下，
+核数 mean ↓ 36.2 %、peak ↓ 60.2 %，**且 TTS 稳态 RTF 同步下降 20.4 %**（1.3249 → 1.0542）——
+这是**意外的正向收益**（少线程竞争 ⇒ TTS 更快），但**样本量只有 1 对 1**，
+不排除单次运行波动 ⇒ **不宣称「RTF 必然降 20 %」**。
+
+⛔ **但仍然不实时**：末句滞后 **117.09 s**、斜率 **−0.2695**（仍在累积）
+⇒ **TTS 仍是唯一前置**（稳态 RTF 1.0542 仍 > 1.0，**没有余量**）。
+
+### 9.4 ★ EXT-012：用户试用件四项全部交付
+
+**顺序遵循 EXT-013 明文**：「对照组跑完、释放锁之后，**先做 EXT-012**，然后再持锁重跑限制组」
+⇒ 本轮**在拿到锁之后先做 EXT-012 的不计时代码与文档**，限制组跑批放在同一轮完成。
+
+#### 9.4.1 ① `USER_GUIDE.md`（中文用户说明）
+
+* 文件：`USER_GUIDE.md`（**11 496 B**）+ `extension/USER_GUIDE.md`（同内容，popup「打开说明」用
+  `chrome.runtime.getURL('USER_GUIDE.md')` 打开 ⇒ **必须**在扩展目录内）；
+* 8 节：准备什么 / 第一次使用 / 日常怎么用（网页视频 + 本地 mp4）/ 参数怎么调 /
+  怎么停止 / 常见报错表 / **当前已知限制** / 文件位置 + 最快上手清单；
+* **限制写清**：① 5 分钟滞后增长到约 70 s（RTF ≈ 2.05）；② **tabCapture 生产路径还没实测**，
+  回退到 getDisplayMedia 会弹「选择要共享的标签页」⇒ 用户要选**正在播放**的标签页并
+  **勾上「也共享标签页音频」**；③ 只在开发者模式加载，没打包。
+
+**★ 本轮修掉的真实缺陷 27**：USER_GUIDE 里**写死了** `Confucius4_LiveCaption_v1.13`
+⇒ App 升级后用户照抄命令**跑不起来**（本机实际已是 **v1.12**，
+`ext/app_root.resolve_app_root()` 按版本号从大到小挑结构完整的目录）。
+⇒ 改成 `<版本号>` 占位 + 给出 `dir C:\Users\Trekker-PTL\Confucius4_LiveCaption_v*` 的查看命令
++ 明确「桌面快捷方式会自动找对版本」。
+⇒ **并追加防回归自测**：`USER_GUIDE.md` 里**不许出现** `Confucius4_LiveCaption_v\d+` 字面量。
+
+#### 9.4.2 ② 一键启动（`tools/ext_launcher.py`）
+
+* Tk 小窗口：状态灯 + 日志尾部 + 启动/停止 + 语言/延迟/流水线参数；
+* 后台线程用 **App 自带解释器**起 `ext.bridge --real [--pipeline]`；
+* 日志 `%LOCALAPPDATA%\LiveDubEXT\bridge.log`、PID 文件 `%LOCALAPPDATA%\LiveDubEXT\bridge.pid`；
+* `--install-shortcut` 创建桌面 `实时配音桥接.cmd`；
+* **互斥检查**：检测到实时字幕 App 在跑 ⇒ **明确拒绝启动**并给出人话提示；
+* ⚠️ **本机没装 pywin32** ⇒ `.lnk`（COM）做不了 ⇒ 采用**零依赖 `.cmd`** 方案
+  （Windows 正常显示图标与名称，用户体验等价）。
+
+**★ 实测证据（本轮真跑）**：
+用 launcher **完全相同**的 cmd/env 构造，以 **App 自带解释器 v1.12** 起桥接 ⇒
+`/health` **200**、配对端点拿到 **32 位 token** ⇒ **正常停止** ⇒ **launcher 启动路径真实可用**。
+
+#### 9.4.3 ③ popup 状态显示
+
+* `extension/popup.html` 新增 `#conn` 徽章 + `.metrics` 卡片区（`#mDelay` / `#mSpeed` / `#mLag`）
+  + `#btnGuide`「打开说明」按钮；
+* `extension/popup.js` 新增 `pairUrl()` / `fetchToken()` / `pollPairStatus()` / `fmtLag()` / `setBadge()`；
+* **2 秒轮询** `/status` 更新连接状态 / 延迟 / 倍率 / 滞后；
+* token 输入框说明改为「**留空即可，插件会自动从本机读取**」；
+* `node --check extension/popup.js` **通过**。
+
+#### 9.4.4 ④ token 自动配对（`ext/pair_server.py`）
+
+**设计**：`GET /pair`（**仅** `Origin: chrome-extension://` 可拿 token，否则 **403**）、
+`GET /status`（只读诊断）、`GET /health`；绑定 `127.0.0.1`；默认端口 **8766**（`config.PAIR_PORT = BRIDGE_PORT + 1`）；
+`ThreadingHTTPServer` 后台线程。
+`bridge.py` 新增 `--pair-port`，`main()` 里创建 `TokenStore` 并启动 `PairServer`
+（`token_provider` 接**同一个** `_tokens.token`）。
+
+**★ 端到端实测（本轮真跑，真实 HTTP）**：
+
+| 请求 | 结果 |
+|---|---|
+| `GET /health`（无 Origin） | **200** `{"ok": true}` |
+| `GET /status`（无 Origin） | **200**，含 `has_session/delay_sec/lag_sec/speed/n_segments/speed_time_share/n_dropped_dub` |
+| `GET /pair`（**无** Origin） | **403**「只有扩展（Origin: chrome-extension://）可以读取配对 token」 |
+| `GET /pair`（伪造 `Origin: https://evil.example`） | **403** |
+| `GET /pair`（**扩展** Origin） | **200**，token 长度 **32** |
+| `GET /status`（扩展 Origin） | **200**，**不含 token**（逐字符比对为 `False`） |
+| WS 握手（**不带** Origin） | **1008 policy violation / bad origin** ⇒ 校验生效 |
+| WS 握手（**带**扩展 Origin + 同一 token） | **成功** ⇒ `hello_ack`（含真实 R2T2 分段配置：`segmentation_source = "R2T2 import"`、`min_segment_sec 12.0`、`max_segment_sec 20.0`） |
+
+⇒ **用户不需要手动复制 token 这条链路是真通的**（配对 → 鉴权 → 握手 → 收到真实配置）。
+
+### 9.5 ★ 自测与验收汇总
+
+#### 9.5.1 十一套自测全绿
+
+| 套件 | 结果 |
+|---|---|
+| `tests/test_ext_selfcheck.py` | **103 PASS / 0 FAIL** |
+| `tests/test_echo_roundtrip.py` | **10 PASS / 0 FAIL** |
+| `tests/test_next_instruction.py` | **19 PASS / 0 FAIL** |
+| `tests/test_ext010_pipeline.py` | **23 PASS / 0 FAIL** |
+| `tests/test_ext_browser_contract.py` | **102 PASS / 0 FAIL** |
+| `tests/test_p1_plumbing.py` | **97 PASS / 0 FAIL** |
+| `tests/test_ext009_adaptive_speed.py` | **57 PASS / 0 FAIL** |
+| `tests/test_ext011_thread_limits.py` | **29 PASS / 0 FAIL** |
+| `tests/test_ext012_user_guide.py` | **69 PASS / 0 FAIL**（本轮 +3 项防回归） |
+| `tests/test_ext013_cpu_watch.py` | **25 PASS / 0 FAIL** |
+| `tests/test_ext013_compare.py` | **51 PASS / 0 FAIL**（本轮新增） |
+| **合计** | **585 PASS / 0 FAIL** |
+
+**本轮新加自测的区分力说明**（都是**反向对照**，不是恒真断言）：
+
+* `test_ext013_cpu_watch.py`：旧写法恒 0.0 vs 新写法非零；**空闲进程 ⇒ 自检 FAIL（rc=3）**；
+  `--expect-cmd` 不匹配 ⇒ rc=3 + `samples` 为空；编排器自检 FAIL ⇒ rc=6。
+* `test_ext013_compare.py`：空目录 ⇒ 核数 `None`（不编数）；缺字段 ⇒ `None`（不是 0）；
+  **稳态 RTF ≠ 全段 RTF**（证明冷启动被排除）；真实产物两臂四项指标齐全 + `missing` 为空 +
+  限制组 `enabled=true` / 对照组 `enabled=false` + 限制组 mean 核数 < 对照组。
+* `test_ext012_user_guide.py`：快捷方式内容断言改为「与传入 args 一致」（不是写死模板）；
+  **新增「说明里不许写死 App 版本号」**。
+
+#### 9.5.2 本轮修掉的真实缺陷
+
+| 编号 | 缺陷 | 修法 |
+|---|---|---|
+| **缺陷 27** | USER_GUIDE **写死** App 版本号 `v1.13` ⇒ App 升级后用户照抄跑不起来 | 改 `<版本号>` 占位 + 给 `dir` 命令 + 说明快捷方式自动适配；**加防回归自测** |
+| **缺陷 28** | `test_ext012_user_guide.py` 的快捷方式断言**写错了**（传假 args 却断言真实路径）⇒ **假 FAIL** | 改成「与传入 args 一致」+ 加「不是写死模板」反向断言 |
+
+#### 9.5.3 产物清单（文件数 / mtime / 字节数）
+
+| 产物 | 文件数 | mtime | 字节数 |
+|---|---|---|---|
+| `.tmp/p1_ext013_lim/`（限制组全量） | **38** | **2026-10-30 11:51:51** | **13 912 280** |
+| `.tmp/p1_ext013_lim/compare_ext011.json`（**对比表**） | 1 | 2026-10-30 11:51 | **4 908** |
+| `.tmp/p1_ext013_lim/cpu_usage.json` | 1 | 2026-10-30 11:51 | **116 231** |
+| `.tmp/p1_ext013_lim/p1_report.json` | 1 | 2026-10-30 11:50 | **45 551** |
+| `.tmp/p1_ext013_lim/margin.json` | 1 | 2026-10-30 11:51 | **28 538** |
+| `.tmp/p1_ext011_ctl/`（对照组全量） | **33** | 2026-10-30 09:49:57 | **12 987 722** |
+| `.tmp/p1_ext011_ctl/p1_report.json` | 1 | 2026-10-30 09:49 | **45 285** |
+| `.tmp/p1_ext011_ctl/cpu_watch.log` | 1 | 2026-10-30 09:49 | **23 688** |
+| `USER_GUIDE.md` | 1 | 2026-10-30 11:54 | **11 496** |
+
+#### 9.5.4 ⚠️ EXT-012 验收的**未完成部分**（如实标注，不写「已交付」）
+
+⛔ **浏览器里加载插件 + 对网页视频/本地 mp4 各配音 1 分钟 + 截图** —— **本轮未做**：
+
+* 原因一：**本机没有 Chrome**，只有 **Edge 126**
+  （`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`）⇒ 用 Edge 替代也不等于验证 Chrome 路径；
+* 原因二：`tabCapture` 需要**真实用户手势**触发，且需要**人工在浏览器里点**，
+  自动化跑不出等价证据；
+* 原因三：本轮要**持锁跑真实引擎**，与浏览器端并行会**抢 GPU/NPU** ⇒ 违反铁律。
+
+⇒ **已交付**的是**服务端全链路**（§9.4.4 的真实 HTTP + WS 证据）**与**用户文档；
+⛔ **「用户在浏览器里点一遍」这一步仍是待办** ⇒ 写进下面「待办」，**不宣称已验收**。
+
+### 9.6 ★ EXT-014：巡检规则补充的落地
+
+**EXT-014 原文要点**（`[HIGH]` 2026-10-30 11:25）：
+
+> ② **没有新纠偏，但 STATUS 里还有未完成的纠偏项**，并且本模块没有进程在跑：
+>    **直接按优先级继续下一项**，不要等新纠偏或 RESUME；
+> ③ 需要计时但锁被别人持有：**排队等待**（用公用锁函数），等待期间可以先做
+>    **不计时的部分**（写代码、离线数值、文档）；
+> ④ 只有在「全部完成」或「卡在需要用户决定的事项」时才停下，并在 STATUS 头部写清楚原因。
+
+**本轮的实际执行**：
+
+* 闸门最新条目 = **EXT-014**（规则项），而 `last_ack` 仍是 EXT-010、STATUS 里 EXT-011/012/013
+  **都还没收口** ⇒ 命中 ② ⇒ **本轮直接继续做未完成的 EXT-011/012/013**，没有空转；
+* 锁在 **11:38–11:40** 被 `asr` 模块持有（PID 31152，**经 `machine_lock.probe_pid_alive()` 复核存活**）
+  ⇒ 命中 ③ ⇒ 用编排器自带的 `--lock-wait 7200` **排队**（不抢、不删锁），
+  等待期间先做**不计时的部分**（EXT-012 的代码/文档/端到端 HTTP 验证 + 对比脚本）；
+* 收尾时 STATUS 头部已写清**剩余待办与原因**（见下面「剩余待办」）。
+
+⇒ **本模块当前状态 = 全部可自己做的项已做完**，剩下的是**需要用户/reviewer 动手或拍板**的项
+（见「剩余待办」）⇒ 符合 EXT-014 ④「卡在需要用户决定的事项时才停下」。
+
+### 9.7 本轮涉及的文件
+
+**新增**：
+`USER_GUIDE.md` / `extension/USER_GUIDE.md` / `ext/pair_server.py` / `ext/thread_limits.py` /
+`tools/ext_launcher.py` / `tools/cpu_watch.py` / `tools/compare_ext011_cores.py` /
+`tests/test_ext011_thread_limits.py` / `tests/test_ext012_user_guide.py` /
+`tests/test_ext013_cpu_watch.py` / `tests/test_ext013_compare.py`
+
+**修改**：
+`ext/bridge.py`（EXT-011 线程限制 + EXT-012 配对端点接线 + `--pair-port` + `_pair_status`）/
+`ext/config.py`（`PAIR_PORT`）/ `extension/popup.html` / `extension/popup.js` /
+`tools/run_p1_real.py`（cpu_watch 自检接线 + `--cpu-self-check-sec`）/ `tools/engine_smoke.py`
+
+**只读、未改**：`status/CORRECTIONS_EXT.md`（**绝不修改、绝不入库**）、`ext/engine_runtime.py`、
+App 目录（**只 import 对方原件，不改对方任何文件**）
+
+### 9.8 剩余待办（EXT-014 ④：需要用户/reviewer 动手或拍板）
+
+1. ⛔ **浏览器端人工验收**：在浏览器里加载插件 → 对**英文网页视频**和**本地 mp4** 各配音 **1 分钟**
+   → 截图回写本 STATUS（本机只有 Edge；`tabCapture` 需真实用户手势）。
+2. ⛔ **TTS 提速**（RTF 目标 ≤ 0.85）：**由主会话转达 TTS 模块**。当前稳态 RTF **1.0542**（限制组）
+   ⇒ 端到端仍不实时（末句滞后 **117.09 s**）。
+3. ⛔ **流水线是否默认开启**（现在 `--pipeline` 默认关闭）⇒ reviewer 拍板。
+4. ⛔ **P2 / P3 未开始**（克隆音色 / 体验 / 稳定性 / 打包）。
+5. ⛔ **pyannote 旁路未接线**（等 ASR-013 交付后由主会话通知）。
+6. ℹ️ **对照组若要严格同口径核数**，需按新版 cpu_watch 再跑一次（EXT-013 只要求重跑限制组）。
+7. ℹ️ **对照组的核数采样口径弱于限制组**（旧版 cpu_watch，无 identity/self_check）⇒
+   核数对比**方向可靠、绝对值可比性打折**（§9.3.2 已标注）。

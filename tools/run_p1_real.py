@@ -174,6 +174,16 @@ def main(argv=None) -> int:
     # ── ★ EXT-010：句级流水线 ────────────────────────────────
     ap.add_argument("--pipeline", action="store_true",
                     help="用流水线会话（ASR/MT/TTS/收口 各一线程，句级并行）")
+    # ── ★ EXT-011：线程限制 + CPU 占用采集 ───────────────────────
+    ap.add_argument("--no-thread-limit", action="store_true",
+                    help="★ EXT-011 A/B 对照：不设 OMP/MKL/OPENBLAS/NUMEXPR=1")
+    ap.add_argument("--cpu-watch", action="store_true",
+                    help="★ EXT-011：同时采集桥接服务进程树的 CPU 占用（核数）")
+    # ★★ EXT-013 ①：CPU 采集器的**启动自检窗口**（秒）
+    #   窗口内必须观察到 CPU 时间增量，否则 cpu_watch 退出码 3 ⇒ 本轮判 FAIL。
+    ap.add_argument("--cpu-self-check-sec", type=float, default=60.0,
+                    help="★ EXT-013：CPU 采集启动自检窗口（秒），"
+                         "0 = 关闭自检（不推荐）")
     args = ap.parse_args(argv)
 
     # ★★ 单实例守卫（本轮修掉的真实工程缺陷 12）。
@@ -244,8 +254,18 @@ def main(argv=None) -> int:
             [ROOT, os.path.join(ROOT, ".runtime_deps")] +
             ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else []))
         env["PYTHONIOENCODING"] = "utf-8"
+        # ★★ EXT-011：线程限制的**开关**随子进程环境传下去。
+        #   子进程（ext.bridge / engine_smoke）自己也会在 import numpy 之前设，
+        #   这里再显式传一遍，是为了让「关掉」这件事对子进程也确定成立
+        #   （A/B 对照时唯一能变的只有这个开关）。
+        if args.no_thread_limit:
+            env["EXT_THREAD_LIMIT"] = "0"
 
         bridge = None
+        # ★★ EXT-011：CPU 采集进程（先占位，避免 finally 里 NameError）
+        cpu_proc = None
+        # ★★ EXT-013 ①：CPU 采集启动自检失败标记（finally 里设置）
+        cpu_self_check_failed = False
         try:
             lf = open(bridge_log, "w", encoding="utf-8")
             bridge = subprocess.Popen(bridge_cmd, cwd=ROOT, stdout=lf,
@@ -274,6 +294,30 @@ def main(argv=None) -> int:
             summary["steps"].append({"step": "bridge_ready", "ok": True})
             print("[p1-run] 桥接服务已就绪", flush=True)
 
+            # ── ★ EXT-011：CPU 占用采集（独立进程，不碰设备） ──
+            # ★★ EXT-013 ①：采集器带**启动自检**（能读到非零 CPU 才算工作正常），
+            #   且用 `--expect-cmd` 校验目标 PID 确实是桥接服务（防 PID 复用）。
+            #   ⇒ 自检不通过 ⇒ 采集器的退出码是 3 ⇒ 本轮直接判 FAIL，
+            #   **不再**默默把 cores=0.000 当成有效数据写进产物。
+            cpu_out = os.path.join(out_dir, "cpu_usage.json")
+            if args.cpu_watch:
+                cpu_cmd = [PY, os.path.join(ROOT, "tools", "cpu_watch.py"),
+                           "--pid", str(bridge.pid), "--interval", "1.0",
+                           "--expect-cmd=ext.bridge",
+                           "--self-check-sec", str(args.cpu_self_check_sec),
+                           "--out", cpu_out]
+                cpu_log = os.path.join(out_dir, "cpu_watch.log")
+                cpu_proc = subprocess.Popen(
+                    cpu_cmd, cwd=ROOT,
+                    stdout=open(cpu_log, "w", encoding="utf-8"),
+                    stderr=subprocess.STDOUT)
+                summary["steps"].append({"step": "cpu_watch_start",
+                                          "pid": cpu_proc.pid,
+                                          "target_pid": bridge.pid,
+                                          "log": cpu_log, "json": cpu_out})
+                print("[p1-run] CPU 采集 pid=%d（目标=%d）"
+                      % (cpu_proc.pid, bridge.pid), flush=True)
+
             # 跑流水线（**不持锁**——外层已持锁，避免二次抢锁死等）
             pipe_cmd = [PY, os.path.join(ROOT, "tools", "p1_pipeline.py"),
                         "--wav", args.wav, "--port", str(args.port),
@@ -290,6 +334,47 @@ def main(argv=None) -> int:
                                       "log": pipe_log})
             print("[p1-run] 流水线 rc=%d（日志：%s）" % (rc, pipe_log), flush=True)
         finally:
+            # ★★ EXT-011：先停 CPU 采集（它是桥接服务的观察者，桥接一停就无意义了）
+            if cpu_proc is not None:
+                # ★★ EXT-013 ①：先**让它自己写完盘**再 terminate
+                #   （cpu_watch 每采一次就增量落盘，所以 terminate 不会丢数据；
+                #     但自检结论需要它的退出码 ⇒ 用 SIGTERM 前先给它一点时间
+                #     跑完自检窗口，若它已退出则直接读它的退出码。）
+                try:
+                    cpu_proc.wait(timeout=max(1.0, args.cpu_self_check_sec)
+                                  + 30.0)
+                except Exception:
+                    pass
+                cpu_rc = cpu_proc.poll()
+                if cpu_rc is None:
+                    try:
+                        cpu_proc.terminate()
+                        cpu_proc.wait(timeout=15)
+                    except Exception:
+                        try:
+                            cpu_proc.kill()
+                        except Exception:
+                            pass
+                    cpu_rc = cpu_proc.poll()
+                # 自检结论（读落盘的 JSON，terminate 也不影响）
+                cpu_self = None
+                try:
+                    import json as _json
+                    with open(cpu_out, "r", encoding="utf-8") as f:
+                        cpu_self = (_json.load(f) or {}).get("self_check")
+                except Exception:
+                    cpu_self = None
+                summary["steps"].append({
+                    "step": "cpu_watch_stop", "returncode": cpu_rc,
+                    "self_check": cpu_self, "json": cpu_out})
+                summary["cpu_self_check"] = cpu_self
+                print("[p1-run] CPU 采集已停止（rc=%s，自检=%s）"
+                      % (cpu_rc, (cpu_self or {}).get("ok")), flush=True)
+                # ★★ 自检 FAIL ⇒ 整轮判 FAIL（不能让 cores=0.000 混进产物）
+                if cpu_self is not None and cpu_self.get("ok") is False:
+                    cpu_self_check_failed = True
+                    print("[p1-run] ❌ CPU 采集启动自检 FAIL：%s"
+                          % cpu_self.get("reason"), flush=True)
             if bridge is not None:
                 # ★★ 缺陷 14 修复：停服务**之前**先请服务端把余量统计写盘。
                 #   `bridge.terminate()`（SIGTERM）会让进程直接退出 ⇒
@@ -319,10 +404,17 @@ def main(argv=None) -> int:
                 pass
 
     summary["finished_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    # ★★ EXT-013 ①：自检失败 ⇒ 整轮 rc=6（**不**把 cores=0.000 当有效数据）
+    if cpu_self_check_failed:
+        summary["ok"] = False
+        summary["failed_reason"] = ("CPU 采集启动自检 FAIL ⇒ 核数证据无效"
+                                    "（EXT-013 ①）")
     with open(os.path.join(out_dir, "p1_run_summary.json"), "w",
               encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
+    if cpu_self_check_failed:
+        return 6
     return 0
 
 

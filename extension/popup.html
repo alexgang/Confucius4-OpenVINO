@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <title>实时翻译配音</title>
   <style>
-    body { font: 13px/1.5 "Microsoft YaHei", system-ui, sans-serif; width: 300px; margin: 0; padding: 12px; color: #1f2328; }
-    h1 { font-size: 14px; margin: 0 0 10px; }
+    body { font: 13px/1.5 "Microsoft YaHei", system-ui, sans-serif; width: 320px; margin: 0; padding: 12px; color: #1f2328; }
+    h1 { font-size: 14px; margin: 0 0 8px; }
     label { display: block; margin: 8px 0 2px; font-size: 12px; color: #57606a; }
     select, input { width: 100%; box-sizing: border-box; padding: 4px 6px; border: 1px solid #d0d7de; border-radius: 4px; font: inherit; }
     .row { display: flex; gap: 6px; margin-top: 10px; }
@@ -15,16 +15,30 @@
     #status { margin-top: 10px; padding: 6px 8px; background: #f6f8fa; border-radius: 4px; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
     .ok { color: #1a7f37; } .err { color: #cf222e; } .warn { color: #9a6700; }
     .hint { font-size: 11px; color: #57606a; margin-top: 4px; }
+
+    /* ★ EXT-012：连接状态 + 指标区 */
+    .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .badge.ok { background: #dafbe1; color: #1a7f37; }
+    .badge.err { background: #ffebe9; color: #cf222e; }
+    .badge.warn { background: #fff8c5; color: #9a6700; }
+    .metrics { display: flex; gap: 6px; margin-top: 8px; }
+    .mcard { flex: 1; border: 1px solid #d0d7de; border-radius: 5px; padding: 5px 6px; text-align: center; }
+    .mcard .k { font-size: 10px; color: #57606a; }
+    .mcard .v { font-size: 13px; font-weight: 600; margin-top: 1px; }
+    .top { display: flex; align-items: center; justify-content: space-between; }
   </style>
 </head>
 <body>
-  <h1>实时翻译配音 (EXT)</h1>
+  <div class="top">
+    <h1>实时翻译配音 (EXT)</h1>
+    <span id="conn" class="badge err">未连接</span>
+  </div>
 
   <label for="ws">桥接服务</label>
   <input id="ws" type="text" value="ws://127.0.0.1:8765/">
 
-  <label for="token">配对 token（桥接服务 bridge_token.txt）</label>
-  <input id="token" type="text" placeholder="粘贴 token">
+  <label for="token">配对 token（<b>留空即可</b>，插件会自动从本机读取）</label>
+  <input id="token" type="text" placeholder="留空 = 自动配对">
 
   <label for="delay">延迟 D（秒，6–20）</label>
   <input id="delay" type="number" min="6" max="20" value="10">
@@ -48,6 +62,13 @@
   <label><input type="checkbox" id="subs" checked> 字幕开关</label>
   <label><input type="checkbox" id="player"> 打开延迟画面播放器窗口</label>
 
+  <!-- ★ EXT-012 ②：连接状态 / 延迟 / 倍率 / 滞后 -->
+  <div class="metrics">
+    <div class="mcard"><div class="k">延迟 D</div><div class="v" id="mDelay">—</div></div>
+    <div class="mcard"><div class="k">语速倍率</div><div class="v" id="mSpeed">—</div></div>
+    <div class="mcard"><div class="k">当前滞后</div><div class="v" id="mLag">—</div></div>
+  </div>
+
   <div class="row">
     <button id="btnStart" class="primary">开始</button>
     <button id="btnStop" disabled>停止</button>
@@ -55,6 +76,9 @@
 
   <div id="status">未连接</div>
   <div class="hint">DRM 站点（Netflix 等）会被浏览器黑屏，明确不支持。</div>
+  <div class="row">
+    <button id="btnGuide">打开说明（USER_GUIDE.md）</button>
+  </div>
 
   <script src="popup.js"></script>
 </body>
