@@ -1,0 +1,83 @@
+{
+  "ver": 1,
+  "pkg": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.12",
+  "asr_spk": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.12\\app\\asr_spk",
+  "backup": "C:/Users/Trekker-PTL/bak_c167_20261030_asr_spk",
+  "results": [
+    {
+      "group": "R1",
+      "name": "内部会议编号全目录为 0",
+      "ok": true,
+      "detail": "0 命中 ✅"
+    },
+    {
+      "group": "R2",
+      "name": "asr_spk 全部 .py 语法合法",
+      "ok": true,
+      "detail": "10 文件全部合法 ✅"
+    },
+    {
+      "group": "R3",
+      "name": "asr052 运行时 import 链完整",
+      "ok": true,
+      "detail": "5 个依赖全在 ✅"
+    },
+    {
+      "group": "R4",
+      "name": "除编号外字节逐字未变",
+      "ok": true,
+      "detail": "4 文件仅编号被替换 ✅"
+    },
+    {
+      "group": "R5",
+      "name": "行数不变",
+      "ok": true,
+      "detail": "行数全部不变 ✅"
+    },
+    {
+      "group": "R6",
+      "name": "客户包内部素材闸门 PASS",
+      "ok": true,
+      "detail": "exit=0｜['  命中 0 个内部素材']"
+    },
+    {
+      "group": "D-1",
+      "name": "注入编号 ⇒ R1 必须 FAIL",
+      "ok": true,
+      "detail": "注入后命中 1 处 ⇒ R1 识破 ✅"
+    },
+    {
+      "group": "D-2",
+      "name": "注入语法错 ⇒ R2 必须 FAIL",
+      "ok": true,
+      "detail": "失败 1 个 ⇒ R2 识破 ✅"
+    },
+    {
+      "group": "D-3",
+      "name": "删运行时依赖 ⇒ R3 必须 FAIL",
+      "ok": true,
+      "detail": "缺失 ['pya_stream_segment'] ⇒ R3 识破 ✅"
+    },
+    {
+      "group": "D-4",
+      "name": "篡改非编号字节 ⇒ R4 必须 FAIL",
+      "ok": true,
+      "detail": "R4 识破 ✅"
+    },
+    {
+      "group": "D-5",
+      "name": "删一行 ⇒ R5 必须 FAIL",
+      "ok": true,
+      "detail": "R5 识破 ✅"
+    },
+    {
+      "group": "D-6",
+      "name": "闸门返非 0 ⇒ R6 必须 FAIL",
+      "ok": true,
+      "detail": "exit=3 ⇒ R6 识破 ✅"
+    }
+  ],
+  "pass_": 12,
+  "fail": 0,
+  "verdict": "PASS"
+}
