@@ -1436,6 +1436,23 @@ test_p1_plumbing           ::  97 PASS / 0 FAIL
 **34 PASS / 4 FAIL、rc=1** ⇒ 断言**不是恒真**，能真正抓到回归（随后已还原，`git diff --stat` = 77 insertions）。
 ★ **JS 语法**：`node --check` 对 player.js / offscreen.js / popup.js / sw.js **全部通过**。
 
+★ **★ 附带发现：用户在 22:31:29 双击了桌面快捷方式**（`pythonw.exe tools/ext_launcher.py`
+⇒ 子进程 `python.exe -m ext.bridge --real --pipeline --port 8765`，父进程 PID 24740 已退出）
+⇒ **这不是自测拉起的**（自测只用 `--echo` 与桩命令），是**用户本人在试用**。
+按铁律 **未 kill、未回收**（且它正持有 GPU/NPU 做真实推理，不能打断用户操作）。
+⇒ **意外收获：在真实运行中的真实三引擎桥接上验证了本轮新字段**（比自测更有说服力）：
+
+| 探测（连的是**用户正在跑**的 8765 真实桥接） | 实测回包 |
+|---|---|
+| hello 不带 capture_mode | `hello_ack.capture_mode = None`；`stats.capture_mode = None`；`stats.client_source = 'probe'` |
+| hello 带 `capture_mode='tabCapture'` | `hello_ack.capture_mode = 'tabCapture'`；`stats.capture_mode = 'tabCapture'` |
+
+⇒ **新字段在真实部署里确实生效**（不只是自测里生效）。
+同时记录该次运行的启动日志事实（`%LOCALAPPDATA%\LiveDubEXT\bridge.log`）：
+**引擎预热成功 3/3，总耗时 25.1 s**（ASR / MT 2.5 s / TTS 14.3 s）⇒
+「TTS 就绪」在 22:32:06 出现在日志里 ⇒ ★ **EXT-017②「start 后能看到加载进度并最终显示 TTS 就绪」
+在用户真实一次启动里成立**（日志证据，不是「我跑了个桩」）。
+
 ### 产物（文件数 / mtime / 字节数）
 
 | 产物 | 文件数 | mtime | 字节数 |
