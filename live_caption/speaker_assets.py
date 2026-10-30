@@ -87,11 +87,22 @@ SPK_MODELS_SUBDIR = 'spk'
 # ASR 接口的入口模块名（APP-044 要带的那份代码）
 ASR_ENTRY_MODULE = 'asr052_speaker_tracker_api'
 
-# 🔴 精度优先级：**FP32 优先**（ASR-025 归因：FP16 保真不过门槛、
-#   FP32 过门槛；余弦 ≥0.999 且相对最大偏差 ≤1e-3）。
-#   ⚠️ 裁定未到时，**按实际存在的目录**探测 ⇒ 代码不必因裁定而改。
-WES_PRECISIONS = ('fp32', 'fp16')
-SEG_PRECISIONS = ('fp32', 'fp16')
+# 🔴🔴🔴 **APP-047 精度定案：FP16**（ASR-033 通知 11:49）
+#   依据：`asr067_fp16_vs_fp32_cluster.json` 的 `n_diff_segments=0`
+#   （FP16 与 FP32 的**聚类结果 0 段不一致**）＋ 嵌入 RTF 增量在固定
+#   T 范围 [100, 2048] 后为 0.033（≤ 0.05）。
+#   ⇒ 客户包用 `models/spk` 下的 **FP16 IR**，**不需要 FP32**。
+#
+# ⚠️ 注意与 ASR-025 §8 的**保真门槛**区分（两件事）：
+#   - 保真门槛（余弦 ≥0.999 且相对最大偏差 ≤1e-3）：**FP16 不过**、FP32 过；
+#   - **聚类效果**（spk 分得对不对）：ASR-028 的 Q&A 场景实测 FP16 可用
+#     （n_speakers=5、段级纯度 0.9147）。
+#   ⇒ reviewer 的 APP-047 裁定走的是**聚类口径** ⇒ **FP16**。
+#
+# 🔴 **仍按「实际存在的目录」探测**（不硬编码）⇒ 若将来补了 FP32 目录，
+#   探测顺序会让它自然优先，**代码不必因裁定而改**。
+WES_PRECISIONS = ('fp16', 'fp32')
+SEG_PRECISIONS = ('fp16', 'fp32')
 
 # 两种精度下的目录名（wespeaker 与 pyannote 的命名不一致，故分开列）
 WES_DIR_TMPL = 'wespeaker-resnet34-%s'

@@ -69,6 +69,38 @@ _SR = 16000
 # 🔴 借一点余量（2.5 s）⇒ 避免浮点边界把「刚好 2.0」判成太短。
 SPAN_MIN_S = 2.5
 
+# 🔴🔴🔴 APP-047 / ASR-031 §11.3：**「本段没有说话人标签」的降级原因集合**。
+#   ASR 侧新增 `reason='embed_shape_out_of_range'`（嵌入输入 T 维超出编译期
+#   形状范围 ⇒ 编码器抛 `ValueError` ⇒ API 层降级为该 reason，并带
+#   `embed_error` 字段）。**不截断**（截断会改变向量 ⇒ 聚类失真）。
+#
+#   ⇒ App 侧必须把它**与既有的 'not_clean_speech' / 'overlap' 同类处理**：
+#   **该段没有标签 ⇒ 沿用上一句音色 / 预设音色**（方案 A：TTS 不等标签）。
+#
+#   ⚠️ 正常情况下**不会触发**：生产段长上限 20 s ⇒ 1998 帧 < 2048（ASR 侧
+#   `EMBED_RANGE_HI=2048`）⇒ 只有部署方把分段上限调到 > 20.48 s 才会出现。
+NO_LABEL_REASONS = frozenset((
+    'not_clean_speech',        # 段内干净语音占比不足
+    'overlap',                 # 重叠语音占比过高
+    'too_short',               # 段太短（< ASR 的 min_dur_s）
+    'audio_not_buffered',      # 音频还没 buffer 够
+    'seg_pending',             # 旁路分段尚未覆盖到这一段
+    'embed_shape_out_of_range',  # 🆕 APP-047：嵌入形状超界 ⇒ 该段无标签
+    'models_not_ready',        # 模型缺失（旁路整体关闭）
+    'unavailable',             # 桥接层不可用
+))
+
+
+def reason_is_no_label(reason) -> bool:
+    """🔴 APP-047：判断某个 `reason` 是否属于「**本段无标签**」。
+
+    ⇒ 调用方据此**沿用上一句音色 / 预设音色**，**不重试、不等待**
+    （方案 A：TTS 不等说话人标签）。
+    """
+    if not reason:
+        return False
+    return str(reason) in NO_LABEL_REASONS
+
 
 def span_for_final(t_end: float, min_s: float = SPAN_MIN_S):
     """🔴🔴🔴 §99（断链 A）：**给出「这段」的区间**，长度不足就**往前借**。
@@ -148,6 +180,8 @@ class SpeakerBridge:
         self.n_final = 0
         self.n_pending = 0
         self.n_update = 0
+        # 🔴 APP-047：因「本段无标签」而沿用上一句音色的次数（诊断用）
+        self.n_no_label = 0
         self._lock = threading.Lock()
         # seg -> (t_start, t_end)（**App 自己的口径**）
         self._seg_span = {}
@@ -295,10 +329,18 @@ class SpeakerBridge:
             pending=bool(res.get('pending')),
             reason=res.get('reason'),
             is_new_spk=bool(res.get('is_new_spk')))
+        # 🔴🔴🔴 APP-047：ASR 侧新增 `embed_error` 字段（形状超界时）。
+        #   ⇒ 透传给调用方（**可观测，不静默丢段**）。
+        if res.get('embed_error'):
+            out['embed_error'] = str(res.get('embed_error'))
+        # 🔴 APP-047：`reason='embed_shape_out_of_range'` ⇒ 该段**没有标签**
+        #   ⇒ 与 'not_clean_speech' 同类（沿用上一句音色），**不等待**。
         if out['pending']:
             with self._lock:
                 self._pending.add(seg)
             self.n_pending += 1
+        elif not out['spk'] and reason_is_no_label(out.get('reason')):
+            self.n_no_label += 1
         return out
 
     # ── ④ 标签晚到 ─────────────────────────────────────────────
@@ -439,6 +481,7 @@ class SpeakerBridge:
         self.n_final = 0
         self.n_pending = 0
         self.n_update = 0
+        self.n_no_label = 0
 
     def stats(self) -> dict:
         with self._lock:
@@ -451,6 +494,7 @@ class SpeakerBridge:
                     n_final=int(self.n_final),
                     n_pending=int(n_pend),
                     n_update=int(self.n_update),
+                    n_no_label=int(self.n_no_label),
                     n_seg_span=int(n_span))
 
 

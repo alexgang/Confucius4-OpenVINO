@@ -1,0 +1,89 @@
+{
+  "suite": "app166_app049_compress_verify",
+  "verdict": "PASS",
+  "n_pass": 35,
+  "n_fail": 0,
+  "passes": [
+    "A1 STATUS ≤ 40 KB",
+    "A2 STATUS ≤ 300 行",
+    "A3 头部 ≤ 15 行内含 last_ack",
+    "A3 头部含「当前任务」",
+    "A3 头部含「阻塞 / 待用户决定」",
+    "A3 头部含「更新时间」",
+    "A4 含「已压缩：原文见 archive/…」",
+    "A5 含段落「## 当前有效结论」",
+    "A5 含段落「## 未完成纠偏」",
+    "A5 含段落「## 最近章节」",
+    "A6 文内写了自身大小",
+    "A6 自指字节数 == 实际",
+    "A6 自指行数 == 实际",
+    "A7 结论表每行都带来源**文件名**",
+    "A8 未完成清单非空",
+    "A8 未完成清单每行都有下一步",
+    "A9 最近章节恰好 3 节",
+    "A9 §109 ≤ 60 行",
+    "A9 §110 ≤ 60 行",
+    "A9 §111 ≤ 60 行",
+    "A10 归档 STATUS 存在",
+    "A10 归档与压缩前 SHA256 一致（bytes 级原样）",
+    "A11 归档含全部 107 个章节",
+    "A12 归档正文逐字 == 压缩前文件",
+    "B1 CORRECTIONS_APP.md 零改动（SHA256）",
+    "B2 全量原文备份存在",
+    "B2 全量原文备份 == 原文件（bytes 级）",
+    "B2 已完成归档副本存在",
+    "B3 归档副本含 49 条编号",
+    "B3 编号集合与原文一致",
+    "B4 标题逐字一致（编号+级别+日期+标题）",
+    "B5 标题格式仍为 `## APP-NNN [级别] 日期 — 标题`",
+    "B5 幂等闸门：仍能取到最大编号",
+    "B6 每条原文标题都在归档副本中（无内容丢失）",
+    "B7 归档内条目顺序与原文一致（递增）"
+  ],
+  "fails": [],
+  "status_slim": {
+    "exists": true,
+    "path": "status/app/STATUS_APP.md",
+    "bytes": 15102,
+    "mtime": "2026-10-30 18:55:19",
+    "sha256": "89b916bf9815e8758ce285788298f13eb972aa3df63f15460ab521bc9d0b04aa"
+  },
+  "status_before": {
+    "bytes": 1437968,
+    "sha256_prefix": "8fbdd7fe2b6b4547d3fa2962"
+  },
+  "limit_bytes": 40960,
+  "limit_lines": 300,
+  "within_limit": true,
+  "archive": {
+    "status": {
+      "exists": true,
+      "path": "status/archive/STATUS_APP_upto_20261030.md",
+      "bytes": 1437968,
+      "mtime": "2026-10-30 16:52:53",
+      "sha256": "8fbdd7fe2b6b4547d3fa2962402839f1be57410e0cd58f818694c4ad6a8fe334"
+    },
+    "corrections_full": {
+      "exists": true,
+      "path": "status/archive/CORRECTIONS_APP_full_before_compress_20261030.md",
+      "bytes": 118903,
+      "mtime": "2026-10-30 16:52:58",
+      "sha256": "bb07c52697ecb5aa954169cf32d389095e60b2b35dd4f8ae99752292505d5ec3"
+    },
+    "corrections_closed": {
+      "exists": true,
+      "path": "status/archive/CORRECTIONS_APP_closed_upto_20261030.md",
+      "bytes": 126035,
+      "mtime": "2026-10-30 18:54:56",
+      "sha256": "b727af63067afef83a98e9ab613cae9437a5862acaf8cd6771b9730bc4603be3"
+    }
+  },
+  "corrections_untouched": {
+    "bytes": 118903,
+    "sha256_prefix": "bb07c52697ecb5aa",
+    "expected_sha256_prefix": "bb07c52697ecb5aa954169cf"
+  },
+  "self_reported_bytes": 15102,
+  "self_reported_lines": 105,
+  "self_consistent": true
+}

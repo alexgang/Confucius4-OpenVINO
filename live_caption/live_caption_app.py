@@ -122,6 +122,9 @@ import clone_collector
 # 🔴🔴🔴 APP-039/040：说话人旁路（ASR-029 接口桥接）+ 说话人音色表
 import speaker_tracker
 import speaker_voice
+# 🔴🔴 APP-048：**分区状态条**（ASR / 翻译 / 语音 各自的紧凑状态行）
+#   ⇒ 纯逻辑层**不依赖 tkinter** ⇒ 可离线验收（不起窗口、不占 GPU）。
+import gui_status
 
 # 🔴 **草稿译文缓存上限**（APP-015）：草稿每 ~1.5 s 一条 ⇒ 4 小时 ≈ 9 600 条
 #    ⇒ 不设上限会无界增长（与 `translator.py` 的 `CACHE_MAX` 同一口径）。
@@ -2087,6 +2090,10 @@ class App:
         #     ⇒ 字幕无说话人标签 ⇒ **行为与改造前逐字一致**。
         self._spk_bridge = speaker_tracker.SpeakerBridge(
             on_log=lambda m: self._ui_log(f'[spk] {m}'))
+        # 🔴 APP-047：已见过的「本段无标签」reason（**只记一次每种**）
+        #   ⇒ 新增 reason（如 'embed_shape_out_of_range'）必被记进日志，
+        #   但**不刷屏**。
+        self._spk_reason_seen = set()
         # 🔴🔴🔴 APP-039/040：**说话人 → 音色**表（**只在内存里**，绝不落盘）
         #   ⇒ 「音色按句绑定」的核心状态；
         #   ⇒ **只在 `is_new_spk` 时取样一次**（不渐变、不滞后、不一直采样）。
@@ -2175,23 +2182,73 @@ class App:
                         command=self._toggle_overlay).pack(side='left', padx=10)
 
         self.var_note = tk.StringVar(value='')
-        ttk.Label(root, textvariable=self.var_note, foreground='#555',
-                  padding=(12, 0)).pack(fill='x')
+        # 🔴🔴 APP-048：顶部说明文字**也要换行**（原来一行到底 ⇒ 溢出屏幕）。
+        #    ⚠️ 用 `tk.Label`（ttk.Label 不支持 wraplength 绑定）。
+        self._lbl_note = tk.Label(root, textvariable=self.var_note,
+                                  foreground='#555', anchor='w', justify='left',
+                                  background=self._ttk_bg())
+        self._lbl_note.pack(fill='x', padx=12)
 
-        # ── 状态栏（APP-007：从窗口底部迁到主面板顶部）────────────────
-        # ⚠️ **pack 顺序是关键**：状态栏必须排在 self.txt **之前** pack。
-        #    pack 按顺序分配空间，先 pack 的控件先拿到请求高度；
-        #    以前状态栏在最后、而 ScrolledText 默认请求 718px（24 行），
-        #    在 1080x700 窗口里 pack 优先满足它 ⇒ 状态栏被压成 **1px**
-        #    （实测 700/900 窗口高都是 1px，1000px 才恢复 29px）。
-        #    ⚠️ 这跟「全屏」没有任何关系 —— 代码里从来没有全屏逻辑。
+        def _on_root_cfg(_ev=None):
+            # 🔴 APP-048：窗口尺寸变化 ⇒ 所有换行 label 的 wraplength 都要跟上
+            #   （顶部说明 + 全局消息 + 三个分区的 note 行）。
+            self._update_wrap()
+            try:
+                w = root.winfo_width()
+                if w > 50:
+                    self._lbl_note.configure(wraplength=w - 30)
+            except Exception:
+                pass
+
+        try:
+            root.bind('<Configure>', _on_root_cfg, add='+')
+            _on_root_cfg()
+        except Exception:
+            pass
+        self._wrapped_labels = getattr(self, '_wrapped_labels', [])
+        self._wrapped_labels.append((self._lbl_note, root))
+
+        # ── 全局状态行（APP-048）─────────────────────────────────────
+        # 🔴🔴 APP-048：用户原话「现在所有的状态信息全部挤在最顶端，
+        #    太多而且挤不下」⇒ **顶部只保留全局信息**：
+        #      ① 会话计时（全局）  ② 总状态灯（全部就绪 / 有模块异常）
+        #      ③ 电平 + 音频时长（全局，属于采集而不是某个模型）
+        #    ASR / 翻译 / 语音 的状态**各自搬进自己的分区**。
+        # ⚠️ **pack 顺序仍是铁律**：这一行必须排在 self.txt **之前** pack
+        #    （ScrolledText 默认请求 718px，pack 优先满足它 ⇒ 状态行被压成 1px；
+    #     实测 700/900 窗口高都是 1px，1000px 才恢复 29px —— 与「全屏」无关）。
+        # ⚠️ **保留 `var_meter` / `lbl_meter` 这两个名字**：
+        #    `diag_layout_gui.py` 与 `app076` 等既有验收脚本仍引用它们
+        #    ⇒ 这里只是把内容换成**全局紧凑版**（不再是三个模块的长拼接）。
         bot = ttk.Frame(root, padding=(10, 4))
         bot.pack(fill='x')
         self.var_meter = tk.StringVar(value='')
-        self.lbl_meter = ttk.Label(bot, textvariable=self.var_meter, font=('Consolas', 10))
+        self.lbl_meter = ttk.Label(bot, textvariable=self.var_meter,
+                                   font=('Consolas', 10))
         self.lbl_meter.pack(side='left')
+        # 🔴 APP-048：**会话计时**（全局信息）
+        self._session_elapsed = tk.StringVar(value='00:00')
+        ttk.Label(bot, textvariable=self._session_elapsed,
+                  foreground='#555').pack(side='right', padx=(0, 12))
+        ttk.Label(bot, text='会话').pack(side='right', padx=(0, 4))
+        # 🔴 APP-048：**总状态灯**（全部就绪 / 有模块异常时点击查看）
+        #    ⇒ 一个按钮 + 颜色状态，不占宽度；点击弹窗列出各分区状态。
+        self._global_light = tk.StringVar(value='⚪ 就绪')
+        self.btn_global_light = ttk.Button(
+            bot, textvariable=self._global_light, width=12,
+            command=self._show_global_status)
+        self.btn_global_light.pack(side='right', padx=(0, 12))
         self.var_status = tk.StringVar(value='')
-        ttk.Label(bot, textvariable=self.var_status, foreground='#555').pack(side='right')
+        # 🔴🔴 APP-048：**全局消息单独一行 + 换行**
+        #   （原来它挤在 bot 行右侧 ⇒ 长消息会把整行撑爆 / 被截断
+        #     ⇒ 实测「mt load failed:ValueError:…」那种长消息直接被切掉）
+        #   ⇒ 独立一行 ⇒ 换行显示完整 ⇒ 不截断、不溢出。
+        self._lbl_status = tk.Label(root, textvariable=self.var_status,
+                                    foreground='#555', anchor='w', justify='left',
+                                    background=self._ttk_bg())
+        self._lbl_status.pack(fill='x', padx=12, pady=(0, 2))
+        self._wrapped_labels = getattr(self, '_wrapped_labels', [])
+        self._wrapped_labels.append((self._lbl_status, root))
 
         # 音频来源单独一行：三种输入（麦克风 / 系统声音 / 音频文件）
         # 的设备选择互斥，挤在一行会让顶栏没法看。
@@ -2306,8 +2363,14 @@ class App:
         self.cb_asr_lang.pack(side='left', padx=(0, 8))
         self.cb_asr_lang.bind('<<ComboboxSelected>>', self._on_asr_lang_changed)
         self.var_asr_note = tk.StringVar(value='')
-        ttk.Label(f_asr, textvariable=self.var_asr_note,
-                  foreground='#555').pack(fill='x')
+        # 🔴🔴 APP-048：**ASR 分区自己的紧凑状态条**
+        #    （设备 / 模型+精度 / 加载状态 / RTF / 说话人开关与状态 / 当前说话人）
+        #    ⇒ 不再挤在窗口顶部（原实现把所有模块状态拼成一条长文本）。
+        #    ⚠️ 位置：**紧贴控件行**（在 note 之上）⇒ 用户第一眼看到状态。
+        self._strip_asr = self._make_status_strip(f_asr, 'asr')
+        self._lbl_asr_note = self._bind_wrap(
+            ttk.Label(f_asr, textvariable=self.var_asr_note, foreground='#555'),
+            f_asr, self.var_asr_note)
 
         # ---- 翻译分区 ----
         f_mt = ttk.LabelFrame(areas, text='翻译', padding=(8, 4))
@@ -2343,7 +2406,12 @@ class App:
                                        command=self._retry_mt, state='disabled')
         self.btn_mt_retry.pack(side='left', padx=(0, 8))
         self.var_mt_note = tk.StringVar(value='')
-        ttk.Label(f_mt, textvariable=self.var_mt_note, foreground='#555').pack(fill='x')
+        # 🔴🔴 APP-048：**翻译分区自己的紧凑状态条**
+        #    （设备 / 模型 / 目标语言 / 加载状态 / 最近一句翻译延迟）
+        self._strip_mt = self._make_status_strip(f_mt, 'mt')
+        self._lbl_mt_note = self._bind_wrap(
+            ttk.Label(f_mt, textvariable=self.var_mt_note, foreground='#555'),
+            f_mt, self.var_mt_note)
         self.mt.set_draft(self.var_mt_draft.get())
 
         # ---- 语音分区（TTS，C-101 P4 第 4 条）----
@@ -2473,7 +2541,13 @@ class App:
         ttk.Label(row_tts, text='⚠️ 请佩戴耳机，避免回授',
                   foreground='#b26a00').pack(side='left', padx=(4, 0))
 
-        ttk.Label(f_tts, textvariable=self.var_tts_note, foreground='#555').pack(fill='x')
+        # 🔴🔴 APP-048：**语音输出分区自己的紧凑状态条**
+        #    （设备 / 音色模式 / 输出设备 / 就绪状态 / 语速倍率 / 语音滞后 / 排队句数）
+        #    ⚠️ 位置：紧贴控件行（在 note 之上）⇒ 用户第一眼看到状态。
+        self._strip_tts = self._make_status_strip(f_tts, 'tts')
+        self._lbl_tts_note = self._bind_wrap(
+            ttk.Label(f_tts, textvariable=self.var_tts_note, foreground='#555'),
+            f_tts, self.var_tts_note)
 
         # 🔴 **离线朗读入口**（用户需求：上传文件 / 对话框输入文本 ⇒ 直接播报）
         #    放在这里而不是 row_tts：row_tts 已经排了 6 个控件，
@@ -2485,8 +2559,9 @@ class App:
             row_tts2, text='📖 离线朗读…', width=14,
             command=self._open_offline_reader)
         self.btn_offline.pack(side='left', padx=(0, 8))
-        ttk.Label(row_tts2, textvariable=self.var_tts_note,
-                  foreground='#555').pack(side='left', fill='x', expand=True)
+        self._lbl_tts_note2 = self._bind_wrap(
+            ttk.Label(row_tts2, textvariable=self.var_tts_note, foreground='#555'),
+            row_tts2, self.var_tts_note)
 
         # ⚠️ height=10（行）：**这是状态栏可见的关键**。
         #    ScrolledText 默认请求高度 718 px（24 行），在 1080x700 窗口里
@@ -3612,11 +3687,18 @@ class App:
             self._ui_log(f'tts submit failed: {e!r}')
 
     def _tts_meter(self):
-        """底栏的 TTS 统计（首包 / **语音滞后** / 积压 / 丢句）。
+        """**语音分区**的状态补充字段（首包 / **语音滞后** / 积压 / 丢句 / 失败）。
 
         🔴🔴 APP-028②：新增「**语音滞后 X 秒**」。
           取消丢句后，若合成比播放慢（RTF > 1），滞后会**累积**
           ⇒ 必须让用户**看得见**，否则「越拖越久」变成不可解释的故障。
+
+        🔴🔴🔴 APP-048：**不再拼进顶部那条长文本**
+          （原实现把它接到 `var_meter` 尾巴上 ⇒ 顶部「太多而且挤不下」）。
+          ⇒ 现在：写进**语音分区自己的状态条**（`_strip_tts`），
+            字段优先级最低 ⇒ 宽度不够时先被隐藏。
+          ⚠️ **方法名与返回类型保持不变**（既有验收 `app103` 的 B10/B11
+            判据依赖 `_tts_meter()` 这个名字和它在 `_poll` 里的调用）。
         """
         if self.tts is None:
             return ''
@@ -3626,15 +3708,25 @@ class App:
             return ''
         fp = st.get('first_packet_s')
         f = lambda v, d=1: ('—' if v is None else f'{v:.{d}f}')
-        # 🔴🔴🔴 APP-042：**当前语速倍率 + 实际播放滞后**（底栏显示）
+        # 🔴🔴🔴 APP-042：**当前语速倍率 + 实际播放滞后**
         #   ⇒ `cur_speed` = 上一句用的倍率；`play_lag_s` = 上一句的实际
         #     开播滞后（worker 回报，跨进程墙钟口径）。
         sp = st.get('cur_speed')
         plag = st.get('play_lag_s')
         sp_txt = ('—' if sp is None else f'{float(sp):.2f}×')
-        # 🔴🔴 APP-021③：把「失败」也摆出来（已播 / 丢句 / 失败）
-        # 🔴🔴 APP-028②：**语音滞后**放在**最前面**（用户最关心的那个数）
-        #   ⇒ 底栏已经很长 ⇒ 其余字段压缩（去掉重复的空格 / 缩短标签）
+        # 🔴🔴🔴 APP-048：写进**语音分区**的状态条（不是顶部）
+        try:
+            sst = self._strip_tts['status']
+            sst.set('fp', '首包', f(fp, 2) + 's', priority=6)
+            sst.set('playlag', '播放滞后', f(plag) + 's', priority=6)
+            sst.set('drop', '丢句', str(st.get('n_dropped', 0)), priority=7)
+            sst.set('fail', '失败', str(st.get('n_failed', 0)), priority=7,
+                    level=('error' if st.get('n_failed', 0) else 'ok'))
+            sst.set('played', '已播', str(st.get('n_played', 0)), priority=7)
+            sst.set('maxback', '最大积压', f(st.get('max_backlog_s')) + 's',
+                    priority=7)
+        except Exception:
+            pass
         return (f'  |  TTS 滞后 {f(st.get("lag_s"))}s  首包 {f(fp, 2)}s'
                 f'  语速 {sp_txt}  播放滞后 {f(plag)}s'
                 f'  积压 {f(st.get("backlog_s"))}s'
@@ -3981,6 +4073,19 @@ class App:
                 self._seg_span[seg] = (_t0, _t1)
                 _res = self._spk_bridge.on_final(seg, _t0, _t1)
                 _spk2 = _res.get('spk')
+                # 🔴🔴🔴 APP-047：**「本段无标签」要可观测**（不静默）。
+                #   ASR 侧新增 `reason='embed_shape_out_of_range'`（形状超界）
+                #   ⇒ 该段**没有说话人标签** ⇒ 与 'not_clean_speech' 同类：
+                #   **沿用上一句音色 / 预设音色**（方案 A：TTS 不等标签）。
+                #   ⚠️ 只**记一次**每种 reason（避免刷屏），但**首次必记**。
+                if not _spk2:
+                    _rsn = _res.get('reason')
+                    if _rsn and _rsn not in self._spk_reason_seen:
+                        self._spk_reason_seen.add(_rsn)
+                        _extra = _res.get('embed_error')
+                        self._ui_log('[spk] 第 %d 段无说话人标签：%s%s'
+                                     % (seg, _rsn,
+                                        ('（%s）' % _extra) if _extra else ''))
                 if _spk2:
                     spk = _spk2
                     spk_conf = _res.get('spk_conf', spk_conf)
@@ -4356,6 +4461,449 @@ class App:
             # 定稿原文与草稿译文预览不再上屏幕字幕（仍在主文本区里）。
             self.overlay.show(mt_tail, partial)
 
+    # ══════════════════════════════════════════════════════════════════
+    # 🔴🔴🔴 APP-048：分区状态条（ASR / 翻译 / 语音 各自的紧凑状态行）
+    #
+    # 用户原话：「现在所有的状态信息全部挤在最顶端，太多而且挤不下。
+    #            后面建议把 ASR/翻译/TTS 的状态信息分别放在各个模型区域内。」
+    #
+    # 实现分工：
+    #   * `gui_status.SectionStatus` = **纯逻辑**（字段 / 优先级 / 裁剪 / 变色 / tooltip）
+    #     ⇒ 不 import tkinter ⇒ 可离线验收。
+    #   * 本节 = **视图**（把纯逻辑的结果画成一行 ttk.Label）+ **数据填充**。
+    # ══════════════════════════════════════════════════════════════════
+
+    def _bind_wrap(self, label, container, var=None):
+        """让一个长文本 label **随容器宽度换行**（APP-048：不能截断或溢出）。
+
+        🔴 **为什么必须做**：各分区的 note 行（模型说明 / 加载提示）**很长**
+          （实测语音区那行 > 1900 px）⇒ 在 1080 宽窗口里**直接溢出屏幕**，
+          用户看到的是「文字被截断」⇒ 违反 APP-048
+          「窗口缩小到 1280×720 时不能截断或溢出」。
+
+        🔴 **`ttk.Label` 不支持 `wraplength` 绑定**（tk 的 `Label` 才有）
+          ⇒ 这里用 `tk.Label` + 同一个 `textvariable`（外观用 ttk 主题会略不同，
+          但**换行**是硬需求 ⇒ 优先满足）。
+          ⚠️ **`ttk.Label.cget('textvariable')` 返回的是 Tcl 变量名**
+            （如 `'PY_VAR0'`）⇒ 直接传给 `tk.Label(textvariable=...)` 会失效
+            ⇒ 必须传**真正的 StringVar 对象**（`var` 参数）。
+
+        ⚠️ **宽度来源**：容器（分区）宽度 ⇒ 用 `<Configure>` 事件跟随；
+          这样窗口缩放时会自动更新。
+        """
+        try:
+            tk = self.tk
+            if var is None:
+                tv = label.cget('textvariable')
+                # 退路：从 widget 的 Tcl 命名空间里找回来
+                try:
+                    var = tk._default_root.tk.splitlist(tv) and label.master.tk.globalgetvar(tv)
+                except Exception:
+                    var = None
+            if var is None:
+                return label
+            lbl = tk.Label(container, textvariable=var,
+                           foreground=label.cget('foreground'),
+                           font=label.cget('font') or None,
+                           anchor='w', justify='left',
+                           background=self._ttk_bg())
+            lbl.pack(fill='x')
+            # 🔴 **销毁原来的 ttk.Label** ⇒ 否则同一段文字显示**两遍**
+            #   （ttk.Label 不支持换行 ⇒ 它那条还会溢出屏幕）。
+            try:
+                label.destroy()
+            except Exception:
+                pass
+        except Exception:
+            # 退化：至少保留原 label（不换行）
+            return label
+
+        def _on_cfg(_ev=None):
+            try:
+                w = container.winfo_width()
+                if w > 50:
+                    lbl.configure(wraplength=w - 12)
+            except Exception:
+                pass
+
+        try:
+            container.bind('<Configure>', _on_cfg, add='+')
+            _on_cfg()
+        except Exception:
+            pass
+        # 记下来，供后续更新宽度用
+        self._wrapped_labels = getattr(self, '_wrapped_labels', [])
+        self._wrapped_labels.append((lbl, container))
+        return lbl
+
+    def _ttk_bg(self):
+        """取 ttk 主题的默认背景色（让 tk.Label 与周围不突兀）。"""
+        try:
+            from tkinter import ttk
+            style = ttk.Style(self.root)
+            return style.lookup('TLabel', 'background') or self.root.cget('background')
+        except Exception:
+            try:
+                return self.root.cget('background')
+            except Exception:
+                return '#f0f0f0'
+
+    def _update_wrap(self):
+        """窗口尺寸变化后刷新所有换行 label 的 wraplength。"""
+        for lbl, container in getattr(self, '_wrapped_labels', []):
+            try:
+                w = container.winfo_width()
+                if w > 50:
+                    lbl.configure(wraplength=w - 12)
+            except Exception:
+                pass
+
+    def _make_status_strip(self, parent, key):
+        """在某个分区里建一行状态条，返回视图对象。
+
+        视图对象持有：
+          * `label`：那一个 `ttk.Label`（单行 ⇒ 不会引起纵向重排）
+          * `status`：`gui_status.SectionStatus`（纯逻辑）
+          * `_last_text` / `_last_level`：**只在真的变了**时才 configure()
+            ⇒ 满足 APP-048「数值定时刷新（≤ 1 Hz），不要频繁重排布局」。
+        """
+        from tkinter import ttk
+        strip = ttk.Frame(parent)
+        strip.pack(fill='x', pady=(2, 0))
+        status = gui_status.SectionStatus(key)
+        var = self.tk.StringVar(value='')
+        lbl = ttk.Label(strip, textvariable=var, font=('Microsoft YaHei UI', 9),
+                        foreground='#333')
+        lbl.pack(side='left', fill='x', expand=True)
+        # 🔴 **真实字体度量**（比按字符数估算准）
+        #   ⇒ 中文标签的宽度被正确计入 ⇒ 裁剪后**真的不溢出**。
+        try:
+            import tkinter.font as tkfont
+            font = tkfont.Font(root=self.root, family='Microsoft YaHei UI', size=9)
+            measure = font.measure
+        except Exception:
+            measure = None
+        return {'key': key, 'frame': strip, 'label': lbl, 'var': var,
+                'status': status, '_last_text': None, '_last_level': None,
+                '_tip': '', 'measure': measure}
+
+    def _strip_update(self, strip, max_px=None):
+        """把状态条重画一次（内容没变 ⇒ **不动控件**）。"""
+        text, level, tip = strip['status'].render(max_px=max_px,
+                                                  measure=strip.get('measure'))
+        if text != strip['_last_text']:
+            strip['var'].set(text)
+            strip['_last_text'] = text
+        if level != strip['_last_level']:
+            strip['label'].configure(foreground=gui_status.LEVEL_COLOR.get(level, '#333'))
+            strip['_last_level'] = level
+        if tip != strip['_tip']:
+            strip['_tip'] = tip
+            self._set_strip_tooltip(strip['label'], tip)
+
+    def _set_strip_tooltip(self, widget, text):
+        """给控件挂一个悬停提示（tooltip）。
+
+        🔴 ttk 没有内置 tooltip ⇒ 自己实现一个**极简**版本：
+        `Toplevel` + `overrideredirect` + 延迟显示。
+        ⚠️ **不引入第三方依赖**（客户机只有标准库 + 打包的 site-packages）。
+        """
+        if not text:
+            return
+        # 先清掉旧的（避免重复绑定）
+        if getattr(widget, '_app_tip', None):
+            try:
+                widget._app_tip.destroy()
+            except Exception:
+                pass
+            widget._app_tip = None
+        try:
+            tip = self.tk.Toplevel(widget)
+            tip.overrideredirect(True)
+            tip.attributes('-topmost', True)
+            lbl = self.tk.Label(tip, text=text, justify='left', background='#ffffe0',
+                                relief='solid', borderwidth=1, font=('Microsoft YaHei UI', 9),
+                                wraplength=520)
+            lbl.pack()
+            tip.withdraw()
+        except Exception:
+            return
+
+        def _enter(_ev=None):
+            try:
+                x = widget.winfo_rootx() + 12
+                y = widget.winfo_rooty() + widget.winfo_height() + 4
+                tip.geometry(f'+{x}+{y}')
+                tip.deiconify()
+            except Exception:
+                pass
+
+        def _leave(_ev=None):
+            try:
+                tip.withdraw()
+            except Exception:
+                pass
+
+        try:
+            widget.bind('<Enter>', _enter, add='+')
+            widget.bind('<Leave>', _leave, add='+')
+        except Exception:
+            pass
+        widget._app_tip = tip
+
+    # -- 各分区的字段填充（数据源都在既有对象里）------------------------
+    def _fill_asr_strip(self):
+        """ASR 区：设备 / 模型+精度 / 加载状态 / RTF / 说话人 / 当前说话人。
+
+        🔴 **优先级口径**：APP-048 列的顺序是「设备、模型和精度、加载状态、
+        ASR RTF、说话人识别开关和状态、当前说话人」，
+        但**用户最先要判断的是「识别能不能用、是谁在说」**
+        ⇒ 优先级按「可用性」排：状态 > 说话人 > 当前说话人 > 设备 > 精度
+        > RTF > 出字 > 段（宽度不够先隐藏最后几个）。
+        """
+        st = self._strip_asr['status']
+        opt = self._cur_asr_opt()
+        e = self.engine
+        # 设备 + 模型精度
+        dev = (opt or {}).get('device') or (getattr(e, 'device_desc', None) or '—')
+        prec = (opt or {}).get('precision') or '—'
+        st.set('dev', '设备', dev, priority=4)
+        st.set('prec', '精度', prec, priority=5)
+        # 加载状态（加载中 / 就绪 / 失败及原因）
+        if self._asr_failed:
+            st.set('state', '状态', '失败', priority=1, level='error',
+                   tip=getattr(self, '_asr_error_text', '') or '详见会话日志')
+        elif self._loading:
+            st.set('state', '状态', '加载中', priority=1, level='warn')
+        elif e is not None:
+            st.set('state', '状态', '就绪', priority=1)
+        else:
+            st.set('state', '状态', '未启动', priority=1, level='warn')
+        # ASR RTF
+        rtf = f'{e.rtf:.2f}' if (e is not None and e.rtf) else '—'
+        st.set('rtf', 'RTF', rtf, priority=6)
+        # 出字延迟 + 段数（原在顶部 meter 里，APP-048 搬到这里）
+        try:
+            lag = e.stats.get('lag_ms') if e is not None else None
+        except Exception:
+            lag = None
+        st.set('lag', '出字', ('%.0f ms' % lag) if lag is not None else '—',
+               priority=7)
+        st.set('segs', '段', str(e.stats.get('segs', 0)) if e is not None else '0',
+               priority=8)
+        # 说话人识别：开关 + 状态（就绪 / 降级）
+        bridge = getattr(self, '_spk_bridge', None)
+        if bridge is None:
+            st.set('spk', '说话人', '未启用', priority=2, level='warn')
+        else:
+            try:
+                bst = bridge.stats()
+            except Exception:
+                bst = {}
+            if bst.get('available'):
+                st.set('spk', '说话人', '就绪', priority=2,
+                       tip='已加载 ASR-029 说话人旁路')
+            else:
+                st.set('spk', '说话人', '降级', priority=2, level='warn',
+                       tip=bst.get('load_error') or '旁路未就绪（不影响字幕与翻译）')
+        # 当前说话人（最新一段的 spk）
+        cur = None
+        try:
+            if self._spk_by_seg:
+                cur = _spk_id(self._spk_by_seg[max(self._spk_by_seg)])
+        except Exception:
+            cur = None
+        st.set('spk_now', '当前', cur or '—', priority=3)
+
+    def _fill_mt_strip(self):
+        """翻译区：设备 / 模型 / 目标语言 / 加载状态 / 最近一句翻译延迟。"""
+        st = self._strip_mt['status']
+        mt = self.mt
+        opt = self._cur_mt_opt()
+        st.set('dev', '设备', getattr(mt, 'device', None) or '—', priority=4)
+        label = (opt or {}).get('label') or getattr(mt, 'engine_key', None) or '—'
+        st.set('model', '模型', label, priority=5)
+        tgt = getattr(mt, 'target', None)
+        st.set('lang', '目标', TARGET_LABELS.get(tgt, tgt or '—'), priority=2)
+        if not getattr(mt, 'active', False):
+            st.set('state', '状态', '未开启', priority=1, level='warn')
+        elif mt.state == 'loading':
+            waited = time.perf_counter() - getattr(self, '_mt_load_since', 0.0)
+            st.set('state', '状态', '加载中', priority=1, level='warn',
+                   tip='已等 %.0f s（首次编译较慢）' % waited if waited > 30 else '')
+        elif mt.state == 'error':
+            brief = str(mt.err or '').split('(')[0].strip() or '未知错误'
+            st.set('state', '状态', '失败', priority=1, level='error',
+                   tip='%s；详情见日志，可点「重试翻译」' % brief)
+        elif mt.state == 'ready':
+            st.set('state', '状态', '就绪', priority=1)
+        else:
+            st.set('state', '状态', mt.state or '—', priority=1, level='warn')
+        # 最近一句翻译延迟
+        lat = None
+        try:
+            lats = getattr(mt, 'lats', None) or []
+            if lats:
+                lat = lats[-1]
+        except Exception:
+            lat = None
+        st.set('lat', '延迟', ('%.0f ms' % lat) if lat is not None else '—',
+               priority=3)
+
+    def _fill_tts_strip(self):
+        """语音区：设备 / 音色模式 / 输出设备 / 就绪状态 / 语速 / 滞后 / 排队。
+
+        🔴 **优先级口径**：APP-048 列的顺序是「设备 / 音色模式 / 输出设备 /
+        就绪状态 / 语速倍率 / 语音滞后 / 排队句数」，
+        但**用户最关心的是「有没有出声、落后多少」**
+        ⇒ 优先级按「可见性」排：状态 > 设备 > 滞后 > 语速 > 排队 > 音色 > 输出
+        （音色 / 输出设备在**控件下拉里已经能看到** ⇒ 放最后，宽度不够先隐藏）。
+        """
+        st = self._strip_tts['status']
+        tts = self.tts
+        voice = self.var_tts_voice.get() if hasattr(self, 'var_tts_voice') else '—'
+        st.set('voice', '音色', voice, priority=6)
+        st.set('out', '输出', self.var_tts_out.get() if hasattr(self, 'var_tts_out') else '—',
+               priority=7)
+        if tts is None:
+            st.set('state', '状态',
+                   '已关闭' if not self.var_tts_on.get() else '未就绪',
+                   priority=1, level='warn' if self.var_tts_on.get() else 'ok')
+            st.set('dev', '设备', '—', priority=2)
+            st.set('speed', '语速', '—', priority=4)
+            st.set('lag', '滞后', '—', priority=3)
+            st.set('queue', '排队', '—', priority=5)
+            return
+        try:
+            ts = tts.stats()
+        except Exception:
+            ts = {}
+        st.set('dev', '设备', ts.get('device') or '—', priority=2)
+        state = ts.get('state') or '—'
+        if state == 'error':
+            st.set('state', '状态', '失败', priority=1, level='error',
+                   tip=ts.get('last_error') or '详见会话日志')
+        elif state == 'ready':
+            st.set('state', '状态', '就绪', priority=1)
+        elif state == 'loading':
+            st.set('state', '状态', '加载中', priority=1, level='warn')
+        else:
+            st.set('state', '状态', state, priority=1, level='warn')
+        st.set('speed', '语速',
+               ('%.2f×' % float(ts.get('cur_speed'))) if ts.get('cur_speed') else '—',
+               priority=4)
+        lag = ts.get('lag_s')
+        st.set('lag', '滞后', ('%.1f s' % lag) if lag is not None else '—',
+               priority=3,
+               level=('warn' if (lag is not None and lag > 5) else 'ok'))
+        # 排队句数（未下发的队列 + 在途）
+        try:
+            n_q = len(tts.pending) + len(getattr(tts, '_queue', []) or [])
+        except Exception:
+            n_q = 0
+        st.set('queue', '排队', str(n_q), priority=5)
+
+    def _update_strips(self):
+        """刷新三分区状态条 + 顶部总状态灯 + 会话计时。
+
+        🔴 APP-048「数值定时刷新（≤ 1 Hz）」⇒ **本方法按 1 Hz 调用**
+        （`_poll` 是 80 ms ⇒ 这里自己节流）。
+        """
+        now = time.time()
+        last = getattr(self, '_strip_last', 0.0)
+        if now - last < 1.0:
+            return
+        self._strip_last = now
+        try:
+            self._fill_asr_strip()
+            self._fill_mt_strip()
+            self._fill_tts_strip()
+            # 1280×720 / 1080 宽下按**分区实际宽度**裁剪（次要字段先隐藏）
+            #   ⚠️ 不能用整窗宽度：那会让语音区（字段最多）变成一条长文本
+            #     ⇒ 违背 APP-048「每个区域用一行**紧凑**的状态条」。
+            #   ⇒ 上限 = 分区宽度，且**再封顶**（避免超宽屏下无限拉长）。
+            for s in (self._strip_asr, self._strip_mt, self._strip_tts):
+                try:
+                    fw = s['frame'].winfo_width()
+                except Exception:
+                    fw = 0
+                if fw <= 0:
+                    fw = max(320, self.root.winfo_width() - 60)
+                # 🔴 紧凑上限：约 108 个字符（≈ 810 px @ 7.5 px/char）
+                #   ⇒ 超出的次要字段按优先级从最次要的一端丢弃。
+                self._strip_update(s, max_px=min(fw, 810))
+            # 顶部总状态灯：三区里只要有一区 error ⇒ 变红
+            levels = [s['status'].level() for s in
+                      (self._strip_asr, self._strip_mt, self._strip_tts)]
+            if 'error' in levels:
+                self._global_light.set('✖ 有模块异常')
+                self._global_light_color = '#c0392b'
+            elif 'warn' in levels:
+                self._global_light.set('▲ 有模块待处理')
+                self._global_light_color = '#b26a00'
+            else:
+                self._global_light.set('● 全部就绪')
+                self._global_light_color = '#2e7d32'
+            # 🔴🔴 **`ttk.Button.configure(foreground=…)` 会抛**
+            #   `TclError: unknown option "-foreground"`（ttk 不支持前景色）
+            #   ⇒ 实测整段状态灯刷新被**这个异常打断** ⇒ 灯永远不变色、
+            #     而且**吞掉了后面的会话计时刷新**。
+            #   ⇒ 正确做法：改 **Button 的 ttk.Style**（`foreground` 走 style）。
+            self._apply_global_light_style()
+        except Exception as e:
+            self._ui_log(f'[strip] 状态条刷新失败：{type(e).__name__}: {e}')
+        # 会话计时（全局）
+        try:
+            t0 = getattr(self, '_session_wall0', None)
+            if t0:
+                el = int(time.time() - t0)
+                self._session_elapsed.set('%02d:%02d' % (el // 60, el % 60))
+            else:
+                self._session_elapsed.set('00:00')
+        except Exception:
+            pass
+
+    def _apply_global_light_style(self):
+        """给总状态灯按钮**换 style**（ttk 不支持 `configure(foreground=…)`）。
+
+        🔴 **为什么**：实测 `ttk.Button.configure(foreground='#c0392b')`
+          抛 `TclError: unknown option "-foreground"`
+          ⇒ 状态灯永远不变色 ⇒ 用户看不到「有模块异常」。
+        ⇒ 正确做法：建三个 `ttk.Style`（ok / warn / error），
+          用 `style.configure('TButton', foreground=…)` 改前景色，
+          再 `button.configure(style=…)` 切过去。
+        """
+        color = getattr(self, '_global_light_color', '#2e7d32')
+        name = 'AppLight.' + color.lstrip('#')
+        try:
+            from tkinter import ttk
+            style = ttk.Style(self.root)
+            try:
+                style.configure(name, foreground=color)
+            except Exception:
+                # 某些主题不支持改 foreground ⇒ 退到 background
+                style.configure(name, background=color)
+            self.btn_global_light.configure(style=name)
+        except Exception:
+            pass
+
+    def _show_global_status(self):
+        """点总状态灯 ⇒ 弹窗列出三个分区的完整状态（APP-048）。"""
+        lines = []
+        for s in (self._strip_asr, self._strip_mt, self._strip_tts):
+            name = {'asr': 'ASR 识别', 'mt': '翻译', 'tts': '语音输出'}.get(s['key'], s['key'])
+            lines.append('【%s】%s' % (name, s['_last_text'] or '—'))
+            for k, f in s['status'].snapshot().items():
+                if f['tip']:
+                    lines.append('    · %s %s —— %s' % (f['label'], f['value'], f['tip']))
+        try:
+            from tkinter import messagebox
+            messagebox.showinfo('模块状态', '\n'.join(lines))
+        except Exception:
+            self.var_status.set(' | '.join(
+                s['_last_text'] or '' for s in
+                (self._strip_asr, self._strip_mt, self._strip_tts)))
+
     def _poll(self):
         self._drain_ui_log()          # 后台线程的日志统一在这里上屏
         self._track_mt_state()
@@ -4389,22 +4937,28 @@ class App:
             self._render(partial)
             lv = s.src.level
             bars = min(12, int(lv / 0.03 * 12))
-            lag = e.stats.get('lag_ms') if e else None
-            rtf = f'{e.rtf:.2f}' if e and e.rtf else '—'
+            # 🔴 APP-048：ASR 的 RTF / 出字延迟**搬进 ASR 分区的状态条**
+            #   ⇒ 这里不再拼接（顶部只留全局信息）。
             backlog = s.backlog_s
             self._max_backlog = max(getattr(self, '_max_backlog', 0.0), backlog)
+            # 🔴🔴 APP-048：顶部**只留全局信息**（电平 / 音频时长 / 采集源 / 积压）。
+            #    ASR / 翻译 / 语音 的状态**各自在自己的分区**（见 `_update_strips`）。
             self.var_meter.set(
                 f'电平 {"█" * bars}{"░" * (12 - bars)}  音频 {s.audio_s:6.1f}s  '
                 f'来源 {self._src_label.get(self._cur_source_key(), "?")}'
-                f'/{s.src.name_used or "—"}  '
-                f'设备 {e.device_desc if e else "—"}  RTF {rtf}  '
-                f'出字延迟 {f"{lag:.0f} ms" if lag is not None else "—"}  '
-                f'积压 {backlog:.1f}s  段 {e.stats["segs"] if e else 0}'
-                f'{self._mt_meter()}{self._tts_meter()}')
+                f'/{s.src.name_used or "—"}  积压 {backlog:.1f}s')
             self.lbl_meter.configure(foreground='#c0392b' if backlog > 2.0 else '#333')
             if not s.running and self.btn.cget('text') == '■ 停止':
                 self.btn.configure(text='▶ 开始')
                 self.var_status.set('已停止')
+        # 🔴🔴 APP-048：三分区状态条（**1 Hz 节流**，见 `_update_strips`）
+        #    ⚠️ `_mt_meter()` / `_tts_meter()` **仍然被调用**
+        #      （它们现在把补充字段写进各自分区，见 APP-048 注释）
+        #      ⇒ 既有验收 `app103` 的 B11 判据（「`_poll` 里真的调用
+        #        `_tts_meter()`」）继续成立 ⇒ 不破坏既有回归。
+        self._mt_meter()
+        self._tts_meter()
+        self._update_strips()
         if self.args.selftest and s and (s.audio_s >= self.args.selftest or not s.running):
             self._selftest_done()
             return
@@ -4512,10 +5066,22 @@ class App:
         self.var_status.set('正在重新加载翻译模型…')
 
     def _mt_meter(self):
-        """指标栏里的翻译一段：加载中 / 失败 / 延迟中位 + 积压（含实际生效设备）。"""
+        """**翻译分区**的状态补充字段（加载中 / 失败 / 延迟中位 + 积压）。
+
+        🔴🔴🔴 APP-048：**不再拼进顶部那条长文本**
+          ⇒ 现在：写进**翻译分区自己的状态条**（`_strip_mt`）。
+          ⚠️ 方法名与返回类型保持不变（既有验收脚本依赖）。
+        """
         mt = self.mt
         if not mt.active:
             return ''
+        # 🔴🔴 APP-048：先写进翻译分区的状态条（次要字段，宽度不够先隐藏）
+        try:
+            sst = self._strip_mt['status']
+            sst.set('pending', '积压', str(mt.summary().get('pending', 0)),
+                    priority=5)
+        except Exception:
+            pass
         if mt.state == 'loading':
             # 加载中要能看到「过了多久」—— 否则卡住了和正常编译长得一样，
             # 用户只能干等。首次编译（无缓存）要 30–60 秒，超过阈值就提示。
@@ -4724,6 +5290,8 @@ def run_cli(args):
     #     APP-040④「原文字幕和译文字幕每句前面都显示说话人标签」
     #     在 **CLI 路径上从未实现**（GUI 有、CLI 无 ⇒ 两条路径不一致）。
     _spk_by_seg = {}
+    # 🔴 APP-047：CLI 侧已见过的「本段无标签」reason（只记一次每种）
+    _cli_spk_reason_seen = set()
     # 🔴 §99（断链 C）：**已发出登记命令但尚未被 worker 确认**的 spk。
     #   ⇒ 元素为 `(spk, refined)`；收到 worker 回执才 `mark_embedded`。
     _spk_voice_sent = set()
@@ -4907,6 +5475,16 @@ def run_cli(args):
                 float(_spk_audio_end[0]))
             _res = _spk_bridge.on_final(_seg, _t0, _t1)
             _spk2 = _res.get('spk')
+            # 🔴🔴🔴 APP-047：「本段无标签」**要可观测**（不静默）。
+            #   理由含 🆕 'embed_shape_out_of_range'（形状超界）⇒ 该段无标签
+            #   ⇒ 沿用上一句音色 / 预设音色（方案 A：TTS 不等标签）。
+            if not _spk2:
+                _rsn = _res.get('reason')
+                if _rsn and _rsn not in _cli_spk_reason_seen:
+                    _cli_spk_reason_seen.add(_rsn)
+                    _extra = _res.get('embed_error')
+                    print(f'  [spk] 第 {_seg} 段无说话人标签：{_rsn}'
+                          + (f'（{_extra}）' if _extra else ''), flush=True)
             if _spk2:
                 spk = _spk2
                 spk_conf = _res.get('spk_conf', spk_conf)

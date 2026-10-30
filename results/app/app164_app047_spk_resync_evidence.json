@@ -1,0 +1,160 @@
+{
+  "script": "app164_app047_spk_resync_test.py",
+  "ts": "2026-10-30 15:50:03",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12",
+  "pass_": 30,
+  "fail": 0,
+  "verdict": "PASS",
+  "checks": [
+    {
+      "name": "A0 包内 asr_spk/ 存在",
+      "ok": true,
+      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12\\app\\asr_spk"
+    },
+    {
+      "name": "A1 恰好 3 个 .py",
+      "ok": true,
+      "detail": "实得 asr052_speaker_tracker_api.py,asr052_spk_runtime.py,asr_thread_defaults.py"
+    },
+    {
+      "name": "A2 旧的 10 个文件已移除",
+      "ok": true,
+      "detail": "0 残留"
+    },
+    {
+      "name": "A3 无 __pycache__ 残留",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A4.asr052_speaker_tracker_api.py 与 ASR 源逐字节一致（归一化行尾）",
+      "ok": true,
+      "detail": "ffd6154703b86bd3"
+    },
+    {
+      "name": "A4.asr052_spk_runtime.py 与 ASR 源逐字节一致（归一化行尾）",
+      "ok": true,
+      "detail": "50e1d5f1789d06b8"
+    },
+    {
+      "name": "A4.asr_thread_defaults.py 与 ASR 源逐字节一致（归一化行尾）",
+      "ok": true,
+      "detail": "250afa4d5797cba0"
+    },
+    {
+      "name": "B1 3 个交付文件内部关键字 0 命中",
+      "ok": true,
+      "detail": "0 命中"
+    },
+    {
+      "name": "C1 无旧模块引用",
+      "ok": true,
+      "detail": "0 命中"
+    },
+    {
+      "name": "C2 asr052 依赖 asr_thread_defaults（限线程不丢）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "C3 asr052_spk_runtime 先限线程再 import numpy",
+      "ok": true,
+      "detail": "td@568 numpy@812"
+    },
+    {
+      "name": "D1 wespeaker-resnet34-fp16 存在",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "D2 pyannote_seg_3_0/fp16 存在",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "D3 无 fp32 目录（不需要 FP32）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "D4 App 侧精度探测顺序 fp16 优先",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "E1 定义了 NO_LABEL_REASONS",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "E2 含 embed_shape_out_of_range",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "E3 reason_is_no_label 可调用",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "E4 embed_shape_out_of_range → 无标签",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "E5 not_clean_speech → 无标签",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "E6 overlap → 无标签",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "E7 None → 不是无标签",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "E8 未知 reason → 不是无标签",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "E9 反证：删掉新 reason 后判据识破（BUG 组）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "F1 GUI 侧 _spk_reason_seen 存在",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "F2 CLI 侧 _cli_spk_reason_seen 存在",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "F3 两条路径都记 reason",
+      "ok": true,
+      "detail": "get('reason') 出现 2 次"
+    },
+    {
+      "name": "G.speaker_tracker.py 归一化后逐字节一致",
+      "ok": true,
+      "detail": "pkg sha=e40779329d72c7aa"
+    },
+    {
+      "name": "G.speaker_assets.py 归一化后逐字节一致",
+      "ok": true,
+      "detail": "pkg sha=30142332febbd6bc"
+    },
+    {
+      "name": "G.live_caption_app.py 归一化后逐字节一致",
+      "ok": true,
+      "detail": "pkg sha=4608c4cebbc0ff07"
+    }
+  ]
+}
