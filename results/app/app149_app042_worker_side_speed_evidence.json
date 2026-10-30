@@ -1,0 +1,104 @@
+{
+  "schema": "app.app042.worker_side_speed.v2",
+  "note_v2": "§98 重写：基线改用**已归档只读副本**（run2=旧实现 / run4=新实现）⇒ 不再读 live 目录",
+  "data_source_old": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app042_soak_run2\\app042_soak.wav.tts.jsonl",
+  "data_source_new": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app042_soak_run4\\app042_soak.wav.tts.jsonl",
+  "n_sent_old": 76,
+  "n_sent_new": 76,
+  "clock_offset_s": 1792546142.6051,
+  "old_submit_time": {
+    "source": "run2（已入库 git）",
+    "speed_max": 1.0,
+    "n_always_1": 76,
+    "n_in_1p2_1p3": 0
+  },
+  "new_dequeue_time": {
+    "source": "run4（§97 归档）",
+    "measured_speed_max": 1.3,
+    "measured_n_in_1p2_1p3": 75,
+    "replay_speed_max": 1.3,
+    "replay_n_in_1p2_1p3": 75,
+    "replay_vs_measured_maxdiff": 0.0
+  },
+  "worker_block_executed": {
+    "block_chars": 773,
+    "block_lines": 23,
+    "vs_measured_maxdiff": 0.0,
+    "n_in_1p2_1p3": 75
+  },
+  "injected_falsify": {
+    "vs_measured_maxdiff": 0.2,
+    "n_in_1p2_1p3": 0,
+    "behavior_judgment_failed": true
+  },
+  "baseline_swap_falsify": {
+    "a2_with_run4_must_fail": true,
+    "run4_speed_max": 1.3
+  },
+  "static_checks": {
+    "worker 侧调用 speed_for_lag": true,
+    "worker 侧用墙钟 time.time() 算 lag": true,
+    "worker 侧维护 _last_speed（步长限制需要上一句倍率）": true,
+    "遥测输出 speed_lag_s（定速时点的 lag）": true
+  },
+  "results": [
+    {
+      "name": "A1 常量口径与 time_stretch.py 一致（7/7）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A2 旧实现（run2，提交时刻定速）实测 speed 全为 1.0、0 句达 1.2 ⇒ 证实「加速从未生效」",
+      "ok": true,
+      "detail": "恒1.0=76/76 max=1.0000 n12=0"
+    },
+    {
+      "name": "A2b 基线替换反证：把 A2 数据源换成 run4 ⇒ A2 必须 FAIL（证明 A2 不恒真）",
+      "ok": true,
+      "detail": "run4 speed_max=1.3000 n12=75"
+    },
+    {
+      "name": "A3 新实现（run4，worker 出队时定速）绝大多数句落在 1.2–1.3×",
+      "ok": true,
+      "detail": "n12=75/76 max=1.3000"
+    },
+    {
+      "name": "A4 离线重放逐句复现 run4 实测 speed（口径一致，maxdiff ≤ 1e-6）",
+      "ok": true,
+      "detail": "maxdiff=0.00000000"
+    },
+    {
+      "name": "B 静态：worker 侧调用 speed_for_lag",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "B 静态：worker 侧用墙钟 time.time() 算 lag",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "B 静态：worker 侧维护 _last_speed（步长限制需要上一句倍率）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "B 静态：遥测输出 speed_lag_s（定速时点的 lag）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "C 行为：抽取 worker 真实决策块执行 ⇒ 逐句复现 run4 实测 speed",
+      "ok": true,
+      "detail": "maxdiff=0.00000000 n12=75/76"
+    },
+    {
+      "name": "D 反证：注入「退回主进程下发值」⇒ C 的行为判据必须 FAIL（判据有效）",
+      "ok": true,
+      "detail": "注入后 maxdiff=0.20000000 n12=0/76"
+    }
+  ],
+  "pass_count": 11,
+  "fail_count": 0,
+  "note": "离线判据（真实决策块抽取执行 + 静态检查 + 双向反证）；非真机实测、非 GUI、非 CUDA、非用户实听"
+}

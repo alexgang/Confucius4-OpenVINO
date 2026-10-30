@@ -1,0 +1,100 @@
+{
+ "script": "app157_app043_thread_env_gate.py",
+ "live": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.11/app",
+ "pass_": 14,
+ "fail": 0,
+ "verdict": "PASS",
+ "app_analysis": {
+  "thread_set_lines": [
+   70
+  ],
+  "thread_vars_seen": [
+   "MKL_NUM_THREADS",
+   "NUMEXPR_NUM_THREADS",
+   "OMP_NUM_THREADS",
+   "OPENBLAS_NUM_THREADS",
+   "VECLIB_MAXIMUM_THREADS"
+  ],
+  "first_numpy_line": 95,
+  "first_openvino_line": null,
+  "speaker_tracker_import_line": 123
+ },
+ "tracker_analysis": {
+  "thread_set_lines": [
+   54
+  ],
+  "asr_import_line": 217
+ },
+ "detail": [
+  {
+   "name": "T1 live_caption_app.py 顶层有线程环境变量设置语句",
+   "ok": true,
+   "msg": "lines=[70]"
+  },
+  {
+   "name": "T5 5 个线程变量名齐全（OMP/MKL/OPENBLAS/NUMEXPR/VECLIB）",
+   "ok": true,
+   "msg": "seen=['MKL_NUM_THREADS', 'NUMEXPR_NUM_THREADS', 'OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'VECLIB_MAXIMUM_THREADS'] missing=[]"
+  },
+  {
+   "name": "T2 限线程语句行号 < 第一个 import numpy 的行号",
+   "ok": true,
+   "msg": "thread=70 numpy=95"
+  },
+  {
+   "name": "T3 限线程语句行号 < 第一个 import openvino 的行号（本文件无 openvino import ⇒ 判据不适用）",
+   "ok": true,
+   "msg": "thread=70 openvino=NOT_IMPORTED_HERE"
+  },
+  {
+   "name": "T4 限线程语句行号 < import speaker_tracker 的行号",
+   "ok": true,
+   "msg": "thread=70 speaker_tracker=123"
+  },
+  {
+   "name": "T6 speaker_tracker.py 顶层有线程环境变量设置语句",
+   "ok": true,
+   "msg": "lines=[54]"
+  },
+  {
+   "name": "T7 speaker_tracker.py 限线程行号 < ASR 模块 import 行号",
+   "ok": true,
+   "msg": "thread=54 asr_import=217"
+  },
+  {
+   "name": "T8 存在「线程设置记进日志」的落点",
+   "ok": true,
+   "msg": "thread_env_keyword=False"
+  },
+  {
+   "name": "D-T2① 合规合成源（限线程在 numpy 前）⇒ T2 必须为 True",
+   "ok": true,
+   "msg": "thread=[2] numpy=6"
+  },
+  {
+   "name": "D-T2② 变异合成源（限线程在 numpy 后）⇒ T2 必须为 False",
+   "ok": true,
+   "msg": "thread=[3] numpy=1"
+  },
+  {
+   "name": "D-T5 变量名全部改掉 ⇒ T5 必须为 False",
+   "ok": true,
+   "msg": "seen=['VECLIB_MAXIMUM_THREADS']"
+  },
+  {
+   "name": "D-T7① 合规合成源（限线程在 ASR import 前）⇒ T7 必须为 True",
+   "ok": true,
+   "msg": "thread=[2] asr=7"
+  },
+  {
+   "name": "D-T7② 变异合成源（ASR import 在限线程前）⇒ T7 必须为 False",
+   "ok": true,
+   "msg": "thread=[4] asr=2"
+  },
+  {
+   "name": "D-T3 反证：openvino 判据在「无 openvino import」时不适用（非恒 FAIL）",
+   "ok": true,
+   "msg": "first_openvino=None（None ⇒ 该判据在当前源码不适用）"
+  }
+ ]
+}
