@@ -1,8 +1,8 @@
 # STATUS_EXT
 last_ack: EXT-017
-更新时间: 2026-10-30 22:54
+更新时间: 2026-10-31 00:49
 已压缩: 原文见 archive/STATUS_EXT_upto_20261030.md（224 833 B）；本精简版 ≤ 40 KB / ≤ 300 行
-当前任务: **§14 修「重复启动 → 端口占用 → 整屏 traceback 崩溃」**（用户实测报错）⇒ ✅ **两道防线**：启动器 `start()` **拉子进程前**探端口（`_port_in_use`/`_find_port_owner`/`_pid_alive`）⇒ 占用则**不启动**并给人话提示；桥接侧 `_probe_port_free` **前置到 `engine.warmup` 之前** ⇒ 命中 10048 立即 `return 6` ⇒ ✅ 实测重复启动从「预热 24 s 后整屏 traceback」变为 **400 ms 退出码 6 + 人话提示、无 Traceback**；启动器 `start()` **0.250 s** 返回 False ⇒ ✅ 新增 `tests/test_ext019_port_guard.py`（28 项，含反证）⇒ ✅ **15 套自测 805 PASS / 0 FAIL**（全 rc=0）⇒ ⚠️ **本轮未认领新 EXT 编号**（reviewer 未下发 EXT-019）⇒ **`last_ack` 保持 EXT-017** ⇒ ⛔ tabCapture 生产路径**仍未人工实测**；⛔ 端到端仍不实时（TTS 稳态 RTF 1.0022）
+当前任务: **§15 修插件面板「死控件」**（原声压低量 / 字幕开关 / 目标语言 / 音色）⇒ ✅ 审 P2 待办时发现 **4 个控件在面板上怎么调都不生效**（`duckDb`/`subsOn` 只存进 storage、**player 从不读**；`targetLang`/`voice` **从没进过 start 消息**；且 popup 存语言**全称**而引擎只认 `zh/en/ja/ko`）⇒ ✅ 已全部接线：dB→增益 `10^(dB/20)` 真正套到原声总线（0 dB=1.0 / −15 dB≈0.1778 / −40 dB≈0.01，**运行中改即生效**）；字幕关 ⇒ **一次都不写 DOM** 并清残影；语言改用**引擎码** + 老配置自动迁移；音色选「预设 A」⇒ **一律预设 A**（不再被 tracker 自动切克隆）⇒ ✅ 服务端 `stats`/`margin.json` 新增 `client_target_lang`/`client_voice` 可核对 ⇒ ✅ 新增 `tests/test_ext020_dead_controls.py`（53 项）+ `tests/ext020_settings_harness.js`（node 沙箱跑 player.js **真函数**，26 项）⇒ ✅ **反证：改坏实现 ⇒ 6 条断言全红 rc=1**（harness 有区分力）⇒ ✅ **16 套自测 858 PASS / 0 FAIL**（全 rc=0）⇒ ⚠️ **本轮未认领新 EXT 编号**（reviewer 未下发 EXT-020）⇒ **`last_ack` 保持 EXT-017** ⇒ ⛔ **克隆音色仍不生效**（pyannote 旁路未接线，已如实写明）；⛔ **浏览器端人工验收仍未做**（无 playwright / 无 Chrome）；⛔ 端到端仍不实时（TTS 稳态 RTF 1.0022）
 
 阻塞 / 待决定:
 ① ⛔ **端到端仍不实时，TTS 提速是上线的唯一前置** —— 稳态端到端 RTF **2.0507**（ASR 0.6563 / MT 0.1507 / **TTS 1.0022**，源 `.tmp/ext008_bench/steady.json`）⇒ 建议目标 ≤ 0.85，**由主会话转达 TTS 模块**
@@ -52,13 +52,52 @@ last_ack: EXT-017
 | EXT-005 ① | tabCapture 生产路径实测 | ⏳ **代码侧已就绪**（`capture_mode` 会进 stats / margin.json ⇒ 可从数据核对）；**仍需用户点一次扩展图标**（见 §13） |
 | EXT-014 ② | 巡检规则：last_ack 追平后仍要继续下一项 | ✅ 已落地为常设规则 |
 | EXT-011/012/013 | 线程限制重测 / 用户试用件 / 对照表 | ✅ 已收口（**§9 全文见 archive/STATUS_EXT_upto_20261030.md**） |
-| P2 其余 | 克隆音色 / ducking / 字幕 / 设置持久化 / 暂停拖动 / 30 分钟不崩 | ⛔ 未开始（多数需真实浏览器 + 真实引擎） |
+| P2 其余 | 克隆音色 / ducking / 字幕 / 设置持久化 / 暂停拖动 / 30 分钟不崩 | ✅ **ducking + 字幕已修好**（§15）；⛔ **克隆音色仍不可用**（pyannote 旁路未接线）；⛔ 设置持久化 / 暂停拖动 / 30 分钟不崩未开始（需真实浏览器 + 真实引擎） |
 
 ## 最近章节
 
 > §9 及更早的章节全文在 **`status/archive/STATUS_EXT_upto_20261030.md`**（224 833 B）；
 > §13 的逐条明细在 **`status/notes/sec13_ext018_p2_capture_mode_and_icons.md`**；
-> §14 的逐条明细在 **`status/notes/sec14_ext019_port_guard.md`**（EXT-016 写作规则）。
+> §14 的逐条明细在 **`status/notes/sec14_ext019_port_guard.md`**；
+> §15 的逐条明细在 **`status/notes/sec15_ext020_dead_controls.md`**（EXT-016 写作规则）。
+
+### §15 修插件面板「死控件」—— 原声压低量 / 字幕开关 / 目标语言 / 音色（2026-10-31 00:38）
+
+**依据**：闸门 → **exit 1**（latest=EXT-017 / last_ack=17；另把闸门解析对着原始纠偏文件核过，
+**不存在 EXT-018+** ⇒ exit 1 是真的）⇒ 无新纠偏；按 **EXT-014 ②**（常设规则）继续 P2 待办。
+⚠️ **未认领新 EXT 编号**（reviewer 未下发 EXT-020）⇒ `last_ack` **保持 EXT-017**。
+★ **明细全文见 `status/notes/sec15_ext020_dead_controls.md`**。
+
+⇒ **① 发现的缺陷（4 个死控件）**：`duckDb`/`subsOn` 只在 `popup.js` 存进 storage，
+**`player.js` 从不读**（原声增益硬编码 1.0、字幕无条件写 DOM）；
+`targetLang`/`voice` **从没进过 start 消息** ⇒ 服务端收不到；
+且 popup 存语言**全称**（`Chinese`）而引擎只认 `zh/en/ja/ko`。
+
+⇒ **② 修复**：`player.js` 加 `dbToGain`（`10^(dB/20)`，越界夹 [-60,0]）+ `applyDuckDb`
+（真正写 `origGain.gain`，并把「用户设值 / 换算增益 / 已套用 dB」**分开记**，抓流前不假装生效）；
+`pumpSubs`/`scheduleSub` 受 `subsOn` 约束（关 ⇒ **零写 DOM** + 清残影 + 不入队）；
+`boot()` 读设置 + `storage.onChanged` ⇒ **运行中改即生效**；
+popup 改用**引擎码** + `normalizeLang()` 老配置迁移；语言/音色**贯穿** popup→sw→offscreen→hello；
+服务端 `note_client` 记 `client_target_lang`/`client_voice`（语言**走白名单**，全称记 `None`）；
+新增 `_pick_voice` ⇒ 选「预设 A」**一律预设 A**（不再被 tracker 自动切克隆）。
+
+⇒ **③ 实测**：dB→增益 0⇒1.0 / −15⇒0.1778 / −40⇒0.01（**走真实 `setupOriginalAudio`** 建图后读节点）；
+`stats` 里 `client_target_lang='ja'` / `client_voice='clone'`（真起桥接 + 真 WebSocket）；
+**对照组**：不带 `target_lang` ⇒ `None`（服务端不编造）；`hello_ack` 结构不变（向后兼容）。
+
+⇒ **④ 自测**：新增 `tests/test_ext020_dead_controls.py`（**53 项**，六组）
++ `tests/ext020_settings_harness.js`（**26 项**：从 player.js **原样抽真函数**放进 node `vm` 沙箱跑
+——本机**无 playwright** ⇒ 不能在真浏览器里点）。
+★ **反证**：改坏实现（ducking 退回硬编码 1.0 + 字幕开关失效）⇒ **6 条断言全红 / rc=1**
+⇒ **harness 有区分力**（★ 第一次反证暴露了 harness 自身漏洞：绕过了建图路径 ⇒ 已改成走真实 `setupOriginalAudio`）。
+⇒ **16 套 / 858 PASS / 0 FAIL**（全 rc=0，逐套实测真实退出码）；
+三套明文要求的自测单独确认 rc=0；闸门仍 exit 1（`latest=EXT-017`）⇒ 没弄坏闸门。
+
+⇒ ⛔ **克隆音色仍不生效**（依赖 pyannote 旁路 ⇒ 未接线 ⇒ 回落预设 A，**已如实写进 USER_GUIDE**）；
+⛔ **浏览器端人工验收仍未做**（无 playwright / 无 Chrome，只有 Edge 126）⇒ 只做到 node 沙箱级行为验证；
+⛔ 端到端仍不实时（TTS 稳态 RTF **1.0022**）；⛔ tabCapture 生产路径仍未人工实测；
+⛔ 本轮**未跑真实推理、未占 GPU/NPU、未动他人的 `MACHINE_LOCK`**；⛔ **未 kill 用户自己的桥接进程**（PID 5464）；
+⛔ **未改任何引擎文件**（`ext/engine_runtime.py` 未动）。
 
 ### §14 修「重复启动 → 端口占用 → 整屏 traceback 崩溃」（2026-10-30 22:54）
 
@@ -114,70 +153,42 @@ traceback 终点 `ext/bridge.py` → `websockets.serve(...)`。
 
 ### §12 EXT-016 收口（接手被中断的一轮）+ EXT-017②「2 秒内可见输出」补行为级验收（2026-10-30 21:06）
 
-**依据**：闸门 `tools/next_instruction.py --json` → **exit 1**（`already_executed`，latest=EXT-017 / last_ack=17）⇒ 按闸门应跳过；
-但**交叉证据表明上一轮（EXT-016 压缩）被中断** ⇒ 按「接手未完成的轮次」处理，**不认领新编号**（last_ack 保持 EXT-017）：
+**依据**：闸门 → exit 1 ⇒ 按闸门应跳过；但交叉证据表明上一轮（EXT-016 压缩）**被中断**
+（`git status` 脏、归档与精简版未入库、`test_ext016_compression.py` 未入库、EXEC_LOG 无该轮记录）
+⇒ 按「接手未完成的轮次」处理，**不认领新编号**（last_ack 保持 EXT-017）。
+★ **明细全文见 `status/notes/sec11_12_ext016_closeout.md`**（含完整证据表）。
 
-| 证据 | 正常做完 | 本轮实测（被中断） |
-|---|---|---|
-| `git status --porcelain` | 干净 | **脏**：staged rename + 3 个未跟踪文件 |
-| 归档与精简版 | 都已提交 | `status/archive/STATUS_EXT_upto_20261030.md`（224 833 B）与 `status/STATUS_EXT.md`（11 043 B）**都没入库** |
-| 新增自测 | 已入库 | `tests/test_ext016_compression.py` **未入库** |
-| EXEC_LOG | 有该轮记录 | **无 EXT-016 记录**（最新仍是 2026-10-30 16:11 EXT-017） |
-| 闸门解析 | — | 压缩后仍正常（exit 1 / latest=EXT-017）⇒ 压缩本身没坏闸门 |
+⇒ **① EXT-016 收口**：归档原文与精简版**逐字节校验与 HEAD 一致**（`cmp` 通过）⇒ 只补提交，不重做；
+`CORRECTIONS_EXT.md` **只读、未修改、未入库**（`.gitignore:34` 仍在）。
 
-⇒ **① EXT-016 收口**：归档原文与精简版**逐字节校验与 HEAD 一致**（`cmp` 通过）⇒ 只补提交，不重做。
-`status/CORRECTIONS_EXT.md` **只读、未修改、未入库**（`.gitignore:34` 仍在）；已关闭条目归档 `status/archive/CORRECTIONS_EXT_closed_upto_20261030.md`（23 067 B / EXT-001~EXT-014 全文）**入库**（与 app/hy/tts 模块的同名归档做法一致）。
+⇒ **② ★ 抓到 2 个真缺陷**（被上一轮 691 PASS 掩盖）：
+* **缺陷 29**（产品缺陷）`_caption_app_running()` 阻塞 start **4.208 s**
+  ⇒ **直接违反 EXT-017②「2 秒内可见输出」** ⇒ 修法：先只取 `name`（0.005 s）、
+  只对候选进程取 `cmdline`（0.003 s）⇒ **4.208 s → 0.0015–0.022 s**。
+* **缺陷 30**（测试缺陷）`test_ext017_user_report.py` **假 FAIL**（固定端口 + 8 s 超时 vs 冷启动实测 5.0–5.7 s）
+  ⇒ 修法：端口改**动态分配**、超时 8 s → **45 s**（上限非性能指标）。
 
-⇒ **② ★ 本轮抓到 2 个真缺陷**（都是上一轮 691 PASS 掩盖掉的）：
+⇒ **③ ★ 补 EXT-017② 的行为级验收**（此前只有源码字符串检查 ⇒ 不能证明用户真能 2 秒内看到）：
+`test_launcher_feedback_within_2s()` 真跑 `BridgeRunner.start()`（桩命令，**不加载真模型/不占 GPU·NPU**）
+⇒ 实测 **4.244 s → 0.032 s**（连跑 8 次 0.033–0.048 s，8/8 绿）✅。
 
-* **缺陷 29（★ 产品缺陷）`_caption_app_running()` 阻塞 start 4.208 秒**
-  —— 旧写法 `psutil.process_iter(["pid","name","cmdline"])` 对**全部 369 个进程**取 `cmdline`
-  ⇒ **实测 4.208 s** ⇒ `start()` 在这 4.2 秒里**什么都不显示**
-  ⇒ **直接违反 EXT-017②「start 之后 2 秒内必须出现『正在加载模型…』」**。
-  修法：① 先只取 `name`（实测 **0.005 s**）② 只对**候选**进程再取 `cmdline`（**0.003 s**）
-  ⇒ **4.208 s → 0.0015–0.022 s**；⚠️ 候选名单必须含 python/pythonw ——
-  App 是用自己的 `pythonw.exe` 跑的（`Start_LiveCaption.bat`）⇒ `live_caption` 只在**命令行**里。
-  **检出正确性已验证**：有 live_caption 进程 ⇒ True（0.021 s）；杀掉 ⇒ False（0.006 s）。
-* **缺陷 30（测试缺陷）`test_ext017_user_report.py` 假 FAIL**
-  —— 固定端口 **18811/18812** + 固定 **8 s** 超时，而桥接冷启动**实测就要 5.0–5.7 s**
-  ⇒ 只剩 ~2.3 s 余量 ⇒ 机器一忙就超时 ⇒ `terminate()` 把子进程**杀在启动途中**
-  ⇒ 后面 3 条断言因拿不到日志而**一起**失败（4 条同时红）。
-  **本轮首次批量跑就复现**（95 PASS / 4 FAIL），**HEAD worktree 复跑却是 99 PASS / 0 FAIL**
-  ⇒ 判定为**冷启动抖动**（非回归），并据此定阈值。
-  修法：端口改**动态分配**（`_free_port()`）；超时 8 s → **45 s**（是上限不是性能指标）；
-  并**单独**加一条「冷启动耗时 ≤ 30 s」的性能口径（实测 5.28 s）。
-
-⇒ **③ ★ 补上 EXT-017② 的行为级验收**（此前只有源码字符串检查 ⇒ 不能证明「用户真能 2 秒内看到」）：
-新增 `test_launcher_feedback_within_2s()` —— 真跑 `BridgeRunner.start()`（用**桩命令**当子进程，
-**不加载真模型、不占 GPU / NPU**）⇒ 实测 `start()` **4.244 s → 0.032 s**（连跑 8 次 0.033–0.048 s，8/8 绿）✅ 满足 2 秒口径；
-并断言「提示带 PID/端口/日志路径」「状态灯同步切到加载中」「子进程输出既转发到窗口**又**落进日志文件」。
-配套改动：`tools/ext_launcher.py` 的 `BridgeRunner` 新增 **自测注入点**
-（`cmd=` / `log_path=` / `pid_path=`）⇒ 默认 `None` ⇒ **生产路径完全不变**。
-
-⇒ **④ 自测**：**13 套 / 739 PASS / 0 FAIL**（全 rc=0）：
-echo_roundtrip 11 / ext009 57 / ext010 23 / ext011 29 / ext012 75 / ext013_compare 51 /
-ext013_cpu_watch 25 / **ext016_compression 39** / **ext017_user_report 108** / browser_contract 102 /
-selfcheck 103 / next_instruction 19 / p1_plumbing 97。
+⇒ **④ 自测**：**13 套 / 739 PASS / 0 FAIL**（全 rc=0）。
 
 ⇒ ⛔ 端到端仍不实时（TTS 稳态 RTF **1.0022**）⇒ **TTS 提速仍是上线的唯一前置**；
-⛔ 浏览器端人工验收仍未做（tabCapture 需真实用户手势）⇒ **不宣称浏览器链路已验证**；
-⛔ 本机无 Chrome（只有 Edge 126）；⛔ 未跑任何真实推理（本轮全程 CPU 侧，**未占 GPU / NPU**）。
+⛔ 浏览器端人工验收仍未做 ⇒ **不宣称浏览器链路已验证**；⛔ 本机无 Chrome（只有 Edge 126）。
 
 ### §11 EXT-016 落地（2026-10-30 19:05）
 
-**依据**：闸门 `tools/next_instruction.py --json` → **exit 1**（`already_executed`，latest=EXT-017 / last_ack=17）⇒ 无新纠偏；
-但 **EXT-016（压缩 STATUS/CORRECTIONS）从未被认领**（§10 头部自注「EXT-016 压缩 STATUS 未认领」），
-且 STATUS 仍 224 833 B ≫ reviewer 要求的 40 KB ⇒ 命中 **EXT-014 ②**（STATUS 仍有未完成项且本模块无进程在跑 ⇒ 直接继续下一项，不空转）。
+**依据**：闸门 → exit 1 ⇒ 无新纠偏；但 **EXT-016 从未被认领**，且 STATUS 仍 224 833 B ≫ 40 KB
+⇒ 命中 **EXT-014 ②**（仍有未完成项 ⇒ 直接继续下一项，不空转）。
+★ **明细全文见 `status/notes/sec11_12_ext016_closeout.md`**。
 
-**① STATUS 拆分**：`status/STATUS_EXT.md` → `status/archive/STATUS_EXT_upto_20261030.md`（**224 833 B**，原样保留，不删内容）；
-新建精简版 `status/STATUS_EXT.md`（头部 ≤ 15 行 + 当前有效结论表 + 未完成纠偏清单 + 最近 3 节，每节 ≤ 60 行）。
-
-**② CORRECTIONS 压缩**：已完成的 EXT-001~EXT-014 全文 → `status/archive/CORRECTIONS_EXT_closed_upto_20261030.md`；
-`status/CORRECTIONS_EXT.md` 只留顶部索引表（编号/一句话/状态）+ 进行中全文 + 最近 5 条全文（EXT-013~EXT-017）。
-
-**③ 闸门压缩后仍正常**：`next_instruction.py` → exit 1 / latest=EXT-017（编号与标题格式未变，reviewer 推送工具仍可追加）。
-
-**④ 自测**：新增 `tests/test_ext016_compression.py`（结构 / 大小上限 / 归档存在 / 闸门可解析 / 索引覆盖 / 标题格式）。
+⇒ **① STATUS 拆分** → `status/archive/STATUS_EXT_upto_20261030.md`（**224 833 B**，原样保留，不删内容）
++ 新建精简版（≤ 300 行 / ≤ 40 KB，头部 ≤ 15 行 + 结论表 + 未完成清单 + 最近 3 节）。
+⇒ **② CORRECTIONS 压缩** → 已完成的 EXT-001~EXT-014 全文进 `status/archive/CORRECTIONS_EXT_closed_upto_20261030.md`；
+正文只留索引表 + 进行中 + 最近 5 条全文。
+⇒ **③ 闸门压缩后仍正常**（exit 1 / latest=EXT-017 ⇒ 编号与标题格式未变，reviewer 推送工具仍可追加）。
+⇒ **④ 自测**：新增 `tests/test_ext016_compression.py`。
 
 ### §10 EXT-017 落地 —— 用户报的两个故障（乱码 / start 后无输出）（2026-10-30 16:12）
 

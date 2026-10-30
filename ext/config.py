@@ -48,6 +48,15 @@ ADAPT_MAX_STEP = 0.10         # 相邻句之间的最大速度变化（0.1×）
 #   （单句时长适配的 1.25× 与自适应加速相乘 ⇒ 必须再封顶一次）
 ADAPT_TOTAL_RATE_MAX = 1.30   # 时长适配 × 自适应加速 的总倍率上限
 
+# ── 目标语言码（引擎只认这 4 种）────────────────────────────────
+# ★★ EXT-020：这份表与 `ext/engine_runtime.py` 的 LANG_TO_MT / LANG_TO_TTS
+#   **键集合一致**（zh/en/ja/ko）。
+#   为什么要放在 config：本模块被 bridge 在**任何**时候 import，
+#   而 engine_runtime 会拉 numpy 与引擎路径（重）⇒ 轻量的语言表放 config。
+#   ⚠️ 插件面板（popup）此前用的却是语言**全称**（Chinese/English/Japanese）
+#     ⇒ 与引擎不匹配 ⇒ 面板上选语言实际不生效。插件侧已改为直接用这里的码。
+LANG_CODES = ("zh", "en", "ja", "ko")
+
 # ── 桥接服务 ──────────────────────────────────────────────────────
 BRIDGE_HOST = "127.0.0.1"
 BRIDGE_PORT = 8765

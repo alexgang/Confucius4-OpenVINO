@@ -112,7 +112,8 @@ function reportCaptureMode() {
 }
 
 // ── WebSocket 上行 ───────────────────────────────────────────────
-function connectWs(wsUrl, token) {
+function connectWs(wsUrl, token, opts) {
+  const o = opts || {};
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(wsUrl);
     state.ws = ws;
@@ -127,6 +128,11 @@ function connectWs(wsUrl, token) {
       ws.send(JSON.stringify({
         type: 'hello', token, sample_rate: TARGET_RATE, source: 'offscreen',
         role: 'uplink',
+        // ★★ EXT-020：把目标语言与音色带给桥接服务。
+        //   旧写法只发了 token/sample_rate/source/role
+        //   ⇒ 服务端拿不到用户在面板上选的目标语言。
+        target_lang: o.targetLang || null,
+        voice: o.voice || null,
       }));
       resolve(ws);
     };
@@ -340,7 +346,10 @@ async function handleOffscreen(msg) {
       }
       case 'start': {
         if (state.running) return { ok: true, already: true };
-        await connectWs(msg.wsUrl, msg.token);
+        await connectWs(msg.wsUrl, msg.token, {
+          targetLang: msg.targetLang,
+          voice: msg.voice,
+        });
         await startCapture(msg);
         // ★★ EXT-018：抓流成功之后，把**实际用的抓流方式**补报给桥接服务。
         //   为什么不能只靠 hello：hello 是在 connectWs 里发的，而

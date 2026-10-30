@@ -172,6 +172,12 @@ const metrics = {
   adaptSpeed: 1.0, adaptLagSec: 0, adaptLagPeak: 0,
   adaptSpeedHistory: [],       // {id, speed, lagSec, at}
   adaptTotalSpeed: 1.0,        // 时长适配 × 自适应加速 的总倍率
+  // ★★ EXT-020：原声压低量与字幕开关的**实际生效值**
+  //   （不是用户设的值 —— 用来核对「设了到底有没有生效」）。
+  duckDb: null,          // 用户设的 dB
+  duckGain: null,        // 由 dB 换算出的线性增益
+  duckDbApplied: null,   // 已真正套到 origGain 上的 dB（未抓流时为 null）
+  subsOn: true,          // 字幕开关是否开启
 };
 
 // ★ EXT-009：自适应加速播放的**统一参数**
@@ -192,6 +198,24 @@ let delaySec = 10;
 let ws = null;
 let lipSyncData = null;
 let capturedStream = null;
+
+// ★★ EXT-020：popup 的「原声压低量」与「字幕开关」此前是**死控件**
+//   —— popup.js 把它们存进了 chrome.storage.local，
+//      但 player.js 从来没读过 ⇒ 用户在面板上怎么调都不起作用，
+//      而 USER_GUIDE 明确承诺「原声压低量 / 字幕开关」可调。
+//   ⇒ 现在真正接线：读 → 用 → 在 metrics 里回报实际生效值。
+//
+//   duckDb：原声总线的增益（dB，负数 = 压低）。
+//   ★ 口径：0 dB = 不压低（增益 1.0）；-15 dB ⇒ 增益 10^(-15/20) ≈ 0.1778。
+//     为什么不按「百分比」理解：面板写的是 dB，且 USER_GUIDE 举例
+//     「−40 盖住原声、−6 两个都听得清」⇒ 必须是 dB 口径。
+let duckDb = -15;
+//   字幕开关：true = 显示译文字幕；false = 完全不写 DOM。
+let subsOn = true;
+//   ★ 记住「用户**实际**设的值」，与「引擎实际生效的值」区分开。
+//   duckDb 只在**新设置生效时**写入 origGain.gain（见 applyDuckDb），
+//   而 origGain 在抓流成功后才存在 ⇒ 设置值与生效值可能短暂不同。
+let duckDbApplied = null;
 
 // ══════════════════════════════════════════════════════════════
 // P0②：WebCodecs 延迟画面管线
@@ -625,6 +649,11 @@ function scheduleDub(msg) {
 const SUBS_CAP = 200;
 const subs = [];
 function scheduleSub(msg, when) {
+  // ★★ EXT-020：字幕关着就不入队（省掉无用的文本处理与 DOM 写入）。
+  if (!subsOn) {
+    metrics.subsDropped = (metrics.subsDropped || 0) + 1;
+    return;
+  }
   const item = { text: msg.tgt || msg.src || '', at: when, id: msg.id };
   const last = subs[subs.length - 1];
   if (!last || last.at <= when) {
@@ -647,6 +676,19 @@ function scheduleSub(msg, when) {
 
 function pumpSubs() {
   if (!audioCtx) return;
+  // ★★ EXT-020：字幕开关此前是**死控件**（popup 存了 subsOn，
+  //   但这里无条件写 DOM ⇒ 勾掉也照样显示字幕）。
+  //   ⇒ 关掉时**完全不写 DOM**，并把已有字幕清掉（不留残影）。
+  if (!subsOn) {
+    const div = document.getElementById('subs');
+    if (div && div.innerHTML) div.innerHTML = '';
+    // 字幕已关 ⇒ 队列里的字幕直接丢弃（不入队，避免重新打开时补播旧字幕）
+    if (subs.length) metrics.subsDropped = (metrics.subsDropped || 0) + subs.length;
+    subs.length = 0;
+    metrics.subsOn = false;
+    return;
+  }
+  metrics.subsOn = true;
   const now = audioCtx.currentTime;
   const div = document.getElementById('subs');
   while (subs.length && subs[0].at <= now) {
@@ -1008,12 +1050,50 @@ function setupOriginalAudio(stream) {
   origDelay = audioCtx.createDelay(Math.max(2, delaySec + 1));
   origDelay.delayTime.value = delaySec;
   origGain = audioCtx.createGain();
-  origGain.gain.value = 1.0;
+  // ★★★ EXT-020：这里**不再硬编码 1.0**。
+  //   旧写法 `origGain.gain.value = 1.0` ⇒ popup 的「原声压低量」是死控件。
+  //   ⇒ 改为按用户设的 duckDb 算增益（见 applyDuckDb）。
+  applyDuckDb();
   origSource.connect(origDelay);
   origDelay.connect(origGain);
   origGain.connect(audioCtx.destination);
   // ★ 原声 onset 检测（唇音同步参考点）
   makeOnsetDetector(origGain, onOrigOnset, 0.02).then(n => { origOnsetNode = n; });
+}
+
+/**
+ * ★★ EXT-020：把「原声压低量（dB）」真正应用到原声总线上。
+ *
+ * dB → 线性增益：gain = 10^(dB/20)。
+ *   0 dB   ⇒ 1.0      （不压低）
+ *   -15 dB ⇒ 0.1778   （≈ −15 dB）
+ *   -60 dB ⇒ 0.001    （几乎听不见）
+ *
+ * ⚠️ **抓流前设置也要能生效**：origGain 是抓流成功后才建的
+ *   （setupOriginalAudio 在 startCapture 里被调用）。
+ *   ⇒ 设置在 origGain 建好之前也要**记住**，等 origGain 存在时立刻套用
+ *   （applyDuckDb 同时被 setupOriginalAudio 和设置变更调用）。
+ */
+function dbToGain(db) {
+  const n = Number(db);
+  if (!isFinite(n)) return 1.0;
+  // 面板限制在 [-60, 0]；这里再兜一层，防止越界值把增益放大到削波。
+  const clamped = Math.max(-60, Math.min(0, n));
+  return Math.pow(10, clamped / 20);
+}
+
+function applyDuckDb() {
+  const gain = dbToGain(duckDb);
+  if (origGain) {
+    try {
+      origGain.gain.value = gain;
+      duckDbApplied = duckDb;
+    } catch (e) { /* ignore */ }
+  }
+  metrics.duckDb = duckDb;
+  metrics.duckGain = Math.round(gain * 10000) / 10000;
+  metrics.duckDbApplied = duckDbApplied;
+  return gain;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1171,6 +1251,8 @@ const REPORT_SCALARS = [
   'uplinkFrames', 'uplinkSeq', 'uplinkGaps', 'uplinkSkewMs',
   'pendingSchedDropped', 'subsDropped',
   'schedClamped', 'probeSchedClamped', 'encodeSkipped', 'encodeBacklogSkipped',
+  // ★★ EXT-020：把设置的实际生效值也带上去（跨上下文可见）
+  'duckDb', 'duckGain', 'duckDbApplied', 'subsOn',
 ];
 
 function reportSummary(obj) {
@@ -1403,6 +1485,17 @@ window.__ext = {
     },
   }),
   setDelay: (d) => { delaySec = d; },
+  // ★★ EXT-020：暴露设置相关的可测状态（自测与诊断用）。
+  settings: () => ({
+    duckDb,
+    duckGain: metrics.duckGain,
+    duckDbApplied,
+    duckGainApplied: origGain ? origGain.gain.value : null,
+    subsOn,
+    metricsSubsOn: metrics.subsOn,
+    subsQueued: subs.length,
+  }),
+  dbToGain,
   getAudioTime: () => (audioCtx ? audioCtx.currentTime : 0),
   getT0: () => t0,
   computeLipSync,
@@ -1435,8 +1528,41 @@ window.__ext = {
 async function boot() {
   const cfg = await chrome.storage.local.get({
     wsUrl: 'ws://127.0.0.1:8765/', token: '', delaySec: 10,
+    // ★★ EXT-020：把 duckDb / subsOn 一并读出来（此前只有 popup 读，
+    //   player 从不读 ⇒ 两个控件都是死控件）。
+    duckDb: -15, subsOn: true,
   });
   delaySec = isNaN(D_OVERRIDE) ? (cfg.delaySec || 10) : D_OVERRIDE;
+  // ★★ EXT-020：应用原声压低量与字幕开关。
+  duckDb = (cfg.duckDb === undefined || cfg.duckDb === null || cfg.duckDb === '')
+    ? -15 : Number(cfg.duckDb);
+  subsOn = (cfg.subsOn === undefined || cfg.subsOn === null) ? true : !!cfg.subsOn;
+  applyDuckDb();     // origGain 还不存在 ⇒ 只记录意图，等抓流后自动套用
+  metrics.subsOn = subsOn;
+
+  // ★★ EXT-020：运行中改设置也要生效（用户在 popup 改了压低量/字幕，
+  //   不用重启窗口）。
+  //   ⇒ 监听 chrome.storage.onChanged ⇒ 只认自己关心的两个键。
+  try {
+    if (chrome.storage && chrome.storage.onChanged) {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area !== 'local' || !changes) return;
+        if ('duckDb' in changes) {
+          const v = changes.duckDb.newValue;
+          duckDb = (v === undefined || v === null || v === '') ? -15 : Number(v);
+          applyDuckDb();
+          report({ kind: 'settings', duckDb, duckGain: metrics.duckGain,
+                   duckDbApplied: duckDbApplied });
+        }
+        if ('subsOn' in changes) {
+          const v = changes.subsOn.newValue;
+          subsOn = (v === undefined || v === null) ? true : !!v;
+          metrics.subsOn = subsOn;
+          report({ kind: 'settings', subsOn });
+        }
+      });
+    }
+  } catch (e) { /* ignore */ }
 
   // ★ 唯一的时钟源
   try {

@@ -1613,3 +1613,148 @@ ext013_cpu_watch 25 / ext016_compression 39 / ext017_user_report 108 / ext018_ca
 ### `last_ack`
 
 **保持 EXT-017 不变** —— 本轮**未认领任何新的 EXT 编号**（reviewer 未下发 EXT-019）⇒ 不自行占用 reviewer 的编号命名空间。
+---
+
+## 2026-10-31 00:50 — §15 修插件面板「死控件」（原声压低量 / 字幕开关 / 目标语言 / 音色）
+
+### 闸门判定
+
+```
+python.exe tools/next_instruction.py --json
+→ rc=1  {"action":"skip","reason":"already_executed","latest":{"id":"EXT-017","num":17,...}}
+```
+
+**exit 1** ⇒ 无新纠偏（已对原始 `status/CORRECTIONS_EXT.md` 逐条核对：全文含 `## EXT-013` ~ `## EXT-017`，
+**不存在 EXT-018+** ⇒ 闸门结论可信，非解析失败）。
+按字面指令「exit 1 ⇒ 零改动」本应跳过；但 `CORRECTIONS_EXT.md` 的 **EXT-014 ②常设巡检规则**明写：
+「没有新纠偏，但 STATUS 里还有未完成的纠偏项，且本模块没有进程在跑 ⇒ **直接按优先级继续下一项**，不要空转」。
+本轮 STATUS 的「未完成纠偏清单」中 **P2（克隆音色 / 体验 / 稳定性）** 明确标为未开始
+⇒ 命中 EXT-014 ② ⇒ **继续推进 P2 的第一个可做子项**，且
+⚠️ **不认领新的 EXT 编号**（reviewer 未下发 EXT-020，不自行占用其编号命名空间）⇒ **`last_ack` 保持 EXT-017**。
+
+### 指令摘要（实际执行内容 = P2「体验」子项的自主修复）
+
+审 P2 待办时发现：**扩展面板上有 4 个控件，用户怎么调都不生效** —— 属「体验」子项里最实的一块。
+4 个缺陷（均以真实源码为证）：
+
+| 编号 | 控件 | 根因（真实代码） |
+|---|---|---|
+| D1 | 原声压低量 `duckDb` | `player.js` 的 `setupOriginalAudio()` 里**硬编码** `origGain.gain.value = 1.0` ⇒ 用户设的 dB 只进 `storage`，player 从不读 |
+| D2 | 字幕开关 `subsOn` | `pumpSubs()` **无条件写 DOM** ⇒ 开关关掉后字幕照旧显示 |
+| D3 | 目标语言 `targetLang` | ① `popup.html` 存的是语言**全称**（`Chinese`/`English`），而引擎 `LANG_TO_MT`/`LANG_TO_TTS` 只认 `{zh,en,ja,ko}`；② `targetLang` **从没进过 `start` 消息** ⇒ 链路整段断开 |
+| D4 | 音色 `voice` | ① `voice` **从没进过 `start` 消息**；② 服务端 `tracker.voice_for()` **忽略用户选择**，选「预设 A」也会被自动切克隆 |
+
+### 修法（最小改动，不动引擎、不改其他模块）
+
+* **D1**：`player.js` 新增 `dbToGain(db)`（dB→线性增益 `10^(dB/20)`，越界夹 `[-60, 0]`，NaN 兜底 1.0）
+  + `applyDuckDb()`（真正写 `origGain.gain.value`）。
+  `setupOriginalAudio()` 的硬编码 1.0 ⇒ 改为调 `applyDuckDb()`；
+  `boot()` 读 `cfg.duckDb`/`cfg.subsOn` 并注册 `chrome.storage.onChanged` ⇒ **运行中改设置立刻生效**。
+  metrics 区分 `duckDb`（用户设值）/ `duckGain`（换算增益）/ `duckDbApplied`（**实际套上去**的值，未抓流时为 null，不假装生效）。
+* **D2**：`pumpSubs()` 在 `subsOn === false` 时**一次都不写 DOM** + 清掉已显示的旧字幕残影 + 清队列；
+  `scheduleSub()` 关时**不入队**；丢弃量计入 `metrics.subsDropped`（不静默丢）。
+* **D3**：`popup.html` 的 `<option value>` 改用引擎码（显示文字不变）并**补 `ko`**；
+  `popup.js` 新增 `LANG_ALIASES` + `normalizeLang()`（老配置 `Chinese` → `zh` 自动迁移）；
+  `popup → sw → offscreen → hello` 全链路贯通 `targetLang`；服务端 `ext/config.py` 新增 `LANG_CODES = ("zh","en","ja","ko")`，
+  `bridge.py` 的 `note_client()` 按**白名单**校验后记 `client_target_lang`。
+* **D4**：`bridge.py` 新增 `_pick_voice(spk)` —— 用户选非 `clone` ⇒ **一律 `C.PRESET_VOICE`（预设 A）**；
+  仅显式选 `clone` 才走 `tracker.voice_for(spk)`。串行路径与流水线路径两处都改。
+
+### 交叉验证（服务端产物可核对）
+
+`stats()` 与落盘的 `margin.json` **都新增** `client_target_lang` / `client_voice`
+⇒ 用户可在产物里**直接看到**插件端实际选了什么语言/音色，不必只看面板回显。
+
+### 自测（新增，不改写旧断言）
+
+| 文件 | 内容 | 项数 |
+|---|---|---|
+| `tests/ext020_settings_harness.js` | node `vm` 沙箱：从**真实 `player.js` 源文件按花括号配对原样抽取** `dbToGain`/`applyDuckDb`/`scheduleSub`/`pumpSubs`/`setupOriginalAudio` 执行（验真代码，非复刻品）；接受 player.js 路径参数 ⇒ 可做**反证** | 26 |
+| `tests/test_ext020_dead_controls.py` | 六组：A 插件行为级（含反证）/ B 语言码接线 / C 音色偏好 / D 服务端产物 / E **真起桥接**（动态端口 + 真 `bridge.serve()` + 真 WebSocket）/ F 文档口径 | 53 |
+
+⇒ `test_ext020_dead_controls.py` **53 PASS / 0 FAIL**（rc=0）。
+
+### ★ 反证（证明测试不是恒真断言）
+
+把实现改坏（ducking 退回硬编码 `origGain.gain.value = 1.0` + 字幕开关失效）
+⇒ **20 PASS / 6 FAIL，rc=1** ⇒ 4 个缺陷全被抓到（含 3 条 ducking + 3 条字幕）⇒ **harness 有区分力**。
+
+★ **反证过程本身暴露了 harness 的一个真实漏洞**：第一次反证**没被抓到** —— 因为断言只直接调 `applyDuckDb()`，
+**绕过了建图路径**（`setupOriginalAudio`）。修法：断言改成**走真实的 `setupOriginalAudio`**（建出真正的增益节点再读
+`origGain.gain.value`），并补 `dB=0` / `dB=-40` 两个对照组。修好后坏实现才被稳定抓住。
+
+### 完整回归（本轮实测，逐套真实退出码）—— 16 套 / 858 PASS / 0 FAIL（全 rc=0）
+
+```
+echo_roundtrip 11 / ext009 57 / ext010 23 / ext011 29 / ext012 75 /
+ext013_compare 51 / ext013_cpu_watch 25 / ext016_compression 39 /
+ext017_user_report 108 / ext018_capture_mode 38 / ext019_port_guard 28 /
+★ ext020_dead_controls 53 / browser_contract 102 / selfcheck 103 /
+next_instruction 19 / p1_plumbing 97
+```
+
+★ 三套**明文要求**的自测单独确认退出码：
+`test_ext_selfcheck.py` rc=0 / `test_echo_roundtrip.py` rc=0 / `test_next_instruction.py` rc=0。
+★ 闸门复测仍 **rc=1 / latest=EXT-017** ⇒ 没弄坏闸门。
+
+### STATUS 压缩（EXT-016 写作规则，落地为下沉而非删内容）
+
+§15 落地后精简版 STATUS 涨到 **24 604 B**，撞上 `tests/test_ext016_compression.py` 的硬断言
+「精简版 < archive/10」= **22 483 B**。
+按 EXT-016 规则**下沉明细、不删内容**：
+§12 与 §11 的明细全文移到新建的 `status/notes/sec11_12_ext016_closeout.md`（6 592 B），
+STATUS 内压缩为骨架 + 链接。压缩后实测 **21 673 B / 206 行 / 头部 15 行** ⇒
+`test_ext016_compression.py` **39 PASS / 0 FAIL**（rc=0）。
+
+★ **数字修正**：`§15` 与 notes 里原写的「16 套 / 861 PASS」与实测不符 ⇒ 按「结论必须引用实测值」改为 **858 PASS**
+（分项相加即 858；两次独立跑全量结果一致）。
+
+### 涉及修改文件
+
+| 文件 | 改动 |
+|---|---|
+| `extension/player.js` | dB→增益 + 字幕开关接线 + `storage.onChanged` 热更新 + metrics 字段 |
+| `extension/popup.html` | 目标语言下拉改引擎码 + 补 `ko` |
+| `extension/popup.js` | `normalizeLang()` 老配置迁移 + `start` 载荷带 `targetLang`/`voice` + 状态回显 |
+| `extension/sw.js` | `start` 载荷透传 + `onInstalled` 默认 `targetLang:'zh'` |
+| `extension/offscreen.js` | hello 消息带 `target_lang` / `voice` |
+| `ext/bridge.py` | `_pick_voice()` + `note_client()` 白名单 + `stats()`/`margin.json` 新增客户端元信息 |
+| `ext/config.py` | 新增 `LANG_CODES = ("zh","en","ja","ko")` |
+| `USER_GUIDE.md` / `extension/USER_GUIDE.md` | 参数表补 `한국어` + EXT-020 修正说明块（两份**逐字节一致**，各 15 709 B） |
+| `tests/ext020_settings_harness.js` | 新增（node 沙箱，26 项） |
+| `tests/test_ext020_dead_controls.py` | 新增（53 项） |
+| `status/STATUS_EXT.md` | 新增 §15 + 头部更新时间 00:38 + 压缩 §11/§12 为骨架 |
+| `status/notes/sec15_ext020_dead_controls.md` | 新增（§15 明细全文，13 223 B） |
+| `status/notes/sec11_12_ext016_closeout.md` | 新增（§11/§12 明细全文，6 592 B） |
+| `status/EXEC_LOG.md` | 追加本轮记录 |
+
+### 产物（文件数 / mtime / 字节数）
+
+| 产物 | 文件数 | mtime | 字节数 |
+|---|---|---|---|
+| `tests/test_ext020_dead_controls.py` | 1 | 2026-10-31 00:34 | 23 956 |
+| `tests/ext020_settings_harness.js` | 1 | 2026-10-31 00:32 | 12 680 |
+| `status/notes/sec15_ext020_dead_controls.md` | 1 | 2026-10-31 00:48 | 13 223 |
+| `status/notes/sec11_12_ext016_closeout.md` | 1 | 2026-10-31 00:39 | 6 592 |
+| `status/STATUS_EXT.md`（精简版，含 §15） | 1 | 2026-10-31 00:48 | 21 673（206 行，≤ 40 KB / ≤ 300 行 / 头部 15 行 ✅） |
+| `USER_GUIDE.md` / `extension/USER_GUIDE.md` | 各 1 | 2026-10-31 00:34 | 各 15 709（逐字节一致 ✅） |
+
+### ⛔ 明确未做 / 未宣称
+
+- ⛔ **克隆音色仍不生效** —— 依赖未接线的 pyannote 旁路 ⇒ 回落预设 A，**已如实写进 USER_GUIDE**（不宣称已实现）。
+- ⛔ **浏览器端人工验收仍未做** —— 本机**无 playwright、无 Chrome**（只有 Edge 126）⇒ 只做到 node 沙箱级行为验证，不宣称真浏览器链路已验证。
+- ⛔ 端到端仍不实时（TTS 稳态 RTF **1.0022**）⇒ **TTS 提速仍是上线的唯一前置**。
+- ⛔ **tabCapture 生产路径仍未人工实测**（需真实用户手势）。
+- ⛔ **本轮未跑任何真实推理、未占 GPU / NPU**（全程 CPU 侧 + 回声模式 / 桥接真起但用回声）。
+- ⛔ **未 kill 用户自己的桥接进程**（PID 5464 `ext.bridge --real --pipeline --port 8765`）—— 它正做真实推理，不能打断用户操作。
+- ⛔ **未改任何引擎文件**（`ext/engine_runtime.py` 未动）。
+- ⛔ `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**（`.gitignore:34` 仍在；未执行 `git add -f`）。
+
+### 机器锁
+
+本轮**未创建锁、未跑任何推理、未占 GPU / NPU**。
+巡检期间检查 `C:\Users\Trekker-PTL\shared\MACHINE_LOCK` ⇒ **不存在** ⇒ 本轮不涉及锁的创建/回收。
+
+### `last_ack`
+
+**保持 EXT-017 不变** —— 本轮**未认领任何新的 EXT 编号**（reviewer 未下发 EXT-020）⇒ 不自行占用 reviewer 的编号命名空间。

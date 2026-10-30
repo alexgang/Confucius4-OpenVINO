@@ -552,6 +552,14 @@ class Session:
         self.client_source: Optional[str] = None
         # 客户端抓到的原始采样率（没报就是 None）。
         self.source_rate: Optional[int] = None
+        # ★★ EXT-020：客户端**请求**的目标语言与音色。
+        #   为什么需要记录：插件面板上的「目标语言」「音色」此前
+        #   **从没传到服务端** ⇒ reviewer 拿到 margin.json 时
+        #   **无法确认这一轮到底译成了哪种语言**（margin.json 里原来记的
+        #   target_lang 是**服务端启动参数**，不是客户端的请求）。
+        #   ⇒ 记下来（**没报就是 None**，绝不臆造）。
+        self.client_target_lang: Optional[str] = None
+        self.client_voice: Optional[str] = None
 
     def note_client(self, hello: Optional[dict]) -> None:
         """★ EXT-018：从客户端的 hello 消息里记录**抓流方式**等元信息。
@@ -582,6 +590,46 @@ class Session:
                 self.source_rate = int(sr)
         except (TypeError, ValueError):
             pass
+        # ★★ EXT-020：客户端请求的目标语言 / 音色。
+        #   ⚠️ 只接受**引擎认识的语言码**（zh/en/ja/ko）
+        #     —— 其它值一律记 None，不静默接受未知的码
+        #     （否则 reviewer 会看到「目标语言：Chinese」这种
+        #       引擎其实不认的值，误以为这轮真的按它译了）。
+        lang = hello.get("target_lang") or hello.get("targetLang")
+        if isinstance(lang, str):
+            key = lang.strip().lower()
+            if key in C.LANG_CODES:
+                self.client_target_lang = key
+        voice = hello.get("voice")
+        if isinstance(voice, str) and voice.strip():
+            self.client_voice = voice.strip()
+
+    # ── 音色选择（EXT-020） ──────────────────────────────────────
+    def _pick_voice(self, spk) -> str:
+        """★ EXT-020：按**面板上的音色选择**决定这一句用哪个音色。
+
+        面板有两个选项：
+          * `A`（预设 A）—— 固定音色，走 speaker embedding（x-vector）。
+          * `clone`（克隆说话人）—— 按说话人克隆音色。
+
+        ⚠️ 旧实现（`self.tracker.voice_for(spk)`）**完全忽略面板选择**：
+           只要 speaker tracker 里某个说话人攒够 3 s 干净语音，
+           就会自动切到克隆音色 ⇒ 用户在面板上选「预设 A」也不管用。
+
+        ⇒ 现在：面板选 `A` ⇒ **一律用预设 A**（不管 tracker 说什么）；
+                面板选 `clone` ⇒ 沿用 tracker 的判断（攒够才克隆）。
+
+        ★ 诚实性：clone 需要 pyannote 旁路提供 spk，而旁路**尚未接线**
+          （见 STATUS §「pyannote 旁路未接线」）⇒ 选了 clone 但没有 spk 时，
+          仍会回落到预设 A（`voice_for` 的默认行为）。
+          ⇒ 这一点由 `client_voice` 字段如实记录，不假装克隆已生效。
+        """
+        pref = (self.client_voice or "A").strip().lower()
+        if pref != "clone":
+            # 预设 A：直接用配置里的预设音色，**不看 tracker**
+            return C.PRESET_VOICE
+        # clone：交给 tracker（攒够 3 s 才克隆，否则回落到预设 A）
+        return self.tracker.voice_for(spk)
 
     # ── 接收一帧 ────────────────────────────────────────────────
     def on_pcm_frame(self, msg: dict, *,
@@ -745,7 +793,7 @@ class Session:
         # spk：EXT-002 —— 定稿先出，spk 可能为 None
         spk = self.tracker.spk_for_final(seg_id, t_start, t_end)
         self.tracker.register_pending(seg_id, spk, t_start, t_end)
-        voice = self.tracker.voice_for(spk)
+        voice = self._pick_voice(spk)
 
         # 译文
         tgt = ""
@@ -974,6 +1022,11 @@ class Session:
             "capture_mode": self.capture_mode,
             "client_source": self.client_source,
             "source_rate": self.source_rate,
+            # ★★ EXT-020：客户端请求的目标语言 / 音色
+            #   ⇒ reviewer 能从 stats 直接确认「这轮面板上选的是什么」。
+            #   ⚠️ 没上报就是 None（null）—— 绝不臆造。
+            "client_target_lang": self.client_target_lang,
+            "client_voice": self.client_voice,
             "speaker": self.tracker.stats(),
             "margin": self.margin_summary(),
             # ★ EXT-009：自适应加速的**各倍率时间占比**与滞后曲线
@@ -1191,7 +1244,7 @@ class PipelineSession(Session):
         job.spk = self.tracker.spk_for_final(job.seg_id, job.t_start, job.t_end)
         self.tracker.register_pending(job.seg_id, job.spk,
                                        job.t_start, job.t_end)
-        job.voice = self.tracker.voice_for(job.spk)
+        job.voice = self._pick_voice(job.spk)
 
         t0 = time.perf_counter()
         pcm24k = None
@@ -1887,6 +1940,11 @@ def _dump_margin(holder: dict, out_path: Optional[str], engine) -> None:
         "capture_mode": (getattr(sess, "capture_mode", None) if sess else None),
         "client_source": (getattr(sess, "client_source", None) if sess else None),
         "source_rate": (getattr(sess, "source_rate", None) if sess else None),
+        # ★★ EXT-020：客户端请求的目标语言 / 音色（**与上面的 target_lang
+        #   区分**：上面那个是**服务端启动参数**，这两个是**面板上的选择**）。
+        "client_target_lang": (getattr(sess, "client_target_lang", None)
+                               if sess else None),
+        "client_voice": (getattr(sess, "client_voice", None) if sess else None),
         "margin_summary": (sess.margin_summary() if sess else {}),
         "per_segment": (sess.margins if sess else []),
         "engine_calls": (sess.engine_calls if sess else []),

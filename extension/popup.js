@@ -62,7 +62,9 @@ async function loadCfg() {
     wsUrl: 'ws://127.0.0.1:8765/',
     token: '',
     delaySec: 10,
-    targetLang: 'Chinese',
+    // ★★ EXT-020：targetLang 的默认值必须是**引擎码** 'zh'
+    //   （旧值 'Chinese' 与引擎的 zh/en/ja/ko 不匹配）。
+    targetLang: 'zh',
     voice: 'A',
     duckDb: -15,
     subsOn: true,
@@ -71,11 +73,33 @@ async function loadCfg() {
   $('ws').value = cfg.wsUrl;
   $('token').value = cfg.token || '';
   $('delay').value = cfg.delaySec;
-  $('lang').value = cfg.targetLang;
+  // ★★ EXT-020：若存量配置里存的是旧的语言全称（Chinese/English/Japanese），
+  //   迁移成引擎码，避免下拉框选不中任何一项（value 匹配不到 ⇒ 显示空白）。
+  $('lang').value = normalizeLang(cfg.targetLang);
   $('voice').value = cfg.voice;
   $('duck').value = cfg.duckDb;
   $('subs').checked = !!cfg.subsOn;
   $('player').checked = !!cfg.playerOpen;
+}
+
+/**
+ * ★★ EXT-020：把「语言全称」归一成**引擎认的码**。
+ *
+ * 为什么需要：popup 的下拉框旧版存的是 'Chinese'/'English'/'Japanese'，
+ * 而桥接服务的 --target-lang 与引擎的 LANG_TO_MT/LANG_TO_TTS
+ * **只认 zh/en/ja/ko** ⇒ 直接传过去会抛 EngineNeedsChange。
+ * ⇒ 这里做一次兼容归一（老配置自动迁移，新配置本来就是码）。
+ */
+const LANG_ALIASES = {
+  chinese: 'zh', zh: 'zh', '中文': 'zh',
+  english: 'en', en: 'en',
+  japanese: 'ja', ja: 'ja', '日本語': 'ja',
+  korean: 'ko', ko: 'ko', '한국어': 'ko',
+};
+
+function normalizeLang(v) {
+  const k = String(v == null ? '' : v).trim().toLowerCase();
+  return LANG_ALIASES[k] || 'zh';
 }
 
 /**
@@ -154,6 +178,11 @@ $('btnStart').addEventListener('click', async () => {
       wsUrl: cfg.wsUrl,
       token: token,
       delaySec: cfg.delaySec,
+      // ★★ EXT-020：把「目标语言」与「音色」也带上去。
+      //   旧写法这两个字段只存进了 storage，**从没进过 start 消息**
+      //   ⇒ 用户在面板上选语言/音色完全不起作用。
+      targetLang: normalizeLang(cfg.targetLang),
+      voice: cfg.voice || 'A',
     });
     if (!res || !res.ok) throw new Error((res && res.error) || '启动失败');
 
@@ -164,6 +193,10 @@ $('btnStart').addEventListener('click', async () => {
     setBadge('已连接', 'ok');
     setStatus(
       `已启动\n标签页：${tab.title || tab.id}\n延迟 D=${cfg.delaySec}s\n` +
+      `目标语言：${normalizeLang(cfg.targetLang)}\n` +
+      `音色：${cfg.voice || 'A'}\n` +
+      `原声压低：${cfg.duckDb} dB\n` +
+      `字幕：${cfg.subsOn ? '开' : '关'}\n` +
       `抓流方式：${res.captureMode || '?'}`,
       'ok'
     );

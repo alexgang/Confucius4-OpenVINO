@@ -92,7 +92,9 @@ chrome.runtime.onInstalled.addListener(async () => {
   const defaults = {
     wsUrl: 'ws://127.0.0.1:8765/',
     delaySec: 10,
-    targetLang: 'Chinese',
+    // ★★ EXT-020：targetLang 默认值必须是**引擎码** 'zh'
+    //   （旧值 'Chinese' 与引擎的 zh/en/ja/ko 不匹配）。
+    targetLang: 'zh',
     voice: 'A',
     duckDb: -15,
     subsOn: true,
@@ -205,10 +207,17 @@ async function handleSw(msg) {
         wsUrl: msg.wsUrl,
         token: msg.token,
         delaySec: msg.delaySec,
+        // ★★ EXT-020：把目标语言与音色透传给 offscreen
+        //   （⇒ 再由 hello 带给桥接服务）。
+        //   旧写法这两个字段**根本没进 start 消息** ⇒ 面板上的
+        //   「目标语言」「音色」都是摆设。
+        targetLang: msg.targetLang || null,
+        voice: msg.voice || null,
       });
       sessionState = {
         running: true, tabId: msg.tabId, wsUrl: msg.wsUrl,
         startedAt: Date.now(), lastError: null, captureMode,
+        targetLang: msg.targetLang || null, voice: msg.voice || null,
       };
       return { streamId, captureMode, offscreen: res };
     }
