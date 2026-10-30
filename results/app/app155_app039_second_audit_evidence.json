@@ -1,0 +1,189 @@
+{
+  "script": "app155_app039_second_audit_test.py",
+  "base_commit": "b741240",
+  "pass_": 36,
+  "fail": 0,
+  "verdict": "PASS",
+  "detail": [
+    {
+      "name": "G1 worker synth() 有 `if spk:` 分支",
+      "ok": true,
+      "msg": "{'found_synth': True, 'has_else': True, 'has_fallback': True}"
+    },
+    {
+      "name": "G2 `spk=None` 分支调用 _fallback_to_preset",
+      "ok": true,
+      "msg": "（旧实现：什么都不做 ⇒ 用上一个人的声音冒充）"
+    },
+    {
+      "name": "H1 jsonl 键白名单含 voice_spk/voice_kind",
+      "ok": true,
+      "msg": "{'in_key_list': True, 'tel_assigned': True, 'row_assigned': True, 'kind_assigned': True, 'failed_row_has': True}"
+    },
+    {
+      "name": "H2 遥测真的给 tel.voice_spk 赋值",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "H3 失败/丢句行也带 voice_spk（分母不缩小）",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "H4 遥测给 tel.voice_kind 赋值",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "I1 CLI 有 _spk_by_seg 表",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "I2 CLI 登记 _spk_by_seg[_seg]",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "I3 CLI 原文输出带 [S2] 前缀",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "I4 CLI 译文输出带 [S2] 前缀",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "I5 CLI 渲染层拿到 spk_by_seg",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "J1 SpeakerBridge 有 retry_pending()",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "J2 retry_pending 内部重问 on_final",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "J3 retry_pending 读 pending 集合",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "J4 拿到标签后出队",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "J5 GUI 侧调用 retry_pending",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "J6 CLI 侧调用 retry_pending",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "J7 GUI poll 挂了 _retry_spk_labels",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "J8 CLI 挂了 _cli_retry_spk_labels",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "G3 行为：spk=None 后 speaker_embed 回到预设 A",
+      "ok": true,
+      "msg": "{\"after_apply_embed\": \"VEC_S2\", \"after_apply_kind\": \"clone\", \"after_apply_spk\": \"S2\", \"after_fallback_embed\": \"VEC_PRESET_A\", \"after_fallback_kind\": \"preset\", \"after_fallback_spk\": null, \"after_fallback_clone_active\": false}"
+    },
+    {
+      "name": "G4 行为：回落后 voice_kind=preset / voice_spk=None",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "G5 行为：切到 S2 时 voice_kind=clone",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "J9 行为：首次 on_final 返 pending=True/spk=None",
+      "ok": true,
+      "msg": "{\"first_pending\": true, \"first_spk\": null, \"retry1\": [], \"retry2\": [[7, \"S2\", 0.9]], \"n_pending_after\": 0, \"n_update\": 1}"
+    },
+    {
+      "name": "J10 行为：重试仍拿不到时不返回条目",
+      "ok": true,
+      "msg": ""
+    },
+    {
+      "name": "J11 行为：再重试拿到标签 S2",
+      "ok": true,
+      "msg": "[(7, 'S2', 0.9)]"
+    },
+    {
+      "name": "J12 行为：拿到后从 pending 出队",
+      "ok": true,
+      "msg": "pending=0 update=1"
+    },
+    {
+      "name": "D-G 反证：抽掉 _fallback_to_preset ⇒ G2 FAIL",
+      "ok": true,
+      "msg": "{'found_synth': True, 'has_else': True, 'has_fallback': False}"
+    },
+    {
+      "name": "D-H 反证：删掉 jsonl 键 ⇒ H1 FAIL",
+      "ok": true,
+      "msg": "{'in_key_list': False, 'tel_assigned': True, 'row_assigned': True, 'kind_assigned': True, 'failed_row_has': True}"
+    },
+    {
+      "name": "D-H2 反证：删掉 tel.voice_spk 赋值 ⇒ H2 FAIL",
+      "ok": true,
+      "msg": "{'in_key_list': True, 'tel_assigned': False, 'row_assigned': True, 'kind_assigned': True, 'failed_row_has': True}"
+    },
+    {
+      "name": "D-I 反证：删掉 CLI 登记 ⇒ I2 FAIL",
+      "ok": true,
+      "msg": "{'has_table': True, 'has_assignment': False, 'out_has_label': True, 'mt_has_label': True, 'render_gets_spk': True}"
+    },
+    {
+      "name": "D-J 反证：不重问 on_final ⇒ J2 FAIL",
+      "ok": true,
+      "msg": "{'has_retry': True, 'calls_on_final': False, 'reads_pending': True, 'discards_resolved': True, 'app_calls_gui': True, 'app_calls_cli': True, 'app_gui_hook': True, 'app_cli_hook': True}"
+    },
+    {
+      "name": "D-J2 反证：App 不调用 retry_pending ⇒ J5 FAIL",
+      "ok": true,
+      "msg": "{'has_retry': True, 'calls_on_final': True, 'reads_pending': True, 'discards_resolved': True, 'app_calls_gui': False, 'app_calls_cli': True, 'app_gui_hook': True, 'app_cli_hook': True}"
+    },
+    {
+      "name": "基线 G2 在 b741240 处 FAIL（判据能识破历史缺陷）",
+      "ok": true,
+      "msg": "当前值=False"
+    },
+    {
+      "name": "基线 H1 在 b741240 处 FAIL（判据能识破历史缺陷）",
+      "ok": true,
+      "msg": "当前值=False"
+    },
+    {
+      "name": "基线 I2 在 b741240 处 FAIL（判据能识破历史缺陷）",
+      "ok": true,
+      "msg": "当前值=False"
+    },
+    {
+      "name": "基线 J1 在 b741240 处 FAIL（判据能识破历史缺陷）",
+      "ok": true,
+      "msg": "当前值=False"
+    }
+  ]
+}

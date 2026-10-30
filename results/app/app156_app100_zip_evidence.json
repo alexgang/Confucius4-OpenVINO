@@ -1,0 +1,83 @@
+{
+  "ver": "1.11",
+  "zip_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.11.zip",
+  "pkg_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.11",
+  "zip_bytes": 11218213281,
+  "zip_mtime": "2026-10-30 09:26:11",
+  "zip_sha256": "72068c32c19ff4166f0875888bbc018d0fff9e3565c51d2a0f83c715b1217a20",
+  "n_entries": 14203,
+  "testzip": null,
+  "py_same": 6589,
+  "py_diff": 3,
+  "py_diffs": [
+    "app/live_caption_app.py",
+    "app/speaker_tracker.py",
+    "app/tts_worker.py"
+  ],
+  "s100_files": [
+    {
+      "file": "live_caption_app.py",
+      "ok": false,
+      "detail": "zip=5936e85a4774 pkg=e5440190eadc"
+    },
+    {
+      "file": "tts_worker.py",
+      "ok": false,
+      "detail": "zip=3ecfbc94f9c2 pkg=73c756420fd1"
+    },
+    {
+      "file": "speaker_tracker.py",
+      "ok": false,
+      "detail": "zip=0b8b082b6723 pkg=4b03f19fbaf1"
+    }
+  ],
+  "manifest_version": "1.11",
+  "manifest_files": 14202,
+  "dir_ver": "1.11",
+  "zip_ver": "1.11",
+  "pass": 4,
+  "fail": 4,
+  "verdict": "FAIL",
+  "details": [
+    {
+      "name": "V1 zip 存在",
+      "ok": true,
+      "msg": "11,218,213,281 字节"
+    },
+    {
+      "name": "V2 testzip() 无 CRC 错误",
+      "ok": true,
+      "msg": "testzip=None"
+    },
+    {
+      "name": "V3 zip ⇄ 包目录 .py 逐字一致",
+      "ok": false,
+      "msg": "一致 6589 / 差异 3"
+    },
+    {
+      "name": "V4 §100 修复在 zip 内：live_caption_app.py",
+      "ok": false,
+      "msg": "zip=5936e85a4774 pkg=e5440190eadc"
+    },
+    {
+      "name": "V4 §100 修复在 zip 内：tts_worker.py",
+      "ok": false,
+      "msg": "zip=3ecfbc94f9c2 pkg=73c756420fd1"
+    },
+    {
+      "name": "V4 §100 修复在 zip 内：speaker_tracker.py",
+      "ok": false,
+      "msg": "zip=0b8b082b6723 pkg=4b03f19fbaf1"
+    },
+    {
+      "name": "V5 MANIFEST version == 1.11",
+      "ok": true,
+      "msg": "version='1.11' files=14202"
+    },
+    {
+      "name": "V6 版本号三处一致（目录/zip/MANIFEST）",
+      "ok": true,
+      "msg": "dir=1.11 zip=1.11 manifest=1.11"
+    }
+  ]
+}

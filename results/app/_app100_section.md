@@ -166,6 +166,39 @@
   ⇒ 复核脚本自己先挂 ⇒ **拿不到「差异」这个关键结论** ⇒ 已修正为 `os.path.join(PKG, 'app', t)`
   并加容错（文件缺失只判 FAIL，不崩）。
 
+#### 100.7.1 ✅ **包目录层面已闭环**（与仓库逐字节一致）
+
+- 🔴 实测（09:45，归一化 LF 后 SHA256 前 16 位）：
+  | 文件 | 仓库 | 包内 v1.11 | 判定 |
+  |---|---|---|---|
+  | `live_caption_app.py` | `e5440190eadcef1f` | `e5440190eadcef1f` | ✅ MATCH |
+  | `tts_worker.py` | `73c756420fd1c1ee` | `73c756420fd1c1ee` | ✅ MATCH |
+  | `speaker_tracker.py` | `4b03f19fbaf127e8` | `4b03f19fbaf127e8` | ✅ MATCH |
+  | `speaker_assets.py` | `e4d655a69e7dfdcd` | `e4d655a69e7dfdcd` | ✅ MATCH |
+  ⇒ ⇒ **包目录 = 仓库**（含 §100 断链 G/H/I/J ＋ §101 回归修复 ＋ APP-044 的 `speaker_assets.py`）
+  ⇒ **「已交付」在包目录层面成立**；**仅 zip 层面仍不成立**（§100.7）。
+
+#### 100.7.2 🔴 **重打 v1.12 的尝试：因目录被外部会话活占用而中止**（**干净的失败**）
+
+- **命令**：`python pack_v13.py --version 1.12 --lock-timeout 7200`（自动等锁，不抢）
+  ⇒ 版本号推算正确：`discover_max_version()=1.11` ⇒ `bump_version()=1.12`（元组比较，1.9→1.10 无坑）。
+- 🔴 **失败点**：源目录同卷改名 `Confucius4_LiveCaption_v1.11` → `...v1.12` 时
+  **`PermissionError: [WinError 5] 拒绝访问`**。
+- 🔴 **根因（实测）**：`Win32_Process` 查到 **PID 27744** 正在运行
+  `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.11\python\python.exe -m ext.bridge
+  --host 127.0.0.1 --port 8792 --delay 10.0 --real --target-lang en`
+  ⇒ **该目录被外部会话（`EXT-p1-real`）活占用** ⇒ 不可改名。
+  ⇒ **本模块不杀别人的进程**（铁律：别人活只能等不能杀）⇒ **放弃重打**。
+- ✅ **失败是干净的**（无半成品）：
+  | 检查 | 结果 |
+  |---|---|
+  | `Confucius4_LiveCaption_v1.12` 目录 | **不存在**（未产生半成品）|
+  | `*.zip.tmp` 残留 | **无** |
+  | v1.11 目录完好性 | `app/` 28 个 `.py` + `MANIFEST.json` 22 582 B（09:15）均在位 |
+  | `shared/MACHINE_LOCK` | 仍由 `EXT-p1-real` PID 40840（09:42:44）持有；`OpenProcess` 判 **alive, exit code 259** ⇒ **未抢锁** |
+- ⇒ **结论**：**zip 的闭环需要外部会话释放 v1.11 目录 + 释放机器锁**，才能重打。
+  ⇒ 本轮**不写「已交付」**（zip 层面），**不抢锁**，**不杀进程**。
+
 ### 100.8 🔴 **本条需等 reviewer 复核**（本会话相关部分）
 
 1. 🔴 **reviewer 的 MiniMax 回转写错误率对比**（APP-042 明文要求，**本模块不得自做**）。
@@ -174,7 +207,10 @@
 3. 🔴 **APP-039/040 真机 NPU 双说话人音色按句切换**（本轮仅离线 `app150`/`app155`/`app157` 覆盖）。
 4. 🔴 **APP-041 桌面快捷方式 → `pythonw.exe` 冷启动真机验收**。
 5. 🔴 **GUI 路径的 APP-042 加速播放真机实测**（§96–§99 走的都是 CLI 回放路径）。
-6. 🔴 **zip 半交付的处置**：需在拿到锁后重打 ⇒ **本轮不抢 `EXT-p1-real` 的活锁**。
+6. 🔴 **zip 半交付的处置**：需在拿到锁后重打 ⇒ **本轮不抢 `EXT-p1-real` 的活锁**；
+   ⚠️ **实测重打 v1.12 也失败**：v1.11 目录被 **PID 27744**（`ext.bridge`，外部会话）
+   **活占用** ⇒ 同卷改名 `PermissionError WinError 5` ⇒ **干净的失败**（无 v1.12 目录、
+   无 `zip.tmp` 残留、v1.11 完好）⇒ **需外部会话先释放目录与锁**才能闭环，见 §100.7.2。
 7. 🔴 **§100 的 4 处断链修复在真机上的效果**（尤其断链 G 的串音是否真的消除）。
 
 ### 100.9 🔴 **口径变更声明**
