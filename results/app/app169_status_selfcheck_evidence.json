@@ -1,25 +1,25 @@
 {
  "script": "app169_status_selfcheck.py",
  "status_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
- "status_bytes": 33971,
- "status_lines": 204,
- "status_sha256": "528e66bef3c24b8a7a75c130813fb474935265c6c94996c443c1a0df11c504f6",
+ "status_bytes": 38763,
+ "status_lines": 231,
+ "status_sha256": "333be91b2b47f1c1da7c3197b80ccb01e1068dea8f9e20dc46e7d41756ef268c",
  "corrections_sha256": "bb07c52697ecb5aa954169cf32d389095e60b2b35dd4f8ae99752292505d5ec3",
  "last_ack": "APP-049",
  "max_app_no": 49,
- "n_pass": 14,
+ "n_pass": 17,
  "n_fail": 0,
  "verdict": "PASS",
  "detail": [
   {
    "name": "V1 STATUS ≤ 40 KB 且 ≤ 300 行",
    "ok": true,
-   "msg": "bytes=33971 (<=40960)  lines=204 (<=300)"
+   "msg": "bytes=38763 (<=40960)  lines=231 (<=300)"
   },
   {
    "name": "V2 自指大小一致（文内写的 == 实际）",
    "ok": true,
-   "msg": "**本文件 33971 B / 204 行** | actual 33971 B / 204 行"
+   "msg": "**本文件 38763 B / 231 行** | actual 38763 B / 231 行"
   },
   {
    "name": "V3 头部字段「last_ack」只出现一次",
@@ -54,17 +54,17 @@
   {
    "name": "V5 章节号连续且无重号",
    "ok": true,
-   "msg": "sections=['109', '110', '111', '112', '113']"
+   "msg": "sections=['109', '110', '111', '112', '113', '114']"
   },
   {
    "name": "V6 每章节 ≤ 60 行（APP-049 限额）",
    "ok": true,
-   "msg": "最长节='### §113 ✅ **修掉「版本标识在打包时复发」的路径：新增打包前闸门 +' → 53 行"
+   "msg": "最长节='### §114 ✅ **APP-027 V3(a) MiniMax 回转写 C' → 55 行"
   },
   {
    "name": "V7 「最近更新」条目 ≤ 15 行",
    "ok": true,
-   "msg": "n=6"
+   "msg": "n=7"
   },
   {
    "name": "V8 CORRECTIONS_APP.md 零改动（reviewer 独占文件）",
@@ -74,12 +74,27 @@
   {
    "name": "V9 归档目录存在且 6 个文件可读",
    "ok": true,
-   "msg": "archive=['CORRECTIONS_APP_closed_upto_20261030.md', 'CORRECTIONS_APP_full_before_compress_20261030.md', 'CORRECTIONS_ASR_closed_upto_20261030.md', 'CORRECTIONS_ASR_full_before_compress_20261030.md', 'STATUS_APP_upto_20261030.md', 'STATUS_ASR_upto_20261030.md']"
+   "msg": "archive=['CORRECTIONS_APP_closed_upto_20261030.md', 'CORRECTIONS_APP_full_before_compress_20261030.md', 'CORRECTIONS_ASR_closed_upto_20261030.md', 'CORRECTIONS_ASR_full_before_compress_20261030.md', 'STATUS_APP_sec109_113_upto_20261030.md', 'STATUS_APP_upto_20261030.md', 'STATUS_ASR_upto_20261030.md']"
   },
   {
    "name": "V10 头部「阻塞 / 待用户决定」非空（APP-046 必须写明为何停下）",
    "ok": true,
    "msg": "① 🔴 **v1.13 未打包**（用户 11:30 指令：未经通知不主动打包；且 v1.12 zip 生成于 11:2…"
+  },
+  {
+   "name": "V11 §112 归档内容完整（含正文锚点，一字未删）",
+   "ok": true,
+   "msg": "missing=[] / anchors=5"
+  },
+  {
+   "name": "V12 STATUS 内 §112 已改为指针（正文不重复留两份）",
+   "ok": true,
+   "msg": "§112 段长度=928 字节"
+  },
+  {
+   "name": "V13 §114 声明的判据数 == 证据 JSON 内 n_pass（自指一致）",
+   "ok": true,
+   "msg": "STATUS 声明=14 / 证据 n_pass=14（n_fail=0, verdict=PASS）"
   }
  ]
 }

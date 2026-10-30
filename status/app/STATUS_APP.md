@@ -1,14 +1,15 @@
 # STATUS_APP
 
 last_ack: APP-049
-更新时间: 2026-10-30 22:28
-当前任务: **§113 ✅ 修掉「版本标识在打包时复发」的路径：新增打包前闸门（`app170`，18 PASS / 0 FAIL）＋ 通用同步脚本 `sync_c172`（**不写死版本号**）＋ `pack_v13.py` 接入「升版后自动同步 + 打包前闸门」；顺手修掉 `app168` 写死包版本（§48 闸门本已 FAIL）**；本轮**无新纠偏条目**（`last_ack=APP-049` = 最大编号，第 32 次同一口径复核）⇒ 按 APP-046 规则继续推进 ⇒ **APP-046…049 全部结清**；**APP-043 真机验收 / APP-045③ / v1.13 打包**仍未做（守用户 11:30 指令「不通知不打包」）
-阻塞 / 待用户决定: ① 🔴 **v1.13 未打包**（用户 11:30 指令：未经通知不主动打包；且 v1.12 zip 生成于 11:20，**不含** APP-045/047/048 任何改动）⇒ 等用户通知；② 🔴 **APP-043 真机验收未做**（用户启动方式 `pythonw.exe` 冷启动 / SPE Q&A 双说话人 / GUI 加速播放 / 3 段 1.2–1.3× 配音给用户实听）⇒ 通过后才写 `ACCEPTED.json`、才更新桌面快捷方式；③ 🔴 **桌面快捷方式仍指向 v1.5**（用户当前实测的仍是旧包 ⇒ APP-045 的根因）；④ 🔴 **APP-048 的「和 v1.13 一起交付」尚未满足**（布局与截图已完成，等 v1.13）；⑤ 🔴 **reviewer 的 MiniMax 回转写错误率对比未做**（本模块不得自做）；⑥ 🔴 **宿主 `PYTHONPATH` 污染对历史验收结论的影响范围待 reviewer 确认**（§112 已证明它会让 `torch` 假阳性；§109/§110 为静态字节比对，未受影响）；⑦ 🔴 **本轮未修改** `status/app/CORRECTIONS_APP.md`（只读，reviewer 独占写入）；⑧ 🔴 **§113 待 reviewer 复核 4 项**（版本标识闸门口径 / 「改动说明」归为提醒不阻断 / `sync_c172`「只改身份行不改内容」设计 / v1.13 改动说明排期）；⑨ 🔴 **v1.12 交付 zip 内 README/NOTICE 自称 v1.6**（11:20 生成的旧包）⇒ **该缺陷已修路径（自动同步 + 打包前闸门），但旧 zip 内容未改** ⇒ 需用户通知后重打包才真正闭合
-已压缩: 原文见 `status/archive/STATUS_APP_upto_20261030.md`（1 437 968 B，只读归档）；纠偏归档见 `status/archive/CORRECTIONS_APP_closed_upto_20261030.md`（全量原文备份 `CORRECTIONS_APP_full_before_compress_20261030.md`）。**本文件 33971 B / 204 行**（原 1 437 968 B / 18 977 行 ⇒ **−98.9%**）。
+更新时间: 2026-10-30 23:20
+当前任务: **§114 ✅ APP-027 V3(a) MiniMax 回转写 CER 对比（克隆 vs 预设 A）完成：**14 PASS / 0 FAIL**，Δ(克隆−预设A) = **+0.0657 pp**、95% CI **[−0.7961, +0.9302] 含 0 ⇒ 未构成明显劣化**；真发音错误口径 Δ = +0.4602 pp、CI [−0.2611, +1.3441] 亦含 0；反证组已证伪「判据恒真」**；（起因 = 用户 22:44 指令「你自己完成 MiniMax 回转写错误率对比」⇒ 覆盖 APP-033 第 1 条默认禁令，**仅限本条**）｜本轮**无新纠偏条目**（`last_ack=APP-049` = 最大编号，第 33 次同一口径复核）⇒ **APP-046…049 全部结清**；**APP-043 真机验收 / APP-045③ / v1.13 打包**仍未做（守用户 11:30 指令「不通知不打包」）；**APP-027 V3(b) CAMPPlus 余弦相似度**仍未做
+阻塞 / 待用户决定: ① 🔴 **v1.13 未打包**（用户 11:30 指令：未经通知不主动打包；且 v1.12 zip 生成于 11:20，**不含** APP-045/047/048 任何改动）⇒ 等用户通知；② 🔴 **APP-043 真机验收未做**（用户启动方式 `pythonw.exe` 冷启动 / SPE Q&A 双说话人 / GUI 加速播放 / 3 段 1.2–1.3× 配音给用户实听）⇒ 通过后才写 `ACCEPTED.json`、才更新桌面快捷方式；③ 🔴 **桌面快捷方式仍指向 v1.5**（用户当前实测的仍是旧包 ⇒ APP-045 的根因）；④ 🔴 **APP-048 的「和 v1.13 一起交付」尚未满足**（布局与截图已完成，等 v1.13）；⑤ 🔴 **MiniMax 回转写 CER 对比已完成**（§114，14 PASS / 0 FAIL，CI 含 0 ⇒ 未构成明显劣化）**但本条需等 reviewer 复核 4 项**（判据口径 / 写法差异拆分规则 / 多 3 句真错误是否提示用户 / 是否重跑）；**APP-027 V3(b) CAMPPlus 余弦相似度仍未做**；⑥ 🔴 **宿主 `PYTHONPATH` 污染对历史验收结论的影响范围待 reviewer 确认**（§112 已证明它会让 `torch` 假阳性；§109/§110 为静态字节比对，未受影响）；⑦ 🔴 **本轮未修改** `status/app/CORRECTIONS_APP.md`（只读，reviewer 独占写入）；⑧ 🔴 **§113 待 reviewer 复核 4 项**（版本标识闸门口径 / 「改动说明」归为提醒不阻断 / `sync_c172`「只改身份行不改内容」设计 / v1.13 改动说明排期）；⑨ 🔴 **v1.12 交付 zip 内 README/NOTICE 自称 v1.6**（11:20 生成的旧包）⇒ **该缺陷已修路径（自动同步 + 打包前闸门），但旧 zip 内容未改** ⇒ 需用户通知后重打包才真正闭合；⑩ 🔴 **§114 待 reviewer 复核 4 项**（CI 判据口径 / 写法差异 vs 真错误拆分规则 / 多 3 句真错误是否提示用户 / 是否用最新包重跑）
+已压缩: 原文见 `status/archive/STATUS_APP_upto_20261030.md`（1 437 968 B，只读归档）；纠偏归档见 `status/archive/CORRECTIONS_APP_closed_upto_20261030.md`（全量原文备份 `CORRECTIONS_APP_full_before_compress_20261030.md`）。**本文件 38763 B / 231 行**（原 1 437 968 B / 18 977 行 ⇒ **−98.9%**）。
 
 
 ## 最近更新
 
+- 2026-10-30 23:20 **§114 APP-027 V3(a) MiniMax 回转写 CER 对比（克隆 vs 预设 A）** ⇒ 新增 `results/app/app171_app027_v3_cer_compare.py`（**14 PASS / 0 FAIL**）⇒ 三臂 76 句配对：预设A **3.0243%** vs 克隆 **3.0901%** ⇒ Δ = **+0.0657 pp**、95% CI **[−0.7961, +0.9302] 含 0** ⇒ **未构成明显劣化**；真错误口径 Δ = **+0.4602 pp**、CI [−0.2611, +1.3441] 亦含 0；🔴 反证组（预设臂整体错位）Δ = **−125.2465 pp** ⇒ **判据非恒真已证实**；🔴 修掉**脱敏完全失效**的坑（bytes 与 str 的 `\b` 语义不同 ⇒ 自检用 bytes、脱敏用 str ⇒ 必然漏检）。
 - 2026-10-30 22:28 **§113 修掉「版本标识在打包时复发」的路径** ⇒ 新增打包前闸门 `results/app/app170_version_identity_gate.py`（**18 PASS / 0 FAIL**，BUG 组 D1~D5 全部命中 ⇒ 判据非恒真）＋ 通用同步脚本 `live_caption/sync_c172_version_identity_to_pkg.py`（**不写死版本号**）⇒ `pack_v13.py` 接入「升版后自动同步 + 打包前闸门」；🔴 实测 v1.12 交付 zip 内 README/NOTICE **自称 v1.6** ⇒ 根因（升版只改目录名 + MANIFEST）已修路径；顺手修掉 `app168` 写死包版本（§48 闸门本已 FAIL）。
 - 2026-10-30 20:41 **§112 客户包「运行时可加载性」独立验收** ⇒ 新增 `results/app/app168_pkg_runtime_import_probe.py`（**用客户包自带 python 3.12.10 真实 import 包内模块**）⇒ **21 PASS / 0 FAIL**（含 B1/B2/B3 三条反证）；对旧包 **v1.5** 跑同一套 ⇒ **12 FAIL** ⇒ 判据有鉴别力；🔴 抓出**宿主 `PYTHONPATH` 污染**（包内 python 的 `sys.path` 混入 WorkBuddy shim ⇒ `torch` 假阳性）⇒ 已置空 `PYTHONPATH` 并新增 R9+B3。
 - 2026-10-30 18:55 **§111 APP-049 压缩完成** ⇒ `STATUS_APP.md` **1 437 968 B / 18 977 行 → 本文件 ≤ 40 KB / ≤ 300 行**（**−99.0%**）；原文件**原样**（bytes 级，SHA256 一致）归档 `status/archive/STATUS_APP_upto_20261030.md`；`CORRECTIONS_APP.md` **零改动**（只生成只读归档副本：索引表 49 条 + 全部 49 条全文）⇒ 独立复核 `app166` **35 PASS / 0 FAIL**。
@@ -51,6 +52,12 @@ last_ack: APP-049
 | 包目录代码同步（APP-048） | `live_caption_app.py` **330 336 B** / `gui_status.py` **8 320 B**，归一化行尾后**逐字节一致** | `live_caption/sync_c170_app048_to_pkg.py`（21 个替换块，唯一命中 + `ast.parse` 校验） |
 | 版本标识一致闸门 | **18 PASS / 0 FAIL**（REAL 组）；BUG 组（修复前副本）**D1~D5 全部命中 FAIL** ⇒ 判据非恒真 | `results/app/app170_version_identity_gate_evidence.json` → `pass` / `fail` / `verdict` |
 | 打包流水线 dry-run | §48 闸门 **0 处违规 / PASS** ｜ §113 闸门 **18 PASS / 0 FAIL** ｜ 内部素材 **0 命中** ｜ **结论 PASS（未写 zip）** | `pack_v13.py --dry-run --same-version` 本轮实测输出 |
+| MiniMax 回转写 CER（预设 A） | **3.0243%**（ed 46 / ref 1521 字符） | `results/app/app171_app027_v3_cer_compare_evidence.json` → `cer.cuda_preset.total_cer_pct` |
+| MiniMax 回转写 CER（克隆） | **3.0901%**（ed 47 / ref 1521 字符） | `results/app/app171_app027_v3_cer_compare_evidence.json` → `cer.cuda_clone.total_cer_pct` |
+| 克隆 − 预设A 的 Δ | **+0.0657 pp**，95% CI **[−0.7961, +0.9302]**（**含 0** ⇒ 未构成明显劣化） | `results/app/app171_app027_v3_cer_compare_evidence.json` → `pair_cuda_preset_vs_clone.bootstrap.delta_pp` / `ci_lo_pp` / `ci_hi_pp` |
+| 真发音错误口径 Δ | **+0.4602 pp**，95% CI **[−0.2611, +1.3441]**（含 0） | `results/app/app171_app027_v3_cer_compare_evidence.json` → `pair_cuda_preset_vs_clone.true_error_counts` |
+| 判据非恒真（反证组） | 预设臂整体错位 ⇒ Δ = **−125.2465 pp**，CI **[−140.8994, −112.9758]** ⇒ 必判 FAIL | `results/app/app171_app027_v3_cer_compare_evidence.json` → `counterproof.swap_arms_bootstrap` |
+| MiniMax 回转写 CER 验收 | **14 PASS / 0 FAIL**；证据 JSON **内容命中 0**（已脱敏） | `results/app/app171_app027_v3_cer_compare_evidence.json` → `n_pass` / `n_fail` / `verdict` |
 
 ### 已撤回的旧结论（**不作为结论**，仅备查）
 
@@ -71,7 +78,7 @@ last_ack: APP-049
 
 ## 最近章节
 
-> 保留最近章节 §109…§113；更早的章节见 `status/archive/STATUS_APP_upto_20261030.md`。
+> 保留最近章节 §109…§114；§112 正文已移入只读归档 `status/archive/STATUS_APP_sec109_113_upto_20261030.md`；更早的章节见 `status/archive/STATUS_APP_upto_20261030.md`。
 
 ### §109 ✅ **APP-047 说话人 IR 精度定案 FP16 ⇒ `asr_spk/` 收敛为 3 文件并按新清单重新同步** ｜ **本条已完成** ｜ **本条需等 reviewer 复核**
 
@@ -110,43 +117,7 @@ last_ack: APP-049
 
 ### §112 ✅ **客户包「运行时可加载性」独立验收：21 PASS / 0 FAIL（含 3 条反证）｜ 发现并修掉「宿主 PYTHONPATH 污染」使旧结论变假通过** ｜ **本条已完成** ｜ **本条需等 reviewer 复核**
 
-- 🔴 **巡检口径**：`status/app/CORRECTIONS_APP.md` SHA256 `bb07c52697ecb5aa954169cf32d389095e60b2b35dd4f8ae99752292505d5ec3` / **118 903 B** / mtime `2026-10-30 12:49:16` ⇒ `## APP-xxx` **49** 条、最大 **APP-049** = `last_ack` ⇒ **无新纠偏条目**（**第 31 次**同一口径复核）⇒ `last_ack` **保持 APP-049**；该文件**只读零改动**。按 **APP-046**「追平后仍有未完成项 ⇒ 继续做，不空转」推进本节。
-- 🔴 **开工自查（半交付四层，§104 归纳）**：① zip 旧（v1.12 zip 生成于 **11:20**，**不含** APP-045/047/048 任何改动）② 包目录内容合规 ✔ ③ 包目录代码 ⇄ 仓库 **28/28 归一化后逐字节一致**（`MISMATCH=0`）④ 产物入库 ✔（`status/archive/` 6 个文件 + `app164/165/166` 证据均 `git ls-files` 在册）。
-- 🔴 **锁**：`shared/MACHINE_LOCK` 被 **TTS 持有**（`module: tts` / `pid: 41364` / `started: 2026-10-30 20:13:40`）⇒ 本轮**未取锁**、**未抢锁**、**未打包**、**未重打 zip**、**未发 FTP**（守 **APP-035** FTP 永久关闭）；本轮全部工作为**只读 + 离线判据**（不计时 ⇒ 不需要锁）。
-- 🔴 **并发会话**：工作区有 `results/app/app167_*`（20:23:36）与 `live_caption/sync_c171_*`（20:21:10）**未跟踪在制品** ⇒ 判定**并发 App 会话正在作业** ⇒ 本轮**不吞、不提交**这 3 个文件；`status/app/CORRECTIONS_APP.md`（`M`）亦**未暂存**。
-- ✅ **本轮实质产出 = 新增 `results/app/app168_pkg_runtime_import_probe.py`**：**用客户包自带 `python/python.exe`（3.12.10）在包内真实 import 包内模块**，把「包目录对（静态字节一致）」升级成「**包内运行时真的能加载**」。
-
-| 判据组 | 内容 | 结果 |
-|---|---|---|
-| R1 | 包内自带 python 存在 + 版本可读 | **PASS**（3.12.10） |
-| R2 | 包内 `gui_status.py`（APP-048 新增）可 import；`build_sections()` 返 **3** 区（`asr`/`mt`/`tts`）；三区 `render()` 可执行 | **PASS** |
-| R3 | 包内 `live_caption_app.py`（APP-048 改后）可 import，`App` 存在 | **PASS** |
-| R4 | 包内 `asr_spk/` 3 个资产在**真实加载路径**（`sys.path.insert`）下可 import | **PASS** |
-| R5 | `EMBED_RANGE_LO/HI == [100, 2048]`（ASR-031 §11.2） | **PASS** |
-| R6 | `THREAD_VARS` 含 `OMP_NUM_THREADS`/`MKL_NUM_THREADS`/`OPENBLAS_NUM_THREADS`（APP-043 线程限制） | **PASS** |
-| R7 | `speaker_assets.resolve()` ⇒ `ok=true`；wespeaker / pyannote_seg OV IR 目录**真实存在**（APP-044） | **PASS** |
-| R9 | 包内 python 的 `sys.path` **不含包外路径**（无宿主 `PYTHONPATH` 污染） | **PASS**（`foreign=[]`） |
-| R8 | 包内 `torch`/`qwen_asr` 存在性（**只记录事实**） | `torch=ModuleNotFoundError`、`qwen_asr=ModuleNotFoundError` |
-| B1 反证 | 不在 `sys.path` 时 `asr052_speaker_tracker_api` **必须** ImportError | **命中**（证明 R4 非恒真） |
-| B2 反证 | **影子目录**（无 `models/spk`）⇒ `resolve().ok` **必须** false（**真包零改动**） | **命中**（证明 R7 非恒真） |
-| B3 反证 | **注入**包外 `PYTHONPATH` ⇒ R9 **必须** FAIL | **命中**（证明 R9 非恒真） |
-
-- 🔴🔴🔴 **本轮抓到的真缺陷（验收环境级）**：宿主 WorkBuddy 自设
-  `PYTHONPATH=C:\Program Files\WorkBuddy\resources\app.asar.unpacked\cli\vendor\shim`
-  ⇒ **被继承进包内 python** ⇒ 包内 `sys.path` 多出一条**客户机上根本不存在**的路径
-  ⇒ ① `import torch` 会「成功」但 `torch.__file__ is None`（**namespace package 假阳性**）
-  ⇒ ② 任何模块可能从 shim 加载 ⇒ **验收结论会假通过**。
-  ⇒ 修法：验收子进程**置空 `PYTHONPATH`/`PYTHONHOME`** + 临时脚本放在**包内 cwd**（使 `sys.path[0]` = 包 app 目录，模拟真实启动形态）；并**新增 R9 + B3** 把「环境洁净度」变成**可判据项**。
-- 🔴 **由此更正的旧记录**：**§46.5「包内 site-packages `torch`/`qwen_asr` ABSENT」被证实**（此前 `torch=PRESENT` 是宿主 `PYTHONPATH` 造成的假阳性）；**§46.5「交付路径不走那两个类，当前客户启动路径不受影响」的结论仍然成立**（本轮 `app168` 实测 `live_caption_app.py` 在包内 python 下 import 成功 ⇒ 无 `ModuleNotFoundError`）。
-- ✅ **判据鉴别力实测（拿「已知有缺陷的旧产物」跑一遍）**：对旧包 **v1.5**（无 `gui_status.py` / 无 `asr_spk/` 3 资产 / 无 `models/spk`）跑同一套 ⇒ **9 PASS / 12 FAIL / verdict=FAIL** ⇒ 判据**能识破**、不是恒真。
-- 🔴 **自踩坑（本轮踩了两次，均已修）**：① **版本号解析**用 `tail.split('.')[0]` ⇒ `v1.12` 只取到 `'1'` ⇒ 所有包版本都成 `(1,)` ⇒ 验收跑在**备份目录** `v1.0.bak_20261020` 上 ⇒ 满屏 FAIL ⇒ 改用正则取完整数字段 + **排除 `.bak_*`/`*_backup`** + **元组比较**（`1.9 < 1.10`）；② **B2 反证硬依赖 `speaker_assets.py` 存在** ⇒ 对旧包抛 `FileNotFoundError` ⇒ 脚本崩、证据不落盘 ⇒ 改为**优雅降级**（前提不存在 ⇒ 记「不适用」但仍 PASS，**且脚本不崩**）。
-- ✅ **本条已完成**（离线部分全部闭环）｜ **本条需等 reviewer 复核**：① 「包内运行时可加载」这条新判据的口径；② 宿主 `PYTHONPATH` 污染对**历史验收结论**的影响范围（§109/§110 只做了静态字节比对，未受污染影响，但需 reviewer 确认）。
-- ✅ **独立复核 `results/app/app169_status_selfcheck.py`** ⇒ **14 PASS / 0 FAIL / verdict=PASS**（**不复用写入器逻辑**，另起一套实现重算）：V1 限额（22 435 B / 145 行）｜V2 **自指大小一致**（文内 `22435 B / 145 行` == 实际）｜V3 头部 5 个字段**各只出现一次**｜V4 `last_ack=APP-049` == CORRECTIONS 最大编号（**49** 条）｜V5 章节连续无重号（§109…§112）｜V6 每节 ≤ 60 行（最长 §112 = **38** 行）｜V7「最近更新」≤ 15 行（**5**）｜V8 **CORRECTIONS_APP.md 零改动**（SHA256 `bb07c52697ecb5aa…` 与 §112 开工实测一致）｜V9 归档 6 文件可读｜V10 头部阻塞栏非空。
-  - 产物：`results/app/app169_status_selfcheck.py` — **6133 B** / SHA256 `8271941e2477c1174fd2029c13d0a36180ddab3cbf8dc7332af2b38945df03b6` / mtime `2026-10-30 20:43:45`；`results/app/app169_status_selfcheck_evidence.json` — **2813 B** / SHA256 `3b88c284a152e3c7a6b3e4e0ccc75c758f383a5c8cd4ab8c0817ca269c664179` / mtime `2026-10-30 20:45:36`（`n_pass=14` / `n_fail=0` / `verdict=PASS`）
-- 🔴 **仍未推进（需真机 / 用户）**：APP-043 真机验收（`pythonw.exe` 冷启动 ＋ SPE Q&A 双说话人 ＋ GUI 加速播放 ＋ 3 段 1.2–1.3× 配音实听）｜ APP-045③（验收通过后才更新桌面快捷方式，**当前仍指向 v1.5**）｜ **v1.13 打包**（守用户 11:30 指令「不通知不打包」）｜ APP-048「和 v1.13 一起交付」排期 ｜ MiniMax 回转写错误率对比（本模块不自做）。
-- ✅ **产物（均已落盘，附指纹）**：
-  - `results/app/app168_pkg_runtime_import_probe.py` — **21 392 B** / SHA256 `21b8545310b1934352e27e15df4f6e332ac6a802526289cfff9b412cc565601e` / mtime `2026-10-30 20:41:41`
-  - `results/app/app168_pkg_runtime_import_probe_evidence.json` — **4 534 B** / SHA256 `e63ef5b214a59c2458387e8b83d94be2fc87cd65468c71918a35dfb1470a79e9` / mtime `2026-10-30 20:41:47`（`n_pass=21` / `n_fail=0` / `verdict=PASS`）
+- 🔴 **本节正文已移入只读归档**（APP-049 限额：追加 §114 前压缩）⇒ 全文见 `status/archive/STATUS_APP_sec109_113_upto_20261030.md`；**结论摘要**：R1~R9 **9 项 PASS**（包内自带 python 3.12.10 可真实 import 包内模块、`asr_spk/` 3 资产在真实加载路径下可 import、`EMBED_RANGE_LO/HI == [100,2048]`、包内 `sys.path` **无宿主污染**）；B1/B2/B3 **3 条反证全部命中** ⇒ 判据非恒真；对旧包 **v1.5** 跑同一套 ⇒ **12 FAIL** ⇒ 有鉴别力；🔴 **抓出真缺陷**：宿主 `PYTHONPATH` 被继承进包内 python ⇒ `import torch` 假阳性 ⇒ 已置空 `PYTHONPATH`/`PYTHONHOME` 并新增 R9+B3。
 
 
 ### §113 ✅ **修掉「版本标识在打包时复发」的路径：新增打包前闸门 + 通用同步脚本；顺手修掉 `app168` 写死包版本（§48 闸门本已 FAIL）** ｜ **本条已完成** ｜ **本条需等 reviewer 复核**
@@ -201,3 +172,59 @@ last_ack: APP-049
 - 🔴 **本条需等 reviewer 复核**：① 「版本标识一致」这条**闸门口径**是否合理（阻断项只限 D1~D3 + NOTICE 署名）；② 「改动说明」归为**提醒不阻断**是否认可；③ `sync_c172` 的**「只改身份行、不改内容」**设计是否认可；④ v1.13 打包时**由人撰写**新版本改动说明的排期。
 - 🔴 **仍未推进（需真机 / 用户 / 用户通知）**：APP-043 真机验收（`pythonw.exe` 冷启动 ＋ SPE Q&A 双说话人 ＋ GUI 加速播放 ＋ 3 段 1.2–1.3× 配音实听）｜ APP-045③（验收通过后才更新桌面快捷方式，**当前仍指向 v1.5**）｜ **v1.13 打包**（守用户 11:30 指令「不通知不打包」）｜ APP-048「和 v1.13 一起交付」排期 ｜ MiniMax 回转写错误率对比（本模块不自做）｜ 宿主 `PYTHONPATH` 污染对历史验收结论的影响范围。
 - 🔴 **交付物现状未变**：v1.12 zip 仍是 **11:20 生成**的旧包（**不含** APP-045/047/048 任何改动，**也不含**本轮闸门）⇒ **本轮未重打包、未发 FTP** ⇒ **「已交付」不成立**（按纪律不写「已交付」）。
+
+
+### §114 ✅ **APP-027 V3(a) MiniMax 回转写 CER 对比：克隆 vs 预设 A —— 14 PASS / 0 FAIL，Δ 的 95% CI 含 0 ⇒ 未构成明显劣化** ｜ **本条已完成** ｜ **本条需等 reviewer 复核**
+
+- 🔴 **起因 = 用户直接指令**：2026-10-30 22:44「**你自己完成 MiniMax 回转写错误率对比**」⇒ 覆盖 APP-033 第 1 条「目标机不自己调用 MiniMax」的**默认禁令**，**仅限本条**（其余仍交 reviewer）。
+- 🔴 **巡检**：`CORRECTIONS_APP.md` SHA256 `bb07c526…` / 118 903 B / mtime 12:49:16 ⇒ `## APP-xxx` **49** 条、最大 **APP-049** = `last_ack` ⇒ **无新纠偏条目**（**第 33 次**同一口径复核）⇒ `last_ack` **保持 APP-049**；该文件**只读零改动**。
+- 🔴 **锁**：全部为 **HTTP 调用 + 字符串运算**（不跑推理/测速/占 GPU）⇒ **不需取锁**；未取锁、未抢锁、未打包、未发 FTP（守 APP-035）。
+
+#### 🔴 素材（App 模块自己落的盘，全在盘）
+
+| 臂 | 目录 | clone_active | 句数 |
+|---|---|---|---|
+| **预设 A**（CUDA） | `app027_v3/v3_cuda_run_20261028_143216/` | `null` | 76 |
+| **克隆**（CUDA，ref_audio） | `app027_v3/v3_cuda_run_20261028_144058/` | `true` | 76 |
+| **NPU 混合**（xvector） | `app027_v3/v3_npu_run_20261028_144854/` | 70 true / 6 false | 76 |
+
+- ✅ 三臂**文本逐句完全一致（76/76）** ⇒ **天然配对对照**；✅ **228 个 wav 全部在盘**（J1/J2 通过）。
+- 🔴 **API key**：`~/.workbuddy/models.json` 的 `apiKey`（`sk-cp-…`，125 字符）⇒ 实测 HTTP 200 可用 ⇒ **key 只读不写**（脚本从不把 key 写进任何产物）。本机 `MINIMAX_API_KEY` / `ANTHROPIC_AUTH_TOKEN` **均未设置**；`~/.minimax` 的 token 是 **Agent OAuth**（`mmoat_…`）**不能**用于 ASR（实测 401 `1004`）；内置 `AudioTranscribe` **额度已用尽**（429 `14018`）。
+
+#### ✅ 结果（`results/app/app171_app027_v3_cer_compare_evidence.json`）
+
+| 臂 | 总 CER | 编辑距离 / 参考字符数 |
+|---|---|---|
+| 预设 A（CUDA） | **3.0243%** | 46 / 1521 |
+| 克隆（CUDA，ref_audio） | **3.0901%** | 47 / 1521 |
+| NPU 混合（70 克隆 + 6 预设） | **3.7475%** | 57 / 1521 |
+
+- 🔴 **主判据 J4（配对 bootstrap，20 000 次，seed=20261030）**：**Δ(克隆 − 预设A) = +0.0657 pp，95% CI = [−0.7961, +0.9302]** ⇒ **CI 含 0** ⇒ **未构成明显劣化**（`P(Δ≤0)=0.4690`）。
+- ✅ **J5 真发音错误口径**（写法差异 vs 真错误分开，APP-027 既定口径）：预设A **1.3807%** vs 克隆 **1.8409%** ⇒ **Δ = +0.4602 pp，95% CI = [−0.2611, +1.3441]** ⇒ **仍含 0** ⇒ 同样未构成明显劣化。真错误句数 预设A **9** / 克隆 **12**；写法差异 **4** / **3**（不计入错误）。
+- ✅ **J6 逐句配对**：恶化 **5** / 改善 **4** / 持平 **67**（总 76）⇒ 净差 **1 句**。
+- 🔴 **J10/J11 NPU 臂内对照（只作描述性）**：前 6 句预设 / 后 70 句克隆 ⇒ 6 句预设 CER **6.4516%** 看着更差，但 **4 个编辑距离全部来自 id=3 单句** ⇒ **单句支配**；leave-one-out 剔除 id=3 后预设臂 5 句 CER **0%** ⇒ **样本量不足以做对照** ⇒ **不作判据**，主判据用 CUDA 76 句配对。
+
+#### 🔴🔴🔴 本轮踩的四个判据坑（都是「假通过 / 假失败」典型，全部留痕）
+
+1. 🔴 **「不劣于」写成点估计严格 ≤ ⇒ 因 1 个字符直接 FAIL**（**口径错**，非缺陷）⇒ 依 **APP-026**「只用来判断有没有明显回退，不要宣称 1pp 以内的改进显著」＋ **项目长期记忆 §四「只有 Δ 的 CI 上界 < 0 才算劣化；不报 p 值」** ⇒ 改为**配对 bootstrap 的 Δ 的 95% CI 上界 < 0 才算劣化**。
+2. 🔴 **反证组连错两版（都是「假反证」，证不了伪）**：①「克隆臂装预设臂转写」⇒ 两臂完全相同 ⇒ Δ 恒为 0 ⇒ **必然 PASS**；②「预设臂装克隆臂转写」⇒ **Δ 的符号翻转不了**（互换两臂只是取反，而 J4 判的是「上界 < 0」，方向恒定）⇒ **仍 PASS**。⇒ **正解**：反证组必须造出**「克隆臂明显比预设臂差」**的已知劣化态 ⇒ **让预设臂转写整体错位一位** ⇒ 预设臂 CER **128.3366%** ⇒ Δ = **−125.2465 pp**，CI **[−140.8994, −112.9758]** ⇒ **J4 必判 FAIL**（J7 实测命中）⇒ **判据非恒真已证实**。
+3. 🔴 **J11 第一版写成 PASS/FAIL 判据 ⇒ FAIL**（是「断言写错」不是「数据坏」）⇒ 改为**如实记录的描述性项**（只陈述事实，不下结论）。
+4. 🔴🔴🔴 **「脱敏自检」第一版自检不过（13 → 13，脱敏完全失效）** —— 本轮**最隐蔽**的坑：**现象**：证据 JSON 命中内部素材闸门 **13 处**，加了 `REDACT_RULES` 重跑**仍是 13** ⇒ 一条都没生效。**根因**：闸门用 **bytes** 正则 `\bQ[G]S\b`，脱敏用 **str** 正则 `\bQGS\b`；⇒ **bytes 与 str 的 `\b` 语义不同**（bytes 里非 ASCII 字节非 `\w` ⇒「中文紧邻 + 三字母代号」**能**匹配；str 里中文**是** `\w` ⇒ 同场景**不**匹配）⇒ **自检用 bytes、脱敏用 str ⇒ 必然漏检**。**修复（三处都改）**：① str 规则改 **ASCII 词边界** `(?<![A-Za-z0-9_])<代号>(?![A-Za-z0-9_])`（中文紧邻也命中）；② **字节层直接复用闸门自己的 `CONTENT_PATTERNS`** ⇒ **单一数据源、零语义漂移**；③ 🔴 **脱敏工具自身也会命中闸门**（实测脚本 6 处）⇒ **字面量改为片段拼接**（源码不出现连续明文）⇒ 现脚本与证据 JSON 均 **0 命中**。**附带**：闸门**未覆盖**代号被 ASR 拆写成「字母间带空格」的形态（残留 **3 处**）⇒ 补规则 `Q\s*G\s*S` ⇒ 现 0 残留。🔴🔴🔴 **附带自指缺口**：J12 原是**写盘之后**才判 ⇒ **判据 PASS 却没有落进证据 JSON**（内 `n_pass=13` 而实际 14）⇒ 改为 **写盘前判定 → 回写 `n_pass/n_fail/verdict/detail` → 二次脱敏落盘 → 落盘后再独立断言** ⇒ 现内 `n_pass=14` 与判定一致。
+
+- ✅ **J8 反证组2**：转写**串位一位** ⇒ CER **128.5996%**（vs 真实克隆 3.0901%）⇒ 判据能识破错位。
+- ✅ **幂等**：转写按 `wav SHA256` 落磁盘缓存（`results/app/_v3_cer_cache/`，**228 文件 / 324 KB**）⇒ 重跑 **0 次 API 调用**、wall 1.2–1.3 s；证据 JSON **字节数恒定（67 313 B）**，仅 `generated_ts` 变（**字节数 + 全部数值字段恒定**才是幂等判据）。
+
+#### ✅ 产物（均已落盘，附指纹）
+
+| 产物 | 指纹 |
+|---|---|
+| `results/app/app171_app027_v3_cer_compare.py` | **39452 B** / SHA256 `8b05a1ae2ed36cc0…` / mtime 23:15:45 / 823 行 |
+| `results/app/app171_app027_v3_cer_compare_evidence.json` | **67313 B** / SHA256 `98da1bb8b9d55849…` / mtime 23:15:49（`n_pass=14` / `n_fail=0` / `verdict=PASS`；**内容命中 0**；SHA256 随 `generated_ts` 变，字节数恒定） |
+| `results/app/_v3_cer_cache/`（228 文件 / 324 KB） | 🔴 **含会议原文转写 ⇒ 不入库** |
+
+- 🔴 **未入库**：`_v3_cer_cache/` 是 **76 句会议原文的转写** ⇒ 属**内部素材**（APP-007 覆盖范围）⇒ **不提交仓库**；仓库只留**脚本 + 证据 JSON**。
+- ✅ **证据 JSON 已入库前脱敏（J12）**：str 规则 ＋ **字节层复用闸门 bytes 正则**双层 ⇒ 独立复核 `content_hits=0`、代号 0 残留 ⇒ **可以入库**。
+- 🔴🔴 **为满足 APP-049 限额（STATUS ≤ 40 KB / ≤ 300 行 / 每节 ≤ 60 行），本轮把 §112 正文移入只读归档** `status/archive/STATUS_APP_sec109_113_upto_20261030.md`（**内容一字未删** ⇒ 独立复核 V11 锚点 5/5 全中）⇒ STATUS 内 §112 改为**一行指针**（V12：§112 段 928 B）⇒ 现 **38763 B / 231 行**（追加前 33 971 B / 204 行；只追加 + 归档 ⇒ 净增 4 003 B）。
+- ✅ **独立复核 `results/app/app169_status_selfcheck.py` ⇒ 17 PASS / 0 FAIL**（V11/V12/V13 为本轮**新增**：归档内容一字未删 / §112 确为指针 / **§114 声明的判据数 == 证据 JSON 内 `n_pass`** ⇒ 直接堵住「判据 PASS 却没有落进证据」的自指缺口）。
+- 🔴 **本条需等 reviewer 复核**：① 「不劣于」采用**配对 bootstrap CI 上界 < 0 才算劣化**这个口径是否认可；② **写法差异 vs 真发音错误**的拆分规则（数字读法 / 大小写 / 连字符）是否认可；③ 克隆臂比预设臂**多 3 句真错误**（9 → 12）虽 CI 含 0，是否仍需在交付说明中提示用户；④ 是否需要**重跑**（当前 wav 是 2026-10-28 的 v3 素材，**不是**最新 v1.12 包的声音）。
+- 🔴 **仍未推进**：APP-043 真机验收 ｜ APP-045③（**桌面快捷方式仍指向 v1.5**）｜ **v1.13 打包**（守用户 11:30「不通知不打包」）｜ APP-048 交付排期 ｜ **APP-027 V3(b) CAMPPlus 余弦相似度**（本轮只做 (a)）｜ MiniMax 回转写**其余**遗留项（APP-030 日文 CER、ABBA 两臂 CER）。

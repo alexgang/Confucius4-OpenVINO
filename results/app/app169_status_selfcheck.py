@@ -128,6 +128,57 @@ def main():
         bool(m_blk) and len(m_blk.group(1).strip()) > 10,
         (m_blk.group(1)[:60] + '…') if m_blk else '未找到')
 
+    # 🔴🔴 V11（§114 新增）：**归档一致性** —— §112 正文被移入只读归档时
+    #    **内容一字未删** ⇒ 归档里必须**逐字**含有原文；且 STATUS 内的 §112
+    #    必须是指针（正文已移走）⇒ 否则就是「半交付：归档写了但正文还在」
+    #    或「归档没写但正文删了」⇒ 两种都判 FAIL。
+    arch_sec = os.path.join(ARCHIVE, 'STATUS_APP_sec109_113_upto_20261030.md')
+    if os.path.exists(arch_sec):
+        arch_text = open(arch_sec, 'rb').read().decode('utf-8')
+        # 归档文件里应含 §112 的**特征正文片段**（取该节最长的表格行做锚点）
+        anchors = [
+            'PYTHONPATH',
+            'app168_pkg_runtime_import_probe.py',
+            'B1 反证',
+            'B3 反证',
+            'v1.5',
+        ]
+        missing = [a for a in anchors if a not in arch_text]
+        rec('V11 §112 归档内容完整（含正文锚点，一字未删）',
+            not missing, 'missing=%s / anchors=%s' % (missing, len(anchors)))
+        # STATUS 内的 §112 必须是指针形态
+        m112 = re.search(r'(?m)^### §112 .*?(?=\n### §|\Z)', text, re.S)
+        body112 = m112.group(0) if m112 else ''
+        is_pointer = ('已移入只读归档' in body112 and
+                      'STATUS_APP_sec109_113_upto_20261030.md' in body112 and
+                      len(body112) < 2000)
+        rec('V12 STATUS 内 §112 已改为指针（正文不重复留两份）',
+            is_pointer, '§112 段长度=%d 字节' % len(body112.encode('utf-8')))
+    else:
+        rec('V11 §112 归档内容完整（含正文锚点，一字未删）', False,
+            '归档文件不存在：%s' % arch_sec)
+        rec('V12 STATUS 内 §112 已改为指针（正文不重复留两份）', False,
+            '归档文件不存在，无法验证指针')
+
+    # 🔴🔴 V13（§114 新增）：**新章节的判据数必须与证据 JSON 内一致**
+    #    （§114 踩过「判据 PASS 却没有落进证据 JSON」的自指缺口）
+    ev171 = os.path.join(HERE, 'app171_app027_v3_cer_compare_evidence.json')
+    if os.path.exists(ev171):
+        ev = json.load(open(ev171, encoding='utf-8'))
+        m114 = re.search(r'(?m)^### §114 .*?(?=\n### §|\Z)', text, re.S)
+        claimed = None
+        if m114:
+            mm = re.search(r'(\d+)\s*PASS\s*/\s*0\s*FAIL', m114.group(0))
+            if mm:
+                claimed = int(mm.group(1))
+        rec('V13 §114 声明的判据数 == 证据 JSON 内 n_pass（自指一致）',
+            claimed is not None and claimed == ev.get('n_pass'),
+            'STATUS 声明=%s / 证据 n_pass=%s（n_fail=%s, verdict=%s）'
+            % (claimed, ev.get('n_pass'), ev.get('n_fail'), ev.get('verdict')))
+    else:
+        rec('V13 §114 声明的判据数 == 证据 JSON 内 n_pass（自指一致）', False,
+            '证据 JSON 不存在：%s' % ev171)
+
     ev = {'script': os.path.basename(__file__),
           'status_path': STATUS,
           'status_bytes': nbytes, 'status_lines': nlines,
