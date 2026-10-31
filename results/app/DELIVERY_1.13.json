@@ -1,12 +1,12 @@
 {
   "version": "1.13",
   "zip": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13.zip",
-  "bytes": 11233347633,
-  "mtime": "2026-11-01T00:55:58",
-  "md5": "be8634d667b24340d9122c5f1185fdf8",
-  "sha256": "6576dabd3c100646eeed9f45cdaf48ad3af028eba190fee519ca9f39ec2181d5",
+  "bytes": 11233348145,
+  "mtime": "2026-11-01T06:08:44",
+  "md5": "898f368a7bedaced9e46f5bd363fbe1e",
+  "sha256": "3ca36ce3d166ed0ec1cc2fbd2173ea3c3a77107c6c8ebce2ecdd0af8b169e020",
   "pkg_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
   "manifest_version": "1.13",
   "manifest_files": 14212,
-  "manifest_bytes": 13689628175
+  "manifest_bytes": 13689629685
 }
