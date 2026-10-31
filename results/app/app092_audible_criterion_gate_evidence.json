@@ -117,7 +117,7 @@
   {
    "name": "C2 app076 全部 PASS（0 FAIL）",
    "ok": true,
-   "detail": " 源码无法解析（SyntaxError）⇒ 闸门失效\n\n========================================================================\n结果：49 PASS / 0 FAIL（共 49 项）\n========================================================================\n\n证据已写入：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app076_tts_playback_observability.txt\n"
+   "detail": "结果：49 PASS / 0 FAIL（共 49 项）"
   },
   {
    "name": "C3 app076 断言数 ≥ 49（原 47 + 新增 E8/E9/E10 三项闸门）",
@@ -151,6 +151,7 @@
    "app071_tts_worker_error_probe.py: L114: st.get('n_played', 0) >= 1",
    "app039_tts_e2e_smoke.py: L128: st.get('n_played', 0) >= 1"
   ],
-  "C3_app076_summary": "结果：49 PASS / 0 FAIL（共 49 项）"
+  "C3_app076_summary": "结果：49 PASS / 0 FAIL（共 49 项）",
+  "C2_app076_n_fail": 0
  }
 }

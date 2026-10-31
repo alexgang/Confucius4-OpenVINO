@@ -17,6 +17,7 @@ import ast
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -278,16 +279,29 @@ def main() -> int:
                        errors='replace')
     tail = r.stdout[-1200:]
     check('C1 app076 退出码 0', r.returncode == 0, 'rc=%d' % r.returncode)
-    check('C2 app076 全部 PASS（0 FAIL）',
-          '0 FAIL' in (r.stdout or ''), tail[-300:])
+    # 🔴🔴 **§121 实测修正（C2 原为子串匹配 ⇒ 弱判据）**：
+    #   原实现 `'0 FAIL' in r.stdout` ⇒ **只要 app076 输出里任何地方出现
+    #   "0 FAIL" 字样**（例如某条 PASS 的 detail 里写着「违规 0 处」以外的
+    #   巧合文本、或是未来新增的说明文字）⇒ 就会**误判为合规**
+    #   ⇒ 即使 app076 真的有 N 个 FAIL 也照样 PASS ⇒ 闸门形同虚设。
+    #   ⇒ 改为**解析 app076 的汇总行**「结果：N PASS / M FAIL（共 K 项）」
+    #      ⇒ 只认这一行的 M ⇒ **M == 0 才算合规**。
     m = None
     for ln in (r.stdout or '').splitlines():
         if ln.startswith('结果：'):
             m = ln.strip()
             break
+    n_fail_app076 = None
+    if m:
+        mm = re.search(r'结果：\s*\d+\s*PASS\s*/\s*(\d+)\s*FAIL', m)
+        if mm:
+            n_fail_app076 = int(mm.group(1))
+    check('C2 app076 全部 PASS（0 FAIL）',
+          n_fail_app076 == 0, m or ('（未解析到汇总行）tail=%s' % tail[-200:]))
     check('C3 app076 断言数 ≥ 49（原 47 + 新增 E8/E9/E10 三项闸门）',
           bool(m) and '49' in m, m or '（未解析到）')
     EVIDENCE['C3_app076_summary'] = m
+    EVIDENCE['C2_app076_n_fail'] = n_fail_app076
 
     n_pass = sum(1 for _, ok, _ in RESULTS if ok)
     n_fail = len(RESULTS) - n_pass

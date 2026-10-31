@@ -23,6 +23,21 @@ APP-021（`status/app/CORRECTIONS_APP.md` L256）**明文**要求：
 | `st.get('n_played', 0) == 1` | ✅ 违规 | 等价写法，同一缺陷 |
 | `st.get('n_played', 0) > played_before` | ❌ 不违规 | **相对增量** ⇒ 不会把「别的句子的计数」当本句证据 |
 | `self.n_played += 1`（service 内部记账） | ❌ 不违规 | `self.n_played` 是 Attribute，不是常量 ⇒ 规则不命中 |
+| `ev2.get('n_played', 0) + ev2.get('n_dropped', 0) == ev2.get('n_submitted', -1)` | ❌ 不违规 | **守恒不变式**（丢句记账）⇒ 左值是**和式**，不是「等一个事件」 ⇒ 不构成 APP-021 点名的弱判据 |
+
+🔴🔴 **2026-11-01 §121 实测修正（E9 误报，根因是 AST 拆解过粗）**：
+
+原实现用 `ast.walk(cmp)` 找比较器里的整数常量 ⇒ 把
+`ev2.get('n_submitted', -1)` 里的 **`-1`** 拆成
+`UnaryOp(USub, Constant(1))` ⇒ `Constant(1)` 命中 `VIOLATION_CONSTS` ⇒
+**把「守恒不变式」误判成弱判据**（实测命中 `app186_app051_acceptance_gate.py: L174`）。
+
+⇒ **修法**：比较器里的常量必须**是该比较器子树的最外层常量**
+（`ast.Constant` 直接是 comparator 本身，或 comparator 是
+`UnaryOp` 且其 operand 是 `Constant`）⇒ **负数 `-1` 仍然算常量 `-1`**，
+不会因为「`ast.walk` 拆掉了负号」而被当成 `1`。
+⇒ 同时：**左值必须是「计数本身」而不是「和式」** ⇒
+`n_played + n_dropped == n_submitted` 这种**守恒式**不命中。
 
 ⇒ **「等一个事件」必须写成相对增量**（和提交前的快照比），
    **「判是否出声」必须走 `tts_audible_criterion.evaluate_audible()`**。
@@ -100,6 +115,48 @@ class ScanReport(object):
             self.name, len(self.violations), self.parse_failed)
 
 
+def _comparator_int_value(cmp_node: ast.AST) -> Optional[int]:
+    """取「比较器本身」的整数值（**不拆解子树**）。
+
+    🔴🔴 **为什么不能 `ast.walk`（§121 实测修正）**：
+    `ast.walk` 会把 `ev2.get('n_submitted', -1)` 拆成
+    `Call` → `Constant('n_submitted')` + `UnaryOp(USub, Constant(1))`
+    ⇒ 其中 `Constant(1)` 命中 `VIOLATION_CONSTS` ⇒
+    **`-1` 被当成 `1`** ⇒ 把「守恒不变式」误判成弱判据。
+
+    ⇒ **正确口径**：只认 comparator **本身**就是整数常量
+    （`Constant` 直接是 comparator），或 comparator 是
+    `UnaryOp(USub/USub)` 且 operand 是整数常量 ⇒ **负数按其真实值算**
+    （`-1` ⇒ `-1`，不在 `VIOLATION_CONSTS` ⇒ 不命中）。
+
+    ⚠️ 其它形态（`get('n_played', 0)` 这种**调用里的默认参数**、
+    算术表达式、变量名）**一律不算「阈值常量」** ⇒ 不命中。
+    """
+    if isinstance(cmp_node, ast.Constant):
+        v = cmp_node.value
+        if isinstance(v, int) and not isinstance(v, bool):
+            return v
+        return None
+    if isinstance(cmp_node, ast.UnaryOp) and isinstance(cmp_node.op, ast.USub):
+        operand = cmp_node.operand
+        if isinstance(operand, ast.Constant):
+            v = operand.value
+            if isinstance(v, int) and not isinstance(v, bool):
+                return -v
+        return None
+    return None
+
+
+def _is_conservation_form(left: ast.AST) -> bool:
+    """左值是否是「**守恒式**」（和式 / 差式）⇒ 不是「等一个事件」。
+
+    🔴 **形态**：`n_played + n_dropped == n_submitted`
+    ⇒ 这是**丢句记账守恒不变式**（§60 `_drop_one()` 建立的口径），
+    **不是** APP-021 点名的「用 `n_played >= 1` 判定出声」⇒ 不算违规。
+    """
+    return isinstance(left, (ast.BinOp,))
+
+
 def find_weak_criteria(code: str) -> Optional[List[str]]:
     """找出「用 `n_played` 与常量 0/1 比较」的代码行（**AST 级**）。
 
@@ -110,6 +167,10 @@ def find_weak_criteria(code: str) -> Optional[List[str]]:
 
     ⚠️ **不要剥注释**：`ast.parse` 本来就不含注释节点；
        手工剥行会**破坏多行字符串**（bytes 字面量）⇒ 解析失败。
+
+    🔴🔴 **§121 实测修正**：比较器常量**只认 comparator 本身**
+    （见 `_comparator_int_value`）⇒ 不再把 `-1` 拆成 `1`；
+    左值若是**和式**（守恒不变式）⇒ 不命中（见 `_is_conservation_form`）。
     """
     try:
         tree = ast.parse(code)
@@ -124,16 +185,16 @@ def find_weak_criteria(code: str) -> Optional[List[str]]:
                      for n in ast.walk(node.left))
         if not has_np:
             continue
+        # 🔴 左值是**和式/差式** ⇒ 守恒不变式 ⇒ 不是弱判据
+        if _is_conservation_form(node.left):
+            continue
         for op, cmp in zip(node.ops, node.comparators):
             if not isinstance(op, VIOLATION_OPS):
                 continue
-            for c in ast.walk(cmp):
-                if (isinstance(c, ast.Constant)
-                        and isinstance(c.value, int)
-                        and not isinstance(c.value, bool)
-                        and c.value in VIOLATION_CONSTS):
-                    out.append('L%d: %s' % (node.lineno, ast.unparse(node)))
-                    break
+            val = _comparator_int_value(cmp)
+            if val is not None and val in VIOLATION_CONSTS:
+                out.append('L%d: %s' % (node.lineno, ast.unparse(node)))
+                break
     return out
 
 

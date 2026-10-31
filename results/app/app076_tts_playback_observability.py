@@ -217,51 +217,89 @@ def group_a():
     check('A7 无播放器 ⇒ 测试声音明确失败（不假装成功）',
           ok is False and '播放流' in msg, 'msg=%s' % msg[:50])
 
-    # ── A8：源码级 —— `played` **必须**在 `wait_consumed` 之后发出 ─────
+    # ── A8：源码级 —— 播放路径的 `played` **必须**在 `wait_consumed` 之后发出 ──
+    #   🔴🔴 **§121 修正**：按**函数作用域**判定 ＋ **三态**（见 re_finditer_played）
+    #   ① 适用路径（所在函数内有 wait_consumed）⇒ 必须 before_wait=True
+    #   ② 落盘路径（无 wait_consumed）⇒ 不适用 ⇒ 不算违规
+    #   ③ **必须至少有一个适用路径** ⇒ 否则判据空转（恒 PASS）⇒ 必须 FAIL
     m_play = re_finditer_played(src)
+    applicable = [x for x in m_play if x['applies']]
+    not_applicable = [x for x in m_play if not x['applies']]
     check('A8 源码：`played` 只在 wait_consumed 之后发出',
-          m_play and all(x['before_wait'] for x in m_play),
-          'played emit 点 %d 个；before_wait=%s'
-          % (len(m_play), [x['before_wait'] for x in m_play]))
+          bool(applicable) and all(x['before_wait'] for x in applicable),
+          'played emit 点 %d 个（适用 %d / 落盘 %d）；before_wait=%s'
+          % (len(m_play), len(applicable), len(not_applicable),
+             [x['before_wait'] for x in applicable]))
     EVIDENCE['A8_played_emit_points'] = m_play
+    EVIDENCE['A8_applicable_count'] = len(applicable)
+    EVIDENCE['A8_not_applicable_count'] = len(not_applicable)
 
 
 def re_finditer_played(src):
-    """用 AST 判定 `synth()` 里 **`played` 的 emit 是否在 `wait_consumed` 之后**。
+    """用 AST 判定 **`played` 的 emit 是否在 `wait_consumed` 之后**（**按函数作用域**）。
 
     🔴 不用字符串位置判定：中间夹着 `emit({'kind':'error'...})`（失败分支）
        会让「上一个 emit」落在 wait_consumed **之后** ⇒ 误判。
     ⇒ 改用 AST 的行号：**`wait_consumed` 调用的行号 < `played` emit 的行号**。
+
+    🔴🔴🔴 **§121 实测修正（原实现已过期 ⇒ 恒 FAIL）**：
+
+    **原实现只扫 `synth()` 这一个函数** ⇒ 而 **APP-028②**（用户明文
+    「语音播放的时候，直接连续推理 TTS 音频流，不要等待播放完成」）
+    已把**播放路径**的 `played` emit 从 `synth()` 挪到**播放看门狗线程**
+    的 `_finish_played()`（`tts_worker.py` L2486）⇒
+    `synth()` 里只剩**落盘路径**（`if not wait_play:` 分支，L2401）那个
+    `played` emit ⇒ 原实现抓到的是**落盘分支**的点 ⇒
+    该分支**本来就不等播放**（没有播放器）⇒ 判据语义被彻底误读。
+
+    ⇒ **新口径（按函数作用域判定）**：
+      ① **播放路径**（所在函数内有 `wait_consumed` 调用）
+         ⇒ `played` emit **必须**在 `wait_consumed` **之后**（行号更大）。
+      ② **落盘路径**（所在函数内**没有** `wait_consumed`）
+         ⇒ **不适用**该约束（无播放器 ⇒ 直接定案）⇒ **不算违规**。
+      ③ 整个模块里**一个 `played` emit 都找不到** ⇒ 判据失效 ⇒ 必须 FAIL
+         （不能因为「空集」而恒 PASS —— §36 同源教训）。
+
+    🔴 **为什么按「函数作用域」而不是「全模块行号」**：
+    全模块行号比较会把**不同函数**的行号混在一起比较 ⇒
+    落盘分支（L2401）与看门狗分支（L2486）会互相干扰 ⇒ 误判。
     """
     out = []
     tree = ast.parse(src)
     for node in ast.walk(tree):
-        if not isinstance(node, ast.FunctionDef) or node.name != 'synth':
+        if not isinstance(node, ast.FunctionDef):
             continue
         wait_lines = []
         played_lines = []
         for sub in ast.walk(node):
-            if isinstance(sub, ast.Call):
-                fn = sub.func
-                nm = (fn.attr if isinstance(fn, ast.Attribute)
-                      else (fn.id if isinstance(fn, ast.Name) else ''))
-                if nm == 'wait_consumed':
-                    wait_lines.append(sub.lineno)
-                if nm == 'emit':
-                    # `emit({'kind': 'played', ...})` ⇒ kind 是**字典的键**
-                    for arg in sub.args:
-                        if isinstance(arg, ast.Dict):
-                            for k, v in zip(arg.keys, arg.values):
-                                if (isinstance(k, ast.Constant)
-                                        and k.value == 'kind'
-                                        and isinstance(v, ast.Constant)
-                                        and v.value == 'played'):
-                                    played_lines.append(sub.lineno)
+            if not isinstance(sub, ast.Call):
+                continue
+            fn = sub.func
+            nm = (fn.attr if isinstance(fn, ast.Attribute)
+                  else (fn.id if isinstance(fn, ast.Name) else ''))
+            if nm == 'wait_consumed':
+                wait_lines.append(sub.lineno)
+            if nm == 'emit':
+                # `emit({'kind': 'played', ...})` ⇒ kind 是**字典的键**
+                for arg in sub.args:
+                    if isinstance(arg, ast.Dict):
+                        for k, v in zip(arg.keys, arg.values):
+                            if (isinstance(k, ast.Constant)
+                                    and k.value == 'kind'
+                                    and isinstance(v, ast.Constant)
+                                    and v.value == 'played'):
+                                played_lines.append(sub.lineno)
         for pl in played_lines:
-            out.append(dict(played_line=pl,
-                            wait_lines=wait_lines,
-                            before_wait=bool(wait_lines)
-                            and min(wait_lines) < pl))
+            # 该 emit 所在函数内**是否有** wait_consumed ⇒ 决定是否适用约束
+            applies = bool(wait_lines)
+            out.append(dict(
+                played_line=pl,
+                func=node.name,
+                wait_lines=wait_lines,
+                # 🔴 三态：`None` = 该路径**不适用**（落盘路径）
+                before_wait=(min(wait_lines) < pl) if applies else None,
+                applies=applies,
+            ))
     return out
 
 
