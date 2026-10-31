@@ -54,8 +54,8 @@ import sys
 import time
 import wave
 
-REPO = r'C:\Users\Trekker-PTL\confucius4-openvino'
-HOME = r'C:\Users\Trekker-PTL'
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+HOME = os.path.expanduser('~')
 SHARED = os.path.join(HOME, 'shared')
 SPK_JSON = os.path.join(SHARED, 'spe_qa_spk.json')
 SPE_FULL = os.path.join(REPO, 'test_audio', '260902_SPE_audio.wav')

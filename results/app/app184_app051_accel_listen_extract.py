@@ -34,7 +34,9 @@ import struct
 import wave
 
 HOME = os.path.expanduser('~')
-REPO = os.path.join(HOME, 'confucius4-openvino')
+# 🔴🔴🔴 §118：仓库根从**本脚本自身位置**推导，不写死 `HOME/confucius4-openvino`
+#    ⇒ 否则 fresh clone 时会读到**原仓库**的文件 ⇒ 验收结论是假象。
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SRC_DIR = os.path.join(HOME, 'app043_clone_accept')
 JSONL = os.path.join(SRC_DIR, 'clone.tts.jsonl')
 WAV = os.path.join(SRC_DIR, 'clone_out.wav')

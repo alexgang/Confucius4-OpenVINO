@@ -46,6 +46,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -126,6 +127,88 @@ def ignored_set(paths):
     return ig
 
 
+#: 🔴🔴🔴 「写死仓库根」的两种形态（§118 实测的同类根因）
+#:   ① 绝对路径写死：  REPO = r'C:\Users\Trekker-PTL\confucius4-openvino'
+#:   ② 拼 HOME 写死：  REPO = os.path.join(HOME, 'confucius4-openvino')
+#: ⇒ 后果：脚本搬到别处（fresh clone / 别人机器）时**仍读原仓库**
+#: ⇒ 「在 clone 上验收通过」是**假象** ⇒ 证据不可复现。
+#:
+#: 🔴🔴 **必须用 AST 而不是正则** —— 正则会命中
+#:    ① **docstring 里引用的别人源码**（实测 `live_caption/speaker_assets.py`
+#:       的 docstring 正引用 ASR 侧 `REPO = r'...confucius4-openvino'`）
+#:    ② 注释里的举例
+#:    ⇒ 那是**散文**，不是可执行代码 ⇒ 报出来就是**假阳性**
+#:    ⇒ 假阳性会让闸门恒 FAIL ⇒ 闸门一旦恒 FAIL 就等于没有闸门。
+#: ⇒ AST 只看**真实的赋值语句**（`Assign` / `AnnAssign`）⇒ 零误伤。
+_HARDCODED_REPO_LITERAL = re.compile(r'confucius4-openvino', re.IGNORECASE)
+
+
+def _is_repo_literal(node):
+    """判断一个 AST 节点是否是「写死仓库根」的常量表达式。"""
+    try:
+        val = ast.literal_eval(node)
+    except (ValueError, SyntaxError, TypeError):
+        return False
+    return isinstance(val, str) and bool(_HARDCODED_REPO_LITERAL.search(val))
+
+
+def scan_hardcoded_repo(repo_files):
+    """扫出**写死仓库根**的脚本（AST 判定，只看真实赋值语句）。
+
+    🔴 排除项：
+      * `status/` `docs/` 下的说明文档（是**散文**，不是可执行脚本）；
+      * `_*.py` 开头的**一次性写入器**（历史脚本，不参与验收）；
+      * docstring / 注释（AST 天然不覆盖 ⇒ 零误伤）。
+    """
+    hits = []
+    for p in repo_files:
+        if not p.endswith('.py'):
+            continue
+        if os.path.basename(p).startswith('_'):
+            continue
+        if p.startswith(('status/', 'docs/')):
+            continue
+        fp = os.path.join(REPO, p)
+        try:
+            with open(fp, 'r', encoding='utf-8', errors='replace') as f:
+                src = f.read()
+        except OSError:
+            continue
+        try:
+            tree = ast.parse(src)
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            targets = []
+            value = None
+            if isinstance(node, ast.Assign):
+                targets = node.targets
+                value = node.value
+            elif isinstance(node, ast.AnnAssign):
+                targets = [node.target]
+                value = node.value
+            if value is None:
+                continue
+            # ① 直接字符串字面量
+            if _is_repo_literal(value):
+                pass
+            # ② os.path.join(X, 'confucius4-openvino')
+            elif (isinstance(value, ast.Call)
+                  and isinstance(value.func, ast.Attribute)
+                  and value.func.attr == 'join'
+                  and value.args
+                  and any(_is_repo_literal(a) for a in value.args)):
+                pass
+            else:
+                continue
+            for t in targets:
+                tname = getattr(t, 'id', None) or getattr(t, 'attr', None) or ''
+                if tname and tname.upper() in ('REPO', 'REPO_ROOT', 'REPO_DIR'):
+                    hits.append({'file': p, 'line': node.lineno,
+                                 'text': src.splitlines()[node.lineno - 1].strip()[:120]})
+    return hits
+
+
 #: 从反引号 / Markdown 链接 / 裸路径里提取「仓库内相对路径」
 _PATH_RE = re.compile(
     r'`([A-Za-z0-9_./\\-]+\.(?:py|json|md|txt|log|patch|sh|bat|yaml|yml|csv))`'
@@ -197,6 +280,17 @@ def check_status(status_text, status_label, tracked, dirty):
     # 「约定忽略」不算漏交
     missing = [p for p in missing if p not in set(ignored)]
 
+    # 🔴🔴🔴 追加检查：**写死仓库根**的脚本（§118 实测的同类根因）
+    #   ⇒ 这类脚本搬到别处时**仍读原仓库** ⇒ 证据不可复现。
+    #   ⚠️ 全仓有**大量历史一次性脚本**带这个写法 ⇒ 若把它们也算进 FAIL
+    #      ⇒ 闸门**恒 FAIL** ⇒ 恒 FAIL 的闸门等于没有闸门（§四纪律）。
+    #   ⇒ 因此**只对「STATUS 引用的脚本」**判 FAIL；
+    #      其余**全量列出**当**存量清单**（供后续逐批清理，不阻断）。
+    hardcoded_all = scan_hardcoded_repo(sorted(tracked | dirty))
+    cited = set(cands)
+    hardcoded_fail = [h for h in hardcoded_all if h['file'] in cited]
+    hardcoded_backlog = [h for h in hardcoded_all if h['file'] not in cited]
+
     return {
         'status': status_label,
         'n_candidates': len(cands),
@@ -206,9 +300,13 @@ def check_status(status_text, status_label, tracked, dirty):
         'n_ignored_by_convention': len(ignored),
         'n_skipped_abs': skipped_abs,
         'n_skipped_placeholder': skipped_placeholder,
+        'n_hardcoded_repo': len(hardcoded_fail),
+        'n_hardcoded_repo_backlog': len(hardcoded_backlog),
         'missing': missing,
         'dirty': dirty_refs,
         'ignored_by_convention': ignored,
+        'hardcoded_repo': hardcoded_fail,
+        'hardcoded_repo_backlog': hardcoded_backlog,
         'ok': ok,
     }
 
@@ -236,7 +334,8 @@ def main():
     res = check_status(text, os.path.basename(sp), tracked, dirty)
 
     # 🔴 判据：**引用了但没入库** ⇒ FAIL；**引用了但内容与 HEAD 不一致** ⇒ FAIL
-    n_fail = res['n_missing'] + res['n_dirty']
+    #    **写死仓库根** ⇒ FAIL（§118 实测：这类脚本搬走后会读原仓库 ⇒ 证据不可复现）
+    n_fail = res['n_missing'] + res['n_dirty'] + res['n_hardcoded_repo']
     res['n_fail'] = n_fail
     res['n_pass'] = res['n_tracked']
     res['verdict'] = 'PASS' if n_fail == 0 else 'FAIL'
@@ -252,6 +351,7 @@ def main():
     print('  已入库且一致    : %d' % res['n_tracked'])
     print('  ❌ 完全未入库    : %d' % res['n_missing'])
     print('  ❌ 入库但内容有改动: %d' % res['n_dirty'])
+    print('  ❌ 写死仓库根的脚本: %d' % res['n_hardcoded_repo'])
     print('  (按 .gitignore 约定不入库: %d)' % res['n_ignored_by_convention'])
     print('  (跳过包外绝对路径 %d / 示意占位 %d)' % (res['n_skipped_abs'],
                                                     res['n_skipped_placeholder']))
@@ -259,6 +359,8 @@ def main():
         print('    MISSING  %s' % p)
     for p in res['dirty']:
         print('    DIRTY    %s' % p)
+    for h in res['hardcoded_repo']:
+        print('    HARDCODED  %s:%d  %s' % (h['file'], h['line'], h['text']))
     for p in res['ignored_by_convention']:
         print('    IGNORED  %s' % p)
     print('  结论: %s（PASS %d / FAIL %d）' % (res['verdict'], res['n_pass'], res['n_fail']))

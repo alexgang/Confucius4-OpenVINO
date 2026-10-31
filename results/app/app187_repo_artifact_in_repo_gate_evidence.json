@@ -1,24 +1,279 @@
 {
   "status": "STATUS_APP.md",
   "n_candidates": 38,
-  "n_tracked": 30,
-  "n_missing": 3,
-  "n_dirty": 3,
+  "n_tracked": 34,
+  "n_missing": 0,
+  "n_dirty": 2,
   "n_ignored_by_convention": 1,
   "n_skipped_abs": 0,
   "n_skipped_placeholder": 0,
-  "missing": [
-    "results/app/app175_app043_clone_acceptance_evidence.json",
-    "results/app/app179_app042_gui_accel_evidence.json",
-    "results/app/app181_pythonw_coldstart_v2_evidence.json"
-  ],
+  "n_hardcoded_repo": 0,
+  "n_hardcoded_repo_backlog": 51,
+  "missing": [],
   "dirty": [
-    "results/app/app165_app048_gui_layout_evidence.json",
-    "results/app/app170_version_identity_gate.py",
-    "results/app/app170_version_identity_gate_evidence.json"
+    "results/app/app184_app051_accel_listen_extract.py",
+    "results/app/app186_app051_acceptance_gate.py"
   ],
   "ignored_by_convention": [
     "results/app/pack_v13_app051_repack4.log"
+  ],
+  "hardcoded_repo": [],
+  "hardcoded_repo_backlog": [
+    {
+      "file": "live_caption/sync_app023_to_pkg.py",
+      "line": 27,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "live_caption/sync_c136_to_pkg.py",
+      "line": 22,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "live_caption/sync_c137_to_pkg.py",
+      "line": 43,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/app007_apply_to_worktree.py",
+      "line": 27,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_build_list.py",
+      "line": 19,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_build_replace_text.py",
+      "line": 17,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_build_replace_text2.py",
+      "line": 29,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_chinese_quotes.py",
+      "line": 22,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_cn_exact.py",
+      "line": 24,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_diff_preview.py",
+      "line": 19,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_dump_orig_lines.py",
+      "line": 14,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_fast_scan.py",
+      "line": 18,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_final_list.py",
+      "line": 22,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_full_scan.py",
+      "line": 18,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_path_scan.py",
+      "line": 19,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_prefix_detect.py",
+      "line": 16,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_preflight.py",
+      "line": 26,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_table_detect.py",
+      "line": 16,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_uncovered_check.py",
+      "line": 18,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_verify_table.py",
+      "line": 17,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_verify_table2.py",
+      "line": 17,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app007_verify_table3.py",
+      "line": 15,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app010_classify_worktree.py",
+      "line": 21,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app010_leak_context.py",
+      "line": 7,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/app010_redact_worktree.py",
+      "line": 32,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app014_gui_smoke.py",
+      "line": 19,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app014b_v15_preship_check.py",
+      "line": 39,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/app023_apply_to_worktree.py",
+      "line": 21,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app023_verify_round2.py",
+      "line": 16,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app024_tts_cuda_probe.py",
+      "line": 20,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app038_run.py",
+      "line": 20,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app041_set_status_head.py",
+      "line": 20,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app043_set_status_head_s38.py",
+      "line": 19,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app046_set_status_head_s39.py",
+      "line": 19,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app048_set_status_head_s40.py",
+      "line": 19,
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "results/app/app073_tts_encoding_fix.py",
+      "line": 70,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/app080_sync_s55_to_pkg.py",
+      "line": 33,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/app108_head_pkg_recheck.py",
+      "line": 15,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/app145_app042_cli_target_wall.py",
+      "line": 34,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/app146_app042_speed_math.py",
+      "line": 31,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/app147_app042_submit_target_wall.py",
+      "line": 35,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/app148_archive_run3.py",
+      "line": 23,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/app151_archive_run4.py",
+      "line": 27,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/app152_app151_cli_closure_scope.py",
+      "line": 33,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/app156_app100_zip_verify.py",
+      "line": 28,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/app160_app102_zip_verify.py",
+      "line": 36,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/sync_app027_to_pkg.py",
+      "line": 32,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/sync_app073_C_to_pkg.py",
+      "line": 23,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/sync_s70_device_config_to_pkg.py",
+      "line": 39,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/test_app_clear_reset.py",
+      "line": 43,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    },
+    {
+      "file": "results/app/test_pkg_translator_fixes.py",
+      "line": 39,
+      "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+    }
   ],
   "ok": [
     "live_caption/gui_status.py",
@@ -31,7 +286,10 @@
     "results/app/app162_app045_speakerlib_no_copy.json",
     "results/app/app163_app045_shortcut_update.json",
     "results/app/app164_app047_spk_resync_evidence.json",
+    "results/app/app165_app048_gui_layout_evidence.json",
     "results/app/app168_pkg_runtime_import_probe.py",
+    "results/app/app170_version_identity_gate.py",
+    "results/app/app170_version_identity_gate_evidence.json",
     "results/app/app171_app027_v3_cer_compare.py",
     "results/app/app171_app027_v3_cer_compare_evidence.json",
     "results/app/app174_run_with_lock.py",
@@ -39,11 +297,12 @@
     "results/app/app174b_exec_devices_unit.py",
     "results/app/app174c_startup_log_evidence.json",
     "results/app/app174d_worker_startup_e2e.json",
+    "results/app/app175_app043_clone_acceptance_evidence.json",
+    "results/app/app179_app042_gui_accel_evidence.json",
+    "results/app/app181_pythonw_coldstart_v2_evidence.json",
     "results/app/app183_app042_formula_evidence.json",
-    "results/app/app184_app051_accel_listen_extract.py",
     "results/app/app184_app051_accel_listen_manifest.json",
     "results/app/app185_app048_gui_layout_pkg_evidence.json",
-    "results/app/app186_app051_acceptance_gate.py",
     "results/app/app186_app051_acceptance_gate_evidence.json",
     "results/app/app186_app051_gate_discrimination_evidence.json",
     "results/app/app186_discrimination_test.py",
@@ -52,10 +311,10 @@
     "status/archive/STATUS_APP_sec109_114_upto_20261031.md",
     "status/archive/STATUS_APP_upto_20261030.md"
   ],
-  "n_fail": 6,
-  "n_pass": 30,
+  "n_fail": 2,
+  "n_pass": 34,
   "verdict": "FAIL",
-  "ts": "2026-11-01 02:21:14",
+  "ts": "2026-11-01 02:25:29",
   "repo": "C:\\Users\\Trekker-PTL\\confucius4-openvino",
   "script": "app187_repo_artifact_in_repo_gate.py",
   "purpose": "§104/§118：STATUS 里引用的产物必须已入库（git ls-files 在册）且内容与 HEAD 一致 ⇒ 否则「已交付」在别人机器上不成立"

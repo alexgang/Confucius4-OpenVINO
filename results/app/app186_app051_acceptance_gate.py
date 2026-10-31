@@ -38,7 +38,12 @@ import re
 import sys
 
 HOME = os.path.expanduser('~')
-REPO = os.path.join(HOME, 'confucius4-openvino')
+# 🔴🔴🔴 §118：**仓库根从「本脚本自身位置」推导**，不写死 `HOME/confucius4-openvino`。
+#    写死的后果（实测 2026-11-01）：fresh clone 到别处时，
+#    `EV` 仍指向**原仓库** ⇒ 本脚本读的证据来自**另一个工作区**
+#    ⇒ 「在 clone 上验收通过」是**假象**（它根本没读 clone 里的文件）。
+#    ⇒ 判据必须锚定**自己所在的仓库** ⇒ 换机器/换目录才真正可复现。
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 EV = os.path.join(REPO, 'results', 'app')
 
 # 🔴🔴 §48：**包目录/版本号一律走单一数据源**，不写死版本
