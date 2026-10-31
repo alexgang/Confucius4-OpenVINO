@@ -1,27 +1,28 @@
 {
  "script": "app170_version_identity_gate.py",
- "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12",
- "pkg_version": "1.12",
- "pass": 18,
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+ "pkg_version": "1.13",
+ "target_version": "1.13",
+ "pass": 20,
  "fail": 0,
  "verdict": "PASS",
  "advisories": [],
  "fails": [],
  "files": {
   "README_zh.md": {
-   "bytes": 41258,
-   "sha256": "3aa5259493cff418e67dc72a724ed67bf645679ecaedec2e4c06576b2241915f",
-   "mtime": 1793362877.9510162
+   "bytes": 43362,
+   "sha256": "be660a228453be9e27005662c02e7906122d2ebd6dc0eb23045b157bc69e17ef",
+   "mtime": 1793408751.8561726
   },
   "README_en.md": {
-   "bytes": 45929,
-   "sha256": "9e5afc0008818ee196834f8f21d54ab847e0484b334970807ba18c360c488b24",
-   "mtime": 1793362877.9510162
+   "bytes": 48302,
+   "sha256": "5865945683e3d0dd42fbf22d236f0f4c11d49a8d51fe1c9fd605b09ed2aa1729",
+   "mtime": 1793408751.8572793
   },
   "NOTICE": {
    "bytes": 9644,
-   "sha256": "69f3335db178873677f83e977cb3064126111090281f917ec8c1e17d051f62c0",
-   "mtime": 1793362877.9523456
+   "sha256": "a64407b4ab8a5ba4ac397a230740d5f5f8545cce42010712bc7253e2ac49c083",
+   "mtime": 1793408174.249115
   }
  }
 }

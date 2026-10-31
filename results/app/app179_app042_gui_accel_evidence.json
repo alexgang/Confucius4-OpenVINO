@@ -1,0 +1,68 @@
+{
+  "script": "app179_app042_gui_accel_acceptance.py",
+  "correction": "APP-051② / APP-042（GUI 路径）/ APP-043",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+  "wav": "C:\\Users\\Trekker-PTL\\shared\\spe_qa_clone_listen\\SPE_densest_5min.wav",
+  "max_seconds": 90.0,
+  "rc": 0,
+  "wall_s": 280.8,
+  "log": "C:\\Users\\Trekker-PTL\\app051_gui_accel\\gui_accel.log",
+  "jsonl": "C:\\Users\\Trekker-PTL\\app051_gui_accel\\gui_accel.tts.jsonl",
+  "n_rows": 22,
+  "n_accel_rows": 21,
+  "n_target_wall_rows": 21,
+  "speed_min": 1.0,
+  "speed_max": 1.3,
+  "speed_hist": {
+    "1.0": 1,
+    "1.1": 1,
+    "1.2": 1,
+    "1.3": 19
+  },
+  "checks": [
+    {
+      "name": "A1 GUI 路径产出了逐句遥测",
+      "ok": true,
+      "detail": "rows=22  jsonl=C:\\Users\\Trekker-PTL\\app051_gui_accel\\gui_accel.tts.jsonl"
+    },
+    {
+      "name": "A2 进程正常退出",
+      "ok": true,
+      "detail": "rc=0"
+    },
+    {
+      "name": "B1 GUI 路径真的触发了加速（speed > 1.0 的句子存在）",
+      "ok": true,
+      "detail": "加速句=21 / 22  max_speed=1.3000"
+    },
+    {
+      "name": "B2 GUI 路径下发了目标开播墙钟（target_wall 非空）",
+      "ok": true,
+      "detail": "target_wall 非空=21 / 22"
+    },
+    {
+      "name": "B3 加速倍率落在 APP-042 约定区间（1.0 < speed ≤ 1.30）",
+      "ok": true,
+      "detail": "speed 取值集合=[1.0, 1.1, 1.2, 1.3]"
+    },
+    {
+      "name": "B4 滞后越大 ⇒ 倍率越大（同向）",
+      "ok": true,
+      "detail": "lag>10 的均值=1.2857（n=21）；lag<=10 的均值=0.0000（n=0）"
+    },
+    {
+      "name": "R1 反证：speed 全改 1.0 ⇒ B1 必 FAIL",
+      "ok": true,
+      "detail": "fake n_accel=0 ⇒ B1 条件为假 ⇒ FAIL"
+    },
+    {
+      "name": "R2 反证：target_wall 全清空 ⇒ B2 必 FAIL",
+      "ok": true,
+      "detail": "fake n_target_wall=0 ⇒ B2 条件为假 ⇒ FAIL"
+    }
+  ],
+  "n_pass": 8,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "note": "GUI 路径真机实测；判据只看链路接通与数字自洽；音质/不变调/可懂由 reviewer 与用户实听判定"
+}

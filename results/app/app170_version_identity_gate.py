@@ -148,8 +148,29 @@ def make_fake_pkg(tmpdir, src_dir, ver):
     return dst
 
 
-def run_group(group, pkg_dir, ver):
-    """在给定包目录上跑全套断言。"""
+def run_group(group, pkg_dir, ver, expect_version=None):
+    """在给定包目录上跑全套断言。
+
+    `expect_version`：本次打包的**目标版本号**（默认 = 目录名里的版本号）。
+
+    🔴🔴🔴 **升版场景的关键区分**（2026-10-31 打 v1.13 时暴露）
+    ---------------------------------------------------------
+    打包流水线里，目录名**已经**改成 `..._v1.13`，但 `MANIFEST.version`
+    要到 `refresh_manifest()` 才刷新（那一步在打包**后段**）。
+
+    ⇒ 若 I1 硬要求「目录名 == MANIFEST.version」⇒ **每次升版必被自己的
+      闸门拦死**（这是 §113 引入闸门时留下的**顺序缺陷**，不是数据问题）。
+
+    ⇒ 解法（**两道断言，各管一段**）：
+      ① **闸门**（本脚本）：判「目录名 == 目标版本」为**硬项**；
+         判「MANIFEST.version == 目标版本」在**升版未刷新前降级为提醒**；
+      ② **zip 级硬断言**（`pack_v13.py::_verify_and_report`）：
+         打包结束时读**zip 内**的 MANIFEST ⇒ 必须 == 目标版本
+         ⇒ **交付物**层面的最终保证（此时 refresh_manifest 已跑过）。
+
+    ⚠️ 因此「MANIFEST 不一致」**不再阻断打包**，但**打包后的 zip 断言**
+       仍是硬门 ⇒ 客户拿到自称旧版本的包**不可能发生**。
+    """
     print('\n== %s 组：%s ==' % (group, pkg_dir))
 
     zh = read_text(os.path.join(pkg_dir, 'README_zh.md'))
@@ -157,11 +178,25 @@ def run_group(group, pkg_dir, ver):
     nt = read_text(os.path.join(pkg_dir, 'NOTICE'))
     man = json.loads(read_text(os.path.join(pkg_dir, 'app', 'MANIFEST.json')))
 
+    target = expect_version or ver
+    man_ver = man.get('version')
+
     # ── INV：不变量（两组都必须 PASS）──
-    check_group(group, 'INV', 'I1 目录名版本 == MANIFEST.version',
-                detect_version(pkg_dir) == man.get('version'),
-                'dir=%s manifest=%s' % (detect_version(pkg_dir),
-                                        man.get('version')))
+    # I1a：目录名版本 == 目标版本（**硬项**，升版场景下这是真正的判据）
+    check_group(group, 'INV', 'I1a 目录名版本 == 目标版本 %s' % target,
+                detect_version(pkg_dir) == target,
+                'dir=%s target=%s' % (detect_version(pkg_dir), target))
+    # I1b：MANIFEST.version == 目标版本
+    #   🔴 升版未刷新前**允许不一致**（refresh_manifest 稍后修正）
+    #      ⇒ 降级为**提醒**；zip 级硬断言在 pack_v13.py 里做。
+    if man_ver == target:
+        check_group(group, 'INV', 'I1b MANIFEST.version == 目标版本 %s' % target,
+                    True, 'manifest=%s' % man_ver)
+    else:
+        check_group(group, 'ADV',
+                    'I1b MANIFEST.version == 目标版本 %s（升版未刷新，'
+                    'zip 级断言兜底）' % target,
+                    False, 'manifest=%s target=%s' % (man_ver, target))
     check_group(group, 'INV', 'I2 NOTICE 仍含 wespeaker 署名',
                 'wespeaker' in nt, '')
     check_group(group, 'INV', 'I3 NOTICE 仍含 pyannote 署名',
@@ -220,6 +255,14 @@ def main() -> int:
     ap = argparse.ArgumentParser(
         description='打包前「版本标识一致 + NOTICE 许可署名」闸门')
     ap.add_argument('--pkg', required=True, help='客户包目录（不含 .zip）')
+    ap.add_argument('--expect-version', default=None,
+                    help='**目标版本号**（打包流水线用）⇒ '
+                         '目录名与 MANIFEST 都按它判定。'
+                         '⚠️ 升版后 MANIFEST.version 尚未刷新时，'
+                         '本项降级为**提醒**（由打包流水线的 '
+                         'refresh_manifest() 负责修正）；'
+                         '**zip 级硬断言**在 pack_v13.py 的 '
+                         '_verify_and_report() 里做。')
     ap.add_argument('--json', default=None, help='证据输出路径')
     args = ap.parse_args()
 
@@ -231,13 +274,14 @@ def main() -> int:
     if not ver:
         print('[FAIL] 包目录名不含版本号：%s' % pkg)
         return 2
+    expect = args.expect_version or ver
     print('=' * 74)
     print('app170 —— 版本标识一致 + NOTICE 许可署名 闸门')
     print('=' * 74)
-    print('客户包目录：%s（version=%s）' % (pkg, ver))
+    print('客户包目录：%s（version=%s，目标=%s）' % (pkg, ver, expect))
 
     # ── REAL 组：当前状态 ──
-    run_group('REAL', pkg, ver)
+    run_group('REAL', pkg, expect, expect_version=expect)
 
     # ── BUG 组：修复前的原始文件（包外备份）──
     if not os.path.isdir(BACKUP_DIR):
@@ -246,7 +290,7 @@ def main() -> int:
         tmp = tempfile.mkdtemp(prefix='app170_bug_')
         try:
             fake = make_fake_pkg(tmp, BACKUP_DIR, ver)
-            run_group('BUG', fake, ver)
+            run_group('BUG', fake, expect, expect_version=expect)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
@@ -271,6 +315,7 @@ def main() -> int:
         'script': os.path.basename(__file__),
         'pkg': pkg,
         'pkg_version': ver,
+        'target_version': expect,
         'pass': PASS,
         'fail': FAIL,
         'verdict': verdict,

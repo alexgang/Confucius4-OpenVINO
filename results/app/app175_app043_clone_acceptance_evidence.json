@@ -1,0 +1,173 @@
+{
+ "script": "app175_app043_clone_acceptance.py",
+ "correction": "APP-043 / APP-051",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+ "pkg_version": "1.13",
+ "slice": {
+  "wav": "C:\\Users\\Trekker-PTL\\shared\\spe_qa_clone_listen\\SPE_densest_5min.wav",
+  "start_s": 3291.6,
+  "end_s": 3591.6,
+  "dur_s": 300.0,
+  "rate": 16000,
+  "n_switch_ref": 12
+ },
+ "cli": {
+  "rc": 0,
+  "wall_s": 0.0,
+  "stat_line": "[TTS] 最终统计（close 后）：提交 83  播完 83  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 5.87s  积压 最大 19.38s",
+  "log": "C:\\Users\\Trekker-PTL\\app043_clone_accept\\clone_cli.log"
+ },
+ "n_jsonl_rows": 83,
+ "n_submitted": 83,
+ "n_played": 83,
+ "n_dropped": 0,
+ "n_spk_reference": 5,
+ "spk_label_coverage_pct": 7.23,
+ "n_spk_tagged_lines": 7,
+ "n_voice_seq": 6,
+ "n_voice_switches": 1,
+ "confusion_voice_spk_x_kind": {
+  "None|preset": 31,
+  "None|clone": 46,
+  "S2|clone": 3,
+  "S3|clone": 3
+ },
+ "n_clone_rows": 52,
+ "n_embed_updates": 1,
+ "n_switch_points": 2,
+ "checks": [
+  {
+   "name": "产物存在：clone.tts.jsonl",
+   "ok": true,
+   "detail": "C:\\Users\\Trekker-PTL\\app043_clone_accept\\clone.tts.jsonl"
+  },
+  {
+   "name": "产物存在：clone_subtitles.txt",
+   "ok": true,
+   "detail": "C:\\Users\\Trekker-PTL\\app043_clone_accept\\clone_subtitles.txt"
+  },
+  {
+   "name": "E1 CLI 统计行解析到三数",
+   "ok": true,
+   "detail": "提交=83 播完=83 丢弃=0"
+  },
+  {
+   "name": "E2 不变式 n_played + n_dropped == n_submitted",
+   "ok": true,
+   "detail": "83 + 0 = 83 vs 83"
+  },
+  {
+   "name": "A1 逐句遥测里有 voice_spk 标签（非空）",
+   "ok": true,
+   "detail": "sample voice_spk='S2'"
+  },
+  {
+   "name": "A1b 遥测含 voice_kind 字段（区分 preset/clone）",
+   "ok": true,
+   "detail": "voice_kind 取值集合=['clone', 'preset']"
+  },
+  {
+   "name": "A2 字幕里出现说话人标签（APP-040④）",
+   "ok": true,
+   "detail": "tagged_lines=7"
+  },
+  {
+   "name": "① 混淆表可统计（voice_spk × voice_kind）",
+   "ok": true,
+   "detail": "n_cells=4"
+  },
+  {
+   "name": "①b 存在使用克隆音色的句子（voice_kind=clone）",
+   "ok": true,
+   "detail": "clone 句数 = 52 / 83"
+  },
+  {
+   "name": "①c 有 spk 标签的句子存在（可算一致率）",
+   "ok": true,
+   "detail": "n_labelled=6"
+  },
+  {
+   "name": "①d 一致率 = 100%（有标签句全部用了克隆音色）",
+   "ok": true,
+   "detail": "consistent=6 / labelled=6 ⇒ 100.0%"
+  },
+  {
+   "name": "①e 按句绑定模式下无标签句回落预设 A（不冒充）",
+   "ok": true,
+   "detail": "违规句 id=[]"
+  },
+  {
+   "name": "③ 声纹计算次数 ≤ 人数×3（5 人 ⇒ 上限 15）",
+   "ok": true,
+   "detail": "实际 1 次"
+  },
+  {
+   "name": "③b 克隆音色来源为内存 x-vector 路线（clone_mode=xvector）",
+   "ok": true,
+   "detail": "clone_mode 集合=['xvector']"
+  },
+  {
+   "name": "④ voice_spk 序列可提取（逐句绑定）",
+   "ok": true,
+   "detail": "n=6 switches=1"
+  },
+  {
+   "name": "④b 音色取值种类 ≤ 说话人数（无渐变中间态）",
+   "ok": true,
+   "detail": "uniq=2 n_spk=5"
+  },
+  {
+   "name": "④c 同一 spk 内音色恒定（无渐变/无回退）",
+   "ok": true,
+   "detail": "违例=[]"
+  },
+  {
+   "name": "② 换人点可识别（voice_spk 发生变化）",
+   "ok": true,
+   "detail": "n_switch_points=2"
+  },
+  {
+   "name": "②b 换人延迟可拆出「spk 判定延迟 + 取样延迟」",
+   "ok": true,
+   "detail": "judge=0.000 sample=0.438 total=0.438"
+  },
+  {
+   "name": "②c 换人延迟（不含播放排队）为有限正值",
+   "ok": true,
+   "detail": "totals=[0.438]"
+  },
+  {
+   "name": "F1 合成输出 wav 落盘且非空",
+   "ok": true,
+   "detail": "44911446 B"
+  },
+  {
+   "name": "R1 反证：音色序列里出现 >人数 的种类 ⇒ ④b 必 FAIL",
+   "ok": true,
+   "detail": "fake_uniq=6 cap=5（多出 1 个渐变中间态）"
+  },
+  {
+   "name": "R2 反证：n_played+n_dropped != n_submitted 时 E2 必 FAIL",
+   "ok": true,
+   "detail": "注入 1 个假 drop 后 84+0 != 83"
+  },
+  {
+   "name": "R3 反证：同一 spk 内音色变化 ⇒ ④c 必 FAIL",
+   "ok": true,
+   "detail": "注入=[('S1', 'preset', 'clone'), ('S2', 'clone', 'preset')]"
+  },
+  {
+   "name": "R4 反证：全 preset 的假数据 ⇒ ①b 必 FAIL",
+   "ok": true,
+   "detail": "假数据 clone 句数 = 0 ⇒ ①b 条件 `clone 句数>0` 为假 ⇒ FAIL"
+  },
+  {
+   "name": "R5 反证：无标签句冒充克隆 ⇒ ①e 必 FAIL",
+   "ok": true,
+   "detail": "假数据违规句 id=[2]"
+  }
+ ],
+ "n_pass": 26,
+ "n_fail": 0,
+ "verdict": "PASS"
+}

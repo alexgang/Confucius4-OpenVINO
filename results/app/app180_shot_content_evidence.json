@@ -1,0 +1,111 @@
+{
+  "script": "app180_shot_content_verifier.py",
+  "correction": "APP-051②（截图判据补强）/ APP-043（pythonw 冷启动）",
+  "results": [
+    {
+      "path": "C:\\Users\\Trekker-PTL\\shared\\app_pythonw_coldstart\\app178_cold1.png",
+      "desc": "app178 pythonw 冷启动图（**已知有缺陷**：客户区全空）",
+      "size": [
+        1096,
+        859
+      ],
+      "full_n_colors": 66,
+      "client_n_colors": 2,
+      "content_row_ratio": 1.0,
+      "bg": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\shared\\app_pythonw_coldstart\\app178_cold2.png",
+      "desc": "app178 pythonw 冷启动图 cold2（已知有缺陷）",
+      "size": [
+        1096,
+        859
+      ],
+      "full_n_colors": 66,
+      "client_n_colors": 2,
+      "content_row_ratio": 1.0,
+      "bg": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app048_layout_1920x1080.png",
+      "desc": "app048 布局图 1920x1080（**已知有内容**）",
+      "size": [
+        1920,
+        1080
+      ],
+      "full_n_colors": 636,
+      "client_n_colors": 631,
+      "content_row_ratio": 1.0,
+      "bg": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app048_layout_1280x720.png",
+      "desc": "app048 布局图 1280x720（已知有内容）",
+      "size": [
+        1280,
+        720
+      ],
+      "full_n_colors": 636,
+      "client_n_colors": 631,
+      "content_row_ratio": 0.8499,
+      "bg": [
+        240,
+        240,
+        240
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "name": "客户区有内容：app178_cold1.png",
+      "ok": true,
+      "detail": "client_n_colors=2 content_row_ratio=1.0000 ⇒ 判定 空白（期望 空白）"
+    },
+    {
+      "name": "客户区有内容：app178_cold2.png",
+      "ok": true,
+      "detail": "client_n_colors=2 content_row_ratio=1.0000 ⇒ 判定 空白（期望 空白）"
+    },
+    {
+      "name": "客户区有内容：app048_layout_1920x1080.png",
+      "ok": true,
+      "detail": "client_n_colors=631 content_row_ratio=1.0000 ⇒ 判定 有内容（期望 有内容）"
+    },
+    {
+      "name": "客户区有内容：app048_layout_1280x720.png",
+      "ok": true,
+      "detail": "client_n_colors=631 content_row_ratio=0.8499 ⇒ 判定 有内容（期望 有内容）"
+    },
+    {
+      "name": "反证：旧判据（整图色彩数 ≥ 8）会**放行**那张空客户区的冷启动图",
+      "ok": true,
+      "detail": "整图色彩数=[66, 66] ⇒ 旧判据恒真 ⇒ 必须换判据"
+    },
+    {
+      "name": "反证：新判据（**客户区**色彩数）**不放行**那张坏图",
+      "ok": true,
+      "detail": "client_n_colors=[2, 2]"
+    },
+    {
+      "name": "反证：新判据**放行**有内容的布局图（不是「一律判空」）",
+      "ok": true,
+      "detail": "client_n_colors=[631, 631]"
+    }
+  ],
+  "n_pass": 7,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "finding": "app178 的「色彩数 ≥ 8」判据**恒真**（66 色全部来自标题栏）⇒ pythonw 冷启动图**客户区全空** ⇒ 该图**不能**作为「GUI 正常渲染」的证据 ⇒ 需重抓（等 Tk 完成首次布局绘制）。"
+}

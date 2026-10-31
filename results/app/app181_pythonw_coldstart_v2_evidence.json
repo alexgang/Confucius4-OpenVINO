@@ -1,0 +1,161 @@
+{
+  "script": "app181_pythonw_coldstart_v2.py",
+  "correction": "APP-051②（pythonw 冷启动截图重抓）/ APP-043",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+  "version": "1.13",
+  "min_client_colors": 8,
+  "timeout_s": 900.0,
+  "observations": [
+    {
+      "tag": "cold1",
+      "pid": 13380,
+      "window": "Confucius4-R2T2 实时字幕 · 多后端测试",
+      "shot": "C:\\Users\\Trekker-PTL\\shared\\app_pythonw_coldstart_v2\\app181_cold1.png",
+      "client_n_colors": 552,
+      "wait_s": 9.8,
+      "rc": null,
+      "attempts": [
+        {
+          "t": 4.0,
+          "client_n_colors": 54,
+          "content_density": 0.019523
+        },
+        {
+          "t": 9.8,
+          "client_n_colors": 552,
+          "content_density": 0.468223
+        }
+      ],
+      "window_size": [
+        1096,
+        859
+      ],
+      "content_density": 0.468223,
+      "shot_bytes": 41264,
+      "shot_stats": {
+        "size": [
+          1096,
+          859
+        ],
+        "full_n_colors": 745,
+        "client_n_colors": 552,
+        "bg": [
+          240,
+          240,
+          240
+        ]
+      },
+      "shot_size": [
+        1096,
+        859
+      ],
+      "full_n_colors": 745
+    },
+    {
+      "tag": "cold2",
+      "pid": 23440,
+      "window": "Confucius4-R2T2 实时字幕 · 多后端测试",
+      "shot": "C:\\Users\\Trekker-PTL\\shared\\app_pythonw_coldstart_v2\\app181_cold2.png",
+      "client_n_colors": 550,
+      "wait_s": 9.0,
+      "rc": null,
+      "attempts": [
+        {
+          "t": 3.4,
+          "client_n_colors": 54,
+          "content_density": 0.019523
+        },
+        {
+          "t": 9.0,
+          "client_n_colors": 550,
+          "content_density": 0.468484
+        }
+      ],
+      "window_size": [
+        1096,
+        859
+      ],
+      "content_density": 0.468484,
+      "shot_bytes": 38343,
+      "shot_stats": {
+        "size": [
+          1096,
+          859
+        ],
+        "full_n_colors": 648,
+        "client_n_colors": 550,
+        "bg": [
+          240,
+          240,
+          240
+        ]
+      },
+      "shot_size": [
+        1096,
+        859
+      ],
+      "full_n_colors": 648
+    }
+  ],
+  "checks": [
+    {
+      "name": "cold1 pythonw 进程成功启动（GUI 未崩）",
+      "ok": true,
+      "detail": "rc=None window='Confucius4-R2T2 实时字幕 · 多后端测试'"
+    },
+    {
+      "name": "cold1 截图客户区**有内容**（不是空客户区）",
+      "ok": true,
+      "detail": "client_n_colors=552（阈值 8）shot='C:\\\\Users\\\\Trekker-PTL\\\\shared\\\\app_pythonw_coldstart_v2\\\\app181_cold1.png'"
+    },
+    {
+      "name": "cold1 截图客户区**内容密度达标**（三分区控件已渲染）",
+      "ok": true,
+      "detail": "content_density=0.46822（阈值 0.05000）"
+    },
+    {
+      "name": "cold1 截图文件已落盘",
+      "ok": true,
+      "detail": "bytes=41264 path='C:\\\\Users\\\\Trekker-PTL\\\\shared\\\\app_pythonw_coldstart_v2\\\\app181_cold1.png'"
+    },
+    {
+      "name": "cold2 pythonw 进程成功启动（GUI 未崩）",
+      "ok": true,
+      "detail": "rc=None window='Confucius4-R2T2 实时字幕 · 多后端测试'"
+    },
+    {
+      "name": "cold2 截图客户区**有内容**（不是空客户区）",
+      "ok": true,
+      "detail": "client_n_colors=550（阈值 8）shot='C:\\\\Users\\\\Trekker-PTL\\\\shared\\\\app_pythonw_coldstart_v2\\\\app181_cold2.png'"
+    },
+    {
+      "name": "cold2 截图客户区**内容密度达标**（三分区控件已渲染）",
+      "ok": true,
+      "detail": "content_density=0.46848（阈值 0.05000）"
+    },
+    {
+      "name": "cold2 截图文件已落盘",
+      "ok": true,
+      "detail": "bytes=38343 path='C:\\\\Users\\\\Trekker-PTL\\\\shared\\\\app_pythonw_coldstart_v2\\\\app181_cold2.png'"
+    },
+    {
+      "name": "R1 反证：已知**空客户区**的旧图 ⇒ 新判据判空",
+      "ok": true,
+      "detail": "client_n_colors=2（应 < 8）  density=0.01822（应 < 0.05000）"
+    },
+    {
+      "name": "R1b 反证：**半成品图**（旧色彩数判据会放行）⇒ 密度判据必须拦住",
+      "ok": true,
+      "detail": "client_n_colors=95（旧判据放行）  density=0.02056（应 < 0.05000）"
+    },
+    {
+      "name": "R2 反证：已知**有内容**的布局图 ⇒ 新判据放行",
+      "ok": true,
+      "detail": "client_n_colors=631  density=0.48191（应 ≥ 0.05000）"
+    }
+  ],
+  "n_pass": 11,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "note": "① 判据换成「客户区色彩数」（修 app178「整图色彩数≥8」恒真）；② 等待条件换成「客户区真有内容」（覆盖模型冷加载）；③ 音质/可懂交 reviewer 与用户实听判定"
+}

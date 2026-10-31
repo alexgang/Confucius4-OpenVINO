@@ -1,0 +1,54 @@
+{
+  "script": "app187_discrimination_test.py",
+  "purpose": "证明 app187 判据**非恒真**（能识破「STATUS 引用了未入库产物」）",
+  "n_pass": 9,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "checks": [
+    {
+      "name": "T0 干净基线跑闸门成功",
+      "ok": true,
+      "detail": "rc=0"
+    },
+    {
+      "name": "T1 干净基线判定为 PASS",
+      "ok": true,
+      "detail": "verdict='PASS'（剔除 6 处引用）"
+    },
+    {
+      "name": "T1b 干净基线**零** MISSING / 零 DIRTY",
+      "ok": true,
+      "detail": "missing=0 dirty=0"
+    },
+    {
+      "name": "T2 注入组跑闸门成功",
+      "ok": true,
+      "detail": "rc=1"
+    },
+    {
+      "name": "T3 注入组判定为 FAIL",
+      "ok": true,
+      "detail": "verdict='FAIL'"
+    },
+    {
+      "name": "T4 注入的 3 个路径**全部**被判 MISSING",
+      "ok": true,
+      "detail": "missing=['results/app/__app187_probe_1.json', 'results/app/__app187_probe_2.json', 'results/app/__app187_probe_3.py']"
+    },
+    {
+      "name": "T5 MISSING 数**恰好** +3（精确命中，非多抓取胜）",
+      "ok": true,
+      "detail": "base=0 inj=3"
+    },
+    {
+      "name": "T6 已入库路径未被误判为 MISSING（无假阳性）",
+      "ok": true,
+      "detail": "base_ok=29 inj_ok=29"
+    },
+    {
+      "name": "T7 注入组**无额外** MISSING（只命中注入的那几处）",
+      "ok": true,
+      "detail": "extra=[]"
+    }
+  ]
+}

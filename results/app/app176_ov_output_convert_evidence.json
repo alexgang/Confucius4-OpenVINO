@@ -1,0 +1,84 @@
+{
+  "checks": [
+    {
+      "name": "A1_ov_out_to_array_exists",
+      "ok": true,
+      "detail": "fn names sample=['_move_cp_decode_to_npu', '_move_cp_prefill_to_npu', '_ov_out_to_array', '_ov_precision']"
+    },
+    {
+      "name": "A2_speaker_embedding_from_pcm_uses_converter",
+      "ok": true,
+      "detail": "call site present"
+    },
+    {
+      "name": "B0_real_ov_output_type",
+      "ok": true,
+      "detail": "type=OVDict  src=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\models\\qwen3tts\\int8\\speaker_encoder.xml"
+    },
+    {
+      "name": "B1_ovdict_to_numpy",
+      "ok": true,
+      "detail": "arr shape=(1, 1024)"
+    },
+    {
+      "name": "B2_ovdict_is_mapping_not_array",
+      "ok": true,
+      "detail": "isinstance ndarray = False"
+    },
+    {
+      "name": "B3_tensor_to_numpy",
+      "ok": true,
+      "detail": "arr shape=(2, 3)"
+    },
+    {
+      "name": "B4_constoutput_descriptor_returns_none",
+      "ok": true,
+      "detail": "arr=None（DescriptorTensor 无数据 ⇒ None 是正确行为）"
+    },
+    {
+      "name": "B5_ovdict_value_is_ndarray",
+      "ok": true,
+      "detail": "shape=(1, 1024)"
+    },
+    {
+      "name": "C1_prefix_code_must_raise",
+      "ok": true,
+      "detail": "TypeError: float() argument must be a string or a real number, not 'openvino._pyopenvino.ConstOutput'"
+    },
+    {
+      "name": "C2_ovdict_values_shape",
+      "ok": true,
+      "detail": "n=1 shape=(1, 1024)"
+    },
+    {
+      "name": "D1_ndarray_passthrough",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "D2_list_takes_first",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "D3_tuple_takes_first",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "D4_none_returns_none",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "E1_unknown_returns_none",
+      "ok": true,
+      "detail": "got None"
+    }
+  ],
+  "n_pass": 15,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "pkg_python": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\python\\python.exe",
+  "target_src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_engine.py"
+}

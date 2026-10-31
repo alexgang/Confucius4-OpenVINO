@@ -1,0 +1,67 @@
+{
+  "source_wav": "C:\\Users\\Trekker-PTL\\app043_clone_accept\\clone_out.wav",
+  "source_wav_total_s": 935.654,
+  "sample_rate": 24000,
+  "jsonl": "C:\\Users\\Trekker-PTL\\app043_clone_accept\\clone.tts.jsonl",
+  "n_rows": 83,
+  "n_switch_points": 2,
+  "align_method": "offset = play_wall[i] - play_wall[0]",
+  "align_note": "play_wall 跨度 932.22 s vs wav 935.65 s ⇒ 比率 1.0037；本脚本只产实听素材，不作判定依据",
+  "listen_dir": "C:\\Users\\Trekker-PTL\\shared\\app_clone_listen",
+  "archive_dir": "C:\\Users\\Trekker-PTL\\shared\\app_clone_listen\\_archive_pre_app052",
+  "n_clips": 4,
+  "clips": [
+    {
+      "file": "001_BEFORE_None_46.wav",
+      "role": "BEFORE",
+      "sent_id": 46,
+      "voice_spk": null,
+      "voice_kind": "clone",
+      "clone_active": true,
+      "clone_mode": "xvector",
+      "wav_offset_s": 558.308,
+      "clip_dur_s": 2.25,
+      "bytes": 108044,
+      "sha256": "7f5e0f514015694ad20b43e098d16a232239b08bb06baefb52530d3db1dc6732"
+    },
+    {
+      "file": "002_AFTER_S2_47.wav",
+      "role": "AFTER",
+      "sent_id": 47,
+      "voice_spk": "S2",
+      "voice_kind": "clone",
+      "clone_active": true,
+      "clone_mode": "xvector",
+      "wav_offset_s": 578.916,
+      "clip_dur_s": 5.88,
+      "bytes": 282284,
+      "sha256": "63bca62092971bebf97d47bab89cfdb2066b3e68e8648c5b238aa805aad37748"
+    },
+    {
+      "file": "003_BEFORE_None_61.wav",
+      "role": "BEFORE",
+      "sent_id": 61,
+      "voice_spk": null,
+      "voice_kind": "preset",
+      "clone_active": true,
+      "clone_mode": "xvector",
+      "wav_offset_s": 734.598,
+      "clip_dur_s": 5.34,
+      "bytes": 256364,
+      "sha256": "04a24a007733ae8177c2d56371fc91c7f06443eec42492eb7d7968ac5984c867"
+    },
+    {
+      "file": "004_AFTER_S3_62.wav",
+      "role": "AFTER",
+      "sent_id": 62,
+      "voice_spk": "S3",
+      "voice_kind": "clone",
+      "clone_active": false,
+      "clone_mode": null,
+      "wav_offset_s": 755.866,
+      "clip_dur_s": 7.92,
+      "bytes": 380204,
+      "sha256": "408becab2771bf901ebe86060362d54713a612403be723b051218f1e2897fc86"
+    }
+  ]
+}

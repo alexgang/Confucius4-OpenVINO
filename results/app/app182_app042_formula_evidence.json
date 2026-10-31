@@ -1,0 +1,82 @@
+{
+  "script": "app182_app042_speed_formula_check.py",
+  "correction": "APP-051② / APP-042 / APP-043（补 app179 的 B4 缺口）",
+  "jsonl": "C:\\Users\\Trekker-PTL\\app051_gui_accel\\gui_accel.tts.jsonl",
+  "n_rows": 22,
+  "n_samples": 21,
+  "formula": {
+    "expr": "clamp(1.0 + (lag - 3.0) * 0.025, 1.0, 1.30)",
+    "LAG_DEADZONE_S": 3.0,
+    "LAG_FULL_SPEED_S": 15.0,
+    "SPEED_PER_LAG_S": 0.025,
+    "SPEED_MIN": 1.0,
+    "SPEED_MAX": 1.3,
+    "LAG_HYSTERESIS_S": 2.0,
+    "MAX_STEP_CHANGE": 0.1,
+    "tolerance": 0.100001
+  },
+  "lag_range": [
+    18.786,
+    154.453
+  ],
+  "speed_range": [
+    1.1,
+    1.3
+  ],
+  "speed_values": [
+    1.1,
+    1.2,
+    1.3
+  ],
+  "n_unsaturated": 0,
+  "unsat_speed_values": [],
+  "n_mismatch_formula": 1,
+  "mismatch_samples": [
+    [
+      18.786,
+      1.1,
+      1.3
+    ]
+  ],
+  "checks": [
+    {
+      "name": "① 逐句公式命中：speed ≈ clamp(1.0+(lag−3)×0.025, 1.0, 1.30)",
+      "ok": false,
+      "detail": "未命中 1/21 句（容差 ±0.10）；样例=[(18.786, 1.1, 1.3)]"
+    },
+    {
+      "name": "② 未饱和区间（lag < 15 s）内 speed **有多个不同取值**",
+      "ok": false,
+      "detail": "未饱和样本=0  speed 取值=[]"
+    },
+    {
+      "name": "②b 未饱和区间内 (lag, speed) **同向**（lag↑ ⇒ speed↑）",
+      "ok": true,
+      "detail": "同向对=0  反向对=0 []"
+    },
+    {
+      "name": "②c 公式在测试点上**非降**（构造性，与数据无关）",
+      "ok": true,
+      "detail": "lag→speed: [(0.0, 1.0), (1.0, 1.0), (2.0, 1.0), (3.0, 1.0), (5.0, 1.05), (7.0, 1.1), (10.0, 1.175), (15.0, 1.3), (30.0, 1.3), (100.0, 1.3)]"
+    },
+    {
+      "name": "③ 反证：lag 全改同一值 ⇒ 判据②必 FAIL",
+      "ok": false,
+      "detail": "fake 未饱和 speed 取值=[1.1, 1.2, 1.3]（应 <2 ⇒ ②为假）"
+    },
+    {
+      "name": "④ 反证：speed 全改 1.0 ⇒ 判据①必 FAIL",
+      "ok": true,
+      "detail": "fake 未命中=21/21（应 >0）"
+    },
+    {
+      "name": "⑤ 反证：speed 反向 ⇒ 判据②b 必 FAIL",
+      "ok": false,
+      "detail": "fake 反向对=0（应 >0）"
+    }
+  ],
+  "n_pass": 3,
+  "n_fail": 4,
+  "verdict": "FAIL",
+  "note": "补 app179 的 B4 缺口：app179 按 lag>10 分组 ⇒ 低滞后组 n=0 ⇒ 同向性退化为恒真；本脚本按 APP-042 公式逐句核对 + 在未饱和区间( lag<15s )验证单调性 + 三条反证"
+}

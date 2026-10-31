@@ -1,0 +1,146 @@
+{
+  "script": "app178_pythonw_coldstart.py",
+  "correction": "APP-043 / APP-051②",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+  "pythonw": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\python\\pythonw.exe",
+  "app_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\app\\live_caption_app.py",
+  "shot_dir": "C:\\Users\\Trekker-PTL\\shared\\app_pythonw_coldstart",
+  "runs": [
+    {
+      "tag": "cold1",
+      "pid": 24400,
+      "window": "Confucius4-R2T2 实时字幕 · 多后端测试",
+      "shot": "C:\\Users\\Trekker-PTL\\shared\\app_pythonw_coldstart\\app178_cold1.png",
+      "shot_bytes": 7350,
+      "shot_extrema": [
+        [
+          0,
+          255
+        ],
+        [
+          0,
+          255
+        ],
+        [
+          0,
+          255
+        ]
+      ],
+      "wait_s": 3.02,
+      "rc": 1,
+      "window_size": [
+        1096,
+        859
+      ],
+      "shot_size": [
+        1096,
+        859
+      ],
+      "shot_n_colors": 66,
+      "alive_after_kill": false
+    },
+    {
+      "tag": "cold2",
+      "pid": 12848,
+      "window": "Confucius4-R2T2 实时字幕 · 多后端测试",
+      "shot": "C:\\Users\\Trekker-PTL\\shared\\app_pythonw_coldstart\\app178_cold2.png",
+      "shot_bytes": 7350,
+      "shot_extrema": [
+        [
+          0,
+          255
+        ],
+        [
+          0,
+          255
+        ],
+        [
+          0,
+          255
+        ]
+      ],
+      "wait_s": 3.01,
+      "rc": 1,
+      "window_size": [
+        1096,
+        859
+      ],
+      "shot_size": [
+        1096,
+        859
+      ],
+      "shot_n_colors": 66,
+      "alive_after_kill": false
+    }
+  ],
+  "checks": [
+    {
+      "name": "A_cold1 pythonw 进程存活过（没崩）",
+      "ok": true,
+      "detail": "rc=1 window='Confucius4-R2T2 实时字幕 · 多后端测试'"
+    },
+    {
+      "name": "B_cold1 出现 GUI 可见窗口",
+      "ok": true,
+      "detail": "title='Confucius4-R2T2 实时字幕 · 多后端测试' wait=3.0 s"
+    },
+    {
+      "name": "C_cold1 抓图成功且非空",
+      "ok": true,
+      "detail": "7350 B  path='C:\\\\Users\\\\Trekker-PTL\\\\shared\\\\app_pythonw_coldstart\\\\app178_cold1.png'"
+    },
+    {
+      "name": "D_cold1 抓图不是全黑（像素级守卫）",
+      "ok": true,
+      "detail": "extrema=[(0, 255), (0, 255), (0, 255)]"
+    },
+    {
+      "name": "D2_cold1 抓图有色彩多样性（非单色空白）",
+      "ok": true,
+      "detail": "n_colors=66 size=[1096, 859]"
+    },
+    {
+      "name": "E_cold1 进程已被收尾（不留孤儿占 NPU）",
+      "ok": true,
+      "detail": "alive_after_kill=False"
+    },
+    {
+      "name": "A_cold2 pythonw 进程存活过（没崩）",
+      "ok": true,
+      "detail": "rc=1 window='Confucius4-R2T2 实时字幕 · 多后端测试'"
+    },
+    {
+      "name": "B_cold2 出现 GUI 可见窗口",
+      "ok": true,
+      "detail": "title='Confucius4-R2T2 实时字幕 · 多后端测试' wait=3.0 s"
+    },
+    {
+      "name": "C_cold2 抓图成功且非空",
+      "ok": true,
+      "detail": "7350 B  path='C:\\\\Users\\\\Trekker-PTL\\\\shared\\\\app_pythonw_coldstart\\\\app178_cold2.png'"
+    },
+    {
+      "name": "D_cold2 抓图不是全黑（像素级守卫）",
+      "ok": true,
+      "detail": "extrema=[(0, 255), (0, 255), (0, 255)]"
+    },
+    {
+      "name": "D2_cold2 抓图有色彩多样性（非单色空白）",
+      "ok": true,
+      "detail": "n_colors=66 size=[1096, 859]"
+    },
+    {
+      "name": "E_cold2 进程已被收尾（不留孤儿占 NPU）",
+      "ok": true,
+      "detail": "alive_after_kill=False"
+    },
+    {
+      "name": "F 两次冷启动都能起来（可重复）",
+      "ok": true,
+      "detail": "windows=['Confucius4-R2T2 实时字幕 · 多后端测试', 'Confucius4-R2T2 实时字幕 · 多后端测试']"
+    }
+  ],
+  "n_pass": 13,
+  "n_fail": 0,
+  "verdict": "PASS"
+}
