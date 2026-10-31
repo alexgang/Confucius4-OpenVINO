@@ -69,8 +69,12 @@ REPO_PREFIXES = (
 )
 
 #: 明确排除的文件名（不是产物：闸门/工具自身、归档占位等）
+#: 🔴 **reviewer 独占写入的文件**：STATUS 里会提到它们，但它们**由 reviewer 改、
+#:    由 reviewer 自己提交** ⇒ 执行 agent 的工作区里天然是 DIRTY
+#:    ⇒ 若把它们算进 FAIL ⇒ 闸门**恒 FAIL** ⇒ 恒 FAIL 的闸门等于没有闸门。
 EXCLUDE_NAMES = frozenset((
     'CORRECTIONS_APP.md',      # reviewer 独占写入文件，**永远不会入库**（故意的）
+    'CORRECTIONS.md',          # 同上（status/CORRECTIONS.md）
 ))
 
 #: 示意性引用（文档举例用）—— 目录形式且带省略号或明显占位

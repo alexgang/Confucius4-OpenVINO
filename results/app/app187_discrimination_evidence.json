@@ -13,7 +13,7 @@
     {
       "name": "T1 干净基线判定为 PASS",
       "ok": true,
-      "detail": "verdict='PASS'（剔除 6 处引用）"
+      "detail": "verdict='PASS'（剔除 3 处引用）"
     },
     {
       "name": "T1b 干净基线**零** MISSING / 零 DIRTY",
@@ -43,7 +43,7 @@
     {
       "name": "T6 已入库路径未被误判为 MISSING（无假阳性）",
       "ok": true,
-      "detail": "base_ok=29 inj_ok=29"
+      "detail": "base_ok=36 inj_ok=36"
     },
     {
       "name": "T7 注入组**无额外** MISSING（只命中注入的那几处）",

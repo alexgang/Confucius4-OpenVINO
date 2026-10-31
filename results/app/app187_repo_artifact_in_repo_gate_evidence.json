@@ -1,9 +1,9 @@
 {
   "status": "STATUS_APP.md",
-  "n_candidates": 38,
-  "n_tracked": 34,
+  "n_candidates": 43,
+  "n_tracked": 37,
   "n_missing": 0,
-  "n_dirty": 2,
+  "n_dirty": 3,
   "n_ignored_by_convention": 1,
   "n_skipped_abs": 0,
   "n_skipped_placeholder": 0,
@@ -11,8 +11,9 @@
   "n_hardcoded_repo_backlog": 51,
   "missing": [],
   "dirty": [
-    "results/app/app184_app051_accel_listen_extract.py",
-    "results/app/app186_app051_acceptance_gate.py"
+    "results/app/app187_repo_artifact_in_repo_gate.py",
+    "results/app/app187_repo_artifact_in_repo_gate_evidence.json",
+    "status/app/STATUS_APP.md"
   ],
   "ignored_by_convention": [
     "results/app/pack_v13_app051_repack4.log"
@@ -277,6 +278,7 @@
   ],
   "ok": [
     "live_caption/gui_status.py",
+    "live_caption/speaker_assets.py",
     "live_caption/sync_c170_app048_to_pkg.py",
     "live_caption/sync_c172_version_identity_to_pkg.py",
     "live_caption/sync_c173_app050_to_pkg.py",
@@ -301,20 +303,22 @@
     "results/app/app179_app042_gui_accel_evidence.json",
     "results/app/app181_pythonw_coldstart_v2_evidence.json",
     "results/app/app183_app042_formula_evidence.json",
+    "results/app/app184_app051_accel_listen_extract.py",
     "results/app/app184_app051_accel_listen_manifest.json",
     "results/app/app185_app048_gui_layout_pkg_evidence.json",
+    "results/app/app186_app051_acceptance_gate.py",
     "results/app/app186_app051_acceptance_gate_evidence.json",
     "results/app/app186_app051_gate_discrimination_evidence.json",
     "results/app/app186_discrimination_test.py",
-    "status/app/STATUS_APP.md",
+    "results/app/app187_discrimination_test.py",
     "status/archive/CORRECTIONS_APP_closed_upto_20261030.md",
     "status/archive/STATUS_APP_sec109_114_upto_20261031.md",
     "status/archive/STATUS_APP_upto_20261030.md"
   ],
-  "n_fail": 2,
-  "n_pass": 34,
+  "n_fail": 3,
+  "n_pass": 37,
   "verdict": "FAIL",
-  "ts": "2026-11-01 02:25:29",
+  "ts": "2026-11-01 02:28:19",
   "repo": "C:\\Users\\Trekker-PTL\\confucius4-openvino",
   "script": "app187_repo_artifact_in_repo_gate.py",
   "purpose": "§104/§118：STATUS 里引用的产物必须已入库（git ls-files 在册）且内容与 HEAD 一致 ⇒ 否则「已交付」在别人机器上不成立"
