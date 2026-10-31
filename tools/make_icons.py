@@ -1,4 +1,4 @@
-"""make_icons.py — 生成扩展图标（EXT-018）
+"""make_icons.py — 生成扩展图标（T-1）
 
 **为什么需要**：EXT-001 的 P2 待办里明写着「扩展图标」这一项；
 而 `extension/manifest.json` 此前**没有 `icons` 字段**

@@ -3,7 +3,7 @@
 > **来源**：EXT-016 要求「长日志、逐条明细、大表格写到 `status/notes/<章节号>.md`，
 > STATUS 里只放结论、数字和链接」。
 > 本文件是 **STATUS §13** 的明细附件（2026-10-30 22:13 → 22:27）。
-> ⚠️ **reviewer 未下发 EXT-018** ⇒ 本轮**未认领新编号**，`last_ack` 保持 EXT-017。
+> ⚠️ **本轮是**自发任务 T-1**（reviewer 未下发新纠偏）⇒ **未认领 EXT 编号**，`last_ack` 保持 EXT-017。
 
 ---
 
@@ -18,7 +18,7 @@
 | STATUS 正文 | 含 §1~§12 ⇒ 一致 |
 | EXEC_LOG | 上一轮记录在（`## 2026-10-30 20:33 → 21:06 — EXT-016 收口…`） |
 | 产物 | `.tmp/p1_ext009/`（dub 22 wav / accel 3 wav / margin.json 27 565 B / p1_report.json 44 453 B）+ `.tmp/p1_pipe/`（dub 22 wav / margin.json 27 910 B / p1_report.json 44 668 B）+ `.tmp/ext008_bench/interference.json` 1 114 B —— 均齐全 |
-| 纠偏文件 | mtime 2026-10-30 19:02、9 689 B、`^## EXT-` 条目 **5 条**（EXT-013~017）⇒ **无 EXT-018** |
+| 纠偏文件 | mtime 2026-10-30 19:02、9 689 B、`^## EXT-` 条目 **5 条**（EXT-013~017）⇒ **无新编号** |
 
 ⇒ **闸门 exit 1 是「真跳过」**（无新指令，上一轮确实做完）。
 但 **EXT-014 ②**（常设巡检规则）：「`last_ack` 追平后，只要还有未完成项，就自己继续做，不要空转」
@@ -78,7 +78,7 @@
 
 ---
 
-## 3. 自测：`tests/test_ext018_capture_mode_stats.py`（38 项）
+## 3. 自测：`tests/test_t1_capture_mode_stats.py`（38 项）
 
 **行为级**（真起桥接服务 + 真 WebSocket，**回声模式、不跑推理、不占 GPU/NPU**）：
 
@@ -114,7 +114,7 @@ test_ext013_compare             ::  51 PASS / 0 FAIL
 test_ext013_cpu_watch           ::  25 PASS / 0 FAIL
 test_ext016_compression         ::  39 PASS / 0 FAIL
 test_ext017_user_report         :: 108 PASS / 0 FAIL
-test_ext018_capture_mode_stats  ::  38 PASS / 0 FAIL   <- 本轮新增
+test_t1_capture_mode_stats  ::  38 PASS / 0 FAIL   <- 本轮新增
 test_ext_browser_contract       :: 102 PASS / 0 FAIL
 test_ext_selfcheck              :: 103 PASS / 0 FAIL
 test_next_instruction           ::  19 PASS / 0 FAIL
@@ -173,5 +173,5 @@ test_p1_plumbing                ::  97 PASS / 0 FAIL
 
 ### `last_ack`
 
-**保持 EXT-017 不变** —— 本轮**未认领任何新的 EXT 编号**（reviewer 未下发 EXT-018）⇒
+**保持 EXT-017 不变** —— 本轮**未认领任何新的 EXT 编号**（reviewer 未下发新纠偏）⇒
 不自行占用 reviewer 的编号命名空间。

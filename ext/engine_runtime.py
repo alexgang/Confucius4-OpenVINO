@@ -53,6 +53,7 @@ import os
 import sys
 import time
 import traceback
+import json
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -220,7 +221,7 @@ class RuntimeEngine:
         self._tts_eng = None
         self._tts_spk_embed = None
 
-        # ★★ EXT-021：最后一次**真正用于翻译/合成**的目标语言。
+        # ★★ T-4：最后一次**真正用于翻译/合成**的目标语言。
         #   （构造时的 `target_lang` 是服务端启动参数；
         #     客户端按句覆盖后，这里记的是**实际生效**的那个。）
         self.applied_target_lang: Optional[str] = None
@@ -229,6 +230,10 @@ class RuntimeEngine:
         self.load_s: Dict[str, float] = {}
         self.n_calls = {"asr": 0, "mt": 0, "tts": 0}
         self.last_error: Dict[str, str] = {}
+        # ★★★ EXT-023：TTS 各组件**实际执行设备**（EXECUTION_DEVICES）。
+        #   加载完 TTS 后由 `_report_tts_exec_devices()` 填。
+        #   ⚠️ 初始 None（**没加载就是没测过**）⇒ 绝不臆造。
+        self.tts_exec_devices: Optional[dict] = None
 
     # ── 可用性探测（静态，不加载权重） ───────────────────────────
     def available(self) -> dict:
@@ -450,7 +455,7 @@ class RuntimeEngine:
     def mt(self, text: str, *, target_lang: Optional[str] = None) -> str:
         """翻译一句。`target_lang` 走 MT 的 `tgt` 参数。
 
-        ★★ EXT-021：支持**按调用覆盖**目标语言。
+        ★★ T-4：支持**按调用覆盖**目标语言。
           此前 `target_lang` 只在**构造时**定死（= 服务端 `--target-lang`），
           而插件面板上的「目标语言」虽然已经传到服务端，
           却只被**记录**（`client_target_lang`）、**从不生效**
@@ -463,7 +468,7 @@ class RuntimeEngine:
             return ""
         self._load_mt()
         tgt = self.mt_target(target_lang)
-        # ★★ EXT-021：记下**实际生效**的目标语言（按句覆盖后的那个）。
+        # ★★ T-4：记下**实际生效**的目标语言（按句覆盖后的那个）。
         self.applied_target_lang = (target_lang if target_lang is not None
                                     else self.target_lang)
         try:
@@ -482,7 +487,7 @@ class RuntimeEngine:
           （Hy-MT2 的 `_LANG_NAME` 只有 zh/en/ja/ko ⇒ 传别的会 KeyError
             或让 `_LANG_NAME[tgt]` 崩在渲染 prompt 的路上）。
 
-        ★★ EXT-021：`target_lang` 给了就用它（**按调用覆盖**），
+        ★★ T-4：`target_lang` 给了就用它（**按调用覆盖**），
           不给（或为空）才沿用构造时的 `self.target_lang`。
         """
         key = (target_lang if target_lang is not None
@@ -518,7 +523,103 @@ class RuntimeEngine:
         self.load_s["tts"] = time.perf_counter() - t0
         self.on_log("TTS 就绪（Qwen3-TTS @ %s，%.1fs）"
                     % (self.tts_device, self.load_s["tts"]))
+        # ★★★ EXT-023：打印并落盘**各组件的实际执行设备**
+        #   （EXECUTION_DEVICES）—— 确认 talker / cp_prefill / cp_decode /
+        #   decoder **全部在 NPU**。
+        #
+        #   ## 背景（主会话转达 TTS reviewer 10-31 Opus）
+        #   `qwen3tts_eval` 里裸 `build()` 默认把 **cp_decode 放在 CPU**，
+        #   只有显式 `_recompile_cp_on_npu(only=["cp_decode"])` 之后才到 NPU
+        #   （TTS-037 正在把默认改成 NPU）⇒ cp_decode 在 CPU 上会让
+        #   TTS 的 RTF 变差约 30%（1.01 vs 0.71）。
+        #
+        #   ## 为什么这里能直接拿到
+        #   App 侧 `tts_engine.make_engine()` 的**最后一步**已经调了
+        #   `execution_devices(eng, on_log=on_log)` 并把结果挂成
+        #   `eng.exec_devices`（含 `key4_line` / `devices` / `actual` /
+        #   `on_npu` / `on_cpu` / `unknown` / `absent`）
+        #   ⇒ **不需要重复探测**（重复探测会把 NPU 抢一次、很慢）。
+        #
+        #   ## 判据（**如实**）
+        #   App 的 `execution_devices()` 用 OV 的 `EXECUTION_DEVICES` 属性
+        #   ⇒ 是「**实际**执行设备」，不是「**请求**的设备」。
+        #   ⚠️ OV 2026.4.1：NPU 档返回**字符串** `'NPU'`，
+        #     CPU 档返回**列表** `['CPU']` ⇒ App 已做规范化。
+        #
+        #   ⚠️ **绝不臆造**：探测不到就写 `ok=False` + 原因，
+        #     绝不假装「都在 NPU」。
+        self._report_tts_exec_devices()
         self._prepare_preset_voice()
+
+    # ── ★★★ EXT-023：TTS 各组件实际执行设备 ──────────────────
+    def _report_tts_exec_devices(self) -> dict:
+        """把 `eng.exec_devices` 打印成日志并**落盘**（EXT-023）。
+
+        ## 为什么必须落盘（不能只在控制台打一行）
+        * 铁律「**没落盘的东西不能写『已交付』**」——
+          只打在启动日志里，reviewer 事后无从核对；
+        * 落盘后 reviewer 可以直接 `json.load` 出**原始字段**
+          （`devices` / `actual` / `on_npu` / `on_cpu` / `unknown`），
+          而不是从日志文本里猜。
+
+        ## 落盘位置
+        `%LOCALAPPDATA%\\LiveDubEXT\\tts_exec_devices.json`
+        —— 与 `bridge.log` **同目录**（reviewer 已经在看那个目录）。
+
+        ## 返回
+        落盘的字典（失败时是 `{"ok": False, "error": ...}`）。
+        """
+        out: dict = {}
+        eng = self._tts_eng
+        info = getattr(eng, "exec_devices", None) if eng is not None else None
+        if not isinstance(info, dict):
+            out = {"ok": False,
+                   "error": "引擎没有 exec_devices 属性（App 侧未探测）",
+                   "requested_device": self.tts_device}
+        else:
+            out = dict(info)
+            out.setdefault("requested_device", self.tts_device)
+            # ★ App 的 `key4_line` 就是 reviewer 要的那一行证据
+            #   （'EXECUTION_DEVICES talker=…，cp_prefill=…，…'）。
+            key4 = out.get("key4_line")
+            if key4:
+                self.on_log("[TTS-EXEC] %s" % key4)
+            # ★ 逐组件也打一行（reviewer 要确认「全部是 NPU」）
+            devs = out.get("devices") or {}
+            actual = out.get("actual") or {}
+            for label in sorted(devs):
+                self.on_log("[TTS-EXEC] %-22s → %s"
+                            % (label, devs.get(label)))
+            on_npu = list(out.get("on_npu") or [])
+            on_cpu = list(out.get("on_cpu") or [])
+            unknown = list(out.get("unknown") or [])
+            absent = list(out.get("absent") or [])
+            self.on_log("[TTS-EXEC] on_npu=%d on_cpu=%d unknown=%d absent=%d"
+                        % (len(on_npu), len(on_cpu), len(unknown), len(absent)))
+            if on_cpu:
+                self.on_log("[TTS-EXEC] ⚠️ **这些组件在 CPU 上**：%s"
+                            % ", ".join(on_cpu))
+            if unknown:
+                self.on_log("[TTS-EXEC] ⚠️ **这些组件落点未知**：%s"
+                            % ", ".join(unknown))
+            # ★ 顺手把「实际落点」也带上（App 的 `actual` 字段）
+            out["actual_devices"] = actual
+
+        # ── 落盘（**失败不抛**，诊断增强不能搞挂引擎）────────────
+        try:
+            base = os.environ.get("LOCALAPPDATA") or "."
+            d = os.path.join(base, "LiveDubEXT")
+            os.makedirs(d, exist_ok=True)
+            path = os.path.join(d, "tts_exec_devices.json")
+            out["_saved_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            out["_saved_path"] = path
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(out, f, ensure_ascii=False, indent=2)
+            self.on_log("[TTS-EXEC] 已落盘：%s" % path)
+        except Exception as e:
+            self.on_log("[TTS-EXEC] ⚠️ 落盘失败：%r" % (e,))
+        self.tts_exec_devices = out
+        return out
 
     def _prepare_preset_voice(self) -> None:
         """预计算「预设音色 A」的 speaker embedding（**只算一次**）。
@@ -551,7 +652,7 @@ class RuntimeEngine:
         ★ EXT-006：TTS **必须**显式传目标语言（APP-030 日文失控事故的根因）。
         ⇒ 映射不到就**抛异常**，绝不静默退回 English。
 
-        ★★ EXT-021：同 `mt_target` —— 支持**按调用覆盖**目标语言
+        ★★ T-4：同 `mt_target` —— 支持**按调用覆盖**目标语言
           （面板上选的语言要真正作用到 TTS，而不只是被记录）。
         """
         key = (target_lang if target_lang is not None
@@ -571,7 +672,7 @@ class RuntimeEngine:
         ★ 显式传 `language`（EXT-006 / APP-030）
         ★ 显式传 `max_new_tokens`（失控闸第一道，APP-030②）
         ★ 墙钟与音频双上限 ⇒ 失控中止（EXT-006 明文要求）
-        ★★ EXT-021：`target_lang` 支持**按调用覆盖**（面板上的选择要真正生效）
+        ★★ T-4：`target_lang` 支持**按调用覆盖**（面板上的选择要真正生效）
 
         Returns
         -------
@@ -656,7 +757,7 @@ class RuntimeEngine:
     def stats(self) -> dict:
         return {
             "target_lang": self.target_lang,
-            # ★★ EXT-021：客户端按句覆盖过的目标语言（最后一次）。
+            # ★★ T-4：客户端按句覆盖过的目标语言（最后一次）。
             #   ⇒ reviewer 能从引擎产物核对「面板上选的语言真的生效了吗」。
             "applied_target_lang": self.applied_target_lang,
             "devices": {"asr": self.asr_device, "mt": self.mt_device,

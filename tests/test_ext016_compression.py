@@ -43,7 +43,17 @@ MAX_STATUS_BYTES = 40 * 1024
 MAX_STATUS_LINES = 300
 N_KEEP_FULL = 5          # 最近 5 条全文
 N_CLOSED = 14            # EXT-001..EXT-014 归档
-LAST_NUM = 17            # 最新编号 EXT-017
+
+# ★★ 2026-10-31 修正：**不再写死最新编号**。
+#   原断言写死 `LAST_NUM = 17` ⇒ reviewer 每追加一条新纠偏，
+#   这条测试就必然 FAIL（= 把测试绑死在一个时间点）。
+#   ⇒ 现在**动态**取「CORRECTIONS 里实际存在的最大编号」。
+#   语义不变量（真正要保的）仍然是 EXT-016 原文要求的：
+#     「CORRECTIONS 只保留 顶部索引表 + 进行中全文 + 最近 5 条全文」。
+N_RECYLED = (18, 19, 20, 21)   # ★ EXT-022：018~021 已被重编号为 T-1~T-4
+                                 #   （自发任务不占 EXT 编号空间）⇒ 索引表里
+                                 #   本就不该有这四个编号 ⇒ 豁免。
+N_ARCHIVED = 17                # 归档 + 索引表覆盖的编号上界（EXT-016 当时）
 
 RESULTS = []
 
@@ -137,17 +147,45 @@ def test_corrections_compressed() -> None:
     check(f"压缩后 CORRECTIONS 明显变小（实测 {sz} B）", sz < 20 * 1024)
 
     full = sorted({int(m.group(2)) for m in ENTRY_RE.finditer(text)})
-    expect_full = list(range(LAST_NUM - N_KEEP_FULL + 1, LAST_NUM + 1))
-    check(f"只保留最近 {N_KEEP_FULL} 条全文（实测 EXT-{full}）",
-          full == expect_full, f"实际 {full}，期望 {expect_full}")
+    # ★★ 2026-10-31 修正：不再写死「文件里恰好只有 5 条全文」。
+    #   原因：**CORRECTIONS 文件由 reviewer 独占写入**（本模块**只读**）
+    #   ⇒ reviewer 追加新纠偏时，**全文条数会临时超过 5 条**，
+    #     直到下一次压缩才回到 5 条。
+    #   ⇒ 写死「恰好 5 条」会把测试绑死在 reviewer 的写入节奏上。
+    #   ⇒ 改为断言**EXT-016 真正要保的不变量**：
+    #     ① **最近 5 条一定在全文里**（压缩时永远保留最近 5 条）；
+    #     ② 文件体积仍在预算内（压缩的最终目的：省 token）。
+    if not full:
+        check("CORRECTIONS 里能解析出条目全文", False, "一条都没解析到")
+        return
+    latest = max(full)
+    recent5 = [n for n in range(latest - N_KEEP_FULL + 1, latest + 1)
+               if n not in N_RECYLED]
+    missing_recent = [n for n in recent5 if n not in full]
+    check(f"最近 {N_KEEP_FULL} 条全文都在（缺 {[f'EXT-{n:03d}' for n in missing_recent]}）",
+          not missing_recent,
+          f"文件当前有 {len(full)} 条全文（reviewer 追加后会多于 "
+          f"{N_KEEP_FULL}，下次压缩才回到 {N_KEEP_FULL}）")
 
     check("含顶部索引表", "## 索引表" in text)
     check("含「进行中的纠偏」分区", "## 进行中的纠偏" in text)
     idx_start = text.find("## 索引表")
     idx_end = text.find("## 进行中的纠偏")
     idx = text[idx_start:idx_end] if idx_start >= 0 and idx_end > idx_start else ""
-    missing = [n for n in range(1, 18) if f"EXT-{n:03d}" not in idx]
-    check(f"索引表覆盖全部 17 个编号（缺 {missing}）", not missing)
+    # ★ 索引表必须覆盖**归档范围内的全部编号**（1..N_ARCHIVED）。
+    #   ⚠️ 018~021 例外：EXT-022 已把它们重编号为 T-1~T-4
+    #   （自发任务不占 EXT 编号空间）⇒ 索引表里本就不该有。
+    #   ⚠️ **不**要求索引表覆盖 reviewer 之后新追加的编号 ——
+    #   那个索引表由**reviewer 自己**维护，本模块无权改那个文件
+    #   ⇒ 只**如实报告**，不判 FAIL（否则就是在测别人的文件）。
+    missing = [n for n in range(1, N_ARCHIVED + 1)
+               if n not in N_RECYLED and f"EXT-{n:03d}" not in idx]
+    check(f"索引表覆盖归档范围内全部编号（缺 {missing}）", not missing)
+    _not_in_idx = [n for n in range(1, latest + 1) if f"EXT-{n:03d}" not in idx]
+    if _not_in_idx:
+        print(f"      （如实报告，不判 FAIL）索引表暂未收录："
+              f"{[f'EXT-{n:03d}' for n in _not_in_idx]}"
+              f" —— CORRECTIONS 由 reviewer 独占写入，本模块只读不改")
     check("索引表含「状态」列", "状态" in idx)
 
     # 标题格式必须保持不变（reviewer 推送工具依赖）
@@ -179,13 +217,40 @@ def test_gate_still_works() -> None:
         check("闸门输出是合法 JSON", False, str(e))
         return
     check("闸门输出含 action 字段", "action" in data)
-    check(f"闸门能识别出最新条目 EXT-017（实测 {data.get('latest', {}).get('id')}）",
-          data.get("latest", {}).get("id") == "EXT-017")
-    check("闸门能解析出 last_ack=17（实测 %s）" % data.get("last_ack"),
-          data.get("last_ack") == 17)
-    check("压缩后闸门判定为「已执行过」⇒ 本轮不重复执行",
-          data.get("action") == "skip" and rc == 1,
-          f"action={data.get('action')} rc={rc}")
+    # ★★ 2026-10-31 修正：**不再写死「最新条目 = EXT-017」/「last_ack = 17」**
+    #   —— 这两条断言把测试绑死在一个时间点：reviewer 每追加一条新纠偏
+    #   （或本模块每推进一次 last_ack）就必然 FAIL。
+    #   ⇒ 改为断言**语义不变量**（这才是 EXT-016 真正要保的东西）：
+    #     ① 闸门报出的 latest 编号 == CORRECTIONS 里**实际**的最大编号；
+    #     ② 闸门报出的 last_ack == STATUS 头部**实际**的 last_ack；
+    #     ③ 退出码与「最新编号 vs last_ack」的真实关系一致
+    #        （最新 ≤ last_ack ⇒ skip/1；最新 > last_ack ⇒ execute/0）。
+    #   ⚠️ 「实际的最大编号」自己解析 CORRECTIONS（**不依赖闸门的解析**）
+    #     ⇒ 否则「闸门解析错」和「文件内容对」会被混成同一个结论
+    #       （= 假通过）。
+    _txt = _read(CORRECTIONS)
+    _nums = sorted({int(m.group(2)) for m in ENTRY_RE.finditer(_txt)})
+    _latest_num = max(_nums) if _nums else None
+    latest_id = (data.get("latest") or {}).get("id")
+    check("闸门能识别出 CORRECTIONS 里实际的最大编号",
+          isinstance(latest_id, str) and _latest_num is not None
+          and int(re.search(r"(\d+)", latest_id).group(1)) == _latest_num,
+          f"闸门报 {latest_id}，文件实际最大 EXT-{_latest_num:03d}"
+          if _latest_num is not None else "文件里没解析出条目")
+    # ③ 退出码 / action 与「最新 vs last_ack」一致
+    last_ack = data.get("last_ack")
+    if isinstance(last_ack, int) and _latest_num is not None:
+        expect_rc = 1 if _latest_num <= last_ack else 0
+        check("闸门退出码与「最新编号 vs last_ack」关系一致",
+              rc == expect_rc,
+              f"rc={rc} expect={expect_rc} latest=EXT-{_latest_num:03d} "
+              f"last_ack={last_ack}")
+        expect_action = "skip" if _latest_num <= last_ack else "execute"
+        check("闸门 action 与关系一致",
+              data.get("action") == expect_action,
+              f"action={data.get('action')} expect={expect_action}")
+    else:
+        check("闸门能解析出 last_ack", False, f"实测 {last_ack!r}")
 
     # ★ 区分力：把 CORRECTIONS 换成「无法解析」的文件 ⇒ 闸门必须 exit 2
     import tempfile
@@ -205,10 +270,12 @@ def test_gate_still_works() -> None:
         finally:
             shutil.copy2(bak_c, CORRECTIONS)
             shutil.copy2(bak_s, STATUS)
-    # 恢复后闸门仍应正常
+    # 恢复后闸门仍应正常（**回到与恢复前一致的退出码**，
+    #   而不是写死 exit 1 —— last_ack 会随每轮推进）。
     p3 = subprocess.run([py, GATE, "--json"], cwd=ROOT,
                         capture_output=True, text=True, encoding="utf-8")
-    check(f"恢复后闸门回到 exit 1（实测 {p3.returncode}）", p3.returncode == 1)
+    check(f"恢复后闸门回到与恢复前一致的退出码（实测 {p3.returncode}，"
+          f"恢复前 {rc}）", p3.returncode == rc)
 
 
 # ── ⑤ 归档未被压缩破坏（内容真的搬走了，不是复制后删了） ──────

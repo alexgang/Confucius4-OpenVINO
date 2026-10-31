@@ -83,6 +83,13 @@ def main(argv=None) -> int:
     ap.add_argument("--margin-out", default=None)
     ap.add_argument("--check-only", action="store_true",
                     help="只检查 App 运行时是否可用，不启动服务")
+    # ★★ EXT-022 已定①：**流水线默认开启**（主会话 2026-10-30 已定）。
+    #   本脚本此前**根本没有** `--pipeline` 参数 ⇒ 转发给 ext.bridge 时
+    #   一直用的是「服务端默认值」。
+    #   ⇒ 现在与服务端口径统一：默认开启，另给 `--no-pipeline` 逃生口。
+    ap.add_argument("--no-pipeline", dest="pipeline", action="store_false",
+                    help="不用流水线会话（退回串行；默认是**开启**流水线）")
+    ap.set_defaults(pipeline=True)
     ap.add_argument("--log", default=None, help="把服务输出重定向到这个文件")
     args = ap.parse_args(argv)
 
@@ -99,6 +106,12 @@ def main(argv=None) -> int:
            "--delay", str(args.delay), "--token-file", args.token_file]
     if args.real:
         cmd += ["--real", "--target-lang", args.target_lang]
+    # ★★ EXT-022 已定①：流水线**默认开启** ⇒ 显式传 `--pipeline`，
+    #   避免「服务端默认值变了 ⇒ 本脚本行为跟着变」这种隐式耦合。
+    if args.pipeline:
+        cmd.append("--pipeline")
+    else:
+        cmd.append("--no-pipeline")
     if args.margin_out:
         cmd += ["--margin-out", args.margin_out]
     print("[bridge_server] 启动：%s" % " ".join(cmd))

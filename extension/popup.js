@@ -62,7 +62,7 @@ async function loadCfg() {
     wsUrl: 'ws://127.0.0.1:8765/',
     token: '',
     delaySec: 10,
-    // ★★ EXT-020：targetLang 的默认值必须是**引擎码** 'zh'
+    // ★★ T-3：targetLang 的默认值必须是**引擎码** 'zh'
     //   （旧值 'Chinese' 与引擎的 zh/en/ja/ko 不匹配）。
     targetLang: 'zh',
     voice: 'A',
@@ -73,7 +73,7 @@ async function loadCfg() {
   $('ws').value = cfg.wsUrl;
   $('token').value = cfg.token || '';
   $('delay').value = cfg.delaySec;
-  // ★★ EXT-020：若存量配置里存的是旧的语言全称（Chinese/English/Japanese），
+  // ★★ T-3：若存量配置里存的是旧的语言全称（Chinese/English/Japanese），
   //   迁移成引擎码，避免下拉框选不中任何一项（value 匹配不到 ⇒ 显示空白）。
   $('lang').value = normalizeLang(cfg.targetLang);
   $('voice').value = normalizeVoice(cfg.voice);
@@ -83,7 +83,7 @@ async function loadCfg() {
 }
 
 /**
- * ★★ EXT-020：把「语言全称」归一成**引擎认的码**。
+ * ★★ T-3：把「语言全称」归一成**引擎认的码**。
  *
  * 为什么需要：popup 的下拉框旧版存的是 'Chinese'/'English'/'Japanese'，
  * 而桥接服务的 --target-lang 与引擎的 LANG_TO_MT/LANG_TO_TTS
@@ -103,7 +103,7 @@ function normalizeLang(v) {
 }
 
 /**
- * ★★ EXT-021：音色归一（只有两个合法值）。
+ * ★★ T-4：音色归一（只有两个合法值）。
  *
  * ★ 为什么 popup 也要归一：服务端只认 `A` / `clone`，
  *   而存储里的值可能来自旧版本或被手工改过 ⇒ 不归一就会把
@@ -162,7 +162,60 @@ function fmtLag(v) {
   return (n >= 0 ? '' : '-') + Math.abs(n).toFixed(1) + ' s';
 }
 
+/**
+ * ★★ EXT-024 F：判断「现在能不能开始」。
+ *
+ * 返回 { ok, reason }：
+ *   * `reason` 非空 ⇒ **不能**开始，按钮禁用并把原因写给用户；
+ *   * `reason` 为空 ⇒ 可以开始。
+ *
+ * ★ 诚实性：
+ *   * 桥接服务没起来（拿不到 /status）⇒ 不能开始（点下去必然连不上）；
+ *   * **回声模式** ⇒ 不能开始（回声不是真实翻译配音，用户会误以为
+ *     「翻译没出声音」；宁可拦住并说清楚）；
+ *   * 真实引擎但**还没就绪** ⇒ 不能开始（模型还在加载）。
+ *   * 真实引擎 + 就绪 ⇒ 可以开始。
+ *
+ * ⚠️ **只看真实字段**：`mode` 来自服务端的 `hello_ack`/`/status`，
+ *   `engine_state` 来自 `/status`。任何一个拿不到 ⇒ 视为**未就绪**
+ *   （宁可拦，不可让用户白跑一趟）。
+ */
+function startGate(st) {
+  if (!st) {
+    return { ok: false, reason: '桥接服务未启动（先点桌面「实时配音桥接.cmd」）' };
+  }
+  const mode = st.mode;
+  if (mode === 'echo') {
+    return { ok: false, reason: '★ 当前是【回声模式】，不是真实翻译配音 —— 请用真实引擎启动桥接' };
+  }
+  if (mode !== 'real') {
+    return { ok: false, reason: '桥接模式未知（' + (mode || '无响应') + '），请重启桥接服务' };
+  }
+  const state = st.engine_state || 'unknown';
+  if (state === 'partial') {
+    const failed = Object.keys(st.engine_failed || {});
+    return { ok: false, reason: '引擎未就绪：' + (failed.length ? failed.join('/') + ' 加载失败' : '未知') };
+  }
+  if (state !== 'ready') {
+    return { ok: false, reason: '引擎未就绪（正在加载模型…）' };
+  }
+  return { ok: true, reason: '' };
+}
+
 $('btnStart').addEventListener('click', async () => {
+  // ★★ EXT-024 F：点之前**再查一次**门禁（轮询有 2 秒间隔 ⇒ 状态可能已变）
+  try {
+    const gcfg = await chrome.storage.local.get({ wsUrl: 'ws://127.0.0.1:8765/' });
+    const gst = await pollPairStatus(gcfg.wsUrl);
+    const g = startGate(gst);
+    if (!g.ok) {
+      setStatus('不能开始：' + g.reason, 'err');
+      setBadge('未连接', 'err');
+      $('btnStart').disabled = true;
+      return;
+    }
+  } catch (e) { /* 查不到就按原来的流程走（下面还会再报真实错误） */ }
+
   const cfg = await saveCfg();
   $('btnStart').disabled = true;
   setStatus('正在启动…');
@@ -191,7 +244,7 @@ $('btnStart').addEventListener('click', async () => {
       wsUrl: cfg.wsUrl,
       token: token,
       delaySec: cfg.delaySec,
-      // ★★ EXT-020：把「目标语言」与「音色」也带上去。
+      // ★★ T-3：把「目标语言」与「音色」也带上去。
       //   旧写法这两个字段只存进了 storage，**从没进过 start 消息**
       //   ⇒ 用户在面板上选语言/音色完全不起作用。
       targetLang: normalizeLang(cfg.targetLang),
@@ -257,6 +310,9 @@ async function refreshStatus() {
     // ★★ EXT-017②：桥接没起来 ⇒ 明确告诉用户「引擎未加载」
     const me = $('mEngine');
     if (me) me.textContent = '桥接未启动';
+    // ★★ EXT-024 F：模式未知 + 禁用开始
+    setMode('unknown', '桥接服务未启动');
+    applyStartGate(null);
     return;
   }
   setBadge(st.has_session ? '已连接' : '桥接就绪', st.has_session ? 'ok' : 'warn');
@@ -285,6 +341,62 @@ async function refreshStatus() {
       me.textContent = '加载中…（' + loaded.join('/') + ' 已就绪）';
     } else {
       me.textContent = '正在加载模型…';
+    }
+  }
+
+  // ★★ EXT-024 F：显示连接模式（真实引擎 / 回声）
+  const mode = st.mode || 'unknown';
+  if (mode === 'echo') {
+    setMode('echo', '★ 回声模式：不是真实翻译配音（仅自测用）');
+  } else if (mode === 'real') {
+    const ready = (st.engine_state === 'ready');
+    setMode('real', ready
+      ? '真实引擎（ASR→MT→TTS 已就绪）'
+      : '真实引擎（模型加载中…）');
+  } else {
+    setMode('unknown', '模式未知（桥接服务版本过旧？请重启）');
+  }
+
+  // ★★ EXT-024 F：按模式/引擎状态决定「开始」能不能点
+  applyStartGate(st);
+}
+
+/**
+ * ★★ EXT-024 F：显示当前连接模式（回声模式**醒目标出**）。
+ */
+function setMode(mode, hint) {
+  const card = $('modeCard');
+  const el = $('mMode');
+  if (card) card.className = 'mcard ' + (mode || 'unknown');
+  if (el) {
+    if (mode === 'echo') el.textContent = '★ 回声模式';
+    else if (mode === 'real') el.textContent = '真实引擎';
+    else el.textContent = '未知';
+  }
+  const h = $('modeHint');
+  if (h) h.textContent = hint || '';
+}
+
+/**
+ * ★★ EXT-024 F：按 `startGate` 的结论禁用/启用「开始」按钮并写明原因。
+ *
+ * ⚠️ 已**在运行**时（btnStart 已 disabled、btnStop 可用）不抢按钮，
+ *   只更新模式显示 ⇒ 不打断正在跑的会话。
+ */
+function applyStartGate(st) {
+  const btn = $('btnStart');
+  const g = startGate(st);
+  if (!btn) return;
+  const running = btn.disabled && !$('btnStop').disabled;
+  if (running) return;
+  btn.disabled = !g.ok;
+  btn.title = g.reason || '';
+  if (!g.ok) {
+    // 把原因写进状态区（用户能直接看到，不用 hover）
+    const el = $('status');
+    if (el && (!el.textContent || el.textContent.indexOf('不能开始') < 0)) {
+      el.textContent = '不能开始：' + g.reason;
+      el.className = 'err';
     }
   }
 }

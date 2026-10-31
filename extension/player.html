@@ -11,6 +11,13 @@
     #subs { position: fixed; left: 0; right: 0; bottom: 8%; text-align: center; font-size: 20px; pointer-events: none; }
     #subs span { background: rgba(0,0,0,.65); padding: 2px 8px; border-radius: 4px; }
     .k { color: #8b949e; }
+    /* ★ EXT-024 E：常驻链路状态条 */
+    #linkBar { display: block; width: 100%; padding: 3px 10px; background: #161b22; border-radius: 6px; font-variant-numeric: tabular-nums; }
+    #linkBar.ok { color: #3fb950; }
+    #linkBar.err { color: #d29922; }
+    #linkReason { display: none; width: 100%; padding: 3px 10px; border-radius: 6px; font-weight: 700; }
+    #linkReason.err { color: #f85149; }
+    #linkReason.ok { color: #3fb950; }
   </style>
 </head>
 <body>
@@ -34,6 +41,9 @@
       <span><span class="k">滞后</span> <b id="mLag">0.0</b> s</span>
       <span><span class="k">滞后峰值</span> <b id="mLagPeak">0.0</b> s</span>
     </div>
+    <!-- ★ EXT-024 E：链路状态条（常驻显示 5 个计数 + 当前滞后；卡住时红字写原因） -->
+    <div id="linkBar" class="ok">音频 0.0s | ASR 0 | MT 0 | TTS 0 | 下发 0 | 滞后 —</div>
+    <div id="linkReason" class="ok"></div>
   </div>
   <div id="subs"></div>
   <script src="player.js"></script>

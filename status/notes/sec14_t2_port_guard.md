@@ -1,4 +1,4 @@
-# §14 明细 —— EXT-019「重复启动 → 端口占用 → 整屏 traceback 崩溃」修复
+# §14 明细 —— T-2「重复启动 → 端口占用 → 整屏 traceback 崩溃」修复
 
 > 本文件是 `status/STATUS_EXT.md` §14 的逐条明细全文（EXT-016 写作规则：精简版只留骨架，明细下沉 notes/）。
 > 执行时间：2026-10-30 22:41 → 22:55
@@ -116,7 +116,7 @@ for _p in (args.port, args.pair_port):
 
 ---
 
-## ④ 自测：`tests/test_ext019_port_guard.py`（28 项）
+## ④ 自测：`tests/test_t2_port_guard.py`（28 项）
 
 | 组 | 内容 | 项数 |
 |---|---|---|
@@ -133,8 +133,8 @@ for _p in (args.port, args.pair_port):
 
 **15 套 / 805 PASS / 0 FAIL**（全 rc=0）：
 echo_roundtrip 11 / ext009 57 / ext010 23 / ext011 29 / ext012 75 / ext013_compare 51 /
-ext013_cpu_watch 25 / ext016_compression 39 / ext017_user_report 108 / ext018_capture_mode 38 /
-**ext019_port_guard 28** / browser_contract 102 / selfcheck 103 / next_instruction 19 / p1_plumbing 97。
+ext013_cpu_watch 25 / ext016_compression 39 / ext017_user_report 108 / t1_capture_mode 38 /
+**t2_port_guard 28** / browser_contract 102 / selfcheck 103 / next_instruction 19 / p1_plumbing 97。
 
 ---
 
@@ -145,4 +145,4 @@ ext013_cpu_watch 25 / ext016_compression 39 / ext017_user_report 108 / ext018_ca
   父 `pythonw ext_launcher.py` PID 30872）—— 它正做真实推理，不能打断用户操作。
 - ⛔ **未回收 `shared/MACHINE_LOCK`**（属 `tts` 模块，PID 15900 已死 ⇒ 陈旧锁，但属他人所有）。
 - ⛔ `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**（`.gitignore:34` 仍在）。
-- ⛔ **未认领新的 EXT 编号** ⇒ `last_ack` 保持 **EXT-017**（reviewer 未下发 EXT-019）。
+- ⛔ **未认领新的 EXT 编号** ⇒ `last_ack` 保持 **EXT-017**（reviewer 未下发新纠偏）。

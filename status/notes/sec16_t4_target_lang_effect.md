@@ -1,4 +1,4 @@
-# §16 EXT-021 —— 目标语言**真正生效**（逐条明细）
+# §16 T-4 —— 目标语言**真正生效**（逐条明细）
 
 > 本文件是 `status/STATUS_EXT.md` §16 的**明细全文**（EXT-016 写作规则：
 > 长日志 / 逐条明细写到 notes，STATUS 里只留结论、数字和链接）。
@@ -8,21 +8,21 @@
 * 闸门 `tools/next_instruction.py --json` → **exit 1**
   （`reason=already_executed`，`latest=EXT-017`，`last_ack=17`）
   ⇒ **没有新的 EXT 纠偏指令**（另把闸门解析对着 `CORRECTIONS_EXT.md`
-  **原始文件**核过一遍：条目只有 EXT-013~EXT-017，**不存在 EXT-018+**
+  **原始文件**核过一遍：条目只有 EXT-013~EXT-017，**不存在比 EXT-017 更新的编号**
   ⇒ exit 1 是真的，不是解析漏掉）。
 * 按 **EXT-014 ②**（常设规则：「`last_ack` 追平后，只要还有未完成项，
   就自己继续做，不要空转」）⇒ 继续 STATUS「未完成纠偏清单」里的 **P2 待办**。
-* ⚠️ **未认领新 EXT 编号**（reviewer 未下发 EXT-021）
+* ⚠️ **未认领新 EXT 编号**（reviewer 未下发新纠偏）
   ⇒ **`last_ack` 保持 EXT-017**，不自行占用 reviewer 的编号命名空间。
 * 本轮**未跑任何真实推理、未占 GPU/NPU、未创建/未回收机器锁**
   （全程 CPU 侧 + 桩引擎 + node 沙箱）。
 
-## §16.1 发现的缺陷：EXT-020 只修了一半 —— 「目标语言」仍是死控件
+## §16.1 发现的缺陷：T-3 只修了一半 —— 「目标语言」仍是死控件
 
-EXT-020（§15）把插件面板的 4 个「死控件」接上线了。但复查 §15 的结论时发现
+T-3（§15）把插件面板的 4 个「死控件」接上线了。但复查 §15 的结论时发现
 **「目标语言」这一项只修了一半**：
 
-| 环节 | EXT-020 之后 | 本轮之前（缺陷） |
+| 环节 | T-3 之后 | 本轮之前（缺陷） |
 |---|---|---|
 | popup 存语言码（zh/en/ja/ko） | ✅ 已修 | — |
 | 语言进 `start` 消息 → offscreen → hello | ✅ 已修（**offscreen 这条链路**） | — |
@@ -44,7 +44,7 @@ EXT-020（§15）把插件面板的 4 个「死控件」接上线了。但复查
 
 ### ★ 顺带发现的第二个缺口：`player.js` 的 hello 没带语言/音色
 
-* `extension/offscreen.js` 的 hello 带 `target_lang` / `voice`（EXT-020 加的）；
+* `extension/offscreen.js` 的 hello 带 `target_lang` / `voice`（T-3 加的）；
 * 但 `extension/player.js` 的上行 hello **没有**这两个字段
   ⇒ **player 这条上行链路**（getDisplayMedia 兜底路径）上，
   服务端**根本收不到**面板上的选择 ⇒ 该路径上语言/音色**完全丢失**。
@@ -117,7 +117,7 @@ EXT-020（§15）把插件面板的 4 个「死控件」接上线了。但复查
 
 ### ④ 插件侧（node 沙箱跑 `player.js` 的**真实函数**）
 
-`tests/ext021_lang_harness.js` 从**真实的 `player.js` 源文件**里
+`tests/t4_lang_harness.js` 从**真实的 `player.js` 源文件**里
 **原样抽出** `normalizeLang` / `normalizeVoice` / `LANG_ALIASES`
 （按花括号配对抽取，不是正则截半），放进带桩的沙箱（`vm`）里执行
 ⇒ **验的是真代码，不是复刻品**。
@@ -160,8 +160,8 @@ FAIL 明细：
 ```
 echo_roundtrip 11 / ext009 57 / ext010 23 / ext011 29 / ext012 75 /
 ext013_compare 51 / ext013_cpu_watch 25 / ext016_compression 39 /
-ext017_user_report 108 / ext018_capture_mode 38 / ext019_port_guard 28 /
-ext020_dead_controls 53 / ★ ext021_target_lang_effect 50 /
+ext017_user_report 108 / t1_capture_mode 38 / t2_port_guard 28 /
+t3_dead_controls 53 / ★ t4_target_lang_effect 50 /
 browser_contract 102 / selfcheck 103 / next_instruction 19 / p1_plumbing 97
 ```
 
@@ -176,9 +176,9 @@ browser_contract 102 / selfcheck 103 / next_instruction 19 / p1_plumbing 97
 
 | 产物 | 文件数 | mtime | 字节数 |
 |---|---|---|---|
-| `tests/test_ext021_target_lang_effect.py` | 1 | 2026-10-31 07:29 | 22 719 |
-| `tests/ext021_lang_harness.js` | 1 | 2026-10-31 07:29 | 12 883 |
-| `status/notes/sec16_ext021_target_lang_effect.md` | 1 | 2026-10-31 07:40 | 13 069 |
+| `tests/test_t4_target_lang_effect.py` | 1 | 2026-10-31 07:29 | 22 719 |
+| `tests/t4_lang_harness.js` | 1 | 2026-10-31 07:29 | 12 883 |
+| `status/notes/sec16_t4_target_lang_effect.md` | 1 | 2026-10-31 07:40 | 13 069 |
 | `USER_GUIDE.md` / `extension/USER_GUIDE.md` | 各 1 | 2026-10-31 07:30 | 各 16 793（逐字节一致 ✅ `cmp` 通过） |
 
 ## §16.5 涉及修改的文件
@@ -189,9 +189,9 @@ browser_contract 102 / selfcheck 103 / next_instruction 19 / p1_plumbing 97
 | `ext/bridge.py` | `Session._effective_target_lang()` / `_mt_with_lang()` / `_tts_with_lang()`；串行 + 流水线路径都真正用上面板语言；`stats()`/`margin.json` 新增 `applied_target_lang` |
 | `extension/player.js` | 新增 `targetLang`/`voicePref` 状态 + `normalizeLang`/`normalizeVoice`；`boot()` 读设置；`storage.onChanged` 跟随；上行 hello 带 `target_lang`/`voice` |
 | `extension/popup.js` | 新增 `normalizeVoice()`；音色存/读/显示都走归一 |
-| `USER_GUIDE.md` / `extension/USER_GUIDE.md` | 补 EXT-021 修正说明（含「实际生效」字段与「会话中途改需重新开始」的诚实提示）；两份保持**逐字节一致** |
-| `tests/test_ext021_target_lang_effect.py` | **新增**（50 项，五组） |
-| `tests/ext021_lang_harness.js` | **新增**（28 项，四组） |
+| `USER_GUIDE.md` / `extension/USER_GUIDE.md` | 补 T-4 修正说明（含「实际生效」字段与「会话中途改需重新开始」的诚实提示）；两份保持**逐字节一致** |
+| `tests/test_t4_target_lang_effect.py` | **新增**（50 项，五组） |
+| `tests/t4_lang_harness.js` | **新增**（28 项，四组） |
 
 ## §16.6 ⛔ 明确未做 / 未宣称
 

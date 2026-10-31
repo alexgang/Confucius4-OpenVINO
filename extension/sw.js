@@ -92,7 +92,7 @@ chrome.runtime.onInstalled.addListener(async () => {
   const defaults = {
     wsUrl: 'ws://127.0.0.1:8765/',
     delaySec: 10,
-    // ★★ EXT-020：targetLang 默认值必须是**引擎码** 'zh'
+    // ★★ T-3：targetLang 默认值必须是**引擎码** 'zh'
     //   （旧值 'Chinese' 与引擎的 zh/en/ja/ko 不匹配）。
     targetLang: 'zh',
     voice: 'A',
@@ -207,7 +207,7 @@ async function handleSw(msg) {
         wsUrl: msg.wsUrl,
         token: msg.token,
         delaySec: msg.delaySec,
-        // ★★ EXT-020：把目标语言与音色透传给 offscreen
+        // ★★ T-3：把目标语言与音色透传给 offscreen
         //   （⇒ 再由 hello 带给桥接服务）。
         //   旧写法这两个字段**根本没进 start 消息** ⇒ 面板上的
         //   「目标语言」「音色」都是摆设。
@@ -253,5 +253,19 @@ async function handleSw(msg) {
 chrome.runtime.onMessage.addListener((msg) => {
   if (!msg || msg.target !== 'sw-broadcast') return;
   relayToPlayer(msg.payload || {});
+  // ★★ EXT-024 A：**同时**用 runtime 广播给所有扩展页面（player.html）。
+  //   为什么必须加这条：`relayToPlayer` 走的是 **Port**（'ext-player'），
+  //   而 player.html **从来不开 Port** ⇒ 那条路其实是死的
+  //   ⇒ offscreen 收到的 tts 根本到不了 player。
+  //   ⇒ 现在：offscreen → sendMessage('sw-broadcast') → SW → runtime 广播
+  //     → player.html 的 onMessage 监听 ⇒ handleBridgeMessage。
+  //   ⚠️ player 自己的 WS 也会收到同一条 tts ⇒ 靠 `seenDubIds` 按 id 去重，
+  //     只会排程/计数一次。
+  try {
+    chrome.runtime.sendMessage({
+      target: 'ext-dub',
+      payload: msg.payload || {},
+    });
+  } catch (e) { /* ignore */ }
   return false;
 });

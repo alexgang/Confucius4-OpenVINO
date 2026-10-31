@@ -1,4 +1,4 @@
-# §15 EXT-020 —— 插件面板「死控件」修复（逐条明细）
+# §15 T-3 —— 插件面板「死控件」修复（逐条明细）
 
 > 本文件是 `status/STATUS_EXT.md` §15 的**明细全文**（EXT-016 写作规则：
 > 长日志 / 逐条明细写到 notes，STATUS 里只留结论、数字和链接）。
@@ -9,11 +9,11 @@
   （`reason=already_executed`，`latest=EXT-017`，`last_ack=17`）
   ⇒ **没有新的 EXT 纠偏指令**（我另外把闸门的解析逻辑对着
   `CORRECTIONS_EXT.md` 的**原始文件**核过一遍：条目只有 EXT-013~EXT-017，
-  **不存在 EXT-018+** ⇒ 闸门的 exit 1 是**真的**，不是解析漏掉）。
+  **不存在比 EXT-017 更新的编号** ⇒ 闸门的 exit 1 是**真的**，不是解析漏掉）。
 * 按 **EXT-014 ②**（常设规则：「`last_ack` 追平后，只要还有未完成项，
   就自己继续做，不要空转」）⇒ 继续 STATUS「未完成纠偏清单」里的
   **P2 待办**（`克隆音色 / ducking / 字幕 / 设置持久化 / …`）。
-* ⚠️ **未认领新 EXT 编号**（reviewer 未下发 EXT-020/EXT-021）
+* ⚠️ **未认领新 EXT 编号**（reviewer 未下发新纠偏）
   ⇒ **`last_ack` 保持 EXT-017**，不自行占用 reviewer 的编号命名空间。
 * 本轮**未跑任何真实推理、未占 GPU/NPU、未创建/未回收机器锁**
   （全程 CPU 侧 + 回声模式 + node 沙箱）。
@@ -95,7 +95,7 @@
 
 本机**没有 playwright**（实测 `ModuleNotFoundError: No module named 'playwright'`）
 ⇒ 不能在真浏览器里点面板。
-⇒ 做法：`tests/ext020_settings_harness.js` 从**真实的 `player.js` 源文件**里
+⇒ 做法：`tests/t3_settings_harness.js` 从**真实的 `player.js` 源文件**里
 **原样抽出** `dbToGain` / `applyDuckDb` / `scheduleSub` / `pumpSubs` /
 `setupOriginalAudio`（按花括号配对抽取，不是正则截半），
 放进带桩的沙箱（`vm`）里执行 ⇒ **验的是真代码，不是复刻品**。
@@ -149,7 +149,7 @@ FAIL 明细：
 
 ### ④ 自测套件
 
-`tests/test_ext020_dead_controls.py` ⇒ **53 PASS / 0 FAIL**（rc=0），
+`tests/test_t3_dead_controls.py` ⇒ **53 PASS / 0 FAIL**（rc=0），
 含 A 插件行为级（含反证）/ B 语言码接线 / C 音色偏好 / D 服务端产物 /
 E 真起桥接 / F 文档口径 六组。
 
@@ -160,8 +160,8 @@ E 真起桥接 / F 文档口径 六组。
 ```
 echo_roundtrip 11 / ext009 57 / ext010 23 / ext011 29 / ext012 75 /
 ext013_compare 51 / ext013_cpu_watch 25 / ext016_compression 39 /
-ext017_user_report 108 / ext018_capture_mode 38 / ext019_port_guard 28 /
-★ ext020_dead_controls 53 / browser_contract 102 / selfcheck 103 /
+ext017_user_report 108 / t1_capture_mode 38 / t2_port_guard 28 /
+★ t3_dead_controls 53 / browser_contract 102 / selfcheck 103 /
 next_instruction 19 / p1_plumbing 97
 ```
 
@@ -175,9 +175,9 @@ next_instruction 19 / p1_plumbing 97
 
 | 产物 | 文件数 | mtime | 字节数 |
 |---|---|---|---|
-| `tests/test_ext020_dead_controls.py` | 1 | 2026-10-31 00:30 | 19 372 |
-| `tests/ext020_settings_harness.js` | 1 | 2026-10-31 00:28 | 9 878 |
-| `status/notes/sec15_ext020_dead_controls.md` | 1 | 2026-10-31 00:40 | 本文件 |
+| `tests/test_t3_dead_controls.py` | 1 | 2026-10-31 00:30 | 19 372 |
+| `tests/t3_settings_harness.js` | 1 | 2026-10-31 00:28 | 9 878 |
+| `status/notes/sec15_t3_dead_controls.md` | 1 | 2026-10-31 00:40 | 本文件 |
 
 （`extension/*.js` 与 `ext/*.py` 的字节数见 §15.5 表。）
 
@@ -192,7 +192,7 @@ next_instruction 19 / p1_plumbing 97
 | `extension/offscreen.js` | `connectWs` 收 `opts`，hello 带 `target_lang`/`voice` |
 | `ext/bridge.py` | `note_client` 记 `client_target_lang`/`client_voice`（语言走白名单）；新增 `_pick_voice`；`stats()` 与 `_dump_margin` 带新字段 |
 | `ext/config.py` | 新增 `LANG_CODES` |
-| `USER_GUIDE.md` / `extension/USER_GUIDE.md` | 参数表补 `ko` + EXT-020 修正说明（含「克隆仍不生效」的诚实说明）；两份保持**逐字节一致** |
+| `USER_GUIDE.md` / `extension/USER_GUIDE.md` | 参数表补 `ko` + T-3 修正说明（含「克隆仍不生效」的诚实说明）；两份保持**逐字节一致** |
 
 ## §15.6 ⛔ 明确未做 / 未宣称
 

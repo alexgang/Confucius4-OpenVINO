@@ -25,7 +25,7 @@ import secrets
 import struct
 import threading
 import time
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # ★★ EXT-011：**必须早于任何 numpy / openvino import**。
 #   OpenMP / MKL 运行时在**库被加载**（= `import numpy` 那一刻）读取
@@ -52,6 +52,7 @@ THREAD_LIMIT_RECORD = _apply_thread_limits(log=lambda m: _safe_print(m))
 import numpy as np
 
 from . import config as C
+from .config import normalize_lang_code
 from .adaptive_speed import combine_rates, decide_speed
 from .duration import fit_duration
 from .pipeline import EnginePipeline, SegmentJob, _FairLock
@@ -490,6 +491,159 @@ def decompose_lag_exact(margins: List[dict], *, delay_sec: float) -> dict:
     }
 
 
+class ConnectionRegistry:
+    """★★ EXT-024 A：**按连接**登记所有已连上的客户端。
+
+    ## 为什么必须有这个（用户 10-31 实测的根因）
+
+    旧实现里，`ext/bridge.py` 的 `handle_ws/_handle_messages` 给**每条连接**
+    各建一个 `Session`，而 `tts` 任务只 `websocket.send` 回**本连接**
+    ⇒ 上行连接（`upState.ws`，只发 pcm、**没有 onmessage**）上的会话
+    产出的 `tts` 全部被浏览器丢弃；
+    ⇒ player 连接（`connectBridge(..., 'player')`，**有 onmessage**）的会话
+    收不到 PCM，什么也不产出
+    ⇒ **用户只听到延迟原声，没有配音、没有字幕**（与用户描述完全一致）。
+
+    ⇒ 现在：服务端**显式登记每条连接的角色**（uplink / player / probe），
+      下行任务**广播给所有该 token 的 player 连接**（以及产生它的那条连接）。
+
+    ## 角色识别
+
+    * `role` 取自 hello 消息的 `role` / `source` 字段：
+      - `'player'` ⇒ **下行**接收端（有 onmessage，能排程播放）；
+      - `'uplink'` ⇒ 上行发送端（送 PCM）；
+      - 其它（`p1_probe` / `p1_dumper` / None）⇒ **探针**，
+        只收不发（保持旧行为：任务回给本连接）。
+    * ⚠️ **兜底**：若某连接既没报 role 也没报 source，
+      **不能**默认当 player（否则会退化成旧行为）。
+      ⇒ 默认按 probe 处理；只有明确报了 `'player'` 才当下行端。
+
+    ## 线程安全
+
+    事件循环里读写，但 `handle_ws` 会在 `asyncio.to_thread` 之外调用
+    ⇒ 一律用 `threading.Lock` 保护。
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        # conn_id → 连接信息
+        self._conns: Dict[str, dict] = {}
+        self._seq = 0
+
+    # ── 登记 / 注销 ──────────────────────────────────────────
+    def add(self, conn_id: str, *, websocket, token: str,
+            role: Optional[str], session=None) -> None:
+        with self._lock:
+            self._conns[conn_id] = {
+                "websocket": websocket,
+                "token": token,
+                "role": role,
+                "session": session,
+                "created_at": time.perf_counter(),
+            }
+
+    def set_role(self, conn_id: str, role: Optional[str]) -> None:
+        with self._lock:
+            info = self._conns.get(conn_id)
+            if info is not None:
+                info["role"] = role
+
+    def set_session(self, conn_id: str, session) -> None:
+        with self._lock:
+            info = self._conns.get(conn_id)
+            if info is not None:
+                info["session"] = session
+
+    def producer_session(self, token: str, *,
+                         exclude_conn_id: Optional[str] = None):
+        """同 token 的、role='uplink' 的连接上挂的**会话**。
+
+        ★ 这是**真正产出段**的会话（player 的会话只负责收下行）。
+        ⇒ stats / margin.json 要报的是它，不是 player 的空会话。
+        """
+        with self._lock:
+            conns = list(self._conns.items())
+        for cid, info in conns:
+            if cid == exclude_conn_id:
+                continue
+            if info.get("token") != token:
+                continue
+            if info.get("role") != "uplink":
+                continue
+            sess = info.get("session")
+            if sess is not None:
+                return sess
+        return None
+
+    def remove(self, conn_id: str) -> None:
+        with self._lock:
+            self._conns.pop(conn_id, None)
+
+    def get(self, conn_id: str) -> Optional[dict]:
+        with self._lock:
+            return self._conns.get(conn_id)
+
+    def list(self) -> List[dict]:
+        with self._lock:
+            return list(self._conns.values())
+
+    def next_id(self) -> str:
+        with self._lock:
+            self._seq += 1
+            return "c%d" % self._seq
+
+    # ── 下行目标选择 ──────────────────────────────────────────
+    def downlink_targets(self, token: str, *, origin_conn_id: str) -> List[str]:
+        """这条下行任务该发给谁？返回 conn_id 列表。
+
+        ★ 规则：
+          ① **产生它的那条连接**（origin_conn_id）—— 保持旧行为
+            （探针/单连接客户端仍然收得到）；
+          ② **同 token 的 role='player' 连接** —— ★ 这条是 EXT-024 的关键
+            （上行的会话产出、player 的连接接收）。
+
+        ⚠️ 探针连接（p1_probe 等）**不**被加进下行目标 ——
+          它们只收自己那条连接的任务（否则 P1 的段数会重复计数）。
+        """
+        with self._lock:
+            conns = list(self._conns.items())
+        targets: List[str] = []
+        for cid, info in conns:
+            if info.get("token") != token:
+                continue
+            if cid == origin_conn_id:
+                targets.append(cid)
+                continue
+            if info.get("role") == "player":
+                targets.append(cid)
+        return targets
+
+    def uplink_conn_ids(self, token: str) -> List[str]:
+        """同 token 的、role='uplink' 的连接 id 列表。"""
+        with self._lock:
+            conns = list(self._conns.items())
+        return [cid for cid, info in conns
+                if info.get("token") == token and info.get("role") == "uplink"]
+
+
+def classify_role(msg: Optional[dict]) -> Optional[str]:
+    """从 hello 消息里判断这条连接是什么角色。
+
+    ★ 返回 `'player'` / `'uplink'` / `None`（探针或未报）。
+    ⚠️ **绝不**把未报角色的连接当成 player ——
+      否则等于退回 EXT-024 之前的错误行为。
+    """
+    if not isinstance(msg, dict):
+        return None
+    raw = msg.get("role") or msg.get("source")
+    if not isinstance(raw, str):
+        return None
+    key = raw.strip().lower()
+    if key in ("player", "uplink"):
+        return key
+    return None
+
+
 class Session:
     """一次配音会话。
 
@@ -533,7 +687,7 @@ class Session:
         # ★ EXT-009：上一句实际采用的**自适应加速倍率**
         #   （用于「相邻句变化 ≤ 0.1×」与「滞回」两条约束）
         self._prev_adapt_speed = 1.0
-        # ── ★ EXT-018：抓流方式（captureMode）────────────────────
+        # ── ★ T-1：抓流方式（captureMode）────────────────────
         #   **为什么需要**：EXT-005 ① / EXT-008 都要求「tabCapture 生产路径
         #   到底有没有被实测过」必须**能从数据核对**，而不是靠人读日志。
         #   插件侧其实**早就知道**自己走的是哪条路
@@ -550,9 +704,13 @@ class Session:
         # 客户端身份（'offscreen' / 'player' / 'p1_probe'）——
         # 由 hello 的 source/role 填 ⇒ reviewer 能判断「这条数据是谁跑出来的」。
         self.client_source: Optional[str] = None
+        # ★★ EXT-024 B：这条会话所属**连接的角色**
+        #   （'player' / 'uplink' / None）——
+        #   ⇒ 用来判断「新 uplink 是否该接管旧会话」。
+        self.client_role: Optional[str] = None
         # 客户端抓到的原始采样率（没报就是 None）。
         self.source_rate: Optional[int] = None
-        # ★★ EXT-020：客户端**请求**的目标语言与音色。
+        # ★★ T-3：客户端**请求**的目标语言与音色。
         #   为什么需要记录：插件面板上的「目标语言」「音色」此前
         #   **从没传到服务端** ⇒ reviewer 拿到 margin.json 时
         #   **无法确认这一轮到底译成了哪种语言**（margin.json 里原来记的
@@ -560,7 +718,24 @@ class Session:
         #   ⇒ 记下来（**没报就是 None**，绝不臆造）。
         self.client_target_lang: Optional[str] = None
         self.client_voice: Optional[str] = None
-        # ★★ EXT-021：这一轮**真正用于翻译/合成**的目标语言。
+        # ★★★ EXT-024 E：**分开**的三段计数（ASR / MT / TTS）。
+        #   为什么必须分开（而不是沿用一个 `n_segments`）：
+        #     `n_segments`（= len(self.margins)）只说明「一共收口了几段」，
+        #     **不能**说明「ASR 出没出文本 / MT 出没出译文 / TTS 出没出音频」
+        #     ⇒ 若三者共用一个数，状态条上「TTS 0 段」这种关键故障信号
+        #       **永远不会显示**（因为只要收口过一段，`n_segments` 就 >0）。
+        #     ⇒ 插件侧曾把三者都设成 `m.n_segments` ⇒ **口径失真**
+        #       （player.js 的 handleBridgeMessage）。
+        #   口径（**如实**，不臆造）：
+        #     * asr_segments —— 这一轮**产出了非空 ASR 文本**的段数；
+        #     * mt_segments  —— 这一轮**产出了非空译文**的段数；
+        #     * tts_segments —— 这一轮**产出了 TTS 音频**（pcm24k 非空）的段数。
+        #   ⇒ 三者**可以不等**：ASR 认出文本但 MT 失败 ⇒ asr>0, mt=0,
+        #     TTS=0 ⇒ 状态条立刻能指出「翻译/合成这一环断了」。
+        self._n_asr_segments = 0
+        self._n_mt_segments = 0
+        self._n_tts_segments = 0
+        # ★★ T-4：这一轮**真正用于翻译/合成**的目标语言。
         #   ★ 为什么需要这个字段：`client_target_lang` 只说明「面板上选了什么」，
         #     而这个字段说明「**实际生效**的是什么」——
         #     两者不一致时（例如引擎不接受该码 ⇒ 回落到服务端默认），
@@ -568,14 +743,14 @@ class Session:
         #   ⚠️ 初始为 None（还没跑过任何一句）⇒ 绝不臆造。
         self.applied_target_lang: Optional[str] = None
 
-    # ── 目标语言（EXT-021） ──────────────────────────────────────
+    # ── 目标语言（T-4） ──────────────────────────────────────
     def _effective_target_lang(self) -> Optional[str]:
         """这一句该用哪个目标语言。
 
-        ★★ EXT-021 的核心：**面板上选的目标语言必须真正生效**。
+        ★★ T-4 的核心：**面板上选的目标语言必须真正生效**。
           此前 `client_target_lang` 只被**记录**、**从不用于翻译**
           ⇒ 用户在面板上选日语，MT/TTS 仍按服务端 `--target-lang` 走
-          ⇒ 面板上的「目标语言」**依然是死控件**（EXT-020 只修了一半）。
+          ⇒ 面板上的「目标语言」**依然是死控件**（T-3 只修了一半）。
 
         ⇒ 现在：客户端报了**白名单内**的语言码 ⇒ **按句覆盖**引擎的默认语言；
           没报 / 报的不是白名单内的码 ⇒ 沿用引擎默认（服务端启动参数）。
@@ -586,7 +761,7 @@ class Session:
         return self.client_target_lang or None
 
     def _mt_with_lang(self, text: str, lang: Optional[str]) -> str:
-        """按**目标语言**翻译一句（EXT-021）。
+        """按**目标语言**翻译一句（T-4）。
 
         ⚠️ **向后兼容**：引擎的 `mt` 若不接 `target_lang` 关键字
           （老适配层 / 自测桩）⇒ TypeError ⇒ **回落**成不传语言的旧调用
@@ -610,7 +785,7 @@ class Session:
 
     def _tts_with_lang(self, text: str, voice: str,
                         lang: Optional[str]) -> Tuple[Optional[bytes], float]:
-        """按**目标语言**合成一句（EXT-021）。
+        """按**目标语言**合成一句（T-4）。
 
         ⚠️ 向后兼容说明同 `_mt_with_lang`。
         """
@@ -629,7 +804,7 @@ class Session:
         return r
 
     def note_client(self, hello: Optional[dict]) -> None:
-        """★ EXT-018：从客户端的 hello 消息里记录**抓流方式**等元信息。
+        """★ T-1：从客户端的 hello 消息里记录**抓流方式**等元信息。
 
         放在 Session 上而不是全局，是因为**每个连接一个会话**，
         客户端自己的 hello 才是可信来源。
@@ -657,23 +832,34 @@ class Session:
                 self.source_rate = int(sr)
         except (TypeError, ValueError):
             pass
-        # ★★ EXT-020：客户端请求的目标语言 / 音色。
+        # ★★ T-3：客户端请求的目标语言 / 音色。
         #   ⚠️ 只接受**引擎认识的语言码**（zh/en/ja/ko）
         #     —— 其它值一律记 None，不静默接受未知的码
         #     （否则 reviewer 会看到「目标语言：Chinese」这种
         #       引擎其实不认的值，误以为这轮真的按它译了）。
         lang = hello.get("target_lang") or hello.get("targetLang")
         if isinstance(lang, str):
-            key = lang.strip().lower()
-            if key in C.LANG_CODES:
+            # ★★ EXT-024 G：**服务端也做一次全称→码的映射**。
+            #   起因（用户 10-31 实测的现场证据）：Edge 默认 profile 的
+            #   `chrome.storage` 里 `targetLang` 存的是 **`"Chinese"`**
+            #   （旧版 popup 存的全称，EXT-022 之后才改成码，
+            #    但**存量配置不会自动迁移**——用户的 Edge 里就是旧值）。
+            #   ⇒ 旧值 "Chinese" 落到这里 ⇒ 旧逻辑把它记成 None
+            #     ⇒ 服务端**不知道**用户要中文 ⇒ 用启动参数（en）翻译
+            #     ⇒ 用户看到的是「没翻译成中文」。
+            #   ⇒ 现在服务端**独立地**也认全称（不依赖插件是否已升级）
+            #     ⇒ 存量配置也能正确翻译。
+            #   ⚠️ 仍然只接受白名单里的值 ⇒ 未知字符串一律记 None。
+            key = normalize_lang_code(lang)
+            if key:
                 self.client_target_lang = key
         voice = hello.get("voice")
         if isinstance(voice, str) and voice.strip():
             self.client_voice = voice.strip()
 
-    # ── 音色选择（EXT-020） ──────────────────────────────────────
+    # ── 音色选择（T-3） ──────────────────────────────────────
     def _pick_voice(self, spk) -> str:
-        """★ EXT-020：按**面板上的音色选择**决定这一句用哪个音色。
+        """★ T-3：按**面板上的音色选择**决定这一句用哪个音色。
 
         面板有两个选项：
           * `A`（预设 A）—— 固定音色，走 speaker embedding（x-vector）。
@@ -863,7 +1049,7 @@ class Session:
         voice = self._pick_voice(spk)
 
         # 译文
-        # ★★ EXT-021：把**面板上选的目标语言**真正用起来
+        # ★★ T-4：把**面板上选的目标语言**真正用起来
         #   （此前只被记录成 client_target_lang，从不参与翻译
         #     ⇒ 面板上的「目标语言」仍是死控件）。
         _tgt_lang = self._effective_target_lang()
@@ -995,6 +1181,17 @@ class Session:
         if budget > 0 and speech_out > budget:
             defer_total = max(defer_total, speech_out - budget)
 
+        # ★★★ EXT-024 E：累加**分开**的三段计数。
+        #   口径见 `Session.__init__` 的注释（asr=有文本 / mt=有译文 /
+        #   tts=有音频）。⚠️ 只在这里累加 ⇒ 串行与流水线路径
+        #   **共用同一口径**（都走 `_finalize_segment`）。
+        if text:
+            self._n_asr_segments += 1
+        if tgt:
+            self._n_mt_segments += 1
+        if pcm24k is not None:
+            self._n_tts_segments += 1
+
         self.margins.append({
             "id": seg_id,
             "t_start": round(t_start, 3),
@@ -1033,8 +1230,41 @@ class Session:
         return [{
             "type": "tts",
             "id": seg_id,
+            # ★★ EXT-024 A（reviewer 明文）：**t_start 用的是哪个时间轴？**
+            #   ⇒ 这里**如实写清楚**，并落进日志与 margin.json，
+            #     免得 reviewer 只能靠猜。
+            #
+            #   ## t_start 的时间轴 = **上行链路的采样时间轴**
+            #     * `t_start = s0 / 16000`（见 `_process_segment`），
+            #       `s0` 是该段第一帧在**上行 PCM 里的累计采样数**
+            #       ⇒ 采样点 0 = **上行链路收到的第一帧音频**；
+            #     * 这个轴**与墙钟无关**（EXT-001 A 节：不用墙钟，避免漂移），
+            #       也**与服务端 t0 无关**。
+            #
+            #   ## 插件侧怎么用
+            #     插件把这段排在 **`t0_player + t_start + D`**：
+            #       * `t0_player` = 插件 AudioContext 的启动基准
+            #         （`upState.t0`，由**首帧的 inSamples 反推**真实基准点，
+            #          见 `extension/player.js` 的 `onUplinkFrame`）；
+            #       * `D` = `delay_sec`（原声被 DelayNode 延迟的时长）。
+            #     ⇒ **上行采样点 0 与原声起点在同一条音频时间轴上**
+            #       （两者都从同一路抓流来）⇒ 二者**天然对齐**，
+            #       配音与原声按同一口径错开 D 秒。
+            #
+            #   ## ⚠️ 诚实的已知偏差（不宣称「精确对齐」）
+            #     * 插件的 `t0_player` 与服务端的 `t0`（会话建立时刻）
+            #       **不同源**（§6.4.1 已记录）⇒ 两者的**常量偏差**会平移
+            #       服务端的 lag 估计（`lag_est_sec`）；
+            #     * 但**排程本身**（`t0_player + t_start + D`）用的是
+            #       **插件自己的同一个 t0_player** ⇒ 配音与原声的相对关系
+            #       **不受这个跨时钟偏差影响**（偏差在两边同时抵消）。
+            #     * 滞后的主导项是**管线 backlog**（占 83.18%，§6.4.3）
+            #       ⇒ 该常量偏差是二阶效应。
             "t_start": round(t_start, 3),
             "t_end": round(t_end, 3),
+            # ★★ EXT-024 A：把时间轴口径**显式**带给客户端
+            #   （插件可据此核对，不必猜；reviewer 也可从 margin.json 核对）。
+            "t_start_axis": "uplink_sample_index",
             "src": text,
             "tgt": tgt,
             "spk": spk,
@@ -1086,23 +1316,33 @@ class Session:
             "n_frames": self.n_frames,
             "n_dropped": self.n_dropped,
             "buffered_sec": round(self._buf.shape[0] / C.SAMPLE_RATE, 2),
-            # ★★ EXT-018：抓流方式（'tabCapture' | 'getDisplayMedia' | None）
+            # ★★ T-1：抓流方式（'tabCapture' | 'getDisplayMedia' | None）
             #   ⇒ EXT-005 ①「tabCapture 生产路径有没有被实测过」
             #     **终于可以从数据核对**，不用人读日志猜。
             #   ⚠️ 没上报就是 None（null）—— 绝不臆造 'tabCapture'。
             "capture_mode": self.capture_mode,
             "client_source": self.client_source,
             "source_rate": self.source_rate,
-            # ★★ EXT-020：客户端请求的目标语言 / 音色
+            # ★★ T-3：客户端请求的目标语言 / 音色
             #   ⇒ reviewer 能从 stats 直接确认「这轮面板上选的是什么」。
             #   ⚠️ 没上报就是 None（null）—— 绝不臆造。
             "client_target_lang": self.client_target_lang,
             "client_voice": self.client_voice,
-            # ★★ EXT-021：这一轮**实际生效**的目标语言。
+            # ★★ T-4：这一轮**实际生效**的目标语言。
             #   ⚠️ 与 `client_target_lang` 区分开：
             #     前者 = 面板上选了什么；后者 = 真正用来翻译/合成的是什么。
             #   ⚠️ 没跑过任何一句 = None（null）⇒ 绝不臆造。
             "applied_target_lang": self.applied_target_lang,
+            # ★★★ EXT-024 E：**分开**的三段计数（插件状态条直接用）。
+            #   ⚠️ **为什么不能沿用一个 `n_segments`**：
+            #     `n_segments`（在 `margin` 里）只说明「收口了几段」，
+            #     **不能**区分「ASR 出文本 / MT 出译文 / TTS 出音频」
+            #     ⇒ 若三者共用一个数，「TTS 0 段」这种关键故障信号
+            #       永远不会出现（只要收口过一段它就 >0）。
+            #   口径：asr=有非空文本 / mt=有非空译文 / tts=有音频。
+            "asr_segments": self._n_asr_segments,
+            "mt_segments": self._n_mt_segments,
+            "tts_segments": self._n_tts_segments,
             "speaker": self.tracker.stats(),
             "margin": self.margin_summary(),
             # ★ EXT-009：自适应加速的**各倍率时间占比**与滞后曲线
@@ -1304,7 +1544,7 @@ class PipelineSession(Session):
         """MT 阶段（在 MT 线程里跑）。"""
         t0 = time.perf_counter()
         tgt = ""
-        # ★★ EXT-021：流水线路径同样要真正用上**面板上选的目标语言**
+        # ★★ T-4：流水线路径同样要真正用上**面板上选的目标语言**
         #   （与串行路径 `_process_segment` 同一口径）。
         _tgt_lang = self._effective_target_lang()
         if self._engine is not None and job.text:
@@ -1328,7 +1568,7 @@ class PipelineSession(Session):
         t0 = time.perf_counter()
         pcm24k = None
         speech_sec = 0.0
-        # ★★ EXT-021：与串行路径同一口径 —— 真正用上面板选的目标语言。
+        # ★★ T-4：与串行路径同一口径 —— 真正用上面板选的目标语言。
         _tgt_lang = self._effective_target_lang()
         if self._engine is not None:
             try:
@@ -1458,7 +1698,9 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
                     echo_mode: bool, engine=None,
                     session_holder: Optional[dict] = None,
                     margin_out: Optional[str] = None,
-                    use_pipeline: bool = False) -> None:
+                    use_pipeline: bool = False,
+                    registry: Optional["ConnectionRegistry"] = None,
+                    mode: str = "echo") -> None:
     """单连接的握手与消息循环。
 
     ★★ 缺陷 15（EXT-006 P1 实测抓到的真缺陷）：**不能覆盖已有 session**。
@@ -1480,6 +1722,12 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
        * 第二条连接发的 `dump_margin` 依然能触发落盘 ——
          `_dump_margin` 读的是 `session_holder["session"]`（= **真会话**），
          不是这条连接自己的空会话。
+
+    ★★ EXT-024 A：现在**多了一条连接**（player 的下行连接）
+       ⇒ 光「不顶替」还不够：会话的**归属**必须能被找到。
+       ⇒ 每条连接都登记进 `registry`（带 role），下行任务按
+         `registry.downlink_targets(token, origin_conn_id=...)` 广播
+         给「产生它的连接 + 同 token 的 player 连接」。
     """
     origin = _get_header(websocket, "Origin") or ""
     # ★★ EXT-017④：Origin 必须是**本插件**（精确 id），不是任意扩展。
@@ -1514,13 +1762,26 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
         _log(f"已通过首个 hello 消息鉴权（role={first.get('role')}）")
         session = _make_session(token, delay_sec=delay_sec, engine=engine,
                                  use_pipeline=use_pipeline)
-        _register_session(session_holder, session)
-        await _handle_messages(websocket, session=session,
-                               first=first, echo_mode=echo_mode,
-                               delay_sec=delay_sec,
-                               engine=engine,
-                               margin_out=margin_out,
-                               session_holder=session_holder)
+        conn_id = (registry.next_id() if registry is not None else None)
+        _role0 = classify_role(first)
+        if registry is not None:
+            registry.add(conn_id, websocket=websocket, token=token,
+                         role=_role0, session=session)
+        session.client_role = _role0
+        _register_session(session_holder, session, role=_role0)
+        try:
+            await _handle_messages(websocket, session=session,
+                                   first=first, echo_mode=echo_mode,
+                                   delay_sec=delay_sec,
+                                   engine=engine,
+                                   margin_out=margin_out,
+                                   session_holder=session_holder,
+                                   registry=registry, conn_id=conn_id,
+                                   mode=mode)
+        finally:
+            _release_session(session_holder, session)
+            if registry is not None and conn_id is not None:
+                registry.remove(conn_id)
         return
     if not tokens.verify(token):
         _log("拒绝连接：token 不匹配")
@@ -1530,28 +1791,251 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
     _log(f"已连接（origin={origin}）")
     session = _make_session(token, delay_sec=delay_sec, engine=engine,
                              use_pipeline=use_pipeline)
-    _register_session(session_holder, session)
-    await _handle_messages(websocket, session=session, first=None,
-                           echo_mode=echo_mode, delay_sec=delay_sec,
-                           engine=engine,
-                           margin_out=margin_out,
-                           session_holder=session_holder)
+    conn_id = (registry.next_id() if registry is not None else None)
+    if registry is not None:
+        # ★ 角色未知的连接**不当 player**（见 classify_role 的说明）。
+        registry.add(conn_id, websocket=websocket, token=token, role=None,
+                     session=session)
+    session.client_role = None
+    _register_session(session_holder, session, role=None)
+    try:
+        await _handle_messages(websocket, session=session, first=None,
+                               echo_mode=echo_mode, delay_sec=delay_sec,
+                               engine=engine,
+                               margin_out=margin_out,
+                               session_holder=session_holder,
+                               registry=registry, conn_id=conn_id,
+                               mode=mode)
+    finally:
+        _release_session(session_holder, session)
+        if registry is not None and conn_id is not None:
+            registry.remove(conn_id)
 
 
-def _register_session(session_holder: Optional[dict], session) -> None:
+def _register_session(session_holder: Optional[dict], session,
+                      *, role: Optional[str] = None) -> None:
     """把会话登记进 holder —— **但绝不顶替已有的活跃会话**（缺陷 15）。
 
     为什么要这样：见 `handle_ws` 的缺陷 15 说明。
     编排器的「双保险」会另开一条连接来请求落盘；若那条连接顶替了
     真会话，`dump_margin` 落的就是**空统计**，把真数据覆盖掉。
+
+    ★★ EXT-024 B：**uplink 接管**。
+      现在一条 token 可以同时有「uplink 连接」和「player 连接」两条
+      ⇒ 后建的那条会话**不能**顶替先建的那条（否则 player 的会话
+      会被 uplink 的空会话顶掉 ⇒ 统计/HUD 读到的都是错的）。
+      ⇒ 但**新的 uplink 连接**必须能接管旧的 uplink 会话
+      （EXT-024 B 明文：「同一时刻只允许一个 uplink 会话，
+      新 uplink 接管时旧会话要停掉流水线线程」）。
+      ⇒ 靠 `role` 区分：
+        * `role == 'uplink'` 且 holder 里的旧会话**也是 uplink**
+          ⇒ **接管**：停掉旧会话的流水线线程，holder 指向新会话；
+        * 其它情况（player 连接 / 探针）⇒ **不顶替**（保持缺陷 15 的语义）。
     """
     if session_holder is None:
         return
+    # ★★ EXT-024 A：uplink 的会话是「**产出会话**」——
+    #   真正跑 ASR/MT/TTS、产出段的就是它
+    #   ⇒ popup 的 /status、margin.json 都要读它
+    #   （否则读 player 的空会话 ⇒ 段数/滞后恒为 0）。
+    if role == "uplink":
+        old_prod = session_holder.get("producer_session")
+        if old_prod is not None and old_prod is not session:
+            # ★★ uplink 接管：旧的 uplink 会话要**停掉流水线线程**
+            #   （EXT-024 B 明文：「同一时刻只允许一个 uplink 会话，
+            #     新 uplink 接管时旧会话要停掉流水线线程」）。
+            _log("★ 新的 uplink 连接接管旧 uplink 会话（EXT-024 B）")
+            closer = getattr(old_prod, "close", None)
+            if callable(closer):
+                try:
+                    closer()
+                except Exception:
+                    pass
+            try:
+                session_holder["last_session"] = old_prod
+            except Exception:
+                pass
+        session_holder["producer_session"] = session
+
     existing = session_holder.get("session")
+    if existing is session:
+        # ★ 同一会话重复登记 ⇒ 不做任何顶替。
+        return
     if existing is not None:
+        old_role = getattr(existing, "client_role", None)
+        if role == "uplink" and old_role == "uplink":
+            # ★★ uplink 接管（旧的 uplink 会话正好挂在 holder 上）。
+            _log("★ uplink 接管旧会话（EXT-024 B）")
+            closer = getattr(existing, "close", None)
+            if callable(closer):
+                try:
+                    closer()
+                except Exception:
+                    pass
+            try:
+                session_holder["last_session"] = existing
+            except Exception:
+                pass
+            session_holder["session"] = session
+            return
         _log("已有活跃会话 ⇒ 本连接不顶替（缺陷 15 修复：避免落盘空统计）")
         return
     session_holder["session"] = session
+
+
+def _propagate_client_settings(holder: Optional[dict],
+                               registry: Optional["ConnectionRegistry"],
+                               token: Optional[str], session) -> None:
+    """★★ EXT-024 A/G：把**面板设置**（语言 / 音色）在同 token 的会话间**互相同步**。
+
+    ## 为什么需要
+
+    面板在 popup 里设置，而**产出段的是 uplink 会话**。
+    但**上报 hello 的可能是 player 连接**（EXT-024 修复后，浏览器端
+    player 与 uplink 是两条连接）。
+    ⇒ 若不传播：uplink 会话的 `client_target_lang` 是 None
+    ⇒ 翻译按服务端启动参数（默认 en）走
+    ⇒ **用户在面板上选的中文不生效**。
+
+    ⇒ 现在：同 token 的所有会话**双向同步**「非 None」的语言/音色。
+
+    ⚠️ **只同步「非 None」的** ⇒ 不覆盖对方已经报过的值
+      （不臆造、不清空）。
+    ⚠️ player 与 uplink 谁先连上都一样（互为补充）。
+    """
+    if holder is None:
+        return
+    sessions = []
+    prod = holder.get("producer_session")
+    if prod is not None:
+        sessions.append(prod)
+    cur = holder.get("session")
+    if cur is not None and cur not in sessions:
+        sessions.append(cur)
+    if registry is not None and token:
+        try:
+            for info in registry.list():
+                if info.get("token") != token:
+                    continue
+                s = info.get("session")
+                if s is not None and s not in sessions:
+                    sessions.append(s)
+        except Exception:
+            pass
+    if session is not None and session not in sessions:
+        sessions.append(session)
+    if len(sessions) < 2:
+        return
+    # 收集「非 None」的值（先到先得）
+    lang = None
+    voice = None
+    for s in sessions:
+        v = getattr(s, "client_target_lang", None)
+        if v and not lang:
+            lang = v
+        v = getattr(s, "client_voice", None)
+        if v and not voice:
+            voice = v
+    if not lang and not voice:
+        return
+    for s in sessions:
+        try:
+            if lang and not getattr(s, "client_target_lang", None):
+                s.client_target_lang = lang
+            if voice and not getattr(s, "client_voice", None):
+                s.client_voice = voice
+        except Exception:
+            pass
+
+
+def _is_empty_producer(sess) -> bool:
+    """这个会话是不是「**没产出过段**」的空会话？
+
+    ★ 用来区分「player 的接收会话」（永远空）与
+      「uplink 的产出会话」（有段）。
+    ⚠️ 判据只看**段数**，不猜别的。
+    """
+    try:
+        return len(getattr(sess, "margins", []) or []) == 0
+    except Exception:
+        return True
+
+
+def _producer_session(holder: Optional[dict], registry: Optional["ConnectionRegistry"],
+                      token: Optional[str]) -> Any:
+    """★★ EXT-024 A：取「**真正产出段**」的那个会话。
+
+    ## 为什么需要
+
+    修复 EXT-024 后，**同一条 token 上会有两个会话**：
+      * **uplink 会话** —— 收 PCM、跑 ASR/MT/TTS，**真正产出段**；
+      * **player 会话** —— 只负责接收下行，**永远是空的**。
+
+    ⇒ 若 `stats()` / `margin.json` 读的是 player 的会话
+      ⇒ **段数恒为 0** ⇒ reviewer 看到的是「没出过段」的假象
+      （这正是用户 10-31 实测时的症状：popup/HUD 的段数全是 0）。
+
+    ⇒ 现在：优先取 uplink 会话；没有 uplink 才回落到 holder 里的会话
+      （单连接的老用法仍然正确）。
+    """
+    if registry is not None and token:
+        try:
+            sess = registry.producer_session(token)
+            if sess is not None:
+                return sess
+        except Exception:
+            pass
+    if holder is None:
+        return None
+    return holder.get("session")
+
+
+def _release_session(session_holder: Optional[dict], session) -> None:
+    """★★ EXT-024 B：连接关闭时**清掉 holder**。
+
+    ## 为什么要清（用户 10-31 实测抓到的真缺陷）
+
+    旧实现里 `_register_session` 只在 holder 为空时登记，
+    而连接关闭的 `finally` 里**从不清 holder**
+    ⇒ 第一个会话（22:34:14）之后，所有新会话永远是「不顶替」
+    ⇒ stats / HUD / popup 读到的**都是旧会话的数据**
+    （用户日志里 22:34:22–22:37:14 每条新连接都打「已有活跃会话」）。
+
+    ⇒ 现在：连接关闭 ⇒ 若 holder 里的 session **就是本会话**
+      ⇒ 置空（并把它的统计归档到 `last_session`，供 reviewer 事后核对）
+      ⇒ 并**停掉流水线线程**（否则旧会话的线程会一直跑）。
+    """
+    if session_holder is None:
+        return
+    try:
+        # ★★ EXT-024 A/B：uplink 的产出会话也要清
+        #   （否则 uplink 断了，popup 还在显示上一轮的段数）。
+        prod = session_holder.get("producer_session")
+        if prod is session:
+            session_holder["producer_session"] = None
+            try:
+                session_holder["last_session"] = session
+            except Exception:
+                pass
+        cur = session_holder.get("session")
+        if cur is not session:
+            return
+        session_holder["session"] = None
+        # ★ 归档：关掉之后 stats 还是能报「上一轮跑出了什么」
+        try:
+            session_holder["last_session"] = session
+        except Exception:
+            pass
+        # ★ 停掉流水线线程（EXT-024 B：旧会话的流水线不能继续跑）
+        closer = getattr(session, "close", None)
+        if callable(closer):
+            try:
+                closer()
+            except Exception:
+                pass
+        _log("连接关闭 ⇒ 已清空 holder['session']（EXT-024 B）")
+    except Exception as e:
+        _log(f"释放会话时出错（忽略）：{e}")
 
 
 async def _recv_first(websocket) -> Optional[dict]:
@@ -1567,12 +2051,118 @@ async def _recv_first(websocket) -> Optional[dict]:
     return msg if isinstance(msg, dict) else None
 
 
+def _engines_ready(engine, mode: str) -> bool:
+    """★★ EXT-024 F：三个引擎（ASR/MT/TTS）都就绪了吗？
+
+    ⚠️ **诚实性**：绝不能因为 mode='real' 就报 True ——
+      真实模式但模型还没加载完（用户点「开始」时正在预热）⇒ 必须报 False
+      ⇒ popup 才能禁用「开始」按钮并写明「引擎未就绪」。
+    ★ 回声模式不需要引擎 ⇒ 恒为 True（回声能正常工作）。
+    ★ 引擎对象没有 `stats()`（自测桩）⇒ 保守判 False（真实模式）。
+    """
+    if mode == "echo":
+        return True
+    if engine is None:
+        return False
+    try:
+        st = engine.stats()
+        loaded = st.get("loaded") or {}
+        return bool(loaded.get("asr") and loaded.get("mt")
+                    and loaded.get("tts"))
+    except Exception:
+        return False
+
+
+def _log_segment(task: dict, roles: List[str]) -> None:
+    """★★ EXT-024 D：写**一行段级日志**。
+
+    ## 为什么必须有（用户 10-31 实测抓到的真缺陷）
+
+    用户日志里整个会话**没有一行段级日志**（ASR 段 / MT / TTS 下发）
+    ⇒ reviewer **无法从日志判断有没有出过段**、更无法判断
+      「配音到底下发给了谁」。
+
+    ⇒ 现在每段一行，含：
+      * 段 id、t_start / t_end（会话秒）；
+      * ASR 原文前 30 字、MT 译文前 30 字；
+      * TTS 时长（speech_sec）；
+      * **下发到了哪些连接**（角色名）—— ★ 这是 EXT-024 的关键证据：
+        下发到 player 连接 ⇒ 用户能听到配音。
+
+    ⚠️ **不臆造**：字段缺失就写 `—`，绝不编。
+    """
+    def _cut(v, n=30):
+        if v is None:
+            return "—"
+        s = str(v).replace("\n", " ").strip()
+        return (s[:n] + "…") if len(s) > n else (s or "—")
+
+    _log("段 %s | t_start=%.3f t_end=%.3f | ASR=%r | MT=%r | TTS=%.2fs"
+         " | 下发到=%s"
+         % (task.get("id", "?"),
+            float(task.get("t_start") or 0.0),
+            float(task.get("t_end") or 0.0),
+            _cut(task.get("src")),
+            _cut(task.get("tgt")),
+            float(task.get("speech_sec") or 0.0),
+            ",".join(roles) if roles else "无"))
+
+
 async def _handle_messages(websocket, *, session: "Session", first: Optional[dict],
                            echo_mode: bool, delay_sec: float,
                            engine=None,
                            margin_out: Optional[str] = None,
-                           session_holder: Optional[dict] = None) -> None:
-    """消息循环。`first` 若已读过则先处理它。"""
+                           session_holder: Optional[dict] = None,
+                           registry: Optional["ConnectionRegistry"] = None,
+                           conn_id: Optional[str] = None,
+                           mode: str = "echo") -> None:
+    """消息循环。`first` 若已读过则先处理它。
+
+    ★★ EXT-024 A：**下行任务按连接广播**。
+      旧实现只 `websocket.send` 回本连接 ⇒ 上行连接（无 onmessage）
+      产出的 `tts` 被丢弃 ⇒ 用户只听到延迟原声、没有配音也没有字幕。
+      ⇒ 现在用 `_broadcast_task()` 发给「产生它的连接 + 同 token 的
+        role='player' 连接」。
+    """
+
+    async def _broadcast_task(task: dict) -> int:
+        """把一个下行任务发给该发的连接。返回**实际送达的连接数**。
+
+        ★ 没有 registry（老调用方 / 单连接自测）⇒ 退回旧行为：
+          只发本连接。
+        ★★ EXT-024 D：每个 `tts` 任务都写**一行段级日志**
+          （id / t_start / t_end / ASR 前 30 字 / MT 前 30 字 /
+          TTS 秒数 / 下发到哪个连接）
+          ⇒ 之前整个过程**没有一行段级日志** ⇒ reviewer 无法判断
+            「有没有出过段」「下发到了谁」。
+        """
+        if registry is None or conn_id is None:
+            await websocket.send(json.dumps(task))
+            if task.get("type") == "tts":
+                _log_segment(task, ["本连接"])
+            return 1
+        targets = registry.downlink_targets(session.token,
+                                             origin_conn_id=conn_id)
+        if not targets:
+            # ★ 没有别的目标 ⇒ 至少发回本连接（保持旧行为，
+            #   探针/单连接客户端不能收不到任务）。
+            targets = [conn_id]
+        sent = 0
+        sent_roles: List[str] = []
+        for cid in targets:
+            info = registry.get(cid)
+            if info is None:
+                continue
+            try:
+                await info["websocket"].send(json.dumps(task))
+                sent += 1
+                sent_roles.append(str(info.get("role") or "probe"))
+            except Exception as e:
+                _log(f"下发到连接 {cid} 失败（忽略）：{e}")
+        if task.get("type") == "tts":
+            _log_segment(task, sent_roles)
+        return sent
+
     try:
         pending = [first] if first else []
         it = pending.pop() if pending else None
@@ -1590,23 +2180,57 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                 continue
             mtype = msg.get("type")
             if mtype == "hello":
-                # ★★ EXT-018：hello 里带 **capture_mode**（抓流方式）⇒
+                # ★★ T-1：hello 里带 **capture_mode**（抓流方式）⇒
                 #   记进会话 ⇒ 后面 stats / margin.json 都能报出来。
                 #   （旧的客户端不带这个字段 ⇒ 记成 None ⇒ 输出 null，
                 #     **向后兼容**：不改 hello_ack 的结构，旧客户端不受影响。）
                 session.note_client(msg)
+                # ★★ EXT-024 A：hello 里的 role 才是**权威**的角色来源
+                #   （浏览器端不能自定义请求头 ⇒ token 走首个 hello；
+                #    而用请求头带 token 的客户端（Python 探针）首个消息
+                #    未必是 hello ⇒ 角色要等这条 hello 才确定）。
+                #   ⇒ 收到 hello 就**更新**登记表里的角色。
+                _role = classify_role(msg)
+                if registry is not None and conn_id is not None:
+                    if _role:
+                        registry.set_role(conn_id, _role)
+                    registry.set_session(conn_id, session)
+                if _role:
+                    session.client_role = _role
+                    # ★ 角色变了 ⇒ 可能需要重新登记（uplink 接管）
+                    _register_session(session_holder, session, role=_role)
+                # ★★ EXT-024 A/G：面板上的语言/音色是**用户设置**，
+                #   不是「某条连接的属性」⇒ 谁报了都生效。
+                #   典型场景：player 连接（面板所在）报了 targetLang='Chinese'，
+                #   而**产出段的是 uplink 会话** ⇒ 若不传播，
+                #   uplink 会话就不知道要译成中文（用的是服务端启动参数）。
+                _propagate_client_settings(session_holder, registry,
+                                           session.token, session)
+                # ★★ EXT-024 A/F：hello_ack 里补三个字段 ——
+                #   `mode`（真实引擎 / 回声）、`engines_ready`、`pipeline`。
+                #   ⚠️ **向后兼容**：只是**新增**字段，不动老字段
+                #     （老客户端忽略未知字段）。
                 await websocket.send(json.dumps({
                     "type": "hello_ack",
                     "delay_sec": delay_sec,
                     "sample_rate": C.SAMPLE_RATE,
                     "segmentation": describe_segmenter(),
-                    # ★ EXT-018：回显服务端**实际记到的**抓流方式，
+                    # ★ T-1：回显服务端**实际记到的**抓流方式，
                     #   让客户端能立刻确认「服务端认出我这条路径了」。
                     "capture_mode": getattr(session, "capture_mode", None),
+                    # ★★ EXT-024 F：当前连接的模式（真实引擎 / 回声）。
+                    "mode": mode,
+                    # ★★ EXT-024 F：引擎是否就绪。
+                    #   ⚠️ **必须查引擎的真实 loaded 状态**，不能只看 mode
+                    #     （mode='real' 但模型还没加载完 ⇒ 一律报 False
+                    #      ⇒ popup 会禁用「开始」按钮并写明原因）。
+                    #   回声模式不需要引擎 ⇒ 恒为 True。
+                    "engines_ready": _engines_ready(engine, mode),
+                    "pipeline": bool(isinstance(session, PipelineSession)),
                 }))
                 continue
             if mtype == "capture_info":
-                # ★★ EXT-018：客户端补报**实际抓流方式**。
+                # ★★ T-1：客户端补报**实际抓流方式**。
                 #   （offscreen 的 hello 早于抓流 ⇒ hello 里拿不到；
                 #     player 的 hello 在抓流之后 ⇒ 直接带在 hello 里。）
                 #   两条路径都汇到 `note_client`，字段口径一致。
@@ -1617,8 +2241,14 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                 #   再回 stats（否则 stats 会比任务先到，客户端会误判段数）。
                 if isinstance(session, PipelineSession):
                     for task in session._pipeline.pop_ready(block=False):
-                        await websocket.send(json.dumps(task))
-                await websocket.send(json.dumps({"type": "stats", **session.stats()}))
+                        await _broadcast_task(task)
+                # ★★ EXT-024 A：stats 要报**真正产出段的那个会话**
+                #   （uplink 会话）⇒ 否则 player 连接查到的段数恒为 0。
+                _sess = _producer_session(session_holder, registry,
+                                          session.token)
+                await websocket.send(json.dumps(
+                    {"type": "stats", **(_sess.stats() if _sess is not None
+                                         else session.stats())}))
                 continue
             if mtype == "pcm":
                 # ★ EXT-008：记下**这一帧到达消息循环**的墙钟时刻。
@@ -1645,13 +2275,13 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                                                   recv_at=_recv_at)
                 if out:
                     for task in (out if isinstance(out, list) else [out]):
-                        await websocket.send(json.dumps(task))
+                        await _broadcast_task(task)
                 # ★★ EXT-010：流水线模式下，段是**异步**跑完的 ⇒
                 #   每次收到帧后**顺手把已就绪的任务取走**下发。
                 #   （未就绪的继续在流水线里跑，稍后由下一帧/flush/stats 取走。）
                 if isinstance(session, PipelineSession):
                     for task in session._pipeline.pop_ready(block=False):
-                        await websocket.send(json.dumps(task))
+                        await _broadcast_task(task)
                 continue
             if mtype == "dump_margin":
                 # ★★ EXT-006 P1 实测修掉的缺陷 14：余量统计**主动落盘**。
@@ -1666,8 +2296,12 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                 #     **立刻**把余量统计写盘（不依赖进程退出路径）。
                 if margin_out:
                     _log("收到 dump_margin 请求 ⇒ 落盘 %s" % margin_out)
+                    # ★★ EXT-024 A：落盘要写**真正产出段的会话**（uplink）
+                    #   ⇒ 否则落盘的是 player 的空会话（段数 0）。
+                    _sess = _producer_session(session_holder, registry,
+                                              session.token)
                     _dump_margin(session_holder or {}, margin_out,
-                                 engine)
+                                 engine, session=_sess)
                     await websocket.send(json.dumps({
                         "type": "margin_dumped", "path": margin_out,
                         "dumped": True}))
@@ -1695,13 +2329,13 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                     out = await asyncio.to_thread(session.flush)
                     if out:
                         for task in out:
-                            await websocket.send(json.dumps(task))
+                            await _broadcast_task(task)
                     # ★★ EXT-010：流水线模式下，尾段也**异步**跑
                     #   ⇒ flush 之后必须**等流水线把剩下的段都跑完**，
                     #   否则尾段的配音任务来不及下发（客户端会等不到段数达标）。
                     if isinstance(session, PipelineSession):
                         for task in await asyncio.to_thread(session.drain):
-                            await websocket.send(json.dumps(task))
+                            await _broadcast_task(task)
                 continue
     except Exception as e:
         _log(f"连接异常: {e}")
@@ -1710,7 +2344,7 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
 
 
 def _probe_port_free(host: str, port: int) -> tuple[bool, str]:
-    """★ EXT-018：这个端口现在**能不能绑**？返回 (ok, 原因)。
+    """★ T-1：这个端口现在**能不能绑**？返回 (ok, 原因)。
 
     **为什么要在预热模型之前查**（2026-10-30 22:41 用户实测报错的根因）：
     旧流程是「先加载 24 秒模型 → 再 `serve()` 去 bind 端口」⇒
@@ -1789,12 +2423,19 @@ async def serve(host: str, port: int, *, delay_sec: float, echo_mode: bool,
     _log(f"token 文件：{token_path}")
     _log(f"监听 ws://{host}:{port}（echo={echo_mode}, D={delay_sec}s，"
          f"pipeline={use_pipeline}）")
+    # ★★ EXT-024 A：**连接登记表** —— 服务端据此把下行任务广播给
+    #   「产生它的连接 + 同 token 的 role='player' 连接」。
+    registry = ConnectionRegistry()
+    # ★★ EXT-024 F：连接模式（真实引擎 / 回声）—— 放进 hello_ack。
+    mode = "echo" if echo_mode else "real"
     async with websockets.serve(
         lambda ws: handle_ws(ws, tokens=tokens, delay_sec=delay_sec,
                               echo_mode=echo_mode, engine=engine,
                               session_holder=session_holder,
                               margin_out=margin_out,
-                              use_pipeline=use_pipeline),
+                              use_pipeline=use_pipeline,
+                              registry=registry,
+                              mode=mode),
         host, port,
         origins=None,
         max_size=32 * 1024 * 1024,
@@ -1825,9 +2466,21 @@ def main(argv=None) -> int:
     ap.add_argument("--margin-out", default=None,
                     help="把余量统计与时间表落盘到这个 JSON")
     # ── ★ EXT-010：句级流水线 ────────────────────────────────
-    ap.add_argument("--pipeline", action="store_true",
-                    help="用流水线会话（ASR/MT/TTS/收口 各一线程，句级并行）；"
-                         "依据 EXT-008 (c) interference 实测（ASR ∥ TTS 互不拖慢）")
+    # ★★ EXT-022 已定①：**流水线默认开启**（主会话 2026-10-30 已定，
+    #   用户已知情）。
+    #   ⇒ 旧写法 `--pipeline` 是 `store_true` ⇒ **默认关闭**
+    #     ⇒ 与「已定」冲突（CLI 入口与启动器 GUI 口径还不一致）。
+    #   ⇒ 现在：**默认开启**，另给 `--no-pipeline` 作逃生口
+    #     （串行路径仍在，需要对照/排障时可退回）。
+    # ⚠️ **诚实性**：`--no-pipeline` 仍然只是「串行会话」，
+    #   不是「关掉引擎」—— 回声模式本来就不用流水线。
+    ap.add_argument("--pipeline", dest="pipeline", action="store_true",
+                    help="（**默认已开启**）显式要求流水线会话 —— "
+                         "保留此参数只为兼容旧启动脚本")
+    ap.add_argument("--no-pipeline", dest="pipeline", action="store_false",
+                    help="**不用**流水线会话（退回串行 ASR→MT→TTS；"
+                         "默认是**开启**流水线）")
+    ap.set_defaults(pipeline=True)
     # ── ★ EXT-012：配对 HTTP 端点（插件自动取 token） ──
     ap.add_argument("--pair-port", type=int, default=C.PAIR_PORT,
                     help="配对/状态 HTTP 端点端口（0 = 关闭）")
@@ -1887,7 +2540,7 @@ def main(argv=None) -> int:
     #      要么明确告警后继续（默认，用户仍可用回声/部分能力）。
     holder: dict = {}
 
-    # ★★ EXT-018：**预热模型之前**先探端口（2026-10-30 22:41 用户实测报错根因）。
+    # ★★ T-1：**预热模型之前**先探端口（2026-10-30 22:41 用户实测报错根因）。
     #   旧流程：先加载 24 秒模型 → 再 serve() 去 bind ⇒ 端口被占用时
     #   用户**白等 24 秒**才看到一整屏 `OSError 10048` 的 Python traceback。
     #   ⇒ 现在：**先探** ⇒ 占用则**立刻**退出（退出码 6）并给人话提示。
@@ -1915,6 +2568,11 @@ def main(argv=None) -> int:
     #     ⇒ 状态灯永远停在「正在加载模型…」，不会翻成「TTS 就绪」）。
     holder["engine_state"] = "loading" if (args.real and engine is not None) \
         else "unknown"
+    # ★★ EXT-024 F：把**连接模式**放进 holder ⇒ /status 能报出来
+    #   ⇒ popup 能显示「真实引擎 / 回声」。
+    #   ⚠️ 诚实性：echo ⇒ "echo"；real ⇒ "real"（**不代表引擎已就绪**，
+    #     就绪与否看 engine_state / warmup，popup 两者都要看）。
+    holder["mode"] = "echo" if (args.echo or engine is None) else "real"
 
     # ★★ EXT-012：配对 HTTP 端点（**用户不需要手动复制 token**）
     #   插件从 http://127.0.0.1:<pair_port>/pair 自动取 token
@@ -1974,7 +2632,7 @@ def main(argv=None) -> int:
     except KeyboardInterrupt:
         _log("已停止")
     except OSError as e:
-        # ★★ EXT-018：bind 失败的**兜底**（端口检查与真正的 bind 之间有个
+        # ★★ T-1：bind 失败的**兜底**（端口检查与真正的 bind 之间有个
         #   极小的竞态窗口；也可能被别的程序抢占）。
         #   ⇒ **不要**抛一整屏 traceback 给用户 ⇒ 给人话提示 + 退出码 6。
         _win = getattr(e, "winerror", None)
@@ -1998,40 +2656,57 @@ def main(argv=None) -> int:
     return 0
 
 
-def _dump_margin(holder: dict, out_path: Optional[str], engine) -> None:
+def _dump_margin(holder: dict, out_path: Optional[str], engine,
+                 session=None) -> None:
     """把余量统计与逐句时间表落盘（EXT-006 P1 验收要求）。
 
     ★★ 缺陷 15 的第二道防线：**绝不用空统计覆盖已有的真数据**。
     若本次要写的 `n_segments` 为 0，而磁盘上已有文件含更多段
     ⇒ 判定为「拿错了会话 / 会话还没数据」⇒ **跳过写盘**并记日志。
     （宁可少写一份，也不能把 EXT-006 的核心验收量清空。）
+
+    ★★ EXT-024 A：新增 `session` 参数 ——
+      显式指定要落盘哪个会话（**真正产出段的那个**，即 uplink 会话）。
+      不给则沿用旧行为（读 `holder["session"]`）。
     """
     if not out_path:
         return
-    sess = holder.get("session")
+    sess = session if session is not None else holder.get("session")
     # ★ EXT-008：滞后分解落盘（喂帧慢 vs 引擎慢）
     #   ⚠️ 用 getattr 取 delay_sec ⇒ 桩 session（自测用的假对象）也不会崩。
     _dl = float(getattr(sess, "delay_sec", 10.0) or 10.0) if sess else 10.0
     data = {
         "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "target_lang": getattr(engine, "target_lang", None),
-        # ★★ EXT-018：抓流方式落盘 ⇒ reviewer 直接看 margin.json 就能知道
+        # ★★ T-1：抓流方式落盘 ⇒ reviewer 直接看 margin.json 就能知道
         #   这一轮到底跑的是 tabCapture（生产路径）还是 getDisplayMedia（兜底）。
         #   ⚠️ 用 getattr 取 ⇒ 桩 session（自测用的假对象）也不会崩。
         "capture_mode": (getattr(sess, "capture_mode", None) if sess else None),
         "client_source": (getattr(sess, "client_source", None) if sess else None),
         "source_rate": (getattr(sess, "source_rate", None) if sess else None),
-        # ★★ EXT-020：客户端请求的目标语言 / 音色（**与上面的 target_lang
+        # ★★ T-3：客户端请求的目标语言 / 音色（**与上面的 target_lang
         #   区分**：上面那个是**服务端启动参数**，这两个是**面板上的选择**）。
         "client_target_lang": (getattr(sess, "client_target_lang", None)
                                if sess else None),
         "client_voice": (getattr(sess, "client_voice", None) if sess else None),
-        # ★★ EXT-021：这一轮**实际生效**的目标语言（没跑过句子 = None）。
+        # ★★ T-4：这一轮**实际生效**的目标语言（没跑过句子 = None）。
         #   ⇒ reviewer 可直接比对 client_target_lang（面板选的）
         #     与 applied_target_lang（真正用的）⇒ 一眼看出「选了没生效」。
         "applied_target_lang": (getattr(sess, "applied_target_lang", None)
                                 if sess else None),
         "margin_summary": (sess.margin_summary() if sess else {}),
+        # ★★ EXT-024 A：把 `t_start` 的**时间轴口径**落盘
+        #   （reviewer 明文要求「写清楚 t_start 用的是哪个时间轴」）
+        #   ⇒ 从落盘文件即可核对，不必翻代码或猜。
+        # ⚠️ 口径：t_start = **上行链路的采样时间轴**
+        #   （s0/16000，s0 = 该段第一帧的上行累计采样数；
+        #     采样点 0 = 上行收到的第一帧音频）。
+        #   插件按 `t0_player + t_start + D` 排程 ⇒ 与原声**同轴**。
+        "t_start_axis": "uplink_sample_index",
+        "t_start_axis_note": (
+            "t_start = 上行采样时间轴（s0/16000，采样点0=上行首帧）；"
+            "插件按 t0_player + t_start + delay_sec 排程，与原声同轴。"
+        ),
         "per_segment": (sess.margins if sess else []),
         "engine_calls": (sess.engine_calls if sess else []),
         "engine_stats": (engine.stats() if engine is not None else {}),
@@ -2079,6 +2754,9 @@ def _pair_status(holder: dict) -> dict:
     * ⇒ 滞后（lag）也一并给出（用户最关心的就是「落后多少秒」）。
 
     ⚠️ 只返回**只读**的标量摘要，不含 token、不含原始音频。
+
+    ★★ EXT-024 A/F：popup 也要看到**真正产出段的会话**的数据
+      （uplink 会话）⇒ 否则「当前滞后 / 段数」恒为空。
     """
     out: dict = {
         "checked_at": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -2093,8 +2771,14 @@ def _pair_status(holder: dict) -> dict:
         "engine_state": "unknown",
         "engine_loaded": [],
         "engine_failed": {},
+        # ★★ EXT-024 F：popup 显示「真实引擎 / 回声」
+        "mode": "unknown",
     }
     holder = holder if isinstance(holder, dict) else {}
+    # ★★ EXT-024 F：连接模式（真实引擎 / 回声）
+    _mode = holder.get("mode")
+    if isinstance(_mode, str) and _mode in ("real", "echo"):
+        out["mode"] = _mode
     # 引擎加载状态（由 main() 在预热后写入 holder）
     warm = holder.get("warmup") or {}
     if isinstance(warm, dict) and warm:
@@ -2109,6 +2793,11 @@ def _pair_status(holder: dict) -> dict:
         if isinstance(st, str) and st in ("loading", "unknown", "ready", "partial"):
             out["engine_state"] = st
     sess = holder.get("session") if isinstance(holder, dict) else None
+    # ★★ EXT-024 A：优先用**真正产出段的会话**（uplink 会话）。
+    if sess is None or _is_empty_producer(sess):
+        _prod = holder.get("producer_session") if isinstance(holder, dict) else None
+        if _prod is not None:
+            sess = _prod
     if sess is None:
         return out
     out["has_session"] = True

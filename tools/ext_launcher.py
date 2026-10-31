@@ -115,7 +115,7 @@ def _has_tkinter(exe: Optional[str]) -> bool:
         return False
 
 
-# ── ★ EXT-018：端口占用预检 ──────────────────────────────────────
+# ── ★ T-1：端口占用预检 ──────────────────────────────────────
 def _port_in_use(host: str, port: int) -> bool:
     """这个端口**是不是已经被别人占着**？
 
@@ -310,6 +310,34 @@ def _read_token() -> str:
         return ""
 
 
+def _read_pid_file(path: str) -> int:
+    """读 PID 文件里的 PID（读不到返回 0）。"""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return int((f.read() or "0").strip() or 0)
+    except Exception:
+        return 0
+
+
+def _alive_instance(pid_path: str) -> tuple[bool, int]:
+    """PID 文件里记录的**桥接实例**是不是还活着？
+
+    返回 (alive, pid)。
+
+    ★ **口径与铁律一致**：`_pid_alive` 内部用 ctypes 的
+      OpenProcess + GetExitCodeProcess，探测失败一律**视为存活**
+      ⇒ 这里宁可误报「已在运行」，也不放行第二个实例去抢端口。
+    """
+    pid = _read_pid_file(pid_path)
+    if not pid or pid <= 0:
+        return False, 0
+    try:
+        return (_pid_alive(pid), pid)
+    except Exception:
+        # 探测异常 ⇒ 视为存活（保守）
+        return True, pid
+
+
 class BridgeRunner:
     """后台跑桥接服务；把日志同时写到文件和回调（喂给 Tk）。"""
 
@@ -348,40 +376,47 @@ class BridgeRunner:
             self._emit_state("互斥冲突", "err")
             return False, msg
 
-        # ★★ EXT-018：**启动前**先查端口占用（2026-10-30 22:41 用户实测报错根因）。
-        #   旧实现没有这道检查 ⇒ 用户把启动器再点一次 ⇒ 新子进程 bind 8765 失败
-        #   ⇒ `OSError 10048 端口只允许使用一次` ⇒ 桥接进程带着整屏 traceback 崩掉；
-        #   而且崩在**加载完 24 秒模型之后**（bind 在预热之后）⇒ 用户白等 24 秒
-        #   才看到一句看不懂的报错。
-        #   ⇒ 现在：**先查** ⇒ 占用就**不启动**，直接给人话提示。
+        pid_path = self.pid_path or PID_PATH
+        log_path = self.log_path or LOG_PATH
+
+        # ★★★ EXT-024 C ①：**无条件**先查 PID 文件里的活实例。
+        #   为什么必须无条件（而不是「端口被占时再查」）：
+        #     · 端口探测只看「8765 有人 listening」，**分辨不出是谁**；
+        #     · PID 文件是**本模块自己**写的 ⇒ 能确认「是上一个我」。
+        #   ⇒ 旧实现把 PID 检查藏在「端口被占」的分支里 ⇒ 出现两种坏情况：
+        #     ① 端口被**别的程序**占 ⇒ 提示语里混进了本模块的 PID（误导）；
+        #     ② 三个启动器实例**同时**起 ⇒ 各自的子进程往**同一个**
+        #        bridge.log 写 ⇒ **日志交错**，用户根本读不出哪行是谁打的。
+        #   ⇒ 现在：PID 文件里的实例还活着 ⇒ 直接拒，绝对不起第二个。
+        alive, old_pid = _alive_instance(pid_path)
+        if alive:
+            msg = ("已有桥接服务在运行（PID=%d，端口=%d）\n\n"
+                   "桥接服务**已经在运行**，不需要重复启动 —— "
+                   "直接在浏览器里点扩展图标即可。\n"
+                   "如果你想重新启动，请先点「停止」再点「启动」。\n"
+                   "（本次**没有**加载模型，也没有动日志文件。）"
+                   % (old_pid, self.port))
+            self._emit_state("已有实例在运行", "err")
+            self._emit_log("❌ " + msg)
+            return False, msg
+
+        # ★★★ EXT-024 C ②：PID 文件里没有活实例，但**端口被占**
+        #   ⇒ 是**别的程序**占的（或上一个实例的 PID 文件丢了）。
+        #   ⚠️ 关键：**不加载模型**就退出（端口检查在起子进程之前 ⇒
+        #   模型根本没被拉起来）⇒ 用户不会白等 20–40 秒。
         if self.cmd_override is None:
             _host = "127.0.0.1"
             if _port_in_use(_host, self.port):
                 owner = _find_port_owner(_host, self.port)
                 who = ("（占用者 PID=%d）" % owner) if owner else ""
-                # ★ 区分两种情况：**本模块**已有实例 vs **别的程序**占用了端口。
-                mine = False
-                old_pid = 0
-                try:
-                    with open(self.pid_path or PID_PATH, "r",
-                              encoding="utf-8") as f:
-                        old_pid = int((f.read() or "0").strip() or 0)
-                    mine = bool(old_pid) and _pid_alive(old_pid)
-                except Exception:
-                    mine = False
-                if mine:
-                    msg = ("桥接服务**已经在运行**了（PID=%d，端口=%d）%s\n\n"
-                           "不需要重复启动 —— 直接在浏览器里点扩展图标即可。\n"
-                           "如果你想重新启动，请先点「停止」再点「启动」。"
-                           % (old_pid, self.port, who))
-                else:
-                    msg = ("端口 %d **已被占用**%s\n\n"
-                           "可能是：\n"
-                           "  · 上一次启动的桥接进程还没退出（先点「停止」，"
-                           "或在任务管理器里结束 PID %s）；\n"
-                           "  · 别的程序占用了这个端口（换个端口再试）。\n\n"
-                           "日志：%s"
-                           % (self.port, who, owner if owner else "?", LOG_PATH))
+                msg = ("端口 %d **已被占用**%s\n\n"
+                       "可能是：\n"
+                       "  · 上一次启动的桥接进程还没退出（先点「停止」，"
+                       "或在任务管理器里结束 PID %s）；\n"
+                       "  · 别的程序占用了这个端口（换个端口再试）。\n\n"
+                       "（本次**没有**加载模型。）\n"
+                       "日志：%s"
+                       % (self.port, who, owner if owner else "?", log_path))
                 self._emit_state("端口已被占用", "err")
                 self._emit_log("❌ " + msg)
                 return False, msg
@@ -406,8 +441,9 @@ class BridgeRunner:
                    "--host", "127.0.0.1", "--port", str(self.port),
                    "--delay", str(self.delay),
                    "--real", "--target-lang", self.lang]
-            if self.pipeline:
-                cmd.append("--pipeline")
+            # ★★ EXT-022 已定①：流水线**默认开启** ⇒ 显式传，
+            #   免得「服务端默认值」与「GUI 复选框」两处各说各话。
+            cmd.append("--pipeline" if self.pipeline else "--no-pipeline")
 
         env = dict(os.environ)
         env["PYTHONPATH"] = os.pathsep.join(
@@ -425,6 +461,16 @@ class BridgeRunner:
 
         log_path = self.log_path or LOG_PATH
         pid_path = self.pid_path or PID_PATH
+        # ★★★ EXT-024 C ③：**实例标识** —— 防止多实例的日志交错。
+        #   用户 10-31 的现场证据：22:34:59 / 22:39:03 / 22:41:14 启动器
+        #   拉起了**三个** bridge 实例，三份输出**交错**写进同一个
+        #   bridge.log ⇒ reviewer 根本读不出哪行是谁打的。
+        #   ⇒ 现在：每一行前面加 `[#<实例号> pid=<PID>]` 前缀。
+        #     实例号 = 启动时刻（到秒）⇒ 三次启动的号**必不相同**
+        #     （哪怕同一秒内两次，也用毫秒）。
+        #   ⚠️ 前缀是在**读管道时**加的（不是改子进程的输出）⇒
+        #     子进程自己的日志格式完全不动。
+        self._inst_tag = "#%s" % time.strftime("%H%M%S")
         try:
             self._log_f = open(log_path, "a", encoding="utf-8")
             # ★★ EXT-017②：用**管道**把子进程 stdout/stderr 接出来，
@@ -500,14 +546,27 @@ class BridgeRunner:
                 pass
 
     def _write_log_file(self, line: str) -> None:
-        """把一行写进日志文件（UTF-8）。"""
+        """把一行写进日志文件（UTF-8）。
+
+        ★★★ EXT-024 C ③：前面加**实例标识** `[#<实例号> pid=<PID>]`。
+          多实例并存时（用户 10-31 现场：三个实例交错写同一个文件）
+          ⇒ reviewer 能一眼看出每行是**哪个实例**打的。
+        ⚠️ **不改**子进程自己的输出内容（只加前缀）⇒
+          `ext.bridge` 的日志格式与解析口径完全不变。
+        """
         if self._log_f is None:
             return
         try:
-            self._log_f.write(line + "\n")
+            self._log_f.write("%s %s\n" % (self._log_prefix(), line))
             self._log_f.flush()
         except Exception:
             pass
+
+    def _log_prefix(self) -> str:
+        """本实例的行前缀。"""
+        tag = getattr(self, "_inst_tag", None) or "?"
+        pid = self.proc.pid if self.proc is not None else 0
+        return "[%s pid=%s]" % (tag, pid)
 
     def stop(self) -> None:
         self._stop.set()

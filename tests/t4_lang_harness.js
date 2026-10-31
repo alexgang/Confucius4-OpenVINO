@@ -1,5 +1,5 @@
 /**
- * ext021_lang_harness.js — ★ EXT-021 的**行为级**测试载体
+ * t4_lang_harness.js — ★ 自发任务 T-4 的**行为级**测试载体
  *
  * ## 为什么需要这个文件
  *
@@ -18,7 +18,7 @@
  *   说明这个 harness 没有区分力（那就是测试本身有问题）。
  *
  * 用法：
- *   node tests/ext021_lang_harness.js [player.js 路径]
+ *   node tests/t4_lang_harness.js [player.js 路径]
  * 退出码 0 = 全部通过。
  */
 'use strict';

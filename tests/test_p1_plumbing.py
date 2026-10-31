@@ -220,6 +220,16 @@ def test_p1_plumbing() -> None:
                   all("deadline_margin_sec" in t for t in segs))
             check("★ tts 帧带 margin_sec 与 tts_ready_at",
                   all("margin_sec" in t and "tts_ready_at" in t for t in segs))
+            # ★★ EXT-024 A 明文：「要写清楚 t_start 用的是哪个时间轴」
+            #   ⇒ 断言这个口径**真的随 tts 消息下发到客户端**
+            #     （不是只写在服务端源码注释里）。
+            check("★★ EXT-024 A：tts 帧带 t_start_axis（时间轴口径明文）",
+                  all("t_start_axis" in t for t in segs),
+                  str([t.get("t_start_axis") for t in segs])[:120])
+            check("★★ EXT-024 A：t_start_axis == 'uplink_sample_index'",
+                  all(t.get("t_start_axis") == "uplink_sample_index"
+                      for t in segs),
+                  str([t.get("t_start_axis") for t in segs])[:120])
 
         # ── 指标口径 ──────────────────────────────────────────
         m, per = p1_pipeline.compute_metrics(segs, delay_sec=10.0,
@@ -230,7 +240,13 @@ def test_p1_plumbing() -> None:
               "definition" in m["sync_err_ms"])
 
         # ── 服务端侧余量统计（服务端的 margin_summary） ────────
-        sess = holder.get("session")
+        # ★★ EXT-024 B：连接关闭时服务端会**清空 holder['session']**
+        #   （修「会话登记永远不清」的缺陷）⇒ 客户端跑完后
+        #   `holder['session']` 已是 None，真会话被归档到
+        #   `holder['last_session']`（保留统计供事后核对）。
+        # ⇒ 这里读「当前会话 或 归档会话」⇒ 断言的**语义不变**
+        #   （仍要拿到服务端会话的 margin_summary）。
+        sess = holder.get("session") or holder.get("last_session")
         if sess is not None:
             summ = sess.margin_summary()
             check("服务端 margin_summary 有段数与负值计数",
@@ -249,7 +265,8 @@ def test_p1_plumbing() -> None:
             check("服务端 margin_summary 有排程截止余量组",
                   "deadline" in summ, f"keys={sorted(summ.keys())}")
         else:
-            check("服务端 session 可取到", False, "holder 里没有 session")
+            check("服务端 session 可取到", False,
+                  "holder 里既没有 session 也没有 last_session")
 
         # ── 配音 wav 落盘 ────────────────────────────────────
         dub_dir = os.path.join(tmp, "dub")
@@ -1157,9 +1174,12 @@ def test_ext008_feed_backpressure() -> None:
           str((timing or {}).get("t0_definition"))[:80])
 
     # 服务端侧的逐帧到达延迟（**真正的证据**）
-    sess = holder.get("session")
+    # ★★ EXT-024 B：连接关闭 ⇒ `holder['session']` 被清空，
+    #   真会话归档到 `holder['last_session']` ⇒ 两处都读。
+    sess = holder.get("session") or holder.get("last_session")
     check("★ EXT-008：能取到服务端 session（查逐帧到达延迟）",
-          sess is not None, "holder 里没有 session")
+          sess is not None,
+          "holder 里既没有 session 也没有 last_session")
     if sess is not None:
         fad = sess.stats().get("feed_arrival_delay") or {}
         check("★ EXT-008：服务端记录了逐帧到达延迟",
@@ -1185,7 +1205,7 @@ def test_ext008_feed_backpressure() -> None:
                 th2.stop()
             except Exception:
                 pass
-        sess2 = holder2.get("session")
+        sess2 = holder2.get("session") or holder2.get("last_session")
         fad2 = (sess2.stats().get("feed_arrival_delay") or {}) if sess2 else {}
         check("★ EXT-008 区分力：快引擎下无帧送晚 > 1s（否则上面断言恒真）",
               int(fad2.get("n_frames_late_gt_1s") or 0) == 0,

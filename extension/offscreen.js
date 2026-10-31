@@ -87,7 +87,7 @@ function post(msg) {
 function log(s) { post({ type: 'log', msg: s }); }
 
 /**
- * ★ EXT-018：把**实际用的抓流方式**补报给桥接服务。
+ * ★ T-1：把**实际用的抓流方式**补报给桥接服务。
  *
  * 背景：hello 消息在 connectWs 里发出，而抓流在 startCapture 之后才发生
  * ⇒ hello 那一刻 `state.captureMode` 还是 null。
@@ -128,7 +128,7 @@ function connectWs(wsUrl, token, opts) {
       ws.send(JSON.stringify({
         type: 'hello', token, sample_rate: TARGET_RATE, source: 'offscreen',
         role: 'uplink',
-        // ★★ EXT-020：把目标语言与音色带给桥接服务。
+        // ★★ T-3：把目标语言与音色带给桥接服务。
         //   旧写法只发了 token/sample_rate/source/role
         //   ⇒ 服务端拿不到用户在面板上选的目标语言。
         target_lang: o.targetLang || null,
@@ -145,10 +145,34 @@ function connectWs(wsUrl, token, opts) {
           state.echoCount++;
           state.echoBytes += (m.pcm24k || '').length;
           if (!state.echoFirst) state.echoFirst = { id: m.id, t_start: m.t_start, t_end: m.t_end };
+          // ★★ EXT-024 A：offscreen 路径也必须**把下行转发给 player**。
+          //   旧实现只计数、不转发 ⇒ 走 offscreen 抓流时，
+          //   player 页**永远收不到 tts** ⇒ 没有配音、没有字幕。
+          //   ⇒ 现在：通过 SW 的 runtime 广播送到 player.html
+          //     （player 自己的 WS 若也收到同一条，靠 id 去重，只排程一次）。
+          forwardToPlayer(m);
         }
       } catch (e) { /* ignore */ }
     };
   });
+}
+
+/**
+ * ★★ EXT-024 A：把下行的 tts/echo 转发给 player 页。
+ *
+ * 走 `chrome.runtime.sendMessage({target:'sw-broadcast'})`
+ * ⇒ SW 里那个 listener 会 `relayToPlayer`（Port 通道）
+ *   **并** runtime 广播给所有扩展页（player.html 的 onMessage 收）。
+ *
+ * ⚠️ **诚实性**：转发失败（SW 不可用）**不抛异常**，只记一次日志 ——
+ *   否则一条转发失败会把整条 WS 消息处理打断。
+ */
+function forwardToPlayer(m) {
+  try {
+    chrome.runtime.sendMessage({ target: 'sw-broadcast', payload: m });
+  } catch (e) {
+    log('转发下行到 player 失败：' + String(e));
+  }
 }
 
 // ── 抓流：两条路径 ───────────────────────────────────────────────
@@ -351,7 +375,7 @@ async function handleOffscreen(msg) {
           voice: msg.voice,
         });
         await startCapture(msg);
-        // ★★ EXT-018：抓流成功之后，把**实际用的抓流方式**补报给桥接服务。
+        // ★★ T-1：抓流成功之后，把**实际用的抓流方式**补报给桥接服务。
         //   为什么不能只靠 hello：hello 是在 connectWs 里发的，而
         //   **抓流发生在之后**（startCapture）⇒ hello 那一刻还不知道
         //   到底是 tabCapture 还是 getDisplayMedia 兜底。

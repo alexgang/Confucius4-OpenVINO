@@ -1,4 +1,4 @@
-"""test_ext021_target_lang_effect.py — ★ EXT-021 自测：目标语言**真正生效**
+"""test_t4_target_lang_effect.py — ★ 自发任务 T-4 自测：目标语言**真正生效**
 
 **新增**自测文件，**不改写**既有断言（避免用改断言掩盖回归）。
 
@@ -8,9 +8,9 @@
 ⇒ 没有新纠偏指令；但按 **EXT-014 ②**（常设规则「`last_ack` 追平后仍要继续下一项」）
 ⇒ 继续 STATUS 里明列的 P2 待办。
 
-审 EXT-020（修插件面板「死控件」）时发现 **EXT-020 只修了一半**：
+审 T-3（修插件面板「死控件」）时发现 **T-3 只修了一半**：
 
-| 环节 | EXT-020 之后的状态 |
+| 环节 | T-3 之后的状态 |
 |---|---|
 | popup 存语言码（zh/en/ja/ko） | ✅ 已修 |
 | 语言进 `start` 消息 → offscreen → hello | ✅ 已修（**offscreen 这条链路**） |
@@ -44,7 +44,7 @@
 * **真实退出码**：取真实 `rc`，不 pipe（`| tail` 会洗掉 rc）。
 
 运行：
-    python tests/test_ext021_target_lang_effect.py
+    python tests/test_t4_target_lang_effect.py
 退出码 0 = 全通过。
 """
 from __future__ import annotations
@@ -63,7 +63,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 EXT_DIR = os.path.join(ROOT, "extension")
-HARNESS = os.path.join(ROOT, "tests", "ext021_lang_harness.js")
+HARNESS = os.path.join(ROOT, "tests", "t4_lang_harness.js")
 RESULTS = []
 
 
@@ -226,15 +226,30 @@ def test_session_applies_client_lang() -> None:
           s2.applied_target_lang is None,
           f"实测 {s2.applied_target_lang!r}")
 
-    # ★★ 对照组：客户端报的是**非法**码 ⇒ 服务端已经记成 None
+    # ★★ 对照组：客户端报的是**非法**码 ⇒ 服务端记成 None
     #   ⇒ 不该把它传给引擎（否则引擎会抛 EngineNeedsChange）
+    # ★★ EXT-024 G：**'Chinese' 不再是非法码**（服务端新增全称→引擎码
+    #   的白名单映射，见 t3 的对应断言）⇒ 这里的非法码改用真·未知的 'xx'。
     eng3 = _LangRecordingEngine(target_lang="en")
     s3 = Session("tok", delay_sec=10.0, engine=eng3)
-    s3.note_client({"target_lang": "Chinese"})
+    s3.note_client({"target_lang": "xx"})
     s3._process_segment(seq=0, s0=0, s1=16000, audio=audio)
     check("★★ 对照组：非法码 ⇒ 不传给引擎（不会把引擎打挂）",
           bool(eng3.mt_calls) and eng3.mt_calls[0][1] is None,
           f"实测 mt_calls={eng3.mt_calls}")
+
+    # ★★ EXT-024 G：全称 'Chinese' ⇒ 归一成 'zh' **并真的传给引擎**
+    #   （这是用户 10-31 实测的现场证据：存量配置里存的就是 "Chinese"）。
+    eng3b = _LangRecordingEngine(target_lang="en")
+    s3b = Session("tok", delay_sec=10.0, engine=eng3b)
+    s3b.note_client({"target_lang": "Chinese"})
+    s3b._process_segment(seq=0, s0=0, s1=16000, audio=audio)
+    check("★★ EXT-024 G：'Chinese' ⇒ 真的按 'zh' 传给 MT",
+          bool(eng3b.mt_calls) and eng3b.mt_calls[0][1] == "zh",
+          f"实测 mt_calls={eng3b.mt_calls}")
+    check("★★ EXT-024 G：'Chinese' ⇒ applied_target_lang='zh'",
+          s3b.applied_target_lang == "zh",
+          f"实测 {s3b.applied_target_lang!r}")
 
     # ★★★ 对照组（**兼容性**）：引擎**不接** target_lang 关键字时
     #   ⇒ 不能崩，要回落旧行为，并**如实**记 None（不假装生效）
@@ -432,7 +447,7 @@ def test_plugin_reports_lang() -> None:
 
 
 # ══════════════════════════════════════════════════════════════
-# E 组：文档口径（USER_GUIDE 不能还停留在 EXT-020 的说法）
+# E 组：文档口径（USER_GUIDE 不能还停留在 T-3 的说法）
 # ══════════════════════════════════════════════════════════════
 def test_docs_consistent() -> None:
     print("\n[E] ★ 文档：USER_GUIDE 的「目标语言」说法要跟上")
@@ -445,8 +460,8 @@ def test_docs_consistent() -> None:
         s = _read(p)
         rel = os.path.relpath(p, ROOT)
         check(f"★ {rel} 说明了目标语言", "目标语言" in s)
-        check(f"★ {rel} 提到了 EXT-021 或「实际生效」",
-              "EXT-021" in s or "实际生效" in s,
+        check(f"★ {rel} 提到了 T-4 或「实际生效」",
+              "T-4" in s or "实际生效" in s,
               "文档口径未跟上本轮修复")
 
     a, b = paths
@@ -456,7 +471,7 @@ def test_docs_consistent() -> None:
 
 def main() -> int:
     print("=" * 72)
-    print("EXT-021 自测：目标语言**真正生效**"
+    print("T-4 自测：目标语言**真正生效**"
           "（面板选的语种要真的用于翻译/合成）")
     print("=" * 72)
     for fn in (test_engine_per_call_lang,

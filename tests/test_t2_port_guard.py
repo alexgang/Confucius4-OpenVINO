@@ -1,4 +1,4 @@
-"""test_ext019_port_guard.py — EXT-019 自测（追加项）：重复启动的端口占用防护
+"""test_t2_port_guard.py — 自发任务 T-2 自测：重复启动的端口占用防护
 
 本文件**不改写**既有断言，只**追加**新的行为级验收。
 
@@ -11,7 +11,7 @@ traceback 崩掉**。
 更糟的是**崩溃时机**：旧流程是「先加载 24 秒模型 → 再 `serve()` 去 bind」
 ⇒ 用户**白等 24 秒**，最后看到一句没人看得懂的 traceback。
 
-⇒ EXT-019 两道防线：
+⇒ T-2 两道防线：
   ① **启动器**在拉子进程**之前**就查端口 ⇒ 占用则**不启动**、给人话提示；
   ② **桥接**把端口检查**提到模型预热之前** ⇒ 就算绕过启动器，
      也是**立刻**失败（实测 400 ms）而不是白等 24 秒。
@@ -31,7 +31,7 @@ traceback 崩掉**。
 不跑推理 / 不占 GPU·NPU / 不抢共享锁。
 
 运行：
-    python tests/test_ext019_port_guard.py
+    python tests/test_t2_port_guard.py
 退出码 0 = 全通过。
 """
 from __future__ import annotations
@@ -237,7 +237,7 @@ def test_source_contract() -> None:
 
 def main() -> int:
     print("=" * 68)
-    print("EXT-019 自测：重复启动的端口占用防护（快速失败 + 人话提示）")
+    print("T-2 自测：重复启动的端口占用防护（快速失败 + 人话提示）")
     print("=" * 68)
     for fn in (test_launcher_blocks_occupied_port,
                test_bridge_port_probe,

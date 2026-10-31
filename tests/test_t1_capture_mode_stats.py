@@ -1,4 +1,4 @@
-"""test_ext018_capture_mode_stats.py — EXT-018 自测（追加项）
+"""test_t1_capture_mode_stats.py — 自发任务 T-1 自测（capture_mode 上报进 stats）
 
 本文件**不改写**既有断言，只**追加**新的行为级验收。
 
@@ -15,7 +15,7 @@ EXT-005 ① / EXT-008 都要求一条铁律：**「tabCapture 生产路径到底
 「这轮跑的到底是生产路径(tabCapture) 还是兜底路径(getDisplayMedia 兜底)」
 ⇒ 只能人工翻日志 —— 正是 EXT-005 ① 想避免的「宣称已验证但没法证明」。
 
-⇒ EXT-018 的最小改动：插件把 `capture_mode` 报上来 ⇒ 服务端记进会话
+⇒ T-1 的最小改动：插件把 `capture_mode` 报上来 ⇒ 服务端记进会话
 ⇒ `stats()` 回包 + `margin.json` 都带上它。
 
 ## 覆盖三块
@@ -45,7 +45,7 @@ EXT-005 ① / EXT-008 都要求一条铁律：**「tabCapture 生产路径到底
 不跑推理 / 不占 GPU·NPU / 不抢共享锁。
 
 运行：
-    python tests/test_ext018_capture_mode_stats.py
+    python tests/test_t1_capture_mode_stats.py
 退出码 0 = 全通过。
 """
 from __future__ import annotations
@@ -328,7 +328,7 @@ def _check_icons() -> None:
 
 def main() -> int:
     print("=" * 68)
-    print("EXT-018 自测：captureMode 上报进 stats + 扩展图标")
+    print("T-1 自测：captureMode 上报进 stats + 扩展图标")
     print("=" * 68)
 
     print("\n[A/B] 行为级：真起桥接服务 + 真 WebSocket")

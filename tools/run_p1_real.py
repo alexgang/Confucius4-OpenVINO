@@ -172,8 +172,16 @@ def main(argv=None) -> int:
     ap.add_argument("--lock-wait", type=float, default=7200.0)
     ap.add_argument("--skip-smoke", action="store_true")
     # ── ★ EXT-010：句级流水线 ────────────────────────────────
-    ap.add_argument("--pipeline", action="store_true",
-                    help="用流水线会话（ASR/MT/TTS/收口 各一线程，句级并行）")
+    # ★★ EXT-022 已定①：流水线**默认开启**（服务端 ext.bridge 的默认值）。
+    #   ⇒ 这里的默认值改成 **None**（=「不显式指定，交给服务端默认」）
+    #     ⇒ 与服务端口径一致，且**保留**显式开关做对照实验。
+    #   ⇒ `--pipeline` 保持旧语义（显式开启），另加 `--no-pipeline`。
+    ap.add_argument("--pipeline", dest="pipeline", action="store_true",
+                    default=None,
+                    help="显式用流水线会话（ASR/MT/TTS/收口 各一线程，句级并行）；"
+                         "默认交给服务端（EXT-022 已定①：默认开启）")
+    ap.add_argument("--no-pipeline", dest="pipeline", action="store_false",
+                    help="显式**不用**流水线（退回串行；用于对照实验）")
     # ── ★ EXT-011：线程限制 + CPU 占用采集 ───────────────────────
     ap.add_argument("--no-thread-limit", action="store_true",
                     help="★ EXT-011 A/B 对照：不设 OMP/MKL/OPENBLAS/NUMEXPR=1")
@@ -247,8 +255,12 @@ def main(argv=None) -> int:
                       "--real", "--target-lang", args.target_lang,
                       "--margin-out", margin_out]
         # ★ EXT-010：可选**流水线**（句级并行）
-        if args.pipeline:
+        #   ★★ EXT-022 已定①：默认（None）⇒ 不显式传 ⇒ 走服务端默认（开启）。
+        #     显式给了才传 `--pipeline` / `--no-pipeline`。
+        if args.pipeline is True:
             bridge_cmd.append("--pipeline")
+        elif args.pipeline is False:
+            bridge_cmd.append("--no-pipeline")
         env = dict(os.environ)
         env["PYTHONPATH"] = os.pathsep.join(
             [ROOT, os.path.join(ROOT, ".runtime_deps")] +

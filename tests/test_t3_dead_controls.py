@@ -1,4 +1,4 @@
-"""test_ext020_dead_controls.py — ★ EXT-020 自测：插件侧「死控件」修复
+"""test_t3_dead_controls.py — ★ 自发任务 T-3 自测：插件侧「死控件」修复
 
 **新增**自测文件，**不改写**既有断言（避免用改断言掩盖回归）。
 
@@ -18,12 +18,12 @@
 | **目标语言** | 「配音要译成的语言」 | **选了不生效** | ① popup 存的是语言**全称**（`Chinese`/`English`/`Japanese`），而引擎只认 `zh/en/ja/ko`；② 更根本：`targetLang` **从没进过 start 消息** ⇒ 服务端根本收不到 |
 | **音色** | 「预设 A / 克隆说话人」 | **选了不生效** | `voice` **从没进过 start 消息**；且服务端 `tracker.voice_for()` 完全忽略用户选择（只要有说话人攒够 3 s 就自动切克隆） |
 
-⇒ **EXT-020 的修复**：把这 4 个控件真正接线（读 → 用 → 如实回报生效值）。
+⇒ **T-3 的修复**：把这 4 个控件真正接线（读 → 用 → 如实回报生效值）。
 
 ## 本文件的判定原则
 
 * **行为级优先**：能真跑的就不看源码字符串。
-  * 插件侧用 **node 沙箱**跑 `player.js` 的**真实函数**（`tests/ext020_settings_harness.js`）
+  * 插件侧用 **node 沙箱**跑 `player.js` 的**真实函数**（`tests/t3_settings_harness.js`）
     —— 本机**没有 playwright**（实测 `ModuleNotFoundError`）⇒ 不能在真浏览器里点。
   * 服务端用**真起桥接服务 + 真 WebSocket**（回声模式，不跑推理）。
 * **有区分力**：每组都配**反证**（把接线拆掉 ⇒ 必须 FAIL），
@@ -31,7 +31,7 @@
 * **真实退出码**：取真实 `rc`，不 pipe（`| tail` 会洗掉 rc）。
 
 运行：
-    python tests/test_ext020_dead_controls.py
+    python tests/test_t3_dead_controls.py
 退出码 0 = 全通过。
 """
 from __future__ import annotations
@@ -51,7 +51,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 EXT_DIR = os.path.join(ROOT, "extension")
-HARNESS = os.path.join(ROOT, "tests", "ext020_settings_harness.js")
+HARNESS = os.path.join(ROOT, "tests", "t3_settings_harness.js")
 RESULTS = []
 
 
@@ -206,11 +206,21 @@ def test_lang_wiring() -> None:
     check("★★ 服务端收到 target_lang='ja' ⇒ 记成 'ja'",
           s.client_target_lang == "ja", f"实测 {s.client_target_lang}")
 
-    # ★★ 对照组：全称必须**不**被接受（否则 reviewer 会误以为引擎认它）
+    # ★★ 对照组：全称的处理方式 **EXT-024 G 已改**。
+    #   旧断言：「'Chinese' ⇒ 记成 None（不静默接受）」——
+    #   那是 EXT-022 之前的行为（插件侧已改用引擎码 ⇒ 全称不再出现）。
+    # ★★ EXT-024 G 明确要求：**服务端也要独立地把全称映射成引擎码**。
+    #   现场证据：用户 Edge 默认 profile 的 chrome.storage 里
+    #   `targetLang` 存的就是 **`"Chinese"`**（存量配置不会自动迁移）
+    #   ⇒ 服务端只认 zh/en/ja/ko 时，"Chinese" 落到 None
+    #   ⇒ 服务端按启动参数（默认 en）翻译 ⇒ **用户看到「没翻译成中文」**。
+    # ⇒ 现在：'Chinese' ⇒ **'zh'**（白名单映射）。
+    # ⚠️ 「不臆造」这条**没有被削弱** —— 下面紧跟的 'xx' 与「不带」两组
+    #   仍然必须记 None（未知值一律不猜）。
     s2 = Session("tok", delay_sec=10.0, engine=None)
     s2.note_client({"target_lang": "Chinese"})
-    check("★★ 对照组：target_lang='Chinese' ⇒ 记成 None（不静默接受）",
-          s2.client_target_lang is None, f"实测 {s2.client_target_lang}")
+    check("★★ EXT-024 G：target_lang='Chinese' ⇒ 映射成 'zh'（白名单）",
+          s2.client_target_lang == "zh", f"实测 {s2.client_target_lang}")
 
     s3 = Session("tok", delay_sec=10.0, engine=None)
     s3.note_client({"target_lang": "xx"})
@@ -458,7 +468,7 @@ def test_docs_consistent() -> None:
 
 def main() -> int:
     print("=" * 72)
-    print("EXT-020 自测：插件侧「死控件」修复"
+    print("T-3 自测：插件侧「死控件」修复"
           "（原声压低量 / 字幕开关 / 目标语言 / 音色）")
     print("=" * 72)
     for fn in (test_plugin_behavior, test_lang_wiring, test_voice_preference,

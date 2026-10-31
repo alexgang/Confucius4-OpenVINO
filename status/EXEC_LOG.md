@@ -1938,3 +1938,170 @@ test_p1_plumbing.py               97 PASS / 0 FAIL  rc=0
 
 **保持 EXT-017 不变** —— 本轮**未认领任何新的 EXT 编号**（reviewer 未下发 EXT-021）
 ⇒ 不自行占用 reviewer 的编号命名空间。
+
+
+## 2026-10-31 15:03 → 2026-10-31 16:01 — §17 EXT-024 收口（下行路由 / 会话生命周期 / 启动器 / 段级日志 / 状态条 / 模式 / 语言）+ EXT-023 + EXT-022
+
+**执行时间**：2026-10-31 15:03（任务启动）→ 2026-10-31 16:01（本轮完成）
+
+### 闸门判定
+
+- 闸门脚本：`tools/next_instruction.py --json`
+- **退出码 0** ⇒ 有未执行的新指令 ⇒ 进入执行分支。
+- 输出：`{"action": "execute", "latest": {"id": "EXT-025", "num": 25, "priority": "[NORMAL]",
+  "ts": "2026-10-31 10:37", "title": "RESUME：额度已重置，请从 last_ack 继续"}, "last_ack": 17, "n_entries": 9}`
+- ★ **闸门报出的最新条目 = 本轮唯一执行依据**。
+- 收尾复测（2026-10-31 16:01）：闸门 → **exit 1 / `action=skip` / `reason=already_executed` / `latest=EXT-025` / `last_ack=25`**
+  ⇒ **没弄坏闸门**，且**幂等闸门本身生效**（同一编号不会重复执行）。
+
+### 指令摘要（实际执行内容）
+
+- **EXT-025 [NORMAL] 2026-10-31 10:37 — RESUME：额度已重置，请从 last_ack 继续**
+  ⇒ 明文「下一步：写 last_ack，先做 EXT-024」。
+- **EXT-024 [BLOCKING] 2026-10-31 09:05** —— 本轮主任务，A–G 七项：
+  - **A 修下行**：服务端按 token 广播 `tts`/`echo`（产生它的连接 + 同 token 的 player 连接）；
+    插件两条 WS **都**挂 `onmessage`；按 `id` 去重；offscreen 经 SW 转发给 player。
+  - **B 会话生命周期**：连接关闭清 holder + 归档 `last_session` + 停流水线线程；新 uplink 接管旧 uplink；
+    `_producer_session()` 让 stats/margin.json 读**真正产出段**的会话；面板设置同 token 双向同步。
+  - **C 启动器**：无条件先查 PID 文件活实例 ⇒ 直接拒、**不加载模型**；端口被占 ⇒ 起子进程前退出；
+    日志加 `[#实例号 pid=]` 前缀防多实例交错。
+  - **D 段级日志**：每段一行 `段 <id> | t_start | t_end | ASR | MT | TTS秒 | 下发到=<角色>`。
+  - **E 状态条**：常驻 6 计数 + 滞后；任一环 15 s 为 0 ⇒ 红字写明具体原因（纯函数 `diagnoseLink`）。
+  - **F popup**：回声**醒目红底**；`startGate()` 在未就绪/回声时禁用「开始」并写明原因。
+  - **G 语言映射**：服务端独立认全称 ⇒ 存量 `targetLang="Chinese"` ⇒ `zh`（未知值 ⇒ None，绝不臆造）。
+  - ★ **reviewer 明文要求「写清楚 t_start 用的是哪个时间轴」** ⇒ 落盘 `t_start_axis`（tts 消息 + margin.json）。
+- **EXT-023 [NORMAL]**：TTS 启动日志打印 talker/cp_prefill/cp_decode/decoder 各自实际 EXECUTION_DEVICES；
+  走 App 的 `make_engine()` 只读不重复探测；落盘 `tts_exec_devices.json`。
+- **EXT-022 [NORMAL]**：自发工作改 `T-1…T-4`（不占 EXT 编号空间）；`--pipeline` 默认 True；
+  浏览器端人工验收由用户本人做；`pw_accept1-4` 要么提交 git 要么删除 ⇒ 本轮**迁入 `tests/smoke/` 并入库**。
+
+### 根因复核（EXT-024 的主因）
+
+`extension/player.js` 开了**两条** WS：
+`connectBridge(...,'player')` **有** onmessage 但**不上行**（它的会话永远不产段）；
+`startUplink()` 的 `upState.ws` **只发 pcm 没有** onmessage
+⇒ 服务端把 tts 发到上行连接 ⇒ **被浏览器丢弃** ⇒ **配音与字幕全丢**、只剩 DelayNode 延迟的原声
+⇒ 与用户 10-31 实测描述（「仅仅是原来的声音延迟重放，也没有字幕和翻译文本」）**完全一致**。
+
+### 涉及修改文件
+
+**代码（15 个）**
+
+| 文件 | 字节 | mtime | 改动 |
+|---|---|---|---|
+| `ext/bridge.py` | 143 169 | 2026-10-31 15:40 | ConnectionRegistry / classify_role / 下行广播 / 会话生命周期 / 段级日志 / `_engines_ready` / `hello_ack` 增字段 / `t_start_axis` 落盘 / `--pipeline` 默认 True |
+| `ext/config.py` | 6 100 | 2026-10-31 10:50 | `LANG_ALIASES` + `normalize_lang_code()`（EXT-024 G） |
+| `ext/engine_runtime.py` | 37 029 | 2026-10-31 11:04 | `_report_tts_exec_devices()`（EXT-023）+ `tts_exec_devices` 字段 |
+| `extension/player.js` | 92 947 | 2026-10-31 11:02 | `handleBridgeMessage` / `seenDubIds` 去重 / uplink onmessage / `diagnoseLink()` / `metrics.link` 扩展 / 注释改 T-1…T-4 |
+| `extension/offscreen.js` | 16 487 | 2026-10-31 11:00 | 下行 `forwardToPlayer(m)` 经 SW 转发 |
+| `extension/sw.js` | 10 626 | 2026-10-31 10:59 | `relayToPlayer`（旧实现只计数不转发） |
+| `extension/popup.js` | 14 788 | 2026-10-31 10:58 | `startGate()` + `#modeCard` 回声红底 |
+| `extension/popup.html` | 5 226 | 2026-10-31 10:57 | 模式卡片 DOM |
+| `extension/player.html` | 2 981 | 2026-10-31 10:56 | `#linkBar`（6 计数）+ `#linkReason`（红字） |
+| `tools/ext_launcher.py` | 41 003 | 2026-10-31 10:58 | `_read_pid_file()` / `_alive_instance()`（ctypes）+ 日志实例前缀 |
+| `tools/bridge_server.py` | 6 228 | 2026-10-31 10:58 | `--pipeline` 显式传参 |
+| `tools/run_p1_real.py` | 21 304 | 2026-10-31 10:58 | `--pipeline` 显式传参 |
+| `tools/make_icons.py` | 4 246 | 2026-10-31 09:05 | 注释改 T 编号 |
+| `USER_GUIDE.md` | 16 473 | 2026-10-31 09:05 | 说明同步 |
+| `extension/USER_GUIDE.md` | 16 473 | 2026-10-31 09:05 | 同上 |
+
+**新增 / 改名**
+
+- 新增 `tests/test_ext023_tts_exec_devices.py`（23 项）、`tests/test_ext024_dl_routing.py`（55 项）、`tests/ext024_link_harness.js`。
+- 新增 `tests/smoke/`（7 个文件：README + `_smoke_common.py` + `browser_harness.py` + `pw_accept1-4.py`）—— EXT-022 已定②要求入库。
+- notes 改名（EXT-022 编号规则）：`sec13_ext018_p2_…` ⇒ `sec13_t1_…`；`sec14_ext019_…` ⇒ `sec14_t2_…`；
+  `sec15_ext020_…` ⇒ `sec15_t3_…`；`sec16_ext021_…` ⇒ `sec16_t4_…`。
+- 测试改名：`test_ext018_…` ⇒ `test_t1_…`；`test_ext019_…` ⇒ `test_t2_…`；`test_ext020_…` ⇒ `test_t3_…`；
+  `test_ext021_…` ⇒ `test_t4_…`；`ext020_settings_harness.js` ⇒ `t3_settings_harness.js`；
+  `ext021_lang_harness.js` ⇒ `t4_lang_harness.js`。
+- 新增 `status/notes/sec17_ext024_closeout.md`（19 109 B，§17 明细全文 12 节）。
+
+### 验证与自测结果
+
+**三套明文要求的自测（逐个实测真实退出码）**
+
+| 套件 | 结果 | rc |
+|---|---|---|
+| `tests/test_ext_selfcheck.py` | 0 FAIL | 0 |
+| `tests/test_echo_roundtrip.py` | 0 FAIL | 0 |
+| `tests/test_next_instruction.py` | 0 FAIL | 0 |
+
+**全量回归：19 套 / 990 PASS / 0 FAIL（全 rc=0，逐套实测真实退出码）**
+
+新增/改动的套件：`test_ext023_tts_exec_devices.py`（23 项）/ `test_ext024_dl_routing.py`（55 项）/ `test_p1_plumbing.py`（99 项）/
+`test_t3_dead_controls.py`（53 项）/ `test_t4_target_lang_effect.py`（52 项）/ `test_ext016_compression.py`（39 项）。
+
+**★ 反证（证明断言不是恒真）**
+
+- 把 `ext/bridge.py` 的 `session_holder["last_session"] = session` 改成 `pass`（模拟 EXT-024 B 被改坏）
+  ⇒ **2 条断言全红 rc=1** ⇒ 恢复后 97 PASS / 0 FAIL ⇒ 断言**有区分力**。
+- `test_ext023` 内置两组反证：cp_decode 在 CPU ⇒ 如实报警 + 落盘 CPU；引擎无 `exec_devices` ⇒ `ok=False` + **照样落盘**。
+- `test_ext016` 内置区分力：把 CORRECTIONS 换成不可解析内容 ⇒ 闸门必须 **exit 2**（实测 2）。
+
+**冒烟测试（EXT-022 已定②，**不是**人工验收）**：`tests/smoke/` 4 个脚本全部 **rc=0**
+（`pw_accept1/3` 里的 `ERR_CONNECTION_REFUSED` 是预期的 —— 那两轮没有桥接在跑；
+`pw_accept4` 动态分配端口，`/status` 返回 `mode:"echo"`）。
+
+**★ 时间轴口径实测**：`t_start_axis = 'uplink_sample_index'`（真跑 `tests/test_p1_plumbing.py` 的
+`_start_bridge` + `p1_pipeline._run_client` 出真实 `tts` 消息），`margin.json` 也落盘该字段与说明。
+
+### 修掉的 3 处自测回归（都是 EXT-024 **故意**改变行为导致）
+
+按「指令与现有代码/状态冲突时**以指令内容为准**」更新断言，**不削弱**「不臆造」语义：
+
+| 套件 | 旧断言 | 新断言 | 保留的对照组 |
+|---|---|---|---|
+| `test_t3_dead_controls` | `'Chinese'` ⇒ 记成 None | `'Chinese'` ⇒ 映射成 `'zh'`（白名单） | `'xx'` 与「不带」两组**仍必须记 None** |
+| `test_t4_target_lang_effect` | 非法码对照组用 `'Chinese'` | 改用真·未知 `'xx'` | **另加** `'Chinese'` ⇒ 真的按 `'zh'` 传给 MT + `applied_target_lang=='zh'` |
+| `test_p1_plumbing` | `holder['session']` 必须有 | `holder.get("session") or holder.get("last_session")` | —— |
+
+### STATUS 压缩（EXT-016 写作规则，落地为**下沉**而非删内容）
+
+- 头部 **16 行 → 15 行**（EXT-016 硬约束 ≤ 15 行）。
+- 精简版 **31 952 B → 22 465 B**（硬约束 < 归档/10 = 22 483 B）⇒ **达标**；行数 294 → 183（≤ 300）。
+- §15/§16/§13/§14/§12~§10 的逐条明细**下沉**到 `status/notes/`（6 个文件，共 70 079 B），
+  STATUS 里只保留**结论 + 关键数字 + 链接**。
+- ★ `test_ext016_compression.py` **39 PASS / 0 FAIL / rc=0**。
+
+### 产物（文件数 / mtime / 字节数 —— 均为实测）
+
+| 产物组 | 文件数 | mtime（最早~最晚） | 字节数 |
+|---|---|---|---|
+| 代码（ext/ extension/ tools/ USER_GUIDE） | 15 | 2026-10-31 09:05 ~ 15:40 | 435 080 |
+| 新增自测（test_ext023 / test_ext024 / ext024_link_harness.js） | 3 | 2026-10-31 11:02 ~ 15:43 | 50 997 |
+| 冒烟脚本（`tests/smoke/`，含 README） | 7 | 2026-10-31 09:05 | 16 056 |
+| notes 明细（sec11_12 / sec13 / sec14 / sec15 / sec16 / sec17） | 6 | 2026-10-31 00:39 ~ 15:52 | 70 079 |
+| `status/STATUS_EXT.md`（压缩后） | 1 | 2026-10-31 16:01 | 22 465 |
+| `status/EXEC_LOG.md`（本轮追加后） | 1 | 2026-10-31 16:01 | 153 441 |
+
+### ⛔ 明确未做 / 未宣称
+
+- ⛔ **Edge 真实手势 1 分钟验收未做**（EXT-024 验收 1–4 条）⇒ EXT-022 已定② **由用户本人做**
+  ⇒ **不宣称**「用户已听到配音」「字幕已显示」。
+- ⛔ **未在真实三引擎上端到端跑过**（未占 GPU/NPU，机器锁属 TTS 模块）⇒ **不宣称**真机听感已验证。
+- ⛔ **不宣称**「cp_decode 已确认全在 NPU」⇒ 真实落点待下次真实启动后从 `tts_exec_devices.json` 读。
+- ⛔ 端到端仍不实时（TTS 稳态 RTF **1.0022**）⇒ TTS 提速仍是上线的唯一前置。
+- ⛔ 克隆音色仍不生效（pyannote 旁路未接线 ⇒ 回落预设 A）。
+- ⛔ **未改任何引擎文件**（ASR/MT/TTS 对方模块一行未动；只读 App 的 `exec_devices`）。
+- ⛔ `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**（`.gitignore:34` 仍在；**未执行** `git add -f`）。
+
+### 机器锁
+
+本轮**未创建锁、未跑任何推理、未占 GPU/NPU**。
+
+- 开工时 `shared/MACHINE_LOCK` 内容为 `module: tts` / `pid: 20684` / `started: 2026-10-31 15:19:46`
+  ⇒ ctypes `OpenProcess`+`GetExitCodeProcess` 探得 PID 20684 **ALIVE**
+  ⇒ 属**他人模块** ⇒ **未创建、未动、未回收**。
+
+### 进程
+
+- 开工时 `psutil` / `netstat` 均查不到 `ext.bridge` 进程，8765/8766 **无监听**
+  ⇒ **无用户桥接进程可 kill** ⇒ 本轮**未执行任何 kill**。
+
+### `last_ack`
+
+**推进到 EXT-025** —— 本轮**认领并执行**了 EXT-024（BLOCKING 主任务）与 EXT-025（RESUME）两个编号
+⇒ 闸门复测 **exit 1 / `action=skip`** ⇒ 幂等生效，下一轮不会重复执行。
+
+---
+

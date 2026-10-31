@@ -172,12 +172,33 @@ const metrics = {
   adaptSpeed: 1.0, adaptLagSec: 0, adaptLagPeak: 0,
   adaptSpeedHistory: [],       // {id, speed, lagSec, at}
   adaptTotalSpeed: 1.0,        // 时长适配 × 自适应加速 的总倍率
-  // ★★ EXT-020：原声压低量与字幕开关的**实际生效值**
+  // ★★ T-3：原声压低量与字幕开关的**实际生效值**
   //   （不是用户设的值 —— 用来核对「设了到底有没有生效」）。
   duckDb: null,          // 用户设的 dB
   duckGain: null,        // 由 dB 换算出的线性增益
   duckDbApplied: null,   // 已真正套到 origGain 上的 dB（未抓流时为 null）
   subsOn: true,          // 字幕开关是否开启
+  // ★★ EXT-024 E：链路状态（**常驻状态条**要显示的 5 个计数 + 滞后）
+  //   ⚠️ 全部**如实计数**，绝不臆造：没收到就是 0。
+  link: {
+    wsConnected: false,      // WS 是否连上
+    wsError: null,           // 连接失败的原因
+    mode: null,              // 'real'（真实引擎） / 'echo'（回声）
+    enginesReady: false,     // 引擎是否就绪
+    pipeline: false,         // 是否流水线
+    audioRecvSec: 0,         // 已收上行音频秒数
+    asrSegments: 0,          // 服务端报的 ASR 段数
+    mtSegments: 0,           // 服务端报的 MT 段数
+    ttsSegments: 0,          // 服务端报的 TTS 段数
+    dubDelivered: 0,         // **本端已下发到 player 的段数**（收到 tts 的次数）
+    lagSec: null,            // 当前滞后（秒）
+    // ★ 各环节「最后一次有动静」的墙钟时刻（performance.now()）
+    //   ⇒ 用来判断「某一环为 0 超过 15 s」并给出**具体原因**。
+    lastAudioAt: null,
+    lastTtsAt: null,
+    lastStatsAt: null,
+    startedAt: null,
+  },
 };
 
 // ★ EXT-009：自适应加速播放的**统一参数**
@@ -199,7 +220,7 @@ let ws = null;
 let lipSyncData = null;
 let capturedStream = null;
 
-// ★★ EXT-020：popup 的「原声压低量」与「字幕开关」此前是**死控件**
+// ★★ T-3：popup 的「原声压低量」与「字幕开关」此前是**死控件**
 //   —— popup.js 把它们存进了 chrome.storage.local，
 //      但 player.js 从来没读过 ⇒ 用户在面板上怎么调都不起作用，
 //      而 USER_GUIDE 明确承诺「原声压低量 / 字幕开关」可调。
@@ -216,14 +237,14 @@ let subsOn = true;
 //   duckDb 只在**新设置生效时**写入 origGain.gain（见 applyDuckDb），
 //   而 origGain 在抓流成功后才存在 ⇒ 设置值与生效值可能短暂不同。
 let duckDbApplied = null;
-// ★★ EXT-021：面板上的**目标语言**与**音色**。
+// ★★ T-4：面板上的**目标语言**与**音色**。
 //   此前 player.js **从不读**这两个设置 ⇒ 在 player 这条上行链路上
 //   服务端拿不到它们 ⇒ 面板上的选择在这条路径上**完全丢失**。
 //   ⇒ 现在读出来，随 hello 上报（⇒ 服务端真正用它翻译/合成）。
 let targetLang = null;
 let voicePref = null;
 
-// ★★ EXT-021：语言 / 音色的归一化（与 popup.js 同一口径）。
+// ★★ T-4：语言 / 音色的归一化（与 popup.js 同一口径）。
 //   ⚠️ popup.js 里也有同名函数 —— 两边**必须**保持一致，
 //     否则会出现「popup 显示日语、player 上报英语」这类不一致。
 //   ★ 语言白名单 = 引擎只认的 4 种（zh/en/ja/ko）；
@@ -239,6 +260,31 @@ function normalizeLang(v) {
   const k = String(v == null ? '' : v).trim().toLowerCase();
   return LANG_ALIASES[k] || 'zh';
 }
+
+// ══════════════════════════════════════════════════════════════
+// ★★ EXT-024 E：常驻**链路状态条**
+// ══════════════════════════════════════════════════════════════
+/**
+ * ## 为什么需要（用户 10-31 实测）
+ *   用户只看到「延迟原声、没有配音没有字幕」，但**界面上一句话都没有**
+ *   ⇒ 既不知道卡在哪一环，也不知道该去看哪个日志。
+ *   ⇒ 现在：6 个计数常驻显示；任何一环 15 秒还是 0 ⇒ **红字写明原因**。
+ *
+ * ## 口径（务必与 reviewer 的验收一致）
+ *   * 已收音频 x s —— 上行**音频时长**（不是帧数）；
+ *   * ASR 段数 —— 服务端已定稿的段数；
+ *   * MT 段数 —— 服务端已翻译的段数；
+ *   * TTS 段数 —— 服务端已合成出音频的段数；
+ *   * 已下发到 player 段数 —— **player 这一端实际收到的 tts 消息数**
+ *     （★ 这是 EXT-024 A 的关键证据：只有它 > 0 才说明下行通了）；
+ *   * 当前滞后 —— 排程滞后秒数（EXT-009 的 adaptLagSec）。
+ *
+ * ⚠️ 计数器本体在 `metrics.link`（见上面的定义）⇒
+ *   `report()` 的标量白名单里也有它们 ⇒ 跨上下文可读。
+ *
+ * ⚠️ **实现位置**：判定逻辑在文件末尾的 `diagnoseLink()`（纯函数）
+ *   ⇒ 可被 node 沙箱 harness 直接验证；本节只保留口径说明。
+ */
 
 /** 音色只有两个合法值：`A`（预设 A）与 `clone`（克隆说话人）。 */
 function normalizeVoice(v) {
@@ -678,7 +724,7 @@ function scheduleDub(msg) {
 const SUBS_CAP = 200;
 const subs = [];
 function scheduleSub(msg, when) {
-  // ★★ EXT-020：字幕关着就不入队（省掉无用的文本处理与 DOM 写入）。
+  // ★★ T-3：字幕关着就不入队（省掉无用的文本处理与 DOM 写入）。
   if (!subsOn) {
     metrics.subsDropped = (metrics.subsDropped || 0) + 1;
     return;
@@ -705,7 +751,7 @@ function scheduleSub(msg, when) {
 
 function pumpSubs() {
   if (!audioCtx) return;
-  // ★★ EXT-020：字幕开关此前是**死控件**（popup 存了 subsOn，
+  // ★★ T-3：字幕开关此前是**死控件**（popup 存了 subsOn，
   //   但这里无条件写 DOM ⇒ 勾掉也照样显示字幕）。
   //   ⇒ 关掉时**完全不写 DOM**，并把已有字幕清掉（不留残影）。
   if (!subsOn) {
@@ -789,17 +835,19 @@ async function startUplink(stream, wsUrl, token) {
       ws.onopen = () => {
         clearTimeout(t);
         upState.wsOpen = true;
+        metrics.link.wsConnected = true;
+        metrics.link.wsError = null;
         ws.send(JSON.stringify({
           type: 'hello', token, role: 'uplink', sample_rate: 16000,
           source: 'player', delay_sec: delaySec,
-          // ★★ EXT-018：把**抓流方式**上报给桥接服务。
+          // ★★ T-1：把**抓流方式**上报给桥接服务。
           //   服务端会把它记进会话 ⇒ stats 回包与 margin.json 都带上
           //   ⇒ EXT-005 ①「tabCapture 生产路径到底有没有被实测过」
           //   **可以从落盘数据核对**，不用人读日志猜。
           //   ⚠️ 这里报的是**实际用的那条路**（上面的 upState.captureMode
           //     就是在拿到流的那一刻赋的值，不是计划值）。
           capture_mode: upState.captureMode,
-          // ★★ EXT-021：把**目标语言**与**音色**也带上来。
+          // ★★ T-4：把**目标语言**与**音色**也带上来。
           //   此前只有 offscreen 的 hello 带了这两个字段，
           //   而 player 这条上行链路（getDisplayMedia 兜底路径）**没带**
           //   ⇒ 服务端拿不到 ⇒ 面板上选的语言/音色在这条路径上**完全丢失**。
@@ -808,7 +856,25 @@ async function startUplink(stream, wsUrl, token) {
         }));
         resolve();
       };
-      ws.onerror = () => { clearTimeout(t); reject(new Error('WS 失败')); };
+      ws.onerror = () => {
+        clearTimeout(t);
+        metrics.link.wsConnected = false;
+        metrics.link.wsError = '上行 WS 失败（桥接服务未启动或端口不通）';
+        reject(new Error('WS 失败'));
+      };
+      // ★★ EXT-024 A：上行连接**也必须**收消息！
+      //   旧实现这里**没有 onmessage** ⇒ 服务端把 tts 发到这条连接上时
+      //   被浏览器丢弃 ⇒ **用户只听到延迟原声、没有配音、没有字幕**
+      //   （这正是用户 10-31 实测的症状）。
+      //   ⇒ 现在两条连接都用同一套处理（`handleBridgeMessage`）。
+      ws.onmessage = (ev) => {
+        try {
+          handleBridgeMessage(JSON.parse(ev.data));
+        } catch (e) { /* ignore */ }
+      };
+      ws.onclose = () => {
+        upState.wsOpen = false;
+      };
     });
 
     // ② AudioContext + AudioWorklet（**必须在扩展页**；offscreen 不渲染音频图）
@@ -956,6 +1022,11 @@ function onUplinkFrame(d) {
   upState.sampleIndex = sampleIndex + nSamples;
   upState.frameCount += 1;
 
+  // ★★ EXT-024 E：记「已收上行音频多少秒」+ 最后一帧的墙钟时刻
+  //   ⇒ 状态条能判断「音频这一环是不是卡住了」。
+  metrics.link.audioRecvSec = upState.sampleIndex / 16000;
+  metrics.link.lastAudioAt = performance.now();
+
   if (upState.ws && upState.ws.readyState === WebSocket.OPEN) {
     const bytes = new Uint8Array(pcm);
     let bin = '';
@@ -1085,7 +1156,7 @@ function setupOriginalAudio(stream) {
   origDelay = audioCtx.createDelay(Math.max(2, delaySec + 1));
   origDelay.delayTime.value = delaySec;
   origGain = audioCtx.createGain();
-  // ★★★ EXT-020：这里**不再硬编码 1.0**。
+  // ★★★ T-3：这里**不再硬编码 1.0**。
   //   旧写法 `origGain.gain.value = 1.0` ⇒ popup 的「原声压低量」是死控件。
   //   ⇒ 改为按用户设的 duckDb 算增益（见 applyDuckDb）。
   applyDuckDb();
@@ -1097,7 +1168,7 @@ function setupOriginalAudio(stream) {
 }
 
 /**
- * ★★ EXT-020：把「原声压低量（dB）」真正应用到原声总线上。
+ * ★★ T-3：把「原声压低量（dB）」真正应用到原声总线上。
  *
  * dB → 线性增益：gain = 10^(dB/20)。
  *   0 dB   ⇒ 1.0      （不压低）
@@ -1238,6 +1309,106 @@ async function attachVideoTrack(track) {
 // ══════════════════════════════════════════════════════════════
 // WebSocket：接桥接服务
 // ══════════════════════════════════════════════════════════════
+/**
+ * ★★ EXT-024 A：**统一下行消息处理**。
+ *
+ * ## 为什么必须抽成共用函数（用户 10-31 实测的根因）
+ *
+ * 旧实现里 player 开了**两条** WS：
+ *   * `connectBridge(..., 'player')` —— **有** onmessage（收 tts/echo）；
+ *   * `startUplink()` 的 `upState.ws` —— **只发 pcm，没有 onmessage**。
+ * 而服务端的 `tts` 任务只 `websocket.send` 回**本连接**
+ * ⇒ 上行连接上会话产出的 `tts` 全被浏览器丢弃
+ * ⇒ player 连接收不到 PCM，什么也不产出
+ * ⇒ **用户只听到延迟原声，没有配音、没有字幕**。
+ *
+ * ⇒ 现在（服务端已改成按 token 广播）：
+ *   * 两条连接**都**挂上 onmessage ⇒ 无论任务从哪条连接来都能收到；
+ *   * 处理逻辑**共用**本函数（不重复实现）。
+ *
+ * ⚠️ **去重**：服务端可能把同一条 tts 广播给两条连接 ⇒ 同一段会收到两次
+ *   ⇒ 用 `id` 去重（只排程一次），但**计数只加一次**。
+ */
+const seenDubIds = new Set();
+const SEEN_DUB_CAP = 500;
+
+function handleBridgeMessage(m) {
+  if (!m || typeof m !== 'object') return;
+  const kind = m.type;
+  if (kind === 'hello_ack') {
+    if (m.delay_sec != null && isNaN(D_OVERRIDE)) delaySec = m.delay_sec;
+    // ★★ EXT-024 F：服务端告诉客户端「现在是真实引擎还是回声」。
+    metrics.link.mode = m.mode || null;
+    metrics.link.enginesReady = !!m.engines_ready;
+    metrics.link.pipeline = !!m.pipeline;
+    report({ kind: 'hello_ack', delay_sec: m.delay_sec,
+             sample_rate: m.sample_rate, segmentation: m.segmentation,
+             mode: m.mode, engines_ready: m.engines_ready,
+             pipeline: m.pipeline });
+  } else if (kind === 'echo' || kind === 'tts') {
+    // ★★ EXT-024 A：去重 —— 同一段可能被广播到两条连接。
+    const did = String(m.id || '');
+    if (did) {
+      if (seenDubIds.has(did)) {
+        report({ kind: 'dub_dup', id: did });
+        return;
+      }
+      seenDubIds.add(did);
+      if (seenDubIds.size > SEEN_DUB_CAP) {
+        // 丢最旧的（Set 保持插入顺序）
+        const first = seenDubIds.values().next().value;
+        seenDubIds.delete(first);
+      }
+    }
+    metrics.echoRecv++;
+    // ★★ EXT-024 E：这是「**已经下发到 player**」的证据 ⇒ 计数 +1。
+    if (kind === 'tts') {
+      metrics.link.dubDelivered++;
+      metrics.link.lastTtsAt = performance.now();
+    }
+    const r = scheduleDub(m);
+    report({ kind: 'dub', id: m.id, t_start: m.t_start, t_end: m.t_end,
+             planned: r && r.planned, requested: r && r.requested,
+             isTts: kind === 'tts' });
+  } else if (kind === 'stats') {
+    // ★★ EXT-024 E：服务端报的段数/滞后 ⇒ 记进状态条。
+    metrics.link.lastStatsAt = performance.now();
+    // ★★ EXT-024 E 修正：**原来把三者都设成同一个 `m.n_segments`**
+    //   ⇒ **口径失真**：只要服务端收口过一段，`n_segments` 就 >0，
+    //     于是「TTS 从没出段」这种**最关键的故障信号**永远显示不出来。
+    //   ⇒ 现在读服务端**真实分开**的三段计数
+    //     （ext/bridge.py 的 Session.stats()：asr=有文本 /
+    //      mt=有译文 / tts=有音频）。
+    //   ⚠️ 兼容：老服务端没有这三个字段时，退回旧的 `n_segments`
+    //     （保持向后兼容，不让状态条直接空掉）。
+    const hasSplit = typeof m.asr_segments === 'number'
+      || typeof m.mt_segments === 'number'
+      || typeof m.tts_segments === 'number';
+    if (hasSplit) {
+      if (typeof m.asr_segments === 'number') {
+        metrics.link.asrSegments = m.asr_segments;
+      }
+      if (typeof m.mt_segments === 'number') {
+        metrics.link.mtSegments = m.mt_segments;
+      }
+      if (typeof m.tts_segments === 'number') {
+        metrics.link.ttsSegments = m.tts_segments;
+      }
+    } else if (typeof m.n_segments === 'number') {
+      metrics.link.asrSegments = m.n_segments;
+      metrics.link.mtSegments = m.n_segments;
+      metrics.link.ttsSegments = m.n_segments;
+    }
+    const mg = m.margin || {};
+    if (typeof mg.last_segment_lag_sec === 'number') {
+      metrics.link.lagSec = mg.last_segment_lag_sec;
+    }
+    if (typeof m.capture_mode === 'string') {
+      metrics.link.captureMode = m.capture_mode;
+    }
+  }
+}
+
 function connectBridge(wsUrl, token, role) {
   return new Promise((resolve, reject) => {
     const w = new WebSocket(wsUrl);
@@ -1245,26 +1416,31 @@ function connectBridge(wsUrl, token, role) {
     const t = setTimeout(() => { try { w.close(); } catch (e) {} reject(new Error('WS 超时')); }, 8000);
     w.onopen = () => {
       clearTimeout(t);
+      metrics.link.wsConnected = true;
+      metrics.link.wsError = null;
+      metrics.link.startedAt = performance.now();
       // ★ 浏览器 WS 不能自定义请求头 ⇒ token 放在首个 hello 里
       w.send(JSON.stringify({
         type: 'hello', token, role, sample_rate: 16000, delay_sec: delaySec,
+        // ★★ EXT-024 A/G：player 这条连接也要带上**面板设置**
+        //   （服务端会把它们同步给产出段的那个会话）。
+        target_lang: targetLang || null,
+        voice: voicePref || null,
       }));
       resolve(w);
     };
-    w.onerror = () => { clearTimeout(t); reject(new Error('WS 失败')); };
+    w.onerror = () => {
+      clearTimeout(t);
+      metrics.link.wsConnected = false;
+      metrics.link.wsError = 'WS 失败（桥接服务未启动或端口不通）';
+      reject(new Error('WS 失败'));
+    };
+    w.onclose = () => {
+      metrics.link.wsConnected = false;
+    };
     w.onmessage = (ev) => {
       try {
-        const m = JSON.parse(ev.data);
-        if (m.type === 'hello_ack') {
-          if (m.delay_sec != null && isNaN(D_OVERRIDE)) delaySec = m.delay_sec;
-          report({ kind: 'hello_ack', delay_sec: m.delay_sec,
-                   sample_rate: m.sample_rate, segmentation: m.segmentation });
-        } else if (m.type === 'echo' || m.type === 'tts') {
-          metrics.echoRecv++;
-          const r = scheduleDub(m);
-          report({ kind: 'dub', id: m.id, t_start: m.t_start, t_end: m.t_end,
-                   planned: r && r.planned, requested: r && r.requested });
-        }
+        handleBridgeMessage(JSON.parse(ev.data));
       } catch (e) { /* ignore */ }
     };
   });
@@ -1286,7 +1462,7 @@ const REPORT_SCALARS = [
   'uplinkFrames', 'uplinkSeq', 'uplinkGaps', 'uplinkSkewMs',
   'pendingSchedDropped', 'subsDropped',
   'schedClamped', 'probeSchedClamped', 'encodeSkipped', 'encodeBacklogSkipped',
-  // ★★ EXT-020：把设置的实际生效值也带上去（跨上下文可见）
+  // ★★ T-3：把设置的实际生效值也带上去（跨上下文可见）
   'duckDb', 'duckGain', 'duckDbApplied', 'subsOn',
 ];
 
@@ -1520,7 +1696,7 @@ window.__ext = {
     },
   }),
   setDelay: (d) => { delaySec = d; },
-  // ★★ EXT-020：暴露设置相关的可测状态（自测与诊断用）。
+  // ★★ T-3：暴露设置相关的可测状态（自测与诊断用）。
   settings: () => ({
     duckDb,
     duckGain: metrics.duckGain,
@@ -1529,7 +1705,7 @@ window.__ext = {
     subsOn,
     metricsSubsOn: metrics.subsOn,
     subsQueued: subs.length,
-    // ★★ EXT-021：目标语言 / 音色（供自测核对「上报给服务端的值」）
+    // ★★ T-4：目标语言 / 音色（供自测核对「上报给服务端的值」）
     targetLang,
     voicePref,
   }),
@@ -1565,29 +1741,61 @@ window.__ext = {
 // ══════════════════════════════════════════════════════════════
 // 启动
 // ══════════════════════════════════════════════════════════════
+/**
+ * ★★ EXT-024 A：订阅 SW 的**运行时广播**（offscreen 转发过来的下行）。
+ *
+ * ## 为什么必须有这条
+ *
+ * 抓流有两条路径：
+ *   * `player.js` 自己的 `startUplink()` —— 上行 WS **已经有** onmessage；
+ *   * **offscreen** 路径（`offscreen.js` 的 `connectWs`）—— 旧实现
+ *     **只计数不转发** ⇒ player 页永远收不到 tts ⇒ 没有配音、没有字幕。
+ *
+ * ⇒ 现在：offscreen 收到 tts ⇒ `sendMessage('sw-broadcast')`
+ *   ⇒ SW 用 `chrome.runtime.sendMessage` **广播**给所有扩展页
+ *   ⇒ 这里收到 ⇒ 交给同一个 `handleBridgeMessage`。
+ *
+ * ⚠️ **去重**：player 自己的 WS 可能也收到同一条 tts
+ *   ⇒ `handleBridgeMessage` 里的 `seenDubIds` 按 id 去重
+ *   ⇒ 只排程一次、只计数一次。
+ */
+function listenSwBroadcast() {
+  try {
+    if (!chrome.runtime || !chrome.runtime.onMessage) return;
+    chrome.runtime.onMessage.addListener((msg) => {
+      if (!msg || msg.target !== 'ext-dub') return false;
+      try {
+        handleBridgeMessage(msg.payload || {});
+      } catch (e) { /* ignore */ }
+      return false;
+    });
+  } catch (e) { /* ignore */ }
+}
+listenSwBroadcast();
+
 async function boot() {
   const cfg = await chrome.storage.local.get({
     wsUrl: 'ws://127.0.0.1:8765/', token: '', delaySec: 10,
-    // ★★ EXT-020：把 duckDb / subsOn 一并读出来（此前只有 popup 读，
+    // ★★ T-3：把 duckDb / subsOn 一并读出来（此前只有 popup 读，
     //   player 从不读 ⇒ 两个控件都是死控件）。
     duckDb: -15, subsOn: true,
-    // ★★ EXT-021：把目标语言 / 音色也读出来（此前 player 从不读
+    // ★★ T-4：把目标语言 / 音色也读出来（此前 player 从不读
     //   ⇒ 服务端拿不到 ⇒ 面板上的选择在这条路径上完全丢失）。
     targetLang: 'zh', voice: 'A',
   });
   delaySec = isNaN(D_OVERRIDE) ? (cfg.delaySec || 10) : D_OVERRIDE;
-  // ★★ EXT-020：应用原声压低量与字幕开关。
+  // ★★ T-3：应用原声压低量与字幕开关。
   duckDb = (cfg.duckDb === undefined || cfg.duckDb === null || cfg.duckDb === '')
     ? -15 : Number(cfg.duckDb);
   subsOn = (cfg.subsOn === undefined || cfg.subsOn === null) ? true : !!cfg.subsOn;
-  // ★★ EXT-021：目标语言 / 音色（★ 用与 popup 相同的白名单口径，
+  // ★★ T-4：目标语言 / 音色（★ 用与 popup 相同的白名单口径，
   //   老配置里的语言全称迁移成引擎码 ⇒ 避免「选了但服务端不认」）。
   targetLang = normalizeLang(cfg.targetLang);
   voicePref = normalizeVoice(cfg.voice);
   applyDuckDb();     // origGain 还不存在 ⇒ 只记录意图，等抓流后自动套用
   metrics.subsOn = subsOn;
 
-  // ★★ EXT-020：运行中改设置也要生效（用户在 popup 改了压低量/字幕，
+  // ★★ T-3：运行中改设置也要生效（用户在 popup 改了压低量/字幕，
   //   不用重启窗口）。
   //   ⇒ 监听 chrome.storage.onChanged ⇒ 只认自己关心的两个键。
   try {
@@ -1607,7 +1815,7 @@ async function boot() {
           metrics.subsOn = subsOn;
           report({ kind: 'settings', subsOn });
         }
-        // ★★ EXT-021：目标语言 / 音色改了也要跟上
+        // ★★ T-4：目标语言 / 音色改了也要跟上
         //   （★ 注意：**已建立的 WS 连接不会重发 hello** ⇒
         //     本次改动只对**下一次**上行连接生效 ⇒ 如实记录，不假装即时生效）
         if ('targetLang' in changes) {
@@ -1652,7 +1860,7 @@ async function boot() {
     report({ kind: 'probe_onset_error', error: String(e) });
   }
 
-  setInterval(() => { pumpDecoder(); pumpDraws(); pumpSubs(); updateHud(); }, 40);
+  setInterval(() => { pumpDecoder(); pumpDraws(); pumpSubs(); updateHud(); updateLinkBar(); }, 40);
   setInterval(() => {
     computeLipSync();
     report({ kind: 'metrics', ...metrics, queued: encQueue.length });
@@ -1677,6 +1885,123 @@ async function boot() {
       // 自动模式下由 Playwright 点这个按钮（真实手势）
       report({ kind: 'capture_button_ready' });
     }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// ★★ EXT-024 E：链路状态条（**常驻**，并给出「哪一环卡住了」的原因）
+// ══════════════════════════════════════════════════════════════
+/**
+ * 链路状态条的数据源与诊断。
+ *
+ * ## 为什么需要（用户 10-31 实测）
+ *
+ * 用户实测的现象是「只有延迟原声、没有配音、没有字幕」，
+ * 但**界面上一句提示都没有** ⇒ 用户完全不知道卡在哪一环。
+ *
+ * ⇒ 现在常驻显示 5 个计数（已收音频 / ASR 段 / MT 段 / TTS 段 /
+ *   已下发到 player 段）+ 当前滞后；
+ *   **任何一环为 0 超过 15 秒** ⇒ 用**红字**写明具体原因：
+ *   - WS 未连        ⇒ 桥接服务没启动 / 端口不通
+ *   - 引擎未就绪     ⇒ 真实引擎还在加载（等 20–40 秒）
+ *   - 没有音频轨     ⇒ tabCapture 没抓到音轨
+ *   - 没收到下行     ⇒ 服务端没产出段（查 bridge.log 的段级日志）
+ *
+ * ⚠️ **如实**：没有数据就是 0/「—」，**绝不臆造**。
+ */
+
+/** 「某一环为 0 超过 N 秒」的判定阈值（EXT-024 E 明文：15 秒）。 */
+const LINK_STALL_SEC = 15;
+
+/**
+ * 诊断链路状态。返回 {counts, reason, ok}。
+ * ⚠️ 纯函数（不碰 DOM）⇒ 可被 node 沙箱 harness 直接验证。
+ */
+function diagnoseLink(link, nowMs) {
+  const L = link || {};
+  const now = (nowMs == null) ? 0 : nowMs;
+  const since = (t) => (t == null ? null : (now - t) / 1000);
+
+  const counts = {
+    audioSec: Number(L.audioRecvSec || 0),
+    asrSegments: Number(L.asrSegments || 0),
+    mtSegments: Number(L.mtSegments || 0),
+    ttsSegments: Number(L.ttsSegments || 0),
+    dubDelivered: Number(L.dubDelivered || 0),
+  };
+
+  // ★ 音频这一环：从「开始」算起（还没收到第一帧时是 null ⇒ 不算「卡住」）
+  const audioAge = since(L.lastAudioAt);
+  const audioStalled = L.startedAt != null && audioAge != null
+    && audioAge > LINK_STALL_SEC && counts.audioSec <= 0;
+
+  const ttsAge = since(L.lastTtsAt);
+  const ttsStalled = L.startedAt != null && counts.dubDelivered <= 0
+    && ttsAge != null && ttsAge > LINK_STALL_SEC;
+
+  let reason = null;
+  let ok = true;
+
+  if (!L.wsConnected) {
+    reason = L.wsError || 'WS 未连接（桥接服务没启动？点桌面「实时配音桥接.cmd」）';
+    ok = false;
+  } else if (L.mode === 'echo') {
+    reason = '★ 回声模式（不是真实翻译配音）';
+    ok = false;
+  } else if (L.mode === 'real' && !L.enginesReady) {
+    reason = '引擎未就绪（正在加载模型，等 20–40 秒）';
+    ok = false;
+  } else if (L.startedAt == null) {
+    reason = null;      // 还没开始抓流 ⇒ 不报原因
+    ok = true;
+  } else if (audioStalled) {
+    reason = '没有音频轨（tabCapture 没抓到声音）';
+    ok = false;
+  } else if (counts.asrSegments <= 0 && audioAge != null
+             && audioAge > LINK_STALL_SEC) {
+    reason = '收到音频但服务端没出段（查 bridge.log 的段级日志）';
+    ok = false;
+  } else if (ttsStalled) {
+    reason = '没收到下行（服务端产出了段但没发到 player）';
+    ok = false;
+  } else if (counts.dubDelivered <= 0 && counts.ttsSegments > 0) {
+    reason = '服务端有段但没下发到 player（下行路由断了）';
+    ok = false;
+  }
+
+  return {
+    counts,
+    reason,
+    ok,
+    lagSec: (L.lagSec == null ? null : Number(L.lagSec)),
+    mode: L.mode || null,
+    enginesReady: !!L.enginesReady,
+    pipeline: !!L.pipeline,
+    wsConnected: !!L.wsConnected,
+    audioAgeSec: audioAge,
+  };
+}
+
+function updateLinkBar() {
+  const el = document.getElementById('linkBar');
+  if (!el) return;
+  const d = diagnoseLink(metrics.link, performance.now());
+  const c = d.counts;
+  const parts = [
+    '音频 ' + c.audioSec.toFixed(1) + 's',
+    'ASR ' + c.asrSegments,
+    'MT ' + c.mtSegments,
+    'TTS ' + c.ttsSegments,
+    '下发 ' + c.dubDelivered,
+    '滞后 ' + (d.lagSec == null ? '—' : d.lagSec.toFixed(1) + 's'),
+  ];
+  el.textContent = parts.join(' | ');
+  el.className = d.ok ? 'ok' : 'err';
+  const rs = document.getElementById('linkReason');
+  if (rs) {
+    rs.textContent = d.reason || '';
+    rs.className = d.ok ? 'ok' : 'err';
+    rs.style.display = d.reason ? 'inline-block' : 'none';
   }
 }
 
