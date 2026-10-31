@@ -1,0 +1,47 @@
+{
+  "openvino_version": "2026.4.1-22982-e213a147257-releases/2026/4",
+  "available_devices": [
+    "CPU",
+    "GPU.0",
+    "GPU.1",
+    "NPU"
+  ],
+  "probes": {
+    "CPU": {
+      "compile_s": 0.084,
+      "raw_repr": "['CPU']",
+      "raw_type": "list",
+      "is_str": false,
+      "is_list": true,
+      "list_of_raw": [
+        "CPU"
+      ],
+      "list_of_raw_len": 1,
+      "old_code_actual": "CPU"
+    },
+    "NPU": {
+      "compile_s": 0.485,
+      "raw_repr": "'NPU'",
+      "raw_type": "str",
+      "is_str": true,
+      "is_list": false,
+      "list_of_raw": [
+        "N",
+        "P",
+        "U"
+      ],
+      "list_of_raw_len": 3,
+      "split_by_comma": [
+        "NPU"
+      ],
+      "old_code_actual": "NPU"
+    }
+  },
+  "_runner": {
+    "script": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app174a_probe_exec_devices_type.py",
+    "script_sha256": "3675f8bad45bc7aeb149f5abca5fc8f7f0077b57cd4687f9ed06a1e4e2622a29",
+    "returncode": 0,
+    "wall_s": 2.47,
+    "python_exe": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\python\\python.exe"
+  }
+}

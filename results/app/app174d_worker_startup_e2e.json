@@ -1,0 +1,103 @@
+{
+  "pkg_root": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+  "worker": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\app\\tts_worker.py",
+  "python": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\python\\python.exe",
+  "worker_exists": true,
+  "python_exists": true,
+  "cmd": [
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\app\\tts_worker.py",
+    "--device",
+    "NPU",
+    "--precision",
+    "f16"
+  ],
+  "wall_s": 15.87,
+  "n_lines": 19,
+  "key4_line": "[tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU",
+  "ready_seen": true,
+  "stdout_head": [
+    "[tts_worker] 播放流已启动：sr=22050 device=默认设备 ⇒ **实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）** blocksize=1024 latency=0.18575963718820862",
+    "[tts_engine] OV 推理精度 = f16（权重位宽恒为 INT8）",
+    "[tts_engine] 使用 MultiDecoderBabelVox（解码器多桶 + 左上下文 25 帧）",
+    "[tts_engine] 加载模型：device=NPU root=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\models\\qwen3tts cache=C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_npu_cache",
+    "[tts_engine] 已把 INFERENCE_PRECISION_HINT=f16 注入 NPU 的编译",
+    "[tts_engine] 模型加载完成（8.5 s）",
+    "[tts_engine] cp_decode: NPU（生产配置要求；实测 RTF 1.912→1.218、首块 1.296→0.837 s）",
+    "[tts_engine] cp_prefill: NPU（TTS-017① 交付配置：运行时输入恒为 (1,2,1024) ⇒ 静态形状安全）",
+    "[tts_engine] SpeakerLibrary 就绪：C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_speakers（4 个音色：cindy, lou, phil, steve；内置音色走**只读回退**，**不复制**到用户目录）",
+    "[tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU",
+    "[tts_engine] 实测执行设备：NPU",
+    "[tts_engine] 各组件落点：cp_decode=NPU，cp_prefill=NPU，decoder_bucket@128=NPU，decoder_bucket@16=NPU，decoder_bucket@256=NPU，decoder_bucket@32=NPU，decoder_bucket@33=NPU，decoder_bucket@40=NPU，decoder_bucket@64=NPU，decoder_bucket@8=NPU，speaker_enc=NPU，talker_bucket@128=NPU，talker_bucket@256=NPU，talker_bucket@384=NPU，talker_bucket@512=NPU，talker_bucket@64=NPU，tok_decoder=NPU",
+    "[tts_engine] 落点统计：NPU 上 17 个组件 ['cp_decode', 'cp_prefill', 'decoder_bucket@128', 'decoder_bucket@16', 'decoder_bucket@256', 'decoder_bucket@32', 'decoder_bucket@33', 'decoder_bucket@40', 'decoder_bucket@64', 'decoder_bucket@8', 'speaker_enc', 'talker_bucket@128', 'talker_bucket@256', 'talker_bucket@384', 'talker_bucket@512', 'talker_bucket@64', 'tok_decoder']；CPU 上 0 个组件 []",
+    "[tts_engine] 未启用（该档位下不编译）的组件：talker_prefill，talker_decode，talker（以 5 个桶形式存在，落点见上），code_predictor",
+    "[tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\models\\qwen3tts\\voices\\preset_A.wav -> (1, 1024)",
+    "[tts_worker] 播放流已启动：sr=24000 device=默认设备 ⇒ **实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）** blocksize=1024 latency=0.21333333333333335",
+    "[tts_worker] 播放流已按 24000 Hz 重建",
+    "[tts_worker] 模型加载完成 13.7s",
+    "{\"kind\": \"ready\", \"device\": \"NPU\", \"voice\": \"A\"}"
+  ],
+  "stderr_tail": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\r\nThe tokenizer you are loading from 'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\models\\qwen3tts\\tokenizer' with an incorrect regex pattern: https://huggingface.co/mistralai/Mistral-Small-3.1-24B-Instruct-2503/discussions/84#69121093e8b480e709447d5e. This will lead to incorrect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.\r\n",
+  "checks": [
+    {
+      "name": "worker启动成功",
+      "ok": true,
+      "detail": "True"
+    },
+    {
+      "name": "捕获到EXECUTION_DEVICES行",
+      "ok": true,
+      "detail": "[tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    },
+    {
+      "name": "该行含talker=",
+      "ok": true,
+      "detail": "[tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    },
+    {
+      "name": "该行含cp_prefill=",
+      "ok": true,
+      "detail": "[tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    },
+    {
+      "name": "该行含cp_decode=",
+      "ok": true,
+      "detail": "[tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    },
+    {
+      "name": "该行含decoder=",
+      "ok": true,
+      "detail": "[tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    },
+    {
+      "name": "talker=NPU",
+      "ok": true,
+      "detail": "[tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    },
+    {
+      "name": "cp_prefill=NPU",
+      "ok": true,
+      "detail": "[tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    },
+    {
+      "name": "cp_decode=NPU",
+      "ok": true,
+      "detail": "[tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    },
+    {
+      "name": "decoder无?占位",
+      "ok": true,
+      "detail": "[tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    }
+  ],
+  "n_pass": 10,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "_runner": {
+    "script": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app174d_worker_startup_e2e.py",
+    "script_sha256": "fa9c60a3dec4d02dd839e5e62a96dbeb697c4fb3be8d9859c986503019731c58",
+    "returncode": 0,
+    "wall_s": 16.14,
+    "python_exe": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\python\\python.exe"
+  }
+}

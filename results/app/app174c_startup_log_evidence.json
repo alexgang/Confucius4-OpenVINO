@@ -1,0 +1,356 @@
+{
+  "pkg_root": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+  "pkg_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\app",
+  "tts_engine_file": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\app\\tts_engine.py",
+  "tts_engine_in_pkg": true,
+  "has_norm_helper": true,
+  "load_wall_s": 11.96,
+  "logs": [
+    "[tts_engine] NPU 不支持 f32 推理精度 ⇒ 已自动改用 f16",
+    "[tts_engine] OV 推理精度 = f16（权重位宽恒为 INT8）",
+    "[tts_engine] 使用 MultiDecoderBabelVox（解码器多桶 + 左上下文 25 帧）",
+    "[tts_engine] 加载模型：device=NPU root=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\models\\qwen3tts cache=C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_npu_cache",
+    "[tts_engine] 已把 INFERENCE_PRECISION_HINT=f16 注入 NPU 的编译",
+    "[tts_engine] 模型加载完成（7.9 s）",
+    "[tts_engine] cp_decode: NPU（生产配置要求；实测 RTF 1.912→1.218、首块 1.296→0.837 s）",
+    "[tts_engine] cp_prefill: NPU（TTS-017① 交付配置：运行时输入恒为 (1,2,1024) ⇒ 静态形状安全）",
+    "[tts_engine] SpeakerLibrary 就绪：C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_speakers（4 个音色：cindy, lou, phil, steve；内置音色走**只读回退**，**不复制**到用户目录）",
+    "[tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU",
+    "[tts_engine] 实测执行设备：NPU",
+    "[tts_engine] 各组件落点：cp_decode=NPU，cp_prefill=NPU，decoder_bucket@128=NPU，decoder_bucket@16=NPU，decoder_bucket@256=NPU，decoder_bucket@32=NPU，decoder_bucket@33=NPU，decoder_bucket@40=NPU，decoder_bucket@64=NPU，decoder_bucket@8=NPU，speaker_enc=NPU，talker_bucket@128=NPU，talker_bucket@256=NPU，talker_bucket@384=NPU，talker_bucket@512=NPU，talker_bucket@64=NPU，tok_decoder=NPU",
+    "[tts_engine] 落点统计：NPU 上 17 个组件 ['cp_decode', 'cp_prefill', 'decoder_bucket@128', 'decoder_bucket@16', 'decoder_bucket@256', 'decoder_bucket@32', 'decoder_bucket@33', 'decoder_bucket@40', 'decoder_bucket@64', 'decoder_bucket@8', 'speaker_enc', 'talker_bucket@128', 'talker_bucket@256', 'talker_bucket@384', 'talker_bucket@512', 'talker_bucket@64', 'tok_decoder']；CPU 上 0 个组件 []",
+    "[tts_engine] 未启用（该档位下不编译）的组件：talker_prefill，talker_decode，talker（以 5 个桶形式存在，落点见上），code_predictor"
+  ],
+  "exec_devices": {
+    "ok": true,
+    "devices": {
+      "speaker_enc": [
+        "NPU"
+      ],
+      "cp_prefill": [
+        "NPU"
+      ],
+      "cp_decode": [
+        "NPU"
+      ],
+      "tok_decoder": [
+        "NPU"
+      ],
+      "talker_bucket@64": [
+        "NPU"
+      ],
+      "talker_bucket@128": [
+        "NPU"
+      ],
+      "talker_bucket@256": [
+        "NPU"
+      ],
+      "talker_bucket@384": [
+        "NPU"
+      ],
+      "talker_bucket@512": [
+        "NPU"
+      ],
+      "decoder_bucket@8": [
+        "NPU"
+      ],
+      "decoder_bucket@16": [
+        "NPU"
+      ],
+      "decoder_bucket@32": [
+        "NPU"
+      ],
+      "decoder_bucket@33": [
+        "NPU"
+      ],
+      "decoder_bucket@40": [
+        "NPU"
+      ],
+      "decoder_bucket@64": [
+        "NPU"
+      ],
+      "decoder_bucket@128": [
+        "NPU"
+      ],
+      "decoder_bucket@256": [
+        "NPU"
+      ]
+    },
+    "devices_raw": {
+      "speaker_enc": "NPU",
+      "cp_prefill": "NPU",
+      "cp_decode": "NPU",
+      "tok_decoder": "NPU",
+      "talker_bucket@64": "NPU",
+      "talker_bucket@128": "NPU",
+      "talker_bucket@256": "NPU",
+      "talker_bucket@384": "NPU",
+      "talker_bucket@512": "NPU",
+      "decoder_bucket@8": "NPU",
+      "decoder_bucket@16": "NPU",
+      "decoder_bucket@32": "NPU",
+      "decoder_bucket@33": "NPU",
+      "decoder_bucket@40": "NPU",
+      "decoder_bucket@64": "NPU",
+      "decoder_bucket@128": "NPU",
+      "decoder_bucket@256": "NPU"
+    },
+    "unknown": [],
+    "absent": [
+      "talker_prefill",
+      "talker_decode",
+      "talker",
+      "code_predictor"
+    ],
+    "requested": "NPU",
+    "devices_norm": {
+      "speaker_enc": [
+        "NPU"
+      ],
+      "cp_prefill": [
+        "NPU"
+      ],
+      "cp_decode": [
+        "NPU"
+      ],
+      "tok_decoder": [
+        "NPU"
+      ],
+      "talker_bucket@64": [
+        "NPU"
+      ],
+      "talker_bucket@128": [
+        "NPU"
+      ],
+      "talker_bucket@256": [
+        "NPU"
+      ],
+      "talker_bucket@384": [
+        "NPU"
+      ],
+      "talker_bucket@512": [
+        "NPU"
+      ],
+      "decoder_bucket@8": [
+        "NPU"
+      ],
+      "decoder_bucket@16": [
+        "NPU"
+      ],
+      "decoder_bucket@32": [
+        "NPU"
+      ],
+      "decoder_bucket@33": [
+        "NPU"
+      ],
+      "decoder_bucket@40": [
+        "NPU"
+      ],
+      "decoder_bucket@64": [
+        "NPU"
+      ],
+      "decoder_bucket@128": [
+        "NPU"
+      ],
+      "decoder_bucket@256": [
+        "NPU"
+      ]
+    },
+    "actual": {
+      "speaker_enc": "NPU",
+      "cp_prefill": "NPU",
+      "cp_decode": "NPU",
+      "tok_decoder": "NPU",
+      "talker_bucket@64": "NPU",
+      "talker_bucket@128": "NPU",
+      "talker_bucket@256": "NPU",
+      "talker_bucket@384": "NPU",
+      "talker_bucket@512": "NPU",
+      "decoder_bucket@8": "NPU",
+      "decoder_bucket@16": "NPU",
+      "decoder_bucket@32": "NPU",
+      "decoder_bucket@33": "NPU",
+      "decoder_bucket@40": "NPU",
+      "decoder_bucket@64": "NPU",
+      "decoder_bucket@128": "NPU",
+      "decoder_bucket@256": "NPU"
+    },
+    "on_npu": [
+      "cp_decode",
+      "cp_prefill",
+      "decoder_bucket@128",
+      "decoder_bucket@16",
+      "decoder_bucket@256",
+      "decoder_bucket@32",
+      "decoder_bucket@33",
+      "decoder_bucket@40",
+      "decoder_bucket@64",
+      "decoder_bucket@8",
+      "speaker_enc",
+      "talker_bucket@128",
+      "talker_bucket@256",
+      "talker_bucket@384",
+      "talker_bucket@512",
+      "talker_bucket@64",
+      "tok_decoder"
+    ],
+    "on_cpu": [],
+    "on_unknown": [],
+    "key4_line": "EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+  },
+  "actual": {
+    "speaker_enc": "NPU",
+    "cp_prefill": "NPU",
+    "cp_decode": "NPU",
+    "tok_decoder": "NPU",
+    "talker_bucket@64": "NPU",
+    "talker_bucket@128": "NPU",
+    "talker_bucket@256": "NPU",
+    "talker_bucket@384": "NPU",
+    "talker_bucket@512": "NPU",
+    "decoder_bucket@8": "NPU",
+    "decoder_bucket@16": "NPU",
+    "decoder_bucket@32": "NPU",
+    "decoder_bucket@33": "NPU",
+    "decoder_bucket@40": "NPU",
+    "decoder_bucket@64": "NPU",
+    "decoder_bucket@128": "NPU",
+    "decoder_bucket@256": "NPU"
+  },
+  "on_npu": [
+    "cp_decode",
+    "cp_prefill",
+    "decoder_bucket@128",
+    "decoder_bucket@16",
+    "decoder_bucket@256",
+    "decoder_bucket@32",
+    "decoder_bucket@33",
+    "decoder_bucket@40",
+    "decoder_bucket@64",
+    "decoder_bucket@8",
+    "speaker_enc",
+    "talker_bucket@128",
+    "talker_bucket@256",
+    "talker_bucket@384",
+    "talker_bucket@512",
+    "talker_bucket@64",
+    "tok_decoder"
+  ],
+  "on_cpu": [],
+  "on_unknown": [],
+  "unknown": [],
+  "absent": [
+    "talker_prefill",
+    "talker_decode",
+    "talker",
+    "code_predictor"
+  ],
+  "key4_line": "EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU",
+  "devices_raw": {
+    "speaker_enc": "NPU",
+    "cp_prefill": "NPU",
+    "cp_decode": "NPU",
+    "tok_decoder": "NPU",
+    "talker_bucket@64": "NPU",
+    "talker_bucket@128": "NPU",
+    "talker_bucket@256": "NPU",
+    "talker_bucket@384": "NPU",
+    "talker_bucket@512": "NPU",
+    "decoder_bucket@8": "NPU",
+    "decoder_bucket@16": "NPU",
+    "decoder_bucket@32": "NPU",
+    "decoder_bucket@33": "NPU",
+    "decoder_bucket@40": "NPU",
+    "decoder_bucket@64": "NPU",
+    "decoder_bucket@128": "NPU",
+    "decoder_bucket@256": "NPU"
+  },
+  "checks": [
+    {
+      "name": "key4_line存在",
+      "ok": true,
+      "detail": "EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    },
+    {
+      "name": "key4含talker=",
+      "ok": true,
+      "detail": "EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    },
+    {
+      "name": "key4含cp_prefill=",
+      "ok": true,
+      "detail": "EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    },
+    {
+      "name": "key4含cp_decode=",
+      "ok": true,
+      "detail": "EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    },
+    {
+      "name": "key4含decoder=",
+      "ok": true,
+      "detail": "EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    },
+    {
+      "name": "talker非?",
+      "ok": true,
+      "detail": "EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    },
+    {
+      "name": "cp_prefill非?",
+      "ok": true,
+      "detail": "EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    },
+    {
+      "name": "cp_decode非?",
+      "ok": true,
+      "detail": "EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    },
+    {
+      "name": "decoder非?",
+      "ok": true,
+      "detail": "EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU"
+    },
+    {
+      "name": "talker落NPU",
+      "ok": true,
+      "detail": "'NPU'"
+    },
+    {
+      "name": "cp_prefill落NPU",
+      "ok": true,
+      "detail": "'NPU'"
+    },
+    {
+      "name": "cp_decode落NPU",
+      "ok": true,
+      "detail": "'NPU'"
+    },
+    {
+      "name": "decoder全落NPU",
+      "ok": true,
+      "detail": "['NPU', 'NPU', 'NPU', 'NPU', 'NPU', 'NPU', 'NPU', 'NPU', 'NPU']"
+    },
+    {
+      "name": "on_cpu为空",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "on_unknown为空",
+      "ok": true,
+      "detail": "[]"
+    }
+  ],
+  "n_pass": 15,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "log_line_key4": "[tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU",
+  "_runner": {
+    "script": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app174c_startup_log_evidence.py",
+    "script_sha256": "7724cdd601e5d888963d3da3d52dd9790f888ed7a6a1d141a509bca9e9a1bea4",
+    "returncode": 0,
+    "wall_s": 12.41,
+    "python_exe": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\python\\python.exe"
+  }
+}

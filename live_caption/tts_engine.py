@@ -327,6 +327,53 @@ def _load_patch_class():
     return None
 
 
+def _norm_exec_devices(raw):
+    """把 `get_property('EXECUTION_DEVICES')` 的原始值规范化成**设备名列表**。
+
+    🔴🔴🔴 **2026-10-31 实测推翻了旧解读**（证据：
+    `results/app/app174a_exec_devices_type.json`，OV 2026.4.1）：
+      - **NPU 档返回的是「字符串」`'NPU'`**（`raw_type='str'`）
+      - **CPU 档返回的是「列表」`['CPU']`**（`raw_type='list'`）
+
+    🔴🔴 **旧代码的 `list(devs)` 会把字符串逐字符拆开**
+      ⇒ `'NPU'` → `['N','P','U']`
+      ⇒ 旧文档里「NPU 插件返回**缩写 fallback 链** `[N,P,U]`」的解读
+        **是把「字符拆分」当成了「fallback 链」** ⇒ 「链首 = 首选 = 实际落点」
+        这个结论**建立在误读之上**。
+      ⇒ 更糟的是 **CPU 档**：若它返回字符串 `'CPU'` ⇒ `list('CPU')` = `['C','P','U']`
+        ⇒ 链首 `'C'` **不在** `_norm_dev` 映射里 ⇒ 落进 `on_unknown`
+        ⇒ **「NPU 静默回落 CPU」永远不会被 `on_cpu` 抓到**（静默漏报）。
+
+    ⇒ 本函数：**字符串一律按「单个设备名」**处理（可用逗号分隔多个设备），
+      **绝不**逐字符拆。
+
+    ⚠️ 保留**单字母兼容映射**（`N`→`NPU` / `P`→`CPU` / `U`→`UNKNOWN`）
+      ⇒ 万一某些 OV 版本真的返回单字母列表，仍能正确解读
+      ⇒ **不破坏** §82 已有证据的解读（`['N','P','U']` ⇒ 仍是 NPU 首选）。
+    """
+    _legacy = {'N': 'NPU', 'P': 'CPU', 'U': 'UNKNOWN'}
+    _known = ('NPU', 'CPU', 'GPU', 'UNKNOWN')
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        parts = [p.strip() for p in raw.split(',') if p.strip()]
+    else:
+        try:
+            parts = [str(x).strip() for x in raw if str(x).strip()]
+        except TypeError:
+            parts = [str(raw).strip()]
+    out = []
+    for p in parts:
+        up = p.upper()
+        if up in _legacy:
+            out.append(_legacy[up])
+        elif up in _known:
+            out.append(up)
+        else:
+            out.append(p)
+    return out
+
+
 def execution_devices(eng, on_log=print) -> dict:
     """🔴🔴🔴 **实测「每个 IR 到底跑在哪个设备上」**（不是「请求了什么设备」）。
 
@@ -354,8 +401,16 @@ def execution_devices(eng, on_log=print) -> dict:
     ## 判据：OV 的 `EXECUTION_DEVICES` 属性（本机实测可用）
 
     `CompiledModel.get_property('EXECUTION_DEVICES')` 返回
-    **该模型实际执行的设备名列表**（本机实测：
-    CPU 档 = `['CPU']`；NPU 档 = `['NPU']`）⇒ **这是决定性证据**。
+    **该模型实际执行的设备名**（本机实测 OV 2026.4.1：
+    CPU 档 = `['CPU']`（**列表**）；NPU 档 = `'NPU'`（**字符串**））
+    ⇒ **这是决定性证据**。
+
+    🔴🔴🔴 **2026-10-31 修正旧解读**（证据：
+    `results/app/app174a_exec_devices_type.json`）
+    ⇒ 旧文档写的「NPU 插件返回**缩写 fallback 链** `[N,P,U]`」**是错的**
+    ⇒ 那是 `list('NPU')` 的**逐字符拆分**产物（`'N'`/`'P'`/`'U'`）
+    ⇒ 真正的返回值就是**字符串 `'NPU'`**
+    ⇒ ⇒ 规范化必须走 `_norm_exec_devices()`（**字符串按单设备处理**）
 
     ⚠️ **OV 版本差异**：本机 OV `2026.4.1` 的 `CompiledModel`
     **没有** `get_device_name()`（实测 `AttributeError`）
@@ -366,12 +421,18 @@ def execution_devices(eng, on_log=print) -> dict:
 
     ```python
     dict(ok=bool,            # 是否成功取到至少一个设备
-         devices={名称: [设备, ...]},   # 每个组件的实际执行设备
+         devices={名称: [设备, ...]},   # 每个组件的实际执行设备（已规范化）
+         devices_raw={名称: 原始值},   # OV 原始返回值（供复核）
          unknown=[组件名, ...],          # 取不到的组件（**不猜**）
+         actual={名称: 落点},            # 设备列表首元素
+         on_npu=[...], on_cpu=[...], on_unknown=[...],
+         key4_line='EXECUTION_DEVICES talker=…，cp_prefill=…，'
+                   'cp_decode=…，decoder=…',   # 🔴 APP-050 要的一行
          requested='NPU')                # 只是「请求」值，不是证据
     ```
     """
-    out = dict(ok=False, devices={}, unknown=[], requested=None)
+    out = dict(ok=False, devices={}, devices_raw={}, unknown=[], absent=[],
+               requested=None)
     try:
         out['requested'] = str(getattr(eng, 'device', '') or '') or None
     except Exception:
@@ -392,59 +453,126 @@ def execution_devices(eng, on_log=print) -> dict:
         ('code_predictor', 'code_predictor'),
         ('tok_decoder', 'tok_decoder'),
     )
-    # 🔴 多桶解码器（`MultiDecoderBabelVox`）的桶模型在 `talker_buckets` 字典里
+    # 🔴🔴🔴 **talker 多桶（`talker_buckets`）—— 键是 int，不是 str！**
+    #   `babelvox/pipeline.py` L322-330：`for bsize in self.talker_bucket_sizes:`
+    #   ⇒ `self.talker_buckets[bsize] = cm` ⇒ **键 = int**（64/128/…）。
+    #   🔴 旧代码把键转成字符串再 `buckets.get('64')` ⇒ **永远取不到**
+    #      ⇒ **5 个 talker 桶从来没被探测过**（静默漏报）
+    #      ⇒ 且 `getattr(eng, 'talker', None)` 在**有桶时是 None**
+    #         （pipeline.py 有桶分支**不编译** `self.talker`）
+    #      ⇒ ⇒ 旧日志里「talker」这一行**根本没出现过**，reviewer 无从判断。
     buckets = getattr(eng, 'talker_buckets', None)
     if isinstance(buckets, dict) and buckets:
         for b in sorted(buckets.keys()):
             _COMPONENTS = _COMPONENTS + (('talker_bucket@%s' % b,
                                           'talker_bucket@%s' % b),)
 
+    # 🔴🔴🔴 **解码器多桶（`_dec_bucket_models`）—— App 的实际解码器！**
+    #   `tts_engine_patch.py` L101/L407：`self._dec_bucket_models[n] = cm`
+    #   ⇒ **运行时真正用来解码的是这些桶**（`_select_decoder()` L107-114）
+    #   ⇒ 旧代码**完全没探测它们** ⇒ 只报了 `tok_decoder`（= 最大桶那个）
+    #   ⇒ **APP-050 要求的「decoder 实际在哪」根本没被测到**。
+    dec_buckets = getattr(eng, '_dec_bucket_models', None)
+    if isinstance(dec_buckets, dict) and dec_buckets:
+        for n in sorted(dec_buckets.keys()):
+            _COMPONENTS = _COMPONENTS + (('decoder_bucket@%s' % n,
+                                          'decoder_bucket@%s' % n),)
+
     for label, attr in _COMPONENTS:
+        obj = None
         if attr.startswith('talker_bucket@'):
+            # 🔴 键是 int ⇒ 用**原始键**取，不能用字符串
             b = attr.split('@', 1)[1]
-            obj = buckets.get(b) if isinstance(buckets, dict) else None
+            try:
+                obj = buckets.get(int(b))
+            except (TypeError, ValueError):
+                obj = None
+            if obj is None and isinstance(buckets, dict):
+                obj = buckets.get(b)
+        elif attr.startswith('decoder_bucket@'):
+            b = attr.split('@', 1)[1]
+            try:
+                obj = dec_buckets.get(int(b))
+            except (TypeError, ValueError):
+                obj = None
+            if obj is None and isinstance(dec_buckets, dict):
+                obj = dec_buckets.get(b)
         else:
             obj = getattr(eng, attr, None)
         if obj is None:
+            # 🔴🔴 **「属性不存在」≠「组件在 CPU」** ⇒ 记 `absent`（**不猜**）
+            #   为什么必须与 `unknown` 分开：
+            #   `talker_prefill` / `talker_decode` 只在 `use_kv_cache=True` 时才编译
+            #   （App 恒 False）；`code_predictor` 只在 `use_cp_kv_cache=False` 时才编译
+            #   （App 恒 True）⇒ 它们**本来就不该存在** ⇒ 属「未启用」，
+            #   **不是「查不到落点」** ⇒ 混进 `unknown` 会让 reviewer 误以为
+            #   「这几个组件落点不明」⇒ 误判成「有组件在 CPU 上」。
+            out['absent'].append(label)
             continue
         devs = None
         try:
             devs = obj.get_property('EXECUTION_DEVICES')
         except Exception:
             devs = None
-        if not devs:
+        norm = _norm_exec_devices(devs)
+        if not norm:
             out['unknown'].append(label)
         else:
-            out['devices'][label] = list(devs)
+            out['devices'][label] = norm
+            out['devices_raw'][label] = (devs if isinstance(devs, str)
+                                          else list(devs))
 
     out['ok'] = bool(out['devices'])
     if out['ok']:
-        # 🔴🔴🔴 **NPU 插件返回的是「设备缩写 + fallback 链」，不是 `NPU` 字面量**
-        #   （本轮实测，OV 2026.4.1 + intel_npu_plugin）：
-        #   - 直接 `compile_model(m, 'NPU')` ⇒ `EXECUTION_DEVICES == 'NPU'`（字符串）
-        #   - 经 App 的 `_ov_precision`（`set_property('NPU', {...})`）后 ⇒
-        #     `EXECUTION_DEVICES == ['N', 'P', 'U']`
-        #     （= NPU plugin / CPU fallback / Unknown 的**缩写 fallback 链**）
-        #   - CPU 档 ⇒ `['CPU']`
-        # ⇒ **判据 = 链首（首选设备）** ⇒ `N` ⇒ 首选 NPU ⇒ 实际跑在 NPU 上；
-        #   `P` ⇒ 首选 CPU ⇒ **实际落在 CPU 上**（= NPU 编译静默回落的实证）。
-        # ⇒ ⚠️ 只按 `startswith('NPU')` 判 ⇒ **全部落空**（实测踩过）。
-        _norm_dev = {'N': 'NPU', 'P': 'CPU', 'U': 'UNKNOWN'}
-        out['devices_norm'] = {
-            k: [_norm_dev.get(str(d).upper(), str(d)) for d in v]
-            for k, v in out['devices'].items()
-        }
-        # 🔴 **实际落点 = fallback 链首元素**
+        # 🔴🔴🔴 **2026-10-31 更正旧解读**（证据 `results/app/app174a_exec_devices_type.json`）：
+        #   OV 2026.4.1 的 `EXECUTION_DEVICES`：
+        #     - NPU 档 ⇒ **字符串** `'NPU'`
+        #     - CPU 档 ⇒ **列表** `['CPU']`
+        #   ⇒ **不再有「缩写 fallback 链 [N,P,U]」这回事**
+        #      （那是 `list('NPU')` 的**逐字符拆分**产物，不是 OV 的返回内容）
+        #   ⇒ **实际落点 = 列表首元素**（NPU 插件不会返回多设备链）
+        out['devices_norm'] = dict(out['devices'])
+        # 🔴 **实际落点 = 设备列表首元素**
         out['actual'] = {k: (v[0] if v else None)
                          for k, v in out['devices_norm'].items()}
         out['on_npu'] = sorted(k for k, v in out['actual'].items() if v == 'NPU')
         out['on_cpu'] = sorted(k for k, v in out['actual'].items() if v == 'CPU')
         out['on_unknown'] = sorted(k for k, v in out['actual'].items()
                                    if v not in ('NPU', 'CPU'))
+        # 🔴🔴 **APP-050 要求的一行汇总**：四个关键组件各自实际落在哪
+        #   （`talker` / `cp_prefill` / `cp_decode` / `decoder`）
+        #   ⚠️ **必须是一行** ⇒ reviewer 只看一行就能判断是否全 NPU。
+        #   🔴 `talker` 在**有桶时**是「桶集合」（pipeline.py 有桶分支不编译
+        #      `self.talker`）⇒ 这一格要**聚合所有桶的落点**，
+        #      否则永远打 `talker=?` ⇒ 等于没回答 APP-050 的问题。
+        _KEY4 = ('talker', 'cp_prefill', 'cp_decode', 'decoder')
+        _k4 = []
+        for _k in _KEY4:
+            if _k == 'decoder':
+                # 🔴 decoder = 解码器（`tok_decoder` + 各桶）
+                _ds = [v for k2, v in sorted(out['actual'].items())
+                       if k2 == 'tok_decoder' or k2.startswith('decoder_bucket@')]
+                _k4.append('decoder=%s' % ('/'.join(_ds) if _ds else '?'))
+            elif _k == 'talker':
+                # 🔴 talker = `self.talker`（无桶时）**或** 各个 talker 桶（有桶时）
+                _ts = []
+                if 'talker' in out['actual']:
+                    _ts.append(out['actual']['talker'])
+                _ts += [v for k2, v in sorted(out['actual'].items())
+                        if k2.startswith('talker_bucket@')]
+                # 🔴 同一落点只列一次（桶多时不刷屏），但**不同落点必须都列出来**
+                _seen = []
+                for _v in _ts:
+                    if _v not in _seen:
+                        _seen.append(_v)
+                _k4.append('talker=%s' % ('/'.join(_seen) if _seen else '?'))
+            else:
+                _k4.append('%s=%s' % (_k, out['actual'].get(_k, '?')))
+        out['key4_line'] = ('EXECUTION_DEVICES ' + '，'.join(_k4))
+        on_log('[tts_engine] %s' % out['key4_line'])
         # 🔴 汇总成一句人话（便于写进日志 / 报告）
         flat = sorted({d for d in out['actual'].values() if d})
-        on_log('[tts_engine] 实测执行设备（fallback 链首 = 实际落点）：%s'
-               % ('/'.join(flat)))
+        on_log('[tts_engine] 实测执行设备：%s' % ('/'.join(flat)))
         on_log('[tts_engine] 各组件落点：%s'
                % '，'.join('%s=%s' % (k, v)
                            for k, v in sorted(out['actual'].items())))
@@ -455,6 +583,22 @@ def execution_devices(eng, on_log=print) -> dict:
         if out['unknown']:
             on_log('[tts_engine] ⚠️ 取不到执行设备的组件：%s'
                    % '，'.join(out['unknown']))
+        if out['absent']:
+            # 🔴 「未启用/不存在」**不是**「落点不明」⇒ 用中性措辞，不报警
+            # 🔴 `talker` 要特别说明：**有桶时它以「桶集合」存在**
+            #   （pipeline.py 有桶分支**不编译** `self.talker`）
+            #   ⇒ 它不是「没启用」，而是「落点由各桶给出」（见上面 key4 那行）
+            _abs = []
+            for _a in out['absent']:
+                if _a == 'talker':
+                    _n = len([k for k in out['actual']
+                              if k.startswith('talker_bucket@')])
+                    _abs.append('talker（以 %d 个桶形式存在，落点见上）' % _n
+                                if _n else 'talker')
+                else:
+                    _abs.append(_a)
+            on_log('[tts_engine] 未启用（该档位下不编译）的组件：%s'
+                   % '，'.join(_abs))
     else:
         on_log('[tts_engine] ⚠️ 取不到任何组件的 EXECUTION_DEVICES '
                '（OV 版本可能不支持）⇒ 无法证明实际执行设备')
