@@ -94,3 +94,11 @@ results/*_probe.npy
 # 防止以后有人把 IR 输出到 reports/ 下。
 reports/**/*.bin
 reports/**/*.xml
+
+# APP-027 V3(b)（§115）：克隆源语音（会议原声）与其 CAMPPlus 中间 JSON
+#   —— 属**内部素材**（APP-007 覆盖范围）⇒ 绝不能进仓库。
+#   ⚠️ `*.wav` 已覆盖音频本体，但同目录下的 `_cmp_in.json` / `_cmp_out.json`
+#   不匹配任何既有规则 ⇒ 必须显式忽略整个目录。
+results/app/_v3b_clone_src/
+# APP-027 V3(a)（§114）：MiniMax 回转写缓存（含会议原文转写）
+results/app/_v3_cer_cache/
