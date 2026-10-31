@@ -163,6 +163,10 @@ const metrics = {
   frames: 0, lastFrameAt: 0,
   videoWidth: 0, videoHeight: 0, sourceRate: 0,
   echoRecv: 0, echoSent: 0,
+  // ★★★ EXT-026 ③：被当作「重复段」静默丢掉的次数（EXT-024 A 去重命中）。
+  //   ★ 必须**如实计数** —— 它是「段被丢了」的**唯一**可观测证据
+  //     （EXT-026 ⑤ 的跨会话撞号缺陷就是靠它暴露的）。
+  dubDup: 0,
   onsetErrs: [], lipErrs: [], schedDetail: [],
   drawMarks: [], origOnsets: [], dubOnsets: [],
   captureStarted: false, audioCtxOk: false,
@@ -495,6 +499,91 @@ let origSource = null;
 let onsetNode = null;     // 配音 onset 检测
 let origOnsetNode = null; // 原声 onset 检测（唇音同步用）
 
+// ★★★ EXT-026 ③：**配音录音**（录 player **实际播出**的音频）。
+//   为什么必须录「播出来的」而不是服务端的 PCM：
+//   服务端 PCM 只证明「服务端算出了音频」⇒ 不能证明
+//   「浏览器真的把它播出来了」（排程/增益/总线接错都会导致静音）。
+//   ⇒ 在 **dubBus**（配音输出总线）上挂一个 MediaStreamDestination，
+//     用 MediaRecorder 录下来 ⇒ reviewer 回转写就能核对中文内容。
+// ⚠️ 只接 dubBus（不接 origGain）⇒ 录到的**只有配音**，没有原声。
+let dubRecordStream = null;   // MediaStreamDestination 的 stream
+let dubRecorder = null;       // MediaRecorder 实例
+let dubRecordChunks = [];     // 录到的数据块
+let dubRecordStartedAt = 0;   // 开始录制的墙钟时刻（ms）
+
+/**
+ * ★★★ EXT-026 ③：开始录制**实际播出的配音**。
+ * @param {number} [maxMs] 最长录制时长（毫秒）—— 兜底，防忘记停。
+ */
+async function startDubRecording(maxMs) {
+  if (!audioCtx || !dubBus) return { ok: false, error: '音频总线还没建好' };
+  if (dubRecorder && dubRecorder.state === 'recording') {
+    return { ok: true, already: true };
+  }
+  try {
+    dubRecordChunks = [];
+    const dest = audioCtx.createMediaStreamDestination();
+    dubBus.connect(dest);          // ★ 只从 dubBus 取 ⇒ 录到的是配音
+    dubRecordStream = dest.stream;
+    const mime = (typeof MediaRecorder !== 'undefined')
+      ? (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+         ? 'audio/webm;codecs=opus' : 'audio/webm') : '';
+    dubRecorder = new MediaRecorder(dubRecordStream, mime ? { mimeType: mime } : undefined);
+    dubRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) dubRecordChunks.push(e.data);
+    };
+    dubRecorder.start(1000);
+    dubRecordStartedAt = performance.now();
+    if (maxMs && maxMs > 0) {
+      setTimeout(() => { stopDubRecording(); }, maxMs);
+    }
+    report({ kind: 'dub_record_start', mime: mime || 'default' });
+    return { ok: true, mime: mime || 'default' };
+  } catch (e) {
+    report({ kind: 'dub_record_error', error: String((e && e.message) || e) });
+    return { ok: false, error: String((e && e.message) || e) };
+  }
+}
+
+/** 停止录音并返回录制时长（秒）。 */
+function stopDubRecording() {
+  try {
+    if (dubRecorder && dubRecorder.state !== 'inactive') {
+      dubRecorder.stop();
+    }
+  } catch (e) { /* ignore */ }
+  return { durationSec: dubRecordStartedAt
+    ? (performance.now() - dubRecordStartedAt) / 1000 : 0 };
+}
+
+/**
+ * ★★★ EXT-026 ③：把录到的配音**打包成可下载的 blob**。
+ *   返回 { mime, base64, bytes, durationSec }。
+ *   ★ 用 base64 而不是二进制数组 ⇒ Playwright 直接取字符串即可落盘。
+ */
+function dubRecordingBlob() {
+  if (!dubRecordChunks || !dubRecordChunks.length) {
+    return { ok: false, error: '没有录到任何数据', bytes: 0 };
+  }
+  const blob = new Blob(dubRecordChunks, { type: dubRecordChunks[0].type || 'audio/webm' });
+  return new Promise((resolve) => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const b64 = String(fr.result || '');
+      resolve({
+        ok: true,
+        mime: blob.type || 'audio/webm',
+        bytes: blob.size,
+        base64: b64,
+        durationSec: dubRecordStartedAt
+          ? (performance.now() - dubRecordStartedAt) / 1000 : 0,
+      });
+    };
+    fr.onerror = () => resolve({ ok: false, error: 'FileReader 失败', bytes: 0 });
+    fr.readAsDataURL(blob);
+  });
+}
+
 /**
  * 建 onset 检测 worklet。
  * @param {AudioNode} src  要监听的源节点
@@ -808,6 +897,54 @@ const upState = {
 /** 启动瞬态帧数（前 N 帧不计入「稳定期最大偏差」）。 */
 const WARMUP_FRAMES = 50;
 
+// ★★★ EXT-026 修正：**状态条的段数恒为 0** ⇒ 真实缺陷。
+//
+// ## 根因（2026-10-31 真实三引擎实测抓到）
+//   `handleBridgeMessage` 里处理 `kind === 'stats'`（EXT-024 E 加的），
+//   但**客户端从来没有发过 `{"type":"stats"}` 请求** ⇒
+//   服务端的 stats 分支永远进不去 ⇒
+//   `metrics.link.asrSegments / mtSegments / ttsSegments` **恒为 0**
+//   ⇒ 状态条显示「ASR 0 | MT 0 | TTS 0」
+//   ⇒ **最关键的故障信号（TTS 一段都没出）根本显示不出来**，
+//      而那一轮实际真跑出了 4 段 TTS（bridge.log 的段级日志里有）。
+//
+// ## 修法
+//   周期性发 `{"type":"stats"}` ⇒ 服务端回 stats ⇒
+//   `handleBridgeMessage` 的 stats 分支才有数据可读。
+//   ★ 服务端 stats 分派用的是 `_producer_session()`（按 token 找 uplink 会话）
+//     ⇒ 无论从哪条连接问，拿到的都是**真会话**的统计。
+//
+// ★★★ EXT-026 二次修正：**生产路径**下上行 WS 在 **offscreen** 里，
+//   player 自己的 `upState.ws` 是 **null**（player 没抓流、没上行）
+//   ⇒ 只认 `upState.ws` ⇒ 状态条**永远拿不到 stats** ⇒ 段数恒为 0
+//   （实测 2026-10-31 生产路径：段级日志 8 段，状态条 asr/mt/tts 全 0）。
+//   ⇒ 修法：**两条 WS 都试** —— 先上行（与产出段同源），
+//     没有就用 player 自己那条（role=player，同样按 token 拿真会话）。
+const STATS_POLL_MS = 1000;
+let statsPollTimer = null;
+function pollStats() {
+  try {
+    // ★ 优先上行 WS（player 自己抓流的那条路径）
+    const up = upState.ws;
+    if (up && up.readyState === 1) {
+      up.send(JSON.stringify({ type: 'stats' }));
+      metrics.link.statsPolled = (metrics.link.statsPolled || 0) + 1;
+      return;
+    }
+    // ★ 回落到 player 自己那条 WS（生产路径：上行在 offscreen 里）
+    const w = (typeof ws !== 'undefined') ? ws : null;
+    if (w && w.readyState === 1) {
+      w.send(JSON.stringify({ type: 'stats' }));
+      metrics.link.statsPolled = (metrics.link.statsPolled || 0) + 1;
+    }
+  } catch (e) { /* ignore */ }
+}
+function startStatsPolling() {
+  if (statsPollTimer !== null) return;    // 幂等：别起两个定时器
+  statsPollTimer = setInterval(pollStats, STATS_POLL_MS);
+  setTimeout(pollStats, 500);              // 立刻问一次（别等第一个周期）
+}
+
 function upPost(msg) {
   try {
     chrome.storage.local.get({ extLog: [] }).then((s) => {
@@ -911,6 +1048,43 @@ async function startUplink(stream, wsUrl, token) {
   } catch (e) {
     upState.error = String((e && e.message) || e);
     return { ok: false, error: upState.error };
+  }
+}
+
+/**
+ * ★★★ EXT-026 修正：**尾段永远丢** ⇒ 真实缺陷。
+ *
+ * ## 根因（2026-10-31 真实三引擎实测抓到）
+ *   服务端的流式分段**故意**把最后一段留在缓冲区等后续音频
+ *   （`ext/bridge.py` 的 `Session.flush` 的说明：正常直播场景正确），
+ *   要收口尾段必须客户端发一条 `{"type":"flush"}`。
+ *   ⇒ **但整个插件链路从来没有任何地方发过 flush**
+ *     （player / offscreen / sw 都没有）
+ *   ⇒ 用户点「停止」时，**最后一句永远不会被翻译、不会被配音**
+ *     ⇒ 实测：60 秒英文素材切成 5 段，
+ *       前 4 段出了配音，**尾段（2.92 s）直接消失**。
+ *
+ * ## 修法
+ *   上行 WS 发 `{"type":"flush"}` ⇒ 服务端把缓冲区里的尾段跑完并下发。
+ *   ★ 走**上行那条 WS**（与产出段的会话同源）。
+ *   ★ 服务端 `flush` 分支在非回声模式下才生效（回声是逐帧原样返回）。
+ *
+ * @returns {Promise<{ok: boolean, error?: string}>}
+ */
+async function flushUplink() {
+  try {
+    const w = upState.ws;
+    if (!w || w.readyState !== 1) {
+      return { ok: false, error: '上行 WS 未连接' };
+    }
+    w.send(JSON.stringify({ type: 'flush' }));
+    metrics.link.flushSent = (metrics.link.flushSent || 0) + 1;
+    report({ kind: 'flush_sent' });
+    return { ok: true };
+  } catch (e) {
+    const err = String((e && e.message) || e);
+    report({ kind: 'flush_error', error: err });
+    return { ok: false, error: err };
   }
 }
 
@@ -1332,6 +1506,14 @@ async function attachVideoTrack(track) {
 const seenDubIds = new Set();
 const SEEN_DUB_CAP = 500;
 
+// ★★★ EXT-026 ⑤：**当前会话标识**（由服务端的 hello_ack.session_id 给出）。
+//   段 id 已带会话前缀（服务端改动）⇒ 跨会话**不会撞号**；
+//   这里再加一道**客户端保险**：收到**新会话**的 hello_ack 时清空
+//   `seenDubIds` ⇒ 即使连的是**旧服务端**（段 id 没前缀），
+//   第二个会话的段也不会被误判成「重复段」而**静默丢掉**。
+//   ⇒ 双保险：服务端改 id + 客户端清缓存。
+let currentSessionId = null;
+
 function handleBridgeMessage(m) {
   if (!m || typeof m !== 'object') return;
   const kind = m.type;
@@ -1341,15 +1523,27 @@ function handleBridgeMessage(m) {
     metrics.link.mode = m.mode || null;
     metrics.link.enginesReady = !!m.engines_ready;
     metrics.link.pipeline = !!m.pipeline;
+    // ★★★ EXT-026 ⑤：识别**新会话** ⇒ 清空去重缓存。
+    //   ⚠️ 只有 session_id **变了**才清 ⇒ 同一会话的重复 hello_ack
+    //     （两条 WS 各发一次）**不会**把已排程的段清掉。
+    const sid = (m.session_id == null) ? null : String(m.session_id);
+    if (sid && currentSessionId !== null && sid !== currentSessionId) {
+      const n = seenDubIds.size;
+      seenDubIds.clear();
+      metrics.link.dubDupsCleared = (metrics.link.dubDupsCleared || 0) + n;
+      report({ kind: 'session_reset', session_id: sid, cleared: n });
+    }
+    if (sid) currentSessionId = sid;
     report({ kind: 'hello_ack', delay_sec: m.delay_sec,
              sample_rate: m.sample_rate, segmentation: m.segmentation,
              mode: m.mode, engines_ready: m.engines_ready,
-             pipeline: m.pipeline });
+             pipeline: m.pipeline, session_id: sid });
   } else if (kind === 'echo' || kind === 'tts') {
     // ★★ EXT-024 A：去重 —— 同一段可能被广播到两条连接。
     const did = String(m.id || '');
     if (did) {
       if (seenDubIds.has(did)) {
+        metrics.dubDup++;
         report({ kind: 'dub_dup', id: did });
         return;
       }
@@ -1459,6 +1653,8 @@ const REPORT_SCALARS = [
   'codecUsed', 'hwAcceleration', 'frames', 'lastFrameAt',
   'videoWidth', 'videoHeight', 'sourceRate',
   'echoRecv', 'echoSent', 'captureStarted', 'audioCtxOk',
+  // ★★★ EXT-026 ③：重复段计数（跨会话撞号缺陷的可观测证据）
+  'dubDup',
   'uplinkFrames', 'uplinkSeq', 'uplinkGaps', 'uplinkSkewMs',
   'pendingSchedDropped', 'subsDropped',
   'schedClamped', 'probeSchedClamped', 'encodeSkipped', 'encodeBacklogSkipped',
@@ -1712,6 +1908,10 @@ window.__ext = {
   normalizeLang,
   normalizeVoice,
   dbToGain,
+  // ★★★ EXT-026 ③：配音录音（录 player **实际播出**的音频）
+  startDubRecording,
+  stopDubRecording,
+  dubRecordingBlob,
   getAudioTime: () => (audioCtx ? audioCtx.currentTime : 0),
   getT0: () => t0,
   computeLipSync,
@@ -1723,6 +1923,8 @@ window.__ext = {
   connectBridge,
   startUplink,
   uplinkSnapshot,
+  // ★★★ EXT-026 修正：收口尾段（否则最后一句永远丢）
+  flushUplink,
   /** P0③ 自测：直接排程一段 PCM，测浏览器端排程误差（probe=true ⇒ 与回声排程分开统计） */
   selfTestSchedule: (pcmB64, tStart) => scheduleDub({ id: 'selftest', t_start: tStart, pcm24k: pcmB64, probe: true }),
   /** ★ 诊断：排程与配对的完整明细（归因 P0③ 的误差来源） */
@@ -1886,6 +2088,21 @@ async function boot() {
       report({ kind: 'capture_button_ready' });
     }
   }
+
+  // ★★★ EXT-026 修正：「停止并收尾」按钮 ⇒ 发 flush 让服务端跑完尾段。
+  const btnF = document.getElementById('btnFlush');
+  if (btnF) {
+    btnF.addEventListener('click', async () => {
+      const r = await flushUplink();
+      report({ kind: 'flush_clicked', result: r });
+      btnF.textContent = '已发收尾指令（等待最后一句…）';
+    });
+    btnF.style.display = 'inline-block';
+  }
+
+  // ★★★ EXT-026 修正：周期性问服务端要 stats（否则段数恒为 0）。
+  //   ★ 上行 WS 还没建时 `pollStats` 会因为 readyState≠1 而跳过 ⇒ 安全。
+  startStatsPolling();
 }
 
 // ══════════════════════════════════════════════════════════════

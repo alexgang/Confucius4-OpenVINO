@@ -100,6 +100,9 @@
   <div class="row">
     <button id="btnStart" class="primary">开始</button>
     <button id="btnStop" disabled>停止</button>
+    <!-- ★★★ EXT-026 修正：停止前先「收尾」⇒ 让服务端跑完**最后一句**。
+         没有它 ⇒ 尾段永远留在缓冲区 ⇒ 最后一句永远没配音。 -->
+    <button id="btnFlush" disabled>停止并收尾（跑完最后一句）</button>
   </div>
 
   <div id="status">未连接</div>

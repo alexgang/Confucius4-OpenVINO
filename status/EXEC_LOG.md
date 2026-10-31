@@ -2105,3 +2105,167 @@ test_p1_plumbing.py               97 PASS / 0 FAIL  rc=0
 
 ---
 
+## 2026-10-31 20:30 → 2026-10-31 21:46 — §18 EXT-026 收口（真实三引擎端到端自动化冒烟 + 证据落盘 + `seenDubIds` 跨会话撞号修复）
+
+**执行时间**：2026-10-31 20:30:56（A 轮起跑）→ 21:46:36（本轮完成）
+
+**指令摘要**
+
+- 来源文件：`C:\Users\Trekker-PTL\live_dub_ext\status\CORRECTIONS_EXT.md`（**只读，绝不修改、绝不入库**）
+- 本轮唯一执行依据（闸门 `tools/next_instruction.py --json` **实测 exit 0**）：
+  **EXT-026 [HIGH] 2026-10-31 16:49** —— 「交给用户手势验收前，先持锁用真实三引擎跑一次自动化端到端，
+  落盘配音音频+字幕截图+段级日志」
+- 指令五项要求逐条落地：
+  1. **等锁空闲后持锁、用真实模式起 bridge**，打印 `talker`/`cp_prefill`/`cp_decode`/`decoder` 的 `EXECUTION_DEVICES`
+     ⇒ **收口 EXT-023**；
+  2. 复用已有 **Playwright + Edge** 冒烟脚手架，走「popup 开始 → player 点开始捕获」路径采集 **60 s**；
+  3. 证据落盘 `.tmp/ext026_e2e/`：**player 实际播放的配音录音** + **30 s / 60 s 两张截图** + **≥5 段段级日志**
+     且「下发到」含 player 的段数 = TTS 段数 + **无「不顶替」/ 无 10048** + `__ext.metrics()` 导出
+     + `hello_ack` 的 `mode=real` / `engines_ready=true`；
+  4. 跑完**释放锁**；STATUS 写一节，含**路径 / 字节数 / 段数 / 数字**；
+  5. **顺手修 `seenDubIds` 跨会话撞号缺陷并加单测**。
+- 冲突处置：指令要求「生产路径」，但**自动化下必然拿不到 tabCapture**（实测错误原文见下）
+  ⇒ **按指令「冒烟失败就先修」处理**：补跑生产路径（B 轮），抓流方式**如实上报** `getDisplayMedia`，
+  **没有**谎报成 `tabCapture`。
+
+### 机器锁（铁律）
+
+- 开工时 `shared/MACHINE_LOCK` = `module: tts / pid: 18968 / started: 2026-10-31 21:00:41`
+  ⇒ ctypes `OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION)` + `GetExitCodeProcess` 探得 **ALIVE（exit code 259）**
+  ⇒ 属**他人模块（TTS）的活锁** ⇒ **未创建、未动、未回收**（铁律：**探测失败一律视为存活**）。
+- 本轮 A/B 两轮推理作业**持锁运行**，**跑完已释放**；收尾只跑纯单元自测（不占 GPU/NPU）⇒ 无需持锁。
+- 收尾时 `shared/MACHINE_LOCK` 已变为 `module: app-pack / pid: 10196 / started: 21:36:57` ⇒ **属他人模块，未动**。
+
+### 跑了两轮（都是真实三引擎：ASR=R2T2 / MT=Hy-MT2 / TTS=Qwen3-TTS）
+
+| 轮次 | 路径 | 目录 | 起止 | 采集 |
+|---|---|---|---|---|
+| **A 轮** | 兜底路径（player 自己上行） | `.tmp/ext026_e2e/` | 20:30:56→20:34:29 | 60 s |
+| **B 轮** | **生产路径**（popup → tabCapture → offscreen → SW → player） | `.tmp/ext026_prodpath/` | 20:53:58→20:57:02 | 60 s |
+
+**自动化拿不到 tabCapture 的实测错误原文**（原文照抄，不美化）：
+
+```
+Extension has not been invoked for the current page (see activeTab permission). Chrome pages cannot be captured.
+```
+
+⇒ 两轮抓流方式**都如实上报 `getDisplayMedia`**，**没有**谎报成 `tabCapture`。
+
+### 实测数字（原始字段，详见 `status/notes/sec18_ext026_real_e2e.md`）
+
+| 项 | A 轮 | B 轮 |
+|---|---|---|
+| 段级日志 / 「下发到=player,uplink」 | **9** / **9 of 9** | **9** / **9 of 9** |
+| 有 TTS 的段 / 空段（EXT-010 设计仍下发） | **7** / 2 | **5** / 4 |
+| 10048 端口占用 / 「不顶替」 | **0** / 2 | **0** / 2 |
+| TTS 语音总时长 | **43.84 s** | **27.84 s** |
+| `hello_ack` | **mode=real / engines_ready=true / pipeline=true** | 同左 |
+| `dubDelivered / echoRecv / dubDup` | **9 / 9 / 9** | **9 / 9 / 9** |
+| `asr / mt / ttsSegments` | **7 / 7 / 7** | **5 / 5 / 5** |
+| `lagSec` / `captureMode` | 12.7046 / getDisplayMedia | 16.4806 / getDisplayMedia |
+| 段 id 形态 | `seg_55035942_194400` | `seg_77393782_194400` |
+
+A 轮另有 `schedClamped=7 / audioRecvSec=151.89225 / uplink.running=true / wsOpen=true / gaps=0 / maxAbsSkewMs=32.4958`。
+
+### 录音实测非静音（新增可复现工具）
+
+新增 `tests/smoke/analyze_dub_audio.py`：headless Edge **WebAudio 纯解码**（`OfflineAudioContext.decodeAudioData`），
+**不跑推理、不占 GPU/NPU**；判据为 **RMS(dBFS) AND 语音 burst 数**（**不看 peak**），门限 20 ms 窗 RMS > −45 dBFS。
+
+| 轮次 | 录音 | 字节 | 时长 | peak | RMS | burst | 语音时长 |
+|---|---|---|---|---|---|---|---|
+| A 轮 | `dub_player.webm` | **585 326 B** | 76.2 s | 0.56574 | 0.063978（**−23.88 dBFS**） | **32** | 26.74 s（35.09 %） |
+| B 轮 | `dub_player.webm` | **409 669 B** | 115.02 s | 0.71230 | 0.048422（**−26.30 dBFS**） | **28** | 18.08 s（15.72 %） |
+
+⇒ 两轮 `non_silent=true`；分析结果落盘 `dub_audio_analysis.json`（**488 B** / **497 B**）。
+
+### EXT-023 收口
+
+`bridge.log` **21 行** `EXECUTION_DEVICES`；落盘 `%LOCALAPPDATA%/LiveDubEXT/tts_exec_devices.json`（**4 260 B**，20:54:13）
+⇒ **`on_npu=17` / `on_cpu=[]` / `on_unknown=[]`**；`cp_decode`=NPU，`talker`/`cp_prefill`/`decoder` 全 NPU
+⇒ **无任何组件落在 CPU**（`absent` 4 项是 App 侧未暴露的组件名，**不是**落 CPU）。
+
+### 修掉的 5 个真缺陷（**只有生产路径才会暴露** —— EXT-024 A 的转发链此前**从未在真实三引擎上跑过**）
+
+| # | 缺陷 | 影响 | 修法 |
+|---|---|---|---|
+| P1 | `pollStats()` 只认 `upState.ws` | 生产路径下状态条段数**恒为 0** | 回落用 player 自己那条 WS（role=player，服务端按 token 取真会话） |
+| P2 | `sw.js`/`offscreen.js` **都没有 flush** | 用户点「停止」时**最后一句永远丢** | `offscreen.flushUplink()` + `sw.case 'flush'` 中转 + `popup`「停止并收尾（跑完最后一句）」（先 flush，12 s 后自动 stop） |
+| P3 | popup 配置**只写 storage 不够** | 自动化下点「开始」报「桥接服务未启动」 | `loadCfg()` 把 storage 读进 **DOM 输入框** ⇒ 必须**同时**写 storage 和 DOM |
+| P4 | `pairUrl()` 从 ws 端口 **+1** 推出配对端口 | 配对端口不对 | 改用 `_free_port_pair()` 取**连续两个**空闲端口 |
+| P5 | `pollStats` 现在有**两处** `send` | 旧反证只改坏一处就失效 | 旧 harness 的 C4 反证改为**同时**改坏 `up.send` 与 `w.send` 两处 |
+
+### 涉及修改的文件（全部在 EXT 模块内，**未动任何引擎文件**）
+
+**产品代码（9 个 / 344 468 B；改动量 +543 −143 行，diff 70 562 B）**
+
+| 文件 | 改动 |
+|---|---|
+| `ext/bridge.py` | `public_seg_id()` 段 id 加会话前缀 + `hello_ack.session_id`（向后兼容字段） |
+| `extension/player.js` | `metrics.dubDup` + 录音三函数（`startDubRecording`/`stopDubRecording`/`dubRecordingBlob`，只接 `dubBus` 不接 `origGain`）+ `flushUplink()` + `pollStats()` 回落 + 新会话清 `seenDubIds` |
+| `extension/player.html` / `popup.html` | 新增「停止并收尾（跑完最后一句）」按钮 |
+| `extension/popup.js` | btnFlush 处理器（**先 flush，12 s 后自动 stop**） |
+| `extension/offscreen.js` | `flushUplink()` + `handleOffscreen` 的 `case 'flush'` |
+| `extension/sw.js` | `case 'flush'` 中转到 offscreen |
+| `USER_GUIDE.md` + `extension/USER_GUIDE.md` | §5 改为「停止并收尾」说明（**两份必须一致**，有 3 个自测套件守着） |
+
+**新增自测 + 冒烟脚本（10 个 / 150 109 B）**
+
+`tests/test_ext026_audio_analysis.py`（**25 项**：4 种合成波形真值对照 + 2 组反证）、
+`tests/ext026_prodpath_harness.js`（**17 项**，4 组反证）+ `tests/test_ext026_prodpath.py`（**14 项**）、
+`tests/ext026_segid_harness.js`（**13 项**）+ `tests/test_ext026_seg_id_uniqueness.py`（**15 项**）、
+`tests/ext026_e2e_harness.js`（**13 项**，C4 反证修正）、
+`tests/smoke/analyze_dub_audio.py`、`tests/smoke/ext026_e2e.py`、`tests/smoke/ext026_prodpath.py`。
+
+**状态文档**：`status/STATUS_EXT.md`（新增 `## §18` + `last_ack` → **EXT-026**）、
+`status/notes/sec18_ext026_real_e2e.md`（新写，**12 520 B**，7 节）、`status/EXEC_LOG.md`（本节）。
+
+### 验证与自测结果（全部**实测**，rc 取真实退出码，未 pipe）
+
+- **三套明文要求的自测**（单独确认 rc=0）：
+  `test_ext_selfcheck.py` **103 PASS / 0 FAIL**（rc=0）、
+  `test_echo_roundtrip.py` **11 PASS / 0 FAIL**（rc=0）、
+  `test_next_instruction.py` **19 PASS / 0 FAIL**（rc=0）。
+- **全量 Python 自测**：23 套 ⇒ **1 064 PASS / 1 FAIL**。
+- **node harness**：6 套全 0 FAIL（33 / 13 / 17 / 13 / 26 / 28）。
+- **唯一 FAIL 归因**：`test_ext016_compression.py` 的「压缩后 CORRECTIONS 明显变小（实测 **21 943 B**）」
+  ⇒ 阈值 20 480 B ⇒ **既有状态、非本轮引入**；`CORRECTIONS_EXT.md` 由 **reviewer 独占写入**，
+  本模块**只读、未修改**（`.gitignore:34` 忽略，`git log --all` 无记录）
+  ⇒ **如实报告，不修改、不 `git add -f`**。
+  ★ 同一套件里「精简版 STATUS 不含历史全文」一项本轮**由 FAIL 转 PASS**（压缩到 **22 369 B** < 归档/10 = 22 483 B）。
+- **闸门复测**：本轮收尾时 `exit 1 / action=skip`（`latest=EXT-026` / `last_ack=26`）⇒ 幂等生效，下一轮不会重复执行。
+- **反证（可区分「真通过」与「假通过」）**：
+  ① 录音分析：把 RMS 门限放宽到 −120 dBFS ⇒ 低电平底噪判定**翻转**成「非静音」；
+  ② 录音分析：去掉 RMS 条件（只看 burst）⇒ 「高 burst 但 RMS 极低」**被误判**成非静音
+  ⇒ 真判据的 RMS 条件确实在起作用；
+  ③ node harness 的 C4 反证**同时**改坏 `up.send` 与 `w.send` ⇒ 断言如期变红。
+
+### 产物（文件数 / mtime / 字节数 —— 均为实测）
+
+| 产物组 | 文件数 | 字节数 | 备注 |
+|---|---|---|---|
+| A 轮证据 `.tmp/ext026_e2e/` | 8 | **665 745 B** | 录音 585 326 + 截图 28 756/28 064 + 段级日志 9 024 + summary 12 185 + hello_ack 479 + metrics 1 423 + 音频分析 488 |
+| B 轮证据 `.tmp/ext026_prodpath/` | 7 | **469 835 B** | 录音 409 669 + 截图 19 857/19 924 + 段级日志 8 703 + summary 10 913 + metrics 272 + 音频分析 497 |
+| 产品代码改动 | 9 | **344 468 B** | +543 −143 行（diff 70 562 B） |
+| 新增自测 + 冒烟脚本 | 10 | **150 109 B** | 5 个 Python + 3 个 js harness + 3 个 smoke |
+| notes 明细（sec18） | 1 | **12 520 B** | 7 节，全文 |
+| `status/STATUS_EXT.md` | 1 | **22 369 B** | 190 行（≤ 40 KB / ≤ 300 行 / < 归档/10） |
+
+### ⛔ 明确未做 / 未宣称
+
+- ⛔ **Edge 默认 profile 真实手势验收未做**（EXT-024 验收 1–4 条；tabCapture 需真实手势）
+  ⇒ **可以请用户在 Edge 默认 profile 手势验收**（步骤见 STATUS「阻塞 ①」）。
+- ⛔ **不宣称「用户已听到配音」**（录音非静音**已实测**，但真人听感仍待用户验收）。
+- ⛔ **不宣称「tabCapture 生产抓流已在真机验证」**（自动化下拿不到 tabCapture，两轮均为 `getDisplayMedia` 兜底）。
+- ⛔ 端到端仍**不实时**（TTS 稳态 RTF **1.0022** > 1.0）、同步误差仍超标、克隆音色仍未接线
+  ⇒ **既有阻塞项，未动引擎**，由主会话转交 TTS 模块。
+- ⛔ **未改任何引擎文件**（ASR/MT/TTS 对方模块一行未动；只读 App 的 `exec_devices`）。
+- ⛔ `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**（`.gitignore:34` 仍在；**未执行** `git add -f`）。
+
+### `last_ack`
+
+**推进到 EXT-026** —— 本轮**认领并执行**了 EXT-026
+⇒ 闸门复测 **exit 1 / `action=skip`** ⇒ 幂等生效，下一轮不会重复执行。
+
+---
+

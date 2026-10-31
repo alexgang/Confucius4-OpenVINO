@@ -47,6 +47,8 @@ const state = {
   echoCount: 0,
   echoBytes: 0,
   echoFirst: null,
+  // ★★★ EXT-026：flush（收口尾段）发出次数 ⇒ 可观测（生产路径尾段不丢的证据）
+  flushSent: 0,
 };
 
 // ★ 真实缺陷（实测 5 分钟长测 maxAbsSkew 676.9 ms 的**根因链**）：
@@ -172,6 +174,41 @@ function forwardToPlayer(m) {
     chrome.runtime.sendMessage({ target: 'sw-broadcast', payload: m });
   } catch (e) {
     log('转发下行到 player 失败：' + String(e));
+  }
+}
+
+/**
+ * ★★★ EXT-026 修正：**收口尾段**（生产路径）。
+ *
+ * ## 为什么需要
+ *   服务端的流式分段**故意**把最后一段留在缓冲区等后续音频
+ *   （`ext/bridge.py` 的 `Session.flush` 的说明：直播场景这样是对的）。
+ *   ⇒ 要让服务端把缓冲区的尾段跑完并下发，客户端**必须**发一条
+ *     `{"type":"flush"}`。
+ *   ★ player 那条路径（`player.js` 的 `flushUplink()`）已经补上了，
+ *     但**生产路径**（offscreen 这条上行 WS）**从来没有发过** ⇒
+ *     用户点「停止」时最后一句永远丢。
+ *
+ * ## 为什么走 offscreen 自己的 WS
+ *   服务端的 `flush` 分支按**会话**处理 ⇒ 必须是**产出段的那条连接**
+ *   （offscreen 的 WS）⇒ 发在 player 的 WS 上对 offscreen 会话无效。
+ *
+ * @returns {{ok: boolean, error?: string}}
+ */
+function flushUplink() {
+  try {
+    const ws = state.ws;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      return { ok: false, error: '上行 WS 未连接' };
+    }
+    ws.send(JSON.stringify({ type: 'flush' }));
+    state.flushSent = (state.flushSent || 0) + 1;
+    log('已发 flush（收口尾段）');
+    return { ok: true, flushSent: state.flushSent };
+  } catch (e) {
+    const err = String((e && e.message) || e);
+    log('发 flush 失败：' + err);
+    return { ok: false, error: err };
   }
 }
 
@@ -396,6 +433,21 @@ async function handleOffscreen(msg) {
       }
       case 'stats': {
         return { ok: true, stats: snapshot() };
+      }
+      // ★★★ EXT-026 修正：**收口尾段**（生产路径）。
+      //   ## 为什么生产路径必须有它（真实缺陷）
+      //     服务端的流式分段会**故意**把最后一段留在缓冲区等后续音频
+      //     （`ext/bridge.py` 的 Session.flush 说明）⇒ 要收口尾段必须
+      //     客户端发一条 `{"type":"flush"}`。
+      //   ★ `ext026_e2e.py`（player 的 getDisplayMedia 路径）里，
+      //     `player.js` 的 `flushUplink()` 补上了这一环
+      //     ⇒ 但**生产路径**（offscreen 这条 WS）**从来没有 flush 过**
+      //     ⇒ 用户点「停止」时，**最后一句永远不会被翻译、不会被配音**
+      //     ⇒ 这正是用户 10-31 实测「只有部分配音」的成因之一。
+      //   ⇒ 现在 offscreen 也能发 flush ⇒ 生产路径的尾段不再丢。
+      case 'flush': {
+        const r = flushUplink();
+        return r;
       }
       default:
         return { ok: false, error: `unknown cmd ${msg.cmd}` };

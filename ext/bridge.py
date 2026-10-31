@@ -25,6 +25,7 @@ import secrets
 import struct
 import threading
 import time
+import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
 # ★★ EXT-011：**必须早于任何 numpy / openvino import**。
@@ -673,6 +674,27 @@ class Session:
         #   不能相对「当前缓冲区」。见 _process_segment 的说明。
         self._consumed_samples = 0
         self._engine = engine if engine is not None else ENGINE_ADAPTER
+        # ★★★ EXT-026 ⑤：**会话前缀**（session epoch）
+        #   ## 为什么需要（reviewer 指出的真缺陷）
+        #     段 id 原本是 `seg_{s0}` / `seg_{abs0}`（采样点偏移）
+        #     ⇒ **每个会话都从 0 开始** ⇒ 两次会话的 id 会**撞号**
+        #       （第 1 段的 id 在两个会话里都是 `seg_0`）。
+        #     ⇒ 而插件侧 `player.js` 的 `seenDubIds` 是**页面级常驻**的
+        #       （player 页不关就一直留着）⇒ 新会话的第 1 段会被
+        #       当成「旧会话已经排过程的重复段」而**静默丢掉**
+        #       ⇒ 又一次「没有配音」（与用户 10-31 实测症状完全一致）。
+        #   ## 修法
+        #     段 id 带上**本会话的唯一前缀** ⇒ 跨会话不可能撞号。
+        #     ⚠️ 前缀只加在**对外的 id** 上（`task["id"]`），
+        #       内部的 `_seg_orig_end` / `_seg_ready` / speaker tracker
+        #       仍用**裸的** `seg_{s0}`（它们是会话内的键，不跨会话）。
+        #     ⚠️ 格式保持「`seg_<前缀>_<数字>`」⇒
+        #       `tools/compare_ext011_cores.py` 的
+        #       `int(str(r["id"]).split("_")[-1])` 仍能解析出起始毫秒
+        #       （实测该工具就是靠 id 末尾数字排序的）。
+        #       ⇒ 前缀**必须是纯数字**（不能用 hex 字母）
+        #         ⇒ 否则那个工具的 `int()` 会 ValueError ⇒ 排序退化。
+        self._session_epoch = str(uuid.uuid4().int % (10 ** 8)).zfill(8)
         # ── EXT-006 余量统计 ──────────────────────────────────
         #   margin_sec = (TTS 就绪时刻) − (该段原声结束时刻)
         #   负数 ⇒ 配音来不及在原声结束前就绪 ⇒ 滞后累积
@@ -742,6 +764,35 @@ class Session:
         #     reviewer 才能一眼看出「面板选了但没生效」。
         #   ⚠️ 初始为 None（还没跑过任何一句）⇒ 绝不臆造。
         self.applied_target_lang: Optional[str] = None
+
+    # ── ★★★ EXT-026 ⑤：对外的段 id 带会话前缀 ──────────────
+    def public_seg_id(self, seg_id: str) -> str:
+        """把**会话内**的段 id 转成**跨会话唯一**的对外 id。
+
+        ## 为什么需要（reviewer EXT-026 第 5 条）
+
+        段 id 原本是 `seg_{s0}`（s0 = 该段第一帧的上行累计采样数）
+        ⇒ **每个会话都从 0 开始** ⇒ 两次会话的第 1 段 id 完全相同。
+
+        而插件侧 `player.js` 的 `seenDubIds`（按 id 去重，防止同一条
+        tts 被两条 WS 各发一次而排程两次）是**页面级常驻**的 ——
+        player 页不关就一直留着。
+
+        ⇒ offscreen 路径重新开始一个会话时，新会话的段 id 与旧会话撞号
+        ⇒ 被当成「重复段」**静默丢掉** ⇒ 又一次「没有配音」。
+
+        ## 格式
+
+        `seg_{session_prefix}_{数字}` ⇒
+          * 前缀是 8 位**纯数字**（`uuid4().int % 1e8` ⇒ 转成 8 位十进制）；
+          * 末尾仍是**纯数字** ⇒ `tools/compare_ext011_cores.py` 里
+            `int(str(r["id"]).split("_")[-1])` 仍能解析出起始毫秒
+            （那个工具就是靠 id 末尾数字排序取「后 50%」的）。
+
+        ⚠️ **幂等**：同一段重复调用得到同一个 id（不会每次都变）。
+        """
+        return "seg_%s_%s" % (self._session_epoch,
+                              str(seg_id).split("_")[-1])
 
     # ── 目标语言（T-4） ──────────────────────────────────────
     def _effective_target_lang(self) -> Optional[str]:
@@ -1229,7 +1280,12 @@ class Session:
 
         return [{
             "type": "tts",
-            "id": seg_id,
+            # ★★★ EXT-026 ⑤：**对外**的段 id 带会话前缀
+            #   ⇒ 跨会话不可能撞号 ⇒ 插件侧常驻的 `seenDubIds`
+            #     不会把新会话的段误判成「旧会话的重复段」而静默丢掉。
+            #   ⚠️ 内部键（_seg_orig_end / _seg_ready / speaker tracker）
+            #     仍用**裸的** seg_id（会话内键，不跨会话）。
+            "id": self.public_seg_id(seg_id),
             # ★★ EXT-024 A（reviewer 明文）：**t_start 用的是哪个时间轴？**
             #   ⇒ 这里**如实写清楚**，并落进日志与 margin.json，
             #     免得 reviewer 只能靠猜。
@@ -2227,6 +2283,12 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                     #   回声模式不需要引擎 ⇒ 恒为 True。
                     "engines_ready": _engines_ready(engine, mode),
                     "pipeline": bool(isinstance(session, PipelineSession)),
+                    # ★★★ EXT-026 ⑤：**会话标识** ⇒ 插件能识别「新会话」。
+                    #   段 id 已带会话前缀（跨会话不撞号），
+                    #   但插件侧仍可据此**清空**常驻的 seenDubIds
+                    #   ⇒ 双保险（旧服务端没有前缀时也能自愈）。
+                    #   ⚠️ 向后兼容：只是**新增**字段。
+                    "session_id": getattr(session, "_session_epoch", None),
                 }))
                 continue
             if mtype == "capture_info":

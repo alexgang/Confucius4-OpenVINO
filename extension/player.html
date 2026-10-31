@@ -23,7 +23,11 @@
 <body>
   <div id="wrap">
     <canvas id="cv" width="640" height="360"></canvas>
-    <div style="margin:4px 0"><button id="btnCapture" style="display:none;padding:6px 16px;font:inherit">开始捕获（选择要配音的标签页）</button></div>
+    <div style="margin:4px 0"><button id="btnCapture" style="display:none;padding:6px 16px;font:inherit">开始捕获（选择要配音的标签页）</button>
+      <!-- ★★★ EXT-026 修正：停止时必须让服务端**收口尾段**
+           （否则最后一句永远不会被翻译/配音）。 -->
+      <button id="btnFlush" style="display:none;padding:6px 16px;font:inherit">停止并收尾（跑完最后一句）</button>
+    </div>
     <div id="bar">
       <span><span class="k">队列</span> <b id="mQueue">0</b></span>
       <span><span class="k">编码</span> <b id="mEnc">0</b></span>

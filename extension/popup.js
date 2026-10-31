@@ -256,6 +256,8 @@ $('btnStart').addEventListener('click', async () => {
       await chrome.tabs.create({ url: chrome.runtime.getURL('player.html') });
     }
     $('btnStop').disabled = false;
+    // ★★★ EXT-026：启动成功后，「停止并收尾」才可用。
+    $('btnFlush').disabled = false;
     setBadge('已连接', 'ok');
     setStatus(
       `已启动\n标签页：${tab.title || tab.id}\n延迟 D=${cfg.delaySec}s\n` +
@@ -281,6 +283,38 @@ $('btnStop').addEventListener('click', async () => {
   $('btnStart').disabled = false;
   setBadge('已停止', 'warn');
   setStatus('已停止');
+});
+
+// ★★★ EXT-026 修正：**停止并收尾**（跑完最后一句）。
+//
+// ## 为什么需要这个按钮（真实缺陷）
+//   服务端的流式分段会**故意**把最后一段留在缓冲区等后续音频
+//   （`ext/bridge.py` 的 Session.flush 的说明：直播场景这样是对的）
+//   ⇒ 要让尾段跑完并下发，客户端**必须**发一条 `{"type":"flush"}`。
+//   ★ 之前**整条插件链路从来没有任何地方发过 flush**
+//     ⇒ 用户点「停止」时，**最后一句永远不会被翻译、不会被配音**。
+//
+//   ⚠️ 顺序很重要：**先 flush（让服务端跑完尾段）→ 再 stop（关上游）**。
+//   反过来做 ⇒ 尾段还在路上就被掐断。
+$('btnFlush').addEventListener('click', async () => {
+  $('btnFlush').disabled = true;
+  setStatus('正在收尾（跑完最后一句）…');
+  let r = { ok: false };
+  try {
+    r = await chrome.runtime.sendMessage({ target: 'sw', cmd: 'flush' });
+  } catch (e) {
+    r = { ok: false, error: String((e && e.message) || e) };
+  }
+  if (r && r.ok) {
+    setStatus('已发收尾指令，正在跑完最后一句…\n（几秒后会自动停止）');
+    setBadge('收尾中', 'warn');
+    // ★ 留一点时间让尾段推理跑完，再自动停止。
+    setTimeout(() => { $('btnStop').click(); }, 12000);
+  } else {
+    setStatus('收尾失败：' + ((r && r.error) || '未知原因'), 'err');
+    setBadge('收尾失败', 'err');
+    $('btnFlush').disabled = false;
+  }
 });
 
 // 轮询统计

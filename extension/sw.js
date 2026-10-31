@@ -228,6 +228,22 @@ async function handleSw(msg) {
       sessionState.running = false;
       return { stopped: true };
     }
+    // ★★★ EXT-026 修正：**收口尾段**（生产路径）。
+    //   ## 为什么需要
+    //     服务端的流式分段会把最后一段留在缓冲区 ⇒ 客户端必须发
+    //     `{"type":"flush"}` 才能让尾段跑完并下发。
+    //   ★ 生产路径的上行 WS 在 **offscreen** 里（不是 player）⇒
+    //     flush 必须由 offscreen 发出 ⇒ SW 只是个中转。
+    //   ⇒ 用户点「停止」时最后一句不再丢。
+    case 'flush': {
+      let r = { ok: false, error: 'offscreen 不可用' };
+      try {
+        r = await offscreenCall('flush', {}, 8000);
+      } catch (e) {
+        r = { ok: false, error: String((e && e.message) || e) };
+      }
+      return r;
+    }
     case 'status': {
       let stats = {};
       try {
