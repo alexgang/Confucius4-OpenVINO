@@ -56,7 +56,10 @@ for _v in ('OMP_NUM_THREADS', 'MKL_NUM_THREADS', 'OPENBLAS_NUM_THREADS',
     os.environ.setdefault(_v, '1')
 
 # ASR 模块的实验目录（**不在 git 仓库内**）
-_ASR_SCRIPTS = r'C:\Users\Trekker-PTL\qwen3asr_06b\scripts'
+# 🔴 §120：不再写死开发机家目录 ⇒ 改为按**当前用户家目录**推导
+#   （开发机上与原硬编码值**逐字节相同**）
+_ASR_SCRIPTS = os.path.join(os.path.expanduser('~'),
+                            'qwen3asr_06b', 'scripts')
 
 _SR = 16000
 

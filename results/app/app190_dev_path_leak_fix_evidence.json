@@ -1,0 +1,66 @@
+{
+  "n_pass": 8,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "baseline_commit": "bb7274e",
+  "target_files": [
+    "speaker_assets.py",
+    "speaker_tracker.py",
+    "tts_cuda.py",
+    "tts_engine.py",
+    "tts_worker.py"
+  ],
+  "checks": [
+    {
+      "group": "REAL",
+      "name": "R1 仓库 5 个目标文件代码行无开发机家目录",
+      "pass": true,
+      "detail": "{}"
+    },
+    {
+      "group": "REAL",
+      "name": "R2 修复后常量与修前硬编码逐字节相同（行为零变化）",
+      "pass": true,
+      "detail": "{\"speaker_assets.py\": {\"var\": \"DEV_ASR_SCRIPTS\", \"old\": \"C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\\\\scripts\", \"new\": \"C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\\\\scripts\", \"equal\": true}, \"speaker_tracker.py\": {\"var\": \"_ASR_SCRIPTS\", \"old\": \"C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\\\\scripts\", \"new\": \"C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\\\\scripts\", \"equal\": true}}"
+    },
+    {
+      "group": "REAL",
+      "name": "R3 基线 commit bb7274e 的目标文件确有硬编码（基线有效）",
+      "pass": true,
+      "detail": "{\"speaker_assets.py\": 1, \"speaker_tracker.py\": 1, \"tts_cuda.py\": 1, \"tts_engine.py\": 1, \"tts_worker.py\": 2}"
+    },
+    {
+      "group": "REAL",
+      "name": "R4 5 个目标文件 ast.parse 通过",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "group": "REAL",
+      "name": "R5 tts_cuda ENV_PY 推导值 == 原硬编码值",
+      "pass": true,
+      "detail": "derived='C:\\\\Users\\\\Trekker-PTL\\\\_fq3tts_env\\\\Scripts\\\\python.exe' hard='C:\\\\Users\\\\Trekker-PTL\\\\_fq3tts_env\\\\Scripts\\\\python.exe'"
+    },
+    {
+      "group": "BUG",
+      "name": "B1 基线 tts_cuda.py 被判出开发机路径（缺陷曾真实存在）",
+      "pass": true,
+      "detail": "[(30, \"'LIVECAP_CUDA_PY', r'C:\\\\Users\\\\Trekker-PTL\\\\_fq3tts_env\\\\Scripts\\\\python.exe')\")]"
+    },
+    {
+      "group": "BUG",
+      "name": "B2 基线 tts_worker.py 被判出开发机路径（缺陷曾真实存在）",
+      "pass": true,
+      "detail": "[(1413, \"candidates = [p for p in [tts_dir, r'C:\\\\Users\\\\Trekker-PTL\\\\confucius4-tts'] if p]\"), (1473, \"r'C:\\\\Users\\\\Trekker-PTL\\\\confucius4-tts'\")]"
+    },
+    {
+      "group": "BUG",
+      "name": "B3 docstring/注释里的路径不判泄漏（判据不恒真）",
+      "pass": true,
+      "detail": "[]"
+    }
+  ],
+  "ts": "2026-11-01 05:56:07",
+  "script": "app190_dev_path_leak_fix_evidence.py",
+  "inference": "none（零推理、零 GPU、零测速；本轮未取共享机器锁）"
+}

@@ -317,8 +317,11 @@ def _load_patch_class():
     （`app/tts_engine_patch.py`）。优先用客户包内的，失败再退回开发机路径。
     """
     import importlib.util
+    # 🔴 §120：回退候选不再写死开发机家目录 ⇒ 按**当前用户家目录**推导
+    #   （开发机上与原硬编码值**逐字节相同**；客户机上不存在 ⇒ 自动跳过）
     for p in (os.path.join(APP_DIR, 'tts_engine_patch.py'),
-              r'C:\Users\Trekker-PTL\qwen3tts_eval\qwen3tts_patch.py'):
+              os.path.join(os.path.expanduser('~'),
+                           'qwen3tts_eval', 'qwen3tts_patch.py')):
         if os.path.isfile(p):
             spec = importlib.util.spec_from_file_location('tts_engine_patch', p)
             mod = importlib.util.module_from_spec(spec)

@@ -1410,7 +1410,10 @@ class TTSWorker:
         """
         try:
             tts_dir = os.environ.get('LIVECAP_TTS_DIR', '').strip()
-            candidates = [p for p in [tts_dir, r'C:\Users\Trekker-PTL\confucius4-tts'] if p]
+            # 🔴 §120：回退候选不再写死开发机家目录 ⇒ 按**当前用户家目录**推导
+            #   （开发机上与原硬编码值**逐字节相同**）
+            candidates = [p for p in [tts_dir, os.path.join(
+                os.path.expanduser('~'), 'confucius4-tts')] if p]
             for d in candidates:
                 if os.path.isdir(os.path.join(d, 'tts_ov')):
                     if d not in sys.path:
@@ -1469,8 +1472,9 @@ class TTSWorker:
         import numpy as np
 
         out = {}
+        # 🔴 §120：同上 ⇒ 按当前用户家目录推导（开发机上逐字节相同）
         base = os.environ.get('LIVECAP_TTS_DIR', '').strip() or \
-            r'C:\Users\Trekker-PTL\confucius4-tts'
+            os.path.join(os.path.expanduser('~'), 'confucius4-tts')
         vdir = os.path.join(_HERE, 'voices')
 
         # ① npz 优先（无需 torch）

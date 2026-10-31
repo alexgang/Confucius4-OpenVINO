@@ -26,8 +26,13 @@ import sys
 import threading
 import time
 
-ENV_PY = os.environ.get(
-    'LIVECAP_CUDA_PY', r'C:\Users\Trekker-PTL\_fq3tts_env\Scripts\python.exe')
+# 🔴 §120：默认值不再写死开发机家目录 ⇒ 改为按**当前用户家目录**推导
+#   ⚠️ 客户机上家目录下通常没有 `_fq3tts_env` ⇒ `available()` 返 False
+#      ⇒ GUI 显示「CUDA 不可用」⇒ 用户按 `docs/CUDA_TTS.md` 设 `LIVECAP_CUDA_PY`。
+#   ⚠️ **默认值取不到时必须明确报错**，不能静默指向一个不存在的路径。
+_ENV_PY_DEFAULT = os.path.join(os.path.expanduser('~'),
+                               '_fq3tts_env', 'Scripts', 'python.exe')
+ENV_PY = os.environ.get('LIVECAP_CUDA_PY', _ENV_PY_DEFAULT)
 SIDECAR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                        'tts_cuda_sidecar.py')
 READY_TIMEOUT_S = float(os.environ.get('LIVECAP_CUDA_READY_S', '180'))

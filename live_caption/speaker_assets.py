@@ -113,7 +113,10 @@ WES_IR_FILES = ('openvino_encoder_model.xml', 'openvino_encoder_model.bin')
 SEG_IR_FILES = ('pyannote_seg_3_0.xml', 'pyannote_seg_3_0.bin')
 
 # 研发机上的 ASR 实验目录（**不在 git 仓库内**）⇒ 客户机必然找不到
-DEV_ASR_SCRIPTS = r'C:\Users\Trekker-PTL\qwen3asr_06b\scripts'
+# 🔴 §120：不再写死开发机家目录 ⇒ 改为按**当前用户家目录**推导
+#   （开发机上与原硬编码值**逐字节相同**；客户机上自然指向客户自己的家目录）
+DEV_ASR_SCRIPTS = os.path.join(os.path.expanduser('~'),
+                               'qwen3asr_06b', 'scripts')
 
 
 def _has_pair(d: str, names) -> bool:

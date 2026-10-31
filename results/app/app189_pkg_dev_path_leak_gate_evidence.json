@@ -1,0 +1,1405 @@
+{
+  "leaked": [],
+  "dev_only": [
+    {
+      "file": "_probe_tts_cuda.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 20,
+          "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+        }
+      ]
+    }
+  ],
+  "repo_hits": [
+    {
+      "file": "_app095_write_status.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 17,
+          "text": "P = r'C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md'"
+        },
+        {
+          "line": 18,
+          "text": "BODY = r'C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_s95_body_mine.md'"
+        }
+      ]
+    },
+    {
+      "file": "_app096_write_status.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 18,
+          "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+        }
+      ]
+    },
+    {
+      "file": "_app100_write_status.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 35,
+          "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+        }
+      ]
+    },
+    {
+      "file": "_app100b_patch_status.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 28,
+          "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+        }
+      ]
+    },
+    {
+      "file": "_app102_write_status.py",
+      "n_hits": 4,
+      "hits": [
+        {
+          "line": 22,
+          "text": "STATUS = r'C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md'"
+        },
+        {
+          "line": 23,
+          "text": "SECTION_FILE = r'C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app102_section.md'"
+        },
+        {
+          "line": 42,
+          "text": "[待打包目录] C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12"
+        },
+        {
+          "line": 95,
+          "text": "- ✅ **产物实测**（脱敏前 → 后；备份在**包外** `C:\\Users\\Trekker-PTL\\bak_c167_20261030_asr_spk\\`）："
+        }
+      ]
+    },
+    {
+      "file": "_app103_write_status.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 22,
+          "text": "STATUS = r'C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md'"
+        }
+      ]
+    },
+    {
+      "file": "_app104_write_status.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 22,
+          "text": "STATUS = r'C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md'"
+        }
+      ]
+    },
+    {
+      "file": "_app105_write_status.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 19,
+          "text": "STATUS = r'C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md'"
+        },
+        {
+          "line": 83,
+          "text": "[待打包目录] C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12"
+        }
+      ]
+    },
+    {
+      "file": "_app106_write_status.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 21,
+          "text": "STATUS = r'C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md'"
+        },
+        {
+          "line": 77,
+          "text": "| `C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12.zip` | 14 218 条目 | 2026-10-30 11:20:14 | **11 233 373 363** | `28cf34de3514680e12440c11b63ad9c95d34e827b1a64bea8808bcd1d08a72b6` |"
+        },
+        {
+          "line": 78,
+          "text": "| `C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12\\`（包目录）| — | — | 13 689 718 134（原始）| 与 zip **14 218 文件逐字节一致** |"
+        }
+      ]
+    },
+    {
+      "file": "_fix_dev_path_leak_c190.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 18,
+          "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+        }
+      ]
+    },
+    {
+      "file": "_fix_variants2_res.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 10,
+          "text": "P = r'C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\diag_c111_variants2.py'"
+        }
+      ]
+    },
+    {
+      "file": "_fix_variants_fp2.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 24,
+          "text": "P = r'C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\diag_c111_variants.py'"
+        }
+      ]
+    },
+    {
+      "file": "_upd_status_hy_head2.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 16,
+          "text": "P = r'C:\\Users\\Trekker-PTL\\hy_bench\\STATUS_hy.md'"
+        }
+      ]
+    },
+    {
+      "file": "_write_status_s95.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 17,
+          "text": "P = r'C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md'"
+        },
+        {
+          "line": 18,
+          "text": "R = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_attrib_trace.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 23,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 24,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_attrib_trace.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_cache_evict.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 35,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 36,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_cache_evict.json'"
+        },
+        {
+          "line": 37,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_conserve_gap.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 18,
+          "text": "RUNS = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct'"
+        },
+        {
+          "line": 19,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_dup_quant.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 25,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_variant_v4.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_e2e.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 33,
+          "text": "RUNS = r'C:/Users/Trekker-PTL/hy_bench/runs/c109_minseg6'"
+        },
+        {
+          "line": 34,
+          "text": "OUT = r'C:/Users/Trekker-PTL/hy_bench/runs/c111_half'"
+        },
+        {
+          "line": 35,
+          "text": "LOCK = r'C:\\Users\\Trekker-PTL\\shared\\MACHINE_LOCK'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_final_report.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 20,
+          "text": "LOGD = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_final_view.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 54,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 55,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_final_view.json'"
+        },
+        {
+          "line": 56,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_fixkey.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 24,
+          "text": "RUNS = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c109_minseg6\\min6.0_cut0.8.json'"
+        },
+        {
+          "line": 25,
+          "text": "OUTP = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_fixkey.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_fragment.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 25,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_variant_v4.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_frontloss.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 25,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 26,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_frontloss.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_gap6.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 19,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_variants_v2.json'"
+        },
+        {
+          "line": 20,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_gap6.json'"
+        },
+        {
+          "line": 21,
+          "text": "RUNS = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_gui_render.py",
+      "n_hits": 4,
+      "hits": [
+        {
+          "line": 33,
+          "text": "V0_T = r'C:\\Users\\Trekker-PTL\\hy_bench\\_backup_c111_v7\\translator_repo_before.py'"
+        },
+        {
+          "line": 34,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 35,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_gui_render.json'"
+        },
+        {
+          "line": 36,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_mt_review.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 34,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_mt_review.json'"
+        },
+        {
+          "line": 36,
+          "text": "r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json',"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_mt_review2.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 33,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_mt_review2.json'"
+        },
+        {
+          "line": 34,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_oracle_delta.py",
+      "n_hits": 4,
+      "hits": [
+        {
+          "line": 49,
+          "text": "V0_T = r'C:\\Users\\Trekker-PTL\\hy_bench\\_backup_c111_v7\\translator_repo_before.py'"
+        },
+        {
+          "line": 50,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 51,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_oracle_delta.json'"
+        },
+        {
+          "line": 52,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_oracle_delta_v3.py",
+      "n_hits": 6,
+      "hits": [
+        {
+          "line": 52,
+          "text": "V0_T = r'C:\\Users\\Trekker-PTL\\hy_bench\\_backup_c111_v7\\translator_repo_before.py'"
+        },
+        {
+          "line": 53,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 54,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_oracle_delta_v3.json'"
+        },
+        {
+          "line": 55,
+          "text": "ENGINE_INT8 = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        },
+        {
+          "line": 56,
+          "text": "ENGINE_BF16 = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-bf16'"
+        },
+        {
+          "line": 200,
+          "text": "CACHE = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_ref_bf16.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_oracle_recalc.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 35,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_oracle_delta.json'"
+        },
+        {
+          "line": 36,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_oracle_delta_v2.json'"
+        },
+        {
+          "line": 104,
+          "text": "src = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_own.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 33,
+          "text": "RUNS = r'C:/Users/Trekker-PTL/hy_bench/runs/c109_minseg6'"
+        },
+        {
+          "line": 222,
+          "text": "out_dir = r'C:/Users/Trekker-PTL/hy_bench/runs/c111_half'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_pend_diag59.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 18,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_pend_limit_patch.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 62,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 63,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_pend_limit.json'"
+        },
+        {
+          "line": 64,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_pend_offline.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 39,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 40,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_pend_offline.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_pend_report.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 16,
+          "text": "D = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_pend_seq.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 23,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 164,
+          "text": "out = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_pend_seq.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_pend_trace.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 13,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 98,
+          "text": "out = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_pend_trace.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_ref_bf16.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 32,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 33,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_ref_bf16.json'"
+        },
+        {
+          "line": 34,
+          "text": "ENGINE_BF16 = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-bf16'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_ref_bf16_spe.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 35,
+          "text": "SPE_SRC = r'C:\\Users\\Trekker-PTL\\confucius4-openvino\\reports\\spe_61min_segments_v1.json'"
+        },
+        {
+          "line": 36,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_ref_bf16_spe.json'"
+        },
+        {
+          "line": 37,
+          "text": "ENGINE_BF16 = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-bf16'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_ref_idem.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 15,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_revert_verify.py",
+      "n_hits": 4,
+      "hits": [
+        {
+          "line": 30,
+          "text": "PKG_TRANSLATOR = r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.3\\app\\translator.py'"
+        },
+        {
+          "line": 32,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 33,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_revert_verify2.json'"
+        },
+        {
+          "line": 34,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_seen_dedup.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 37,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 38,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_seen_dedup.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_seen_dup2.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 19,
+          "text": "RUNS = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct'"
+        },
+        {
+          "line": 20,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_sent_unit.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 41,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 42,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_sent_unit.json'"
+        },
+        {
+          "line": 43,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_tokenizer_regex.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 33,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        },
+        {
+          "line": 34,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 35,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_tokenizer_regex.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_unit_big.py",
+      "n_hits": 4,
+      "hits": [
+        {
+          "line": 33,
+          "text": "V0_T = r'C:\\Users\\Trekker-PTL\\hy_bench\\_backup_c111_v7\\translator_repo_before.py'"
+        },
+        {
+          "line": 34,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 35,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_unit_big.json'"
+        },
+        {
+          "line": 36,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_unit_seg.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 47,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 48,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_unit_seg.json'"
+        },
+        {
+          "line": 49,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_unit_verify.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 46,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 47,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_unit_verify.json'"
+        },
+        {
+          "line": 48,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_v21_eval.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 43,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 44,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_v21_eval.json'"
+        },
+        {
+          "line": 45,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_v37_eval.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 59,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 60,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_v37_eval.json'"
+        },
+        {
+          "line": 61,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_v3_verify.py",
+      "n_hits": 4,
+      "hits": [
+        {
+          "line": 31,
+          "text": "PKG_TRANSLATOR = r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.3\\app\\translator.py'"
+        },
+        {
+          "line": 33,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 34,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_v3_verify.json'"
+        },
+        {
+          "line": 35,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_v4_eval.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 46,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 47,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_variant_v4.json'"
+        },
+        {
+          "line": 48,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_v7_tts_chain.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 30,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 31,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_v7_tts_chain.json'"
+        },
+        {
+          "line": 32,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_v7_verify.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 43,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 44,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_v7_verify.json'"
+        },
+        {
+          "line": 45,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_variant.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 43,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 44,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_variant.json'"
+        },
+        {
+          "line": 45,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_variant_dryrun.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 23,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_variant_loss.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 26,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_variant_v4.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 43,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 44,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_variant_v4.json'"
+        },
+        {
+          "line": 45,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_variants.py",
+      "n_hits": 5,
+      "hits": [
+        {
+          "line": 66,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 67,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_variants.json'"
+        },
+        {
+          "line": 68,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        },
+        {
+          "line": 69,
+          "text": "ENGINE_BF16 = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-bf16'"
+        },
+        {
+          "line": 544,
+          "text": "REF_CACHE = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_ref_bf16.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_variants2.py",
+      "n_hits": 7,
+      "hits": [
+        {
+          "line": 38,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct\\punct_value_12min.json'"
+        },
+        {
+          "line": 39,
+          "text": "SPE_SRC = r'C:\\Users\\Trekker-PTL\\confucius4-openvino\\reports\\spe_61min_segments_v1.json'"
+        },
+        {
+          "line": 40,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_variants_v2.json'"
+        },
+        {
+          "line": 41,
+          "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+        },
+        {
+          "line": 42,
+          "text": "REF_CACHE = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_ref_bf16.json'"
+        },
+        {
+          "line": 45,
+          "text": "REF_CACHE_SPE = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_ref_bf16_spe.json'"
+        },
+        {
+          "line": 48,
+          "text": "NOPUNCT_SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\nopunct_corpus.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_variants_summary.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 28,
+          "text": "SRC = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_variants_v2.json'"
+        },
+        {
+          "line": 29,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_variants_summary.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_wait_bound.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 28,
+          "text": "RUNS = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct'"
+        },
+        {
+          "line": 29,
+          "text": "SPE = r'C:\\Users\\Trekker-PTL\\confucius4-openvino\\reports\\spe_61min_segments_v1.json'"
+        },
+        {
+          "line": 30,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_wait_cost.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_c111_wait_sim.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 21,
+          "text": "RUNS = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c110_punct'"
+        },
+        {
+          "line": 22,
+          "text": "SPE = r'C:\\Users\\Trekker-PTL\\confucius4-openvino\\reports\\spe_61min_segments_v1.json'"
+        },
+        {
+          "line": 23,
+          "text": "OUT = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\c111_wait_sim.json'"
+        }
+      ]
+    },
+    {
+      "file": "diag_punct_carry_cost.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 60,
+          "text": "base = r'C:/Users/Trekker-PTL/hy_bench/runs/c109_minseg6'"
+        }
+      ]
+    },
+    {
+      "file": "make_test_clip.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 5,
+          "text": "src = r'C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\<redacted>.wav'"
+        }
+      ]
+    },
+    {
+      "file": "replay_abba_tts_e2e.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 100,
+          "text": "OUTROOT = r'C:\\Users\\Trekker-PTL\\abba_out\\e2e'"
+        },
+        {
+          "line": 346,
+          "text": "ap.add_argument('--audio', default=r'C:\\Users\\Trekker-PTL\\abba_out\\abba_input_16k.wav')"
+        }
+      ]
+    },
+    {
+      "file": "replay_c134_mt.py",
+      "n_hits": 3,
+      "hits": [
+        {
+          "line": 35,
+          "text": "PKG = r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.3'"
+        },
+        {
+          "line": 38,
+          "text": "LOCK = r'C:\\Users\\Trekker-PTL\\shared\\MACHINE_LOCK'"
+        },
+        {
+          "line": 56,
+          "text": "OUTDIR = os.path.join(r'C:\\Users\\Trekker-PTL\\replay_out', 'c135')"
+        }
+      ]
+    },
+    {
+      "file": "sync_app023_to_pkg.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 27,
+          "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+        },
+        {
+          "line": 28,
+          "text": "PKG = r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c108_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 134,
+          "text": "r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.3\\app'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c109_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 73,
+          "text": "r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.3\\app'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c111_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 44,
+          "text": "DEFAULT_PKG = r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.3\\app'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c111_v20_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 58,
+          "text": "BACKUP_DIR = r'C:\\Users\\Trekker-PTL\\hy_bench\\_backup_c111_v20'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c111_v3_to_pkg.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 42,
+          "text": "DEFAULT_PKG = r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.3\\app'"
+        },
+        {
+          "line": 43,
+          "text": "BACKUP_DIR = (r'C:\\Users\\Trekker-PTL\\hy_bench\\_backup_c111_revert'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c133_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 137,
+          "text": "DEFAULT_PKG_APP = r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.3\\app'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c134_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 144,
+          "text": "DEFAULT_PKG_APP = r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.3\\app'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c135_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 37,
+          "text": "DEFAULT_PKG = r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.3\\app'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c136_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 259,
+          "text": "bdir = r'C:\\Users\\Trekker-PTL\\pkg_backup_app013'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c137_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 43,
+          "text": "REPO = r'C:\\Users\\Trekker-PTL\\confucius4-openvino'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c138_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 61,
+          "text": "BACKUP_ROOT = r'C:\\Users\\Trekker-PTL\\pkg_backup_app014'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c140_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 53,
+          "text": "BACKUP_DIR = r'C:\\Users\\Trekker-PTL\\pkg_backup_app014'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c141_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 58,
+          "text": "BACKUP_DIR = r'C:\\Users\\Trekker-PTL\\pkg_backup_app014'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c142_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 68,
+          "text": "BACKUP_DIR = r'C:\\Users\\Trekker-PTL\\pkg_backup_app014'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c143_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 80,
+          "text": "BACKUP_DIR = r'C:\\Users\\Trekker-PTL\\pkg_backup_app014'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c144_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 84,
+          "text": "BACKUP_DIR = r'C:\\Users\\Trekker-PTL\\pkg_backup_app015'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c145_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 75,
+          "text": "BACKUP_DIR = r'C:\\Users\\Trekker-PTL\\pkg_backup_app016'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c154_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 52,
+          "text": "BACKUP_DIR = r'C:\\Users\\Trekker-PTL\\pkg_backup_app_c154'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c161_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 36,
+          "text": "PKG = r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.9\\app'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c162_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 34,
+          "text": "PKG = r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.10\\app'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c164_spk_assets_to_pkg.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 68,
+          "text": "ASR_ROOT = r'C:\\Users\\Trekker-PTL\\qwen3asr_06b'"
+        },
+        {
+          "line": 274,
+          "text": "cands = sorted(glob.glob(r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v*'))"
+        }
+      ]
+    },
+    {
+      "file": "sync_c165_spk_license_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 155,
+          "text": "glob.glob(r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v*'))"
+        }
+      ]
+    },
+    {
+      "file": "sync_c167_redact_spk_assets_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 154,
+          "text": "cands = sorted(glob.glob(r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v*'))"
+        }
+      ]
+    },
+    {
+      "file": "sync_c170_app048_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 42,
+          "text": "PKG = r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.12\\app'"
+        }
+      ]
+    },
+    {
+      "file": "sync_c173_app050_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 45,
+          "text": "PKG = r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\app'"
+        }
+      ]
+    },
+    {
+      "file": "sync_s57_cancel_count_to_pkg.py",
+      "n_hits": 1,
+      "hits": [
+        {
+          "line": 42,
+          "text": "PKG_FILE = r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\app\\tts_service.py'"
+        }
+      ]
+    },
+    {
+      "file": "sync_s58_cancel_queue_to_pkg.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 54,
+          "text": "r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5',"
+        },
+        {
+          "line": 55,
+          "text": "r'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.4',"
+        }
+      ]
+    },
+    {
+      "file": "wait_and_run_e2e.py",
+      "n_hits": 2,
+      "hits": [
+        {
+          "line": 24,
+          "text": "LOCK = r'C:\\Users\\Trekker-PTL\\shared\\MACHINE_LOCK'"
+        },
+        {
+          "line": 26,
+          "text": "LOG = r'C:\\Users\\Trekker-PTL\\hy_bench\\runs\\c111_half\\e2e.log'"
+        }
+      ]
+    }
+  ],
+  "n_leaked": 0,
+  "n_leaked_lines": 0,
+  "n_dev_only": 1,
+  "n_repo_hit_files": 97,
+  "n_repo_hit_lines": 198,
+  "n_fail": 0,
+  "n_pass": 1,
+  "verdict": "PASS",
+  "pkg_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\app",
+  "repo_live": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption",
+  "pkg_exclude_loaded": true,
+  "ts": "2026-11-01 05:56:16",
+  "script": "app189_pkg_dev_path_leak_gate.py",
+  "purpose": "§119 之后的第三维：客户包 app/ 内**生产模块的代码内容**里不得写死开发机家目录绝对路径 ⇒ 否则客户机上相关路径必然不可用（如 tts_cuda.ENV_PY 默认指向开发机 venv）"
+}
