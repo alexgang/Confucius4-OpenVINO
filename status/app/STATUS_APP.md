@@ -1,13 +1,14 @@
 # STATUS_APP
 
 last_ack: APP-051
-更新时间: 2026-11-01 02:35
+更新时间: 2026-11-01 06:21
 当前任务: **§119 ✅ 无新纠偏条目（`last_ack` 仍 APP-051）** —— 按 **APP-046**「追平后不空转」继续做，补上 **「包 ⇄ 仓库 生产模块集合一致性」这一维**（§104 第④层的**反向形态**）：① §118 的 `app187` 只覆盖「STATUS 引用的产物是否入库」，**不覆盖**「客户包 `app/` 里的模块与仓库 `live_caption/` 的生产模块集合是否一致」② **方向 B**（包有、仓库没有）⇒ 下次重打包**会把它丢掉** ⇒ 若它是生产模块 ⇒ 客户机突然缺模块 ③ 实测抓到真实案例：**包目录 `app/_probe_tts_cuda.py`（3 072 B）仓库从未入库**、含写死开发机路径 `REPO = r"C:\Users\Trekker-PTL\confucius4-openvino"`、v1.13/v1.5/v1.4 三个包目录都有 ⇒ 🔴 **交付 zip 是干净的**（已被 `pkg_exclude` 排除规则挡在 zip 外，zip 内 `app/` 只有 **28** 个 `.py`），但**包目录层面**（用户实际运行的目录）确实存在开发机路径泄漏 ④ ⇒ **新增 `app188` 闸门**（orphan 阻断 / dev_only_orphan 提醒 / repo_only 不判负；**复用 `pkg_exclude.is_app_dev_only()` 作权威判定** ＋ 兜底正则由 T5 强制一致）⇒ ✅ **鉴别力自检 6/6 PASS** ＋ **真实缺陷形态 PASS** ＋ **真 fresh clone 内复验 PASS**（clone 内 `repo_live` 指向 `Temp/fc188/live_caption` ⇒ §118 的「写死仓库根」**未复发**）＋ **28/28 生产模块全部入库** ⇒ 详见 **§119**
 阻塞 / 待用户决定: ① 🔴 **需用户实听 3 段 1.2–1.3× 配音素材**（`C:\Users\Trekker-PTL\shared\app_accel_listen\`：1.2× / 1.3× / 1.3×）＋ **reviewer 判定音质 / 不变调 / 可懂** —— 本轮 `app186` 总闸门只覆盖**链路 + 结构 + 数字自洽**（`ACCEPTED.json.scope` 已明写），**质量判定不在其中**；② 🔴 **§117 待 reviewer 复核 2 项**（① APP-043「通过」口径 ② `app186` 总闸门 25 条判据口径）—— ③「`app186` 写死包版本」**已于 §118 闭环**；③ 🔴 **v1.12 / v1.5 等历史 zip 仍是旧内容**（历史包本轮**未重打**、旧包目录**未删除**（破坏性操作需用户确认））；④ 🔴 **§115 待 reviewer 复核 5 项**（① `EXECUTION_DEVICES` 返回类型口径——**推翻了 §82 的旧解读** ② `absent`/`unknown` 分离 ③ `talker` 聚合所有桶 ④ App 不调 `build()` ⇒ 第②条不适用 ⑤ TTS 模块 `cp_decode_device` 未被消费 ⇒ App 无需改动）；⑤ 🔴 **§114 待 reviewer 复核 4 项**（CI 判据口径 / 写法差异 vs 真错误拆分规则 / 多 3 句真错误是否提示用户 / 是否用最新包重跑）；⑥ 🔴 **宿主 `PYTHONPATH` 污染对历史验收结论的影响范围待 reviewer 确认**（§112 已证明它会让 `torch` 假阳性；§109/§110 为静态字节比对，未受影响）；⑦ 🔴 **本轮未修改** `status/app/CORRECTIONS_APP.md`（只读，reviewer 独占写入，SHA256 `327f8653…39904` 零改动）；⑧ 🔴 **§113 待 reviewer 复核 4 项**（版本标识闸门口径 / 「改动说明」归为提醒不阻断 / `sync_c172`「只改身份行不改内容」设计 / v1.13 改动说明排期）；⑨ 🆕🔴 **`app188` 的判据口径待 reviewer 复核**（① `orphan` 判**阻断**是否过严 ② `repo_only` **不判负**是否可接受 ③ `dev_only_orphan` 是否应完全以 `pkg_exclude` 为准 —— 本轮已用 T5 强制两者一致）；⑩ 🆕🔴 **95 处「过期包版本」引用的清点结论待 reviewer 复核**（本轮只清点、未改；多数在 docstring ⇒ 需区分「文档举例」与「真写死」后再动 ⇒ 建议另开一轮专项，**不在本轮扩大改动面**）
 已压缩: 原文见 `status/archive/STATUS_APP_upto_20261030.md`（1 437 968 B，只读归档）；纠偏归档见 `status/archive/CORRECTIONS_APP_closed_upto_20261030.md`（全量原文备份 `CORRECTIONS_APP_full_before_compress_20261030.md`）。**本文件 86 791 B / 756 行**（原 1 437 968 B / 18 977 行 ⇒ **−94.0%**；§119 追加后）。
 
 
 ## 最近更新
+- 2026-11-01 06:21 **§120 无新纠偏条目（`last_ack` 仍 APP-051）** ⇒ 按 APP-046 继续做，**开工自查抓到「§119 之后的半交付」**（03:48–03:50 的 §189/§190 在制品**未入库、无 STATUS 章节**）⇒ 接手闭环：① 🔴 **真实缺陷**：客户包 `app/` 内 **5 个生产模块写死开发机家目录**（其中 `tts_cuda.ENV_PY` 的**默认值就是开发机 venv** ⇒ **客户机上 CUDA TTS 必然不可用**）⇒ 全部改为 `os.path.expanduser('~')` 推导（开发机上**逐字节等价**、行为零变化）；② 新增 `app189`（包内代码泄漏开发机绝对路径闸门，**鉴别力自检 6/6**）＋ `app190`（修复验收 **8/8**）；③ 修掉 `sync_c190` 两个真缺陷（**基线选错** ⇒ OLD 块命中 0/2/14 次；**写死仓库根 + 写死 v1.13**）⇒ 8 块全部唯一命中；④ **持共享机器锁重打 v1.13**（534 s / **14 213 文件逐字节一致** / SHA256 `3ca36ce3…9e020`）⇒ **zip 内代码行泄漏 5 ⇒ 0**；⑤ 🔴 顺手定位并修掉两个 TTS 验收脚本的「**过期断言**」（断点精确到 `6d90715` APP-028② 删除丢句分支）⇒ 改用 `_drop_one()` 造景 ＋ **注入法**鉴别力反证 ⇒ 均 PASS；⑥ 回归 `app168` 21/0、`app186` **25/0**、`app187` 42/0、`app188` PASS、`app130/131/131b/129c/107` 全 PASS
 - 2026-11-01 02:35 **§119 无新纠偏条目（`last_ack` 仍 APP-051）** ⇒ 按 APP-046 继续做，补上 **「包 ⇄ 仓库 生产模块集合一致性」这一维**（§104 第④层的**反向形态**）：① §118 的 `app187` **不覆盖**「客户包 `app/` 的模块 vs 仓库生产模块集合」 ② **方向 B**（包有、仓库没有）⇒ 下次重打包**会丢掉它** ⇒ 客户机可能突然缺模块 ③ 实测抓到真实案例 **包目录 `app/_probe_tts_cuda.py`（3 072 B）仓库从未入库**、含写死开发机路径、v1.13/v1.5/v1.4 三处都有 ⇒ 🔴 **交付 zip 干净**（`pkg_exclude` 已排除）但**包目录层面**有开发机路径泄漏；④ ✅ **新增 `app188` 闸门**（orphan 阻断 / dev_only 提醒 / repo_only 不判负，**复用 `pkg_exclude` 权威判定**）⇒ 鉴别力自检 **6/6** ＋ 真实形态 PASS ＋ **真 fresh clone 复验 PASS**（clone 内 `repo_live` 指向 clone 自己）＋ **28/28 生产模块全部入库**
 - 2026-11-01 02:26 **§118 无新纠偏条目（`last_ack` 仍 APP-051）** ⇒ 按 APP-046 继续做，抓到 **3 个真缺陷**：① **§117 验收链产物一个都没入库**（§104 同类错误复发）② **HEAD 上 fresh clone 打包必失败**（`pack_v13` 传 `--expect-version`，而 HEAD 的 `app170` 不认 ⇒ `rc=1` 拒绝打包）③ **验收链脚本写死仓库根** ⇒ fresh clone 验收是假象（实测踩到）；✅ 全部修掉（fresh clone 内 `app186` = **PASS 25/0**、`check_version_identity` **rc=0**）＋ **新增 `app187` 入库完整性闸门**（AST 判定「写死仓库根」，鉴别力实测 **9/9**）
 
@@ -754,3 +755,199 @@ cd /tmp/fresh_clone_test && python -c "import pack_v13; print(pack_v13.check_ver
 10. 🆕🔴 **95 处「过期包版本」引用的清点结论待 reviewer 复核**（本轮只清点、未改；多数在 docstring ⇒ 需区分「文档举例」与「真写死」后再动 ⇒ 建议另开一轮专项，**不在本轮扩大改动面**）。
 11. 🆕🔴 **`sync_c136_to_pkg.py` 的修法待 reviewer 复核**（§5.5）：① 「向上查找仓库根」＋「找不到就抛异常」是否认可 ② **「读入归一化行尾 + 写回还原原行尾」**这套装配行尾的做法是否认可（这条是 clone 环境能工作的关键）③ 是否要求**其余 50 处**「写死仓库根」按同一模式批量清理（本轮**刻意未做**以免扩大改动面）。
 12. 🆕🔴 **是否加 `.gitattributes` 待 reviewer 裁定**（§5.6）：`core.autocrlf=true` ＋ 无 `.gitattributes` ⇒ **clone 出来的文件与 HEAD 逐字节不同**（行尾）⇒ 功能无影响，但「逐字节比对」类判据在 clone 上必须先归一化 ⇒ 加 `.gitattributes` 会**触发全仓行尾重写**（大面积改动）⇒ 本轮**只留档、未做**。
+
+### §120 ✅ **无新纠偏条目（`last_ack` 仍 APP-051）｜ 按 APP-046 继续做 ⇒ 开工自查抓到「§119 之后的半交付」⇒ 闭环「客户包内代码写死开发机家目录」这个真实缺陷 ＋ 修掉两个 TTS 验收脚本的「过期断言」** ｜ **本条已完成** ｜ **本条需等 reviewer 复核**
+
+#### 1. 本轮巡检口径
+
+| 项 | 实测 |
+|---|---|
+| `status/app/CORRECTIONS_APP.md` | SHA256 `327f8653b62f28b6…39904` / **120 787 B** / mtime `2026-10-31 10:48:42` |
+| `## APP-xxx` 条目数 | **51** 条（APP-001…APP-051） |
+| 最大编号 | **APP-051** |
+| `STATUS_APP.md` 头部 `last_ack` | **APP-051** ⇒ **无新纠偏条目**（**第 33 次**同一口径复核） |
+| 该文件本轮改动 | **零改动**（reviewer 独占写入，只读） |
+| 跨模块通知 | `shared/` 最大仍是 `NOTICE_mt_to_app_20261027_notice15.md` ⇒ **无新条目** |
+| 本轮锁 | **未取锁**（前半段全程只读 + 离线判据，不计时） |
+
+⇒ 按 **APP-046**「`last_ack` 追平后只要还有未完成项就自己继续做，不要空转」推进。
+
+#### 2. 🔴🔴🔴 开工自查抓到「半交付」（§104 第④层：产物本身没进仓库）
+
+§119 之后（**03:48–03:50**）有一批 App 在制品落在工作区但**没有入库、也没有 STATUS 章节**：
+
+| 文件 | mtime | 状态 |
+|---|---|---|
+| `results/app/app189_pkg_dev_path_leak_gate.py` | 03:48:38 | **未跟踪** |
+| `results/app/app189_pkg_dev_path_leak_gate_evidence.json` | 03:48:42 | **未跟踪** |
+| `results/app/app190_dev_path_leak_fix_evidence.py` | 03:50:09 | **未跟踪** |
+| `results/app/app190_dev_path_leak_fix_evidence.json` | 03:50:13 | **未跟踪** |
+| `live_caption/sync_c190_dev_path_leak_to_pkg.py` | 03:49 | **未跟踪** |
+| `live_caption/_fix_dev_path_leak_c190.py` | 03:49 | **未跟踪**（一次性写入器） |
+
+⇒ 复核：仓库 `git log` 最后一条是 `1a84d0d`（02:39）⇒ **03:48 之后没有任何提交**
+⇒ 判定为**上一轮中断的半交付**（无 `python`/`pythonw` 进程在跑 ⇒ 非并发会话）
+⇒ 🔴 **本轮接手闭环**。
+
+#### 3. 🔴🔴🔴 本轮的真实缺陷：**客户包 `app/` 内 5 个生产模块写死开发机家目录**
+
+`app189` 闸门（新建）在**交付 zip 内 `app/*.py` 共 31 个**里查到 **6 个**文件的**代码行**
+写着开发机家目录：
+
+| 文件 | 行 | 内容 | 客户机后果 |
+|---|---|---|---|
+| `speaker_assets.py` | L116 | `DEV_ASR_SCRIPTS = r'C:\Users\Trekker-PTL\qwen3asr_06b\scripts'` | 🟡 回退路径（仅研发机有）⇒ 走不到，但**泄漏本机用户名** |
+| `speaker_tracker.py` | L59 | `_ASR_SCRIPTS = r'C:\Users\Trekker-PTL\qwen3asr_06b\scripts'` | 🟡 同上 |
+| `tts_cuda.py` | L29 | `os.environ.get('LIVECAP_CUDA_PY', r'C:\Users\Trekker-PTL\_fq3tts_env\Scripts\python.exe')` | 🔴 **默认值就是开发机 venv** ⇒ 客户机 `available()` 恒 `False` ⇒ **CUDA TTS 路径必然不可用** |
+| `tts_engine.py` | L321 | `r'C:\Users\Trekker-PTL\qwen3tts_eval\qwen3tts_patch.py'` | 🟡 回退候选（包内 `tts_engine_patch.py` 优先） |
+| `tts_worker.py` | L1413 / L1473 | `r'C:\Users\Trekker-PTL\confucius4-tts'` | 🟡 OV 路径回退候选 |
+| `_probe_tts_cuda.py` | L20 | `REPO = r"C:\Users\Trekker-PTL\confucius4-openvino"` | 🟡 **已被 `pkg_exclude` 排除出 zip** ⇒ 不阻断 |
+
+🔴 **这不是卫生问题，是客户机形态下的功能缺陷**：
+`tts_cuda.ENV_PY` 的**默认值**就指向开发机 venv ⇒ 客户机上
+`os.path.isfile(ENV_PY)` 为假 ⇒ `available()` 恒 `False`
+⇒ **CUDA TTS 在客户机上必然不可用**，除非用户自己设 `LIVECAP_CUDA_PY`。
+
+**修法**：5 处全部改为按**当前用户家目录**推导（`os.path.join(os.path.expanduser('~'), ...)`）
+⇒ 开发机上与原硬编码值**逐字节相同**（**行为零变化**）⇒ 客户机上自然指向客户自己的家目录
+⇒ 不存在时自动跳过。
+
+🔴 **判据设计要点（§四纪律）**：
+① **「代码行」必须用 AST 判定**，不能用正则 ⇒ 否则注释与 docstring 里的路径会被误判
+（照抄 `app049.code_lines_with_pkg_name()` 已含 §86 修正的实现：**显式跳过「裸字符串表达式」**）；
+② 「开发专用文件」以 **`pkg_exclude.is_app_dev_only()` 为权威判定**，兜底正则由 T5 强制两者一致；
+③ 仓库侧存量只列清单、**不判负**（否则闸门恒 FAIL ⇒ 等于没有闸门）。
+
+#### 4. 🔴🔴🔴 顺手修掉 `sync_c190_dev_path_leak_to_pkg.py` 的两个真缺陷
+
+| # | 缺陷 | 实测证据 | 修法 |
+|---|---|---|---|
+| ① | **基线 commit 选错** | 初版用 `bb7274e`（APP-045 提交）派生替换块，但**包内这 5 个文件实际等于 `HEAD`**（包在 `bb7274e` 之后又同步过 APP-050 等多次改动）⇒ 派生出的 OLD 块在包内**命中 0 次**（`speaker_tracker.py` 7 块里 5 块命中 0、`tts_engine.py` 22 块里 18 块命中 0，且有 2 块 OLD **命中 14 次 / 2 次**）⇒ 直接套用会 `FAIL-mismatch-after` 或**替换错位置** | 基线改为 **`HEAD`**（= 包内内容的真实来源）⇒ 实测 **5 个文件共 8 块全部唯一命中（count == 1）** |
+| ② | **写死仓库根 + 写死包版本 v1.13** | `REPO = r'C:\Users\Trekker-PTL\confucius4-openvino'` / `PKG_APP = r'…\Confucius4_LiveCaption_v1.13\app'` ⇒ 脚本搬到别处仍读**原仓库** ⇒ 「在 fresh clone 上同步是假象」（§118 同类根因）；且包升版后本脚本指着**旧包**跑 ⇒ 报出来的差异是「脚本过期」而不是真回归 | 与 §48 / §119 的 `sync_c136` 一致：**向上查找仓库根**（祖先目录含 `live_caption/` 且含 `pkg_paths.py`；**找不到就抛异常**，绝不「用 cwd 猜」）＋ **`pkg_paths.pkg_app_dir()` 自动发现最大版本**，保留 `--pkg` 显式覆盖 |
+
+⚠️ **不变式没放松**：块命中数**必须恰好 1** ⇒ 基线选错会**立即 FAIL**，
+**不会静默替换错位置**（这正是「唯一命中断言」的价值）。
+⇒ ✅ **鉴别力实测**：故意指向旧包 `v1.5` ⇒ 5 个文件全部 FAIL（2 个「包内不存在」＋ 3 个「合并结果与仓库不一致，拒绝写入」）
+⇒ **拒绝把修复写进错误的包**。
+
+#### 5. ✅ 包内定点同步（**未做整目录覆盖**）
+
+`sync_c190_dev_path_leak_to_pkg.py`（**12 093 B** / SHA256 `5dfdca1e7c606f12…`）
+
+| 文件 | 替换块数 | 结果 |
+|---|---|---|
+| `speaker_assets.py` | 1 | **SYNCED** |
+| `speaker_tracker.py` | 1 | **SYNCED** |
+| `tts_cuda.py` | 1 | **SYNCED** |
+| `tts_engine.py` | 2 | **SYNCED** |
+| `tts_worker.py` | 3 | **SYNCED** |
+
+⇒ **8 块全部唯一命中**；每文件写后**归一化后与仓库逐字节一致**；
+包外备份 `results/app/pkg_backup_app_c190_pkg/`（5 个文件）；
+✅ **幂等复跑 5/5 `ALREADY`**。
+
+🔴 **仓库 ⇄ 包 逐字节一致性**（归一化行尾后）：**5/5 MATCH**
+⚠️ `tts_worker.py` **原始字节**不等（仓库 223 177 B / CRLF 3988 ↔ 包 219 189 B / LF 3988）
+⇒ **纯 CRLF/LF 差异**（§118 已留档的既有现象）⇒ 功能无影响。
+
+#### 6. 🔴🔴🔴 重打 v1.13（**持共享机器锁**，交付 zip 含本轮代码）
+
+| 项 | 实测 |
+|---|---|
+| 锁 | `shared/MACHINE_LOCK` → `module: app-pack` / `pid: 2756` / `started: 2026-11-01 05:58:58`（**由 `pack_v13.py` 自己取锁**，非手工） |
+| 安静窗口 | ✅ **45 s**（CPU 增量分类器判定「外部 python 进程均在等锁/在睡」） |
+| 耗时 | **534 s**（压缩率 82.1%） |
+| `testzip()` | **Everything is Ok** |
+| zip ⇄ 包目录 | **比对 14 213 个文件 ⇒ 全部逐字节一致** |
+| 原子改名 | ✅ `ZIP.tmp` → 校验 → `os.replace` |
+| 交付 zip | `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.13.zip` / **11 233 348 145 B** / mtime `2026-11-01T06:08:44` / SHA256 **`3ca36ce3d166ed0ec1cc2fbd2173ea3c3a77107c6c8ebce2ecdd0af8b169e020`**（`sha256sum` **独立复核一致**）/ MD5 `898f368a7bedaced9e46f5bd363fbe1e` |
+| MANIFEST | `version=1.13` / `files=14212` |
+| 快捷方式 | ✅ 幂等，**已指向 v1.13**（`Confucius4 实时字幕 v1.13.lnk` ⇒ `…v1.13\Start_LiveCaption.bat`） |
+| 锁释放 | ✅ 已释放（`MACHINE_LOCK` 已删除） |
+
+🔴 **交付口径复核（§104 第①层：zip 是否含本轮代码）**：
+独立用 `zipfile` 读交付 zip 内 `app/*.py`（**31** 个）⇒ **代码行泄漏 = 0 个文件**
+（修前是 5 个）⇒ 且 `app/speaker_assets.py` / `app/tts_cuda.py` 内**含** `expanduser`
+⇒ ✅ **「已交付」在 zip 内容级成立**（不是「包目录对」而已）。
+
+#### 7. ✅ 验收与回归（全 PASS）
+
+| 脚本 | 判据 | 结果 |
+|---|---|---|
+| `results/app/app189_pkg_dev_path_leak_gate.py` | 包内生产模块代码行泄漏开发机绝对路径 | 包内 **5 文件/6 行 ⇒ 0**；**鉴别力自检 6/6 PASS**（T0 干净基线 / T1 docstring+注释不判泄漏 / T2 代码行必抓 / T3 开发专用只进 `dev_only` / T4 正斜杠也抓 / T5 兜底规则与 `pkg_exclude` 一致） |
+| `results/app/app190_dev_path_leak_fix_evidence.py` | 修复验收（REAL 5 + **BUG 反证 3**） | **8/8 PASS**；反证基线用**固定 commit `bb7274e`** ⇒ 判据非恒真 |
+| `results/app/app187_repo_artifact_in_repo_gate.py` | 产物入库完整性 + AST 判「写死仓库根」 | **42/0 PASS**（`HARDCODED` **0** ⇒ §119 的修法未在本轮复发） |
+| `results/app/app188_pkg_repo_module_parity_gate.py` | 包 ⇄ 仓库生产模块**集合**一致 | **PASS**（包有仓库无 = **0**） |
+| `results/app/app168_pkg_runtime_import_probe.py` | 包内**运行时**可加载性（用包自带 python 3.12.10） | **21/0 PASS**（含 R9 环境洁净度 + B1/B2/B3 三条反证） |
+| `results/app/app186_app051_acceptance_gate.py` | APP-051 验收总闸门 | **25/0 PASS**（`verdict=PASS`） |
+| `live_caption/verify_pkg_zip.py` | zip ⇄ 包目录 / HEAD ⇄ 包目录 **独立复核** | **PASS**（14 213 个文件逐字节一致 / HEAD⇄包 **28/28** 一致） |
+| `app130` / `app131` / `app131b` / `app129c` / `app107` | TTS 回归 | **21/0 / 12/0 / 7/0 / 10/0 / 42/0**（⚠️ 须用**带 numpy 的 system 3.12.10**；managed 3.13 无 numpy ⇒ §91 同坑） |
+
+#### 8. 🔴🔴🔴 顺手定位并修掉两个 TTS 验收脚本的「过期断言」（**不是回归**）
+
+**现象**：`test_tts_drop_crash.py` / `test_tts_exit_played.py` 报 FAIL。
+
+🔴 **先证伪「是本轮回归」**（§104 的纪律）：
+本轮只改了 5 个**路径**文件，`tts_service.py` **未被触碰**
+⇒ 用 `git worktree` 逐 commit 复跑 ⇒ 断点**精确到 `6d90715`（§70 APP-028）**
+⇒ **修前基线 `51df313` / `d39eb17` 均 PASS**，**`6d90715` 起 FAIL**
+⇒ **既非本轮回归、也非 §119 引入**。
+
+🔴 **根因**：两个脚本靠「调低 `BACKLOG_MAX_S` ⇒ `_update_backlog()` 积压丢句」来造景，
+而 **APP-028②**（用户 2026-10-27 13:22 明文决定「**不要使用丢句这个方式**」）
+已由 `6d90715` 把 `_update_backlog()` 的**丢句分支整段删除**
+⇒ 造景失效 ⇒ 断言**必然 FAIL** ⇒ 属「**断言前提过期**」。
+
+🔴 **修法（不是删断言）**：改用**当前真实存在的丢句入口**
+`TTSService._drop_one(jid, register_dropped=True)`（§60 建立的「丢句记账的唯一原子口径」）
+⇒ 场景等价、断言**仍然非恒真**。
+
+🔴🔴🔴 **鉴别力（关键）**：`_drop_one` 本身是 §60 才引入的
+⇒ **没有任何历史 commit** 同时具备「`_drop_one`」与「原缺陷」
+⇒ **历史基线法不可用**（实测：拿 `51df313` / `3afaf7a~1` 跑 ⇒ 直接 `AttributeError` 崩）
+⇒ 改用**注入法**：把 `_inflight.discard` / `_dropped_ids.add` 去掉
+（= **精确复刻** §29 缺陷① / §30 缺陷①）⇒ 断言**必须 FAIL** ⇒ 判据非恒真。
+（注入组归 **REAL** 组：断言的是「缺陷**曾经真实存在**」⇒ 命中 = 预期成立，
+**不能**放 BUG 组 —— BUG 组语义 = 「缺陷**仍然存在**」⇒ 命中即 FAIL ⇒ 语义相反。）
+
+| 脚本 | 修前 | 修后 | 注入反证 |
+|---|---|---|---|
+| `test_tts_drop_crash.py` | FAIL（A2/A3/A4） | **PASS**（REAL 全过 + BUG 全落空） | F1 注入缺陷① ⇒ `ghost=[0,1,2,3]` ⇒ 缺陷复现 ⇒ 判据能识破 |
+| `test_tts_exit_played.py` | FAIL（B2） | **PASS** | C1 注入缺陷① ⇒ `played=1 dropped=1 sum=2 submitted=1` ⇒ 双记复现 |
+
+#### 9. git 收尾
+
+* 只提交 **App 模块**自己的文件；**`CORRECTIONS_APP.md` 零提交**
+  （每个 commit 的 `git show --name-only --format="" HEAD | grep -c CORRECTIONS` 均 **0**）。
+* **逐文件 `git add`**，**未用 `-A`** ⇒ 未吞 ASR/MT/TTS 其它模块的未提交改动。
+* **普通快进 push**，**未 force push**；仓库仍**只有 `main` 分支**。
+
+#### 10. 🔴 本轮**没有**做的事（及原因）
+
+| 项 | 状态 | 原因 |
+|---|---|---|
+| **FTP 发布** | 🔴 **未做** | 守 **APP-035**（用户已永久关闭 FTP）⇒ 未运行 `publish_ftp.py`、未启动任何 FTP 服务 |
+| 旧包目录（v1.12 / v1.5 / v1.6 …）与旧 zip | 🔴 **未删、未重打** | 删除属**破坏性操作**，需用户确认；本轮只重打 v1.13（`--same-version`） |
+| `app188` 的 `orphan` 判**阻断**是否过严 | 🟡 **待 reviewer 裁定** | 本轮沿用 §119 口径，未改动 |
+| **95 处**「过期包版本」引用 | 🟡 **本轮只清点、未改** | 多数在 docstring ⇒ 需区分「文档举例」与「真写死」⇒ 另开专项 |
+| 其余 **50 处**「写死仓库根」存量 | 🟡 **不阻断** | 已在 §118 列为 backlog；本轮不扩大改动面 |
+| 仓库缺 `.gitattributes` ⇒ clone 时行尾被转成 CRLF | 🟡 **只留档、未改** | 加它会**触发全仓行尾重写** ⇒ 大面积改动 ⇒ 待 reviewer 裁定 |
+| `live_caption/_fix_dev_path_leak_c190.py` | 🔴 **未入库** | 一次性写入器（与 `app187` 的 `_*.py` 排除规则一致） |
+
+#### 11. 🔴 仍等 reviewer / 用户（本轮**新增**第 ⑬–⑮ 项，其余沿用）
+
+1. 🔴 **用户实听 3 段 1.2–1.3× 配音素材**（`C:\Users\Trekker-PTL\shared\app_accel_listen\`）＋ **reviewer 判定音质 / 不变调 / 可懂** —— `app186` 总闸门只覆盖**链路 + 结构 + 数字自洽**，**质量判定不在其中**。
+2. 🔴 **§117 待 reviewer 复核 2 项**（① APP-043「通过」口径 ② `app186` 总闸门 25 条判据口径）。
+3. 🔴 **v1.12 / v1.5 等历史 zip 仍是旧内容**（旧包目录**未删除** —— 破坏性操作需用户确认）。
+4. 🔴 **§115 待 reviewer 复核 5 项**（`EXECUTION_DEVICES` 返回类型口径 / `absent`-`unknown` 分离 / `talker` 聚合所有桶 / App 不调 `build()` / TTS `cp_decode_device` 未被消费）。
+5. 🔴 **§114 待 reviewer 复核 4 项**（CI 判据口径 / 写法差异 vs 真错误拆分规则 / 多 3 句真错误是否提示用户 / 是否用最新包重跑）。
+6. 🔴 **宿主 `PYTHONPATH` 污染对历史验收结论的影响范围待 reviewer 确认**。
+7. 🔴 **本轮未修改** `status/app/CORRECTIONS_APP.md`（只读，SHA256 `327f8653…39904` 零改动）。
+8. 🔴 **§113 待 reviewer 复核 4 项**（版本标识闸门口径 / 「改动说明」归为提醒不阻断 / `sync_c172` 设计 / v1.13 改动说明排期）。
+9. 🔴 **`app188` 的判据口径待 reviewer 复核**（`orphan` 阻断是否过严 / `repo_only` 不判负是否可接受 / `dev_only_orphan` 是否完全以 `pkg_exclude` 为准）。
+10. 🔴 **95 处「过期包版本」引用的清点结论待 reviewer 复核**。
+11. 🔴 **`sync_c136_to_pkg.py` 的修法待 reviewer 复核**（向上查找仓库根 / 行尾归一化装配 / 是否批量清理其余 50 处）。
+12. 🔴 **是否加 `.gitattributes` 待 reviewer 裁定**（会触发全仓行尾重写）。
+13. 🆕🔴 **`app189` 的判据口径待 reviewer 复核**（① 「代码行」用 AST 判定（跳过注释/docstring）是否认可 ② 「开发专用文件」以 `pkg_exclude` 为权威判定是否认可 ③ 仓库侧存量只列清单不判负是否可接受 ④ **是否应把本闸门接入 `pack_v13.py` 的打包前闸门**（像 `app170` 版本标识闸门那样）—— 本轮**未接入**）。
+14. 🆕🔴 **§120 的修复口径待 reviewer 复核**：把 5 处开发机路径改为 `os.path.expanduser('~')` 推导，**开发机上逐字节等价**（`app190` R2/R5 已证）⇒ 客户机上自然指向客户家目录；⚠️ **`tts_cuda.ENV_PY` 的新默认值在客户机上仍多半不存在** ⇒ **CUDA TTS 在客户机上依然需要用户自设 `LIVECAP_CUDA_PY`** ⇒ **本轮没有把 CUDA 路径变成「客户机开箱可用」**，只是去掉了「默认指向开发机」这一错误默认值；是否需要进一步随包提供 CUDA 运行时 ⇒ **待 reviewer 裁定**。
+15. 🆕🔴 **两个 TTS 验收脚本的「过期断言」处置待 reviewer 复核**（§8）：改用 `_drop_one()` 造景 + **注入法**做鉴别力反证（因 `_drop_one` 是 §60 才引入 ⇒ **历史基线法不可用**）⇒ 是否认可这个处置。
