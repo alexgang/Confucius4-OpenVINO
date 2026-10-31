@@ -4,7 +4,7 @@ last_ack: APP-051
 更新时间: 2026-11-01 02:35
 当前任务: **§119 ✅ 无新纠偏条目（`last_ack` 仍 APP-051）** —— 按 **APP-046**「追平后不空转」继续做，补上 **「包 ⇄ 仓库 生产模块集合一致性」这一维**（§104 第④层的**反向形态**）：① §118 的 `app187` 只覆盖「STATUS 引用的产物是否入库」，**不覆盖**「客户包 `app/` 里的模块与仓库 `live_caption/` 的生产模块集合是否一致」② **方向 B**（包有、仓库没有）⇒ 下次重打包**会把它丢掉** ⇒ 若它是生产模块 ⇒ 客户机突然缺模块 ③ 实测抓到真实案例：**包目录 `app/_probe_tts_cuda.py`（3 072 B）仓库从未入库**、含写死开发机路径 `REPO = r"C:\Users\Trekker-PTL\confucius4-openvino"`、v1.13/v1.5/v1.4 三个包目录都有 ⇒ 🔴 **交付 zip 是干净的**（已被 `pkg_exclude` 排除规则挡在 zip 外，zip 内 `app/` 只有 **28** 个 `.py`），但**包目录层面**（用户实际运行的目录）确实存在开发机路径泄漏 ④ ⇒ **新增 `app188` 闸门**（orphan 阻断 / dev_only_orphan 提醒 / repo_only 不判负；**复用 `pkg_exclude.is_app_dev_only()` 作权威判定** ＋ 兜底正则由 T5 强制一致）⇒ ✅ **鉴别力自检 6/6 PASS** ＋ **真实缺陷形态 PASS** ＋ **真 fresh clone 内复验 PASS**（clone 内 `repo_live` 指向 `Temp/fc188/live_caption` ⇒ §118 的「写死仓库根」**未复发**）＋ **28/28 生产模块全部入库** ⇒ 详见 **§119**
 阻塞 / 待用户决定: ① 🔴 **需用户实听 3 段 1.2–1.3× 配音素材**（`C:\Users\Trekker-PTL\shared\app_accel_listen\`：1.2× / 1.3× / 1.3×）＋ **reviewer 判定音质 / 不变调 / 可懂** —— 本轮 `app186` 总闸门只覆盖**链路 + 结构 + 数字自洽**（`ACCEPTED.json.scope` 已明写），**质量判定不在其中**；② 🔴 **§117 待 reviewer 复核 2 项**（① APP-043「通过」口径 ② `app186` 总闸门 25 条判据口径）—— ③「`app186` 写死包版本」**已于 §118 闭环**；③ 🔴 **v1.12 / v1.5 等历史 zip 仍是旧内容**（历史包本轮**未重打**、旧包目录**未删除**（破坏性操作需用户确认））；④ 🔴 **§115 待 reviewer 复核 5 项**（① `EXECUTION_DEVICES` 返回类型口径——**推翻了 §82 的旧解读** ② `absent`/`unknown` 分离 ③ `talker` 聚合所有桶 ④ App 不调 `build()` ⇒ 第②条不适用 ⑤ TTS 模块 `cp_decode_device` 未被消费 ⇒ App 无需改动）；⑤ 🔴 **§114 待 reviewer 复核 4 项**（CI 判据口径 / 写法差异 vs 真错误拆分规则 / 多 3 句真错误是否提示用户 / 是否用最新包重跑）；⑥ 🔴 **宿主 `PYTHONPATH` 污染对历史验收结论的影响范围待 reviewer 确认**（§112 已证明它会让 `torch` 假阳性；§109/§110 为静态字节比对，未受影响）；⑦ 🔴 **本轮未修改** `status/app/CORRECTIONS_APP.md`（只读，reviewer 独占写入，SHA256 `327f8653…39904` 零改动）；⑧ 🔴 **§113 待 reviewer 复核 4 项**（版本标识闸门口径 / 「改动说明」归为提醒不阻断 / `sync_c172`「只改身份行不改内容」设计 / v1.13 改动说明排期）；⑨ 🆕🔴 **`app188` 的判据口径待 reviewer 复核**（① `orphan` 判**阻断**是否过严 ② `repo_only` **不判负**是否可接受 ③ `dev_only_orphan` 是否应完全以 `pkg_exclude` 为准 —— 本轮已用 T5 强制两者一致）；⑩ 🆕🔴 **95 处「过期包版本」引用的清点结论待 reviewer 复核**（本轮只清点、未改；多数在 docstring ⇒ 需区分「文档举例」与「真写死」后再动 ⇒ 建议另开一轮专项，**不在本轮扩大改动面**）
-已压缩: 原文见 `status/archive/STATUS_APP_upto_20261030.md`（1 437 968 B，只读归档）；纠偏归档见 `status/archive/CORRECTIONS_APP_closed_upto_20261030.md`（全量原文备份 `CORRECTIONS_APP_full_before_compress_20261030.md`）。**本文件 80 544 B / 679 行**（原 1 437 968 B / 18 977 行 ⇒ **−94.4%**；§119 追加后）。
+已压缩: 原文见 `status/archive/STATUS_APP_upto_20261030.md`（1 437 968 B，只读归档）；纠偏归档见 `status/archive/CORRECTIONS_APP_closed_upto_20261030.md`（全量原文备份 `CORRECTIONS_APP_full_before_compress_20261030.md`）。**本文件 85 528 B / 736 行**（原 1 437 968 B / 18 977 行 ⇒ **−94.1%**；§119 追加后）。
 
 
 ## 最近更新
@@ -645,6 +645,59 @@ cd /tmp/fresh_clone_test && python -c "import pack_v13; print(pack_v13.check_ver
 ⇒ 处置：把重跑生成的新证据**一并提交**（新证据本身是**真实改进**：
 旧记录 `n_tracked 37 / n_dirty 3`（补交前状态）⇒ 新记录 `n_tracked 40 / n_dirty 0`）。
 
+#### 5.5 顺带修掉的**真缺陷**：`sync_c136_to_pkg.py` 写死仓库根 ＋ 写死包版本 v1.3
+
+🔴 **它是怎么被发现的**：`app187` 的「写死仓库根」判据**只对「STATUS 引用的脚本」判 FAIL**
+⇒ 而 §119 的正文**引用了** `live_caption/sync_c136_to_pkg.py` 这个文件名
+⇒ 它**被提升为 FAIL** ⇒ `app187` 报 `HARDCODED live_caption/sync_c136_to_pkg.py:22`。
+
+🔴 **这个交互本身是闸门在正确工作**（不是误报）：该脚本**确实**写死了
+
+| 项 | 修前 | 修后 |
+|---|---|---|
+| 仓库根 | `REPO = r'C:\Users\Trekker-PTL\confucius4-openvino'` | **`_discover_repo_root()` 向上查找**（判据 = 祖先目录含 `live_caption/` ＋ `pkg_paths.py`） |
+| 客户包 | `PKG_APP = r'…\Confucius4_LiveCaption_v1.3\app'` | **`_discover_pkg_app()` 自动发现最大版本** ＋ `--pkg` 显式覆盖（不写死版本号） |
+
+🔴 **修法上踩到的两个坑（实测）**：
+
+1. 🔴 **「从 `__file__` 推导仓库根」不够** —— 脚本一旦被**搬到别处**（复制到临时目录单跑），
+   「上上级」就指向**那个临时目录** ⇒ 找不到 `live_caption/tts_engine.py` ⇒ 报错。
+   ⇒ 改成**向上查找**（`live_caption/` ＋ `pkg_paths.py` 同时存在才算仓库根）。
+2. 🔴 **向上查找失败时必须「抛异常」而不是「用 cwd 猜」** ——
+   实测搬到 `Temp/relo/` 时脚本**明确报错**（`FileNotFoundError: [仓库] 从 … 向上找不到仓库根`）
+   ⇒ 这是**正确行为**：宁可拒绝运行，也不给出一个「指错对象」的假结论
+   （与 §48 `pkg_paths` 的「不静默回退」同一条纪律）。
+
+✅ **修后实测（三种情形全过）**：
+
+| 情形 | 结果 |
+|---|---|
+| ① 仓库内 `--check` | `[客户包] …_v1.13\app` ＋ `[OK] 客户包已是最新（SHA256 一致），no-op`（仓库 `eea08775…` == 包 `eea08775…`） |
+| ② 搬到 `Temp/relo/` 单跑 | **明确报错**（拒绝运行，不给假结论） |
+| ③ **随仓库 clone 到 `Temp/fc119`** | 定位到 **clone 自己的** 仓库 ＋ 自动发现 **v1.13** ⇒ **未读原仓库** |
+
+#### 5.6 🔴 一个**必须留档**的环境事实：clone 时**行尾被转换**（`core.autocrlf=true` ＋ 仓库无 `.gitattributes`）
+
+| 项 | 实测 |
+|---|---|
+| 仓库工作区 `live_caption/tts_engine.py` | SHA256 `eea08775…`，**CRLF 0 / 裸 LF 1912** |
+| `git show HEAD:` 取出的同一文件 | SHA256 `eea08775…`（**与工作区一致** ⇒ HEAD 里存的就是 LF） |
+| **clone 内**同一文件 | SHA256 `21468383…`，**CRLF 1912 / 裸 LF 0** ⇒ **被转成 CRLF** |
+| 客户包 `app/tts_engine.py` | SHA256 `eea08775…`（**LF**） |
+| 根因 | `git config core.autocrlf = true` ＋ **仓库无 `.gitattributes`** |
+
+⇒ 🔴 **影响**：clone 出来的文件与 HEAD **逐字节不同**（行尾差异）⇒
+**「逐字节比对」类判据在 clone 上必须先归一化行尾**。
+⇒ ✅ **功能不受影响**（Python 两种行尾都能跑）；
+⇒ ✅ **§118 的「仓库 ⇄ 包 28/28 逐字节一致」结论仍成立**（那份比对**本就归一化行尾后**做的）。
+⇒ 🔴 **本轮实测 clone 内全套闸门**：`app186` = **PASS 25 / FAIL 0**、
+`app187` = PASS（除自指 DIRTY）、`app188` = **PASS** ⇒ **行尾转换未使任何闸门失效**。
+⇒ 🟡 **建议（不在本轮做）**：在仓库加 `.gitattributes` 显式声明
+（`*.py text eol=lf` ＋ `*.bat text eol=crlf` ＋ `*.ps1 text eol=crlf`）
+⇒ 否则「clone 出来的字节 ≠ HEAD 的字节」这个坑会持续存在。
+⇒ ⚠️ **本轮不做**的理由：加 `.gitattributes` 会**触发全仓行尾重写**
+⇒ 那是**大面积改动** ⇒ 超出本轮范围 ⇒ 列为待 reviewer 裁定项。
+
 #### 6. 本轮**没有**修的东西（及原因）
 
 | 项 | 状态 | 原因 |
@@ -652,9 +705,11 @@ cd /tmp/fresh_clone_test && python -c "import pack_v13; print(pack_v13.check_ver
 | `app187` 的 **51 处**「写死仓库根」存量 | 🔴 **仍列 backlog，不阻断** | 已在 §118 明确「供后续逐批清理」；本轮**不扩大改动面** |
 | `live_caption/` 里 **68** 个未入库的诊断脚本 | 🔴 **仍不阻断** | 全是一次性诊断脚本；**入库它们会污染仓库**（§104 的教训是「产物要入库」，不是「所有文件都要入库」） |
 | **95** 个已入库 .py 含**过期包版本**（v1.3/v1.4/v1.5/v1.6/v1.9/v1.10/v1.12） | 🟡 **本轮只清点，未修改** | 🔴 多数在 **docstring/注释**里（历史事故说明），不是可执行路径 ⇒ 改它要先精确区分「文档举例」与「真写死」⇒ 需另开一轮专项；⚠️ 本轮**已自踩该坑**（用 `ast` 排除 docstring 时按 `repr` 匹配 ⇒ 匹配失败 ⇒ 把 docstring 也算成可执行位置 ⇒ **结论作废**，已弃用该口径） |
-| `live_caption/sync_c136_to_pkg.py` 写死 **v1.3**、`sync_s58_cancel_queue_to_pkg.py` 写死 **v1.5/v1.4**、`sync_c173_app050_to_pkg.py` 写死 **v1.13** | 🟡 **未改** | 同上（专项清理的另一部分）；⚠️ 其中 `sync_c173` 当前**恰好**等于现行版本 ⇒ 暂无实际风险 |
+| `live_caption/sync_c136_to_pkg.py` 写死 **v1.3** ＋ 写死仓库根 | ✅ **本轮已修**（见 §5.5） | 被 §119 正文引用 ⇒ `app187` 判 HARDCODED ⇒ 修掉（向上查找 ＋ 自动发现） |
+| `live_caption/sync_s58_cancel_queue_to_pkg.py` 写死 **v1.5/v1.4**、`sync_c173_app050_to_pkg.py` 写死 **v1.13**、其余 **50** 处「写死仓库根」 | 🟡 **未改** | 同上（专项清理的另一部分）；⚠️ `sync_c173` 当前**恰好**等于现行版本 ⇒ 暂无实际风险；⚠️ 它们**未被 §119 正文引用** ⇒ 不触发 `app187` 阻断 ⇒ 可逐批清理 |
 | 包内 `speaker_assets.py` 的 `WORK/REPO/SHARED` 绝对路径 | ✅ **不是缺陷** | 实测：三个常量**只定义、零使用**（死代码）⇒ 客户机上不生效 |
 | 包内 `tts_engine.py:321` / `speaker_tracker.py:59` 的绝对路径 | ✅ **不是缺陷** | 实测：都是**降级 fallback**（优先包内 `app/tts_engine_patch.py` / `scripts_dir` 参数）⇒ 客户机上不崩 |
+| 仓库缺 `.gitattributes` ⇒ clone 时**行尾被转成 CRLF** | 🟡 **本轮只留档，未改** | 见 §5.6 ⇒ 加 `.gitattributes` 会**触发全仓行尾重写** ⇒ 大面积改动 ⇒ 超出本轮范围 |
 
 #### 7. git 收尾
 
@@ -663,7 +718,7 @@ cd /tmp/fresh_clone_test && python -c "import pack_v13; print(pack_v13.check_ver
 * **逐文件 `git add`**，**未用 `-A`** ⇒ 未吞 ASR/MT/TTS 其它模块的未提交改动。
 * **普通快进 push**，**未 force push**；仓库仍**只有 `main` 分支**。
 
-#### 8. 🔴 仍等 reviewer / 用户（本轮**新增**第 ⑨ 项，其余沿用）
+#### 8. 🔴 仍等 reviewer / 用户（本轮**新增**第 ⑨–⑫ 项，其余沿用）
 
 1. 🔴 **用户实听 3 段 1.2–1.3× 配音素材**（`C:\Users\Trekker-PTL\shared\app_accel_listen\`：1.2× / 1.3× / 1.3×）＋ **reviewer 判定音质 / 不变调 / 可懂**
    —— 本轮 `app186` 总闸门只覆盖**链路 + 结构 + 数字自洽**（`ACCEPTED.json.scope` 已明写），**质量判定不在其中**。
@@ -677,3 +732,5 @@ cd /tmp/fresh_clone_test && python -c "import pack_v13; print(pack_v13.check_ver
 8. 🔴 **§113 待 reviewer 复核 4 项**（版本标识闸门口径 / 「改动说明」归为提醒不阻断 / `sync_c172`「只改身份行不改内容」设计 / v1.13 改动说明排期）。
 9. 🆕🔴 **`app188` 的判据口径待 reviewer 复核**（① `orphan` 判**阻断**是否过严 —— 若 reviewer 认为「包目录残留」应一律降级为提醒，则需改 `app188` 的分档 ② `repo_only` **不判负**是否可接受 ③ `dev_only_orphan` 的判定是否应完全以 `pkg_exclude` 为准 —— 本轮已用 T5 强制两者一致）。
 10. 🆕🔴 **95 处「过期包版本」引用的清点结论待 reviewer 复核**（本轮只清点、未改；多数在 docstring ⇒ 需区分「文档举例」与「真写死」后再动 ⇒ 建议另开一轮专项，**不在本轮扩大改动面**）。
+11. 🆕🔴 **`sync_c136_to_pkg.py` 的修法待 reviewer 复核**（§5.5）：① 「向上查找仓库根」＋「找不到就抛异常」是否认可 ② 是否要求**其余 50 处**「写死仓库根」按同一模式批量清理（本轮**刻意未做**以免扩大改动面）。
+12. 🆕🔴 **是否加 `.gitattributes` 待 reviewer 裁定**（§5.6）：`core.autocrlf=true` ＋ 无 `.gitattributes` ⇒ **clone 出来的文件与 HEAD 逐字节不同**（行尾）⇒ 功能无影响，但「逐字节比对」类判据在 clone 上必须先归一化 ⇒ 加 `.gitattributes` 会**触发全仓行尾重写**（大面积改动）⇒ 本轮**只留档、未做**。
