@@ -36,7 +36,30 @@ import sys
 import time
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(REPO, 'live_caption'))
+
+# 🔴🔴🔴 APP-051②：**可指定要验收的代码来源**（仓库 / 客户包目录）。
+#   背景：APP-048 的布局验收原先只跑**仓库**源码
+#   ⇒ 截图证明的是「仓库长这样」，**不是**「客户拿到的包长这样」。
+#   ⇒ `--pkg <包目录>` ⇒ `sys.path` 指向 `<包>/app` ⇒ 跑的是**包内那份代码**。
+#   ⚠️ 默认仍是仓库（**不改变既有行为**）⇒ 只在显式给 `--pkg` 时才切。
+#   ⚠️ 必须**在 import live_caption_app 之前**改 `sys.path` ⇒
+#   ⇒ 所以这里在模块顶层就处理（`live_caption_app` 是 C 组里才 import 的）。
+_PKG_APP = None
+for _i, _a in enumerate(sys.argv):
+    if _a == '--pkg' and _i + 1 < len(sys.argv):
+        _PKG_APP = os.path.join(sys.argv[_i + 1], 'app')
+        break
+    if _a.startswith('--pkg='):
+        _PKG_APP = os.path.join(sys.argv[_i].split('=', 1)[1], 'app')
+        break
+
+if _PKG_APP and os.path.isdir(_PKG_APP):
+    sys.path.insert(0, _PKG_APP)
+    print('[pkg] 用**客户包内**的代码做验收：%s' % _PKG_APP)
+else:
+    sys.path.insert(0, os.path.join(REPO, 'live_caption'))
+    if _PKG_APP:
+        print('[pkg] ⚠️ 包目录不存在 ⇒ 回退到仓库：%s' % _PKG_APP)
 
 def _enable_dpi_awareness():
     """🔴 **必须在创建 Tk 窗口之前**声明 per-monitor DPI 感知。
@@ -752,7 +775,20 @@ def _write_evidence(shots):
     if os.path.exists(n1) and os.path.exists(n2):
         ev['diff_pixels_normal_vs_failed'] = _png_diff_pixels(n1, n2)
         ev['error_red_pixels_in_failed'] = _count_color(n2, (192, 57, 43), tol=40)
-    out = os.path.join(RESULTS, 'app165_app048_gui_layout_evidence.json')
+    # 🔴 APP-051②：允许用 `--out` 指定证据落盘路径
+    #   ⇒ **不覆盖**已入库的 `app165_app048_gui_layout_evidence.json`
+    #   （MEMORY 铁律：「复跑验收脚本会覆盖已入库的证据文件 ⇒ STATUS 里的 SHA 立刻过期」）
+    out = None
+    for _i, _a in enumerate(sys.argv):
+        if _a == '--out' and _i + 1 < len(sys.argv):
+            out = sys.argv[_i + 1]
+            break
+        if _a.startswith('--out='):
+            out = _a.split('=', 1)[1]
+            break
+    if not out:
+        out = os.path.join(RESULTS, 'app165_app048_gui_layout_evidence.json')
+    ev['pkg_under_test'] = _PKG_APP or os.path.join(REPO, 'live_caption')
     with open(out, 'w', encoding='utf-8') as f:
         json.dump(ev, f, ensure_ascii=False, indent=2)
     print('证据已落盘:', out, os.path.getsize(out), 'B')

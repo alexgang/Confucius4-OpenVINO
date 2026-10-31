@@ -3486,6 +3486,12 @@ class App:
                 device=dev, voice=voice,
                 out_device=out_id,
                 precision=prec,
+                # 🔴🔴 APP-051②：GUI 路径的 APP-042 自适应加速播放**验收**
+                #   需要逐句遥测（`speed` / `play_lag_s` / `target_wall`）。
+                #   ⚠️ 旧行为：GUI **不传** `jsonl_path` ⇒ worker 不落盘遥测
+                #   ⇒ **GUI 路径的加速行为无法被离线复核**（只有 CLI 能）。
+                #   ⇒ 这里**只在显式给了路径时**才传 ⇒ 默认行为逐字不变。
+                jsonl_path=getattr(self.args, 'tts_jsonl', None),
                 on_log=lambda m: self._ui_log(f'tts: {m}'))
             self.var_tts_note.set(f'启动中… 设备 {dev} · 精度 {prec}')
             self.var_status.set('语音输出已开启（正在加载 TTS 模型）')

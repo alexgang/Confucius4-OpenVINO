@@ -47,10 +47,12 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..'))
 HOME = r'C:\Users\Trekker-PTL'
-PKG_APP = os.path.join(HOME, 'Confucius4_LiveCaption_v1.12', 'app')
+PKG_APP = os.path.join(HOME, 'Confucius4_LiveCaption_v1.13', 'app')
 
 # 🔴 本轮要同步的文件（**只改这两个**；`shortcut_update.py` 是打包侧脚本，不进包）
-TARGETS = ('tts_engine.py', 'tts_worker.py')
+# 🔴 APP-052：本次只有 `tts_engine.py` 有变更（新增 `_ov_out_to_array`）
+#   ⇒ `tts_worker.py` 不在 TARGETS 里（内容未变 ⇒ 不动 ⇒ 遵守「只定点改」）
+TARGETS = ('tts_engine.py',)
 
 BACKUP = os.path.join(tempfile.gettempdir(),
                       'app045_backup_%s' % time.strftime('%Y%m%d_%H%M%S'))

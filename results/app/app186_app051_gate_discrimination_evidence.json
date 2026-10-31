@@ -1,0 +1,54 @@
+{
+  "script": "app186_discrimination_test.py",
+  "purpose": "证明 app186 总闸门判据**非恒真**且覆盖被注入的缺陷",
+  "pkg_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+  "n_mutations": 5,
+  "mutations": [
+    {
+      "file": "app181_pythonw_coldstart_v2_evidence.json",
+      "desc": "① 把 pythonw 冷启动 verdict 改成 FAIL"
+    },
+    {
+      "file": "app175_app043_clone_acceptance_evidence.json",
+      "desc": "② 把克隆验收 n_clone_rows 清零（无克隆音色）"
+    },
+    {
+      "file": "app183_app042_formula_evidence.json",
+      "desc": "③ 把加速公式一致性 verdict 改成 FAIL"
+    },
+    {
+      "file": "app185_app048_gui_layout_pkg_evidence.json",
+      "desc": "④ 把 pkg_under_test 指向**仓库源码**（不是客户包）"
+    },
+    {
+      "file": "app184_app051_accel_listen_manifest.json",
+      "desc": "⑤ 把实听素材速度改成不含 1.2× / 1.3×"
+    }
+  ],
+  "control": {
+    "ev_dir": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app",
+    "verdict": "PASS",
+    "n_pass": 25,
+    "n_fail": 0,
+    "expect": "PASS",
+    "ok": true
+  },
+  "experiment": {
+    "ev_dir": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app186_disc_du4d6enm\\ev",
+    "verdict": "FAIL",
+    "n_pass": 20,
+    "n_fail": 5,
+    "failed_check_names": [
+      "① pythonw 冷启动 verdict=PASS",
+      "② 有句子真的用了**克隆音色**（voice_kind=clone）",
+      "③ 公式一致性 verdict=PASS",
+      "④ **跑在客户包内代码**上（不是仓库源码）",
+      "⑤ 切出 ≥3 段且含 1.2× 与 1.3×"
+    ],
+    "expect": "FAIL",
+    "ok": true
+  },
+  "n_pass": 3,
+  "n_fail": 0,
+  "verdict": "PASS"
+}

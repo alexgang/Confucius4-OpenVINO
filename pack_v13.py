@@ -223,6 +223,63 @@ def md5(path):
     return h.hexdigest()
 
 
+def sha256(path):
+    """🔴🔴 **交付指纹**：zip 的 SHA256（APP-051① 明文要求「记录 SHA256」）。
+
+    🔴 **为什么 md5 不够**：md5 只出现在打包脚本的收尾 `print` 里 ⇒
+    **没有任何文件**记下它 ⇒ 换台机器无法核验「客户拿到的就是这个包」。
+    ⇒ 本函数 + `write_delivery_manifest()` 把指纹**落盘**。
+    """
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(1 << 20), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def write_delivery_manifest(zip_path, pkg_dir, version):
+    """🔴🔴 把交付指纹**落盘**（APP-051①：「记录 SHA256」）。
+
+    落盘位置：仓库 `results/app/DELIVERY_<version>.json`（**只追加**，
+    每次重打覆盖同一版本号的那一份 ⇒ 「当前交付物」的权威记录）。
+
+    字段：zip 路径 / 字节数 / mtime / md5 / sha256 / MANIFEST 统计 /
+    仓库⇄包目录代码一致性条数。
+    """
+    import datetime
+    out = {
+        'version': version,
+        'zip': zip_path,
+        'bytes': os.path.getsize(zip_path),
+        'mtime': datetime.datetime.fromtimestamp(
+            os.path.getmtime(zip_path)).isoformat(timespec='seconds'),
+        'md5': md5(zip_path),
+        'sha256': sha256(zip_path),
+        'pkg_dir': pkg_dir,
+    }
+    man_path = os.path.join(pkg_dir, 'app', 'MANIFEST.json')
+    if os.path.isfile(man_path):
+        try:
+            with open(man_path, 'r', encoding='utf-8') as f:
+                man = json.load(f)
+            out['manifest_version'] = man.get('version')
+            out['manifest_files'] = man.get('files')
+            out['manifest_bytes'] = man.get('bytes')
+        except Exception as e:
+            out['manifest_error'] = repr(e)
+    out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           'results', 'app')
+    os.makedirs(out_dir, exist_ok=True)
+    out_path = os.path.join(out_dir, 'DELIVERY_%s.json' % version)
+    with open(out_path, 'w', encoding='utf-8') as f:
+        json.dump(out, f, ensure_ascii=False, indent=2)
+    print('[delivery] 交付指纹已落盘：%s' % out_path)
+    print('[delivery]   SHA256 = %s' % out['sha256'])
+    print('[delivery]   字节数 = %d  mtime = %s'
+          % (out['bytes'], out['mtime']))
+    return out_path
+
+
 def _sha256_bytes(b):
     return hashlib.sha256(b).hexdigest()
 
@@ -628,7 +685,47 @@ def check_pkg_path_hardcode():
     return 0
 
 
-def check_version_identity(pkg_dir):
+def sync_manifest_version(pkg_dir, ver):
+    """🔴🔴🔴 升版后**先**把 `app/MANIFEST.json` 的 `version` 写成新版本号。
+
+    🔴 **为什么必须提前到闸门之前**（真实事故，2026-10-31 打 v1.13 时复现）
+    ------------------------------------------------------------------
+    `check_version_identity()`（§113 闸门）的 **I1** 断言要求
+    「目录名版本 == MANIFEST.version」⇒ 升版后目录名已变成 `..._v1.13`
+    而 MANIFEST 仍写着 `1.12` ⇒ **闸门必 FAIL** ⇒ 拒绝打包。
+
+    🔴 而 `refresh_manifest()`（真正写 MANIFEST 的地方）原本排在
+    **`_run()` 的后半段**、**闸门之后** ⇒ ⇒ **每次升版都会被自己的闸门拦死**
+    （这是 §113 引入闸门时留下的**顺序缺陷**，不是数据问题）。
+
+    ⇒ 解法：**升版 + 同步版本身份之后、跑闸门之前**，先只写 `version` 字段。
+      * 只改一个字段 ⇒ 不影响 `files` / `bytes` / `packages` / `notes`
+        （`refresh_manifest()` 稍后仍会全量重写一遍，幂等）。
+      * `files` / `bytes` 的口径**不含 MANIFEST 自身** ⇒ 改 `version`
+        不会让统计口径漂移。
+
+    ⚠️ 与 `refresh_manifest()` 的写盘格式保持一致（`indent=1`、
+       `ensure_ascii=False`、`newline=''` ⇒ LF 行尾）⇒ 两次写入不产生格式漂移。
+    """
+    path = os.path.join(pkg_dir, MANIFEST_REL.replace('/', os.sep))
+    if not os.path.isfile(path):
+        print('[warn] 未找到 %s，跳过 version 预同步' % MANIFEST_REL)
+        return 0
+    with open(path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    old = data.get('version')
+    if old == ver:
+        print('  MANIFEST.version 已是 %r ⇒ 无需改' % ver)
+        return 0
+    data['version'] = ver
+    with open(path, 'w', encoding='utf-8', newline='') as f:
+        json.dump(data, f, ensure_ascii=False, indent=1)
+    print('  MANIFEST.version: %r -> %r（升版预同步，闸门前置）'
+          % (old, ver))
+    return 0
+
+
+def check_version_identity(pkg_dir, expect_version=None):
     """打包前「版本标识一致 + NOTICE 许可署名」闸门（§113）。
 
     为什么要有这道闸门（**已复现的真实事故**，2026-10-30 22:0x）
@@ -661,8 +758,10 @@ def check_version_identity(pkg_dir):
     print('版本标识一致闸门（§113）')
     print('=' * 70)
     try:
-        r = subprocess.run([sys.executable, script, '--pkg', pkg_dir],
-                           capture_output=True, timeout=600)
+        cmd = [sys.executable, script, '--pkg', pkg_dir]
+        if expect_version:
+            cmd += ['--expect-version', expect_version]
+        r = subprocess.run(cmd, capture_output=True, timeout=600)
     except (OSError, subprocess.TimeoutExpired) as e:
         print(f'!! 版本标识一致闸门执行失败: {e}')
         return 1
@@ -680,7 +779,7 @@ def check_version_identity(pkg_dir):
     return 0
 
 
-def sync_version_identity(pkg_dir):
+def sync_version_identity(pkg_dir, changelog_zh=None, changelog_en=None):
     """🔴🔴🔴 升版后**自动**把 README/NOTICE 的版本号同步到新版本（§113）。
 
     为什么必须**自动**（而不是靠人记得手改）
@@ -695,6 +794,10 @@ def sync_version_identity(pkg_dir):
       （**通用版**：不写死任何版本号，目标版本从**包目录名**解析
         ⇒ 任意版本都能升；旧版本号从**文件内容**读 ⇒ 不需要人工维护）。
 
+    🔴 **改动说明（changelog）**：版本号是「身份」，「本版改了什么」是**内容**
+    ⇒ 内容必须**由人撰写**（脚本不能编）⇒ 本函数只负责**把人工写好的正文插入**
+    ⇒ 找不到正文文件 ⇒ 只同步身份 + 打提醒（不阻断打包）。
+
     ⚠️ 失败即**拒绝打包**（宁可不做，也不要交付一个自称旧版本的包）。
     ⚠️ `--dry-run` **不写任何文件** ⇒ 本函数在 dry-run 下只做只读检查。
     """
@@ -708,9 +811,13 @@ def sync_version_identity(pkg_dir):
     print('=' * 70)
     print('版本标识自动同步（§113）')
     print('=' * 70)
+    cmd = [sys.executable, script, '--pkg', pkg_dir]
+    if changelog_zh:
+        cmd += ['--changelog-zh', changelog_zh]
+    if changelog_en:
+        cmd += ['--changelog-en', changelog_en]
     try:
-        r = subprocess.run([sys.executable, script, '--pkg', pkg_dir],
-                           capture_output=True, timeout=300)
+        r = subprocess.run(cmd, capture_output=True, timeout=300)
     except (OSError, subprocess.TimeoutExpired) as e:
         print(f'!! 版本标识自动同步执行失败: {e}')
         return 1
@@ -773,6 +880,14 @@ def main():
     ap.add_argument('--skip-quiet', action='store_true',
                     help='跳过安静窗口检查（默认**不跳过**；'
                          '仅在明确知道机器空闲时使用）')
+    ap.add_argument('--changelog-zh', default=None,
+                    help='本版中文改动说明正文（**由人撰写**）⇒ '
+                         '打包时自动插入包内 README_zh.md 的'
+                         '「## vX.Y 改动说明」段；不给则只同步版本身份')
+    ap.add_argument('--changelog-en', default=None,
+                    help='本版英文改动说明正文（**由人撰写**）⇒ '
+                         '打包时自动插入包内 README_en.md 的'
+                         '「## What\'s new in vX.Y」段')
     args = ap.parse_args()
 
     # ── 版本号定案（含源目录改名）───────────────────────────────────
@@ -814,16 +929,43 @@ def main():
         print('         ⚠️ 该 zip 已存在 ⇒ 会被**覆盖**（同版本号重打请加 '
               '`--same-version`）')
 
+    # 🔴🔴 **改动说明自动发现**：`live_caption/release_notes/vX.Y_{zh,en}.md`
+    #    ⇒ 人工写好的正文放在仓库里 ⇒ 打包时自动带上
+    #    ⇒ 显式 `--changelog-zh/en` 优先（可指定任意路径）。
+    #    ⚠️ 必须在**版本号定案之后**（文件名带版本号）。
+    _notes_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               'live_caption', 'release_notes')
+    for _lang, _attr in (('zh', 'changelog_zh'), ('en', 'changelog_en')):
+        if getattr(args, _attr):
+            continue
+        _p = os.path.join(_notes_dir, 'v%s_%s.md' % (PKG_VERSION, _lang))
+        if os.path.isfile(_p):
+            setattr(args, _attr, _p)
+            print('[notes] 自动发现改动说明：%s' % _p)
+
     # 🔴🔴🔴 **升版后自动同步 README / NOTICE 的版本号**（§113）
     #    ⇒ 必须放在**目录改名之后**（目标版本从目录名解析）
     #    ⇒ 必须放在**打包之前**（zip 从包目录取内容）
     #    ⚠️ `--dry-run` 不写任何文件 ⇒ 只做只读检查（闸门在 `_run` 里跑）
     if not args.dry_run:
-        rc = sync_version_identity(args.pkg)
+        rc = sync_version_identity(args.pkg,
+                                   changelog_zh=args.changelog_zh,
+                                   changelog_en=args.changelog_en)
         if rc:
             print()
             print('结论：FAIL（版本标识自动同步失败）')
             return rc
+
+        # 🔴🔴🔴 **MANIFEST.version 预同步**（§113 闸门的顺序缺陷修复）
+        #    ⇒ 必须放在「同步版本身份之后、闸门之前」：
+        #       闸门 I1 断言「目录名版本 == MANIFEST.version」，
+        #       而升版后目录名已变 ⇒ MANIFEST 还没写 ⇒ 闸门必 FAIL ⇒ 死锁。
+        #    ⇒ `refresh_manifest()` 稍后仍会全量重写 MANIFEST（幂等）。
+        print()
+        print('=' * 70)
+        print('MANIFEST.version 预同步（升版）')
+        print('=' * 70)
+        sync_manifest_version(args.pkg, PKG_VERSION)
 
     # 🔴 打包是**长时重活**（压缩 13.7 GB + 逐文件 SHA256 复核 11.2 GB zip）
     #    ⇒ 必须持共享机器锁，否则别的模块测速会把它当干扰源（或被它干扰）。
@@ -886,7 +1028,7 @@ def _run(args):
     #    ⇒ 「客户拿到的包自称旧版本」是**静默**缺陷（打包流水线本身全绿）。
     #    ⇒ 放在 dry-run **之前** ⇒ 只读、几秒 ⇒ 打包前就能看到问题。
     #    ⚠️ 在 `--dry-run` 下也跑：dry-run 应该反映**真实**能不能打。
-    rc = check_version_identity(PKG)
+    rc = check_version_identity(PKG, expect_version=PKG_VERSION)
     if rc:
         print()
         print('结论：FAIL（版本标识一致闸门未通过）')
@@ -978,7 +1120,7 @@ def _run(args):
             pass
         print(f'!! 校验阶段异常（已保留原有 zip 不变）: {type(e).__name__}: {e}')
         raise
-    rc = _finish(ZIP, tmp_zip, ok)
+    rc = _finish(ZIP, tmp_zip, ok, pkg_dir=PKG, version=PKG_VERSION)
     # 🔴🔴🔴 APP-045②：**打包成功后更新桌面快捷方式**。
     #   ⇒ 只有**打包成功**才走这一步（校验失败 ⇒ 旧包不动 ⇒ 入口也不动）。
     #   ⇒ 快捷方式模块**自带真机验收门**（包目录缺 `ACCEPTED.json`
@@ -1107,6 +1249,21 @@ def _verify_and_report(ZIP, args, PKG, PREFIX):
 
         # MANIFEST 硬校验
         man = json.loads(zf.read(f'{PREFIX}/{MANIFEST_REL}').decode('utf-8'))
+        # 🔴🔴🔴 **zip 级版本身份硬断言**（交付物层面的最终保证）
+        #   闸门（app170）只查**包目录**；而 MANIFEST.version 是在
+        #   `refresh_manifest()` 里写的（打包**后段**）⇒ 闸门运行时
+        #   它可能还是旧版本号。
+        #   ⇒ **交付物**的唯一可靠检查点 = **zip 里的 MANIFEST**：
+        #      必须 == 本次打包的目标版本号，否则**拒绝交付**。
+        #   ⇒ 这一条堵住「客户拿到自称旧版本的包」这个缺陷类别。
+        zip_man_ver = man.get('version')
+        ver_ok = (zip_man_ver == PKG_VERSION)
+        print()
+        print('zip 内 MANIFEST.version == 本次目标版本：')
+        print(f'  [{"OK" if ver_ok else "不符"}] zip MANIFEST.version='
+              f'{zip_man_ver!r} vs 目标={PKG_VERSION!r}')
+        if not ver_ok:
+            print('      ⚠️ **交付物自称旧版本** ⇒ 拒绝交付')
         entries = [n for n in names if not n.endswith('/')]
         zip_bytes = sum(zf.getinfo(n).file_size for n in entries)
         man_files = man.get('files')
@@ -1262,13 +1419,13 @@ def _verify_and_report(ZIP, args, PKG, PREFIX):
     print()
     if (missing or stale or stale_prefix or not mt_dirs_ok or not files_ok
             or not bytes_ok or spoken_hit or internal_hit or tts_bad
-            or noise_hit or certain or not content_ok):
+            or noise_hit or certain or not content_ok or not ver_ok):
         print('结论：FAIL')
         return False
     return True
 
 
-def _finish(ZIP, tmp_zip, ok):
+def _finish(ZIP, tmp_zip, ok, pkg_dir=None, version=None):
     """校验结束后的收尾：PASS ⇒ 原子改名；FAIL ⇒ 丢弃临时文件（旧包不动）。"""
     if not ok:
         # FAIL 路径：校验没通过 ⇒ 不改名 ⇒ 旧包（若存在）保持原样
@@ -1284,6 +1441,12 @@ def _finish(ZIP, tmp_zip, ok):
     os.replace(tmp_zip, ZIP)
     print(f'[info] 校验通过 ⇒ 已原子改名到正式路径: {ZIP}')
     print(f'结论：PASS  md5={md5(ZIP)}')
+    # 🔴🔴 APP-051①：「记录 SHA256」⇒ **落盘**（原来只有 md5 打在屏幕上
+    #   ⇒ 换台机器无法核验「客户拿到的就是这个包」）。
+    try:
+        write_delivery_manifest(ZIP, pkg_dir or ZIP, version or PKG_VERSION)
+    except Exception as e:
+        print('[delivery] ⚠️ 交付指纹落盘失败（不影响打包结论）：%r' % e)
     return 0
 
 

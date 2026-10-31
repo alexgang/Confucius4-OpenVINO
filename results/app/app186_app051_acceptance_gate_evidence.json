@@ -1,0 +1,145 @@
+{
+  "script": "app186_app051_acceptance_gate.py",
+  "correction": "APP-051② / APP-043（真机验收总闸门）",
+  "pkg_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+  "pkg_version": "1.13",
+  "sub_items": {
+    "1_pythonw_coldstart": true,
+    "2_spe_qa_clone": true,
+    "3_gui_accel": true,
+    "4_gui_layout_2res": true,
+    "5_accel_listen_1.2_1.3": true
+  },
+  "checks": [
+    {
+      "name": "① pythonw 冷启动证据存在",
+      "ok": true,
+      "detail": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app181_pythonw_coldstart_v2_evidence.json"
+    },
+    {
+      "name": "① pythonw 冷启动 verdict=PASS",
+      "ok": true,
+      "detail": "verdict='PASS' n_pass=11 n_fail=0"
+    },
+    {
+      "name": "① pythonw 冷启动跑在 **v1.13 包**上",
+      "ok": true,
+      "detail": "pkg = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13（期望包目录名 = confucius4_livecaption_v1.13）"
+    },
+    {
+      "name": "① 两次独立冷启动（cold1/cold2）都截到**有内容的客户区**",
+      "ok": true,
+      "detail": "client_n_colors = [552, 550]"
+    },
+    {
+      "name": "② SPE Q&A 双说话人克隆证据存在",
+      "ok": true,
+      "detail": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app175_app043_clone_acceptance_evidence.json"
+    },
+    {
+      "name": "② 克隆验收 verdict=PASS",
+      "ok": true,
+      "detail": "verdict='PASS' n_pass=26 n_fail=0"
+    },
+    {
+      "name": "② 克隆验收跑在 **v1.13 包**上",
+      "ok": true,
+      "detail": "pkg = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13（期望包目录名 = confucius4_livecaption_v1.13）"
+    },
+    {
+      "name": "② 不变式 n_played + n_dropped == n_submitted",
+      "ok": true,
+      "detail": "83 + 0 == 83"
+    },
+    {
+      "name": "② 有句子真的用了**克隆音色**（voice_kind=clone）",
+      "ok": true,
+      "detail": "n_clone_rows = 52"
+    },
+    {
+      "name": "② 有**按句绑定**的 spk 标签（voice_spk）",
+      "ok": true,
+      "detail": "n_spk_tagged_lines = 7"
+    },
+    {
+      "name": "③ GUI 加速播放（链路）证据存在",
+      "ok": true,
+      "detail": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app179_app042_gui_accel_evidence.json"
+    },
+    {
+      "name": "③ GUI 加速链路 verdict=PASS",
+      "ok": true,
+      "detail": "verdict='PASS' n_pass=8 n_fail=0"
+    },
+    {
+      "name": "③ GUI 加速跑在 **v1.13 包**上",
+      "ok": true,
+      "detail": "pkg = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13（期望包目录名 = confucius4_livecaption_v1.13）"
+    },
+    {
+      "name": "③ 真的触发了加速（speed>1.0 的句子存在）",
+      "ok": true,
+      "detail": "n_accel_rows = 21 / rows = 22"
+    },
+    {
+      "name": "③ 加速倍率**公式一致性**证据存在（app183）",
+      "ok": true,
+      "detail": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app183_app042_formula_evidence.json"
+    },
+    {
+      "name": "③ 公式一致性 verdict=PASS",
+      "ok": true,
+      "detail": "verdict='PASS' n_pass=6 n_fail=0"
+    },
+    {
+      "name": "④ APP-048 分辨率截图证据存在（包内跑的 app185）",
+      "ok": true,
+      "detail": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app185_app048_gui_layout_pkg_evidence.json"
+    },
+    {
+      "name": "④ 布局验收 verdict=PASS",
+      "ok": true,
+      "detail": "verdict='PASS' n_pass=64 n_fail=0"
+    },
+    {
+      "name": "④ **跑在客户包内代码**上（不是仓库源码）",
+      "ok": true,
+      "detail": "pkg_under_test = 'C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_v1.13\\\\app'（其包根 = 'C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_v1.13'）"
+    },
+    {
+      "name": "④ 两种分辨率截图都在（1920×1080 / 1280×720）",
+      "ok": true,
+      "detail": "shots = ['app048_layout_1920x1080.png', 'app048_layout_1280x720.png', 'app048_layout_mt_failed.png']"
+    },
+    {
+      "name": "④ 失败态与正常态**像素级不同**（不是同一张图）",
+      "ok": true,
+      "detail": "diff_px = 9492"
+    },
+    {
+      "name": "⑤ 1.2–1.3× 实听素材证据存在",
+      "ok": true,
+      "detail": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app184_app051_accel_listen_manifest.json"
+    },
+    {
+      "name": "⑤ 实听素材 verdict=PASS",
+      "ok": true,
+      "detail": "verdict='PASS' n_pass=7 n_fail=0"
+    },
+    {
+      "name": "⑤ 切出 ≥3 段且含 1.2× 与 1.3×",
+      "ok": true,
+      "detail": "speeds = [1.2, 1.3, 1.3]"
+    },
+    {
+      "name": "⑤ 每段 wav **真实落盘**且字节数与 manifest 一致",
+      "ok": true,
+      "detail": "clips = 3"
+    }
+  ],
+  "n_pass": 25,
+  "n_fail": 0,
+  "accepted": true,
+  "verdict": "PASS",
+  "note": "「accepted」= 5 个子项**全部**证据存在 + verdict=PASS + 指向 v1.13 包；**音质/不变调/可懂仍由用户实听 + reviewer 判定**"
+}

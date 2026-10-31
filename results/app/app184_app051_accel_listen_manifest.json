@@ -1,0 +1,112 @@
+{
+  "script": "app184_app051_accel_listen_extract.py",
+  "correction": "APP-051② / APP-043（3 段 1.2–1.3× 配音实听素材）",
+  "src_jsonl": "C:\\Users\\Trekker-PTL\\app043_clone_accept\\clone.tts.jsonl",
+  "src_wav": "C:\\Users\\Trekker-PTL\\app043_clone_accept\\clone_out.wav",
+  "src_wav_total_s": 935.654,
+  "sample_rate": 24000,
+  "n_rows": 83,
+  "speed_hist": {
+    "1.1": 1,
+    "1.2": 1,
+    "1.3": 81
+  },
+  "listen_dir": "C:\\Users\\Trekker-PTL\\shared\\app_accel_listen",
+  "n_clips": 3,
+  "clips": [
+    {
+      "file": "001_speed_1.2x_spkNone.wav",
+      "sent_id": 1,
+      "speed": 1.2,
+      "speed_lag_s": 34.765,
+      "play_lag_s": 40.264,
+      "voice_spk": null,
+      "voice_kind": "clone",
+      "clone_active": true,
+      "clone_mode": "xvector",
+      "lang": "zh",
+      "text": "那么，关于新月岛是如何被开发的呢？其实可以重新添加上三维效果啊。",
+      "wav_offset_s": 21.125,
+      "clip_dur_s": 7.02,
+      "bytes": 337004,
+      "sha256": "a6cc216b3dd2836317852eb9ce819ae57692dd3067b3afcc4569f2a991f2f5e5"
+    },
+    {
+      "file": "002_speed_1.3x_spkNone.wav",
+      "sent_id": 74,
+      "speed": 1.3,
+      "speed_lag_s": 622.75,
+      "play_lag_s": 631.685,
+      "voice_spk": null,
+      "voice_kind": "preset",
+      "clone_active": true,
+      "clone_mode": "xvector",
+      "lang": "zh",
+      "text": "好吧，如果现在我们的 WSL 就是 Case 的话，那么我们目前还并不正式支持 NPU。所以这确实是个大问题。",
+      "wav_offset_s": 884.546,
+      "clip_dur_s": 9.03,
+      "bytes": 433484,
+      "sha256": "19e0955dbc372bd9b2f8c7db5c5ca265b2c5318e9c344ef854ec467a06f1541c"
+    },
+    {
+      "file": "003_speed_1.3x_spkNone.wav",
+      "sent_id": 67,
+      "speed": 1.3,
+      "speed_lag_s": 566.977,
+      "play_lag_s": 574.62,
+      "voice_spk": null,
+      "voice_kind": "preset",
+      "clone_active": false,
+      "clone_mode": null,
+      "lang": "zh",
+      "text": "在操作系统层面，他们能够在更高层次上实现更好的安全性，这比我们处理微服务相关事务的方式要好得多。",
+      "wav_offset_s": 801.881,
+      "clip_dur_s": 8.49,
+      "bytes": 407564,
+      "sha256": "da4fdc8e8083e98d528df98ffc3b00208b702427f9fa5e75b2f467508d0bc457"
+    }
+  ],
+  "align_method": "offset = play_wall[i] - play_wall[0]",
+  "align_note": "沿用 app177 已实测口径（比率 1.0037，误差 ≈3.4s/935s）⇒ 只作实听素材，不作判定依据",
+  "checks": [
+    {
+      "name": "① 切出 ≥3 段实听素材",
+      "ok": true,
+      "detail": "实际 3 段"
+    },
+    {
+      "name": "② 素材里**同时**含 1.2× 与 1.3×",
+      "ok": true,
+      "detail": "speed 集合 = [1.2, 1.3]"
+    },
+    {
+      "name": "③ 每段都能定位到源句（sent_id + play_wall + text 非空）",
+      "ok": true,
+      "detail": "sent_id = [1, 74, 67]"
+    },
+    {
+      "name": "③b 各段的**源句互不相同**（不得切出重复片段）",
+      "ok": true,
+      "detail": "sent_id = [1, 74, 67]"
+    },
+    {
+      "name": "③c 各段**文件内容互不相同**（SHA256 去重）",
+      "ok": true,
+      "detail": "sha256 前 12 位 = ['a6cc216b3dd2', '19e0955dbc37', 'da4fdc8e8083']"
+    },
+    {
+      "name": "④ 每段时长 ≥ 2.0 s（够听）",
+      "ok": true,
+      "detail": "时长 = [7.02, 9.03, 8.49]"
+    },
+    {
+      "name": "⑤ 每段文件都真实落盘且非空",
+      "ok": true,
+      "detail": "bytes = [337004, 433484, 407564]"
+    }
+  ],
+  "n_pass": 7,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "note": "纯离线（只读已落盘 wav+jsonl）⇒ 零推理、零 GPU、不占机器锁；**音质/不变调/可懂由用户实听 + reviewer 判定**"
+}

@@ -1138,6 +1138,14 @@ def speaker_embedding(eng, ref_wav: Optional[str] = None,
         on_log(f'[tts_engine] ⚠️ speaker embedding 计算失败（{e}）'
                f' ⇒ 退回内置 speaker')
         return None
+    # 🔴🔴🔴 APP-052：babelvox 内部已 `return result[0]`，但**不同 OV 版本**
+    #   的返回类型可能不同（`OVDict` / `ndarray` / `Tensor`）
+    #   ⇒ 一律走 `_ov_out_to_array` 统一转换，**不做假设**。
+    spk = _ov_out_to_array(spk)
+    if spk is None:
+        on_log('[tts_engine] ⚠️ speaker embedding 输出无法转成 numpy'
+               ' ⇒ 退回内置 speaker')
+        return None
     spk = np.asarray(spk, dtype=np.float32).reshape(1, -1)
     on_log(f'[tts_engine] speaker embedding 就绪：{wav} -> {spk.shape}')
     return spk
@@ -1207,6 +1215,67 @@ def _mel_spectrogram_np_24000(audio):
     return mel_spec  # (n_mels, T)
 
 
+def _ov_out_to_array(out):
+    """把 OpenVINO 推理输出统一转成 numpy 数组（**跨 API 版本兼容**）。
+
+    🔴🔴🔴 **为什么必须有这个函数（APP-052 克隆全失效的根因）**：
+
+      - OpenVINO **2026.4**（本包实际版本）的 `CompiledModel.__call__()`
+        返回的是 **`OVDict`**（键为 `openvino.ConstOutput`），
+        **不是** numpy 数组；
+      - `np.asarray(OVDict, dtype=np.float32)` 会把 OVDict 当**序列**迭代
+        ⇒ 迭代出来的是 `ConstOutput` **键** ⇒ numpy 去 `float()` 一个
+        `ConstOutput` ⇒
+        `TypeError: float() argument must be a string or a real number,
+         not 'openvino._pyopenvino.ConstOutput'`；
+      - babelvox 自己的 `extract_speaker_embedding` 里有一行
+        **`return result[0]`**（把 OVDict 取第 0 个输出）⇒ 我们复刻
+        时**漏了这一行** ⇒ 克隆音色更新 **100% 失败** ⇒ 静默回落预设 A
+        ⇒ 用户以为在用克隆音色，实际一直是预设音色（§42 的教训）。
+
+    🔴 **判据**：本函数对 `OVDict` / `dict` / `Tensor` / `ConstOutput` /
+      `ndarray` / `list` 都必须返回 numpy 数组；无法识别时返回 `None`
+      （**不抛异常** ⇒ 调用方按「失败 ⇒ 回落」处理，绝不静默出错值）。
+    """
+    import numpy as np
+
+    if out is None:
+        return None
+    # ① 已经是 numpy 数组
+    if isinstance(out, np.ndarray):
+        return out
+    # ② `OVDict` / `dict` / `Mapping` ⇒ 取**第 0 个输出**
+    #    （对齐 babelvox 的 `result[0]`）
+    if hasattr(out, 'keys') and hasattr(out, '__getitem__'):
+        try:
+            keys = list(out.keys())
+        except Exception:
+            keys = []
+        if keys:
+            try:
+                return _ov_out_to_array(out[keys[0]])
+            except Exception:
+                pass
+    # ③ `ConstOutput` ⇒ 取其 Tensor
+    get_tensor = getattr(out, 'get_tensor', None)
+    if callable(get_tensor):
+        try:
+            return _ov_out_to_array(get_tensor())
+        except Exception:
+            pass
+    # ④ `Tensor` ⇒ 取 `.data`
+    data = getattr(out, 'data', None)
+    if data is not None and not isinstance(out, (str, bytes)):
+        try:
+            return _ov_out_to_array(data)
+        except Exception:
+            pass
+    # ⑤ `list` / `tuple` ⇒ 取第 0 个
+    if isinstance(out, (list, tuple)) and len(out):
+        return _ov_out_to_array(out[0])
+    return None
+
+
 def speaker_embedding_from_pcm(eng, pcm, sr: int = 16000,
                                on_log=print) -> Optional['np.ndarray']:
     """**纯内存**计算 speaker embedding（APP-045①）—— **不写任何临时文件**。
@@ -1260,7 +1329,11 @@ def speaker_embedding_from_pcm(eng, pcm, sr: int = 16000,
         on_log(f'[tts_engine] ⚠️ 克隆 speaker encoder 失败：{e}')
         return None
 
-    spk = np.asarray(result, dtype=np.float32).reshape(1, -1)
+    spk = _ov_out_to_array(result)
+    if spk is None:
+        on_log('[tts_engine] ⚠️ 克隆 speaker encoder 输出无法转成 numpy ⇒ 克隆失败')
+        return None
+    spk = np.asarray(spk, dtype=np.float32).reshape(1, -1)
     on_log(f'[tts_engine] speaker embedding 就绪（内存直算，无临时文件）'
            f' -> {spk.shape}')
     return spk
