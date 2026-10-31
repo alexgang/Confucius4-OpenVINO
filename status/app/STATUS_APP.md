@@ -4,7 +4,7 @@ last_ack: APP-051
 更新时间: 2026-11-01 02:26
 当前任务: **§118 ✅ 无新纠偏条目（`last_ack` 仍 APP-051）** —— 按 **APP-046**「追平后不空转」继续做，抓到并修掉 **3 个真缺陷**：① **§117 验收链产物一个都没入库**（§104 同类错误复发；fresh clone 跑 `app186` 找不到 3 份子项证据）② **HEAD 上 fresh clone 打包必失败**（`pack_v13.py` 传 `--expect-version`，而 HEAD 的 `app170` 不认 ⇒ `rc=1` 拒绝打包）③ **验收链脚本写死仓库根**（`app175`/`app177`/`app184`/`app186`）⇒ fresh clone 验收是假象（本轮实测踩到）＋ **新增 `app187` 入库完整性闸门**（AST 判定「写死仓库根」＋ MISSING/DIRTY/IGNORED 三档；鉴别力实测 **9/9 PASS**）⇒ ✅ **fresh clone 内复验**：`app186` = **PASS 25 / FAIL 0**、`check_version_identity` = **rc=0**、`app187` = **36 PASS / 0 FAIL** ⇒ 详见 **§118**
 阻塞 / 待用户决定: ① 🔴 **需用户实听 3 段 1.2–1.3× 配音素材**（`C:\Users\Trekker-PTL\shared\app_accel_listen\`：1.2× / 1.3× / 1.3×）＋ **reviewer 判定音质 / 不变调 / 可懂** —— 本轮 `app186` 总闸门只覆盖**链路 + 结构 + 数字自洽**（`ACCEPTED.json.scope` 已明写），**质量判定不在其中**；② 🔴 **§117 待 reviewer 复核 2 项**（① APP-043「通过」口径 ② `app186` 总闸门 25 条判据口径）—— ③「`app186` 写死包版本」**已于 §118 闭环**（并升级为「写死**仓库根**」一并修掉，fresh clone 内复验 PASS 25/0）；③ 🔴 **v1.12 / v1.5 等历史 zip 仍是旧内容**（v1.12 内 README/NOTICE 自称 v1.6 的缺陷**只在 v1.13 已修**，历史包本轮**未重打**、旧包目录**未删除**（破坏性操作需用户确认））；④ 🔴 **§115 待 reviewer 复核 5 项**（① `EXECUTION_DEVICES` 返回类型口径——**推翻了 §82 的旧解读** ② `absent`/`unknown` 分离 ③ `talker` 聚合所有桶 ④ App 不调 `build()` ⇒ 第②条不适用 ⑤ TTS 模块 `cp_decode_device` 未被消费 ⇒ App 无需改动）；⑤ 🔴 **§114 待 reviewer 复核 4 项**（CI 判据口径 / 写法差异 vs 真错误拆分规则 / 多 3 句真错误是否提示用户 / 是否用最新包重跑）；⑥ 🔴 **宿主 `PYTHONPATH` 污染对历史验收结论的影响范围待 reviewer 确认**（§112 已证明它会让 `torch` 假阳性；§109/§110 为静态字节比对，未受影响）；⑦ 🔴 **本轮未修改** `status/app/CORRECTIONS_APP.md`（只读，reviewer 独占写入，SHA256 `327f8653…39904` 零改动）；⑧ 🔴 **§113 待 reviewer 复核 4 项**（版本标识闸门口径 / 「改动说明」归为提醒不阻断 / `sync_c172`「只改身份行不改内容」设计 / v1.13 改动说明排期）
-已压缩: 原文见 `status/archive/STATUS_APP_upto_20261030.md`（1 437 968 B，只读归档）；纠偏归档见 `status/archive/CORRECTIONS_APP_closed_upto_20261030.md`（全量原文备份 `CORRECTIONS_APP_full_before_compress_20261030.md`）。**本文件 66 095 B / 537 行**（原 1 437 968 B / 18 977 行 ⇒ **−96.4%**；§118 追加后）。
+已压缩: 原文见 `status/archive/STATUS_APP_upto_20261030.md`（1 437 968 B，只读归档）；纠偏归档见 `status/archive/CORRECTIONS_APP_closed_upto_20261030.md`（全量原文备份 `CORRECTIONS_APP_full_before_compress_20261030.md`）。**本文件 66 313 B / 538 行**（原 1 437 968 B / 18 977 行 ⇒ **−96.4%**；§118 追加后）。
 
 
 ## 最近更新
@@ -523,8 +523,9 @@ cd /tmp/fresh_clone_test && python -c "import pack_v13; print(pack_v13.check_ver
 - **commit 2** `ae7178d`（**6 个文件**）：`app175`/`app177`/`app184`/`app186` 的「写死仓库根」修复 + `app187` 闸门升级为 AST 判定 + 闸门证据复跑。
 - 🔴 **逐文件 `git add`（未用 `-A`）**；两次 commit 的 `git show --name-only --format="" HEAD | grep -c CORRECTIONS` 均为 **0**
   ⇒ **未提交 reviewer 独占文件** `status/app/CORRECTIONS_APP.md`。
-- 🔴 **未吞他模块改动**：工作区仍 **523** 项他模块改动（`live_caption/diag_c111_*`、`status/CORRECTIONS.md`、
-  ASR `c0*.py`、`hy_bench` 等）**全部保留在工作区**。
+- 🔴 **未吞他模块改动**：工作区共 **551** 项未提交改动，其中**他模块 247 项**（`live_caption/diag_c111_*`、`status/CORRECTIONS.md`、
+  ASR `c0*.py`、`hy_bench` 等）**全部保留在工作区，未吞**；
+  App 职责内残留 **304 项**均为**历史一次性脚本 / 复跑覆盖的证据**（非本轮产物）⇒ 本轮产物 **4 个新建文件全部 `git ls-files` 在册**。
 - 🔴 **普通 push，未 force**；仓库仍只有 `main` 分支。
 
 #### ⑥ 🔴 **本轮未推进（等 reviewer / 用户）**
