@@ -4,7 +4,7 @@ last_ack: APP-051
 更新时间: 2026-11-01 02:35
 当前任务: **§119 ✅ 无新纠偏条目（`last_ack` 仍 APP-051）** —— 按 **APP-046**「追平后不空转」继续做，补上 **「包 ⇄ 仓库 生产模块集合一致性」这一维**（§104 第④层的**反向形态**）：① §118 的 `app187` 只覆盖「STATUS 引用的产物是否入库」，**不覆盖**「客户包 `app/` 里的模块与仓库 `live_caption/` 的生产模块集合是否一致」② **方向 B**（包有、仓库没有）⇒ 下次重打包**会把它丢掉** ⇒ 若它是生产模块 ⇒ 客户机突然缺模块 ③ 实测抓到真实案例：**包目录 `app/_probe_tts_cuda.py`（3 072 B）仓库从未入库**、含写死开发机路径 `REPO = r"C:\Users\Trekker-PTL\confucius4-openvino"`、v1.13/v1.5/v1.4 三个包目录都有 ⇒ 🔴 **交付 zip 是干净的**（已被 `pkg_exclude` 排除规则挡在 zip 外，zip 内 `app/` 只有 **28** 个 `.py`），但**包目录层面**（用户实际运行的目录）确实存在开发机路径泄漏 ④ ⇒ **新增 `app188` 闸门**（orphan 阻断 / dev_only_orphan 提醒 / repo_only 不判负；**复用 `pkg_exclude.is_app_dev_only()` 作权威判定** ＋ 兜底正则由 T5 强制一致）⇒ ✅ **鉴别力自检 6/6 PASS** ＋ **真实缺陷形态 PASS** ＋ **真 fresh clone 内复验 PASS**（clone 内 `repo_live` 指向 `Temp/fc188/live_caption` ⇒ §118 的「写死仓库根」**未复发**）＋ **28/28 生产模块全部入库** ⇒ 详见 **§119**
 阻塞 / 待用户决定: ① 🔴 **需用户实听 3 段 1.2–1.3× 配音素材**（`C:\Users\Trekker-PTL\shared\app_accel_listen\`：1.2× / 1.3× / 1.3×）＋ **reviewer 判定音质 / 不变调 / 可懂** —— 本轮 `app186` 总闸门只覆盖**链路 + 结构 + 数字自洽**（`ACCEPTED.json.scope` 已明写），**质量判定不在其中**；② 🔴 **§117 待 reviewer 复核 2 项**（① APP-043「通过」口径 ② `app186` 总闸门 25 条判据口径）—— ③「`app186` 写死包版本」**已于 §118 闭环**；③ 🔴 **v1.12 / v1.5 等历史 zip 仍是旧内容**（历史包本轮**未重打**、旧包目录**未删除**（破坏性操作需用户确认））；④ 🔴 **§115 待 reviewer 复核 5 项**（① `EXECUTION_DEVICES` 返回类型口径——**推翻了 §82 的旧解读** ② `absent`/`unknown` 分离 ③ `talker` 聚合所有桶 ④ App 不调 `build()` ⇒ 第②条不适用 ⑤ TTS 模块 `cp_decode_device` 未被消费 ⇒ App 无需改动）；⑤ 🔴 **§114 待 reviewer 复核 4 项**（CI 判据口径 / 写法差异 vs 真错误拆分规则 / 多 3 句真错误是否提示用户 / 是否用最新包重跑）；⑥ 🔴 **宿主 `PYTHONPATH` 污染对历史验收结论的影响范围待 reviewer 确认**（§112 已证明它会让 `torch` 假阳性；§109/§110 为静态字节比对，未受影响）；⑦ 🔴 **本轮未修改** `status/app/CORRECTIONS_APP.md`（只读，reviewer 独占写入，SHA256 `327f8653…39904` 零改动）；⑧ 🔴 **§113 待 reviewer 复核 4 项**（版本标识闸门口径 / 「改动说明」归为提醒不阻断 / `sync_c172`「只改身份行不改内容」设计 / v1.13 改动说明排期）；⑨ 🆕🔴 **`app188` 的判据口径待 reviewer 复核**（① `orphan` 判**阻断**是否过严 ② `repo_only` **不判负**是否可接受 ③ `dev_only_orphan` 是否应完全以 `pkg_exclude` 为准 —— 本轮已用 T5 强制两者一致）；⑩ 🆕🔴 **95 处「过期包版本」引用的清点结论待 reviewer 复核**（本轮只清点、未改；多数在 docstring ⇒ 需区分「文档举例」与「真写死」后再动 ⇒ 建议另开一轮专项，**不在本轮扩大改动面**）
-已压缩: 原文见 `status/archive/STATUS_APP_upto_20261030.md`（1 437 968 B，只读归档）；纠偏归档见 `status/archive/CORRECTIONS_APP_closed_upto_20261030.md`（全量原文备份 `CORRECTIONS_APP_full_before_compress_20261030.md`）。**本文件 85 528 B / 736 行**（原 1 437 968 B / 18 977 行 ⇒ **−94.1%**；§119 追加后）。
+已压缩: 原文见 `status/archive/STATUS_APP_upto_20261030.md`（1 437 968 B，只读归档）；纠偏归档见 `status/archive/CORRECTIONS_APP_closed_upto_20261030.md`（全量原文备份 `CORRECTIONS_APP_full_before_compress_20261030.md`）。**本文件 86 791 B / 756 行**（原 1 437 968 B / 18 977 行 ⇒ **−94.0%**；§119 追加后）。
 
 
 ## 最近更新
@@ -676,6 +676,24 @@ cd /tmp/fresh_clone_test && python -c "import pack_v13; print(pack_v13.check_ver
 | ② 搬到 `Temp/relo/` 单跑 | **明确报错**（拒绝运行，不给假结论） |
 | ③ **随仓库 clone 到 `Temp/fc119`** | 定位到 **clone 自己的** 仓库 ＋ 自动发现 **v1.13** ⇒ **未读原仓库** |
 
+🔴🔴🔴 **接着实测抓到的第 2 个真缺陷（同一脚本）**：修完路径后，
+在 clone 内跑 `--check` 仍报 **`[FAIL] 锚点命中 0 次`** ⇒ 定位失效。
+
+**根因**：`ANCHOR_OLD` / `ANCHOR_NEW` 是 **LF** 行尾的字面量，
+而 **clone 出来的 `tts_engine.py` 是 CRLF**（§5.6）⇒ `pkg.count(ANCHOR_OLD)` **恒为 0**
+⇒ 脚本在 clone 环境里**永远定位失败**。
+
+**修法**：**读入时归一化行尾**（`\r\n` → `\n`）⇒ 锚点匹配与行尾无关；
+**写出时按客户包原有的行尾风格还原**（`pkg_nl`）⇒ **同步不会改变包的行尾**；
+备份也改存**原始**内容（`pkg_raw`）⇒ 备份与包内字节一致。
+
+✅ **修后实测**：
+
+| 情形 | 修前 | 修后 |
+|---|---|---|
+| 仓库内 `--check` | `[OK] …no-op` | `[OK] …no-op`（**不变**） |
+| **clone 内（CRLF）** `--check` | 🔴 `[FAIL] 锚点命中 0 次` | ✅ `[OK] 客户包已是最新（SHA256 一致），no-op` |
+
 #### 5.6 🔴 一个**必须留档**的环境事实：clone 时**行尾被转换**（`core.autocrlf=true` ＋ 仓库无 `.gitattributes`）
 
 | 项 | 实测 |
@@ -691,7 +709,9 @@ cd /tmp/fresh_clone_test && python -c "import pack_v13; print(pack_v13.check_ver
 ⇒ ✅ **功能不受影响**（Python 两种行尾都能跑）；
 ⇒ ✅ **§118 的「仓库 ⇄ 包 28/28 逐字节一致」结论仍成立**（那份比对**本就归一化行尾后**做的）。
 ⇒ 🔴 **本轮实测 clone 内全套闸门**：`app186` = **PASS 25 / FAIL 0**、
-`app187` = PASS（除自指 DIRTY）、`app188` = **PASS** ⇒ **行尾转换未使任何闸门失效**。
+`app187` = **PASS 42 / FAIL 0**、`app188` = **PASS**（`--selftest` **6/6**）、
+`sync_c136 --check` = **PASS** ⇒ **行尾转换未使任何闸门失效**
+（⚠️ 但**曾**使 `sync_c136` 的锚点定位失效 ⇒ 已修，见 §5.5）。
 ⇒ 🟡 **建议（不在本轮做）**：在仓库加 `.gitattributes` 显式声明
 （`*.py text eol=lf` ＋ `*.bat text eol=crlf` ＋ `*.ps1 text eol=crlf`）
 ⇒ 否则「clone 出来的字节 ≠ HEAD 的字节」这个坑会持续存在。
@@ -732,5 +752,5 @@ cd /tmp/fresh_clone_test && python -c "import pack_v13; print(pack_v13.check_ver
 8. 🔴 **§113 待 reviewer 复核 4 项**（版本标识闸门口径 / 「改动说明」归为提醒不阻断 / `sync_c172`「只改身份行不改内容」设计 / v1.13 改动说明排期）。
 9. 🆕🔴 **`app188` 的判据口径待 reviewer 复核**（① `orphan` 判**阻断**是否过严 —— 若 reviewer 认为「包目录残留」应一律降级为提醒，则需改 `app188` 的分档 ② `repo_only` **不判负**是否可接受 ③ `dev_only_orphan` 的判定是否应完全以 `pkg_exclude` 为准 —— 本轮已用 T5 强制两者一致）。
 10. 🆕🔴 **95 处「过期包版本」引用的清点结论待 reviewer 复核**（本轮只清点、未改；多数在 docstring ⇒ 需区分「文档举例」与「真写死」后再动 ⇒ 建议另开一轮专项，**不在本轮扩大改动面**）。
-11. 🆕🔴 **`sync_c136_to_pkg.py` 的修法待 reviewer 复核**（§5.5）：① 「向上查找仓库根」＋「找不到就抛异常」是否认可 ② 是否要求**其余 50 处**「写死仓库根」按同一模式批量清理（本轮**刻意未做**以免扩大改动面）。
+11. 🆕🔴 **`sync_c136_to_pkg.py` 的修法待 reviewer 复核**（§5.5）：① 「向上查找仓库根」＋「找不到就抛异常」是否认可 ② **「读入归一化行尾 + 写回还原原行尾」**这套装配行尾的做法是否认可（这条是 clone 环境能工作的关键）③ 是否要求**其余 50 处**「写死仓库根」按同一模式批量清理（本轮**刻意未做**以免扩大改动面）。
 12. 🆕🔴 **是否加 `.gitattributes` 待 reviewer 裁定**（§5.6）：`core.autocrlf=true` ＋ 无 `.gitattributes` ⇒ **clone 出来的文件与 HEAD 逐字节不同**（行尾）⇒ 功能无影响，但「逐字节比对」类判据在 clone 上必须先归一化 ⇒ 加 `.gitattributes` 会**触发全仓行尾重写**（大面积改动）⇒ 本轮**只留档、未做**。
