@@ -207,9 +207,21 @@ def main():
         return 2
 
     with open(pkg_file, 'r', encoding='utf-8', newline='') as f:
-        pkg = f.read()
+        pkg_raw = f.read()
     with open(REPO_FILE, 'r', encoding='utf-8', newline='') as f:
-        repo = f.read()
+        repo_raw = f.read()
+
+    # 🔴🔴🔴 §119 修正（**真实缺陷**，实测踩到）：
+    #   锚点字面量 `ANCHOR_OLD` / `ANCHOR_NEW` 是 **LF** 行尾，
+    #   而 **clone 出来的文件是 CRLF**（`core.autocrlf=true` ＋ 仓库无 `.gitattributes`
+    #   ⇒ 见 §119 §5.6）⇒ `pkg.count(ANCHOR_OLD)` **恒为 0**
+    #   ⇒ 脚本在 clone 环境里**永远报「锚点命中 0 次」** ⇒ 定位失效。
+    #   ⇒ 修法：**读入时归一化行尾**（`\r\n` → `\n`），
+    #      **写出时按原文件的行尾风格还原** ⇒ 锚点匹配与行尾无关，
+    #      且**不改变**客户包原有的行尾风格。
+    pkg_nl = '\r\n' if '\r\n' in pkg_raw else '\n'
+    pkg = pkg_raw.replace('\r\n', '\n')
+    repo = repo_raw.replace('\r\n', '\n')
 
     if pkg == repo:
         print('[OK] 客户包已是最新（SHA256 一致），no-op')
@@ -248,11 +260,13 @@ def main():
     os.makedirs(bdir, exist_ok=True)
     bak = os.path.join(bdir, 'tts_engine.py.bak_20261023')
     with open(bak, 'wb') as f:
-        f.write(pkg.encode('utf-8'))
+        f.write(pkg_raw.encode('utf-8'))   # 🔴 备份**原始**内容（保留原行尾）
     print(f'[backup] {bak}')
 
+    # 🔴 §119：写回时**还原客户包原有的行尾风格** ⇒ 不因同步而改变行尾
+    out_text = new_pkg.replace('\n', pkg_nl) if pkg_nl != '\n' else new_pkg
     with open(pkg_file, 'w', encoding='utf-8', newline='') as f:
-        f.write(new_pkg)
+        f.write(out_text)
 
     print('[OK] 已写入客户包')
     print(f'  repo {sha256(REPO_FILE)}')
