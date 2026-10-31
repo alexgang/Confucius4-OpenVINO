@@ -8,9 +8,9 @@
   "n_total": 22,
   "pkg_files": {
     "live_caption_app.py": {
-      "bytes": 293051,
-      "mtime": 1793303947.99898,
-      "sha256": "6d930e429b9d9b9991339937424f6566a46e12caa1bf55ed4eaa49b9480e6c08"
+      "bytes": 298613,
+      "mtime": 1793322192.6004314,
+      "sha256": "5936e85a4774b1ad8b36483f1222501a95fd9022e251b6fe890dcdb85a665bc3"
     },
     "tts_service.py": {
       "bytes": 125332,
@@ -18,9 +18,9 @@
       "sha256": "4b34e8015d6ad53879b9c4e4c5162798d9ad1eab05c4595fa3852d61947ee509"
     },
     "tts_worker.py": {
-      "bytes": 210027,
-      "mtime": 1793289718.884823,
-      "sha256": "496ecce3f9ceb3bf34c8a434a6bd1734ecfa045109898ae55f39e3c1eb930788"
+      "bytes": 214263,
+      "mtime": 1793322192.461719,
+      "sha256": "3ecfbc94f9c267296b0e07903baeff9b9f77c27be4263d806cc8be218680589c"
     },
     "time_stretch.py": {
       "bytes": 19765,
@@ -52,7 +52,7 @@
     {
       "name": "P2 包内 live_caption_app.py 与仓库**逐字一致**（归一化换行）",
       "ok": true,
-      "detail": "sha_pkg=6d930e429b9d9b99 sha_repo=85e83a6bdf68e5c2"
+      "detail": "sha_pkg=5936e85a4774b1ad sha_repo=202324086ab4595a"
     },
     {
       "name": "P2 包内 tts_service.py 与仓库**逐字一致**（归一化换行）",
@@ -62,7 +62,7 @@
     {
       "name": "P2 包内 tts_worker.py 与仓库**逐字一致**（归一化换行）",
       "ok": true,
-      "detail": "sha_pkg=496ecce3f9ceb3bf sha_repo=acc7fef0a804cd83"
+      "detail": "sha_pkg=3ecfbc94f9c26729 sha_repo=87627ec5d34de38f"
     },
     {
       "name": "P2 包内 time_stretch.py 与仓库**逐字一致**（归一化换行）",

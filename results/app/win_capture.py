@@ -44,7 +44,21 @@ user32.SetProcessDPIAware()
 
 
 def capture_hwnd(hwnd, path, flags=PW_RENDERFULLCONTENT):
-    """抓 hwnd 窗口内容存 PNG。成功返回 True。"""
+    """抓 hwnd 窗口内容存 PNG。成功返回 True。
+
+    🔴🔴🔴 **APP-178 实测修正（2026-10-31）**：
+      对 **Tk 窗口（pythonw 启动的 GUI）**，`PrintWindow(hwnd, hdc, 2)`
+      （`PW_RENDERFULLCONTENT`）**返回 0（失败）**，
+      而 `PrintWindow(hwnd, hdc, 0)` **返回 1（成功）**！
+      （app165 的 GUI 是 mock 的 Label 布局，flag=2 恰好能过 ⇒ 掩盖了这点）
+      ⇒ 原实现「flag=2 失败 ⇒ 直接退到 BitBlt 读屏幕」
+         ⇒ 本机屏幕读不出来 ⇒ 抓到**黑图**（661/917 B）
+      ⇒ 现在改成**三级降级**：
+         ① `PrintWindow(flags)`（默认 2）
+         ② `PrintWindow(0)`（普通自绘）
+         ③ `BitBlt`（读屏幕 —— 本机基本无效 ⇒ 仅作最后兜底）
+      ⇒ 且**必须用像素级守卫**验证抓到的不是黑图。
+    """
     import os
 
     rect = w.RECT()
@@ -63,11 +77,14 @@ def capture_hwnd(hwnd, path, flags=PW_RENDERFULLCONTENT):
     old = gdi32.SelectObject(mem_dc, bmp)
     ok = False
     try:
-        # 🔴 PrintWindow：让窗口自绘进 mem_dc（不读屏幕像素）
-        if user32.PrintWindow(hwnd, mem_dc, flags):
-            ok = _save_bmp(mem_dc, bmp, path, width, height)
+        # 🔴 三级降级（见 docstring）
+        for fl in (flags, 0):
+            if user32.PrintWindow(hwnd, mem_dc, fl):
+                ok = _save_bmp(mem_dc, bmp, path, width, height)
+                if ok:
+                    break
         if not ok:
-            # 兜底：BitBlt 窗口 DC
+            # 兜底：BitBlt 窗口 DC（本机读屏幕 ⇒ 多为黑图 ⇒ 仅最后手段）
             gdi32.BitBlt(mem_dc, 0, 0, width, height, win_dc, 0, 0, SRCCOPY)
             ok = _save_bmp(mem_dc, bmp, path, width, height)
     finally:
@@ -79,10 +96,6 @@ def capture_hwnd(hwnd, path, flags=PW_RENDERFULLCONTENT):
 
 
 def _save_bmp(mem_dc, bmp, path, width, height):
-    try:
-        from PIL import Image
-    except Exception:
-        return False
     class BITMAPINFOHEADER(ctypes.Structure):
         _fields_ = [
             ('biSize', w.DWORD), ('biWidth', w.LONG), ('biHeight', w.LONG),
@@ -103,9 +116,50 @@ def _save_bmp(mem_dc, bmp, path, width, height):
     got = gdi32.GetDIBits(mem_dc, bmp, 0, height, buf, ctypes.byref(bi), 0)
     if not got:
         return False
-    img = Image.frombuffer('RGBA', (width, height), buf, 'raw', 'BGRA', 0, 1)
-    img.convert('RGB').save(path)
-    return True
+
+    # 🔴🔴🔴 **纯 stdlib 落盘**（app181 实测修正）：
+    #   原实现 `from PIL import Image` ⇒ 在**系统 Python 3.13** 上：
+    #     · 3.13 没装 PIL ⇒ `ModuleNotFoundError` ⇒ 直接 `return False`
+    #     · 若把**包内 3.12 的 site-packages** 加进 sys.path ⇒ 加载到
+    #       3.12 编译的 C 扩展 `_imaging` ⇒ `ImportError` ⇒ 同样失败
+    #   ⇒ 抓图**静默全废**（app181 第一版 client_n_colors 恒为 0）。
+    #   ⇒ 改成：**纯 zlib/struct 写 PNG**（`png_stats.write_png`）
+    #   ⇒ **任何解释器都能落盘**；PIL 若恰好可用则仍优先用它。
+    try:
+        from PIL import Image
+    except Exception:
+        Image = None
+
+    if Image is not None:
+        try:
+            img = Image.frombuffer('RGBA', (width, height), buf, 'raw',
+                                   'BGRA', 0, 1)
+            img.convert('RGB').save(path)
+            return True
+        except Exception:
+            pass
+
+    # ── 纯 stdlib 路径 ────────────────────────────────────────────
+    try:
+        import os
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from png_stats import write_png
+        raw = buf.raw
+        rows = []
+        stride = width * 4
+        for y in range(height):
+            base = y * stride
+            row = []
+            for x in range(width):
+                i = base + x * 4
+                b, g, r = raw[i], raw[i + 1], raw[i + 2]   # 🔴 BGRA
+                row.append((r, g, b))
+            rows.append(row)
+        write_png(path, width, height, rows)
+        return os.path.getsize(path) > 1000
+    except Exception:
+        return False
 
 
 def wintypes_hwnd(hwnd):

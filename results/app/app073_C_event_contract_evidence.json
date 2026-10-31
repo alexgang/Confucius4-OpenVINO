@@ -9,13 +9,13 @@
       "group": "REAL",
       "name": "A1 unpack_event 解 3 元组（旧格式）",
       "ok": true,
-      "detail": "{'kind': 'draft', 'id': 'DRAFT::k4', 'key': 'DRAFT::k4', 'src': '', 'txt': '译文', 'seg': None}"
+      "detail": "{'kind': 'draft', 'id': 'DRAFT::k4', 'key': 'DRAFT::k4', 'src': '', 'txt': '译文', 'seg': None, 'spk': None, 'spk_conf': None}"
     },
     {
       "group": "REAL",
       "name": "A2 unpack_event 解 5 元组（新格式）",
       "ok": true,
-      "detail": "{'kind': 'final', 'id': 'C:1:7', 'key': 'C:1:7', 'src': 'We should go to market soon with three milestones done.', 'txt': '我们应该很快推向市场，并且已经完成了三个里程碑。', 'seg': 2}"
+      "detail": "{'kind': 'final', 'id': 'C:1:7', 'key': 'C:1:7', 'src': 'We should go to market soon with three milestones done.', 'txt': '我们应该很快推向市场，并且已经完成了三个里程碑。', 'seg': 2, 'spk': None, 'spk_conf': None}"
     },
     {
       "group": "REAL",

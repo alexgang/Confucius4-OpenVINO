@@ -1,6 +1,6 @@
 {
   "task": "APP-015 方案 C 的 App 侧渲染层（caption_render.py）离线验收",
-  "generated_at": "2026-10-25 21:18:11",
+  "generated_at": "2026-10-29 17:16:52",
   "discipline": {
     "imports_only_stdlib_render_module": true,
     "no_inference": true,
@@ -25,7 +25,7 @@
     "bug_hit": 5,
     "bug_miss": 0,
     "verdict": "PASS",
-    "elapsed_s": 0.001
+    "elapsed_s": 0.0
   },
   "results": [
     {
@@ -128,7 +128,7 @@
       "group": "REAL",
       "name": "R9 collect_drafts 取到草稿译文与原文",
       "ok": true,
-      "detail": "[{'key': 'DRAFT::k4', 'src': 'we should go', 'mt': '我们应该走'}]"
+      "detail": "[{'key': 'DRAFT::k4', 'id': 'DRAFT::k4', 'src': 'we should go', 'mt': '我们应该走'}]"
     },
     {
       "group": "REAL",

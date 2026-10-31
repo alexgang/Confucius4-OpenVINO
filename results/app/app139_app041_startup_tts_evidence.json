@@ -3,7 +3,7 @@
   "correction": "APP-041",
   "target": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\live_caption_app.py",
   "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
-  "interpreter": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+  "interpreter": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\.venv\\Scripts\\python.exe",
   "total": 21,
   "n_pass": 21,
   "n_fail": 0,

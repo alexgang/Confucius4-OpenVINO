@@ -1,6 +1,6 @@
 {
   "task": "App 侧本轮三项改动（安静窗口闸门 / 匹配规则 / 开发专用文件排除）的离线闸门",
-  "generated_at": "2026-10-25 21:18:02",
+  "generated_at": "2026-10-26 15:27:30",
   "discipline": {
     "no_model_import": true,
     "no_inference": true,
@@ -15,7 +15,7 @@
     "pass": 28,
     "fail": 0,
     "verdict": "PASS",
-    "elapsed_s": 6.145
+    "elapsed_s": 6.661
   },
   "results": [
     {

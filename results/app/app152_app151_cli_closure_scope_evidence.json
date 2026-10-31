@@ -1,8 +1,8 @@
 {
-  "ts": "2026-10-30 04:01:29",
+  "ts": "2026-10-30 09:36:19",
   "target": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\live_caption_app.py",
-  "target_bytes": 298518,
-  "target_mtime": "2026-10-30 03:50:04",
+  "target_bytes": 306350,
+  "target_mtime": "2026-10-30 09:28:59",
   "defect": "run_cli 闭包 _spk_pcm_buf/_spk_pending_embed 重绑 ⇒ UnboundLocalError",
   "pass_count": 7,
   "fail_count": 0,

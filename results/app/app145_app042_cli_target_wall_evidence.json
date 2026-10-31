@@ -35,7 +35,7 @@
     {
       "check": "C7_register_before_submit",
       "pass": true,
-      "detail": "登记位置 174263 < submit 位置 174759"
+      "detail": "登记位置 195522 < submit 位置 197172"
     },
     {
       "check": "C8_gui_still_uses_target_play_at",
@@ -83,7 +83,7 @@
     {
       "check": "C7_register_before_submit",
       "pass": true,
-      "detail": "登记位置 128318 < submit 位置 128468"
+      "detail": "登记位置 141155 < submit 位置 141930"
     },
     {
       "check": "C8_gui_still_uses_target_play_at",

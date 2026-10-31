@@ -49,9 +49,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 ENGINE_PY = os.path.join(REPO, 'live_caption', 'tts_engine.py')
 
-PKG_SITE = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.12\python\Lib\site-packages'
+PKG_SITE = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.13\python\Lib\site-packages'
 
-FUNC_NAMES = {'speaker_embedding_from_pcm', '_mel_spectrogram_np_24000'}
+FUNC_NAMES = {'speaker_embedding_from_pcm', '_mel_spectrogram_np_24000',
+              # 🔴 APP-052：新增的 OV 输出转换器（被测代码依赖它）
+              '_ov_out_to_array'}
 
 
 def _build_ns(src_text, func_names=FUNC_NAMES):

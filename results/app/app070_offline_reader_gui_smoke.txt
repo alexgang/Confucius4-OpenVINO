@@ -1,6 +1,6 @@
 ==============================================================================
 app070 离线朗读对话框 GUI 冒烟（真实 Tk + 假 service，不加载模型）
-ts=2026-10-26 13:27:11  python=3.12.10
+ts=2026-10-26 16:15:44  python=3.12.10
 ==============================================================================
 假 service 的积压阈值 = 8.0s（与 tts_service 源码一致）
 
@@ -12,7 +12,7 @@ ts=2026-10-26 13:27:11  python=3.12.10
 [B] 文本与统计
   PASS  统计标签含字数/时长/分段  [字数 117 · 预计 21.8 s · 分段 10]
   PASS  分段数与模块一致  [期望 10]
-  PASS  窗口截图（朗读前）  [C:\Users\TREKKE~1\AppData\Local\Temp\app070_shots\app070_dialog_before.png 32331 B]
+  FAIL  窗口截图（朗读前）  [C:\Users\TREKKE~1\AppData\Local\Temp\app070_shots\app070_dialog_before.png 1847 B]
 
 [C] 开始朗读
   PASS  开始后按钮状态正确
@@ -24,7 +24,7 @@ ts=2026-10-26 13:27:11  python=3.12.10
   PASS  丢句 = 0（节流在 GUI 路径上同样生效）  [dropped=0]
   PASS  进度标签反映「已提交 x/y 段」  [已提交 10/10 段 · 待播 0 · TTS ready]
   PASS  念完后按钮回到可再点状态
-  PASS  窗口截图（朗读完成）  [C:\Users\TREKKE~1\AppData\Local\Temp\app070_shots\app070_dialog_done.png 33436 B]
+  FAIL  窗口截图（朗读完成）  [C:\Users\TREKKE~1\AppData\Local\Temp\app070_shots\app070_dialog_done.png 1847 B]
   PASS  日志里有「开始朗读」记录  [1 条日志]
 
 [D] 停止
@@ -38,7 +38,7 @@ ts=2026-10-26 13:27:11  python=3.12.10
   PASS  关闭后对话框已销毁
 
 ==============================================================================
-结果：PASS 21 / FAIL 0
+结果：PASS 19 / FAIL 2
 截图：C:\Users\TREKKE~1\AppData\Local\Temp\app070_shots
 ⚠️ 本冒烟用假 service（不加载模型）⇒ 只能证明**界面与节流链路**，不能证明真实音频；真实音频由人工朗读确认。
 ==============================================================================

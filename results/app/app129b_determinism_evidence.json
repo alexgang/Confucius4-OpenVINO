@@ -1,27 +1,27 @@
 {
   "quiet": {
     "ok": true,
-    "waited_s": 105.07148766517639
+    "waited_s": 45.03064155578613
   },
   "d1_same_process_greedy_same_text": [
-    36480,
-    42240,
-    40320
+    30720,
+    30720,
+    28800
   ],
   "d1_consistent": false,
   "d2_same_process_greedy_x6": [
-    30720,
-    34560,
     36480,
+    30720,
     32640,
-    40320,
-    44160
+    26880,
+    38400,
+    36480
   ],
   "d2_consistent": false,
   "d3_same_process_sampling_x3": [
-    26880,
+    28800,
     30720,
-    44160
+    24960
   ],
   "d3_consistent": false
 }

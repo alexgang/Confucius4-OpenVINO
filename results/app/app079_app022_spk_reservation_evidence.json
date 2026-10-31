@@ -55,7 +55,7 @@
    "group": "REAL",
    "name": "A6 tts_service.submit() 接受 spk 并透传到 synth 命令",
    "ok": true,
-   "detail": "args=['self', 'text', 'seg', 'spk', 'spk_conf'] cmd_fields=True"
+   "detail": "args=['self', 'text', 'seg', 'spk', 'spk_conf', 'lang', 'target_play_at'] cmd_fields=True"
   },
   {
    "group": "REAL",

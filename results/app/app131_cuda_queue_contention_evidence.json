@@ -17,7 +17,7 @@
     {
       "name": "A2-修前：`_start_drain` 对别 rid 消息**忙循环插回**（D3）",
       "pass": true,
-      "detail": "插回 677893 次/秒"
+      "detail": "插回 672408 次/秒"
     },
     {
       "name": "A3-修前：旧 reader 线程的 EOF 哨兵**污染新边车队列**（D5'）",
@@ -74,7 +74,7 @@
       "has_rid_split": false
     },
     "d3": {
-      "put_front_calls": 677893,
+      "put_front_calls": 672408,
       "busy": true,
       "has_rid_split": false
     },

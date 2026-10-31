@@ -1,6 +1,6 @@
 {
  "task": "App 侧「安静窗口闸门」离线验收（MT 通知 10 §10.6 / TTS 锁路径通知）",
- "generated_at": "2026-10-25 21:18:23",
+ "generated_at": "2026-10-26 01:40:12",
  "discipline": {
   "imports_only_stdlib_lock_module": true,
   "no_inference": true,
@@ -30,7 +30,7 @@
    "group": "REAL",
    "name": "Q2 list_processes 能枚举进程（ctypes Win32 API）",
    "ok": true,
-   "detail": "n_procs=405"
+   "detail": "n_procs=376"
   },
   {
    "group": "REAL",
@@ -42,13 +42,13 @@
    "group": "REAL",
    "name": "Q3 external_python_pids 排除自己",
    "ok": true,
-   "detail": "self=1872 ext=[37812, 38456, 38236, 9668, 16732, 9748, 38888]"
+   "detail": "self=39512 ext=[39748, 29248, 38924, 8264]"
   },
   {
    "group": "REAL",
    "name": "Q3 能发现别的 python 进程（本机实测非空）",
    "ok": true,
-   "detail": "n_ext=7"
+   "detail": "n_ext=4"
   },
   {
    "group": "REAL",

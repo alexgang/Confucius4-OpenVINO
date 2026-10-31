@@ -1,13 +1,13 @@
 {
   "script": "app136_s92_threeway_check.py",
-  "zip": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6.zip",
-  "prefix": "Confucius4_LiveCaption_v1.6",
+  "zip": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.7.zip",
+  "prefix": "Confucius4_LiveCaption_v1.7",
   "repo_app": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption",
-  "pkg_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6\\app",
+  "pkg_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.7\\app",
   "zip_file": {
-    "bytes": 11218138008,
-    "mtime": "2026-10-29 13:20:04",
-    "sha256": "376c483201007ce2805df126df8241cf01ddc8757a2447226981090ae06631b8"
+    "bytes": 11218140640,
+    "mtime": "2026-10-29 15:59:47",
+    "sha256": "43857883cc29fb79a8e196e65e77fe2923c7fe9783dfc3a175395fe3550105cc"
   },
   "n_compare": 23,
   "exclude": [
@@ -44,9 +44,9 @@
     },
     {
       "name": "caption_render.py",
-      "repo_sha16": "3642555a536c4d66",
-      "pkg_sha16": "3642555a536c4d66",
-      "zip_sha16": "3642555a536c4d66",
+      "repo_sha16": "be9e1d43918424c3",
+      "pkg_sha16": "be9e1d43918424c3",
+      "zip_sha16": "be9e1d43918424c3",
       "repo_eq_pkg": true,
       "pkg_eq_zip": true
     },
@@ -68,9 +68,9 @@
     },
     {
       "name": "live_caption_app.py",
-      "repo_sha16": "5aa3269aa9b0b740",
-      "pkg_sha16": "5aa3269aa9b0b740",
-      "zip_sha16": "5aa3269aa9b0b740",
+      "repo_sha16": "6d81361d8436443b",
+      "pkg_sha16": "6d81361d8436443b",
+      "zip_sha16": "6d81361d8436443b",
       "repo_eq_pkg": true,
       "pkg_eq_zip": true
     },
@@ -224,12 +224,12 @@
     },
     {
       "name": "live_caption_app.py",
-      "repo_sha256": "5aa3269aa9b0b7407abdf8dde6d422c294e69a46e6a846b026403e06401a33c4",
-      "pkg_sha256": "5aa3269aa9b0b7407abdf8dde6d422c294e69a46e6a846b026403e06401a33c4",
-      "zip_sha256": "5aa3269aa9b0b7407abdf8dde6d422c294e69a46e6a846b026403e06401a33c4",
+      "repo_sha256": "6d81361d8436443bcc1b4506c5a76173c81b4e0586839999fa889c60be0631b4",
+      "pkg_sha256": "6d81361d8436443bcc1b4506c5a76173c81b4e0586839999fa889c60be0631b4",
+      "zip_sha256": "6d81361d8436443bcc1b4506c5a76173c81b4e0586839999fa889c60be0631b4",
       "all_equal": true,
-      "repo_bytes": 253195,
-      "pkg_bytes": 248484
+      "repo_bytes": 258637,
+      "pkg_bytes": 253828
     }
   ],
   "testzip_bad": null,
