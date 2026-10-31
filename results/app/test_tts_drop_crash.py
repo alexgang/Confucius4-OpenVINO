@@ -173,16 +173,28 @@ def main():
          f'pending={len(svc.pending)} n_dropped={svc.n_dropped} '
          f'inflight={sorted(svc._inflight)}')
 
-    # 调低阈值 ⇒ 手动触发丢句
-    tts_service.BACKLOG_MAX_S = 1.0
+    # 🔴🔴🔴 §120 修正（**断言前提过期**，不是产品回归）：
+    #   本组原本靠「把 `BACKLOG_MAX_S` 调低 ⇒ `_update_backlog()` 积压丢句」来造场景。
+    #   但 **APP-028②**（用户 2026-10-27 13:22 明文决定「**不要使用丢句这个方式**」）
+    #   已由 `6d90715`（§70）把 `_update_backlog()` 的**丢句分支整段删除**
+    #   ⇒ 该造景手段**不再产生丢句** ⇒ A2/A3/A4 三条断言**必然 FAIL**
+    #   （实测：修前基线 `51df313` PASS、`6d90715` 起 FAIL ⇒ 断点精确到该 commit）。
+    #   ⇒ 🔴 **不是**「删掉断言」了事 ⇒ 改用**当前真实存在的丢句入口**
+    #   `TTSService._drop_one(jid, register_dropped=...)`
+    #   （§60 建立的「丢句记账的唯一原子口径」）⇒ 场景等价、断言**仍然非恒真**。
+    #   ⇒ 判据从「断言旧行为」改成「断言**不变式**」：
+    #      被丢的 jid 必须从 `_inflight` 注销、且只被计一次丢句。
     n_drop_before = svc.n_dropped
     with svc.lock:
         pending_before = list(svc.pending.keys())
-    svc._update_backlog()
+    # 走**真实丢句入口**（与 `cancel()` / 发送失败 / worker 故障同一口径）
+    victim = pending_before[0] if pending_before else None
+    dropped_ok = bool(victim is not None and svc._drop_one(victim,
+                                                          register_dropped=True))
     time.sleep(0.2)
 
     real('A2 确实发生了丢句（n_dropped 增加）', svc.n_dropped > n_drop_before,
-         f'n_dropped {n_drop_before} -> {svc.n_dropped}')
+         f'n_dropped {n_drop_before} -> {svc.n_dropped} drop_one返回={dropped_ok}')
     real('A3 pending 已减少', len(svc.pending) < len(pending_before),
          f'pending {len(pending_before)} -> {len(svc.pending)}')
 
@@ -209,8 +221,11 @@ def main():
     t0 = time.time()
     while time.time() - t0 < 10 and len(svc2.pending) < 8:
         time.sleep(0.05)
-    tts_service.BACKLOG_MAX_S = 1.0
-    svc2._update_backlog()
+    # 🔴 §120：同上（APP-028② 已删掉积压丢句）⇒ 用**真实丢句入口**造景
+    with svc2.lock:
+        _victim = sorted(svc2.pending.keys())
+    if _victim:
+        svc2._drop_one(_victim[0], register_dropped=True)
     time.sleep(0.2)
     n_sub = svc2.n_submitted
     dropped_after = svc2.n_dropped
@@ -289,6 +304,63 @@ def main():
         pass
 
     tts_service.BACKLOG_MAX_S = old_max
+
+    # ── [F] 🔴🔴🔴 §120 鉴别力反证：**注入原缺陷** ⇒ A 组断言必须 FAIL ──
+    #   §120 改了 [A] 组的**造景手段**（`_update_backlog()` ⇒ `_drop_one()`）
+    #   ⇒ 必须证明新判据**仍然能识破**原缺陷（§四纪律：判据 PASS ≠ 判据正确）。
+    #   ⚠️ 历史基线**不可用**：`_drop_one` 本身是 §60（`3afaf7a`）才引入的
+    #   ⇒ 没有任何历史 commit 同时具备「`_drop_one`」与「`_inflight` 注销缺陷」
+    #   ⇒ 改用**注入法**：把 `_drop_one` 的 `_inflight.discard` 去掉
+    #   （= 精确复刻 §29 缺陷①）⇒ A 组断言**必须 FAIL** ⇒ 判据非恒真。
+    print()
+    print('[F] 鉴别力反证：注入 §29 缺陷①（_drop_one 不注销 _inflight）⇒ A 组必须 FAIL')
+    _orig_drop_one = tts_service.TTSService._drop_one
+
+    def _broken_drop_one(self, jid, register_dropped=False):
+        """注入版：保留计数与摘除，但**不**注销 `_inflight`（= §29 缺陷①）。"""
+        with self.lock:
+            was_pending = self.pending.pop(jid, None) is not None
+            # 🔴 缺陷注入点：缺 `self._inflight.discard(jid)`
+            if not was_pending:
+                return False
+            if register_dropped:
+                self._dropped_ids.add(jid)
+            self.n_dropped += 1
+        return True
+
+    tts_service.TTSService._drop_one = _broken_drop_one
+    try:
+        logs_f = []
+        svc_f = new_service(logs_f)
+        svc_f.start()
+        wait_state(svc_f, ('ready',))
+        tts_service.BACKLOG_MAX_S = 999.0
+        for i in range(4):
+            svc_f.submit('注入反证用第 %d 句，这句话故意写得很长很长很长很长' % i,
+                         seg=i)
+        t0 = time.time()
+        while time.time() - t0 < 10 and len(svc_f.pending) < 4:
+            time.sleep(0.05)
+        with svc_f.lock:
+            _pv = list(svc_f.pending.keys())
+        if _pv:
+            svc_f._drop_one(_pv[0], register_dropped=True)
+        time.sleep(0.2)
+        _ghost = [j for j in _pv if j in svc_f._inflight]
+        # 🔴 **归 REAL 组**：本组断言的是「缺陷**曾经真实存在**」
+        #   ⇒ 命中（ghost > 0）= **预期成立** ⇒ 判 PASS；
+        #   ⇒ 不命中 = 注入没生效 / 判据失灵 ⇒ 判 FAIL。
+        #   （§118 纪律：「证明缺陷曾存在」的断言**不能**放 BUG 组 ——
+        #     BUG 组语义 = 「缺陷**仍然存在**」⇒ 命中即 FAIL ⇒ 语义相反。）
+        real('F1 注入的 §29 缺陷①被复现（ghost > 0 ⇒ 判据能识破缺陷）',
+             len(_ghost) > 0,
+             f'ghost={_ghost} inflight={sorted(svc_f._inflight)}')
+        try:
+            svc_f.close()
+        except Exception:
+            pass
+    finally:
+        tts_service.TTSService._drop_one = _orig_drop_one
 
     print()
     print('=' * 72)

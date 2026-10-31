@@ -286,9 +286,21 @@ def main():
     real('B1 句子已在途', len(svc2.pending) == 1,
          f'pending={list(svc2.pending)} inflight={sorted(svc2._inflight)}')
 
-    # 调低阈值 ⇒ 触发积压丢句（主进程计一次丢句）
-    tts_service.BACKLOG_MAX_S = 1.0
-    svc2._update_backlog()
+    # 🔴🔴🔴 §120 修正（**断言前提过期**，不是产品回归）：
+    #   本组原本靠「调低 `BACKLOG_MAX_S` ⇒ `_update_backlog()` 积压丢句」来造场景。
+    #   但 **APP-028②**（用户 2026-10-27 13:22 明文决定「**不要使用丢句这个方式**」）
+    #   已由 `6d90715`（§70）把 `_update_backlog()` 的**丢句分支整段删除**
+    #   ⇒ 该造景手段**不再产生丢句** ⇒ B2 **必然 FAIL**
+    #   （实测：修前基线 `d39eb17` PASS、`6d90715` 起 FAIL ⇒ 断点精确到该 commit）。
+    #   ⇒ 🔴 **不是**「删掉断言」了事 ⇒ 改用**当前真实存在的丢句入口**
+    #   `TTSService._drop_one(jid, register_dropped=True)`
+    #   （§60 建立的「丢句记账的唯一原子口径」，与 §47/§30 同一语义：
+    #     「命令已下发、worker 仍可能无视 cancel 照样播」⇒ 必须登记 `_dropped_ids`）
+    #   ⇒ 场景等价、断言**仍然非恒真**。
+    with svc2.lock:
+        _pv2 = list(svc2.pending.keys())
+    if _pv2:
+        svc2._drop_one(_pv2[0], register_dropped=True)
     time.sleep(0.3)
     real('B2 已发生丢句（n_dropped == 1）', svc2.n_dropped == 1,
          f'n_dropped={svc2.n_dropped} pending={list(svc2.pending)}')
@@ -319,6 +331,61 @@ def main():
         pass
 
     tts_service.BACKLOG_MAX_S = old_max
+
+    # ── [C] 🔴🔴🔴 §120 鉴别力反证：**注入原缺陷** ⇒ B 组断言必须 FAIL ──
+    #   §120 改了 [B] 组的**造景手段**（`_update_backlog()` ⇒ `_drop_one()`）
+    #   ⇒ 必须证明新判据**仍然能识破**原缺陷（§四纪律：判据 PASS ≠ 判据正确）。
+    #   ⚠️ 历史基线**不可用**：`_drop_one` 是 §60（`3afaf7a`）才引入的
+    #   ⇒ 没有任何历史 commit 同时具备「`_drop_one`」与「双记缺陷」
+    #   ⇒ 改用**注入法**：把 `_drop_one` 的「登记 `_dropped_ids`」去掉
+    #   （= 精确复刻 §30 缺陷①「丢了又播双记」）
+    #   ⇒ B4「每句恰好算一次」**必须 FAIL** ⇒ 判据非恒真。
+    print()
+    print('[C] 鉴别力反证：注入 §30 缺陷①（丢了又播双记）⇒ B4 必须 FAIL')
+    _orig_drop_one = tts_service.TTSService._drop_one
+
+    def _broken_drop_one(self, jid, register_dropped=False):
+        """注入版：**不**登记 `_dropped_ids`（= §30 缺陷① 的根因）。"""
+        with self.lock:
+            was_pending = self.pending.pop(jid, None) is not None
+            self._inflight.discard(jid)
+            if not was_pending:
+                return False
+            # 🔴 缺陷注入点：缺 `self._dropped_ids.add(jid)`
+            self.n_dropped += 1
+        return True
+
+    tts_service.TTSService._drop_one = _broken_drop_one
+    try:
+        logs_c = []
+        svc_c = tts_service.TTSService(device='STUB', voice='A', auto=False,
+                                       on_log=logs_c.append)
+        svc_c.start()
+        wait_state(svc_c, ('ready',))
+        tts_service.BACKLOG_MAX_S = 999.0
+        svc_c.submit('注入反证用的一句，这句话故意写得很长很长很长很长', seg=0)
+        wait_for(lambda: len(svc_c.pending) >= 1)
+        with svc_c.lock:
+            _pvc = list(svc_c.pending.keys())
+        if _pvc:
+            svc_c._drop_one(_pvc[0], register_dropped=True)
+        time.sleep(0.3)
+        wait_for(lambda: svc_c.n_played >= 1, 10)
+        time.sleep(0.3)
+        _sumc = svc_c.n_played + svc_c.n_dropped
+        _subc = svc_c.n_submitted
+        # 🔴 **归 REAL 组**：断言的是「缺陷**曾经真实存在**」⇒ 命中 = 预期成立
+        #   ⇒ 双记被复现（sum > submitted）⇒ 判 PASS；不命中 = 判据失灵 ⇒ FAIL。
+        real('C1 注入的 §30 缺陷①被复现（sum > submitted ⇒ 判据能识破缺陷）',
+             _sumc > _subc,
+             f'played={svc_c.n_played} dropped={svc_c.n_dropped} '
+             f'sum={_sumc} submitted={_subc}')
+        try:
+            svc_c.close()
+        except Exception:
+            pass
+    finally:
+        tts_service.TTSService._drop_one = _orig_drop_one
 
     ev = os.path.join(HERE, 'test_tts_exit_played_evidence.json')
     with open(ev, 'w', encoding='utf-8') as f:
