@@ -2,7 +2,7 @@
 last_ack: EXT-026
 更新时间: 2026-11-01 00:55
 已压缩: 原文见 archive/STATUS_EXT_upto_20261030.md（224 833 B）；本精简版 ≤ 40 KB / ≤ 300 行 / < 归档/10（22 483 B 上限）；明细见 `status/notes/`
-当前任务: **§20 §19 收口**（闸门 **exit 1**，**未认领新编号** ⇒ `last_ack` 仍 = **EXT-026**）⇒ ✅ **T-5 内存不持续增长**：修掉 **3 类无界增长**（服务端 `_frame_arrival_delays` 每帧追加永不裁剪 / `_seg_orig_end`+`_seg_ready` 只写不读 / 插件 `gapDetail` 只追加永不裁剪）⇒ **统计口径一字不变**（均值累加 round 后的值 ⇒ 逐位等价）⇒ ✅ **T-6 设置持久化**：8 个控件 change/input 即时落盘（400 ms 防抖）+ 归一 + 幂等 ⇒ ✅ 新增自测 2 个（node 16 / Python 40）⇒ ✅ **24 套 / 1 104 PASS / 1 FAIL**（唯一 FAIL = 既有 `test_ext016_compression`；**② 已在本轮修**，见 §20）⇒ node harness **7 套全 rc=0** ⇒ ⚠️ `last_ack` = **EXT-026**（不变）⇒ ⛔ **Edge 真实手势验收仍需用户本人做**；⛔ 「30 分钟不崩」未做（需真实引擎）/ 克隆音色未接线（依赖 ASR-013）/ 暂停拖动未做（需 reviewer 口径）/ 端到端仍不实时（TTS RTF 1.0022）/ 同步误差仍超标（既有阻塞项，未动引擎）
+当前任务: **§20 §19 收口**（闸门 **exit 1**，**未认领新编号** ⇒ `last_ack` 仍 = **EXT-026**）⇒ ✅ **T-5 内存不持续增长**：修掉 **3 类无界增长**（服务端 `_frame_arrival_delays` 每帧追加永不裁剪 / `_seg_orig_end`+`_seg_ready` 只写不读 / 插件 `gapDetail` 只追加永不裁剪）⇒ **统计口径一字不变**（均值累加 round 后的值 ⇒ 逐位等价）⇒ ✅ **T-6 设置持久化**：8 个控件 change/input 即时落盘（400 ms 防抖）+ 归一 + 幂等 ⇒ ✅ 新增自测 2 个（node 16 / Python 40）⇒ ✅ **24 套 / 1 104 PASS / 1 FAIL**（唯一 FAIL = 既有 `test_ext016_compression` 的 CORRECTIONS 那条；**STATUS 体积那条已在本轮修**，见 §20）⇒ node harness **7 套全 rc=0** ⇒ ⚠️ `last_ack` = **EXT-026**（不变）⇒ ⛔ **Edge 真实手势验收仍需用户本人做**；⛔ 「30 分钟不崩」未做（需真实引擎）/ 克隆音色未接线（依赖 ASR-013）/ 暂停拖动未做（需 reviewer 口径）/ 端到端仍不实时（TTS RTF 1.0022）/ 同步误差仍超标（既有阻塞项，未动引擎）
 
 阻塞 / 待决定:
 ① ⛔ **Edge 真实手势 1 分钟验收（EXT-024 验收 1–4 条）** —— 需**用户本人**在 Edge 默认 profile 手动：双击桌面「实时配音桥接.cmd」→ 等就绪 → 打开英文网页视频 → 点扩展「开始」→ player 点「开始捕获」→ 连播 1 分钟；截图 30 s / 60 s 各一张；bridge.log 本次段级日志 ≥5 段且「下发到 player」段数 = TTS 段数、无「不顶替」无 10048
@@ -37,7 +37,7 @@ last_ack: EXT-026
 | **生产路径 flush（EXT-026 补齐）** | `offscreen.flushUplink()` → `sw.case 'flush'` → `popup`「停止并收尾」按钮（先 flush，12 s 后自动 stop）⇒ 尾段不再丢 | `extension/offscreen.js` / `sw.js` / `popup.js` |
 | **设置持久化（T-6）** | popup 的 8 个设置控件**改了就立刻落盘**（`change` + 文本框 `input` 400 ms 防抖）；落盘前**归一**（语言全称⇒引擎码）；两条写盘路径共用 `readCfg()` ⇒ 口径一致 | `extension/popup.js` → `bindPersistListeners()` / `persistCfgNow()` |
 | **内存不持续增长（T-5）** | 服务端逐帧到达延迟保留最近 **2000** 条、段级时刻表保留最近 **50** 段、插件 `gapDetail` 两侧各保留最近 **200** 条；**统计口径一字不变**（`n_frames_measured`/`late_ratio`/`mean`/`max` 由累计量承担 ⇒ 与旧实现逐位等价） | `ext/config.py` → `FRAME_DELAY_HISTORY` / `SEG_TIMING_HISTORY`；`ext/bridge.py` → `_trim_seg_timing_history()` |
-| 自测套件 | **24 套 / 1 104 PASS / 1 FAIL**（唯一 FAIL = 既有 `test_ext016_compression`：① CORRECTIONS 21 943 B（reviewer 独占，只读不改）② 精简版 STATUS 超 EXT-016 限额 —— **② 本轮已修**，见 §20）+ node harness **7 套全 rc=0** | §19/§20 本轮实测 |
+| 自测套件 | **24 套 / 1 104 PASS / 1 FAIL**（唯一 FAIL = 既有 `test_ext016_compression` 的 CORRECTIONS 21 943 B（reviewer 独占，只读不改）⇒ 既有状态）+ node harness **7 套全 rc=0** | §20 本轮实测 |
 
 ## 未完成纠偏清单
 
@@ -154,7 +154,7 @@ node harness **7 套全 rc=0**；三套明文自测单独确认 rc=0（**103**/*
 ⛔ **未改任何引擎文件**；⛔ **未跑真实推理、未占 GPU/NPU、未创建/未回收机器锁**（开工时锁不存在）；
 ⛔ `CORRECTIONS_EXT.md` **只读、未修改、未入库**。
 
-### §20 §19 收口 —— 补 EXEC_LOG + 提交 + **STATUS 压缩回限额内**（2026-11-01 00:5x）
+### §20 §19 收口 —— 补 EXEC_LOG + 提交 + **STATUS 压缩回限额内**（2026-11-01 00:57）
 
 **依据**：闸门 **exit 1**（latest=**EXT-026** / last_ack=26）⇒ **无新编号** ⇒ 继续 §19 的**收口**（上一轮被中断：
 代码与 notes 已写好，但 **EXEC_LOG 未追加、未提交**）。

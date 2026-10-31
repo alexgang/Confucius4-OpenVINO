@@ -2319,7 +2319,7 @@ A 轮另有 `schedClamped=7 / audioRecvSec=151.89225 / uplink.running=true / wsO
 | `tests/test_ext_selfcheck.py` | **103 PASS / 0 FAIL** | **0** |
 | `tests/test_echo_roundtrip.py` | **11 PASS / 0 FAIL** | **0** |
 | `tests/test_next_instruction.py` | **19 PASS / 0 FAIL** | **0** |
-| 全量 `tests/test_*.py` | **24 套 / 1 079 PASS / 1 FAIL** | 1（仅 `test_ext016_compression`） |
+| 全量 `tests/test_*.py` | **24 套 / 1 104 PASS / 1 FAIL**（批处理实测 **1 079** + `test_ext026_audio_analysis` 单独跑的 **25**，见下） | 1（仅 `test_ext016_compression`） |
 | node harness（7 套） | 33/13/17/13/26/28/**16** | 全 **0** |
 
 **唯一 FAIL 归因（逐条）**：
@@ -2334,7 +2334,7 @@ A 轮另有 `schedClamped=7 / audioRecvSec=151.89225 / uplink.running=true / wsO
   ⇒ 按铁律**不干预用户的 App**；单独跑 **28 PASS / 0 FAIL / rc=0**。
 * `test_ext026_audio_analysis.py` —— 批处理中偶发红，根因 **safe-delete 钩子**拦截批量删除
   （`SAFE_DELETE_BULK_CONFIRM_REQUIRED`，`count=312 > threshold=50`，对象是浏览器 profile 临时目录）
-  ⇒ 单独跑 **25 PASS / 0 FAIL / rc=0**。
+  ⇒ 单独跑 **25 PASS / 0 FAIL / rc=0** ⇒ 故全量口径 = 批处理 **1 079** + 该套件 **25** = **1 104 PASS / 1 FAIL**。
 
 #### 产物清单（均为**实测**）
 
