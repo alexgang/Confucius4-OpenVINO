@@ -2269,3 +2269,99 @@ A 轮另有 `schedClamped=7 / audioRecvSec=151.89225 / uplink.running=true / wsO
 
 ---
 
+### 2026-11-01 00:56 §19 收口 / §20 —— T-5 + T-6 落地提交 + **STATUS 压缩回 EXT-016 限额内** ← 本轮
+
+**执行时间**：2026-11-01 00:52:00 → **2026-11-01 00:55:49**（实测，`date` 命令）
+
+**闸门**：`tools/next_instruction.py --json` → **exit 1**
+（`action=skip` / `reason=already_executed` / `latest=EXT-026` / `last_ack=26`）
+⇒ **没有比 EXT-026 更新的纠偏条目** ⇒ **未认领新编号** ⇒ **`last_ack` 保持 EXT-026**。
+
+**本轮性质**：接手**被中断**的上一轮（§19）—— 代码与 `status/notes/sec19_*.md` 已写好，
+但 **EXEC_LOG 未追加、未提交** ⇒ 按 **EXT-014 ②**（「`last_ack` 追平后，只要还有未完成项，
+就自己继续做，不要空转」）做**收口**，并**顺带修掉一个上一轮引入的回归**（见下）。
+
+---
+
+#### ★ 本轮最重要发现：修掉一个「上一轮引入的回归」
+
+* 上一轮（§19）把 §19 正文写进精简版 STATUS ⇒ 体积从 **22 559 B** 涨到 **29 652 B**
+  ⇒ **撞破 EXT-016 硬约束**「精简版 < 归档/10 = **22 483 B**」
+  （归档 `status/archive/STATUS_EXT_upto_20261030.md` = **224 833 B**）
+  ⇒ `test_ext016_compression.py` 的断言「**精简版 STATUS 不含历史全文**」**由 PASS 转 FAIL**。
+* ⚠️ 上一轮的 notes 只报了「CORRECTIONS 那条 FAIL」，**漏了这条自己引入的**
+  ⇒ **教训**：「基线复核」必须**逐条 FAIL** 比对，不能只看总数。
+* ✅ **修法（按 EXT-016 规则裁剪，不是删内容）**：
+  §17 / §18 / §19 的内联明细**下沉到 `status/notes/`**
+  （`sec17`/`sec18`/`sec19` 三份 notes 已在库、已含全部实测数字与反证 ⇒ **内容零丢失**）；
+  精简版只留「依据 + 关键数字 + 结论 + 指针」；内联只保留**最近 3 节**（§17 仅指针表一行）。
+* ⇒ 精简版 **22 326 B**（限额 22 483 B）/ 头部 **14 行**（限额 15）⇒ 该断言**恢复 PASS**。
+* ⚠️ **不回头改旧章节的结论**；§17/§18/§19 的**数字一字未改**（只是搬到 notes）。
+
+#### 涉及修改的文件（全部在本模块内）
+
+| 文件 | 改动 |
+|---|---|
+| `ext/bridge.py` | T5-a 逐帧延迟有界化（累计量承担统计）+ T5-b 段级时刻表有界化 `_trim_seg_timing_history()` |
+| `ext/config.py` | 新增 `FRAME_DELAY_HISTORY = 2000` / `SEG_TIMING_HISTORY = 50` |
+| `extension/player.js` | T5-c `gapDetail` 上限 200 + `gapDetailDropped` 计数 |
+| `extension/offscreen.js` | T5-c `gapDetail` 上限 200 + `gapDetailDropped` 计数 |
+| `extension/popup.js` | T-6 `readCfg()`/`persistCfgNow()`/`schedulePersistCfg()`/`bindPersistListeners()`（8 控件 change/input 即时落盘 + 归一 + 幂等） |
+| `status/STATUS_EXT.md` | 新增 **§20**；§17/§18/§19 按 EXT-016 规则压缩下沉；`last_ack` 保持 EXT-026；头部「更新时间」= **2026-11-01 00:55** |
+| `status/notes/sec19_t5_t6_bounds_persist.md` | 新建（§19 明细 6 节）+ **追加 §20 明细** |
+| `tests/t5_t6_bounds_persist_harness.js` | 新增（node **16** 项，含 2 组内建反证） |
+| `tests/test_t5_t6_bounds_persist.py` | 新增（Python **40** 项，含 4 组反证） |
+
+#### 验证与自测结果（全部**实测**，rc 取真实退出码，未 pipe）
+
+| 套件 | 结果 | rc |
+|---|---|---|
+| `tests/test_ext_selfcheck.py` | **103 PASS / 0 FAIL** | **0** |
+| `tests/test_echo_roundtrip.py` | **11 PASS / 0 FAIL** | **0** |
+| `tests/test_next_instruction.py` | **19 PASS / 0 FAIL** | **0** |
+| 全量 `tests/test_*.py` | **24 套 / 1 079 PASS / 1 FAIL** | 1（仅 `test_ext016_compression`） |
+| node harness（7 套） | 33/13/17/13/26/28/**16** | 全 **0** |
+
+**唯一 FAIL 归因（逐条）**：
+1. `test_ext016_compression`「压缩后 CORRECTIONS 明显变小（实测 **21 943 B**）」⇒ 阈值 20 480 B
+   ⇒ **reviewer 独占写入的 `status/CORRECTIONS_EXT.md`** ⇒ 本模块**只读、未修改、不 `git add -f`**
+   （`.gitignore:34` 仍在，`git log --all` 无记录）⇒ **既有状态、非本轮引入**。
+2. ★ 同套件的「精简版 STATUS 不含历史全文」⇒ **本轮引入、本轮已修**（见上）。
+
+**两个「环境性红套件」的实测归因（`git stash` 基线复核同样红 ⇒ 非本轮引入）**：
+* `test_t2_port_guard.py`（4 条 FAIL）—— 根因**实时字幕 App 正在运行** ⇒ 设备互斥
+  ⇒ 桥接返回 **rc=3**（期望 6）⇒ 实测 `_caption_app_running()` = **True**
+  ⇒ 按铁律**不干预用户的 App**；单独跑 **28 PASS / 0 FAIL / rc=0**。
+* `test_ext026_audio_analysis.py` —— 批处理中偶发红，根因 **safe-delete 钩子**拦截批量删除
+  （`SAFE_DELETE_BULK_CONFIRM_REQUIRED`，`count=312 > threshold=50`，对象是浏览器 profile 临时目录）
+  ⇒ 单独跑 **25 PASS / 0 FAIL / rc=0**。
+
+#### 产物清单（均为**实测**）
+
+| 产物组 | 文件数 | 字节数 | 备注 |
+|---|---|---|---|
+| 产品代码改动 | 5 | — | `ext/bridge.py` / `ext/config.py` / `extension/player.js` / `extension/offscreen.js` / `extension/popup.js` |
+| 新增自测 | 2 | — | 1 个 node harness（16 项）+ 1 个 Python 测试（40 项） |
+| notes 明细（sec19 + §20 追加） | 1 | — | 7 节 |
+| `status/STATUS_EXT.md` | 1 | **22 326 B** | **187 行**（≤ 40 KB / ≤ 300 行 / < 归档/10 22 483 B） |
+
+#### ⛔ 明确未做 / 不宣称
+
+- ⛔ **未认领新 EXT 编号** ⇒ `last_ack` **保持 EXT-026**（不占 reviewer 编号空间）。
+- ⛔ **「30 分钟不崩」未做**（需真实引擎 + 独占设备）⇒ 只做了「内存不持续增长」这一半的
+  **静态审计与修复** ⇒ **不宣称「30 分钟不崩已验证」**。
+- ⛔ **「暂停拖动」未做**（需真实浏览器 + 用户手势，且属新增交互 ⇒ 待 reviewer 明确口径）。
+- ⛔ **克隆音色仍不可用**（pyannote 旁路未接线，**依赖 ASR-013 交付**）⇒ **未动引擎**。
+- ⛔ **Edge 默认 profile 真实手势验收未做**（tabCapture 需真实手势）⇒ **由用户本人做**。
+- ⛔ 端到端仍不实时（TTS 稳态 RTF **1.0022**）/ 同步误差仍超标（既有阻塞项，未动引擎）。
+- ⛔ **未改任何引擎文件**（ASR/MT/TTS 对方模块一行未动）。
+- ⛔ **未跑真实推理、未占 GPU/NPU、未创建/未回收机器锁**（开工时 `shared/MACHINE_LOCK` 不存在）。
+- ⛔ `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**。
+
+#### `last_ack`
+
+**保持 EXT-026** —— 本轮**未认领**任何新 EXT 编号（闸门 exit 1）
+⇒ 闸门复测 **exit 1 / `action=skip`** ⇒ 幂等生效，下一轮不会重复执行。
+
+---
+

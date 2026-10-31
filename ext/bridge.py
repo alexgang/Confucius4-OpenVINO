@@ -698,14 +698,34 @@ class Session:
         # ── EXT-006 余量统计 ──────────────────────────────────
         #   margin_sec = (TTS 就绪时刻) − (该段原声结束时刻)
         #   负数 ⇒ 配音来不及在原声结束前就绪 ⇒ 滞后累积
+        # ★★ T-5 修正：**这两个字典是「只写不读」的**（实测：
+        #   全仓只有 `self._seg_orig_end[seg_id] = ...` 与
+        #   `self._seg_ready[seg_id] = ...` 两处写入，**没有任何读取点**）
+        #   ⇒ 每收一段就永久多留两个 key ⇒ 30 分钟会话会累积上千项
+        #   ⇒ 属于 P2「内存不持续增长」的**真缺陷**。
+        # ⇒ 改成**有界环形**（只留最近 N 段的原声结束/就绪时刻）。
+        #   ⚠️ 保留这两个名字与语义（外部工具/日志可能引用），
+        #   只是不再无限增长。
         self._seg_orig_end: Dict[str, float] = {}   # seg_id → 原声结束（会话秒）
         self._seg_ready: Dict[str, float] = {}      # seg_id → TTS 就绪（会话秒）
+        # ★★ T-5：裁剪这两个字典的锁（流水线模式下可能被两个线程碰）
+        self._seg_timing_lock = threading.Lock()
         self.margins: List[dict] = []               # 每句一条
         self.engine_calls: List[dict] = []          # 引擎各阶段耗时
         # ★ EXT-008 第 2 点：逐帧的「到达延迟」（实测「喂帧慢」）
+        # ★★ T-5 修正：**逐帧追加 ⇒ 47 帧/秒 × 30 分钟 = 8.5 万条/会话**，
+        #   旧实现**永不裁剪** ⇒ 内存持续增长（P2「30 分钟不崩」的隐患）。
+        # ⇒ 改成**有界**：只保留最近 C.FRAME_DELAY_HISTORY 条，
+        #   统计口径（n_frames_measured / late_ratio / max / mean / last）
+        #   **保持不变** —— 计数类用累计量，均值/末值用保留窗口。
+        #   ⚠️ `n_frames_measured` 仍统计**全部**帧（不随窗口变小），
+        #   避免把「窗口大小」误当成「测了多少帧」。
         self._frame_arrival_delays: List[dict] = []
         self._n_frames_late = 0
         self._max_frame_arrival_delay = 0.0
+        # ★ T-5：到达延迟的**累计和**（用于均值，不受窗口裁剪影响）
+        self._sum_frame_arrival_delay = 0.0
+        self._n_frames_measured = 0
         # ★ EXT-009：上一句实际采用的**自适应加速倍率**
         #   （用于「相邻句变化 ≤ 0.1×」与「滞回」两条约束）
         self._prev_adapt_speed = 1.0
@@ -990,7 +1010,20 @@ class Session:
             "seq": seq, "sidx": sidx,
             "delay_sec": round(_delay, 4),
             "recv_at": round(recv_at, 3)})
+        # ★★ T-5 修正：**有界化** —— 旧实现每帧追加、永不裁剪
+        #   （47 帧/秒 × 30 分钟 ⇒ 8.5 万条/会话 ⇒ 内存持续增长）。
+        #   ⇒ 只保留最近 C.FRAME_DELAY_HISTORY 条；
+        #   统计口径由**累计量**（_n_frames_measured / _sum_frame_arrival_delay
+        #   / _n_frames_late / _max_frame_arrival_delay）承担，
+        #   **不随窗口裁剪而改变** ⇒ 与旧实现读出的数字口径一致。
+        if len(self._frame_arrival_delays) > C.FRAME_DELAY_HISTORY:
+            del self._frame_arrival_delays[:-C.FRAME_DELAY_HISTORY]
         # 汇总（滚动统计，不必每次都遍历全表）
+        self._n_frames_measured += 1
+        # ⚠️ 累加的是**四舍五入后**的值（round(_delay, 4)）
+        #   ⇒ 与旧实现「对列表里 round 过的 delay_sec 求和」**完全等价**
+        #   ⇒ 裁剪历史后均值口径**一字不变**。
+        self._sum_frame_arrival_delay += round(_delay, 4)
         self._n_frames_late += 1 if _delay > 1.0 else 0
         if _delay > self._max_frame_arrival_delay:
             self._max_frame_arrival_delay = _delay
@@ -1079,6 +1112,10 @@ class Session:
         # ★ EXT-006：原声结束时刻（会话秒）—— 余量的基准
         orig_end = self.t0 + t_end
         self._seg_orig_end[seg_id] = orig_end
+        # ★★ T-5 修正：这两个字典**只写不读** ⇒ 原本每段永久留两个 key
+        #   ⇒ 30 分钟会话累积上千项（P2「内存不持续增长」的真缺陷）。
+        #   ⇒ 改成**有界**：只留最近 C.SEG_TIMING_HISTORY 段。
+        self._trim_seg_timing_history()
         # ★ EXT-008：这一段的**音频已经完整到达服务端**的时刻。
         #   缺省用「进入本函数」的时刻（等价于该帧到达后立刻开跑）。
         if audio_complete_at is None:
@@ -1151,6 +1188,8 @@ class Session:
         """
         # ★ EXT-006：TTS 就绪时刻 + 余量
         self._seg_ready[seg_id] = ready_at
+        # ★★ T-5 修正：同上 ⇒ 有界（只留最近 N 段）
+        self._trim_seg_timing_history()
         # EXT-006 原文要的余量：「原声结束 → TTS 就绪」
         margin = ready_at - orig_end
         # ★ 另一个**决定能不能跟上**的口径：**排程截止余量**
@@ -1410,20 +1449,26 @@ class Session:
                                               delay_sec=self.delay_sec),
             # ★★ EXT-008 第 2 点：**逐帧到达延迟**（服务端侧直接实测）
             #   ⇒ 直接回答「喂帧慢了多少、是不是被服务端背压卡住」
+            # ★★ T-5 修正：统计量改由**累计量**给出，
+            #   不再依赖「保留窗口的大小」⇒ 裁剪历史后口径不变。
+            #   ⚠️ 均值按**与旧实现相同的四舍五入值**求和
+            #     （旧实现是对 round(delay,4) 求平均）⇒ 数字口径一致。
             "feed_arrival_delay": {
-                "n_frames_measured": len(self._frame_arrival_delays),
+                "n_frames_measured": self._n_frames_measured,
                 "n_frames_late_gt_1s": self._n_frames_late,
                 "late_ratio": (round(self._n_frames_late
-                                     / len(self._frame_arrival_delays), 4)
-                               if self._frame_arrival_delays else None),
+                                     / self._n_frames_measured, 4)
+                               if self._n_frames_measured else None),
                 "max_delay_sec": round(self._max_frame_arrival_delay, 4),
                 "mean_delay_sec": (
-                    round(sum(d["delay_sec"]
-                              for d in self._frame_arrival_delays)
-                          / len(self._frame_arrival_delays), 4)
-                    if self._frame_arrival_delays else None),
+                    round(self._sum_frame_arrival_delay
+                          / self._n_frames_measured, 4)
+                    if self._n_frames_measured else None),
                 "last_delay_sec": (self._frame_arrival_delays[-1]["delay_sec"]
                                    if self._frame_arrival_delays else None),
+                # ★ T-5：如实暴露「保留窗口」大小（便于核对内存口径）
+                "history_window": C.FRAME_DELAY_HISTORY,
+                "history_kept": len(self._frame_arrival_delays),
                 "definition": ("arrival_delay_sec = 帧到达服务端的墙钟时刻 − "
                                "(t0 + sample_index/16000)；"
                                ">0 ⇒ 这一帧的音频**送晚了**。"),
@@ -1469,6 +1514,38 @@ class Session:
           * `ready_after_orig_end` 子组 = 旧的延迟口径（保留原始信息）
         """
         return summarize_margins(self.margins)
+
+    # ── ★★ T-5：段级时刻表的**有界化** ──────────────────────────
+    def _trim_seg_timing_history(self) -> None:
+        """把 `_seg_orig_end` / `_seg_ready` 裁剪到最近 N 段。
+
+        ## 为什么需要（P2「30 分钟不崩、内存不持续增长」）
+
+        实测（读源码 + 全仓 grep）：这两个字典**只写不读** ——
+        唯一的写入点是 `_process_segment` / `_finalize_segment` 里的
+        `self._seg_orig_end[seg_id] = orig_end` 与
+        `self._seg_ready[seg_id] = ready_at`，
+        **没有任何读取点**（`tools/`、`tests/` 也都搜不到引用）。
+        ⇒ 每收一段就**永久**多留两个 key ⇒
+          30 分钟会话（≈100 段）会累积数百项，虽不大但**单调增长**。
+
+        ⇒ 裁剪成「最近 C.SEG_TIMING_HISTORY 段」⇒ 内存**恒定**。
+        ⚠️ 因为**无读取点**，裁剪**不影响任何统计口径**。
+
+        ⚠️ **线程安全**：`_process_segment` 与 `_finalize_segment`
+        可能被不同线程调用（EXT-010 流水线：收口线程串行调用，
+        但 `_process_segment` 也在上行线程跑）⇒ 用一把锁保护，
+        避免「裁剪时字典被改」导致 RuntimeError。
+        """
+        cap = C.SEG_TIMING_HISTORY
+        with self._seg_timing_lock:
+            if len(self._seg_orig_end) > cap:
+                # dict 保持插入序 ⇒ 前面的就是最旧的
+                for k in list(self._seg_orig_end.keys())[:len(self._seg_orig_end) - cap]:
+                    self._seg_orig_end.pop(k, None)
+            if len(self._seg_ready) > cap:
+                for k in list(self._seg_ready.keys())[:len(self._seg_ready) - cap]:
+                    self._seg_ready.pop(k, None)
 
     # ── ★ EXT-009：自适应加速的统计 ────────────────────────────
     def adaptive_speed_stats(self) -> dict:

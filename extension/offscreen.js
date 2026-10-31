@@ -22,6 +22,11 @@ const TARGET_RATE = 16000;
 const FRAME_MIN_MS = 20;
 const FRAME_MAX_MS = 100;
 
+// ★★ T-5：`gapDetail` 的**保留上限**（条）。
+//   旧实现只追加、永不裁剪 ⇒ 丢帧时无限增长
+//   （P2「30 分钟不崩、内存不持续增长」）。
+const GAP_DETAIL_CAP = 200;
+
 const state = {
   ws: null,
   ac: null,
@@ -39,6 +44,7 @@ const state = {
   skewSamples: [],
   gaps: 0,
   gapDetail: [],
+  gapDetailDropped: 0,
   wsOpen: false,
   error: null,
   captureMode: null,       // 'tabCapture' | 'getDisplayMedia'
@@ -323,6 +329,16 @@ function onWorkletFrame(d) {
         kind: 'sample', expect: state.sampleIndex, got: sampleIndex,
         delta: sampleIndex - state.sampleIndex,
       });
+    }
+    // ★★ T-5 修正：**gapDetail 原来只追加、永不裁剪** ⇒
+    //   丢帧每次留一条 ⇒ 网络抖动时**无限增长**
+    //   （P2「30 分钟不崩、内存不持续增长」的真缺陷）。
+    // ⇒ 加**上限**：超出丢最旧的并计数（不静默丢）。
+    //   上报口径（`slice(-20)`）不变。
+    if (state.gapDetail.length > GAP_DETAIL_CAP) {
+      const drop = state.gapDetail.length - GAP_DETAIL_CAP;
+      state.gapDetail.splice(0, drop);
+      state.gapDetailDropped = (state.gapDetailDropped || 0) + drop;
     }
   }
 

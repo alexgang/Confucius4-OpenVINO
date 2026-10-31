@@ -43,18 +43,93 @@ function setBadge(text, cls) {
 }
 
 async function saveCfg() {
-  const cfg = {
+  // ★★ T-6：与即时持久化**共用同一个读取函数**（`readCfg`）⇒
+  //   两条写盘路径的口径**必然一致**（都做归一）⇒
+  //   不会出现「即时保存存的是引擎码、点开始时又存成别的」这种分叉。
+  const cfg = readCfg();
+  await chrome.storage.local.set(cfg);
+  return cfg;
+}
+
+/**
+ * ★★ T-6：**设置持久化** —— 改了就立刻落盘，不等用户点「开始」。
+ *
+ * ## 为什么需要（这是 P2 待办里明写的一项，之前一直「未开始」）
+ *
+ * 旧实现里，`saveCfg()` **只在点「开始」时**被调用（popup.js 的 btnStart
+ * 处理器）⇒ 用户改了「目标语言 / 延迟 D / 原声压低量 / 字幕开关」之后，
+ * **直接关掉弹窗**（这是绝大多数人的习惯）⇒ 这些改动**全部丢失** ⇒
+ * 下次打开面板又回到旧值 ⇒ 用户的设置**根本没被记住**。
+ *
+ * ⇒ 修法：给每个设置控件挂 `change`（提交时）与 `input`（输入中，防抖）
+ *   ⇒ 改动**立刻**写进 `chrome.storage.local`。
+ *
+ * ⚠️ **防抖**：文本框每敲一个字符都写一次 storage 会造成无谓的 IO
+ *   ⇒ `input` 走 400 ms 防抖；`change`（失焦/确认）立即写。
+ *
+ * ⚠️ **与 T-3 的关系**：popup 里的值必须**归一**后再存
+ *   （语言全称 ⇒ 引擎码）⇒ 复用 `normalizeLang` / `normalizeVoice`，
+ *   与 `loadCfg()` 读回来时的口径**完全一致**（不制造「存进去是全称、
+ *   读出来是码」的来回跳变）。
+ *
+ * ⚠️ **不影响「开始」流程**：`btnStart` 里仍然调用 `saveCfg()`
+ *   ⇒ 即时保存是**增量**，不是替换。
+ */
+const PERSIST_DEBOUNCE_MS = 400;
+let _persistTimer = null;
+
+/** 读取当前面板上的设置（已归一）—— 不写盘。 */
+function readCfg() {
+  return {
     wsUrl: $('ws').value.trim(),
     token: $('token').value.trim(),
     delaySec: Number($('delay').value) || 10,
-    targetLang: $('lang').value,
-    voice: $('voice').value,
+    targetLang: normalizeLang($('lang').value),
+    voice: normalizeVoice($('voice').value),
     duckDb: Number($('duck').value),
     subsOn: $('subs').checked,
     playerOpen: $('player').checked,
   };
-  await chrome.storage.local.set(cfg);
-  return cfg;
+}
+
+/** 把当前设置**立刻**写进 storage（归一后）。 */
+async function persistCfgNow() {
+  try {
+    const cfg = readCfg();
+    await chrome.storage.local.set(cfg);
+    return cfg;
+  } catch (e) {
+    return null;
+  }
+}
+
+/** 防抖版持久化（文本框输入中用）。 */
+function schedulePersistCfg() {
+  if (_persistTimer !== null) clearTimeout(_persistTimer);
+  _persistTimer = setTimeout(() => {
+    _persistTimer = null;
+    persistCfgNow();
+  }, PERSIST_DEBOUNCE_MS);
+}
+
+/**
+ * 给所有设置控件挂上「改了立刻落盘」的监听。
+ * ★ 幂等：重复调用不会挂重复监听（用标记位）。
+ */
+function bindPersistListeners() {
+  if (bindPersistListeners._bound) return;
+  bindPersistListeners._bound = true;
+  const ids = ['ws', 'token', 'delay', 'lang', 'voice', 'duck', 'subs', 'player'];
+  for (const id of ids) {
+    const el = $(id);
+    if (!el) continue;
+    // select / checkbox 的 change 本身就是「提交」
+    el.addEventListener('change', () => { persistCfgNow(); });
+    // 文本框 / number：输入中走防抖
+    if (el.type === 'text' || el.type === 'number') {
+      el.addEventListener('input', () => { schedulePersistCfg(); });
+    }
+  }
 }
 
 async function loadCfg() {
@@ -442,5 +517,8 @@ $('btnGuide').addEventListener('click', async () => {
 });
 
 loadCfg();
+// ★★ T-6：设置**改了立刻落盘**（不等用户点「开始」）
+//   ⇒ 绑定必须在 loadCfg() **之后**（否则会被 loadCfg 填 DOM 的动作触发一次误存）。
+bindPersistListeners();
 refreshStatus();
 setInterval(refreshStatus, 2000);

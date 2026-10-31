@@ -878,10 +878,18 @@ function escapeHtml(s) {
 //   ⇒ 音频上行走**扩展页**；offscreen 保留为生产路径（tabCapture 必须在
 //     offscreen 里 getUserMedia）的备选实现。
 
+// ★★ T-5：`gapDetail` 的**保留上限**（条）。
+//   为什么需要（P2「30 分钟不崩、内存不持续增长」）：
+//   旧实现**只追加、永不裁剪** ⇒ 每次丢帧/采样不连续都永久留一条
+//   ⇒ 网络抖动时**无限增长** ⇒ 长会话内存单调上升。
+//   上报口径（`slice(-20)`）不变 ⇒ 只是把明细截断在 200 条。
+const GAP_DETAIL_CAP = 200;
+
 const upState = {
   ac: null, node: null, source: null, ws: null,
   seq: 0, sampleIndex: 0, frameCount: 0, bytesSent: 0,
   gaps: 0, gapDetail: [], maxAbsSkewMs: 0, maxAbsSkewAllMs: 0, skewSamples: [],
+  gapDetailDropped: 0,
   t0: 0, running: false, wsOpen: false, error: null,
   sourceRate: 0, captureMode: null,
   // ★ skew **尖峰的时间线**：记录最大的 N 个尖峰及其发生的墙钟时刻。
@@ -1117,6 +1125,16 @@ function onUplinkFrame(d) {
         kind: 'sample', expect: upState.sampleIndex, got: sampleIndex,
         delta: sampleIndex - upState.sampleIndex,
       });
+    }
+    // ★★ T-5 修正：**gapDetail 原来只追加、永不裁剪** ⇒
+    //   丢帧/采样不连续每次都留一条 ⇒ 网络抖动时**无限增长**
+    //   （P2「30 分钟不崩、内存不持续增长」的真缺陷）。
+    // ⇒ 加**上限**：超出即丢最旧的，并计数（不静默丢）。
+    //   ⚠️ 上报时只取最近 20 条（`slice(-20)`）⇒ 口径不变。
+    if (upState.gapDetail.length > GAP_DETAIL_CAP) {
+      const drop = upState.gapDetail.length - GAP_DETAIL_CAP;
+      upState.gapDetail.splice(0, drop);
+      upState.gapDetailDropped = (upState.gapDetailDropped || 0) + drop;
     }
   }
 
