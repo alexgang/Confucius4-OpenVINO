@@ -7914,3 +7914,64 @@ fbank 侧中心化，n_frames = 998；参考 = 原始 pyannote `resnet.forward` 
 - 本轮**纯只读 + 文本守卫**（不跑任何模型推理、不计时）⇒ **未申请共享机器锁**（检查时 `shared/MACHINE_LOCK` 不存在、`shared/*.tmp` 残留 0、`GIT_FREEZE` 不存在）。
 - 🔴 **未动 `live_caption/`**；🔴 **未改 `CORRECTIONS_ASR.md`**；`last_ack` 保持 **ASR-036**。
 - 🔴 **未覆盖已交付产物**；⚠️ **WER 未跑**（交 reviewer）；**未开新实验**；**未打包**。
+
+## §69 ASR-039 落地：巡检会话「模块租约」（session lease）+ 本模块自动化指令改造（2026-11-01 16:17–16:26）
+> 🔴 **明细见 `status/asr/notes/asr_s39.md`**（本轮新增 1 个明细文件）。
+**本轮读到的新纠偏**：**ASR-039** [HIGH] 2026-11-01 15:40（`CORRECTIONS_ASR.md` mtime = 2026-11-01 15:36、size = 17 462 B，**只读未改**）；旧 `last_ack` = ASR-038 ⇒ 本轮**有**新纠偏 1 条。索引表止于 ASR-036（ASR-037/038/039 未列入）⇒ 索引表由 reviewer 维护，本模块**不改**。
+**① 第 0 步租约已落地并实测（ASR-039 要求 ①②③④）**
+- `acquire asr` ⇒ **exit 0**，打印 `TOKEN=055db860`；**无** `TAKEOVER`（`shared\leases\asr.json` 此前不存在）⇒ 非断点续跑。
+- **反证 1**：二次 `acquire asr` ⇒ 打印 `BUSY … alive=True` ⇒ **exit 10**（另一个会话/作业还活着 ⇒ 零改动立即结束）。
+- **反证 2**：`beat asr <错误 token>` ⇒ 打印 `LOST lease (已被接管或已释放) … → 立即停止，不要再改任何文件。` ⇒ **exit 11**。
+- 收尾 `release asr 055db860` ⇒ **RELEASED**（本轮无后台作业 ⇒ 不留租约）。
+- `addpid` 本轮**未调用**：纯文档作业，无后台长作业可登记。
+- 🔴 **只引内容事实，不引 `session_lease.py` 的 size/mtime**：脚本可被 reviewer 改 ⇒ 引 size/mtime 会造成「改脚本→引用过期→同步→再改」的自指 churn（§68 ⑥ / §68-根治）⇒ 只引退出码与原始输出文本。
+**② 本模块自动化指令已改造并回读确认（ASR-039 要求 ①⑤）**
+- 工具能力：用 WorkBuddy 的 `automation_update`（`mode=update`）直接改本模块自动化**成功** ⇒ **不需用户在 UI 里手改**（ASR-039 要求 ⑤ 的「需用户在 UI 里改」分支**不适用**）。
+- 自动化 id = `0cc12c3b-6fc1-42ad-98f3-0a1d9661d5a6`，name = **「ASR 模块纠偏定期检查」**，`rrule = FREQ=HOURLY;INTERVAL=1`，`status = ACTIVE`；改完**回读**（`mode=view`）确认新指令生效。
+- ⚠️ 原指令**没有「第 0 步」**（直接从「执行步骤：1.」开始）⇒ 本轮把 `acquire` 放在**最前**，作为**新增的「第 0 步（必须最先执行）」**；原指令其余内容**一字未删**。
+**改动 diff（唯一一处插入，位置 = 原「执行步骤」之前）**：
+```text
+第 0 步（模块租约，必须最先执行；依 ASR-039）：
+python C:\Users\Trekker-PTL\shared\tools\session_lease.py acquire asr
+- exit 10 (BUSY)：另一个会话或它的后台作业还活着。只输出一句「上一会话仍在进行，跳过本轮」，然后立即结束：不读其他文件，不改任何东西，不碰 MACHINE_LOCK。
+- exit 0：拿到 TOKEN=xxxx，记下这个 token，后面的步骤都带上它。
+- 若打印 TAKEOVER：上一会话已经死了 ⇒ 先读它留下的 note、STATUS 和产物，从断点继续，不要从头重做。
+- 调用 session_lease.py 用 WorkBuddy 自带 python：C:\Users\Trekker-PTL\.workbuddy\binaries\python\versions\3.13.12\python.exe。
+会话中间（每完成一步，以及每次耗时操作前后）：
+python C:\Users\Trekker-PTL\shared\tools\session_lease.py beat asr <token> "<一句话进度>"
+- exit 11 (LOST)：租约已被别的会话接管 ⇒ 立即停止，不再写任何文件。
+长作业（打包、计时、e2e）：
+- 一律用 schtasks 或 Start-Process 后台启动，拿到 PID 后马上执行：
+  python C:\Users\Trekker-PTL\shared\tools\session_lease.py addpid asr <token> <pid>
+- 不要在一个工具调用里同步等待超过 20 分钟，要分次轮询，轮询之间 beat。
+- 只要登记的 PID 还活着，新会话就会拿到 BUSY，不会重复启动同一个作业。
+本轮结束（包括「无新纠偏、跳过」的情况）的最后一步：
+python C:\Users\Trekker-PTL\shared\tools\session_lease.py release asr <token>
+- 如果还有后台作业活着，脚本会自动保留租约（输出 KEPT）。
+```
+
+另把原第 2 步末尾补了半句：「…然后结束（**结束前仍要 release 租约**）。」
+
+**③ MACHINE_LOCK 规则不变（ASR-039 要求 ⑥）**
+
+- 巡检时 `shared\MACHINE_LOCK` **不存在** ⇒ 无模块持锁；本轮**纯文档**（无推理、无计时、无打包）⇒ **不需要**机器锁。
+- 租约管「同一模块不能有两个会话」，机器锁管「不同模块不要同时占用设备」⇒ 两者**都要遵守**；原「硬性纪律」段**整段保留未动**。
+
+**④ git 纪律**
+
+- `git fetch origin` 后 **HEAD == origin/main == `087c1cc`**（一致 ⇒ 可提交）；无 `GIT_FREEZE`。
+- 只提交 `status/asr/STATUS_ASR.md` + `status/asr/notes/asr_s39.md`；`status/asr/CORRECTIONS_ASR.md`（reviewer 推的）**不提交**；`live_caption/` 下所有文件**不碰**。
+
+**⑤ 本轮顺手修掉的一处正文重复（不改任何数值）**
+
+- 「关键数字」表的「扫描产物」行**重复 3 次**（值与来源完全相同）⇒ 去重为 **1 行**（仍 = **131**，来源 `asr096_legacy_consistency_gate.json` → `n_json_scanned`，**动态量**，每次从产物读）。
+- 「未完成纠偏」表的编号范围 `ASR-001 … ASR-037` ⇒ 订正为 `ASR-001 … ASR-039`。
+
+**⑥ §66 已移出「最近章节」（只保留最近 3 节：§67 / §68 / §69）**
+
+- §66 的**压缩前全文**（`## §66 ` 标题 + 完整正文）在 `status/archive/STATUS_ASR_upto_20261030.md`（ASR-036 压缩时已归档）⇒ 移出不丢内容；STATUS 里那 3 行是全文的浓缩，明细另见 `status/asr/notes/asr_s66.md`。
+
+**⑦ 本轮未做（不自行扩范围）**
+
+- **未**跑推理、**未**计时、**未**测速、**未**打包、**未**动 `live_caption/`、**未**改 `CORRECTIONS_ASR.md`、**未**覆盖任何已交付产物、**未**新增任何 `asr1xx` 守卫/复核脚本（ASR-038 ① 继续遵守）、**未**开新实验。
+- 非纠偏遗留仍是 **3 条**（OV f16 偏差 / `qwen3asr_06b` 不在 git 内需另行打包 / `pya_*` 历史产物无 `lock_probe` 块）⇒ **等用户指派**。
