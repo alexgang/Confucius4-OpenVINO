@@ -25,6 +25,7 @@ import base64
 import json
 import os
 import sys
+import time
 
 SMOKE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(SMOKE_DIR))
@@ -123,8 +124,19 @@ def analyze(webm_path: str, threshold_dbfs: float = SILENCE_DBFS) -> dict:
     with open(webm_path, "rb") as f:
         b64 = base64.b64encode(f.read()).decode("ascii")
 
-    profile = os.path.join(ROOT, ".tmp", "_audio_analyze_profile")
-    with H.BrowserSession(profile, headless=True) as br:
+    # ★★ profile 目录**必须唯一**（2026-11-01 实测修的坑）。
+    #   原因：`BrowserSession` 默认会 `shutil.rmtree(profile)` 清理既有目录，
+    #   而 Chrome profile 有上千个文件 ⇒ 触发安全策略
+    #   （SAFE_DELETE_BULK_CONFIRM_REQUIRED，count=235 > threshold=50）
+    #   ⇒ **整个脚本被拦下退出** ⇒ 冒烟跑到最后一步（写 summary.json）
+    #   时被腰斩 ⇒ A/B 判定结果根本没落盘。
+    #   ⇒ 改用「时间戳+PID」的**唯一** profile 名 + `reuse_profile=True`
+    #     （不删任何东西）⇒ 既不触发安全策略，也不污染下一轮。
+    profile = os.path.join(
+        ROOT, ".tmp",
+        "_audio_analyze_profile_%s_%d" % (time.strftime("%Y%m%d_%H%M%S"),
+                                          os.getpid()))
+    with H.BrowserSession(profile, headless=True, reuse_profile=True) as br:
         page = br.new_page()
         # 把门限插值进 JS（避免 JS 里硬编码第二份阈值）
         js = _DECODE_JS.replace("SILENCE_DBFS", repr(float(threshold_dbfs)))

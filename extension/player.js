@@ -162,14 +162,33 @@ const metrics = {
   codecUsed: null, hwAcceleration: null,
   frames: 0, lastFrameAt: 0,
   videoWidth: 0, videoHeight: 0, sourceRate: 0,
+  // ★★ EXT-027①：**实际用的抓流方式**（'tabCapture' | 'getDisplayMedia'）。
+  //   如实上报，绝不写死（写死会让 reviewer 无法核对「抓的是不是页面自己的声音」）。
+  captureMode: null,
   echoRecv: 0, echoSent: 0,
   // ★★★ EXT-026 ③：被当作「重复段」静默丢掉的次数（EXT-024 A 去重命中）。
   //   ★ 必须**如实计数** —— 它是「段被丢了」的**唯一**可观测证据
   //     （EXT-026 ⑤ 的跨会话撞号缺陷就是靠它暴露的）。
   dubDup: 0,
+  // ★★★★ EXT-028 ①：PCM 采样率的**可观测性**。
+  //   `pcmRateLast`      —— 最近一次排程实际用的采样率（Hz）；
+  //   `pcmRateAssumed`   —— 服务端**没带** `sample_rate`、靠兜底猜的次数
+  //                        （>0 ⇒ 连的是**老服务端** ⇒ 采样率可能不对）。
+  pcmRateLast: null,
+  pcmRateAssumed: 0,
+  // ★★★★★ EXT-027 ⑤：因「上一句还没播完」而被顺延的次数/累计顺延秒数。
+  //   （>0 ⇒ 曾经**叠播**；现在是**不叠播**，但顺延量会计入 lag。）
+  dubRescheduled: 0,
+  dubRescheduleDelaySec: 0,
   onsetErrs: [], lipErrs: [], schedDetail: [],
   drawMarks: [], origOnsets: [], dubOnsets: [],
   captureStarted: false, audioCtxOk: false,
+  // ★★ EXT-027①：抓流方式的**降级证据**。
+  //   `captureMode` 只说「最后走了哪条路」，
+  //   这两个字段说明「**为什么**降级」⇒ 排查时不必猜。
+  captureModeDetail: null,   // 'tabCapture' | 'getDisplayMedia'
+  tabCaptureError: null,     // tabCapture.capture 抛出的原文（没失败则 null）
+  captureError: null,         // getDisplayMedia 抛出的原文
   // ★ EXT-009：自适应加速播放的当前状态（底栏显示）
   //   speed     —— 当前句采用的语速倍率（1.00 ~ 1.30）
   //   lagSec    —— 当前句的滞后秒数（实际开播 − 目标开播）
@@ -487,6 +506,10 @@ function pumpDecoder() {
 // 音频总线 + onset 精确测量
 // ══════════════════════════════════════════════════════════════
 let dubBus = null;        // 配音输出总线
+// ★★★★★ EXT-027 ⑤：**已排程配音的最晚结束时刻**（AudioContext 时钟）。
+//   用途：保证两句配音**不叠播** —— 后一句的 `when` 必须 ≥ 本值。
+//   ⚠️ 只统计**真实配音**（probe 自测不计入，见 scheduleDub）。
+let dubPlaybackEnd = 0;
 // ★ probe（自测）专用总线 —— 与 dubBus **物理隔离**。
 //   理由见 scheduleDub 内的说明：共用总线时，bridge 回声的 onset 会
 //   触发 onset-worklet 的 minGapSec=0.05 迟滞 ⇒ 抑制紧随的自测 onset
@@ -719,6 +742,42 @@ function b64ToAudioBuffer(b64, sampleRate) {
   return buf;
 }
 
+// ★★★★ EXT-028 ①：**从下行消息里解出 PCM 的真实采样率**。
+//
+// ## 为什么必须独立成一个函数（而不是 inline 一句 `|| 16000`）
+//   服务端下发的 TTS 是 **24 kHz** PCM16（`TTS_SAMPLE_RATE`）。
+//   旧实现：`b64ToAudioBuffer(msg.pcm24k, msg.sample_rate || 16000)`
+//   ⇒ 服务端**没带** `sample_rate` ⇒ 插件按 16 kHz 重建 AudioBuffer
+//   ⇒ 24 kHz 波形按 16 kHz 播 ⇒ **快 1.5×、整体升调 ≈7 个半音**
+//   ⇒ 用户 11-01 抽听反馈：「基本无法识别内容」。
+//
+// ## 口径（必须与 `ext/bridge.py` 的 `TTS_SAMPLE_RATE` 一致）
+//   * `msg.sample_rate` **存在** ⇒ **以它为准**（服务端是权威）；
+//   * `msg.sample_rate` **缺失** ⇒ 说明是**老服务端**（EXT-028 之前）
+//     ⇒ 此时**不能猜 16 kHz**（那正是本次的根因）⇒
+//     退回 `echo` 消息的语义（TTS 与回声共用一个字段名 ⇒ 老服务端
+//     的 tts 其实也没有该字段）⇒ 用**显式的兜底常量**并**如实计数**，
+//     绝不静默按错误采样率播放。
+//
+// ★ 返回值附带 `assumed` 标志 ⇒ 可观测（metrics），便于 reviewer 核对。
+const DEFAULT_DUB_SAMPLE_RATE = 24000;   // TTS 输出的采样率（服务端 TTS_SAMPLE_RATE）
+
+/**
+ * 取下行 PCM 的采样率。
+ * @param {object} msg  下行消息（tts / echo）
+ * @returns {{rate: number, assumed: boolean}}
+ */
+function resolvePcmSampleRate(msg) {
+  const raw = msg && msg.sample_rate;
+  if (raw != null && isFinite(Number(raw)) && Number(raw) > 0) {
+    return { rate: Number(raw), assumed: false };
+  }
+  // ★ 老服务端：字段缺失 ⇒ 退回 TTS 的标准采样率（24 kHz），
+  //   **并标记 assumed=true** ⇒ metrics 里可见，不静默。
+  metrics.pcmRateAssumed = (metrics.pcmRateAssumed || 0) + 1;
+  return { rate: DEFAULT_DUB_SAMPLE_RATE, assumed: true };
+}
+
 /**
  * 排程一句配音到 t0 + t_start + D（AudioContext 绝对时刻）
  *
@@ -731,7 +790,12 @@ function b64ToAudioBuffer(b64, sampleRate) {
  */
 function scheduleDub(msg) {
   if (!audioCtx || !msg.pcm24k) return null;
-  const buf = b64ToAudioBuffer(msg.pcm24k, msg.sample_rate || 16000);
+  // ★★★★ EXT-028 ①：采样率**以服务端声明为准**（见 resolvePcmSampleRate）。
+  //   旧实现写死 `msg.sample_rate || 16000` ⇒ 服务端没带字段时按 16 kHz
+  //   播放 24 kHz 的音频 ⇒ 1.5× 语速 + 升调 ⇒ 「基本听不清」。
+  const sr = resolvePcmSampleRate(msg);
+  const buf = b64ToAudioBuffer(msg.pcm24k, sr.rate);
+  metrics.pcmRateLast = sr.rate;
   const planned = t0 + Number(msg.t_start || 0) + delaySec;
   const src = audioCtx.createBufferSource();
   src.buffer = buf;
@@ -756,7 +820,49 @@ function scheduleDub(msg) {
     metrics.schedClamped = (metrics.schedClamped || 0) + 1;
     if (isProbe) metrics.probeSchedClamped = (metrics.probeSchedClamped || 0) + 1;
   }
-  const when = Math.max(earliest, planned);
+  let when = Math.max(earliest, planned);
+
+  // ★★★★★ EXT-027 ⑤：**配音必须按序播放，两句不能叠在一起**。
+  //
+  // ## 证据（reviewer EXT-027 ⑤）
+  //   B 轮 20:55:49 **同一秒**下发了 `seg_77393782_798240` 与
+  //   `seg_77393782_1004160` 两段，两段都被钳成「立即播」
+  //   ⇒ 回转写里「多谢齐先生」排在前面，「都是今日现做的，这个和这个」
+  //     **基本消失** ⇒ 两句**叠着播**了。
+  //
+  // ## 修法（reviewer 明文口径）
+  //   `when = max(planned, 上一句结束时刻, currentTime + 5ms)`
+  //   ⇒ 严格**按 t_start 顺序**播放，后一句不与前一句重叠。
+  //
+  // ## 为什么不能只靠 planned
+  //   `planned = t0 + t_start + D` 只保证「目标时刻」有序，
+  //   **不保证「实际开播」有序**：一旦某句被钳成「立即播」，
+  //   后面几句的 planned 可能也都在过去 ⇒ 全部挤到 currentTime+5ms
+  //   ⇒ **同时起播** ⇒ 叠播（实测正是如此）。
+  //
+  // ⚠️ 只对**真实配音**（非 probe）生效 —— probe 是自测探针，
+  //   必须严格按 planned 排程，否则排程误差测量会失真。
+  if (!isProbe) {
+    // ★ 维护「上一句的结束时刻」：取所有**已排程**配音的最晚结束。
+    //   用 max 而不是「最后一句」⇒ 即使乱序到达，也不会算出偏小的值。
+    const prevEnd = dubPlaybackEnd;
+    if (when < prevEnd) {
+      // 被上一句的尾巴挡住 ⇒ 顺延到上一句播完之后
+      const pushed = prevEnd - when;
+      when = prevEnd;
+      metrics.dubRescheduled = (metrics.dubRescheduled || 0) + 1;
+      metrics.dubRescheduleDelaySec =
+        Math.round(((metrics.dubRescheduleDelaySec || 0) + pushed) * 1000) / 1000;
+      report({ kind: 'dub_rescheduled', id: msg.id,
+               pushedSec: Math.round(pushed * 1000) / 1000,
+               planned: planned, when: when });
+    }
+    // ★ 记录本句的结束时刻（下一句要排在它后面）
+    //   ⚠️ 用 `when + buf.duration`（**实际**开播 + 实际时长），
+    //     不用 planned（那样算不出「会重叠」）。
+    const end = when + buf.duration;
+    if (end > dubPlaybackEnd) dubPlaybackEnd = end;
+  }
   src.start(when);
 
   // ★★ EXT-009：自适应加速播放的**播放侧记录**（不改变音频波形）
@@ -963,14 +1069,17 @@ function upPost(msg) {
 }
 
 /** 把 48 kHz 抓到的音频重采样到 16 kHz 并上行。 */
-async function startUplink(stream, wsUrl, token) {
+async function startUplink(stream, wsUrl, token, captureMode) {
   if (upState.running) return { ok: true, already: true };
   try {
     const track = stream.getAudioTracks()[0];
     if (!track) return { ok: false, error: '没有音频轨' };
     const st = track.getSettings ? track.getSettings() : {};
     upState.sourceRate = st.sampleRate || 48000;
-    upState.captureMode = 'getDisplayMedia';
+    // ★★ EXT-027①：**如实**上报实际用的抓流方式。
+    //   旧实现写死 'getDisplayMedia' ⇒ 即使用了 tabCapture 也报兜底
+    //   ⇒ reviewer 无法从数据核对（EXT-005① / EXT-027① 都要求如实）。
+    upState.captureMode = captureMode || 'getDisplayMedia';
 
     // ① WebSocket
     const ws = new WebSocket(wsUrl);
@@ -1092,6 +1201,60 @@ async function flushUplink() {
   } catch (e) {
     const err = String((e && e.message) || e);
     report({ kind: 'flush_error', error: err });
+    return { ok: false, error: err };
+  }
+}
+
+/**
+ * ★★ EXT-028：主动让服务端把**余量统计**落盘（`margin.json`）。
+ *
+ * ## 为什么必须有这个接口
+ *
+ * 服务端的 `finally` 落盘路径在 `terminate()`（SIGTERM）下**不会执行**
+ * ⇒ 客户端如果直接断开，`margin.json` **永远不落盘**
+ * （实测：e2e 两轮跑完，段级日志/音频都在，但 `margin.json` 缺失
+ *   ⇒ EXT-028 的余量数据拿不到）。
+ *
+ * ⇒ 这里走**上行那条 WS**（与产出段的会话同源）发一条 `dump_margin`
+ *   ⇒ 服务端**立刻**写盘，不依赖进程退出路径。
+ *
+ * ⚠️ 服务端消息循环是**单线程串行**的 ⇒ 必须**等回包**
+ *   （`margin_dumped`）才算落盘完成，不能发完就当成功。
+ *
+ * @param {number} [timeoutMs=60000] 等回包的超时
+ * @returns {Promise<{ok: boolean, path?: string|null, error?: string}>}
+ */
+async function requestMarginDump(timeoutMs) {
+  const to = Number(timeoutMs) > 0 ? Number(timeoutMs) : 60000;
+  try {
+    const w = upState.ws;
+    if (!w || w.readyState !== 1) {
+      return { ok: false, error: '上行 WS 未连接' };
+    }
+    const got = new Promise((resolve) => {
+      const h = (ev) => {
+        let m = null;
+        try { m = JSON.parse(ev.data); } catch (e) { return; }
+        if (m && m.type === 'margin_dumped') {
+          try { w.removeEventListener('message', h); } catch (e) {}
+          resolve(m);
+        }
+      };
+      w.addEventListener('message', h);
+    });
+    w.send(JSON.stringify({ type: 'dump_margin' }));
+    metrics.link.marginDumpSent = (metrics.link.marginDumpSent || 0) + 1;
+    report({ kind: 'margin_dump_sent' });
+    const timer = new Promise((resolve) => setTimeout(
+      () => resolve(null), to));
+    const m = await Promise.race([got, timer]);
+    if (!m) return { ok: false, error: '等 margin_dumped 回包超时' };
+    report({ kind: 'margin_dumped', path: m.path, dumped: m.dumped });
+    return { ok: true, path: (m.path == null ? null : m.path),
+             dumped: !!m.dumped };
+  } catch (e) {
+    const err = String((e && e.message) || e);
+    report({ kind: 'margin_dump_error', error: err });
     return { ok: false, error: err };
   }
 }
@@ -1304,15 +1467,108 @@ function uplinkSnapshot() {
  * 开始捕获整页音视频。
  * ★ 必须由**用户手势**调用（getDisplayMedia / tabCapture 都要求手势）。
  *   自动化里由 Playwright 点击「开始捕获」按钮触发（等价真实手势）。
+ *
+ * ★★★★ EXT-027 ①：**抓流必须只来自目标标签页自己的音频**。
+ *
+ * ## 为什么要改（reviewer EXT-027 ① 的现场证据）
+ *   EXT-026 的 A/B 两轮都走 `getDisplayMedia` ⇒ 抓的是**整机系统声音**
+ *   ⇒ 把机器上别的程序当时在放的中文视频声音也抓进来了
+ *   ⇒ 实测：`capture_sec=60` 但 `audioRecvSec=151.89`；
+ *     ASR 出来的是**中文古装剧对白**（不是测试素材的英文）；
+ *     于是 MT 的输入=中文、目标=中文 ⇒ **英译中这一步根本没测到**
+ *     （实测 7/7 段 MT 文本 == ASR 文本）。
+ *
+ * ## 修法（两条路，按可用性降级）
+ *   ① **首选 `chrome.tabCapture.capture({targetTabId})`**
+ *      （Chrome/Edge **116+**，扩展页可调）⇒ **只**捕获指定标签页的音频，
+ *      天然不含系统声音 ⇒ 这正是 EXT-027① 要的「只来自页面自己的音频」。
+ *      目标 tabId 由 popup 在点「开始」时记进 `chrome.storage.local`。
+ *   ② **兜底 `getDisplayMedia` + `preferCurrentTab`**
+ *      （EXT-027① 原文：「如果还用 getDisplayMedia，就要设置
+ *      `preferCurrentTab` 并且只要标签页的声音，不要整机声音」）
+ *      ⇒ 约束里显式 `systemAudio:'exclude'` + `surfaceSwitching:'exclude'`
+ *        + `selfBrowserSurface:'include'` + `preferCurrentTab:true`
+ *        ⇒ 只要**当前标签页**、**排除系统声音**。
+ *
+ * ⚠️ 两条路都拿不到时**如实报错**（绝不静默回落到「整机声音」）。
  */
 async function startCapture() {
   if (metrics.captureStarted) return { ok: true, already: true };
+  let stream = null;
+  let captureMode = null;
+  let captureErr = null;
   try {
-    const stream = await navigator.mediaDevices.getDisplayMedia({
-      video: { frameRate: 30 }, audio: true,
+    const cfg = await chrome.storage.local.get({
+      wsUrl: 'ws://127.0.0.1:8765/', token: '', targetTabId: null,
     });
+
+    // ── ① 首选：tabCapture（只抓目标标签页）────────────
+    // ★★ EXT-027① 真实缺陷修复（2026-11-01 实测）：
+    //   旧实现调 `chrome.tabCapture.capture({audio, video, targetTabId})`
+    //   ⇒ **Chrome 拒绝**：`No matching signature.`
+    //   ⇒ 实测每轮都降级到 getDisplayMedia ⇒ 抓到的是**整机系统声音**
+    //   ⇒ 英译中根本没测到。
+    //   ★ 正确口径（查官方 API 核实）：
+    //     `capture()` 的 options = `CaptureOptions`（**无** targetTabId）；
+    //     `targetTabId` 属于 `getMediaStreamId(options)`。
+    //   ⇒ 先拿流 id，再用 `chromeMediaSource: 'tab'` 消费。
+    if (cfg.targetTabId != null && chrome.tabCapture
+        && chrome.tabCapture.getMediaStreamId) {
+      try {
+        const streamId = await chrome.tabCapture.getMediaStreamId({
+          targetTabId: Number(cfg.targetTabId),
+        });
+        if (!streamId) {
+          throw new Error('getMediaStreamId 返回空'
+            + '（目标标签页没有 activeTab 权限？）');
+        }
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            mandatory: {
+              chromeMediaSource: 'tab',
+              chromeMediaSourceId: streamId,
+            },
+          },
+          video: false,
+        });
+        captureMode = 'tabCapture';
+      } catch (e) {
+        captureErr = String((e && e.message) || e);
+        report({ kind: 'tabcapture_failed', error: captureErr,
+                 targetTabId: cfg.targetTabId });
+      }
+    }
+
+    // ── ② 兜底：getDisplayMedia（约束成「当前标签页 + 不要系统声音」）──
+    if (!stream) {
+      const constraints = {
+        video: { frameRate: 30 },
+        audio: true,
+        // ★ EXT-027①：只要标签页的声音，**排除整机系统声音**。
+        systemAudio: 'exclude',
+        surfaceSwitching: 'exclude',
+        selfBrowserSurface: 'include',
+        preferCurrentTab: true,
+      };
+      try {
+        stream = await navigator.mediaDevices.getDisplayMedia(constraints);
+        captureMode = 'getDisplayMedia';
+      } catch (e) {
+        const msg = String((e && e.message) || e);
+        metrics.captureError = msg;
+        report({ kind: 'capture_error', error: msg,
+                 tabCaptureError: captureErr });
+        return { ok: false, error: msg };
+      }
+    }
+
     capturedStream = stream;
     metrics.captureStarted = true;
+    metrics.captureMode = captureMode;
+    // ★★ EXT-027①：把「**为什么**降级」记进 metrics ⇒ 排查时不必猜。
+    metrics.captureModeDetail = captureMode;
+    metrics.tabCaptureError = captureErr || null;
+    metrics.captureError = null;
 
     const vt = stream.getVideoTracks()[0];
     const at = stream.getAudioTracks()[0];
@@ -1321,16 +1577,16 @@ async function startCapture() {
       metrics.sourceRate = st.sampleRate || 48000;
       setupOriginalAudio(new MediaStream([at]));
       // ★ P0① 音频上行（16 kHz → 桥接服务）
-      const cfg = await chrome.storage.local.get({
-        wsUrl: 'ws://127.0.0.1:8765/', token: '',
-      });
-      const up = await startUplink(stream, cfg.wsUrl, cfg.token);
+      const up = await startUplink(stream, cfg.wsUrl, cfg.token,
+                                   captureMode);
       metrics.uplinkStart = up;
     }
     if (vt && VIDEO_ENABLED) await attachVideoTrack(vt);
     report({ kind: 'capture_ready', video: !!vt, audio: !!at,
+             captureMode: captureMode,
+             tabCaptureError: captureErr,
              uplink: metrics.uplinkStart });
-    return { ok: true, uplink: metrics.uplinkStart };
+    return { ok: true, captureMode: captureMode, uplink: metrics.uplinkStart };
   } catch (e) {
     report({ kind: 'capture_error', error: String((e && e.message) || e) });
     return { ok: false, error: String((e && e.message) || e) };
@@ -1943,6 +2199,8 @@ window.__ext = {
   uplinkSnapshot,
   // ★★★ EXT-026 修正：收口尾段（否则最后一句永远丢）
   flushUplink,
+  // ★★ EXT-028：让服务端把余量统计落盘（margin.json），并**等回包**
+  requestMarginDump,
   /** P0③ 自测：直接排程一段 PCM，测浏览器端排程误差（probe=true ⇒ 与回声排程分开统计） */
   selfTestSchedule: (pcmB64, tStart) => scheduleDub({ id: 'selftest', t_start: tStart, pcm24k: pcmB64, probe: true }),
   /** ★ 诊断：排程与配对的完整明细（归因 P0③ 的误差来源） */

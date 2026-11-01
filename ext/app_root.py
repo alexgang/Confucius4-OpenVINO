@@ -35,7 +35,11 @@ import re
 from typing import List, Optional
 
 # 候选根目录（App 安装在用户目录下）
-_USER_ROOT = r"C:\Users\Trekker-PTL"
+# ★★ EXT-031 ②：**不再写死开发机用户目录**。
+#   默认 = 当前用户主目录（发行包里 App 装在**装它的那个用户**下）；
+#   环境变量 `EXT_APP_SEARCH_ROOT` 可显式指定搜索根（离线复现 / CI）。
+_USER_ROOT = (os.environ.get("EXT_APP_SEARCH_ROOT", "").strip()
+              or os.path.expanduser("~"))
 _PREFIX = "Confucius4_LiveCaption_v"
 _VER_RE = re.compile(r"^Confucius4_LiveCaption_v(\d+(?:\.\d+)*)$")
 
@@ -101,6 +105,32 @@ def resolve_app_root(explicit: Optional[str] = None) -> Optional[str]:
 def app_python(app_root: str) -> str:
     """App 自带解释器路径。"""
     return os.path.join(app_root, "python", "python.exe")
+
+
+def app_path(*parts: str) -> Optional[str]:
+    """拼 **App 包内**的路径（版本自适应）。
+
+    ★★ EXT-031 ② 的核心：**引擎/模型路径一律从 App 包根相对解析**
+      ⇒ 发行包里不依赖任何开发机绝对路径。
+
+    Returns
+    -------
+    str | None
+        拼好的路径；App 解析不到（`resolve_app_root()` 返回 None）⇒ **None**
+        （调用方须显式处理，**绝不**臆造路径）。
+    """
+    root = resolve_app_root()
+    if not root:
+        return None
+    return os.path.join(root, *parts)
+
+
+def package_root() -> str:
+    """**本插件自身**的包根目录（`live_dub_ext/` 目录）。
+
+    ★ 用于一切「相对包根」的路径（发行包里插件目录名可能变）。
+    """
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def describe_app_root(app_root: Optional[str]) -> dict:

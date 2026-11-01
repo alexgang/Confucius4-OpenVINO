@@ -77,10 +77,15 @@ def _http_json(url: str, timeout: float = 2.0):
 class BrowserSession:
     """起一个真浏览器（带本插件），用 CDP 连上，提供取扩展页的能力。"""
 
-    def __init__(self, profile: str, extra_args=None, headless: bool = False):
+    def __init__(self, profile: str, extra_args=None, headless: bool = False,
+                 reuse_profile: bool = False):
         self.profile = profile
         self.extra_args = list(extra_args or [])
         self.headless = headless
+        #: ★ True = **不删**既有 profile 目录（调用方保证目录名唯一）。
+        #: 理由：Chrome 的 profile 目录动辄上千个文件，批量删除会被安全策略
+        #: （SAFE_DELETE_BULK_CONFIRM_REQUIRED）直接拦下 ⇒ 脚本莫名退出。
+        self.reuse_profile = bool(reuse_profile)
         self.proc = None
         self.browser = None
         self.port = None
@@ -93,7 +98,7 @@ class BrowserSession:
         self._pw_cm = self._pw.start()
         browser = find_browser()
         self.port = free_port()
-        if os.path.exists(self.profile):
+        if os.path.exists(self.profile) and not self.reuse_profile:
             shutil.rmtree(self.profile, ignore_errors=True)
         os.makedirs(self.profile, exist_ok=True)
         cmd = [

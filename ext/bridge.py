@@ -60,6 +60,10 @@ from .pipeline import EnginePipeline, SegmentJob, _FairLock
 from .segmenter import plan_segments, describe as describe_segmenter
 from .speaker import SpeakerTracker
 from .time_stretch import wsola
+# ★★ EXT-029：说话人旁路（**独立线程 + 有界队列** ⇒ 不反压 ASR）。
+#   注意：这里**不 import 引擎/模型**，只 import 纯 Python 的旁路壳子
+#   ⇒ 加载失败也不影响 bridge 启动（旁路自己安静降级）。
+from .speaker_bypass import SpeakerBypass
 
 # TTS 输出采样率（Qwen3-TTS 输出 24 kHz PCM16）
 TTS_SAMPLE_RATE = 24000
@@ -655,11 +659,44 @@ class Session:
       「原声结束 → TTS 就绪」的余量分布、余量 < 0 的句数、累计滞后。
     """
 
+    #: ★★ EXT-029：**本会话是否接了说话人旁路**。
+    #:   * 基类（串行会话）恒为 False —— 串行路径没有 GPU 互斥锁
+    #:     ⇒ 旁路若另开一把锁会**饿死 ASR**（EXT-029 ④）⇒ 串行不接。
+    #:   * `PipelineSession` 在**启用**时置 True。
+    spk_bypass_enabled: bool = False
+
     def __init__(self, token: str, *, delay_sec: float = 10.0,
-                 engine=None) -> None:
+                 engine=None, audio_dump=None, spk_bypass=None) -> None:
         self.token = token
         self.delay_sec = delay_sec
         self.t0 = time.perf_counter()
+        # ★★★★ EXT-028 ①：**逐段音频落盘器**（可为 None ⇒ 不落盘）。
+        #   落盘三份音频里的前两份：
+        #     (a) TTS 引擎的**原始输出**（未经变速）；
+        #     (b) **WS 实际发出的**那份字节（base64 之前）。
+        #   第三份 (c)（player 端录音）由冒烟脚本从浏览器侧落盘。
+        #   ⇒ 三份对齐后即可定位「失真发生在哪一环」。
+        self.audio_dump = audio_dump
+        # ★★★ EXT-029：**说话人旁路**（可为 None ⇒ 不接旁路）。
+        #   ★ 它是**独立线程**（`ext/speaker_bypass.py`）：
+        #     * 音频入口只做 `put_nowait`（队列有界，满了丢旧块并计数）
+        #       ⇒ **绝不阻塞** ASR 主路径 / 定稿 / MT / TTS；
+        #     * spk 结果**异步回填**（未到就用上一句音色或预设 A ⇒ 方案 A）。
+        #   ⚠️ 这个对象由**流水线会话**创建（因为要共用 ASR/MT 的
+        #     GPU 互斥锁 ⇒ 公平 FIFO ⇒ 不会饿死 ASR），
+        #     串行会话没有那把锁 ⇒ 串行路径下不接旁路。
+        self.spk_bypass = spk_bypass
+        # ★★ EXT-029 ②：段级「说话人 / 音色来源」表
+        #   （EXT-027③ 验收要求落盘 `spk / voice_source / 是否换人`）。
+        self.spk_table: List[dict] = []
+        # ★★ EXT-029：异步回填到的标签（seg_id → spk）
+        self._spk_labels: Dict[str, str] = {}
+        self._spk_label_cv = threading.Condition()
+        # ★★ EXT-029：段级表的**行索引**（seg_id → row）
+        #   ⇒ 收口线程与旁路 worker 都写这张表 ⇒ 必须有锁 + 必须按
+        #     seg_id 去重（否则同一段会出现两行、字段互相打架）。
+        self._spk_rows: Dict[str, dict] = {}
+        self._spk_table_lock = threading.Lock()
         self.sample_index = 0
         self._buf = np.zeros((0,), dtype=np.float32)
         self.tracker = SpeakerTracker(
@@ -995,6 +1032,20 @@ class Session:
 
         self._buf = np.concatenate([self._buf, arr])
         self.n_frames += 1
+        # ★★★ EXT-029 ①：把这一帧**投喂给说话人旁路**。
+        #   ## 铁律：本调用**只做 put_nowait**（队列有界）
+        #     ⇒ 队列满了就**丢旧块并计数**（`spk_queue_drop`）
+        #     ⇒ **绝不阻塞** ASR 主路径 / 定稿 / MT / TTS。
+        #   ⚠️ 必须喂**喂帧时刻的原始音频**（`arr`），而不是切段后的
+        #     段音频 ⇒ 旁路才能拿到**连续**的时间轴（它自己按 10 s 窗口
+        #     增量推进分段）。
+        #   ⚠️ `t_end` 用**采样点**换算 ⇒ 与 `t_start` 同一时间轴。
+        if self.spk_bypass is not None:
+            try:
+                _t_end = sidx / float(C.SAMPLE_RATE) + len(arr) / float(C.SAMPLE_RATE)
+                self.spk_bypass.feed(arr, _t_end)
+            except Exception as e:
+                _log(f"说话人旁路喂帧失败（忽略）：{e}")
         if recv_at is None:
             recv_at = time.perf_counter()
         # ★★ EXT-008 第 2 点：**这一帧到达服务端的延迟**（直接测「喂帧慢」）。
@@ -1064,11 +1115,110 @@ class Session:
         * **流水线**（`PipelineSession`）⇒ 提交到流水线线程，
           返回「**已经就绪**」的任务（未就绪的稍后由 drain 取回）。
 
-        ★ 分开这个钩子是为了**不改动**基类的串行行为
+        ★ 保持第一个钩子是为了**不改动**基类的串行行为
           （旧自测全部针对串行路径，行为必须完全一致）。
         """
+        # ★★★ EXT-029 ②：**定稿段一被切出来**就向旁路要标签。
+        #   ## 为什么在这里（而不是收口时）
+        #     旁路要标签需要「音频已进缓冲 + 分段已推进到该段」
+        #     ⇒ 越早问越好 ⇒ 现在问，标签能在 ASR+MT+TTS 这段时间里
+        #     **异步**算好 ⇒ 到收口时多半已经就绪（**不等待**）。
+        #   ⚠️ 本调用**只 append**（零阻塞）⇒ 不影响主路径。
+        self._request_spk_label(abs0, abs1)
         return self._process_segment(seq, abs0, abs1, seg_audio,
                                      audio_complete_at=audio_complete_at)
+
+    # ── ★★★ EXT-029：旁路标签的请求与回填 ─────────────────
+    def _request_spk_label(self, abs0: int, abs1: int) -> None:
+        """向旁路登记「这段定稿了」（**零阻塞**）。"""
+        bp = self.spk_bypass
+        if bp is None:
+            return
+        seg_id = "seg_%d" % abs0
+        t_start = abs0 / C.SAMPLE_RATE
+        t_end = abs1 / C.SAMPLE_RATE
+        try:
+            bp.request_final(seg_id, t_start, t_end)
+        except Exception as e:
+            _log(f"说话人旁路请求标签失败（忽略）：{e}")
+
+    def _on_spk_label(self, seg_id: str, t_start: float, t_end: float,
+                      spk: str, info: dict) -> None:
+        """旁路 worker **异步回填**标签时的回调（EXT-029 ②）。
+
+        ★ 只做：① 记进 `_spk_labels`；② 唤醒等标签的人；
+          ③ 更新段级 `spk_table`。
+        ⚠️ **绝不阻塞**旁路 worker。
+        """
+        try:
+            with self._spk_label_cv:
+                self._spk_labels[seg_id] = spk
+                self._spk_label_cv.notify_all()
+            # ★★ 把标签喂给**主 tracker**（`ext/speaker.py` 的记账类）
+            #   ⇒ ① 该说话人进入 tracker 的 profile（攒够 3 s 才给克隆音色）
+            #   ⇒ ② 下一句的音色选择能用「上一句音色」（EXT-027③ 规则 7）
+            #   ⇒ ③ 未定稿的段能拿到补发事件（EXT-002 语义）
+            #   ⚠️ 这是**记账**（纯 Python，微秒级）⇒ 不阻塞旁路 worker。
+            try:
+                self.tracker.update_from_diarization([{
+                    "spk_id": spk, "t_start": float(t_start),
+                    "t_end": float(t_end)}])
+            except Exception as e:
+                _log(f"说话人标签入 tracker 失败（忽略）：{e}")
+            # ★ 段级表：EXT-027③ 验收要落盘
+            #   `spk / voice_source（preset/clone_1.5s/clone_3s/cache）/ 是否换人`
+            #   ⚠️ 按 seg_id **去重更新**（不是追加）⇒ 同一段只有一行，
+            #     且标签晚到时能补上（否则会出现两行同段、字段互相打架）。
+            self._upsert_spk_row(seg_id, {
+                "spk": spk,
+                "spk_conf": info.get("spk_conf"),
+                "spk_is_new": bool(info.get("is_new_spk")),
+                "clean_ranges": info.get("clean_ranges") or [],
+                "spk_reason": info.get("reason"),
+                "spk_lag_s": info.get("lag_s"),
+            })
+        except Exception as e:
+            _log(f"说话人标签回填失败（忽略）：{e}")
+
+    def _upsert_spk_row(self, seg_id: str, fields: dict) -> None:
+        """按 seg_id **更新或追加**段级说话人行（线程安全）。
+
+        ⚠️ 收口线程（`_finalize_segment`）与旁路 worker（`_on_spk_label`）
+          都会写这张表 ⇒ 必须加锁。
+        """
+        with self._spk_table_lock:
+            row = self._spk_rows.get(seg_id)
+            if row is None:
+                row = {"seg_id": seg_id}
+                self._spk_rows[seg_id] = row
+                self.spk_table.append(row)
+            row.update(fields)
+
+    def spk_for_seg(self, seg_id: str) -> Optional[str]:
+        """查某段的说话人标签（**不等待** ⇒ 没有就是 None ⇒ 方案 A）。"""
+        with self._spk_label_cv:
+            return self._spk_labels.get(seg_id)
+
+    def _resolve_spk(self, seg_id: str, t_start: float,
+                     t_end: float) -> Optional[str]:
+        """★★ EXT-029 ②：解析这一段的说话人（**绝不等待**）。
+
+        口径（按优先级）：
+          1. **旁路标签**（`_spk_labels`，异步回填）—— 精确命中该段；
+          2. **tracker**（`spk_for_final`）—— 按时间区间找已知说话人
+             （旁路标签也会经 `_on_spk_label` 进 tracker ⇒ 二者一致）；
+          3. **None** ⇒ 未到 ⇒ **不等** ⇒ 走**方案 A**
+             （上一句音色 / 预设 A，见 `_pick_voice`）。
+
+        ⚠️ 本方法**只查表**（微秒级）⇒ 不阻塞 ASR / 定稿 / MT / TTS。
+        """
+        s = self.spk_for_seg(seg_id)
+        if s:
+            return s
+        try:
+            return self.tracker.spk_for_final(seg_id, t_start, t_end)
+        except Exception:
+            return None
 
     # ── 处理一段 → 配音任务 ──────────────────────────────────────
     def flush(self) -> list:
@@ -1132,7 +1282,8 @@ class Session:
         asr_s = time.perf_counter() - t_asr
 
         # spk：EXT-002 —— 定稿先出，spk 可能为 None
-        spk = self.tracker.spk_for_final(seg_id, t_start, t_end)
+        #   ★ EXT-029 ②：走 `_resolve_spk`（旁路标签优先）⇒ **不等**。
+        spk = self._resolve_spk(seg_id, t_start, t_end)
         self.tracker.register_pending(seg_id, spk, t_start, t_end)
         voice = self._pick_voice(spk)
 
@@ -1271,6 +1422,28 @@ class Session:
         if budget > 0 and speech_out > budget:
             defer_total = max(defer_total, speech_out - budget)
 
+        # ★★★★ EXT-028 ①：**逐段落盘两份音频**。
+        #   (a) `pcm24k`  = TTS 引擎的**原始输出**（未经变速）
+        #   (b) `pcm_out` = **WS 实际发出的**那份字节（base64 之前）
+        #   (c) player 端录到的 —— 由冒烟脚本从浏览器侧落盘
+        #   ⇒ 三份对齐后即可定位「失真发生在哪一环」。
+        #   ⚠️ 在这里落盘是因为此处**同时**持有 (a) 与 (b) ——
+        #     原始输出一旦被 WSOLA 覆盖就再也拿不到了。
+        if self.audio_dump is not None and pcm_out is not None:
+            try:
+                self.audio_dump.dump_segment(
+                    self.public_seg_id(seg_id),
+                    tts_pcm=pcm24k, ws_pcm=pcm_out,
+                    sample_rate=TTS_SAMPLE_RATE, channels=1,
+                    extra={"t_start": round(t_start, 3),
+                           "t_end": round(t_end, 3),
+                           "src": (text or "")[:80],
+                           "tgt": (tgt or "")[:80],
+                           "speed": round(total_rate, 4),
+                           "speech_sec": round(speech_out, 4)})
+            except Exception as e:
+                _log(f"音频落盘失败（段 {seg_id}）：{e}")
+
         # ★★★ EXT-024 E：累加**分开**的三段计数。
         #   口径见 `Session.__init__` 的注释（asr=有文本 / mt=有译文 /
         #   tts=有音频）。⚠️ 只在这里累加 ⇒ 串行与流水线路径
@@ -1281,6 +1454,53 @@ class Session:
             self._n_mt_segments += 1
         if pcm24k is not None:
             self._n_tts_segments += 1
+
+        # ★★★ EXT-029 ② / EXT-027③：段级「说话人 / 音色来源」表。
+        #   ## 口径（必须与 EXT-027③ 规则一致）
+        #     * `voice_source`：
+        #       - 'preset'      —— 用预设 A（面板选 A，或无克隆可用）；
+        #       - 'clone_1.5s'  —— 新说话人的**首段**取样（≥1.5 s）；
+        #       - 'clone_3s'    —— 攒够 3 s 后**重算一次**（之后冻结）；
+        #       - 'cache'       —— 换回老说话人 ⇒ 用**缓存**的音色。
+        #     * `spk` 未到 ⇒ **不等**（方案 A）⇒ `voice_source='preset'`，
+        #       并在 `spk_pending=True` 里如实标注。
+        #   ⚠️ 本表**只是记录**：真正的克隆音色接线在 EXT-027③ 的
+        #     「音色克隆」阶段（要 TTS 侧的 speaker embedding 管线）。
+        #     本轮（EXT-029）只保证**旁路不反压 ASR** + 标签可用。
+        #   ★ seg_id 口径：`seg_<绝对起始采样点>`（与 `_dispatch_segment`、
+        #     `_request_spk_label` 完全一致）⇒ 旁路回填能对上同一行。
+        _spk_now = self.spk_for_seg(seg_id)
+        # ★ `voice_source` 的口径（EXT-027③ 规则 5 的枚举）：
+        #   'preset'      —— 用预设 A；
+        #   'clone_1.5s'  —— 新说话人的**首段**取样（≥1.5 s）；
+        #   'clone_3s'    —— 攒够 3 s 后**重算一次**（之后冻结）；
+        #   'cache'       —— 换回老说话人 ⇒ 用**缓存**的音色。
+        #   ⚠️ **诚实性（本轮只能写 'preset'）**：
+        #     真正的克隆音色要把 x-vector **注入 TTS**，
+        #     而 EXT 的引擎层目前**只支持预设 A**
+        #     （`ext/engine_runtime.py` 的 `_prepare_preset_voice()` 只装
+        #       `voices/preset_A.wav` 的 embedding，`tts()` 的 `voice`
+        #       参数**没有**接进 `tts_engine.stream()`）。
+        #     ⇒ 即便面板选了 clone、tracker 也给出了 spk，
+        #       **实际发声仍是预设 A** ⇒ 这里如实写 'preset'，
+        #       另用 `voice_requested` 记录「面板/追踪器**想要**什么」。
+        #     ⇒ **绝不**写 'clone_1.5s'/'clone_3s'/'cache'（那是假的）。
+        _row = {
+            "id": seg_id,
+            "t_start": round(t_start, 3),
+            "t_end": round(t_end, 3),
+            "spk": spk if spk else None,
+            "spk_label": _spk_now,
+            "spk_pending": bool(_spk_now is None and self.spk_bypass is not None),
+            "voice": voice,
+            "voice_source": "preset",
+            "voice_requested": voice,
+            "clone_wired": False,
+            "is_new_spk": None,
+            "text": (text or "")[:120],
+            "tgt": (tgt or "")[:120],
+        }
+        self._upsert_spk_row(seg_id, _row)
 
         self.margins.append({
             "id": seg_id,
@@ -1366,6 +1586,22 @@ class Session:
             "voice": voice,
             "pcm24k": (base64.b64encode(pcm_out).decode("ascii")
                        if pcm_out is not None else None),
+            # ★★★★ EXT-028 ①：**必须显式带上 PCM 的采样率**。
+            #   ## 为什么这是 EXT-028「基本听不清」的**头号根因**
+            #     服务端下发的 TTS 是 **24 kHz** PCM16（`TTS_SAMPLE_RATE`），
+            #     而插件侧 `scheduleDub()` 原来写的是
+            #       `b64ToAudioBuffer(msg.pcm24k, msg.sample_rate || 16000)`
+            #     ⇒ 服务端**没带** `sample_rate` 字段 ⇒ 插件按 **16 kHz** 重建
+            #       AudioBuffer ⇒ 24 kHz 的波形被当成 16 kHz 播放
+            #       ⇒ **语速快 1.5×、音调整体升高**（≈7 个半音）
+            #       ⇒ 用户听到的是「完全听不出在说什么」。
+            #   ⇒ 现在服务端**显式**声明采样率，插件按它重建。
+            #   ⚠️ 仍然保留插件侧的兜底（老服务端没有这个字段时按 16 kHz），
+            #     但**新服务端必须带**（见 `test_ext028_dub_audio_chain.py`）。
+            "sample_rate": TTS_SAMPLE_RATE,
+            # ★★ EXT-028 ①：PCM 的**格式**也显式声明（别让插件猜）。
+            "pcm_format": "s16le",
+            "pcm_channels": 1,
             "fit": fit.to_dict(),
             "delay_sec": self.delay_sec,
             # ★ EXT-009：自适应加速的决策与最终倍率
@@ -1439,6 +1675,16 @@ class Session:
             "mt_segments": self._n_mt_segments,
             "tts_segments": self._n_tts_segments,
             "speaker": self.tracker.stats(),
+            # ★★★ EXT-029 ③：**说话人旁路**的指标。
+            #   ⚠️ 没接旁路 ⇒ `spk_bypass` = None ⇒ 这组是
+            #     `{"enabled": false, ...}`，**不臆造**任何数字。
+            "spk_bypass": (self.spk_bypass.stats()
+                           if self.spk_bypass is not None else
+                           {"enabled": False,
+                            "spk_queue_drop": 0,
+                            "spk_worker_busy_ms": 0.0,
+                            "note": "本会话未接说话人旁路"
+                            "（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）"}),
             "margin": self.margin_summary(),
             # ★ EXT-009：自适应加速的**各倍率时间占比**与滞后曲线
             #   （EXT-009 验收：「报告滞后随时间的曲线（起点、峰值、结尾）
@@ -1639,8 +1885,10 @@ class PipelineSession(Session):
     """
 
     def __init__(self, token: str, *, delay_sec: float = 10.0,
-                 engine=None) -> None:
-        super().__init__(token, delay_sec=delay_sec, engine=engine)
+                 engine=None, audio_dump=None,
+                 spk_bypass_enabled: bool = False) -> None:
+        super().__init__(token, delay_sec=delay_sec, engine=engine,
+                         audio_dump=audio_dump)
         # ★ GPU 设备互斥：ASR 与 MT 都在 GPU.0 ⇒ 二者互斥串行。
         #   （TTS 在 NPU，不参与互斥 —— interference 实测已验证
         #     ASR ∥ TTS 并发时互不拖慢，见 ext/pipeline.py 顶部。）
@@ -1657,6 +1905,36 @@ class PipelineSession(Session):
             on_log=_log,
         )
         self._seg_index = 0
+        # ★★★ EXT-029 ①/④：**说话人旁路**（独立线程 + 有界队列）。
+        #   ## 为什么放在这里（而不是基类）
+        #     旁路的**嵌入**（wespeaker）实测**只有 GPU.0 能编译**
+        #     ⇒ 必须与 ASR/MT **共用同一把** `self._device_lock`
+        #       （公平 FIFO ⇒ ASR 最多多等一次 embed ⇒ 不会饿死）。
+        #     ⇒ 只有**持有那把锁**的流水线会话才能正确接旁路。
+        #   ## 设备摆放（实测 2026-11-01）
+        #     * 旁路**分段**（pyannote）→ **NPU**（实测可编译）
+        #       ⇒ **完全不碰 GPU.0** ⇒ 不与 ASR 抢 GPU。
+        #     * 旁路**嵌入**（wespeaker）→ **GPU.0**（实测唯一可编译）
+        #       ⇒ 共用 `_device_lock`，持锁总时长即 **ASR 额外延迟上界**
+        #         （记 `spk_gpu_lock_held_ms`，按 EXT-029 ④ 上报）。
+        #   ⚠️ 旁路加载失败 ⇒ **安静降级**（字幕没有说话人标签，
+        #     其余行为逐字不变）⇒ 绝不打断音频链路。
+        self.spk_bypass_enabled = bool(spk_bypass_enabled)
+        if self.spk_bypass_enabled:
+            try:
+                from .speaker_bypass import SpeakerBypass
+                self.spk_bypass = SpeakerBypass(
+                    device_lock=self._device_lock,
+                    on_label=self._on_spk_label,
+                    on_log=lambda m: _log("旁路：%s" % m))
+                self.spk_bypass.start()
+                _log("★ EXT-029①：说话人旁路已启动"
+                     "（独立线程 + 有界队列 + 异步回填）")
+            except Exception as e:
+                self.spk_bypass = None
+                self.spk_bypass_enabled = False
+                _log("⚠️ EXT-029：说话人旁路创建失败（降级：字幕无说话人标签）："
+                     "%s: %s" % (type(e).__name__, e))
 
     # ── 阶段函数（各自在流水线线程里跑） ────────────────────────
     def _stage_asr(self, job) -> None:
@@ -1693,7 +1971,9 @@ class PipelineSession(Session):
         """TTS 阶段（在 TTS 线程里跑）。"""
         # spk / voice：EXT-002 —— 定稿先出，spk 可能为 None
         #   ⇒ 这段在**提交时**就已确定（spk 旁路不阻塞定稿）。
-        job.spk = self.tracker.spk_for_final(job.seg_id, job.t_start, job.t_end)
+        #   ★ EXT-029 ②：`_resolve_spk` 只查表 ⇒ 标签未到就是 None
+        #     ⇒ **不等** ⇒ 走方案 A（上一句音色 / 预设 A）。
+        job.spk = self._resolve_spk(job.seg_id, job.t_start, job.t_end)
         self.tracker.register_pending(job.seg_id, job.spk,
                                        job.t_start, job.t_end)
         job.voice = self._pick_voice(job.spk)
@@ -1741,6 +2021,17 @@ class PipelineSession(Session):
         t_start = abs0 / C.SAMPLE_RATE
         t_end = abs1 / C.SAMPLE_RATE
         seg_id = f"seg_{abs0}"
+        # ★★★ EXT-029 ②：**流水线也必须向旁路要标签**。
+        #   ## 真实缺陷（2026-11-01 实测抓到的）
+        #     基类 `_dispatch_segment()` 里有 `_request_spk_label(abs0, abs1)`，
+        #     但 `PipelineSession` **覆盖**了这个方法（原实现不调基类）
+        #     ⇒ 流水线会话**从不**向旁路登记定稿段
+        #     ⇒ 实测 `n_final_req=0` / `n_label=0`（旁路只喂音频、从不产出标签）
+        #     ⇒ 段级表里 `spk` 全是 `null`、`spk_pending=true`（永远等不到）。
+        #   ## 修法
+        #     在这里补上同样的调用（**零阻塞**，只 append）
+        #     ⇒ 流水线（= 生产路径）也能拿到说话人标签。
+        self._request_spk_label(abs0, abs1)
         job = SegmentJob(
             index=self._seg_index, seg_id=seg_id,
             t_start=t_start, t_end=t_end, audio=seg_audio,
@@ -1790,6 +2081,12 @@ class PipelineSession(Session):
             self._pipeline.stop()
         except Exception:
             pass
+        # ★ EXT-029：停掉旁路 worker（**优雅**：先放哨兵再 join）。
+        try:
+            if self.spk_bypass is not None:
+                self.spk_bypass.stop()
+        except Exception:
+            pass
 
 
 def _get_header(websocket, name: str) -> Optional[str]:
@@ -1812,7 +2109,8 @@ def _get_header(websocket, name: str) -> Optional[str]:
 
 
 def _make_session(token: str, *, delay_sec: float, engine,
-                  use_pipeline: bool = False) -> "Session":
+                  use_pipeline: bool = False, audio_dump=None,
+                  spk_bypass: bool = False) -> "Session":
     """建会话（★ EXT-010：可选**流水线**模式）。
 
     * `use_pipeline=False` ⇒ 串行 `Session`（**原有行为完全不变**，
@@ -1820,11 +2118,21 @@ def _make_session(token: str, *, delay_sec: float, engine,
     * `use_pipeline=True`  ⇒ `PipelineSession`（句级并行）。
 
     ⚠️ **回声模式不用流水线**（echo 是逐帧原样返回，没有分段/推理）。
+    ★ EXT-028 ①：`audio_dump` 传给会话 ⇒ 逐段落盘 TTS 原始输出与 WS 字节。
+    ★ EXT-029 ①：`spk_bypass=True` ⇒ 流水线会话**接说话人旁路**
+      （独立线程 + 有界队列 + 异步回填）。
+      ⚠️ 串行会话**不接**（没有 GPU 互斥锁 ⇒ 旁路会饿死 ASR）。
     """
     if use_pipeline and engine is not None:
         _log("★ 使用流水线会话（EXT-010：ASR/MT/TTS/收口 各一线程）")
-        return PipelineSession(token, delay_sec=delay_sec, engine=engine)
-    return Session(token, delay_sec=delay_sec, engine=engine)
+        return PipelineSession(token, delay_sec=delay_sec, engine=engine,
+                               audio_dump=audio_dump,
+                               spk_bypass_enabled=bool(spk_bypass))
+    if spk_bypass:
+        _log("⚠️ EXT-029：串行会话不接说话人旁路"
+             "（无 GPU 互斥锁 ⇒ 旁路会饿死 ASR）")
+    return Session(token, delay_sec=delay_sec, engine=engine,
+                   audio_dump=audio_dump)
 
 
 async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
@@ -1833,7 +2141,9 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
                     margin_out: Optional[str] = None,
                     use_pipeline: bool = False,
                     registry: Optional["ConnectionRegistry"] = None,
-                    mode: str = "echo") -> None:
+                    mode: str = "echo",
+                    audio_dump=None,
+                    spk_bypass: bool = False) -> None:
     """单连接的握手与消息循环。
 
     ★★ 缺陷 15（EXT-006 P1 实测抓到的真缺陷）：**不能覆盖已有 session**。
@@ -1894,7 +2204,9 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
             return
         _log(f"已通过首个 hello 消息鉴权（role={first.get('role')}）")
         session = _make_session(token, delay_sec=delay_sec, engine=engine,
-                                 use_pipeline=use_pipeline)
+                                 use_pipeline=use_pipeline,
+                                 audio_dump=audio_dump,
+                                 spk_bypass=spk_bypass)
         conn_id = (registry.next_id() if registry is not None else None)
         _role0 = classify_role(first)
         if registry is not None:
@@ -1910,7 +2222,7 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
                                    margin_out=margin_out,
                                    session_holder=session_holder,
                                    registry=registry, conn_id=conn_id,
-                                   mode=mode)
+                                   mode=mode, audio_dump=audio_dump)
         finally:
             _release_session(session_holder, session)
             if registry is not None and conn_id is not None:
@@ -1923,7 +2235,8 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
 
     _log(f"已连接（origin={origin}）")
     session = _make_session(token, delay_sec=delay_sec, engine=engine,
-                             use_pipeline=use_pipeline)
+                             use_pipeline=use_pipeline, audio_dump=audio_dump,
+                             spk_bypass=spk_bypass)
     conn_id = (registry.next_id() if registry is not None else None)
     if registry is not None:
         # ★ 角色未知的连接**不当 player**（见 classify_role 的说明）。
@@ -1938,7 +2251,7 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
                                margin_out=margin_out,
                                session_holder=session_holder,
                                registry=registry, conn_id=conn_id,
-                               mode=mode)
+                               mode=mode, audio_dump=audio_dump)
     finally:
         _release_session(session_holder, session)
         if registry is not None and conn_id is not None:
@@ -2248,7 +2561,8 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                            session_holder: Optional[dict] = None,
                            registry: Optional["ConnectionRegistry"] = None,
                            conn_id: Optional[str] = None,
-                           mode: str = "echo") -> None:
+                           mode: str = "echo",
+                           audio_dump=None) -> None:
     """消息循环。`first` 若已读过则先处理它。
 
     ★★ EXT-024 A：**下行任务按连接广播**。
@@ -2555,7 +2869,8 @@ def _describe_port_owner(port: int) -> str:
 async def serve(host: str, port: int, *, delay_sec: float, echo_mode: bool,
                 token_path: str, engine=None, margin_out: Optional[str] = None,
                 session_holder: Optional[dict] = None,
-                use_pipeline: bool = False) -> None:
+                use_pipeline: bool = False, audio_dump=None,
+                spk_bypass: bool = False) -> None:
     import websockets
 
     tokens = TokenStore(token_path)
@@ -2574,7 +2889,8 @@ async def serve(host: str, port: int, *, delay_sec: float, echo_mode: bool,
                               margin_out=margin_out,
                               use_pipeline=use_pipeline,
                               registry=registry,
-                              mode=mode),
+                              mode=mode, audio_dump=audio_dump,
+                              spk_bypass=spk_bypass),
         host, port,
         origins=None,
         max_size=32 * 1024 * 1024,
@@ -2604,6 +2920,20 @@ def main(argv=None) -> int:
                     help="目标语言（en/zh/ja/...），TTS 会显式传给它")
     ap.add_argument("--margin-out", default=None,
                     help="把余量统计与时间表落盘到这个 JSON")
+    # ★★★★ EXT-028 ①：逐段音频落盘目录。
+    #   落了 (a) TTS 原始输出 wav + (b) WS 下发字节（裸 PCM + 元信息 json）。
+    #   ★ 不配这个参数 ⇒ **完全不落盘**（不改变默认行为）。
+    # ★★★ EXT-029 ①：说话人旁路开关（**默认关**）。
+    #   开 ⇒ 流水线会话接旁路（独立线程 + 有界队列 + 异步回填）。
+    #   关 ⇒ 完全不接（= EXT-029 ③ 验收里的「关闭旁路」那一轮）。
+    ap.add_argument("--spk-bypass", dest="spk_bypass", action="store_true",
+                    help="启用说话人旁路（EXT-029：独立线程 + 有界队列）")
+    ap.add_argument("--no-spk-bypass", dest="spk_bypass", action="store_false",
+                    help="禁用说话人旁路（默认）")
+    ap.set_defaults(spk_bypass=False)
+    ap.add_argument("--audio-dump-out", default=None,
+                    help="★ EXT-028①：逐段落盘 TTS 原始输出(wav)与 "
+                         "WS 下发字节(pcm)到这个目录")
     # ── ★ EXT-010：句级流水线 ────────────────────────────────
     # ★★ EXT-022 已定①：**流水线默认开启**（主会话 2026-10-30 已定，
     #   用户已知情）。
@@ -2762,12 +3092,25 @@ def main(argv=None) -> int:
     if warm_report:
         holder["engine_state"] = "ready" if warm_report.get("ok") else "partial"
 
+    # ★★★★ EXT-028 ①：逐段音频落盘器（不配 --audio-dump-out ⇒ 不落盘）。
+    _audio_dump = None
+    if args.audio_dump_out:
+        try:
+            from .audio_dump import AudioDump
+            _audio_dump = AudioDump(args.audio_dump_out)
+            _log(f"★ EXT-028①：逐段音频落盘目录 = {args.audio_dump_out}")
+        except Exception as e:
+            _log(f"⚠️ 音频落盘器创建失败（不影响主功能）：{e}")
+            _audio_dump = None
+
     try:
         asyncio.run(serve(args.host, args.port, delay_sec=args.delay,
                           echo_mode=args.echo, token_path=token_path,
                           engine=engine, margin_out=args.margin_out,
                           session_holder=holder,
-                          use_pipeline=args.pipeline))
+                          use_pipeline=args.pipeline,
+                          audio_dump=_audio_dump,
+                          spk_bypass=args.spk_bypass))
     except KeyboardInterrupt:
         _log("已停止")
     except OSError as e:
@@ -2792,6 +3135,14 @@ def main(argv=None) -> int:
             except Exception:
                 pass
         _dump_margin(holder, args.margin_out, engine)
+        # ★ EXT-028 ①：退出前把落盘清单写出来（供 reviewer 核对文件数/字节数）。
+        if _audio_dump is not None:
+            try:
+                _mp = _audio_dump.write_manifest()
+                if _mp:
+                    _log(f"★ EXT-028①：音频落盘清单 = {_mp}")
+            except Exception as e:
+                _log(f"⚠️ 音频落盘清单写入失败：{e}")
     return 0
 
 
@@ -2858,6 +3209,28 @@ def _dump_margin(holder: dict, out_path: Optional[str], engine,
                            and hasattr(sess, "adaptive_speed_stats") else {}),
         # ★★ EXT-011：线程限制记录（4 个环境变量的实际值 + 开关状态）
         "thread_limits": dict(THREAD_LIMIT_RECORD),
+        # ★★★ EXT-029 ③：**说话人旁路**的指标
+        #   （`spk_queue_drop` / `spk_worker_busy_ms` 必须落盘 ⇒ reviewer
+        #     可直接核对「旁路有没有反压 ASR」）。
+        "spk_bypass": (sess.spk_bypass.stats()
+                       if (sess is not None
+                           and getattr(sess, "spk_bypass", None) is not None)
+                       else {"enabled": False, "spk_queue_drop": 0,
+                             "spk_worker_busy_ms": 0.0}),
+        # ★★ EXT-027③：段级「说话人 / 音色来源」表
+        "spk_table": (list(getattr(sess, "spk_table", []) or [])
+                      if sess is not None else []),
+        # ★★★ EXT-029 ③：**流水线各阶段的**墙钟**（含等 GPU 互斥锁的时间）。
+        #   ## 为什么必须单独落盘
+        #     `per_segment[].asr_sec` 是**纯引擎调用**耗时（**不含**等锁）
+        #     ⇒ 旁路与 ASR 抢 GPU 锁造成的排队**不会**体现在 `asr_sec` 里
+        #     ⇒ 只比 `asr_sec` 会**低估**旁路对 ASR 的影响（假通过）。
+        #   ★ `stage_wall_sec.asr` 才是**真实墙钟**（`ext/pipeline.py` 里
+        #     `dt = perf_counter() - t0` 覆盖 `with self._device_lock:` 整段）
+        #     ⇒ 这才是 EXT-029③「ASR 墙钟」的正确口径。
+        "pipeline": (sess.pipeline_stats()
+                     if sess is not None
+                     and hasattr(sess, "pipeline_stats") else None),
     }
     n_new = len(data.get("per_segment") or [])
 

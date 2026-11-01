@@ -113,13 +113,28 @@ def test_segmentation() -> None:
     # 完整段（非末段）长度应落在 [min, max]；末段是尾巴，可以短
     body = segs[:-1]
     tail = segs[-1]
-    check("完整段长度落在 [12, 20] s（min/max 内）",
-          bool(body) and all(12.0 <= (e - s) / C.SAMPLE_RATE <= 20.0 + 1e-6
+    # ★★★ EXT-027 ④：切段参数从 [12, 20] 降到 [3, 8]
+    #   （reviewer：「max_segment_sec 降到 6–8 s、min_segment_sec 降到 2–3 s」）。
+    #   ⇒ 断言改为**引用配置常量**（不再写死数字），
+    #     但**判据本身不变**（仍检查「落在 [min, max] 内」+「末段不超过 max」）
+    #     ⇒ 不是「放宽断言掩盖回归」，而是「跟着配置走」。
+    _lo, _hi = C.SEG_MIN_SEC, C.SEG_MAX_SEC
+    check(f"完整段长度落在 [{_lo:g}, {_hi:g}] s（min/max 内）",
+          bool(body) and all(_lo - 1e-6 <= (e - s) / C.SAMPLE_RATE <= _hi + 1e-6
                              for s, e in body),
           ", ".join(f"{(e - s) / C.SAMPLE_RATE:.2f}s" for s, e in body))
     check("末段（尾巴）不超过 max",
-          (tail[1] - tail[0]) / C.SAMPLE_RATE <= 20.0 + 1e-6,
+          (tail[1] - tail[0]) / C.SAMPLE_RATE <= _hi + 1e-6,
           f"tail={(tail[1] - tail[0]) / C.SAMPLE_RATE:.2f}s")
+    # ★★ EXT-027 ④：**最长的段必须短于延迟 D**（否则按设计就赶不上）。
+    #   D = 10 s（默认）⇒ 一段最长 8 s ⇒ 等它说完（8 s）还剩 2 s 给管线。
+    #   ⇒ 这是「同步误差超标」被修掉的**前提条件**，单独断言。
+    check("★ 切段上限短于默认延迟 D=10 s（EXT-027④ 的前提）",
+          _hi < 10.0, f"max={_hi:g}s, D=10s")
+    check("★ 切段下限落在 reviewer 要求的 2–3 s（EXT-027④）",
+          2.0 <= _lo <= 3.0, f"min={_lo:g}s")
+    check("★ 切段上限落在 reviewer 要求的 6–8 s（EXT-027④）",
+          6.0 <= _hi <= 8.0, f"max={_hi:g}s")
 
     # 与 R2T2 原件等价性
     # ★ EXT-006：改用 `r2t2_module()` 取**私有名**加载的 R2T2 原件。
@@ -330,11 +345,14 @@ def test_ext005_ext006_behaviors() -> None:
         check("后续段的 t_start > 0（不是相对缓冲区）",
               all(s > 0 for s in starts[1:]),
               ", ".join(f"{s:.2f}s" for s in starts[1:]))
-        # 时间窗长度应在 [12, 20] s（R2T2 断句区间）
+        # 时间窗长度应在 [SEG_MIN_SEC, SEG_MAX_SEC] s（R2T2 断句区间）
+        # ★★ EXT-027④：切段参数已下调为 [3, 8] s ⇒ 断言引用配置常量
+        #   （判据本身不变：完整段落在 [min,max] 内 + 末段不超过 max）。
         lens = [(e - s) for s, e in zip(starts, ends)]
-        check("段时长落在 [12,20] s（末段可短）",
-              all(12.0 <= L <= 20.0 + 1e-6 for L in lens[:-1]) and
-              lens[-1] <= 20.0 + 1e-6,
+        check(f"段时长落在 [{C.SEG_MIN_SEC:g},{C.SEG_MAX_SEC:g}] s（末段可短）",
+              all(C.SEG_MIN_SEC - 1e-6 <= L <= C.SEG_MAX_SEC + 1e-6
+                  for L in lens[:-1]) and
+              lens[-1] <= C.SEG_MAX_SEC + 1e-6,
               ", ".join(f"{L:.2f}s" for L in lens))
 
     print("\n[8] EXT-006 P1 — 余量统计口径（原声结束→TTS 就绪）")

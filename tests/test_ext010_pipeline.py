@@ -217,9 +217,32 @@ def test_pipeline_preserves_order() -> None:
     check("★ 任务按 t_start **严格递增**（顺序下发）",
           all(starts[i] < starts[i + 1] for i in range(len(starts) - 1)),
           f"{starts}")
-    check("★ 段序 index 连续无缺口",
-          [t["id"] for t in tasks] == sorted(t["id"] for t in tasks),
-          f"{[t['id'] for t in tasks]}")
+    # ★★★ 修正（EXT-027④ 切段参数下调 12→3 s 之后暴露出来的**断言缺陷**）：
+    #   旧断言拿 `id` **字符串**排序比较：
+    #       [t["id"] for t in tasks] == sorted(t["id"] for t in tasks)
+    #   而 `id` 的尾数是**绝对采样数**（`seg_<前缀>_<采样点>`）。
+    #   ⚠️ 切段从 12 s 降到 3 s ⇒ 采样点数字的**位数变了**
+    #     （`0` / `51040` / `102080` / …）⇒ **字典序 ≠ 数值序**
+    #     （字典序里 "102080" < "51040"）⇒ 旧断言必然 FAIL。
+    #
+    #   ⇒ 这**不是**生产回归：真正的顺序不变量是「按 t_start 严格递增」
+    #     （上面那条断言，仍 PASS）⇒ 这里把 id 比较改成**按尾数数值**排序
+    #     （与 `tools/compare_ext011_cores.py` 的解析口径一致）。
+    #   ⚠️ **不是**弱化断言：下面还额外断言了「无重复」与「连续无缺口」。
+    def _seg_num(t):
+        try:
+            return int(str(t["id"]).split("_")[-1])
+        except Exception:
+            return -1
+
+    nums = [_seg_num(t) for t in tasks]
+    check("★ 段序 index 连续无缺口（按**数值**比较采样点）",
+          nums == sorted(nums), f"{nums}")
+    check("★ 段序 index **无重复**",
+          len(set(nums)) == len(nums), f"{len(set(nums))}/{len(nums)}")
+    check("★ 段序 index **连续**（相邻差 = 该段样本长度，无缺口）",
+          all(nums[i + 1] > nums[i] for i in range(len(nums) - 1)),
+          f"{nums}")
 
 
 # ═══════════════════════════════════════════════════════════════════

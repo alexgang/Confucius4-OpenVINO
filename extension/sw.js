@@ -18,6 +18,28 @@
 
 const OFFSCREEN_URL = 'offscreen.html';
 
+/**
+ * ★★ EXT-031③：读「允许的抓流方式」白名单（**唯一事实源 = manifest**）。
+ *
+ * - `manifest.json` → `liveDub.captureModes`（发行包由
+ *   `release/build_release.py` 改写为 `["tabCapture"]`）
+ * - 发行版 = **只有标签页音频路径**（EXT-027①）
+ *   ⇒ `getDisplayMedia`（整机声音）**默认关闭**。
+ * - 读不到 ⇒ 按**最严**处理（只允许 tabCapture）⇒ 宁可失败，
+ *   绝不静默抓整机声音。
+ */
+function readAllowedCaptureModes() {
+  try {
+    const m = (chrome.runtime.getManifest() || {});
+    const ld = m.liveDub || {};
+    const list = Array.isArray(ld.captureModes) ? ld.captureModes : null;
+    if (list && list.length) return list;
+    return ld.release ? ['tabCapture'] : ['tabCapture', 'getDisplayMedia'];
+  } catch (e) {
+    return ['tabCapture'];
+  }
+}
+
 let sessionState = {
   running: false,
   tabId: null,
@@ -183,6 +205,12 @@ async function handleSw(msg) {
     }
     case 'start': {
       await ensureOffscreen();
+      // ★★★ EXT-031③：发行版**禁用**整机 getDisplayMedia 回退。
+      //   唯一事实源 = manifest 的 `liveDub.captureModes`
+      //   （发行包由 `release/build_release.py` 改成 ["tabCapture"]）。
+      //   ⇒ 开发目录里仍可回退（自动化冒烟需要），
+      //     **发行版里只保留 EXT-027 的标签页音频路径**。
+      const allowed = (readAllowedCaptureModes());
       // 生产：先尝试 tabCapture；失败则退回 getDisplayMedia（offscreen 内部判断）
       let streamId = null;
       let captureMode = 'tabCapture';
@@ -199,8 +227,17 @@ async function handleSw(msg) {
           streamId = null;
         }
       }
+      if (captureMode === 'getDisplayMedia' && !allowed.includes('getDisplayMedia')) {
+        // ★ 发行版：**明确失败**，绝不静默抓整机声音。
+        throw new Error('发行版已禁用 getDisplayMedia 整机回退（只保留标签页音频路径）：'
+          + (streamId ? '' : 'tabCapture 不可用（需要用户点击扩展图标授权）'));
+      }
+      // ★★ EXT-027①：把**目标标签页 id** 传给 offscreen
+      //   ⇒ offscreen 优先用 `chrome.tabCapture.capture({targetTabId})`
+      //     **只抓该标签页的音频**（而不是 getDisplayMedia 的整机系统声音）。
       const res = await offscreenCall('start', {
         streamId,
+        targetTabId: msg.tabId,
         display: captureMode === 'getDisplayMedia'
           ? { frameRate: msg.frameRate || 30 }
           : null,
@@ -214,12 +251,21 @@ async function handleSw(msg) {
         targetLang: msg.targetLang || null,
         voice: msg.voice || null,
       });
+      // ★★ EXT-027①：**如实**报告**实际**用的抓流方式。
+      //   `captureMode` 上面那个只是**计划值**（SW 想走哪条路）；
+      //   真正用的是 offscreen 里的那一条（它会先试
+      //   `tabCapture.capture({targetTabId})`，失败才降级）
+      //   ⇒ 以 offscreen 回的 `captureMode` 为准，**绝不**把降级说成 tabCapture。
+      const actualMode = (res && res.offscreen && res.offscreen.captureMode)
+        ? res.offscreen.captureMode : captureMode;
       sessionState = {
         running: true, tabId: msg.tabId, wsUrl: msg.wsUrl,
-        startedAt: Date.now(), lastError: null, captureMode,
+        startedAt: Date.now(), lastError: null, captureMode: actualMode,
+        targetTabId: msg.tabId,
         targetLang: msg.targetLang || null, voice: msg.voice || null,
       };
-      return { streamId, captureMode, offscreen: res };
+      return { streamId, captureMode: actualMode, plannedCaptureMode: captureMode,
+               offscreen: res };
     }
     case 'stop': {
       try {

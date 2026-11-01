@@ -30,11 +30,29 @@ from .config import (
     VAD_HOP_MS,
 )
 
-# 现有交付版本（R2T2）所在仓库根目录。只读引用。
-R2T2_ROOT = os.environ.get(
-    "EXT_R2T2_ROOT",
-    r"C:\Users\Trekker-PTL\confucius4-openvino",
-)
+# 现有交付版本（R2T2）所在目录。只读引用。
+# ★★ EXT-031 ②：**去掉写死的开发机绝对路径**（原
+#   `C:\Users\Trekker-PTL\confucius4-openvino`）⇒ 改成：
+#   ① 环境变量 `EXT_R2T2_ROOT`（显式覆盖永远优先）；
+#   ② **App 包内 `app/`**（发行包里 R2T2 原件的真实位置 ——
+#      App 自带 `seg_stream.py` + `backends.py`，**不另带一份**）；
+#   ③ 空串 ⇒ 退回本文件内**复制**的等价 VAD 切分逻辑（EXT-001 允许）。
+def _resolve_r2t2_root() -> str:
+    """解析 R2T2 原件目录（发行版优先；**绝不**臆造路径）。"""
+    env = (os.environ.get("EXT_R2T2_ROOT") or "").strip()
+    if env:
+        return env
+    try:
+        from .app_root import app_path
+        cand = app_path("app")
+    except Exception:
+        cand = None
+    if cand and os.path.isfile(os.path.join(cand, "seg_stream.py")):
+        return cand
+    return ""
+
+
+R2T2_ROOT = _resolve_r2t2_root()
 
 
 # ── R2T2 原件加载（优先 import，不改其文件） ────────────────────────

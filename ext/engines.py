@@ -23,12 +23,51 @@ import numpy as np
 
 from .config import DEVICE_ASR, DEVICE_MT, DEVICE_TTS
 
-R2T2_ROOT = os.environ.get("EXT_R2T2_ROOT",
-                           r"C:\Users\Trekker-PTL\confucius4-openvino")
-HY_ROOT = os.environ.get("EXT_HY_ROOT",
-                         r"C:\Users\Trekker-PTL\hy_bench")
-TTS_ROOT = os.environ.get("EXT_TTS_ROOT",
-                          r"C:\Users\Trekker-PTL\confucius4-tts")
+def _resolve_roots() -> dict:
+    """解析三个引擎的**代码根**（只读引用；**不加载**任何模型）。
+
+    ★★ EXT-031 ②：**去掉写死的开发机绝对路径**
+      （原 `C:\\Users\\Trekker-PTL\\confucius4-openvino` /
+        `…\\hy_bench` / `…\\confucius4-tts`）
+      ⇒ 改成「**App 包内**相对解析」：
+
+      | 引擎 | 代码根（发行包内） | 模型目录（发行包内） |
+      |---|---|---|
+      | ASR (R2T2) | `app/`（含 `seg_stream.py`/`backends.py`） | `models/encoder-int8` + `models/decoder-gpu-int8` |
+      | MT (Hy-MT2) | `app/`（含 `translator.py`） | `models/mt/mt2-int8sym-cw-q` |
+      | TTS (Qwen3-TTS) | `app/`（含 `tts_engine.py`） | `models/qwen3tts` |
+
+      ⇒ **不另带一份模型**（全部映射到 App 包内现有的）。
+      环境变量 `EXT_R2T2_ROOT` / `EXT_HY_ROOT` / `EXT_TTS_ROOT` 仍可显式覆盖。
+    """
+    env = {"asr": os.environ.get("EXT_R2T2_ROOT"),
+           "mt": os.environ.get("EXT_HY_ROOT"),
+           "tts": os.environ.get("EXT_TTS_ROOT")}
+    roots = {"asr": "", "mt": "", "tts": ""}
+    models = {"asr": [], "mt": [], "tts": []}
+    try:
+        from .app_root import app_path
+        app = app_path("app") or ""
+        roots = {"asr": app, "mt": app, "tts": app}
+        models = {
+            "asr": [app_path("models", "encoder-int8") or "",
+                    app_path("models", "decoder-gpu-int8") or ""],
+            "mt": [app_path("models", "mt", "mt2-int8sym-cw-q") or ""],
+            "tts": [app_path("models", "qwen3tts") or ""],
+        }
+    except Exception:
+        pass
+    for k in roots:
+        if env.get(k):
+            roots[k] = env[k].strip()
+    return {"roots": roots, "models": models}
+
+
+_ROOTS = _resolve_roots()
+R2T2_ROOT = _ROOTS["roots"]["asr"]
+HY_ROOT = _ROOTS["roots"]["mt"]
+TTS_ROOT = _ROOTS["roots"]["tts"]
+ENGINE_MODEL_DIRS = _ROOTS["models"]
 
 
 class EngineAdapter:
@@ -68,13 +107,20 @@ class EngineAdapter:
         return False
 
     def available(self) -> dict:
-        """各引擎当前是否可接入（静态探测，不加载模型）。"""
+        """各引擎当前是否可接入（静态探测，不加载模型）。
+
+        ★★ EXT-031 ②：探测根**改为 App 包内**（发行包里真实位置），
+          并额外报 `model_dirs`（**不另带一份模型**的映射证据）。
+        """
         return {
             "asr": {"root": R2T2_ROOT, "device": DEVICE_ASR,
+                    "model_dirs": ENGINE_MODEL_DIRS.get("asr", []),
                     "probe_ok": self._probe(R2T2_ROOT, ("SegmentedStreamer",))},
             "mt": {"root": HY_ROOT, "device": DEVICE_MT,
-                   "probe_ok": self._probe(HY_ROOT, ("hy",))},
+                   "model_dirs": ENGINE_MODEL_DIRS.get("mt", []),
+                   "probe_ok": self._probe(HY_ROOT, ("mt_available",))},
             "tts": {"root": TTS_ROOT, "device": DEVICE_TTS,
+                    "model_dirs": ENGINE_MODEL_DIRS.get("tts", []),
                     "probe_ok": self._probe(TTS_ROOT, ("tts",))},
         }
 

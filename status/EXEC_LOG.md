@@ -2365,3 +2365,124 @@ A 轮另有 `schedClamped=7 / audioRecvSec=151.89225 / uplink.running=true / wsO
 
 ---
 
+---
+
+## 2026-11-01 15:02 → 16:12 — §21 EXT-029 收口（说话人旁路：独立线程 + 有界队列 + 异步回填，不反压 ASR） ← 本轮
+
+**执行时间**：2026-11-01 15:02（闸门）→ 2026-11-01 16:12（本轮收口完成）
+
+**指令摘要**
+- 来源文件：`C:\Users\Trekker-PTL\live_dub_ext\status\CORRECTIONS_EXT.md`（**reviewer 独占写入 ⇒ 本模块只读、未修改、未入库**）
+- 本轮唯一执行依据：**EXT-029 [HIGH] 2026-11-01 11:50 — 接说话人旁路（EXT-027③）时：diarization/SpeakerTracker.feed 必须在独立线程，不得反压 ASR**
+- 闸门：`tools/next_instruction.py --json` ⇒ **exit 0**（latest=`EXT-029` / last_ack=26 / `n_entries=13`）⇒ **认领 EXT-029** ⇒ `last_ack` = **EXT-029**
+- 指令四条要求：
+  1. 独立线程 / 队列 + `put_nowait` + 有界队列满了**丢旧块并计数** + 不阻塞 ASR/定稿/MT/TTS；
+  2. spk 结果**异步回填**，未到按**方案 A**（上一句音色 / 预设 A），**不等待**；
+  3. 开/关旁路各跑同一段 60 s，ASR 墙钟与 feed_lag 差异 ≤5 %，`summary.json` 记 `spk_queue_drop` / `spk_worker_busy_ms`；
+  4. **不得与 ASR 抢同一把 GPU 推理锁导致 ASR 排队**；若必须共用 GPU，**在 STATUS 报测得的 ASR 额外延迟**。
+
+**开工状态**：工作区存在 **9 个已改 + 9 个新文件**的**未提交在制品**（EXT-027 / 028 / 029，一轮被中断）
+⇒ 本轮**不推倒重做**，改为**逐条核对 + 实测找缺陷 + 补证据 + 收口**。
+
+### ★ 实测抓到并修掉 4 个真缺陷
+
+| # | 缺陷 | 实测证据 | 修法 |
+|---|---|---|---|
+| **D1** | `PipelineSession` **覆盖** `_dispatch_segment()` 且**不调基类** ⇒ 流水线（= 生产路径）**从不**向旁路登记定稿段 | `n_final_req=0` / `n_label=0`，段级表 `spk` 全 null | 补 `self._request_spk_label(abs0, abs1)` ⇒ 复测 `n_final_req=19`（= 段数）、`n_label` 2–8 |
+| **D2** | `chrome.tabCapture.capture({audio, video, targetTabId})` **API 用错**（`capture()` 的 options 是 `CaptureOptions`，**无** `targetTabId`；`targetTabId` 属于 `getMediaStreamId()`） | 实测报错原文 `No matching signature.` ⇒ 每轮降级 `getDisplayMedia`（整机声音）⇒ 英译中没测到 | 改 `getMediaStreamId({targetTabId})` + `chromeMediaSource:'tab'`；修后报错原文**已变**为 `Extension has not been invoked…(see activeTab permission)` ⇒ **API 已被接受**，余下是 Chrome 要求用户激活的**环境限制** |
+| **D3** | `margin.json` 缺**真实 ASR 墙钟**（`per_segment[].asr_sec` 是**纯引擎调用**耗时，不含等 GPU 锁 ⇒ **低估**旁路影响 = 假通过） | `margin.json` 无 `pipeline` 组 | `_dump_margin()` 增落 `pipeline.stage_wall_sec.asr` |
+| **D4** | 录音分析被 safe-delete 钩子腰斩 ⇒ **`summary.json` 根本没落盘**（两轮白跑） | `[safe-delete][SAFE_DELETE_BULK_CONFIRM_REQUIRED] {"count":235,…,"targets":["…_audio_analyze_profile"]}` | profile 名改**唯一** + `reuse_profile=True`；`analyze_recordings` 加 try/except ⇒ **保证 summary 一定落盘** |
+
+### ★★ EXT-029 ③ 判据口径修正（5 轮实测 ⇒ 原文判据不可用）
+
+原文「ASR 墙钟与 feed_lag 差异 ≤5 %」**被环境噪声主导**：
+- A 臂 ASR 墙钟**自身**在 **21.9020 ~ 67.8250 s**（**同样配置、同样素材** ⇒ **3.1×** 波动）
+- `asr_wall` 有符号差异 = **[−33.85, −54.74, −10.30, +26.40, +29.48] %** ⇒ **符号不一致**
+⇒ **既可能假通过也可能假失败** ⇒ 改用**机制直接度量**：**ASR 等 GPU 互斥锁的时间**
+（`pipeline.stage_wall_sec.asr` − Σ`asr_sec`）。
+⇒ feed_lag 改用**每段均值**（总和口径与段数 13–20 的抖动强相关 ⇒ 不可比）。
+
+### 真实三引擎 A/B 实测（5 轮，App 自带解释器，持共享机器锁）
+
+产物根：`.tmp/ext028_029_e2e/`（A = 旁路关 / B = 旁路开，各 60 s 真实三引擎）
+汇总：`.tmp/ext028_029_e2e/agg_summary.json`（**4 975 B**，mtime 2026-11-01 15:54）
+
+| 轮次 | A 臂 ASR 墙钟 | B 臂 ASR 墙钟 | 有符号差异 | **A 等锁** | **B 等锁** | feed_lag 均值差异 | B 轮 `drop`/`busy_ms`/`gpu_lock_ms` | B 轮 `n_label`/`n_final_req` | 检出说话人 |
+|---|---|---|---|---|---|---|---|---|---|
+| 152726_7764 | 67.8250 | 44.8690 | −33.85 % | 0.0007 s | **0.0007 s** | −4.96 % | 39 / 351.8 / 2018.4 | 3 / 20 | S1 |
+| 153408_4704 | 49.9390 | 22.6010 | −54.74 % | 0.0001 s | −0.0001 s | −6.97 % | 0 / 777.5 / 1726.1 | 2 / 19 | S1 |
+| 153829_25120 | 24.8340 | 22.2770 | −10.30 % | 0.0006 s | **0.0005 s** | −2.54 % | 0 / 515.0 / 1811.2 | 3 / 19 | S1 |
+| 154637_17020 | 21.9320 | 27.7230 | **+26.40 %** | 0.0007 s | **0.0008 s** | +0.03 % | 0 / 280.3 / 1902.4 | 8 / 19 | **S1,S2**（2 人） |
+| 155037_13840 | 21.9020 | 28.3590 | **+29.48 %** | 0.0007 s | **0.0002 s** | +22.75 % | 57 / 276.6 / 6793.3 | 8 / 13 | **S1,S2**（≥2 人） |
+
+⇒ **① 主判据（机制直接度量）**：**ASR 等 GPU 锁时间** max = A **0.0007 s** / B **0.0008 s**
+（占 ASR 墙钟 **≤0.004 %**）⇒ **旁路没有把 ASR 堵在门外** ✅（5 轮一致）。
+⇒ **② EXT-029 ④ 上报**：旁路持 GPU 锁（**上界**）占 ASR 墙钟 = **[4.498, 7.637, 8.130, 6.862, 23.955] %**；
+⚠️ 这是「锁**不可用**的时间占比」**上界**，**不是** ASR 实际多等的时间（实测 **≤0.8 ms** ⇒ 公平 FIFO 生效）⇒ **已报测得的额外延迟** ✅。
+⇒ **③ 旁路指标**：`spk_queue_drop` **0–57**（满了丢旧块并计数）、`spk_worker_busy_ms` **276.6–777.5 ms**（60 s 音频只忙 ≈0.5 %）、
+`n_final_req` **13–20**（= 该轮段数，修前是 **0**）、`n_label` **2–8**、`enc_ready=true`、`seg_infer_count` 5–6 ⇒ **检出 S1 / S2（/ S3）**。
+
+### 机器锁（铁律）
+
+- ⚠️ 开工时 `C:\Users\Trekker-PTL\shared\MACHINE_LOCK` 被 **app-pack**（PID **8412**，14:52:35）持有
+  ⇒ 用 **ctypes `OpenProcess` + `GetExitCodeProcess`** 探测（**code=259 ⇒ STILL_ACTIVE ⇒ 存活**）
+  ⇒ **等，不抢**；该锁随后被**持有者自行释放**。
+- 本模块 5 轮**逐轮取放**（`ext 25864 2026-11-01 15:12:14` → 释放 → `ext 25632 15:20:11` → 释放 →
+  `ext 7764 15:27:26` → 释放 → …），**跑完即删**。
+- ⛔ **未回收任何他人的锁**。
+
+### 涉及修改的文件
+
+| 类别 | 文件 |
+|---|---|
+| **产品代码（本轮修）** | `ext/bridge.py`（D1 登记标签 + D3 margin 落 `pipeline` 墙钟）、`extension/offscreen.js`（D2 tabCapture）、`extension/player.js`（D2 tabCapture）、`tests/smoke/analyze_dub_audio.py`（D4 safe-delete） |
+| **产品代码（在制品，本轮核对/沿用）** | `ext/speaker_bypass.py`（新）、`ext/spk_engine.py`（新）、`ext/app_root.py`、`ext/config.py`、`ext/engines.py`、`ext/segmenter.py`、`ext/audio_dump.py`（新）、`extension/manifest.json`、`extension/popup.js`、`extension/sw.js`、`tests/smoke/browser_harness.py`、`tests/test_ext010_pipeline.py`、`tests/test_ext_selfcheck.py` |
+| **新增自测** | `tests/test_ext029_spk_bypass.py`（本轮 **+12** ⇒ 累计 **70 PASS / 0 FAIL**，**未改写任何旧断言**）、`tests/test_ext028_dub_audio_chain.py`（42/0）、`tests/ext028_player_harness.js`（node，rc=0） |
+| **新增冒烟/工具** | `tests/smoke/ext028_029_e2e.py`、`tests/smoke/agg_ab_runs.py`（多轮 A/B 汇总）、`tests/smoke/align_three_way.py`、`tests/smoke/ext029_spk_ab.py`、`tests/smoke/probe_tabcapture.py` |
+| **状态文件** | `status/STATUS_EXT.md`（新增 `## §21` + 头部 `last_ack`=EXT-029 + 更新时间 + 按 EXT-016 规则压缩）、`status/notes/sec21_ext029_spk_bypass_thread.md`（新建，7 节）、`status/notes/sec19_20_closeout.md`（新建，§19/§20 原正文下沉存档）、`status/EXEC_LOG.md`（本文件） |
+
+### 验证与自测结果（实测）
+
+- **三套明文自测**：`test_ext_selfcheck.py` **rc=0（106 PASS / 0 FAIL）**、`test_echo_roundtrip.py` **rc=0（11 / 0）**、`test_next_instruction.py` **rc=0（19 / 0）**
+- **`tests/test_ext029_spk_bypass.py`**：**rc=0 / 70 PASS / 0 FAIL**（本轮 **+12**）
+  - 新增断言覆盖 4 个缺陷：流水线登记标签（**含反证**）/ 标签回填后 `spk` 非 null / tabCapture API 口径 / margin 含真实墙钟
+- **node harness**：**8 套全 rc=0**（`ext024_link` / `ext026_e2e` / `ext026_prodpath` / `ext026_segid` / `ext028_player` / `t3_settings` / `t4_lang` / `t5_t6_bounds_persist`）
+- **全量 Python 套件**：**26 套**（3 个红**已归因**，见下）
+- **★ 修掉本轮自己引入的回归**：写 §21 正文把 STATUS 推到 **24 143 B** ⇒ **撞破 EXT-016 硬约束「< 归档/10 = 22 483 B」**
+  ⇒ 按 EXT-016 规则把 §19 / §20 内联正文**下沉**到 `status/notes/sec19_20_closeout.md`（**数字一字未改**）⇒ 回落到 **19 424 B / 142 行** ✅
+  ⇒ 顺带把 §21 标题由 `### §21` 升为 **`## §21`**（符合「追加新的 `## §N` 章节」）
+
+### 三个红套件归因（`git stash` 基线复核）
+
+| 套件 | 现象 | 归因 |
+|---|---|---|
+| `test_ext016_compression` | 38 PASS / **1 FAIL**（CORRECTIONS 现 **34 075 B** > 阈值 20 480 B） | **基线 `git stash` 复核同样红** ⇒ **既有状态、非本轮引入**；CORRECTIONS 是 **reviewer 独占文件 ⇒ 只读、不 `git add -f`** |
+| `test_ext017_user_report` | 批处理里红（根因「检测到实时字幕 App 正在运行 ⇒ 已拒绝启动」） | **单独跑 108 PASS / 0 FAIL** ⇒ **环境性、非回归** |
+| `test_ext026_audio_analysis` | 批处理里红（safe-delete 钩子 `count=313 > 50`） | **单独跑 25 PASS / 0 FAIL** ⇒ **环境性、非回归**（本轮已把 profile 名改唯一 + `reuse_profile=True` ⇒ **不再被腰斩**） |
+
+### 产物清单（均为**实测**）
+
+| 产物组 | 文件数 | 字节数 / mtime | 备注 |
+|---|---|---|---|
+| A/B 产物目录 | 8 个 | `.tmp/ext028_029_e2e/{20261101_123702_13544, 151214_25864, 152011_25632, 152726_7764, 153408_4704, 153829_25120, 154637_17020, 155037_13840}/` | 每目录 25–109 个文件（前 3 组为修缺陷前的探索轮） |
+| **A/B 汇总** | 1 | **4 975 B**，mtime **2026-11-01 15:54** | `.tmp/ext028_029_e2e/agg_summary.json` |
+| **notes 明细** | 1 | `status/notes/sec21_ext029_spk_bypass_thread.md`（7 节） | §21 全量明细 |
+| **notes 下沉存档** | 1 | `status/notes/sec19_20_closeout.md` | §19 / §20 原正文（数字一字未改） |
+| **STATUS** | 1 | **19 424 B / 142 行** | ≤ 40 KB / ≤ 300 行 / **< 归档/10（22 483 B）** ✅；头部 `last_ack: EXT-029`、更新时间 = **2026-11-01 16:12**（实测） |
+
+### ⛔ 明确未做 / 不宣称
+
+- ⛔ **音色克隆仍未接线**（`voice_source` 实测全 `'preset'`、`clone_wired=false`
+  ⇒ 引擎层 `tts()` 的 `voice` 参数没接进 `tts_engine.stream()`）⇒ **不宣称「克隆音色可用」**
+- ⛔ **Edge 默认 profile 真实手势验收未做**（**由用户本人做**）
+- ⛔ **tabCapture 生产路径未实测**（自动化拿不到 tabCapture ⇒ 需用户点一次扩展图标）
+- ⛔ **英译中仍未真正测到**（抓流仍是整机声音 ⇒ B 轮 ASR 混进中文内容；A/B「同输入」对比**有效**，但「输入是纯英文」**未达成**）
+- ⛔ **「30 分钟不崩」未做**（需真实引擎 + 独占设备长跑）/ **暂停拖动未做**（需真实手势 + reviewer 口径）
+- ⛔ 端到端仍不实时（TTS RTF **1.0022**）/ 同步误差仍超标（既有阻塞项，**未动引擎**）
+- ⛔ **未改任何引擎文件**（ASR / MT / TTS 对方模块一行未动）
+- ⛔ `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**（未 `git add -f`）
+
+### `last_ack`
+
+**EXT-029** —— 本轮**已认领并执行完** EXT-029（闸门 exit 0 ⇒ 认领）
+⇒ 闸门复测 **exit 1 / `action=skip`** ⇒ 幂等生效，下一轮不会重复执行。

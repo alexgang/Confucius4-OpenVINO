@@ -28,6 +28,21 @@ const FRAME_MAX_MS = 100;
 const GAP_DETAIL_CAP = 200;
 
 const state = {
+  // ★★ EXT-031③：允许的抓流方式白名单（唯一事实源 = manifest 的
+  //   `liveDub.captureModes`；发行包 = 只有 `tabCapture`）。
+  //   发行版**禁用**整机 `getDisplayMedia` 回退 ⇒ 只保留 EXT-027 的
+  //   标签页音频路径。读不到 manifest ⇒ 按**最严**处理（只允许 tabCapture）。
+  allowedCaptureModes: (() => {
+    try {
+      const m = (chrome.runtime.getManifest() || {});
+      const ld = m.liveDub || {};
+      const list = Array.isArray(ld.captureModes) ? ld.captureModes : null;
+      if (list && list.length) return list;
+      return ld.release ? ['tabCapture'] : ['tabCapture', 'getDisplayMedia'];
+    } catch (e) {
+      return ['tabCapture'];
+    }
+  })(),
   ws: null,
   ac: null,
   stream: null,
@@ -218,7 +233,7 @@ function flushUplink() {
   }
 }
 
-// ── 抓流：两条路径 ───────────────────────────────────────────────
+// ── 抓流：三条路径 ───────────────────────────────────────────────
 async function grabTabCapture(streamId) {
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: {
@@ -230,11 +245,71 @@ async function grabTabCapture(streamId) {
   return stream;
 }
 
-async function grabDisplayMedia(opts) {
-  const stream = await navigator.mediaDevices.getDisplayMedia({
-    video: { frameRate: opts.frameRate || 30 },
-    audio: true,
+/**
+ * ★★ EXT-027①：**直接抓目标标签页**（`chrome.tabCapture`）。
+ *
+ * ## 为什么要有这一条（reviewer EXT-027① 的现场证据）
+ *   EXT-026 的 A/B 两轮都走 `getDisplayMedia` ⇒ 抓的是**整机系统声音**
+ *   ⇒ 把别的程序当时在放的中文视频声音也抓进来了
+ *   ⇒ 实测 `capture_sec=60` 但 `audioRecvSec=151.89`；
+ *     ASR 出来的是中文古装剧对白（不是测试素材的英文）
+ *   ⇒ MT 的输入=中文、目标=中文 ⇒ **英译中根本没测到**。
+ *
+ * ## ★★ 真实缺陷（2026-11-01 实测抓到的）：**API 用错了**
+ *   旧实现写的是 `chrome.tabCapture.capture({audio, video, targetTabId})`
+ *   ⇒ **Chrome 直接拒绝**：`No matching signature.`
+ *   ⇒ 实测 A/B 两轮都降级到 `getDisplayMedia`（整机声音）
+ *   ⇒ **英译中仍然没测到**（B 轮 ASR 里混进了中文古装剧对白）。
+ *
+ * ## 正确口径（查 Chrome 官方 API 文档核实）
+ *   * `chrome.tabCapture.capture(options, callback)` 的 `options` 是
+ *     **`CaptureOptions`** —— 只有 `audio` / `video` / `audioConstraints` /
+ *     `videoConstraints` 四个字段，**没有** `targetTabId`。
+ *   * `targetTabId` 属于 **`getMediaStreamId(options)`** 的
+ *     `GetMediaStreamOptions`（连同 `consumerTabId`）。
+ *   ⇒ 正确做法：**先用 `getMediaStreamId({targetTabId})` 拿流 id，
+ *     再用 `getUserMedia({audio: {mandatory: {chromeMediaSource: 'tab',
+ *     chromeMediaSourceId: streamId}}})` 消费那个流。**
+ *
+ * ⚠️ 拿不到就**如实报错**并降级到 getDisplayMedia（约束成
+ *   「当前标签页 + 排除系统声音」），绝不静默抓整机声音。
+ */
+async function grabTabCaptureDirect(targetTabId) {
+  if (!chrome.tabCapture || !chrome.tabCapture.getMediaStreamId) {
+    throw new Error('chrome.tabCapture.getMediaStreamId 不可用');
+  }
+  // ★ `targetTabId` 属于 `getMediaStreamId`（不是 `capture`）。
+  const streamId = await chrome.tabCapture.getMediaStreamId({
+    targetTabId: Number(targetTabId),
   });
+  if (!streamId) {
+    throw new Error('getMediaStreamId 返回空（目标标签页无 activeTab 权限？）');
+  }
+  // ★ 用流 id 消费（`chromeMediaSource: 'tab'` ⇒ **只**该标签页的音频）。
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      mandatory: {
+        chromeMediaSource: 'tab',
+        chromeMediaSourceId: streamId,
+      },
+    },
+    video: false,
+  });
+  state.captureMode = 'tabCapture';
+  return stream;
+}
+
+async function grabDisplayMedia(opts) {
+  // ★ EXT-027①：约束成「只要当前标签页的声音、**排除整机系统声音**」。
+  const constraints = {
+    video: { frameRate: (opts && opts.frameRate) || 30 },
+    audio: true,
+    systemAudio: 'exclude',
+    surfaceSwitching: 'exclude',
+    selfBrowserSurface: 'include',
+    preferCurrentTab: true,
+  };
+  const stream = await navigator.mediaDevices.getDisplayMedia(constraints);
   state.captureMode = 'getDisplayMedia';
   return stream;
 }
@@ -242,17 +317,40 @@ async function grabDisplayMedia(opts) {
 /**
  * 启动抓流 + 重采样 + 上行。
  * @param {object} p
- * @param {string} [p.streamId]  tabCapture 流 id（真实用户点击路径）
- * @param {object} [p.display]   getDisplayMedia 参数（自动化路径）
+ * @param {string} [p.streamId]     tabCapture 流 id（真实用户点击路径）
+ * @param {number} [p.targetTabId]  目标标签页 id（EXT-027① 的首选路径）
+ * @param {object} [p.display]      getDisplayMedia 参数（自动化路径）
  */
 async function startCapture(p) {
   let stream;
-  if (p.streamId) {
+  let directErr = null;
+  // ★ ① 首选：`tabCapture.capture({targetTabId})` —— 只抓目标标签页。
+  if (p.targetTabId != null && chrome.tabCapture
+      && chrome.tabCapture.capture) {
+    try {
+      stream = await grabTabCaptureDirect(p.targetTabId);
+    } catch (e) {
+      directErr = String((e && e.message) || e);
+      log(`tabCapture.capture 直抓失败（降级）：${directErr}`);
+    }
+  }
+  if (!stream && p.streamId) {
     stream = await grabTabCapture(p.streamId);
-  } else if (p.display) {
+  }
+  if (!stream && p.display) {
+    // ★★ EXT-031③：发行版**禁用**整机 getDisplayMedia 回退
+    //   ⇒ 只保留 EXT-027① 的标签页音频路径
+    //   ⇒ 禁用时**明确失败**（绝不静默抓整机声音）。
+    if (!state.allowedCaptureModes.includes('getDisplayMedia')) {
+      throw new Error('发行版已禁用 getDisplayMedia 整机回退'
+        + '（只保留标签页音频路径）'
+        + (directErr ? ('；直抓失败：' + directErr) : ''));
+    }
     stream = await grabDisplayMedia(p.display);
-  } else {
-    throw new Error('没有可用的抓流方式');
+  }
+  if (!stream) {
+    throw new Error('没有可用的抓流方式'
+                    + (directErr ? ('（直抓失败：%s）' % directErr) : ''));
   }
   state.stream = stream;
 

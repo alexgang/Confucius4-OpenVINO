@@ -312,6 +312,14 @@ $('btnStart').addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab) throw new Error('找不到活动标签页');
 
+    // ★★ EXT-027①：把**目标标签页 id** 记进 storage ⇒ player 页的
+    //   `chrome.tabCapture.capture({targetTabId})` 能**只抓这个标签页的音频**
+    //   （而不是 getDisplayMedia 的整机系统声音）。
+    //   ⚠️ 必须在**起流之前**写入 ⇒ player 页随时能读到。
+    try {
+      await chrome.storage.local.set({ targetTabId: tab.id });
+    } catch (e) { /* ignore */ }
+
     const res = await chrome.runtime.sendMessage({
       target: 'sw',
       cmd: 'start',

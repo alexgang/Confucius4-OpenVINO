@@ -5,6 +5,8 @@
 """
 from __future__ import annotations
 
+import os
+
 # ── 音频 ──────────────────────────────────────────────────────────
 SAMPLE_RATE = 16000          # ASR 输入采样率（EXT-001：AudioWorklet 重采样到 16 kHz 单声道 PCM16）
 PCM_SAMPLE_WIDTH = 2         # bytes/sample（PCM16）
@@ -12,8 +14,27 @@ FRAME_MIN_MS = 20            # 插件上行帧长下限
 FRAME_MAX_MS = 100           # 插件上行帧长上限
 
 # ── 分段（EXT-002：一直用 R2T2 原有断句，不等 pyannote） ─────────
-SEG_MIN_SEC = 12.0           # 与 R2T2 seg_stream.py 'vad' 策略一致
-SEG_MAX_SEC = 20.0
+# ★★★★ EXT-027 ④：**切段参数下调**（断句方式不变，仍是 R2T2 的 VAD 断句）。
+#
+# ## 为什么必须下调（reviewer EXT-027 ④ 的根因分析）
+#   旧值 `min=12 / max=20` ⇒ **一段最少 12 秒**。
+#   而延迟 D = 10 s ⇒ 单是「等这一段说完」就已经超过 D
+#   ⇒ 再加上 ASR+MT+TTS（TTS RTF ≈ 1.0）⇒ **按设计就不可能在 D 内就绪**。
+#   实测：A 轮 `lagSec=12.70`、B 轮 `16.48`、`schedClamped=7`
+#   （7 段**全部**到达太晚，被钳成「立即播」）⇒ 超出目标约 40 倍。
+#
+# ## 新值（reviewer 原文：「max_segment_sec 降到 6–8 s、min_segment_sec 降到 2–3 s」）
+#   SEG_MAX_SEC = 8.0   （落在 6–8 s 区间的上沿 ⇒ 段落数不太多）
+#   SEG_MIN_SEC = 3.0   （落在 2–3 s 区间的上沿）
+#   ⇒ 一段最长 8 s ⇒ 等它说完（8 s）< D（10 s）⇒ **留出 2 s 给管线**。
+#
+# ⚠️ **断句方式没变**：仍是 R2T2 原有的 VAD 断句
+#   （`ext/segmenter.py` 的 `plan_segments`，仍优先 import R2T2 原件），
+#   **没有**用 pyannote 强制断句（EXT-002 仍然成立）。
+# ⚠️ 这里的常量**同时**被 `ext/segmenter.py` 与 R2T2 等价性自测使用
+#   ⇒ 改了它，两边**同时**用新参数 ⇒ 等价性自测依然成立。
+SEG_MIN_SEC = 3.0            # ★ EXT-027④：12.0 → 3.0（reviewer 要求 2–3 s）
+SEG_MAX_SEC = 8.0            # ★ EXT-027④：20.0 → 8.0（reviewer 要求 6–8 s）
 VAD_SILENCE_DB = -40.0       # 复制 R2T2 find_silence_in_range 默认值
 VAD_MIN_SILENCE_MS = 300
 VAD_FRAME_MS = 30
@@ -121,3 +142,38 @@ SEG_TIMING_HISTORY = 50
 DEVICE_ASR = "GPU.0"         # R2T2 INT8
 DEVICE_MT = "GPU.0"          # Hy-MT2 INT8
 DEVICE_TTS = "NPU"           # Qwen3-TTS 全 NPU
+
+
+# ── 发行版模式（EXT-031③） ──────────────────────────────────────
+def _release_mode() -> bool:
+    """是不是**发行版**（发行包里调试/回退路径默认关闭）。
+
+    ★ 判定顺序（**显式覆盖永远优先**）：
+      ① 环境变量 `EXT_RELEASE`（`1/true/yes/on` ⇒ True；`0/false/no/off` ⇒ False）；
+      ② 包根下的 `release.json`（`{"release": true}` ⇒ True）——
+         发行包里带这个文件，开发目录里没有；
+      ③ 默认 **False**（开发目录保持现状）。
+    """
+    v = (os.environ.get("EXT_RELEASE") or "").strip().lower()
+    if v in ("1", "true", "yes", "on"):
+        return True
+    if v in ("0", "false", "no", "off"):
+        return False
+    try:
+        import json as _json
+        from .app_root import package_root
+        p = os.path.join(package_root(), "release.json")
+        with open(p, "r", encoding="utf-8") as f:
+            return bool((_json.load(f) or {}).get("release"))
+    except Exception:
+        return False
+
+
+#: **发行版模式**（EXT-031③）
+RELEASE_MODE = _release_mode()
+
+#: 允许的抓流方式白名单。
+#: ★ 发行版 = **只有标签页音频路径**（EXT-027① `tabCapture`）
+#:   ⇒ 整机 `getDisplayMedia` 回退**默认关闭**。
+CAPTURE_MODES = (["tabCapture"] if RELEASE_MODE
+                 else ["tabCapture", "getDisplayMedia"])
