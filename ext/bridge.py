@@ -3093,15 +3093,21 @@ def main(argv=None) -> int:
         holder["engine_state"] = "ready" if warm_report.get("ok") else "partial"
 
     # ★★★★ EXT-028 ①：逐段音频落盘器（不配 --audio-dump-out ⇒ 不落盘）。
+    # ★★ EXT-031③：**发行版默认关闭**（调试落盘不进发行包）。
+    #   发行版即使显式传了 `--audio-dump-out` 也**不生效** ⇒ 如实警告但不创建落盘器。
     _audio_dump = None
     if args.audio_dump_out:
-        try:
-            from .audio_dump import AudioDump
-            _audio_dump = AudioDump(args.audio_dump_out)
-            _log(f"★ EXT-028①：逐段音频落盘目录 = {args.audio_dump_out}")
-        except Exception as e:
-            _log(f"⚠️ 音频落盘器创建失败（不影响主功能）：{e}")
-            _audio_dump = None
+        if getattr(C, "RELEASE_MODE", False):
+            _log("⚠️ EXT-031③：发行版已禁用逐段音频落盘"
+                 "（--audio-dump-out 被忽略）")
+        else:
+            try:
+                from .audio_dump import AudioDump
+                _audio_dump = AudioDump(args.audio_dump_out)
+                _log(f"★ EXT-028①：逐段音频落盘目录 = {args.audio_dump_out}")
+            except Exception as e:
+                _log(f"⚠️ 音频落盘器创建失败（不影响主功能）：{e}")
+                _audio_dump = None
 
     try:
         asyncio.run(serve(args.host, args.port, delay_sec=args.delay,
@@ -3134,7 +3140,10 @@ def main(argv=None) -> int:
                 pair_server.stop()
             except Exception:
                 pass
-        _dump_margin(holder, args.margin_out, engine)
+        # ★★ EXT-031③：发行版**禁用**诊断落盘（margin / audio_dump）——
+        #   诊断产物是**验收/调试**用的，不该出现在用户机器上。
+        if not getattr(C, "RELEASE_MODE", False):
+            _dump_margin(holder, args.margin_out, engine)
         # ★ EXT-028 ①：退出前把落盘清单写出来（供 reviewer 核对文件数/字节数）。
         if _audio_dump is not None:
             try:

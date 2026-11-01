@@ -2486,3 +2486,126 @@ A 轮另有 `schedClamped=7 / audioRecvSec=151.89225 / uplink.running=true / wsO
 
 **EXT-029** —— 本轮**已认领并执行完** EXT-029（闸门 exit 0 ⇒ 认领）
 ⇒ 闸门复测 **exit 1 / `action=skip`** ⇒ 幂等生效，下一轮不会重复执行。
+
+
+## 2026-11-01 21:26 — §24 EXT-030/031 **落库收口**（上一会话「做完就死」⇒ 接管补记 EXEC_LOG + 提交） ← 本轮
+
+**执行时间**：2026-11-01 20:13（接管租约）→ 2026-11-01 21:26（本轮收口完成）
+
+**指令摘要**
+- 来源文件：`C:\Users\Trekker-PTL\live_dub_ext\status\CORRECTIONS_EXT.md`（**reviewer 独占写入 ⇒ 本模块只读、未修改、未入库**）
+- 闸门 `tools/next_instruction.py --json` ⇒ **exit 1** / `action=skip` / latest=**EXT-031** / `last_ack`=31
+  ⇒ ★ **本轮没有新的 EXT 指令可执行**（闸门只判「认领」，不判「收口」——见下「开工状态」）
+- 本轮**实际执行**：**不重做 EXT-030/031 的实现**（上一会话已做完且全部实测通过），只**补齐收口**（EXEC_LOG 记录 + STATUS §24 + 提交）
+
+**★ 开工状态：上一会话「实现做完即死」，成果**未落库**（本轮的核心发现）**
+
+| 项 | 实测值 | 证据 |
+|---|---|---|
+| `acquire ext` 返回 | **exit 0 + `TAKEOVER`**（note=`接管租约(TAKEOVER)：EXT-029已收口提交 daaa00d；开始执行 EXT-030/EXT-031`） | `shared\leases\ext.json` |
+| 上一会话 token / 心跳 | `16a4f381` / 末次心跳 **16:28:10**（本轮接手时**已死 225 min**） | `shared\leases\ext.json` 的 `prev` |
+| `EXEC_LOG.md` 里 EXT-030/031 记录数 | **0**（`grep -c "EXT-030\|EXT-031" status/EXEC_LOG.md` ⇒ `0`） | 实测 |
+| 提交状态 | `git log` 仍停在 **`daaa00d`**（= §21 EXT-029 收口）⇒ **EXT-030/031 一次提交都没有** | `git log --oneline` |
+| 工作区 | **不干净**：`M ext/bridge.py` / `D extension/probe-worklet.js`（已 staged）/ `M status/STATUS_EXT.md` + 4 个未跟踪新文件 | `git status --short` |
+
+⇒ ★ **关键结论**：`last_ack` 已推进到 EXT-031（闸门 exit 1）**只说明指令被「认领」**，
+**不等于「收口」**（收口 = EXEC_LOG 有本轮记录 + 产物已入库）。
+⇒ ★ **若本轮按「exit 1 ⇒ 立即跳过、零改动」处理，这些成果将永久搁浅**（下一轮同样看到 exit 1、同样跳过）。
+⇒ 本轮据此**从断点继续**：**不重做实现**，只补 EXEC_LOG + STATUS §24 + 提交。
+
+### 独立复核（实测重跑，**非照抄上一会话的数字**）
+
+| 套件 | 本轮实测 | rc |
+|---|---|---|
+| `tests/test_ext_selfcheck.py` | **106 PASS / 0 FAIL** | 0 |
+| `tests/test_echo_roundtrip.py` | **11 PASS / 0 FAIL** | 0 |
+| `tests/test_next_instruction.py` | **19 PASS / 0 FAIL** | 0 |
+| `tests/test_ext031_release_handoff.py` | **24 PASS / 0 FAIL** | 0 |
+| `tests/smoke/ext031_fake_pkg_launch.py` | **6 PASS / 0 FAIL** | 0 |
+| `tests/test_ext028_dub_audio_chain.py`（EXT-031④ 打包门禁） | **42 PASS / 0 FAIL** | 0 |
+| `tests/test_ext029_spk_bypass.py` | **70 PASS / 0 FAIL** | 0 |
+| `tests/test_ext016_compression.py` | 38 PASS / **1 FAIL** | 1 |
+
+★ 模拟发行包启动的实测输出（本轮重跑，证据 `.tmp/ext031/fake_pkg_probe.json` **2 836 B**，mtime **2026-11-01 20:14:53**）：
+探针 rc=0 / `resolve_app_root()`=**模拟包**（非开发机）/ 引擎根+模型目录+说话人 IR **全在包内**（越界**无**）/ 解析结果**不含**开发机目录名 / `package_root()`=模拟包 / `EXT_RELEASE=1` ⇒ 白名单只留 `tabCapture`。
+
+### ★ 抽查「不是只写不生效」：发行版剔除的消费点逐处查证
+
+| 机制 | 消费点（实测） | 判定 |
+|---|---|---|
+| 整机 `getDisplayMedia` 回退禁用 | `extension/offscreen.js` → `state.allowedCaptureModes`（读 manifest `liveDub.captureModes`，读不到 ⇒ **按最严**）→ `if (!allowedCaptureModes.includes('getDisplayMedia')) throw` | ✅ **真拦截**，**明确失败**（绝不静默抓整机声音） |
+| `--audio-dump-out` 忽略 | `ext/bridge.py:3099` 创建点前拦截 | ✅ **不创建落盘器** |
+| `--margin-out` 忽略 | `ext/bridge.py:3145` 退出前 `_dump_margin` 受保护 | ✅ **不落盘** |
+| `RELEASE_MODE` 判定 | `ext/config.py` ⇒ `EXT_RELEASE` → 包根 `release.json` → 默认 False | ✅ **显式覆盖优先** |
+
+★ ⚠️ 顺带发现一处**易误判点**：`ext/config.py` 的 `CAPTURE_MODES` 常量**在 `ext/` 内无任何消费点**
+（`grep -rn "CAPTURE_MODES" ext/ extension/` ⇒ 只有定义处）⇒ **真正生效的是插件侧 `extension/offscreen.js`**
+⇒ 二者**同名不同源**，勿以为改 Python 常量就能改插件行为。
+
+### 涉及修改的文件
+
+| 类别 | 文件 | 说明 |
+|---|---|---|
+| **产品代码（上一会话改，本轮复核后提交）** | `ext/bridge.py` | `--audio-dump-out` / `--margin-out` 的 `RELEASE_MODE` 保护 |
+| **产品代码（删除）** | `extension/probe-worklet.js`（**391 B**） | ★ 全目录**零引用**（`grep -rn "probe-worklet" extension/ ext/ tests/ tools/` ⇒ 无结果）⇒ 遗留探针件 |
+| **交付物（上一会话写，本轮提交）** | `release/V20_HANDOFF.md`（**16 361 B**） | V2.0 交付清单（六项齐全） |
+| **明细（上一会话写，本轮提交）** | `status/notes/sec22_23_ext030_lease_ext031_handoff.md`（**13 272 B**） | §22 / §23 全量明细 |
+| **明细（本轮新建）** | `status/notes/sec24_takeover_closeout.md`（本轮 §24 全量明细，7 节） | 本轮 |
+| **明细（本轮新建）** | `status/notes/sec21_24_inline_archive.md`（§19·§20 / §21 / §22 / §23 **原内联正文逐字存档**） | 本轮（EXT-016 下沉存档） |
+| **自测（上一会话写，本轮提交）** | `tests/test_ext031_release_handoff.py`（**14 247 B**）、`tests/smoke/ext031_fake_pkg_launch.py`（**10 025 B**） | 24 PASS / 0 FAIL、6 PASS / 0 FAIL |
+| **状态文件（本轮）** | `status/STATUS_EXT.md`（新增 `## §24` + 头部 `last_ack`=EXT-031 + 更新时间=**实测** + 按 EXT-016 压缩回限额内） | 本轮 |
+| **状态文件（本轮）** | `status/EXEC_LOG.md`（本节） | 本轮 |
+| ⛔ **不入库** | `status/CORRECTIONS_EXT.md` | reviewer 独占（已 gitignore，**未** `git add -f`） |
+
+### ★ 本轮的 STATUS 压缩（EXT-016 限额内，**结论与数字一字未改**）
+
+| 动作 | 依据 / 结果 |
+|---|---|
+| §21 / §22 / §23 内联正文**逐字下沉**到 `status/notes/sec21_24_inline_archive.md`，STATUS 只留结论 | 沿用 §20 收口（commit `5088005`）的既有做法；原正文**逐字**存档 ⇒ **不丢任何数字** |
+| §19/§20 **移出**最近章节窗口（EXT-016「最近章节只保留最近 3 节」） | 明细已在 `notes/sec19_20_closeout.md` + `notes/sec19_t5_t6_bounds_persist.md`（**均已入库**）；结论仍在「当前有效结论」表的 T-5 / T-6 两行 ⇒ **无信息丢失** |
+| 限额校验 | `STATUS_EXT.md` = **22 266 B / 112 行**（限额 ≤ 40 KB / ≤ 300 行 / **< 归档/10 = 22 483 B**）✅；头部 **14 行**（≤ 15）✅ |
+| ★ **时间戳口径修正（禁止推算）** | §22 / §23 标题原写 **`16:45`**，但 `STATUS_EXT.md` 落盘 mtime = **16:27:19**、上一会话末次心跳 = **16:28:10** ⇒ **16:45 从未发生**（属预写值）⇒ 本轮落库前改为**实测 16:27**、头部「更新时间」改为本轮**实测**时间 |
+
+### ★ 如实报给 reviewer 的两个「制度性缺口」（**非本模块可修**）
+
+1. **闸门 exit 1 只判「认领」，不判「收口」** ⇒ 一个会话「做完就死」时，下一轮会**直接跳过**，成果**永久搁浅**
+   （**本轮即遇此情形**）⇒ 建议闸门**额外校验**「`last_ack` 对应编号是否在 `EXEC_LOG.md` 有记录**且**已入库」。
+2. **`session_lease.py` 的 TTL = 30 min** ⇒ 上一会话若「30 min 内活跃但**已卡死**」，新会话要**干等 30 分钟**
+   ⇒ reviewer 若想缩短等待，可把 `TTL_MIN` 调到 **10–15**（★ 本模块**不改**该脚本 —— reviewer 部署、只读使用）。
+
+### 另报一处旧章节的数字不一致（**本轮实测，不改旧文件**）
+
+`status/notes/sec21_ext029_spk_bypass_thread.md` §21.6 表里 `test_ext029_spk_bypass.py` 记的是 **56 PASS**
+（该 notes 落盘时的中途快照），而 §21 正文与 EXEC_LOG 记的是 **70 PASS**，**本轮实测亦为 70 PASS / 0 FAIL**
+⇒ **70 为准**。按「**不回头改旧章节**」**未改**该 notes 文件，在此如实标出。
+
+### 产物清单（均为**实测**）
+
+| 产物组 | 文件数 | 字节数 / mtime | 备注 |
+|---|---|---|---|
+| **交付清单** | 1 | `release/V20_HANDOFF.md` = **16 361 B**，mtime **2026-11-01 16:17:50** | V2.0 打包清单（六项齐全） |
+| **插件目录（实测）** | **15** | **219 021 B** | `find extension -type f`（已剔 `probe-worklet.js`） |
+| **notes 明细** | 2 | `sec22_23_ext030_lease_ext031_handoff.md` **13 272 B**（mtime 16:19:44）+ `sec24_takeover_closeout.md`（本轮新建） | §22/§23 与 §24 全量明细 |
+| **notes 下沉存档** | 1 | `sec21_24_inline_archive.md`（本轮新建） | §19·§20 / §21 / §22 / §23 原内联正文**逐字** |
+| **新自测** | 2 | `test_ext031_release_handoff.py` **14 247 B**（mtime 16:17:34）/ `ext031_fake_pkg_launch.py` **10 025 B**（mtime 16:15:42） | 24 PASS / 6 PASS |
+| **模拟包启动证据** | 1 | `.tmp/ext031/fake_pkg_probe.json` **2 836 B**，mtime **2026-11-01 20:14:53**（本轮重跑） | 6 PASS / 0 FAIL |
+| **STATUS** | 1 | **22 266 B / 112 行** | ≤ 40 KB / ≤ 300 行 / **< 归档/10（22 483 B）** ✅；头部 `last_ack: EXT-031`、更新时间 = **2026-11-01 21:26**（实测） |
+| **租约** | 1 | `shared\leases\ext.json`（392 B） | token=`81d2924a`，`prev.token=16a4f381`（TAKEOVER 链可查） |
+
+### ⛔ 明确未做 / 不宣称
+
+- ⛔ **打包未做**（EXT-031 明确「打包由 App 线程执行（APP-057），EXT 只交清单」）⇒ **未产出任何 zip**。
+- ⛔ **未重做 EXT-030/031 的实现**（上一会话已做完并实测通过，本轮只补收口）⇒ **未改任何引擎代码**。
+- ⛔ **音色克隆仍不可用**（`voice_source` 实测全 `'preset'`、`clone_wired=false`）⇒ **不宣称克隆音色可用**。
+- ⛔ **tabCapture 生产路径未实测**（自动化拿不到 ⇒ 需用户点一次扩展图标）。
+- ⛔ **英译中仍未真正测到**（抓流仍是整机声音）。
+- ⛔ 端到端仍不实时（稳态 RTF **2.0507** / TTS **1.0022**）⇒ **由主会话转达 TTS 模块**。
+- ⛔ 同步误差仍超标（`sync_err_ms.p50=67289.3` / `n_over_target=22`）。
+- ⛔ **Edge 真实手势 1 分钟验收未做**（**由用户本人做**）；⛔ **「30 分钟不崩」未做**。
+- ⛔ **未改 `shared/tools/session_lease.py`**（reviewer 部署 ⇒ 只读使用）；⛔ **未改其他四模块的自动化**。
+- ⛔ **未推远程**；⛔ `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**（未 `git add -f`）。
+
+### `last_ack`
+
+**EXT-031** —— 本轮**未推进** `last_ack`（闸门 exit 1 ⇒ 无新指令可执行；EXT-030/031 已由上一会话认领并执行完）。
+⇒ `last_ack` 保持 **EXT-031**；闸门复测 **exit 1 / `action=skip`** ⇒ 幂等生效，下一轮不会重复执行。
