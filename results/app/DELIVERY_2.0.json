@@ -8,5 +8,9 @@
   "pkg_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0",
   "manifest_version": "2.0",
   "manifest_files": 14316,
-  "manifest_bytes": 13689352229
+  "manifest_bytes": 13689352229,
+  "status": "superseded",
+  "superseded_by": "2.1",
+  "superseded_at": "2026-11-01T21:13:39",
+  "superseded_note": "APP-060 ①（reviewer 2026-11-01 21:10 决定）：交付版 = v2.1；v2.0 的目录与 zip 保留作历史记录，**不再对外**。桌面「实时配音桥接服务 v2.0.lnk」已由 reviewer 于 21:10 删除，任何脚本不得再生成 v2.0 的快捷方式（app212 已加 SUPERSEDED 硬闸门）。"
 }

@@ -1,29 +1,15 @@
 # STATUS_APP
 
-last_ack: APP-058
-更新时间: 2026-11-01 20:45
-当前任务: **§124 ✅ APP-055 / APP-056 / APP-057 / APP-058 已执行完毕**（`last_ack` APP-054 → **APP-058**）—— ① **APP-055**：v1.13 目录被改的 **6 个文件**已全部还原（`app207` **6/6**；payload 重算 `files=14212` / `bytes=13689629685` 与 06:08 记录**完全一致**；旧 zip **不删不改**）⇒ 此后**不用 `--same-version`**，新产物只走「新版本号目录＋新 zip＋新 MANIFEST＋重签 ACCEPTED」② **APP-056**：自动化指令已插「第 0 步 模块租约」；本轮 **TAKEOVER** 后持 token `8afc6c0f`，长作业（解压 PID 15792 / 打包 PID 3396）全部后台启动并登记 ⇒ **收尾 release**③ **APP-057**：交付包 **v2.1**（zip **11 233 135 359 B** / **14 317 文件** / SHA256 `835803a7…aaa4` / 20:38:13）；闸门 `app191` **18/0** ＋ `app213` **15/0**（含新增的 EXT-029 两条）＋ `app212` **9/0** ＋ `app214` **4/0**（reviewer 点名的 5 个开发目录 **0** 命中）；**v2.0 目录与 zip 原样保留**④ **APP-058**：同段复测（3291.6–3591.6 s）覆盖率 **93.75 %**（ref 95.65 % ⇒ Δ 1.90 pp）、不同标签 **4**、置换一致率 **64.29 %**、APP-054 三项全过 ⇒ **7 PASS / 1 FAIL**；🔴 **换人点召回率 33.33 %（口径A）/ 58.33 %（口径B）⇒ 未达 60 %**（不换口径）⑤ 本轮抓到并修掉 **4 个判据自身缺陷**（漏扫 docstring / 恒假覆盖判据 / marker 口径混淆 / `pkg_dir` 写死构建机家目录）
-阻塞 / 待用户决定: ① 🔴 **APP-057 ⑤(b) 未做**（桥接 + Edge 加载插件 + player 录 60 s 网页配音 ⇒ **需用户手势**：Edge 加载已解压扩展 ＋ 点扩展图标 ＋ player「开始捕获」）⇒ 配音录音与逐段译文待用户实听；② 🔴 **APP-058 判据④ 召回率未达标**（33.33 % / 58.33 %，均 < 60 %；参照标注自身与人工标注就差 1 处 ⇒ 上限 91.7 %）⇒ **如实记录、未换口径**，根因指向 ASR 侧说话人切换判定；③ 🔴 **交付版本号是 v2.1 而非用户原话的 V2.0**（v2.0 首包违反 ③，且「旧 zip 不覆盖」）⇒ 请 reviewer 确认 v2.1 即交付版（改名/重签**不需要**重打包）；④ 🔴 **v2.1 上尚未重跑 ⑤(a) A/B**（本轮 A/B 跑在 v2.0 上，而 v2.1 的 `app/` 生产模块与 v2.0 **只差** `speaker_assets.py` 的注释）⇒ 闭环需再跑一次；⑤ 🔴 **桌面仍残留 `实时配音桥接服务 v2.0.lnk`**（指向被取代的 v2.0 包；快捷方式闸门刻意不删旧链）⇒ 请用户/reviewer 决定是否清理；⑥ 🔴 **需用户实听 3 段 1.2–1.3× 配音素材**（`C:\Users\Trekker-PTL\shared\app_accel_listen\`）＋ reviewer 判定音质 / 不变调 / 可懂；⑦ 🔴 **APP-054 的 NOTICE 待主会话转达 ASR**（治本项：`run_seg_side` 每次调用重编译模型）；⑧ 🔴 **§123 待复核项**（GUI 正式行的 `[Sx]` 前缀取不到图 / `app179` B4 空真 / APP-048 运行中截图仍缺）本轮未动；⑨ 🔴 **本轮未修改** `status/app/CORRECTIONS_APP.md`（只读；开工 SHA256 `89018d17…d920d` / 145 700 B / mtime 15:49:35 / 58 条目 ⇒ 收尾**复核零改动**）；⑩ 🔴 已写 `shared/NOTICE_app_to_ext_devpath_leak.md`（EXT 侧 `ext/bridge/*.py` 的 docstring 里仍有开发机绝对路径）**待主会话转达 EXT**
-已压缩: 本文件 39296 B / 288 行（APP-052 ④ 限额 ≤ 40 000 B / ≤ 300 行）；**§109–§122 正文已原样归档**到 `status/archive/STATUS_APP_sec109_122_upto_20261101.md`（116062 B，SHA256 `249eae7c31e396e339b83333cbeb6c90af85ad02de01777aca9023c10d817403`）；更早的章节见 `status/archive/STATUS_APP_upto_20261030.md`
+last_ack: APP-060
+更新时间: 2026-11-01 21:13
+当前任务: **§126 ✅ APP-059 + APP-060 已执行完毕**（`last_ack` APP-058 → **APP-060**）—— ① **APP-059**：**口径 A 作废、口径 B（文本对齐）为唯一口径**，召回率 **7/12 = 58.33 %**（误报 0）⇒ 仍 **FAIL、差 1 个点**（**未调阈值、未改参照**）；**README_zh/en 已写明**「实验功能／默认关闭／换人时可能漏标」（v2.1 包内 L92-94 / L111-115）；**更正 §124 两处**（许可证写反 ⇒ 以 NOTICE 为准；「与 v1.13 只差 speaker_assets 注释」不成立 ⇒ 实测 **5 个 py 不同**）；**补齐 `app/MANIFEST.json` SHA 三元组** ＋ 写明 **v1.13.zip（15:02）装的是 14:33 代码 ⇒ 不要再从它安装 v1.13**；**EXT-028 未通过** ＋ **HOWTO 已写**（`shared\ext_listen21\HOWTO.txt`）② **APP-060**：**交付版 = v2.1**（zip 20:38 SHA `835803a7…`），**v2.0 已标 superseded**；桌面 **v2.0.lnk 已由 reviewer 删除**、`app212` 加 **SUPERSEDED 硬闸门**（exit 2）；**本轮未打包**（今后改动只打 v2.2+）
+阻塞 / 待用户决定: ① 🔴 **判据④ 召回率仍未达标**：唯一口径 B = **58.33 %（7/12）**，需 ≥ 8/12 ⇒ **差 1 个点**（已记为「已知局限」＋ README 写明；**未换口径、未调阈值、未改参照**；治本在 ASR 侧 ⇒ 需主会话转达）② 🔴 **APP-057 ⑤(b) 仍未做**：EXT-028 **未通过**（EXT `last_ack` 仍 EXT-031、EXT-032 未执行）⇒ 只把**用户操作步骤**准备好（`shared\ext_listen21\HOWTO.txt`），等 EXT 交出实录后由用户手势执行并抽听③ 🔴 **交付 zip 内 README 仍是改前版本**（APP-059 ① 只写进了 v2.1 目录，21:05）⇒ 按 APP-060 ④ 需**另打 v2.2**；**本轮未打包**④ ℹ️ **v2.1 已定为交付版**；v2.0 目录与 zip **保留作历史记录、不再对外**⑤ ℹ️ **v2.1 仍缺用户实听 3 段 1.2–1.3× 配音素材**（`sharedpp_accel_listen\`）＋ reviewer 判定音质/不变调/可懂⑥ ℹ️ **§123 待复核项**（GUI 正式行 `[Sx]` 前缀取不到图 / `app179` B4 空真等）仍在等 reviewer
+已压缩: 本文件 39986 B / 276 行（APP-052 ④ 限额 ≤ 40000 B / ≤ 300 行）；**§109–§124 正文＋旧「最近更新」条目＋「已撤回的旧结论」备查块已原样归档**到 `status/archive/STATUS_APP_sec124_upto_20261101.md`（**逐字保留，内容一字未删**；更早的见 `STATUS_APP_sec109_122_upto_20261101.md`）
 
 
 ## 最近更新
-- 2026-11-01 20:45 **§124 APP-055 / APP-056 / APP-057 / APP-058 已执行** ⇒ ① **v1.13 目录还原**（6/6；payload `files=14212` / `bytes=13689629685` 与 06:08 记录一致；旧 zip 不删不改）② **模块租约**（TAKEOVER 后持 `8afc6c0f`；长作业后台 + 登记 PID）③ **交付包 v2.1**（zip **11 233 135 359 B** / **14 317 文件** / SHA256 `835803a7…aaa4` / 20:38:13；`app191` **18/0** ＋ `app213` **15/0** ＋ `app212` **9/0** ＋ `app214` **4/0**；**v2.0 原样保留**）④ **同段复测**（3291.6–3591.6 s）覆盖率 **93.75 %**（Δ 1.90 pp）、不同标签 **4**、置换 **64.29 %**、APP-054 三项全过 ⇒ **7 PASS / 1 FAIL**；🔴 召回率 **33.33 %/58.33 % ⇒ 未达 60 %** ⑤ 修掉 **4 个判据自身缺陷**
-- 2026-11-01 16:25 **§123 APP-052 / APP-053 / APP-054 全部执行完毕** ⇒ ① `.lnk` 坏链已修（COM 生成 ＋ COM 读回判据 ＋ 3 条反证 ⇒ `app192` **13/0**）② `ACCEPTED.json` 重签（`code_fingerprint` + 6 子项 ＋ `1b`）＋ **v1.13 重打**（**11 232 363 846 B** / 14 192 文件 / SHA256 `a13bee66…47db8` / 15:02:24）⇒ `app186` **34/0** ③ `results/mt2_acc_outputs/` 已排除（zip 内 **0** 命中）＋ docstring 路径 → `<HOME>` ＋ 打包闸门又抓到 **2 类真缺陷**（7 脚本写死包路径 / 2 个 U+FFFD 乱码）已修 ④ STATUS 压缩 ≤40 KB/≤300 行 ⑤ **说话人标签覆盖率 7.23 % → 93.48 %**（43/46；差 2.17–4.35 pp ⇒ ≤5 pp）⇒ `app202` **9/0**；顺带订正 `app195` 的 **M8 恒假判据**（置换后 82.61 %）⑥ **旁路默认关闭 ＋ 线程化 ＋ 攒整窗 ＋ 降级** ⇒ A/B：旁路开 **300.6 s / 积压 1.2 s / 延迟 316 ms**（vs 缺陷态 838.5 s / 195.1 s）⇒ **4/0**；🔴 根因在 **ASR 侧**（`run_seg_side` 每次调用重编译 ⇒ 3 000 次编译 ≈ 538 s）⇒ 已写 NOTICE 待转达
-- 2026-11-01 08:09 **§122 无新纠偏条目（`last_ack` 仍 APP-051）** ⇒ 按 APP-046 继续做，补上 **「验收证据 ↔ 被验收代码」绑定这一维** ⇒ 🔴 **真实缺口**：`ACCEPTED.json`（00:43:32）之后 §120（`aacb2dd`，05:57:04）改了客户包 **5 个生产模块**、zip 06:08:44 重打 ⇒ **交付代码 ≠ 被验收代码**、`accepted=true` 仍成立 ⇒ **无闸门会发现**；⇒ ✅ **新增 `app191`**（R1 漂移检测 / R2 漂移分类 / R3 声明自洽 / R4 指纹连续性）⇒ 5 个漂移模块**全部** `home_path_rewrite` ⇒ **良性**；⇒ 集成进 `app186` 为**第 ⑥ 子项**（**25/0 → 26/0**）
-- 2026-11-01 06:32 **§121 无新纠偏条目（`last_ack` 仍 APP-051）** ⇒ 抓到 2 个「判据自身缺陷」（弱判据误报 + 过期断言）⇒ `app076` 修回 **49/0**；`app092` 的 C2 子串匹配弱判据已修
-- 2026-11-01 06:21 **§120 无新纠偏条目（`last_ack` 仍 APP-051）** ⇒ 闭环「客户包内代码写死开发机家目录」这个真实缺陷 ＋ 修掉两个 TTS 验收脚本的「过期断言」
-- 2026-11-01 02:35 **§119 无新纠偏条目（`last_ack` 仍 APP-051）** ⇒ 补上「包 ⇄ 仓库 生产模块集合一致性」这一维（新增 `app188` 闸门）
-- 2026-11-01 02:26 **§118 无新纠偏条目（`last_ack` 仍 APP-051）** ⇒ 抓到 **3 个真缺陷**：① §117 验收链产物一个都没入库 ② HEAD 上 fresh clone 打包必失败 ③ 验收链脚本「写死仓库根」导致 clone 验收是假象
-- 2026-11-01 01:07 **§117 APP-051 三条子项全部完成** ⇒ ① 重打 v1.13 ② APP-043 真机验收 5 子项全 PASS（`app186` **25/0**）③ 写 `ACCEPTED.json` + 桌面快捷方式更新到 v1.13
-- 2026-10-31 10:32 **§115 APP-050 TTS 启动日志打印各组件 `EXECUTION_DEVICES`** ⇒ talker / cp_prefill / cp_decode / decoder **首次被探测** ＋ `absent`/`unknown` 分离 ＋ **实测全部 NPU**
-- 2026-10-30 23:20 **§114 APP-027 V3(a) MiniMax 回转写 CER 对比（克隆 vs 预设 A）** ⇒ **14 PASS / 0 FAIL** ⇒ Δ = **+0.0657 pp**、95% CI **含 0** ⇒ **未构成明显劣化**
-- 2026-10-30 22:28 **§113 修掉「版本标识在打包时复发」的路径** ⇒ 新增打包前闸门 `app170`（**18 PASS / 0 FAIL**，BUG 组 D1~D5 全部命中）
-- 2026-10-30 20:41 **§112 客户包「运行时可加载性」独立验收** ⇒ `app168` **21 PASS / 0 FAIL** ⇒ 抓到**宿主 `PYTHONPATH` 污染**（会让 `torch` 假阳性）
-- 2026-10-30 18:55 **§111 APP-049 压缩完成** ⇒ STATUS **1 437 968 B / 18 977 行 → ≤ 40 KB / ≤ 300 行**（**−99.0 %**）
-- 2026-10-30 16:52 **§110 APP-048 GUI 三分区状态条落地** ⇒ `app165` **64 PASS / 0 FAIL**；三张截图落盘 `shared/app_gui_layout/`
-- 2026-10-30 16:00 **§109 APP-047 说话人 IR 精度定案 FP16** ⇒ `asr_spk/` 收敛为 **3 个文件**；`app164` **30 PASS / 0 FAIL**
-
+- 2026-11-01 21:13 **§126 APP-060 已执行** ⇒ ① **交付版 = v2.1**（zip 20:38 SHA `835803a7…`）⇒ **v2.0 标 superseded**（`DELIVERY_2.0.json` / `DELIVERY_2.1.json`，只追加字段）② 桌面 **v2.0.lnk 已由 reviewer 21:10 删除** ⇒ `app212` 加 **SUPERSEDED 硬闸门**（被取代 ⇒ exit 2、不写 .lnk；已反证）③ **未通知安装 / 未打包**；今后改动只打 v2.2+ ④ **CORRECTIONS_APP.md 本轮中途被追加 APP-060**（⇒ §125 ⑧ 的「零修改」作废）
+- 2026-11-01 21:10 **§125 APP-059 已执行** ⇒ ① **口径 A 作废、口径 B 为唯一口径**（7/12 = 58.33 %、误报 0 ⇒ 仍 FAIL、差 1 个点；**未换口径、未调阈值、未改参照**）② **README_zh/en 写明说话人标签局限**（v2.1 包内 L92-94 / L111-115）③ **更正 §124 两处**（许可证写反 / 「只差 speaker_assets 注释」不成立：实测 5 个 py 不同）④ **补齐 `app/MANIFEST.json` SHA 三元组** ＋ 写明 **v1.13.zip 与目录不一致 ⇒ 不要再从它安装**⑤ **EXT-028 未通过** ＋ **HOWTO 已写**（`shared\ext_listen21\HOWTO.txt`）⑥ **未通知安装、未打包**
 ## 当前有效结论
 
 > 🔴 **每个数字都注明来源产物**；**被推翻的旧结论不在此表**（见归档）。
@@ -78,12 +64,7 @@ last_ack: APP-058
 
 ### 已撤回的旧结论（**不作为结论**，仅备查）
 
-- §97 的「APP-039/040 核心已实施」在 §98 补交入库后**才**成立 ⇒ 见 §98。
-- §103.4 的「4 产物已入库」当轮**不准确**（只入了脚本，证据由 §104 补交）⇒ 见 §105.4。
-- §104.6 的「宿主后台任务有 16 分钟上限」实为**守候器自身退出**，非宿主强杀 ⇒ 见 §105.2。
-- §122 头部「客户包 zip 是 06:08 那份」的 SHA `3ca36ce3…e020` **已作废**（本轮重打）⇒ 见 §123。
-- §122 头部「桌面 .lnk 554 B」**已作废**（那是**坏链**，554 B）⇒ 现为 **2 099 B**（COM 生成）⇒ 见 §123。
-
+> 本块已原样归档 ⇒ 见 `status/archive/STATUS_APP_sec124_upto_20261101.md`（逐字保留，内容一字未删）。
 
 ## 未完成纠偏
 
@@ -106,7 +87,7 @@ last_ack: APP-058
 
 ## 最近章节
 
-> 按 APP-052 ④：**每节最多 3 行的索引**；**§109–§122 正文已原样归档**到 `status/archive/STATUS_APP_sec109_122_upto_20261101.md`（**逐字保留，内容一字未删**）；更早的章节见 `status/archive/STATUS_APP_upto_20261030.md`。
+> 按 APP-052 ④：**每节最多 3 行的索引**；**§109–§124 正文已原样归档**到 `status/archive/STATUS_APP_sec124_upto_20261101.md`（内含 §124 正文 ＋ 旧「最近更新」条目）与 `status/archive/STATUS_APP_sec109_122_upto_20261101.md`（**逐字保留，内容一字未删**）；更早的章节见 `status/archive/STATUS_APP_upto_20261030.md`。
 
 | 章节 | 一句话 | 状态 |
 |---|---|---|
@@ -125,7 +106,9 @@ last_ack: APP-058
 | §121 | 抓到 2 个「判据自身缺陷」｜ 连带修掉 `app187` 的 MISSING | 已归档 |
 | §122 | 新增「验收证据 ↔ 被验收代码」绑定闸门 `app191` | 已归档 |
 | §123 | **APP-052 / APP-053 / APP-054**：`.lnk` 坏链修复 ＋ ACCEPTED 重签 ＋ 标签覆盖率 7 % → 93.48 % ＋ 旁路线程化 ＋ STATUS 压缩 | **本轮新增（见下）** |
-| §124 | **APP-055/056/057/058**：v1.13 还原 ＋ 模块租约 ＋ V2.1 交付包 ＋ 同段覆盖率复测 | **本轮新增（见下）** |
+| §124 | **APP-055/056/057/058**：v1.13 还原 ＋ 模块租约 ＋ V2.1 交付包 ＋ 同段覆盖率复测 | 已归档 |
+| §125 | **APP-059**：口径 B 定为唯一口径 ＋ README 局限说明 ＋ 两处更正 ＋ MANIFEST 三元组 ＋ HOWTO | **本轮新增（见下）** |
+| §126 | **APP-060**：交付版 = v2.1 ＋ v2.0 标 superseded ＋ 桌面 v2.0.lnk 已删（脚本加硬闸门） | **本轮新增（见下）** |
 
 ### §123 ✅ **APP-052 / APP-053 / APP-054 —— 桌面 `.lnk` 坏链修复 ＋ `ACCEPTED` 重签 ＋ 说话人标签覆盖率 7 % → 93.48 % ＋ 旁路线程化止血 ＋ STATUS 压缩** ｜ **本条已完成** ｜ **本条需等 reviewer 复核**
 
@@ -133,155 +116,160 @@ last_ack: APP-058
 
 ### §124 ✅ **APP-055 / APP-056 / APP-057 / APP-058 —— v1.13 还原 ＋ 模块租约 ＋ V2.0→V2.1 交付包 ＋ 说话人覆盖率同段复测** ｜ **本条已执行** ｜ **本条需等 reviewer 复核**
 
+> **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec124_upto_20261101.md`（逐字保留，内容一字未删）。
+
+### §125 ✅ **APP-059 —— 口径 B 定为唯一口径 ＋ README 说话人标签局限说明 ＋ 两处表述更正 ＋ MANIFEST SHA 三元组 ＋ EXT-028 状态 ＋ HOWTO** ｜ **本条已执行** ｜ **本条需等 reviewer 复核**
+
 > 本节只追加，不改旧章节；旧结论若被推翻，在本节写明「撤回 §x」。
+> 开工基线：`CORRECTIONS_APP.md` SHA256 `ccdb7712e893c6d20df0fe09c0e438d2f596410db458c5f5c7debb8654b213f8` / **150 636 B** / mtime **2026-11-01 20:56:19** / **59** 条（APP-001…APP-059）⇒ `last_ack` APP-058 → **APP-059**（reviewer：「开始处理时写 last_ack=APP-059」）。
 
-#### ① APP-055（BLOCKING）—— 原地改包 ＋ 同版本号覆盖重打 ⇒ 已止血
+#### ① APP-059 ①：口径 A 作废，**口径 B（文本对齐）为唯一口径**；召回率仍 **FAIL（差 1 个点）**
 
-* v1.13 目录被改动的 **6 个文件**，逐个「改前 SHA（= 06:08 态）→ 改后 SHA（被改坏）→ 还原后 SHA」
-  （`results/app/app207_app055_restore_v113_evidence.json` → `changed[]`，`n_changed=6` / `n_restored_ok=6`）：
+* **口径 A 作废**（reviewer 判定为**判据实现缺陷**，不算换口径）：拿 App 的行号（48 行）直接对参照的段号（46 段）**没有做对齐**；且检出点记「新说话人的第一行」、参照记「旧说话人的最后一段」⇒ 两者**系统性差 1 段**。
+* **唯一口径 = 口径 B（文本对齐）**。原始字段（源 `results/app/app210_app058_recall_diagnosis_evidence.json` → `method_B_text_aligned`）：
+  `n_ref_switches=12`｜`n_meas_switches=7`｜`n_hit=7`｜`recall=0.5833333333333334`（**7/12 = 58.33 %**）｜`n_false_positive=0`｜`false_positives=[]`
+  命中明细（参照段号 → 实测行号）：`[[2,2],[22,22],[35,35],[36,36],[38,38],[41,42],[44,44]]`
+* **结论**：按 APP-058 标准（需 ≥ 8/12）仍 **FAIL，差 1 个点** ⇒ 已按 reviewer 指示记为「**已知局限**」；**App 侧未为凑满 60 % 调阈值、未改参照**。
+* 上限参照：`reference_self_consistency` = `n_ref_label_switches=11` vs `n_manual_switches=12`，`manual_only=[19]` ⇒ **参照自身与人工标注就差 1 处 ⇒ 上限 91.7 %**。
+* 治本在 **ASR 侧**（说话人切换判定）⇒ **由主会话转达**；App 侧不自行处理。
 
-| 文件 | 改前 SHA（06:08 态） | 改后 SHA（被改坏） | 还原后 SHA | ok |
-|---|---|---|---|---|
-| `app/live_caption_app.py` | `9f37a399b2b3…` | `b65e311f9a93…` | `9f37a399b2b3…` | ✔ |
-| `app/speaker_assets.py` | `1576ac8559e1…` | `17c1f39c945a…` | `1576ac8559e1…` | ✔ |
-| `app/speaker_tracker.py` | `ecb3bd6b7f09…` | `5dd215f4ea03…` | `ecb3bd6b7f09…` | ✔ |
-| `app/tts_cuda.py` | `bfde75221a04…` | `7d0d886d85cb…` | `bfde75221a04…` | ✔ |
-| `app/tts_cuda_sidecar.py` | `269d02f31990…` | `84110917d44c…` | `269d02f31990…` | ✔ |
-| `ACCEPTED.json` | `fc31e1b57597…` | `8c6bc81d0879…` | `fc31e1b57597…` | ✔ |
+#### ② APP-059 ①：README_zh/en 已写明说话人标签局限（v2.1 包内实测）
 
-* 还原基准 = git `aacb2dd` 的 blob：**06:08 那份 zip 本体已在 15:02 被 `--same-version` 覆盖 ⇒ 字节流不可得**
-  ⇒ 只能用 blob ＋ 字节数算术复原（`app207` → `note`）。
-* **payload 重算与 06:08 记录完全一致**：`files=14212` / `bytes=13689629685`（`payload_recheck.match=true`）
-  ⇒ 目录已回到 06:08 态。
-* 旧 zip **不删不改**（`zip_untouched=true`）：v1.13.zip（15:02 / SHA `a13bee66…`）、v2.0.zip（17:49 / SHA `8198924f…`）原样保留。
-* **纪律落地**：此后**不再用 `--same-version`**；新产物一律「新版本号目录 ＋ 新 zip ＋ 新 MANIFEST ＋ 重签 ACCEPTED」
-  （本轮 v2.1 即按此执行）。
+* `Confucius4_LiveCaption_v2.1/README_zh.md` **L92-94**（原文）：
+  ```
+  * 字幕上的说话人标签（`S1 / S2 …`）属**实验功能**：旁路**默认关闭**；
+    开启后若**换人**（说话人切换）**可能漏标**（内部实测：12 个人工标注的换人点
+    只检出 7 个）⇒ 标签仅作参考，**不影响**字幕内容与翻译。
+  ```
+* `Confucius4_LiveCaption_v2.1/README_en.md` **L111-115**（原文）：
+  ```
+  * Speaker labels on the subtitles (`S1 / S2 …`) are an **experimental feature**:
+    the bypass is **off by default**; once enabled, a **speaker change may be
+    missed** (internal measurement: 7 of 12 hand-labelled switch points were
+    detected) ⇒ labels are for reference only and do **not** affect the caption
+    text or the translation.
+  ```
+* 落地方式（`results/app/app215_readme_speaker_note.py` ⇒ `results/app/app215_readme_speaker_note_evidence.json`）：**定点替换 + 唯一命中断言 + 包外备份 + 写后逐字节复核**（旧正文操作 delete=0，只许改「许可证那 1 行」＋「插入局限说明」）。
 
-#### ② APP-056（HIGH）—— 模块租约：指令已改，本轮全程持租约
+  | 文件 | 改前 | 改后 | 旧正文操作（del/rep/ins） |
+  |---|---|---|---|
+  | `README_zh.md` | 47 497 B / `1b022c33d04f7eca…` | 47 786 B / `6300285e9d7c51bd…`（mtime 21:05:26） | 0 / 1 / 3 |
+  | `README_en.md` | 52 950 B / `42cdd5a146a8fb87…` | 53 291 B / `91cbca2ef1096b41…`（mtime 21:05:37） | 0 / 2 / 5 |
+  （全量 SHA256 见 `results/app/app215_readme_speaker_note_evidence.json`）
 
-* 指令侧：App 自动化指令已在「第 1 步」**之前**插入「第 0 步 · 模块租约（APP-056）」（全文见 ⑪）。
-* 本轮 `acquire app` ⇒ **TAKEOVER**（上一会话 token `7cc116e8` 17:48 失心跳，其登记的 5 个 PID 全部已死）
-  ⇒ 本轮 token **`8afc6c0f`**，从断点继续（读了它的 note「V2.0 打包压缩 10.6/12.75 GB」＋ §123 ＋ 全部产物，**没有从头重做**）。
-* 长作业全部后台启动并**登记 PID**（`app214` 解压 PID 15792、`pack_v13` PID 3396）⇒ 下一轮会拿到 BUSY 而非重复启动。
-* 收尾 `release app 8afc6c0f`。
+* **ACCEPTED 绑定未受影响**：只动包根**两个文档文件**，`app/` 生产模块未动 ⇒ 按 `app191` 口径重算指纹（**28 个生产模块**）= `b96b6725944c8d19aa9a4a980dee2ac370c6922a19fe7204abae7270b8a9b421` = `ACCEPTED.json` 的 `code_fingerprint` ⇒ **MATCH**。
+* 🔴 **zip 未动**（reviewer：「都不用重打包」）⇒ `Confucius4_LiveCaption_v2.1.zip`（20:38，11 233 135 359 B）内 README 仍是**改前**版本 ⇒ **下一版本号打包时带入**；本轮**未打包**（用户未授权打包）。
 
-#### ③ APP-057（HIGH）—— V2.0 → V2.1 交付包
+#### ③ APP-059 ②：更正 §124 的两处表述错误
 
-* **① 新目录 / 新 zip / 新 MANIFEST / 重签 ACCEPTED** = **v2.1**
-  （目录 `Confucius4_LiveCaption_v2.1`；zip **11 233 135 359 B** / **14 317 文件** / SHA256 `835803a7…aaa4` / mtime **2026-11-01 20:38:13**）。
-  **v2.0 的目录与 zip 原样保留、不覆盖、不删除**。
-* **② 包内结构**：`app/`（App 本体）＋ `ext/extension/`（插件 unpacked，15 个文件 / 219 021 B）＋
-  `ext/bridge/`（19 个 .py ＋ `start_bridge.cmd`）＋ `ext/.runtime_deps/`（websockets 17.3 / psutil 7.2.2）
-  ＋ `README_插件.md`（4 697 B，引用 `docs/插件截图/` 3 张截图，**已核实文件在包内**）
-  ＋ `NOTICE`（9 643 B）＋ `THIRD_PARTY.md`。
-  * **桌面快捷方式选「两个 .lnk」**（不选「App 内加启动桥接的开关」）：① 桥接必须用**包内 python ＋ 包内模型** ⇒ 启动方式与 App 根本不同；
-    ② 两者**设备互斥**（`ext/bridge.py::_caption_app_running`）⇒ 常需只起一个；③ 桥接可能**先于** App 启动（用户只想看网页配音）。
-    ⇒ `Confucius4 实时字幕 v2.1.lnk` ＋ `实时配音桥接服务 v2.1.lnk`（均由 `WScript.Shell.CreateShortcut` 生成 ＋ COM 读回验证）
-    ⇒ `app212` **9 PASS / 0 FAIL**（含 3 条反证）。
-* **③ 依赖隔离**（在**另一个路径**解压 zip 后扫，不是扫包目录）：`app214`（判据已修，见 ⑤）
-  ⇒ **reviewer 点名的 5 个开发目录 0 命中**；扫描面 **6 729 个文件**（自有 93 ＋ 第三方运行时 6 636，后者亦 0 命中）。
-  🔖 **证据留痕**：v2.0 那次跑的 `app214…v20_clean_test_evidence.json` 被本轮同名覆盖 ⇒ 其**控制台输出已另存**
-  `results/app/_app214_run_v20_oldcriterion.txt`（当时为 **1 PASS / 2 FAIL** ＝ **旧判据**下的结果：只命中 `ACCEPTED.json` 的 `pkg_dir` ＋ 覆盖判据恒 FAIL）；
-  本轮 v2.1 的权威证据 = `results/app/app214_app057_v21_clean_test_evidence.json`（**4 PASS / 0 FAIL**）。
-* **④ 闸门**：`app213` **15 PASS / 0 FAIL**（含 **8/8** 反证）—— 包内无会议录音 / 克隆音色 / babelvox 示例音色；
-  NOTICE 含 **pyannote_seg**（CC BY 4.0）＋ **wespeaker**（MIT）署名与来源链接；
-  App 侧旁路**默认关** ＋ **独立线程** ＋ CLI `--speaker` 默认 off；
-  **EXT 侧旁路满足 EXT-029**（`threading.Thread` ＋ `daemon` ＋ 队列满即丢弃并计数 ⇒ 不反压）——**本轮新增的两条检查**。
-* **⑤(a) A/B（旁路开/关，各跑一次）**：`app208`，用**包内 python**、音频 = app193/app175 的**同一段** Q&A 切片
-  （3291.6–3591.6 s）⇒ 旁路开 **墙钟 300.7 s**（上限 303）/ **最大积压 1.2 s**（上限 2）/ **出字延迟中位 347 vs 343 ms（Δ +4 ms**（上限 +200）/
-  **丢窗·降级 0** ⇒ 三项全过；另跑一次 `--speaker off` 作对照（300.9 s / 1.4 s / 343 ms）。
-  ⚠️ **v2.1 的 `app/` 生产模块相对 v2.0 只差 `speaker_assets.py` 的注释**（`code_fingerprint`：`eeafd13b…` → `b96b6725…`）
-  ⇒ 旁路代码**逐字节未变** ⇒ A/B 结论对 v2.1 成立；**但闭环仍需在 v2.1 上再跑一次**（本轮未跑，见 ⑧①）。
-* **⑤(b) 桥接 + Edge 加载插件 + player 录 60 s 网页配音 ⇒ 未做**（**需用户手势**：Edge 加载已解压扩展 ＋ 点扩展图标 ＋ player「开始捕获」；
-  EXT 侧同样记「tabCapture 生产路径未实测」）⇒ **如实记为未达成**。
-* **⑤(c) zip 报告**：**11 233 135 359 B / 14 317 个文件 / SHA256 `835803a7246470faf0725a3f429b0339ccb6dac8ba7e1d1854176775e6cbaaa4`**
-  （`results/app/DELIVERY_2.1.json`；`testzip()` = Everything is Ok；zip ⇄ 包目录 **14 317 个文件逐字节一致**；压缩 556 s / 压缩率 82.1 %）。
-* **⑥ 未通知用户安装**（(a)(b) 未齐 ⇒ 按 reviewer 指令不通知）。
+* **(a) 许可证写反了 —— 撤回 §124③④ 的写法**：以包内 `NOTICE` 为准 ⇒ **pyannote/segmentation-3.0 = MIT**（`NOTICE` L47）、**wespeaker = CC BY 4.0**（`NOTICE` L37）；`THIRD_PARTY.md` L65-66 同（reviewer §1 已核实 NOTICE 正确）。
+  **顺带发现并订正**：v2.1 包内 `README_zh.md` L89 / `README_en.md` L106-107 **也把两者写反**（与 NOTICE 矛盾）⇒ 本轮已一并订正（见 ② 的 replace 行：zh 1 行 / en 2 行）。
+* **(b)「v2.1 与 v1.13 的差异只有 `speaker_assets` 注释」不成立 —— 撤回该说法**：实测 v2.1 与 v1.13 的 `app/` 有 **5 个 py 文件不同**（共同 28 个 py；**只差注释的是 v2.1 与 v2.0**（仅 `speaker_assets.py`））。逐文件 SHA256（截断 16 位）：
 
-#### ④ APP-058（HIGH）—— 覆盖率同段复测 ＋ A/B 复核
+  | 文件 | v1.13 目录 | v1.13.zip 内 | v2.0 | v2.1 |
+  |---|---|---|---|---|
+  | `live_caption_app.py` | `9f37a399b2b375e2` | `b65e311f9a931442` | `b65e311f9a931442` | `b65e311f9a931442` |
+  | `speaker_assets.py` | `1576ac8559e1a634` | `17c1f39c945ae2bf` | `17c1f39c945ae2bf` | `a3690e54892f6bdc` |
+  | `speaker_tracker.py` | `ecb3bd6b7f094fae` | `5dd215f4ea03e433` | `5dd215f4ea03e433` | `5dd215f4ea03e433` |
+  | `tts_cuda.py` | `bfde75221a040643` | `7d0d886d85cb7ca1` | `7d0d886d85cb7ca1` | `7d0d886d85cb7ca1` |
+  | `tts_cuda_sidecar.py` | `269d02f319906a6c` | `84110917d44c13a5` | `84110917d44c13a5` | `84110917d44c13a5` |
 
-* **① APP-054 的 A/B：reviewer 已核实 ⇒ 认可**；本轮在**多人音频**上又跑一遍并补齐指标。
-* **② APP-053 的「93.48 %」不成立 ⇒ 撤回 §123 的该结论**（分子取自 on 臂的**单人**段 `SPE_0000_0500.wav`，
-  分母取自 **Q&A 段** ＋ pyannote 参照 ⇒ 分子分母不同段）。
-  本轮**同段复测**（`app208`，切片 = app193/app175 的 **3291.6–3591.6 s**）：
+#### ④ APP-059 ③：补全 APP-055 的 `app/MANIFEST.json` SHA 三元组 ＋ `v1.13.zip` 与目录不一致
 
-| 指标 | 实测 | 判据 | 结论 |
-|---|---|---|---|
-| 覆盖率（分子分母同段） | **93.75 %**（45/48 句带标签） | 与 ref 95.65 % 相差 ≤ 5 pp（**Δ 1.90 pp**） | ✅ |
-| 不同标签数 | **4**（S1/S2/S3/S4） | ≥ 3 | ✅ |
-| 最优编号置换一致率（**实际运行**标签上算） | **64.29 %** | —（报数） | 📌 |
-| 换人点召回率（±1 段算命中） | 口径 A **33.33 %**（4/12 命中、误报 3）／口径 B **58.33 %**（7/12、误报 0） | ≥ 60 % | ❌ **未达标** |
-| APP-054 墙钟 / 积压 / 延迟 Δ / 丢窗降级 | 300.7 s / 1.2 s / +4 ms / 0 | 303 s / 2 s / +200 ms / — | ✅ |
+* `app207` 的证据 JSON **只列了 6 个文件**，未列 `app/MANIFEST.json`（它在 **17:09:10** 被重写）⇒ 本轮补齐：
 
-  ⇒ `app208` **7 PASS / 1 FAIL**（`verdict=FAIL`）⇒ **不换口径、不粉饰**。
-* **判据④的鉴别力诊断**（`app210`）：口径 A 按 app208 的段号对齐、口径 B 按**文本对齐**后比对；
-  **参照标注自身**与人工标注就差 1 处（人工多一个换人点 @19）⇒ 即便完美实现，召回上限也只有 **11/12 = 91.7 %**；
-  实测口径 B 已达 **58.33 %** 且**零误报**。剩余漏检的根因在 **ASR 侧的说话人切换判定**（与 APP-054 NOTICE 同一治本线）
-  ⇒ 本轮**未自行改口径**，如实记录待复核。
-* **③ §123 ⑥-4 的说法撤回**：原文「未在用户正在测试的安装目录里原地改文件」**不成立**
-  （reviewer 实测 v1.13/app/ 三个文件被改成 14:33/14:37 版本，v1.13.zip 又在 15:02 同版本号重打）
-  ⇒ 本轮按 APP-055 还原 v1.13，并自此只用新版本号发包。
+  | 项 | SHA256 | 字节 | 依据 / 实测字段 |
+  |---|---|---|---|
+  | **改前**（= `v1.13.zip` 内那一份） | `dc62caabd5b9a2cf4f518332db96b6b75a68ff3c737a08dc182405139f1c278c` | 23 422 | zip 内条目 `Confucius4_LiveCaption_v1.13/app/MANIFEST.json`（zip 内时间戳 **2026-11-01 14:53:30**）；内容 `files=14191` / `bytes=13687238157`，notes **含（18）（19）** |
+  | **改后**（app207 §⑥ 重写后的落盘值） | `24a45d19d3499fd0aeeaa86068b9846fc45df6c086fa33d1de79964389981749` | 22 937 | mtime **2026-11-01 17:09:10**；内容 `files=14212` / `bytes=13689629685`，notes **无（18）（19）** |
+  | **还原后**（写后逐字节复核 ⇒ 与「改后」一致） | `24a45d19d3499fd0aeeaa86068b9846fc45df6c086fa33d1de79964389981749` | 22 937 | 本轮磁盘实测仍为此 SHA ⇒ app207 的还原**未被后续改动覆盖** |
 
-#### ⑤ 本轮抓到的 4 个「判据自身缺陷」（判据 PASS ≠ 判据正确）
+* **依据**：app207 §⑥「MANIFEST 改回 06:08 口径（files=14212 / bytes=13689629685 / notes 去掉（18）（19）两条）」＋ 写后复核 payload 重算 `files=14212` / `bytes=13689629685` 与 06:08 记录**完全一致**。
+* 🔴 **`v1.13.zip` 与 `v1.13` 目录不一致**：现存 `Confucius4_LiveCaption_v1.13.zip`（mtime **2026-11-01 15:02:24**，**11 232 363 846 B**，SHA256 `a13bee66c602496cbcefaa6df7b823ae10829ecaf61056ea0cf57820f4647db8`，本轮实测 `results/app/app215_v113_zip_hash.json`）装的是 **14:33 的代码**（zip 内 5 个 py 的 SHA = 上表「v1.13.zip 内」列 ⇒ **不是** 06:08 还原态），且 zip 内条目共 **14 192**（MANIFEST 自称 `files=14191`）而目录 payload 为 **14 212** ⇒ **任何人都不要再从这个 zip 安装 v1.13**。**zip 本身不删、不改名**（只读保留）。
 
-| # | 缺陷 | 后果 | 修法 |
-|---|---|---|---|
-| 1 | `app214`/`app209` 只扫「AST 字符串字面量且**排除 docstring**」 | 首包 v2.0 里 `ext/bridge/{engines,segmenter,app_root}.py` 的 docstring **写死开发机绝对路径**（4 处）**被判为通过** | 改**全文扫描**（注释/docstring 也算）＋ `.lnk` 额外按 UTF-16LE 再解一份（真实 .lnk 是二进制） |
-| 2 | `app214`「四类扩展名都必须扫到」 | 包内本就没有 `.lnk` ⇒ **恒 FAIL**（恒假判据） | 改三态：**存在即必扫；不存在记「不适用」** |
-| 3 | `app214` 把「构建机用户名」与 reviewer 点名的 5 个开发目录混成一条 | 「是否违反 ③」被口径混淆 | 拆成**阻断**（5 个开发目录）＋**附带发现**（构建机用户名，不阻断） |
-| 4 | `app211` 把构建机家目录写进 `ACCEPTED.json` 的 `pkg_dir`；`app191` R3 按字面比 | 客户机上路径不对 ＋ 泄漏构建机身份 | `pkg_dir` 改 `<HOME>` 形态；R3 改成「**先展开 `<HOME>` 再比**」 |
+#### ⑤ APP-059 ④：EXT-028 状态（一行）＋ `shared\ext_listen\v21\HOWTO.txt`
 
-#### ⑥ 交付口径（v2.1）
+* **EXT-028 未通过**：EXT 模块 `live_dub_ext/status/CORRECTIONS_EXT.md` 的 **EXT-032（2026-11-01 20:30，BLOCKING）** 写明「EXT-028 只修了代码，没有交实录」，且当时 `shared\ext_listen\` **目录不存在**；EXT 模块 `STATUS_EXT.md` 的 `last_ack` 仍是 **EXT-031** ⇒ **EXT-032 未执行、EXT-028 的验收一项未交** ⇒ **⑤(b) 的前置条件不满足**。
+  （采样率根因与 `resolvePcmSampleRate()` 修复已被 reviewer 认可；EXT-032 要求的 ①tabCapture 生产路径实录 ②三份音频逐段对比（互相关/SNR）③静音成因与 `sync_err` p50/p95 ④`ext032_<时间>\` 目录＋逐段译文 README **均未交**。）
+* **HOWTO 已写好（≤ 6 步）**：`C:\Users\Trekker-PTL\shared\ext_listen\v21\HOWTO.txt`（**3 418 B**，SHA256 `99d5079fdd478fc0fa137567ebb1864eaaccea5519a490707c1f56cdcbefd17a`，mtime **2026-11-01 21:16:16**，UTF-8 无 BOM / CRLF / 20 行）。全文如下：
 
-* `app/` 生产模块 **28** 个，内容指纹 `b96b6725944c8d19aa9a4a980dee2ac370c6922a19fe7204abae7270b8a9b421`
-  （v1.13 为 `09a1f417…`；差异**只有** `speaker_assets.py` 的注释脱敏）。
-* `ACCEPTED.json`：**6 067 B**，`pkg_dir` = `<HOME>\Confucius4_LiveCaption_v2.1`，`binding_gate=app191`，
-  白名单 **5 条**（每条带 `reason` ＋ `source`）。
-* 闸门结果：`app191`（验收 ↔ 代码绑定）**18 PASS / 0 FAIL**｜`app213`（内容闸门）**15/0**｜`app212`（快捷方式）**9/0**｜`app217`（建包 ＋ 脱敏）**7/0**。
+```
+实时配音桥接（V2.1 候选包）· 用户操作步骤
+==================================================================
+生成：2026-11-01 21:20（App 模块 · APP-059 ④）｜候选包：C:\Users\Trekker-PTL\Confucius4_LiveCaption_v2.1
+【前置状态（如实告知，动手前先看）】
+1) 插件侧前置 EXT-028 **尚未通过**：EXT 模块 2026-11-01 20:30 的 EXT-032 写明「EXT-028 只修了代码，没有交实录」——采样率修复（resolvePcmSampleRate）与 42 项自测已被认可，但修复后的 player 录音、逐段三份音频对比、静音成因分析都还没交。
+2) 本步骤只是**准备**：APP-059 ⑤ 要求「⑤(b) 完成并且用户抽听通过之前，不要通知用户安装」⇒ **先不要安装/替换正式环境里的包**；桌面旧的 v2.0 桥接快捷方式已由 reviewer 于 21:10 删除。
+3) 实时字幕 App 与桥接服务**不能同时开**（抢同一块显卡）⇒ 做这一步前先把字幕 App 关掉。
+【6 步操作】
+第 1 步 · 关掉实时字幕 App ⇒ 双击桌面「实时配音桥接服务 v2.1.lnk」（它启动 <包根>\ext\bridge\bridge_launcher.py），等窗口出现 `[bridge] 监听 ws://127.0.0.1:8765（...）` 即为就绪。
+第 2 步 · Edge 地址栏打开 edge://extensions ⇒ 右上角开「开发人员模式」⇒ 点「加载解压缩的扩展」（Load unpacked）⇒ 选**这一层**目录：C:\Users\Trekker-PTL\Confucius4_LiveCaption_v2.1\ext\extension（⚠️ 不要选到 ext\ 目录，也不要选到 extension 里的某个文件）。
+第 3 步 · 打开一个**纯英文**语音页面并开始播放（音频必须在这个标签页里播）。推荐素材（60.0 s 英文 SPE，16 kHz 单声道，1 920 044 B）：C:\Users\Trekker-PTL\live_dub_ext\.tmp\ext026_spe_60s.wav（直接用 Edge 打开播放即可；不要放中文影视原声，会串台）。
+第 4 步 · 点工具栏的「实时翻译配音」扩展图标 ⇒ 勾上「打开延迟画面播放器窗口」⇒ 点「开始」。这一步**必须你手动点**（浏览器不允许网页自动激活标签页音频）。
+第 5 步 · 插件会自动打开 player 页 ⇒ 点「开始捕获」⇒ 状态条出现 capture_mode = tabCapture 即为就绪 ⇒ 跑满 60 s ⇒ 回扩展面板点「停止并收尾」（把最后一句跑完）。
+第 6 步 · **录音保存到哪里**：发行版 player 页**没有**「保存」按钮（录音在页内 MediaRecorder：window.startDubRecording() / window.dubRecordingBlob()）⇒ 请**保持 player 标签页开着**并告诉线程「已完成第 6 步」；线程用 Playwright 从该页取出音频，落盘到 C:\Users\Trekker-PTL\shared\ext_listen\v21\ ，并在同目录附 README（每段起止时间 + 对应译文），交 reviewer 回转写与用户抽听。
+【出问题怎么办】
+* 扩展图标不出现 ⇒ 第 2 步的「开发人员模式」没开，或选错目录（要选 ext\extension 这一层）。
+* 桥接提示「检测到实时字幕 App 在运行，拒绝启动」⇒ 关掉字幕 App 再启动桥接。
+* player 显示 capture_mode = getDisplayMedia ⇒ 没走扩展图标的「开始」，重做第 4 步。
+* 配音延迟大 / 长时间没动静 ⇒ 已知限制（端到端 RTF≈2.05、同步误差超标），照样跑完 60 s，**先不要中断**，否则拿不到完整录音。
+* 日志：%LOCALAPPDATA%\LiveDubEXT\bridge.log
+```
+
+* 步骤摘要见上方全文（6 步：起桥接 → 加载扩展 → 播英文页 → 点扩展「开始」→ player「开始捕获」跑满 60 s → 保持 player 页开着让线程取录音）。
+
+#### ⑥ APP-059 ⑤：未通知安装 / 未改包 / 未动旧链
+
+* **未通知用户安装**（⑤(b) 完成且用户抽听通过之前）。
+* **`start_bridge.cmd` 的「V2.0 发行版」注释未改**（reviewer：留到下一版，不为它重打包）；`README_插件.md` 里的「V2.0 发行版」同理未动。
+* **桌面 `实时配音桥接服务 v2.0.lnk` 保留未删**（reviewer 要求，等用户决定）。COM 读回（`results/app/_app215_shortcuts.py` ⇒ `results/app/app215_shortcuts.json`）：
+  * `实时配音桥接服务 v2.0.lnk` → 目标 `…\Confucius4_LiveCaption_v2.0\python\pythonw.exe`、工作目录 `…\v2.0\ext\bridge`、2 511 B、SHA256 `416509664e9b4525…`、mtime **2026-11-01 17:56:16**（**存在，未删**）
+  * `实时配音桥接服务 v2.1.lnk` → 目标 `…\Confucius4_LiveCaption_v2.1\python\pythonw.exe`、工作目录 `…\v2.1\ext\bridge`、2 511 B、SHA256 `60afd1667573a3e2…`、mtime **2026-11-01 20:42:58**
+  * ⇒ 两者**并存**，等用户/reviewer 决定是否清理旧的。（**21:10 reviewer 已删除 v2.0.lnk** ⇒ 见 §126 ②）
 
 #### ⑦ 本轮对仓库的改动（**只有 App 侧**）
 
-* `live_caption/speaker_assets.py`（注释脱敏 1 处）｜`live_caption/release_notes/v2.1_{zh,en}.md`（新增）
-* `results/app/app209`（EXT 复制：扫描改全文）｜`app211`（`pkg_dir` → `<HOME>`）｜`app212`（快捷方式版本号**改为派生**）
-  ｜`app213`（＋ EXT-029 两条检查 ＋ 两条新反证）｜`app214`（判据修复 ＋ `--skip-extract` ＋ 二进制 .lnk）｜`app217`（**新增**：建 v2.1 ＋ 脱敏）
-* 🔴 **未提交**：`status/app/CORRECTIONS_APP.md`（reviewer 独占）、ASR/MT/TTS 其它模块的任何文件。
+* 新增：`results/app/app215_readme_speaker_note.py` ＋ `app215_readme_speaker_note_evidence.json`、`results/app/_app215_shortcuts.py` ＋ `app215_shortcuts.json`、`results/app/app215_v113_zip_hash.json`
+* 改：`status/app/STATUS_APP.md`（本节 ＋ 头部 ＋ 归档压缩）
+* **客户包 v2.1 内改动（不在仓库）**：`README_zh.md` / `README_en.md` 两个**文档**文件
+* **未改**：`status/app/CORRECTIONS_APP.md`（全程只读）、`app/` 生产模块、任何 zip、`start_bridge.cmd`、`live_dub_ext/**`（EXT 模块的文件一个都没碰）
 
-#### ⑧ 待 reviewer 复核 / 未达成（不粉饰）
+#### ⑧ 收尾复核（`CORRECTIONS_APP.md` 全程只读）
 
-① **APP-057 ⑤(b) 未做**（需用户手势）⇒ 配音录音与逐段译文待用户实听。
-② **APP-058 判据④ 召回率未达标**（33.33 % / 58.33 %，均 < 60 %）⇒ 如实记录。
-③ **交付版本号是 v2.1 而非用户原话的 V2.0**（v2.0 首包违反 ③，且「旧 zip 不覆盖」）⇒ 请 reviewer 确认 v2.1 即交付版；
-若必须叫 V2.0，请授权改名/重签（**改名不需要重打包**）。
-④ 桌面仍残留 `实时配音桥接服务 v2.0.lnk`（指向被取代的 v2.0 包）—— App 的快捷方式闸门刻意不删旧链 ⇒ **请用户/reviewer 决定是否清理**。
-⑤ 沿用 §123 待办：3 段 1.2–1.3× 配音素材实听（`shared/app_accel_listen/`）；APP-048「运行中」截图仍缺；
-APP-054 的 NOTICE（ASR 侧 `run_seg_side` 每次调用重编译模型）仍待主会话转达。
-⑥ **本轮未修改** `status/app/CORRECTIONS_APP.md`（只读文件）—— 复核见 ⑨。
+* 开工基线：SHA256 `ccdb7712e893c6d20df0fe09c0e438d2f596410db458c5f5c7debb8654b213f8` / **150 636 B** / mtime **2026-11-01 20:56:19** / 条目 **59**（APP-001…APP-059）
+* 🔴 **收尾实测：该文件在本轮中途被 reviewer 追加了新条目**（**不是**「SHA 零改动」）⇒ 收尾值 = SHA256 `4aab04746e9356d552af2455ff7ebe3ae2d195205ef39437c772cfd3d2dadade` / **151 541 B** / **21:09:20** / **60 条（新增 APP-060）** ⇒ 追加内容见 **§126**；**本模块全程只读，未写入**。
+* 本轮**未打包**（reviewer：「都不用重打包」；用户未授权打包）⇒ 旧目录与旧 zip **一个都没覆盖、没删除**
 
-#### ⑨ 收尾复核（`CORRECTIONS_APP.md` 全程只读）
+#### ⑨ 待 reviewer 复核 / 未达成（不粉饰）
 
-* 开工记录：SHA256 `89018d172afc1e570a833d961a32355ebb1416fbf9d20f6f104a86f4217d920d` / **145 700 B** /
-  mtime **2026-11-01 15:49:35** / `## APP-xxx` 条目 **58** 条（APP-001…APP-058）。
-* 收尾复核：SHA256 / 字节数 / 条目数 **均不变** ⇒ **本轮 reviewer 未中途追加新条目**；本文件**零改动**。
+① ⛔ **APP-058 判据④ 召回率仍未达标**：唯一口径 B = **58.33 %（7/12）**，需 ≥ 8/12 ⇒ **差 1 个点** ⇒ 已按 reviewer 指示记为「已知局限」＋ README 写明；**未调阈值、未改参照**；治本在 ASR 侧（请主会话转达）。
+② ⛔ **⑤(b) 仍未做**：EXT-028 未通过（EXT-032 未执行）⇒ 本轮只把**用户操作步骤**准备好（HOWTO.txt），等 EXT 侧交出实录后由用户手势执行。
+③ ⛔ **v2.1 的 zip 与目录 README 现已不一致**（zip 内为改前版本）⇒ 下一个版本号打包时须带上新 README；**本轮未打包**。
+④ ℹ️ **请 reviewer 确认 v2.1 即交付版**（v2.0 首包违反「旧 zip 不覆盖」，v2.0 目录与 zip 已原样保留）。
+⑤ ℹ️ **桌面两个桥接快捷方式并存**（v2.0 / v2.1）⇒ 是否清理旧的请用户/reviewer 定。
+⑥ ℹ️ **本轮只补证据与表述，未新增功能**；`app/` 生产模块 **0 改动** ⇒ ACCEPTED 绑定不受影响（已重算核验）。
 
-#### ⑩ 撤回清单
+### §126 ✅ **APP-060 —— 交付版定为 v2.1；v2.0 标 superseded；桌面 v2.0.lnk 已由 reviewer 删除（脚本加硬闸门）；今后改动只打 v2.2+** ｜ **本条已执行** ｜ **本条需等 reviewer 复核**
 
-* **撤回 §123 中「APP-053 说话人标签覆盖率 93.48 %（43/46）」**（分子分母不同段）⇒ 以 ④ 的同段复测 **93.75 %** 为准。
-* **撤回 §123 ⑥-4「未在用户正在测试的安装目录里原地改文件」** ⇒ 见 ④③。
+> 本节只追加，不改旧章节。
 
-#### ⑪ 自动化指令（APP-056 ⑤ 要求贴全文）
+#### ① 交付版 = v2.1；v2.0 标 superseded（APP-060 ①）
+* 交付物 = `Confucius4_LiveCaption_v2.1.zip`（2026-11-01 20:38，**11 233 135 359 B**，SHA256 `835803a7246470faf0725a3f429b0339ccb6dac8ba7e1d1854176775e6cbaaa4`）；**v2.0 目录与 zip 保留作历史记录、不再对外**。
+* 已标 superseded（**只追加字段，原字段逐字保留**）：`DELIVERY_2.0.json` → `status="superseded"` / `superseded_by="2.1"` / `superseded_at="2026-11-01T21:13:39"` / `superseded_note`（857 B，SHA256 `a857b6980260849a…`）；`DELIVERY_2.1.json` → `status="delivery"` / `delivery_decided_by="APP-060 ①（用户决定）"` / `supersedes="2.0"` / `known_gap`（见 ④）（1 383 B，SHA256 `cc83d69b5a360c5f…`）；STATUS 头部同步改写。
 
-> **第 0 步 · 模块租约（APP-056）**（插在原「步骤 1」之前）：
-> `python C:\Users\Trekker-PTL\shared\tools\session_lease.py acquire app`
-> * exit 10（BUSY）⇒ 只输出「上一会话仍在进行，跳过本轮」并**立即结束**（不读文件、不改东西、不碰锁）
-> * exit 0 ⇒ 拿到 `TOKEN=xxxx`，后续步骤都带这个 token；若打印 TAKEOVER ⇒ 先读上一会话的 note / STATUS / 产物，**从断点继续**
-> * **心跳**：每完成一步、每次耗时操作前后 `session_lease.py beat app <token> <一句话进度>`；exit 11（LOST）⇒ **立即停止、不再写任何文件**
-> * **长作业**（打包 / 计时 / e2e）用 schtasks 或 Start-Process 后台启动，拿到 PID 马上 `session_lease.py addpid app <token> <pid>`；
->   不在一个工具调用里同步等待超 20 分钟，分次轮询、轮询之间 beat
-> * **收尾**（含「无新纠偏、跳过」）最后一步 `session_lease.py release app <token>`；有后台作业活着时脚本会自动保留租约
-> * 🔴 MACHINE_LOCK 规则不变（排队等待，不抢锁）：租约管「同一模块不能有两个会话」，锁管「不同模块不要同时占用设备」
+#### ② 桌面 v2.0.lnk 已删；**任何脚本都不得再生成**（APP-060 ②）
+* 实测（21:13）桌面只剩 `Confucius4 实时字幕 v2.1.lnk` ＋ `实时配音桥接服务 v2.1.lnk`（均 mtime 20:42:58）⇒ **`实时配音桥接服务 v2.0.lnk` 已不在**（reviewer 21:10 删除）。
+* 全仓库**只有** `results/app/app212_app057_v20_shortcuts.py` 会生成桌面 `.lnk`（`app192` 的坏链只写临时目录；其余 `_*.py` 是只读探测）；它**版本号从包目录名派生**（`ver = pkg_version_of(PKG)`）⇒ 本就只生成「目标包那个版本」。
+* 🔴 但它 `--pkg` **默认值写死 v2.0** ⇒ 裸跑一次就会**重建 v2.0 的快捷方式** ⇒ 已改：默认改为**交付版 v2.1** ＋ 新增硬闸门 `SUPERSEDED = {'2.0': '2.1'}`（被取代 ⇒ **exit 2、一个 .lnk 都不写**）；docstring 改 raw string（消除 `SyntaxWarning: invalid escape sequence '\p'`）。
+* **反证实测**：`.venv\Scripts\python.exe results/app/app212_app057_v20_shortcuts.py --pkg "C:\Users\Trekker-PTL\Confucius4_LiveCaption_v2.0"` ⇒ 打印 `[ABORT] 版本 v2.0 已被 v2.1 取代（APP-060 ①）…`、**EXIT=2**；复查桌面**仍只有 v2.1 两个 .lnk**（未误建）。
 
-#### ⑫ v2.1 相对 v2.0 的差异（**只有 3 处**）
+#### ③ APP-059 三项本轮已做完（APP-060 ③ 复核）
+* ① 更正两处说法 ✔（§125 ③）② 补全 MANIFEST 哈希 ✔（§125 ④）③ ≤ 6 步用户操作说明 ✔（§125 ⑤，`shared\ext_listen\v21\HOWTO.txt`）；**插件配音实录仍等 EXT-032 通过**后由用户抽听（EXT 模块 `last_ack` 仍 EXT-031 ⇒ EXT-032 未执行）。
 
-1. `ext/bridge/{engines,segmenter,app_root}.py` ＋ `app/speaker_assets.py` 的 **8 处**开发机家目录字面量 → `<HOME>`。
-2. `ACCEPTED.json`：`pkg_dir` → `<HOME>` 形态 ＋ `accepted_at` 重签 ＋ 白名单 `speaker_assets.py` 的依据补 APP-057 ③。
-3. 版本标识：`README_zh` / `README_en` / `NOTICE` / `MANIFEST` → **2.1**，并插入 v2.1 改动说明段。
+#### ④ 🔴 已知缺口（如实记录）：**交付 zip 内的 README 仍是改前版本**
+* APP-059 ① 的「说话人标签局限」段落是在 **21:05** 定点写进 **v2.1 目录**的，而 zip 是 **20:38** 打的 ⇒ zip 内 `README_zh.md` = 47 497 B / `1b022c33d04f7eca…`、`README_en.md` = 52 950 B / `42cdd5a146a8fb87…`（**改前**）；目录里是 47 786 B / `6300285e9d7c51bd…` 与 53 291 B / `91cbca2ef1096b41…`。该改动**早于** APP-060 ④（21:10）⇒ 属规则生效前动作；**此后不再原地改 v2.1 的目录与 zip**。
+* 要让**交付 zip** 带上这段说明 ⇒ 需**另打 v2.2**（APP-060 ④）⇒ 本轮**未打包**（未获用户授权）⇒ 已写进 `DELIVERY_2.1.json` 的 `known_gap` 字段。
+
+#### ⑤ 收尾复核（本轮真实值）
+* 🔴 **CORRECTIONS_APP.md 在本轮中途被 reviewer 追加了新条目**（**不是**「SHA 零改动」）：开工 SHA256 `ccdb7712e893c6d2…` / 150 636 B / 20:56:19 / 59 条 ⇒ 收尾 SHA256 `4aab04746e9356d552af2455ff7ebe3ae2d195205ef39437c772cfd3d2dadade` / **151 541 B** / **21:09:20** / **60 条（新增 APP-060）** ⇒ **§125 ⑧ 原写的「零修改」作废，以本行为准**；该文件本模块全程**只读**。
+* 本轮**未打包**、未改任何 zip；v2.0 / v2.1 的目录与 zip **均未覆盖、未删除**。

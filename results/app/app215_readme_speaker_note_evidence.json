@@ -1,0 +1,110 @@
+{
+  "tool": "app215_readme_speaker_note",
+  "correction": "APP-059 ① + ②(a)",
+  "ts": "2026-11-01 21:05:56",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1",
+  "scope": "仅客户包 v2.1 的两个文档文件（README_zh.md / README_en.md）；app/ 生产模块未动 ⇒ ACCEPTED.code_fingerprint（app191 口径，28 个生产模块）不受影响；zip 未动 ⇒ zip 内 README 仍是改前版本，下一版本号打包时带入",
+  "recall_evidence": "results/app/app210_app058_recall_diagnosis_evidence.json（method_B_text_aligned: n_ref_switches=12, n_hit=7, n_false_positive=0）",
+  "license_authority": "包内 NOTICE L37（wespeaker=CC BY 4.0）/ L47（pyannote/segmentation-3.0=MIT）+ THIRD_PARTY.md L65-66",
+  "rows": [
+    {
+      "file": "README_zh.md",
+      "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\README_zh.md",
+      "backup": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_pkg_backup_app059_2105\\README_zh.md",
+      "backup_created_this_run": false,
+      "bytes_before": 47497,
+      "sha256_before": "1b022c33d04f7ecad77eed79c384996d91b27982a4aadfc783e5d9b449cfaa71",
+      "bytes_after": 47786,
+      "sha256_after": "6300285e9d7c51bd2dfc80baf7320262ca5593783383cfe3fe25adb811ea4ee7",
+      "mtime_after": "2026-11-01 21:05:26",
+      "eol_before": {
+        "crlf": 0,
+        "lf": 693
+      },
+      "eol_after": {
+        "crlf": 0,
+        "lf": 696
+      },
+      "old_body_ops": {
+        "delete": 0,
+        "replace": 1,
+        "insert": 3
+      },
+      "edits": [
+        {
+          "id": "zh-R1-license",
+          "kind": "replace",
+          "hits_old": 0,
+          "hits_new": 1,
+          "state": "already_applied"
+        },
+        {
+          "id": "zh-R2-speaker-caveat",
+          "kind": "append",
+          "hits_old": 1,
+          "hits_new": 1,
+          "state": "already_applied"
+        }
+      ],
+      "anti_falsification": {
+        "backup_has_new": false,
+        "current_has_all_new": true,
+        "current_has_old_for_replace": []
+      },
+      "dev_path_leak_new": [],
+      "dev_path_leak_preexisting": [
+        "confucius4-openvino"
+      ]
+    },
+    {
+      "file": "README_en.md",
+      "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\README_en.md",
+      "backup": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_pkg_backup_app059_2105\\README_en.md",
+      "backup_created_this_run": false,
+      "bytes_before": 52950,
+      "sha256_before": "42cdd5a146a8fb879c7175c84daf6800dd295ab3bc963ea63f8d21b7f7bfc566",
+      "bytes_after": 53291,
+      "sha256_after": "91cbca2ef1096b41cd386058676615d692e63adb9593b21fce18bf070926f88f",
+      "mtime_after": "2026-11-01 21:05:37",
+      "eol_before": {
+        "crlf": 0,
+        "lf": 785
+      },
+      "eol_after": {
+        "crlf": 0,
+        "lf": 790
+      },
+      "old_body_ops": {
+        "delete": 0,
+        "replace": 2,
+        "insert": 5
+      },
+      "edits": [
+        {
+          "id": "en-R1-license",
+          "kind": "replace",
+          "hits_old": 0,
+          "hits_new": 1,
+          "state": "already_applied"
+        },
+        {
+          "id": "en-R2-speaker-caveat",
+          "kind": "append",
+          "hits_old": 1,
+          "hits_new": 1,
+          "state": "already_applied"
+        }
+      ],
+      "anti_falsification": {
+        "backup_has_new": false,
+        "current_has_all_new": true,
+        "current_has_old_for_replace": []
+      },
+      "dev_path_leak_new": [],
+      "dev_path_leak_preexisting": [
+        "confucius4-openvino"
+      ]
+    }
+  ],
+  "verdict": "PASS"
+}

@@ -1,0 +1,43 @@
+{
+  "tool": "app215_shortcuts",
+  "purpose": "APP-059 ④/⑤：确认桌面上哪些快捷方式存在、指向哪个包；确认 v2.0.lnk 未被删（reviewer 要求保留）",
+  "ts": "2026-11-01 21:02:59",
+  "shortcuts": [
+    {
+      "name": "实时配音桥接服务 v2.1.lnk",
+      "exists": true,
+      "target": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\python\\pythonw.exe",
+      "workdir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\ext\\bridge",
+      "args": "\"C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\ext\\bridge\\bridge_launcher.py\" --real --pipeline --target-lang en --host 127.0.0.1 --port 8765 --pair-port 8766 --spk-bypass",
+      "target_exists": true,
+      "target_in_v21": true,
+      "bytes": 2511,
+      "sha256": "60afd1667573a3e2ec47f26930b32f50bd0607750e362c729e21822b1c62725f",
+      "mtime": "2026-11-01 20:42:58"
+    },
+    {
+      "name": "实时配音桥接服务 v2.0.lnk",
+      "exists": true,
+      "target": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0\\python\\pythonw.exe",
+      "workdir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0\\ext\\bridge",
+      "args": "\"C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0\\ext\\bridge\\bridge_launcher.py\" --real --pipeline --target-lang en --host 127.0.0.1 --port 8765 --pair-port 8766 --spk-bypass",
+      "target_exists": true,
+      "target_in_v21": false,
+      "bytes": 2511,
+      "sha256": "416509664e9b45258664bd9eab3354b674cc5c0587d6ead1434744e110e13387",
+      "mtime": "2026-11-01 17:56:16"
+    },
+    {
+      "name": "Confucius4 实时字幕 v2.1.lnk",
+      "exists": true,
+      "target": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\python\\pythonw.exe",
+      "workdir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1",
+      "args": "\"C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\app\\live_caption_app.py\"",
+      "target_exists": true,
+      "target_in_v21": true,
+      "bytes": 2313,
+      "sha256": "f217520f76241e4f26eedf90d35a6f883a2019e5ebc7ab8b399ff0a164bf8c2a",
+      "mtime": "2026-11-01 20:42:58"
+    }
+  ]
+}

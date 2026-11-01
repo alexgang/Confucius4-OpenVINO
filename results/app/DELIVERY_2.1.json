@@ -8,5 +8,18 @@
   "pkg_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1",
   "manifest_version": "2.1",
   "manifest_files": 14316,
-  "manifest_bytes": 13689355769
+  "manifest_bytes": 13689355769,
+  "status": "delivery",
+  "delivery_decided_at": "2026-11-01T21:13:39",
+  "delivery_decided_by": "APP-060 ①（用户决定：v2.1 为交付版）",
+  "supersedes": "2.0",
+  "known_gap": {
+    "item": "zip 内 README_zh.md / README_en.md 仍是改前版本（APP-059 ① 的「说话人标签局限」段落只写进了 v2.1 目录）",
+    "zip_readme_zh_sha256": "1b022c33d04f7ecad77eed79c384996d91b27982a4aadfc783e5d9b449cfaa71",
+    "zip_readme_en_sha256": "42cdd5a146a8fb879c7175c84daf6800dd295ab3bc963ea63f8d21b7f7bfc566",
+    "dir_readme_zh_sha256": "6300285e9d7c51bd2dfc80baf7320262ca5593783383cfe3fe25adb811ea4ee7",
+    "dir_readme_en_sha256": "91cbca2ef1096b41cd386058676615d692e63adb9593b21fce18bf070926f88f",
+    "written_into_dir_at": "2026-11-01 21:05（早于 APP-060 ④「不再原地改 v2.1」的 21:10）",
+    "fix_path": "按 APP-060 ④：需另打 **v2.2** 新版本号时带入；本轮未打包（未获用户授权）"
+  }
 }

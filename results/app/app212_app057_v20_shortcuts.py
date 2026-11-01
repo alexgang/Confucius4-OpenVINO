@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""app212 —— APP-057：V2.0 的**桌面快捷方式**（字幕 App + 配音桥接服务）。
+r"""app212 —— APP-057：V2.0 的**桌面快捷方式**（字幕 App + 配音桥接服务）。
 
 ## 选型（APP-057 第 2 条要求「二选一，在 STATUS 写明选了哪个、为什么」）
 
@@ -15,9 +15,17 @@
    ⇒ 「App 内开关」会让用户在 App 里找一个根本不该在 App 里出现的按钮。
 3. 桥接**可能先于 App 启动**（用户只想看网页配音）⇒ 独立入口才自然。
 
-⇒ 桌面两个入口：
-* `Confucius4 实时字幕 v2.0.lnk` → 包内 `python\pythonw.exe` + `app\live_caption_app.py`
-* `实时配音桥接服务 v2.0.lnk` → 包内 `python\pythonw.exe` + `ext\bridge\bridge.py`
+⇒ 桌面两个入口（**版本号从包目录名派生** ⇒ 只给「当前交付版本」生成）：
+* `Confucius4 实时字幕 v<ver>.lnk` → 包内 `python\pythonw.exe` + `app\live_caption_app.py`
+* `实时配音桥接服务 v<ver>.lnk` → 包内 `python\pythonw.exe` + `ext\bridge\bridge.py`
+
+## 🔴 APP-060 ②（2026-11-01 21:10）：**已被取代的版本禁止再生成快捷方式**
+
+reviewer 决定 **v2.1 为交付版**，**v2.0 已被取代**（`实时配音桥接服务 v2.0.lnk` 已由
+reviewer 于 21:10 删除）⇒ **任何脚本都不得重新生成 v2.0 的快捷方式**。
+本脚本据此加了**硬闸门**：
+* `SUPERSEDED = {'2.0': '2.1'}` —— 目标包版本被取代 ⇒ **直接退出（exit 2），不写任何 .lnk**；
+* `--pkg` 默认值改成**当前交付版本**（v2.1）⇒ 裸跑一次也不会碰到 v2.0。
 
 ## 铁律
 
@@ -38,7 +46,10 @@ import struct
 import time
 
 HOME = os.path.expanduser('~')
-PKG = os.path.join(HOME, 'Confucius4_LiveCaption_v2.0')
+# 🔴 APP-060 ①：交付版 = v2.1（v2.0 已 superseded）⇒ 默认目标包改为当前交付版本
+PKG = os.path.join(HOME, 'Confucius4_LiveCaption_v2.1')
+# 🔴 APP-060 ②：已被取代的版本 ⇒ **禁止再生成其桌面快捷方式**
+SUPERSEDED = {'2.0': '2.1'}
 DESKTOP = os.path.join(HOME, 'Desktop')
 
 RESULTS = []
@@ -139,9 +150,6 @@ def main():
     bridge_py = os.path.join(PKG, 'ext', 'bridge', 'bridge.py')
     launcher_py = os.path.join(PKG, 'ext', 'bridge', 'bridge_launcher.py')
 
-    print('=' * 70)
-    print('app212 —— V2.0 桌面快捷方式（App + 配音桥接）')
-    print('=' * 70)
     check('包内 pythonw.exe 存在', os.path.isfile(pyw), pyw)
     check('包内 live_caption_app.py 存在', os.path.isfile(app_py), app_py)
     check('包内 bridge.py 存在', os.path.isfile(bridge_py), bridge_py)
@@ -149,8 +157,17 @@ def main():
           launcher_py)
 
     # ── ① 字幕 App 快捷方式 ────────────────────────────────────
-    # 🔴 **版本号从包目录名派生**（不写死 v2.0）⇒ 任意版本都能出正确名字的 .lnk
+    # 🔴 **版本号从包目录名派生**（不写死版本）⇒ 任意版本都能出正确名字的 .lnk
     ver = pkg_version_of(PKG)
+    # 🔴 APP-060 ② 硬闸门：**已被取代的版本不生成任何快捷方式**
+    if ver in SUPERSEDED:
+        print('[ABORT] 版本 v%s 已被 v%s 取代（APP-060 ①）⇒ 禁止再生成 v%s 的桌面快捷方式。'
+              % (ver, SUPERSEDED[ver], ver))
+        print('        交付版 = v%s；本脚本未写任何 .lnk。' % SUPERSEDED[ver])
+        return 2
+    print('=' * 70)
+    print('app212 —— 桌面快捷方式 v%s（App + 配音桥接）' % ver)
+    print('=' * 70)
     lnk1 = os.path.join(DESKTOP, 'Confucius4 实时字幕 v%s.lnk' % ver)
     make_lnk(lnk1, pyw, '"%s"' % app_py, PKG,
              'Confucius4 实时字幕 v%s（本地 ASR/MT/TTS）' % ver,
