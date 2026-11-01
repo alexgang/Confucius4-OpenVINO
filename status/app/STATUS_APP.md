@@ -1,13 +1,14 @@
 # STATUS_APP
 
 last_ack: APP-051
-更新时间: 2026-11-01 06:32
-当前任务: **§119 ✅ 无新纠偏条目（`last_ack` 仍 APP-051）** —— 按 **APP-046**「追平后不空转」继续做，补上 **「包 ⇄ 仓库 生产模块集合一致性」这一维**（§104 第④层的**反向形态**）：① §118 的 `app187` 只覆盖「STATUS 引用的产物是否入库」，**不覆盖**「客户包 `app/` 里的模块与仓库 `live_caption/` 的生产模块集合是否一致」② **方向 B**（包有、仓库没有）⇒ 下次重打包**会把它丢掉** ⇒ 若它是生产模块 ⇒ 客户机突然缺模块 ③ 实测抓到真实案例：**包目录 `app/_probe_tts_cuda.py`（3 072 B）仓库从未入库**、含写死开发机路径 `REPO = r"C:\Users\Trekker-PTL\confucius4-openvino"`、v1.13/v1.5/v1.4 三个包目录都有 ⇒ 🔴 **交付 zip 是干净的**（已被 `pkg_exclude` 排除规则挡在 zip 外，zip 内 `app/` 只有 **28** 个 `.py`），但**包目录层面**（用户实际运行的目录）确实存在开发机路径泄漏 ④ ⇒ **新增 `app188` 闸门**（orphan 阻断 / dev_only_orphan 提醒 / repo_only 不判负；**复用 `pkg_exclude.is_app_dev_only()` 作权威判定** ＋ 兜底正则由 T5 强制一致）⇒ ✅ **鉴别力自检 6/6 PASS** ＋ **真实缺陷形态 PASS** ＋ **真 fresh clone 内复验 PASS**（clone 内 `repo_live` 指向 `Temp/fc188/live_caption` ⇒ §118 的「写死仓库根」**未复发**）＋ **28/28 生产模块全部入库** ⇒ 详见 **§119**
-阻塞 / 待用户决定: ① 🔴 **需用户实听 3 段 1.2–1.3× 配音素材**（`C:\Users\Trekker-PTL\shared\app_accel_listen\`：1.2× / 1.3× / 1.3×）＋ **reviewer 判定音质 / 不变调 / 可懂** —— 本轮 `app186` 总闸门只覆盖**链路 + 结构 + 数字自洽**（`ACCEPTED.json.scope` 已明写），**质量判定不在其中**；② 🔴 **§117 待 reviewer 复核 2 项**（① APP-043「通过」口径 ② `app186` 总闸门 25 条判据口径）—— ③「`app186` 写死包版本」**已于 §118 闭环**；③ 🔴 **v1.12 / v1.5 等历史 zip 仍是旧内容**（历史包本轮**未重打**、旧包目录**未删除**（破坏性操作需用户确认））；④ 🔴 **§115 待 reviewer 复核 5 项**（① `EXECUTION_DEVICES` 返回类型口径——**推翻了 §82 的旧解读** ② `absent`/`unknown` 分离 ③ `talker` 聚合所有桶 ④ App 不调 `build()` ⇒ 第②条不适用 ⑤ TTS 模块 `cp_decode_device` 未被消费 ⇒ App 无需改动）；⑤ 🔴 **§114 待 reviewer 复核 4 项**（CI 判据口径 / 写法差异 vs 真错误拆分规则 / 多 3 句真错误是否提示用户 / 是否用最新包重跑）；⑥ 🔴 **宿主 `PYTHONPATH` 污染对历史验收结论的影响范围待 reviewer 确认**（§112 已证明它会让 `torch` 假阳性；§109/§110 为静态字节比对，未受影响）；⑦ 🔴 **本轮未修改** `status/app/CORRECTIONS_APP.md`（只读，reviewer 独占写入，SHA256 `327f8653…39904` 零改动）；⑧ 🔴 **§113 待 reviewer 复核 4 项**（版本标识闸门口径 / 「改动说明」归为提醒不阻断 / `sync_c172`「只改身份行不改内容」设计 / v1.13 改动说明排期）；⑨ 🆕🔴 **`app188` 的判据口径待 reviewer 复核**（① `orphan` 判**阻断**是否过严 ② `repo_only` **不判负**是否可接受 ③ `dev_only_orphan` 是否应完全以 `pkg_exclude` 为准 —— 本轮已用 T5 强制两者一致）；⑩ 🆕🔴 **95 处「过期包版本」引用的清点结论待 reviewer 复核**（本轮只清点、未改；多数在 docstring ⇒ 需区分「文档举例」与「真写死」后再动 ⇒ 建议另开一轮专项，**不在本轮扩大改动面**）
-已压缩: 原文见 `status/archive/STATUS_APP_upto_20261030.md`（1 437 968 B，只读归档）；纠偏归档见 `status/archive/CORRECTIONS_APP_closed_upto_20261030.md`（全量原文备份 `CORRECTIONS_APP_full_before_compress_20261030.md`）。**本文件 86 791 B / 756 行**（原 1 437 968 B / 18 977 行 ⇒ **−94.0%**；§119 追加后）。
+更新时间: 2026-11-01 08:09
+当前任务: **§122 ✅ 无新纠偏条目（`last_ack` 仍 APP-051）** —— 按 **APP-046**「追平后不空转」继续做，补上 **「验收证据 ↔ 被验收代码」这一维**（§104 第④层的**另一形态**）：① 现有全部闸门只覆盖「**验收结论本身**是否自洽」，**不覆盖**「**被验收的那份代码**是否还是交付出去的那份代码」② 实测抓到真实缺口：`ACCEPTED.json` 写于 **2026-11-01 00:43:32**，而 §120（commit `aacb2dd`，05:57:04）改写了客户包 **5 个生产模块**（包内 mtime 均 05:56:10）、zip 于 **06:08:44** 重打 ⇒ **交付代码 ≠ 被验收代码**，而 `accepted=true` 仍成立 ⇒ **没有任何闸门会发现** ③ ⇒ **新增 `app191` 闸门**（R1 漂移检测 / R2 漂移分类 / R3 声明自洽 / R4 指纹连续性）⇒ 5 个漂移模块**全部**判为 `home_path_rewrite`（= §120 的家目录路径改写，**行为零变化**）⇒ **良性** ⇒ **既有验收结论未被推翻** ④ 已集成进 `app186` 作为**第 ⑥ 子项**（**25/0 → 26/0**）⑤ ✅ **两层鉴别力证据**：片段级 `--selftest` **9/9** ＋ **真实形态影子副本**注入（逻辑改动 / 常量改动 / 家目录改写 / 总闸门必须 FAIL）**9/9** ⇒ 详见 **§122**
+阻塞 / 待用户决定: ① 🔴 **需用户实听 3 段 1.2–1.3× 配音素材**（`C:\Users\Trekker-PTL\shared\app_accel_listen\`：1.2× / 1.3× / 1.3×）＋ **reviewer 判定音质 / 不变调 / 可懂** —— 本轮 `app186` 总闸门只覆盖**链路 + 结构 + 数字自洽**（`ACCEPTED.json.scope` 已明写），**质量判定不在其中**；② 🔴 **§117 待 reviewer 复核 2 项**（① APP-043「通过」口径 ② `app186` 总闸门 25 条判据口径）—— ③「`app186` 写死包版本」**已于 §118 闭环**；③ 🔴 **v1.12 / v1.5 等历史 zip 仍是旧内容**（历史包本轮**未重打**、旧包目录**未删除**（破坏性操作需用户确认））；④ 🔴 **§115 待 reviewer 复核 5 项**（① `EXECUTION_DEVICES` 返回类型口径——**推翻了 §82 的旧解读** ② `absent`/`unknown` 分离 ③ `talker` 聚合所有桶 ④ App 不调 `build()` ⇒ 第②条不适用 ⑤ TTS 模块 `cp_decode_device` 未被消费 ⇒ App 无需改动）；⑤ 🔴 **§114 待 reviewer 复核 4 项**（CI 判据口径 / 写法差异 vs 真错误拆分规则 / 多 3 句真错误是否提示用户 / 是否用最新包重跑）；⑥ 🔴 **宿主 `PYTHONPATH` 污染对历史验收结论的影响范围待 reviewer 确认**（§112 已证明它会让 `torch` 假阳性；§109/§110 为静态字节比对，未受影响）；⑦ 🔴 **本轮未修改** `status/app/CORRECTIONS_APP.md`（只读，reviewer 独占写入，SHA256 `327f8653…39904` 零改动）；⑧ 🔴 **§113 待 reviewer 复核 4 项**（版本标识闸门口径 / 「改动说明」归为提醒不阻断 / `sync_c172`「只改身份行不改内容」设计 / v1.13 改动说明排期）；⑨ 🆕🔴 **`app188` 的判据口径待 reviewer 复核**（① `orphan` 判**阻断**是否过严 ② `repo_only` **不判负**是否可接受 ③ `dev_only_orphan` 是否应完全以 `pkg_exclude` 为准 —— 本轮已用 T5 强制两者一致）；⑩ 🆕🔴 **95 处「过期包版本」引用的清点结论待 reviewer 复核**（本轮只清点、未改；多数在 docstring ⇒ 需区分「文档举例」与「真写死」后再动 ⇒ 建议另开一轮专项，**不在本轮扩大改动面**）；⑪ 🆕🔴 **§122 待 reviewer 复核 4 项**（① **`app191` 的「良性漂移」口径**（`identical` / `home_path_rewrite` 放行，其余一律 `other` ⇒ 推翻验收）是否认可 ② **漂移判定基准用 `ACCEPTED.accepted_at`（内容字段）而非文件 mtime** 这条是否认可（本轮实测：文件 mtime 会因「从 zip 还原」而变 ⇒ 用 mtime 会**漏报**真实漂移）③ **`app191` 集成进 `app186` 作为第 ⑥ 子项**是否认可（`accepted` 从 5 子项变 6 子项 ⇒ `ACCEPTED.json` 的口径需同步）④ **「无漂移 ⇒ 验收自动成立」这个自动放行是否过宽**（本轮 5 个漂移模块靠分类判为良性才保住结论））
+已压缩: 原文见 `status/archive/STATUS_APP_upto_20261030.md`（1 437 968 B，只读归档）；纠偏归档见 `status/archive/CORRECTIONS_APP_closed_upto_20261030.md`（全量原文备份 `CORRECTIONS_APP_full_before_compress_20261030.md`）。**本文件 139632 B / 1324 行**（原 1 437 968 B / 18 977 行 ⇒ **−90.4%**；§122 追加后实测）。🔴 **该行原写「86 791 B / 756 行（§119 追加后）」系陈旧断言**（§119–§122 连续追加未同步）⇒ 已按磁盘实测更正。🔴 **仍超 APP-049 的 ≤ 40 KB 限额**（现为限额的 3.46 倍）⇒ **压缩待另开一轮专项**（见 §122 §12）。
 
 
 ## 最近更新
+- 2026-11-01 08:09 **§122 无新纠偏条目（`last_ack` 仍 APP-051）** ⇒ 按 APP-046 继续做，补上 **「验收证据 ↔ 被验收代码」绑定这一维** ⇒ 🔴 **真实缺口**：`ACCEPTED.json`（00:43:32）之后 §120（`aacb2dd`，05:57:04）改了客户包 **5 个生产模块**、zip 06:08:44 重打 ⇒ **交付代码 ≠ 被验收代码**、`accepted=true` 仍成立 ⇒ **无闸门会发现**；⇒ ✅ **新增 `app191`**（R1 漂移检测 / R2 漂移分类 / R3 声明自洽 / R4 指纹连续性）⇒ 5 个漂移模块**全部** `home_path_rewrite`（§120 家目录改写，**行为零变化**）⇒ **良性** ⇒ 既有验收结论**未被推翻**；⇒ 集成进 `app186` 为**第 ⑥ 子项**（**25/0 → 26/0**）；⇒ 🔴 **本轮又抓到判据自身缺陷 2 处**：① **漂移基准错用文件 mtime** ⇒ 从 zip 还原 `ACCEPTED.json` 后 mtime 变还原时刻 ⇒ 5 个真实漂移被**漏报** ⇒ 改用**内容字段 `accepted_at`**；② **`app186` 证据比 `app191` 修复早 43 s** ⇒ `code_binding.drifted` 记成空（假 PASS）⇒ **重跑 app186 修正**（现记真实 5 个模块）；⇒ ✅ 鉴别力**两层**：片段级 `--selftest` **9/9** ＋ **真实形态影子副本**注入 **9/9**（D4 影子包总闸门正确 FAIL）；⇒ 回归全 PASS（`app186` **26/0** / `app191` **10/0** / `app076` 49/0 / `app092` 24/0 / `app107` 42/0 / `app132`+`app136` PASS / `app168` 21/0 / `app188`+`app189` PASS / `app190` 8/0）；🔴 `app187` **53/4** = 本轮 4 个**待提交产物**（入库但内容有改动）⇒ **闸门按设计工作**，入库后即恢复
 - 2026-11-01 06:32 **§121 无新纠偏条目（`last_ack` 仍 APP-051）** ⇒ 按 APP-046 继续做，**收 git 尾时实跑 `app076` 抓到 2 个 FAIL** ⇒ 追查确认**两个都是「判据自身缺陷」**：① 🔴 `audible_criterion_lint` 的 **E9 误报**（`ast.walk` 把 `-1` 拆成 `1` ⇒ **守恒不变式** `n_played + n_dropped == n_submitted` 被当成弱判据）⇒ 改为「比较器常量只认 comparator 本身」＋「左值是 BinOp ⇒ 守恒式不命中」⇒ **鉴别力 10/10**；② 🔴 `app076` 的 **A8 过期断言**（APP-028② 已把播放路径的 `played` emit 挪到看门狗 `_finish_played`，而 A8 只扫 `synth()` ⇒ 抓到的是**落盘分支**）⇒ 改为**按函数作用域判定 ＋ 三态**＋**必须至少有一个适用路径**（防空转）⇒ **注入法 4/4**；③ 顺手修掉 `app092` 的 **C2 子串匹配弱判据**（输出别处出现 "0 FAIL" 就会误判合规 ⇒ 反证成立）⇒ 改为解析汇总行；④ 连带修掉 `app187` 因 §120 正文引用一次性写入器而判 MISSING ⇒ 把该脚本的**写死仓库根**修掉（向上查找）并**入库**（与仓库既有 79 个 `_*.py` 先例一致）⇒ `app187` 恢复 **50/0**；⑤ 回归 `app076` **49/0**（修前 47/2）、`app092` **24/0**、`app186` **25/0**、`app187` 50/0 + 9/0、`app188/189` PASS、`app190` 8/8、`app168` 21/0、`app107` 42/0
 - 2026-11-01 06:21 **§120 无新纠偏条目（`last_ack` 仍 APP-051）** ⇒ 按 APP-046 继续做，**开工自查抓到「§119 之后的半交付」**（03:48–03:50 的 §189/§190 在制品**未入库、无 STATUS 章节**）⇒ 接手闭环：① 🔴 **真实缺陷**：客户包 `app/` 内 **5 个生产模块写死开发机家目录**（其中 `tts_cuda.ENV_PY` 的**默认值就是开发机 venv** ⇒ **客户机上 CUDA TTS 必然不可用**）⇒ 全部改为 `os.path.expanduser('~')` 推导（开发机上**逐字节等价**、行为零变化）；② 新增 `app189`（包内代码泄漏开发机绝对路径闸门，**鉴别力自检 6/6**）＋ `app190`（修复验收 **8/8**）；③ 修掉 `sync_c190` 两个真缺陷（**基线选错** ⇒ OLD 块命中 0/2/14 次；**写死仓库根 + 写死 v1.13**）⇒ 8 块全部唯一命中；④ **持共享机器锁重打 v1.13**（534 s / **14 213 文件逐字节一致** / SHA256 `3ca36ce3…9e020`）⇒ **zip 内代码行泄漏 5 ⇒ 0**；⑤ 🔴 顺手定位并修掉两个 TTS 验收脚本的「**过期断言**」（断点精确到 `6d90715` APP-028② 删除丢句分支）⇒ 改用 `_drop_one()` 造景 ＋ **注入法**鉴别力反证 ⇒ 均 PASS；⑥ 回归 `app168` 21/0、`app186` **25/0**、`app187` 42/0、`app188` PASS、`app130/131/131b/129c/107` 全 PASS
 - 2026-11-01 02:35 **§119 无新纠偏条目（`last_ack` 仍 APP-051）** ⇒ 按 APP-046 继续做，补上 **「包 ⇄ 仓库 生产模块集合一致性」这一维**（§104 第④层的**反向形态**）：① §118 的 `app187` **不覆盖**「客户包 `app/` 的模块 vs 仓库生产模块集合」 ② **方向 B**（包有、仓库没有）⇒ 下次重打包**会丢掉它** ⇒ 客户机可能突然缺模块 ③ 实测抓到真实案例 **包目录 `app/_probe_tts_cuda.py`（3 072 B）仓库从未入库**、含写死开发机路径、v1.13/v1.5/v1.4 三处都有 ⇒ 🔴 **交付 zip 干净**（`pkg_exclude` 已排除）但**包目录层面**有开发机路径泄漏；④ ✅ **新增 `app188` 闸门**（orphan 阻断 / dev_only 提醒 / repo_only 不判负，**复用 `pkg_exclude` 权威判定**）⇒ 鉴别力自检 **6/6** ＋ 真实形态 PASS ＋ **真 fresh clone 复验 PASS**（clone 内 `repo_live` 指向 clone 自己）＋ **28/28 生产模块全部入库**
@@ -1135,3 +1136,189 @@ inv = ev2.get('n_played', 0) + ev2.get('n_dropped', 0) == ev2.get('n_submitted',
 | ⑨ | 🔴 **§119 §5.6「是否加 `.gitattributes`」**（会触发全仓行尾重写） |
 | ⑩ | 🆕🔴 **§120 待复核 3 项**（`app189` 判据口径与是否接入 `pack_v13.py` 打包前闸门 / CUDA 路径仍需用户自设 `LIVECAP_CUDA_PY`，本轮未把 CUDA 变成「客户机开箱可用」 / 两个 TTS 验收脚本「过期断言」的处置方式） |
 | ⑪ | 🆕🔴 **§121 待复核 4 项**：① **E9 的「守恒式不算弱判据」这条新规则是否认可**（判据边界由 reviewer 定；本轮把它实现为「左值是 BinOp ⇒ 不命中」＋「比较器常量只认 comparator 本身」）② **A8 改「按函数作用域判定 ＋ 三态」是否认可**（原口径只扫 `synth()` ⇒ 在 APP-028② 之后必然误判）③ **A8 新增的「必须至少有一个适用路径」这条防空转约束是否认可** ④ **「STATUS 正文提到某脚本 ⇒ 该脚本必须入库」这条连带效应是否认可**（本轮据此把一次性写入器修好并入库；或 reviewer 认为应改为「STATUS 不引用一次性脚本」） |
+
+### §122 ✅ **新增「验收证据 ↔ 被验收代码」绑定闸门 `app191`：R1 漂移检测 / R2 漂移分类 / R3 声明自洽 / R4 指纹连续性** ｜ **本条已完成** ｜ **本条需等 reviewer 复核**
+
+#### 1. 巡检结论：仍无新 reviewer 纠偏条目
+
+| 项 | 实测值 | 证据 |
+|---|---|---|
+| `CORRECTIONS_APP.md` 条目数 | **51**（APP-001 … APP-051） | `grep -c "^## APP-" status/app/CORRECTIONS_APP.md` → 51 |
+| 最大条目编号 | **APP-051** | 同上，`grep -o "^## APP-[0-9]*"` 排序取尾 |
+| STATUS 头部 `last_ack` | **APP-051** | `status/app/STATUS_APP.md` 第 3 行 |
+| ⇒ **新条目** | **无**（max APP-051 == last_ack） | ⇒ 按 **APP-046**「追平后不空转」继续做 App 职责内遗留事项 |
+| `CORRECTIONS_APP.md` SHA256 | `327f8653b62f28b602bb9f50171d1bb453eb1c722adeb0988856d91b01339904`（**120 787 B，零改动**） | `sha256sum` / `wc -c` |
+
+#### 2. 🔴 真实缺口：「验收证据 ↔ 被验收代码」之间**没有任何闸门**
+
+🔴 **问题**：现有全部闸门只覆盖「**验收结论本身**是否自洽」（`accepted=true` / 数字对得上 / 产物在库），**没有任何一道闸门**回答「**被验收的那份代码，是不是就是交付出去的那份代码？**」
+
+🔴 **实测证据链（本轮首次抓到）**：
+
+| 时刻 | 事件 | 来源 |
+|---|---|---|
+| **2026-11-01 00:43:32** | `ACCEPTED.json` 写入（`accepted=true`） | 客户包 `ACCEPTED.json` → `accepted_at` |
+| **2026-11-01 05:56:10** | §120 改写客户包 **5 个生产模块**（`speaker_assets.py` / `speaker_tracker.py` / `tts_cuda.py` / `tts_engine.py` / `tts_worker.py`） | 客户包 `app/*.py` 的 mtime |
+| **2026-11-01 05:57:04** | §120 提交 `aacb2dd`（`fix(app): §120 —— 修掉客户包 5 个生产模块「写死开发机家目录」的真实缺陷`） | `git log` |
+| **2026-11-01 06:08:44** | v1.13 zip 重打（`11 233 348 145 B`） | `results/app/DELIVERY_1.13.json` → `mtime` / `bytes` |
+
+⇒ 🔴 **交付出去的代码 ≠ 被验收过的代码**，而 `accepted=true` **仍然成立**，且**没有任何一道闸门会发现**。
+⇒ 这正是 §104「半交付第 ④ 层」的**另一种形态**（上次抓到的是「结论写进 STATUS 但产物没入库」，这次是「验收对象被换掉了」）。
+
+#### 3. ✅ 新增 `app191`（四道判据）
+
+| 判据 | 内容 | 实测结果 |
+|---|---|---|
+| **R1 漂移检测** | 客户包 **28** 个生产模块中，mtime > 验收时点的即为「漂移」 | `covered=23` / **`drifted=5`** |
+| **R2 漂移分类** | 逐个漂移模块重建**漂移前基线**并分类：`identical` / `home_path_rewrite` = **良性**；其余 = `other` ⇒ **验收已被推翻** | **5/5 全部 `home_path_rewrite`** ⇒ 良性 |
+| **R3 声明自洽** | `ACCEPTED.json` 存在 / `accepted=true` / `version` == 本包版本 / `pkg_dir` == 本包目录 | 4/4 PASS |
+| **R4 指纹连续性** | 生产模块集合内容指纹（SHA256 over normalized bytes）与上次证据比对 | 当前 = `09a1f417c31eff069cf3fbbca7cf13b5`；变化已被 R2 分类为良性 |
+
+🔴 **漂移前基线用「内容寻址」重建**：在 git 历史里找**最早**那个 blob == 当前包内内容的 commit，取其**父提交**作基线 ⇒ 实测 5 个模块的基线均为 **`1a84d0d6`**（`content_addressed`）；找不到时兜底用「最近一次改过该文件的 commit」（`fallback_latest_commit`）。
+
+🔴 **5 个漂移模块的分类明细**（`cls=home_path_rewrite` = §120 的家目录路径改写，**开发机上逐字节等价、行为零变化** ⇒ **既有验收结论未被推翻**）：
+
+| 模块 | 基线 commit | 漂移前 SHA256 | 漂移后 SHA256 | 分类 |
+|---|---|---|---|---|
+| `speaker_assets.py` | `1a84d0d6` | `30142332febbd6bc` | `1576ac8559e1a634` | `home_path_rewrite` |
+| `speaker_tracker.py` | `1a84d0d6` | `e40779329d72c7aa` | `ecb3bd6b7f094fae` | `home_path_rewrite` |
+| `tts_cuda.py` | `1a84d0d6` | `884d90d26838dcf3` | `bfde75221a040643` | `home_path_rewrite` |
+| `tts_engine.py` | `1a84d0d6` | `eea087756981eb47` | `b422f2f199a5b92b` | `home_path_rewrite` |
+| `tts_worker.py` | `1a84d0d6` | `025d1848064a6a47` | `80f2025afe1fb23e` | `home_path_rewrite` |
+
+#### 4. 🔴 本轮又抓到「判据自身缺陷」2 处（均已修）
+
+🔴 **缺陷①：漂移判定基准错用「文件 mtime」**
+　　本轮把 `ACCEPTED.json` **从 zip 逐字节还原**（恢复 `909 B`）后，其文件 mtime 变成**还原时刻 07:59:51** ⇒ 5 个真实漂移模块（05:56:10）被**误判为「无漂移」** ⇒ **闸门假 PASS**。
+　　⇒ **修法**：漂移基准改用**内容字段 `ACCEPTED.accepted_at`**（`2026-11-01 00:43:32`）⇒ 恢复 `covered=23 / drifted=5`。
+　　⇒ 🔴 **通用教训**：「文件 mtime」**不是**可靠的时间基准 —— 任何**复制 / 还原 / 解压**动作都会重置它 ⇒ **判据涉及「先后顺序」时必须用内容里的时间戳**。
+
+🔴 **缺陷②：`app186` 的证据比 `app191` 的修复早 43 秒 ⇒ `code_binding.drifted` 记成空**
+　　`app186_app051_acceptance_gate_evidence.json` 生成于 **08:02:28**，而 `app191_acceptance_code_binding_gate.py` 修复于 **08:03:11** ⇒ 证据里的 `code_binding.drifted = []`（**假象**）⇒ **若照抄该证据就会得出「零漂移」的错结论**。
+　　⇒ **修法**：**重跑 `app186`**（08:06:31）⇒ 现记真实 5 个模块 ⇒ 与 `app191` 独立运行的输出**逐项一致**。
+　　⇒ 🔴 **通用教训**：**「证据文件比被测脚本旧」⇒ 证据无效** ⇒ 任何「脚本改了 ⇒ 证据要重跑」的场景，都必须核对 **mtime 先后**（与「交付口径 = zip 内是否含本轮代码」是同一条铁律）。
+
+#### 5. ✅ 集成：`app191` 成为 `app186` 总闸门的**第 ⑥ 子项**
+
+| 项 | 修前 | 修后 |
+|---|---|---|
+| `app186` 子项数 | 5 | **6**（新增 `6_acceptance_code_binding`） |
+| `app186` 判据数 | 25 PASS / 0 FAIL | **26 PASS / 0 FAIL** |
+| `app186` 证据的 `code_binding` 字段 | **不存在** | 新增：`fingerprint` + 每个漂移模块的 `cls` / `base_commit` / `sha_before` / `sha_after` |
+
+🔴 **`app191` 的三条实现纪律**（沿用既有铁律）：
+① **仓库根从 `__file__` 向上查找**（祖先目录含 `live_caption/` ＋ `pkg_paths.py`）⇒ **不写死仓库根** ⇒ fresh clone 里可用（§118/§119 铁律）；
+② **不 `import` 被测模块**（避免执行客户包代码、避免碰 GPU/NPU）⇒ 只用 `ast` + 节点改写做**规范化 AST 比较**（`ast.dump`）；
+③ **包版本取自「被测的那个包」的目录名**（`_pkg_version_of`），**不写死** `1.13`（§48 铁律）。
+
+#### 6. ✅ 鉴别力证据（两层，均实跑）
+
+**① 片段级 `--selftest`（9/9 PASS）** —— 证明分类器本身有鉴别力：
+
+| 组 | 场景 | 期望 | 实测 |
+|---|---|---|---|
+| S1 | 纯家目录路径改写 | `home_path_rewrite` | ✅ |
+| S2 | 常量取值被改 | `other` | ✅ |
+| S3 | 新增 `_` 前缀派生量（取值来自旧值） | `home_path_rewrite` | ✅ |
+| S4 | 新增**非** `_` 前缀的名字 | `other` | ✅ |
+| S5 | 派生量取值**全新**（旧值集合里没有） | `other` | ✅ |
+| S6 | 修前 == 修后 | `identical` | ✅ |
+| S7 | 改了**函数体内**的路径常量 | `other` | ✅ |
+| S8 | 引入新逻辑 | `other` | ✅ |
+| S9 | 两处字面量家目录前缀**不同** | `other`（不得判良性） | ✅ |
+
+**② 真实形态影子副本注入（`app191_discrimination_test.py`，9/9 PASS）** —— 在 `tempfile` **影子副本**上注入**真实缺陷形态**（客户包目录**零改动**）：
+
+| 组 | 注入 | 期望 | 实测 |
+|---|---|---|---|
+| D1 | 真实**逻辑**改动（`tts_service.py` 的 `self.n_dropped = 0` → `1`） | 判 `other` | ✅ `cls=other` |
+| D2 | 真实**字符串常量**改动（`gui_status.py` 的 `SEP`） | 判 `other` | ✅ `cls=other` |
+| D3 | **家目录路径改写**（从 git 历史取改前源码注入 `tts_engine.py @ d866c479`） | 判 `home_path_rewrite` | ✅ |
+| D4 | 影子副本端到端 | 总闸门必须 **FAIL** | ✅ `verdict=FAIL (PASS 10 / FAIL 1)`，且 `tts_service.py` 判 `other` |
+| D5 | 真包指纹未变 | 指纹不变 | ✅ `09a1f417c31eff069cf3fbbca7cf13b5` |
+
+⇒ ✅ **「判据 PASS」≠「判据正确」**这条铁律本轮再次落地：两层都自带**反证组**（D1/D2/D4）⇒ 判据**非恒真**。
+
+#### 7. 本轮回归（全部实跑，非引用历史结论）
+
+| 闸门 | 结果 |
+|---|---|
+| `app191_acceptance_code_binding_gate.py`（真包） | **PASS 10 / FAIL 0**（`covered=23` / `drifted=5`，5/5 良性） |
+| `app191_acceptance_code_binding_gate.py --selftest` | **PASS 9 / FAIL 0** |
+| `app191_discrimination_test.py` | **PASS 9 / FAIL 0** |
+| `app186_app051_acceptance_gate.py` | **PASS 26 / FAIL 0**（修前 25/0；⑥ = PASS，`accepted=true`） |
+| `app186_discrimination_test.py` | **PASS**（注入 5 处缺陷 ⇒ 恰好 5 条 FAIL ⇒ 非恒真） |
+| `app076_tts_playback_observability.py` | **49 PASS / 0 FAIL** |
+| `app092_audible_criterion_gate_test.py` | **24 PASS / 0 FAIL** |
+| `app107_app030_lang_runaway.py` | **PASS 42 / FAIL 0** |
+| `app132_s91_threeway_check.py` | **PASS**（结论：三方全部逐字一致） |
+| `app136_s92_threeway_check.py` | **PASS**（仓库 ⇄ 包目录 ⇄ zip 全部逐字一致；`testzip()` = OK） |
+| `app168_pkg_runtime_import_probe.py` | **PASS 21 / FAIL 0** |
+| `app188_pkg_repo_module_parity_gate.py` | **PASS 1 / FAIL 0** |
+| `app189_pkg_dev_path_leak_gate.py` | **PASS 1 / FAIL 0** |
+| `app190_dev_path_leak_fix_evidence.py` | **PASS 8 / FAIL 0** |
+| `app187_repo_artifact_in_repo_gate.py` | 🔴 **PASS 53 / FAIL 4** —— **4 个 FAIL 全是「入库但内容有改动」**（`app076_*.txt` / `app186_*.py` / `app186_*_evidence.json` ×2）⇒ **正是本轮待提交的产物** ⇒ **闸门按设计工作**，入库后即恢复 |
+
+#### 8. 本轮产物（文件数 / mtime / 字节数 / SHA256 前 16）
+
+| 文件 | 字节数 | mtime | SHA256（前 16） |
+|---|---|---|---|
+| `results/app/app191_acceptance_code_binding_gate.py` | 36 374 | 2026-11-01 08:03:11 | `12af7ce38a0ed432` |
+| `results/app/app191_acceptance_code_binding_evidence.json` | 10 491 | 2026-11-01 08:06:28 | `674fdc856f7c04a0` |
+| `results/app/app191_discrimination_test.py` | 11 635 | 2026-11-01 07:57:47 | `d24517a2e7a18190` |
+| `results/app/app191_discrimination_evidence.json` | 1 790 | 2026-11-01 08:06:38 | `5916217f0bfd3c3d` |
+| `results/app/app186_app051_acceptance_gate.py` | 20 848 | 2026-11-01 07:59:28 | `d642e1f94db17f5c` |
+| `results/app/app186_app051_acceptance_gate_evidence.json` | 6 846 | 2026-11-01 08:06:31 | `fb4ae28bf00795ae` |
+| `results/app/app186_app051_gate_discrimination_evidence.json` | 1 765 | 2026-11-01 08:06:36 | `9c6838433afae683` |
+| `results/app/app076_tts_playback_observability.txt` | 5 035 | 2026-11-01 08:06:55 | `78a085fda94fa0ee` |
+| `results/app/app092_audible_criterion_gate_evidence.json` | 4 884 | 2026-11-01 08:06:55 | `9be5e024572fc4fc` |
+| `results/app/app107_app030_lang_runaway_evidence.json` | 4 388 | 2026-11-01 08:06:56 | `ed3ac8e6ec0cf523` |
+| `results/app/app168_pkg_runtime_import_probe_evidence.json` | 4 534 | 2026-11-01 08:07:58 | `2fa8ee1a8fe8e0b9` |
+| `results/app/app136_s92_threeway_check_evidence.json` | 8 257 | 2026-11-01 08:08:08 | `5f55d7d42db6dd60` |
+| `results/app/DELIVERY_1.13.json`（只读，未改） | 445 | 2026-11-01 06:11:56 | `6c0f55d00c24194f` |
+| `C:\Users\Trekker-PTL\Confucius4_LiveCaption_v1.13.zip`（只读，未重打） | 11 233 348 145 | 2026-11-01 06:08:44 | `3ca36ce3d166ed0e`（`DELIVERY_1.13.json` → `sha256` 全值，`sha256sum` 独立复核一致） |
+
+⇒ 🔴 **客户包 zip 本轮未重打**（本轮只改**验收脚本**与**闸门**，**不涉及客户包生产模块**；且按用户级约定「不通知 ⇒ 不主动打包」）⇒ 交付指纹**不变**。
+
+#### 9. 本轮 git 收尾
+
+| commit | 内容 |
+|---|---|
+| `fix(app): §122` | 新增 `results/app/app191_acceptance_code_binding_gate.py` ＋ `results/app/app191_discrimination_test.py`（2 个新脚本） |
+| `chore(app): §122` | `results/app/app191_acceptance_code_binding_evidence.json` ＋ `results/app/app191_discrimination_evidence.json` ＋ `results/app/app186_app051_acceptance_gate_evidence.json` ＋ `results/app/app186_app051_gate_discrimination_evidence.json` ＋ `results/app/app076_tts_playback_observability.txt`（重跑后的证据） |
+| `docs(app): §122` | `status/app/STATUS_APP.md`（§122 章节 ＋ 头部 `last_ack` / 「更新时间」／「最近更新」） |
+
+⇒ 逐文件 `git add`（**未用 `-A`**）⇒ **普通快进 push**（未 force push）⇒ 仓库仍**只有 `main` 分支**。
+⇒ 🔴 **本轮未提交** `status/app/CORRECTIONS_APP.md`（reviewer 独占写入，**零改动**，SHA256 `327f8653…39904`）⇒ 也**未吞** ASR/MT/TTS 其它模块的未提交改动。
+⇒ 🔴 `results/app/app189_probe.json`（`app189` 的探测证据，38 872 B）：本轮**一度删除**（探测命令的副作用产物、无引用）⇒ 但 `app187` 闸门判「STATUS 正文提及 ⇒ 该路径必须入库」⇒ **MISSING** ⇒ ⇒ **重新生成并入库**（`app189 --json` 实跑，PASS 1/0）⇒ 与 `app187`「§121 的连带效应口径」保持一致。
+
+#### 10. 本轮**没做**的事（明确留白）
+
+1. 🔴 **未重打包**（改的是**验收脚本 / 闸门**，**不动客户包生产模块** ⇒ 包内容无需变化；且「不通知 ⇒ 不主动打包」）；
+2. 🔴 **未改写** `ACCEPTED.json`（本轮一度用 `--write-accepted` 重写为 990 B，**随即从 zip 逐字节还原为 909 B** ⇒ 包目录 ⇄ zip **三方一致**，`app136` 复验 PASS ⇒ **不留半交付状态**）；
+3. 🔴 **未删除**历史 zip / 旧包目录（破坏性操作需用户确认）；
+4. 🔴 **未运行** `publish_ftp.py` / 未启动 FTP 服务（守 APP-035）；
+5. 🔴 **未跑推理 / 未测速**（本轮全程**离线静态分析 + AST** ⇒ **未取共享机器锁**）；
+6. 🔴 **未动**那批「仓库有、包没有」的一次性脚本（`app188` 明确**不判负** ⇒ 只列清单）；
+7. 🔴 **未修** §119 §5.6 的 `.gitattributes` 议题（会触发全仓行尾重写 ⇒ 需 reviewer 裁定）。
+
+#### 11. 本条需等 reviewer 复核（4 项）
+
+| # | 事项 |
+|---|---|
+| ① | 🔴 **`app191` 的「良性漂移」口径**是否认可（`identical` / `home_path_rewrite` 放行；其余一律 `other` ⇒ **推翻验收**） |
+| ② | 🔴 **漂移判定基准用 `ACCEPTED.accepted_at`（内容字段）而非文件 mtime** 是否认可（本轮实测：mtime 会因「从 zip 还原」而变 ⇒ 用 mtime 会**漏报**真实漂移） |
+| ③ | 🔴 **`app191` 集成进 `app186` 作为第 ⑥ 子项** 是否认可（`accepted` 从 5 子项变 6 子项 ⇒ `ACCEPTED.json` 的口径需同步） |
+| ④ | 🔴 **「无漂移 ⇒ 验收自动成立」这个自动放行是否过宽**（本轮 5 个漂移模块**靠分类判为良性**才保住结论 ⇒ 若 reviewer 认为「有漂移就必须重新验收」，则 `app191` 口径需改为「漂移 ⇒ 阻断」） |
+
+#### 12. 🔴 遗留：APP-049 的「STATUS ≤ 40 KB」限额**当前未满足**
+
+| 项 | 实测值 |
+|---|---|
+| 本文件当前体积 | **139632 B / 1324 行** |
+| APP-049 限额 | **≤ 40 000 B / ≤ 300 行** |
+| ⇒ 超出 | **≈ 3.46 倍**（字节）/ **4.37 倍**（行） |
+| 原始体积（压缩前） | 1 437 968 B / 18 977 行 ⇒ 已省 **−90.4%** |
+
+🔴 **本轮未做压缩**：压缩需要**把 §116–§121 的正文移入 `status/archive/`**（逐字保留），属于**整块搬迁 + 索引化**作业 ⇒ 会改动 §122 之外的章节结构 ⇒ **不在本轮扩大改动面**（与 §121 记的「不在本轮扩大改动面」口径一致）⇒ **列为遗留项，待 reviewer 决定是否单开一轮**。
+🔴 **另**：本轮更正了头部「已压缩」行的**陈旧断言**（原写「86 791 B / 756 行（§119 追加后）」，与磁盘实际不符）⇒ 已按**实测值**改写为 139632 B / 1324 行。⇒ **「写状态断言前必须核对磁盘实际」这条铁律**本轮再次落地。
