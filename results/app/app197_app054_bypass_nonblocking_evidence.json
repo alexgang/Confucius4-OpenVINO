@@ -1,0 +1,129 @@
+{
+  "script": "app197_app054_bypass_nonblocking_test.py",
+  "correction": "APP-054",
+  "purpose": "验证「旁路非阻塞 + 攒整窗 + 降级不丢音 + 标签不被吞」＋ 4 条反证（旧实现必须 FAIL）＋ 1 条真实产物鉴别力",
+  "target": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\speaker_tracker.py",
+  "load_method": "ast + exec（不 import ⇒ 顶层 numpy 不会 abort）",
+  "constants": {
+    "SR": 16000,
+    "FPS": 58.9,
+    "WIN_N": 160000,
+    "BLOCK_N": 1600,
+    "SLOW_FEED_S": 0.4
+  },
+  "discrimination": {
+    "known_bad_target": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\app\\speaker_tracker.py",
+    "detail": {
+      "old_feed_elapsed_s": 2.0028,
+      "old_sync_would_be_s": 2.0,
+      "old_T1_blocks_main_loop": true,
+      "old_has_enabled_switch": false,
+      "old_artifact_correctly_FAILED": true
+    }
+  },
+  "checks": [
+    {
+      "name": "T1 feed() 非阻塞（主循环耗时 ≪ 同步推理总时长）",
+      "ok": true,
+      "detail": {
+        "feed_elapsed_s": 0.0014,
+        "sync_would_be_s": 8.0,
+        "ratio": 0.0002
+      }
+    },
+    {
+      "name": "T1 反证：旧实现（同步推理）必须 FAIL 同一判据",
+      "ok": true,
+      "detail": {
+        "old_feed_elapsed_s": 8.0,
+        "threshold_s": 4.0,
+        "old_would_pass": false
+      }
+    },
+    {
+      "name": "T2 攒整窗才喂（tracker 只被喂 10 s 整窗）",
+      "ok": true,
+      "detail": {
+        "calls": [
+          160000,
+          160000,
+          160000
+        ],
+        "expected_calls": 3
+      }
+    },
+    {
+      "name": "T3 帧数零漂移（1767 == 1767）",
+      "ok": true,
+      "detail": {
+        "frames": 1767,
+        "expected": 1767,
+        "drift": 0
+      }
+    },
+    {
+      "name": "T4 攒批不丢音频（喂进去 == 收到的）",
+      "ok": true,
+      "detail": {
+        "fed": 480000,
+        "received": 480000
+      }
+    },
+    {
+      "name": "T5 降级：feed 抛异常 ⇒ 音频放回缓冲（不丢）+ 攒批降级为直喂",
+      "ok": true,
+      "detail": {
+        "batching_off": true,
+        "n_feed_failed": 1,
+        "pending_samples": 160000,
+        "expected_pending": 160000
+      }
+    },
+    {
+      "name": "T5 反证：旧实现（喂失败即丢音）必须 FAIL 同一判据",
+      "ok": true,
+      "detail": {
+        "old_pending_samples": 0,
+        "expected_pending": 160000,
+        "old_would_pass": false
+      }
+    },
+    {
+      "name": "T6 on_final() 不抽干结果队列（别的段的晚到标签不被吞）",
+      "ok": true,
+      "detail": {
+        "seg99_still_queued": true,
+        "on_final_reason": "async_pending"
+      }
+    },
+    {
+      "name": "T6 反证：旧实现（on_final 抽干结果队列）必须 FAIL 同一判据",
+      "ok": true,
+      "detail": {
+        "old_seg99_still_queued": false,
+        "old_would_pass": false
+      }
+    },
+    {
+      "name": "T7 旁路**默认关闭**（v1.13 阻断级回归止血）",
+      "ok": true,
+      "detail": {
+        "enabled": false
+      }
+    },
+    {
+      "name": "T8 鉴别力：已知有缺陷的旧产物（v1.13 包内那份）必须 FAIL",
+      "ok": true,
+      "detail": {
+        "old_feed_elapsed_s": 2.0028,
+        "old_sync_would_be_s": 2.0,
+        "old_T1_blocks_main_loop": true,
+        "old_has_enabled_switch": false,
+        "old_artifact_correctly_FAILED": true
+      }
+    }
+  ],
+  "n_pass": 11,
+  "n_fail": 0,
+  "verdict": "PASS"
+}

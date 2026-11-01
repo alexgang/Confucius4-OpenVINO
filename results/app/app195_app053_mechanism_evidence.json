@@ -1,0 +1,968 @@
+{
+  "script": "app195_app053_mechanism_probe.py",
+  "correction": "APP-053",
+  "purpose": "确认 APP-053 覆盖率丢失的机制（窗口补零 + 帧漂移）",
+  "asr_source_note": "ASR 源码**未改**：只 import 包内交付副本。",
+  "seg_ir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\models\\spk\\pyannote_seg_3_0\\fp16",
+  "wes_ir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\models\\spk\\wespeaker-resnet34-fp16",
+  "slice_wav": "C:\\Users\\Trekker-PTL\\shared\\spe_qa_clone_listen\\SPE_densest_5min.wav",
+  "slice_dur_s": 300.0,
+  "constants": {
+    "SR": 16000,
+    "WIN_N": 160000,
+    "N_FRAMES": 589,
+    "FPS": 58.9,
+    "stride_ms": 1280.0
+  },
+  "compile_wall_s": 2.236,
+  "compile_note": "run_seg_side 每次调用都 core.compile_model ⇒ 100 ms 增量路径 = 3000 次编译（实测见各臂 feed_wall_s）",
+  "window_padding": {
+    "padded_100ms": {
+      "n_frames": 6,
+      "p_speech_mean": 0.9092,
+      "clean_ratio": 1.0
+    },
+    "full_10s": {
+      "n_frames": 589,
+      "p_speech_mean": 0.9857,
+      "clean_ratio": 1.0
+    }
+  },
+  "frame_drift": [
+    {
+      "block_samples": 1600,
+      "block_ms": 100.0,
+      "frames_appended": 6,
+      "frames_true": 5.89,
+      "drift_per_block": 0.11,
+      "drift_pct": 1.8676,
+      "cum_drift_300s_frames": 330.0,
+      "cum_drift_300s_s": 5.603
+    },
+    {
+      "block_samples": 160000,
+      "block_ms": 10000.0,
+      "frames_appended": 589,
+      "frames_true": 589.0,
+      "drift_per_block": 0.0,
+      "drift_pct": 0.0,
+      "cum_drift_300s_frames": 0.0,
+      "cum_drift_300s_s": 0.0
+    }
+  ],
+  "arms": [
+    {
+      "arm": "A_oneshot_300s",
+      "block_ms": null,
+      "n_feed": 1,
+      "feed_wall_s": 9.05,
+      "n_frames_in_tracker": 17670,
+      "expected_frames": 17670.0,
+      "frame_drift": 0.0,
+      "n_segments": 46,
+      "n_tagged": 41,
+      "tagged_pct": 89.13,
+      "reason_hist": {
+        "null": 41,
+        "not_clean_speech": 5
+      },
+      "n_both_labeled": 41,
+      "n_agree_with_ref": 0,
+      "agree_pct": 0.0,
+      "rows": [
+        {
+          "seg_id": 0,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 1,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 2,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 3,
+          "spk": "S2",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S1"
+        },
+        {
+          "seg_id": 4,
+          "spk": "S2",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 0.966,
+          "ref_spk": "S1"
+        },
+        {
+          "seg_id": 5,
+          "spk": "S2",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S1"
+        },
+        {
+          "seg_id": 6,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 7,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 8,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 9,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 10,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 11,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 12,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 13,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 14,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 15,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 16,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 17,
+          "spk": null,
+          "reason": "not_clean_speech",
+          "pending": false,
+          "clean_ratio": 0.7075,
+          "ref_spk": null
+        },
+        {
+          "seg_id": 18,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 19,
+          "spk": null,
+          "reason": "not_clean_speech",
+          "pending": false,
+          "clean_ratio": 0.4966,
+          "ref_spk": null
+        },
+        {
+          "seg_id": 20,
+          "spk": "S4",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S5"
+        },
+        {
+          "seg_id": 21,
+          "spk": "S4",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S5"
+        },
+        {
+          "seg_id": 22,
+          "spk": "S4",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S5"
+        },
+        {
+          "seg_id": 23,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 24,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 25,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 26,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 27,
+          "spk": "S4",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 0.9456,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 28,
+          "spk": null,
+          "reason": "not_clean_speech",
+          "pending": false,
+          "clean_ratio": 0.6803,
+          "ref_spk": "S5"
+        },
+        {
+          "seg_id": 29,
+          "spk": null,
+          "reason": "not_clean_speech",
+          "pending": false,
+          "clean_ratio": 0.7755,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 30,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 31,
+          "spk": null,
+          "reason": "not_clean_speech",
+          "pending": false,
+          "clean_ratio": 0.723,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 32,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 33,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 0.9456,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 34,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 35,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 36,
+          "spk": "S4",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S5"
+        },
+        {
+          "seg_id": 37,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 38,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 39,
+          "spk": "S4",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S5"
+        },
+        {
+          "seg_id": 40,
+          "spk": "S4",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 0.966,
+          "ref_spk": "S5"
+        },
+        {
+          "seg_id": 41,
+          "spk": "S4",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S5"
+        },
+        {
+          "seg_id": 42,
+          "spk": "S2",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 43,
+          "spk": "S2",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S1"
+        },
+        {
+          "seg_id": 44,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 0.9524,
+          "ref_spk": "S1"
+        },
+        {
+          "seg_id": 45,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        }
+      ]
+    },
+    {
+      "arm": "C_batch_10s",
+      "block_ms": 10000,
+      "n_feed": 30,
+      "feed_wall_s": 9.41,
+      "n_frames_in_tracker": 17670,
+      "expected_frames": 17670.0,
+      "frame_drift": 0.0,
+      "n_segments": 46,
+      "n_tagged": 41,
+      "tagged_pct": 89.13,
+      "reason_hist": {
+        "null": 41,
+        "not_clean_speech": 5
+      },
+      "n_both_labeled": 41,
+      "n_agree_with_ref": 0,
+      "agree_pct": 0.0,
+      "rows": [
+        {
+          "seg_id": 0,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 1,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 2,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 3,
+          "spk": "S2",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S1"
+        },
+        {
+          "seg_id": 4,
+          "spk": "S2",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S1"
+        },
+        {
+          "seg_id": 5,
+          "spk": "S2",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S1"
+        },
+        {
+          "seg_id": 6,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 7,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 8,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 9,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 10,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 11,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 12,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 13,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 14,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 15,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 16,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 17,
+          "spk": null,
+          "reason": "not_clean_speech",
+          "pending": false,
+          "clean_ratio": 0.7687,
+          "ref_spk": null
+        },
+        {
+          "seg_id": 18,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 0.966,
+          "ref_spk": "S2"
+        },
+        {
+          "seg_id": 19,
+          "spk": null,
+          "reason": "not_clean_speech",
+          "pending": false,
+          "clean_ratio": 0.5034,
+          "ref_spk": null
+        },
+        {
+          "seg_id": 20,
+          "spk": "S4",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S5"
+        },
+        {
+          "seg_id": 21,
+          "spk": "S4",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S5"
+        },
+        {
+          "seg_id": 22,
+          "spk": "S4",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S5"
+        },
+        {
+          "seg_id": 23,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 24,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 25,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 26,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 27,
+          "spk": "S4",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 0.9456,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 28,
+          "spk": null,
+          "reason": "not_clean_speech",
+          "pending": false,
+          "clean_ratio": 0.6735,
+          "ref_spk": "S5"
+        },
+        {
+          "seg_id": 29,
+          "spk": null,
+          "reason": "not_clean_speech",
+          "pending": false,
+          "clean_ratio": 0.7891,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 30,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 31,
+          "spk": null,
+          "reason": "not_clean_speech",
+          "pending": false,
+          "clean_ratio": 0.7365,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 32,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 33,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 0.9796,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 34,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 35,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 36,
+          "spk": "S4",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S5"
+        },
+        {
+          "seg_id": 37,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 38,
+          "spk": "S1",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 39,
+          "spk": "S4",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S5"
+        },
+        {
+          "seg_id": 40,
+          "spk": "S4",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 0.9048,
+          "ref_spk": "S5"
+        },
+        {
+          "seg_id": 41,
+          "spk": "S4",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S5"
+        },
+        {
+          "seg_id": 42,
+          "spk": "S2",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 43,
+          "spk": "S2",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S1"
+        },
+        {
+          "seg_id": 44,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 0.9456,
+          "ref_spk": "S1"
+        },
+        {
+          "seg_id": 45,
+          "spk": "S3",
+          "reason": null,
+          "pending": false,
+          "clean_ratio": 1.0,
+          "ref_spk": "S2"
+        }
+      ]
+    },
+    {
+      "arm": "B_incremental_100ms_40s",
+      "block_ms": 100,
+      "n_feed": 400,
+      "feed_wall_s": 86.77,
+      "n_frames_in_tracker": 2400,
+      "expected_frames": 2356.0,
+      "frame_drift": 44.0,
+      "n_segments": 5,
+      "n_tagged": 0,
+      "tagged_pct": 0.0,
+      "reason_hist": {
+        "not_clean_speech": 5
+      },
+      "n_both_labeled": 0,
+      "n_agree_with_ref": 0,
+      "agree_pct": null,
+      "note": "只喂前 40 s（编译开销）",
+      "rows": [
+        {
+          "seg_id": 0,
+          "spk": null,
+          "reason": "not_clean_speech",
+          "pending": false,
+          "clean_ratio": 0.7755,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 1,
+          "spk": null,
+          "reason": "not_clean_speech",
+          "pending": false,
+          "clean_ratio": 0.6735,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 2,
+          "spk": null,
+          "reason": "not_clean_speech",
+          "pending": false,
+          "clean_ratio": 0.7619,
+          "ref_spk": "S3"
+        },
+        {
+          "seg_id": 3,
+          "spk": null,
+          "reason": "not_clean_speech",
+          "pending": false,
+          "clean_ratio": 0.6871,
+          "ref_spk": "S1"
+        },
+        {
+          "seg_id": 4,
+          "spk": null,
+          "reason": "not_clean_speech",
+          "pending": false,
+          "clean_ratio": 0.4694,
+          "ref_spk": "S1"
+        }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "name": "M1 补零喂法 clean_ratio 明显低于满窗喂法",
+      "ok": false,
+      "detail": {
+        "padded": 1.0,
+        "full": 1.0
+      }
+    },
+    {
+      "name": "M2 100 ms 增量 ⇒ 帧漂移 > 0（300 s > 1 s）",
+      "ok": true,
+      "detail": {
+        "block_samples": 1600,
+        "block_ms": 100.0,
+        "frames_appended": 6,
+        "frames_true": 5.89,
+        "drift_per_block": 0.11,
+        "drift_pct": 1.8676,
+        "cum_drift_300s_frames": 330.0,
+        "cum_drift_300s_s": 5.603
+      }
+    },
+    {
+      "name": "M3 10 s 批量 ⇒ 帧漂移 = 0",
+      "ok": true,
+      "detail": {
+        "block_samples": 160000,
+        "block_ms": 10000.0,
+        "frames_appended": 589,
+        "frames_true": 589.0,
+        "drift_per_block": 0.0,
+        "drift_pct": 0.0,
+        "cum_drift_300s_frames": 0.0,
+        "cum_drift_300s_s": 0.0
+      }
+    },
+    {
+      "name": "M4 A 臂（一次性）打标率 ≥ 70%",
+      "ok": true,
+      "detail": 89.13
+    },
+    {
+      "name": "M5 C 臂（10 s 批量）打标率 ≥ A 臂的 90%",
+      "ok": true,
+      "detail": {
+        "A": 89.13,
+        "C": 89.13
+      }
+    },
+    {
+      "name": "M6 B 臂（100 ms 增量）打标率 < A 臂的 1/4",
+      "ok": true,
+      "detail": {
+        "A": 89.13,
+        "B": 0.0
+      }
+    },
+    {
+      "name": "M7 B 臂主因 = not_clean_speech",
+      "ok": true,
+      "detail": {
+        "not_clean_speech": 5
+      }
+    },
+    {
+      "name": "M8 A 臂与参考伪真值一致率 ≥ 60%",
+      "ok": false,
+      "detail": 0.0
+    }
+  ],
+  "n_pass": 6,
+  "n_fail": 2,
+  "verdict": "FAIL"
+}

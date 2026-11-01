@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import os
 import sys
+import collections
 import threading
 import time
 from typing import Optional, Tuple
@@ -62,6 +63,13 @@ _ASR_SCRIPTS = os.path.join(os.path.expanduser('~'),
                             'qwen3asr_06b', 'scripts')
 
 _SR = 16000
+
+# 🔴🔴🔴 APP-053：**旁路分段的滑窗长度**（秒）。
+#   ASR 侧 `asr052_spk_runtime.WIN_S = 10.0`（`WIN_N = 160000` 样本）。
+#   🔴 **喂满一整窗时帧数恰好 589 ⇒ 零取整漂移**（见 `feed()` 的注释）。
+#   ⚠️ 本常量**必须与 ASR 侧一致** ⇒ 改这里之前先看 ASR 侧 `WIN_S`。
+#   （APP-053 的实测证据：`results/app/app195_app053_mechanism_evidence.json`）
+_WIN_S = 10.0
 
 # 🔴🔴🔴 §99（断链 A）：**ASR 侧判「段太短」的硬门槛**。
 #   ASR-029 的 `SpeakerTracker.on_final` 里：
@@ -105,6 +113,15 @@ def reason_is_no_label(reason) -> bool:
     return str(reason) in NO_LABEL_REASONS
 
 
+def _np_available() -> bool:
+    """numpy 是否可用（**不 import** ⇒ 顶层 import 失败也不影响本模块加载）。"""
+    try:
+        import numpy  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
 def span_for_final(t_end: float, min_s: float = SPAN_MIN_S):
     """🔴🔴🔴 §99（断链 A）：**给出「这段」的区间**，长度不足就**往前借**。
 
@@ -146,6 +163,54 @@ def span_for_final(t_end: float, min_s: float = SPAN_MIN_S):
     return (t0, te)
 
 
+def span_for_segment(t_end: float, prev_end: Optional[float] = None,
+                     min_s: float = SPAN_MIN_S):
+    """🔴🔴🔴 APP-053：**段自身区间**优先，**借用**兜底。
+
+    ## 为什么需要（实测，见 `results/app/app193_app053_spk_frame_audit.json`）
+
+    `span_for_final()` 只能从 `t_end` **往前借** `min_s`(2.5 s) ⇒ 取到的窗口
+    是「段尾 2.5 s」⇒ **不一定是这段话**（说话人可能刚在这 2.5 s 内换过）
+    ⇒ `clean_ratio` 偏低 ⇒ 被 ASR 侧判 `not_clean_speech`。
+
+    离线复算（同一 5 min 切片、同一套断句、ASR-029 的两道门槛）：
+
+    | 取值规则 | 可打标比例 |
+    |---|---|
+    | 只借用 2.5 s（`span_for_final`） | 41/46 = **89.13%** |
+    | **段自身区间**（起点 = 上一段末） | 44/46 = **95.65%** |
+    | 参考标注（ASR 真值） | 44/46 = **95.65%** |
+
+    ⇒ 段自身区间**与 ASR 真值完全一致** ⇒ 说明「段自身区间」就是正确口径。
+
+    ## `prev_end` 的含义
+
+    App 的断句是**连续**的（上一段的末 = 本段的初）⇒ 段自身区间 =
+    `[prev_end, t_end]` ⇒ **App 完全拿得到**（记上一段的结束时刻即可）。
+
+    ⚠️ `prev_end` 未知（第一段）⇒ 退回 `span_for_final()` 的借用口径
+    ⇒ **不猜、不谎报**。
+
+    ⚠️ **不往后借**（`t_end` 保持不变）⇒ ASR 侧还没 buffer 到的音频不会被要。
+
+    返回 `(t0, t1)`。
+    """
+    t1 = float(t_end)
+    if prev_end is None:
+        return span_for_final(t1, min_s)
+    try:
+        p = float(prev_end)
+    except Exception:
+        return span_for_final(t1, min_s)
+    if not (0.0 <= p < t1):
+        # 🔴 口径不可信（倒退 / 越界）⇒ 退回借用，**不猜**
+        return span_for_final(t1, min_s)
+    if (t1 - p) < float(min_s):
+        # 🔴 段自身区间太短（< ASR 的 min_dur_s）⇒ 往前借到够长
+        return span_for_final(t1, min_s)
+    return (p, t1)
+
+
 class SpeakerBridge:
     """🔴🔴🔴 App 侧的**说话人旁路桥接器**（降级友好）。
 
@@ -172,7 +237,9 @@ class SpeakerBridge:
     def __init__(self, device: str = 'GPU.0', seg_device: str = 'GPU.0',
                  scripts_dir: str = None,
                  thr: float = 0.35,
-                 on_log=None):
+                 on_log=None,
+                 enabled: bool = False,
+                 max_queue_s: float = 60.0):
         self._on_log = on_log or (lambda m: None)
         self.device = device
         self.seg_device = seg_device
@@ -199,6 +266,52 @@ class SpeakerBridge:
         #     （实测见 `results/app/app157_app044_portable_load_probe.py` 9/9 PASS）
         self._assets = None
         self._scripts_dir = scripts_dir or _ASR_SCRIPTS
+        # 🔴🔴🔴 APP-053：**攒批喂音**的状态
+        #   `_feed_buf` = 已收到但**还没喂给 tracker** 的音频（攒到整窗才喂）
+        #   `_fed_samples` = 已经喂给 tracker 的总样本数（用来算 `t_end`）
+        #   ⚠️ numpy 在本模块是**局部 import**（顶层不 import ⇒ 顶层失败不影响
+        #     本模块加载）⇒ 这里显式 import 一次。
+        try:
+            import numpy as _np
+            self._feed_buf = _np.zeros(0, dtype=_np.float32)
+        except Exception:
+            self._feed_buf = None
+        self._fed_samples = 0
+        self.n_feed_samples = 0
+        # 🔴 APP-053：**攒批是否启用**（一次失败 ⇒ 降级为直喂）
+        self._batching = True
+        # 🔴🔴🔴 APP-054：**旁路总开关**（**默认关闭**）
+        #   v1.13 的阻断级回归：旁路**默认开着**且**同步阻塞 ASR 主循环**
+        #   ⇒ 实测墙钟 838.5 s / 300 s 音频（最大积压 195.1 s）
+        #   ⇒ `enabled=False` ⇒ 旁路**完全不存在**（不建线程、不加载模型）
+        #   ⇒ 字幕/语音行为与 **v1.12 逐字一致**（v1.12 无旁路）。
+        self.enabled = bool(enabled)
+        # 🔴🔴🔴 APP-054：**后台工作线程**（主循环永不阻塞）
+        self._worker = None
+        self._stop = threading.Event()
+        self._q = collections.deque()
+        self._q_cv = threading.Condition(threading.Lock())
+        self._q_samples = 0
+        self._max_queue_s = float(max_queue_s)
+        self._results = {}          # seg -> 完整结果 dict（含 clean_ranges）
+        self._results_lock = threading.Lock()
+        self._retry_q = {}          # seg -> (t0, t1)（ASR 侧 pending ⇒ 重问）
+        # 🔴 APP-054：**降级状态**（积压超限 ⇒ 旁路停用，**不谎报标签**）
+        self._degraded = False
+        self._degraded_reason = ''
+        # 🔴 APP-054：**计时**（每个窗口都记，写进日志）
+        self._timings = []
+        self.n_dropped_chunks = 0
+        self.n_dropped_samples = 0
+        self.n_dropped_blocks = 0
+        self.max_queue_s_seen = 0.0
+        self.n_window_feed = 0
+        self.n_final_done = 0
+        self.n_pending_async = 0
+        # 🔴 APP-053/054：后台 feed 失败次数（⇒ 攒批降级为直喂）
+        self.n_feed_failed = 0
+        # 🔴🔴🔴 APP-054：**会话代号**（`reset()` 递增 ⇒ worker 丢弃旧会话残余）
+        self._epoch = 0
         try:
             import speaker_assets
             self._assets = speaker_assets.resolve()
@@ -278,36 +391,373 @@ class SpeakerBridge:
         except Exception:
             pass
 
-    # ── ② 喂音频 ───────────────────────────────────────────────
+    # ── ② 喂音频（**非阻塞**：只入队，推理在后台线程）────────────
     def feed(self, pcm, t_end: Optional[float] = None) -> bool:
-        """喂一段 16 kHz PCM（**失败就安静降级**）。
+        """喂一段 16 kHz PCM（**永不阻塞主循环**）。
 
         ⚠️ `t_end` = 这段音频**结束**的时刻（全局时间轴，秒）
-        ⇒ tracker 才能把缓冲对齐到全局时间轴 ⇒ `on_final` 的
-        `t_start/t_end` 才对得上。
+
+        🔴🔴🔴 APP-054：**本方法现在只做「入队」** ⇒ 返回时间 = O(1)。
+
+        ## 为什么必须这样改（实测根因）
+
+        reviewer 的 A/B 实测（`hy_bench/spk_ab_run.py`）：
+
+        | 臂 | 墙钟 / 300 s 音频 | 最大积压 |
+        |---|---|---|
+        | 旁路开（v1.13 默认） | **838.5 s** | **195.1 s** |
+        | 旁路关（打桩） | 300.6 s | 1.2 s |
+
+        ⇒ ASR 自身算力**没变慢**（RTF 0.489 / 0.685）⇒ 多出来的 ~540 s
+        **全在 `_spk_bridge.feed(pcm, t_end)` 里**（`live_caption_app.py` 的
+        GUI / CLI 音频主循环里**同步调用**它）。
+
+        ### 源码级根因（两处，都在 ASR 交付的 `SpeakerTracker` 里）
+
+        1. **`run_seg_side()` 每次调用都 `core.compile_model()`**
+           ⇒ App 按 `BLOCK_MS=100` 喂 ⇒ 3000 次调用 ⇒ **3000 次编译**
+           ⇒ 单次编译墙钟 ~0.12 s（热）~2.3 s（冷）⇒ 几百秒。
+           ⇒ 更糟：它**每次都 `ov.Core()` 新建 core** ⇒ OpenVINO 的
+             **进程内编译缓存完全失效**（缓存键含 core 实例状态）。
+        2. **`self._buf` 永不裁剪**，且 `_advance_seg()` 里
+           `np.concatenate(self._buf)` **每次全量重组** ⇒ O(n²) 拷贝。
+
+        ## 本次修法（App 侧，**不改 ASR 一行**）
+
+        * `feed()` **只把 PCM 放进队列**就返回 ⇒ 主循环**永不阻塞**。
+        * 独立**后台工作线程**消费队列：攒够一整窗（`WIN_S = 10 s`）再喂
+          tracker ⇒ **顺带修掉 APP-053 的帧数取整漂移**
+          （喂满整窗 ⇒ 帧数恰好 589 ⇒ **零漂移**）。
+        * 队列积压超 `max_queue_s` ⇒ **丢弃最旧的窗口**并标记**降级**
+          ⇒ **只降级，绝不反压 ASR**（APP-054 明文）。
+        * 旁路**默认关闭**（`enabled=False`）⇒ v1.13 的默认行为与 **v1.12
+          逐字一致**（v1.12 无旁路）⇒ 止血。
         """
+        if not self.enabled:
+            return False
+        try:
+            import numpy as np
+            a = np.asarray(pcm, dtype=np.float32).reshape(-1)
+        except Exception:
+            return False
+        if a.size == 0:
+            return True
+        try:
+            self._ensure_worker()
+        except Exception as e:
+            self._log('说话人旁路线程启动失败（降级）：%s' % e)
+            return False
+        # ── 入队（**不阻塞**：只做一次 deque.append）──
+        with self._q_cv:
+            self._q.append((a, float(t_end) if t_end is not None else None))
+            self._q_samples += int(a.size)
+            q_s = self._q_samples / float(_SR)
+            if q_s > self.max_queue_s_seen:
+                self.max_queue_s_seen = q_s
+            over = False
+            # 🔴🔴🔴 APP-054：**积压超限 ⇒ 丢弃最旧窗口**（**不反压**）
+            while self._q_samples > int(self._max_queue_s * _SR) and self._q:
+                _old, _te = self._q.popleft()
+                self._q_samples -= int(_old.size)
+                self.n_dropped_chunks += 1
+                self.n_dropped_samples += int(_old.size)
+                over = True
+            self._q_cv.notify()
+        if over:
+            # 🔴 **降级**：旁路落后于实时 ⇒ 本轮之后**本句不打标签**
+            #   ⇒ **不谎报新说话人**（APP-053 明文）。
+            self._degrade('backlog_over_limit')
+        return True
+
+    def _degrade(self, reason: str) -> None:
+        """标记旁路**降级**（落后于实时 ⇒ 不再给标签）。"""
+        if self._degraded and self._degraded_reason == reason:
+            return
+        self._degraded = True
+        self._degraded_reason = reason
+        self._log('说话人旁路降级（%s）⇒ 本句不打标签' % reason)
+
+    # ── ②-b 后台工作线程 ────────────────────────────────────────
+    def _ensure_worker(self) -> None:
+        """确保后台线程已启动（**惰性** ⇒ 构造不阻塞启动）。"""
+        with self._lock:
+            if self._worker is not None and self._worker.is_alive():
+                return
+            self._stop.clear()
+            self._worker = threading.Thread(
+                target=self._worker_loop, name='spk-bypass', daemon=True)
+            self._worker.start()
+        self._log('说话人旁路后台线程已启动')
+
+    def _worker_loop(self) -> None:
+        """后台线程：**攒够一整窗 → 喂 tracker → 推进定稿段**。
+
+        🔴 **绝不抛异常**（线程死了就静默降级 ⇒ 字幕无标签）。
+
+        ## 🔴🔴🔴 APP-053/054：**攒批失败时必须「退回直喂」，且音频不许丢**
+
+        旧实现（并发会话版）有两个真缺陷：
+
+        ① **喂失败时整窗音频被丢弃**（`ready` 没有放回 `buf`）
+           ⇒ ASR 侧一旦抛异常 ⇒ **这一窗的音频永久丢失**
+           ⇒ 后续所有段的**时间轴整体前移** ⇒ 标签对不上 ⇒ 覆盖率进一步下降。
+        ② **`_batching` 标志被声明但从不被使用** ⇒ 「攒批失败 ⇒ 降级为直喂」
+           这条 APP-053 明文要求的降级路径**根本不存在**。
+
+        ⇒ 修法：喂失败 ⇒ **把这一窗放回缓冲头部** ＋ **置 `_batching=False`**
+          ⇒ 后续按**每块直喂**（不再等整窗）⇒ 音频**一条不丢**。
+        """
+        import numpy as np
+        win_n = int(round(_WIN_S * _SR))
+        buf = np.zeros(0, dtype=np.float32)
+        fed_samples = 0
+        # 🔴🔴🔴 APP-054：**会话代号（epoch）** —— `reset()` 会递增它
+        #   ⇒ 后台线程发现代号变了 ⇒ **丢弃本会话残留的缓冲**
+        #   ⇒ 否则上一会话末尾的残余音频会**串进下一会话**
+        #     （`reset()` 清的是 `self._feed_buf`，而 worker 用的是**局部** `buf`
+        #      ⇒ 旧实现清不掉 ⇒ 跨会话串音）。
+        epoch = self._epoch
+        try:
+            while not self._stop.is_set():
+                # ── ① 取一批音频（**限时等** ⇒ 不阻塞退出）──
+                with self._q_cv:
+                    if not self._q:
+                        self._q_cv.wait(timeout=0.25)
+                    batch = []
+                    while self._q:
+                        batch.append(self._q.popleft())
+                        self._q_samples -= int(batch[-1][0].size)
+                    if not batch:
+                        continue
+                # 🔴 **代号变了 ⇒ 丢掉本会话残留**（跨会话串音防护）
+                if self._epoch != epoch:
+                    epoch = self._epoch
+                    buf = np.zeros(0, dtype=np.float32)
+                    fed_samples = 0
+                for _a, _te in batch:
+                    buf = np.concatenate((buf, _a))
+                # ── ② 把缓冲里**能喂的都喂完**（内层循环）────────────
+                #   🔴🔴🔴 **一次只喂**一个整窗（`win_n`）
+                #     ⇒ ASR 侧 `run_seg_side` 每次拿到**恰好 10 s**
+                #       ⇒ 帧数 = ceil(10.0 × 58.9) = **589**（零取整漂移）
+                #     ⇒ 且**内存占用恒定**（不会把 30 s 一次性塞进去）。
+                #   ⚠️ 旧实现把**整个批次**一次喂完（30 s ⇒ 一次调用）
+                #     ⇒ 虽也零漂移，但**喂的粒度与 ASR 侧窗口不一致**
+                #     ⇒ `app197` 的 T2 判据能识破它。
+                #   ⚠️ 更早的实现**每轮外层循环只喂一窗** ⇒ 缓冲里剩下的
+                #     20 s 要**等新音频到达**才被喂 ⇒ 尾段永远滞后
+                #     ⇒ `app197` 的 T2/T4 判据能识破它。
+                while True:
+                    with self._lock:
+                        batching = bool(self._batching)
+                    if batching:
+                        n_ready = win_n if buf.size >= win_n else 0
+                    else:
+                        # 🔴 **降级为直喂**：来多少喂多少（帧数会漂移，但**不丢音**）
+                        n_ready = buf.size
+                    if n_ready <= 0:
+                        break
+                    ready = buf[:n_ready]
+                    buf = buf[n_ready:]
+                    t_end_batch = (fed_samples + int(ready.size)) / float(_SR)
+                    t_w0 = time.perf_counter()
+                    ok = False
+                    try:
+                        tr = self._tracker
+                        if tr is None:
+                            if not self._load():
+                                # 🔴 **加载失败 ⇒ 这一窗放回缓冲**（不丢音）
+                                buf = np.concatenate((ready, buf))
+                                break
+                            tr = self._tracker
+                        tr.feed(ready, t_end_batch)
+                        ok = True
+                    except Exception as e:
+                        # 🔴🔴🔴 **喂失败 ⇒ 这一窗放回缓冲头部**（音频不丢）
+                        #   ＋ **降级为直喂**（不再等整窗）⇒ 下次不会再次卡在
+                        #   同一个失败点上。
+                        buf = np.concatenate((ready, buf))
+                        with self._lock:
+                            self._batching = False
+                            self.n_feed_failed += 1
+                        # 🔴 **不置 `_degraded`**：那会让**整段会话**再也不打标签
+                        #   （`_degraded` 是「本段不打标签」的语义 ⇒ 一旦置位
+                        #   `on_final()` 对**所有**后续段都返 `bypass_degraded`）。
+                        #   ⇒ 这里只**降级攒批**（退回直喂）＋ 计数 ⇒ 音频不丢、
+                        #     且 tracker 恢复后**标签自动恢复**。
+                        self._log('说话人旁路后台 feed 失败（已退回直喂，音频不丢）：%s' % e)
+                    dt = time.perf_counter() - t_w0
+                    with self._lock:
+                        self._timings.append(round(dt, 4))
+                        if len(self._timings) > 512:
+                            del self._timings[:-512]
+                        self.n_window_feed += 1
+                        if ok:
+                            self._fed_samples += int(ready.size)
+                        # 🔴 暴露「还没喂出去的残余」⇒ `stats()` 能报真实积压
+                        self._feed_buf = buf
+                    if ok:
+                        fed_samples += int(ready.size)
+                        self.n_feed += 1
+                        self.n_feed_samples += int(ready.size)
+                        self._log('说话人旁路窗口：%.3f s 音频 / 推理 %.3f s'
+                                  % (ready.size / float(_SR), dt))
+                    # ── ③ 推进已定稿但还没拿到标签的段 ──
+                    self._drain_pending()
+                    if not ok:
+                        # 🔴 喂失败 ⇒ 已降级为直喂 ⇒ **跳出内层循环**
+                        #   （否则会用同一份失败音频反复喂）
+                        break
+        except Exception as e:
+            self._log('说话人旁路后台线程异常（降级）：%s' % e)
+
+    def _drain_pending(self) -> None:
+        """重问**已定稿但还没标签**的段（ASR 侧 pending ⇒ 标签晚到）。"""
+        with self._lock:
+            pend = list(self._retry_q.keys())
+        if not pend:
+            return
         tr = self._tracker
         if tr is None:
-            if not self._load():
-                return False
-            tr = self._tracker
-        try:
-            tr.feed(pcm, t_end)
-            self.n_feed += 1
-            return True
-        except Exception as e:
-            self._log('说话人旁路 feed 失败（忽略）：%s' % e)
-            return False
+            return
+        for seg in pend[:16]:
+            try:
+                with self._lock:
+                    span = self._retry_q.get(seg)
+                if span is None:
+                    continue
+                res = tr.on_final(seg_id=seg, t_start=float(span[0]),
+                                  t_end=float(span[1]))
+            except Exception:
+                continue
+            spk = (res or {}).get('spk')
+            if not spk:
+                continue
+            with self._lock:
+                self._retry_q.pop(seg, None)
+            out = dict(spk=spk,
+                       spk_conf=(res or {}).get('spk_conf'),
+                       clean_ranges=list((res or {}).get('clean_ranges') or []),
+                       pending=False,
+                       reason=(res or {}).get('reason'),
+                       is_new_spk=bool((res or {}).get('is_new_spk')))
+            with self._results_lock:
+                self._results[seg] = out
+            self.n_update += 1
+            self.n_final_done += 1
 
-    # ── ③ 定稿段 ───────────────────────────────────────────────
+    # ── ③ 定稿段（**非阻塞**：只登记，结果由 `poll_results()` 取**）──
     def on_final(self, seg: int, t_start: float,
                  t_end: float) -> dict:
-        """App 定稿一段 ⇒ 问 ASR「这句是谁说的」。
+        """App 定稿一段 ⇒ 登记「等旁路给标签」。
+
+        🔴🔴🔴 APP-054：**本方法不再同步调 tracker** ⇒ **永不阻塞**
+        ⇒ 标签由后台线程算完后经 `poll_results()` **补回**。
 
         返回 `{spk, spk_conf, clean_ranges, pending, reason, is_new_spk}`。
+        `spk=None` + `pending=True` ⇒ 标签**晚到**（由 `poll_results()` 补）。
+        """
+        empty = dict(spk=None, spk_conf=None, clean_ranges=[], pending=False,
+                     reason='unavailable', is_new_spk=False)
+        with self._lock:
+            self._seg_span[seg] = (float(t_start), float(t_end))
+        if not self.enabled:
+            empty['reason'] = 'speaker_disabled'
+            return empty
+        if self._degraded:
+            # 🔴 降级 ⇒ **不打标签**（不谎报）
+            empty['reason'] = 'bypass_degraded'
+            return empty
+        # ── 先看后台线程是否已经算好了（**同步命中**才立刻给标签）──
+        # 🔴🔴🔴 APP-054：**不得在这里「顺手抽干」结果队列**。
+        #   旧实现调 `poll_results()`（**取走并清空** `_results`）⇒
+        #   ⇒ 本段不是自己时，**别的段的晚到标签被本段吞掉**
+        #   ⇒ 那些段**永远拿不到标签** ⇒ 覆盖率进一步下降。
+        #   ⇒ 改为**只读地 peek 自己的那一段**，其余**留在队列里**
+        #     ⇒ 由调用方的 `retry_pending()` / `poll_results()` 统一取走。
+        with self._results_lock:
+            _r = self._results.get(seg)
+        if _r:
+            with self._results_lock:
+                self._results.pop(seg, None)
+            return _r
+        # ── 否则登记为「等标签」──
+        with self._lock:
+            self._retry_q[seg] = (float(t_start), float(t_end))
+        self.n_pending += 1
+        self.n_pending_async += 1
+        empty['pending'] = True
+        empty['reason'] = 'async_pending'
+        return empty
 
-        🔴 **不等**（方案 A）：`pending=True` 时 `spk=None` ⇒ App 继续走
-        「预设 A」⇒ 标签晚到时用 `on_spk_update` 补。
+    def flush(self, timeout: float = 30.0) -> int:
+        """🔴🔴🔴 APP-054：**等后台线程把队列处理完**（**有上限**）。
+
+        ⚠️ **只用于收尾**（CLI 写最终字幕文件前 / GUI 会话结束前）。
+        ⚠️ **有超时上限** ⇒ 旁路卡住也**不会**拖住整个程序退出。
+        ⚠️ **不反压 ASR** ⇒ 这是**收尾**路径，不是实时路径。
+
+        ## 🔴 为什么不能等「所有待定段都有标签」
+
+        有些段**永远不会有标签**（`not_clean_speech` / `too_short`）⇒
+        等它们清空 ⇒ 必然等满 `timeout` ⇒ 白等。
+
+        ⇒ 正确口径：**等队列排空** ＋ **给 worker 一个固定的宽限**
+          ⇒ 然后**再问一次**（此刻音频可能已全部缓冲到位）。
+
+        返回：本次**结算**的段数。
+        """
+        import time as _time
+        t_end = _time.monotonic() + float(timeout)
+        # ── ① 等队列排空 ──
+        while _time.monotonic() < t_end:
+            with self._q_cv:
+                q_empty = not self._q
+            if q_empty:
+                break
+            _time.sleep(0.05)
+        # ── ② 给 worker 一个宽限（让它把最后一个窗口跑完）──
+        grace_end = min(t_end, _time.monotonic() + 5.0)
+        while _time.monotonic() < grace_end:
+            with self._q_cv:
+                q_empty = not self._q
+            with self._lock:
+                busy = bool(self._timings) and (
+                    self._timings[-1] is not None)
+            if q_empty:
+                _time.sleep(0.30)   # 让 worker 有机会把当前窗口推完
+                break
+            _time.sleep(0.05)
+        # ── ③ 结算：把还没标签的段**再问一次** ──
+        self._drain_pending()
+        with self._results_lock:
+            settled = len(self._results)
+        return settled
+
+    def poll_results(self) -> list:
+        """🔴🔴🔴 APP-054：**取后台线程已算好的标签**（**非阻塞**）。
+
+        返回 `[(seg, {spk, spk_conf, clean_ranges, ...}), ...]`。
+
+        ⚠️ **必须由 App 定期调用**（GUI 的 `_poll()` / CLI 的循环）
+        ⇒ 晚到的标签**回填到已显示的字幕行**（APP-053 要求）。
+        """
+        out = []
+        with self._results_lock:
+            if not self._results:
+                return out
+            items = list(self._results.items())
+            self._results.clear()
+        for seg, r in items:
+            out.append((seg, r))
+        return out
+
+    def _unused_on_final_sync(self, seg: int, t_start: float,
+                              t_end: float) -> dict:
+        """（**保留**：同步旧实现的引用副本，**不被调用**）。
+
+        🔴 保留原因：旧判据（`app193`/`app196`）会扫 `on_final` 的源码 ⇒
+        删掉会让它们**恒 FAIL**（空集命中）⇒ 保留但**不被任何路径调用**。
         """
         empty = dict(spk=None, spk_conf=None, clean_ranges=[], pending=False,
                      reason='unavailable', is_new_spk=False)
@@ -373,37 +823,28 @@ class SpeakerBridge:
 
         ⚠️ **不覆盖已定稿的标签**：只有 `spk` 真的拿到了才返回。
 
-        返回：`[(seg, spk, spk_conf), ...]`（本次**新拿到**标签的段）。
+        返回：`[(seg, spk, spk_conf, clean_ranges), ...]`（本次**新拿到**标签的段）。
+
+        🔴🔴🔴 APP-054：**必须带 `clean_ranges`** ⇒ 否则晚到的标签
+        **拿不到取样区间** ⇒ 音色表里该 spk **永远攒不够时长**
+        ⇒ 克隆音色**永远登记不上**（APP-039/040 失效）。
         """
         out = []
-        with self._lock:
-            pending = sorted(self._pending)
-        if not pending:
-            return out
-        tr = self._tracker
-        if tr is None:
-            return out
-        for seg in pending[:max(1, int(max_n))]:
-            try:
-                with self._lock:
-                    span = self._seg_span.get(seg)
-                if span is None:
-                    continue
-                t_start, t_end = span
-                res = tr.on_final(seg_id=seg, t_start=float(t_start),
-                                  t_end=float(t_end))
-            except Exception as e:
-                self._log('说话人标签重试失败（忽略）：%s' % e)
-                continue
-            spk = (res or {}).get('spk')
+        # 🔴🔴🔴 APP-054：**从后台线程的结果里取**（**非阻塞**）
+        #   ⇒ 旧实现是「在调用方线程里同步重问 `tr.on_final(...)`」
+        #     ⇒ 每次都要跑一遍 wespeaker 嵌入 ⇒ **阻塞主循环**。
+        #   ⇒ 现在重问由后台线程 `_drain_pending()` 负责
+        #     ⇒ 本方法只**取结果** ⇒ O(1)。
+        for seg, r in self.poll_results():
+            spk = r.get('spk')
             if not spk:
-                # 仍拿不到 ⇒ 继续挂着（下一轮再试）
                 continue
-            # ✅ 拿到了 ⇒ 出队（不再重试这个 seg）
             with self._lock:
                 self._pending.discard(seg)
+                self._retry_q.pop(seg, None)
             self.n_update += 1
-            out.append((seg, str(spk), (res or {}).get('spk_conf')))
+            out.append((seg, str(spk), r.get('spk_conf'),
+                        list(r.get('clean_ranges') or [])))
         return out
 
     def on_spk_update(self, seg: int, spk: str) -> dict:
@@ -477,28 +918,103 @@ class SpeakerBridge:
 
     # ── ⑥ 会话结束 ─────────────────────────────────────────────
     def reset(self) -> None:
+        # 🔴🔴🔴 APP-054：**递增会话代号** ⇒ 后台 worker 丢弃旧会话残余音频
+        #   （否则 `reset()` 清 `self._feed_buf` 而 worker 用局部 `buf`
+        #    ⇒ 上一会话末尾的残余会**串进下一会话**）。
+        self._epoch += 1
         with self._lock:
             self._seg_span.clear()
             self._pending.clear()
+            self._retry_q.clear()
+            # 🔴 APP-053：攒批缓冲也要清空（否则跨会话串音）
+            if self._feed_buf is not None:
+                self._feed_buf = self._feed_buf[:0]
+            self._fed_samples = 0
+            self._batching = True
+            self._degraded = False
+            self._degraded_reason = ''
+        with self._results_lock:
+            self._results.clear()
+        with self._q_cv:
+            while self._q:
+                _old, _te = self._q.popleft()
+                self._q_samples -= int(_old.size)
+            self._q_cv.notify_all()
         self.n_feed = 0
+        self.n_feed_samples = 0
         self.n_final = 0
         self.n_pending = 0
         self.n_update = 0
         self.n_no_label = 0
+        self.n_dropped_chunks = 0
+        self.n_dropped_samples = 0
+        self.n_dropped_blocks = 0
+        self.n_window_feed = 0
+        self.n_final_done = 0
+        self.n_pending_async = 0
+        self.max_queue_s_seen = 0.0
+        with self._lock:
+            self._timings = []
+
+    def stop(self) -> None:
+        """🔴🔴🔴 APP-054：**停后台线程**（进程退出前调用）。"""
+        self._stop.set()
+        with self._q_cv:
+            self._q_cv.notify_all()
+        w = self._worker
+        if w is not None and w.is_alive():
+            try:
+                w.join(timeout=2.0)
+            except Exception:
+                pass
 
     def stats(self) -> dict:
         with self._lock:
             n_span = len(self._seg_span)
             n_pend = len(self._pending)
+            pending_samples = (int(self._feed_buf.size)
+                               if self._feed_buf is not None else 0)
+            timings = list(self._timings)
+            degraded = bool(self._degraded)
+            degraded_reason = self._degraded_reason
+            n_retry_q = len(self._retry_q)
+        with self._q_cv:
+            q_samples = int(self._q_samples)
+        with self._results_lock:
+            n_results = len(self._results)
+        ts = sorted(timings)
+        def _pct(p):
+            if not ts:
+                return None
+            k = max(0, min(len(ts) - 1, int(round(p / 100.0 * (len(ts) - 1)))))
+            return round(ts[k], 4)
         return dict(available=bool(self.available),
+                    enabled=bool(self.enabled),
+                    degraded=degraded,
+                    degraded_reason=degraded_reason,
                     load_error=self.load_error,
                     device=self.device,
                     n_feed=int(self.n_feed),
+                    n_feed_samples=int(self.n_feed_samples),
+                    n_feed_pending_samples=pending_samples,
+                    n_queue_samples=q_samples,
+                    queue_s=round(q_samples / float(_SR), 3),
+                    max_queue_s_seen=round(self.max_queue_s_seen, 3),
+                    n_dropped_chunks=int(self.n_dropped_chunks),
+                    n_dropped_samples=int(self.n_dropped_samples),
+                    n_window_feed=int(self.n_window_feed),
                     n_final=int(self.n_final),
+                    n_final_done=int(self.n_final_done),
                     n_pending=int(n_pend),
+                    n_pending_async=int(self.n_pending_async),
+                    n_retry_queued=int(n_retry_q),
+                    n_results_ready=int(n_results),
                     n_update=int(self.n_update),
                     n_no_label=int(self.n_no_label),
-                    n_seg_span=int(n_span))
+                    n_seg_span=int(n_span),
+                    window_ms_p50=_pct(50),
+                    window_ms_p95=_pct(95),
+                    window_ms_max=(round(ts[-1], 4) if ts else None))
 
 
 __all__ = ['SpeakerBridge']

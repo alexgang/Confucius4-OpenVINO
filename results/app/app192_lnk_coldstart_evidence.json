@@ -1,0 +1,182 @@
+{
+  "script": "app192_lnk_coldstart_gate.py",
+  "pkg_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+  "pkg_version": "1.13",
+  "lnk_path": "C:\\Users\\Trekker-PTL\\Desktop\\Confucius4 实时字幕 v1.13.lnk",
+  "desktop": "C:\\Users\\Trekker-PTL\\Desktop",
+  "checks": [
+    {
+      "name": "C1 v1_com_target_nonempty",
+      "ok": true,
+      "detail": "target='C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_v1.13\\\\Start_LiveCaption.bat' flags=0x000040df"
+    },
+    {
+      "name": "C1 v2_target_exists",
+      "ok": true,
+      "detail": "target='C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_v1.13\\\\Start_LiveCaption.bat' flags=0x000040df"
+    },
+    {
+      "name": "C1 v3_target_in_pkg",
+      "ok": true,
+      "detail": "target='C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_v1.13\\\\Start_LiveCaption.bat' flags=0x000040df"
+    },
+    {
+      "name": "C1 v4_linkflags_has_target",
+      "ok": true,
+      "detail": "target='C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_v1.13\\\\Start_LiveCaption.bat' flags=0x000040df"
+    },
+    {
+      "name": "C1 四道子判据全部通过",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "C2 反证① 手工拼字节的坏链（LinkFlags=0x20）必须判 FAIL",
+      "ok": true,
+      "detail": "checks={'v1_com_target_nonempty': False, 'v2_target_exists': False, 'v3_target_in_pkg': False, 'v4_linkflags_has_target': False}"
+    },
+    {
+      "name": "C2 反证② COM 生成但目标文件不存在 ⇒ 必须判 FAIL",
+      "ok": true,
+      "detail": "checks={'v1_com_target_nonempty': True, 'v2_target_exists': False, 'v3_target_in_pkg': True, 'v4_linkflags_has_target': True}"
+    },
+    {
+      "name": "C2 反证③ 指向包外的链 ⇒ 必须判 FAIL",
+      "ok": true,
+      "detail": "checks={'v1_com_target_nonempty': True, 'v2_target_exists': False, 'v3_target_in_pkg': False, 'v4_linkflags_has_target': True}"
+    },
+    {
+      "name": "C2 反证组全部成立（判据非恒真）",
+      "ok": true,
+      "detail": "3/3"
+    },
+    {
+      "name": "C4 lnk1 截图客户区内容密度 ≥ 0.050",
+      "ok": true,
+      "detail": "density=0.4143"
+    },
+    {
+      "name": "C4 lnk2 截图客户区内容密度 ≥ 0.050",
+      "ok": true,
+      "detail": "density=0.4171"
+    },
+    {
+      "name": "C3 从 .lnk 冷启动两次都成功",
+      "ok": true,
+      "detail": "n=2"
+    },
+    {
+      "name": "C3 从 .lnk 起的进程可执行文件在 v1.13 包内",
+      "ok": true,
+      "detail": "[{'pid': 14128, 'image': 'C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_v1.13\\\\python\\\\pythonw.exe'}, {'pid': 3104, 'image': 'C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_v1.13\\\\python\\\\pythonw.exe'}, {'pid': 14128, 'image': 'C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_v1.13\\\\python\\\\pythonw.exe'}, {'pid': 3104, 'image': 'C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_v1.13\\\\python\\\\pythonw."
+    }
+  ],
+  "coldstarts": [
+    {
+      "tag": "lnk1",
+      "window": "Confucius4-R2T2 实时字幕 · 多后端测试",
+      "shot": "C:\\Users\\Trekker-PTL\\shared\\app_lnk_coldstart\\app192_lnk1.png",
+      "density": 0.414301,
+      "wait_s": 5.0,
+      "cmdline": "",
+      "started": true,
+      "window_size": [
+        1096,
+        859
+      ],
+      "procs_in_pkg": [
+        {
+          "pid": 14128,
+          "image": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\python\\pythonw.exe"
+        },
+        {
+          "pid": 3104,
+          "image": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\python\\pythonw.exe"
+        }
+      ]
+    },
+    {
+      "tag": "lnk2",
+      "window": "Confucius4-R2T2 实时字幕 · 多后端测试",
+      "shot": "C:\\Users\\Trekker-PTL\\shared\\app_lnk_coldstart\\app192_lnk2.png",
+      "density": 0.417077,
+      "wait_s": 4.2,
+      "cmdline": "",
+      "started": true,
+      "window_size": [
+        1096,
+        859
+      ],
+      "procs_in_pkg": [
+        {
+          "pid": 14128,
+          "image": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\python\\pythonw.exe"
+        },
+        {
+          "pid": 3104,
+          "image": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\python\\pythonw.exe"
+        },
+        {
+          "pid": 24984,
+          "image": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\python\\pythonw.exe"
+        }
+      ]
+    }
+  ],
+  "discrimination": [
+    {
+      "case": "byte_lnk_bad_flags",
+      "ok": true,
+      "detail": {
+        "v1_com_target_nonempty": false,
+        "v2_target_exists": false,
+        "v3_target_in_pkg": false,
+        "v4_linkflags_has_target": false
+      },
+      "linkflags": 32
+    },
+    {
+      "case": "com_missing_target",
+      "ok": true,
+      "detail": {
+        "v1_com_target_nonempty": true,
+        "v2_target_exists": false,
+        "v3_target_in_pkg": true,
+        "v4_linkflags_has_target": true
+      }
+    },
+    {
+      "case": "com_target_outside_pkg",
+      "ok": true,
+      "detail": {
+        "v1_com_target_nonempty": true,
+        "v2_target_exists": false,
+        "v3_target_in_pkg": false,
+        "v4_linkflags_has_target": true
+      }
+    }
+  ],
+  "lnk_verify": {
+    "ok": true,
+    "checks": {
+      "v1_com_target_nonempty": true,
+      "v2_target_exists": true,
+      "v3_target_in_pkg": true,
+      "v4_linkflags_has_target": true
+    },
+    "com": {
+      "ok": true,
+      "target": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\Start_LiveCaption.bat",
+      "arguments": "",
+      "working_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+      "icon": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\python\\pythonw.exe,0"
+    },
+    "linkflags": 16607,
+    "reason": ""
+  },
+  "n_pass": 13,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "ts": "2026-11-01 14:13:49"
+}

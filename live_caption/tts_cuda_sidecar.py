@@ -5,7 +5,7 @@
 为什么要有它（而不是直接 import）：
   - 客户包的 python **没有 torch**（也不该塞进去：+4.2 GB 且与包内 transformers 冲突）；
   - CUDA 后端需要 `torch>=2.5.1(cu128)` + **`transformers==5.15.1`**（钉版，见 STATUS §40）；
-  - ⇒ 只能放在**独立 venv**（默认 `C:\\Users\\Trekker-PTL\\_fq3tts_env`），
+  - ⇒ 只能放在**独立 venv**（默认 `<HOME>\_fq3tts_env`；🔴【APP-052 ③】原文写的是开发机真实家目录 ⇒ 改为占位，避免随包泄漏开发机用户名），
     由 App 以**子进程**方式调用，模型只加载一次、常驻服务。
 
 协议（**长度前缀 + 二进制 PCM**，不用 base64 免得翻倍）：

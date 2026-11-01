@@ -554,7 +554,7 @@ def build_asr_options(devices):
         note = cfg.get('note', '')
         if cfg['kind'] == 'cuda':
             if not cuda_assets_ok:
-                note = (note + '；🔴 客户包**未随附** audio.cpp / GGUF 模型'
+                note = (note + '；🔴 客户包未随附 audio.cpp / GGUF 模型'
                                 '（不在包内）⇒ 需另行部署才能用')
             out.append(dict(id=f'{key}@CUDA',
                             label=f'NVIDIA GPU（CUDA） · {prec}',
@@ -719,7 +719,10 @@ def _tts_device_problem(dev: str, prec: Optional[str] = None) -> str:
     if up == 'CPU':
         return ''                        # CPU 是兜底，允许
     if device_config.is_cuda_device(dev) and not device_config.has_cuda_plugin():
-        return ('本机 OV 未安装 CUDA plugin ⇒ NVIDIA 独显上的 TTS 引擎'
+        # 🔴 APP-052 ②：面向客户的界面**不出现研发术语**
+        #   （reviewer 原话：「出现了 onednn 执行失败 / 本机 OV 未安装 CUDA plugin
+        #   这类研发术语」）⇒ 改成用户能据此行动的措辞。
+        return ('本机未安装 NVIDIA 显卡加速组件 ⇒ NVIDIA 独显上的语音合成引擎'
                 '无法加载（实测 7 个 IR 只有 3 个能编过，且 f32/f16 '
                 '失败完全相同 ⇒ 与精度无关）')
     try:
@@ -729,10 +732,12 @@ def _tts_device_problem(dev: str, prec: Optional[str] = None) -> str:
     if avail and dev not in avail:
         return f'本机没有该设备（当前可用：{", ".join(avail)}）'
     if _is_intel_gpu(dev) and (prec or '').lower().startswith('f16'):
-        return ('实测本机 Intel 集显 **f16** 合成失控：talker 跑满 512 帧 '
-                '⇒ 40.96 s 削波音频（peak 1.000），且 speaker embedding 的 '
-                'onednn 执行失败 ⇒ 会静默回退内置音色；'
-                '同一设备改用 **f32** 可正常合成')
+        # 🔴 APP-052 ②：去掉 markdown 星号（`**f16**` 原样显示在界面上）
+        #   + 去掉研发术语（onednn / talker / peak 1.000）。
+        return ('实测本机 Intel 集显用半精度（f16）合成会失控：'
+                '生成过程跑满 512 帧 ⇒ 40.96 s 削波音频（峰值 1.000），'
+                '且音色特征计算失败 ⇒ 会静默回退内置音色；'
+                '同一设备改用全精度（f32）可正常合成')
     return ''
 
 
@@ -819,13 +824,16 @@ def build_tts_options(devices):
                 slot['precs'].append(prec.upper())
                 continue
             if is_cuda:
-                note = 'CUDA 后端（OV CUDA plugin 已安装）'
+                note = 'CUDA 后端（NVIDIA 显卡加速组件已安装）'
             elif str(dev).upper() == 'NPU':
-                note = '✅ 实测可用（端到端合成 PASS，RTF≈1.16）⇒ **推荐**'
+                # 🔴 APP-052 ②：去掉 markdown 星号（原样显示 `**推荐**`）
+                note = '✅ 实测可用（端到端合成 PASS，RTF≈1.16）⇒ 推荐'
             else:
-                note = ('⚠️ 实测本机集显 f32 能合成、**也能播出声音**，但很慢'
+                # 🔴 APP-052 ②：去掉 markdown 星号（原样显示 `**也能播出声音**`
+                #   与 `**f16 会失控所以不在此列**`）
+                note = ('⚠️ 实测本机集显 f32 能合成、也能播出声音，但很慢'
                         '（首包 30 s 量级）⇒ 实时朗读不推荐；'
-                        '**f16 会失控所以不在此列**')
+                        '半精度（f16）会失控所以不在此列')
             label = f'{device_config.device_label(dev)} · {prec.upper()}'
             if is_cuda:
                 label = f'CUDA · {label}'
@@ -849,8 +857,8 @@ def build_tts_options(devices):
         out.insert(0, dict(
             id='CUDA@bf16', label='NVIDIA CUDA（PyTorch） · bf16',
             device='CUDA', precision='bf16', fixed=False,
-            note=('✅ 实测可用（PyTorch+CUDA，RTX 5050）：**流式首包 0.547 s** / RTF 0.892'
-                  '（比 NPU 快 12.7×）⇒ **最快**；'
+            note=('✅ 实测可用（PyTorch+CUDA，RTX 5050）：流式首包 0.547 s / RTF 0.892'
+                  '（比 NPU 快 12.7×）⇒ 最快；'
                   '⚠️ 走独立 venv（torch 不进客户包），首次加载 ~27 s')))
     return out
 
@@ -2060,6 +2068,14 @@ class App:
         import tkinter as tk
         from tkinter import ttk, scrolledtext
         self.tk, self.root, self.args = tk, root, args
+        # 🔴🔴🔴 APP-054：**说话人旁路开关**（**默认关闭**）
+        #   ⇒ v1.13 的阻断级回归：旁路**默认开着**且**同步阻塞 ASR 主循环**
+        #     ⇒ 实测墙钟 838.5 s / 300 s 音频（最大积压 195.1 s）。
+        #   ⇒ 默认关闭 ⇒ 字幕/语音行为与 **v1.12 逐字一致**（v1.12 无旁路）。
+        #   ⇒ GUI 可勾「说话人识别」；CLI 用 `--speaker on`。
+        #   ⚠️ `--speaker` **不存在**时（老调用方）⇒ 也保持**关闭**（fail-safe）。
+        _spk_arg = str(getattr(args, 'speaker', 'off') or 'off').strip().lower()
+        self._speaker_enabled = (_spk_arg == 'on')
         self.engine = None
         self.engine_key = None
         self.session = None
@@ -2088,8 +2104,13 @@ class App:
         #   ⇒ **本模块不做任何声纹计算**（只转交 spk 与 clean_ranges）。
         #   ⚠️ **降级友好**：ASR 模块不在 ⇒ `available=False`
         #     ⇒ 字幕无说话人标签 ⇒ **行为与改造前逐字一致**。
+        # 🔴🔴🔴 APP-054：**旁路默认关闭**（v1.13 的阻断级回归止血）
+        #   ⇒ 用户实测：旁路同步阻塞 ASR 主循环 ⇒ 墙钟 838.5 s / 300 s 音频
+        #     ⇒ `enabled=False` ⇒ 字幕/语音行为与 **v1.12 逐字一致**。
+        #   ⇒ 用户可在 GUI 勾「说话人识别」或 CLI `--speaker on` 打开。
         self._spk_bridge = speaker_tracker.SpeakerBridge(
-            on_log=lambda m: self._ui_log(f'[spk] {m}'))
+            on_log=lambda m: self._ui_log(f'[spk] {m}'),
+            enabled=bool(self._speaker_enabled))
         # 🔴 APP-047：已见过的「本段无标签」reason（**只记一次每种**）
         #   ⇒ 新增 reason（如 'embed_shape_out_of_range'）必被记进日志，
         #   但**不刷屏**。
@@ -2109,6 +2130,12 @@ class App:
         # 🔴 APP-039/040：**主进程侧**的「每段时间区间」（App 自己的切段口径）
         #   ⇒ 交给 ASR 旁路做说话人判定。
         self._seg_span = {}
+        # 🔴🔴🔴 APP-053：**上一段的结束时刻**（全局时间轴）
+        #   ⇒ App 的断句是**连续**的 ⇒ 段自身区间 = [上一段末, 本段末]
+        #   ⇒ 用它替代「只往前借 2.5 s」⇒ 离线复算打标率 89.13% → **95.65%**
+        #   （= ASR 真值，见 `results/app/app193_app053_spk_frame_audit.json`）。
+        #   ⚠️ 初始值 `None` ⇒ 第一段走借用口径（**不猜**）。
+        self._spk_prev_seg_end = None
         # 🔴🔴🔴 APP-039/040：**等待提 x-vector 的新 spk**（队列）
         #   ⇒ 只有 `is_new_spk=True` 的说话人才进这里 ⇒ **声纹计算次数极少**
         #     （APP-039「没有新 spk 时不做任何声纹计算」）。
@@ -2491,6 +2518,16 @@ class App:
         cb_show_spk = ttk.Checkbutton(
             row_tts, text='显示说话人', variable=self.var_show_spk)
         cb_show_spk.pack(side='left', padx=(0, 8))
+        # 🔴🔴🔴 APP-054：**说话人识别开关**（**默认关闭**）
+        #   ⇒ v1.13 的阻断级回归：旁路**默认开着**且**同步阻塞 ASR 主循环**
+        #     ⇒ 用户实测：墙钟 838.5 s / 300 s 音频（最大积压 195.1 s）。
+        #   ⇒ 现在旁路**默认关闭** ⇒ 字幕/语音行为与 **v1.12 逐字一致**。
+        #   ⇒ 用户要「字幕显示不同说话人」时**手动勾选**。
+        #   ⚠️ 勾选**只影响后续会话**（旁路线程在会话开始时建立）。
+        self.var_speaker = tk.BooleanVar(value=bool(self._speaker_enabled))
+        cb_speaker = ttk.Checkbutton(
+            row_tts, text='说话人识别', variable=self.var_speaker)
+        cb_speaker.pack(side='left', padx=(0, 8))
         ttk.Label(row_tts, text='输出设备').pack(side='left', padx=(0, 4))
         # 复用 App 已有的输出设备列表（MME/WASAPI）—— C-101 P4 第 4 条
         self.var_tts_out = tk.StringVar(
@@ -2533,6 +2570,9 @@ class App:
         self._session_wall0 = None
         self._offline_dlg = None             # 离线朗读对话框（Toplevel）
         self.var_tts_note = tk.StringVar(value='')
+        # 🔴 APP-052 ②：离线朗读入口的**独立**说明行（不与设备说明重复）
+        self.var_tts_note2 = tk.StringVar(
+            value='离线朗读：上传音频文件或输入文本，直接播报（不经过识别与翻译）')
 
         # 🔴 **耳机提示**（APP-014：TTS 转正式功能 ⇒ 默认开启）
         #    TTS 从**系统输出设备**播放，而 ASR 可能采**系统回环**⇒
@@ -2559,9 +2599,19 @@ class App:
             row_tts2, text='📖 离线朗读…', width=14,
             command=self._open_offline_reader)
         self.btn_offline.pack(side='left', padx=(0, 8))
+        # 🔴🔴🔴 **APP-052 ②：这里原来绑的是 `var_tts_note`**
+        #   ⇒ 与上面 `_lbl_tts_note` **同一个变量**
+        #   ⇒ 同一段「设备 · 精度 · ⚠️ 设备说明」在界面上**显示了两遍**
+        #   （reviewer 原话：「同一段设备说明重复出现两次」，
+        #    1280×720 截图里可见两段几乎一样的长文本）。
+        #   ⇒ **修法**：这一行显示**离线朗读的用途说明**（本来就要一行引导），
+        #     用**独立变量** ⇒ 与设备说明不再重复。
+        #   ⚠️ 保留 `_lbl_tts_note2` 这个属性名（既有验收脚本可能引用）。
+        self.var_tts_note2 = tk.StringVar(value='')
         self._lbl_tts_note2 = self._bind_wrap(
-            ttk.Label(row_tts2, textvariable=self.var_tts_note, foreground='#555'),
-            row_tts2, self.var_tts_note)
+            ttk.Label(row_tts2, textvariable=self.var_tts_note2,
+                      foreground='#555'),
+            row_tts2, self.var_tts_note2)
 
         # ⚠️ height=10（行）：**这是状态栏可见的关键**。
         #    ScrolledText 默认请求高度 718 px（24 行），在 1080x700 窗口里
@@ -3045,6 +3095,21 @@ class App:
             messagebox.showerror('音频源错误', f'{type(e).__name__}: {e}')
             self.var_status.set('音频源错误')
             return
+        # 🔴🔴🔴 APP-054：**会话开始前读「说话人识别」勾选框**。
+        #   ⇒ 旧实现只在 `__init__` 里建了 `var_speaker`，**从不被读**
+        #     ⇒ 用户勾了/取消勾选**完全没有效果**（APP-041 同类缺陷：
+        #     「默认勾选」≠「初始化过」）。
+        #   ⇒ 勾选框**只影响本会话**（旁路线程在会话开始时建立）。
+        try:
+            _want_spk = bool(self.var_speaker.get())
+        except Exception:
+            _want_spk = bool(self._speaker_enabled)
+        if _want_spk != bool(self._speaker_enabled):
+            self._speaker_enabled = _want_spk
+            try:
+                self._spk_bridge.enabled = bool(_want_spk)
+            except Exception:
+                pass
         self.session = Session(self.engine, src, on_final=self._on_final,
                                on_audio=self._collect_clone_pcm,
                                # 🔴🔴🔴 APP-039/040：**喂说话人旁路**
@@ -3568,7 +3633,7 @@ class App:
             self.var_tts_note.set(
                 '🔊 已播放 1 秒测试音（440 Hz）到所选输出设备 —— '
                 '请确认是否听到（听到=播放链路正常）。'
-                '此测试**不依赖 TTS worker**。')
+                '此测试不依赖 TTS worker。')
             self.var_status.set('测试音已播放（不依赖 TTS worker）')
             self._ui_log('[tts] 测试声音：本进程直接播放成功（%s）；'
                          '已读 +%s / 目标 %s / 回调 +%s'
@@ -4032,13 +4097,15 @@ class App:
             return
         if not got:
             return
-        for seg, spk, spk_conf in got:
+        for seg, spk, spk_conf, clean_ranges in got:
             try:
                 self._spk_by_seg[seg] = (spk, spk_conf)
                 self._spk_table.setdefault(spk, {'conf': spk_conf,
                                                 'vec': None})
                 # 🔴 按句绑定：重新登记（含 clean_ranges）⇒ 音色表更新
-                self._spk_voices.note_final(seg, spk, None)
+                # 🔴🔴🔴 APP-054：**必须带 clean_ranges** ⇒ 否则晚到的标签
+                #   拿不到取样区间 ⇒ 该 spk 永远攒不够时长 ⇒ 克隆音色登记不上。
+                self._spk_voices.note_final(seg, spk, clean_ranges)
                 self._ui_log('[spk] 标签补到：第 %d 段 = %s' % (seg, spk))
             except Exception as e:
                 self._ui_log('[spk] 标签补发处理异常（忽略）：%s' % e)
@@ -4074,8 +4141,14 @@ class App:
                 #   ⇒ **长度恒为 0** ⇒ 必然拿不到 spk。
                 #   ⇒ 修法：用 `span_for_final()` **往前借**到 ≥ 2.5 s
                 #   （借的是「同一个人在说话」的那段之前的内容）。
-                _t0, _t1 = speaker_tracker.span_for_final(
-                    float(self._seg_audio_end))
+                # 🔴🔴🔴 APP-053：**优先用「段自身区间」**（起点 = 上一段末）
+                #   ⇒ 离线复算打标率 89.13% → **95.65%**（= ASR 真值）。
+                #   ⚠️ 借用口径仍是**兜底**（第一段 / 上一段未知 / 区间太短）。
+                _t0, _t1 = speaker_tracker.span_for_segment(
+                    float(self._seg_audio_end),
+                    prev_end=self._spk_prev_seg_end)
+                # 🔴 记下本段末（供**下一段**当起点）
+                self._spk_prev_seg_end = float(self._seg_audio_end)
                 self._seg_span[seg] = (_t0, _t1)
                 _res = self._spk_bridge.on_final(seg, _t0, _t1)
                 _spk2 = _res.get('spk')
@@ -4136,6 +4209,8 @@ class App:
         #   （隐私纪律：x-vector 只在内存里 ⇒ 必须在这里丢弃）
         self._spk_table.clear()
         self._spk_by_seg.clear()
+        # 🔴🔴🔴 APP-053：清掉「上一段末」（新会话不能继承上一会话的起点）
+        self._spk_prev_seg_end = None
         # 🔴🔴🔴 APP-039/040：**清空说话人音色表**（隐私纪律）
         #   ⇒ 主进程侧（PCM + 绑定表）+ worker 侧（x-vector）**两边都清**
         #   ⇒ **绝不落盘** ⇒ 会话结束就没有声纹残留。
@@ -5204,6 +5279,14 @@ def run_cli(args):
     #   `mt`（默认）= 朗读定稿译文（现有行为，逐字不变）；
     #   `asr`        = **直接朗读 ASR 原文**，**不经过 MT**。
     _tts_source = (getattr(args, 'tts_source', None) or 'mt')
+    # 🔴🔴🔴 APP-054：**说话人旁路开关**（**默认关闭**）
+    #   ⇒ v1.13 的阻断级回归：旁路**默认开着**且**同步阻塞 ASR 主循环**
+    #     ⇒ reviewer A/B 实测：墙钟 838.5 s / 300 s 音频（积压 195.1 s）。
+    #   ⇒ 现在**默认关闭** ⇒ 字幕/语音行为与 **v1.12 逐字一致**。
+    #   ⇒ 要「字幕显示不同说话人」时显式 `--speaker on`。
+    #   ⚠️ `--speaker` 不存在（老调用方）⇒ 保持**关闭**（fail-safe）。
+    _spk_enabled = (str(getattr(args, 'speaker', 'off') or 'off')
+                    .strip().lower() == 'on')
     eng = make_engine(args.engine, on_log=lambda m: print(m, flush=True),
                       force_language=asr_lang, device=args.asr_device)
     print(f'[{args.engine}] 加载 {eng.load_s:.1f} s，设备 {eng.device_desc}，'
@@ -5218,7 +5301,7 @@ def run_cli(args):
                             draft=_init_draft_flag(args),
                             on_log=lambda m: print(f'  [翻译] {m}', flush=True))
     if _tts_source == 'asr':
-        print('[TTS] 取料来源 = **ASR 原文**（不经过 MT ⇒ MT 模型不加载）',
+        print('[TTS] 取料来源 = ASR 原文（不经过 MT ⇒ MT 模型不加载）',
               flush=True)
     # ── TTS（C-101 P4 第 5 条：加载顺序 ASR → MT → TTS）──
     #    TTS 加载失败**不能影响字幕和翻译** ⇒ 整段 try/except。
@@ -5284,7 +5367,10 @@ def run_cli(args):
     #   ⚠️ **与 GUI 同一份实现**（`speaker_tracker` / `speaker_voice`）
     #     ⇒ 避免逻辑漂移 ⇒ 假证据。
     _spk_bridge = speaker_tracker.SpeakerBridge(
-        on_log=lambda m: print(f'  [spk] {m}', flush=True))
+        on_log=lambda m: print(f'  [spk] {m}', flush=True),
+        # 🔴🔴🔴 APP-054：**默认关闭**（v1.13 阻断级回归止血）
+        #   ⇒ `--speaker on` 才开；默认行为与 **v1.12 逐字一致**。
+        enabled=bool(_spk_enabled))
     _spk_voices = speaker_voice.SpeakerVoiceTable(
         on_event=lambda k, p: print(f'  [spk] {k} {p}', flush=True))
     _spk_pcm_buf = np.zeros(0, dtype=np.float32)
@@ -5302,6 +5388,9 @@ def run_cli(args):
     #   ⇒ 元素为 `(spk, refined)`；收到 worker 回执才 `mark_embedded`。
     _spk_voice_sent = set()
     _spk_audio_end = [0.0]          # [0] = 已消费秒数（闭包内可变）
+    # 🔴🔴🔴 APP-053：**上一段的结束时刻**（CLI 版）
+    #   ⇒ 段自身区间 = [上一段末, 本段末] ⇒ 打标率 89.13% → 95.65%
+    _spk_prev_seg_end = [None]      # [0] = 上一段末（闭包内可变；None = 未知）
 
     def _cli_on_audio_span(pcm, t_start, t_end):
         """🔴 APP-039/040：喂 ASR 旁路 + 维护 PCM 环形缓冲（有界 30 s）。"""
@@ -5420,10 +5509,11 @@ def run_cli(args):
             got = _spk_bridge.retry_pending()
         except Exception:
             return
-        for seg, spk, spk_conf in got or []:
+        for seg, spk, spk_conf, clean_ranges in got or []:
             try:
                 _spk_by_seg[seg] = (spk, spk_conf)
-                _spk_voices.note_final(seg, spk, None)
+                # 🔴🔴🔴 APP-054：**必须带 clean_ranges**（同 GUI 侧口径）
+                _spk_voices.note_final(seg, spk, clean_ranges)
                 print(f'  [spk] 标签补到：第 {seg} 段 = {spk}', flush=True)
             except Exception as e:
                 print(f'  [spk] 标签补发处理异常（忽略）：{e}', flush=True)
@@ -5477,8 +5567,11 @@ def run_cli(args):
             # 🔴🔴🔴 §99（断链 A）：CLI 侧同样要**往前借**。
             #   旧实现传的是 `_spk_audio_end[0]` **两次** ⇒ 区间长度恒 0
             #   ⇒ ASR 侧 `dur=0 < min_dur_s(2.0)` ⇒ **永远拿不到 spk**。
-            _t0, _t1 = speaker_tracker.span_for_final(
-                float(_spk_audio_end[0]))
+            _t0, _t1 = speaker_tracker.span_for_segment(
+                float(_spk_audio_end[0]),
+                prev_end=_spk_prev_seg_end[0])
+            # 🔴 记下本段末（供**下一段**当起点）
+            _spk_prev_seg_end[0] = float(_spk_audio_end[0])
             _res = _spk_bridge.on_final(_seg, _t0, _t1)
             _spk2 = _res.get('spk')
             # 🔴🔴🔴 APP-047：「本段无标签」**要可观测**（不静默）。
@@ -5633,6 +5726,17 @@ def run_cli(args):
               f'P95 {f(sm["lat_p95"])} ms  TTFT {f(sm["ttft_med"])} ms  '
               f'{f(sm["tok_s"])} tok/s', flush=True)
     if args.out:
+        # 🔴🔴🔴 APP-054：**写最终字幕文件前，先让旁路把队列跑完**
+        #   ⇒ 晚到的标签**必须**进最终文件（APP-053 的验收项）。
+        #   ⚠️ **有上限**（`flush` 自带 timeout）⇒ 旁路卡住也不拖住退出。
+        try:
+            if _spk_enabled:
+                _n = _spk_bridge.flush(timeout=30.0)
+                if _n:
+                    print(f'  [spk] 收尾结算 {int(_n)} 段', flush=True)
+                _cli_retry_spk_labels()
+        except Exception as e:
+            print(f'  [spk] 收尾 flush 异常（忽略）：{e}', flush=True)
         # 输出目录可能还没建：--out 指向的父目录不存在时直接崩掉会丢掉前面所有结果
         _outdir = os.path.dirname(os.path.abspath(args.out))
         if _outdir:
@@ -5758,6 +5862,8 @@ def run_cli(args):
             try:
                 _spk_voices.reset()
                 _spk_bridge.reset()
+                # 🔴🔴🔴 APP-053：清掉「上一段末」（新会话不能继承）
+                _spk_prev_seg_end[0] = None
             except Exception:
                 pass
             try:
@@ -6030,9 +6136,9 @@ def run_check():
               f'Intel 集显可用。')
     else:
         if not has_gpu:
-            print('  结论：**未检测到 Intel 集显**，Intel 后端无法运行。')
+            print('  结论：未检测到 Intel 集显，Intel 后端无法运行。')
         if not ok_backends:
-            print('  结论：**模型文件不完整**，请确认包已完整解压。')
+            print('  结论：模型文件不完整，请确认包已完整解压。')
     print('=' * 68)
 
 
@@ -6050,6 +6156,13 @@ def main():
     ap.add_argument('--speed', type=float, default=1.0,
                     help='文件回放速度（1.0=实时，>1 更快，0=全速跑批）')
     ap.add_argument('--loop', action='store_true', help='文件播完后从头循环播放')
+    # 🔴🔴🔴 APP-054：**说话人旁路开关**（**默认 off**）
+    #   ⇒ v1.13 的阻断级回归：旁路**默认开着**且**同步阻塞 ASR 主循环**
+    #     ⇒ 实测墙钟 838.5 s / 300 s 音频（最大积压 195.1 s）。
+    #   ⇒ 现在默认 **off** ⇒ 字幕/语音行为与 **v1.12 逐字一致**。
+    ap.add_argument('--speaker', choices=['off', 'on'], default='off',
+                    help='说话人识别旁路（默认 off；on = 字幕显示说话人标签，'
+                         '需额外的 pyannote/wespeaker 推理开销）')
     ap.add_argument('--cli', action='store_true')
     ap.add_argument('--max-seconds', type=float, default=0.0)
     ap.add_argument('--out', default=None, help='CLI 模式：把定稿文本写到文件')
@@ -6089,7 +6202,7 @@ def main():
     #       「用户没给」与「用户显式给了 --tts off」
     #       ⇒ GUI 初值按「没给 ⇒ 开启」，显式 off 则仍按 off。
     ap.add_argument('--tts', choices=['off', 'on'], default=None,
-                    help='译文语音输出开关。**默认 on**（TTS 已是正式功能）；'
+                    help='译文语音输出开关。默认 on（TTS 已是正式功能）；'
                          '显式 --tts off 可关闭。'
                          '⚠️ 请佩戴耳机，避免 TTS 声音被 ASR 回采造成回授')
     ap.add_argument('--tts-precision', default='f32', choices=['f32', 'f16'],
@@ -6098,10 +6211,10 @@ def main():
                     help='音色：预设 A（客户包只随包分发音色 A；'
                          '音色 B / 克隆说话人素材按 BRIEF 不进包）；'
                          'follow_speaker = 跟随说话人（克隆·实验）—— '
-                         '🔴🔴 APP-027 V3（§84）：**已真正启用**'
+                         '🔴🔴 APP-027 V3（§84）：已真正启用'
                          '（CLI 与 GUI 共用 `clone_collector`）⇒ '
-                         '**CLI 也能开**（V3 实测用）；'
-                         '🔴🔴 APP-039：标注为**实验性**——当前实现是'
+                         'CLI 也能开（V3 实测用）；'
+                         '🔴🔴 APP-039：标注为实验性——当前实现是'
                          '「滑动窗口 + 每 30 s 重算」，音色切换会滞后 >10 s'
                          '且换人时表现为渐变；正确设计（按句绑定 spk、'
                          '检测到换人才取样）需等 ASR 说话人旁路接口')
@@ -6111,26 +6224,26 @@ def main():
     ap.add_argument('--tts-out-device', default=None,
                     help='TTS 播放输出设备（名称或索引；默认系统默认输出）')
     ap.add_argument('--tts-dump-dir', default=None,
-                    help='🔴 APP-021⑥：**逐句** wav 落盘目录（每段一个 wav）。'
+                    help='🔴 APP-021⑥：逐句 wav 落盘目录（每段一个 wav）。'
                          '不给 = 不落盘。供 reviewer 算峰值/RMS 与回转写'
                          '（与 `--tts-out` 的「整段混音时间轴」是两个独立功能，'
                          '可以同时开）')
     ap.add_argument('--tts-jsonl', default=None,
-                    help='🔴 APP-027 V1/V2 验收：**逐句遥测** JSONL 落盘路径。'
-                         '⚠️ `--tts-out` 只在**落盘模式**下写 JSONL'
-                         '（该模式**不播放** ⇒ 欠载/积压字段无意义）；'
-                         '要测**真实播放**的欠载/积压/语音滞后，'
-                         '**必须**用这个开关（可与 `--tts-out` 互斥使用）')
+                    help='🔴 APP-027 V1/V2 验收：逐句遥测 JSONL 落盘路径。'
+                         '⚠️ `--tts-out` 只在落盘模式下写 JSONL'
+                         '（该模式不播放 ⇒ 欠载/积压字段无意义）；'
+                         '要测真实播放的欠载/积压/语音滞后，'
+                         '必须用这个开关（可与 `--tts-out` 互斥使用）')
     ap.add_argument('--tts-source', choices=['mt', 'asr'], default='mt',
-                    help='🔴🔴🔴 **APP-027「争用定量」四臂对照**所需的最小开关。'
-                         '`mt`（默认）= 朗读**定稿译文**（现有行为）；'
-                         '`asr` = **直接朗读 ASR 原文**，**完全不经过 MT**。'
-                         '⚠️ 为什么需要：TTS 原本**只订阅 MT 输出** ⇒ '
+                    help='🔴🔴🔴 APP-027「争用定量」四臂对照所需的最小开关。'
+                         '`mt`（默认）= 朗读定稿译文（现有行为）；'
+                         '`asr` = 直接朗读 ASR 原文，完全不经过 MT。'
+                         '⚠️ 为什么需要：TTS 原本只订阅 MT 输出 ⇒ '
                          '`--translate off` 时 TTS 一句都收不到 '
                          '（translator.active=False ⇒ 无 final 事件）'
-                         '⇒ 「TTS 单独」与「+ASR（无 MT）」两臂**在本 CLI 下无法实现**'
-                         '⇒ 四臂对照（reviewer 明文）**整个失效**。'
-                         '⚠️ `asr` 模式下**不加载 MT 模型**（省 GPU/NPU 占用）'
+                         '⇒ 「TTS 单独」与「+ASR（无 MT）」两臂在本 CLI 下无法实现'
+                         '⇒ 四臂对照（reviewer 明文）整个失效。'
+                         '⚠️ `asr` 模式下不加载 MT 模型（省 GPU/NPU 占用）'
                          '⇒ 该臂测的才是「只有 ASR + TTS」的争用。')
 
     # ── 推理设备（APP-004 第 3 条）──

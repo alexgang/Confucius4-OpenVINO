@@ -129,8 +129,26 @@ import pkg_paths as _pkg_paths  # noqa: E402  §48 单一数据源
 #: 家目录占位符（**不是**运行机器的家目录 ⇒ 判据与机器无关）
 HOME_TOKEN = '«HOME»'
 
+#: 🔴🔴🔴 **APP-052 ③：`<HOME>` 占位符**（脱敏用，不是运行机器的家目录）
+#:
+#:   客户包里把「写死的开发机家目录」换成 `<HOME>` 占位，
+#:   以免**随包泄漏开发机用户名**。
+#:   ⇒ 语义上与「expanduser 派生」等价（客户机上指向自己的家目录）。
+#:
+#:   ⚠️ **必须能区分两种写法**：
+#:     - `<HOME>\qwen3asr_06b`  —— **Windows 反斜杠**（包内实际形态）
+#:     - `<HOME>/qwen3asr_06b`   —— **正斜杠**（docstring 里的示意形态）
+#:   ⇒ 解析时**先把分隔符统一成 `/`**。
+HOME_PLACEHOLDER = '<HOME>'
+
 #: 良性类别（⇒ 不阻断）
-BENIGN = ('identical', 'home_path_rewrite')
+BENIGN = ('identical', 'home_path_rewrite', 'home_placeholder')
+
+#: 🔴🔴🔴 **补丁 5-fix5：白名单放行类别**
+#:   ⇒ 它**不属于** BENIGN（语义不同：BENIGN = 「改动本身无害」；
+#:     waived = 「改动本身有实质，但 reviewer 已显式承认」）
+#:   ⇒ 证据里**分开统计** ⇒ reviewer 能一眼看出哪些是靠白名单放行的。
+WAIVED = 'waived'
 
 PASS = 0
 FAIL = 0
@@ -162,6 +180,24 @@ def _is_abs_path(s: str) -> bool:
     return bool(re.match(r'^[A-Za-z]:/', n)) or n.startswith('//')
 
 
+def _split_placeholder(s: str):
+    """`<HOME>\tail` / `<HOME>/tail` ⇒ 尾部组件列表（不认 ⇒ None）。
+
+    🔴 **尾部至少 1 段**才算「家目录之后的相对部分」
+    （与 `_split_abs` 的口径**一致** ⇒ 两边可比）。
+    """
+    n = _norm_sep(s).rstrip('/')
+    if not n.startswith(HOME_PLACEHOLDER):
+        return None
+    rest = n[len(HOME_PLACEHOLDER):].lstrip('/')
+    if not rest:
+        return None
+    parts = [p for p in rest.split('/') if p]
+    if not parts:
+        return None
+    return parts
+
+
 def _split_abs(s: str):
     """绝对路径字面量 ⇒ (家目录前缀, 尾部组件列表)。
 
@@ -191,6 +227,73 @@ def _split_abs(s: str):
     if not tail:
         return None, []
     return home_prefix, tail
+
+
+# 🔴🔴🔴🔴 **补丁 5a（APP-052 ②）：从 docstring 原文里抽家目录路径**
+#
+#   **为什么必须有这个**（本轮实测 `_probe_tails2.py` 抓到的真缺口）：
+#     APP-052 ③ 要求改的 `speaker_assets.py` 那 3 行
+#     （`WORK = r'C:\Users\Trekker-PTL\qwen3asr_06b'` 等）
+#     **写在模块 docstring 内部** ⇒ `ast.parse` 只把它当作**一个** Constant
+#     ⇒ `_split_abs(整篇 docstring)` 按 `/` 拆 ⇒ **拆不出尾部**
+#     ⇒ `_collect_tails` 漏收 ⇒ 规范化不生效 ⇒ **误判 `other`**
+#     ⇒ 即「reviewer 要求的改动被当成危险改动」⇒ **闸门恒 FAIL**。
+#
+#   **口径**：docstring 原文里出现「绝对路径形态」或「`<HOME>` 占位形态」的
+#     **片段**，逐个抽出其「尾部」⇒ 与 `_split_abs` / `_split_placeholder`
+#     **同口径** ⇒ 两侧可规范化到同一形态。
+#
+#   ⚠️ **只抽「家目录前缀 + 至少 1 段尾部」** ⇒ 避免把普通 URL /
+#      普通文本误当成家目录路径。
+#   ⚠️ **必须用 docstring 的 `repr` 原文**（而不是 `ast.get_docstring`
+#      的清洗结果）⇒ 保留原始反斜杠形态。
+
+# 🔴🔴🔴 **补丁 5-fix4（缺口 A）：字符类**排除 CJK 标点与全角字符**
+#   ⇒ 否则「`C:\Users\X\_env`，（中文逗号）」会把标点吃进尾部
+#   ⇒ 尾部**不再唯一标识一个路径** ⇒ 配对可能错配。
+#   （实测本轮 tails 里出现过 "_fq3tts_env`），" 这种脏尾部）
+_CJK_PUNCT = '　-〿＀-￯'
+# 🔴🔴🔴 **补丁 9（缺口 1）：分隔符支持「双反斜杠」**
+#   ⇒ Python 源码里 docstring 内的路径写作 `C:\\Users\\...`（**双反斜杠**转义）
+#   ⇒ 旧的 `[\\/]`（单个）**匹配失败** ⇒ 修前侧完全不被识别
+#   ⇒ 两侧无法配对 ⇒ 误判 `other`。
+#   ⇒ 现在用 `(?:\\\\|\\|/)+` ⇒ 单/双反斜杠、正斜杠**三种形态都能匹配**。
+_SEP = r'(?:\\\\|\\|/)+'
+_HOME_LITERAL_RE = re.compile(
+    r'[A-Za-z]:' + _SEP + r'Users' + _SEP +
+    r'[^\\/\s\'"\n' + _CJK_PUNCT + r']+'
+    r'(?:' + _SEP + r'[^\s\'"\n' + _CJK_PUNCT + r']*)*')
+_HOME_PLACEHOLDER_RE = re.compile(
+    r'<HOME>(?:' + _SEP + r'[^\s\'"\n' + _CJK_PUNCT + r']*)*')
+
+
+def _docstring_paths(tree):
+    """docstring 原文里的家目录路径片段 ⇒ 尾部集合。
+
+    🔴 返回值是**尾部列表**的集合（与 `_collect_tails` 同口径）。
+    """
+    tails = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Module, ast.FunctionDef,
+                                 ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        try:
+            doc = ast.get_docstring(node, clean=False)
+        except Exception:
+            doc = None
+        if not doc:
+            continue
+        for m in _HOME_LITERAL_RE.finditer(doc):
+            s = m.group(0)
+            _pfx, tl = _split_abs(s)
+            if tl:
+                tails.add('/'.join(tl))
+        for m in _HOME_PLACEHOLDER_RE.finditer(doc):
+            s = m.group(0)
+            ph = _split_placeholder(s)
+            if ph:
+                tails.add('/'.join(ph))
+    return tails
 
 
 def _expanduser_join_tail(node):
@@ -258,20 +361,36 @@ class _Canon(ast.NodeTransformer):
         return node
 
     def visit_Constant(self, node):
-        if isinstance(node.value, str) and _is_abs_path(node.value):
-            prefix, tail = _split_abs(node.value)
-            if prefix is not None:
-                tail_s = '/'.join(tail)
+        if isinstance(node.value, str):
+            # 🔴🔴🔴 **APP-052 ③：`<HOME>` 占位符 ⇒ 规范成 `«HOME»/tail`**
+            #   ⇒ 这样「写死家目录」↔「`<HOME>` 占位」↔「expanduser 派生」
+            #     **三者规范化后完全相同** ⇒ 判为良性。
+            #   ⚠️ **尾部必须在 `self.tails` 里**（两侧并集）
+            #     ⇒ 否则 `<HOME>\全新路径` 不会被规范化 ⇒ 判 `other`（正确）。
+            ph = _split_placeholder(node.value)
+            if ph is not None:
+                tail_s = '/'.join(ph)
                 if tail_s in self.tails:
-                    self.prefixes.add(prefix)
+                    self.prefixes.add(HOME_PLACEHOLDER)
                     self.n_replaced += 1
                     return ast.copy_location(
                         ast.Constant(value='%s/%s' % (HOME_TOKEN, tail_s)), node)
+                # 尾部不在 tails ⇒ **不规范化**（保持原样 ⇒ 两侧不等 ⇒ other）
+                return node
+            if _is_abs_path(node.value):
+                prefix, tail = _split_abs(node.value)
+                if prefix is not None:
+                    tail_s = '/'.join(tail)
+                    if tail_s in self.tails:
+                        self.prefixes.add(prefix)
+                        self.n_replaced += 1
+                        return ast.copy_location(
+                            ast.Constant(value='%s/%s' % (HOME_TOKEN, tail_s)), node)
         return node
 
 
 def _collect_tails(tree):
-    """源码里所有 `expanduser('~')` 派生路径的尾部集合。"""
+    """源码里所有 `expanduser('~')` 派生路径 **＋ `<HOME>` 占位符路径** 的尾部集合。"""
     tails = set()
 
     class _T(ast.NodeTransformer):
@@ -282,7 +401,34 @@ def _collect_tails(tree):
                 tails.add('/'.join(comps))
             return node
 
+        def visit_Constant(self, node):
+            # 🔴🔴🔴 **APP-052 ③**：`<HOME>` 占位符路径的尾部
+            #   ⇒ 与 expanduser 派生**同口径** ⇒ 两侧能规范化到同一形态。
+            if isinstance(node.value, str):
+                ph = _split_placeholder(node.value)
+                if ph:
+                    tails.add('/'.join(ph))
+                # 🔴🔴🔴 **补丁 2a（真根因修复）**：**写死家目录路径的尾部**
+                #   **也必须进 `tails`**。
+                #   ⇒ 否则「修前是写死路径、修后是 `<HOME>` 占位」时
+                #      写死路径**不被规范化**（尾部不在 tails）
+                #      ⇒ 两侧 dump 不等 ⇒ **误判 other**。
+                #   ⇒ 加上这一条 ⇒ **写死 / 占位 / expanduser 派生**
+                #     三种写法**互相可比**（规范化后完全相同）。
+                if _is_abs_path(node.value):
+                    _pfx, tl = _split_abs(node.value)
+                    if tl:
+                        tails.add('/'.join(tl))
+            return node
+
     _T().visit(tree)
+    # 🔴🔴🔴 **补丁 5a**：docstring 原文里的家目录路径**也要进 tails**
+    #   ⇒ 否则「docstring 里的写死家目录 ⇒ `<HOME>` 占位」这类
+    #     **reviewer 要求的**改动会被误判 `other`。
+    try:
+        tails |= _docstring_paths(tree)
+    except Exception:
+        pass
     return tails
 
 
@@ -294,6 +440,14 @@ def _module_derived_consts(tree, tails):
         """把一个表达式算成（规范化后的）常量字符串；算不出 ⇒ None。"""
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
             v = node.value
+            # 🔴🔴🔴 **APP-052 ③：`<HOME>` 占位符 ⇒ 规范成 `«HOME»/tail`**
+            #   （与 `visit_Constant` **同一口径** ⇒ 两侧取值能对上）
+            ph = _split_placeholder(v)
+            if ph is not None:
+                tail = '/'.join(ph)
+                if tail in tails:
+                    return '%s/%s' % (HOME_TOKEN, tail)
+                return v
             # 🔴 家目录路径字面量 ⇒ 规范成 `«HOME»/tail`
             #    （否则「修前是字面量、修后是派生」两侧取值对不上 ⇒ 误判不等价）
             if _is_abs_path(v):
@@ -377,6 +531,125 @@ def _inline_and_strip(tree, mapping):
     return tree
 
 
+def _canon_tree(tree, tails):
+    """把一棵 AST 规范化（家目录路径 ⇒ `«HOME»/tail`）。"""
+    t = _inline_and_strip(ast.parse(ast.unparse(tree)), tails)
+    c = _Canon(tails)
+    t = c.visit(t)
+    ast.fix_missing_locations(t)
+    return t
+
+
+def _normalize_docstring_home(b_tree, c_tree):
+    """把两侧 docstring 里的家目录片段替换成**统一占位**。
+
+    返回 `(ast.Module, 替换后的 docstring 文本)` 或 `None`。
+    🔴 **只替换两侧都出现的片段**（按尾部对齐）⇒ 不掩盖真差异。
+    """
+    def _doc_map(tree):
+        out = {}
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.Module, ast.FunctionDef,
+                                     ast.AsyncFunctionDef, ast.ClassDef)):
+                continue
+            try:
+                doc = ast.get_docstring(node, clean=False)
+            except Exception:
+                doc = None
+            if doc:
+                out[id(node)] = doc
+        return out
+
+    b_docs = _doc_map(b_tree)
+    c_docs = _doc_map(c_tree)
+    if not b_docs or not c_docs:
+        return None, None
+
+    # 收集两侧**共有**的家目录片段（按尾部配对）
+    # 🔴🔴🔴 **补丁 5-fix3**：片段配对时**同时记录家目录前缀**
+    #   ⇒ 前缀不一致时**不做**规范化（⇒ 判 other，正确）。
+    b_frags = {}   # 尾部 -> (片段原文, 前缀)
+    for doc in b_docs.values():
+        for m in _HOME_LITERAL_RE.finditer(doc):
+            s = m.group(0)
+            _pfx, tl = _split_abs(s)
+            if tl:
+                b_frags['/'.join(tl)] = (s, _pfx)
+        for m in _HOME_PLACEHOLDER_RE.finditer(doc):
+            s = m.group(0)
+            ph = _split_placeholder(s)
+            if ph:
+                b_frags['/'.join(ph)] = (s, HOME_PLACEHOLDER)
+    c_frags = {}
+    for doc in c_docs.values():
+        for m in _HOME_LITERAL_RE.finditer(doc):
+            s = m.group(0)
+            _pfx, tl = _split_abs(s)
+            if tl:
+                c_frags['/'.join(tl)] = (s, _pfx)
+        for m in _HOME_PLACEHOLDER_RE.finditer(doc):
+            s = m.group(0)
+            ph = _split_placeholder(s)
+            if ph:
+                c_frags['/'.join(ph)] = (s, HOME_PLACEHOLDER)
+
+    common = set(b_frags) & set(c_frags)
+    if not common:
+        return None, None
+
+    # 🔴🔴🔴 **前缀身份检查（与 §48 / 补丁 3 / S9 完全同一套规则）**
+    #   · 家目录前缀身份 = 完整的 `盘符:/Users/用户名`（**用户名参与身份**）
+    #   · 写死类至多 1 个；占位类至多 1 个；两类可共存
+    #   ⇒ 不满足 ⇒ **不做** docstring 规范化 ⇒ 落回 `other`。
+    hard_pfx, ph_pfx = set(), set()
+    for tail in common:
+        for _frag, pfx in (b_frags[tail], c_frags[tail]):
+            if pfx == HOME_PLACEHOLDER:
+                ph_pfx.add(pfx)
+            else:
+                hard_pfx.add(pfx)
+    if len(hard_pfx) > 1 or len(ph_pfx) > 1:
+        return None, None
+
+    # 🔴 **替换必须「按尾部配对」** ⇒ 写死片段 ⇒ `<HOME>/tail`、
+    #    占位片段 ⇒ `<HOME>/tail` ⇒ 两侧文本一致 ⇒ dump 相等。
+    def _rewrite(text):
+        for tail in common:
+            src_frag = b_frags[tail][0]
+            dst_frag = c_frags[tail][0]
+            # 两侧**各自**替换成同一个中性占位
+            text = text.replace(src_frag, HOME_TOKEN + '/' + tail)
+            text = text.replace(dst_frag, HOME_TOKEN + '/' + tail)
+        return text
+
+    def _apply(tree):
+        t = ast.parse(ast.unparse(tree))
+        for node in ast.walk(t):
+            if isinstance(node, (ast.Module, ast.FunctionDef,
+                                 ast.AsyncFunctionDef, ast.ClassDef)):
+                doc = ast.get_docstring(node, clean=False)
+                if not doc:
+                    continue
+                newdoc = _rewrite(doc)
+                if newdoc == doc:
+                    continue
+                # 🔴 **必须改到 AST 里的 docstring 节点本身**
+                body = getattr(node, 'body', None)
+                if not body:
+                    continue
+                first = body[0]
+                if (isinstance(first, ast.Expr)
+                        and isinstance(first.value, ast.Constant)
+                        and isinstance(first.value.value, str)):
+                    first.value.value = newdoc
+        return t
+
+    try:
+        return _apply(b_tree), _apply(c_tree)
+    except Exception:
+        return None, None
+
+
 def classify_drift(baseline_src: str, current_src: str):
     """把「漂移前 vs 漂移后」**分类**。
 
@@ -404,9 +677,27 @@ def classify_drift(baseline_src: str, current_src: str):
                 _prefix, tl = _split_abs(n.value)
                 if tl:
                     b_home_tails.add('/'.join(tl))
+            # 🔴🔴🔴 **APP-052 ③**：修前**也是** `<HOME>` 占位符的路径
+            #   ⇒ 它的尾部也要进集合（否则「占位符 ↔ 占位符」比对会误报）。
+            ph = _split_placeholder(n.value)
+            if ph:
+                b_home_tails.add('/'.join(ph))
 
     # 修后新增的 `_` 派生常量：取值必须**已存在于修前的常量/路径集合**里
     b_consts = _all_string_constants(b_tree0)
+
+    # 🔴🔴🔴 **补丁 9（缺口 2）：修前**已有派生常量**的尾部也要进
+    #   `b_home_tails`**
+    #   ⇒ 否则「修前用 `expanduser('~')` 派生、后新写一个 `_` 派生常量
+    #     取**同一个**尾部」⇒ 被判 `other`（**误判**）。
+    #   ⇒ ⚠️ **反向保护**：修前**没有**的尾部仍判 `other`（S5 反证必须仍 PASS）。
+    b_derived_pre = _module_derived_consts(b_tree0, tails)
+    for _nm, _v in b_derived_pre.items():
+        if isinstance(_v, str) and _v.startswith(HOME_TOKEN + '/'):
+            _tl = _v[len(HOME_TOKEN) + 1:]
+            if _tl:
+                b_home_tails.add(_tl)
+
     derived = _module_derived_consts(c_tree0, tails)
     bad_derived = []
     for name, val in derived.items():
@@ -434,7 +725,7 @@ def classify_drift(baseline_src: str, current_src: str):
     # 🔴🔴🔴 **内联+剥离必须对两侧「对称」地做** ——
     #    只对「修后」做 ⇒ 修前保留着 `_CN_DIGITS` 的赋值、修后被剥掉
     #    ⇒ 两侧 AST 必然不等 ⇒ **误判不等价**（本轮实测 3 个假 FAIL 的真根因）。
-    b_derived = _module_derived_consts(b_tree0, tails)
+    b_derived = b_derived_pre
     b_tree = _inline_and_strip(ast.parse(baseline_src), b_derived)
     b_canon = _Canon(tails)
     b_tree = b_canon.visit(b_tree)
@@ -462,17 +753,68 @@ def classify_drift(baseline_src: str, current_src: str):
         'c_dump_len': len(c_dump),
     }
 
+    # 🔴🔴🔴🔴 **补丁 5c（APP-052 ②）：docstring 片段的「就地规范化」**
+    #
+    #   **为什么需要**：上面 `_Canon` 只处理**独立的字符串常量**
+    #   ⇒ docstring 里的家目录路径**仍在整篇 docstring 文本内部**
+    #   ⇒ 两侧 dump 不等 ⇒ 误判 `other`。
+    #   ⇒ 修法：**对 docstring 文本本身**做「家目录片段 ⇒ 统一占位」的替换，
+    #     再重建 AST 重新规范化 ⇒ 两侧可对上。
+    #
+    #   ⚠️ **只替换「两侧都出现、且尾部一致」的片段** ⇒ 否则会把
+    #     「修后新增的路径」也抹掉 ⇒ 掩盖真差异。
+    b_docfix, c_docfix = _normalize_docstring_home(b_tree0, c_tree0)
+    if b_docfix is not None and c_docfix is not None:
+        try:
+            bd2 = ast.dump(_canon_tree(b_docfix, tails))
+            cd2 = ast.dump(_canon_tree(c_docfix, tails))
+            if bd2 == cd2:
+                detail['cls'] = 'home_path_rewrite'
+                detail['docstring_normalized'] = True
+                detail['home_prefix'] = sorted(
+                    set(_HOME_LITERAL_RE.findall(ast.unparse(b_docfix)))
+                    | set(_HOME_LITERAL_RE.findall(ast.unparse(c_docfix))))
+                return 'home_path_rewrite', detail
+        except Exception:
+            pass
+
     if b_raw == c_raw:
         detail['cls'] = 'identical'
         return 'identical', detail
 
     # 🔴🔴 「同一个 HOME」这个前提：被替换掉的字面量必须**共享同一个家目录前缀**
+    #
+    # 🔴🔴🔴 **补丁 2b（APP-052 ③）**：`<HOME>` 占位符与**写死家目录前缀**
+    #   **本来就指同一个家目录**（只是写法不同）
+    #   ⇒ 旧检查把它们当成「两个不同前缀」⇒ **误判 other**。
+    #   ⇒ 修法：**归一哨兵**：`C:/Users/<名字>` 与 `<HOME>` 都映射到 `'«HOME»'`。
+    #   ⚠️ **写死前缀之间**仍必须**全部相同**（S9 反证必须仍判 other）：
+    #      ⇒ 归一后若仍有 >1 个**不同**的写死前缀 ⇒ 仍 other。
     all_prefixes = set(b_canon.prefixes) | set(c_canon.prefixes)
-    if len(all_prefixes) > 1:
+
+    # 🔴🔴🔴 **补丁 3（语义修正）**：家目录前缀的**身份 = 完整的
+    #   `盘符:/Users/用户名`**（**用户名参与身份**）
+    #   ⇒ `C:/Users/Trekker-PTL` 与 `C:/Users/Other` 是**不同家目录**
+    #     ⇒ 必须判 other（补丁 2b 的「用户名归一」把这条反证作废了 ⇒ 撤回）。
+    #
+    #   `<HOME>` 占位符**没有用户名** ⇒ 与写死前缀**无法逐字比较**
+    #   ⇒ 但「写死 ↔ 占位」**确实是同一语义**（客户机上占位指向自己的家目录）。
+    #
+    #   ⇒ **正确判据**（拆成两类，各 至多 1 个）：
+    #     · **写死类**（非 `<HOME>`）：至多 1 个 ⇒ 否则 other（对上 S9）
+    #     · **占位类**（`<HOME>`）  ：至多 1 个（恒真）
+    #     · 两类**同时存在** ⇒ 允许（写死 ↔ 占位 = 同一语义），
+    #       尾部一致已由 `tails` 规范化保证 ⇒ 两侧 dump 相等 ⇒ 良性。
+    hard_prefixes = set(p for p in all_prefixes if p != HOME_PLACEHOLDER)
+    ph_prefixes = set(p for p in all_prefixes if p == HOME_PLACEHOLDER)
+    if len(hard_prefixes) > 1 or len(ph_prefixes) > 1:
         detail['cls'] = 'other'
-        detail['reason'] = '被替换的字面量家目录前缀不一致（%s）⇒ 前提不成立' \
-            % sorted(all_prefixes)
+        detail['reason'] = (
+            '被替换的字面量家目录前缀不一致（写死 %s / 占位 %s）⇒ 前提不成立'
+            % (sorted(hard_prefixes), sorted(ph_prefixes)))
         return 'other', detail
+    if len(all_prefixes) > 1:
+        detail['prefix_variants'] = sorted(all_prefixes)
 
     if b_dump == c_dump:
         detail['cls'] = 'home_path_rewrite'
@@ -612,6 +954,13 @@ def run(pkg_dir: str, prev_evidence: str = None):
 
     acc_mtime = os.path.getmtime(acc_path)
     accepted_at = str(acc.get('accepted_at') or '')
+
+    # 🔴🔴🔴 **APP-052 ②a：读出 ACCEPTED 里记的「被验收代码指纹」**
+    #   ⇒ R5 用它做「内容级」的一致性核对（不依赖时间 ⇒ 不会死锁）。
+    acc_fingerprint = str(acc.get('code_fingerprint') or '')
+    check('R3 ACCEPTED.json 记录了 code_fingerprint（APP-052 ②a）',
+          bool(acc_fingerprint),
+          'code_fingerprint=%r' % (acc_fingerprint[:32] or '(缺)'))
     # 🔴🔴🔴 **漂移判定必须用「内容里的时间戳」而不是「文件 mtime」**。
     #    实测本轮踩到：`ACCEPTED.json` 从 zip 还原后 **mtime 变成还原时刻**
     #    ⇒ 5 个真实漂移模块被误判成「无漂移」⇒ **闸门假 PASS**。
@@ -632,6 +981,57 @@ def run(pkg_dir: str, prev_evidence: str = None):
     mods = pkg_production_modules(pkg_app)
     print('  客户包生产模块：%d 个' % len(mods))
 
+    # 🔴🔴🔴🔴 **补丁 5e（APP-052 ②a）：R1 的漂移基准改为「逐模块内容指纹」**
+    #
+    #   **为什么必须换掉「时间」基准**（本轮实测的死锁）：
+    #     时间基准 ⇒ 改了代码就报漂移 ⇒ app186 ⑥ FAIL ⇒ 不写 ACCEPTED
+    #     ⇒ accepted_at 永远旧 ⇒ **永远 FAIL** ⇒ 永远无法重签。
+    #     ⇒ 而且「重签后 accepted_at 变新」⇒ drifted 恒空 ⇒ R1 **恒 PASS**
+    #       ⇒ 变成「弱标记恒真」⇒ **后续篡改无人发现**。
+    #
+    #   **内容指纹才是正确锚点**（复制/还原不改内容；同一份代码可多次验收）。
+    #
+    #   `ACCEPTED.json` 新增 `code_fingerprints` = {模块名: 该模块字节的指纹}
+    #   ⇒ R1 = 「逐模块指纹 ≠ 验收时指纹」⇒ 就是「验收后动过的模块」。
+    #
+    #   🔴 **向后兼容**：老 ACCEPTED 没有 `code_fingerprints` ⇒
+    #     **退回**时间基准（并明确报出来）⇒ 不静默改口径。
+    # 🔴🔴🔴 **补丁 5-fix5：读出「已承认的漂移」白名单**
+    #   ⇒ 格式：{"<模块名>": {"reason": "...", "source": "APP-052 ② ..."}}
+    #   ⇒ 老 ACCEPTED 没有 ⇒ 空字典（不豁免任何东西）。
+    waived_raw = acc.get('waived_changes') or {}
+    waived = {}
+    if isinstance(waived_raw, dict):
+        for k, v in waived_raw.items():
+            if isinstance(v, dict):
+                waived[str(k)] = {'reason': str(v.get('reason') or ''),
+                                  'source': str(v.get('source') or '')}
+    elif isinstance(waived_raw, list):
+        # 兼容列表形态：[{"module": "...", "reason": "...", "source": "..."}]
+        for v in waived_raw:
+            if isinstance(v, dict) and v.get('module'):
+                waived[str(v['module'])] = {
+                    'reason': str(v.get('reason') or ''),
+                    'source': str(v.get('source') or '')}
+    if waived:
+        print('  已承认的漂移白名单：%d 条（%s）'
+              % (len(waived), ', '.join(sorted(waived))))
+
+    acc_fps = acc.get('code_fingerprints') or {}
+    use_fp_anchor = isinstance(acc_fps, dict) and len(acc_fps) > 0
+    mod_fps = {}
+    for nm in mods:
+        p = os.path.join(pkg_app, nm)
+        try:
+            with open(p, 'rb') as f:
+                mod_fps[nm] = hashlib.sha256(norm_bytes(f.read())).hexdigest()
+        except Exception:
+            pass
+    print('  漂移锚点：%s' % ('**逐模块内容指纹**（APP-052 ②a）'
+                          if use_fp_anchor else
+                          '时间（ACCEPTED.accepted_at）—— ⚠️ ACCEPTED 无 '
+                          'code_fingerprints ⇒ 退回旧口径'))
+
     # ── R1 漂移检测（按**包目录自身的 mtime**）────────────────────
     drifted, covered = [], []
     for name in mods:
@@ -643,10 +1043,22 @@ def run(pkg_dir: str, prev_evidence: str = None):
                 '%Y-%m-%d %H:%M:%S'),
             'mtime_ts': mt,
         }
-        (drifted if mt > acc_ts else covered).append(rec)
+        if use_fp_anchor:
+            want = str(acc_fps.get(name) or '')
+            got = mod_fps.get(name) or ''
+            rec['fingerprint_accepted'] = want
+            rec['fingerprint_now'] = got
+            rec['fingerprint_match'] = bool(want) and want == got
+            # 🔴 **新模块**（验收后才加进来的）⇒ 也算漂移
+            (drifted if (not want) or want != got else covered).append(rec)
+        else:
+            (drifted if mt > acc_ts else covered).append(rec)
 
     print()
-    print('  R1 漂移检测（包内模块 mtime > ACCEPTED.accepted_at）：')
+    if use_fp_anchor:
+        print('  R1 漂移检测（**逐模块内容指纹** vs ACCEPTED.code_fingerprints）：')
+    else:
+        print('  R1 漂移检测（包内模块 mtime > ACCEPTED.accepted_at）：')
     check('R1 生产模块都能被检出（模块数 > 0）', len(mods) > 0,
           'covered=%d drifted=%d' % (len(covered), len(drifted)))
     for d in drifted:
@@ -654,12 +1066,106 @@ def run(pkg_dir: str, prev_evidence: str = None):
     if not drifted:
         print('        （无漂移 ⇒ 所有生产模块都在验收时点之前落定）')
 
+    # ── 🔴🔴🔴 补丁 13：**独立锚点** —— git 基线 ───────────────────
+    #
+    #   **为什么必须加**（本轮实测抓到的真实盲区）：
+    #     「先签后验」⇒ ACCEPTED 的指纹 = **当前**代码的指纹
+    #     ⇒ R1 指纹锚点 ⇒ drifted = 0 ⇒ **app191 不检查任何模块**
+    #     ⇒ ⇒ 「签的时候把缺陷一起签进去」⇒ **缺陷被合法化**
+    #     ⇒ ⇒ 实测：注入 `gui_status.py` 的真实逻辑缺陷后，⑥ 仍 PASS！
+    #
+    #   **git 基线是独立锚点**：ACCEPTED 指纹 = 「上次验收时是什么」，
+    #     git 基线 = 「仓库里是什么」⇒ 两者独立 ⇒ 一个被篡改，另一个暴露。
+    #
+    #   🔴 **只扩大候选集，不做判定** ⇒ 判定仍由 R2 做 ⇒ 判据强度不变。
+    print()
+    print('  R1b 独立锚点（**git 基线**）—— 检出「偏离仓库版本」的候选：')
+    _git_candidates = []
+    for _nm in mods:
+        _rel = 'live_caption/' + _nm
+        _p = os.path.join(pkg_app, _nm)
+        try:
+            with open(_p, 'rb') as _f:
+                _cur_b = norm_bytes(_f.read())
+        except Exception:
+            continue
+        _revs = git_commits_touching(_rel)
+        if not _revs:
+            continue
+        _hit = None
+        for _rv in _revs:
+            _bl = git_blob(_rv, _rel)
+            if _bl is not None and norm_bytes(_bl) == _cur_b:
+                _hit = _rv
+                break
+        if _hit is not None:
+            continue        # 内容寻址命中 ⇒ 当前内容**就是**仓库里的某个版本
+        # 未命中 ⇒ 当前内容偏离仓库 ⇒ **候选**
+        _git_candidates.append(_nm)
+    check('R1b git 基线锚点可用（与 ACCEPTED 指纹**相互独立**）',
+          True,
+          '生产模块 %d 个 / 偏离仓库的候选 %d 个'
+          % (len(mods), len(_git_candidates)))
+    for _nm in _git_candidates:
+        print('        GIT-DIFF  %s' % _nm)
+
     # ── R2 漂移分类 ───────────────────────────────────────────────
     print()
     print('  R2 漂移分类（良性类 = identical / home_path_rewrite）：')
     if not drifted:
         check('R2 无漂移模块 ⇒ 无需分类', True, 'drifted=0')
-    for d in drifted:
+    # 🔴 **指纹口径下**：指纹一致的模块**根本不在 drifted 里**
+    #   ⇒ R2 只处理真正变过的 ⇒ 不会把「没变过的」误判。
+    # 🔴🔴🔴 **补丁 9（缺口 3）：R2 也要处理「白名单模块」**
+    #   ⇒ 白名单的**本意**是「承认『这次改动偏离了之前的 git 验收基线』」
+    #   ⇒ 该核对的是**相对 git 基线的差异**
+    #   ⇒ 而 R1（指纹锚点）在「先签后验」时 drifted=0
+    #   ⇒ 若 R2 只看 drifted ⇒ 白名单**永远得不到分类** ⇒ 恒 FAIL。
+    #   ⇒ 故：把白名单模块**并入** R2 的处理集合。
+    _to_classify = list(drifted)
+    _seen_mod = set(d.get('module') for d in drifted)
+    # 🔴🔴🔴 **补丁 13**：并入「git 基线锚点」的候选
+    #   ⇒ 「签的时候把缺陷一起签进去」⇒ 指纹锚点看不出来
+    #   ⇒ **但 git 基线锚点能看出来** ⇒ ⇒ 闸门能 FAIL ✓
+    for _gn in _git_candidates:
+        if _gn in _seen_mod:
+            continue
+        _p = os.path.join(pkg_app, _gn)
+        if not os.path.isfile(_p):
+            continue
+        _mt = os.path.getmtime(_p)
+        _rec = {
+            'module': _gn,
+            'mtime': datetime.datetime.fromtimestamp(_mt).strftime(
+                '%Y-%m-%d %H:%M:%S'),
+            'mtime_ts': _mt,
+            'from_git_baseline': True,
+        }
+        if use_fp_anchor:
+            _rec['fingerprint_accepted'] = str(acc_fps.get(_gn) or '')
+            _rec['fingerprint_now'] = mod_fps.get(_gn) or ''
+        _to_classify.append(_rec)
+        _seen_mod.add(_gn)
+    for _wn in sorted(waived):
+        if _wn in _seen_mod:
+            continue
+        _p = os.path.join(pkg_app, _wn)
+        if not os.path.isfile(_p):
+            continue
+        _mt = os.path.getmtime(_p)
+        _rec = {
+            'module': _wn,
+            'mtime': datetime.datetime.fromtimestamp(_mt).strftime(
+                '%Y-%m-%d %H:%M:%S'),
+            'mtime_ts': _mt,
+            'from_waiver_list': True,
+        }
+        if use_fp_anchor:
+            _rec['fingerprint_accepted'] = str(acc_fps.get(_wn) or '')
+            _rec['fingerprint_now'] = mod_fps.get(_wn) or ''
+        _to_classify.append(_rec)
+
+    for d in _to_classify:
         name = d['module']
         rel = 'live_caption/' + name
         cur_path = os.path.join(pkg_app, name)
@@ -667,8 +1173,9 @@ def run(pkg_dir: str, prev_evidence: str = None):
             cur = norm_bytes(f.read())
 
         # 🔴 内容寻址：找**最早**那个 blob == 当前包内内容的 commit
+        revs = git_commits_touching(rel)
         oldest_match = None
-        for rev in git_commits_touching(rel):
+        for rev in revs:
             b = git_blob(rev, rel)
             if b is not None and norm_bytes(b) == cur:
                 oldest_match = rev
@@ -679,14 +1186,41 @@ def run(pkg_dir: str, prev_evidence: str = None):
             # 🔴 兜底：当前内容**不在 git 历史里**（例如工作区里未提交的改动、
             #    或鉴别力测试注入的缺陷）⇒ 退而用「**最近**一次改过它的 commit」
             #    作为基线 ⇒ 仍然能判定「相对仓库版本漂移了什么」。
-            revs = git_commits_touching(rel)
             if not revs:
                 check('R2 %s 的漂移前基线可重建' % name, False,
                       '该文件在 git 历史里不存在 ⇒ 无法重建基线')
                 d['cls'] = None
                 continue
-            base_rev = revs[0]
-            base_mode = 'fallback_latest_commit'
+            # 🔴🔴🔴🔴 **补丁 12（本轮实测抓到的真实盲区）**
+            #   「未命中」且「**只有 1 个** commit」⇒ 那个 commit **就是它自己**
+            #   ⇒ 基线内容 == 当前内容 ⇒ 恒判 `identical`
+            #   ⇒ ⇒ **任何改动都检不出**（盲区！）
+            #   ⇒ 三态处理：
+            #     ① 内容寻址命中        ⇒ 基线 = 命中 commit 的父提交（正常）
+            #     ② 未命中 + **多个** commit ⇒ fallback 到最新 commit（保留）
+            #     ③ 未命中 + **只有 1 个** commit ⇒ 基线不存在 ⇒ 判 FAIL
+            #        （**但**若内容与那唯一 commit 逐字相同 ⇒ 只是 mtime 变
+            #          ⇒ 不算问题 ⇒ 不判 FAIL）
+            if len(revs) == 1:
+                only = norm_bytes(git_blob(revs[0], rel) or b'')
+                if only == cur:
+                    # 内容与唯一那个 commit 逐字相同 ⇒ 只是 mtime 变了
+                    base_rev = revs[0]
+                    base_mode = 'single_commit_identical'
+                else:
+                    # 🔴 内容与唯一 commit 不同 ⇒ **无基线可比** ⇒ 判 FAIL
+                    check('R2 %s 的漂移前基线可重建' % name, False,
+                          '该文件在 git 历史里**只有 1 个** commit（%s）且当前'
+                          '内容与之不同 ⇒ **不存在可比的漂移前基线**'
+                          '（退化会用它自己当基线 ⇒ 恒 identical ⇒ 改动不可见）'
+                          % revs[0][:8])
+                    d['cls'] = None
+                    d['base_unavailable'] = True
+                    d['only_commit'] = revs[0][:8]
+                    continue
+            else:
+                base_rev = revs[0]
+                base_mode = 'fallback_latest_commit'
         blob = norm_bytes(git_blob(base_rev, rel) or b'')
         if not blob:
             check('R2 %s 的漂移前基线可重建' % name, False, '基线 blob 取不到')
@@ -700,16 +1234,105 @@ def run(pkg_dir: str, prev_evidence: str = None):
         d['sha_after'] = sha16(cur)
         d['cls'] = cls
         d['detail'] = det
-        benign = cls in BENIGN
-        check('R2 %s 的漂移属于良性类（%s）' % (name, cls), benign,
-              'base=%s(%s) before=%s after=%s | cls=%s%s'
-              % (base_rev[:8], base_mode, d['sha_before'], d['sha_after'], cls,
-                 ('' if benign else
-                  ' ⇒ 验收已被这条改动推翻：%s'
-                  % json.dumps(det, ensure_ascii=False)[:240])))
+
+        # 🔴🔴🔴 **补丁 5-fix5：白名单放行**
+        #   ⇒ 只在「该模块**确实漂移**」且「白名单里有它」时才放行
+        #   ⇒ 且**必须**在证据里记明依据。
+        if name in waived and cls not in BENIGN:
+            w = waived[name]
+            d['waived'] = True
+            d['waived_reason'] = w['reason']
+            d['waived_source'] = w['source']
+            d['cls_before_waiver'] = cls
+            d['cls'] = WAIVED
+            det['waived_from'] = cls
+            det['waived_reason'] = w['reason']
+            det['waived_source'] = w['source']
+            cls = WAIVED
+
+        benign = cls in BENIGN or cls == WAIVED
+        d['benign'] = bool(benign)
+        if cls == WAIVED:
+            check('R2 %s 的漂移**已被 reviewer 显式承认**（白名单放行）' % name,
+                  True,
+                  'base=%s(%s) before=%s after=%s | 原判=%s ⇒ 放行'
+                  ' | 依据=%s（%s）'
+                  % (base_rev[:8], base_mode, d['sha_before'], d['sha_after'],
+                     d.get('cls_before_waiver'),
+                     d.get('waived_reason') or '(未写原因)',
+                     d.get('waived_source') or '(未写来源)'))
+        else:
+            check('R2 %s 的漂移属于良性类（%s）' % (name, cls), benign,
+                  'base=%s(%s) before=%s after=%s | cls=%s%s'
+                  % (base_rev[:8], base_mode, d['sha_before'], d['sha_after'],
+                     cls,
+                     ('' if benign else
+                      ' ⇒ 验收已被这条改动推翻：%s'
+                      % json.dumps(det, ensure_ascii=False)[:240])))
         if not benign:
             print('        b_at = %s' % str(det.get('b_at'))[:300])
             print('        c_at = %s' % str(det.get('c_at'))[:300])
+
+    # ── R3b 白名单自洽（**防滥用**）────────────────────────────────
+    #
+    # 🔴🔴🔴 **白名单最危险的用法**：「把任意改动塞进白名单 ⇒ 闸门恒 PASS」。
+    # ⇒ 因此必须判：**白名单里的每一条都必须对应一个「真实漂移」**
+    #   ⇒ 写了没漂移的模块 ⇒ 多余条目 ⇒ **判 FAIL**（可疑 ⇒ 要求说明）。
+    print()
+    print('  R3b 白名单自洽（每条都必须对应一个真实漂移）：')
+    # 🔴🔴🔴 **补丁 9（缺口 3）：「多余条目」按「相对 git 基线的分类结果」判**
+    #   ⇒ 白名单模块**一定会**被 R2 分类（补丁 9 修 5）
+    #   ⇒ ⇒ 每条白名单都必须对应一个「相对 git 基线**确有实质差异**」的模块
+    #   ⇒ 且该差异**不是良性类**（良性类不需要白名单）
+    _cls_by_mod = {}
+    for _d in _to_classify:
+        _cls_by_mod[_d.get('module')] = _d.get('cls')
+    if not waived:
+        check('R3b 无白名单条目（无需自洽检查）', True, 'waived=0')
+    else:
+        # ① 白名单条目必须**真的被分类过**（即该模块相对 git 基线有差异）
+        unused = sorted(k for k in waived if k not in _cls_by_mod)
+        check('R3b 白名单里没有「多余条目」（每条都对应真实差异）',
+              not unused,
+              'waived=%d / 已分类=%d / 多余=%s'
+              % (len(waived), len(_cls_by_mod), unused or '无'))
+        # 🔴🔴🔴 **补丁 10：删掉「非良性」这条硬性判据**
+        #   ⇒ 原判据把白名单的**语义**（「reviewer 承认过的改动」）
+        #     与「判据当下的分类结论」**耦合**了
+        #   ⇒ 而分类结论**会随判据修复而变化**
+        #     （本轮实测：补丁 9 修好正则后 `speaker_assets.py`
+        #       从 `other` 变成 `home_path_rewrite`）
+        #   ⇒ ⇒ 白名单条目会「突然变成多余」⇒ **恒 FAIL** ⇒ 脆。
+        #
+        #   ⇒ 改为**弱提示**（不阻断、但信息不丢）：
+        #     · 分类结论**已在 R2 记录**（`cls` / `cls_before_waiver`）
+        #     ⇒ reviewer 能看到「这条白名单其实不需要（本来就良性）」
+        #     ⇒ **信息没有丢失**
+        needless = sorted(k for k, v in _cls_by_mod.items()
+                          if k in waived and v in BENIGN)
+        if needless:
+            print('  [WARN] 🔶 白名单里有 %d 条**本来就能自己判为良性**的条目'
+                  '（不阻断，但可考虑移除）：%s'
+                  % (len(needless), ', '.join(needless)))
+            check('R3b 白名单自洽（存在性 + 依据 + 无幽灵）', True,
+                  '良性白名单条目 = %s（**仅提示**，分类结论见 R2）'
+                  % (needless,))
+        else:
+            check('R3b 白名单自洽（存在性 + 依据 + 无幽灵）', True,
+                  'waived=%d / 已分类=%d / 全部为非良性差异'
+                  % (len(waived), len(_cls_by_mod)))
+        # 🔴 每条都必须写明**依据**（reason + source）⇒ 否则不可复核
+        noreason = sorted(k for k, v in waived.items()
+                          if not v.get('reason') or not v.get('source'))
+        check('R3b 每条白名单都写明了 reason 与 source（可复核）',
+              not noreason,
+              '缺依据的条目 = %s' % (noreason or '无'))
+        # 🔴 白名单里的模块**必须存在**（否则是笔误/残留）
+        ghost = sorted(k for k in waived
+                       if k not in set(mods))
+        check('R3b 白名单里的模块都在生产模块集合内（无幽灵条目）',
+              not ghost,
+              '幽灵条目 = %s' % (ghost or '无'))
 
     # ── R4 指纹连续性 ────────────────────────────────────────────
     print()
@@ -729,11 +1352,43 @@ def run(pkg_dir: str, prev_evidence: str = None):
               '上次证据里没有指纹 ⇒ 本次建立基线')
     else:
         same = (prev_fp == fp)
-        all_benign = all((d.get('cls') in BENIGN) for d in drifted)
+        all_benign = all((d.get('cls') in BENIGN or d.get('cls') == WAIVED)
+                         for d in drifted)
         check('R4 指纹变化已被 R2 分类为良性',
               same or all_benign,
               'prev=%s… now=%s… | drifted=%d 全部良性=%s'
               % (prev_fp[:16], fp[:16], len(drifted), all_benign))
+    # 🔴🔴 **补丁 5h**：证据里记录「用的是哪种锚点」⇒ 便于人工复核
+    #   ⇒ 不静默换口径（MEMORY：口径变更必须先核对旧产物的配置快照）。
+
+    # ── R5 指纹一致性（**内容级**绑定，APP-052 ②a）──────────────
+    #
+    # 🔴🔴🔴 **为什么必须有这一条**（本轮实测到的**死锁**）：
+    #   R1 的漂移基准是 `ACCEPTED.accepted_at`（**时间**）
+    #   ⇒ 「改了包内代码 ⇒ 报漂移 ⇒ app186 ⑥ FAIL ⇒ **不写** ACCEPTED
+    #     ⇒ accepted_at 永远停在旧值 ⇒ **永远 FAIL** ⇒ 永远无法重签。
+    #   ⇒ **时间不是「代码绑定」的正确锚点**（复制/还原会改 mtime；
+    #     同一份代码可以先后多次验收）⇒ 正确的锚点是**内容指纹**。
+    #
+    # 🔴 **R5 与 R1/R2 的分工（互补，不可互相替代）**：
+    #   · R1/R2 = 「**相对基线 commit** 改了什么、危不危险」
+    #   · R5     = 「**相对验收声明** 还成不成立」
+    #   ⇒ 若只留 R5：有人改了代码又顺手改了 ACCEPTED 的指纹
+    #     ⇒ R5 PASS 但没人知道改了什么 ⇒ ⇒ **两者必须同时在**。
+    print()
+    print('  R5 指纹一致性（包内当前指纹 == ACCEPTED.code_fingerprint）：')
+    if not acc_fingerprint:
+        check('R5 ACCEPTED.code_fingerprint 与包内当前指纹一致', False,
+              'ACCEPTED.json 里没有 code_fingerprint ⇒ 无法做内容级绑定'
+              '（旧版 ACCEPTED ⇒ 需按 APP-052 ②a 重签）')
+    elif fp == acc_fingerprint:
+        check('R5 ACCEPTED.code_fingerprint 与包内当前指纹一致', True,
+              'fingerprint=%s…（内容未变 ⇒ 验收结论继续有效）' % fp[:32])
+    else:
+        check('R5 ACCEPTED.code_fingerprint 与包内当前指纹一致', False,
+              'ACCEPTED=%s… / 当前=%s… ⇒ **交付代码与验收声明不符**'
+              '（哪怕改动是良性的，验收声明也必须重签）'
+              % (acc_fingerprint[:32], fp[:32]))
 
     ok_all = (FAIL == 0)
     print()
@@ -750,9 +1405,23 @@ def run(pkg_dir: str, prev_evidence: str = None):
         'accepted_mtime': datetime.datetime.fromtimestamp(
             acc_mtime).strftime('%Y-%m-%d %H:%M:%S'),
         'accepted_ts': acc_ts,
-        'drift_baseline': 'ACCEPTED.accepted_at（内容字段，非文件 mtime）',
+        'drift_baseline': ('ACCEPTED.code_fingerprints（**逐模块内容指纹**）'
+                           if use_fp_anchor else
+                           'ACCEPTED.accepted_at（内容字段，非文件 mtime）'),
+        'drift_anchor': 'content_fingerprint' if use_fp_anchor else 'timestamp',
+        'accepted_code_fingerprints': acc_fps,
+        'waived_changes': waived,
+        'git_baseline_candidates': _git_candidates,
+        'drift_anchor_note': (
+            'R1 = 指纹锚点（相对 ACCEPTED）＋ R1b = git 基线锚点（相对仓库）'
+            '⇒ 两个**相互独立**的锚点 ⇒ 「签的时候把缺陷一起签进去」'
+            '会被 git 基线锚点暴露'),
+        'n_waived': len([d for d in drifted if d.get('cls') == WAIVED]),
+        'current_code_fingerprints': mod_fps,
         'n_modules': len(mods),
         'fingerprint': fp,
+        'accepted_code_fingerprint': acc_fingerprint,
+        'fingerprint_match': (acc_fingerprint == fp) if acc_fingerprint else None,
         'covered': covered,
         'drifted': drifted,
         'n_pass': PASS,
@@ -821,10 +1490,138 @@ def _selftest():
          "DEV_ASR_SCRIPTS = r'C:\\Users\\Other\\qwen3asr_06b\\scripts'\n"
          "P2 = 'plain'\n",
          'other'),
+        # ── APP-052 ③ 新增：`<HOME>` 占位符类 ──
+        ('S10 写死家目录 ⇒ `<HOME>` 占位（尾部相同）⇒ home_path_rewrite',
+         "import os\n"
+         "DEV_ASR_SCRIPTS = r'<HOME>\\qwen3asr_06b\\scripts'\n"
+         "P2 = 'plain'\n",
+         'home_path_rewrite'),
+        # 🔴🔴 **S11 的期望值是 `identical` 而不是 `home_path_rewrite`**：
+        #   两侧规范化后**逐字相同** ⇒ `identical` 是**更精确**的分类
+        #   （`identical` 与 `home_path_rewrite` **同属良性**，对闸门结论无差别）
+        #   ⇒ 写 `home_path_rewrite` 反而是**把判据写松了**（会掩盖真差异）。
+        ('S11 `<HOME>` 占位（尾部相同）⇒ 写死家目录 ⇒ identical（规范化后逐字相同）',
+         "import os\n"
+         "DEV_ASR_SCRIPTS = r'C:\\Users\\Trekker-PTL\\qwen3asr_06b\\scripts'\n"
+         "P2 = 'plain'\n",
+         'identical'),
+        ('S12 `<HOME>` 占位但**尾部不同** ⇒ other（不得判为良性）',
+         "import os\n"
+         "DEV_ASR_SCRIPTS = r'<HOME>\\completely\\different\\path'\n"
+         "P2 = 'plain'\n",
+         'other'),
+        ('S13 `<HOME>` 占位 + **其它常量也被改** ⇒ other',
+         "import os\n"
+         "DEV_ASR_SCRIPTS = r'<HOME>\\qwen3asr_06b\\scripts'\n"
+         "P2 = 'CHANGED'\n",
+         'other'),
+        ('S14 `<HOME>` 占位（尾部相同）但**删了一行逻辑** ⇒ other',
+         "import os\n"
+         "DEV_ASR_SCRIPTS = r'<HOME>\\qwen3asr_06b\\scripts'\n",
+         'other'),
+        ('S15 正斜杠形态的 `<HOME>` 占位 ⇒ home_path_rewrite',
+         "import os\n"
+         "DEV_ASR_SCRIPTS = r'<HOME>/qwen3asr_06b/scripts'\n"
+         "P2 = 'plain'\n",
+         'home_path_rewrite'),
+        # ── 补丁 5j：docstring 里的家目录路径（APP-052 ③ 的真实形态）──
+        #
+        # 🔴🔴 **补丁 5-fix2**：这 5 个用例**各自带 base**
+        #   （base 里**也有** docstring，且 docstring 里是**写死家目录**）
+        #   ⇒ 唯一变量 = 「docstring 里的家目录写法」
+        #   ⇒ 才是在测「写死 ⇄ 占位」这件事本身。
+        #   ⚠️ 若 base 无 docstring ⇒ 那是「**新增**一段 docstring」
+        #      ⇒ 判 other 正确 ⇒ 期望值会写错（本轮 S16 实测踩到）。
+        ('S16 docstring 里的写死家目录 ⇒ `<HOME>` 占位 ⇒ home_path_rewrite',
+         '"""模块说明。\n\n'
+         '    WORK   = r\'<HOME>\\qwen3asr_06b\'\n'
+         '    SHARED = r\'<HOME>\\shared\'\n'
+         '    """\n'
+         "import os\n"
+         "DEV_ASR_SCRIPTS = r'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\\\\scripts'\n"
+         "P2 = 'plain'\n",
+         'home_path_rewrite',
+         '"""模块说明。\n\n'
+         '    WORK   = r\'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\'\n'
+         '    SHARED = r\'C:\\\\Users\\\\Trekker-PTL\\\\shared\'\n'
+         '    """\n'
+         "import os\n"
+         "DEV_ASR_SCRIPTS = r'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\\\\scripts'\n"
+         "P2 = 'plain'\n"),
+        # 🔴🔴 **反证**：docstring 里的路径**尾部不同** ⇒ 不得判为良性
+        ('S17 docstring 里的路径尾部**不同** ⇒ other（不得判为良性）',
+         '"""模块说明。\n\n'
+         '    WORK   = r\'<HOME>\\completely\\different\'\n'
+         '    """\n'
+         "import os\n"
+         "DEV_ASR_SCRIPTS = r'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\\\\scripts'\n"
+         "P2 = 'plain'\n",
+         'other',
+         '"""模块说明。\n\n'
+         '    WORK   = r\'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\'\n'
+         '    """\n'
+         "import os\n"
+         "DEV_ASR_SCRIPTS = r'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\\\\scripts'\n"
+         "P2 = 'plain'\n"),
+        # 🔴🔴 **反证**：docstring 里**新增**一行路径 ⇒ 不得判为良性
+        ('S18 docstring 里**新增**路径行 ⇒ other（不得判为良性）',
+         '"""模块说明。\n\n'
+         '    WORK   = r\'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\'\n'
+         '    NEWLINE = r\'C:\\\\Users\\\\Trekker-PTL\\\\brand\\\\new\'\n'
+         '    """\n'
+         "import os\n"
+         "DEV_ASR_SCRIPTS = r'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\\\\scripts'\n"
+         "P2 = 'plain'\n",
+         'other',
+         '"""模块说明。\n\n'
+         '    WORK   = r\'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\'\n'
+         '    """\n'
+         "import os\n"
+         "DEV_ASR_SCRIPTS = r'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\\\\scripts'\n"
+         "P2 = 'plain'\n"),
+        # 🔴🔴 **反证**：docstring 改了**别的**内容 ⇒ 不得判为良性
+        ('S19 docstring 改了**别的**内容 ⇒ other（不得判为良性）',
+         '"""模块说明（**已改**）。\n\n'
+         '    WORK   = r\'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\'\n'
+         '    """\n'
+         "import os\n"
+         "DEV_ASR_SCRIPTS = r'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\\\\scripts'\n"
+         "P2 = 'plain'\n",
+         'other',
+         '"""模块说明。\n\n'
+         '    WORK   = r\'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\'\n'
+         '    """\n'
+         "import os\n"
+         "DEV_ASR_SCRIPTS = r'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\\\\scripts'\n"
+         "P2 = 'plain'\n"),
+        # 🔴🔴 **反证**：docstring 里的路径**换了前缀**（别的用户名）⇒ other
+        ('S20 docstring 里家目录**前缀不同** ⇒ other（不得判为良性）',
+         '"""模块说明。\n\n'
+         '    WORK   = r\'C:\\\\Users\\\\Other\\\\qwen3asr_06b\'\n'
+         '    """\n'
+         "import os\n"
+         "DEV_ASR_SCRIPTS = r'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\\\\scripts'\n"
+         "P2 = 'plain'\n",
+         'other',
+         '"""模块说明。\n\n'
+         '    WORK   = r\'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\'\n'
+         '    """\n'
+         "import os\n"
+         "DEV_ASR_SCRIPTS = r'C:\\\\Users\\\\Trekker-PTL\\\\qwen3asr_06b\\\\scripts'\n"
+         "P2 = 'plain'\n"),
     ]
     n_fail = 0
-    for name, cur, want in cases:
-        got, det = classify_drift(base, cur)
+    for _c in cases:
+        # 🔴🔴 **补丁 5-fix2**：支持「每个用例自带 base」
+        #   ⇒ docstring 类用例的 base **必须也带 docstring**
+        #   ⇒ 否则「base 无 docstring / cur 有 docstring」是「新增 docstring」
+        #   ⇒ 判 other 正确 ⇒ 用例期望值会写错（本轮 S16 实测踩到）。
+        if len(_c) == 4:
+            name, cur, want, b_case = _c
+        else:
+            name, cur, want = _c
+            b_case = base
+        got, det = classify_drift(b_case, cur)
         ok = (got == want)
         if not ok:
             n_fail += 1

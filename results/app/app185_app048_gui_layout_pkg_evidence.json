@@ -75,23 +75,23 @@
     {
       "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app048_layout_1920x1080.png",
       "captured_ok": true,
-      "bytes": 88051,
-      "mtime": "2026-11-01 00:39:00",
-      "sha256": "a8beaaf84b2349ede0296239728bd573ec3ed50971ce47909249b12a11550357"
+      "bytes": 73697,
+      "mtime": "2026-11-01 08:36:29",
+      "sha256": "c3d873bc9e4df1632c8f208edc228dbc49d28ea87b8f6beefc1e108cde1da0eb"
     },
     {
       "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app048_layout_1280x720.png",
       "captured_ok": true,
-      "bytes": 82692,
-      "mtime": "2026-11-01 00:39:01",
-      "sha256": "8e3820c5212a13c4e2799a1fdca7623f48095f75d25890d2ac9ed27060eff983"
+      "bytes": 68231,
+      "mtime": "2026-11-01 08:36:30",
+      "sha256": "42c8b68ed86493fe97d26944d7eaf2ab802d71486b32e46038ca06f735019647"
     },
     {
       "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app048_layout_mt_failed.png",
       "captured_ok": true,
-      "bytes": 90448,
-      "mtime": "2026-11-01 00:39:02",
-      "sha256": "969cb806992817b1d13cc58d8e4076825af5f04ea7c5cb88aa081c4510de1026"
+      "bytes": 76326,
+      "mtime": "2026-11-01 08:36:31",
+      "sha256": "1c549e0a2194e17443b1733b1c0cb6f06b9f03e292b0e4c38c4b012f18399fec"
     }
   ],
   "diff_pixels_normal_vs_failed": 9492,

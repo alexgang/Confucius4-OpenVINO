@@ -1,6 +1,6 @@
 {
   "script": "app191_discrimination_test.py",
-  "ts": "2026-11-01 08:06:38",
+  "ts": "2026-11-01 09:05:15",
   "n_pass": 9,
   "n_fail": 0,
   "verdict": "PASS",
@@ -33,12 +33,12 @@
     {
       "name": "D4 影子副本（有真实逻辑缺陷）⇒ 总闸门必须 FAIL",
       "ok": true,
-      "detail": "verdict=FAIL (PASS 10 / FAIL 1)"
+      "detail": "verdict=FAIL (PASS 14 / FAIL 2)"
     },
     {
       "name": "D4 影子副本检出漂移模块",
       "ok": true,
-      "detail": "drifted=['speaker_assets.py', 'speaker_tracker.py', 'tts_cuda.py', 'tts_engine.py', 'tts_service.py', 'tts_worker.py']"
+      "detail": "drifted=['tts_service.py']"
     },
     {
       "name": "D4 影子副本里 tts_service.py 被判为【other】",
@@ -48,7 +48,7 @@
     {
       "name": "D5 客户包生产模块指纹未变（影子测试没碰真包）",
       "ok": true,
-      "detail": "fingerprint=09a1f417c31eff069cf3fbbca7cf13b5"
+      "detail": "fingerprint=d5dd77de6c3a9ce48588838f56885f46"
     }
   ]
 }

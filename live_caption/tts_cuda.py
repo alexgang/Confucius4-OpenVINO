@@ -129,7 +129,7 @@ def _scan_for_pkg(start: str) -> str:
 
     🔴 **为什么是「逐级向上」而不是「固定上 N 级」**：
     - 客户机：`<包根>/app/tts_cuda.py` ⇒ 包根是**上上级**；
-    - 开发机：`<repo>/live_caption/tts_cuda.py` ⇒ 上上级是 `C:\\Users\\Trekker-PTL`
+    - 开发机：`<repo>/live_caption/tts_cuda.py` ⇒ 上上级是 `<HOME>`（家目录）
       ⇒ **深度不同** ⇒ 写死层数必错（实测：写成上上级时开发机找不到包，
       `ref_audio` 退化成**相对路径** `models\\qwen3tts\\voices\\preset_A.wav`）。
     ⇒ 逐级向上 ⇒ 两种布局都对。
@@ -155,7 +155,7 @@ def default_pkg_dir() -> str:
     推导顺序：
     1. 环境变量 `LIVECAP_PKG`（显式指定，最高优先）；
     2. 从本文件所在目录**逐级向上**找含 `models/` 的目录
-       （客户机命中 `<包根>`；开发机命中 `C:\\Users\\Trekker-PTL` 本身——
+       （客户机命中 `<包根>`；开发机命中 `<HOME>` 本身——
         它下面有 `models/` 吗？没有 ⇒ 继续向上 ⇒ 也找不到 ⇒ 落第 3 步）；
     3. 在**扫描根**里挑**版本号最大**且含 `models/` 的 `Confucius4_LiveCaption_v*`。
 

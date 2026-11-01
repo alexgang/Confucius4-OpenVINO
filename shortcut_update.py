@@ -26,14 +26,22 @@
      判据 = 包目录里存在 `ACCEPTED.json`（**由真机验收通过后写入**）
      ⇒ 打包脚本**不会自作主张**改用户入口。
   ④ **幂等**：指向同一版本时**不重复重建**（避免每次打包都动桌面）。
-  ⑤ **不依赖 COM**：`WScript.Shell` 被安全策略拦截 ⇒ 用
-     **纯字节写 .lnk**（MS-SHLLINK 的最小可用形态）⇒ 零依赖、可测。
+  ⑤ 🔴🔴🔴 **【APP-052 ①】改用 `WScript.Shell.CreateShortcut` 生成**（**不再手工拼字节**）。
 
-🔴 **.lnk 格式说明**（MS-SHLLINK）：
-  头 76 字节（Header）＋ LinkFlags(4)＋ LinkTargetIDList(可变)
-  ＋ LinkInfo(可选)＋ 字符串区（NameString / CommandLineArguments / WorkingDir）
-  ⇒ 最小可用形态：Header + LinkFlags + StringData，**无需** IDList 与 LinkInfo。
-  Windows 资源管理器按 StringData 里的路径解析目标 ⇒ 可正常启动。
+🔴🔴🔴 **APP-052 ① 的真实事故（本模块上一版的实现是「坏链」）**：
+  上一版用**纯字节**手工构造 .lnk（MS-SHLLINK 的「最小可用形态」），写的是
+  `LinkFlags = 0x00000020`（**只置 HasArguments**）⇒
+  **既没有 HasLinkTargetIDList、也没有 HasLinkInfo、也没有 IsUnicode**
+  ⇒ Windows **不会**用它定位目标 ⇒ 桌面上的 .lnk 是**坏链**：
+  资源管理器双击**启动不了**，COM 读回 `TargetPath=[] / Arguments=[C]`。
+  ⇒ reviewer's 字节级指控**已实测复现**（见 §123）。
+
+  🔴 **根因**：「纯字节 .lnk」这个思路本身错了 —— 目标定位**依赖
+  `LinkTargetIDList`（或 `HasLinkInfo` 的 LocalBasePath）**，
+  **不是** StringData 里的路径字符串 ⇒ 「不依赖 COM」的代价是**造出坏链**。
+  ⇒ **修法**：用 `WScript.Shell.CreateShortcut`（经 `pywin32` 调 COM API）
+  生成 ⇒ 由**Windows 自己**写 IDList/LinkInfo ⇒ 必然可用。
+  ⇒ COM 不可用时 **fail-closed**（**绝不**退回字节拼接造坏链）。
 
 🔴 **纪律**：本模块**不 import 被测模块**、**不跑推理**、**不碰 CPU 重活**
   （纯文件操作）⇒ 不污染别的模块的计时窗口。
@@ -77,84 +85,134 @@ def desktop_dir() -> str:
     return p  # 兜底：返回默认路径（调用方负责处理不存在）
 
 
-# ── .lnk 字节构造（纯字节，不依赖 COM）──────────────────────────────
+# ── .lnk 生成（【APP-052 ①】改用 COM ⇒ 不再手工拼字节）──────────────
 def _win_str(s: str) -> bytes:
-    """Windows 字符串区条目：2 字节字符数 + UTF-16LE 内容（**无终止符**）。"""
+    """Windows 字符串区条目：2 字节字符数 + UTF-16LE 内容（**无终止符**）。
+
+    🔴 **仅保留给判据里的「字节级体检」用**（用来确认 COM 生成的 .lnk
+    **确实**带上了 `HasLinkTargetIDList`）⇒ **不再用它构造 .lnk**。
+    """
     data = s.encode('utf-16-le')
     return struct.pack('<H', len(s)) + data
 
 
-def build_lnk(target: str, workdir: str, icon: str, description: str,
-              name: str) -> bytes:
-    """构造一个最小可用的 .lnk 字节串（MS-SHLLINK，StringData 形态）。
+def _com_available() -> tuple:
+    """返回 `(ok, reason, shell)`；COM 不可用 ⇒ `(False, 原因, None)`。
 
-    🔴 **为什么不用 COM**：`WScript.Shell`（New-Object -ComObject）在受控环境里
-      会被安全策略拦截（实测：`Command blocked for security: COM object
-      instantiation can run arbitrary code`）⇒ 纯字节方案零依赖、可测试。
+    🔴 **fail-closed**：`WScript.Shell` 经 `pywin32` 调 COM API。
+      上一版「不依赖 COM」的方案造出了**坏链**（见模块 docstring）⇒
+      **绝不**在 COM 不可用时退回字节拼接。
     """
-    # ── Header（76 字节）──
-    #    逐项核对 MS-SHLLINK（**偏移必须精确**）：
-    #      [0:4]   HeaderSize       = 0x4C
-    #      [4:20]  LinkCLSID        (16 字节)
-    #      [20:24] LinkFlags
-    #      [24:28] FileAttributes
-    #      [28:36] CreationTime     (FILETIME 8 字节)
-    #      [36:44] AccessTime
-    #      [44:52] WriteTime
-    #      [52:56] FileSize
-    #      [56:60] IconIndex
-    #      [60:64] ShowCommand
-    #      [64:66] HotKey
-    #      [66:68] Reserved1
-    #      [68:72] Reserved2
-    #      [72:76] Reserved3
-    #    ⇒ **StringData 从偏移 76 开始**（Header 之后**没有**别的字段）。
-    header = bytearray()
-    header += struct.pack('<I', 0x0000004C)      # [0:4]  HeaderSize
-    # [4:20] LinkCLSID（标准快捷方式 CLSID 00021401-0000-0000-C000-000000000046）
-    header += bytes.fromhex('0114020000000000C000000000000046')
-    header += struct.pack('<I', 0x00000020)      # [20:24] LinkFlags
-    #   bit0 HasLinkTargetIDList=0
-    #   bit1 HasLinkInfo=0
-    #   bit2 HasName=1
-    #   bit3 HasRelativePath=0
-    #   bit4 HasWorkingDir=1
-    #   bit5 HasArguments=0
-    #   bit6 HasIconLocation=1
-    #   bit7 IsUnicode=1
-    header += struct.pack('<I', 0x00000000)      # [24:28] FileAttributes
-    header += struct.pack('<Q', 0)               # [28:36] CreationTime
-    header += struct.pack('<Q', 0)               # [36:44] AccessTime
-    header += struct.pack('<Q', 0)               # [44:52] WriteTime
-    header += struct.pack('<I', 0)               # [52:56] FileSize
-    header += struct.pack('<i', 0)               # [56:60] IconIndex
-    header += struct.pack('<I', 0)               # [60:64] ShowCommand
-    header += struct.pack('<H', 0)               # [64:66] HotKey
-    header += struct.pack('<H', 0)               # [66:68] Reserved1
-    header += struct.pack('<I', 0)               # [68:72] Reserved2
-    header += struct.pack('<I', 0)               # [72:76] Reserved3
-    assert len(header) == 76, len(header)
+    try:
+        import win32com.client as wc
+    except Exception as e:
+        return False, 'pywin32 未安装（%r）' % e, None
+    try:
+        shell = wc.Dispatch('WScript.Shell')
+    except Exception as e:
+        return False, 'WScript.Shell 不可用（%r）' % e, None
+    return True, '', shell
 
-    body = bytearray(header)
 
-    # ── StringData ──
-    body += _win_str(name)          # NameString（快捷方式显示名）
-    body += _win_str(target)        # RelativePath 槽：这里放**绝对目标路径**
-    body += _win_str(workdir)       # WorkingDir
-    body += _win_str(icon)          # IconLocation
-    body += _win_str(description)   # Description（"RelativePath" 槽位复用）
+def lnk_linkflags(path: str) -> int:
+    """读 .lnk 头部的 `LinkFlags`（**字节级体检**，用于判据）。
 
-    return bytes(body)
+    🔴 **为什么需要它**：reviewer APP-052 ① 的核心指控是
+      「手工构造的 .lnk **只置了 HasArguments**（`0x20`）⇒ 没有
+      `HasLinkTargetIDList` / `HasLinkInfo` ⇒ Windows 不拿它定位目标」
+      ⇒ **判据必须能检查这一位**，否则换一种坏法又判不出来。
+    """
+    try:
+        b = open(path, 'rb').read()
+    except OSError:
+        return -1
+    if len(b) < 24:
+        return -1
+    return struct.unpack_from('<I', b, 20)[0]
+
+
+def lnk_flags_ok(path: str) -> bool:
+    """`.lnk` 的 LinkFlags 是否含**目标定位位**（`HasLinkTargetIDList` 或 `HasLinkInfo`）。"""
+    f = lnk_linkflags(path)
+    if f < 0:
+        return False
+    HAS_IDLIST = 0x00000001
+    HAS_LINKINFO = 0x00000002
+    return bool(f & (HAS_IDLIST | HAS_LINKINFO))
+
+
+def com_read_lnk(path: str) -> dict:
+    """用 COM **读回**一个 .lnk 的三个字段（`TargetPath` / `Arguments` /
+    `WorkingDirectory`）。
+
+    🔴 **这是判据的权威来源**：reviewer 要求「COM 读回 TargetPath 非空、
+      所指文件存在、并且在 v1.13 包内」⇒ 判据**必须**读回，不能自己看
+      自己写的数据。
+    """
+    ok, reason, shell = _com_available()
+    if not ok:
+        return dict(ok=False, reason=reason, target='', arguments='',
+                    working_dir='', icon='')
+    try:
+        sc = shell.CreateShortcut(path)
+        return dict(ok=True, reason='',
+                    target=str(sc.TargetPath or ''),
+                    arguments=str(sc.Arguments or ''),
+                    working_dir=str(sc.WorkingDirectory or ''),
+                    icon=str(sc.IconLocation or ''))
+    except Exception as e:
+        return dict(ok=False, reason='COM 读回失败：%r' % e, target='',
+                    arguments='', working_dir='', icon='')
+
+
+def write_lnk_via_com(lnk_path: str, target: str, workdir: str, icon: str,
+                      description: str, arguments: str = '') -> dict:
+    """用 `WScript.Shell.CreateShortcut` 生成 .lnk（**APP-052 ① 的修法**）。
+
+    🔴 **由 Windows 自己**写 `LinkTargetIDList` / `LinkInfo` ⇒ 必然可启动。
+    🔴 **写完立刻 COM 读回自检** ⇒ 读回不通过 ⇒ 抛错 ⇒ **fail-closed**。
+    """
+    ok, reason, shell = _com_available()
+    if not ok:
+        raise RuntimeError('无法生成快捷方式：%s' % reason)
+    # 🔴🔴🔴 **必须先删旧文件**：`CreateShortcut` 对**已存在**的路径会
+    #   **载入旧内容** ⇒ 上一版坏链残留的 `Arguments='C'` 会被**继承**下来
+    #   （实测：重建后 `Arguments` 仍是 `[C]`）⇒ 必须先删 ⇒ 从零生成。
+    if os.path.exists(lnk_path):
+        try:
+            os.remove(lnk_path)
+        except OSError as e:
+            raise RuntimeError('删除旧快捷方式失败：%r' % e)
+    sc = shell.CreateShortcut(lnk_path)
+    sc.TargetPath = target
+    sc.WorkingDirectory = workdir
+    sc.Description = description
+    if icon and os.path.isfile(icon):
+        sc.IconLocation = '%s,0' % icon
+    # 🔴 **总是显式赋值**（哪怕是空串）⇒ 不留任何继承来的旧字段
+    sc.Arguments = arguments or ''
+    sc.save()
+    # 🔴 **写后自检**：COM 读回必须非空 ⇒ 否则说明这条链还是坏的
+    back = com_read_lnk(lnk_path)
+    if not back['ok'] or not back['target']:
+        raise RuntimeError('快捷方式写入后 COM 读回 TargetPath 为空：%r' % back)
+    return back
 
 
 def lnk_target_of(path: str) -> str:
-    """从 .lnk 字节里**反解**目标路径（用于幂等判断 + 自检）。
+    """从 .lnk **反解**目标路径（用于幂等判断 + 自检）。
 
-    🔴 **按 MS-SHLLINK 结构解析**（不是正则乱扫）⇒ 不会把多个路径串起来。
-      Header 76 字节 ⇒ StringData 从 76 开始：
-      [0] NameString  [1] RelativePath(这里放绝对目标)  [2] WorkingDir
-      [3] Arguments   [4] IconLocation
+    🔴🔴🔴 **【APP-052 ①】权威来源改为 COM 读回**。
+      上一版是「按 MS-SHLLINK 结构解析 StringData 的第 2 个串」⇒ 对
+      **本模块自己造的坏链**照样能解出目标 ⇒ **判据自欺欺人**（假通过）。
+      ⇒ 现在改为 `com_read_lnk()` 读回 `TargetPath`；
+      ⇒ COM 不可用时**退回字节解析**（仅作**降级诊断**用，并在结果里
+        标记 `read_source='bytes_fallback'` ⇒ 判据据此**降级为不通过**）。
     """
+    back = com_read_lnk(path)
+    if back['ok']:
+        return back['target']
+    # 🔴 降级：字节解析（**不作为通过依据**，见上）
     try:
         b = open(path, 'rb').read()
     except OSError:
@@ -203,7 +261,7 @@ def update_desktop_shortcut(pkg_dir: str, version: str, dry_run: bool = False,
     返回 dict：`{ok, reason, lnk_path, target, removed, accepted}`。
     """
     res = dict(ok=False, reason='', lnk_path='', target='', removed=[],
-               accepted=False, desktop='')
+               accepted=False, desktop='', com=None, linkflags=None)
     desk = desktop_dir()
     res['desktop'] = desk
     if not os.path.isdir(desk):
@@ -234,19 +292,47 @@ def update_desktop_shortcut(pkg_dir: str, version: str, dry_run: bool = False,
     new_lnk = os.path.join(desk, new_name + '.lnk')
 
     # ── 幂等：已指向同一目标 ⇒ 不动 ───────────────────────────────
+    #    🔴【APP-052 ①】幂等判断必须用 **COM 读回**，且**必须**检查
+    #    LinkFlags 带上目标定位位 ⇒ 否则**坏链**会被当成「已指向」而放过。
     if os.path.isfile(new_lnk):
-        cur = lnk_target_of(new_lnk)
-        if cur and os.path.normcase(cur) == os.path.normcase(target):
+        back = com_read_lnk(new_lnk)
+        # 🔴🔴🔴【APP-052 ①】**COM 不可用 ⇒ 无法判定**（≠「链不合格」）
+        #   实测事故（2026-11-01 14:47 打包时）：打包脚本用的是**没装
+        #   pywin32 的解释器** ⇒ `com_read_lnk` 返 `ok=False` ⇒
+        #   `cur=''` ⇒ 旧逻辑把它当成「**不合格**」⇒ 打印「不合格 ⇒ 重建」
+        #   ⇒ 接着去重建 ⇒ 又因 pywin32 缺失而抛错
+        #   ⇒ **日志吓人（像坏链），实际链是好的**，而且白白尝试重建。
+        #   ⇒ 正确处置：**区分「无法判定」与「判定为不合格」**；
+        #     前者**直接返回**（不重建、不改链），后者才重建。
+        if not back['ok']:
+            res['reason'] = ('COM 不可用（%s）⇒ **无法判定**现有快捷方式是否合格'
+                             ' ⇒ **不重建、不改动**（请用装了 pywin32 的解释器'
+                             '重跑，例如仓库 .venv）' % back.get('reason', ''))
+            res['lnk_path'] = new_lnk
+            res['com'] = back
+            res['linkflags'] = lnk_linkflags(new_lnk)
+            on_log('[shortcut] ⚠️ %s' % res['reason'])
+            return res
+        cur = back['target']
+        flags_ok = lnk_flags_ok(new_lnk)
+        # 🔴🔴🔴 幂等判断**必须校验全部关键字段**，不能只看 target：
+        #   实测踩到：坏链修好后 `Arguments` 仍残留 `'C'`（COM `CreateShortcut`
+        #   对已存在路径会**载入旧内容**）⇒ 只看 target ⇒ 判「幂等」⇒
+        #   **残留永远清不掉** ⇒ ⇒ 这里也要求 Arguments 为空。
+        args_ok = (not (back.get('arguments') or '').strip())
+        if (cur and os.path.normcase(cur) == os.path.normcase(target)
+                and flags_ok and args_ok):
             res['ok'] = True
             res['lnk_path'] = new_lnk
             res['target'] = target
+            res['com'] = back
+            res['linkflags'] = lnk_linkflags(new_lnk)
             res['reason'] = '已指向当前版本（幂等，无需重建）'
             on_log('[shortcut] ✓ %s' % res['reason'])
             return res
-
-    data = build_lnk(target=target, workdir=workdir, icon=icon,
-                     description='Confucius4 实时字幕 v%s 客户包' % version,
-                     name=new_name)
+        # 🔴 否则（坏链 / 指向别的 / COM 读不到 / 有残留参数）⇒ **重建**
+        on_log('[shortcut] ⚠️ 现有快捷方式不合格（COM 读回 target=%r flags_ok=%s '
+               'args_ok=%s）⇒ 重建' % (cur, flags_ok, args_ok))
 
     # ── 清理旧快捷方式（保证「只保留一个」）──────────────────────
     #    🔴 **只删同名前缀的**（含版本号的 + 旧的无版本号那个）
@@ -279,21 +365,63 @@ def update_desktop_shortcut(pkg_dir: str, version: str, dry_run: bool = False,
         on_log('[shortcut] [dry-run] %s' % res['reason'])
         return res
 
+    # 🔴🔴🔴【APP-052 ①】用 **COM** 生成（不再手工拼字节）
     try:
-        with open(new_lnk, 'wb') as f:
-            f.write(data)
-    except OSError as e:
-        res['reason'] = '写入失败：%s' % e
+        back = write_lnk_via_com(
+            lnk_path=new_lnk, target=target, workdir=workdir, icon=icon,
+            description='Confucius4 实时字幕 v%s 客户包' % version)
+    except Exception as e:
+        res['reason'] = '写入失败：%r' % e
         on_log('[shortcut] ⚠️ %s' % res['reason'])
         return res
 
     res['ok'] = True
     res['lnk_path'] = new_lnk
     res['target'] = target
+    res['com'] = back
+    res['linkflags'] = lnk_linkflags(new_lnk)
     res['reason'] = '已更新桌面快捷方式：%s ⇒ %s（清理旧 %d 个）' % (
         new_lnk, target, len(removed))
     on_log('[shortcut] ✓ %s' % res['reason'])
     return res
+
+
+def verify_lnk(lnk_path: str, pkg_dir: str, expect_target: str = '') -> dict:
+    """🔴🔴🔴 **【APP-052 ①】权威判据**：校验一个 .lnk 是不是**真能用**的链。
+
+    四道判据（**全部**须通过）：
+      V1 **COM 读回 TargetPath 非空**（且不是 COM 读不到）
+      V2 **TargetPath 所指文件存在**
+      V3 **TargetPath 在 `pkg_dir` 之内**（不得指向别的包 / 系统目录）
+      V4 **LinkFlags 含目标定位位**（`HasLinkTargetIDList` 或 `HasLinkInfo`）
+         ⇒ 这一条专门用来**识破「手工拼字节的坏链」**
+
+    返回 dict：`{ok, checks, reason, com, linkflags}`。
+    """
+    checks = {}
+    back = com_read_lnk(lnk_path)
+    checks['v1_com_target_nonempty'] = bool(back['ok'] and back['target'])
+    checks['v2_target_exists'] = bool(
+        back['target'] and os.path.isfile(back['target']))
+    tp = back['target'] or ''
+    if tp and pkg_dir:
+        try:
+            rel = os.path.relpath(os.path.normcase(tp),
+                                  os.path.normcase(pkg_dir))
+            inside = not rel.startswith('..')
+        except ValueError:
+            inside = False
+    else:
+        inside = False
+    checks['v3_target_in_pkg'] = bool(inside)
+    checks['v4_linkflags_has_target'] = bool(lnk_flags_ok(lnk_path))
+    if expect_target:
+        checks['v5_target_matches_expected'] = bool(
+            tp and os.path.normcase(tp) == os.path.normcase(expect_target))
+    ok = all(checks.values())
+    return dict(ok=ok, checks=checks, com=back,
+                linkflags=lnk_linkflags(lnk_path),
+                reason='' if ok else '不通过：%r' % checks)
 
 
 def main():

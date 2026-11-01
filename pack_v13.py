@@ -395,8 +395,34 @@ V16_APP_NOTE = (
 )
 
 
+# 🔴🔴🔴【APP-052 ③】v1.13 修订说明（面向客户，只写「已在包内落地」的事实）
+#
+# 🔴 **为什么必须补这一段**：reviewer APP-052 ③ 实测发现
+#   `app/MANIFEST.json` 的 `notes` 里**最新的段落是「v1.6 修订」**
+#   （2026-10-27）⇒ v1.13 的三处改动**对客户完全不可见**
+#   ⇒ notes 与包内实际内容**不一致**（正是 APP-005② / C-133 的红线）。
+#
+# 🔴 **本段只写三件「客户能感知」的事**（§66 口径：只写已落地的事实）：
+#   ① 开发机路径不再出现在包内任何文件里（含 docstring）
+#   ② 随包开发测试输出已剔除
+#   ③ 桌面快捷方式改为由 Windows 原生接口生成（此前是坏链，双击启动不了）
+V113_APP_NOTE = (
+    'v1.13 修订（2026-11-01，APP-052 执行后）：'
+    '（17）**包内不再含开发机路径** —— 此前客户机上会看到'
+    '「C:\\Users\\<开发机用户名>\\...」这类路径（代码注释与说明文字里）。'
+    '现全部改为按**当前用户家目录**自动推导（客户机自动指向自己的家目录），'
+    '文档中的示例一律写成 <HOME> 占位。'
+    '（18）**随包不再附带开发期测试输出** —— results/ 下的精度比对中间产物'
+    '（各精度/设备的逐句输出）已剔除；保留的是完整精度汇总报告'
+    '（results/mt2_accuracy.json 与 .md）。'
+    '（19）**桌面快捷方式由 Windows 原生接口生成** —— 此前版本的手工构造方式'
+    '会产生「点开没有反应」的快捷方式；现由系统生成，'
+    '双击即可启动本包，并已验证从快捷方式连续两次冷启动均正常。'
+)
+
+
 def ensure_v14_notes(data):
-    """幂等地保证 notes 里有 v1.4 的 TTS / INT8 修订说明 + v1.5 / v1.6 的本轮修订。
+    """幂等地保证 notes 里有 v1.4 的 TTS / INT8 修订说明 + v1.5 / v1.6 / v1.13 的本轮修订。
 
     APP-005②：MANIFEST 的 notes 必须与包内实际内容一致，
     否则就是「对客户不成立的承诺」（C-133 的教训）。
@@ -415,6 +441,16 @@ def ensure_v14_notes(data):
         changed = True
     if '（13）**默认设备摆放定案**' not in notes:
         notes = V16_APP_NOTE + notes
+        changed = True
+    if '（17）**包内不再含开发机路径**' not in notes:
+        notes = V113_APP_NOTE + notes
+        changed = True
+    # 🔴🔴🔴【APP-052 ③】**清理历史段落里的开发机路径**
+    #   notes 是**累积**的 ⇒ v1.2 那段「原先写死了开发机的绝对路径
+    #   （C:\Users\Trekker-PTL\... 的 models/…）」把**开发机用户名**留在了
+    #   交付包里 ⇒ 换成 `<HOME>` 占位（**不删历史说明**，只脱敏）。
+    if 'C:\\Users\\Trekker-PTL' in notes:
+        notes = notes.replace('C:\\Users\\Trekker-PTL', '<HOME>')
         changed = True
     data['notes'] = notes
     return changed

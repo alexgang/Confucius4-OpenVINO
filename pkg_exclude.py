@@ -27,6 +27,7 @@ C-133 / APP-002：客户包瘦身（删除编译缓存等不进包的文件）�
 | `*.bak*` | 开发期备份（`.bak_c105` / `.bak_instruct_20261022` / `.bak_mtdev_20261019` …） |
 | `results/**/*_spoken.*` | 🔴 **内部会议录音的转写/翻译**（APP-003①）。`results/mt2_acc_outputs/int8_gpu_spoken.txt` 第 2 行是「[REDACTED-内部会议引文]」⇒ 属 BRIEF 规定的「会议录音不能进客户包」 |
 | `results/mt2_memory.json` | 🔴 **同样含内部会议内容**（APP-003①，reviewer 未点名，本模块实测发现）。该文件的 `out` 字段是「[REDACTED-内部会议引文]」—— 是 `spoken` 语料的译文示例 |
+| `results/mt2_acc_outputs/` | 🔴 **【APP-052 ③】开发期精度比对输出**（22 个文件；其中 **12 个 `.json` 含开发机绝对路径** `C:\Users\Trekker-PTL\hy_bench\...`）⇒ 客户机跑不出也不需要 ⇒ 整目录排除。**不误伤** `results/mt2_accuracy.json` / `.md`（汇总报告，MANIFEST 承诺随包） |
 
 **刻意保留**
 | 保留 | 理由 |
@@ -74,6 +75,7 @@ __all__ = [
     'SPOKEN_FILE_RE',
     'RESULTS_DIR',
     'INTERNAL_EXACT',
+    'MT2_ACC_OUTPUTS_DIR',
     'APP_DIR',
     'APP_DEV_ONLY_FILE_RE',
     'is_app_dev_only',
@@ -157,6 +159,35 @@ RESULTS_DIR = 'results/'
 INTERNAL_EXACT = (
     'results/mt2_memory.json',
 )
+
+# ══════════════════════════════════════════════════════════════════════
+# 🔴🔴🔴 【APP-052 ③】开发测试输出目录排除
+# ══════════════════════════════════════════════════════════════════════
+#
+# reviewer APP-052 ③ 原文：
+#   「仍有残留：`results/mt2_acc_outputs/*.json`（12 个开发测试输出，含
+#     `C:\Users\Trekker-PTL\hy_bench\...` 路径）**不应该进客户包**，
+#     需要加到 pkg_exclude，或者说明随包的理由。」
+#
+# 🔴 **实测确认（reviewer 的指控完全成立）**：
+#   `results/mt2_acc_outputs/` 共 **22** 个文件（12 个 `.json` + 10 个 `.txt`），
+#   其中 **12 个 `.json`** 含开发机绝对路径 `C:\Users\Trekker-PTL\hy_bench\...`
+#   ⇒ 客户机看到的是**开发机路径** ⇒ 属于「开发机路径泄漏」（与 §120
+#   修掉的 5 处代码泄漏**同性质**）。
+#
+# 🔴 **为什么整目录排除而不是只排 12 个 JSON**：
+#   ① 这 22 个文件是**开发期精度比对产物**（各种精度/设备的 en2zh/zh2en
+#      逐句输出）⇒ 客户机跑不出、也不需要；
+#   ② `.txt` 与 `.json` 是**同一次运行的配套输出** ⇒ 只排一半会造成
+#      「包里有 .txt 却没有 .json」的不一致；
+#   ③ `pkg_exclude` 的既有口径就是「按**目录**排除开发产物」
+#      （`ov_cache` / `npu_cache` / `mt_cache` / `tts_npu_cache` 同理）。
+#
+# ⚠️ **不误伤**：`results/mt2_accuracy.json` / `results/mt2_accuracy.md`
+#   是**汇总报告**（MANIFEST 的 notes 承诺「完整矩阵与逐句输出随包附在
+#   `results\`」）⇒ **保留** ⇒ 所以这里排除的是**子目录**
+#   `results/mt2_acc_outputs/`，**不是** `results/` 整体。
+MT2_ACC_OUTPUTS_DIR = 'results/mt2_acc_outputs/'
 
 # ══════════════════════════════════════════════════════════════════════
 # 🔴 第三方自带素材排除（APP-018 第 2 条 + APP-019）
@@ -540,6 +571,11 @@ def is_excluded(relpath: str, top_dir: str = None) -> bool:
         if relpath.startswith(prefix):
             return True
 
+    # 2.1) 🔴🔴🔴 开发测试输出目录（【APP-052 ③】）
+    #   `results/mt2_acc_outputs/`（12 个 JSON 含 `C:\Users\Trekker-PTL\hy_bench\...`）
+    if relpath.startswith(MT2_ACC_OUTPUTS_DIR):
+        return True
+
     # 2.5) 🔴 内部会议内容（APP-003①）
     if relpath in INTERNAL_EXACT:
         return True
@@ -608,6 +644,10 @@ def iter_package_files(pkg_root: str):
             #   （`tts_speakers/` ⇒ 用户音色库，绝不能进包）
             if d in USER_SPEAKER_DIR_NAMES:
                 continue
+            # 🔴🔴🔴 开发测试输出目录（【APP-052 ③】）—— 整目录 prune
+            #   （`results/mt2_acc_outputs/` ⇒ 12 个 JSON 含开发机路径）
+            if (rel_dir != '.' and d_rel.startswith(MT2_ACC_OUTPUTS_DIR)):
+                continue
             keep.append(d)
         dirnames[:] = sorted(keep)
 
@@ -624,6 +664,9 @@ def iter_package_files(pkg_root: str):
             if BACKUP_FILE_RE.match(fn):
                 continue
             if any(rel.startswith(p) for p in SKIP_PATH_PREFIXES):
+                continue
+            # 🔴🔴🔴 开发测试输出目录（【APP-052 ③】）—— 文件级
+            if rel.startswith(MT2_ACC_OUTPUTS_DIR):
                 continue
             # 🔴 内部会议内容（APP-003①）
             if rel in INTERNAL_EXACT:
@@ -665,7 +708,8 @@ def iter_excluded(pkg_root: str):
                 BACKUP_DIR_RE.match(d)) or (
                 d == '__pycache__' and top_dir not in KEEP_PYCACHE_UNDER) or (
                 any(d_rel.startswith(p) for p in THIRD_PARTY_NOISE_PREFIXES)) or (
-                d in USER_SPEAKER_DIR_NAMES)
+                d in USER_SPEAKER_DIR_NAMES) or (
+                d_rel.startswith(MT2_ACC_OUTPUTS_DIR))
             if not hit:
                 continue
             for p2, _d2, f2 in os.walk(os.path.join(dirpath, d)):

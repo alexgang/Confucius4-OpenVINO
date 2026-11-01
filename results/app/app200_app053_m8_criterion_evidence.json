@@ -1,0 +1,95 @@
+{
+ "script": "app200_app053_m8_criterion_fix.py",
+ "correction": "APP-053",
+ "purpose": "修掉 app195 的 M8 判据缺陷（簇号 vs 人工标注编号无语义对应 ⇒ 恒假）⇒ 改用「最优编号置换」口径",
+ "src_evidence": "app195_app053_mechanism_evidence.json",
+ "criterion_defect": {
+  "old": "M8 A 臂与参考伪真值一致率 ≥ 60 %（**直接比字符串**）",
+  "why_broken": "App 的 spk 是聚类簇号（S1/S2/S3/S4，首次出现序决定）；参考标注的 S1…S5 是人工编号（标注序决定）⇒ 两套编号无语义对应 ⇒ 直接比字符串必然≈0 ⇒ 恒假判据",
+  "new": "M8' A 臂**最优编号置换**后一致率 ≥ 60 %",
+  "measured_a_arm_pct": 82.61,
+  "measured_a_arm_raw_pct": 0.0,
+  "conclusion": "A 臂的说话人判定其实是对的（82.61 % ≥ 60 %）⇒ app195 的 verdict=FAIL 是**判据缺陷**，不是产品缺陷"
+ },
+ "arms": [
+  {
+   "arm": "A_oneshot_300s",
+   "n_rows": 46,
+   "n_tagged": 41,
+   "raw_agree": 0,
+   "raw_agree_pct": 0.0,
+   "best_permutation_agree": 38,
+   "best_permutation_agree_pct": 82.61,
+   "mapping": {
+    "S1": "S3",
+    "S2": "S1",
+    "S3": "S2",
+    "S4": "S5"
+   }
+  },
+  {
+   "arm": "C_batch_10s",
+   "n_rows": 46,
+   "n_tagged": 41,
+   "raw_agree": 0,
+   "raw_agree_pct": 0.0,
+   "best_permutation_agree": 38,
+   "best_permutation_agree_pct": 82.61,
+   "mapping": {
+    "S1": "S3",
+    "S2": "S1",
+    "S3": "S2",
+    "S4": "S5"
+   }
+  },
+  {
+   "arm": "B_incremental_100ms_40s",
+   "n_rows": 0,
+   "n_tagged": 0,
+   "raw_agree": 0,
+   "raw_agree_pct": 0.0,
+   "best_permutation_agree": 0,
+   "best_permutation_agree_pct": 0.0,
+   "mapping": {}
+  }
+ ],
+ "checks": [
+  {
+   "name": "M8' A 臂（一次性喂）**最优置换**一致率 ≥ 60 %",
+   "ok": true,
+   "detail": {
+    "arm": "A_oneshot_300s",
+    "raw_pct": 0.0,
+    "best_pct": 82.61,
+    "mapping": {
+     "S1": "S3",
+     "S2": "S1",
+     "S3": "S2",
+     "S4": "S5"
+    }
+   }
+  },
+  {
+   "name": "反证：打乱标签后一致率必须**大幅下降**（判据非恒真）",
+   "ok": true,
+   "detail": {
+    "real_best": 38,
+    "shuffled_max": 20,
+    "shuffled_mean": 16.0,
+    "n_trials": 20
+   }
+  },
+  {
+   "name": "反证 2：打乱**参考标注**后一致率必须下降（判据非恒真）",
+   "ok": true,
+   "detail": {
+    "real_best": 38,
+    "shuffled": 16
+   }
+  }
+ ],
+ "n_pass": 3,
+ "n_fail": 0,
+ "verdict": "PASS",
+ "ts": "2026-11-01 14:22:20"
+}

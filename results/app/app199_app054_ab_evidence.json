@@ -1,0 +1,128 @@
+{
+ "script": "app199_app054_ab_run.py",
+ "correction": "APP-054",
+ "shadow": "C:\\Users\\Trekker-PTL\\shared\\app053054_shadow",
+ "wav": "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+ "arms": [
+  {
+   "file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app199_ab_out\\arm_off.txt",
+   "exists": true,
+   "bytes": 33249,
+   "summary_found": true,
+   "engine": "gpu_int8",
+   "audio_s": 300.0,
+   "wall_s": 300.8,
+   "rtf": 0.632,
+   "first_char_latency_ms": 331.0,
+   "max_backlog_s": 1.5,
+   "n_segs": 46,
+   "runner_wall_s_marker": 307.4,
+   "n_spk_label_backfilled": 0,
+   "n_spk_no_label_reasons": 1,
+   "spk_lines_sample": [
+    "[spk] 说话人资产（包内）：wespeaker fp16；pyannote_seg_3_0 fp16",
+    "[spk] 第 0 段无说话人标签：speaker_disabled"
+   ],
+   "cli_txt_bytes": 4704,
+   "cli_n_lines": 46,
+   "cli_n_spk_tagged_lines": 0,
+   "arm": "off",
+   "runner_wall_s": 308.82,
+   "rc": 0,
+   "stdout_tail": "hat does it mean for us as engineering. So what do we need to go do to enable\n\n[实时] table that\n[实时] table that grew.\n[实时] Table that grew, so I'm\n[实时] Table that grew. So on client\n[实时] Table that grew. So on client strategy\n[实时] Table that grew. So on client strategy is take\n[实时] Table that grew. So on client strategy is take back msa\n[实时] Table that grew. So on client strategy is take back MSS.\n[实时] Table that grew. So on client strategy is take back MSS. Windows\n[实时] Table that grew. So on client strategy is take back MSS, win the agenda.\n[定稿] Table that grew. So on client strategy is take back MSS, win the agenda.\n\n[实时] pute\n[实时] compute and grow connectivity\n[实时] compute and grow connectivity. So connectivity\n[实时] compute and grow connectivity. So connectivities are\n[实时] compute and grow connectivity. So connectivities are wired and\n[实时] compute and grow connectivity. So connectivities are wired and wireless business.\n[实时] compute and grow connectivity. So connectivities are wired and wireless business, right?\n[实时] onnectivity. So connectivities are wired and wireless business, right? What does that mean\n[实时] ity. So connectivities are wired and wireless business, right? What does that mean for us?\n[定稿] compute and grow connectivity. So connectivities are wired and wireless business, right? What does that mean for us?\n\n[实时] No change in what\n[实时] No change in what we're doing\n[实时] No change in what we're doing today. Job\n[实时] No change in what we're doing today. Job one, noble\n[实时] No change in what we're doing today. Job one, noble at scale.\n[实时] No change in what we're doing today. Job one, noble liquid scale, right?\n[实时] No change in what we're doing today. Job one, noble liquid scale. Right, if you look at\n[实时]  in what we're doing today. Job one, noble liquid scale. Right? If you look at where we've\n[定稿] No change in what we're doing today. Job one, noble liquid scale. Right? If you look at where we've lost\n\n[实时] Lost\n[实时] Lost, competitive,\n[实时] Lost competitive share in the\n[实时] Lost competitive share in the last few years\n[实时] Lost competitive share in the last few generations.\n[实时] Lost competitive share in the last few generations. It's been lacking\n[实时] Lost competitive share in the last few generations. It's been lack of performance\n[实时] Lost competitive share in the last few generations. It's been lack of performance.\n[实时] ost competitive share in the last few generations. It's been lack of performance desktops.\n[定稿] competitive share in the last few generations. It's been lack of performance desktops.\n\n[实时] solutions\n[实时] Solutions, Nov\n[实时] Solutions. Novellik solves\n[实时] Solutions. Novellix solves that problem.\n[实时] Solutions. Novellix solves that problem. When we come\n[实时] Solutions. Novellix solves that problem. When we come out with Nov\n[定稿] Solutions. Novellix solves that problem. When we come out with Novellix,\n\n[gpu_int8] 音频 300.0s  墙钟 300.8s  RTF(计算) 0.632  出字延迟中位 331 ms  最大积压 1.5s  段 46\n[perfdiag] arm=off wall=307.4s\n",
+   "stderr_tail": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+  },
+  {
+   "file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app199_ab_out\\arm_on.txt",
+   "exists": true,
+   "bytes": 37096,
+   "summary_found": true,
+   "engine": "gpu_int8",
+   "audio_s": 300.0,
+   "wall_s": 300.6,
+   "rtf": 0.616,
+   "first_char_latency_ms": 316.0,
+   "max_backlog_s": 1.2,
+   "n_segs": 46,
+   "runner_wall_s_marker": 308.4,
+   "n_spk_label_backfilled": 43,
+   "n_spk_no_label_reasons": 1,
+   "spk_lines_sample": [
+    "[spk] 说话人资产（包内）：wespeaker fp16；pyannote_seg_3_0 fp16",
+    "[spk] 说话人旁路后台线程已启动",
+    "[spk] 第 0 段无说话人标签：async_pending",
+    "[spk] 说话人旁路已加载（ASR-029 接口）",
+    "[spk] 说话人旁路窗口：10.000 s 音频 / 推理 1.288 s",
+    "[spk] new_spk {'spk': 'S1'}",
+    "[spk] 标签补到：第 1 段 = S1",
+    "[spk] 说话人旁路窗口：10.000 s 音频 / 推理 0.254 s"
+   ],
+   "cli_txt_bytes": 4919,
+   "cli_n_lines": 46,
+   "cli_n_spk_tagged_lines": 43,
+   "arm": "on",
+   "runner_wall_s": 309.92,
+   "rc": 0,
+   "stdout_tail": "hat grew. So on client strategy is take back msa\n[实时] Table that grew. So on client strategy is take back MSS.\n[实时] Table that grew. So on client strategy is take back MSS. Windows\n[实时] Table that grew. So on client strategy is take back MSS, win the agenda.\n[定稿] Table that grew. So on client strategy is take back MSS, win the agenda.\n\n[实时] pute\n[实时] compute and grow connectivity\n[实时] compute and grow connectivity. So connectivity\n[实时] compute and grow connectivity. So connectivities are\n[实时] compute and grow connectivity. So connectivities are wired and  [spk] 说话人旁路窗口：10.000 s 音频 / 推理 0.207 s\n  [spk] 标签补到：第 40 段 = S1\n  [spk] 标签补到：第 41 段 = S1\n\n[实时] compute and grow connectivity. So connectivities are wired and wireless business.\n[实时] compute and grow connectivity. So connectivities are wired and wireless business, right?\n[实时] onnectivity. So connectivities are wired and wireless business, right? What does that mean\n[实时] ity. So connectivities are wired and wireless business, right? What does that mean for us?\n[定稿] compute and grow connectivity. So connectivities are wired and wireless business, right? What does that mean for us?\n\n[实时] No change in what\n[实时] No change in what we're doing\n[实时] No change in what we're doing today. Job\n[实时] No change in what we're doing today. Job one, noble\n[实时] No change in what we're doing today. Job one, noble at scale.\n[实时] No change in what we're doing today. Job one, noble liquid scale, right?\n[实时] No change in what we're doing today. Job one, noble liquid scale. Right, if you look at\n[实时]  in what we're doing today. Job one, noble liquid scale. Right? If you look at where we've\n[定稿] No change in what we're doing today. Job one, noble liquid scale. Right? If you look at where we've lost\n  [spk] 说话人旁路窗口：10.000 s 音频 / 推理 0.329 s\n\n[实时] Lost  [spk] 标签补到：第 42 段 = S1\n  [spk] 标签补到：第 43 段 = S1\n\n[实时] Lost, competitive,\n[实时] Lost competitive share in the\n[实时] Lost competitive share in the last few years\n[实时] Lost competitive share in the last few generations.\n[实时] Lost competitive share in the last few generations. It's been lacking\n[实时] Lost competitive share in the last few generations. It's been lack of performance\n[实时] Lost competitive share in the last few generations. It's been lack of performance.\n[实时] ost competitive share in the last few generations. It's been lack of performance desktops.\n[定稿] competitive share in the last few generations. It's been lack of performance desktops.\n\n[实时] solutions\n[实时] Solutions, Nov\n[实时] Solutions. Novellik solves\n[实时] Solutions. Novellix solves that problem.\n[实时] Solutions. Novellix solves that problem. When we come\n[实时] Solutions. Novellix solves that problem. When we come out with Nov  [spk] 说话人旁路窗口：10.000 s 音频 / 推理 0.283 s\n  [spk] 标签补到：第 44 段 = S1\n\n[定稿] Solutions. Novellix solves that problem. When we come out with Novellix,\n\n[gpu_int8] 音频 300.0s  墙钟 300.6s  RTF(计算) 0.616  出字延迟中位 316 ms  最大积压 1.2s  段 46\n  [spk] 收尾结算 1 段\n  [spk] 标签补到：第 45 段 = S1\n[perfdiag] arm=on wall=308.4s\n",
+   "stderr_tail": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+  }
+ ],
+ "summary": {
+  "wall_off_s": 300.8,
+  "wall_on_s": 300.6,
+  "wall_delta_s": -0.2,
+  "max_backlog_off_s": 1.5,
+  "max_backlog_on_s": 1.2,
+  "latency_off_ms": 331.0,
+  "latency_on_ms": 316.0,
+  "latency_delta_ms": -15.0,
+  "rtf_off": 0.632,
+  "rtf_on": 0.616,
+  "n_segs_off": 46,
+  "n_segs_on": 46,
+  "n_spk_backfilled_on": 43,
+  "cli_n_spk_tagged_lines_on": 43,
+  "cli_n_lines_on": 46
+ },
+ "checks": [
+  {
+   "name": "两臂都跑完且有汇总行",
+   "ok": true,
+   "detail": {
+    "off_found": true,
+    "on_found": true
+   }
+  },
+  {
+   "name": "APP-054 ③ 旁路开时墙钟 ≤ 音频 + 3 s",
+   "ok": true,
+   "detail": {
+    "wall_s": 300.6,
+    "audio_s": 300.0,
+    "limit": 303.0
+   }
+  },
+  {
+   "name": "APP-054 ③ 旁路开时最大积压 ≤ 2 s",
+   "ok": true,
+   "detail": {
+    "max_backlog_s": 1.2,
+    "limit": 2.0
+   }
+  },
+  {
+   "name": "APP-054 ③ 出字延迟中位相比旁路关时增加 ≤ 200 ms",
+   "ok": true,
+   "detail": {
+    "off_ms": 331.0,
+    "on_ms": 316.0,
+    "delta_ms": -15.0,
+    "limit": 200.0
+   }
+  }
+ ],
+ "n_pass": 4,
+ "n_fail": 0,
+ "verdict": "PASS",
+ "ts": "2026-11-01 14:31:36"
+}

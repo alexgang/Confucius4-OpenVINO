@@ -1,0 +1,134 @@
+{
+ "script": "app202_app053_coverage_acceptance.py",
+ "correction": "APP-053",
+ "purpose": "APP-053 ③ 标签覆盖率验收（离线，只用已落盘产物）",
+ "before": {
+  "coverage_pct": 7.23,
+  "n_spk_tagged_lines": 7,
+  "n_spk_reference": 5,
+  "n_switch_points": 2,
+  "source": "app175_app043_clone_acceptance_evidence.json"
+ },
+ "pyannote_offline_1c": {
+  "app_rule_pct": 89.13,
+  "ref_rule_pct": 95.65,
+  "source": "app193_app053_spk_frame_audit.json"
+ },
+ "after": {
+  "measured_coverage_pct": 93.48,
+  "n_lines": 46,
+  "n_tagged": 43,
+  "n_backfilled": 43,
+  "arm": "on",
+  "source": "app199_app054_ab_evidence.json"
+ },
+ "distinct_spk_labels": [
+  "S1"
+ ],
+ "untagged_reasons": [
+  [
+   0,
+   "async_pending"
+  ]
+ ],
+ "checks": [
+  {
+   "name": "修复前基线（app175）覆盖率 = 7.23 %",
+   "ok": true,
+   "detail": {
+    "spk_label_coverage_pct": 7.23,
+    "n_spk_tagged_lines": 7,
+    "n_spk_reference": 5
+   }
+  },
+  {
+   "name": "修复后实测覆盖率 ≥ 修复前的 10 倍（7.23 % ⇒ ≥ 72.3 %）",
+   "ok": true,
+   "detail": {
+    "measured_pct": 93.48,
+    "baseline_pct": 7.23
+   }
+  },
+  {
+   "name": "与 1c 口径（App 原规则 89.13 %）差距 ≤ 5 pp",
+   "ok": true,
+   "detail": {
+    "measured_pct": 93.48,
+    "pyannote_offline_app_rule_pct": 89.13,
+    "gap_pp": 4.35,
+    "limit_pp": 5.0
+   }
+  },
+  {
+   "name": "与 1c 口径（ASR 参考真值 95.65 %）差距 ≤ 5 pp",
+   "ok": true,
+   "detail": {
+    "measured_pct": 93.48,
+    "pyannote_offline_ref_rule_pct": 95.65,
+    "gap_pp": 2.17,
+    "limit_pp": 5.0
+   }
+  },
+  {
+   "name": "晚到标签**确实被回填**（回填数 > 0 且 = 字幕标签行数）",
+   "ok": true,
+   "detail": {
+    "n_spk_label_backfilled": 43,
+    "cli_n_spk_tagged_lines": 43,
+    "n_spk_no_label_reasons": 1
+   }
+  },
+  {
+   "name": "旁路关闭时字幕**无**说话人标签（行为与 v1.12 一致）",
+   "ok": true,
+   "detail": {
+    "off_cli_n_spk_tagged_lines": 0,
+    "off_n_lines": 46
+   }
+  },
+  {
+   "name": "每种「无标签原因」**至少记一次**（App 按去重口径记）",
+   "ok": true,
+   "detail": {
+    "n_untagged": 3,
+    "n_reasons_listed": 1,
+    "reasons": [
+     [
+      0,
+      "async_pending"
+     ]
+    ]
+   }
+  },
+  {
+   "name": "日志里记到的「无标签段号」**必须**落在无标签段号集合内",
+   "ok": true,
+   "detail": {
+    "logged_segs": [
+     0
+    ],
+    "untagged_segs": [
+     0,
+     6,
+     39
+    ]
+   }
+  },
+  {
+   "name": "无标签段号**逐句列全**（数量 = 无标签句数）",
+   "ok": true,
+   "detail": {
+    "n_untagged": 3,
+    "n_untagged_segs": 3,
+    "untagged_segs": [
+     0,
+     6,
+     39
+    ]
+   }
+  }
+ ],
+ "n_pass": 9,
+ "n_fail": 0,
+ "verdict": "PASS"
+}

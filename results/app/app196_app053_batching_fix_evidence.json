@@ -1,0 +1,108 @@
+{
+  "script": "app196_app053_batching_fix_test.py",
+  "correction": "APP-053",
+  "purpose": "验证「段自身区间」时间对齐口径（APP-053 ①a）＋ 2 条反证（旧规则必须 FAIL）",
+  "rewritten": "2026-11-01：初版断言的「feed 自己攒整窗」已被 APP-054 的「后台线程攒批」取代 ⇒ 断言对象过期 ⇒ 重写为「时间对齐口径」这条仍然有效的语义",
+  "target": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\speaker_tracker.py",
+  "load_method": "ast + exec（不 import ⇒ 顶层 numpy 不会 abort）",
+  "constants": {
+    "SR": 16000,
+    "MIN_S": 2.5,
+    "SPAN_MIN_S": 2.5
+  },
+  "checks": [
+    {
+      "name": "T0 `span_for_segment()` 存在（APP-053 的时间对齐落点）",
+      "ok": true,
+      "detail": {
+        "has_span_for_segment": true
+      }
+    },
+    {
+      "name": "T1 段自身区间（起点 = 上一段末）原样返回",
+      "ok": true,
+      "detail": {
+        "got": [
+          12.5,
+          30.0
+        ],
+        "expected": [
+          12.5,
+          30.0
+        ]
+      }
+    },
+    {
+      "name": "T2 首段（prev_end 未知）退回「往前借」口径（不猜）",
+      "ok": true,
+      "detail": {
+        "got": [
+          27.5,
+          30.0
+        ],
+        "borrow": [
+          27.5,
+          30.0
+        ]
+      }
+    },
+    {
+      "name": "T3 口径不可信（倒退/越界）⇒ 退回借用（不猜）",
+      "ok": true,
+      "detail": {
+        "reversed_case": [
+          27.5,
+          30.0
+        ],
+        "invalid_case": [
+          27.5,
+          30.0
+        ]
+      }
+    },
+    {
+      "name": "T4 段自身区间 < min_s ⇒ 退回借用（保证 ≥ ASR 门槛）",
+      "ok": true,
+      "detail": {
+        "got": [
+          27.5,
+          30.0
+        ],
+        "borrow": [
+          27.5,
+          30.0
+        ],
+        "min_s": 2.5
+      }
+    },
+    {
+      "name": "T5 反证：旧规则（永远只借）必须 FAIL 同一判据",
+      "ok": true,
+      "detail": {
+        "old_got": [
+          27.5,
+          30.0
+        ],
+        "expected": [
+          12.5,
+          30.0
+        ],
+        "old_would_pass": false
+      }
+    },
+    {
+      "name": "T6 反证：prev_end=None ⇒ 不得返回含 None 的区间",
+      "ok": true,
+      "detail": {
+        "got": [
+          27.5,
+          30.0
+        ],
+        "contains_none": false
+      }
+    }
+  ],
+  "n_pass": 7,
+  "n_fail": 0,
+  "verdict": "PASS"
+}
