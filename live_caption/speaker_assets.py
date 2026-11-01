@@ -10,8 +10,9 @@ APP-043 说「ASR 的说话人接口已交付（ASR-029），APP-039/040 的克�
 
 ```python
 # asr052_speaker_tracker_api.py（ASR 侧，只读）
-# 🔴 【APP-052 ③】原文示例里写的是开发机的真实家目录（`C:\Users\Trekker-PTL\...`）
-#    ⇒ 随包发给客户会**泄漏开发机用户名** ⇒ 一律写成 `<HOME>` 占位。
+# 🔴 【APP-052 ③】原文示例里写的是开发机的**真实家目录绝对路径**
+#    ⇒ 随包发给客户会**泄漏开发机用户名** ⇒ 一律写成 `<HOME>` 占位
+#    （🔴 APP-057 ③：连**注释里举例**都不能出现真实家目录 ⇒ 本行同样脱敏）。
 WORK   = r'<HOME>\qwen3asr_06b'
 REPO   = r'<HOME>\confucius4-openvino'
 SHARED = r'<HOME>\shared'

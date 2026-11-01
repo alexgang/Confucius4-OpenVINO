@@ -1,0 +1,30 @@
+C:\v20_cleantest_v2\Confucius4_LiveCaption_v2.0\app\tts_cuda_sidecar.py:8: SyntaxWarning: invalid escape sequence '\_'
+  - ⇒ 只能放在**独立 venv**（默认 `<HOME>\_fq3tts_env`；🔴【APP-052 ③】原文写的是开发机真实家目录 ⇒ 改为占位，避免随包泄漏开发机用户名），
+C:\v20_cleantest_v2\Confucius4_LiveCaption_v2.0\app\tts_cuda_sidecar.py:8: SyntaxWarning: invalid escape sequence '\_'
+  - ⇒ 只能放在**独立 venv**（默认 `<HOME>\_fq3tts_env`；🔴【APP-052 ③】原文写的是开发机真实家目录 ⇒ 改为占位，避免随包泄漏开发机用户名），
+======================================================================
+app214 —— APP-057 第 3 条「另一个路径解压 + 开发机绝对路径扫描」
+zip : C:\Users\Trekker-PTL\Confucius4_LiveCaption_v2.0.zip
+解压: C:\v20_cleantest_v2
+======================================================================
+
+[0] 解压完成：14317 个 zip 条目，用时 90.2 s
+  顶层目录：['Confucius4_LiveCaption_v2.0']
+
+[1] 扫描 .py/.json/.lnk/.cmd 里的开发机绝对路径：1 处
+    ACCEPTED.json:4 [dev-user:Trekker-PTL] C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0
+  [FAIL] ① 解压副本里无开发目录绝对路径 -- 1 处: [('ACCEPTED.json', 'dev-user:Trekker-PTL')]
+  [PASS] ② 反证组全部成立（扫描判据有鉴别力） -- 5/5
+      反证①.py 里的开发目录绝对路径 ⇒ 必须命中                                 PASS
+      反证②.json 里的开发目录绝对路径 ⇒ 必须命中                               PASS
+      反证③.cmd 里的开发目录绝对路径 ⇒ 必须命中                                PASS
+      反证④.lnk 里的开发目录绝对路径 ⇒ 必须命中                                PASS
+      反证⑤只提到目录名非绝对路径 ⇒ 必须**不**命中                               PASS
+
+[2] 实际扫描文件数：93 {'.json': 41, '.py': 51, '.cmd': 1}
+  [FAIL] ③ 扫描面覆盖到 .py/.json/.lnk/.cmd 四类 -- {'.json': 41, '.py': 51, '.cmd': 1}
+
+[3] zip 指纹：11233134015 B / SHA256 8198924f9aed30010c0fb80f472278f322f160c9b63cbe7861001dbda056eed9
+
+结果：1 PASS / 2 FAIL
+证据已写: C:\Users\Trekker-PTL\confucius4-openvino\results\app\app214_app057_v20_clean_test_evidence.json

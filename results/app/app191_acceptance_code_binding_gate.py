@@ -947,10 +947,13 @@ def run(pkg_dir: str, prev_evidence: str = None):
     check('R3 ACCEPTED.json 的 version == 本包版本',
           acc_ver == m, 'ACCEPTED.version=%r / 本包=%r' % (acc_ver, m))
     acc_pkg = str(acc.get('pkg_dir') or '')
+    # 🔴🔴 **APP-057 ③**：`ACCEPTED.json` 里的 `pkg_dir` 记的是 `<HOME>` 占位形态
+    #   （不泄漏构建机家目录；客户机上路径也不对）⇒ 比对时**先展开 `<HOME>`**。
+    acc_pkg_expanded = acc_pkg.replace('<HOME>', os.path.expanduser('~'))
     check('R3 ACCEPTED.json 的 pkg_dir == 本包目录',
-          os.path.normcase(os.path.normpath(acc_pkg))
+          os.path.normcase(os.path.normpath(acc_pkg_expanded))
           == os.path.normcase(os.path.normpath(pkg_dir)),
-          'ACCEPTED.pkg_dir=%r' % acc_pkg)
+          'ACCEPTED.pkg_dir=%r（展开后比对）' % acc_pkg)
 
     acc_mtime = os.path.getmtime(acc_path)
     accepted_at = str(acc.get('accepted_at') or '')

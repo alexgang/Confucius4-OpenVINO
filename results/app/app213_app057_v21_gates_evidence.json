@@ -1,0 +1,255 @@
+{
+  "tool": "app213",
+  "app": "APP-057",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1",
+  "at": "2026-11-01 20:43:26",
+  "audio_files": [
+    {
+      "rel": "models\\qwen3tts\\voices\\preset_A.wav",
+      "bytes": 192044,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-1234Hz-le-1ch-10S-20bit-extra.wav",
+      "bytes": 74,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-44100Hz-2ch-32bit-float-be.wav",
+      "bytes": 3586,
+      "kind": "ext:.wav"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-44100Hz-2ch-32bit-float-le.wav",
+      "bytes": 3586,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-44100Hz-be-1ch-4bytes.wav",
+      "bytes": 17720,
+      "kind": "ext:.wav"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-44100Hz-le-1ch-4bytes-early-eof-no-data.wav",
+      "bytes": 72,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-44100Hz-le-1ch-4bytes-early-eof.wav",
+      "bytes": 1024,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-44100Hz-le-1ch-4bytes-incomplete-chunk.wav",
+      "bytes": 13,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-44100Hz-le-1ch-4bytes-rf64.wav",
+      "bytes": 17756,
+      "kind": "ext:.wav"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-44100Hz-le-1ch-4bytes.wav",
+      "bytes": 17720,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-48000Hz-2ch-64bit-float-le-wavex.wav",
+      "bytes": 7792,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-8000Hz-be-3ch-5S-24bit.wav",
+      "bytes": 90,
+      "kind": "ext:.wav"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-8000Hz-le-1ch-1byte-ulaw.wav",
+      "bytes": 70,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-8000Hz-le-2ch-1byteu.wav",
+      "bytes": 1644,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-8000Hz-le-3ch-5S-24bit-inconsistent.wav",
+      "bytes": 90,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-8000Hz-le-3ch-5S-24bit-rf64.wav",
+      "bytes": 126,
+      "kind": "ext:.wav"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-8000Hz-le-3ch-5S-24bit.wav",
+      "bytes": 90,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-8000Hz-le-3ch-5S-36bit.wav",
+      "bytes": 120,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-8000Hz-le-3ch-5S-45bit.wav",
+      "bytes": 134,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-8000Hz-le-3ch-5S-53bit.wav",
+      "bytes": 150,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-8000Hz-le-3ch-5S-64bit.wav",
+      "bytes": 164,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-8000Hz-le-4ch-9S-12bit.wav",
+      "bytes": 116,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\test-8000Hz-le-5ch-9S-5bit.wav",
+      "bytes": 89,
+      "kind": "riff/flac/ogg/id3/mp3"
+    },
+    {
+      "rel": "python\\Lib\\site-packages\\scipy\\io\\tests\\data\\Transparent Busy.ani",
+      "bytes": 4362,
+      "kind": "riff/flac/ogg/id3/mp3"
+    }
+  ],
+  "n_audio": 24,
+  "tts_voice_refs": [
+    {
+      "rel": "models\\qwen3tts\\voices\\preset_A.wav",
+      "bytes": 192044,
+      "kind": "riff/flac/ogg/id3/mp3"
+    }
+  ],
+  "other_audio": [],
+  "name_hits": [],
+  "literal_hits": [],
+  "notice_bytes": 9643,
+  "discrimination": [
+    {
+      "name": "反证①文件名含「会议录音」特征 ⇒ ② 必须命中",
+      "ok": true
+    },
+    {
+      "name": "反证②非音色目录的音频 ⇒ ① 必须命中",
+      "ok": true
+    },
+    {
+      "name": "反证③指向包内既有敏感音频 ⇒ ③ 必须命中",
+      "ok": true
+    },
+    {
+      "name": "反证③b指向包外的音频路径 ⇒ ③ 必须命中",
+      "ok": true
+    },
+    {
+      "name": "反证④只提到敏感词但非音频路径 ⇒ ③ 必须**不**命中",
+      "ok": true
+    },
+    {
+      "name": "反证⑤运行时输出模板（包内不存在）⇒ ③ 必须**不**命中",
+      "ok": true
+    },
+    {
+      "name": "反证⑥合成的「同步推理旁路」⇒ ⑤' 必须判 FAIL",
+      "ok": true
+    },
+    {
+      "name": "反证⑦合成的「队列满即阻塞」⇒ ⑤' 不反压必须判 FAIL",
+      "ok": true
+    }
+  ],
+  "results": [
+    {
+      "name": "① 包内无「会议录音/杂音」类音频（除 TTS 音色参考外为空）",
+      "ok": true,
+      "detail": "0 个: []"
+    },
+    {
+      "name": "② 文件名里无会议录音/克隆/示例音色特征词",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "③ 代码里无会议录音/克隆/示例音色特征词",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "④ NOTICE 存在",
+      "ok": true,
+      "detail": "9643 B"
+    },
+    {
+      "name": "④ NOTICE 含 pyannote_seg 署名",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "④ NOTICE 含 wespeaker 署名",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "④ NOTICE 署名含来源链接",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "⑤ speaker_tracker.py 存在",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "⑤ 旁路默认关（enabled 开关存在且默认 False）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "⑤ 旁路走独立线程（threading.Thread）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "⑤ CLI --speaker 默认 off",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "⑤' EXT 侧 speaker_bypass.py 存在",
+      "ok": true,
+      "detail": "ext\\bridge\\speaker_bypass.py"
+    },
+    {
+      "name": "⑤' EXT 侧旁路走独立线程（EXT-029 ①：threading.Thread + daemon）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "⑤' EXT 侧旁路不反压（EXT-029 ②：队列满 ⇒ 丢弃 + 计数）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "⑥ 反证组全部成立（闸门有鉴别力）",
+      "ok": true,
+      "detail": "8/8"
+    }
+  ],
+  "summary": {
+    "pass": 15,
+    "fail": 0
+  }
+}

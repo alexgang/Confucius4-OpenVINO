@@ -1,0 +1,76 @@
+{
+  "tool": "app217",
+  "app": "APP-057",
+  "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0",
+  "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1",
+  "version": "2.1",
+  "copied": {
+    "hardlink": 14180,
+    "copy": 264
+  },
+  "sanitized": [
+    {
+      "file": "app\\speaker_assets.py",
+      "n": 1
+    },
+    {
+      "file": "ext\\bridge\\app_root.py",
+      "n": 2
+    },
+    {
+      "file": "ext\\bridge\\engines.py",
+      "n": 4
+    },
+    {
+      "file": "ext\\bridge\\segmenter.py",
+      "n": 1
+    }
+  ],
+  "n_sanitized": 8,
+  "speaker_assets_diff_lines": 5,
+  "left_home_literals": [],
+  "accepted_pkg_dir": "<HOME>\\Confucius4_LiveCaption_v2.1",
+  "results": [
+    {
+      "name": "① 源目录存在",
+      "ok": true,
+      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0"
+    },
+    {
+      "name": "② 新目录不存在（不覆盖任何旧目录）",
+      "ok": true,
+      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1"
+    },
+    {
+      "name": "③ speaker_assets.py 已从开发目录同步（脱敏注释）",
+      "ok": true,
+      "detail": "5 行差异"
+    },
+    {
+      "name": "③b 同步后与开发目录逐字节一致",
+      "ok": true,
+      "detail": "a3690e54892f6bdc"
+    },
+    {
+      "name": "④ ACCEPTED.json 重签成功",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "⑤ 自有代码/文档里已无构建机家目录字面量",
+      "ok": true,
+      "detail": "0 处"
+    },
+    {
+      "name": "⑥ ACCEPTED.json 的 pkg_dir 用 `<HOME>` 形态（不泄漏构建机家目录）",
+      "ok": true,
+      "detail": "<HOME>\\Confucius4_LiveCaption_v2.1"
+    }
+  ],
+  "summary": {
+    "pass": 7,
+    "fail": 0
+  },
+  "elapsed_s": 9.8,
+  "at": "2026-11-01 20:26:32"
+}

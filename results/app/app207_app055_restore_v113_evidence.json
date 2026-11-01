@@ -1,0 +1,94 @@
+{
+ "script": "app207_app055_restore_v113.py",
+ "correction": "APP-055",
+ "ts": "2026-11-01 17:09:10",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+ "base_commit": "aacb2dd",
+ "changed": [
+  {
+   "path": "app/live_caption_app.py",
+   "before_sha256": "9f37a399b2b375e2685e621fbef375b8d1d7b4e727e5d755e6381da4c3e9582a",
+   "before_bytes": 330874,
+   "before_source": "git aacb2dd:live_caption/live_caption_app.py",
+   "after_sha256": "b65e311f9a9314428753e3bd4cdeb04d9d40bbe3a241de80f833acd34d877163",
+   "after_bytes": 339230,
+   "restored_sha256": "9f37a399b2b375e2685e621fbef375b8d1d7b4e727e5d755e6381da4c3e9582a",
+   "restore_ok": true,
+   "already": false
+  },
+  {
+   "path": "app/speaker_assets.py",
+   "before_sha256": "1576ac8559e1a6344ffae98b3d79b13a093644d4f010733f3eb58fc65968ae64",
+   "before_bytes": 11273,
+   "before_source": "git aacb2dd:live_caption/speaker_assets.py",
+   "after_sha256": "17c1f39c945ae2bf0e9025150e0ed0b5335bdb7a7c2db9223a00bce687200701",
+   "after_bytes": 11434,
+   "restored_sha256": "1576ac8559e1a6344ffae98b3d79b13a093644d4f010733f3eb58fc65968ae64",
+   "restore_ok": true,
+   "already": false
+  },
+  {
+   "path": "app/speaker_tracker.py",
+   "before_sha256": "ecb3bd6b7f094fae57d96d4b1f7a5d2927fd90d874e6ad5e8a4b83e2ca1800f2",
+   "before_bytes": 23853,
+   "before_source": "git aacb2dd:live_caption/speaker_tracker.py",
+   "after_sha256": "5dd215f4ea03e433288a6bbc3e915cafd61ddab931addfe3898215ca5a4935eb",
+   "after_bytes": 49330,
+   "restored_sha256": "ecb3bd6b7f094fae57d96d4b1f7a5d2927fd90d874e6ad5e8a4b83e2ca1800f2",
+   "restore_ok": true,
+   "already": false
+  },
+  {
+   "path": "app/tts_cuda.py",
+   "before_sha256": "bfde75221a040643ee2edb4b8915fb7ba8fcc2e9de002b368ebfb95c95711996",
+   "before_bytes": 52214,
+   "before_source": "git aacb2dd:live_caption/tts_cuda.py",
+   "after_sha256": "7d0d886d85cb7ca1674eed229ec9d6f1d89d66fc7af4059cb3b57962c4ff56cb",
+   "after_bytes": 52197,
+   "restored_sha256": "bfde75221a040643ee2edb4b8915fb7ba8fcc2e9de002b368ebfb95c95711996",
+   "restore_ok": true,
+   "already": false
+  },
+  {
+   "path": "app/tts_cuda_sidecar.py",
+   "before_sha256": "269d02f319906a6cc20708cc3ce04db999a779486d8cd67d788b1c24800b04e2",
+   "before_bytes": 23819,
+   "before_source": "git aacb2dd:live_caption/tts_cuda_sidecar.py",
+   "after_sha256": "84110917d44c13a5ddc1136d6be557b10ef889a2c04f00dcb644834bb0ed0804",
+   "after_bytes": 23921,
+   "restored_sha256": "269d02f319906a6cc20708cc3ce04db999a779486d8cd67d788b1c24800b04e2",
+   "restore_ok": true,
+   "already": false
+  },
+  {
+   "path": "ACCEPTED.json",
+   "before_sha256": "fc31e1b575974304d750c308eb7146cba35dabc33264718f456ad7a7318b53f7",
+   "before_bytes": 909,
+   "before_source": "重建（app186@d866c47 模板 + accepted_at=00:43:32 + CRLF）⇒ SHA256 命中 §117 记录",
+   "after_sha256": "8c6bc81d0879ddda652aa2f1e6672694c303cf843a37bcf0bbe80cd4ff1f73d6",
+   "after_bytes": 6048,
+   "restored_sha256": "fc31e1b575974304d750c308eb7146cba35dabc33264718f456ad7a7318b53f7",
+   "restore_ok": true,
+   "already": false
+  }
+ ],
+ "n_changed": 6,
+ "n_restored_ok": 6,
+ "extra_removed": "python/Lib/encodings/__pycache__/utf_16_le.cpython-312.pyc",
+ "manifest": {
+  "files": 14212,
+  "bytes": 13689629685
+ },
+ "payload_recheck": {
+  "files": 14212,
+  "bytes": 13689629685,
+  "expected_files": 14212,
+  "expected_bytes": 13689629685,
+  "match": true
+ },
+ "accepted_sha256_expected": "fc31e1b575974304d750c308eb7146cba35dabc33264718f456ad7a7318b53f7",
+ "backup_dir": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_pkg_backup_app055_1515",
+ "zip_untouched": true,
+ "verdict": "PASS",
+ "note": "06:08 那份 v1.13.zip（SHA256 3ca36ce3…）已被 --same-version 覆盖 ⇒ 字节流不可得 ⇒ 改用 git aacb2dd 的 blob + 字节数算术复原；payload 重算与 06:08 记录**完全一致**（files=14212 bytes=13689629685）"
+}

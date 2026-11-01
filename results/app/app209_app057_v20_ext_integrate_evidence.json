@@ -1,0 +1,515 @@
+{
+  "tool": "app209",
+  "app": "APP-057",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0",
+  "at": "2026-11-01 17:27:37",
+  "bridge_py_files": 19,
+  "plugin_files": 15,
+  "plugin_bytes": 219021,
+  "extension_id": "kekgmfkijphpfndbbpakjaokamkeooib",
+  "user_guide_subs": 0,
+  "deps_import_check": "websockets 17.3\npsutil 7.2.2",
+  "start_script": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0\\ext\\bridge\\start_bridge.cmd",
+  "scanned_files": 6744,
+  "path_hits": [
+    {
+      "file": "ACCEPTED.json",
+      "line": 4,
+      "kw": "Trekker-PTL",
+      "text": "\"pkg_dir\": \"C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_v1.13\","
+    },
+    {
+      "file": "app\\live_caption_app.py",
+      "line": 38,
+      "kw": "hy_bench",
+      "text": "ASR 与翻译的设备/量化各自独立选择（C-098 阶段 B，实测结论见 hy_bench\\STATUS_hy.md）："
+    },
+    {
+      "file": "app\\MANIFEST.json",
+      "line": 5,
+      "kw": "hy_bench",
+      "text": "\"notes\": \"v1.13 修订（2026-11-01，APP-052 执行后）：（17）**包内不再含开发机路径** —— 此前客户机上会看到「C:\\\\Users\\\\<开发机用户名>\\\\...」这类路径（代码注释与说明文字里）。现全部改为按**当前用户家目录**自动推导（客户机自动指向自己的家目录），文档中的示例"
+    },
+    {
+      "file": "app\\speaker_assets.py",
+      "line": 16,
+      "kw": "confucius4-openvino",
+      "text": "REPO   = r'<HOME>\\confucius4-openvino'"
+    },
+    {
+      "file": "app\\speaker_assets.py",
+      "line": 13,
+      "kw": "Trekker-PTL",
+      "text": "# 🔴 【APP-052 ③】原文示例里写的是开发机的真实家目录（`C:\\Users\\Trekker-PTL\\...`）"
+    },
+    {
+      "file": "app\\speaker_assets.py",
+      "line": 13,
+      "kw": "C:\\Users\\Trekker-PTL",
+      "text": "# 🔴 【APP-052 ③】原文示例里写的是开发机的真实家目录（`C:\\Users\\Trekker-PTL\\...`）"
+    },
+    {
+      "file": "app\\speaker_tracker.py",
+      "line": 404,
+      "kw": "hy_bench",
+      "text": "reviewer 的 A/B 实测（`hy_bench/spk_ab_run.py`）："
+    },
+    {
+      "file": "app\\translator.py",
+      "line": 9,
+      "kw": "hy_bench",
+      "text": "支持运行时热切换（set_engine）。MT2 实测结论见 hy_bench\\STATUS_hy.md："
+    },
+    {
+      "file": "app\\translator.py",
+      "line": 48,
+      "kw": "hy_bench",
+      "text": "#   3) 开发机 <用户目录>/hy_bench/ov/<name>（本仓库导出产物）"
+    },
+    {
+      "file": "app\\translator.py",
+      "line": 55,
+      "kw": "hy_bench",
+      "text": "os.path.join(os.path.expanduser('~'), 'hy_bench', 'ov'),"
+    },
+    {
+      "file": "app\\translator.py",
+      "line": 56,
+      "kw": "hy_bench",
+      "text": "os.path.join(ROOT, 'hy_bench', 'ov'),"
+    },
+    {
+      "file": "app\\translator.py",
+      "line": 84,
+      "kw": "hy_bench",
+      "text": "\"\"\"按通道量化产物的目录解析：客户包 models/mt/<name> → 开发机 hy_bench/ov/<name>。\"\"\""
+    },
+    {
+      "file": "app\\translator.py",
+      "line": 103,
+      "kw": "hy_bench",
+      "text": "#   依据 **H-001 / H-007**（MT 模块 `hy_bench/STATUS_hy.md` §37）："
+    },
+    {
+      "file": "app\\translator.py",
+      "line": 118,
+      "kw": "hy_bench",
+      "text": "# ★ C-102 实测（hy_bench/bench_mt2.py，7 句 × 3 次取中位）："
+    },
+    {
+      "file": "app\\tts_cuda.py",
+      "line": 116,
+      "kw": "confucius4-openvino",
+      "text": "- 仓库根 `confucius4-openvino/` **有** `models/`（放模型）但**没有** `app/`"
+    },
+    {
+      "file": "app\\tts_cuda.py",
+      "line": 118,
+      "kw": "confucius4-openvino",
+      "text": "`confucius4-openvino\\\\models\\\\...`，该文件不存在）；"
+    },
+    {
+      "file": "app\\tts_cuda_sidecar.py",
+      "line": 457,
+      "kw": "qwen3tts_eval",
+      "text": "#     - TTS 模块 `qwen3tts_eval/` 全量 grep = **0 命中**。"
+    },
+    {
+      "file": "app\\tts_engine.py",
+      "line": 5,
+      "kw": "qwen3tts_eval",
+      "text": "依据 `qwen3tts_eval/TTS_交接单.md`（TTS-004 交接单，**mtime 2026-10-23 14:37**）。"
+    },
+    {
+      "file": "app\\tts_engine.py",
+      "line": 212,
+      "kw": "qwen3tts_eval",
+      "text": "# 实测（`qwen3tts_eval/results/voice_ac/ctx_production/manifest.json`）："
+    },
+    {
+      "file": "app\\tts_engine.py",
+      "line": 238,
+      "kw": "qwen3tts_eval",
+      "text": "# | `qwen3tts_eval/eval_cp_on_npu.py::_recompile_cp_on_npu()`（TTS 模块的「尺子」） | `m.reshape(CP_SHAPE)` 后 `compile_model(m, \"NPU\")` | **NPU** |"
+    },
+    {
+      "file": "app\\tts_engine.py",
+      "line": 316,
+      "kw": "qwen3tts_eval",
+      "text": "⚠️ 该文件在 `qwen3tts_eval/` 下，客户包里要 vendored 一份"
+    },
+    {
+      "file": "app\\tts_engine.py",
+      "line": 324,
+      "kw": "qwen3tts_eval",
+      "text": "'qwen3tts_eval', 'qwen3tts_patch.py')):"
+    },
+    {
+      "file": "app\\tts_engine.py",
+      "line": 1364,
+      "kw": "qwen3tts_eval",
+      "text": "#   `qwen3tts_eval/verify_zh_num.py`）；App 模块只负责同步到客户包。"
+    },
+    {
+      "file": "app\\_probe_tts_cuda.py",
+      "line": 20,
+      "kw": "confucius4-openvino",
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "app\\_probe_tts_cuda.py",
+      "line": 20,
+      "kw": "Trekker-PTL",
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "app\\_probe_tts_cuda.py",
+      "line": 20,
+      "kw": "C:\\Users\\Trekker-PTL",
+      "text": "REPO = r\"C:\\Users\\Trekker-PTL\\confucius4-openvino\""
+    },
+    {
+      "file": "ext\\bridge\\app_root.py",
+      "line": 129,
+      "kw": "live_dub_ext",
+      "text": "\"\"\"**本插件自身**的包根目录（`live_dub_ext/` 目录）。"
+    },
+    {
+      "file": "ext\\bridge\\app_root.py",
+      "line": 6,
+      "kw": "Trekker-PTL",
+      "text": "`C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_v1.6`（`ext/engine_runtime.py`"
+    },
+    {
+      "file": "ext\\bridge\\app_root.py",
+      "line": 20,
+      "kw": "Trekker-PTL",
+      "text": "2. 否则在 `C:\\\\Users\\\\Trekker-PTL` 下找 `Confucius4_LiveCaption_v*` 目录，"
+    },
+    {
+      "file": "ext\\bridge\\engines.py",
+      "line": 5,
+      "kw": "confucius4-openvino",
+      "text": "- ASR  R2T2 INT8 @ GPU.0     → C:\\\\Users\\\\Trekker-PTL\\\\confucius4-openvino"
+    },
+    {
+      "file": "ext\\bridge\\engines.py",
+      "line": 30,
+      "kw": "confucius4-openvino",
+      "text": "（原 `C:\\\\Users\\\\Trekker-PTL\\\\confucius4-openvino` /"
+    },
+    {
+      "file": "ext\\bridge\\engines.py",
+      "line": 6,
+      "kw": "hy_bench",
+      "text": "- MT   Hy-MT2 INT8 @ GPU.0    → C:\\\\Users\\\\Trekker-PTL\\\\hy_bench"
+    },
+    {
+      "file": "ext\\bridge\\engines.py",
+      "line": 31,
+      "kw": "hy_bench",
+      "text": "`…\\\\hy_bench` / `…\\\\confucius4-tts`）"
+    },
+    {
+      "file": "ext\\bridge\\engines.py",
+      "line": 5,
+      "kw": "Trekker-PTL",
+      "text": "- ASR  R2T2 INT8 @ GPU.0     → C:\\\\Users\\\\Trekker-PTL\\\\confucius4-openvino"
+    },
+    {
+      "file": "ext\\bridge\\engines.py",
+      "line": 6,
+      "kw": "Trekker-PTL",
+      "text": "- MT   Hy-MT2 INT8 @ GPU.0    → C:\\\\Users\\\\Trekker-PTL\\\\hy_bench"
+    },
+    {
+      "file": "ext\\bridge\\engines.py",
+      "line": 7,
+      "kw": "Trekker-PTL",
+      "text": "- TTS  Qwen3-TTS 全 NPU       → C:\\\\Users\\\\Trekker-PTL\\\\confucius4-tts"
+    },
+    {
+      "file": "ext\\bridge\\engines.py",
+      "line": 30,
+      "kw": "Trekker-PTL",
+      "text": "（原 `C:\\\\Users\\\\Trekker-PTL\\\\confucius4-openvino` /"
+    },
+    {
+      "file": "ext\\bridge\\engine_runtime.py",
+      "line": 107,
+      "kw": "hy_bench",
+      "text": "⇒ 与 App 的 `DEFAULT_MODEL` 保持同一套查找顺序（含开发机 hy_bench 回退）。"
+    },
+    {
+      "file": "ext\\bridge\\engine_runtime.py",
+      "line": 531,
+      "kw": "qwen3tts_eval",
+      "text": "#   `qwen3tts_eval` 里裸 `build()` 默认把 **cp_decode 放在 CPU**，"
+    },
+    {
+      "file": "ext\\bridge\\segmenter.py",
+      "line": 9,
+      "kw": "confucius4-openvino",
+      "text": "* 优先 **import** 现有交付版本 `confucius4-openvino/seg_stream.py`，"
+    },
+    {
+      "file": "ext\\bridge\\segmenter.py",
+      "line": 35,
+      "kw": "confucius4-openvino",
+      "text": "#   `C:\\Users\\Trekker-PTL\\confucius4-openvino`）⇒ 改成："
+    },
+    {
+      "file": "ext\\bridge\\segmenter.py",
+      "line": 35,
+      "kw": "Trekker-PTL",
+      "text": "#   `C:\\Users\\Trekker-PTL\\confucius4-openvino`）⇒ 改成："
+    },
+    {
+      "file": "ext\\bridge\\segmenter.py",
+      "line": 35,
+      "kw": "C:\\Users\\Trekker-PTL",
+      "text": "#   `C:\\Users\\Trekker-PTL\\confucius4-openvino`）⇒ 改成："
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\bf16_cpu_en2zh.json",
+      "line": 5,
+      "kw": "hy_bench",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-bf16\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\bf16_cpu_en2zh.json",
+      "line": 5,
+      "kw": "Trekker-PTL",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-bf16\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\bf16_cpu_zh2en.json",
+      "line": 5,
+      "kw": "hy_bench",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-bf16\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\bf16_cpu_zh2en.json",
+      "line": 5,
+      "kw": "Trekker-PTL",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-bf16\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\hf_fp32_en2zh.json",
+      "line": 5,
+      "kw": "hy_bench",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\hf\\\\Hy-MT2-1.8B\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\hf_fp32_en2zh.json",
+      "line": 5,
+      "kw": "Trekker-PTL",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\hf\\\\Hy-MT2-1.8B\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\hf_fp32_zh2en.json",
+      "line": 5,
+      "kw": "hy_bench",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\hf\\\\Hy-MT2-1.8B\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\hf_fp32_zh2en.json",
+      "line": 5,
+      "kw": "Trekker-PTL",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\hf\\\\Hy-MT2-1.8B\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\int4_gpu_en2zh.json",
+      "line": 5,
+      "kw": "hy_bench",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-int4sym-cw-q\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\int4_gpu_en2zh.json",
+      "line": 5,
+      "kw": "Trekker-PTL",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-int4sym-cw-q\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\int4_gpu_zh2en.json",
+      "line": 5,
+      "kw": "hy_bench",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-int4sym-cw-q\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\int4_gpu_zh2en.json",
+      "line": 5,
+      "kw": "Trekker-PTL",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-int4sym-cw-q\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\int4_npu_en2zh.json",
+      "line": 5,
+      "kw": "hy_bench",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-int4sym-cw-q\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\int4_npu_en2zh.json",
+      "line": 5,
+      "kw": "Trekker-PTL",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-int4sym-cw-q\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\int4_npu_zh2en.json",
+      "line": 5,
+      "kw": "hy_bench",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-int4sym-cw-q\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\int4_npu_zh2en.json",
+      "line": 5,
+      "kw": "Trekker-PTL",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-int4sym-cw-q\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\int8_gpu_en2zh.json",
+      "line": 5,
+      "kw": "hy_bench",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-int8sym-cw-q\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\int8_gpu_en2zh.json",
+      "line": 5,
+      "kw": "Trekker-PTL",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-int8sym-cw-q\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\int8_gpu_zh2en.json",
+      "line": 5,
+      "kw": "hy_bench",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-int8sym-cw-q\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\int8_gpu_zh2en.json",
+      "line": 5,
+      "kw": "Trekker-PTL",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-int8sym-cw-q\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\int8_npu_en2zh.json",
+      "line": 5,
+      "kw": "hy_bench",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-int8sym-cw-q\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\int8_npu_en2zh.json",
+      "line": 5,
+      "kw": "Trekker-PTL",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-int8sym-cw-q\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\int8_npu_zh2en.json",
+      "line": 5,
+      "kw": "hy_bench",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-int8sym-cw-q\","
+    },
+    {
+      "file": "results\\mt2_acc_outputs\\int8_npu_zh2en.json",
+      "line": 5,
+      "kw": "Trekker-PTL",
+      "text": "\"model\": \"C:\\\\Users\\\\Trekker-PTL\\\\hy_bench\\\\ov\\\\mt2-int8sym-cw-q\","
+    }
+  ],
+  "results": [
+    {
+      "name": "桥接代码复制",
+      "ok": false,
+      "detail": "19 个 .py"
+    },
+    {
+      "name": "桥接代码逐字节一致",
+      "ok": true,
+      "detail": "不一致: []"
+    },
+    {
+      "name": "插件文件数 == 15",
+      "ok": true,
+      "detail": "15 个文件 / 219021 B"
+    },
+    {
+      "name": "插件零测试驱动残留",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "原 liveDub 段存在",
+      "ok": true,
+      "detail": "{'_comment': '★ EXT-031③：发行版开关（release/build_release.py 会改写本段）。release=true ⇒ 只保留 EXT-027 的标签页音频路径，禁用整机 getDisplayMedia 回退；开发目录里保持 false。', 'release': False, 'captureModes': ['tabCapture', 'getDisplayMedia']}"
+    },
+    {
+      "name": "manifest.liveDub.release == true",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest.liveDub.captureModes == [\"tabCapture\"]",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest.key 未变（扩展 ID 不变）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "扩展 ID 实算 == kekgmfkijphpfndbbpakjaokamkeooib",
+      "ok": true,
+      "detail": "kekgmfkijphpfndbbpakjaokamkeooib"
+    },
+    {
+      "name": "release.json == {\"release\": true}",
+      "ok": true,
+      "detail": "{'release': True}"
+    },
+    {
+      "name": "USER_GUIDE 无开发机路径",
+      "ok": false,
+      "detail": "['live_dub_ext', 'Trekker-PTL']"
+    },
+    {
+      "name": "USER_GUIDE 写后复核一致",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "websockets 已就位",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "包内 python 存在",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "psutil 已就位",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "包内 python + PYTHONPATH 可 import 两个包",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "start_bridge.cmd 已写",
+      "ok": true,
+      "detail": "706 B"
+    },
+    {
+      "name": "扫描文件数 > 0",
+      "ok": true,
+      "detail": "6744 个 .py/.json/.lnk/.cmd"
+    }
+  ],
+  "summary": {
+    "pass": 16,
+    "fail": 2
+  },
+  "elapsed_s": 7.0
+}

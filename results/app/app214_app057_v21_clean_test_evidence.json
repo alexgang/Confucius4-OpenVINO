@@ -1,0 +1,75 @@
+{
+  "tool": "app214",
+  "app": "APP-057",
+  "zip": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1.zip",
+  "zip_bytes": 11233135359,
+  "zip_sha256": "835803a7246470faf0725a3f429b0339ccb6dac8ba7e1d1854176775e6cbaaa4",
+  "zip_entries": 14317,
+  "clean_dir": "C:\\v20_cleantest_v3",
+  "extracted_tree": "C:\\v20_cleantest_v3\\Confucius4_LiveCaption_v2.1",
+  "n_files_scanned": 93,
+  "by_ext": {
+    ".json": 41,
+    ".py": 51,
+    ".cmd": 1
+  },
+  "hits": [],
+  "n_hits_blocking": 0,
+  "n_hits_user_only": 0,
+  "blocking_hits": [],
+  "user_only_hits": [],
+  "criterion_note": "① 阻断口径 = reviewer ③ 点名的 5 个开发目录；② 构建机用户名 = 附带发现（不阻断）；.py 一律**扫全文**（含 docstring / 注释）；.lnk 额外按 UTF-16LE 解码再扫",
+  "discrimination": [
+    {
+      "name": "反证①.py 里的开发目录绝对路径 ⇒ 必须命中",
+      "ok": true
+    },
+    {
+      "name": "反证②.json 里的开发目录绝对路径 ⇒ 必须命中",
+      "ok": true
+    },
+    {
+      "name": "反证③.cmd 里的开发目录绝对路径 ⇒ 必须命中",
+      "ok": true
+    },
+    {
+      "name": "反证④.lnk 里的开发目录绝对路径 ⇒ 必须命中",
+      "ok": true
+    },
+    {
+      "name": "反证⑤只提到目录名非绝对路径 ⇒ 必须**不**命中",
+      "ok": true
+    },
+    {
+      "name": "反证⑥二进制 .lnk（UTF-16LE 路径）⇒ 必须命中",
+      "ok": true
+    }
+  ],
+  "results": [
+    {
+      "name": "① 解压副本里无「指向 reviewer 点名开发目录」的绝对路径",
+      "ok": true,
+      "detail": "0 处: []"
+    },
+    {
+      "name": "② 附带发现（不阻断）：绝对路径里无构建机用户名",
+      "ok": true,
+      "detail": "0 处: []"
+    },
+    {
+      "name": "③ 反证组全部成立（扫描判据有鉴别力）",
+      "ok": true,
+      "detail": "6/6"
+    },
+    {
+      "name": "④ 扫描面覆盖（存在即必扫；不存在记不适用）",
+      "ok": true,
+      "detail": ".py: 51 个已扫; .json: 41 个已扫; .lnk: 包内无此类文件 ⇒ 不适用; .cmd: 1 个已扫"
+    }
+  ],
+  "summary": {
+    "pass": 4,
+    "fail": 0
+  },
+  "at": "2026-11-01 20:45:13"
+}

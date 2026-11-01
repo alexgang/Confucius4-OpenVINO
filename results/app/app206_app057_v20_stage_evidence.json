@@ -1,0 +1,51 @@
+{
+ "script": "app206_app057_v20_stage.py",
+ "correction": "APP-057",
+ "ts": "2026-11-01 16:56:38",
+ "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+ "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0",
+ "n_files": 14280,
+ "strategy": {
+  "link": 14180,
+  "copy": 100,
+  "skip": 0
+ },
+ "hardlink_dirs": [
+  "models",
+  "python"
+ ],
+ "skipped": [
+  "_backup_app_20261028_preclone",
+  "_backup_app_20261030_pre_sync99"
+ ],
+ "checks": [
+  {
+   "path": "app/live_caption_app.py",
+   "ok": true,
+   "sha256": "b65e311f9a9314428753e3bd4cdeb04d9d40bbe3a241de80f833acd34d877163"
+  },
+  {
+   "path": "app/speaker_tracker.py",
+   "ok": true,
+   "sha256": "5dd215f4ea03e433288a6bbc3e915cafd61ddab931addfe3898215ca5a4935eb"
+  },
+  {
+   "path": "models/qwen3tts",
+   "ok": false,
+   "sha256": null
+  },
+  {
+   "path": "python/python.exe",
+   "ok": true,
+   "sha256": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a"
+  },
+  {
+   "path": "ACCEPTED.json",
+   "ok": true,
+   "sha256": "8c6bc81d0879ddda652aa2f1e6672694c303cf843a37bcf0bbe80cd4ff1f73d6"
+  }
+ ],
+ "n_pass": 4,
+ "n_fail": 1,
+ "elapsed_s": 7.9
+}

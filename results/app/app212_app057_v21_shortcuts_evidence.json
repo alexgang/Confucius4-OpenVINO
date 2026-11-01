@@ -1,0 +1,80 @@
+{
+  "tool": "app212",
+  "app": "APP-057",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1",
+  "at": "2026-11-01 20:42:58",
+  "choice": "两个桌面快捷方式（App + 配音桥接服务）；**不选**「App 内加启动桥接的开关」",
+  "choice_reason": [
+    "桥接必须用包内 python + 包内模型（openvino/babelvox 只在包内）⇒ 启动方式与 App 根本不同",
+    "两者设备互斥（ext/bridge.py::_caption_app_running）⇒ 常需只起一个⇒ 「App 内开关」会让用户找不该在 App 里的按钮",
+    "桥接可能先于 App 启动（用户只想看网页配音）⇒ 独立入口才自然"
+  ],
+  "lnk_caption": {
+    "path": "C:\\Users\\Trekker-PTL\\Desktop\\Confucius4 实时字幕 v2.1.lnk",
+    "verify": {
+      "ok": true,
+      "checks": {
+        "v1_com_target_nonempty": true,
+        "v2_target_exists": true,
+        "v3_target_in_pkg": true,
+        "v4_linkflags_has_target": true,
+        "v5_target_matches_expected": true
+      },
+      "com": {
+        "target": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\python\\pythonw.exe",
+        "arguments": "\"C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\app\\live_caption_app.py\"",
+        "working_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1",
+        "icon": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\python\\pythonw.exe,0"
+      },
+      "linkflags": 16639,
+      "reason": ""
+    }
+  },
+  "lnk_bridge": {
+    "path": "C:\\Users\\Trekker-PTL\\Desktop\\实时配音桥接服务 v2.1.lnk",
+    "verify": {
+      "ok": true,
+      "checks": {
+        "v1_com_target_nonempty": true,
+        "v2_target_exists": true,
+        "v3_target_in_pkg": true,
+        "v4_linkflags_has_target": true,
+        "v5_target_matches_expected": true
+      },
+      "com": {
+        "target": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\python\\pythonw.exe",
+        "arguments": "\"C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\ext\\bridge\\bridge_launcher.py\" --real --pipeline --target-lang en --host 127.0.0.1 --port 8765 --pair-port 8766 --spk-bypass",
+        "working_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\ext\\bridge",
+        "icon": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\python\\pythonw.exe,0"
+      },
+      "linkflags": 16639,
+      "reason": ""
+    }
+  },
+  "discrimination": [
+    {
+      "name": "反证①手工坏链（COM 读回 TargetPath 空）",
+      "ok": true,
+      "detail": "{'v1_com_target_nonempty': False, 'v2_target_exists': False, 'v3_target_in_pkg': False, 'v4_linkflags_has_target': False}"
+    },
+    {
+      "name": "反证②目标文件不存在",
+      "ok": true,
+      "detail": "{'v1_com_target_nonempty': True, 'v2_target_exists': False, 'v3_target_in_pkg': True, 'v4_linkflags_has_target': True}"
+    },
+    {
+      "name": "反证③指向包外（开发目录 live_dub_ext）",
+      "ok": true,
+      "detail": "{'v1_com_target_nonempty': True, 'v2_target_exists': True, 'v3_target_in_pkg': False, 'v4_linkflags_has_target': True}"
+    }
+  ],
+  "existing_lnks": [
+    "Confucius4 实时字幕 v2.1.lnk",
+    "实时配音桥接服务 v2.0.lnk",
+    "实时配音桥接服务 v2.1.lnk"
+  ],
+  "summary": {
+    "pass": 9,
+    "fail": 0
+  }
+}

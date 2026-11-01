@@ -1,0 +1,243 @@
+{
+  "tool": "app210",
+  "purpose": "APP-058 判据④ 召回率的鉴别力诊断（口径 A vs 口径 B）",
+  "src_app208": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app208_app058_spk_retest_evidence.json",
+  "src_app193": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app193_app053_spk_frame_audit.json",
+  "src_segs_json": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\results\\pyannote_seg\\_asr050_cache\\segs.json",
+  "cli_file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app208_out\\arm_on.txt.cli.txt",
+  "n_ref_segments": 46,
+  "n_ref_segments_with_text": 46,
+  "n_measured_lines": 48,
+  "method_A_index": {
+    "n_detected_switches": 7,
+    "detected_switches": [
+      3,
+      24,
+      38,
+      39,
+      41,
+      45,
+      47
+    ],
+    "n_ref_switches": 12,
+    "ref_switches": [
+      2,
+      5,
+      19,
+      22,
+      27,
+      28,
+      35,
+      36,
+      38,
+      41,
+      42,
+      44
+    ],
+    "n_hit": 4,
+    "hits": [
+      [
+        2,
+        3
+      ],
+      [
+        38,
+        38
+      ],
+      [
+        41,
+        41
+      ],
+      [
+        44,
+        45
+      ]
+    ],
+    "recall": 0.3333333333333333,
+    "n_false_positive": 3,
+    "false_positives": [
+      24,
+      39,
+      47
+    ]
+  },
+  "method_B_text_aligned": {
+    "n_ref_switches": 12,
+    "ref_switches": [
+      2,
+      5,
+      19,
+      22,
+      27,
+      28,
+      35,
+      36,
+      38,
+      41,
+      42,
+      44
+    ],
+    "n_meas_switches": 7,
+    "meas_switches_refspace": [
+      2,
+      22,
+      35,
+      36,
+      38,
+      42,
+      44
+    ],
+    "meas_switches_meas_space": [
+      3,
+      24,
+      38,
+      39,
+      41,
+      45,
+      47
+    ],
+    "n_hit": 7,
+    "hits": [
+      [
+        2,
+        2
+      ],
+      [
+        22,
+        22
+      ],
+      [
+        35,
+        35
+      ],
+      [
+        36,
+        36
+      ],
+      [
+        38,
+        38
+      ],
+      [
+        41,
+        42
+      ],
+      [
+        44,
+        44
+      ]
+    ],
+    "recall": 0.5833333333333334,
+    "n_false_positive": 0,
+    "false_positives": []
+  },
+  "alignment": {
+    "n_pairs": 45,
+    "avg_similarity": 0.8019,
+    "n_ref_unmatched": 1,
+    "n_meas_unmatched": 3,
+    "meas_to_ref_map": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 7,
+      "8": 8,
+      "9": 9,
+      "10": 10,
+      "11": 11,
+      "12": 12,
+      "13": 13,
+      "14": 14,
+      "15": 15,
+      "16": 16,
+      "17": 18,
+      "19": 19,
+      "20": 20,
+      "21": 21,
+      "22": 22,
+      "24": 23,
+      "25": 24,
+      "26": 25,
+      "27": 26,
+      "28": 27,
+      "29": 28,
+      "30": 29,
+      "31": 30,
+      "32": 31,
+      "33": 32,
+      "34": 33,
+      "35": 34,
+      "36": 35,
+      "38": 36,
+      "39": 37,
+      "40": 38,
+      "41": 39,
+      "42": 40,
+      "43": 41,
+      "44": 42,
+      "45": 43,
+      "46": 44,
+      "47": 45
+    }
+  },
+  "reference_self_consistency": {
+    "n_ref_label_switches": 11,
+    "ref_label_switches": [
+      2,
+      5,
+      22,
+      27,
+      28,
+      35,
+      36,
+      38,
+      41,
+      42,
+      44
+    ],
+    "n_manual_switches": 12,
+    "manual_switches": [
+      2,
+      5,
+      19,
+      22,
+      27,
+      28,
+      35,
+      36,
+      38,
+      41,
+      42,
+      44
+    ],
+    "n_intersection": 11,
+    "intersection": [
+      2,
+      5,
+      22,
+      27,
+      28,
+      35,
+      36,
+      38,
+      41,
+      42,
+      44
+    ],
+    "manual_only": [
+      19
+    ],
+    "n_manual_only": 1,
+    "n_ref_label_none": 2
+  },
+  "coverage_aligned": {
+    "n_aligned_pairs": 45,
+    "n_aligned_tagged": 43,
+    "coverage_pct": 95.56
+  },
+  "verdict_note": "口径 A 是 app208 的原判据（FAIL）；口径 B 是文本对齐后的口径。两者都照实报，不粉饰。"
+}
