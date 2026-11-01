@@ -1,0 +1,164 @@
+{
+ "script": "app204_app053_gui_shot.py",
+ "correction": "APP-053",
+ "purpose": "GUI 侧说话人标签证据（影子包 ＋ 真实 start() ＋ 截图）",
+ "shot": "C:\\Users\\Trekker-PTL\\shared\\app_gui_spk\\app204_gui_main.png",
+ "log": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\session_20261101_153952.log",
+ "snapshot": "C:\\Users\\Trekker-PTL\\shared\\app_gui_spk\\app204_gui_spk_snapshot.json",
+ "spk_backfilled_samples": [
+  [
+   "1",
+   "S1"
+  ],
+  [
+   "2",
+   "S1"
+  ],
+  [
+   "3",
+   "S1"
+  ],
+  [
+   "4",
+   "S1"
+  ],
+  [
+   "5",
+   "S1"
+  ],
+  [
+   "7",
+   "S1"
+  ],
+  [
+   "8",
+   "S1"
+  ],
+  [
+   "9",
+   "S1"
+  ],
+  [
+   "10",
+   "S1"
+  ],
+  [
+   "11",
+   "S1"
+  ],
+  [
+   "12",
+   "S1"
+  ],
+  [
+   "13",
+   "S1"
+  ]
+ ],
+ "checks": [
+  {
+   "name": "C1 主 GUI 截图存在（本轮 PID 归属 ＋ 取面积最大的窗口）",
+   "ok": true,
+   "detail": {
+    "shot": "C:\\Users\\Trekker-PTL\\shared\\app_gui_spk\\app204_gui_main.png",
+    "bytes": 37733,
+    "mtime": "2026-11-01 15:43:23"
+   }
+  },
+  {
+   "name": "C3 日志出现「[spk] 标签补到：第 N 段 = Sx」（晚到标签**回填**）",
+   "ok": true,
+   "detail": {
+    "n": 28,
+    "sample": [
+     [
+      "1",
+      "S1"
+     ],
+     [
+      "2",
+      "S1"
+     ],
+     [
+      "3",
+      "S1"
+     ],
+     [
+      "4",
+      "S1"
+     ],
+     [
+      "5",
+      "S1"
+     ],
+     [
+      "7",
+      "S1"
+     ]
+    ],
+    "log": "session_20261101_153952.log"
+   }
+  },
+  {
+   "name": "C2 ASR 状态行显示「当前 S1」（GUI 运行时的 `_spk_by_seg` 非空）",
+   "ok": true,
+   "detail": {
+    "n_segs_labeled": 12,
+    "sample": {
+     "1": [
+      "S1",
+      1.0
+     ],
+     "2": [
+      "S1",
+      0.8159
+     ],
+     "3": [
+      "S1",
+      0.8644
+     ],
+     "4": [
+      "S1",
+      0.9473
+     ],
+     "5": [
+      "S1",
+      0.9018
+     ],
+     "7": [
+      "S1",
+      0.9099
+     ]
+    }
+   }
+  },
+  {
+   "name": "C4 语音输出区显示「说话人: Sx」（音色**按句绑定**到该说话人）",
+   "ok": true,
+   "detail": {
+    "tts_speaker": "说话人：S1"
+   }
+  },
+  {
+   "name": "C5 GUI 有「说话人识别」勾选框且已勾选（APP-054① 的 GUI 开关）",
+   "ok": true,
+   "detail": {
+    "var_speaker": true,
+    "asr_status": "[spk] 标签补到：第 19 段 = S1"
+   }
+  },
+  {
+   "name": "C6 转写区正式行带 `[Sx]` 前缀",
+   "ok": false,
+   "detail": {
+    "render_lines": 0,
+    "blocks": 21,
+    "note": "GUI 转写区的「正式行」由 caption_render.render_lines 产出；当 MT 目标语言=关闭时 units 为空 ⇒ 不产出正式行（只显示灰色草稿行）⇒ 字幕行的 [Sx] 前缀在本轮**未取到图**（CLI 侧已实测 43/46 行带 [Sx]）。"
+   }
+  }
+ ],
+ "n_pass": 5,
+ "n_fail": 1,
+ "verdict": "PARTIAL",
+ "ts": "2026-11-01 15:43:23"
+}
