@@ -1,15 +1,15 @@
 # STATUS_EXT
-last_ack: EXT-031
-更新时间: 2026-11-01 21:25
+last_ack: EXT-032
+更新时间: 2026-11-02 01:04
 已压缩: 原文见 archive/STATUS_EXT_upto_20261030.md（224 833 B）；本精简版 ≤ 40 KB / ≤ 300 行 / < 归档/10（22 483 B 上限）；明细见 `status/notes/`
-当前任务: **§24 EXT-030/031 落库收口** —— ★ 上一会话「实现做完即死」，闸门 **exit 1 只判「认领」不判「收口」** ⇒ 本轮**未重做实现**，只**补记 EXEC_LOG + 提交** ⇒ ✅ 复核 106/11/19 + 24 + 6 + 42 + 70 全 **0 FAIL** ⇒ ⚠️ ⛔ 打包未做（App 线程 APP-057）/ ⛔ 音色克隆仍不可用 / ⛔ tabCapture 生产路径未实测 / ⛔ 端到端仍不实时（TTS RTF 1.0022）/ ⛔ 同步误差仍超标
+当前任务: **§25 EXT-032 交卷** —— ★ 上一会话「证据落盘+提交收尾」时**死掉** ⇒ 租约 **TAKEOVER** ⇒ 从断点继续 ⇒ ✅ 已交**逐段三份音频对比**（变速校正时长比 6/6 = 1.000–1.019；互相关峰 1.0000；SNR 中位 120 dB）+ **静音成因分解**（可解释 32.05 s = 首语音 22.05 s + 缓冲 D 10 s，残差 −2.75 s）+ **sync_err p50/p95 = 0/0 ms** + 交付目录 `shared/ext_listen/ext032_20261102_010022/`（5 文件）⇒ ⛔ **撤回「EXT-028 不构成打包阻塞」**（改为**待用户抽听**）⇒ ⛔ tabCapture 生产路径**自动化拿不到**（探针 12 次全败）⇒ 须用户手势；⛔ 未打包（APP-057）/ ⛔ 克隆音色不可用 / ⛔ 端到端仍不实时（TTS RTF 1.0022）
 
 阻塞 / 待决定:
-① ⛔ **Edge 真实手势 1 分钟验收（EXT-024 验收 1–4 条）** —— 需**用户本人**在 Edge 默认 profile 手动：双击桌面「实时配音桥接.cmd」→ 等就绪 → 打开英文网页视频 → 点扩展「开始」→ player 点「开始捕获」→ 连播 1 分钟；截图 30 s / 60 s 各一张；bridge.log 本次段级日志 ≥5 段且「下发到 player」段数 = TTS 段数、无「不顶替」无 10048
-② ⛔ **端到端仍不实时，TTS 提速是上线的唯一前置** —— 稳态端到端 RTF **2.0507**（ASR 0.6563 / MT 0.1507 / **TTS 1.0022**，源 `.tmp/ext008_bench/steady.json`）⇒ 建议目标 ≤ 0.85，**由主会话转达 TTS 模块**
-③ ⛔ **同步误差仍全部超标** —— 流水线轮 `sync_err_ms.p50=67289.3` / `n_over_target=22` / `last_segment_lag_sec=71.2074`（源 `.tmp/p1_pipe/p1_report.json`）⇒ 实时未达成
-④ ⛔ **pyannote 旁路未接线**（克隆音色仍不生效）—— ASR-013 交付后由主会话通知；⛔ **P3（打包）未开始**
-⑤ ℹ️ **tabCapture 生产路径仍未实测**（EXT-005 ①）+ **浏览器端人工验收未做**（EXT-017 ④余项）⇒ 均需真实用户手势，由用户本人做
+① ⛔ **EXT-032① tabCapture 生产路径 = 只能用户手势** —— 探针 12 次尝试全败（`getMediaStreamId` 空 id / `capture` null stream / `capture({targetTabId})` 属性非法），原文见 `.tmp/probe_tabcapture/result.json`；⇒ 请按 `shared/ext_listen/v21/HOWTO.txt`（App 模块 APP-059 已写 6 步）转用户亲手跑一次 60 s
+② ⛔ **EXT-028 待用户抽听 ⇒ V2.0 插件部分暂不放行**（旧结论已在本节撤回）—— 交付物已落 `shared/ext_listen/ext032_20261102_010022/`（player 录音 + README + 对比表），reviewer 可拉回做电平/静音测量与 MiniMax 回转写
+③ ⛔ **端到端仍不实时，TTS 提速是上线的唯一前置** —— 稳态端到端 RTF **2.0507**（ASR 0.6563 / MT 0.1507 / **TTS 1.0022**，源 `.tmp/ext008_bench/steady.json`）⇒ 建议目标 ≤ 0.85，**由主会话转达 TTS 模块**
+④ ⛔ **同步误差**：EXT-032 那一轮（真实浏览器+真实引擎）`sync_err p50/p95 = 0/0 ms`、`n_over_12000ms`=0；但**流水线轮**仍 `sync_err_ms.p50=67289.3` / `last_segment_lag_sec=71.2074`（源 `.tmp/p1_pipe/p1_report.json`）⇒ 两个口径不同，**实时未达成**的结论不变
+⑤ ⛔ **pyannote 旁路未接线**（克隆音色仍不生效）—— ASR-013 交付后由主会话通知；⛔ **P3（打包）未开始**
 ⑥ ℹ️ **EXT-009 服务端 lag 估计存在跨时钟常量偏差，尚未定量标定**（§17 已写清与 t_start 时间轴口径的关系；决策在服务端，不影响变速稳定性）；ℹ️ §6.5.0/§6.8/§6.9 的 0.9264 **已撤回**（以 §7 为准）；✅ **EXT-023 已收口**（§18 实测 `on_npu=17 / on_cpu=[]`，cp_decode=NPU）
 
 ## 当前有效结论
@@ -41,7 +41,7 @@ last_ack: EXT-031
 | **发行包（EXT-031，已交清单）** | `release/V20_HANDOFF.md` 已写（插件 **15 文件 / 219 021 B**）；**实测模拟发行包启动 6 PASS / 0 FAIL**（零开发机依赖）；发行版调试已剔（`getDisplayMedia`/`audio_dump`/`margin` 全禁）；★ **App 包内缺 `websockets` + `psutil` ⇒ 打包必补装** | §23；`.tmp/ext031/fake_pkg_probe.json` |
 | **pyannote 旁路（已接）** | 分段@**NPU**、嵌入@**GPU.0**（实测 NPU/GPU.1 不可用），经 `asr052_spk_runtime` 调用 ⇒ **旁路本身已通**；检出 **S1/S2(/S3)** | `ext/spk_engine.py`（§21） |
 | **克隆音色（仍未接线）** | `voice_source` 实测**全 `'preset'`**、`clone_wired=false` ⇒ 引擎层 `voice` 参数**未**接进 `tts_engine.stream()` ⇒ **不宣称克隆音色可用** | `ext/bridge.py` → `_resolve_spk()` |
-| 自测套件 | **27 套**（`test_ext029` **70 PASS / 0 FAIL**、`test_ext031` **24 PASS / 0 FAIL**）；node harness **8 套 rc=0**；唯一既有 FAIL = `test_ext016_compression` 的 CORRECTIONS 体积项（reviewer 独占，只读不改） | §21/§23 实测 |
+| 自测套件 | **28 套**（`test_ext029` **70 PASS / 0 FAIL**、`test_ext031` **24 PASS / 0 FAIL**、★ `test_ext032_deliver` **29 PASS / 0 FAIL**）；node harness **8 套 rc=0**；唯一既有 FAIL = `test_ext016_compression` 的 CORRECTIONS 体积项（reviewer 独占，只读不改） | §21/§23/§25 实测 |
 
 ## 未完成纠偏清单
 
@@ -51,7 +51,8 @@ last_ack: EXT-031
 | **EXT-030** | 巡检会话互相重叠 ⇒ 每会话开工前先拿「模块租约」 | ✅ **已认领并执行**（§22）：自动化指令已插入**四段**（`acquire`/`beat`/`addpid`/`release`），原文见 notes §22.1；★ 本轮**实测**触发 BUSY → 等 30 min → TAKEOVER ⇒ 租约机制**真实生效**；⛔ **未改 `session_lease.py`**（只读使用） |
 | **EXT-029** | 说话人旁路必须独立线程、不得反压 ASR | ✅ **已认领并执行**（§21）：独立线程 + 有界队列 + `put_nowait` + 满丢旧块计数 + **异步回填不等待**；**ASR 等 GPU 锁 A max 0.0007 s / B max 0.0008 s**（≤0.004 %）⇒ **不反压 ASR**；5 轮真实三引擎 A/B 实测 + 4 个真缺陷已修；⚠️ 原文③「墙钟差异 ≤5%」经实测判为**噪声主导不可用** ⇒ 改用**机制直接度量** |
 | **EXT-027** | 输入音频抓错 / 持锁铁律 / 克隆接线 / 同步误差 / 按序播放 | 🟡 **部分落地**：① 抓流（tabCapture **API 已修正**，但生产路径**未实测**——自动化拿不到，需用户点扩展图标）✅代码 / ② 持锁铁律 ✅ / ③ 克隆接线 ⛔（`voice_source` 全 `'preset'`）④ 同步误差 ⛔（未动引擎）⑤ 按序播放 ✅（`dubPlaybackEnd` 不叠播） |
-| **EXT-028** | 配音录音听不清 | ✅ **代码侧已修**：根因是服务端不传 `sample_rate` 时插件按 16 kHz 重建 24 kHz 波形 ⇒ 1.5× 语速 + 升调 ⇒ 新增 `resolvePcmSampleRate()`；自测 `test_ext028_dub_audio_chain.py` **42 PASS / 0 FAIL**、node harness rc=0 ⇒ **不构成打包阻塞** |
+| **EXT-032** | EXT-028 只修了代码没有交实录；「不构成打包阻塞」不成立 | ✅ **已认领并执行**（§25）：**撤回**旧结论 ⇒ EXT-028 改为**「待用户抽听」**；已交**逐段三份音频对比**（变速校正时长比 6/6 = 1.000–1.019、互相关峰 1.0000、SNR 中位 120 dB）+ **静音成因分解**（22.05 + 10 = 32.05 s，残差 −2.75 s）+ `sync_err p50/p95 = 0/0 ms` + 交付目录 `shared/ext_listen/ext032_20261102_010022/`（5 文件）；⛔ **① tabCapture 生产路径自动化拿不到**（探针 12 次全败）⇒ 须用户手势（`shared/ext_listen/v21/HOWTO.txt`） |
+| **EXT-028** | 配音录音听不清 | 🟡 **代码侧已修 + 本轮已交实测，但用户抽听未做** ⇒ **「待用户抽听」**（★ **旧结论「不构成打包阻塞」已在 §25 撤回**）：根因是服务端不传 `sample_rate` 时插件按 16 kHz 重建 24 kHz 波形 ⇒ 1.5× 语速 + 升调 ⇒ 新增 `resolvePcmSampleRate()`；自测 `test_ext028_dub_audio_chain.py` **42 PASS / 0 FAIL**；★ 本轮实测 `pcmRateLast=24000 / pcmRateAssumed=0` ⇒ 修复**已生效**；⛔ player 录音逐段对齐只 **3/6** ⇒ 不宣称播放端完全对齐 |
 | **EXT-026** | 真实三引擎端到端自动化冒烟 + 落盘配音/截图/段级日志 + 修 `seenDubIds` 撞号 | ✅ **已认领并执行**（`last_ack` = EXT-026）；两轮各 60 s 真实跑通、证据齐全、录音实测非静音（明细见 §18）；⛔ **Edge 默认 profile 真实手势验收仍需用户本人做** |
 | **EXT-024** | 下行接通 / 会话生命周期 / 启动器 / 段级日志 / 状态条 / 模式显示 / 语言映射 | ✅ **代码侧 A–G 全部落地**（§17）；✅ **真实三引擎上已验证下行通**（§18：`dubDelivered=9`、下发到 player 9/9）；⛔ **Edge 真实手势 1 分钟验收未做**（用户本人） |
 | **EXT-025** | RESUME：额度已重置，从 last_ack 继续 | ✅ **已认领并执行**（`last_ack` = EXT-025） |
@@ -70,40 +71,29 @@ last_ack: EXT-031
 > | §21 | `notes/sec21_ext029_spk_bypass_thread.md` | **EXT-029 说话人旁路**：独立线程 + 有界队列 + 异步回填（不反压 ASR）；修掉 **4 个真缺陷**；A/B 多轮实测 |
 > | §22 / §23 | `notes/sec22_23_ext030_lease_ext031_handoff.md` | **EXT-030** 模块租约已接入自动化指令（实测 BUSY→TAKEOVER）；**EXT-031** V2.0 交付清单 + 不依赖开发目录实测 |
 > | §24 | `notes/sec24_takeover_closeout.md` | **EXT-030/031 落库收口**：上一会话「做完就死」⇒ 闸门 exit 1 只判认领 ⇒ 本轮补记 EXEC_LOG + 提交；**复核 6 套全 0 FAIL**；★ 报出「闸门不校验收口」与「TTL 30 min」两个制度性缺口 |
-> | §22 / §23 | `notes/sec22_23_ext030_lease_ext031_handoff.md` | **EXT-030** 模块租约已接入自动化指令（实测 BUSY→TAKEOVER）；**EXT-031** V2.0 交付清单 + 不依赖开发目录实测 |
+> | §25 | `notes/sec25_ext032_deliver.md` | **EXT-032 交卷**：三份音频逐段对比（时长比 6/6、互相关 1.0000、SNR 120 dB）+ 静音成因分解（22.05+10=32.05 s，残差 −2.75 s）+ `sync_err p50/p95=0/0 ms` + 交付目录 `shared/ext_listen/ext032_20261102_010022/`；★ **撤回「EXT-028 不构成打包阻塞」** |
 
-## §21 EXT-029 —— 说话人旁路：**独立线程 + 有界队列 + 异步回填**（不反压 ASR）（2026-11-01 16:14）
+## §21 ~ §24 —— 已下沉（EXT-016 规则：内联只留最近 3 节；**原文逐字存档在 notes，零丢失**）
 
-★ **原内联正文逐字存档见 `notes/sec21_24_inline_archive.md`**；全量明细（7 节）见 `notes/sec21_ext029_spk_bypass_thread.md`。
+| 节 | 明细全文（notes） | 结论摘要 |
+|---|---|---|
+| §21 | `notes/sec21_ext029_spk_bypass_thread.md` | **EXT-029**：独立线程 + 有界队列 + 异步回填 ⇒ **不反压 ASR**（等 GPU 锁 A max 0.0007 s / B max 0.0008 s，≤0.004 %）；修 4 个真缺陷；`test_ext029` 70 PASS / 0 FAIL |
+| §22 | `notes/sec22_23_ext030_lease_ext031_handoff.md` §22.1 | **EXT-030**：模块租约已接入自动化指令（`acquire`/`beat`/`addpid`/`release`）；★ 实测 **BUSY → 等满 TTL → TAKEOVER** ⇒ 租约机制真实生效 |
+| §23 | `notes/sec22_23_ext030_lease_ext031_handoff.md` | **EXT-031**：V2.0 交付清单已写（`release/V20_HANDOFF.md`）+ 模拟发行包启动实测 6 PASS / 0 FAIL。⚠️ §23 原结论含「EXT-028 ✅ 已修 ⇒ **不构成打包阻塞**」—— **该结论已由 §25① 撤回**（原文逐字保留在 `notes/sec21_24_inline_archive.md` 以存史） |
+| §24 | `notes/sec24_takeover_closeout.md` | **EXT-030/031 落库收口**：上一会话「做完就死」⇒ 闸门 exit 1 只判认领 ⇒ 补记 EXEC_LOG + 提交；复核 6 套全 0 FAIL；报出「闸门不校验收口」「TTL 30 min」两个制度性缺口 |
 
-⇒ **结论**：4 个真缺陷已修（**D1** 流水线不登记定稿段 `n_final_req=0`→补 `_request_spk_label()`→复测 `n_final_req=19`；**D2** `tabCapture.capture({targetTabId})` **API 用错**（属 `getMediaStreamId()`）→改 `getMediaStreamId({targetTabId})`+`chromeMediaSource:'tab'`；**D3** `margin.json` 缺真实 ASR 墙钟→增落 `pipeline.stage_wall_sec.asr`；**D4** safe-delete 钩子腰斩录音分析→唯一 profile 名+`reuse_profile=True`）；★ 判据改用「ASR 等 GPU 锁时间」度量（原文「墙钟差异 ≤5%」被环境噪声主导：A 臂 ASR 自身 **21.9020–67.8250 s**、**3.1×** 波动）⇒ **A max 0.0007 s / B max 0.0008 s（≤0.004 %）⇒ 不反压 ASR** ✅；旁路指标 `spk_queue_drop` **0–57** / `spk_worker_busy_ms` **276.6–777.5** / `spk_gpu_lock_held_ms` **1726.1–6793.3**（占 ASR 墙钟 **4.5–24.0 %**）/ `n_label` **2–8** / 检出 **S1/S2(/S3)**；自测三套明文 **106/11/19** + `test_ext029` **70 PASS / 0 FAIL**（+12）；机器锁**等、不抢**（`ctypes` `OpenProcess`+`GetExitCodeProcess`，code=259 ⇒ 存活）；⛔ 音色克隆未接线、Edge 手势验收未做、tabCapture 生产路径未实测、端到端仍不实时（TTS RTF 1.0022）。
+## §25 —— EXT-032 交卷：三份音频逐段对比 + 静音成因分解 + 交付物落盘（2026-11-02 01:04）
 
-## §22 EXT-030 —— 巡检会话互相重叠：**模块租约**已接入自动化指令（2026-11-01 16:27）
+★ **全量明细见 `status/notes/sec25_ext032_deliver.md`**（9 节）；本节只留结论、数字、指针。
 
-★ **原正文逐字存档见 `notes/sec21_24_inline_archive.md`**；全量明细（含自动化指令新增四段原文）见 `notes/sec22_23_ext030_lease_ext031_handoff.md` §22.1。
-
-⇒ **① 实测触发 EXT-030 描述的正是它自己的故障**：开工时租约被**另一 EXT 会话**（`c3389eb3`，15:42 起）持有 ⇒ `acquire ext` **exit 10 (BUSY)** ⇒ 按铁律**没抢**（后台轮询）⇒ 对方心跳停在 15:44（**21.7 min**）⇒ 满 30 min TTL ⇒ **exit 0 + `TAKEOVER`** ⇒ ★ **租约机制真实生效**（重叠被挡 → 超时自动接管 → 从断点继续）。
-⇒ **② 自动化指令已改好**（id=`9ec49c32-…`，`FREQ=HOURLY`）新增**四段**：`acquire`（插在「第 0 步」之前）/ `beat` 心跳 / `addpid` / 结束 `release`；铁律区补「租约与 MACHINE_LOCK **互不替代**」。
-⇒ **③ 证据**：`shared\leases\ext.json`（389 B，mtime 16:15）；`.workbuddy\logs\automation.log`（1 015 237 B，mtime 16:17）。
-⇒ **④ 本轮未碰 MACHINE_LOCK**；⛔ 未改 `session_lease.py`（只读使用）/ 未改其他四模块自动化 / 未推远程。
-
-## §23 EXT-031 —— 插件整合进发行包 V2.0：**交付清单已写 + 不依赖开发目录已实测**（2026-11-01 16:27）
-
-★ **原内联正文逐字存档见 `notes/sec21_24_inline_archive.md`**；全量明细见 `notes/sec22_23_ext030_lease_ext031_handoff.md`。
-
-⇒ **结论**：交付清单 `release/V20_HANDOFF.md`（新建）六项齐全（插件 unpacked **15 文件 / 219 021 B** / 桥接入口命令 / Python 依赖及 **App 包内缺的 `websockets`+`psutil` ⇒ 打包必须补装** / 模型与 IR 映射**不另带一份** / 端口 8765·8766 + token + 日志位置 / 首次启动步骤）；★★「不依赖开发目录」**实测** `tests/smoke/ext031_fake_pkg_launch.py` 造**模拟发行包根**（目录名故意不叫 `live_dub_ext`）⇒ **6 PASS / 0 FAIL**：引擎根+模型目录+说话人 IR **全在包内**（越界**无**）/ 解析结果**不含**开发机目录名 / `package_root()`=模拟包 / `EXT_RELEASE=1` ⇒ 白名单只留 `tabCapture`；证据 `.tmp/ext031/fake_pkg_probe.json`（**2 836 B**）；发行版调试剔除实测**真生效**（`allowedCaptureModes` **真拦截** `getDisplayMedia`／`--audio-dump-out`·`--margin-out` **忽略**／另剔 `probe-worklet.js` **391 B** 零引用）；EXT-028 ✅ 已修（**42 PASS / 0 FAIL**）⇒ **不构成打包阻塞** ⇒ ★ **插件部分 = 可打包**（**打包必改只有 3 处**）；⛔ 打包由 App 线程执行（APP-057）、音色克隆不可用、端到端仍不实时（RTF **2.0507** / TTS **1.0022**）、同步误差仍超标（`sync_err_ms.p50=67289.3`）。
-
-## §24 —— EXT-030/031 **落库收口**：上一会话「做完就死」⇒ 接管补记 EXEC_LOG + 提交（2026-11-01 20:59）
-
-★ **全量明细见 `status/notes/sec24_takeover_closeout.md`**（7 节）；原内联正文逐字存档见 `status/notes/sec21_24_inline_archive.md`。
-
-⇒ **① ★★ 闸门 exit 1 只判「认领」，不判「收口」** —— 上一会话（token=`16a4f381`，末次心跳 **16:28:10**）把 EXT-030/031 **实现做完了**却**死在收口之前**：`EXEC_LOG.md` 里 EXT-030/031 记录数 = **0**、`git log` 仍停在 **`daaa00d`**（§21）⇒ 闸门复测 **exit 1 / `action=skip`** ⇒ 若直接跳过，**成果将永久搁浅** ⇒ 本轮**未重做实现**，只**补齐收口**（EXEC_LOG + 本节 + 提交）。
-⇒ **② ★ 独立复核（实测重跑，非照抄）**：三套明文 **106 / 11 / 19 PASS、0 FAIL**（rc=0）；`test_ext031` **24 / 0**；`ext031_fake_pkg_launch` **6 / 0**；`test_ext028` **42 / 0**（EXT-031④ 打包门禁 ✅）；`test_ext029` **70 / 0**；`test_ext016_compression` 38 PASS / **1 FAIL**（既有基线红：CORRECTIONS **38 693 B** > 阈值 20 480 B ⇒ **reviewer 独占文件，只读不改**）。
-⇒ **③ ★ 抽查「不是只写不生效」**：`extension/offscreen.js` 的 `allowedCaptureModes` **真拦截** `getDisplayMedia`（**明确失败**，绝不静默抓整机声音）；`ext/bridge.py:3099`/`:3145` 的 `--audio-dump-out`/`--margin-out` **真被 `RELEASE_MODE` 挡住**；`RELEASE_MODE` **显式覆盖优先** ✅。⚠️ `ext/config.py` 的 `CAPTURE_MODES` 在 `ext/` 内**无消费点** ⇒ 真正生效的是**插件侧** `offscreen.js`（**同名不同源**，勿混）。
-⇒ **④ ★ 时间戳口径修正 + 一处旧章节数字不一致（禁止推算；不改旧文件，只如实标出）**：§22/§23 原写 **`16:45`**，但落盘 mtime = **16:27:19**、末次心跳 = **16:28:10** ⇒ **16:45 从未发生**（预写值）⇒ 本轮落库前改为**实测 16:27**、头部「更新时间」改为本轮实测；**§22/§23 结论与数字一字未改**。另：`notes/sec21_*.md` §21.6 记 `test_ext029` **56 PASS**（中途快照），§21 正文与 EXEC_LOG 记 **70 PASS**，本轮实测亦为 **70 / 0** ⇒ **70 为准**。
-⇒ **⑤ ★ 报给 reviewer 的两个制度性缺口**：① 闸门 exit 1 **不校验「EXEC_LOG 有记录 + 已入库」** ⇒ 一个会话「做完就死」时下一轮直接跳过、**成果永久搁浅**（本轮即遇此情形）⇒ 建议**额外校验**「`last_ack` 对应编号是否在 `EXEC_LOG.md` 有记录且已入库」；② `session_lease.py` 的 **TTL = 30 min** ⇒ 上一会话「30 min 内活跃但已卡死」时新会话要**干等 30 min**（reviewer 可把 `TTL_MIN` 调至 **10–15**；★ 本模块**不改**该脚本）。
-⇒ **⑥ ⛔ 未做 / 不宣称**：⛔ **打包未做**（App 线程 APP-057 执行 ⇒ **未产出 zip**）；⛔ 未改引擎 / 未推远程 / `CORRECTIONS_EXT.md` 只读未入库（其余阻塞项见 §23 ⑥ 与「未完成纠偏清单」表）。
-
+⇒ **① ★★ 撤回旧结论**：§23 与「未完成纠偏清单」里那句 **「EXT-028 不构成打包阻塞」不成立** ⇒ 本节**撤回**它，改为 **「EXT-028 待用户抽听」** ⇒ **V2.0 插件部分暂不放行**（reviewer 20:30 的判断正确：EXT-028 当时确实一项验收都没交）。
+⇒ **② ★ 指令②「逐段三份音频对比」已交**（6 段，源轮次 `.tmp/ext028_029_e2e/20261101_155037_13840/A_off`）：**变速校正时长比 6/6 合格（1.0000–1.0190）**、**互相关峰 1.0000**、**SNR 中位 120.0 dB**；唯一原始比不合格段（0.8564）= **speed=1.1899 的 WSOLA 变速段**（0.8564 ≈ 1/1.1899）⇒ **与采样率无关**。★ 采样率修复生效的直接证据：`metrics.json` → **`pcmRateLast=24000` / `pcmRateAssumed=0`**（不再按 16 kHz 重建 24 kHz ⇒ 「1.5× 语速 + 升调」根因已消除）。
+⇒ **③ ★ 指令③「静音成因」已交**（**加法式分解**，残差可核）：**可解释开口静音 = 首语音位置 22.050 s + 播放缓冲 D 10.000 s = 32.050 s**；**实测开口静音 29.300 s**、**最长静音 29.250 s**、**总静音 30.000 s**（录音总长 **33.840 s**）；**残差 −2.750 s**（≈ player 时钟与桥接 t0 偏移）。**首段配音到达 = t_start 22.050 s**（段 `seg_90879187_352800`，`and you know`→`你知道的`）。**sync_err p50 / p95 = 0.0 / 0.0 ms**（max 0.0，`n_over_12000ms`=0；口径同 `tools/p1_pipeline.py`，**只统计有 TTS 的 3 段**）。
+⇒ **④ ★ 为什么 22.05 s 之前没有配音**（三条排除）：(a) **不是素材问题** —— 实测素材 `test_en_60s.wav` **20/20 个 3.15 s 窗都有语音**（RMS −26.65…−36.02 dBFS，首语音窗 t=0.0）；(b) **不是 ASR 问题** —— 同轮 3 窗**正常英译中**（`and you know`/`because I don't decline`/`So just got to maintain the`）；(c) ⇒ **是抓流侧没把标签页音频送上来**（见 ⑤）。
+⇒ **⑤ ★★ 指令①「tabCapture 生产路径」** —— **自动化拿不到，必须用户手势**：探针 **12 次尝试全失败**（`getMediaStreamId` 回空 id、`capture` 回 null stream、`capture({targetTabId})` 报 **"Unexpected property: 'targetTabId'"**；player 原文 **"Extension has not been invoked for the current page (see activeTab permission)."**）；该轮 `metrics.json` → **`captureMode = getDisplayMedia`**；**player 截图 `player_60s.png` 里画的是整个桌面**（终端/资源管理器/GPU 面板）⇒ 坐实**抓的是整机 + 系统声音混音**；**末尾 3 段是中文且 t_start 66.52/69.85/73.01 s 已超出素材 60 s** ⇒ 只能来自实时字幕 App 的混音 ⇒ **该轮「只抓页面元素音频 + 英文 SPE」两项均未达成**（EXT-027① 成立且已量化）。⇒ **请按 `shared/ext_listen/v21/HOWTO.txt`（App 模块 APP-059 已写 6 步）转用户亲手跑一次 60 s**；跑完后 `tests/smoke/ext032_deliver.py <该轮目录>` 一条命令即出同规格交付物。
+⇒ **⑥ ★ 交付物已落盘**：`C:\Users\Trekker-PTL\shared\ext_listen\ext032_20261102_010022\`（**5 文件**：`dub_player.webm` 86 970 B / `README.md` 4 102 B / `ext032_compare.md` 1 985 B / `ext032_compare.json` 6 266 B / `ext032_deliver.json` 10 772 B）⇒ reviewer 可拉回做电平/静音测量与 MiniMax 回转写，再交用户抽听。
+⇒ **⑦ ★ 本轮新增代码**：`tests/smoke/ext032_deliver.py`（成因分解 + 交付打包，**纯离线，不跑推理、不占 GPU/NPU、不创建锁**）、`tests/test_ext032_deliver.py`（**29 PASS / 0 FAIL**，含 4 组反证）；并接手上一会话已写的 `tests/smoke/ext032_audio_compare.py`（24 228 B，算法未改）。**三套明文自测 106 / 11 / 19 全 0 FAIL（rc=0）**。
+⇒ **⑧ ⛔ 未做 / 不宣称**：⛔ 本轮**没跑新的真实三引擎 e2e**（00:40–00:48 机器锁被 **asr** 持有；00:48 锁释放后**实时字幕 App 在跑** ⇒ `ext.bridge` 按互斥铁律拒绝启动 ⇒ **不抢设备、不打断用户的 App**）；⛔ **player 录音逐段对齐只 3/6** ⇒ 不宣称播放端完全对齐；⛔ **未打包**（APP-057）/ **未改引擎** / **未推远程** / `CORRECTIONS_EXT.md` **只读未入库**。
 
 > **§16 ~ §10 —— 已下沉**（明细全文在 `status/notes/`；§10 及更早见归档 `status/archive/STATUS_EXT_upto_20261030.md`）：
 > * **§13 ~ §16** 见 `notes/sec13…sec16_*.md`；**§12 / §11** 启动器 `start()` **4.244 s → 0.032 s**（EXT-017②）、STATUS 拆分归档（`notes/sec11_12_ext016_closeout.md`）

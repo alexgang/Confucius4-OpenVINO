@@ -2609,3 +2609,66 @@ A 轮另有 `schedClamped=7 / audioRecvSec=151.89225 / uplink.running=true / wsO
 
 **EXT-031** —— 本轮**未推进** `last_ack`（闸门 exit 1 ⇒ 无新指令可执行；EXT-030/031 已由上一会话认领并执行完）。
 ⇒ `last_ack` 保持 **EXT-031**；闸门复测 **exit 1 / `action=skip`** ⇒ 幂等生效，下一轮不会重复执行。
+
+## 2026-11-02 00:43 → 01:05 — §25 EXT-032 交卷（三份音频逐段对比 + 静音成因分解 + 交付物落盘 + 撤回「不构成打包阻塞」） ← 本轮
+
+### 触发与身份
+- **闸门**：`tools/next_instruction.py --json` → **exit 0**（`action=execute` / latest=**EXT-032** [BLOCKING] / `last_ack`=31 / `n_entries`=16）。
+- **租约**：`session_lease.py acquire ext` → **exit 0 + TAKEOVER**（上一会话 token=`81d2924a`，started 11-01 20:13:05，**末次心跳 22:27:46（135 min 前）**，note=「EXT-032证据落盘+STATUS撤回+提交收尾」，`live_pids=[]`）⇒ 上一会话**已死** ⇒ 本轮**从断点继续**，未从头重做。
+  - 本轮 token=`19b36192`；每步 `beat`；**未登记任何后台 PID**（唯一的浏览器解码进程同步跑完）。
+- **★ 断点接续**：上一会话已落盘 `tests/smoke/ext032_audio_compare.py`（**24 228 B**，mtime 11-01 21:56）+ `.tmp/ext028_029_e2e/20261101_155037_13840/A_off/ext032_compare.{json,md}`；本轮**接手并在其上补齐**成因分解、sync_err 统计、README 与交付打包。
+
+### 指令 5 条逐条执行结果
+| EXT-032 要求 | 结果 | 证据 |
+|---|---|---|
+| ① tabCapture 生产路径 / Edge 播英文 SPE 60 s / 只抓页面元素音频 / 录 player 端 | ⛔ **自动化拿不到 tabCapture ⇒ 只能用户手势** | 探针 **12 次尝试全失败**（`.tmp/probe_tabcapture/result.json`）；player 原文 `"Extension has not been invoked for the current page (see activeTab permission)."`；该轮 `captureMode=getDisplayMedia` |
+| ② 逐段三份音频对比（时长比 1.00±0.02 / 互相关峰与偏移 / SNR） | ✅ 已交（6 段） | 变速校正时长比 **6/6 = 1.0000–1.0190**；互相关峰 **1.0000**；SNR 中位 **120.0 dB**；唯一原始比不合格段 = speed 1.1899 的 WSOLA 变速段（0.8564 ≈ 1/1.1899，与采样率无关） |
+| ③ 静音成因 + 修复后数据 | ✅ 已交（加法式分解，残差可核） | 可解释开口静音 **32.050 s = 首语音 22.050 + D 10.000**；实测开口静音 **29.300 s**、最长静音 **29.250 s**、总静音 **30.000 s**、录音 **33.840 s**；**残差 −2.750 s**；首段配音到达 **t_start 22.050 s**；**sync_err p50/p95 = 0.0/0.0 ms**（`n_over_12000ms`=0） |
+| ④ `shared/ext_listen/ext032_<时间>/`（录音 + README + 对比表） | ✅ 已落盘 | `C:\Users\Trekker-PTL\shared\ext_listen\ext032_20261102_010022\`（**5 文件**） |
+| ⑤ STATUS 撤回「EXT-028 不构成打包阻塞」 | ✅ 已撤回 | STATUS §25① + 「未完成纠偏清单」EXT-028 行改为**「待用户抽听」** |
+
+### 关键取证（为什么「前 22 s 没有配音」不是链路问题）
+- **不是素材问题**：实测素材 `test_en_60s.wav`（16 kHz/60.0 s）**20/20 个 3.15 s 窗都有语音**（RMS **−26.65 … −36.02 dBFS**，首语音窗 t=0.0）⇒ 落盘 `ext032_deliver.json` → `silence.source_windows_rms_dbfs`。
+- **不是 ASR 问题**：同轮 3 窗**正常英译中**（`and you know`→`你知道的`；`because I don't decline`→`因为我不拒绝`；`So just got to maintain the`→`所以只需要保持现状即可`）。
+- **是抓流侧**：该轮 `player_60s.png` 画面是**整个桌面** ⇒ 抓的是整机 + 系统声音混音；末尾 3 段是中文且 **t_start 66.52/69.85/73.01 s 已超出素材 60 s** ⇒ 来自实时字幕 App 的混音（污染）。
+- **采样率修复已生效**：`metrics.json` → **`pcmRateLast=24000` / `pcmRateAssumed=0`**（不再按 16 kHz 重建 24 kHz）。
+
+### 涉及修改 / 新增的文件（**仅本模块**）
+| 文件 | 动作 | 大小 |
+|---|---|---|
+| `tests/smoke/ext032_audio_compare.py` | ★ 上一会话写的，**本轮接手**（算法未改） | 24 228 B |
+| `tests/smoke/ext032_deliver.py` | **本轮新建**（成因分解 + sync_err + 交付打包） | 11 232 B |
+| `tests/test_ext032_deliver.py` | **本轮新建**（29 项自测，含 4 组反证） | 9 073 B |
+| `status/notes/sec25_ext032_deliver.md` | **本轮新建**（§25 全量明细，9 节） | 15 604 B |
+| `status/STATUS_EXT.md` | **本轮改**：`last_ack` EXT-031→**EXT-032**、更新时间、头部当前任务、阻塞项、EXT-028/EXT-032 清单行、新增 §25、§21~§24 下沉（原文逐字仍在 notes，**零丢失**） | **22 122 B / 101 行**（限额 ≤ 40 KB / ≤ 300 行 / **< 归档/10 = 22 483 B** ✅；头部 **14 行** ✅） |
+| `status/EXEC_LOG.md` | **本轮追加**本节 | — |
+
+### 验证与自测（实测 rc）
+| 套件 | 结果 | rc |
+|---|---|---|
+| `tests/test_ext_selfcheck.py`（EXT-032 明文要求） | **106 PASS / 0 FAIL** | 0 |
+| `tests/test_echo_roundtrip.py`（明文要求） | **11 PASS / 0 FAIL** | 0 |
+| `tests/test_next_instruction.py`（明文要求） | **19 PASS / 0 FAIL** | 0 |
+| `tests/test_ext032_deliver.py`（本轮新增） | **29 PASS / 0 FAIL** | 0 |
+| `tests/test_ext016_compression.py`（STATUS 体积守门） | **38 PASS / 1 FAIL** | 1 |
+
+- ★ **全量 28 套 Python 套件实测**（`tests/test_*.py` 全跑）：**25 套 rc=0**、**3 套 rc=1**，逐条归因如下（**不是只看总数**，逐 FAIL 比对）：
+  | 红套件 | FAIL | 根因（实测取证） | 是否本轮引入 |
+  |---|---|---|---|
+  | `test_ext016_compression` | 1 | 断言只检查 `status/CORRECTIONS_EXT.md` 字节数（实测 **40 938 B** > 阈值 20 480 B）⇒ **reviewer 独占文件、只读、本轮从未修改也从未入库**（`git check-ignore` 命中 `.gitignore:34`） | ❌ **既有基线红**（前几轮 EXEC_LOG 记录同一条：当时 38 693 B ⇒ reviewer 一直在追加条目） |
+  | `test_t2_port_guard` | 7 | 桥接启动被**设备互斥**拦下：输出原文 **「检测到实时字幕 App 在运行，拒绝启动（设备互斥）」**、**实际 rc=3**（用例期望 rc=6 端口占用）；实测 `_caption_app_running()` = **True**（实时字幕 App PID 14712 在跑） | ❌ **环境性红**（`ext/` `extension/` 本轮 **0 改动** ⇒ 与本轮改动无关） |
+  | `test_ext017_user_report` | 12 | 同上根因：桥接**起不来**（「未在超时内就绪」）⇒ 后续「启动横幅/配对端点/冷启动耗时」等断言连锁失败 | ❌ **环境性红**（同上） |
+
+- ★ 按铁律**不干预用户的实时字幕 App**（不 kill、不抢设备）⇒ 这两个红套件**如实留红并如实归因**，不做"绕过互斥"式改测试。
+- ★ `test_ext016_compression` 的**其余 38 项断言本轮全 PASS**（含「精简版 STATUS 不含历史全文」体积项 ⇒ 本轮 STATUS **22 122 B** < 归档/10 **22 483 B** ✅）。
+- ★ **反证**（自测能区分真通过/假通过）：sync_err 公式恒 0 / 去掉 D / 译文清空 / `has_text` 恒 True —— 四组断言均会翻转。
+
+### ⛔ 明确未做 / 不宣称
+- ⛔ **tabCapture 生产路径未实测**（自动化拿不到）⇒ 须**用户手势**（`shared/ext_listen/v21/HOWTO.txt`，App 模块 APP-059 已写 6 步）。
+- ⛔ **EXT-028 仍未通过**（用户抽听未做）⇒ **撤回**「不构成打包阻塞」⇒ **V2.0 插件部分暂不放行**。
+- ⛔ **本轮没跑新的真实三引擎 e2e**：00:40–00:48 机器锁被 **asr**（`asr040-spk-change-point-diag`, PID 6224）持有；**00:48 锁释放后实时字幕 App 在跑**（PID 14712 `live_caption_app.py` + PID 22400 `tts_worker --device NPU`）⇒ `ext.bridge` 按互斥铁律会**拒绝启动**（`_caption_app_running()` → rc=3）⇒ **不抢设备、不打断用户的 App** ⇒ 本轮**没有**起第二个桥接实例。
+- ⛔ **player 录音逐段对齐只 3/6** ⇒ 不宣称播放端完全对齐。
+- ⛔ **未打包**（EXT-031：打包由 App 线程 APP-057 执行）/ **未改任何引擎文件** / **未改 `session_lease.py`** / **未推远程** / `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**。
+
+### `last_ack`
+**EXT-032** —— 本轮**已认领并执行完** EXT-032 ⇒ `last_ack` 推进到 **EXT-032**（下一轮闸门将返回 exit 1，除非 reviewer 下发 EXT-033）。
