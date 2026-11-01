@@ -28,15 +28,15 @@
   "control": {
     "ev_dir": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app",
     "verdict": "PASS",
-    "n_pass": 25,
+    "n_pass": 26,
     "n_fail": 0,
     "expect": "PASS",
     "ok": true
   },
   "experiment": {
-    "ev_dir": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app186_disc_du4d6enm\\ev",
+    "ev_dir": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app186_disc_68z9_1l3\\ev",
     "verdict": "FAIL",
-    "n_pass": 20,
+    "n_pass": 21,
     "n_fail": 5,
     "failed_check_names": [
       "① pythonw 冷启动 verdict=PASS",

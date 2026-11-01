@@ -1,0 +1,54 @@
+{
+  "script": "app191_discrimination_test.py",
+  "ts": "2026-11-01 08:06:38",
+  "n_pass": 9,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "checks": [
+    {
+      "name": "D1 真实逻辑改动 ⇒ 必须判【other】（非良性）",
+      "ok": true,
+      "detail": "cls=other"
+    },
+    {
+      "name": "D2 注入成功（常量已改）",
+      "ok": true,
+      "detail": "gui_status.py: SEP"
+    },
+    {
+      "name": "D2 真实常量改动 ⇒ 必须判【other】（非良性）",
+      "ok": true,
+      "detail": "cls=other (gui_status.py.SEP)"
+    },
+    {
+      "name": "D3 注入成功（字面量已替换为 expanduser 派生）",
+      "ok": true,
+      "detail": "tts_engine.py @ d866c479: 'C:\\\\Users\\\\Trekker-PTL\\\\qwen3tts_eval\\\\qwen3tts_patch.py' → os.path.join(os.path.expanduser('~'), 'qwen3tts_eval', 'qwen3tts_patch.py')"
+    },
+    {
+      "name": "D3 家目录路径改写 ⇒ 必须判【home_path_rewrite】（良性）",
+      "ok": true,
+      "detail": "cls=home_path_rewrite"
+    },
+    {
+      "name": "D4 影子副本（有真实逻辑缺陷）⇒ 总闸门必须 FAIL",
+      "ok": true,
+      "detail": "verdict=FAIL (PASS 10 / FAIL 1)"
+    },
+    {
+      "name": "D4 影子副本检出漂移模块",
+      "ok": true,
+      "detail": "drifted=['speaker_assets.py', 'speaker_tracker.py', 'tts_cuda.py', 'tts_engine.py', 'tts_service.py', 'tts_worker.py']"
+    },
+    {
+      "name": "D4 影子副本里 tts_service.py 被判为【other】",
+      "ok": true,
+      "detail": "cls(tts_service.py)=['other']"
+    },
+    {
+      "name": "D5 客户包生产模块指纹未变（影子测试没碰真包）",
+      "ok": true,
+      "detail": "fingerprint=09a1f417c31eff069cf3fbbca7cf13b5"
+    }
+  ]
+}

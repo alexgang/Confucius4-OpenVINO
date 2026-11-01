@@ -1,0 +1,350 @@
+{
+  "script": "app191_acceptance_code_binding_gate.py",
+  "pkg_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+  "pkg_version": "1.13",
+  "accepted_at": "2026-11-01 00:43:32",
+  "accepted_mtime": "2026-11-01 07:59:51",
+  "accepted_ts": 1793465012.0,
+  "drift_baseline": "ACCEPTED.accepted_at（内容字段，非文件 mtime）",
+  "n_modules": 28,
+  "fingerprint": "09a1f417c31eff069cf3fbbca7cf13b5e138e41b330824c4225bab6106b77a4b",
+  "covered": [
+    {
+      "module": "audio_check.py",
+      "mtime": "2026-10-25 22:13:40",
+      "mtime_ts": 1792937620.5218534
+    },
+    {
+      "module": "audio_source.py",
+      "mtime": "2026-10-25 07:33:27",
+      "mtime_ts": 1792884807.215408
+    },
+    {
+      "module": "backends.py",
+      "mtime": "2026-10-21 14:18:18",
+      "mtime_ts": 1792563498.2719426
+    },
+    {
+      "module": "caption_render.py",
+      "mtime": "2026-10-29 15:14:04",
+      "mtime_ts": 1793258044.9091187
+    },
+    {
+      "module": "clone_collector.py",
+      "mtime": "2026-10-28 14:28:17",
+      "mtime_ts": 1793168897.2237704
+    },
+    {
+      "module": "device_config.py",
+      "mtime": "2026-10-27 16:18:18",
+      "mtime_ts": 1793089098.419708
+    },
+    {
+      "module": "gui_status.py",
+      "mtime": "2026-10-30 16:46:42",
+      "mtime_ts": 1793350002.3771367
+    },
+    {
+      "module": "live_caption_app.py",
+      "mtime": "2026-10-31 21:04:35",
+      "mtime_ts": 1793451875.94145
+    },
+    {
+      "module": "npu_delivery_backend.py",
+      "mtime": "2026-10-23 09:21:57",
+      "mtime_ts": 1792718517.0386345
+    },
+    {
+      "module": "npu_embeds_backend.py",
+      "mtime": "2026-10-23 09:21:57",
+      "mtime_ts": 1792718517.0426433
+    },
+    {
+      "module": "offline_reader.py",
+      "mtime": "2026-10-27 22:40:14",
+      "mtime_ts": 1793112014.1789181
+    },
+    {
+      "module": "offline_reader_gui.py",
+      "mtime": "2026-10-27 22:40:14",
+      "mtime_ts": 1793112014.1999247
+    },
+    {
+      "module": "seg_stream.py",
+      "mtime": "2026-10-21 09:05:22",
+      "mtime_ts": 1792544722.0897214
+    },
+    {
+      "module": "segment_encoder_backend.py",
+      "mtime": "2026-10-21 14:18:18",
+      "mtime_ts": 1792563498.0222197
+    },
+    {
+      "module": "selftest_audio_sources.py",
+      "mtime": "2026-10-20 17:00:18",
+      "mtime_ts": 1792486818.405764
+    },
+    {
+      "module": "speaker_voice.py",
+      "mtime": "2026-10-30 03:59:07",
+      "mtime_ts": 1793303947.8993647
+    },
+    {
+      "module": "streaming_asr.py",
+      "mtime": "2026-10-19 10:17:00",
+      "mtime_ts": 1792376220.014173
+    },
+    {
+      "module": "time_stretch.py",
+      "mtime": "2026-10-29 17:14:43",
+      "mtime_ts": 1793265283.81916
+    },
+    {
+      "module": "translator.py",
+      "mtime": "2026-10-27 21:20:57",
+      "mtime_ts": 1793107257.1838539
+    },
+    {
+      "module": "tts_cuda_sidecar.py",
+      "mtime": "2026-10-29 07:45:48",
+      "mtime_ts": 1793231148.349739
+    },
+    {
+      "module": "tts_engine_patch.py",
+      "mtime": "2026-10-24 20:16:18",
+      "mtime_ts": 1792844178.5941744
+    },
+    {
+      "module": "tts_service.py",
+      "mtime": "2026-10-30 03:59:08",
+      "mtime_ts": 1793303948.0209918
+    },
+    {
+      "module": "win_clickthrough.py",
+      "mtime": "2026-10-23 21:00:33",
+      "mtime_ts": 1792760433.3237088
+    }
+  ],
+  "drifted": [
+    {
+      "module": "speaker_assets.py",
+      "mtime": "2026-11-01 05:56:10",
+      "mtime_ts": 1793483770.7155912,
+      "base_commit": "1a84d0d615970b7ecb58a899368176260bdea615",
+      "base_mode": "content_addressed",
+      "sha_before": "30142332febbd6bc",
+      "sha_after": "1576ac8559e1a634",
+      "cls": "home_path_rewrite",
+      "detail": {
+        "tails": [
+          "qwen3asr_06b/scripts"
+        ],
+        "b_prefixes": [
+          "C:/Users/Trekker-PTL"
+        ],
+        "c_prefixes": [],
+        "n_replaced_before": 2,
+        "n_replaced_after": 3,
+        "n_derived_inlined": 0,
+        "derived": {},
+        "bad_derived": [],
+        "b_raw_len": 21005,
+        "c_raw_len": 21310,
+        "b_dump_len": 20844,
+        "c_dump_len": 20844,
+        "cls": "home_path_rewrite",
+        "home_prefix": [
+          "C:/Users/Trekker-PTL"
+        ]
+      }
+    },
+    {
+      "module": "speaker_tracker.py",
+      "mtime": "2026-11-01 05:56:10",
+      "mtime_ts": 1793483770.7415333,
+      "base_commit": "1a84d0d615970b7ecb58a899368176260bdea615",
+      "base_mode": "content_addressed",
+      "sha_before": "e40779329d72c7aa",
+      "sha_after": "ecb3bd6b7f094fae",
+      "cls": "home_path_rewrite",
+      "detail": {
+        "tails": [
+          "qwen3asr_06b/scripts"
+        ],
+        "b_prefixes": [],
+        "c_prefixes": [],
+        "n_replaced_before": 0,
+        "n_replaced_after": 0,
+        "n_derived_inlined": 1,
+        "derived": {
+          "_ASR_SCRIPTS": "«HOME»/qwen3asr_06b/scripts"
+        },
+        "bad_derived": [],
+        "b_raw_len": 42599,
+        "c_raw_len": 42904,
+        "b_dump_len": 42482,
+        "c_dump_len": 42482,
+        "cls": "home_path_rewrite",
+        "home_prefix": []
+      }
+    },
+    {
+      "module": "tts_cuda.py",
+      "mtime": "2026-11-01 05:56:10",
+      "mtime_ts": 1793483770.7713077,
+      "base_commit": "1a84d0d615970b7ecb58a899368176260bdea615",
+      "base_mode": "content_addressed",
+      "sha_before": "884d90d26838dcf3",
+      "sha_after": "bfde75221a040643",
+      "cls": "home_path_rewrite",
+      "detail": {
+        "tails": [
+          "_fq3tts_env/Scripts/python.exe"
+        ],
+        "b_prefixes": [
+          "C:/Users/Trekker-PTL"
+        ],
+        "c_prefixes": [],
+        "n_replaced_before": 3,
+        "n_replaced_after": 2,
+        "n_derived_inlined": 1,
+        "derived": {
+          "_ENV_PY_DEFAULT": "«HOME»/_fq3tts_env/Scripts/python.exe"
+        },
+        "bad_derived": [],
+        "b_raw_len": 94656,
+        "c_raw_len": 95084,
+        "b_dump_len": 94351,
+        "c_dump_len": 94351,
+        "cls": "home_path_rewrite",
+        "home_prefix": [
+          "C:/Users/Trekker-PTL"
+        ]
+      }
+    },
+    {
+      "module": "tts_engine.py",
+      "mtime": "2026-11-01 05:56:10",
+      "mtime_ts": 1793483770.815135,
+      "base_commit": "1a84d0d615970b7ecb58a899368176260bdea615",
+      "base_mode": "content_addressed",
+      "sha_before": "eea087756981eb47",
+      "sha_after": "b422f2f199a5b92b",
+      "cls": "home_path_rewrite",
+      "detail": {
+        "tails": [
+          "qwen3tts_eval/qwen3tts_patch.py"
+        ],
+        "b_prefixes": [
+          "C:/Users/Trekker-PTL"
+        ],
+        "c_prefixes": [],
+        "n_replaced_before": 2,
+        "n_replaced_after": 3,
+        "n_derived_inlined": 1,
+        "derived": {
+          "_CN_DIGITS": "零一二三四五六七八九"
+        },
+        "bad_derived": [],
+        "b_raw_len": 155418,
+        "c_raw_len": 155723,
+        "b_dump_len": 155127,
+        "c_dump_len": 155127,
+        "cls": "home_path_rewrite",
+        "home_prefix": [
+          "C:/Users/Trekker-PTL"
+        ]
+      }
+    },
+    {
+      "module": "tts_worker.py",
+      "mtime": "2026-11-01 05:56:10",
+      "mtime_ts": 1793483770.8725538,
+      "base_commit": "1a84d0d615970b7ecb58a899368176260bdea615",
+      "base_mode": "content_addressed",
+      "sha_before": "025d1848064a6a47",
+      "sha_after": "80f2025afe1fb23e",
+      "cls": "home_path_rewrite",
+      "detail": {
+        "tails": [
+          "confucius4-tts"
+        ],
+        "b_prefixes": [
+          "C:/Users/Trekker-PTL"
+        ],
+        "c_prefixes": [],
+        "n_replaced_before": 3,
+        "n_replaced_after": 5,
+        "n_derived_inlined": 1,
+        "derived": {
+          "_LEAD_PUNCT_CHARS": "，,、。.…‥!！?？;；:：-—–~～*»〉》」』】〕、。〈《「『"
+        },
+        "bad_derived": [],
+        "b_raw_len": 353388,
+        "c_raw_len": 353962,
+        "b_dump_len": 353102,
+        "c_dump_len": 353102,
+        "cls": "home_path_rewrite",
+        "home_prefix": [
+          "C:/Users/Trekker-PTL"
+        ]
+      }
+    }
+  ],
+  "n_pass": 10,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "checks": [
+    {
+      "name": "R3 ACCEPTED.json 存在且 accepted=true",
+      "ok": true,
+      "detail": "accepted=True"
+    },
+    {
+      "name": "R3 ACCEPTED.json 的 version == 本包版本",
+      "ok": true,
+      "detail": "ACCEPTED.version='1.13' / 本包='1.13'"
+    },
+    {
+      "name": "R3 ACCEPTED.json 的 pkg_dir == 本包目录",
+      "ok": true,
+      "detail": "ACCEPTED.pkg_dir='C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_v1.13'"
+    },
+    {
+      "name": "R1 生产模块都能被检出（模块数 > 0）",
+      "ok": true,
+      "detail": "covered=23 drifted=5"
+    },
+    {
+      "name": "R2 speaker_assets.py 的漂移属于良性类（home_path_rewrite）",
+      "ok": true,
+      "detail": "base=1a84d0d6(content_addressed) before=30142332febbd6bc after=1576ac8559e1a634 | cls=home_path_rewrite"
+    },
+    {
+      "name": "R2 speaker_tracker.py 的漂移属于良性类（home_path_rewrite）",
+      "ok": true,
+      "detail": "base=1a84d0d6(content_addressed) before=e40779329d72c7aa after=ecb3bd6b7f094fae | cls=home_path_rewrite"
+    },
+    {
+      "name": "R2 tts_cuda.py 的漂移属于良性类（home_path_rewrite）",
+      "ok": true,
+      "detail": "base=1a84d0d6(content_addressed) before=884d90d26838dcf3 after=bfde75221a040643 | cls=home_path_rewrite"
+    },
+    {
+      "name": "R2 tts_engine.py 的漂移属于良性类（home_path_rewrite）",
+      "ok": true,
+      "detail": "base=1a84d0d6(content_addressed) before=eea087756981eb47 after=b422f2f199a5b92b | cls=home_path_rewrite"
+    },
+    {
+      "name": "R2 tts_worker.py 的漂移属于良性类（home_path_rewrite）",
+      "ok": true,
+      "detail": "base=1a84d0d6(content_addressed) before=025d1848064a6a47 after=80f2025afe1fb23e | cls=home_path_rewrite"
+    },
+    {
+      "name": "R4 指纹变化已被 R2 分类为良性",
+      "ok": true,
+      "detail": "prev=09a1f417c31eff06… now=09a1f417c31eff06… | drifted=5 全部良性=True"
+    }
+  ],
+  "ts": "2026-11-01 08:06:28"
+}

@@ -8,7 +8,8 @@
     "2_spe_qa_clone": true,
     "3_gui_accel": true,
     "4_gui_layout_2res": true,
-    "5_accel_listen_1.2_1.3": true
+    "5_accel_listen_1.2_1.3": true,
+    "6_acceptance_code_binding": true
   },
   "checks": [
     {
@@ -135,11 +136,57 @@
       "name": "⑤ 每段 wav **真实落盘**且字节数与 manifest 一致",
       "ok": true,
       "detail": "clips = 3"
+    },
+    {
+      "name": "⑥ 验收证据 ↔ 被验收代码 绑定（app191）",
+      "ok": true,
+      "detail": "verdict=PASS（漂移 5 个模块，全部良性=True）"
     }
   ],
-  "n_pass": 25,
+  "n_pass": 26,
   "n_fail": 0,
   "accepted": true,
   "verdict": "PASS",
-  "note": "「accepted」= 5 个子项**全部**证据存在 + verdict=PASS + 指向 v1.13 包；**音质/不变调/可懂仍由用户实听 + reviewer 判定**"
+  "note": "「accepted」= 6 个子项**全部**证据存在 + verdict=PASS + 指向 v1.13 包；**音质/不变调/可懂仍由用户实听 + reviewer 判定**",
+  "code_binding": {
+    "script": "app191_acceptance_code_binding_gate.py",
+    "fingerprint": "09a1f417c31eff069cf3fbbca7cf13b5e138e41b330824c4225bab6106b77a4b",
+    "drifted": [
+      {
+        "module": "speaker_assets.py",
+        "cls": "home_path_rewrite",
+        "base_commit": "1a84d0d615970b7ecb58a899368176260bdea615",
+        "sha_before": "30142332febbd6bc",
+        "sha_after": "1576ac8559e1a634"
+      },
+      {
+        "module": "speaker_tracker.py",
+        "cls": "home_path_rewrite",
+        "base_commit": "1a84d0d615970b7ecb58a899368176260bdea615",
+        "sha_before": "e40779329d72c7aa",
+        "sha_after": "ecb3bd6b7f094fae"
+      },
+      {
+        "module": "tts_cuda.py",
+        "cls": "home_path_rewrite",
+        "base_commit": "1a84d0d615970b7ecb58a899368176260bdea615",
+        "sha_before": "884d90d26838dcf3",
+        "sha_after": "bfde75221a040643"
+      },
+      {
+        "module": "tts_engine.py",
+        "cls": "home_path_rewrite",
+        "base_commit": "1a84d0d615970b7ecb58a899368176260bdea615",
+        "sha_before": "eea087756981eb47",
+        "sha_after": "b422f2f199a5b92b"
+      },
+      {
+        "module": "tts_worker.py",
+        "cls": "home_path_rewrite",
+        "base_commit": "1a84d0d615970b7ecb58a899368176260bdea615",
+        "sha_before": "025d1848064a6a47",
+        "sha_after": "80f2025afe1fb23e"
+      }
+    ]
+  }
 }

@@ -261,11 +261,50 @@ def main():
                      all_exist, 'clips = %d' % len(clips))
     items.append(('accel_listen', ev5))
 
+    # ── ⑥ 验收证据 ↔ 被验收代码 的绑定（app191）──────────────────
+    # 🔴🔴🔴 **为什么必须加这一项**（本轮实测的真实缺陷）：
+    #   本闸门原本只判「证据存在 + verdict=PASS + 指向本包」
+    #   ⇒ **从来没有核对「这份证据所验收的代码 == 现在交付的代码」**
+    #   ⇒ 实测：`ACCEPTED.json` 写于 00:43:32，而 §120 在 05:56:10
+    #     **改写了客户包 5 个生产模块**、06:08:44 重打了 zip
+    #   ⇒ 交付物里的代码 ≠ 被验收的代码，而 `accepted=true` 仍成立
+    #   ⇒ **没有任何闸门会发现**。
+    #   ⇒ 新增 `app191`：逐个漂移模块做**漂移分类**
+    #     （良性 = 家目录路径改写 / 逐字相同；其它 ⇒ 验收已被推翻）。
+    ok6 = True
+    ev6 = None
+    p6 = os.path.join(EV, 'app191_acceptance_code_binding_evidence.json')
+    try:
+        import app191_acceptance_code_binding_gate as _app191
+    except Exception:
+        _app191 = None
+    if _app191 is None:
+        ok6 = check('⑥ 验收证据 ↔ 被验收代码 绑定（app191）', False,
+                    '无法导入 app191（脚本不在 %s）' % HERE)
+    else:
+        try:
+            r6 = _app191.run(PKG_DIR, prev_evidence=p6)
+            ev6 = r6
+            ok6 = check('⑥ 验收证据 ↔ 被验收代码 绑定（app191）',
+                        r6['verdict'] == 'PASS',
+                        'verdict=%s（漂移 %d 个模块，全部良性=%s）'
+                        % (r6['verdict'], len(r6.get('drifted') or []),
+                           all(d.get('cls') in _app191.BENIGN
+                               for d in (r6.get('drifted') or []))))
+            # 🔴 记录每个漂移模块的分类，便于人工复核
+            for d in (r6.get('drifted') or []):
+                print('        %-22s cls=%-20s base=%s'
+                      % (d['module'], d.get('cls'),
+                         str(d.get('base_commit'))[:8]))
+        except Exception as e:
+            ok6 = check('⑥ 验收证据 ↔ 被验收代码 绑定（app191）', False,
+                        'app191 执行异常：%r' % e)
+
     # ── 总判定 ─────────────────────────────────────────────────────
-    overall = all([ok1, ok2, ok3, ok4, ok5])
+    overall = all([ok1, ok2, ok3, ok4, ok5, ok6])
     print('\n' + '=' * 70)
-    print('子项：①pythonw=%s ②克隆=%s ③加速=%s ④分辨率=%s ⑤实听=%s'
-          % (ok1, ok2, ok3, ok4, ok5))
+    print('子项：①pythonw=%s ②克隆=%s ③加速=%s ④分辨率=%s ⑤实听=%s ⑥代码绑定=%s'
+          % (ok1, ok2, ok3, ok4, ok5, ok6))
     print('PASS %d  FAIL %d  verdict=%s'
           % (PASS, FAIL, 'PASS' if overall else 'FAIL'))
     print('=' * 70)
@@ -283,13 +322,26 @@ def main():
             '3_gui_accel': bool(ok3),
             '4_gui_layout_2res': bool(ok4),
             '5_accel_listen_1.2_1.3': bool(ok5),
+            '6_acceptance_code_binding': bool(ok6),
         },
         'checks': CHECKS, 'n_pass': PASS, 'n_fail': FAIL,
         'accepted': accepted,
         'verdict': 'PASS' if accepted else 'FAIL',
-        'note': '「accepted」= 5 个子项**全部**证据存在 + verdict=PASS + '
+        'note': '「accepted」= 6 个子项**全部**证据存在 + verdict=PASS + '
                 '指向 v%s 包；**音质/不变调/可懂仍由用户实听 + reviewer 判定**' % PKG_VER,
     }
+    if ev6 is not None:
+        result['code_binding'] = {
+            'script': 'app191_acceptance_code_binding_gate.py',
+            'fingerprint': ev6.get('fingerprint'),
+            'drifted': [
+                {'module': d.get('module'), 'cls': d.get('cls'),
+                 'base_commit': d.get('base_commit'),
+                 'sha_before': d.get('sha_before'),
+                 'sha_after': d.get('sha_after')}
+                for d in (ev6.get('drifted') or [])
+            ],
+        }
 
     with open(args.out, 'w', encoding='utf-8') as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
@@ -313,6 +365,10 @@ def main():
                 'gui_accel_formula': 'results/app/app183_app042_formula_evidence.json',
                 'gui_layout_2res': 'results/app/app185_app048_gui_layout_pkg_evidence.json',
                 'accel_listen': 'results/app/app184_app051_accel_listen_manifest.json',
+                # 🔴🔴 验收证据 ↔ 被验收代码 的绑定（本轮新增，§122）
+                #    ⇒ 没有它，「验收通过」这句话与交付物里的代码**脱钩**
+                #    ⇒ 交付物改了代码而验收声明不变 ⇒ 无人发现。
+                'code_binding': 'results/app/app191_acceptance_code_binding_evidence.json',
             },
             'scope': '链路 + 结构 + 数字自洽；**音质/不变调/可懂由用户实听与 reviewer 判定**',
         }

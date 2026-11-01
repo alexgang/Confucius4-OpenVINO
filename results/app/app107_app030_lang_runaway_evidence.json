@@ -178,7 +178,7 @@
   "B8_client_sends_cap": true,
   "B9_worker_runaway_guard": true,
   "B10_stream_passthrough": true,
-  "C1_q_get_timeout": "返回='object' 耗时=0.063 s",
+  "C1_q_get_timeout": "返回='object' 耗时=0.051 s",
   "C2_q_get_no_raise": true,
   "C3_timeout_returns_to_loop": true,
   "C4_watchdog_thresholds": true,
@@ -229,7 +229,7 @@
     "pass": 42,
     "fail": 0,
     "failures": [],
-    "ts": "2026-11-01 06:35:46",
+    "ts": "2026-11-01 08:06:56",
     "note": "零推理、零 GPU、零 NPU（桩引擎 + ast/exec）"
   }
 }

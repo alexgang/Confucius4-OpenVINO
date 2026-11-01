@@ -1,18 +1,18 @@
 APP-021 自检：把播放链路做成可观测
-时间：2026-11-01 06:35:33
+时间：2026-11-01 08:06:55
 结果：49 PASS / 0 FAIL（共 49 项）
 
 PASS  A0 抽到 Player 类
 PASS  A2 n_read 未追上 ⇒ 判失败（不是「已播完」）  |  diag=等待播放消费超时 0.3 s（已读 0 / 目标 24000，回调 0 次）
 PASS  A3 n_read 追上 ⇒ 判成功  |  diag=
-PASS  A4 播放回调推进后能等到「播完」  |  耗时 0.16 s
+PASS  A4 播放回调推进后能等到「播完」  |  耗时 0.17 s
 PASS  A5 telemetry 字段齐全  |  缺 []
 PASS  A6 测试声音：n_read 增量 ≈ sr×1 s（24000）  |  n_read +24000 / 回调 +3
 PASS  A7 无播放器 ⇒ 测试声音明确失败（不假装成功）  |  msg=播放流未打开（没有输出设备）
 PASS  A8 源码：`played` 只在 wait_consumed 之后发出  |  played emit 点 2 个（适用 1 / 落盘 1）；before_wait=[True]
 PASS  B0 抽到 append_session_log / session_log_path
-PASS  B1 会话日志文件已创建且追加了内容  |  路径=C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\session_20261101_063528.log
-PASS  B2 会话日志路径在 %LOCALAPPDATA%\Confucius4LiveCaption 下  |  C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\session_20261101_063528.log
+PASS  B1 会话日志文件已创建且追加了内容  |  路径=C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\session_20261101_080649.log
+PASS  B2 会话日志路径在 %LOCALAPPDATA%\Confucius4LiveCaption 下  |  C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\session_20261101_080649.log
 PASS  B3 service 有 n_failed（独立于 n_dropped）
 PASS  B4 service 有 last_sentence_error
 PASS  B5 stats() 带出 n_failed / last_sentence_error / session_log
@@ -49,7 +49,7 @@ PASS  E5 read_delta < n_samples ⇒ 判失败  |  ['C1 不成立：read_delta=68
 PASS  E6 峰值 ≤ 1e-2 ⇒ 判失败（静音合成）  |  ['C2 不成立：peak=0.000100 ≤ 0.01（静音合成）']
 PASS  E7 遥测缺字段 ⇒ 判失败  |  ['遥测缺 n_samples（无法核对「样本数」）']
 PASS  E8 弱判据扫描器本身可用（规则来自单一来源）  |  已跟踪文件解析失败=[]
-PASS  E9 全目录扫描：无脚本再用「n_played >= 1」判定出声  |  扫了 392 个文件，违规 0 处
+PASS  E9 全目录扫描：无脚本再用「n_played >= 1」判定出声  |  扫了 394 个文件，违规 0 处
 PASS  E10 5 个重点脚本都在扫描范围内（覆盖面不退化）  |  WEAK_SCRIPTS=5 个
 
 --- 证据 ---
@@ -60,7 +60,7 @@ PASS  E10 5 个重点脚本都在扫描范围内（覆盖面不退化）  |  WEA
   },
   "A4_wait_consumed": {
     "ok": true,
-    "elapsed": 0.165
+    "elapsed": 0.172
   },
   "A6_test_tone": {
     "ok": true,
@@ -88,7 +88,7 @@ PASS  E10 5 个重点脚本都在扫描范围内（覆盖面不退化）  |  WEA
   "A8_applicable_count": 1,
   "A8_not_applicable_count": 1,
   "B1_session_log": {
-    "path": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\session_20261101_063528.log",
+    "path": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\session_20261101_080649.log",
     "exists": true
   },
   "E_criterion_behaviour": {
@@ -99,7 +99,7 @@ PASS  E10 5 个重点脚本都在扫描范围内（覆盖面不退化）  |  WEA
     "partial": false
   },
   "E_weak_criterion_scan": {
-    "n_scanned": 392,
+    "n_scanned": 394,
     "n_violations": 0,
     "violations": [],
     "parse_fail_tracked": [],

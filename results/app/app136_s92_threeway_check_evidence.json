@@ -1,21 +1,21 @@
 {
   "script": "app136_s92_threeway_check.py",
-  "zip": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.7.zip",
-  "prefix": "Confucius4_LiveCaption_v1.7",
+  "zip": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13.zip",
+  "prefix": "Confucius4_LiveCaption_v1.13",
   "repo_app": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption",
-  "pkg_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.7\\app",
+  "pkg_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\app",
   "zip_file": {
-    "bytes": 11218140640,
-    "mtime": "2026-10-29 15:59:47",
-    "sha256": "43857883cc29fb79a8e196e65e77fe2923c7fe9783dfc3a175395fe3550105cc"
+    "bytes": 11233348145,
+    "mtime": "2026-11-01 06:08:44",
+    "sha256": "3ca36ce3d166ed0ec1cc2fbd2173ea3c3a77107c6c8ebce2ecdd0af8b169e020"
   },
-  "n_compare": 23,
+  "n_compare": 28,
   "exclude": [
     "_probe_tts_cuda.py"
   ],
-  "zip_entries": 14200,
-  "n_repo_eq_pkg": 23,
-  "n_pkg_eq_zip": 23,
+  "zip_entries": 14213,
+  "n_repo_eq_pkg": 28,
+  "n_pkg_eq_zip": 28,
   "mismatches": [],
   "per_file": [
     {
@@ -67,10 +67,18 @@
       "pkg_eq_zip": true
     },
     {
+      "name": "gui_status.py",
+      "repo_sha16": "c78813b5bdb6e99e",
+      "pkg_sha16": "c78813b5bdb6e99e",
+      "zip_sha16": "c78813b5bdb6e99e",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
       "name": "live_caption_app.py",
-      "repo_sha16": "6d81361d8436443b",
-      "pkg_sha16": "6d81361d8436443b",
-      "zip_sha16": "6d81361d8436443b",
+      "repo_sha16": "9f37a399b2b375e2",
+      "pkg_sha16": "9f37a399b2b375e2",
+      "zip_sha16": "9f37a399b2b375e2",
       "repo_eq_pkg": true,
       "pkg_eq_zip": true
     },
@@ -131,10 +139,42 @@
       "pkg_eq_zip": true
     },
     {
+      "name": "speaker_assets.py",
+      "repo_sha16": "1576ac8559e1a634",
+      "pkg_sha16": "1576ac8559e1a634",
+      "zip_sha16": "1576ac8559e1a634",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "speaker_tracker.py",
+      "repo_sha16": "ecb3bd6b7f094fae",
+      "pkg_sha16": "ecb3bd6b7f094fae",
+      "zip_sha16": "ecb3bd6b7f094fae",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "speaker_voice.py",
+      "repo_sha16": "42a7aaeedc944916",
+      "pkg_sha16": "42a7aaeedc944916",
+      "zip_sha16": "42a7aaeedc944916",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
       "name": "streaming_asr.py",
       "repo_sha16": "3b4ba85f1411393c",
       "pkg_sha16": "3b4ba85f1411393c",
       "zip_sha16": "3b4ba85f1411393c",
+      "repo_eq_pkg": true,
+      "pkg_eq_zip": true
+    },
+    {
+      "name": "time_stretch.py",
+      "repo_sha16": "f1f7f5e1c18c3e1e",
+      "pkg_sha16": "f1f7f5e1c18c3e1e",
+      "zip_sha16": "f1f7f5e1c18c3e1e",
       "repo_eq_pkg": true,
       "pkg_eq_zip": true
     },
@@ -148,9 +188,9 @@
     },
     {
       "name": "tts_cuda.py",
-      "repo_sha16": "884d90d26838dcf3",
-      "pkg_sha16": "884d90d26838dcf3",
-      "zip_sha16": "884d90d26838dcf3",
+      "repo_sha16": "bfde75221a040643",
+      "pkg_sha16": "bfde75221a040643",
+      "zip_sha16": "bfde75221a040643",
       "repo_eq_pkg": true,
       "pkg_eq_zip": true
     },
@@ -164,9 +204,9 @@
     },
     {
       "name": "tts_engine.py",
-      "repo_sha16": "788d5ca29fd7345b",
-      "pkg_sha16": "788d5ca29fd7345b",
-      "zip_sha16": "788d5ca29fd7345b",
+      "repo_sha16": "b422f2f199a5b92b",
+      "pkg_sha16": "b422f2f199a5b92b",
+      "zip_sha16": "b422f2f199a5b92b",
       "repo_eq_pkg": true,
       "pkg_eq_zip": true
     },
@@ -180,17 +220,17 @@
     },
     {
       "name": "tts_service.py",
-      "repo_sha16": "ec2ef04a5c6f9276",
-      "pkg_sha16": "ec2ef04a5c6f9276",
-      "zip_sha16": "ec2ef04a5c6f9276",
+      "repo_sha16": "4b34e8015d6ad538",
+      "pkg_sha16": "4b34e8015d6ad538",
+      "zip_sha16": "4b34e8015d6ad538",
       "repo_eq_pkg": true,
       "pkg_eq_zip": true
     },
     {
       "name": "tts_worker.py",
-      "repo_sha16": "90835802f79a47e1",
-      "pkg_sha16": "90835802f79a47e1",
-      "zip_sha16": "90835802f79a47e1",
+      "repo_sha16": "80f2025afe1fb23e",
+      "pkg_sha16": "80f2025afe1fb23e",
+      "zip_sha16": "80f2025afe1fb23e",
       "repo_eq_pkg": true,
       "pkg_eq_zip": true
     },
@@ -206,30 +246,30 @@
   "s92_files": [
     {
       "name": "tts_worker.py",
-      "repo_sha256": "90835802f79a47e11acaf4b8cfba47743b50868e21c4372c05084ba3f8d8463a",
-      "pkg_sha256": "90835802f79a47e11acaf4b8cfba47743b50868e21c4372c05084ba3f8d8463a",
-      "zip_sha256": "90835802f79a47e11acaf4b8cfba47743b50868e21c4372c05084ba3f8d8463a",
+      "repo_sha256": "80f2025afe1fb23e4b3f2cccdac0f7bfffc4643491dfaa66b9335865ec4fd855",
+      "pkg_sha256": "80f2025afe1fb23e4b3f2cccdac0f7bfffc4643491dfaa66b9335865ec4fd855",
+      "zip_sha256": "80f2025afe1fb23e4b3f2cccdac0f7bfffc4643491dfaa66b9335865ec4fd855",
       "all_equal": true,
-      "repo_bytes": 188451,
-      "pkg_bytes": 188451
+      "repo_bytes": 223177,
+      "pkg_bytes": 219189
     },
     {
       "name": "tts_service.py",
-      "repo_sha256": "ec2ef04a5c6f9276328f08bfee15a9e8f8df6c80dbd5caeafc70ef3b4ab1b1a8",
-      "pkg_sha256": "ec2ef04a5c6f9276328f08bfee15a9e8f8df6c80dbd5caeafc70ef3b4ab1b1a8",
-      "zip_sha256": "ec2ef04a5c6f9276328f08bfee15a9e8f8df6c80dbd5caeafc70ef3b4ab1b1a8",
+      "repo_sha256": "4b34e8015d6ad53879b9c4e4c5162798d9ad1eab05c4595fa3852d61947ee509",
+      "pkg_sha256": "4b34e8015d6ad53879b9c4e4c5162798d9ad1eab05c4595fa3852d61947ee509",
+      "zip_sha256": "4b34e8015d6ad53879b9c4e4c5162798d9ad1eab05c4595fa3852d61947ee509",
       "all_equal": true,
-      "repo_bytes": 115173,
-      "pkg_bytes": 115173
+      "repo_bytes": 127498,
+      "pkg_bytes": 125332
     },
     {
       "name": "live_caption_app.py",
-      "repo_sha256": "6d81361d8436443bcc1b4506c5a76173c81b4e0586839999fa889c60be0631b4",
-      "pkg_sha256": "6d81361d8436443bcc1b4506c5a76173c81b4e0586839999fa889c60be0631b4",
-      "zip_sha256": "6d81361d8436443bcc1b4506c5a76173c81b4e0586839999fa889c60be0631b4",
+      "repo_sha256": "9f37a399b2b375e2685e621fbef375b8d1d7b4e727e5d755e6381da4c3e9582a",
+      "pkg_sha256": "9f37a399b2b375e2685e621fbef375b8d1d7b4e727e5d755e6381da4c3e9582a",
+      "zip_sha256": "9f37a399b2b375e2685e621fbef375b8d1d7b4e727e5d755e6381da4c3e9582a",
       "all_equal": true,
-      "repo_bytes": 258637,
-      "pkg_bytes": 253828
+      "repo_bytes": 330874,
+      "pkg_bytes": 330874
     }
   ],
   "testzip_bad": null,
