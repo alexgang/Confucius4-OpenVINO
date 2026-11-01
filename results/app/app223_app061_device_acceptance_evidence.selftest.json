@@ -1,0 +1,74 @@
+{
+ "script": "app223_app061_device_acceptance.py",
+ "correction": "APP-061",
+ "ts": "2026-11-02 04:43:41",
+ "cfg": {
+  "self_test": true,
+  "run": false,
+  "dry_run": false,
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2",
+  "counterproof_pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1",
+  "duration": 300.0,
+  "arms": "tts_off,tts_on_preset,tts_on_clone",
+  "skip_quiet": false,
+  "out": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_app061_device_acceptance_evidence.json"
+ },
+ "self_test": {
+  "log": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\session_20261101_212026.log",
+  "exists": true,
+  "parsed": {
+   "n_lines": 930,
+   "n_no_voice_error": 50,
+   "n_fallback_preset": 83,
+   "n_embedding": 27,
+   "n_clone_updates": 27,
+   "n_clone_updates_10s": 25,
+   "n_clone_updates_unpaired": 27,
+   "n_speakers": 2,
+   "n_new_spk_events": 2,
+   "n_embedding_paired": 0,
+   "n_embedding_unpaired": 27,
+   "n_keep_last": 0
+  },
+  "clone_update_samples": [
+   "21:21:05 [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，3.0 s）",
+   "21:21:22 [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，9.0 s）",
+   "21:21:39 [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，10.0 s）",
+   "21:21:58 [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，10.0 s）",
+   "21:22:16 [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，10.0 s）"
+  ],
+  "checks": [
+   {
+    "name": "解析器抓到「已回落到预设 A」83 次（reviewer 原文）",
+    "ok": true,
+    "detail": 83
+   },
+   {
+    "name": "解析器抓到「没有可用的音色」> 0（reviewer 原文 50 次）",
+    "ok": true,
+    "detail": 50
+   },
+   {
+    "name": "解析器抓到 10.0 s 定时克隆更新 > 0",
+    "ok": true,
+    "detail": 25
+   },
+   {
+    "name": "判据④-③ 在 v2.1 上必须 FAIL（有未配对的定时克隆更新）",
+    "ok": true,
+    "detail": 27
+   },
+   {
+    "name": "判据④-② 在 v2.1 上必须 FAIL（声纹计算对不上 new_spk）",
+    "ok": true,
+    "detail": 27
+   }
+  ],
+  "n_pass": 5,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "meaning": "PASS = 判据在**已知有缺陷的旧产物**上能识破缺陷 ⇒ 判据非恒真；此时它对 v2.2 的判定才可信"
+ },
+ "verdict": "SELFTEST_ONLY",
+ "selftest_only": true
+}

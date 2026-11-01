@@ -1,0 +1,58 @@
+{
+ "script": "app225_app061_sidecar_crash.py",
+ "correction": "APP-061② 附带问题（Fatal Python error: _enter_buffered_busy）",
+ "ts": "2026-11-02 04:45:12",
+ "repo": "C:\\Users\\Trekker-PTL\\confucius4-openvino",
+ "sidecar_source": {
+  "file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_cuda_sidecar.py",
+  "exists": true,
+  "sha256": "677daaee11082184af2f5588d2b95eb004a3c86c7e2b24e446d5c4f6fb9f653b",
+  "bytes": 25600,
+  "uses_buffered_readline": false,
+  "uses_os_read": true,
+  "ok": true
+ },
+ "ab": {
+  "orig": {
+   "mode": "orig",
+   "parent_write": "OK",
+   "rc": 3221225477,
+   "stderr": "READY\r\nGOT:{\"cmd\":\"ping\"}\r\nGOT:{\"cmd\":\"quit\"}\r\nEXITING\r\nFatal Python error: _enter_buffered_busy: could not acquire lock for <_io.BufferedReader name='<stdin>'> at interpreter shutdown, possibly due to daemon threads\nPython runtime state: finalizing (tstate=0x00007ffce2fd3d50)\n\nCurrent thread 0x0000416c (most recent call first):\n  <no Python frame>\n",
+   "fatal": true,
+   "got_line": true
+  },
+  "fixed": {
+   "mode": "fixed",
+   "parent_write": "OK",
+   "rc": 0,
+   "stderr": "READY\r\nGOT:{\"cmd\":\"ping\"}\r\nGOT:{\"cmd\":\"quit\"}\r\nEXITING\r\n",
+   "fatal": false,
+   "got_line": true
+  }
+ },
+ "checks": [
+  {
+   "name": "改前（BufferedReader.readline）确实崩 _enter_buffered_busy",
+   "ok": true,
+   "detail": "fatal=True rc=3221225477"
+  },
+  {
+   "name": "改后（os.read）不再崩，且 rc=0",
+   "ok": true,
+   "detail": "fatal=False rc=0"
+  },
+  {
+   "name": "改后读取线程**真的收到了数据**（不是「不读所以不崩」）",
+   "ok": true,
+   "detail": "got_line=True"
+  },
+  {
+   "name": "开发版边车源码：已用 os.read 且不再用 BufferedReader.readline",
+   "ok": true,
+   "detail": "uses_os_read=True uses_buffered_readline=False"
+  }
+ ],
+ "n_pass": 4,
+ "n_fail": 0,
+ "verdict": "PASS"
+}

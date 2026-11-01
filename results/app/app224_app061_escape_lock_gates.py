@@ -8,7 +8,7 @@ r"""app224 —— 【APP-061 ② 附带问题 + 共享锁闸门】本轮**代码
 |---|---|---|
 | ① | **APP-061② 附带问题**：`tts_cuda_sidecar.py` 的 `SyntaxWarning: invalid escape sequence '\_'`（reviewer 点名）⇒ **5 个 App 侧文件**同类告警一并归零 | 改前/改后 `compile()` 告警对照 ＋ **docstring/字符串常量逐字不变** |
 | ② | **共享锁闸门自检**：`results/app/test_machine_lock_app.py` 的夹具**写死绝对日期** ⇒ 本机 2026-10-31 重启后 8 条**假 FAIL** ⇒ 夹具改动态时间戳 ＋ **补 `stale_boot` 分支覆盖** | 改前 32/40（8 条假 FAIL）→ 改后 **42/42** |
-| ③ | **行为未变**证明：同一套（改后）判据跑在**改前**的 `machine_lock_app.py`（= git HEAD）上 ⇒ 结果一致 | 42/42（仓库内，含 git 反证组）vs 40/41（HEAD 基线，唯一 FAIL 是临时目录没有 git ⇒ 反证组取不到 HEAD 源码） |
+| ③ | **行为未变**证明：同一套（改后）判据跑在**改前**的 `machine_lock_app.py`（= **钉死的 `fae75d9`**）上 ⇒ 结果一致 | 42/42（仓库内，含 git 反证组）vs 改前基线（旧夹具，唯一 FAIL 是临时目录没有 git ⇒ 反证组取不到 HEAD 源码） |
 | ④ | **APP-061②「CUDA 置灰 + 显示原因」**在 **v2.2 包内代码**确实落地 | 静态扫描包内 `live_caption_app.py` 的 4 个落点（列项/初值/选择拦截/启动前拦截） |
 
 ## 🔴 顺带查出的**风险项**（未自行改动，交给 reviewer 裁定）
@@ -16,6 +16,16 @@ r"""app224 —— 【APP-061 ② 附带问题 + 共享锁闸门】本轮**代码
 `lock_state()` 里 `stale_boot`（锁的 `started` 早于开机时间）**优先于 PID 存活判断**
 ⇒ **别的模块时钟被往回调**（或开机时间算错）时，会**抢走活锁** ⇒ 两个模块同占设备。
 本轮**只把它写成显式断言**（口径锁定），**没有改实现语义**（共享锁，4 个模块共用）。
+
+## 🔴🔴 §129 修掉的**闸门自身缺陷**（真缺陷，不是产品缺陷）
+
+1. **基线用移动的 `git HEAD` ⇒ 闸门在正确代码上永久 FAIL**
+   原实现拿 `HEAD` 当「改前基线」⇒ §128 把 escape 修复**提交**之后，
+   `HEAD` 变成「改后」⇒ `warn_baseline` 变空 ⇒ `warn_cleared` 恒 False
+   ⇒ **0 PASS / 5 FAIL**（实测）。⇒ 改用**钉死的 `fae75d9`**。
+2. **基线取不到时会「恒 PASS」**（弱标记）⇒ 现在要求
+   `baseline_had_warn`（基线**本身**必须有告警）⇒ 否则判「无法判定」。
+3. **没有判据自检** ⇒ 新增 ⑥「坏代码必须被判出来」（反证）。
 
 ## 用法
 
@@ -40,7 +50,7 @@ HOME = os.path.expanduser('~')
 PKG_V22 = os.path.join(HOME, 'Confucius4_LiveCaption_v2.2')
 OUT_JSON = os.path.join(HERE, 'app224_app061_escape_lock_gates_evidence.json')
 
-# 本轮改过的 5 个文件（改前基线 = git HEAD）
+# 本轮改过的 5 个文件（改前基线 = **钉死的提交** `BASE_REV`，**不是**移动的 HEAD）
 EDITED = [
     'live_caption/tts_cuda_sidecar.py',
     'machine_lock_app.py',
@@ -49,6 +59,17 @@ EDITED = [
     'results/app/app223_app061_device_acceptance.py',
 ]
 LOCK_TEST = 'results/app/test_machine_lock_app.py'
+
+# 🔴🔴🔴 **基线必须钉死**（§129 实测出的真缺陷）
+#   原实现用**移动的 `git HEAD`** 当「改前基线」⇒ **修复一旦被提交**，
+#   HEAD 就变成「改后」⇒ `warn_baseline` 变空 ⇒ `warn_cleared` 恒 False
+#   ⇒ **闸门在正确的代码上永久报 FAIL**（§129 实测 0 PASS / 5 FAIL）。
+#   ⇒ 基线改成**钉死的提交 SHA**（`fae75d9` = §128 修 escape 之前的那一版）
+#   ⇒ 无论后续提交多少，基线都指向同一份「改前」源码。
+BASE_REV = 'fae75d9'
+# 🔴 `app223` 是 §128 **新建**的文件 ⇒ 不在 `BASE_REV` 里 ⇒ 基线取「改前备份」
+#   （`shared/app223_backup_20261102/` = §128 改前拷出来的原件）。
+BACKUP_DIR = os.path.join(HOME, 'shared', 'app223_backup_20261102')
 
 _RE_RESULT = re.compile(r'结果：(\d+)/(\d+)\s*PASS')
 
@@ -63,6 +84,31 @@ def git_head_bytes(rel):
     if p.returncode != 0:
         return None
     return p.stdout
+
+
+def git_rev_bytes(rel, rev=BASE_REV):
+    """取**钉死**的某个提交里的文件内容（`rev` 不是移动的 HEAD）。"""
+    p = subprocess.run(['git', '-C', REPO, 'show', '%s:%s' % (rev, rel)],
+                       capture_output=True)
+    if p.returncode != 0:
+        return None
+    return p.stdout
+
+
+def baseline_bytes(rel):
+    """「改前」基线：① 钉死的 `BASE_REV` ② §128 的改前备份目录。
+
+    🔴 **绝不**用移动的 `HEAD`（见 `BASE_REV` 处的说明）。
+    返回 `(bytes, 来源说明)`；取不到 ⇒ `(None, 原因)`。
+    """
+    b = git_rev_bytes(rel, BASE_REV)
+    if b is not None:
+        return b, 'git %s（钉死的改前基线）' % BASE_REV
+    bak = os.path.join(BACKUP_DIR, os.path.basename(rel))
+    if os.path.isfile(bak):
+        with open(bak, 'rb') as f:
+            return f.read(), '改前备份 %s' % bak
+    return None, '取不到改前基线（既不在 %s 里，也没有备份）' % BASE_REV
 
 
 def compile_warnings(src_bytes, name):
@@ -93,21 +139,10 @@ def only_ctrl_to_visible(a, b):
 
 def check_escape_fixes():
     """① 5 个文件的告警归零 ＋ 字符串常量逐字不变（只允许「控制字符→可见字面量」）。"""
-    bak_dir = os.path.join(HOME, 'shared', 'app223_backup_20261102')
     rows = []
     for rel in EDITED:
         cur_path = os.path.join(REPO, rel.replace('/', os.sep))
-        head = git_head_bytes(rel)
-        baseline_src = 'git HEAD'
-        if head is None:
-            # 新文件（还没入库）⇒ 基线用**改前备份**（本轮改前拷到 shared/）
-            bak = os.path.join(bak_dir, os.path.basename(rel))
-            if os.path.isfile(bak):
-                with open(bak, 'rb') as f:
-                    head = f.read()
-                baseline_src = '改前备份 %s' % bak
-            else:
-                baseline_src = None
+        head, baseline_src = baseline_bytes(rel)
         with open(cur_path, 'rb') as f:
             cur = f.read()
         rec = {'file': rel, 'baseline': baseline_src,
@@ -117,8 +152,11 @@ def check_escape_fixes():
                'bytes_now': len(cur)}
         rec['warn_baseline'] = compile_warnings(head, rel) if head else None
         rec['warn_now'] = compile_warnings(cur, rel)
-        rec['warn_cleared'] = bool(head) and (not rec['warn_now']) \
-            and bool(rec['warn_baseline'])
+        # 🔴🔴 **基线本身必须真的有告警** ⇒ 否则「告警归零」无从谈起
+        #   （基线取错/取空 ⇒ 这个判据会**恒 PASS** ⇒ 弱标记）。
+        #   ⇒ 基线无告警 ⇒ 判「无法判定」（None），**不是** PASS。
+        rec['baseline_had_warn'] = bool(head) and bool(rec['warn_baseline'])
+        rec['warn_cleared'] = rec['baseline_had_warn'] and (not rec['warn_now'])
         if head:
             s_head = str_constants(head)
             s_now = str_constants(cur)
@@ -135,11 +173,37 @@ def check_escape_fixes():
             rec['string_const_diffs'] = diffs
             rec['string_values_intact'] = not any('值变了' in d for d in diffs)
         else:
-            rec['string_const_diffs'] = ['无基线（新文件且无备份）']
+            rec['string_const_diffs'] = ['无基线（取不到改前版本）']
             rec['string_values_intact'] = True
         rec['ok'] = bool(rec['warn_cleared'] and rec['string_values_intact'])
         rows.append(rec)
     return rows
+
+
+def check_gate_self_detection():
+    """🔴🔴 **判据自检（反证）**：闸门必须能**识破真的坏代码**。
+
+    §129 实测出的真缺陷：`git HEAD` 当基线 ⇒ 修复一提交，闸门就永久 FAIL；
+    而若有人把基线改成「取不到」⇒ 又会**恒 PASS**。
+    ⇒ 这里造一份**故意带 `SyntaxWarning` 的坏文件**，跑同一套判据
+    ⇒ 必须被判成「没归零」⇒ 证明判据**不是恒真**、也不是恒假。
+    """
+    src = ('"""doc"""\n'
+           'import re\n'
+           'BAD = "a\\_b"          # 反斜杠 ⇒ invalid escape sequence\n')
+    cur = src.encode('utf-8')
+    warns_bad = compile_warnings(cur, '_mutant.py')
+    warns_good = compile_warnings(b'"""doc"""\nX = 1\n', '_ok.py')
+    # 判据的判定式（与 check_escape_fixes 里同一条）
+    def cleared(base_has, now_has):
+        return bool(base_has) and (not now_has)
+    caught = (bool(warns_bad) and not cleared(True, bool(warns_bad)))
+    ok = bool(caught) and (not warns_good)
+    return {'ok': ok,
+            'mutant_warnings': warns_bad,
+            'good_warnings': warns_good,
+            'detail': ('坏文件被判成「没归零」=%r；好文件被判成「已归零」=%r'
+                       % (caught, cleared(True, bool(warns_good))))}
 
 
 def run_lock_test(module_src=None, test_src=None, in_repo=True):
@@ -243,14 +307,16 @@ def main():
           % (cur['n_pass'], cur['n_total'], cur['n_fail']))
     for f in cur['fails']:
         print('    [FAIL] %s' % f)
-    print('===== ③ 行为未变（HEAD 基线 + 同一套改后判据）=====')
-    head_mod = git_head_bytes('machine_lock_app.py')
-    head_test = git_head_bytes(LOCK_TEST)
+    print('===== ③ 行为未变（钉死的改前基线 + 同一套改后判据）=====')
+    head_mod = git_rev_bytes('machine_lock_app.py', BASE_REV)
+    head_test = git_rev_bytes(LOCK_TEST, BASE_REV)
     base = run_lock_test(module_src=head_mod, test_src=head_test,
                          in_repo=False)
     out['lock_test_head_baseline'] = base
-    print('  HEAD 基线（旧夹具，临时目录无 git ⇒ 反证组必 FAIL）：%s/%s PASS'
-          '  ⇒ FAIL %s 条' % (base['n_pass'], base['n_total'], base['n_fail']))
+    out['lock_test_head_baseline_rev'] = BASE_REV
+    print('  改前基线 %s（旧夹具，临时目录无 git ⇒ 反证组必 FAIL）：%s/%s PASS'
+          '  ⇒ FAIL %s 条' % (BASE_REV, base['n_pass'], base['n_total'],
+                             base['n_fail']))
     for f in base['fails']:
         print('    [FAIL] %s' % f)
     print('===== ④ CUDA 置灰（v2.2 包内代码）=====')
@@ -268,6 +334,15 @@ def main():
     out['n_pass'] = n_pass
     out['n_fail'] = len(out['escape_fixes']) - n_pass
     out['verdict'] = 'PASS' if out['n_fail'] == 0 else 'FAIL'
+    # 🔴🔴 **判据自检**（§129 新增）：闸门必须能识破真的坏代码
+    #   ⇒ 否则「PASS」可能只是判据恒真/恒假。
+    out['gate_self_detection'] = check_gate_self_detection()
+    print('===== ⑥ 判据自检（反证：坏代码必须被判出来）=====')
+    gs = out['gate_self_detection']
+    print('  [%s] %s' % ('PASS' if gs['ok'] else 'FAIL', gs['detail']))
+    if not gs['ok']:
+        out['verdict'] = 'FAIL'
+        out['n_fail'] += 1
     out['device_acceptance_blocked'] = not out['quiet_window']['ok']
     out['device_acceptance_blocked_why'] = (
         '安静窗口不可用 ⇒ 用户自己的 v2.1 GUI 会话仍在跑（PID 14712）'

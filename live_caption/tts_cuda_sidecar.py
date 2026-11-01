@@ -331,7 +331,7 @@ def _take_cancel(rid):
 
 
 def _start_command_reader(stdin):
-    """🔴🔴🔴 §90：**独立命令读取线程**。
+    r"""🔴🔴🔳 §90：**独立命令读取线程**。
 
     为什么必须有（这是本轮修掉的**根因**）：
       旧实现的边车主循环**只在两次请求之间**读 stdin
@@ -345,33 +345,54 @@ def _start_command_reader(stdin):
         ⇒ 才能与生成**并行** ⇒ cancel 才可能真的生效；
       - **合成请求**（带 `text` 的）**投递到 `_REQ_Q`**
         ⇒ 仍由**主循环串行**处理（边车一次只做一句 ⇒ 不得并发合成）。
+
+    🔴🔴🔴 **APP-061② 附带问题：`Fatal Python error: _enter_buffered_busy`**
+      （reviewer 原话：「边车退出时有 `Fatal Python error:
+      _enter_buffered_busy`（21:24:51）」⇒ 一直没人修）
+
+      **根因**（已实测复现，见 `results/app/app225_app061_sidecar_crash_evidence.json`）：
+        `sys.stdin.buffer` 是 `BufferedReader` ⇒ 线程阻塞在 `readline()` 时
+        **持有该缓冲对象的内部锁** ⇒ 边车退出（解释器 finalizing）时，
+        CPython 要 flush/close 同一个 `BufferedReader` ⇒ **抢不到锁** ⇒
+        `Py_FatalError("_enter_buffered_busy: could not acquire lock for
+        <_io.BufferedReader name='<stdin>'> at interpreter shutdown")`
+        ⇒ **边车以 0xC0000005 崩掉**。
+
+      **修法**：读取线程**不用 `sys.stdin.buffer`**，改用**裸 fd 的 `os.read(0, …)`**
+        ⇒ 不持有任何 Python 缓冲对象的锁 ⇒ 退出时不会抢锁 ⇒ **不再崩**。
+        （代价：自己攒行缓冲；`os.read` 可能返回半行 ⇒ 下面按 `\n` 切分。）
     """
     def _read():
+        # 🔴 不用 `stdin.readline()`（BufferedReader ⇒ 持锁 ⇒ 退出时崩）
+        buf = b''
         while True:
             try:
-                line = stdin.readline()
+                chunk = os.read(0, 65536)
             except Exception:
-                line = b''
-            if not line:
+                chunk = b''
+            if not chunk:
                 # 父进程关了 stdin ⇒ 退出
                 _EXIT.set()
                 _REQ_Q.put(None)
                 return
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                req = json.loads(line.decode('utf-8'))
-            except Exception as e:
-                send({'error': 'bad request: %s' % e})
-                continue
-            try:
-                if _handle_control(req):
+            buf += chunk
+            while b'\n' in buf:
+                line, buf = buf.split(b'\n', 1)
+                line = line.strip()
+                if not line:
                     continue
-            except Exception as e:
-                _trace('ERR cmd: %s' % e)
-            # 合成请求 ⇒ 交给主循环串行处理
-            _REQ_Q.put(req)
+                try:
+                    req = json.loads(line.decode('utf-8'))
+                except Exception as e:
+                    send({'error': 'bad request: %s' % e})
+                    continue
+                try:
+                    if _handle_control(req):
+                        continue
+                except Exception as e:
+                    _trace('ERR cmd: %s' % e)
+                # 合成请求 ⇒ 交给主循环串行处理
+                _REQ_Q.put(req)
 
     t = threading.Thread(target=_read, daemon=True)
     t.start()
@@ -408,9 +429,12 @@ def main() -> int:
     #   🔴 §90：现在**跨线程**可见（读取线程可改）⇒ 用 `_REF_LOCK` 保护。
     _set_ref(DEFAULT_REF)
 
-    stdin = sys.stdin.buffer
     # 🔴🔴🔴 §90：**先起命令读取线程**（否则 cancel 在生成期间不可达）
-    _start_command_reader(stdin)
+    # 🔴🔴🔳 APP-061②：读取线程用**裸 fd**（`os.read(0, …)`）⇒ 不用
+    #   `sys.stdin.buffer` ⇒ 解释器退出时**不会**抢 BufferedReader 的锁
+    #   ⇒ 不再出现 `Fatal Python error: _enter_buffered_busy`。
+    #   （`stdin` 形参保留是为了不改动调用契约；实际读取走 fd 0。）
+    _start_command_reader(None)
 
     while True:
         req = _REQ_Q.get()

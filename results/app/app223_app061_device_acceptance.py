@@ -520,8 +520,23 @@ def arm_cmd(pkg, arm, wav, out_wav, out_jsonl, out_txt, duration):
             '--out', out_txt]
 
 
-def run_arm(pkg, arm, wav, duration, tag=''):
+def _ensure_out_dir():
+    """建输出目录，并放一个**自带的 `.gitignore`**（`*`）。
+
+    🔴 §129：产物目录在**仓库内** ⇒ `.wav`/`.log` 被根 `.gitignore` 命中，
+      但 **`.jsonl` / `.txt` 不会被忽略** ⇒ 真机跑完会留下一堆未跟踪文件。
+    ⇒ 在**产物目录内部**放一个 `.gitignore`（内容 `*`）⇒ 全部产物自动被忽略，
+      **不用改仓库根的 `.gitignore`**（那是全仓库共享文件，不该由本模块改）。
+    """
     os.makedirs(OUT_DIR, exist_ok=True)
+    gi = os.path.join(OUT_DIR, '.gitignore')
+    if not os.path.isfile(gi):
+        with open(gi, 'w', encoding='utf-8') as f:
+            f.write('*\n')
+
+
+def run_arm(pkg, arm, wav, duration, tag=''):
+    _ensure_out_dir()
     stem = os.path.join(OUT_DIR, '%s%s' % (arm, tag))
     out_wav = stem + '.wav'
     out_jsonl = stem + '.tts.jsonl'
@@ -590,11 +605,28 @@ def main():
     else:
         print('  自检无法进行：%s' % st.get('why'))
 
+    # ── 只打印命令（`--dry-run`）：**不跑设备、不写证据文件** ──────
+    # 🔴🔴 §129 修掉的真缺陷：原实现先判 `if not args.run:` 就 return
+    #   ⇒ `--dry-run` 单独用时**永远走不到**下面的 dry-run 分支
+    #   ⇒ 文档里写的「③ 只打印命令不跑」**根本跑不出来**（实测：只跑了自检）。
+    if args.dry_run and not args.run:
+        for arm in [a.strip() for a in args.arms.split(',') if a.strip()]:
+            print(' '.join(arm_cmd(args.pkg, arm.strip(), SPE, 'X.wav',
+                                   'X.jsonl', 'X.txt', args.duration)))
+        print('（--dry-run：只打印命令，**没有跑任何设备作业**，也没有写证据文件）')
+        return 0
+
     if not args.run:
         out['verdict'] = 'SELFTEST_ONLY'
-        with open(args.out, 'w', encoding='utf-8') as f:
+        # 🔴🔴 §129：**自检结果另存新文件**，**绝不覆盖**设备级证据
+        #   （原实现 `--self-test` 会把 `app223_app061_device_acceptance_evidence.json`
+        #    覆盖成 SELFTEST_ONLY ⇒ **真机跑出来的证据被自检冲掉**）。
+        selftest_out = args.out.replace('.json', '.selftest.json')
+        out['selftest_only'] = True
+        with open(selftest_out, 'w', encoding='utf-8') as f:
             json.dump(out, f, ensure_ascii=False, indent=1)
-        print('[evidence] %s' % args.out)
+        print('[evidence] %s' % selftest_out)
+        print('（自检结果**另存**；设备级证据 %s **未被覆盖**）' % args.out)
         return 0 if st.get('verdict') == 'PASS' else 1
 
     # ── 真机跑 ───────────────────────────────────────────────────
@@ -640,7 +672,10 @@ def main():
                      arms[arm]['summary'].get('rtf'),
                      arms[arm]['jsonl'].get('n_rows')))
         out['arms'] = arms
-        # 反证臂：同一套判据跑在 v2.1 上 ⇒ 必须 FAIL
+        # 反证臂：同一套判据跑在 v2.1 上 ⇒ **必须 FAIL**
+        # 🔴🔴 §129 修掉的真缺陷：原实现只把反证臂**存进 out**，
+        #   **从不判它** ⇒ 「v2.1 必须 FAIL」这句话**没有任何强制力**
+        #   ⇒ 万一 v2.1 也 PASS，闸门照样报 PASS ⇒ 判据失去鉴别力。
         if os.path.isdir(args.counterproof_pkg):
             cp = run_arm(args.counterproof_pkg, 'tts_on_clone', SPE,
                          min(args.duration, 120.0), tag='_v21')
@@ -650,6 +685,16 @@ def main():
                   % (cp['rc'], cp['jsonl'].get('n_rows'),
                      cp['log'].get('n_fallback_preset'),
                      cp['log'].get('n_clone_updates')))
+            # 🔴 用**同一套判据**判 v2.1 ⇒ 至少要有 1 条 FAIL
+            cp_checks = judge({'tts_on_clone': cp}, {'duration': args.duration})
+            cp_fail = [c for c in cp_checks if c['verdict'] is False]
+            cp_none = [c for c in cp_checks if c['verdict'] is None]
+            out['counterproof_v21_checks'] = cp_checks
+            out['counterproof_v21_n_fail'] = len(cp_fail)
+            print('  v2.1 同判据：%d 条 FAIL / %d 条无法判定 / 共 %d 条'
+                  % (len(cp_fail), len(cp_none), len(cp_checks)))
+            for c in cp_fail:
+                print('    [FAIL] %s' % c['name'])
         checks = judge(arms, {'duration': args.duration})
         out['checks'] = checks
         n_pass = sum(1 for c in checks if c['verdict'] is True)
@@ -659,6 +704,18 @@ def main():
         out['n_fail'] = n_fail
         out['n_none'] = n_none
         out['verdict'] = 'PASS' if n_fail == 0 else 'FAIL'
+        # 🔴🔴 **反证臂必须 FAIL**（§129）：v2.1 用同一套判据**一条都不 FAIL**
+        #   ⇒ 说明这套判据**鉴别不出**新旧版本 ⇒ 本轮判定不可信
+        #   ⇒ **整轮判 FAIL**（不是「无法判定」）。
+        if 'counterproof_v21_n_fail' in out:
+            out['counterproof_enforced'] = (
+                out['counterproof_v21_n_fail'] > 0)
+            if not out['counterproof_enforced']:
+                print('\n[反证] !! v2.1 用同一套判据 **0 条 FAIL**'
+                      ' ⇒ 判据鉴别不出新旧版本 ⇒ 本轮结果不可信 ⇒ 判 FAIL')
+                out['verdict'] = 'FAIL'
+                n_fail += 1
+                out['n_fail'] = n_fail
         print('\n===== 验收判据 =====')
         for c in checks:
             print('  [%s] %s  %s'

@@ -1,13 +1,13 @@
 {
  "script": "app224_app061_escape_lock_gates.py",
  "correction": "APP-061 (② 附带问题) + 共享锁闸门",
- "ts": "2026-11-02 03:14:49",
+ "ts": "2026-11-02 04:42:09",
  "repo": "C:\\Users\\Trekker-PTL\\confucius4-openvino",
  "pkg_v22": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2",
  "escape_fixes": [
   {
    "file": "live_caption/tts_cuda_sidecar.py",
-   "baseline": "git HEAD",
+   "baseline": "git fae75d9（钉死的改前基线）",
    "sha256_baseline": "84110917d44c13a5ddc1136d6be557b10ef889a2c04f00dcb644834bb0ed0804",
    "sha256_now": "2c6b7884619cb7b902a2bd2d62254972e31c961ae883f54e764cdac1a7e420c1",
    "bytes_baseline": 23921,
@@ -16,6 +16,7 @@
     "live_caption/tts_cuda_sidecar.py:8 invalid escape sequence '\\_'"
    ],
    "warn_now": [],
+   "baseline_had_warn": true,
    "warn_cleared": true,
    "string_const_diffs": [],
    "string_values_intact": true,
@@ -23,7 +24,7 @@
   },
   {
    "file": "machine_lock_app.py",
-   "baseline": "git HEAD",
+   "baseline": "git fae75d9（钉死的改前基线）",
    "sha256_baseline": "dce2e94979b7cdb5856cd07cf4850fe0339dbee31688c9e066d722a0b1e1dbbe",
    "sha256_now": "2968c615bcf514886d064c973b20d9541623be833647f20ed01d1f2482d26de6",
    "bytes_baseline": 50422,
@@ -32,6 +33,7 @@
     "machine_lock_app.py:258 invalid escape sequence '\\S'"
    ],
    "warn_now": [],
+   "baseline_had_warn": true,
    "warn_cleared": true,
    "string_const_diffs": [
     "#7 控制字符→可见字面量（docstring）"
@@ -41,7 +43,7 @@
   },
   {
    "file": "live_caption/_app100b_patch_status.py",
-   "baseline": "git HEAD",
+   "baseline": "git fae75d9（钉死的改前基线）",
    "sha256_baseline": "49658723a88dfbc914cb41869665430691bd7756266edba3c99af3fb22314f4f",
    "sha256_now": "9191ea90b42ca523c5bc73fd1dd371210422d342ad6d5f9b8d6fc9d63e3fac07",
    "bytes_baseline": 12120,
@@ -50,6 +52,7 @@
     "live_caption/_app100b_patch_status.py:67 invalid escape sequence '\\p'"
    ],
    "warn_now": [],
+   "baseline_had_warn": true,
    "warn_cleared": true,
    "string_const_diffs": [],
    "string_values_intact": true,
@@ -57,7 +60,7 @@
   },
   {
    "file": "live_caption/sync_c195_app052054_to_pkg.py",
-   "baseline": "git HEAD",
+   "baseline": "git fae75d9（钉死的改前基线）",
    "sha256_baseline": "c87c09431cae5a0c4bfa624c5ca48bc47de7103d557c5b594ca50e254cbee4f0",
    "sha256_now": "d9da85570e545f7809a1a0deb0cf41845188a482fae4f92c724329767d5a8e9a",
    "bytes_baseline": 6110,
@@ -66,6 +69,7 @@
     "live_caption/sync_c195_app052054_to_pkg.py:29 invalid escape sequence '\\|'"
    ],
    "warn_now": [],
+   "baseline_had_warn": true,
    "warn_cleared": true,
    "string_const_diffs": [],
    "string_values_intact": true,
@@ -82,6 +86,7 @@
     "results/app/app223_app061_device_acceptance.py:30 invalid escape sequence '\\C'"
    ],
    "warn_now": [],
+   "baseline_had_warn": true,
    "warn_cleared": true,
    "string_const_diffs": [],
    "string_values_intact": true,
@@ -95,12 +100,12 @@
   "fails": [],
   "rc": 0,
   "tail": [
+   "  [ OK ] 🔴 **反证：修复前的 `acquire`（HEAD 版）没有 `exists` 前置判断** ⇒ 等锁期间必然每次写+删 tmp  -- old_has_exists=False",
    "  [ OK ] 🔴 **反证：旧语义（每轮写 tmp）必然产生删除动作** ⇒ 缺陷曾真实存在（等锁 987 s ⇒ 50 次 ⇒ 触发批量删除保护）  -- old_semantics_unlink_count=5",
    "",
    "============================================================",
    " 结果：42/42 PASS",
-   "============================================================",
-   "<unknown>:258: SyntaxWarning: invalid escape sequence '\\S'"
+   "============================================================"
   ]
  },
  "lock_test_head_baseline": {
@@ -120,7 +125,7 @@
   ],
   "rc": 1,
   "tail": [
-   "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app224_lock_25vt7bud\\machine_lock_app.py:258: SyntaxWarning: invalid escape sequence '\\S'",
+   "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app224_lock_o592964u\\machine_lock_app.py:258: SyntaxWarning: invalid escape sequence '\\S'",
    "  ① `re.match(r'^(\\S+)\\s+PID\\s+(\\d+)\\b')` ⇒ `\\s+` 要求 `PID` 后有**空白**",
    "<unknown>:258: SyntaxWarning: invalid escape sequence '\\S'",
    "<unknown>:258: SyntaxWarning: invalid escape sequence '\\S'",
@@ -128,6 +133,7 @@
    "fatal: not a git repository (or any of the parent directories): .git"
   ]
  },
+ "lock_test_head_baseline_rev": "fae75d9",
  "cuda_graying": {
   "file": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app\\live_caption_app.py",
   "exists": true,
@@ -164,11 +170,19 @@
  },
  "quiet_window": {
   "ok": false,
-  "info": "{'quiet_seconds': 30.0, 'timeout': 60.0, 'waited_s': 60.04152035713196, 'n_samples': 4, 'n_busy_samples': 4, 'n_idle_samples': 0, 'n_unknown_samples': 1, 'last_busy_pids': [14712], 'last_idle_pids': [], 'classifier': 'cpu-delta'}"
+  "info": "{'quiet_seconds': 30.0, 'timeout': 60.0, 'waited_s': 60.046640157699585, 'n_samples': 4, 'n_busy_samples': 4, 'n_idle_samples': 0, 'n_unknown_samples': 1, 'last_busy_pids': [14712], 'last_idle_pids': [], 'classifier': 'cpu-delta'}"
  },
  "n_pass": 5,
  "n_fail": 0,
  "verdict": "PASS",
+ "gate_self_detection": {
+  "ok": true,
+  "mutant_warnings": [
+   "_mutant.py:3 invalid escape sequence '\\_'"
+  ],
+  "good_warnings": [],
+  "detail": "坏文件被判成「没归零」=True；好文件被判成「已归零」=True"
+ },
  "device_acceptance_blocked": true,
  "device_acceptance_blocked_why": "安静窗口不可用 ⇒ 用户自己的 v2.1 GUI 会话仍在跑（PID 14712）⇒ 本轮**不开跑**设备级推理（避免与用户会话抢 NPU）"
 }
