@@ -238,7 +238,7 @@ _TS_RE = re.compile(r'(\d{4}[-/]\d{2}[-/]\d{2}[ T]\d{1,2}:\d{2}:\d{2})')
 
 
 def _parse_module_pid(text: str):
-    """解析 README 格式的「模块名 PID <pid> started <时间>」⇒ (module, pid)。
+    r"""解析 README 格式的「模块名 PID <pid> started <时间>」⇒ (module, pid)。
 
     解析不出来返回 (None, None)。
 

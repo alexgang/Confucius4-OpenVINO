@@ -16,12 +16,29 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, _REPO)
 import machine_lock_app as M
 
 ML_PATH = os.path.join(_REPO, 'machine_lock_app.py')
+
+
+def _ts(offset_s=0.0):
+    """动态时间戳 `YYYY-MM-DD HH:MM:SS`（相对当下）。
+
+    🔴🔴🔴 **为什么夹具必须用动态时间戳（2026-11-02 实测教训）**：
+    夹具原本写死绝对日期（`2026-10-24 / 10-25 / 10-28`），
+    而本机 **2026-10-31 08:44 重启过** ⇒ 这些锁的 `started` **早于开机时间**
+    ⇒ `lock_state()` 命中 `stale_boot` 分支（**代码里明文「优先于 PID 判断」**）
+    ⇒ 8 条断言在「锁语义没变」的情况下**假 FAIL**（实测 32/40）。
+    ⇒ 这是**判据缺陷**（夹具写死日期），不是产品缺陷
+      （对照：改前/改后同一台机器上，基线版也是同样的 8 条 FAIL）。
+    ⇒ 现在夹具一律用「当下」⇒ 断言才真正测「PID 活/死」这一维。
+    """
+    return time.strftime('%Y-%m-%d %H:%M:%S',
+                         time.localtime(time.time() + offset_s))
 
 results = []
 
@@ -67,10 +84,35 @@ def main():
     print()
     print('[3] fail-closed：PID 不存在 ⇒ stale_pid 可回收')
     with open(lock, 'w', encoding='utf-8') as f:
-        f.write('module: app-dead\npid: 999999\nstarted: 2026-10-24 03:00:00\n')
+        f.write('module: app-dead\npid: 999999\nstarted: %s\n' % _ts())
     st3, info3 = M.lock_state(lock)
     check('状态 = stale_pid', st3 == 'stale_pid',
           'state=%s pid=%s' % (st3, info3.get('pid')))
+
+    print()
+    print('[3b] 🔴 开机时间分支：`started` 早于开机时间 ⇒ stale_boot（可回收）')
+    # 🔴 **夹具改成动态时间戳后，这一分支就没人测了** ⇒ 必须补上，
+    #    否则「stale_boot 优先于 PID 判断」这条口径就成了**没有覆盖的口径**。
+    boot = M._boot_time()
+    pre_boot = (time.strftime('%Y-%m-%d %H:%M:%S',
+                              time.localtime(boot - 3600.0))
+                if boot > 0 else '2026-01-01 00:00:00')
+    with open(lock, 'w', encoding='utf-8') as f:
+        f.write('module: app-preboot\npid: 999999\nstarted: %s\n' % pre_boot)
+    st3b, _ = M.lock_state(lock)
+    check('started 早于开机时间 + PID 已死 ⇒ stale_boot（可回收）',
+          st3b == 'stale_boot', 'state=%s pre_boot=%s' % (st3b, pre_boot))
+    # 🔴 **口径锁定（同时是风险项，STATUS §128 已记）**：
+    #    当前实现里 `stale_boot` **优先于 PID 存活判断**
+    #    ⇒ 即使 PID 活着，只要锁的 `started` 早于开机时间，也会被当成可回收。
+    #    ⇒ 这在「别的模块的时钟被往回调」时会**抢走活锁** ⇒ 交 reviewer 裁定。
+    with open(lock, 'w', encoding='utf-8') as f:
+        f.write('module: app-preboot-live\npid: %d\nstarted: %s\n'
+                % (os.getpid(), pre_boot))
+    st3c, _ = M.lock_state(lock)
+    check('（口径锁定）started 早于开机时间 ⇒ stale_boot **优先于** PID 存活',
+          st3c == 'stale_boot',
+          'state=%s  ⚠️ 风险项：时钟异常时会抢活锁（见 STATUS §128）' % st3c)
 
     print()
     print('[4] 释放：只删内容与自己一致的文件')
@@ -78,7 +120,7 @@ def main():
     lk3.acquire()
     # 模拟别人改写了锁内容
     with open(lock, 'w', encoding='utf-8') as f:
-        f.write('module: someone-else\npid: 12345\nstarted: 2026-10-24 03:00:00\n')
+        f.write('module: someone-else\npid: 12345\nstarted: %s\n' % _ts())
     released = lk3.release()
     check('内容不一致时不删除', (not released) and os.path.isfile(lock))
     os.remove(lock)
@@ -110,7 +152,7 @@ def main():
     #    ⇒ lock_state 返回 'unreadable' ⇒ fail-closed 永久等待（MT 实测空等 14 分钟）。
     lock3 = os.path.join(tmp, 'LOCK3')
     with open(lock3, 'w', encoding='utf-8') as f:
-        f.write('asr PID 999999 started 2026-10-24 15:13:06\n')
+        f.write('asr PID 999999 started %s\n' % _ts())
     info6 = M._read_lock(lock3)
     check('README 格式能解析出 module/pid/started_ts',
           info6.get('module') == 'asr' and info6.get('pid') == 999999
@@ -122,7 +164,7 @@ def main():
     check('README 格式 + PID 已死 ⇒ stale_pid（可回收）',
           st6 == 'stale_pid', 'state=%s' % st6)
     with open(lock3, 'w', encoding='utf-8') as f:
-        f.write('tts PID %d started 2026-10-25 03:00:00\n' % os.getpid())
+        f.write('tts PID %d started %s\n' % (os.getpid(), _ts()))
     st6b, _ = M.lock_state(lock3)
     check('README 格式 + PID 存活 ⇒ held（必须等，fail-closed）',
           st6b == 'held', 'state=%s' % st6b)
@@ -132,7 +174,7 @@ def main():
     print('[7] GBK 编码的锁（别的模块用 Windows ANSI 写）')
     lock4 = os.path.join(tmp, 'LOCK4')
     with open(lock4, 'w', encoding='gbk') as f:
-        f.write('会议 PID %d started 2026-10-25 03:00:00\n' % os.getpid())
+        f.write('会议 PID %d started %s\n' % (os.getpid(), _ts()))
     info7 = M._read_lock(lock4)
     check('GBK 锁能解析出 pid/started_ts',
           info7.get('pid') == os.getpid() and info7.get('started_ts') is not None,
@@ -168,8 +210,8 @@ def main():
     # ⇒ **fail-closed 永久等待**（MT 通知 §10.6 记录过同类事故，MT 已修、App 漏修）。
     lock9 = os.path.join(tmp, 'LOCK9')
     with open(lock9, 'w', encoding='utf-8') as f:
-        f.write('asr PID=999999 started 2026-10-28 01:27:19 '
-                'task=pya_app_baseline_asr023bal_EN2002a\n')
+        f.write('asr PID=999999 started %s '
+                'task=pya_app_baseline_asr023bal_EN2002a\n' % _ts())
     info9 = M._read_lock(lock9)
     check('`PID=` 格式能解析出 module/pid',
           info9.get('module') == 'asr' and info9.get('pid') == 999999,
@@ -182,7 +224,7 @@ def main():
           st9 == 'stale_pid', 'state=%s' % st9)
     # 🔴 **活锁必须仍是 held**（fail-closed 铁律：解析对了也不能误回收活锁）
     with open(lock9, 'w', encoding='utf-8') as f:
-        f.write('asr PID=%d start=2026-10-28 01:27:19 task=live\n' % os.getpid())
+        f.write('asr PID=%d start=%s task=live\n' % (os.getpid(), _ts()))
     st9b, _ = M.lock_state(lock9)
     check('`PID=` 格式 + PID 存活 ⇒ held（必须等，fail-closed）',
           st9b == 'held', 'state=%s' % st9b)
@@ -249,7 +291,7 @@ def main():
     #      （别的模块的活一结束，App 侧就永久卡住）。
     lock10 = os.path.join(tmp, 'LOCK10')
     with open(lock10, 'w', encoding='utf-8') as f:
-        f.write('EXT-p1-real 999999 2026-10-28 02:23:37\n')
+        f.write('EXT-p1-real 999999 %s\n' % _ts())
     info10 = M._read_lock(lock10)
     check('第三种格式能解析出 module/pid',
           info10.get('module') == 'EXT-p1-real' and info10.get('pid') == 999999,
@@ -262,7 +304,7 @@ def main():
           st10 == 'stale_pid', 'state=%s' % st10)
     # 🔴 **活锁必须仍是 held**（fail-closed 铁律）
     with open(lock10, 'w', encoding='utf-8') as f:
-        f.write('EXT-p1-real %d 2026-10-28 02:23:37\n' % os.getpid())
+        f.write('EXT-p1-real %d %s\n' % (os.getpid(), _ts()))
     st10b, _ = M.lock_state(lock10)
     check('第三种格式 + PID 存活 ⇒ held（必须等，fail-closed）',
           st10b == 'held', 'state=%s' % st10b)
@@ -331,9 +373,9 @@ def main():
         # 造一个「别人的活锁」：PID = 本进程（存活）⇒ 必须判 `held` 并等待
         M.write_lock_atomic(
             lock11,
-            'other PID %d started 2026-10-28 06:00:00\n'
-            'module: other\npid: %d\nstarted: 2026-10-28 06:00:00\nhost: X\n'
-            % (os.getpid(), os.getpid()))
+            'other PID %d started %s\n'
+            'module: other\npid: %d\nstarted: %s\nhost: X\n'
+            % (os.getpid(), _ts(), os.getpid(), _ts()))
         check('第 11 组前置：已造出「别人的活锁」', os.path.exists(lock11),
               'lock11 exists=%r' % os.path.exists(lock11))
         before11 = set(glob.glob(lock11 + '*'))
@@ -431,9 +473,9 @@ def main():
             lp11 = os.path.join(d11, 'MACHINE_LOCK')
             M.write_lock_atomic(
                 lp11,
-                'other PID %d started 2026-10-28 06:00:00\n'
-                'module: other\npid: %d\nstarted: 2026-10-28 06:00:00\nhost: X\n'
-                % (os.getpid(), os.getpid()))
+                'other PID %d started %s\n'
+                'module: other\npid: %d\nstarted: %s\nhost: X\n'
+                % (os.getpid(), _ts(), os.getpid(), _ts()))
             created11 = []
             real_unlink = os.unlink
 
@@ -444,8 +486,8 @@ def main():
             os.unlink = spy_unlink
             try:
                 for _ in range(5):
-                    M._write_lock_atomically(
-                        lp11, 'x PID 1 started 2026-10-28 06:00:00\n')
+                        M._write_lock_atomically(
+                            lp11, 'x PID 1 started %s\n' % _ts())
             finally:
                 os.unlink = real_unlink
             check('🔴 **反证：旧语义（每轮写 tmp）必然产生删除动作**'

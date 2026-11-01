@@ -64,7 +64,7 @@ NEW_BLOCK = (
     '`speaker_assets.py` / 16 MB 资产）⇒ 需重打；'
     '④ 🔴 **重打包的两个阻塞都在外部**：① `shared/MACHINE_LOCK` 由 `EXT-p1-real` PID 40840 '
     '（09:42:44）持有，`OpenProcess` 判 **alive**；② v1.11 目录被 **PID 27744** '
-    '（`...v1.11\python\python.exe -m ext.bridge`）**活占用** ⇒ 同卷改名 `PermissionError WinError 5` '
+    r'（`...v1.11\python\python.exe -m ext.bridge`）**活占用** ⇒ 同卷改名 `PermissionError WinError 5` '
     '⇒ **需外部会话先释放目录与锁**才能闭环（本轮不抢锁、不杀进程）；'
     '⑤ 🔴 **APP-043 真机验收未做**（SPE Q&A densest_5min / APP-041 `pythonw` 冷启动 / '
     'GUI 路径 APP-042 / 3 段 1.2–1.3× 配音）；'
