@@ -1,0 +1,123 @@
+{
+  "task": "APP-061 ⑥ GUI 紧凑化验收",
+  "pkg_under_test": "live_caption",
+  "label": "dev",
+  "sizes": [
+    "1280x800",
+    "1024x800"
+  ],
+  "shots": [
+    {
+      "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app061_dev_1280x800.png",
+      "bytes": 30745,
+      "mtime": "2026-11-02 01:12:33",
+      "sha256": "3e97aef9b42af662e2a4dafefde5a03b28a753b4554b56d85b81442f953a736f",
+      "size": "1280x800",
+      "label": "dev"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app061_dev_1024x800.png",
+      "bytes": 27075,
+      "mtime": "2026-11-02 01:12:36",
+      "sha256": "e2d07bea52b70cc203229c0c2be1752d724145737b91b91c43d819bdb9ac800c",
+      "size": "1024x800",
+      "label": "dev"
+    }
+  ],
+  "measures": {
+    "1280x800": {
+      "window_h": 800,
+      "caption_h": 631,
+      "caption_ratio_pct": 78.88
+    },
+    "1024x800": {
+      "window_h": 800,
+      "caption_h": 631,
+      "caption_ratio_pct": 78.88
+    }
+  },
+  "checks": [
+    {
+      "name": "G1 能构造 App",
+      "group": "boot",
+      "detail": "",
+      "result": "PASS"
+    },
+    {
+      "name": "G2 字幕区高度 ≥ 窗口高度 70 %（1280x800）",
+      "group": "layout",
+      "detail": "字幕区 631 px / 窗口 800 px = 78.88 %",
+      "result": "PASS"
+    },
+    {
+      "name": "G3 状态栏每个分区 1 行（1280x800）",
+      "group": "layout",
+      "detail": "各分区状态条高度=[21, 21, 21] px",
+      "result": "PASS"
+    },
+    {
+      "name": "G4 「高级」面板默认收起（1280x800）",
+      "group": "layout",
+      "detail": "mapped=False",
+      "result": "PASS"
+    },
+    {
+      "name": "G6 截图成功（1280x800）",
+      "group": "shot",
+      "detail": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app061_dev_1280x800.png",
+      "result": "PASS"
+    },
+    {
+      "name": "G7 高级面板展开后长文本行不横向溢出（1280x800）",
+      "group": "layout",
+      "detail": "无溢出",
+      "result": "PASS"
+    },
+    {
+      "name": "G2 字幕区高度 ≥ 窗口高度 70 %（1024x800）",
+      "group": "layout",
+      "detail": "字幕区 631 px / 窗口 800 px = 78.88 %",
+      "result": "PASS"
+    },
+    {
+      "name": "G3 状态栏每个分区 1 行（1024x800）",
+      "group": "layout",
+      "detail": "各分区状态条高度=[21, 21, 21] px",
+      "result": "PASS"
+    },
+    {
+      "name": "G4 「高级」面板默认收起（1024x800）",
+      "group": "layout",
+      "detail": "mapped=False",
+      "result": "PASS"
+    },
+    {
+      "name": "G5 1024 宽没有控件被截断/越界",
+      "group": "layout",
+      "detail": "无越界控件（量到 26 个控件）",
+      "result": "PASS"
+    },
+    {
+      "name": "G5c 反证：真的越界控件仍被判 FAIL（判据非恒真）",
+      "group": "counterproof",
+      "detail": "探针被捕获：[\"!label2(Label) 请求宽度 req=21006 > 可用 avail=1024（内容被裁剪） path=!label2 text='截断探针'\"]（量到 27 个控件）",
+      "result": "PASS"
+    },
+    {
+      "name": "G6 截图成功（1024x800）",
+      "group": "shot",
+      "detail": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app061_dev_1024x800.png",
+      "result": "PASS"
+    },
+    {
+      "name": "G7 高级面板展开后长文本行不横向溢出（1024x800）",
+      "group": "layout",
+      "detail": "无溢出",
+      "result": "PASS"
+    }
+  ],
+  "n_pass": 13,
+  "n_fail": 0,
+  "n_none": 0,
+  "verdict": "PASS"
+}

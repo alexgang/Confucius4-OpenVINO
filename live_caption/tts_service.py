@@ -350,6 +350,18 @@ class TTSService:
         self.last_sentence_error: Optional[str] = None
         # 🔴 APP-021②：最近一行的播放遥测（供界面显示 / 日志核对）
         self.last_telemetry: Optional[dict] = None
+        # 🔴🔴🔴 APP-061③(a)：**句内欠载累计**（验收要的「总时长 ms」）
+        #   - `uf_in_sentence_ms_total`：本会话**句内**欠载静音总时长（ms）
+        #     （= 听得见的断音 ⇒ 「卡顿」的主指标）
+        #   - `uf_idle_ms_total`：**句间空闲**（首块前空等）总时长（ms）
+        #     （正常等待，**不算卡顿**）
+        #   - `n_sent_tel`：有遥测的句数（分母）
+        #   - `n_sent_uf_zero`：其中**句内欠载 = 0** 的句数
+        #     （验收：「≥ 95 % 的句子为 0」⇒ `n_sent_uf_zero / n_sent_tel`）
+        self.uf_in_sentence_ms_total = 0
+        self.uf_idle_ms_total = 0
+        self.n_sent_tel = 0
+        self.n_sent_uf_zero = 0
 
         # 🔴🔴 §52：**故障必须自带原因**。
         #   用户报「TTS worker 故障（error）⇒ 朗读中止」时，界面只有这一句，
@@ -1611,6 +1623,24 @@ class TTSService:
             tel = msg.get('telemetry')
             if tel:
                 self.last_telemetry = tel
+                # 🔴🔴🔴 APP-061③(a)：**句内欠载累计**
+                #   ⇒ 验收要「`uf_in_sentence_ms` 总和 ≤ 音频总时长的 0.5 %」
+                #     与「≥ 95 % 的句子为 0」⇒ 必须**跨句累计**。
+                #   ⚠️ **只统计有遥测的句**（`n_sent_tel` 作分母）⇒
+                #     没有遥测的句（失败/空句）**不混进分母**（不粉饰）。
+                try:
+                    _uf_in = int(tel.get('uf_in_sentence_ms')
+                                 or tel.get('underflow_in_sentence_ms') or 0)
+                    _uf_idle = int(tel.get('uf_idle_ms')
+                                   or tel.get('underflow_pre_sentence_ms') or 0)
+                except Exception:
+                    _uf_in = 0
+                    _uf_idle = 0
+                self.uf_in_sentence_ms_total += _uf_in
+                self.uf_idle_ms_total += _uf_idle
+                self.n_sent_tel += 1
+                if _uf_in <= 0:
+                    self.n_sent_uf_zero += 1
                 self.on_log('[TTS] 遥测 id=%s peak=%s rms_dbfs=%s '
                             'read_delta=%s consumed=%s%s'
                             % (jid, tel.get('peak'), tel.get('rms_dbfs'),
@@ -2148,6 +2178,11 @@ class TTSService:
             last_sentence_error=self.last_sentence_error,
             # 🔴 APP-021②：最近一行的播放遥测
             last_telemetry=self.last_telemetry,
+            # 🔴🔴🔴 APP-061③(a)：**句内欠载累计**（30 s 遥测行 + 验收用）
+            uf_in_sentence_ms_total=int(self.uf_in_sentence_ms_total or 0),
+            uf_idle_ms_total=int(self.uf_idle_ms_total or 0),
+            n_sent_tel=int(self.n_sent_tel or 0),
+            n_sent_uf_zero=int(self.n_sent_uf_zero or 0),
             # 🔴🔴🔴 APP-042：**自适应加速**的状态（GUI 底栏显示）
             #   `cur_speed`        上一句用的倍率
             #   `play_lag_s`       上一句的**实际开播滞后**（worker 回报）

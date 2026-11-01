@@ -565,22 +565,77 @@ def group_c():
         # ── C20：**长文本 note 行不溢出**（APP-048「不能截断或溢出」）──
         #   判据：所有换行 label 的 `wraplength` 已设 且
         #         请求宽度 <= 容器宽度（换行后不横向溢出）。
+        # 🔴🔴🔴 APP-061⑥：**口径修正**（容器**未映射**时 `winfo_width()`=1）。
+        #   起因：APP-061⑥ 把三个分区的说明行移进了「高级」面板，
+        #     而该面板**默认收起**（`pack_forget`）⇒ Tk 对未映射控件
+        #     的 `winfo_width()` 恒返回 **1**（不是真实宽度！）
+        #     ⇒ 旧判据拿 `fw=1` 当「容器宽」⇒ 任何 reqwidth>5 的说明行
+        #       都被判「溢出」⇒ **恒 FAIL（假阳性）**。
+        #   修正：容器宽 <= 1（未映射）⇒ **回退到窗口宽**
+        #     （判据的本意是「不得超出**屏幕**」⇒ 窗口宽才是正确参照）。
+        #   ⚠️ **判据必须仍能识破真溢出** ⇒ 见 C21c 反证组。
+        def _effective_width(container):
+            try:
+                fw = container.winfo_width()
+            except Exception:
+                fw = 0
+            if fw <= 1:
+                try:
+                    fw = root.winfo_width()
+                except Exception:
+                    fw = 0
+            return fw
+
         wrapped = getattr(app, '_wrapped_labels', [])
         check('C20 长文本 note 行已启用换行（wraplength）',
               len(wrapped) >= 3, f'wrapped={len(wrapped)}')
-        bad = []
-        for lbl, container in wrapped:
+
+        def _detect_overflow(lbl, container):
+            """**溢出检测**（C21 与反证组共用同一条代码路径）。
+
+            返回问题描述字符串；没问题返回 ``''``。
+            """
             try:
                 wl = lbl.cget('wraplength')
-                fw = container.winfo_width()
+                fw = _effective_width(container)
                 rw = lbl.winfo_reqwidth()
             except Exception:
-                continue
+                return ''
             if not wl or wl < 10:
-                bad.append(f'{lbl}: wraplength={wl}')
-            elif fw > 0 and rw > fw + 4:
-                bad.append(f'{lbl}: reqwidth={rw} > container={fw}')
+                return f'{lbl}: wraplength={wl}'
+            if fw > 0 and rw > fw + 4:
+                return f'{lbl}: reqwidth={rw} > container={fw}'
+            return ''
+
+        bad = []
+        for lbl, container in wrapped:
+            msg = _detect_overflow(lbl, container)
+            if msg:
+                bad.append(msg)
         check('C21 长文本 note 行都不横向溢出', not bad, '; '.join(bad))
+
+        # ── C21c：**反证**（口径修正后判据仍能识破「真溢出」）──
+        #   🔴 纪律：「判据 PASS」≠「判据正确」⇒ 必须拿**已知有缺陷**的
+        #     情形跑一遍 ⇒ 判据须能识破。
+        #   做法：造一个**换行宽度给得过大**（= 实质不换行）且文本很长的 label
+        #     ⇒ 它的 reqwidth 必然远超窗口宽 ⇒ `_detect_overflow` 必须报它。
+        #   ⚠️ **不能用 `wraplength=1`**（那反而会逼着 Tk 1 px 一行
+        #     ⇒ reqwidth 极小 ⇒ 测不出溢出）；也不能用 `wraplength=0`
+        #     （那只会命中「wraplength 缺失」分支，测不到宽度分支）。
+        _cp_bad = []
+        try:
+            _probe = tk.Label(root, text='超长文本' * 200)
+            _probe.configure(wraplength=root.winfo_width() * 3)
+            _probe.pack()
+            root.update_idletasks()
+            _msg = _detect_overflow(_probe, root)
+            if not _msg:
+                _cp_bad.append('反证未触发：真溢出的长文本行没有被判 FAIL')
+            _probe.destroy()
+        except Exception as e:
+            _cp_bad.append(repr(e))
+        check('C21c 反证：真溢出的长文本行仍被判 FAIL（判据非恒真）',
+              not _cp_bad, '; '.join(_cp_bad))
 
         # ── C22：顶部 var_note 行也不溢出 ──
         #   （它显示当前组合的说明文字，同样可能很长）

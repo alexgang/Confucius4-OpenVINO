@@ -1,0 +1,64 @@
+{
+  "tool": "app221",
+  "app": "APP-061",
+  "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1",
+  "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2",
+  "started_at": "2026-11-02 01:10:29",
+  "hardlink_dirs": [
+    "models",
+    "python"
+  ],
+  "copy_dirs": [
+    "app",
+    "ext",
+    "docs",
+    "results"
+  ],
+  "root_files": [
+    "README_zh.md",
+    "README_en.md",
+    "README_插件.md",
+    "NOTICE",
+    "THIRD_PARTY.md",
+    "Start_LiveCaption.bat",
+    "Diagnose.bat",
+    "release.json",
+    "ACCEPTED.json"
+  ],
+  "changed_modules": [
+    "live_caption_app.py",
+    "tts_worker.py",
+    "tts_service.py"
+  ],
+  "synced": [
+    {
+      "module": "live_caption_app.py",
+      "bytes": 361384,
+      "sha256": "cab9896dbaa9810610f05df9c9195c7af8a8e92a9ac92ab3b6bc7fdf1695b13b",
+      "sha256_before": "cab9896dbaa9810610f05df9c9195c7af8a8e92a9ac92ab3b6bc7fdf1695b13b",
+      "crlf_in_repo": 0,
+      "normalized_to": "LF"
+    },
+    {
+      "module": "tts_worker.py",
+      "bytes": 229782,
+      "sha256": "e94d61f7d2f1fb15495cd22d20a7f85a36820f57d404909f4ffed26d9359ea16",
+      "sha256_before": "bc07a0d73d96c96f0a130705b71ac1adbe31baa6faaab5683610d7df664fa456",
+      "crlf_in_repo": 4167,
+      "normalized_to": "LF"
+    },
+    {
+      "module": "tts_service.py",
+      "bytes": 127483,
+      "sha256": "fa93cebcf67aa6e0425b6a6f247627e4256109325b080ef4ddd63f41621bae38",
+      "sha256_before": "fa93cebcf67aa6e0425b6a6f247627e4256109325b080ef4ddd63f41621bae38",
+      "crlf_in_repo": 2201,
+      "normalized_to": "LF"
+    }
+  ],
+  "code_fingerprint": "fddb2dc6b06dad290532d29c3a6e93622842a49505fb8315b65a519dfaca11c9",
+  "n_production_modules": 28,
+  "accepted_bytes": 6195,
+  "accepted_sha256": "d5e6c6d0272de6e1034ce5f57940c4097ed23ac30f455daf76200c16ee4b914c",
+  "elapsed_s": 0.0
+}

@@ -1372,6 +1372,14 @@ class TTSWorker:
             self.speaker_name = 'A'
             # 🔴🔴 APP-027⑤：**缓存预设 A 的参考 wav**（克隆失败时回落用）
             self._preset_ref_path = wav
+            # 🔴🔴🔴 APP-061①：**必须同时缓存 `_preset_name`**。
+            #   旧实现只设 `_preset_ref_path` ⇒ `_preset_name` 恒为 `__init__` 的 None
+            #   ⇒ 回落路径把 `speaker_name` 清成 None
+            #   ⇒ `synth()` 的音色检查 `speaker_embed is None and not speaker_name`
+            #     **成立** ⇒ 每句报「没有可用的音色」⇒ **CUDA 全程无声**
+            #     （用户实测 21:23:19 起「就绪：CUDA」后每句都失败，
+            #      `tts_cuda_trace.log` 里一条 `REQ` 都没有）。
+            self._preset_name = 'A'
             log(f'[tts_worker] CUDA 后端自行使用参考音频做音色：{wav}')
             return
         self.speaker_embed = tts_engine.speaker_embedding(self.engine, wav, on_log=log)
@@ -1693,13 +1701,31 @@ class TTSWorker:
                 self._last_voice_kind = ('clone' if self._clone_active
                                          else 'preset')
                 self._log_keep_clone()
+            elif self._has_clone_voice():
+                # 🔴🔴🔴 APP-061⑤c：**已有克隆音色 ⇒ 沿用上一句的克隆音色**。
+                #   用户方案 A（2026-10-28）原文允许「spk 未到时用**上一句音色**
+                #   或预设 A」⇒ 这里取「上一句音色」。
+                #   🔴 **只有真的存在克隆音色时**才沿用 ⇒ 还没有任何克隆时
+                #     仍回落预设 A（⇒ 不会用错人的声音冒充）。
+                self._log_keep_last_clone()
             else:
                 # 🔴 语义 ①：按句绑定模式（或没有克隆模式）⇒ 回落预设 A
                 self._fallback_to_preset('no_spk_label')
 
         if is_babelvox:
             # BabelVox 路线：音色由 speaker_embed / 内置 speaker 提供
-            if self.speaker_embed is None and not self.speaker_name:
+            # 🔴🔴🔴 APP-061①：CUDA 后端（`USES_REF_AUDIO`）**没有 x-vector**
+            #   ⇒ `speaker_embed` **恒为 None** ⇒ 旧检查
+            #     `speaker_embed is None and not speaker_name` 会**误判**
+            #     「没有可用的音色」⇒ 每句失败 ⇒ **CUDA 全程无声**。
+            #   ⇒ 改成查「**当前有没有参考音频**」。
+            if getattr(self.engine, 'USES_REF_AUDIO', False):
+                if not self._has_ref_audio():
+                    emit({'kind': 'error',
+                          'message': '没有可用的音色（CUDA 参考音频缺失）',
+                          'id': jid})
+                    return
+            elif self.speaker_embed is None and not self.speaker_name:
                 # 🔴 2026-10-24 §22：**句子级**错误必须带 `id`
                 #   （主进程据此判定「这一句失败」而不是「worker 整体挂了」）
                 emit({'kind': 'error', 'message': '没有可用的音色', 'id': jid})
@@ -1795,6 +1821,8 @@ class TTSWorker:
         #   ⚠️ **句间不插静音**：预缓冲只是「**延后开始出声**」，
         #      上一句播完时下一句若已攒够 ⇒ 直接接上（不补零）。
         prebuffer_s = self._compute_prebuffer_s(text)
+        # ⚠️ **这是初值**：真实值要在本句倍率 `_sp` 算出后**重算**
+        #   （APP-061③b：公式含 `speed`）⇒ 见下面 `_sp` 之后的重算。
         # 本句**首块写入前**的环形缓冲位置（用于切分欠载事件）
         first_chunk_start = None
         # 🔴 APP-027①：**本句已写进环形缓冲的样本数**（预缓冲判定用）
@@ -1841,13 +1869,32 @@ class TTSWorker:
                 #   （单一合成线程 ⇒ 无需加锁）。
                 _prev_sp = float(self._last_speed or 1.0)
                 _sp = float(_ts.speed_for_lag(_lag_at_dequeue, _prev_sp))
-                self._last_speed = _sp
                 log('[tts_worker] APP-042 定速：出队 lag=%.3f s ⇒ speed=%.4f'
                     % (_lag_at_dequeue, _sp))
             except Exception as e:
                 _sp = float(speed) if speed else 1.0
                 log('[tts_worker] APP-042 worker 侧定速失败 ⇒ 用主进程下发值：%s'
                     % e)
+        # 🔴🔴🔴 APP-061③(c)：**动态倍速封顶** `speed ≤ 1/r_recent`
+        #   ⇒ 合成跟不上时**宁可滞后**（GUI 显示滞后），
+        #     也不靠加速把环形缓冲抽空（那正是「断断续续」的来源）。
+        #   ⚠️ **用户定的 1.30× 上限不变**（`_speed_cap_by_rtf` 里已封顶）。
+        #   🔴🔴 **两条路径都要封**（reviewer 原话是无条件的「speed ≤ 1/r_recent」）：
+        #     ① 有 `target_wall`（worker 自己按 lag 定速）
+        #     ② **没有** `target_wall`（用主进程下发的 `speed`）
+        #        ⇒ 实测 GUI 的按句提交**确实有 `target_play_at=None` 的路径**
+        #          （`live_caption_app.py` 的 `_seg_target_wall.get(...)` 取不到时）
+        #        ⇒ 旧写法（封顶写在 ① 里面）⇒ 那条路径**不封顶** ⇒ 漏。
+        #   ⚠️ **必须在 `self._last_speed = _sp` 之前**
+        #     ⇒ 下一句的「上一句倍率」= **实际用掉的倍率**（不是被封顶前的）。
+        _cap = self._speed_cap_by_rtf()
+        if _cap is not None and _sp > _cap:
+            log('[tts_worker] APP-061③c 倍速封顶：speed %.4f ⇒ %.4f'
+                '（r_recent=%.3f ⇒ 1/r=%.4f；合成跟不上 ⇒ 不抽空缓冲）'
+                % (_sp, _cap, float(self._rtf_ewma or 0.0), 1.0 /
+                   float(self._rtf_ewma or 1.0)))
+            _sp = float(_cap)
+        self._last_speed = _sp
         _stretcher = None
         if _sp > 1.0000001:
             try:
@@ -1857,6 +1904,14 @@ class TTSWorker:
                 _stretcher = None
                 log('[tts_worker] APP-042 变速模块不可用 ⇒ 本句按 1.0× 播放：%s'
                     % e)
+        # 🔴🔴🔴 APP-061③(b)：**按本句倍率重算预缓冲**
+        #   公式（reviewer 原文）：`est_dur × (1 − 1/(r·speed))`
+        #   ⇒ `r·speed ≤ 1` 时退化为**首块即播**（0.3 s 底线）。
+        #   ⚠️ **倍率越高 ⇒ 需要的预缓冲越大**（播放消耗更快 ⇒ 必须先攒够）。
+        try:
+            prebuffer_s = self._compute_prebuffer_s(text, speed=_sp)
+        except Exception:
+            pass
         try:
             with self._synth_lock:
                 if self._is_cancelled(jid):
@@ -2594,6 +2649,19 @@ class TTSWorker:
         tel['underflow_pre_sentence'] = int(pre_n)
         tel['underflow_pre_sentence_ms'] = int(round(
             pre_ms * 1000.0 / float(self.sr or SR)))
+        # 🔴🔴🔴 APP-061③(a)：**欠载的统一口径别名**（reviewer 明文字段名）
+        #   `uf_in_sentence` / `uf_in_sentence_ms` = **句内**欠载
+        #     （= 听得见的断音 ⇒ **这才是「卡顿」**）
+        #   `uf_idle` / `uf_idle_ms`             = **句间空闲**
+        #     （= 首块播出之前的空等 ⇒ 正常等待，**不算卡顿**）
+        #   `uf_total_ms`                        = 欠载**总时长**（ms）
+        # ⚠️ **别名不改旧字段**（`underflow_*` 保留）⇒ 老消费方不受影响。
+        tel['uf_in_sentence'] = int(in_n)
+        tel['uf_in_sentence_ms'] = int(tel['underflow_in_sentence_ms'])
+        tel['uf_idle'] = int(pre_n)
+        tel['uf_idle_ms'] = int(tel['underflow_pre_sentence_ms'])
+        tel['uf_total_ms'] = int(tel['underflow_in_sentence_ms']
+                                 + tel['underflow_pre_sentence_ms'])
         return tel
 
     # -- 逐句记录（C-101 P4 第 6 条：`x.tts.jsonl`）----------------------
@@ -3057,7 +3125,7 @@ class TTSWorker:
             return float(n) * self._sec_per_char
         return float(n) * 0.12
 
-    def _compute_prebuffer_s(self, text: str) -> float:
+    def _compute_prebuffer_s(self, text: str, speed: float = 1.0) -> float:
         """🔴🔴🔴 APP-027①：**逐句自适应预缓冲**（秒）。
 
         公式（APP-027 明文）：
@@ -3072,19 +3140,73 @@ class TTSWorker:
         🔴 **上限保护**：预缓冲不能无限大
         ⇒ 最多 `est_dur`（再多也没有意义，句内还是追不上）
         ⇒ 且不超过 3 s（超过 3 s 的等待用户会以为程序死了）。
+
+        🔴🔴🔴 **APP-061③(b)：公式升级为 `est_dur × (1 − 1/(r·speed))`**
+          （reviewer 原文：「已缓冲音频 ≥ 句长 ×(1 − 1/(r·speed)) 时才开播；
+          r·speed ≤ 1 时退化为首块即播」）
+          - `r` = 最近 N 句实测「**合成墙钟 ÷ 音频时长**」= `RTF_ewma`
+          - `speed` = **本句的播放倍率**（APP-042 的自适应倍速）
+          - **推导**（为什么是这个式子）：
+            合成以 `1/r`（音频秒/墙钟秒）产出、播放以 `speed` 消耗
+            ⇒ 整句播完而不欠载，需要「合成完成时缓冲仍 ≥ 0」：
+            `r·D·speed ≤ D`（D = 句长）⇒ 起始缓冲 `B ≥ D·(1 − 1/(r·speed))`
+          - ⚠️ **旧公式（不含 speed）= 本式在 speed=1 时的特例**
+            ⇒ 旧行为**保留**（speed=1 时逐位相同）⇒ **零回归风险**。
         """
         try:
             est_dur = self._estimate_dur_s(text)
             if est_dur <= 0:
                 return 0.3
             rtf = self._rtf_ewma
-            if not rtf or rtf <= 1.0:
+            try:
+                sp = float(speed)
+            except Exception:
+                sp = 1.0
+            if not sp or sp < 1.0:
+                sp = 1.0
+            # 🔴🔴🔴 APP-061③(b)：`r·speed`（合成墙钟比 × 播放倍率）
+            try:
+                rs = float(rtf) * sp
+            except Exception:
+                rs = 0.0
+            if not rtf or rs <= 1.0:
+                # 追得上（或还没实测）⇒ 退化为**首块即播**（0.3 s 底线）
                 return 0.3
-            pre = est_dur * (1.0 - 1.0 / rtf)
+            pre = est_dur * (1.0 - 1.0 / rs)
             pre = max(0.3, min(pre, est_dur, 3.0))
             return float(pre)
         except Exception:
             return 0.3
+
+    def _speed_cap_by_rtf(self):
+        """🔴🔴🔴 APP-061③(c)：**按实测合成速度给倍速封顶**（`speed ≤ 1/r`）。
+
+        🔴 **推导**（reviewer 原文「`speed ≤ 1/r_recent`」）：
+          - `r` = 「合成墙钟 ÷ 音频时长」= `synth_rtf`（实测 EWMA，最近 8 句）
+          - 合成以 **1/r**（音频秒/墙钟秒）的速率**产出**音频
+          - 播放以 **speed**（音频秒/墙钟秒）的速率**消耗**音频
+          - ⇒ 合成速率 < 消耗速率 ⇒ 环形缓冲必然欠载 ⇒ 听感「断断续续」
+          - ⇒ 必须 **speed ≤ 1/r**
+            （例：r=1.31 ⇒ 合成比播放慢 ⇒ 倍速封顶 0.76 ⇒ 实际取 1.0×，
+              **宁可滞后也不靠加速把缓冲抽空**）
+
+        🔴 **只封顶、不加速**：APP-042「用户定的 1.30× 上限」**不变**，
+          这里只是**再加一个更严的动态上限**。
+
+        ⚠️ **没有实测 RTF**（第一句）⇒ 不封顶（返回 None）⇒ 行为不变。
+        """
+        try:
+            r = float(self._rtf_ewma)
+        except Exception:
+            return None
+        if not r or r <= 0.05 or r > 20.0:
+            return None
+        cap = 1.0 / r
+        if cap > 1.30:            # 用户定的 1.30× 上限（不变）
+            cap = 1.30
+        if cap < 1.0:
+            cap = 1.0
+        return float(cap)
 
     # -- 🔴🔴🔴 APP-027④：**唯一合成线程**（FIFO 消费）-------------------
     def _synth_loop(self):
@@ -3787,6 +3909,54 @@ class TTSWorker:
             '⇒ 保留当前全局克隆音色（clone_active=%s）'
             % (self._clone_active,))
 
+    def _has_ref_audio(self) -> bool:
+        """🔴🔴🔴 APP-061①：CUDA 边车当前**有没有可用的参考音频**。
+
+        🔴 **为什么必须有这个判据**：CUDA 后端（`USES_REF_AUDIO`）**没有 x-vector**
+          ⇒ `self.speaker_embed` **恒为 None**
+          ⇒ 不能用「有没有 embed」判「有没有音色」（那是 BabelVox 路线专用）
+          ⇒ 必须查**参考音频路径**（预设 A 的 wav 或克隆的临时 wav）。
+
+        ⚠️ **三态**：`False` = 确实没有 ⇒ 报「没有可用的音色」；
+          `True` = 有 ⇒ 允许合成。
+        """
+        eng = self.engine
+        if eng is None:
+            return False
+        for p in (getattr(eng, 'ref_audio', None),
+                  self._preset_ref_path,
+                  getattr(self, '_clone_ref_path', None)):
+            if not p:
+                continue
+            try:
+                if os.path.isfile(str(p)):
+                    return True
+            except Exception:
+                continue
+        return False
+
+    def _has_clone_voice(self) -> bool:
+        """🔴🔴🔴 APP-061⑤c：当前**是否已经有可用的克隆音色**。
+
+        🔴 **判据**（两个来源）：
+          - `_clone_active`：全局克隆（`follow_speaker`）**已生效**；
+          - `_last_voice_kind == 'clone'`：上一句用的是某个 spk 的克隆音色。
+        ⇒ 两者都否 ⇒ **还没有任何克隆** ⇒ 未标æ³¨的句子才回落预设 A。
+        """
+        return bool(self._clone_active) or self._last_voice_kind == 'clone'
+
+    def _log_keep_last_clone(self):
+        """🔴🔴🔴 APP-061⑤c：**沿用上一句的克隆音色**（说话人标签晚到）。
+
+        🔴 **必须打日志**：用户要能看见「这句用了上一个说话人的克隆音色」
+          ⇒ 否则「男声被女声播出」这类问题**无法定位**。
+        🔴 日志关键词固定为 `spk_pending⇒keep_last`（reviewer 原文要求）。
+        """
+        self._last_voice_spk = None
+        self._last_voice_kind = 'clone'
+        log('[tts_worker] spk_pending⇒keep_last'
+            '（说话人标签未到，沿用上一句的克隆音色）')
+
     def _fallback_to_preset(self, why: str = ''):
         """🔴🔴🔴 APP-027⑤：**显式回落预设 A**（克隆失败时）。
 
@@ -3811,21 +3981,30 @@ class TTSWorker:
         #   ⇒ **矛盾字段** ⇒ reviewer 的混淆表**失真**。
         self._last_voice_spk = None
         self._last_voice_kind = 'preset'
-        try:
-            self.speaker_embed = self._preset_embed
-            self.speaker_name = self._preset_name
-        except Exception:
-            self.speaker_embed = None
-            self.speaker_name = 'A'
-        # 🔴 CUDA 边车：把参考音频换回预设 A 的 wav
         eng = self.engine
         if eng is not None and getattr(eng, 'USES_REF_AUDIO', False):
+            # 🔴🔴🔴 APP-061①：**CUDA 路线只换参考音频**，**不清空 speaker_name**。
+            #   旧实现把 `speaker_embed` / `speaker_name` 一起换回预设缓存
+            #   ⇒ CUDA 下 `_preset_embed` 是 None、`_preset_name` 曾恒为 None
+            #   ⇒ `synth()` 判「没有可用的音色」⇒ **每一句都失败**。
+            #   ⇒ 现在：换回预设 A 的参考音频即可，音色名保持 'A'。
+            self.speaker_embed = None
+            self.speaker_name = self._preset_name or 'A'
             ref = self._preset_ref_path
             if ref:
                 try:
                     eng.set_ref_audio(ref)
                 except Exception as e:
                     log('[tts_worker] 🔴 回落预设 A 时换参考音频失败：%s' % e)
+            else:
+                log('[tts_worker] 🔴 回落预设 A：CUDA 边车没有预设参考音频')
+        else:
+            try:
+                self.speaker_embed = self._preset_embed
+                self.speaker_name = self._preset_name
+            except Exception:
+                self.speaker_embed = None
+                self.speaker_name = 'A'
         log('[tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）'
             + (f'（原因：{why}）' if why else ''))
 

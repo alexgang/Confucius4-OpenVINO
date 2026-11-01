@@ -898,6 +898,13 @@ def main():
     ap.add_argument('--no-verify-content', action='store_true',
                     help='跳过「zip ⇄ 包目录 逐文件 SHA256」内容一致性校验'
                          '（默认开启；关闭可省约 5~6 min 与十几 GB 磁盘读）')
+    # 🔴🔴🔴 APP-061：**打包成功 ≠ 可以改桌面快捷方式**。
+    #   reviewer 原文：「完成 ①–⑥ 的验收以后**先报 reviewer**，不要直接通知用户。
+    #   **用户抽听以后才能改桌面快捷方式。**」
+    #   ⇒ 新增 `--no-shortcut`：打完包**不动**桌面 .lnk。
+    ap.add_argument('--no-shortcut', action='store_true',
+                    help='打包成功后**不更新桌面快捷方式**'
+                         '（APP-061：用户抽听通过后由主会话另行决定）')
     ap.add_argument('--no-lock', action='store_true',
                     help='不取共享机器锁（默认取；打包是长时重活，会干扰其它模块计时）')
     ap.add_argument('--lock-timeout', type=float, default=10800.0,
@@ -1162,7 +1169,13 @@ def _run(args):
     #   ⇒ 快捷方式模块**自带真机验收门**（包目录缺 `ACCEPTED.json`
     #      ⇒ 不指过去）⇒ 「还没通过真机验收的版本不要指过去」。
     if rc == 0:
-        _update_shortcut_after_pack(PKG, args)
+        # 🔴🔴🔴 APP-061：`--no-shortcut` ⇒ **不动**桌面快捷方式
+        #   （reviewer：用户抽听通过后才允许改）
+        if getattr(args, 'no_shortcut', False):
+            print('[shortcut] ⏭ 已按 --no-shortcut **跳过**桌面快捷方式更新'
+                  '（APP-061：用户抽听后再改）')
+        else:
+            _update_shortcut_after_pack(PKG, args)
     return rc
 
 

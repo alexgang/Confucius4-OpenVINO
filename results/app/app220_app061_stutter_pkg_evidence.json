@@ -1,0 +1,259 @@
+{
+  "task": "APP-061 ③ 卡顿判据（a 遥测 / b 预缓冲 / c 倍速封顶 / d NPU 提示）",
+  "target": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app",
+  "python": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\.venv\\Scripts\\python.exe",
+  "files": {
+    "tts_worker.py": {
+      "sha256": "e94d61f7d2f1fb15495cd22d20a7f85a36820f57d404909f4ffed26d9359ea16",
+      "bytes": 229782
+    },
+    "live_caption_app.py": {
+      "sha256": "cab9896dbaa9810610f05df9c9195c7af8a8e92a9ac92ab3b6bc7fdf1695b13b",
+      "bytes": 361384
+    },
+    "tts_service.py": {
+      "sha256": "fa93cebcf67aa6e0425b6a6f247627e4256109325b080ef4ddd63f41621bae38",
+      "bytes": 127483
+    }
+  },
+  "static_and_behaviour": [
+    {
+      "name": "3a_worker_emits_uf_in_sentence",
+      "group": "3a",
+      "detail": "found=True",
+      "result": "PASS"
+    },
+    {
+      "name": "3a_worker_emits_uf_in_sentence_ms",
+      "group": "3a",
+      "detail": "found=True",
+      "result": "PASS"
+    },
+    {
+      "name": "3a_worker_emits_uf_idle",
+      "group": "3a",
+      "detail": "found=True",
+      "result": "PASS"
+    },
+    {
+      "name": "3a_worker_emits_uf_idle_ms",
+      "group": "3a",
+      "detail": "found=True",
+      "result": "PASS"
+    },
+    {
+      "name": "3a_worker_emits_uf_total_ms",
+      "group": "3a",
+      "detail": "found=True",
+      "result": "PASS"
+    },
+    {
+      "name": "3a_service_accumulates_uf_total",
+      "group": "3a",
+      "detail": "accumulators+exposed",
+      "result": "PASS"
+    },
+    {
+      "name": "3a_service_exposes_stats",
+      "group": "3a",
+      "detail": "stats() 暴露累计值",
+      "result": "PASS"
+    },
+    {
+      "name": "3a_app_30s_line_fields",
+      "group": "3a",
+      "detail": "missing=无",
+      "result": "PASS"
+    },
+    {
+      "name": "3a_app_30s_interval",
+      "group": "3a",
+      "detail": "间隔常量 30.0 s",
+      "result": "PASS"
+    },
+    {
+      "name": "3a_app_calls_30s_in_poll",
+      "group": "3a",
+      "detail": "_poll 里调用",
+      "result": "PASS"
+    },
+    {
+      "name": "3b_prebuffer_accepts_speed",
+      "group": "3b",
+      "detail": "args=['self', 'text', 'speed']",
+      "result": "PASS"
+    },
+    {
+      "name": "3b_prebuffer_uses_r_times_speed",
+      "group": "3b",
+      "detail": "rs = rtf × speed",
+      "result": "PASS"
+    },
+    {
+      "name": "3b_prebuffer_degenerates_when_le1",
+      "group": "3b",
+      "detail": "r·speed ≤ 1 ⇒ 0.3 s 底线",
+      "result": "PASS"
+    },
+    {
+      "name": "3b_prebuffer_recomputed_with_speed",
+      "group": "3b",
+      "detail": "synth() 里按 _sp 重算",
+      "result": "PASS"
+    },
+    {
+      "name": "3c_cap_helper_exists",
+      "group": "3c",
+      "detail": "found=True",
+      "result": "PASS"
+    },
+    {
+      "name": "3c_cap_is_one_over_r",
+      "group": "3c",
+      "detail": "cap = 1/r",
+      "result": "PASS"
+    },
+    {
+      "name": "3c_cap_respects_user_1_30",
+      "group": "3c",
+      "detail": "用户定的 1.30× 上限仍在",
+      "result": "PASS"
+    },
+    {
+      "name": "3c_cap_applied_in_synth",
+      "group": "3c",
+      "detail": "synth() 里应用封顶",
+      "result": "PASS"
+    },
+    {
+      "name": "3c_cap_before_last_speed_update",
+      "group": "3c",
+      "detail": "封顶在 `self._last_speed = _sp` 之前",
+      "result": "PASS"
+    },
+    {
+      "name": "3c_cap_applies_to_both_paths",
+      "group": "3c",
+      "detail": "封顶不在任何「条件依赖 _target_wall」的 if 里 ⇒ 两条路径都生效",
+      "result": "PASS"
+    },
+    {
+      "name": "3d_npu_conflict_helper_exists",
+      "group": "3d",
+      "detail": "found=True",
+      "result": "PASS"
+    },
+    {
+      "name": "3d_npu_detects_mt_and_asr",
+      "group": "3d",
+      "detail": "检测 MT/ASR 与 TTS 同在 NPU",
+      "result": "PASS"
+    },
+    {
+      "name": "3d_npu_shown_in_strip_as_warn",
+      "group": "3d",
+      "detail": "语音区状态条标黄",
+      "result": "PASS"
+    },
+    {
+      "name": "3d_npu_not_forbidden",
+      "group": "3d",
+      "detail": "只提示、不禁止（D4 待决）",
+      "result": "PASS"
+    },
+    {
+      "name": "3b_probe_ok",
+      "group": "behaviour",
+      "detail": "err=无",
+      "result": "PASS"
+    },
+    {
+      "name": "3b_probe_speed_ok",
+      "group": "behaviour",
+      "detail": "err=无",
+      "result": "PASS"
+    },
+    {
+      "name": "3b_speed_increases_prebuffer",
+      "group": "behaviour",
+      "detail": "speed=1.0 ⇒ 0.947 s；speed=1.30 ⇒ 1.651 s",
+      "result": "PASS"
+    },
+    {
+      "name": "3c_cap_no_accel_when_slow",
+      "group": "behaviour",
+      "detail": "r=1.31 ⇒ cap=1.0000（=1.0 ⇒ 不加速）",
+      "result": "PASS"
+    },
+    {
+      "name": "3c_cap_capped_by_user_1_30",
+      "group": "behaviour",
+      "detail": "r=0.50 ⇒ cap=1.3000（用户上限 1.30）",
+      "result": "PASS"
+    },
+    {
+      "name": "3c_no_rtf_no_cap",
+      "group": "behaviour",
+      "detail": "第一句（无实测 RTF）⇒ 不封顶（cap=None）",
+      "result": "PASS"
+    },
+    {
+      "name": "M1_mutation_applied",
+      "group": "counterproof",
+      "detail": "替换命中=True",
+      "result": "PASS"
+    },
+    {
+      "name": "M1_prebuffer_without_speed_is_caught",
+      "group": "counterproof",
+      "detail": "mutant pre=0.947 vs 原 1.651",
+      "result": "PASS"
+    },
+    {
+      "name": "M2_mutation_applied",
+      "group": "counterproof",
+      "detail": "替换命中=True",
+      "result": "PASS"
+    },
+    {
+      "name": "M2_no_speed_cap_is_caught",
+      "group": "counterproof",
+      "detail": "mutant cap=None vs 原 1.0",
+      "result": "PASS"
+    },
+    {
+      "name": "M2b_mutation_applied",
+      "group": "counterproof",
+      "detail": "变异体构造=True（合法 Python）",
+      "result": "PASS"
+    },
+    {
+      "name": "M2b_cap_inside_branch_is_caught",
+      "group": "counterproof",
+      "detail": "变异体把封顶关回分支内 ⇒ 判据 3c_cap_applies_to_both_paths 会 FAIL",
+      "result": "PASS"
+    },
+    {
+      "name": "M3_uf_fields_removed_is_caught",
+      "group": "counterproof",
+      "detail": "静态判据不再命中",
+      "result": "PASS"
+    },
+    {
+      "name": "M4_30s_line_removed_is_caught",
+      "group": "counterproof",
+      "detail": "静态判据不再命中",
+      "result": "PASS"
+    },
+    {
+      "name": "M5_npu_downgraded_to_error_is_caught",
+      "group": "counterproof",
+      "detail": "静态判据不再命中",
+      "result": "PASS"
+    }
+  ],
+  "n_pass": 39,
+  "n_fail": 0,
+  "n_none": 0,
+  "verdict": "PASS"
+}

@@ -636,6 +636,34 @@ def _cuda_tts_available():
         return False
 
 
+def _cuda_tts_unavailable_reason() -> str:
+    """🔴🔴🔴 APP-061②：CUDA 语音后端**不可用时的原因**（给用户看）。
+
+    🔴 **为什么要有这个**：用户实测「TTS 选 CUDA 时语音输出不工作，听不到声音」
+      ⇒ 客户机上 CUDA 依赖**包外**的独立 venv（`~/_fq3tts_env`），
+      客户机上**根本不存在** ⇒ 选了以后才发现没声音。
+    ⇒ 现在**把原因摆在界面上**（下拉项置灰 + 说明行），不让用户踩坑。
+    """
+    try:
+        import tts_cuda
+    except Exception as e:
+        return '缺少 CUDA 后端模块（%s）' % (type(e).__name__,)
+    try:
+        env_py = tts_cuda.python_exe()
+    except Exception:
+        env_py = ''
+    sidecar = getattr(tts_cuda, 'SIDECAR', '')
+    missing = []
+    if not env_py or not os.path.isfile(env_py):
+        missing.append('CUDA 运行环境（%s）' % (env_py or '未配置',))
+    if not sidecar or not os.path.isfile(sidecar):
+        missing.append('边车脚本（%s）' % (sidecar or '未找到',))
+    if missing:
+        return ('未安装 CUDA 语音后端环境：缺少 ' + '、'.join(missing)
+                + '（该环境在客户包之外，交付包不随包分发）')
+    return 'CUDA 语音后端环境不可用（请检查独立 venv 与边车脚本）'
+
+
 def _tts_log_dir() -> str:
     """TTS 故障日志的落盘目录（`%LOCALAPPDATA%\\Confucius4LiveCaption`）。
 
@@ -852,14 +880,31 @@ def build_tts_options(devices):
                                       + detail)
 
     # 🔴🆕 **CUDA（PyTorch）后端**放在最前面（STATUS §40：实测最快，首包 0.547 s）
-    #   ⚠️ 只在**本机装了独立 venv**时出现；客户机没有 ⇒ 自动不列（客户包不带 torch）
-    if _cuda_tts_available():
-        out.insert(0, dict(
-            id='CUDA@bf16', label='NVIDIA CUDA（PyTorch） · bf16',
-            device='CUDA', precision='bf16', fixed=False,
-            note=('✅ 实测可用（PyTorch+CUDA，RTX 5050）：流式首包 0.547 s / RTF 0.892'
-                  '（比 NPU 快 12.7×）⇒ 最快；'
-                  '⚠️ 走独立 venv（torch 不进客户包），首次加载 ~27 s')))
+    # 🔴🔴🔴 APP-061②：**始终列出** CUDA，但**检测不到边车环境时置灰并写明原因**。
+    #   旧实现：`if _cuda_tts_available(): out.insert(...)`
+    #   ⇒ 客户机上 CUDA **整条消失** ⇒ 用户看不到「为什么没有 NVIDIA」
+    #   （reviewer 原话：「不能让用户选了以后才发现没声音」）。
+    #   ⇒ 现在：
+    #     * 可用   ⇒ 正常项（`disabled` 不设）；
+    #     * 不可用 ⇒ **仍列出**，但 `disabled=True` + `why=<原因>`
+    #       ⇒ GUI 选中它时**拒绝启动**并把原因显示出来。
+    #   ⚠️ **D3 待用户决定**：客户包是否保留 TTS=CUDA 选项
+    #     （CUDA 边车依赖包外的 `_fq3tts_env`，客户机上不存在）。
+    #     本轮**不删该选项**，只做到「置灰 + 显示原因」。
+    _cuda_ok = _cuda_tts_available()
+    _cuda_why = '' if _cuda_ok else _cuda_tts_unavailable_reason()
+    _cuda_label = 'NVIDIA CUDA（PyTorch） · bf16'
+    if not _cuda_ok:
+        _cuda_label += '（不可用）'
+    out.insert(0, dict(
+        id='CUDA@bf16', label=_cuda_label,
+        device='CUDA', precision='bf16', fixed=False,
+        disabled=(not _cuda_ok), why=_cuda_why,
+        note=('✅ 实测可用（PyTorch+CUDA，RTX 5050）：流式首包 0.547 s / RTF 0.892'
+              '（比 NPU 快 12.7×）⇒ 最快；'
+              '⚠️ 走独立 venv（torch 不进客户包），首次加载 ~27 s'
+              if _cuda_ok else
+              '🔴 不可用：' + _cuda_why)))
     return out
 
 # Qwen3-ASR 模型内置 support_languages（见 models/hf/config.json），
@@ -888,6 +933,24 @@ def asr_lang_label(name):
     if name == ASR_LANG_AUTO:
         return '自动检测'
     return ASR_LANG_LABELS.get(name, name)
+
+
+def _fmt_num(v, nd=2):
+    """🔴🔴🔴 APP-061③(a)：**遥测数字格式化**（None ⇒ `—`）。
+
+    🔴 **为什么要有**：30 s 遥测行是**机器可算**的
+      ⇒ 缺值必须统一写成 `—`（不能写成 `None` / `nan` / 空串）
+      ⇒ 验收脚本正则提取时才不会误判。
+    """
+    try:
+        if v is None:
+            return '—'
+        f = float(v)
+        if f != f:                      # NaN
+            return '—'
+        return ('%.' + str(int(nd)) + 'f') % f
+    except Exception:
+        return '—'
 
 
 def _init_draft_flag(args):
@@ -2192,11 +2255,14 @@ class App:
         # ⚠️ 1080x820：三分区改**纵向三行**后（每行 = 控件行 + 说明行），
         #    700 高装不下，主文本区会被压扁。820 能让三行都完整显示。
         root.geometry('1080x820')
+        # 🔴🔴🔴 APP-061⑥：**最小宽度 1024**（reviewer：「最小宽度 1024，
+        #   最小高度另定」）⇒ 用户把窗口拉窄时控件不会被压到重叠。
+        root.minsize(1024, 640)
 
         # ── 顶栏 ──────────────────────────────────────────────────────
         # APP-007：ASR 后端与翻译目标语言的下拉**移入三分区**，
         # 顶栏只留「开始 / 清空 / 保存 / 屏幕字幕」这类全局操作。
-        top = ttk.Frame(root, padding=(10, 8))
+        top = ttk.Frame(root, padding=(8, 3))
         top.pack(fill='x')
         ttk.Label(top, text='Confucius4 实时字幕').pack(side='left')
 
@@ -2208,13 +2274,44 @@ class App:
         ttk.Checkbutton(top, text='屏幕字幕', variable=self.var_overlay,
                         command=self._toggle_overlay).pack(side='left', padx=10)
 
+        # 🔴🔴🔴 APP-061⑥：**「高级」折叠面板**开关。
+        #   不常用控件（识别语种 / 草稿 / 重试 / 离线朗读 / 测试声音 / 显示说话人）
+        #   收进这个面板 ⇒ 常用控件只占 ≤2 行 ⇒ 字幕区 ≥ 窗口高度 70%。
+        self._adv_open = False
+        self.btn_adv = ttk.Button(top, text='▾ 高级', width=8,
+                                  command=self._toggle_advanced)
+        self.btn_adv.pack(side='right', padx=(12, 0))
+        # 🔴 APP-048：会话计时（全局信息）⇒ 移进顶栏（省一整行）
+        self._session_elapsed = tk.StringVar(value='00:00')
+        ttk.Label(top, textvariable=self._session_elapsed,
+                  foreground='#555').pack(side='right', padx=(0, 12))
+        ttk.Label(top, text='会话').pack(side='right', padx=(0, 4))
+        # 🔴 APP-048：**总状态灯**（全部就绪 / 有模块异常时点击查看）
+        self._global_light = tk.StringVar(value='⚪ 就绪')
+        self.btn_global_light = ttk.Button(
+            top, textvariable=self._global_light, width=12,
+            command=self._show_global_status)
+        self.btn_global_light.pack(side='right', padx=(0, 12))
+        # 🔴 APP-048：顶部 meter（**全局**信息）⇒ 移进顶栏
+        #   ⚠️ **保留 `var_meter` / `lbl_meter` 这两个名字**：
+        #    `diag_layout_gui.py` 与 `app165` 等既有验收脚本仍引用它们。
+        self.var_meter = tk.StringVar(value='')
+        self.lbl_meter = ttk.Label(top, textvariable=self.var_meter,
+                                   font=('Consolas', 10))
+        self.lbl_meter.pack(side='right', padx=(0, 12))
+
+        # 🔴🔴🔴 APP-061⑥：**「高级」面板**（默认收起 ⇒ 不占纵向空间）。
+        #   ⚠️ 用**普通 Frame**（不是 LabelFrame）⇒ `app165` 的「分区数 = 3」
+        #     判据（C4）不受影响。
+        self._adv_frame = ttk.Frame(root, padding=(8, 2))
+
         self.var_note = tk.StringVar(value='')
         # 🔴🔴 APP-048：顶部说明文字**也要换行**（原来一行到底 ⇒ 溢出屏幕）。
         #    ⚠️ 用 `tk.Label`（ttk.Label 不支持 wraplength 绑定）。
-        self._lbl_note = tk.Label(root, textvariable=self.var_note,
+        #    🔴 APP-061⑥：移进「高级」面板 ⇒ 顶栏不再多占一行。
+        self._lbl_note = tk.Label(self._adv_frame, textvariable=self.var_note,
                                   foreground='#555', anchor='w', justify='left',
                                   background=self._ttk_bg())
-        self._lbl_note.pack(fill='x', padx=12)
 
         def _on_root_cfg(_ev=None):
             # 🔴 APP-048：窗口尺寸变化 ⇒ 所有换行 label 的 wraplength 都要跟上
@@ -2233,7 +2330,7 @@ class App:
         except Exception:
             pass
         self._wrapped_labels = getattr(self, '_wrapped_labels', [])
-        self._wrapped_labels.append((self._lbl_note, root))
+        self._wrapped_labels.append((self._lbl_note, self._adv_frame))
 
         # ── 全局状态行（APP-048）─────────────────────────────────────
         # 🔴🔴 APP-048：用户原话「现在所有的状态信息全部挤在最顶端，
@@ -2247,24 +2344,6 @@ class App:
         # ⚠️ **保留 `var_meter` / `lbl_meter` 这两个名字**：
         #    `diag_layout_gui.py` 与 `app076` 等既有验收脚本仍引用它们
         #    ⇒ 这里只是把内容换成**全局紧凑版**（不再是三个模块的长拼接）。
-        bot = ttk.Frame(root, padding=(10, 4))
-        bot.pack(fill='x')
-        self.var_meter = tk.StringVar(value='')
-        self.lbl_meter = ttk.Label(bot, textvariable=self.var_meter,
-                                   font=('Consolas', 10))
-        self.lbl_meter.pack(side='left')
-        # 🔴 APP-048：**会话计时**（全局信息）
-        self._session_elapsed = tk.StringVar(value='00:00')
-        ttk.Label(bot, textvariable=self._session_elapsed,
-                  foreground='#555').pack(side='right', padx=(0, 12))
-        ttk.Label(bot, text='会话').pack(side='right', padx=(0, 4))
-        # 🔴 APP-048：**总状态灯**（全部就绪 / 有模块异常时点击查看）
-        #    ⇒ 一个按钮 + 颜色状态，不占宽度；点击弹窗列出各分区状态。
-        self._global_light = tk.StringVar(value='⚪ 就绪')
-        self.btn_global_light = ttk.Button(
-            bot, textvariable=self._global_light, width=12,
-            command=self._show_global_status)
-        self.btn_global_light.pack(side='right', padx=(0, 12))
         self.var_status = tk.StringVar(value='')
         # 🔴🔴 APP-048：**全局消息单独一行 + 换行**
         #   （原来它挤在 bot 行右侧 ⇒ 长消息会把整行撑爆 / 被截断
@@ -2273,13 +2352,13 @@ class App:
         self._lbl_status = tk.Label(root, textvariable=self.var_status,
                                     foreground='#555', anchor='w', justify='left',
                                     background=self._ttk_bg())
-        self._lbl_status.pack(fill='x', padx=12, pady=(0, 2))
+        self._lbl_status.pack(fill='x', padx=10, pady=(0, 1))
         self._wrapped_labels = getattr(self, '_wrapped_labels', [])
         self._wrapped_labels.append((self._lbl_status, root))
 
         # 音频来源单独一行：三种输入（麦克风 / 系统声音 / 音频文件）
         # 的设备选择互斥，挤在一行会让顶栏没法看。
-        srow = ttk.Frame(root, padding=(12, 4))
+        srow = ttk.Frame(root, padding=(8, 2))
         srow.pack(fill='x')
         ttk.Label(srow, text='音频来源').pack(side='left')
         self.source_keys = ['mic', 'system', 'file']
@@ -2308,10 +2387,10 @@ class App:
         # 麦克风设备
         self.mics = list_input_devices()
         self.var_mic = tk.StringVar(value=self.mics[0][1] if self.mics else '（未找到输入设备）')
-        self.cb_mic = ttk.Combobox(srow, state='readonly', width=32,
+        self.cb_mic = ttk.Combobox(srow, state='readonly', width=18,
                                    textvariable=self.var_mic,
                                    values=[m[1] for m in self.mics])
-        self.cb_mic.pack(side='left', padx=(4, 12))
+        self.cb_mic.pack(side='left', padx=(4, 8))
 
         # 系统输出设备（loopback 目标）
         self.outs = list_output_devices()          # [(wasapi_id, 显示名), ...]
@@ -2322,14 +2401,14 @@ class App:
             (self.outs[0][0] if self.outs else None)
         self.var_out = tk.StringVar(
             value=self._out_label.get(init_out, '（未找到输出设备）'))
-        self.cb_out = ttk.Combobox(srow, state='readonly', width=32,
+        self.cb_out = ttk.Combobox(srow, state='readonly', width=18,
                                    textvariable=self.var_out,
                                    values=[self._out_label[oid] for oid, _ in self.outs])
-        self.cb_out.pack(side='left', padx=(4, 12))
+        self.cb_out.pack(side='left', padx=(4, 8))
 
         # 音频文件
         self.var_file = tk.StringVar(value=args.file or '')
-        self.entry_file = ttk.Entry(srow, width=30, textvariable=self.var_file)
+        self.entry_file = ttk.Entry(srow, width=18, textvariable=self.var_file)
         self.entry_file.pack(side='left', padx=(4, 4))
         self.btn_pick_file = ttk.Button(srow, text='选择…', command=self._pick_file)
         self.btn_pick_file.pack(side='left', padx=(0, 8))
@@ -2338,7 +2417,7 @@ class App:
         self._speed_label = {0.0: '全速', 0.5: '0.5×', 1.0: '1.0×（实时）', 1.5: '1.5×', 2.0: '2.0×'}
         self._speed_back = {v: k for k, v in self._speed_label.items()}
         self.var_speed = tk.StringVar(value=self._speed_label[1.0])
-        self.cb_speed = ttk.Combobox(srow, state='readonly', width=12,
+        self.cb_speed = ttk.Combobox(srow, state='readonly', width=10,
                                      textvariable=self.var_speed,
                                      values=list(self._speed_label.values()))
         self.cb_speed.pack(side='left', padx=(0, 8))
@@ -2367,14 +2446,21 @@ class App:
         # 命令行 > 配置文件 > 推荐默认值（device_config.get_devices 已解析）
         self._dev_choices = dict(self._dev_selected)
 
-        areas = ttk.Frame(root, padding=(10, 4))
+        # 🔴🔴🔴 APP-061⑥：**常用控件行**（ASR / 翻译 / 语音的设备与音色）
+        #   ⇒ 全部**移出**分区 LabelFrame ⇒ 控件只占 **1 行**。
+        row_dev = ttk.Frame(root, padding=(8, 2))
+        row_dev.pack(fill='x')
+
+        areas = ttk.Frame(root, padding=(8, 2))
         areas.pack(fill='x')
 
         # ---- ASR 分区 ----
-        f_asr = ttk.LabelFrame(areas, text='ASR 识别', padding=(8, 4))
-        f_asr.pack(fill='x', pady=2)
-        row_asr = ttk.Frame(f_asr)
-        row_asr.pack(fill='x')
+        # 🔴 APP-061⑥：三个分区**横向并排**（每列 = 该区的 1 行状态条）
+        #   ⇒ 状态区整体**只占 1 行**（reviewer：「状态栏只占 1 行」）。
+        f_asr = ttk.LabelFrame(areas, text='ASR 识别', padding=(6, 2))
+        f_asr.pack(side='left', fill='x', expand=True)
+        row_asr = ttk.Frame(row_dev)
+        row_asr.pack(side='left', padx=(0, 8))
         self._asr_opts = build_asr_options(self._dev_avail)
         self._asr_opt_by_id = {o['id']: o for o in self._asr_opts}
         self.var_asr_combo = tk.StringVar(value='')
@@ -2383,11 +2469,11 @@ class App:
             values=[o['label'] for o in self._asr_opts])
         self.cb_asr_combo.pack(side='left', padx=(0, 8))
         self.cb_asr_combo.bind('<<ComboboxSelected>>', self._on_asr_combo_changed)
-        ttk.Label(row_asr, text='识别语种').pack(side='left', padx=(0, 4))
+        # 🔴🔴🔴 APP-061⑥：「识别语种」属**不常用** ⇒ 移进「高级」面板
         self.cb_asr_lang = ttk.Combobox(
-            row_asr, state='readonly', width=12, textvariable=self.var_asr_lang,
+            self._adv_frame, state='readonly', width=12,
+            textvariable=self.var_asr_lang,
             values=[self._asr_lang_label[k] for k in self._asr_lang_keys])
-        self.cb_asr_lang.pack(side='left', padx=(0, 8))
         self.cb_asr_lang.bind('<<ComboboxSelected>>', self._on_asr_lang_changed)
         self.var_asr_note = tk.StringVar(value='')
         # 🔴🔴 APP-048：**ASR 分区自己的紧凑状态条**
@@ -2395,15 +2481,18 @@ class App:
         #    ⇒ 不再挤在窗口顶部（原实现把所有模块状态拼成一条长文本）。
         #    ⚠️ 位置：**紧贴控件行**（在 note 之上）⇒ 用户第一眼看到状态。
         self._strip_asr = self._make_status_strip(f_asr, 'asr')
+        # 🔴🔴🔴 APP-061⑥：分区的**说明行合并进状态栏**
+        #   ⇒ 说明文字移进「高级」面板，同时**并入状态条的 tooltip**。
         self._lbl_asr_note = self._bind_wrap(
-            ttk.Label(f_asr, textvariable=self.var_asr_note, foreground='#555'),
-            f_asr, self.var_asr_note)
+            ttk.Label(self._adv_frame, textvariable=self.var_asr_note,
+                      foreground='#555'),
+            self._adv_frame, self.var_asr_note)
 
         # ---- 翻译分区 ----
-        f_mt = ttk.LabelFrame(areas, text='翻译', padding=(8, 4))
-        f_mt.pack(fill='x', pady=2)
-        row_mt = ttk.Frame(f_mt)
-        row_mt.pack(fill='x')
+        f_mt = ttk.LabelFrame(areas, text='翻译', padding=(6, 2))
+        f_mt.pack(side='left', fill='x', expand=True)
+        row_mt = ttk.Frame(row_dev)
+        row_mt.pack(side='left', padx=(0, 8))
         ttk.Label(row_mt, text='目标语言').pack(side='left', padx=(0, 4))
         self.mt_keys = list(TARGETS)
         self.var_mt = tk.StringVar(value=TARGET_LABELS[args.translate])
@@ -2423,29 +2512,30 @@ class App:
         # 草稿译文开关：默认**关闭**，只翻已经定稿的文本。勾上后还会实时翻译
         # 还没定稿的那句，但会占翻译算力、抬高 ASR 积压。
         self.var_mt_draft = tk.BooleanVar(value=_init_draft_flag(args))
+        # 🔴🔴🔴 APP-061⑥：「草稿译文」「重试翻译」属**不常用** ⇒ 高级面板
         self.chk_mt_draft = ttk.Checkbutton(
-            row_mt, text='草稿译文 Draft', variable=self.var_mt_draft,
+            self._adv_frame, text='草稿译文 Draft', variable=self.var_mt_draft,
             command=self._on_mt_draft_toggled)
-        self.chk_mt_draft.pack(side='left', padx=(0, 8))
         # 重试按钮：翻译模型加载失败时（状态栏显示「失败」）一键重试，
         # 不用重启整个程序。加载中时禁用。
-        self.btn_mt_retry = ttk.Button(row_mt, text='↻ 重试翻译 Retry', width=16,
+        self.btn_mt_retry = ttk.Button(self._adv_frame, text='↻ 重试翻译 Retry',
+                                       width=16,
                                        command=self._retry_mt, state='disabled')
-        self.btn_mt_retry.pack(side='left', padx=(0, 8))
         self.var_mt_note = tk.StringVar(value='')
         # 🔴🔴 APP-048：**翻译分区自己的紧凑状态条**
         #    （设备 / 模型 / 目标语言 / 加载状态 / 最近一句翻译延迟）
         self._strip_mt = self._make_status_strip(f_mt, 'mt')
         self._lbl_mt_note = self._bind_wrap(
-            ttk.Label(f_mt, textvariable=self.var_mt_note, foreground='#555'),
-            f_mt, self.var_mt_note)
+            ttk.Label(self._adv_frame, textvariable=self.var_mt_note,
+                      foreground='#555'),
+            self._adv_frame, self.var_mt_note)
         self.mt.set_draft(self.var_mt_draft.get())
 
         # ---- 语音分区（TTS，C-101 P4 第 4 条）----
-        f_tts = ttk.LabelFrame(areas, text='语音输出', padding=(8, 4))
-        f_tts.pack(fill='x', pady=2)
-        row_tts = ttk.Frame(f_tts)
-        row_tts.pack(fill='x')
+        f_tts = ttk.LabelFrame(areas, text='语音输出', padding=(6, 2))
+        f_tts.pack(side='left', fill='x', expand=True)
+        row_tts = ttk.Frame(row_dev)
+        row_tts.pack(side='left')
         # 🔴 **TTS 默认开启**（APP-014：TTS 已转为正式功能）
         #    ⚠️ 兼容：命令行显式给了 `--tts off` 时仍按 off；
         #       没给（`None`）⇒ 按**默认开启**处理。
@@ -2515,9 +2605,9 @@ class App:
         #     ⇒ `spk` 为真值时才加前缀 ⇒ **今天的显示逐字不变**；
         #     ASR 一旦交付就立即生效（见 `_render`）。
         self.var_show_spk = tk.BooleanVar(value=True)
+        # 🔴🔴🔴 APP-061⑥：「显示说话人」属**不常用** ⇒ 高级面板
         cb_show_spk = ttk.Checkbutton(
-            row_tts, text='显示说话人', variable=self.var_show_spk)
-        cb_show_spk.pack(side='left', padx=(0, 8))
+            self._adv_frame, text='显示说话人', variable=self.var_show_spk)
         # 🔴🔴🔴 APP-054：**说话人识别开关**（**默认关闭**）
         #   ⇒ v1.13 的阻断级回归：旁路**默认开着**且**同步阻塞 ASR 主循环**
         #     ⇒ 用户实测：墙钟 838.5 s / 300 s 音频（最大积压 195.1 s）。
@@ -2545,9 +2635,10 @@ class App:
         self.cb_tts_out.bind('<<ComboboxSelected>>', self._on_tts_out_changed)
         # 🔴 APP-021④：「测试声音」按钮 —— 把「播放链路」与「TTS 合成」拆开。
         #   走**同一个 worker 的 Player** 播 1 s 440 Hz 正弦波。
-        self.btn_tts_test = ttk.Button(row_tts, text='🔊 测试声音', width=12,
+        # 🔴🔴🔴 APP-061⑥：「测试声音」属**不常用** ⇒ 高级面板
+        self.btn_tts_test = ttk.Button(self._adv_frame, text='🔊 测试声音',
+                                       width=12,
                                        command=self._on_tts_test_sound)
-        self.btn_tts_test.pack(side='left', padx=(0, 8))
         self.tts = None                      # TTSService 实例
         # 🔴🔴🔴 APP-041：**启动流程待办**（默认「开启」必须真的初始化）。
         #   旧实现：`var_tts_on` 初值 True，但唯一的初始化入口
@@ -2578,7 +2669,8 @@ class App:
         #    TTS 从**系统输出设备**播放，而 ASR 可能采**系统回环**⇒
         #    不戴耳机会把 TTS 的声音**再采回去** ⇒ 自激 / 回声 / 重复词。
         #    ⇒ 在开关旁边常驻一行提示（不是弹窗，避免打断会议）。
-        ttk.Label(row_tts, text='⚠️ 请佩戴耳机，避免回授',
+        # 🔴🔴🔴 APP-061⑥：耳机提示**缩短**（宽度敏感）⇒ 完整说明在高级面板
+        ttk.Label(row_tts, text='⚠️ 戴耳机',
                   foreground='#b26a00').pack(side='left', padx=(4, 0))
 
         # 🔴🔴 APP-048：**语音输出分区自己的紧凑状态条**
@@ -2586,14 +2678,16 @@ class App:
         #    ⚠️ 位置：紧贴控件行（在 note 之上）⇒ 用户第一眼看到状态。
         self._strip_tts = self._make_status_strip(f_tts, 'tts')
         self._lbl_tts_note = self._bind_wrap(
-            ttk.Label(f_tts, textvariable=self.var_tts_note, foreground='#555'),
-            f_tts, self.var_tts_note)
+            ttk.Label(self._adv_frame, textvariable=self.var_tts_note,
+                      foreground='#555'),
+            self._adv_frame, self.var_tts_note)
 
         # 🔴 **离线朗读入口**（用户需求：上传文件 / 对话框输入文本 ⇒ 直接播报）
         #    放在这里而不是 row_tts：row_tts 已经排了 6 个控件，
         #    1080 宽再塞按钮会把「⚠️ 请佩戴耳机」挤掉（§13 实测过同类裁切）。
         #    note 行本来就是单独一行、只放一个 label ⇒ 左边补按钮不吃宽度。
-        row_tts2 = ttk.Frame(f_tts)
+        # 🔴🔴🔴 APP-061⑥：「离线朗读」属**不常用** ⇒ 高级面板
+        row_tts2 = ttk.Frame(self._adv_frame)
         row_tts2.pack(fill='x')
         self.btn_offline = ttk.Button(
             row_tts2, text='📖 离线朗读…', width=14,
@@ -2612,15 +2706,30 @@ class App:
             ttk.Label(row_tts2, textvariable=self.var_tts_note2,
                       foreground='#555'),
             row_tts2, self.var_tts_note2)
+        # 🔴🔴🔴 APP-061⑥：高级面板里的说明**顺序**（可折叠 ⇒ 默认不占空间）
+        ttk.Label(self._adv_frame, text='⚠️ 请佩戴耳机，避免 TTS 声音被 ASR '
+                  '回采造成回授。', foreground='#b26a00').pack(
+                      side='left', padx=(8, 0))
+        # 🔴🔴🔴 APP-061⑥：把**移进高级面板**的控件**摆上去**
+        #   （改父容器时去掉了原来的 pack ⇒ 这里统一补一次）。
+        self._lbl_note.pack(fill='x', padx=4)
+        self.cb_asr_lang.pack(side='left', padx=(4, 8))
+        self.chk_mt_draft.pack(side='left', padx=(0, 8))
+        self.btn_mt_retry.pack(side='left', padx=(0, 8))
+        cb_show_spk.pack(side='left', padx=(0, 8))
+        self.btn_tts_test.pack(side='left', padx=(0, 8))
 
         # ⚠️ height=10（行）：**这是状态栏可见的关键**。
         #    ScrolledText 默认请求高度 718 px（24 行），在 1080x700 窗口里
         #    pack 优先满足它 ⇒ 状态栏被压成 1 px（实测）。
         #    配合「bot 在 txt 之前 pack」，窗口再小也是压 txt 而不是压状态栏。
+        # 🔴🔴🔴 APP-061⑥：字幕字体**保持 13pt**（reviewer 明文），
+        #   padding 略收；`height=10` 保持不变（ScrolledText 默认请求 718 px，
+        #   会把状态栏压成 1 px —— 见上面的注释）。
         self.txt = scrolledtext.ScrolledText(root, wrap='word', font=('Microsoft YaHei UI', 13),
-                                             relief='flat', padx=12, pady=10, spacing3=6,
+                                             relief='flat', padx=10, pady=8, spacing3=6,
                                              height=10)
-        self.txt.pack(fill='both', expand=True, padx=10, pady=(4, 4))
+        self.txt.pack(fill='both', expand=True, padx=8, pady=(2, 4))
         self.txt.tag_config('partial', foreground='#9a9a9a')
         self.txt.tag_config('mt', foreground='#1565c0')            # 定稿译文
         self.txt.tag_config('mt_partial', foreground='#7aa7d0')    # 实时译文草稿
@@ -2737,6 +2846,17 @@ class App:
                         if o['device'] == self._dev_selected['tts']), None)
         if opt is None and self._tts_opts:
             opt = self._tts_opts[0]
+        # 🔴🔴🔴 APP-061②：**不可用的项不作为初值**（CUDA 边车环境缺失时）
+        #   ⇒ 退回到第一个**可用**项，并在说明里写明 CUDA 为什么不可用。
+        if opt is not None and opt.get('disabled'):
+            usable = next((o for o in self._tts_opts
+                           if not o.get('disabled')), None)
+            if usable is not None:
+                self._combo_notes.append(
+                    '语音：「%s」不可用（%s）⇒ 已改用「%s」'
+                    % (opt['label'], opt.get('why') or '本机不可用',
+                       usable['label']))
+                opt = usable
         if opt is None:
             self._combo_notes.append('语音：没有可用组合')
             self.var_tts_note.set('本机未检测到 GPU/NPU，CPU 推理已隐藏；'
@@ -3191,7 +3311,16 @@ class App:
         col = self._clone_col
         if col is None:
             return
-        col.enabled = bool(self._clone_enabled)
+        # 🔴🔴🔴 APP-061④：**彻底停用定时采集器**。
+        #   旧实现：`col.enabled = bool(self._clone_enabled)` ⇒ 选「跟随说话人（克隆）」
+        #   就**一直**在采集 ⇒ 每 30 s 或累计 ≥6 s 就重算一次音色
+        #   ⇒ 用户实测 `✅ 克隆音色已更新（BabelVox x-vector，10.0 s）`
+        #     每 15–20 s 出现一次，**与说话人变化无关**（21:21–21:32 只有 4 次 new_spk）
+        #   ⇒ 既**白算**（占 NPU，加重 ③ 的卡顿），又让用户以为「每 10 s 克隆一次」。
+        #   ⇒ 现在：**采集器恒关**；克隆只走 `_pump_spk_voices()`
+        #     （`is_new_spk` 时取样首段 ≥1.5 s，3 s 时 refine 一次后冻结）。
+        #   ⚠️ **规则本身不改**（缩短 `_WIN_S` 见 D1，等用户决定）。
+        col.enabled = False
         if not col.enabled:
             return
         col.feed(pcm)
@@ -3423,6 +3552,20 @@ class App:
         opt = self._cur_tts_opt()
         if not opt:
             return
+        # 🔴🔴🔴 APP-061②：选到**不可用**的项（当前只有 CUDA 边车环境缺失）
+        #   ⇒ **拒绝启动**并把**原因**显示出来 ⇒ 不让用户「选了以后才发现没声音」。
+        if opt.get('disabled'):
+            why = opt.get('why') or '该选项在本机不可用'
+            self.var_tts_note.set('🔴 无法使用「%s」：%s' % (opt['label'], why))
+            self.var_status.set('语音输出选项不可用：%s' % why)
+            self._ui_log('[tts] 🔴 选项不可用（未启动）：%s —— %s'
+                         % (opt['label'], why))
+            # 回退到上一个**可用**项
+            fallback = next((o for o in self._tts_opts
+                             if not o.get('disabled')), None)
+            if fallback is not None:
+                self.var_tts_combo.set(fallback['label'])
+            return
         self._dev_choices['tts'] = opt['device']
         self._tts_precision = opt['precision']
         self.var_tts_note.set(self._tts_note_text(opt))
@@ -3501,9 +3644,14 @@ class App:
             #      ⇒ 绝不静默（§42 的教训）。
             self._clone_enabled = (voice == 'follow_speaker')
             if self._clone_enabled:
-                self._ui_log('[tts] 「跟随说话人（克隆·实验）」已启用：'
-                             '每 30 s 或累计 ≥6 s 新语音更新一次音色'
-                             '（更新前用预设 A）')
+                # 🔴🔴🔴 APP-061④：日志文案同步改成「换人时取样」。
+                self._ui_log('[tts] 「跟随说话人（克隆）」已启用：'
+                             '换人时取样（首段 ≥1.5 s，3 s 定稿），老说话人复用'
+                             '（定时重采集已停用，APP-061④）')
+                # 🔴🔴🔴 APP-061⑤d：旁路关闭 ⇒ 明确提示用预设 A。
+                if not self._speaker_enabled:
+                    self._ui_log('[tts] 🔴 克隆需要说话人识别，当前已关闭'
+                                 '⇒ 将使用预设 A（APP-061⑤d）')
                 # 清掉上一轮的采集状态 ⇒ 避免用旧语音
                 with self._clone_lock:
                     self._clone_frames = []
@@ -3528,6 +3676,30 @@ class App:
             # ⇒ 这里**先拦一道**：不可用 ⇒ 换到**可用**设备 + 明确告知，
             #   **不要**让用户对着一个必然失败的配置干等编译。
             bad = _tts_device_problem(dev, prec)
+            # 🔴🔴🔴 APP-061②：**CUDA 边车环境缺失 ⇒ 启动前拦住**。
+            #   用户实测「TTS 选 CUDA 时语音输出不工作」⇒ 客户机上 CUDA 依赖
+            #   **包外**的独立 venv（`~/_fq3tts_env`）⇒ 根本不存在。
+            #   ⇒ 这里在**起 worker 之前**就拦住 + 明确告知原因。
+            if str(dev).upper().startswith('CUDA') and not _cuda_tts_available():
+                why = _cuda_tts_unavailable_reason()
+                self._ui_log(f'[tts] 🔴 CUDA 语音后端不可用：{why} ⇒ 自动改用可用设备')
+                alt = _first_usable_tts_device(self._dev_avail, skip=dev,
+                                               prec=prec)
+                if alt is None:
+                    self.var_tts_on.set(False)
+                    self.var_tts_note.set('🔴 语音输出不可用：%s'
+                                          '；且本机没有其它可用设备'
+                                          '（已自动关闭，详见日志）' % why)
+                    self.var_status.set('语音输出不可用（不影响字幕与翻译）')
+                    self._ui_log('[tts] 无可用设备 ⇒ 启动失败，开关已自动关闭')
+                    return
+                dev = alt
+                prec = 'f32'
+                self._dev_choices['tts'] = dev
+                self._tts_precision = prec
+                self.var_status.set(f'🔴 CUDA 语音后端不可用（{why}）⇒ 已自动改用 {dev}')
+                self.var_tts_note.set(f'🔴 CUDA 语音后端不可用：{why}；已自动改用 {dev}')
+                bad = ''
             if bad:
                 self._ui_log(f'[tts] 设备 {dev}（{prec}）不可用：{bad} ⇒ 自动改用可用设备')
                 alt = _first_usable_tts_device(self._dev_avail, skip=dev,
@@ -3551,6 +3723,15 @@ class App:
                 device=dev, voice=voice,
                 out_device=out_id,
                 precision=prec,
+                # 🔴🔴🔴 APP-061⑤a：**GUI 路径必须把「克隆」告诉 worker**。
+                #   旧实现**漏传** `clone=` ⇒ worker 的 `clone_mode=False`
+                #   ⇒ `tts_worker.py` 每句 `spk=None` 都走「回落预设 A」
+                #   ⇒ 用户听到的**全是预设 A（女声）**（用户实测 21:21–21:32：
+                #   `已回落到预设 A（不静默）（原因：no_spk_label）` 出现 **83 次**，
+                #   而 `spk_voice` 登记/回执 **0 条**）。
+                #   ⚠️ CLI 路径（`main()` 里 5325 行附近）**一直传了** ⇒
+                #   现在 GUI 与 CLI 口径一致。
+                clone=self._clone_enabled,
                 # 🔴🔴 APP-051②：GUI 路径的 APP-042 自适应加速播放**验收**
                 #   需要逐句遥测（`speed` / `play_lag_s` / `target_wall`）。
                 #   ⚠️ 旧行为：GUI **不传** `jsonl_path` ⇒ worker 不落盘遥测
@@ -3572,13 +3753,22 @@ class App:
     def _on_tts_voice_changed(self, *_a):
         """切换音色：需要重启 worker（音色条件在加载时绑定）。"""
         voice = self._tts_voice_back.get(self.var_tts_voice.get(), 'A')
-        # 🔴🔴🔴 APP-027⑤：「跟随说话人（克隆）」**本轮已启用**
-        #   ⇒ 提示改成「已启用，正在采集语音…」
+        # 🔴🔴🔴 APP-061④：文案改成「**换人时取样**」，删掉「每 30 s」的字样。
+        #   旧文案承诺的是**定时重采集**（APP-027⑤ 的老机制）⇒ 与 v2.2 实际行为不符
+        #   ⇒ 用户实测反馈「为什么是 10 秒」正是这段文案造成的误解。
+        # 🔴🔴🔴 APP-061⑤d：选了「跟随说话人」但**说话人识别已关闭** ⇒
+        #   **明确提示**（不允许静默退回定时克隆；自动打开旁路属 D2，等用户决定）。
         if voice == 'follow_speaker':
-            self.var_tts_note.set('「跟随说话人（克隆·实验）」已启用：'
-                                  '正在采集语音，音色会在积累够语音后自动更新；'
-                                  '🔴 实验性：切换可能滞后且呈渐变，'
-                                  '正式版改为「检测到换人才取样」（APP-039/040）')
+            if not self._speaker_enabled:
+                self.var_tts_note.set(
+                    '🔴 克隆需要说话人识别，当前已关闭 ⇒ 将使用预设 A。'
+                    '请勾选「说话人识别」后重启会话。')
+                self._ui_log('[tts] 克隆需要说话人识别，当前已关闭'
+                             '（APP-061⑤d）⇒ 将使用预设 A')
+            else:
+                self.var_tts_note.set(
+                    '「跟随说话人（克隆）」已启用：'
+                    '换人时取样（首段 ≥1.5 s，3 s 定稿），老说话人复用。')
         else:
             self.var_tts_note.set('已切换到「预设 A」')
         if self.tts is not None:
@@ -4105,8 +4295,19 @@ class App:
                 # 🔴 按句绑定：重新登记（含 clean_ranges）⇒ 音色表更新
                 # 🔴🔴🔴 APP-054：**必须带 clean_ranges** ⇒ 否则晚到的标签
                 #   拿不到取样区间 ⇒ 该 spk 永远攒不够时长 ⇒ 克隆音色登记不上。
-                self._spk_voices.note_final(seg, spk, clean_ranges)
-                self._ui_log('[spk] 标签补到：第 %d 段 = %s' % (seg, spk))
+                # 🔴🔴🔴 APP-061⑤b：**必须接住 `note_final()` 的返回值 `is_new`**。
+                #   旧实现**丢掉了它** ⇒ 新说话人**永远不会被取样**
+                #   ⇒ `voice_for_sentence()` 永远返回 `''`
+                #   ⇒ 每句都用预设 A（用户实测 `spk_voice` 登记 **0 条**）。
+                #   ⇒ 这里与**同步路径**（`_on_final` 里的 4176-4181）口径一致：
+                #     `is_new` 为真 ⇒ 把该 spk 放进「待取样」队列。
+                _is_new = self._spk_voices.note_final(seg, spk, clean_ranges)
+                if _is_new:
+                    self._spk_pending_embed.append((seg, spk))
+                    self._ui_log('[spk] 标签补到：第 %d 段 = %s（新说话人，已排队取样）'
+                                 % (seg, spk))
+                else:
+                    self._ui_log('[spk] 标签补到：第 %d 段 = %s' % (seg, spk))
             except Exception as e:
                 self._ui_log('[spk] 标签补发处理异常（忽略）：%s' % e)
 
@@ -4601,7 +4802,8 @@ class App:
 
         def _on_cfg(_ev=None):
             try:
-                w = container.winfo_width()
+                # 🔴🔴🔴 APP-061⑥：宽度来源统一走 `_wrap_width`（容器收起时回退窗口宽）
+                w = self._wrap_width(container)
                 if w > 50:
                     lbl.configure(wraplength=w - 12)
             except Exception:
@@ -4629,15 +4831,67 @@ class App:
             except Exception:
                 return '#f0f0f0'
 
+    def _wrap_width(self, container):
+        """🔴🔴🔴 APP-061⑥：**换行宽度**（容器宽；容器没被布局时回退到窗口宽）。
+
+        🔴 **为什么必须回退**：APP-061⑥ 把三个分区的**说明行**移进了
+          「高级」面板，而该面板**默认收起**（`pack_forget`）
+          ⇒ Tk 对**未映射**控件的 `winfo_width()` 返回 **1**
+          ⇒ 面板里那三个**很长的说明行**（实测最长 reqwidth = **3003 px**）
+          拿不到换行宽度 ⇒ `wraplength` 保持 **0**（= 不换行）
+          ⇒ **展开面板时说明行直接横向溢出窗口**（违反 APP-048
+          「窗口缩小到 1280×720 时不能截断或溢出」）
+          ⇒ 同时 `app165` 的 C21 判据（长文本行不得横向溢出）必然 FAIL。
+        ⇒ **回退到窗口宽度** ⇒ 收起状态下换行宽度也是对的
+          ⇒ 展开时再由 `<Configure>` 事件刷成容器真实宽度。
+
+        🔴 **口径**：容器宽 > 50 才算数（50 以下视为「没布局好」）。
+        """
+        try:
+            w = container.winfo_width()
+        except Exception:
+            w = 0
+        if w <= 50:
+            try:
+                w = self.root.winfo_width()
+            except Exception:
+                w = 0
+        return w
+
     def _update_wrap(self):
         """窗口尺寸变化后刷新所有换行 label 的 wraplength。"""
         for lbl, container in getattr(self, '_wrapped_labels', []):
             try:
-                w = container.winfo_width()
+                # 🔴🔴🔴 APP-061⑥：同样走 `_wrap_width`（收起容器 ⇒ 回退窗口宽）
+                w = self._wrap_width(container)
                 if w > 50:
                     lbl.configure(wraplength=w - 12)
             except Exception:
                 pass
+
+    def _toggle_advanced(self):
+        """🔴🔴🔴 APP-061⑥：**折叠/展开「高级」面板**。
+
+        🔴 **为什么要有**：不常用控件（识别语种 / 草稿译文 / 重试翻译 /
+          离线朗读 / 测试声音 / 显示说话人 / 三个分区的说明行）全部塞进来
+          ⇒ 常用控件只占 **2 行** ⇒ 字幕区 ≥ 窗口高度 **70 %**。
+        ⚠️ 面板默认**收起** ⇒ 不占纵向空间。
+        """
+        self._adv_open = not getattr(self, '_adv_open', False)
+        if self._adv_open:
+            self._adv_frame.pack(fill='x', before=self.txt)
+            self.btn_adv.configure(text='▴ 收起')
+        else:
+            self._adv_frame.pack_forget()
+            self.btn_adv.configure(text='▾ 高级')
+        # 🔴🔴🔴 APP-061⑥：**展开/收起后重算换行宽度**
+        #   ⇒ 收起时按**窗口宽**换行（说明行不溢出），
+        #   展开时按**面板真实宽**换行（`<Configure>` 也会触发一次）。
+        try:
+            self.root.update_idletasks()
+            self._update_wrap()
+        except Exception:
+            pass
 
     def _make_status_strip(self, parent, key):
         """在某个分区里建一行状态条，返回视图对象。
@@ -4668,10 +4922,16 @@ class App:
                 'status': status, '_last_text': None, '_last_level': None,
                 '_tip': '', 'measure': measure}
 
-    def _strip_update(self, strip, max_px=None):
-        """把状态条重画一次（内容没变 ⇒ **不动控件**）。"""
+    def _strip_update(self, strip, max_px=None, extra_tip=''):
+        """把状态条重画一次（内容没变 ⇒ **不动控件**）。
+
+        🔴🔴🔴 APP-061⑥：`extra_tip` = 该分区的**说明行**全文
+          ⇒ 说明行「合并进状态栏」（悬停即见）⇒ 界面不再另占一行。
+        """
         text, level, tip = strip['status'].render(max_px=max_px,
                                                   measure=strip.get('measure'))
+        if extra_tip:
+            tip = (tip + '\n' + extra_tip) if tip else extra_tip
         if text != strip['_last_text']:
             strip['var'].set(text)
             strip['_last_text'] = text
@@ -4883,6 +5143,19 @@ class App:
         except Exception:
             n_q = 0
         st.set('queue', '排队', str(n_q), priority=5)
+        # 🔴🔴🔴 APP-061③(d)：**NPU 共用**黄色提示（**只提示、不禁止**）
+        #   reviewer 原文：「用户把 MT 或 ASR 放到 NPU、同时 TTS 也在 NPU 时，
+        #   GUI 标黄提示『NPU 共用，语音可能卡顿』。是否直接禁止，见 D4。」
+        #   ⚠️ **D4 未决** ⇒ 本轮**只标黄警告**（用户决定之前的默认实现）。
+        try:
+            _npu_note = self._npu_conflict_note()
+        except Exception:
+            _npu_note = ''
+        if _npu_note:
+            st.set('npu', 'NPU 共用', '语音可能卡顿', priority=2,
+                   level='warn', tip=_npu_note)
+        else:
+            st.clear('npu')
 
     def _update_strips(self):
         """刷新三分区状态条 + 顶部总状态灯 + 会话计时。
@@ -4903,7 +5176,10 @@ class App:
             #   ⚠️ 不能用整窗宽度：那会让语音区（字段最多）变成一条长文本
             #     ⇒ 违背 APP-048「每个区域用一行**紧凑**的状态条」。
             #   ⇒ 上限 = 分区宽度，且**再封顶**（避免超宽屏下无限拉长）。
-            for s in (self._strip_asr, self._strip_mt, self._strip_tts):
+            # 🔴🔴🔴 APP-061⑥：把三个分区的**说明行全文**并进状态条 tooltip
+            for s, note_var in ((self._strip_asr, getattr(self, 'var_asr_note', None)),
+                                (self._strip_mt, getattr(self, 'var_mt_note', None)),
+                                (self._strip_tts, getattr(self, 'var_tts_note', None))):
                 try:
                     fw = s['frame'].winfo_width()
                 except Exception:
@@ -4912,7 +5188,11 @@ class App:
                     fw = max(320, self.root.winfo_width() - 60)
                 # 🔴 紧凑上限：约 108 个字符（≈ 810 px @ 7.5 px/char）
                 #   ⇒ 超出的次要字段按优先级从最次要的一端丢弃。
-                self._strip_update(s, max_px=min(fw, 810))
+                try:
+                    _extra = note_var.get() if note_var is not None else ''
+                except Exception:
+                    _extra = ''
+                self._strip_update(s, max_px=min(fw, 810), extra_tip=_extra)
             # 顶部总状态灯：三区里只要有一区 error ⇒ 变红
             levels = [s['status'].level() for s in
                       (self._strip_asr, self._strip_mt, self._strip_tts)]
@@ -4990,6 +5270,10 @@ class App:
         self._track_mt_state()
         self._track_tts_state()
         self._track_clone_state()
+        # 🔴🔴🔴 APP-061③(a)：**每 30 s 一行会话遥测**
+        #   （reviewer 原文：`asr_rtf / asr_backlog_s / mt_lat_p50 /
+        #     tts_synth_rtf / uf_in_sentence_ms`）
+        self._log_telemetry_30s()
         # 🔴🔴🔴 APP-041：启动流程的 TTS 初始化在此**轮询**触发
         #   （ASR 就绪 + MT 就绪/失败之后 ⇒ 起 TTS；**只调用一次**）
         self._maybe_startup_tts()
@@ -5044,6 +5328,101 @@ class App:
             self._selftest_done()
             return
         self.root.after(self.POLL_MS, self._poll)
+
+    def _log_telemetry_30s(self):
+        """🔴🔴🔴 APP-061③(a)：**每 30 s 打一行会话遥测**。
+
+        reviewer 原文：「GUI 会话日志每 30 s 打一行
+        `asr_rtf / asr_backlog_s / mt_lat_p50 / tts_synth_rtf / uf_in_sentence_ms`」
+
+        🔴 **为什么必须有**：用户报「卡顿」时**没有任何数字**⇒ 无法判断
+          是「合成慢」「ASR 积压」「翻译慢」还是「播放缓冲欠载」
+          ⇒ APP-061③ 的根因分析只能靠翻散文日志（reviewer 实测就是这么做的）。
+        ⇒ 这一行是**机器可算**的（每行一个 `key=value` 对）⇒
+          验收脚本可直接正则提取。
+
+        ⚠️ **口径**：
+          - `asr_rtf` = ASR 引擎的实时 RTF（`self.engine.rtf`）
+          - `asr_backlog_s` = ASR 侧积压（秒）
+          - `mt_lat_p50` = 翻译延迟中位数（ms，取自 translator 的 `lats`）
+          - `tts_synth_rtf` = 上一句的合成 RTF（`synth_rtf`）
+          - `uf_in_sentence_ms` = **本会话句内欠载累计**（ms）
+            （**不是**本句 ⇒ 累计值才看得出趋势）
+        """
+        now = time.time()
+        last = getattr(self, '_tel30_last', 0.0)
+        if now - last < 30.0:
+            return
+        # 🔴 第一次调用只记时间点，不打行（避免刚启动就一行「—」）
+        if last <= 0.0:
+            self._tel30_last = now
+            return
+        self._tel30_last = now
+        try:
+            e = getattr(self, 'engine', None)
+            asr_rtf = getattr(e, 'rtf', None) if e is not None else None
+        except Exception:
+            asr_rtf = None
+        try:
+            s = getattr(self, 'session', None)
+            backlog = float(s.backlog_s) if s is not None else None
+        except Exception:
+            backlog = None
+        try:
+            lats = list(getattr(self.mt, 'lats', []) or [])
+            mt_p50 = (sorted(lats)[len(lats) // 2] if lats else None)
+        except Exception:
+            mt_p50 = None
+        tts_rtf = None
+        uf_ms = None
+        uf_idle = None
+        n_sent = None
+        n_zero = None
+        try:
+            ts = self.tts.stats() if getattr(self, 'tts', None) is not None else {}
+            tel = ts.get('last_telemetry') or {}
+            tts_rtf = tel.get('synth_rtf')
+            uf_ms = ts.get('uf_in_sentence_ms_total')
+            uf_idle = ts.get('uf_idle_ms_total')
+            n_sent = ts.get('n_sent_tel')
+            n_zero = ts.get('n_sent_uf_zero')
+        except Exception:
+            pass
+        self._ui_log(
+            '[遥测 30s] asr_rtf=%s asr_backlog_s=%s mt_lat_p50=%s '
+            'tts_synth_rtf=%s uf_in_sentence_ms=%s uf_idle_ms=%s '
+            'n_sent=%s n_sent_uf_zero=%s'
+            % (_fmt_num(asr_rtf, 3), _fmt_num(backlog, 1), _fmt_num(mt_p50, 0),
+               _fmt_num(tts_rtf, 3), _fmt_num(uf_ms, 0), _fmt_num(uf_idle, 0),
+               _fmt_num(n_sent, 0), _fmt_num(n_zero, 0)))
+
+    def _npu_conflict_note(self):
+        """🔴🔴🔴 APP-061③(d)：**NPU 共用**检测（MT / ASR 与 TTS 同在 NPU）。
+
+        🔴 **实测依据**（reviewer APP-061③ 的 A/B 表）：
+          - 21:21–21:22（ASR GPU.0 + **MT NPU** + TTS NPU）：合成墙钟/音频 = **1.31**
+          - 21:25–21:31（ASR+MT GPU.0 + TTS NPU）：**1.05 / 1.00**
+          ⇒ MT 与 TTS 同在 NPU ⇒ 合成慢 **25–30 %**（**确定**）。
+
+        ⚠️ **只提示、不禁止**（**D4 待用户/reviewer 决定**）
+          ⇒ 本轮按「用户决定之前的默认实现」：**黄色警告**。
+        """
+        try:
+            dev = dict(getattr(self, '_dev_choices', {}) or {})
+        except Exception:
+            dev = {}
+        tts_dev = str(dev.get('tts') or '').upper()
+        if 'NPU' not in tts_dev:
+            return ''
+        others = []
+        for k in ('mt', 'asr'):
+            d = str(dev.get(k) or '').upper()
+            if 'NPU' in d:
+                others.append(k.upper())
+        if not others:
+            return ''
+        return ('NPU 共用：%s 与 TTS 同在 NPU ⇒ 合成变慢 25–30 %% ⇒ 语音可能卡顿'
+                % '、'.join(others))
 
     def _track_clone_state(self):
         """🔴🔴🔴 APP-027⑤：刷新「**当前实际使用的音色**」标签。
@@ -5339,10 +5718,13 @@ def run_cli(args):
             print(f'[TTS] 启动失败（不影响字幕与翻译）：{e}', flush=True)
     if _want_clone:
         _clone_col = clone_collector.CloneCollector(lambda: tts)
-        _clone_col.enabled = True
+        # 🔴🔴🔴 APP-061④：**定时采集器恒关**（同 GUI 侧口径）。
+        #   克隆只走 `_cli_pump_spk_voices()`（按句绑定 + 换人才取样）。
+        _clone_col.enabled = False
         _clone_col.reset()
-        print('[TTS] 克隆（跟随说话人）已启用：每 30 s 或累计 ≥6 s 新语音'
-              '更新一次音色（更新前用预设 A）', flush=True)
+        print('[TTS] 克隆（跟随说话人）已启用：'
+              '换人时取样（首段 ≥1.5 s，3 s 定稿），老说话人复用'
+              '（APP-061④：定时重采集已停用）', flush=True)
     finals = []
 
     # 🔴🔴🔴 APP-042：**CLI 侧补齐「目标开播墙钟」**（真机实测暴露的缺陷）
@@ -5513,8 +5895,15 @@ def run_cli(args):
             try:
                 _spk_by_seg[seg] = (spk, spk_conf)
                 # 🔴🔴🔴 APP-054：**必须带 clean_ranges**（同 GUI 侧口径）
-                _spk_voices.note_final(seg, spk, clean_ranges)
-                print(f'  [spk] 标签补到：第 {seg} 段 = {spk}', flush=True)
+                # 🔴🔴🔴 APP-061⑤b：**必须接住 `is_new`**（同 GUI 侧口径）
+                #   ⇒ 否则新说话人永远不会被取样 ⇒ 每句都用预设 A。
+                _is_new = _spk_voices.note_final(seg, spk, clean_ranges)
+                if _is_new:
+                    _spk_pending_embed.append((seg, spk))
+                    print(f'  [spk] 标签补到：第 {seg} 段 = {spk}'
+                          '（新说话人，已排队取样）', flush=True)
+                else:
+                    print(f'  [spk] 标签补到：第 {seg} 段 = {spk}', flush=True)
             except Exception as e:
                 print(f'  [spk] 标签补发处理异常（忽略）：{e}', flush=True)
 
@@ -6211,13 +6600,11 @@ def main():
                     help='音色：预设 A（客户包只随包分发音色 A；'
                          '音色 B / 克隆说话人素材按 BRIEF 不进包）；'
                          'follow_speaker = 跟随说话人（克隆·实验）—— '
-                         '🔴🔴 APP-027 V3（§84）：已真正启用'
-                         '（CLI 与 GUI 共用 `clone_collector`）⇒ '
-                         'CLI 也能开（V3 实测用）；'
-                         '🔴🔴 APP-039：标注为实验性——当前实现是'
-                         '「滑动窗口 + 每 30 s 重算」，音色切换会滞后 >10 s'
-                         '且换人时表现为渐变；正确设计（按句绑定 spk、'
-                         '检测到换人才取样）需等 ASR 说话人旁路接口')
+                         '🔴🔴 APP-061④：克隆改为「换人时取样」'
+                         '（首段 ≥1.5 s，3 s 定稿），老说话人复用；'
+                         '**定时重采集已停用**（旧的「每 30 s 重算」不再执行）；'
+                         '🔴🔴 APP-061⑤：需配合说话人识别（旁路）'
+                         '⇒ 旁路关闭时明确提示使用预设 A')
     ap.add_argument('--tts-out', default=None,
                     help='CLI 回放测试：把语音按真实时间轴混成一个 wav 落盘；'
                          '同时写 <out>.tts.jsonl（逐句时间线）')

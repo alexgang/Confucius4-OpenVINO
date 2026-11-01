@@ -1,0 +1,307 @@
+C:\Users\Trekker-PTL\confucius4-openvino\machine_lock_app.py:258: SyntaxWarning: invalid escape sequence '\S'
+  ① `re.match(r'^(\S+)\s+PID\s+(\d+)\b')` ⇒ `\s+` 要求 `PID` 后有**空白**
+[version] 本机现存最大版本 = 2.2 ⇒ 本轮打包版本 = **2.2**
+         源目录：C:\Users\Trekker-PTL\Confucius4_LiveCaption_v2.2
+         zip   ：C:\Users\Trekker-PTL\Confucius4_LiveCaption_v2.2.zip
+[notes] 自动发现改动说明：C:\Users\Trekker-PTL\confucius4-openvino\live_caption\release_notes\v2.2_zh.md
+[notes] 自动发现改动说明：C:\Users\Trekker-PTL\confucius4-openvino\live_caption\release_notes\v2.2_en.md
+
+======================================================================
+版本标识自动同步（§113）
+======================================================================
+包目录版本号（目标）：2.2
+
+[ALREADY] README_zh.md
+  ALREADY  README_zh 标题版本号 2.2 -> 2.2 marker 已存在
+  字节 51114 -> 51114 ；行尾 LF（保持） ；SHA256 5495d985404ff1ed -> 5495d985404ff1ed
+
+[ALREADY] README_en.md
+  ALREADY  README_en 标题版本号 2.2 -> 2.2 marker 已存在
+  字节 57015 -> 57015 ；行尾 LF（保持） ；SHA256 8b016d254b33069a -> 8b016d254b33069a
+
+[ALREADY] NOTICE
+  ALREADY  NOTICE 首行版本号 2.2 -> 2.2 marker 已存在
+  字节 9643 -> 9643 ；行尾 LF（保持） ；SHA256 b4505621ad2d7026 -> b4505621ad2d7026
+
+结论：OK
+
+⚠️ 提醒：本脚本只同步**版本标识**（标题 / NOTICE）。
+   「改动说明」章节**正文由人撰写** ⇒ 脚本只负责**插入**，不改正文。
+   若本版本有新功能，请用 --changelog-zh / --changelog-en 插入对应章节。
+   验收：python results/app/app170_version_identity_gate.py --pkg "C:\Users\Trekker-PTL\Confucius4_LiveCaption_v2.2"
+
+======================================================================
+MANIFEST.version 预同步（升版）
+======================================================================
+  MANIFEST.version 已是 '2.2' ⇒ 无需改
+[lock] 等待共享机器锁（最多等 10800s）…
+[lock] 已取得机器锁（第 1 次尝试）
+app-pack PID 15680 started 2026-11-02 01:33:21
+module: app-pack
+pid: 15680
+started: 2026-11-02 01:33:21
+host: LAPTOP-0GDQGD3I
+
+
+======================================================================
+包路径写死闸门（§48）
+======================================================================
+========================================================================
+§48 闸门：客户包路径「写死版本」缺陷类别
+========================================================================
+包内 app/*.py 实测 = 28 个
+扫描根 = results/app, live_caption
+白名单 = 5 条（每条带理由）
+   - results/app/ftp_probe.py                     FTP 远端 zip 文件名（业务参数，非本地路径）
+   - results/app/ftp_probe2.py                    FTP 远端 zip 文件名（业务参数，非本地路径）
+   - live_caption/diag_c111_revert_verify.py      一次性历史诊断（复现 C-111 当时状态），有意写死
+   - live_caption/diag_c111_v3_verify.py          一次性历史诊断（复现 C-111 当时状态），有意写死
+   - results/app/app049_gate_selftest.py          闸门自检脚本（含「真缺陷形态」样例，用于自检）
+
+命中「代码行里有客户包名」的文件数 = 126
+
+✅ 0 处违规
+
+总判定：PASS
+<unknown>:74: SyntaxWarning: invalid escape sequence '\['
+<unknown>:132: SyntaxWarning: invalid escape sequence '\w'
+<unknown>:6: SyntaxWarning: invalid escape sequence '\l'
+<unknown>:14: SyntaxWarning: invalid escape sequence '\`'
+<unknown>:34: SyntaxWarning: invalid escape sequence '\e'
+<unknown>:35: SyntaxWarning: invalid escape sequence '\e'
+<unknown>:40: SyntaxWarning: invalid escape sequence '\e'
+<unknown>:29: SyntaxWarning: invalid escape sequence '\u'
+<unknown>:47: SyntaxWarning: invalid escape sequence '\u'
+<unknown>:83: SyntaxWarning: invalid escape sequence '\u'
+<unknown>:92: SyntaxWarning: invalid escape sequence '\u'
+<unknown>:16: SyntaxWarning: invalid escape sequence '\u'
+<unknown>:8: SyntaxWarning: invalid escape sequence '\_'
+<unknown>:8: SyntaxWarning: invalid escape sequence '\_'
+<unknown>:29: SyntaxWarning: invalid escape sequence '\|'
+<unknown>:8: SyntaxWarning: invalid escape sequence '\_'
+<unknown>:67: SyntaxWarning: invalid escape sequence '\p'
+
+======================================================================
+版本标识一致闸门（§113）
+======================================================================
+==========================================================================
+app170 —— 版本标识一致 + NOTICE 许可署名 闸门
+==========================================================================
+客户包目录：C:\Users\Trekker-PTL\Confucius4_LiveCaption_v2.2（version=2.2，目标=2.2）
+
+== REAL 组：C:\Users\Trekker-PTL\Confucius4_LiveCaption_v2.2 ==
+  [PASS] REAL/INV    I1a 目录名版本 == 目标版本 2.2                                dir=2.2 target=2.2
+  [PASS] REAL/INV    I1b MANIFEST.version == 目标版本 2.2                     manifest=2.2
+  [PASS] REAL/INV    I2 NOTICE 仍含 wespeaker 署名                            
+  [PASS] REAL/INV    I3 NOTICE 仍含 pyannote 署名                             
+  [PASS] REAL/INV    I4 NOTICE 仍含 MIT 许可                                  
+  [PASS] REAL/INV    I5 NOTICE 仍含 CC BY 4.0 许可                            
+  [PASS] REAL/INV    I6 NOTICE 未笼统声称「均为 Apache-2.0」                       
+  [PASS] REAL/DET    D1 README_zh 标题版本号 == 2.2                            got=2.2
+  [PASS] REAL/DET    D2 README_en 标题版本号 == 2.2                            got=2.2
+  [PASS] REAL/DET    D3 NOTICE 首行版本号 == 2.2                               got=2.2
+  [PASS] REAL/ADV    D4 README_zh 有 v2.2 改动说明段（恰好 1 次）                    count=1
+  [PASS] REAL/ADV    D5 README_en 有 v2.2 段（恰好 1 次）                        count=1
+  [PASS] REAL/ADV    D6 README_zh 披露「说话人识别」                               
+  [PASS] REAL/ADV    D6 README_zh 披露「按句绑定」                                
+  [PASS] REAL/ADV    D6 README_zh 披露「自适应加速」                               
+  [PASS] REAL/ADV    D6 README_zh 披露「状态信息按模块分区」                           
+  [PASS] REAL/ADV    D7 README_en 披露「speaker diarization」                 
+  [PASS] REAL/ADV    D7 README_en 披露「bound per sentence」                  
+  [PASS] REAL/ADV    D7 README_en 披露「Adaptive speed-up」                   
+  [PASS] REAL/ADV    D7 README_en 披露「Status information split per module」 
+
+== BUG 组：C:\Users\TREKKE~1\AppData\Local\Temp\app170_bug_a9o51fj8\Confucius4_LiveCaption_v2.2 ==
+  [PASS] BUG/INV     I1a 目录名版本 == 目标版本 2.2                                dir=2.2 target=2.2
+  [PASS] BUG/INV     I1b MANIFEST.version == 目标版本 2.2                     manifest=2.2
+  [PASS] BUG/INV     I2 NOTICE 仍含 wespeaker 署名                            
+  [PASS] BUG/INV     I3 NOTICE 仍含 pyannote 署名                             
+  [PASS] BUG/INV     I4 NOTICE 仍含 MIT 许可                                  
+  [PASS] BUG/INV     I5 NOTICE 仍含 CC BY 4.0 许可                            
+  [PASS] BUG/INV     I6 NOTICE 未笼统声称「均为 Apache-2.0」                       
+  [PASS] BUG/DET     D1 README_zh 标题版本号 == 2.2                            got=1.6
+  [PASS] BUG/DET     D2 README_en 标题版本号 == 2.2                            got=1.6
+  [PASS] BUG/DET     D3 NOTICE 首行版本号 == 2.2                               got=1.6
+  [PASS] BUG/ADV     D4 README_zh 有 v2.2 改动说明段（恰好 1 次）                    count=0
+  [PASS] BUG/ADV     D5 README_en 有 v2.2 段（恰好 1 次）                        count=0
+  [PASS] BUG/ADV     D6 README_zh 披露「说话人识别」                               
+  [PASS] BUG/ADV     D6 README_zh 披露「按句绑定」                                
+  [PASS] BUG/ADV     D6 README_zh 披露「自适应加速」                               
+  [PASS] BUG/ADV     D6 README_zh 披露「状态信息按模块分区」                           
+  [PASS] BUG/ADV     D7 README_en 披露「speaker diarization」                 
+  [PASS] BUG/ADV     D7 README_en 披露「bound per sentence」                  
+  [PASS] BUG/ADV     D7 README_en 披露「Adaptive speed-up」                   
+  [PASS] BUG/ADV     D7 README_en 披露「Status information split per module」 
+
+==========================================================================
+PASS=20 / FAIL=0 / verdict=PASS
+==========================================================================
+证据：C:\Users\Trekker-PTL\confucius4-openvino\results\app\app170_version_identity_gate_evidence.json
+
+======================================================================
+内部素材闸门（APP-006 第 6 步）
+======================================================================
+[待打包目录] C:\Users\Trekker-PTL\Confucius4_LiveCaption_v2.2
+  命中 0 个内部素材
+
+结论：PASS —— 未发现内部素材
+======================================================================
+打包 Confucius4_LiveCaption_v2.2
+======================================================================
+源目录: C:\Users\Trekker-PTL\Confucius4_LiveCaption_v2.2
+输出  : C:\Users\Trekker-PTL\Confucius4_LiveCaption_v2.2.zip
+
+MANIFEST 刷新: files 14316 -> 14316  bytes 13689398477 -> 13689398477 (12.75 GB)
+  packages: 新增 0 个
+  notes: 已含 v1.4/v1.5 修订说明
+  ... 2000 文件
+  ... 4000 文件
+  ... 6000 文件
+  ... 8000 文件
+  ... 10000 文件
+  ... 12000 文件
+  ... 14000 文件
+
+文件数     : 14317
+原始字节   : 13689421898
+压缩后字节 : 11233149299  (10.46 GB)
+压缩率     : 82.1%
+耗时       : 1227s
+
+----------------------------------------------------------------------
+testzip() 校验…
+  Everything is Ok
+
+关键文件抽查：
+  [OK] app/translator.py  (84,109 bytes)
+  [OK] app/live_caption_app.py  (361,384 bytes)<unknown>:8: SyntaxWarning: invalid escape sequence '\_'
+
+  [OK] app/MANIFEST.json  (23,421 bytes)
+  [OK] README_zh.md  (51,114 bytes)
+  [OK] README_en.md  (57,015 bytes)
+  [OK] THIRD_PARTY.md  (3,784 bytes)
+  [OK] Start_LiveCaption.bat  (225 bytes)
+  [OK] Diagnose.bat  (281 bytes)
+  [OK] models/mt/mt2-int8sym-cw-q/openvino_model.xml  (2,958,965 bytes)
+  [OK] models/mt/mt2-int8sym-cw-q/openvino_model.bin  (1,792,991,738 bytes)
+  [OK] models/mt/mt2-int8sym-cw-q/config.json  (1,402 bytes)
+  [OK] models/mt/mt2-int8sym-cw-q/chat_template.jinja  (654 bytes)
+  [OK] models/mt/mt2-int4sym-cw-q/openvino_model.xml  (2,959,933 bytes)
+  [OK] models/mt/mt2-int4sym-cw-q/openvino_model.bin  (1,021,360,620 bytes)
+  [OK] models/mt/mt2-int4sym-cw-q/config.json  (1,402 bytes)
+  [OK] models/mt/mt2-int4sym-cw-q/chat_template.jinja  (654 bytes)
+  [OK] models/qwen3tts/int8/talker.xml  (2,951,866 bytes)
+  [OK] models/qwen3tts/int8/talker.bin  (444,373,680 bytes)
+  [OK] models/qwen3tts/int8/talker_prefill.xml  (2,737,511 bytes)
+  [OK] models/qwen3tts/int8/talker_prefill.bin  (444,373,680 bytes)
+  [OK] models/qwen3tts/int8/talker_decode.xml  (2,836,039 bytes)
+  [OK] models/qwen3tts/int8/talker_decode.bin  (444,375,018 bytes)
+  [OK] models/qwen3tts/int8/cp_prefill.xml  (493,499 bytes)
+  [OK] models/qwen3tts/int8/cp_prefill.bin  (78,791,628 bytes)
+  [OK] models/qwen3tts/int8/cp_decode.xml  (527,980 bytes)
+  [OK] models/qwen3tts/int8/cp_decode.bin  (78,791,754 bytes)
+  [OK] models/qwen3tts/int8/code_predictor.xml  (501,339 bytes)
+  [OK] models/qwen3tts/int8/code_predictor.bin  (78,791,628 bytes)
+  [OK] models/qwen3tts/int8/tokenizer_encoder.xml  (1,423,894 bytes)
+  [OK] models/qwen3tts/int8/tokenizer_encoder.bin  (48,294,176 bytes)
+  [OK] models/qwen3tts/int8/tokenizer_decoder.xml  (1,233,462 bytes)
+  [OK] models/qwen3tts/int8/tokenizer_decoder.bin  (114,326,316 bytes)
+  [OK] models/qwen3tts/int8/speaker_encoder.xml  (297,919 bytes)
+  [OK] models/qwen3tts/int8/speaker_encoder.bin  (8,887,690 bytes)
+  [OK] models/qwen3tts/tokenizer/config.json  (4,494 bytes)
+  [OK] models/qwen3tts/tokenizer/tokenizer_config.json  (7,344 bytes)
+  [OK] models/qwen3tts/tokenizer/vocab.json  (2,776,833 bytes)
+  [OK] models/qwen3tts/tokenizer/merges.txt  (1,671,839 bytes)
+  [OK] models/qwen3tts/voices/preset_A.wav  (192,044 bytes)
+
+旧产物应已移除（精确路径）：
+  [已移除] app/translator.py.bak_instruct_20261022
+  [已移除] models/mt/int4sym-cw-q/openvino_model.bin
+  [已移除] models/mt/int8sym-cw-q/openvino_model.bin
+  [已移除] app/live_caption_app.py.bak_c105
+  [已移除] app/live_caption_app.py.bak_c106
+  [已移除] app/live_caption_app.py.bak_c108
+  [已移除] app/live_caption_app.py.bak_c109
+  [已移除] results/mt2_memory.json
+
+缓存目录应已移除（目录前缀）：
+  [已移除] app/ov_cache/ 
+  [已移除] app/npu_cache/ 
+  [已移除] app/mt_cache/ 
+  [已移除] app/tts_npu_cache/ 
+  [已移除] ov_cache/ 
+  [已移除] npu_cache/ 
+  [已移除] mt_cache/ 
+  [已移除] tts_npu_cache/ 
+  [已移除] _backup_c111/ 
+  [已移除] _backup_c133/ 
+  [已移除] _backup_c134/ 
+  [已移除] _backup_c135/ 
+  [已移除] app/reports/ 
+  [已移除] reports/ 
+  [已移除] models/mt/int8sym-cw-q/ 
+  [已移除] models/mt/int4sym-cw-q/ 
+  [已移除] models/qwen3tts/voices/preset_B 
+  [已移除] models/qwen3tts/voices/preset_C 
+  [已移除] models/qwen3tts/voices/clone_ 
+  [已移除] app/voices/ 
+
+内部会议内容应已移除（results/ 下 *_spoken.* 与点名文件）：
+  [已移除] *_spoken.* （0 条命中）
+  [已移除] 点名文件 （0 条命中）
+
+第三方自带素材应已移除（babelvox 内置音色 / scipy 测试 wav）：
+  [已移除] 第三方素材 （0 条命中）
+
+zip 内 MANIFEST.version == 本次目标版本：
+  [OK] zip MANIFEST.version='2.2' vs 目标='2.2'
+
+MANIFEST version = 2.2  files=14316  bytes=13689398477
+  [OK] zip 条目 14316 （不含 MANIFEST 自身；含则 14317）== MANIFEST files 14316
+  [OK] zip 原始体积 13689421898 == MANIFEST bytes 13689398477 + MANIFEST 自身 23421
+
+translator.py 符号抽查：
+  [有] mt2-int8sym-cw-q
+  [有] _TRANSLATE_INSTR
+  [有] Default Translation
+  [有] stop_strings = set()
+  [有] split_sentences
+
+包内翻译模型目录: ['mt2-int4sym-cw-q', 'mt2-int8sym-cw-q']
+  [符合] 默认 INT8-CW 目录在包内
+  [符合] 无旧量化目录（int4sym-cw-q / int8sym-cw-q）
+
+TTS 音色素材（只允许音色 A）：
+  [已移除] 音色 B/C/克隆素材 （0 条命中）
+
+开发专用脚本（app/ 下的 `_` 前缀）：
+  [已移除] 开发专用脚本 （0 条命中）
+
+包内本地模块导入完整性（app/ 下互引）：
+  zip 内 app/*.py = 31 个；检查出 0 条确定缺失 / 67 条疑似
+  [OK] 确定缺失的本地模块 （0 条）
+  [提示] 疑似第三方依赖（不判负）：67 条
+      · app/asr_spk/asr052_speaker_tracker_api.py  →  numpy
+      · app/asr_spk/asr052_spk_runtime.py  →  numpy
+      · app/asr_spk/asr052_spk_runtime.py  →  openvino
+      · app/audio_check.py  →  wave
+      · app/audio_check.py  →  numpy
+      · app/audio_check.py  →  sounddevice
+      · app/audio_source.py  →  numpy
+      · app/audio_source.py  →  sounddevice
+      · app/audio_source.py  →  soundcard
+      · app/audio_source.py  →  soundfile
+
+======================================================================
+内容一致性校验（zip ⇄ 包目录，逐文件 SHA256）
+======================================================================
+  比对 14317 个文件
+  [{"OK" if content_ok else "不符"}] 全部逐字节一致
+
+[info] 校验通过 ⇒ 已原子改名到正式路径: C:\Users\Trekker-PTL\Confucius4_LiveCaption_v2.2.zip
+结论：PASS  md5=5f525680e8c937e74e941acb12bc0a61
+[delivery] 交付指纹已落盘：C:\Users\Trekker-PTL\confucius4-openvino\results\app\DELIVERY_2.2.json
+[delivery]   SHA256 = ea5c5c850f8836a7edab982611cdd59d0ba0e83f8d5ff880cc797b7c67c23b75
+[delivery]   字节数 = 11233149299  mtime = 2026-11-02T01:54:03
+[shortcut] ⏭ 已按 --no-shortcut **跳过**桌面快捷方式更新（APP-061：用户抽听后再改）
+[lock] 已释放

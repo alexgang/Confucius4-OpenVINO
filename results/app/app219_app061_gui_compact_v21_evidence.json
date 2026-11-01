@@ -1,0 +1,123 @@
+{
+  "task": "APP-061 ⑥ GUI 紧凑化验收",
+  "pkg_under_test": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\app",
+  "label": "v21",
+  "sizes": [
+    "1280x800",
+    "1024x800"
+  ],
+  "shots": [
+    {
+      "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app061_v21_1280x800.png",
+      "bytes": 68920,
+      "mtime": "2026-11-02 00:57:12",
+      "sha256": "2a53405d34aeb0f6b02177fc3b86b3bb380118203eeb17ab508ab68a7e8ed67f",
+      "size": "1280x800",
+      "label": "v21"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app061_v21_1024x800.png",
+      "bytes": 66226,
+      "mtime": "2026-11-02 00:57:14",
+      "sha256": "c79b0f6f58de2243f7724c28633a9d89ccb79f28c527ee44c2d4c099d229a925",
+      "size": "1024x800",
+      "label": "v21"
+    }
+  ],
+  "measures": {
+    "1280x800": {
+      "window_h": 800,
+      "caption_h": 252,
+      "caption_ratio_pct": 31.5
+    },
+    "1024x800": {
+      "window_h": 800,
+      "caption_h": 235,
+      "caption_ratio_pct": 29.38
+    }
+  },
+  "checks": [
+    {
+      "name": "G1 能构造 App",
+      "group": "boot",
+      "detail": "",
+      "result": "PASS"
+    },
+    {
+      "name": "G3 状态栏每个分区 1 行（1280x800）",
+      "group": "layout",
+      "detail": "各分区状态条高度=[21, 21, 21] px",
+      "result": "PASS"
+    },
+    {
+      "name": "G6 截图成功（1280x800）",
+      "group": "shot",
+      "detail": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app061_v21_1280x800.png",
+      "result": "PASS"
+    },
+    {
+      "name": "G3 状态栏每个分区 1 行（1024x800）",
+      "group": "layout",
+      "detail": "各分区状态条高度=[21, 21, 21] px",
+      "result": "PASS"
+    },
+    {
+      "name": "G5 1024 宽没有控件被截断/越界",
+      "group": "layout",
+      "detail": "无越界控件（量到 40 个控件）",
+      "result": "PASS"
+    },
+    {
+      "name": "G5c 反证：真的越界控件仍被判 FAIL（判据非恒真）",
+      "group": "counterproof",
+      "detail": "探针被捕获：[\"!label3(Label) 请求宽度 req=21006 > 可用 avail=1024（内容被裁剪） path=!label3 text='截断探针'\"]（量到 40 个控件）",
+      "result": "PASS"
+    },
+    {
+      "name": "G6 截图成功（1024x800）",
+      "group": "shot",
+      "detail": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app061_v21_1024x800.png",
+      "result": "PASS"
+    },
+    {
+      "name": "G2 字幕区高度 ≥ 窗口高度 70 %（1280x800）",
+      "group": "layout",
+      "detail": "字幕区 252 px / 窗口 800 px = 31.50 %",
+      "result": "FAIL"
+    },
+    {
+      "name": "G2 字幕区高度 ≥ 窗口高度 70 %（1024x800）",
+      "group": "layout",
+      "detail": "字幕区 235 px / 窗口 800 px = 29.38 %",
+      "result": "FAIL"
+    },
+    {
+      "name": "G4 「高级」面板默认收起（1280x800）",
+      "group": "layout",
+      "detail": "本版本没有「高级」面板 ⇒ 不适用",
+      "result": "NONE"
+    },
+    {
+      "name": "G7 高级面板展开后长文本行不横向溢出（1280x800）",
+      "group": "layout",
+      "detail": "无法判定：AttributeError(\"'App' object has no attribute '_toggle_advanced'\")",
+      "result": "NONE"
+    },
+    {
+      "name": "G4 「高级」面板默认收起（1024x800）",
+      "group": "layout",
+      "detail": "本版本没有「高级」面板 ⇒ 不适用",
+      "result": "NONE"
+    },
+    {
+      "name": "G7 高级面板展开后长文本行不横向溢出（1024x800）",
+      "group": "layout",
+      "detail": "无法判定：AttributeError(\"'App' object has no attribute '_toggle_advanced'\")",
+      "result": "NONE"
+    }
+  ],
+  "n_pass": 7,
+  "n_fail": 2,
+  "n_none": 4,
+  "verdict": "FAIL"
+}
