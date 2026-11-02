@@ -1,0 +1,33 @@
+# APP-065 A：控件 → 所在组（reviewer 要求的清单）
+
+## ⑤ 高级（默认收起）
+   （该组默认收起 ⇒ 展开后可见）
+
+## ① 音频输入
+   - TLabel       音频来源
+   - TCombobox    PY_VAR134
+   - TLabel       采集麦克风（16 kHz）
+
+## ② 语音识别
+   - TLabel       识别语种
+   - TCombobox    PY_VAR135
+
+## ③ 翻译
+   - TLabel       目标语言
+   - TCombobox    PY_VAR144
+
+## ④ 语音输出
+   - TLabel       开关
+   - TCheckbutton 开启语音输出
+   - TLabel       音色
+   - TCombobox    PY_VAR150
+   - TLabel       预设 A · 说话人：—（未标注）
+   - TLabel       输出设备
+   - TCombobox    PY_VAR152
+
+# 说明
+# ① ①音频输入 / ②语音识别 / ③翻译 / ④语音输出 = 常用组（永远可见）
+# ② ⑤高级 = 不常用组（默认收起；设备选择 / 草稿 / 重试 / 离线朗读 /
+#    测试声音 / 显示说话人 / 区分说话人（用于克隆））
+# ③ 每组内：**唯一标签列**（右对齐、等宽）＋ 控件列（左对齐、同宽）
+#    ⇒ 所有组的标签列右边缘一致（见 evidence 的 groups[].label_right_edges）
