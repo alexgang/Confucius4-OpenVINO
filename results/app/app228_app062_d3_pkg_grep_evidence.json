@@ -1,0 +1,74 @@
+{
+ "script": "app228_app062_d3_pkg_grep.py",
+ "correction": "APP-062 ③（D3）",
+ "ts": "2026-11-02 10:53:44",
+ "repo": "C:\\Users\\Trekker-PTL\\confucius4-openvino",
+ "pkg_root": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2",
+ "pkg_exclude_sha256": "555039da4ce4df85d3dedbfcf2f41f0b6cb15ae2aa00b1bc2988b4c079b1c357",
+ "n_package_files": 14314,
+ "package_file_list_sample": [
+  "ACCEPTED.json",
+  "Diagnose.bat",
+  "NOTICE",
+  "README_en.md",
+  "README_zh.md",
+  "README_插件.md",
+  "Start_LiveCaption.bat",
+  "THIRD_PARTY.md",
+  "app/MANIFEST.json",
+  "app/asr_spk/asr052_speaker_tracker_api.py",
+  "app/asr_spk/asr052_spk_runtime.py",
+  "app/asr_spk/asr_thread_defaults.py",
+  "app/audio_check.py",
+  "app/audio_source.py",
+  "app/backends.py"
+ ],
+ "grep_hits": [],
+ "unguarded_cuda_imports": [],
+ "checks": [
+  {
+   "name": "d3_cuda_module_not_in_package",
+   "ok": true,
+   "detail": "「真会进包的文件清单」里没有 `app/tts_cuda.py`（实测在=False）"
+  },
+  {
+   "name": "d3_cuda_module_not_in_package",
+   "ok": true,
+   "detail": "「真会进包的文件清单」里没有 `app/tts_cuda_sidecar.py`（实测在=False）"
+  },
+  {
+   "name": "d3_no_fq3tts_env_in_package",
+   "ok": true,
+   "detail": "真实包 Confucius4_LiveCaption_v2.2 的 14314 个进包文件里 grep「`_fq3tts_env`」⇒ 命中 0 处（须 0 ⇒ **包里不残留指向 `_fq3tts_env` 的路径**）"
+  },
+  {
+   "name": "d3_cuda_imports_are_guarded",
+   "ok": true,
+   "detail": "包内所有 `import tts_cuda` 都**有 try/except 保护**⇒ 包内无该模块时**优雅降级**（未保护 0 处）"
+  },
+  {
+   "name": "d3_counterproof",
+   "ok": true,
+   "detail": "把两个 CUDA 模块从排除表去掉 ⇒ 「进包清单含 tts_cuda.py」=True、grep `_fq3tts_env` 命中 6 处（须都 >0 ⇒ 判据非恒真）"
+  },
+  {
+   "name": "d3_dev_tree_keeps_cuda",
+   "ok": true,
+   "detail": "开发树保留 ['tts_cuda.py', 'tts_cuda_sidecar.py']（reviewer：「只在开发目录保留，用于对照基准」）"
+  },
+  {
+   "name": "d3_dev_tree_has_fq3tts_env_path",
+   "ok": true,
+   "detail": "开发树 CUDA 文件里 grep 到 `_fq3tts_env` 3 处（须 >0 ⇒ 证明「开发树有、客户包没有」这个对比是真实的）"
+  },
+  {
+   "name": "d3_dev_prod_modules_path_clean",
+   "ok": true,
+   "detail": "开发树三个生产模块（会进包的那几个）里 grep `_fq3tts_env` ⇒ 命中 0 处（须 0 ⇒ **下一版包里也不会有**）"
+  }
+ ],
+ "n_pass": 8,
+ "n_fail": 0,
+ "n_none": 0,
+ "verdict": "PASS"
+}

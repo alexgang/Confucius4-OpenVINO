@@ -67,9 +67,79 @@ _SR = 16000
 # 🔴🔴🔴 APP-053：**旁路分段的滑窗长度**（秒）。
 #   ASR 侧 `asr052_spk_runtime.WIN_S = 10.0`（`WIN_N = 160000` 样本）。
 #   🔴 **喂满一整窗时帧数恰好 589 ⇒ 零取整漂移**（见 `feed()` 的注释）。
-#   ⚠️ 本常量**必须与 ASR 侧一致** ⇒ 改这里之前先看 ASR 侧 `WIN_S`。
 #   （APP-053 的实测证据：`results/app/app195_app053_mechanism_evidence.json`）
-_WIN_S = 10.0
+#
+# 🔴🔴🔴 APP-062 ①（D1）：**不再写死**，改为**与 ASR 侧常量同源** ＋ **可配置**。
+#   reviewer 原文：「App 侧把窗口长度做成配置项（和 ASR 侧常量同源，
+#     不要两处各写一个），默认先保持 10 s。」
+#
+#   🔴 **为什么要同源**：`WIN_S` 决定**喂给 ASR 的窗长**
+#     ⇒ App 侧写死一份、ASR 侧写死一份 ⇒ 改一边不改另一边 ⇒ **静默错位**
+#     ⇒ ASR 拿到的窗长与它自己以为的不一致 ⇒ 换人点判定漂移。
+#   🔴 **同源怎么做**：`asr052_spk_runtime` **随包分发**（实测包内
+#     `app/asr_spk/asr052_spk_runtime.py` 里就有 `WIN_S = 10.0`）
+#     ⇒ 开发机与客户机**都能读到** ⇒ 直接读它，不另写一份。
+#   🔴 **配置项**：`LIVECAP_SPK_WINDOW_S` 环境变量可覆盖
+#     ⇒ ASR-040 的「10 s vs 5 s」对比实验**不必改代码**就能跑两档。
+#   🔴 **读不到时**退回 10.0（= ASR 侧默认值）⇒ **行为与改前完全一致**。
+#   🔴 **非法值**（非数字 / ≤ 0）⇒ 退回默认（不静默改语义）。
+_WIN_S_DEFAULT = 10.0
+_WIN_S_ENV = 'LIVECAP_SPK_WINDOW_S'
+
+
+def _asr_win_s():
+    """🔴 从 **ASR 侧模块**读 `WIN_S` ⇒ **同源**（读不到 ⇒ None）。"""
+    try:
+        import importlib
+        import importlib.util
+        # ① 已加载过（`_load()` 会把目录加进 sys.path）
+        mod = sys.modules.get('asr052_spk_runtime')
+        if mod is None:
+            # ② 按**旁路资产解析器**给的实际目录找
+            #   （包内 `app/asr_spk/` 或研发机 ASR 目录 ⇒ 两边都能找到）
+            import speaker_assets
+            d = ''
+            try:
+                info = speaker_assets.resolve()
+                d = (info or {}).get('scripts_dir') or ''
+            except Exception:
+                d = ''
+            if not d:
+                d = _ASR_SCRIPTS
+            p = os.path.join(d, 'asr052_spk_runtime.py')
+            if os.path.isfile(p):
+                spec = importlib.util.spec_from_file_location(
+                    'asr052_spk_runtime', p)
+                if spec and spec.loader:
+                    m = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(m)
+                    mod = m
+        if mod is None:
+            return None
+        v = getattr(mod, 'WIN_S', None)
+        return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) \
+            else None
+    except Exception:
+        return None
+
+
+def _resolve_win_s():
+    """🔴 解析旁路窗长：**环境变量（配置项） > ASR 侧常量（同源） > 默认 10.0**。"""
+    raw = os.environ.get(_WIN_S_ENV, '')
+    if raw not in (None, ''):
+        try:
+            v = float(raw)
+            if v > 0:
+                return v, '配置项 %s=%s' % (_WIN_S_ENV, raw)
+        except Exception:
+            pass
+    v = _asr_win_s()
+    if v is not None and v > 0:
+        return v, '同源 asr052_spk_runtime.WIN_S=%s' % v
+    return _WIN_S_DEFAULT, '默认 %s' % _WIN_S_DEFAULT
+
+
+_WIN_S, _WIN_S_SRC = _resolve_win_s()
 
 # 🔴🔴🔴 §99（断链 A）：**ASR 侧判「段太短」的硬门槛**。
 #   ASR-029 的 `SpeakerTracker.on_final` 里：

@@ -4,12 +4,12 @@
   "python": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\.venv\\Scripts\\python.exe",
   "files": {
     "live_caption_app.py": {
-      "sha256": "cab9896dbaa9810610f05df9c9195c7af8a8e92a9ac92ab3b6bc7fdf1695b13b",
-      "bytes": 361384
+      "sha256": "dd6743ccff82eee79debb98625ecc10a78ec7a28c6ab27638ce9f8bcfd6a8864",
+      "bytes": 378238
     },
     "tts_worker.py": {
-      "sha256": "da6184f62670ea5c1b8c06793fef2e9e72ce0a45ceae7d5b0a981576be681b1f",
-      "bytes": 233511
+      "sha256": "6f51a71d570ec737249d08adcf73532e7d54038855751bed90dc1384a0777f18",
+      "bytes": 237693
     }
   },
   "static": {
@@ -51,7 +51,7 @@
     },
     "1b_cuda_fallback_keeps_name": {
       "result": "PASS",
-      "detail": "CUDA 分支内 speaker_name 赋值=[\"self._preset_name or 'A'\", 'self._preset_name', \"'A'\"]"
+      "detail": "CUDA 分支内 speaker_name 赋值=[\"self._preset_name or 'A'\"]（委派共用出口=True）"
     },
     "1c_synth_gate_uses_ref_audio": {
       "result": "PASS",
@@ -200,7 +200,7 @@
     {
       "name": "1b_cuda_fallback_keeps_name",
       "group": "static",
-      "detail": "CUDA 分支内 speaker_name 赋值=[\"self._preset_name or 'A'\", 'self._preset_name', \"'A'\"]",
+      "detail": "CUDA 分支内 speaker_name 赋值=[\"self._preset_name or 'A'\"]（委派共用出口=True）",
       "result": "PASS"
     },
     {

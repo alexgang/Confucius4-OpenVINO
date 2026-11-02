@@ -1,6 +1,6 @@
 {
   "task": "APP-061 ⑥ GUI 紧凑化验收",
-  "pkg_under_test": "live_caption",
+  "pkg_under_test": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption",
   "label": "dev",
   "sizes": [
     "1280x800",
@@ -9,17 +9,17 @@
   "shots": [
     {
       "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app061_dev_1280x800.png",
-      "bytes": 30745,
-      "mtime": "2026-11-02 01:12:33",
-      "sha256": "3e97aef9b42af662e2a4dafefde5a03b28a753b4554b56d85b81442f953a736f",
+      "bytes": 30723,
+      "mtime": "2026-11-02 10:56:14",
+      "sha256": "2a45bc43603f3c8de6b0241fe394fd53a5e491b3a6de0d95bc78f6870353a659",
       "size": "1280x800",
       "label": "dev"
     },
     {
       "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app061_dev_1024x800.png",
-      "bytes": 27075,
-      "mtime": "2026-11-02 01:12:36",
-      "sha256": "e2d07bea52b70cc203229c0c2be1752d724145737b91b91c43d819bdb9ac800c",
+      "bytes": 27057,
+      "mtime": "2026-11-02 10:56:16",
+      "sha256": "65ce574ffae87fdef15e1282e80972812b726e4b581741b5368aa10616a87247",
       "size": "1024x800",
       "label": "dev"
     }

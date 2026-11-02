@@ -1290,7 +1290,16 @@ class TTSWorker:
             #   ⇒ 由 `tts_cuda` 以**子进程边车**调用，模型只加载一次。
             #   ⚠️ 客户机没这个 venv 时 `available()` 为 False ⇒ GUI 不列该项。
             if str(self.device).upper().startswith('CUDA'):
-                import tts_cuda
+                # 🔴🔴🔴 APP-062 ③（D3）：**客户包里没有 `tts_cuda` 模块**
+                #   ⇒ 这段**根本不会走到**（GUI 不列 CUDA ＋ CLI 拒绝）
+                #   ⇒ 但仍加**异常保护** ⇒ 万一走到也只是**优雅报错**，
+                #     不是裸 ImportError（客户机上看不到栈）。
+                try:
+                    import tts_cuda
+                except Exception as e:
+                    raise RuntimeError(
+                        'CUDA 后端不可用（本包不提供 CUDA 后端模块：%s）'
+                        % (type(e).__name__,))
                 if not tts_cuda.available():
                     raise RuntimeError('CUDA 后端不可用：找不到 %s'
                                        % tts_cuda.python_exe())
@@ -3866,8 +3875,17 @@ class TTSWorker:
             # 🔴 没有这个 spk 的音色 ⇒ 预设 A（**不冒充**）
             self._last_voice_spk = None
             self._last_voice_kind = 'preset'
+            # 🔴🔴🔴 §130：CUDA 路线**必须换回预设 A 的参考音频**
+            #   ⇒ 否则边车里仍是上一个说话人的克隆音频 ⇒ **串音**
+            #   ⇒ 且遥测写 `voice_kind='preset'` 与实际不符 ⇒ 矛盾字段。
+            #   （BabelVox 路线**不受影响** ⇒ 下面照旧换回预设向量。）
+            self._fallback_to_preset_ref_cuda('spk 未登记音色')
             self.speaker_embed = self._preset_embed
             self.speaker_name = self._preset_name
+            if getattr(self.engine, 'USES_REF_AUDIO', False):
+                # 🔴 CUDA 路线：`speaker_embed` 恒为 None、`speaker_name` 保持 'A'
+                self.speaker_embed = None
+                self.speaker_name = self._preset_name or 'A'
             return 'preset'
         vec = row.get('vec')
         ref = row.get('ref_path')
@@ -3876,6 +3894,8 @@ class TTSWorker:
             if not ref:
                 self._last_voice_spk = None
                 self._last_voice_kind = 'preset'
+                # 🔴🔴🔴 §130：同上 ⇒ 回落预设时**换回预设参考音频**
+                self._fallback_to_preset_ref_cuda('该 spk 没有参考音频')
                 return 'preset'
             try:
                 eng.set_ref_audio(ref)
@@ -3883,6 +3903,9 @@ class TTSWorker:
                 log(f'[tts_worker] 🔴 切换到 {spk} 的参考音频失败：{e}')
                 self._last_voice_spk = None
                 self._last_voice_kind = 'preset'
+                # 🔴🔴🔴 §130：切换失败 ⇒ 边车里可能还是**上一个**说话人的音频
+                #   ⇒ 必须换回预设 A 的参考音频 ⇒ 否则**串音**
+                self._fallback_to_preset_ref_cuda('切换参考音频失败')
                 return 'preset'
         else:
             if vec is None:
@@ -3908,6 +3931,43 @@ class TTSWorker:
         log('[tts_worker] spk=None 且处于「跟随说话人（克隆）」模式 '
             '⇒ 保留当前全局克隆音色（clone_active=%s）'
             % (self._clone_active,))
+
+    def _fallback_to_preset_ref_cuda(self, why: str = '') -> None:
+        """🔴🔴🔴 §130：**CUDA 路线的「回落预设 A」统一出口**。
+
+        🔴 **为什么必须有这个共用出口**（§130 实测出的真缺陷）：
+          CUDA 路线（`USES_REF_AUDIO`）**没有 x-vector** ⇒ `speaker_embed` 恒为 None
+          ⇒ 真正决定「播谁的音色」的是**边车里的参考音频**。
+          ⇒ **只改 `speaker_embed`/`speaker_name` 是不够的**：边车里**仍然是上一个
+          说话人的克隆参考音频** ⇒ 实播**串音**（听到的是上一个人的声音），
+          且逐句遥测写 `voice_kind='preset'` **与实际不符** ⇒ **矛盾字段**。
+
+        🔴 **改前的两条「回落预设」出口行为不一致**：
+          - `_fallback_to_preset()` 的 CUDA 分支 ⇒ **有** `eng.set_ref_audio(ref)`
+          - `_apply_spk_voice()` 的 `row is None` 分支 ⇒ **没有**（本轮修的就是它）
+          ⇒ 现在**两条都收敛到这里** ⇒ 以后再漏就会很明显。
+
+        ⚠️ **不改变任何既有语义**：
+          - 只在 CUDA 路线（`USES_REF_AUDIO`）下生效
+          - **不清空 `speaker_name`**（清了就报「没有可用的音色」⇒ APP-061① 回归）
+          - BabelVox 路线**完全不受影响**（`_apply_spk_voice` 的 else 分支原样保留）
+        """
+        eng = self.engine
+        if eng is None or not getattr(eng, 'USES_REF_AUDIO', False):
+            return
+        # 🔴 CUDA 路线：音色名保持 'A'（**不能**清空 ⇒ 见 APP-061①）
+        self.speaker_embed = None
+        self.speaker_name = self._preset_name or 'A'
+        ref = self._preset_ref_path
+        if not ref:
+            log('[tts_worker] 🔴 回落预设 A：CUDA 边车没有预设参考音频')
+            return
+        try:
+            eng.set_ref_audio(ref)
+            log('[tts_worker] 🔴 ⇒ 已回落预设 A（已换回参考音频）'
+                + (f'（原因：{why}）' if why else ''))
+        except Exception as e:
+            log('[tts_worker] 🔴 回落预设 A 时换参考音频失败：%s' % e)
 
     def _has_ref_audio(self) -> bool:
         """🔴🔴🔴 APP-061①：CUDA 边车当前**有没有可用的参考音频**。
@@ -3988,16 +4048,9 @@ class TTSWorker:
             #   ⇒ CUDA 下 `_preset_embed` 是 None、`_preset_name` 曾恒为 None
             #   ⇒ `synth()` 判「没有可用的音色」⇒ **每一句都失败**。
             #   ⇒ 现在：换回预设 A 的参考音频即可，音色名保持 'A'。
-            self.speaker_embed = None
-            self.speaker_name = self._preset_name or 'A'
-            ref = self._preset_ref_path
-            if ref:
-                try:
-                    eng.set_ref_audio(ref)
-                except Exception as e:
-                    log('[tts_worker] 🔴 回落预设 A 时换参考音频失败：%s' % e)
-            else:
-                log('[tts_worker] 🔴 回落预设 A：CUDA 边车没有预设参考音频')
+            # 🔴🔴🔴 §130：**收敛到共用出口**（与 `_apply_spk_voice` 同一处）
+            #   ⇒ 两条「回落预设」出口行为**一致** ⇒ 以后再漏就会很明显。
+            self._fallback_to_preset_ref_cuda(why)
         else:
             try:
                 self.speaker_embed = self._preset_embed

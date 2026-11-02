@@ -27,6 +27,18 @@ r"""app224 —— 【APP-061 ② 附带问题 + 共享锁闸门】本轮**代码
    `baseline_had_warn`（基线**本身**必须有告警）⇒ 否则判「无法判定」。
 3. **没有判据自检** ⇒ 新增 ⑥「坏代码必须被判出来」（反证）。
 
+## 🔴🔴🔴 §130 修掉的**闸门自身缺陷**（第 4 种「坏法」）
+
+4. **「字符串常量逐字不变」用 `zip()` 按下标逐位比 ⇒ 假 FAIL**
+   `ast.walk` 的**遍历顺序不稳定** ⇒ 代码里**合法新增/删除一个常量**，
+   后面所有下标就**整体错位** ⇒ 把「错位的两个不同常量」误判成「值变了」。
+   实测：`tts_cuda_sidecar.py` 只差 **1** 个真变化 ⇒ 报出 **27 条** diff；
+   `app223_app061_device_acceptance.py` 只**新增 32** 个常量（**一个都没丢**）
+   ⇒ 报出 **483 条** diff ⇒ **闸门在正确代码上永久 FAIL（3 PASS / 2 FAIL）**。
+   ⇒ 改按**多重集**（`collections.Counter`）比：`Counter(base) - Counter(now)`
+   为空 ⇒ 「值一个都没变」；**允许新增**（合法增量）⇒ 记 `added`。
+   ⇒ 新增 ⑦「多重集口径自检」：**双向**证明非恒真/非恒假。
+
 ## 用法
 
     python results/app/app224_app061_escape_lock_gates.py
@@ -128,6 +140,39 @@ def str_constants(src_bytes):
             if isinstance(n, ast.Constant) and isinstance(n.value, str)]
 
 
+def split_constants(src_bytes):
+    """🔴🔴 拆成 **(docstring 常量, 非 docstring 常量)** 两组。
+
+    🔴 **为什么要分开**（§130 实测）：
+      **docstring 是会合法演进的散文**（§129 就给
+      `tts_cuda_sidecar.py` 的 `_start_command_reader` docstring **追加了
+      一整段崩溃根因与修法说明** ⇒ 该 docstring 的**值必然变**）
+      ⇒ 若把 docstring 与**行为常量**一起判「值一个都没变」
+      ⇒ **任何一次正常的文档补充都会让闸门永久 FAIL**。
+      而**非 docstring 的字符串常量**（格式串、键名、字面量）是**行为承载**的
+      ⇒ 它们的值**必须**保持不变 ⇒ **严格判**。
+
+    ⚠️ **docstring 的识别**：显式收集「`ast.Expr` 语句的值为字符串常量」，
+      **不**用 `repr` 匹配原文（MEMORY 四：排除 docstring 的 AST 实现）。
+    """
+    tree = ast.parse(src_bytes.decode('utf-8', 'replace'))
+    doc_ids = set()
+    docs = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Expr):
+            v = node.value
+            if isinstance(v, ast.Constant) and isinstance(v.value, str):
+                doc_ids.add(id(v))
+                docs.append(v.value)
+    others = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            if id(node) in doc_ids:
+                continue
+            others.append(node.value)
+    return docs, others
+
+
 def only_ctrl_to_visible(a, b):
     ctrl_map = {'\\b': '\x08', '\\t': '\x09', '\\n': '\x0a', '\\r': '\x0d',
                 '\\f': '\x0c', '\\v': '\x0b', '\\a': '\x07', '\\0': '\x00'}
@@ -137,8 +182,50 @@ def only_ctrl_to_visible(a, b):
     return cand == a
 
 
+def compare_string_constants(s_base, s_now):
+    """🔴🔴🔴 **按多重集比**（不是按下标比）⇒ 返回 (diff 列表, 结论)。
+
+    🔴 **为什么必须改口径（§130 实测出的真缺陷）**：
+      原实现用 `zip(s_head, s_now)` **按下标逐位比对** ⇒ **`ast.walk` 的遍历顺序
+      不稳定** ⇒ 代码里**合法新增/删除一个字符串常量**，后面所有下标就
+      **整体错位** ⇒ 把「错位的两个不同常量」误判成「值变了」。
+      实测：`tts_cuda_sidecar.py` 只差 1 个真变化 ⇒ 报出 **27 条** diff；
+      `app223_app061_device_acceptance.py` 只**新增** 32 个常量（**一个都没丢**）
+      ⇒ 报出 **483 条** diff ⇒ **闸门在正确代码上永久 FAIL**。
+
+    🔴 **正确口径**：
+      - 「值一个都没变」⇒ **`Counter(base) - Counter(now)` 为空**
+        （基线里每个常量值仍以**相同出现次数**存在于当前文件）⇒ 允许**新增**。
+      - 「控制字符→可见字面量」豁免**单独保留**（docstring 改 raw 时
+        `\\n` 变字面量是**故意**的 ⇒ 不算「值变了」）。
+    """
+    from collections import Counter
+    cb, cn = Counter(s_base), Counter(s_now)
+    lost = cb - cn          # 基线有、当前不够 ⇒ 真的「丢了」
+    added = cn - cb         # 当前新增 ⇒ 合法增量
+    diffs = []
+    # 🔴 **豁免**：基线的某个值若在当前只以「控制字符→可见字面量」形态出现
+    #   ⇒ 视为**同一值**（docstring 改 raw 的故意变更）⇒ 不算丢失。
+    exempt = Counter()
+    for val, cnt in lost.items():
+        rest = cnt
+        for cur_val, cur_cnt in cn.items():
+            if rest <= 0:
+                break
+            if cur_val == val or only_ctrl_to_visible(val, cur_val):
+                take = min(rest, cur_cnt - exempt.get(cur_val, 0))
+                if take > 0:
+                    exempt[cur_val] = exempt.get(cur_val, 0) + take
+                    rest -= take
+        if rest > 0:
+            diffs.append('值丢了 x%d：%r' % (rest, val[:60]))
+    for val, cnt in added.items():
+        diffs.append('新增 x%d（合法增量，不算「值变了」）：%r' % (cnt, val[:60]))
+    return diffs, not any(d.startswith('值丢了') for d in diffs)
+
+
 def check_escape_fixes():
-    """① 5 个文件的告警归零 ＋ 字符串常量逐字不变（只允许「控制字符→可见字面量」）。"""
+    """① 5 个文件的告警归零 ＋ 字符串常量逐字不变（多重集口径）。"""
     rows = []
     for rel in EDITED:
         cur_path = os.path.join(REPO, rel.replace('/', os.sep))
@@ -158,23 +245,28 @@ def check_escape_fixes():
         rec['baseline_had_warn'] = bool(head) and bool(rec['warn_baseline'])
         rec['warn_cleared'] = rec['baseline_had_warn'] and (not rec['warn_now'])
         if head:
-            s_head = str_constants(head)
-            s_now = str_constants(cur)
-            diffs = []
-            if len(s_head) != len(s_now):
-                diffs.append('常量个数 %d → %d' % (len(s_head), len(s_now)))
-            for i, (x, y) in enumerate(zip(s_head, s_now)):
-                if x == y:
-                    continue
-                if only_ctrl_to_visible(x, y):
-                    diffs.append('#%d 控制字符→可见字面量（docstring）' % i)
-                else:
-                    diffs.append('#%d 值变了：%r → %r' % (i, x[:60], y[:60]))
-            rec['string_const_diffs'] = diffs
-            rec['string_values_intact'] = not any('值变了' in d for d in diffs)
+            docs_b, others_b = split_constants(head)
+            docs_n, others_n = split_constants(cur)
+            rec['n_constants_baseline'] = len(docs_b) + len(others_b)
+            rec['n_constants_now'] = len(docs_n) + len(others_n)
+            rec['n_docstring_baseline'] = len(docs_b)
+            rec['n_docstring_now'] = len(docs_n)
+            rec['n_behavior_baseline'] = len(others_b)
+            rec['n_behavior_now'] = len(others_n)
+            # 🔴🔴🔴 **行为承载的常量（非 docstring）⇒ 严格判「值一个都没变」**
+            diffs_b, intact_b = compare_string_constants(others_b, others_n)
+            # 🔴 **docstring ⇒ 只报告、不阻断**（散文会合法演进：§129 就追加过
+            #   一整段崩溃根因说明）⇒ 记 `docstring_drift` 供人工核对。
+            diffs_d, _intact_d = compare_string_constants(docs_b, docs_n)
+            rec['behavior_const_diffs'] = diffs_b
+            rec['behavior_values_intact'] = intact_b
+            rec['docstring_drift'] = diffs_d
+            rec['string_const_diffs'] = diffs_b
+            rec['string_values_intact'] = intact_b
         else:
             rec['string_const_diffs'] = ['无基线（取不到改前版本）']
-            rec['string_values_intact'] = True
+            rec['behavior_values_intact'] = True
+            rec['docstring_drift'] = []
         rec['ok'] = bool(rec['warn_cleared'] and rec['string_values_intact'])
         rows.append(rec)
     return rows
@@ -204,6 +296,99 @@ def check_gate_self_detection():
             'good_warnings': warns_good,
             'detail': ('坏文件被判成「没归零」=%r；好文件被判成「已归零」=%r'
                        % (caught, cleared(True, bool(warns_good))))}
+
+
+def check_multiset_criterion_self_test():
+    """🔴🔴🔴 **多重集口径判据自检**（§130 新增）⇒ 必须**双向**成立。
+
+    判据 = `compare_string_constants(base, now)` 返回的 `intact`。
+
+    🔴 **必须同时证明两件事**（否则就是弱标记）：
+      ① **非恒假**：真的**丢了一个基线常量值** ⇒ 必须被判成 `intact=False`。
+      ② **非恒真**：只**新增**常量（一个都没丢）⇒ 必须被判成 `intact=True`
+         （这正是 §129 合法新增代码的场景 ⇒ 旧的下标口径在这里会**假 FAIL**）。
+      ③ **豁免有效**：docstring 改 raw 导致「控制字符→可见字面量」
+         ⇒ 必须仍判成 `intact=True`（**故意**的变更不算「值变了」）。
+    """
+    base = ['AAA', 'BBB', 'CCC']
+    cases = []
+
+    # ① 真丢一个值 ⇒ 必须 FAIL
+    d, intact = compare_string_constants(base, ['AAA', 'BBB'])
+    cases.append({'name': 'mutant_drop_one_value', 'ok': (not intact),
+                  'detail': '基线 [AAA,BBB,CCC] → 当前 [AAA,BBB] ⇒ intact=%r（须 False）' % intact})
+
+    # ② 只新增 ⇒ 必须 PASS（§129 的合法场景）
+    d, intact = compare_string_constants(base, ['AAA', 'BBB', 'CCC', 'DDD', 'EEE'])
+    cases.append({'name': 'mutant_only_additions', 'ok': bool(intact),
+                  'detail': '基线 [AAA,BBB,CCC] → 当前 +DDD,+EEE ⇒ intact=%r（须 True）' % intact})
+
+    # ③ 值被改（不是丢，是换）⇒ 必须 FAIL
+    d, intact = compare_string_constants(base, ['AAA', 'BBB', 'ZZZ'])
+    cases.append({'name': 'mutant_value_replaced', 'ok': (not intact),
+                  'detail': '基线 [AAA,BBB,CCC] → 当前 [AAA,BBB,ZZZ] ⇒ intact=%r（须 False）' % intact})
+
+    # ④ 顺序变了但集合没变 ⇒ 必须 PASS（**下标口径在这里会假 FAIL**）
+    d, intact = compare_string_constants(base, ['CCC', 'BBB', 'AAA'])
+    cases.append({'name': 'mutant_reorder_only', 'ok': bool(intact),
+                  'detail': '基线 [AAA,BBB,CCC] → 当前 [CCC,BBB,AAA] ⇒ intact=%r（须 True）' % intact})
+
+    # ⑤ 豁免：控制字符 → 可见字面量（docstring 改 raw 的故意变更）
+    #    ⚠️ **方向**：基线是**非 raw** ⇒ `\n` 已解析成**真实换行**；
+    #      当前是 **raw** ⇒ `\n` 保持**两个字符** ⇒ 豁免把当前的字面量
+    #      还原成控制字符后应等于基线。
+    d, intact = compare_string_constants(['a\nb'], ['a\\nb'])
+    cases.append({'name': 'exempt_ctrl_to_visible', 'ok': bool(intact),
+                  'detail': '基线 a<LF>b → 当前 a\\nb（raw 字面量）⇒ intact=%r（须 True）' % intact})
+
+    ok = all(c['ok'] for c in cases)
+    return {'ok': ok, 'cases': cases,
+            'detail': '多重集判据自检 %d/%d 通过' % (sum(1 for c in cases if c['ok']), len(cases))}
+
+
+def check_docstring_split_self_test():
+    """🔴🔴 **docstring 拆分自检**（§130）⇒ 必须能分对，否则会误判。
+
+    ① 行为常量被改 ⇒ 必须判 `behavior_values_intact=False`（**不能**被
+       「docstring 会演进」这条豁免放过）。
+    ② docstring 合法演进（追加一段）⇒ 行为常量仍须 `intact=True`
+       （docstring 变**不算**「行为常量变了」）。
+    ③ 拆分本身要准：docstring 归 docstring、行为常量归行为常量。
+    """
+    base = ('"""模块说明"""\n'
+            'import os\n'
+            'KEY = "alpha"\n'
+            'def f():\n'
+            '    """函数说明"""\n'
+            '    return os.path.join("a", "b")\n').encode('utf-8')
+    now = ('"""模块说明（已补充）"""\n'
+           'import os\n'
+           'KEY = "alpha"\n'
+           'def f():\n'
+           '    """函数说明（已补充）"""\n'
+           '    return os.path.join("a", "b")\n').encode('utf-8')
+    now_bad = now.replace(b'KEY = "alpha"', b'KEY = "ALPHA"')
+    cases = []
+
+    db, ob = split_constants(base)
+    dn, on = split_constants(now)
+    cases.append({'name': 'split_counts', 'ok': (len(db) == 2 and len(ob) == 3),
+                  'detail': '基线 docstring=%d 行为常量=%d（须 2 / 3）'
+                            % (len(db), len(ob))})
+
+    _d, intact = compare_string_constants(ob, on)
+    cases.append({'name': 'docstring_drift_not_blocking', 'ok': bool(intact),
+                  'detail': 'docstring 演进后行为常量 intact=%r（须 True）' % intact})
+
+    _db2, ob2 = split_constants(now_bad)
+    _d2, intact2 = compare_string_constants(ob, ob2)
+    cases.append({'name': 'behavior_value_change_is_caught', 'ok': (not intact2),
+                  'detail': '行为常量 "alpha"→"ALPHA" ⇒ intact=%r（须 False）' % intact2})
+
+    ok = all(c['ok'] for c in cases)
+    return {'ok': ok, 'cases': cases,
+            'detail': 'docstring 拆分自检 %d/%d 通过'
+                      % (sum(1 for c in cases if c['ok']), len(cases))}
 
 
 def run_lock_test(module_src=None, test_src=None, in_repo=True):
@@ -296,9 +481,10 @@ def main():
     print('===== ① escape 告警归零（5 个文件）=====')
     out['escape_fixes'] = check_escape_fixes()
     for r in out['escape_fixes']:
-        print('  [%s] %s  基线=%s warn_before=%d warn_after=%d  值变=%s'
+        print('  [%s] %s  基线=%s warn_before=%d warn_after=%d  常量 %s→%s  值变=%s'
               % ('PASS' if r['ok'] else 'FAIL', r['file'], r['baseline'],
                  len(r['warn_baseline'] or []), len(r['warn_now']),
+                 r.get('n_constants_baseline'), r.get('n_constants_now'),
                  r['string_const_diffs']))
     print('===== ② 锁闸门（改后，仓库内跑 ⇒ 含 git 反证组）=====')
     cur = run_lock_test(in_repo=True)
@@ -341,6 +527,30 @@ def main():
     gs = out['gate_self_detection']
     print('  [%s] %s' % ('PASS' if gs['ok'] else 'FAIL', gs['detail']))
     if not gs['ok']:
+        out['verdict'] = 'FAIL'
+        out['n_fail'] += 1
+    # 🔴🔴🔴 **多重集口径自检**（§130 新增）：新的「值没变」判据必须
+    #   **双向**成立 ⇒ ①真丢值必 FAIL ②只新增必 PASS ③值被换必 FAIL
+    #   ④仅重排必 PASS ⑤控制字符豁免必 PASS
+    #   ⇒ 否则新判据可能是「恒真」或「恒假」。
+    out['multiset_criterion_self_test'] = check_multiset_criterion_self_test()
+    print('===== ⑦ 多重集口径自检（值没变判据，非恒真/非恒假）=====')
+    ms = out['multiset_criterion_self_test']
+    print('  [%s] %s' % ('PASS' if ms['ok'] else 'FAIL', ms['detail']))
+    for c in ms['cases']:
+        print('    [%s] %s' % ('PASS' if c['ok'] else 'FAIL', c['detail']))
+    if not ms['ok']:
+        out['verdict'] = 'FAIL'
+        out['n_fail'] += 1
+    # 🔴🔴 **docstring 拆分自检**（§130 新增）：豁免「docstring 会演进」这条
+    #   **不能**变成「什么都能放过」⇒ 必须证明**行为常量被改仍会被抓住**。
+    out['docstring_split_self_test'] = check_docstring_split_self_test()
+    print('===== ⑧ docstring 拆分自检（豁免不能变成「什么都放过」）=====')
+    ds = out['docstring_split_self_test']
+    print('  [%s] %s' % ('PASS' if ds['ok'] else 'FAIL', ds['detail']))
+    for c in ds['cases']:
+        print('    [%s] %s' % ('PASS' if c['ok'] else 'FAIL', c['detail']))
+    if not ds['ok']:
         out['verdict'] = 'FAIL'
         out['n_fail'] += 1
     out['device_acceptance_blocked'] = not out['quiet_window']['ok']

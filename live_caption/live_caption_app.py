@@ -623,6 +623,25 @@ def _is_intel_gpu(dev: str) -> bool:
     return not device_config.is_cuda_device(dev)
 
 
+def _in_customer_package():
+    """🔴🔴🔴 APP-062 ③（D3）：**当前是否运行在客户包里**。
+
+    🔴 **判据**：包内**特有**的标记文件 `app/MANIFEST.json`
+    ⇒ 开发树 `live_caption/` 下**没有**它（实测）
+    ⇒ 客户包 `Confucius4_LiveCaption_v*/app/` 下**有**它（实测 v2.2 有）
+    ⇒ **同一个代码**在两处的行为因此不同 ⇒ **零新增配置**、不靠环境变量
+    ⇒ 客户机上也**不需要**额外设置任何东西。
+
+    ⚠️ 判据**只认自己目录下的 MANIFEST.json** ⇒ 不会误判开发机
+       （开发机仓库根目录可能恰好有同名文件）。
+    """
+    try:
+        here = os.path.dirname(os.path.abspath(__file__))
+        return os.path.isfile(os.path.join(here, 'MANIFEST.json'))
+    except Exception:
+        return False
+
+
 def _cuda_tts_available():
     """本机是否具备 **PyTorch+CUDA** 的 TTS 后端（独立 venv）。快速判断，不加载模型。
 
@@ -640,8 +659,8 @@ def _cuda_tts_unavailable_reason() -> str:
     """🔴🔴🔴 APP-061②：CUDA 语音后端**不可用时的原因**（给用户看）。
 
     🔴 **为什么要有这个**：用户实测「TTS 选 CUDA 时语音输出不工作，听不到声音」
-      ⇒ 客户机上 CUDA 依赖**包外**的独立 venv（`~/_fq3tts_env`），
-      客户机上**根本不存在** ⇒ 选了以后才发现没声音。
+      ⇒ 客户机上 CUDA 依赖**包外**的独立 venv（环境名见 `tts_cuda.py`，
+      **该模块不随包分发**），客户机上**根本不存在** ⇒ 选了以后才发现没声音。
     ⇒ 现在**把原因摆在界面上**（下拉项置灰 + 说明行），不让用户踩坑。
     """
     try:
@@ -889,22 +908,30 @@ def build_tts_options(devices):
     #     * 不可用 ⇒ **仍列出**，但 `disabled=True` + `why=<原因>`
     #       ⇒ GUI 选中它时**拒绝启动**并把原因显示出来。
     #   ⚠️ **D3 待用户决定**：客户包是否保留 TTS=CUDA 选项
-    #     （CUDA 边车依赖包外的 `_fq3tts_env`，客户机上不存在）。
+    #     （CUDA 边车依赖包外的独立 venv，**不随包分发** ⇒ 客户机上不存在）。
     #     本轮**不删该选项**，只做到「置灰 + 显示原因」。
-    _cuda_ok = _cuda_tts_available()
-    _cuda_why = '' if _cuda_ok else _cuda_tts_unavailable_reason()
-    _cuda_label = 'NVIDIA CUDA（PyTorch） · bf16'
-    if not _cuda_ok:
-        _cuda_label += '（不可用）'
-    out.insert(0, dict(
-        id='CUDA@bf16', label=_cuda_label,
-        device='CUDA', precision='bf16', fixed=False,
-        disabled=(not _cuda_ok), why=_cuda_why,
-        note=('✅ 实测可用（PyTorch+CUDA，RTX 5050）：流式首包 0.547 s / RTF 0.892'
-              '（比 NPU 快 12.7×）⇒ 最快；'
-              '⚠️ 走独立 venv（torch 不进客户包），首次加载 ~27 s'
-              if _cuda_ok else
-              '🔴 不可用：' + _cuda_why)))
+    # 🔴🔴🔴 APP-062 ③（D3）：**客户包里去掉 TTS=CUDA** ⇒ **整个选项不出现**。
+    #   reviewer 原文：「**客户包里去掉**（界面不显示，CLI 也拒绝这个选项）。
+    #     只在开发目录保留，用于对照基准。」
+    #   ⚠️ 与 APP-061② 的「置灰 + 显示原因」**不冲突**（三条路径互斥）：
+    #     - **客户包** ⇒ **不列**（D3；且 `tts_cuda*.py` 根本不在包里）
+    #     - **开发目录**（有 CUDA 环境）⇒ 照旧列出（可用于对照基准）
+    #     - **开发目录**（无 CUDA 环境）⇒ 照旧**置灰 + 显示原因**（APP-061②）
+    if not _in_customer_package():
+        _cuda_ok = _cuda_tts_available()
+        _cuda_why = '' if _cuda_ok else _cuda_tts_unavailable_reason()
+        _cuda_label = 'NVIDIA CUDA（PyTorch） · bf16'
+        if not _cuda_ok:
+            _cuda_label += '（不可用）'
+        out.insert(0, dict(
+            id='CUDA@bf16', label=_cuda_label,
+            device='CUDA', precision='bf16', fixed=False,
+            disabled=(not _cuda_ok), why=_cuda_why,
+            note=('✅ 实测可用（PyTorch+CUDA，RTX 5050）：流式首包 0.547 s / RTF 0.892'
+                  '（比 NPU 快 12.7×）⇒ 最快；'
+                  '⚠️ 走独立 venv（torch 不进客户包），首次加载 ~27 s'
+                  if _cuda_ok else
+                  '🔴 不可用：' + _cuda_why)))
     return out
 
 # Qwen3-ASR 模型内置 support_languages（见 models/hf/config.json），
@@ -2445,6 +2472,14 @@ class App:
                                 for d in self._dev_avail}
         # 命令行 > 配置文件 > 推荐默认值（device_config.get_devices 已解析）
         self._dev_choices = dict(self._dev_selected)
+        # 🔴🔴🔴 APP-062 ④（D4）：**启动时**若 `device_config.json` 里
+        #   就是「MT 与 TTS 同 NPU」⇒ **一样处理**（MT 自动改到 GPU.0）
+        #   reviewer 原文：「启动时如果 device_config.json 里是这种组合，
+        #     也一样处理。」
+        try:
+            self._enforce_no_npu_conflict('启动时读取 device_config.json')
+        except Exception:
+            pass
 
         # 🔴🔴🔴 APP-061⑥：**常用控件行**（ASR / 翻译 / 语音的设备与音色）
         #   ⇒ 全部**移出**分区 LabelFrame ⇒ 控件只占 **1 行**。
@@ -3518,6 +3553,12 @@ class App:
             return
         self._dev_choices['mt'] = opt['device']
         self.var_mt_note.set(opt.get('note', ''))
+        # 🔴🔴🔴 APP-062 ④（D4）：MT 与 TTS 同 NPU ⇒ **禁止**
+        #   ⇒ MT 自动改到 GPU.0（reviewer：「MT 自动改到 GPU.0」）
+        try:
+            self._enforce_no_npu_conflict('GUI 选择 MT=%s' % opt['device'])
+        except Exception:
+            pass
         device_config.save_config(dict(self._dev_choices))
         if not self.mt.set_engine(opt['engine']):
             self.var_status.set('翻译后端切换失败（保持原后端）')
@@ -3569,6 +3610,11 @@ class App:
         self._dev_choices['tts'] = opt['device']
         self._tts_precision = opt['precision']
         self.var_tts_note.set(self._tts_note_text(opt))
+        # 🔴🔴🔴 APP-062 ④（D4）：TTS 选 NPU 且 MT 也在 NPU ⇒ **禁止**
+        try:
+            self._enforce_no_npu_conflict('GUI 选择 TTS=%s' % opt['device'])
+        except Exception:
+            pass
         device_config.save_config(dict(self._dev_choices))
         if getattr(self, 'tts', None) is not None:
             self._restart_tts_on_device(opt['device'], opt['precision'])
@@ -3678,7 +3724,7 @@ class App:
             bad = _tts_device_problem(dev, prec)
             # 🔴🔴🔴 APP-061②：**CUDA 边车环境缺失 ⇒ 启动前拦住**。
             #   用户实测「TTS 选 CUDA 时语音输出不工作」⇒ 客户机上 CUDA 依赖
-            #   **包外**的独立 venv（`~/_fq3tts_env`）⇒ 根本不存在。
+            #   **包外**的独立 venv（**不随包分发**）⇒ 根本不存在。
             #   ⇒ 这里在**起 worker 之前**就拦住 + 明确告知原因。
             if str(dev).upper().startswith('CUDA') and not _cuda_tts_available():
                 why = _cuda_tts_unavailable_reason()
@@ -3750,25 +3796,68 @@ class App:
             self.var_status.set('语音输出启动失败（不影响字幕与翻译）')
             self._ui_log(f'tts start failed: {type(e).__name__}: {e}')
 
+    def _enable_speaker_for_clone(self, why: str = ''):
+        """🔴🔴🔴 APP-062 ②（D2）：**为克隆自动打开说话人旁路**。
+
+        🔴 **为什么必须有这个方法**（reviewer D2）：
+          选了「跟随说话人（克隆）」⇒ **必须有 spk 才能按句绑定音色**
+          ⇒ 旁路关闭 ⇒ 每句 `spk=None` ⇒ 回落预设 A（= 用户实测的
+          「男声被女声播出」）。
+          ⇒ 旧行为（APP-061⑤d）**只提示**「请勾选」⇒ 用户漏勾就永远错。
+
+        🔴 **三处必须同步**（否则会出现「界面勾了但没生效」）：
+          ① `var_speaker`（**勾选框**）
+          ② `self._speaker_enabled`（**运行时真开关**）
+          ③ `self._spk_bridge.enabled`（**旁路桥接器**）
+          ⚠️ 旁路线程在**会话开始时**建立 ⇒ 已开的会话里打开旁路
+            需要**重启会话**才生效 ⇒ 日志里明确写出来。
+
+        ✅ **幂等**：已经开着 ⇒ 直接返回（不重复写日志、不重复勾选）。
+        """
+        if getattr(self, '_speaker_enabled', False):
+            return True
+        # ① 勾选框
+        try:
+            self.var_speaker.set(True)
+        except Exception:
+            pass
+        # ② 运行时开关
+        self._speaker_enabled = True
+        # ③ 旁路桥接器
+        try:
+            self._spk_bridge.enabled = True
+        except Exception:
+            pass
+        self._ui_log('[spk] 🔴 克隆需要说话人分离 ⇒ **已自动打开说话人旁路**'
+                     '（APP-062 D2%s）'
+                     % (('：' + why) if why else ''))
+        try:
+            self.var_status.set('说话人分离：开（克隆需要）'
+                                '（已自动打开%s）'
+                                % (('，' + why) if why else ''))
+        except Exception:
+            pass
+        return True
+
     def _on_tts_voice_changed(self, *_a):
         """切换音色：需要重启 worker（音色条件在加载时绑定）。"""
         voice = self._tts_voice_back.get(self.var_tts_voice.get(), 'A')
         # 🔴🔴🔴 APP-061④：文案改成「**换人时取样**」，删掉「每 30 s」的字样。
         #   旧文案承诺的是**定时重采集**（APP-027⑤ 的老机制）⇒ 与 v2.2 实际行为不符
         #   ⇒ 用户实测反馈「为什么是 10 秒」正是这段文案造成的误解。
-        # 🔴🔴🔴 APP-061⑤d：选了「跟随说话人」但**说话人识别已关闭** ⇒
-        #   **明确提示**（不允许静默退回定时克隆；自动打开旁路属 D2，等用户决定）。
+        # 🔴🔴🔴 APP-062 ②（D2）：选了「跟随说话人」⇒ **自动打开说话人旁路**。
+        #   reviewer 原文：「在 GUI 或 CLI 里选了"跟随说话人"音色，
+        #     **自动打开说话人旁路**；状态栏显示"说话人分离：开（克隆需要）"。
+        #     旁路关闭时，克隆选项不可选。」
+        #   ⚠️ **旧行为（APP-061⑤d）只提示「请勾选」** ⇒ 克隆永远拿不到 spk
+        #     ⇒ 每句回落预设 A（用户实测「男声被女声播出」的根因之一）。
+        #   ⇒ 现在：**自动打开**（勾选框 + `_speaker_enabled` + bridge 三处同步）
+        #     ⇒ 用户不用再手动勾一次。
         if voice == 'follow_speaker':
-            if not self._speaker_enabled:
-                self.var_tts_note.set(
-                    '🔴 克隆需要说话人识别，当前已关闭 ⇒ 将使用预设 A。'
-                    '请勾选「说话人识别」后重启会话。')
-                self._ui_log('[tts] 克隆需要说话人识别，当前已关闭'
-                             '（APP-061⑤d）⇒ 将使用预设 A')
-            else:
-                self.var_tts_note.set(
-                    '「跟随说话人（克隆）」已启用：'
-                    '换人时取样（首段 ≥1.5 s，3 s 定稿），老说话人复用。')
+            self._enable_speaker_for_clone('GUI 选择「跟随说话人」')
+            self.var_tts_note.set(
+                '「跟随说话人（克隆）」已启用：'
+                '换人时取样（首段 ≥1.5 s，3 s 定稿），老说话人复用。')
         else:
             self.var_tts_note.set('已切换到「预设 A」')
         if self.tts is not None:
@@ -5034,6 +5123,13 @@ class App:
                priority=8)
         # 说话人识别：开关 + 状态（就绪 / 降级）
         bridge = getattr(self, '_spk_bridge', None)
+        # 🔴🔴🔴 APP-062 ②（D2）：状态栏要显示「**说话人分离：开（克隆需要）**」
+        #   ⇒ 克隆启用时**明确告诉用户**旁路是为克隆而开的
+        #   ⇒ 否则用户以为克隆坏了（其实旁路关着）。
+        try:
+            _clone_on = bool(getattr(self, '_clone_enabled', False))
+        except Exception:
+            _clone_on = False
         if bridge is None:
             st.set('spk', '说话人', '未启用', priority=2, level='warn')
         else:
@@ -5041,7 +5137,19 @@ class App:
                 bst = bridge.stats()
             except Exception:
                 bst = {}
-            if bst.get('available'):
+            try:
+                _spk_on = bool(getattr(self, '_speaker_enabled', False))
+            except Exception:
+                _spk_on = False
+            if _clone_on and _spk_on:
+                # 🔴 D2 要求的确切文案
+                st.set('spk', '说话人', '开（克隆需要）', priority=2,
+                       tip='说话人分离：开（克隆需要）')
+            elif _clone_on and not _spk_on:
+                st.set('spk', '说话人', '关（克隆需开）', priority=2,
+                       level='warn',
+                       tip='克隆需要说话人分离 ⇒ 请开启「说话人识别」')
+            elif bst.get('available'):
                 st.set('spk', '说话人', '就绪', priority=2,
                        tip='已加载 ASR-029 说话人旁路')
             else:
@@ -5395,6 +5503,81 @@ class App:
             % (_fmt_num(asr_rtf, 3), _fmt_num(backlog, 1), _fmt_num(mt_p50, 0),
                _fmt_num(tts_rtf, 3), _fmt_num(uf_ms, 0), _fmt_num(uf_idle, 0),
                _fmt_num(n_sent, 0), _fmt_num(n_zero, 0)))
+
+    def _enforce_no_npu_conflict(self, origin: str = ''):
+        """🔴🔴🔴 APP-062 ④（D4）：**禁止 MT 与 TTS 同时在 NPU**。
+
+        🔴 reviewer 原文：「**禁止**。检测到这种组合时，MT 自动改到 GPU.0，
+          用状态栏或弹框告知用户，同时写进日志。
+          启动时如果 device_config.json 里是这种组合，也一样处理。」
+
+        🔴 **依据**（APP-061③(d)）：MT 和 TTS 同在 NPU ⇒ TTS 合成变慢
+          25–30 %（实测 1.31 vs 1.00–1.05）⇒ 播放环形缓冲欠载 ⇒ 卡顿。
+
+        ✅ **幂等**：不冲突 ⇒ 不动任何东西（**不写日志**、不弹框）。
+        🔴 **只改 MT**（不动 TTS）⇒ 与 reviewer「MT 自动改到 GPU.0」一致。
+        🔴 **返回值** = 是否发生了改动（调用方据此决定要不要刷新界面）。
+        """
+        try:
+            dev = dict(getattr(self, '_dev_choices', {}) or {})
+        except Exception:
+            dev = {}
+        tts_dev = str(dev.get('tts') or '').upper()
+        mt_dev = str(dev.get('mt') or '').upper()
+        if 'NPU' not in tts_dev or 'NPU' not in mt_dev:
+            return False
+        # 🔴 改成 GPU.0
+        dev['mt'] = 'GPU.0'
+        self._dev_choices = dev
+        msg = ('MT 与 TTS 同时在 NPU ⇒ 已禁止（APP-062 D4）'
+               '⇒ MT 自动改到 GPU.0'
+               + (('（来源：%s）' % origin) if origin else ''))
+        # 🔴 **写进日志**（`_ui_log` ⇒ 落盘会话日志）
+        self._ui_log('[device] 🔴 %s' % msg)
+        # 🔴 **状态栏告知**
+        try:
+            self.var_status.set(msg)
+        except Exception:
+            pass
+        try:
+            self.var_mt_note.set(msg)
+        except Exception:
+            pass
+        # 🔴 **同步 GUI 下拉**（否则界面显示与真值不一致）
+        try:
+            opt = self._mt_opt_by_id.get('INT8-CW@GPU.0')
+            if opt is not None:
+                self.var_mt_combo.set(opt['label'])
+            self._mt_precision = 'INT8-CW'
+        except Exception:
+            pass
+        # 🔴 落到配置文件（下次启动仍是 GPU.0）
+        try:
+            device_config.save_config(dict(self._dev_choices))
+        except Exception:
+            pass
+        # 🔴 运行中的 MT 引擎也要换设备
+        try:
+            mt = getattr(self, 'mt', None)
+            if mt is not None and hasattr(mt, 'set_device'):
+                mt.set_device('GPU.0')
+        except Exception:
+            pass
+        # 🔴 **弹框告知**（reviewer 允许「状态栏**或**弹框」⇒ 两个都给）
+        #   ⚠️ `messagebox.showwarning()` 是**模态**的 ⇒ 会阻塞到用户点掉
+        #     ⇒ **必须有真实 GUI root 才弹**（否则无头探针会永久挂起）
+        #     ⇒ 无 GUI 时**只走状态栏 + 日志**（reviewer 允许二选一）。
+        try:
+            _root = getattr(self, 'root', None)
+            if _root is not None:
+                from tkinter import messagebox
+                messagebox.showwarning(
+                    'NPU 共用已禁止',
+                    msg + '\n\n（APP-062 D4：MT 与 TTS 同在 NPU '
+                    '会让语音合成变慢 25–30 %，造成卡顿。）')
+        except Exception:
+            pass
+        return True
 
     def _npu_conflict_note(self):
         """🔴🔴🔴 APP-061③(d)：**NPU 共用**检测（MT / ASR 与 TTS 同在 NPU）。
@@ -6651,6 +6834,20 @@ def main():
         'mt': args.mt_device,
         'tts': args.tts_device,
     }
+    # 🔴🔴🔴 APP-062 ③（D3）：**客户包里 CLI 拒绝 TTS=CUDA**。
+    #   reviewer 原文：「（界面不显示，**CLI 也拒绝这个选项**）。」
+    #   ⇒ 显式给了 `--tts-device CUDA` ⇒ **明确报错 + 非零退出**
+    #   ⇒ **不是**「静默降级成 NPU」（静默降级会让用户以为在用 CUDA）。
+    try:
+        _want_cuda = (str(getattr(args, 'tts_device', '') or '')
+                      .strip().upper() == 'CUDA')
+    except Exception:
+        _want_cuda = False
+    if _want_cuda and _in_customer_package():
+        print('🔴 客户包不提供 TTS=CUDA 后端（APP-062 D3）：'
+              '该选项依赖包外的独立 venv，交付包不随包分发。'
+              '请改用 --tts-device NPU（或 GPU.0）。', file=sys.stderr)
+        sys.exit(2)
     _dev_sel, _dev_notes = device_config.get_devices(_dev_cli)
     args.asr_device = _dev_sel['asr']
     args.mt_device = _dev_sel['mt']

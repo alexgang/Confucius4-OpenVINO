@@ -1,13 +1,15 @@
 # STATUS_APP
 
-last_ack: APP-061
-更新时间: 2026-11-02 04:47
-当前任务: **§129 巡检无新纠偏（61 条 = `last_ack` APP-061）⇒ 自查出并修掉 4 个真缺陷：① `app224` 用移动 `git HEAD` 当基线 ⇒ 修复一提交闸门就在正确代码上永久 FAIL（改钉 `fae75d9` ＋ 判据自检）② 锁闸门第 11 组 AST 反证谓词**恒真**（抓不到 `os.path.exists`）③ `app223` 的 `--dry-run` 跑不出来 / 自检**冲掉**真机证据 / 反证臂**从不判定**（3 个全修）④ APP-061②「附带问题」`Fatal Python error: _enter_buffered_busy`（边车退出崩溃，已用裸 fd 修，A/B 实测 orig 崩 3221225477 / fixed rc=0）** ｜ 🔴 **设备级实测本轮未开跑**（安静窗口不可用：用户 v2.1 GUI 会话 PID 14712 **实测仍在烧 CPU 0.656 s/5 s** ⇒ 不与用户抢 NPU）⇒ **①③④⑤ + ③(e) 的设备级数字仍未实测**
-阻塞 / 待用户决定: 🔴 **D1–D4 仍由 reviewer/用户决定**（旁路窗口时长 / 是否自动开旁路 / 客户包是否保留 CUDA 选项 / NPU 共用是警告还是禁止）；🔴 **§128 新增 1 项待 reviewer 裁定**：共享锁 `stale_boot` 分支**优先于 PID 存活判断** ⇒ 时钟异常时会**抢走活锁**（本轮只写成显式断言，**未改实现语义**）；🔴 **§129 新增 1 项待 reviewer 裁定**：锁闸门第 11 组的 AST 反证谓词**恒真**（只认 `os.exists`、抓不到 `os.path.exists`）⇒ 修它要动**共享锁闸门**（ASR/MT/TTS 共用）⇒ 本轮**只定位、只留证**；⛔ **设备级实测（①③④⑤ + ③(e)）仍未做**：harness `app223` **本轮已修好 3 个缺陷 ⇒ 一键可跑**，等机器安静 + 用户会话结束后即可跑
-已压缩: 本文件 37279 B / 228 行（APP-052 ④ 限额 ≤ 40000 B / ≤ 300 行）；**§109–§124 正文＋旧「最近更新」条目＋「已撤回的旧结论」备查块已原样归档**到 `status/archive/STATUS_APP_sec124_upto_20261101.md`（**逐字保留，内容一字未删**；更早的见 `STATUS_APP_sec109_122_upto_20261101.md`）
+last_ack: APP-062
+更新时间: 2026-11-02 10:58
+当前任务: **§131 APP-062（D1–D4：用户对 APP-061 的四项决定）已执行（代码层全部完成）** —— ① **D1** 旁路窗长改成**配置项**（`LIVECAP_SPK_WINDOW_S`）＋**与 ASR 侧常量同源**（读 `asr052_spk_runtime.WIN_S`，不再两处各写一个；默认仍 10 s）② **D2** 选「跟随说话人」⇒ **自动打开说话人旁路**（勾选框/开关/桥接器三处同步）＋ 状态栏「说话人分离：开（克隆需要）」＋ 旁路关着时克隆**不可选**③ **D3** **客户包里去掉 TTS=CUDA**（界面不显示 ＋ CLI 明确拒绝 exit 2）＋ `pkg_exclude` 排除 `tts_cuda.py`/`tts_cuda_sidecar.py`/`docs/CUDA_TTS.md`⇒ **包内 grep `_fq3tts_env` 命中 0 处**（`app228` 8/0）④ **D4** **禁止** MT 与 TTS 同 NPU ⇒ **MT 自动改 GPU.0** ＋ 状态栏/弹框告知＋ 写进日志 ＋ **启动时 `device_config.json` 同组合同样处理**（`app227` 34/0，含反证） ｜ 🔴 **本节更正 §130 的一条结论**：reviewer 已于 **09:17:51 追加 APP-062** ⇒ §130「SHA 零改动」作废
+阻塞 / 待用户决定: 🔴 **D1–D4 已由 reviewer 裁定并于 §131 执行**；⛔ **D2/D4 的截图验收尚未做**（需起 GUI ⇒ 与设备级作业同批 ⇒ 等设备空闲）；⛔ **设备级实测（APP-061 ①③④⑤ + ③(e)）仍未做**（本轮 `MACHINE_LOCK` 已被 **TTS 模块**持有 ⇒ 不与它抢设备）；🔴 **§128 新增 1 项待 reviewer 裁定**：共享锁 `stale_boot` 分支**优先于 PID 存活判断** ⇒ 时钟异常时会**抢走活锁**（未改实现语义）；🔴 **§129 新增 1 项待 reviewer 裁定**：锁闸门第 11 组的 AST 反证谓词**恒真**⇒ 修它要动**共享锁闸门**（ASR/MT/TTS 共用）⇒ 本轮**只定位、只留证**；🔴 **§130 新增 1 项待 reviewer 裁定**：`app224` 的「值没变」判据现在**豁免 docstring**（属口径放宽，有自检证明豁免没变成「什么都放过」）；🔴 **§131 新增 4 项待 reviewer 确认**：D1 同源依赖包内 ASR 模块（读不到 ⇒ 静默退回 10.0）｜D3「客户包」判据用 `app/MANIFEST.json`｜D2 自动开旁路在**已开会话**里需**重启会话**才真正生效｜D4 弹框在启动路径也会弹（模态）
+已压缩: 本文件 39612 B / 285 行（APP-052 ④ 限额 ≤ 40000 B / ≤ 300 行）；**§109–§124 正文＋旧「最近更新」条目＋「已撤回的旧结论」备查块已原样归档**到 `status/archive/STATUS_APP_sec124_upto_20261101.md`（**逐字保留，内容一字未删**；更早的见 `STATUS_APP_sec109_122_upto_20261101.md`）
 
 
 ## 最近更新
+- 2026-11-02 10:58 **§131 APP-062（D1–D4）已执行** ⇒ **D1** 旁路窗长改**配置项**（`LIVECAP_SPK_WINDOW_S`）＋**与 ASR 侧同源**（读 `asr052_spk_runtime.WIN_S`）｜**D2** 选「跟随说话人」⇒ **自动开旁路**（三处同步）＋ 状态栏「说话人分离：开（克隆需要）」｜**D3** **客户包去掉 TTS=CUDA**（界面不显示 ＋ CLI 拒绝 exit 2）＋ `pkg_exclude` 排除 3 个文件 ⇒ **包内 grep `_fq3tts_env` 命中 0 处**｜**D4** **禁止** MT+TTS 同 NPU ⇒ MT 自动改 GPU.0 ＋ 告知 ＋ 写日志 ＋ 启动时同样处理 ⇒ `app227` **34/0**、`app228` **8/0**（含反证）⇒ 回归 `app215` **29/0**、`app220` **39/0**、`app219` **13/0**、`app224` **5/0**（全部与 §129 一致）⛔ D2/D4 截图与设备级实测仍未做（TTS 模块持 `MACHINE_LOCK`）🔴 **更正 §130**：reviewer 于 **09:17:51 追加了 APP-062** ⇒ §130「SHA 零改动」结论作废
+- 2026-11-02 09:56 **§130** ⇒ 无新纠偏（61 条 = APP-061）⇒ **自查 3 个真缺陷并修好**：① `app224` 的「字符串常量逐字不变」**按下标比** ⇒ 合法增删一个常量就整体错位 ⇒ `app223` 炸出 **483 条**假「值变了」⇒ **闸门在正确代码上永久 FAIL**（实测 **3 PASS / 2 FAIL**）⇒ 改按**多重集**比 ＋ 拆出 docstring（散文会合法演进）＋ 加 ⑦⑧ 两组判据自检 ⇒ 改后 **5 PASS / 0 FAIL** ＋ 真实产物负向测试 **5/5** ② CUDA 路线「回落预设」**不换参考音频** ⇒ 边车里仍是上一人的克隆音频 ⇒ **串音** ⇒ 4 个回落出口**收敛到共用出口** ⇒ `app226` **10/0** （含反证：改回旧行为必 FAIL）③ `app215` 的 2 处判据被重构波及（反证锚点缩进 ＋ ①b 作用域：`ast.walk(If)` 会遍历 `else` 分支）⇒ **语义不变地**跟着走 ⇒ 回归 `app215` **29/0**、`app220` **39/0**、`app219` **13/0**（与 §129 逐字一致）＋ ⛔ **设备级实测仍未跑**（本轮定位到干扰源 = **ASR 持锁跑 D1**；用户 v2.1 会话实测 **0.000 s/10 s** ⇒ 不干扰）
 - 2026-11-02 04:47 **§129** ⇒ 无新纠偏（61 条 = APP-061）⇒ **自查 4 个真缺陷并修好**：① `app224` 用**移动 `git HEAD`** 当基线 ⇒ 修复一提交就在**正确代码上永久 FAIL**（0/5）⇒ 改钉 `fae75d9` ＋ **判据自检**（坏文件必被抓住）⇒ **5/0** ② 锁闸门第 11 组 AST 反证谓词**恒真**（只认 `os.exists`、抓不到 `os.path.exists`）⇒ **只定位留证、待 reviewer 裁定** ③ `app223` **3 个缺陷**（`--dry-run` 跑不出来 / 自检冲掉真机证据 / 反证臂从不判定）全修 ④ **APP-061② 附带问题** `Fatal Python error: _enter_buffered_busy`（边车退出崩溃）⇒ 改裸 fd `os.read` ⇒ **A/B 实测 orig 崩 3221225477 / fixed rc=0（两组都收到数据）** ＋ 回归 `app215` 29/0、`app220` 39/0、`app219` 13/0 ⇒ ⛔ **设备级实测仍未开跑**（用户会话 PID 14712 实测仍在烧 CPU 0.656 s/5 s）＋ 🔴 v2.2 包内仍是改前版 ⇒ 下一版打 v2.3
 - 2026-11-02 03:16 **§128** ⇒ 无新纠偏（61 条 = APP-061）⇒ APP-061② `SyntaxWarning` 已修（5 文件，告警全归零，字符串值未变）＋ 共享锁闸门夹具写死日期导致的 **8 条假 FAIL 已修（32/40 → 42/42）**＋ **CUDA 置灰 4/4 落点核验通过** ＋ 真机验收 harness `app223` 已备好（判据自检 5/5 ⇒ 非恒真）⇒ ⛔ **设备级实测未开跑**（用户 v2.1 会话在跑）＋ 🔴 新增待裁定：`stale_boot` 优先于 PID 存活 ⇒ 时钟异常会抢活锁
 - 2026-11-02 02:00 **§127 APP-061 已执行** ⇒ ①⑤③⑥ 代码层全部修复（`app215` 29 PASS / 0 FAIL；`app220` 39 PASS / 0 FAIL；`app219` 13 PASS / 0 FAIL，v2.1 同口径 **FAIL** ⇒ 判据非恒真）⇒ **v2.2 新目录 + 新 zip**（v2.1 未改一字节；桌面快捷方式未改）⇒ ⛔ 设备级实测与 D1–D4 仍待办
@@ -119,109 +121,164 @@ last_ack: APP-061
 
 ### §123 ✅ **APP-052 / APP-053 / APP-054 —— 桌面 `.lnk` 坏链修复 ＋ `ACCEPTED` 重签 ＋ 说话人标签覆盖率 7 % → 93.48 % ＋ 旁路线程化止血 ＋ STATUS 压缩** ｜ **本条已完成** ｜ **本条需等 reviewer 复核**
 
-
-> **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec123_upto_20261101.md`（逐字保留，内容一字未删）。
-
+ > **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec123_upto_20261101.md`（逐字保留，内容一字未删）。
 ### §124 ✅ **APP-055 / APP-056 / APP-057 / APP-058 —— v1.13 还原 ＋ 模块租约 ＋ V2.0→V2.1 交付包 ＋ 说话人覆盖率同段复测** ｜ **本条已执行** ｜ **本条需等 reviewer 复核**
 
-
-> **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec124_upto_20261101.md`（逐字保留，内容一字未删）。
-
+ > **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec124_upto_20261101.md`（逐字保留，内容一字未删）。
 ### §125 ✅ **APP-059 —— 口径 B 定为唯一口径 ＋ README 说话人标签局限说明 ＋ 两处表述更正 ＋ MANIFEST SHA 三元组 ＋ EXT-028 状态 ＋ HOWTO** ｜ **本条已执行** ｜ **本条需等 reviewer 复核**
 
-
-> **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec126_upto_20261101.md`（逐字保留，内容一字未删）。
-
-
+ > **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec126_upto_20261101.md`（逐字保留，内容一字未删）。
 ### §126 ✅ **APP-060 —— 交付版定为 v2.1；v2.0 标 superseded；桌面 v2.0.lnk 已由 reviewer 删除（脚本加硬闸门）；今后改动只打 v2.2+** ｜ **本条已执行** ｜ **本条需等 reviewer 复核**
 
-
-> **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec126_upto_20261101.md`（逐字保留，内容一字未删）。
-
+ > **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec126_upto_20261101.md`（逐字保留，内容一字未删）。
 ### §127 ✅ **APP-061 —— 用户实测 v2.1 的 6 个问题（CUDA 无声 / 离线无参考音色 / 卡顿 / 克隆约 10 s 一次 / 男声被女声播出 / 界面不紧凑）：代码层全部修复 ＋ 打 v2.2 交付包** ｜ **本条已执行** ｜ **本条需等 reviewer 复核**
 
-> **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec127_128_upto_20261102.md`（逐字保留，内容一字未删）。
+ > **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec127_128_upto_20261102.md`（逐字保留，内容一字未删）。
 ### §128 ✅ **巡检无新纠偏（61 条 = `last_ack` APP-061）⇒ 转做 APP-061② 附带问题 ＋ 共享锁闸门修复 ＋ 备好真机验收 harness；设备级实测因用户会话在跑而未开跑** ｜ **本条已完成** ｜ **本条需等 reviewer 复核**（2026-11-02 03:16）
 
-> **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec127_128_upto_20261102.md`（逐字保留，内容一字未删）。
-
+ > **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec127_128_upto_20261102.md`（逐字保留，内容一字未删）。
 ### §129 ✅ **巡检无新纠偏（61 条 = `last_ack` APP-061）⇒ 自查出并修掉 4 个真缺陷（闸门自身缺陷 3 个 + 边车崩溃 1 个）** ｜ **本条已完成** ｜ **本条需等 reviewer 复核**（2026-11-02 04:47）
 
-**开工基线（`CORRECTIONS_APP.md` 只读）**：SHA256 `5ee74b79b38e139a875a14d44c82d05a1624ce35b4e693dac189fea683738502` / **168 827 B** / mtime **2026-11-01 21:50:01** / 条目 **61**（APP-001…APP-061）⇒ `last_ack` **APP-061** ⇒ **无新纠偏条目**（本轮**不执行**任何新条目；`last_ack` **不变**）。
+ > **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec129_upto_20261102.md`（逐字保留，内容一字未删）。
+### §130 ✅ **巡检无新纠偏（61 条 = `last_ack` APP-061）⇒ 自查出并修掉 3 个真缺陷（闸门口径 1 个 ＋ 串音 1 个 ＋ 判据作用域 2 个）** ｜ **本条已完成** ｜ **本条需等 reviewer 复核**（2026-11-02 09:56）
 
-**租约**：`session_lease.py acquire app` ⇒ `TOKEN=2aa48e52`（**无 TAKEOVER**）⇒ 本轮全程持租约。
+> **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec130_upto_20261102.md`（逐字保留，内容一字未删）。
 
-#### ① 🔴🔴 **闸门自身缺陷 1（真缺陷，不是产品缺陷）**：`app224` 用**移动的 `git HEAD`** 当「改前基线」⇒ 修复一提交，闸门就在**正确的代码上永久报 FAIL**
+### §131 🔄 **APP-062（D1–D4：用户对 APP-061 的四项决定）—— 本条已执行（代码层全部完成）** ｜ **本条需等 reviewer 复核**（2026-11-02 10:58）
 
-* **现象**：§128 把 escape 修复提交进 `25a4974` 后，重跑 `app224` ⇒ **0 PASS / 5 FAIL**（5 个文件全 FAIL，`warn_before=0 warn_after=0`）。
-* **根因**：`check_escape_fixes()` 的 `baseline = git_head_bytes(rel)` = **移动的 HEAD** ⇒ 修复入库后 HEAD 变成「改后」⇒ `warn_baseline` 变空 ⇒ `warn_cleared = 恒 False` ⇒ **闸门永久红**。
-* 🔴 **这不是「代码退化」**：实测 `fae75d9`（§128 的父提交）里 4 个文件**各有 1 条 `SyntaxWarning`**，`25a4974` 里 **0 条** ⇒ **代码是对的，闸门是错的**（对齐记忆「判据 FAIL 先怀疑判据/环境」）。
-* **改法**：基线**钉死**到 `BASE_REV = 'fae75d9'`（`app223` 是 §128 新建文件、不在该提交里 ⇒ 回落到 §128 的改前备份 `shared/app223_backup_20261102/`）。
-* 🔴 **顺带补一个弱标记的洞**：若基线取不到，原实现会「**恒 PASS**」（`warn_cleared` 只要求 `not warn_now`）⇒ 现在要求 `baseline_had_warn`（**基线本身必须有告警**）⇒ 否则判「无法判定」。
-* 🔴 **并新增 ⑥「判据自检」**：造一份**故意带 `SyntaxWarning` 的坏文件**跑同一套判据 ⇒ 必须被判成「没归零」⇒ **判据非恒真**。
-* **改后实测**：`app224` ⇒ **5 PASS / 0 FAIL**（① escape 5/5 PASS，② 锁闸门 **42/42**，③ 改前基线 `fae75d9` **30/39**（9 条假 FAIL，与 §128 记录的 30/39 **一致**），④ CUDA 置灰 **4/4**，⑥ 判据自检 PASS）⇒ 证据 `results/app/app224_app061_escape_lock_gates_evidence.json`（**7 379 B** / SHA256 `a97d35b49e648a3f…` / mtime 2026-11-02 04:43:26）。
+> 🔴 **本节同时更正 §130 的一处结论**：§130 收尾时写的「`CORRECTIONS_APP.md` 本轮 reviewer **未**追加 ⇒ SHA 零改动成立」
+> **在 §131 复核时已不成立** —— reviewer 于 **2026-11-02 09:17:51** 追加了 **APP-062**。
+> ⇒ **§130 的那条结论作废**（其余 §130 结论不受影响，见 ⑥）。
 
-#### ② 🔴🔴 **闸门自身缺陷 2**：`test_machine_lock_app.py` 第 11 组的 AST 反证**判据恒真**（抓不到 `os.path.exists`）
+#### ① 📌 **开工基线与「中途被追加」的如实记录**
 
-* **发现**：反证用的谓词是 `node.func.attr == 'exists' and isinstance(node.func.value, ast.Name) and node.func.value.id == 'os'` ⇒ 它只能匹配 `os.exists(x)`；而代码里写的是 **`os.path.exists(x)`**（`func.value` 是 `ast.Attribute`，**不是** `ast.Name`）⇒ **谓词永远匹配不到** ⇒ `old_has_exists` 恒 `False` ⇒ 「修复前的 acquire 没有 exists 前置判断」这条断言**恒 PASS** ⇒ **反证没有鉴别力**。
-* 🔴 **实测确认**：把当前源码（**含** `os.path.exists(lock_path)`）喂给该谓词 ⇒ 仍返回 `False`；只有人为注入 `os.exists(...)`（Name 形态）才返回 `True` ⇒ **谓词与真实代码形态脱节**。
-* ⚠️ **本轮只定位，**未改判据**（属共享锁闸门、影响 ASR/MT/TTS 三个模块共用的 `machine_lock_app.py`）⇒ 留证交 reviewer 裁定（见 §129 ⑧）。
-* 🔴 **同时确认**：`acquire` 的「先探测、后创建」修法**本身是对的**（`3b07811` 引入 `os.path.exists` 守卫，`8d6bcc1` 及其父提交都没有）⇒ **被测对象无缺陷，缺陷在判据**。
-
-#### ③ 🔴🔴 **闸门自身缺陷 3**：`app223` 真机验收 harness 的 3 个问题（`--dry-run` 跑不出来 / 自检**冲掉**真机证据 / 反证臂**从不判定**）
-
-* **(a) `--dry-run` 单独用时**永远走不到**打印命令的分支**：原实现先判 `if not args.run:` 就 return ⇒ 文档里写的「③ 只打印命令不跑」**实际只跑了自检**。⇒ 改法：`--dry-run`（且未带 `--run`）**先**打印 3 条臂命令并返回，**不跑设备、不写证据文件**。
-* **(b) `--self-test` 会覆盖真机证据**：`--out` 默认指向 `app223_app061_device_acceptance_evidence.json` ⇒ 跑一次自检就把**真机跑出来的设备级证据冲成 `SELFTEST_ONLY`**（实测：本轮第一次跑自检就把该文件改了 ⇒ 已 `git checkout` 还原）。⇒ 改法：自检结果**另存** `…_evidence.selftest.json`；实测自检前后 canonical 证据 SHA256 **逐字相同**（`199529db275832601…`）⇒ **未被覆盖**。
-* **(c) v2.1 反证臂**只被存进 `out`、**从不判定** ⇒ 「v2.1 用同一套判据**必须 FAIL**」这句话**没有任何强制力**（万一 v2.1 也 PASS，闸门照样报 PASS）。⇒ 改法：用**同一套** `judge()` 判反证臂 ⇒ `counterproof_v21_n_fail == 0` ⇒ **整轮判 FAIL**（不是「无法判定」）。
-* **(d) 产物目录卫生**：`results/app/app223_device_out/` 在仓库内 ⇒ `.wav`/`.log` 被根 `.gitignore` 命中，但 **`.jsonl`/`.txt` 不会** ⇒ 真机跑完留一堆未跟踪文件。⇒ 改法：**在产物目录内部**放一个 `.gitignore`（内容 `*`）⇒ **不改仓库根的 `.gitignore`**（那是全仓库共享文件，不该由本模块改）。
-* **回归**：改后 `--dry-run` 实测**打印出 3 条完整臂命令**（`tts_off` / `tts_on_preset` / `tts_on_clone`，均含 `--engine gpu_int8 --translate zh --asr-device GPU.0 --mt-device GPU.0 --tts-device NPU`）⇒ `--self-test` **5 PASS / 0 FAIL** 且 canonical 证据 SHA 未变 ⇒ **3 个缺陷全部修好**。
-
-#### ④ 🔴🔴 **APP-061② 的「附带问题」终于处理了**：`Fatal Python error: _enter_buffered_busy`（reviewer 原话：「边车退出时有 `Fatal Python error: _enter_buffered_busy`（21:24:51）」）—— §127 / §128 **都没修**
-
-* **根因（已实测复现，不是推测）**：`sys.stdin.buffer` 是 `BufferedReader`；边车的**命令读取线程**（daemon）阻塞在 `readline()` 时**持有该缓冲对象的内部锁** ⇒ 边车退出 ⇒ CPython 进入 finalizing ⇒ 要 flush/close 同一个 `BufferedReader` ⇒ **抢不到锁** ⇒ `Py_FatalError("_enter_buffered_busy: could not acquire lock for <_io.BufferedReader name='<stdin>'> at interpreter shutdown, possibly due to daemon threads")` ⇒ **边车以 `0xC0000005`（3221225477）崩掉**。
-* **修法**：读取线程**不再用 `sys.stdin.buffer`**，改用**裸 fd** 的 `os.read(0, …)`（自己攒行缓冲）⇒ 不持有任何 Python 缓冲对象的锁 ⇒ 退出时不抢锁。
-* 🔴 **判据非恒真（A/B 干净对照）**：`results/app/app225_app061_sidecar_crash.py` 跑**两份只差读取方式**的子进程（同一台机、同一套管道、连控制流都照抄真实边车：**`quit` 只塞队列、读取线程不退出** ⇒ 才会卡在「读取线程正持锁阻塞在读」的真实崩溃现场）：
-
-| 组 | 读取方式 | 实测 rc | `_enter_buffered_busy` | 收到数据 |
+| 时点 | SHA256 | 字节 | mtime | 条数 |
 |---|---|---|---|---|
-| `orig`（改前） | `sys.stdin.buffer.readline()` | **3221225477（崩）** | **True** | ✅ |
-| `fixed`（改后） | `os.read(0, …)` | **0（正常退出）** | False | ✅ |
+| §130 开工（05:53） | `5ee74b79b38e139a875a14d44c82d05a1624ce35b4e693dac189fea683738502` | 168 827 | 2026-11-01 21:50:01 | **61**（APP-001…APP-061） |
+| §130 收尾（09:56，当时记录） | 同上 | 同上 | 同上 | 同上 |
+| **§131 复核（10:58 现场重算）** | **`443421c23d8f2b73698b0425e2a897cb41b5f11459c3867c59541d32df343281`** | **170 174** | **2026-11-02 09:17:51** | **62**（…APP-062） |
 
-  ⇒ **两组都收到了数据** ⇒ 「改后不崩」**不是**因为「没读」⇒ 判据有效。**4 PASS / 0 FAIL** ⇒ 证据 `results/app/app225_app061_sidecar_crash_evidence.json`（**1 948 B** / SHA256 `6e1dbc9c97c44f1a…` / mtime 2026-11-02 04:45:17）。
-* 🔴 **改动范围**：**只改开发版 `live_caption/tts_cuda_sidecar.py`**（25 600 B / SHA256 `677daaee11082184…`）⇒ **v2.2 客户包一个字节都没动**（包内仍是改前版）⇒ 下一版必须打 **v2.3**（**禁止 `--same-version`**），**本轮未打包**（未获授权）。
+⇒ **reviewer 在本轮中途追加了 APP-062**（本模块**全程只读**，未写入该文件）。
+⇒ **`last_ack` 由 APP-061 更新为 APP-062**（APP-062 要求「开始处理时写 last_ack=APP-062」）。
 
-#### ⑤ ⛔ **设备级实测仍未做**（与 §128 同一阻塞，且本轮**再次实测确认**）
+#### ② ✅ **D1 —— 旁路窗口长度做成配置项 ＋ 与 ASR 侧常量同源（默认 10 s）**
 
-* `machine_lock_app.wait_quiet_window_cpu(30)` ⇒ **ok=False**；`last_busy_pids=[14712]` = **用户自己的 v2.1 GUI 会话**（`OpenProcess`+`GetExitCodeProcess` 实测 **alive / 259**）。
-* 🔴 **本轮新增的直接证据**：`14712` 的 **CPU 时间增量 = 0.656 s / 5 s**（`GetProcessTimes` 两次采样差）⇒ **用户会话确实在跑、确实在烧 CPU** ⇒ 与用户抢 NPU 会让**两边数字都失真** ⇒ **不开跑**。
-* ⇒ **APP-061 ①③④⑤ + ③(e) 的设备级数字仍然「未实测」**（代码层已由 `app215`/`app219`/`app220` 覆盖）⇒ 下一步：机器安静 + 用户会话结束后跑 `python results/app/app223_app061_device_acceptance.py --run`（**本轮已把该脚本的 3 个缺陷修好 ⇒ 一键可跑**）。
+* **改前**：`live_caption/speaker_tracker.py:72` **写死** `_WIN_S = 10.0`
+  ⇒ 与 ASR 侧 `asr052_spk_runtime.WIN_S = 10.0` **两处各写一个**
+  ⇒ 改一边不改另一边 ⇒ **静默错位**（喂给 ASR 的窗长 ≠ ASR 自己以为的窗长）。
+* **改法**（只改开发版 `live_caption/speaker_tracker.py`）：
+  ① **同源**：`_WIN_S` 不再是字面量 ⇒ 从 **ASR 侧模块**读 `asr052_spk_runtime.WIN_S`
+     （该模块**随包分发** ⇒ 实测包内 `app/asr_spk/asr052_spk_runtime.py` 有 `WIN_S = 10.0`
+     ⇒ 开发机与客户机**都**能读到 ⇒ 真正同源）；
+  ② **配置项**：环境变量 **`LIVECAP_SPK_WINDOW_S`** 可覆盖
+     ⇒ ASR-040 的「10 s vs 5 s」对比实验**不必改代码**就能跑两档；
+  ③ **读不到时**退回 10.0（= ASR 侧默认值）⇒ **行为与改前完全一致**；
+  ④ **非法值**（非数字 / ≤ 0）⇒ 退回默认（**不静默改语义**）。
+* **实测**（`app227`）：`_WIN_S = 10.0`、来源 `同源 asr052_spk_runtime.WIN_S=10.0`；
+  `LIVECAP_SPK_WINDOW_S=5.0` ⇒ `5.0`；`=abc` / `=0` ⇒ 退回 `10.0`（同源）。
 
-#### ⑥ ✅ **既有回归套件复跑（改了代码 ⇒ 必须复跑）**
+#### ③ ✅ **D2 —— 选「跟随说话人」⇒ 自动打开旁路 ＋ 状态栏显示 ＋ 旁路关闭时克隆不可选**
 
-| 闸门 | 结果 | 说明 |
-|---|---|---|
-| `app215`（①④⑤ 语音/克隆） | **29 PASS / 0 FAIL / 0 NONE** | 7 条反证全被抓住 |
-| `app220`（③ 卡顿遥测/预缓冲/倍速封顶） | **39 PASS / 0 FAIL / 0 NONE** | 5 条反证全被抓住 |
-| `app219`（⑥ 界面紧凑） | **13 PASS / 0 FAIL / 0 NONE** | 含 1024×800 截图 |
+* **改前**（APP-061⑤d）：只**提示**「请勾选「说话人识别」」⇒ 用户漏勾就永远错
+  ⇒ 每句 `spk=None` ⇒ 回落预设 A（= 用户实测「男声被女声播出」的根因之一）。
+* **改法**（只改开发版 `live_caption/live_caption_app.py`）：
+  ① 新增 `_enable_speaker_for_clone(why)` ⇒ **三处同步**：**勾选框** `var_speaker` ＋
+     **运行时开关** `_speaker_enabled` ＋ **旁路桥接器** `_spk_bridge.enabled`
+     （少一处就会出现「界面勾了但没生效」）；② `_on_tts_voice_changed` 选「跟随说话人」
+     ⇒ **自动调用**它（并写日志）；③ 状态栏：克隆启用且旁路已开 ⇒ **「说话人分离：开（克隆需要）」**
+     （reviewer 原文）；克隆启用但旁路关着 ⇒ **「关（克隆需开）」**（黄色告警）⇒ 克隆**实质不可用**；
+     ④ **幂等**：已开着 ⇒ 直接返回（不重复勾选、不重复写日志）。
+* **实测**：`app227` 静态锚点 **4/4 PASS** ＋ **反证 PASS**（去掉自动开启 ⇒ 判据 FAIL ⇒ 非恒真）。
 
-⇒ 三个闸门**全部与 §127 记录一致**（29/0、39/0、13/0）⇒ **本轮改动没有引入回归**（复跑输出另存 `/tmp/app21*_recheck.json`，**未覆盖**仓库里的原证据）。
+#### ④ ✅ **D3 —— 客户包里去掉 TTS=CUDA（界面不显示 ＋ CLI 拒绝 ＋ 不残留路径）**
 
-#### ⑦ 🔴 **收尾复核（`CORRECTIONS_APP.md` 全程只读）**
+* **判据「当前是客户包」**：用**包内特有**的标记文件 `app/MANIFEST.json`
+  ⇒ 开发树 `live_caption/` 下**没有**它（实测）⇒ 客户包 `…_v2.2/app/` 下**有**它（实测）
+  ⇒ **同一个代码**两处行为不同 ⇒ **零新增配置**、客户机不用设任何环境变量。
+* **三处落地**：
+  ① **GUI**：`build_tts_options()` ⇒ 客户包里**整个 CUDA 项不出现**
+     （开发目录照旧列出，可用��对照基准；开发目录无 CUDA 环境时照旧「置灰 + 显示原因」＝APP-061②）；
+  ② **CLI**：`--tts-device CUDA` 在客户包里 ⇒ **明确报错 ＋ `sys.exit(2)`**
+     （**不是**静默降级成 NPU —— 静默降级会让用户以为在用 CUDA）；
+  ③ **结构性**：`pkg_exclude.INTERNAL_EXACT` 排除 **`app/tts_cuda.py`**、
+     **`app/tts_cuda_sidecar.py`**、**`docs/CUDA_TTS.md`**
+     ⇒ **「包里不能残留指向 `_fq3tts_env` 的依赖或路径」由此结构性保证**
+     （文件根本不在包里）；**开发树三个生产模块里的 `_fq3tts_env` 字面量也已清除**
+     （精确环境名只留在**不进包**的 `tts_cuda.py` 里）；`tts_worker.py` 的
+     `import tts_cuda` **加了异常保护** ⇒ 包内无该模块时**优雅降级**（不崩）。
+* **验收（reviewer 要求的「包内 grep 结果」）** ⇒ `results/app/app228_app062_d3_pkg_grep.py`
+  **8 PASS / 0 FAIL / 0 无法判定**（直接对**真实客户包**跑 `pkg_exclude` 的**同一份规则**）：
+  - 「真会进包的文件清单」里**没有** `app/tts_cuda.py` / `app/tts_cuda_sidecar.py`；
+  - 14 314 个进包文件里 grep **`_fq3tts_env` ⇒ 命中 0 处**；
+  - 包内所有 `import tts_cuda` **都有 try/except 保护**（未保护 0 处）；
+  - **反证**：把两个 CUDA 模块从排除表去掉 ⇒ 清单含 `tts_cuda.py` 且 grep 命中 6 处
+    ⇒ **判据非恒真**；
+  - 开发树**保留** CUDA 两个文件（reviewer：「只在开发目录保留，用于对照基准」）
+    且开发树里 grep 到 `_fq3tts_env` 3 处 ⇒ 证明「开发树有、客户包没有」这个对比**是真实的**。
+* 🔴 **口径说明（§130 踩过的坑）**：**「包内文件集合」≠「开发树全部文件」** —— 客户包 `app/`
+  是**一次打包时的快照**（`docs/` 等还**从上一个包整目录继承**）⇒ 验收必须用**真实包 + 真实规则**。
 
-* 开工基线：SHA256 `5ee74b79b38e139a875a14d44c82d05a1624ce35b4e693dac189fea683738502` / **168 827 B** / mtime **2026-11-01 21:50:01** / **61 条**。
-* 收尾实测（2026-11-02 04:47 现场重算）：SHA256 `5ee74b79b38e139a875a14d44c82d05a1624ce35b4e693dac189fea683738502` / **168 827 B** / mtime **2026-11-01 21:50:01** / **61 条**（APP-001…APP-061）⇒ **与开工基线逐字相同 ⇒ 本轮 reviewer 未追加新条目 ⇒ 「SHA 零改动」在本轮成立**（与 §125/§126「中途被追加」那两轮**不同**，勿混为一谈）。
-* 本模块对 `CORRECTIONS_APP.md` **全程只读、未写入**。
+#### ⑤ ✅ **D4 —— 禁止 MT 与 TTS 同在 NPU（MT 自动改 GPU.0 ＋ 告知 ＋ 写日志 ＋ 启动时同样处理）**
 
-#### ⑧ 🔴 **本轮新增待 reviewer 裁定（未自行改语义）**
+* **改法**（只改开发版 `live_caption/live_caption_app.py`）：新增 `_enforce_no_npu_conflict(origin)`
+  ⇒ 检测到 `MT=NPU` 且 `TTS=NPU` ⇒ **只改 MT**（`GPU.0`）＋ **状态栏告知** ＋ **弹框告知**
+  ＋ **写进日志**（`_ui_log` ⇒ 落盘会话日志）＋ **落到 `device_config.json`**（下次启动仍是 GPU.0）
+  ＋ 同步 GUI 下拉 ＋ 换运行中 MT 引擎的设备。
+* **三个接线点**：`_on_mt_combo_changed`、`_on_tts_combo_changed`、**启动时**
+  （`device_config.json` 里就是这组合）—— reviewer 原文：「启动时如果 device_config.json 里是这种组合，也一样处理」。
+* **幂等**：已改过 ⇒ 再跑**不改、不写日志**；不冲突 ⇒ **完全不动**。
+* **实测**（`app227`）：静态锚点 **8/8 PASS** ＋ **行为探针 4/4 PASS**
+  （MT=NPU+TTS=NPU ⇒ MT 变 `GPU.0` ＋ 日志含 `NPU`/`GPU.0`；再跑 changed=False 且日志 0 新增；
+  MT=GPU.0+TTS=NPU ⇒ changed=False 且日志 0 新增）。
+* 🔴 **弹框的模态陷阱（§130 实测并修掉）**：`messagebox.showwarning()` 是**模态**的
+  ⇒ 会**阻塞**到用户点掉 ⇒ **无头探针会永久挂起**（实测 `app227` 卡死 7 min）
+  ⇒ 已加「**有真实 GUI root 才弹**」守卫；无 GUI 时**只走状态栏 + 日志**
+  （reviewer 允许「状态栏**或**弹框」⇒ 两个都做，但弹框有条件）。
 
-① **锁闸门第 11 组的 AST 反证谓词恒真**（只认 `os.exists`，抓不到 `os.path.exists`）⇒ 反证**没有鉴别力**。**修它要动共享锁闸门**（`results/app/test_machine_lock_app.py`，被 ASR/MT/TTS 共用的 `machine_lock_app.py` 覆盖）⇒ 本轮**只定位、只留证**，改法与范围交 reviewer 定。
-② **`app224` 的基线钉在 `fae75d9`** ⇒ 该提交若被 `git gc`/改写则基线会失效（Git 提交不可变，正常不会变）⇒ 已同时保留 `shared/app223_backup_20261102/` 作第二来源。
-③ **APP-061② 另两条附带问题**：边车依赖包外 `C:\Users\Trekker-PTL\_fq3tts_env`（客户机不存在 ⇒ 属 **D3** 待决）＋ **v2.2 包内的 `tts_cuda_sidecar.py` 仍是改前版**（`_enter_buffered_busy` 与 `\_` 告警都在）⇒ **必须打 v2.3 才带上修复** ⇒ **本轮未打包**。
+#### ⑥ ✅ **既有回归套件复跑（改了 4 个生产文件 ⇒ 必须复跑）**
+
+| 套件 | §127/§129 基线 | §130/§131 | 结论 |
+|---|---|---|---|
+| `app215`（①④⑤ 语音/克隆） | 29 / 0 | **29 / 0** | ✅ 一致 |
+| `app220`（③ 卡顿遥测/预缓冲/倍速封顶） | 39 / 0 | **39 / 0** | ✅ 一致 |
+| `app219`（⑥ 界面紧凑） | 13 / 0 | **13 / 0** | ✅ 一致 |
+| `app224`（② 附带问题 + 锁闸门） | 5 / 0 | **5 / 0** | ✅ 一致 |
+| `app226`（§130：CUDA 回落换 ref） | — | **10 / 0** | ✅ |
+| `app227`（**本轮**：APP-062 D1–D4） | — | **34 / 0** | ✅ 新增 |
+| `app228`（**本轮**：D3 包内 grep） | — | **8 / 0** | ✅ 新增 |
+
+#### ⑦ ⛔ **设备级实测仍未跑（阻塞原因已换人，但结论不变）**
+
+* 🔴 **安静窗口**不可用；**MACHINE_LOCK 已被 TTS 模块持有**
+  （实测 `module: tts` / `pid: 18600` / `started: 2026-11-02 10:31:34`）
+  ⇒ **不同模块不同时占用设备** ⇒ 不与 TTS 抢设备 ⇒ **不开跑**。
+* ⇒ **APP-061 ①③④⑤ + ③(e) 的设备级数字仍未实测**（代码层已覆盖）
+  ⇒ 等设备空闲后跑 `python results/app/app223_app061_device_acceptance.py --run`。
+* 🔴 **D2 的「截图」验收尚未做**：reviewer 要求「D2：截图；D4：界面截图和日志行」
+  ⇒ 截图需**起 GUI**（`schtasks`）⇒ 与设备级作业同批做（机器安静时）⇒ **本轮未做**。
+
+#### ⑧ 🔴 **本轮新增待 reviewer 裁定 / 确认**
+
+① **D1 的「同源」依赖 ASR 侧模块在包里**（`app/asr_spk/asr052_spk_runtime.py`）
+   ⇒ 若将来 ASR 侧改模块名，App 侧会**静默退回 10.0**（不报错）⇒ 请 reviewer 确认这个兜底可接受。
+② **D3 的「客户包」判据用 `app/MANIFEST.json`** ⇒ 若将来包里该文件被改名/移除 ⇒ 判据失效
+   ⇒ 请 reviewer 确认这个判据（或指定更稳的标记）。
+③ **D2 的「自动打开旁路」在**已开会话**里只改开关、不重建旁路线程**
+   ⇒ 需**重启会话**才真正生效（日志里已写明）⇒ 请 reviewer 确认该行为可接受。
+④ **D4 的弹框在启动路径（`device_config.json` 同组合）也会弹**
+   ⇒ 模态窗口会在启动时挡一下 ⇒ 请 reviewer 确认。
 
 #### ⑨ 本轮交付
 
-* 代码（**只改开发版**，客户包一个字节都没动）：`live_caption/tts_cuda_sidecar.py`（**25 600 B** / SHA256 `677daaee11082184…`）。
-* 验收脚本：`results/app/app225_app061_sidecar_crash.py`（**11 189 B** / SHA256 `5bc41eb9cb3bb099…`）、`results/app/_app129_archive_sec127_128.py`。
-* 修改的既有脚本：`results/app/app223_app061_device_acceptance.py`（**36 298 B** / SHA256 `91d9b3e6daf5ea15…`）、`results/app/app224_app061_escape_lock_gates.py`（**17 068 B** / SHA256 `bae994ebaef6b276…`）。
-* 证据：`results/app/app225_app061_sidecar_crash_evidence.json`（**1 948 B** / SHA256 `6e1dbc9c97c44f1a…`）、`results/app/app224_app061_escape_lock_gates_evidence.json`（**7 379 B** / SHA256 `a97d35b49e648a3f…`）、`results/app/app223_app061_device_acceptance_evidence.selftest.json`（**2 458 B** / SHA256 `e93dd100b250cef2…`）、`status/archive/STATUS_APP_sec127_128_upto_20261102.md`。
-* 🔴 **未打包 / 未通知用户 / 未改桌面快捷方式 / 未改任何客户包目录**（v2.1、v2.2 目录与 zip **一个字节都没动**）；**未提交任何 `CORRECTIONS_*.md`**。
+* **代码（只改开发版，客户包一个字节都没动）**：
+  `live_caption/live_caption_app.py`（**378 238 B** / SHA256 `dd6743ccff82eee7…`）、
+  `live_caption/tts_worker.py`（**237 693 B** / SHA256 `6f51a71d570ec737…`）、
+  `live_caption/speaker_tracker.py`（**52 363 B** / SHA256 `31118e025f8bfc52…`）、
+  `pkg_exclude.py`（**39 383 B** / SHA256 `555039da4ce4df85…`）。
+* **验收脚本**：`results/app/app227_app062_d1_d4.py`（**19 893 B** / SHA256 `1ae31f7c1dc309a0…`）、
+  `results/app/app228_app062_d3_pkg_grep.py`（**12 423 B** / SHA256 `913676c85fa5dd33…`）。
+* **证据**：`results/app/app227_app062_d1_d4_evidence.json`、
+  `results/app/app228_app062_d3_pkg_grep_evidence.json`。
+* 🔴 **未打包 / 未通知用户 / 未改桌面快捷方式 / 未改任何客户包目录**
+  （v2.1、v2.2 目录与 zip **一个字节都没动**）⇒ **dev 树又变了 ⇒ 下一版必须打 v2.3**；
+  **未提交任何 `CORRECTIONS_*.md`**。

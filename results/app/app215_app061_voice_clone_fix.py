@@ -259,17 +259,56 @@ def static_checks_worker(w_src: str) -> dict:
         if cuda_branch is None:
             out['1b_cuda_fallback_keeps_name'] = (None, 'CUDA 分支找不到')
         else:
-            assigns = []
-            for n in ast.walk(cuda_branch):
-                if isinstance(n, ast.Assign):
-                    for t in n.targets:
-                        if isinstance(t, ast.Attribute) and t.attr == 'speaker_name':
-                            assigns.append(_src_of(w_src, n.value))
-            ok = bool(assigns) and any(
-                isinstance(n.value, ast.BoolOp) for n in ast.walk(cuda_branch)
-                if isinstance(n, ast.Assign))
+            # 🔴🔴🔴 §130：**只看 CUDA 分支的 body**（`ast.walk(If)` 会把
+            #   **else 分支**（BabelVox 路线）也遍历进去 ⇒ 语义被污染）
+            #   ⇒ 再按需**跟随委派**进 `_fallback_to_preset_ref_cuda()`
+            #   ⇒ **鉴别力必须不变**（v2.1 形态：两处都没有 ⇒ FAIL）。
+            def _collect(body):
+                got = []
+                for stmt in body:
+                    for n in ast.walk(stmt):
+                        if isinstance(n, ast.Assign):
+                            for t in n.targets:
+                                if (isinstance(t, ast.Attribute)
+                                        and t.attr == 'speaker_name'):
+                                    got.append((n, _src_of(w_src, n.value)))
+                return got
+
+            body_assigns = _collect(cuda_branch.body)
+            has_boolop = any(isinstance(n.value, ast.BoolOp)
+                             for n, _s in body_assigns)
+            scope_assigns = body_assigns
+            delegated = False
+            if not has_boolop:
+                # CUDA 分支 body 里没有 BoolOp 赋值 ⇒ 可能是 §130 的委派形态
+                # 🔴 **在 AST 上直接找调用**（不用源码片段：
+                #   `ast.get_source_segment` 需要节点有位置信息 ⇒ 合成节点取不到）
+                def _calls_helper(stmts):
+                    for stmt in stmts:
+                        for n in ast.walk(stmt):
+                            if isinstance(n, ast.Call):
+                                f = n.func
+                                if isinstance(f, ast.Attribute) and \
+                                        f.attr == '_fallback_to_preset_ref_cuda':
+                                    return True
+                                if isinstance(f, ast.Name) and \
+                                        f.id == '_fallback_to_preset_ref_cuda':
+                                    return True
+                    return False
+
+                helper = _fn(tree, '_fallback_to_preset_ref_cuda')
+                if helper is not None and _calls_helper(cuda_branch.body):
+                    delegated = True
+                    h_assigns = _collect(helper.body)
+                    scope_assigns = h_assigns
+                    has_boolop = any(isinstance(n.value, ast.BoolOp)
+                                     for n, _s in h_assigns)
+            assigns = [s for _n, s in scope_assigns]
+            ok = bool(assigns) and has_boolop
             out['1b_cuda_fallback_keeps_name'] = (
-                bool(ok), 'CUDA 分支内 speaker_name 赋值=%r' % (assigns,))
+                bool(ok),
+                'CUDA 分支内 speaker_name 赋值=%r（委派共用出口=%r）'
+                % (assigns, delegated))
 
     # ①c：synth 的音色闸门走 `_has_ref_audio`
     fn = _fn(tree, 'synth')
@@ -317,13 +356,16 @@ MUT_W_1A_OLD = """            self._preset_name = 'A'
 MUT_W_1A_NEW = """            # MUTANT: 不缓存 _preset_name（= v2.1 的真实缺陷）
 """
 
-MUT_W_1B_OLD = """            self.speaker_embed = None
-            self.speaker_name = self._preset_name or 'A'
-            ref = self._preset_ref_path
+# 🔴🔴🔴 §130：这段代码被搬进了新方法 `_fallback_to_preset_ref_cuda()`
+#   ⇒ **只改缩进**（12 → 8 空格），**语义一字不变**
+#   ⇒ 反证仍然在测同一件事：「回落把 speaker_name 恢复成 _preset_name」
+MUT_W_1B_OLD = """        self.speaker_embed = None
+        self.speaker_name = self._preset_name or 'A'
+        ref = self._preset_ref_path
 """
-MUT_W_1B_NEW = """            self.speaker_embed = self._preset_embed
-            self.speaker_name = self._preset_name
-            ref = self._preset_ref_path
+MUT_W_1B_NEW = """        self.speaker_embed = self._preset_embed
+        self.speaker_name = self._preset_name
+        ref = self._preset_ref_path
 """
 
 MUT_W_1C_OLD = """            if getattr(self.engine, 'USES_REF_AUDIO', False):

@@ -1,0 +1,63 @@
+{
+ "script": "app226_app061_cuda_fallback_ref.py",
+ "correction": "APP-061 ①（§130 自查发现的串音缺陷）",
+ "ts": "2026-11-02 09:43:03",
+ "repo": "C:\\Users\\Trekker-PTL\\confucius4-openvino",
+ "target": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_worker.py",
+ "checks": [
+  {
+   "name": "cuda_row_none_returns_preset",
+   "ok": true,
+   "detail": "spk=S2 未登记 ⇒ 返回音色来源 'preset'（须 preset）"
+  },
+  {
+   "name": "cuda_row_none_swaps_ref_back_to_preset",
+   "ok": true,
+   "detail": "边车最终 ref='C:\\\\pkg\\\\preset_A.wav'（须预设 A 的 preset_A.wav）"
+  },
+  {
+   "name": "cuda_row_none_emits_set_ref_audio",
+   "ok": true,
+   "detail": "set_ref_audio 调用序列=['C:\\\\pkg\\\\preset_A.wav']（须恰好 1 次，且是预设 A）"
+  },
+  {
+   "name": "cuda_known_spk_uses_clone_ref",
+   "ok": true,
+   "detail": "spk=S1 已登记 ⇒ 来源='clone' ref='C:\\\\tmp\\\\S1_clone.wav'（须 clone / S1_clone.wav）"
+  },
+  {
+   "name": "crosstalk_scenario_s1_clone_then_s2_unknown",
+   "ok": true,
+   "detail": "S1 克隆后 ref='C:\\\\tmp\\\\S1_clone.wav'；S2 未登记后 ref='C:\\\\pkg\\\\preset_A.wav'（须 S1_clone.wav → preset_A.wav）"
+  },
+  {
+   "name": "crosstalk_scenario_voice_kind",
+   "ok": true,
+   "detail": "来源序列='clone','preset'（须 clone,preset）"
+  },
+  {
+   "name": "cuda_no_ref_swaps_back_to_preset",
+   "ok": true,
+   "detail": "该 spk 无 ref ⇒ 来源='preset' ref='C:\\\\pkg\\\\preset_A.wav'（须 preset / preset_A.wav）"
+  },
+  {
+   "name": "cuda_switch_failure_swaps_back_to_preset",
+   "ok": true,
+   "detail": "切换失败 ⇒ 来源='preset' ref='C:\\\\pkg\\\\preset_A.wav'（须 preset / preset_A.wav）"
+  },
+  {
+   "name": "babelvox_route_unchanged",
+   "ok": true,
+   "detail": "BabelVox 路线 ⇒ 来源='preset' embed='PRESET_EMBED' name='A'（须 preset / PRESET_EMBED / A）"
+  },
+  {
+   "name": "counterproof_old_behavior_is_caught",
+   "ok": true,
+   "detail": "改回旧行为（调用数 5→1）⇒ 来源='preset' ref=None（须 preset / **不是** preset_A.wav）"
+  }
+ ],
+ "n_pass": 10,
+ "n_fail": 0,
+ "n_none": 0,
+ "verdict": "PASS"
+}

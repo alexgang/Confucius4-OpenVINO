@@ -1,7 +1,7 @@
 {
  "script": "app224_app061_escape_lock_gates.py",
  "correction": "APP-061 (② 附带问题) + 共享锁闸门",
- "ts": "2026-11-02 04:42:09",
+ "ts": "2026-11-02 10:56:17",
  "repo": "C:\\Users\\Trekker-PTL\\confucius4-openvino",
  "pkg_v22": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2",
  "escape_fixes": [
@@ -9,15 +9,27 @@
    "file": "live_caption/tts_cuda_sidecar.py",
    "baseline": "git fae75d9（钉死的改前基线）",
    "sha256_baseline": "84110917d44c13a5ddc1136d6be557b10ef889a2c04f00dcb644834bb0ed0804",
-   "sha256_now": "2c6b7884619cb7b902a2bd2d62254972e31c961ae883f54e764cdac1a7e420c1",
+   "sha256_now": "677daaee11082184af2f5588d2b95eb004a3c86c7e2b24e446d5c4f6fb9f653b",
    "bytes_baseline": 23921,
-   "bytes_now": 23922,
+   "bytes_now": 25600,
    "warn_baseline": [
     "live_caption/tts_cuda_sidecar.py:8 invalid escape sequence '\\_'"
    ],
    "warn_now": [],
    "baseline_had_warn": true,
    "warn_cleared": true,
+   "n_constants_baseline": 152,
+   "n_constants_now": 152,
+   "n_docstring_baseline": 6,
+   "n_docstring_now": 6,
+   "n_behavior_baseline": 146,
+   "n_behavior_now": 146,
+   "behavior_const_diffs": [],
+   "behavior_values_intact": true,
+   "docstring_drift": [
+    "值丢了 x1：'🔴🔴🔴 §90：**独立命令读取线程**。\\n\\n    为什么必须有（这是本轮修掉的**根因**）：\\n      旧实现的'",
+    "新增 x1（合法增量，不算「值变了」）：'🔴🔴🔳 §90：**独立命令读取线程**。\\n\\n    为什么必须有（这是本轮修掉的**根因**）：\\n      旧实现的'"
+   ],
    "string_const_diffs": [],
    "string_values_intact": true,
    "ok": true
@@ -35,9 +47,18 @@
    "warn_now": [],
    "baseline_had_warn": true,
    "warn_cleared": true,
-   "string_const_diffs": [
-    "#7 控制字符→可见字面量（docstring）"
+   "n_constants_baseline": 175,
+   "n_constants_now": 175,
+   "n_docstring_baseline": 24,
+   "n_docstring_now": 24,
+   "n_behavior_baseline": 151,
+   "n_behavior_now": 151,
+   "behavior_const_diffs": [],
+   "behavior_values_intact": true,
+   "docstring_drift": [
+    "新增 x1（合法增量，不算「值变了」）：'解析 README 格式的「模块名 PID <pid> started <时间>」⇒ (module, pid)。\\n\\n '"
    ],
+   "string_const_diffs": [],
    "string_values_intact": true,
    "ok": true
   },
@@ -54,6 +75,15 @@
    "warn_now": [],
    "baseline_had_warn": true,
    "warn_cleared": true,
+   "n_constants_baseline": 56,
+   "n_constants_now": 56,
+   "n_docstring_baseline": 1,
+   "n_docstring_now": 1,
+   "n_behavior_baseline": 55,
+   "n_behavior_now": 55,
+   "behavior_const_diffs": [],
+   "behavior_values_intact": true,
+   "docstring_drift": [],
    "string_const_diffs": [],
    "string_values_intact": true,
    "ok": true
@@ -71,6 +101,15 @@
    "warn_now": [],
    "baseline_had_warn": true,
    "warn_cleared": true,
+   "n_constants_baseline": 54,
+   "n_constants_now": 54,
+   "n_docstring_baseline": 1,
+   "n_docstring_now": 1,
+   "n_behavior_baseline": 53,
+   "n_behavior_now": 53,
+   "behavior_const_diffs": [],
+   "behavior_values_intact": true,
+   "docstring_drift": [],
    "string_const_diffs": [],
    "string_values_intact": true,
    "ok": true
@@ -79,16 +118,81 @@
    "file": "results/app/app223_app061_device_acceptance.py",
    "baseline": "改前备份 C:\\Users\\Trekker-PTL\\shared\\app223_backup_20261102\\app223_app061_device_acceptance.py",
    "sha256_baseline": "de955be22de834f291806a5920eb7322b6b3fbe4f67ed20c58fcd8fa91e0895f",
-   "sha256_now": "3a312162111c9f9b65ab71b9bb79a8e812feeade65c1260eb3a8d32e439f0179",
+   "sha256_now": "91d9b3e6daf5ea15c9722ae5064f587469c2fe032db658bfad44630d31ba408f",
    "bytes_baseline": 32702,
-   "bytes_now": 32703,
+   "bytes_now": 36298,
    "warn_baseline": [
     "results/app/app223_app061_device_acceptance.py:30 invalid escape sequence '\\C'"
    ],
    "warn_now": [],
    "baseline_had_warn": true,
    "warn_cleared": true,
-   "string_const_diffs": [],
+   "n_constants_baseline": 524,
+   "n_constants_now": 556,
+   "n_docstring_baseline": 8,
+   "n_docstring_now": 9,
+   "n_behavior_baseline": 516,
+   "n_behavior_now": 547,
+   "behavior_const_diffs": [
+    "新增 x1（合法增量，不算「值变了」）：'tts_on_clone'",
+    "新增 x1（合法增量，不算「值变了」）：'n_fail'",
+    "新增 x3（合法增量，不算「值变了」）：'verdict'",
+    "新增 x1（合法增量，不算「值变了」）：'FAIL'",
+    "新增 x1（合法增量，不算「值变了」）：'.gitignore'",
+    "新增 x1（合法增量，不算「值变了」）：'（--dry-run：只打印命令，**没有跑任何设备作业**，也没有写证据文件）'",
+    "新增 x1（合法增量，不算「值变了」）：'.json'",
+    "新增 x1（合法增量，不算「值变了」）：'.selftest.json'",
+    "新增 x1（合法增量，不算「值变了」）：'selftest_only'",
+    "新增 x1（合法增量，不算「值变了」）：','",
+    "新增 x3（合法增量，不算「值变了」）：'counterproof_v21_n_fail'",
+    "新增 x1（合法增量，不算「值变了」）：'w'",
+    "新增 x1（合法增量，不算「值变了」）：'utf-8'",
+    "新增 x1（合法增量，不算「值变了」）：'duration'",
+    "新增 x1（合法增量，不算「值变了」）：'*\\n'",
+    "新增 x1（合法增量，不算「值变了」）：'（自检结果**另存**；设备级证据 %s **未被覆盖**）'",
+    "新增 x1（合法增量，不算「值变了」）：'counterproof_v21_checks'",
+    "新增 x2（合法增量，不算「值变了」）：'counterproof_enforced'",
+    "新增 x1（合法增量，不算「值变了」）：'  v2.1 同判据：%d 条 FAIL / %d 条无法判定 / 共 %d 条'",
+    "新增 x1（合法增量，不算「值变了」）：'\\n[反证] !! v2.1 用同一套判据 **0 条 FAIL** ⇒ 判据鉴别不出新旧版本 ⇒ 本轮结果不可信 ⇒ 判'",
+    "新增 x1（合法增量，不算「值变了」）：' '",
+    "新增 x1（合法增量，不算「值变了」）：'X.wav'",
+    "新增 x1（合法增量，不算「值变了」）：'X.jsonl'",
+    "新增 x1（合法增量，不算「值变了」）：'X.txt'",
+    "新增 x1（合法增量，不算「值变了」）：'    [FAIL] %s'",
+    "新增 x1（合法增量，不算「值变了」）：'name'"
+   ],
+   "behavior_values_intact": true,
+   "docstring_drift": [
+    "新增 x1（合法增量，不算「值变了」）：'建输出目录，并放一个**自带的 `.gitignore`**（`*`）。\\n\\n    🔴 §129：产物目录在**仓库内*'"
+   ],
+   "string_const_diffs": [
+    "新增 x1（合法增量，不算「值变了」）：'tts_on_clone'",
+    "新增 x1（合法增量，不算「值变了」）：'n_fail'",
+    "新增 x3（合法增量，不算「值变了」）：'verdict'",
+    "新增 x1（合法增量，不算「值变了」）：'FAIL'",
+    "新增 x1（合法增量，不算「值变了」）：'.gitignore'",
+    "新增 x1（合法增量，不算「值变了」）：'（--dry-run：只打印命令，**没有跑任何设备作业**，也没有写证据文件）'",
+    "新增 x1（合法增量，不算「值变了」）：'.json'",
+    "新增 x1（合法增量，不算「值变了」）：'.selftest.json'",
+    "新增 x1（合法增量，不算「值变了」）：'selftest_only'",
+    "新增 x1（合法增量，不算「值变了」）：','",
+    "新增 x3（合法增量，不算「值变了」）：'counterproof_v21_n_fail'",
+    "新增 x1（合法增量，不算「值变了」）：'w'",
+    "新增 x1（合法增量，不算「值变了」）：'utf-8'",
+    "新增 x1（合法增量，不算「值变了」）：'duration'",
+    "新增 x1（合法增量，不算「值变了」）：'*\\n'",
+    "新增 x1（合法增量，不算「值变了」）：'（自检结果**另存**；设备级证据 %s **未被覆盖**）'",
+    "新增 x1（合法增量，不算「值变了」）：'counterproof_v21_checks'",
+    "新增 x2（合法增量，不算「值变了」）：'counterproof_enforced'",
+    "新增 x1（合法增量，不算「值变了」）：'  v2.1 同判据：%d 条 FAIL / %d 条无法判定 / 共 %d 条'",
+    "新增 x1（合法增量，不算「值变了」）：'\\n[反证] !! v2.1 用同一套判据 **0 条 FAIL** ⇒ 判据鉴别不出新旧版本 ⇒ 本轮结果不可信 ⇒ 判'",
+    "新增 x1（合法增量，不算「值变了」）：' '",
+    "新增 x1（合法增量，不算「值变了」）：'X.wav'",
+    "新增 x1（合法增量，不算「值变了」）：'X.jsonl'",
+    "新增 x1（合法增量，不算「值变了」）：'X.txt'",
+    "新增 x1（合法增量，不算「值变了」）：'    [FAIL] %s'",
+    "新增 x1（合法增量，不算「值变了」）：'name'"
+   ],
    "string_values_intact": true,
    "ok": true
   }
@@ -125,7 +229,7 @@
   ],
   "rc": 1,
   "tail": [
-   "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app224_lock_o592964u\\machine_lock_app.py:258: SyntaxWarning: invalid escape sequence '\\S'",
+   "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app224_lock_f1mo0ipq\\machine_lock_app.py:258: SyntaxWarning: invalid escape sequence '\\S'",
    "  ① `re.match(r'^(\\S+)\\s+PID\\s+(\\d+)\\b')` ⇒ `\\s+` 要求 `PID` 后有**空白**",
    "<unknown>:258: SyntaxWarning: invalid escape sequence '\\S'",
    "<unknown>:258: SyntaxWarning: invalid escape sequence '\\S'",
@@ -170,7 +274,7 @@
  },
  "quiet_window": {
   "ok": false,
-  "info": "{'quiet_seconds': 30.0, 'timeout': 60.0, 'waited_s': 60.046640157699585, 'n_samples': 4, 'n_busy_samples': 4, 'n_idle_samples': 0, 'n_unknown_samples': 1, 'last_busy_pids': [14712], 'last_idle_pids': [], 'classifier': 'cpu-delta'}"
+  "info": "{'quiet_seconds': 30.0, 'timeout': 60.0, 'waited_s': 60.05318260192871, 'n_samples': 4, 'n_busy_samples': 4, 'n_idle_samples': 0, 'n_unknown_samples': 1, 'last_busy_pids': [1064, 28012], 'last_idle_pids': [], 'classifier': 'cpu-delta'}"
  },
  "n_pass": 5,
  "n_fail": 0,
@@ -182,6 +286,58 @@
   ],
   "good_warnings": [],
   "detail": "坏文件被判成「没归零」=True；好文件被判成「已归零」=True"
+ },
+ "multiset_criterion_self_test": {
+  "ok": true,
+  "cases": [
+   {
+    "name": "mutant_drop_one_value",
+    "ok": true,
+    "detail": "基线 [AAA,BBB,CCC] → 当前 [AAA,BBB] ⇒ intact=False（须 False）"
+   },
+   {
+    "name": "mutant_only_additions",
+    "ok": true,
+    "detail": "基线 [AAA,BBB,CCC] → 当前 +DDD,+EEE ⇒ intact=True（须 True）"
+   },
+   {
+    "name": "mutant_value_replaced",
+    "ok": true,
+    "detail": "基线 [AAA,BBB,CCC] → 当前 [AAA,BBB,ZZZ] ⇒ intact=False（须 False）"
+   },
+   {
+    "name": "mutant_reorder_only",
+    "ok": true,
+    "detail": "基线 [AAA,BBB,CCC] → 当前 [CCC,BBB,AAA] ⇒ intact=True（须 True）"
+   },
+   {
+    "name": "exempt_ctrl_to_visible",
+    "ok": true,
+    "detail": "基线 a<LF>b → 当前 a\\nb（raw 字面量）⇒ intact=True（须 True）"
+   }
+  ],
+  "detail": "多重集判据自检 5/5 通过"
+ },
+ "docstring_split_self_test": {
+  "ok": true,
+  "cases": [
+   {
+    "name": "split_counts",
+    "ok": true,
+    "detail": "基线 docstring=2 行为常量=3（须 2 / 3）"
+   },
+   {
+    "name": "docstring_drift_not_blocking",
+    "ok": true,
+    "detail": "docstring 演进后行为常量 intact=True（须 True）"
+   },
+   {
+    "name": "behavior_value_change_is_caught",
+    "ok": true,
+    "detail": "行为常量 \"alpha\"→\"ALPHA\" ⇒ intact=False（须 False）"
+   }
+  ],
+  "detail": "docstring 拆分自检 3/3 通过"
  },
  "device_acceptance_blocked": true,
  "device_acceptance_blocked_why": "安静窗口不可用 ⇒ 用户自己的 v2.1 GUI 会话仍在跑（PID 14712）⇒ 本轮**不开跑**设备级推理（避免与用户会话抢 NPU）"
