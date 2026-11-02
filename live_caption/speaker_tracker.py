@@ -579,6 +579,41 @@ class SpeakerBridge:
             self._worker.start()
         self._log('说话人旁路后台线程已启动')
 
+    def ensure_started(self) -> bool:
+        """🔴🔴🔴 APP-063 ②（D2 补齐 (d)，2026-11-02）：**会话进行中即时拉起旁路**。
+
+        🔴 **reviewer 原文**：
+          「(d) §131⑧③"会话进行中自动打开旁路后要重启会话才生效"：
+            这时状态栏已经显示"开（克隆需要）"，但实际上没有生效，
+            这本身就是 D2 想消除的"界面勾了但没生效"。
+            **请在会话进行中直接把旁路线程拉起来**
+            （APP-054 已证明异步旁路可以随时挂上）。
+            如果做不到，状态栏要如实显示"重启会话后生效"，
+            并且给一个一键重启。」
+
+        ✅ **可以做到**：`feed()` 是**惰性启动**线程的
+          （`feed()` → `_ensure_worker()`）⇒ 只要 `enabled=True`
+          ⇒ **下一次音频 feed 就会真正把后台线程拉起来**
+          ⇒ **不需要重启会话**。
+        ⚠️ 本方法**主动**调一次 `_ensure_worker()` ⇒ 不必等到下一次 feed
+          （让「已开启」这件事**当场**可观测）。
+
+        🔴 **返回 True = 线程已在本方法内启动**；
+           False = 启动失败（降级，调用方应如实告知用户）。
+        """
+        if not getattr(self, 'enabled', False):
+            return False
+        try:
+            self._ensure_worker()
+        except Exception as e:
+            self._log('说话人旁路线程启动失败（降级）：%s' % e)
+            return False
+        w = getattr(self, '_worker', None)
+        try:
+            return bool(w is not None and w.is_alive())
+        except Exception:
+            return False
+
     def _worker_loop(self) -> None:
         """后台线程：**攒够一整窗 → 喂 tracker → 推进定稿段**。
 

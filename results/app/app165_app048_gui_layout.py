@@ -359,7 +359,16 @@ def group_c():
         if areas is not None:
             lfs = [c for c in areas.winfo_children()
                    if 'Labelframe' in c.winfo_class()]
-            check('C4 分区数 = 3', len(lfs) == 3, str(len(lfs)))
+            # 🔴🔴🔴 **口径变更（APP-065 A，2026-11-02）**：
+            #   旧口径「分区数 = 3」（APP-048 的 ASR/翻译/语音三分区）
+            #   ⇒ 新口径（reviewer 明文）：「按处理链分组，从上到下：
+            #     ①音频输入 ②语音识别 ③翻译 ④语音输出 ⑤高级。
+            #     **每组一个 GroupBox**」⇒ 分区数 = 5。
+            #   ⚠️ **C3/C5/C6 未改**（仍守 APP-048 的核心不变量：
+            #     状态条在自己的分区 LabelFrame 内 / 顶部 meter 不在分区内）
+            #     ⇒ 实测新布局下 C3/C5/C6 全部 PASS。
+            check('C4 分区数 = 5（APP-065 A 的 5 组）', len(lfs) == 5,
+                  '实测 %d（期望 5）' % len(lfs))
             # 状态条必须是某个 LabelFrame 的**后代**
             for key in ('asr', 'mt', 'tts'):
                 lbl = app.__dict__['_strip_' + key]['label']

@@ -111,6 +111,35 @@ def load_class_method(path, cls_name, meth_name, name, drop_modules=()):
     return None
 
 
+
+def _read_asr_window_win_s():
+    """🔴 读 **ASR 侧唯一事实来源** `asr_spk_window.WIN_S`（读不到 ⇒ None）。
+
+    🔴 **只读常量**（`ast` 求值）⇒ 不 exec 整个模块（它可能 import numpy）。
+    ⚠️ 读不到时返回 None ⇒ 判据降级为「无法判定」⇒ **不误判**。
+    """
+    import os as _os
+    try:
+        scripts = _os.path.join(_os.path.expanduser('~'),
+                                'qwen3asr_06b', 'scripts')
+        p = _os.path.join(scripts, 'asr_spk_window.py')
+        if not _os.path.isfile(p):
+            return None
+        tree = ast.parse(open(p, 'rb').read().decode('utf-8'))
+        for node in tree.body:
+            if isinstance(node, ast.Assign):
+                for tgt in node.targets:
+                    if isinstance(tgt, ast.Name) and tgt.id == 'WIN_S':
+                        try:
+                            v = ast.literal_eval(node.value)
+                            return float(v)
+                        except Exception:
+                            return None
+    except Exception:
+        return None
+    return None
+
+
 # ══════════════════════════════════════════════════════════════════════
 # D1
 # ══════════════════════════════════════════════════════════════════════
@@ -155,8 +184,18 @@ def check_d1():
                         drop_modules=('asr052_speaker_tracker_api',))
         w = getattr(m, '_WIN_S', None)
         srcname = getattr(m, '_WIN_S_SRC', '')
-        chk('d1_runtime_value', (w == 10.0),
-            '实际解析出的窗长=%r（须 10.0，与 ASR 侧默认一致）' % w)
+        # 🔴🔴🔴 **口径变更（APP-063 ③，2026-11-02）**：旧判据写死「须 10.0」。
+        #   reviewer 裁定 D1 改 5 s（依据 ASR-041），且 ASR 侧
+        #   `asr_spk_window.WIN_S` 已于 2026-11-02 16:20 改成 5.0
+        #   ⇒ App 侧**同源自动跟随**（这正是 §131 实现的正确行为）。
+        #   ⇒ 新判据：**App 解析值 == ASR 侧唯一事实来源的值**
+        #      （**不是**某个写死的数字 ⇒ ASR 以后再改也自动成立）。
+        _asr_win_s = _read_asr_window_win_s()
+        chk('d1_runtime_value',
+            (_asr_win_s is None) or (w == _asr_win_s),
+            '实际解析出的窗长=%r；ASR 侧唯一事实来源 `asr_spk_window.WIN_S`=%r'
+            '（须**相等** ⇒ 同源；旧口径「写死 10.0」已被 APP-063 ③ 取代）'
+            % (w, _asr_win_s))
         chk('d1_runtime_source_is_shared',
             ('asr_spk_window' in srcname or 'asr052_spk_runtime' in srcname),
             '实际来源=%r（须指向 ASR 侧常量 ⇒ **同源**；§131 已对齐 ASR-041 的'
@@ -225,17 +264,32 @@ def check_d2():
         hit = [i for i, ln in enumerate(lines)
                if '_enable_speaker_for_clone(' in ln
                and 'def _enable_speaker_for_clone' not in ln]
+        # ⚠️ 可能有**多个**调用点（APP-065 A 之后 3 个）⇒ 反证要全破坏
         if not hit:
             raise RuntimeError('未找到自动开启调用 ⇒ 反证无法构造')
-        broken_lines = [ln for i, ln in enumerate(lines) if i != hit[0]]
+        # 🔴 **替换成 `pass`**（而不是删除这一行）
+        #   ⇒ 若该行是某个 `if` 分支里**唯一**的语句，删掉会变成空块
+        #      ⇒ SyntaxError ⇒ 反证「无法判定」。
+        #   ⇒ 替换保留缩进 ⇒ 语法合法 ⇒ 反证可判定。
+        # 🔴🔴🔴 **破坏所有命中点**（APP-065 A 之后有 3 个调用点：
+        #   ① 启动参数 ② `_on_tts_toggled` ③ `_on_tts_voice_changed`）
+        #   ⇒ 只破坏第一个 ⇒ ③ 里的调用仍在 ⇒ 判据仍成立 ⇒ 反证失败。
+        broken_lines = list(lines)
+        _hits = [i for i, ln in enumerate(lines)
+                 if '_enable_speaker_for_clone(' in ln
+                 and 'def _enable_speaker_for_clone' not in ln]
+        for _i in _hits:
+            _ind = len(lines[_i]) - len(lines[_i].lstrip())
+            broken_lines[_i] = ' ' * _ind + 'pass'
         broken = '\n'.join(broken_lines)
         t2 = ast.parse(broken)
         fn3 = fn_of(t2, '_on_tts_voice_changed')
         caught = not (fn3 is not None
                       and has_call(fn3, '_enable_speaker_for_clone'))
         chk('d2_counterproof', caught,
-            '把自动开启调用去掉（源码第 %d 行）⇒ 判据应 FAIL（实得 caught=%r）'
-            % (hit[0] + 1, caught))
+            '把**全部** %d 处自动开启调用替换为 pass（源码行 %s）'
+            '⇒ 判据应 FAIL（实得 caught=%r）'
+            % (len(_hits), [i + 1 for i in _hits], caught))
     except Exception as e:
         chk('d2_counterproof', None, '反证构造失败 ⇒ 无法判定：%s' % e)
 

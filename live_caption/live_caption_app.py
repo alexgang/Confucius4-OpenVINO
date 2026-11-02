@@ -148,6 +148,25 @@ _CLONE_FRAME = clone_collector._CLONE_FRAME
 
 CHUNK_SEC = 0.64
 
+# 🔴🔴🔴 APP-065 A（2026-11-02）：**界面重排的全局网格常量**
+#   reviewer 原文：「按处理链分组，从上到下：①音频输入 ②语音识别 ③翻译
+#     ④语音输出（开关、输出设备、音色）⑤高级。每组一个 GroupBox，
+#     **组内用统一网格：标签列右对齐、等宽，控件列左对齐、同宽；
+#     所有组的标签列宽度一致，行高一致**。」
+#   ⇒ 这几个常量是**所有组共用**的 ⇒ 「标签列宽度一致」「行高一致」
+#     由**单一数据源**保证（不是每组各写一个数字）。
+# 🔴 **标签列宽（像素）**：由 `grid_columnconfigure(0, minsize=…)` 统一控制。
+#   ⚠️ **不用 `ttk.Label(width=N)`**（N 是**字符数** ⇒ 像素宽随字体/缩放变
+#      ⇒ 不同缩放下不可比，APP-065 A 的「标签列宽度一致」会失效；
+#      实测 100% 时右边缘 44 px、150% 时 92 px）。
+#   ⇒ 标签**不设 width**；宽度 = 列 minsize ⇒ **所有组共用同一个像素值**
+#      ⇒ 组间**恒等**，且随缩放按比例变化（符合直觉）。
+_GRID_LABEL_PX = 64
+# 🔴 **控件列宽（字符数）**：所有组的所有下拉/输入框**同宽**。
+_GRID_CTRL_CHARS = 30
+# 🔴 **行高（px）**：所有组的行高一致 ⇒ 视觉节奏统一。
+_GRID_ROW_H = 26
+
 # 规则1 的最短段门槛（计时器兜底）：段长 ≥ MIN_SEG_SEC 且最近 SIL_LOOKBACK_SEC
 # 内有 ≥300ms 静音就切段。
 #
@@ -2316,7 +2335,11 @@ class App:
         # 🔴 APP-048：**总状态灯**（全部就绪 / 有模块异常时点击查看）
         self._global_light = tk.StringVar(value='⚪ 就绪')
         self.btn_global_light = ttk.Button(
-            top, textvariable=self._global_light, width=12,
+            top, textvariable=self._global_light,
+            # 🔴🔴🔴 APP-065 A：`width=12` 在 **150 % 缩放**下不够
+            #   ⇒ 「有模块待处理」被**裁掉**（实测截图）
+            #   ⇒ 改成 18（150 % 下也不裁）。
+            width=18,
             command=self._show_global_status)
         self.btn_global_light.pack(side='right', padx=(0, 12))
         # 🔴 APP-048：顶部 meter（**全局**信息）⇒ 移进顶栏
@@ -2327,10 +2350,31 @@ class App:
                                    font=('Consolas', 10))
         self.lbl_meter.pack(side='right', padx=(0, 12))
 
-        # 🔴🔴🔴 APP-061⑥：**「高级」面板**（默认收起 ⇒ 不占纵向空间）。
-        #   ⚠️ 用**普通 Frame**（不是 LabelFrame）⇒ `app165` 的「分区数 = 3」
-        #     判据（C4）不受影响。
-        self._adv_frame = ttk.Frame(root, padding=(8, 2))
+        # 🔴🔴🔴 APP-065 A（2026-11-02）：**界面重排** —— 按处理链分 5 组。
+        #   reviewer 原文：「按处理链分组，从上到下：①音频输入 ②语音识别 ③翻译
+        #     ④语音输出（开关、输出设备、音色）⑤高级。每组一个 GroupBox，
+        #     组内用统一网格：标签列右对齐、等宽，控件列左对齐、同宽；
+        #     **所有组的标签列宽度一致，行高一致**。
+        #     "高级"只放用户平时不需要动的东西（设备选择 GPU/NPU/CPU、
+        #     缓冲时长、调试/日志）。凡是用户正常使用要选的
+        #     （输入源、语言、是否配音、音色）不得放进高级。
+        #     高级里的每一项要有一句话提示说明作用。」
+        #   ⇒ 本段只建**容器骨架**：
+        #     ① `self._groups`  = 5 个 GroupBox 的**竖排**容器
+        #     ② `self._adv_group` = 「⑤ 高级」组外壳（**默认收起**）
+        #     ③ `self._adv_frame` = 高级组的**内容**容器（普通 Frame）
+        #   ⚠️ **`_adv_frame` 保持普通 Frame** ⇒ `app165` 的「分区数」判据
+        #     只数 LabelFrame ⇒ 「⑤ 高级」**不**被算进分区（与旧口径一致）。
+        #   ⚠️ **`self._groups` 必须是 root 的第一个含 LabelFrame 子控件的容器**
+        #     ⇒ `app165` 的 C3（找分区容器）仍然能找到它。
+        self._groups = ttk.Frame(root, padding=(8, 0))
+        self._groups.pack(fill='x')
+        self._adv_group = ttk.LabelFrame(self._groups, text='⑤ 高级',
+                                          padding=(6, 0))
+        self._adv_frame = ttk.Frame(self._adv_group, padding=(0, 2))
+        # 🔴🔴🔴 APP-065 A：**必须 pack 进 `_adv_group`**
+        #   ⇒ 否则展开「⑤ 高级」时**内容是空的**（实测 h=1）。
+        self._adv_frame.pack(fill='x')
 
         self.var_note = tk.StringVar(value='')
         # 🔴🔴 APP-048：顶部说明文字**也要换行**（原来一行到底 ⇒ 溢出屏幕）。
@@ -2376,97 +2420,19 @@ class App:
         #   （原来它挤在 bot 行右侧 ⇒ 长消息会把整行撑爆 / 被截断
         #     ⇒ 实测「mt load failed:ValueError:…」那种长消息直接被切掉）
         #   ⇒ 独立一行 ⇒ 换行显示完整 ⇒ 不截断、不溢出。
-        self._lbl_status = tk.Label(root, textvariable=self.var_status,
+        # 🔴🔴🔴 APP-065 A：**全局状态行并入顶栏**（父容器 root → top）
+        #   ⇒ 省掉**独立一行**的 pack 间隙与行高（实测省 ~10 px）
+        #   ⇒ 字幕区占比提升。
+        #   ⚠️ **仍是一整行**（长消息不截断，APP-048 的要求不变）。
+        self._lbl_status = tk.Label(top, textvariable=self.var_status,
                                     foreground='#555', anchor='w', justify='left',
                                     background=self._ttk_bg())
         self._lbl_status.pack(fill='x', padx=10, pady=(0, 1))
         self._wrapped_labels = getattr(self, '_wrapped_labels', [])
         self._wrapped_labels.append((self._lbl_status, root))
 
-        # 音频来源单独一行：三种输入（麦克风 / 系统声音 / 音频文件）
-        # 的设备选择互斥，挤在一行会让顶栏没法看。
-        srow = ttk.Frame(root, padding=(8, 2))
-        srow.pack(fill='x')
-        ttk.Label(srow, text='音频来源').pack(side='left')
-        self.source_keys = ['mic', 'system', 'file']
-        self._src_label = {k: audio_source.SOURCES[k] for k in self.source_keys}
-        self._src_label_back = {v: k for k, v in self._src_label.items()}
-        self.var_source = tk.StringVar(value=self._src_label[args.source])
-        self.cb_source = ttk.Combobox(srow, state='readonly', width=12,
-                                      textvariable=self.var_source,
-                                      values=[self._src_label[k] for k in self.source_keys])
-        self.cb_source.pack(side='left', padx=(4, 12))
-        self.cb_source.bind('<<ComboboxSelected>>', self._on_source_changed)
-
-        # ASR 识别语种：'auto' = 自动检测（不注入语种提示），其余是模型
-        # support_languages 里的英文名。
-        # ⚠️ APP-007：这个下拉**移入 ASR 分区**（它属于识别行为，
-        #    跟采集方式无关，放在音频来源行里反而挤）。
-        #    这里只先算出 label 映射，控件本身在三分区里创建。
-        self._asr_lang_keys = [ASR_LANG_AUTO] + list(ASR_LANGS)
-        self._asr_lang_label = {k: asr_lang_label(k) for k in self._asr_lang_keys}
-        self._asr_lang_label_back = {v: k for k, v in self._asr_lang_label.items()}
-        init_lang = getattr(args, 'asr_lang', ASR_LANG_AUTO) or ASR_LANG_AUTO
-        if init_lang not in self._asr_lang_keys:
-            init_lang = ASR_LANG_AUTO
-        self.var_asr_lang = tk.StringVar(value=self._asr_lang_label[init_lang])
-
-        # 麦克风设备
-        self.mics = list_input_devices()
-        self.var_mic = tk.StringVar(value=self.mics[0][1] if self.mics else '（未找到输入设备）')
-        self.cb_mic = ttk.Combobox(srow, state='readonly', width=18,
-                                   textvariable=self.var_mic,
-                                   values=[m[1] for m in self.mics])
-        self.cb_mic.pack(side='left', padx=(4, 8))
-
-        # 系统输出设备（loopback 目标）
-        self.outs = list_output_devices()          # [(wasapi_id, 显示名), ...]
-        self._out_label = {oid: name for oid, name in self.outs}
-        self._out_label_back = {name: oid for oid, name in self.outs}
-        dflt_out = default_output_device_id()
-        init_out = dflt_out if dflt_out in self._out_label else \
-            (self.outs[0][0] if self.outs else None)
-        self.var_out = tk.StringVar(
-            value=self._out_label.get(init_out, '（未找到输出设备）'))
-        self.cb_out = ttk.Combobox(srow, state='readonly', width=18,
-                                   textvariable=self.var_out,
-                                   values=[self._out_label[oid] for oid, _ in self.outs])
-        self.cb_out.pack(side='left', padx=(4, 8))
-
-        # 音频文件
-        self.var_file = tk.StringVar(value=args.file or '')
-        self.entry_file = ttk.Entry(srow, width=18, textvariable=self.var_file)
-        self.entry_file.pack(side='left', padx=(4, 4))
-        self.btn_pick_file = ttk.Button(srow, text='选择…', command=self._pick_file)
-        self.btn_pick_file.pack(side='left', padx=(0, 8))
-
-        # 文件回放速度（0=全速跑批，1.0=实时）与循环播放
-        self._speed_label = {0.0: '全速', 0.5: '0.5×', 1.0: '1.0×（实时）', 1.5: '1.5×', 2.0: '2.0×'}
-        self._speed_back = {v: k for k, v in self._speed_label.items()}
-        self.var_speed = tk.StringVar(value=self._speed_label[1.0])
-        self.cb_speed = ttk.Combobox(srow, state='readonly', width=10,
-                                     textvariable=self.var_speed,
-                                     values=list(self._speed_label.values()))
-        self.cb_speed.pack(side='left', padx=(0, 8))
-        self.var_loop = tk.BooleanVar(value=False)
-        self.cb_loop = ttk.Checkbutton(srow, text='循环', variable=self.var_loop)
-        self.cb_loop.pack(side='left', padx=(0, 8))
-
-        self.var_source_note = tk.StringVar(value='')
-        self.lbl_source_note = ttk.Label(srow, textvariable=self.var_source_note,
-                                         foreground='#555')
-        self.lbl_source_note.pack(side='left', padx=(10, 0))
-
-        # ── 三个配置分区：ASR / 翻译 / 语音（APP-007）───────────────
-        #    每个分区**只保留一个「设备+精度」组合下拉**（用户决策）。
-        #    原来的「推理设备」行（drow）把三个独立设备下拉挤在一行，
-        #    且 ASR/MT 的后端下拉标签里本来就含设备名 ⇒ 语义重叠。
-        #
-        #    ⚠️ **纵向三行**，不是横向三列：1080 宽装不下三列
-        #       （实测「语音输出」整块被裁掉，翻译分区的 note 也被切）。
-        #       每行结构 = [控件行] + [说明文字行]，长 note 单独占一行，
-        #       不会被相邻控件挤没。
-        #    ⚠️ 继续用 pack（项目全仓库 0 个 grid）。
+        # ── 设备清单 + D4 启动时冲突处理 ────────────────────────────
+        # 🔴 **必须在建控件之前**算好（③④⑤ 组的下拉都要用 `self._dev_avail`）。
         self._dev_avail = device_config.available_devices()
         self._dev_label_back = {device_config.device_label(d): d
                                 for d in self._dev_avail}
@@ -2481,114 +2447,223 @@ class App:
         except Exception:
             pass
 
-        # 🔴🔴🔴 APP-061⑥：**常用控件行**（ASR / 翻译 / 语音的设备与音色）
-        #   ⇒ 全部**移出**分区 LabelFrame ⇒ 控件只占 **1 行**。
-        row_dev = ttk.Frame(root, padding=(8, 2))
-        row_dev.pack(fill='x')
+        # ── APP-065 A：按处理链分 5 组（竖排）──────────────────────
+        #   reviewer 原文：「按处理链分组，从上到下：①音频输入 ②语音识别 ③翻译
+        #     ④语音输出（开关、输出设备、音色）⑤高级。每组一个 GroupBox，
+        #     组内用统一网格：标签列右对齐、等宽，控件列左对齐、同宽；
+        #     **所有组的标签列宽度一致，行高一致**。」
+        #   🔴 **统一网格**：每组内用 `grid`（不是 pack）⇒ 才有「标签列 / 控件列」
+        #     两列对齐。`_GRID_LABEL_CHARS` / `_GRID_CTRL_CHARS` /
+        #     `_GRID_ROW_H` 是**所有组共用**的常量 ⇒ 宽度/行高一致由单一数据源保证。
+        #   ⚠️ **控件宽度统一** ⇒ 所有 Combobox 用 `width=_GRID_CTRL_CHARS`。
+        #   ⚠️ `ttk.Label` 的 `width` 以**字符数**计 ⇒ 中英文混排仍会略不齐
+        #      ⇒ 标签列额外用 `sticky='e'`（右对齐）＋ **等宽的空白填充**
+        #      ⇒ 视觉上标签列右边缘一致。
 
-        areas = ttk.Frame(root, padding=(8, 2))
-        areas.pack(fill='x')
+        # ---- ① 音频输入 ----
+        f_in = ttk.LabelFrame(self._groups, text='① 音频输入', padding=(6, 0))
+        f_in.pack(fill='x', pady=(0, 1))
+        g_in = ttk.Frame(f_in)
+        g_in.pack(fill='x')
+        g_in.columnconfigure(0, weight=0, uniform='lbl', minsize=_GRID_LABEL_PX)
+        g_in.columnconfigure(1, weight=0)
+        g_in.columnconfigure(2, weight=0)
+        g_in.columnconfigure(3, weight=1)
+        self.source_keys = ['mic', 'system', 'file']
+        self._src_label = {k: audio_source.SOURCES[k] for k in self.source_keys}
+        self._src_label_back = {v: k for k, v in self._src_label.items()}
+        self.var_source = tk.StringVar(value=self._src_label[args.source])
+        ttk.Label(g_in, text='音频来源', 
+                  anchor='e').grid(row=0, column=0, sticky='e',
+                                   padx=(0, 8), pady=0)
+        self.cb_source = ttk.Combobox(
+            g_in, state='readonly', width=_GRID_CTRL_CHARS,
+            textvariable=self.var_source,
+            values=[self._src_label[k] for k in self.source_keys])
+        self.cb_source.grid(row=0, column=1, sticky='w', pady=0)
+        self.cb_source.bind('<<ComboboxSelected>>', self._on_source_changed)
+        # 🔴🔴🔴 APP-065 A：**设备控件与「音频来源」同一行**（column 2）
+        #   ⇒ 麦克风 / 回环输出 / 音频文件 / 速度 / 循环 互斥显示
+        #      （由 `_sync_source_widgets` 控制）⇒ 内部仍用 pack（动态显隐）。
+        #   ⚠️ 旧实现是**独占第 2 行** ⇒ 每组多占 25 px
+        #      ⇒ 5 组共 125 px ⇒ 字幕区被压到 49 %（实测）
+        #      ⇒ 与 APP-061⑥ 的「≥70 %」冲突 ⇒ 现在合到一行。
+        self._g_in_dev = ttk.Frame(g_in)
+        self._g_in_dev.grid(row=0, column=2, sticky='w', padx=(12, 0), pady=0)
+        # 🔴 APP-065 A：「输入设备」标签已**移除**
+        #   ⇒ 设备控件与「音频来源」**同一行**（column 2）⇒ ① 组只占 1 行。
+        #   ⚠️ 设备控件**互斥显示**（麦克风 / 回环输出 / 音频文件）⇒
+        #      同一时刻只有一个可见 ⇒ 标签固定为「音频来源」不会歧义。
 
-        # ---- ASR 分区 ----
-        # 🔴 APP-061⑥：三个分区**横向并排**（每列 = 该区的 1 行状态条）
-        #   ⇒ 状态区整体**只占 1 行**（reviewer：「状态栏只占 1 行」）。
-        f_asr = ttk.LabelFrame(areas, text='ASR 识别', padding=(6, 2))
-        f_asr.pack(side='left', fill='x', expand=True)
-        row_asr = ttk.Frame(row_dev)
-        row_asr.pack(side='left', padx=(0, 8))
-        self._asr_opts = build_asr_options(self._dev_avail)
-        self._asr_opt_by_id = {o['id']: o for o in self._asr_opts}
-        self.var_asr_combo = tk.StringVar(value='')
-        self.cb_asr_combo = ttk.Combobox(
-            row_asr, state='readonly', width=24, textvariable=self.var_asr_combo,
-            values=[o['label'] for o in self._asr_opts])
-        self.cb_asr_combo.pack(side='left', padx=(0, 8))
-        self.cb_asr_combo.bind('<<ComboboxSelected>>', self._on_asr_combo_changed)
-        # 🔴🔴🔴 APP-061⑥：「识别语种」属**不常用** ⇒ 移进「高级」面板
+        # ASR 识别语种：'auto' = 自动检测（不注入语种提示），其余是模型
+        # support_languages 里的英文名。
+        # ⚠️ APP-007：这个下拉属于**识别行为** ⇒ 放在 ② 语音识别 组里
+        #    （APP-065 A：凡是用户正常使用要选的**不得**放进高级）。
+        self._asr_lang_keys = [ASR_LANG_AUTO] + list(ASR_LANGS)
+        self._asr_lang_label = {k: asr_lang_label(k) for k in self._asr_lang_keys}
+        self._asr_lang_label_back = {v: k for k, v in self._asr_lang_label.items()}
+        init_lang = getattr(args, 'asr_lang', ASR_LANG_AUTO) or ASR_LANG_AUTO
+        if init_lang not in self._asr_lang_keys:
+            init_lang = ASR_LANG_AUTO
+        self.var_asr_lang = tk.StringVar(value=self._asr_lang_label[init_lang])
+
+        # 麦克风设备
+        self.mics = list_input_devices()
+        self.var_mic = tk.StringVar(
+            value=self.mics[0][1] if self.mics else '（未找到输入设备）')
+        self.cb_mic = ttk.Combobox(
+            self._g_in_dev, state='readonly', width=_GRID_CTRL_CHARS,
+            textvariable=self.var_mic, values=[m[1] for m in self.mics])
+        self.cb_mic.pack(side='left', padx=(0, 8))
+
+        # 系统输出设备（loopback 目标）
+        self.outs = list_output_devices()          # [(wasapi_id, 显示名), ...]
+        self._out_label = {oid: name for oid, name in self.outs}
+        self._out_label_back = {name: oid for name, oid in self._out_label.items()}
+        dflt_out = default_output_device_id()
+        init_out = dflt_out if dflt_out in self._out_label else \
+            (self.outs[0][0] if self.outs else None)
+        self.var_out = tk.StringVar(
+            value=self._out_label.get(init_out, '（未找到输出设备）'))
+        self.cb_out = ttk.Combobox(
+            self._g_in_dev, state='readonly', width=_GRID_CTRL_CHARS,
+            textvariable=self.var_out,
+            values=[self._out_label[oid] for oid, _ in self.outs])
+        self.cb_out.pack(side='left', padx=(0, 8))
+
+        # 音频文件
+        self.var_file = tk.StringVar(value=args.file or '')
+        self.entry_file = ttk.Entry(self._g_in_dev, width=_GRID_CTRL_CHARS,
+                                    textvariable=self.var_file)
+        self.entry_file.pack(side='left', padx=(0, 4))
+        self.btn_pick_file = ttk.Button(self._g_in_dev, text='选择…',
+                                        command=self._pick_file)
+        self.btn_pick_file.pack(side='left', padx=(0, 8))
+
+        # 文件回放速度（0=全速跑批，1.0=实时）与循环播放
+        self._speed_label = {0.0: '全速', 0.5: '0.5×', 1.0: '1.0×（实时）',
+                             1.5: '1.5×', 2.0: '2.0×'}
+        self._speed_back = {v: k for k, v in self._speed_label.items()}
+        self.var_speed = tk.StringVar(value=self._speed_label[1.0])
+        self.cb_speed = ttk.Combobox(
+            self._g_in_dev, state='readonly', width=_GRID_CTRL_CHARS,
+            textvariable=self.var_speed,
+            values=list(self._speed_label.values()))
+        self.cb_speed.pack(side='left', padx=(0, 8))
+        self.var_loop = tk.BooleanVar(value=False)
+        self.cb_loop = ttk.Checkbutton(self._g_in_dev, text='循环',
+                                       variable=self.var_loop)
+        self.cb_loop.pack(side='left', padx=(0, 8))
+
+        self.var_source_note = tk.StringVar(value='')
+        # 🔴🔴🔴 APP-065 A：说明文字**放在 ① 组的 column 3**（**不放**设备容器里）
+        #   ⇒ 否则它的 `reqwidth` 会把 column 2 撑宽 ⇒ **右侧被裁**（150 % 实测）。
+        #   ⚠️ 文案已缩短（见 `_sync_source_widgets`）⇒ 不会撑宽 column 3。
+        self.lbl_source_note = ttk.Label(g_in,
+                                         textvariable=self.var_source_note,
+                                         foreground='#555')
+        self.lbl_source_note.grid(row=0, column=3, sticky='w',
+                                  padx=(12, 0), pady=1)
+
+        # ---- ② 语音识别 ----
+        # 🔴 APP-065 A：识别语种（语言）属**正常使用要选的** ⇒ 在本组，
+        #   **不放高级**。
+        f_asr = ttk.LabelFrame(self._groups, text='② 语音识别', padding=(6, 0))
+        f_asr.pack(fill='x', pady=(0, 1))
+        g_asr = ttk.Frame(f_asr)
+        g_asr.pack(fill='x')
+        g_asr.columnconfigure(0, weight=0, uniform='lbl', minsize=_GRID_LABEL_PX)
+        g_asr.columnconfigure(1, weight=0)
+        g_asr.columnconfigure(2, weight=1)
+        ttk.Label(g_asr, text='识别语种', 
+                  anchor='e').grid(row=0, column=0, sticky='e',
+                                   padx=(0, 8), pady=0)
         self.cb_asr_lang = ttk.Combobox(
-            self._adv_frame, state='readonly', width=12,
+            g_asr, state='readonly', width=_GRID_CTRL_CHARS,
             textvariable=self.var_asr_lang,
             values=[self._asr_lang_label[k] for k in self._asr_lang_keys])
+        self.cb_asr_lang.grid(row=0, column=1, sticky='w', pady=0)
         self.cb_asr_lang.bind('<<ComboboxSelected>>', self._on_asr_lang_changed)
         self.var_asr_note = tk.StringVar(value='')
-        # 🔴🔴 APP-048：**ASR 分区自己的紧凑状态条**
+        # 🔴 APP-048：**ASR 分区自己的紧凑状态条**
         #    （设备 / 模型+精度 / 加载状态 / RTF / 说话人开关与状态 / 当前说话人）
-        #    ⇒ 不再挤在窗口顶部（原实现把所有模块状态拼成一条长文本）。
-        #    ⚠️ 位置：**紧贴控件行**（在 note 之上）⇒ 用户第一眼看到状态。
-        self._strip_asr = self._make_status_strip(f_asr, 'asr')
+        # 🔴🔴🔴 APP-065 A：状态条放在**与控件同一行**（column 2）
+        #   ⇒ 每组省 21 px ⇒ 字幕区回到 ≥70 %（APP-061⑥）。
+        self._strip_asr = self._make_status_strip(g_asr, 'asr',
+                                                   grid_row=0, grid_col=2)
         # 🔴🔴🔴 APP-061⑥：分区的**说明行合并进状态栏**
-        #   ⇒ 说明文字移进「高级」面板，同时**并入状态条的 tooltip**。
         self._lbl_asr_note = self._bind_wrap(
             ttk.Label(self._adv_frame, textvariable=self.var_asr_note,
                       foreground='#555'),
             self._adv_frame, self.var_asr_note)
 
-        # ---- 翻译分区 ----
-        f_mt = ttk.LabelFrame(areas, text='翻译', padding=(6, 2))
-        f_mt.pack(side='left', fill='x', expand=True)
-        row_mt = ttk.Frame(row_dev)
-        row_mt.pack(side='left', padx=(0, 8))
-        ttk.Label(row_mt, text='目标语言').pack(side='left', padx=(0, 4))
+        # ---- ③ 翻译 ----
+        f_mt = ttk.LabelFrame(self._groups, text='③ 翻译', padding=(6, 0))
+        f_mt.pack(fill='x', pady=(0, 1))
+        g_mt = ttk.Frame(f_mt)
+        g_mt.pack(fill='x')
+        g_mt.columnconfigure(0, weight=0, uniform='lbl', minsize=_GRID_LABEL_PX)
+        g_mt.columnconfigure(1, weight=0)
+        g_mt.columnconfigure(2, weight=1)
+        ttk.Label(g_mt, text='目标语言', 
+                  anchor='e').grid(row=0, column=0, sticky='e',
+                                   padx=(0, 8), pady=0)
         self.mt_keys = list(TARGETS)
         self.var_mt = tk.StringVar(value=TARGET_LABELS[args.translate])
         self.cb_mt = ttk.Combobox(
-            row_mt, state='readonly', width=8, textvariable=self.var_mt,
+            g_mt, state='readonly', width=_GRID_CTRL_CHARS,
+            textvariable=self.var_mt,
             values=[TARGET_LABELS[k] for k in self.mt_keys])
-        self.cb_mt.pack(side='left', padx=(0, 8))
+        self.cb_mt.grid(row=0, column=1, sticky='w', pady=0)
         self.cb_mt.bind('<<ComboboxSelected>>', self._on_mt_changed)
-        self._mt_opts = build_mt_options(self._dev_avail)
-        self._mt_opt_by_id = {o['id']: o for o in self._mt_opts}
-        self.var_mt_combo = tk.StringVar(value='')
-        self.cb_mt_combo = ttk.Combobox(
-            row_mt, state='readonly', width=26, textvariable=self.var_mt_combo,
-            values=[o['label'] for o in self._mt_opts])
-        self.cb_mt_combo.pack(side='left', padx=(0, 8))
-        self.cb_mt_combo.bind('<<ComboboxSelected>>', self._on_mt_combo_changed)
-        # 草稿译文开关：默认**关闭**，只翻已经定稿的文本。勾上后还会实时翻译
-        # 还没定稿的那句，但会占翻译算力、抬高 ASR 积压。
-        self.var_mt_draft = tk.BooleanVar(value=_init_draft_flag(args))
-        # 🔴🔴🔴 APP-061⑥：「草稿译文」「重试翻译」属**不常用** ⇒ 高级面板
-        self.chk_mt_draft = ttk.Checkbutton(
-            self._adv_frame, text='草稿译文 Draft', variable=self.var_mt_draft,
-            command=self._on_mt_draft_toggled)
-        # 重试按钮：翻译模型加载失败时（状态栏显示「失败」）一键重试，
-        # 不用重启整个程序。加载中时禁用。
-        self.btn_mt_retry = ttk.Button(self._adv_frame, text='↻ 重试翻译 Retry',
-                                       width=16,
-                                       command=self._retry_mt, state='disabled')
         self.var_mt_note = tk.StringVar(value='')
-        # 🔴🔴 APP-048：**翻译分区自己的紧凑状态条**
-        #    （设备 / 模型 / 目标语言 / 加载状态 / 最近一句翻译延迟）
-        self._strip_mt = self._make_status_strip(f_mt, 'mt')
+        # 🔴 APP-048：**翻译分区自己的紧凑状态条**
+        # 🔴🔴🔴 APP-065 A：状态条与控件**同行**（column 2）⇒ 省 21 px
+        self._strip_mt = self._make_status_strip(g_mt, 'mt',
+                                                  grid_row=0, grid_col=2)
         self._lbl_mt_note = self._bind_wrap(
             ttk.Label(self._adv_frame, textvariable=self.var_mt_note,
                       foreground='#555'),
             self._adv_frame, self.var_mt_note)
+        # 🔴 草稿译文开关：默认**关闭**，只翻已经定稿的文本。勾上后还会实时翻译
+        #   还没定稿的那句，但会占翻译算力、抬高 ASR 积压。
+        #   ⚠️ **必须在这里建**（③ 翻译组末尾要用）⇒ 控件本体在 ⑤ 高级组。
+        self.var_mt_draft = tk.BooleanVar(value=_init_draft_flag(args))
         self.mt.set_draft(self.var_mt_draft.get())
 
-        # ---- 语音分区（TTS，C-101 P4 第 4 条）----
-        f_tts = ttk.LabelFrame(areas, text='语音输出', padding=(6, 2))
-        f_tts.pack(side='left', fill='x', expand=True)
-        row_tts = ttk.Frame(row_dev)
-        row_tts.pack(side='left')
+        # ---- ④ 语音输出 ----
+        f_tts = ttk.LabelFrame(self._groups, text='④ 语音输出', padding=(6, 0))
+        f_tts.pack(fill='x', pady=(0, 1))
+        g_tts = ttk.Frame(f_tts)
+        g_tts.pack(fill='x')
+        g_tts.columnconfigure(0, weight=0, uniform='lbl', minsize=_GRID_LABEL_PX)
+        g_tts.columnconfigure(1, weight=0)
+        g_tts.columnconfigure(2, weight=0)
+        g_tts.columnconfigure(3, weight=1)
         # 🔴 **TTS 默认开启**（APP-014：TTS 已转为正式功能）
         #    ⚠️ 兼容：命令行显式给了 `--tts off` 时仍按 off；
         #       没给（`None`）⇒ 按**默认开启**处理。
         _tts_arg = getattr(args, 'tts', None)
         self.var_tts_on = tk.BooleanVar(
             value=(True if _tts_arg is None else _tts_arg == 'on'))
-        self.chk_tts = ttk.Checkbutton(row_tts, text='开启', variable=self.var_tts_on,
-                                       command=self._on_tts_toggled)
-        self.chk_tts.pack(side='left', padx=(0, 8))
+        # 🔴🔴🔴 APP-065 A：④ 组保持**唯一标签列**（column 0）
+        #   ⇒ 「所有组的标签列宽度一致」这个不变量**不被破坏**。
+        #   ⚠️ 曾试过把「音色」标签放 column 2（压成 2 行）⇒ 标签列右边缘
+        #      不再是 60 px ⇒ **违反 reviewer 的要求** ⇒ 已撤回。
+        #   ⇒ 省纵向空间改走「减小各组 padding」+「全局状态行并入顶栏」。
+        ttk.Label(g_tts, text='开关', 
+                  anchor='e').grid(row=0, column=0, sticky='e',
+                                   padx=(0, 8), pady=0)
+        self.chk_tts = ttk.Checkbutton(
+            g_tts, text='开启语音输出', variable=self.var_tts_on,
+            command=self._on_tts_toggled)
+        self.chk_tts.grid(row=0, column=1, sticky='w', pady=0)
         self._tts_opts = build_tts_options(self._dev_avail)
         self._tts_opt_by_id = {o['id']: o for o in self._tts_opts}
         self.var_tts_combo = tk.StringVar(value='')
-        self.cb_tts_combo = ttk.Combobox(
-            row_tts, state='readonly', width=22, textvariable=self.var_tts_combo,
-            values=[o['label'] for o in self._tts_opts])
-        self.cb_tts_combo.pack(side='left', padx=(0, 8))
-        self.cb_tts_combo.bind('<<ComboboxSelected>>', self._on_tts_combo_changed)
-        ttk.Label(row_tts, text='音色').pack(side='left', padx=(0, 4))
+        ttk.Label(g_tts, text='音色', 
+                  anchor='e').grid(row=1, column=0, sticky='e',
+                                   padx=(0, 8), pady=0)
         # 🔴🔴 **只保留音色 A**（APP-007 交付修正，2026-10-23）。
         #    客户包只带 `models/qwen3tts/voices/preset_A.wav`（BRIEF 硬要求：
         #    同事音色 B / 克隆音色 C 一律不进包）。
@@ -2603,12 +2678,12 @@ class App:
         #   ⚠️ **默认仍是「预设 A」**（APP-022 明文：「默认仍是预设 A」）。
         # 🔴🔴🔴 APP-027⑤：**本轮真正接入**「跟随说话人（克隆）」
         #   ⇒ 采集器在 `App._collect_clone_pcm` ⇒ 每 30 s 或累计 ≥6 s 新语音
-        #      把最近 3–10 s 语音发给 worker ⇒ 换 x-vector / 换边车参考音频
-        #      ⇒ **下一句起生效**。
+        #      把最近 3–10 s 语音发给 worker ⇒ 换 x-vector（BabelVox）或换边车
+        #      参考音频（CUDA）⇒ **下一句起生效**。
         #   ⚠️ **仍保留一条铁律**：克隆**失败**时**显式回落预设 A** + 写日志
         #      ⇒ 绝不静默（§42 的教训）。
         #   ⚠️ **GUI 上显示的是「当前实际使用的音色」**（`_clone_voice_label`）
-        #      ⇒ 而**不是**用户选的那一项 ⇒ 用户能看见真实状态。
+        #      ⇒ **而不是**用户选的那一项 ⇒ 用户能看见真实状态。
         self.tts_voices = ['A', 'follow_speaker']
         # 🔴🔴 APP-039：**克隆模式标注「实验」**
         #   APP-039 明文：「克隆模式先标'实验'」
@@ -2622,67 +2697,196 @@ class App:
         self.var_tts_voice = tk.StringVar(
             value=self._tts_voice_label.get(args.tts_voice, '预设 A'))
         self.cb_tts_voice = ttk.Combobox(
-            row_tts, state='readonly', width=18, textvariable=self.var_tts_voice,
+            g_tts, state='readonly', width=_GRID_CTRL_CHARS,
+            textvariable=self.var_tts_voice,
             values=[self._tts_voice_label[k] for k in self.tts_voices])
-        self.cb_tts_voice.pack(side='left', padx=(0, 8))
+        self.cb_tts_voice.grid(row=1, column=1, sticky='w', pady=0)
         self.cb_tts_voice.bind('<<ComboboxSelected>>', self._on_tts_voice_changed)
         # 🔴🔴 APP-027⑤：**当前实际使用的音色**（独立标签，不在下拉里）
         #   ⇒ 用户随时能看见「现在到底在用预设 A 还是克隆」。
+        # 🔴🔴🔴 APP-065 A：放在**音色下拉右侧**（column 4）。
         self.var_tts_voice_now = tk.StringVar(value='预设 A')
-        ttk.Label(row_tts, textvariable=self.var_tts_voice_now,
-                  foreground='#1565c0').pack(side='left', padx=(0, 8))
-        # 🔴🔴 APP-022：字幕上**可以选择显示说话人标签**（S1、S2…）。
-        # 🔴🔴🔴 APP-040④：**默认改为打开**
-        #   APP-040④ 明文：「GUI 加一个开关，**默认打开**」
-        #   ⇒ 旧实现默认 `False`（当时理由是「不改现有显示行为」），
-        #     那是**接口预留期**的口径；现在 ASR 说话人旁路是必做项 ⇒ 默认打开。
-        #   ⚠️ **当前仍看不到标签**：`_spk_by_seg` 恒为空（ASR 侧还没交付 spk）
-        #     ⇒ `spk` 为真值时才加前缀 ⇒ **今天的显示逐字不变**；
-        #     ASR 一旦交付就立即生效（见 `_render`）。
-        self.var_show_spk = tk.BooleanVar(value=True)
-        # 🔴🔴🔴 APP-061⑥：「显示说话人」属**不常用** ⇒ 高级面板
-        cb_show_spk = ttk.Checkbutton(
-            self._adv_frame, text='显示说话人', variable=self.var_show_spk)
-        # 🔴🔴🔴 APP-054：**说话人识别开关**（**默认关闭**）
-        #   ⇒ v1.13 的阻断级回归：旁路**默认开着**且**同步阻塞 ASR 主循环**
-        #     ⇒ 用户实测：墙钟 838.5 s / 300 s 音频（最大积压 195.1 s）。
-        #   ⇒ 现在旁路**默认关闭** ⇒ 字幕/语音行为与 **v1.12 逐字一致**。
-        #   ⇒ 用户要「字幕显示不同说话人」时**手动勾选**。
-        #   ⚠️ 勾选**只影响后续会话**（旁路线程在会话开始时建立）。
-        self.var_speaker = tk.BooleanVar(value=bool(self._speaker_enabled))
-        cb_speaker = ttk.Checkbutton(
-            row_tts, text='说话人识别', variable=self.var_speaker)
-        cb_speaker.pack(side='left', padx=(0, 8))
-        ttk.Label(row_tts, text='输出设备').pack(side='left', padx=(0, 4))
+        ttk.Label(g_tts, textvariable=self.var_tts_voice_now,
+                  foreground='#1565c0').grid(row=1, column=2, sticky='w',
+                                             padx=(8, 0), pady=0)
+        ttk.Label(g_tts, text='输出设备', 
+                  anchor='e').grid(row=2, column=0, sticky='e',
+                                   padx=(0, 8), pady=0)
         # 复用 App 已有的输出设备列表（MME/WASAPI）—— C-101 P4 第 4 条
         self.var_tts_out = tk.StringVar(
             value=self._out_label.get(init_out, '（未找到输出设备）'))
         self.cb_tts_out = ttk.Combobox(
-            row_tts, state='readonly', width=24, textvariable=self.var_tts_out,
+            g_tts, state='readonly', width=_GRID_CTRL_CHARS,
+            textvariable=self.var_tts_out,
             values=[self._out_label[oid] for oid, _ in self.outs])
-        self.cb_tts_out.pack(side='left', padx=(0, 8))
-        # 🔴🔴 APP-021⑤：输出设备下拉**必须绑变更事件**。
+        self.cb_tts_out.grid(row=2, column=1, sticky='w', pady=0)
+        # 🔴🔴🔴 APP-021⑤：**输出设备下拉**必须绑变更事件。
         #   旧行为：`cb_tts_out` **没有**绑 `<<ComboboxSelected>>`
-        #   （全文只有 `cb_tts_voice` 绑了）⇒ `out_id` 只在
-        #   `_on_tts_toggled()` 起 worker 时读**一次**
-        #   ⇒ worker 已经起来之后再改下拉 ⇒ **完全没有效果**
-        #   ⇒ 用户以为换了设备，其实声音还是从旧设备出（或旧设备坏了）。
+        #   ⇒ 改了下拉**完全没有效果** ⇒ 用户以为换了设备，声音还是从旧设备出。
         self.cb_tts_out.bind('<<ComboboxSelected>>', self._on_tts_out_changed)
-        # 🔴 APP-021④：「测试声音」按钮 —— 把「播放链路」与「TTS 合成」拆开。
+        self.var_tts_note = tk.StringVar(value='')
+        # 🔴 APP-048：**语音输出分区自己的紧凑状态条**
+        self._strip_tts = self._make_status_strip(g_tts, 'tts',
+                                                   grid_row=0, grid_col=3,
+                                                   grid_rowspan=3)
+        self._lbl_tts_note = self._bind_wrap(
+            ttk.Label(self._adv_frame, textvariable=self.var_tts_note,
+                      foreground='#555'),
+            self._adv_frame, self.var_tts_note)
+
+        # ---- ⑤ 高级（不常用项）----
+        # 🔴🔴🔴 APP-065 A：「高级」**只放用户平时不需要动的东西**，
+        #   且**每一项要有一句话提示说明作用**。
+        #   ⚠️ 设备选择（GPU/NPU/CPU）属**不常用** ⇒ 三个后端下拉都在高级里。
+        #   ⚠️ **正常使用要选的（输入源 / 语言 / 是否配音 / 音色）一律不在高级**
+        #     ⇒ 分别在 ①②③④ 组里（上方）。
+        # 🔴 **设备下拉的初值设置**由 `_init_combo_values` 完成（在本函数末尾）。
+        g_adv = ttk.Frame(self._adv_frame)
+        g_adv.pack(fill='x')
+        g_adv.columnconfigure(0, weight=0, uniform='lbl', minsize=_GRID_LABEL_PX)
+        g_adv.columnconfigure(1, weight=0)
+        g_adv.columnconfigure(2, weight=1)
+        ttk.Label(g_adv, text='识别后端', 
+                  anchor='e').grid(row=0, column=0, sticky='e',
+                                   padx=(0, 8), pady=0)
+        self._asr_opts = build_asr_options(self._dev_avail)
+        self._asr_opt_by_id = {o['id']: o for o in self._asr_opts}
+        self.var_asr_combo = tk.StringVar(value='')
+        self.cb_asr_combo = ttk.Combobox(
+            g_adv, state='readonly', width=_GRID_CTRL_CHARS,
+            textvariable=self.var_asr_combo,
+            values=[o['label'] for o in self._asr_opts])
+        self.cb_asr_combo.grid(row=0, column=1, sticky='w', pady=0)
+        self.cb_asr_combo.bind('<<ComboboxSelected>>', self._on_asr_combo_changed)
+        ttk.Label(g_adv, text='翻译后端', 
+                  anchor='e').grid(row=1, column=0, sticky='e',
+                                   padx=(0, 8), pady=0)
+        self._mt_opts = build_mt_options(self._dev_avail)
+        self._mt_opt_by_id = {o['id']: o for o in self._mt_opts}
+        self.var_mt_combo = tk.StringVar(value='')
+        self.cb_mt_combo = ttk.Combobox(
+            g_adv, state='readonly', width=_GRID_CTRL_CHARS,
+            textvariable=self.var_mt_combo,
+            values=[o['label'] for o in self._mt_opts])
+        self.cb_mt_combo.grid(row=1, column=1, sticky='w', pady=0)
+        self.cb_mt_combo.bind('<<ComboboxSelected>>', self._on_mt_combo_changed)
+        ttk.Label(g_adv, text='语音后端', 
+                  anchor='e').grid(row=2, column=0, sticky='e',
+                                   padx=(0, 8), pady=0)
+        self.cb_tts_combo = ttk.Combobox(
+            g_adv, state='readonly', width=_GRID_CTRL_CHARS,
+            textvariable=self.var_tts_combo,
+            values=[o['label'] for o in self._tts_opts])
+        self.cb_tts_combo.grid(row=2, column=1, sticky='w', pady=0)
+        self.cb_tts_combo.bind('<<ComboboxSelected>>', self._on_tts_combo_changed)
+        # 草稿译文开关：默认**关闭**，只翻已经定稿的文本。勾上后还会实时翻译
+        # 还没定稿的那句，但会占翻译算力、抬高 ASR 积压。
+        # ⚠️ `self.var_mt_draft` **已在 ③ 翻译组里建好**（那里要用它）
+        #   ⇒ 这里只建控件，**不再重复定义**（旧实现此处误用 StringVar）。
+        ttk.Label(g_adv, text='草稿译文', 
+                  anchor='e').grid(row=3, column=0, sticky='e',
+                                   padx=(0, 8), pady=0)
+        self.chk_mt_draft = ttk.Checkbutton(
+            g_adv, text='Draft', variable=self.var_mt_draft,
+            command=self._on_mt_draft_toggled)
+        self.chk_mt_draft.grid(row=3, column=1, sticky='w', pady=0)
+        # 重试按钮：翻译模型加载失败时（状态栏显示「失败」）一键重试，
+        # 不用重启整个程序。加载中时禁用。
+        ttk.Label(g_adv, text='重试翻译', 
+                  anchor='e').grid(row=4, column=0, sticky='e',
+                                   padx=(0, 8), pady=0)
+        self.btn_mt_retry = ttk.Button(
+            g_adv, text='↻ 重试翻译 Retry', width=18,
+            command=self._retry_mt, state='disabled')
+        self.btn_mt_retry.grid(row=4, column=1, sticky='w', pady=0)
+        # 🔴🔴🔴 APP-022：字幕上**可以选择显示说话人标签**（S1、S2…）。
+        # 🔴🔴🔴 APP-040④：**默认改为打开**
+        #   APP-040④ 明文：「GUI 加一个开关，**默认打开**」
+        self.var_show_spk = tk.BooleanVar(value=True)
+        ttk.Label(g_adv, text='显示说话人', 
+                  anchor='e').grid(row=5, column=0, sticky='e',
+                                   padx=(0, 8), pady=0)
+        cb_show_spk = ttk.Checkbutton(
+            g_adv, text='在字幕上显示 S1/S2', variable=self.var_show_spk)
+        cb_show_spk.grid(row=5, column=1, sticky='w', pady=0)
+        # 🔴🔴🔴 APP-054：**说话人旁路开关**（**默认关闭**）
+        #   ⇒ v1.13 的阻断级回归：旁路**默认开着**且**同步阻塞 ASR 主循环**
+        #     ⇒ 用户实测：墙钟 838.5 s / 300 s 音频（最大积压 195.1 s）。
+        #   ⇒ 现在旁路**默认关闭** ⇒ 字幕/语音行为与 **v1.12 逐字一致**。
+        #   ⚠️ 勾选**只影响后续会话**（旁路线程在会话开始时建立）。
+        # 🔴🔴🔴 APP-065 B（2026-11-02）：**改名 + 移出 TTS 区**。
+        #   reviewer 原文：「GUI 上"说话人识别"改为在"音色"下拉选
+        #     "跟随说话人（克隆）"时自动启用的内部功能，
+        #     **不再作为一个独立的用户开关出现在 TTS 区**；
+        #     如保留，放进高级并命名为"区分说话人（用于克隆）"，
+        #     带提示"检测谁在说话，换人时重新克隆音色；只在音色=跟随说话人时生效"。」
+        #   ⇒ 现在：**在高级里** ＋ 改名「区分说话人（用于克隆）」
+        #     ＋ 带一句话提示 ＋ 绑定 `command`（APP-063 ② (c)：取消勾选 ⇒
+        #       音色切回 A 并提示 ⇒ 不再出现「界面勾了但没生效」）。
+        #   ⚠️ **变量名 `var_speaker` 保持不变**（`app227` 的 D2 判据
+        #     要求 `_enable_speaker_for_clone` 的 AST 里含 `var_speaker`；
+        #     `app204` 的快照也读 `var_speaker`）⇒ 只改**显示文案**。
+        self.var_speaker = tk.BooleanVar(value=bool(self._speaker_enabled))
+        ttk.Label(g_adv, text='区分说话人', 
+                  anchor='e').grid(row=6, column=0, sticky='e',
+                                   padx=(0, 8), pady=0)
+        self.cb_speaker = ttk.Checkbutton(
+            g_adv, text='区分说话人（用于克隆）',
+            variable=self.var_speaker,
+            command=self._on_speaker_toggled)
+        self.cb_speaker.grid(row=6, column=1, sticky='w', pady=0)
+        # 🔴 **提示**（APP-065 A：高级里每一项要有一句话说明作用）
+        ttk.Label(g_adv, text='检测谁在说话，换人时重新克隆音色；'
+                  '只在音色=跟随说话人时生效',
+                  foreground='#555').grid(row=7, column=1, sticky='w',
+                                          padx=(0, 8), pady=0)
+        # 🔴 **离线朗读入口**（用户需求：上传文件 / 对话框输入文本 ⇒ 直接播报）
+        ttk.Label(g_adv, text='离线朗读',
+                  anchor='e').grid(row=7, column=0, sticky='e',
+                                   padx=(0, 8), pady=0)
+        self.btn_offline = ttk.Button(
+            g_adv, text='📖 离线朗读…', width=16,
+            command=self._open_offline_reader)
+        self.btn_offline.grid(row=7, column=1, sticky='w', pady=0)
+        ttk.Label(g_adv, text='上传音频或输入文本直接播报，不经过识别与翻译',
+                  foreground='#555').grid(row=9, column=1, sticky='w',
+                                          padx=(0, 8), pady=0)
+        # 🔴 **测试声音**按钮（APP-021④）：把「播放链路」与「TTS 合成」拆开。
         #   走**同一个 worker 的 Player** 播 1 s 440 Hz 正弦波。
-        # 🔴🔴🔴 APP-061⑥：「测试声音」属**不常用** ⇒ 高级面板
-        self.btn_tts_test = ttk.Button(self._adv_frame, text='🔊 测试声音',
-                                       width=12,
+        ttk.Label(g_adv, text='测试声音',
+                  anchor='e').grid(row=8, column=0, sticky='e',
+                                   padx=(0, 8), pady=0)
+        self.btn_tts_test = ttk.Button(g_adv, text='🔊 测试声音', width=14,
                                        command=self._on_tts_test_sound)
-        self.tts = None                      # TTSService 实例
-        # 🔴🔴🔴 APP-041：**启动流程待办**（默认「开启」必须真的初始化）。
-        #   旧实现：`var_tts_on` 初值 True，但唯一的初始化入口
-        #   `_on_tts_toggled()` **只挂在 Checkbutton 的 command 上**
-        #   ⇒ 冷启动时复选框显示「开启」，而 worker / 输出设备 / 播放流
-        #     **一个都没建** ⇒ 用户必须「取消再勾一次」才能用。
-        #   ⇒ 这里用两个标志把「启动时该起 TTS」这件事**显式化**：
-        #     `_tts_startup_pending` = 待办（等 ASR→MT 就绪）
-        #     `_tts_startup_done`    = 已处理（保证**只初始化一次**）
+        self.btn_tts_test.grid(row=8, column=1, sticky='w', pady=0)
+        ttk.Label(g_adv, text='播放 1 秒测试音，验证输出设备与播放链路',
+                  foreground='#555').grid(row=8, column=2, sticky='w',
+                                          padx=(8, 0), pady=0)
+        # ⚠️ **耳机提示**（APP-014：TTS 转正式功能 ⇒ 默认开启）
+        #   TTS 从**系统输出设备**播放，而 ASR 可能采**系统回环**⇒
+        #     不戴耳机会把 TTS 的声音**再采回去** ⇒ 自激 / 回声 / 重复词。
+        ttk.Label(g_adv, text='⚠️ 戴耳机', 
+                  anchor='e', foreground='#b26a00').grid(
+                      row=9, column=0, sticky='e', padx=(0, 8), pady=0)
+        ttk.Label(g_adv, text='避免 TTS 声音被 ASR 回采造成回授',
+                  foreground='#b26a00').grid(row=9, column=2, sticky='w',
+                                           padx=(8, 0), pady=0)
+        # 🔴 **全局说明文字**（APP-048：顶部说明也要换行）
+        self._lbl_note.pack(fill='x', padx=4, pady=(2, 0))
+        # 🔴 **离线朗读用途说明**（APP-052 ②：独立变量 ⇒ 不与设备说明重复）
+        #   ⚠️ 保留 `_lbl_tts_note2` 这个属性名（既有验收脚本可能引用）。
+        self.var_tts_note2 = tk.StringVar(value='')
+        self._lbl_tts_note2 = self._bind_wrap(
+            ttk.Label(g_adv, textvariable=self.var_tts_note2, foreground='#555'),
+            g_adv, self.var_tts_note2)
+
+        # 🔴🔴🔴 APP-041 / APP-042：**启动流程状态**（初始化）
+        #   ⚠️ 这些是**运行时状态标志**，必须在**控件建完之后**立刻初始化
+        #      （`_poll` 第一次跑就会读它们）⇒ 漏初始化 ⇒
+        #      `AttributeError: _tts_startup_pending`（APP-065 A 重排时
+        #      连同旧区块一起被替换掉了 ⇒ 这里补回）。
+        #   - `_tts_startup_pending` = 待办（等 ASR→MT 就绪）
+        #   - `_tts_startup_done`    = 已处理（保证**只初始化一次**）
         self._tts_startup_pending = False
         self._tts_startup_done = False
         # 🔴 APP-041：ASR 引擎就绪 / 失败的标记（用于启动顺序判断）
@@ -2695,64 +2899,12 @@ class App:
         self._seg_target_wall: dict = {}
         self._session_wall0 = None
         self._offline_dlg = None             # 离线朗读对话框（Toplevel）
-        self.var_tts_note = tk.StringVar(value='')
-        # 🔴 APP-052 ②：离线朗读入口的**独立**说明行（不与设备说明重复）
-        self.var_tts_note2 = tk.StringVar(
-            value='离线朗读：上传音频文件或输入文本，直接播报（不经过识别与翻译）')
-
-        # 🔴 **耳机提示**（APP-014：TTS 转正式功能 ⇒ 默认开启）
-        #    TTS 从**系统输出设备**播放，而 ASR 可能采**系统回环**⇒
-        #    不戴耳机会把 TTS 的声音**再采回去** ⇒ 自激 / 回声 / 重复词。
-        #    ⇒ 在开关旁边常驻一行提示（不是弹窗，避免打断会议）。
-        # 🔴🔴🔴 APP-061⑥：耳机提示**缩短**（宽度敏感）⇒ 完整说明在高级面板
-        ttk.Label(row_tts, text='⚠️ 戴耳机',
-                  foreground='#b26a00').pack(side='left', padx=(4, 0))
-
-        # 🔴🔴 APP-048：**语音输出分区自己的紧凑状态条**
-        #    （设备 / 音色模式 / 输出设备 / 就绪状态 / 语速倍率 / 语音滞后 / 排队句数）
-        #    ⚠️ 位置：紧贴控件行（在 note 之上）⇒ 用户第一眼看到状态。
-        self._strip_tts = self._make_status_strip(f_tts, 'tts')
-        self._lbl_tts_note = self._bind_wrap(
-            ttk.Label(self._adv_frame, textvariable=self.var_tts_note,
-                      foreground='#555'),
-            self._adv_frame, self.var_tts_note)
-
-        # 🔴 **离线朗读入口**（用户需求：上传文件 / 对话框输入文本 ⇒ 直接播报）
-        #    放在这里而不是 row_tts：row_tts 已经排了 6 个控件，
-        #    1080 宽再塞按钮会把「⚠️ 请佩戴耳机」挤掉（§13 实测过同类裁切）。
-        #    note 行本来就是单独一行、只放一个 label ⇒ 左边补按钮不吃宽度。
-        # 🔴🔴🔴 APP-061⑥：「离线朗读」属**不常用** ⇒ 高级面板
-        row_tts2 = ttk.Frame(self._adv_frame)
-        row_tts2.pack(fill='x')
-        self.btn_offline = ttk.Button(
-            row_tts2, text='📖 离线朗读…', width=14,
-            command=self._open_offline_reader)
-        self.btn_offline.pack(side='left', padx=(0, 8))
-        # 🔴🔴🔴 **APP-052 ②：这里原来绑的是 `var_tts_note`**
-        #   ⇒ 与上面 `_lbl_tts_note` **同一个变量**
-        #   ⇒ 同一段「设备 · 精度 · ⚠️ 设备说明」在界面上**显示了两遍**
-        #   （reviewer 原话：「同一段设备说明重复出现两次」，
-        #    1280×720 截图里可见两段几乎一样的长文本）。
-        #   ⇒ **修法**：这一行显示**离线朗读的用途说明**（本来就要一行引导），
-        #     用**独立变量** ⇒ 与设备说明不再重复。
-        #   ⚠️ 保留 `_lbl_tts_note2` 这个属性名（既有验收脚本可能引用）。
-        self.var_tts_note2 = tk.StringVar(value='')
-        self._lbl_tts_note2 = self._bind_wrap(
-            ttk.Label(row_tts2, textvariable=self.var_tts_note2,
-                      foreground='#555'),
-            row_tts2, self.var_tts_note2)
-        # 🔴🔴🔴 APP-061⑥：高级面板里的说明**顺序**（可折叠 ⇒ 默认不占空间）
-        ttk.Label(self._adv_frame, text='⚠️ 请佩戴耳机，避免 TTS 声音被 ASR '
-                  '回采造成回授。', foreground='#b26a00').pack(
-                      side='left', padx=(8, 0))
-        # 🔴🔴🔴 APP-061⑥：把**移进高级面板**的控件**摆上去**
-        #   （改父容器时去掉了原来的 pack ⇒ 这里统一补一次）。
-        self._lbl_note.pack(fill='x', padx=4)
-        self.cb_asr_lang.pack(side='left', padx=(4, 8))
-        self.chk_mt_draft.pack(side='left', padx=(0, 8))
-        self.btn_mt_retry.pack(side='left', padx=(0, 8))
-        cb_show_spk.pack(side='left', padx=(0, 8))
-        self.btn_tts_test.pack(side='left', padx=(0, 8))
+        # 🔴🔴🔴 APP-065 A：**TTS worker 实例**（`TTSService`）**必须先初始化**。
+        #   旧实现只在 `_on_tts_toggled()` 里赋值 ⇒ **首次调用前**访问
+        #   `self.tts` 会 `AttributeError: 'App' object has no attribute 'tts'`
+        #   （APP-065 A 截图脚本在「配音开启」分支实测到）。
+        #   ⇒ 现在：**先置 None** ⇒ 任何路径访问都安全。
+        self.tts = None
 
         # ⚠️ height=10（行）：**这是状态栏可见的关键**。
         #    ScrolledText 默认请求高度 718 px（24 行），在 1080x700 窗口里
@@ -2793,6 +2945,20 @@ class App:
                 self._ui_log(f'prewarm transformers {_pw:.1f}s')
         except Exception as e:
             self._ui_log(f'prewarm transformers failed: {type(e).__name__}: {e}')
+        # 🔴🔴🔴 APP-063 ②（D2 补齐 (a)，2026-11-02）：
+        #   **GUI 启动时 `--tts-voice follow_speaker` ⇒ 自动打开旁路**。
+        #   reviewer 原文：「(a) GUI 用 `--tts-voice follow_speaker` 启动，
+        #     或者不改下拉直接开启 TTS（`_on_tts_toggled`），
+        #     都只打日志"将使用预设 A"，**不会自动开旁路**。」
+        #   ⇒ 现在：**启动路径**也调 `_enable_speaker_for_clone`（幂等）。
+        #   ⚠️ 必须放在 `var_speaker` / `_spk_bridge` 都建好之后
+        #     （本段在 `_build_ui` 之后 ⇒ 满足）。
+        try:
+            _voice0 = str(getattr(args, 'tts_voice', 'A') or 'A')
+            if _voice0 == 'follow_speaker':
+                self._enable_speaker_for_clone('GUI 启动参数 --tts-voice follow_speaker')
+        except Exception:
+            pass
         self.load_engine()
         root.after(self.POLL_MS, self._poll)
 
@@ -2988,37 +3154,40 @@ class App:
         self._sync_source_widgets()
 
     def _sync_source_widgets(self):
+        # 🔴🔴🔴 APP-065 A：设备控件**不再用** `before=self.lbl_source_note`
+        #   ⇒ 说明文字已移到 ① 组的 column 3（`before=` 跨父容器 ⇒ TclError）
+        #   ⇒ 现在靠 **pack 调用顺序**决定显示顺序（各控件互斥，无歧义）。
         kind = self._cur_source_key()
         # 只有对应来源的控件可用，其余隐藏 —— 避免用户选错（比如选了
         # 「系统声音」却还在改麦克风设备）。
         if kind == 'mic':
             self.cb_mic.configure(state='readonly')
-            self.cb_mic.pack(side='left', padx=(4, 12), before=self.lbl_source_note)
+            self.cb_mic.pack(side='left', padx=(4, 12))
             self._hide(self.cb_out, self.entry_file, self.btn_pick_file,
                        self.cb_speed, self.cb_loop)
-            self.var_source_note.set('采集麦克风；设备原生采样率会重采样到 16 kHz')
+            self.var_source_note.set('采集麦克风（16 kHz）')
         elif kind == 'system':
             self._hide(self.cb_mic, self.entry_file, self.btn_pick_file,
                        self.cb_speed, self.cb_loop)
             if self.outs:
                 self.cb_out.configure(state='readonly')
-                self.cb_out.pack(side='left', padx=(4, 12), before=self.lbl_source_note)
-                self.var_source_note.set('采集系统正在播放的声音（WASAPI 回环），不占用麦克风')
+                self.cb_out.pack(side='left', padx=(4, 12))
+                self.var_source_note.set('采集系统声音（WASAPI 回环）')
             else:
                 self.cb_out.configure(state='disabled')
                 self._hide(self.cb_out)
-                self.var_source_note.set('未找到可回环的输出设备（需要 Windows WASAPI）')
+                self.var_source_note.set('未找到可回环的输出设备')
         else:
             self._hide(self.cb_mic, self.cb_out)
             self.entry_file.configure(state='normal')
-            self.entry_file.pack(side='left', padx=(4, 4), before=self.lbl_source_note)
+            self.entry_file.pack(side='left', padx=(4, 4))
             self.btn_pick_file.configure(state='normal')
-            self.btn_pick_file.pack(side='left', padx=(0, 8), before=self.lbl_source_note)
+            self.btn_pick_file.pack(side='left', padx=(0, 8))
             self.cb_speed.configure(state='readonly')
-            self.cb_speed.pack(side='left', padx=(0, 8), before=self.lbl_source_note)
+            self.cb_speed.pack(side='left', padx=(0, 8))
             self.cb_loop.configure(state='normal')
-            self.cb_loop.pack(side='left', padx=(0, 8), before=self.lbl_source_note)
-            self.var_source_note.set('回放本地音频文件；可按实时速度播放')
+            self.cb_loop.pack(side='left', padx=(0, 8))
+            self.var_source_note.set('回放本地音频文件（可调速）')
 
     @staticmethod
     def _hide(*widgets):
@@ -3555,10 +3724,25 @@ class App:
         self.var_mt_note.set(opt.get('note', ''))
         # 🔴🔴🔴 APP-062 ④（D4）：MT 与 TTS 同 NPU ⇒ **禁止**
         #   ⇒ MT 自动改到 GPU.0（reviewer：「MT 自动改到 GPU.0」）
+        # 🔴🔴🔴 APP-063 ①（D4 bug 修复，2026-11-02）：**enforce 之后必须重读 opt**。
+        #   旧实现（§131）在本函数里直接继续用**旧 opt**（NPU 那一项）去
+        #   `set_engine(opt['engine'])` + `set_device(opt['device'])`
+        #   ⇒ **把 enforce 刚改好的 GPU.0 又覆盖回 NPU**
+        #   ⇒ 配置文件写的是 GPU.0、实际跑在 NPU、还弹框告诉用户「已改到 GPU.0」。
+        #   ⇒ 现在：enforce 命中（返回 True）⇒ **重新读 opt**（此时 combo 已是
+        #     GPU.0 那一项）⇒ 再按 set_engine→set_device 铁律执行。
+        _forced = False
         try:
-            self._enforce_no_npu_conflict('GUI 选择 MT=%s' % opt['device'])
+            _forced = bool(self._enforce_no_npu_conflict(
+                'GUI 选择 MT=%s' % opt['device']))
         except Exception:
             pass
+        if _forced:
+            # enforce 已把 combo 同步成 GPU.0 ⇒ 重读真值
+            opt = self._cur_mt_opt()
+            if not opt:
+                return
+            self._dev_choices['mt'] = opt['device']
         device_config.save_config(dict(self._dev_choices))
         if not self.mt.set_engine(opt['engine']):
             self.var_status.set('翻译后端切换失败（保持原后端）')
@@ -3694,9 +3878,25 @@ class App:
                 self._ui_log('[tts] 「跟随说话人（克隆）」已启用：'
                              '换人时取样（首段 ≥1.5 s，3 s 定稿），老说话人复用'
                              '（定时重采集已停用，APP-061④）')
+                # 🔴🔴🔴 APP-063 ②（D2 补齐 (a)，2026-11-02）：
+                #   **「开启配音」这个入口也必须自动开旁路**。
+                #   reviewer 原文：「(a) GUI 用 `--tts-voice follow_speaker` 启动，
+                #     或者不改下拉直接开启 TTS（`_on_tts_toggled` L3697–3700），
+                #     都只打日志"将使用预设 A"，**不会自动开旁路**。」
+                #   ⇒ 现在：**这里也调 `_enable_speaker_for_clone`**（幂等）
+                #     ⇒ 用户只点「开启」也能拿到克隆能力。
+                #   ⚠️ 幂等：已开着 ⇒ `_enable_speaker_for_clone` 直接返回 True。
+                if not self._speaker_enabled:
+                    self._enable_speaker_for_clone('GUI 开启配音（音色=跟随说话人）')
+                else:
+                    # 🔴🔴🔴 APP-065 B：状态栏要如实反映「说话人分离已开」
+                    try:
+                        self.var_status.set('说话人分离：开（克隆需要）')
+                    except Exception:
+                        pass
                 # 🔴🔴🔴 APP-061⑤d：旁路关闭 ⇒ 明确提示用预设 A。
                 if not self._speaker_enabled:
-                    self._ui_log('[tts] 🔴 克隆需要说话人识别，当前已关闭'
+                    self._ui_log('[tts] 🔴 克隆需要说话人分离，当前已关闭'
                                  '⇒ 将使用预设 A（APP-061⑤d）')
                 # 清掉上一轮的采集状态 ⇒ 避免用旧语音
                 with self._clone_lock:
@@ -3828,15 +4028,137 @@ class App:
             self._spk_bridge.enabled = True
         except Exception:
             pass
+        # 🔴🔴🔴 APP-063 ②（D2 补齐 (d)，2026-11-02）：
+        #   **会话进行中 ⇒ 真正把旁路线程拉起来**（不等重启）。
+        #   reviewer 原文：「§131⑧③"会话进行中自动打开旁路后要重启会话才生效"：
+        #     这时状态栏已经显示"开（克隆需要）"，但实际上没有生效，
+        #     这本身就是 D2 想消除的"界面勾了但没生效"。
+        #     **请在会话进行中直接把旁路线程拉起来**。」
+        #   ⇒ `SpeakerBridge.feed()` 是**惰性启动**线程的
+        #     ⇒ 现在**主动**调 `ensure_started()` ⇒ 当场可观测。
+        #   ⚠️ 若启动失败 ⇒ 状态栏**如实**写「需重启会话后生效」（不谎报）。
+        _live = False
+        try:
+            _s = getattr(self, 'session', None)
+            _live = bool(_s is not None and getattr(_s, 'running', False))
+        except Exception:
+            _live = False
+        _started = False
+        if _live:
+            try:
+                _started = bool(self._spk_bridge.ensure_started())
+            except Exception:
+                _started = False
         self._ui_log('[spk] 🔴 克隆需要说话人分离 ⇒ **已自动打开说话人旁路**'
                      '（APP-062 D2%s）'
                      % (('：' + why) if why else ''))
+        if _live:
+            if _started:
+                self._ui_log('[spk] ✅ 会话进行中 ⇒ 旁路线程**已即时拉起**'
+                             '（APP-063 ② (d)：无需重启会话）')
+                try:
+                    self.var_status.set('说话人分离：开（克隆需要）'
+                                        '（已即时生效，无需重启会话）')
+                except Exception:
+                    pass
+            else:
+                self._ui_log('[spk] ⚠️ 旁路线程**未能即时启动**'
+                             '⇒ 需重启会话后生效（APP-063 ② (d)）')
+                try:
+                    self.var_status.set('说话人分离：开（克隆需要）'
+                                        '（需重启会话后生效）')
+                except Exception:
+                    pass
+            return True
         try:
             self.var_status.set('说话人分离：开（克隆需要）'
-                                '（已自动打开%s）'
+                                '（已自动打开%s，'
+                                '将在下次开始会话时生效）'
                                 % (('，' + why) if why else ''))
         except Exception:
             pass
+        return True
+
+    def _on_speaker_toggled(self, *_a):
+        """🔴🔴🔴 APP-063 ②（D2 补齐 (c)，2026-11-02）：**取消勾选 ⇒ 音色切回 A**。
+
+        🔴 **reviewer 原文**：
+          「(c) "旁路关闭时克隆选项不可选"没有实现：`cb_speaker`（L2653）
+            没有绑定任何事件。用户在选了跟随说话人之后取消"说话人识别"勾选，
+            会话开始时 L3259 会把旁路关掉，克隆又会静默退回预设 A。
+            **应当改成：取消勾选时把音色切回 A 并提示，或者禁止取消勾选**。」
+
+        🔴 **为什么必须处理**：勾选框与音色是**两个独立控件**
+          ⇒ 用户可以在选了「跟随说话人」之后取消勾选
+          ⇒ 下次会话 `App.start()` 读 `var_speaker` ⇒ 旁路关闭
+          ⇒ 每句 `spk=None` ⇒ **静默回落预设 A**（用户以为在用克隆，其实没有）
+          ⇒ 这正是 D2 要消除的「界面勾了但没生效」。
+
+        ✅ **本实现取 reviewer 给的第一种做法**：**取消勾选 ⇒ 音色切回 A ＋ 提示**
+          （而不是禁止取消 ⇒ 用户想关就关不了 ⇒ 更反直觉）。
+        🔴 **反向也要对称**：**勾选**时若音色已经是「跟随说话人」
+          ⇒ 不做任何事（旁路本来就该开）。
+        """
+        _on = bool(self.var_speaker.get())
+        if _on:
+            # 勾选 ⇒ 同步运行时开关与桥接器（与 `_enable_speaker_for_clone` 同口径）
+            self._speaker_enabled = True
+            try:
+                self._spk_bridge.enabled = True
+            except Exception:
+                pass
+            self._ui_log('[spk] 已开启说话人分离（区分说话人）')
+            try:
+                self.var_status.set('说话人分离：开（克隆需要）')
+            except Exception:
+                pass
+            return True
+        # ---- 取消勾选 ----
+        self._speaker_enabled = False
+        try:
+            self._spk_bridge.enabled = False
+        except Exception:
+            pass
+        # 🔴 音色若是「跟随说话人」⇒ **切回「预设 A」**（否则克隆静默失效）
+        _voice = self._tts_voice_back.get(self.var_tts_voice.get(), 'A')
+        if _voice == 'follow_speaker':
+            try:
+                self.var_tts_voice.set(self._tts_voice_label['A'])
+            except Exception:
+                pass
+            self._clone_enabled = False
+            self._clone_status = ''
+            # 重启 worker（音色条件在加载时绑定 ⇒ 必须重启才真正生效）
+            try:
+                if self.tts is not None:
+                    self.tts.close()
+                self.tts = None
+            except Exception:
+                pass
+            try:
+                self.var_tts_note.set(
+                    '已切回「预设 A」：关闭说话人分离后无法按句绑定音色'
+                    '（检测谁在说话，换人时重新克隆音色）')
+            except Exception:
+                pass
+            self._ui_log('[tts] 🔴 已关闭说话人分离 ⇒ 音色自动切回「预设 A」'
+                         '（克隆需要说话人分离；APP-063 ②）')
+            try:
+                self.var_status.set('已关闭说话人分离 ⇒ 音色切回「预设 A」')
+            except Exception:
+                pass
+            # TTS 若开着 ⇒ 用新音色重起
+            try:
+                if self.var_tts_on.get():
+                    self._on_tts_toggled()
+            except Exception:
+                pass
+        else:
+            self._ui_log('[spk] 已关闭说话人分离')
+            try:
+                self.var_status.set('说话人分离：关')
+            except Exception:
+                pass
         return True
 
     def _on_tts_voice_changed(self, *_a):
@@ -4961,17 +5283,30 @@ class App:
     def _toggle_advanced(self):
         """🔴🔴🔴 APP-061⑥：**折叠/展开「高级」面板**。
 
-        🔴 **为什么要有**：不常用控件（识别语种 / 草稿译文 / 重试翻译 /
-          离线朗读 / 测试声音 / 显示说话人 / 三个分区的说明行）全部塞进来
-          ⇒ 常用控件只占 **2 行** ⇒ 字幕区 ≥ 窗口高度 **70 %**。
+        🔴 **为什么要有**：不常用控件（设备选择 / 草稿译文 / 重试翻译 /
+          离线朗读 / 测试声音 / 显示说话人 / 区分说话人 / 三个分区的说明行）
+          全部塞进来 ⇒ 常用控件只占 **2 行** ⇒ 字幕区 ≥ 窗口高度 **70 %**。
         ⚠️ 面板默认**收起** ⇒ 不占纵向空间。
+
+        🔴🔴🔴 APP-065 A（2026-11-02）：**高级组现在是 LabelFrame**
+          （`self._adv_group`，标题「⑤ 高级」）⇒ 折叠/展开的对象是
+          **整个组**（不是内容容器）⇒ 组标题也一起隐藏 ⇒ 收起时
+          **完全不占纵向空间**。
+        ⚠️ 内容容器 `self._adv_frame` 始终是 `_adv_group` 的子控件
+          ⇒ 展开时它自动随组出现（不需要单独 pack）。
         """
         self._adv_open = not getattr(self, '_adv_open', False)
         if self._adv_open:
-            self._adv_frame.pack(fill='x', before=self.txt)
+            # 🔴 展开：把**整组**放进 `_groups` 的**末尾**
+            #   （⑤ 高级 在处理链的最后一位）⇒ 用 `side='top'` + `after`。
+            try:
+                self._adv_group.pack(side='top', fill='x', pady=(0, 2),
+                                     after=self._groups.winfo_children()[-1])
+            except Exception:
+                self._adv_group.pack(fill='x', pady=(0, 2))
             self.btn_adv.configure(text='▴ 收起')
         else:
-            self._adv_frame.pack_forget()
+            self._adv_group.pack_forget()
             self.btn_adv.configure(text='▾ 高级')
         # 🔴🔴🔴 APP-061⑥：**展开/收起后重算换行宽度**
         #   ⇒ 收起时按**窗口宽**换行（说明行不溢出），
@@ -4982,7 +5317,8 @@ class App:
         except Exception:
             pass
 
-    def _make_status_strip(self, parent, key):
+    def _make_status_strip(self, parent, key, grid_row=None, grid_col=None,
+                           grid_rowspan=None):
         """在某个分区里建一行状态条，返回视图对象。
 
         视图对象持有：
@@ -4990,10 +5326,26 @@ class App:
           * `status`：`gui_status.SectionStatus`（纯逻辑）
           * `_last_text` / `_last_level`：**只在真的变了**时才 configure()
             ⇒ 满足 APP-048「数值定时刷新（≤ 1 Hz），不要频繁重排布局」。
+
+        🔴🔴🔴 APP-065 A（2026-11-02）：**可选放进 grid 的指定单元**。
+          旧实现恒为「独占一行」⇒ 5 个组各多占 21 px
+          ⇒ 字幕区被压到 49 %（实测）⇒ 与 APP-061⑥ 的 ≥70 % 冲突。
+          ⇒ 现在：把状态条放到**与控件同一行**（`grid_col=1`）
+          ⇒ 每组省 21 px ⇒ 字幕区回到 ~70 %。
+          ⚠️ `grid_row=None` ⇒ 保持旧行为（独占一行，`pack`）。
+        ⚠️ `grid_rowspan` ⇒ 状态条**跨多行垂直居中**
+          （④ 语音输出有 3 行控件 ⇒ 状态条贴在第 1 行会显得偏上）。
         """
         from tkinter import ttk
         strip = ttk.Frame(parent)
-        strip.pack(fill='x', pady=(2, 0))
+        if grid_row is not None:
+            opts = dict(row=grid_row, column=grid_col or 0, sticky='ew',
+                        padx=(8, 0), pady=0)
+            if grid_rowspan:
+                opts['rowspan'] = grid_rowspan
+            strip.grid(**opts)
+        else:
+            strip.pack(fill='x', pady=(2, 0))
         status = gui_status.SectionStatus(key)
         var = self.tk.StringVar(value='')
         lbl = ttk.Label(strip, textvariable=var, font=('Microsoft YaHei UI', 9),
@@ -5557,9 +5909,22 @@ class App:
         except Exception:
             pass
         # 🔴 运行中的 MT 引擎也要换设备
+        # 🔴🔴🔴 APP-063 ①（D4 bug 修复，2026-11-02）：**必须 set_engine → set_device**。
+        #   旧实现只调 `set_device('GPU.0')` ⇒ **engine 仍停在 NPU 那一档**
+        #   （`set_device` 不动 engine_key ⇒ 引擎 key 与实际设备不一致）
+        #   ⇒ 违反本文件「顺序铁律」（`set_engine` 内部会把 device 重置成
+        #     该 engine 的默认值，只调 set_device 会被覆盖；反过来只调
+        #     set_engine 则设备回不到用户选的值）。
+        #   ⇒ 现在：**用 GPU.0 那一项的 engine key** 先 set_engine，再 set_device。
         try:
             mt = getattr(self, 'mt', None)
             if mt is not None and hasattr(mt, 'set_device'):
+                _gpu_opt = self._mt_opt_by_id.get('INT8-CW@GPU.0')
+                if _gpu_opt is not None and hasattr(mt, 'set_engine'):
+                    try:
+                        mt.set_engine(_gpu_opt['engine'])
+                    except Exception:
+                        pass
                 mt.set_device('GPU.0')
         except Exception:
             pass
@@ -5847,8 +6212,23 @@ def run_cli(args):
     #   ⇒ 现在**默认关闭** ⇒ 字幕/语音行为与 **v1.12 逐字一致**。
     #   ⇒ 要「字幕显示不同说话人」时显式 `--speaker on`。
     #   ⚠️ `--speaker` 不存在（老调用方）⇒ 保持**关闭**（fail-safe）。
+    # 🔴🔴🔴 APP-063 ②（D2 补齐 (b)，2026-11-02）：
+    #   **CLI 的 `--tts-voice follow_speaker` ⇒ 旁路自动打开**。
+    #   reviewer 原文：「(b) CLI `--tts-voice follow_speaker` 时 `_spk_enabled`
+    #     仍然只看 `--speaker`（L5850），D2 要求的"GUI 或 CLI"中 CLI 没有做。」
+    #   ⇒ 现在：`_want_clone` **提前**算（供 `_spk_enabled` 用）
+    #     ⇒ `--tts-voice follow_speaker` ⇒ `_spk_enabled=True`（**自动开旁路**）
+    #     ⇒ 显式 `--speaker off` **不**覆盖它（克隆没有 spk 就没法用）。
+    _clone_col = None
+    _want_clone = (str(getattr(args, 'tts_voice', 'A') or 'A')
+                   == 'follow_speaker')
     _spk_enabled = (str(getattr(args, 'speaker', 'off') or 'off')
                     .strip().lower() == 'on')
+    if _want_clone and not _spk_enabled:
+        _spk_enabled = True
+        print('[spk] 🔴 克隆（跟随说话人）需要说话人分离 '
+              '⇒ 已自动打开说话人旁路（APP-062 D2 / APP-063 ②）',
+              flush=True)
     eng = make_engine(args.engine, on_log=lambda m: print(m, flush=True),
                       force_language=asr_lang, device=args.asr_device)
     print(f'[{args.engine}] 加载 {eng.load_s:.1f} s，设备 {eng.device_desc}，'
@@ -5876,11 +6256,9 @@ def run_cli(args):
     #   ⇒ 现在：CLI 与 GUI **共用 `clone_collector.CloneCollector`**。
     #   ⚠️ **默认行为逐字不变**：只有显式 `--tts-voice follow_speaker`
     #     （或新增的 `--tts-clone`）才启用 ⇒ 其余路径一字不改。
-    _clone_col = None
-    _want_clone = (str(getattr(args, 'tts_voice', 'A') or 'A')
-                   == 'follow_speaker')
-    # 🔴 **默认开启**（APP-014）：`--tts` 默认 None ⇒ 视为 on；
-    #    显式 `--tts off` ⇒ 关闭。
+    # 🔴🔴🔴 APP-063 ②：`_clone_col` / `_want_clone` **已在上面提前算好**
+    #   （D2 (b) 需要 `_want_clone` 参与 `_spk_enabled` 的判定）
+    #   ⇒ 这里**不再重复定义**（否则会覆盖前面的结果）。
     if getattr(args, 'tts', None) != 'off':
         try:
             from tts_service import TTSService
@@ -6853,6 +7231,23 @@ def main():
     args.mt_device = _dev_sel['mt']
     args.tts_device = _dev_sel['tts']
     args.device_notes = _dev_notes
+    # 🔴🔴🔴 APP-063 ①（D4 CLI 侧，2026-11-02）：**MT 与 TTS 同 NPU ⇒ 禁止**。
+    #   reviewer 原文：「另外 CLI 的 `--mt-device NPU --tts-device NPU`
+    #     也要按同样规则处理（MT 自动改到 GPU.0，打日志），
+    #     或者明确报错。现在 CLI 没有这一处理，请补上，
+    #     或者在 STATUS 里说明理由。」
+    #   ⇒ **补上**（与 GUI 侧 `_enforce_no_npu_conflict` 同一口径）：
+    #     MT 自动改到 GPU.0 ＋ **打日志**（CLI 无 GUI ⇒ 只走日志，不弹框）。
+    #   ⚠️ 只改 MT（不动 TTS）⇒ 与 reviewer「MT 自动改到 GPU.0」一致。
+    try:
+        _mt_d = str(args.mt_device or '').strip().upper()
+        _tts_d = str(args.tts_device or '').strip().upper()
+        if 'NPU' in _mt_d and 'NPU' in _tts_d:
+            args.mt_device = 'GPU.0'
+            print('[device] 🔴 MT 与 TTS 同时在 NPU ⇒ 已禁止（APP-062 D4）'
+                  '⇒ MT 自动改到 GPU.0', file=sys.stderr, flush=True)
+    except Exception:
+        pass
 
     # 没显式给 --source 时按老习惯推断：给了 --file 就是文件模式，否则麦克风
     if args.source is None:
