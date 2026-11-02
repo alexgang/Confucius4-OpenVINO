@@ -1,0 +1,965 @@
+{
+ "script": "app223_app061_device_acceptance.py",
+ "correction": "APP-061",
+ "ts": "2026-11-02 21:03:47",
+ "cfg": {
+  "self_test": false,
+  "run": true,
+  "dry_run": false,
+  "pkg": "C:/Users/Trekker-PTL/shared/app065_shadow",
+  "counterproof_pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1",
+  "duration": 300.0,
+  "arms": "tts_off,tts_on_preset,tts_on_clone",
+  "skip_quiet": false,
+  "out": "results/app/app233_device_acceptance_evidence.json"
+ },
+ "self_test": {
+  "log": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\session_20261101_212026.log",
+  "exists": true,
+  "parsed": {
+   "n_lines": 931,
+   "n_no_voice_error": 50,
+   "n_fallback_preset": 83,
+   "n_embedding": 27,
+   "n_clone_updates": 27,
+   "n_clone_updates_10s": 25,
+   "n_clone_updates_unpaired": 27,
+   "n_speakers": 2,
+   "n_new_spk_events": 2,
+   "n_embedding_paired": 0,
+   "n_embedding_unpaired": 27,
+   "n_keep_last": 0
+  },
+  "clone_update_samples": [
+   "21:21:05 [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，3.0 s）",
+   "21:21:22 [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，9.0 s）",
+   "21:21:39 [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，10.0 s）",
+   "21:21:58 [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，10.0 s）",
+   "21:22:16 [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，10.0 s）"
+  ],
+  "checks": [
+   {
+    "name": "解析器抓到「已回落到预设 A」83 次（reviewer 原文）",
+    "ok": true,
+    "detail": 83
+   },
+   {
+    "name": "解析器抓到「没有可用的音色」> 0（reviewer 原文 50 次）",
+    "ok": true,
+    "detail": 50
+   },
+   {
+    "name": "解析器抓到 10.0 s 定时克隆更新 > 0",
+    "ok": true,
+    "detail": 25
+   },
+   {
+    "name": "判据④-③ 在 v2.1 上必须 FAIL（有未配对的定时克隆更新）",
+    "ok": true,
+    "detail": 27
+   },
+   {
+    "name": "判据④-② 在 v2.1 上必须 FAIL（声纹计算对不上 new_spk）",
+    "ok": true,
+    "detail": 27
+   }
+  ],
+  "n_pass": 5,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "meaning": "PASS = 判据在**已知有缺陷的旧产物**上能识破缺陷 ⇒ 判据非恒真；此时它对 v2.2 的判定才可信"
+ },
+ "quiet_window": {
+  "ok": true,
+  "info": "{'quiet_seconds': 45.0, 'timeout': 900.0, 'waited_s': 75.0851731300354, 'n_samples': 6, 'n_busy_samples': 2, 'n_idle_samples': 4, 'n_unknown_samples': 2, 'last_busy_pids': [22160, 6468], 'last_idle_pids': [7896, 29800], 'classifier': 'cpu-delta', 'quiet_since': 1793624658.6696465}"
+ },
+ "arms": {
+  "tts_off": {
+   "arm": "tts_off",
+   "pkg": "C:/Users/Trekker-PTL/shared/app065_shadow",
+   "cmd": [
+    "C:/Users/Trekker-PTL/shared/app065_shadow\\python\\python.exe",
+    "C:/Users/Trekker-PTL/shared/app065_shadow\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+    "--engine",
+    "gpu_int8",
+    "--translate",
+    "zh",
+    "--tts",
+    "off",
+    "--tts-voice",
+    "A",
+    "--speaker",
+    "off",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--max-seconds",
+    "300.0",
+    "--tts-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_off.wav",
+    "--tts-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_off.tts.jsonl",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_off.txt"
+   ],
+   "rc": 0,
+   "runner_wall_s": 317.34,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_off.log",
+   "log_bytes": 41275,
+   "wav_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_off.wav",
+   "jsonl_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_off.tts.jsonl",
+   "txt_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_off.txt",
+   "summary": {
+    "summary_found": true,
+    "engine": "gpu_int8",
+    "audio_s": 300.0,
+    "wall_s": 300.6,
+    "rtf": 0.756,
+    "first_char_latency_ms": 443.0,
+    "max_backlog_s": 1.4,
+    "n_segs": 46,
+    "n_dropped_reported": null
+   },
+   "log": {
+    "bytes": 40976,
+    "n_lines": 731,
+    "n_no_voice_error": 0,
+    "n_fallback_preset": 0,
+    "n_keep_last": 0,
+    "n_embedding": 0,
+    "clone_updates": [],
+    "embedding_ts": [],
+    "new_spk_ts": [],
+    "spk_ids": [],
+    "n_clone_updates": 0,
+    "n_speakers": 0,
+    "n_new_spk_events": 0,
+    "n_embedding_paired": 0,
+    "n_embedding_unpaired": 0,
+    "clone_updates_unpaired": [],
+    "n_clone_updates_unpaired": 0,
+    "n_clone_updates_10s": 0
+   },
+   "jsonl": {
+    "exists": false,
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_off.tts.jsonl"
+   },
+   "artifacts": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_off.txt",
+     "bytes": 4704,
+     "mtime": "2026-11-02 21:10:18"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_off.log",
+     "bytes": 41275,
+     "mtime": "2026-11-02 21:10:18"
+    }
+   ]
+  },
+  "tts_on_preset": {
+   "arm": "tts_on_preset",
+   "pkg": "C:/Users/Trekker-PTL/shared/app065_shadow",
+   "cmd": [
+    "C:/Users/Trekker-PTL/shared/app065_shadow\\python\\python.exe",
+    "C:/Users/Trekker-PTL/shared/app065_shadow\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+    "--engine",
+    "gpu_int8",
+    "--translate",
+    "zh",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "A",
+    "--speaker",
+    "off",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--max-seconds",
+    "300.0",
+    "--tts-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_preset.wav",
+    "--tts-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_preset.tts.jsonl",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_preset.txt"
+   ],
+   "rc": 0,
+   "runner_wall_s": 358.11,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_preset.log",
+   "log_bytes": 101355,
+   "wav_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_preset.wav",
+   "jsonl_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_preset.tts.jsonl",
+   "txt_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_preset.txt",
+   "summary": {
+    "summary_found": true,
+    "engine": "gpu_int8",
+    "audio_s": 300.0,
+    "wall_s": 300.8,
+    "rtf": 0.867,
+    "first_char_latency_ms": 795.0,
+    "max_backlog_s": 1.8,
+    "n_segs": 46,
+    "n_dropped_reported": 0
+   },
+   "log": {
+    "bytes": 100581,
+    "n_lines": 1206,
+    "n_no_voice_error": 0,
+    "n_fallback_preset": 76,
+    "n_keep_last": 0,
+    "n_embedding": 1,
+    "clone_updates": [],
+    "embedding_ts": [
+     null
+    ],
+    "new_spk_ts": [],
+    "spk_ids": [],
+    "n_clone_updates": 0,
+    "n_speakers": 0,
+    "n_new_spk_events": 0,
+    "n_embedding_paired": 0,
+    "n_embedding_unpaired": 1,
+    "clone_updates_unpaired": [],
+    "n_clone_updates_unpaired": 0,
+    "n_clone_updates_10s": 0
+   },
+   "jsonl": {
+    "exists": true,
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_preset.tts.jsonl",
+    "bytes": 95761,
+    "n_rows": 76,
+    "n_dropped": 0,
+    "n_error": 0,
+    "n_uf_known": 0,
+    "uf_in_sentence_ms_total": 0,
+    "uf_in_sentence_ms_max": null,
+    "n_sent_uf_zero": 0,
+    "n_sent_uf_nonzero": 0,
+    "pct_sent_uf_zero": null,
+    "voice_kind_counts": {
+     "preset": 76
+    },
+    "pct_voice_kind_clone": 0.0,
+    "voice_spk_ids": [],
+    "n_first_packet_known": 76,
+    "first_packet_p50_s": 0.5576,
+    "first_packet_p95_s": 0.6765,
+    "synth_rtf_mean": 0.9435,
+    "synth_rtf_p95": 1.0906,
+    "synth_rtf_n": 76
+   },
+   "artifacts": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_preset.wav",
+     "bytes": 15753464,
+     "mtime": "2026-11-02 21:16:17"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_preset.tts.jsonl",
+     "bytes": 95761,
+     "mtime": "2026-11-02 21:16:17"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_preset.txt",
+     "bytes": 4704,
+     "mtime": "2026-11-02 21:15:35"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_preset.log",
+     "bytes": 101355,
+     "mtime": "2026-11-02 21:16:18"
+    }
+   ]
+  },
+  "tts_on_clone": {
+   "arm": "tts_on_clone",
+   "pkg": "C:/Users/Trekker-PTL/shared/app065_shadow",
+   "cmd": [
+    "C:/Users/Trekker-PTL/shared/app065_shadow\\python\\python.exe",
+    "C:/Users/Trekker-PTL/shared/app065_shadow\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+    "--engine",
+    "gpu_int8",
+    "--translate",
+    "zh",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "follow_speaker",
+    "--speaker",
+    "on",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--max-seconds",
+    "300.0",
+    "--tts-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone.wav",
+    "--tts-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone.tts.jsonl",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone.txt"
+   ],
+   "rc": 0,
+   "runner_wall_s": 364.86,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone.log",
+   "log_bytes": 108346,
+   "wav_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone.wav",
+   "jsonl_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone.tts.jsonl",
+   "txt_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone.txt",
+   "summary": {
+    "summary_found": true,
+    "engine": "gpu_int8",
+    "audio_s": 300.0,
+    "wall_s": 301.2,
+    "rtf": 0.878,
+    "first_char_latency_ms": 846.0,
+    "max_backlog_s": 2.0,
+    "n_segs": 46,
+    "n_dropped_reported": 0
+   },
+   "log": {
+    "bytes": 107495,
+    "n_lines": 1283,
+    "n_no_voice_error": 0,
+    "n_fallback_preset": 0,
+    "n_keep_last": 0,
+    "n_embedding": 1,
+    "clone_updates": [],
+    "embedding_ts": [
+     null
+    ],
+    "new_spk_ts": [
+     null
+    ],
+    "spk_ids": [
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1"
+    ],
+    "n_clone_updates": 0,
+    "n_speakers": 1,
+    "n_new_spk_events": 1,
+    "n_embedding_paired": 0,
+    "n_embedding_unpaired": 1,
+    "clone_updates_unpaired": [],
+    "n_clone_updates_unpaired": 0,
+    "n_clone_updates_10s": 0
+   },
+   "jsonl": {
+    "exists": true,
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone.tts.jsonl",
+    "bytes": 95587,
+    "n_rows": 76,
+    "n_dropped": 0,
+    "n_error": 0,
+    "n_uf_known": 0,
+    "uf_in_sentence_ms_total": 0,
+    "uf_in_sentence_ms_max": null,
+    "n_sent_uf_zero": 0,
+    "n_sent_uf_nonzero": 0,
+    "pct_sent_uf_zero": null,
+    "voice_kind_counts": {
+     "preset": 76
+    },
+    "pct_voice_kind_clone": 0.0,
+    "voice_spk_ids": [],
+    "n_first_packet_known": 76,
+    "first_packet_p50_s": 0.5651,
+    "first_packet_p95_s": 0.7024,
+    "synth_rtf_mean": 0.951,
+    "synth_rtf_p95": 1.123,
+    "synth_rtf_n": 76
+   },
+   "artifacts": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone.wav",
+     "bytes": 16005826,
+     "mtime": "2026-11-02 21:22:21"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone.tts.jsonl",
+     "bytes": 95587,
+     "mtime": "2026-11-02 21:22:21"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone.txt",
+     "bytes": 4919,
+     "mtime": "2026-11-02 21:21:35"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone.log",
+     "bytes": 108346,
+     "mtime": "2026-11-02 21:22:22"
+    }
+   ]
+  }
+ },
+ "counterproof_v21": {
+  "arm": "tts_on_clone",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1",
+  "cmd": [
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\python\\python.exe",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\app\\live_caption_app.py",
+   "--cli",
+   "--file",
+   "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+   "--engine",
+   "gpu_int8",
+   "--translate",
+   "zh",
+   "--tts",
+   "on",
+   "--tts-voice",
+   "follow_speaker",
+   "--speaker",
+   "on",
+   "--asr-device",
+   "GPU.0",
+   "--mt-device",
+   "GPU.0",
+   "--tts-device",
+   "NPU",
+   "--max-seconds",
+   "120.0",
+   "--tts-out",
+   "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone_v21.wav",
+   "--tts-jsonl",
+   "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone_v21.tts.jsonl",
+   "--out",
+   "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone_v21.txt"
+  ],
+  "rc": 0,
+  "runner_wall_s": 147.4,
+  "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone_v21.log",
+  "log_bytes": 43770,
+  "wav_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone_v21.wav",
+  "jsonl_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone_v21.tts.jsonl",
+  "txt_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone_v21.txt",
+  "summary": {
+   "summary_found": true,
+   "engine": "gpu_int8",
+   "audio_s": 120.2,
+   "wall_s": 120.8,
+   "rtf": 0.845,
+   "first_char_latency_ms": 667.0,
+   "max_backlog_s": 1.4,
+   "n_segs": 19,
+   "n_dropped_reported": 0
+  },
+  "log": {
+   "bytes": 43412,
+   "n_lines": 528,
+   "n_no_voice_error": 0,
+   "n_fallback_preset": 0,
+   "n_keep_last": 0,
+   "n_embedding": 7,
+   "clone_updates": [
+    {
+     "ts": null,
+     "dur_s": 9.0,
+     "line": "[TTS] [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，9.0 s）"
+    },
+    {
+     "ts": null,
+     "dur_s": 9.9,
+     "line": "[TTS] [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，9.9 s）"
+    },
+    {
+     "ts": null,
+     "dur_s": 10.0,
+     "line": "[TTS] [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，10.0 s）"
+    },
+    {
+     "ts": null,
+     "dur_s": 10.0,
+     "line": "[TTS] [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，10.0 s）"
+    },
+    {
+     "ts": null,
+     "dur_s": 10.0,
+     "line": "[TTS] [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，10.0 s）"
+    },
+    {
+     "ts": null,
+     "dur_s": 10.0,
+     "line": "[TTS] [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，10.0 s）"
+    }
+   ],
+   "embedding_ts": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "new_spk_ts": [
+    null
+   ],
+   "spk_ids": [
+    "S1",
+    "S1",
+    "S1",
+    "S1",
+    "S1",
+    "S1",
+    "S1",
+    "S1",
+    "S1",
+    "S1",
+    "S1",
+    "S1",
+    "S1",
+    "S1",
+    "S1",
+    "S1",
+    "S1"
+   ],
+   "n_clone_updates": 6,
+   "n_speakers": 1,
+   "n_new_spk_events": 1,
+   "n_embedding_paired": 0,
+   "n_embedding_unpaired": 7,
+   "clone_updates_unpaired": [
+    {
+     "ts": null,
+     "dur_s": 9.0,
+     "line": "[TTS] [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，9.0 s）"
+    },
+    {
+     "ts": null,
+     "dur_s": 9.9,
+     "line": "[TTS] [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，9.9 s）"
+    },
+    {
+     "ts": null,
+     "dur_s": 10.0,
+     "line": "[TTS] [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，10.0 s）"
+    },
+    {
+     "ts": null,
+     "dur_s": 10.0,
+     "line": "[TTS] [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，10.0 s）"
+    },
+    {
+     "ts": null,
+     "dur_s": 10.0,
+     "line": "[TTS] [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，10.0 s）"
+    },
+    {
+     "ts": null,
+     "dur_s": 10.0,
+     "line": "[TTS] [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，10.0 s）"
+    }
+   ],
+   "n_clone_updates_unpaired": 6,
+   "n_clone_updates_10s": 5
+  },
+  "jsonl": {
+   "exists": true,
+   "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone_v21.tts.jsonl",
+   "bytes": 36707,
+   "n_rows": 29,
+   "n_dropped": 0,
+   "n_error": 0,
+   "n_uf_known": 0,
+   "uf_in_sentence_ms_total": 0,
+   "uf_in_sentence_ms_max": null,
+   "n_sent_uf_zero": 0,
+   "n_sent_uf_nonzero": 0,
+   "pct_sent_uf_zero": null,
+   "voice_kind_counts": {
+    "preset": 5,
+    "clone": 24
+   },
+   "pct_voice_kind_clone": 82.759,
+   "voice_spk_ids": [],
+   "n_first_packet_known": 29,
+   "first_packet_p50_s": 0.5542,
+   "first_packet_p95_s": 0.6974,
+   "synth_rtf_mean": 0.9713,
+   "synth_rtf_p95": 1.0764,
+   "synth_rtf_n": 29
+  },
+  "artifacts": [
+   {
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone_v21.wav",
+    "bytes": 5660168,
+    "mtime": "2026-11-02 21:24:48"
+   },
+   {
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone_v21.tts.jsonl",
+    "bytes": 36707,
+    "mtime": "2026-11-02 21:24:48"
+   },
+   {
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone_v21.txt",
+    "bytes": 1923,
+    "mtime": "2026-11-02 21:24:40"
+   },
+   {
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone_v21.log",
+    "bytes": 43770,
+    "mtime": "2026-11-02 21:24:49"
+   }
+  ]
+ },
+ "counterproof_v21_checks": [
+  {
+   "name": "①「没有可用的音色」= 0（tts_on_preset）",
+   "verdict": null,
+   "detail": {
+    "arm": "tts_on_preset"
+   },
+   "why": "该臂未跑（无数据）⇒ 无法判定"
+  },
+  {
+   "name": "①「没有可用的音色」= 0（tts_on_clone）",
+   "verdict": true,
+   "detail": {
+    "n_no_voice_error": 0,
+    "n_fallback_preset": 0
+   },
+   "why": "APP-061①：每句都报「没有可用的音色」⇒ 请求没送到边车 ⇒ 全程无声"
+  },
+  {
+   "name": "①b CUDA 边车 REQ 数 = 提交句数",
+   "verdict": null,
+   "detail": {
+    "cuda_trace": null
+   },
+   "why": "本机**无 CUDA 运行时**（§78.6）⇒ CUDA 臂无法在本机跑 ⇒ 无法判定（≠ 不合格）；CUDA 路径的**代码层**由 `app215` 29/0 覆盖"
+  },
+  {
+   "name": "③-① uf_in_sentence_ms 总和 ≤ 音频时长的 0.5 %",
+   "verdict": true,
+   "detail": {
+    "uf_in_sentence_ms_total": 0,
+    "limit_ms": 601.0,
+    "audio_s": 120.2
+   },
+   "why": "APP-061③：句内欠载 = **听得见的断音**"
+  },
+  {
+   "name": "③-② ≥ 95 % 的句子 uf = 0",
+   "verdict": false,
+   "detail": {
+    "pct_sent_uf_zero": null,
+    "n_sent_uf_zero": 0,
+    "n_sent_uf_nonzero": 0
+   },
+   "why": "APP-061③：绝大多数句子不得有句内欠载"
+  },
+  {
+   "name": "③-③ ASR RTF 增量（TTS on − TTS off）≤ +0.10",
+   "verdict": null,
+   "detail": {},
+   "why": "缺 TTS off 臂或汇总行 ⇒ 无法判定"
+  },
+  {
+   "name": "③-④ 丢句数 = 0",
+   "verdict": true,
+   "detail": {
+    "n_dropped": 0,
+    "n_dropped_reported": 0,
+    "n_rows": 29
+   },
+   "why": "APP-061③：丢句 = 0"
+  },
+  {
+   "name": "③-⑤ 报 TTS 首包延迟 P50/P95",
+   "verdict": null,
+   "detail": {
+    "p50_s": 0.5542,
+    "p95_s": 0.6974
+   },
+   "why": "reviewer 只要求**报告** P50/P95（无阈值）⇒ 只报数不判定"
+  },
+  {
+   "name": "④-① 声纹计算次数 ≤ 2 × 说话人数",
+   "verdict": false,
+   "detail": {
+    "n_embedding": 7,
+    "n_speakers": 1,
+    "limit": 2
+   },
+   "why": "APP-061④：只有换人才取样 ⇒ 声纹计算次数 ≈ 说话人数 × 1–2"
+  },
+  {
+   "name": "④-② 每次声纹计算 ±1 s 内有 new_spk/refine 记录",
+   "verdict": false,
+   "detail": {
+    "n_embedding": 7,
+    "n_paired": 0,
+    "n_unpaired": 7
+   },
+   "why": "APP-061④：每次声纹计算都要能对上「谁在什么时候换了人」"
+  },
+  {
+   "name": "④-③ 定时克隆更新（无 new_spk 配对）= 0 次",
+   "verdict": false,
+   "detail": {
+    "n_clone_updates": 6,
+    "n_unpaired": 6,
+    "n_10s": 5,
+    "samples": [
+     "[TTS] [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，9.0 s）",
+     "[TTS] [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，9.9 s）",
+     "[TTS] [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，10.0 s）",
+     "[TTS] [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，10.0 s）",
+     "[TTS] [TTS] [tts_worker] ✅ 克隆音色已更新（BabelVox x-vector，10.0 s）"
+    ]
+   },
+   "why": "APP-061④：「克隆音色已更新…10.0 s」这类定时更新必须 0 次"
+  },
+  {
+   "name": "⑤-① voice_kind=clone 占比 ≥ 80 %",
+   "verdict": true,
+   "detail": {
+    "pct_voice_kind_clone": 82.759,
+    "voice_kind_counts": {
+     "preset": 5,
+     "clone": 24
+    }
+   },
+   "why": "APP-061⑤：用户抱怨的「男声被女声播出」就是 clone 占比太低"
+  },
+  {
+   "name": "⑤-② no_spk_label 回落次数 ≤ 说话人数 × 2",
+   "verdict": true,
+   "detail": {
+    "n_fallback_preset": 0,
+    "n_speakers": 1,
+    "limit": 2,
+    "n_keep_last": 0
+   },
+   "why": "APP-061⑤：回落太多 = 克隆没生效"
+  },
+  {
+   "name": "⑤-③ reviewer 主观核对（性别/音色）",
+   "verdict": null,
+   "detail": {
+    "n_sent_for_review": 29
+   },
+   "why": "**人工项**（reviewer 抽 10 句）⇒ 本脚本不代判"
+  },
+  {
+   "name": "③(e) CPU 卸载候选 A/B（旁路/克隆 speaker_enc/TTS tok_decoder）",
+   "verdict": null,
+   "detail": {},
+   "why": "本轮未做（需 GUI+CLI 各一次、ABBA、持机器锁）⇒ 无法判定"
+  }
+ ],
+ "counterproof_v21_n_fail": 4,
+ "checks": [
+  {
+   "name": "①「没有可用的音色」= 0（tts_on_preset）",
+   "verdict": true,
+   "detail": {
+    "n_no_voice_error": 0,
+    "n_fallback_preset": 76
+   },
+   "why": "APP-061①：每句都报「没有可用的音色」⇒ 请求没送到边车 ⇒ 全程无声"
+  },
+  {
+   "name": "①「没有可用的音色」= 0（tts_on_clone）",
+   "verdict": true,
+   "detail": {
+    "n_no_voice_error": 0,
+    "n_fallback_preset": 0
+   },
+   "why": "APP-061①：每句都报「没有可用的音色」⇒ 请求没送到边车 ⇒ 全程无声"
+  },
+  {
+   "name": "①b CUDA 边车 REQ 数 = 提交句数",
+   "verdict": null,
+   "detail": {
+    "cuda_trace": null
+   },
+   "why": "本机**无 CUDA 运行时**（§78.6）⇒ CUDA 臂无法在本机跑 ⇒ 无法判定（≠ 不合格）；CUDA 路径的**代码层**由 `app215` 29/0 覆盖"
+  },
+  {
+   "name": "③-① uf_in_sentence_ms 总和 ≤ 音频时长的 0.5 %",
+   "verdict": true,
+   "detail": {
+    "uf_in_sentence_ms_total": 0,
+    "limit_ms": 1500.0,
+    "audio_s": 300.0
+   },
+   "why": "APP-061③：句内欠载 = **听得见的断音**"
+  },
+  {
+   "name": "③-② ≥ 95 % 的句子 uf = 0",
+   "verdict": false,
+   "detail": {
+    "pct_sent_uf_zero": null,
+    "n_sent_uf_zero": 0,
+    "n_sent_uf_nonzero": 0
+   },
+   "why": "APP-061③：绝大多数句子不得有句内欠载"
+  },
+  {
+   "name": "③-③ ASR RTF 增量（TTS on − TTS off）≤ +0.10",
+   "verdict": false,
+   "detail": {
+    "rtf_off": 0.756,
+    "rtf_on": 0.878,
+    "delta": 0.122,
+    "limit": 0.1
+   },
+   "why": "APP-061③：TTS 上 NPU 不许把 ASR 拖慢"
+  },
+  {
+   "name": "③-④ 丢句数 = 0",
+   "verdict": true,
+   "detail": {
+    "n_dropped": 0,
+    "n_dropped_reported": 0,
+    "n_rows": 76
+   },
+   "why": "APP-061③：丢句 = 0"
+  },
+  {
+   "name": "③-⑤ 报 TTS 首包延迟 P50/P95",
+   "verdict": null,
+   "detail": {
+    "p50_s": 0.5651,
+    "p95_s": 0.7024
+   },
+   "why": "reviewer 只要求**报告** P50/P95（无阈值）⇒ 只报数不判定"
+  },
+  {
+   "name": "④-① 声纹计算次数 ≤ 2 × 说话人数",
+   "verdict": true,
+   "detail": {
+    "n_embedding": 1,
+    "n_speakers": 1,
+    "limit": 2
+   },
+   "why": "APP-061④：只有换人才取样 ⇒ 声纹计算次数 ≈ 说话人数 × 1–2"
+  },
+  {
+   "name": "④-② 每次声纹计算 ±1 s 内有 new_spk/refine 记录",
+   "verdict": false,
+   "detail": {
+    "n_embedding": 1,
+    "n_paired": 0,
+    "n_unpaired": 1
+   },
+   "why": "APP-061④：每次声纹计算都要能对上「谁在什么时候换了人」"
+  },
+  {
+   "name": "④-③ 定时克隆更新（无 new_spk 配对）= 0 次",
+   "verdict": true,
+   "detail": {
+    "n_clone_updates": 0,
+    "n_unpaired": 0,
+    "n_10s": 0,
+    "samples": []
+   },
+   "why": "APP-061④：「克隆音色已更新…10.0 s」这类定时更新必须 0 次"
+  },
+  {
+   "name": "⑤-① voice_kind=clone 占比 ≥ 80 %",
+   "verdict": false,
+   "detail": {
+    "pct_voice_kind_clone": 0.0,
+    "voice_kind_counts": {
+     "preset": 76
+    }
+   },
+   "why": "APP-061⑤：用户抱怨的「男声被女声播出」就是 clone 占比太低"
+  },
+  {
+   "name": "⑤-② no_spk_label 回落次数 ≤ 说话人数 × 2",
+   "verdict": true,
+   "detail": {
+    "n_fallback_preset": 0,
+    "n_speakers": 1,
+    "limit": 2,
+    "n_keep_last": 0
+   },
+   "why": "APP-061⑤：回落太多 = 克隆没生效"
+  },
+  {
+   "name": "⑤-③ reviewer 主观核对（性别/音色）",
+   "verdict": null,
+   "detail": {
+    "n_sent_for_review": 76
+   },
+   "why": "**人工项**（reviewer 抽 10 句）⇒ 本脚本不代判"
+  },
+  {
+   "name": "③(e) CPU 卸载候选 A/B（旁路/克隆 speaker_enc/TTS tok_decoder）",
+   "verdict": null,
+   "detail": {},
+   "why": "本轮未做（需 GUI+CLI 各一次、ABBA、持机器锁）⇒ 无法判定"
+  }
+ ],
+ "n_pass": 7,
+ "n_fail": 4,
+ "n_none": 4,
+ "verdict": "FAIL",
+ "counterproof_enforced": true
+}

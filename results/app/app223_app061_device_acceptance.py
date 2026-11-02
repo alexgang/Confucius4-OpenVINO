@@ -98,7 +98,13 @@ _RE_CLONE_UPDATE = re.compile(
     r'[（(]?[^)）]*?[，,]\s*([0-9]+(?:\.[0-9]+)?)\s*s')
 _RE_KEEP_LAST = re.compile(r'spk_pending⇒keep_last')
 _RE_FALLBACK_PRESET = re.compile(r'已回落到预设 A')
-_RE_NO_VOICE = re.compile(r'没有可用的音色')
+# 🔴🔴🔴 APP-063 复盘（2026-11-02 21:0x）：**判据①曾是假 PASS** ——
+#   实测日志里的真实故障串是 **`没有可用引擎`**（`tts_worker.py:3763/3805`）
+#   与 **`spk 音色登记失败`**，而旧正则只抓 `没有可用的音色`
+#   （**另一条**故障：语音没送到边车）⇒ **抓不到真实故障**。
+#   ⇒ 现在三条**都**算「没有可用音色」。
+_RE_NO_VOICE = re.compile(
+    r'没有可用的音色|没有可用引擎|spk 音色登记失败')
 
 
 def _log_ts(line):
