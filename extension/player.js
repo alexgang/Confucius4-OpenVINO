@@ -182,6 +182,24 @@ const metrics = {
   dubRescheduleDelaySec: 0,
   onsetErrs: [], lipErrs: [], schedDetail: [],
   drawMarks: [], origOnsets: [], dubOnsets: [],
+  // ★★★ EXT-033 D：**player 端实测的「有符号」同步误差**。
+  //   `dubSyncErrs`  —— 每句配音的 signedErrMs（实际起播 − (t0+t_start+D)）
+  //                     ⇒ **可为负**（早播）—— EXT-032 用的
+  //                     `max(0, TTS就绪 − 截止时刻)` 永远 ≥ 0 ⇒ 恒为 0，
+  //                     根本量不出「早播」，口径是错的。
+  //   `dubSyncDetail` —— {id, tStart, requested, actual, signedErrMs, lateMs}
+  //   `dubSyncLateMs` —— 「迟到量」（单独列，**不代替** signedErrMs）
+  dubSyncErrs: [], dubSyncDetail: [], dubSyncLateMs: [],
+  dubSyncP50: null, dubSyncP95: null, dubSyncMax: null, dubSyncMin: null,
+  // ★★★ EXT-033 D：时间轴原点的**口径**（必须能自证，不能默认）。
+  //   `t0Axis`       —— 'audio_clock'（用音频时钟反推，正确）
+  //                   | 'page_init'（页面初始化时刻，**旧口径、已弃用**）
+  //   `t0Sec`        —— 当前 t0 的值（秒）
+  //   `t0Offset16`   —— 抓流样本 0 在音频时钟（16 kHz 域）的位置
+  //   `t0UpSec`      —— **上行域**的 t0（换算前的原值，便于自证）
+  //   `t0UpPlayerOffsetSec` —— uplink↔player 两个 AudioContext 的原点差
+  t0Axis: null, t0Sec: null, t0Offset16: null, t0OffsetSamples: 0,
+  t0UpSec: null, t0UpPlayerOffsetSec: null, t0UpPlayerOffsetSpreadSec: null,
   captureStarted: false, audioCtxOk: false,
   // ★★ EXT-027①：抓流方式的**降级证据**。
   //   `captureMode` 只说「最后走了哪条路」，
@@ -238,6 +256,56 @@ const ADAPT = {
 // ── 全局时钟：画面与原声共用同一个 AudioContext ────────────────
 let audioCtx = null;
 let t0 = 0;
+// ★★★ EXT-033 D：**时间轴原点的正确口径**。
+//
+// ## 旧口径（EXT-032 用过的）为什么是错的
+//   `t0 = audioCtx.currentTime`（**页面初始化时刻**），
+//   而服务端下发的 `t_start` 是**上行首帧**为原点的音频时间轴。
+//   ⇒ 两个原点差了「页面初始化 → 抓流真正开始」这一段（本机实测 ~4~5 s）
+//   ⇒ `planned = t0 + t_start + D` **整体偏早** ⇒ 排程被钳到「立即播」
+//   ⇒ EXT-032 的时间轴不真实（reviewer 的第 1 条批评）。
+//
+// ## 新口径
+//   抓流样本 0 在**音频时钟**上的位置 = `sampleIndex − audioFrame16`
+//   （两者都是 16 kHz 域、都是硬件时基）⇒
+//   `t0 = (sampleIndex − audioFrame16) / 16000`
+//   ⇒ `t0 + t_start` 才真的落在 AudioContext 时间轴上。
+//   ★ 取前 N 帧的**中位数**（首帧有启动瞬态，中位数更稳）。
+//
+// ★★★★★ EXT-033 D 修正（真实三引擎实测抓到的**跨时钟域**缺陷）：
+//   `audioFrame16` 来自**上行 AudioContext**（`upState.ac`，player.js:1364 创建），
+//   而 `planned` / `src.start(when)` / onset 的 `at` 全在
+//   **player AudioContext**（`audioCtx`，player.js:2582 创建）的时间轴上。
+//   两个 AudioContext 的**原点互相独立**（各自从 0 开始计时），
+//   ⇒ 直接把 uplink 域算出的 t0 当成 player 域的时刻 ⇒ **系统性偏差**。
+//
+//   实测证据（run 20261102_121431，真实三引擎）：
+//     `t0Sec = -0.0197`（uplink 域）⇒ `requested` 首段 = 9.98 s，
+//     而 player 实测首段实际起播 = 29.93 s ⇒ signedErr = **+19.95 s**；
+//     `metrics.schedClamped = 13` ⇒ **13 段全部**被钳成「立即播」
+//     ⇒ 有符号误差**恒为正**，量不出「早播」—— 这正是 EXT-032 批评的口径问题。
+//
+//   ## 修法：在 **player 域**内建立 uplink↔player 的偏移
+//   同一时刻、两个 context 的 `currentTime` 之差 = 常量偏移 `Δ`：
+//     Δ = upState.ac.currentTime − audioCtx.currentTime
+//   ⇒ 上行域的「抓流样本 0 时刻」`t0_up` 换算到 player 域：
+//     `t0_player = t0_up + Δ`
+//   ★ Δ 在两个 context 都 running 时采样，取中位数更稳。
+//   ★ 保留 `t0_up` 原值到 metrics，便于自证换算前后的差异。
+const T0_OFFSET_FRAMES = 60;
+const t0OffsetCandidates = [];
+let t0Established = false;
+// ★ uplink↔player 两个 AudioContext 的原点差（秒，player 域表示）。
+let upToPlayerOffsetSec = null;
+const upToPlayerCandidates = [];
+
+/** 把候选偏移（16 kHz 域）取中位数 ⇒ 得到 t0（秒）。 */
+function _median(nums) {
+  if (!nums.length) return null;
+  const s = [...nums].sort((a, b) => a - b);
+  const m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
 let delaySec = 10;
 let ws = null;
 let lipSyncData = null;
@@ -534,6 +602,61 @@ let dubRecorder = null;       // MediaRecorder 实例
 let dubRecordChunks = [];     // 录到的数据块
 let dubRecordStartedAt = 0;   // 开始录制的墙钟时刻（ms）
 
+// ★★★ EXT-033 B：**无损 PCM 抓取**（wav 的来源）。
+//   `dubPcmNode`     —— AudioWorkletNode（'dub-pcm-processor'），并联在 dubBus 上
+//   `dubPcmSink`     —— gain=0 的 sink ⇒ 这条支路**静音**（不重复出声）
+//   `dubPcmChunks`   —— 抓到的 Float32 块
+//   `dubPcmRate`     —— AudioContext 的采样率（本机 48 kHz）
+//   `dubPcmActive`   —— 是否正在采集
+//   `dubRecordStartAc` —— 开始录音时的 AudioContext 时刻（与 WAV 对齐的时间原点）
+let dubPcmNode = null;
+let dubPcmSink = null;
+let dubPcmChunks = [];
+let dubPcmRate = 0;
+let dubPcmActive = false;
+let dubRecordStartAc = 0;
+let dubPcmBytes = 0;
+let dubPcmDumpDone = false;   // ★ worklet 是否已把整段 PCM 投上来
+
+/** ★ 把 Float32 PCM 打包成 WAV（16-bit PCM）⇒ base64。 */
+function pcmToWavBase64() {
+  let total = 0;
+  for (const c of dubPcmChunks) total += c.length;
+  const rate = dubPcmRate || 48000;
+  const nCh = 1;
+  const bits = 16;
+  const byteRate = rate * nCh * bits / 8;
+  const blockAlign = nCh * bits / 8;
+  const dataBytes = total * 2;
+  const buf = new ArrayBuffer(44 + dataBytes);
+  const dv = new DataView(buf);
+  const wr = (o, s) => { for (let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); };
+  wr(0, 'RIFF'); dv.setUint32(4, 36 + dataBytes, true); wr(8, 'WAVE');
+  wr(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true);
+  dv.setUint16(22, nCh, true); dv.setUint32(24, rate, true);
+  dv.setUint32(28, byteRate, true); dv.setUint16(32, blockAlign, true);
+  dv.setUint16(34, bits, true);
+  wr(36, 'data'); dv.setUint32(40, dataBytes, true);
+  let o = 44;
+  for (const c of dubPcmChunks) {
+    for (let i = 0; i < c.length; i++) {
+      let s = c[i];
+      if (s > 1) s = 1; else if (s < -1) s = -1;
+      dv.setInt16(o, Math.round(s * 32767), true);
+      o += 2;
+    }
+  }
+  // base64（分块，避免超大字符串）
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  const STEP = 0x8000;
+  for (let i = 0; i < bytes.length; i += STEP) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + STEP));
+  }
+  return { b64: btoa(bin), bytes: bytes.length, rate: rate,
+           samples: total, durationSec: total / rate };
+}
+
 /**
  * ★★★ EXT-026 ③：开始录制**实际播出的配音**。
  * @param {number} [maxMs] 最长录制时长（毫秒）—— 兜底，防忘记停。
@@ -545,6 +668,15 @@ async function startDubRecording(maxMs) {
   }
   try {
     dubRecordChunks = [];
+    // ★★★ EXT-033 B：PCM 抓取**与 webm 录音同时开始**（同一时间原点）。
+    dubPcmChunks = [];
+    dubPcmBytes = 0;
+    dubPcmDumpDone = false;
+    dubPcmActive = true;
+    // ★ 采集开关**必须**送到 worklet 内部（主线程的标志位它看不到）
+    try { if (dubPcmNode) dubPcmNode.port.postMessage({ cmd: 'start' }); }
+    catch (e) { /* ignore */ }
+    dubRecordStartAc = audioCtx.currentTime;
     const dest = audioCtx.createMediaStreamDestination();
     dubBus.connect(dest);          // ★ 只从 dubBus 取 ⇒ 录到的是配音
     dubRecordStream = dest.stream;
@@ -555,20 +687,38 @@ async function startDubRecording(maxMs) {
     dubRecorder.ondataavailable = (e) => {
       if (e.data && e.data.size > 0) dubRecordChunks.push(e.data);
     };
+    // ★★★ EXT-033 B：`timeslice` 分片收集（1000 ms 一片）
+    //   ⇒ 录到一半崩了也还有已落盘的片，不会「全丢」。
     dubRecorder.start(1000);
     dubRecordStartedAt = performance.now();
     if (maxMs && maxMs > 0) {
       setTimeout(() => { stopDubRecording(); }, maxMs);
     }
-    report({ kind: 'dub_record_start', mime: mime || 'default' });
-    return { ok: true, mime: mime || 'default' };
+    report({ kind: 'dub_record_start', mime: mime || 'default',
+             acTimeSec: dubRecordStartAc, pcmRate: dubPcmRate });
+    return { ok: true, mime: mime || 'default',
+             acTimeSec: dubRecordStartAc, pcmRate: dubPcmRate };
   } catch (e) {
     report({ kind: 'dub_record_error', error: String((e && e.message) || e) });
     return { ok: false, error: String((e && e.message) || e) };
   }
 }
 
-/** 停止录音并返回录制时长（秒）。 */
+/**
+ * ★★★ EXT-033 B：**停止录音并保证文件完整**。
+ *
+ * ## 为什么要「等 onstop」
+ *   `MediaRecorder.stop()` 只是**请求**停止：`dataavailable`（最后一块）与
+ *   `onstop` 都是**异步**事件。
+ *   ⇒ EXT-032 的旧写法是 `stop()` 之后**立刻**取 blob
+ *     ⇒ 最后一块还没进 `dubRecordChunks` ⇒ 文件被截断
+ *     ⇒ ffmpeg 报 `File ended prematurely at pos 86970`（EXT-033 第 1 条批评）。
+ *
+ * ## 两种用法
+ *   * `stopDubRecording()`     —— 同步返回（兼容旧调用方），**不**等 onstop；
+ *   * `stopDubRecordingAsync()` —— ★ **返回 Promise**，resolve 于 onstop 之后
+ *     ⇒ 此时 `dubRecordChunks` 一定完整 ⇒ blob 一定完整。
+ */
 function stopDubRecording() {
   try {
     if (dubRecorder && dubRecorder.state !== 'inactive') {
@@ -577,6 +727,52 @@ function stopDubRecording() {
   } catch (e) { /* ignore */ }
   return { durationSec: dubRecordStartedAt
     ? (performance.now() - dubRecordStartedAt) / 1000 : 0 };
+}
+
+/** ★ 等 `dataavailable` + `onstop` 都完成后再 resolve（EXT-033 B）。 */
+function stopDubRecordingAsync() {
+  return new Promise((resolve) => {
+    const acNow = audioCtx ? audioCtx.currentTime : 0;
+    const finish = () => resolve({
+        durationSec: dubRecordStartedAt
+          ? (performance.now() - dubRecordStartedAt) / 1000 : 0,
+        acTimeSec: acNow,
+        acStartSec: dubRecordStartAc,
+        chunks: dubRecordChunks.length,
+        chunkBytes: dubRecordChunks.reduce((a, c) => a + c.size, 0),
+        pcmChunks: dubPcmChunks.length,
+        pcmSamples: dubPcmChunks.reduce((a, c) => a + c.length, 0),
+        pcmRate: dubPcmRate,
+    });
+    // ★ 通知 worklet 停止采集并**一次性**投递整段 PCM；
+    //   然后**等到真的收到**再 resolve
+    //   （固定 sleep 会漏掉大数组的传输 ⇒ WAV 尾部被削）。
+    const done = () => {
+      try {
+        if (dubPcmNode) {
+          dubPcmDumpDone = false;
+          dubPcmNode.port.postMessage({ cmd: 'stop' });
+        }
+      } catch (e) { /* ignore */ }
+      const t0 = performance.now();
+      const waitDump = () => {
+        if (dubPcmDumpDone || (performance.now() - t0) > 8000) {
+          dubPcmActive = false;
+          finish();
+          return;
+        }
+        setTimeout(waitDump, 50);
+      };
+      setTimeout(waitDump, 50);
+    };
+    if (!dubRecorder || dubRecorder.state === 'inactive') { done(); return; }
+    const prev = dubRecorder.onstop;
+    dubRecorder.onstop = (ev) => {
+      if (typeof prev === 'function') { try { prev(ev); } catch (e) { /* ignore */ } }
+      done();
+    };
+    try { dubRecorder.stop(); } catch (e) { done(); }
+  });
 }
 
 /**
@@ -605,6 +801,29 @@ function dubRecordingBlob() {
     fr.onerror = () => resolve({ ok: false, error: 'FileReader 失败', bytes: 0 });
     fr.readAsDataURL(blob);
   });
+}
+
+/**
+ * ★★★ EXT-033 B：**把抓到的 PCM 打包成 WAV**（无损）。
+ *
+ * ## 为什么必须另有 WAV（不能只交 webm）
+ *   * webm/opus 是**有损**的 ⇒ 互相关峰 / SNR 的绝对值不可信；
+ *   * webm 的容器边界不可控 ⇒ 「录音是否完整」没法用样本数自证；
+ *   * WAV 可以**逐样本核对**：样本数 ÷ 采样率 = 时长，
+ *     与 ffprobe 报的时长对照 ⇒ 截断立刻暴露。
+ * ★ PCM 是从 **dubBus 并联的静音支路**抓的（AudioWorklet），
+ *   不经过 MediaRecorder ⇒ 不受 onstop 竞态影响。
+ */
+function dubRecordingWav() {
+  if (!dubPcmChunks.length) {
+    return { ok: false, error: '没有抓到 PCM', bytes: 0 };
+  }
+  const w = pcmToWavBase64();
+  // ★ 完整性证据：worklet 报告的「已存样本数 / 被丢弃样本数」
+  //   ⇒ 与录音时长对照即可判断 WAV 是否被截断（EXT-033 B 的验收项）。
+  return { ok: true, ...w,
+           stored: metrics.dubPcmStored == null ? w.samples : metrics.dubPcmStored,
+           dropped: metrics.dubPcmDropped == null ? 0 : metrics.dubPcmDropped };
 }
 
 /**
@@ -687,6 +906,36 @@ function onDubOnset(at) {
     // bridge 回声排程只记「发生过」，不污染 P0③ 的口径
     metrics.dubOnsets.push(at);
     if (metrics.dubOnsets.length > 200) metrics.dubOnsets.shift();
+    // ★★★ EXT-033 D：**player 端实测「有符号」同步误差**。
+    //   signedErrMs = 实际起播（AudioContext 时刻） − (t0 + t_start + D)
+    //   ★ `p.requested` 就是 `t0 + t_start + D`（新口径的 t0）。
+    //   ★ **有符号**：早播为负、晚播为正 ⇒ EXT-032 那种
+    //     `max(0, TTS就绪 − 截止时刻)`（恒 ≥ 0）**量不出早播** ⇒ 口径错。
+    //   ★ 「迟到量」另列（lateMs），**不代替** signedErrMs。
+    const signedErrMs = (at - p.requested) * 1000;
+    metrics.dubSyncErrs.push(signedErrMs);
+    if (metrics.dubSyncErrs.length > 500) metrics.dubSyncErrs.shift();
+    metrics.dubSyncDetail.push({
+      id: p.id,
+      tStart: p.tStart,
+      requested: p.requested,
+      actual: at,
+      signedErrMs: Math.round(signedErrMs * 100) / 100,
+      lateMs: Math.round(Math.max(0, signedErrMs) * 100) / 100,
+      speed: p.speed,
+    });
+    if (metrics.dubSyncDetail.length > 200) metrics.dubSyncDetail.shift();
+    metrics.dubSyncLateMs.push(Math.max(0, signedErrMs));
+    if (metrics.dubSyncLateMs.length > 500) metrics.dubSyncLateMs.shift();
+    metrics.dubSyncP50 = pct(metrics.dubSyncErrs, 0.5);
+    metrics.dubSyncP95 = pct(metrics.dubSyncErrs, 0.95);
+    metrics.dubSyncMax = metrics.dubSyncErrs.length
+      ? Math.max(...metrics.dubSyncErrs) : null;
+    metrics.dubSyncMin = metrics.dubSyncErrs.length
+      ? Math.min(...metrics.dubSyncErrs) : null;
+    report({ kind: 'dub_sync', id: p.id, tStart: p.tStart,
+             requested: p.requested, actual: at,
+             signedErrMs: Math.round(signedErrMs * 100) / 100 });
     return;
   }
 
@@ -907,6 +1156,13 @@ function scheduleDub(msg) {
   //   （isProbe 已在上面算好；总线也已按 isProbe 分流。）
   pendingSched.push({
     id: msg.id, planned: when, requested: planned,
+    // ★★★ EXT-033 D：排程时刻之外，还要记**这一句的身份**，
+    //   否则 player 端算不出「有符号同步误差」的对齐对象。
+    tStart: Number(msg.t_start || 0),
+    tEnd: Number(msg.t_end || 0),
+    speed: Number(msg.speed || 1.0),
+    src: (msg.src == null ? null : String(msg.src)),
+    tgt: (msg.tgt == null ? null : String(msg.tgt)),
     matched: false, probe: isProbe,
   });
   scheduleSub(msg, when);
@@ -1334,6 +1590,68 @@ function onUplinkFrame(d) {
     if (upState.t0Audio16 == null) {
       // 首帧建立基准：音频时钟域的起点 = 首帧 sampleIndex
       upState.t0Audio16 = sampleIndex - d.audioFrame16;
+    }
+    // ★★★ EXT-033 D：用**音频时钟**把时间轴原点钉死（新口径）。
+    //   取前 N 帧的中位数（首帧含启动瞬态 ⇒ 用中位数更稳）。
+    //
+    // ★★ EXT-033 D 修正：**必须换算到 player 域**。
+    //   `d.audioFrame16` 是**上行 AudioContext** 的时钟；
+    //   而 `planned`/`when`/`at` 全在 **player AudioContext** 的时钟上。
+    //   ⇒ 先测 `Δ = up.ac.currentTime − audioCtx.currentTime`（常量偏移），
+    //     再 `t0_player = t0_up + Δ`。
+    //
+    // ⚠️ **实测注意**（浏览器实测，见 tests/smoke/ext033_t0_verify.py）：
+    //   两个 AudioContext 的 `currentTime` 是**各自独立更新**的（各自的渲染量子）
+    //   ⇒ 单次相减会带上「两次读取落在不同更新点」的抖动（实测 spread ≈ 80 ms）
+    //   ⇒ 必须**多次采样取中位数**（下面 `T0_OFFSET_FRAMES=60` 帧 + 中位数），
+    //     并把抖动幅度记进 metrics（可自证换算精度）。
+    if (upState.ac && audioCtx && upState.ac.state === 'running'
+        && audioCtx.state === 'running'
+        && upToPlayerOffsetSec == null
+        && upToPlayerCandidates.length < T0_OFFSET_FRAMES) {
+      upToPlayerCandidates.push(upState.ac.currentTime - audioCtx.currentTime);
+    }
+    if (!t0Established && t0OffsetCandidates.length < T0_OFFSET_FRAMES) {
+      t0OffsetCandidates.push(sampleIndex - d.audioFrame16);
+      if (t0OffsetCandidates.length >= 20) {
+        const off16 = _median(t0OffsetCandidates);
+        if (off16 != null) {
+          const t0Up = off16 / 16000;   // ★ 上行域：抓流样本 0 的时刻
+          // ★ 换算到 player 域（两个 AudioContext 的原点差）
+          const dOff = upToPlayerCandidates.length
+            ? _median(upToPlayerCandidates) : null;
+          // ★ 换算精度自证：Δ 的采样抖动幅度（max−min）
+          //   （两个 context 的 currentTime 各自独立更新 ⇒ 有抖动）
+          let dSpread = null;
+          if (upToPlayerCandidates.length) {
+            let mn = Infinity, mx = -Infinity;
+            for (const v of upToPlayerCandidates) {
+              if (v < mn) mn = v;
+              if (v > mx) mx = v;
+            }
+            dSpread = mx - mn;
+          }
+          if (dOff != null) {
+            upToPlayerOffsetSec = dOff;
+            t0 = t0Up + dOff;          // ★ player 域的 t0
+          } else {
+            t0 = t0Up;                 // 还没采到偏移 ⇒ 先用上行域值
+          }
+          t0Established = true;
+          metrics.t0Axis = 'audio_clock';
+          metrics.t0Sec = t0;
+          metrics.t0Offset16 = off16;
+          metrics.t0OffsetSamples = t0OffsetCandidates.length;
+          metrics.t0UpSec = t0Up;
+          metrics.t0UpPlayerOffsetSec = dOff;
+          metrics.t0UpPlayerOffsetSpreadSec = dSpread;
+          report({ kind: 't0_axis_set', t0Sec: t0, t0UpSec: t0Up,
+                   upPlayerOffsetSec: dOff, upPlayerOffsetSpreadSec: dSpread,
+                   offset16: off16,
+                   n: t0OffsetCandidates.length,
+                   oldT0Sec: upState.t0InitAc });
+        }
+      }
     }
     const audioPos16 = upState.t0Audio16 + d.audioFrame16;
     skewAudioMs = (sampleIndex - audioPos16) / 16000 * 1000;
@@ -1934,6 +2252,11 @@ const REPORT_SCALARS = [
   'schedClamped', 'probeSchedClamped', 'encodeSkipped', 'encodeBacklogSkipped',
   // ★★ T-3：把设置的实际生效值也带上去（跨上下文可见）
   'duckDb', 'duckGain', 'duckDbApplied', 'subsOn',
+  // ★★★ EXT-033 B/D：录音完整性与 player 端实测同步误差
+  'dubPcmTapped', 'dubPcmError', 'dubPcmStored', 'dubPcmDropped',
+  'dubSyncP50', 'dubSyncP95', 'dubSyncMax', 'dubSyncMin',
+  't0Axis', 't0Sec', 't0Offset16', 't0OffsetSamples',
+  't0UpSec', 't0UpPlayerOffsetSec', 't0UpPlayerOffsetSpreadSec',
 ];
 
 function reportSummary(obj) {
@@ -2185,7 +2508,26 @@ window.__ext = {
   // ★★★ EXT-026 ③：配音录音（录 player **实际播出**的音频）
   startDubRecording,
   stopDubRecording,
+  // ★★★ EXT-033 B：等 `dataavailable` + `onstop` 都完成才 resolve
+  //   （旧写法 stop() 后立刻取 blob ⇒ 文件被截断 ⇒
+  //     ffmpeg 报 "File ended prematurely"）
+  stopDubRecordingAsync,
   dubRecordingBlob,
+  // ★★★ EXT-033 B：**无损** PCM 落盘（WAV）
+  dubRecordingWav,
+  // ★★★ EXT-033 D：player 端实测的同步误差明细（有符号）
+  dubSyncStats: () => ({
+    axis: metrics.t0Axis,
+    t0Sec: metrics.t0Sec,
+    t0Offset16: metrics.t0Offset16,
+    t0UpSec: metrics.t0UpSec,
+    t0UpPlayerOffsetSec: metrics.t0UpPlayerOffsetSec,
+    errs: metrics.dubSyncErrs.slice(),
+    detail: metrics.dubSyncDetail.slice(),
+    p50: metrics.dubSyncP50, p95: metrics.dubSyncP95,
+    max: metrics.dubSyncMax, min: metrics.dubSyncMin,
+    lateMs: metrics.dubSyncLateMs.slice(),
+  }),
   getAudioTime: () => (audioCtx ? audioCtx.currentTime : 0),
   getT0: () => t0,
   computeLipSync,
@@ -2318,11 +2660,57 @@ async function boot() {
     return;
   }
   t0 = audioCtx.currentTime;
+  // ★★★ EXT-033 D：记下**旧口径**的 t0（页面初始化时刻），
+  //   好在 t0 被音频时钟纠正后，能把「差了多少」写进报告（可核对）。
+  upState.t0InitAc = t0;
+  metrics.t0Axis = 'page_init';
+  metrics.t0Sec = t0;
 
   // 配音总线 + onset 检测
   dubBus = audioCtx.createGain();
   dubBus.gain.value = 1.0;
   dubBus.connect(audioCtx.destination);
+  // ★★★ EXT-033 B：**无损 PCM 抓取支路**（并联、sink 静音 ⇒ 不重复出声）。
+  //   ★ 为什么用 AudioWorklet 而不是 ScriptProcessor：
+  //       ScriptProcessorNode 已在 Chrome 弃用，且跑在**主线程**上
+  //       ⇒ 录长音频会把主线程拖住（EXT-003 记录过主线程尖峰问题）。
+  //       AudioWorklet 跑在**音频线程**上 ⇒ 不抢主线程。
+  try {
+    await audioCtx.audioWorklet.addModule(chrome.runtime.getURL('dub-pcm-worklet.js'));
+    dubPcmNode = new AudioWorkletNode(audioCtx, 'dub-pcm-processor', {
+      numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1],
+      processorOptions: { chunk: 4096 },
+    });
+    dubPcmNode.port.onmessage = (ev) => {
+      const d = ev.data;
+      if (!d || !d.pcm) return;
+      const arr = new Float32Array(d.pcm);
+      if (d.dumped) {
+        // ★★ 整段 PCM（worklet 收尾时**一次性**投递 ⇒ 不会被端口队列压爆）
+        dubPcmChunks = [arr];
+        dubPcmBytes = arr.length * 4;
+        dubPcmRate = d.sr || dubPcmRate;
+        dubPcmDumpDone = true;
+        metrics.dubPcmStored = d.stored;
+        metrics.dubPcmDropped = d.dropped || 0;
+        return;
+      }
+      if (!dubPcmActive) return;
+      dubPcmChunks.push(arr);
+      dubPcmBytes += arr.length * 4;
+      dubPcmRate = d.sr || dubPcmRate;
+    };
+    dubPcmSink = audioCtx.createGain();
+    dubPcmSink.gain.value = 0;      // ★ 这条支路**必须静音**
+    dubBus.connect(dubPcmNode);
+    dubPcmNode.connect(dubPcmSink);
+    dubPcmSink.connect(audioCtx.destination);
+    metrics.dubPcmTapped = true;
+  } catch (e) {
+    metrics.dubPcmTapped = false;
+    metrics.dubPcmError = String((e && e.message) || e);
+    report({ kind: 'dub_pcm_error', error: String((e && e.message) || e) });
+  }
   // ★ probe 专用总线 + **独立** onset 检测器（隔离回声干扰）
   probeBus = audioCtx.createGain();
   probeBus.gain.value = 1.0;

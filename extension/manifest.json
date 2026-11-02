@@ -24,6 +24,16 @@
       "128": "icons/icon128.png"
     }
   },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y",
+        "windows": "Ctrl+Shift+Y"
+      },
+      "description": "启动实时翻译配音（EXT-033 A2：快捷键=用户手势）"
+    }
+  },
+  "_comment_commands": "★ EXT-033 A2：commands._execute_action = 快捷键触发扩展动作 = **算用户手势**（Chrome 只给 _execute_action 授予 activeTab）。自动化下用 SendInput 合成按键，替代真人点扩展图标，从而让 chrome.tabCapture.getMediaStreamId({targetTabId}) 能拿到流 id。⚠️ 键值**不能含 Alt**（Chrome 判为 Invalid value for 'commands[1].default' ⇒ 扩展加载失败 ⇒ 弹『无法加载该扩展』模态框 ⇒ 浏览器起不来、CDP 永不就绪）。",
   "permissions": [
     "tabCapture",
     "offscreen",

@@ -163,3 +163,25 @@ EXT-027① 的结论（「必须 tabCapture 生产路径」）**成立且已被�
 3. **本轮没有新的真实引擎轮次**（设备互斥）⇒ §25 的数据来自 **11-01 15:52 那一轮**
    （**修复后**代码）。若 reviewer 要求「修复后 + tabCapture 生产路径」的**同一轮**证据，
    需要在**实时字幕 App 关闭**且**用户手势**的窗口里再跑一轮。
+
+---
+
+<!-- 以下为 STATUS_EXT.md 中 §25 的原文（2026-11-02 本轮下沉，逐字保留以存史） -->
+
+## §25 —— EXT-032 交卷：三份音频逐段对比 + 静音成因分解 + 交付物落盘（2026-11-02 01:04）
+
+★ **全量明细见 `status/notes/sec25_ext032_deliver.md`**（9 节）；本节只留结论、数字、指针。
+
+⇒ **① ★★ 撤回旧结论**：§23 与「未完成纠偏清单」里那句 **「EXT-028 不构成打包阻塞」不成立** ⇒ 本节**撤回**它，改为 **「EXT-028 待用户抽听」** ⇒ **V2.0 插件部分暂不放行**（reviewer 20:30 的判断正确：EXT-028 当时确实一项验收都没交）。
+⇒ **② ★ 指令②「逐段三份音频对比」已交**（6 段，源轮次 `.tmp/ext028_029_e2e/20261101_155037_13840/A_off`）：**变速校正时长比 6/6 合格（1.0000–1.0190）**、**互相关峰 1.0000**、**SNR 中位 120.0 dB**；唯一原始比不合格段（0.8564）= **speed=1.1899 的 WSOLA 变速段**（0.8564 ≈ 1/1.1899）⇒ **与采样率无关**。★ 采样率修复生效的直接证据：`metrics.json` → **`pcmRateLast=24000` / `pcmRateAssumed=0`**（不再按 16 kHz 重建 24 kHz ⇒ 「1.5× 语速 + 升调」根因已消除）。
+⇒ **③ ★ 指令③「静音成因」已交**（**加法式分解**，残差可核）：**可解释开口静音 = 首语音位置 22.050 s + 播放缓冲 D 10.000 s = 32.050 s**；**实测开口静音 29.300 s**、**最长静音 29.250 s**、**总静音 30.000 s**（录音总长 **33.840 s**）；**残差 −2.750 s**（≈ player 时钟与桥接 t0 偏移）。**首段配音到达 = t_start 22.050 s**（段 `seg_90879187_352800`，`and you know`→`你知道的`）。**sync_err p50 / p95 = 0.0 / 0.0 ms**（max 0.0，`n_over_12000ms`=0；口径同 `tools/p1_pipeline.py`，**只统计有 TTS 的 3 段**）。
+⇒ **④ ★ 为什么 22.05 s 之前没有配音**（三条排除）：(a) **不是素材问题** —— 实测素材 `test_en_60s.wav` **20/20 个 3.15 s 窗都有语音**（RMS −26.65…−36.02 dBFS，首语音窗 t=0.0）；(b) **不是 ASR 问题** —— 同轮 3 窗**正常英译中**（`and you know`/`because I don't decline`/`So just got to maintain the`）；(c) ⇒ **是抓流侧没把标签页音频送上来**（见 ⑤）。
+⇒ **⑤ ★★ 指令①「tabCapture 生产路径」** —— **自动化拿不到，必须用户手势**：探针 **12 次尝试全失败**（`getMediaStreamId` 回空 id、`capture` 回 null stream、`capture({targetTabId})` 报 **"Unexpected property: 'targetTabId'"**；player 原文 **"Extension has not been invoked for the current page (see activeTab permission)."**）；该轮 `metrics.json` → **`captureMode = getDisplayMedia`**；**player 截图 `player_60s.png` 里画的是整个桌面**（终端/资源管理器/GPU 面板）⇒ 坐实**抓的是整机 + 系统声音混音**；**末尾 3 段是中文且 t_start 66.52/69.85/73.01 s 已超出素材 60 s** ⇒ 只能来自实时字幕 App 的混音 ⇒ **该轮「只抓页面元素音频 + 英文 SPE」两项均未达成**（EXT-027① 成立且已量化）。⇒ **请按 `shared/ext_listen/v21/HOWTO.txt`（App 模块 APP-059 已写 6 步）转用户亲手跑一次 60 s**；跑完后 `tests/smoke/ext032_deliver.py <该轮目录>` 一条命令即出同规格交付物。
+⇒ **⑥ ★ 交付物已落盘**：`C:\Users\Trekker-PTL\shared\ext_listen\ext032_20261102_010022\`（**5 文件**：`dub_player.webm` 86 970 B / `README.md` 4 102 B / `ext032_compare.md` 1 985 B / `ext032_compare.json` 6 266 B / `ext032_deliver.json` 10 772 B）⇒ reviewer 可拉回做电平/静音测量与 MiniMax 回转写，再交用户抽听。
+⇒ **⑦ ★ 本轮新增代码**：`tests/smoke/ext032_deliver.py`（成因分解 + 交付打包，**纯离线，不跑推理、不占 GPU/NPU、不创建锁**）、`tests/test_ext032_deliver.py`（**29 PASS / 0 FAIL**，含 4 组反证）；并接手上一会话已写的 `tests/smoke/ext032_audio_compare.py`（24 228 B，算法未改）。**三套明文自测 106 / 11 / 19 全 0 FAIL（rc=0）**。
+⇒ **⑧ ⛔ 未做 / 不宣称**：⛔ 本轮**没跑新的真实三引擎 e2e**（00:40–00:48 机器锁被 **asr** 持有；00:48 锁释放后**实时字幕 App 在跑** ⇒ `ext.bridge` 按互斥铁律拒绝启动 ⇒ **不抢设备、不打断用户的 App**）；⛔ **player 录音逐段对齐只 3/6** ⇒ 不宣称播放端完全对齐；⛔ **未打包**（APP-057）/ **未改引擎** / **未推远程** / `CORRECTIONS_EXT.md` **只读未入库**。
+
+> **§16 ~ §10 —— 已下沉**（明细全文在 `status/notes/`；§10 及更早见归档 `status/archive/STATUS_EXT_upto_20261030.md`）：
+> * **§13 ~ §16** 见 `notes/sec13…sec16_*.md`；**§12 / §11** 启动器 `start()` **4.244 s → 0.032 s**（EXT-017②）、STATUS 拆分归档（`notes/sec11_12_ext016_closeout.md`）
+> * **§10** 控制台 `ConsoleOutputCP=gb2312` ⇒ 乱码根因；三层修复（`ext/utf8_io.py` + `chcp 65001` + 日志 UTF-8）；★ GUI 启动器指向**没有 tkinter** 的 `pythonw`（窗口根本不出现）⇒ 改指 App 自带 `pythonw`（用户方式实测通过，6 张截图 / 321 900 B 落 `shared/ext_launcher_fix/`）；`/pair` 收紧到本插件 ID（本插件 **200** / 别家 **403** / 无 Origin **403**）。
+

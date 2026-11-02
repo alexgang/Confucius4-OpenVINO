@@ -3354,16 +3354,140 @@ def _pair_status(holder: dict) -> dict:
 
 
 def _caption_app_running() -> bool:
-    """检测实时字幕 App 是否在运行（互斥铁律）。"""
+    """检测实时字幕 App 是否在运行（互斥铁律）。
+
+    ★★★ EXT-033 实测抓到的**两个真实缺陷**（都让互斥形同虚设）：
+    ① **匹配串漏了大小写变体**：
+       旧实现只匹配字面量 ``"live_caption"``（**带下划线**），
+       而本机运行的是 ``Confucius4_LiveCaption_v2.1`` 下的
+       ``pythonw.exe ... ext/bridge/bridge_launcher.py``
+       ⇒ 路径里是 **``LiveCaption``（无下划线）** ⇒ 匹配不到。
+    ② **psutil 在实际运行的解释器里不存在**：
+       bridge 由 **App 自带的 python** 启动（openvino/babelvox 只在那里），
+       而那个解释器**没有装 psutil**（EXT-017② 注释里已记过此事）
+       ⇒ 旧实现 ``import psutil`` 直接抛异常 ⇒ **恒返回 False**
+       ⇒ 互斥**从来没生效过** ⇒ 两个进程同时抢 GPU.0 + NPU
+       ⇒ 管线吞吐被拖垮（EXT-033 实测滞后以 0.31 s/s 累积）。
+    ⇒ 现在：**不依赖 psutil**，用 Windows 自带的
+      `tasklist /FO CSV /NH`（拿映像名）+ `wmic`/`Get-CimInstance` 拿命令行；
+      都拿不到时**按「可能在跑」处理**（保守：宁可误拦，不可放行抢设备）。
+    """
+    me = os.getpid()
+    cmds = _list_process_cmdlines()
+    for pid, cmd in cmds:
+        if pid == me:
+            continue
+        low = cmd.lower()
+        # ★ 归一化：去掉 `_` / `-` / 空格 ⇒ `LiveCaption` ≡ `live_caption`
+        norm = low.replace("_", "").replace("-", "").replace(" ", "")
+        # 排除本模块自己的进程（`ext.bridge` / `ext_bridge` / `bridge_launcher`
+        # 跑在 live_dub_ext 下时也算自己）
+        if "extbridge" in norm or "ext.bridge" in low:
+            continue
+        # ★★ 必须命中**App 的真实入口**，不能只凭路径里出现 `LiveCaption`：
+        #   否则任何**命令行里提到该路径**的进程（测试脚本、编辑器、
+        #   本模块自己的诊断命令）都会被误判成「App 在跑」⇒ 永远起不来。
+        #   App 的入口 = `bridge_launcher.py`（App 自带的 ext/bridge/）
+        #   或 `live_caption_app.py`。
+        if "bridgelauncher.py" in norm or "livecaptionapp.py" in norm:
+            return True
+    # ⚠️ 探测**彻底失败**（拿不到任何进程列表）⇒ 保守按「可能在跑」处理
+    if not cmds:
+        return _caption_app_probe_failed()
+    return False
+
+
+def _list_process_cmdlines() -> list:
+    """列出 (pid, cmdline) —— **不依赖 psutil**。
+
+    返回 [] 表示「探测失败」（不是「没有 App」）。
+    """
+    out = []
+    # ── 路径 1：Windows `wmic process get ProcessId,CommandLine /FORMAT:CSV`
+    #   ⚠️ 新版 Windows 已移除 wmic ⇒ 失败就换下一条。
     try:
-        import psutil  # type: ignore
-        for p in psutil.process_iter(["pid", "name", "cmdline"]):
-            try:
-                cmd = " ".join(p.info.get("cmdline") or [])
-                if "live_caption" in cmd.lower() and "ext.bridge" not in cmd.lower():
-                    return True
-            except Exception:
-                continue
+        import subprocess  # local import：避免顶层依赖
+        r = subprocess.run(
+            ["wmic", "process", "get", "ProcessId,CommandLine", "/FORMAT:CSV"],
+            capture_output=True, text=True, timeout=20)
+        if r.returncode == 0 and r.stdout:
+            for line in r.stdout.splitlines():
+                line = line.strip()
+                if not line or line.startswith("Node,"):
+                    continue
+                # CSV 形如 "Node","PID","命令行"
+                parts = [p.strip('"') for p in line.split('","')]
+                if len(parts) >= 3:
+                    try:
+                        pid = int(parts[1])
+                    except ValueError:
+                        continue
+                    out.append((pid, parts[2]))
+            if out:
+                return out
+    except Exception:
+        pass
+    # ── 路径 2：PowerShell `Get-CimInstance Win32_Process`
+    try:
+        import subprocess
+        r = subprocess.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+             "Get-CimInstance Win32_Process | ForEach-Object { "
+             "\"$($_.ProcessId)`t$($_.CommandLine)\" }"],
+            capture_output=True, text=True, timeout=40, errors="replace")
+        if r.returncode == 0 and r.stdout:
+            for line in r.stdout.splitlines():
+                if "\t" not in line:
+                    continue
+                pid_s, _, cmd = line.partition("\t")
+                try:
+                    pid = int(pid_s.strip())
+                except ValueError:
+                    continue
+                out.append((pid, cmd))
+            if out:
+                return out
+    except Exception:
+        pass
+    # ── 路径 3：只拿映像名（`tasklist`）—— 没有命令行就退化成按 exe 名判
+    try:
+        import subprocess
+        r = subprocess.run(["tasklist", "/FO", "CSV", "/NH"],
+                           capture_output=True, text=True, timeout=30)
+        if r.returncode == 0 and r.stdout:
+            for line in r.stdout.splitlines():
+                parts = [p.strip('"') for p in line.split('","')]
+                if len(parts) >= 2:
+                    try:
+                        pid = int(parts[1])
+                    except ValueError:
+                        continue
+                    # 没有命令行 ⇒ 用 exe 名兜底（App 的 exe 是 pythonw.exe，
+                    # 匹配不到 App ⇒ 只能算「探测不完整」）
+                    out.append((pid, parts[0]))
+            if out:
+                return out
+    except Exception:
+        pass
+    return out
+
+
+def _caption_app_probe_failed() -> bool:
+    """进程列表**完全拿不到**时的保守判定。
+
+    ⚠️ 铁律：**探测失败 ⇒ 按「可能在跑」处理**（宁可误拦，不可放行抢设备）。
+    但不能永远返回 True（那会让模块永远起不来）⇒ 用共享机器锁做兜底：
+    若锁存在且归属别的模块 ⇒ 视为「有人在用设备」。
+    """
+    try:
+        lock = os.path.join(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__))), "..", "..", "shared", "MACHINE_LOCK")
+        lock = os.path.abspath(lock)
+        if os.path.isfile(lock):
+            with open(lock, "r", encoding="utf-8", errors="replace") as f:
+                txt = (f.read() or "").lower()
+            if "ext" not in txt:
+                return True
     except Exception:
         pass
     return False

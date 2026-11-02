@@ -721,12 +721,20 @@ def test_orchestrator_single_instance_guard() -> None:
               f"{written} vs {os.getpid()}")
 
         # ② 存活 PID ⇒ 拒绝
-        try:
-            import psutil
-            alive = [p.pid for p in psutil.process_iter()
-                     if p.pid != os.getpid() and p.pid > 1000]
-        except Exception:
-            alive = []
+        # ★ **不依赖 psutil**：EXT 的实际运行时（App 自带 python）里**没有 psutil**
+        #   ⇒ 用 psutil 找对照进程会让这一条在真实环境里恒 FAIL（假失败）。
+        #   ⇒ 改用被测代码自己的 `R._pid_alive`（有 ctypes 兜底）来挑一个存活 PID。
+        alive = []
+        for cand in range(os.getpid() + 1, os.getpid() + 400):
+            if R._pid_alive(cand):
+                alive.append(cand)
+                break
+        if not alive:
+            # 兜底：扫系统里的小 PID（Windows 上 4 是个常驻进程）
+            for cand in range(4, 4000):
+                if R._pid_alive(cand):
+                    alive.append(cand)
+                    break
         if alive:
             with open(tmp, "w", encoding="utf-8") as f:
                 f.write(str(alive[0]))

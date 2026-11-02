@@ -2672,3 +2672,93 @@ A 轮另有 `schedClamped=7 / audioRecvSec=151.89225 / uplink.running=true / wsO
 
 ### `last_ack`
 **EXT-032** —— 本轮**已认领并执行完** EXT-032 ⇒ `last_ack` 推进到 **EXT-032**（下一轮闸门将返回 exit 1，除非 reviewer 下发 EXT-033）。
+
+---
+
+## EXT-033 —— 2026-11-02 14:10 —— ★ 第 3 个会话接手（TAKEOVER）⇒ 修 3 个真缺陷 + 真实三引擎 e2e 产物核验 + 六套自测全 0 FAIL
+
+### 会话链（每一步都有据）
+| 会话 | token | 起 | 结局 |
+|---|---|---|---|
+| 1 | `c09ec63e` | 09:32 | 中途死亡（心跳停 43 min） |
+| 2 | `9ea5f801` | 10:21 | 中途死亡（心跳停 67 min，note「e2e 完成(WAV 完整 104.3s)，跑 analyze 生成对比与交付」） |
+| 3（本轮） | `4ffeaecb` | 13:26 | 本轮 |
+
+⇒ 本轮 `acquire ext` 返回 **TAKEOVER** ⇒ 按指令读前会话 note + `STATUS_EXT.md` + `EXEC_LOG.md` + 磁盘产物 ⇒ **从断点续做**（接手其 9 个未提交文件，**不重写**）。
+⇒ 全程 `beat`（最后 13:59:16）+ `addpid ext 4ffeaecb 15540`（长任务 PID 立即注册）+ 结束 `release`。
+
+### ★ 本轮修掉的三个真缺陷（都有实测证据）
+**① `t0` 跨时钟域（EXT-033 D 的根因）** —— `extension/player.js`
+- 症状（前会话真实三引擎轮 `20261102_121431`）：`t0Sec=-0.0197`（**上行域**）、`metrics.schedClamped=13`（**13 段全被钳成「立即播」**）⇒ 有符号误差**恒为正**（19 947 / 26 742 / 23 891 / 28 650 / 29 538 / 29 356 / 29 401 ms）⇒ **量不出「早播」**（正是 EXT-032 批评的「口径不是同步误差」）。
+- 根因：`d.audioFrame16` 来自**上行 AudioContext**（`upState.ac`，player.js:1364），而 `planned` / `src.start(when)` / onset 的 `at` 全在 **player AudioContext**（`audioCtx`，player.js:2582）⇒ **两个 context 原点互相独立** ⇒ 系统性错位。
+- 修法：player 域内测 `Δ = upState.ac.currentTime − audioCtx.currentTime`（60 帧**中位数**）⇒ `t0 = t0Up + Δ`；**保留** `t0UpSec` / `t0UpPlayerOffsetSec` / `t0UpPlayerOffsetSpreadSec` ⇒ 换算前后**可自证**。**`requested = t0 + t_start + D` 的算式一字未改**。
+- **验证（真实浏览器，CDP 直连，不依赖 playwright）**：`tests/smoke/ext033_t0_verify.py` → **9 PASS / 0 FAIL**（rc=0）。实测两个 AudioContext 原点差 **Δ ≈ 0.37~1.05 s** ⇒ 跨域问题真实存在；换算自洽性逐条 PASS；**反证**：不换算就引入 |Δ| 误差。
+- ★ 实测发现（已写进实现注释）：**`currentTime` 只在各自渲染量子推进时更新** ⇒ 单次相减带 ~80 ms 噪声 ⇒ **必须多次采样取中位数**。
+
+**② 设备互斥从来没生效过** —— `ext/bridge.py::_caption_app_running`
+- 症状：依赖 `psutil`，而 bridge 实际跑在 **App 自带 python** 里（**没有 psutil**，EXT-017② 注释早已记过）⇒ `except: return False` ⇒ **恒 False**；且旧实现只匹配字面量 `"live_caption"`（**带下划线**），本机跑的是 `Confucius4_LiveCaption_v2.1`（**无下划线**）⇒ **双重漏检** ⇒ 字幕 App 与本模块**同时抢 GPU.0 + NPU**。
+- 修法：① **不依赖 psutil** ⇒ `wmic` → `Get-CimInstance Win32_Process` → `tasklist` 三级降级；② 按 **App 真实入口**（`bridge_launcher.py` / `livecaptionapp.py`）匹配（不因「命令行提到该路径」误报）；③ **拿不到进程列表 ⇒ 保守按「可能在跑」处理**（探测失败 ≠ 没在跑）。
+- 实测：0.56 s 内检出字幕 App（PID 4896）⇒ `caption_app_running = True`（修前恒 False）；同批 3 个「命令行含该路径」的非 App 进程**均未误报** ✅。
+- ⇒ **本轮真实 e2e 重跑时被正确拦下**（bridge.log 原文「检测到实时字幕 App 在运行，拒绝启动（设备互斥）」、rc=3）—— 这正是修复生效的**直接证明**。
+
+**③ 交付分析器 `rms` 局部变量遮蔽** —— `tests/smoke/ext033_analyze.py`
+- 症状：`test_ext033_deliver.py` 直接崩 `UnboundLocalError: cannot access local variable 'rms'`（`voiced_span()` 里 `rms = _np.sqrt(...)` 使 `rms` 成为局部变量 ⇒ 遮蔽全局 `rms(...)` ⇒ fallback 分支必崩）。
+- 修法：numpy 分支局部改名 `_rms_blocks`。
+
+**附带修**：`tests/test_ext_selfcheck.py` 原用 psutil 找「存活 PID 对照」⇒ **在真实运行环境（App python 无 psutil）里恒假失败** ⇒ 改用被测代码自己的 `_pid_alive`（ctypes 兜底）⇒ 106 PASS / 0 FAIL。
+
+### ★ 真实三引擎 e2e（前会话跑的，本轮核验其产物并交卷）
+run `.tmp/ext033_e2e/20261102_121431/`：
+| 项 | 实测 | 判据 | 结果 |
+|---|---|---|---|
+| 输入 | **页面元素**（`createMediaElementSource`）⇒ `uplink.captureMode="element"`、`gaps=0`、`maxAbsSkewAudioMs=1.08` | 不得是整机声 | ✅ |
+| 素材 | 英文 SPE `test_en_60s.wav` 0–60 s | 英文 | ✅ |
+| TTS 段数 | **13**（`link.asrSegments/mtSegments/ttsSegments` 均 13） | — | — |
+| 录音 webm | **856 053 B** | ffprobe 不报 truncated | ✅ |
+| 录音 WAV | **10 012 716 B**（48 kHz / 5 006 336 样本 / **104.299 s**） | ≥ 75 s | ✅ |
+| 开口静音 | **26.58 s** | ≤ 15 s | ❌ |
+| 最长静音 / 首段到达 | 26.75 s / 26.757 s | — | — |
+| sync 有符号 P50/P95/max | **28650.0 / 29537.8 / 29537.8 ms** | \|P95\| ≤ 300 ms | ❌ |
+| 段数 / 已对齐 / 未对齐 | 7 / 6 / 1（峰 0.5005 < 0.6） | 峰 ≥ 0.6 | 1 段标「未对齐」 |
+| 时长比（变速校正） | **0.6825 ~ 1.4851** | 1.00 ± 0.02 | ❌ |
+| 源语言全英文 | True | EXT-033 E | ✅ |
+
+### ★ 剩余滞后的归因（**超出本模块职责**）
+`margin.json` 实测：`feed_lag` **全为负**（mean **−5.85 s** ⇒ 音频**准时**到服务端 ⇒ **不是上行/反压**）；`intrinsic_lag` mean **+2.27 s**（10 段为正）；`lag_growth_slope = 0.3146 s/s`（**累积** ⇒ 吞吐 < 1）；**TTS RTF = 1.231 > 1**（ASR 0.773 / MT 0.193；GPU 侧合计 75.3 s / 60 s 音频，TTS 侧 73.8 s / 60 s）⇒ **TTS 提速是 EXT 改不动的**（引擎属其它模块）⇒ **已写进 STATUS 交主会话转达**，本轮**不碰任何引擎文件**。
+
+### 涉及修改 / 新增的文件（**仅本模块**）
+| 文件 | 动作 | 说明 |
+|---|---|---|
+| `extension/player.js` | 改 | ★ 缺陷①：t0 换算到 player 域（新增 `t0UpSec` / `t0UpPlayerOffsetSec` / `t0UpPlayerOffsetSpreadSec`） |
+| `ext/bridge.py` | 改 | ★ 缺陷②：设备互斥去 psutil 化 + 按 App 真实入口匹配 + 探测失败保守（新增 `_list_process_cmdlines` / `_caption_app_probe_failed`） |
+| `tests/smoke/ext033_analyze.py` | 改 | ★ 缺陷③：`rms` 局部变量遮蔽 |
+| `tests/smoke/ext033_t0_verify.py` | **新建** | ★ 浏览器实测 t0 跨域换算（CDP 直连，**不依赖 playwright**），含反证 |
+| `tests/test_ext033_capture.py` | 改 | 新增 **9 条**断言（t0 换算 ×2 / 互斥 ×3 / 浏览器探针 ×3 / 抖动上报 ×1）→ **42 PASS / 0 FAIL** |
+| `tests/test_ext_selfcheck.py` | 改 | 自测不再依赖 psutil（真实运行环境可用）→ **106 PASS / 0 FAIL** |
+| `status/notes/sec26_ext033.md` | **新建** | §26 全量明细 |
+| `status/notes/sec25_ext032_deliver.md` | 改 | §25 原文**逐字下沉**（零丢失） |
+| `status/STATUS_EXT.md` | 改 | `last_ack` EXT-032→**EXT-033**、更新时间、头部当前任务、阻塞项、删重复下沉块、新增 §26、§26 行入最近章节表；**21 719 B / 102 行**（限额 ≤ 40 KB / ≤ 300 行 / < 归档/10 = **22 483 B** ✅） |
+| `status/EXEC_LOG.md` | **追加**本节 | — |
+
+### 验证与自测（实测 rc）
+| 套件 | 结果 | rc |
+|---|---|---|
+| `tests/test_ext_selfcheck.py`（EXT-033 明文要求） | **106 PASS / 0 FAIL** | 0 |
+| `tests/test_echo_roundtrip.py`（明文要求） | **11 PASS / 0 FAIL** | 0 |
+| `tests/test_next_instruction.py`（明文要求） | **19 PASS / 0 FAIL** | 0 |
+| `tests/test_ext033_capture.py`（本轮扩充） | **42 PASS / 0 FAIL** | 0 |
+| `tests/test_ext033_deliver.py`（本轮修 bug 后） | **25 PASS / 0 FAIL** | 0 |
+| `tests/smoke/ext033_t0_verify.py`（**浏览器实测**） | **9 PASS / 0 FAIL** | 0 |
+| `tests/test_ext016_compression.py`（STATUS 体积守门） | **38 PASS / 1 FAIL** | 1 |
+
+★ `test_ext016_compression` 的 1 FAIL = 断言只检查 `status/CORRECTIONS_EXT.md` 字节数（实测 **45 635 B** > 阈值 20 480 B）⇒ **reviewer 独占、只读、本轮从未修改也从未入库**（`git check-ignore` 命中 `.gitignore:34`）⇒ **既有基线红**。其余 38 项（含 STATUS 体积项 21 719 B < 22 483 B ✅）全 PASS。
+★ 运行环境说明：`numpy` / `websockets` 只在 **App 自带 python**（v2.2）里 ⇒ 上述套件用 `PYTHONPATH=<repo>;<repo>/.runtime_deps` + App python 跑；`test_ext033_capture` / `test_next_instruction` 纯标准库，可任意 python。
+
+### ⛔ 明确未做 / 不宣称
+- ⛔ **本轮没跑出「修复后」的真实三引擎 e2e** —— 设备被**实时字幕 App（PID 4896）**占用 ⇒ 按铁律**不抢设备、不打断用户的 App** ⇒ 桥接 rc=3 拒绝启动 ⇒ **t0 修复效果只由浏览器实测探针证明，未由真实三引擎轮证明**。
+- ⛔ **开口静音 26.58 s / 时长比 0.68~1.49 / sync 28.7~29.5 s 均未达标** ⇒ 根因是 **TTS RTF 1.231 > 1** + 设备争抢 ⇒ **需 TTS 模块提速**（已写 STATUS 交主会话）。
+- ⛔ **未打包**（APP-057）/ **未改任何引擎文件** / **未改 `session_lease.py`** / **未推远程** / `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**。
+- ℹ️ 本轮**回收过一把孤儿锁**（`ext 5100 2026-11-02 13:59:36`）—— 该锁是**本会话自己**先前实例留下的（我用 wrapper 持锁 + e2e 自己也要锁 ⇒ 自锁等待）⇒ 经 **ctypes `OpenProcess`+`GetExitCodeProcess` 确认 PID 5100 已死**（`OpenProcess` 返回 NULL）**且** `Get-CimInstance Win32_Process` 查无此进程 ⇒ 双重确认后才回收。**没有动任何别人的锁**。
+
+### `last_ack`
+**EXT-033** —— 本轮**已认领并执行** EXT-033 ⇒ `last_ack` 推进到 **EXT-033**。

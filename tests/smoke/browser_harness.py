@@ -110,8 +110,16 @@ class BrowserSession:
             "--no-first-run", "--no-default-browser-check", "--no-sandbox",
             "--autoplay-policy=no-user-gesture-required",
         ] + self.extra_args + ["about:blank"]
+        # ★★★ EXT-033：浏览器的 stderr **落盘**（不再丢进 DEVNULL）。
+        #   原因：manifest 里 `commands` 的 `suggested_key` 非法时，Edge 会弹
+        #   「无法加载该扩展」**模态框** ⇒ 浏览器 UI 卡死 ⇒ CDP 永不就绪
+        #   ⇒ 现场只剩一句没头没脑的 "CDP 未就绪"。
+        #   ⇒ 有 stderr 才能在失败时把**原文**带出来（Chromium 会打
+        #   `Extension error: ... Invalid value for 'commands[1].default': ...`）。
+        self.stderr_path = os.path.join(self.profile, "browser_stderr.log")
+        self._stderr_f = open(self.stderr_path, "wb")
         self.proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL,
-                                     stderr=subprocess.DEVNULL)
+                                     stderr=self._stderr_f)
         base = f"http://127.0.0.1:{self.port}"
         for _ in range(40):
             try:
@@ -120,12 +128,30 @@ class BrowserSession:
             except Exception:
                 time.sleep(0.5)
         else:
-            raise RuntimeError("CDP 未就绪")
+            hint = ""
+            try:
+                self._stderr_f.flush()
+                with open(self.stderr_path, "rb") as f:
+                    tail = f.read()[-8000:].decode("utf-8", "replace")
+                for line in tail.splitlines():
+                    if "Extension error" in line or "load_error_reporter" in line:
+                        hint = line.strip()
+                        break
+            except Exception:
+                pass
+            raise RuntimeError(
+                "CDP 未就绪（%s）。浏览器 stderr：%s。%s"
+                % (base, self.stderr_path, hint))
         self.browser = self._pw_cm.chromium.connect_over_cdp(base)
         self.ctx = self.browser.contexts[0] if self.browser.contexts else self.browser.new_context()
         return self
 
     def __exit__(self, *exc):
+        try:
+            if self._stderr_f:
+                self._stderr_f.close()
+        except Exception:
+            pass
         try:
             if self.browser:
                 self.browser.close()
