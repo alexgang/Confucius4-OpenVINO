@@ -1,12 +1,12 @@
 {
  "script": "app227_app062_d1_d4.py",
  "correction": "APP-062（D1–D4）",
- "ts": "2026-11-02 10:34:49",
+ "ts": "2026-11-02 11:01:12",
  "repo": "C:\\Users\\Trekker-PTL\\confucius4-openvino",
  "files": {
-  "live_caption\\live_caption_app.py": "95a951c7e3a6d54874d86916566de1135d13ddfb079983f82e33643ff75e8b15",
-  "live_caption\\speaker_tracker.py": "31118e025f8bfc526fe63ef5d74ae41d44d53f4c7756bdd300eb3e5d7b426b90",
-  "pkg_exclude.py": "c5d77bfda0ddac208e4207b99de2e60fb020e718be9ec812d233d31d35d1a50b"
+  "live_caption\\live_caption_app.py": "dd6743ccff82eee79debb98625ecc10a78ec7a28c6ab27638ce9f8bcfd6a8864",
+  "live_caption\\speaker_tracker.py": "dbbde34cb03f3a2c616670ac6230729ddec08842e08f15dda182335f22ab9681",
+  "pkg_exclude.py": "555039da4ce4df85d3dedbfcf2f41f0b6cb15ae2aa00b1bc2988b4c079b1c357"
  },
  "checks": [
   {
@@ -17,7 +17,7 @@
   {
    "name": "d1_reads_asr_constant",
    "ok": true,
-   "detail": "源码里存在「从 asr052_spk_runtime 读 WIN_S」的解析逻辑"
+   "detail": "源码里存在「从 ASR 侧读 WIN_S」的解析逻辑（优先 `asr_spk_window` ＝ ASR-041 的**唯一事实来源**，兜底 `asr052_spk_runtime` ＝ 随包分发的运行时内核）"
   },
   {
    "name": "d1_config_env_override",
@@ -37,7 +37,7 @@
   {
    "name": "d1_runtime_source_is_shared",
    "ok": true,
-   "detail": "实际来源='同源 asr052_spk_runtime.WIN_S=10.0'（须指向 ASR 侧常量 ⇒ **同源**）"
+   "detail": "实际来源='同源 asr_spk_window.WIN_S=10.0'（须指向 ASR 侧常量 ⇒ **同源**；§131 已对齐 ASR-041 的`asr_spk_window` 单一事实来源）"
   },
   {
    "name": "d1_env_override_works",

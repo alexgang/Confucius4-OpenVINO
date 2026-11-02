@@ -1,7 +1,7 @@
 {
  "script": "app224_app061_escape_lock_gates.py",
  "correction": "APP-061 (② 附带问题) + 共享锁闸门",
- "ts": "2026-11-02 10:56:17",
+ "ts": "2026-11-02 11:04:06",
  "repo": "C:\\Users\\Trekker-PTL\\confucius4-openvino",
  "pkg_v22": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2",
  "escape_fixes": [
@@ -229,7 +229,7 @@
   ],
   "rc": 1,
   "tail": [
-   "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app224_lock_f1mo0ipq\\machine_lock_app.py:258: SyntaxWarning: invalid escape sequence '\\S'",
+   "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app224_lock_ncio3n1v\\machine_lock_app.py:258: SyntaxWarning: invalid escape sequence '\\S'",
    "  ① `re.match(r'^(\\S+)\\s+PID\\s+(\\d+)\\b')` ⇒ `\\s+` 要求 `PID` 后有**空白**",
    "<unknown>:258: SyntaxWarning: invalid escape sequence '\\S'",
    "<unknown>:258: SyntaxWarning: invalid escape sequence '\\S'",
@@ -274,7 +274,7 @@
  },
  "quiet_window": {
   "ok": false,
-  "info": "{'quiet_seconds': 30.0, 'timeout': 60.0, 'waited_s': 60.05318260192871, 'n_samples': 4, 'n_busy_samples': 4, 'n_idle_samples': 0, 'n_unknown_samples': 1, 'last_busy_pids': [1064, 28012], 'last_idle_pids': [], 'classifier': 'cpu-delta'}"
+  "info": "{'quiet_seconds': 30.0, 'timeout': 60.0, 'waited_s': 60.05705761909485, 'n_samples': 4, 'n_busy_samples': 4, 'n_idle_samples': 0, 'n_unknown_samples': 1, 'last_busy_pids': [1064, 28012], 'last_idle_pids': [], 'classifier': 'cpu-delta'}"
  },
  "n_pass": 5,
  "n_fail": 0,

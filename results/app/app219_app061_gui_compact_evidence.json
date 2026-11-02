@@ -9,17 +9,17 @@
   "shots": [
     {
       "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app061_dev_1280x800.png",
-      "bytes": 30723,
-      "mtime": "2026-11-02 10:56:14",
-      "sha256": "2a45bc43603f3c8de6b0241fe394fd53a5e491b3a6de0d95bc78f6870353a659",
+      "bytes": 30702,
+      "mtime": "2026-11-02 11:04:03",
+      "sha256": "ceedddc55312fdf4b0a7f51a68264e9af5be00caa7b17e1313417a2afe813314",
       "size": "1280x800",
       "label": "dev"
     },
     {
       "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app061_dev_1024x800.png",
-      "bytes": 27057,
-      "mtime": "2026-11-02 10:56:16",
-      "sha256": "65ce574ffae87fdef15e1282e80972812b726e4b581741b5368aa10616a87247",
+      "bytes": 27034,
+      "mtime": "2026-11-02 11:04:05",
+      "sha256": "26b141463a4c6dc20195ebfa3e1f6630f2d06cf6303392f58f3c4c819d6f4125",
       "size": "1024x800",
       "label": "dev"
     }

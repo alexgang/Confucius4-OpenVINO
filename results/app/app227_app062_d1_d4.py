@@ -130,9 +130,11 @@ def check_d1():
 
     # ② 同源：读 `asr052_spk_runtime.WIN_S`
     chk('d1_reads_asr_constant',
-        'asr052_spk_runtime' in src and 'WIN_S' in src
-        and 'getattr(mod, ' in src,
-        '源码里存在「从 asr052_spk_runtime 读 WIN_S」的解析逻辑')
+        'asr_spk_window' in src and 'asr052_spk_runtime' in src
+        and 'WIN_S' in src and 'getattr(mod, ' in src,
+        '源码里存在「从 ASR 侧读 WIN_S」的解析逻辑'
+        '（优先 `asr_spk_window` ＝ ASR-041 的**唯一事实来源**，'
+        '兜底 `asr052_spk_runtime` ＝ 随包分发的运行时内核）')
 
     # ③ 配置项：环境变量可覆盖
     chk('d1_config_env_override', 'LIVECAP_SPK_WINDOW_S' in src,
@@ -155,8 +157,10 @@ def check_d1():
         srcname = getattr(m, '_WIN_S_SRC', '')
         chk('d1_runtime_value', (w == 10.0),
             '实际解析出的窗长=%r（须 10.0，与 ASR 侧默认一致）' % w)
-        chk('d1_runtime_source_is_shared', ('asr052' in srcname),
-            '实际来源=%r（须指向 ASR 侧常量 ⇒ **同源**）' % srcname)
+        chk('d1_runtime_source_is_shared',
+            ('asr_spk_window' in srcname or 'asr052_spk_runtime' in srcname),
+            '实际来源=%r（须指向 ASR 侧常量 ⇒ **同源**；§131 已对齐 ASR-041 的'
+            '`asr_spk_window` 单一事实来源）' % srcname)
     except Exception as e:
         chk('d1_runtime_value', None,
             '无法加载 speaker_tracker ⇒ 无法判定：%s' % e)
