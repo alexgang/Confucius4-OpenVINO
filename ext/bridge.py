@@ -57,7 +57,8 @@ from .config import normalize_lang_code
 from .adaptive_speed import combine_rates, decide_speed
 from .duration import fit_duration
 from .pipeline import EnginePipeline, SegmentJob, _FairLock
-from .segmenter import plan_segments, describe as describe_segmenter
+from .segmenter import (plan_segments, describe as describe_segmenter,
+                       split_first_segment)
 from .speaker import SpeakerTracker
 from .time_stretch import wsola
 # ★★ EXT-029：说话人旁路（**独立线程 + 有界队列** ⇒ 不反压 ASR）。
@@ -288,6 +289,208 @@ def _seg_proc_sec(m: dict) -> Optional[float]:
     if any(p is None for p in parts):
         return None
     return sum(float(p) for p in parts)
+
+
+def compute_rtf_breakdown(margins: List[dict]) -> dict:
+    """★ EXT-034 ②：**三个 RTF 口径分列**（不再混成一个数）。
+
+    ## 为什么必须拆（reviewer EXT-034 ② 的批评）
+      旧结论写「TTS RTF = 1.231 > 1 ⇒ 结构上不可能实时」。
+      但 **1.231 不是 TTS 自身的 RTF**：
+        `1.231 = TTS 耗时 73.84 s ÷ 源音频时长 59.98 s`
+      其中**混进了「中文译文比英文原声长」这个因素**（1.196 倍）。
+      ⇒ 用它去判「TTS 引擎慢」是**口径错** ⇒ 归因会错。
+
+    ## 三个口径（各自有明确含义）
+      | 口径 | 定义 | 说明 |
+      |---|---|---|
+      | `RTF_out` | `Σ tts_sec ÷ Σ speech_sec` | **TTS 自身的 RTF**（输出语音 vs 耗时）⇒ 这才是「TTS 引擎快不快」 |
+      | `speech_over_src` | `Σ speech_sec ÷ Σ 源音频秒` | **译文比原声长多少**（中文 vs 英文）⇒ 与 TTS 快慢**无关** |
+      | `tts_over_src` | `Σ tts_sec ÷ Σ 源音频秒` | **端到端占用率**（旧口径 1.231 就是它）⇒ 受上面两个**同时**影响 |
+
+    ## 为什么这三个必须分开看
+      * `RTF_out > 1` ⇒ **TTS 引擎**自己就来不及（⇒ TTS 模块提速）
+      * `RTF_out ≤ 1` 但 `tts_over_src > 1` ⇒ TTS 没问题，
+        是**译文变长 + 段太碎**把总占用推过了 1
+        ⇒ **EXT 侧**可改（缩短切段 / 减少段数）
+      * `speech_over_src` 大 ⇒ 译文变长（语言属性）⇒ 只能靠**变速**吸收
+
+    ## 源音频秒的口径
+      `t_end − t_start` = 这一段**原声**的时长（上行采样时间轴）。
+      ⚠️ 只统计**有 TTS 的段**（`tts_sec > 0`）⇒ 与「TTS 实际处理了多少」
+      口径一致 ⇒ 三个数**自洽**（分子分母同源）。
+
+    Returns
+    -------
+    dict
+        含三个口径 + 各自的分子分母 + **逐段**明细 + 每段口径。
+        ⚠️ 分母为 0 时给 `None`（**不臆造 0 或 1**）。
+    """
+    src_total = 0.0        # 源音频秒（原声）
+    speech_total = 0.0     # 输出语音秒（TTS 产出）
+    tts_total = 0.0        # TTS 耗时秒
+    asr_total = 0.0
+    mt_total = 0.0
+    per_seg = []
+    n = 0
+    for m in margins:
+        tts_s = m.get("tts_sec")
+        if tts_s is None or float(tts_s) <= 0.0:
+            continue                      # 只算**真有 TTS** 的段
+        tts_s = float(tts_s)
+        sp = m.get("speech_sec")
+        sp = float(sp) if sp is not None else 0.0
+        t0 = m.get("t_start")
+        t1 = m.get("t_end")
+        src_s = 0.0
+        if t0 is not None and t1 is not None:
+            src_s = max(0.0, float(t1) - float(t0))
+        src_total += src_s
+        speech_total += sp
+        tts_total += tts_s
+        asr_total += float(m.get("asr_sec") or 0.0)
+        mt_total += float(m.get("mt_sec") or 0.0)
+        n += 1
+        per_seg.append({
+            "id": m.get("id"),
+            "t_start": t0,
+            "src_sec": round(src_s, 4),
+            "speech_sec": round(sp, 4),
+            "tts_sec": round(tts_s, 4),
+            # ★ 逐段三个口径（reviewer 实测：前 7 段 1.09~1.23、后 6 段 0.82~0.89）
+            "rtf_out": (round(tts_s / sp, 4) if sp > 0 else None),
+            "speech_over_src": (round(sp / src_s, 4) if src_s > 0 else None),
+            "tts_over_src": (round(tts_s / src_s, 4) if src_s > 0 else None),
+        })
+
+    def _r(num: float, den: float) -> Optional[float]:
+        return round(num / den, 4) if den > 0 else None
+
+    return {
+        "n_segments_with_tts": n,
+        # ★ 三个口径（**分列**）
+        "RTF_out": _r(tts_total, speech_total),
+        "speech_over_src": _r(speech_total, src_total),
+        "tts_over_src": _r(tts_total, src_total),
+        # ★ 分子分母（可自证）
+        "totals": {
+            "tts_sec": round(tts_total, 4),
+            "speech_sec": round(speech_total, 4),
+            "src_sec": round(src_total, 4),
+            "asr_sec": round(asr_total, 4),
+            "mt_sec": round(mt_total, 4),
+        },
+        # ★ 口径说明（reviewer 明文要求「三个数分开写」）
+        "definitions": {
+            "RTF_out": "TTS 自身 RTF = Σtts_sec ÷ Σspeech_sec（输出语音 vs 耗时）",
+            "speech_over_src": "译文长度比 = Σspeech_sec ÷ Σ源音频秒（中文 vs 英文）",
+            "tts_over_src": ("端到端占用率 = Σtts_sec ÷ Σ源音频秒"
+                             "（★ 旧结论的 1.231 就是这个口径，"
+                             "混入了译文变长）"),
+        },
+        "note": ("★ RTF_out > 1 ⇒ TTS 引擎自身来不及（⇒ TTS 模块提速）；"
+                 "RTF_out ≤ 1 但 tts_over_src > 1 ⇒ TTS 没问题，"
+                 "是译文变长/段太碎 ⇒ EXT 侧可改。"
+                 "speech_over_src 大 ⇒ 语言属性，只能靠变速吸收。"),
+        "per_segment": per_seg,
+    }
+
+
+def estimate_required_delay(margins: List[dict], *, delay_sec: float
+                           ) -> dict:
+    """★ EXT-034 ④：**要满足同步，延迟 D 需要多大**（交给用户决定）。
+
+    ## 口径（reviewer EXT-034 ④ 的原话）
+      「给出『按当前 TTS 吞吐，要满足同步需要的 D』估算，交用户决定。」
+
+    ## 为什么需要一个估算
+      D 是**原声被 DelayNode 延迟**的时长（也是配音的排程缓冲）。
+      D 太小 ⇒ 配音来不及（D < 起步耗时 + 排队）；
+      D 太大 ⇒ 用户听到的原声**晚很多**（唇音不同步、互动差）。
+      ⇒ 存在一个「够用又不浪费」的取值 ⇒ **算出来给用户选**。
+
+    ## 三个成分（实测驱动，不是拍脑袋）
+      1. **起步开销** `startup_sec`
+         = 首段长度 + 首段的 ASR + MT + TTS
+         （ASR 是**整段到齐才定稿** ⇒ 首段的管线耗时**全部**落在 D 之前）
+      2. **稳态排队** `steady_sec`
+         = 段均管线耗时 − 段均源音频时长（按 TTS 吞吐算）
+         （若为负 ⇒ TTS 比原声快 ⇒ 不需要额外排队）
+      3. **安全余量** `safety_sec`
+         = 一个经验常数（播放器侧的就绪→起播 + 跨时钟域误差）
+
+    ⇒ `D_required ≈ startup_sec + steady_sec + safety_sec`
+    ⚠️ **这是估算**，用**本轮实测**的段数据算 ⇒ 换素材/换引擎会变。
+    ⚠️ 同时给出「当前 D 是否够」的判定 ⇒ reviewer 可直接核对。
+
+    Returns
+    -------
+    dict
+        含各成分 + 建议 D + 与当前 D 的对比 + 口径说明。
+    """
+    rtf = compute_rtf_breakdown(margins)
+    tot = rtf.get("totals") or {}
+    n = int(rtf.get("n_segments_with_tts") or 0)
+    if n <= 0:
+        return {"n_segments_with_tts": 0,
+                "note": "没有带 TTS 的段 ⇒ 无法估算（不臆造数字）"}
+
+    # ① 起步开销：首段（按 t_start 排序）
+    with_tts = [m for m in margins
+                if m.get("tts_sec") is not None
+                and float(m.get("tts_sec") or 0) > 0.0]
+    with_tts.sort(key=lambda m: float(m.get("t_start") or 0.0))
+    first = with_tts[0]
+    first_len = (float(first.get("t_end") or 0.0)
+                 - float(first.get("t_start") or 0.0))
+    startup = (first_len
+               + float(first.get("asr_sec") or 0.0)
+               + float(first.get("mt_sec") or 0.0)
+               + float(first.get("tts_sec") or 0.0))
+
+    # ② 稳态排队：段均「管线耗时」− 段均「源音频时长」
+    avg_proc = (float(tot.get("asr_sec") or 0.0)
+                + float(tot.get("mt_sec") or 0.0)
+                + float(tot.get("tts_sec") or 0.0)) / n
+    avg_src = float(tot.get("src_sec") or 0.0) / n
+    steady = max(0.0, avg_proc - avg_src)
+
+    # ③ 安全余量：播放器侧的就绪→起播 + 跨时钟域（实测约 4 s）
+    safety = 4.0
+
+    d_req = startup + steady + safety
+    return {
+        "n_segments_with_tts": n,
+        "startup_sec": round(startup, 3),
+        "startup_detail": {
+            "first_seg_len_sec": round(first_len, 3),
+            "first_asr_sec": float(first.get("asr_sec") or 0.0),
+            "first_mt_sec": float(first.get("mt_sec") or 0.0),
+            "first_tts_sec": float(first.get("tts_sec") or 0.0),
+            "note": ("★ ASR 是**整段到齐才定稿** ⇒ 首段的整条管线"
+                     "（ASR+MT+TTS）都落在 D 之前 ⇒ 首段越长起步越晚。"),
+        },
+        "steady_sec": round(steady, 3),
+        "steady_detail": {
+            "avg_proc_sec": round(avg_proc, 4),
+            "avg_src_sec": round(avg_src, 4),
+            "note": ("段均(ASR+MT+TTS) − 段均源音频时长；"
+                     ">0 ⇒ TTS 比原声慢 ⇒ 需要额外排队缓冲"),
+        },
+        "safety_sec": safety,
+        "safety_note": ("播放器侧「就绪→起播」+ uplink↔player 跨时钟域"
+                        "误差（实测约 4 s）"),
+        "D_required_sec": round(d_req, 3),
+        "D_current_sec": delay_sec,
+        "D_sufficient": bool(d_req <= delay_sec),
+        "gap_sec": round(delay_sec - d_req, 3),
+        "rtf_out": rtf.get("RTF_out"),
+        "tts_over_src": rtf.get("tts_over_src"),
+        "speech_over_src": rtf.get("speech_over_src"),
+        "note": ("★ 这是**估算**（用本轮实测段数据）⇒ 交用户决定 D 取值。"
+                 "若 D_required 仍 > 当前 D，说明**光调 D 不够**，"
+                 "必须先提 TTS 吞吐（RTF_out）或进一步缩短首段。"),
+    }
 
 
 def _seg_audio_ready_rel(m: dict) -> Optional[float]:
@@ -710,6 +913,22 @@ class Session:
         # ★ 已消耗（已切走）的样本数 —— 段的时间基点必须相对**会话起点**，
         #   不能相对「当前缓冲区」。见 _process_segment 的说明。
         self._consumed_samples = 0
+        # ★★★★★ EXT-034 ④：**首段限长**（会话级）。
+        #   ## 为什么（reviewer EXT-034 ③ 的原话）
+        #     「开头静音主要归 EXT（首段切得太长、ASR 在整段结束后才定稿）」。
+        #     ASR 是**整段到齐才定稿**（`_dispatch_segment` 只在整段音频
+        #     完整到达后才调 `_process_segment`）⇒ **首段越长、起步越晚**：
+        #       起步耗时 ≈ 首段长度 + ASR + MT + TTS
+        #       实测：8.0 + 5.20 + 1.30 + 11.04 = **25.54 s** > D=10 s
+        #     ⇒ 结构上就赶不上 ⇒ 开头静音必然 ≫ D。
+        #   ## 修法
+        #     首段单独限短（默认 `FIRST_SEGMENT_MAX_SEC`）⇒ 起步提前。
+        #     ⚠️ **只限首段**，其余段仍按 `SEG_MAX_SEC`（8 s）切
+        #       ⇒ 稳态吞吐不变，只改「起步」。
+        #   ⚠️ 与 R2T2 原件的**等价性**：默认参数下行为不变
+        #     （`plan_segments` 的 `first_segment_max_sec` 默认 None）。
+        self._first_seg_done = False
+        self._first_seg_max_sec = C.FIRST_SEGMENT_MAX_SEC
         self._engine = engine if engine is not None else ENGINE_ADAPTER
         # ★★★ EXT-026 ⑤：**会话前缀**（session epoch）
         #   ## 为什么需要（reviewer 指出的真缺陷）
@@ -1080,9 +1299,24 @@ class Session:
             self._max_frame_arrival_delay = _delay
 
         # 分段：以 R2T2 原有断句为准（EXT-002）
+        # ★★★★★ EXT-034 ④：**首段限长**（会话级，缩短「起步」）。
+        #   ⚠️ 为什么在**会话级**做而不在分段器里做：
+        #     缓冲区每处理一段就被裁掉（`self._buf = self._buf[cut:]`）
+        #     ⇒ 「缓冲区里的第一段」每轮都可能是不同的段
+        #     ⇒ 若在分段器里限长 ⇒ **每一轮的第一段**都被限短
+        #       ⇒ 等于把**所有段**都变成 3.5 s ⇒ 段数暴增、
+        #         切点栅格整体平移 ⇒ **尾部残留**变少
+        #         （实测 60 s 输入只剩 0.5 s ⇒ 低于 `flush` 的 1 s 门槛
+        #           ⇒ **尾段被丢** ⇒ 既有断言变红）。
+        #   ⇒ 现在：分段器**保持与 R2T2 逐位一致**，
+        #     首段限长由 `_split_first_segment()` 在**会话级**完成
+        #     ⇒ 只影响**会话真正的第一段**，其余切点**逐位不变**。
         segs = plan_segments(self._buf)
         if len(segs) <= 1:
             return None
+        # ★ 首段限长：把会话的第一段**拆成两段**（更早起步）
+        if not self._first_seg_done:
+            segs = self._split_first_segment(segs)
         # 只处理已完整落在 [min, max] 内的段，最后一段留在缓冲区里等后续音频
         ready = list(segs[:-1])
         if not ready:
@@ -1103,9 +1337,39 @@ class Session:
         cut = ready[-1][1]
         self._buf = self._buf[cut:]
         self._consumed_samples += cut
+        # ★ EXT-034 ④：首段已切走 ⇒ 后续段**不再**限长。
+        #   ⚠️ 必须在这里（而不是切段时）置位：`ready` 里的第一段
+        #     才是会话真正的第一段（缓冲区可能一次出多段）。
+        if not self._first_seg_done:
+            self._first_seg_done = True
         return tasks or None
 
     # ── 段派发（串行 vs 流水线） ────────────────────────────────
+    def _split_first_segment(self, segs: List[Tuple[int, int]]
+                             ) -> List[Tuple[int, int]]:
+        """★ EXT-034 ④：**把会话的第一段拆成两段**（缩短「起步」）。
+
+        ## 本方法只是 `ext/segmenter.split_first_segment()` 的**薄包装**
+          服务端（这里）与客户端（`tools/p1_pipeline.py` 的
+          `expected_segment_count()`）**必须**用**同一份**拆分逻辑
+          ⇒ 否则两边各写一份 ⇒ 口径漂移 ⇒ 客户端预期与服务端实际不符。
+
+        ## 为什么拆而不截短（EXT-034 ④ 的关键取舍）
+          ASR 是**整段到齐才定稿**（`_dispatch_segment` 只在整段音频
+          完整到达后才调 `_process_segment` ⇒ ASR/MT/TTS 都在那一刻
+          才开始跑）⇒ **首段越长、起步越晚**：
+            起步耗时 ≈ 首段长度 + ASR + MT + TTS
+            实测：8.0 + 5.20 + 1.30 + 11.04 = **25.54 s** > D=10 s
+          ⇒ 必须把首段**切短**。
+
+        ## ⚠️ 只在**会话级**调用一次
+          缓冲区每处理一段就被裁掉 ⇒ 「缓冲区第一段」每轮都不同
+          ⇒ 必须按 `self._first_seg_done` 判定，只拆**会话真正的第一段**。
+        """
+        return split_first_segment(
+            segs, cap_sec=self._first_seg_max_sec,
+            min_sec=C.SEG_MIN_SEC, sample_rate=C.SAMPLE_RATE)
+
     def _dispatch_segment(self, seq: int, abs0: int, abs1: int,
                           seg_audio: np.ndarray, *,
                           audio_complete_at: float) -> list:
@@ -3210,6 +3474,15 @@ def _dump_margin(holder: dict, out_path: Optional[str], engine,
         "engine_calls": (sess.engine_calls if sess else []),
         "engine_stats": (engine.stats() if engine is not None else {}),
         "lag_decomposition": (decompose_lag(sess.margins, delay_sec=_dl)
+                              if sess else {}),
+        # ★★ EXT-034 ②：**三个 RTF 口径分列**（RTF_out / speech_over_src /
+        #   tts_over_src）—— 旧结论的「1.231」是 `tts_over_src`，
+        #   混进了「中文译文比英文原声长 1.196 倍」⇒ 归因会错。
+        "rtf_breakdown": (compute_rtf_breakdown(sess.margins)
+                          if sess else {}),
+        # ★★ EXT-034 ④：**要满足同步需要的 D 估算**（交用户决定）
+        "delay_requirement": (estimate_required_delay(sess.margins,
+                                                       delay_sec=_dl)
                               if sess else {}),
         # ★ EXT-009：自适应加速统计（滞后曲线 + 各倍率时间占比 + 丢句数）
         #   ⚠️ 用 getattr 取 ⇒ 桩 session（自测用的假对象）也不会崩。

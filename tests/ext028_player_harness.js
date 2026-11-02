@@ -142,11 +142,21 @@ function makeSandbox(opts) {
   const reported = [];
   const audioCtx = {
     currentTime: o.currentTime == null ? 10.0 : o.currentTime,
-    createBufferSource: () => ({
-      buffer: null,
-      connect: () => {},
-      start: (when) => { scheduled.push({ when }); },
-    }),
+    createBufferSource: () => {
+      // ★★★ EXT-034 ①：真代码的顺序是
+      //   `src.start(when)`（1256 行）**先**、`src.onended = ...`（1319 行）**后**
+      //   ⇒ 桩必须**保留同一个对象**（`rec.src`），
+      //     让测试在 onended 被赋值之后再取。
+      const rec = { when: null, onended: null, dur: null, src: null };
+      const node = {
+        buffer: null,
+        connect: () => {},
+        start: (when) => { rec.when = when; scheduled.push(rec); },
+        stop: () => {},
+      };
+      rec.src = node;
+      return node;
+    },
     createBuffer: (ch, len, sr) => ({ duration: len / sr, sampleRate: sr }),
   };
   const sandbox = {
@@ -177,10 +187,27 @@ function makeSandbox(opts) {
       adaptSpeedHistory: [],
       pendingSchedDropped: 0,
       subsDropped: 0,
+      // ★★★ EXT-034 ①：`noteDubEnded` 会写这些字段
+      //   （dubSyncErrs / dubSyncDetail / dubSyncLateMs / dubSyncErrsOnset
+      //     + 四个分位数）⇒ 桩里必须**先声明**，否则赋值到未声明变量
+      //     在 vm 沙箱里会抛 ReferenceError。
+      dubSyncErrs: [],
+      dubSyncErrsOnset: [],
+      dubSyncDetail: [],
+      dubSyncLateMs: [],
+      dubSyncP50: null,
+      dubSyncP95: null,
+      dubSyncMax: null,
+      dubSyncMin: null,
       link: { dubDelivered: 0 },
     },
+    // ★ `pct` 是真代码里的辅助函数（EXT-033 引入的**缓存版**）
+    //   ⇒ `noteDubEnded` 会用它算 P50/P95 ⇒ 沙箱要提供。
+    //   （用**真实现**而不是桩 ⇒ 验的是真逻辑）
+    _pctCache: new WeakMap(),
     __scheduled: scheduled,
     __reported: reported,
+    __audioCtx: audioCtx,
     report: (m) => { reported.push(m); },
     // ★ b64ToAudioBuffer 的桩：**按传入的采样率**建 buffer
     //   ⇒ 时长 = 样本数 / 采样率 ⇒ 能直接验「采样率错配 ⇒ 时长错」
@@ -196,6 +223,14 @@ function makeSandbox(opts) {
     extractConstBlock(psrc, 'ADAPT', 'player.js'),
     extractConst(psrc, 'PENDING_SCHED_CAP', 'player.js'),
     extractFunction(psrc, 'resolvePcmSampleRate', 'player.js'),
+    // ★★★ EXT-034 ①：`scheduleDub` 现在会调 `noteDubScheduled()`
+    //   并挂 `src.onended` ⇒ 沙箱必须带上**真实现**
+    //   （否则 ReferenceError ⇒ 整个 harness 崩）。
+    extractFunction(psrc, 'noteDubScheduled', 'player.js'),
+    extractFunction(psrc, 'noteDubEnded', 'player.js'),
+    // ★ `pct` 是**真代码**（EXT-033 的缓存版分位数）⇒ 抽出来用
+    //   （`noteDubEnded` 用它算 P50/P95 ⇒ 验的是真逻辑）
+    extractFunction(psrc, 'pct', 'player.js'),
     extractFunction(psrc, 'scheduleDub', 'player.js'),
   ].join('\n\n');
   vm.createContext(sandbox);
@@ -206,6 +241,17 @@ function makeSandbox(opts) {
   const m = /let\s+dubPlaybackEnd\s*=\s*[^;]+;/.exec(psrc);
   if (!m) throw new Error('player.js 里找不到 `let dubPlaybackEnd = ...` 声明');
   vm.runInContext(m[0], sandbox, { filename: PLAYER });
+  // ★★ EXT-034 ①：`dubStarted` 是 **const**（Map）⇒ 也抽出来注入
+  const ms = /const\s+dubStarted\s*=\s*new Map\(\)\s*;/.exec(psrc);
+  if (!ms) throw new Error('player.js 里找不到 `const dubStarted = new Map();` 声明');
+  vm.runInContext(ms[0], sandbox, { filename: PLAYER });
+  // ★★★★★ EXT-035：`dubReadyAt` 也是 **const**（Map）⇒ 同样注入
+  const mr = /const\s+dubReadyAt\s*=\s*new Map\(\)\s*;/.exec(psrc);
+  if (!mr) throw new Error('player.js 里找不到 `const dubReadyAt = new Map();` 声明');
+  vm.runInContext(mr[0], sandbox, { filename: PLAYER });
+  // ★ 把 `dubReadyAt` 暴露到沙箱上（供 C5 核对「就绪时刻」）
+  vm.runInContext('globalThis.__dubReadyAt = dubReadyAt;', sandbox,
+                  { filename: PLAYER });
   return sandbox;
 }
 
@@ -349,6 +395,168 @@ console.log('\n[C3] ★ 采样率错配会让时长按比例错（失真定位�
   check('★ C3c 兜底被计数',
     sb2.metrics.pcmRateAssumed === 1,
     `${sb2.metrics.pcmRateAssumed}`);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// C4：同步测量覆盖**全部**段 + onset 口径不被污染（EXT-034 ①）
+// ══════════════════════════════════════════════════════════════════
+//
+// ★ EXT-034 ① 的两个验收点：
+//   ① `dubSyncDetail` 段数 == TTS 段数（**不能**只覆盖 7/13）
+//      ⇒ 主口径由 `noteDubEnded()`（排程起点）负责，与 onset 无关；
+//   ② `dubSyncErrsOnset` 只能是**声学 onset 口径**
+//      ⇒ `noteDubEnded()` 推进的是**排程口径**的误差
+//        ⇒ 若它也推进 onset 序列 ⇒ 两个口径混在一起 ⇒ 口径污染。
+console.log('\n[C4] ★ 同步测量覆盖全部段；onset 口径不被排程口径污染');
+{
+  const sb = makeSandbox({ currentTime: 10.0, t0: 0, delaySec: 10 });
+  const { scheduleDub } = sb.__api;
+  const pcm1s24k = Buffer.alloc(96000).toString('base64');
+
+  // ── 排 3 段（模拟 TTS 产出 3 段）──
+  const ids = ['seg_0', 'seg_1', 'seg_2'];
+  for (let i = 0; i < ids.length; i++) {
+    scheduleDub({ id: ids[i], t_start: i * 5.0, pcm24k: pcm1s24k,
+                  sample_rate: 24000 });
+  }
+
+  // ★ 模拟「每段播完」⇒ 触发 `noteDubEnded`（真实现）
+  //   `src.onended` 由 `scheduleDub` 在 `src.start(when)` **之后**挂上
+  //   ⇒ 这里从 `rec.src.onended` 取。
+  const onendeds = sb.__scheduled.map((r) => r.src && r.src.onended)
+    .filter(Boolean);
+  check('★ C4a 每段都挂了 onended（否则永远落不了 detail）',
+    onendeds.length === ids.length, `onended=${onendeds.length}/${ids.length}`);
+
+  // ★ 触发 onended（推进沙箱时钟，模拟「播完」）
+  sb.__scheduled.forEach((rec) => {
+    const fn = rec.src && rec.src.onended;
+    if (typeof fn === 'function') {
+      sb.__audioCtx.currentTime = (rec.when || 0) + 1.0 + 0.02;
+      fn();
+    }
+  });
+
+  check('★ C4b dubSyncDetail 覆盖**全部**段（段数 == TTS 段数）',
+    sb.metrics.dubSyncDetail.length === ids.length,
+    `detail=${sb.metrics.dubSyncDetail.length}/${ids.length}`);
+  check('★ C4c detail 里的 id 与排的段一一对应',
+    sb.metrics.dubSyncDetail.map((d) => d.id).sort().join(',')
+      === ids.slice().sort().join(','),
+    sb.metrics.dubSyncDetail.map((d) => d.id).join(','));
+  check('★ C4d 主口径 dubSyncErrs 段数 == detail 段数',
+    sb.metrics.dubSyncErrs.length === sb.metrics.dubSyncDetail.length,
+    `errs=${sb.metrics.dubSyncErrs.length} detail=${sb.metrics.dubSyncDetail.length}`);
+  check('★ C4e 每条 detail 都带 startSource=\'sched\'（标明口径来源）',
+    sb.metrics.dubSyncDetail.every((d) => d.startSource === 'sched'),
+    JSON.stringify(sb.metrics.dubSyncDetail.map((d) => d.startSource)));
+
+  // ★★ 关键：`dubSyncErrsOnset` **不得**被 `noteDubEnded` 推进
+  //   （本沙箱**没有**触发任何 onset ⇒ onset 序列必须仍为空）
+  check('★★ C4f onset 口径序列**未被**排程口径污染（仍为空）',
+    sb.metrics.dubSyncErrsOnset.length === 0,
+    `onset=${sb.metrics.dubSyncErrsOnset.length} `
+    + `errs=${sb.metrics.dubSyncErrs.length}（两者本应不同源）`);
+
+  // ★ 反证：把 `noteDubEnded` 里的 onset 推进**加回来**⇒ C4f 必须 FAIL
+  if (!IS_CHILD) {
+    // 锚点：`noteDubEnded` 函数体末尾的 P50/P95 之后那几行
+    const broken = psrc.replace(
+      /(metrics\.dubSyncMin = metrics\.dubSyncErrs\.length[\s\S]{0,200}?:\s*null;)/,
+      '$1\n  metrics.dubSyncErrsOnset.push(signedErrMs);');
+    if (broken !== psrc) {
+      const tmp = path.join(os.tmpdir(),
+                            'ext028_broken_c4_player_' + Date.now() + '.js');
+      fs.writeFileSync(tmp, broken, 'utf8');
+      const r = cp.spawnSync(process.execPath, [__filename, tmp],
+        { encoding: 'utf8',
+          env: Object.assign({}, process.env, { EXT028_CHILD: '1' }) });
+      fs.unlinkSync(tmp);
+      const out = r.stdout || '';
+      check('★★★ C4g 加回污染后 C4f **必须 FAIL**',
+        out.includes('[FAIL] ★★ C4f'),
+        '改坏后的输出尾部：' + out.slice(-700));
+    } else {
+      check('★★★ C4g 加回污染后 C4f **必须 FAIL**', false,
+        '没找到 dubSyncMin 赋值（无法反证）');
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// C5：EXT-035「首段就绪→起播 < 0.5 s」的可核对口径
+// ══════════════════════════════════════════════════════════════════
+//
+// ★ EXT-035 验收项：「首段就绪→起播<0.5 s」
+//   ## 为什么需要新字段
+//     EXT-034 ③ 的根因分解有一项是「**就绪→起播**」
+//     （跨时钟域 t0 + 按序播放排队，实测 4.18~6.7 s）
+//     ⇒ 但之前**没有任何地方记录「就绪时刻」**
+//     ⇒ 这一项只能估算 ⇒ 归因不可核对。
+//   ## 口径（**同一个 AudioContext 时钟域** ⇒ 可直接相减）
+//     `readyAtAc`      = TTS 消息**到达 player** 的时刻
+//     `actual`         = 该段**实际起播**的时刻（`start(when)`）
+//     `readyToStartSec` = actual − readyAtAc
+//     ⇒ **不含** D、**不含**服务端起步耗时 ⇒ 纯 player 侧延迟
+console.log('\n[C5] ★ EXT-035：就绪→起播 是可核对的口径（同一时钟域）');
+{
+  const sb = makeSandbox({ currentTime: 10.0, t0: 0, delaySec: 10 });
+  const { scheduleDub } = sb.__api;
+  const pcm1s24k = Buffer.alloc(96000).toString('base64');
+
+  // ① TTS 到达时刻 = 10.0（沙箱 currentTime）
+  //    ⚠️ harness 直接调 `scheduleDub`（不经过 `handleBridgeMessage`）
+  //      ⇒ 「就绪时刻」要**显式**写进 `dubReadyAt`（与真代码同一条路径）
+  sb.__audioCtx.currentTime = 10.0;
+  sb.__dubReadyAt.set('seg_0', sb.__audioCtx.currentTime);
+  scheduleDub({ id: 'seg_0', t_start: 0, pcm24k: pcm1s24k,
+                sample_rate: 24000 });
+
+  // ★ 模拟「就绪 → 排程 → 起播」：
+  //   真代码里排程点 = `requested`（t0 + t_start + D）
+  //   这里 requested = t0(0) + t_start(0) + D(10) = 10.0
+  //   ⇒ 排程起点 `when` = 10.0 ⇒ 与就绪时刻**同刻** ⇒ 就绪→起播 = 0
+  const rec = sb.__scheduled[0];
+  check('★ C5a 排程起点已记录（when）',
+    rec && typeof rec.when === 'number', JSON.stringify(rec));
+  // ★ 就绪时刻写进了 dubReadyAt（按 id）
+  const readyAt = sb.__dubReadyAt ? sb.__dubReadyAt.get('seg_0') : undefined;
+  check('★ C5b 「就绪时刻」按 id 记进了 dubReadyAt',
+    readyAt === 10.0, `readyAt=${readyAt}`);
+
+  // ② 起播 ⇒ 触发 onended ⇒ detail 里应有 readyToStartSec
+  sb.__audioCtx.currentTime = rec.when + 1.0 + 0.02;
+  if (typeof rec.src.onended === 'function') rec.src.onended();
+  const d = sb.metrics.dubSyncDetail[0];
+  check('★ C5c detail 里有 readyAtAc（就绪时刻）',
+    d && d.readyAtAc === 10.0, JSON.stringify(d && d.readyAtAc));
+  check('★ C5d detail 里有 readyToStartSec（就绪→起播）',
+    d && typeof d.readyToStartSec === 'number',
+    JSON.stringify(d && d.readyToStartSec));
+  // ★ 口径核对：readyToStartSec == actual − readyAtAc
+  check('★ C5e 口径自洽：readyToStartSec == actual − readyAtAc',
+    d && Math.abs(d.readyToStartSec - (d.actual - d.readyAtAc)) < 1e-9,
+    `${d && d.readyToStartSec} vs ${d && (d.actual - d.readyAtAc)}`);
+
+  // ③ 「就绪→起播」**不含** D 与服务端起步
+  //    ⇒ 它应当只反映 player 侧排队 ⇒ 本例应**远小于** D（10 s）
+  //    ⇒ 判据用「< 0.5 s」（EXT-035 的验收阈值），不是「== 0」
+  //       （真实实现里排程点会有毫秒级偏移 ⇒ 不该要求严格为 0）
+  check('★ C5f 就绪→起播**不含** D 与服务端起步（远小于 D=10 s）',
+    d && d.readyToStartSec >= 0 && d.readyToStartSec < 0.5,
+    `readyToStartSec=${d && d.readyToStartSec}（应 <0.5 s 且 ≥0）`);
+
+  // ④ 取不到就绪时刻 ⇒ null（**不臆造**）
+  const sb2 = makeSandbox({ currentTime: 10.0, t0: 0, delaySec: 10 });
+  sb2.__api.scheduleDub({ id: 'seg_x', t_start: 0, pcm24k: pcm1s24k,
+                          sample_rate: 24000 });
+  const rec2 = sb2.__scheduled[0];
+  sb2.__audioCtx.currentTime = rec2.when + 1.0 + 0.02;
+  if (typeof rec2.src.onended === 'function') rec2.src.onended();
+  const d2 = sb2.metrics.dubSyncDetail[0];
+  check('★ C5g 取不到就绪时刻 ⇒ readyToStartSec = null（不臆造）',
+    d2 && d2.readyToStartSec === null,
+    JSON.stringify(d2 && d2.readyToStartSec));
 }
 
 const npass = RESULTS.filter((r) => r.ok).length;

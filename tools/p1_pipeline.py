@@ -594,11 +594,31 @@ def expected_segment_count(audio, sample_rate: int = 16000) -> int:
       ⇒ 白等兜底超时，且报告里的段数与实际不符 ⇒ 指标失真。
 
     （这是本轮实测抓到的缺陷 13，见 STATUS §5.8.2。）
+
+    ★★★★★ EXT-034 ④：**首段被拆成两段** ⇒ 段数 **+1**。
+      服务端 `Session._split_first_segment()` 会把会话的第一段
+      （若长于 `FIRST_SEGMENT_MAX_SEC`）拆成 `[0, cap]` + `[cap, 原切点]`
+      ⇒ **多吐一段**。
+      ⇒ 客户端这里必须**同样地拆**，否则 `expect_segments` 少 1
+      ⇒ 报告里的段数与实际不符 ⇒ 指标失真（reviewer EXT-034 ① 的同类问题）。
+      ⚠️ 拆分逻辑**与服务端共用同一个函数**
+        （`ext.segmenter.split_first_segment`）
+        ⇒ 口径**永远一致**，不会两边各写一份而漂移。
+
+    ★★★★★ 尾段判定必须看**拆分后**的最后一段：
+      首段拆分只影响**头部**（第 0 段被拆成两段），
+      尾部（最后一段）的长度**不受影响** ⇒
+      尾段判定与拆分前后一致 ⇒ 可直接沿用 `raw` 的尾段。
+      但**为免将来改动引入歧义**，这里一律以**拆分后**的列表判定。
     """
-    from ext.segmenter import plan_segments
+    from ext.segmenter import plan_segments, split_first_segment
+    from ext import config as C
     segs = plan_segments(audio)
     if not segs:
         return 0
+    # ★ EXT-034 ④：与服务端**同一个**拆分函数 ⇒ 口径一致
+    segs = split_first_segment(segs, cap_sec=C.FIRST_SEGMENT_MAX_SEC,
+                               min_sec=C.SEG_MIN_SEC, sample_rate=sample_rate)
     tail_len = (segs[-1][1] - segs[-1][0]) / float(sample_rate)
     if tail_len >= 1.0:
         return len(segs)

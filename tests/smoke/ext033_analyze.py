@@ -300,6 +300,148 @@ def source_is_english(src):
 # ══════════════════════════════════════════════════════════════════
 # 主流程
 # ══════════════════════════════════════════════════════════════════
+def _sync_coverage(detail, metrics, run_dir):
+    """★ EXT-034 ①：**同步测量覆盖率自证** + 缺失段归因。
+
+    ## 为什么要有这一节
+      reviewer EXT-034 ①：旧实现 `dubSyncDetail` 只覆盖 **7/13** 段
+      ⇒ 「同步误差 P50/P95」这个指标**只对一半的段有效**
+      ⇒ 不能当作**整体**结论（却曾被这样用过）。
+
+    ## 旧实现为什么缺段（双重根因，讲清楚）
+      ① **onset 配对被抢**：`PAIR_WINDOW_SEC = 0.25`
+         ⇒ onset 会被「最近的下一段排程」抢走
+         （实测 `dubOnsets` 里出现 50 ms 间隔的连续 onset
+          ⇒ 同一段被记成多条、另一段则**一条都没有**）；
+      ② **onset 未必触发**：TTS 中文开头常是辅音/静音
+         ⇒ 声学 onset **不出现** ⇒ 该段永远配不上。
+
+    ## 现在（EXT-034 ① 修复后）
+      主口径改成「**排程起点**」（`start(when)` 的采样精确值）
+      ⇒ **每个有 TTS 的段都必然进 detail** ⇒ 段数 == TTS 段数。
+
+    ## 本函数做什么
+      ① 拿「TTS 段数」与「detail 段数」对比 ⇒ 给出覆盖率；
+      ② 覆盖率不足时，**列出缺了哪些段**（用服务端 `margin.json` 的段全集
+         与 detail 的 id 集合求差）⇒ 「讲清缺的是哪几段」；
+      ③ 同时给出**可能的原因**（onset 未触发 / 配对被抢 / 该段没有 TTS）
+         —— 但**不臆造**：每条原因都附带可核对的证据字段。
+
+    Returns
+    -------
+    dict
+        覆盖率 + 缺失段清单 + 归因（含证据）。
+    """
+    detail = detail or []
+    detail_ids = {str(d.get("id")) for d in detail if d.get("id") is not None}
+
+    # ── TTS 段数（全集）──
+    #   优先用服务端 `margin.json` 的 per_segment（有 TTS 的段）
+    #   ⇒ 它是**服务端口径**的权威全集；
+    #   退而用 metrics 的 `dubDelivered`（= 下发到 player 的段数）。
+    all_ids = []
+    tts_total = None
+    source = None
+    margin_path = os.path.join(run_dir, "margin.json")
+    if os.path.isfile(margin_path):
+        try:
+            md = json.load(io.open(margin_path, encoding="utf-8"))
+            ps = md.get("per_segment") or []
+            with_tts = [m for m in ps
+                        if m.get("tts_sec") is not None
+                        and float(m.get("tts_sec") or 0) > 0]
+            if with_tts:
+                all_ids = [str(m.get("id") or m.get("seg_id")) for m in with_tts]
+                tts_total = len(with_tts)
+                source = "margin.json:per_segment(tts_sec>0)"
+        except Exception:
+            pass
+    if tts_total is None:
+        dv = metrics.get("dubDelivered")
+        if isinstance(dv, (int, float)):
+            tts_total = int(dv)
+            source = "metrics.json:dubDelivered"
+
+    # ★★★ id 命名空间对齐（**实测踩到的坑**）
+    #   服务端 `margin.json` 的段 id = `seg_<采样点>`（**无**会话前缀）
+    #   player `dubSyncDetail` 的 id = `seg_<会话前缀>_<采样点>`（**有**前缀）
+    #   ⇒ 直接求差会**把全部段都算成缺失**（实测：13 段全「缺」，
+    #     而真实只缺 6 段）⇒ 必须按**采样点后缀**对齐。
+    def _sfx(i: str) -> str:
+        """取 id 的采样点后缀（`seg_14425951_56000` → `56000`）。"""
+        s = str(i)
+        return s.rsplit("_", 1)[-1] if "_" in s else s
+
+    detail_by_sfx = {_sfx(i): i for i in detail_ids}
+    all_by_sfx = {_sfx(i): i for i in all_ids}
+
+    missing = [all_by_sfx[k] for k in all_by_sfx if k not in detail_by_sfx]
+    missing_detail_ids = [detail_by_sfx[k] for k in detail_by_sfx
+                          if k not in all_by_sfx]
+    coverage = (len(detail_by_sfx) / tts_total) if tts_total else None
+
+    # ── 归因（附证据，不臆造）──
+    reasons = []
+    if missing:
+        # 证据 1：onset 到底触发了几次、有没有连续/抢配
+        onsets = metrics.get("dubOnsets") or []
+        min_gap = None
+        for i in range(1, len(onsets)):
+            g = round(float(onsets[i]) - float(onsets[i - 1]), 4)
+            if min_gap is None or g < min_gap:
+                min_gap = g
+        reasons.append({
+            "cause": "onset 口径覆盖不足（旧实现的根因）",
+            "evidence": {
+                "n_onsets": len(onsets),
+                "min_onset_gap_sec": min_gap,
+                "pair_window_sec": 0.25,
+                "note": ("onset 数 < 段数 ⇒ 有段没触发声学 onset"
+                         "（TTS 开头是辅音/静音时**必然**如此）"),
+                "consecutive_onsets_within_pair_window": (
+                    min_gap is not None and min_gap < 0.25),
+            },
+        })
+        reasons.append({
+            "cause": "onset 配对被「最近的下一段排程」抢走",
+            "evidence": {
+                "pair_window_sec": 0.25,
+                "min_onset_gap_sec": min_gap,
+                "note": ("两段 onset 间隔 < PAIR_WINDOW ⇒ 后段的排程"
+                         "会抢走前段的 onset ⇒ 前段既没配上也拿不到"
+                         "自己的声学起点"),
+            },
+        })
+        reasons.append({
+            "cause": "这些段**根本没有 TTS 输出**（不是同步问题）",
+            "evidence": {
+                "missing_ids": missing,
+                "note": ("若某段在 margin.json 里 tts_sec=0，"
+                         "它本就不该有配音 ⇒ 不属于同步测量缺口"),
+            },
+        })
+
+    return {
+        "n_detail": len(detail_ids),
+        "n_detail_matched": len(detail_by_sfx),
+        "n_tts_segments": tts_total,
+        "tts_total_source": source,
+        "coverage": (round(coverage, 4) if coverage is not None else None),
+        "full_coverage": bool(coverage is not None and coverage >= 1.0),
+        "missing_ids": missing,
+        "missing_detail_ids": missing_detail_ids,
+        "n_missing": len(missing),
+        "id_alignment": ("按采样点后缀对齐（margin.json 的 id 无会话前缀，"
+                         "detail 的带会话前缀 ⇒ 直接求差会把全部段算成缺失）"),
+        "missing_reasons": reasons,
+        "basis": ("排程起点（start(when) 采样精确）⇒ 覆盖全部有 TTS 的段"
+                  if not missing else
+                  "★ 覆盖不足 ⇒ 上面的同步统计**只对已覆盖的段有效**"),
+        "ext034_note": ("EXT-034 ① 的验收口径："
+                        "dubSyncDetail 段数 == TTS 段数"),
+    }
+
+
 def analyze_run(run_dir: str):
     run_dir = os.path.abspath(run_dir)
     wav_path = os.path.join(run_dir, "dub_player.wav")
@@ -425,6 +567,23 @@ def analyze_run(run_dir: str):
         row["src_lang_note"] = why
         segs.append(row)
 
+    # ── ★★★★★ EXT-034 ①：**同步测量覆盖率自证** + 缺失归因 ──
+    #   reviewer EXT-034 ① 的批评：旧实现 `dubSyncDetail` 只覆盖 7/13 段
+    #   ⇒ 「同步误差」这个指标**只对一半的段有效** ⇒ 不能作为整体结论。
+    #   ## 为什么旧实现会缺段（双重根因）
+    #     ① onset 配对被「最近的下一段排程」抢走
+    #        （`PAIR_WINDOW_SEC=0.25`，实测 `dubOnsets` 里有 50 ms 间隔的
+    #         连续 onset ⇒ 一段被后一段抢配）
+    #     ② TTS 中文开头常是辅音/静音 ⇒ **onset 未必触发**
+    #   ⇒ 现在 player.js 的主口径改成「排程起点」（`start(when)` 采样精确）
+    #     ⇒ **每个有 TTS 的段都必然进 detail** ⇒ 段数 == TTS 段数。
+    #   ## 本节做什么
+    #     ① 拿 `metrics.dubDelivered`（= TTS 下发段数）与 detail 段数对比
+    #        ⇒ 覆盖率不足时**明确写出来**，不静默；
+    #     ② 缺段时**列出缺了哪些段**（用服务端 margin.json 的 seg 列表做全集）
+    #        ⇒ 「讲清这 6 段为什么缺」（reviewer 的原话）。
+    sync_coverage = _sync_coverage(detail, metrics, run_dir)
+
     # ── 汇总 ──
     aligned = [s for s in segs if s.get("aligned")]
     ratios = [s["dur_ratio_speed_adjusted"] for s in aligned
@@ -464,6 +623,7 @@ def analyze_run(run_dir: str):
                                   if abs(r - 1.0) <= DUR_RATIO_TOL),
         "dur_ratio_tol": DUR_RATIO_TOL,
         "src_all_english": all(s.get("src_is_english") for s in segs) if segs else None,
+        "sync_coverage": sync_coverage,
         "segments": segs,
     }
     return out
@@ -507,6 +667,36 @@ def render_md(d: dict) -> str:
              % (d["dur_ratio_speed_adjusted_min"],
                 d["dur_ratio_speed_adjusted_max"]))
     L.append("| 源语言全为英文 | %s | EXT-033 E |" % d["src_all_english"])
+    # ★★★★★ EXT-034 ①：同步测量覆盖率（**必须**在报告里显眼）
+    sc = d.get("sync_coverage") or {}
+    L.append("| **同步测量覆盖率** | %s / %s 段（%s） | "
+             "detail 段数 == TTS 段数 ⇒ %s |"
+             % (sc.get("n_detail"), sc.get("n_tts_segments"),
+                ("%.1f%%" % (sc["coverage"] * 100.0))
+                if sc.get("coverage") is not None else "—",
+                "✅" if sc.get("full_coverage") else "❌"))
+    L.append("")
+    L.append("## ★ EXT-034 ①：同步测量覆盖率")
+    L.append("")
+    L.append("- 口径：`%s`" % (sc.get("basis") or "—"))
+    L.append("- 全集来源：`%s`" % (sc.get("tts_total_source") or "—"))
+    L.append("- detail 段数 = **%s**；TTS 段数 = **%s**；缺失 = **%s**"
+             % (sc.get("n_detail"), sc.get("n_tts_segments"),
+                sc.get("n_missing")))
+    L.append("- 验收口径：%s" % (sc.get("ext034_note") or "—"))
+    if sc.get("missing_ids"):
+        L.append("")
+        L.append("### ⚠️ 缺失段清单与归因（讲清缺的是哪几段、为什么）")
+        L.append("")
+        for r in (sc.get("missing_reasons") or []):
+            L.append("- **%s**" % r.get("cause"))
+            ev = r.get("evidence") or {}
+            for k, v in ev.items():
+                if k == "note":
+                    continue
+                L.append("  - `%s` = %s" % (k, v))
+            if ev.get("note"):
+                L.append("  - 说明：%s" % ev["note"])
     L.append("")
     L.append("## 逐段明细")
     L.append("")

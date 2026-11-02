@@ -189,7 +189,16 @@ const metrics = {
   //                     根本量不出「早播」，口径是错的。
   //   `dubSyncDetail` —— {id, tStart, requested, actual, signedErrMs, lateMs}
   //   `dubSyncLateMs` —— 「迟到量」（单独列，**不代替** signedErrMs）
+  //
+  // ★★★★★ EXT-034 ①：主口径换成「**覆盖全部段**」的排程起点。
+  //   `dubSyncErrs`      —— **主口径**：每段**一条**（startSource='sched'）
+  //   `dubSyncErrsOnset` —— **onset 口径**（毫秒级，但可能缺段 ⇒ 只作补充）
+  //   `dubSyncDetail`    —— 每段一条，含 `startSource` 标明来源
+  //   ⚠️ 旧实现把 onset 的结果**直接**推进 `dubSyncErrs`/`dubSyncDetail`
+  //   ⇒ 段数取决于「onset 碰巧配没配上」（实测 13 段只进 7 段）
+  //   ⇒ P50/P95 只算了子集（EXT-034 ① 的真缺陷）。
   dubSyncErrs: [], dubSyncDetail: [], dubSyncLateMs: [],
+  dubSyncErrsOnset: [],
   dubSyncP50: null, dubSyncP95: null, dubSyncMax: null, dubSyncMin: null,
   // ★★★ EXT-033 D：时间轴原点的**口径**（必须能自证，不能默认）。
   //   `t0Axis`       —— 'audio_clock'（用音频时钟反推，正确）
@@ -864,6 +873,157 @@ const pendingSched = [];
 //   制造出 40+ ms 的假误差（实测双峰 0.02 / 43.02）。
 const PAIR_WINDOW_SEC = 0.25;
 
+// ★★★★★ EXT-034 ①：**每段配音的真实起播时刻**（不靠 onset 配对）。
+//
+// ## 为什么必须新增（reviewer EXT-034 ① 的真缺陷）
+//   旧实现**只**在 `onDubOnset()` 里记录「实际起播」：
+//     `signedErrMs = (at − requested) × 1000`
+//   而 `at` 来自 onset 检测器（AudioWorklet 的**幅度阈值**触发）。
+//   ⇒ 实测（run 20261102_121431）：13 段 TTS 只进了 **7** 段
+//     `dubSyncDetail`，缺 128000/200480/252640/483840/590400/711840。
+//   ⇒ 根因是**两重的**：
+//     (a) **onset 配对被抢**：`onDubOnset` 找的是「最近的排程」
+//         （`PAIR_WINDOW_SEC=0.25`）。但**下一段**的排程时刻可能离
+//         本段的实际起播更近 ⇒ 重复 onset（迟滞抖动、minGap=50 ms
+//         ⇒ 实测 dubOnsets 里出现 **50 ms 间隔的连续 onset**）
+//         会把本段的排程**抢走** ⇒ 本段永远配不上。
+//     (b) **onset 根本没触发**：TTS 是**中文语音**，开头常是
+//         辅音/静音 ⇒ 阈值 0.02 未必触发 ⇒ 该段没有任何 onset。
+//   ⇒ 于是 `dubSyncDetail` 变成「**碰巧配上的子集**」
+//     ⇒ P50/P95 只算了子集（reviewer 明文批评）。
+//
+// ## 现在的做法（**不依赖 onset**）
+//   ★ 每次 `scheduleDub()` 排程时，就**记下这一句将要播的起点**
+//     （`when` = 实际排程时刻，已含钳位与顺延）。
+//   ★ 再用 `AudioBufferSourceNode.onended` 拿**真实**结束时刻，
+//     反推「实际起播 = 结束时刻 − 缓冲时长」。
+//   ⇒ 每个**有 TTS 的段**都必然进 `dubSyncDetail`，
+//     段数 = TTS 段数（EXT-034 验收：「dubSyncDetail 段数等于 TTS 段数」）。
+//
+// ## 为什么 `onended` 是可靠的（以及口径的诚实说明）
+//   `onended` 只作为**「这句确实播完了」的触发器**（⇒ 每个有 TTS 的段
+//   都必然被记录一次 ⇒ 段数 = TTS 段数）。
+//   ★ 但 `actual` **不**用 `endedAt − dur` 反推：那样会把
+//     「onended 回调的主线程调度延迟」（实测 10–40 ms）
+//     **系统性地**当成同步误差 ⇒ 假偏差。
+//   ★ `actual` 取 **`when`（排程即播放起点）** —— 这是 Web Audio 的
+//     **语义精确值**：`AudioBufferSourceNode.start(when)` 在 `when`
+//     时刻**采样精确**地开始播放该缓冲 ⇒ `when` **就是**这段配音
+//     在 player AudioContext 时钟上的**真实起播时刻**。
+//     （钳位到过去时 `when = currentTime + 5 ms`；顺延时 `when = 上一句结束`
+//     —— 两种情况 `when` 同样就是真实起播时刻。）
+//   ★ 为了让这个口径**可自证**，同时记录 `endedAt`（实测的结束时刻）
+//     与 `endedLagMs`（= endedAt − (when + dur)）⇒ reviewer 可核对
+//     「反推的结束时刻与排程是否自洽」。
+//
+// ## 与 onset 口径的关系（**两个都留，不混算**）
+//   * `'sched'` —— 排程起点（**覆盖全部段**，EXT-034 验收要求）；
+//   * `'onset'` —— onset 检测的**声学**起点（毫秒级，但**可能缺段**，
+//     且会被下一个排程「抢走」⇒ EXT-034 ① 的真缺陷）。
+//   ⇒ `dubSyncDetail` 里两者用 `startSource` 区分；
+//     P50/P95 的**主口径**用 `'sched'`（全覆盖），
+//     onset 的毫秒级数据用 `dubSyncErrsOnset` 单列（不代替主口径）。
+//
+// ## 口径（**不变**，避免与旧数据不可比）
+//   `signedErrMs = 实际起播 − (t0 + t_start + D)`
+//   仍用**有符号**（早播为负、晚播为正）⇒ EXT-032 那种
+//   `max(0, …)` 恒为 0 的错口径**不会**回来。
+const dubStarted = new Map();   // id → {requested, when, dur, tStart, speed}
+// ★★★★★ EXT-035：段 id → 「就绪时刻」（AudioContext 时钟）
+//   TTS 消息**到达 player** 的时刻 ⇒ 与「起播时刻」同属一个时钟域
+//   ⇒ 相减即得纯 player 侧的「就绪→起播」延迟（EXT-035 验收项）。
+//   有界：与 dubStarted 同量级。
+const dubReadyAt = new Map();   // id → readyAtAc
+/** ★ 记录一句配音的**排程起点**（= 真实播放起点，语义精确）。 */
+function noteDubScheduled(id, requested, when, durSec, tStart, speed) {
+  if (!id) return;
+  dubStarted.set(String(id), {
+    requested: requested,
+    when: when,
+    dur: durSec,
+    tStart: tStart,
+    speed: speed,
+    endedAt: null,
+    // ★★★★★ EXT-035：这段的「**就绪时刻**」（AudioContext 时钟）
+    //   = TTS 消息到达 player 的时刻（**排程之前**取）
+    //   ⇒ `actual − readyAtAc` = 纯 player 侧「就绪→起播」延迟
+    //     （不含 D、不含服务端起步耗时）
+    //   ⚠️ 从 `dubReadyAt` 里取（按 id 配对）⇒ 取不到就是 null（不臆造）。
+    readyAtAc: (dubReadyAt.has(String(id)) ? dubReadyAt.get(String(id)) : null),
+    // ★ onset 检测的声学起点（**可选**：没有触发就是 null）
+    onsetActual: null,
+    onsetSignedErrMs: null,
+  });
+  // 有界：只留最近 200 句（与 dubSyncDetail 的上限一致）
+  while (dubStarted.size > 200) {
+    const first = dubStarted.keys().next().value;
+    dubStarted.delete(first);
+  }
+}
+
+/**
+ * ★ 某句配音**播完**了 ⇒ 落进 `dubSyncDetail`（覆盖**全部**有 TTS 的段）。
+ * @param {string} id        段 id
+ * @param {number} endedAt   onended 时刻（AudioContext 时钟）
+ */
+function noteDubEnded(id, endedAt) {
+  const rec = dubStarted.get(String(id));
+  if (!rec || rec.endedAt != null) return;
+  rec.endedAt = endedAt;
+  // ★ 真实起播 = **排程起点** `when`（Web Audio 的 `start(when)` 是
+  //   采样精确的 ⇒ `when` 就是这段配音的真实播放起点）。
+  //   ⚠️ **不**用 `endedAt − dur` 反推：那会把 onended 回调的
+  //     主线程调度延迟（实测 10–40 ms）系统性地当成同步误差。
+  const actual = rec.when;
+  const signedErrMs = (actual - rec.requested) * 1000;
+  metrics.dubSyncErrs.push(signedErrMs);
+  if (metrics.dubSyncErrs.length > 500) metrics.dubSyncErrs.shift();
+  metrics.dubSyncDetail.push({
+    id: String(id),
+    tStart: rec.tStart,
+    requested: rec.requested,
+    actual: actual,
+    signedErrMs: Math.round(signedErrMs * 100) / 100,
+    lateMs: Math.round(Math.max(0, signedErrMs) * 100) / 100,
+    speed: rec.speed,
+    // ★ 来源标明：'sched' = 排程起点（**覆盖全部段**，主口径）
+    //            'onset' = onset 检测（毫秒级，但**可能缺段**）
+    startSource: 'sched',
+    // ★ 排程起点（钳位/顺延后的**真正**排程时刻）
+    scheduledAt: rec.when,
+    // ★ 自证字段：实测结束时刻 vs 排程推算的结束时刻（差 = 回调延迟）
+    endedAt: endedAt,
+    endedLagMs: Math.round((endedAt - (rec.when + rec.dur)) * 1000 * 100) / 100,
+    // ★ onset 的声学起点（**可能为 null** = 该段没触发 onset）
+    //   ⇒ reviewer 可自行比较「排程起点 vs 声学起点」两个口径。
+    onsetActual: rec.onsetActual,
+    onsetSignedErrMs: rec.onsetSignedErrMs,
+    // ★★★★★ EXT-035：「**就绪→起播**」（纯 player 侧，同一 AudioContext 时钟域）
+    //   = `actual`（起播） − `readyAtAc`（TTS 消息到达 player）
+    //   ⇒ **不含** D、**不含**服务端起步耗时
+    //   ⚠️ 取不到就绪时刻就是 null（**不臆造**）
+    readyAtAc: rec.readyAtAc,
+    readyToStartSec: (rec.readyAtAc != null
+                       ? Math.round((actual - rec.readyAtAc) * 1000) / 1000
+                       : null),
+  });
+  if (metrics.dubSyncDetail.length > 200) metrics.dubSyncDetail.shift();
+  metrics.dubSyncLateMs.push(Math.max(0, signedErrMs));
+  if (metrics.dubSyncLateMs.length > 500) metrics.dubSyncLateMs.shift();
+  metrics.dubSyncP50 = pct(metrics.dubSyncErrs, 0.5);
+  metrics.dubSyncP95 = pct(metrics.dubSyncErrs, 0.95);
+  metrics.dubSyncMax = metrics.dubSyncErrs.length
+    ? Math.max(...metrics.dubSyncErrs) : null;
+  metrics.dubSyncMin = metrics.dubSyncErrs.length
+    ? Math.min(...metrics.dubSyncErrs) : null;
+  // ★★★ 注意：**不要**在这里推进 `dubSyncErrsOnset`。
+  //   `dubSyncErrsOnset` 是**声学 onset 口径**的序列，
+  //   只有 `onDubOnset()` 里真正配到 onset 的那段才会推进它（见 1064 行）。
+  //   若这里也推进（推进的是**排程口径**的 signedErrMs）
+  //   ⇒ 两个口径**混在同一个数组** ⇒ onset 统计被排程口径污染
+  //   ⇒ reviewer 无法单独核对「声学起点」这一个口径。
+}
+
 function onDubOnset(at) {
   if (!pendingSched.length) {
     metrics.dubOnsets.push(at);
@@ -912,30 +1072,29 @@ function onDubOnset(at) {
     //   ★ **有符号**：早播为负、晚播为正 ⇒ EXT-032 那种
     //     `max(0, TTS就绪 − 截止时刻)`（恒 ≥ 0）**量不出早播** ⇒ 口径错。
     //   ★ 「迟到量」另列（lateMs），**不代替** signedErrMs。
+    // ★★★★★ EXT-034 ① 修正：onset 口径**不再**直接进主统计。
+    //   旧实现：onset 一配到就把 signedErrMs 推进 `dubSyncErrs` /
+    //   `dubSyncDetail` ⇒ ① 段数取决于「onset 碰巧配没配上」
+    //   （实测 13 段只进 7 段）⇒ ② 同一段可能被**重复** onset
+    //   （minGap=50 ms，dubOnsets 里实测有 50 ms 间隔的连续 onset）
+    //   记成多条。
+    //   ⇒ 现在：onset 的声学起点**只**作为**补充字段**挂到该段上
+    //     （`onsetActual` / `onsetSignedErrMs`），
+    //     主统计由 `noteDubEnded()`（覆盖全部段）负责。
     const signedErrMs = (at - p.requested) * 1000;
-    metrics.dubSyncErrs.push(signedErrMs);
-    if (metrics.dubSyncErrs.length > 500) metrics.dubSyncErrs.shift();
-    metrics.dubSyncDetail.push({
-      id: p.id,
-      tStart: p.tStart,
-      requested: p.requested,
-      actual: at,
-      signedErrMs: Math.round(signedErrMs * 100) / 100,
-      lateMs: Math.round(Math.max(0, signedErrMs) * 100) / 100,
-      speed: p.speed,
-    });
-    if (metrics.dubSyncDetail.length > 200) metrics.dubSyncDetail.shift();
-    metrics.dubSyncLateMs.push(Math.max(0, signedErrMs));
-    if (metrics.dubSyncLateMs.length > 500) metrics.dubSyncLateMs.shift();
-    metrics.dubSyncP50 = pct(metrics.dubSyncErrs, 0.5);
-    metrics.dubSyncP95 = pct(metrics.dubSyncErrs, 0.95);
-    metrics.dubSyncMax = metrics.dubSyncErrs.length
-      ? Math.max(...metrics.dubSyncErrs) : null;
-    metrics.dubSyncMin = metrics.dubSyncErrs.length
-      ? Math.min(...metrics.dubSyncErrs) : null;
+    metrics.dubSyncErrsOnset.push(signedErrMs);
+    if (metrics.dubSyncErrsOnset.length > 500) metrics.dubSyncErrsOnset.shift();
+    // ★ 把 onset 的声学起点**补记**到该段的排程记录上
+    //   ⇒ 等 `onended` 落 `dubSyncDetail` 时一并带出（可自证两者差多少）。
+    const rec = dubStarted.get(String(p.id));
+    if (rec && rec.onsetActual == null) {
+      rec.onsetActual = at;
+      rec.onsetSignedErrMs = Math.round(signedErrMs * 100) / 100;
+    }
     report({ kind: 'dub_sync', id: p.id, tStart: p.tStart,
              requested: p.requested, actual: at,
-             signedErrMs: Math.round(signedErrMs * 100) / 100 });
+             signedErrMs: Math.round(signedErrMs * 100) / 100,
+             startSource: 'onset' });
     return;
   }
 
@@ -1165,6 +1324,23 @@ function scheduleDub(msg) {
     tgt: (msg.tgt == null ? null : String(msg.tgt)),
     matched: false, probe: isProbe,
   });
+  // ★★★★★ EXT-034 ①：**每段配音都要能算���同步误差**（不靠 onset 配对）。
+  //   记下排程起点 ⇒ 等 `onended` 回调反推**真实起播**。
+  //   ⚠️ probe（自测探针）**不记** —— probe 不是真实配音，
+  //     混进来会污染 EXT-033 D 的口径（EXT-024 P0③ 已有同样要求）。
+  if (!isProbe) {
+    noteDubScheduled(msg.id, planned, when, buf.duration,
+                     Number(msg.t_start || 0), Number(msg.speed || 1.0));
+    // ★ `onended` 在缓冲播完时触发（AudioContext 时钟）⇒ 反推起播。
+    //   ⚠️ `when` 可能被钳位到过去（schedClamped）⇒ 真实起播会晚于 `when`，
+    //     `onended` 反推**自动**把这个滞后算进去（actual = ended − dur）。
+    src.onended = () => {
+      const at = audioCtx ? audioCtx.currentTime : 0;
+      noteDubEnded(msg.id, at);
+      report({ kind: 'dub_ended', id: msg.id, endedAt: at,
+               startSource: 'ended' });
+    };
+  }
   scheduleSub(msg, when);
   return { planned: when, requested: planned };
 }
@@ -2151,6 +2327,35 @@ function handleBridgeMessage(m) {
     if (kind === 'tts') {
       metrics.link.dubDelivered++;
       metrics.link.lastTtsAt = performance.now();
+      // ★★★★★ EXT-035 验收项：「**首段就绪→起播 < 0.5 s**」。
+      //   ## 为什么需要这个字段
+      //     EXT-034 ③ 的根因分解里有一项是「**就绪→起播**」：
+      //       跨时钟域 t0 换算 + 按序播放排队（实测 4.18~6.7 s）
+      //     ⇒ 但**之前没有任何地方记录「就绪时刻」**
+      //       ⇒ 这一项只能估算 ⇒ 归因不可核对。
+      //   ## 口径（**同一个时钟域** ⇒ 可直接相减）
+      //     `readyAtAc` = TTS 消息**到达 player** 时的 AudioContext 时刻
+      //     `actual`    = 该段**实际起播**的 AudioContext 时刻（`start(when)`）
+      //     ⇒ `readyToStartSec = actual − readyAtAc`
+      //     ⇒ **不含** D、**不含**服务端起步耗时 ⇒ 就是纯 player 侧延迟
+      //   ⚠️ 必须在**排程之前**取（`scheduleDub` 之前）
+      //     ⇒ 否则把「排程等待」也算进去 ⇒ 口径混淆。
+      if (audioCtx) {
+        try {
+          metrics.dubReadyAtAc = audioCtx.currentTime;
+          metrics.dubReadyAtAcId = String(m.id || '');
+          // ★ 按 id 记「就绪时刻」⇒ 排程时由 `noteDubScheduled` 取用
+          const rid = String(m.id || '');
+          if (rid) {
+            dubReadyAt.set(rid, audioCtx.currentTime);
+            // 有界：只留最近 200 句
+            while (dubReadyAt.size > 200) {
+              const fk = dubReadyAt.keys().next().value;
+              dubReadyAt.delete(fk);
+            }
+          }
+        } catch (e) { /* ignore */ }
+      }
     }
     const r = scheduleDub(m);
     report({ kind: 'dub', id: m.id, t_start: m.t_start, t_end: m.t_end,
@@ -2522,11 +2727,23 @@ window.__ext = {
     t0Offset16: metrics.t0Offset16,
     t0UpSec: metrics.t0UpSec,
     t0UpPlayerOffsetSec: metrics.t0UpPlayerOffsetSec,
+    t0UpPlayerOffsetSpreadSec: metrics.t0UpPlayerOffsetSpreadSec,
     errs: metrics.dubSyncErrs.slice(),
+    // ★ onset 口径（**补充**，不代替主口径）
+    errsOnset: metrics.dubSyncErrsOnset.slice(),
     detail: metrics.dubSyncDetail.slice(),
     p50: metrics.dubSyncP50, p95: metrics.dubSyncP95,
     max: metrics.dubSyncMax, min: metrics.dubSyncMin,
     lateMs: metrics.dubSyncLateMs.slice(),
+    // ★★ EXT-034 ①：口径说明 + 覆盖率
+    //   （reviewer 验收要「dubSyncDetail 段数 == TTS 段数」）
+    basis: 'sched_start_vs_requested',
+    basisNote: ('主口径 = 排程起点(actual) − (t0+t_start+D)；'
+                + '实际起播取 AudioBufferSourceNode.start(when) 的 when'
+                + '（Web Audio 采样精确）⇒ 覆盖全部有 TTS 的段。'
+                + 'onset 口径见 errsOnset / detail[].onsetSignedErrMs。'),
+    nScheduled: metrics.dubSyncDetail.length,
+    nOnset: metrics.dubSyncErrsOnset.length,
   }),
   getAudioTime: () => (audioCtx ? audioCtx.currentTime : 0),
   getT0: () => t0,

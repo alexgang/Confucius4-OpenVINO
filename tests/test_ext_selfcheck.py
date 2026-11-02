@@ -773,6 +773,128 @@ def test_orchestrator_single_instance_guard() -> None:
             pass
 
 
+def test_ext034_rtf_breakdown_and_delay_requirement() -> None:
+    """★ EXT-034 ②④：**RTF 三口径分列** + **所需 D 估算**（新行为自测）。
+
+    ## EXT-034 ② 的批评（旧结论口径错）
+      旧结论写「TTS RTF = 1.231 > 1 ⇒ 结构上不可能实时」。
+      但 **1.231 不是 TTS 自身的 RTF**：
+        `1.231 = TTS 耗时 73.84 s ÷ 源音频时长 59.98 s`
+      其中**混进了「中文译文比英文原声长」**（1.196 倍）
+      ⇒ 用它判「TTS 引擎慢」是**口径错** ⇒ 归因会错。
+
+    ## 三个口径（各自含义明确）
+      | `RTF_out`         | `Σtts_sec ÷ Σspeech_sec`      | **TTS 自身**的 RTF ⇒ 引擎快不快 |
+      | `speech_over_src` | `Σspeech_sec ÷ Σsrc_sec`       | 译文比原声长多少（与快慢无关）|
+      | `tts_over_src`    | `Σtts_sec ÷ Σsrc_sec`          | 端到端占用率（旧口径 1.231）|
+
+    ## EXT-034 ④：需要多大的 D
+      ASR 是**整段到齐才定稿** ⇒ 起步耗时 ≈ 首段长度 + ASR + MT + TTS
+      ⇒ D 必须覆盖「起步」+「稳态排队」+「安全余量」。
+
+    ## 本条断言（合成数据 ⇒ 期望值**可手算验证**）
+      ① 三口径的**定义**正确（用刻意构造的数据算出精确值）；
+      ② 三口径**互不相同**（防「其实返回同一个数」的假实现）；
+      ③ `tts_over_src == RTF_out × speech_over_src`（三者自洽）；
+      ④ D 估算：起步 + 稳态 + 安全 ⇒ 精确等于期望值；
+      ⑤ D 足够时 `D_sufficient=True`，不足时为 False 且 gap 为负；
+      ⑥ **反向断言（区分力）**：故意让 RTF 引擎变快 10%
+         ⇒ `RTF_out` 必须下降而 `speech_over_src` **不变**
+         （证明两个口径真的**分开**算了，不是同一个数换名字）。
+    """
+    print("\n[EXT] EXT-034 ②④ — RTF 三口径分列 + 所需 D 估算")
+    from ext.bridge import compute_rtf_breakdown, estimate_required_delay
+
+    # ── 合成 3 段：每段 src=10 s、speech=12 s、tts=6 s、proc=8 s
+    #    ⚠️ `src_sec` 由 `t_start`/`t_end` **推算**（不是直接读字段）
+    #      ⇒ 合成数据必须带这两个字段，否则 `speech_over_src` 会是 None。
+    #    ⇒ Σsrc=30、Σspeech=36、Σtts=18
+    #    ⇒ RTF_out = 18/36 = 0.5
+    #    ⇒ speech_over_src = 36/30 = 1.2
+    #    ⇒ tts_over_src = 18/30 = 0.6
+    #    ⇒ 校验 0.5 × 1.2 = 0.6 ✓（三者自洽）
+    def _mk(n=3, src=10.0, speech=12.0, tts=6.0, asr=3.0, mt=1.0):
+        out = []
+        for i in range(n):
+            t0 = i * src
+            out.append({
+                "seg_id": "seg_%d" % i,
+                "id": "seg_%d" % i,
+                "t_start": t0, "t_end": t0 + src,
+                "speech_sec": speech, "tts_sec": tts,
+                "asr_sec": asr, "mt_sec": mt,
+                "proc_sec": asr + mt + tts,
+            })
+        return out
+
+    m = _mk()
+    rb = compute_rtf_breakdown(m)
+    check("★ ② RTF_out = Σtts/Σspeech（可手算）",
+          abs(rb["RTF_out"] - 0.5) < 1e-9, f"{rb['RTF_out']} ≠ 0.5")
+    check("★ ② speech_over_src = Σspeech/Σsrc（可手算）",
+          abs(rb["speech_over_src"] - 1.2) < 1e-9,
+          f"{rb['speech_over_src']} ≠ 1.2")
+    check("★ ② tts_over_src = Σtts/Σsrc（可手算）",
+          abs(rb["tts_over_src"] - 0.6) < 1e-9, f"{rb['tts_over_src']} ≠ 0.6")
+    check("★ ② 三口径互不相同（防「其实返回同一个数」）",
+          len({round(rb["RTF_out"], 9), round(rb["speech_over_src"], 9),
+               round(rb["tts_over_src"], 9)}) == 3,
+          json.dumps({k: rb[k] for k in ("RTF_out", "speech_over_src",
+                                         "tts_over_src")}, ensure_ascii=False))
+    check("★ ② 三口径自洽：tts_over_src == RTF_out × speech_over_src",
+          abs(rb["tts_over_src"]
+              - rb["RTF_out"] * rb["speech_over_src"]) < 1e-9,
+          f"{rb['tts_over_src']} vs "
+          f"{rb['RTF_out'] * rb['speech_over_src']}")
+    check("★ ② 逐段也给了三口径（per_segment）",
+          len(rb.get("per_segment") or []) == len(m)
+          and all("rtf_out" in x and "speech_over_src" in x
+                  and "tts_over_src" in x for x in rb["per_segment"]),
+          f"{len(rb.get('per_segment') or [])} 条")
+    check("★ ② 口径定义写进了 definitions（reviewer 可核对）",
+          isinstance(rb.get("definitions"), dict)
+          and len(rb["definitions"]) >= 3,
+          str(list((rb.get("definitions") or {}).keys()))[:160])
+
+    # ── ④ D 估算 ──
+    #   起步 = 首段长度(10) + 首段 ASR(3) + MT(1) + TTS(6) = 20
+    #   稳态 = 段均 proc(8) − 段均 src(10) = −2 ⇒ 取 0
+    #   安全 = 4.0
+    #   ⇒ D_required = 20 + 0 + 4 = 24
+    dr = estimate_required_delay(m, delay_sec=10.0)
+    check("★ ④ 起步耗时 = 首段长度 + ASR + MT + TTS（可手算）",
+          abs(dr["startup_sec"] - 20.0) < 1e-9, f"{dr['startup_sec']} ≠ 20")
+    check("★ ④ 稳态项为负时取 0（不给出负的缓冲要求）",
+          dr["steady_sec"] == 0.0, f"steady={dr['steady_sec']}")
+    check("★ ④ D_required = 起步 + 稳态 + 安全（可手算）",
+          abs(dr["D_required_sec"] - 24.0) < 1e-9,
+          f"{dr['D_required_sec']} ≠ 24")
+    check("★ ④ 当前 D 不足 ⇒ D_sufficient=False 且 gap 为负",
+          dr["D_sufficient"] is False and dr["gap_sec"] < 0,
+          f"sufficient={dr['D_sufficient']} gap={dr['gap_sec']}")
+    check("★ ④ D 足够 ⇒ D_sufficient=True 且 gap ≥ 0",
+          estimate_required_delay(m, delay_sec=30.0)["D_sufficient"] is True,
+          "D=30 应足够")
+    check("★ ④ D 估算里带上了三口径（便于交叉核对）",
+          "rtf_out" in dr and "speech_over_src" in dr
+          and "tts_over_src" in dr,
+          str([k for k in dr if "over_src" in k or k == "rtf_out"]))
+
+    # ── ⑥ 反向断言（区分力）──
+    #   让 TTS 快 10%：tts 6 → 5.4 ⇒ RTF_out = 16.2/36 = 0.45
+    #   ⇒ speech_over_src **不变**（仍 1.2）⇒ 两个口径真的分开算
+    m_fast = _mk(tts=5.4)
+    rb2 = compute_rtf_breakdown(m_fast)
+    check("★ ②⑥ 区分力：TTS 变快 ⇒ RTF_out 下降",
+          abs(rb2["RTF_out"] - 0.45) < 1e-9, f"{rb2['RTF_out']} ≠ 0.45")
+    check("★ ②⑥ 区分力：TTS 变快 ⇒ speech_over_src **不变**",
+          abs(rb2["speech_over_src"] - rb["speech_over_src"]) < 1e-12,
+          f"{rb2['speech_over_src']} vs {rb['speech_over_src']}")
+    check("★ ②⑥ 区分力：TTS 变快 ⇒ tts_over_src 下降",
+          rb2["tts_over_src"] < rb["tts_over_src"],
+          f"{rb2['tts_over_src']} < {rb['tts_over_src']}")
+
+
 def main() -> int:
     print("=" * 68)
     print("EXT 模块自测（不跑推理 / 不占 GPU·NPU / 不抢共享锁）")
@@ -780,7 +902,8 @@ def main() -> int:
     for fn in (test_segmentation, test_duration_fit, test_wsola,
                test_speaker_bypass, test_bridge_session,
                test_ext005_ext006_behaviors, test_ext006_p1_closeout,
-               test_orchestrator_single_instance_guard):
+               test_orchestrator_single_instance_guard,
+               test_ext034_rtf_breakdown_and_delay_requirement):
         try:
             fn()
         except Exception:

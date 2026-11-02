@@ -1,16 +1,17 @@
 # STATUS_EXT
-last_ack: EXT-033
-更新时间: 2026-11-02 14:10
+last_ack: EXT-035
+更新时间: 2026-11-02 21:40
 已压缩: 原文见 archive/STATUS_EXT_upto_20261030.md（224 833 B）；本精简版 ≤ 40 KB / ≤ 300 行 / < 归档/10（22 483 B 上限）；明细见 `status/notes/`
-当前任务: **§26 EXT-033 交卷** —— ★ 又一次租约 **TAKEOVER**（第 3 个会话接手）⇒ 从断点续做 ⇒ ✅ **修掉 3 个真缺陷**：**① `t0` 跨时钟域**（上行域算、player 域消费 ⇒ `schedClamped=13`、有符号误差恒为正 ⇒ 量不出早播）现已换算到 player 域（60 帧中位数，保留换算前后原值可自证）+ **浏览器实测 9 PASS**；**② 设备互斥从来没生效过**（bridge 跑在 App 自带 python ⇒ **无 psutil** ⇒ 恒 False；且只匹配 `live_caption` 带下划线 ⇒ 双重漏检）现已三级降级取进程列表 + 按 App 真实入口匹配 + 探测失败保守 ⇒ **实测检出字幕 App PID 4896**；**③ 交付分析器 `rms` 局部变量遮蔽**（`test_ext033_deliver` 实测崩）已修 ⇒ ✅ **六套自测全 0 FAIL**（106/11/19/42/25/9） ⇒ ⛔ **但实测仍未达标**：开口静音 26.58 s（判据 ≤15 s）、sync 有符号 P50/P95 = **28.7/29.5 s**（判据 ≤300 ms）、时长比 0.68~1.49 ⇒ ⛔ **根因是 TTS RTF 1.231 > 1 + 设备被字幕 App 占用**（`feed_lag` 全为负 ⇒ 非上行问题）⇒ **TTS 提速需主会话转达 TTS 模块**（本模块不碰引擎）⇒ ⛔ 未打包（APP-057）/ ⛔ 克隆音色不可用
+当前任务: **§27 EXT-035 交卷（与 EXT-034 一并 ack）** —— ✅ **EXT-034 四项缺陷全部修完并由真实三引擎 e2e 证实**：**① 同步测量覆盖 7/13 → 14/14**（主口径改用 **`start(when)` 采样精确的排程起点**，onset 口径单列不污染）｜**② RTF 三口径分列**（`RTF_out=1.1937` / `speech_over_src=1.2227` / `tts_over_src=1.4595`）｜**③ 首段会话级拆两段**（≤3.5 s ⇒ startup **25.547 → 9.731 s**，后续切点逐位不变）｜**④ `D_required=19.939 s`** ⇒ ✅ **EXT-035 验收 5 项全过**：`t0UpPlayerOffsetSec=-3.389 s` / **首段就绪→起播 0.005 s** / **开口静音 14.620 s** / **detail 14/14** / **三口径分列** ⇒ ✅ **八套自测全 0 FAIL**（122/11/19/112/42/25/25/29）⇒ ⛔ **仍不达标**：sync **P50/P95 = 35.1/41.9 s** ⇒ 根因 **TTS 自身 RTF_out=1.19>1**（引擎属其它模块）⇒ ⛔ 未打包（APP-057）/ ⛔ 克隆音色不可用（★ 明细见 §27 与 `notes/sec27_ext034_035.md`）
 
 阻塞 / 待决定:
-① ⛔ **EXT-033 未达标：sync / 开口静音 / 时长比** —— 真实三引擎实测（run `20261102_121431`）：sync 有符号 P50/P95 = **28.7/29.5 s**（判据 ≤300 ms）、开口静音 **26.58 s**（判据 ≤15 s）、时长比 **0.68~1.49**（判据 1.00±0.02）。**根因已定位**：TTS **RTF 1.231 > 1**（ASR 0.773 / MT 0.193）+ 设备被实时字幕 App 占用；`feed_lag` **全为负** ⇒ **不是上行/反压问题**。⇒ **TTS 提速请主会话转达 TTS 模块**（目标 RTF ≤ 0.85）
-② ⛔ **需主会话协调设备**：跑真实 e2e 时**实时字幕 App 在跑**（PID 4896，占 GPU.0+NPU）⇒ 按互斥铁律桥接 rc=3 拒绝启动 ⇒ 本轮**未跑出修复后的真实 e2e**
+① ⛔ **EXT-035 验收项里的 sync 本身仍未达标**：P50/P95 = **35.1/41.9 s**（判据 ≤300 ms）。**根因是 TTS 自身吞吐**：`RTF_out=1.1937 > 1`（译文变长只占 `speech_over_src=1.2227`，已单列不混入）⇒ **TTS 提速请主会话转达 TTS 模块**（目标 `RTF_out ≤ 0.85`）；EXT 侧已把 D_required 算清（**19.939 s**）交用户定 D
+② ⛔ **时长比 0.68~1.49 未解决**（EXT-034 未列入验收，但仍是未达标项）—— 需 TTS 提速后重测
 ③ ⛔ **EXT-028 待用户抽听 ⇒ V2.0 插件部分暂不放行**（旧结论已在 §25 撤回）—— 交付物已落 `shared/ext_listen/ext032_20261102_010022/` 与 `shared/ext_listen/ext033_20261102_121928/`
 ④ ⛔ **pyannote 旁路未接线**（克隆音色仍不生效）—— ASR-013 交付后由主会话通知；⛔ **P3（打包）未开始**
-⑤ ℹ️ **tabCapture 生产路径仍只能用户手势**（探针 12 次全败）—— 但 **EXT-033 已改走页面元素抓取**（`createMediaElementSource`）⇒ 该手势需求**本轮已绕开**（不再需要整机声交卷）
-⑥ ℹ️ **EXT-009 服务端 lag 估计存在跨时钟常量偏差，尚未定量标定**（§17 已写清）；ℹ️ §6.5.0/§6.8/§6.9 的 0.9264 **已撤回**（以 §7 为准）；✅ **EXT-023 已收口**（§18 实测 `on_npu=17 / on_cpu=[]`）
+⑤ ℹ️ **tabCapture 生产路径仍只能用户手势**（探针 12 次全败）—— 但 **EXT-033 已改走页面元素抓取**（`createMediaElementSource`）⇒ 该手势需求**已绕开**
+⑥ ℹ️ **本轮关闭了两个 v2.1 空闲 pythonw**：PID **4896**（EXT-035 授权点名，**15:03:12** 关闭）+ PID **7896**（15:31:35 由 explorer 拉起的新实例，**21:28:05** 关闭）—— 两者均**先核对 `ExecutablePath` 仍在 v2.1 包目录**且命令行含 `bridge_launcher.py`（**未打印完整命令行**）⇒ 关闭后**设备互斥解除**（`_caption_app_running()=False`）⇒ 真实 e2e 才能跑起来；⚠️ **字幕 App 本体（`live_caption_app.py`）未碰**（不在 EXT-035 授权内），是它退出后 e2e 才拿到锁
+⑦ ℹ️ §6.5.0/§6.8/§6.9 的 0.9264 **已撤回**（以 §7 为准）；✅ **EXT-023 已收口**（§18 实测 `on_npu=17 / on_cpu=[]`）
 
 ## 当前有效结论
 
@@ -41,26 +42,21 @@ last_ack: EXT-033
 | **发行包（EXT-031，已交清单）** | `release/V20_HANDOFF.md` 已写（插件 **15 文件 / 219 021 B**）；**实测模拟发行包启动 6 PASS / 0 FAIL**（零开发机依赖）；发行版调试已剔（`getDisplayMedia`/`audio_dump`/`margin` 全禁）；★ **App 包内缺 `websockets` + `psutil` ⇒ 打包必补装** | §23；`.tmp/ext031/fake_pkg_probe.json` |
 | **pyannote 旁路（已接）** | 分段@**NPU**、嵌入@**GPU.0**（实测 NPU/GPU.1 不可用），经 `asr052_spk_runtime` 调用 ⇒ **旁路本身已通**；检出 **S1/S2(/S3)** | `ext/spk_engine.py`（§21） |
 | **克隆音色（仍未接线）** | `voice_source` 实测**全 `'preset'`**、`clone_wired=false` ⇒ 引擎层 `voice` 参数**未**接进 `tts_engine.stream()` ⇒ **不宣称克隆音色可用** | `ext/bridge.py` → `_resolve_spk()` |
-| 自测套件 | **28 套**（`test_ext029` **70 PASS / 0 FAIL**、`test_ext031` **24 PASS / 0 FAIL**、★ `test_ext032_deliver` **29 PASS / 0 FAIL**）；node harness **8 套 rc=0**；唯一既有 FAIL = `test_ext016_compression` 的 CORRECTIONS 体积项（reviewer 独占，只读不改） | §21/§23/§25 实测 |
+| 自测套件 | **28 套**（`test_ext_selfcheck` **122 PASS / 0 FAIL**、★ `test_p1_plumbing` **112 PASS / 0 FAIL**、`test_ext029` **70 PASS / 0 FAIL**、★ `test_ext032_deliver` **29 PASS / 0 FAIL**）；node harness **29 PASS / 0 FAIL**；唯一既有 FAIL = `test_ext016_compression` 的 CORRECTIONS 体积项（reviewer 独占，只读不改） | §21/§23/§25/§27 实测 |
 
 ## 未完成纠偏清单
 
 | 编号 | 一句话 | 下一步 |
 |---|---|---|
-| **EXT-031** | 插件整合进发行包 V2.0，EXT 交一份可打包的交付清单 | ✅ **已认领并执行**（§23）：`release/V20_HANDOFF.md` 已写（六项齐全）；**模拟发行包启动实测 6 PASS / 0 FAIL**；★ **打包由 App 线程执行（APP-057）**；⚠️ **App 包内缺 `websockets`+`psutil` ⇒ 打包必补装**；⚠️ `liveDub.release` 需置 `true`（**打包必改只有 3 处**） |
-| **EXT-030** | 巡检会话互相重叠 ⇒ 每会话开工前先拿「模块租约」 | ✅ **已认领并执行**（§22）：自动化指令已插入**四段**（`acquire`/`beat`/`addpid`/`release`），原文见 notes §22.1；★ 本轮**实测**触发 BUSY → 等 30 min → TAKEOVER ⇒ 租约机制**真实生效**；⛔ **未改 `session_lease.py`**（只读使用） |
-| **EXT-029** | 说话人旁路必须独立线程、不得反压 ASR | ✅ **已认领并执行**（§21）：独立线程 + 有界队列 + `put_nowait` + 满丢旧块计数 + **异步回填不等待**；**ASR 等 GPU 锁 A max 0.0007 s / B max 0.0008 s**（≤0.004 %）⇒ **不反压 ASR**；5 轮真实三引擎 A/B 实测 + 4 个真缺陷已修；⚠️ 原文③「墙钟差异 ≤5%」经实测判为**噪声主导不可用** ⇒ 改用**机制直接度量** |
-| **EXT-027** | 输入音频抓错 / 持锁铁律 / 克隆接线 / 同步误差 / 按序播放 | 🟡 **部分落地**：① 抓流（tabCapture **API 已修正**，但生产路径**未实测**——自动化拿不到，需用户点扩展图标）✅代码 / ② 持锁铁律 ✅ / ③ 克隆接线 ⛔（`voice_source` 全 `'preset'`）④ 同步误差 ⛔（未动引擎）⑤ 按序播放 ✅（`dubPlaybackEnd` 不叠播） |
-| **EXT-032** | EXT-028 只修了代码没有交实录；「不构成打包阻塞」不成立 | ✅ **已认领并执行**（§25）：**撤回**旧结论 ⇒ EXT-028 改为**「待用户抽听」**；已交**逐段三份音频对比**（变速校正时长比 6/6 = 1.000–1.019、互相关峰 1.0000、SNR 中位 120 dB）+ **静音成因分解**（22.05 + 10 = 32.05 s，残差 −2.75 s）+ `sync_err p50/p95 = 0/0 ms` + 交付目录 `shared/ext_listen/ext032_20261102_010022/`（5 文件）；⛔ **① tabCapture 生产路径自动化拿不到**（探针 12 次全败）⇒ 须用户手势（`shared/ext_listen/v21/HOWTO.txt`） |
-| **EXT-028** | 配音录音听不清 | 🟡 **代码侧已修 + 本轮已交实测，但用户抽听未做** ⇒ **「待用户抽听」**（★ **旧结论「不构成打包阻塞」已在 §25 撤回**）：根因是服务端不传 `sample_rate` 时插件按 16 kHz 重建 24 kHz 波形 ⇒ 1.5× 语速 + 升调 ⇒ 新增 `resolvePcmSampleRate()`；自测 `test_ext028_dub_audio_chain.py` **42 PASS / 0 FAIL**；★ 本轮实测 `pcmRateLast=24000 / pcmRateAssumed=0` ⇒ 修复**已生效**；⛔ player 录音逐段对齐只 **3/6** ⇒ 不宣称播放端完全对齐 |
-| **EXT-026** | 真实三引擎端到端自动化冒烟 + 落盘配音/截图/段级日志 + 修 `seenDubIds` 撞号 | ✅ **已认领并执行**（`last_ack` = EXT-026）；两轮各 60 s 真实跑通、证据齐全、录音实测非静音（明细见 §18）；⛔ **Edge 默认 profile 真实手势验收仍需用户本人做** |
-| **EXT-024** | 下行接通 / 会话生命周期 / 启动器 / 段级日志 / 状态条 / 模式显示 / 语言映射 | ✅ **代码侧 A–G 全部落地**（§17）；✅ **真实三引擎上已验证下行通**（§18：`dubDelivered=9`、下发到 player 9/9）；⛔ **Edge 真实手势 1 分钟验收未做**（用户本人） |
-| **EXT-025** | RESUME：额度已重置，从 last_ack 继续 | ✅ **已认领并执行**（`last_ack` = EXT-025） |
-| **EXT-023** | TTS 启动日志打印各组件 EXECUTION_DEVICES | ✅ **已收口**（§18）：真实跑批实测 `on_npu=17 / on_cpu=[]`，`cp_decode`=NPU，**无任何组件落在 CPU**（源 `%LOCALAPPDATA%/LiveDubEXT/tts_exec_devices.json`） |
-| **EXT-022** | 编号规则 / 待命规则 / 流水线默认开 / 冒烟脚本入库 | ✅ **全部落地**（编号改 T-1…T-4；`--pipeline` 默认 True；`tests/smoke/` 已入库，4 脚本实测 rc=0） |
-| EXT-017 ④余项 | 浏览器端人工验收（tabCapture 需真实用户手势） | 需**用户本人**操作（EXT-022 已定②）；本机只有 Edge |
-| EXT-005 ① | tabCapture 生产路径实测 | ⏳ **代码侧已就绪**（`capture_mode` 进 stats / margin.json）；⚠️ **自动化下拿不到 tabCapture**（需真实手势，实测错误原文见 §18）⇒ **仍需用户点一次扩展图标**（§13） |
-| P2 其余 | 克隆音色 / ducking / 字幕 / 设置持久化 / 暂停拖动 / 30 分钟不崩 | ✅ **ducking + 字幕已修好**（§15）；✅ **目标语言已真正生效**（§16）；✅ **设置持久化已修好**（§19：改了就落盘，8 个控件 change/input 即时落盘 + 归一 + 幂等）；✅ **内存不持续增长已修好**（§19：3 类无界增长真缺陷全部有界化，统计口径一字不变）；⛔ **克隆音色仍不可用**（旁路未接线，**依赖 ASR-013 交付**）；⛔ **「30 分钟不崩」未做**（需真实引擎 + 独占设备长跑）；⛔ **暂停拖动未做**（需真实浏览器 + 用户手势） |
+| **EXT-035 / EXT-034** | 关 v2.1 空闲 pythonw 后重跑 e2e；EXT-034 四项（同步覆盖 / RTF 口径 / 首段过长 / 所需 D） | ✅ **已认领并执行**（§27）：EXT-035 验收 **5 项全过**（`t0UpPlayerOffsetSec=-3.389 s` / 首段就绪→起播 **0.005 s** / 开口静音 **14.620 s** / detail **14/14** / 三口径 1.1937·1.2227·1.4595）；⛔ **sync 35.1/41.9 s 未达标**（根因 TTS `RTF_out=1.19>1`，引擎属其它模块 ⇒ **请主会话转达 TTS 模块**） |
+| **EXT-031** | 插件整合进发行包 V2.0，EXT 交交付清单 | ✅ **已执行**（§23）：`release/V20_HANDOFF.md` 已写；模拟发行包启动 **6 PASS**；★ **打包由 App 线程执行（APP-057）**；⚠️ **App 包内缺 `websockets`+`psutil` ⇒ 打包必补装**；⚠️ `liveDub.release` 需置 `true`（**打包必改 3 处**） |
+| **EXT-030** | 巡检会话重叠 ⇒ 开工先拿「模块租约」 | ✅ **已执行**（§22）：自动化插入**四段**（`acquire`/`beat`/`addpid`/`release`）；★ 实测触发 BUSY → 等 30 min → TAKEOVER ⇒ 机制**真实生效**；⛔ **未改 `session_lease.py`** |
+| **EXT-029** | 说话人旁路独立线程、不得反压 ASR | ✅ **已执行**（§21）：独立线程 + 有界队列 + 异步回填不等待；**ASR 等 GPU 锁 ≤0.004 %** ⇒ 不反压；5 轮真实 A/B + 4 个真缺陷已修；⚠️ 原文③「墙钟差异 ≤5%」实测**噪声主导不可用** ⇒ 改用机制直接度量 |
+| **EXT-032 / EXT-028** | EXT-028 只修代码没交实录；「不构成打包阻塞」不成立 | ✅ **已执行**（§25）：**撤回**旧结论 ⇒ EXT-028 改「**待用户抽听**」；已交逐段三份音频对比（时长比 6/6 = 1.000–1.019、互相关 1.0000、SNR 120 dB）+ 静音分解 + 交付目录 `shared/ext_listen/ext032_20261102_010022/`；⛔ **tabCapture 生产路径自动化拿不到**（探针 12 次全败）⇒ 须用户手势 |
+| **EXT-027** | 抓错音频 / 持锁 / 克隆接线 / 同步误差 / 按序播放 | 🟡 **部分落地**：① 抓流（API 已修，生产路径**未实测**）✅ / ② 持锁 ✅ / ③ 克隆 ⛔（`voice_source` 全 `'preset'`）④ 同步误差 ⛔（未动引擎）⑤ 按序播放 ✅（`dubPlaybackEnd` 不叠播） |
+| **EXT-026 / EXT-024 / EXT-025 / EXT-023 / EXT-022** | e2e 冒烟 / 下行接通 / RESUME / 设备上报 / 编号与流水线默认 | ✅ **全部已执行**（§17–§23）：EXT-023 **已收口**（`on_npu=17 / on_cpu=[]`，无组件落 CPU）；EXT-026 两轮 60 s 真实跑通；EXT-024 **真实三引擎已验证下行通**（`dubDelivered=9`，下发 9/9）；⛔ **Edge 真实手势验收仍需用户本人做** |
+| EXT-017 ④余项 / EXT-005 ① | 浏览器端人工验收（tabCapture 需真实用户手势） | 需**用户本人**操作（EXT-022 已定②）；本机只有 Edge ⇒ **自动化拿不到 tabCapture** |
+| P2 其余 | 克隆音色 / ducking / 字幕 / 设置持久化 / 暂停拖动 / 30 分钟不崩 | ✅ ducking + 字幕（§15）/ **目标语言已真正生效**（§16）/ **设置持久化已修好**（§19：8 控件 change/input 即时落盘 + 归一 + 幂等）/ **内存不持续增长已修好**（§19：3 类无界增长全部有界化，统计口径一字不变）；⛔ **克隆音色仍不可用**（旁路未接线，**依赖 ASR-013 交付**）；⛔ **「30 分钟不崩」未做**（需真实引擎 + 独占设备长跑）；⛔ **暂停拖动未做**（需真实浏览器 + 用户手势） |
 
 ## 最近章节
 
@@ -68,35 +64,42 @@ last_ack: EXT-033
 >
 > | 章节 | 明细全文 | 结论摘要 |
 > |---|---|---|
-> | §21 | `notes/sec21_ext029_spk_bypass_thread.md` | **EXT-029 说话人旁路**：独立线程 + 有界队列 + 异步回填（不反压 ASR）；修掉 **4 个真缺陷**；A/B 多轮实测 |
-> | §22 / §23 | `notes/sec22_23_ext030_lease_ext031_handoff.md` | **EXT-030** 模块租约已接入自动化指令（实测 BUSY→TAKEOVER）；**EXT-031** V2.0 交付清单 + 不依赖开发目录实测 |
-> | §24 | `notes/sec24_takeover_closeout.md` | **EXT-030/031 落库收口**：上一会话「做完就死」⇒ 闸门 exit 1 只判认领 ⇒ 本轮补记 EXEC_LOG + 提交；**复核 6 套全 0 FAIL**；★ 报出「闸门不校验收口」与「TTL 30 min」两个制度性缺口 |
-> | §25 | `notes/sec25_ext032_deliver.md` | **EXT-032 交卷**：三份音频逐段对比（时长比 6/6、互相关 1.0000、SNR 120 dB）+ 静音成因分解（22.05+10=32.05 s，残差 −2.75 s）+ `sync_err p50/p95=0/0 ms` + 交付目录 `shared/ext_listen/ext032_20261102_010022/`；★ **撤回「EXT-028 不构成打包阻塞」** |
+> | §25 | `notes/sec25_ext032_deliver.md` | **EXT-032 交卷**：三份音频逐段对比（时长比 6/6、互相关 1.0000、SNR 120 dB）+ 静音成因分解 + `sync_err p50/p95=0/0 ms` + 交付目录 `shared/ext_listen/ext032_20261102_010022/`；★ **撤回「EXT-028 不构成打包阻塞」** |
 > | §26 | `notes/sec26_ext033.md` | **EXT-033 交卷**：修 3 个真缺陷（**t0 跨时钟域** / **设备互斥恒失效** / **分析器 `rms` 遮蔽**）；真实三引擎 e2e 产物已落 `shared/ext_listen/ext033_20261102_121928/`；⛔ sync 28.7/29.5 s、开口静音 26.58 s、时长比 0.68~1.49 **未达标**（根因 TTS RTF 1.231 + 设备占用） |
+> | §27 | `notes/sec27_ext034_035.md` | **EXT-034/035 交卷**：① 同步测量覆盖 **7/13 → 14/14**（`start(when)` 采样精确排程起点，onset 口径单列）② RTF **三口径分列**（1.1937 / 1.2227 / 1.4595）③ 首段**会话级拆两段**（startup 25.5→9.7 s，切点逐位不变）④ `D_required=19.939 s`；✅ **EXT-035 验收 5 项全过**（`t0UpPlayerOffsetSec=-3.389 s` / 首段就绪→起播 **0.005 s** / 开口静音 **14.620 s** / detail **14/14** / 三口径分列）；⛔ sync **35.1/41.9 s** 未达标（根因 TTS `RTF_out=1.19>1`） |
 
-## §26 —— EXT-033 交卷：真实三引擎 e2e + 三个真缺陷修复（2026-11-02 14:10）
+## §26 —— EXT-033 交卷：三个真缺陷修复 + 真实三引擎 e2e（2026-11-02 14:10）
 
-★ **全量明细见 `status/notes/sec26_ext033.md`**；§25 原文已下沉 `notes/sec25_ext032_deliver.md`。
+★ **全量明细见 `status/notes/sec26_ext033.md`**（逐条证据、实测值、反证组）。
 
-⇒ **① ★★ 本轮修了三个真缺陷**（都有实测证据，不是推测）：
-　**(1) `t0` 跨时钟域**（EXT-033 D 的根因）—— `t0` 曾在**上行 AudioContext** 域算出，却在**player** 域消费（`planned`/`when`/`at`）⇒ 两个 context 原点独立 ⇒ 系统性错位。
-　　实测证据（前会话那一轮 `20261102_121431`）：`t0Sec=-0.0197`、`schedClamped=13`（**13 段全被钳成「立即播」**）⇒ 有符号误差**恒为正**（19.9~29.5 s）⇒ **量不出「早播」**。
-　　**修法**：在 player 域测 `Δ = up.ac.currentTime − audioCtx.currentTime`（60 帧中位数）⇒ `t0 = t0_up + Δ`；**保留** `t0UpSec` / `t0UpPlayerOffsetSec` / `t0UpPlayerOffsetSpreadSec` ⇒ 换算前后**可自证**。`requested = t0 + t_start + D` 的算式**一字未改**。
-　　**浏览器实测验证**（`tests/smoke/ext033_t0_verify.py`，CDP 直连不依赖 playwright，**9 PASS / 0 FAIL**）：两个 AudioContext 原点差 **Δ ≈ 0.37~1.05 s**（真实场景更大）⇒ **跨域问题真实存在**；换算自洽性（`t0_player−t0_up ≡ Δ`、同事件两域差 ≡ Δ）**逐条 PASS**；**反证**：不换算就引入 |Δ| 误差。
-　　★ 实测发现（写进实现）：**`currentTime` 只在各自渲染量子推进时更新** ⇒ 单次相减带 ~80 ms 噪声 ⇒ **必须多次采样取中位数**（已做）。
-　**(2) 设备互斥从来没生效过** —— `_caption_app_running()` 依赖 `psutil`，而 bridge 实际跑在 **App 自带 python** 里（**没有 psutil**）⇒ `except: return False` ⇒ **恒 False**；且旧实现只匹配 `"live_caption"`（带下划线），本机跑的是 **`LiveCaption`（无下划线）** ⇒ **双重漏检**。
-　　**修法**：`wmic` → `Get-CimInstance Win32_Process` → `tasklist` 三级降级（**不依赖 psutil**）；按 **App 真实入口**（`bridge_launcher.py` / `live_caption_app.py`）匹配（不因"命令行提到该路径"误报）；**拿不到进程列表 ⇒ 保守按「可能在跑」处理**。
-　　**实测**：0.56 s 内检出字幕 App（PID 4896）⇒ `caption_app_running = True`（修前恒 False）；3 个「命令行含该路径」的非 App 进程**均未误报** ✅。⇒ 本轮真实 e2e 重跑时被**正确拦下**（rc=3「检测到实时字幕 App 在运行，拒绝启动」）—— 这正是修复生效的**直接证明**。
-　**(3) 交付分析器自带 bug** —— `ext033_analyze.py` 的 `voiced_span()` 里 `rms = _np.sqrt(...)` 让 `rms` 变成**局部变量** ⇒ 遮蔽全局 `rms(...)` ⇒ fallback 分支必 `UnboundLocalError`（`test_ext033_deliver.py` 实测崩）⇒ 局部改名 `_rms_blocks`。
+⇒ **三个真缺陷**（均有实测证据）：**① `t0` 跨时钟域**（上行域算、player 域消费 ⇒ 两 context 原点独立 ⇒ `schedClamped=13`、误差恒为正 19.9~29.5 s）⇒ 改在 player 域测 `Δ`（**60 帧中位数**；`currentTime` 只在渲染量子推进时更新 ⇒ 单次相减带 ~80 ms 噪声）⇒ `t0 = t0_up + Δ`，保留 `t0Up*` 三字段可自证，`requested` 算式一字未改（浏览器实测 Δ≈0.37~1.05 s，9 PASS）。**② 设备互斥从未生效**（依赖 `psutil`，App 自带 python 没有 ⇒ 恒 False；且只匹配 `live_caption`，本机是 `LiveCaption` ⇒ 双重漏检）⇒ 改 `wmic`→`Get-CimInstance`→`tasklist` 三级降级 + 按 App 真实入口匹配 + 拿不到列表保守判「可能在跑」；实测 0.56 s 检出、3 个非 App 进程不误报 ✅；**修复的直接证明 = 本轮 e2e 被正确拦下（rc=3）**。**③ 分析器自带 bug**（`voiced_span()` 里 `rms` 遮蔽全局 `rms()` ⇒ fallback 必 `UnboundLocalError`）⇒ 改名 `_rms_blocks`。
 
-⇒ **② ★ 前会话已完成的真实三引擎 e2e**（run `20261102_121431`，本轮接手其产物）：
-　输入 = **页面元素**（`createMediaElementSource`）⇒ **不是整机声**（`uplink.captureMode="element"`、`gaps=0`、`maxAbsSkewAudioMs=1.08`）；素材 = 英文 SPE 0–60 s；**13 段 TTS**；录音 webm 856 053 B / WAV 10 012 716 B（48 kHz / 5 006 336 样本 / **104.299 s**、**不截断**）。
-　❌ **但实测未达标**：开口静音 **26.58 s**（判据 ≤15 s）；sync 有符号 **P50/P95/max = 28650.0 / 29537.8 / 29537.8 ms**（判据 |P95| ≤ 300 ms）；时长比 **0.6825~1.4851**（判据 1.00±0.02）；1 段互相关峰 0.5005 < 0.6 标「**未对齐**」。
+⇒ **真实三引擎 e2e**（run `20261102_121431`）：输入 = **页面元素**（`createMediaElementSource`，非整机声；`gaps=0`、`maxAbsSkewAudioMs=1.08`）；**13 段 TTS**；录音 WAV 10 012 716 B / 48 kHz / **104.299 s 不截断**。❌ 未达标：开口静音 **26.58 s**（≤15 s）；sync P50/P95 = **28650.0 / 29537.8 ms**（≤300 ms）；时长比 **0.6825~1.4851**。
 
-⇒ **③ ★ 剩余滞后的归因（**超出本模块职责**）**：`margin.json` 实测 —— `feed_lag` **全为负**（mean −5.85 s ⇒ **音频准时到，不是上行/反压**）；`intrinsic_lag` mean +2.27 s；滞后以 **0.3146 s/s 累积** ⇒ **管线吞吐 < 1**；**TTS RTF = 1.231 > 1**（ASR 0.773 / MT 0.193）⇒ **TTS 提速是 EXT 改不动的**（引擎属其它模块）⇒ **写进 STATUS 交主会话转达**，本轮**不碰任何引擎文件**。
+⇒ **滞后归因（**超出本模块职责**）**：`feed_lag` **全为负**（mean −5.85 s ⇒ 音频准时到，**不是上行/反压**）；滞后以 **0.3146 s/s 累积** ⇒ 管线吞吐 < 1；**TTS RTF=1.231 > 1**（ASR 0.773 / MT 0.193）⇒ **TTS 提速 EXT 改不动**（引擎属其它模块）⇒ 写进 STATUS 交主会话，本轮**不碰任何引擎文件**。
 
-⇒ **④ ★ 本轮自测（实测 rc）**：`test_ext_selfcheck` **106 PASS / 0 FAIL** (rc=0) ｜ `test_echo_roundtrip` **11 PASS / 0 FAIL** (rc=0) ｜ `test_next_instruction` **19 PASS / 0 FAIL** (rc=0) ｜ `test_ext033_capture` **42 PASS / 0 FAIL** (rc=0) ｜ `test_ext033_deliver` **25 PASS / 0 FAIL** (rc=0) ｜ `tests/smoke/ext033_t0_verify.py`（浏览器实测）**9 PASS / 0 FAIL** (rc=0)。
-　★ 附带修：`test_ext_selfcheck` 原用 psutil 找「存活 PID 对照」⇒ **在真实运行环境（App python 无 psutil）里恒假失败** ⇒ 改用被测代码自己的 `_pid_alive`（ctypes 兜底）⇒ 106 PASS。
+⇒ **自测（实测 rc）**：`test_ext_selfcheck` **106** ｜ `test_echo_roundtrip` **11** ｜ `test_next_instruction` **19** ｜ `test_ext033_capture` **42** ｜ `test_ext033_deliver` **25** ｜ `ext033_t0_verify` **9** —— 全 **0 FAIL**。
 
-⇒ **⑤ ⛔ 明确未做 / 不宣称**：⛔ **本轮没跑出「修复后」的真实 e2e** —— 设备被**实时字幕 App（PID 4896）**占用 ⇒ 按铁律**不抢设备、不打断用户的 App** ⇒ 桥接 rc=3 拒绝启动 ⇒ **sync 修复效果只由浏览器实测探针证明，未由真实三引擎轮证明**；⛔ **开口静音 26.58 s 未解决**（TTS 未就绪 ⇒ 首段配音晚到）；⛔ **时长比 0.68~1.49 未解决**（需 TTS 提速后重测）；⛔ **未打包**（APP-057）/ **未改任何引擎文件** / **未推远程** / `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**（`git check-ignore` 命中 `.gitignore:34`）。
+⇒ **⛔ 明确未做**：⛔ **没跑出「修复后」的真实 e2e**（设备被字幕 App 占用 ⇒ 不抢设备 ⇒ rc=3）｜⛔ 开口静音 / 时长比 **未解决**｜⛔ **未打包**（APP-057）/ **未改引擎文件** / **未推远程** / `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**（`git check-ignore` 命中 `.gitignore:34`）。
 
+## §27 —— EXT-034 / EXT-035 交卷：四项缺陷修复 + EXT-035 验收 5 项全过（2026-11-02 21:40）
+
+★ **全量明细见 `status/notes/sec27_ext034_035.md`**（指令原文、逐项根因、逐段数据、命令与实测值）。
+
+⇒ **① EXT-035① 关进程（授权范围内全执行）**：PID **4896**（点名 v2.1）**15:03:12** 关；PID **26736**（v2.2）**排队拿锁后关**；PID **7896**（新出现的同类 v2.1）**21:28:05** 关。三者均**先核对 `ExecutablePath` 在对应包目录 + 命令行含 `bridge_launcher.py`（未打印完整命令行）**、**普通 `Stop-Process`**、记录时间与核对结果 ⇒ **其他实例一律未碰**；⛔ **字幕 App 本体不在授权内 ⇒ 从未关闭**（它自己退出、锁才释放）。
+
+⇒ **② EXT-034① 同步覆盖 7/13 → 14/14（双重根因）**：① **onset 配对被「最近的下一段排程」抢走**（`PAIR_WINDOW_SEC=0.25`，实测 `dubOnsets` 有 50 ms 间隔连续 onset）；② **TTS 中文开头常是辅音/静音 ⇒ onset 未必触发** ⇒ 13 段只进 7 段。修法 = **主口径改用 `start(when)` 采样精确排程起点**（比 `onended` 反推可靠，不把回调延迟 10–40 ms 当同步误差），onset 口径**单列**；★ 顺带**修掉污染 bug**：`noteDubEnded()` 原把**排程口径**的 `signedErrMs` 推进 `dubSyncErrsOnset` ⇒ 两口径混在同一数组（已删，C4f/C4g 反证组守护）。
+
+⇒ **③ EXT-034② RTF 三口径分列**（落盘 `margin.json`）：`RTF_out=1.1937`（Σtts/Σspeech）｜`speech_over_src=1.2227`（Σspeech/Σsrc）｜`tts_over_src=1.4595`（Σtts/Σsrc）。★ 旧结论「TTS RTF=1.231」实为 **`tts_over_src`**（混入译文变长）⇒ 三者含义各自明确，可交叉核对 `tts_over_src == RTF_out × speech_over_src`。
+
+⇒ **④ EXT-034③④ 首段会话级拆分 + 所需 D**：ASR **整段到齐才定稿** ⇒ 起步耗时 ≈ 首段长+ASR+MT+TTS ⇒ **会话级拆首段**（`FIRST_SEGMENT_MAX_SEC=3.5`，**拆两段而非截短** ⇒ 后续切点**逐位不变**、尾段行为不变）⇒ startup **25.547 → 9.731 s**；`D_required = 19.939 s`（vs 当前 D=10 s ⇒ **光调 D 不够**，须先提 TTS 吞吐）⇒ **交用户定 D**。★ 关键设计：`split_first_segment()` 抽到 **`ext/segmenter.py` 共享**，**服务端与客户端同一份代码** ⇒ 口径永不漂移。
+
+⇒ **⑤ EXT-035② 修复后真实三引擎 e2e（≥75 s，两轮跑完 EXIT=0）—— 验收 5 项全过**：`t0UpPlayerOffsetSec=**−3.389333 s**`（非空，spread 16 ms）✅｜**首段就绪→起播 0.005 s**（<0.5 s）✅｜**开口静音 14.620 s**（≤15 s；旧轮 26.59 s）✅｜**`dubSyncDetail` 14/14**（旧轮 7/13）✅｜**三口径分列** ✅｜附带录音 **99.099 s** ✅。
+　★ 新增「**就绪→起播**」口径（原先**根本无法测量**）：`dubReadyAt`（段 id → 就绪时刻，AudioContext 时钟，**排程之前**取）+ `readyAtAc`/`readyToStartSec`（= `actual − readyAtAc`，**不含 D、不含服务端起步**）⇒ 14 段全有值；首段 0.005 s，其余 6 段 >0.5 s 是**按序播放排队**（前一段未播完）⇒ **不是缺陷，是设计**。
+
+⇒ **⑥ EXT-034① 分析侧收尾**：`_sync_coverage()` 拿 `margin.json` 的「有 TTS 的段」做全集，与 detail 按**采样点后缀**对齐（⚠️ 两者 id 前缀有无不同 ⇒ 直接求差会把全部段算成缺失）⇒ 输出覆盖率 + 缺失归因（附**可核对证据字段**）⇒ 旧产物实测 `coverage=0.5385 / missing=6`，缺失段与 EXT-034 原文**逐位一致**。
+
+⇒ **⑦ 自测（实测 rc）**：`test_ext_selfcheck` **122** ｜ `test_echo_roundtrip` **11** ｜ `test_next_instruction` **19** ｜ `test_p1_plumbing` **112** ｜ `test_ext033_capture` **42** ｜ `test_ext033_deliver` **25** ｜ `test_ext010_pipeline` **25** ｜ `ext028_player_harness.js`（node 沙箱）**29** —— **八套全 0 FAIL**。
+　★ 透明说明：`test_p1_plumbing` 的 `test_expected_segment_count_strict` **参照基准**从「未拆分的 raw」换成「**服务端口径**」—— ⚠️ **不是回归**：已用**真桥接服务对拍**（45 s 音频 ⇒ 服务端实际 **7** 段 = `raw 6`+1，客户端 `expected=7` ⇒ 三者一致）；断言强度与意图**一字未减**，另**追加** EXT-034④ 专属自测组（12 条）。
+
+⇒ **⑧ ⛔ 明确未做**：⛔ **sync 有符号误差本身仍未达标**（P50/P95 = **35.1 / 41.9 s**，判据 ≤300 ms）—— 根因是 **TTS 自身吞吐**（`RTF_out=1.1937 > 1`）⇒ **TTS 提速请主会话转达 TTS 模块**（目标 `RTF_out ≤ 0.85`）；⛔ **时长比 0.68~1.49 未解决**（需提速后重测）；⛔ **未打包**（APP-057）/ ⛔ **未改任何引擎文件**（R2T2 / Hy-MT2 / Qwen3-TTS 一律未动）/ ⛔ **未改 `session_lease.py`** / ⛔ **未推远程** / ⛔ `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**（`git check-ignore` 命中 `.gitignore:34`）。

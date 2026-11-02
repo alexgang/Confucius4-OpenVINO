@@ -183,16 +183,22 @@ def test_p1_plumbing() -> None:
               f"{audio.shape[0] / sr:.1f}s @ {sr}Hz")
 
         frames = p1_pipeline.frame_payload(audio)
-        from ext.segmenter import plan_segments
+        from ext.segmenter import plan_segments, split_first_segment
+        from ext import config as C
         raw_segs = len(plan_segments(audio))
         # ★ 客户端预期段数必须按**服务端 flush 的同一条规则**算
         #   （丢弃尾部不足 1 s 的残留段）—— 否则 expect 比服务端多 1
         #   ⇒ 收尾永远等不到 ⇒ 白等兜底超时 + 报告段数失真（缺陷 13）。
+        # ★★★★★ EXT-034 ④：服务端会把**会话首段拆成两段** ⇒ 段数 +1
+        #   ⇒ 参照基准也必须换成**拆分后**的段数（与服务端同一口径）。
+        server_segs = len(split_first_segment(
+            plan_segments(audio), cap_sec=C.FIRST_SEGMENT_MAX_SEC,
+            min_sec=C.SEG_MIN_SEC, sample_rate=16000))
         expected = p1_pipeline.expected_segment_count(audio, 16000)
         check("预期段数可算出", expected >= 1, f"{expected} 段")
         check("★ 预期段数与服务端 flush 口径一致（丢弃 <1s 尾段）",
-              expected <= raw_segs,
-              f"expected {expected} ≤ raw {raw_segs}")
+              expected <= server_segs,
+              f"expected {expected} ≤ 服务端口径 {server_segs}（raw {raw_segs}）")
 
         # ★ 实时喂帧用 realtime=False（桩引擎下不需要真实节拍，
         #   但**必须**走 flush / stats / 收尾这些路径）
@@ -661,17 +667,36 @@ def test_expected_segment_count_strict() -> None:
       * 流式：`plan_segments(buf)` 取 `segs[:-1]` 逐段处理，最后一段留缓冲；
       * 收尾 `flush()`：把剩余缓冲当**一段**处理，
         但**缓冲长度 < 1.0 s ⇒ 直接丢弃**（不计为段）；
-      ⇒ 因此服务端总段数 = `plan_segments` 的段数，
-        **除非**尾段（= 最后一段）长度 < 1.0 s。
+      * ★★★★★ EXT-034 ④：**会话首段被拆成两段**
+        （`Session._split_first_segment` ⇒ `ext/segmenter.split_first_segment`）
+        ⇒ 服务端段数 = `len(拆分后的 segs)`（尾段长度不受影响）。
+
+    ⇒ 因此服务端总段数 = **拆分后**的段数，
+      **除非**尾段（= 最后一段）长度 < 1.0 s。
 
     断言：
-      ① 尾段 ≥ 1.0 s ⇒ expected == raw（**不能少算**，否则提前收尾丢段）；
-      ② 尾段 < 1.0 s ⇒ expected == raw − 1（**必须少算 1**，与 flush 对齐）；
-      ③ `expected` 永远 ≤ raw（结构性质）。
+      ① 尾段 ≥ 1.0 s ⇒ expected == server（**不能少算**，否则提前收尾丢段）；
+      ② 尾段 < 1.0 s ⇒ expected == server（`_server_count()` 已含丢弃规则）；
+      ③ `expected` 永远 ≤ server（结构性质）；
+      ④ **反向断言覆盖两个用例**（EXT-034 ④ 后旧写法在 `tail<1s` 用例上
+         **碰巧**也对 ⇒ 只用一个会失去区分力）。
+
+    ★★★★★ EXT-034 ④ 的契约更新（2026-11-02）：
+      旧版本条的参照基准是**未拆分**的 `raw = len(plan_segments(...))`。
+      EXT-034 ④ 让服务端**首段拆成两段** ⇒ 服务端段数 = `raw + 1`
+      ⇒ 旧基准不再代表服务端行为 ⇒ 断言必然变红。
+      ⚠️ **这不是回归** —— 已用**真桥接服务对拍**证实：
+        45 s 音频 ⇒ 服务端实际产出 **7** 段，
+        `raw = 6`、拆分后 `= 7`、客户端 `expected_segment_count() = 7`
+        ⇒ **三者一致**（见 STATUS §27 的对拍记录）。
+      ⇒ 本条只把**参照基准**从 `raw` 换成**服务端口径**（拆分后），
+        **断言的强度与意图一字未减**，并**追加**了 EXT-034 ④ 的专属断言
+        （见 `test_ext034_first_segment_split_contract`）。
     """
     print("\n[P1] EXT-006 — 缺陷 13 严格口径断言（避免弱断言假通过）")
     import p1_pipeline
-    from ext.segmenter import plan_segments
+    from ext.segmenter import plan_segments, split_first_segment
+    from ext import config as C
 
     sr = 16000
     rng = np.random.default_rng(20261028)
@@ -682,43 +707,184 @@ def test_expected_segment_count_strict() -> None:
         tail = np.zeros(int(tail_sec * sr), dtype=np.float32)
         return np.concatenate([body, tail])
 
+    def _server_count(audio) -> int:
+        """服务端口径的段数（拆分后 + 尾段 <1s 丢弃）。"""
+        segs = split_first_segment(
+            plan_segments(audio), cap_sec=C.FIRST_SEGMENT_MAX_SEC,
+            min_sec=C.SEG_MIN_SEC, sample_rate=sr)
+        tail = (segs[-1][1] - segs[-1][0]) / sr
+        return len(segs) if tail >= 1.0 else max(0, len(segs) - 1)
+
     # ① 尾段 ≥ 1.0 s ⇒ 期望 == raw
     #    ⚠️ 尾部静音会被 VAD（silence_db=-40dB, min_silence_ms=300）在
     #    min_segment_sec(=12s) 之后切一刀 ⇒ 尾段长度 ≈ 尾静音 − 0.5 s。
     #    故用 3.0 s 尾静音 ⇒ 尾段 ≈ 1.5 s（≥1 s）。
     a_long = _make(3.0)
     raw_long = len(plan_segments(a_long))
+    server_long = _server_count(a_long)
     exp_long = p1_pipeline.expected_segment_count(a_long, sr)
     tail_long = ((plan_segments(a_long)[-1][1]
                   - plan_segments(a_long)[-1][0]) / sr)
-    check("★ 尾段≥1s ⇒ expected == raw（不许少算）",
-          exp_long == raw_long,
-          f"expected={exp_long} raw={raw_long} tail={round(tail_long,3)}s")
+    check("★ 尾段≥1s ⇒ expected == 服务端口径（不许少算）",
+          exp_long == server_long,
+          f"expected={exp_long} 服务端={server_long} raw={raw_long} "
+          f"tail={round(tail_long,3)}s")
     check("★ 尾段≥1s 的用例**确实**构造出了 ≥1s 的尾段",
           tail_long >= 1.0, f"tail={round(tail_long,3)}s")
 
-    # ② 尾段 < 1.0 s ⇒ 期望 == raw − 1（与服务端 flush 的丢弃规则对齐）
+    # ② 尾段 < 1.0 s ⇒ 期望 == 服务端口径
+    #    ⚠️ `_server_count()` 里**已经**含了「尾段 <1s 丢弃」的规则
+    #      ⇒ 这里**不能再减 1**（否则重复扣减）。
+    #    ★★ EXT-034 ④ 的重要发现：
+    #      在本用例里 `raw = 3`、拆分后 `= 4`、尾段 0.21 s 丢弃 `−1`
+    #      ⇒ **首段拆分的 +1 与尾段丢弃的 −1 恰好抵消**
+    #      ⇒ 服务端口径 `= 3` **恰好等于未拆分的 `raw`**。
+    #      ⇒ 旧写法（直接取 `len(plan_segments)`）在这个输入上**碰巧也对**
+    #      ⇒ 只用这一个用例做反向断言会**失去区分力**（见 ④）。
     a_short = _make(0.4)
     raw_short = len(plan_segments(a_short))
+    server_short = _server_count(a_short)
     exp_short = p1_pipeline.expected_segment_count(a_short, sr)
     tail_len = (plan_segments(a_short)[-1][1]
                 - plan_segments(a_short)[-1][0]) / sr
-    check("★ 尾段<1s ⇒ expected == raw−1（与服务端 flush 对齐）",
-          exp_short == raw_short - 1,
-          f"expected={exp_short} raw={raw_short} tail={round(tail_len,3)}s")
+    check("★ 尾段<1s ⇒ expected == 服务端口径（与服务端 flush 对齐）",
+          exp_short == server_short,
+          f"expected={exp_short} 服务端={server_short} raw={raw_short} "
+          f"tail={round(tail_len,3)}s")
     check("★ 尾段<1s 的用例**确实**构造出了 <1s 的尾段",
           tail_len < 1.0, f"tail={round(tail_len,3)}s")
 
     # ③ 结构性质
-    check("★ expected 恒 ≤ raw（结构性质）",
-          exp_long <= raw_long and exp_short <= raw_short,
-          f"{exp_long}≤{raw_long}, {exp_short}≤{raw_short}")
+    check("★ expected 恒 ≤ 服务端口径（结构性质）",
+          exp_long <= server_long and exp_short <= server_short,
+          f"{exp_long}≤{server_long}, {exp_short}≤{server_short}")
 
-    # ④ 反向断言：旧的错误实现（直接取 len(plan_segments)）在尾段<1s 时**会算错**
+    # ④ 反向断言：旧的错误实现（直接取 len(plan_segments)）**至少在一个用例上算错**
     #    ⇒ 证明这条断言**不是恒真**（能区分真通过 / 假通过）。
-    check("★ 反向断言：旧实现（直接取 len）在尾段<1s 时确实算错",
-          raw_short != exp_short,
-          f"旧写法={raw_short} vs 新写法={exp_short} ⇒ 断言有区分力")
+    #    ★★ EXT-034 ④ 后**必须覆盖两个用例**：
+    #      `tail<1s` 用例里拆分的 +1 与丢弃的 −1 恰好抵消 ⇒ 旧写法碰巧也对
+    #      ⇒ 只用它做反向断言会假通过（失去区分力）。
+    #      `tail≥1s` 用例里没有丢弃 ⇒ 旧写法少算 1 ⇒ **必然算错**。
+    check("★ 反向断言：旧实现（直接取 len）在 tail≥1s 用例上确实算错",
+          raw_long != exp_long,
+          f"旧写法={raw_long} vs 新写法={exp_long} ⇒ 断言有区分力")
+    check("★ 反向断言：旧实现在 tail<1s 用例上**碰巧**也对"
+          "（拆分 +1 与丢弃 −1 抵消 ⇒ 必须靠另一个用例兜住区分力）",
+          raw_short == exp_short,
+          f"旧写法={raw_short} vs 新写法={exp_short} ⇒ 抵消现象已记录")
+
+
+def test_ext034_first_segment_split_contract() -> None:
+    """★ EXT-034 ④：**首段拆分**的契约自测（新增行为 ⇒ 必须有专属自测）。
+
+    ## EXT-034 ④ 要解决什么
+      reviewer EXT-034 ③：「开头静音主要归 EXT（首段切得太长、
+      ASR 在整段结束后才定稿）」⇒ 起步耗时 ≈ 首段长度 + ASR + MT + TTS
+      （实测 8.0 + 5.20 + 1.30 + 11.04 = 25.54 s > D = 10 s）
+      ⇒ 结构上就赶不上 ⇒ 必须把**首段**切短。
+
+    ## 修法（为什么「拆」而不是「截短」）
+      ★ 截短 ⇒ 切点栅格整体平移 ⇒ 尾部残留变少
+        （60 s 输入：留 4 s 尾段 → 平移后只剩 0.5 s
+        ⇒ 低于 flush 的 1 s 门槛 ⇒ **尾段被丢**）。
+      ★ 拆分 ⇒ 首段 `[0, cap]` + `[cap, 原切点]`
+        ⇒ **后续所有切点逐位不变** ⇒ 尾段行为与原来**完全一致**。
+
+    ## 本条断言（全部为**强**断言，不做弱化处理）
+      ① 首段超长 ⇒ 确实被拆成两段，且两段**都**在
+         [SEG_MIN_SEC, SEG_MAX_SEC] 合规区间内；
+      ② 拆分后**其余段的切点逐位不变**（这是「不丢尾段」的前提）；
+      ③ 首段本来就短 ⇒ **不拆**（幂等、无副作用）；
+      ④ 第二片太短（碎片）⇒ **不拆**；
+      ⑤ `cap_sec=None` ⇒ 完全等价于 `plan_segments`（R2T2 逐位一致
+         ⇒ 与 R2T2 的等价性自测不受影响）；
+      ⑥ **客户端 `expected_segment_count()` 与服务端用同一个函数**
+         ⇒ 口径永远一致（源码级断言 + 行为级断言）；
+      ⑦ **反向断言（区分力）**：故意把 `cap_sec` 调成一个会改变
+         段数的值 ⇒ 断言必须能发现差异（证明不是恒真）。
+    """
+    print("\n[P1] EXT-034 ④ — 首段拆分契约（缩短「起步」）")
+    import p1_pipeline
+    from ext.segmenter import plan_segments, split_first_segment
+    from ext import config as C
+
+    sr = 16000
+    cap = C.FIRST_SEGMENT_MAX_SEC
+    rng = np.random.default_rng(20261102)
+
+    # 造一段 8 s 的「满长首段」+ 后续 3 段
+    body = (rng.standard_normal(int(40 * sr)) * 0.05).astype(np.float32)
+    raw = plan_segments(body)
+    check("★ 前置：构造出的首段确实超长（> cap）",
+          len(raw) >= 2 and (raw[0][1] - raw[0][0]) / sr > cap,
+          f"首段 {(raw[0][1]-raw[0][0])/sr:.3f}s > cap {cap}s")
+
+    # ① 首段超长 ⇒ 拆成两段，且两段都合规
+    sp = split_first_segment(raw, cap_sec=cap, min_sec=C.SEG_MIN_SEC,
+                              sample_rate=sr)
+    check("★ 首段超长 ⇒ 被拆成两段（段数 +1）",
+          len(sp) == len(raw) + 1, f"{len(raw)} → {len(sp)}")
+    check("★ 拆分后首段长度 == cap",
+          (sp[0][1] - sp[0][0]) / sr == cap,
+          f"{(sp[0][1]-sp[0][0])/sr:.3f}s")
+    check("★ 拆分出的第二片接回原切点（无缝、无重叠、无丢失）",
+          sp[1][0] == sp[0][1] and sp[1][1] == raw[0][1],
+          f"sp[1]=({sp[1][0]},{sp[1][1]}) raw[0]=({raw[0][0]},{raw[0][1]})")
+    lens = [(e - s) / sr for s, e in sp]
+    check("★ 拆分后**每段**都在 [SEG_MIN_SEC, SEG_MAX_SEC] 合规区间",
+          all(C.SEG_MIN_SEC <= L <= C.SEG_MAX_SEC for L in lens),
+          ", ".join(f"{L:.2f}" for L in lens))
+
+    # ② 其余段的切点**逐位不变**（这是「不丢尾段」的前提）
+    check("★ 拆分后其余段的切点逐位不变（尾段行为完全一致）",
+          sp[2:] == list(raw[1:]),
+          f"sp[2:]={[(s,e) for s,e in sp[2:]]} raw[1:]={[(s,e) for s,e in raw[1:]]}")
+
+    # ③ 首段本来就短 ⇒ 不拆
+    short = plan_segments((rng.standard_normal(int(2 * sr)) * 0.05)
+                           .astype(np.float32))
+    if short and (short[0][1] - short[0][0]) / sr <= cap:
+        check("★ 首段本来就短 ⇒ 不拆（无副作用）",
+              split_first_segment(short, cap_sec=cap, min_sec=C.SEG_MIN_SEC,
+                                  sample_rate=sr) == short,
+              f"首段 {(short[0][1]-short[0][0])/sr:.3f}s")
+
+    # ④ 第二片太短（碎片）⇒ 不拆
+    #    构造：首段 = cap + 0.5 s（第二片 0.5 s < SEG_MIN_SEC=3 s）
+    frag = [(0, int((cap + 0.5) * sr)), (int((cap + 0.5) * sr),
+                                        int((cap + 0.5 + 8) * sr))]
+    check("★ 第二片是碎片 ⇒ 不拆（不产生碎片段）",
+          split_first_segment(frag, cap_sec=cap, min_sec=C.SEG_MIN_SEC,
+                              sample_rate=sr) == frag,
+          f"原样返回，段数 {len(frag)}")
+
+    # ⑤ cap=None ⇒ 与 plan_segments 逐位一致（R2T2 等价性不受影响）
+    check("★ cap=None ⇒ 与 plan_segments 逐位一致（R2T2 等价性不变）",
+          split_first_segment(raw, cap_sec=None, sample_rate=sr) == raw,
+          f"{len(raw)} 段")
+
+    # ⑥ 客户端与服务端**共用同一个函数**（源码级 + 行为级）
+    src_pipe = open(os.path.join(ROOT, "tools", "p1_pipeline.py"),
+                    encoding="utf-8").read()
+    src_seg = open(os.path.join(ROOT, "ext", "segmenter.py"),
+                   encoding="utf-8").read()
+    check("★ 客户端用的是共享的 split_first_segment（不是自己写一份）",
+          "split_first_segment" in src_pipe
+          and "def split_first_segment" in src_seg,
+          "客户端与服务端同源")
+    check("★ 客户端 expected_segment_count 与服务端口径一致（行为级）",
+          p1_pipeline.expected_segment_count(body, sr)
+          == len(split_first_segment(raw, cap_sec=cap, min_sec=C.SEG_MIN_SEC,
+                                     sample_rate=sr)),
+          f"client={p1_pipeline.expected_segment_count(body, sr)} "
+          f"server={len(split_first_segment(raw, cap_sec=cap, min_sec=C.SEG_MIN_SEC, sample_rate=sr))}")
+
+    # ⑦ 反向断言（区分力）：把 cap 改成一个**不会**拆的值 ⇒ 段数必须不同
+    n_split = len(split_first_segment(raw, cap_sec=cap, min_sec=C.SEG_MIN_SEC,
+                                      sample_rate=sr))
+    n_nosplit = len(split_first_segment(raw, cap_sec=None, sample_rate=sr))
+    check("★ 反向断言：cap=None 时段数确实少 1（断言有区分力）",
+          n_split == n_nosplit + 1, f"{n_split} vs {n_nosplit}")
 
 
 def test_orchestrator_margin_dump_path() -> None:
@@ -1283,6 +1449,7 @@ def main() -> int:
                test_realtime_feed_path,
                test_dump_margin_on_demand,
                test_expected_segment_count_strict,
+               test_ext034_first_segment_split_contract,
                test_orchestrator_margin_dump_path,
                test_client_waits_for_stats_not_sleep,
                test_ext008_lag_metrics,

@@ -35,6 +35,26 @@ FRAME_MAX_MS = 100           # 插件上行帧长上限
 #   ⇒ 改了它，两边**同时**用新参数 ⇒ 等价性自测依然成立。
 SEG_MIN_SEC = 3.0            # ★ EXT-027④：12.0 → 3.0（reviewer 要求 2–3 s）
 SEG_MAX_SEC = 8.0            # ★ EXT-027④：20.0 → 8.0（reviewer 要求 6–8 s）
+
+# ★★★★★ EXT-034 ④：**首段单独限长**（缩短「起步」）。
+#
+# ## 为什么需要（reviewer EXT-034 ③ 的原话）
+#   「开头静音主要归 EXT（首段切得太长、ASR 在整段结束后才定稿）」。
+#   ASR 是**整段到齐才定稿**的（`ext/bridge.py` 的 `_dispatch_segment`
+#   只在**整段音频完整到达**后才调 `_process_segment`）
+#   ⇒ **首段越长、起步就越晚**：
+#     起步耗时 ≈ 首段长度 + ASR + MT + TTS
+#     实测（run 20261102_121431）：8.0 + 5.20 + 1.30 + 11.04 = **25.54 s**
+#     ⇒ 而 D = 10 s ⇒ **结构上就赶不上** ⇒ 开头静音必然 ≫ D。
+#
+# ## 取值
+#   3.5 s —— 落在 EXT-027④ 要求的「min 2–3 s」上沿之上一点，
+#   给首段留够内容（太短会切碎语义），但把起步省下 ~4.5 s。
+#   ⚠️ **只作用于会话的第一段**；其余段仍按 `SEG_MAX_SEC` 切
+#     ⇒ 稳态吞吐不变，只改「起步」。
+# ⚠️ 与 R2T2 原件的等价性：`plan_segments` 的 `first_segment_max_sec`
+#   默认 None ⇒ **默认行为与 R2T2 逐位一致**（等价性自测仍成立）。
+FIRST_SEGMENT_MAX_SEC = 3.5   # ★ EXT-034④：首段 ≤ 3.5 s（原来是 8 s）
 VAD_SILENCE_DB = -40.0       # 复制 R2T2 find_silence_in_range 默认值
 VAD_MIN_SILENCE_MS = 300
 VAD_FRAME_MS = 30
