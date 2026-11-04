@@ -1,0 +1,143 @@
+{
+  "script": "app238_app067_gui_shots_gate.py",
+  "correction": "APP-067 ④（GUI 截图 + 按钮截断 + D4 状态行）",
+  "device_lock": "不需要（纯 GUI 布局，不加载模型 ⇒ 不占 GPU/NPU）",
+  "runs": [
+    {
+      "tag": "adv_open",
+      "scaling": 1.0,
+      "adv_open": true,
+      "d4_probe": false,
+      "shot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app067_gui_shots\\app067_adv_open_scaling100.png",
+      "shot_bytes": 68547,
+      "btn_width_px": 95,
+      "btn_text_need_px": 66,
+      "btn_text_clipped": false,
+      "adv_group_visible": true,
+      "adv_child_classes": [
+        "TFrame"
+      ],
+      "mt_strip_text": "积压 0 | 设备 GPU.0 | 模型 Intel GPU（集显） · INT8-CW | 目标 English | 状态 idle | 延迟 —",
+      "tts_strip_text": "音色 预设 A | 输出 Speaker (Realtek(R) Audio)（2 声道） | 状态 未就绪 | 设备 — | 语速 — | 滞后 — | 排队 —",
+      "mt_strip_has_NPU": false,
+      "mt_strip_has_GPU0": true,
+      "window": [
+        1080,
+        820
+      ]
+    },
+    {
+      "tag": "adv_open",
+      "scaling": 1.5,
+      "adv_open": true,
+      "d4_probe": false,
+      "shot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app067_gui_shots\\app067_adv_open_scaling150.png",
+      "shot_bytes": 120163,
+      "btn_width_px": 164,
+      "btn_text_need_px": 131,
+      "btn_text_clipped": false,
+      "adv_group_visible": true,
+      "adv_child_classes": [
+        "TFrame"
+      ],
+      "mt_strip_text": "积压 0 | 设备 GPU.0 | 模型 Intel GPU（集显） · INT8-CW | 目标 English | 状态 idle | 延迟 —",
+      "tts_strip_text": "音色 预设 A | 输出 Speaker (Realtek(R) Audio)（2 声道） | 状态 未就绪 | 设备 — | 语速 — | 滞后 — | 排队 —",
+      "mt_strip_has_NPU": false,
+      "mt_strip_has_GPU0": true,
+      "window": [
+        1618,
+        1229
+      ]
+    },
+    {
+      "tag": "d4_status",
+      "scaling": 1.0,
+      "adv_open": false,
+      "d4_probe": true,
+      "shot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app067_gui_shots\\app067_d4_status_scaling100.png",
+      "shot_bytes": 33051,
+      "btn_width_px": 85,
+      "btn_text_need_px": 58,
+      "btn_text_clipped": false,
+      "adv_group_visible": null,
+      "adv_child_classes": [],
+      "mt_strip_text": "积压 0 | 设备 GPU.0 | 模型 Intel GPU（集显） · INT8-CW | 目标 English | 状态 idle | 延迟 —",
+      "tts_strip_text": "音色 预设 A | 输出 Speaker (Realtek(R) Audio)（2 声道） | 状态 未就绪 | 设备 — | 语速 — | 滞后 — | 排队 —",
+      "mt_strip_has_NPU": false,
+      "mt_strip_has_GPU0": true,
+      "window": [
+        1080,
+        820
+      ]
+    },
+    {
+      "tag": "d4_status",
+      "scaling": 1.5,
+      "adv_open": false,
+      "d4_probe": true,
+      "shot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app067_gui_shots\\app067_d4_status_scaling150.png",
+      "shot_bytes": 51520,
+      "btn_width_px": 164,
+      "btn_text_need_px": 131,
+      "btn_text_clipped": false,
+      "adv_group_visible": null,
+      "adv_child_classes": [],
+      "mt_strip_text": "积压 0 | 设备 GPU.0 | 模型 Intel GPU（集显） · INT8-CW | 目标 English | 状态 idle | 延迟 —",
+      "tts_strip_text": "音色 预设 A | 输出 Speaker (Realtek(R) Audio)（2 声道） | 状态 未就绪 | 设备 — | 语速 — | 滞后 — | 排队 —",
+      "mt_strip_has_NPU": false,
+      "mt_strip_has_GPU0": true,
+      "window": [
+        1618,
+        1229
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "name": "G1 「▲ 有模块待处理」在 100%/150% 下不被裁掉（按像素）",
+      "ok": true,
+      "detail": "各场景按钮宽 px=[95, 164, 85, 164] / 需 px=[66, 131, 58, 131]；被裁的场景=无"
+    },
+    {
+      "name": "G1b 代码按像素量按钮宽度（不靠字符数）",
+      "ok": true,
+      "detail": "像素量=True 候选文案=True 写回宽度=True"
+    },
+    {
+      "name": "G1c _fit_status_light_width() 真的被调用",
+      "ok": true,
+      "detail": "调用点存在=True"
+    },
+    {
+      "name": "G2 「⑤ 高级」展开后可见（100 % 与 150 %）",
+      "ok": true,
+      "detail": "可见性=[True, True]"
+    },
+    {
+      "name": "G3 高级组展开后含控件（不是空组）",
+      "ok": true,
+      "detail": "子控件类别=[['TFrame'], ['TFrame']]"
+    },
+    {
+      "name": "G4 D4 生效后翻译状态行不含 NPU（APP-063 验收条件）",
+      "ok": true,
+      "detail": "含 NPU=[False, False]；MT 状态行原文=['积压 0 | 设备 GPU.0 | 模型 Intel GPU（集显） · INT8-CW | 目标 English | 状态 idle | 延迟 —', '积压 0 | 设备 GPU.0 | 模型 Intel GPU（集显） · INT8-CW | 目标 English | 状态 idle | 延迟 —']"
+    },
+    {
+      "name": "G5 翻译状态行的设备是 GPU.0",
+      "ok": true,
+      "detail": "含 GPU.0=[True, True]"
+    }
+  ],
+  "n_pass": 7,
+  "n_fail": 0,
+  "n_none": 0,
+  "verdict": "PASS",
+  "shots": [
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app067_gui_shots\\app067_adv_open_scaling100.png",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app067_gui_shots\\app067_adv_open_scaling150.png",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app067_gui_shots\\app067_d4_status_scaling100.png",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app067_gui_shots\\app067_d4_status_scaling150.png"
+  ],
+  "meaning": "PASS = **界面层**的 3 项（按钮不裁 / 高级组可见 / D4 状态行不含 NPU）成立。≠ APP-067 ④ 的 **ABBA 设备级复测**（ASR RTF +0.122 需持 MACHINE_LOCK 在真包上跑 ABBA）。"
+}

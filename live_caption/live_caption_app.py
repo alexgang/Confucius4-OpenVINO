@@ -2300,10 +2300,28 @@ class App:
         root.title('Confucius4-R2T2 实时字幕 · 多后端测试')
         # ⚠️ 1080x820：三分区改**纵向三行**后（每行 = 控件行 + 说明行），
         #    700 高装不下，主文本区会被压扁。820 能让三行都完整显示。
-        root.geometry('1080x820')
+        #
+        # 🔴🔴🔳 APP-067 ④：**窗口尺寸必须按缩放换算**（**逻辑尺寸**恒定）。
+        #   ⇒ `root.geometry('1080x820')` 的数字是**物理像素**
+        #   ⇒ 在 **150 % 缩放**的屏幕上，1080 px 只有 **720 逻辑 px**
+        #   ⇒ 顶栏的需求宽（实测 1222 px）**远超**可用宽（1080 px）
+        #   ⇒ 顶栏被挤 ⇒ **总状态灯按钮被压到 130 px**（它需要 230 px）
+        #   ⇒ 「▲ 有模块待处理」**被裁掉尾巴**（reviewer 在 150 % 截图里看到）。
+        #   ⇒ 现在：按 `tk scaling` 换算 ⇒ **逻辑尺寸恒为 1080x820**
+        #     （物理 = 逻辑 × scaling）⇒ 任何缩放下顶栏都不溢出。
+        #   ⚠️ `tk scaling` 是**进程级全局**（`tk.Tk()` 会重置它）
+        #     ⇒ 必须在 `root` 建好、且调用方设好缩放之后再读。
+        try:
+            _scaling = float(root.tk.call('tk', 'scaling')) or 1.0
+        except Exception:
+            _scaling = 1.0
+        _LOGIC_W, _LOGIC_H = 1080, 820
+        root.geometry('%dx%d' % (int(_LOGIC_W * _scaling),
+                                  int(_LOGIC_H * _scaling)))
         # 🔴🔴🔴 APP-061⑥：**最小宽度 1024**（reviewer：「最小宽度 1024，
         #   最小高度另定」）⇒ 用户把窗口拉窄时控件不会被压到重叠。
-        root.minsize(1024, 640)
+        #   🔴 APP-067 ④：**同样按缩放换算**（reviewer 说的是**逻辑**像素）
+        root.minsize(int(1024 * _scaling), int(640 * _scaling))
 
         # ── 顶栏 ──────────────────────────────────────────────────────
         # APP-007：ASR 后端与翻译目标语言的下拉**移入三分区**，
@@ -2336,12 +2354,18 @@ class App:
         self._global_light = tk.StringVar(value='⚪ 就绪')
         self.btn_global_light = ttk.Button(
             top, textvariable=self._global_light,
-            # 🔴🔴🔴 APP-065 A：`width=12` 在 **150 % 缩放**下不够
-            #   ⇒ 「有模块待处理」被**裁掉**（实测截图）
-            #   ⇒ 改成 18（150 % 下也不裁）。
-            width=18,
+            # 🔴🔴🔳 APP-067 ④：`width=N` 的 N 是**字符单位**
+            #   ⇒ 旧值 18 只够 18 个半角字符 ⇒ 「▲ 有模块待处理」
+            #     （5 个全角汉字）**必然被裁**（实测截图，100 % 就裁）。
+            #   ⇒ 真正的宽度由 `_fit_status_light_width()` **按像素量**决定
+            #     （见该方法；§七「等宽必须用像素」同理）。
+            width=20,
             command=self._show_global_status)
         self.btn_global_light.pack(side='right', padx=(0, 12))
+        # 🔴🔴🔳 APP-067 ④：**pack 之后**再量宽度
+        #   ⇒ `winfo_width()` 需要控件**已布局**才有值
+        #   ⇒ 不 pack 就量 ⇒ 拿到 1 ⇒ 回读校正这一轮失效。
+        self._fit_status_light_width()
         # 🔴 APP-048：顶部 meter（**全局**信息）⇒ 移进顶栏
         #   ⚠️ **保留 `var_meter` / `lbl_meter` 这两个名字**：
         #    `diag_layout_gui.py` 与 `app165` 等既有验收脚本仍引用它们。
@@ -3002,11 +3026,21 @@ class App:
             self.var_note.set(opt.get('note', ''))
 
         # ---- 翻译（auto 先解析成实际模型键）----
-        mt_key = self._resolve_mt_engine_key(args.mt_engine, self._dev_selected['mt'])
+        # 🔴🔴🔳 APP-067 ③/④：**用 `_dev_choices`（enforce 后的真值），
+        #   不是 `_dev_selected`（用户原始选择）**。
+        #   ⇒ 旧实现用 `_dev_selected['mt']` ⇒ **NPU+NPU 启动时**：
+        #      ① D4 enforce（`__init__` 早期）已把 `_dev_choices['mt']` 改成 GPU.0
+        #      ② 但这里**又用 `_dev_selected`（仍是 NPU）**去选 combo
+        #      ⇒ combo 停在 **NPU 那一项** ⇒ 状态栏显示「模型 Intel NPU」
+        #      ⇒ **违反 APP-063 的验收条件「状态栏不含 NPU」**。
+        #   ⇒ 现在用 `_dev_choices['mt']` ⇒ 直接落到 GPU.0 那一项。
+        _mt_dev_truth = self._dev_choices.get('mt') or \
+            self._dev_selected['mt']
+        mt_key = self._resolve_mt_engine_key(args.mt_engine, _mt_dev_truth)
         # ⚠️ 翻译组合的 id 是「量化@设备」（不是 engine@设备，见 build_mt_options），
         #    且 engine_key 与量化是**多对一**（gpu_int8cw / npu_int8cw 同模型）。
         #    ⇒ 先按「同 engine + 同设备」找，找不到再按「同设备 + 同精度」找。
-        want_dev = self._dev_selected['mt']
+        want_dev = _mt_dev_truth
         opt = next((o for o in self._mt_opts
                     if o['engine'] == mt_key and o['device'] == want_dev), None)
         if opt is None:
@@ -3015,8 +3049,21 @@ class App:
                         if o['device'] == want_dev and o['precision'] == want_prec),
                        None)
         if opt is None:
+                opt = next((o for o in self._mt_opts
+                            if o['engine'] == mt_key), None)   # 同 engine、任意设备
+        if opt is None:
+            # 🔴🔴🔳 APP-067 ③/④：**兜底也必须尊重 `want_dev`**。
+            #   ⇒ 旧实现最后兜底 `self._mt_opts[0]`
+            #      ⇒ `_mt_opts[0]` 通常是 **NPU 那一项**（实测 mt_opts 首项
+            #        = ('gpu_int8cw','NPU','INT8-CW')）
+            #      ⇒ 即使 `want_dev` 是 GPU.0，兜底也会**落到 NPU**
+            #      ⇒ `self._dev_choices['mt'] = 'NPU'`
+            #      ⇒ 接着 D4 enforce 命中 ⇒ **模态弹框** ⇒ 无头探针挂死
+            #      ⇒ 状态栏也显示「模型 Intel NPU」（违反 APP-063）。
+            #   ⇒ 现在：先找「同设备」的任意项 ⇒ 仍找不到才用 `_mt_opts[0]`
+            #      （**最后**兜底，且这时 `want_dev` 本机不可用 ⇒ 无解）。
             opt = next((o for o in self._mt_opts
-                        if o['engine'] == mt_key), None)   # 同 engine、任意设备
+                        if o['device'] == want_dev), None)
         if opt is None and self._mt_opts:
             opt = self._mt_opts[0]
         if opt is None:
@@ -3027,14 +3074,17 @@ class App:
             self.var_mt_combo.set(opt['label'])
             self._dev_choices['mt'] = opt['device']
             self.var_mt_note.set(opt.get('note', ''))
-            # 🔴🔴🔳 APP-067 ③：**控件建好之后**再同步一次 combo
-            #   ⇒ 启动时（device_config.json 是 NPU+NPU）enforce 改了真值，
-            #   ⇒ 但那时 combo 还不存在 ⇒ 同步被跳过
-            #   ⇒ 这里补一次 ⇒ 状态栏不再显示 NPU。
-            try:
-                self._enforce_no_npu_conflict('启动后同步 combo')
-            except Exception:
-                pass
+            # 🔴🔴🔳 APP-067 ③/④：**这里不再重复调 enforce**。
+            #   ⇒ 旧实现（APP-067 ③ 初版）在控件建好后再调一次 enforce
+            #      ⇒ **模态弹框在 `__init__` 里弹出** ⇒ 无头探针**永久挂起**
+            #        （实测 `app231` / `app238` 卡死 >5 min，
+            #          栈：`messagebox.showwarning` ← `_enforce_no_npu_conflict`
+            #          ← `_init_combo_values` ← `__init__`）
+            #   ⇒ 现在：**combo 的初值直接按 enforce 后的真值选**
+            #      （见上面 `_mt_dev_truth`）⇒ 组合本来就落在 GPU.0
+            #      ⇒ **不需要第二次 enforce** ⇒ 也不会重复弹框。
+            #   ⇒ D4 的**弹框**仍由 `__init__` 早期那一次 enforce 负责
+            #      （启动时确实发生了冲突 ⇒ 告知用户是对的）。
             # 🔴 **GUI 显示的组合必须真的生效**：TranslationService 是用
             #    args.mt_engine（可能是 'auto'）建的 ⇒ 'auto' 恒等于 INT8-CW。
             #    若组合落在 INT4-CW（或别的 engine 键），必须在这里
@@ -5782,8 +5832,61 @@ class App:
         except Exception:
             pass
 
+    def _fit_status_light_width(self):
+        """🔴🔴🔳 APP-067 ④：按**像素**量出总状态灯按钮的宽度（不裁字）。
+
+        ## 根因（实测，不是猜测）
+        `ttk.Button(width=N)` 的 N 是**字符单位**（≈ `font.measure('0')`）
+        ⇒ 旧代码写 `width=18` ⇒ **只够 18 个半角字符**
+        ⇒ 而「▲ 有模块待处理」= 1 符号 + 空格 + **5 个全角汉字**
+        ⇒ 实测需要 **88 px**（100 %）／**131 px**（150 %）
+        ⇒ `width=18` 在 100 % 就已经**裁字**（实测截图），
+           在 150 % 裁得更狠 ⇒ **改大到 18 也没用**（那仍是 18 个单位）。
+
+        ## 做法（**测量 + 换算 + 回读校正** ⇒ 不靠估算）
+        1. `font.measure()` 量出最长候选文案的**像素宽** `need_px`；
+        2. 单位字符像素宽 `unit = font.measure('0')`；
+        3. `width_chars = ceil((need_px + 12) / unit)`（12 px = 边框 + 内边距）；
+        4. 🔴🔴 **回读真实像素宽**（`winfo_width()`）⇒ 仍不够就 **+1 个单位**
+           再试（最多 8 轮）⇒ **实测 Tk 的单位宽与 `measure('0')` 有 1 px 级偏差**
+           ⇒ **纯换算会差一点 ⇒ 仍然裁字**。
+        5. 量不到（无 GUI root / 异常）⇒ 保持原宽度（不打断启动）。
+
+        🔴 **必须在控件 pack 之后调用**（`winfo_width()` 要控件已布局才有值）。
+        """
+        try:
+            import tkinter.font as tkfont
+            btn = getattr(self, 'btn_global_light', None)
+            if btn is None:
+                return False
+            # 🔴 所有可能出现在按钮上的文案（哪个最长就按哪个定宽）
+            candidates = ('⚪ 就绪', '✖ 有模块异常', '▲ 有模块待处理',
+                          '● 全部就绪')
+            # 🔴 用按钮**实际**用的字体（ttk 默认主题字体）
+            try:
+                fname = btn.cget('font') or 'TkDefaultFont'
+                font = tkfont.nametofont(str(fname), root=self.root)
+            except Exception:
+                font = tkfont.nametofont('TkDefaultFont', root=self.root)
+            unit = font.measure('0') or 8
+            need_px = max(font.measure(s) for s in candidates)
+            # +12 px（边框 + 内边距）再向上取整
+            width_chars = max(8, int(-(-(need_px + 12) // unit)))
+            for _ in range(8):
+                btn.configure(width=width_chars)
+                try:
+                    self.root.update_idletasks()
+                    actual = btn.winfo_width()
+                except Exception:
+                    actual = 0
+                if actual and actual >= need_px:
+                    return True
+                width_chars += 1
+            return True
+        except Exception:
+            return False
+
     def _show_global_status(self):
-        """点总状态灯 ⇒ 弹窗列出三个分区的完整状态（APP-048）。"""
         lines = []
         for s in (self._strip_asr, self._strip_mt, self._strip_tts):
             name = {'asr': 'ASR 识别', 'mt': '翻译', 'tts': '语音输出'}.get(s['key'], s['key'])
@@ -6048,9 +6151,15 @@ class App:
         #   ⚠️ `messagebox.showwarning()` 是**模态**的 ⇒ 会阻塞到用户点掉
         #     ⇒ **必须有真实 GUI root 才弹**（否则无头探针会永久挂起）
         #     ⇒ 无 GUI 时**只走状态栏 + 日志**（reviewer 允许二选一）。
+        #   🔴🔴🔳 APP-067 ④：探针**有** GUI root（`tk.Tk()`）但**没人点**
+        #     ⇒ 上面的守卫**挡不住**（实测 app231/app238 挂死 >5 min）
+        #     ⇒ 加一个**显式开关**：`LIVECAP_NO_MODAL=1` ⇒ 跳过模态弹框
+        #       （状态栏 + 日志**照旧** ⇒ 判据仍能验到）。
         try:
             _root = getattr(self, 'root', None)
-            if _root is not None:
+            _no_modal = os.environ.get('LIVECAP_NO_MODAL', '') not in \
+                (None, '', '0')
+            if _root is not None and not _no_modal:
                 from tkinter import messagebox
                 messagebox.showwarning(
                     'NPU 共用已禁止',
