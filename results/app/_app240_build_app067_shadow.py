@@ -58,6 +58,9 @@ REPO_OVERRIDES = (
     'tts_worker.py',
     'tts_service.py',
     'speaker_tracker.py',
+    # 🔴 APP-067 ⑤：seg IR **按窗口选变体**（5 s ⇒ fp16-w5）
+    #   ⇒ 漏了它 ⇒ 影子包仍加载 10 s 的 fp16 IR ⇒ 旁路零标签
+    'speaker_assets.py',
 )
 
 #: 🔴 ASR-045 后的 **4 个**交付文件
@@ -85,6 +88,8 @@ FEATURES = (
      'APP-067 ④ 按钮按像素定宽'),
     (os.path.join('app', 'asr_spk', 'asr_spk_window.py'), 'WIN_S_DEFAULT = 5.0',
      'ASR-045 唯一事实来源 5 s'),
+    (os.path.join('app', 'speaker_assets.py'), 'fp16-w5',
+     'APP-067 ⑤ seg IR 按窗口选变体'),
 )
 
 

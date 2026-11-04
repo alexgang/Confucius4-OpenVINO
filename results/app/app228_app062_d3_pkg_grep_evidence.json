@@ -1,7 +1,7 @@
 {
  "script": "app228_app062_d3_pkg_grep.py",
  "correction": "APP-062 ③（D3）",
- "ts": "2026-11-02 11:05:24",
+ "ts": "2026-11-02 20:41:38",
  "repo": "C:\\Users\\Trekker-PTL\\confucius4-openvino",
  "pkg_root": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2",
  "pkg_exclude_sha256": "555039da4ce4df85d3dedbfcf2f41f0b6cb15ae2aa00b1bc2988b4c079b1c357",

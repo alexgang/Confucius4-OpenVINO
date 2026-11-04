@@ -77,7 +77,10 @@ MODEL_KEEP_FILES = (
 )
 
 #: 顶层**保留**目录/文件（相对包根）
-ROOT_KEEP_DIRS = ('app', 'python', 'models', 'docs')
+#: 🔴 **`models` 不在这里** ⇒ 它走下面的**模型白名单**逐项拷
+#:   （放进来 ⇒ 整个 models/ 原样拷过去 ⇒ 白名单失效 ⇒
+#:     实测 models = 12 233 MB ≈ v2.2 的 99.8 % ⇒ 「最小包」名不副实）
+ROOT_KEEP_DIRS = ('app', 'python', 'docs')
 ROOT_KEEP_FILES = (
     'NOTICE', 'THIRD_PARTY.md', 'README_zh.md', 'README_en.md',
     'Start_LiveCaption.bat', 'Diagnose.bat', 'release.json',
@@ -91,6 +94,32 @@ FORBIDDEN_NAMES = ('tts_cuda.py', 'tts_cuda_sidecar.py',
                     'clone_collector.py', 'npu_delivery_backend.py',
                     'npu_embeds_backend.py', 'segment_encoder_backend.py',
                     'win_clickthrough.py', 'time_stretch.py')
+
+#: 🔴🔴 **OpenVINO 的「模型前端」插件**（APP-066：「不能 import torch 或 cuda」）
+#:
+#: `python/Lib/site-packages/openvino/frontend/pytorch/` 里是 **PyTorch 模型的
+#: 转换器**（`import torch` × N）⇒ **客户机根本用不到**（App 只读**已导出的
+#: IR** ⇒ `ov.Core().read_model()` ⇒ **不经过任何前端**）。
+#: ⇒ 连同 `libs/openvino_pytorch_frontend.dll`（2.7 MB）**一起剔除**。
+#:
+#: ⚠️ **可安全剔除的依据**：`openvino/frontend/frontend.py` **不 import** pytorch
+#:   （实测 `grep pytorch frontend.py` = 0 命中）⇒ 前端是**按需加载**的
+#:   （`FrontEndManager` 按扩展名找插件）⇒ 不加载它**不影响** IR 读取与推理。
+#: ⚠️ 同理剔除 `jax` / `paddle` / `tensorflow`（同样是**模型转换**前端）。
+OPENVOIN_FRONTEND_DIRS = (
+    os.path.join('python', 'Lib', 'site-packages', 'openvino', 'frontend',
+                 'pytorch'),
+    os.path.join('python', 'Lib', 'site-packages', 'openvino', 'frontend',
+                 'jax'),
+    os.path.join('python', 'Lib', 'site-packages', 'openvino', 'frontend',
+                 'paddle'),
+    os.path.join('python', 'Lib', 'site-packages', 'openvino', 'frontend',
+                 'tensorflow'),
+)
+OPENVOIN_FRONTEND_LIBS = (
+    os.path.join('python', 'Lib', 'site-packages', 'openvino', 'libs',
+                 'openvino_pytorch_frontend.dll'),
+)
 
 #: 🔴 绝对路径黑名单（开发目录）
 DEV_PATH_PATTERNS = (
@@ -154,8 +183,9 @@ def copy_file(src, dst):
 
 
 def build(dst):
-    # 🔴 **不 rmtree**（本机的 safe-delete 守卫会拦 ⇒ 且这是**本脚本自己新建**的
-    #   目录 ⇒ 只需「不存在才建」；已存在 ⇒ 逐文件覆盖即可）。
+    # 🔴 **不 rmtree**（本机的 safe-delete 守卫会拦 ⇒ 逐文件删极慢
+    #   ⇒ 实测 11 458 个文件删了 4 min 还没删完 ⇒ 且**会占 CPU 挡住
+    #   设备级作业的安静窗口** ⇒ 本轮实测踩过）。
     #   ⚠️ 且 APP-066 明文：「任何已有版本的目录和 zip 都**不覆盖、不删除**」
     #   ⇒ 若目标已存在 ⇒ **直接退出**，绝不删改。
     if os.path.isdir(dst):
@@ -209,6 +239,21 @@ def build(dst):
             if d == '__pycache__':
                 _rmtree_quiet(os.path.join(root, d))
                 dirs.remove(d)
+    # ── ⑦ 剔除 OpenVINO 的「模型转换前端」（含 torch/jax/paddle/tf）──
+    #   ⇒ App 只读**已导出的 IR** ⇒ 用不到这些前端
+    for rel in OPENVOIN_FRONTEND_DIRS:
+        p = os.path.join(dst, rel)
+        if os.path.isdir(p):
+            _rmtree_quiet(p)
+            removed.append(rel.replace('\\', '/') + '/（OV 模型转换前端）')
+    for rel in OPENVOIN_FRONTEND_LIBS:
+        p = os.path.join(dst, rel)
+        if os.path.isfile(p):
+            try:
+                os.remove(p)
+                removed.append(rel.replace('\\', '/'))
+            except OSError:
+                pass
     return removed
 
 

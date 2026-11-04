@@ -1,0 +1,187 @@
+{
+ "script": "app227_app062_d1_d4.py",
+ "correction": "APP-062（D1–D4）",
+ "ts": "2026-11-04 21:02:51",
+ "repo": "C:\\Users\\Trekker-PTL\\confucius4-openvino",
+ "files": {
+  "live_caption\\live_caption_app.py": "bccf2d63268794204b2914e6d330dfa4a1989597e0504f202c19f3626d28eed6",
+  "live_caption\\speaker_tracker.py": "683f84aa23c07da8ea4e1a7273c271da329b97550c89ebb44ee7b14a5ddd4e40",
+  "pkg_exclude.py": "555039da4ce4df85d3dedbfcf2f41f0b6cb15ae2aa00b1bc2988b4c079b1c357"
+ },
+ "checks": [
+  {
+   "name": "d1_no_hardcoded_win_s",
+   "ok": true,
+   "detail": "`_WIN_S` 直接赋值字面量的处数=0（须 0 ⇒ 已改成同源解析）"
+  },
+  {
+   "name": "d1_reads_asr_constant",
+   "ok": true,
+   "detail": "源码里存在「从 ASR 侧读 WIN_S」的解析逻辑（优先 `asr_spk_window` ＝ ASR-041 的**唯一事实来源**，兜底 `asr052_spk_runtime` ＝ 随包分发的运行时内核）"
+  },
+  {
+   "name": "d1_config_env_override",
+   "ok": true,
+   "detail": "存在配置项 `LIVECAP_SPK_WINDOW_S`（⇒ ASR-040 的 10s vs 5s 可不改代码）"
+  },
+  {
+   "name": "d1_invalid_falls_back",
+   "ok": true,
+   "detail": "非法值（非数字 / ≤0）退回默认 `_WIN_S_DEFAULT`"
+  },
+  {
+   "name": "d1_runtime_value",
+   "ok": true,
+   "detail": "实际解析出的窗长=5.0；ASR 侧唯一事实来源 `asr_spk_window.WIN_S`=None（须**相等** ⇒ 同源；旧口径「写死 10.0」已被 APP-063 ③ 取代）"
+  },
+  {
+   "name": "d1_runtime_source_is_shared",
+   "ok": true,
+   "detail": "实际来源='同源 asr_spk_window.WIN_S=5.0'（须指向 ASR 侧常量 ⇒ **同源**；§131 已对齐 ASR-041 的`asr_spk_window` 单一事实来源）"
+  },
+  {
+   "name": "d1_env_override_works",
+   "ok": true,
+   "detail": "设 `LIVECAP_SPK_WINDOW_S=5.0` ⇒ 实际窗长='5.0 配置项 LIVECAP_SPK_WINDOW_S=5.0'（须 5.0）"
+  },
+  {
+   "name": "d2_helper_exists",
+   "ok": true,
+   "detail": "存在 `_enable_speaker_for_clone` 方法"
+  },
+  {
+   "name": "d2_syncs_checkbox",
+   "ok": true,
+   "detail": "方法里同步了**勾选框** `var_speaker`"
+  },
+  {
+   "name": "d2_syncs_runtime_flag",
+   "ok": true,
+   "detail": "方法里同步了**运行时开关** `_speaker_enabled`"
+  },
+  {
+   "name": "d2_syncs_bridge",
+   "ok": true,
+   "detail": "方法里同步了**旁路桥接器** `_spk_bridge.enabled`"
+  },
+  {
+   "name": "d2_status_text",
+   "ok": true,
+   "detail": "存在状态栏文案「说话人分离：开（克隆需要）」（reviewer 原文）"
+  },
+  {
+   "name": "d2_voice_callback_calls_helper",
+   "ok": true,
+   "detail": "选「跟随说话人」的回调里调用了 `_enable_speaker_for_clone`"
+  },
+  {
+   "name": "d2_clone_needs_bypass_warning",
+   "ok": true,
+   "detail": "旁路关闭 + 克隆开启 ⇒ 状态栏显示「关（克隆需开）」告警"
+  },
+  {
+   "name": "d2_counterproof",
+   "ok": true,
+   "detail": "把**全部** 3 处自动开启调用替换为 pass（源码行 [2983, 3948, 4237]）⇒ 判据应 FAIL（实得 caught=True）"
+  },
+  {
+   "name": "d3_pkg_marker_helper",
+   "ok": true,
+   "detail": "存在 `_in_customer_package()`（用包内 `MANIFEST.json` 判定）"
+  },
+  {
+   "name": "d3_marker_is_manifest",
+   "ok": true,
+   "detail": "判据用的是包内特有的 `MANIFEST.json`（开发树没有 ⇒ 不会误判）"
+  },
+  {
+   "name": "d3_gui_hides_cuda",
+   "ok": true,
+   "detail": "GUI 选项构造里有「客户包 ⇒ 不列 CUDA」的分支"
+  },
+  {
+   "name": "d3_cli_rejects_cuda",
+   "ok": true,
+   "detail": "CLI 里有「客户包 + --tts-device CUDA ⇒ 报错退出(2)」的分支"
+  },
+  {
+   "name": "d3_pkg_excludes_cuda_modules",
+   "ok": true,
+   "detail": "`pkg_exclude.INTERNAL_EXACT` 排除了两个 CUDA 模块⇒ **包里不残留 `_fq3tts_env` 路径**（结构性保证）"
+  },
+  {
+   "name": "d3_counterproof",
+   "ok": true,
+   "detail": "把 `app/tts_cuda.py` 的排除去掉 ⇒ 判据应 FAIL（实得 caught=True）"
+  },
+  {
+   "name": "d3_dev_keeps_cuda",
+   "ok": true,
+   "detail": "开发树**保留** `tts_cuda.py` / `tts_cuda_sidecar.py`（用于对照基准）"
+  },
+  {
+   "name": "d4_helper_exists",
+   "ok": true,
+   "detail": "存在 `_enforce_no_npu_conflict` 方法"
+  },
+  {
+   "name": "d4_changes_mt",
+   "ok": true,
+   "detail": "冲突时把 **MT** 改成 `GPU.0`（reviewer：「MT 自动改到 GPU.0」）"
+  },
+  {
+   "name": "d4_notifies_user",
+   "ok": true,
+   "detail": "有**状态栏告知** ＋ **弹框告知**"
+  },
+  {
+   "name": "d4_writes_log",
+   "ok": true,
+   "detail": "有**写进日志**（`_ui_log` ⇒ 落盘会话日志）"
+  },
+  {
+   "name": "d4_saves_config",
+   "ok": true,
+   "detail": "改完**落到 `device_config.json`**（下次启动仍是 GPU.0）"
+  },
+  {
+   "name": "d4_wired_mt_change",
+   "ok": true,
+   "detail": "MT 下拉变化 ⇒ 调用了 `_enforce_no_npu_conflict`"
+  },
+  {
+   "name": "d4_wired_tts_change",
+   "ok": true,
+   "detail": "TTS 下拉变化 ⇒ 调用了 `_enforce_no_npu_conflict`"
+  },
+  {
+   "name": "d4_wired_startup",
+   "ok": true,
+   "detail": "**启动时**（`device_config.json` 同组合）⇒ 也处理（reviewer 原文：「启动时如果 device_config.json 里是这种组合，也一样处理」）"
+  },
+  {
+   "name": "d4_behavior_mt_moved_to_gpu0",
+   "ok": true,
+   "detail": "MT=NPU + TTS=NPU ⇒ 改后 MT='GPU.0'（须 GPU.0）；changed=True"
+  },
+  {
+   "name": "d4_behavior_log_written",
+   "ok": true,
+   "detail": "日志行=['[device] 🔴 MT 与 TTS 同时在 NPU ⇒ 已禁止（APP-062 D4）⇒ MT 自动改到 GPU.0（来源：单元测试）']（须含 NPU 与 GPU.0）"
+  },
+  {
+   "name": "d4_behavior_idempotent",
+   "ok": true,
+   "detail": "已改过后再跑 ⇒ changed=False 日志新增=0 条（须 False / 0）"
+  },
+  {
+   "name": "d4_behavior_no_conflict_noop",
+   "ok": true,
+   "detail": "MT=GPU.0 + TTS=NPU（不冲突）⇒ changed=False 日志新增=0（须 False / 0）"
+  }
+ ],
+ "n_pass": 34,
+ "n_fail": 0,
+ "n_none": 0,
+ "verdict": "PASS"
+}

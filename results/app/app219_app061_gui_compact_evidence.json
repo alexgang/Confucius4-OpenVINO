@@ -9,31 +9,31 @@
   "shots": [
     {
       "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app061_dev_1280x800.png",
-      "bytes": 30702,
-      "mtime": "2026-11-02 11:04:03",
-      "sha256": "ceedddc55312fdf4b0a7f51a68264e9af5be00caa7b17e1313417a2afe813314",
+      "bytes": 40355,
+      "mtime": "2026-11-04 16:50:34",
+      "sha256": "b5d4f73d855c7dfc941ba1aad5ce6668d334bb979e5a5f9e9e483628f3b7acce",
       "size": "1280x800",
       "label": "dev"
     },
     {
       "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app061_dev_1024x800.png",
-      "bytes": 27034,
-      "mtime": "2026-11-02 11:04:05",
-      "sha256": "26b141463a4c6dc20195ebfa3e1f6630f2d06cf6303392f58f3c4c819d6f4125",
+      "bytes": 40355,
+      "mtime": "2026-11-04 16:50:36",
+      "sha256": "b5d4f73d855c7dfc941ba1aad5ce6668d334bb979e5a5f9e9e483628f3b7acce",
       "size": "1024x800",
       "label": "dev"
     }
   ],
   "measures": {
     "1280x800": {
-      "window_h": 800,
-      "caption_h": 631,
-      "caption_ratio_pct": 78.88
+      "window_h": 853,
+      "caption_h": 588,
+      "caption_ratio_pct": 68.93
     },
     "1024x800": {
-      "window_h": 800,
-      "caption_h": 631,
-      "caption_ratio_pct": 78.88
+      "window_h": 853,
+      "caption_h": 588,
+      "caption_ratio_pct": 68.93
     }
   },
   "checks": [
@@ -41,12 +41,6 @@
       "name": "G1 能构造 App",
       "group": "boot",
       "detail": "",
-      "result": "PASS"
-    },
-    {
-      "name": "G2 字幕区高度 ≥ 窗口高度 70 %（1280x800）",
-      "group": "layout",
-      "detail": "字幕区 631 px / 窗口 800 px = 78.88 %",
       "result": "PASS"
     },
     {
@@ -74,12 +68,6 @@
       "result": "PASS"
     },
     {
-      "name": "G2 字幕区高度 ≥ 窗口高度 70 %（1024x800）",
-      "group": "layout",
-      "detail": "字幕区 631 px / 窗口 800 px = 78.88 %",
-      "result": "PASS"
-    },
-    {
       "name": "G3 状态栏每个分区 1 行（1024x800）",
       "group": "layout",
       "detail": "各分区状态条高度=[21, 21, 21] px",
@@ -94,13 +82,13 @@
     {
       "name": "G5 1024 宽没有控件被截断/越界",
       "group": "layout",
-      "detail": "无越界控件（量到 26 个控件）",
+      "detail": "无越界控件（量到 29 个控件）",
       "result": "PASS"
     },
     {
       "name": "G5c 反证：真的越界控件仍被判 FAIL（判据非恒真）",
       "group": "counterproof",
-      "detail": "探针被捕获：[\"!label2(Label) 请求宽度 req=21006 > 可用 avail=1024（内容被裁剪） path=!label2 text='截断探针'\"]（量到 27 个控件）",
+      "detail": "探针被捕获：[\"!label(Label) 请求宽度 req=21006 > 可用 avail=1364（内容被裁剪） path=!label text='截断探针'\"]（量到 30 个控件）",
       "result": "PASS"
     },
     {
@@ -114,10 +102,22 @@
       "group": "layout",
       "detail": "无溢出",
       "result": "PASS"
+    },
+    {
+      "name": "G2 字幕区高度 ≥ 窗口高度 70 %（1280x800）",
+      "group": "layout",
+      "detail": "字幕区 588 px / 窗口 853 px = 68.93 %",
+      "result": "FAIL"
+    },
+    {
+      "name": "G2 字幕区高度 ≥ 窗口高度 70 %（1024x800）",
+      "group": "layout",
+      "detail": "字幕区 588 px / 窗口 853 px = 68.93 %",
+      "result": "FAIL"
     }
   ],
-  "n_pass": 13,
-  "n_fail": 0,
+  "n_pass": 11,
+  "n_fail": 2,
   "n_none": 0,
-  "verdict": "PASS"
+  "verdict": "FAIL"
 }

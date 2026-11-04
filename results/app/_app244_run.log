@@ -1,0 +1,68 @@
+=== ① 构建 MiniMVP 1.0-rc1 ===
+  [RESUME] 目标目录已存在 ⇒ 续建（幂等：补齐剔除 / README / MANIFEST / ACCEPTED / 证据）
+  已剔除：['python\\Lib\\site-packages\\openvino\\frontend\\pytorch ⇒ 移出到剔除暂存区 python__Lib__site-packages__openvino__frontend__pytorch__1', 'python\\Lib\\site-packages\\openvino\\frontend\\jax ⇒ 移出到剔除暂存区 python__Lib__site-packages__openvino__frontend__jax__1', 'python\\Lib\\site-packages\\openvino\\frontend\\paddle ⇒ 移出到剔除暂存区 python__Lib__site-packages__openvino__frontend__paddle__1', 'python\\Lib\\site-packages\\openvino\\frontend\\tensorflow ⇒ 移出到剔除暂存区 python__Lib__site-packages__openvino__frontend__tensorflow__1', 'python\\Lib\\site-packages\\openvino\\libs\\openvino_pytorch_frontend.dll ⇒ 移出到剔除暂存区 python__Lib__site-packages__openvino__libs__openvino_pytorch_frontend.dll__1', 'python\\Lib\\site-packages\\numba\\cuda ⇒ 移出到剔除暂存区 python__Lib__site-packages__numba__cuda__1', 'python\\Lib\\site-packages\\openvino\\preprocess\\torchvision ⇒ 移出到剔除暂存区 python__Lib__site-packages__openvino__preprocess__torchvision__1', 'docs/CUDA_TTS.md ⇒ 移出到剔除暂存区 docs__CUDA_TTS.md__1', 'docs/插件截图 ⇒ 移出到剔除暂存区 docs__插件截图__1', 'python\\Lib\\site-packages\\librosa\\__pycache__ ⇒ 移出到剔除暂存区 python__Lib__site-packages__librosa____pycache____1', 'python\\Lib\\site-packages\\librosa\\core\\__pycache__ ⇒ 移出到剔除暂存区 python__Lib__site-packages__librosa__core____pycache____1', '__pycache__ ×2 个目录（已移出）']
+  已 scrub 开发目录字面量的文件：5 个
+
+=== ② 导入冒烟测试（🔴 v1.0 的 P0 就是这里红的）===
+   live_caption_app       OK
+   speaker_tracker        OK
+   speaker_voice          OK
+   speaker_assets         OK
+   clone_collector        OK
+   translator             OK
+   tts_engine             OK
+   tts_engine_patch       OK
+   tts_service            OK
+   tts_worker             OK
+   gui_status             OK
+   caption_render         OK
+   seg_stream             OK
+   audio_source           OK
+   streaming_asr          OK
+   device_config          OK
+   backends               OK
+   import_smoke.ok = True
+   [鉴别力] v1.0 同判据 ⇒ ok=False（**期望 False** ⇒ 判据能识破旧缺陷）
+      v1.0 live_caption_app ⇒ FAIL: ModuleNotFoundError: No module named 'clone_collector'
+      v1.0 clone_collector ⇒ FAIL: ModuleNotFoundError: No module named 'clone_collector'
+
+=== ③ 依赖隔离扫描 ===
+   扫了 6543 个文本文件
+   开发目录路径命中：0
+   torch import：app/ 1 处 ｜ 第三方库 1337 处
+      [app] app\backends.py ← ^\s*import\s+torch\b
+      [3rd] python\Lib\site-packages\huggingface_hub\hub_mixin.py ← ^\s*import\s+torch\b
+      [3rd] python\Lib\site-packages\huggingface_hub\_tensorboard_logger.py ← ^\s*from\s+torch\b
+      [3rd] python\Lib\site-packages\huggingface_hub\serialization\_torch.py ← ^\s*import\s+torch\b
+      [3rd] python\Lib\site-packages\huggingface_hub\serialization\_torch.py ← ^\s*from\s+torch\b
+      [3rd] python\Lib\site-packages\openvino\tools\ovc\convert_impl.py ← ^\s*import\s+torch\b
+      [3rd] python\Lib\site-packages\openvino\tools\ovc\moc_frontend\pytorch_frontend_utils.py ← ^\s*import\s+torch\b
+   CUDA 代码命中：app/ 0 处 ｜ 全包 21 处
+   DLL 73（464.5 MB）｜PYD 240（96.0 MB）｜EXE 26
+   CUDA/torch DLL：无 ✅
+
+=== ④ 体积（对**已建成的包**现算）===
+   app                                       1.2 MB
+   models                                 6114.0 MB
+   python                                  728.7 MB
+   docs                                      0.0 MB
+   models/encoder-int8                     305.1 MB
+   models/decoder-gpu-int8                1661.3 MB
+   models/mt                               992.3 MB
+   models/qwen3tts                        2546.7 MB
+   models/tokenizer                         15.2 MB
+   models/embed_tokens_f16.npy             593.5 MB
+   MiniMVP 总计                             6843.9 MB（v2.2 = 13058.6 MB ⇒ 52.4 %）
+   文件数 10507
+
+=== ⑤ 构建闸门 ===
+   PASS  G1   导入冒烟测试全绿（🔴 v1.0 的 P0 就是这里红的） | n_fail=0
+   PASS  G2   包内无开发目录绝对路径 | hits=0
+   PASS  G3   包内无 CUDA/torch DLL | cuda_dlls=无
+   PASS  G4   包内 app/ 无 CUDA 依赖 | app cuda hits=0
+   PASS  G5   包内 app/ == 开发树（仅差 scrub） | checked=17 diffs=0
+   PASS  G6   体积明显小于 v2.2（≤ 70 %） | 52.4 %（6843.9 MB vs 13058.6 MB）
+   PASS  G7   鉴别力：同判据在**已知有缺陷**的 v1.0 上必须 FAIL | v1.0 ok=False
+
+证据：C:\Users\Trekker-PTL\confucius4-openvino\results\app\app244_minimvp_rc1_build_evidence.json
+EXIT=0

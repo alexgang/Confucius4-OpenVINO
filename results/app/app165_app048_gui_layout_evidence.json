@@ -1,7 +1,7 @@
 {
   "suite": "app165_app048_gui_layout",
   "verdict": "PASS",
-  "n_pass": 64,
+  "n_pass": 65,
   "n_fail": 0,
   "passes": [
     "A1 渲染出单行文本",
@@ -36,7 +36,7 @@
     "C1 能构造 App",
     "C2 三个分区都有状态条",
     "C3 找到三分区容器",
-    "C4 分区数 = 3",
+    "C4 分区数 = 5（APP-065 A 的 5 组）",
     "C5 asr 状态条在自己的分区里（不在窗口顶部）",
     "C5 mt 状态条在自己的分区里（不在窗口顶部）",
     "C5 tts 状态条在自己的分区里（不在窗口顶部）",
@@ -67,7 +67,8 @@
     "C19 mt 状态条高度 > 8px（可见）",
     "C19 tts 状态条高度 > 8px（可见）",
     "C20 长文本 note 行已启用换行（wraplength）",
-    "C21 长文本 note 行都不横向溢出"
+    "C21 长文本 note 行都不横向溢出",
+    "C21c 反证：真溢出的长文本行仍被判 FAIL（判据非恒真）"
   ],
   "fails": [],
   "dpi_awareness": true,
@@ -75,25 +76,26 @@
     {
       "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app048_layout_1920x1080.png",
       "captured_ok": true,
-      "bytes": 88051,
-      "mtime": "2026-10-31 16:53:59",
-      "sha256": "a8beaaf84b2349ede0296239728bd573ec3ed50971ce47909249b12a11550357"
+      "bytes": 42961,
+      "mtime": "2026-11-04 16:50:24",
+      "sha256": "5ed7a8a174d574d8f5c7c66290ef5fa902fec3df4452f0a8f38e0be2e20990dc"
     },
     {
       "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app048_layout_1280x720.png",
       "captured_ok": true,
-      "bytes": 82692,
-      "mtime": "2026-10-31 16:53:59",
-      "sha256": "8e3820c5212a13c4e2799a1fdca7623f48095f75d25890d2ac9ed27060eff983"
+      "bytes": 39664,
+      "mtime": "2026-11-04 16:50:25",
+      "sha256": "5f32817a857c21f4b79a25f7bdcd9b984d53bcb425ad6e8ded31320a12eeb3ef"
     },
     {
       "path": "C:\\Users\\Trekker-PTL\\shared\\app_gui_layout\\app048_layout_mt_failed.png",
       "captured_ok": true,
-      "bytes": 90448,
-      "mtime": "2026-10-31 16:54:01",
-      "sha256": "969cb806992817b1d13cc58d8e4076825af5f04ea7c5cb88aa081c4510de1026"
+      "bytes": 45822,
+      "mtime": "2026-11-04 16:50:26",
+      "sha256": "14b0708e2e4ed9e91740568fe2a7a7ef82b2d96f448a86d429121422e6676949"
     }
   ],
-  "diff_pixels_normal_vs_failed": 9492,
-  "error_red_pixels_in_failed": 767
+  "diff_pixels_normal_vs_failed": 6551,
+  "error_red_pixels_in_failed": 787,
+  "pkg_under_test": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption"
 }

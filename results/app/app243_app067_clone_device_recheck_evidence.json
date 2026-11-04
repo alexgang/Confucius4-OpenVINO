@@ -1,0 +1,201 @@
+{
+  "script": "_app243_app067_clone_device_recheck.py",
+  "correction": "APP-067 ①（克隆 0 % 根因）· 设备级复核（上一会话跑完未分析）",
+  "ts": "2026-11-04 20:41:46",
+  "device_lock": "不需要（只分析盘上已有产物，不跑模型 ⇒ 不占 GPU/NPU）",
+  "inputs": {
+    "jsonl": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone.tts.jsonl",
+      "bytes": 148893,
+      "mtime": "2026-11-04 17:25:16",
+      "sha256": "4255c34e3f47727913ff019f6f6138ff5aebbdf4689174229521e69a2cd68bfd"
+    },
+    "log": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone.log",
+      "bytes": 71488,
+      "mtime": "2026-11-04 17:25:17",
+      "sha256": "7d5fc9d7de1c2d66fb470aeae74417beb8b271233928462191a09fc60ba110e5"
+    }
+  },
+  "run_split": {
+    "gap_s": 60.0,
+    "n_runs": 2,
+    "n_id_resets": 1,
+    "cross_check_ok": true,
+    "runs": [
+      {
+        "n_rows": 76,
+        "t_first": 375327.714,
+        "t_last": 375668.274,
+        "voice_kind_counts": {
+          "preset": 76
+        }
+      },
+      {
+        "n_rows": 42,
+        "t_first": 376621.5144,
+        "t_last": 376828.336,
+        "voice_kind_counts": {
+          "preset": 1,
+          "clone": 41
+        }
+      }
+    ],
+    "note": "jsonl 跨运行累加 ⇒ 必须按 t_submit 断层切 run；分析旧 run ⇒ 假 FAIL（上一会话的 app241 就是这么算的）"
+  },
+  "analyzed_run": "latest",
+  "checks": [
+    {
+      "name": "字段存在性（voice_kind / voice_spk）",
+      "verdict": true,
+      "detail": {
+        "rows": 42,
+        "missing_fields": []
+      },
+      "arm_label": "latest_run"
+    },
+    {
+      "name": "⑤-① voice_kind=clone 占比 ≥ 80 %",
+      "verdict": true,
+      "detail": {
+        "n_rows": 42,
+        "voice_kind_counts": {
+          "preset": 1,
+          "clone": 41
+        },
+        "pct_voice_kind_clone": 0.9761904761904762,
+        "limit": 0.8
+      },
+      "arm_label": "latest_run"
+    },
+    {
+      "name": "带 voice_spk 的句子占比（辅助口径）",
+      "verdict": true,
+      "detail": {
+        "n_with_spk": 36,
+        "n_rows": 42,
+        "pct": 0.8571428571428571,
+        "note": "APP-067 ①(b) 的原始口径是「带 spk 的句子占比 ≥ 80 %」"
+      },
+      "arm_label": "latest_run"
+    },
+    {
+      "name": "①「没有可用音色 / 没有可用引擎」= 0",
+      "verdict": true,
+      "detail": {
+        "hits": {
+          "没有可用的音色": 0,
+          "没有可用引擎 ⇒ spk 音色登记失败": 0,
+          "没有可用引擎 ⇒ 克隆无法生效": 0
+        },
+        "total": 0
+      },
+      "arm_label": "latest_run"
+    },
+    {
+      "name": "worker 加载期排队 ⇒ 加载完成后补登记",
+      "verdict": true,
+      "detail": {
+        "enqueue_line": 1,
+        "drain_line": 1,
+        "registered_line": 2,
+        "note": "APP-067 ①(a) 的验收点"
+      },
+      "arm_label": "latest_run"
+    },
+    {
+      "name": "spk_update 逐段回填（≥ 1 条）",
+      "verdict": true,
+      "detail": {
+        "n_spk_update": 33
+      },
+      "arm_label": "latest_run"
+    },
+    {
+      "name": "定时克隆更新 = 0 次",
+      "verdict": true,
+      "detail": {
+        "n_timed_clone_update": 0
+      },
+      "arm_label": "latest_run"
+    },
+    {
+      "name": "D1 窗口 = 5.000 s（且不是 10.000 s）",
+      "verdict": true,
+      "detail": {
+        "n_5s": 45,
+        "n_10s": 0
+      },
+      "arm_label": "latest_run"
+    },
+    {
+      "name": "说话人音色登记成功（≥ 1 次）",
+      "verdict": true,
+      "detail": {
+        "n_register": 2
+      },
+      "arm_label": "latest_run"
+    }
+  ],
+  "n_pass": 9,
+  "n_fail": 0,
+  "n_none": 0,
+  "counterproofs": [
+    {
+      "check": "K1 旧 run（修复前）上 ⑤-① 必须 FAIL",
+      "broke": false,
+      "verdict": "PASS",
+      "detail": {
+        "n_rows": 76,
+        "voice_kind_counts": {
+          "preset": 76
+        },
+        "pct_voice_kind_clone": 0.0,
+        "limit": 0.8
+      }
+    },
+    {
+      "check": "K2 字段漂移（voice_kind 改名）必须被抓（不得假 PASS）",
+      "broke": false,
+      "verdict": "PASS",
+      "detail": {
+        "missing_fields": [
+          "voice_kind"
+        ],
+        "why": "jsonl 无该字段 ⇒ 判据读不到真值 ⇒ 无法判定"
+      }
+    },
+    {
+      "check": "K3 删掉「补登记排队的 spk 音色」行 ⇒ 排队补登记检查必须 FAIL",
+      "broke": false,
+      "verdict": "PASS",
+      "detail": {
+        "enqueue_line": 1,
+        "drain_line": 0,
+        "registered_line": 2,
+        "note": "APP-067 ①(a) 的验收点"
+      }
+    },
+    {
+      "check": "K4 切错 run（只看第一段）⇒ ⑤-① 必须 FAIL（不得假 PASS）",
+      "broke": false,
+      "verdict": "PASS",
+      "detail": {
+        "n_rows": 76,
+        "voice_kind_counts": {
+          "preset": 76
+        },
+        "pct_voice_kind_clone": 0.0,
+        "limit": 0.8
+      }
+    }
+  ],
+  "n_counterproof_failed_to_detect": 0,
+  "counterproof_ok": true,
+  "verdict": "PASS",
+  "meaning": "PASS = **APP-067 ① 的设备级验收在最新一次运行上成立**（clone 占比 ≥ 80 %、「没有可用引擎」= 0、加载期排队后补登记、spk_update 逐段回填、5.000 s 窗口）。≠ APP-067 ②（每段音色表 + wav 交付物）与 ④（ABBA / GUI 臂）—— 那两项**仍需持 MACHINE_LOCK 的设备级作业**，本轮未做。",
+  "supersedes": {
+    "evidence": "results/app/app241_app067_clone_device_evidence.json",
+    "why": "app241 的 ts=2026-11-04 16:58:45 ⇒ 分析的是**修复前**那次运行（影子包 17:08 才建好）⇒ 它的「clone 0 %」结论**对 17:25 那次运行不成立**；本证据是它的**更正**。"
+  }
+}

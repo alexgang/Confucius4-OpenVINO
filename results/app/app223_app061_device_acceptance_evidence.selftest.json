@@ -1,7 +1,7 @@
 {
  "script": "app223_app061_device_acceptance.py",
  "correction": "APP-061",
- "ts": "2026-11-02 04:43:41",
+ "ts": "2026-11-03 00:03:50",
  "cfg": {
   "self_test": true,
   "run": false,
@@ -17,8 +17,8 @@
   "log": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\session_20261101_212026.log",
   "exists": true,
   "parsed": {
-   "n_lines": 930,
-   "n_no_voice_error": 50,
+   "n_lines": 931,
+   "n_no_voice_error": 51,
    "n_fallback_preset": 83,
    "n_embedding": 27,
    "n_clone_updates": 27,
@@ -46,7 +46,7 @@
    {
     "name": "解析器抓到「没有可用的音色」> 0（reviewer 原文 50 次）",
     "ok": true,
-    "detail": 50
+    "detail": 51
    },
    {
     "name": "解析器抓到 10.0 s 定时克隆更新 > 0",
