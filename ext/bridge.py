@@ -722,24 +722,39 @@ def decompose_sync_rootcause(margins: List[dict], *, delay_sec: float,
     asr_vals = [float(m.get("asr_sec") or 0.0) for m in tts_segs]
     asr_mean = (sum(asr_vals) / len(asr_vals)) if asr_vals else 0.0
     out["asr_sec_mean"] = round(asr_mean, 3)
-    axis_gap = out.get("server_to_player_sec") or 0.0
-    dlat = out.get("downlink_latency_sec") or 0.0
-    non_tts = ((out.get("feed_lag_sec_mean") or 0.0)
-               + asr_mean
-               + (out.get("player_queue_sec_mean") or 0.0)
-               + axis_gap + dlat)
+    axis_gap = out.get("server_to_player_sec")
+    dlat = out.get("downlink_latency_sec")
+    pq_mean = out.get("player_queue_sec_mean")
+    # ★★ 未实测项**不计入**合计（否则 null 被当成 0 ⇒ 读起来像「实测为零」）。
+    #   取不到 ⇒ 该项记 None（**如实**），不参与求和。
+    #   ⇒ `non_tts_fixed_sec` = **已实测项之和** ⇒ 是**下界**，不是全量。
+    _parts = [(out.get("feed_lag_sec_mean"), "feed_lag_sec"),
+              (asr_mean, "asr_sec"),
+              (pq_mean, "player_queue_sec"),
+              (axis_gap, "axis_gap_sec"),
+              (dlat, "downlink_latency_sec")]
+    non_tts = 0.0
+    for _v, _k in _parts:
+        if _v is not None:
+            non_tts += float(_v)
     out["non_tts_fixed_sec"] = round(non_tts, 3)
+    out["non_tts_fixed_is_lower_bound"] = any(
+        v is None for v, _k in _parts)
     out["non_tts_fixed_detail"] = {
         "feed_lag_sec": out.get("feed_lag_sec_mean"),
         "asr_sec": round(asr_mean, 3),
-        "player_queue_sec": out.get("player_queue_sec_mean"),
+        "player_queue_sec": pq_mean,
         "axis_gap_sec": axis_gap,
         "downlink_latency_sec": dlat,
         "server_to_player_sec": axis_gap,
+        "unmeasured": [k for v, k in _parts if v is None],
         "note": ("★ 这几项**与 TTS 快慢无关** ⇒ 即使 TTS 无限快，"
                  "每段仍会晚 `non_tts_fixed_sec − D` 秒。"
                  "（`axis_gap_sec` 是 EXT-036 ① 修掉的**符号错误**，"
-                 "修后应 ≈ 0；`downlink_latency_sec` 是真实下行耗时。）"),
+                 "修后应 ≈ 0；`downlink_latency_sec` 是真实下行耗时。）"
+                 "★ **未实测项记 None 且不计入合计** ⇒ `non_tts_fixed_sec` "
+                 "是**下界**（`non_tts_fixed_is_lower_bound=true` 时）；"
+                 "绝不把「没测到」写成 0。"),
     }
     out["tts_independent_lag_sec"] = round(non_tts - delay_sec, 3)
     out["tts_independent_lag_note"] = (
@@ -1302,6 +1317,19 @@ class Session:
         #   ⇒ 记下来（**没报就是 None**，绝不臆造）。
         self.client_target_lang: Optional[str] = None
         self.client_voice: Optional[str] = None
+        # ★★★★★★ EXT-036 ①/②：客户端**实测**的下行耗时与播放端排队。
+        #   ## 为什么需要
+        #     客户端已经能测：`ply_wall_ms − srv_wall_ms`（真实下行耗时）
+        #     与 `readyToStartSec`（就绪→起播），也都落进了 `dub_sync.json`。
+        #     但此前**从不上报服务端** ⇒ `margin.json` 的 `sync_rootcause` 里
+        #     `server_to_player_sec` / `downlink_latency_sec` /
+        #     `player_queue_sec_mean` **全是 null**
+        #     ⇒ 「非 TTS 固定项」只加得上一部分 ⇒ **归因不完整**。
+        #   ⇒ 现在客户端主动上报，服务端记住并落盘（**没报就是 None**，
+        #     **绝不臆造**，也绝不用 0 冒充「实测为零」）。
+        self.client_downlink_ms: List[float] = []     # 逐段下行耗时（ms）
+        self.client_player_queue_sec: List[float] = []  # 逐段就绪→起播（s）
+        self.client_t0_up_player_offset_sec: Optional[float] = None
         # ★★★ EXT-024 E：**分开**的三段计数（ASR / MT / TTS）。
         #   为什么必须分开（而不是沿用一个 `n_segments`）：
         #     `n_segments`（= len(self.margins)）只说明「一共收口了几段」，
@@ -1469,6 +1497,96 @@ class Session:
         voice = hello.get("voice")
         if isinstance(voice, str) and voice.strip():
             self.client_voice = voice.strip()
+
+    # ★★★★★★ EXT-036 ①/②：接收客户端**实测**的下行/排队数据。
+    #   ★ 为什么需要（真缺陷，不是锦上添花）：
+    #     客户端能测 `ply_wall_ms − srv_wall_ms`（真实下行耗时）与
+    #     `readyToStartSec`（就绪→起播），但此前**只留在插件本地**
+    #     （`dub_sync.json`）⇒ 服务端 `margin.json` 的 `sync_rootcause`
+    #     里这三项**全是 null** ⇒ 「非 TTS 固定项」少算了三项
+    #     ⇒ **归因不完整**（reviewer 要求「逐项分解」）。
+    #   ★ 口径约定：
+    #     - 只收**数值**，收不到就不记（**绝不臆造**、绝不用 0 冒充）；
+    #     - 列表**有界**（防 EXT-019「内存不持续增长」那类回归）；
+    #     - 汇总值用**中位数/分位**（`_pct` 最近秩口径，与既有工具一致）。
+    def note_client_metrics(self, msg: Optional[dict]) -> None:
+        """记下客户端上报的**实测**下行耗时 / 播放端排队 / 轴偏移。"""
+        if not isinstance(msg, dict):
+            return
+
+        # ── 逐段下行耗时（ms）──────────────────────────────────
+        dl = msg.get("downlink_ms")
+        if isinstance(dl, list):
+            vals = []
+            for v in dl:
+                try:
+                    f = float(v)
+                except (TypeError, ValueError):
+                    continue
+                # 下行耗时**不可能**是负数 ⇒ 负值视为无效（不记）
+                if f < 0.0:
+                    continue
+                vals.append(f)
+            if vals:
+                self.client_downlink_ms = vals[-200:]   # 有界
+
+        # ── 逐段「就绪→起播」（s）─────────────────────────────
+        pq = msg.get("player_queue_sec")
+        if isinstance(pq, list):
+            vals = []
+            for v in pq:
+                try:
+                    f = float(v)
+                except (TypeError, ValueError):
+                    continue
+                if f < 0.0:
+                    continue
+                vals.append(f)
+            if vals:
+                self.client_player_queue_sec = vals[-200:]  # 有界
+
+        # ── 轴偏移（播放端轴 vs 上行轴，秒）────────────────────
+        off = msg.get("t0_up_player_offset_sec")
+        if off is not None:
+            try:
+                self.client_t0_up_player_offset_sec = float(off)
+            except (TypeError, ValueError):
+                pass
+
+    # ── 客户端实测值的**汇总**（供 margin.json 落盘用）────────
+    def client_metrics_summary(self) -> dict:
+        """把客户端实测的下行/排队/轴偏移汇成**可落盘**的量。
+
+        ★ 没报 ⇒ 该项为 None（**如实**），绝不用 0 冒充「实测为零」。
+        ★ 分位用**最近秩**口径（`_pct`），与既有分析工具一致。
+        """
+        def _pct(vals: List[float], q: float) -> Optional[float]:
+            if not vals:
+                return None
+            s = sorted(vals)
+            # 最近秩：index = ceil(q*n) - 1
+            import math as _m
+            i = int(_m.ceil(q * len(s))) - 1
+            i = max(0, min(i, len(s) - 1))
+            return s[i]
+
+        dl = list(self.client_downlink_ms or [])
+        pq = list(self.client_player_queue_sec or [])
+        out = {
+            "n_downlink_samples": len(dl),
+            "downlink_p50_ms": (round(_pct(dl, 0.50), 1) if dl else None),
+            "downlink_p95_ms": (round(_pct(dl, 0.95), 1) if dl else None),
+            "downlink_max_ms": (round(max(dl), 1) if dl else None),
+            "n_player_queue_samples": len(pq),
+            "player_queue_p50_sec": (round(_pct(pq, 0.50), 3) if pq else None),
+            "player_queue_p95_sec": (round(_pct(pq, 0.95), 3) if pq else None),
+            "player_queue_max_sec": (round(max(pq), 3) if pq else None),
+            "t0_up_player_offset_sec": self.client_t0_up_player_offset_sec,
+            "note": ("★ 客户端**实测**值（`ply_wall_ms − srv_wall_ms` 与 "
+                     "`readyToStartSec`）⇒ 没报就是 None（**不臆造**）。"
+                     "分位用**最近秩**口径（与 `_pct` 一致）。"),
+        }
+        return out
 
     # ── 音色选择（T-3） ──────────────────────────────────────
     def _pick_voice(self, spk) -> str:
@@ -3328,6 +3446,18 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                 #   两条路径都汇到 `note_client`，字段口径一致。
                 session.note_client(msg)
                 continue
+            if mtype == "client_metrics":
+                # ★★★★★★ EXT-036 ①/②：客户端上报**实测**的下行耗时 /
+                #   播放端排队 / 轴偏移 ⇒ 服务端据此把 `sync_rootcause`
+                #   的三项空缺补上（此前**从不**上报 ⇒ 归因不完整）。
+                #   ★ 记到**生产者会话**（uplink）⇒ 与 `per_segment` 同源。
+                _cms = _producer_session(session_holder, registry,
+                                        session.token) or session
+                try:
+                    _cms.note_client_metrics(msg)
+                except Exception as e:      # pragma: no cover
+                    _log("client_metrics 处理失败：%s" % e)
+                continue
             if mtype == "stats":
                 # ★★ EXT-010：流水线模式下，先把**已就绪**的任务下发，
                 #   再回 stats（否则 stats 会比任务先到，客户端会误判段数）。
@@ -3794,6 +3924,44 @@ def main(argv=None) -> int:
     return 0
 
 
+def _client_rootcause_kwargs(sess) -> dict:
+    """把客户端**实测**的数据整理成 `decompose_sync_rootcause` 的入参。
+
+    ★ 没有的项一律**不传**（⇒ 分解里就是 None ⇒ 不计入合计）
+      ⇒ 绝不把「没测到」写成 0。
+    ★ `downlink_latency_sec` 取客户端实测下行耗时的 **P95**（秒）
+      —— 判据就是「P95 ≤ 0.3 s」⇒ 必须用 P95 而不是均值。
+    ★ `server_to_player_sec`（**轴缺口**）用客户端实测的
+      `t0UpPlayerOffsetSec` ⇒ 它是**有符号**的（实测约 −3.18 s）⇒
+      取**绝对值**才是「缺口的大小」。
+    """
+    kw: dict = {}
+    if sess is None:
+        return kw
+    if not hasattr(sess, "client_metrics_summary"):
+        return kw
+    try:
+        cm = sess.client_metrics_summary()
+    except Exception:
+        return kw
+
+    # ── 真实下行耗时（P95，秒）────────────────────────────────
+    p95_ms = cm.get("downlink_p95_ms")
+    if p95_ms is not None:
+        kw["downlink_latency_sec"] = float(p95_ms) / 1000.0
+
+    # ── 轴缺口（取绝对值）───────────────────────────────────
+    off = cm.get("t0_up_player_offset_sec")
+    if off is not None:
+        kw["server_to_player_sec"] = abs(float(off))
+
+    # ── 播放端排队（逐段「就绪→起播」）──────────────────────
+    pq = list(getattr(sess, "client_player_queue_sec", []) or [])
+    if pq:
+        kw["player_detail"] = [{"readyToStartSec": v} for v in pq]
+    return kw
+
+
 def _dump_margin(holder: dict, out_path: Optional[str], engine,
                  session=None) -> None:
     """把余量统计与逐句时间表落盘（EXT-006 P1 验收要求）。
@@ -3859,12 +4027,25 @@ def _dump_margin(holder: dict, out_path: Optional[str], engine,
         "delay_requirement": (estimate_required_delay(sess.margins,
                                                        delay_sec=_dl)
                               if sess else {}),
-        # ★★★★★★ EXT-036 ②：**sync 滞后的逐项根因分解**。
+        # ★★★★★★ EXT-036 ①/②：**sync 滞后的逐项根因分解**。
         #   ⇒ 明确区分「TTS 积压」与「**非 TTS 固定项**」
         #   ⇒ 后者 = 上行 + ASR 整段定稿 + 播放排队 + server→player 缺口
         #   ⇒ `tts_independent_lag_sec` > 0 ⇒ **不能**写成「全归 TTS」。
-        "sync_rootcause": (decompose_sync_rootcause(sess.margins, delay_sec=_dl)
-                           if sess else {}),
+        #   ★★★ EXT-036 补测：把**客户端实测**的下行耗时/播放端排队/
+        #   轴偏移喂进去（此前三项恒为 null ⇒ 归因少算三项）。
+        #     - `downlink_latency_sec` = 客户端实测下行耗时 **P95**（秒）
+        #     - `player_detail` = 客户端上报的逐段「就绪→起播」
+        #     - `server_to_player_sec` = 客户端实测的**轴缺口**
+        #       （`t0UpPlayerOffsetSec` ⇒ **有符号** ⇒ 实测约 −3.18 s）
+        "sync_rootcause": (
+            decompose_sync_rootcause(
+                sess.margins, delay_sec=_dl,
+                **_client_rootcause_kwargs(sess))
+            if sess else {}),
+        # ★ 客户端实测汇总（独立落盘 ⇒ reviewer 可直接核对原始分位）
+        "client_metrics": (sess.client_metrics_summary()
+                           if sess is not None
+                           and hasattr(sess, "client_metrics_summary") else {}),
         # ★ EXT-009：自适应加速统计（滞后曲线 + 各倍率时间占比 + 丢句数）
         #   ⚠️ 用 getattr 取 ⇒ 桩 session（自测用的假对象）也不会崩。
         "adaptive_speed": (sess.adaptive_speed_stats()

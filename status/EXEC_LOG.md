@@ -2965,3 +2965,97 @@ run `.tmp/ext033_e2e/20261102_121431/`：
 
 ### `last_ack`
 **EXT-036** —— 本轮**已认领并执行** EXT-036 全部七项 ⇒ `last_ack` 推进到 **EXT-036**。
+
+---
+
+## 2026-11-04 19:43 → 20:05 巡检轮次 —— EXT-036 **补测**（真实三引擎 e2e 跑完）+ 客户端实测数据上报闭环（§29）
+
+### 租约 / 闸门
+- `acquire ext` ⇒ **exit 0 / TAKEOVER**：上一会话 token `7f6d1a78`（started 11-04 18:25:41，
+  last_beat 01-01 08:00:00，note=`session ended, jobs still running`，`live_pids=[]`，`alive=False`）
+  ⇒ 判定**死会话** ⇒ 接管，token **`7f986f16`**。
+- 闸门 `tools/next_instruction.py --json` ⇒ **exit 1**（`action=skip`，`reason=already_executed`，
+  latest=**EXT-036**，`last_ack=36`）⇒ **不认领新编号**，`last_ack` **保持 EXT-036**。
+  ★ 按 EXT-030 **TAKEOVER** 条款**从死会话断点继续**（非从零重做）。
+
+### 接管时的事实认定（全部实测）
+- 死会话 e2e（PID **3449** / 真实 python PID **48136**）：`OpenProcess` err=**87**（PID 不存在）
+  ＋ `psutil.pid_exists=False` ⇒ **确认已死**。
+- 死会话遗留产物目录 `.tmp/ext033_e2e/20261104_183902/` ⇒ **空（0 文件）** ⇒ 那轮 e2e **什么都没产出**。
+- `shared/MACHINE_LOCK` 持有者 = **ASR** 模块 PID **2188**（`asr106-vad-gate-windows`）：
+  `OpenProcess` err=**87** ＋ `psutil=False` ＋ 本仓 `tools/machine_lock.py` 探针 `存活=False`
+  ⇒ **确认已死** ⇒ 允许回收；★ 回收由 `machine_lock.hold()` **自动**完成
+  （实测日志 `[lock] 持有者 PID=2188 已确认死亡 ⇒ 回收锁并接管`），**未手工删**锁文件。
+- 全进程扫 `r2t2/hy-mt/qwen/tts/asr/bridge/ext033` ⇒ **无引擎作业在跑**。
+
+### ★ 本轮做了什么
+
+**① 真实三引擎 e2e 跑完 ⇒ 两条待验收实测确认**（§28 时因锁被占用而未跑完）
+
+| 验收 | 判据 | 轮次 A `20261104_194608` | 轮次 B `20261104_195911` | 结论 |
+|---|---|---|---|---|
+| ① 下行耗时 P95 | ≤ 0.3 s | **121 ms**（P50=27，max=121；n=10） | **35 ms**（P50=22，max=35） | ✅ |
+| ⑤ \|wav − durationSec\| | ≤ 0.2 s | **0.011 s**（81.952 vs 81.999） | **0.011 s**（81.861 vs 81.910） | ✅ |
+
+⇒ 两轮独立复现 ⇒ §28 的「⛔ 真实 e2e 未跑完」**解除**；
+⇒ **① 的判据被实测回答**：真实下行耗时 P95 仅 121 ms ⇒ **7 s 缺口不是下行慢**，是**两端轴对不上**。
+
+**② 补测暴露的真缺陷（已修）**：客户端**测得到** `ply_wall_ms − srv_wall_ms` /
+`readyToStartSec` / `t0UpPlayerOffsetSec`，但**只留在插件本地、从不上报服务端**
+⇒ `margin.json` 的 `sync_rootcause` 里 `server_to_player_sec`/`downlink_latency_sec`/
+`player_queue_sec_mean` **三项恒 null**，且 `non_tts_fixed_detail` 把 null **强转成 `0.0`**（**假数据**）。
+
+修法（**最小改动**，不偏离架构）：
+- `extension/player.js` ⇒ 新增 `reportClientMetrics()`：把逐段下行耗时 / 就绪→起播 / 轴偏移
+  打包成 `client_metrics` 消息，**在 `requestMarginDump()` 落盘之前**发送（列表**有界 ≤200**）。
+- `ext/bridge.py` ⇒ 新增 `Session.note_client_metrics()`（只收数值、负值视为无效、有界）
+  ＋ `Session.client_metrics_summary()`（**最近秩**分位，与既有 `_pct` 一致）
+  ＋ 消息分支 `mtype == "client_metrics"`（记到**生产者会话**，与 `per_segment` 同源）
+  ＋ `_client_rootcause_kwargs()`（下行按 **P95/1000**；轴缺口取**绝对值**）
+  ＋ **null 不再强转 0、不计入合计**（合计标 `non_tts_fixed_is_lower_bound`，明细列 `unmeasured`）
+  ＋ `margin.json` 新增 `client_metrics` 键。
+
+**③ 归因数值修正**：**非 TTS 固定项 = 7.184 s**（§28② 写的 **2.892 s 是残缺的**——当时三项恒 null）
+= ASR 2.922 + 播放排队 1.038 + **轴缺口 3.189** + 下行 0.035 ⇒ 本轮 D=10 s **已足够吸收**
+⇒ 残余滞后主要仍归 TTS 吞吐（`RTF_out` 实测 **0.8182**，**刚好 ≤0.82**，未达 reviewer 建议 0.75）。
+
+### 自测（实测 rc）
+`test_ext_selfcheck` **122**｜`test_echo_roundtrip` **11**｜`test_next_instruction` **19**｜
+`test_p1_plumbing` **112**｜`test_ext010_pipeline` **25**｜`test_ext033_capture` **42**｜
+`test_ext033_deliver` **25**｜`test_ext036_review` **59**｜
+**`test_ext036b_client_metrics`（新建）39**｜`ext028_player_harness.js`（node）**29**
+⇒ **十套全 0 FAIL**。
+★ **变异测试实测**：把 `non_tts_fixed_detail` 的 null 强转改回旧写法
+⇒ 新自测 **35 PASS / 4 FAIL** ⇒ **守卫确实抓得住**（已还原；实测回到 39 PASS / 0 FAIL）。
+★ 另一次变异（把合计公式里的 `if _v is not None` 改成 `float(_v or 0.0)`）
+⇒ 自测 **39 PASS / 0 FAIL** ⇒ **数值等价** ⇒ 真守卫在**明细字典**（null 的呈现）而非合计公式。
+
+### 产物清单（文件数 / mtime / 字节数）
+- `.tmp/ext033_e2e/20261104_194608/` ⇒ **11 文件**：`dub_player.wav` 7 867 436 B、
+  `dub_player.webm` 560 392 B、`margin.json` 29 927 B、`metrics.json` 41 900 B、
+  `dub_sync.json` 5 868 B、`bridge.log` 8 922 B、`player.png` 23 949 B、
+  `record_stop.json` 273 B、`ext033_compare.json` 12 266 B、`ext033_compare.md` 3 259 B、
+  `audio_dump/`（目录）—— mtime 2026-11-04 19:47~19:50。
+- `.tmp/ext033_e2e/20261104_195911/` ⇒ **11 文件**：`dub_player.wav` 7 858 732 B、
+  `dub_player.webm` 546 720 B、`margin.json` 30 700 B、`metrics.json` 41 578 B、
+  `dub_sync.json` 5 918 B、`bridge.log` 8 911 B、`player.png` 23 103 B、
+  `record_stop.json` 286 B、`ext033_compare.json` 12 284 B、`ext033_compare.md` 3 250 B、
+  `audio_dump/`（目录）—— mtime 2026-11-04 20:00~20:01。
+- 两轮**轮次摘要**：`summary_20261104_194608.json` / `summary_20261104_195911.json`。
+- 新增文档 `status/notes/sec29_ext036_e2e.md`（§29 全量明细）。
+
+### ⛔ 明确未做 / 不宣称
+- ⛔ **未认领新 EXT 编号**（闸门 exit 1）⇒ `last_ack` 保持 **EXT-036**。
+- ⛔ **sync 有符号误差仍未达标**（P95 **9087 / 8727** ms，判据 ≤300 ms）⇒ **不写「同步已解决」**。
+- ⛔ **时长比仍未追平**（`over_src_len` 0.46–1.08 vs reviewer 0.57–1.55，**同口径**）。
+- ⛔ 未改引擎文件／⛔ 未改其它模块文件／⛔ 未打包／⛔ 未推远程。
+- ⛔ `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**
+  （`git check-ignore` 命中 `.gitignore:34`；`git status` 对该文件为空）。
+- ⛔ **本轮未关闭任何进程**（只由 `machine_lock.hold()` 自动回收**已确认死亡**的 ASR 锁 PID 2188）。
+- ℹ️ `test_ext016_compression` **38 PASS / 1 FAIL** ⇒ 唯一 FAIL = **CORRECTIONS 体积项**
+  （reviewer 独占、只读、本轮从未修改也从未入库）⇒ **既有基线红，非本轮回归**。
+- ℹ️ **TTS 指标请主会话转达 TTS 模块**：`RTF_out` 实测 **0.8182** ⇒ **已刚好 ≤0.82**
+  ⇒ 建议目标仍为 **≤0.75**（留 8 % 余量）。
+
+### `last_ack`
+**EXT-036** —— 本轮**未认领新编号**（闸门 exit 1）⇒ `last_ack` **保持 EXT-036 不变**。

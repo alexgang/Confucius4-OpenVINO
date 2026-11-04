@@ -1761,6 +1761,54 @@ async function flushUplink() {
  * @param {number} [timeoutMs=60000] 等回包的超时
  * @returns {Promise<{ok: boolean, path?: string|null, error?: string}>}
  */
+/* ★★★★★★ EXT-036 ①/②：把插件**实测**的下行耗时 / 播放端排队 / 轴偏移
+ *   **上报服务端**。
+ *   ## 为什么必须加（真缺陷，不是锦上添花）
+ *     这些量插件一直测得到（`ply_wall_ms − srv_wall_ms`、`readyToStartSec`、
+ *     `t0UpPlayerOffsetSec`），也都落进了 `dub_sync.json`
+ *     ⇒ 但**只留在插件本地** ⇒ 服务端 `margin.json` 的 `sync_rootcause`
+ *       里这三项**恒为 null** ⇒ 「非 TTS 固定项」少算三项
+ *       ⇒ **归因不完整**（reviewer 要求「逐项分解」）。
+ *   ⇒ 现在主动上报 ⇒ 服务端 `margin.json` 能直接核对。
+ *   ★ 只报**实测到**的值；没测到就不报（绝不用 0 冒充「实测为零」）。
+ *   ★ 列表有界（最多 200 项）⇒ 不制造「内存不持续增长」那类回归。
+ */
+function reportClientMetrics() {
+  // 上行 WS 优先（它就是产出段的那条连接 ⇒ 记到同一个会话）
+  const w = upState.ws
+    && upState.ws.readyState === 1 ? upState.ws : null;
+  if (!w) return { ok: false, error: '上行 WS 未连接' };
+  try {
+    const dlMs = [];
+    for (const [id, v] of dubDownlinkMs.entries()) {
+      if (typeof v === 'number' && isFinite(v) && v >= 0) dlMs.push(v);
+    }
+    // 播放端排队：detail 里每段的「就绪→起播」
+    const pq = [];
+    for (const d of (metrics.dubSyncDetail || [])) {
+      const v = d && d.readyToStartSec;
+      if (typeof v === 'number' && isFinite(v) && v >= 0) pq.push(v);
+    }
+    const off = metrics.t0UpPlayerOffsetSec;
+    const payload = {
+      type: 'client_metrics',
+      downlink_ms: dlMs.slice(-200),
+      player_queue_sec: pq.slice(-200),
+      t0_up_player_offset_sec:
+        (typeof off === 'number' && isFinite(off) ? off : null),
+    };
+    w.send(JSON.stringify(payload));
+    metrics.link.clientMetricsSent =
+      (metrics.link.clientMetricsSent || 0) + 1;
+    return { ok: true, n_downlink: payload.downlink_ms.length,
+             n_player_queue: payload.player_queue_sec.length };
+  } catch (e) {
+    const err = String((e && e.message) || e);
+    report({ kind: 'client_metrics_error', error: err });
+    return { ok: false, error: err };
+  }
+}
+
 async function requestMarginDump(timeoutMs) {
   const to = Number(timeoutMs) > 0 ? Number(timeoutMs) : 60000;
   try {
@@ -1768,6 +1816,10 @@ async function requestMarginDump(timeoutMs) {
     if (!w || w.readyState !== 1) {
       return { ok: false, error: '上行 WS 未连接' };
     }
+    // ★★ EXT-036：先上报**实测**的下行/排队数据 ⇒ 服务端落盘时才有这三项
+    //   ⇒ 否则 `sync_rootcause` 里它们恒为 null（归因不完整）。
+    const cmRes = reportClientMetrics();
+    report({ kind: 'client_metrics_sent', result: cmRes });
     const got = new Promise((resolve) => {
       const h = (ev) => {
         let m = null;
@@ -2903,6 +2955,8 @@ window.__ext = {
   flushUplink,
   // ★★ EXT-028：让服务端把余量统计落盘（margin.json），并**等回包**
   requestMarginDump,
+  // ★★ EXT-036 ①/②：把实测的下行/排队/轴偏移上报服务端（可自测）
+  reportClientMetrics,
   /** P0③ 自测：直接排程一段 PCM，测浏览器端排程误差（probe=true ⇒ 与回声排程分开统计） */
   selfTestSchedule: (pcmB64, tStart) => scheduleDub({ id: 'selftest', t_start: tStart, pcm24k: pcmB64, probe: true }),
   /** ★ 诊断：排程与配对的完整明细（归因 P0③ 的误差来源） */
