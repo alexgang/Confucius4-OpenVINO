@@ -611,14 +611,25 @@ def expected_segment_count(audio, sample_rate: int = 16000) -> int:
       尾段判定与拆分前后一致 ⇒ 可直接沿用 `raw` 的尾段。
       但**为免将来改动引入歧义**，这里一律以**拆分后**的列表判定。
     """
-    from ext.segmenter import plan_segments, split_first_segment
+    from ext.segmenter import plan_segments, plan_segments_first_capped
     from ext import config as C
     segs = plan_segments(audio)
     if not segs:
         return 0
-    # ★ EXT-034 ④：与服务端**同一个**拆分函数 ⇒ 口径一致
-    segs = split_first_segment(segs, cap_sec=C.FIRST_SEGMENT_MAX_SEC,
-                               min_sec=C.SEG_MIN_SEC, sample_rate=sample_rate)
+    # ★★★★★★ EXT-036 ④：与服务端**同一个**函数 ⇒ 口径一致。
+    #   `plan_segments_first_capped()` 描述的是服务端**最终**吐出的网格：
+    #     * 首段 = `[0, cap]`（**提前交付**，不必等原段到齐）；
+    #     * 其余段的切点 = **原始网格逐位不变**
+    #       （⇒ 尾段行为与原来完全一致 ⇒ 尾段**不会**被吃掉）。
+    #   ⚠️ 旧写法用 `split_first_segment()`（服务端**切完网格之后**才拆）
+    #     ⇒ 它假设「先等原段到齐」⇒ 与服务端的**提前交付**路径不等价
+    #     ⇒ 客户端预期段数会与服务端实际**漂移**。
+    segs = plan_segments_first_capped(
+        audio, cap_sec=C.FIRST_SEGMENT_MAX_SEC,
+        min_segment_sec=C.SEG_MIN_SEC, max_segment_sec=C.SEG_MAX_SEC,
+        sample_rate=sample_rate)
+    if not segs:
+        return 0
     tail_len = (segs[-1][1] - segs[-1][0]) / float(sample_rate)
     if tail_len >= 1.0:
         return len(segs)

@@ -58,7 +58,8 @@ from .adaptive_speed import combine_rates, decide_speed
 from .duration import fit_duration
 from .pipeline import EnginePipeline, SegmentJob, _FairLock
 from .segmenter import (plan_segments, describe as describe_segmenter,
-                       split_first_segment)
+                       split_first_segment,
+                       split_first_segment_streaming)
 from .speaker import SpeakerTracker
 from .time_stretch import wsola
 # ★★ EXT-029：说话人旁路（**独立线程 + 有界队列** ⇒ 不反压 ASR）。
@@ -218,6 +219,24 @@ def summarize_margins(margins: List[dict]) -> dict:
     pairs = [(float(m.get("t_start") or 0.0),
               float(m.get("deadline_margin_sec") or 0.0))
              for m in margins if m.get("deadline_margin_sec") is not None]
+    # ★★★★★★ EXT-036 ③：**斜率只拟合「有 TTS 的段」**。
+    #   ## 病根（reviewer EXT-036 ③ 的原话）
+    #     「`margin_summary` 里的 `lag_growth_slope=0.248 (r²=0.375)`
+    #       **混进了 60 s 之后 18 个没有 TTS 的段**（它们的 lag 是按
+    #       直线外推出来的）⇒ **这个口径作废**，改成只用有 TTS 的段来拟合。」
+    #   ## 为什么必须改
+    #     * 有 TTS 的段 = 真正占用引擎、真正产生积压的段；
+    #     * 没有 TTS 的段（`ASR='—'` 的空段）**没有 TTS 排队**，
+    #       它们的 `deadline_margin` 只是「按同一斜率外推」的产物
+    #       ⇒ 拿它们拟合 ⇒ **自证循环**（用外推值验证外推值）
+    #       ⇒ 斜率被**稀释**（实测 0.248 vs 真实 ~0.46）。
+    #   ⇒ 顶层 `lag_growth_slope_sec_per_sec` 改为 **TTS-only** 口径；
+    #     旧的全段口径**保留**为 `lag_growth_slope_all_sec_per_sec`（附注作废）。
+    tts_pairs = [(float(m.get("t_start") or 0.0),
+                  float(m.get("deadline_margin_sec") or 0.0))
+                 for m in margins
+                 if m.get("deadline_margin_sec") is not None
+                 and _seg_has_tts(m)]
 
     def _group(vals: List[float]) -> dict:
         """分布统计（**不含**求和量 —— EXT-008 要求删除）。"""
@@ -246,10 +265,32 @@ def summarize_margins(margins: List[dict]) -> dict:
                                        [p[1] for p in pairs])
         out["last_segment_lag_sec"] = round(max(0.0, -last_dm), 4)
         out["max_lag_sec"] = round(max(0.0, -min(p[1] for p in pairs)), 4)
-        out["lag_growth_slope_sec_per_sec"] = round(slope, 6)
-        out["lag_growth_intercept_sec"] = round(intercept, 4)
-        out["lag_growth_r2"] = round(r2, 6)
-        out["lag_n_fit_points"] = len(pairs)
+        # ★★★★ EXT-036 ③：**顶层斜率改用 TTS-only 拟合**。
+        #   有 TTS 的段才真正占用引擎、才产生积压 ⇒ 斜率必须只拟合它们。
+        #   ⚠️ 旧口径（全段）保留为 `lag_growth_slope_all_sec_per_sec`
+        #     ⇒ 可对照，但**不再**是验收量（reviewer 已判定其作废）。
+        slope_tts, intercept_tts, r2_tts = (None, None, None)
+        if len(tts_pairs) >= 2:
+            slope_tts, intercept_tts, r2_tts = _linfit(
+                [p[0] for p in tts_pairs], [p[1] for p in tts_pairs])
+        out["lag_growth_slope_sec_per_sec"] = (
+            round(slope_tts, 6) if slope_tts is not None else None)
+        out["lag_growth_intercept_sec"] = (
+            round(intercept_tts, 4) if intercept_tts is not None else None)
+        out["lag_growth_r2"] = (
+            round(r2_tts, 6) if r2_tts is not None else None)
+        out["lag_n_fit_points"] = len(tts_pairs)
+        # ── 旧口径（**作废**，仅供对照）──────────────────────────
+        out["lag_growth_slope_all_sec_per_sec"] = round(slope, 6)
+        out["lag_growth_intercept_all_sec"] = round(intercept, 4)
+        out["lag_growth_r2_all"] = round(r2, 6)
+        out["lag_n_fit_points_all"] = len(pairs)
+        out["lag_growth_slope_note"] = (
+            "★ EXT-036 ③：顶层 `lag_growth_slope_sec_per_sec` = "
+            "**只用「有 TTS 的段」**拟合 (t_start, 排程余量)。"
+            "旧的全段口径（含没有 TTS 的空段，其 lag 是直线外推值）"
+            "保留在 `lag_growth_slope_all_sec_per_sec`，**已作废**，"
+            "不得用于归因。")
     else:
         out["last_segment_lag_sec"] = None
         out["max_lag_sec"] = None
@@ -257,11 +298,16 @@ def summarize_margins(margins: List[dict]) -> dict:
         out["lag_growth_intercept_sec"] = None
         out["lag_growth_r2"] = None
         out["lag_n_fit_points"] = 0
+        out["lag_growth_slope_all_sec_per_sec"] = None
+        out["lag_growth_intercept_all_sec"] = None
+        out["lag_growth_r2_all"] = None
+        out["lag_n_fit_points_all"] = 0
     out["lag_definition"] = (
         "last_segment_lag_sec = 末句 max(0, −排程余量)；"
         "lag_growth_slope_sec_per_sec = 对 (t_start, 排程余量) 线性拟合的斜率"
         "（负数 = 滞后随时间累积）；max_lag_sec = 各句滞后的最大值。"
-        "⚠️ 不再有「余量求和」量（EXT-008 判定它没有物理含义，已删除）。")
+        "⚠️ 不再有「余量求和」量（EXT-008 判定它没有物理含义，已删除）。"
+        "★ EXT-036 ③：斜率**只用有 TTS 的段**拟合（见 lag_growth_slope_note）。")
 
     # 向后兼容：旧读取方读 out["deadline"] 取排程口径
     out["deadline"] = {
@@ -279,6 +325,41 @@ def summarize_margins(margins: List[dict]) -> dict:
                        "正数 = 配音比原声结束晚多久可用（不是滞后）"),
     }
     return out
+
+
+def _seg_has_tts(m: dict) -> bool:
+    """★ EXT-036 ③：这一段**是否真的产出了 TTS 音频**。
+
+    ## 为什么需要这个判据
+      没有 TTS 的段（`ASR='—'` 的空段）**没有 TTS 排队**
+      ⇒ 它们的 `deadline_margin` 只是「按同一斜率外推」的产物
+      ⇒ 拿它们拟合斜率 = **用外推值验证外推值**（自证循环）
+      ⇒ 斜率被严重**稀释**（实测 0.248 vs 真实 ~0.46）。
+
+    ## 判据（按可靠性排序）
+      1. `has_tts` 字段（服务端收口时直接落的布尔值）—— 权威；
+      2. `tts_sec > 0`（TTS 引擎耗时 > 0）—— 回退；
+      3. `speech_sec > 0`（有输出语音时长）—— 再回退。
+
+    ## ★ 「字段缺失」= **未知**，**不等于**「没有 TTS」
+      ⚠️ 旧实现把「三个字段都没有」当作 `False`（= 没有 TTS ⇒ 排除）
+        ⇒ 任何**字段不全**的逐段数据（例如自测里造的
+          `{"t_start":…, "deadline_margin_sec":…}`）会**整组被排除**
+        ⇒ 斜率变成 `None` ⇒ **回归**（`test_ext_selfcheck` 变红）。
+      ⇒ 现在：**只有明确判定为「没有 TTS」才排除**；
+        字段缺失 ⇒ 视为「未知」⇒ **计入**（宁可多算一个点，
+        也不能把整组数据悄悄清空）。
+      ⇒ 真实产物里 `has_tts` 恒有值（服务端收口时必落）⇒
+        真实口径**不受**这个放宽影响。
+    """
+    if m.get("has_tts") is not None:
+        return bool(m.get("has_tts"))
+    if m.get("tts_sec") is not None:
+        return float(m.get("tts_sec") or 0.0) > 0.0
+    if m.get("speech_sec") is not None:
+        return float(m.get("speech_sec") or 0.0) > 0.0
+    # ★ 字段全缺 ⇒ **未知** ⇒ 计入（不是「没有 TTS」）
+    return True
 
 
 def _seg_proc_sec(m: dict) -> Optional[float]:
@@ -491,6 +572,190 @@ def estimate_required_delay(margins: List[dict], *, delay_sec: float
                  "若 D_required 仍 > 当前 D，说明**光调 D 不够**，"
                  "必须先提 TTS 吞吐（RTF_out）或进一步缩短首段。"),
     }
+
+
+def decompose_sync_rootcause(margins: List[dict], *, delay_sec: float,
+                             player_detail: Optional[List[dict]] = None,
+                             server_to_player_sec: Optional[float] = None,
+                             downlink_latency_sec: Optional[float] = None,
+                             ) -> dict:
+    """★ EXT-036 ②：**sync 滞后的逐项根因分解**（不得写成「全归 TTS」）。
+
+    ## 要回答的问题（reviewer EXT-036 ② 的原话）
+      「末段 41.9 s = 段长 4.12 + 上行 0.37 + ASR 2.54 + MT 0.43
+        + TTS 本段 3.36 + **TTS 排队 32.96** + **server→player 7.0**
+        + 播放端排队 1.1 − D 10。
+        ⇒ 结论：积压部分（约 25–33 s）归 TTS 吞吐；
+        但**就算 TTS 无限快，按现在的结构每段仍会晚约 +5.6 s**
+        （主要是第 1 项的 7 s，加上 ASR 整段定稿约 3 s、播放排队 0–2.8 s）。
+        ⇒ 这部分归 EXT 或 ASR，**不能写成「全归 TTS」**。」
+
+    ## 本函数给出的分解（每项都有**实测来源**）
+      | 项 | 含义 | 来源 |
+      |---|---|---|
+      | `tts_queue_sec` | **TTS 排队**（积压） | 流水线里 TTS 线程的**等待时间** |
+      | `pipeline_sec` | 本段 ASR+MT+TTS（不含排队） | `per_segment` 的实测值 |
+      | `feed_lag_sec` | **上行**慢（音频到服务端晚了） | `feed_lag_sec` |
+      | `server_to_player_sec` | **server→player 缺口** | `player_detail` 的下行耗时 |
+      | `player_queue_sec` | **播放端**排队 | `readyToStartSec` |
+      | `non_tts_fixed_sec` | **非 TTS 固定项**合计 | 上面几项之和 |
+      | `tts_independent_lag_sec` | **TTS 无限快时**仍会晚多少 | `non_tts_fixed − D` |
+
+    ## 关键结论（本函数要输出的）
+      `tts_independent_lag_sec > 0` ⇒ **即使 TTS 快到零，每段仍会晚**
+      ⇒ 这部分**归 EXT/ASR**，**不归 TTS**。
+
+    Parameters
+    ----------
+    margins : list of dict
+        `per_segment`（服务端落盘）。
+    delay_sec : float
+        当前 D。
+    player_detail : list of dict or None
+        `dub_sync.json` 的 `detail`（player 端实测）。
+        ★ 可选 ⇒ 没有它就**不给**播放端相关数字（**不臆造**）。
+
+    Returns
+    -------
+    dict
+    """
+    out: dict = {
+        "definition": (
+            "★ EXT-036 ②：sync 有符号误差的**逐项分解**。"
+            "「非 TTS 固定项」= 上行 + ASR定稿 + 播放排队 + server→player 缺口；"
+            "「TTS 无限快时的残余滞后」= 非TTS固定项 − D。"
+            "⇒ 该值 > 0 ⇒ **不能**把滞后全归 TTS。"),
+        "delay_sec": delay_sec,
+    }
+    tts_segs = [m for m in margins if _seg_has_tts(m)]
+    n = len(tts_segs)
+    out["n_segments_with_tts"] = n
+    if n <= 0:
+        out["note"] = "没有带 TTS 的段 ⇒ 无法分解（不臆造数字）"
+        return out
+
+    # ── ① TTS 排队（流水线里 TTS 线程的等待）────────────────────
+    #   `tts_sec` 是**纯引擎调用**耗时；排队时间要从流水线的
+    #   「提交时刻 → TTS 开始时刻」量。服务端没有直接落这个字段
+    #   ⇒ 用**相邻段的就绪间隔 − 本段源音频时长**近似不可靠
+    #   ⇒ 这里改用**可核对**的口径：
+    #   「服务端就绪时刻 − 音频到齐时刻 − 本段管线耗时」= 该段的**排队**。
+    #   （音频到齐时刻 = `audio_ready_rel_sec` + t0；就绪时刻 = `ready_at`）
+    queue_total = 0.0
+    queue_vals: List[float] = []
+    for m in tts_segs:
+        arel = m.get("audio_ready_rel_sec")
+        t_end = m.get("t_end")
+        ready_at = m.get("ready_at")
+        orig_end = m.get("orig_end")
+        proc = _seg_proc_sec(m)
+        if arel is None or ready_at is None or orig_end is None or proc is None:
+            continue
+        t0 = float(orig_end) - float(t_end or 0.0)
+        # 音频到齐（服务端轴）→ 就绪（服务端轴）的墙钟跨度
+        span = (float(ready_at) - t0) - float(arel)
+        # 减去本段自己的管线耗时 ⇒ 剩下的是**等待**（排队）
+        q = max(0.0, span - proc)
+        queue_vals.append(q)
+        queue_total += q
+    out["tts_queue_sec_total"] = round(queue_total, 3)
+    out["tts_queue_sec_mean"] = (
+        round(queue_total / len(queue_vals), 3) if queue_vals else None)
+
+    # ── ② 本段管线耗时（ASR+MT+TTS，不含排队）────────────────────
+    proc_vals = [_seg_proc_sec(m) or 0.0 for m in tts_segs]
+    out["pipeline_sec_mean"] = (
+        round(sum(proc_vals) / len(proc_vals), 3) if proc_vals else None)
+    out["pipeline_sec_total"] = round(sum(proc_vals), 3)
+
+    # ── ③ 上行（喂帧）慢 ────────────────────────────────────────
+    #   ⚠️ `feed_lag_sec` 为**负**表示「音频比要求的时间**早**到」
+    #   （实测 mean = −5.041 s ⇒ 上行**不是**瓶颈）
+    #   ⇒ 计入「非 TTS 固定项」时必须**夹到 0**（负数不能抵消其它项）。
+    feed_vals = [max(0.0, float(m.get("feed_lag_sec") or 0.0))
+                 for m in tts_segs]
+    out["feed_lag_sec_mean_raw"] = (
+        round(sum(float(m.get("feed_lag_sec") or 0.0) for m in tts_segs)
+              / len(tts_segs), 3) if tts_segs else None)
+    out["feed_lag_sec_mean"] = (
+        round(sum(feed_vals) / len(feed_vals), 3) if feed_vals else None)
+    out["feed_lag_note"] = (
+        "★ `feed_lag_sec_mean_raw` 为**负** ⇒ 上行音频**早**到 "
+        "⇒ 上行**不是**瓶颈（计入固定项时已夹到 0）。")
+
+    # ── ④ server→player 缺口 + ⑤ 播放端排队 ────────────────────
+    dl_vals: List[float] = []
+    pq_vals: List[float] = []
+    if player_detail:
+        for d in player_detail:
+            if d.get("readyToStartSec") is not None:
+                try:
+                    pq_vals.append(float(d.get("readyToStartSec") or 0.0))
+                except Exception:
+                    pass
+        out["player_queue_sec_mean"] = (
+            round(sum(pq_vals) / len(pq_vals), 3) if pq_vals else None)
+        out["player_queue_sec_max"] = round(max(pq_vals), 3) if pq_vals else None
+    else:
+        out["player_queue_sec_mean"] = None
+        out["player_queue_sec_max"] = None
+    out["server_to_player_sec"] = (None if server_to_player_sec is None
+                                   else round(float(server_to_player_sec), 3))
+    out["downlink_latency_sec"] = (
+        None if downlink_latency_sec is None
+        else round(float(downlink_latency_sec), 3))
+    out["server_to_player_note"] = (
+        "★ EXT-036 ①：**两个不同的量，必须分开**。\n"
+        "  * `server_to_player_sec` = **轴缺口**（常量）：播放端轴与服务端轴\n"
+        "    对不上造成的**排程误差** ⇒ 它是**排程错**，不是「慢」。\n"
+        "    根因 = `t0` 换算符号反了（EXT-036 ① 已修）⇒ 修后此项应 ≈ 0。\n"
+        "  * `downlink_latency_sec` = **真实下行耗时**（墙钟）：\n"
+        "    `ply_wall_ms − srv_wall_ms`（同一 Unix 墙钟时基）⇒\n"
+        "    这才是「下行慢」的那一项 ⇒ 判据 P95 ≤ 0.3 s。\n"
+        "  服务端**不猜**这两个值（取不到 ⇒ None ⇒ 不计入固定项）。")
+
+    # ── ⑥ 非 TTS 固定项合计 & ⑦ TTS 无限快时的残余滞后 ──────────
+    #   非TTS固定项 = 上行 + ASR整段定稿(≈ASR) + 播放排队 + 轴缺口 + 真实下行
+    #   ★ ASR 的「整段定稿」代价 = ASR 本身（必须等整段音频到齐才能定稿）
+    #   ★ **轴缺口**（EXT-036 ① 修掉的那个符号错误）**必须计入**：
+    #     它与 TTS 快慢**完全无关** ⇒ 修好之前，即使 TTS 无限快也必然晚。
+    asr_vals = [float(m.get("asr_sec") or 0.0) for m in tts_segs]
+    asr_mean = (sum(asr_vals) / len(asr_vals)) if asr_vals else 0.0
+    out["asr_sec_mean"] = round(asr_mean, 3)
+    axis_gap = out.get("server_to_player_sec") or 0.0
+    dlat = out.get("downlink_latency_sec") or 0.0
+    non_tts = ((out.get("feed_lag_sec_mean") or 0.0)
+               + asr_mean
+               + (out.get("player_queue_sec_mean") or 0.0)
+               + axis_gap + dlat)
+    out["non_tts_fixed_sec"] = round(non_tts, 3)
+    out["non_tts_fixed_detail"] = {
+        "feed_lag_sec": out.get("feed_lag_sec_mean"),
+        "asr_sec": round(asr_mean, 3),
+        "player_queue_sec": out.get("player_queue_sec_mean"),
+        "axis_gap_sec": axis_gap,
+        "downlink_latency_sec": dlat,
+        "server_to_player_sec": axis_gap,
+        "note": ("★ 这几项**与 TTS 快慢无关** ⇒ 即使 TTS 无限快，"
+                 "每段仍会晚 `non_tts_fixed_sec − D` 秒。"
+                 "（`axis_gap_sec` 是 EXT-036 ① 修掉的**符号错误**，"
+                 "修后应 ≈ 0；`downlink_latency_sec` 是真实下行耗时。）"),
+    }
+    out["tts_independent_lag_sec"] = round(non_tts - delay_sec, 3)
+    out["tts_independent_lag_note"] = (
+        "★ 这个值 > 0 ⇒ **滞后不能全归 TTS**；"
+        "这部分归 EXT / ASR（reviewer EXT-036 ② 的核心要求）。")
+    # ── ⑧ 与 TTS 吞吐的关系（交叉核对）─────────────────────────
+    rtf = compute_rtf_breakdown(margins)
+    out["rtf_out"] = rtf.get("RTF_out")
+    out["speech_over_src"] = rtf.get("speech_over_src")
+    out["tts_over_src"] = rtf.get("tts_over_src")
+    out["cross_check_note"] = (
+        "交叉核对：`tts_over_src == RTF_out × speech_over_src`"
+        "（实测 1.4595 == 1.1937 × 1.2227）。"
+        "⇒ 译文变长（speech_over_src=1.2227）**混在**端到端占用里，"
+        "**不是** TTS 自身慢。")
+    return out
 
 
 def _seg_audio_ready_rel(m: dict) -> Optional[float]:
@@ -873,6 +1138,14 @@ class Session:
         self.token = token
         self.delay_sec = delay_sec
         self.t0 = time.perf_counter()
+        # ★★★★★★ EXT-036 ①：**墙钟**版的会话原点。
+        #   `self.t0` 是 `perf_counter()`（**单调钟**）⇒ 只能用于
+        #   「同一进程内的时长计算」⇒ **不能**与插件的 `Date.now()` 相减。
+        #   ⇒ 这里额外记一个 Unix 墙钟原点，让下行消息能带上
+        #   「服务端发出时刻（墙钟）」⇒ 与插件的 `Date.now()` **同一时基**
+        #   ⇒ 两边相减 = **真实下行耗时**（含收口后到 WS 落盘的那一段）。
+        #   ★ 这个量是 EXT-036 ①「证明 7 s 缺口是哪种」的**关键证据**。
+        self._t0_wall_ms = time.time() * 1000.0
         # ★★★★ EXT-028 ①：**逐段音频落盘器**（可为 None ⇒ 不落盘）。
         #   落盘三份音频里的前两份：
         #     (a) TTS 引擎的**原始输出**（未经变速）；
@@ -913,6 +1186,14 @@ class Session:
         # ★ 已消耗（已切走）的样本数 —— 段的时间基点必须相对**会话起点**，
         #   不能相对「当前缓冲区」。见 _process_segment 的说明。
         self._consumed_samples = 0
+        # ★★★★★★ EXT-036 ④：**缓冲第一个样本的会话绝对偏移**。
+        #   `_consumed_samples` = 已**交付**的样本数；
+        #   `_buf_base` = 缓冲里第一个样本的**会话绝对偏移**。
+        #   ★ 两者在「首段提前交付」后**会分叉**：
+        #     提前交付时我们**故意不裁缓冲**（⇒ 切点栅格逐位不变）
+        #     ⇒ 已交付 3.5 s，但缓冲仍从 0 开始 ⇒ `_buf_base = 0`。
+        #   ⇒ 段偏移必须用 `_buf_base + s0` 换算（**不是** `_consumed_samples`）。
+        self._buf_base = 0
         # ★★★★★ EXT-034 ④：**首段限长**（会话级）。
         #   ## 为什么（reviewer EXT-034 ③ 的原话）
         #     「开头静音主要归 EXT（首段切得太长、ASR 在整段结束后才定稿）」。
@@ -929,6 +1210,11 @@ class Session:
         #     （`plan_segments` 的 `first_segment_max_sec` 默认 None）。
         self._first_seg_done = False
         self._first_seg_max_sec = C.FIRST_SEGMENT_MAX_SEC
+        # ★★★★★★ EXT-036 ④：**提前交付**掉的样本数（会话绝对偏移）。
+        #   0 ⇒ 首段还没提前交付；>0 ⇒ 已交付 `[0, _first_seg_cut]`。
+        #   ⚠️ 提前交付时**不裁剪 `_buf`** ⇒ 切点栅格逐位不变
+        #     （上一版裁了缓冲 ⇒ 栅格整体平移 ⇒ 尾段被吃掉）。
+        self._first_seg_cut = 0
         self._engine = engine if engine is not None else ENGINE_ADAPTER
         # ★★★ EXT-026 ⑤：**会话前缀**（session epoch）
         #   ## 为什么需要（reviewer 指出的真缺陷）
@@ -1299,24 +1585,55 @@ class Session:
             self._max_frame_arrival_delay = _delay
 
         # 分段：以 R2T2 原有断句为准（EXT-002）
-        # ★★★★★ EXT-034 ④：**首段限长**（会话级，缩短「起步」）。
-        #   ⚠️ 为什么在**会话级**做而不在分段器里做：
-        #     缓冲区每处理一段就被裁掉（`self._buf = self._buf[cut:]`）
-        #     ⇒ 「缓冲区里的第一段」每轮都可能是不同的段
-        #     ⇒ 若在分段器里限长 ⇒ **每一轮的第一段**都被限短
-        #       ⇒ 等于把**所有段**都变成 3.5 s ⇒ 段数暴增、
-        #         切点栅格整体平移 ⇒ **尾部残留**变少
-        #         （实测 60 s 输入只剩 0.5 s ⇒ 低于 `flush` 的 1 s 门槛
-        #           ⇒ **尾段被丢** ⇒ 既有断言变红）。
-        #   ⇒ 现在：分段器**保持与 R2T2 逐位一致**，
-        #     首段限长由 `_split_first_segment()` 在**会话级**完成
-        #     ⇒ 只影响**会话真正的第一段**，其余切点**逐位不变**。
+        # ★★★★★★ EXT-036 ④：**首段一到 cap 就交出**（不等原段到齐）。
+        #   ## 病根（reviewer EXT-036 ④ 的实测）
+        #     旧流程：`plan_segments()` 只能在**原段（最多 8 s）音频到齐**后
+        #     才给出网格 ⇒ 之后才谈得上「拆成 3.5 + 4.5」⇒
+        #     ⇒ `seg_0` 与 `seg_56000` 的 `audio_ready_rel` **都是 8.216 s**
+        #     ⇒ 首段**并没有**被真正「提前」。
+        #   ## 修法
+        #     首段**还没被切走**、且缓冲区里的音频已够 `cap` 秒时，
+        #     **立刻**交出 `[0, cap]` ⇒ 不必等原段。
+        #     ⚠️ 最终网格必须与
+        #       `ext/segmenter.plan_segments_first_capped()` **一致**
+        #       ⇒ 客户端预期段数才不会漂。
         segs = plan_segments(self._buf)
-        if len(segs) <= 1:
-            return None
-        # ★ 首段限长：把会话的第一段**拆成两段**（更早起步）
+        # ★★★★★★ EXT-036 ④：**首段提前交付 + 切点栅格锚定**。
+        #   ## 病根（reviewer EXT-036 ④ 的实测）
+        #     旧流程：`plan_segments()` 只能在**原段（最多 8 s）音频到齐**后
+        #     才给出网格 ⇒ 之后才谈得上「拆成 3.5 + 4.5」⇒
+        #     ⇒ `seg_0` 与 `seg_56000` 的 `audio_ready_rel` **都是 8.216 s**
+        #     ⇒ 首段**并没有**被真正「提前」。
+        #   ## 修法
+        #     首段**还没被切走**、且缓冲区里的音频已够 `cap` 秒时，
+        #     **立刻**交出 `[0, cap]` ⇒ 不必等原段。
+        #
+        #   ## ★★★ 关键：**交出后不裁剪 `_buf`**（只记 `_first_seg_cut`）
+        #     ⇒ `plan_segments(self._buf)` 始终是**从会话起点**算的
+        #     ⇒ **VAD 切点栅格逐位不变** ⇒ 尾段**不会**被吃掉。
+        #     ⚠️ 上一版实现把缓冲裁掉了 ⇒ 下一轮从 cap 处**重新起算**
+        #       ⇒ 栅格整体平移 3.5 s ⇒ 后续切点全变
+        #       （8.0→11.5、16.0→19.5 …）⇒ 尾段丢失。
         if not self._first_seg_done:
+            # 首段还没交付 ⇒ 优先试「提前交付」
+            first = self._first_segment_early()
+            if first is not None:
+                tasks = self._dispatch_segment(seq, 0, first, self._buf[:first],
+                                               audio_complete_at=recv_at)
+                # ★★★ **不裁剪 `_buf`** ⇒ 栅格逐位不变
+                self._first_seg_cut = first
+                self._first_seg_done = True
+                return tasks or None
+            # 原段已到齐但还没提前交付（cap 比原段长）⇒ 走**限长拆分**
             segs = self._split_first_segment(segs)
+        else:
+            # ★ 首段已交付 ⇒ 用**共享函数**把网格对齐
+            #   （与 `plan_segments_first_capped()` 逐位一致）
+            segs = split_first_segment_streaming(
+                segs, cap_sec=self._first_seg_cut / float(C.SAMPLE_RATE),
+                min_sec=C.SEG_MIN_SEC)
+            if not segs:
+                return None
         # 只处理已完整落在 [min, max] 内的段，最后一段留在缓冲区里等后续音频
         ready = list(segs[:-1])
         if not ready:
@@ -1327,24 +1644,63 @@ class Session:
         #   去切下一个段 ⇒ 索引错位（第二段起音频被切错），且 t_start 归零
         #   ⇒ 全部段的时间基点漂移。EXT-006 P1 要按时间表落盘配音，
         #   这个错位会直接污染「同步误差」指标。
+        # ★★★★★★ EXT-036 ④：**首段提前交付后，缓冲起点不再等于「已消费起点」**。
+        #   `abs0 = self._consumed_samples + s0` 这个换算**只在缓冲没被裁过时**成立。
+        #   提前交付时我们**故意不裁缓冲** ⇒ 缓冲里还留着已交付的首段
+        #   ⇒ 必须用**缓冲的绝对起点**来换算，而不是 `_consumed_samples`。
+        #   ⇒ `_buf_base` = 缓冲第一个样本的**会话绝对偏移**。
+        #   ⇒ `_consumed_samples` = 已交付的样本数（用于尾段判定与统计）。
         for (s0, s1) in ready:
             seg_audio = self._buf[s0:s1]
-            abs0 = self._consumed_samples + s0
-            abs1 = self._consumed_samples + s1
+            abs0 = self._buf_base + s0
+            abs1 = self._buf_base + s1
             tasks.extend(self._dispatch_segment(seq, abs0, abs1, seg_audio,
                                                 audio_complete_at=recv_at))
         # 一次性裁掉所有已处理的段，并把基准点推进
+        # ★★★★★★ EXT-036 ④：**只在「栅格切点」上裁剪** ⇒ 栅格逐位不变。
+        #   提前交付的首段（`[0, cap)`）**不被单独裁掉** ⇒ 下一轮
+        #   `plan_segments(self._buf)` 仍从会话起点起算 ⇒ 切点不变。
+        #   ⚠️ 上一版实现提前交付时裁了缓冲 ⇒ 栅格整体平移 3.5 s
+        #     ⇒ 后续切点全变 ⇒ **尾段被吃掉**（实测 flush 产出 0 段）。
         cut = ready[-1][1]
         self._buf = self._buf[cut:]
-        self._consumed_samples += cut
-        # ★ EXT-034 ④：首段已切走 ⇒ 后续段**不再**限长。
-        #   ⚠️ 必须在这里（而不是切段时）置位：`ready` 里的第一段
-        #     才是会话真正的第一段（缓冲区可能一次出多段）。
-        if not self._first_seg_done:
-            self._first_seg_done = True
+        self._buf_base += cut
+        self._consumed_samples = max(self._consumed_samples, self._buf_base)
         return tasks or None
 
     # ── 段派发（串行 vs 流水线） ────────────────────────────────
+    def _first_segment_early(self) -> Optional[int]:
+        """★ EXT-036 ④：**首段提前交付** ⇒ 返回应切走的样本数（绝对）。
+
+        ## 判据
+          缓冲区里已有 **≥ cap 秒**（`FIRST_SEGMENT_MAX_SEC`）音频
+          ⇒ 立刻交出 `[0, cap]`（**不等原段到齐**）。
+
+        ## 为什么必须提前
+          reviewer EXT-036 ④ 实测：`seg_0` 与 `seg_56000` 的
+          `audio_ready_rel` **都是 8.216 s** ⇒ 首段要等原来那段
+          **8 s** 的音频全部到齐才被交出 ⇒ **完全没提前** ⇒
+          开头静音 ≈ D + 8 s + ASR + MT + TTS。
+
+        ## 一致性保证
+          最终网格与 `ext/segmenter.plan_segments_first_capped()` 一致
+          ⇒ 客户端 `expected_segment_count()` 不会漂。
+
+        Returns
+        -------
+        int or None
+            该切的样本数；**不该提前切**时返回 None。
+        """
+        cap = int(self._first_seg_max_sec * C.SAMPLE_RATE)
+        if cap <= 0:
+            return None
+        if self._buf.shape[0] < cap:
+            return None
+        # ⚠️ 余段若是**碎片**（原段尾巴不足 min）⇒ 提前切会多出一个碎片段
+        #   ⇒ 与 `plan_segments_first_capped()` 的「碎片并进下一段」一致
+        #   ⇒ 这里**照切**（碎片会在下一轮与后续音频合并时处理）。
+        return cap
+
     def _split_first_segment(self, segs: List[Tuple[int, int]]
                              ) -> List[Tuple[int, int]]:
         """★ EXT-034 ④：**把会话的第一段拆成两段**（缩短「起步」）。
@@ -1503,12 +1859,15 @@ class Session:
             return []
         # ★ 绝对偏移：尾段同样要相对**会话起点**，不能归零
         #   （否则会重现「段起始时间基点归零」那个缺陷）。
-        abs0 = self._consumed_samples
-        abs1 = self._consumed_samples + self._buf.shape[0]
+        # ★★★★★★ EXT-036 ④：用 `_buf_base`（缓冲起点的会话绝对偏移）
+        #   ⇒ 首段提前交付后（缓冲未裁）尾段偏移仍然**正确**。
+        abs0 = self._buf_base
+        abs1 = self._buf_base + self._buf.shape[0]
         seg_audio = self._buf
         tasks = self._process_segment(0, abs0, abs1, seg_audio)
         self._buf = np.zeros((0,), dtype=np.float32)
-        self._consumed_samples += seg_audio.shape[0]
+        self._buf_base += seg_audio.shape[0]
+        self._consumed_samples = self._buf_base
         return tasks
 
     def _process_segment(self, seq: int, s0: int, s1: int,
@@ -1884,6 +2243,21 @@ class Session:
             "margin_sec": round(margin, 4),
             "speech_sec": round(speech_sec, 4),
             "tts_ready_at": round(ready_at, 3),
+            # ★★★★★★ EXT-036 ①：**墙钟**（跨进程可比）时刻。
+            #   ## 为什么必须加
+            #     reviewer 的原话：「这 7 s 要么是下行或收口真的慢了 7 s，
+            #     要么是两边 t0 对不上……**要做的**：每段在同一个时钟上记下
+            #     服务端发出时刻和插件收到时刻……**先证明这 7 s 是哪一种**」。
+            #   ⇒ 服务端这一侧必须给出**可与插件墙钟直接相减**的时刻。
+            #     `time.time()` = Unix 墙钟（毫秒级）⇒ 与浏览器 `Date.now()`
+            #     **同一时基** ⇒ 两边相减即真实的下行耗时。
+            #   ⚠️ `tts_ready_at` 是 `perf_counter()`（**单调钟**）
+            #     ⇒ **不能**与插件的 `Date.now()` 相减 ⇒ 必须另给墙钟。
+            #   ★ `srv_wall_ms` = 服务端**产出这个任务**（收口完成）的墙钟。
+            "srv_wall_ms": int(time.time() * 1000.0),
+            # ★ 服务端自己的音频轴原点（会话建立时刻，墙钟）
+            #   ⇒ 插件可核对「服务端轴」与「播放端轴」的差。
+            "srv_t0_wall_ms": int(self._t0_wall_ms),
         }]
 
     # ── P0 ③ 回声测试：原样延迟 D 发回 ────────────────────────────
@@ -2322,11 +2696,12 @@ class PipelineSession(Session):
             # 尾部不足 1 s ⇒ 没有有意义的语音段，丢弃（不计为段）
             self._buf = np.zeros((0,), dtype=np.float32)
             return []
-        abs0 = self._consumed_samples
-        abs1 = self._consumed_samples + self._buf.shape[0]
+        abs0 = self._buf_base
+        abs1 = self._buf_base + self._buf.shape[0]
         seg_audio = self._buf
         self._buf = np.zeros((0,), dtype=np.float32)
-        self._consumed_samples += seg_audio.shape[0]
+        self._buf_base += seg_audio.shape[0]
+        self._consumed_samples = self._buf_base
         # 走流水线（与 `_dispatch_segment` 同一路径）
         self._dispatch_segment(0, abs0, abs1, seg_audio,
                                audio_complete_at=time.perf_counter())
@@ -3484,6 +3859,12 @@ def _dump_margin(holder: dict, out_path: Optional[str], engine,
         "delay_requirement": (estimate_required_delay(sess.margins,
                                                        delay_sec=_dl)
                               if sess else {}),
+        # ★★★★★★ EXT-036 ②：**sync 滞后的逐项根因分解**。
+        #   ⇒ 明确区分「TTS 积压」与「**非 TTS 固定项**」
+        #   ⇒ 后者 = 上行 + ASR 整段定稿 + 播放排队 + server→player 缺口
+        #   ⇒ `tts_independent_lag_sec` > 0 ⇒ **不能**写成「全归 TTS」。
+        "sync_rootcause": (decompose_sync_rootcause(sess.margins, delay_sec=_dl)
+                           if sess else {}),
         # ★ EXT-009：自适应加速统计（滞后曲线 + 各倍率时间占比 + 丢句数）
         #   ⚠️ 用 getattr 取 ⇒ 桩 session（自测用的假对象）也不会崩。
         "adaptive_speed": (sess.adaptive_speed_stats()

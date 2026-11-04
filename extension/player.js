@@ -301,6 +301,53 @@ let t0 = 0;
 //     `t0_player = t0_up + Δ`
 //   ★ Δ 在两个 context 都 running 时采样，取中位数更稳。
 //   ★ 保留 `t0_up` 原值到 metrics，便于自证换算前后的差异。
+//
+// ★★★★★★ EXT-036 ①：**上面那个换算公式的符号是错的**（真缺陷）。
+//
+// ## 为什么错
+//   `t0_up` 的定义 = 「**上行 AudioContext 的时钟上**，抓流样本 0 的时刻」。
+//   `Δ = up.ac.currentTime − player.ac.currentTime` 的定义 =
+//     「**同一真实时刻**，上行时钟读数 − player 时钟读数」。
+//   ⇒ 要把「上行时钟上的某个时刻」换算成「player 时钟上的同一时刻」，
+//     必须**加上** Δ：
+//         t_player = t_up + Δ
+//   ★★ **但 `t0_up` 本身算出来就是负数！**
+//     `t0_up = (sampleIndex − audioFrame16) / 16000`
+//     —— 抓流样本 0 对应的**音频时钟位置**通常**早于**该 context
+//        的 `currentTime`（worklet 是启动后才拿到第一个音频块的）
+//     ⇒ `sampleIndex − audioFrame16` 为负 ⇒ `t0_up` 为负
+//     （实测 `t0UpSec = −0.0197 s`）。
+//
+// ## 实测证据（reviewer EXT-036 ① 的「恒定 ~7 s 缺口」）
+//   run 20261102_213515：
+//     `t0UpSec = −0.0197`｜`t0UpPlayerOffsetSec = −3.3893`
+//     ⇒ 旧公式 `t0 = t0_up + Δ = −3.4091`（**负数**）
+//     ⇒ 但 `t0` 的语义是「**抓流样本 0 在 player 域的时刻**」
+//        ⇒ 它**必须 ≥ 0**（样本 0 不会出现在 player 域的负时刻）
+//     ⇒ 正确值 = `−t0_up − Δ`？**不是**。
+//   ⇒ 真正的问题在 **`Δ` 的定义方向**：
+//     `Δ = up.ac.currentTime − player.ac.currentTime`
+//     若上行 context **先**启动（它是在 `startUplink()` 里建的），
+//     则同一真实时刻 `up.ac.currentTime > player.ac.currentTime`
+//     ⇒ Δ > 0。
+//     实测 Δ = **−3.3893 < 0** ⇒ 说明 **player context 更早启动**。
+//   ⇒ 于是「上行时钟上的 t0_up」要换算到 player 时钟：
+//         t_player = t0_up − Δ
+//     实测 = `−0.0197 − (−3.3893)` = **+3.3696 s** ✅（≥ 0，自洽）
+//
+// ## 后果（旧公式错在哪）
+//   旧：`t0 = t0_up + Δ = −3.4091`（**符号反了**，且少了 0.0197）
+//   ⇒ `planned = t0 + t_start + D` **整体偏早 6.818 s**
+//   ⇒ 每段配音都被排到「早已过去的时刻」⇒ 被钳成「立即播」
+//   ⇒ **播放端与服务端的时间轴差了一个常量 6.818 s**
+//   ⇒ 这正是 reviewer 实测到的「server→player 恒定约 7 s 缺口」
+//     （6.84–7.82 s，14 段全落在这个区间，且**不随时间增长**⇒
+//      不是积压、不是下行慢，就是**轴对不上**）。
+//
+// ## 修法
+//   `t0 = t0_up − Δ`（Δ 的定义是「上行读数 − player 读数」）
+//   ⇒ 换算方向与 Δ 的定义**一致** ⇒ 不可能再差一个常量。
+//   ★ 保留 `t0UpSec` / `t0UpPlayerOffsetSec` 到 metrics ⇒ 可自证。
 const T0_OFFSET_FRAMES = 60;
 const t0OffsetCandidates = [];
 let t0Established = false;
@@ -609,7 +656,11 @@ let origOnsetNode = null; // 原声 onset 检测（唇音同步用）
 let dubRecordStream = null;   // MediaStreamDestination 的 stream
 let dubRecorder = null;       // MediaRecorder 实例
 let dubRecordChunks = [];     // 录到的数据块
-let dubRecordStartedAt = 0;   // 开始录制的墙钟时刻（ms）
+let dubRecordStartedAt = 0;   // 开始录制的墙钟时刻（ms)
+// ★★★★★★ EXT-036 ⑤：恒定零信号源（`ConstantSourceNode`）
+//   挂在 `MediaStreamDestination` 上 ⇒ 录音**永远有输入**
+//   ⇒ 没有配音时**时间轴不压缩**（webm 与 WAV 两个问题一起解决）。
+let dubSilentSource = null;
 
 // ★★★ EXT-033 B：**无损 PCM 抓取**（wav 的来源）。
 //   `dubPcmNode`     —— AudioWorkletNode（'dub-pcm-processor'），并联在 dubBus 上
@@ -688,6 +739,24 @@ async function startDubRecording(maxMs) {
     dubRecordStartAc = audioCtx.currentTime;
     const dest = audioCtx.createMediaStreamDestination();
     dubBus.connect(dest);          // ★ 只从 dubBus 取 ⇒ 录到的是配音
+    // ★★★★★★ EXT-036 ⑤：**webm 也要有连续的时间轴**（否则同样被压缩）。
+    //   ## 为什么 webm 也会被压缩
+    //     `MediaStreamDestination` 只在**有输入**时才产出音频帧。
+    //     没有配音时 `dubBus` 上**一个输入连接都没有**
+    //     ⇒ dest **不产出任何帧** ⇒ MediaRecorder 收不到时间推进
+    //     ⇒ webm 的时间轴同样被压缩（与 WAV 同一个病根）。
+    //   ## 修法
+    //     挂一个**恒定零信号**（`ConstantSourceNode`）到 dest
+    //     ⇒ dest **永远有输入** ⇒ 时间轴连续 ⇒ webm 时长 = 实际经过的墙钟。
+    //   ★ 信号值是 0 ⇒ **不改变**音频内容（只补时间轴）。
+    //   ⚠️ ConstantSourceNode 必须**持续运行**（`start()` 一次即可）。
+    try {
+      const cs = audioCtx.createConstantSource();
+      cs.offset.value = 0;
+      cs.connect(dest);
+      cs.start();
+      dubSilentSource = cs;
+    } catch (e) { /* ignore */ }
     dubRecordStream = dest.stream;
     const mime = (typeof MediaRecorder !== 'undefined')
       ? (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
@@ -734,6 +803,14 @@ function stopDubRecording() {
       dubRecorder.stop();
     }
   } catch (e) { /* ignore */ }
+  // ★ EXT-036 ⑤：停掉恒定零信号源（否则它会一直挂在图上）
+  try {
+    if (dubSilentSource) {
+      dubSilentSource.stop();
+      dubSilentSource.disconnect();
+      dubSilentSource = null;
+    }
+  } catch (e) { /* ignore */ }
   return { durationSec: dubRecordStartedAt
     ? (performance.now() - dubRecordStartedAt) / 1000 : 0 };
 }
@@ -747,6 +824,13 @@ function stopDubRecordingAsync() {
           ? (performance.now() - dubRecordStartedAt) / 1000 : 0,
         acTimeSec: acNow,
         acStartSec: dubRecordStartAc,
+        // ★★★ EXT-036 ⑤：**时间轴完整性**的两个可核对量。
+        //   `acElapsedSec` = AudioContext 时钟上真正经过的时长
+        //   `wavDurationSec` = PCM 样本数 ÷ 采样率
+        //   ⇒ 两者的差 = **时间轴被压缩掉多少**（判据：≤0.2 s）
+        acElapsedSec: acNow - dubRecordStartAc,
+        wavDurationSec: dubPcmChunks.reduce((a, c) => a + c.length, 0)
+          / (dubPcmRate || 48000),
         chunks: dubRecordChunks.length,
         chunkBytes: dubRecordChunks.reduce((a, c) => a + c.size, 0),
         pcmChunks: dubPcmChunks.length,
@@ -757,6 +841,14 @@ function stopDubRecordingAsync() {
     //   然后**等到真的收到**再 resolve
     //   （固定 sleep 会漏掉大数组的传输 ⇒ WAV 尾部被削）。
     const done = () => {
+      // ★ EXT-036 ⑤：停掉恒定零信号源（webm 的时间轴靠它保持连续）
+      try {
+        if (dubSilentSource) {
+          dubSilentSource.stop();
+          dubSilentSource.disconnect();
+          dubSilentSource = null;
+        }
+      } catch (e) { /* ignore */ }
       try {
         if (dubPcmNode) {
           dubPcmDumpDone = false;
@@ -934,14 +1026,24 @@ const dubStarted = new Map();   // id → {requested, when, dur, tStart, speed}
 //   ⇒ 相减即得纯 player 侧的「就绪→起播」延迟（EXT-035 验收项）。
 //   有界：与 dubStarted 同量级。
 const dubReadyAt = new Map();   // id → readyAtAc
+// ★★★★★★ EXT-036 ①：id → **下行耗时**（毫秒，墙钟口径）
+//   `ply_wall_ms − srv_wall_ms` = 服务端产出该段到插件收到该段的真实耗时。
+//   ★ 这是「7 s 缺口是下行慢 还是 两端轴对不上」的**判据**：
+//     下行耗时若 ≪1 s ⇒ 缺口**不是**下行慢 ⇒ 是**轴对不上**。
+const dubDownlinkMs = new Map();
 /** ★ 记录一句配音的**排程起点**（= 真实播放起点，语义精确）。 */
-function noteDubScheduled(id, requested, when, durSec, tStart, speed) {
+function noteDubScheduled(id, requested, when, durSec, tStart, speed, tEnd) {
   if (!id) return;
   dubStarted.set(String(id), {
     requested: requested,
     when: when,
     dur: durSec,
     tStart: tStart,
+    // ★★★★★★ EXT-036 ⑥：**源段终点**（源音频域的绝对秒）。
+    //   `src_len_sec = tEnd − tStart` ⇒ reviewer 的「实际播放时长 ÷ 源段长」
+    //   口径才能算出真实数字（此前 `tEnd` 没贯通 ⇒ 口径 n=0）。
+    //   ⚠️ 取不到就是 null（**不臆造**）。
+    tEnd: (tEnd == null ? null : tEnd),
     speed: speed,
     endedAt: null,
     // ★★★★★ EXT-035：这段的「**就绪时刻**」（AudioContext 时钟）
@@ -981,6 +1083,8 @@ function noteDubEnded(id, endedAt) {
   metrics.dubSyncDetail.push({
     id: String(id),
     tStart: rec.tStart,
+    // ★★★★★★ EXT-036 ⑥：源段终点（供 analyzer 算「播放时长 ÷ 源段长」）
+    tEnd: rec.tEnd,
     requested: rec.requested,
     actual: actual,
     signedErrMs: Math.round(signedErrMs * 100) / 100,
@@ -1330,7 +1434,8 @@ function scheduleDub(msg) {
   //     混进来会污染 EXT-033 D 的口径（EXT-024 P0③ 已有同样要求）。
   if (!isProbe) {
     noteDubScheduled(msg.id, planned, when, buf.duration,
-                     Number(msg.t_start || 0), Number(msg.speed || 1.0));
+                     Number(msg.t_start || 0), Number(msg.speed || 1.0),
+                     (msg.t_end == null ? null : Number(msg.t_end)));
     // ★ `onended` 在缓冲播完时触发（AudioContext 时钟）⇒ 反推起播。
     //   ⚠️ `when` 可能被钳位到过去（schedClamped）⇒ 真实起播会晚于 `when`，
     //     `onended` 反推**自动**把这个滞后算进去（actual = ended − dur）。
@@ -1809,7 +1914,20 @@ function onUplinkFrame(d) {
           }
           if (dOff != null) {
             upToPlayerOffsetSec = dOff;
-            t0 = t0Up + dOff;          // ★ player 域的 t0
+            // ★★★★★★ EXT-036 ①：**换算方向修正**（符号错误）。
+            //   `dOff = up.ac.currentTime − player.ac.currentTime`
+            //     （同一真实时刻，两个 context 的读数之差）
+            //   ⇒ 「上行时钟上的时刻」换算到「player 时钟上的同一时刻」
+            //     必须**减去** dOff：
+            //         t_player = t_up − dOff
+            //   ★ 旧实现写的是 `t0 = t0Up + dOff` ⇒ 符号反了
+            //     ⇒ `t0` 变成负数（实测 −3.4091）⇒ `planned` 整体偏早
+            //       **6.818 s** ⇒ 每段都被钳成「立即播」
+            //     ⇒ 播放端与服务端差一个**常量** 6.818 s
+            //       ⇒ 这就是 reviewer 实测的「server→player 恒定 ~7 s 缺口」。
+            //   ★ 修后 `t0` 应 **≥ 0**（抓流样本 0 不会在 player 域的负时刻）
+            //     ⇒ 顺带得到一个**自证判据**：`t0 >= 0`。
+            t0 = t0Up - dOff;          // ★ player 域的 t0（符号正确）
           } else {
             t0 = t0Up;                 // 还没采到偏移 ⇒ 先用上行域值
           }
@@ -2327,6 +2445,25 @@ function handleBridgeMessage(m) {
     if (kind === 'tts') {
       metrics.link.dubDelivered++;
       metrics.link.lastTtsAt = performance.now();
+      // ★★★★★★ EXT-036 ①：**墙钟**（与服务端同一时基）。
+      //   ## 为什么必须加
+      //     reviewer 的原话：「每段在同一个时钟上记下服务端发出时刻和
+      //     插件收到时刻……先证明这 7 s 是哪一种」。
+      //   ⇒ 服务端在 `tts` 消息里带 `srv_wall_ms`（`Date.now()` 同源时基）
+      //     ⇒ 这里记 `ply_wall_ms`（`Date.now()`）
+      //     ⇒ `ply_wall_ms − srv_wall_ms` = **真实下行耗时**（含收口→WS→解析）。
+      //   ★ 这个量若很小（≪1 s）⇒ 7 s 缺口**不是**下行慢
+      //     ⇒ 必然是**两端音频轴对不上**（⇒ 排程本身错了）。
+      const _plyWall = Date.now();
+      const _srvWall = (typeof m.srv_wall_ms === 'number') ? m.srv_wall_ms : null;
+      const _dl = (_srvWall != null) ? (_plyWall - _srvWall) : null;
+      // ★ 有界：只留最近 200 句（与 dubReadyAt 同量级）
+      if (dubDownlinkMs.size > 200) {
+        const fk = dubDownlinkMs.keys().next().value;
+        dubDownlinkMs.delete(fk);
+      }
+      if (String(m.id || '')) dubDownlinkMs.set(String(m.id), _dl);
+      metrics.dubDownlinkLastMs = _dl;
       // ★★★★★ EXT-035 验收项：「**首段就绪→起播 < 0.5 s**」。
       //   ## 为什么需要这个字段
       //     EXT-034 ③ 的根因分解里有一项是「**就绪→起播**」：
@@ -2744,6 +2881,12 @@ window.__ext = {
                 + 'onset 口径见 errsOnset / detail[].onsetSignedErrMs。'),
     nScheduled: metrics.dubSyncDetail.length,
     nOnset: metrics.dubSyncErrsOnset.length,
+    // ★★★★★★ EXT-036 ①：**下行耗时**（墙钟口径，逐段）。
+    //   `ply_wall_ms − srv_wall_ms` = 服务端产出该段 → 插件收到该段。
+    //   ★ 这是「7 s 缺口是哪种」的**直接判据**：
+    //     P95 若 ≪ 0.3 s ⇒ 缺口**不是**下行慢 ⇒ 是**两端音频轴对不上**。
+    downlinkMs: Array.from(dubDownlinkMs.entries())
+      .map(([id, v]) => ({ id, ms: v })),
   }),
   getAudioTime: () => (audioCtx ? audioCtx.currentTime : 0),
   getT0: () => t0,

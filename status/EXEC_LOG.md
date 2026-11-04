@@ -2875,3 +2875,93 @@ run `.tmp/ext033_e2e/20261102_121431/`：
 
 ### `last_ack`
 **EXT-035** —— 本轮**已认领并执行** EXT-035（含 EXT-034 的全部四项）⇒ `last_ack` 推进到 **EXT-035**。
+
+
+---
+
+## 2026-11-04 18:25 → 18:47 巡检轮次 —— 执行 **EXT-036**（§27 复核七项逐条落实）
+
+### 租约与闸门
+
+- `session_lease.py acquire ext` ⇒ **exit 0 / TAKEOVER**：上一会话 token `507d977c`
+  （started 11-04 15:55:24，last_beat 16:13:21，**132 min 前**，note=「接管完成，已定位 EXT-036 遗留改动与两处回归」，
+  `live_pids=[]`，`alive=False`）⇒ 判定**死会话** ⇒ 本会话接管，token **`7f6d1a78`**。
+- 闸门 `tools/next_instruction.py --json` ⇒ **exit 0**，latest=**EXT-036** [HIGH]
+  （ts `2026-11-04 09:52`，「§27 复核：5 项数字属实，但"sync 35 s 全归 TTS"不成立；server→player 恒定约 7 s
+  缺口和录音时间轴压缩都归 EXT；PID 7896 越权」），`last_ack`=35 ⇒ **认领 EXT-036**。
+- 接管时工作树**有未提交改动**（前会话半成品）：`ext/bridge.py` `ext/segmenter.py`
+  `extension/dub-pcm-worklet.js` `extension/player.js` `tests/smoke/ext033_analyze.py` `tools/p1_pipeline.py`
+  ⇒ 逐行审阅后**沿用**（方向正确），并修掉它留下的**两处回归**（见下「回归修复」）。
+
+### 本轮改动的文件
+
+| 文件 | 改动 |
+|---|---|
+| `ext/bridge.py` | ① `summarize_margins()` 斜率改 **TTS-only**（旧口径保留为 `lag_growth_slope_all_sec_per_sec`）＋ `_seg_has_tts()` ② 新增 `decompose_sync_rootcause()`（**非 TTS 固定项** ＋ `tts_independent_lag_sec`；**轴缺口** 与 **真实下行耗时** 分列）③ 新增 `_first_segment_early()`（首段 cap 一到就交出）④ 新增 `_buf_base`（缓冲起点的会话绝对偏移）⑤ `_t0_wall_ms` / `srv_wall_ms` / `srv_t0_wall_ms` 落进 `tts` 消息 ⑥ `margin.json` 落 `sync_rootcause` |
+| `ext/segmenter.py` | 新增 `plan_segments_first_capped()`（客户端）与 `split_first_segment_streaming()`（服务端）⇒ **两端口径逐位一致** |
+| `extension/player.js` | ① **★ `t0 = t0Up − dOff`**（旧式 `+ dOff` 符号反了）② 记 `ply_wall_ms` / `downlinkMs`（有界 200 条）③ `noteDubScheduled()` / `dubSyncDetail[]` 贯通 `tEnd` ④ 录音挂 `ConstantSourceNode`（保 webm 时间轴）⑤ `record_stop` 落 `acElapsedSec` / `wavDurationSec` |
+| `extension/dub-pcm-worklet.js` | 静音期**按渲染量子补写等长静音样本**（值 0）＋ 落 `silentBlocks` 计数 |
+| `tools/p1_pipeline.py` | `expected_segment_count()` 改用 `plan_segments_first_capped()`；**补回 `plan_segments` 导入**（回归修复） |
+| `tests/smoke/ext033_analyze.py` | 新增 `_ext036_analysis()`（① 下行耗时/轴缺口/自证判据、⑤ 时间轴完整性、⑥ 三口径）＋ `tEnd` 贯通；**删掉被改成线性插值的本地 `_pct`**（回归修复） |
+| `tests/test_ext036_review.py` | **新建**：EXT-036 七项专属自测（**59 PASS / 0 FAIL**） |
+| `status/STATUS_EXT.md` | `last_ack` → **EXT-036**；追加 **§28**；§26/§27 压成指针行（明细仍在 `notes/`） |
+| `status/notes/sec28_ext036.md` | **新建**：§28 全量明细（七项逐条证据） |
+
+### ★ 七项逐条结果
+
+1. **7 s 缺口**：**已定性 = 不是下行慢，是两端轴对不上**（`t0` 换算符号反了）。
+   实测 `t0UpSec=−0.01972917`、`dOff=−3.38933333`
+   ⇒ 旧 `t0 = t0Up + dOff = −3.4090625`（**负数不自洽**）、新 `t0 = t0Up − dOff = +3.3696`（**≥0 自洽**）
+   ⇒ **两式差 6.7787 s = 2×|dOff|** ⇒ 与 reviewer 实测 **6.84–7.82 s** 同量级且**恒定**
+   ⇒ 新增墙钟贯通（`srv_wall_ms` ↔ `ply_wall_ms` ⇒ `downlinkMs` = 真实下行耗时）+ 自证判据 `t0 ≥ 0`。
+2. **根因分解**：新增 `decompose_sync_rootcause()` ⇒ `margin.json` 的 `sync_rootcause`
+   ⇒ **撤回 §27「全归 TTS」的单因归因**（TTS 只解释积压约 25–33 s；非 TTS 固定项归 EXT/ASR）。
+3. **斜率口径**：顶层改 TTS-only。**用旧产物对拍**（`margin.json` run `20261102_213515`，32 段 / 14 段有 TTS）
+   ⇒ 新 **−0.46251 / r²=0.881865 / n=14** vs 旧 **0.24841 / r²=0.375152 / n=32**
+   ⇒ 新值与 reviewer 独立重算的 **0.476 s/s** 吻合（差 3 %）✅。
+4. **首段提前交付**：新增 `_first_segment_early()`；**交出后不裁 `_buf`** ⇒ VAD 栅格逐位不变 ⇒ 尾段不被吃掉；
+   偏移改用 `_buf_base`。**实测**（120 s 合成音频）：首段 `(0, 56000)` 精确、后续切点逐位不变、
+   尾段终点与原网格完全一致、**服务端流式口径与客户端整段口径完全相等**。
+5. **录音时间轴**：worklet 静音期补写样本 ＋ `ConstantSourceNode` 保 webm 连续 ＋ 落 `acElapsedSec`/`wavDurationSec`
+   ⇒ 判据 |wav − durationSec| ≤ 0.2 s（合成数据双向验证：未压缩 ⇒ ok，压缩 16.4 s ⇒ 必 FAIL）。
+6. **时长比**：三口径 `over_src_len` / `over_ws` / `speed_adjusted` 各带 `definition`
+   ⇒ reviewer 的 **0.57–1.55** = `over_src_len`；旧写的 **0.68–1.49** = `speed_adjusted` ⇒ **不是同一个数**（非算错）。
+   ★ 前置修复：`tEnd` 此前未贯通（口径 n=0）⇒ 现全链贯通。
+7. **进程记录**：**撤回 §27①「PID 26736 排队拿锁后关」**（实际未关，查询时已不存在）⇒ **实际只关了 4896 与 7896 两个**；
+   **PID 7896 属越权**（不在 EXT-035 授权范围；explorer 拉起、可能是用户本人重开；「空闲」不能推定用户不要）
+   ⇒ **新规则**：点名以外的实例一律停下写进 STATUS 请主会话找用户确认。
+
+### ★ 回归修复（接管时前会话遗留的两处）
+
+| 回归 | 症状 | 修法 |
+|---|---|---|
+| `tools/p1_pipeline.py` | `plan_segments` **未导入** ⇒ `NameError` ⇒ `test_p1_plumbing` **8 FAIL** | 补回导入 ⇒ **112 PASS / 0 FAIL** |
+| `tests/smoke/ext033_analyze.py` | 本地 `_pct` 被改成**线性插值** ⇒ 与 `p1_pipeline._pct`（最近秩）**口径漂移** ⇒ `test_ext033_deliver` **1 FAIL** | 删掉本地 `_pct` ⇒ 复用 `ext032_deliver._pct` ⇒ **25 PASS / 0 FAIL** |
+
+### 自测（实测 rc）
+
+`test_ext_selfcheck` **122**｜`test_echo_roundtrip` **11**｜`test_next_instruction` **19**｜
+`test_p1_plumbing` **112**｜`test_ext010_pipeline` **25**｜`test_ext033_capture` **42**｜
+`test_ext033_deliver` **25**｜**`test_ext036_review`（新建）59**｜`ext028_player_harness.js`（node 沙箱）**29**
+⇒ **九套全 0 FAIL**。
+★ **变异测试实测**：把 `player.js` 的 `t0 = t0Up − dOff` 改回 `+ dOff`
+⇒ `test_ext036_review` **57 PASS / 2 FAIL** ⇒ 守卫确实抓得住（已还原，实测 `t0 = t0Up − dOff`）。
+★ `test_ext016_compression` **38 PASS / 1 FAIL** ⇒ 唯一 FAIL = **CORRECTIONS 体积项**
+（reviewer 独占、只读、本轮从未修改也从未入库）⇒ 既有基线红；STATUS 体积 **22 483 B ≤ 22 483 B** ✅（头部 15 行 ≤ 15 ✅）。
+
+### ⛔ 明确未做 / 不宣称
+
+- ⛔ **真实三引擎 e2e 未跑完**：`shared/MACHINE_LOCK` 被 **ASR 模块**持有
+  （`asr` PID **22936**，started **2026-11-04 17:50:25**，task=`asr113-param-ab`，
+  `OpenProcess + GetExitCodeProcess` 实测 `code=259` ⇒ **ALIVE**）
+  ⇒ 本会话启动的 e2e（PID **3449**，已 `addpid` 登记）**排队等待** ⇒ **不写「e2e 已过」**
+  ⇒ **①的 P95 ≤ 0.3 s 与 ⑤的 ≤ 0.2 s 两条验收待实测确认**（本轮只做到「定性 + 修复 + 合成数据自测」）。
+- ⛔ **未改任何引擎文件**（ASR=R2T2 / MT=Hy-MT2 / TTS=Qwen3-TTS 一律未动）。
+- ⛔ **未打包**（APP-057）/ **未改 `session_lease.py`** / **未推远程** /
+  `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**（`git check-ignore` 命中 `.gitignore:34`）。
+- ⛔ **未改其它模块文件** —— 本轮改动**全部**落在 `live_dub_ext` 内。
+- ℹ️ **TTS 指标请求照旧转主会话**：要不积压须 `tts/src ≤ 1` ⇒ **RTF_out ≤ 0.82**；
+  建议目标 **RTF_out ≤ 0.75**（`tts/src ≈ 0.92`，留 8 % 余量）。
+
+### `last_ack`
+**EXT-036** —— 本轮**已认领并执行** EXT-036 全部七项 ⇒ `last_ack` 推进到 **EXT-036**。

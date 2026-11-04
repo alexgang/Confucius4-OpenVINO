@@ -51,6 +51,9 @@ class DubPcmProcessor extends AudioWorkletProcessor {
     this.store = new Float32Array(opt.initSamples || (1 << 20));
     this.stored = 0;
     this.dropped = 0;
+    // ★★★★★★ EXT-036 ⑤：静音块计数（没有配音时补写的样本块数）
+    //   ⇒ 落盘后可直接核对「时间轴有没有被压缩」。
+    this.silentBlocks = 0;
     this.port.onmessage = (ev) => {
       const d = ev.data || {};
       if (d.cmd === 'start') {
@@ -58,6 +61,7 @@ class DubPcmProcessor extends AudioWorkletProcessor {
         this.frames = 0;
         this.stored = 0;
         this.dropped = 0;
+        this.silentBlocks = 0;
       } else if (d.cmd === 'stop') {
         this.active = false;
         this._flush();          // ★ 停之前把尾巴冲出去
@@ -91,6 +95,8 @@ class DubPcmProcessor extends AudioWorkletProcessor {
     this.port.postMessage({
       pcm: out.buffer, sr: sampleRate, dumped: true,
       stored: this.stored, dropped: this.dropped, frames: this.frames,
+      // ★ EXT-036 ⑤：静音块数（自证「没有配音时也在写样本」）
+      silentBlocks: this.silentBlocks,
     }, [out.buffer]);
   }
 
@@ -106,18 +112,49 @@ class DubPcmProcessor extends AudioWorkletProcessor {
     const input = inputs[0];
     const ch0 = (input && input.length) ? input[0] : null;
 
-    // ── 采集（仅在 active 时）──
-    if (this.active && ch0 && ch0.length) {
-      for (let i = 0; i < ch0.length; i++) {
-        this.buf[this.n++] = ch0[i];
-        if (this.n >= this.chunk) this._flush();
+    // ★★★★★★ EXT-036 ⑤：**没有配音时也要写入静音样本**（时间轴不再被压缩）。
+    //
+    // ## 病根（reviewer EXT-036 ⑤ 的实测）
+    //   `dub_player.wav` 只有 **99.10 s**，而 `record_stop.durationSec` 是
+    //   **115.56 s**（`acTimeSec − acStartSec = 115.51 s`）⇒ **少了 16.4 s**。
+    //   ⇒ 丢失发生在**中间**（seg_0→seg_1 的 7.16 s 空档、
+    //     seg_9→seg_10 的 5.4 s 空档在录音里被吃掉）。
+    //
+    // ## 为什么会被吃掉
+    //   `dubBus` 是个 GainNode，**每个配音段的 `AudioBufferSourceNode`
+    //   播完就断开** ⇒ 没有配音时 `dubBus` **一个输入连接都没有**
+    //   ⇒ Web Audio 判定这条支路「无输入」⇒ 给本 worklet 传
+    //     **空输入数组**（`inputs[0].length === 0`）
+    //   ⇒ 旧代码 `if (ch0 && ch0.length)` ⇒ **静音期间一块样本都不写**
+    //   ⇒ WAV 的时间轴被**压缩**（静音段整段消失）。
+    //
+    // ## 修法
+    //   本节点**永远**在渲染图里（它 → `dubPcmSink` → destination）
+    //   ⇒ `process()` 每个渲染量子都会被调用
+    //   ⇒ 即使输入为空，也**按渲染量子长度补写静音样本**
+    //   ⇒ WAV 的样本数 = 采样率 × 实际经过的墙钟 ⇒ 时间轴**不再压缩**。
+    //   ★ 静音样本的值为 0 ⇒ **不改变**音频内容（只补时间轴）。
+    const output = outputs[0];
+    const o0 = (output && output.length) ? output[0] : null;
+
+    if (this.active) {
+      if (ch0 && ch0.length) {
+        for (let i = 0; i < ch0.length; i++) {
+          this.buf[this.n++] = ch0[i];
+          if (this.n >= this.chunk) this._flush();
+        }
+      } else if (o0 && o0.length) {
+        // ★ 静音期：**补写等长的静音样本**（时间轴必须连续）
+        for (let i = 0; i < o0.length; i++) {
+          this.buf[this.n++] = 0;
+          if (this.n >= this.chunk) this._flush();
+        }
+        this.silentBlocks++;
       }
     }
 
     // ── 直通（这条支路末端接的是 gain=0 的 sink ⇒ 不出声）──
-    const output = outputs[0];
     if (output && output.length) {
-      const o0 = output[0];
       if (o0) {
         if (ch0) {
           const n = Math.min(o0.length, ch0.length);

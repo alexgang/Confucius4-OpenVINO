@@ -326,6 +326,130 @@ def segments_to_seconds(segs: List[Tuple[int, int]]) -> List[Tuple[float, float]
     return [(s / SAMPLE_RATE, e / SAMPLE_RATE) for s, e in segs]
 
 
+def plan_segments_first_capped(audio: np.ndarray, *,
+                                cap_sec: Optional[float] = None,
+                                min_segment_sec: float = SEG_MIN_SEC,
+                                max_segment_sec: float = SEG_MAX_SEC,
+                                sample_rate: int = SAMPLE_RATE,
+                                ) -> List[Tuple[int, int]]:
+    """★ EXT-036 ④：**首段提前交付**口径（服务端与客户端共用同一份）。
+
+    ## 要解决的问题（reviewer EXT-036 ④ 的原话）
+      「seg_0 [0,3.5] 和 seg_56000 [3.5,8.0] 的 `audio_ready_rel` 都是
+        **8.22 s**，也就是要等原来那段 8 s 的音频全部到齐以后才拆。
+        ⇒ **要做的**：在切段器里 **3.5 s 一到就交出首段**。」
+
+    ## 本函数给出的就是**服务端最终会吐出的段列表**
+      （服务端是**流式**的 ⇒ 它按同一套规则增量地实现本函数；
+        客户端拿**整段音频**调用本函数预测 ⇒ 段数永远一致）。
+
+    ## 规则（与服务端增量实现**逐条对应**）
+      1. 先按 R2T2 原件规划（`plan_segments`）⇒ 得到原始网格 `segs`；
+      2. `cap = cap_sec × sample_rate`：
+         * `e0 = segs[0][1]`（原始首段终点）；
+         * 若 `e0 > cap` ⇒ 首段被**限长**成 `[0, cap]`，
+           余下 `[cap, e0]` 成为第二段（**其余切点逐位不变**）；
+         * 若 `e0 ≤ cap` ⇒ 首段本来就不长（提前交付会**越过**自然切点）
+           ⇒ 第二段起点**移到 `cap`**（丢掉 `[e0, cap]` 这一小段自然边界）；
+         * 若 `(e0 − cap) < min_segment_sec`（余段是**碎片**）
+           ⇒ **不单独成段** ⇒ 并进下一段（起点 `cap`）⇒ **不产生碎片段**；
+      3. `cap_sec is None` ⇒ 与 `plan_segments` **逐位一致**
+         （R2T2 等价性不受影响）。
+
+    ★ 与旧的 `split_first_segment()` 的差别：
+      旧函数**只在服务端切网格之后**才拆 ⇒ **必须等原段（最多 8 s）到齐**
+      ⇒ 首段的音频要等 8 s 才交出（EXT-036 ④ 的病根）。
+      新函数描述的是**最终结果**，服务端按它**增量**实现 ⇒
+      首段**一到 cap 秒就交出**，不必等原段。
+
+    ★★★★★★ EXT-036 ④ 修正（**本函数必须与服务端逐位一致**）：
+      上一版实现有一个**真缺陷**：服务端提前交付后把缓冲**裁掉**了
+      `cap` 秒 ⇒ 下一轮 `plan_segments(self._buf)` 是**从 cap 处重新起算**
+      ⇒ **VAD 切点栅格整体平移 3.5 s**
+      ⇒ ① 尾段被吃掉（实测 flush 产出 0 段）；② 客户端段数预期漂移。
+      ⇒ 现在服务端**保留缓冲**（只标记「已交付多少」）⇒ **栅格逐位不变**
+      ⇒ 本函数也必须表达**同一个结果**：
+        * 首段 = `[0, cap]`；
+        * **其余段的切点 = 原始网格逐位不变**
+          （只是把「原始首段」从网格里去掉，
+            即 `segs[1:]`，**不重排**后续切点）；
+        * 原始首段的**尾巴** `[cap, e0]`：
+          - 若 `(e0 − cap) ≥ min_segment_sec` ⇒ 独立成段
+            （接在首段之后，**位置就是原首段的位置** ⇒
+              后续切点不受影响）；
+          - 否则（碎片）⇒ **并进下一段**（下一段起点前移到 `cap`）。
+      ⇒ 关键：**后续段的切点永远取自原始网格** ⇒ 尾段行为与原来完全一致。
+    """
+    segs = plan_segments(audio, min_segment_sec=min_segment_sec,
+                         max_segment_sec=max_segment_sec)
+    if not segs or not cap_sec:
+        return segs
+    cap = int(cap_sec * sample_rate)
+    e0 = segs[0][1]
+    min_samp = int(min_segment_sec * sample_rate)
+    if len(segs) == 1:
+        # 只有一段 ⇒ 首段限长后就是 `[0, cap]`（尾巴留给 flush）
+        return [(0, min(cap, e0))]
+    if e0 <= cap:
+        # 首段本来就不长 ⇒ 提前交付点越过自然切点 ⇒ 第二段起点移到 cap
+        #   （其余切点逐位不变）
+        return [(0, cap), (cap, segs[1][1])] + list(segs[2:])
+    if (e0 - cap) < min_samp:
+        # 余段是碎片 ⇒ 并进下一段（不产生碎片段）
+        #   ⇒ 下一段起点前移到 cap，其余切点逐位不变
+        return [(0, cap), (cap, segs[1][1])] + list(segs[2:])
+    # ★ 正常情况：首段限长 + 原首段尾巴独立成段 ⇒ **其余切点逐位不变**
+    return [(0, cap), (cap, e0)] + list(segs[1:])
+
+
+def split_first_segment_streaming(segs: List[Tuple[int, int]], *,
+                                  cap_sec: Optional[float] = None,
+                                  min_sec: float = SEG_MIN_SEC,
+                                  ) -> List[Tuple[int, int]]:
+    """★ EXT-036 ④：**首段已提前交付**之后的网格（服务端增量路径用）。
+
+    ## 场景
+      服务端把首段 `[0, cap]` **提前交出**后，缓冲**不裁剪**
+      ⇒ `plan_segments(self._buf)` 给的仍是**原始网格**
+      ⇒ 需要把这个网格里「已经交出去的首段」去掉，
+        并把原首段的**尾巴**处理掉（独立成段 或 并进下一段）。
+
+    ## 规则（与 `plan_segments_first_capped()` 的结果**逐位一致**）
+      * 原首段尾巴 `[cap, e0]` 够长（≥ `min_sec`）⇒ **独立成段**，
+        位置就是原首段的位置；
+      * 否则是**碎片** ⇒ 并进下一段（下一段起点前移到 `cap`）；
+      * **其余段的切点永远逐位不变** ⇒ 尾段行为与原来完全一致
+        ⇒ 尾段**不会**被吃掉（这是上一版实现的真缺陷）。
+
+    Parameters
+    ----------
+    segs : list
+        `plan_segments()` 的**原始**网格（仍含首段）。
+    cap_sec : float or None
+        提前交付的长度（样本数口径已换算成秒）。
+    min_sec : float
+        独立成段的最短长度 ⇒ 低于它算碎片。
+
+    Returns
+    -------
+    list
+        去掉首段、补好尾巴之后的网格。
+    """
+    if not segs or not cap_sec:
+        return segs
+    cap = int(cap_sec * SAMPLE_RATE)
+    e0 = segs[0][1]
+    rest = list(segs[1:])
+    min_samp = int(min_sec * SAMPLE_RATE)
+    if e0 > cap and (e0 - cap) >= min_samp:
+        # 尾巴够长 ⇒ 独立成段
+        return [(cap, e0)] + rest
+    # 碎片 ⇒ 并进下一段
+    if rest:
+        return [(cap, rest[0][1])] + list(rest[1:])
+    return []
+
+
 def describe() -> dict:
     """自测用：说明当前分段来源与参数。"""
     r2t2 = _try_load_r2t2()

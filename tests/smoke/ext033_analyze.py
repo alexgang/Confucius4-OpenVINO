@@ -196,6 +196,8 @@ def wav_timeline_offsets(detail, ac_start_sec):
         out.append({
             "id": d.get("id"),
             "t_start": d.get("tStart"),
+            # ★★ EXT-036 ⑥：源段长需要 `t_end`（源段 = [t_start, t_end]）
+            "t_end": d.get("tEnd"),
             "requested": d.get("requested"),
             "actual": actual,
             "signed_err_ms": d.get("signedErrMs"),
@@ -295,6 +297,149 @@ def source_is_english(src):
     if CJK_RE.search(s):
         return False, "src 含中日韩字符（源语言必须是英文）"
     return True, "ok"
+
+
+# ══════════════════════════════════════════════════════════════════
+# ★★★★★★ EXT-036 ①/⑤/⑥：下行耗时 / 时间轴完整性 / 时长比口径
+# ══════════════════════════════════════════════════════════════════
+def _ext036_analysis(detail, sync, metrics, wav, wav_sr, prof, stop,
+                      segs, aligned, ratios):
+    """★ EXT-036 ①/⑤/⑥ 的实测分析（**只算不算猜**）。
+
+    ## ① server→player 缺口：**到底是哪一种**
+      reviewer 的原话：「这 7 s 要么是下行或收口真的慢了 7 s，
+      要么是两边 t0 对不上……**先证明这 7 s 是哪一种**，再修。」
+      ⇒ 本节给出两个**互斥**的量：
+        * `downlink_ms`（**墙钟**）：`Date.now() − srv_wall_ms`
+          = 服务端产出该段 → 插件收到该段的**真实**耗时。
+          ★ 若它 ≪1 s ⇒ 缺口**不是**下行慢。
+        * `axis_gap_sec`（**音频轴**）：播放端轴与服务端轴的常量差。
+          ★ 它**不随时间增长** ⇒ 就是「轴对不上」的证据。
+
+    ## ⑤ 录音时间轴完整性
+      `wav 时长` vs `record_stop.durationSec`（或 `acElapsedSec`）
+      ⇒ 差值 = 时间轴被压缩掉多少（判据 ≤ 0.2 s）。
+
+    ## ⑥ 时长比口径核对
+      reviewer 实测：「每段『实际播放时长 ÷ 源段长』是 **0.57–1.55**
+      （STATUS 写 0.68–1.49，对不上，请核对口径）」
+      ⇒ 本节同时给出**三个**口径：
+        * `over_src_len`   = d_player ÷ **源段长**（reviewer 用的口径）
+        * `over_ws`        = d_player ÷ d_ws（未经变速校正）
+        * `speed_adjusted` = d_player × speed ÷ d_ws（EXT-033 C 的口径）
+      ⇒ 三者**含义不同** ⇒ STATUS 必须写明用的是哪个。
+    """
+    out: dict = {}
+
+    # ── ① 下行耗时（墙钟）────────────────────────────────────────
+    dl_rows = (sync or {}).get("downlinkMs") or []
+    dl_vals = [float(r["ms"]) for r in dl_rows
+               if r.get("ms") is not None]
+    if dl_vals:
+        s = sorted(dl_vals)
+        out["downlink_ms"] = {
+            "n": len(dl_vals),
+            "min": round(s[0], 1),
+            "p50": round(_pct(s, 0.50), 1),
+            "p95": round(_pct(s, 0.95), 1),
+            "max": round(s[-1], 1),
+            "mean": round(sum(dl_vals) / len(dl_vals), 1),
+            "target_p95_ms": 300.0,
+            "ok": bool(_pct(s, 0.95) <= 300.0),
+            "per_segment": [{"id": r.get("id"), "ms": r.get("ms")}
+                            for r in dl_rows],
+            "note": ("★ `Date.now() − srv_wall_ms` = 服务端产出该段 → "
+                     "插件收到该段的**真实**下行耗时（同一墙钟时基）。"
+                     "P95 ≤ 300 ms ⇒ 下行**不是**瓶颈。"),
+        }
+    else:
+        out["downlink_ms"] = None
+        out["downlink_note"] = (
+            "本轮产物**没有** `downlinkMs`（旧版本插件不带 `srv_wall_ms`）"
+            "⇒ 下行耗时**未实测**（不臆造）。")
+
+    # ── ① 音频轴常量差（server 轴 vs player 轴）─────────────────
+    #   服务端轴原点 = 会话建立时刻；播放端轴原点 = 抓流样本 0 的时刻。
+    #   ⇒ 两者的差 = 「会话建立 → 抓流首样本到达」的时长
+    #   ⇒ 若它是**常量**（不随段序增长）⇒ 缺口是**轴对不上**。
+    t0_sec = (sync or {}).get("t0Sec")
+    out["player_t0_sec"] = t0_sec
+    out["player_t0_up_sec"] = (sync or {}).get("t0UpSec")
+    out["player_t0_player_offset_sec"] = (sync or {}).get(
+        "t0UpPlayerOffsetSec")
+    out["t0_sign_check"] = {
+        "t0_sec": t0_sec,
+        "should_be_non_negative": True,
+        "ok": bool(t0_sec is not None and float(t0_sec) >= 0.0),
+        "note": ("★ EXT-036 ①：`t0` = 抓流样本 0 在 player 域的时刻 "
+                 "⇒ 必须 **≥ 0**。旧实现符号反了（实测 −3.409）"
+                 "⇒ `planned` 整体偏早 6.818 s。"),
+    }
+
+    # ── ⑤ 录音时间轴完整性 ──────────────────────────────────────
+    wav_dur = (len(wav) / float(wav_sr)) if wav_sr else None
+    rec_dur = None
+    ac_elapsed = None
+    if stop:
+        rec_dur = stop.get("durationSec")
+        ac_elapsed = stop.get("acElapsedSec")
+        if ac_elapsed is None and stop.get("acTimeSec") is not None \
+                and stop.get("acStartSec") is not None:
+            ac_elapsed = (float(stop["acTimeSec"])
+                          - float(stop["acStartSec"]))
+    ref = ac_elapsed if ac_elapsed is not None else rec_dur
+    tl = {
+        "wav_duration_sec": round(wav_dur, 3) if wav_dur is not None else None,
+        "record_duration_sec": (round(float(rec_dur), 3)
+                                if rec_dur is not None else None),
+        "ac_elapsed_sec": (round(float(ac_elapsed), 3)
+                           if ac_elapsed is not None else None),
+        "target_abs_diff_sec": 0.2,
+        "note": ("★ EXT-036 ⑤：WAV 时长应与 AudioContext 经过时长"
+                 "**相差 ≤0.2 s**（旧轮差 16.4 s ⇒ 时间轴被压缩）。"),
+    }
+    if wav_dur is not None and ref is not None:
+        tl["abs_diff_sec"] = round(abs(wav_dur - float(ref)), 3)
+        tl["ok"] = bool(abs(wav_dur - float(ref)) <= 0.2)
+    out["timeline_integrity"] = tl
+
+    # ── ⑥ 时长比：三个口径 ──────────────────────────────────────
+    over_src = []
+    over_ws = []
+    for s in segs:
+        d_player = s.get("d_player_sec")
+        if d_player is None:
+            continue
+        src_len = s.get("src_len_sec")
+        if src_len:
+            over_src.append(float(d_player) / float(src_len))
+        d_ws = s.get("d_ws_sec")
+        if d_ws:
+            over_ws.append(float(d_player) / float(d_ws))
+    out["dur_ratio_calibers"] = {
+        "over_src_len": {
+            "min": round(min(over_src), 4) if over_src else None,
+            "max": round(max(over_src), 4) if over_src else None,
+            "n": len(over_src),
+            "definition": "d_player ÷ **源段长**（reviewer EXT-036 ⑥ 用的口径）",
+        },
+        "over_ws": {
+            "min": round(min(over_ws), 4) if over_ws else None,
+            "max": round(max(over_ws), 4) if over_ws else None,
+            "n": len(over_ws),
+            "definition": "d_player ÷ d_ws（**未经**变速校正）",
+        },
+        "speed_adjusted": {
+            "min": round(min(ratios), 4) if ratios else None,
+            "max": round(max(ratios), 4) if ratios else None,
+            "n": len(ratios),
+            "definition": ("d_player × speed ÷ d_ws（EXT-033 C 的口径；"
+                           "**变速段按 speed 校正**）"),
+        },
+        "note": ("★ 三个口径**含义不同** ⇒ STATUS 必须写明用的是哪一个；"
+                 "拿「speed_adjusted」与「over_src_len」直接比会**对不上**。"),
+    }
+    return out
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -460,9 +605,11 @@ def analyze_run(run_dir: str):
 
     # 录音起点（AudioContext 时刻）—— 从 summary 或 metrics 里拿
     ac_start = None
+    stop = {}
     for cand in (os.path.join(run_dir, "record_stop.json"),):
         if os.path.isfile(cand):
-            ac_start = json.load(io.open(cand, encoding="utf-8")).get("acStartSec")
+            stop = json.load(io.open(cand, encoding="utf-8"))
+            ac_start = stop.get("acStartSec")
     if ac_start is None:
         # 从 sync.json 的 requested/actual 与 wav 偏移反推不可靠 ⇒ 用 metrics
         ac_start = (metrics.get("recordStartAc")
@@ -506,6 +653,13 @@ def analyze_run(run_dir: str):
             "src": side.get("src"),
             "tgt": side.get("tgt"),
             "d_ws_sec": round(d_ws, 4),
+            # ★★ EXT-036 ⑥：源段长（**reviewer 用的时长比口径**的分子）
+            #   = `t_end − t_start`（上行采样时间轴）
+            #   ⇒ `d_player ÷ src_len_sec` = reviewer 实测的 0.57–1.55
+            "src_len_sec": (round(float(o.get("t_end") or 0.0)
+                                  - float(o.get("t_start") or 0.0), 4)
+                             if o.get("t_end") is not None
+                             and o.get("t_start") is not None else None),
         }
         # ★ d_player：**实测**（切出来 + 静音检测量有声跨度）
         m = measure_player_segment(wav, wav_sr, o["wav_offset_sec"], d_ws)
@@ -591,6 +745,10 @@ def analyze_run(run_dir: str):
     prof = silence_profile(wav, wav_sr)
     st = sync_stats(sync.get("errs") or [])
 
+    # ── ★★★★★★ EXT-036 ①/⑤/⑥：**下行耗时 + 时间轴完整性 + 时长比口径** ──
+    ext036 = _ext036_analysis(detail, sync, metrics, wav, wav_sr,
+                               prof, stop, segs, aligned, ratios)
+
     out = {
         "run_dir": run_dir,
         "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -624,6 +782,8 @@ def analyze_run(run_dir: str):
         "dur_ratio_tol": DUR_RATIO_TOL,
         "src_all_english": all(s.get("src_is_english") for s in segs) if segs else None,
         "sync_coverage": sync_coverage,
+        # ★★★★★★ EXT-036 ①/⑤/⑥
+        "ext036": ext036,
         "segments": segs,
     }
     return out
