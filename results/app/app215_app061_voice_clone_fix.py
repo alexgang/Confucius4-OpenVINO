@@ -379,7 +379,16 @@ MUT_W_1C_OLD = """            if getattr(self.engine, 'USES_REF_AUDIO', False):
 MUT_W_1C_NEW = """            if self.speaker_embed is None and not self.speaker_name:
 """
 
+# 🔴 APP-067 ①(b)：`_retry_spk_labels` 里新增了 `_spk_push_update(...)` 一行
+#   （晚到的标签 ⇒ 补发给 worker）⇒ **变异锚点要跟着更新**，
+#   否则「命中 0 次」⇒ 变异体根本没被构造出来 ⇒ 反证**失效**。
+#   ⚠️ 变异语义不变：**丢掉 `is_new` 分支**（APP-061⑤b 的回归防护）。
 MUT_APP_5B_OLD = """                _is_new = self._spk_voices.note_final(seg, spk, clean_ranges)
+                # 🔴🔴🔳 APP-067 ①(b)：**晚到的标签 ⇒ 补发给 worker**。
+                #   ⇒ 该句提交时标签还没到 ⇒ 命令里的 `spk` 是空的
+                #   ⇒ worker **出队（合成）那一刻**按 seg 解析 ⇒ 用上克隆音色。
+                #   ⚠️ 顺序无关（用 seg 作键，不是 id）⇒ 早到/晚到都行。
+                self._spk_push_update(seg, spk, spk_conf)
                 if _is_new:
                     self._spk_pending_embed.append((seg, spk))
                     self._ui_log('[spk] 标签补到：第 %d 段 = %s（新说话人，已排队取样）'
@@ -388,6 +397,7 @@ MUT_APP_5B_OLD = """                _is_new = self._spk_voices.note_final(seg, s
                     self._ui_log('[spk] 标签补到：第 %d 段 = %s' % (seg, spk))
 """
 MUT_APP_5B_NEW = """                self._spk_voices.note_final(seg, spk, clean_ranges)
+                self._spk_push_update(seg, spk, spk_conf)
                 self._ui_log('[spk] 标签补到：第 %d 段 = %s' % (seg, spk))
 """
 

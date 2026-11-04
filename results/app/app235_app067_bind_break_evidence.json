@@ -1,0 +1,391 @@
+{
+ "script": "app235_app067_bind_break_evidence.py",
+ "correction": "APP-067 ①(b)",
+ "question": "seg→spk 的绑定在哪一步断掉（10 s 窗口滞后 vs 绑定代码）",
+ "sources": {
+  "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone.log",
+  "jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app223_device_out\\tts_on_clone.tts.jsonl",
+  "log_bytes": 108346,
+  "jsonl_rows": 76
+ },
+ "event_counts": {
+  "FINAL": 46,
+  "LABEL_MISSING": 1,
+  "MT_FINAL": 76,
+  "LABEL": 43,
+  "ENGINE_NOT_READY": 1,
+  "VOICE_FAILED": 1,
+  "MODEL_LOADED": 2
+ },
+ "jsonl": {
+  "n_rows": 76,
+  "n_voice_spk_none": 76,
+  "n_voice_kind_preset": 76
+ },
+ "label_vs_submit": {
+  "A_voice_never_registered": 46,
+  "B_label_after_submit": 0,
+  "C_label_before_submit": 0,
+  "D_undecidable": 0
+ },
+ "per_seg": [
+  {
+   "seg": 0,
+   "final_line": 17,
+   "label_line": null,
+   "submit_line": 22,
+   "relation": "label_never_arrived"
+  },
+  {
+   "seg": 1,
+   "final_line": 29,
+   "label_line": 34,
+   "submit_line": 24,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 2,
+   "final_line": 56,
+   "label_line": 80,
+   "submit_line": 26,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 3,
+   "final_line": 82,
+   "label_line": 99,
+   "submit_line": 31,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 4,
+   "final_line": 102,
+   "label_line": 128,
+   "submit_line": 63,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 5,
+   "final_line": 114,
+   "label_line": 129,
+   "submit_line": 66,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 6,
+   "final_line": 131,
+   "label_line": null,
+   "submit_line": 86,
+   "relation": "label_never_arrived"
+  },
+  {
+   "seg": 7,
+   "final_line": 149,
+   "label_line": 174,
+   "submit_line": 111,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 8,
+   "final_line": 165,
+   "label_line": 175,
+   "submit_line": 116,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 9,
+   "final_line": 177,
+   "label_line": 201,
+   "submit_line": 123,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 10,
+   "final_line": 195,
+   "label_line": 202,
+   "submit_line": 126,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 11,
+   "final_line": 210,
+   "label_line": 221,
+   "submit_line": 138,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 12,
+   "final_line": 224,
+   "label_line": 248,
+   "submit_line": 140,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 13,
+   "final_line": 239,
+   "label_line": 249,
+   "submit_line": 170,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 14,
+   "final_line": 256,
+   "label_line": 281,
+   "submit_line": 172,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 15,
+   "final_line": 271,
+   "label_line": 282,
+   "submit_line": 179,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 16,
+   "final_line": 284,
+   "label_line": 294,
+   "submit_line": 186,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 17,
+   "final_line": 302,
+   "label_line": 319,
+   "submit_line": 199,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 18,
+   "final_line": 322,
+   "label_line": 340,
+   "submit_line": 212,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 19,
+   "final_line": 336,
+   "label_line": 341,
+   "submit_line": 214,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 20,
+   "final_line": 343,
+   "label_line": 361,
+   "submit_line": 244,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 21,
+   "final_line": 357,
+   "label_line": 362,
+   "submit_line": 247,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 22,
+   "final_line": 370,
+   "label_line": 384,
+   "submit_line": 261,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 23,
+   "final_line": 391,
+   "label_line": 398,
+   "submit_line": 263,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 24,
+   "final_line": 400,
+   "label_line": 424,
+   "submit_line": 278,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 25,
+   "final_line": 416,
+   "label_line": 425,
+   "submit_line": 306,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 26,
+   "final_line": 427,
+   "label_line": 443,
+   "submit_line": 326,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 27,
+   "final_line": 445,
+   "label_line": 469,
+   "submit_line": 328,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 28,
+   "final_line": 463,
+   "label_line": 470,
+   "submit_line": 345,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 29,
+   "final_line": 478,
+   "label_line": 484,
+   "submit_line": 353,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 30,
+   "final_line": 486,
+   "label_line": 510,
+   "submit_line": 355,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 31,
+   "final_line": 504,
+   "label_line": 511,
+   "submit_line": 379,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 32,
+   "final_line": 519,
+   "label_line": 529,
+   "submit_line": 382,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 33,
+   "final_line": 531,
+   "label_line": 547,
+   "submit_line": 394,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 34,
+   "final_line": 543,
+   "label_line": 548,
+   "submit_line": 396,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 35,
+   "final_line": 555,
+   "label_line": 566,
+   "submit_line": 418,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 36,
+   "final_line": 568,
+   "label_line": 592,
+   "submit_line": 420,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 37,
+   "final_line": 581,
+   "label_line": 593,
+   "submit_line": 422,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 38,
+   "final_line": 601,
+   "label_line": 613,
+   "submit_line": 433,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 39,
+   "final_line": 615,
+   "label_line": null,
+   "submit_line": 447,
+   "relation": "label_never_arrived"
+  },
+  {
+   "seg": 40,
+   "final_line": 635,
+   "label_line": 656,
+   "submit_line": 454,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 41,
+   "final_line": 644,
+   "label_line": 657,
+   "submit_line": 467,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 42,
+   "final_line": 659,
+   "label_line": 683,
+   "submit_line": 482,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 43,
+   "final_line": 673,
+   "label_line": 684,
+   "submit_line": 494,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 44,
+   "final_line": 692,
+   "label_line": 703,
+   "submit_line": 496,
+   "relation": "label_after_submit"
+  },
+  {
+   "seg": 45,
+   "final_line": 705,
+   "label_line": 732,
+   "submit_line": 506,
+   "relation": "label_after_submit"
+  }
+ ],
+ "checks": [
+  {
+   "name": "产物可读（log + jsonl）",
+   "ok": true,
+   "detail": "log 108346 B / jsonl 76 行"
+  },
+  {
+   "name": "worker 从未登记成功任何说话人音色（已登记音色 = 0）",
+   "ok": true,
+   "detail": 0
+  },
+  {
+   "name": "worker 报过「没有可用引擎 ⇒ spk 音色登记失败」",
+   "ok": true,
+   "detail": 1
+  },
+  {
+   "name": "jsonl 全部句子 voice_spk 为 None",
+   "ok": true,
+   "detail": "76 / 76"
+  },
+  {
+   "name": "jsonl 全部句子 voice_kind 为 preset",
+   "ok": true,
+   "detail": "76 / 76"
+  },
+  {
+   "name": "标签是**晚到**的（LABEL 事件数 < 定稿句数 ⇒ 有标签走补发）",
+   "ok": true,
+   "detail": "LABEL 43 < FINAL 46"
+  }
+ ],
+ "n_pass": 6,
+ "n_fail": 0,
+ "verdict": "A：主因 = **音色从未登记成功**（worker 加载期丢弃 spk_voice）⇒ `voice_for_sentence()` 的条件②恒不成立 ⇒ **提交早晚都拿不到 spk** ⇒ 76/76 全 None 是**必然**，与「10 s 窗口滞后」无关（窗口滞后只是**次要**因素）。",
+ "meaning": "本证据只回答「断点在哪」，**不改任何语义**；修复由 §136 单独实施并复跑影子包验收。"
+}

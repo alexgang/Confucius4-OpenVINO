@@ -3027,6 +3027,14 @@ class App:
             self.var_mt_combo.set(opt['label'])
             self._dev_choices['mt'] = opt['device']
             self.var_mt_note.set(opt.get('note', ''))
+            # 🔴🔴🔳 APP-067 ③：**控件建好之后**再同步一次 combo
+            #   ⇒ 启动时（device_config.json 是 NPU+NPU）enforce 改了真值，
+            #   ⇒ 但那时 combo 还不存在 ⇒ 同步被跳过
+            #   ⇒ 这里补一次 ⇒ 状态栏不再显示 NPU。
+            try:
+                self._enforce_no_npu_conflict('启动后同步 combo')
+            except Exception:
+                pass
             # 🔴 **GUI 显示的组合必须真的生效**：TranslationService 是用
             #    args.mt_engine（可能是 'auto'）建的 ⇒ 'auto' 恒等于 INT8-CW。
             #    若组合落在 INT4-CW（或别的 engine 键），必须在这里
@@ -4664,6 +4672,39 @@ class App:
         except Exception:
             return None
 
+    def _spk_push_update(self, seg, spk, spk_conf=None):
+        """🔴🔴🔳 APP-067 ①(b)：把「说话人标签」**补发**给 worker。
+
+        ## 为什么需要（实测根因，证据见 `results/app/app235_app067_bind_break_evidence.json`）
+
+        ASR 旁路有 **10 s 窗口** ⇒ 「这句是谁说的」标签**常常在提交之后**才到
+        ⇒ 提交那一刻 `voice_for_sentence(seg)` 只能返回 ``（无标签）
+        ⇒ 该句按 APP-040② 回落预设 A
+        ⇒ 实测 **76/76 句** `voice_spk=None`、`voice_kind='preset'`。
+
+        ## 修法
+
+        标签一到就 `spk_update(seg, spk, spk_conf)` 补发
+        ⇒ worker **出队（合成）那一刻**按 seg 解析音色
+        ⇒ 「标签晚到」的那一批也能用上克隆音色。
+
+        🔴 **不阻塞**：补发失败只记日志 ⇒ 行为回落到旧路径（预设 A）。
+        🔴 **幂等**：同一 seg 补发多次只是覆盖同一张表 ⇒ 无副作用。
+        """
+        try:
+            if self.tts is None or not getattr(self.tts, 'active', False):
+                return False
+            if seg is None or not spk:
+                return False
+            ok = self.tts.spk_update_seg(seg, spk, spk_conf)
+            if ok:
+                self._ui_log('[spk] 第 %d 段标签已补发 worker（合成时按段取音色）'
+                             % seg)
+            return ok
+        except Exception as e:
+            self._ui_log('[spk] 标签补发失败（忽略）：%s' % e)
+            return False
+
     def _retry_spk_labels(self):
         """🔴🔴🔴 §100（断链 J）：**补晚到的说话人标签**。
 
@@ -4713,6 +4754,11 @@ class App:
                 #   ⇒ 这里与**同步路径**（`_on_final` 里的 4176-4181）口径一致：
                 #     `is_new` 为真 ⇒ 把该 spk 放进「待取样」队列。
                 _is_new = self._spk_voices.note_final(seg, spk, clean_ranges)
+                # 🔴🔴🔳 APP-067 ①(b)：**晚到的标签 ⇒ 补发给 worker**。
+                #   ⇒ 该句提交时标签还没到 ⇒ 命令里的 `spk` 是空的
+                #   ⇒ worker **出队（合成）那一刻**按 seg 解析 ⇒ 用上克隆音色。
+                #   ⚠️ 顺序无关（用 seg 作键，不是 id）⇒ 早到/晚到都行。
+                self._spk_push_update(seg, spk, spk_conf)
                 if _is_new:
                     self._spk_pending_embed.append((seg, spk))
                     self._ui_log('[spk] 标签补到：第 %d 段 = %s（新说话人，已排队取样）'
@@ -4783,6 +4829,12 @@ class App:
                     self._spk_by_seg[seg] = (spk, spk_conf)
                     self._spk_table.setdefault(spk, {'conf': spk_conf,
                                                     'vec': None})
+                    # 🔴🔴🔳 APP-067 ①(b)：**同步路径也要补发**。
+                    #   ⇒ 标签虽在提交**之前**到，但那时该 spk 的**音色还没登记**
+                    #   ⇒ `voice_for_sentence()` 仍返回 ``（要求 voice=='clone'）
+                    #   ⇒ 提交时命令里的 `spk` 为空 ⇒ 回落预设 A。
+                    #   ⇒ 补发 ⇒ worker 出队时按 seg 解析 ⇒ 用上克隆音色。
+                    self._spk_push_update(seg, spk, spk_conf)
                 # 🔴 **按句绑定**（与合成时刻无关 ⇒ APP-039 核心）
                 #   ⇒ 这一步**不做任何声纹计算**。
                 _is_new = self._spk_voices.note_final(
@@ -5522,7 +5574,29 @@ class App:
         mt = self.mt
         opt = self._cur_mt_opt()
         st.set('dev', '设备', getattr(mt, 'device', None) or '—', priority=4)
-        label = (opt or {}).get('label') or getattr(mt, 'engine_key', None) or '—'
+        # 🔴🔴🔳 APP-067 ③：**「模型」必须反映真值**，不能只看 combo 的 opt。
+        #   根因：`_cur_mt_opt()` 按 **combo 的 label** 反查
+        #   ⇒ D4 enforce 改了**真值**（mt.device / engine_key）但 combo 没同步
+        #   ⇒ 状态栏显示「模型 Intel NPU · INT8-CW」而设备其实是 GPU.0
+        #   ⇒ 违反 APP-063 的验收条件「状态栏不含 NPU」。
+        #   ⇒ 现在：**优先用真值**（engine_key + 实际设备）反查 label；
+        #   ⇒ combo 的 opt 只作**兜底**（真值查不到时）。
+        label = ''
+        _ek = getattr(mt, 'engine_key', None)
+        _dev = str(getattr(mt, 'device', None) or '')
+        if _ek:
+            for o in (self._mt_opts or []):
+                if o.get('engine') == _ek and (
+                        not _dev or o.get('device') == _dev):
+                    label = o.get('label') or ''
+                    break
+            if not label:
+                for o in (self._mt_opts or []):
+                    if o.get('engine') == _ek:
+                        label = o.get('label') or ''
+                        break
+        if not label:
+            label = (opt or {}).get('label') or _ek or '—'
         st.set('model', '模型', label, priority=5)
         tgt = getattr(mt, 'target', None)
         st.set('lang', '目标', TARGET_LABELS.get(tgt, tgt or '—'), priority=2)
@@ -5856,6 +5930,44 @@ class App:
                _fmt_num(tts_rtf, 3), _fmt_num(uf_ms, 0), _fmt_num(uf_idle, 0),
                _fmt_num(n_sent, 0), _fmt_num(n_zero, 0)))
 
+    def _sync_mt_combo_to_gpu0(self):
+        """🔴🔴🔳 APP-067 ③：把**翻译下拉**同步到 GPU.0 那一档。
+
+        ## 为什么需要
+
+        D4 enforce 把**真值**改成了 GPU.0（`mt.device` / `engine_key`）
+        ⇒ 但 `_fill_mt_strip()` 的「模型」按 **combo 的 label** 反查
+        ⇒ combo 停在 NPU 选项 ⇒ 状态栏显示「模型 Intel NPU · INT8-CW」
+        ⇒ **违反 APP-063 的验收条件「状态栏不含 NPU」**。
+
+        ## 口径
+
+        * 优先按 `id`（`INT8-CW@GPU.0`）找；找不到就按 **engine + device** 反查
+          ⇒ **不依赖 `_mt_opt_by_id` 是否已建好**（启动早期它还不存在）。
+        * **找不到就不动**（保持原样）⇒ 绝不抛错打断启动。
+        * 控件还不存在时（启动早期）⇒ 静默跳过，等控件建好后再同步。
+        """
+        try:
+            var = getattr(self, 'var_mt_combo', None)
+            if var is None:
+                return False
+            opt = None
+            by_id = getattr(self, '_mt_opt_by_id', None) or {}
+            opt = by_id.get('INT8-CW@GPU.0')
+            if opt is None:
+                for o in (getattr(self, '_mt_opts', None) or []):
+                    if (o.get('device') == 'GPU.0'
+                            and o.get('precision') == 'INT8-CW'):
+                        opt = o
+                        break
+            if opt is None:
+                return False
+            if var.get() != opt.get('label'):
+                var.set(opt.get('label'))
+            return True
+        except Exception:
+            return False
+
     def _enforce_no_npu_conflict(self, origin: str = ''):
         """🔴🔴🔴 APP-062 ④（D4）：**禁止 MT 与 TTS 同时在 NPU**。
 
@@ -5896,10 +6008,14 @@ class App:
         except Exception:
             pass
         # 🔴 **同步 GUI 下拉**（否则界面显示与真值不一致）
+        # 🔴🔴🔳 APP-067 ③：**启动时也要同步**。
+        #   ⇒ 旧实现把 combo 同步放在「建控件之后」的路径里
+        #   ⇒ 启动时（`device_config.json` 就是 NPU+NPU）走的是**另一条路径**
+        #   ⇒ combo 仍停在 NPU 选项 ⇒ 状态栏显示「模型 Intel NPU」。
+        #   ⇒ 现在：**同源**（`_mt_opt_by_id` 找不到就按 engine+device 反查）
+        #   ⇒ 且**在控件建好之后**也会再同步一次（见 `_sync_mt_combo_to_gpu0`）。
         try:
-            opt = self._mt_opt_by_id.get('INT8-CW@GPU.0')
-            if opt is not None:
-                self.var_mt_combo.set(opt['label'])
+            self._sync_mt_combo_to_gpu0()
             self._mt_precision = 'INT8-CW'
         except Exception:
             pass
@@ -6459,6 +6575,12 @@ def run_cli(args):
                 # 🔴🔴🔴 APP-061⑤b：**必须接住 `is_new`**（同 GUI 侧口径）
                 #   ⇒ 否则新说话人永远不会被取样 ⇒ 每句都用预设 A。
                 _is_new = _spk_voices.note_final(seg, spk, clean_ranges)
+                # 🔴🔴🔳 APP-067 ①(b)：**晚到的标签 ⇒ 补发给 worker**（同 GUI 口径）
+                try:
+                    if tts is not None and getattr(tts, 'active', False):
+                        tts.spk_update_seg(seg, spk, spk_conf)
+                except Exception:
+                    pass
                 if _is_new:
                     _spk_pending_embed.append((seg, spk))
                     print(f'  [spk] 标签补到：第 {seg} 段 = {spk}'

@@ -1005,6 +1005,14 @@ class TTSService:
         if spk is not None:
             cmd['spk'] = spk
             cmd['spk_conf'] = spk_conf
+        # 🔴🔴🔳 APP-067 ①(b)：命令体**带 seg**（**纯附加** ⇒ 老 worker 忽略）
+        #   ⇒ worker 出队（合成）那一刻能按 seg 解析「晚到」的说话人标签。
+        #   ⚠️ **只在有值时加** ⇒ 不传 seg 的老调用方命令体**逐字不变**。
+        if seg is not None:
+            try:
+                cmd['seg'] = int(seg)
+            except Exception:
+                pass
         # 🔴🔴🔴 APP-030①：**目标语言显式下传**（同样「只在有值时加」）
         if lang:
             cmd['lang'] = str(lang)
@@ -1889,6 +1897,27 @@ class TTSService:
                                'pcm': b64})
         except Exception as e:
             self.on_log(f'[TTS] 说话人音色登记失败：{e}')
+            return False
+
+    def spk_update_seg(self, seg, spk, spk_conf=None) -> bool:
+        """🔴🔴🔳 APP-067 ①(b)：把「**晚到的**说话人标签」补发给 worker。
+
+        🔴 **为什么需要**（实测根因）：
+          ASR 旁路有 10 s 窗口 ⇒ 「这句是谁说的」标签**常常在提交之后**才到
+          ⇒ 提交那一刻 `voice_for_sentence(seg)` 只能返回 ``（无标签）
+          ⇒ 该句按 APP-040② 回落预设 A ⇒ 实测 **76/76 句** `voice_spk=None`。
+          ⇒ 现在：标签一到就补发 ⇒ worker **出队时**按 seg 解析 ⇒ 用上克隆音色。
+
+        🔴 **顺序无关**：用 `seg` 作键（不是 `id`）⇒ 标签在提交前/后到都行。
+        🔴 **失败不抛异常** ⇒ 调用方继续跑（回落预设 A 的旧行为不变）。
+        """
+        if seg is None or not spk:
+            return False
+        try:
+            return self._send({'cmd': 'spk_update', 'seg': int(seg),
+                               'spk': str(spk), 'spk_conf': spk_conf})
+        except Exception as e:
+            self.on_log('[TTS] spk_update 失败：%s' % e)
             return False
 
     def spk_voice_status(self, spk: str):

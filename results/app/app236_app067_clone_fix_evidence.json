@@ -1,0 +1,127 @@
+{
+ "script": "app236_app067_clone_fix_gate.py",
+ "correction": "APP-067 ①③",
+ "files": {
+  "worker": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_worker.py",
+  "service": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_service.py",
+  "app": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\live_caption_app.py"
+ },
+ "checks": [
+  {
+   "name": "G1 worker 加载期入队（不丢弃）",
+   "ok": true,
+   "detail": "入队=True 旧丢弃=False"
+  },
+  {
+   "name": "G2 load() 置位 + 排空队列",
+   "ok": true,
+   "detail": "置位=True 排空=True 顺序=True"
+  },
+  {
+   "name": "G3 spk_update 真写 _spk_bind",
+   "ok": true,
+   "detail": "写表=True 加锁=True 按seg=True 旧只记日志=False"
+  },
+  {
+   "name": "G4 出队时按 seg 解析音色",
+   "ok": true,
+   "detail": "取seg=True 查表=True 在合成前=True"
+  },
+  {
+   "name": "G5 synth 命令体带 seg",
+   "ok": true,
+   "detail": "带seg=True 有值才加=True"
+  },
+  {
+   "name": "G6 service 有 spk_update_seg",
+   "ok": true,
+   "detail": "发命令=True 按seg=True"
+  },
+  {
+   "name": "G7 App 晚到标签补发",
+   "ok": true,
+   "detail": "GUI=True CLI=True 同步路径=True helper=True"
+  },
+  {
+   "name": "G8 D4 状态栏模型取真值",
+   "ok": true,
+   "detail": "真值优先=True 旧只看combo=False"
+  },
+  {
+   "name": "G9 combo 同步到 GPU.0",
+   "ok": true,
+   "detail": "enforce调用=True 找GPU.0=True"
+  }
+ ],
+ "n_pass": 9,
+ "n_fail": 0,
+ "counterproofs": [
+  {
+   "check": "G1 worker 加载期入队（不丢弃）",
+   "broke": true,
+   "verdict": "PASS",
+   "detail": "入队=False 旧丢弃=False"
+  },
+  {
+   "check": "G2 load() 置位 + 排空队列",
+   "broke": true,
+   "verdict": "PASS",
+   "detail": "置位=True 排空=False 顺序=False"
+  },
+  {
+   "check": "G3 spk_update 真写 _spk_bind",
+   "broke": true,
+   "verdict": "PASS",
+   "detail": "写表=False 加锁=True 按seg=True 旧只记日志=False"
+  },
+  {
+   "check": "G4 出队时按 seg 解析音色",
+   "broke": true,
+   "verdict": "PASS",
+   "detail": "取seg=True 查表=False 在合成前=False"
+  },
+  {
+   "check": "G5 synth 命令体带 seg",
+   "broke": true,
+   "verdict": "PASS",
+   "detail": "带seg=False 有值才加=True"
+  },
+  {
+   "check": "G6 service 有 spk_update_seg",
+   "broke": true,
+   "verdict": "PASS",
+   "detail": "发命令=False 按seg=False"
+  },
+  {
+   "check": "G7 App 晚到标签补发",
+   "broke": true,
+   "verdict": "PASS",
+   "detail": "GUI=True CLI=False 同步路径=True helper=False"
+  },
+  {
+   "check": "G8 D4 状态栏模型取真值",
+   "broke": true,
+   "verdict": "PASS",
+   "detail": "真值优先=False 旧只看combo=False"
+  },
+  {
+   "check": "G9 combo 同步到 GPU.0",
+   "broke": true,
+   "verdict": "PASS",
+   "detail": "enforce调用=False 找GPU.0=True"
+  }
+ ],
+ "n_counterproof_failed_to_detect": 0,
+ "counterproof_ok": true,
+ "real_failure_log_recheck": {
+  "ok": true,
+  "hits": {
+   "没有可用引擎 ⇒ spk 音色登记失败": 1,
+   "已登记音色": 0,
+   "spk=None": 76
+  },
+  "detail": "真实失败日志可被识别（引擎未就绪 1 次 / 已登记音色 0 次）"
+ },
+ "verdict": "PASS",
+ "meaning": "PASS = **代码层**的修复成立且判据有鉴别力（反证全部被抓住）且看得见真实故障；**不等于**设备级验收（需 §138 影子包重跑）。"
+}

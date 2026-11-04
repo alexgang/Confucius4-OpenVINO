@@ -1157,6 +1157,19 @@ class TTSWorker:
         #      （旧的滑动窗口路线的产物）⇒ 本表是「**按句**选音色」。
         self._spk_voices = {}          # spk -> dict(vec=..., ref_path=...)
         self._spk_voice_lock = threading.Lock()
+        # 🔴🔴🔳 APP-067 ①(a)：**加载期间排队**的 spk 音色登记请求。
+        #   ⇒ BRIEF 明文：「加载期间不丢」⇒ 等加载完成后**补登记**。
+        #   ⚠️ 旧实现：`self.engine is None` 时**直接丢弃** ⇒ 主进程等不到回执
+        #   ⇒ 该 spk **永远拿不到音色** ⇒ 克隆占比 0 %（实测 76/76 全 preset）。
+        self._voice_ready = False       # 引擎+音色链路是否就绪
+        self._pending_spk_voice = []    # [msg, ...]（排队中的 spk_voice 命令）
+        self._pending_spk_lock = threading.Lock()
+        # 🔴🔴🔳 APP-067 ①(b)：**seg → (spk, spk_conf)** 绑定表。
+        #   ⇒ 「说话人标签晚到」时，主进程用 `spk_update` 补发
+        #   ⇒ worker 在**出队（合成）那一刻**按 seg 解析音色
+        #   ⇒ 「提交时标签还没到」的那一批也能用上克隆音色。
+        self._spk_bind = {}            # seg -> (spk, spk_conf)
+        self._spk_bind_lock = threading.Lock()
         # 🔴🔴🔴 APP-039/040：**本句实际用的音色来源**（逐句遥测）
         #   'clone' = 用了该 spk 自己的克隆向量；'preset' = 用预设 A。
         #   ⇒ reviewer 可直接核对「这句用的是哪个 spk 的音色」。
@@ -1241,6 +1254,12 @@ class TTSWorker:
 
         log(f'[tts_worker] 模型加载完成 {time.perf_counter() - t0:.1f}s')
         emit({'kind': 'ready', 'device': self.device, 'voice': self.voice})
+
+        # 🔴🔴🔳 APP-067 ①(a)：**补登记**「加载期间排队」的 spk 音色。
+        #   ⇒ 顺序铁律：**先**置 `_voice_ready`（让新来的请求走正常路径）
+        #   ⇒ **再**排空队列（否则排空期间新来的会被重复排队/漏登记）。
+        self._voice_ready = True
+        self._flush_pending_spk_voice()
 
     def _reopen_player(self, sr: int):
         """按新的采样率**重建**播放流。
@@ -3250,8 +3269,18 @@ class TTSWorker:
             t_recv = item[5] if len(item) > 5 else None
             # 🔴🔴🔴 APP-042：队列元组可能带 `speed`（老元组没有 ⇒ 兜底 1.0）
             speed = item[6] if len(item) > 6 else 1.0
-            # 🔴🔴🔴 APP-042：队列元组可能带 `target_wall`（老元组没有 ⇒ None）
+            # 🔴🔴🔳 APP-042：队列元组可能带 `target_wall`（老元组没有 ⇒ 兜底 None）
             target_wall = item[7] if len(item) > 7 else None
+            # 🔴🔴🔳 APP-067 ①(b)：队列元组可能带 `seg`（老元组没有 ⇒ 兜底 None）
+            seg = item[8] if len(item) > 8 else None
+            # 🔴🔴🔳 APP-067 ①(b)：**出队（合成）那一刻**解析音色。
+            #   ⇒ 命令里带的 `spk` 为空（提交时标签还没到）⇒ 用补发的绑定。
+            #   ⚠️ **只对「还没开始合成」的句子生效**（APP-029 明文）。
+            if not spk and seg is not None:
+                with self._spk_bind_lock:
+                    _b = self._spk_bind.get(seg)
+                if _b:
+                    spk, spk_conf = _b
             # ── 出队时刻（APP-027② 的 `t_dequeue` 真正的口径）──
             t_dequeue = time.perf_counter()
             with self._synth_state_lock:
@@ -3401,6 +3430,13 @@ class TTSWorker:
                 #   等 TTS-019 交付「按说话人取音色向量」时在这里接上。
                 spk = msg.get('spk')
                 spk_conf = msg.get('spk_conf')
+                # 🔴🔴🔳 APP-067 ①(b)：命令体**带 seg**（纯附加 ⇒ 老 worker 忽略）
+                #   ⇒ worker 出队时能按 seg 解析「晚到」的说话人标签。
+                seg = msg.get('seg')
+                try:
+                    seg = int(seg) if seg is not None else None
+                except Exception:
+                    seg = None
                 # 🔴🔴🔴 APP-030①：**目标语言显式下传**。
                 #   旧实现命令体只有 `id/text` ⇒ worker 只能靠
                 #   `_guess_lang()`（汉字占比二分 zh/en）**猜**
@@ -3468,8 +3504,10 @@ class TTSWorker:
                 # 🔴🔴🔴 APP-036 C1：队列元组多带一个 `t_recv`
                 #   （**纯附加** ⇒ 老元组解包不兼容 ⇒ 同步改合成线程）。
                 # 🔴🔴🔴 APP-042：再带一个 `speed`（**纯附加**）。
+                # 🔴🔴🔳 APP-067 ①(b)：再带一个 `seg`（**纯附加**）
+                #   ⇒ 出队时按 seg 解析「晚到」的说话人标签。
                 self._synth_q.put((jid, text, spk, spk_conf, lang, t_recv,
-                                   speed, target_wall))
+                                   speed, target_wall, seg))
                 self._emit_synth_state()
             elif cmd == 'cancel':
                 # 🔴🔴🔴 APP-028②：**cancel 的语义已变**。
@@ -3507,21 +3545,32 @@ class TTSWorker:
                     f'（已从队列摘除 {removed} 样本）')
                 emit({'kind': 'dropped', 'id': jid, 'count': 1})
             elif cmd == 'spk_update':
-                # 🔴🔴🔴 APP-029：**说话人晚到 ⇒ 补发更新**（接口预留）
+                # 🔴🔴🔳 APP-029：**说话人晚到 ⇒ 补发更新** ⇒ **现在真的生效**
                 #   APP-029 明文：「定稿事件先按原样发出；另外增加
                 #   spk_update(id, spk, spk_conf) 事件，用来更新字幕标签，
                 #   以及**还没开始合成**的那几句的音色。
                 #   **已经开始合成的句子不改。**」
-                #   ⚠️ **本轮不集成**（APP-029 明文「现在不要集成」）
-                #   ⇒ 这里只把命令**接住并记进日志**（不改变任何合成行为）
-                #   ⇒ 真正的「更新还没开始合成的那几句的音色」要等
-                #      TTS-019 交付「按句子取对应说话人的音色向量」。
+                # 🔴🔴🔳 APP-067 ①(b)：旧实现**只打日志** ⇒ 标签晚到就永远用不上。
+                #   ⇒ 现在：存进 `_spk_bind[seg]` ⇒ **出队（合成）那一刻**解析。
+                #   ⚠️ 用 `seg` 而非 `id` 作键：**顺序无关**
+                #   ⇒ 「标签在提交之后、合成之前」到 ⇒ 也能用上。
+                #   ⚠️ `id` 形参保留（APP-029 的原始契约）⇒ 老调用方不报错。
                 _jid = msg.get('id')
                 _spk = msg.get('spk')
                 _spk_conf = msg.get('spk_conf')
-                log('[tts_worker] 收到 spk_update id=%s spk=%s conf=%s'
-                    '（APP-029 预留接口，本轮不改变合成行为）'
-                    % (_jid, _spk, _spk_conf))
+                _seg = msg.get('seg')
+                try:
+                    _seg = int(_seg) if _seg is not None else None
+                except Exception:
+                    _seg = None
+                if _seg is not None and _spk:
+                    with self._spk_bind_lock:
+                        self._spk_bind[_seg] = (str(_spk), _spk_conf)
+                    log('[tts_worker] spk_update：第 %s 段 ⇒ 说话人 %s'
+                        '（合成时按 seg 解析）' % (_seg, _spk))
+                else:
+                    log('[tts_worker] 收到 spk_update id=%s spk=%s conf=%s'
+                        '（无 seg ⇒ 仅记录）' % (_jid, _spk, _spk_conf))
             elif cmd == 'clear_queue':
                 # 🔴🔴🔴 APP-028②：**用户手动停止 / 切换会话时清空队列**。
                 #   APP-028 明文：「用户手动停止或切换会话时才清空队列」
@@ -3763,6 +3812,26 @@ class TTSWorker:
         log('[tts_worker] ⚠️ 没有可用引擎 ⇒ 克隆无法生效（仍用预设 A）')
         return False
 
+    def _flush_pending_spk_voice(self):
+        """🔴🔴🔳 APP-067 ①(a)：**补登记**「加载期间排队」的 spk 音色。
+
+        🔴 **调用时机**：`load()` 成功之后（`self._voice_ready = True` 之后）。
+        🔴 **逐条重试** ⇒ 每条都会走到「真的算 x-vector + emit 回执」那段
+        ⇒ 主进程照常收到 `ok=True` ⇒ `mark_embedded` ⇒ 该 spk 有音色了。
+        ⚠️ **不吞异常**：单条失败只记日志 ⇒ 不影响其它条。
+        """
+        with self._pending_spk_lock:
+            pend = list(self._pending_spk_voice)
+            self._pending_spk_voice = []
+        if not pend:
+            return
+        log('[tts_worker] ♻️ 补登记排队的 spk 音色：%d 条' % len(pend))
+        for m in pend:
+            try:
+                self._register_spk_voice(m)
+            except Exception as e:
+                log('[tts_worker] 🔴 补登记 spk 音色失败：%s' % e)
+
     def _register_spk_voice(self, msg):
         """🔴🔴🔴 APP-039/040：**登记「某个 spk 的音色」**（按句绑定用）。
 
@@ -3801,9 +3870,17 @@ class TTSWorker:
             return False
 
         eng = self.engine
-        if eng is None:
-            log('[tts_worker] 🔴 没有可用引擎 ⇒ spk 音色登记失败')
-            return False
+        if eng is None or not self._voice_ready:
+            # 🔴🔴🔳 APP-067 ①(a)：**模型还在加载 ⇒ 排队，不丢**。
+            #   BRIEF 明文：「加载期间不丢」⇒ 等加载完成后**补登记**。
+            #   ⚠️ 旧实现：直接 `return False` ⇒ **不 emit 回执**
+            #   ⇒ 主进程 `_spk_voice_sent` 里 `(spk, False)` **永久滞留**
+            #   ⇒ 该 spk **再也拿不到音色**（实测：S1 全程 0 条「已登记音色」）。
+            with self._pending_spk_lock:
+                self._pending_spk_voice.append(dict(msg))
+            log('[tts_worker] ⏳ 模型加载中 ⇒ spk 音色登记**排队**'
+                '（加载完成后补登记）：%s' % spk)
+            return True
 
         # ── BabelVox 路线：x-vector ────────────────────────────
         if not getattr(eng, 'USES_REF_AUDIO', False):

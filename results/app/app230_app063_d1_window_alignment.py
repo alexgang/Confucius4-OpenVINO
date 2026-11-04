@@ -88,12 +88,20 @@ def const_of(mod, name):
     return getattr(mod, name, None)
 
 
-def read_consts(path, names):
+def read_consts(path, names, win_mod=None):
     """🔴 **只抽模块级常量**（`ast`）⇒ 不 exec 整个模块。
 
     🔴 **为什么**：`asr052_spk_runtime.py` 顶层有 `F32 = np.float32` 等
     **依赖 numpy 的语句** ⇒ 过滤掉 `import numpy` 后再 exec 会 NameError
     （假 FAIL）⇒ 改成**只读常量赋值**（`ast` 求值）。
+
+    🔴🔴🔳 **ASR-045 修正（2026-11-04）**：内核的窗口常量**不再写死**，
+       改成 `WIN_S = _W.WIN_S` / `N_FRAMES = _W.frames_for(WIN_S)` 等
+       **属性表达式** ⇒ `ast.literal_eval` **必然失败** ⇒ 旧实现把
+       `WIN_S` 置成 `None` ⇒ 下游 `float(None)` **抛 TypeError**
+       ⇒ 整个 app230 **崩在判据之前**（基线也崩 ⇒ 既有问题）。
+       ⇒ 现在：**传入 `win_mod`（已加载的 `asr_spk_window` 模块）**
+       ⇒ 把 `_W.<名字>` 求值成实际值。
     """
     tree = ast.parse(read(path).decode('utf-8'))
     out = {}
@@ -108,21 +116,51 @@ def read_consts(path, names):
             try:
                 out[tgt.id] = ast.literal_eval(node.value)
             except Exception:
-                # 表达式（如 `int(WIN_S * SR)` / `N_FRAMES / WIN_S`）⇒ 后续算
-                out[tgt.id] = None
+                # 🔴🔴🔳 **属性表达式**（ASR-045）：`_W.WIN_S` / `_W.WIN_N` …
+                #   ⇒ 从已加载的 `asr_spk_window` 模块取实际值
+                _v = _eval_attr_expr(node.value, win_mod)
+                if _v is not None:
+                    out[tgt.id] = _v
+                else:
+                    # 表达式（如 `int(WIN_S * SR)` / `N_FRAMES / WIN_S`）⇒ 后续算
+                    out[tgt.id] = None
     return out
 
 
-def compute_runtime_derived(path, win_s_value):
+def _eval_attr_expr(node, win_mod):
+    """🔴 求值 `_W.<name>` 形式的属性表达式（ASR-045 的新写法）。
+
+    ⇒ 返回实际值；不认识的形态返回 `None`（⇒ 调用方回落旧路径）。
+    """
+    if win_mod is None:
+        return None
+    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) \
+            and node.value.id == '_W':
+        return getattr(win_mod, node.attr, None)
+    return None
+
+
+def compute_runtime_derived(path, win_s_value, win_mod=None):
     """🔴 从 ASR 内核源码**算出**它实际用的 `WIN_N` / `N_FRAMES` / `FPS`。
 
     🔴 **不能只读 `WIN_S`**：内核里 `WIN_N = int(WIN_S * SR)`、
     `N_FRAMES = 589`（**写死的常量**）、`FPS = N_FRAMES / WIN_S`
     ⇒ 必须按**源码实际表达式**求值 ⇒ 与内核运行时的行为一致。
+
+    🔴🔴🔳 **ASR-045 修正（2026-11-04）**：内核改成
+       `WIN_S = _W.WIN_S` / `N_FRAMES = _W.frames_for(WIN_S)` /
+       `FPS = _W.fps_for(WIN_S)` ⇒ 这些是**模块属性/方法调用**表达式
+       ⇒ 旧的 `eval`（env 里没有 `_W`）**必然失败** ⇒ 全部 `continue`
+       ⇒ `out` 里没有 `WIN_N`/`N_FRAMES`/`FPS`
+       ⇒ 下游判据拿不到值 ⇒ 假 FAIL / 假 NONE。
+       ⇒ 现在把**真实的 `asr_spk_window` 模块**放进 env['_W']
+       ⇒ `eval` 原生就能求值 `_W.WIN_S` / `_W.frames_for(WIN_S)`。
     """
     tree = ast.parse(read(path).decode('utf-8'))
     env = {'SR': 16000, 'WIN_S': win_s_value, 'int': int, 'round': round,
            'float': float}
+    if win_mod is not None:
+        env['_W'] = win_mod
     out = {}
     for node in tree.body:
         if not isinstance(node, ast.Assign):
@@ -143,6 +181,22 @@ def compute_runtime_derived(path, win_s_value):
     return out
 
 
+def _num(v, default=None):
+    """🔴 安全取数：`None` ⇒ `default`（**不抛 TypeError**）。
+
+    🔴 **为什么**：`float(None)` 会抛 `TypeError` ⇒ 整个闸门**崩在判据之前**
+    ⇒ 报不出任何 PASS/FAIL（§133 踩过：ASR-045 改了内核写法，
+    旧实现把 `WIN_S` 置成 None ⇒ `float(None)` 崩）。
+    ⇒ 现在统一走这里 ⇒ **拿不到值 = 「无法判定」(None)**，不是崩。
+    """
+    if v is None:
+        return default
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return default
+
+
 def main():
     # ── ASR 侧两个文件 ──
     p_win = os.path.join(ASR_SCRIPTS, 'asr_spk_window.py')
@@ -160,8 +214,10 @@ def main():
     else:
         chk('asr_runtime_file_exists', True, p_rt)
         # 🔴 内核只抽**常量**（不 exec 整个模块：它顶层依赖 numpy）
+        # 🔴🔴🔳 **ASR-045**：内核改成 `WIN_S = _W.WIN_S` 等**属性表达式**
+        #   ⇒ 必须把已加载的 `asr_spk_window` 模块传进去才能求值
         _rt_consts = read_consts(p_rt, ('SR', 'WIN_S', 'WIN_N', 'N_FRAMES',
-                                        'FPS', 'FRAME_S'))
+                                        'FPS', 'FRAME_S'), win_mod=asr_win)
         asr_rt = types.SimpleNamespace(**_rt_consts)
 
     # ── App 侧解析结果 ──
@@ -188,10 +244,11 @@ def main():
             '实际生效值来自同源解析=%s）' % (d2, app_win))
 
         if asr_win is not None:
-            w = float(getattr(asr_win, 'WIN_S', 0.0) or 0.0)
+            w = _num(getattr(asr_win, 'WIN_S', None), 0.0)
+            _k_win_s = _num(getattr(asr_rt, 'WIN_S', None), None) \
+                if asr_rt is not None else None
             chk('D1-5_kernel_win_s_matches_asr',
-                asr_rt is not None
-                and float(getattr(asr_rt, 'WIN_S', -1)) == w,
+                asr_rt is not None and _k_win_s is not None and _k_win_s == w,
                 'ASR 唯一事实来源 asr_spk_window.WIN_S=%s；'
                 '内核 asr052_spk_runtime.WIN_S=%r'
                 % (w, getattr(asr_rt, 'WIN_S', None) if asr_rt else None))
@@ -209,7 +266,8 @@ def main():
             # 🔴 **按内核源码的实际表达式求值**（不是只读 `WIN_S`）：
             #   内核的 `WIN_N = int(WIN_S * SR)`、`N_FRAMES = 589`（写死）、
             #   `FPS = N_FRAMES / WIN_S` ⇒ 必须按源码算才是真实行为。
-            _derived = compute_runtime_derived(p_rt, float(app_win))
+            _derived = compute_runtime_derived(p_rt, float(app_win),
+                                               win_mod=asr_win)
             k_win_n = int(_derived.get('WIN_N', -1))
             chk('D1-2_fed_samples_match_kernel_win_n',
                 fed == k_win_n,
@@ -273,8 +331,9 @@ def main():
         has_win = os.path.isfile(os.path.join(spk_dir, 'asr_spk_window.py'))
         kernel_same = False
         if asr_rt is not None and asr_win is not None:
-            kernel_same = (float(getattr(asr_rt, 'WIN_S', -1))
-                           == float(getattr(asr_win, 'WIN_S', -2)))
+            kernel_same = (_num(getattr(asr_rt, 'WIN_S', None), None)
+                           == _num(getattr(asr_win, 'WIN_S', None), None)
+                           is not None)
         chk('D1-6_pkg_carries_window_or_kernel_same_source',
             has_win or kernel_same,
             '最新包 %s：含 asr_spk_window.py=%s；内核与唯一事实来源同源=%s ⇒ %s'
@@ -306,8 +365,10 @@ def main():
         'verdict': 'PASS' if n_fail == 0 else 'FAIL',
         'note': ('D1 的跨模块不变量：App 喂窗样本数必须 == ASR 内核 WIN_N；'
                  '内核帧数/帧率必须 == asr_spk_window 的同窗口值。'
-                 '当前 ASR 侧唯一事实来源已是 5.0，但内核仍写死 10 s ⇒ '
-                 '预期本脚本会 FAIL（这正是要交 ASR 的证据）。'),
+                 '🔴 ASR-045（2026-11-04）后：内核常量已改为从 asr_spk_window '
+                 '读取（WIN_S=5.0）⇒ 本脚本改用「传入真实 asr_spk_window 模块」'
+                 '求值 `_W.<名字>`；拿不到值 ⇒ 判为「无法判定」(None)，'
+                 '**不再崩在判据之前**。'),
     }
     with open(OUT_JSON, 'w', encoding='utf-8') as f:
         json.dump(ev, f, ensure_ascii=False, indent=2)

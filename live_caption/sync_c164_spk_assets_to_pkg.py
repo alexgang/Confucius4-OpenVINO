@@ -79,10 +79,22 @@ PKG_SPK_SUBDIR = os.path.join('models', 'spk')
 #   「**只放这 3 个文件**」＋「**不要再做字面量替换**」（源头已清干净）。
 #   ⚠️ 旧列表**漏了** `asr_thread_defaults.py` ⇒ 照用会让客户机
 #      `import asr052` 因缺模块而**静默降级**（旁路不可用但不崩）。
+#
+# 🔴🔴🔳 **APP-067 ⑤ / ASR-045（2026-11-04）⇒ 交付集合由 3 个增到 4 个**。
+#   ASR 通知 `shared/NOTICE_asr_to_app_asr045_window_5s_kernel_fix.md` §3：
+#   * `asr052_spk_runtime.py` 的窗口常量**不再写死**，改为
+#     `import asr_spk_window as _W` ⇒ **这个文件必须一起进包**，
+#     否则内核 `import` 直接失败 ⇒ 旁路整个不可用（不是降级，是崩）。
+#   * md5（ASR 侧实测，2026-11-04）：
+#     `asr052_speaker_tracker_api.py` a1dd6e7bc7dfb426a3ce54585beb9304
+#     `asr052_spk_runtime.py`         2ff82933edec80becd01f9d28d202ea6
+#     `asr_thread_defaults.py`        0482f9c49105490ac219194c2fa7c184
+#     `asr_spk_window.py`             7d719e1d7f251be9ce68503be4361807
 ASR_FILES = [
     'asr052_speaker_tracker_api.py',   # 入口（App 实际 import 它）
     'asr052_spk_runtime.py',           # 运行时内核（fbank / OV 嵌入 / 聚类 / 分段）
     'asr_thread_defaults.py',          # 限线程（ASR-031 §1 交付默认）
+    'asr_spk_window.py',               # 🔴 APP-067 ⑤：窗口长度的唯一事实来源
 ]
 
 # 🔴🔴🔴 **需要从包内移除的旧文件**（ASR-033 拆分前的评估/测试代码 + 旧依赖闭包）。
@@ -113,6 +125,31 @@ SEG_SRC = {
 }
 WES_FILES = ('openvino_encoder_model.xml', 'openvino_encoder_model.bin')
 SEG_FILES = ('pyannote_seg_3_0.xml', 'pyannote_seg_3_0.bin')
+
+# 🔴🔴🔳 **APP-067 ⑤ / ASR-045（2026-11-04）⇒ 5 s 窗的 seg IR 必须一起进包**。
+#
+# ## 为什么（比代码更硬的阻塞）
+#   seg IR 的输入是**静态形状**：
+#     * 10 s IR `(1,1,160000)` ⇒ 只能吃 160000 样本
+#     *  5 s IR `(1,1,80000)`  ⇒ 只能吃  80000 样本
+#   而 ASR-045 后内核默认窗口 = **5.0 s**（`WIN_N = 80000`）
+#   ⇒ **5 s 的 IR 不进包 ⇒ 客户机 OpenVINO 直接抛 shape 不兼容**
+#   ⇒ 旁路**整个失效**（不是精度下降，是零标签）。
+#   ⇒ ASR 侧已加**形状守卫**：喂错长度 ⇒ 明确抛错（而不是静默错位）。
+#
+# ## 为什么**不用动态第三维**的 IR（ASR-045 §4.2 实测）
+#   动态 IR `[1,1,?]` 稳态单窗 P50 = **0.24833 s**
+#   vs 5 s 静态 IR **0.01963 s** ⇒ **慢 12.651 倍** ⇒ **不进包**。
+#   5 s 静态 IR 与动态 IR 的输出一致（帧数同为 293、p_speech 最大差
+#   0.0008696216836826531、二值化一致率 1.0）。
+#
+# ## 包内落点（**必须与 `asr_spk_window.seg_ir_subdir_for()` 一致**）
+#   `models/spk/pyannote_seg_3_0/fp16-w5/`（5 s）
+#   `models/spk/pyannote_seg_3_0/fp16/`     （10 s，现役）
+SEG_SRC_W5 = os.path.join(ASR_MODELS, 'pyannote_seg', 'ov-fp16-w5')
+SEG_FILES_W5 = ('pyannote_seg_3_0_w5.xml', 'pyannote_seg_3_0_w5.bin')
+#: 包内 5 s IR 的精度/变体目录名（= `asr_spk_window.SEG_IR_SUBDIR_BY_WINDOW[5.0]`）
+SEG_SUBDIR_W5 = 'fp16-w5'
 
 
 def sha256_file(p: str) -> str:
@@ -337,13 +374,38 @@ def main() -> int:
     seg_dst = os.path.join(pkg, PKG_SPK_SUBDIR,
                            'pyannote_seg_3_0', args.precision)
     for src_dir, dst_dir2, files in ((wes_src, wes_dst, WES_FILES),
-                                     (seg_src, seg_dst, SEG_FILES)):
+                                      (seg_src, seg_dst, SEG_FILES)):
         if not os.path.isdir(src_dir):
             print('  [MISSING-DIR] %s' % src_dir)
             continue
         for fn in files:
             src = os.path.join(src_dir, fn)
             dst = os.path.join(dst_dir2, fn)
+            try:
+                st = copy_checked(src, dst, args.dry_run)
+            except FileNotFoundError:
+                print('  [MISSING] %s' % fn)
+                continue
+            size = os.path.getsize(src)
+            print('  %-9s %10d B  %s'
+                  % (st, size, os.path.relpath(dst, pkg)))
+            if st == '[SYNCED]':
+                print('              sha256=%s' % sha256_file(dst))
+
+    # ── ②b 🔴🔴🔳 APP-067 ⑤：5 s 窗的 seg IR（静态 `(1,1,80000)`）────────
+    #   ⇒ ASR-045 后内核默认 5 s ⇒ 不进包 ⇒ 客户机 shape 不兼容 ⇒ 零标签。
+    print()
+    print('[②b] 🔴 APP-067 ⑤：5 s 窗 seg IR（静态 (1,1,80000)）'
+          '→ %s' % SEG_SUBDIR_W5)
+    seg_w5_dst = os.path.join(pkg, PKG_SPK_SUBDIR, 'pyannote_seg_3_0',
+                              SEG_SUBDIR_W5)
+    if not os.path.isdir(SEG_SRC_W5):
+        print('  [MISSING-DIR] %s' % SEG_SRC_W5)
+        print('  🔴 **5 s IR 缺失 ⇒ 客户机会 shape 不兼容 ⇒ 旁路零标签**')
+    else:
+        for fn in SEG_FILES_W5:
+            src = os.path.join(SEG_SRC_W5, fn)
+            dst = os.path.join(seg_w5_dst, fn)
             try:
                 st = copy_checked(src, dst, args.dry_run)
             except FileNotFoundError:
