@@ -37,9 +37,19 @@
       "name": "H7 App 喂窗样本数 == 内核 WIN_N（80000）",
       "ok": true,
       "detail": "App 喂窗样本数=80000（5.0 s × 16000）；内核 WIN_N=80000"
+    },
+    {
+      "name": "H8 App 的 find_seg_ir 按窗口选变体（不写死 fp16）",
+      "ok": true,
+      "detail": "按窗口选=True 变体常量=True"
+    },
+    {
+      "name": "H9 实际解析出的 seg IR 是 fp16-w5（5 s 窗配套）",
+      "ok": true,
+      "detail": "解析到 C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\models\\spk\\pyannote_seg_3_0/fp16-w5（pyannote_seg_3_0 fp16-w5（窗口 5.000 s，来源 asr_spk_window））"
     }
   ],
-  "n_pass": 7,
+  "n_pass": 9,
   "n_fail": 0,
   "n_none": 0,
   "counterproofs": [

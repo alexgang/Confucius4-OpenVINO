@@ -115,6 +115,33 @@ SEG_DIR_TMPL = 'pyannote_seg_3_0/%s'
 WES_IR_FILES = ('openvino_encoder_model.xml', 'openvino_encoder_model.bin')
 SEG_IR_FILES = ('pyannote_seg_3_0.xml', 'pyannote_seg_3_0.bin')
 
+# 🔴🔴🔳 **APP-067 ⑤ / ASR-045：窗口变体的 seg IR（5 s ⇒ `fp16-w5`）**
+#
+# ## 根因（§133 设备级实测）
+#   ASR-045 后内核默认窗口 = **5.0 s**（`WIN_N = 80000`），
+#   而 seg IR 的输入是**静态形状**：
+#     * `fp16`   ⇒ `(1,1,160000)` ⇒ **只能吃 10 s 窗**
+#     * `fp16-w5`⇒ `(1,1,80000)`  ⇒ **只能吃 5 s 窗**
+#   ⇒ **喂错长度 ⇒ OpenVINO 抛 shape 不兼容 ⇒ 旁路整个失效（零标签）**。
+#
+# ## 本模块的 bug
+#   旧 `find_seg_ir()` 只按 `SEG_PRECISIONS = ('fp16','fp32')` 找
+#   ⇒ **永远找不到 `fp16-w5`** ⇒ 把 **10 s 的 IR** 传给 5 s 窗的内核
+#   ⇒ 实测（§133 clone 臂）：
+#     log「说话人资产（包内）：… pyannote_seg_3_0 **fp16**」
+#     log「说话人旁路窗口：**5.000 s**」
+#     ⇒ **窗口与 IR 不配套** ⇒ 零标签 ⇒ 克隆 0 %。
+#   ⇒ 现在：**按当前窗口选变体**（与 ASR 侧 `asr_spk_window.seg_ir_subdir_for()`
+#     **同一口径**）⇒ 5 s ⇒ `fp16-w5`。
+#
+# 🔴 **窗口长怎么拿**：优先读**包内** `app/asr_spk/asr_spk_window.py`
+#   （ASR-045 的**唯一事实来源**，已随包分发）⇒ **不写第二份默认值**。
+#   读不到 ⇒ 退回 `asr052_spk_runtime.WIN_S` ⇒ 都没有 ⇒ `None`
+#   （⇒ 不做窗口特化 ⇒ 走旧的 `fp16` 路径 ⇒ 行为与改前一致）。
+SEG_WINDOW_VARIANTS = {'fp16-w5'}      # 窗口特化的变体目录名
+SEG_VARIANT_FILES = {'fp16-w5': ('pyannote_seg_3_0_w5.xml',
+                                 'pyannote_seg_3_0_w5.bin')}
+
 # 研发机上的 ASR 实验目录（**不在 git 仓库内**）⇒ 客户机必然找不到
 # 🔴 §120：不再写死开发机家目录 ⇒ 改为按**当前用户家目录**推导
 #   （开发机上与原硬编码值**逐字节相同**；客户机上自然指向客户自己的家目录）
@@ -168,11 +195,67 @@ def find_wes_ir(pkg_root: Optional[str] = None) -> Tuple[Optional[str], str]:
         WES_IR_FILES)
 
 
+def _current_window_s(pkg_root: Optional[str] = None):
+    """🔴 **当前旁路窗口长（秒）** —— 从**包内** `asr_spk_window` 读。
+
+    🔴 **不写第二份默认值**（APP-062 D1 / ASR-045 的铁律）：
+    唯一事实来源 = 包内 `app/asr_spk/asr_spk_window.py` 的 `WIN_S`
+    ⇒ 读不到 ⇒ 退回 `asr052_spk_runtime.WIN_S` ⇒ 都没有 ⇒ `None`
+    （⇒ 调用方不做窗口特化 ⇒ 行为与改前**完全一致**）。
+
+    ⚠️ `asr_spk_window` 会 `import os` 并算 `WIN_S`（读环境变量）
+    ⇒ 这里**只取常量**，不执行任何模型加载。
+    """
+    root = pkg_root or PKG_ROOT
+    scripts = os.path.join(root, 'app', ASR_SPK_SUBDIR)
+    for mod_name in ('asr_spk_window', 'asr052_spk_runtime'):
+        p = os.path.join(scripts, mod_name + '.py')
+        if not os.path.isfile(p):
+            continue
+        try:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(
+                '_spk_win_probe_%s' % mod_name, p)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            v = getattr(mod, 'WIN_S', None)
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                return float(v), mod_name
+        except Exception:
+            continue
+    return None, None
+
+
 def find_seg_ir(pkg_root: Optional[str] = None) -> Tuple[Optional[str], str]:
-    """定位 pyannote/segmentation-3.0 的 OV IR 目录。"""
+    """定位 pyannote/segmentation-3.0 的 OV IR 目录。
+
+    🔴🔴🔳 **APP-067 ⑤ / ASR-045：必须按「当前窗口」选变体**。
+
+    探测顺序：
+      ① **窗口变体**（5 s ⇒ `fp16-w5`）—— 由包内 `asr_spk_window.WIN_S` 决定
+      ② `SEG_PRECISIONS`（`fp16` / `fp32`）—— 旧行为（10 s 窗的现役 IR）
+
+    ⚠️ ① 命中时**必须用变体自己的文件名**（`pyannote_seg_3_0_w5.*`）
+    ⇒ 变体目录里的文件名与 `fp16` 目录**不同**。
+    """
     spk_root = find_spk_model_root(pkg_root)
     if not spk_root:
         return None, '包内无 models/%s 目录' % SPK_MODELS_SUBDIR
+    # ── ① 窗口变体（ASR-045）──────────────────────────────────
+    win_s, win_src = _current_window_s(pkg_root)
+    if win_s is not None:
+        try:
+            import asr_spk_window as _W     # 已在 sys.path 时直接问它
+            sub = _W.seg_ir_subdir_for(win_s)
+        except Exception:
+            sub = 'fp16-w5' if abs(win_s - 5.0) < 1e-9 else 'fp16'
+        if sub in SEG_WINDOW_VARIANTS:
+            d = os.path.join(spk_root, SEG_DIR_TMPL % sub)
+            names = SEG_VARIANT_FILES.get(sub, SEG_IR_FILES)
+            if _has_pair(d, names):
+                return d, ('pyannote_seg_3_0 %s（窗口 %.3f s，来源 %s）'
+                           % (sub, win_s, win_src))
+    # ── ② 旧路径（10 s 窗的现役 IR）──────────────────────────
     for prec in SEG_PRECISIONS:
         d = os.path.join(spk_root, SEG_DIR_TMPL % prec)
         if _has_pair(d, SEG_IR_FILES):

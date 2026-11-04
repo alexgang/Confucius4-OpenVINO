@@ -56,6 +56,10 @@ OUT = os.path.join(HERE, 'app237_app067_d1_window_pkg_evidence.json')
 
 SYNC = os.path.join(LC, 'sync_c164_spk_assets_to_pkg.py')
 TRACKER = os.path.join(LC, 'speaker_tracker.py')
+SA = os.path.join(LC, 'speaker_assets.py')
+#: 影子包（含 4 个 ASR 文件 + 5 s 静态 seg IR）⇒ H9 用来**实测**解析结果
+SHADOW_PKG = os.path.join(os.path.expanduser('~'), 'shared',
+                          'app067_shadow')
 ASR_SCRIPTS = r'C:\Users\Trekker-PTL\qwen3asr_06b\scripts'
 ASR_MODELS = r'C:\Users\Trekker-PTL\qwen3asr_06b\models'
 NOTICE = r'C:\Users\Trekker-PTL\shared\NOTICE_asr_to_app_asr045_window_5s_kernel_fix.md'
@@ -94,6 +98,17 @@ def _md5(p):
         for chunk in iter(lambda: f.read(1 << 20), b''):
             h.update(chunk)
     return h.hexdigest()
+
+
+def _func_src(src, name):
+    """取函数体文本（按行号切片 ⇒ 不依赖缩进解析）。"""
+    tree = ast.parse(src)
+    lines = src.split('\n')
+    for n in ast.walk(tree):
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                and n.name == name:
+            return '\n'.join(lines[n.lineno - 1:n.end_lineno])
+    return ''
 
 
 # ══════════════════════════════════════════════════════════════
@@ -261,6 +276,47 @@ def h7_fed_samples_match_kernel():
                 % (fed, app_win, kern_win_n))
 
 
+def h8_seg_ir_matches_window():
+    """H8：App 侧 `speaker_assets.find_seg_ir()` **按窗口选变体**。
+
+    🔴 **这是 §133 设备级实测抓到的第 3 个真缺陷**：
+    旧实现只按 `SEG_PRECISIONS = ('fp16','fp32')` 找 seg IR
+    ⇒ **永远找不到 `fp16-w5`** ⇒ 把 **10 s 的 IR**（`(1,1,160000)`）
+    传给 **5 s 窗**（`WIN_N=80000`）的内核
+    ⇒ OpenVINO 抛 shape 不兼容 ⇒ **旁路整个失效（零标签）**
+    ⇒ 实测 log：「说话人资产（包内）：… pyannote_seg_3_0 **fp16**」
+                   「说话人旁路窗口：**5.000 s**」⇒ 不配套。
+    """
+    src = _norm(SA)
+    body = _func_src(src, 'find_seg_ir')
+    if not body:
+        return False, '找不到 find_seg_ir'
+    has_win = ('_current_window_s' in body
+               or 'seg_ir_subdir_for' in body)
+    has_variant = ('fp16-w5' in body) or ('SEG_WINDOW_VARIANTS' in body)
+    return (has_win and has_variant), (
+        '按窗口选=%s 变体常量=%s' % (has_win, has_variant))
+
+
+def h9_seg_ir_resolves_to_w5():
+    """H9：**实际解析**出来的 seg IR 目录必须是 `fp16-w5`（5 s 窗）。"""
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            '_sa_probe_app067', SA)
+        m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(m)
+    except Exception as e:
+        return None, 'import 失败：%r' % (e,)
+    # 🔴 用**影子包**（有 4 个 ASR 文件 + 5 s IR）当包根
+    pkg = SHADOW_PKG
+    if not os.path.isdir(pkg):
+        return None, '影子包不存在：%s' % pkg
+    seg, note = m.find_seg_ir(pkg)
+    ok = bool(seg) and ('fp16-w5' in str(seg))
+    return ok, ('解析到 %s（%s）' % (seg, note))
+
+
 CHECKS = [
     ('H1 sync 的 ASR_FILES 含 asr_spk_window.py 且恰好 4 项',
      h1_asr_files_has_window),
@@ -276,6 +332,10 @@ CHECKS = [
      h6_kernel_matches_source),
     ('H7 App 喂窗样本数 == 内核 WIN_N（80000）',
      h7_fed_samples_match_kernel),
+    ('H8 App 的 find_seg_ir 按窗口选变体（不写死 fp16）',
+     h8_seg_ir_matches_window),
+    ('H9 实际解析出的 seg IR 是 fp16-w5（5 s 窗配套）',
+     h9_seg_ir_resolves_to_w5),
 ]
 
 
