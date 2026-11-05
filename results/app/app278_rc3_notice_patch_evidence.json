@@ -1,0 +1,38 @@
+{
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+ "notice": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\NOTICE",
+ "ts": "2026-11-05 14:58:57",
+ "before": {
+  "sha256": "b4505621ad2d702616b93116d8d42d101edb39dc5adf157f26bd04b61a827887",
+  "bytes": 9643
+ },
+ "blocks": [
+  {
+   "name": "title_version",
+   "hits": 1
+  },
+  {
+   "name": "qwen3_asr",
+   "hits": 1
+  },
+  {
+   "name": "hymt2_openvino",
+   "hits": 1
+  }
+ ],
+ "after": {
+  "sha256": "e9c9cfc34dba907ca28b35ffbb8437fdbc238cb510265ca2f0ff19b733e0728f",
+  "bytes": 10339
+ },
+ "crlf_preserved": true,
+ "contains": {
+  "Qwen3-ASR-0.6B": true,
+  "Qwen3-TTS-12Hz-0.6B-Base": true,
+  "Hy-MT2-1.8B": true,
+  "OpenVINO 2026.4.1": true,
+  "BabelVox": true,
+  "babelvox-openvino-int8": true
+ },
+ "title_line1": "Confucius4 LiveCaption MiniMVP v1.0-rc3 — 第三方组件归属与许可证",
+ "verdict": "PASS"
+}

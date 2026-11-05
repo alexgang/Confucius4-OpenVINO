@@ -1,0 +1,64 @@
+{
+ "pkg": "C:\\minimvp_cleantest\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+ "meeting": [],
+ "clone_npz": [],
+ "tts_speakers_dir": [],
+ "babelvox_example": [],
+ "dev_path": [],
+ "torch_cuda": [],
+ "n_files": 10474,
+ "total_bytes": 7176154805,
+ "checks": [
+  {
+   "name": "① 无会议录音（含 260902_SPE 任何切片）",
+   "verdict": true,
+   "detail": {
+    "hits": [],
+    "n": 0
+   }
+  },
+  {
+   "name": "② 无克隆音色 npz",
+   "verdict": true,
+   "detail": {
+    "hits": [],
+    "n": 0
+   }
+  },
+  {
+   "name": "②b 无 tts_speakers 音色文件落盘",
+   "verdict": true,
+   "detail": {
+    "hits": [],
+    "n": 0
+   }
+  },
+  {
+   "name": "④ 无 babelvox 示例音色",
+   "verdict": true,
+   "detail": {
+    "hits": [],
+    "n": 0
+   }
+  },
+  {
+   "name": "⑤ 无开发目录绝对路径",
+   "verdict": true,
+   "detail": {
+    "hits": [],
+    "n": 0
+   }
+  },
+  {
+   "name": "⑥ 无 torch/CUDA 的 dll/pyd/.cu/.cuh",
+   "verdict": true,
+   "detail": {
+    "hits": [],
+    "n": 0
+   }
+  }
+ ],
+ "n_pass": 6,
+ "n_fail": 0,
+ "verdict": "PASS"
+}

@@ -1,0 +1,369 @@
+{
+ "script": "_app280_rc3_gui_smoke.py",
+ "correction": "APP-072 §2 闸门③（GUI 冒烟部分）",
+ "ts": "2026-11-05 15:22:08",
+ "cfg": {
+  "run": true,
+  "pkg": "C:\\minimvp_cleantest\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+  "timeout": 1500.0,
+  "out": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app280_rc3_gui_smoke_evidence.json"
+ },
+ "checks": [
+  {
+   "name": "① GUI 起得来且模型加载完成（无崩溃）",
+   "verdict": true,
+   "detail": {
+    "tts_load_s": 8.5,
+    "model_loaded_at_s": 27.9,
+    "wall_s": 28.46,
+    "rc": 1,
+    "tts_device": "NPU",
+    "stopped_reason": "模型加载完成 ⇒ 停"
+   },
+   "why": ""
+  },
+  {
+   "name": "② 抓到**完整主窗口**且非黑图",
+   "verdict": true,
+   "detail": {
+    "ok": true,
+    "all_black": false,
+    "bytes": 43745,
+    "size": [
+     1455,
+     1132
+    ],
+    "client": [
+     1439,
+     1093
+    ],
+    "is_main_window": true,
+    "n_candidates": 3,
+    "note": "客户区高 ≥ 700 px 才是主窗口"
+   },
+   "why": ""
+  },
+  {
+   "name": "③ ASR 出字 + MT 翻译 + 字幕渲染都通（字幕区有实际内容）",
+   "verdict": true,
+   "detail": {
+    "caption_ink": {
+     "rows_with_ink": 163,
+     "max_row_ink": 373,
+     "region": [
+      1095,
+      345
+     ],
+     "control_rows_with_ink": 0,
+     "control_max_row_ink": 0
+    },
+    "mt_load_s": 1.4,
+    "mt_label": "Intel GPU · INT4-CW · GPU.0",
+    "asr_load_seen": true,
+    "note": "判据＝字幕区深色像素行数 ≥ 20 且单行墨迹 ≥ 50 px；GUI 模式下 ASR 就绪不落盘 ⇒ 不能抓 CLI 的加载耗时串"
+   },
+   "why": ""
+  },
+  {
+   "name": "③b 负对照：字幕区下方空白区 0 墨迹（判据非恒真）",
+   "verdict": true,
+   "detail": {
+    "control_rows_with_ink": 0,
+    "control_max_row_ink": 0
+   },
+   "why": ""
+  },
+  {
+   "name": "④ 日志里没有 0xC0000409 崩溃",
+   "verdict": true,
+   "detail": {
+    "crash_marker_found": false,
+    "rc": 1,
+    "stopped_reason": "模型加载完成 ⇒ 停"
+   },
+   "why": ""
+  }
+ ],
+ "runs": [
+  {
+   "tag": "rc3",
+   "cmd": [
+    "C:\\minimvp_cleantest\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\python\\python.exe",
+    "C:\\minimvp_cleantest\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\app\\live_caption_app.py",
+    "--source",
+    "file",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+    "--autostart",
+    "--selftest",
+    "500",
+    "--selftest-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app280_rc3_gui\\selftest_rc3",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "A",
+    "--speaker",
+    "off",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--translate",
+    "zh",
+    "--mt-engine",
+    "gpu_int4cw"
+   ],
+   "pkg": "C:\\minimvp_cleantest\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+   "localappdata": "C:\\Users\\Trekker-PTL\\AppData\\Local",
+   "wav": "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+   "rc": 1,
+   "exit_code_early": null,
+   "wall_s": 28.46,
+   "stopped_reason": "模型加载完成 ⇒ 停",
+   "model_loaded_at_s": 27.9,
+   "shot": {
+    "ok": true,
+    "bytes": 43745,
+    "extrema": [
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ]
+    ],
+    "all_black": false,
+    "size": [
+     1455,
+     1132
+    ],
+    "hwnd": 1050138,
+    "rect": [
+     1455,
+     1132
+    ],
+    "client": [
+     1439,
+     1093
+    ],
+    "area": 1647060,
+    "tried": [
+     {
+      "ok": true,
+      "bytes": 13213,
+      "extrema": [
+       [
+        17,
+        255
+       ],
+       [
+        17,
+        215
+       ],
+       [
+        17,
+        215
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1638,
+       122
+      ],
+      "hwnd": 263824,
+      "rect": [
+       1638,
+       122
+      ],
+      "client": [
+       1638,
+       122
+      ],
+      "area": 199836
+     },
+     {
+      "ok": false,
+      "bytes": 112,
+      "extrema": [
+       [
+        43,
+        255
+       ],
+       [
+        108,
+        255
+       ],
+       [
+        176,
+        255
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       44,
+       24
+      ],
+      "hwnd": 394858,
+      "rect": [
+       44,
+       24
+      ],
+      "client": [
+       44,
+       24
+      ],
+      "area": 1056
+     },
+     {
+      "ok": true,
+      "bytes": 43745,
+      "extrema": [
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1455,
+       1132
+      ],
+      "hwnd": 1050138,
+      "rect": [
+       1455,
+       1132
+      ],
+      "client": [
+       1439,
+       1093
+      ],
+      "area": 1647060
+     }
+    ],
+    "n_candidates": 3,
+    "at_s": 27.9
+   },
+   "shot_first": {
+    "ok": true,
+    "bytes": 18089,
+    "extrema": [
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ]
+    ],
+    "all_black": false,
+    "size": [
+     1455,
+     1132
+    ],
+    "hwnd": 1050138,
+    "rect": [
+     1455,
+     1132
+    ],
+    "client": [
+     1439,
+     1093
+    ],
+    "area": 1647060,
+    "tried": [
+     {
+      "ok": true,
+      "bytes": 18089,
+      "extrema": [
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1455,
+       1132
+      ],
+      "hwnd": 1050138,
+      "rect": [
+       1455,
+       1132
+      ],
+      "client": [
+       1439,
+       1093
+      ],
+      "area": 1647060
+     }
+    ],
+    "n_candidates": 1,
+    "at_s": 5.7
+   },
+   "n_captures": 9,
+   "shot_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app280_rc3_gui\\gui_rc3.png",
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app280_rc3_gui\\gui_rc3.log",
+   "session_log": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\session_20261105_152309.log",
+   "log_bytes": 159,
+   "log_tail": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+   "session_log_bytes": 4458,
+   "session_log_tail": " 模型加载完成（8.5 s）\n15:23:34 [TTS] [tts_engine] cp_decode: NPU（生产配置要求；实测 RTF 1.912→1.218、首块 1.296→0.837 s）\n15:23:34 [TTS] [tts_engine] cp_prefill: NPU（TTS-017① 交付配置：运行时输入恒为 (1,2,1024) ⇒ 静态形状安全）\n15:23:34 [TTS] [tts_engine] SpeakerLibrary 就绪：C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_speakers（0 个音色：无；内置音色走**只读回退**，**不复制**到用户目录）\n15:23:34 [TTS] [tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU\n15:23:34 [TTS] [tts_engine] 实测执行设备：NPU\n15:23:34 [TTS] [tts_engine] 各组件落点：cp_decode=NPU，cp_prefill=NPU，decoder_bucket@128=NPU，decoder_bucket@16=NPU，decoder_bucket@256=NPU，decoder_bucket@32=NPU，decoder_bucket@33=NPU，decoder_bucket@40=NPU，decoder_bucket@64=NPU，decoder_bucket@8=NPU，speaker_enc=NPU，talker_bucket@128=NPU，talker_bucket@256=NPU，talker_bucket@384=NPU，talker_bucket@512=NPU，talker_bucket@64=NPU，tok_decoder=NPU\n15:23:34 [TTS] [tts_engine] 落点统计：NPU 上 17 个组件 ['cp_decode', 'cp_prefill', 'decoder_bucket@128', 'decoder_bucket@16', 'decoder_bucket@256', 'decoder_bucket@32', 'decoder_bucket@33', 'decoder_bucket@40', 'decoder_bucket@64', 'decoder_bucket@8', 'speaker_enc', 'talker_bucket@128', 'talker_bucket@256', 'talker_bucket@384', 'talker_bucket@512', 'talker_bucket@64', 'tok_decoder']；CPU 上 0 个组件 []\n15:23:34 [TTS] [tts_engine] 未启用（该档位下不编译）的组件：talker_prefill，talker_decode，talker（以 5 个桶形式存在，落点见上），code_predictor\n15:23:35 [TTS] [tts_engine] speaker embedding 就绪：C:\\minimvp_cleantest\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\models\\qwen3tts\\voices\\preset_A.wav -> (1, 1024)\n15:23:35 [TTS] [tts_worker] 播放流已启动：sr=24000 device=默认设备 ⇒ **实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）** blocksize=1024 latency=0.21333333333333335\n15:23:35 [TTS] [tts_worker] 播放流已按 24000 Hz 重建\n15:23:35 [TTS] [tts_worker] 模型加载完成 15.9s\n15:23:35 [TTS] 就绪：NPU · 音色 A\n15:23:35 [TTS] 就绪后补发 6 句\n15:23:35 [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n15:23:35 [TTS] [tts_worker] APP-042 定速：出队 lag=13.042 s ⇒ speed=1.1000\n",
+   "tts_load_s": 8.5,
+   "mt_load_s": 1.4,
+   "mt_label": "Intel GPU · INT4-CW · GPU.0",
+   "asr_load_s": null,
+   "asr_load_seen": true,
+   "tts_device": "NPU",
+   "selftest_files": [],
+   "caption_ink": {
+    "rows_with_ink": 163,
+    "max_row_ink": 373,
+    "region": [
+     1095,
+     345
+    ],
+    "control_rows_with_ink": 0,
+    "control_max_row_ink": 0
+   }
+  }
+ ],
+ "lock": "app PID 6828 started 2026-11-05 15:22:08\nmodule: app\npid: 6828\nstarted: 2026-11-05 15:22:08\nhost: LAPTOP-0GDQGD3I\n",
+ "quiet_window": {
+  "ok": true,
+  "info": "{'quiet_seconds': 45.0, 'timeout': 1800.0, 'waited_s': 60.03483009338379, 'n_samples': 5, 'n_busy_samples': 1, 'n_idle_samples': 4, 'n_unknown_samples': 1, 'last_busy_pids': [32288], 'last_idle_pids': [32288], 'classifier': 'cpu-delta', 'quiet_since': 1793863343.2255087}"
+ },
+ "n_pass": 5,
+ "n_fail": 0,
+ "n_none": 0,
+ "verdict": "PASS"
+}

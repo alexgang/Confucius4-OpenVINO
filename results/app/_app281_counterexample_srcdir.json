@@ -1,0 +1,82 @@
+{
+ "pkg": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+ "meeting": [],
+ "clone_npz": [],
+ "tts_speakers_dir": [],
+ "babelvox_example": [
+  "python\\Lib\\site-packages\\babelvox\\data\\speakers\\cindy.json",
+  "python\\Lib\\site-packages\\babelvox\\data\\speakers\\cindy.npy",
+  "python\\Lib\\site-packages\\babelvox\\data\\speakers\\lou.json",
+  "python\\Lib\\site-packages\\babelvox\\data\\speakers\\lou.npy",
+  "python\\Lib\\site-packages\\babelvox\\data\\speakers\\phil.json",
+  "python\\Lib\\site-packages\\babelvox\\data\\speakers\\phil.npy",
+  "python\\Lib\\site-packages\\babelvox\\data\\speakers\\steve.json",
+  "python\\Lib\\site-packages\\babelvox\\data\\speakers\\steve.npy"
+ ],
+ "dev_path": [],
+ "torch_cuda": [],
+ "n_files": 10504,
+ "total_bytes": 7176245176,
+ "checks": [
+  {
+   "name": "① 无会议录音（含 260902_SPE 任何切片）",
+   "verdict": true,
+   "detail": {
+    "hits": [],
+    "n": 0
+   }
+  },
+  {
+   "name": "② 无克隆音色 npz",
+   "verdict": true,
+   "detail": {
+    "hits": [],
+    "n": 0
+   }
+  },
+  {
+   "name": "②b 无 tts_speakers 音色文件落盘",
+   "verdict": true,
+   "detail": {
+    "hits": [],
+    "n": 0
+   }
+  },
+  {
+   "name": "④ 无 babelvox 示例音色",
+   "verdict": false,
+   "detail": {
+    "hits": [
+     "python\\Lib\\site-packages\\babelvox\\data\\speakers\\cindy.json",
+     "python\\Lib\\site-packages\\babelvox\\data\\speakers\\cindy.npy",
+     "python\\Lib\\site-packages\\babelvox\\data\\speakers\\lou.json",
+     "python\\Lib\\site-packages\\babelvox\\data\\speakers\\lou.npy",
+     "python\\Lib\\site-packages\\babelvox\\data\\speakers\\phil.json",
+     "python\\Lib\\site-packages\\babelvox\\data\\speakers\\phil.npy",
+     "python\\Lib\\site-packages\\babelvox\\data\\speakers\\steve.json",
+     "python\\Lib\\site-packages\\babelvox\\data\\speakers\\steve.npy"
+    ],
+    "n": 8
+   }
+  },
+  {
+   "name": "⑤ 无开发目录绝对路径",
+   "verdict": true,
+   "detail": {
+    "hits": [],
+    "n": 0
+   }
+  },
+  {
+   "name": "⑥ 无 torch/CUDA 的 dll/pyd/.cu/.cuh",
+   "verdict": true,
+   "detail": {
+    "hits": [],
+    "n": 0
+   }
+  }
+ ],
+ "n_pass": 5,
+ "n_fail": 1,
+ "verdict": "FAIL"
+}
