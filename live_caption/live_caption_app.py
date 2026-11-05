@@ -2297,7 +2297,10 @@ class App:
             draft=_init_draft_flag(args),
             on_log=self._ui_log)
 
-        root.title('Confucius4-R2T2 实时字幕 · 多后端测试')
+        # 🔴🔴🔳 APP-069⑤ 清理项 3：标题是**内部名称** ⇒ 改成产品名
+        #   （reviewer 原文：「窗口标题现在是『Confucius4-R2T2 实时字幕 · 多后端测试』，
+        #   属于内部名称，MiniMVP 要改成产品名，比如『实时字幕 MiniMVP v1.0』」）
+        root.title('实时字幕 MiniMVP v1.0')
         # ⚠️ 1080x820：三分区改**纵向三行**后（每行 = 控件行 + 说明行），
         #    700 高装不下，主文本区会被压扁。820 能让三行都完整显示。
         #
@@ -2730,6 +2733,8 @@ class App:
         #   ⇒ 用户随时能看见「现在到底在用预设 A 还是克隆」。
         # 🔴🔴🔴 APP-065 A：放在**音色下拉右侧**（column 4）。
         self.var_tts_voice_now = tk.StringVar(value='预设 A')
+        # 🔴🔴🔳 APP-069④ / APP-070② A：未就绪被跳过的句数（诚实记账）
+        self._tts_skip_not_ready = 0
         ttk.Label(g_tts, textvariable=self.var_tts_voice_now,
                   foreground='#1565c0').grid(row=1, column=2, sticky='w',
                                              padx=(8, 0), pady=0)
@@ -3700,6 +3705,15 @@ class App:
         ⚠️ **ASR 侧还没交付 spk** ⇒ `_spk_by_seg` 恒为空 ⇒ 显示
         「说话人：—（未标注）」⇒ **如实说没有**，不编一个假的。
         """
+        # 🔴🔴🔳 APP-069⑤ 清理项 4：MiniMVP 不带说话人模块
+        #   ⇒ 返回**空串** ⇒ 调用方**不拼**这一半（不显示「—（未标注）」）
+        try:
+            _bridge = getattr(self, '_spk_bridge', None)
+            _clone = bool(getattr(self, '_clone_enabled', False))
+            if _bridge is None and not _clone:
+                return ''
+        except Exception:
+            pass
         try:
             segs = sorted(self._spk_by_seg)
         except Exception:
@@ -4383,6 +4397,19 @@ class App:
                         #     ⇒ 一句拖 106 s ⇒ 后续句全堵（用户实测两次）
                         #   ⚠️ 用 `_cur_mt_target()`（**下拉当前值**）而不是
                         #     `self.mt.target` ⇒ 会话中途改下拉立即生效。
+                        # 🔴🔴🔳 APP-069④ / APP-070② A：**TTS 未就绪 ⇒ 不排队**
+                        #   起因（reviewer 实测）：冷启动编译期间「排队 582」
+                        #   ⇒ 编译完成后会从 **20 分钟前**的句子开始念。
+                        #   ⇒ 现在：**未就绪就丢弃本次提交**（不排队）
+                        #     ⇒ 编完**只念就绪之后定稿的句子**。
+                        #   ⚠️ 与「不丢句」规则**不冲突**
+                        #     （那条规则针对的是 TTS **已经运行之后**）。
+                        if not self._tts_ready_for_speech():
+                            self._tts_skip_not_ready += 1
+                            self._ui_log(
+                                '[TTS] 语音模型**首次准备中** ⇒ 本句**不排队**'
+                                '（编译完成后只念新句）')
+                            continue
                         self.tts.submit(ev['txt'], seg=ev['seg'],
                                         lang=self._cur_mt_target(),
                                         # 🔴🔴🔴 APP-039/040：**按句绑定音色**
@@ -5584,7 +5611,17 @@ class App:
             _clone_on = bool(getattr(self, '_clone_enabled', False))
         except Exception:
             _clone_on = False
-        if bridge is None:
+        # 🔴🔴🔳 APP-069⑤ 清理项 4：MiniMVP **不带说话人模块**
+        #   ⇒ 这一行**直接不显示**（而不是显示成「降级」/「未启用」）
+        #   ⇒ 判据：旁路桥**不存在**（`bridge is None`）**且**克隆也没开
+        #     ⇒ 说明「本产品没有说话人功能」⇒ 隐藏。
+        #   ⚠️ v2.x 包**带**旁路（`app/asr_spk/`）⇒ bridge 存在 ⇒ 行照常显示。
+        if bridge is None and not _clone_on:
+            try:
+                st.clear('spk')
+            except Exception:
+                pass
+        elif bridge is None:
             st.set('spk', '说话人', '未启用', priority=2, level='warn')
         else:
             try:
@@ -5616,7 +5653,14 @@ class App:
                 cur = _spk_id(self._spk_by_seg[max(self._spk_by_seg)])
         except Exception:
             cur = None
-        st.set('spk_now', '当前', cur or '—', priority=3)
+        # 🔴🔴🔳 APP-069⑤ 清理项 4：同上 ⇒ 没有说话人功能时**不显示**「当前」
+        if bridge is None and not _clone_on:
+            try:
+                st.clear('spk_now')
+            except Exception:
+                pass
+        else:
+            st.set('spk_now', '当前', cur or '—', priority=3)
 
     def _fill_mt_strip(self):
         """翻译区：设备 / 模型 / 目标语言 / 加载状态 / 最近一句翻译延迟。"""
@@ -5675,6 +5719,46 @@ class App:
         st.set('lat', '延迟', ('%.0f ms' % lat) if lat is not None else '—',
                priority=3)
 
+    def _tts_prepare_progress(self, ts=None) -> dict:
+        """🔴🔴🔳 APP-069④ / APP-070② A：**首次准备进度**（组件名/已完成/总数/ETA）。
+
+        ⇒ 数据来自 `tts.stats()`（worker 遥测）；**没有就返回空**
+        ⇒ 调用方据此显示「首次准备中 xx%」。
+        """
+        out = {'pct': None, 'component': None, 'done': None, 'total': None,
+               'eta': None}
+        try:
+            if ts is None:
+                ts = self.tts.stats()
+        except Exception:
+            return out
+        try:
+            pg = ts.get('prepare_progress') or {}
+            if not pg:
+                return out
+            out['component'] = pg.get('component')
+            out['done'] = pg.get('done')
+            out['total'] = pg.get('total')
+            out['eta'] = pg.get('eta')
+            if pg.get('total'):
+                out['pct'] = int(round(100.0 * float(pg.get('done') or 0)
+                                       / float(pg['total'])))
+        except Exception:
+            return {'pct': None, 'component': None, 'done': None,
+                    'total': None, 'eta': None}
+        return out
+
+    def _tts_ready_for_speech(self) -> bool:
+        """🔴🔴🔳 APP-069④ / APP-070② A：TTS **是否可以开始配音**了。
+
+        ⇒ `state == 'ready'` 才算就绪（`loading` / `idle` / `error` 都不算）
+        ⇒ 未就绪时**不排队**（见提交点）⇒ 编译完成只念**新**句子。
+        """
+        try:
+            return getattr(self.tts, 'state', '') == 'ready'
+        except Exception:
+            return False
+
     def _fill_tts_strip(self):
         """语音区：设备 / 音色模式 / 输出设备 / 就绪状态 / 语速 / 滞后 / 排队。
 
@@ -5711,7 +5795,19 @@ class App:
         elif state == 'ready':
             st.set('state', '状态', '就绪', priority=1)
         elif state == 'loading':
-            st.set('state', '状态', '加载中', priority=1, level='warn')
+            # 🔴🔴🔳 APP-069④ / APP-070② A：**首次准备进度**
+            #   reviewer 原文：「在 GUI 上显示『语音模型首次准备中 xx%
+            #   （约 20 分钟，仅首次）』」
+            #   ⇒ 组件名 / 已完成 / 总数 / 预计剩余 全部来自 worker 的遥测。
+            _pg = self._tts_prepare_progress(ts)
+            st.set('state', '状态',
+                   ('首次准备中 %d%%' % _pg['pct']) if _pg.get('pct') is not None
+                   else '首次准备中',
+                   priority=1, level='warn',
+                   tip=('语音模型首次准备中（约 %s，仅首次）'
+                        % (_pg.get('eta') or '20 分钟'))
+                        + ('\n当前组件：%s' % _pg['component']
+                           if _pg.get('component') else ''))
         else:
             st.set('state', '状态', state, priority=1, level='warn')
         st.set('speed', '语速',
@@ -6209,8 +6305,13 @@ class App:
         try:
             # 🔴🔴 APP-039：**音色 + 本句说话人**一起显示
             #   （reviewer 明文：「GUI 上显示每句实际用的是哪个 spk 和哪个音色」）
-            label = '%s · %s' % (self._clone_voice_label(),
-                                 self._spk_now_label())
+            # 🔴🔴🔳 APP-069⑤ 清理项 4：说话人那半为空 ⇒ **只显示音色**
+            #   （不出现「音色 · 说话人：—（未标注）」）
+            _spk_lbl = self._spk_now_label()
+            if _spk_lbl:
+                label = '%s · %s' % (self._clone_voice_label(), _spk_lbl)
+            else:
+                label = self._clone_voice_label()
         except Exception:
             return
         if label != getattr(self, '_clone_label_last', None):
@@ -6519,6 +6620,8 @@ def run_cli(args):
     #     ⇒ **CLI 下自适应加速链路永不触发**。
     #   ⚠️ **根因**：APP-042 的目标墙钟机制**只做在 GUI `App` 类**
     #     （`_session_wall0` 只在 `App.start()` 里赋值；`App._on_final()` 里
+    # 🔴🔴🔳 APP-069④ / APP-070② A：**未就绪被跳过的句数**（诚实记账）
+    _skip_nr = 0
     #     登记 `_seg_target_wall`）⇒ CLI 的 `tts.submit(...)`
     #     **三处全都不传 `target_play_at`** ⇒ 服务端 `target_play_at is None`
     #     ⇒ **不下发 `speed`/`target_wall`**。
@@ -6929,6 +7032,11 @@ def run_cli(args):
                     print(f'\n[{tag}] {txt}', flush=True)
                     # ── TTS：只提交**定稿译文**（C-101 P4 第 1 条）──
                     if tts is not None and tts.active:
+                        # 🔴🔴🔳 APP-069④ / APP-070② A：未就绪 ⇒ **不排队**
+                        #   （冷启动编译 20 分钟 ⇒ 攒 582 句 ⇒ 编完从 20 分钟前念）
+                        if getattr(tts, 'state', '') != 'ready':
+                            _skip_nr += 1
+                            continue
                         # 🔴🔴🔴 APP-030①：**显式下传 MT 目标语言**
                         #   （CLI 没有下拉 ⇒ 用 `mt.target`）
                         tts.submit(txt, seg=ev['seg'], lang=mt.target,
@@ -6975,6 +7083,10 @@ def run_cli(args):
                 print(f'[{tag}] {txt}', flush=True)
                 # ── TTS：补交最后一批定稿译文 ──
                 if tts is not None and tts.active:
+                    # 🔴🔴🔳 APP-069④ / APP-070② A：未就绪 ⇒ **不排队**
+                    if getattr(tts, 'state', '') != 'ready':
+                        _skip_nr += 1
+                        continue
                     # 🔴🔴🔴 APP-030①：**显式下传 MT 目标语言**
                     tts.submit(txt, seg=ev['seg'], lang=mt.target,
                                # 🔴🔴🔴 APP-039/040：**按句绑定音色**

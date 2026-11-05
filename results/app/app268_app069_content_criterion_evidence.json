@@ -1,0 +1,228 @@
+{
+  "verdict": "PASS",
+  "n_pass": 4,
+  "n_fail": 0,
+  "correction": "APP-069①(c)",
+  "generated_at": "2026-11-05 11:09:15",
+  "criteria": {
+    "C1": "逐句 rms_db > -45 且 peak > 0.05 的比例 == 100%",
+    "C2": "wav 里 >= 0.3 s 的全零段数 == 0",
+    "C3": "逐句 wav_t0/wav_t1 齐备且互不重叠",
+    "C4": "按 wav_t0/wav_t1 切出的段，幅度必须达标"
+  },
+  "counter_proof": {
+    "label": "rc2_old_dump",
+    "wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app253_minimvp_out\\minimvp_tts.wav",
+    "jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app253_minimvp_out\\minimvp.tts.jsonl",
+    "wav_dur_s": 318.066,
+    "sr": 24000,
+    "n_rows": 76,
+    "format": "old",
+    "C2_zero_runs_ge_0p3": 24,
+    "C2_zero_run_total_s": 54.24,
+    "C2_zero_runs": [
+      [
+        2.246,
+        5.178
+      ],
+      [
+        15.389,
+        16.429
+      ],
+      [
+        20.909,
+        21.502
+      ],
+      [
+        27.021,
+        28.5
+      ],
+      [
+        39.163,
+        43.137
+      ],
+      [
+        55.063,
+        56.145
+      ],
+      [
+        63.345,
+        64.28
+      ],
+      [
+        76.471,
+        81.796
+      ],
+      [
+        89.156,
+        89.996
+      ],
+      [
+        96.39,
+        96.891
+      ],
+      [
+        103.29,
+        107.296
+      ],
+      [
+        122.954,
+        125.675
+      ],
+      [
+        137.341,
+        142.888
+      ],
+      [
+        166.846,
+        168.657
+      ],
+      [
+        176.017,
+        179.52
+      ],
+      [
+        188.16,
+        192.148
+      ],
+      [
+        203.557,
+        209.359
+      ],
+      [
+        219.187,
+        223.414
+      ],
+      [
+        236.947,
+        237.518
+      ],
+      [
+        270.352,
+        271.307
+      ],
+      [
+        276.869,
+        277.556
+      ],
+      [
+        280.196,
+        281.12
+      ],
+      [
+        308.74,
+        309.184
+      ],
+      [
+        313.904,
+        314.256
+      ]
+    ],
+    "C2_ok": false,
+    "n_model_holes": 24,
+    "C4_n_bad": 24,
+    "C4_bad_ids": [
+      3,
+      6,
+      7,
+      8,
+      11,
+      14,
+      16,
+      20,
+      22,
+      24,
+      25,
+      28,
+      31,
+      36,
+      38,
+      40,
+      43,
+      46,
+      48,
+      55,
+      57,
+      59,
+      66,
+      68
+    ],
+    "C4_ok": false,
+    "C4_basis": "旧 jsonl 无 wav_t0/wav_t1 ⇒ 按旧时间轴模型算出「空洞」，每个空洞吞掉一个标称句位（reviewer「一句对应一段零」）",
+    "C1_n_bad": 0,
+    "C1_bad_ids": [],
+    "C1_ok": true,
+    "n_damaged_sentences": 24,
+    "verdict": "FAIL"
+  },
+  "result": {
+    "label": "fixed_dump",
+    "wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app271_rc3_out\\minimvp_tts.wav",
+    "jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app271_rc3_out\\minimvp.tts.jsonl",
+    "wav_dur_s": 317.75,
+    "sr": 24000,
+    "n_rows": 76,
+    "format": "new",
+    "C2_zero_runs_ge_0p3": 0,
+    "C2_zero_run_total_s": 0,
+    "C2_zero_runs": [],
+    "C2_ok": true,
+    "C3_n_spans": 76,
+    "C3_missing_spans": [],
+    "C3_n_overlaps": 0,
+    "C3_ok": true,
+    "C1_n_bad": 0,
+    "C1_bad_ids": [],
+    "C1_ok": true,
+    "C4_n_bad": 0,
+    "C4_bad_ids": [],
+    "C4_ok": true,
+    "n_damaged_sentences": 0,
+    "verdict": "PASS"
+  },
+  "checks": [
+    {
+      "id": "R1",
+      "name": "反证：rc2 旧 wav 跑同一判据 **必须 FAIL**",
+      "ok": true,
+      "detail": {
+        "verdict": "FAIL",
+        "C2_zero_runs": 24,
+        "n_damaged": 24
+      }
+    },
+    {
+      "id": "R2",
+      "name": "反证：rc2 旧 wav 的受损句数 == 24（reviewer 实测口径）",
+      "ok": true,
+      "detail": {
+        "n_damaged": 24,
+        "n_zero_runs": 24,
+        "basis": "旧 jsonl 无 wav_t0/wav_t1 ⇒ 按旧时间轴模型算出「空洞」，每个空洞吞掉一个标称句位（reviewer「一句对应一段零」）"
+      }
+    },
+    {
+      "id": "R3",
+      "name": "反证：rc2 的**合成侧**逐句 peak/rms 全健康（C1 通过） ⇒ 受损不是「合成出静音」",
+      "ok": true,
+      "detail": {
+        "C1_n_bad": 0,
+        "min_peak": 0.375,
+        "min_rms": 0.076403
+      }
+    },
+    {
+      "id": "P1",
+      "name": "新落盘 wav 跑同一判据 **必须 PASS**",
+      "ok": true,
+      "detail": {
+        "verdict": "PASS",
+        "C1_n_bad": 0,
+        "C2_zero_runs_ge_0p3": 0,
+        "C3_n_spans": 76,
+        "C3_n_overlaps": 0,
+        "C4_n_bad": 0
+      }
+    }
+  ]
+}

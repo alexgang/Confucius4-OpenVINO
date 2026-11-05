@@ -150,6 +150,15 @@ _APP030_JSONL_KEYS = (
     'voice_spk', 'voice_kind',
 )
 
+# 🔴🔴🔳 APP-069①：**逐句 wav 指标**（落盘 wav 里的位置 + 幅度）
+#   `wav_t0` / `wav_t1` —— 这一句在 wav 里的起止秒（**顺序拼接后互不重叠**）
+#   `wav_peak`         —— 这一句在 wav 里的绝对峰值
+#   `wav_rms_db`       —— 这一句在 wav 里的 RMS（dBFS）
+#   ⇒ reviewer 可按 `wav_t0`/`wav_t1` **逐句切开**复核（不再靠猜）
+_APP069_JSONL_KEYS = (
+    'wav_t0', 'wav_t1', 'wav_peak', 'wav_rms_db',
+)
+
 # 🔴🔴🔴 APP-036 C1：**worker 内部的排队等待**（jsonl 新增字段）。
 #   reviewer APP-036 C1 的原话：
 #     「worker jsonl 的 `t_submit` 是在 `_synth_babelvox` 开头取的
@@ -1811,6 +1820,11 @@ class TTSWorker:
         except Exception:
             self._last_est_frames = None
         wav_parts = []
+        # 🔴🔴🔳 APP-069①：**真正送进 OutputStream 的音频**（变速后 `w_out`）
+        #   ⇒ 落盘 wav 用它（**顺序拼接**）⇒ 内容 = 用户真实听到的那段。
+        #   ⚠️ 与 `acc_parts` 的区别：`acc_parts` 只在 `dump_dir` 时收集；
+        #     这里**只要在落盘模式**就收集（`--tts-out` 单独用也要）。
+        out_parts = []
         # 🔴🔴🔴 APP-042：**加速后**的逐句音频（供抽听落盘）
         #   ⚠️ 只在 `dump_dir` 且确实变速时才有内容。
         acc_parts = []
@@ -2098,6 +2112,10 @@ class TTSWorker:
                         #   （与旧实现语义一致：一句话 = 一个时间点）。
                         # 🔴 APP-021⑥：需要逐句 wav 时也整句累加（供落盘）。
                         wav_parts.append(w)
+                        # 🔴🔴🔳 APP-069①：落盘 wav 用**变速后**的音频
+                        #   （= 真正送进 OutputStream 的那段 ⇒ 内容保真）
+                        if self.out_wav:
+                            out_parts.append(w_out)
                         # 🔴🔴🔴 APP-042：**逐句 wav 另存「加速后」版本**
                         #   （供 reviewer「挑 3 段 1.2–1.3× 的配音落盘抽听」）
                         #   ⚠️ `out_wav` 的**时间轴混音仍用原始音频**
@@ -2163,6 +2181,10 @@ class TTSWorker:
                             _out_samples += int(len(_tail))
                             if self.dump_dir:
                                 acc_parts.append(np.asarray(
+                                    _tail, dtype=np.float32))
+                            # 🔴🔴🔳 APP-069①：收尾块同样算「送进 OutputStream 的音频」
+                            if self.out_wav:
+                                out_parts.append(np.asarray(
                                     _tail, dtype=np.float32))
                     except Exception as e:
                         log('[tts_worker] APP-042 变速收尾失败（不影响播放）：%s'
@@ -2252,13 +2274,17 @@ class TTSWorker:
             self._record_jsonl(jid, text, t_submit, error=msg)
             return
 
-        if self.out_wav and wav_parts:
-            # ── 落盘模式：整句一次性入时间轴（见循环内的说明）──
+        if self.out_wav and out_parts:
+            # 🔴🔴🔳 APP-069①：**顺序拼接**（不再按墙钟时间戳摆位）
+            #   ⚠️ 旧实现按「合成完成时刻」摆位 ⇒ ① 留空洞（全零段 24 段 / 54.24 s）
+            #     ② 重叠处 `+=` 相加 ⇒ 幅度翻倍 ⇒ **两个都是落盘假象**。
+            #   ⇒ 现在只记「本句音频 + jid」，**位置在收尾时顺序累加**。
             now = time.perf_counter()
             if self._t0 is None:
                 self._t0 = now
-            wav = np.concatenate(wav_parts) if len(wav_parts) > 1 else wav_parts[0]
-            self._timeline.append((now - self._t0, wav.copy()))
+            wav = (np.concatenate(out_parts) if len(out_parts) > 1
+                   else out_parts[0])
+            self._timeline.append((jid, wav.copy()))
 
         # 🔴 APP-021⑥：逐句 wav 落盘（`--dump-dir`）——
         #   ⚠️ 与 `--out-wav`（时间轴混音）**独立**：两者可同时开。
@@ -2873,6 +2899,10 @@ class TTSWorker:
             for k in _APP030_JSONL_KEYS:
                 if k in tel:
                     row[k] = tel[k]
+            # 🔴🔴🔳 APP-069①：**逐句 wav 指标**（wav_t0/wav_t1/peak/rms_db）
+            for k in _APP069_JSONL_KEYS:
+                if k in tel:
+                    row[k] = tel[k]
             # 🔴🔴🔴 APP-036 C1 + APP-037 C：**排队等待 / 句首标点**
             for k in _APP036_JSONL_KEYS:
                 if k in tel:
@@ -2924,19 +2954,60 @@ class TTSWorker:
                 pass
 
     def _flush_timeline(self):
-        """落盘模式收尾：把时间轴上的句子混成一个 wav。"""
+        """落盘模式收尾：把逐句音频**顺序拼接**成一个 wav。
+
+        🔴🔴🔳 **APP-069①：为什么必须顺序拼接**（原实现是「按墙钟时间戳摆位」）
+        ────────────────────────────────────────────────────────────
+        原实现把每句放在「本句**合成完成**的时刻 − 首句完成时刻」处，
+        长度取**原始**时长 ⇒
+          ① 合成快于 1× ⇒ 两句之间留**空洞**（实测 **24 段全零 / 54.24 s**）
+          ② 合成慢于 1× ⇒ 两句**重叠**，而重叠处是 `out[i:j] += w`（**相加**）
+             ⇒ 幅度翻倍甚至削波（实测 wav peak 触到 0.99997）
+        ⇒ **两个都是落盘算法的假象**，不是合成侧静音
+          （逐句 peak/rms 全健康 ⇒ `results/app/app267_app069a_rootcause_evidence.json`）。
+
+        🔴 **改成顺序拼接**（= 送进 OutputStream 的实际顺序与内容）：
+          · 每句占**互不重叠**的区间 ⇒ `wav_t0`/`wav_t1` 唯一且可切
+          · 句间不再有空洞 ⇒ 全零段数 = 0（判据见 `app268`）
+          · 内容 = **变速后**的音频（真正送进 OutputStream 的那段）
+        """
         if not self.out_wav or not self._timeline:
             return
         import numpy as np
         sr = self.sr                     # 🔴 采样率随引擎走（BabelVox=24000）
         items = list(self._timeline)
-        end = max(t + len(w) / sr for t, w in items)
-        total = int(end * sr)
+        # 🔴 顺序累加（不再按时间戳摆位 ⇒ 无空洞、无重叠相加）
+        spans = []
+        total = 0
+        for jid, w in items:
+            n = int(len(w))
+            spans.append((jid, total, total + n, w))
+            total += n
         out = np.zeros(total, dtype=np.float32)
-        for t, w in items:
-            i = int(t * sr)
-            j = min(i + len(w), total)
-            out[i:j] += w[:j - i]
+        for _jid, i, j, w in spans:
+            out[i:j] += w
+        # 🔴🔴🔳 逐句 `wav_t0`/`wav_t1`/`peak`/`rms_db` ⇒ 回填进 jsonl 行
+        #   （供 reviewer 逐句切 wav 复核；收尾会整体重写 jsonl ⇒ 来得及）
+        try:
+            by_id = {}
+            for _r in self._jsonl_rows:
+                if _r.get('id') is not None:
+                    by_id[int(_r['id'])] = _r
+            for jid, i, j, w in spans:
+                r = by_id.get(int(jid))
+                if r is None:
+                    continue
+                seg = np.asarray(w, dtype=np.float64)
+                r['wav_t0'] = round(i / float(sr), 4)
+                r['wav_t1'] = round(j / float(sr), 4)
+                r['wav_peak'] = (round(float(np.max(np.abs(seg))), 6)
+                                 if seg.size else 0.0)
+                _rms = (float(np.sqrt(np.mean(seg ** 2)))
+                        if seg.size else 0.0)
+                r['wav_rms_db'] = (round(20.0 * math.log10(_rms), 2)
+                                   if _rms > 1e-12 else None)
+        except Exception as e:
+            log('[tts_worker] 逐句 wav 指标回填失败（不影响落盘）：%s' % e)
         try:
             import soundfile as sf
             sf.write(self.out_wav, out, sr)

@@ -290,6 +290,12 @@ class TTSService:
         self._stdin_wlock = threading.Lock()
         self.state = 'idle'
         self.err = None
+        # 🔴🔴🔳 APP-069④ / APP-070② A：**首次准备期攒下的句子**要丢弃
+        #   （编译 20 分钟 ⇒ 攒 582 句 ⇒ 编完从 20 分钟前开始念）
+        #   ⇒ `loading → ready` 的**第一次**转换时清空待发队列。
+        self._drop_pending_on_ready = False
+        # 🔴🔴🔳 APP-069④ / APP-070② A：**首次准备进度**（worker 上报）
+        self._prepare_progress = {}
         self.n_restart = 0             # worker 崩溃重启次数（C-101：最多 1 次）
         self._restarted = False
         # 🔴 2026-10-24 §21 修：`_closing` 闸门 —— `close()` 期间**禁止重启 worker**。
@@ -558,6 +564,8 @@ class TTSService:
             self._dropped_ids.clear()
             self.state = 'loading'
             self.err = None
+            # 🔴🔴🔳 APP-069④ / APP-070② A：进入 loading ⇒ 准备期攒的句子要丢
+            self._drop_pending_on_ready = True
             # 🔴🔴🔴 APP-036 C2：**起积压曲线采样线程**
             #   ⇒ worker 起来之后曲线才有内容 ⇒ 放在这里（不是 `__init__`）
             self.start_curve_sampler()
@@ -1468,6 +1476,27 @@ class TTSService:
             #      ⇒ 「入队」与「补发」**不可能两边都错过**。
             with self.lock:
                 self.state = 'ready'
+            # 🔴🔴🔳 APP-069④ / APP-070② A：**就绪 ⇒ 清掉编译期攒下的旧句**
+            #   reviewer 原文：「编译完成后会从 20 分钟前的句子开始念」
+            #   ⇒ 现在**只念就绪之后定稿的句子**。
+            #   ⚠️ 只在**首次**准备（`loading → ready`）时清
+            #     ⇒ 运行中的 `ready` 事件**不**清（不影响正常会话）。
+            #   ⚠️ 「不丢句」规则针对的是 TTS **已经运行之后** ⇒ 不冲突。
+            try:
+                if self._drop_pending_on_ready:
+                    _n = 0
+                    with self.lock:
+                        for _jid in list(self._queue):
+                            self.pending.pop(_jid, None)
+                            _n += 1
+                        self._queue.clear()
+                    if _n:
+                        self.on_log(
+                            '[TTS] 语音模型首次准备完成 ⇒ 丢弃准备期攒下的 %d 句'
+                            '（只念新句）' % _n)
+                    self._drop_pending_on_ready = False
+            except Exception as e:
+                self.on_log('[TTS] 丢弃准备期积压失败：%r' % (e,))
             self.on_log(f'[TTS] 就绪：{msg.get("device")} · 音色 {msg.get("voice")}')
             # ⚠️ `_flush_queue()` 自己会取锁 ⇒ **必须在上面那个 with 块之外**调用
             #   （`self.lock` 是**非**可重入的 `threading.Lock` ⇒ 嵌套会自死锁）。
@@ -2170,6 +2199,9 @@ class TTSService:
     def stats(self) -> dict:
         return dict(
             state=self.state,
+            # 🔴🔴🔳 APP-069④ / APP-070② A：**首次准备进度**
+            #   （组件名 / 已完成 / 总数 / 预计剩余）⇒ GUI 显示「首次准备中 xx%」
+            prepare_progress=dict(self._prepare_progress),
             first_packet_s=self.first_packet_s,
             first_packet_parts=self.first_packet_parts,
             backlog_s=round(self.backlog_s, 2),

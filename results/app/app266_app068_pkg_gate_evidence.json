@@ -1,0 +1,122 @@
+{
+  "verdict": "PASS",
+  "n_pass": 7,
+  "n_fail": 0,
+  "correction": "APP-068",
+  "generated_at": "2026-11-05 11:15:59",
+  "checks": [
+    {
+      "id": "H1",
+      "name": "ASR 交付的 4 个 py + w5 bin 的 md5 与 APP-068 逐字一致",
+      "ok": true,
+      "detail": {
+        "expect_prefix": {
+          "asr052_speaker_tracker_api.py": "a1dd6e7b",
+          "asr052_spk_runtime.py": "2ff82933",
+          "asr_thread_defaults.py": "0482f9c4",
+          "asr_spk_window.py": "7d719e1d",
+          "pyannote_seg_3_0_w5.bin": "32d5bc9a"
+        },
+        "actual": {
+          "asr052_speaker_tracker_api.py": "a1dd6e7bc7dfb426a3ce54585beb9304",
+          "asr052_spk_runtime.py": "2ff82933edec80becd01f9d28d202ea6",
+          "asr_thread_defaults.py": "0482f9c49105490ac219194c2fa7c184",
+          "asr_spk_window.py": "7d719e1d7f251be9ce68503be4361807",
+          "pyannote_seg_3_0_w5.bin": "32d5bc9ac2e32f9b8bb62bdfa4285328"
+        }
+      }
+    },
+    {
+      "id": "H2",
+      "name": "w5 xml 已记录的 md5（清路径前/后）",
+      "ok": true,
+      "detail": {
+        "xml_md5_now": "14b224bced3289237799bc9a7eb746ff",
+        "xml_bytes": 73172,
+        "xml_md5_prescrub": "5295ec9c7fdf14d75b5d955884ac9e8e",
+        "prescrub_matches_app068": true
+      }
+    },
+    {
+      "id": "H3",
+      "name": "w5 xml 内绝对路径命中数 == 0",
+      "ok": true,
+      "detail": {
+        "abs_path_hits": 0,
+        "samples": [],
+        "file": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\pyannote_seg\\ov-fp16-w5\\pyannote_seg_3_0_w5.xml"
+      }
+    },
+    {
+      "id": "H4",
+      "name": "export_meta.json 不进包（同步脚本的搬运清单里没有它）",
+      "ok": true,
+      "detail": {
+        "sync_has_export_meta_const": false,
+        "seg_files_w5": true,
+        "export_meta_excluded": true
+      }
+    },
+    {
+      "id": "H5",
+      "name": "speaker_assets.resolve() 解析到 fp16-w5（5 s 窗配套）",
+      "ok": true,
+      "detail": {
+        "SEG_WINDOW_VARIANTS": [
+          "fp16-w5"
+        ],
+        "SEG_VARIANT_FILES": {
+          "fp16-w5": [
+            "pyannote_seg_3_0_w5.xml",
+            "pyannote_seg_3_0_w5.bin"
+          ]
+        },
+        "pkg_root": "C:\\Users\\Trekker-PTL\\shared\\app067_shadow",
+        "resolve_ok": true,
+        "seg_ir": "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\models\\spk\\pyannote_seg_3_0/fp16-w5",
+        "seg_note": "pyannote_seg_3_0 fp16-w5（窗口 5.000 s，来源 asr_spk_window）",
+        "points_to_fp16_w5": true
+      }
+    },
+    {
+      "id": "H6",
+      "name": "App 侧绝对路径清理器能把 xml 里的绝对路径清到 0 命中",
+      "ok": true,
+      "detail": {
+        "scrub_source": "results/app/_app269_build_minimvp_rc3.py（rc3 构建器）",
+        "prescrub_abs_hits": 1,
+        "cleaned_abs_hits": 0,
+        "cleaner_effective": true
+      }
+    },
+    {
+      "id": "H7",
+      "name": "asr_spk_window.WIN_S == 5.0（唯一事实来源）",
+      "ok": true,
+      "detail": {
+        "file": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\scripts\\asr_spk_window.py",
+        "md5": "7d719e1d7f251be9ce68503be4361807",
+        "WIN_S": 5.0,
+        "SEG_WIN_S": 5.0,
+        "WIN_N": 80000,
+        "WIN_S_DEFAULT": 5.0
+      }
+    }
+  ],
+  "device_pending": [
+    {
+      "id": "D1",
+      "name": "包内 log 出现「说话人旁路窗口：5.000 s」",
+      "status": "PENDING_DEVICE",
+      "why": "必须真机跑包才有 log ⇒ 本脚本（静态、CPU、零设备占用）做不到"
+    },
+    {
+      "id": "D2",
+      "name": "包内绝对路径扫描 == 0（全包扫描）",
+      "status": "PENDING_BUILD",
+      "why": "要在**打包产物**上扫 ⇒ 需先打 v2.3（APP-067 的顺序 1→2→3、4→5）"
+    }
+  ],
+  "notes": [],
+  "scope": "静态可判定部分（md5 / 绝对路径 / resolve() / WIN_S）；设备级 log 校验不在此脚本"
+}

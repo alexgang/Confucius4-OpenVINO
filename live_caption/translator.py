@@ -133,9 +133,32 @@ _MT_CANDIDATES = [
      'NPU 备用：44.0 tok/s、零乱码，约 993 MB，但质量显著低于 INT8（ΔchrF++ −1.5）', True),
 ]
 
+def _auto_model_label() -> str:
+    """🔴🔴🔳 APP-069⑤ 清理项 2：`auto` 的 label **按实际模型目录动态生成**。
+
+    🔴 **旧问题**：`auto` 的 label **写死**「INT8-CW」⇒ 而 `DEFAULT_MODEL`
+       可能是 **INT4** 目录（MiniMVP 客户包就是 INT4）⇒ CLI `--check` 与
+       `auto` 的 `device_desc` 显示与实载**不符**（APP-069⑤ ⑤ 原文）。
+    ⇒ 现在**从 `DEFAULT_MODEL` 的目录名反推**量化口径：
+       目录含 `int4` ⇒ INT4-CW；含 `int8` ⇒ INT8-CW；认不出 ⇒ 不猜（写「自适应」）。
+    """
+    try:
+        base = os.path.basename(os.path.normpath(str(DEFAULT_MODEL))).lower()
+    except Exception:
+        base = ''
+    if 'int4' in base:
+        return '自动 · INT4-CW 模型（默认）'
+    if 'int8' in base:
+        return '自动 · INT8-CW 模型（默认）'
+    return '自动 · 模型（默认）'
+
+
+#: 🔴 APP-069⑤ 清理项 2：**两处** `auto` label 共用同一来源（避免再次写死）
+_AUTO_LABEL = _auto_model_label()
+
 MT_ENGINES = OrderedDict()
 MT_ENGINES['auto'] = dict(
-    label='自动 · INT8-CW 模型（默认）', device=None, model=None,
+    label=_AUTO_LABEL, device=None, model=None,
     note='模型目录取 LIVECAP_MT_MODEL（或包内自带模型），设备取 --mt-device（默认 GPU.0）')
 for _k, _label, _dev, _name, _note, _bundled in _MT_CANDIDATES:
     _m = _cw_model(_name)
@@ -143,6 +166,8 @@ for _k, _label, _dev, _name, _note, _bundled in _MT_CANDIDATES:
         MT_ENGINES[_k] = dict(label=_label, device=_dev, model=_m, note=_note,
                                bundled=_bundled)
 MT_DEFAULT = 'auto'
+
+
 
 # 全部候选后端（含**本机没装模型**的）—— 给 --check 环境检查用。
 # GUI 下拉只用 MT_ENGINES（本机真实存在的那些）；诊断则需要把缺的也列出来。
@@ -154,7 +179,7 @@ for _k, _label, _dev, _name, _note, _bundled in _MT_CANDIDATES:
         label=_label, device=_dev, model=_cw_model(_name), note=_note,
         available=os.path.isdir(_cw_model(_name)), bundled=_bundled)
 MT_ALL_CANDIDATES['auto'] = dict(
-    label='自动 · INT8-CW 模型（默认）', device=None, model=DEFAULT_MODEL, note='',
+    label=_AUTO_LABEL, device=None, model=DEFAULT_MODEL, note='',
     available=os.path.isdir(DEFAULT_MODEL), bundled=True)
 
 

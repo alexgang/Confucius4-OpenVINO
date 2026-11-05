@@ -1,0 +1,169 @@
+{
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+  "wav": "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+  "duration": 300.0,
+  "started_at": "2026-11-05 11:02:35",
+  "cmd": [
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+    "--engine",
+    "gpu_int8",
+    "--translate",
+    "zh",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "A",
+    "--speaker",
+    "off",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--mt-engine",
+    "gpu_int4cw",
+    "--max-seconds",
+    "300.0",
+    "--tts-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app271_rc3_out\\minimvp_tts.wav",
+    "--tts-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app271_rc3_out\\minimvp.tts.jsonl",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app271_rc3_out\\minimvp.txt"
+  ],
+  "mt_model_pinned": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\models\\mt\\mt2-int4sym-cw-q",
+  "rc": 0,
+  "wall_s": 381.86,
+  "log_bytes": 82553,
+  "n_rows": 76,
+  "n_ok": 76,
+  "tts": {
+    "synth_rtf_median": 1.0162,
+    "synth_rtf_p95": 1.3799,
+    "first_packet_s_median": null,
+    "first_packet_s_p95": null
+  },
+  "content_criterion": {
+    "label": "rc3_fixed_dump",
+    "wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app271_rc3_out\\minimvp_tts.wav",
+    "jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app271_rc3_out\\minimvp.tts.jsonl",
+    "wav_dur_s": 317.75,
+    "sr": 24000,
+    "n_rows": 76,
+    "format": "new",
+    "C2_zero_runs_ge_0p3": 0,
+    "C2_zero_run_total_s": 0,
+    "C2_zero_runs": [],
+    "C2_ok": true,
+    "C3_n_spans": 76,
+    "C3_missing_spans": [],
+    "C3_n_overlaps": 0,
+    "C3_ok": true,
+    "C1_n_bad": 0,
+    "C1_bad_ids": [],
+    "C1_ok": true,
+    "C4_n_bad": 0,
+    "C4_bad_ids": [],
+    "C4_ok": true,
+    "n_damaged_sentences": 0,
+    "verdict": "PASS"
+  },
+  "counter_proof": {
+    "verdict": "FAIL",
+    "n_damaged_sentences": 24,
+    "C2_zero_runs_ge_0p3": 24
+  },
+  "deliverable_wav": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\minimvp_v1.0\\minimvp_v1.0_rc3_tts.wav",
+    "bytes": 15252044
+  },
+  "deliverable_transcript": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\minimvp_v1.0\\minimvp_v1.0_rc3_transcript.tsv",
+    "n_rows": 76,
+    "bytes": 9488
+  },
+  "checks": [
+    {
+      "name": "③(a) 配音 wav 已落盘",
+      "verdict": true,
+      "detail": {
+        "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app271_rc3_out\\minimvp_tts.wav",
+        "bytes": 15252044
+      }
+    },
+    {
+      "name": "③(a) 每段译文已落盘（含 wav 指标列）",
+      "verdict": true,
+      "detail": {
+        "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\minimvp_v1.0\\minimvp_v1.0_rc3_transcript.tsv",
+        "n_rows": 76
+      }
+    },
+    {
+      "name": "①(c) 内容判据 C1（逐句 rms_db>-45 且 peak>0.05 比例 100%）",
+      "verdict": true,
+      "detail": {
+        "n_bad": 0
+      }
+    },
+    {
+      "name": "①(c) 内容判据 C2（wav 全零段 ≥0.3 s 的个数 == 0）",
+      "verdict": true,
+      "detail": {
+        "n_zero_runs": 0,
+        "total_s": 0
+      }
+    },
+    {
+      "name": "①(c) 内容判据 C3（wav_t0/wav_t1 齐备且互不重叠）",
+      "verdict": true,
+      "detail": {
+        "n_spans": 76,
+        "n_overlaps": 0,
+        "n_missing": 0
+      }
+    },
+    {
+      "name": "①(c) 内容判据 C4（按 wav_t0/wav_t1 切段后幅度达标）",
+      "verdict": true,
+      "detail": {
+        "n_bad": 0
+      }
+    },
+    {
+      "name": "①(c) 内容判据总判定 == PASS",
+      "verdict": true,
+      "detail": {
+        "verdict": "PASS"
+      }
+    },
+    {
+      "name": "①(c) 反证：rc2 旧 wav 跑同一判据必须 FAIL（24 句）",
+      "verdict": true,
+      "detail": {
+        "verdict": "FAIL",
+        "n_damaged_sentences": 24,
+        "C2_zero_runs_ge_0p3": 24
+      }
+    },
+    {
+      "name": "TTS RTF 中位/P95 有实测值",
+      "verdict": true,
+      "detail": {
+        "synth_rtf_median": 1.0162,
+        "synth_rtf_p95": 1.3799,
+        "first_packet_s_median": null,
+        "first_packet_s_p95": null
+      }
+    }
+  ],
+  "n_pass": 9,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "finished_at": "2026-11-05 11:08:57"
+}

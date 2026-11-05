@@ -61,10 +61,11 @@ def extract_audio_features(fe, audio: np.ndarray, *, return_torch: bool = False)
     N_audio = int(_qwen3_get_feat_extract_output_lengths(np.array([n_real]))[0])
 
     if return_torch:
-        import torch
-        return (torch.from_numpy(feats_real).to("cpu"),
-                torch.from_numpy(mask[:, :n_real]).to(torch.long),
-                n_real, N_audio)
+        # 🔴🔴🔳 APP-069⑤ 清理项 1：torch 实现已搬到 `backends_torch.py`
+        #   （**开发专用**；客户包不含 torch）⇒ 这里**懒加载**，
+        #   找不到 torch 时报**清楚的错误**（而不是裸 ModuleNotFoundError）。
+        from backends_torch import extract_audio_features_torch
+        return extract_audio_features_torch(fe, audio, n_real, N_audio)
     return (feats_real.astype(np.float32),
             mask[:, :n_real].astype(np.int64),
             n_real, N_audio)
@@ -139,138 +140,47 @@ class ASRBackend:
 
 # ── TorchBackend：per-chunk golden ────────────────────────────────────
 class TorchBackend(ASRBackend):
+    """🔴🔴🔳 APP-069⑤ 清理项 1：**薄壳**（实现体在 `backends_torch.py`）。
+
+    🔴 `backends_torch.py` 是**只给开发用**的模块（**不进客户包**）：
+    客户包不含 torch ⇒ 选 torch 后端时在这里得到**清楚的错误**
+    （提示改用 OpenVINO 后端），而不是 `ModuleNotFoundError`。
+    """
+
     name = "torch"
 
     def __init__(self, model_dir: str = "models/hf"):
-        import torch
-        import json
-        from qwen_asr.inference.qwen3_asr import Qwen3ASRModel
-        # qwen_asr 是 wrapper，.model 才是 transformers 模型
-        wrapper = Qwen3ASRModel.from_pretrained(
-            model_dir, dtype=torch.float32, attn_implementation="eager",
-        )
-        self.model = wrapper.model  # Qwen3ASRForConditionalGeneration（transformers）
-        self.processor = wrapper.processor
-        self.tokenizer = self.processor.tokenizer
-        # eval 模式（如可用）
-        if hasattr(self.model, "eval"):
-            self.model.eval()
-        self._torch = torch
-        # chat_template 注入（transformers 默认不读 chat_template.json）
-        ct_path = os.path.join(model_dir, "chat_template.json")
-        if os.path.exists(ct_path):
-            with open(ct_path, encoding="utf-8") as f:
-                self.tokenizer.chat_template = json.load(f)["chat_template"]
-        # 预构造 prompt 模板 ids（不含 audio_pad）
-        self._prompt_template_ids = self._build_prompt_template_ids()
-        self._hop = self.processor.feature_extractor.hop_length
-        self._n_mels = self.processor.feature_extractor.feature_size
+        try:
+            from backends_torch import TorchBackend as _Impl
+        except ImportError as e:
+            raise RuntimeError(
+                '需要 PyTorch 后端，但当前环境没有 backends_torch.py'
+                '（客户包**不含** torch ⇒ MiniMVP 只带 OpenVINO IR）。\n'
+                '请改用 OpenVINO 后端（--engine gpu_int8 / openvino）。'
+                '（原始错误：%s）' % e) from e
+        self._impl = _Impl(model_dir=model_dir)
+        for _k in ('model', 'processor', 'tokenizer', '_torch',
+                   '_hop', '_n_mels', '_prompt_template_ids'):
+            setattr(self, _k, getattr(self._impl, _k, None))
+
+    def init_streaming_state(self, **kw):
+        return self._impl.init_streaming_state(**kw)
 
     def _build_prompt_template_ids(self):
-        msgs = [{"role": "system", "content": ""},
-                {"role": "user", "content": [{"type": "audio", "audio": ""}]}]
-        text = self.tokenizer.apply_chat_template(msgs, add_generation_prompt=True, tokenize=False)
-        tl, tr = text.split("<|audio_start|><|audio_pad|><|audio_end|>")
-        return (self.tokenizer.encode(tl, add_special_tokens=False),
-                self.tokenizer.encode(tr, add_special_tokens=False))
+        return self._impl._build_prompt_template_ids()
 
-    def _build_prompt_template_ids_for(self, force_language):
-        """按语种构造 prompt 模板 ids。
+    def _build_text_prompt(self, **kw):
+        return self._impl._build_text_prompt(**kw)
 
-        语种提示是拼在 prompt 末尾的（``text + "language {lang}<asr_text>"``），
-        而 audio 占位符在 user 段中间，所以语种后缀落在模板右半部分末尾
-        （assistant 起始之后）。不把它编码进 ids_right 的话，语种提示根本
-        进不了模型输入 —— 模型照样自动判语种，解析层却按 force_language 处理，
-        输出会被 ``language None<asr_text>`` 之类的元信息污染。
-        """
-        ids_left, ids_right = self._build_prompt_template_ids()
-        if not force_language:
-            return ids_left, ids_right
-        suffix = self.tokenizer.encode(
-            f"language {force_language}<asr_text>", add_special_tokens=False)
-        return ids_left, list(ids_right) + list(suffix)
+    def generate_with_prefix(self, state, prefix_text: str,
+                             max_new_tokens: int = 256) -> str:
+        return self._impl.generate_with_prefix(state, prefix_text,
+                                               max_new_tokens)
 
-    def init_streaming_state(self, *, context: str = "",
-                             language: Optional[str] = None,
-                             unfixed_chunk_num: int,
-                             unfixed_token_num: int,
-                             chunk_size_sec: float) -> ASRStreamingState:
-        chunk_size_samples = max(1, int(round(chunk_size_sec * SAMPLE_RATE)))
-        # 与 r2t2 同语义：force_language 走 prompt 后缀
-        prompt_raw = self._build_text_prompt(context=context, force_language=language)
-        return ASRStreamingState(
-            unfixed_chunk_num=unfixed_chunk_num,
-            unfixed_token_num=unfixed_token_num,
-            chunk_size_sec=chunk_size_sec,
-            chunk_size_samples=chunk_size_samples,
-            prompt_raw=prompt_raw,
-            force_language=language,
-            context=context,
-        )
-
-    def _build_text_prompt(self, *, context: str, force_language: Optional[str]) -> str:
-        """照搬 r2t2._build_text_prompt 语义：system + user(audio) + assistant。
-        注意：这里不展开 audio_pad 占位；在 generate_with_prefix 里按 N_audio 展开。"""
-        msgs: List[dict] = [{"role": "system", "content": context or ""},
-                            {"role": "user", "content": [{"type": "audio", "audio": ""}]}]
-        text = self.tokenizer.apply_chat_template(msgs, add_generation_prompt=True, tokenize=False)
-        if force_language:
-            text = text + f"language {force_language}<asr_text>"
-        return text
-
-    def generate_with_prefix(self, state: ASRStreamingState,
-                             audio_accum: np.ndarray,
-                             prefix_text: str,
-                             max_new_tokens: int) -> str:
-        """PyTorch greedy 生成。
-
-        实现：构造 prompt = ids_left + audio_pad × N_audio + ids_right + prefix，
-        N_audio = ehs.shape[1]（由 audio_tower 内部算），再跑 model.generate。
-
-        C-010 #1：特征提取统一走 extract_audio_features（不补齐到 30s）
-        C-010 #3：generate 显式传 attention_mask
-        """
-        import math
-        import sys as _sys
-        torch = self._torch
-
-        # 1) C-010：复用共享特征提取（不补齐到 30s，按真实长度）
-        input_features, feature_attention_mask, n_real, N_audio = extract_audio_features(
-            self.processor.feature_extractor, audio_accum, return_torch=True,
-        )
-
-        # 2) 构造展开 audio_pad 的 prompt_ids
-        # 语种提示要进模型输入，所以按语种取模板（语种后缀编码在 ids_right 末尾）
-        ids_l, ids_r = self._build_prompt_template_ids_for(
-            getattr(state, 'force_language', None))
-        prefix_ids = self.tokenizer.encode(prefix_text, add_special_tokens=False) if prefix_text else []
-        full_ids = list(ids_l) + [AUDIO_PAD] * N_audio + list(ids_r) + list(prefix_ids)
-        prompt_ids = torch.tensor([full_ids], dtype=torch.long)
-        # C-010 #3：text 部分 attention_mask（audio_pad 也算有效）
-        attn_mask = torch.ones_like(prompt_ids)
-
-        # 3) generate
-        with torch.no_grad():
-            out = self.model.generate(
-                input_ids=prompt_ids,
-                attention_mask=attn_mask,           # C-010 #3
-                input_features=input_features,
-                feature_attention_mask=feature_attention_mask,
-                max_new_tokens=max_new_tokens,
-                do_sample=False,
-                temperature=None,
-                top_p=None,
-                eos_token_id=EOS_IDS,
-                pad_token_id=EOS_IDS[0],
-                use_cache=True,
-            )
-        seqs = out.sequences if hasattr(out, "sequences") else out[0]
-        gen_ids = seqs[0, prompt_ids.shape[1]:].tolist()
-        gen_text = self.tokenizer.decode(gen_ids, skip_special_tokens=True)
-        return gen_text
+    def finish_streaming_transcribe(self, state) -> str:
+        return self._impl.finish_streaming_transcribe(state)
 
 
-# ── OVBackend：with-past IR + stateful greedy ─────────────────────────
 class OVBackend(ASRBackend):
     name = "openvino"
 
@@ -430,131 +340,44 @@ class OVBackend(ASRBackend):
 # （含 mel + CNN + 24 层 + proj），OV decoder 8s/60s，比纯 OV 离线慢 ~30%，但 WER
 # 应回到与 torch offline / CUDA 一致。
 class HybridBackend(ASRBackend):
+    """🔴🔴🔳 APP-069⑤ 清理项 1：**薄壳**（实现体在 `backends_torch.py`）。
+
+    🔴 同 `TorchBackend`：客户包不含 torch ⇒ 报**清楚的错误**。
+    """
+
     name = "hybrid"
 
-    def __init__(self,
-                 torch_model_dir: str = "models/hf",
-                 ov_model_dir: str = "models/ov-int8-past",
-                 device: str = "GPU.0",
-                 precision: str = "f16",
-                 cache_dir: str = "./ov_cache",
-                 torch_dtype: str = "float32",
-                 attn_implementation: str = "eager"):
-        import torch
-        from transformers import AutoTokenizer, WhisperFeatureExtractor
-        from qwen_asr.inference.qwen3_asr import Qwen3ASRModel
-        import openvino as ov
+    def __init__(self, **kw):
+        try:
+            from backends_torch import HybridBackend as _Impl
+        except ImportError as e:
+            raise RuntimeError(
+                '需要 PyTorch 混合后端，但当前环境没有 backends_torch.py'
+                '（客户包**不含** torch）。请改用 OpenVINO 后端。'
+                '（原始错误：%s）' % e) from e
+        self._impl = _Impl(**kw)
 
-        # OV stateful decoder（与 OVBackend 同）
-        core = ov.Core()
-        full_name = core.get_property(device, "FULL_DEVICE_NAME")
-        assert "Intel" in full_name, f"device {device} not Intel: {full_name}"
-        core.set_property({"CACHE_DIR": cache_dir})
-        prop = {"PERFORMANCE_HINT": "LATENCY", "INFERENCE_PRECISION_HINT": precision}
-        self.dec = core.compile_model(
-            os.path.join(ov_model_dir, "openvino_decoder_model.xml"),
-            device, prop,
-        )
-        self.dec_infer = self.dec.create_infer_request()
-        self.tokenizer = AutoTokenizer.from_pretrained(ov_model_dir, fix_mistral_regex=True)
-        self.tokenizer.chat_template = open(
-            os.path.join(ov_model_dir, "chat_template.jinja"), encoding="utf-8",
-        ).read()
-        # 共享 prompt template ids（OV 侧算出即可，两边一致）
-        self._prompt_template_ids = self._build_prompt_template_ids()
+    def init_streaming_state(self, **kw):
+        return self._impl.init_streaming_state(**kw)
 
-        # Torch encoder（CPU FP32，eager attn；这是关键，attn_implementation 必须 eager）
-        dtype = {"float32": torch.float32, "float16": torch.float16}[torch_dtype]
-        self._torch = torch
-        wrapper = Qwen3ASRModel.from_pretrained(
-            torch_model_dir, dtype=dtype, attn_implementation=attn_implementation,
-        )
-        self._wrapper = wrapper
-        self._torch_model = wrapper.model
-        self._torch_model.eval()
-        self.audio_tower = self._torch_model.thinker.audio_tower  # 单独用
-        self.feature_extractor = wrapper.processor.feature_extractor
+    def _build_prompt_template_ids(self):
+        return self._impl._build_prompt_template_ids()
 
-    def _build_prompt_template_ids(self) -> Tuple[List[int], List[int]]:
-        msgs = [
-            {"role": "system", "content": ""},
-            {"role": "user", "content": [{"type": "audio", "audio": ""}]},
-        ]
-        text = self.tokenizer.apply_chat_template(msgs, add_generation_prompt=True, tokenize=False)
-        text_left, text_right = text.split("<|audio_start|><|audio_pad|><|audio_end|>")
-        ids_left = self.tokenizer.encode(text_left, add_special_tokens=False)
-        ids_right = self.tokenizer.encode(text_right, add_special_tokens=False)
-        return ids_left, ids_right
+    def _build_text_prompt(self, **kw):
+        return self._impl._build_text_prompt(**kw)
 
-    def encode_audio(self, wav: np.ndarray):
-        """torch audio_tower forward: 返回 (ehs(1, N_audio, 2048), n_real, N_audio).
+    def encode_audio(self, wav):
+        return self._impl.encode_audio(wav)
 
-        audio_tower.forward 期望 2D 输入 (n_mels, n_frames)；不调用 thinker.get_audio_features。
-        """
-        feats_real, _, n_real, N_audio = extract_audio_features(
-            self.feature_extractor, wav, return_torch=False,
-        )
-        torch = self._torch
-        with torch.no_grad():
-            x = torch.from_numpy(feats_real).float().squeeze(0)  # (128, T) 2D
-            feat_len = torch.tensor([n_real], dtype=torch.long)
-            out = self.audio_tower(input_features=x, feature_lens=feat_len)
-        ehs = out.last_hidden_state.cpu().numpy()  # (N_audio, 2048)
-        return ehs[np.newaxis, :, :], n_real, N_audio  # (1, N_audio, 2048)
+    def greedy_decode_with_prefix(self, *a, **kw):
+        return self._impl.greedy_decode_with_prefix(*a, **kw)
 
-    def greedy_decode_with_prefix(self, encoder_hidden_states: np.ndarray,
-                                  prefix_ids: List[int],
-                                  max_new_tokens: int,
-                                  force_language=None) -> List[int]:
-        """OV stateful decoder：与 OVBackend 相同实现。
-
-        force_language：语种提示要进模型输入，所以按语种取 prompt 模板
-        （语种后缀编码在 ids_right 末尾）。None = 自动检测，用静态模板。
-        """
-        ids_left, ids_right = self._build_prompt_template_ids_for(force_language)
-        N_audio = int(encoder_hidden_states.shape[1])
-        full_ids = list(ids_left) + [AUDIO_PAD] * N_audio + list(ids_right) + list(prefix_ids)
-
-        self.dec_infer.reset_state()
-        self.dec_infer.infer({
-            "input_ids": np.array([full_ids], dtype=np.int64),
-            "encoder_hidden_states": encoder_hidden_states,
-            "beam_idx": np.array([0], dtype=np.int32),
-        })
-        # 拿到最后一个位置的 logits
-        ehs_dummy = encoder_hidden_states[:, :1, :]  # (1, 1, 2048) 仅为满足 IR 端口
-        next_logits = self.dec_infer.get_output_tensor(0).data[0, -1]
-        next_id = int(np.argmax(next_logits))
-        out_tokens: List[int] = []
-        if next_id not in EOS_IDS:
-            out_tokens.append(next_id)
-        for _ in range(max_new_tokens - 1):
-            self.dec_infer.infer({
-                "encoder_hidden_states": ehs_dummy,
-                "input_ids": np.array([[next_id]], dtype=np.int64),
-                "beam_idx": np.array([0], dtype=np.int32),
-            })
-            logits = self.dec_infer.get_output_tensor(0).data
-            next_id = int(np.argmax(logits[0, -1]))
-            if next_id in EOS_IDS:
-                break
-            out_tokens.append(next_id)
-        return out_tokens
-
-    def generate_with_prefix(self, state: ASRStreamingState,
-                             audio_accum: np.ndarray,
-                             prefix_text: str,
-                             max_new_tokens: int) -> str:
-        ehs, n_real, N_audio = self.encode_audio(audio_accum)
-        prefix_ids = self.tokenizer.encode(prefix_text, add_special_tokens=False) if prefix_text else []
-        out_ids = self.greedy_decode_with_prefix(
-            ehs, prefix_ids, max_new_tokens,
-            force_language=getattr(state, 'force_language', None))
-        gen_text = self.tokenizer.decode(out_ids, skip_special_tokens=True)
-        return gen_text
+    def generate_with_prefix(self, state, prefix_text: str,
+                             max_new_tokens: int = 256) -> str:
+        return self._impl.generate_with_prefix(state, prefix_text,
+                                               max_new_tokens)
 
 
-# ── 工厂 ──────────────────────────────────────────────────────────────
 def make_backend(name: str, **kw) -> ASRBackend:
     name = name.lower()
     if name == "torch":

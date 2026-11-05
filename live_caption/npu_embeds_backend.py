@@ -289,11 +289,17 @@ def _load_embed_table() -> np.ndarray:
         with safe_open(single, framework="numpy") as f:
             return np.asarray(f.get_tensor("model.embed_tokens.weight"),
                               dtype=np.float32)
-    import torch
-    sd = torch.load(os.path.join(d, "model.safetensors"), map_location="cpu")
-    for k in sd:
-        if k.endswith("embed_tokens.weight"):
-            return sd[k].detach().to(torch.float32).numpy()
+    # 🔴🔴🔳 APP-069⑤ 清理项 1：torch 分支搬到 `backends_torch.py`
+    #   （开发专用）⇒ **懒加载** + 清楚的错误（客户包不含 torch）。
+    try:
+        from backends_torch import load_embed_via_torch
+    except ImportError as e:
+        raise RuntimeError(
+            '需要从 safetensors 读 embed 表，但当前环境没有 torch/'
+            'backends_torch.py（客户包**不含** torch）。'
+            '请改用已导出的 .npy（models/embed_tokens_f16.npy）。'
+            '（原始错误：%s）' % e) from e
+    return load_embed_via_torch(os.path.join(d, "model.safetensors"))
     raise FileNotFoundError(
         f"embed table not found: neither {npy} nor {d}. "
         "Run c088a_export_embed_npy.py to produce the standalone .npy.")

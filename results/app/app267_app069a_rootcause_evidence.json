@@ -1,0 +1,2889 @@
+{
+  "verdict": "PASS",
+  "n_pass": 6,
+  "n_fail": 0,
+  "correction": "APP-069①(a)",
+  "generated_at": "2026-11-05 10:33:19",
+  "conclusion": "零段来自 --tts-out 落盘时间轴的空洞（dump 写错），**不是**合成侧静音：① 模型预测 24 段 / 54.18 s 与实测 24 段 / 54.24 s 一一对应；② 换锚点/长度基准即复现不出（判据非恒真）；③ 合成侧逐句 peak/rms 全部健康；④ 每个零段都不被任何单句区间完整包含 ⇒ 是空洞不是句子被清零。",
+  "checks": [
+    {
+      "id": "H1",
+      "name": "时间轴模型预测的全零段与实测一一对应",
+      "ok": true,
+      "detail": {
+        "n_pred": 24,
+        "n_actual": 24,
+        "n_matched": 24,
+        "pred_total_s": 54.18,
+        "actual_total_s": 54.24
+      }
+    },
+    {
+      "id": "H2",
+      "name": "反证：换模型族（首块锚点 / 变速长度）⇒ 复现不出那 24 段",
+      "ok": true,
+      "detail": {
+        "t_first_chunk+dur_s": {
+          "n_pred": 5,
+          "n_matched": 0
+        },
+        "t_first_chunk+out_dur_s": {
+          "n_pred": 7,
+          "n_matched": 0
+        },
+        "t_done+out_dur_s": {
+          "n_pred": 27,
+          "n_matched": 3
+        },
+        "t_submit+dur_s": {
+          "n_pred": 4,
+          "n_matched": 0
+        },
+        "t_dequeue+dur_s": {
+          "n_pred": 4,
+          "n_matched": 0
+        }
+      }
+    },
+    {
+      "id": "H2b",
+      "name": "同族变体（末块锚点）必须同样复现 ⇒ 模型有判别力",
+      "ok": true,
+      "detail": {
+        "t_last_chunk+dur_s": {
+          "n_pred": 24,
+          "n_matched": 24
+        }
+      }
+    },
+    {
+      "id": "H3",
+      "name": "合成侧逐句 peak>0.05 且 rms 健康 ⇒ 不是「合成出静音」",
+      "ok": true,
+      "detail": {
+        "n_rows": 76,
+        "n_bad": 0,
+        "min_peak": 0.375,
+        "min_rms": 0.076403
+      }
+    },
+    {
+      "id": "H4",
+      "name": "零段都是「时间轴空洞」（不被任何单句区间完整包含）",
+      "ok": true,
+      "detail": {
+        "n_zero_runs": 24,
+        "n_fully_inside_one_sentence": 0
+      }
+    },
+    {
+      "id": "H5",
+      "name": "APP-069①(d)：v2.2 评估 dump wav 的全零段数量（只报数量）",
+      "ok": true,
+      "detail": {
+        "v23_clone": {
+          "n_files": 19,
+          "files": [
+            {
+              "file": "SPE_mix_3303_3603.wav",
+              "dur_s": 300.0,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_clone\\female_01_seg29_clone.wav",
+              "dur_s": 13.2,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_clone\\female_02_seg21_clone.wav",
+              "dur_s": 8.48,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_clone\\female_03_seg20_clone.wav",
+              "dur_s": 8.16,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_clone\\male_01_seg5_clone.wav",
+              "dur_s": 8.88,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_clone\\male_02_seg2_clone.wav",
+              "dur_s": 8.8,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_clone\\male_03_seg4_clone.wav",
+              "dur_s": 7.36,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_original\\female_01_seg29_orig.wav",
+              "dur_s": 6.4,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_original\\female_02_seg21_orig.wav",
+              "dur_s": 7.7,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_original\\female_03_seg20_orig.wav",
+              "dur_s": 6.4,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_original\\male_01_seg5_orig.wav",
+              "dur_s": 6.4,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_original\\male_02_seg2_orig.wav",
+              "dur_s": 6.4,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_original\\male_03_seg4_orig.wav",
+              "dur_s": 6.4,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_presetA\\female_01_seg29_presetA.wav",
+              "dur_s": 8.88,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_presetA\\female_02_seg21_presetA.wav",
+              "dur_s": 7.92,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_presetA\\female_03_seg20_presetA.wav",
+              "dur_s": 7.12,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_presetA\\male_01_seg5_presetA.wav",
+              "dur_s": 7.6,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_presetA\\male_02_seg2_presetA.wav",
+              "dur_s": 8.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "wav_presetA\\male_03_seg4_presetA.wav",
+              "dur_s": 6.48,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            }
+          ],
+          "n_files_with_zero_runs": 0
+        },
+        "app250_abba": {
+          "n_files": 446,
+          "files": [
+            {
+              "file": "tts_on_clone_1.wav",
+              "dur_s": 357.16,
+              "n_zero_runs_ge_0p3": 33,
+              "zero_run_s": 77.82
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_0_0001.wav",
+              "dur_s": 1.28,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_0_0002_acc105.wav",
+              "dur_s": 1.23,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_10_0012.wav",
+              "dur_s": 8.88,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_11_0013.wav",
+              "dur_s": 6.4,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_12_0014.wav",
+              "dur_s": 4.0,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_12_0015_acc100.wav",
+              "dur_s": 3.99,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_13_0016.wav",
+              "dur_s": 3.52,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_13_0017_acc101.wav",
+              "dur_s": 3.51,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_14_0018.wav",
+              "dur_s": 5.36,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_14_0019_acc102.wav",
+              "dur_s": 5.28,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_15_0020.wav",
+              "dur_s": 4.56,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_15_0021_acc103.wav",
+              "dur_s": 4.44,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_16_0022.wav",
+              "dur_s": 5.68,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_16_0023_acc104.wav",
+              "dur_s": 5.49,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_17_0024.wav",
+              "dur_s": 6.32,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_17_0025_acc104.wav",
+              "dur_s": 6.06,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_18_0026.wav",
+              "dur_s": 4.16,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_18_0027_acc103.wav",
+              "dur_s": 4.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_19_0028.wav",
+              "dur_s": 2.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_19_0029_acc104.wav",
+              "dur_s": 2.01,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_1_0003.wav",
+              "dur_s": 6.4,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_20_0030.wav",
+              "dur_s": 6.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_20_0031_acc102.wav",
+              "dur_s": 5.94,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_21_0032.wav",
+              "dur_s": 4.24,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_21_0033_acc103.wav",
+              "dur_s": 4.11,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_22_0034.wav",
+              "dur_s": 5.92,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_22_0035_acc105.wav",
+              "dur_s": 5.67,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_23_0036.wav",
+              "dur_s": 2.48,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_23_0037_acc105.wav",
+              "dur_s": 2.4,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_24_0038.wav",
+              "dur_s": 4.64,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_24_0039_acc106.wav",
+              "dur_s": 4.41,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_25_0040.wav",
+              "dur_s": 4.0,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_25_0041_acc106.wav",
+              "dur_s": 3.81,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_26_0042.wav",
+              "dur_s": 3.12,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_26_0043_acc106.wav",
+              "dur_s": 2.94,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_27_0044.wav",
+              "dur_s": 3.28,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_27_0045_acc104.wav",
+              "dur_s": 3.15,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_28_0046.wav",
+              "dur_s": 2.0,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_28_0047_acc108.wav",
+              "dur_s": 1.86,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_29_0048.wav",
+              "dur_s": 2.8,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_29_0049_acc109.wav",
+              "dur_s": 2.58,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_2_0004.wav",
+              "dur_s": 5.2,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_30_0050.wav",
+              "dur_s": 3.52,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_30_0051_acc106.wav",
+              "dur_s": 3.33,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_31_0052.wav",
+              "dur_s": 3.68,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_31_0053_acc106.wav",
+              "dur_s": 3.48,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_32_0054.wav",
+              "dur_s": 7.68,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_32_0055_acc104.wav",
+              "dur_s": 7.41,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_33_0056.wav",
+              "dur_s": 8.16,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_33_0057_acc104.wav",
+              "dur_s": 7.89,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_34_0058.wav",
+              "dur_s": 0.96,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_34_0059_acc103.wav",
+              "dur_s": 0.96,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_35_0060.wav",
+              "dur_s": 2.56,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_35_0061_acc104.wav",
+              "dur_s": 2.49,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_36_0062.wav",
+              "dur_s": 8.48,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_36_0063_acc102.wav",
+              "dur_s": 8.34,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_37_0064.wav",
+              "dur_s": 6.4,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_37_0065_acc100.wav",
+              "dur_s": 6.42,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_38_0066.wav",
+              "dur_s": 0.96,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_38_0067_acc101.wav",
+              "dur_s": 0.96,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_39_0068.wav",
+              "dur_s": 3.6,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_39_0069_acc103.wav",
+              "dur_s": 3.51,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_3_0005.wav",
+              "dur_s": 1.76,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_40_0070.wav",
+              "dur_s": 4.32,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_40_0071_acc105.wav",
+              "dur_s": 4.11,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_41_0072.wav",
+              "dur_s": 2.32,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_41_0073_acc104.wav",
+              "dur_s": 2.25,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_42_0074.wav",
+              "dur_s": 4.48,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_42_0075_acc102.wav",
+              "dur_s": 4.38,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_43_0076.wav",
+              "dur_s": 4.32,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_43_0077_acc102.wav",
+              "dur_s": 4.26,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_44_0078.wav",
+              "dur_s": 6.4,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_44_0079_acc103.wav",
+              "dur_s": 6.24,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_45_0080.wav",
+              "dur_s": 1.76,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_45_0081_acc101.wav",
+              "dur_s": 1.77,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_46_0082.wav",
+              "dur_s": 2.4,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_46_0083_acc103.wav",
+              "dur_s": 2.34,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_47_0084.wav",
+              "dur_s": 4.0,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_47_0085_acc102.wav",
+              "dur_s": 3.96,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_48_0086.wav",
+              "dur_s": 5.36,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_49_0087.wav",
+              "dur_s": 2.72,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_4_0006.wav",
+              "dur_s": 8.8,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_50_0088.wav",
+              "dur_s": 6.8,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_51_0089.wav",
+              "dur_s": 2.32,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_52_0090.wav",
+              "dur_s": 13.2,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_53_0091.wav",
+              "dur_s": 3.44,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_54_0092.wav",
+              "dur_s": 5.6,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_55_0093.wav",
+              "dur_s": 3.36,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_56_0094.wav",
+              "dur_s": 4.32,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_57_0095.wav",
+              "dur_s": 4.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_57_0096_acc101.wav",
+              "dur_s": 4.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_58_0097.wav",
+              "dur_s": 6.8,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_59_0098.wav",
+              "dur_s": 3.68,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_5_0007.wav",
+              "dur_s": 6.0,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_60_0099.wav",
+              "dur_s": 6.16,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_61_0100.wav",
+              "dur_s": 3.2,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_61_0101_acc101.wav",
+              "dur_s": 3.18,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_62_0102.wav",
+              "dur_s": 4.8,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_62_0103_acc102.wav",
+              "dur_s": 4.71,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_63_0104.wav",
+              "dur_s": 6.32,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_63_0105_acc105.wav",
+              "dur_s": 6.06,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_64_0106.wav",
+              "dur_s": 1.52,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_64_0107_acc107.wav",
+              "dur_s": 1.44,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_65_0108.wav",
+              "dur_s": 3.36,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_65_0109_acc108.wav",
+              "dur_s": 3.12,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_66_0110.wav",
+              "dur_s": 3.12,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_66_0111_acc113.wav",
+              "dur_s": 2.76,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_67_0112.wav",
+              "dur_s": 7.92,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_67_0113_acc119.wav",
+              "dur_s": 6.69,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_68_0114.wav",
+              "dur_s": 3.36,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_68_0115_acc124.wav",
+              "dur_s": 2.73,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_69_0116.wav",
+              "dur_s": 4.8,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_69_0117_acc128.wav",
+              "dur_s": 3.75,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_6_0008.wav",
+              "dur_s": 7.36,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_70_0118.wav",
+              "dur_s": 3.12,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_70_0119_acc130.wav",
+              "dur_s": 2.43,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_71_0120.wav",
+              "dur_s": 5.52,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_71_0121_acc130.wav",
+              "dur_s": 4.26,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_72_0122.wav",
+              "dur_s": 2.32,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_72_0123_acc130.wav",
+              "dur_s": 1.8,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_73_0124.wav",
+              "dur_s": 0.96,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_73_0125_acc130.wav",
+              "dur_s": 0.75,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_74_0126.wav",
+              "dur_s": 5.6,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_74_0127_acc130.wav",
+              "dur_s": 4.32,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_75_0128.wav",
+              "dur_s": 2.0,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_75_0129_acc130.wav",
+              "dur_s": 1.56,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_76_0130.wav",
+              "dur_s": 1.36,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_76_0131_acc130.wav",
+              "dur_s": 1.05,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_77_0132.wav",
+              "dur_s": 1.76,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_77_0133_acc130.wav",
+              "dur_s": 1.38,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_78_0134.wav",
+              "dur_s": 1.04,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_78_0135_acc130.wav",
+              "dur_s": 0.81,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_79_0136.wav",
+              "dur_s": 2.0,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_79_0137_acc130.wav",
+              "dur_s": 1.56,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_7_0009.wav",
+              "dur_s": 5.36,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_80_0138.wav",
+              "dur_s": 8.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_80_0139_acc130.wav",
+              "dur_s": 6.24,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_81_0140.wav",
+              "dur_s": 6.24,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_81_0141_acc130.wav",
+              "dur_s": 4.83,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_82_0142.wav",
+              "dur_s": 3.6,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_82_0143_acc130.wav",
+              "dur_s": 2.79,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_83_0144.wav",
+              "dur_s": 4.24,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_83_0145_acc130.wav",
+              "dur_s": 3.27,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_84_0146.wav",
+              "dur_s": 3.36,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_84_0147_acc130.wav",
+              "dur_s": 2.61,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_85_0148.wav",
+              "dur_s": 0.8,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_85_0149_acc130.wav",
+              "dur_s": 0.63,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_86_0150.wav",
+              "dur_s": 5.2,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_86_0151_acc130.wav",
+              "dur_s": 4.02,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_8_0010.wav",
+              "dur_s": 2.96,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_1.wavparts\\seg_9_0011.wav",
+              "dur_s": 3.52,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wav",
+              "dur_s": 357.42,
+              "n_zero_runs_ge_0p3": 29,
+              "zero_run_s": 74.53
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_0_0001.wav",
+              "dur_s": 1.36,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_10_0012.wav",
+              "dur_s": 8.48,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_10_0013_acc102.wav",
+              "dur_s": 8.34,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_11_0014.wav",
+              "dur_s": 6.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_11_0015_acc103.wav",
+              "dur_s": 5.94,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_12_0016.wav",
+              "dur_s": 4.16,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_12_0017_acc101.wav",
+              "dur_s": 4.11,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_13_0018.wav",
+              "dur_s": 3.84,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_13_0019_acc103.wav",
+              "dur_s": 3.75,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_14_0020.wav",
+              "dur_s": 5.28,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_14_0021_acc104.wav",
+              "dur_s": 5.1,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_15_0022.wav",
+              "dur_s": 5.2,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_15_0023_acc103.wav",
+              "dur_s": 5.04,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_16_0024.wav",
+              "dur_s": 5.68,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_16_0025_acc103.wav",
+              "dur_s": 5.52,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_17_0026.wav",
+              "dur_s": 5.76,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_17_0027_acc102.wav",
+              "dur_s": 5.67,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_18_0028.wav",
+              "dur_s": 3.92,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_18_0029_acc103.wav",
+              "dur_s": 3.81,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_19_0030.wav",
+              "dur_s": 2.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_19_0031_acc102.wav",
+              "dur_s": 2.04,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_1_0002.wav",
+              "dur_s": 6.56,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_20_0032.wav",
+              "dur_s": 5.68,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_20_0033_acc104.wav",
+              "dur_s": 5.46,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_21_0034.wav",
+              "dur_s": 4.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_21_0035_acc102.wav",
+              "dur_s": 3.99,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_22_0036.wav",
+              "dur_s": 6.72,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_22_0037_acc102.wav",
+              "dur_s": 6.57,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_23_0038.wav",
+              "dur_s": 2.16,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_23_0039_acc103.wav",
+              "dur_s": 2.1,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_24_0040.wav",
+              "dur_s": 5.68,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_24_0041_acc105.wav",
+              "dur_s": 5.4,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_25_0042.wav",
+              "dur_s": 3.44,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_25_0043_acc107.wav",
+              "dur_s": 3.24,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_26_0044.wav",
+              "dur_s": 3.12,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_26_0045_acc104.wav",
+              "dur_s": 3.0,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_27_0046.wav",
+              "dur_s": 3.04,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_27_0047_acc106.wav",
+              "dur_s": 2.88,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_28_0048.wav",
+              "dur_s": 1.92,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_28_0049_acc104.wav",
+              "dur_s": 1.86,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_29_0050.wav",
+              "dur_s": 2.64,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_29_0051_acc106.wav",
+              "dur_s": 2.49,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_2_0003.wav",
+              "dur_s": 5.36,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_30_0052.wav",
+              "dur_s": 3.2,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_30_0053_acc107.wav",
+              "dur_s": 3.0,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_31_0054.wav",
+              "dur_s": 3.52,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_31_0055_acc105.wav",
+              "dur_s": 3.36,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_32_0056.wav",
+              "dur_s": 10.16,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_32_0057_acc104.wav",
+              "dur_s": 9.78,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_33_0058.wav",
+              "dur_s": 6.96,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_33_0059_acc101.wav",
+              "dur_s": 6.9,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_34_0060.wav",
+              "dur_s": 1.6,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_34_0061_acc101.wav",
+              "dur_s": 1.59,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_35_0062.wav",
+              "dur_s": 2.88,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_35_0063_acc101.wav",
+              "dur_s": 2.88,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_36_0064.wav",
+              "dur_s": 7.04,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_36_0065_acc101.wav",
+              "dur_s": 6.99,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_37_0066.wav",
+              "dur_s": 5.6,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_38_0067.wav",
+              "dur_s": 1.28,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_39_0068.wav",
+              "dur_s": 3.28,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_39_0069_acc101.wav",
+              "dur_s": 3.27,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_3_0004.wav",
+              "dur_s": 1.68,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_40_0070.wav",
+              "dur_s": 5.44,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_40_0071_acc101.wav",
+              "dur_s": 5.43,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_41_0072.wav",
+              "dur_s": 2.96,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_41_0073_acc100.wav",
+              "dur_s": 2.97,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_42_0074.wav",
+              "dur_s": 4.72,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_43_0075.wav",
+              "dur_s": 4.8,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_44_0076.wav",
+              "dur_s": 5.84,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_45_0077.wav",
+              "dur_s": 1.52,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_46_0078.wav",
+              "dur_s": 1.52,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_47_0079.wav",
+              "dur_s": 4.0,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_48_0080.wav",
+              "dur_s": 5.6,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_49_0081.wav",
+              "dur_s": 3.12,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_4_0005.wav",
+              "dur_s": 8.88,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_50_0082.wav",
+              "dur_s": 7.36,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_51_0083.wav",
+              "dur_s": 2.32,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_52_0084.wav",
+              "dur_s": 8.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_53_0085.wav",
+              "dur_s": 4.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_54_0086.wav",
+              "dur_s": 4.8,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_55_0087.wav",
+              "dur_s": 3.44,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_56_0088.wav",
+              "dur_s": 4.48,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_57_0089.wav",
+              "dur_s": 4.16,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_58_0090.wav",
+              "dur_s": 7.04,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_59_0091.wav",
+              "dur_s": 3.6,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_5_0006.wav",
+              "dur_s": 6.64,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_60_0092.wav",
+              "dur_s": 6.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_61_0093.wav",
+              "dur_s": 2.4,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_62_0094.wav",
+              "dur_s": 4.72,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_62_0095_acc101.wav",
+              "dur_s": 4.71,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_63_0096.wav",
+              "dur_s": 5.92,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_63_0097_acc102.wav",
+              "dur_s": 5.79,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_64_0098.wav",
+              "dur_s": 1.76,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_64_0099_acc106.wav",
+              "dur_s": 1.68,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_65_0100.wav",
+              "dur_s": 3.84,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_65_0101_acc109.wav",
+              "dur_s": 3.54,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_66_0102.wav",
+              "dur_s": 3.36,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_66_0103_acc116.wav",
+              "dur_s": 2.91,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_67_0104.wav",
+              "dur_s": 6.48,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_67_0105_acc121.wav",
+              "dur_s": 5.37,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_68_0106.wav",
+              "dur_s": 3.44,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_68_0107_acc126.wav",
+              "dur_s": 2.73,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_69_0108.wav",
+              "dur_s": 5.04,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_69_0109_acc130.wav",
+              "dur_s": 3.9,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_6_0007.wav",
+              "dur_s": 6.24,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_70_0110.wav",
+              "dur_s": 2.64,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_70_0111_acc130.wav",
+              "dur_s": 2.04,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_71_0112.wav",
+              "dur_s": 6.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_71_0113_acc130.wav",
+              "dur_s": 4.68,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_72_0114.wav",
+              "dur_s": 1.92,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_72_0115_acc130.wav",
+              "dur_s": 1.5,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_73_0116.wav",
+              "dur_s": 1.12,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_73_0117_acc130.wav",
+              "dur_s": 0.87,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_74_0118.wav",
+              "dur_s": 5.68,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_74_0119_acc130.wav",
+              "dur_s": 4.38,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_75_0120.wav",
+              "dur_s": 2.88,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_75_0121_acc130.wav",
+              "dur_s": 2.22,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_76_0122.wav",
+              "dur_s": 1.44,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_76_0123_acc130.wav",
+              "dur_s": 1.11,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_77_0124.wav",
+              "dur_s": 2.0,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_77_0125_acc130.wav",
+              "dur_s": 1.56,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_78_0126.wav",
+              "dur_s": 1.12,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_78_0127_acc130.wav",
+              "dur_s": 0.87,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_79_0128.wav",
+              "dur_s": 2.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_79_0129_acc130.wav",
+              "dur_s": 1.62,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_7_0008.wav",
+              "dur_s": 5.04,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_80_0130.wav",
+              "dur_s": 7.2,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_80_0131_acc130.wav",
+              "dur_s": 5.55,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_81_0132.wav",
+              "dur_s": 6.16,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_81_0133_acc130.wav",
+              "dur_s": 4.74,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_82_0134.wav",
+              "dur_s": 3.6,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_82_0135_acc130.wav",
+              "dur_s": 2.79,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_83_0136.wav",
+              "dur_s": 4.24,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_83_0137_acc130.wav",
+              "dur_s": 3.27,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_84_0138.wav",
+              "dur_s": 2.88,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_84_0139_acc130.wav",
+              "dur_s": 2.22,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_85_0140.wav",
+              "dur_s": 0.96,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_85_0141_acc130.wav",
+              "dur_s": 0.75,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_86_0142.wav",
+              "dur_s": 5.52,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_86_0143_acc130.wav",
+              "dur_s": 4.26,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_8_0009.wav",
+              "dur_s": 2.96,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_9_0010.wav",
+              "dur_s": 3.28,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_clone_2.wavparts\\seg_9_0011_acc103.wav",
+              "dur_s": 3.21,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wav",
+              "dur_s": 357.85,
+              "n_zero_runs_ge_0p3": 32,
+              "zero_run_s": 76.19
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_0_0001.wav",
+              "dur_s": 1.28,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_10_0011.wav",
+              "dur_s": 7.6,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_10_0012_acc101.wav",
+              "dur_s": 7.53,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_11_0013.wav",
+              "dur_s": 6.24,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_12_0014.wav",
+              "dur_s": 3.52,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_12_0015_acc100.wav",
+              "dur_s": 3.51,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_13_0016.wav",
+              "dur_s": 3.76,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_13_0017_acc102.wav",
+              "dur_s": 3.69,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_14_0018.wav",
+              "dur_s": 5.76,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_14_0019_acc101.wav",
+              "dur_s": 5.7,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_15_0020.wav",
+              "dur_s": 4.72,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_15_0021_acc103.wav",
+              "dur_s": 4.62,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_16_0022.wav",
+              "dur_s": 5.84,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_16_0023_acc103.wav",
+              "dur_s": 5.7,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_17_0024.wav",
+              "dur_s": 5.6,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_17_0025_acc102.wav",
+              "dur_s": 5.49,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_18_0026.wav",
+              "dur_s": 4.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_18_0027_acc102.wav",
+              "dur_s": 4.02,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_19_0028.wav",
+              "dur_s": 2.16,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_19_0029_acc101.wav",
+              "dur_s": 2.16,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_1_0002.wav",
+              "dur_s": 8.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_20_0030.wav",
+              "dur_s": 6.4,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_20_0031_acc103.wav",
+              "dur_s": 6.21,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_21_0032.wav",
+              "dur_s": 4.48,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_21_0033_acc102.wav",
+              "dur_s": 4.41,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_22_0034.wav",
+              "dur_s": 6.32,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_22_0035_acc104.wav",
+              "dur_s": 6.09,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_23_0036.wav",
+              "dur_s": 2.56,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_23_0037_acc105.wav",
+              "dur_s": 2.46,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_24_0038.wav",
+              "dur_s": 5.36,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_24_0039_acc106.wav",
+              "dur_s": 5.07,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_25_0040.wav",
+              "dur_s": 4.0,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_25_0041_acc107.wav",
+              "dur_s": 3.75,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_26_0042.wav",
+              "dur_s": 3.52,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_26_0043_acc107.wav",
+              "dur_s": 3.33,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_27_0044.wav",
+              "dur_s": 3.28,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_27_0045_acc109.wav",
+              "dur_s": 3.03,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_28_0046.wav",
+              "dur_s": 1.68,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_28_0047_acc106.wav",
+              "dur_s": 1.59,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_29_0048.wav",
+              "dur_s": 2.24,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_29_0049_acc107.wav",
+              "dur_s": 2.1,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_2_0003.wav",
+              "dur_s": 4.16,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_30_0050.wav",
+              "dur_s": 3.12,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_30_0051_acc108.wav",
+              "dur_s": 2.91,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_31_0052.wav",
+              "dur_s": 3.76,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_31_0053_acc107.wav",
+              "dur_s": 3.54,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_32_0054.wav",
+              "dur_s": 7.52,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_32_0055_acc106.wav",
+              "dur_s": 7.14,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_33_0056.wav",
+              "dur_s": 7.12,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_33_0057_acc104.wav",
+              "dur_s": 6.87,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_34_0058.wav",
+              "dur_s": 1.6,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_34_0059_acc104.wav",
+              "dur_s": 1.56,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_35_0060.wav",
+              "dur_s": 2.72,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_35_0061_acc104.wav",
+              "dur_s": 2.64,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_36_0062.wav",
+              "dur_s": 7.92,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_36_0063_acc103.wav",
+              "dur_s": 7.68,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_37_0064.wav",
+              "dur_s": 7.04,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_37_0065_acc100.wav",
+              "dur_s": 7.02,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_38_0066.wav",
+              "dur_s": 1.04,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_39_0067.wav",
+              "dur_s": 3.6,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_39_0068_acc102.wav",
+              "dur_s": 3.57,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_3_0004.wav",
+              "dur_s": 1.6,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_40_0069.wav",
+              "dur_s": 6.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_40_0070_acc103.wav",
+              "dur_s": 5.94,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_41_0071.wav",
+              "dur_s": 2.64,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_41_0072_acc103.wav",
+              "dur_s": 2.58,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_42_0073.wav",
+              "dur_s": 4.64,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_42_0074_acc102.wav",
+              "dur_s": 4.56,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_43_0075.wav",
+              "dur_s": 4.56,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_43_0076_acc101.wav",
+              "dur_s": 4.53,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_44_0077.wav",
+              "dur_s": 5.2,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_44_0078_acc102.wav",
+              "dur_s": 5.1,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_45_0079.wav",
+              "dur_s": 1.76,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_45_0080_acc103.wav",
+              "dur_s": 1.74,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_46_0081.wav",
+              "dur_s": 1.04,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_46_0082_acc101.wav",
+              "dur_s": 1.05,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_47_0083.wav",
+              "dur_s": 4.48,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_48_0084.wav",
+              "dur_s": 6.72,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_49_0085.wav",
+              "dur_s": 3.04,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_4_0005.wav",
+              "dur_s": 8.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_50_0086.wav",
+              "dur_s": 7.52,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_51_0087.wav",
+              "dur_s": 2.24,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_52_0088.wav",
+              "dur_s": 8.88,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_53_0089.wav",
+              "dur_s": 4.32,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_54_0090.wav",
+              "dur_s": 5.6,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_55_0091.wav",
+              "dur_s": 3.92,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_56_0092.wav",
+              "dur_s": 4.88,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_57_0093.wav",
+              "dur_s": 4.88,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_58_0094.wav",
+              "dur_s": 7.52,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_59_0095.wav",
+              "dur_s": 3.76,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_5_0006.wav",
+              "dur_s": 5.76,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_60_0096.wav",
+              "dur_s": 6.64,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_60_0097_acc102.wav",
+              "dur_s": 6.54,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_61_0098.wav",
+              "dur_s": 2.72,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_61_0099_acc102.wav",
+              "dur_s": 2.67,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_62_0100.wav",
+              "dur_s": 4.88,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_62_0101_acc101.wav",
+              "dur_s": 4.86,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_63_0102.wav",
+              "dur_s": 5.76,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_63_0103_acc101.wav",
+              "dur_s": 5.7,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_64_0104.wav",
+              "dur_s": 1.52,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_64_0105_acc105.wav",
+              "dur_s": 1.47,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_65_0106.wav",
+              "dur_s": 3.68,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_65_0107_acc109.wav",
+              "dur_s": 3.39,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_66_0108.wav",
+              "dur_s": 2.96,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_66_0109_acc113.wav",
+              "dur_s": 2.64,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_67_0110.wav",
+              "dur_s": 7.92,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_67_0111_acc120.wav",
+              "dur_s": 6.63,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_68_0112.wav",
+              "dur_s": 3.44,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_68_0113_acc122.wav",
+              "dur_s": 2.85,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_69_0114.wav",
+              "dur_s": 5.68,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_69_0115_acc128.wav",
+              "dur_s": 4.47,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_6_0007.wav",
+              "dur_s": 6.48,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_70_0116.wav",
+              "dur_s": 2.48,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_70_0117_acc130.wav",
+              "dur_s": 1.92,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_71_0118.wav",
+              "dur_s": 6.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_71_0119_acc130.wav",
+              "dur_s": 4.68,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_72_0120.wav",
+              "dur_s": 1.76,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_72_0121_acc130.wav",
+              "dur_s": 1.38,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_73_0122.wav",
+              "dur_s": 1.28,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_73_0123_acc130.wav",
+              "dur_s": 0.99,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_74_0124.wav",
+              "dur_s": 6.0,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_74_0125_acc130.wav",
+              "dur_s": 4.62,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_75_0126.wav",
+              "dur_s": 2.4,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_75_0127_acc130.wav",
+              "dur_s": 1.86,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_76_0128.wav",
+              "dur_s": 1.52,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_76_0129_acc130.wav",
+              "dur_s": 1.17,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_77_0130.wav",
+              "dur_s": 2.24,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_77_0131_acc129.wav",
+              "dur_s": 1.77,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_78_0132.wav",
+              "dur_s": 1.2,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_78_0133_acc129.wav",
+              "dur_s": 0.96,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_79_0134.wav",
+              "dur_s": 2.08,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_79_0135_acc130.wav",
+              "dur_s": 1.62,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_7_0008.wav",
+              "dur_s": 5.12,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_80_0136.wav",
+              "dur_s": 8.32,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_80_0137_acc130.wav",
+              "dur_s": 6.42,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_81_0138.wav",
+              "dur_s": 6.0,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_81_0139_acc130.wav",
+              "dur_s": 4.62,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_82_0140.wav",
+              "dur_s": 3.84,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_82_0141_acc130.wav",
+              "dur_s": 2.97,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_83_0142.wav",
+              "dur_s": 4.16,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_83_0143_acc130.wav",
+              "dur_s": 3.21,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_84_0144.wav",
+              "dur_s": 3.28,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_84_0145_acc130.wav",
+              "dur_s": 2.55,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_85_0146.wav",
+              "dur_s": 0.72,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_85_0147_acc130.wav",
+              "dur_s": 0.57,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_86_0148.wav",
+              "dur_s": 4.4,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_86_0149_acc130.wav",
+              "dur_s": 3.39,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_8_0009.wav",
+              "dur_s": 2.72,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            },
+            {
+              "file": "tts_on_preset_4.wavparts\\seg_9_0010.wav",
+              "dur_s": 3.44,
+              "n_zero_runs_ge_0p3": 0,
+              "zero_run_s": 0
+            }
+          ],
+          "n_files_with_zero_runs": 3
+        }
+      }
+    }
+  ]
+}

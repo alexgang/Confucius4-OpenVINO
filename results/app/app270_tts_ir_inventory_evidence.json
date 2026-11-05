@@ -1,0 +1,282 @@
+{
+  "verdict": "PASS",
+  "n_pass": 4,
+  "n_fail": 0,
+  "correction": "APP-069③ / APP-070①（删前列清单）",
+  "generated_at": "2026-11-05 10:58:46",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+  "tts_ir_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\models\\qwen3tts\\int8",
+  "app_babelvox_config": {
+    "use_kv_cache": false,
+    "use_cp_kv_cache": true,
+    "talker_buckets": [
+      64,
+      128,
+      256,
+      384,
+      512
+    ],
+    "decoder_buckets": [
+      8,
+      16,
+      32,
+      64,
+      128,
+      256
+    ]
+  },
+  "evidence": {
+    "code_level_referenced_xmls": [
+      "code_predictor.xml",
+      "cp_decode.xml",
+      "cp_prefill.xml",
+      "speaker_encoder.xml",
+      "talker.xml",
+      "talker_decode.xml",
+      "talker_prefill.xml",
+      "tokenizer_decoder.xml"
+    ],
+    "branch_level_actually_loaded": [
+      "cp_decode.xml",
+      "cp_prefill.xml",
+      "speaker_encoder.xml",
+      "talker.xml",
+      "tokenizer_decoder.xml"
+    ],
+    "code_level_source": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\python\\Lib\\site-packages\\babelvox\\pipeline.py"
+  },
+  "inventory": [
+    {
+      "file": "code_predictor.bin",
+      "bytes": 78791628,
+      "sha256": "faa9081a3c485125",
+      "md5": "a250efa69da47aa2fdd3843b676fa920",
+      "loaded_by_npu_path": false,
+      "verdict": "**候选删除**（NPU 路径不加载）"
+    },
+    {
+      "file": "code_predictor.xml",
+      "bytes": 501339,
+      "sha256": "b50ae422667d6d24",
+      "md5": "a64922a7e575b741d953e64a0ee620d0",
+      "loaded_by_npu_path": false,
+      "verdict": "**候选删除**（NPU 路径不加载）"
+    },
+    {
+      "file": "cp_decode.bin",
+      "bytes": 78791754,
+      "sha256": "7bc57ef8cdd768f5",
+      "md5": "fd1edb128bb7af814a7dcc68f3f8dfc7",
+      "loaded_by_npu_path": true,
+      "verdict": "**保留**（NPU 路径实际加载）"
+    },
+    {
+      "file": "cp_decode.xml",
+      "bytes": 527980,
+      "sha256": "71384c42fe1b7c5f",
+      "md5": "664696811fd04cbebb999385800e3518",
+      "loaded_by_npu_path": true,
+      "verdict": "**保留**（NPU 路径实际加载）"
+    },
+    {
+      "file": "cp_prefill.bin",
+      "bytes": 78791628,
+      "sha256": "6bbae79481ec29cc",
+      "md5": "16a719d7269879faa69ca32304617165",
+      "loaded_by_npu_path": true,
+      "verdict": "**保留**（NPU 路径实际加载）"
+    },
+    {
+      "file": "cp_prefill.xml",
+      "bytes": 493499,
+      "sha256": "2aaf2b97c01a4329",
+      "md5": "8105315d87ba3d554655becfaa2cc721",
+      "loaded_by_npu_path": true,
+      "verdict": "**保留**（NPU 路径实际加载）"
+    },
+    {
+      "file": "speaker_encoder.bin",
+      "bytes": 8887690,
+      "sha256": "7f0d1b16d4e337ec",
+      "md5": "c1f23b5f261e54c347e72d0975e86c3f",
+      "loaded_by_npu_path": true,
+      "verdict": "**保留**（NPU 路径实际加载）"
+    },
+    {
+      "file": "speaker_encoder.xml",
+      "bytes": 297919,
+      "sha256": "22ef2113d3e1b1b4",
+      "md5": "56e69a6fbf77800f4b5cd0f778e55a97",
+      "loaded_by_npu_path": true,
+      "verdict": "**保留**（NPU 路径实际加载）"
+    },
+    {
+      "file": "talker.bin",
+      "bytes": 444373680,
+      "sha256": "bdf18144211fb428",
+      "md5": "2a4928b9a6ebcc508f0ca30e4585057c",
+      "loaded_by_npu_path": true,
+      "verdict": "**保留**（NPU 路径实际加载）"
+    },
+    {
+      "file": "talker.xml",
+      "bytes": 2951866,
+      "sha256": "79106c2c3540fe9b",
+      "md5": "f8a144da9d5c5f877a604907f9e132e0",
+      "loaded_by_npu_path": true,
+      "verdict": "**保留**（NPU 路径实际加载）"
+    },
+    {
+      "file": "talker_decode.bin",
+      "bytes": 444375018,
+      "sha256": "66b46907e7c8a27a",
+      "md5": "bfde794c6e2cce6957fb94ed82fb56df",
+      "loaded_by_npu_path": false,
+      "verdict": "**候选删除**（NPU 路径不加载）"
+    },
+    {
+      "file": "talker_decode.xml",
+      "bytes": 2836039,
+      "sha256": "3471e99534514066",
+      "md5": "d6741f6b4eac9d3a056be95536a933c5",
+      "loaded_by_npu_path": false,
+      "verdict": "**候选删除**（NPU 路径不加载）"
+    },
+    {
+      "file": "talker_prefill.bin",
+      "bytes": 444373680,
+      "sha256": "647d6772a0d0648a",
+      "md5": "887ea992c90438219cc5a14dc6cc9379",
+      "loaded_by_npu_path": false,
+      "verdict": "**候选删除**（NPU 路径不加载）"
+    },
+    {
+      "file": "talker_prefill.xml",
+      "bytes": 2737511,
+      "sha256": "e73619b976078a8e",
+      "md5": "2eaba9a44664d0baaaacd4b504e4a99c",
+      "loaded_by_npu_path": false,
+      "verdict": "**候选删除**（NPU 路径不加载）"
+    },
+    {
+      "file": "tokenizer_decoder.bin",
+      "bytes": 114326316,
+      "sha256": "fc7c8649c06c2ff6",
+      "md5": "6b061389cb0046fb9ef79d45fc629f50",
+      "loaded_by_npu_path": true,
+      "verdict": "**保留**（NPU 路径实际加载）"
+    },
+    {
+      "file": "tokenizer_decoder.xml",
+      "bytes": 1233462,
+      "sha256": "f16049bf6cb838d5",
+      "md5": "e1f24c525a910c216ca35a3ab67ee478",
+      "loaded_by_npu_path": true,
+      "verdict": "**保留**（NPU 路径实际加载）"
+    },
+    {
+      "file": "tokenizer_encoder.bin",
+      "bytes": 48294176,
+      "sha256": "b0a52284cd1d9592",
+      "md5": "2dbbed4688d86681c00fc50450164ecf",
+      "loaded_by_npu_path": false,
+      "verdict": "**候选删除**（NPU 路径不加载）"
+    },
+    {
+      "file": "tokenizer_encoder.xml",
+      "bytes": 1423894,
+      "sha256": "805b3838598f8e44",
+      "md5": "27b5579b08f0059a5528cb0d98f32c73",
+      "loaded_by_npu_path": false,
+      "verdict": "**候选删除**（NPU 路径不加载）"
+    }
+  ],
+  "n_files": 18,
+  "n_candidate_delete": 8,
+  "bytes_candidate_delete": 1023333285,
+  "mb_candidate_delete": 975.9,
+  "n_keep": 10,
+  "NOT_DELETED": "🔴 本脚本**只出清单** ⇒ **一个文件都没删**。删除须在**设备级 e2e 证明「NPU 路径不受影响」之后**执行。",
+  "checks": [
+    {
+      "id": "H1",
+      "name": "能解析包内 babelvox/pipeline.py（代码级证据的来源）",
+      "ok": true,
+      "detail": {
+        "pipeline_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\python\\Lib\\site-packages\\babelvox\\pipeline.py",
+        "err": null,
+        "referenced_xmls": [
+          "code_predictor.xml",
+          "cp_decode.xml",
+          "cp_prefill.xml",
+          "speaker_encoder.xml",
+          "talker.xml",
+          "talker_decode.xml",
+          "talker_prefill.xml",
+          "tokenizer_decoder.xml"
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "name": "分支级 ⊆ 代码级（口径自洽）",
+      "ok": true,
+      "detail": {
+        "branch": [
+          "cp_decode.xml",
+          "cp_prefill.xml",
+          "speaker_encoder.xml",
+          "talker.xml",
+          "tokenizer_decoder.xml"
+        ],
+        "refs": [
+          "code_predictor.xml",
+          "cp_decode.xml",
+          "cp_prefill.xml",
+          "speaker_encoder.xml",
+          "talker.xml",
+          "talker_decode.xml",
+          "talker_prefill.xml",
+          "tokenizer_decoder.xml"
+        ],
+        "only_in_branch": []
+      }
+    },
+    {
+      "id": "H3",
+      "name": "候选删除集合不含核心 IR（实际加载的 5 个 xml 全在保留侧）",
+      "ok": true,
+      "detail": {
+        "core": [
+          "cp_decode.xml",
+          "cp_prefill.xml",
+          "speaker_encoder.xml",
+          "talker.xml",
+          "tokenizer_decoder.xml"
+        ],
+        "branch": [
+          "cp_decode.xml",
+          "cp_prefill.xml",
+          "speaker_encoder.xml",
+          "talker.xml",
+          "tokenizer_decoder.xml"
+        ],
+        "n_candidate_delete": 8
+      }
+    },
+    {
+      "id": "H5",
+      "name": "每个候选 stem 的 xml+bin **成对**（删时成对删）",
+      "ok": true,
+      "detail": {
+        "stems": [
+          "code_predictor",
+          "talker_decode",
+          "talker_prefill",
+          "tokenizer_encoder"
+        ],
+        "paired": true
+      }
+    }
+  ]
+}
