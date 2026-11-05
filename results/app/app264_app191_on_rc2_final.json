@@ -1,0 +1,388 @@
+{
+  "script": "app191_acceptance_code_binding_gate.py",
+  "pkg_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2",
+  "pkg_version": "1.0-rc2",
+  "accepted_at": "2026-11-04 23:02:00",
+  "accepted_mtime": "2026-11-05 07:33:26",
+  "accepted_ts": 1793804520.0,
+  "drift_baseline": "ACCEPTED.code_fingerprints（**逐模块内容指纹**）",
+  "drift_anchor": "content_fingerprint",
+  "accepted_code_fingerprints": {
+    "audio_source.py": "38ded238a9f713bd41010a94fb19849c95c3bfe4fb7f30663b340ec9154d783c",
+    "backends.py": "7530bba7e6a9063968d87673fad44ece9571bc129f226a20263f06752708caa0",
+    "caption_render.py": "be9e1d43918424c3bdbda5d512f7a567bb6a783887b744f530d0c5006975064c",
+    "clone_collector.py": "f1a0f0bc8f5e7a3a8465576b5d4b51780fe570348740877a8de1bfb337cfd34a",
+    "device_config.py": "f386785af866f934b37e2b61c6e5a1ac46ec788e598c640b394b52dd53332417",
+    "gui_status.py": "c78813b5bdb6e99ef0b8843824c8a59c05d2f4a355cd5ff0911d49f7646de494",
+    "live_caption_app.py": "b3c283b7c5e1de871694d5bcf736f70e33058e9ad6f7f39099f77d49b9a38956",
+    "npu_delivery_backend.py": "983c39f209e80bff1b68f8e8b87dc7da5977ba5014c6ca0c281e3a08c203550f",
+    "npu_embeds_backend.py": "0254c64697e6860bf58996ac5e8bd45f502641b20e07d1f7038c2804b6bd307b",
+    "offline_reader.py": "94e0c839d05c2fe58d8695859af08d394a5e2a72d4d1f700c2aa06d7bdea8b4b",
+    "offline_reader_gui.py": "4710a5f21766fa482a8ef38e3bd9e161a0b2d923a0447c461c335e3f3bcd4c58",
+    "seg_stream.py": "90e28e41ea6b57d180b28201a19eed66fbef65dec0208a589f81217deca490b6",
+    "segment_encoder_backend.py": "c2c701dd928cff61b76df78f2b5b01e343871347a849924f73bbf99e50c0123a",
+    "speaker_assets.py": "e018335ad662608f2e40c150b452865bf03a0badd50b0745327f3c492fd29827",
+    "speaker_tracker.py": "e4a8c16ea1a0bd8134759eb17ba7a86ff56d4b230b6f7195345dda751c91a1bf",
+    "speaker_voice.py": "42a7aaeedc944916af3088bacaa544f21f25a6299c2031c3e6ae49c2260f673d",
+    "streaming_asr.py": "3b4ba85f1411393c5262551542c9c21258bd008525b369cd04ba72b3c837bdeb",
+    "time_stretch.py": "f1f7f5e1c18c3e1e57f7e717abbacb5830309515bcef1897b2940060fae4c629",
+    "translator.py": "51a9a4067c06b9bfb2f5047493b8778f83893dd8bf4cd339750f433ff4c5d0b3",
+    "tts_engine.py": "eabbc691acf47faa90fecc824d019205b5485f90d670c64032a1589923c2ffb7",
+    "tts_engine_patch.py": "c5cf9566abddf337b7b89d9816a456db769a7b2a58187e87db32fd46f2f4dec6",
+    "tts_service.py": "892ff0c45e1d850b83d1c1910fe252037cbc945a755f642e6ec5d547304e6948",
+    "tts_worker.py": "793d455d6aba43a6e83437790ff4417cbd65e46d2aba8a422d98c5c1ac6222d4",
+    "win_clickthrough.py": "db376c52bfe20f2665954bee133a3f20e325d0916559083884b8e6d50ab3e9d1"
+  },
+  "waived_changes": {
+    "live_caption_app.py": {
+      "reason": "APP-066 ② 依赖隔离：包内不得出现开发目录绝对路径 ⇒ 定点 scrub 把开发目录名换成中性占位（qwen3asr_06b→asr_module、qwen3tts_eval→tts_module、hy_bench→mt_module、confucius4-openvino→dev_repo）；另含 APP-067 ② 的 --spk-seg-jsonl（逐段说话人+音频区间落盘，默认关闭，行为逐字不变）；语义不变（那些路径在客户机上本就不存在）",
+      "source": "APP-066 ②（reviewer 明文要求）+ APP-067 ②（live_caption_app.py 的 --spk-seg-jsonl）"
+    },
+    "speaker_assets.py": {
+      "reason": "APP-066 ② 依赖隔离：包内不得出现开发目录绝对路径 ⇒ 定点 scrub 把开发目录名换成中性占位（qwen3asr_06b→asr_module、qwen3tts_eval→tts_module、hy_bench→mt_module、confucius4-openvino→dev_repo）；语义不变（那些路径在客户机上本就不存在）",
+      "source": "APP-066 ②（reviewer 明文要求）+ APP-067 ②（live_caption_app.py 的 --spk-seg-jsonl）"
+    },
+    "speaker_tracker.py": {
+      "reason": "APP-066 ② 依赖隔离：包内不得出现开发目录绝对路径 ⇒ 定点 scrub 把开发目录名换成中性占位（qwen3asr_06b→asr_module、qwen3tts_eval→tts_module、hy_bench→mt_module、confucius4-openvino→dev_repo）；语义不变（那些路径在客户机上本就不存在）",
+      "source": "APP-066 ②（reviewer 明文要求）+ APP-067 ②（live_caption_app.py 的 --spk-seg-jsonl）"
+    },
+    "translator.py": {
+      "reason": "APP-066 ② 依赖隔离：包内不得出现开发目录绝对路径 ⇒ 定点 scrub 把开发目录名换成中性占位（qwen3asr_06b→asr_module、qwen3tts_eval→tts_module、hy_bench→mt_module、confucius4-openvino→dev_repo）；语义不变（那些路径在客户机上本就不存在）",
+      "source": "APP-066 ②（reviewer 明文要求）+ APP-067 ②（live_caption_app.py 的 --spk-seg-jsonl）"
+    },
+    "tts_engine.py": {
+      "reason": "APP-066 ② 依赖隔离：包内不得出现开发目录绝对路径 ⇒ 定点 scrub 把开发目录名换成中性占位（qwen3asr_06b→asr_module、qwen3tts_eval→tts_module、hy_bench→mt_module、confucius4-openvino→dev_repo）；语义不变（那些路径在客户机上本就不存在）",
+      "source": "APP-066 ②（reviewer 明文要求）+ APP-067 ②（live_caption_app.py 的 --spk-seg-jsonl）"
+    }
+  },
+  "git_baseline_candidates": [
+    "live_caption_app.py",
+    "speaker_assets.py",
+    "speaker_tracker.py",
+    "translator.py",
+    "tts_engine.py"
+  ],
+  "drift_anchor_note": "R1 = 指纹锚点（相对 ACCEPTED）＋ R1b = git 基线锚点（相对仓库）⇒ 两个**相互独立**的锚点 ⇒ 「签的时候把缺陷一起签进去」会被 git 基线锚点暴露",
+  "n_waived": 0,
+  "current_code_fingerprints": {
+    "audio_source.py": "38ded238a9f713bd41010a94fb19849c95c3bfe4fb7f30663b340ec9154d783c",
+    "backends.py": "7530bba7e6a9063968d87673fad44ece9571bc129f226a20263f06752708caa0",
+    "caption_render.py": "be9e1d43918424c3bdbda5d512f7a567bb6a783887b744f530d0c5006975064c",
+    "clone_collector.py": "f1a0f0bc8f5e7a3a8465576b5d4b51780fe570348740877a8de1bfb337cfd34a",
+    "device_config.py": "f386785af866f934b37e2b61c6e5a1ac46ec788e598c640b394b52dd53332417",
+    "gui_status.py": "c78813b5bdb6e99ef0b8843824c8a59c05d2f4a355cd5ff0911d49f7646de494",
+    "live_caption_app.py": "b3c283b7c5e1de871694d5bcf736f70e33058e9ad6f7f39099f77d49b9a38956",
+    "npu_delivery_backend.py": "983c39f209e80bff1b68f8e8b87dc7da5977ba5014c6ca0c281e3a08c203550f",
+    "npu_embeds_backend.py": "0254c64697e6860bf58996ac5e8bd45f502641b20e07d1f7038c2804b6bd307b",
+    "offline_reader.py": "94e0c839d05c2fe58d8695859af08d394a5e2a72d4d1f700c2aa06d7bdea8b4b",
+    "offline_reader_gui.py": "4710a5f21766fa482a8ef38e3bd9e161a0b2d923a0447c461c335e3f3bcd4c58",
+    "seg_stream.py": "90e28e41ea6b57d180b28201a19eed66fbef65dec0208a589f81217deca490b6",
+    "segment_encoder_backend.py": "c2c701dd928cff61b76df78f2b5b01e343871347a849924f73bbf99e50c0123a",
+    "speaker_assets.py": "e018335ad662608f2e40c150b452865bf03a0badd50b0745327f3c492fd29827",
+    "speaker_tracker.py": "e4a8c16ea1a0bd8134759eb17ba7a86ff56d4b230b6f7195345dda751c91a1bf",
+    "speaker_voice.py": "42a7aaeedc944916af3088bacaa544f21f25a6299c2031c3e6ae49c2260f673d",
+    "streaming_asr.py": "3b4ba85f1411393c5262551542c9c21258bd008525b369cd04ba72b3c837bdeb",
+    "time_stretch.py": "f1f7f5e1c18c3e1e57f7e717abbacb5830309515bcef1897b2940060fae4c629",
+    "translator.py": "51a9a4067c06b9bfb2f5047493b8778f83893dd8bf4cd339750f433ff4c5d0b3",
+    "tts_engine.py": "eabbc691acf47faa90fecc824d019205b5485f90d670c64032a1589923c2ffb7",
+    "tts_engine_patch.py": "c5cf9566abddf337b7b89d9816a456db769a7b2a58187e87db32fd46f2f4dec6",
+    "tts_service.py": "892ff0c45e1d850b83d1c1910fe252037cbc945a755f642e6ec5d547304e6948",
+    "tts_worker.py": "793d455d6aba43a6e83437790ff4417cbd65e46d2aba8a422d98c5c1ac6222d4",
+    "win_clickthrough.py": "db376c52bfe20f2665954bee133a3f20e325d0916559083884b8e6d50ab3e9d1"
+  },
+  "n_modules": 24,
+  "fingerprint": "ed4dc8ca6872691898bbcc934445696993f60ffd6cf4767d9d55c812f5776185",
+  "accepted_code_fingerprint": "ed4dc8ca6872691898bbcc934445696993f60ffd6cf4767d9d55c812f5776185",
+  "fingerprint_match": true,
+  "covered": [
+    {
+      "module": "audio_source.py",
+      "mtime": "2026-10-25 07:25:56",
+      "mtime_ts": 1792884356.6727645,
+      "fingerprint_accepted": "38ded238a9f713bd41010a94fb19849c95c3bfe4fb7f30663b340ec9154d783c",
+      "fingerprint_now": "38ded238a9f713bd41010a94fb19849c95c3bfe4fb7f30663b340ec9154d783c",
+      "fingerprint_match": true
+    },
+    {
+      "module": "backends.py",
+      "mtime": "2026-10-21 14:12:53",
+      "mtime_ts": 1792563173.0869336,
+      "fingerprint_accepted": "7530bba7e6a9063968d87673fad44ece9571bc129f226a20263f06752708caa0",
+      "fingerprint_now": "7530bba7e6a9063968d87673fad44ece9571bc129f226a20263f06752708caa0",
+      "fingerprint_match": true
+    },
+    {
+      "module": "caption_render.py",
+      "mtime": "2026-10-29 15:01:25",
+      "mtime_ts": 1793257285.7989812,
+      "fingerprint_accepted": "be9e1d43918424c3bdbda5d512f7a567bb6a783887b744f530d0c5006975064c",
+      "fingerprint_now": "be9e1d43918424c3bdbda5d512f7a567bb6a783887b744f530d0c5006975064c",
+      "fingerprint_match": true
+    },
+    {
+      "module": "clone_collector.py",
+      "mtime": "2026-10-28 14:23:59",
+      "mtime_ts": 1793168639.3190482,
+      "fingerprint_accepted": "f1a0f0bc8f5e7a3a8465576b5d4b51780fe570348740877a8de1bfb337cfd34a",
+      "fingerprint_now": "f1a0f0bc8f5e7a3a8465576b5d4b51780fe570348740877a8de1bfb337cfd34a",
+      "fingerprint_match": true
+    },
+    {
+      "module": "device_config.py",
+      "mtime": "2026-10-27 16:15:36",
+      "mtime_ts": 1793088936.7080154,
+      "fingerprint_accepted": "f386785af866f934b37e2b61c6e5a1ac46ec788e598c640b394b52dd53332417",
+      "fingerprint_now": "f386785af866f934b37e2b61c6e5a1ac46ec788e598c640b394b52dd53332417",
+      "fingerprint_match": true
+    },
+    {
+      "module": "gui_status.py",
+      "mtime": "2026-10-30 16:19:17",
+      "mtime_ts": 1793348357.7813244,
+      "fingerprint_accepted": "c78813b5bdb6e99ef0b8843824c8a59c05d2f4a355cd5ff0911d49f7646de494",
+      "fingerprint_now": "c78813b5bdb6e99ef0b8843824c8a59c05d2f4a355cd5ff0911d49f7646de494",
+      "fingerprint_match": true
+    },
+    {
+      "module": "live_caption_app.py",
+      "mtime": "2026-11-04 22:58:39",
+      "mtime_ts": 1793804319.0627809,
+      "fingerprint_accepted": "b3c283b7c5e1de871694d5bcf736f70e33058e9ad6f7f39099f77d49b9a38956",
+      "fingerprint_now": "b3c283b7c5e1de871694d5bcf736f70e33058e9ad6f7f39099f77d49b9a38956",
+      "fingerprint_match": true
+    },
+    {
+      "module": "npu_delivery_backend.py",
+      "mtime": "2026-10-23 09:21:06",
+      "mtime_ts": 1792718466.6331856,
+      "fingerprint_accepted": "983c39f209e80bff1b68f8e8b87dc7da5977ba5014c6ca0c281e3a08c203550f",
+      "fingerprint_now": "983c39f209e80bff1b68f8e8b87dc7da5977ba5014c6ca0c281e3a08c203550f",
+      "fingerprint_match": true
+    },
+    {
+      "module": "npu_embeds_backend.py",
+      "mtime": "2026-10-23 09:21:16",
+      "mtime_ts": 1792718476.7862835,
+      "fingerprint_accepted": "0254c64697e6860bf58996ac5e8bd45f502641b20e07d1f7038c2804b6bd307b",
+      "fingerprint_now": "0254c64697e6860bf58996ac5e8bd45f502641b20e07d1f7038c2804b6bd307b",
+      "fingerprint_match": true
+    },
+    {
+      "module": "offline_reader.py",
+      "mtime": "2026-10-27 22:37:12",
+      "mtime_ts": 1793111832.1256614,
+      "fingerprint_accepted": "94e0c839d05c2fe58d8695859af08d394a5e2a72d4d1f700c2aa06d7bdea8b4b",
+      "fingerprint_now": "94e0c839d05c2fe58d8695859af08d394a5e2a72d4d1f700c2aa06d7bdea8b4b",
+      "fingerprint_match": true
+    },
+    {
+      "module": "offline_reader_gui.py",
+      "mtime": "2026-10-27 22:37:27",
+      "mtime_ts": 1793111847.1248715,
+      "fingerprint_accepted": "4710a5f21766fa482a8ef38e3bd9e161a0b2d923a0447c461c335e3f3bcd4c58",
+      "fingerprint_now": "4710a5f21766fa482a8ef38e3bd9e161a0b2d923a0447c461c335e3f3bcd4c58",
+      "fingerprint_match": true
+    },
+    {
+      "module": "seg_stream.py",
+      "mtime": "2026-10-21 09:02:50",
+      "mtime_ts": 1792544570.305724,
+      "fingerprint_accepted": "90e28e41ea6b57d180b28201a19eed66fbef65dec0208a589f81217deca490b6",
+      "fingerprint_now": "90e28e41ea6b57d180b28201a19eed66fbef65dec0208a589f81217deca490b6",
+      "fingerprint_match": true
+    },
+    {
+      "module": "segment_encoder_backend.py",
+      "mtime": "2026-10-21 14:12:17",
+      "mtime_ts": 1792563137.110106,
+      "fingerprint_accepted": "c2c701dd928cff61b76df78f2b5b01e343871347a849924f73bbf99e50c0123a",
+      "fingerprint_now": "c2c701dd928cff61b76df78f2b5b01e343871347a849924f73bbf99e50c0123a",
+      "fingerprint_match": true
+    },
+    {
+      "module": "speaker_assets.py",
+      "mtime": "2026-11-04 22:58:39",
+      "mtime_ts": 1793804319.090233,
+      "fingerprint_accepted": "e018335ad662608f2e40c150b452865bf03a0badd50b0745327f3c492fd29827",
+      "fingerprint_now": "e018335ad662608f2e40c150b452865bf03a0badd50b0745327f3c492fd29827",
+      "fingerprint_match": true
+    },
+    {
+      "module": "speaker_tracker.py",
+      "mtime": "2026-11-04 22:58:39",
+      "mtime_ts": 1793804319.0741954,
+      "fingerprint_accepted": "e4a8c16ea1a0bd8134759eb17ba7a86ff56d4b230b6f7195345dda751c91a1bf",
+      "fingerprint_now": "e4a8c16ea1a0bd8134759eb17ba7a86ff56d4b230b6f7195345dda751c91a1bf",
+      "fingerprint_match": true
+    },
+    {
+      "module": "speaker_voice.py",
+      "mtime": "2026-10-30 03:38:15",
+      "mtime_ts": 1793302695.6898932,
+      "fingerprint_accepted": "42a7aaeedc944916af3088bacaa544f21f25a6299c2031c3e6ae49c2260f673d",
+      "fingerprint_now": "42a7aaeedc944916af3088bacaa544f21f25a6299c2031c3e6ae49c2260f673d",
+      "fingerprint_match": true
+    },
+    {
+      "module": "streaming_asr.py",
+      "mtime": "2026-10-21 15:43:43",
+      "mtime_ts": 1792568623.8332396,
+      "fingerprint_accepted": "3b4ba85f1411393c5262551542c9c21258bd008525b369cd04ba72b3c837bdeb",
+      "fingerprint_now": "3b4ba85f1411393c5262551542c9c21258bd008525b369cd04ba72b3c837bdeb",
+      "fingerprint_match": true
+    },
+    {
+      "module": "time_stretch.py",
+      "mtime": "2026-10-29 16:56:00",
+      "mtime_ts": 1793264160.9231052,
+      "fingerprint_accepted": "f1f7f5e1c18c3e1e57f7e717abbacb5830309515bcef1897b2940060fae4c629",
+      "fingerprint_now": "f1f7f5e1c18c3e1e57f7e717abbacb5830309515bcef1897b2940060fae4c629",
+      "fingerprint_match": true
+    },
+    {
+      "module": "translator.py",
+      "mtime": "2026-11-04 22:58:39",
+      "mtime_ts": 1793804319.1062849,
+      "fingerprint_accepted": "51a9a4067c06b9bfb2f5047493b8778f83893dd8bf4cd339750f433ff4c5d0b3",
+      "fingerprint_now": "51a9a4067c06b9bfb2f5047493b8778f83893dd8bf4cd339750f433ff4c5d0b3",
+      "fingerprint_match": true
+    },
+    {
+      "module": "tts_engine.py",
+      "mtime": "2026-11-04 22:58:39",
+      "mtime_ts": 1793804319.1062849,
+      "fingerprint_accepted": "eabbc691acf47faa90fecc824d019205b5485f90d670c64032a1589923c2ffb7",
+      "fingerprint_now": "eabbc691acf47faa90fecc824d019205b5485f90d670c64032a1589923c2ffb7",
+      "fingerprint_match": true
+    },
+    {
+      "module": "tts_engine_patch.py",
+      "mtime": "2026-10-24 20:16:17",
+      "mtime_ts": 1792844177.9215367,
+      "fingerprint_accepted": "c5cf9566abddf337b7b89d9816a456db769a7b2a58187e87db32fd46f2f4dec6",
+      "fingerprint_now": "c5cf9566abddf337b7b89d9816a456db769a7b2a58187e87db32fd46f2f4dec6",
+      "fingerprint_match": true
+    },
+    {
+      "module": "tts_service.py",
+      "mtime": "2026-11-04 13:35:36",
+      "mtime_ts": 1793770536.9592261,
+      "fingerprint_accepted": "892ff0c45e1d850b83d1c1910fe252037cbc945a755f642e6ec5d547304e6948",
+      "fingerprint_now": "892ff0c45e1d850b83d1c1910fe252037cbc945a755f642e6ec5d547304e6948",
+      "fingerprint_match": true
+    },
+    {
+      "module": "tts_worker.py",
+      "mtime": "2026-11-04 13:35:36",
+      "mtime_ts": 1793770536.9592261,
+      "fingerprint_accepted": "793d455d6aba43a6e83437790ff4417cbd65e46d2aba8a422d98c5c1ac6222d4",
+      "fingerprint_now": "793d455d6aba43a6e83437790ff4417cbd65e46d2aba8a422d98c5c1ac6222d4",
+      "fingerprint_match": true
+    },
+    {
+      "module": "win_clickthrough.py",
+      "mtime": "2026-10-23 16:26:05",
+      "mtime_ts": 1792743965.068058,
+      "fingerprint_accepted": "db376c52bfe20f2665954bee133a3f20e325d0916559083884b8e6d50ab3e9d1",
+      "fingerprint_now": "db376c52bfe20f2665954bee133a3f20e325d0916559083884b8e6d50ab3e9d1",
+      "fingerprint_match": true
+    }
+  ],
+  "drifted": [],
+  "n_pass": 18,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "checks": [
+    {
+      "name": "R3 ACCEPTED.json 存在且 accepted=true",
+      "ok": true,
+      "detail": "accepted=True"
+    },
+    {
+      "name": "R3 ACCEPTED.json 的 version == 本包版本",
+      "ok": true,
+      "detail": "ACCEPTED.version='1.0-rc2' / 本包='1.0-rc2'"
+    },
+    {
+      "name": "R3 ACCEPTED.json 的 pkg_dir == 本包目录",
+      "ok": true,
+      "detail": "ACCEPTED.pkg_dir='<HOME>\\\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2'（展开后比对）"
+    },
+    {
+      "name": "R3 ACCEPTED.json 记录了 code_fingerprint（APP-052 ②a）",
+      "ok": true,
+      "detail": "code_fingerprint='ed4dc8ca6872691898bbcc9344456969'"
+    },
+    {
+      "name": "R1 生产模块都能被检出（模块数 > 0）",
+      "ok": true,
+      "detail": "covered=24 drifted=0"
+    },
+    {
+      "name": "R1b git 基线锚点可用（与 ACCEPTED 指纹**相互独立**）",
+      "ok": true,
+      "detail": "生产模块 24 个 / 偏离仓库的候选 5 个"
+    },
+    {
+      "name": "R2 无漂移模块 ⇒ 无需分类",
+      "ok": true,
+      "detail": "drifted=0"
+    },
+    {
+      "name": "R2 live_caption_app.py 的漂移**已被 reviewer 显式承认**（白名单放行）",
+      "ok": true,
+      "detail": "base=e8041086(fallback_latest_commit) before=bccf2d6326879420 after=b3c283b7c5e1de87 | 原判=other ⇒ 放行 | 依据=APP-066 ② 依赖隔离：包内不得出现开发目录绝对路径 ⇒ 定点 scrub 把开发目录名换成中性占位（qwen3asr_06b→asr_module、qwen3tts_eval→tts_module、hy_bench→mt_module、confucius4-openvino→dev_repo）；另含 APP-067 ② 的 --spk-seg-jsonl（逐段说话人+音频区间落盘，默认关闭，行为逐字不变）；语义不变（那些路径在客户机上本就不存在）（APP-066 ②（reviewer 明文要求）+ APP-067 ②（live_caption_app.py 的 --spk-seg-jsonl））"
+    },
+    {
+      "name": "R2 speaker_assets.py 的漂移**已被 reviewer 显式承认**（白名单放行）",
+      "ok": true,
+      "detail": "base=e88e3f1a(fallback_latest_commit) before=f39137277b8f2769 after=e018335ad662608f | 原判=other ⇒ 放行 | 依据=APP-066 ② 依赖隔离：包内不得出现开发目录绝对路径 ⇒ 定点 scrub 把开发目录名换成中性占位（qwen3asr_06b→asr_module、qwen3tts_eval→tts_module、hy_bench→mt_module、confucius4-openvino→dev_repo）；语义不变（那些路径在客户机上本就不存在）（APP-066 ②（reviewer 明文要求）+ APP-067 ②（live_caption_app.py 的 --spk-seg-jsonl））"
+    },
+    {
+      "name": "R2 speaker_tracker.py 的漂移**已被 reviewer 显式承认**（白名单放行）",
+      "ok": true,
+      "detail": "base=0fb3387e(fallback_latest_commit) before=683f84aa23c07da8 after=e4a8c16ea1a0bd81 | 原判=other ⇒ 放行 | 依据=APP-066 ② 依赖隔离：包内不得出现开发目录绝对路径 ⇒ 定点 scrub 把开发目录名换成中性占位（qwen3asr_06b→asr_module、qwen3tts_eval→tts_module、hy_bench→mt_module、confucius4-openvino→dev_repo）；语义不变（那些路径在客户机上本就不存在）（APP-066 ②（reviewer 明文要求）+ APP-067 ②（live_caption_app.py 的 --spk-seg-jsonl））"
+    },
+    {
+      "name": "R2 translator.py 的漂移**已被 reviewer 显式承认**（白名单放行）",
+      "ok": true,
+      "detail": "base=a9ed2504(fallback_latest_commit) before=c5ab5e0760e2ea88 after=51a9a4067c06b9bf | 原判=other ⇒ 放行 | 依据=APP-066 ② 依赖隔离：包内不得出现开发目录绝对路径 ⇒ 定点 scrub 把开发目录名换成中性占位（qwen3asr_06b→asr_module、qwen3tts_eval→tts_module、hy_bench→mt_module、confucius4-openvino→dev_repo）；语义不变（那些路径在客户机上本就不存在）（APP-066 ②（reviewer 明文要求）+ APP-067 ②（live_caption_app.py 的 --spk-seg-jsonl））"
+    },
+    {
+      "name": "R2 tts_engine.py 的漂移**已被 reviewer 显式承认**（白名单放行）",
+      "ok": true,
+      "detail": "base=aacb2dd8(fallback_latest_commit) before=b422f2f199a5b92b after=eabbc691acf47faa | 原判=other ⇒ 放行 | 依据=APP-066 ② 依赖隔离：包内不得出现开发目录绝对路径 ⇒ 定点 scrub 把开发目录名换成中性占位（qwen3asr_06b→asr_module、qwen3tts_eval→tts_module、hy_bench→mt_module、confucius4-openvino→dev_repo）；语义不变（那些路径在客户机上本就不存在）（APP-066 ②（reviewer 明文要求）+ APP-067 ②（live_caption_app.py 的 --spk-seg-jsonl））"
+    },
+    {
+      "name": "R3b 白名单里没有「多余条目」（每条都对应真实差异）",
+      "ok": true,
+      "detail": "waived=5 / 已分类=5 / 多余=无"
+    },
+    {
+      "name": "R3b 白名单自洽（存在性 + 依据 + 无幽灵）",
+      "ok": true,
+      "detail": "waived=5 / 已分类=5 / 全部为非良性差异"
+    },
+    {
+      "name": "R3b 每条白名单都写明了 reason 与 source（可复核）",
+      "ok": true,
+      "detail": "缺依据的条目 = 无"
+    },
+    {
+      "name": "R3b 白名单里的模块都在生产模块集合内（无幽灵条目）",
+      "ok": true,
+      "detail": "幽灵条目 = 无"
+    },
+    {
+      "name": "R4 指纹连续性（首次运行 ⇒ 建立基线）",
+      "ok": true,
+      "detail": "上次证据里没有指纹 ⇒ 本次建立基线"
+    },
+    {
+      "name": "R5 ACCEPTED.code_fingerprint 与包内当前指纹一致",
+      "ok": true,
+      "detail": "fingerprint=ed4dc8ca6872691898bbcc9344456969…（内容未变 ⇒ 验收结论继续有效）"
+    }
+  ],
+  "ts": "2026-11-05 07:33:35"
+}

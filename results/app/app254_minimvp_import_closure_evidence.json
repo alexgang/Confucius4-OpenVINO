@@ -1,0 +1,170 @@
+{
+ "script": "app254_minimvp_import_closure.py",
+ "dev": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc1",
+ "n_dev_modules": 230,
+ "n_pkg_modules": 17,
+ "pkg_seed_modules": [
+  "audio_source",
+  "backends",
+  "caption_render",
+  "clone_collector",
+  "device_config",
+  "gui_status",
+  "live_caption_app",
+  "seg_stream",
+  "speaker_assets",
+  "speaker_tracker",
+  "speaker_voice",
+  "streaming_asr",
+  "translator",
+  "tts_engine",
+  "tts_engine_patch",
+  "tts_service",
+  "tts_worker"
+ ],
+ "closure_of_pkg_seed": [
+  "audio_source",
+  "backends",
+  "caption_render",
+  "clone_collector",
+  "device_config",
+  "gui_status",
+  "live_caption_app",
+  "npu_delivery_backend",
+  "npu_embeds_backend",
+  "offline_reader",
+  "offline_reader_gui",
+  "seg_stream",
+  "segment_encoder_backend",
+  "speaker_assets",
+  "speaker_tracker",
+  "speaker_voice",
+  "streaming_asr",
+  "time_stretch",
+  "translator",
+  "tts_cuda",
+  "tts_engine",
+  "tts_engine_patch",
+  "tts_service",
+  "tts_worker",
+  "win_clickthrough"
+ ],
+ "missing_from_pkg": [
+  "npu_delivery_backend",
+  "npu_embeds_backend",
+  "offline_reader",
+  "offline_reader_gui",
+  "segment_encoder_backend",
+  "time_stretch",
+  "tts_cuda",
+  "win_clickthrough"
+ ],
+ "n_missing": 8,
+ "referenced_not_local": [
+  "__future__",
+  "argparse",
+  "asr052_speaker_tracker_api",
+  "asr_spk_window",
+  "atexit",
+  "av",
+  "babelvox",
+  "fitz",
+  "gc",
+  "pypdf",
+  "qwen_asr",
+  "safetensors",
+  "tts_ov",
+  "zipfile"
+ ],
+ "full_closure_from_app": [],
+ "full_closure_missing_in_pkg": [],
+ "missing_evidence": [
+  {
+   "from": "tts_worker",
+   "imports": "time_stretch",
+   "line": 1893
+  },
+  {
+   "from": "tts_worker",
+   "imports": "time_stretch",
+   "line": 1929
+  },
+  {
+   "from": "tts_worker",
+   "imports": "tts_cuda",
+   "line": 1317
+  },
+  {
+   "from": "tts_service",
+   "imports": "time_stretch",
+   "line": 1039
+  },
+  {
+   "from": "live_caption_app",
+   "imports": "tts_cuda",
+   "line": 671
+  },
+  {
+   "from": "live_caption_app",
+   "imports": "tts_cuda",
+   "line": 686
+  },
+  {
+   "from": "live_caption_app",
+   "imports": "segment_encoder_backend",
+   "line": 1476
+  },
+  {
+   "from": "live_caption_app",
+   "imports": "npu_embeds_backend",
+   "line": 1483
+  },
+  {
+   "from": "live_caption_app",
+   "imports": "npu_delivery_backend",
+   "line": 1484
+  },
+  {
+   "from": "live_caption_app",
+   "imports": "win_clickthrough",
+   "line": 2124
+  },
+  {
+   "from": "live_caption_app",
+   "imports": "offline_reader_gui",
+   "line": 4565
+  },
+  {
+   "from": "live_caption_app",
+   "imports": "win_clickthrough",
+   "line": 2046
+  },
+  {
+   "from": "offline_reader_gui",
+   "imports": "offline_reader",
+   "line": 31
+  },
+  {
+   "from": "npu_delivery_backend",
+   "imports": "npu_embeds_backend",
+   "line": 94
+  },
+  {
+   "from": "npu_delivery_backend",
+   "imports": "segment_encoder_backend",
+   "line": 96
+  },
+  {
+   "from": "npu_embeds_backend",
+   "imports": "segment_encoder_backend",
+   "line": 68
+  },
+  {
+   "from": "device_config",
+   "imports": "tts_cuda",
+   "line": 380
+  }
+ ],
+ "verdict": "FAIL"
+}

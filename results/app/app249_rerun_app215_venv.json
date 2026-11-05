@@ -1,0 +1,323 @@
+{
+  "task": "APP-061 ①②④⑤ 代码层判据",
+  "target": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption",
+  "python": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\.venv\\Scripts\\python.exe",
+  "files": {
+    "live_caption_app.py": {
+      "sha256": "4ecb811d47f1361eec10534f79a224190a10caecb96e09330d4c324f6698f4c7",
+      "bytes": 412374
+    },
+    "tts_worker.py": {
+      "sha256": "cb7550d4239f49774ad320aa57bb39128bf165229182b739d282229c0a83613a",
+      "bytes": 242603
+    }
+  },
+  "static": {
+    "2a_cuda_option_always_listed": {
+      "result": "PASS",
+      "detail": "insert=True guarded=False disabled_kw=True"
+    },
+    "2b_disabled_option_rejected": {
+      "result": "PASS",
+      "detail": "get('disabled')=True"
+    },
+    "2c_cuda_preflight_block": {
+      "result": "PASS",
+      "detail": "avail=True reason=True"
+    },
+    "4a_timer_collector_disabled": {
+      "result": "PASS",
+      "detail": "assigns=['False']"
+    },
+    "4b_no_30s_promise_in_user_text": {
+      "result": "PASS",
+      "detail": "命中=0 []"
+    },
+    "5a_gui_passes_clone": {
+      "result": "PASS",
+      "detail": "clone kw=True"
+    },
+    "5b_gui_retry_is_new": {
+      "result": "PASS",
+      "detail": "note_final=True _is_new=True append=True"
+    },
+    "5b_cli_retry_is_new": {
+      "result": "PASS",
+      "detail": "note_final=True _is_new=True append=True"
+    },
+    "1a_preset_name_set": {
+      "result": "PASS",
+      "detail": "assign _preset_name=True"
+    },
+    "1b_cuda_fallback_keeps_name": {
+      "result": "PASS",
+      "detail": "CUDA 分支内 speaker_name 赋值=[\"self._preset_name or 'A'\"]（委派共用出口=True）"
+    },
+    "1c_synth_gate_uses_ref_audio": {
+      "result": "PASS",
+      "detail": "_has_ref_audio=True"
+    },
+    "5c_keep_last_helper": {
+      "result": "PASS",
+      "detail": "keyword=True"
+    },
+    "5c_synth_calls_keep_last": {
+      "result": "PASS",
+      "detail": "call=True"
+    }
+  },
+  "behaviour_probe": {
+    "setup_exc": null,
+    "preset_name_after_setup": "A",
+    "preset_ref_path_after_setup": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\models\\qwen3tts\\voices\\preset_A.wav",
+    "fallback_exc": null,
+    "speaker_name_after_fallback": "A",
+    "speaker_embed_after_fallback": null,
+    "voice_gate_tripped": false,
+    "synth_with_ref_exc": "AttributeError(\"'TTSWorker' object has no attribute '_cancel_lock'\")",
+    "synth_with_ref_messages": [],
+    "synth_with_ref_voice_error": false,
+    "synth_without_ref_exc": null,
+    "synth_without_ref_messages": [
+      "没有可用的音色（CUDA 参考音频缺失）"
+    ],
+    "synth_without_ref_voice_error": true,
+    "old_state_fallback_exc": null,
+    "old_state_speaker_name_after_fallback": "A",
+    "old_state_voice_gate_tripped": false,
+    "old_state_synth_exc": "AttributeError(\"'TTSWorker' object has no attribute '_cancel_lock'\")",
+    "old_state_synth_messages": [],
+    "old_state_synth_voice_error": false,
+    "has_ref_audio": {
+      "no_ref": false,
+      "with_ref": true
+    },
+    "keep_last": {
+      "no_clone": false,
+      "clone_kind": true,
+      "clone_active": true,
+      "keep_last_log": [
+        "[tts_worker] spk_pending⇒keep_last（说话人标签未到，沿用上一句的克隆音色）"
+      ],
+      "keep_last_kind": "clone"
+    }
+  },
+  "counterproofs": [
+    {
+      "id": "M1",
+      "what": "CUDA 分支不设 _preset_name",
+      "caught": true
+    },
+    {
+      "id": "M2",
+      "what": "回落恢复旧形态（清空 speaker_name）",
+      "caught": true
+    },
+    {
+      "id": "M3",
+      "what": "恢复 v2.1 的 ①a+①b+①c 三处叠加",
+      "caught": true
+    },
+    {
+      "id": "M4",
+      "what": "GUI 不传 clone=",
+      "caught": true
+    },
+    {
+      "id": "M5",
+      "what": "GUI _retry_spk_labels 丢 is_new",
+      "caught": true
+    },
+    {
+      "id": "M6",
+      "what": "恢复定时克隆采集器",
+      "caught": true
+    },
+    {
+      "id": "M7",
+      "what": "CUDA 选项不再带 disabled 字段",
+      "caught": true
+    }
+  ],
+  "n_pass": 29,
+  "n_fail": 0,
+  "n_none": 0,
+  "checks": [
+    {
+      "name": "2a_cuda_option_always_listed",
+      "group": "static",
+      "detail": "insert=True guarded=False disabled_kw=True",
+      "result": "PASS"
+    },
+    {
+      "name": "2b_disabled_option_rejected",
+      "group": "static",
+      "detail": "get('disabled')=True",
+      "result": "PASS"
+    },
+    {
+      "name": "2c_cuda_preflight_block",
+      "group": "static",
+      "detail": "avail=True reason=True",
+      "result": "PASS"
+    },
+    {
+      "name": "4a_timer_collector_disabled",
+      "group": "static",
+      "detail": "assigns=['False']",
+      "result": "PASS"
+    },
+    {
+      "name": "4b_no_30s_promise_in_user_text",
+      "group": "static",
+      "detail": "命中=0 []",
+      "result": "PASS"
+    },
+    {
+      "name": "5a_gui_passes_clone",
+      "group": "static",
+      "detail": "clone kw=True",
+      "result": "PASS"
+    },
+    {
+      "name": "5b_gui_retry_is_new",
+      "group": "static",
+      "detail": "note_final=True _is_new=True append=True",
+      "result": "PASS"
+    },
+    {
+      "name": "5b_cli_retry_is_new",
+      "group": "static",
+      "detail": "note_final=True _is_new=True append=True",
+      "result": "PASS"
+    },
+    {
+      "name": "1a_preset_name_set",
+      "group": "static",
+      "detail": "assign _preset_name=True",
+      "result": "PASS"
+    },
+    {
+      "name": "1b_cuda_fallback_keeps_name",
+      "group": "static",
+      "detail": "CUDA 分支内 speaker_name 赋值=[\"self._preset_name or 'A'\"]（委派共用出口=True）",
+      "result": "PASS"
+    },
+    {
+      "name": "1c_synth_gate_uses_ref_audio",
+      "group": "static",
+      "detail": "_has_ref_audio=True",
+      "result": "PASS"
+    },
+    {
+      "name": "5c_keep_last_helper",
+      "group": "static",
+      "detail": "keyword=True",
+      "result": "PASS"
+    },
+    {
+      "name": "5c_synth_calls_keep_last",
+      "group": "static",
+      "detail": "call=True",
+      "result": "PASS"
+    },
+    {
+      "name": "behaviour_probe",
+      "group": "behaviour",
+      "detail": "探针可用",
+      "result": "PASS"
+    },
+    {
+      "name": "1a_preset_name_after_setup_is_A",
+      "group": "behaviour",
+      "detail": "preset_name_after_setup='A'",
+      "result": "PASS"
+    },
+    {
+      "name": "1b_speaker_name_survives_fallback",
+      "group": "behaviour",
+      "detail": "speaker_name_after_fallback='A'",
+      "result": "PASS"
+    },
+    {
+      "name": "1b_old_state_fallback_keeps_name",
+      "group": "behaviour",
+      "detail": "old_state speaker_name='A' gate_tripped=False",
+      "result": "PASS"
+    },
+    {
+      "name": "1c_old_state_no_voice_error",
+      "group": "behaviour",
+      "detail": "old_state messages=[]",
+      "result": "PASS"
+    },
+    {
+      "name": "1c_no_voice_error_when_ref_present",
+      "group": "behaviour",
+      "detail": "messages=[]",
+      "result": "PASS"
+    },
+    {
+      "name": "1c_voice_error_when_ref_missing",
+      "group": "behaviour",
+      "detail": "messages=['没有可用的音色（CUDA 参考音频缺失）']",
+      "result": "PASS"
+    },
+    {
+      "name": "5c_has_clone_voice_true_only_with_clone",
+      "group": "behaviour",
+      "detail": "no_clone=False clone_kind=True clone_active=True",
+      "result": "PASS"
+    },
+    {
+      "name": "5c_keep_last_logs_keyword",
+      "group": "behaviour",
+      "detail": "log=['[tts_worker] spk_pending⇒keep_last（说话人标签未到，沿用上一句的克隆音色）']",
+      "result": "PASS"
+    },
+    {
+      "name": "M1_1a_mutant_is_caught",
+      "group": "counterproof",
+      "detail": "mutant preset_name=None",
+      "result": "PASS"
+    },
+    {
+      "name": "M2_1b_mutant_is_caught",
+      "group": "counterproof",
+      "detail": "mutant old_state speaker_name=None",
+      "result": "PASS"
+    },
+    {
+      "name": "M3_1abc_mutant_is_caught",
+      "group": "counterproof",
+      "detail": "mutant old_state voice_error=True",
+      "result": "PASS"
+    },
+    {
+      "name": "M4_5a_mutant_is_caught",
+      "group": "counterproof",
+      "detail": "mutant 5a=(False, 'clone kw=False')",
+      "result": "PASS"
+    },
+    {
+      "name": "M5_5b_mutant_is_caught",
+      "group": "counterproof",
+      "detail": "mutant 5b=(False, 'note_final=True _is_new=False append=False')",
+      "result": "PASS"
+    },
+    {
+      "name": "M6_4a_mutant_is_caught",
+      "group": "counterproof",
+      "detail": "mutant 4a=(False, \"assigns=['bool(self._clone_enabled)']\")",
+      "result": "PASS"
+    },
+    {
+      "name": "M7_2a_mutant_is_caught",
+      "group": "counterproof",
+      "detail": "mutant 2a=(False, 'insert=True guarded=False disabled_kw=False')",
+      "result": "PASS"
+    }
+  ],
+  "verdict": "PASS",
+  "note": "三态判据：None = 无法判定（不记 FAIL）。反证 = 把缺陷重新注入变异体，判据必须 FAIL。"
+}

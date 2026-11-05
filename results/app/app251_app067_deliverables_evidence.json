@@ -1,0 +1,419 @@
+{
+ "script": "app251_app067_build_deliverables.py",
+ "correction": "APP-067 ②",
+ "ts": "2026-11-04 22:50:51",
+ "cfg": {
+  "dev_out": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out",
+  "out_dir": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone",
+  "out": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app251_app067_deliverables_evidence.json",
+  "n_per_gender": 3
+ },
+ "checks": [
+  {
+   "name": "clone 臂的段表有数据",
+   "verdict": true,
+   "detail": {
+    "n_seg_rows": 45
+   },
+   "why": ""
+  },
+  {
+   "name": "clone 臂的提交映射有数据",
+   "verdict": true,
+   "detail": {
+    "n_submit_rows": 87
+   },
+   "why": ""
+  },
+  {
+   "name": "clone 臂的逐句 jsonl 有数据",
+   "verdict": true,
+   "detail": {
+    "n_sent_rows": 87
+   },
+   "why": ""
+  },
+  {
+   "name": "每条提交都能对上「段号 + 音频区间 + 逐句遥测」",
+   "verdict": true,
+   "detail": {
+    "n_joined": 87,
+    "n_with_seg_span": 87
+   },
+   "why": ""
+  },
+  {
+   "name": "性别有直接实测来源（App 自己的簇的 F0）",
+   "verdict": true,
+   "detail": {
+    "n_clusters": 4,
+    "f0_evidence": {
+     "S1": {
+      "n_segments": 42,
+      "n_voiced_frames": 9450,
+      "f0_median_hz": 202.53,
+      "f0_p25_hz": 179.78,
+      "f0_p75_hz": 246.15,
+      "male_max_hz": 160.0,
+      "measured_on": "SPE_mix_3303_3603.wav",
+      "note": "**直接测 App 自己的簇**（不依赖参照编号）"
+     },
+     "S2": {
+      "n_segments": 29,
+      "n_voiced_frames": 4892,
+      "f0_median_hz": 153.85,
+      "f0_p25_hz": 98.77,
+      "f0_p75_hz": 228.57,
+      "male_max_hz": 160.0,
+      "measured_on": "SPE_mix_3303_3603.wav",
+      "note": "**直接测 App 自己的簇**（不依赖参照编号）"
+     },
+     "S3": {
+      "n_segments": 10,
+      "n_voiced_frames": 2393,
+      "f0_median_hz": 205.13,
+      "f0_p25_hz": 192.77,
+      "f0_p75_hz": 225.35,
+      "male_max_hz": 160.0,
+      "measured_on": "SPE_mix_3303_3603.wav",
+      "note": "**直接测 App 自己的簇**（不依赖参照编号）"
+     },
+     "S4": {
+      "n_segments": 3,
+      "n_voiced_frames": 512,
+      "f0_median_hz": 197.53,
+      "f0_p25_hz": 163.27,
+      "f0_p75_hz": 242.42,
+      "male_max_hz": 160.0,
+      "measured_on": "SPE_mix_3303_3603.wav",
+      "note": "**直接测 App 自己的簇**（不依赖参照编号）"
+     }
+    }
+   },
+   "why": ""
+  },
+  {
+   "name": "既有男声簇也有女声簇",
+   "verdict": true,
+   "detail": {
+    "gender_map": {
+     "S1": "female",
+     "S2": "male",
+     "S3": "female",
+     "S4": "female"
+    }
+   },
+   "why": ""
+  },
+  {
+   "name": "① 产出「每段一行」的表",
+   "verdict": true,
+   "detail": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\seg_voice_table_by_seg.csv",
+    "n_rows": 40
+   },
+   "why": ""
+  },
+  {
+   "name": "② 选出 male 声 3 段（voice_kind=clone）",
+   "verdict": true,
+   "detail": {
+    "n": 3,
+    "segs": [
+     5,
+     2,
+     4
+    ]
+   },
+   "why": ""
+  },
+  {
+   "name": "② 选出 female 声 3 段（voice_kind=clone）",
+   "verdict": true,
+   "detail": {
+    "n": 3,
+    "segs": [
+     29,
+     21,
+     20
+    ]
+   },
+   "why": ""
+  },
+  {
+   "name": "② clone wav 已落盘",
+   "verdict": true,
+   "detail": {
+    "n": 6,
+    "expect_min": 6
+   },
+   "why": ""
+  },
+  {
+   "name": "② 预设 A 对照 wav 已落盘",
+   "verdict": true,
+   "detail": {
+    "n": 6,
+    "expect_min": 6
+   },
+   "why": ""
+  },
+  {
+   "name": "③ 原声参考片段已落盘",
+   "verdict": true,
+   "detail": {
+    "n": 6,
+    "expect_min": 6
+   },
+   "why": ""
+  }
+ ],
+ "deliverables": [
+  {
+   "gender": "male",
+   "seg_id": 5,
+   "jid": 10,
+   "t0": 38.4,
+   "t1": 44.8,
+   "spk": "S2",
+   "voice_id": "S2",
+   "voice_kind": "clone",
+   "text": "你知道，正如我们与原始设备制造商和供应商交谈时所看到的那样，这种情况确实会发生。",
+   "clone_wav": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_clone\\male_01_seg5_clone.wav",
+    "bytes": 426284
+   },
+   "presetA_wav": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_presetA\\male_01_seg5_presetA.wav",
+    "bytes": 364844
+   },
+   "original_wav": {
+    "bytes": 204844,
+    "sr": 16000,
+    "nch": 1,
+    "sampwidth": 2,
+    "n_samples": 102400,
+    "dur_s": 6.4,
+    "src_offset_s": 38.4,
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_original\\male_01_seg5_orig.wav"
+   }
+  },
+  {
+   "gender": "male",
+   "seg_id": 2,
+   "jid": 4,
+   "t0": 19.2,
+   "t1": 25.6,
+   "spk": "S2",
+   "voice_id": "S2",
+   "voice_kind": "clone",
+   "text": "好吧，根据最近的报道，人工智能模型、黑客攻击网站、利用未知漏洞等问题依然存在。",
+   "clone_wav": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_clone\\male_02_seg2_clone.wav",
+    "bytes": 422444
+   },
+   "presetA_wav": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_presetA\\male_02_seg2_presetA.wav",
+    "bytes": 387884
+   },
+   "original_wav": {
+    "bytes": 204844,
+    "sr": 16000,
+    "nch": 1,
+    "sampwidth": 2,
+    "n_samples": 102400,
+    "dur_s": 6.4,
+    "src_offset_s": 19.2,
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_original\\male_02_seg2_orig.wav"
+   }
+  },
+  {
+   "gender": "male",
+   "seg_id": 4,
+   "jid": 6,
+   "t0": 32.0,
+   "t1": 38.4,
+   "spk": "S2",
+   "voice_id": "S2",
+   "voice_kind": "clone",
+   "text": "我们的硬件可能存在未知的漏洞，已识别出漏洞并进行了相应的修复。",
+   "clone_wav": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_clone\\male_03_seg4_clone.wav",
+    "bytes": 353324
+   },
+   "presetA_wav": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_presetA\\male_03_seg4_presetA.wav",
+    "bytes": 311084
+   },
+   "original_wav": {
+    "bytes": 204844,
+    "sr": 16000,
+    "nch": 1,
+    "sampwidth": 2,
+    "n_samples": 102400,
+    "dur_s": 6.4,
+    "src_offset_s": 32.0,
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_original\\male_03_seg4_orig.wav"
+   }
+  },
+  {
+   "gender": "female",
+   "seg_id": 29,
+   "jid": 52,
+   "t0": 194.6,
+   "t1": 201.0,
+   "spk": "S1",
+   "voice_id": "S1",
+   "voice_kind": "clone",
+   "text": "我认为您知道 12xe 的最高内存配置，其实只是因为他们打算做一些真正有意义的事情而已。",
+   "clone_wav": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_clone\\female_01_seg29_clone.wav",
+    "bytes": 633644
+   },
+   "presetA_wav": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_presetA\\female_01_seg29_presetA.wav",
+    "bytes": 426284
+   },
+   "original_wav": {
+    "bytes": 204844,
+    "sr": 16000,
+    "nch": 1,
+    "sampwidth": 2,
+    "n_samples": 102400,
+    "dur_s": 6.4,
+    "src_offset_s": 194.6,
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_original\\female_01_seg29_orig.wav"
+   }
+  },
+  {
+   "gender": "female",
+   "seg_id": 21,
+   "jid": 36,
+   "t0": 138.9,
+   "t1": 146.6,
+   "spk": "S1",
+   "voice_id": "S1",
+   "voice_kind": "clone",
+   "text": "你知道，他们最近展示了一些很棒的演示作品，让我们惊讶的是他们所考虑的内容实在太周到了。",
+   "clone_wav": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_clone\\female_02_seg21_clone.wav",
+    "bytes": 407084
+   },
+   "presetA_wav": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_presetA\\female_02_seg21_presetA.wav",
+    "bytes": 380204
+   },
+   "original_wav": {
+    "bytes": 246444,
+    "sr": 16000,
+    "nch": 1,
+    "sampwidth": 2,
+    "n_samples": 123200,
+    "dur_s": 7.7,
+    "src_offset_s": 138.9,
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_original\\female_02_seg21_orig.wav"
+   }
+  },
+  {
+   "gender": "female",
+   "seg_id": 20,
+   "jid": 33,
+   "t0": 132.5,
+   "t1": 138.9,
+   "spk": "S3",
+   "voice_id": "S3",
+   "voice_kind": "clone",
+   "text": "所以我想知道，针对这种基于 Windows 的 AIPC 与代理工作流，我们的策略是什么？",
+   "clone_wav": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_clone\\female_03_seg20_clone.wav",
+    "bytes": 391724
+   },
+   "presetA_wav": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_presetA\\female_03_seg20_presetA.wav",
+    "bytes": 341804
+   },
+   "original_wav": {
+    "bytes": 204844,
+    "sr": 16000,
+    "nch": 1,
+    "sampwidth": 2,
+    "n_samples": 102400,
+    "dur_s": 6.4,
+    "src_offset_s": 132.5,
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\wav_original\\female_03_seg20_orig.wav"
+   }
+  }
+ ],
+ "clone_stem": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1",
+ "preset_stem": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4",
+ "reference_gender_map": {
+  "S1": "female",
+  "S2": "male",
+  "S3": "female",
+  "S4": "female",
+  "S5": "female"
+ },
+ "gender_map": {
+  "S1": "female",
+  "S2": "male",
+  "S3": "female",
+  "S4": "female"
+ },
+ "f0_evidence": {
+  "S1": {
+   "n_segments": 42,
+   "n_voiced_frames": 9450,
+   "f0_median_hz": 202.53,
+   "f0_p25_hz": 179.78,
+   "f0_p75_hz": 246.15,
+   "male_max_hz": 160.0,
+   "measured_on": "SPE_mix_3303_3603.wav",
+   "note": "**直接测 App 自己的簇**（不依赖参照编号）"
+  },
+  "S2": {
+   "n_segments": 29,
+   "n_voiced_frames": 4892,
+   "f0_median_hz": 153.85,
+   "f0_p25_hz": 98.77,
+   "f0_p75_hz": 228.57,
+   "male_max_hz": 160.0,
+   "measured_on": "SPE_mix_3303_3603.wav",
+   "note": "**直接测 App 自己的簇**（不依赖参照编号）"
+  },
+  "S3": {
+   "n_segments": 10,
+   "n_voiced_frames": 2393,
+   "f0_median_hz": 205.13,
+   "f0_p25_hz": 192.77,
+   "f0_p75_hz": 225.35,
+   "male_max_hz": 160.0,
+   "measured_on": "SPE_mix_3303_3603.wav",
+   "note": "**直接测 App 自己的簇**（不依赖参照编号）"
+  },
+  "S4": {
+   "n_segments": 3,
+   "n_voiced_frames": 512,
+   "f0_median_hz": 197.53,
+   "f0_p25_hz": 163.27,
+   "f0_p75_hz": 242.42,
+   "male_max_hz": 160.0,
+   "measured_on": "SPE_mix_3303_3603.wav",
+   "note": "**直接测 App 自己的簇**（不依赖参照编号）"
+  }
+ },
+ "table": {
+  "csv": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\seg_voice_table.csv",
+  "json": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\seg_voice_table.json",
+  "n_rows": 87,
+  "n_switches": 9
+ },
+ "table_by_seg": {
+  "csv": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\seg_voice_table_by_seg.csv",
+  "json": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\seg_voice_table_by_seg.json",
+  "n_rows": 40
+ },
+ "n_pass": 12,
+ "n_fail": 0,
+ "n_none": 0,
+ "verdict": "PASS"
+}

@@ -1,0 +1,200 @@
+{
+  "script": "app229_app063_d4_d2_fix.py",
+  "target": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\live_caption_app.py",
+  "checks": [
+    {
+      "name": "d4_handler_exists",
+      "ok": true,
+      "detail": "_on_mt_combo_changed 存在"
+    },
+    {
+      "name": "d4_bug_enforce_present",
+      "ok": true,
+      "detail": "handler 内含 _enforce_no_npu_conflict（行 3）"
+    },
+    {
+      "name": "d4_bug_setdevice_present",
+      "ok": true,
+      "detail": "handler 内含 set_device（行 10）"
+    },
+    {
+      "name": "d4_bug_opt_reread_after_enforce",
+      "ok": true,
+      "detail": "首次 _cur_mt_opt 行序 0 / enforce 行序 3 / 末次 _cur_mt_opt 行序 5"
+    },
+    {
+      "name": "d4_bug_forced_branch_present",
+      "ok": true,
+      "detail": "handler 内含「enforce 命中后重读 opt」的分支标志"
+    },
+    {
+      "name": "d4_behavior_handler",
+      "ok": true,
+      "detail": "handler 探针执行完成"
+    },
+    {
+      "name": "d4_behavior_device_is_gpu0",
+      "ok": true,
+      "detail": "调用后 mt.device='GPU.0'（期望 GPU.0）"
+    },
+    {
+      "name": "d4_behavior_engine_is_gpu0",
+      "ok": true,
+      "detail": "调用后 mt.engine_key='gpu_int8cw'（期望 'gpu_int8cw'）"
+    },
+    {
+      "name": "d4_behavior_config_saved_gpu0",
+      "ok": true,
+      "detail": "device_config 落盘 mt='GPU.0'"
+    },
+    {
+      "name": "d4_behavior_no_npu_after",
+      "ok": true,
+      "detail": "最终设备 'GPU.0' 不含 NPU"
+    },
+    {
+      "name": "d2a_toggled_calls_enable",
+      "ok": true,
+      "detail": "_on_tts_toggled 调用列表=['get', 'close', 'set', 'set', 'get', 'get', '_ui_log', '_enable_speaker_for_clone', 'set', '_ui_log', 'get', 'get', 'get', 'getattr', 'getattr', '_tts_device_problem', '_cuda_tts_available', 'startswith', 'str', 'upper', '_cuda_tts_unavailable_reason', '_ui_log', '_first_usable_tts_device', 'set', 'set', 'set', '_ui_log', 'set', 'set', '_ui_log', '_first_usable_tts_device', 'set', 'set', 'set', '_ui_log', 'set', 'TTSService', 'getattr', '_ui_log', 'set', 'set', 'set', 'set', 'set', '_ui_log', 'type']"
+    },
+    {
+      "name": "d2a_startup_calls_enable",
+      "ok": true,
+      "detail": "启动路径按 --tts-voice follow_speaker 自动开旁路"
+    },
+    {
+      "name": "d2b_want_clone_defined",
+      "ok": true,
+      "detail": "_want_clone 定义位置=1108"
+    },
+    {
+      "name": "d2b_spk_after_want",
+      "ok": true,
+      "detail": "_want_clone@1108 早于 _spk_enabled@1211"
+    },
+    {
+      "name": "d2b_forced_true_when_clone",
+      "ok": true,
+      "detail": "存在「_want_clone ⇒ _spk_enabled=True」的判定（位置 1323）"
+    },
+    {
+      "name": "d2b_speaker_off_does_not_override",
+      "ok": true,
+      "detail": "「显式 --speaker off」不覆盖克隆自动开（_spk_enabled@1211 < 强制分支@1323）"
+    },
+    {
+      "name": "d2c_handler_exists",
+      "ok": true,
+      "detail": "_on_speaker_toggled 存在"
+    },
+    {
+      "name": "d2c_switches_to_preset_a",
+      "ok": true,
+      "detail": "取消分支引用 _tts_voice_label 且取 key=A（引用=True / key A=True）"
+    },
+    {
+      "name": "d2c_sets_notice",
+      "ok": true,
+      "detail": "取消分支写状态栏提示"
+    },
+    {
+      "name": "d2c_behavior",
+      "ok": true,
+      "detail": "取消勾选分支执行完成"
+    },
+    {
+      "name": "d2c_behavior_voice_back_to_a",
+      "ok": true,
+      "detail": "取消后 var_tts_voice='预设 A'（期望 预设 A）"
+    },
+    {
+      "name": "d2c_behavior_disabled_bridge",
+      "ok": true,
+      "detail": "取消后 bridge.enabled=False"
+    },
+    {
+      "name": "d2d_calls_ensure_started",
+      "ok": true,
+      "detail": "_enable_speaker_for_clone 调用 ensure_started"
+    },
+    {
+      "name": "d2d_reports_live_session",
+      "ok": true,
+      "detail": "判定「会话进行中」（session.running）"
+    },
+    {
+      "name": "d2d_bridge_has_ensure_started",
+      "ok": true,
+      "detail": "SpeakerBridge.ensure_started 存在"
+    },
+    {
+      "name": "d2d_behavior",
+      "ok": true,
+      "detail": "会话进行中分支执行完成"
+    },
+    {
+      "name": "d2d_behavior_thread_started",
+      "ok": true,
+      "detail": "ensure_started 被调用 1 次"
+    },
+    {
+      "name": "d2d_behavior_status_not_restart",
+      "ok": true,
+      "detail": "状态栏文案=['说话人分离：开（克隆需要）（已即时生效，无需重启会话）']（不含「需重启会话」且含「已即时生效」）"
+    },
+    {
+      "name": "b_renamed_label",
+      "ok": true,
+      "detail": "GUI 勾选框文案已改名"
+    },
+    {
+      "name": "b_has_hint",
+      "ok": true,
+      "detail": "带一句话提示说明作用"
+    },
+    {
+      "name": "b_var_name_kept",
+      "ok": true,
+      "detail": "变量名 var_speaker 保留（app227/app204 依赖）"
+    },
+    {
+      "name": "b_moved_to_advanced",
+      "ok": true,
+      "detail": "cb_speaker 挂在高级面板（_adv_frame/g_adv=True）且不在 TTS 行（False）"
+    },
+    {
+      "name": "cli_d4_guard_present",
+      "ok": true,
+      "detail": "CLI 侧有 MT/TTS 同 NPU 判定"
+    },
+    {
+      "name": "cli_d4_switches_to_gpu0",
+      "ok": true,
+      "detail": "CLI 侧 MT 自动改到 GPU.0"
+    },
+    {
+      "name": "cli_d4_logs",
+      "ok": true,
+      "detail": "CLI 侧打日志告知"
+    },
+    {
+      "name": "counterproof_d4_removal_detected",
+      "ok": true,
+      "detail": "去掉「重读 opt」分支（行 3798–3803）后，重读判据不再成立（i_cur2=0 i_enf=3）"
+    },
+    {
+      "name": "counterproof_d2b_removal_detected",
+      "ok": true,
+      "detail": "去掉强制分支（行 6452–6456）后该锚点消失"
+    },
+    {
+      "name": "counterproof_d2c_removal_detected",
+      "ok": true,
+      "detail": "切回「预设 A」的语句消失后判据失效"
+    }
+  ],
+  "n_pass": 38,
+  "n_fail": 0,
+  "n_none": 0,
+  "verdict": "PASS"
+}

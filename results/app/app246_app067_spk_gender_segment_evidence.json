@@ -1,0 +1,781 @@
+{
+ "script": "app246_app067_spk_gender_segment.py",
+ "correction": "APP-067 ②（前置：选一段至少一男一女的 SPE 片段）",
+ "ts": "2026-11-04 22:14:21",
+ "cfg": {
+  "window_s": 300.0,
+  "out": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app246_app067_spk_gender_segment_evidence.json"
+ },
+ "criterion": {
+  "method": "autocorrelation_f0 (lowest-lag peak >= 0.85*global)",
+  "frame_ms": 40.0,
+  "hop_ms": 20.0,
+  "f0_range_hz": [
+   60.0,
+   400.0
+  ],
+  "male_max_hz": 160.0,
+  "note": "语料无性别标注 ⇒ 本文件给的是**基频实测值 + 推定分类**，不是人工标注；阈值来源=F0_MALE_MAX，reviewer 可裁定"
+ },
+ "criterion_selftest": {
+  "path": "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+  "expect": "single male voice (history correction)",
+  "male_max_hz": 160.0,
+  "n_voiced_frames": 5991,
+  "f0_median_hz": 114.29,
+  "f0_p25_hz": 97.56,
+  "f0_p75_hz": 228.57,
+  "ok": true
+ },
+ "src_wav": {
+  "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\260902_SPE_audio.wav",
+  "sr": 16000,
+  "n_frames": 58739029,
+  "dur_s": 3671.189,
+  "bytes": 117478136
+ },
+ "per_speaker": [
+  {
+   "spk": "S1",
+   "n_voiced_frames": 5066,
+   "n_segments": 25,
+   "f0_median_hz": 190.48,
+   "f0_p25_hz": 166.67,
+   "f0_p75_hz": 235.29,
+   "presumed_class": "high_f0_female_presumed"
+  },
+  {
+   "spk": "S2",
+   "n_voiced_frames": 15511,
+   "n_segments": 95,
+   "f0_median_hz": 117.65,
+   "f0_p25_hz": 95.81,
+   "f0_p75_hz": 228.57,
+   "presumed_class": "low_f0_male_presumed"
+  },
+  {
+   "spk": "S3",
+   "n_voiced_frames": 15158,
+   "n_segments": 66,
+   "f0_median_hz": 210.53,
+   "f0_p25_hz": 186.05,
+   "f0_p75_hz": 250.0,
+   "presumed_class": "high_f0_female_presumed"
+  },
+  {
+   "spk": "S4",
+   "n_voiced_frames": 396,
+   "n_segments": 2,
+   "f0_median_hz": 207.79,
+   "f0_p25_hz": 192.77,
+   "f0_p75_hz": 231.88,
+   "presumed_class": "high_f0_female_presumed"
+  },
+  {
+   "spk": "S5",
+   "n_voiced_frames": 1675,
+   "n_segments": 8,
+   "f0_median_hz": 207.79,
+   "f0_p25_hz": 195.12,
+   "f0_p75_hz": 225.35,
+   "presumed_class": "high_f0_female_presumed"
+  }
+ ],
+ "male_spk": [
+  "S2"
+ ],
+ "female_spk": [
+  "S1",
+  "S3",
+  "S4",
+  "S5"
+ ],
+ "n_candidates": 186,
+ "candidates_top10": [
+  {
+   "start_s": 3302.72,
+   "end_s": 3602.72,
+   "n_segments": 42,
+   "speakers": [
+    "S1",
+    "S2",
+    "S3",
+    "S5"
+   ],
+   "n_switch": 12,
+   "male_in_window": [
+    "S2"
+   ],
+   "female_in_window": [
+    "S1",
+    "S3",
+    "S5"
+   ]
+  },
+  {
+   "start_s": 3288.64,
+   "end_s": 3588.64,
+   "n_segments": 42,
+   "speakers": [
+    "S1",
+    "S2",
+    "S3",
+    "S5"
+   ],
+   "n_switch": 11,
+   "male_in_window": [
+    "S2"
+   ],
+   "female_in_window": [
+    "S1",
+    "S3",
+    "S5"
+   ]
+  },
+  {
+   "start_s": 3296.32,
+   "end_s": 3596.32,
+   "n_segments": 42,
+   "speakers": [
+    "S1",
+    "S2",
+    "S3",
+    "S5"
+   ],
+   "n_switch": 11,
+   "male_in_window": [
+    "S2"
+   ],
+   "female_in_window": [
+    "S1",
+    "S3",
+    "S5"
+   ]
+  },
+  {
+   "start_s": 3312.32,
+   "end_s": 3612.32,
+   "n_segments": 43,
+   "speakers": [
+    "S1",
+    "S2",
+    "S3",
+    "S5"
+   ],
+   "n_switch": 11,
+   "male_in_window": [
+    "S2"
+   ],
+   "female_in_window": [
+    "S1",
+    "S3",
+    "S5"
+   ]
+  },
+  {
+   "start_s": 3321.92,
+   "end_s": 3621.92,
+   "n_segments": 43,
+   "speakers": [
+    "S1",
+    "S2",
+    "S3",
+    "S5"
+   ],
+   "n_switch": 11,
+   "male_in_window": [
+    "S2"
+   ],
+   "female_in_window": [
+    "S1",
+    "S3",
+    "S5"
+   ]
+  },
+  {
+   "start_s": 3328.32,
+   "end_s": 3628.32,
+   "n_segments": 43,
+   "speakers": [
+    "S1",
+    "S2",
+    "S3",
+    "S5"
+   ],
+   "n_switch": 11,
+   "male_in_window": [
+    "S2"
+   ],
+   "female_in_window": [
+    "S1",
+    "S3",
+    "S5"
+   ]
+  },
+  {
+   "start_s": 3282.24,
+   "end_s": 3582.24,
+   "n_segments": 42,
+   "speakers": [
+    "S1",
+    "S2",
+    "S3",
+    "S5"
+   ],
+   "n_switch": 10,
+   "male_in_window": [
+    "S2"
+   ],
+   "female_in_window": [
+    "S1",
+    "S3",
+    "S5"
+   ]
+  },
+  {
+   "start_s": 3334.72,
+   "end_s": 3634.72,
+   "n_segments": 43,
+   "speakers": [
+    "S1",
+    "S2",
+    "S3",
+    "S5"
+   ],
+   "n_switch": 10,
+   "male_in_window": [
+    "S2"
+   ],
+   "female_in_window": [
+    "S1",
+    "S3",
+    "S5"
+   ]
+  },
+  {
+   "start_s": 3341.12,
+   "end_s": 3641.12,
+   "n_segments": 43,
+   "speakers": [
+    "S1",
+    "S2",
+    "S3",
+    "S5"
+   ],
+   "n_switch": 10,
+   "male_in_window": [
+    "S2"
+   ],
+   "female_in_window": [
+    "S1",
+    "S3",
+    "S5"
+   ]
+  },
+  {
+   "start_s": 3347.52,
+   "end_s": 3647.52,
+   "n_segments": 43,
+   "speakers": [
+    "S1",
+    "S2",
+    "S3",
+    "S5"
+   ],
+   "n_switch": 10,
+   "male_in_window": [
+    "S2"
+   ],
+   "female_in_window": [
+    "S1",
+    "S3",
+    "S5"
+   ]
+  }
+ ],
+ "chosen_window": {
+  "start_s": 3302.72,
+  "end_s": 3602.72,
+  "n_segments": 42,
+  "speakers": [
+   "S1",
+   "S2",
+   "S3",
+   "S5"
+  ],
+  "n_switch": 12,
+  "male_in_window": [
+   "S2"
+  ],
+  "female_in_window": [
+   "S1",
+   "S3",
+   "S5"
+  ]
+ },
+ "segments_in_window": [
+  {
+   "id": 152,
+   "t_start": 3302.72,
+   "t_end": 3312.32,
+   "spk": "S3",
+   "dur_s": 9.6,
+   "n_voiced_frames": 333,
+   "f0_median": 207.79,
+   "f0_p25": 177.78,
+   "f0_p75": 258.06
+  },
+  {
+   "id": 153,
+   "t_start": 3312.32,
+   "t_end": 3321.92,
+   "spk": "S1",
+   "dur_s": 9.6,
+   "n_voiced_frames": 247,
+   "f0_median": 197.53,
+   "f0_p25": 173.91,
+   "f0_p75": 233.59
+  },
+  {
+   "id": 154,
+   "t_start": 3321.92,
+   "t_end": 3328.32,
+   "spk": "S1",
+   "dur_s": 6.4,
+   "n_voiced_frames": 186,
+   "f0_median": 177.78,
+   "f0_p25": 161.62,
+   "f0_p75": 235.29
+  },
+  {
+   "id": 155,
+   "t_start": 3328.32,
+   "t_end": 3334.72,
+   "spk": "S1",
+   "dur_s": 6.4,
+   "n_voiced_frames": 214,
+   "f0_median": 188.24,
+   "f0_p25": 172.04,
+   "f0_p75": 228.57
+  },
+  {
+   "id": 156,
+   "t_start": 3334.72,
+   "t_end": 3341.12,
+   "spk": "S2",
+   "dur_s": 6.4,
+   "n_voiced_frames": 161,
+   "f0_median": 168.42,
+   "f0_p25": 117.65,
+   "f0_p75": 231.88
+  },
+  {
+   "id": 157,
+   "t_start": 3341.12,
+   "t_end": 3347.52,
+   "spk": "S2",
+   "dur_s": 6.4,
+   "n_voiced_frames": 143,
+   "f0_median": 110.34,
+   "f0_p25": 96.39,
+   "f0_p75": 222.22
+  },
+  {
+   "id": 158,
+   "t_start": 3347.52,
+   "t_end": 3353.92,
+   "spk": "S2",
+   "dur_s": 6.4,
+   "n_voiced_frames": 153,
+   "f0_median": 109.59,
+   "f0_p25": 95.81,
+   "f0_p75": 222.22
+  },
+  {
+   "id": 159,
+   "t_start": 3353.92,
+   "t_end": 3360.32,
+   "spk": "S2",
+   "dur_s": 6.4,
+   "n_voiced_frames": 151,
+   "f0_median": 100.63,
+   "f0_p25": 90.91,
+   "f0_p75": 231.88
+  },
+  {
+   "id": 160,
+   "t_start": 3360.32,
+   "t_end": 3366.72,
+   "spk": "S2",
+   "dur_s": 6.4,
+   "n_voiced_frames": 137,
+   "f0_median": 116.79,
+   "f0_p25": 94.12,
+   "f0_p75": 225.35
+  },
+  {
+   "id": 161,
+   "t_start": 3366.72,
+   "t_end": 3373.12,
+   "spk": "S2",
+   "dur_s": 6.4,
+   "n_voiced_frames": 207,
+   "f0_median": 106.67,
+   "f0_p25": 100.0,
+   "f0_p75": 209.16
+  },
+  {
+   "id": 162,
+   "t_start": 3373.12,
+   "t_end": 3379.52,
+   "spk": "S2",
+   "dur_s": 6.4,
+   "n_voiced_frames": 151,
+   "f0_median": 128.0,
+   "f0_p25": 98.16,
+   "f0_p75": 219.18
+  },
+  {
+   "id": 163,
+   "t_start": 3379.52,
+   "t_end": 3385.92,
+   "spk": "S2",
+   "dur_s": 6.4,
+   "n_voiced_frames": 194,
+   "f0_median": 135.02,
+   "f0_p25": 106.14,
+   "f0_p75": 219.18
+  },
+  {
+   "id": 164,
+   "t_start": 3385.92,
+   "t_end": 3392.32,
+   "spk": "S2",
+   "dur_s": 6.4,
+   "n_voiced_frames": 170,
+   "f0_median": 105.26,
+   "f0_p25": 92.49,
+   "f0_p75": 243.44
+  },
+  {
+   "id": 165,
+   "t_start": 3392.32,
+   "t_end": 3398.72,
+   "spk": "S2",
+   "dur_s": 6.4,
+   "n_voiced_frames": 180,
+   "f0_median": 115.52,
+   "f0_p25": 95.67,
+   "f0_p75": 235.29
+  },
+  {
+   "id": 166,
+   "t_start": 3398.72,
+   "t_end": 3405.12,
+   "spk": "S2",
+   "dur_s": 6.4,
+   "n_voiced_frames": 143,
+   "f0_median": 129.03,
+   "f0_p25": 94.67,
+   "f0_p75": 260.18
+  },
+  {
+   "id": 168,
+   "t_start": 3407.68,
+   "t_end": 3414.08,
+   "spk": "S2",
+   "dur_s": 6.4,
+   "n_voiced_frames": 172,
+   "f0_median": 118.08,
+   "f0_p25": 93.02,
+   "f0_p75": 223.0
+  },
+  {
+   "id": 170,
+   "t_start": 3418.56,
+   "t_end": 3424.96,
+   "spk": "S5",
+   "dur_s": 6.4,
+   "n_voiced_frames": 172,
+   "f0_median": 209.16,
+   "f0_p25": 197.53,
+   "f0_p75": 219.18
+  },
+  {
+   "id": 171,
+   "t_start": 3424.96,
+   "t_end": 3435.2,
+   "spk": "S5",
+   "dur_s": 10.24,
+   "n_voiced_frames": 329,
+   "f0_median": 202.53,
+   "f0_p25": 190.48,
+   "f0_p75": 216.22
+  },
+  {
+   "id": 172,
+   "t_start": 3435.2,
+   "t_end": 3441.6,
+   "spk": "S5",
+   "dur_s": 6.4,
+   "n_voiced_frames": 210,
+   "f0_median": 192.77,
+   "f0_p25": 181.82,
+   "f0_p75": 207.79
+  },
+  {
+   "id": 173,
+   "t_start": 3441.6,
+   "t_end": 3449.28,
+   "spk": "S3",
+   "dur_s": 7.68,
+   "n_voiced_frames": 295,
+   "f0_median": 205.13,
+   "f0_p25": 188.24,
+   "f0_p75": 242.42
+  },
+  {
+   "id": 174,
+   "t_start": 3449.28,
+   "t_end": 3456.32,
+   "spk": "S3",
+   "dur_s": 7.04,
+   "n_voiced_frames": 263,
+   "f0_median": 183.91,
+   "f0_p25": 173.91,
+   "f0_p75": 233.59
+  },
+  {
+   "id": 175,
+   "t_start": 3456.32,
+   "t_end": 3462.72,
+   "spk": "S3",
+   "dur_s": 6.4,
+   "n_voiced_frames": 195,
+   "f0_median": 188.24,
+   "f0_p25": 175.82,
+   "f0_p75": 222.22
+  },
+  {
+   "id": 176,
+   "t_start": 3462.72,
+   "t_end": 3470.4,
+   "spk": "S3",
+   "dur_s": 7.68,
+   "n_voiced_frames": 278,
+   "f0_median": 192.77,
+   "f0_p25": 170.67,
+   "f0_p75": 242.42
+  },
+  {
+   "id": 177,
+   "t_start": 3470.4,
+   "t_end": 3476.8,
+   "spk": "S3",
+   "dur_s": 6.4,
+   "n_voiced_frames": 218,
+   "f0_median": 228.57,
+   "f0_p25": 176.31,
+   "f0_p75": 258.06
+  },
+  {
+   "id": 178,
+   "t_start": 3476.8,
+   "t_end": 3481.28,
+   "spk": "S5",
+   "dur_s": 4.48,
+   "n_voiced_frames": 135,
+   "f0_median": 207.79,
+   "f0_p25": 195.12,
+   "f0_p75": 228.57
+  },
+  {
+   "id": 179,
+   "t_start": 3481.28,
+   "t_end": 3487.68,
+   "spk": "S3",
+   "dur_s": 6.4,
+   "n_voiced_frames": 175,
+   "f0_median": 222.22,
+   "f0_p25": 186.05,
+   "f0_p75": 251.98
+  },
+  {
+   "id": 180,
+   "t_start": 3487.68,
+   "t_end": 3497.28,
+   "spk": "S3",
+   "dur_s": 9.6,
+   "n_voiced_frames": 317,
+   "f0_median": 188.24,
+   "f0_p25": 170.21,
+   "f0_p75": 242.42
+  },
+  {
+   "id": 181,
+   "t_start": 3497.28,
+   "t_end": 3503.68,
+   "spk": "S3",
+   "dur_s": 6.4,
+   "n_voiced_frames": 212,
+   "f0_median": 190.48,
+   "f0_p25": 179.78,
+   "f0_p75": 239.71
+  },
+  {
+   "id": 182,
+   "t_start": 3503.68,
+   "t_end": 3510.08,
+   "spk": "S3",
+   "dur_s": 6.4,
+   "n_voiced_frames": 234,
+   "f0_median": 205.13,
+   "f0_p25": 186.05,
+   "f0_p75": 238.81
+  },
+  {
+   "id": 183,
+   "t_start": 3510.08,
+   "t_end": 3516.48,
+   "spk": "S3",
+   "dur_s": 6.4,
+   "n_voiced_frames": 200,
+   "f0_median": 238.81,
+   "f0_p25": 199.38,
+   "f0_p75": 280.7
+  },
+  {
+   "id": 184,
+   "t_start": 3516.48,
+   "t_end": 3522.88,
+   "spk": "S3",
+   "dur_s": 6.4,
+   "n_voiced_frames": 233,
+   "f0_median": 207.79,
+   "f0_p25": 195.12,
+   "f0_p75": 258.06
+  },
+  {
+   "id": 185,
+   "t_start": 3522.88,
+   "t_end": 3529.92,
+   "spk": "S3",
+   "dur_s": 7.04,
+   "n_voiced_frames": 268,
+   "f0_median": 186.05,
+   "f0_p25": 170.21,
+   "f0_p75": 211.23
+  },
+  {
+   "id": 186,
+   "t_start": 3529.92,
+   "t_end": 3536.32,
+   "spk": "S5",
+   "dur_s": 6.4,
+   "n_voiced_frames": 192,
+   "f0_median": 205.13,
+   "f0_p25": 195.12,
+   "f0_p75": 223.0
+  },
+  {
+   "id": 187,
+   "t_start": 3536.32,
+   "t_end": 3542.72,
+   "spk": "S3",
+   "dur_s": 6.4,
+   "n_voiced_frames": 186,
+   "f0_median": 213.33,
+   "f0_p25": 195.12,
+   "f0_p75": 235.29
+  },
+  {
+   "id": 188,
+   "t_start": 3542.72,
+   "t_end": 3551.04,
+   "spk": "S3",
+   "dur_s": 8.32,
+   "n_voiced_frames": 312,
+   "f0_median": 202.53,
+   "f0_p25": 183.91,
+   "f0_p75": 231.88
+  },
+  {
+   "id": 189,
+   "t_start": 3551.04,
+   "t_end": 3557.44,
+   "spk": "S5",
+   "dur_s": 6.4,
+   "n_voiced_frames": 210,
+   "f0_median": 222.22,
+   "f0_p25": 210.53,
+   "f0_p75": 245.22
+  },
+  {
+   "id": 190,
+   "t_start": 3557.44,
+   "t_end": 3563.84,
+   "spk": "S5",
+   "dur_s": 6.4,
+   "n_voiced_frames": 204,
+   "f0_median": 210.53,
+   "f0_p25": 197.53,
+   "f0_p75": 235.29
+  },
+  {
+   "id": 191,
+   "t_start": 3563.84,
+   "t_end": 3570.24,
+   "spk": "S5",
+   "dur_s": 6.4,
+   "n_voiced_frames": 223,
+   "f0_median": 210.53,
+   "f0_p25": 200.0,
+   "f0_p75": 235.29
+  },
+  {
+   "id": 192,
+   "t_start": 3570.24,
+   "t_end": 3576.64,
+   "spk": "S3",
+   "dur_s": 6.4,
+   "n_voiced_frames": 149,
+   "f0_median": 222.22,
+   "f0_p25": 197.53,
+   "f0_p75": 246.15
+  },
+  {
+   "id": 193,
+   "t_start": 3576.64,
+   "t_end": 3583.04,
+   "spk": "S1",
+   "dur_s": 6.4,
+   "n_voiced_frames": 163,
+   "f0_median": 202.53,
+   "f0_p25": 186.05,
+   "f0_p75": 242.42
+  },
+  {
+   "id": 194,
+   "t_start": 3583.04,
+   "t_end": 3589.44,
+   "spk": "S1",
+   "dur_s": 6.4,
+   "n_voiced_frames": 172,
+   "f0_median": 186.07,
+   "f0_p25": 156.48,
+   "f0_p75": 243.36
+  },
+  {
+   "id": 195,
+   "t_start": 3589.44,
+   "t_end": 3596.48,
+   "spk": "S2",
+   "dur_s": 7.04,
+   "n_voiced_frames": 198,
+   "f0_median": 157.64,
+   "f0_p25": 121.44,
+   "f0_p75": 222.22
+  }
+ ],
+ "verdict": "PASS"
+}

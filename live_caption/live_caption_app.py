@@ -6560,6 +6560,84 @@ def run_cli(args):
     #   ⇒ 段自身区间 = [上一段末, 本段末] ⇒ 打标率 89.13% → 95.65%
     _spk_prev_seg_end = [None]      # [0] = 上一段末（闭包内可变；None = 未知）
 
+    # 🔴🔴🔳 APP-067 ②：**逐段「段号 + 音频区间 + 说话人」表**（默认不落盘）
+    #   动机：reviewer 要「每段一行」的表（seg_id / t0 / t1 / spk / voice_id /
+    #   voice_kind / 换人检测时间点）＋「每段对应的原声参考片段」。
+    #   🔴 CLI 侧**早就算出了** `(t0, t1)`（`span_for_segment`），
+    #   但**只喂给旁路**、**从不落盘** ⇒ reviewer 拿不到 ⇒ 交付物为 0。
+    #   ⇒ 这里**只做落盘**，不改任何判定/取值逻辑 ⇒ 行为逐字不变。
+    _spk_seg_info = {}            # seg → {seg, t0, t1, spk, spk_conf, source}
+    _spk_submit_rows = []         # 提交序号（= worker 的 id）→ {jid, seg, spk}
+    # 🔴 用 `getattr` ⇒ 任何**手工构造的 Namespace**（老调用方）也不会炸
+    _spk_seg_path = getattr(args, 'spk_seg_jsonl', None)
+
+    def _spk_seg_note(seg, t0=None, t1=None, spk=None, spk_conf=None,
+                      source=None):
+        """记一段的（区间, 说话人）⇒ 只在 `--spk-seg-jsonl` 给了才干活。"""
+        if not _spk_seg_path:
+            return
+        row = _spk_seg_info.get(seg)
+        if row is None:
+            row = {'seg': seg, 't0': None, 't1': None, 'spk': None,
+                   'spk_conf': None, 'spk_source': None}
+            _spk_seg_info[seg] = row
+        if t0 is not None:
+            row['t0'] = round(float(t0), 3)
+        if t1 is not None:
+            row['t1'] = round(float(t1), 3)
+        if spk is not None:
+            row['spk'] = spk
+        if spk_conf is not None:
+            row['spk_conf'] = (round(float(spk_conf), 4)
+                               if isinstance(spk_conf, (int, float))
+                               else spk_conf)
+        if source is not None:
+            row['spk_source'] = source
+
+    def _spk_seg_flush():
+        """把段表落盘（**每次变化都重写** ⇒ 中途崩溃也不丢已写的数据）。"""
+        if not _spk_seg_path:
+            return
+        try:
+            import json as _json          # 🔴 本模块**不全局依赖** json ⇒ 局部导入
+            d = os.path.dirname(os.path.abspath(_spk_seg_path))
+            if d and not os.path.isdir(d):
+                os.makedirs(d, exist_ok=True)
+            with open(_spk_seg_path, 'w', encoding='utf-8') as f:
+                for k in sorted(_spk_seg_info):
+                    f.write(_json.dumps(_spk_seg_info[k], ensure_ascii=False))
+                    f.write('\n')
+            # 🔴🔴🔳 **提交序号 → seg** 的映射（与逐句 jsonl 对齐用）
+            _sub_path = _spk_seg_path + '.submit.jsonl'
+            with open(_sub_path, 'w', encoding='utf-8') as f:
+                for r in _spk_submit_rows:
+                    f.write(_json.dumps(r, ensure_ascii=False))
+                    f.write('\n')
+        except Exception as e:
+            print(f'  [spk] 段表落盘失败（忽略）：{e}', flush=True)
+
+    # 🔴🔴🔳 APP-067 ②：**提交序号（= worker 的 `id`）→ seg** 的映射
+    #   🔴 为什么需要：`tts_service.submit()` 里 `jid = self._next_id`，
+    #   `_next_id` 从 0 开始、**只有 `submit()` 会加** ⇒ **jid == 提交序号**。
+    #   而 ASR 定稿段数（34）≠ TTS 提交句数（42）⇒ **不能靠「第 N 段 = 第 N 句」**
+    #   ⇒ 必须显式记映射，否则「每段一行」的表**无法与逐句 jsonl 对齐**。
+    #   ⚠️ **只在 `--spk-seg-jsonl` 给了时才包** ⇒ 默认路径**逐字不变**。
+    if tts is not None and _spk_seg_path:
+        _tts_submit_real = tts.submit
+
+        def _tts_submit_rec(text, seg=None, **kw):
+            _spk_submit_rows.append({
+                'jid': len(_spk_submit_rows),
+                'seg': seg,
+                'spk': kw.get('spk'),
+                'spk_conf': kw.get('spk_conf'),
+            })
+            try:
+                return _tts_submit_real(text, seg=seg, **kw)
+            finally:
+                _spk_seg_flush()
+        tts.submit = _tts_submit_rec
+
     def _cli_on_audio_span(pcm, t_start, t_end):
         """🔴 APP-039/040：喂 ASR 旁路 + 维护 PCM 环形缓冲（有界 30 s）。"""
         # 🔴🔴🔴 §97 **修真实缺陷**：本函数**重绑**了 `_spk_pcm_buf`
@@ -6680,6 +6758,9 @@ def run_cli(args):
         for seg, spk, spk_conf, clean_ranges in got or []:
             try:
                 _spk_by_seg[seg] = (spk, spk_conf)
+                # 🔴🔴🔳 APP-067 ②：晚到的标签 ⇒ 补写进段表（只落盘，不改逻辑）
+                _spk_seg_note(seg, spk=spk, spk_conf=spk_conf, source='retry')
+                _spk_seg_flush()
                 # 🔴🔴🔴 APP-054：**必须带 clean_ranges**（同 GUI 侧口径）
                 # 🔴🔴🔴 APP-061⑤b：**必须接住 `is_new`**（同 GUI 侧口径）
                 #   ⇒ 否则新说话人永远不会被取样 ⇒ 每句都用预设 A。
@@ -6753,8 +6834,13 @@ def run_cli(args):
                 prev_end=_spk_prev_seg_end[0])
             # 🔴 记下本段末（供**下一段**当起点）
             _spk_prev_seg_end[0] = float(_spk_audio_end[0])
+            # 🔴🔴🔳 APP-067 ②：把本段的**音频区间**记进段表（只落盘，不改逻辑）
+            _spk_seg_note(_seg, t0=_t0, t1=_t1)
             _res = _spk_bridge.on_final(_seg, _t0, _t1)
             _spk2 = _res.get('spk')
+            if _spk2:
+                _spk_seg_note(_seg, spk=_spk2,
+                              spk_conf=_res.get('spk_conf'), source='sync')
             # 🔴🔴🔴 APP-047：「本段无标签」**要可观测**（不静默）。
             #   理由含 🆕 'embed_shape_out_of_range'（形状超界）⇒ 该段无标签
             #   ⇒ 沿用上一句音色 / 预设音色（方案 A：TTS 不等标签）。
@@ -7071,6 +7157,14 @@ def run_cli(args):
                       flush=True)
             except Exception:
                 pass
+    # 🔴🔴🔳 APP-067 ②：段表**最终**落盘（收尾再写一次 ⇒ 含最后几段）
+    try:
+        _spk_seg_flush()
+        if _spk_seg_path:
+            print(f'[spk] 段表已落盘：{_spk_seg_path}'
+                  f'（{len(_spk_seg_info)} 段）', flush=True)
+    except Exception:
+        pass
     mt.close()
     eng.close()
 
@@ -7413,6 +7507,12 @@ def main():
                          '（该模式不播放 ⇒ 欠载/积压字段无意义）；'
                          '要测真实播放的欠载/积压/语音滞后，'
                          '必须用这个开关（可与 `--tts-out` 互斥使用）')
+    ap.add_argument('--spk-seg-jsonl', default=None,
+                    help='🔴 APP-067 ②：逐段「说话人 + 音频区间」JSONL 落盘路径。'
+                         '每行 = {seg, t0, t1, spk, spk_conf, spk_source}，'
+                         '其中 t0/t1 = 该段在**输入音频时间轴**上的区间（秒）。'
+                         '不给 = 不落盘（默认零副作用 ⇒ 行为逐字不变）。'
+                         '用途：reviewer 要「每段一行」表 ＋ 每段原声参考切片')
     ap.add_argument('--tts-source', choices=['mt', 'asr'], default='mt',
                     help='🔴🔴🔴 APP-027「争用定量」四臂对照所需的最小开关。'
                          '`mt`（默认）= 朗读定稿译文（现有行为）；'

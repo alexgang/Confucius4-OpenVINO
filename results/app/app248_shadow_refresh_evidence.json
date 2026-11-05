@@ -1,0 +1,63 @@
+{
+ "script": "_app248_refresh_shadow.py",
+ "ts": "2026-11-04 22:18:58",
+ "shadow": "C:\\Users\\Trekker-PTL\\shared\\app067_shadow",
+ "real_pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2",
+ "dev": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption",
+ "dry_run": false,
+ "actions": [
+  {
+   "rel": "app\\live_caption_app.py",
+   "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\live_caption_app.py",
+   "dst": "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\app\\live_caption_app.py",
+   "old_sha": "4ecb811d47f1361eec10534f79a224190a10caecb96e09330d4c324f6698f4c7",
+   "new_sha": "25f58562f85a095ca89416e18c5339a3f36b2c4b0e747e65d852aa79d228a505",
+   "old_bytes": 412374,
+   "new_bytes": 413904,
+   "action": "copy",
+   "done": true
+  }
+ ],
+ "checks": [
+  {
+   "name": "影子包 app/ 与开发树逐字节一致（0 差异）",
+   "ok": true,
+   "detail": "差异 0 个"
+  },
+  {
+   "name": "真包 Confucius4_LiveCaption_v2.2 未被改动（前后指纹一致）",
+   "ok": true,
+   "detail": "前 40 文件 / 后 40 文件"
+  },
+  {
+   "name": "影子包含特征串（APP-067 ①(a) worker 加载期排队）",
+   "ok": true,
+   "detail": "app\\tts_worker.py"
+  },
+  {
+   "name": "影子包含特征串（APP-067 ③ combo 同步 GPU.0）",
+   "ok": true,
+   "detail": "app\\live_caption_app.py"
+  },
+  {
+   "name": "影子包含特征串（APP-067 ④ 按钮按像素定宽）",
+   "ok": true,
+   "detail": "app\\live_caption_app.py"
+  },
+  {
+   "name": "影子包含特征串（APP-067 ② 逐段段表（新））",
+   "ok": true,
+   "detail": "app\\live_caption_app.py"
+  },
+  {
+   "name": "影子包含特征串（ASR-045 唯一事实来源 5 s）",
+   "ok": true,
+   "detail": "app\\asr_spk\\asr_spk_window.py"
+  }
+ ],
+ "real_pkg_fp_before_n": 40,
+ "real_pkg_fp_after_n": 40,
+ "real_pkg_unchanged": true,
+ "real_pkg_changed_files": [],
+ "verdict": "PASS"
+}

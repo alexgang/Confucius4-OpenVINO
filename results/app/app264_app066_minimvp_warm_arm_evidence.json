@@ -1,0 +1,324 @@
+{
+ "script": "_app264_warm_arm.py",
+ "correction": "APP-066 3(b) 热启臂（补测）",
+ "ts": "2026-11-05 08:32:23",
+ "cfg": {
+  "run": true,
+  "la": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_gui_b7djmwch",
+  "timeout": 1500.0,
+  "out": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app264_app066_minimvp_warm_arm_evidence.json"
+ },
+ "checks": [
+  {
+   "name": "① 热启臂测到 TTS 加载耗时（有实测值）",
+   "verdict": true,
+   "detail": {
+    "tts_load_s": 9.5,
+    "model_loaded_at_s": 47.4,
+    "wall_s": 48.09,
+    "device": "NPU",
+    "stopped_reason": "模型加载完成 ⇒ 停",
+    "mt_label": "Intel GPU · INT4-CW · GPU.0"
+   },
+   "why": ""
+  },
+  {
+   "name": "② 100 % 截图抓到**完整主窗口**且非黑图",
+   "verdict": true,
+   "detail": {
+    "ok": true,
+    "all_black": false,
+    "bytes": 53348,
+    "size": [
+     1455,
+     1132
+    ],
+    "client": [
+     1439,
+     1093
+    ],
+    "is_main_window": true,
+    "n_candidates": 3
+   },
+   "why": ""
+  },
+  {
+   "name": "③ 热启 ≪ 冷启（缓存生效）",
+   "verdict": true,
+   "detail": {
+    "cold_s": 1209.3,
+    "warm_s": 9.5,
+    "saved_s": 1199.8,
+    "ratio": 0.0079,
+    "cold_src": "app263 真冷臂（全新 LOCALAPPDATA）",
+    "warm_src": "app264 本臂（同一 LOCALAPPDATA，NPU 缓存已热）"
+   },
+   "why": ""
+  }
+ ],
+ "runs": [
+  {
+   "tag": "warm100",
+   "scale": 1.0,
+   "cmd": [
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\app\\live_caption_app.py",
+    "--source",
+    "file",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app264_SPE_1500s.wav",
+    "--autostart",
+    "--selftest",
+    "1500",
+    "--selftest-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\selftest_warm100",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "A",
+    "--speaker",
+    "off",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--translate",
+    "zh",
+    "--mt-engine",
+    "gpu_int4cw"
+   ],
+   "localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_gui_b7djmwch",
+   "wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app264_SPE_1500s.wav",
+   "rc": 1,
+   "exit_code_early": null,
+   "wall_s": 48.09,
+   "stopped_reason": "模型加载完成 ⇒ 停",
+   "model_loaded_at_s": 47.4,
+   "shot": {
+    "ok": true,
+    "bytes": 53348,
+    "extrema": [
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ]
+    ],
+    "all_black": false,
+    "size": [
+     1455,
+     1132
+    ],
+    "hwnd": 7733648,
+    "rect": [
+     1455,
+     1132
+    ],
+    "client": [
+     1439,
+     1093
+    ],
+    "area": 1647060,
+    "_area": 1647060,
+    "tried": [
+     {
+      "ok": true,
+      "bytes": 17083,
+      "extrema": [
+       [
+        17,
+        255
+       ],
+       [
+        17,
+        215
+       ],
+       [
+        17,
+        215
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1638,
+       122
+      ],
+      "hwnd": 14551984,
+      "rect": [
+       1638,
+       122
+      ],
+      "client": [
+       1638,
+       122
+      ],
+      "area": 199836,
+      "_area": 199836,
+      "superseded_by_larger": true
+     },
+     {
+      "ok": false,
+      "bytes": 112,
+      "why": "capture_hwnd 返回 False（<=1000 B 视为失败）",
+      "hwnd": 3606946,
+      "rect": [
+       44,
+       24
+      ],
+      "client": [
+       44,
+       24
+      ],
+      "area": 1056
+     },
+     {
+      "ok": true,
+      "bytes": 53348,
+      "extrema": [
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1455,
+       1132
+      ],
+      "hwnd": 7733648,
+      "rect": [
+       1455,
+       1132
+      ],
+      "client": [
+       1439,
+       1093
+      ],
+      "area": 1647060,
+      "_area": 1647060
+     }
+    ],
+    "n_candidates": 3,
+    "at_s": 47.4
+   },
+   "shot_first": {
+    "ok": true,
+    "bytes": 17446,
+    "extrema": [
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ]
+    ],
+    "all_black": false,
+    "size": [
+     1455,
+     1132
+    ],
+    "hwnd": 7733648,
+    "rect": [
+     1455,
+     1132
+    ],
+    "client": [
+     1439,
+     1093
+    ],
+    "area": 1647060,
+    "_area": 1647060,
+    "tried": [
+     {
+      "ok": true,
+      "bytes": 17446,
+      "extrema": [
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1455,
+       1132
+      ],
+      "hwnd": 7733648,
+      "rect": [
+       1455,
+       1132
+      ],
+      "client": [
+       1439,
+       1093
+      ],
+      "area": 1647060,
+      "_area": 1647060
+     }
+    ],
+    "n_candidates": 1,
+    "at_s": 5.2
+   },
+   "n_captures": 16,
+   "shot_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\gui_warm100.png",
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\gui_warm100.log",
+   "session_log": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_gui_b7djmwch\\Confucius4LiveCaption\\session_20261105_083325.log",
+   "log_bytes": 159,
+   "log_tail": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+   "session_log_bytes": 9624,
+   "session_log_tail": "onsumed=-\n08:34:05 [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n08:34:05 [TTS] [tts_worker] APP-042 定速：出队 lag=15.022 s ⇒ speed=1.1000\n08:34:05 [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0000（r_recent=1.155 ⇒ 1/r=0.8660；合成跟不上 ⇒ 不抽空缓冲）\n08:34:06 [TTS] [tts_worker] 遥测 id=3 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=88320 parts=6 peak=0.4907 rms_dbfs=-18.7 nan_inf=0 cb_delta=117 read_delta=104320 underflow_delta=16 ring=0/72000 consumed=True\n08:34:06 [TTS] 遥测 id=3 peak=0.490723 rms_dbfs=-18.73 read_delta=104320 consumed=True\n08:34:06 [TTS] 首包分段 id=4：排队 3.749 s + 合成 0.838 s\n08:34:10 [TTS] [tts_worker] 合成遥测 id=4 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=82560 parts=6 peak=0.5532 rms_dbfs=-17.6 nan_inf=0 cb_delta=101 read_delta=88320 underflow_delta=15 ring=12928/72000 consumed=-\n08:34:10 [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n08:34:10 [TTS] [tts_worker] APP-042 定速：出队 lag=19.356 s ⇒ speed=1.1000\n08:34:10 [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0000（r_recent=1.176 ⇒ 1/r=0.8506；合成跟不上 ⇒ 不抽空缓冲）\n08:34:10 [TTS] [tts_worker] 遥测 id=4 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=82560 parts=6 peak=0.5532 rms_dbfs=-17.6 nan_inf=0 cb_delta=114 read_delta=101248 underflow_delta=16 ring=0/72000 consumed=True\n08:34:10 [TTS] 遥测 id=4 peak=0.553223 rms_dbfs=-17.59 read_delta=101248 consumed=True\n08:34:11 [TTS] 首包分段 id=5：排队 3.749 s + 合成 0.854 s\n",
+   "tts_load_s": 9.5,
+   "mt_load_s": 1.6,
+   "mt_label": "Intel GPU · INT4-CW · GPU.0",
+   "asr_load_s": null,
+   "asr_load_seen": true,
+   "tts_device": "NPU",
+   "has_npu_compile_hint": true,
+   "selftest_files": []
+  }
+ ],
+ "purpose": "app263 的热启臂超时（900 s）⇒ 判据 ②/⑥ FAIL；本臂在**同一 LOCALAPPDATA**（NPU 缓存已热）上补测 100 % 缩放的「第二次启动」",
+ "quiet_window": {
+  "ok": true,
+  "info": "{'quiet_seconds': 45.0, 'timeout': 1800.0, 'waited_s': 60.03824043273926, 'n_samples': 5, 'n_busy_samples': 1, 'n_idle_samples': 4, 'n_unknown_samples': 1, 'last_busy_pids': [23380, 20816], 'last_idle_pids': [23380], 'classifier': 'cpu-delta', 'quiet_since': 1793838759.220536}"
+ },
+ "warm_localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_gui_b7djmwch",
+ "npu_blobs_before": 18,
+ "wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app264_SPE_1500s.wav",
+ "npu_blobs_after": 19,
+ "n_pass": 3,
+ "n_fail": 0,
+ "n_none": 0,
+ "verdict": "PASS"
+}

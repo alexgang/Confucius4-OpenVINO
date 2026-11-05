@@ -1,0 +1,109 @@
+{
+  "script": "app237_app067_d1_window_pkg_gate.py",
+  "correction": "APP-067 ⑤（D1 5 s 窗口 · App 侧 / 客户包侧）",
+  "upstream": "ASR-045（内核已改完）+ NOTICE_asr_to_app_asr045_window_5s_kernel_fix.md",
+  "checks": [
+    {
+      "name": "H1 sync 的 ASR_FILES 含 asr_spk_window.py 且恰好 4 项",
+      "ok": true,
+      "detail": "含 asr_spk_window.py=True 项数=4（须 4）['asr052_speaker_tracker_api.py', 'asr052_spk_runtime.py', 'asr_thread_defaults.py', 'asr_spk_window.py']"
+    },
+    {
+      "name": "H2 sync 脚本同步 5 s 静态 seg IR（fp16-w5）",
+      "ok": true,
+      "detail": "源目录常量=True 子目录名=True 文件名=True"
+    },
+    {
+      "name": "H3 ASR 侧 4 个交付文件 md5 与 NOTICE 一致",
+      "ok": true,
+      "detail": "4 个文件 md5 全部与 NOTICE 一致"
+    },
+    {
+      "name": "H4 5 s 静态 seg IR 输入第三维 = 80000（非 160000）",
+      "ok": true,
+      "detail": "第三维含 80000=True；含 160000（10 s 静态）=False"
+    },
+    {
+      "name": "H5 App 侧解析到 5.0 且来源是同源 asr_spk_window",
+      "ok": true,
+      "detail": "_WIN_S=5.0 来源='同源 asr_spk_window.WIN_S=5.0'"
+    },
+    {
+      "name": "H6 内核 WIN_S 与唯一事实来源逐字相同",
+      "ok": true,
+      "detail": "内核 WIN_S=5.0 vs 唯一事实来源 WIN_S=5.0"
+    },
+    {
+      "name": "H7 App 喂窗样本数 == 内核 WIN_N（80000）",
+      "ok": true,
+      "detail": "App 喂窗样本数=80000（5.0 s × 16000）；内核 WIN_N=80000"
+    },
+    {
+      "name": "H8 App 的 find_seg_ir 按窗口选变体（不写死 fp16）",
+      "ok": true,
+      "detail": "按窗口选=True 变体常量=True"
+    },
+    {
+      "name": "H9 实际解析出的 seg IR 是 fp16-w5（5 s 窗配套）",
+      "ok": true,
+      "detail": "解析到 C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\models\\spk\\pyannote_seg_3_0/fp16-w5（pyannote_seg_3_0 fp16-w5（窗口 5.000 s，来源 asr_spk_window））"
+    }
+  ],
+  "n_pass": 9,
+  "n_fail": 0,
+  "n_none": 0,
+  "counterproofs": [
+    {
+      "check": "H1 ASR_FILES 含 asr_spk_window.py",
+      "broke": true,
+      "verdict": "PASS",
+      "detail": "含 asr_spk_window.py=False 项数=3（须 4）['asr052_speaker_tracker_api.py', 'asr052_spk_runtime.py', 'asr_thread_defaults.py']"
+    },
+    {
+      "check": "H2 sync 同步 5 s 静态 seg IR",
+      "broke": true,
+      "verdict": "PASS",
+      "detail": "源目录常量=False 子目录名=True 文件名=True"
+    },
+    {
+      "check": "H3 交付文件 md5 与 NOTICE 一致",
+      "broke": true,
+      "verdict": "PASS",
+      "detail": "4 个文件 md5 不符：['asr_spk_window.py: 7d719e1d7f251be9ce68503be4361807 ≠ 00000000000000000000000000000000']"
+    },
+    {
+      "check": "H4 5 s IR 输入第三维 = 80000",
+      "broke": true,
+      "verdict": "PASS",
+      "detail": "第三维含 80000=False；含 160000（10 s 静态）=True"
+    },
+    {
+      "check": "H5 App 侧解析到 5.0 且同源",
+      "broke": true,
+      "verdict": "PASS",
+      "detail": "_WIN_S=10.0 来源='默认 10.0'"
+    },
+    {
+      "check": "H6 内核 WIN_S 与唯一事实来源相同",
+      "broke": true,
+      "verdict": "PASS",
+      "detail": "内核 WIN_S=10.0 vs 唯一事实来源 WIN_S=5.0"
+    }
+  ],
+  "n_counterproof_failed_to_detect": 0,
+  "counterproof_ok": true,
+  "real_fault_recheck": {
+    "ok": true,
+    "hits": {
+      "pkg": "Confucius4_LiveCaption_v2.2",
+      "pkg_asr_py_files": 3,
+      "pkg_has_asr_spk_window": false,
+      "real_fault_present": true,
+      "expected_window_log": "说话人旁路窗口：5.000 s",
+      "current_window_log_observed": "说话人旁路窗口：10.000 s"
+    },
+    "detail": "最新包 C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2：app/asr_spk/ 有 3 个 .py，含 asr_spk_window.py=False"
+  },
+  "verdict": "PASS",
+  "meaning": "PASS = **代码层/包内容层**的 D1 5 s 落地成立，且判据有鉴别力。≠ 设备级验收（客户机实跑 log 出「5.000 s」需持 MACHINE_LOCK 在真包上跑；v2.3 尚未打包）。"
+}

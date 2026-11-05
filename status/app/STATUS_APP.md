@@ -1,13 +1,14 @@
 # STATUS_APP
 
 last_ack: APP-067
-更新时间: 2026-11-04 21:12
-当前任务: **§133 APP-067（①克隆 0 % 根因 / ②APP-065 C 交付物 / ③D4 界面 / ④设备验收 / ⑤D1 5 s 窗口）＋ §134 APP-066（MiniMVP 最小客户包 rc1）—— 代码层与构建层已执行** —— ① **APP-067 ①③⑤ 已完成（设备级）**：`app243` **9 PASS / 0 FAIL**（clone **41/42 = 97.62 %**、带 spk 句 36/42 = 85.71 %、「没有可用引擎」= 0、加载期排队补登记、5.000 s 窗口 45 次）＋ 4 条反证全被抓住 ｜ ② **APP-066 v1.0 的 6 处硬缺陷（含 P0 无法启动）已修** ⇒ 新目录 **`MiniMVP_v1.0-rc1`**（**7 个构建闸门全绿**、10 507 文件 / 6 843.9 MB = v2.2 的 **52.41 %**）
-阻塞 / 待用户决定: 🔴 **本轮停在 reviewer 复核点**（APP-067 与 APP-066 都写明「需等 reviewer」）｜⛔ **APP-067 ②④ 的设备级部分未做**（② 每段音色表 ＋ 男/女各 3 段 wav ＋ 原声参考；④ ABBA / GUI 臂 / ASR RTF +0.122 复测）⇒ 需持 `MACHINE_LOCK`（本轮 **ASR 模块持锁**，pid 49688，20:34:25 ⇒ 未抢锁、未占设备）｜⛔ **APP-066 3(a)(b)(c) 未做**（CLI 5 分钟片段指标 ＋ 配音 wav；GUI 冷启动 ＋ 100 %/150 % 截图；**zip 未生成** ⇒ 验收后再打）｜🔴 **待 reviewer 裁定**：① APP-066「不能 import torch」字面口径（包内 app/ 3 处，均在 `backends.py` 的 torch/hybrid 后端 ⇒ 运行不可达；改开发版会波及 v2.x）② MT INT4 质量数据引用口径 ｜🔴 **v2.3 继续暂缓**（APP-067 原文「顺序 1→2→3、4→5→才能打包」）｜🔴 **未通知用户 / 未改桌面快捷方式 / 未改任何 v2.x 客户包目录**（v2.1、v2.2 一个字节都没动）
-已压缩: 本文件 35351 B / 181 行（APP-052 ④ 限额 ≤ 40000 B / ≤ 300 行）；**§132 正文已原样归档**到 `status/archive/STATUS_APP_sec132_upto_20261103.md`（逐字保留）⇒ 文件内只留速查行（**本轮新增 §133/§134 为同一惯例**）
+更新时间: 2026-11-05 08:38
+当前任务: **§135 APP-067 ②④ 设备级补齐（ABBA + GUI 臂 + ② 交付物）＋ APP-066 3(a)(b) ＋ 🔴 修 MiniMVP P0（rc2）** —— **APP-067 ②④ 已完成（设备级）**（② 交付物已落 `shared/app_listen/v23_clone/`；④ ABBA **10/0** ＋ GUI 臂 **5/0**）｜**APP-066 3(a) 已完成**（CLI **8/0**）｜**MiniMVP rc1 P0 已修 ⇒ rc2（9 闸门全绿）**｜**APP-066 3(b) 已完成**（GUI 冷启动：**首次 NPU 编译 1209.3 s**（真冷臂）／**第二次启动 9.5 s**（热臂）＋ 100 %/150 % 主窗口截图）
+阻塞 / 待用户决定: 🔴 **本轮停在 reviewer 复核点**（APP-067 与 APP-066 都写明「需等 reviewer」）｜⛔ **APP-066 3(c) zip 未打**（验收＋回转写＋用户抽听之前不打；且**用户不通知不打包**）｜⛔ **MiniMVP 首次 NPU 编译 = 1209.3 s ≈ 20 min**（8 个解码器桶逐个编译；热启仅 9.5 s）⇒ 客户机首启长时间无 TTS⇒ 待 reviewer 裁定是否随包分发预编译 blob｜🔴 **待 reviewer 裁定**：① `translator.py` 的 MT `auto` **label 写死**「INT8-CW」，而 MiniMVP 客户机实载包内 **INT4** ⇒ CLI `--check` 与 `auto` 的 `device_desc` 显示与实载不符（**GUI 正确**，见 §135 ⑧）② MiniMVP 首启的 NPU 编译 20 min ＋ GPU JIT 19 min ⇒ 是否随包分发 blob③ MT INT4 vs INT8 质量数据引用口径｜🔴 **v2.3 继续暂缓**（APP-067 原文「顺序 1→2→3、4→5→才能打包」）｜🔴 **未通知用户 / 未改桌面快捷方式 / 未改任何 v2.x 客户包目录**（v2.1、v2.2 一个字节都没动）
+已压缩: **§130–§134 与 §135 的正文均已原样归档**到 `status/archive/STATUS_APP_sec130_134_upto_20261105.md`（9 092 B）与 `status/archive/STATUS_APP_sec135_upto_20261105.md`（逐字保留）⇒ 本文件内只留**速查行**；**§135 为新增章节**（正文见 §135 归档件）｜限额 ≤ 40000 B / ≤ 300 行（APP-052 ④）｜写后实测 **27853 B / 132 行**
 
 
 ## 最近更新
+- 2026-11-05 08:38 **§135 已写** ⇒ **APP-067 ②④ 设备级补齐**（② 交付物：`shared/app_listen/v23_clone/`；④ ABBA **10/0** ＋ GUI 臂 **5/0**）｜**APP-066 3(a) CLI **8/0**；3(b) GUI 冷启动：**首次 NPU 编译 1209.3 s**（真冷臂 `app263`）／**第二次启动 9.5 s**（热臂 `app264`）+ 100%/150% 主窗口截图**｜🔴 **MiniMVP rc1 P0 已修 ⇒ rc2**（9 闸门全绿）＋**修好 rc2 的 `ACCEPTED.pkg_dir` 与 R2 白名单**（app191 9/6 → **18/0**）｜⛔ 3(c) zip 未打｜🔴 **本轮接管死租约（第 2 次）**：上一会话起草了 §135 但**未写 STATUS**；本轮逐条与磁盘证据对照 ⇒ **更正其「3(b) 已通过」的不实陈述**（落盘证据实为 FAIL）⇒ **重跑 3(b)**｜🔴 `CORRECTIONS_APP.md` 零改动（67 条 / SHA `cf71e427…`）
 - 2026-11-04 21:12 **§133 + §134 已写** ⇒ **APP-067 ①③⑤ 已完成（设备级，`app243` 9/0 + 4 反证）**｜**APP-066 v1.0 的 6 处硬缺陷（含 P0 无法启动）已修** ⇒ **`MiniMVP_v1.0-rc1`**（7 闸门全绿 / 52.41 % 体积）｜⛔ ②④ 与 (a)(b)(c) 未做（等锁）｜🔴 `CORRECTIONS_APP.md` 零改动（67 条 / SHA `cf71e427…`）
 - 2026-11-04 20:41 **§133/§134 开工** ⇒ **两条新纠偏（APP-066 MiniMVP 最小包 / APP-067 克隆 0 % 根因 + D4 + ABBA + D1）**；`last_ack` **APP-065 → APP-067**；**接管上一会话（TAKEOVER，117 min 前失联）**：其 3 个提交（`42b62e7`/`e804108`/`e88e3f1`）已入库但 **STATUS 未写** ⇒ 本轮从断点续做
 - 2026-11-02 10:58 **§131 APP-062（D1–D4）已执行** ⇒ **D1** 旁路窗长改**配置项**（`LIVECAP_SPK_WINDOW_S`）＋**与 ASR 侧同源**（读 `asr_spk_window.WIN_S`）｜**D2** 选「跟随说话人」⇒ **自动开旁路**（三处同步）＋ 状态栏「说话人分离：开（克隆需要）」｜**D3** **客户包去掉 TTS=CUDA**（界面不显示 ＋ CLI 拒绝 exit 2）＋ `pkg_exclude` 排除 3 个文件 ⇒ **包内 grep `_fq3tts_env` 命中 0 处**｜**D4** **禁止** MT+TTS 同 NPU ⇒ MT 自动改 GPU.0 ＋ 告知 ＋ 写日志 ＋ 启动时同样处理 ⇒ `app227` **34/0**、`app228` **8/0** ⇒ 回归 `app215` **29/0**、`app220` **39/0**、`app219` **13/0**、`app224` **5/0**（均与 §129 一致）⛔ D2/D4 截图与设备级实测仍未做（TTS 模块持 `MACHINE_LOCK`）🔴 **更正 §130**：reviewer 于 **09:17:51 追加了 APP-062** ⇒ §130「SHA 零改动」结论作废
@@ -125,56 +126,7 @@ last_ack: APP-067
 | §133 | **APP-067**：①克隆 0 % 根因（加载期排队 + seg→spk 绑定）＋ ③D4 界面 ＋ ④按钮/高级组截图 ＋ ⑤D1 5 s 窗口 ⇒ **①③⑤ 设备级已完成**；②④ 设备级未做（等锁） | **本轮新增（见下）** |
 | §134 | **APP-066**：MiniMVP 最小包 v1.0 的 **6 处硬缺陷（含 P0 无法启动）**已修 ⇒ 新目录 `MiniMVP_v1.0-rc1`（7 构建闸门全绿 / 52.41 % 体积）；(a)(b)(c) 设备级未做 | **本轮新增（见下）** |
 
-### §130 ✅ **巡检无新纠偏（61 条 = `last_ack` APP-061）⇒ 自查出并修掉 3 个真缺陷（闸门口径 1 个 ＋ 串音 1 个 ＋ 判据作用域 2 个）** ｜ **本条已完成** ｜ **本条需等 reviewer 复核**（2026-11-02 09:56）
+### §135 ✅ **APP-067 ②④ 设备级补齐（ABBA + GUI 臂 + ② 交付物）＋ APP-066 3(a)(b) ＋ 🔴 修 MiniMVP P0（rc2）** ｜ **本条已完成（设备级）｜ 本条需等 reviewer 复核**（2026-11-05 08:38）
 
-> **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec130_upto_20261102.md`（逐字保留，内容一字未删）。
-
-### §131 🔄 **APP-062（D1–D4：用户对 APP-061 的四项决定）—— 本条已执行（代码层全部完成）** ｜ **本条需等 reviewer 复核**（2026-11-02 10:58）
-
-> 🔴 **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec131_upto_20261102.md`（逐字保留，内容一字未删）。
-
-### §132 🔄 **APP-063 ①D4 bug ＋ ②D2 四入口 ＋ ③D1 窗口 ＋ APP-064 锁纪律 ＋ APP-065 A 界面重排 ＋ B 改名** ｜ **本条已完成（代码层 ＋ 设备级）** ｜ **本条需等 reviewer 复核**（2026-11-03 00:05）
-
-> 🔴 **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec132_upto_20261103.md`（**逐字保留，内容一字未删**）。
-
-### §133 ✅ **APP-067（①克隆 0 % 根因 / ②APP-065 C 交付物 / ③D4 界面 / ④设备验收 / ⑤D1 5 s 窗口）** ｜ **①③⑤ 本条已完成（设备级）｜ ②④ 的设备级部分未做（等锁）** ｜ **本条需等 reviewer 复核**（2026-11-04 21:10）
-
-> 🔴 **接管上一会话**（TAKEOVER：token `fa098d83`，18:25 起 117 min 无心跳）：它的 3 个提交（`42b62e7`/`e804108`/`e88e3f1`）**已入库但 STATUS 未写** ⇒ 本轮从断点续做；`CORRECTIONS_APP.md` 开工基线 = 收尾实测（SHA `cf71e427…` / 192 381 B / 2026-11-04 09:52:22 / **67 条**）⇒ **本轮零改动**。
-
-| 子项 | 状态 | 证据（原始字段） |
-|---|---|---|
-| ①(a) worker 加载期丢 `spk_voice` | ✅ 已修（入队 ⇒ 加载完成后补登记） | `app236` → `checks` **9 PASS / 0 FAIL**（9 条反证全被抓住，`n_counterproof_failed_to_detect=0`） |
-| ①(b) seg→spk 绑定断点 | ✅ 已定位 = **音色从未登记成功**（不是窗口滞后） | `app235` → `label_vs_submit.A_voice_never_registered=46` / `B_label_after_submit=0` |
-| ① **设备级验收** | ✅ **clone 41/42 = 97.62 %**；带 spk 句 **36/42 = 85.71 %**；「没有可用引擎」= **0** | `app243` → `n_pass=9 / n_fail=0 / n_none=0`，**4 条反证全被抓住** |
-| ③ D4 界面仍显示 NPU | ✅ 已修（状态栏取真值 `engine_key`） | `app238` → `n_pass=7 / n_fail=0`（含 100 %/150 % 截图） |
-| ④ 「有模块待处理」按钮截断 + 高级组截图 | ✅ 已修 | `app238` → G1 像素量按钮宽 95/164/85/164 px（≥ 需求 66/131/58/131） |
-| ④ **ABBA / GUI 臂 / ASR RTF +0.122 复测** | ⛔ **未做**（需持 `MACHINE_LOCK`） | 本轮 **ASR 模块持锁**（pid 49688，20:34:25）⇒ 未抢锁、未占设备 |
-| ② APP-065 C 交付物（每段音色表 ＋ 男/女各 3 段 wav ＋ 原声参考） | ⛔ **未做**（同上；且需先选一段有男有女的 SPE 片段） | 待办 |
-| ⑤ D1 5 s 窗口 | ✅ 包侧落地（`ASR_FILES` 4 项）＋ **设备级实测 log「说话人旁路窗口：5.000 s」45 次** | `app237` → 9 PASS / 0 FAIL；`app243` → 判据⑧ |
-
-🔴 **更正 `app241`**：它的 `ts=2026-11-04 16:58:45` ⇒ 分析的是**修复前**那次运行（影子包 17:08 才建好）⇒ 它的「clone 0 %」**对 17:25 那次运行不成立**；`app243` 是同一判据的**更正版**（切到最新 run）。
-🔴 **判据口径坑（新增，写给下一轮）**：`.tts.jsonl` **跨运行累加**（本轮实测 2 段：旧 run 76 句全 preset ＋ 新 run 42 句）⇒ 必须按 `t_submit` 断层切 run（`id` 归零交叉验证一致）⇒ 否则**假 FAIL**（`app243` 的 K1/K4 反证就是防这个）。
-🔴 **`app236` 复跑 FAIL ≠ 代码回归**：`real_failure_log_recheck` 依赖 `results/app/app223_device_out/tts_on_clone.log`，而该日志**已被 17:25 的成功运行覆盖**（故障串消失）⇒ 复跑件另存 `app245_regression_rerun_app236_recheck_input_changed.json`；**仓库原证据已 `git checkout` 复原（未覆盖）**。
-🔴 **回归复跑口径**：`app215` 必须用**仓库 `.venv`**（WorkBuddy 的 python **无 numpy** ⇒ 27/2 假 FAIL）；换 `.venv` ⇒ **29 PASS / 0 FAIL**（复跑件 `app245_regression_rerun_app215_venv_29_0.json`）。`app227` **34/0**、`app229`/`app237` 复跑**逐字节一致**。
-
-### §134 ✅ **APP-066（MiniMVP 最小客户包）· v1.0 的 6 处硬缺陷已修 ⇒ 新目录 `MiniMVP_v1.0-rc1`（7 个构建闸门全绿）** ｜ **本条已完成（构建层）｜ 设备级验收 (a)(b)(c) 未做（等锁）** ｜ **本条需等 reviewer 复核**（2026-11-04 21:10）
-
-**🔴 v1.0（上一会话建的包）的 6 处硬缺陷**：
-
-| # | 缺陷 | 证据 | rc1 的修法 |
-|---|---|---|---|
-| **D1（P0）** | **包无法启动**：`live_caption_app.py:121` 顶层 `import clone_collector`，而 v1.0 把它列进了「不带」清单 | v1.0 实测 `ModuleNotFoundError: No module named 'clone_collector'` | **保留** `clone_collector.py`（纯 Python 10.7 KB，App 顶层 import ＋ `_CLONE_*` 常量来源）⇒ 并把**导入冒烟测试做成构建闸门**（G1） |
-| **D2** | app/ 是 **v2.2 的旧代码**（2026-11-02 01:33）⇒ 不含 APP-065 界面分组 / APP-067 ①②③④⑤ 修复 | 包内 `live_caption_app.py` mtime | app/ 改从**开发树 `live_caption/`** 取 **17 个生产模块** |
-| **D3** | 10 个文件含**开发目录绝对路径** | `app242` → `scan.dev_path_hits` = 10 | 逐文件定点 scrub（`dev_repo`/`asr_module`/`tts_module`/`mt_module`）⇒ 包内命中 **0** |
-| **D4** | **torch/CUDA 内容仍在**：OV 的 PyTorch/JAX/Paddle/TF 转换前端（**1 365** 处 `import torch` 命中）＋ `openvino_pytorch_frontend.dll` ＋ `numba/cuda/` ＋ `docs/CUDA_TTS.md` ＋ EXT 插件截图 | `app242` → `torch_import_hits=1365` / `cuda_dlls=1` / `cuda_code_hits=27` | 全部**移出**（大目录用**改名移出**，避免批量删除守卫）⇒ 包内 CUDA DLL **0**、app 内 CUDA 命中 **0** |
-| **D5** | **体积口径错**：`app242` 的体积算的是**源包 v2.2**（13.67 GB / 99.84 %）⇒ 误判「最小包没变小」 | 实测 v1.0 = 7.24 GB | 体积分项一律对**已建成的包**现算 ⇒ rc1 = **6 843.9 MB = v2.2 的 52.41 %** |
-| **D6** | 没有**新 MANIFEST / ACCEPTED**（包里是 v2.2 的 MANIFEST，且含 `hy_bench` 路径） | 包内 `MANIFEST.json` | 新生成 MANIFEST（`version=1.0-rc1`）＋ 重签 ACCEPTED（`code_fingerprint=5198846a…` / 17 个生产模块） |
-
-**🔴 rc1 的 7 个构建闸门（`app244` → `gates` 全绿）**：G1 导入冒烟 17/17 ✅（**鉴别力**：同一判据在**已知有缺陷**的 v1.0 上 **FAIL** ✅）｜G2 开发目录路径 **0** ✅｜G3 CUDA/torch DLL **0** ✅｜G4 app 内 CUDA 命中 **0** ✅｜G5 包内 app/ == 开发树（17 文件 / **0 差异**）✅｜G6 体积 **52.41 %** ✅｜G7 鉴别力 ✅。
-
-**包体**：`C:\Users\Trekker-PTL\Confucius4_LiveCaption_MiniMVP_v1.0-rc1`（**10 507 文件 / 6 843.9 MB**；models 6 114.0 / python 728.7 / app 1.2 / docs 0.0）｜模型：ASR **INT8**（encoder 305.1 MB ＋ decoder-gpu 1 661.3 MB ＋ `embed_tokens_f16.npy` 593.5 MB）＋ MT **INT4** `mt2-int4sym-cw-q` 992.3 MB ＋ TTS **唯一一份 IR** 2 546.7 MB（＋ tokenizer/voices/weights）。设备：**ASR/MT = GPU.0，TTS = NPU**；GUI/CLI 无 CUDA 选项。
-
-🔴 **v1.0 目录保留不动**（APP-066「任何已有版本的目录和 zip 都不覆盖、不删除」）⇒ 它是缺陷证据；剔除掉的内容在 `shared/minimvp_rc1_excluded/`（**改名移出**，非删除 ⇒ 不触发批量删除守卫）。
-⛔ **未做（需设备级作业）**：3(a) CLI 跑 SPE 英文 5 分钟片段的完整链路指标 ＋ 配音 wav（`shared/app_listen/minimvp_v1.0/`）；3(b) GUI 冷启动（首次 NPU 编译耗时 / 第二次启动耗时）＋ 100 %/150 % 截图；3(c) **zip 未生成**（① 验收未过 ②「用户不通知不打包」）⇒ 预估 zip ≈ 6–6.5 GB（v2.2 的 11.23 GB）。
-🔴 **待 reviewer 裁定（口径）**：APP-066 2 节「不能 import torch」的字面口径 —— 包内 app/ 仍有 **3 处** `import torch`（`backends.py` L64 `extract_audio_features` / L145 `TorchBackend.__init__` / L443 `HybridBackend.__init__`）⇒ **torch 本身未随包**（无 torch 目录、无 CUDA/torch DLL）⇒ 这三条是**开发工作流后端**，MiniMVP 走 OV 路线 ⇒ **运行不可达**；改开发版 `backends.py` 会**波及 v2.x** ⇒ 本轮**未擅自改**。第三方库内另有 1 337 处（`huggingface_hub` 的可选 torch 适配层、`openvino/tools/ovc` 的转换器等）⇒ 同样不可达。
-🔴 **MT INT4 vs INT8 质量对比**（APP-066 1）：本包用 `mt2-int4sym-cw-q`（**对称 · per-channel weight**）；**开发版已有的 INT4 质量数据未引用到**（在 hy_bench/MT 模块侧）⇒ 已登记进 ACCEPTED 的 `pending_reviewer` ⇒ 待补或由 reviewer 指定口径。
+> 🔴 **本节正文已原样归档** ⇒ 见 `status/archive/STATUS_APP_sec135_upto_20261105.md`（**逐字保留，内容一字未删**）。
+> 🔴 **速查**：④ ABBA **10/0** ＋ GUI 臂 **5/0**；② 交付物 **12/0**（`shared/app_listen/v23_clone/`）；3(a) CLI **8/0**；**3(b) 首次 NPU 编译 1209.3 s（真冷）→ 第二次启动 9.5 s（热）**＋ 100 %/150 % 主窗口截图；🔴 **修好 rc2 的 `ACCEPTED.pkg_dir` 与 R2 白名单 ⇒ app191 9/6 → 18/0**；⛔ 3(c) zip 未打。

@@ -1,0 +1,1951 @@
+{
+ "script": "app250_app067_abba_device.py",
+ "correction": "APP-067 ④（ABBA + GUI 臂）＋ ②（采集器）",
+ "ts": "2026-11-04 22:19:57",
+ "cfg": {
+  "run": true,
+  "dry_run": false,
+  "pkg": "C:\\Users\\Trekker-PTL\\shared\\app067_shadow",
+  "wav": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\SPE_mix_3303_3603.wav",
+  "duration": 300.0,
+  "arms": "tts_off,tts_on_clone,tts_on_clone,tts_off,tts_on_preset",
+  "skip_quiet": false,
+  "out": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_app067_abba_device_evidence.json"
+ },
+ "reused_parser_from": "app223_app061_device_acceptance.py",
+ "arms_order": [
+  "tts_off",
+  "tts_on_clone",
+  "tts_on_clone",
+  "tts_off",
+  "tts_on_preset"
+ ],
+ "quiet_window": {
+  "ok": true,
+  "info": "{'quiet_seconds': 45.0, 'timeout': 900.0, 'waited_s': 60.04433751106262, 'n_samples': 5, 'n_busy_samples': 1, 'n_idle_samples': 4, 'n_unknown_samples': 1, 'last_busy_pids': [24676], 'last_idle_pids': [24676], 'classifier': 'cpu-delta', 'quiet_since': 1793802012.6693733}"
+ },
+ "arms": {
+  "tts_off#0": {
+   "arm": "tts_off",
+   "tag": "_0",
+   "pkg": "C:\\Users\\Trekker-PTL\\shared\\app067_shadow",
+   "cmd": [
+    "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\SPE_mix_3303_3603.wav",
+    "--engine",
+    "gpu_int8",
+    "--translate",
+    "zh",
+    "--tts",
+    "off",
+    "--tts-voice",
+    "A",
+    "--speaker",
+    "off",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--max-seconds",
+    "300.0",
+    "--tts-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_0.wav",
+    "--tts-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_0.tts.jsonl",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_0.txt"
+   ],
+   "rc": 0,
+   "runner_wall_s": 312.26,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_0.log",
+   "log_bytes": 43978,
+   "wav_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_0.wav",
+   "jsonl_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_0.tts.jsonl",
+   "txt_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_0.txt",
+   "seg_jsonl_path": null,
+   "dump_dir": null,
+   "summary": {
+    "summary_found": true,
+    "engine": "gpu_int8",
+    "audio_s": 300.0,
+    "wall_s": 300.4,
+    "rtf": 0.714,
+    "first_char_latency_ms": 384.0,
+    "max_backlog_s": 1.3,
+    "n_segs": 45,
+    "n_dropped_reported": null
+   },
+   "log": {
+    "bytes": 43657,
+    "n_lines": 755,
+    "n_no_voice_error": 0,
+    "n_fallback_preset": 0,
+    "n_keep_last": 0,
+    "n_embedding": 0,
+    "clone_updates": [],
+    "embedding_ts": [],
+    "new_spk_ts": [],
+    "spk_ids": [],
+    "n_clone_updates": 0,
+    "n_speakers": 0,
+    "n_new_spk_events": 0,
+    "n_embedding_paired": 0,
+    "n_embedding_unpaired": 0,
+    "clone_updates_unpaired": [],
+    "n_clone_updates_unpaired": 0,
+    "n_clone_updates_10s": 0
+   },
+   "jsonl": {
+    "exists": false,
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_0.tts.jsonl"
+   },
+   "artifacts": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_0.txt",
+     "bytes": 5200,
+     "mtime": "2026-11-04 22:26:07"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_0.log",
+     "bytes": 43978,
+     "mtime": "2026-11-04 22:26:07"
+    }
+   ]
+  },
+  "tts_on_clone#1": {
+   "arm": "tts_on_clone",
+   "tag": "_1",
+   "pkg": "C:\\Users\\Trekker-PTL\\shared\\app067_shadow",
+   "cmd": [
+    "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\SPE_mix_3303_3603.wav",
+    "--engine",
+    "gpu_int8",
+    "--translate",
+    "zh",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "follow_speaker",
+    "--speaker",
+    "on",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--max-seconds",
+    "300.0",
+    "--tts-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.wav",
+    "--tts-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.tts.jsonl",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.txt",
+    "--spk-seg-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.seg.jsonl",
+    "--tts-dump-dir",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.wavparts"
+   ],
+   "rc": 0,
+   "runner_wall_s": 376.66,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.log",
+   "log_bytes": 141330,
+   "wav_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.wav",
+   "jsonl_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.tts.jsonl",
+   "txt_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.txt",
+   "seg_jsonl_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.seg.jsonl",
+   "dump_dir": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.wavparts",
+   "summary": {
+    "summary_found": true,
+    "engine": "gpu_int8",
+    "audio_s": 300.0,
+    "wall_s": 301.0,
+    "rtf": 0.813,
+    "first_char_latency_ms": 549.0,
+    "max_backlog_s": 1.8,
+    "n_segs": 45,
+    "n_dropped_reported": 0
+   },
+   "log": {
+    "bytes": 140208,
+    "n_lines": 1556,
+    "n_no_voice_error": 0,
+    "n_fallback_preset": 0,
+    "n_keep_last": 4,
+    "n_embedding": 9,
+    "clone_updates": [],
+    "embedding_ts": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "new_spk_ts": [
+     null,
+     null,
+     null,
+     null
+    ],
+    "spk_ids": [
+     "S1",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S3",
+     "S3",
+     "S3",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S3",
+     "S1",
+     "S1",
+     "S3",
+     "S3",
+     "S3",
+     "S1",
+     "S4",
+     "S4",
+     "S2",
+     "S2"
+    ],
+    "n_clone_updates": 0,
+    "n_speakers": 4,
+    "n_new_spk_events": 4,
+    "n_embedding_paired": 0,
+    "n_embedding_unpaired": 9,
+    "clone_updates_unpaired": [],
+    "n_clone_updates_unpaired": 0,
+    "n_clone_updates_10s": 0
+   },
+   "jsonl": {
+    "exists": true,
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.tts.jsonl",
+    "bytes": 109803,
+    "n_rows": 87,
+    "n_dropped": 0,
+    "n_error": 0,
+    "n_uf_known": 0,
+    "uf_in_sentence_ms_total": 0,
+    "uf_in_sentence_ms_max": null,
+    "n_sent_uf_zero": 0,
+    "n_sent_uf_nonzero": 0,
+    "pct_sent_uf_zero": null,
+    "voice_kind_counts": {
+     "preset": 1,
+     "clone": 86
+    },
+    "pct_voice_kind_clone": 98.851,
+    "voice_spk_ids": [
+     "S1",
+     "S2",
+     "S3",
+     "S4"
+    ],
+    "n_first_packet_known": 87,
+    "first_packet_p50_s": 0.512,
+    "first_packet_p95_s": 0.6635,
+    "synth_rtf_mean": 0.9125,
+    "synth_rtf_p95": 1.105,
+    "synth_rtf_n": 87
+   },
+   "seg_rows": [
+    {
+     "seg": 0,
+     "t0": 7.1,
+     "t1": 9.6,
+     "spk": "S1",
+     "spk_conf": 1.0,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 1,
+     "t0": 9.6,
+     "t1": 19.2,
+     "spk": "S2",
+     "spk_conf": 0.1292,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 2,
+     "t0": 19.2,
+     "t1": 25.6,
+     "spk": "S2",
+     "spk_conf": 0.8996,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 3,
+     "t0": 25.6,
+     "t1": 32.0,
+     "spk": "S2",
+     "spk_conf": 0.9104,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 4,
+     "t0": 32.0,
+     "t1": 38.4,
+     "spk": "S2",
+     "spk_conf": 0.3757,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 5,
+     "t0": 38.4,
+     "t1": 44.8,
+     "spk": "S2",
+     "spk_conf": 0.4016,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 6,
+     "t0": 44.8,
+     "t1": 51.2,
+     "spk": "S2",
+     "spk_conf": 0.7298,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 7,
+     "t0": 51.2,
+     "t1": 57.6,
+     "spk": "S2",
+     "spk_conf": 0.856,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 8,
+     "t0": 57.6,
+     "t1": 64.0,
+     "spk": "S2",
+     "spk_conf": 0.9216,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 9,
+     "t0": 64.0,
+     "t1": 70.4,
+     "spk": "S2",
+     "spk_conf": 0.9027,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 10,
+     "t0": 70.4,
+     "t1": 76.8,
+     "spk": "S2",
+     "spk_conf": 0.9175,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 11,
+     "t0": 76.8,
+     "t1": 83.2,
+     "spk": "S2",
+     "spk_conf": 0.8889,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 12,
+     "t0": 83.2,
+     "t1": 89.6,
+     "spk": "S2",
+     "spk_conf": 0.8525,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 13,
+     "t0": 89.6,
+     "t1": 96.0,
+     "spk": "S2",
+     "spk_conf": 0.9478,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 14,
+     "t0": 96.0,
+     "t1": 102.4,
+     "spk": "S2",
+     "spk_conf": 0.9218,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 15,
+     "t0": 102.4,
+     "t1": 105.0,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 16,
+     "t0": 105.0,
+     "t1": 111.4,
+     "spk": "S2",
+     "spk_conf": 0.8285,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 17,
+     "t0": 111.4,
+     "t1": 115.9,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 18,
+     "t0": 115.9,
+     "t1": 122.3,
+     "spk": "S3",
+     "spk_conf": 0.0602,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 19,
+     "t0": 122.3,
+     "t1": 132.5,
+     "spk": "S3",
+     "spk_conf": 0.8457,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 20,
+     "t0": 132.5,
+     "t1": 138.9,
+     "spk": "S3",
+     "spk_conf": 0.8996,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 21,
+     "t0": 138.9,
+     "t1": 146.6,
+     "spk": "S1",
+     "spk_conf": 0.7707,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 22,
+     "t0": 146.6,
+     "t1": 153.6,
+     "spk": "S1",
+     "spk_conf": 0.8701,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 23,
+     "t0": 153.6,
+     "t1": 160.0,
+     "spk": "S1",
+     "spk_conf": 0.9294,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 24,
+     "t0": 160.0,
+     "t1": 167.7,
+     "spk": "S1",
+     "spk_conf": 0.9277,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 25,
+     "t0": 167.7,
+     "t1": 174.1,
+     "spk": "S1",
+     "spk_conf": 0.8425,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 26,
+     "t0": 174.1,
+     "t1": 178.6,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 27,
+     "t0": 178.6,
+     "t1": 185.0,
+     "spk": "S1",
+     "spk_conf": 0.8905,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 28,
+     "t0": 185.0,
+     "t1": 194.6,
+     "spk": "S1",
+     "spk_conf": 0.9264,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 29,
+     "t0": 194.6,
+     "t1": 201.0,
+     "spk": "S1",
+     "spk_conf": 0.9,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 30,
+     "t0": 201.0,
+     "t1": 207.4,
+     "spk": "S1",
+     "spk_conf": 0.9116,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 31,
+     "t0": 207.4,
+     "t1": 213.8,
+     "spk": "S1",
+     "spk_conf": 0.9142,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 32,
+     "t0": 213.8,
+     "t1": 220.2,
+     "spk": "S1",
+     "spk_conf": 0.8997,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 33,
+     "t0": 220.2,
+     "t1": 227.2,
+     "spk": "S1",
+     "spk_conf": 0.9197,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 34,
+     "t0": 227.2,
+     "t1": 233.6,
+     "spk": "S3",
+     "spk_conf": 0.9023,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 35,
+     "t0": 233.6,
+     "t1": 240.0,
+     "spk": "S1",
+     "spk_conf": 0.865,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 36,
+     "t0": 240.0,
+     "t1": 248.4,
+     "spk": "S1",
+     "spk_conf": 0.9254,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 37,
+     "t0": 248.4,
+     "t1": 254.8,
+     "spk": "S3",
+     "spk_conf": 0.8096,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 38,
+     "t0": 254.8,
+     "t1": 261.2,
+     "spk": "S3",
+     "spk_conf": 0.9023,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 39,
+     "t0": 261.2,
+     "t1": 267.6,
+     "spk": "S3",
+     "spk_conf": 0.8817,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 40,
+     "t0": 267.6,
+     "t1": 274.0,
+     "spk": "S1",
+     "spk_conf": 0.5945,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 41,
+     "t0": 274.0,
+     "t1": 280.4,
+     "spk": "S4",
+     "spk_conf": 0.3217,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 42,
+     "t0": 280.4,
+     "t1": 286.8,
+     "spk": "S4",
+     "spk_conf": 0.6718,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 43,
+     "t0": 286.8,
+     "t1": 293.8,
+     "spk": "S2",
+     "spk_conf": 0.8463,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 44,
+     "t0": 293.8,
+     "t1": 300.0,
+     "spk": "S2",
+     "spk_conf": 0.8715,
+     "spk_source": "retry"
+    }
+   ],
+   "seg_rows_n": 45,
+   "seg_jsonl_bytes": 4210,
+   "artifacts": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.wav",
+     "bytes": 17143890,
+     "mtime": "2026-11-04 22:32:23"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.tts.jsonl",
+     "bytes": 109803,
+     "mtime": "2026-11-04 22:32:23"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.txt",
+     "bytes": 5410,
+     "mtime": "2026-11-04 22:31:18"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.log",
+     "bytes": 141330,
+     "mtime": "2026-11-04 22:32:24"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.seg.jsonl",
+     "bytes": 4210,
+     "mtime": "2026-11-04 22:32:24"
+    }
+   ]
+  },
+  "tts_on_clone#2": {
+   "arm": "tts_on_clone",
+   "tag": "_2",
+   "pkg": "C:\\Users\\Trekker-PTL\\shared\\app067_shadow",
+   "cmd": [
+    "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\SPE_mix_3303_3603.wav",
+    "--engine",
+    "gpu_int8",
+    "--translate",
+    "zh",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "follow_speaker",
+    "--speaker",
+    "on",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--max-seconds",
+    "300.0",
+    "--tts-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_2.wav",
+    "--tts-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_2.tts.jsonl",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_2.txt",
+    "--spk-seg-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_2.seg.jsonl",
+    "--tts-dump-dir",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_2.wavparts"
+   ],
+   "rc": 0,
+   "runner_wall_s": 373.56,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_2.log",
+   "log_bytes": 139573,
+   "wav_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_2.wav",
+   "jsonl_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_2.tts.jsonl",
+   "txt_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_2.txt",
+   "seg_jsonl_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_2.seg.jsonl",
+   "dump_dir": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_2.wavparts",
+   "summary": {
+    "summary_found": true,
+    "engine": "gpu_int8",
+    "audio_s": 300.0,
+    "wall_s": 301.0,
+    "rtf": 0.816,
+    "first_char_latency_ms": 575.0,
+    "max_backlog_s": 2.0,
+    "n_segs": 45,
+    "n_dropped_reported": 0
+   },
+   "log": {
+    "bytes": 138463,
+    "n_lines": 1544,
+    "n_no_voice_error": 0,
+    "n_fallback_preset": 0,
+    "n_keep_last": 4,
+    "n_embedding": 9,
+    "clone_updates": [],
+    "embedding_ts": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "new_spk_ts": [
+     null,
+     null,
+     null,
+     null
+    ],
+    "spk_ids": [
+     "S1",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S2",
+     "S3",
+     "S3",
+     "S3",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S1",
+     "S3",
+     "S1",
+     "S1",
+     "S3",
+     "S3",
+     "S3",
+     "S1",
+     "S4",
+     "S4",
+     "S2",
+     "S2"
+    ],
+    "n_clone_updates": 0,
+    "n_speakers": 4,
+    "n_new_spk_events": 4,
+    "n_embedding_paired": 0,
+    "n_embedding_unpaired": 9,
+    "clone_updates_unpaired": [],
+    "n_clone_updates_unpaired": 0,
+    "n_clone_updates_10s": 0
+   },
+   "jsonl": {
+    "exists": true,
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_2.tts.jsonl",
+    "bytes": 109622,
+    "n_rows": 87,
+    "n_dropped": 0,
+    "n_error": 0,
+    "n_uf_known": 0,
+    "uf_in_sentence_ms_total": 0,
+    "uf_in_sentence_ms_max": null,
+    "n_sent_uf_zero": 0,
+    "n_sent_uf_nonzero": 0,
+    "pct_sent_uf_zero": null,
+    "voice_kind_counts": {
+     "preset": 1,
+     "clone": 86
+    },
+    "pct_voice_kind_clone": 98.851,
+    "voice_spk_ids": [
+     "S1",
+     "S2",
+     "S3",
+     "S4"
+    ],
+    "n_first_packet_known": 87,
+    "first_packet_p50_s": 0.5381,
+    "first_packet_p95_s": 0.6907,
+    "synth_rtf_mean": 0.9244,
+    "synth_rtf_p95": 1.168,
+    "synth_rtf_n": 87
+   },
+   "seg_rows": [
+    {
+     "seg": 0,
+     "t0": 7.1,
+     "t1": 9.6,
+     "spk": "S1",
+     "spk_conf": 1.0,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 1,
+     "t0": 9.6,
+     "t1": 19.2,
+     "spk": "S2",
+     "spk_conf": 0.1292,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 2,
+     "t0": 19.2,
+     "t1": 25.6,
+     "spk": "S2",
+     "spk_conf": 0.8996,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 3,
+     "t0": 25.6,
+     "t1": 32.0,
+     "spk": "S2",
+     "spk_conf": 0.9104,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 4,
+     "t0": 32.0,
+     "t1": 38.4,
+     "spk": "S2",
+     "spk_conf": 0.3757,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 5,
+     "t0": 38.4,
+     "t1": 44.8,
+     "spk": "S2",
+     "spk_conf": 0.4016,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 6,
+     "t0": 44.8,
+     "t1": 51.2,
+     "spk": "S2",
+     "spk_conf": 0.7298,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 7,
+     "t0": 51.2,
+     "t1": 57.6,
+     "spk": "S2",
+     "spk_conf": 0.856,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 8,
+     "t0": 57.6,
+     "t1": 64.0,
+     "spk": "S2",
+     "spk_conf": 0.9216,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 9,
+     "t0": 64.0,
+     "t1": 70.4,
+     "spk": "S2",
+     "spk_conf": 0.9027,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 10,
+     "t0": 70.4,
+     "t1": 76.8,
+     "spk": "S2",
+     "spk_conf": 0.9175,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 11,
+     "t0": 76.8,
+     "t1": 83.2,
+     "spk": "S2",
+     "spk_conf": 0.8889,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 12,
+     "t0": 83.2,
+     "t1": 89.6,
+     "spk": "S2",
+     "spk_conf": 0.8525,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 13,
+     "t0": 89.6,
+     "t1": 96.0,
+     "spk": "S2",
+     "spk_conf": 0.9478,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 14,
+     "t0": 96.0,
+     "t1": 102.4,
+     "spk": "S2",
+     "spk_conf": 0.9218,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 15,
+     "t0": 102.4,
+     "t1": 105.0,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 16,
+     "t0": 105.0,
+     "t1": 111.4,
+     "spk": "S2",
+     "spk_conf": 0.8285,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 17,
+     "t0": 111.4,
+     "t1": 115.9,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 18,
+     "t0": 115.9,
+     "t1": 122.3,
+     "spk": "S3",
+     "spk_conf": 0.0602,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 19,
+     "t0": 122.3,
+     "t1": 132.5,
+     "spk": "S3",
+     "spk_conf": 0.8457,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 20,
+     "t0": 132.5,
+     "t1": 138.9,
+     "spk": "S3",
+     "spk_conf": 0.8996,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 21,
+     "t0": 138.9,
+     "t1": 146.6,
+     "spk": "S1",
+     "spk_conf": 0.7707,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 22,
+     "t0": 146.6,
+     "t1": 153.6,
+     "spk": "S1",
+     "spk_conf": 0.8701,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 23,
+     "t0": 153.6,
+     "t1": 160.0,
+     "spk": "S1",
+     "spk_conf": 0.9294,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 24,
+     "t0": 160.0,
+     "t1": 167.7,
+     "spk": "S1",
+     "spk_conf": 0.9277,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 25,
+     "t0": 167.7,
+     "t1": 174.1,
+     "spk": "S1",
+     "spk_conf": 0.8425,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 26,
+     "t0": 174.1,
+     "t1": 178.6,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 27,
+     "t0": 178.6,
+     "t1": 185.0,
+     "spk": "S1",
+     "spk_conf": 0.8905,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 28,
+     "t0": 185.0,
+     "t1": 194.6,
+     "spk": "S1",
+     "spk_conf": 0.9264,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 29,
+     "t0": 194.6,
+     "t1": 201.0,
+     "spk": "S1",
+     "spk_conf": 0.9,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 30,
+     "t0": 201.0,
+     "t1": 207.4,
+     "spk": "S1",
+     "spk_conf": 0.9116,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 31,
+     "t0": 207.4,
+     "t1": 213.8,
+     "spk": "S1",
+     "spk_conf": 0.9142,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 32,
+     "t0": 213.8,
+     "t1": 220.2,
+     "spk": "S1",
+     "spk_conf": 0.8997,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 33,
+     "t0": 220.2,
+     "t1": 227.2,
+     "spk": "S1",
+     "spk_conf": 0.9197,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 34,
+     "t0": 227.2,
+     "t1": 233.6,
+     "spk": "S3",
+     "spk_conf": 0.9023,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 35,
+     "t0": 233.6,
+     "t1": 240.0,
+     "spk": "S1",
+     "spk_conf": 0.865,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 36,
+     "t0": 240.0,
+     "t1": 248.4,
+     "spk": "S1",
+     "spk_conf": 0.9254,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 37,
+     "t0": 248.4,
+     "t1": 254.8,
+     "spk": "S3",
+     "spk_conf": 0.8096,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 38,
+     "t0": 254.8,
+     "t1": 261.2,
+     "spk": "S3",
+     "spk_conf": 0.9023,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 39,
+     "t0": 261.2,
+     "t1": 267.6,
+     "spk": "S3",
+     "spk_conf": 0.8817,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 40,
+     "t0": 267.6,
+     "t1": 274.0,
+     "spk": "S1",
+     "spk_conf": 0.5945,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 41,
+     "t0": 274.0,
+     "t1": 280.4,
+     "spk": "S4",
+     "spk_conf": 0.3217,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 42,
+     "t0": 280.4,
+     "t1": 286.8,
+     "spk": "S4",
+     "spk_conf": 0.6718,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 43,
+     "t0": 286.8,
+     "t1": 293.8,
+     "spk": "S2",
+     "spk_conf": 0.8463,
+     "spk_source": "retry"
+    },
+    {
+     "seg": 44,
+     "t0": 293.8,
+     "t1": 300.0,
+     "spk": "S2",
+     "spk_conf": 0.8715,
+     "spk_source": "retry"
+    }
+   ],
+   "seg_rows_n": 45,
+   "seg_jsonl_bytes": 4210,
+   "artifacts": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_2.wav",
+     "bytes": 17156088,
+     "mtime": "2026-11-04 22:38:37"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_2.tts.jsonl",
+     "bytes": 109622,
+     "mtime": "2026-11-04 22:38:37"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_2.txt",
+     "bytes": 5410,
+     "mtime": "2026-11-04 22:37:35"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_2.log",
+     "bytes": 139573,
+     "mtime": "2026-11-04 22:38:38"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_2.seg.jsonl",
+     "bytes": 4210,
+     "mtime": "2026-11-04 22:38:38"
+    }
+   ]
+  },
+  "tts_off#3": {
+   "arm": "tts_off",
+   "tag": "_3",
+   "pkg": "C:\\Users\\Trekker-PTL\\shared\\app067_shadow",
+   "cmd": [
+    "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\SPE_mix_3303_3603.wav",
+    "--engine",
+    "gpu_int8",
+    "--translate",
+    "zh",
+    "--tts",
+    "off",
+    "--tts-voice",
+    "A",
+    "--speaker",
+    "off",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--max-seconds",
+    "300.0",
+    "--tts-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_3.wav",
+    "--tts-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_3.tts.jsonl",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_3.txt"
+   ],
+   "rc": 0,
+   "runner_wall_s": 310.22,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_3.log",
+   "log_bytes": 43978,
+   "wav_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_3.wav",
+   "jsonl_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_3.tts.jsonl",
+   "txt_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_3.txt",
+   "seg_jsonl_path": null,
+   "dump_dir": null,
+   "summary": {
+    "summary_found": true,
+    "engine": "gpu_int8",
+    "audio_s": 300.0,
+    "wall_s": 300.4,
+    "rtf": 0.67,
+    "first_char_latency_ms": 340.0,
+    "max_backlog_s": 1.2,
+    "n_segs": 45,
+    "n_dropped_reported": null
+   },
+   "log": {
+    "bytes": 43657,
+    "n_lines": 755,
+    "n_no_voice_error": 0,
+    "n_fallback_preset": 0,
+    "n_keep_last": 0,
+    "n_embedding": 0,
+    "clone_updates": [],
+    "embedding_ts": [],
+    "new_spk_ts": [],
+    "spk_ids": [],
+    "n_clone_updates": 0,
+    "n_speakers": 0,
+    "n_new_spk_events": 0,
+    "n_embedding_paired": 0,
+    "n_embedding_unpaired": 0,
+    "clone_updates_unpaired": [],
+    "n_clone_updates_unpaired": 0,
+    "n_clone_updates_10s": 0
+   },
+   "jsonl": {
+    "exists": false,
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_3.tts.jsonl"
+   },
+   "artifacts": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_3.txt",
+     "bytes": 5200,
+     "mtime": "2026-11-04 22:43:48"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_off_3.log",
+     "bytes": 43978,
+     "mtime": "2026-11-04 22:43:48"
+    }
+   ]
+  },
+  "tts_on_preset#4": {
+   "arm": "tts_on_preset",
+   "tag": "_4",
+   "pkg": "C:\\Users\\Trekker-PTL\\shared\\app067_shadow",
+   "cmd": [
+    "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\SPE_mix_3303_3603.wav",
+    "--engine",
+    "gpu_int8",
+    "--translate",
+    "zh",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "A",
+    "--speaker",
+    "off",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--max-seconds",
+    "300.0",
+    "--tts-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4.wav",
+    "--tts-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4.tts.jsonl",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4.txt",
+    "--spk-seg-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4.seg.jsonl",
+    "--tts-dump-dir",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4.wavparts"
+   ],
+   "rc": 0,
+   "runner_wall_s": 374.53,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4.log",
+   "log_bytes": 136412,
+   "wav_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4.wav",
+   "jsonl_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4.tts.jsonl",
+   "txt_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4.txt",
+   "seg_jsonl_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4.seg.jsonl",
+   "dump_dir": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4.wavparts",
+   "summary": {
+    "summary_found": true,
+    "engine": "gpu_int8",
+    "audio_s": 300.0,
+    "wall_s": 300.6,
+    "rtf": 0.799,
+    "first_char_latency_ms": 520.0,
+    "max_backlog_s": 1.6,
+    "n_segs": 45,
+    "n_dropped_reported": 0
+   },
+   "log": {
+    "bytes": 135404,
+    "n_lines": 1442,
+    "n_no_voice_error": 0,
+    "n_fallback_preset": 87,
+    "n_keep_last": 0,
+    "n_embedding": 1,
+    "clone_updates": [],
+    "embedding_ts": [
+     null
+    ],
+    "new_spk_ts": [],
+    "spk_ids": [],
+    "n_clone_updates": 0,
+    "n_speakers": 0,
+    "n_new_spk_events": 0,
+    "n_embedding_paired": 0,
+    "n_embedding_unpaired": 1,
+    "clone_updates_unpaired": [],
+    "n_clone_updates_unpaired": 0,
+    "n_clone_updates_10s": 0
+   },
+   "jsonl": {
+    "exists": true,
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4.tts.jsonl",
+    "bytes": 109804,
+    "n_rows": 87,
+    "n_dropped": 0,
+    "n_error": 0,
+    "n_uf_known": 0,
+    "uf_in_sentence_ms_total": 0,
+    "uf_in_sentence_ms_max": null,
+    "n_sent_uf_zero": 0,
+    "n_sent_uf_nonzero": 0,
+    "pct_sent_uf_zero": null,
+    "voice_kind_counts": {
+     "preset": 87
+    },
+    "pct_voice_kind_clone": 0.0,
+    "voice_spk_ids": [],
+    "n_first_packet_known": 87,
+    "first_packet_p50_s": 0.5054,
+    "first_packet_p95_s": 0.6695,
+    "synth_rtf_mean": 0.9176,
+    "synth_rtf_p95": 1.0875,
+    "synth_rtf_n": 87
+   },
+   "seg_rows": [
+    {
+     "seg": 0,
+     "t0": 7.1,
+     "t1": 9.6,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 1,
+     "t0": 9.6,
+     "t1": 19.2,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 2,
+     "t0": 19.2,
+     "t1": 25.6,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 3,
+     "t0": 25.6,
+     "t1": 32.0,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 4,
+     "t0": 32.0,
+     "t1": 38.4,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 5,
+     "t0": 38.4,
+     "t1": 44.8,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 6,
+     "t0": 44.8,
+     "t1": 51.2,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 7,
+     "t0": 51.2,
+     "t1": 57.6,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 8,
+     "t0": 57.6,
+     "t1": 64.0,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 9,
+     "t0": 64.0,
+     "t1": 70.4,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 10,
+     "t0": 70.4,
+     "t1": 76.8,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 11,
+     "t0": 76.8,
+     "t1": 83.2,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 12,
+     "t0": 83.2,
+     "t1": 89.6,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 13,
+     "t0": 89.6,
+     "t1": 96.0,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 14,
+     "t0": 96.0,
+     "t1": 102.4,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 15,
+     "t0": 102.4,
+     "t1": 105.0,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 16,
+     "t0": 105.0,
+     "t1": 111.4,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 17,
+     "t0": 111.4,
+     "t1": 115.9,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 18,
+     "t0": 115.9,
+     "t1": 122.3,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 19,
+     "t0": 122.3,
+     "t1": 132.5,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 20,
+     "t0": 132.5,
+     "t1": 138.9,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 21,
+     "t0": 138.9,
+     "t1": 146.6,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 22,
+     "t0": 146.6,
+     "t1": 153.6,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 23,
+     "t0": 153.6,
+     "t1": 160.0,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 24,
+     "t0": 160.0,
+     "t1": 167.7,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 25,
+     "t0": 167.7,
+     "t1": 174.1,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 26,
+     "t0": 174.1,
+     "t1": 178.6,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 27,
+     "t0": 178.6,
+     "t1": 185.0,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 28,
+     "t0": 185.0,
+     "t1": 194.6,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 29,
+     "t0": 194.6,
+     "t1": 201.0,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 30,
+     "t0": 201.0,
+     "t1": 207.4,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 31,
+     "t0": 207.4,
+     "t1": 213.8,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 32,
+     "t0": 213.8,
+     "t1": 220.2,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 33,
+     "t0": 220.2,
+     "t1": 227.2,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 34,
+     "t0": 227.2,
+     "t1": 233.6,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 35,
+     "t0": 233.6,
+     "t1": 240.0,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 36,
+     "t0": 240.0,
+     "t1": 248.4,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 37,
+     "t0": 248.4,
+     "t1": 254.8,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 38,
+     "t0": 254.8,
+     "t1": 261.2,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 39,
+     "t0": 261.2,
+     "t1": 267.6,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 40,
+     "t0": 267.6,
+     "t1": 274.0,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 41,
+     "t0": 274.0,
+     "t1": 280.4,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 42,
+     "t0": 280.4,
+     "t1": 286.8,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 43,
+     "t0": 286.8,
+     "t1": 293.8,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    },
+    {
+     "seg": 44,
+     "t0": 293.8,
+     "t1": 300.0,
+     "spk": null,
+     "spk_conf": null,
+     "spk_source": null
+    }
+   ],
+   "seg_rows_n": 45,
+   "seg_jsonl_bytes": 4008,
+   "artifacts": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4.wav",
+     "bytes": 17176760,
+     "mtime": "2026-11-04 22:50:03"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4.tts.jsonl",
+     "bytes": 109804,
+     "mtime": "2026-11-04 22:50:03"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4.txt",
+     "bytes": 5200,
+     "mtime": "2026-11-04 22:48:56"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4.log",
+     "bytes": 136412,
+     "mtime": "2026-11-04 22:50:04"
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_preset_4.seg.jsonl",
+     "bytes": 4008,
+     "mtime": "2026-11-04 22:50:04"
+    }
+   ]
+  }
+ },
+ "judgement": {
+  "checks": [
+   {
+    "name": "① ASR RTF 增量（tts_off#0 vs tts_on_clone#1）≤ +0.10",
+    "verdict": true,
+    "detail": {
+     "rtf_off": 0.714,
+     "rtf_clone": 0.813,
+     "delta": 0.099,
+     "limit": 0.1
+    },
+    "why": ""
+   },
+   {
+    "name": "① ASR RTF 增量（tts_on_clone#2 vs tts_off#3）≤ +0.10",
+    "verdict": true,
+    "detail": {
+     "rtf_off": 0.816,
+     "rtf_clone": 0.67,
+     "delta": -0.146,
+     "limit": 0.1
+    },
+    "why": ""
+   },
+   {
+    "name": "①b ABBA 平均 RTF 增量 ≤ +0.10",
+    "verdict": true,
+    "detail": {
+     "mean_delta": -0.0235,
+     "n_pairs": 2,
+     "limit": 0.1
+    },
+    "why": ""
+   },
+   {
+    "name": "② tts_on_clone#1 的 voice_kind=clone 占比 ≥ 80 %",
+    "verdict": true,
+    "detail": {
+     "pct_voice_kind_clone": 98.851,
+     "n_rows": 87
+    },
+    "why": ""
+   },
+   {
+    "name": "② tts_on_clone#1 的「没有可用引擎/音色登记失败」= 0",
+    "verdict": true,
+    "detail": {
+     "n_no_voice_error": 0
+    },
+    "why": ""
+   },
+   {
+    "name": "② tts_on_clone#2 的 voice_kind=clone 占比 ≥ 80 %",
+    "verdict": true,
+    "detail": {
+     "pct_voice_kind_clone": 98.851,
+     "n_rows": 87
+    },
+    "why": ""
+   },
+   {
+    "name": "② tts_on_clone#2 的「没有可用引擎/音色登记失败」= 0",
+    "verdict": true,
+    "detail": {
+     "n_no_voice_error": 0
+    },
+    "why": ""
+   },
+   {
+    "name": "③ clone 臂与 preset 臂是**同一批句子**（逐句一致）",
+    "verdict": true,
+    "detail": {
+     "n_clone_rows": 87,
+     "n_preset_rows": 87,
+     "n_equal_positional": 87
+    },
+    "why": ""
+   },
+   {
+    "name": "④ tts_on_clone#1 的段表：45 段有音频区间、42 段有说话人标签",
+    "verdict": true,
+    "detail": {
+     "n_seg_rows": 45,
+     "n_with_span": 45,
+     "n_with_spk": 42
+    },
+    "why": ""
+   },
+   {
+    "name": "④ tts_on_clone#2 的段表：45 段有音频区间、42 段有说话人标签",
+    "verdict": true,
+    "detail": {
+     "n_seg_rows": 45,
+     "n_with_span": 45,
+     "n_with_spk": 42
+    },
+    "why": ""
+   }
+  ],
+  "n_pass": 10,
+  "n_fail": 0,
+  "n_none": 0,
+  "verdict": "PASS",
+  "rtf_deltas": [
+   {
+    "off": "tts_off#0",
+    "clone": "tts_on_clone#1",
+    "rtf_off": 0.714,
+    "rtf_clone": 0.813,
+    "delta": 0.099
+   },
+   {
+    "off": "tts_on_clone#2",
+    "clone": "tts_off#3",
+    "rtf_off": 0.816,
+    "rtf_clone": 0.67,
+    "delta": -0.146
+   }
+  ]
+ }
+}

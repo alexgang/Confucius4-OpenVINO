@@ -1,0 +1,226 @@
+{
+ "script": "app252_app067_gui_arm.py",
+ "correction": "APP-067 ④（GUI 臂）",
+ "ts": "2026-11-04 22:50:28",
+ "cfg": {
+  "run": true,
+  "dry_run": false,
+  "pkg": "C:\\Users\\Trekker-PTL\\shared\\app067_shadow",
+  "wav": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\SPE_mix_3303_3603.wav",
+  "seconds": 300.0,
+  "shots": "45,150,260",
+  "out": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app252_app067_gui_arm_evidence.json"
+ },
+ "checks": [
+  {
+   "name": "GUI 臂的 voice_kind=clone 占比 ≥ 80 %",
+   "verdict": true,
+   "detail": {
+    "pct_voice_kind_clone": 98.649,
+    "n_rows": 87
+   },
+   "why": ""
+  },
+  {
+   "name": "GUI 臂的「没有可用引擎/音色登记失败」= 0",
+   "verdict": true,
+   "detail": {
+    "n_no_voice_error": 0,
+    "n_new_spk": 4,
+    "n_label": 41,
+    "n_voice_registered": 10,
+    "n_fallback_preset": 0,
+    "n_keep_last": 5
+   },
+   "why": ""
+  },
+  {
+   "name": "GUI 臂有说话人标签",
+   "verdict": true,
+   "detail": {
+    "n_label": 41
+   },
+   "why": ""
+  },
+  {
+   "name": "抓到**非黑图**的 GUI 截图",
+   "verdict": true,
+   "detail": {
+    "shots": {
+     "045": {
+      "ok": true,
+      "all_black": false
+     },
+     "150": {
+      "ok": true,
+      "all_black": false
+     },
+     "260": {
+      "ok": true,
+      "all_black": false
+     }
+    }
+   },
+   "why": ""
+  },
+  {
+   "name": "GUI 臂跑完了（有自测产物或逐句 jsonl）",
+   "verdict": true,
+   "detail": {
+    "selftest_files": [
+     "gpu_int8_gui.txt",
+     "gpu_int8_screen.png"
+    ],
+    "n_rows": 87
+   },
+   "why": ""
+  }
+ ],
+ "cmd": [
+  "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\python\\python.exe",
+  "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\app\\live_caption_app.py",
+  "--source",
+  "file",
+  "--file",
+  "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\SPE_mix_3303_3603.wav",
+  "--autostart",
+  "--selftest",
+  "300.0",
+  "--selftest-out",
+  "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app252_gui_out\\selftest",
+  "--tts",
+  "on",
+  "--tts-voice",
+  "follow_speaker",
+  "--speaker",
+  "on",
+  "--asr-device",
+  "GPU.0",
+  "--mt-device",
+  "GPU.0",
+  "--tts-device",
+  "NPU",
+  "--translate",
+  "zh",
+  "--tts-jsonl",
+  "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app252_gui_out\\gui.tts.jsonl"
+ ],
+ "gui_pid": 40652,
+ "rc": 0,
+ "gui_wall_s": 346.4,
+ "shots": {
+  "045": {
+   "ok": true,
+   "hwnd": 141362814,
+   "titles": [
+    "Confucius4-R2T2 实时字幕 · 多后端测试",
+    "Confucius4-R2T2 实时字幕 · 多后端测试",
+    "Confucius4-R2T2 实时字幕 · 多后端测试"
+   ],
+   "bytes": 87935,
+   "extrema": [
+    [
+     0,
+     255
+    ],
+    [
+     0,
+     255
+    ],
+    [
+     0,
+     255
+    ]
+   ],
+   "all_black": false,
+   "at_s": 46.0
+  },
+  "150": {
+   "ok": true,
+   "hwnd": 141362814,
+   "titles": [
+    "Confucius4-R2T2 实时字幕 · 多后端测试",
+    "Confucius4-R2T2 实时字幕 · 多后端测试",
+    "Confucius4-R2T2 实时字幕 · 多后端测试"
+   ],
+   "bytes": 170250,
+   "extrema": [
+    [
+     0,
+     255
+    ],
+    [
+     0,
+     255
+    ],
+    [
+     0,
+     255
+    ]
+   ],
+   "all_black": false,
+   "at_s": 150.2
+  },
+  "260": {
+   "ok": true,
+   "hwnd": 141362814,
+   "titles": [
+    "Confucius4-R2T2 实时字幕 · 多后端测试",
+    "Confucius4-R2T2 实时字幕 · 多后端测试",
+    "Confucius4-R2T2 实时字幕 · 多后端测试"
+   ],
+   "bytes": 179299,
+   "extrema": [
+    [
+     0,
+     255
+    ],
+    [
+     0,
+     255
+    ],
+    [
+     0,
+     255
+    ]
+   ],
+   "all_black": false,
+   "at_s": 260.3
+  }
+ },
+ "selftest_files": [
+  "gpu_int8_gui.txt",
+  "gpu_int8_screen.png"
+ ],
+ "selftest_txt": "engine=gpu_int8 audio_s=300.0 rtf=0.785 lag_ms=862.8137999912724 segs=45 max_backlog=1.60\ntranslate=zh mt_engine=gpu_int8cw mt_device=GPU.0 state=ready mt={'n': 87, 'pending': 0, 'lat_med': 748.0854999739677, 'lat_p95': 1336.800439999206, 'ttft_med': 211.87639998970553, 'tok_s': 19.94721468352474}\nfinal:\nin to that. So I think the optionality is always there for us, but the business, you know, what's the business need or a workload enabling need is really what should guide us.\nYeah, thank you. All right, with recent reporting on AI models, hacking websites, exploiting unidentified vulnerabilities, we may not identify\nbe far away from these models going after security vulnerabilities in hardware. We could have unidentified\nside vulnerabilities in our hardware, identified vulnerabilities with vulnerable fixes, wondering what Intel is doing\nto proactively address this concern. Yeah, but I'll address that concern. But actually, let me just talk about like the one thing.\nYou know this is you'd expect it to happen as we talk to OEMs and our vendors. What's one of the topics coming up\nthis right how to prevent age to go rogue? How do consumers ensure data that they're put?\nRunning on their local machines is secure and private. That's a huge advantage for Intel because what's our brand?\nRecognition, enterprise class scale and security and privacy. So you know every industry\nKind of starts out with lots of dabbling, idea creation, all that, but eventually it gets constituted in something where the economy\nand the reality is kicking, that's our opportunity in general for security and privacy. Now speak specifically in this one.\nThere's actually a lot of work done already, so you know publicly disclosed, there's a mythos model from\ntropic which has not been broadly released, right? But that model can expose\nSecurity vulnerabilities, you know the iPass team has already consumed that model. We've already run a lot of tests.\nto discover vulnerabilities and issues that we can proactively fix on that model, right? So that work\nis actually already well underway.\ndoesn't mean that threat won't be there in the future. The world of agents will bring many positives. It'll also bring, you know, concerns.\nAll right, one more question in the room.\nSo so so you know so we are focusing on the AI box, um\nI think that will take time to give us a big volume. So most of the end users still prefer a Windows based AI PC plus agentic workload.\nSo I just want to know what's our strategy for this Windows based AIPC plus agent workflow.\nThat's a good question. We're engaging with Microsoft on that. You know, they showed us some great demos recently that surprised us that how much they had thought through, kind of\nan agentic Windows interface and kind of how you know what their plans are to make that an optimal solution. A lot of\nAll of us were surprised because they tend, so most of them to move slow or Copilot plus wasn't as successful. So we\nare partnering with them. We hope to do a co-engineering engagement, but we have to see where it goes. So I think we got the initial demo, but it'll take some time.\nto see how successful they are there and what we can enable with them. Yeah, that's good. So what do you think?\nwe are what Intel needs to do to enable that?\nWell, I mean one of the key things is having performance solutions they can use\nutilize. So I think they would enjoy an ax. Now they want a 12xe with large memory config, and so the volume also needs to be there. I think that's the challenge. I think\nYou know the highest memory configs of 12xe is really if they're going to do something serious for like coding\nYou know probably doesn't cut it, right? So they'll be pushing things to the cloud and we want to engage with them on that. So there's a lot of back and forth. So\nThey figure out their plans and they've been, I would say, less less sure until recently about what they want to build. So we,\nneed to make sure, you know, we're doing those like microservic",
+ "session_log": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\session_20261104_225029.log",
+ "session_log_bytes": 91795,
+ "session_log_head": "22:50:29 [spk] 说话人资产（包内）：wespeaker fp16；pyannote_seg_3_0 fp16-w5（窗口 5.000 s，来源 asr_spk_window）\n22:50:32 prewarm transformers 0.6s\n22:50:32 加载翻译模型（GPU.0）…\n22:50:33 加载 Intel GPU · INT8（ov-int8-past）…\n22:50:34 翻译模型就绪（Intel GPU · INT8-CW（默认） · GPU.0，加载 1.8 s）\n22:50:37 [tts] 启动流程：检测到「语音输出」默认开启 ⇒ 将在 ASR/MT 就绪后初始化 TTS（APP-041）\n22:50:37 [spk] 说话人旁路后台线程已启动\n22:50:37 [tts] 启动流程：调用 _on_tts_toggled() 初始化语音输出（与手动点击「开启」同一入口）\n22:50:37 [tts] 「跟随说话人（克隆）」已启用：换人时取样（首段 ≥1.5 s，3 s 定稿），老说话人复用（定时重采集已停用，APP-061④）\n22:50:38 [TTS] [tts_worker] 播放流已启动：sr=22050 device=默认设备 ⇒ **实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）** blocksize=1024 latency=0.18575963718820862\n22:50:39 [TTS][stderr] None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n22:50:40 [TTS] [tts_engine] OV 推理精度 = f16（权重位宽恒为 INT8）\n22:50:40 [TTS] [tts_engine] 使用 MultiDecoderBabelVox（解码器多桶 + 左上下文 25 帧）\n22:50:40 [TTS] [tts_engine] 加载模型：device=NPU root=C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\models\\qwen3tts cache=C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_npu_cache\n22:50:40 [TTS] [tts_engine] 已把 INFERENCE_PRECISION_HINT=f16 注入 NPU 的编译\n22:50:42 [spk] 说话人旁路已加载（ASR-029 接口）\n22:50:43 [spk] 说话人旁路窗口：5.000 s 音频 / 推理 1.284 s\n22:50:47 [TTS][stderr] The tokenizer you are loading from 'C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\models\\qwen3tts\\tokenizer' with an incorrect regex pattern: https://huggingface.co/mist",
+ "log_counts": {
+  "n_no_voice_error": 0,
+  "n_new_spk": 4,
+  "n_label": 41,
+  "n_voice_registered": 10,
+  "n_fallback_preset": 0,
+  "n_keep_last": 5
+ },
+ "jsonl": {
+  "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app252_gui_out\\gui.tts.jsonl",
+  "n_rows": 87,
+  "n_ok": 74,
+  "voice_kind_counts": {
+   "preset": 1,
+   "clone": 73
+  },
+  "pct_voice_kind_clone": 98.649,
+  "voice_spk_ids": [
+   "S1",
+   "S2",
+   "S3"
+  ]
+ },
+ "n_pass": 5,
+ "n_fail": 0,
+ "n_none": 0,
+ "verdict": "PASS"
+}

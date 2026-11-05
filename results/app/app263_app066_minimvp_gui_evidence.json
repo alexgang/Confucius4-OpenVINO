@@ -1,0 +1,1346 @@
+{
+ "script": "app259_app066_minimvp_gui_coldstart.py",
+ "correction": "APP-066 3(b)",
+ "ts": "2026-11-05 07:20:07",
+ "cfg": {
+  "run": true,
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2",
+  "cold_timeout": 2400.0,
+  "warm_timeout": 900.0,
+  "out": "results/app/app263_app066_minimvp_gui_evidence.json"
+ },
+ "checks": [
+  {
+   "name": "① 首次启动（TTS 加载耗时）有实测值",
+   "verdict": true,
+   "detail": {
+    "tts_load_s": 1209.3,
+    "model_loaded_at_s": 1236.4,
+    "wall_s": 1237.03,
+    "device": "NPU",
+    "stopped_reason": "模型加载完成 ⇒ 停"
+   },
+   "why": ""
+  },
+  {
+   "name": "② 第二次启动（TTS 加载耗时）有实测值",
+   "verdict": false,
+   "detail": {
+    "tts_load_s": null,
+    "model_loaded_at_s": null,
+    "wall_s": 902.4
+   },
+   "why": ""
+  },
+  {
+   "name": "③ 第二次启动比首次快（缓存生效）",
+   "verdict": null,
+   "detail": {},
+   "why": "缺 TTS 加载耗时 ⇒ 无法判定"
+  },
+  {
+   "name": "④ 100% 截图抓到**完整主窗口**且非黑图",
+   "verdict": true,
+   "detail": {
+    "ok": true,
+    "all_black": false,
+    "bytes": 101801,
+    "size": [
+     1455,
+     1132
+    ],
+    "client": [
+     1439,
+     1093
+    ],
+    "is_main_window": true,
+    "n_candidates": 3,
+    "note": "客户区高 ≥ 700 px 才是主窗口（窄条高 122 px）"
+   },
+   "why": ""
+  },
+  {
+   "name": "④ 150% 截图抓到**完整主窗口**且非黑图",
+   "verdict": true,
+   "detail": {
+    "ok": true,
+    "all_black": false,
+    "bytes": 126843,
+    "size": [
+     1634,
+     1268
+    ],
+    "client": [
+     1618,
+     1229
+    ],
+    "is_main_window": true,
+    "n_candidates": 3,
+    "note": "客户区高 ≥ 700 px 才是主窗口（窄条高 122 px）"
+   },
+   "why": ""
+  },
+  {
+   "name": "⑤ 150 % 的**客户区**尺寸 ≈ 逻辑 1080×820 × 1.5（应用公式 ±4 px）",
+   "verdict": true,
+   "detail": {
+    "client_150": [
+     1618,
+     1229
+    ],
+    "expect_150": [
+     1620,
+     1230
+    ],
+    "client_100": [
+     1439,
+     1093
+    ],
+    "expect_100": [
+     1439,
+     1093
+    ],
+    "implied_scaling_150": 1.4981,
+    "note": "Tk 把 scaling 1.5 量化成 1.4989 ⇒ 应用公式得 1618×1229；app260 实测 Tk 不裁剪申请值 ⇒ 差值来自量化而非 App"
+   },
+   "why": ""
+  },
+  {
+   "name": "⑥ 冷启臂确实编译了 NPU（首次 tts_load ≫ 热启）",
+   "verdict": false,
+   "detail": {
+    "cold_s": 1209.3,
+    "warm_s": null
+   },
+   "why": ""
+  }
+ ],
+ "runs": [
+  {
+   "tag": "cold",
+   "scale": 1.0,
+   "cmd": [
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\app\\live_caption_app.py",
+    "--source",
+    "file",
+    "--file",
+    "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_wav_gvc91d62\\SPE_1500s.wav",
+    "--autostart",
+    "--selftest",
+    "1500",
+    "--selftest-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\selftest_cold",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "A",
+    "--speaker",
+    "off",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--translate",
+    "zh",
+    "--mt-engine",
+    "gpu_int4cw"
+   ],
+   "localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_gui_b7djmwch",
+   "wav": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_wav_gvc91d62\\SPE_1500s.wav",
+   "rc": 0,
+   "exit_code_early": 0,
+   "wall_s": 1561.18,
+   "stopped_reason": "进程自行退出",
+   "model_loaded_at_s": null,
+   "shot": {
+    "ok": true,
+    "bytes": 91820,
+    "extrema": [
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ]
+    ],
+    "all_black": false,
+    "size": [
+     1455,
+     1132
+    ],
+    "hwnd": 3607140,
+    "rect": [
+     1455,
+     1132
+    ],
+    "client": [
+     1439,
+     1093
+    ],
+    "area": 1647060,
+    "_area": 1647060,
+    "tried": [
+     {
+      "ok": true,
+      "bytes": 2629,
+      "extrema": [
+       [
+        17,
+        255
+       ],
+       [
+        17,
+        215
+       ],
+       [
+        17,
+        94
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1638,
+       122
+      ],
+      "hwnd": 2100184,
+      "rect": [
+       1638,
+       122
+      ],
+      "client": [
+       1638,
+       122
+      ],
+      "area": 199836,
+      "_area": 199836,
+      "superseded_by_larger": true
+     },
+     {
+      "ok": false,
+      "bytes": 112,
+      "why": "capture_hwnd 返回 False（<=1000 B 视为失败）",
+      "hwnd": 4393126,
+      "rect": [
+       44,
+       24
+      ],
+      "client": [
+       44,
+       24
+      ],
+      "area": 1056
+     },
+     {
+      "ok": true,
+      "bytes": 91820,
+      "extrema": [
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1455,
+       1132
+      ],
+      "hwnd": 3607140,
+      "rect": [
+       1455,
+       1132
+      ],
+      "client": [
+       1439,
+       1093
+      ],
+      "area": 1647060,
+      "_area": 1647060
+     }
+    ],
+    "n_candidates": 3,
+    "at_s": 1520.8
+   },
+   "shot_first": {
+    "ok": true,
+    "bytes": 20187,
+    "extrema": [
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ]
+    ],
+    "all_black": false,
+    "size": [
+     1455,
+     1132
+    ],
+    "hwnd": 3607140,
+    "rect": [
+     1455,
+     1132
+    ],
+    "client": [
+     1439,
+     1093
+    ],
+    "area": 1647060,
+    "_area": 1647060,
+    "tried": [
+     {
+      "ok": true,
+      "bytes": 20187,
+      "extrema": [
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1455,
+       1132
+      ],
+      "hwnd": 3607140,
+      "rect": [
+       1455,
+       1132
+      ],
+      "client": [
+       1439,
+       1093
+      ],
+      "area": 1647060,
+      "_area": 1647060
+     }
+    ],
+    "n_candidates": 1,
+    "at_s": 7.5
+   },
+   "n_captures": 563,
+   "shot_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\gui_cold.png",
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\gui_cold.log",
+   "session_log": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_gui_b7djmwch\\Confucius4LiveCaption\\session_20261105_072110.log",
+   "log_bytes": 159,
+   "log_tail": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+   "session_log_bytes": 8131,
+   "session_log_tail": "asr_rtf=0.638 asr_backlog_s=0.0 mt_lat_p50=— tts_synth_rtf=— uf_in_sentence_ms=— uf_idle_ms=— n_sent=— n_sent_uf_zero=—\n07:41:55 [遥测 30s] asr_rtf=0.637 asr_backlog_s=0.3 mt_lat_p50=— tts_synth_rtf=— uf_in_sentence_ms=— uf_idle_ms=— n_sent=— n_sent_uf_zero=—\n07:42:25 [遥测 30s] asr_rtf=0.637 asr_backlog_s=0.3 mt_lat_p50=— tts_synth_rtf=— uf_in_sentence_ms=— uf_idle_ms=— n_sent=— n_sent_uf_zero=—\n07:42:55 [遥测 30s] asr_rtf=0.636 asr_backlog_s=0.2 mt_lat_p50=— tts_synth_rtf=— uf_in_sentence_ms=— uf_idle_ms=— n_sent=— n_sent_uf_zero=—\n07:43:26 [遥测 30s] asr_rtf=0.635 asr_backlog_s=0.2 mt_lat_p50=— tts_synth_rtf=— uf_in_sentence_ms=— uf_idle_ms=— n_sent=— n_sent_uf_zero=—\n07:43:56 [遥测 30s] asr_rtf=0.634 asr_backlog_s=0.3 mt_lat_p50=— tts_synth_rtf=— uf_in_sentence_ms=— uf_idle_ms=— n_sent=— n_sent_uf_zero=—\n07:44:26 [遥测 30s] asr_rtf=0.633 asr_backlog_s=0.2 mt_lat_p50=— tts_synth_rtf=— uf_in_sentence_ms=— uf_idle_ms=— n_sent=— n_sent_uf_zero=—\n07:44:56 [遥测 30s] asr_rtf=0.633 asr_backlog_s=0.4 mt_lat_p50=— tts_synth_rtf=— uf_in_sentence_ms=— uf_idle_ms=— n_sent=— n_sent_uf_zero=—\n07:45:26 [遥测 30s] asr_rtf=0.632 asr_backlog_s=0.4 mt_lat_p50=— tts_synth_rtf=— uf_in_sentence_ms=— uf_idle_ms=— n_sent=— n_sent_uf_zero=—\n07:45:56 [遥测 30s] asr_rtf=0.633 asr_backlog_s=0.3 mt_lat_p50=— tts_synth_rtf=— uf_in_sentence_ms=— uf_idle_ms=— n_sent=— n_sent_uf_zero=—\n07:46:28 [遥测 30s] asr_rtf=0.632 asr_backlog_s=0.3 mt_lat_p50=— tts_synth_rtf=— uf_in_sentence_ms=— uf_idle_ms=— n_sent=— n_sent_uf_zero=—\n",
+   "tts_load_s": null,
+   "mt_load_s": null,
+   "mt_label": null,
+   "asr_load_s": null,
+   "asr_load_seen": true,
+   "tts_device": null,
+   "has_npu_compile_hint": false,
+   "selftest_files": [
+    "gpu_int8_gui.txt",
+    "gpu_int8_screen.png"
+   ]
+  },
+  {
+   "tag": "warm",
+   "scale": 1.0,
+   "cmd": [
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\app\\live_caption_app.py",
+    "--source",
+    "file",
+    "--file",
+    "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_wav_gvc91d62\\SPE_1500s.wav",
+    "--autostart",
+    "--selftest",
+    "1500",
+    "--selftest-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\selftest_warm",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "A",
+    "--speaker",
+    "off",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--translate",
+    "zh",
+    "--mt-engine",
+    "gpu_int4cw"
+   ],
+   "localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_gui_b7djmwch",
+   "wav": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_wav_gvc91d62\\SPE_1500s.wav",
+   "rc": 1,
+   "exit_code_early": null,
+   "wall_s": 902.4,
+   "stopped_reason": "超时 900.0 s",
+   "model_loaded_at_s": null,
+   "shot": {
+    "ok": true,
+    "bytes": 114093,
+    "extrema": [
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ]
+    ],
+    "all_black": false,
+    "size": [
+     1455,
+     1132
+    ],
+    "hwnd": 52956030,
+    "rect": [
+     1455,
+     1132
+    ],
+    "client": [
+     1439,
+     1093
+    ],
+    "area": 1647060,
+    "_area": 1647060,
+    "tried": [
+     {
+      "ok": true,
+      "bytes": 14709,
+      "extrema": [
+       [
+        17,
+        255
+       ],
+       [
+        17,
+        215
+       ],
+       [
+        17,
+        215
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1638,
+       122
+      ],
+      "hwnd": 6294504,
+      "rect": [
+       1638,
+       122
+      ],
+      "client": [
+       1638,
+       122
+      ],
+      "area": 199836,
+      "_area": 199836,
+      "superseded_by_larger": true
+     },
+     {
+      "ok": false,
+      "bytes": 112,
+      "why": "capture_hwnd 返回 False（<=1000 B 视为失败）",
+      "hwnd": 4588146,
+      "rect": [
+       44,
+       24
+      ],
+      "client": [
+       44,
+       24
+      ],
+      "area": 1056
+     },
+     {
+      "ok": true,
+      "bytes": 114093,
+      "extrema": [
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1455,
+       1132
+      ],
+      "hwnd": 52956030,
+      "rect": [
+       1455,
+       1132
+      ],
+      "client": [
+       1439,
+       1093
+      ],
+      "area": 1647060,
+      "_area": 1647060
+     }
+    ],
+    "n_candidates": 3,
+    "at_s": 901.7
+   },
+   "shot_first": {
+    "ok": true,
+    "bytes": 16989,
+    "extrema": [
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ]
+    ],
+    "all_black": false,
+    "size": [
+     1455,
+     1132
+    ],
+    "hwnd": 52956030,
+    "rect": [
+     1455,
+     1132
+    ],
+    "client": [
+     1439,
+     1093
+    ],
+    "area": 1647060,
+    "_area": 1647060,
+    "tried": [
+     {
+      "ok": true,
+      "bytes": 16989,
+      "extrema": [
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1455,
+       1132
+      ],
+      "hwnd": 52956030,
+      "rect": [
+       1455,
+       1132
+      ],
+      "client": [
+       1439,
+       1093
+      ],
+      "area": 1647060,
+      "_area": 1647060
+     }
+    ],
+    "n_candidates": 1,
+    "at_s": 5.4
+   },
+   "n_captures": 335,
+   "shot_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\gui_warm.png",
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\gui_warm.log",
+   "session_log": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_gui_b7djmwch\\Confucius4LiveCaption\\session_20261105_074710.log",
+   "log_bytes": 159,
+   "log_tail": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+   "session_log_bytes": 5804,
+   "session_log_tail": "log_s=0.0 mt_lat_p50=489 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n07:57:25 [遥测 30s] asr_rtf=0.626 asr_backlog_s=0.0 mt_lat_p50=479 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n07:57:56 [遥测 30s] asr_rtf=0.626 asr_backlog_s=1.4 mt_lat_p50=489 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n07:58:26 [遥测 30s] asr_rtf=0.628 asr_backlog_s=0.1 mt_lat_p50=489 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n07:58:56 [遥测 30s] asr_rtf=0.627 asr_backlog_s=0.1 mt_lat_p50=492 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n07:59:26 [遥测 30s] asr_rtf=0.629 asr_backlog_s=0.0 mt_lat_p50=489 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n07:59:56 [遥测 30s] asr_rtf=0.628 asr_backlog_s=0.1 mt_lat_p50=494 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:00:27 [遥测 30s] asr_rtf=0.628 asr_backlog_s=0.0 mt_lat_p50=494 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:00:57 [遥测 30s] asr_rtf=0.629 asr_backlog_s=0.0 mt_lat_p50=494 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:01:27 [遥测 30s] asr_rtf=0.629 asr_backlog_s=0.0 mt_lat_p50=495 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:01:57 [遥测 30s] asr_rtf=0.628 asr_backlog_s=0.0 mt_lat_p50=494 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n",
+   "tts_load_s": null,
+   "mt_load_s": 4.0,
+   "mt_label": "Intel GPU · INT4-CW · GPU.0",
+   "asr_load_s": null,
+   "asr_load_seen": true,
+   "tts_device": "NPU",
+   "has_npu_compile_hint": true,
+   "selftest_files": []
+  },
+  {
+   "tag": "scaling150",
+   "scale": 1.5,
+   "cmd": [
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app259_gui_150_launcher.py",
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\app",
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\app\\live_caption_app.py",
+    "--source",
+    "file",
+    "--file",
+    "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_wav_gvc91d62\\SPE_1500s.wav",
+    "--autostart",
+    "--selftest",
+    "1500",
+    "--selftest-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\selftest_scaling150",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "A",
+    "--speaker",
+    "off",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--translate",
+    "zh",
+    "--mt-engine",
+    "gpu_int4cw"
+   ],
+   "localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_gui_b7djmwch",
+   "wav": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_wav_gvc91d62\\SPE_1500s.wav",
+   "rc": 3221226505,
+   "exit_code_early": 3221226505,
+   "wall_s": 5.19,
+   "stopped_reason": "进程自行退出",
+   "model_loaded_at_s": null,
+   "shot": {
+    "ok": true,
+    "bytes": 7780,
+    "extrema": [
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ]
+    ],
+    "all_black": false,
+    "size": [
+     1634,
+     1268
+    ],
+    "hwnd": 7014208,
+    "rect": [
+     1634,
+     1268
+    ],
+    "client": [
+     1618,
+     1229
+    ],
+    "area": 2071912,
+    "_area": 2071912,
+    "tried": [
+     {
+      "ok": true,
+      "bytes": 7780,
+      "extrema": [
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1634,
+       1268
+      ],
+      "hwnd": 7014208,
+      "rect": [
+       1634,
+       1268
+      ],
+      "client": [
+       1618,
+       1229
+      ],
+      "area": 2071912,
+      "_area": 2071912
+     }
+    ],
+    "n_candidates": 1,
+    "at_s": 5.2
+   },
+   "shot_first": {
+    "ok": true,
+    "bytes": 7780,
+    "extrema": [
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ]
+    ],
+    "all_black": false,
+    "size": [
+     1634,
+     1268
+    ],
+    "hwnd": 7014208,
+    "rect": [
+     1634,
+     1268
+    ],
+    "client": [
+     1618,
+     1229
+    ],
+    "area": 2071912,
+    "_area": 2071912,
+    "tried": [
+     {
+      "ok": true,
+      "bytes": 7780,
+      "extrema": [
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1634,
+       1268
+      ],
+      "hwnd": 7014208,
+      "rect": [
+       1634,
+       1268
+      ],
+      "client": [
+       1618,
+       1229
+      ],
+      "area": 2071912,
+      "_area": 2071912
+     }
+    ],
+    "n_candidates": 1,
+    "at_s": 5.2
+   },
+   "n_captures": 1,
+   "shot_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\gui_scaling150.png",
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\gui_scaling150.log",
+   "session_log": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_gui_b7djmwch\\Confucius4LiveCaption\\session_20261105_080213.log",
+   "log_bytes": 0,
+   "log_tail": "",
+   "session_log_bytes": 155,
+   "session_log_tail": "08:02:13 [spk] 说话人识别不可用：缺少：ASR 说话人接口代码（app/asr_spk/）、wespeaker 的 OV IR、pyannote/segmentation-3.0 的 OV IR\n",
+   "tts_load_s": null,
+   "mt_load_s": null,
+   "mt_label": null,
+   "asr_load_s": null,
+   "asr_load_seen": false,
+   "tts_device": null,
+   "has_npu_compile_hint": false,
+   "selftest_files": []
+  },
+  {
+   "tag": "scaling150",
+   "scale": 1.5,
+   "cmd": [
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app259_gui_150_launcher.py",
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\app",
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\app\\live_caption_app.py",
+    "--source",
+    "file",
+    "--file",
+    "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_wav_gvc91d62\\SPE_1500s.wav",
+    "--autostart",
+    "--selftest",
+    "1500",
+    "--selftest-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\selftest_scaling150",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "A",
+    "--speaker",
+    "off",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--translate",
+    "zh",
+    "--mt-engine",
+    "gpu_int4cw"
+   ],
+   "localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_gui_b7djmwch",
+   "wav": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_wav_gvc91d62\\SPE_1500s.wav",
+   "rc": 1,
+   "exit_code_early": null,
+   "wall_s": 331.82,
+   "stopped_reason": "模型加载完成 ⇒ 停",
+   "model_loaded_at_s": 331.1,
+   "shot": {
+    "ok": true,
+    "bytes": 126843,
+    "extrema": [
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ]
+    ],
+    "all_black": false,
+    "size": [
+     1634,
+     1268
+    ],
+    "hwnd": 7866572,
+    "rect": [
+     1634,
+     1268
+    ],
+    "client": [
+     1618,
+     1229
+    ],
+    "area": 2071912,
+    "_area": 2071912,
+    "tried": [
+     {
+      "ok": true,
+      "bytes": 16627,
+      "extrema": [
+       [
+        17,
+        255
+       ],
+       [
+        17,
+        215
+       ],
+       [
+        17,
+        215
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1638,
+       132
+      ],
+      "hwnd": 5245498,
+      "rect": [
+       1638,
+       132
+      ],
+      "client": [
+       1638,
+       132
+      ],
+      "area": 216216,
+      "_area": 216216,
+      "superseded_by_larger": true
+     },
+     {
+      "ok": false,
+      "bytes": 118,
+      "why": "capture_hwnd 返回 False（<=1000 B 视为失败）",
+      "hwnd": 33950666,
+      "rect": [
+       44,
+       24
+      ],
+      "client": [
+       44,
+       24
+      ],
+      "area": 1056
+     },
+     {
+      "ok": true,
+      "bytes": 126843,
+      "extrema": [
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1634,
+       1268
+      ],
+      "hwnd": 7866572,
+      "rect": [
+       1634,
+       1268
+      ],
+      "client": [
+       1618,
+       1229
+      ],
+      "area": 2071912,
+      "_area": 2071912
+     }
+    ],
+    "n_candidates": 3,
+    "at_s": 331.1
+   },
+   "shot_first": {
+    "ok": true,
+    "bytes": 19190,
+    "extrema": [
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ]
+    ],
+    "all_black": false,
+    "size": [
+     1634,
+     1268
+    ],
+    "hwnd": 7866572,
+    "rect": [
+     1634,
+     1268
+    ],
+    "client": [
+     1618,
+     1229
+    ],
+    "area": 2071912,
+    "_area": 2071912,
+    "tried": [
+     {
+      "ok": true,
+      "bytes": 19190,
+      "extrema": [
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1634,
+       1268
+      ],
+      "hwnd": 7866572,
+      "rect": [
+       1634,
+       1268
+      ],
+      "client": [
+       1618,
+       1229
+      ],
+      "area": 2071912,
+      "_area": 2071912
+     }
+    ],
+    "n_candidates": 1,
+    "at_s": 4.8
+   },
+   "n_captures": 116,
+   "shot_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\gui_scaling150.png",
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\gui_scaling150.log",
+   "session_log": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_gui_b7djmwch\\Confucius4LiveCaption\\session_20261105_080221.log",
+   "log_bytes": 159,
+   "log_tail": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+   "session_log_bytes": 3518,
+   "session_log_tail": "nce_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:04:24 [遥测 30s] asr_rtf=0.546 asr_backlog_s=0.3 mt_lat_p50=456 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:04:56 [遥测 30s] asr_rtf=0.541 asr_backlog_s=0.4 mt_lat_p50=466 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:05:26 [遥测 30s] asr_rtf=0.540 asr_backlog_s=0.0 mt_lat_p50=469 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:05:56 [遥测 30s] asr_rtf=0.537 asr_backlog_s=0.0 mt_lat_p50=469 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:06:26 [遥测 30s] asr_rtf=0.538 asr_backlog_s=0.0 mt_lat_p50=486 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:06:56 [遥测 30s] asr_rtf=0.538 asr_backlog_s=0.2 mt_lat_p50=466 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:07:27 [遥测 30s] asr_rtf=0.537 asr_backlog_s=0.0 mt_lat_p50=420 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:07:49 [TTS][stderr] The tokenizer you are loading from 'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\models\\qwen3tts\\tokenizer' with an incorrect regex pattern: https://huggingface.co/mistralai/Mistral-Small-3.1-24B-Instruct-2503/discussions/84#69121093e8b480e709447d5e. This will lead to incorrect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.\n08:07:49 [TTS] [tts_engine] 模型加载完成（312.1 s）\n",
+   "tts_load_s": 312.1,
+   "mt_load_s": 1.8,
+   "mt_label": "Intel GPU · INT4-CW · GPU.0",
+   "asr_load_s": null,
+   "asr_load_seen": true,
+   "tts_device": "NPU",
+   "has_npu_compile_hint": true,
+   "selftest_files": []
+  },
+  {
+   "tag": "cold",
+   "scale": 1.0,
+   "cmd": [
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\app\\live_caption_app.py",
+    "--source",
+    "file",
+    "--file",
+    "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_wav_gvc91d62\\SPE_1500s.wav",
+    "--autostart",
+    "--selftest",
+    "1500",
+    "--selftest-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\selftest_cold",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "A",
+    "--speaker",
+    "off",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--translate",
+    "zh",
+    "--mt-engine",
+    "gpu_int4cw"
+   ],
+   "localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_gui_1vpclyn5",
+   "wav": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_wav_gvc91d62\\SPE_1500s.wav",
+   "rc": 1,
+   "exit_code_early": null,
+   "wall_s": 1237.03,
+   "stopped_reason": "模型加载完成 ⇒ 停",
+   "model_loaded_at_s": 1236.4,
+   "shot": {
+    "ok": true,
+    "bytes": 101801,
+    "extrema": [
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ]
+    ],
+    "all_black": false,
+    "size": [
+     1455,
+     1132
+    ],
+    "hwnd": 6097348,
+    "rect": [
+     1455,
+     1132
+    ],
+    "client": [
+     1439,
+     1093
+    ],
+    "area": 1647060,
+    "_area": 1647060,
+    "tried": [
+     {
+      "ok": true,
+      "bytes": 16034,
+      "extrema": [
+       [
+        17,
+        255
+       ],
+       [
+        17,
+        215
+       ],
+       [
+        17,
+        215
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1638,
+       122
+      ],
+      "hwnd": 2427864,
+      "rect": [
+       1638,
+       122
+      ],
+      "client": [
+       1638,
+       122
+      ],
+      "area": 199836,
+      "_area": 199836,
+      "superseded_by_larger": true
+     },
+     {
+      "ok": false,
+      "bytes": 112,
+      "why": "capture_hwnd 返回 False（<=1000 B 视为失败）",
+      "hwnd": 789448,
+      "rect": [
+       44,
+       24
+      ],
+      "client": [
+       44,
+       24
+      ],
+      "area": 1056
+     },
+     {
+      "ok": true,
+      "bytes": 101801,
+      "extrema": [
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1455,
+       1132
+      ],
+      "hwnd": 6097348,
+      "rect": [
+       1455,
+       1132
+      ],
+      "client": [
+       1439,
+       1093
+      ],
+      "area": 1647060,
+      "_area": 1647060
+     }
+    ],
+    "n_candidates": 3,
+    "at_s": 1236.4
+   },
+   "shot_first": {
+    "ok": true,
+    "bytes": 14184,
+    "extrema": [
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ]
+    ],
+    "all_black": false,
+    "size": [
+     1455,
+     1132
+    ],
+    "hwnd": 6097348,
+    "rect": [
+     1455,
+     1132
+    ],
+    "client": [
+     1439,
+     1093
+    ],
+    "area": 1647060,
+    "_area": 1647060,
+    "tried": [
+     {
+      "ok": true,
+      "bytes": 14184,
+      "extrema": [
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ],
+       [
+        0,
+        255
+       ]
+      ],
+      "all_black": false,
+      "size": [
+       1455,
+       1132
+      ],
+      "hwnd": 6097348,
+      "rect": [
+       1455,
+       1132
+      ],
+      "client": [
+       1439,
+       1093
+      ],
+      "area": 1647060,
+      "_area": 1647060
+     }
+    ],
+    "n_candidates": 1,
+    "at_s": 4.1
+   },
+   "n_captures": 465,
+   "shot_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\gui_cold.png",
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app259_minimvp_gui\\gui_cold.log",
+   "session_log": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_gui_1vpclyn5\\Confucius4LiveCaption\\session_20261105_080753.log",
+   "log_bytes": 159,
+   "log_tail": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+   "session_log_bytes": 7899,
+   "session_log_tail": "ce_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:25:03 [遥测 30s] asr_rtf=0.619 asr_backlog_s=0.3 mt_lat_p50=486 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:25:33 [遥测 30s] asr_rtf=0.620 asr_backlog_s=0.3 mt_lat_p50=487 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:26:03 [遥测 30s] asr_rtf=0.621 asr_backlog_s=0.2 mt_lat_p50=486 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:26:33 [遥测 30s] asr_rtf=0.621 asr_backlog_s=0.2 mt_lat_p50=486 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:27:03 [遥测 30s] asr_rtf=0.621 asr_backlog_s=0.2 mt_lat_p50=487 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:27:33 [遥测 30s] asr_rtf=0.621 asr_backlog_s=0.1 mt_lat_p50=486 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:28:03 [遥测 30s] asr_rtf=0.621 asr_backlog_s=0.0 mt_lat_p50=486 tts_synth_rtf=— uf_in_sentence_ms=0 uf_idle_ms=0 n_sent=0 n_sent_uf_zero=0\n08:28:27 [TTS][stderr] The tokenizer you are loading from 'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\models\\qwen3tts\\tokenizer' with an incorrect regex pattern: https://huggingface.co/mistralai/Mistral-Small-3.1-24B-Instruct-2503/discussions/84#69121093e8b480e709447d5e. This will lead to incorrect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.\n08:28:27 [TTS] [tts_engine] 模型加载完成（1209.3 s）\n",
+   "tts_load_s": 1209.3,
+   "mt_load_s": 6.1,
+   "mt_label": "Intel GPU · INT4-CW · GPU.0",
+   "asr_load_s": null,
+   "asr_load_seen": true,
+   "tts_device": "NPU",
+   "has_npu_compile_hint": true,
+   "selftest_files": [
+    "gpu_int8_gui.txt",
+    "gpu_int8_screen.png"
+   ]
+  }
+ ],
+ "fixes_vs_app256": [
+  "D1 抓屏按**窗口面积**取最大者（真主窗口 1455×1132），不再取「第一个非黑」（那是 1638×122 窄条）",
+  "D2 每个候选窗口的抓屏结果 + 失败原因全部落盘（不再只有 shot=null）",
+  "D3 音频 300 s → 900 s（冷 NPU 编译 ~4 min 需跑过），且「模型加载完成」出现后立刻停",
+  "D4 150 % 尺寸判据改用**客户区** GetClientRect（= 逻辑 1080×820 × scaling）"
+ ],
+ "quiet_window": {
+  "ok": true,
+  "info": "{'quiet_seconds': 45.0, 'timeout': 1800.0, 'waited_s': 60.071818590164185, 'n_samples': 5, 'n_busy_samples': 1, 'n_idle_samples': 4, 'n_unknown_samples': 1, 'last_busy_pids': [4912], 'last_idle_pids': [4912], 'classifier': 'cpu-delta', 'quiet_since': 1793834423.3408632}"
+ },
+ "long_wav": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\minimvp_wav_gvc91d62\\SPE_1500s.wav",
+ "long_wav_seconds": 1500.0,
+ "n_pass": 4,
+ "n_fail": 2,
+ "n_none": 1,
+ "verdict": "FAIL"
+}

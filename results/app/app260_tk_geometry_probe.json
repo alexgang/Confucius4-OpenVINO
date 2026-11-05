@@ -1,0 +1,95 @@
+{
+ "script": "_app260_tk_geometry_probe.py",
+ "work_area": [
+  0,
+  0,
+  2048,
+  1232
+ ],
+ "probes": [
+  {
+   "label": "① 默认 scaling（1.333）申请 1620x1230",
+   "scaling_set": null,
+   "requested": [
+    1620,
+    1230
+   ],
+   "tk_scaling_actual": 1.3330053300533005,
+   "client": [
+    1620,
+    1230
+   ],
+   "window_rect": [
+    1636,
+    1269
+   ],
+   "winfo_reqwidth": 200,
+   "winfo_reqheight": 200,
+   "winfo_width": 1620,
+   "winfo_height": 1230
+  },
+  {
+   "label": "② scaling=1.5 申请 1620x1230",
+   "scaling_set": 1.5,
+   "requested": [
+    1620,
+    1230
+   ],
+   "tk_scaling_actual": 1.4989396035039186,
+   "client": [
+    1620,
+    1230
+   ],
+   "window_rect": [
+    1636,
+    1269
+   ],
+   "winfo_reqwidth": 200,
+   "winfo_reqheight": 200,
+   "winfo_width": 1620,
+   "winfo_height": 1230
+  },
+  {
+   "label": "③ scaling=1.5 申请 1439x1093",
+   "scaling_set": 1.5,
+   "requested": [
+    1439,
+    1093
+   ],
+   "tk_scaling_actual": 1.4989396035039186,
+   "client": [
+    1439,
+    1093
+   ],
+   "window_rect": [
+    1455,
+    1132
+   ],
+   "winfo_reqwidth": 200,
+   "winfo_reqheight": 200,
+   "winfo_width": 1439,
+   "winfo_height": 1093
+  },
+  {
+   "label": "④ scaling=1.0 申请 1620x1230",
+   "scaling_set": 1.0,
+   "requested": [
+    1620,
+    1230
+   ],
+   "tk_scaling_actual": 1.0006771314250538,
+   "client": [
+    1620,
+    1230
+   ],
+   "window_rect": [
+    1636,
+    1269
+   ],
+   "winfo_reqwidth": 200,
+   "winfo_reqheight": 200,
+   "winfo_width": 1620,
+   "winfo_height": 1230
+  }
+ ]
+}
