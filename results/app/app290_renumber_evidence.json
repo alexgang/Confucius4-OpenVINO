@@ -1,0 +1,105 @@
+{
+ "script": "_app290_renumber_evidence.py",
+ "purpose": "证据编号去冲突（app283–app286 → app286–app289）",
+ "ts": "2026-11-05 18:05:45",
+ "renames": [
+  {
+   "old": "_app283_rc3_unzip_smoke.py",
+   "new": "_app286_rc3_unzip_smoke.py",
+   "already": true
+  },
+  {
+   "old": "app283_rc3_unzip_smoke_evidence.json",
+   "new": "app286_rc3_unzip_smoke_evidence.json",
+   "already": true
+  },
+  {
+   "old": "app283_rc3_unzip_check_output.txt",
+   "new": "app286_rc3_unzip_check_output.txt",
+   "already": true
+  },
+  {
+   "old": "app283_rc3_unzip_smoke.log",
+   "new": "app286_rc3_unzip_smoke.log",
+   "already": true
+  },
+  {
+   "old": "app283_rc3_unzip_out",
+   "new": "app286_rc3_unzip_out",
+   "already": true
+  },
+  {
+   "old": "app283_rc3_unzip_smoke.pid",
+   "new": "app286_rc3_unzip_smoke.pid",
+   "already": true
+  },
+  {
+   "old": "_app284_rc3_readme_count_patch.py",
+   "new": "_app287_rc3_readme_count_patch.py",
+   "already": true
+  },
+  {
+   "old": "app284_rc3_readme_count_patch_evidence.json",
+   "new": "app287_rc3_readme_count_patch_evidence.json",
+   "already": true
+  },
+  {
+   "old": "_app285_rc3_perftest_zip_rev2.py",
+   "new": "_app288_rc3_perftest_zip_rev2.py",
+   "already": true
+  },
+  {
+   "old": "app285_rc3_perftest_zip_rev2_evidence.json",
+   "new": "app288_rc3_perftest_zip_rev2_evidence.json",
+   "already": true
+  },
+  {
+   "old": "_app285_zip_listfile.txt",
+   "new": "_app288_zip_listfile.txt",
+   "already": true
+  },
+  {
+   "old": "app286_rc3_rev2_unzip_smoke_evidence.json",
+   "new": "app289_rc3_rev2_unzip_smoke_evidence.json",
+   "already": true
+  }
+ ],
+ "gate1_ok": true,
+ "keep_untouched": [
+  "_app283_app071_spk_voice_diag.py",
+  "app283_app071_diag_evidence.json"
+ ],
+ "patched_files": [
+  {
+   "file": "app290_renumber_evidence.json",
+   "hits": {
+    "app284_rc3_readme_count_patch_evidence.json": 2,
+    "app285_rc3_perftest_zip_rev2_evidence.json": 2,
+    "app286_rc3_rev2_unzip_smoke_evidence.json": 1,
+    "app283_rc3_unzip_smoke_evidence.json": 2,
+    "app283_rc3_unzip_check_output.txt": 4,
+    "_app284_rc3_readme_count_patch.py": 3,
+    "_app285_rc3_perftest_zip_rev2.py": 3,
+    "_app283_rc3_unzip_smoke.py": 4,
+    "app283_rc3_unzip_smoke.log": 2,
+    "app283_rc3_unzip_smoke.pid": 4,
+    "_app285_zip_listfile.txt": 3,
+    "app283_rc3_unzip_out": 5
+   }
+  }
+ ],
+ "checked_jsons": [
+  "app286_rc3_unzip_smoke_evidence.json",
+  "app287_rc3_readme_count_patch_evidence.json",
+  "app288_rc3_perftest_zip_rev2_evidence.json",
+  "app289_rc3_rev2_unzip_smoke_evidence.json"
+ ],
+ "missing_refs": [],
+ "gate3_ok": true,
+ "keep_sha256_after": {
+  "_app283_app071_spk_voice_diag.py": "c5ecdaf915c227a191447c2882ab23aee90880183a5f74823df79fd61ccaea22",
+  "app283_app071_diag_evidence.json": "2c10fc78f1752095c0e8118ca2fcdfcc323293d1432b444f6ee02637af405516"
+ },
+ "verdict": "PASS",
+ "finished_at": "2026-11-05 18:05:45"
+}

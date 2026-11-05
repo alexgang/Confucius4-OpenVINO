@@ -1,0 +1,144 @@
+{
+ "script": "_app288_rc3_perftest_zip_rev2.py",
+ "correction": "APP-073(c) + APP-074（README 文件数修正 ⇒ 重打 ⇒ 最终 SHA）",
+ "ts": "2026-11-05 17:51:41",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+ "zip": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest_rev2.zip",
+ "old_zip": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest.zip",
+ "mode": "run",
+ "old_zip_sha256_before": "dda6f229e9d1e70accc4417b328d33b8c929f868a033ad4546e39d7d0f2d45f1",
+ "old_zip_bytes": 5591630138,
+ "readme": {
+  "bytes": 9155,
+  "sha256": "e6710514395d6451b9feffedcbe5e8f829fcb3877ee744c24b57d0e4c6847fdc",
+  "n_new": 1,
+  "n_old": 0
+ },
+ "n_files": 10474,
+ "src_bytes": 7176154805,
+ "src_gb": 6.683,
+ "listfile": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app288_zip_listfile.txt",
+ "listfile_ufffd": 0,
+ "listfile_abs_path": 0,
+ "listfile_bak": 0,
+ "old_zip_entries": 10474,
+ "crc_audit": {
+  "n_common": 10474,
+  "n_added": 0,
+  "added": [],
+  "n_removed": 0,
+  "removed": [],
+  "n_changed": 1,
+  "changed": [
+   {
+    "file": "README_perftest.txt",
+    "reason": "crc",
+    "old_crc": 1993929492,
+    "new_crc": 1056208289
+   }
+  ],
+  "expected_diff": "README_perftest.txt",
+  "changed_is_expected_only": true
+ },
+ "cmd": [
+  "C:\\Program Files\\7-Zip\\7z.exe",
+  "a",
+  "-tzip",
+  "-mx=5",
+  "-mmt=on",
+  "-bso0",
+  "-bsp0",
+  "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest_rev2.zip",
+  "-i@C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app288_zip_listfile.txt"
+ ],
+ "priority": "BELOW_NORMAL",
+ "pid": 27916,
+ "rc": 0,
+ "wall_s": 123.37,
+ "zip_entries": 10474,
+ "zip_bytes": 5591630139,
+ "zip_gb": 5.208,
+ "zip_sha256": "90ae8b9da38eeca6ab9e6a693e9ac6395bdcb678e9377c5a4f655a7c5a06f58f",
+ "zip_mtime": "2026-11-05 17:53:56",
+ "n_mismatch": 0,
+ "readme_in_zip": {
+  "bytes": 9155,
+  "sha256": "e6710514395d6451b9feffedcbe5e8f829fcb3877ee744c24b57d0e4c6847fdc",
+  "n_new": 1,
+  "n_old": 0
+ },
+ "n_babelvox_speakers_in_zip": 0,
+ "n_babelvox_speakers_in_zip_list": [],
+ "old_zip_sha256_after": "dda6f229e9d1e70accc4417b328d33b8c929f868a033ad4546e39d7d0f2d45f1",
+ "old_zip_untouched": true,
+ "checks": [
+  {
+   "name": "① 新 zip 条目数 == 清单条数（10 474）",
+   "verdict": true,
+   "detail": {
+    "entries": 10474,
+    "list": 10474
+   }
+  },
+  {
+   "name": "② 新 zip 内 README 已是修正态（新=1 次 / 旧=0 次）",
+   "verdict": true,
+   "detail": {
+    "bytes": 9155,
+    "sha256": "e6710514395d6451b9feffedcbe5e8f829fcb3877ee744c24b57d0e4c6847fdc",
+    "n_new": 1,
+    "n_old": 0
+   }
+  },
+  {
+   "name": "③ 新 zip 内无 babelvox 示例音色",
+   "verdict": true,
+   "detail": {
+    "n": 0
+   }
+  },
+  {
+   "name": "④ 与旧 zip 的 CRC 对账：只 README 1 个文件不同、无增无减",
+   "verdict": true,
+   "detail": {
+    "n_common": 10474,
+    "n_added": 0,
+    "added": [],
+    "n_removed": 0,
+    "removed": [],
+    "n_changed": 1,
+    "changed": [
+     {
+      "file": "README_perftest.txt",
+      "reason": "crc",
+      "old_crc": 1993929492,
+      "new_crc": 1056208289
+     }
+    ],
+    "expected_diff": "README_perftest.txt",
+    "changed_is_expected_only": true
+   }
+  },
+  {
+   "name": "⑤ 旧 zip 一字节未动（SHA256 逐字相同）",
+   "verdict": true,
+   "detail": {
+    "before": "dda6f229e9d1e70accc4417b328d33b8c929f868a033ad4546e39d7d0f2d45f1",
+    "after": "dda6f229e9d1e70accc4417b328d33b8c929f868a033ad4546e39d7d0f2d45f1"
+   }
+  },
+  {
+   "name": "⑥ 清单无 U+FFFD / 绝对路径 / 备份文件",
+   "verdict": true,
+   "detail": {
+    "ufffd": 0,
+    "abs": 0,
+    "bak": 0
+   }
+  }
+ ],
+ "n_pass": 6,
+ "n_fail": 0,
+ "verdict": "PASS",
+ "finished_at": "2026-11-05 17:54:02"
+}

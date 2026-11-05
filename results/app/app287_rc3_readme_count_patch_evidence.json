@@ -1,0 +1,44 @@
+{
+ "script": "_app287_rc3_readme_count_patch.py",
+ "correction": "APP-073(b) ② + APP-074（README 文件数 10 503 → 10 474）",
+ "ts": "2026-11-05 17:46:29",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+ "readme": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\README_perftest.txt",
+ "old_snippet": "解压后 **约 6.7 GB**（10 503 个文件）",
+ "new_snippet": "解压后 **约 6.7 GB**（10 474 个文件）",
+ "mode": "run",
+ "before": {
+  "bytes": 9155,
+  "sha256": "da3cd8ca1dabb1e28fdafb9ba243111f03daf513177782c6f7b545f32daa62b9",
+  "mtime": "2026-11-05 15:00:35"
+ },
+ "n_files_pkg_exclude": 10474,
+ "target_count": 10474,
+ "n_hit_old_snippet": 1,
+ "n_bytes_delta": 0,
+ "roundtrip_ok": true,
+ "backup": {
+  "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\README_perftest.txt.bak_app284",
+  "bytes": 9155,
+  "sha256": "da3cd8ca1dabb1e28fdafb9ba243111f03daf513177782c6f7b545f32daa62b9",
+  "path_at_write": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\README_perftest.txt.bak_app284",
+  "path_final": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\README_perftest.txt.bak_app284",
+  "relocated_reason": "写时备份落在包目录内（C-133：备份不进包）⇒ 写后已移到 results/app/（内容逐字未变，SHA 不变）",
+  "exists_at_final": true,
+  "final_sha256": "da3cd8ca1dabb1e28fdafb9ba243111f03daf513177782c6f7b545f32daa62b9",
+  "sha256_unchanged": true,
+  "pkg_dir_has_no_bak": true
+ },
+ "after": {
+  "bytes": 9155,
+  "sha256": "e6710514395d6451b9feffedcbe5e8f829fcb3877ee744c24b57d0e4c6847fdc",
+  "mtime": "2026-11-05 17:46:30"
+ },
+ "disk_equals_intended": true,
+ "n_hit_new_on_disk": 1,
+ "n_hit_old_on_disk": 0,
+ "n_lines": 155,
+ "crlf_count": 0,
+ "verdict": "PASS",
+ "finished_at": "2026-11-05 17:46:30"
+}
