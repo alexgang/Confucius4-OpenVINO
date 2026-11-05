@@ -1,0 +1,259 @@
+{
+ "script": "_app286_rc3_unzip_smoke.py",
+ "correction": "APP-073(a) + APP-074(a)（解压副本冒烟）",
+ "ts": "2026-11-05 17:42:05",
+ "pkg": "C:\\Users\\Trekker-PTL\\rc3_smoke_20261105\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+ "wav": "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+ "duration": 60.0,
+ "harness_pid": 46252,
+ "pidfile": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app286_rc3_unzip_smoke.pid",
+ "babelvox_speakers_dir_exists": false,
+ "babelvox_speaker_files": [],
+ "preset_A": {
+  "exists": true,
+  "bytes": 192044,
+  "mtime": "2026-10-23 12:01:01",
+  "sha256": "e021c255a715d4fd17dd6d19c3092a293d0d35a1e4e7ca8bf67bce6f8c94db53"
+ },
+ "check_cmd": [
+  "C:\\Users\\Trekker-PTL\\rc3_smoke_20261105\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\python\\python.exe",
+  "C:\\Users\\Trekker-PTL\\rc3_smoke_20261105\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\app\\live_caption_app.py",
+  "--check"
+ ],
+ "check": {
+  "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app286_rc3_unzip_check_output.txt",
+  "log_bytes": 2751,
+  "log_sha256": "82a176f619b5f2f13ca83bb445d63f566213160d3a63d492b742fb1f950072de",
+  "checks": [
+   {
+    "name": "① `--check` 退出码为 0",
+    "verdict": true,
+    "detail": {
+     "rc": 0,
+     "wall_s": 5.8
+    }
+   },
+   {
+    "name": "② 输出含「环境正常」",
+    "verdict": true,
+    "detail": {
+     "matched": true
+    }
+   },
+   {
+    "name": "③ 探测到 Intel 集显 GPU.0",
+    "verdict": true,
+    "detail": {
+     "n_gpu0_hits": 3
+    }
+   },
+   {
+    "name": "④ 探测到 NPU",
+    "verdict": true,
+    "detail": {
+     "n_npu_hits": 8
+    }
+   },
+   {
+    "name": "⑤ 报出 ASR 可用后端数",
+    "verdict": true,
+    "detail": {
+     "n_asr_backends": 3
+    }
+   }
+  ],
+  "n_pass": 5,
+  "n_fail": 0
+ },
+ "cli_cmd": [
+  "C:\\Users\\Trekker-PTL\\rc3_smoke_20261105\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\python\\python.exe",
+  "C:\\Users\\Trekker-PTL\\rc3_smoke_20261105\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\app\\live_caption_app.py",
+  "--cli",
+  "--file",
+  "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+  "--engine",
+  "gpu_int8",
+  "--asr-device",
+  "GPU.0",
+  "--translate",
+  "zh",
+  "--mt-device",
+  "GPU.0",
+  "--mt-engine",
+  "gpu_int4cw",
+  "--tts",
+  "on",
+  "--tts-voice",
+  "A",
+  "--tts-device",
+  "NPU",
+  "--speaker",
+  "off",
+  "--max-seconds",
+  "60.0",
+  "--tts-out",
+  "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app286_rc3_unzip_out\\perf_tts.wav",
+  "--tts-jsonl",
+  "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app286_rc3_unzip_out\\perf_tts.jsonl",
+  "--out",
+  "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app286_rc3_unzip_out\\perf_transcript.txt",
+  "--spk-seg-jsonl",
+  "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app286_rc3_unzip_out\\perf_spk_seg.jsonl"
+ ],
+ "lock_payload": "app PID 46252 started 2026-11-05 17:42:11\nmodule: app\npid: 46252\nstarted: 2026-11-05 17:42:11\nhost: LAPTOP-0GDQGD3I\n",
+ "quiet_window": {
+  "ok": true,
+  "info": {
+   "quiet_seconds": 45.0,
+   "timeout": 900.0,
+   "waited_s": 105.06426048278809,
+   "n_samples": 8,
+   "n_busy_samples": 2,
+   "n_idle_samples": 6,
+   "n_unknown_samples": 2,
+   "last_busy_pids": [
+    50284
+   ],
+   "last_idle_pids": [
+    52128
+   ],
+   "classifier": "cpu-delta",
+   "quiet_since": 1793871791.9796596
+  }
+ },
+ "lock_intact_before_run": {
+  "ok": true,
+  "reason": "锁完好（pid=46252）"
+ },
+ "cli_pid": 20872,
+ "cli_rc": 0,
+ "cli_wall_s": 91.28,
+ "cli_log": {
+  "exists": true,
+  "bytes": 26138,
+  "mtime": "2026-11-05 17:45:27",
+  "sha256": "a7fb31facc3374cdb3b65b442e04854546c0e8d4df8ab6dedbad7a6dac475f41"
+ },
+ "cli_log_n_traceback": 0,
+ "tts_jsonl": {
+  "exists": true,
+  "bytes": 22608,
+  "mtime": "2026-11-05 17:45:26",
+  "sha256": "b6185e7446c7a02d62fcc0d6d22d859babb5a24766f8c68314268ada328a94d2"
+ },
+ "tts_wav": {
+  "exists": true,
+  "bytes": 3097484,
+  "mtime": "2026-11-05 17:45:26",
+  "sha256": "d9a84e354fdc0ac4f46dcd2a1f3da695d90cb60c67ed9878304310e70e08b064"
+ },
+ "tts_out_txt": {
+  "exists": true,
+  "bytes": 888,
+  "mtime": "2026-11-05 17:45:08",
+  "sha256": "d09fbbe2fb58dc18794f6d01a4d69748c5f5214b7ba3a50adbd00b67535251bb"
+ },
+ "spk_jsonl": {
+  "exists": true,
+  "bytes": 867,
+  "mtime": "2026-11-05 17:45:27",
+  "sha256": "8ca6334cbd42077a7d4b4192c7ef356a77d666ca08f6d5a5bf546d4f6bb7371f"
+ },
+ "tts_judge": {
+  "n_rows": 17,
+  "n_ok": 17,
+  "n_dropped": 0,
+  "n_nonzero_wav": 17,
+  "n_zero_wav": 0,
+  "zero_wav_ids": [],
+  "voice_kinds": [
+   "preset"
+  ],
+  "rms_db_min": -45.0,
+  "peak_min": 0.05
+ },
+ "voice_a_not_fallen_back": true,
+ "checks": [
+  {
+   "name": "① `--check` 5 条全过",
+   "verdict": true,
+   "detail": {
+    "n_pass": 5,
+    "n_fail": 0
+   }
+  },
+  {
+   "name": "② CLI 退出码为 0",
+   "verdict": true,
+   "detail": {
+    "rc": 0,
+    "wall_s": 91.28
+   }
+  },
+  {
+   "name": "③ log 无 Traceback",
+   "verdict": true,
+   "detail": {
+    "n_traceback": 0
+   }
+  },
+  {
+   "name": "④ tts.jsonl 有出声段（非零段数 > 0）",
+   "verdict": true,
+   "detail": {
+    "n_nonzero_wav": 17,
+    "n_zero_wav": 0,
+    "n_ok": 17
+   }
+  },
+  {
+   "name": "⑤ 音色 A 未回落（voice_kind ⊆ preset）",
+   "verdict": true,
+   "detail": {
+    "voice_kinds": [
+     "preset"
+    ]
+   }
+  },
+  {
+   "name": "⑥ 解压副本内无 babelvox 示例音色（剪后包真实状态）",
+   "verdict": true,
+   "detail": {
+    "speakers_dir_exists": false,
+    "n_files": 0
+   }
+  },
+  {
+   "name": "⑦ 预设音色 A 参考 wav 存在",
+   "verdict": true,
+   "detail": {
+    "exists": true,
+    "bytes": 192044,
+    "mtime": "2026-10-23 12:01:01",
+    "sha256": "e021c255a715d4fd17dd6d19c3092a293d0d35a1e4e7ca8bf67bce6f8c94db53"
+   }
+  }
+ ],
+ "n_pass": 7,
+ "n_fail": 0,
+ "content_criterion": {
+  "verdict": "PASS",
+  "n_damaged_sentences": 0,
+  "C2_zero_runs_ge_0p3": 0,
+  "C1_ok": true,
+  "C2_ok": true,
+  "C3_ok": true,
+  "C4_ok": true,
+  "n_rows": 17,
+  "wav_dur_s": 64.53
+ },
+ "counter_proof": {
+  "label": "rc2_old_wav（同一判据 ⇒ 必须 FAIL）",
+  "verdict": "FAIL",
+  "n_damaged_sentences": 24,
+  "C2_zero_runs_ge_0p3": 24,
+  "ok": true
+ },
+ "verdict": "PASS",
+ "finished_at": "2026-11-05 17:45:28"
+}

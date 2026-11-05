@@ -1,0 +1,82 @@
+{
+ "script": "_app291_write_status_sec139.py",
+ "correction": "APP-073 + APP-074",
+ "ts": "2026-11-05 18:13:24",
+ "status": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+ "limit_bytes": 40000,
+ "limit_lines": 300,
+ "before": {
+  "bytes": 39145,
+  "sha256": "9773f8d3d68ae38b6eb5352386835e1fe36fb4a3a62b7c29c49c18482364d42f",
+  "lines": 167,
+  "crlf": 0
+ },
+ "sec138_numeric_tokens": 93,
+ "sec138_missing_from_archive": [],
+ "archives_written": {
+  "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\archive\\STATUS_APP_sec138_live_20261105.md": 6711,
+  "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\archive\\STATUS_APP_sec139_20261105.md": 8935
+ },
+ "after": {
+  "bytes": 37741,
+  "sha256": "54ea5762606cc9221e4318a5a46259c3dfeaee8f211b518557d6a683decd364d",
+  "lines": 160,
+  "crlf": 0
+ },
+ "checks": [
+  {
+   "name": "① 字节 ≤ 40 000",
+   "verdict": true,
+   "detail": {
+    "bytes": 37741
+   }
+  },
+  {
+   "name": "② 行数 ≤ 300",
+   "verdict": true,
+   "detail": {
+    "lines": 160
+   }
+  },
+  {
+   "name": "③ 行尾未破（仍是纯 LF）",
+   "verdict": true,
+   "detail": {
+    "crlf": 0
+   }
+  },
+  {
+   "name": "④ §135/§136/§137 逐字未变",
+   "verdict": true,
+   "detail": {
+    "n_bytes": 2442
+   }
+  },
+  {
+   "name": "⑤ §138 旧正文仍**逐字**在归档件里（压缩不等于删除）",
+   "verdict": true,
+   "detail": {
+    "archive": "STATUS_APP_sec138_live_20261105.md",
+    "bytes": 6711
+   }
+  },
+  {
+   "name": "⑥ §139 章节在文件里",
+   "verdict": true,
+   "detail": {}
+  },
+  {
+   "name": "⑦ last_ack = APP-074",
+   "verdict": true,
+   "detail": {}
+  },
+  {
+   "name": "⑧ 旧 zip 路径未被写进「已交付」表述（只列 rev2 新名）",
+   "verdict": true,
+   "detail": {}
+  }
+ ],
+ "n_fail": 0,
+ "verdict": "PASS",
+ "finished_at": "2026-11-05 18:13:24"
+}
