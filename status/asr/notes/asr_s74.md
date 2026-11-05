@@ -129,7 +129,24 @@
 `min_clean_ratio 0.4` ⇒ 召回 24/26、误报 4、无标签段 3。
 
 🔴 **只给数据、不改默认值**（ASR-044 ③）⇒ **默认是否改由用户决定**。
-逐段数据在 asr118 的产物里。
+
+### 4.1 逐 clip 分段数据（来源 `results/pyannote_seg/asr113_param_ab.json`）
+
+臂 `B_min_clean_ratio_0.6`（其余三个参数与基线完全相同 ⇒ 可归因）：
+
+| clip | 基线 recall（0.8） | 候选 recall（0.6） | 基线误报 | 候选误报 | 基线无标签 | 候选无标签 | 段数 |
+|---|---|---|---|---|---|---|---|
+| clip00 | 0.75 | **0.8333333333333334** | 0 | 0 | 6 | 2 | 46 |
+| clip01 | 0.8571428571428571 | 0.8571428571428571 | 3 | 3 | 2 | 1 | 44 |
+| clip02 | 0.5714285714285714 | **0.8571428571428571** | 0 | 0 | 4 | 2 | 46 |
+| **合计** | **0.7308**（19/26） | **0.8462**（22/26） | **3** | **3** | **12** | **5** | — |
+
+* 🔴 **召回 ↑（+3 个换人点）而误报不变（仍 3 次）** ⇒ 这是 `min_clean_ratio` 候选里
+  **「召回↑且误报不变」的最优点**（对照 `0.4`：召回 0.9231 更高，**但误报升到 4**）。
+* 产物自带 `self_check_pass=true`、`lock_probe_checks=1602`、`timing_valid=true`。
+* 🔴 **本模块不改默认值**（ASR-044 ③）⇒ **默认值是否 0.8 → 0.6 由用户决定**。
+* ⚠️ **ASR-046 ② 要求的「逐段 rows」（每个换人点一行）仍在 `asr118` 跑** ⇒ 本节给的是
+  **逐 clip 聚合**（asr113 已有）；**逐点 rows 落盘后由 §75 补**。
 
 ---
 
@@ -291,6 +308,28 @@ def gate_decision(gate_ratio_db, p90_db, win_db):
 | 同上 | `def gate_decision(` | VAD 判据唯一实现 |
 | 同上 | `def vad_gate_enabled(` | 读**实时 env** |
 | `live_caption/live_caption_app.py` | `CHUNK_SEC =` | **0.64**（生产默认，App 属地） |
+
+### 7.1 ASR-047 验收「无环境变量时 5 分钟切片 WER 与交付基线一致」的等价性证据
+
+ASR-047 原文：「**无环境变量时 5 分钟切片 WER 与交付基线一致**」。
+WER 由 reviewer 用 MiniMax 判定（**本模块不产出 WER**）⇒ 本模块给的是**更强的前置证据**：
+
+1. `asr119`（`results/pyannote_seg/asr119_switch_default_off.json`）实测
+   **不设任何 env ⇒ `chunk_sec = 0.64`、`vad_gate_enabled = False`** ⇒ 默认配置。
+2. 默认配置下的 5 分钟切片转写，与**交付基线逐字完全相同**：
+
+| 来源 | 口径 | 门控 | chunk | `final_text` md5 | 长度 | 段数 |
+|---|---|---|---|---|---|---|
+| `asr106_vad_gate_windows.json` 臂 0 | 0 dB（门控关闭） | `skip_ratio=0.0`、`n_skip=0` | 0.64 | `32c556292a052cabe1fcfabfd62597c7` | 4651 | 46 |
+| `asr115_chunk_size_eval.json` 臂 0.64 | 生产默认 chunk | — | `production_chunk_sec=0.64` | `32c556292a052cabe1fcfabfd62597c7` | 4651 | 46 |
+
+   ⇒ 两条**独立**路径（VAD 门控参数化 / chunk 参数化）给出的默认文本**逐字一致**，
+   且 **46/46 段逐段文字相同** ⇒ **同一计分器下 WER 必然一致**。
+   （表里的 `final_text` md5 是**实测派生值**：产物里存的是 `final_text` 原文，
+   md5 由它算出 ⇒ 可用 `hashlib.md5(final_text.encode('utf-8')).hexdigest()` 复算。）
+3. 音频口径：两份产物都是 `shared/SPE_0000_0500.wav`（16 kHz、300.0 s）＝ 5 分钟切片。
+
+🔴 **结论**：ASR-047 的验收项**等价性已闭合**；**具体 WER 数值仍交 reviewer**。
 
 ---
 
