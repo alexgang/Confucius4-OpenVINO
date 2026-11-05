@@ -204,7 +204,8 @@ def main():
                 env = dict(os.environ)
                 env.pop('PYTHONPATH', None)
                 env.pop('PYTHONHOME', None)
-                env['PYTHONFAULTHANDLER'] = '1'   # 🔴 崩溃时打印 Python 栈
+                env['PYTHONFAULTHANDLER'] = '1'
+                env['PYTHONUNBUFFERED'] = '1'   # 🔴 崩溃时打印 Python 栈
                 env['PYTHONUTF8'] = '1'
                 t0 = time.perf_counter()
                 with open(log, 'wb') as lf:
@@ -216,11 +217,15 @@ def main():
                 # 🔴 GUI 臂：**自动关窗**（否则 GUI 常驻 ⇒ 脚本挂死）
                 #   ⇒ 用一个「看门狗」线程：日志里出现「模型加载完成」
                 #     （或超时）就 **关掉主窗口** ⇒ 进程正常退出。
-                cmd = [py, app, '--autostart']
+                # SEC137: GUI arm needs an audio source (SEC135 app259 real cmd);
+                # --autostart alone stalls before model loading (420s timeout).
+                wav = os.path.join(HOME, 'shared', 'SPE_0000_0500.wav')
+                cmd = [py, app, '--autostart', '--source', 'file', '--file', wav]
                 env = dict(os.environ)
                 env.pop('PYTHONPATH', None)
                 env.pop('PYTHONHOME', None)
                 env['PYTHONFAULTHANDLER'] = '1'
+                env['PYTHONUNBUFFERED'] = '1'
                 env['PYTHONUTF8'] = '1'
                 t0 = time.perf_counter()
                 with open(log, 'wb') as lf:

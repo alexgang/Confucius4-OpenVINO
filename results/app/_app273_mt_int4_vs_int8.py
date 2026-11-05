@@ -50,32 +50,41 @@ TARGET = 'zh'
 
 
 def load_segments():
-    """76 个**定稿英文段**（取 app253 的；rc3 的优先）。"""
-    for p in (RC3_JSONL, RC2_JSONL):
+    """APP-069⑥：reviewer 要「app253 的 76 个定稿英文段」。
+
+    🔴 本机可查的真实英文原文 = app253_minimvp_out/minimvp.txt
+       （= shared/app_listen/minimvp_v1.0/minimvp_v1.0_final.txt），**46 行**
+       （app253_app066_minimvp_cli_evidence.json → summary.segs=46）。
+       minimvp.tts.jsonl 的 **76 行是中文译文**（lang='zh'），不是英文原文
+       ⇒ 原实现按 lang='en' 过滤得到 **0 段**（实测 APP273_EXIT=2）。
+    ⇒ 按 46 段真实英文定稿跑；46 vs 76 的口径差异写进 evidence，
+       **交 reviewer 裁定**，不自行切句凑 76。
+    """
+    src_txt = os.path.join(HERE, 'app253_minimvp_out', 'minimvp.txt')
+    final_txt = os.path.join(HOME, 'shared', 'app_listen', 'minimvp_v1.0',
+                             'minimvp_v1.0_final.txt')
+    for p in (src_txt, final_txt):
         if not os.path.isfile(p):
             continue
-        rows = []
-        with open(p, 'r', encoding='utf-8', errors='replace') as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    try:
-                        rows.append(json.loads(line))
-                    except Exception:
-                        pass
-        segs = [(r.get('id'), (r.get('text') or '').strip())
-                for r in rows
-                if not r.get('dropped') and (r.get('text') or '').strip()
-                and r.get('lang') in ('en', None)]
-        # 只要**英文原文**（zh 译文没法再翻）
-        segs = [(i, t) for i, t in segs
+        with open(p, 'r', encoding='utf-8') as f:
+            lines = [l.strip() for l in f if l.strip()]
+        segs = [(i, t) for i, t in enumerate(lines)
                 if not any('一' <= c <= '鿿' for c in t)]
         if segs:
-            print('源：%s ｜ 英文段 %d' % (os.path.basename(p), len(segs)))
-            return segs
-    return []
-
-
+            print('源：%s ｜ 英文定稿段 %d' % (os.path.basename(p), len(segs)))
+            meta = {
+                'source_file': p,
+                'n_source_lines': len(lines),
+                'n_english_segments': len(segs),
+                'reviewer_expected_n_segments': 76,
+                'scope_note': ('reviewer 的 76 = TTS 侧中文译文句数；'
+                               '本机英文定稿段只有 46（app253 summary.segs=46）'
+                               '⇒ 按 46 段跑，差异交 reviewer 裁定'),
+                'jsonl_rejected_because': ('minimvp.tts.jsonl 76 行 lang=zh'
+                                           '（中文译文），按 en 过滤得 0 段'),
+            }
+            return segs, meta
+    return [], {}
 def chrf(a, b):
     """chrF（字符级 F-score，0–100）⇒ 两者之间的相似度。"""
     from difflib import SequenceMatcher
@@ -106,7 +115,7 @@ def run_engine(model_dir, segs, tag):
 
 def main() -> int:
     print('=== APP-069⑥：MT INT4 vs INT8 对比 ===')
-    segs = load_segments()
+    segs, src_meta = load_segments()
     if not segs:
         print('!! 没找到英文段 ⇒ 退出')
         return 2
@@ -162,6 +171,8 @@ def main() -> int:
         'n_different': len(diffs),
         'sample_20_different': diffs[:20],
         'tsv': OUT_TSV,
+        'source': src_meta,
+        'chrf_impl': 'difflib.SequenceMatcher.ratio()*100（字符级相似度，非 sacrebleu chrF）',
         'tsv_bytes': os.path.getsize(OUT_TSV),
     }
     with open(OUT_JSON, 'w', encoding='utf-8') as f:

@@ -1,13 +1,14 @@
 # STATUS_APP
 
 last_ack: APP-070
-更新时间: 2026-11-05 11:20
+更新时间: 2026-11-05 13:37
 当前任务: **§136 APP-068 + APP-069 + APP-070 三条新纠偏的代码侧全部落地 ＋ MiniMVP rc3 已出（设备级 3(a) PASS 9/0）** —— 🔴 **APP-069① 的根因已判定并证明：rc2 的 24 段全零是「落盘算法」假象（不是产品静音）**（`app267` 6/0：模型预测 24 段 vs 实测 24 段**精确对应** ＋ 反证 5 个模型族全复现不出 ＋ 合成侧 peak/rms 76/76 健康）｜**dump 已修**（改顺序拼接 ＋ 回填逐句 `wav_t0`/`wav_t1`/`peak`/`rms_db`）｜**内容判据 `app268` 4/0**（rc2 旧 wav **FAIL / 受损 24 句** ＝ reviewer 口径；rc3 新 wav **PASS / 零段 0**）｜**APP-068 `app266` 7/0**（4 个交付文件 md5 逐字对上；**ASR 已自己清过绝对路径**；清理器能力 1→0）｜**APP-069⑤ 5 项清理全落地**（torch 拆 `backends_torch.py`／`auto` label 动态／标题／隐藏说话人行／site-packages 清理 ＋ **G4 扩大整包**）｜**APP-069③＋APP-070① 口径统一**（文案一律「INT8 权重 · FP16 计算（NPU）· babelvox-openvino-int8」＋ NOTICE 补许可证）＋ **TTS IR 删前清单已出**（`app270` 4/0：候选 8 个 **975.9 MB**，**一个文件都没删**）｜**APP-069④＋APP-070② A+C 代码侧已落**（未就绪不排队／就绪清积压／GUI「首次准备中 xx%」）｜**MiniMVP rc3 已出**（6 843.8 MB / 10 503 文件 / 导入冒烟 24/24）＋ **设备级 3(a) PASS 9/0**（wall 381.86 s / 76 句全成 / 判据 4 条全过 / 交付 wav ＋ 带 wav 指标列的 tsv）｜**APP-069② `--check` 臂 10/10 零崩溃**
 阻塞 / 待用户决定: 🔴 **本轮仍需 reviewer 复核**（§136 的 9 项结论都带落盘证据）｜⛔ **APP-069⑥ MT INT4 vs INT8 对比未跑**（脚本 `app273` 已备好：76 段 / GPU.0 / 同一 `HunyuanTranslator` ⇒ 同样贪心参数 ⇒ 需设备）｜⛔ **APP-069② GUI 臂 10 次未跑完**（`--check` 臂 10/10 零崩溃 ✅；GUI 臂的 harness 已修好等锁 ⇒ **TTS 模块正在持锁跑 e2e 测量** ⇒ 本模块排队）｜⛔ **APP-070① 的「删 NPU 不加载的 IR」只出清单、未删**（reviewer 明文顺序：① 清单 → ② 删 → ③ e2e 证明）｜⛔ **APP-070② A+C 的设备级指标未跑**（首句可用时间／全编完时间／峰值内存／CPU；每次冷启动 ≈ 20 min）｜⛔ **APP-069⑦ 3(c) zip 未打**（待 ② 完成后打；reviewer 原文「放在目标机本地、不通知用户」＝**撤回**了 §135 ⑨ 的「不打包」）｜🔴 **待 reviewer 裁定**：TTS IR 候选删除体积 **975.9 MB** vs reviewer 估「约 567 MB」的**出入**｜🔴 **v2.3 继续暂缓**（APP-067 顺序 1→2→3、4→5）｜🔴 **未通知用户 / 未改桌面快捷方式 / 未改任何 v2.x 客户包目录**（v2.1、v2.2 一个字节都没动；**MiniMVP 是独立版本线**，rc1/rc2 也原样保留）｜🔴 **本轮回收了一个孤儿机器锁**（ASR 的 `MACHINE_LOCK` PID 25792 **已死**，`OpenProcess err=87` 确证 ⇒ 用项目自带 fail-closed 脚本 `_app239_reclaim_orphan_lock.py --reclaim` 回收 ⇒ 非手写 tasklist）
 已压缩: **§130–§134 与 §135 的正文均已原样归档**到 `status/archive/STATUS_APP_sec130_134_upto_20261105.md`（9 092 B）与 `status/archive/STATUS_APP_sec135_upto_20261105.md`（逐字保留）⇒ 本文件内只留**速查行**；**§135 为新增章节**（正文见 §135 归档件）｜限额 ≤ 40000 B / ≤ 300 行（APP-052 ④）｜写后实测 **27853 B / 132 行**
 
 
 ## 最近更新
+- 2026-11-05 13:37 **§137 已写** ⇒ 无新纠偏（70 条 = APP-070）⇒ 从 §136 断点续做：**APP-069⑥ MT INT4/INT8 对比已完成**（46 段／4.35 % 相同／chrF 74.029；夹具 0 段缺陷已修＋反证 4/0）｜**APP-069② GUI 臂未完成**（有效启动 0/10，2 次 harness 超时、非产品崩溃）｜回收 2 个孤儿锁｜`CORRECTIONS_APP.md` 收尾 SHA 与开工逐字相同
 - 2026-11-05 11:20 **§136 已写** ⇒ **APP-068 + APP-069 + APP-070 三条新纠偏的代码侧全部落地 ＋ MiniMVP rc3 已出（设备级 3(a) PASS 9/0）**｜🔴 **APP-069① 根因已判定**：rc2 的 **24 段全零是「落盘算法」假象**（`app267` 6/0：模型预测 24 段 vs 实测 24 段**精确对应**（54.18 s vs 54.24 s）＋ **反证** 5 个模型族全复现不出 ＋ 合成侧 peak/rms **76/76 健康** ⇒ **不是产品静音**）｜**dump 已修**（`_flush_timeline` 改**顺序拼接** ＋ 回填逐句 `wav_t0`/`wav_t1`/`peak`/`rms_db`）｜**内容判据 `app268` 4/0**（rc2 旧 wav **FAIL/受损 24 句**＝reviewer 口径；rc3 新 wav **PASS/零段 0**）｜**APP-068 `app266` 7/0**｜**APP-069⑤ 5 项清理全落地**（回归 215 29/0・227 34/0・229 反证 PASS・237 9/0）｜**APP-069③＋APP-070① 口径统一** ＋ **TTS IR 删前清单 `app270` 4/0**（候选 8 个 **975.9 MB**，**一个文件都没删**）｜**APP-069④＋APP-070② A+C 代码侧已落**｜**rc3 已出**（6 843.8 MB / 10 503 文件）＋ **设备级 3(a) PASS 9/0**｜**APP-069② `--check` 臂 10/10 零崩溃**｜⛔ GUI 臂等锁（TTS 模块在跑 e2e）｜⛔ ⑥MT 对比 / ⑦zip / ⑩删 IR / ⑪A+C 设备指标 **未跑**
 - 2026-11-05 08:38 **§135 已写** ⇒ **APP-067 ②④ 设备级补齐**（② 交付物：`shared/app_listen/v23_clone/`；④ ABBA **10/0** ＋ GUI 臂 **5/0**）｜**APP-066 3(a) CLI **8/0**；3(b) GUI 冷启动：**首次 NPU 编译 1209.3 s**（真冷臂 `app263`）／**第二次启动 9.5 s**（热臂 `app264`）+ 100%/150% 主窗口截图**｜🔴 **MiniMVP rc1 P0 已修 ⇒ rc2**（9 闸门全绿）＋**修好 rc2 的 `ACCEPTED.pkg_dir` 与 R2 白名单**（app191 9/6 → **18/0**）｜⛔ 3(c) zip 未打｜🔴 **本轮接管死租约（第 2 次）**：上一会话起草了 §135 但**未写 STATUS**；本轮逐条与磁盘证据对照 ⇒ **更正其「3(b) 已通过」的不实陈述**（落盘证据实为 FAIL）⇒ **重跑 3(b)**｜🔴 `CORRECTIONS_APP.md` 零改动（67 条 / SHA `cf71e427…`）
 - 2026-11-04 21:12 **§133 + §134 已写** ⇒ **APP-067 ①③⑤ 已完成（设备级，`app243` 9/0 + 4 反证）**｜**APP-066 v1.0 的 6 处硬缺陷（含 P0 无法启动）已修** ⇒ **`MiniMVP_v1.0-rc1`**（7 闸门全绿 / 52.41 % 体积）｜⛔ ②④ 与 (a)(b)(c) 未做（等锁）｜🔴 `CORRECTIONS_APP.md` 零改动（67 条 / SHA `cf71e427…`）
@@ -154,3 +155,19 @@ last_ack: APP-070
 🔴 **本轮回收了一个孤儿机器锁**（ASR 的 `MACHINE_LOCK` PID 25792 **已死**，`OpenProcess err=87` 确证 ⇒ 用项目自带 fail-closed 脚本 `_app239_reclaim_orphan_lock.py --reclaim` 回收 ⇒ 非手写 tasklist）。
 🔴 **本轮接管死租约（第 3 次）**：上一会话租约 `911516db` 心跳停在 08:33（82 min 前）⇒ `TAKEOVER`；其 PID 48948 **已死** ⇒ 本轮**从断点继续**（未重做已完成的 §135）。
 🔴 **`CORRECTIONS_APP.md` 收尾复核**：开工基线 **SHA `3c06baa98d3f612a…` / 206 686 B / 70 条**（mtime 09:35:14）⇒ 收尾时**重新取 SHA/字节/mtime/条数**（若中途被追加则如实记录）。
+
+### §137 ✅ **无新纠偏（70 条 = last_ack APP-070）⇒ 按 APP-046 从 §136 断点续做** ｜ **APP-069⑥ 已完成｜①③④ 需等 reviewer 复核**（2026-11-05 13:37）
+
+> 🔴 **本节正文已原样归档** ⇒ `status/archive/STATUS_APP_sec137_20261105.md`（逐字保留，含 **14 个产物**的字节数／mtime／SHA256 清单）。
+> 🔴 开工/收尾 `CORRECTIONS_APP.md`：**SHA `3c06baa98d3f612a…`／206 686 B／mtime 09:35:14／70 条**（APP-001..APP-070）⇒ **无编号 > last_ack 的新条目**，收尾与开工**逐字相同**（reviewer 未追加；本轮只读、未改、未提交）。**TAKEOVER 第 4 次**（上租约 `0c4889a6` 心跳停 11:11、`alive=False`）⇒ 从断点续做，**未重做** rc3／3(a)／`--check` 10/10。
+
+| # | 事项 | 结论 | 证据（文件 → 原始字段） |
+|---|---|---|---|
+| ① | **APP-069⑥ MT INT4 vs INT8** | **本条已完成**：GPU.0／同一 `translate()`／46 段 ⇒ `exact_same_pct=4.35`（2/46）、`chrf_mean=74.029`、`chrf_median=76.697`、`n_different=44`（20 条差异样例落盘）、`wall_int4_s=19.85`／`wall_int8_s=28.91` | `app273_mt_int4_vs_int8_evidence.json`（9 482 B／SHA `29eb9d07731ec9c3…`）＋ `.tsv`（14 513 B／47 行）＋ `app273_mt_compare_run.log` |
+| ② | **⑥ 夹具缺陷反证** | 首跑 `APP273_EXIT=2`（**0 段**）：原按 `lang='en'` 读 `minimvp.tts.jsonl`，而 76 行全是中文译文（`lang='zh'`）⇒ 真实英文定稿 = `app253_minimvp_out/minimvp.txt` **46 行**（`summary.segs=46`）；定点修正（唯一命中＋`ast.parse`＋写后逐字节复核） | `app274_app069_loader_fix_evidence.json` **4 PASS / 0 FAIL**（F3 反证：旧口径 0 段）＋ `_app274_fix_app273_loader.py` |
+| ③ | 🔴 **口径差异** | reviewer 写 76 段，本机英文定稿仅 **46**（76 = TTS 侧中文译文句数）⇒ 按 46 跑、**未切句凑 76／未改参照**；`chrf_impl` = `SequenceMatcher.ratio()*100`（**非 sacrebleu chrF**）⇒ **需等 reviewer 复核** | `app273…evidence.json` → `source.scope_note`／`source.reviewer_expected_n_segments=76`／`chrf_impl` |
+| ④ | **APP-069② GUI 臂** | **需等 reviewer 复核**：`--check` **10/10 零崩溃**（§136）；GUI 有效启动 **0/10**，2 次验证均 `loaded=false`／`rc=1`／`wall≈90.5 s`／日志 1 行 ⇒ **harness 超时被 terminate，非产品崩溃**（`crashed=false`、rc≠3221226505）；已补音频源（§135 `app259` L261）＋ `PYTHONUNBUFFERED`，本会话仍取不到「模型加载完成」 | `app276_app069_gui_harness_fix_evidence.json` **4/0**；`app272_crash_out/app272_crash_stats_evidence.json` → `n_runs=12`／`n_crash_0xC0000409=0`／`crash_rate_pct=0.0`／`verdict=INCOMPLETE`／`by_phase.gui.n=2` |
+| ⑤ | **设备纪律** | 3 次设备作业均先探安静窗口（20 s，`QUIET True`）＋持 `MACHINE_LOCK`；**回收 2 个孤儿锁**（asr PID 46528／app PID 47088，均 `OpenProcess err=87` 确证死）⇒ 项目 fail-closed 脚本 `--reclaim` | `app273_mt_compare_run.log`／`app272_gui_phase_run*.log`／`app275_gui_probe.log` |
+
+🔴 **仍待办（§136 未清项，不越界）**：⛔ **APP-070① 删 IR**（**975.9 MB vs reviewer 估 567 MB 待裁定**；顺序 清单→删→e2e ⇒ **一个文件都没删**）｜⛔ **APP-070② A+C 设备指标**／**APP-069④ (i)–(iv)**（冷启 ≈ 20 min）｜⛔ **APP-069⑦ rc3 zip**（依赖 ② 完成＋用户通知）｜⛔ **APP-069① reviewer 回转写 MER ≤ 8 %**（不自行调 MiniMax）｜⛔ **v2.3 继续暂缓**。
+🔴 **未通知用户／未改桌面快捷方式／未动 v2.1、v2.2、rc1、rc2 一字节**（rc3 目录为 §136 构建，本轮未改）；本轮产物 **14 个**（全量元数据见归档件），**未打任何 zip**。

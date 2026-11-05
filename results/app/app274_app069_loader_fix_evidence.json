@@ -1,0 +1,60 @@
+{
+  "correction": "APP-069⑥ 夹具修正",
+  "generated_at": "2026-11-05 13:16:46",
+  "script": "results/app/_app273_mt_int4_vs_int8.py",
+  "script_sha256": "05694efe143a1b9d78602e221be73a6b3ad16a832eefb76cc6abc0ab01bacb9f",
+  "script_bytes": 8172,
+  "first_run": {
+    "verdict": "FAIL",
+    "reason": "load_segments 从 tts.jsonl 按 lang=en 取段 ⇒ 0 段",
+    "exit_code": 2
+  },
+  "counter_proof": {
+    "name": "旧口径：tts.jsonl lang=en 过滤",
+    "n_jsonl_rows": 76,
+    "n_old_segments": 0,
+    "must_be_zero": true
+  },
+  "fixed": {
+    "n_segments": 46,
+    "first": "Good morning everyone. Good morning. Let's get started. So, welcome",
+    "last": "Solutions. Novellix solves that problem. When we come out with Novelli",
+    "meta": {
+      "source_file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app253_minimvp_out\\minimvp.txt",
+      "n_source_lines": 46,
+      "n_english_segments": 46,
+      "reviewer_expected_n_segments": 76,
+      "scope_note": "reviewer 的 76 = TTS 侧中文译文句数；本机英文定稿段只有 46（app253 summary.segs=46）⇒ 按 46 段跑，差异交 reviewer 裁定",
+      "jsonl_rejected_because": "minimvp.tts.jsonl 76 行 lang=zh（中文译文），按 en 过滤得 0 段"
+    }
+  },
+  "checks": [
+    {
+      "id": "F1",
+      "name": "修正后能取到英文段",
+      "ok": true,
+      "detail": 46
+    },
+    {
+      "id": "F2",
+      "name": "全部为英文（无 CJK）",
+      "ok": true,
+      "detail": 46
+    },
+    {
+      "id": "F3",
+      "name": "反证：旧口径必为 0 段",
+      "ok": true,
+      "detail": 0
+    },
+    {
+      "id": "F4",
+      "name": "源段数 == app253 summary.segs(46)",
+      "ok": true,
+      "detail": 46
+    }
+  ],
+  "n_pass": 4,
+  "n_fail": 0,
+  "verdict": "PASS"
+}
