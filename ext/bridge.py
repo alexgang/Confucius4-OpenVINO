@@ -715,23 +715,41 @@ def decompose_sync_rootcause(margins: List[dict], *, delay_sec: float,
         "  服务端**不猜**这两个值（取不到 ⇒ None ⇒ 不计入固定项）。")
 
     # ── ⑥ 非 TTS 固定项合计 & ⑦ TTS 无限快时的残余滞后 ──────────
-    #   非TTS固定项 = 上行 + ASR整段定稿(≈ASR) + 播放排队 + 轴缺口 + 真实下行
-    #   ★ ASR 的「整段定稿」代价 = ASR 本身（必须等整段音频到齐才能定稿）
-    #   ★ **轴缺口**（EXT-036 ① 修掉的那个符号错误）**必须计入**：
-    #     它与 TTS 快慢**完全无关** ⇒ 修好之前，即使 TTS 无限快也必然晚。
+    #   ★★★★★★ EXT-037 ③：**口径重写**（reviewer 原话逐条落实）
+    #     ① `axis_gap`（`t0UpPlayerOffsetSec`）是**两端时钟的换算常数**，
+    #        **不是延迟** ⇒ **不计入固定项**。
+    #        （`requested` 已经在播放端轴上 ⇒ 换算常数不该再加一次。）
+    #     ② `player_queue`（前一句还在播造成的排队）属于**结果项**，
+    #        **不是固定项** ⇒ 单列。
+    #     ③ **漏掉了最大的一项：等整段说完** ⇒ 新增 `seg_len` 项。
+    #        sync 误差的下界 = seg_len + 上行 + ASR整段 + MT + TTS整句 − D。
+    #   ⇒ **固定项** = 上行(夹0) + ASR整段定稿 + **等整段说完(seg_len)**
+    #                   + 真实下行耗时
+    #   ⇒ **结果项** = player_queue（排队）、axis_gap（换算常数）
     asr_vals = [float(m.get("asr_sec") or 0.0) for m in tts_segs]
     asr_mean = (sum(asr_vals) / len(asr_vals)) if asr_vals else 0.0
     out["asr_sec_mean"] = round(asr_mean, 3)
     axis_gap = out.get("server_to_player_sec")
     dlat = out.get("downlink_latency_sec")
     pq_mean = out.get("player_queue_sec_mean")
+    # ★★ EXT-037 ③：**新增 `seg_len` 项**（「等整段说完」）
+    #   = 段均长度（`t_end − t_start`）⇒ 这是「必须等这一段说完」的下界。
+    _seg_lens = []
+    for m in tts_segs:
+        _ts = m.get("t_start")
+        _te = m.get("t_end")
+        if _ts is None or _te is None:
+            continue
+        _seg_lens.append(max(0.0, float(_te) - float(_ts)))
+    seg_len_mean = (sum(_seg_lens) / len(_seg_lens)) if _seg_lens else None
+    out["seg_len_sec_mean"] = (round(seg_len_mean, 3)
+                               if seg_len_mean is not None else None)
     # ★★ 未实测项**不计入**合计（否则 null 被当成 0 ⇒ 读起来像「实测为零」）。
     #   取不到 ⇒ 该项记 None（**如实**），不参与求和。
     #   ⇒ `non_tts_fixed_sec` = **已实测项之和** ⇒ 是**下界**，不是全量。
     _parts = [(out.get("feed_lag_sec_mean"), "feed_lag_sec"),
               (asr_mean, "asr_sec"),
-              (pq_mean, "player_queue_sec"),
-              (axis_gap, "axis_gap_sec"),
+              (seg_len_mean, "seg_len_sec"),
               (dlat, "downlink_latency_sec")]
     non_tts = 0.0
     for _v, _k in _parts:
@@ -743,23 +761,86 @@ def decompose_sync_rootcause(margins: List[dict], *, delay_sec: float,
     out["non_tts_fixed_detail"] = {
         "feed_lag_sec": out.get("feed_lag_sec_mean"),
         "asr_sec": round(asr_mean, 3),
-        "player_queue_sec": pq_mean,
-        "axis_gap_sec": axis_gap,
+        "seg_len_sec": (round(seg_len_mean, 3)
+                         if seg_len_mean is not None else None),
         "downlink_latency_sec": dlat,
-        "server_to_player_sec": axis_gap,
+        "fixed_items": ["feed_lag_sec", "asr_sec", "seg_len_sec",
+                        "downlink_latency_sec"],
         "unmeasured": [k for v, k in _parts if v is None],
-        "note": ("★ 这几项**与 TTS 快慢无关** ⇒ 即使 TTS 无限快，"
+        "note": ("★ EXT-037 ③：**固定项**= 上行(夹0) + ASR整段定稿 + "
+                 "**seg_len（等整段说完）** + 真实下行耗时。"
+                 "⇒ 这几项**与 TTS 快慢无关** ⇒ 即使 TTS 无限快，"
                  "每段仍会晚 `non_tts_fixed_sec − D` 秒。"
-                 "（`axis_gap_sec` 是 EXT-036 ① 修掉的**符号错误**，"
-                 "修后应 ≈ 0；`downlink_latency_sec` 是真实下行耗时。）"
+                 "★ **`axis_gap`（时钟换算常数）已移出固定项**"
+                 "（它不是延迟；`requested` 已在播放端轴上）。"
+                 "★ **`player_queue` 已移出固定项**（它是**结果项**）。"
                  "★ **未实测项记 None 且不计入合计** ⇒ `non_tts_fixed_sec` "
                  "是**下界**（`non_tts_fixed_is_lower_bound=true` 时）；"
                  "绝不把「没测到」写成 0。"),
     }
+    # ★★ EXT-037 ③：**结果项**单列（不算进固定项，但**如实保留**实测值）
+    out["result_items_detail"] = {
+        "player_queue_sec_mean": pq_mean,
+        "player_queue_sec_max": out.get("player_queue_sec_max"),
+        "axis_gap_sec": axis_gap,
+        "items": ["player_queue_sec_mean", "axis_gap_sec"],
+        "note": ("★ EXT-037 ③：`player_queue` 是「前一句还在播」造成的排队，"
+                 "属于**结果项**（滞后的一部分，不是与 TTS 无关的固定开销）；"
+                 "`axis_gap` 是**两端时钟的换算常数**，"
+                 "**不是延迟** ⇒ 两者都**不计入** `non_tts_fixed_sec`。"),
+    }
     out["tts_independent_lag_sec"] = round(non_tts - delay_sec, 3)
     out["tts_independent_lag_note"] = (
         "★ 这个值 > 0 ⇒ **滞后不能全归 TTS**；"
-        "这部分归 EXT / ASR（reviewer EXT-036 ② 的核心要求）。")
+        "这部分归 EXT / ASR（reviewer EXT-036 ② / EXT-037 ③ 的核心要求）。")
+
+    # ── ⑥b EXT-037 ③：**`D_needed`** = P95(ready − t_start) + 0.3 ──
+    #   ## 口径（reviewer EXT-037 ③ 的原话）
+    #     「sync 误差的下界是 seg_len + 上行 + ASR整段 + MT + TTS整句 − D。
+    #       ⇒ 给出 `D_needed = P95(ready − t_start) + 0.3 s` 的实测值。」
+    #   ## 为什么这样算
+    #     `ready − t_start` = 这一段从**开始播放**到**配音就绪**经过的墙钟
+    #     ⇒ D 必须 ≥ 它，否则这段**必然晚**（D 再大也救不了单段超时）。
+    #     + 0.3 s = 同步误差的**目标余量**（≤300 ms 判据）。
+    _ready_gaps = []
+    for m in tts_segs:
+        _ts = m.get("t_start")
+        _ready_at = m.get("ready_at")
+        if _ts is None or _ready_at is None:
+            continue
+        # `ready_at` 是服务端**墙钟**（perf_counter 域）⇒ 与 `t_start`
+        # （上行采样轴）不同域 ⇒ 必须用 `orig_end − t_end` 换算原点。
+        _t_end = m.get("t_end")
+        _orig_end = m.get("orig_end")
+        if _t_end is None or _orig_end is None:
+            continue
+        try:
+            _t0 = float(_orig_end) - float(_t_end)
+            _ready_gaps.append(float(_ready_at) - _t0 - float(_ts))
+        except Exception:
+            continue
+    if _ready_gaps:
+        _sorted = sorted(_ready_gaps)
+        _p95_idx = int(round(0.95 * (len(_sorted) - 1)))
+        _p95 = _sorted[_p95_idx]
+        out["ready_minus_t_start_p50_sec"] = round(_sorted[0], 3) if len(_sorted) == 1 \
+            else round(_sorted[int(round(0.50 * (len(_sorted) - 1)))], 3)
+        out["ready_minus_t_start_p95_sec"] = round(_p95, 3)
+        out["D_needed_sec"] = round(_p95 + 0.3, 3)
+        out["D_needed_is_sufficient"] = bool(out["D_needed_sec"] <= delay_sec)
+        out["D_needed_note"] = (
+            "★ EXT-037 ③：`D_needed = P95(ready − t_start) + 0.3 s`。"
+            "`ready − t_start` = 这一段从开始播放到配音就绪的墙钟跨度"
+            "⇒ D 必须 ≥ 它，否则该段**必然晚**（加大 D 救不了单段超时）。"
+            "`+0.3 s` = 同步误差目标余量（≤300 ms 判据）。"
+            "★ 当前 D = %.3f s ⇒ %s。"
+            % (delay_sec,
+               "**足够**" if out["D_needed_is_sufficient"]
+               else "**不够** ⇒ 必须加大 D 或提速引擎"))
+    else:
+        out["D_needed_sec"] = None
+        out["D_needed_note"] = ("没有可用的 `ready_at` / `t_start` ⇒ "
+                                 "**无法**计算 D_needed（不臆造数字）")
     # ── ⑧ 与 TTS 吞吐的关系（交叉核对）─────────────────────────
     rtf = compute_rtf_breakdown(margins)
     out["rtf_out"] = rtf.get("RTF_out")
@@ -1230,6 +1311,14 @@ class Session:
         #   ⚠️ 提前交付时**不裁剪 `_buf`** ⇒ 切点栅格逐位不变
         #     （上一版裁了缓冲 ⇒ 栅格整体平移 ⇒ 尾段被吃掉）。
         self._first_seg_cut = 0
+        # ★★★★★★ EXT-037 ②：**缓冲头部已交付、但还没被裁掉**的样本数。
+        #   ## 为什么需要它
+        #     首段提前交付时**故意不裁 `_buf`** ⇒ 缓冲里**还留着**
+        #     已交付的那 3.5 s ⇒ 若此时 `flush()`，尾段会从 `_buf_base`
+        #     开始 ⇒ **与已交付的首段重叠**（重复配音 + 段区间重叠）。
+        #   ⇒ `flush()` 必须**跳过**这段前缀。
+        #   0 ⇒ 缓冲头部没有「已交付但未裁」的部分。
+        self._buf_delivered_prefix = 0
         self._engine = engine if engine is not None else ENGINE_ADAPTER
         # ★★★ EXT-026 ⑤：**会话前缀**（session epoch）
         #   ## 为什么需要（reviewer 指出的真缺陷）
@@ -1740,18 +1829,44 @@ class Session:
                                                audio_complete_at=recv_at)
                 # ★★★ **不裁剪 `_buf`** ⇒ 栅格逐位不变
                 self._first_seg_cut = first
+                # ★★ EXT-037 ②：记录「已交付但仍在缓冲里」的前缀
+                #   ⇒ `flush()` 必须跳过它（否则尾段与首段**重叠**）
+                self._buf_delivered_prefix = first
                 self._first_seg_done = True
                 return tasks or None
             # 原段已到齐但还没提前交付（cap 比原段长）⇒ 走**限长拆分**
             segs = self._split_first_segment(segs)
         else:
-            # ★ 首段已交付 ⇒ 用**共享函数**把网格对齐
-            #   （与 `plan_segments_first_capped()` 逐位一致）
-            segs = split_first_segment_streaming(
-                segs, cap_sec=self._first_seg_cut / float(C.SAMPLE_RATE),
-                min_sec=C.SEG_MIN_SEC)
-            if not segs:
-                return None
+            # ★★★★★★ EXT-037 ②：**首段已交付 ⇒ 网格对齐**（**只切一次**）。
+            #   ## 病根（reviewer EXT-037 ② 的实测，B 轮 `20261104_195911`）
+            #     旧实现**每次**调用都执行 `split_first_segment_streaming(...)`
+            #     ⇒ 但下面把 `_buf` 裁掉之后，网格已经是**相对新缓冲**的
+            #     ⇒ 函数仍把新缓冲开头的 `[0, 3.5 s)` 当作「已交付首段」去掉
+            #     ⇒ **每段之后都丢掉 3.5 s**。
+            #     实测：段区间 0–3.5、3.5–8.0、**11.5**–15.89、
+            #       **19.39**–26.44、**29.94**–36.91 ……
+            #       ⇒ 每个缺口都**正好 3.5 s** ⇒ 60 s 素材丢了约 24 s（40%）。
+            #   ## 修法（最小、范围可控）
+            #     守卫 = **`_buf_base == 0`**（缓冲起点仍是会话起点
+            #     ⇒ 缓冲里**还留着**已交付的首段 ⇒ 需要对齐）；
+            #     一旦处理过网格里的段 ⇒ `_buf` 被裁 ⇒ `_buf_base > 0`
+            #     ⇒ 此后**绝不再切**（新缓冲开头的 3.5 s 是**真实音频**，
+            #     **不是**「已交付的首段」⇒ 切掉就是丢内容）。
+            #   ⚠️ 为什么不能在这里就把 `_first_seg_cut` 清零：
+            #     对齐后的网格**可能还没有可派发的段**（末段留在缓冲里）
+            #     ⇒ 此时缓冲**没被裁** ⇒ `_buf_base` 仍为 0
+            #     ⇒ 若已清零，下一轮就**不再对齐** ⇒ 原始网格的第一段
+            #       会被**重复派发**（与已交付的首段重叠）。
+            #     ⇒ 只在**真正裁掉缓冲之后**（`_buf_base` 推进）才清零。
+            if self._buf_base == 0 and self._first_seg_cut:
+                _segs = split_first_segment_streaming(
+                    segs, cap_sec=self._first_seg_cut / float(C.SAMPLE_RATE),
+                    min_sec=C.SEG_MIN_SEC)
+                if not _segs:
+                    # 网格还没成形（缓冲还不够）⇒ **保留** `_first_seg_cut`
+                    # ⇒ 下一轮音频更多时**重试**（既不重复切，也不丢首段）
+                    return None
+                segs = _segs
         # 只处理已完整落在 [min, max] 内的段，最后一段留在缓冲区里等后续音频
         ready = list(segs[:-1])
         if not ready:
@@ -1784,6 +1899,12 @@ class Session:
         self._buf = self._buf[cut:]
         self._buf_base += cut
         self._consumed_samples = max(self._consumed_samples, self._buf_base)
+        # ★★★★★★ EXT-037 ②：缓冲被裁 ⇒ **网格对齐已完成**
+        #   ⇒ 此后 `_buf_base > 0` ⇒ 守卫 `self._buf_base == 0` 天然不再成立
+        #   ⇒ **绝不再重复切首段**（旧实现每段都切 ⇒ 每段丢 3.5 s）。
+        #   ⇒ 同时把「已交付但未裁」的前缀清零：它已被这次裁剪**吸收**。
+        self._first_seg_cut = 0
+        self._buf_delivered_prefix = 0
         return tasks or None
 
     # ── 段派发（串行 vs 流水线） ────────────────────────────────
@@ -1971,6 +2092,17 @@ class Session:
         list
             配音任务列表（通常 0 或 1 条；缓冲区太短则 0 条）。
         """
+        # ★★★★★★ EXT-037 ②：跳过「**已交付但仍在缓冲里**」的前缀。
+        #   首段提前交付时**故意不裁 `_buf`** ⇒ 缓冲头部还留着那 3.5 s
+        #   ⇒ 若直接 flush，尾段会从 `_buf_base` 开始 ⇒ 与已交付的首段
+        #     **重叠**（重复配音 + 段区间重叠 ⇒ 覆盖率算不准）。
+        #   ⇒ 先把这段前缀从缓冲里去掉（**不推进 `_buf_base`**，
+        #     因为它**已经被交付过了**）。
+        _prefix = int(self._buf_delivered_prefix or 0)
+        if _prefix > 0:
+            _prefix = min(_prefix, int(self._buf.shape[0]))
+            self._buf = self._buf[_prefix:]
+            self._buf_delivered_prefix = 0
         if self._buf.shape[0] < int(1.0 * C.SAMPLE_RATE):
             # 尾部不足 1 s ⇒ 没有有意义的语音段，丢弃（不计为段）
             self._buf = np.zeros((0,), dtype=np.float32)
@@ -2810,6 +2942,13 @@ class PipelineSession(Session):
         与 `self.margins.append(...)` 会被**两个线程同时改**
         ⇒ 口径可能错乱 ⇒ **必须让尾段也走流水线**（收口线程串行调用）。
         """
+        # ★★★★★★ EXT-037 ②：跳过「已交付但仍在缓冲里」的前缀
+        #   （与基类 `flush()` 同一口径 ⇒ 不重叠、不重复配音）
+        _prefix = int(self._buf_delivered_prefix or 0)
+        if _prefix > 0:
+            _prefix = min(_prefix, int(self._buf.shape[0]))
+            self._buf = self._buf[_prefix:]
+            self._buf_delivered_prefix = 0
         if self._buf.shape[0] < int(1.0 * C.SAMPLE_RATE):
             # 尾部不足 1 s ⇒ 没有有意义的语音段，丢弃（不计为段）
             self._buf = np.zeros((0,), dtype=np.float32)
@@ -3679,7 +3818,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="EXT 桥接服务")
     ap.add_argument("--host", default=C.BRIDGE_HOST)
     ap.add_argument("--port", type=int, default=C.BRIDGE_PORT)
-    ap.add_argument("--delay", type=float, default=10.0, help="延迟 D（秒）")
+    ap.add_argument("--delay", type=float, default=20.0, help="延迟 D（秒）")
     ap.add_argument("--echo", action="store_true", help="P0 ③ 回声自测模式")
     ap.add_argument("--token-file", default=C.BRIDGE_TOKEN_FILE)
     # ── EXT-006：真实引擎（P1） ──────────────────────────────

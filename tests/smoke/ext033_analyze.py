@@ -202,6 +202,16 @@ def wav_timeline_offsets(detail, ac_start_sec):
             "actual": actual,
             "signed_err_ms": d.get("signedErrMs"),
             "speed": d.get("speed"),
+            # ★★★★★★ EXT-037 ④：`d_player` 改用 **`endedAt − actual`**
+            #   （= 实测播放时长，包络起止 ⇒ 不截尾部静音）
+            #   ⚠️ 旧的能量检测口径会把**尾部静音**截掉 ⇒ d_player 偏小
+            #     ⇒ 时长比偏小 ⇒ 与 reviewer 的 0.57–1.55 对不上。
+            #   ⚠️ `endedAt` 缺失（旧插件）⇒ None ⇒ 回落能量检测口径。
+            "ended_at": d.get("endedAt"),
+            "d_player_ended_sec": (
+                round(float(d.get("endedAt")) - float(actual), 4)
+                if d.get("endedAt") is not None
+                and actual is not None else None),
             "wav_offset_sec": round(float(actual) - float(ac_start_sec), 4),
         })
     return out
@@ -323,11 +333,15 @@ def _ext036_analysis(detail, sync, metrics, wav, wav_sr, prof, stop,
     ## ⑥ 时长比口径核对
       reviewer 实测：「每段『实际播放时长 ÷ 源段长』是 **0.57–1.55**
       （STATUS 写 0.68–1.49，对不上，请核对口径）」
-      ⇒ 本节同时给出**三个**口径：
-        * `over_src_len`   = d_player ÷ **源段长**（reviewer 用的口径）
-        * `over_ws`        = d_player ÷ d_ws（未经变速校正）
-        * `speed_adjusted` = d_player × speed ÷ d_ws（EXT-033 C 的口径）
-      ⇒ 三者**含义不同** ⇒ STATUS 必须写明用的是哪个。
+      ★★★★★★ EXT-037 ④：**口径重写**
+        * `over_ws`      = d_player ÷ **d_ws**（**未经**变速校正）← **主口径**
+        * `over_src_len` = d_player ÷ **源段长**（reviewer 用的口径）
+        * ~~`speed_adjusted` = d_player × speed ÷ d_ws~~ ⇒ **已作废**
+          （`d_ws` 已经是 WSOLA 变速之后的时长 ⇒ 再乘一次 speed
+            就是**重复校正** ⇒ 变速被算了两次）
+      ★ `d_player` 主口径也改了：**`endedAt − actual`**（包络起止）
+        （旧的能量检测会**截掉尾部静音** ⇒ d_player 偏小）。
+      ⇒ 两个口径**含义不同** ⇒ STATUS 必须写明用的是哪一个。
     """
     out: dict = {}
 
@@ -429,15 +443,16 @@ def _ext036_analysis(detail, sync, metrics, wav, wav_sr, prof, stop,
             "n": len(over_ws),
             "definition": "d_player ÷ d_ws（**未经**变速校正）",
         },
-        "speed_adjusted": {
-            "min": round(min(ratios), 4) if ratios else None,
-            "max": round(max(ratios), 4) if ratios else None,
-            "n": len(ratios),
-            "definition": ("d_player × speed ÷ d_ws（EXT-033 C 的口径；"
-                           "**变速段按 speed 校正**）"),
-        },
-        "note": ("★ 三个口径**含义不同** ⇒ STATUS 必须写明用的是哪一个；"
-                 "拿「speed_adjusted」与「over_src_len」直接比会**对不上**。"),
+        "note": ("★ **两个口径**（EXT-037 ④ 已作废第三个）：\n"
+                 "  * `over_ws`     = d_player ÷ **d_ws**（**未经**变速校正）"
+                 "⇒ **主口径**（EXT-037 ④ 明确要求）\n"
+                 "  * `over_src_len`= d_player ÷ **源段长**（reviewer EXT-036 ⑥ "
+                 "用的口径）\n"
+                 "★ **`d_ws` 已经是 WSOLA 变速之后的时长** ⇒ 拿它再乘/除一次 "
+                 "speed 就是**重复校正** ⇒ 旧口径 `speed_adjusted` "
+                 "（d_player × speed ÷ d_ws）**已作废**（EXT-037 ④）。\n"
+                 "★ `over_ws` 与 `over_src_len` **含义不同** ⇒ STATUS 必须"
+                 "写明用的是哪一个；直接互比会**对不上**。"),
     }
     return out
 
@@ -664,11 +679,26 @@ def analyze_run(run_dir: str):
         # ★ d_player：**实测**（切出来 + 静音检测量有声跨度）
         m = measure_player_segment(wav, wav_sr, o["wav_offset_sec"], d_ws)
         row.update(m)
-        # ★ 时长比：player ÷ (b)（变速段按 speed 校正）
-        #   三种口径都报出来（**不挑好看的那个**）：
-        #     ① 绝对比     = d_player ÷ d_ws
-        #     ② 变速校正   = d_player × speed ÷ d_ws      ← EXT-033 C 的口径
-        #     ③ 同尺子比   = voiced(player) ÷ voiced(WS)  ← 阈值偏置互相抵消
+        # ★★★★★★ EXT-037 ④：`d_player` **主口径** = `endedAt − actual`
+        #   （player 实测的播放时长，包络起止）
+        #   ⚠️ 旧的能量检测口径会**截掉尾部静音** ⇒ d_player 偏小
+        #     ⇒ 时长比偏小 ⇒ 与 reviewer 实测 0.57–1.55 **对不上**
+        #     （reviewer 原话：「d_player 用能量检测会截掉尾部静音」）。
+        #   ⇒ 有 `endedAt` 就用它；没有（旧插件）⇒ **如实**回落能量检测
+        #     并标出用的是哪个口径（不混着报）。
+        _d_ended = o.get("d_player_ended_sec")
+        if _d_ended is not None and float(_d_ended) > 0:
+            row["d_player_sec"] = round(float(_d_ended), 4)
+            row["d_player_caliber"] = "endedAt-actual"
+        else:
+            row["d_player_caliber"] = "voiced_span(fallback)"
+        row["d_player_voiced_sec"] = m.get("d_player_sec")
+        # ★ 时长比（EXT-037 ④：**只保留两个口径**）
+        #   ① `over_ws`      = d_player ÷ d_ws（**未经**变速校正）← **主口径**
+        #   ② `over_src_len` = d_player ÷ 源段长（reviewer EXT-036 ⑥ 口径）
+        #   ③ 同尺子比 = voiced(player) ÷ voiced(WS)（阈值偏置互相抵消）
+        #   ⚠️ **不再**输出 `dur_ratio_speed_adjusted`
+        #     （`d_ws` 已是 WSOLA 变速后时长 ⇒ 再乘 speed 是**重复校正**）
         ws_voiced = None
         pcm_p = os.path.join(adir, sid + "_ws.pcm")
         ws_data = None
@@ -682,15 +712,13 @@ def analyze_run(run_dir: str):
                 row["ws_read_error"] = str(e)
         row["d_ws_voiced_sec"] = (round(ws_voiced, 4)
                                   if ws_voiced else None)
-        if d_ws > 0 and m.get("d_player_sec"):
-            row["dur_ratio_player_over_ws"] = round(m["d_player_sec"] / d_ws, 4)
-            row["dur_ratio_speed_adjusted"] = round(
-                m["d_player_sec"] * speed / d_ws, 4)
+        _dp = row.get("d_player_sec")
+        if d_ws > 0 and _dp:
+            row["dur_ratio_player_over_ws"] = round(_dp / d_ws, 4)
         else:
             row["dur_ratio_player_over_ws"] = None
-            row["dur_ratio_speed_adjusted"] = None
-        if ws_voiced and m.get("d_player_sec"):
-            row["dur_ratio_same_ruler"] = round(m["d_player_sec"] / ws_voiced, 4)
+        if ws_voiced and _dp:
+            row["dur_ratio_same_ruler"] = round(_dp / ws_voiced, 4)
         else:
             row["dur_ratio_same_ruler"] = None
         # ★ 互相关 + SNR（player WAV vs 桥接下发 PCM）
@@ -740,8 +768,12 @@ def analyze_run(run_dir: str):
 
     # ── 汇总 ──
     aligned = [s for s in segs if s.get("aligned")]
-    ratios = [s["dur_ratio_speed_adjusted"] for s in aligned
-              if s.get("dur_ratio_speed_adjusted") is not None]
+    # ★★★★★★ EXT-037 ④：**主口径** = `dur_ratio_player_over_ws`
+    #   （d_player ÷ d_ws，**未经**变速校正）
+    #   ⚠️ 旧口径 `dur_ratio_speed_adjusted`（d_player × speed ÷ d_ws）
+    #     **已作废**：`d_ws` 已是 WSOLA 变速后时长 ⇒ 再乘 speed 是**重复校正**
+    ratios = [s["dur_ratio_player_over_ws"] for s in aligned
+              if s.get("dur_ratio_player_over_ws") is not None]
     prof = silence_profile(wav, wav_sr)
     st = sync_stats(sync.get("errs") or [])
 
@@ -775,8 +807,15 @@ def analyze_run(run_dir: str):
         "n_segments": len(segs),
         "n_aligned": len(aligned),
         "n_unaligned": len(segs) - len(aligned),
-        "dur_ratio_speed_adjusted_min": min(ratios) if ratios else None,
-        "dur_ratio_speed_adjusted_max": max(ratios) if ratios else None,
+        "dur_ratio_over_ws_min": min(ratios) if ratios else None,
+        "dur_ratio_over_ws_max": max(ratios) if ratios else None,
+        # ★★★★★★ EXT-037 ④：主口径更名（`speed_adjusted` ⇒ `over_ws`）
+        #   ⚠️ **旧 key 保留**（标 `deprecated`）⇒ 旧的下游/报告模板
+        #     不会 KeyError；但**值已换成新口径** ⇒ 别再按旧名解读。
+        "dur_ratio_speed_adjusted_min": (min(ratios) if ratios else None),
+        "dur_ratio_speed_adjusted_max": (max(ratios) if ratios else None),
+        "dur_ratio_speed_adjusted_deprecated": True,
+        "dur_ratio_caliber": "over_ws = d_player ÷ d_ws（未经变速校正）",
         "dur_ratio_ok_count": sum(1 for r in ratios
                                   if abs(r - 1.0) <= DUR_RATIO_TOL),
         "dur_ratio_tol": DUR_RATIO_TOL,
@@ -823,9 +862,11 @@ def render_md(d: dict) -> str:
                 "✅" if d["sync_err_ok"] else "❌"))
     L.append("| 段数 / 已对齐 / 未对齐 | %d / %d / %d | 对齐峰 ≥ 0.6 |"
              % (d["n_segments"], d["n_aligned"], d["n_unaligned"]))
-    L.append("| 时长比（player÷(b)，变速校正） | %s ~ %s | 1.00±0.02 |"
-             % (d["dur_ratio_speed_adjusted_min"],
-                d["dur_ratio_speed_adjusted_max"]))
+    L.append("| 时长比（`over_ws` = player ÷ d_ws，**未经**变速校正；EXT-037 ④） | %s ~ %s | 1.00±0.02 |"
+             % (d.get("dur_ratio_over_ws_min",
+                       d.get("dur_ratio_speed_adjusted_min")),
+                d.get("dur_ratio_over_ws_max",
+                      d.get("dur_ratio_speed_adjusted_max"))))
     L.append("| 源语言全为英文 | %s | EXT-033 E |" % d["src_all_english"])
     # ★★★★★ EXT-034 ①：同步测量覆盖率（**必须**在报告里显眼）
     sc = d.get("sync_coverage") or {}
@@ -860,14 +901,16 @@ def render_md(d: dict) -> str:
     L.append("")
     L.append("## 逐段明细")
     L.append("")
-    L.append("| # | id | t_start | WAV 位置(s) | d_player(s) | d_ws(s) | "
-             "时长比(校正) | 互相关峰 | SNR(dB) | 对齐 | signed err(ms) | 源 | 译 |")
-    L.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+    L.append("| # | id | t_start | WAV 位置(s) | d_player(s) | d_player口径 | d_ws(s) | "
+             "时长比(over_ws) | 互相关峰 | SNR(dB) | 对齐 | signed err(ms) | 源 | 译 |")
+    L.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for i, s in enumerate(d["segments"], 1):
-        L.append("| %d | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |"
+        L.append("| %d | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |"
                  % (i, s.get("seg_id"), s.get("t_start"),
                     s.get("wav_offset_sec"), s.get("d_player_sec"),
-                    s.get("d_ws_sec"), s.get("dur_ratio_speed_adjusted"),
+                    s.get("d_player_caliber") or "—",
+                    s.get("d_ws_sec"),
+                    s.get("dur_ratio_player_over_ws"),
                     s.get("xcorr_peak"), s.get("snr_db"),
                     "✅" if s.get("aligned") else "**未对齐**",
                     s.get("signed_err_ms"),

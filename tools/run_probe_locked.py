@@ -25,7 +25,7 @@ def main(argv=None) -> int:
                     choices=["all", "capture", "video", "echo"])
     ap.add_argument("--duration", type=int, default=30)
     ap.add_argument("--bridge-port", type=int, default=8791)
-    ap.add_argument("--delay", type=float, default=10.0)
+    ap.add_argument("--delay", type=float, default=20.0)
     ap.add_argument("--out", default=None)
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)

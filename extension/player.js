@@ -362,7 +362,7 @@ function _median(nums) {
   const m = s.length >> 1;
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
-let delaySec = 10;
+let delaySec = 20;
 let ws = null;
 let lipSyncData = null;
 let capturedStream = null;
@@ -3009,7 +3009,7 @@ listenSwBroadcast();
 
 async function boot() {
   const cfg = await chrome.storage.local.get({
-    wsUrl: 'ws://127.0.0.1:8765/', token: '', delaySec: 10,
+    wsUrl: 'ws://127.0.0.1:8765/', token: '', delaySec: 20,
     // ★★ T-3：把 duckDb / subsOn 一并读出来（此前只有 popup 读，
     //   player 从不读 ⇒ 两个控件都是死控件）。
     duckDb: -15, subsOn: true,
@@ -3017,7 +3017,7 @@ async function boot() {
     //   ⇒ 服务端拿不到 ⇒ 面板上的选择在这条路径上完全丢失）。
     targetLang: 'zh', voice: 'A',
   });
-  delaySec = isNaN(D_OVERRIDE) ? (cfg.delaySec || 10) : D_OVERRIDE;
+  delaySec = isNaN(D_OVERRIDE) ? (cfg.delaySec || 20) : D_OVERRIDE;
   // ★★ T-3：应用原声压低量与字幕开关。
   duckDb = (cfg.duckDb === undefined || cfg.duckDb === null || cfg.duckDb === '')
     ? -15 : Number(cfg.duckDb);

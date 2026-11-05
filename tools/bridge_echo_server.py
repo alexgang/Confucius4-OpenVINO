@@ -22,7 +22,7 @@ from ext.bridge import TokenStore  # noqa: E402
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8790)
-    ap.add_argument("--delay", type=float, default=10.0)
+    ap.add_argument("--delay", type=float, default=20.0)
     ap.add_argument("--token-file", default=None)
     ap.add_argument("--print-token", action="store_true")
     args = ap.parse_args(argv)

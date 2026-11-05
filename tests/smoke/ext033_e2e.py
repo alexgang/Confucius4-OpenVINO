@@ -89,15 +89,19 @@ def wait_bridge_ready_ext033(proc, pair_port: int, *, real: bool,
 
 
 def start_bridge_ext033(log_path: str, *, audio_dump_dir: str,
-                        real: bool = True):
+                        real: bool = True, delay_sec: int = 10):
     """起 bridge。★ `real=False` ⇒ **回声模式**（不加载任何引擎、不碰 NPU/GPU）。
 
     回声模式用来**先验管道**（元素抓取 / 录音完整性 / WAV / 时间轴 / sync_err），
     避免在真实引擎跑之前把 5 分钟浪费在 plumbing 错误上。
+
+    ★ EXT-038：`delay_sec` 必须**与服务端一致**（插件侧同一个 D）
+    ⇒ 单独参数化，不再写死 10。
     """
     if real:
         return start_bridge(log_path, spk_bypass=False,
-                            audio_dump_dir=audio_dump_dir)
+                            audio_dump_dir=audio_dump_dir,
+                            delay_sec=delay_sec)
     from ext.app_root import resolve_app_root
     app_root = resolve_app_root()
     if not app_root:
@@ -114,7 +118,7 @@ def start_bridge_ext033(log_path: str, *, audio_dump_dir: str,
         app_py, "-m", "ext.bridge",
         "--host", "127.0.0.1", "--port", str(ws_port),
         "--pair-port", str(pair_port),
-        "--delay", "10",
+        "--delay", str(delay_sec),
         "--target-lang", "zh",
         "--margin-out", os.path.join(os.path.dirname(log_path), "margin.json"),
     ]
@@ -262,7 +266,8 @@ def _write_b64(path: str, b64: str) -> int:
 # ══════════════════════════════════════════════════════════════════
 def run_round(tag: str, *, wav_path: str, no_lock: bool = False,
               real: bool = True, min_rec_sec: float = MIN_REC_SEC,
-              quiet_sec: float = QUIET_SEC) -> dict:
+              quiet_sec: float = QUIET_SEC,
+              delay_sec: int = 20) -> dict:
     out_dir = os.path.join(OUT_DIR, tag)
     os.makedirs(out_dir, exist_ok=True)
     audio_dump_dir = os.path.join(out_dir, "audio_dump")
@@ -276,6 +281,8 @@ def run_round(tag: str, *, wav_path: str, no_lock: bool = False,
         "out_dir": out_dir, "src_wav": wav_path,
         "min_rec_sec": min_rec_sec, "quiet_sec": quiet_sec,
         "real": real, "tail_sec": TAIL_SEC,
+        # ★ EXT-038：本轮的 D（服务端与插件侧**必须一致**）
+        "delay_sec": delay_sec,
     }
     rc = 1
 
@@ -286,7 +293,7 @@ def run_round(tag: str, *, wav_path: str, no_lock: bool = False,
         with lock_cm:
             proc = start_bridge_ext033(bridge_log,
                                       audio_dump_dir=audio_dump_dir,
-                                      real=real)
+                                      real=real, delay_sec=delay_sec)
             ws_port, pair_port = proc._e2e_ports              # noqa: SLF001
             summary["bridge_ws_port"] = ws_port
             summary["bridge_pair_port"] = pair_port
@@ -319,6 +326,26 @@ def run_round(tag: str, *, wav_path: str, no_lock: bool = False,
                     token = json.loads(r.read().decode("utf-8"))["token"]
 
                 player = bs.open_ext_page("player.html")
+                time.sleep(4.0)
+
+                # ★★★★★★ EXT-038：**插件侧的 D 必须与服务端一致**
+                #   `player.js` 的 `boot()` 读 `chrome.storage.local.delaySec`
+                #   ⇒ 复用的 Chrome profile 里可能留着**上一轮的旧 D**
+                #   ⇒ 本轮**强制写入** `delay_sec`（并断言读回一致）。
+                _set_d = player.evaluate(
+                    """async () => {
+                        await chrome.storage.local.set({delaySec: %d});
+                        const c = await chrome.storage.local.get({delaySec: 0});
+                        return c.delaySec;
+                    }""" % delay_sec)
+                summary["plugin_delay_sec"] = _set_d
+                _log("插件侧 D 已写入：%r（服务端 --delay %d）"
+                     % (_set_d, delay_sec))
+                if int(_set_d or 0) != int(delay_sec):
+                    raise RuntimeError("插件侧 D 写入失败：%r != %d"
+                                       % (_set_d, delay_sec))
+                # ★ player.js 已在 `boot()` 里读过 storage ⇒ 重载一次让它生效
+                player.reload()
                 time.sleep(4.0)
 
                 # ★★ A：**页面元素音频** ⇒ 送进扩展的上行链路
@@ -524,8 +551,16 @@ def main() -> int:
     real = not (len(sys.argv) > 1 and sys.argv[1] == "--echo")
     min_rec = MIN_REC_SEC if real else 20.0
     quiet = QUIET_SEC if real else 6.0
+    # ★ EXT-038：D 可传参（默认 **20 s**，与插件默认一致）
+    delay_sec = 20
+    for i, a in enumerate(sys.argv):
+        if a == "--delay" and i + 1 < len(sys.argv):
+            delay_sec = int(sys.argv[i + 1])
+        elif a.startswith("--delay="):
+            delay_sec = int(a.split("=", 1)[1])
+    _log("本轮 D = %d s（服务端 --delay 与插件 storage 同步）" % delay_sec)
     s = run_round(tag, wav_path=SRC_WAV, real=real, min_rec_sec=min_rec,
-                  quiet_sec=quiet)
+                  quiet_sec=quiet, delay_sec=delay_sec)
     p = os.path.join(OUT_DIR, "summary_%s.json" % tag)
     with open(p, "w", encoding="utf-8") as f:
         json.dump(s, f, ensure_ascii=False, indent=2)

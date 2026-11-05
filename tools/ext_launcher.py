@@ -66,7 +66,7 @@ TOKEN_PATH = os.path.join(ROOT, "bridge_token.txt")
 
 # ── 默认参数（EXT-012 明文：默认 --real --pipeline + 线程限制） ──────
 DEFAULT_PORT = 8765
-DEFAULT_DELAY = 10.0
+DEFAULT_DELAY = 20.0
 DEFAULT_LANG = "zh"
 
 

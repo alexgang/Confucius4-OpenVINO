@@ -77,7 +77,7 @@ def main(argv=None) -> int:
     ap.add_argument("--real", action="store_true", help="接入真实引擎")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8765)
-    ap.add_argument("--delay", type=float, default=10.0)
+    ap.add_argument("--delay", type=float, default=20.0)
     ap.add_argument("--target-lang", default="en")
     ap.add_argument("--token-file", default="bridge_token.txt")
     ap.add_argument("--margin-out", default=None)

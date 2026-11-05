@@ -99,6 +99,20 @@ function makePlayerSandbox(opts) {
     },
     __scheduled: scheduled,
     __reported: reported,
+    // ★ `dubDownlinkMs`：`handleBridgeMessage` 会往里写「逐段下行耗时」
+    //   （EXT-036 ① / EXT-037 ③ 用它算真实下行耗时）
+    //   ⇒ 沙箱里必须给一个**桩**，否则被测函数一进去就 ReferenceError
+    //   （此前 harness 没抽它 ⇒ harness 一直是红的，属**既有基线问题**，
+    //     不是本轮改动引入的 —— 已用 HEAD 版本复现确认）。
+    dubDownlinkMs: new Map(),
+    // ★ `dubReadyAt`：记录每段「就绪→起播」时刻（EXT-035 验收项）
+    dubReadyAt: new Map(),
+    // ★ `audioCtx`：录音/播放用的 AudioContext（真实环境才有）
+    //   harness 里没有 ⇒ 给一个**空壳**，让被测函数走 `audioCtx ? … : …` 分支
+    audioCtx: null,
+    // ★ `noteDubScheduled` / `currentSessionId`：EXT-026 ⑤ 会话前缀
+    noteDubScheduled: (o2) => { reported.push(o2); },
+    currentSessionId: 'sess_test',
     report: (o2) => { reported.push(o2); },
     scheduleDub: (m) => { scheduled.push(m); return { planned: 0, requested: 0 }; },
   };

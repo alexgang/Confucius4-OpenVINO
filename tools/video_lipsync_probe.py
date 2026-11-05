@@ -306,7 +306,7 @@ def run_probe(*, delay_sec: float = 10.0, video_sec: int = 45,
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--delay", type=float, default=10.0)
+    ap.add_argument("--delay", type=float, default=20.0)
     ap.add_argument("--video-sec", type=int, default=45)
     ap.add_argument("--out", default=None)
     ap.add_argument("--src-port", type=int, default=SRC_PORT)

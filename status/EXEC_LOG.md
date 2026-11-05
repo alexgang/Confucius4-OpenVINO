@@ -3059,3 +3059,135 @@ run `.tmp/ext033_e2e/20261102_121431/`：
 
 ### `last_ack`
 **EXT-036** —— 本轮**未认领新编号**（闸门 exit 1）⇒ `last_ack` **保持 EXT-036 不变**。
+
+
+---
+
+## 2026-11-05 11:06 ~ 11:30 —— EXT-037 + EXT-038 交卷（EXT 模块巡检轮次）
+
+**执行时间**：2026-11-05 11:06:08 ~ 11:30（实测）
+**指令**：`EXT-037 [BLOCKING] 2026-11-05 08:01` ＋ `EXT-038 [HIGH] 2026-11-05 08:25`
+**闸门**：`tools/next_instruction.py --json` ⇒ **exit 0**（`action=execute`，latest=EXT-038，`last_ack=36`）⇒ **认领 EXT-038**
+**会话接手**：`acquire ext` ⇒ **TAKEOVER**（死会话 token=b1c6d479，last_beat 83 min 前，`live_pids=[]`）⇒ 按 EXT-030 条款**从断点继续**
+（上一会话已写完代码但**未提交**、**未更新 STATUS/last_ack**、且把两个 legacy 套件**改红了**）
+
+### 指令摘要
+- **EXT-037 ②【BLOCKING】**：EXT-036④ 引入「每段之后丢 3.5 s 音频」（60 s 素材丢约 40%）⇒ 修掉 ＋ 补「段区间连续覆盖」自测 ＋ 变异测试证守卫有效
+- **EXT-037 ③**：「非 TTS 固定项 7.184 s」口径有误 ⇒ `axis_gap` 不是延迟、`player_queue` 是结果项、**漏掉「等整段说完」** ⇒ 重写 `sync_rootcause`，给出 `D_needed = P95(ready − t_start) + 0.3`
+- **EXT-037 ④**：compare 时长比口径错（`d_ws` 又除一次 speed）⇒ 改口径
+- **EXT-037 ⑤ / EXT-038**：用户拍板 ⇒ **默认 D=20 s**，同步目标**保持**有符号 P95 ≤300 ms（D=10 放宽到 3 s 的选项**作废**）
+
+### 涉及修改的文件
+| 文件 | 改动 |
+|---|---|
+| `ext/bridge.py` | **丢段修法**（守卫 `_buf_base == 0` 只切一次 ＋ 清零时机 ＋ `_buf_delivered_prefix`）｜**`sync_rootcause` 口径重写**（`axis_gap`/`player_queue` 移出固定项、新增 `seg_len`、新增 `result_items_detail`、新增 `D_needed`）｜`--delay` 默认 20.0 |
+| `extension/player.js` | `delaySec` 默认 20（`let delaySec = 20` ＋ `boot()` 回落 `|| 20`） |
+| `extension/popup.js` / `popup.html` / `sw.js` | 默认 `delaySec` 20（popup 回落 / `value="20"` / `onInstalled`） |
+| `extension/*.js`（4 个 runner）＋ `tools/*.py`（9 个） | `--delay` 默认 20.0 / `DEFAULT_DELAY = 20.0` |
+| `tests/smoke/ext033_analyze.py` | **时长比口径重写**：作废 `speed_adjusted`、主口径 `over_ws`、`d_player` 改 `endedAt−actual` |
+| `tests/smoke/ext028_029_e2e.py` | `start_bridge(..., delay_sec=)`（不再写死 10） |
+| `tests/smoke/ext033_e2e.py` | `run_round(..., delay_sec=)`＋`main()` 的 `--delay`＋**插件侧写入/读回校验/reload**＋摘要记 `delay_sec`/`plugin_delay_sec` |
+| `tests/test_ext037_seg_coverage.py`（**新建**） | **53 项**：连续覆盖、flush 不重叠、默认 D=20、口径重写、时长比口径、**e2e D 两侧一致（含反证）** |
+| `tests/test_ext036_review.py` | **迁到新契约并加强**（7 FAIL → 0） |
+| `tests/test_ext036b_client_metrics.py` | **迁到新契约并加强**（4 FAIL → 0） |
+| `tests/ext024_link_harness.js` | **补沙箱桩**（`dubDownlinkMs`/`dubReadyAt`/`audioCtx`/…）⇒ 修既有基线红（33/0） |
+| `status/STATUS_EXT.md` | 新增 **§30** ＋ 头部 `last_ack`→EXT-038 ＋ 更新时间 ＋ 阻塞项 ②③ 重写 ＋ 结论表更新 |
+| `status/notes/sec30_ext037_038.md`（**新建**） | §30 全量明细 |
+| `USER_GUIDE.md` | 两处 D 文案 10 → 20 秒 |
+
+### 验证与自测结果（实测 rc）
+- **★ 真实 e2e（run `20261105_112057`，D=20，60 s 素材，录音 104.469 s）**：
+  - **段覆盖率 100% ✅**（29 段 / 28 个相邻缺口**全 0** / 总覆盖 0→105.791 s）⇒ **EXT-037 ② 已修并实测确认**
+  - **14 个 TTS 段**与参照轮 `20261102_213515` 的 14 段一致；§29 丢失的 6 处译文**全部恢复**
+  - 开头静音 **20.11 s**（D=20 生效）｜\|wav − durationSec\| = **0.149 s ≤ 0.2 s** ✅｜同步测量覆盖 **14/14** ✅
+  - 时长比 `over_ws` = **0.9991 ~ 1.0008** ✅（新口径精确命中 1.00）｜互相关峰 14/14 = 1.0
+  - ⛔ **有符号 sync P50/P95/max = 5978.7 / 16130.6 / 16198.3 ms ≫ 300 ms ⇒ 未达标**
+  - `RTF_out` **1.0562**（>1 饱和）｜`tts_over_src` **1.3139**｜`speech_over_src` **1.2440**｜lag 斜率 **−0.4106**（r²=0.866, n=14）
+  - `D_needed` 实测 **33.652 s ≫ D=20** ⇒ **根因是吞吐饱和 ⇒ 光调 D 无解** ⇒ **TTS 侧目标 `RTF_out ≤ 0.75`**
+- **★ 变异测试（4 变异 + 1 等价变异）**：M1/M2/M3b/M4 **全部 DETECTED**；M3（合计公式的 null 强转）**数值等价 ⇒ MISSED，属预期**（真守卫在明细字典）⇒ **还原后全绿**
+- **★ 自测全部 0 FAIL**：`test_ext_selfcheck` **122**、`test_echo_roundtrip` **11**、`test_next_instruction` **19**、`test_p1_plumbing` **112**、`test_ext010_pipeline` **25**、`test_ext033_capture` **42**、`test_ext033_deliver` **25**、`test_ext036_review` **64**、`test_ext036b_client_metrics` **41**、★ `test_ext037_seg_coverage` **53**；node `ext028_player_harness` **29**、`ext024_link_harness` **33**、`t5_t6_bounds_persist` **16**
+- **MACHINE_LOCK**：e2e 用 `machine_lock.hold("ext")` **排队等待** TTS 模块（PID 7592）释放 ⇒ **未抢他人活锁**；e2e PID **41568** 已 `addpid` 登记；跑完**正常释放**
+
+### 明确未做 / 不宣称
+- ⛔ **sync P95 16130.6 ms 未达标** ⇒ **不写「同步已解决」**、**不自行放宽目标**（EXT-038 明令）
+- ⛔ **撤回 §29 三条旧结论**（「D=10 已足够吸收」/「非 TTS 固定项 7.184 s」/「时长比 0.46–1.08 未追平」）—— 旧口径把 `axis_gap` 算进固定项；新口径 `non_tts_fixed_sec` = **7.690 s**、`D_needed` = **33.652 s**、时长比 **0.9991~1.0008**
+- ⛔ **未打包**（★ 按用户规则**不主动打包**）／⛔ 未改引擎文件／⛔ 未改其它模块文件／⛔ 未推远程
+- ⛔ `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**
+- ⛔ **本轮未关闭任何进程**（EXT-036⑦ 新规则：点名以外一律停下请用户确认）
+- ⛔ **EXT-028 待用户抽听、V2.0 暂不放行**；⛔ 克隆音色仍不可用（依赖 ASR-013）
+- ℹ️ 唯一既有 FAIL = `test_ext016_compression` 的 **CORRECTIONS 体积项**（reviewer 独占，只读不改）⇒ **非本轮回归**
+
+### `last_ack`
+**EXT-038**（由 EXT-036 推进）
+
+## 2026-11-05 12:12 → 12:40 —— EXT-037 + EXT-038 **收尾轮**（STATUS 压缩达标 + 全量回归 + 提交）
+
+### 起点（断点续接）
+- 接手时 `acquire ext` 返回 **TAKEOVER**（死会话 token=`b1c6d479`）⇒ 按 EXT-030 **从断点继续**；
+  本轮租约 token = **`9b35a61e`**，全程 `beat` 成功（`OK beat 11-05 12:12:00` / `12:25:23` / `12:28:00`）。
+- 本轮唯一未闭环项：**`tests/test_ext016_compression.py` 的新增失败**（STATUS 膨胀引起）⇒ 本轮专门消除。
+
+### ① STATUS 压缩（EXT-016 规则 + 测试严格阈值）
+- **问题**：上一轮把 STATUS 写到 **34 542 B / 275 行**，违反 `test_ext016_compression.py` 的严格断言
+  `check("精简版 STATUS 不含历史全文（确实变小了）", _size(STATUS) < _size(STATUS_ARCHIVE) / 10)`
+  ⇒ 归档 `STATUS_EXT_upto_20261030.md` = **224 833 B** ⇒ 阈值 **< 22 483.3 B**。
+- **做法**（**只压 STATUS，不动 reviewer 独占文件**）：
+  1. 头部三个大表收敛（历史结论合并、明细指向 `notes/`）；
+  2. 「最近章节」表压缩（§28/§29/§30 一句话结论，明细下沉 `notes/`）；
+  3. §30 保留评审所需关键数字与代码标识，⑧ 产物清单保留全部字节数；
+  4. §28/§29 正文精简（原措辞与 `notes/sec28/sec29` 重复）。
+- **结果**：**34 542 B → 22 384 B**（**85 行**，头部 **13 行**）⇒ **严格达标**（余量 99 B）。
+- **保留的结构不变量**（压缩自测逐条验证）：`last_ack: EXT-038` ✅｜头部 ≤15 行 ✅｜
+  三个规定章节（`## 当前有效结论` / `## 未完成纠偏清单` / `## 最近章节`）✅｜
+  「来源文件」列 ✅｜归档指针 `archive/STATUS_EXT_upto_20261030.md` ✅｜
+  「当前有效结论」表**不含**被撤回的 `0.9264` ✅｜最近章节仅 §28/§29/§30 ✅。
+- **★ 新增归档**：压缩前的工作区完整原文（**34 816 B**）经比对确认含 **192 行**只存在于该文件、
+  不在 `notes/`、也不在 §1~§10 归档里的历史结论（扩展 ID / 启动器 / 语言映射 / t_start 时间轴 / 段 id 等）
+  ⇒ 移入 **`status/archive/STATUS_EXT_upto_20261105.md`**（**不删内容**），并在本轮 STATUS 头部加了指针。
+
+### ② 全量回归（实测 rc，压缩后重跑）
+| 套件 | 结果 | rc |
+|---|---|---|
+| `tests/test_ext_selfcheck.py` | **122 PASS / 0 FAIL** | 0 |
+| `tests/test_echo_roundtrip.py` | **11 PASS / 0 FAIL** | 0 |
+| `tests/test_next_instruction.py` | **19 PASS / 0 FAIL** | 0 |
+| `tests/test_ext016_compression.py` | **38 PASS / 1 FAIL** | 1 |
+| `tests/test_p1_plumbing.py` | **112 PASS / 0 FAIL** | 0 |
+| `tests/test_ext010_pipeline.py` | **25 PASS / 0 FAIL** | 0 |
+| `tests/test_ext033_capture.py` | **42 PASS / 0 FAIL** | 0 |
+| `tests/test_ext033_deliver.py` | **25 PASS / 0 FAIL** | 0 |
+| `tests/test_ext036_review.py` | **64 PASS / 0 FAIL** | 0 |
+| `tests/test_ext036b_client_metrics.py` | **41 PASS / 0 FAIL** | 0 |
+| ★ `tests/test_ext037_seg_coverage.py` | **53 PASS / 0 FAIL** | 0 |
+| node `tests/ext024_link_harness.js` | **33 PASS / 0 FAIL** | 0 |
+| node `tests/ext028_player_harness.js` | **29 PASS / 0 FAIL** | 0 |
+| node `tests/ext026_e2e_harness.js` | 12 PASS / **1 FAIL** | 1 |
+
+- ★ **压缩自测从 37 PASS / 2 FAIL 提升到 38 PASS / 1 FAIL** ⇒ **本轮新增的 STATUS 失败已消除**。
+- ★ **唯一残留 FAIL**：`压缩后 CORRECTIONS 明显变小（实测 63835 B）`
+  ⇒ `status/CORRECTIONS_EXT.md` 由 **reviewer 独占写入**，EXT **只读**、**未修改**、**未入库**
+  ⇒ **不越权处理**，**如实报告为既有基线**（非本轮回归）。
+- ★ **`ext026_e2e_harness.js` 的 1 FAIL 是既有基线**：`★ C3a 录音启动成功 — {"ok":false,"error":"dubPcmRate is not defined"}`
+  ⇒ 用 `git stash` 把工作区恢复到 **HEAD 干净态复跑，仍是 12 PASS / 1 FAIL**（同一条）
+  ⇒ **非本轮引入**（`extension/player.js` 本轮 diff 仅 `delaySec` 10→20，**未触碰 `dubPcmRate`**）⇒ **不修、不掩盖**。
+
+### ③ 本轮改动文件（EXT 模块范围内）
+- 生产：`ext/bridge.py`（EXT-037 ②③④ 修法与口径）、`extension/{player.js,popup.js,popup.html,sw.js}`（默认 D=20）
+- 工具：`tools/` 下 9 个 runner 的 `--delay` 默认 20、`tests/smoke/{ext028_029_e2e.py,ext033_analyze.py,ext033_e2e.py}`
+- 文档：`USER_GUIDE.md`（两处默认延迟文案）
+- 自测：★ 新建 `tests/test_ext037_seg_coverage.py`（**53 项**）；
+  迁移并加强 `tests/test_ext036_review.py`（**64**）、`tests/test_ext036b_client_metrics.py`（**41**）；
+  修 `tests/ext024_link_harness.js` 既有基线红（补沙箱桩 ⇒ **33 PASS**）
+- 状态：`status/STATUS_EXT.md`（压缩至 **22 384 B**）、`status/EXEC_LOG.md`（本条目）、
+  ★ `status/notes/sec30_ext037_038.md`（**18 597 B**，§30 全量证据）、
+  ★ `status/archive/STATUS_EXT_upto_20261105.md`（**34 816 B**，压缩前原文归档）
+
+### 明确未做 / 不宣称
+- ⛔ **sync P95 16130.6 ms 仍未达标** ⇒ **不写「同步已解决」**、**不自行放宽目标**（EXT-038 明令）
+- ⛔ **未打包**（★ 按用户规则**不主动打包**）／⛔ 未改引擎文件／⛔ 未改其它模块文件／⛔ **未推远程**
+- ⛔ `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**（`git status` 无该文件；`.gitignore` 命中）
+- ⛔ `.tmp/` **不入库**（`.gitignore` 命中）；⛔ **本轮未关闭任何进程**；⛔ **未抢活锁**
+- ℹ️ 唯一既有 FAIL = 上面两条（CORRECTIONS 体积项 + `ext026_e2e_harness` 的 `dubPcmRate`）⇒ **均非本轮回归**
+
+### `last_ack`
+**EXT-038**（不变 —— 本轮是收尾轮，无新编号）

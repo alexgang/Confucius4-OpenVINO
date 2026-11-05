@@ -176,46 +176,65 @@ def test_03_values_reach_margin() -> None:
 # ④ ★ 核心守卫：未实测项不许被写成 0
 # ══════════════════════════════════════════════════════════════════
 def test_04_null_not_coerced_to_zero() -> None:
-    print("\n--- ④ ★ 未实测项不许被写成 0（核心守卫）---")
+    print("\n--- ④ ★ 未实测项不许被写成 0（核心守卫）/ EXT-037 ③ 新口径 ---")
     from ext.bridge import decompose_sync_rootcause
 
     margins = [
-        {"id": "seg_0", "t_start": 0.0, "asr_sec": 2.0, "speed": 1.0,
-         "has_tts": True, "tts_sec": 2.0},
-        {"id": "seg_1", "t_start": 3.5, "asr_sec": 3.0, "speed": 1.0,
-         "has_tts": True, "tts_sec": 2.0},
+        {"id": "seg_0", "t_start": 0.0, "t_end": 5.0, "asr_sec": 2.0,
+         "speed": 1.0, "has_tts": True, "tts_sec": 2.0},
+        {"id": "seg_1", "t_start": 5.0, "t_end": 10.0, "asr_sec": 3.0,
+         "speed": 1.0, "has_tts": True, "tts_sec": 2.0},
     ]
 
-    # ── 情形 A：**什么都没报** ⇒ 三项都应是 None，且不计入合计 ──
+    # ★★★★★★ EXT-037 ③：**口径重写** ⇒ 本组断言迁到新契约
+    #   ## 新契约
+    #     ① `axis_gap`（换算常数）**不计入**固定项 ⇒ 它**不是**「未实测项」，
+    #        而是**结果项** ⇒ 不得出现在 `unmeasured` 里。
+    #     ② `player_queue`（排队）**不计入**固定项 ⇒ 同上，是**结果项**。
+    #     ③ **新增 `seg_len`**（等整段说完）⇒ 属于**固定项**。
+    #   ⇒ 固定项 = feed(夹0) + asr + seg_len + 真实下行耗时。
+    #   ## ★ 原守卫（null 不冒充 0）**一点没放松**
+    #     「没测到的固定项 ⇒ None ⇒ 不计入合计 ⇒ 合计标为下界」
+    #     —— 仍然必须成立，只是「没测到的项」换成了新口径下的项。
+
+    # ── 情形 A：**什么都没报** ⇒ 固定项里没测到的都应是 None ──────
     out = decompose_sync_rootcause(margins, delay_sec=10.0)
     det = out.get("non_tts_fixed_detail", {})
 
-    check("④ A：轴缺口是 None（不是 0.0）",
-          det.get("axis_gap_sec") is None,
-          "实算=%r" % det.get("axis_gap_sec"))
     check("④ A：下行耗时是 None（不是 0.0）",
           det.get("downlink_latency_sec") is None,
           "实算=%r" % det.get("downlink_latency_sec"))
-    check("④ A：播放端排队是 None（不是 0.0）",
-          det.get("player_queue_sec") is None,
-          "实算=%r" % det.get("player_queue_sec"))
+    check("④ A：★ `seg_len` **已测到**（本合成数据有 t_start/t_end）",
+          det.get("seg_len_sec") is not None
+          and abs(float(det["seg_len_sec"]) - 5.0) < 1e-6,
+          "实算=%r" % det.get("seg_len_sec"))
     check("④ A：列出了**哪些项没测到**（`unmeasured`）",
           isinstance(det.get("unmeasured"), list)
-          and "axis_gap_sec" in det.get("unmeasured", []),
+          and "downlink_latency_sec" in det.get("unmeasured", []),
           "unmeasured=%r" % det.get("unmeasured"))
+    check("④ A：★ `axis_gap` **不在**固定项里（EXT-037 ③：它是换算常数）",
+          "axis_gap_sec" not in det
+          and "axis_gap_sec" not in det.get("fixed_items", []),
+          "detail keys=%s fixed_items=%s"
+          % (sorted(det.keys()), det.get("fixed_items")))
+    check("④ A：★ `player_queue` **不在**固定项里（EXT-037 ③：排队是结果项）",
+          "player_queue_sec" not in det
+          and "player_queue_sec" not in det.get("fixed_items", []),
+          "fixed_items=%s" % det.get("fixed_items"))
     check("④ A：合计标明是**下界**",
           out.get("non_tts_fixed_is_lower_bound") is True)
 
     # ★ 关键断言：合计**只**由已实测项构成
     #   ASR 均值 = (2.0 + 3.0) / 2 = 2.5；上行 feed_lag 夹到 0
-    #   ⇒ 合计应为 2.5（**不是** 2.5 + 三个 0，那也一样）
-    #   ⇒ 真正要验的是：**没测到的项没被偷偷加进去**
-    expect = 2.5
+    #   seg_len 均值 = (5.0 + 5.0) / 2 = 5.0；下行**没测到** ⇒ 不计入
+    #   ⇒ 合计应为 2.5 + 5.0 = 7.5
+    #   ⇒ 真正要验的是：**没测到的项没被偷偷加进去**。
+    expect = 2.5 + 5.0
     check("④ A：合计 = 已实测项之和（未测项不计入）",
           abs(float(out["non_tts_fixed_sec"]) - expect) < 1e-6,
           "实算=%s 手算=%s" % (out.get("non_tts_fixed_sec"), expect))
 
-    # ── 情形 B：**报了**三项 ⇒ 合计应当把它们**加进去** ──────────
+    # ── 情形 B：**报了**下行耗时 ⇒ 合计应当把它**加进去** ──────────
     out_b = decompose_sync_rootcause(
         margins, delay_sec=10.0,
         downlink_latency_sec=0.121,
@@ -223,9 +242,10 @@ def test_04_null_not_coerced_to_zero() -> None:
         player_detail=[{"readyToStartSec": 1.0},
                        {"readyToStartSec": 3.0}])
     det_b = out_b.get("non_tts_fixed_detail", {})
-    expect_b = 2.5 + 0.121 + 3.1786666666666665 + 2.0
+    # ★ 新口径：轴缺口与播放端排队**都不计入** ⇒ 合计 = 2.5 + 5.0 + 0.121
+    expect_b = 2.5 + 5.0 + 0.121
     # ★ 合计按**毫秒精度**落盘（`round(..., 3)`）⇒ 容差取 1e-3
-    check("④ B：报了三项 ⇒ 合计含这三项",
+    check("④ B：报了下行耗时 ⇒ 合计含它（且**不含**轴缺口/排队）",
           abs(float(out_b["non_tts_fixed_sec"]) - expect_b) < 1e-3,
           "实算=%s 手算=%.6f" % (out_b.get("non_tts_fixed_sec"), expect_b))
     check("④ B：不再是下界（全测到了）",
@@ -233,23 +253,42 @@ def test_04_null_not_coerced_to_zero() -> None:
     check("④ B：下行耗时被记成 0.121 s（**秒**，不是毫秒）",
           abs(float(det_b.get("downlink_latency_sec")) - 0.121) < 1e-9,
           "实算=%r" % det_b.get("downlink_latency_sec"))
-    check("④ B：播放端排队均值 = 2.0 s",
-          abs(float(det_b.get("player_queue_sec")) - 2.0) < 1e-9,
-          "实算=%r" % det_b.get("player_queue_sec"))
+    check("④ B：★ 播放端排队移到**结果项**（EXT-037 ③）",
+          out_b.get("result_items_detail", {}).get("player_queue_sec_mean")
+          == 2.0
+          and "player_queue_sec" not in det_b,
+          "result=%s detail has pq=%s"
+          % (out_b.get("result_items_detail"),
+             "player_queue_sec" in det_b))
+    check("④ B：★ 轴缺口移到**结果项**（EXT-037 ③）",
+          out_b.get("result_items_detail", {}).get("axis_gap_sec")
+          == 3.179
+          and "axis_gap_sec" not in det_b,
+          "result=%s" % out_b.get("result_items_detail"))
 
     # ── 情形 C：**只报一部分** ⇒ 仍是下界，且只加报的那部分 ──────
+    #   ★ 新口径下「固定项」= feed(夹0) + asr + **seg_len** + 真实下行。
+    #     若某一项**测不到**（这里让 `seg_len` 测不到：段没有 `t_end`）
+    #     ⇒ 合计仍标明是**下界**，且**只**加已实测的那部分。
+    margins_c = [
+        {"id": "seg_0", "t_start": 0.0, "asr_sec": 2.0, "speed": 1.0,
+         "has_tts": True, "tts_sec": 2.0},
+        {"id": "seg_1", "t_start": 5.0, "asr_sec": 3.0, "speed": 1.0,
+         "has_tts": True, "tts_sec": 2.0},
+    ]
     out_c = decompose_sync_rootcause(
-        margins, delay_sec=10.0, downlink_latency_sec=0.121)
+        margins_c, delay_sec=10.0, downlink_latency_sec=0.121)
     det_c = out_c.get("non_tts_fixed_detail", {})
     check("④ C：只报一项 ⇒ 仍是下界",
           out_c.get("non_tts_fixed_is_lower_bound") is True)
-    check("④ C：只加了报的那一项（2.5 + 0.121）",
+    check("④ C：只加了报的那一项（2.5 + 0.121；seg_len 测不到 ⇒ 不计）",
           abs(float(out_c["non_tts_fixed_sec"]) - 2.621) < 1e-6,
           "实算=%s" % out_c.get("non_tts_fixed_sec"))
-    check("④ C：没报的两项仍是 None",
-          det_c.get("axis_gap_sec") is None
-          and det_c.get("player_queue_sec") is None)
-
+    check("④ C：★ 测不到的 `seg_len` 仍是 None（不冒充 0）",
+          det_c.get("seg_len_sec") is None
+          and "seg_len_sec" in det_c.get("unmeasured", []),
+          "seg_len_sec=%r unmeasured=%r"
+          % (det_c.get("seg_len_sec"), det_c.get("unmeasured")))
 
 # ══════════════════════════════════════════════════════════════════
 # ⑤ 服务端把客户端数据喂进分解的接线

@@ -509,7 +509,7 @@ def main(argv=None) -> int:
     ap.add_argument("--mode", default="all",
                     choices=["all", "uplink", "video", "echo"])
     ap.add_argument("--duration", type=int, default=30)
-    ap.add_argument("--delay", type=float, default=10.0)
+    ap.add_argument("--delay", type=float, default=20.0)
     ap.add_argument("--out", default=None)
     ap.add_argument("--no-lock", action="store_true")
     ap.add_argument("--lock-wait", type=float, default=600.0,

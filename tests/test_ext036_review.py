@@ -141,19 +141,31 @@ def test_01_axis_gap():
 # ② sync 根因分解：非 TTS 固定项 vs TTS 积压
 # ─────────────────────────────────────────────────────────────────
 def test_02_rootcause():
-    print("\n[2] EXT-036 ② —— sync 根因分解（不得写成「全归 TTS」）")
+    print("\n[2] EXT-036 ② / EXT-037 ③ —— sync 根因分解（不得写成「全归 TTS」）")
     from ext.bridge import decompose_sync_rootcause
 
     delay = 10.0
-    # 合成一组**非 TTS 固定项明显 > D** 的逐段数据
-    #   （reviewer 实测：ASR 整段定稿 ~3 s + 播放排队 0~2.8 s + 缺口 7 s）
+    # ★★★★★★ EXT-037 ③：**口径已改写**（reviewer 原话逐条落实）⇒ 本组断言
+    #   同步迁到**新契约**，且**不放松**原来的守卫（「非 TTS 固定项 > D ⇒
+    #   不能写成『全归 TTS』」这条核心意图**必须继续成立**）。
+    #   ## 新契约（EXT-037 ③）
+    #     ① `axis_gap`（`t0UpPlayerOffsetSec`）是**两端时钟的换算常数**，
+    #        **不是延迟** ⇒ **不计入固定项**（`requested` 已在播放端轴上）。
+    #     ② `player_queue`（前一句还在播）是**结果项** ⇒ **不计入固定项**。
+    #     ③ **新增 `seg_len`（等整段说完）** ⇒ 这是漏掉的**最大**一项。
+    #   ⇒ 固定项 = feed(夹0) + ASR整段定稿 + **seg_len** + 真实下行耗时。
+    #   ## 合成数据的取法（保证「固定项 > D」这条守卫仍然有意义）
+    #     段长取 **15 s**（> D=10）⇒ 「必须等这一段说完」本身就已经超了 D
+    #     ⇒ 残余滞后必 > 0 ⇒ 核心守卫不会被新口径「稀释掉」。
+    #     （reviewer EXT-037 ③ 实测：最长段 7.05 s、ready−t_start 最大 18.4 s
+    #       ⇒ 真实场景下 D=10 同样盖不住。）
     margins = []
     for i in range(6):
         margins.append({
             "id": "seg_%d" % i,
-            "t_start": float(i * 10),
-            "t_end": float(i * 10 + 4),
-            "orig_end": 100.0 + i * 10,
+            "t_start": float(i * 20),
+            "t_end": float(i * 20 + 15),        # ★ 段长 15 s > D
+            "orig_end": 1000.0 + i * 20,
             "has_tts": True,
             "asr_sec": 3.0,
             "mt_sec": 0.5,
@@ -162,7 +174,7 @@ def test_02_rootcause():
             "proc_sec": 6.5,
             "feed_lag_sec": -5.0,        # 负数 ⇒ 音频**早**到 ⇒ 上行不是瓶颈
             "audio_ready_rel_sec": 0.5,
-            "ready_at": 10.0 + i * 10,
+            "ready_at": 1000.0 + i * 20 + 5.0,   # 音频到齐后 5 s 就绪
         })
     detail = [{"id": "seg_%d" % i, "readyToStartSec": 1.0} for i in range(6)]
 
@@ -174,8 +186,10 @@ def test_02_rootcause():
     check("② 分解给出「非 TTS 固定项」",
           out.get("non_tts_fixed_sec") is not None,
           "= %s s" % out.get("non_tts_fixed_sec"))
-    # 非 TTS 固定项 = feed(夹0) + asr + player_queue + 轴缺口 + 真实下行
-    expect_fixed = 0.0 + 3.0 + 1.0 + 7.0 + 0.02
+    # 非 TTS 固定项（EXT-037 ③ 新口径）
+    #   = feed(夹0) + asr + **seg_len（等整段说完）** + 真实下行
+    #   ⇒ **不含** player_queue、**不含** axis_gap（两者都不是延迟）。
+    expect_fixed = 0.0 + 3.0 + 15.0 + 0.02
     check("② 非 TTS 固定项与手算**逐位相等**（feed 负值被夹到 0）",
           abs(float(out["non_tts_fixed_sec"]) - expect_fixed) < 1e-6,
           "实算=%s 手算=%.3f" % (out["non_tts_fixed_sec"], expect_fixed))
@@ -191,14 +205,34 @@ def test_02_rootcause():
           and out.get("downlink_latency_sec") == 0.02,
           "axis_gap=%s downlink=%s" % (out.get("server_to_player_sec"),
                                        out.get("downlink_latency_sec")))
-    check("② 分解明细里含轴缺口项",
-          "axis_gap_sec" in out.get("non_tts_fixed_detail", {}))
+    # ★★★★★★ EXT-037 ③：**轴缺口已移出固定项**（它不是延迟，是换算常数）
+    _det = out.get("non_tts_fixed_detail", {})
+    check("② ★ 分解明细里**不含**轴缺口项（EXT-037 ③：轴缺口不是延迟）",
+          "axis_gap_sec" not in _det
+          and "axis_gap_sec" not in _det.get("fixed_items", []),
+          "detail keys=%s fixed_items=%s"
+          % (sorted(_det.keys()), _det.get("fixed_items")))
+    check("② ★ 分解明细里**不含**播放端排队项（EXT-037 ③：排队是结果项）",
+          "player_queue_sec" not in _det
+          and "player_queue_sec" not in _det.get("fixed_items", []),
+          "fixed_items=%s" % _det.get("fixed_items"))
+    check("② ★ 新增 **seg_len** 项（EXT-037 ③：等整段说完，最大的一项）",
+          _det.get("seg_len_sec") is not None
+          and abs(float(_det["seg_len_sec"]) - 15.0) < 1e-6
+          and "seg_len_sec" in _det.get("fixed_items", []),
+          "seg_len_sec=%s fixed_items=%s"
+          % (_det.get("seg_len_sec"), _det.get("fixed_items")))
+    check("② ★ 结果项单列（axis_gap / player_queue 如实保留在结果项里）",
+          out.get("result_items_detail", {}).get("axis_gap_sec") == 7.0
+          and out.get("result_items_detail", {}).get("player_queue_sec_mean")
+          == 1.0,
+          "result=%s" % out.get("result_items_detail"))
     check("② 上行原始 feed_lag 为负 ⇒ 如实记录（不是 0）",
           float(out["feed_lag_sec_mean_raw"]) < 0.0,
-          "raw=%s s" % out["feed_lag_sec_mean_raw"])
+          "raw=%s s" % out.get("feed_lag_sec_mean_raw"))
     check("② 上行计入固定项时被夹到 0（负数不能抵消其它项）",
           abs(float(out["feed_lag_sec_mean"])) < 1e-9,
-          "夹后=%s s" % out["feed_lag_sec_mean"])
+          "夹后=%s s" % out.get("feed_lag_sec_mean"))
     check("② 三口径交叉核对字段齐备",
           out.get("rtf_out") is not None and out.get("speech_over_src") is not None
           and out.get("tts_over_src") is not None,
@@ -206,19 +240,23 @@ def test_02_rootcause():
           % (out.get("rtf_out"), out.get("speech_over_src"),
              out.get("tts_over_src")))
 
-    # ── 反证：若把 server→player 缺口（7 s）算进去 ⇒ 残余更大 ⇒ 更不能归 TTS ──
+    # ── 反证：没给下行耗时时，固定项**更小**且标明是下界 ──────────
     margins2 = [dict(m) for m in margins]
     out2 = decompose_sync_rootcause(margins2, delay_sec=delay,
                                     player_detail=None)
     check("② 反证：分解在**没有** player 明细时不给播放端数字（不臆造）",
           out2.get("player_queue_sec_mean") is None,
           "player_queue_sec_mean=%s" % out2.get("player_queue_sec_mean"))
-    check("② 反证：**没给轴缺口**时不计入固定项（不臆造 7 s）",
-          out2.get("server_to_player_sec") is None
+    # 没给下行耗时 ⇒ 该项 None ⇒ 不计入 ⇒ 合计 = feed(0) + asr(3) + seg_len(15)
+    #   ⇒ 且标明是**下界**（reviewer 要求的「不臆造」口径）。
+    check("② 反证：**没给下行耗时**时不计入固定项（不臆造）",
+          out2.get("downlink_latency_sec") is None
           and abs(float(out2["non_tts_fixed_sec"])
-                  - (0.0 + 3.0 + 0.0)) < 1e-6,
-          "non_tts_fixed=%s" % out2.get("non_tts_fixed_sec"))
-
+                  - (0.0 + 3.0 + 15.0)) < 1e-6
+          and out2.get("non_tts_fixed_is_lower_bound") is True,
+          "non_tts_fixed=%s downlink=%s lower_bound=%s"
+          % (out2.get("non_tts_fixed_sec"), out2.get("downlink_latency_sec"),
+             out2.get("non_tts_fixed_is_lower_bound")))
 
 # ─────────────────────────────────────────────────────────────────
 # ③ 积压斜率：只用有 TTS 的段
@@ -414,13 +452,25 @@ def test_06_dur_ratio():
         {"d_player_sec": 3.0, "src_len_sec": 4.0, "d_ws_sec": 3.1},
         {"d_player_sec": 1.5, "src_len_sec": 2.0, "d_ws_sec": 1.6},
     ]
-    ratios = [2.0 / 2.2, 3.0 / 3.1, 1.5 / 1.6]   # speed_adjusted 口径
+    ratios = [2.0 / 2.2, 3.0 / 3.1, 1.5 / 1.6]   # over_ws 口径（EXT-037 ④ 主口径）
     out = _ext036_analysis([], {}, {}, [], 48000, {}, {}, segs, [], ratios)
     cal = out["dur_ratio_calibers"]
 
-    check("⑥ 给出三个口径",
-          all(k in cal for k in ("over_src_len", "over_ws", "speed_adjusted")),
+    # ★★★★★★ EXT-037 ④：**口径从三个收缩为两个**
+    #   reviewer 原话：「compare 表里"时长比(校正) 0.818–1.31"属于分析器口径错误：
+    #     `d_ws` 已经是 WSOLA 之后的时长，又除了一次 speed，变速被重复校正。
+    #     这一项要改口径，不是播放器的问题。」
+    #   ⇒ 旧口径 `speed_adjusted`（d_player × speed ÷ d_ws）**已作废**
+    #     ⇒ 本组断言随之迁到**两个口径**，并**新增**一条守卫：
+    #     旧口径**不得**再出现（否则又会把变速算两次）。
+    check("⑥ 给出**两个**口径（EXT-037 ④：speed_adjusted 已作废）",
+          all(k in cal for k in ("over_src_len", "over_ws"))
+          and "speed_adjusted" not in cal,
           "keys=%s" % sorted(cal.keys()))
+    check("⑥ ★ 旧口径 `speed_adjusted` **不再出现**（EXT-037 ④：重复校正已删除）",
+          "speed_adjusted" not in cal
+          and "已作废" in str(cal.get("note", "")),
+          "note=%s" % str(cal.get("note", ""))[:120])
     # over_src_len: 2.0/3.5=0.5714, 3.0/4.0=0.75, 1.5/2.0=0.75
     check("⑥ `over_src_len`（reviewer 口径）与手算一致",
           abs(cal["over_src_len"]["min"] - (2.0 / 3.5)) < 1e-4
@@ -429,7 +479,11 @@ def test_06_dur_ratio():
                              cal["over_src_len"]["max"]))
     check("⑥ 每个口径都带定义（reviewer 可核对）",
           all("definition" in cal[k] for k in
-              ("over_src_len", "over_ws", "speed_adjusted")))
+              ("over_src_len", "over_ws")))
+    check("⑥ `over_ws`（主口径）与手算一致",
+          abs(cal["over_ws"]["min"] - (2.0 / 2.2)) < 1e-4
+          and abs(cal["over_ws"]["max"] - (3.0 / 3.1)) < 1e-4,
+          "min=%s max=%s" % (cal["over_ws"]["min"], cal["over_ws"]["max"]))
     check("⑥ 口径说明点明「两个口径不能直接比」",
           "对不上" in str(cal.get("note", "")))
     check("⑥ 样本数如实记录",

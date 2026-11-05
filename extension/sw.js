@@ -113,7 +113,7 @@ function relayToOffscreen(msg) {
 chrome.runtime.onInstalled.addListener(async () => {
   const defaults = {
     wsUrl: 'ws://127.0.0.1:8765/',
-    delaySec: 10,
+    delaySec: 20,
     // ★★ T-3：targetLang 默认值必须是**引擎码** 'zh'
     //   （旧值 'Chinese' 与引擎的 zh/en/ja/ko 不匹配）。
     targetLang: 'zh',

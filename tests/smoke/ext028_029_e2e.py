@@ -207,7 +207,8 @@ def start_http_server(wav_path: str, title: str):
 # ③ 起真实 bridge（**App 自带解释器**，因为 openvino 只在那里）
 # ══════════════════════════════════════════════════════════════════
 def start_bridge(log_path: str, *, spk_bypass: bool,
-                 audio_dump_dir: Optional[str]) -> subprocess.Popen:
+                 audio_dump_dir: Optional[str],
+                 delay_sec: int = 10) -> subprocess.Popen:
     from ext.app_root import resolve_app_root
     app_root = resolve_app_root()
     if not app_root:
@@ -226,7 +227,7 @@ def start_bridge(log_path: str, *, spk_bypass: bool,
         app_py, "-m", "ext.bridge",
         "--host", "127.0.0.1", "--port", str(ws_port),
         "--pair-port", str(pair_port),
-        "--delay", "10",
+        "--delay", str(delay_sec),
         "--real", "--pipeline", "--target-lang", "zh",
         "--margin-out", os.path.join(os.path.dirname(log_path),
                                      "margin.json"),

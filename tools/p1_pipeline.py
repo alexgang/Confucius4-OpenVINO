@@ -640,7 +640,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="EXT P1 端到端流水线实测（真实引擎）")
     ap.add_argument("--wav", required=True, help="16 kHz 单声道 PCM16 wav")
     ap.add_argument("--port", type=int, default=8765)
-    ap.add_argument("--delay", type=float, default=10.0)
+    ap.add_argument("--delay", type=float, default=20.0)
     ap.add_argument("--target-lang", default="en")
     ap.add_argument("--token-file", default="bridge_token.txt")
     ap.add_argument("--out", default=os.path.join(ROOT, ".tmp", "p1"))

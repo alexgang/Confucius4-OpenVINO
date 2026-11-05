@@ -195,7 +195,7 @@ def _run_sched_probe(*, delay_sec: float = 10.0, out_dir: Optional[str] = None,
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--delay", type=float, default=10.0)
+    ap.add_argument("--delay", type=float, default=20.0)
     ap.add_argument("--port", type=int, default=8793)
     ap.add_argument("--out", default=None)
     ap.add_argument("--no-lock", action="store_true",

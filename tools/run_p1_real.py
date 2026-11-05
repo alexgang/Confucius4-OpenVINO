@@ -165,7 +165,7 @@ def main(argv=None) -> int:
     ap.add_argument("--wav", required=True)
     ap.add_argument("--target-lang", default="en")
     ap.add_argument("--port", type=int, default=8765)
-    ap.add_argument("--delay", type=float, default=10.0)
+    ap.add_argument("--delay", type=float, default=20.0)
     ap.add_argument("--out", default=os.path.join(ROOT, ".tmp", "p1"))
     ap.add_argument("--max-sec", type=float, default=None)
     ap.add_argument("--smoke-sec", type=float, default=20.0)

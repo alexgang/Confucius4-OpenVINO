@@ -83,7 +83,7 @@ function readCfg() {
   return {
     wsUrl: $('ws').value.trim(),
     token: $('token').value.trim(),
-    delaySec: Number($('delay').value) || 10,
+    delaySec: Number($('delay').value) || 20,
     targetLang: normalizeLang($('lang').value),
     voice: normalizeVoice($('voice').value),
     duckDb: Number($('duck').value),
@@ -136,7 +136,7 @@ async function loadCfg() {
   const cfg = await chrome.storage.local.get({
     wsUrl: 'ws://127.0.0.1:8765/',
     token: '',
-    delaySec: 10,
+    delaySec: 20,
     // ★★ T-3：targetLang 的默认值必须是**引擎码** 'zh'
     //   （旧值 'Chinese' 与引擎的 zh/en/ja/ko 不匹配）。
     targetLang: 'zh',
