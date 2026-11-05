@@ -1,0 +1,58 @@
+{
+ "script": "_app282_rc3_check_arm.py",
+ "correction": "APP-072 §2 闸门③（--check 部分）",
+ "ts": "2026-11-05 15:27:48",
+ "pkg": "C:\\minimvp_cleantest\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+ "cmd": [
+  "C:\\minimvp_cleantest\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\python\\python.exe",
+  "C:\\minimvp_cleantest\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\app\\live_caption_app.py",
+  "--check"
+ ],
+ "rc": 0,
+ "wall_s": 11.86,
+ "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app282_rc3_check_output.txt",
+ "log_bytes": 2694,
+ "log_sha256": "05de9cdedcf9a674db15a5a9e38db0ed7cafa26457d6ba213f2b873404f27a50",
+ "output_text": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\r\n====================================================================\r\n  Confucius4-R2T2 实时字幕 · 环境检查\r\n====================================================================\r\n包目录：C:\\minimvp_cleantest\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\r\n模型目录：C:\\minimvp_cleantest\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\models\r\n\r\n── 依赖 ──\r\n  [ OK ] numpy            2.4.6\r\n  [ OK ] openvino         2026.4.1-22982-e213a147257-releases/2026/4\r\n  [ OK ] openvino_genai   2026.4.1.0-3408-ab01d1771e4\r\n  [ OK ] transformers     4.57.6\r\n  [ OK ] sounddevice      0.5.6\r\n  [ OK ] soundcard        \r\n  [ OK ] babelvox(Qwen3-TTS) 1.7.1\r\n  [ OK ] qwen3tts 模型   C:\\minimvp_cleantest\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\models\\qwen3tts\r\n\r\n── OpenVINO 设备 ──\r\n  [ OK ] GPU.0    Intel(R) Graphics (iGPU)\r\n  [ OK ] GPU.1    NVIDIA GeForce RTX 5050 Laptop GPU (dGPU)\r\n  [ OK ] NPU      Intel(R) AI Boost\r\n  Intel 集显 (GPU)：[ OK ] 可用\r\n  Intel NPU     ：[ OK ] 可用\r\n  注：CPU 推理已从可选设备清单移除（性能不推荐）；如确需 CPU 请用命令行 --asr-device CPU / --mt-device CPU。\r\n\r\n── ASR 后端（识别）──\r\n  [ OK ] Intel GPU · INT8           模型齐全\r\n  [缺 ] Intel GPU · INT4           缺 编码器、解码器\r\n  [缺 ] Intel NPU · INT8           缺 编码器、解码器\r\n  [缺 ] Intel NPU · INT4（实验）   缺 编码器、解码器\r\n  [ OK ] NVIDIA GPU · CUDA Q8_0     模型齐全\r\n  [ OK ] NVIDIA GPU · CUDA Q4_K     模型齐全\r\n\r\n── 翻译后端（Hy-MT2-1.8B）──\r\n  [缺 ] Intel GPU · INT8-CW（默认） GPU.0    （缺模型）\r\n  [ OK ] Intel GPU · INT4-CW        GPU.0    \r\n  [缺 ] Intel NPU · INT8-CW        NPU      （缺模型）\r\n  [ OK ] Intel NPU · INT4-CW        NPU      \r\n  [ OK ] 自动 · INT4-CW 模型（默认） 跟随 --mt-device \r\n\r\n── 音频设备 ──\r\n  [ OK ] 麦克风 [1] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · MME（默认）\r\n  [ OK ] 麦克风 [0] Microsoft 声音映射器 - Input · MME\r\n  [ OK ] 麦克风 [9] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · Windows WASAPI\r\n  [ OK ] 输出 Speaker (Realtek(R) Audio)（2 声道）  id={0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}\r\n\r\n====================================================================\r\n  结论：环境正常。ASR 可用后端 3 个，Intel 集显可用。\r\n====================================================================\r\n",
+ "checks": [
+  {
+   "name": "① `--check` 退出码为 0",
+   "verdict": true,
+   "detail": {
+    "rc": 0,
+    "wall_s": 11.86
+   }
+  },
+  {
+   "name": "② 输出含「环境正常」",
+   "verdict": true,
+   "detail": {
+    "matched": true
+   }
+  },
+  {
+   "name": "③ 探测到 Intel 集显 GPU.0",
+   "verdict": true,
+   "detail": {
+    "n_gpu0_hits": 3
+   }
+  },
+  {
+   "name": "④ 探测到 NPU",
+   "verdict": true,
+   "detail": {
+    "n_npu_hits": 8
+   }
+  },
+  {
+   "name": "⑤ 报出 ASR 可用后端数",
+   "verdict": true,
+   "detail": {
+    "n_asr_backends": 3
+   }
+  }
+ ],
+ "n_pass": 5,
+ "n_fail": 0,
+ "verdict": "PASS"
+}

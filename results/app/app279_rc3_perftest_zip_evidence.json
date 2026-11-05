@@ -1,0 +1,43 @@
+{
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+ "zip": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest.zip",
+ "ts": "2026-11-05 15:01:16",
+ "mode": "run",
+ "readme_perftest": {
+  "exists": true,
+  "bytes": 9155
+ },
+ "n_files": 10474,
+ "src_bytes": 7176154805,
+ "src_gb": 6.683,
+ "listfile": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app279_zip_listfile.txt",
+ "listfile_ufffd": 0,
+ "cmd": [
+  "C:\\Program Files\\7-Zip\\7z.exe",
+  "a",
+  "-tzip",
+  "-mx=5",
+  "-mmt=on",
+  "-bso0",
+  "-bsp0",
+  "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest.zip",
+  "-i@C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app279_zip_listfile.txt"
+ ],
+ "priority": "BELOW_NORMAL",
+ "pid": 24112,
+ "rc": 0,
+ "wall_s": 157.49,
+ "stdout_tail": "",
+ "zip_entries": 10474,
+ "zip_bytes": 5591630138,
+ "zip_gb": 5.208,
+ "zip_sha256": "dda6f229e9d1e70accc4417b328d33b8c929f868a033ad4546e39d7d0f2d45f1",
+ "zip_top_dirs": [
+  "Confucius4_LiveCaption_MiniMVP_v1.0-rc3"
+ ],
+ "has_readme_perftest": true,
+ "has_notice": true,
+ "n_mismatch": 0,
+ "verdict": "PASS",
+ "finished_at": "2026-11-05 15:03:58"
+}
