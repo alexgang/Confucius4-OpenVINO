@@ -153,6 +153,13 @@ function makeSandbox(opts) {
 
   const code = [
     extractConst(psrc, 'STATS_POLL_MS', 'player.js'),
+    // ★ 2026-11-05 EXT-039 轮：`startDubRecording` 里用了模块级变量
+    //   `dubPcmRate`（`extension/player.js` 里 `let dubPcmRate = 0;`）
+    //   ⇒ harness 只抽函数 ⇒ 该变量**不在沙箱作用域** ⇒
+    //   `ReferenceError: dubPcmRate is not defined` ⇒ C3a 变红。
+    //   ⚠️ 这与 `ext024_link_harness.js` 的 `dubDownlinkMs` 是**同类**
+    //     既有基线红（**非本轮引入**）⇒ 这里补上同样的桩。
+    'let dubPcmRate = 0;',
     extractFunction(psrc, 'pollStats', 'player.js'),
     extractFunction(psrc, 'flushUplink', 'player.js'),
     extractFunction(psrc, 'startDubRecording', 'player.js'),

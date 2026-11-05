@@ -249,25 +249,57 @@ def test_01_continuous_coverage():
         _ivs = _intervals(s.margins)
         return _coverage(_ivs), _ivs
 
-    # ── 变异体 1：git HEAD（reviewer 实测到丢段的那一版）────────────
-    _head = None
+    # ── 变异体 1：**自动回溯**到「仍含丢段缺陷」的历史提交 ─────────
+    #   ⚠️⚠️⚠️ 2026-11-05 修正（EXT-039 轮）：原先写死 `git HEAD`，
+    #     上一轮收尾提交（`a1dec83`）把 EXT-037 ② 的修复合进了 HEAD
+    #     ⇒ 变异体**等于当前正确实现** ⇒ 「必然出现缺口」这条断言
+    #     **必然 FAIL**（自指失效）⇒ 2 项 FAIL。
+    #   ⇒ 变异体来源改为**回溯**：在 `ext/bridge.py` 的提交历史里，
+    #     从新到旧找**第一个不含 EXT-037 ② 守卫**的版本
+    #     （`if self._buf_base == 0 and self._first_seg_cut:`）
+    #     ⇒ 那个版本就是 reviewer 实测到「每段丢 3.5 s」的那一版。
+    #   ⇒ 逐个候选实跑，**只有真的复现出缺口**的那个才被采纳
+    #     （防止「候选里有别的差异导致 0 缺口」时误判）。
+    #   ⇒ 这样以后再提交修复，变异体**不会**再失效。
+    _GUARD = "if self._buf_base == 0 and self._first_seg_cut:"
+    _cands = []                                # [(sha, src_text), ...]
     try:
-        _head = subprocess.check_output(
-            ["git", "show", "HEAD:ext/bridge.py"], cwd=ROOT
-        ).decode("utf-8")
-    except Exception as _e:                      # 没装 git / 不是仓库
-        _head = None
-    check("★ ① 能取到 git HEAD 版 bridge.py（变异体来源）",
-          _head is not None and len(_head) > 1000,
-          "HEAD 长度=%s" % (len(_head) if _head else None))
+        _shas = subprocess.check_output(
+            ["git", "log", "--format=%H", "--", "ext/bridge.py"],
+            cwd=ROOT).decode("utf-8").split()
+        for _sha in _shas:
+            try:
+                _txt = subprocess.check_output(
+                    ["git", "show", "%s:ext/bridge.py" % _sha],
+                    cwd=ROOT).decode("utf-8")
+            except Exception:
+                continue
+            if len(_txt) < 1000:
+                continue
+            if _GUARD in _txt:
+                continue                     # 已含修复 ⇒ 不是变异体
+            _cands.append((_sha[:7], _txt))
+    except Exception as _e:                  # 没装 git / 不是仓库
+        _cands = []
+    check("★ ① 能回溯到含缺陷的历史版 bridge.py（变异体来源）",
+          len(_cands) > 0,
+          "候选 %d 个（HEAD 已含修复 ⇒ 不能用 HEAD 当变异体）"
+          % len(_cands))
+
+    _picked_sha = None
+    _cov2 = {"gaps": [], "covered_sum": 0.0}
+    _gap_sizes = []
     try:
-        cov2, ivs2 = _run_with(_head) if _head else ({"gaps": [],
-                                                        "covered_sum": 0.0}, [])
-        _gap_sizes = [round(b - a, 3) for a, b in cov2["gaps"]]
-        check("★ ① 变异测试：git HEAD 版 ⇒ **必然出现缺口**（reviewer 实测复现）",
-              len(cov2["gaps"]) > 0,
-              "变异后缺口 %d 个（尺寸 %s）"
-              % (len(cov2["gaps"]), _gap_sizes[:6]))
+        for _sha, _txt in _cands:
+            _cov2, _ivs2 = _run_with(_txt)
+            _gap_sizes = [round(b - a, 3) for a, b in _cov2["gaps"]]
+            if _gap_sizes:
+                _picked_sha = _sha
+                break
+        check("★ ① 变异测试：历史缺陷版 ⇒ **必然出现缺口**（reviewer 实测复现）",
+              len(_cov2["gaps"]) > 0,
+              "变异体=%s ⇒ 缺口 %d 个（尺寸 %s）"
+              % (_picked_sha, len(_cov2["gaps"]), _gap_sizes[:6]))
         check("★ ① 变异体的缺口尺寸**正好 3.5 s**"
               "（= `FIRST_SEGMENT_MAX_SEC`，证明抓到的是**那个**缺陷）",
               bool(_gap_sizes)

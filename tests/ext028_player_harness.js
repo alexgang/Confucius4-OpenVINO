@@ -231,11 +231,12 @@ function makeSandbox(opts) {
     // ★ `pct` 是**真代码**（EXT-033 的缓存版分位数）⇒ 抽出来用
     //   （`noteDubEnded` 用它算 P50/P95 ⇒ 验的是真逻辑）
     extractFunction(psrc, 'pct', 'player.js'),
+    extractFunction(psrc, 'pyRoundIndex', 'player.js'),
     extractFunction(psrc, 'scheduleDub', 'player.js'),
   ].join('\n\n');
   vm.createContext(sandbox);
   vm.runInContext(
-    `${code}\n;globalThis.__api = { resolvePcmSampleRate, scheduleDub };`,
+    `${code}\n;globalThis.__api = { resolvePcmSampleRate, scheduleDub, pct };`,
     sandbox, { filename: PLAYER });
   // ★ `dubPlaybackEnd` 是 **let** 声明（不是 const）⇒ 单独抽出来注入
   const m = /let\s+dubPlaybackEnd\s*=\s*[^;]+;/.exec(psrc);
@@ -557,6 +558,88 @@ console.log('\n[C5] ★ EXT-035：就绪→起播 是可核对的口径（同一
   check('★ C5g 取不到就绪时刻 ⇒ readyToStartSec = null（不臆造）',
     d2 && d2.readyToStartSec === null,
     JSON.stringify(d2 && d2.readyToStartSec));
+}
+
+// ══════════════════════════════════════════════════════════════════
+// C6：★ EXT-039 收口 —— **分位口径跨端一致**（player.js ↔ Python ↔ bridge）
+// ══════════════════════════════════════════════════════════════════
+// ★ 背景：player.js 原用 `Math.floor(n*p)`，Python 侧用 `round(q*(n-1))`
+//   ⇒ 同一批数据在两端给出**两个不同的 P95**
+//   （n=39：floor=22256.7 vs round=21829.2；n=14：floor=12808.4 vs round=5978.7）
+//   ⇒ 统一为 **`round(q*(n-1))`**（reviewer EXT-039 ② 手算用的就是这个）。
+console.log('\n[C6] ★ 分位口径统一为 round(q*(n-1))（与 Python 侧 / reviewer 一致）');
+{
+  const { pct } = makeSandbox({}).__api;
+
+  // ① reviewer EXT-039 ② 的 14 段 signed_err（秒）
+  const V14 = [0, 0, 0.552, 1.448, 3.4967, 5.9787, 5.5367, 13.1154,
+               13.4831, 12.8084, 14.1161, 16.1306, 15.8276, 16.1983];
+
+  check('★ C6a n=14 的 P50 = reviewer 报的 **5.9787**',
+    Math.abs(pct(V14, 0.50) - 5.9787) < 1e-9,
+    `p50=${pct(V14, 0.50)}`);
+
+  check('★ C6b n=14 的 P95 = reviewer 报的 **16.1306**',
+    Math.abs(pct(V14, 0.95) - 16.1306) < 1e-9,
+    `p95=${pct(V14, 0.95)}`);
+
+  // ★ 旧 floor 口径会给出 12.8084 ⇒ 断言「不是旧值」以锁定口径
+  check('★ C6c n=14 的 P50 **不是**旧 floor 口径的 12.8084',
+    Math.abs(pct(V14, 0.50) - 12.8084375) > 1e-6,
+    `p50=${pct(V14, 0.50)}（若 == 12.8084 ⇒ 口径回退了）`);
+
+  // ② n=39（真实 run `20261105_174558` 的段数）⇒ P95 取 round(0.95*38)=第 36 号
+  const V39 = Array.from({ length: 39 }, (_, i) => i * 1000);
+  check('★ C6d n=39 的 P95 取 round(0.95*38)=第 36 号（**不是** floor 的 38 号）',
+    pct(V39, 0.95) === 36000,
+    `p95=${pct(V39, 0.95)}（应 36000；floor 口径会给 38000）`);
+
+  check('★ C6e n=39 的 P50 = round(0.5*38)=第 19 号',
+    pct(V39, 0.50) === 19000,
+    `p50=${pct(V39, 0.50)}`);
+
+  // ★★ ③ **银行家舍入**：n=14 的 P50 恰好落在 .5 上
+  //   （q*(n-1) = 0.5*13 = 6.5）
+  //   ⇒ Python `round(6.5)` = **6**（half-to-even），
+  //     JS `Math.round(6.5)` = **7**（四舍五入）⇒ 会差一个元素！
+  //   ⇒ player.js 必须复刻 Python 语义 ⇒ P50 = s[6] = 5.9787
+  //      （排序后 s[6]=5.9787、s[7]=12.8084）
+  const S14 = [...V14].sort((a, b) => a - b);
+  check('★ C6f ★★ n=14 的 P50 落在 .5 上 ⇒ 用**银行家舍入**（取 s[6] 而非 s[7]）',
+    Math.abs(pct(V14, 0.50) - S14[6]) < 1e-9
+    && Math.abs(S14[6] - 5.9787) < 1e-9
+    && Math.abs(S14[7] - 12.8084) < 1e-9
+    && Math.abs(pct(V14, 0.50) - S14[7]) > 1e-6,
+    `p50=${pct(V14, 0.50)}；s[6]=${S14[6]} s[7]=${S14[7]}（Math.round 会给 s[7]）`);
+
+  // ③ 单元素 / 空数组的边界
+  check('★ C6g 单元素数组 ⇒ 返回该元素',
+    pct([42], 0.95) === 42, `got ${pct([42], 0.95)}`);
+  check('★ C6h 空数组 ⇒ null（不臆造）',
+    pct([], 0.95) === null, `got ${pct([], 0.95)}`);
+
+  // ★ C6i **反证**：把 `pct()` 改回 floor 口径 ⇒ C6a/C6b/C6d **必须 FAIL**
+  //    ⇒ 若仍报 PASS，说明断言恒真。
+  if (!IS_CHILD) {
+    const broken = psrc.replace(
+      /const idx = Math\.min\(s\.length - 1, Math\.max\(0, pyRoundIndex\(p \* \(s\.length - 1\)\)\)\);/,
+      'const idx = Math.min(s.length - 1, Math.floor(s.length * p));');
+    if (broken === psrc) {
+      check('★★ C6i 反证：能把 `pct()` 改回 floor 口径（源码匹配到了）', false,
+        'player.js 的 pct() 索引行未匹配到 ⇒ 反证无效');
+    } else {
+      const tmp = path.join(os.tmpdir(),
+        `ext028_pct_mutated_${process.pid}.js`);
+      fs.writeFileSync(tmp, broken, 'utf8');
+      const r = cp.spawnSync(process.execPath, [__filename, tmp],
+        { env: { ...process.env, EXT028_CHILD: '1' }, encoding: 'utf8' });
+      fs.unlinkSync(tmp);
+      const out = r.stdout || '';
+      check('★★ C6i 反证：改回 floor 口径后 C6a **必须 FAIL**',
+        out.includes('[FAIL]') && r.status !== 0,
+        `child status=${r.status} stdout含FAIL=${out.includes('[FAIL]')}`);
+    }
+  }
 }
 
 const npass = RESULTS.filter((r) => r.ok).length;

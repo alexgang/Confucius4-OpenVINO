@@ -1647,15 +1647,22 @@ class Session:
         """把客户端实测的下行/排队/轴偏移汇成**可落盘**的量。
 
         ★ 没报 ⇒ 该项为 None（**如实**），绝不用 0 冒充「实测为零」。
-        ★ 分位用**最近秩**口径（`_pct`），与既有分析工具一致。
+        ★ 分位用 `round(q*(n-1))` 口径（`_pct`），与 Python 侧分析工具
+        （`ext032_deliver._pct` / `p1_pipeline._pct` / `ext033_analyze._pct`）
+        及 `extension/player.js` 的 `pct()` **四方一致**（EXT-039 收口修正）。
         """
         def _pct(vals: List[float], q: float) -> Optional[float]:
             if not vals:
                 return None
             s = sorted(vals)
-            # 最近秩：index = ceil(q*n) - 1
-            import math as _m
-            i = int(_m.ceil(q * len(s))) - 1
+            # ★ 2026-11-05 EXT-039 收口：**分位口径统一** = `round(q*(n-1))`。
+            #   原实现用 `ceil(q*n)-1` ⇒ 与 Python 侧
+            #   （`ext032_deliver._pct` / `p1_pipeline._pct` /
+            #     `ext033_analyze._pct`）与 `extension/player.js` 的 `pct()`
+            #   **不一致** ⇒ 同一批数据在两端给出**两个不同的 P95**。
+            #   ⇒ 统一为 `round(q*(n-1))`（**也是 reviewer 手算用的口径**：
+            #     EXT-039 ② 报的 P50/P95 = 5.98 / 16.13 正是该口径）。
+            i = int(round(q * (len(s) - 1)))
             i = max(0, min(i, len(s) - 1))
             return s[i]
 
@@ -1889,6 +1896,26 @@ class Session:
             abs1 = self._buf_base + s1
             tasks.extend(self._dispatch_segment(seq, abs0, abs1, seg_audio,
                                                 audio_complete_at=recv_at))
+        # ★★★★★★ EXT-039：**首段只能交付一次**（真缺陷修复）。
+        #   ## 病根（reviewer EXT-039 ⑤ 要求「raw 日志齐全可复现」⇒ 本轮
+        #     用 ≥150 s 素材复现出来的）
+        #     上面那条「**限长拆分**」路径（`self._split_first_segment(segs)`）
+        #     **交付了首段**，但**没有**置 `_first_seg_done` ⇒
+        #     下一轮 `if not self._first_seg_done:` **仍然成立**
+        #     ⇒ 「**首段提前交付**」路径**又**跑一次
+        #     ⇒ 而它**硬编码 `abs0 = 0`** ⇒ **把首段再交付一遍**。
+        #   ## 实测证据（run `20261105_164316`，180 s 素材，D=20）
+        #     `margin.json:per_segment` 里出现**两条 `seg_0`**：
+        #       `seg_0 [0.00, 3.16]`（拆分路径交付）
+        #       `seg_0 [0.00, 3.50]`（提前交付路径**重复**交付）
+        #     ⇒ 两段**重叠 3.16 s** ⇒ 段区间不再连续
+        #     ⇒ `bridge.log` 两条「段 seg_…_0 | t_start=0.000」
+        #     ⇒ `metrics.json: dubDup = 1`（插件侧去重挡下了第二条）
+        #   ## 修法（最小改动）
+        #     一旦**真的派发**了段（`ready` 非空）⇒ 首段已交付 ⇒ 置位。
+        #     ⚠️ **不能**在 `ready` 为空时置位 —— 那会废掉
+        #       「首段提前交付」这条优化（首段还没到 3.5 s 时必须继续等）。
+        self._first_seg_done = True
         # 一次性裁掉所有已处理的段，并把基准点推进
         # ★★★★★★ EXT-036 ④：**只在「栅格切点」上裁剪** ⇒ 栅格逐位不变。
         #   提前交付的首段（`[0, cap)`）**不被单独裁掉** ⇒ 下一轮
@@ -2751,7 +2778,22 @@ class Session:
                 "series_lag_sec": [round(b, 3) for _, b in lags],
             },
             # ★ EXT-009：丢句必须为 0（不改译文、不丢句、不回退到丢句）
-            "n_dropped_dub": sum(1 for m in rows if not m.get("has_tts")),
+            # ★★ 2026-11-05 EXT-039 ①：**修正「丢句」口径**。
+            #   原式 `sum(1 for m in rows if not m.get("has_tts"))`
+            #   把「**源语音区间之外的静音填充段**」（`src_len == 0` ⇒ ASR 空）
+            #   也算成丢句 ⇒ 实测 180 s 素材下 **n_dropped_dub = 19**
+            #   （实际丢句 = 0，19 段全是素材尾部静音填充段）。
+            #   ⇒ 与 EXT-009「丢句 = 0」**直接冲突**，也会让 reviewer
+            #     误判为「丢了 19 句」。
+            #   ⇒ 修正：**只有「有源文本（src_len > 0）却没产出 TTS 音频」
+            #     的段**才算丢句；静音填充段**单列**，不计入丢句。
+            "n_dropped_dub": sum(1 for m in rows
+                                  if not m.get("has_tts")
+                                  and (m.get("src_len") or 0) > 0),
+            # ★ 单列：素材尾部静音填充段（**不是**丢句）
+            "n_silent_fill_segments": sum(1 for m in rows
+                                         if not m.get("has_tts")
+                                         and (m.get("src_len") or 0) == 0),
             "definition": ("lag_est_sec = −deadline_margin_sec = "
                            "(这句最早能开播的时刻) − (t0 + t_start + D)；"
                            "speed = 时长适配倍率 × 自适应加速倍率，"
@@ -4262,6 +4304,8 @@ def _pair_status(holder: dict) -> dict:
         "n_segments": 0,
         "speed_time_share": {},
         "n_dropped_dub": 0,
+        # ★ 2026-11-05 EXT-039 ①：静音填充段单列（**不是**丢句）
+        "n_silent_fill_segments": 0,
         # ★ EXT-017②：引擎加载状态（popup 显示「正在加载模型…」/「TTS 就绪」）
         "engine_state": "unknown",
         "engine_loaded": [],
@@ -4310,6 +4354,8 @@ def _pair_status(holder: dict) -> dict:
         a = sess.adaptive_speed_stats()
         out["speed_time_share"] = a.get("speed_time_share") or {}
         out["n_dropped_dub"] = a.get("n_dropped_dub") or 0
+        # ★ 2026-11-05 EXT-039 ①：静音填充段单列（**不是**丢句）
+        out["n_silent_fill_segments"] = a.get("n_silent_fill_segments") or 0
         curve = a.get("lag_curve") or {}
         # ★ 当前倍率 = 最近的倍率（lag_curve 末值 ≈ 当前倍率对应的滞后）
         #   ⇒ 用「各倍率占比里最大的那个」作为「当前大致倍率」的可读近似。

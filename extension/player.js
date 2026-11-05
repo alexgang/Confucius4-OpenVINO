@@ -1237,7 +1237,31 @@ function pct(arr, p) {
     _pctCache.set(arr, c);
   }
   const s = c.sorted;
-  return s[Math.min(s.length - 1, Math.floor(s.length * p))];
+  // ★ 2026-11-05 EXT-039 收口：**分位口径统一** = `round(q*(n-1))`。
+  //   原实现用 `floor(n*p)` ⇒ 与 Python 侧
+  //   （`ext032_deliver._pct` / `p1_pipeline._pct` / `ext033_analyze._pct`，
+  //     **也是 reviewer 手算用的口径**）**不一致**
+  //   ⇒ 同一批数据在两端给出**两个不同的 P95**：
+  //     run `20261105_174558`（n=39）：floor=**22256.7** / round=**21829.2**
+  //     run `20261105_112057`（n=14）：floor=**12808.4** / round=**5978.7**
+  //       （reviewer EXT-039 ② 报的就是 **5.98** ⇒ round 是对的口径）
+  //   ⇒ 统一为 `round(q*(n-1))`，与 Python 侧与 reviewer 三方一致。
+  //   ⚠️ **必须复刻 Python 的「银行家舍入」**（round-half-to-even），
+  //     不能用 JS 的 `Math.round`（四舍五入）⇒ n=14 的 P50
+  //     `round(0.5*13)=round(6.5)`：Python=**6**、JS Math.round=**7**
+  //     ⇒ 会差一个元素（s[6]=5.9787 vs s[7]=13.1154）。
+  const idx = Math.min(s.length - 1, Math.max(0, pyRoundIndex(p * (s.length - 1))));
+  return s[idx];
+}
+
+/** Python `round()` 的**银行家舍入**（half-to-even）索引换算。 */
+function pyRoundIndex(x) {
+  const f = Math.floor(x);
+  const diff = x - f;
+  if (diff > 0.5) return f + 1;
+  if (diff < 0.5) return f;
+  // 恰好 .5 ⇒ 取**偶数**
+  return (f % 2 === 0) ? f : f + 1;
 }
 
 // ══════════════════════════════════════════════════════════════

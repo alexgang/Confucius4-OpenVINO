@@ -267,6 +267,7 @@ def _write_b64(path: str, b64: str) -> int:
 def run_round(tag: str, *, wav_path: str, no_lock: bool = False,
               real: bool = True, min_rec_sec: float = MIN_REC_SEC,
               quiet_sec: float = QUIET_SEC,
+              max_rec_sec: float = MAX_REC_SEC,
               delay_sec: int = 20) -> dict:
     out_dir = os.path.join(OUT_DIR, tag)
     os.makedirs(out_dir, exist_ok=True)
@@ -280,6 +281,7 @@ def run_round(tag: str, *, wav_path: str, no_lock: bool = False,
         "tag": tag, "started_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "out_dir": out_dir, "src_wav": wav_path,
         "min_rec_sec": min_rec_sec, "quiet_sec": quiet_sec,
+        "max_rec_sec": max_rec_sec,
         "real": real, "tail_sec": TAIL_SEC,
         # ★ EXT-038：本轮的 D（服务端与插件侧**必须一致**）
         "delay_sec": delay_sec,
@@ -411,9 +413,9 @@ def run_round(tag: str, *, wav_path: str, no_lock: bool = False,
                         _log("收尾：已录 %.1fs，静默 %.1fs，TTS 段 %d"
                              % (elapsed, quiet, n_tts))
                         break
-                    if elapsed >= MAX_REC_SEC:
+                    if elapsed >= max_rec_sec:
                         _log("⚠️ 到达硬上限 %.0fs，强制收尾（TTS 段 %d）"
-                             % (MAX_REC_SEC, n_tts))
+                             % (max_rec_sec, n_tts))
                         break
                 summary["rec_elapsed_sec"] = round(time.time() - t_start_rec, 3)
                 summary["n_dub_delivered"] = n_delivered
@@ -551,16 +553,38 @@ def main() -> int:
     real = not (len(sys.argv) > 1 and sys.argv[1] == "--echo")
     min_rec = MIN_REC_SEC if real else 20.0
     quiet = QUIET_SEC if real else 6.0
+    max_rec = MAX_REC_SEC
     # ★ EXT-038：D 可传参（默认 **20 s**，与插件默认一致）
     delay_sec = 20
+    # ★ EXT-039：素材可传参（默认 **60 s 英文 SPE**）——
+    #   reviewer 要求「≥150 s 连续语音素材」⇒ 用 SPE 5 分钟切片前 150–300 s。
+    src_wav = SRC_WAV
     for i, a in enumerate(sys.argv):
         if a == "--delay" and i + 1 < len(sys.argv):
             delay_sec = int(sys.argv[i + 1])
         elif a.startswith("--delay="):
             delay_sec = int(a.split("=", 1)[1])
+        elif a == "--src" and i + 1 < len(sys.argv):
+            src_wav = sys.argv[i + 1]
+        elif a.startswith("--src="):
+            src_wav = a.split("=", 1)[1]
+        elif a == "--min-rec" and i + 1 < len(sys.argv):
+            min_rec = float(sys.argv[i + 1])
+        elif a.startswith("--min-rec="):
+            min_rec = float(a.split("=", 1)[1])
+        elif a == "--max-rec" and i + 1 < len(sys.argv):
+            max_rec = float(sys.argv[i + 1])
+        elif a.startswith("--max-rec="):
+            max_rec = float(a.split("=", 1)[1])
+        elif a == "--quiet" and i + 1 < len(sys.argv):
+            quiet = float(sys.argv[i + 1])
+        elif a.startswith("--quiet="):
+            quiet = float(a.split("=", 1)[1])
     _log("本轮 D = %d s（服务端 --delay 与插件 storage 同步）" % delay_sec)
-    s = run_round(tag, wav_path=SRC_WAV, real=real, min_rec_sec=min_rec,
-                  quiet_sec=quiet, delay_sec=delay_sec)
+    _log("素材 = %s（min_rec=%.0fs / quiet=%.0fs / max_rec=%.0fs）"
+         % (src_wav, min_rec, quiet, max_rec))
+    s = run_round(tag, wav_path=src_wav, real=real, min_rec_sec=min_rec,
+                  quiet_sec=quiet, max_rec_sec=max_rec, delay_sec=delay_sec)
     p = os.path.join(OUT_DIR, "summary_%s.json" % tag)
     with open(p, "w", encoding="utf-8") as f:
         json.dump(s, f, ensure_ascii=False, indent=2)

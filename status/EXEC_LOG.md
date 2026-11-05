@@ -3191,3 +3191,116 @@ run `.tmp/ext033_e2e/20261102_121431/`：
 
 ### `last_ack`
 **EXT-038**（不变 —— 本轮是收尾轮，无新编号）
+
+
+## 2026-11-05 21:50 —— EXT-039 **收口 / 核验轮**（TAKEOVER 断点接管 + 跨端分位口径统一 + 3 处数据偏差修正 + STATUS 压缩达标）
+
+### 起点（断点续接）
+- 闸门 `tools/next_instruction.py --json` exit **1**（latest=EXT-039，`last_ack` 已是 EXT-039）⇒ **无新编号**
+  ⇒ 本轮为 **收口/核验轮**，`last_ack` **不推进**（保持 **EXT-039**）。
+- `session_lease.py acquire ext` exit 0 ⇒ **TAKEOVER**：上一会话 TOKEN=`b83ceed5` 于 17:47 后失联，
+  成果**全部未提交**（`git log` HEAD 仍是 `a1dec83 EXT-037/EXT-038 收尾…`）。
+  ⇒ 按规则**先读**上一会话留下的 note / STATUS / EXEC_LOG 与已落盘产物，**从断点继续**，未从头重做。
+  本轮 TOKEN=`e134683c`；全程心跳（`beat`）正常，最后一次 21:47。
+- 读 `status/STATUS_EXT.md`（§31 已写入但压缩超阈）+ `status/EXEC_LOG.md`（停在 EXT-038 轮）
+  + `status/notes/sec31_ext039.md`（26 657 B，§0–§12 全量明细已在）。
+
+### ① ★ 修掉跨端分位口径缺陷（本轮核心，真 bug，已改代码）
+- **同一批 signed_err 数据，三端给出三个不同的 P95**：
+
+  | 端 | 原公式 | n=14 | n=39 |
+  |---|---|---|---|
+  | `extension/player.js` `pct()` | `floor(n*p)` | **12808.4** | **22256.7** |
+  | `ext/bridge.py` `_pct()` | `ceil(q*n)-1` | **5978.7** | **22256.7** |
+  | Python 侧（`ext032_deliver`/`p1_pipeline`/`ext033_analyze`） | `round(q*(n-1))` | **5978.7** | **21829.2** |
+
+- **判定依据**：reviewer EXT-039 ② 手算 **P50/P95 = 5.98 / 16.13 s** ⇒ 对应 **Python 侧口径**
+  ⇒ **Python 侧是对的**，另两端是离群者 ⇒ **统一为 `round(q*(n-1))`**。
+- ⚠️ **Python 是「银行家舍入」（half-to-even），JS `Math.round` 不是** ⇒ n=14 的 P50 恰在 .5 上
+  （`0.5*13=6.5`）⇒ Python=**6** / JS=**7** ⇒ 差一个元素（5.9787 vs 12.8084）
+  ⇒ `extension/player.js` 新增 `pyRoundIndex()` 复刻 Python 语义。
+- **判据数字更正**：sync 有符号 **P95 = 21829.2 ms**（原 §31 的 22256.7 ms 是 player 旧 floor 口径）
+  ⇒ **结论方向不变**（仍 ≫ 300 ms，未达标）。
+
+### ② ★ 修正 §31 的 3 处数据偏差（从落盘产物重新读取逐个比对）
+| # | 项 | §31 初稿 | 实测（产物） |
+|---|---|---|---|
+| a | `RTF_out` / `tts_over_src` / `speech_over_src` | 0.9851 / 1.073 / 1.0891 | **0.9994 / 1.0936 / 1.0942**（★ 初稿**串轮**：误抄上一轮 run `20261105_172508`） |
+| b | player 录音静音窗计数 | 74/234 | **70/234**（独立复算，阈值 −45/−50/−55/−60 均为 70） |
+| c | `signed_err` P95 | 21.872 | **21.829**（21.872 是插值法值） |
+
+⇒ **③ 同步结论不受影响**（逐位复核无误）：sync P50/P95 = **9372.7 / 21829.2 ms**｜`D_needed` **40.440 s**（ready_p95 40.140）｜
+耗尽点 **156.52 s**｜覆盖率 **1.0**（`n_gaps_nonzero`=0）｜`n_dropped_dub` **0** / `n_silent_fill_segments` **19**｜
+`dubDup` **0**｜`schedClamped` **33**、封顶 **1.30×**｜`dubRescheduled` **23** / 延迟 **37.129 s**｜
+`non_tts_fixed_sec` **7.853**｜**耗尽后 = 按不丢句排队**（耗尽区逐段空档全 ≤ 0.003 s ⇒ **非欠载**；非撤回加速；未丢句）｜
+**TTS 侧仍需 `RTF_out ≲ 0.75`**（`tts_over_src` **1.0936 > 1** ⇒ **任何固定 D 都追不上**）。
+
+### ④ 守卫（新增，全部做过变异测试）
+- `tests/test_ext039_sync_caliber.py` 新增 **[7]**（8 项：索引法 vs reviewer 一致 + 反向守卫）与
+  **[8]**（17 项：跨端一致 + 银行家舍入边界 + 源码口径断言）⇒ 总 **63** 项。
+- `tests/ext028_player_harness.js` 新增 **[C6]**（8 项：player 侧口径 + 边界 + **反证**）⇒ 总 **38** 项；
+  `__api` 导出 `pct` / `pyRoundIndex`。
+- ★ **变异测试**：`_pct()` 改回插值法 ⇒ **7 FAIL**；player.js 改回 floor / bridge 改回 ceil
+  ⇒ Python **4 FAIL** + node **5 FAIL** ⇒ **守卫有效**（恢复后全 0 FAIL）。
+  ⇒ **旧断言未削弱、未改写**。
+
+### ⑤ ★ 本轮另修：STATUS 压缩回归（EXT-016 协议）
+- ext016 阈值 = `status/archive/STATUS_EXT_upto_20261030.md`(224 833 B)/10 = **22 483 B**；
+  §31/§32 加长后曾达 **26 731 B** ⇒ FAIL。
+- 按 EXT-016 协议（「最近章节只保留最近 3 节」，明细**下沉 `status/notes/`」）压缩 §29~§32 正文
+  ⇒ 压缩后 **22 475 B** < 22 483 B ✅（压缩只动**正文冗余**，**结论数字一字未改**）。
+- 明细全在 `status/notes/sec29_ext036_e2e.md` / `sec30_ext037_038.md` / `sec31_ext039.md`，**未丢失**。
+- ★ 遗留口径：`player.js` 的 `uplinkSnapshot()` / 唇同步 `absErrP50/P95` 两处仍用 floor 法分位，
+  经核验**不进入 sync 判据链** ⇒ 按「最小改动」保留未改。
+
+### ⑥ 全量回归（实测 rc）
+| 套件 | 结果 |
+|---|---|
+| `test_ext_selfcheck.py` | **122 PASS / 0 FAIL** |
+| `test_echo_roundtrip.py` | **11 PASS / 0 FAIL** |
+| `test_next_instruction.py` | **19 PASS / 0 FAIL** |
+| `test_ext010_pipeline.py` | **25 PASS / 0 FAIL** |
+| `test_ext036_review.py` | **64 PASS / 0 FAIL** |
+| `test_ext036b_client_metrics.py` | **41 PASS / 0 FAIL** |
+| `test_ext037_seg_coverage.py` | **53 PASS / 0 FAIL** |
+| ★ `test_ext039_sync_caliber.py` | **63 PASS / 0 FAIL** |
+| `test_ext_browser_contract.py` | **102 PASS / 0 FAIL** |
+| node `ext028_player_harness.js` | **38 PASS / 0 FAIL** |
+| node `ext024_link_harness.js` | **33 PASS / 0 FAIL** |
+| node `ext026_e2e_harness.js` | **13 PASS / 0 FAIL** |
+| node `ext026_segid_harness.js` | **13 PASS / 0 FAIL** |
+| node `ext026_prodpath_harness.js` | **17 PASS / 0 FAIL** |
+| node `t3_settings_harness.js` | **26 PASS / 0 FAIL** |
+| node `t4_lang_harness.js` | **28 PASS / 0 FAIL** |
+| node `t5_t6_bounds_persist_harness.js` | **16 PASS / 0 FAIL** |
+| `test_ext016_compression.py` | **38 PASS / 1 FAIL** |
+
+⇒ Python 合计 **398 项 0 FAIL**；node 合计 **184 项 0 FAIL**（与 STATUS 头部一致）。
+- ★ **唯一 FAIL**：`压缩后 CORRECTIONS 明显变小（实测 66261 B）`
+  ⇒ `status/CORRECTIONS_EXT.md` 由 **reviewer 独占写入**，EXT **只读**、**未修改**、**未入库**
+  ⇒ **不越权处理**，**如实报告为既有基线红线**（非本轮回归）。
+- ★ 同轮「精简版 STATUS 不含历史全文」由 **FAIL → PASS** ✅（压缩修复生效）。
+
+### ⑦ 本轮改动文件（EXT 模块范围内）
+- 生产：`extension/player.js`（`pct()` 口径 + 新增 `pyRoundIndex()`）、`ext/bridge.py`（`_pct()` 口径）
+- 工具：`tools/ext039_sync_curve.py`（`_pct()` 改索引法 + 新增 `_pct_interp()` + 产物加 `pct_caliber`）
+- 自测：`tests/test_ext039_sync_caliber.py`（新增 [7][8]，总 63 项）、
+  `tests/ext028_player_harness.js`（新增 C6 + 导出 `pct`/`pyRoundIndex`，总 38 项）
+- 状态：`status/STATUS_EXT.md`（压缩至 **22 475 B**）、`status/EXEC_LOG.md`（本条目）、
+  `status/notes/sec31_ext039.md`（§11 收口修正，26 657 B）
+- ★ 上一会话已改且本轮**核验无误、保持原样**：`ext/bridge.py` 的「首段重复交付」修复
+  （dispatch 循环后置 `self._first_seg_done = True`）、「丢句」口径修复（静音填充段单列
+  `n_silent_fill_segments`）、`tests/smoke/ext033_e2e.py`、`tests/ext026_e2e_harness.js`、
+  `tests/ext026_segid_harness.js`、`tests/test_ext037_seg_coverage.py`
+
+### 明确未做 / 不宣称
+- ⛔ **sync P95 21829.2 ms 仍未达标** ⇒ **不写「同步已解决」**、**不自行放宽目标**（判据仍 ≤300 ms）
+- ⛔ **TTS 侧 `RTF_out ≲ 0.75`** 的要求 ⇒ **请主会话转达 TTS 模块**（本模块不改引擎）
+- ⛔ **未打包**（★ 按用户规则**不主动打包**）／⛔ 未改引擎文件（R2T2 / Hy-MT2 / Qwen3-TTS 未动）／
+  ⛔ 未改其它模块文件／⛔ **未推远程**
+- ⛔ `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**
+- ⛔ **未做 MiniMax 回转写**（质量判定由 reviewer 负责）
+- ⛔ **本轮未关闭任何进程**；⛔ `.tmp/` 不入库；⛔ 未抢活锁
+
+### `last_ack`
+**EXT-039**（不变 —— 本轮为收口/核验轮，闸门 exit 1，无新编号 ⇒ **不推进**）

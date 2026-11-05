@@ -108,11 +108,23 @@ function makeSandbox(opts) {
     __reported: reported,
     report: (o2) => { reported.push(o2); },
     scheduleDub: (m) => { scheduled.push(m); return { planned: 0, requested: 0 }; },
+    // ★ 2026-11-05：`handleBridgeMessage` 在 `hello_ack` 分支里会读
+    //   `audioCtx`（extension/player.js:86 `if (audioCtx) {`）
+    //   ⇒ harness 不含该模块级 `let` ⇒ `ReferenceError` ⇒ 整套挂掉。
+    //   ⇒ 与 `ext026_e2e_harness.js` 同款桩（**既有基线红**：
+    //     HEAD 干净态同样报错 ⇒ 非本轮引入）。
+    audioCtx: null,
   };
   const code = [
     extractConst(psrc, 'LINK_STALL_SEC', 'player.js'),
     extractConst(psrc, 'SEEN_DUB_CAP', 'player.js'),
     extractConst(psrc, 'seenDubIds', 'player.js'),
+    // ★ 2026-11-05：`handleBridgeMessage` 会写 `dubDownlinkMs`
+    //   （逐段下行耗时，player.js:1033 `const dubDownlinkMs = new Map()`）
+    //   ⇒ harness 只抽函数、不含该模块级声明 ⇒ `ReferenceError` ⇒ **整套挂掉**。
+    //   ⇒ 与 `ext024_link_harness.js` / `ext026_e2e_harness.js` 同款补桩
+    //     （**既有基线红**：HEAD 干净态同样报错 ⇒ 非本轮引入）。
+    extractConst(psrc, 'dubDownlinkMs', 'player.js'),
     extractFunction(psrc, 'handleBridgeMessage', 'player.js'),
   ].join('\n\n');
   vm.createContext(sandbox);
