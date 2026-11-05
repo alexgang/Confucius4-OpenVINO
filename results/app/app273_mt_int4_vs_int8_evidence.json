@@ -1,0 +1,171 @@
+{
+  "correction": "APP-069⑥",
+  "generated_at": "2026-11-05 13:18:34",
+  "device": "GPU.0",
+  "target": "zh",
+  "n_segments": 46,
+  "int4_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\models\\mt\\mt2-int4sym-cw-q",
+  "int8_dir": "C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q",
+  "wall_int4_s": 19.85,
+  "wall_int8_s": 28.91,
+  "n_exact_same": 2,
+  "exact_same_pct": 4.35,
+  "chrf_mean": 74.029,
+  "chrf_median": 76.697,
+  "chrf_min": 41.096,
+  "chrf_max": 100.0,
+  "n_different": 44,
+  "sample_20_different": [
+    {
+      "id": 0,
+      "src": "Good morning everyone. Good morning. Let's get started. So, welcome",
+      "int4": "大家早上好。早上好，那我们开始吧。那么，欢迎开始。",
+      "int8": "大家早上好。早上好。让我们开始吧。那么，欢迎各位。",
+      "chrf": 84.0
+    },
+    {
+      "id": 2,
+      "src": "Agenda topics today, we'll talk about three. One, I want to share our engineering strategy.",
+      "int4": "今天的议程主题有三个。第一，我想分享我们的工程策略。",
+      "int8": "今天的议程主题有三个，我将介绍其中一项。第一项，我想分享我们的工程战略。",
+      "chrf": 80.645
+    },
+    {
+      "id": 3,
+      "src": "to realize the business growth that Alex spoke about in his last QGS. We'll then talk about engine",
+      "int4": "实现亚历克斯在最后一次QGS中提到的业务增长。然后我们再来讨论引擎相关的问题。",
+      "int8": "实现亚历克斯在最近的QGS会议中提到的业务增长目标。之后我们还会讨论相关引擎问题。",
+      "chrf": 75.0
+    },
+    {
+      "id": 4,
+      "src": "engineering priorities and just general execution, and then Lisa will join me and go through all of the work that's done with the software team, who",
+      "int4": "工程优先级和一般执行工作，然后丽莎会和我一起，与软件团队共同完成所有已完成的工作。",
+      "int8": "工程优先事项以及一般的执行工作，之后丽莎会和我一起，共同处理软件团队所完成的所有工作。",
+      "chrf": 73.81
+    },
+    {
+      "id": 5,
+      "src": "I think is probably one of the largest pivots to do to go enable to grow it ahead of us that I'll expose to.",
+      "int4": "我认为这很可能是最具意义的转型之一，有助于推动我们的业务向前发展。",
+      "int8": "我认为这很可能是为了促进其发展而进行的规模最大的调整之一，我会详细介绍这一点。",
+      "chrf": 41.667
+    },
+    {
+      "id": 6,
+      "src": "And then at the end we'll have plenty of time for Q&A, both in room and online. Okay.",
+      "int4": "然后最后，我们将有足够的时间进行问答环节，无论是在现场还是线上。好的。",
+      "int8": "最后，我们会有足够的时间进行问答环节，既可以在现场进行，也可以在线进行。好的。",
+      "chrf": 70.27
+    },
+    {
+      "id": 7,
+      "src": "So you recall, Alex spoke about business growth, about client, agentic, edge and physically",
+      "int4": "那么，你还记得吗？亚历克斯谈到了业务增长、客户、代理模式以及物理层面。",
+      "int8": "你记得吗，亚历克斯谈到了业务增长、客户、代理关系以及物理层面问题",
+      "chrf": 80.597
+    },
+    {
+      "id": 8,
+      "src": "So the goal of this slide is to describe our strategy on a page, how we as an engineering organization, in this",
+      "int4": "因此，本幻灯片的目标是将我们的策略清晰地呈现出来，说明作为工程组织，我们是如何在这一点上的。",
+      "int8": "因此，此幻灯片的目的是在页面上说明我们的策略，即作为一家工程机构，我们如何……",
+      "chrf": 56.471
+    },
+    {
+      "id": 9,
+      "src": "enable that growth. Again, we are the scale function that will drive growth for all of these business units.",
+      "int4": "推动那种增长。再次强调，我们就是那个能够推动所有业务单位增长的规模因素。",
+      "int8": "推动那种增长。再次强调，我们就是那个能够推动所有业务单元发展的规模因素。",
+      "chrf": 91.667
+    },
+    {
+      "id": 10,
+      "src": "So the way to look at a simplified stack is just meant to describe what are the competitive advantages and the",
+      "int4": "因此，对简化后的栈的看待方式，只是为了说明其竞争优势和",
+      "int8": "因此，对简化栈的理解方式只是为了说明其竞争优势是什么。",
+      "chrf": 77.778
+    },
+    {
+      "id": 11,
+      "src": "strategy by which we will enable our businesses to grow. It'll guide our decision making and our principles.",
+      "int4": "我们用来推动业务发展的策略。它将指导我们的决策和原则。",
+      "int8": "我们用来促进业务发展的策略。它将指导我们的决策和原则。",
+      "chrf": 92.593
+    },
+    {
+      "id": 12,
+      "src": "and it's a simplified view, but one thing that's very important to understand is it's not an optimized view",
+      "int4": "而且这是一个简化的视图，但有一个非常重要的点需要理解：这不是一个优化的视图。",
+      "int8": "这只是一个简化版视图，但有一点非常重要需要理解：它并非经过优化的视图。",
+      "chrf": 73.973
+    },
+    {
+      "id": 13,
+      "src": "optimizing one layer above all else. It's looking at this whole stack end to end to bring a",
+      "int4": "将优化放在所有事情之上。需要从整体角度来审视整个堆栈，以实现最优效果。",
+      "int8": "将优化放在一切之上。它从整体来看待整个系统，以实现……",
+      "chrf": 58.065
+    },
+    {
+      "id": 14,
+      "src": "Platform leadership at scale with quality and predictable execution. Like as an example, Silicon",
+      "int4": "具有高质量且可预测执行能力的规模化平台领导力。例如，硅基技术",
+      "int8": "具有规模效应的平台领导能力，同时具备高质量和可预测的执行能力。例如，硅科技就是个例子。",
+      "chrf": 41.096
+    },
+    {
+      "id": 15,
+      "src": "Itself about the software value to unlock it, it's not a good platform play.",
+      "int4": "关于软件价值来解锁它，这不是一个好的平台玩法。",
+      "int8": "关于解锁该软件价值的方面，它并非一个理想的平台选择。",
+      "chrf": 53.061
+    },
+    {
+      "id": 16,
+      "src": "Right, so starting at the bottom, process and packaging, our strategy will and has",
+      "int4": "是的，从底部开始，工艺和包装方面，我们的策略将会并已经实施了",
+      "int8": "没错，从底部开始，即加工和包装环节，我们的策略过去和现在都是如此。",
+      "chrf": 53.968
+    },
+    {
+      "id": 17,
+      "src": "been to maximize the IDM advantage. So working closely with TD on how we can optimize for performance, for performance",
+      "int4": "旨在最大化 IDM的优势。因此，与 TD 紧密合作，研究如何优化性能，以实现最佳性能。",
+      "int8": "旨在最大化 IDM的优势。因此，我们与 TD 密切合作，共同探讨如何优化性能。",
+      "chrf": 78.049
+    },
+    {
+      "id": 18,
+      "src": "cost and for power, I would say that's a strategy that's well in motion. If you look at all,",
+      "int4": "在成本和能源方面，我认为这是一项正在顺利实施的策略。从整体来看，",
+      "int8": "在成本和电力方面，我认为这是一项正在积极实施的策略。综合来看，",
+      "chrf": 79.365
+    },
+    {
+      "id": 19,
+      "src": "PRQs we did as an example back in 24 that was predominantly external silicon. You",
+      "int4": "我们在 24 年时作为示例做的 PRQs，主要是外部硅材料。",
+      "int8": "我们在24号时做过一些PRQ示例，那些主要是外部硅器件。",
+      "chrf": 62.069
+    },
+    {
+      "id": 20,
+      "src": "Contrast that to what we're going to do in Hammerlick, and I'll show on the roadmap later on, where 100% internal silicon",
+      "int4": "与我们在 Hammerlick中要做的相比，稍后我会在规划图上说明，在内部硅中达到100%的比例。",
+      "int8": "与我们在Hammerlick所做的事情形成对比，我稍后会在路线图中说明，100%使用内部硅材料的地方。",
+      "chrf": 64.0
+    }
+  ],
+  "tsv": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app273_mt_int4_vs_int8.tsv",
+  "source": {
+    "source_file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app253_minimvp_out\\minimvp.txt",
+    "n_source_lines": 46,
+    "n_english_segments": 46,
+    "reviewer_expected_n_segments": 76,
+    "scope_note": "reviewer 的 76 = TTS 侧中文译文句数；本机英文定稿段只有 46（app253 summary.segs=46）⇒ 按 46 段跑，差异交 reviewer 裁定",
+    "jsonl_rejected_because": "minimvp.tts.jsonl 76 行 lang=zh（中文译文），按 en 过滤得 0 段"
+  },
+  "chrf_impl": "difflib.SequenceMatcher.ratio()*100（字符级相似度，非 sacrebleu chrF）",
+  "tsv_bytes": 14513
+}

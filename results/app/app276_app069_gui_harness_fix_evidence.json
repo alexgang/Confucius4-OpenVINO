@@ -1,0 +1,64 @@
+{
+  "correction": "APP-069② GUI 臂 harness 修正",
+  "generated_at": "2026-11-05 13:33:05",
+  "script": "results/app/_app272_rc3_crash_stats.py",
+  "script_sha256": "cd75f7e88e27fd5b8549084b5d9920d7c5db95122ac83618e623183d272a7533",
+  "script_bytes": 12338,
+  "failed_gui_run_0": {
+    "rc": 1,
+    "wall_s": 420.96,
+    "loaded": false,
+    "crashed": false,
+    "log_lines": 1,
+    "why": "420 s 等不到「模型加载完成」⇒ 被 harness terminate；rc=1 不是产品崩溃码 3221226505"
+  },
+  "probe_unbuffered": {
+    "pythonunbuffered": true,
+    "waited_s": 90,
+    "log_lines": 1,
+    "log_bytes": 160,
+    "process_still_alive": true,
+    "why": "不是 stdout 块缓冲问题"
+  },
+  "root_cause": "GUI 臂 cmd 只给 --autostart，缺音频源 ⇒ 不进入模型加载流程；§135 app259 L261 真实口径含 --source file --file <wav>",
+  "fix": {
+    "cmd_added": [
+      "--source",
+      "file",
+      "--file",
+      "~/shared/SPE_0000_0500.wav"
+    ],
+    "env_added": "PYTHONUNBUFFERED=1（check+gui 两处）",
+    "wav_exists": true
+  },
+  "progress_reset": {
+    "backup": "progress.json.superseded_20261105_1332",
+    "check_kept": 10,
+    "gui_cleared": 1
+  },
+  "checks": [
+    {
+      "id": "G1",
+      "name": "脚本含音频源",
+      "ok": true
+    },
+    {
+      "id": "G2",
+      "name": "wav 真实存在",
+      "ok": true
+    },
+    {
+      "id": "G3",
+      "name": "check 臂 10 条证据逐字保留",
+      "ok": true
+    },
+    {
+      "id": "G4",
+      "name": "失效 gui 第 0 次已清（重跑 i=0）",
+      "ok": true
+    }
+  ],
+  "n_pass": 4,
+  "n_fail": 0,
+  "verdict": "PASS"
+}

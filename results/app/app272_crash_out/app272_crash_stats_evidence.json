@@ -1,0 +1,125 @@
+{
+  "correction": "APP-069②",
+  "generated_at": "2026-11-05 13:36:37",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+  "n_runs": 12,
+  "n_crash_0xC0000409": 0,
+  "crash_rate_pct": 0.0,
+  "runs": [
+    {
+      "i": 0,
+      "rc": 0,
+      "wall_s": 6.09,
+      "crashed": false,
+      "cold": false,
+      "log": "check_00.log"
+    },
+    {
+      "i": 1,
+      "rc": 0,
+      "wall_s": 5.59,
+      "crashed": false,
+      "cold": false,
+      "log": "check_01.log"
+    },
+    {
+      "i": 2,
+      "rc": 0,
+      "wall_s": 4.87,
+      "crashed": false,
+      "cold": false,
+      "log": "check_02.log"
+    },
+    {
+      "i": 3,
+      "rc": 0,
+      "wall_s": 5.4,
+      "crashed": false,
+      "cold": false,
+      "log": "check_03.log"
+    },
+    {
+      "i": 4,
+      "rc": 0,
+      "wall_s": 5.2,
+      "crashed": false,
+      "cold": false,
+      "log": "check_04.log"
+    },
+    {
+      "i": 5,
+      "rc": 0,
+      "wall_s": 5.05,
+      "crashed": false,
+      "cold": false,
+      "log": "check_05.log"
+    },
+    {
+      "i": 6,
+      "rc": 0,
+      "wall_s": 5.44,
+      "crashed": false,
+      "cold": false,
+      "log": "check_06.log"
+    },
+    {
+      "i": 7,
+      "rc": 0,
+      "wall_s": 5.53,
+      "crashed": false,
+      "cold": false,
+      "log": "check_07.log"
+    },
+    {
+      "i": 8,
+      "rc": 0,
+      "wall_s": 5.34,
+      "crashed": false,
+      "cold": false,
+      "log": "check_08.log"
+    },
+    {
+      "i": 9,
+      "rc": 0,
+      "wall_s": 5.33,
+      "crashed": false,
+      "cold": false,
+      "log": "check_09.log"
+    },
+    {
+      "i": 0,
+      "rc": 1,
+      "wall_s": 90.56,
+      "crashed": false,
+      "loaded": false,
+      "cold": false,
+      "log": "gui_00.log"
+    },
+    {
+      "i": 1,
+      "rc": 1,
+      "wall_s": 90.54,
+      "crashed": false,
+      "loaded": false,
+      "cold": false,
+      "log": "gui_01.log"
+    }
+  ],
+  "crash_rc_expected": 3221226505,
+  "event_log": [],
+  "by_phase": {
+    "runs": {
+      "n": 0,
+      "n_crash": 0
+    },
+    "check": {
+      "n": 10,
+      "n_crash": 0
+    },
+    "gui": {
+      "n": 2,
+      "n_crash": 0
+    }
+  },
+  "verdict": "INCOMPLETE"
+}
