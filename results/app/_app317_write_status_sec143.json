@@ -1,0 +1,246 @@
+{
+  "tool": "_app317_write_status_sec143",
+  "app": "APP-079/APP-080",
+  "verdict": "PASS",
+  "generated_at": "2026-11-06 23:22:36",
+  "status": {
+    "before": {
+      "bytes": 39142,
+      "lines": 179,
+      "sha256": "4a8645054cbca0f5b554de47dd742dd1b32eccf3764b0ccf53f0bcfdac12697c"
+    },
+    "after": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+      "bytes": 38020,
+      "mtime": "2026-11-06T23:22:36",
+      "sha256": "7c2434a6f201d290ac90e18ff87c4cbe0ae7ab6a25c6476fce5d6059d037f66f"
+    },
+    "lines": 186
+  },
+  "archive": {
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\archive\\STATUS_APP_sec141_142_20261106.md",
+    "bytes": 8743,
+    "mtime": "2026-11-06T23:22:36",
+    "sha256": "4b1e347f6c173d3b27652717d99154a92f1fc4646b086cc5e402e3e8b681f46d"
+  },
+  "unfin_archive": {
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\archive\\STATUS_APP_unfinished_corrections_upto_20261106.md",
+    "bytes": 4905,
+    "mtime": "2026-11-06T23:22:36",
+    "sha256": "a587034577f76466a97e85c058dd15f6561496e15eee8c1a148c698220bf941c"
+  },
+  "unfin_block": {
+    "bytes": 4827,
+    "sha256": "78311c5519f373ab6ff6c82c52eac5eaa6cbe9aa9487f78f17de082b2786eda2"
+  },
+  "compact_block_sha256": "0b2de38e337617c92c6d5b155f7bb564583c8b50a31ca840d4b2c7bb7b9668ae",
+  "old_block": {
+    "bytes": 8632,
+    "sha256": "08e8b5ab24ce32a3037d4ac6ec32b95168a3c9938330a42f97f5195c1fdd3054"
+  },
+  "corrections": {
+    "open": {
+      "sha256": "b3ae9ea9fb72282bbf619dd26b73de688f8c771911bd0b56e0faf8f392b937d5",
+      "bytes": 224562,
+      "mtime": "2026-11-06T21:40:34",
+      "n_entries": 80,
+      "max_id": "APP-080"
+    },
+    "close": {
+      "bytes": 224562,
+      "sha256": "b3ae9ea9fb72282bbf619dd26b73de688f8c771911bd0b56e0faf8f392b937d5",
+      "mtime": "2026-11-06T21:40:34",
+      "n_entries": 80,
+      "max_id": "APP-080"
+    },
+    "identical": true
+  },
+  "head_changes": [
+    {
+      "line_no": 3,
+      "before": "last_ack: APP-078",
+      "after": "last_ack: APP-080"
+    },
+    {
+      "line_no": 4,
+      "before": "更新时间: 2026-11-06 20:55:30",
+      "after": "更新时间: 2026-11-06 23:22:36"
+    },
+    {
+      "line_no": 5,
+      "before": "当前任务: **§142 无新纠偏（`CORRECTIONS_APP.md` 78 条 = `last_ack: APP",
+      "after": "当前任务: **§143 APP-079 静态归因 + APP-080「v2.3 只交付预设音色」构建期补丁与静态自证（"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "live_caption/v23_preset_only.py",
+      "bytes": 17260,
+      "mtime": "2026-11-06T23:18:10",
+      "sha256": "362825e644d2edc42ef662505aaaa8dbd07cad5522da642d36cef8266dd043c7"
+    },
+    {
+      "path": "results/app/_app314_app079_static_triage.py",
+      "bytes": 9968,
+      "mtime": "2026-11-06T22:09:17",
+      "sha256": "ff3d72f52d7338a5a96b4eae7f665b3c16b3648b369ebe18abe9e7050b6e50c1"
+    },
+    {
+      "path": "results/app/_app314_app079_static_triage.json",
+      "bytes": 6439,
+      "mtime": "2026-11-06T23:13:32",
+      "sha256": "09926115669a4f1037924ab87371e26df7520b2291257d9ac7c1d4d3c6baaa19"
+    },
+    {
+      "path": "results/app/_app315_app080_preset_only_selftest.py",
+      "bytes": 17153,
+      "mtime": "2026-11-06T23:18:22",
+      "sha256": "c702017d8b47b1aed94df042156a10a60f0127c04ee2ed4d2f145e5862b0b6e6"
+    },
+    {
+      "path": "results/app/_app315_app080_preset_only_selftest.json",
+      "bytes": 12043,
+      "mtime": "2026-11-06T23:18:29",
+      "sha256": "9abb774c5646241da554a9a77d015e8a3572df25961a71c545749a3c23a73e3d"
+    },
+    {
+      "path": "results/app/_app315_v23_preset_only.diff",
+      "bytes": 8021,
+      "mtime": "2026-11-06T23:18:28",
+      "sha256": "b6840f8a743bd1065dcae6f577f816815c06c8ea0d1bb7481bce73063b3888e6"
+    },
+    {
+      "path": "results/app/_app316_docstring_guard_fix.py",
+      "bytes": 11660,
+      "mtime": "2026-11-06T23:17:56",
+      "sha256": "57fa12e7fe2b495c300eb1ecad8ca6b61aaa49d360eba6b27c946f684de5bfbb"
+    },
+    {
+      "path": "results/app/_app316_docstring_guard_fix.json",
+      "bytes": 2673,
+      "mtime": "2026-11-06T23:18:10",
+      "sha256": "ed5ed7a8ef9b3bb594046b2e0378dc9d10b4a24fcfb8c8ef1a78b47189c7bc45"
+    },
+    {
+      "path": "results/app/_app317_sec143_body.md",
+      "bytes": 9094,
+      "mtime": "2026-11-06T23:22:29",
+      "sha256": "77cbe1efc660c31818c5255e3e5e83fdfd5ac739df407d64dfa782d75c07a3c6"
+    },
+    {
+      "path": "results/app/_app317_write_status_sec143.py",
+      "bytes": 13146,
+      "mtime": "2026-11-06T23:22:20",
+      "sha256": "0f4fca412ce782e1b0a82da0ef153acd6c30ded82c018e99bab4bacd39f67a61"
+    },
+    {
+      "path": "status/archive/STATUS_APP_sec141_142_20261106.md",
+      "bytes": 8743,
+      "mtime": "2026-11-06T23:22:36",
+      "sha256": "4b1e347f6c173d3b27652717d99154a92f1fc4646b086cc5e402e3e8b681f46d"
+    },
+    {
+      "path": "status/archive/STATUS_APP_unfinished_corrections_upto_20261106.md",
+      "bytes": 4905,
+      "mtime": "2026-11-06T23:22:36",
+      "sha256": "a587034577f76466a97e85c058dd15f6561496e15eee8c1a148c698220bf941c"
+    }
+  ],
+  "checks": [
+    {
+      "name": "source_eol_lf",
+      "ok": true,
+      "detail": "CRLF=0"
+    },
+    {
+      "name": "head_exactly_3_lines",
+      "ok": true,
+      "detail": "changed=[3, 4, 5]"
+    },
+    {
+      "name": "compact2_shape",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "unfin_archive_verbatim",
+      "ok": true,
+      "detail": "bytes=4827"
+    },
+    {
+      "name": "sec141_anchor_found",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "compact_ends_with_lf",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "archive_contains_old_block_verbatim",
+      "ok": true,
+      "detail": "old_block_bytes=8632"
+    },
+    {
+      "name": "placeholder_unique",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no_placeholder_left",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "old_body_part1_verbatim",
+      "ok": true,
+      "detail": "bytes=11132"
+    },
+    {
+      "name": "old_body_part2_verbatim",
+      "ok": true,
+      "detail": "bytes=11699"
+    },
+    {
+      "name": "header_exact",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "section_count_not_reduced",
+      "ok": true,
+      "detail": "old=6 new=7"
+    },
+    {
+      "name": "output_eol_lf",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "size_le_40000",
+      "ok": true,
+      "detail": "bytes=38020"
+    },
+    {
+      "name": "lines_le_300",
+      "ok": true,
+      "detail": "lines=186"
+    },
+    {
+      "name": "sec143_appended_once",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "sec141_142_titles_kept",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "readback_byte_equal",
+      "ok": true,
+      "detail": "bytes=38020"
+    }
+  ]
+}

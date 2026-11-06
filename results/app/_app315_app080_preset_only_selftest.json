@@ -1,0 +1,398 @@
+{
+  "tool": "_app315_app080_preset_only_selftest",
+  "app": "APP-080",
+  "scope": "static_only_no_device_no_packaging_no_minimax",
+  "verdict": "PASS",
+  "n_pass": 36,
+  "n_fail": 0,
+  "n_unknown": 0,
+  "counterproof_identified": "8/8",
+  "checks": [
+    {
+      "name": "patch_live_caption_app.py",
+      "ok": true,
+      "detail": "applied=P00-import,P01-voices,P02-label,P03-checkbox,P04-hint,P05-startup,P06-tts-start,P07-statusbar,P08-onchange,P09-cli,P10-help verify_reasons=[]"
+    },
+    {
+      "name": "unique_hit_live_caption_app.py",
+      "ok": true,
+      "detail": "11/11 anchors hit exactly once"
+    },
+    {
+      "name": "eol_restored_live_caption_app.py",
+      "ok": true,
+      "detail": "source EOL=LF"
+    },
+    {
+      "name": "patch_tts_service.py",
+      "ok": true,
+      "detail": "applied=S00-import,S01-set_clone_pcm,S02-register_spk_voice verify_reasons=[]"
+    },
+    {
+      "name": "unique_hit_tts_service.py",
+      "ok": true,
+      "detail": "3/3 anchors hit exactly once"
+    },
+    {
+      "name": "eol_restored_tts_service.py",
+      "ok": true,
+      "detail": "source EOL=CRLF"
+    },
+    {
+      "name": "patch_tts_worker.py",
+      "ok": true,
+      "detail": "applied=W00-import,W01-update_clone,W02-register_spk_voice,W03-apply_spk_voice verify_reasons=[]"
+    },
+    {
+      "name": "unique_hit_tts_worker.py",
+      "ok": true,
+      "detail": "4/4 anchors hit exactly once"
+    },
+    {
+      "name": "eol_restored_tts_worker.py",
+      "ok": true,
+      "detail": "source EOL=CRLF"
+    },
+    {
+      "name": "diff_written",
+      "ok": true,
+      "detail": "diff bytes=8021"
+    },
+    {
+      "name": "docstrings_preserved_after_guard",
+      "ok": true,
+      "detail": "n_dev=5 n_patched=5 equal=True"
+    },
+    {
+      "name": "normalize_'str'",
+      "ok": true,
+      "detail": "got='A' logs=1"
+    },
+    {
+      "name": "normalize_'str'",
+      "ok": true,
+      "detail": "got='A' logs=2"
+    },
+    {
+      "name": "normalize_'str'",
+      "ok": true,
+      "detail": "got='A' logs=3"
+    },
+    {
+      "name": "normalize_'str'",
+      "ok": true,
+      "detail": "got='A' logs=3"
+    },
+    {
+      "name": "normalize_'NoneType'",
+      "ok": true,
+      "detail": "got='A' logs=3"
+    },
+    {
+      "name": "normalize_'object'",
+      "ok": true,
+      "detail": "got='A' logs=4"
+    },
+    {
+      "name": "normalize_writes_log",
+      "ok": true,
+      "detail": "log sample=\"[v23] APP-080：音色残留值 'follow_speaker' 不在 v2.3 交付范围 ⇒ 回落预设 A\""
+    },
+    {
+      "name": "bypass_used_for_subtitle_labels",
+      "ok": true,
+      "detail": "caption_render.render_lines 输出行带 spk 键"
+    },
+    {
+      "name": "bypass_label_retry_exists",
+      "ok": true,
+      "detail": "App._retry_spk_labels() + CLI --speaker on"
+    },
+    {
+      "name": "speaker_help_subtitle",
+      "ok": true,
+      "detail": "argparse help 明文"
+    },
+    {
+      "name": "keep_spk_files_match_asr050",
+      "ok": true,
+      "detail": "KEEP=['asr052_speaker_tracker_api.py', 'asr052_spk_runtime.py', 'asr_thread_defaults.py', 'asr_spk_window.py', 'asr_runtime_switches.py']"
+    },
+    {
+      "name": "asr050_default_follows_bypass",
+      "ok": true,
+      "detail": "speaker_tracker.py 从 ASR 源码读 DEFAULT_MIN_CLEAN_RATIO，不写第二份默认值"
+    },
+    {
+      "name": "exclude_bridge_token.txt",
+      "ok": true,
+      "detail": "app/ext/bridge_token.txt"
+    },
+    {
+      "name": "exclude_cindy.json",
+      "ok": true,
+      "detail": "python/Lib/site-packages/babelvox/data/speakers/cindy.json"
+    },
+    {
+      "name": "exclude_steve.npy",
+      "ok": true,
+      "detail": "python/Lib/site-packages/babelvox/data/speakers/steve.npy"
+    },
+    {
+      "name": "exclude_clone_C.wav",
+      "ok": true,
+      "detail": "app/models/qwen3tts/voices/clone_C.wav"
+    },
+    {
+      "name": "exclude_test_A.wav",
+      "ok": true,
+      "detail": "app/v23_clone_r2/test_A.wav"
+    },
+    {
+      "name": "keep_preset_A.wav",
+      "ok": true,
+      "detail": "app/models/qwen3tts/voices/preset_A.wav"
+    },
+    {
+      "name": "keep_speakers.py",
+      "ok": true,
+      "detail": "python/Lib/site-packages/babelvox/speakers.py"
+    },
+    {
+      "name": "v22_has_8_babelvox_samples",
+      "ok": true,
+      "detail": "n=8 total_bytes=18145"
+    },
+    {
+      "name": "gate_detects_v22_samples",
+      "ok": true,
+      "detail": "n_violations=9 sample=[('ext/bridge_token.txt', 'APP-077 fixed bridge token', 32), ('python/Lib/site-packages/babelvox/data/speakers/cindy.json', 'APP-078 third-party demo voice', 307)]"
+    },
+    {
+      "name": "gate_clean_dir_pass",
+      "ok": true,
+      "detail": "clean dir violations=[]"
+    },
+    {
+      "name": "speaker_library_works_without_samples",
+      "ok": true,
+      "detail": "{\"profiles_no_builtin\": 0, \"save_load_roundtrip\": \"probe\", \"profiles_when_builtin_dir_absent\": 0}"
+    },
+    {
+      "name": "builtin_fallback_guards_missing_dir",
+      "ok": true,
+      "detail": "_SpeakerLibraryWithBuiltinFallback 有 isdir / None 守卫"
+    },
+    {
+      "name": "corrections_is_reviewer_only",
+      "ok": true,
+      "detail": "git status 原始行='M status/app/CORRECTIONS_APP.md'（reviewer 未提交改动，本轮只读）"
+    }
+  ],
+  "counterproof": [
+    {
+      "name": "E1_unpatched_source",
+      "identified": true,
+      "expect": "verify_source=False"
+    },
+    {
+      "name": "E2_revert_gui_patch",
+      "identified": true,
+      "expect": "verify_source=False"
+    },
+    {
+      "name": "E3_normalize_returns_residue",
+      "identified": true,
+      "expect": "got != A"
+    },
+    {
+      "name": "E4_remove_runtime_guard",
+      "identified": true,
+      "expect": "verify_source=False"
+    },
+    {
+      "name": "E5_empty_exclude_list",
+      "identified": true,
+      "expect": "covered=False"
+    },
+    {
+      "name": "E6_missing_spk_file",
+      "identified": true,
+      "expect": "lists differ"
+    },
+    {
+      "name": "E7_remove_isdir_guard",
+      "identified": true,
+      "expect": "anchor lost"
+    },
+    {
+      "name": "E8_guard_before_docstring",
+      "identified": true,
+      "expect": "__doc__ lost ⇒ docstring 判据必须 FAIL"
+    }
+  ],
+  "applied_patches": {
+    "live_caption/live_caption_app.py": [
+      "P00-import",
+      "P01-voices",
+      "P02-label",
+      "P03-checkbox",
+      "P04-hint",
+      "P05-startup",
+      "P06-tts-start",
+      "P07-statusbar",
+      "P08-onchange",
+      "P09-cli",
+      "P10-help"
+    ],
+    "live_caption/tts_service.py": [
+      "S00-import",
+      "S01-set_clone_pcm",
+      "S02-register_spk_voice"
+    ],
+    "live_caption/tts_worker.py": [
+      "W00-import",
+      "W01-update_clone",
+      "W02-register_spk_voice",
+      "W03-apply_spk_voice"
+    ]
+  },
+  "diff_file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app315_v23_preset_only.diff",
+  "diff_bytes": 8021,
+  "speaker_library_probe": {
+    "profiles_no_builtin": 0,
+    "save_load_roundtrip": "probe",
+    "profiles_when_builtin_dir_absent": 0
+  },
+  "v22_babelvox_samples": {
+    "n_files": 8,
+    "total_bytes": 18145,
+    "files": [
+      {
+        "file": "cindy.json",
+        "bytes": 307,
+        "sha256": "eebf32802121d2c87334845dcb1e8b470f02ac85fecd15839bf45ef4a78c7751"
+      },
+      {
+        "file": "cindy.npy",
+        "bytes": 4224,
+        "sha256": "a3bf1a752106f4279bec97da40a3d44ff9e3e41b2d4e304b20dd6cb88afbe382"
+      },
+      {
+        "file": "lou.json",
+        "bytes": 314,
+        "sha256": "6901ef6e3429bfd00acb1dd3731b3f5a3955ba77bed094c9ed169691de034715"
+      },
+      {
+        "file": "lou.npy",
+        "bytes": 4224,
+        "sha256": "5e6a00d89a46a53e812e8b92ec0cd3a67522645223dc9a99db4aee19afea5536"
+      },
+      {
+        "file": "phil.json",
+        "bytes": 315,
+        "sha256": "3144f96d028594de7db783c9c0e796d8b9fd50051a30e425f4f88f6ef1aefb5c"
+      },
+      {
+        "file": "phil.npy",
+        "bytes": 4224,
+        "sha256": "d913381ea0b8014a16cf167a969e1504fc414abf90479f09e170ea5643653ad9"
+      },
+      {
+        "file": "steve.json",
+        "bytes": 313,
+        "sha256": "0110df5ac28eb5c60346ed9eb65f38a35b5476fdc19dbb5eb133243198d64986"
+      },
+      {
+        "file": "steve.npy",
+        "bytes": 4224,
+        "sha256": "07fac8aaf3a85c7cd7afbf3eadb721d60bf40d25eeed4459a986004e1cc82606"
+      }
+    ]
+  },
+  "v22_gate_violations": 9,
+  "pkg_size_impact": {
+    "uncompressed_bytes_removed_from_pkg_dir": 18145,
+    "zip_level": "APP-078 已证实 zip 层 0 命中 ⇒ zip 体积/SHA 不因本项改变",
+    "note": "未打包 ⇒ 这是基于 v2.2 只读实测的基准，不是「已交付」"
+  },
+  "keep_spk_files": [
+    "asr052_speaker_tracker_api.py",
+    "asr052_spk_runtime.py",
+    "asr_thread_defaults.py",
+    "asr_spk_window.py",
+    "asr_runtime_switches.py"
+  ],
+  "pkg_include_files": [
+    "app/v23_preset_only.py",
+    "app/assert_pkg_clean.py"
+  ],
+  "git": {
+    "head": "4fcdbe0",
+    "ahead": "0",
+    "corrections_status": "M status/app/CORRECTIONS_APP.md"
+  },
+  "conclusion": "APP-080 的 ①②③④ 已形成可复现的构建期定点补丁 + 静态自证；⑤⑥ 需打新版本包 + 设备级验收（--check / CLI 5 分钟 / GUI 100%·150% 截图 / 黑名单 / zip SHA256），按「不通知不打包」与 reviewer 复核节点停止。",
+  "evidence_files": [
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\v23_preset_only.py",
+      "bytes": 17260,
+      "mtime": "2026-11-06T23:18:10.273114",
+      "sha256": "362825e644d2edc42ef662505aaaa8dbd07cad5522da642d36cef8266dd043c7"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\assert_pkg_clean.py",
+      "bytes": 3458,
+      "mtime": "2026-11-06T13:45:53.622108",
+      "sha256": "ba76906938492b06de7b9449055af08b28ab6ace47d0bb922fb5859195aff47a"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_engine.py",
+      "bytes": 88613,
+      "mtime": "2026-11-01T03:49:13.566109",
+      "sha256": "b422f2f199a5b92b3fee9998f48abbcf1e772add6fd37d1c3a5bc1ea0a3fdff6"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\caption_render.py",
+      "bytes": 28044,
+      "mtime": "2026-10-29T15:01:25.798981",
+      "sha256": "be9e1d43918424c3bdbda5d512f7a567bb6a783887b744f530d0c5006975064c"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app304_app076_md5_audit.json",
+      "bytes": 10009,
+      "mtime": "2026-11-06T13:40:34.386382",
+      "sha256": "ac187b81e1a7a5f80e94195bbabef2a91a2da5a35c78a1056c1137f607659065"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app315_v23_preset_only.diff",
+      "bytes": 8021,
+      "mtime": "2026-11-06T23:18:28.726930",
+      "sha256": "b6840f8a743bd1065dcae6f577f816815c06c8ea0d1bb7481bce73063b3888e6"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app315_app080_preset_only_selftest.json",
+      "bytes": 9407,
+      "mtime": "2026-11-06T23:18:29.090592",
+      "sha256": "edb99b1e8be2b4b2d3e2ba64e7c0c50fb8cec4ca4d865ebbbd91f608340411a2"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\live_caption_app.py",
+      "bytes": 425546,
+      "mtime": "2026-11-06T10:39:49.400914",
+      "sha256": "b30cb3611db899ae25cc87056862ed213e6a00caf7ba65a319e2007591dc79cd"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_service.py",
+      "bytes": 133411,
+      "mtime": "2026-11-05T11:08:49.266302",
+      "sha256": "6cc0645ef286870ac79ecd4baa0bc02154e8bf712ae54d54ce11aaba7997d70c"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_worker.py",
+      "bytes": 247121,
+      "mtime": "2026-11-05T10:41:53.631175",
+      "sha256": "bf2277e60e62d7399b88e5bee7590af9c0105a51ada468f8d4438a77683a0606"
+    }
+  ]
+}

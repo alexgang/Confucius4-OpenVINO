@@ -1,0 +1,161 @@
+--- dev/live_caption/live_caption_app.py
++++ v2.3/live_caption/live_caption_app.py
+@@ -120,4 +120,5 @@
+ #   ⇒ 旧常量 `_CLONE_*` 改为从这里 import（**值逐字不变**）。
+ import clone_collector
++from v23_preset_only import normalize_voice, PRESET_ONLY  # APP-080
+ # 🔴🔴🔴 APP-039/040：说话人旁路（ASR-029 接口桥接）+ 说话人音色表
+ import speaker_tracker
+@@ -2715,5 +2716,5 @@
+         #   ⚠️ **GUI 上显示的是「当前实际使用的音色」**（`_clone_voice_label`）
+         #      ⇒ **而不是**用户选的那一项 ⇒ 用户能看见真实状态。
+-        self.tts_voices = ['A', 'follow_speaker']
++        self.tts_voices = ['A']  # APP-080：v2.3 只交付预设音色
+         # 🔴🔴 APP-039：**克隆模式标注「实验」**
+         #   APP-039 明文：「克隆模式先标'实验'」
+@@ -2722,6 +2723,5 @@
+         #     **要等 ASR 的说话人旁路接口（ASR-029）** ⇒ 在按新设计重做完之前，
+         #     界面必须如实告诉用户它是**实验性**的，不能让默认状态看起来像成品。
+-        self._tts_voice_label = {'A': '预设 A',
+-                                 'follow_speaker': '跟随说话人（克隆·实验）'}
++        self._tts_voice_label = {'A': '预设 A'}  # APP-080
+         self._tts_voice_back = {v: k for k, v in self._tts_voice_label.items()}
+         self.var_tts_voice = tk.StringVar(
+@@ -2864,11 +2864,11 @@
+                                    padx=(0, 8), pady=0)
+         self.cb_speaker = ttk.Checkbutton(
+-            g_adv, text='区分说话人（用于克隆）',
++            g_adv, text='区分说话人（字幕标注）',
+             variable=self.var_speaker,
+             command=self._on_speaker_toggled)
+         self.cb_speaker.grid(row=6, column=1, sticky='w', pady=0)
+         # 🔴 **提示**（APP-065 A：高级里每一项要有一句话说明作用）
+-        ttk.Label(g_adv, text='检测谁在说话，换人时重新克隆音色；'
+-                  '只在音色=跟随说话人时生效',
++        ttk.Label(g_adv, text='在字幕上显示 S1/S2 标签；'
++                  '音色固定为预设 A，不随说话人变化',
+                   foreground='#555').grid(row=7, column=1, sticky='w',
+                                           padx=(0, 8), pady=0)
+@@ -2987,7 +2987,9 @@
+         #     （本段在 `_build_ui` 之后 ⇒ 满足）。
+         try:
+-            _voice0 = str(getattr(args, 'tts_voice', 'A') or 'A')
+-            if _voice0 == 'follow_speaker':
+-                self._enable_speaker_for_clone('GUI 启动参数 --tts-voice follow_speaker')
++            # APP-080：残留克隆音色一律回落预设 A（写日志、不报错）。
++            _voice0 = normalize_voice(getattr(args, 'tts_voice', 'A'),
++                                      on_log=self._ui_log)
++            args.tts_voice = _voice0
++            self.var_tts_voice.set(self._tts_voice_label[_voice0])
+         except Exception:
+             pass
+@@ -3680,4 +3682,6 @@
+              - 未生效 ⇒ 「预设 A」
+         """
++        if PRESET_ONLY:
++            return '预设 A'  # APP-080
+         svc = getattr(self, 'tts', None)
+         if svc is None:
+@@ -3948,5 +3952,5 @@
+             #   ⚠️ **失败仍显式回落预设 A**（worker 侧 `_fallback_to_preset`）
+             #      ⇒ 绝不静默（§42 的教训）。
+-            self._clone_enabled = (voice == 'follow_speaker')
++            self._clone_enabled = False  # APP-080：v2.3 固定预设 A
+             if self._clone_enabled:
+                 # 🔴🔴🔴 APP-061④：日志文案同步改成「换人时取样」。
+@@ -4251,11 +4255,6 @@
+         #   ⇒ 现在：**自动打开**（勾选框 + `_speaker_enabled` + bridge 三处同步）
+         #     ⇒ 用户不用再手动勾一次。
+-        if voice == 'follow_speaker':
+-            self._enable_speaker_for_clone('GUI 选择「跟随说话人」')
+-            self.var_tts_note.set(
+-                '「跟随说话人（克隆）」已启用：'
+-                '换人时取样（首段 ≥1.5 s，3 s 定稿），老说话人复用。')
+-        else:
+-            self.var_tts_note.set('已切换到「预设 A」')
++        # APP-080：v2.3 只有预设 A ⇒ 不再有克隆分支。
++        self.var_tts_note.set('已切换到「预设 A」')
+         if self.tts is not None:
+             try:
+@@ -6601,6 +6600,12 @@
+     #     ⇒ 显式 `--speaker off` **不**覆盖它（克隆没有 spk 就没法用）。
+     _clone_col = None
+-    _want_clone = (str(getattr(args, 'tts_voice', 'A') or 'A')
+-                   == 'follow_speaker')
++    # APP-080：CLI 残留 follow_speaker ⇒ 回落 A 并写日志（不报错）。
++    _want_clone = False
++    try:
++        from v23_preset_only import normalize_voice as _v23_norm
++        args.tts_voice = _v23_norm(getattr(args, 'tts_voice', 'A'),
++                                   on_log=lambda m: print(m, flush=True))
++    except Exception:
++        args.tts_voice = 'A'
+     _spk_enabled = (str(getattr(args, 'speaker', 'off') or 'off')
+                     .strip().lower() == 'on')
+@@ -7677,12 +7682,7 @@
+                     help='TTS 推理精度')
+     ap.add_argument('--tts-voice', default='A', choices=['A', 'follow_speaker'],
+-                    help='音色：预设 A（客户包只随包分发音色 A；'
+-                         '音色 B / 克隆说话人素材按 BRIEF 不进包）；'
+-                         'follow_speaker = 跟随说话人（克隆·实验）—— '
+-                         '🔴🔴 APP-061④：克隆改为「换人时取样」'
+-                         '（首段 ≥1.5 s，3 s 定稿），老说话人复用；'
+-                         '**定时重采集已停用**（旧的「每 30 s 重算」不再执行）；'
+-                         '🔴🔴 APP-061⑤：需配合说话人识别（旁路）'
+-                         '⇒ 旁路关闭时明确提示使用预设 A')
++                    help='音色：v2.3 只交付预设 A；'
++                          'follow_speaker 仅为兼容旧配置保留，'
++                          '启动即回落 A 并写日志（APP-080）')
+     ap.add_argument('--tts-out', default=None,
+                     help='CLI 回放测试：把语音按真实时间轴混成一个 wav 落盘；'
+--- dev/live_caption/tts_service.py
++++ v2.3/live_caption/tts_service.py
+@@ -33,4 +33,5 @@
+ """
+ from __future__ import annotations
++from v23_preset_only import PRESET_ONLY as _V23_PRESET_ONLY  # APP-080
+ 
+ import json
+@@ -1888,4 +1889,6 @@
+         🔴 **失败不抛异常**：返回 False ⇒ 调用方显式回落预设 A。
+         """
++        if _V23_PRESET_ONLY:
++            return False  # APP-080：v2.3 不执行克隆登记
+         try:
+             import base64
+@@ -1914,4 +1917,6 @@
+         🔴 **失败不抛异常**：返回 False ⇒ 调用方回落预设 A。
+         """
++        if _V23_PRESET_ONLY:
++            return False  # APP-080
+         if not spk:
+             return False
+--- dev/live_caption/tts_worker.py
++++ v2.3/live_caption/tts_worker.py
+@@ -50,4 +50,5 @@
+ """
+ from __future__ import annotations
++from v23_preset_only import PRESET_ONLY as _V23_PRESET_ONLY  # APP-080
+ 
+ import argparse
+@@ -3794,4 +3795,6 @@
+           ⇒ **会话结束即删除**（本模块 `close()` 里删）。
+         """
++        if _V23_PRESET_ONLY:
++            return  # APP-080：不提取克隆 x-vector
+         import numpy as np
+ 
+@@ -3924,4 +3927,6 @@
+         ⇒ 后续该 spk 的句子回落预设 A（**不用别人冒充**）。
+         """
++        if _V23_PRESET_ONLY:
++            return  # APP-080
+         import numpy as np
+ 
+@@ -4014,4 +4019,6 @@
+         返回：实际使用的音色来源（`'clone'` / `'preset'`）。
+         """
++        if _V23_PRESET_ONLY:
++            return  # APP-080：音色固定为预设 A
+         if not spk:
+             self._last_voice_spk = None
