@@ -295,8 +295,10 @@ class EnginePipeline:
                         break
                     self._ready_cv.wait(timeout=min(left, 0.25))
             while self._next_index in self._ready:
-                out.append(self._ready.pop(self._next_index))
+                task = self._ready.pop(self._next_index)
                 self._next_index += 1
+                if task is not None:      # None = failed segment, skip it
+                    out.append(task)
         return out
 
     def wait_all(self, timeout: float = 300.0) -> List[dict]:
@@ -397,8 +399,10 @@ class EnginePipeline:
                     self._n_emitted += 1
                     if cur.error:
                         self._n_error += 1
-                if task is None:
-                    continue
+                # 11-06 fix (EXT-043 B1): a failed emit used to leave a hole at
+                #   cur.index, and pop_ready() releases strictly in order => every
+                #   later segment of the session was blocked forever.  Put a None
+                #   placeholder so pop_ready() skips this index and moves on.
                 with self._ready_cv:
                     self._ready[cur.index] = task
                     self._ready_cv.notify_all()
