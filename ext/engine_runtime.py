@@ -510,6 +510,33 @@ class RuntimeEngine:
             from tts_engine import make_engine
         except Exception as e:
             raise EngineNeedsChange("Qwen3-TTS", "import make_engine 失败: %s" % e)
+        # 11-06 (reviewer): optional CUDA backend = the App's faster-qwen3-tts sidecar.
+        dev = str(self.tts_device or "NPU").upper()
+        if dev in ("AUTO", "CUDA"):
+            cuda_ok = False
+            try:
+                import tts_cuda
+                cuda_ok = tts_cuda.available()
+            except Exception as e:
+                self.on_log("TTS: CUDA 边车模块不可用：%s" % e)
+            if cuda_ok:
+                try:
+                    eng = tts_cuda.CudaTTSEngine(on_log=self.on_log)
+                    eng.start()
+                    self._tts_eng = eng
+                    self._tts_spk_embed = None      # CUDA sidecar uses preset-A reference wav itself
+                    self.tts_device = "CUDA"
+                    self.load_s["tts"] = time.perf_counter() - t0
+                    self.on_log("TTS 就绪（Qwen3-TTS @ CUDA 边车 faster-qwen3-tts，%.1fs，GPU=%s）"
+                                % (self.load_s["tts"], getattr(eng, "device_name", "?")))
+                    return
+                except Exception as e:
+                    if dev == "CUDA":
+                        raise EngineNeedsChange("Qwen3-TTS", "CUDA 边车启动失败: %s" % e)
+                    self.on_log("TTS: CUDA 边车启动失败，回落 NPU：%s" % e)
+            elif dev == "CUDA":
+                raise EngineNeedsChange("Qwen3-TTS", "要求 CUDA 但找不到 CUDA 环境（_fq3tts_env）")
+            self.tts_device = "NPU"
         try:
             self._tts_eng = make_engine(
                 device=self.tts_device, model_path=TTS_MODEL_DIR,
