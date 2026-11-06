@@ -92,3 +92,14 @@ md5 `5c1e6738f24f10fedd11441606b0f9c6`（17691 B）— 第 **129** 行 `clean_ra
 🔴 **标签变多 ≠ 这段可以拿来登记克隆音色**：门槛放宽到 0.6 ⇒ 更多**短的、不太干净的**片段会带上标签
 ⇒ **登记仍然按 App 的 `REG_CONF_MIN` / 干净连续 ≥2.5 s 规则**（`APP-075`）。
 ⚠️ 另外：`overlap_ratio_max` 是**惰性参数（永不触发）** ⇒ **重叠语音帧没有被排除出 `clean_ranges`** ⇒ `clean_ranges` **不保证单人** ⇒ **不要把它当作防护**（修复属新开发量，**待用户决定，ASR 未自行改**）。
+
+## ⑦ 已知风险（ASR-051，2026-11-06 22:24）：污染比例未在真实切段下测过
+
+🔴 **已知风险**：`asr125` / `asr126` 报的「污染 = 0.0」只在**评测集口径**成立；**污染比例未在真实管线切段（生产口径）下测过** ⇒ 不得据此推断生产环境无污染。ASR 线程按 ASR-051 第 1 条退路**未做新实验**（不重跑 900 s 长推理）。
+- 产物 `asr127_asr051_prod_contam_scope.json`（11516 B @ 11-06 22:14，`self_check_pass=true` / 10/10）；结论字段 `verdict.obtainable_from_existing_artifacts=false`、`production_contamination_ratio=null`、`reason_code=SEGMENT_LEVEL_SINGLE_LABEL_TRUTH_CANNOT_EXPRESS_INTRA_SEGMENT_MIXING`。
+- 原因 ①：ASR-028 真值 **207** 段与真实切段 `segs.json` **207** 段**逐段同源**（`n_start_exact=207/207`，+2280 s 平移）⇒ 不存在「人工段界 vs 生产切段」两套段界。
+- 原因 ②：段级单标签真值 **29/29** 换人点全在段界（`n_inside_segment=0`）、3 clip **133/133** 段连续 ⇒ 真值**结构上表达不了**「段内混入上一人」。
+- 原因 ③：`asr125` 首次登记段 **11/11** 的 `clean_ranges` 是段尾借用 **2.5 s** 窗口，非生产段自身整段；`segs.json` 无 `clean_ranges` 字段。
+- 原因 ④：全片帧缓存 `frames.npz` 是 **10 s** 窗（81942 帧 / 58.900695735805854 fps），交付为 **5 s** 窗（58.6 fps）⇒ 帧轴不可混用（末尾漂移 418 帧 ≈ 7.133 s）。
+- ✅ `asr125` / `asr126` 的 0 与 STATUS §77「不可外推到生产」限定**保留不撤回**（ASR-051 第 1 条）；§77 推荐方案 B 仍按**定性结论**读。
+- ⚠️ 第 ④ 节「必须补进包」的文件属 **App 侧事项**，ASR 线程**未自行改包**（ASR-051 第 2 条）。
