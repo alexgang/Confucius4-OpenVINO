@@ -455,19 +455,29 @@ $('btnStart').addEventListener('click', async () => {
       await chrome.storage.local.set({ targetTabId: tab.id });
     } catch (e) { /* ignore */ }
 
-    const res = await chrome.runtime.sendMessage({
-      target: 'sw',
-      cmd: 'start',
-      tabId: tab.id,
-      wsUrl: cfg.wsUrl,
-      token: token,
-      delaySec: cfg.delaySec,
-      // ★★ T-3：把「目标语言」与「音色」也带上去。
-      //   旧写法这两个字段只存进了 storage，**从没进过 start 消息**
-      //   ⇒ 用户在面板上选语言/音色完全不起作用。
-      targetLang: normalizeLang(cfg.targetLang),
-      voice: normalizeVoice(cfg.voice),
-    });
+    // 11-06 (reviewer): REAL PATH = delayed-picture window.
+    //   The player window captures the tab's picture + sound itself (tabCapture,
+    //   activeTab granted by this click), shows the picture D s late and plays
+    //   the dub in sync.  The old offscreen audio-only path only delayed the dub,
+    //   never the picture; it stays reachable via storage captureVia='offscreen'.
+    const via = (await chrome.storage.local.get({ captureVia: 'player' })).captureVia;
+    let res;
+    if (via === 'offscreen') {
+      res = await chrome.runtime.sendMessage({
+        target: 'sw',
+        cmd: 'start',
+        tabId: tab.id,
+        wsUrl: cfg.wsUrl,
+        token: token,
+        delaySec: cfg.delaySec,
+        targetLang: normalizeLang(cfg.targetLang),
+        voice: normalizeVoice(cfg.voice),
+      });
+    } else {
+      // window is opened at the very end: opening it moves focus away and
+      // Chrome closes this popup (killing any code after it).
+      res = { ok: true, captureMode: 'tabCapture（画面延迟窗口）' };
+    }
     if (!res || !res.ok) throw new Error((res && res.error) || '启动失败');
 
     // ★★★ EXT-041：**媒体轻微降速**（让画面追配音 ⇒ 压平累积斜率）。
@@ -484,8 +494,15 @@ $('btnStart').addEventListener('click', async () => {
                  reason: '降速初始化失败：' + String((e && e.message) || e) };
     }
 
-    if (cfg.playerOpen) {
+    if (via === 'offscreen' && cfg.playerOpen) {
       await chrome.tabs.create({ url: chrome.runtime.getURL('player.html') });
+    }
+    if (via !== 'offscreen') {
+      await closePlayerWindows();
+      await chrome.windows.create({
+        url: chrome.runtime.getURL('player.html?auto=1'),
+        type: 'popup', state: 'maximized', focused: true,
+      });
     }
     $('btnStop').disabled = false;
     // ★★★ EXT-026：启动成功后，「停止并收尾」才可用。
@@ -514,6 +531,16 @@ $('btnStart').addEventListener('click', async () => {
   }
 });
 
+// 11-06 (reviewer): close every open player page (delayed-picture window).
+async function closePlayerWindows() {
+  try {
+    const url = chrome.runtime.getURL('player.html');
+    const tabs = await chrome.tabs.query({});
+    const ids = tabs.filter((t) => t.url && t.url.startsWith(url)).map((t) => t.id);
+    if (ids.length) await chrome.tabs.remove(ids);
+  } catch (e) { /* ignore */ }
+}
+
 $('btnStop').addEventListener('click', async () => {
   // ★★★ EXT-041：**停止时必须恢复 `playbackRate = 1.0`**。
   //   否则用户点完「停止」后，页面**还在慢放** ⇒ 观感事故。
@@ -532,6 +559,7 @@ $('btnStop').addEventListener('click', async () => {
   try {
     await chrome.runtime.sendMessage({ target: 'sw', cmd: 'stop' });
   } catch (e) { /* ignore */ }
+  await closePlayerWindows();   // 11-06: closing the window ends capture + uplink
   $('btnStop').disabled = true;
   $('btnStart').disabled = false;
   setBadge('已停止', 'warn');

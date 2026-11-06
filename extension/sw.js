@@ -199,7 +199,7 @@ async function handleSw(msg) {
     case 'getStreamId': {
       // ★ 真实用户手势路径（popup 按钮点击 → service worker）
       const streamId = await chrome.tabCapture.getMediaStreamId({
-        consumerTabId: msg.tabId,
+        targetTabId: msg.tabId,   // 11-06 fix: was consumerTabId (stream id was bound to the wrong consumer)
       });
       return { streamId };
     }
@@ -219,7 +219,7 @@ async function handleSw(msg) {
       } else {
         try {
           streamId = await chrome.tabCapture.getMediaStreamId({
-            consumerTabId: msg.tabId,
+            targetTabId: msg.tabId,   // 11-06 fix: was consumerTabId (stream id was bound to the wrong consumer)
           });
         } catch (e) {
           // 拿不到 stream id（无用户手势 / 自动化）⇒ 走 getDisplayMedia

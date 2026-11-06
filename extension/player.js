@@ -453,7 +453,15 @@ function normalizeVoice(v) {
 // P0②：WebCodecs 延迟画面管线
 // ══════════════════════════════════════════════════════════════
 const encQueue = [];      // 已编码块环形缓冲 {chunk, tsUs}
-const ENC_CAP = 300;      // ≈10 s @30fps
+// 11-06 (reviewer): ring must hold D + headroom of *encoded* frames, otherwise at
+//   D=20 s / ENCODE_FPS=15 it is exactly full and the head (incl. key frames) gets
+//   dropped => decoder breaks / picture freezes.  Recomputed whenever D changes.
+let ENC_CAP = 300;
+function recomputeEncCap() {
+  const d = (typeof delaySec === 'number' && delaySec > 0) ? delaySec : 20;
+  ENC_CAP = Math.max(300, Math.ceil((d + 10) * ENCODE_FPS * 1.5));
+  metrics.encCap = ENC_CAP;
+}
 let videoEncoder = null;
 let videoDecoder = null;
 let decoderCfg = null;
@@ -2477,7 +2485,16 @@ async function startCapture() {
               chromeMediaSourceId: streamId,
             },
           },
-          video: false,
+          // 11-06 (reviewer): real path = delayed-picture window => capture the
+          //   tab's VIDEO too (same stream id).  Capped at 1280x720/30 so the
+          //   software VP8/VP9 encoder keeps up.  ?video=0 keeps audio-only.
+          video: VIDEO_ENABLED ? {
+            mandatory: {
+              chromeMediaSource: 'tab',
+              chromeMediaSourceId: streamId,
+              maxWidth: 1280, maxHeight: 720, maxFrameRate: 30,
+            },
+          } : false,
         });
         captureMode = 'tabCapture';
       } catch (e) {
@@ -2779,7 +2796,7 @@ function handleBridgeMessage(m) {
   if (!m || typeof m !== 'object') return;
   const kind = m.type;
   if (kind === 'hello_ack') {
-    if (m.delay_sec != null && isNaN(D_OVERRIDE)) delaySec = m.delay_sec;
+    if (m.delay_sec != null && isNaN(D_OVERRIDE)) { delaySec = m.delay_sec; recomputeEncCap(); }
     // ★★ EXT-024 F：服务端告诉客户端「现在是真实引擎还是回声」。
     metrics.link.mode = m.mode || null;
     metrics.link.enginesReady = !!m.engines_ready;
@@ -3341,6 +3358,7 @@ async function boot() {
     targetLang: 'zh', voice: 'A',
   });
   delaySec = isNaN(D_OVERRIDE) ? (cfg.delaySec || 20) : D_OVERRIDE;
+  recomputeEncCap();
   // ★★ T-3：应用原声压低量与字幕开关。
   duckDb = (cfg.duckDb === undefined || cfg.duckDb === null || cfg.duckDb === '')
     ? -15 : Number(cfg.duckDb);
@@ -3487,6 +3505,17 @@ async function boot() {
     if (AUTO_CAPTURE) {
       // 自动模式下由 Playwright 点这个按钮（真实手势）
       report({ kind: 'capture_button_ready' });
+    }
+    // 11-06 (reviewer): opened by the popup as the delayed-picture window
+    //   (?auto=1) => start capturing the target tab right away.  The popup click
+    //   already granted activeTab on that tab, so getMediaStreamId works here.
+    if (qs.get('auto') === '1') {
+      btn.style.display = 'none';
+      const r = await startCapture();
+      if (!r || !r.ok) {
+        btn.style.display = 'inline-block';
+        btn.textContent = '自动开始失败，点此重试：' + ((r && r.error) || '?');
+      }
     }
   }
 
