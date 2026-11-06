@@ -1844,7 +1844,7 @@ async function flushUplink() {
 //   * **不改译文、不改引擎、不改 ASR/MT** ⇒ 纯 EXT 侧机制。
 
 /** 媒体降速的**下限 / 上限**（与服务端 `ext/media_slowdown.py` 一致）。 */
-const SLOWDOWN_FLOOR = 0.90;
+const SLOWDOWN_FLOOR = 0.80;   // 11-06: was 0.90 — long videos still drifted (dub/src 1.28, WSOLA capped 1.3x)
 const SLOWDOWN_CEIL = 1.00;
 const SLOWDOWN_DEFAULT = 0.92;
 /** 刷新「服务端建议倍率」的周期（ms）—— 实测占用率要跑几段才有值。 */
@@ -1991,6 +1991,32 @@ async function refreshSlowdownRecommendation(wsUrl) {
 }
 
 /** 向目标标签页注入内容脚本并设置 `playbackRate`（player 侧兜底路径）。 */
+// ── 11-06 (reviewer): closed-loop source-video rate controller ──────────────
+//   User: with CUDA TTS the pipeline keeps up, but on videos >300 s sync still
+//   drifts.  Cause: the Chinese dub is ~1.28x the source; WSOLA tops out at 1.3x
+//   and long sentences overflow, so the backlog creeps up.  Fix: watch the real
+//   playback lag (actual dub start − target start, metrics.adaptLagSec) and
+//   slow the SOURCE video just enough to hold lag near 0.5 s (0.80–1.00x).
+let lagCtlTimer = null, lagCtlRate = 1.0;
+function startLagRateController() {
+  if (lagCtlTimer) return;
+  lagCtlTimer = setInterval(async () => {
+    try {
+      const lag = Number(metrics.adaptLagSec);
+      if (!isFinite(lag)) return;
+      const target = Math.max(SLOWDOWN_FLOOR, Math.min(SLOWDOWN_CEIL,
+        1.0 - 0.04 * Math.max(0, lag - 0.5)));          // 2 s lag -> 0.94x, 5 s -> 0.82x
+      const next = lagCtlRate + 0.5 * (target - lagCtlRate);   // smooth
+      if (Math.abs(next - lagCtlRate) < 0.01 && Math.abs(target - lagCtlRate) < 0.01) return;
+      lagCtlRate = Math.round(next * 100) / 100;
+      const tid = await cfgTargetTabId();
+      const r = await applyMediaSlowdownToTab(tid, lagCtlRate);
+      metrics.slowdown = { applied: !!r.applied, rate: lagCtlRate, videos: r.videos,
+                           reason: r.reason || ('闭环：lag=' + lag.toFixed(2) + 's') };
+    } catch (e) { /* keep trying next tick */ }
+  }, 2000);
+}
+
 async function applyMediaSlowdownToTab(tabId, rate) {
   let r = Number(rate);
   if (!isFinite(r) || r <= 0) {
@@ -2564,7 +2590,7 @@ async function startCapture() {
           }
           // ② 周期刷新建议（建议变了就重新设置）
           await refreshSlowdownRecommendation(cfg.wsUrl);
-          startSlowdownRefreshTimer(cfg.wsUrl);
+          startLagRateController();   // 11-06: closed-loop on measured dub lag (replaces fixed server recommendation)
         } catch (e) {
           metrics.slowdown = { applied: false, rate: null, videos: null,
                                reason: '降速初始化失败：'

@@ -40,7 +40,7 @@
 //   * 守卫：`window.__extSlowdownInstalled` 已为真 ⇒ 只做「更新倍率」
 //     ⇒ 二次注入**幂等**（不会重复注册 listener）。
 (function () {
-  const RATE_FLOOR = 0.90;
+  const RATE_FLOOR = 0.80;   // 11-06: closed-loop controller may go to 0.80
   const RATE_CEIL = 1.00;
 
   const G = (typeof window !== 'undefined') ? window : globalThis;
