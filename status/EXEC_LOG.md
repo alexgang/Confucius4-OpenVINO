@@ -3304,3 +3304,74 @@ run `.tmp/ext033_e2e/20261102_121431/`：
 
 ### `last_ack`
 **EXT-039**（不变 —— 本轮为收口/核验轮，闸门 exit 1，无新编号 ⇒ **不推进**）
+
+---
+
+## 2026-11-06 08:15 ~ 08:35 — EXT-040（②「缓冲耗尽」的物理含义）
+
+**执行时间**：2026-11-06 08:15（闸门）→ 08:35（本轮完成，实测时间）
+
+**指令摘要**
+- 来源文件：`C:\Users\Trekker-PTL\live_dub_ext\status\CORRECTIONS_EXT.md`（**只读**，未修改、未入库）
+- 本轮唯一执行依据：**EXT-040 [NORMAL] 2026-11-06 08:10**
+  —— 「§31/§32 复核：EXT-039 执行属实，数字全部可复现；追问"缓冲耗尽"的物理含义（视频侧行为），其余无需新工作」
+- 闸门：`tools/next_instruction.py --json` ⇒ **exit 0**（`action=execute`，latest=**EXT-040**，`last_ack=39`）⇒ **认领 EXT-040**
+- 租约：`session_lease.py acquire ext` ⇒ exit 0，`TOKEN=6acc9767`（**无 TAKEOVER**）；全程 `beat` 心跳正常
+
+**reviewer 三条「留意点」的处理**
+| 条目 | 处理 |
+|---|---|
+| ① 斜率 +0.135（180 s 轮）vs +0.342（60 s 轮）差 2.5 倍，**只有两个 run** ⇒ 勿写成定值 | ✅ STATUS §33④ 明确标注「⚠️ 不得写成定值」；本轮**不跑新 e2e**（指令要求）⇒ 未增加第三个数据点 |
+| ② **「20 s 缓冲耗尽」的物理含义没写清** ⇒ 用**一句话**写明 | ★ **本轮唯一交付物** ⇒ STATUS §33① |
+| ③ 根因仍是 `tts_over_src=1.0936>1` ⇒ EXT 不再做同步性能调参 | ✅ 写入「明确未做」；本轮**零性能调参** |
+
+**★ 本轮的那一句话（EXT-040 ② 的答案）**
+> **「20 s 缓冲耗尽」的物理含义 = 画面照旧按固定 D 播放（不会暂停、不会再缓冲），而配音落后画面；耗尽后不丢句、不静音，只是按「不丢句」排队（实测顺延 23 次 / 37.129 s）。**
+
+**代码级依据（逐条可查，非"读一遍觉得对"）**
+| 断言 | 源码事实 |
+|---|---|
+| D 是常量 | `delaySec` 无 `+=`/`-=` 改写；`setDelay()` **无任何调用者** |
+| 画面时间轴固定在 D | `extension/player.js:535` → `target = (t0 + frame.timestamp/1e6) + delaySec` |
+| 画面不会被暂停/再缓冲 | 全仓 `extension/` + `ext/` **无** `.pause(`、**无** rebuffer/stall |
+| 原声也固定在 D | `extension/player.js:2293` → `origDelay.delayTime.value = delaySec` |
+| 不丢句 | `scheduleDub()` 只有钳位（33）与顺延（23 / 37.129 s）两条路径，**无丢弃分支**；`src.start(when)` |
+| 不静音 | 耗尽区逐段空档全 ≤ 0.003 s（§31⑥） |
+
+**验证与自测结果**
+| 套件 | 结果 |
+|---|---|
+| `test_ext_selfcheck`（必跑） | **122 PASS / 0 FAIL** |
+| `test_echo_roundtrip`（必跑） | **11 PASS / 0 FAIL** |
+| `test_next_instruction`（必跑） | **19 PASS / 0 FAIL** |
+| ★ `test_ext040_buffer_exhaust_meaning`（**本轮新增**） | **35 PASS / 0 FAIL** |
+| `test_ext039_sync_caliber` | **63 PASS / 0 FAIL** |
+| `test_ext037_seg_coverage` | **53 PASS / 0 FAIL** |
+| `test_ext036_review` / `test_ext036b_client_metrics` / `test_ext010_pipeline` | **64 / 41 / 25 PASS / 0 FAIL** |
+| `test_ext016_compression` | **38 PASS / 1 FAIL** ⇒ ★ **既有基线红线**（CORRECTIONS 独占写只读，reviewer 追加 EXT-040 后必然变大 ⇒ **非本轮引入**，与上轮同一项） |
+
+★ **变异测试（证明守卫不是摆设）**
+- **文本级 9 种**：篡改 7 项必需措辞（**全部**出现）+ run 目录 + `last_ack` ⇒ **9/9 全部判 FAIL**
+- **源码级 3 种**：M1 `delaySec += 1`｜M2 给 `setDelay()` 加调用者｜M3 画面加 `.pause()` ⇒ **3/3 全部被捕获**
+- ⚠️ 每次变异后**立即还原**；还原后 `git diff extension/player.js` = **空** ⇒ **生产代码零改动**已验证
+- ★ 本轮守卫**真的抓出了 3 个我自己写错的判据**（否定式「不会暂停」被误判矛盾 / `pendingSched` 裁剪被误判丢音频 / 变异只替换首个出现导致假通过）⇒ 已全部修正
+
+**本轮改动文件（EXT 模块范围内）**
+- 状态：`status/STATUS_EXT.md`（新增 **§33**；头部 `last_ack` → **EXT-040**、更新时间 → 实测；★ 按 EXT-016 压缩 **§30/§31** 正文 ⇒ **结论数字一字未改**）
+- 状态：`status/notes/sec33_ext040.md`（**新增**，全量明细）
+- 状态：`status/notes/sec30_ext037_038.md` + `status/notes/sec31_ext039.md`（★ 追加「§30/§31 的 STATUS 内联全文」——压缩时**原文保留**，不删内容）
+- 状态：`status/EXEC_LOG.md`（本条目）
+- 自测：`tests/test_ext040_buffer_exhaust_meaning.py`（**新增**，35 项）
+- ★ **生产代码零改动**（`ext/bridge.py` / `extension/*` **未动**）
+
+**明确未做 / 不宣称**
+- ⛔ **未做新 e2e**（按 EXT-040 指令「不需要新 e2e」）｜⛔ **未做同步性能调参**（reviewer ③）
+- ⛔ **未自行放宽目标**（判据仍 ≤300 ms；不写「同步已解决」）
+- ⛔ **未打包**（★ 按用户规则**不主动打包**）｜⛔ **未改引擎**（R2T2 / Hy-MT2 / Qwen3-TTS 未动）｜⛔ 未改其它模块文件｜⛔ **未推远程**
+- ⛔ `status/CORRECTIONS_EXT.md` **只读、未修改、未入库**
+- ⛔ **未做 MiniMax 回转写**（本轮无新音频；质量判定由 reviewer 负责）
+- ⛔ **未关闭任何进程**｜⛔ `.tmp/` 不入库｜⛔ 本轮**无需** `MACHINE_LOCK`（无计时/测速作业）
+- ⛔ 斜率仍只基于**两个 run** ⇒ 未补第三个数据点（指令未要求，且需计时作业）
+
+### `last_ack`
+**EXT-040** —— 本轮**认领并执行**（闸门 exit 0）⇒ `last_ack` 由 EXT-039 推进到 **EXT-040**。
