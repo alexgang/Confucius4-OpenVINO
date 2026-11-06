@@ -8194,3 +8194,14 @@ python C:\Users\Trekker-PTL\shared\tools\session_lease.py release asr <token>
 - 🔴 **本轮修掉的 1 处真缺陷（自检抓出）**：`asr121` 的 `locate_bridge_payload()` 初版用「**首个含 `)` 的行就停**」截 `out = dict(...)`，而 `spk_conf=(res or {}).get('spk_conf'),` **本身含 `)`** ⇒ 只取到 2 行 ⇒ 漏掉 `clean_ranges` ⇒ 自检 `bridge_forwards_clean_ranges` **FAIL** ⇒ 改成**括号配平扫描**（累计 `depth`）⇒ 自检 **7/7 PASS**。🔴 **可复用教训**：代码块提取**不能用「首个 `)`」**，必须配平扫描，否则**静默漏字段**。
 - ✅ **未越权**：**未改任何默认值**（`thr=0.35`/`min_clean_ratio=0.8`/`overlap_ratio_max=0.02`/`min_dur_s=2.0` **全部原样**）、**未跑推理/测速**、**未申请 `MACHINE_LOCK`**、**未动 `live_caption/` 任何文件**、**未新增 `status_verify` 类脚本**（本脚本是**产品级诊断**，输出「参数是否惰性」这一**产品结论**、**不引用 STATUS 任何字段** ⇒ 无自指）。🔴 `timing_valid=null`/`lock_probe=null`/`lock_probe_checks=null`（**本轮未占设备** ⇒ 按纪律写 null，不是漏填）。
 - 🔴 **对既有结论的影响**：**不撤回任何已验收结论**，只加口径 —— §74/§75 的 `min_clean_ratio` 候选 0.6、thr 三档相同、min_dur_s=3.0 全 `async_pending` **均不受影响**；`min_clean_ratio` 默认值 0.8→0.6 **仍是候选、默认值未动**（🟡 等用户决定，ASR-044 ③）。
+
+<!-- ASR-051: STATUS 正文 §75 摘要移出，逐字保留（2026-11-06） -->
+## STATUS 正文 §75 摘要（ASR-051 章节轮转时移出，逐字保留）
+
+### §75 ASR-046 ② 逐段 rows 落盘（asr118，8 臂 × 136 段）＋ 撤回 §74 的一处未落盘措辞（2026-11-05 13:54–14:55）
+> 🔴 **明细全文** `status/asr/notes/asr_s75.md`（**已提交**）＋ 产物 `asr118_param_ab_rows.json`（675763 B）；**本节全文已归档** `status/archive/STATUS_ASR_upto_20261030.md`（`## §75 `）⇒ 正文只留摘要。
+- ✅ **thr 三档相同** = A 基线 136 段的 `spk_conf` 落在 [0.30,0.40] 的 = **0**（最大 **0.188** / 最小 **0.4217**）⇒ 三档切在同一段「空隙」⇒ **参数确实传进了内核**。
+- ✅ **min_dur_s=3.0 全 `async_pending`** = 长度判据对 **134/136** 段根本不触发却全无标签 ⇒ 根因是**判定顺序倒置 ＋ `_drain_pending` 永不回填**，**不是「段太短」**（对照 min_dur_s=1.5：136 段里 **125** 段有标签）。
+- 🔴 **逐臂逐段对比（A 基线 vs 各候选，同一计分器）**：`thr=0.4`/`thr=0.3` 命中 19、recall 0.7308、误报 3、无标签 12、逐段同 136/异 0；`min_dur_s=1.5` 无标签 11（同 135/异 1）；`min_dur_s=3.0` 命中 **0**（同 12/异 124）；**`min_clean_ratio=0.6` 命中 22、recall 0.8462、误报 3、无标签 5**（同 97/异 39）；`min_clean_ratio=0.4` 命中 24、**误报 4（↑）**；`overlap_ratio_max=0.05` 同基线 136/异 0（**该参数惰性，见 §76**）。
+- 🔴 **撤回 §74 的一处未落盘措辞**（§74 写「rows 已落盘」但**写盘时产物并不存在**）⇒ 违反「没落盘的东西不能写已交付」；**本节是 asr118 真正落盘后的记述**。
+- ✅ 本轮产物自检 `self_check_pass=True`、锁探针 **964** 次、stolen **0**、`timing_valid=True`。

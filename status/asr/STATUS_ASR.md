@@ -1,12 +1,13 @@
-last_ack: ASR-050
-更新时间: 2026-11-06 09:45
-当前任务: ✅ **ASR-049 / ASR-050 已落地**（`last_ack` ASR-048 → **ASR-050**）：① **ASR-049**：单页 App 说明（`notes/asr_for_app_spk_enroll.md`，**33 行**）已写（开头 3 行问答直接回答 **APP-071**）＋「换人边界段混入上一人」**已量化**（产物 `asr125`）；② **ASR-050**：用户决定的 `min_clean_ratio` **默认值 0.8 → 0.6** 已落地（**代码 / 环境变量 / 配置说明三处一致**），**900 s 评测集回归**与 **asr118 的 0.6 臂 8/8 指标全一致**（产物 `asr122`），交接清单已写（`notes/asr_for_app_asr050_handoff.md`）；③ 🔴 **本轮抓出并修掉 1 处判据缺陷**（`asr122` 的 `identity_aligned` 口径不对称 ⇒ 0.4779 实为缺陷，正确口径 **1.0**，产物 `asr124`）；④ **未动 `live_caption/` 任何文件**；**只提交 `status/asr/` 下文件**。
+last_ack: ASR-051
+更新时间: 2026-11-06 22:24
+当前任务: ✅ **ASR-051 已落地**（`last_ack` ASR-050 → **ASR-051**）：生产口径污染比例**无法从现有产物得到**（`verdict.obtainable_from_existing_artifacts=false`），**不编数字**、已用纯离线复核坐实 4 条原因（产物 `asr127_asr051_prod_contam_scope.json`，自检 10/10 PASS）＋ 在交接清单 ⑦ 记「污染比例未在真实切段下测过」已知风险；🔴 实测修正纠偏前提：ASR-028 真值 207 段与真实管线切段 **逐段同源 207/207**、29/29 换人点全在段界 ⇒ 0 的根因是**段级单标签真值表达不了段内混入**，不是「用了人工段界」；§77 的 0 与限定**保留不撤回**；**未自行改 App 客户包**；无其它未完成项 ⇒ **待命**。
 阻塞 / 待用户决定: 🟡 **待 App 侧落地**（实测复核，仍未变）：**①** 把 **5 个** ASR 文件（含 `asr_spk_window.py` ＋ `asr_runtime_switches.py`）打进 v2.3 / MiniMVP 下一版（**4 个包全盘 `find` 命中 0** ⇒ 未进包）＋ `sync_c164_spk_assets_to_pkg.py` 的 `ASR_FILES` 由 **4 项补到 6 项**；**②** 5 s **静态** seg IR（md5 `14b224bced3289237799bc9a7eb746ff`）放进 `models/spk/pyannote_seg_3_0/fp16-w5/`（**实测只有 `fp16`**）；**③** App 侧 import `asr_runtime_switches` ＋ 实现 `LIVECAP_SPK_MIN_CLEAN_RATIO`（**默认值须来自 ASR 的 `DEFAULT_MIN_CLEAN_RATIO`**，不互相 import）；🔴 App 侧 `app193_app053_spk_frame_audit.py` 的 **docstring 里仍写 `min_clean_ratio=0.8`**（**ASR 不动 App 文件** ⇒ 待 App 同步）。🟡 **待 App 线程决定**（ASR-048/049 第 3 点 (b)：新说话人**首次登记用哪段音频**）—— ASR 已给出**明确推荐：方案 B**（等**第二段**再登记 ＋ 只取**最靠后**的 clean 区间），**最终由 App 决定**。🟡 **待用户决定**：`overlap_ratio_max` 惰性参数**是否修复**（把重叠类并入判定 ＝ **新开发量**）⇒ **ASR 未自行改**。⚠️ **ASR-042 第 3 步仍暂停**（ASR-047 用户决定）⇒ **本模块不跑 TTS**。
 已压缩: 原文见 `status/archive/STATUS_ASR_upto_20261030.md`；纠偏归档见 `status/archive/CORRECTIONS_ASR_closed_upto_20261030.md`（全量原文备份 `CORRECTIONS_ASR_full_before_compress_20261030.md`）。
-自指大小: 30207 B / 129 行
+自指大小: 32710 B / 132 行
 
 
 ## 最近更新
+- 2026-11-06 22:24 **ASR-051 落地（`last_ack` ASR-050 → **ASR-051**）**：① ✅ 生产口径污染比例**无法得到**（不编数字）⇒ 纯离线复核 4 条原因（产物 `asr127_asr051_prod_contam_scope.json`，11516 B @ 11-06 22:14，自检 **10/10 PASS**，`verdict.obtainable_from_existing_artifacts=false`）＋ 交接清单 ⑦ 记已知风险；② 🔴 **段界同源实测**：ASR-028 真值 207 段 == 真实切段 `segs.json` 207 段（`n_start_exact=207/207`、`max_abs_diff_start_s=4.547473508864641e-13`）、3 clip `ref_segments` **136/136** 起点匹配、**133/133** 段连续 ⇒ 纠偏预设的「人工段界 vs 生产切段」二分在本评测集**不成立**；③ 🔴 **29/29** 换人点全在段界（`n_inside_segment=0`）⇒ 段级单标签真值**表达不了段内混入**（铁律 11）⇒ §77 的 0 **保留不撤回**；④ 🔴 `asr125` 首次登记段 **11/11** 的 `clean_ranges` 是「段尾借用 2.5 s」窗口（非生产段自身整段）、全片帧缓存是 **10 s** 窗（81942 帧 / 58.900695735805854 fps）vs 交付 **5 s** 窗（58.6 fps）⇒ 帧轴不可混用（漂移 418 帧 ≈ 7.133 s）；⑤ ✅ 反证有鉴别力（平移 1 s ⇒ 207→0；注入 ⇒ 1.0 / 清空 ⇒ 0.0）；⑥ ✅ **未自行改包**（第 2 条）、**待命**不写重复巡检行（第 3 条）；详见 **§78**；**只提交 `status/asr/` 下文件**，未动 `live_caption/`。
 - 2026-11-06 09:45 **ASR-049 / ASR-050 落地（`last_ack` ASR-048 → **ASR-050**）**：① ✅ **ASR-050 ①「三处一致」**：`min_clean_ratio` **0.8 → 0.6**（`asr052_speaker_tracker_api.py` **:308** 代码默认值 / **:146** `DEFAULT_MIN_CLEAN_RATIO` / **:149** `ASR_SPK_MIN_CLEAN_RATIO` 环境变量 / **:279–301** 配置说明表）；**其它参数一律未动**（步长 0.64 s / VAD 关 / 5 s 窗 / `thr=0.35`）；② ✅ **ASR-050 ② 回归**：900 s 评测集重跑，**8 项指标与 asr118 的 0.6 臂全部 `match: true`**（命中 22/26、recall 0.8462、误报 3、无标签段 5）（产物 `asr122_asr050_regression.json`，自检 **8/8**）；**主路隔离**（`main_path_isolated=true` ＋ 假文件反证）⇒ WER 不受影响（**WER 交 reviewer**）；③ 🔴 **本轮修掉 1 处判据缺陷**：`asr122` 的 `identity_aligned.agreement_rate` = **0.4779** 与「逐段 136/136 一致」**自相矛盾** ⇒ 根因是**不对称口径**（A 臂取真值 / B 臂取映射；实测 4 簇 vs 真值 5 人）⇒ **正确口径 = 1.0**（产物 `asr124_identity_aligned_recheck.json`，自检 **6/6**，反证降到 0.0368）；④ ✅ **ASR-049 ①②**：单页说明 `notes/asr_for_app_spk_enroll.md`（**33 行**）（开头 3 行问答直接回答 **APP-071**，含「标签多 ≠ 可登记」）；⑤ ✅ **ASR-049 ③ 量化**：「换人边界段混入上一人」原方案 **0.0**（N=0.0 s / 分母 22.545 s）、改进 C **0.0**（N=0.0 s / 分母 27.545 s）（产物 `asr125`）；🔴 **口径澄清**：纠偏写的「AMI RTTM」**不覆盖本评测集**（3 clip 全来自 `260902_SPE_audio.wav`）⇒ 改用 **ASR-028 人工核对 `ref_segments`** 主口径 ＋ SPE RTTM 交叉核对；🔴🔴 **污染 0 只在评测集成立**（评测集按**人工段界**切段、每段单人 ⇒ **结构性必然**；注入反证证明判据**有鉴别力**）⇒ **不能外推到生产**（产物 `asr126`）；🔴 **asr123 捕获失效已作废**（`run_clip` 里 `sys.modules.pop` 重载模块 ⇒ 猴补丁从未生效 ⇒ 分母为 0、自检未过）⇒ 改用 **import hook** 重跑（`asr125`）；⑥ ✅ **ASR-050 ③ 交接清单**：`notes/asr_for_app_asr050_handoff.md`（改了哪个文件 / 哪一行 / md5 / App 要同步哪些文件）；⑦ 🟡 **未自行决定**：`overlap_ratio_max` 惰性参数是否修复 ⇒ **待用户决定**；**未动 `live_caption/`**。
 - 2026-11-06 02:32 **无新纠偏（`last_ack` 保持 **ASR-048**）⇒ 待命**：① `CORRECTIONS_ASR.md` 全文最大编号 **ASR-048** == `last_ack`（**无 ASR-049+**）⇒ 本轮**未执行任何纠偏、未开新实验、未跑推理/测速、未占设备**（`MACHINE_LOCK` 实测不存在）、**未动 `live_caption/`**；② ✅ **CORRECTIONS 索引表已由 reviewer 补到 ASR-046**（实测全文 **17** 条标题 / 索引 **46** 行）⇒ **当前只缺 ASR-047 / ASR-048 共 2 行**（旧章节里记的缺失行数已过期）⇒ 本模块按铁律 1 **不代改**；③ 🟡 **ASR-042 ③ 仍是跨模块协作项**（ASR-047 已暂停 ⇒ 本模块不跑 TTS）；④ 🟡 **待 App / 用户决定的项不变**（5 个 ASR 文件 + 5 s 静态 seg IR 进包、`min_clean_ratio` 0.8→0.6、新说话人首次登记用哪段音频）⇒ **本轮只维护 STATUS，未新增章节**。
 - 2026-11-05 16:50 **ASR-048 落地（`last_ack` ASR-047 → ASR-048）：给 App 的「干净段」接口说明（a–d）＋ `overlap_ratio_max` 惰性参数定性**（产物 `asr121_overlap_clean_diag.json`，23314 B，`self_check_pass=true`；**纯静态分析 + 数值复刻**，不跑推理、不占设备、不需锁）：① 🔴 **`overlap_ratio_max` 恒不触发**（`p_dom` 只含 powerset 单人三类 ⇒ 行和 ≤ 1.0 ⇒ `>1.05` 恒 False ⇒ `overlap_ratio` 恒 **0.0**；20000 次复刻 = **0.0**，反证并入重叠类 = **0.61835**）⇒ 🔴 **§75「`B_overlap_ratio_max_0.05` 与基线 136/136 相同」不等于「已验证无影响」**（**加口径，不改旧行**）；② 🔴 **`clean_ratio` 全 None = 桥接层丢字段**（内核 `:347` 确实算，桥接层白名单只转发 6 字段）⇒ **`min_clean_ratio` 是生效的**；③ 🔴 **`spk_conf` = 与已有簇心的最大余弦相似度** ⇒ **低 = 新人**，**不是标签可信度**（新说话人实测 0.0833/0.1212/0.0153/0.101/-0.0446）；④ 🔴 **登记用 `clean_ranges` 子区间**（非整段）⇒ **换人边界段可能混入上一说话人**（`is_new_spk` = 「与上一段不同」⇒ 基线 29 次 vs 换人点 26 ⇒ 3 次误触发）；⑤ ✅ **`clean_ranges` 现有 API 已返回** ⇒ **App 无需新字段**；⑥ ✅ **「≥1.5 s / 攒到 3 s」已在用 clean 累计时长** ⇒ **无需再改**；⑦ 🔴 **`spk` ID = 到达序编号，跨臂不可比**（`min_clean_ratio` 两臂 clip02 diff 32/46）。
@@ -70,6 +71,7 @@ last_ack: ASR-050
 
 
 ## 未完成纠偏
+| ASR-051 | 生产口径污染比例（或写明无法得到的原因）；不改 App 包 | ✅ **已落地**（§78）|
 | ASR-050 | 用户决定：`min_clean_ratio` 默认 0.8 → 0.6；要求三处一致 + 900 s 回归 + 交接清单 | ✅ **已落地**（§77）|
 | ASR-049 | 单页 App 说明（≤1 页）+ 直接回答 APP-071 + 量化「换人边界段混入上一人」 | ✅ **已落地**（§77）|
 
@@ -90,14 +92,6 @@ last_ack: ASR-050
 > 🔴 **§66–§68 的全文已归档**（`status/archive/STATUS_ASR_upto_20261030.md`）⇒ 正文只留摘要；明细在 `status/asr/notes/asr_s6*.md`（**已提交**）。
 > 🔴 **§70 / §71 / §72 已移入归档**（ASR-036「只保留最近 3 节」门禁）⇒ 明细见 `status/asr/notes/asr_s40.md` / `asr_s41.md` / `asr_s72.md`。
 
-### §75 ASR-046 ② 逐段 rows 落盘（asr118，8 臂 × 136 段）＋ 撤回 §74 的一处未落盘措辞（2026-11-05 13:54–14:55）
-
-> 🔴 **明细全文** `status/asr/notes/asr_s75.md`（**已提交**）＋ 产物 `asr118_param_ab_rows.json`（675763 B）；**本节全文已归档** `status/archive/STATUS_ASR_upto_20261030.md`（`## §75 `）⇒ 正文只留摘要。
-- ✅ **thr 三档相同** = A 基线 136 段的 `spk_conf` 落在 [0.30,0.40] 的 = **0**（最大 **0.188** / 最小 **0.4217**）⇒ 三档切在同一段「空隙」⇒ **参数确实传进了内核**。
-- ✅ **min_dur_s=3.0 全 `async_pending`** = 长度判据对 **134/136** 段根本不触发却全无标签 ⇒ 根因是**判定顺序倒置 ＋ `_drain_pending` 永不回填**，**不是「段太短」**（对照 min_dur_s=1.5：136 段里 **125** 段有标签）。
-- 🔴 **逐臂逐段对比（A 基线 vs 各候选，同一计分器）**：`thr=0.4`/`thr=0.3` 命中 19、recall 0.7308、误报 3、无标签 12、逐段同 136/异 0；`min_dur_s=1.5` 无标签 11（同 135/异 1）；`min_dur_s=3.0` 命中 **0**（同 12/异 124）；**`min_clean_ratio=0.6` 命中 22、recall 0.8462、误报 3、无标签 5**（同 97/异 39）；`min_clean_ratio=0.4` 命中 24、**误报 4（↑）**；`overlap_ratio_max=0.05` 同基线 136/异 0（**该参数惰性，见 §76**）。
-- 🔴 **撤回 §74 的一处未落盘措辞**（§74 写「rows 已落盘」但**写盘时产物并不存在**）⇒ 违反「没落盘的东西不能写已交付」；**本节是 asr118 真正落盘后的记述**。
-- ✅ 本轮产物自检 `self_check_pass=True`、锁探针 **964** 次、stolen **0**、`timing_valid=True`。
 ### §76 ASR-048 落地：给 App 的「新说话人登记用干净段」接口说明（a–d）＋ `overlap_ratio_max` 惰性参数的定性（2026-11-05 16:20–16:50）
 > 📄 **单页 App 说明（ASR-049 ①，≤1 页）**：`status/asr/notes/asr_for_app_spk_enroll.md`（**33 行**）—— 开头 3 行问答直接回答 **APP-071**；**ASR-050 交接清单**：`status/asr/notes/asr_for_app_asr050_handoff.md`；量化结论见 **§77**。
 
@@ -127,3 +121,12 @@ last_ack: ASR-050
 - ✅ **ASR-050 ③（交接清单）**：`status/asr/notes/asr_for_app_asr050_handoff.md` —— 含**改了哪个文件、哪一行、md5**、**App 要同步哪些文件进 v2.3 和 MiniMVP 下一版**（实测：4 个包 `models/spk/pyannote_seg_3_0/` 下**只有 `fp16`、无 `fp16-w5`**；`asr_runtime_switches.py` / `asr_spk_window.py` **不在任何包内**；`sync_c164_spk_assets_to_pkg.py` 的 `ASR_FILES` 实测**只有 4 项** ⇒ 需补到 6 项）。
 - ✅ **ASR-050 ④（产品后果，已写进单页说明）**：**标签多了 ≠ 这段可以拿来登记克隆音色** ⇒ 登记仍按 App 的 `REG_CONF_MIN` / 干净连续 ≥2.5 s 规则。
 - 🟡 **未自行决定（按纠偏要求）**：`overlap_ratio_max` 惰性参数**是否修复**（把重叠类并入判定）＝ **新开发量** ⇒ **列待用户决定，ASR 未自行改**。
+### §78 ASR-051 落地：生产口径污染比例「无法得到」的原因（纯离线复核，2026-11-06 22:24）
+> 🔴 **纯离线**（不跑推理、不占设备、无需机器锁）；产物 `asr127_asr051_prod_contam_scope.json`（11516 B @ 11-06 22:14，自检 **10/10 PASS**），**本轮新增结果产物 1 个**（`qwen3asr_06b/results/pyannote_seg/` 下）；已知风险见 `notes/asr_for_app_asr050_handoff.md` ⑦。
+- ✅ **验收（ASR-051 第 1 条退路）**：`verdict.obtainable_from_existing_artifacts=false`、`production_contamination_ratio=null` ⇒ **不编数字，写明原因**；`asr125_zero_retained=true` ⇒ §77 的 0 与「不可外推到生产」限定**保留不撤回**。
+- 🔴 **原因 ①（段界同源 ⇒ 修正纠偏前提）**：ASR-028 人工真值 **207** 段与真实管线切段 `segs.json` **207** 段**逐段同源**（+2280 s 平移后 `n_start_exact=207/207`、`n_end_exact=207/207`、`max_abs_diff_start_s=4.547473508864641e-13`）⇒「人工段界 vs 生产切段」在本评测集上**不是两套段界**；3 clip 的 `ref_segments` **136/136** 起点匹配真实段界、**133/133** 段连续。
+- 🔴 **原因 ②（真值表达不了，铁律 11）**：`switch_points` **29/29 全落在段界**（`n_inside_segment=0`）⇒ 段级单标签真值**结构上无法表达「段内混入上一说话人」** ⇒ 这是「口径表达不了」，不是「测到 0」；且 `truth_prev_hi == 当段 t_start` ⇒ 分子在段级真值下恒 0。
+- 🔴 **原因 ③（现有 clean 坐标非生产口径）**：`asr125` 首次登记段 **11/11** 的 `clean_ranges` 是「段尾借用 2.5 s」窗口（`run_clip` 传 `prev_end=None` ⇒ `span_for_final`），生产是「段自身整段」`[prev_end, t_end]`（APP-053）⇒ 现有 **128** 个区间坐标不可复用；`segs.json` 只有 `text/rule`、**无 `clean_ranges`**。
+- 🔴 **原因 ④（帧轴口径不一致）**：唯一全片帧级缓存 `frames.npz` 是 **10 s 旁路窗**（**81942** 帧 / **58.900695735805854** fps），交付与 `asr125` 是 **5 s 窗**（58.6 fps）⇒ 末尾索引漂移 **418 帧 ≈ 7.133 s** ⇒ 混用违反铁律 14；要得到同口径生产 clean 坐标须重跑 900 s 长推理（纠偏明确「不必再做实验」）。
+- ✅ **反证（判据有鉴别力，铁律 18）**：段界整体平移 1 s ⇒ `n_start_exact` **207→0**；clean 区间注入 prev 区间 ⇒ 比例 **1.0**、清空 prev ⇒ **0.0** ⇒「无法得到」不是判据恒不触发的假阴性。
+- ✅ **ASR-051 第 2 / 3 条**：5 个 ASR 文件未进包属 **App 侧事项** ⇒ **未自行改包**（`live_caption/` 未动）；`last_ack` **ASR-050 → ASR-051**，无其它未完成项 ⇒ **待命**，未写重复巡检行。
