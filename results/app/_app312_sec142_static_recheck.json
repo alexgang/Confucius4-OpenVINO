@@ -1,0 +1,471 @@
+{
+  "generated_at": "2026-11-06 20:53:22",
+  "scope": "§142 静态证据自证（纯只读 / 不占设备 / 不加载模型 / 不调 MiniMax）",
+  "machine_lock": "NOT_PRESENT（本轮未占设备、未创建）",
+  "corrections_baseline": {
+    "path": "C:/Users/Trekker-PTL/confucius4-openvino/status/app/CORRECTIONS_APP.md",
+    "sha256": "bbc95c4382f29fa3c8b4f1b49ff644339b025f78447a3bb263e6b680ad4d82af",
+    "bytes": 220735,
+    "mtime": "2026-11-06 13:31:54",
+    "count": 78,
+    "min_id": 1,
+    "max_id": 78
+  },
+  "status_head": {
+    "last_ack": 78,
+    "path": "C:/Users/Trekker-PTL/confucius4-openvino/status/app/STATUS_APP.md"
+  },
+  "git": {
+    "head": "4306e10132d1c7ea473c299eceba7e1ce5ff416b",
+    "ahead_origin_main": 0,
+    "staged_count": 0,
+    "corrections_worktree": "M status/app/CORRECTIONS_APP.md"
+  },
+  "evidence_files": [
+    {
+      "name": "_app310_sec140_evidence_recheck.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\_app310_sec140_evidence_recheck.json",
+      "bytes": 16246,
+      "mtime": "2026-11-06 19:54:25",
+      "sha256": "46d3af9155df189d9cadf7679df15f8366ddc7182734307af1a0bec9ed3f8ae8"
+    },
+    {
+      "name": "_app311_write_status_sec141.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\_app311_write_status_sec141.json",
+      "bytes": 2435,
+      "mtime": "2026-11-06 19:59:04",
+      "sha256": "04703ae798471349941c693d9f919d00223f5843fd471d4cdd9d97afaf88cca7"
+    },
+    {
+      "name": "app161_app045_clone_inmemory_equivalence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app161_app045_clone_inmemory_equivalence.json",
+      "bytes": 1803,
+      "mtime": "2026-10-31 17:21:38",
+      "sha256": "d0eea525b1baa4ee4b598be765b4222c9e8128247243312fef8ad43a7fc042ce"
+    },
+    {
+      "name": "app162_app045_speakerlib_no_copy.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app162_app045_speakerlib_no_copy.json",
+      "bytes": 966,
+      "mtime": "2026-10-30 11:18:11",
+      "sha256": "74c915c479b2e8ff44f3e6c787bed4244ae08b6fb5354abee99e2c829a8328a9"
+    },
+    {
+      "name": "app164_app047_spk_resync_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app164_app047_spk_resync_evidence.json",
+      "bytes": 3937,
+      "mtime": "2026-10-30 15:50:03",
+      "sha256": "fd5b6f26cd4805d90bc84017e3931a228e12575620c66b225da815571b09dc2f"
+    },
+    {
+      "name": "app165_app048_gui_layout_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app165_app048_gui_layout_evidence.json",
+      "bytes": 4665,
+      "mtime": "2026-11-04 16:50:28",
+      "sha256": "ed676be67be72a12f267f1e86b8be2eb97c583a4fa2a7edc6f7ccff804ed16ae"
+    },
+    {
+      "name": "app170_version_identity_gate_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app170_version_identity_gate_evidence.json",
+      "bytes": 741,
+      "mtime": "2026-11-02 01:33:25",
+      "sha256": "cbe59c097b34c203d8f78f8fe95b4a6cf6af7abcbd062aa37da21bd8cb87c609"
+    },
+    {
+      "name": "app171_app027_v3_cer_compare_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app171_app027_v3_cer_compare_evidence.json",
+      "bytes": 67313,
+      "mtime": "2026-10-30 23:15:49",
+      "sha256": "98da1bb8b9d558493926eaae0694dde79a1cd73636bc52597cb3f52ecbf148e9"
+    },
+    {
+      "name": "app174a_exec_devices_type.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app174a_exec_devices_type.json",
+      "bytes": 1093,
+      "mtime": "2026-10-31 10:20:58",
+      "sha256": "83442dd60b9356a9a0e0cb9e5fd7e53168a164249ae0846af4d453bf91e7311e"
+    },
+    {
+      "name": "app174c_startup_log_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app174c_startup_log_evidence.json",
+      "bytes": 10883,
+      "mtime": "2026-10-31 10:30:47",
+      "sha256": "c6343c9c24479c51a4e208a9b0d7a76c3407071160b92d0ef44af25c260d50e2"
+    },
+    {
+      "name": "app174d_worker_startup_e2e.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app174d_worker_startup_e2e.json",
+      "bytes": 6555,
+      "mtime": "2026-10-31 10:30:30",
+      "sha256": "e2699c93cc0303db676097bfbf1f97f685a70afde763285d048162a9d62b2430"
+    },
+    {
+      "name": "app185_app048_gui_layout_pkg_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app185_app048_gui_layout_pkg_evidence.json",
+      "bytes": 4558,
+      "mtime": "2026-11-01 08:36:32",
+      "sha256": "72eac43948a20ecb665e4b709bbb8880d9163339bdb576156fb84cbc23ecf10f"
+    },
+    {
+      "name": "app191_v21_binding_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app191_v21_binding_evidence.json",
+      "bytes": 23045,
+      "mtime": "2026-11-01 20:43:15",
+      "sha256": "ae95a9cf558c66fae10b8642a2f28c234d8e1f83972cd5133167a93a091c3df8"
+    },
+    {
+      "name": "app192_lnk_coldstart_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app192_lnk_coldstart_evidence.json",
+      "bytes": 6127,
+      "mtime": "2026-11-01 14:13:49",
+      "sha256": "0776cb5baf2230ba52ffd6756e962ebaa433cbf21cd4c07cb222711493c5a4d1"
+    },
+    {
+      "name": "app193_app053_spk_frame_audit.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app193_app053_spk_frame_audit.json",
+      "bytes": 23889,
+      "mtime": "2026-11-01 10:53:04",
+      "sha256": "cdac034875471bdc370da173f8c298b5d2ef0751b4800817776eafec92b72049"
+    },
+    {
+      "name": "app196_app053_batching_fix_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app196_app053_batching_fix_evidence.json",
+      "bytes": 2614,
+      "mtime": "2026-11-01 14:11:57",
+      "sha256": "66a90bfe4f4b0b8593375ff1bde198f4d79aa8861f9241e99343426b7a03680b"
+    },
+    {
+      "name": "app197_app054_bypass_nonblocking_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app197_app054_bypass_nonblocking_evidence.json",
+      "bytes": 3639,
+      "mtime": "2026-11-01 14:11:57",
+      "sha256": "11890aa4de30c108a0f67d90c0f3251e16f4723a76c751b66c5e68ef8bc77b4e"
+    },
+    {
+      "name": "app199_app054_ab_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app199_app054_ab_evidence.json",
+      "bytes": 10373,
+      "mtime": "2026-11-01 14:31:36",
+      "sha256": "5006b9a86b62db5ce8355a4b6e19b23aa16e45a2616c2042716bc6a6ca6f4ffc"
+    },
+    {
+      "name": "app200_app053_m8_criterion_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app200_app053_m8_criterion_evidence.json",
+      "bytes": 2546,
+      "mtime": "2026-11-01 14:22:20",
+      "sha256": "498b8567f4559673be9de90791f949aa97a227b7123ee33730e53692b96a5359"
+    },
+    {
+      "name": "app201_pkg_skeleton_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app201_pkg_skeleton_evidence.json",
+      "bytes": 10063,
+      "mtime": "2026-11-01 14:37:03",
+      "sha256": "ce4a68b91f45b10106466483c26e00803624d537a8e28c870f73b4eb1eb19e2c"
+    },
+    {
+      "name": "app202_app053_coverage_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app202_app053_coverage_evidence.json",
+      "bytes": 2880,
+      "mtime": "2026-11-01 14:32:36",
+      "sha256": "6a271c941ae25085094b68e0753c700d5b5c2429e1845dc23e79fe1c723afae5"
+    },
+    {
+      "name": "app208_app058_spk_retest_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app208_app058_spk_retest_evidence.json",
+      "bytes": 8683,
+      "mtime": "2026-11-01 17:21:54",
+      "sha256": "c53244f6f18860ddd7a37fec34ce9e0143027d6980f1e7191965e4d0e6dffa2c"
+    },
+    {
+      "name": "app210_app058_recall_diagnosis_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app210_app058_recall_diagnosis_evidence.json",
+      "bytes": 4119,
+      "mtime": "2026-11-01 17:27:18",
+      "sha256": "0ccb366f2aa89e5007c5c51ce9b1f8ded47cb103eeddcc4b66cb6d121471b0a5"
+    },
+    {
+      "name": "app212_app057_v21_shortcuts_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app212_app057_v21_shortcuts_evidence.json",
+      "bytes": 3371,
+      "mtime": "2026-11-01 20:42:58",
+      "sha256": "9dc1e437e0641b17b1825e4bf1766c6eb0d2df57a3fb200bb3098ca5d2398697"
+    },
+    {
+      "name": "app213_app057_v21_gates_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app213_app057_v21_gates_evidence.json",
+      "bytes": 7544,
+      "mtime": "2026-11-01 20:43:26",
+      "sha256": "7abf42a4be85af802b3a58c1d759ba7cd0070bef32b8538750ad2a2b6cdf11be"
+    },
+    {
+      "name": "app214_app057_v21_clean_test_evidence.json",
+      "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app\\app214_app057_v21_clean_test_evidence.json",
+      "bytes": 2305,
+      "mtime": "2026-11-01 20:45:22",
+      "sha256": "dfc094bbc861ecfcc8936c1cfc0875626e4dbe891c556e9f2c551fcd885f7461"
+    }
+  ],
+  "unresolved": [
+    {
+      "name": "app048_layout_1920x1080.png",
+      "reason": "仓库内多目录检索均未找到；按三态记为「无法判定」，不判不合格、不写成已落盘"
+    }
+  ],
+  "zip_audit": [
+    {
+      "version": "2.0",
+      "path": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.0.zip",
+      "bytes": 11233134015,
+      "mtime": "2026-11-01 17:49:21",
+      "sha256_measured": "8198924f9aed30010c0fb80f472278f322f160c9b63cbe7861001dbda056eed9",
+      "sha256_expected": "8198924f9aed30010c0fb80f472278f322f160c9b63cbe7861001dbda056eed9",
+      "bytes_expected": 11233134015,
+      "mtime_expected": "2026-11-01 17:49:21",
+      "status_anchor": "8198924f",
+      "status_anchor_hit": true
+    },
+    {
+      "version": "2.1",
+      "path": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.1.zip",
+      "bytes": 11233135359,
+      "mtime": "2026-11-01 20:38:13",
+      "sha256_measured": "835803a7246470faf0725a3f429b0339ccb6dac8ba7e1d1854176775e6cbaaa4",
+      "sha256_expected": "835803a7246470faf0725a3f429b0339ccb6dac8ba7e1d1854176775e6cbaaa4",
+      "bytes_expected": 11233135359,
+      "mtime_expected": "2026-11-01 20:38:13",
+      "status_anchor": "835803a7246470faf0725a3f429b0339ccb6dac8ba7e1d1854176775e6cbaaa4",
+      "status_anchor_hit": true
+    },
+    {
+      "version": "2.2",
+      "path": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.2.zip",
+      "bytes": 11233149299,
+      "mtime": "2026-11-02 01:54:03",
+      "sha256_measured": "ea5c5c850f8836a7edab982611cdd59d0ba0e83f8d5ff880cc797b7c67c23b75",
+      "sha256_expected": "ea5c5c850f8836a7edab982611cdd59d0ba0e83f8d5ff880cc797b7c67c23b75",
+      "bytes_expected": 11233149299,
+      "mtime_expected": "2026-11-02 01:54:03",
+      "status_anchor": "ea5c5c850f8836a7edab982611cdd59d0ba0e83f8d5ff880cc797b7c67c23b75",
+      "status_anchor_hit": true
+    }
+  ],
+  "checks": [
+    {
+      "id": "A1",
+      "desc": "纠偏文件 SHA256 == 开工基线",
+      "expected": "bbc95c4382f29fa3c8b4f1b49ff644339b025f78447a3bb263e6b680ad4d82af",
+      "actual": "bbc95c4382f29fa3c8b4f1b49ff644339b025f78447a3bb263e6b680ad4d82af",
+      "pass_": true
+    },
+    {
+      "id": "A2",
+      "desc": "纠偏文件字节数 == 开工基线",
+      "expected": 220735,
+      "actual": 220735,
+      "pass_": true
+    },
+    {
+      "id": "A3",
+      "desc": "纠偏文件 mtime == 开工基线",
+      "expected": "2026-11-06 13:31:54",
+      "actual": "2026-11-06 13:31:54",
+      "pass_": true
+    },
+    {
+      "id": "A4",
+      "desc": "APP 条目数 == 78",
+      "expected": 78,
+      "actual": 78,
+      "pass_": true
+    },
+    {
+      "id": "A5",
+      "desc": "编号 1..78 连续且无重复",
+      "expected": true,
+      "actual": true,
+      "pass_": true
+    },
+    {
+      "id": "A6",
+      "desc": "最大编号 == 78",
+      "expected": 78,
+      "actual": 78,
+      "pass_": true
+    },
+    {
+      "id": "A7",
+      "desc": "last_ack == 最大编号（即无新纠偏）",
+      "expected": true,
+      "actual": true,
+      "pass_": true
+    },
+    {
+      "id": "B1",
+      "desc": "暂存区不含 CORRECTIONS_APP.md（绝不提交纠偏文件）",
+      "expected": false,
+      "actual": false,
+      "pass_": true
+    },
+    {
+      "id": "B2",
+      "desc": "origin/main..HEAD == 0（无半交付漏项）",
+      "expected": 0,
+      "actual": 0,
+      "pass_": true
+    },
+    {
+      "id": "B3",
+      "desc": "纠偏文件工作区为 reviewer 的未提交改动（本轮只读不碰）",
+      "expected": true,
+      "actual": true,
+      "pass_": true
+    },
+    {
+      "id": "C1",
+      "desc": "STATUS 引用的证据文件 token 数 == 27（开工探查值）",
+      "expected": 27,
+      "actual": 27,
+      "pass_": true
+    },
+    {
+      "id": "C2",
+      "desc": "未落盘集合 == 开工声明的唯一项（无静默漏项）",
+      "expected": [
+        "app048_layout_1920x1080.png"
+      ],
+      "actual": [
+        "app048_layout_1920x1080.png"
+      ],
+      "pass_": true
+    },
+    {
+      "id": "C3",
+      "desc": "已落盘产物数 == 26",
+      "expected": 26,
+      "actual": 26,
+      "pass_": true
+    },
+    {
+      "id": "C4",
+      "desc": "每个已落盘产物均记录 64 位 SHA256",
+      "expected": true,
+      "actual": true,
+      "pass_": true
+    },
+    {
+      "id": "D2.0-1",
+      "desc": "v2.0 zip SHA256 == DELIVERY 基准",
+      "expected": true,
+      "actual": true,
+      "pass_": true
+    },
+    {
+      "id": "D2.0-2",
+      "desc": "v2.0 zip 字节数 == DELIVERY 基准",
+      "expected": 11233134015,
+      "actual": 11233134015,
+      "pass_": true
+    },
+    {
+      "id": "D2.0-3",
+      "desc": "v2.0 zip mtime == DELIVERY 基准",
+      "expected": "2026-11-01 17:49:21",
+      "actual": "2026-11-01 17:49:21",
+      "pass_": true
+    },
+    {
+      "id": "D2.0-4",
+      "desc": "v2.0 zip SHA 与 STATUS 表锚点一致",
+      "expected": true,
+      "actual": true,
+      "pass_": true
+    },
+    {
+      "id": "D2.1-1",
+      "desc": "v2.1 zip SHA256 == DELIVERY 基准",
+      "expected": true,
+      "actual": true,
+      "pass_": true
+    },
+    {
+      "id": "D2.1-2",
+      "desc": "v2.1 zip 字节数 == DELIVERY 基准",
+      "expected": 11233135359,
+      "actual": 11233135359,
+      "pass_": true
+    },
+    {
+      "id": "D2.1-3",
+      "desc": "v2.1 zip mtime == DELIVERY 基准",
+      "expected": "2026-11-01 20:38:13",
+      "actual": "2026-11-01 20:38:13",
+      "pass_": true
+    },
+    {
+      "id": "D2.1-4",
+      "desc": "v2.1 zip SHA 与 STATUS 表锚点一致",
+      "expected": true,
+      "actual": true,
+      "pass_": true
+    },
+    {
+      "id": "D2.2-1",
+      "desc": "v2.2 zip SHA256 == DELIVERY 基准",
+      "expected": true,
+      "actual": true,
+      "pass_": true
+    },
+    {
+      "id": "D2.2-2",
+      "desc": "v2.2 zip 字节数 == DELIVERY 基准",
+      "expected": 11233149299,
+      "actual": 11233149299,
+      "pass_": true
+    },
+    {
+      "id": "D2.2-3",
+      "desc": "v2.2 zip mtime == DELIVERY 基准",
+      "expected": "2026-11-02 01:54:03",
+      "actual": "2026-11-02 01:54:03",
+      "pass_": true
+    },
+    {
+      "id": "D2.2-4",
+      "desc": "v2.2 zip SHA 与 STATUS 表锚点一致",
+      "expected": true,
+      "actual": true,
+      "pass_": true
+    }
+  ],
+  "counterproof": [
+    {
+      "id": "E1",
+      "desc": "把 zip 期望 SHA 换成全零 ⇒ D-1 同一判据须 FAIL",
+      "broken_judgement": false,
+      "identified": true
+    },
+    {
+      "id": "E2",
+      "desc": "删掉一个 APP 编号 ⇒ A5 连续性判据须 FAIL",
+      "broken_judgement": false,
+      "identified": true
+    },
+    {
+      "id": "E3",
+      "desc": "把未落盘声明改成空集 ⇒ C2 判据须 FAIL",
+      "broken_judgement": false,
+      "identified": true
+    },
+    {
+      "id": "E4",
+      "desc": "把 last_ack 换成 77 ⇒ A7 对齐判据须 FAIL",
+      "broken_judgement": false,
+      "identified": true
+    }
+  ],
+  "n_pass": 26,
+  "n_fail": 0,
+  "counterproof_identified": 4,
+  "counterproof_total": 4,
+  "verdict": "PASS"
+}
