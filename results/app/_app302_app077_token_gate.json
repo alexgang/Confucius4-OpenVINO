@@ -1,0 +1,215 @@
+{
+  "tool": "_app302_app077_token_gate",
+  "app": "APP-077",
+  "ts": "2026-11-06 13:33:13",
+  "elapsed_s": 36.04,
+  "rule": "(^|/)bridge_token\\.txt$",
+  "checks": [
+    {
+      "name": "命中 ext/bridge_token.txt",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "命中 bridge_token.txt",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "命中 ext/bridge/bridge_token.txt",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "命中 a/b/bridge_token.txt",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "命中 EXT/BRIDGE_TOKEN.TXT",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "不误伤 app/tokenizer_config.json",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "不误伤 ext/bridge/tokenizer_config.json",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "不误伤 ext/bridge_token.txt.bak",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "不误伤 models/decoder-gpu-int8/special_tokens_map.json",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "不误伤 app/live_caption_app.py",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v2.2 包目录存在（只读）",
+      "ok": true,
+      "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2"
+    },
+    {
+      "name": "v2.2 源目录里**确实有** token（否则本自检无从证明拦截）",
+      "ok": true,
+      "detail": "{'path': 'C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_v2.2\\\\ext\\\\bridge_token.txt', 'size': 32, 'sha256': 'a637f357500c55a4f9cab1291e0b4fb3966b000bfa62805ab49b35c1c82e8fd1', 'mtime': 1793525528.5078347}"
+    },
+    {
+      "name": "进包清单不含 ext/bridge_token.txt",
+      "ok": true,
+      "detail": "清单 14314 个文件"
+    },
+    {
+      "name": "进包清单不含任何 bridge_token.txt",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "排除清单**含** ext/bridge_token.txt（物理清理口径）",
+      "ok": true,
+      "detail": "排除清单 149 个文件"
+    },
+    {
+      "name": "反证①：旧规则**会**把 token 列进包（缺陷可复现）",
+      "ok": true,
+      "detail": "old_is_excluded(ext/bridge_token.txt) = False"
+    },
+    {
+      "name": "反证②：新规则拦住同一个 token",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "反证③：临时目录进包清单只剩 keep.txt",
+      "ok": true,
+      "detail": "['ext/keep.txt']"
+    },
+    {
+      "name": "反证④：把规则改成恒假 ⇒ 拦截失效（判据非恒真）",
+      "ok": true,
+      "detail": "is_excluded = False"
+    },
+    {
+      "name": "反证⑤：还原后规则仍生效",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "旧包 Confucius4_LiveCaption_v2.0.zip 含固定 token（reviewer 指控成立）",
+      "ok": true,
+      "detail": "14317 条目 / token [{'name': 'Confucius4_LiveCaption_v2.0/ext/bridge_token.txt', 'size': 32, 'sha256': 'a637f357500c55a4f9cab1291e0b4fb3966b000bfa62805ab49b35c1c82e8fd1'}]"
+    },
+    {
+      "name": "旧包 Confucius4_LiveCaption_v2.1.zip 含固定 token（reviewer 指控成立）",
+      "ok": true,
+      "detail": "14317 条目 / token [{'name': 'Confucius4_LiveCaption_v2.1/ext/bridge_token.txt', 'size': 32, 'sha256': 'a637f357500c55a4f9cab1291e0b4fb3966b000bfa62805ab49b35c1c82e8fd1'}]"
+    },
+    {
+      "name": "旧包 Confucius4_LiveCaption_v2.2.zip 含固定 token（reviewer 指控成立）",
+      "ok": true,
+      "detail": "14317 条目 / token [{'name': 'Confucius4_LiveCaption_v2.2/ext/bridge_token.txt', 'size': 32, 'sha256': 'a637f357500c55a4f9cab1291e0b4fb3966b000bfa62805ab49b35c1c82e8fd1'}]"
+    },
+    {
+      "name": "v2.0/v2.1/v2.2 token **逐字节同值**",
+      "ok": true,
+      "detail": "['a637f357500c55a4f9cab1291e0b4fb3966b000bfa62805ab49b35c1c82e8fd1']"
+    },
+    {
+      "name": "MiniMVP Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest.zip **不含** bridge_token.txt",
+      "ok": true,
+      "detail": "10474 条目"
+    },
+    {
+      "name": "MiniMVP Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest_rev2.zip **不含** bridge_token.txt",
+      "ok": true,
+      "detail": "10474 条目"
+    }
+  ],
+  "n_pass": 26,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "affected_zips": [
+    {
+      "name": "Confucius4_LiveCaption_v2.0.zip",
+      "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0.zip",
+      "size": 11233134015,
+      "sha256": "8198924f9aed30010c0fb80f472278f322f160c9b63cbe7861001dbda056eed9",
+      "entries": 14317,
+      "token_hits": [
+        {
+          "name": "Confucius4_LiveCaption_v2.0/ext/bridge_token.txt",
+          "size": 32,
+          "sha256": "a637f357500c55a4f9cab1291e0b4fb3966b000bfa62805ab49b35c1c82e8fd1"
+        }
+      ],
+      "mtime": 1793526561.184112
+    },
+    {
+      "name": "Confucius4_LiveCaption_v2.1.zip",
+      "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1.zip",
+      "size": 11233135359,
+      "sha256": "835803a7246470faf0725a3f429b0339ccb6dac8ba7e1d1854176775e6cbaaa4",
+      "entries": 14317,
+      "token_hits": [
+        {
+          "name": "Confucius4_LiveCaption_v2.1/ext/bridge_token.txt",
+          "size": 32,
+          "sha256": "a637f357500c55a4f9cab1291e0b4fb3966b000bfa62805ab49b35c1c82e8fd1"
+        }
+      ],
+      "mtime": 1793536693.1182563
+    },
+    {
+      "name": "Confucius4_LiveCaption_v2.2.zip",
+      "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2.zip",
+      "size": 11233149299,
+      "sha256": "ea5c5c850f8836a7edab982611cdd59d0ba0e83f8d5ff880cc797b7c67c23b75",
+      "entries": 14317,
+      "token_hits": [
+        {
+          "name": "Confucius4_LiveCaption_v2.2/ext/bridge_token.txt",
+          "size": 32,
+          "sha256": "a637f357500c55a4f9cab1291e0b4fb3966b000bfa62805ab49b35c1c82e8fd1"
+        }
+      ],
+      "mtime": 1793555643.3043876
+    }
+  ],
+  "minimvp_zips": [
+    {
+      "name": "Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest.zip",
+      "path": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest.zip",
+      "size": 5591630138,
+      "sha256": "dda6f229e9d1e70accc4417b328d33b8c929f868a033ad4546e39d7d0f2d45f1",
+      "entries": 10474,
+      "token_hits": [],
+      "mtime": 1793862234.6965477
+    },
+    {
+      "name": "Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest_rev2.zip",
+      "path": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest_rev2.zip",
+      "size": 5591630139,
+      "sha256": "90ae8b9da38eeca6ab9e6a693e9ac6395bdcb678e9377c5a4f655a7c5a06f58f",
+      "entries": 10474,
+      "token_hits": [],
+      "mtime": 1793872436.0415459
+    }
+  ],
+  "v22_source_token": {
+    "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\ext\\bridge_token.txt",
+    "size": 32,
+    "sha256": "a637f357500c55a4f9cab1291e0b4fb3966b000bfa62805ab49b35c1c82e8fd1",
+    "mtime": 1793525528.5078347
+  }
+}

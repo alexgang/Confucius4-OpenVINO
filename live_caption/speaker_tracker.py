@@ -161,6 +161,99 @@ def _resolve_win_s():
 
 _WIN_S, _WIN_S_SRC = _resolve_win_s()
 
+# 🔴🔴🔳 APP-076（2026-11-06，ASR-050 交接）：**`min_clean_ratio` 同源**。
+#
+#   ASR-050（用户决定）：`min_clean_ratio` 默认 **0.8 → 0.6**
+#   ⇒ 「段内干净语音占比」下限放宽 ⇒ **更多**（也更短、更不干净的）片段会带标签。
+#
+#   ## 🔴 跨模块纪律（ASR-050 交接单第 ③ 节原文）
+#   * ASR 侧环境变量名 = `ASR_SPK_MIN_CLEAN_RATIO`；
+#     **App 侧用 `LIVECAP_SPK_MIN_CLEAN_RATIO`**（**由 App 自己实现**，
+#     两边**各写一份环境变量名是为了不互相 import**）。
+#   * 🔴 **但默认值只有一份** ⇒ 必须来自 ASR 的 `DEFAULT_MIN_CLEAN_RATIO`
+#     ⇒ **不写第二份常量**（否则必然漂移）⇒ 读不到 ⇒ 退回**兜底值**并记日志。
+#
+#   ## 🔴🔴🔴 跨模块陷阱（ASR-050 交接单第 ③ 节原文，必须遵守）
+#   App 的 `results/app/app193_app053_spk_frame_audit.py` 的 `read_asr_gates()`
+#   用**正则从 ASR 源码现读门槛默认值**（`re.search` 取**第一个**匹配）
+#   ⇒ **ASR 源码注释里不能出现「`min_clean_ratio` + 数字」的写法**
+#   ⇒ **本文件（App 侧）可以写**，但为免误读，本处**只写变量名**。
+#
+#   ## 🔴 产品后果（ASR-050 第 4 条，**不得放宽**）
+#   **标签多了 ≠ 这段可以拿来登记克隆音色**
+#   ⇒ 登记仍按 App 的 `REG_CONF_MIN`（0.5）／干净连续 ≥ 2.5 s／换人边界避让。
+#   ⇒ 本参数**只影响「哪些段会带标签」**，**不影响「哪些段能登记音色」**。
+_MIN_CLEAN_RATIO_ENV = 'LIVECAP_SPK_MIN_CLEAN_RATIO'
+#: 🔴 读不到 ASR 常量时的**兜底值**（= ASR-050 的交付默认）
+#:   ⚠️ 这是**兜底**，不是「第二份事实来源」⇒ 能读到 ASR 常量时**不用它**。
+_MIN_CLEAN_RATIO_FALLBACK = 0.6
+
+
+def _asr_min_clean_ratio():
+    """🔴 从 **ASR 侧源码**读 `DEFAULT_MIN_CLEAN_RATIO` ⇒ **同源**。
+
+    与 `_asr_win_s()` **完全同款**（环境变量 > 同源常量 > 兜底）。
+
+    🔴 **为什么必须同源**：ASR-050 把默认值从 0.8 改成 0.6
+    ⇒ App 侧若写死 0.8 ⇒ 客户机上门槛与研发机**不一致** ⇒ 静默错位。
+
+    🔴🔴🔴 **为什么用 AST 静态解析，而不是 import**：
+    `asr052_speaker_tracker_api.py` 在模块级 `import asr052_spk_runtime`
+    ⇒ 后者 `import numpy` ⇒ **import 会把 numpy 拖进来**
+    ⇒ 开发机（无 numpy 的解释器）直接 `ModuleNotFoundError`
+    ⇒ 实测踩过（`asr_spk_window` 能读到，因为它无兄弟依赖）。
+    ⇒ **AST 只读字面量赋值** ⇒ 零重依赖、零副作用、跨解释器一致。
+    """
+    scripts_dir = _asr_scripts_dir()
+    if not scripts_dir:
+        return None, None
+    p = os.path.join(scripts_dir, 'asr052_speaker_tracker_api.py')
+    if not os.path.isfile(p):
+        return None, None
+    try:
+        import ast
+        with open(p, 'r', encoding='utf-8', errors='replace') as f:
+            tree = ast.parse(f.read(), filename=p)
+    except Exception:
+        return None, None
+    for node in tree.body:               # 🔴 只看**模块级**赋值
+        if not isinstance(node, ast.Assign):
+            continue
+        names = [t.id for t in node.targets if isinstance(t, ast.Name)]
+        if 'DEFAULT_MIN_CLEAN_RATIO' not in names:
+            continue
+        if isinstance(node.value, ast.Constant) and \
+                isinstance(node.value.value, (int, float)) and \
+                not isinstance(node.value.value, bool):
+            return float(node.value.value), 'asr052_speaker_tracker_api'
+    return None, None
+
+
+def _resolve_min_clean_ratio():
+    """🔴 解析 `min_clean_ratio`：**环境变量 > ASR 侧常量（同源） > 兜底 0.6**。
+
+    与 `_resolve_win_s()` **完全同款**（ASR 侧 `asr_spk_window` 也是这个套路）。
+    ⚠️ 非法值（非数字 / ≤ 0 / > 1）⇒ **退回默认**（不静默改语义）。
+    """
+    raw = os.environ.get(_MIN_CLEAN_RATIO_ENV, '')
+    if raw not in (None, ''):
+        try:
+            v = float(raw)
+            if 0.0 < v <= 1.0:
+                return v, '配置项 %s=%s' % (_MIN_CLEAN_RATIO_ENV, raw)
+        except Exception:
+            pass
+    v, mod_name = _asr_min_clean_ratio()
+    if v is not None and 0.0 < v <= 1.0:
+        return v, '同源 %s.DEFAULT_MIN_CLEAN_RATIO=%s' % (mod_name, v)
+    return _MIN_CLEAN_RATIO_FALLBACK, '兜底 %s' % _MIN_CLEAN_RATIO_FALLBACK
+
+
+_MIN_CLEAN_RATIO, _MIN_CLEAN_RATIO_SRC = _resolve_min_clean_ratio()
+#: 🔴 **ASR 侧代码默认值**（同源读出来的那个）⇒ 用来判断「要不要显式传」
+#:   ⚠️ 读不到时用兜底值（此时「不传」最安全 ⇒ ASR 走自己的优先级）。
+_ASR_MIN_CLEAN_RATIO_DEFAULT, _ASR_MIN_CLEAN_RATIO_MOD = _asr_min_clean_ratio()
+
 # 🔴🔴🔴 §99（断链 A）：**ASR 侧判「段太短」的硬门槛**。
 #   ASR-029 的 `SpeakerTracker.on_final` 里：
 #     `if dur < self.min_dur_s:` ⇒ 返 `reason='too_short'`（或 `audio_not_buffered`）
@@ -461,6 +554,18 @@ class SpeakerBridge:
                 #   ⚠️ 研发机回退时**不传** ⇒ 用 ASR 自己的默认（硬编码本机路径）。
                 kwargs = dict(device=self.device, seg_device=self.seg_device,
                               thr=self._thr)
+                # 🔴🔴🔳 APP-076（ASR-050）：`min_clean_ratio` 的**传递口径**
+                #   ASR 侧的取值优先级（原文）：
+                #     ① **显式传值**（≠ ASR 代码默认值）⇒ 用传入值；
+                #     ② 其它情况 ⇒ **环境变量** `ASR_SPK_MIN_CLEAN_RATIO`；
+                #     ③ 再否则 ⇒ `DEFAULT_MIN_CLEAN_RATIO`。
+                #   ⇒ App 侧只有一种情况**必须显式传**：与 ASR 代码默认值不同
+                #     **App 的配置项 ≠ ASR 的代码默认值**（否则 ASR 侧的 env 会插队）。
+                #   ⇒ 其余情况**一律不传** ⇒ ASR 侧按自己的优先级走 ⇒ 口径一致。
+                if (_ASR_MIN_CLEAN_RATIO_DEFAULT is not None
+                        and abs(float(_MIN_CLEAN_RATIO)
+                                - float(_ASR_MIN_CLEAN_RATIO_DEFAULT)) > 1e-9):
+                    kwargs['min_clean_ratio'] = float(_MIN_CLEAN_RATIO)
                 if self._assets and self._assets.get('ok'):
                     kwargs['seg_ir'] = self._assets['seg_ir']
                     kwargs['wes_ir'] = self._assets['wes_ir']

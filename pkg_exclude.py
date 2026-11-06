@@ -79,6 +79,8 @@ __all__ = [
     'APP_DIR',
     'APP_DEV_ONLY_FILE_RE',
     'is_app_dev_only',
+    'BRIDGE_TOKEN_FILE_RE',
+    'is_bridge_token_file',
     'is_excluded',
     'iter_package_files',
     'package_stats',
@@ -206,6 +208,39 @@ INTERNAL_EXACT = (
 #   `results\`」）⇒ **保留** ⇒ 所以这里排除的是**子目录**
 #   `results/mt2_acc_outputs/`，**不是** `results/` 整体。
 MT2_ACC_OUTPUTS_DIR = 'results/mt2_acc_outputs/'
+
+# ══════════════════════════════════════════════════════════════════════
+# 🔴🔴🔴 APP-077 ①：**桥接固定 token 排除**（安全闸门）
+# ══════════════════════════════════════════════════════════════════════
+#
+# reviewer APP-077 原文：
+#   「以后的包（v2.3、MiniMVP 下一版，以及含 EXT 的任何包）都**不带**
+#     `bridge_token.txt`。改为首次启动时在用户目录随机生成」
+#
+# 🔴 **为什么必须排除**：
+#   v2.0 / v2.1 / v2.2 三个 zip 里的 `ext/bridge_token.txt` 是**同一个固定值**
+#   （SHA256 = a637f357500c55a4f9cab1291e0b4fb3966b000bfa62805ab49b35c1c82e8fd1，
+#     32 B）⇒ **任何拿到包的人都知道这个 token**
+#   ⇒ 本地桥接的 WebSocket 鉴权**形同虚设**。
+#   ⇒ 运行时改由 EXT 侧按 EXT-043 B7 生成在 `%LOCALAPPDATA%\LiveDubEXT\`。
+#
+# ⚠️ **规则按「文件名 + 任意层级」匹配**（不写死 `ext/` 前缀）：
+#   MiniMVP 下一版虽然不含 `ext/`，但万一某条拷贝路径把它带到别处，
+#   也能被拦住 ⇒ **纵深防御**。
+# ⚠️ **不误伤**：文件名精确等于 `bridge_token.txt` 才命中；
+#   其它含 "token" 字样的文件（模型 tokenizer 等）**不受影响**。
+BRIDGE_TOKEN_FILE_RE = re.compile(r'(^|/)bridge_token\.txt$', re.I)
+
+
+def is_bridge_token_file(relpath: str) -> bool:
+    """是不是**桥接鉴权 token 文件**（APP-077 ① ⇒ 绝不能进客户包）。
+
+    🔴 判定用「**文件名 + 任意层级**」，不写死 `ext/` 前缀：
+       v2.0/v2.1/v2.2 是 `ext/bridge_token.txt`，但下一版的拷贝链
+       可能把它带到别的位置 ⇒ 任何层级都拦。
+    ⚠️ 精确匹配 `bridge_token.txt` ⇒ 不误伤 `tokenizer_config.json` 等。
+    """
+    return bool(relpath) and bool(BRIDGE_TOKEN_FILE_RE.search(relpath))
 
 # ══════════════════════════════════════════════════════════════════════
 # 🔴 第三方自带素材排除（APP-018 第 2 条 + APP-019）
@@ -614,6 +649,11 @@ def is_excluded(relpath: str, top_dir: str = None) -> bool:
     if is_user_voice_artifact(relpath):
         return True
 
+    # 2.95) 🔴🔴🔴 桥接固定 token（APP-077 ① **安全闸门**）
+    #   ⇒ `bridge_token.txt` 绝不能进客户包（固定值 ⇒ 鉴权形同虚设）
+    if is_bridge_token_file(relpath):
+        return True
+
     # 3) __pycache__：python/ 下保留，其余排除
     if '__pycache__' in relpath.split('/'):
         return top_dir not in KEEP_PYCACHE_UNDER
@@ -701,6 +741,13 @@ def iter_package_files(pkg_root: str):
                 continue
             # 🔴🔴🔴 用户音色 / 克隆产物（APP-027⑤ 隐私闸门）—— 文件级
             if is_user_voice_artifact(rel):
+                continue
+            # 🔴🔴🔴 桥接固定 token（APP-077 ① 安全闸门）—— 文件级
+            #   ⚠️ 必须在这里**独立**拦一次：`iter_package_files` 不调用
+            #      `is_excluded()`（它用 prune + 文件级规则的独立实现），
+            #      而 pack_v13.py 正是用本函数生成 zip 清单 ⇒ 只改
+            #      `is_excluded()` 会**漏进包**（真实踩坑形态）。
+            if is_bridge_token_file(rel):
                 continue
             try:
                 size = os.path.getsize(full)

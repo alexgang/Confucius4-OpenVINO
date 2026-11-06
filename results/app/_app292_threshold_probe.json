@@ -1,0 +1,505 @@
+{
+ "script": "_app292_threshold_probe.py",
+ "correction": "APP-071 (c) 门槛选型（纯 CPU 只读探针）",
+ "seg_jsonl": {
+  "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app250_device_out\\tts_on_clone_1.seg.jsonl",
+  "n_rows": 42
+ },
+ "criteria": {
+  "reg_min_cont_s": 2.5,
+  "boundary_guard_s": 0.5,
+  "thresholds": [
+   0.3,
+   0.4,
+   0.5,
+   0.6,
+   0.7,
+   0.8,
+   0.9
+  ]
+ },
+ "switch_points": [
+  9.6,
+  113.65,
+  138.9,
+  227.2,
+  233.6,
+  248.4,
+  267.6,
+  274.0,
+  286.8
+ ],
+ "per_spk": {
+  "0.3": {
+   "S1": {
+    "n_segments": 16,
+    "first_seg": 0,
+    "first_seg_conf": 1.0,
+    "conf_max": 1.0,
+    "longest_cont_s": 48.1,
+    "meets_reg_min": true,
+    "used_segs": [
+     27,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33
+    ]
+   },
+   "S2": {
+    "n_segments": 17,
+    "first_seg": 1,
+    "first_seg_conf": 0.1292,
+    "conf_max": 0.9478,
+    "longest_cont_s": 83.2,
+    "meets_reg_min": true,
+    "used_segs": [
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14
+    ]
+   },
+   "S3": {
+    "n_segments": 7,
+    "first_seg": 18,
+    "first_seg_conf": 0.0602,
+    "conf_max": 0.9023,
+    "longest_cont_s": 18.2,
+    "meets_reg_min": true,
+    "used_segs": [
+     37,
+     38,
+     39
+    ]
+   },
+   "S4": {
+    "n_segments": 2,
+    "first_seg": 41,
+    "first_seg_conf": 0.3217,
+    "conf_max": 0.6718,
+    "longest_cont_s": 11.8,
+    "meets_reg_min": true,
+    "used_segs": [
+     41,
+     42
+    ]
+   }
+  },
+  "0.4": {
+   "S1": {
+    "n_segments": 16,
+    "first_seg": 0,
+    "first_seg_conf": 1.0,
+    "conf_max": 1.0,
+    "longest_cont_s": 48.1,
+    "meets_reg_min": true,
+    "used_segs": [
+     27,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33
+    ]
+   },
+   "S2": {
+    "n_segments": 17,
+    "first_seg": 1,
+    "first_seg_conf": 0.1292,
+    "conf_max": 0.9478,
+    "longest_cont_s": 64.0,
+    "meets_reg_min": true,
+    "used_segs": [
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14
+    ]
+   },
+   "S3": {
+    "n_segments": 7,
+    "first_seg": 18,
+    "first_seg_conf": 0.0602,
+    "conf_max": 0.9023,
+    "longest_cont_s": 18.2,
+    "meets_reg_min": true,
+    "used_segs": [
+     37,
+     38,
+     39
+    ]
+   },
+   "S4": {
+    "n_segments": 2,
+    "first_seg": 41,
+    "first_seg_conf": 0.3217,
+    "conf_max": 0.6718,
+    "longest_cont_s": 5.9,
+    "meets_reg_min": true,
+    "used_segs": [
+     42
+    ]
+   }
+  },
+  "0.5": {
+   "S1": {
+    "n_segments": 16,
+    "first_seg": 0,
+    "first_seg_conf": 1.0,
+    "conf_max": 1.0,
+    "longest_cont_s": 48.1,
+    "meets_reg_min": true,
+    "used_segs": [
+     27,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33
+    ]
+   },
+   "S2": {
+    "n_segments": 17,
+    "first_seg": 1,
+    "first_seg_conf": 0.1292,
+    "conf_max": 0.9478,
+    "longest_cont_s": 57.6,
+    "meets_reg_min": true,
+    "used_segs": [
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14
+    ]
+   },
+   "S3": {
+    "n_segments": 7,
+    "first_seg": 18,
+    "first_seg_conf": 0.0602,
+    "conf_max": 0.9023,
+    "longest_cont_s": 18.2,
+    "meets_reg_min": true,
+    "used_segs": [
+     37,
+     38,
+     39
+    ]
+   },
+   "S4": {
+    "n_segments": 2,
+    "first_seg": 41,
+    "first_seg_conf": 0.3217,
+    "conf_max": 0.6718,
+    "longest_cont_s": 5.9,
+    "meets_reg_min": true,
+    "used_segs": [
+     42
+    ]
+   }
+  },
+  "0.6": {
+   "S1": {
+    "n_segments": 16,
+    "first_seg": 0,
+    "first_seg_conf": 1.0,
+    "conf_max": 1.0,
+    "longest_cont_s": 48.1,
+    "meets_reg_min": true,
+    "used_segs": [
+     27,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33
+    ]
+   },
+   "S2": {
+    "n_segments": 17,
+    "first_seg": 1,
+    "first_seg_conf": 0.1292,
+    "conf_max": 0.9478,
+    "longest_cont_s": 57.6,
+    "meets_reg_min": true,
+    "used_segs": [
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14
+    ]
+   },
+   "S3": {
+    "n_segments": 7,
+    "first_seg": 18,
+    "first_seg_conf": 0.0602,
+    "conf_max": 0.9023,
+    "longest_cont_s": 18.2,
+    "meets_reg_min": true,
+    "used_segs": [
+     37,
+     38,
+     39
+    ]
+   },
+   "S4": {
+    "n_segments": 2,
+    "first_seg": 41,
+    "first_seg_conf": 0.3217,
+    "conf_max": 0.6718,
+    "longest_cont_s": 5.9,
+    "meets_reg_min": true,
+    "used_segs": [
+     42
+    ]
+   }
+  },
+  "0.7": {
+   "S1": {
+    "n_segments": 16,
+    "first_seg": 0,
+    "first_seg_conf": 1.0,
+    "conf_max": 1.0,
+    "longest_cont_s": 48.1,
+    "meets_reg_min": true,
+    "used_segs": [
+     27,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33
+    ]
+   },
+   "S2": {
+    "n_segments": 17,
+    "first_seg": 1,
+    "first_seg_conf": 0.1292,
+    "conf_max": 0.9478,
+    "longest_cont_s": 57.6,
+    "meets_reg_min": true,
+    "used_segs": [
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14
+    ]
+   },
+   "S3": {
+    "n_segments": 7,
+    "first_seg": 18,
+    "first_seg_conf": 0.0602,
+    "conf_max": 0.9023,
+    "longest_cont_s": 18.2,
+    "meets_reg_min": true,
+    "used_segs": [
+     37,
+     38,
+     39
+    ]
+   },
+   "S4": {
+    "n_segments": 2,
+    "first_seg": 41,
+    "first_seg_conf": 0.3217,
+    "conf_max": 0.6718,
+    "longest_cont_s": 0.0,
+    "meets_reg_min": false,
+    "used_segs": []
+   }
+  },
+  "0.8": {
+   "S1": {
+    "n_segments": 16,
+    "first_seg": 0,
+    "first_seg_conf": 1.0,
+    "conf_max": 1.0,
+    "longest_cont_s": 48.1,
+    "meets_reg_min": true,
+    "used_segs": [
+     27,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33
+    ]
+   },
+   "S2": {
+    "n_segments": 17,
+    "first_seg": 1,
+    "first_seg_conf": 0.1292,
+    "conf_max": 0.9478,
+    "longest_cont_s": 51.2,
+    "meets_reg_min": true,
+    "used_segs": [
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14
+    ]
+   },
+   "S3": {
+    "n_segments": 7,
+    "first_seg": 18,
+    "first_seg_conf": 0.0602,
+    "conf_max": 0.9023,
+    "longest_cont_s": 18.2,
+    "meets_reg_min": true,
+    "used_segs": [
+     37,
+     38,
+     39
+    ]
+   },
+   "S4": {
+    "n_segments": 2,
+    "first_seg": 41,
+    "first_seg_conf": 0.3217,
+    "conf_max": 0.6718,
+    "longest_cont_s": 0.0,
+    "meets_reg_min": false,
+    "used_segs": []
+   }
+  },
+  "0.9": {
+   "S1": {
+    "n_segments": 16,
+    "first_seg": 0,
+    "first_seg_conf": 1.0,
+    "conf_max": 1.0,
+    "longest_cont_s": 28.8,
+    "meets_reg_min": true,
+    "used_segs": [
+     28,
+     29,
+     30,
+     31
+    ]
+   },
+   "S2": {
+    "n_segments": 17,
+    "first_seg": 1,
+    "first_seg_conf": 0.1292,
+    "conf_max": 0.9478,
+    "longest_cont_s": 19.2,
+    "meets_reg_min": true,
+    "used_segs": [
+     8,
+     9,
+     10
+    ]
+   },
+   "S3": {
+    "n_segments": 7,
+    "first_seg": 18,
+    "first_seg_conf": 0.0602,
+    "conf_max": 0.9023,
+    "longest_cont_s": 6.4,
+    "meets_reg_min": true,
+    "used_segs": [
+     38
+    ]
+   },
+   "S4": {
+    "n_segments": 2,
+    "first_seg": 41,
+    "first_seg_conf": 0.3217,
+    "conf_max": 0.6718,
+    "longest_cont_s": 0.0,
+    "meets_reg_min": false,
+    "used_segs": []
+   }
+  }
+ },
+ "first_appearance": {
+  "S1": {
+   "first_seg": 0,
+   "first_seg_conf": 1.0,
+   "first_seg_is_switch_boundary": false,
+   "excluded_at": []
+  },
+  "S2": {
+   "first_seg": 1,
+   "first_seg_conf": 0.1292,
+   "first_seg_is_switch_boundary": true,
+   "excluded_at": [
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9
+   ]
+  },
+  "S3": {
+   "first_seg": 18,
+   "first_seg_conf": 0.0602,
+   "first_seg_is_switch_boundary": true,
+   "excluded_at": [
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9
+   ]
+  },
+  "S4": {
+   "first_seg": 41,
+   "first_seg_conf": 0.3217,
+   "first_seg_is_switch_boundary": true,
+   "excluded_at": [
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9
+   ]
+  }
+ }
+}

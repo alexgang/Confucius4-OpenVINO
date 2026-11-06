@@ -1,0 +1,383 @@
+{
+ "tool": "_app306_app078_babelvox_audit",
+ "app": "APP-078",
+ "ts": "2026-11-06 13:50:08",
+ "checks": [
+  {
+   "name": "v2.0 安装目录**确实带** 4 音色×2 格式 = 8 文件（reviewer 指控成立）",
+   "ok": true,
+   "detail": "8"
+  },
+  {
+   "name": "v2.0 交付 zip **不含**任何示例音色（APP-074 的 zip 结论成立）",
+   "ok": true,
+   "detail": "0"
+  },
+  {
+   "name": "v2.1 安装目录**确实带** 4 音色×2 格式 = 8 文件（reviewer 指控成立）",
+   "ok": true,
+   "detail": "8"
+  },
+  {
+   "name": "v2.1 交付 zip **不含**任何示例音色（APP-074 的 zip 结论成立）",
+   "ok": true,
+   "detail": "0"
+  },
+  {
+   "name": "v2.2 安装目录**确实带** 4 音色×2 格式 = 8 文件（reviewer 指控成立）",
+   "ok": true,
+   "detail": "8"
+  },
+  {
+   "name": "v2.2 交付 zip **不含**任何示例音色（APP-074 的 zip 结论成立）",
+   "ok": true,
+   "detail": "0"
+  },
+  {
+   "name": "三个目录里同名音色 SHA 逐字节全同",
+   "ok": true,
+   "detail": "{'python/Lib/site-packages/babelvox/data/speakers/cindy.json': 1, 'python/Lib/site-packages/babelvox/data/speakers/cindy.npy': 1, 'python/Lib/site-packages/babelvox/data/speakers/lou.json': 1, 'python/Lib/site-packages/babelvox/data/speakers/lou.npy': 1, 'python/Lib/site-packages/babelvox/data/speakers/phil.json': 1, 'python/Lib/site-packages/babelvox/data/speakers/phil.npy': 1, 'python/Lib/site-packages/babelvox/data/speakers/steve.json': 1, 'python/Lib/site-packages/babelvox/data/speakers/steve.npy': 1}"
+  },
+  {
+   "name": "v2.0 zip 里 babelvox **库代码**仍在（未误删库）",
+   "ok": true,
+   "detail": "40"
+  },
+  {
+   "name": "v2.1 zip 里 babelvox **库代码**仍在（未误删库）",
+   "ok": true,
+   "detail": "40"
+  },
+  {
+   "name": "v2.2 zip 里 babelvox **库代码**仍在（未误删库）",
+   "ok": true,
+   "detail": "40"
+  },
+  {
+   "name": "MiniMVP rev2 zip 不含示例音色",
+   "ok": true,
+   "detail": "0"
+  },
+  {
+   "name": "MiniMVP rev2 仍带 preset_A.wav（预设 A 不受影响）",
+   "ok": true,
+   "detail": "1"
+  },
+  {
+   "name": "pkg_exclude 已有 babelvox/data/speakers/ 排除规则",
+   "ok": true,
+   "detail": "('python/Lib/site-packages/babelvox/data/speakers/',)"
+  },
+  {
+   "name": "is_excluded(示例音色) == True",
+   "ok": true,
+   "detail": "python/Lib/site-packages/babelvox/data/speakers/cindy.npy"
+  },
+  {
+   "name": "iter_package_files 清单里 0 个示例音色",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "反证：去掉排除前缀 ⇒ 示例音色会进包（判据非恒真）",
+   "ok": true,
+   "detail": "is_excluded=False"
+  },
+  {
+   "name": "app206_app057_v20_stage.py 整目录复制（os.walk）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "app221_app061_v22_build.py 整目录复制（os.walk）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "根因：构建脚本复制时**未调用** pkg_exclude ⇒ 目录残留",
+   "ok": true,
+   "detail": "{'app206_app057_v20_stage.py': {'uses_os_walk_copy': True, 'applies_pkg_exclude_on_copy': False}, 'app221_app061_v22_build.py': {'uses_os_walk_copy': True, 'applies_pkg_exclude_on_copy': False}}"
+  },
+  {
+   "name": "tts_engine 有 builtin_speakers_available() 探测",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "v2.2 包内同名函数也在（不是只有 dev 树有）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "_SpeakerLibraryWithBuiltinFallback 用 os.path.isdir(base) 守卫",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "内置目录只读、不复制（copy_builtins=False）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "预设 A 路径来自 models/qwen3tts/voices/preset_A.wav",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "反证：去掉 isdir 守卫 ⇒ 判据能识破（非恒真）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "无内置音色时 builtin_speakers_available() 返回空",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "name": "无内置音色时包装对象正常构造（不崩）",
+   "ok": true,
+   "detail": "True"
+  },
+  {
+   "name": "无内置音色时 list_profiles() 返回 0 个音色",
+   "ok": true,
+   "detail": "0"
+  }
+ ],
+ "n_pass": 28,
+ "n_fail": 0,
+ "verdict": "PASS",
+ "dirs": {
+  "2.0": {
+   "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0",
+   "n": 8,
+   "files": [
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/cindy.json",
+     "bytes": 307,
+     "mtime": 1792666227.8111055,
+     "sha256": "eebf32802121d2c87334845dcb1e8b470f02ac85fecd15839bf45ef4a78c7751"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/cindy.npy",
+     "bytes": 4224,
+     "mtime": 1792666227.8122096,
+     "sha256": "a3bf1a752106f4279bec97da40a3d44ff9e3e41b2d4e304b20dd6cb88afbe382"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/lou.json",
+     "bytes": 314,
+     "mtime": 1792666227.814736,
+     "sha256": "6901ef6e3429bfd00acb1dd3731b3f5a3955ba77bed094c9ed169691de034715"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/lou.npy",
+     "bytes": 4224,
+     "mtime": 1792666227.8161967,
+     "sha256": "5e6a00d89a46a53e812e8b92ec0cd3a67522645223dc9a99db4aee19afea5536"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/phil.json",
+     "bytes": 315,
+     "mtime": 1792666227.818712,
+     "sha256": "3144f96d028594de7db783c9c0e796d8b9fd50051a30e425f4f88f6ef1aefb5c"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/phil.npy",
+     "bytes": 4224,
+     "mtime": 1792666227.8200126,
+     "sha256": "d913381ea0b8014a16cf167a969e1504fc414abf90479f09e170ea5643653ad9"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/steve.json",
+     "bytes": 313,
+     "mtime": 1792666227.821189,
+     "sha256": "0110df5ac28eb5c60346ed9eb65f38a35b5476fdc19dbb5eb133243198d64986"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/steve.npy",
+     "bytes": 4224,
+     "mtime": 1792666227.823532,
+     "sha256": "07fac8aaf3a85c7cd7afbf3eadb721d60bf40d25eeed4459a986004e1cc82606"
+    }
+   ]
+  },
+  "2.1": {
+   "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1",
+   "n": 8,
+   "files": [
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/cindy.json",
+     "bytes": 307,
+     "mtime": 1792666227.8111055,
+     "sha256": "eebf32802121d2c87334845dcb1e8b470f02ac85fecd15839bf45ef4a78c7751"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/cindy.npy",
+     "bytes": 4224,
+     "mtime": 1792666227.8122096,
+     "sha256": "a3bf1a752106f4279bec97da40a3d44ff9e3e41b2d4e304b20dd6cb88afbe382"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/lou.json",
+     "bytes": 314,
+     "mtime": 1792666227.814736,
+     "sha256": "6901ef6e3429bfd00acb1dd3731b3f5a3955ba77bed094c9ed169691de034715"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/lou.npy",
+     "bytes": 4224,
+     "mtime": 1792666227.8161967,
+     "sha256": "5e6a00d89a46a53e812e8b92ec0cd3a67522645223dc9a99db4aee19afea5536"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/phil.json",
+     "bytes": 315,
+     "mtime": 1792666227.818712,
+     "sha256": "3144f96d028594de7db783c9c0e796d8b9fd50051a30e425f4f88f6ef1aefb5c"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/phil.npy",
+     "bytes": 4224,
+     "mtime": 1792666227.8200126,
+     "sha256": "d913381ea0b8014a16cf167a969e1504fc414abf90479f09e170ea5643653ad9"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/steve.json",
+     "bytes": 313,
+     "mtime": 1792666227.821189,
+     "sha256": "0110df5ac28eb5c60346ed9eb65f38a35b5476fdc19dbb5eb133243198d64986"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/steve.npy",
+     "bytes": 4224,
+     "mtime": 1792666227.823532,
+     "sha256": "07fac8aaf3a85c7cd7afbf3eadb721d60bf40d25eeed4459a986004e1cc82606"
+    }
+   ]
+  },
+  "2.2": {
+   "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2",
+   "n": 8,
+   "files": [
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/cindy.json",
+     "bytes": 307,
+     "mtime": 1792666227.8111055,
+     "sha256": "eebf32802121d2c87334845dcb1e8b470f02ac85fecd15839bf45ef4a78c7751"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/cindy.npy",
+     "bytes": 4224,
+     "mtime": 1792666227.8122096,
+     "sha256": "a3bf1a752106f4279bec97da40a3d44ff9e3e41b2d4e304b20dd6cb88afbe382"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/lou.json",
+     "bytes": 314,
+     "mtime": 1792666227.814736,
+     "sha256": "6901ef6e3429bfd00acb1dd3731b3f5a3955ba77bed094c9ed169691de034715"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/lou.npy",
+     "bytes": 4224,
+     "mtime": 1792666227.8161967,
+     "sha256": "5e6a00d89a46a53e812e8b92ec0cd3a67522645223dc9a99db4aee19afea5536"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/phil.json",
+     "bytes": 315,
+     "mtime": 1792666227.818712,
+     "sha256": "3144f96d028594de7db783c9c0e796d8b9fd50051a30e425f4f88f6ef1aefb5c"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/phil.npy",
+     "bytes": 4224,
+     "mtime": 1792666227.8200126,
+     "sha256": "d913381ea0b8014a16cf167a969e1504fc414abf90479f09e170ea5643653ad9"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/steve.json",
+     "bytes": 313,
+     "mtime": 1792666227.821189,
+     "sha256": "0110df5ac28eb5c60346ed9eb65f38a35b5476fdc19dbb5eb133243198d64986"
+    },
+    {
+     "rel": "python/Lib/site-packages/babelvox/data/speakers/steve.npy",
+     "bytes": 4224,
+     "mtime": 1792666227.823532,
+     "sha256": "07fac8aaf3a85c7cd7afbf3eadb721d60bf40d25eeed4459a986004e1cc82606"
+    }
+   ]
+  }
+ },
+ "zips": {
+  "2.0": {
+   "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0.zip",
+   "n": 0,
+   "files": [],
+   "size": 11233134015,
+   "sha256": "8198924f9aed30010c0fb80f472278f322f160c9b63cbe7861001dbda056eed9",
+   "n_entries": 14317,
+   "n_babelvox_lib_entries": 40
+  },
+  "2.1": {
+   "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1.zip",
+   "n": 0,
+   "files": [],
+   "size": 11233135359,
+   "sha256": "835803a7246470faf0725a3f429b0339ccb6dac8ba7e1d1854176775e6cbaaa4",
+   "n_entries": 14317,
+   "n_babelvox_lib_entries": 40
+  },
+  "2.2": {
+   "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2.zip",
+   "n": 0,
+   "files": [],
+   "size": 11233149299,
+   "sha256": "ea5c5c850f8836a7edab982611cdd59d0ba0e83f8d5ff880cc797b7c67c23b75",
+   "n_entries": 14317,
+   "n_babelvox_lib_entries": 40
+  }
+ },
+ "minimvp": {
+  "path": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest_rev2.zip",
+  "n_speaker_files": 0,
+  "files": [],
+  "n_babelvox_lib_entries": 15,
+  "n_preset_a_wav": 1
+ },
+ "dir_signature": {
+  "python/Lib/site-packages/babelvox/data/speakers/cindy.json": "eebf32802121d2c87334845dcb1e8b470f02ac85fecd15839bf45ef4a78c7751",
+  "python/Lib/site-packages/babelvox/data/speakers/cindy.npy": "a3bf1a752106f4279bec97da40a3d44ff9e3e41b2d4e304b20dd6cb88afbe382",
+  "python/Lib/site-packages/babelvox/data/speakers/lou.json": "6901ef6e3429bfd00acb1dd3731b3f5a3955ba77bed094c9ed169691de034715",
+  "python/Lib/site-packages/babelvox/data/speakers/lou.npy": "5e6a00d89a46a53e812e8b92ec0cd3a67522645223dc9a99db4aee19afea5536",
+  "python/Lib/site-packages/babelvox/data/speakers/phil.json": "3144f96d028594de7db783c9c0e796d8b9fd50051a30e425f4f88f6ef1aefb5c",
+  "python/Lib/site-packages/babelvox/data/speakers/phil.npy": "d913381ea0b8014a16cf167a969e1504fc414abf90479f09e170ea5643653ad9",
+  "python/Lib/site-packages/babelvox/data/speakers/steve.json": "0110df5ac28eb5c60346ed9eb65f38a35b5476fdc19dbb5eb133243198d64986",
+  "python/Lib/site-packages/babelvox/data/speakers/steve.npy": "07fac8aaf3a85c7cd7afbf3eadb721d60bf40d25eeed4459a986004e1cc82606"
+ },
+ "root_cause": {
+  "app206_app057_v20_stage.py": {
+   "uses_os_walk_copy": true,
+   "applies_pkg_exclude_on_copy": false
+  },
+  "app221_app061_v22_build.py": {
+   "uses_os_walk_copy": true,
+   "applies_pkg_exclude_on_copy": false
+  }
+ },
+ "runtime_without_builtin": {
+  "skipped": false,
+  "rc": 0,
+  "stdout": "{\"avail\": [], \"builtin_is_none\": false, \"n_profiles\": 0, \"ok\": true}",
+  "stderr": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.",
+  "result": {
+   "avail": [],
+   "builtin_is_none": false,
+   "n_profiles": 0,
+   "ok": true
+  }
+ },
+ "conclusion": "APP-074 的结论**必须改正**：「v2.x 不违规」只对**交付 zip** 成立（3 个 zip 实测 0 个示例音色，因为 pack_v13.py 用 pkg_exclude 剔除）；但 v2.0/v2.1/v2.2 的**安装目录**各带 8 个第三方音色文件（cindy/lou/phil/steve 的 .json + .npy），用户从目录启动桥接就会由 SpeakerLibrary 加载 ⇒ reviewer 13:15 的实测**成立**，授权边界对「已安装目录」并不干净。根因：app206/app221 的 copy_tree 整目录复制未走 pkg_exclude。⇒ v2.3 起必须在**建目录阶段**也剔除（不能只依赖打包阶段）。预设 A 来自 Amphion metis，不依赖这 4 个音色（APP-073/074 的功能结论不变）。"
+}

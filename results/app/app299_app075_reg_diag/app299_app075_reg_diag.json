@@ -1,0 +1,857 @@
+{
+ "script": "_app299_reg_diag.py",
+ "correction": "APP-075(d) 登记诊断落盘",
+ "ts": "2026-11-06T10:43:46",
+ "mode": "offline_stat_embed",
+ "mode_note": "**纯 CPU 统计嵌入**（mel + 固定投影）⇒ 只用于相对比较与离线根因定位；**不能**替代 reviewer 的真 x-vector 判据。",
+ "criteria": {
+  "reg_conf_min": 0.5,
+  "reg_min_cont_s": 2.5,
+  "switch_guard_s": 0.5,
+  "cont_gap_tol_s": 0.5,
+  "ref_conf_min": 0.8,
+  "ref_min_s": 3.0,
+  "f0_male_max_hz": 160.0
+ },
+ "inputs": {
+  "app293": {
+   "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app293_label_overlap.json",
+   "bytes": 15140,
+   "sha256": "1f0f4a8a75fce918cc0c1cd830a1d9b1a7cce50498c385cff172ded72379abbb",
+   "n_rows": 42,
+   "note": "app293 设备实测逐段（seg/t0/t1/spk/spk_conf/实测 F0）"
+  },
+  "mix_wav": {
+   "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone\\SPE_mix_3303_3603.wav",
+   "bytes": 9600044,
+   "sha256": "2abad9d0e93753ccbc3197cdbd21deef86eedeafbf9846eaf3e7208eccef1e90",
+   "sr": 16000,
+   "dur_s": 300.0
+  }
+ },
+ "registered": {
+  "S1": {
+   "spk": "S1",
+   "n_qualified_runs": 4,
+   "qualified_runs": [
+    {
+     "a": 139.4,
+     "b": 174.1,
+     "dur_s": 34.7,
+     "segs": [
+      21,
+      22,
+      23,
+      24,
+      25
+     ]
+    },
+    {
+     "a": 178.6,
+     "b": 226.7,
+     "dur_s": 48.1,
+     "segs": [
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33
+     ]
+    },
+    {
+     "a": 234.1,
+     "b": 247.9,
+     "dur_s": 13.8,
+     "segs": [
+      35,
+      36
+     ]
+    },
+    {
+     "a": 268.1,
+     "b": 273.5,
+     "dur_s": 5.4,
+     "segs": [
+      40
+     ]
+    }
+   ],
+   "registration_ticket": [
+    [
+     178.6,
+     226.7
+    ]
+   ],
+   "registration_key": [
+    178.6,
+    226.7,
+    48.1
+   ],
+   "n_segments_of_spk": 16,
+   "segments": [
+    {
+     "seg": 0,
+     "t0": 7.1,
+     "t1": 9.6,
+     "spk_conf": 1.0,
+     "measured_f0_median_hz": 179.78,
+     "measured_class": "female"
+    },
+    {
+     "seg": 21,
+     "t0": 138.9,
+     "t1": 146.6,
+     "spk_conf": 0.7707,
+     "measured_f0_median_hz": 202.53,
+     "measured_class": "female"
+    },
+    {
+     "seg": 22,
+     "t0": 146.6,
+     "t1": 153.6,
+     "spk_conf": 0.8701,
+     "measured_f0_median_hz": 183.91,
+     "measured_class": "female"
+    },
+    {
+     "seg": 23,
+     "t0": 153.6,
+     "t1": 160.0,
+     "spk_conf": 0.9294,
+     "measured_f0_median_hz": 186.05,
+     "measured_class": "female"
+    },
+    {
+     "seg": 24,
+     "t0": 160.0,
+     "t1": 167.7,
+     "spk_conf": 0.9277,
+     "measured_f0_median_hz": 192.77,
+     "measured_class": "female"
+    },
+    {
+     "seg": 25,
+     "t0": 167.7,
+     "t1": 174.1,
+     "spk_conf": 0.8425,
+     "measured_f0_median_hz": 225.35,
+     "measured_class": "female"
+    },
+    {
+     "seg": 27,
+     "t0": 178.6,
+     "t1": 185.0,
+     "spk_conf": 0.8905,
+     "measured_f0_median_hz": 222.22,
+     "measured_class": "female"
+    },
+    {
+     "seg": 28,
+     "t0": 185.0,
+     "t1": 194.6,
+     "spk_conf": 0.9264,
+     "measured_f0_median_hz": 188.24,
+     "measured_class": "female"
+    },
+    {
+     "seg": 29,
+     "t0": 194.6,
+     "t1": 201.0,
+     "spk_conf": 0.9,
+     "measured_f0_median_hz": 188.24,
+     "measured_class": "female"
+    },
+    {
+     "seg": 30,
+     "t0": 201.0,
+     "t1": 207.4,
+     "spk_conf": 0.9116,
+     "measured_f0_median_hz": 207.79,
+     "measured_class": "female"
+    },
+    {
+     "seg": 31,
+     "t0": 207.4,
+     "t1": 213.8,
+     "spk_conf": 0.9142,
+     "measured_f0_median_hz": 238.81,
+     "measured_class": "female"
+    },
+    {
+     "seg": 32,
+     "t0": 213.8,
+     "t1": 220.2,
+     "spk_conf": 0.8997,
+     "measured_f0_median_hz": 206.46,
+     "measured_class": "female"
+    },
+    {
+     "seg": 33,
+     "t0": 220.2,
+     "t1": 227.2,
+     "spk_conf": 0.9197,
+     "measured_f0_median_hz": 183.91,
+     "measured_class": "female"
+    },
+    {
+     "seg": 35,
+     "t0": 233.6,
+     "t1": 240.0,
+     "spk_conf": 0.865,
+     "measured_f0_median_hz": 213.33,
+     "measured_class": "female"
+    },
+    {
+     "seg": 36,
+     "t0": 240.0,
+     "t1": 248.4,
+     "spk_conf": 0.9254,
+     "measured_f0_median_hz": 202.53,
+     "measured_class": "female"
+    },
+    {
+     "seg": 40,
+     "t0": 267.6,
+     "t1": 274.0,
+     "spk_conf": 0.5945,
+     "measured_f0_median_hz": 225.35,
+     "measured_class": "female"
+    }
+   ],
+   "registered_run": {
+    "a_s": 178.6,
+    "b_s": 226.7,
+    "dur_s": 48.1,
+    "segs": [
+     27,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33
+    ],
+    "spk_conf_of_segs": [
+     0.8905,
+     0.9264,
+     0.9,
+     0.9116,
+     0.9142,
+     0.8997,
+     0.9197
+    ],
+    "f0_median_hz": 206.46,
+    "f0_min_hz": 183.91,
+    "f0_max_hz": 238.81,
+    "presumed_class": "high_f0_female_presumed",
+    "ref_pcm_wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app299_app075_reg_diag\\regpcm_S1.wav",
+    "ref_pcm_wav_bytes": 320044,
+    "ref_pcm_s": 10.0
+   },
+   "xvector_npy": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app299_app075_reg_diag\\xvec_S1.npy",
+   "xvector_npy_bytes": 4224,
+   "xvector_shape": [
+    1,
+    1024
+   ]
+  },
+  "S2": {
+   "spk": "S2",
+   "n_qualified_runs": 4,
+   "qualified_runs": [
+    {
+     "a": 19.2,
+     "b": 32.0,
+     "dur_s": 12.8,
+     "segs": [
+      2,
+      3
+     ]
+    },
+    {
+     "a": 44.8,
+     "b": 102.4,
+     "dur_s": 57.6,
+     "segs": [
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14
+     ]
+    },
+    {
+     "a": 105.0,
+     "b": 111.4,
+     "dur_s": 6.4,
+     "segs": [
+      16
+     ]
+    },
+    {
+     "a": 287.3,
+     "b": 300.0,
+     "dur_s": 12.7,
+     "segs": [
+      43,
+      44
+     ]
+    }
+   ],
+   "registration_ticket": [
+    [
+     44.8,
+     102.4
+    ]
+   ],
+   "registration_key": [
+    44.8,
+    102.4,
+    57.6
+   ],
+   "n_segments_of_spk": 17,
+   "segments": [
+    {
+     "seg": 1,
+     "t0": 9.6,
+     "t1": 19.2,
+     "spk_conf": 0.1292,
+     "measured_f0_median_hz": 197.53,
+     "measured_class": "female"
+    },
+    {
+     "seg": 2,
+     "t0": 19.2,
+     "t1": 25.6,
+     "spk_conf": 0.8996,
+     "measured_f0_median_hz": 175.82,
+     "measured_class": "female"
+    },
+    {
+     "seg": 3,
+     "t0": 25.6,
+     "t1": 32.0,
+     "spk_conf": 0.9104,
+     "measured_f0_median_hz": 188.24,
+     "measured_class": "female"
+    },
+    {
+     "seg": 4,
+     "t0": 32.0,
+     "t1": 38.4,
+     "spk_conf": 0.3757,
+     "measured_f0_median_hz": 168.42,
+     "measured_class": "mid_or_none"
+    },
+    {
+     "seg": 5,
+     "t0": 38.4,
+     "t1": 44.8,
+     "spk_conf": 0.4016,
+     "measured_f0_median_hz": 108.84,
+     "measured_class": "male"
+    },
+    {
+     "seg": 6,
+     "t0": 44.8,
+     "t1": 51.2,
+     "spk_conf": 0.7298,
+     "measured_f0_median_hz": 108.11,
+     "measured_class": "male"
+    },
+    {
+     "seg": 7,
+     "t0": 51.2,
+     "t1": 57.6,
+     "spk_conf": 0.856,
+     "measured_f0_median_hz": 100.63,
+     "measured_class": "male"
+    },
+    {
+     "seg": 8,
+     "t0": 57.6,
+     "t1": 64.0,
+     "spk_conf": 0.9216,
+     "measured_f0_median_hz": 116.79,
+     "measured_class": "male"
+    },
+    {
+     "seg": 9,
+     "t0": 64.0,
+     "t1": 70.4,
+     "spk_conf": 0.9027,
+     "measured_f0_median_hz": 106.67,
+     "measured_class": "male"
+    },
+    {
+     "seg": 10,
+     "t0": 70.4,
+     "t1": 76.8,
+     "spk_conf": 0.9175,
+     "measured_f0_median_hz": 129.03,
+     "measured_class": "male"
+    },
+    {
+     "seg": 11,
+     "t0": 76.8,
+     "t1": 83.2,
+     "spk_conf": 0.8889,
+     "measured_f0_median_hz": 134.45,
+     "measured_class": "male"
+    },
+    {
+     "seg": 12,
+     "t0": 83.2,
+     "t1": 89.6,
+     "spk_conf": 0.8525,
+     "measured_f0_median_hz": 104.58,
+     "measured_class": "male"
+    },
+    {
+     "seg": 13,
+     "t0": 89.6,
+     "t1": 96.0,
+     "spk_conf": 0.9478,
+     "measured_f0_median_hz": 114.29,
+     "measured_class": "male"
+    },
+    {
+     "seg": 14,
+     "t0": 96.0,
+     "t1": 102.4,
+     "spk_conf": 0.9218,
+     "measured_f0_median_hz": 124.52,
+     "measured_class": "male"
+    },
+    {
+     "seg": 16,
+     "t0": 105.0,
+     "t1": 111.4,
+     "spk_conf": 0.8285,
+     "measured_f0_median_hz": 113.08,
+     "measured_class": "male"
+    },
+    {
+     "seg": 43,
+     "t0": 286.8,
+     "t1": 293.8,
+     "spk_conf": 0.8463,
+     "measured_f0_median_hz": 157.64,
+     "measured_class": "male"
+    },
+    {
+     "seg": 44,
+     "t0": 293.8,
+     "t1": 300.0,
+     "spk_conf": 0.8715,
+     "measured_f0_median_hz": 105.96,
+     "measured_class": "male"
+    }
+   ],
+   "registered_run": {
+    "a_s": 44.8,
+    "b_s": 102.4,
+    "dur_s": 57.6,
+    "segs": [
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14
+    ],
+    "spk_conf_of_segs": [
+     0.7298,
+     0.856,
+     0.9216,
+     0.9027,
+     0.9175,
+     0.8889,
+     0.8525,
+     0.9478,
+     0.9218
+    ],
+    "f0_median_hz": 114.29,
+    "f0_min_hz": 100.63,
+    "f0_max_hz": 134.45,
+    "presumed_class": "low_f0_male_presumed",
+    "ref_pcm_wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app299_app075_reg_diag\\regpcm_S2.wav",
+    "ref_pcm_wav_bytes": 320044,
+    "ref_pcm_s": 10.0
+   },
+   "xvector_npy": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app299_app075_reg_diag\\xvec_S2.npy",
+   "xvector_npy_bytes": 4224,
+   "xvector_shape": [
+    1,
+    1024
+   ]
+  },
+  "S3": {
+   "spk": "S3",
+   "n_qualified_runs": 3,
+   "qualified_runs": [
+    {
+     "a": 122.3,
+     "b": 138.4,
+     "dur_s": 16.1,
+     "segs": [
+      19,
+      20
+     ]
+    },
+    {
+     "a": 227.7,
+     "b": 233.1,
+     "dur_s": 5.4,
+     "segs": [
+      34
+     ]
+    },
+    {
+     "a": 248.9,
+     "b": 267.1,
+     "dur_s": 18.2,
+     "segs": [
+      37,
+      38,
+      39
+     ]
+    }
+   ],
+   "registration_ticket": [
+    [
+     248.9,
+     267.1
+    ]
+   ],
+   "registration_key": [
+    248.9,
+    267.1,
+    18.2
+   ],
+   "n_segments_of_spk": 7,
+   "segments": [
+    {
+     "seg": 18,
+     "t0": 115.9,
+     "t1": 122.3,
+     "spk_conf": 0.0602,
+     "measured_f0_median_hz": 210.53,
+     "measured_class": "female"
+    },
+    {
+     "seg": 19,
+     "t0": 122.3,
+     "t1": 132.5,
+     "spk_conf": 0.8457,
+     "measured_f0_median_hz": 202.53,
+     "measured_class": "female"
+    },
+    {
+     "seg": 20,
+     "t0": 132.5,
+     "t1": 138.9,
+     "spk_conf": 0.8996,
+     "measured_f0_median_hz": 192.77,
+     "measured_class": "female"
+    },
+    {
+     "seg": 34,
+     "t0": 227.2,
+     "t1": 233.6,
+     "spk_conf": 0.9023,
+     "measured_f0_median_hz": 205.13,
+     "measured_class": "female"
+    },
+    {
+     "seg": 37,
+     "t0": 248.4,
+     "t1": 254.8,
+     "spk_conf": 0.8096,
+     "measured_f0_median_hz": 222.22,
+     "measured_class": "female"
+    },
+    {
+     "seg": 38,
+     "t0": 254.8,
+     "t1": 261.2,
+     "spk_conf": 0.9023,
+     "measured_f0_median_hz": 213.33,
+     "measured_class": "female"
+    },
+    {
+     "seg": 39,
+     "t0": 261.2,
+     "t1": 267.6,
+     "spk_conf": 0.8817,
+     "measured_f0_median_hz": 210.53,
+     "measured_class": "female"
+    }
+   ],
+   "registered_run": {
+    "a_s": 248.9,
+    "b_s": 267.1,
+    "dur_s": 18.2,
+    "segs": [
+     37,
+     38,
+     39
+    ],
+    "spk_conf_of_segs": [
+     0.8096,
+     0.9023,
+     0.8817
+    ],
+    "f0_median_hz": 213.33,
+    "f0_min_hz": 210.53,
+    "f0_max_hz": 222.22,
+    "presumed_class": "high_f0_female_presumed",
+    "ref_pcm_wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app299_app075_reg_diag\\regpcm_S3.wav",
+    "ref_pcm_wav_bytes": 320044,
+    "ref_pcm_s": 10.0
+   },
+   "xvector_npy": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app299_app075_reg_diag\\xvec_S3.npy",
+   "xvector_npy_bytes": 4224,
+   "xvector_shape": [
+    1,
+    1024
+   ]
+  },
+  "S4": {
+   "spk": "S4",
+   "n_qualified_runs": 1,
+   "qualified_runs": [
+    {
+     "a": 280.4,
+     "b": 286.3,
+     "dur_s": 5.9,
+     "segs": [
+      42
+     ]
+    }
+   ],
+   "registration_ticket": [
+    [
+     280.4,
+     286.3
+    ]
+   ],
+   "registration_key": [
+    280.4,
+    286.3,
+    5.9
+   ],
+   "n_segments_of_spk": 2,
+   "segments": [
+    {
+     "seg": 41,
+     "t0": 274.0,
+     "t1": 280.4,
+     "spk_conf": 0.3217,
+     "measured_f0_median_hz": 202.53,
+     "measured_class": "female"
+    },
+    {
+     "seg": 42,
+     "t0": 280.4,
+     "t1": 286.8,
+     "spk_conf": 0.6718,
+     "measured_f0_median_hz": 179.78,
+     "measured_class": "female"
+    }
+   ],
+   "registered_run": {
+    "a_s": 280.4,
+    "b_s": 286.3,
+    "dur_s": 5.9,
+    "segs": [
+     42
+    ],
+    "spk_conf_of_segs": [
+     0.6718
+    ],
+    "f0_median_hz": 179.78,
+    "f0_min_hz": 179.78,
+    "f0_max_hz": 179.78,
+    "presumed_class": "high_f0_female_presumed",
+    "ref_pcm_wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app299_app075_reg_diag\\regpcm_S4.wav",
+    "ref_pcm_wav_bytes": 188844,
+    "ref_pcm_s": 5.9
+   },
+   "xvector_npy": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app299_app075_reg_diag\\xvec_S4.npy",
+   "xvector_npy_bytes": 4224,
+   "xvector_shape": [
+    1,
+    1024
+   ]
+  }
+ },
+ "original_refs": {
+  "S1": {
+   "spk": "S1",
+   "seg": 28,
+   "t0": 185.0,
+   "t1": 194.6,
+   "dur_s": 9.6,
+   "spk_conf": 0.9264,
+   "f0_median_hz": 188.24,
+   "presumed_class": "high_f0_female_presumed",
+   "xvector_npy": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app299_app075_reg_diag\\ref_S1.npy",
+   "xvector_npy_bytes": 4224
+  },
+  "S2": {
+   "spk": "S2",
+   "seg": 43,
+   "t0": 286.8,
+   "t1": 293.8,
+   "dur_s": 7.0,
+   "spk_conf": 0.8463,
+   "f0_median_hz": 160.02,
+   "presumed_class": "high_f0_female_presumed",
+   "xvector_npy": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app299_app075_reg_diag\\ref_S2.npy",
+   "xvector_npy_bytes": 4224
+  },
+  "S3": {
+   "spk": "S3",
+   "seg": 19,
+   "t0": 122.3,
+   "t1": 132.5,
+   "dur_s": 10.2,
+   "spk_conf": 0.8457,
+   "f0_median_hz": 202.53,
+   "presumed_class": "high_f0_female_presumed",
+   "xvector_npy": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app299_app075_reg_diag\\ref_S3.npy",
+   "xvector_npy_bytes": 4224
+  }
+ },
+ "cosine_matrix": {
+  "rows": "登记（registered）",
+  "cols": "原声参考（original_refs）",
+  "keys": [
+   "S1",
+   "S2",
+   "S3",
+   "S4"
+  ],
+  "matrix": {
+   "S1": {
+    "S1": 0.804827,
+    "S2": 0.545746,
+    "S3": 0.744846,
+    "S4": null
+   },
+   "S2": {
+    "S1": 0.772995,
+    "S2": 0.745841,
+    "S3": 0.762615,
+    "S4": null
+   },
+   "S3": {
+    "S1": 0.717462,
+    "S2": 0.839014,
+    "S3": 0.782099,
+    "S4": null
+   },
+   "S4": {
+    "S1": 0.761062,
+    "S2": 0.349097,
+    "S3": 0.734724,
+    "S4": null
+   }
+  }
+ },
+ "judgement": [
+  {
+   "name": "每个 spk 都有「登记所用的那一段」诊断",
+   "verdict": true,
+   "detail": {
+    "n_spk": 4,
+    "missing": []
+   }
+  },
+  {
+   "name": "每个登记都有参考 PCM wav ＋ x-vector npy",
+   "verdict": true,
+   "detail": {
+    "missing": []
+   }
+  },
+  {
+   "name": "x-vector 余弦矩阵（S×S）完整",
+   "verdict": true,
+   "detail": {
+    "keys": [
+     "S1",
+     "S2",
+     "S3",
+     "S4"
+    ]
+   }
+  },
+  {
+   "name": "【reviewer 硬判据】S2 登记向量对原声 S2 的余弦 > 对其它说话人",
+   "verdict": false,
+   "detail": {
+    "cos_S2_S2": 0.745841,
+    "others": {
+     "S1": 0.772995,
+     "S2": 0.745841,
+     "S3": 0.762615,
+     "S4": null
+    }
+   }
+  },
+  {
+   "name": "S2 登记段的实测 F0 中位 < 160 Hz（= 男声 ⇒ 登记对了人）",
+   "verdict": true,
+   "detail": {
+    "f0_median_hz": 114.29,
+    "f0_max_hz": 134.45,
+    "segs": [
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14
+    ],
+    "a_s": 44.8,
+    "b_s": 102.4
+   }
+  },
+  {
+   "name": "【反证】把 S2 登记向量换成 S1 ⇒ 对原声 S2 的余弦下降 ⇒ 判据④能识破（非恒真）",
+   "verdict": true,
+   "detail": {
+    "real_S2_S2": 0.745841,
+    "fake_S1_S2": 0.545746
+   }
+  }
+ ],
+ "n_pass": 5,
+ "n_fail": 1,
+ "verdict": "FAIL",
+ "switch_points": [
+  9.6,
+  113.65,
+  138.9,
+  227.2,
+  233.6,
+  248.4,
+  267.6,
+  274.0,
+  286.8
+ ]
+}

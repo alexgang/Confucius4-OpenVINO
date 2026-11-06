@@ -1,0 +1,346 @@
+{
+ "tool": "_app304_app076_md5_audit",
+ "app": "APP-076",
+ "ts": "2026-11-06 13:40:34",
+ "handoff": "status/asr/notes/asr_for_app_asr050_handoff.md",
+ "checks": [
+  {
+   "name": "ASR 源 asr052_speaker_tracker_api.py md5 == 交接单",
+   "ok": true,
+   "detail": "61be393ce6343bfa63892ce0c35f5c44"
+  },
+  {
+   "name": "影子包 asr052_speaker_tracker_api.py md5 == 交接单",
+   "ok": true,
+   "detail": "61be393ce6343bfa63892ce0c35f5c44"
+  },
+  {
+   "name": "ASR 源 asr052_spk_runtime.py md5 == 交接单",
+   "ok": true,
+   "detail": "2ff82933edec80becd01f9d28d202ea6"
+  },
+  {
+   "name": "影子包 asr052_spk_runtime.py md5 == 交接单",
+   "ok": true,
+   "detail": "2ff82933edec80becd01f9d28d202ea6"
+  },
+  {
+   "name": "ASR 源 asr_thread_defaults.py md5 == 交接单",
+   "ok": true,
+   "detail": "0482f9c49105490ac219194c2fa7c184"
+  },
+  {
+   "name": "影子包 asr_thread_defaults.py md5 == 交接单",
+   "ok": true,
+   "detail": "0482f9c49105490ac219194c2fa7c184"
+  },
+  {
+   "name": "ASR 源 asr_spk_window.py md5 == 交接单",
+   "ok": true,
+   "detail": "7d719e1d7f251be9ce68503be4361807"
+  },
+  {
+   "name": "影子包 asr_spk_window.py md5 == 交接单",
+   "ok": true,
+   "detail": "7d719e1d7f251be9ce68503be4361807"
+  },
+  {
+   "name": "ASR 源 asr_runtime_switches.py md5 == 交接单",
+   "ok": true,
+   "detail": "7f12e9a5575d7a88cafcd3f54689e326"
+  },
+  {
+   "name": "影子包 asr_runtime_switches.py md5 == 交接单",
+   "ok": true,
+   "detail": "7f12e9a5575d7a88cafcd3f54689e326"
+  },
+  {
+   "name": "v2.2 旧包仍是 3 个文件（未被本轮原地修改）",
+   "ok": true,
+   "detail": "['asr052_speaker_tracker_api.py', 'asr052_spk_runtime.py', 'asr_thread_defaults.py']"
+  },
+  {
+   "name": "ASR_FILES 可静态解析",
+   "ok": true,
+   "detail": "['asr052_speaker_tracker_api.py', 'asr052_spk_runtime.py', 'asr_thread_defaults.py', 'asr_spk_window.py', 'asr_runtime_switches.py']"
+  },
+  {
+   "name": "ASR_FILES == 5 项",
+   "ok": true,
+   "detail": "['asr052_speaker_tracker_api.py', 'asr052_spk_runtime.py', 'asr_thread_defaults.py', 'asr_spk_window.py', 'asr_runtime_switches.py']"
+  },
+  {
+   "name": "ASR_FILES 覆盖交接单全部 5 个文件",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "name": "ASR_FILES 含 asr_runtime_switches.py",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "app193 真实正则能抓到默认门限",
+   "ok": true,
+   "detail": "0.6"
+  },
+  {
+   "name": "app193 **第一个**匹配 == 0.6（真默认值，未漂移回 0.8）",
+   "ok": true,
+   "detail": "0.6"
+  },
+  {
+   "name": "反证：把签名默认值改成 0.8 ⇒ app193 正则读到 0.8（判据非恒真）",
+   "ok": true,
+   "detail": "0.8"
+  },
+  {
+   "name": "模块级 DEFAULT_MIN_CLEAN_RATIO == 0.6",
+   "ok": true,
+   "detail": "0.6"
+  },
+  {
+   "name": "App 侧环境变量名正确",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "存在 _asr_min_clean_ratio() 静态解析函数",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "AST 解析函数内部不 import ASR 模块（零重依赖）",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "name": "App 侧用 AST 读 ASR 常量",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "App 侧有「与 ASR 默认值不同才显式传」分支",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "运行时 _MIN_CLEAN_RATIO == 0.6",
+   "ok": true,
+   "detail": "0.6 / 同源 asr052_speaker_tracker_api.DEFAULT_MIN_CLEAN_RATIO=0.6"
+  },
+  {
+   "name": "运行时同源标记指向 ASR 常量",
+   "ok": true,
+   "detail": "同源 asr052_speaker_tracker_api.DEFAULT_MIN_CLEAN_RATIO=0.6"
+  },
+  {
+   "name": "env LIVECAP_SPK_MIN_CLEAN_RATIO=0.75 能覆盖",
+   "ok": true,
+   "detail": "0.75"
+  },
+  {
+   "name": "WIN_S 仍为 5.0（同源未被破坏）",
+   "ok": true,
+   "detail": "None"
+  },
+  {
+   "name": "REG_CONF_MIN == 0.5（未放宽）",
+   "ok": true,
+   "detail": "0.5"
+  },
+  {
+   "name": "REG_MIN_CONT_S == 2.5（未放宽）",
+   "ok": true,
+   "detail": "2.5"
+  },
+  {
+   "name": "SWITCH_GUARD_S == 0.5（未放宽）",
+   "ok": true,
+   "detail": "0.5"
+  },
+  {
+   "name": "CONT_GAP_TOL_S == 0.5（未放宽）",
+   "ok": true,
+   "detail": "0.5"
+  },
+  {
+   "name": "反证：把 REG_CONF_MIN 改成 0.3 ⇒ 判据会 FAIL（非恒真）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "MiniMVP FORBIDDEN_DIRS 含 ext ⇒ 不带 EXT",
+   "ok": true,
+   "detail": "('ext', 'cuda', 'results', 'docs')"
+  },
+  {
+   "name": "MiniMVP zip 可读",
+   "ok": true,
+   "detail": "10474 条目"
+  },
+  {
+   "name": "MiniMVP 无 app/asr_spk/（旁路内核不在包内）",
+   "ok": true,
+   "detail": "0"
+  },
+  {
+   "name": "MiniMVP 无 models/spk/（旁路模型不在包内）",
+   "ok": true,
+   "detail": "0"
+  },
+  {
+   "name": "MiniMVP 无 ext/",
+   "ok": true,
+   "detail": "0"
+  },
+  {
+   "name": "MiniMVP 仍带 3 个旁路代码文件（如实记录，不写「完全没有」）",
+   "ok": true,
+   "detail": "3"
+  }
+ ],
+ "n_pass": 39,
+ "n_fail": 0,
+ "verdict": "PASS",
+ "md5_table": [
+  {
+   "file": "asr052_speaker_tracker_api.py",
+   "handoff_md5": "61be393ce6343bfa63892ce0c35f5c44",
+   "asr_source": {
+    "path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\scripts\\asr052_speaker_tracker_api.py",
+    "bytes": 33478,
+    "md5": "61be393ce6343bfa63892ce0c35f5c44",
+    "mtime": 1793928019.1443422
+   },
+   "shadow": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\app\\asr_spk\\asr052_speaker_tracker_api.py",
+    "bytes": 33478,
+    "md5": "61be393ce6343bfa63892ce0c35f5c44",
+    "mtime": 1793928019.1443422
+   },
+   "v22_pkg": {
+    "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app\\asr_spk\\asr052_speaker_tracker_api.py",
+    "bytes": 24326,
+    "md5": "e6826be3c8aabd518bbd73f8aa3cc41b",
+    "mtime": 1793331764.8121276
+   }
+  },
+  {
+   "file": "asr052_spk_runtime.py",
+   "handoff_md5": "2ff82933edec80becd01f9d28d202ea6",
+   "asr_source": {
+    "path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\scripts\\asr052_spk_runtime.py",
+    "bytes": 29825,
+    "md5": "2ff82933edec80becd01f9d28d202ea6",
+    "mtime": 1793765186.1238744
+   },
+   "shadow": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\app\\asr_spk\\asr052_spk_runtime.py",
+    "bytes": 29825,
+    "md5": "2ff82933edec80becd01f9d28d202ea6",
+    "mtime": 1793765186.1238744
+   },
+   "v22_pkg": {
+    "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app\\asr_spk\\asr052_spk_runtime.py",
+    "bytes": 23565,
+    "md5": "3e76ff915de69af63970f892bafb2efc",
+    "mtime": 1793332781.6544473
+   }
+  },
+  {
+   "file": "asr_thread_defaults.py",
+   "handoff_md5": "0482f9c49105490ac219194c2fa7c184",
+   "asr_source": {
+    "path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\scripts\\asr_thread_defaults.py",
+    "bytes": 2843,
+    "md5": "0482f9c49105490ac219194c2fa7c184",
+    "mtime": 1793324960.2109406
+   },
+   "shadow": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\app\\asr_spk\\asr_thread_defaults.py",
+    "bytes": 2843,
+    "md5": "0482f9c49105490ac219194c2fa7c184",
+    "mtime": 1793324960.2109406
+   },
+   "v22_pkg": {
+    "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app\\asr_spk\\asr_thread_defaults.py",
+    "bytes": 2843,
+    "md5": "0482f9c49105490ac219194c2fa7c184",
+    "mtime": 1793324960.2109406
+   }
+  },
+  {
+   "file": "asr_spk_window.py",
+   "handoff_md5": "7d719e1d7f251be9ce68503be4361807",
+   "asr_source": {
+    "path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\scripts\\asr_spk_window.py",
+    "bytes": 8738,
+    "md5": "7d719e1d7f251be9ce68503be4361807",
+    "mtime": 1793764557.2807088
+   },
+   "shadow": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\app\\asr_spk\\asr_spk_window.py",
+    "bytes": 8738,
+    "md5": "7d719e1d7f251be9ce68503be4361807",
+    "mtime": 1793764557.2807088
+   },
+   "v22_pkg": null
+  },
+  {
+   "file": "asr_runtime_switches.py",
+   "handoff_md5": "7f12e9a5575d7a88cafcd3f54689e326",
+   "asr_source": {
+    "path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\scripts\\asr_runtime_switches.py",
+    "bytes": 13721,
+    "md5": "7f12e9a5575d7a88cafcd3f54689e326",
+    "mtime": 1793842499.8663044
+   },
+   "shadow": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\app067_shadow\\app\\asr_spk\\asr_runtime_switches.py",
+    "bytes": 13721,
+    "md5": "7f12e9a5575d7a88cafcd3f54689e326",
+    "mtime": 1793842499.8663044
+   },
+   "v22_pkg": null
+  }
+ ],
+ "asr_files": [
+  "asr052_speaker_tracker_api.py",
+  "asr052_spk_runtime.py",
+  "asr_thread_defaults.py",
+  "asr_spk_window.py",
+  "asr_runtime_switches.py"
+ ],
+ "constants": {
+  "MIN_S": 1.5,
+  "REFINE_S": 3.0,
+  "REG_CONF_MIN": 0.5,
+  "REG_MIN_CONT_S": 2.5,
+  "SWITCH_GUARD_S": 0.5,
+  "CONT_GAP_TOL_S": 0.5,
+  "MAX_PER_SPK_S": 10.0,
+  "SR": 16000,
+  "__all__": [
+   "SpeakerVoiceTable",
+   "MIN_S",
+   "REFINE_S",
+   "MAX_PER_SPK_S",
+   "SR",
+   "REG_CONF_MIN",
+   "REG_MIN_CONT_S",
+   "SWITCH_GUARD_S",
+   "CONT_GAP_TOL_S"
+  ]
+ },
+ "app_min_clean_ratio": 0.6,
+ "minimvp_zip": {
+  "path": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest_rev2.zip",
+  "n_entries": 10474,
+  "n_app_asr_spk": 0,
+  "n_models_spk": 0,
+  "n_ext": 0,
+  "n_bypass_py": 3
+ },
+ "note": "MiniMVP rc3_perftest_rev2 zip 实测：app/asr_spk/ = 0、models/spk/ = 0、ext/ = 0，但仍带 3 个旁路代码文件（speaker_tracker.py / speaker_voice.py / clone_collector.py）⇒ 旁路**内核与模型都不在** ⇒ min_clean_ratio 改动在 MiniMVP 内无可运行消费者 ⇒ APP-076 第 2 条对 MiniMVP **不适用**（如实注明「代码文件仍在、内核/模型不在」）；v2.3 打包需带 5 个 ASR 文件 + models/spk/pyannote_seg_3_0/fp16-w5/"
+}

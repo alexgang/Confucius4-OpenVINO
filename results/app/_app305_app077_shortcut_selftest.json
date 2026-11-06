@@ -1,0 +1,147 @@
+{
+ "tool": "_app305_app077_shortcut_selftest",
+ "app": "APP-077(2)",
+ "ts": "2026-11-06 13:43:35",
+ "bootstrap": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\bridge_bootstrap.py",
+ "checks": [
+  {
+   "name": "源码零「具体版本目录」路径字面量",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "name": "反证：注入写死版本路径 ⇒ 判据能识破（非恒真）",
+   "ok": true,
+   "detail": "['C:\\\\Users\\\\x\\\\Confucius4_LiveCaption_v2.1\\\\python\\\\pythonw.exe']"
+  },
+  {
+   "name": "PKG_GLOB 用通配符形状",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "MINIMVP_GLOB 纳入（EXT-042 ③）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "CMD_TEMPLATE 零「具体版本目录」",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "name": "CMD_TEMPLATE 用通配符借解释器（运行时解析）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "CMD_TEMPLATE 失败时有弹框 + 日志",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "write_user_launcher 明写 .lnk 目标为系统 cmd.exe",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "反证：cmd 注入写死版本路径 ⇒ 判据能识破",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "不 import 被测模块 / 引擎（零重依赖）",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "name": "TOKEN_PATH 在 LiveDubEXT 用户目录下",
+   "ok": true,
+   "detail": "C:\\Users\\Trekker-PTL\\AppData\\Local\\LiveDubEXT\\bridge_token.txt"
+  },
+  {
+   "name": "TOKEN_PATH 不在包目录里",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "LOG_PATH 在用户目录（pythonw 下仍写日志）",
+   "ok": true,
+   "detail": "C:\\Users\\Trekker-PTL\\AppData\\Local\\LiveDubEXT\\bridge.log"
+  },
+  {
+   "name": "启动命令含 --token-file",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "失败通道用 MessageBoxW",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "子进程 stdout/stderr 重定向到日志",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "选到最新**完整**目录 v2.3（跳过 v9.9 空壳）",
+   "ok": true,
+   "detail": "Confucius4_LiveCaption_v2.3"
+  },
+  {
+   "name": "解析结果含 pythonw.exe 与 launcher",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "反证①：v2.3 缺 launcher ⇒ 改选 v2.1（判据非恒真）",
+   "ok": true,
+   "detail": "Confucius4_LiveCaption_v2.1"
+  },
+  {
+   "name": "反证②：反转版本排序键 ⇒ 选择结果改变（排序键生效）",
+   "ok": true,
+   "detail": "Confucius4_LiveCaption_v2.1 -> Confucius4_LiveCaption_MiniMVP_v1.0-rc3"
+  },
+  {
+   "name": "反证③：MiniMVP 目录确实在候选集内（已纳入解析）",
+   "ok": true,
+   "detail": "5"
+  },
+  {
+   "name": "还原 VER_RE 后仍能选到 v2.1",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "无 App 目录 ⇒ resolve_pkg 返回 None",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "fail 返回 rc=2",
+   "ok": true,
+   "detail": "2"
+  },
+  {
+   "name": "fail 写入了用户目录日志",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "fail 调用了弹框（pythonw 下可见）",
+   "ok": true,
+   "detail": "[('测试：未找到 App 目录', 'x')]"
+  },
+  {
+   "name": "反证④：弹框被去掉 ⇒ 捕获不到（判据非恒真）",
+   "ok": true,
+   "detail": ""
+  }
+ ],
+ "n_pass": 27,
+ "n_fail": 0,
+ "verdict": "PASS",
+ "delivery_note": "本轮**不生成任何桌面 .lnk**（EXT-042② 明文禁止动 v2.1 .lnk；APP-055 禁止原地改用户正在测试的安装目录）⇒ 改动落在 dev 树 live_caption/bridge_bootstrap.py，供 v2.3 打包时把桥接 .lnk 指向它；EXT-043 B5 的运行时日志/弹框由 EXT 线程负责，本启动器是 App 打包侧的**第二道**兜底"
+}

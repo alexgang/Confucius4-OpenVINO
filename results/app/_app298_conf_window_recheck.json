@@ -1,0 +1,448 @@
+{
+ "script": "_app298_conf_window_recheck.py",
+ "correction": "APP-075(c) 第二份材料复验 conf 门槛窗口",
+ "input": {
+  "path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\results\\pyannote_seg\\asr122_asr050_regression.json",
+  "n_rows": 136,
+  "n_clips": 3,
+  "summary": {
+   "n_hit": 22,
+   "n_ref_switches": 26,
+   "recall": 0.8462,
+   "n_false_positive": 3,
+   "fp_per_hour": 12.0,
+   "n_split_extra_ids": 8,
+   "n_merge_extra_people": 8,
+   "n_unlabeled": 5,
+   "wall_s_total": 900.96,
+   "audio_hours": 0.25
+  },
+  "scope": {
+   "evalset_json": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\dev\\asr044_evalset\\asr044_evalset.json",
+   "device": "GPU.0",
+   "win_s": 5.0,
+   "seg_ir": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\pyannote_seg\\ov-fp16-w5",
+   "n_clips": 3,
+   "total_dur_s": 900.0,
+   "min_clean_ratio_passed": null,
+   "min_clean_ratio_source": "🔴 **不传** ⇒ 走 `asr052_speaker_tracker_api.DEFAULT_MIN_CLEAN_RATIO`（ASR-050 已改成 0.6）",
+   "new_default_from_code": 0.6,
+   "ref_118_json": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\results\\pyannote_seg\\asr118_param_ab_rows.json",
+   "ref_arm": "B_min_clean_ratio_0.6",
+   "note": "🔴 同一计分器（目标机口径 `asr111.error_breakdown`）⇒ 与 asr118 的 0.6 臂**逐字可比**。"
+  }
+ },
+ "caveat": "rows 无 clean_ranges 具体区间 ⇒ 本脚本**只复验 conf 维度**；「连续≥2.5s」「切换点守卫」**不能**用它复验。",
+ "criteria": {
+  "base_window_min_exclusive": 0.3217,
+  "base_window_max_inclusive": 0.6,
+  "current_reg_conf_min": 0.5
+ },
+ "first_appear_conf": {
+  "n": 30,
+  "sorted": [
+   -0.0446,
+   -0.0285,
+   0.0153,
+   0.0833,
+   0.1212,
+   0.1316,
+   0.1529,
+   0.188,
+   0.4541,
+   0.5005,
+   0.5029,
+   0.5161,
+   0.5591,
+   0.5897,
+   0.5963,
+   0.6816,
+   0.6863,
+   0.6907,
+   0.7063,
+   0.7065,
+   0.7502,
+   0.7563,
+   0.7665,
+   0.7692,
+   0.7694,
+   0.8203,
+   0.832,
+   1.0,
+   1.0,
+   1.0
+  ],
+  "min": -0.0446,
+  "max": 1.0
+ },
+ "switch_boundary_first_conf": {
+  "n": 27,
+  "sorted": [
+   -0.0446,
+   -0.0285,
+   0.0153,
+   0.0833,
+   0.1212,
+   0.1316,
+   0.1529,
+   0.188,
+   0.4541,
+   0.5005,
+   0.5029,
+   0.5161,
+   0.5591,
+   0.5897,
+   0.5963,
+   0.6816,
+   0.6863,
+   0.6907,
+   0.7063,
+   0.7065,
+   0.7502,
+   0.7563,
+   0.7665,
+   0.7692,
+   0.7694,
+   0.8203,
+   0.832
+  ],
+  "detail": [
+   {
+    "clip_id": "clip00",
+    "seg_id": 1,
+    "spk": "S2",
+    "conf": 0.0833,
+    "dur_s": 9.6
+   },
+   {
+    "clip_id": "clip00",
+    "seg_id": 4,
+    "spk": "S3",
+    "conf": 0.1212,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip00",
+    "seg_id": 18,
+    "spk": "S4",
+    "conf": 0.0153,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip00",
+    "seg_id": 21,
+    "spk": "S1",
+    "conf": 0.7502,
+    "dur_s": 7.68
+   },
+   {
+    "clip_id": "clip00",
+    "seg_id": 25,
+    "spk": "S4",
+    "conf": 0.5963,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip00",
+    "seg_id": 27,
+    "spk": "S1",
+    "conf": 0.8203,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip00",
+    "seg_id": 34,
+    "spk": "S4",
+    "conf": 0.7692,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip00",
+    "seg_id": 35,
+    "spk": "S1",
+    "conf": 0.832,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip00",
+    "seg_id": 37,
+    "spk": "S4",
+    "conf": 0.7665,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip00",
+    "seg_id": 40,
+    "spk": "S2",
+    "conf": 0.5029,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip00",
+    "seg_id": 42,
+    "spk": "S3",
+    "conf": 0.5005,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip01",
+    "seg_id": 3,
+    "spk": "S2",
+    "conf": -0.0446,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip01",
+    "seg_id": 12,
+    "spk": "S1",
+    "conf": 0.5897,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip01",
+    "seg_id": 13,
+    "spk": "S3",
+    "conf": 0.188,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip01",
+    "seg_id": 16,
+    "spk": "S4",
+    "conf": 0.1316,
+    "dur_s": 7.68
+   },
+   {
+    "clip_id": "clip01",
+    "seg_id": 35,
+    "spk": "S3",
+    "conf": 0.7563,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip01",
+    "seg_id": 37,
+    "spk": "S4",
+    "conf": 0.7065,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip01",
+    "seg_id": 38,
+    "spk": "S2",
+    "conf": 0.4541,
+    "dur_s": 8.32
+   },
+   {
+    "clip_id": "clip01",
+    "seg_id": 39,
+    "spk": "S4",
+    "conf": 0.6816,
+    "dur_s": 8.32
+   },
+   {
+    "clip_id": "clip01",
+    "seg_id": 41,
+    "spk": "S3",
+    "conf": 0.6863,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip02",
+    "seg_id": 1,
+    "spk": "S2",
+    "conf": -0.0285,
+    "dur_s": 7.04
+   },
+   {
+    "clip_id": "clip02",
+    "seg_id": 4,
+    "spk": "S1",
+    "conf": 0.5591,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip02",
+    "seg_id": 17,
+    "spk": "S2",
+    "conf": 0.7063,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip02",
+    "seg_id": 19,
+    "spk": "S1",
+    "conf": 0.5161,
+    "dur_s": 10.88
+   },
+   {
+    "clip_id": "clip02",
+    "seg_id": 28,
+    "spk": "S2",
+    "conf": 0.7694,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip02",
+    "seg_id": 30,
+    "spk": "S1",
+    "conf": 0.6907,
+    "dur_s": 6.4
+   },
+   {
+    "clip_id": "clip02",
+    "seg_id": 35,
+    "spk": "S3",
+    "conf": 0.1529,
+    "dur_s": 6.4
+   }
+  ]
+ },
+ "dur_proxy": {
+  "n_rows": 136,
+  "n_dur_ge_reg_min_cont": 136,
+  "ratio": 1.0,
+  "note": "代理指标（无 clean_ranges ⇒ 只能用段时长近似）；真实判据需 clean 区间 ⇒ 不能在本材料上复验。"
+ },
+ "threshold_scan": [
+  {
+   "th": 0.2,
+   "firsts_blocked": 8,
+   "firsts_passed": 22
+  },
+  {
+   "th": 0.3,
+   "firsts_blocked": 8,
+   "firsts_passed": 22
+  },
+  {
+   "th": 0.3217,
+   "firsts_blocked": 8,
+   "firsts_passed": 22
+  },
+  {
+   "th": 0.4,
+   "firsts_blocked": 8,
+   "firsts_passed": 22
+  },
+  {
+   "th": 0.5,
+   "firsts_blocked": 9,
+   "firsts_passed": 21
+  },
+  {
+   "th": 0.6,
+   "firsts_blocked": 15,
+   "firsts_passed": 15
+  },
+  {
+   "th": 0.7,
+   "firsts_blocked": 18,
+   "firsts_passed": 12
+  },
+  {
+   "th": 0.8,
+   "firsts_blocked": 25,
+   "firsts_passed": 5
+  }
+ ],
+ "checks": [
+  {
+   "name": "当前 REG_CONF_MIN=0.5 在第二份材料上**确实挡住了一些首现段**（判据非恒真）",
+   "verdict": true,
+   "detail": {
+    "n_blocked": 9,
+    "n_firsts": 30,
+    "blocked_list": [
+     -0.0446,
+     -0.0285,
+     0.0153,
+     0.0833,
+     0.1212,
+     0.1316,
+     0.1529,
+     0.188,
+     0.4541
+    ]
+   }
+  },
+  {
+   "name": "第二份材料：换人边界首现段里存在 conf ≥ 0.5 的段 ⇒ **conf 门槛挡不住边界段**（与第一份材料结论一致）",
+   "verdict": true,
+   "detail": {
+    "n_switch_boundary": 27,
+    "n_conf_ge_current": 18,
+    "examples": [
+     {
+      "clip_id": "clip00",
+      "seg_id": 21,
+      "spk": "S1",
+      "conf": 0.7502,
+      "dur_s": 7.68
+     },
+     {
+      "clip_id": "clip00",
+      "seg_id": 25,
+      "spk": "S4",
+      "conf": 0.5963,
+      "dur_s": 6.4
+     },
+     {
+      "clip_id": "clip00",
+      "seg_id": 27,
+      "spk": "S1",
+      "conf": 0.8203,
+      "dur_s": 6.4
+     },
+     {
+      "clip_id": "clip00",
+      "seg_id": 34,
+      "spk": "S4",
+      "conf": 0.7692,
+      "dur_s": 6.4
+     },
+     {
+      "clip_id": "clip00",
+      "seg_id": 35,
+      "spk": "S1",
+      "conf": 0.832,
+      "dur_s": 6.4
+     },
+     {
+      "clip_id": "clip00",
+      "seg_id": 37,
+      "spk": "S4",
+      "conf": 0.7665,
+      "dur_s": 6.4
+     },
+     {
+      "clip_id": "clip00",
+      "seg_id": 40,
+      "spk": "S2",
+      "conf": 0.5029,
+      "dur_s": 6.4
+     },
+     {
+      "clip_id": "clip00",
+      "seg_id": 42,
+      "spk": "S3",
+      "conf": 0.5005,
+      "dur_s": 6.4
+     }
+    ]
+   }
+  },
+  {
+   "name": "第二份材料：conf < 0.3217 的首现段**是否全**落在换人边界上（检验「低 conf ⇒ 边界高危」的可外推性）",
+   "verdict": true,
+   "detail": {
+    "n_low_firsts": 8,
+    "n_on_boundary": 8,
+    "off_boundary": []
+   }
+  }
+ ],
+ "n_pass": 3,
+ "n_fail": 0,
+ "verdict": "PASS"
+}
