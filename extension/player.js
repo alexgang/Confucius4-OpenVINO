@@ -166,6 +166,16 @@ const metrics = {
   //   如实上报，绝不写死（写死会让 reviewer 无法核对「抓的是不是页面自己的声音」）。
   captureMode: null,
   echoRecv: 0, echoSent: 0,
+  // ★★★ EXT-041：**媒体降速**（`playbackRate`）的**实测**记录。
+  //   * `enabled`   —— 用户是否开着这个开关；
+  //   * `rate`      —— 实际设上去的倍率（没设成功就是 null，**不臆造**）；
+  //   * `applied`   —— 是否真的作用到了媒体元素上（页面里没 <video> ⇒ false）；
+  //   * `recommended` —— 服务端建议的倍率（从 /status 拿；没有就是 null）。
+  //   ⚠️ 这几个字段会被 `reportClientMetrics()` 上报给服务端
+  //     ⇒ 落盘到 `margin.json:slowdown` ⇒ reviewer 可核对「降了多少」。
+  slowdown: null,
+  slowdownEnabled: true,
+  slowdownRecommended: null,
   // ★★★ EXT-026 ③：被当作「重复段」静默丢掉的次数（EXT-024 A 去重命中）。
   //   ★ 必须**如实计数** —— 它是「段被丢了」的**唯一**可观测证据
   //     （EXT-026 ⑤ 的跨会话撞号缺陷就是靠它暴露的）。
@@ -1797,7 +1807,234 @@ async function flushUplink() {
  *   ★ 只报**实测到**的值；没测到就不报（绝不用 0 冒充「实测为零」）。
  *   ★ 列表有界（最多 200 项）⇒ 不制造「内存不持续增长」那类回归。
  */
-function reportClientMetrics() {
+// ★★★ EXT-041：**媒体降速**（`video.playbackRate`）—— 插件侧编排
+// ────────────────────────────────────────────────────────────────
+// ## 为什么需要（EXT-041 明文）
+//   `tts_over_src ≈ 1.09` ⇒ 配音总时长比源语音长约 9% ⇒
+//   在任何**固定**缓冲 D 下，配音都会**随时间累积地落后**于画面。
+//   ⇒ 用户 2026-11-06 决定放宽「signed P95 ≤ 0.3 s」，并要求
+//     **斜率 ≤ 0.01 s/s（不能无限累积）** ⇒ 必须**改机制**，不只是放宽数值。
+//   ⇒ 本模块实现 EXT-041 给的**机制①：视频轻微降速**
+//     （0.92–0.95，下限 0.9）⇒ 让**画面追配音**。
+//
+// ## 数学依据（详见 `ext/media_slowdown.py`）
+//   媒体降速 `r` ⇒ 源到达速率降为 `r` 倍 ⇒ 不堆积的条件是
+//   `r ≤ 1 / tts_over_src`。实测 `tts_over_src = 1.0936` ⇒
+//   `r* = 0.9144` ⇒ 取 **0.92**（reviewer 给的区间内，且刚好够）。
+//
+// ## ★ 时间轴（**关键**：降速为什么不会破坏对齐）
+//   * `t_start` 的轴 = **上行链路的采样时间轴**（与服务端 `t0` 无关）；
+//   * 媒体降速**不改变** `t_start`（那是**源侧采样点**）；
+//   * 降速只改变**墙钟**：源音频到达插件的墙钟变慢 ⇒
+//     配音的**目标时刻** `t0 + t_start + D` 随之变慢 ⇒
+//     **配音与画面一起慢下来** ⇒ 相对关系保持 ⇒ **斜率被压平**。
+//
+// ## ★ 诚实说明
+//   * 宿主页面上**没有** `<video>`/`<audio>` ⇒ 降速**无效**
+//     ⇒ 必须如实回报 `applied=false`，**不假装成功**；
+//   * **只降速，永不加速**（>1.0 会改变语义时轴，属另一件事）；
+//   * **不改译文、不改引擎、不改 ASR/MT** ⇒ 纯 EXT 侧机制。
+
+/** 媒体降速的**下限 / 上限**（与服务端 `ext/media_slowdown.py` 一致）。 */
+const SLOWDOWN_FLOOR = 0.90;
+const SLOWDOWN_CEIL = 1.00;
+const SLOWDOWN_DEFAULT = 0.92;
+/** 刷新「服务端建议倍率」的周期（ms）—— 实测占用率要跑几段才有值。 */
+const SLOWDOWN_REFRESH_MS = 30000;
+
+/** 读**目标标签页 id**（popup 在起流前写进 storage）。 */
+async function cfgTargetTabId() {
+  try {
+    const cfg = await chrome.storage.local.get({ targetTabId: null });
+    const id = cfg && cfg.targetTabId;
+    if (id == null) return null;
+    const n = Number(id);
+    return (isFinite(n) && n > 0) ? n : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/** 恢复 `playbackRate = 1.0`。 */
+async function resetMediaSlowdown() {
+  const tabId = await cfgTargetTabId();
+  if (!tabId) return { ok: false, error: '不知道目标标签页 id' };
+  try {
+    const res = await chrome.tabs.sendMessage(tabId, { cmd: 'reset-rate' });
+    metrics.slowdown = { applied: false, rate: 1.0,
+                         videos: (res && res.videos) || null,
+                         reason: (res && res.reason) || '已恢复 1.0' };
+    report({ kind: 'slowdown_result', result: metrics.slowdown });
+    return res;
+  } catch (e) {
+    metrics.slowdown = { applied: false, rate: null, videos: null,
+                         reason: '恢复失败：' + String((e && e.message) || e) };
+    return metrics.slowdown;
+  }
+}
+
+/**
+ * ★★★ EXT-041：**媒体降速**的**实测读取**（player 侧）。
+ *
+ * ## ★ 为什么 player 不自己去注入
+ *   `chrome.scripting.executeScript` 需要目标页的 **activeTab / host 权限**。
+ *   ★ **popup 的「开始」按钮是真实用户手势** ⇒ 点击时 Chrome 已把
+ *     `activeTab` 授予**当前标签页** ⇒ **popup 注入必定成功**。
+ *   ⇒ 而 **player.html 是另一个扩展页**，它对目标标签页**没有**授权
+ *     ⇒ 从 player 注入会失败（"Cannot access contents of the page"）。
+ *   ⇒ 分工：**popup 负责注入 + 设置倍率**，
+ *     **player 只负责读实测结果 + 上报给服务端 + 周期刷新建议**。
+ *
+ * ## 诚实说明
+ *   * storage 里**没有**降速记录 ⇒ 没降过速 ⇒ 返回 null（**不臆造**）；
+ *   * 记录里 `applied=false` ⇒ 页面里没有媒体元素 ⇒ 如实如实上报。
+ */
+async function readSlowdownRecord() {
+  try {
+    const cfg = await chrome.storage.local.get({ slowdown: null });
+    const rec = cfg && cfg.slowdown;
+    if (!rec || typeof rec !== 'object') return null;
+    return rec;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * ★★★ EXT-043 C1（真缺陷）：由 WS 地址推出**配对端口**的 `/status` URL。
+ *
+ * ## 原实现为什么错（node 实测 Invalid URL）
+ *   ```js
+ *   const base = 'ws://127.0.0.1:8765/'.replace(/^ws:\/\//, 'http://')  // 'http://127.0.0.1:8765'
+ *   const host = base.replace(/^https?:\/\/[^/]+/, '')   // ← 把 host:port 整段删了！
+ *                      .split('/')[0]                    // ⇒ host = ''
+ *                      .replace(/:\d+$/, '');
+ *   fetch('http://' + '' + ':' + 8766 + '/status')       // ⇒ 'http://:8766/status'
+ *   ```
+ *   ⇒ `new URL('http://:8766/status')` 直接抛 Invalid URL
+ *   ⇒ **服务端建议倍率从来没生效过**，一直用默认 0.92。
+ *
+ * ## 修法：用 `URL` 解析**先拆出 hostname/port**，再拼。
+ *   * 配对端口 = 桥接端口 + 1（`ext/pair_server.py` 的约定）；
+ *   * 拿不到端口时用默认 8765。
+ */
+function pairStatusUrl(wsUrl) {
+  try {
+    const raw = String(wsUrl || 'ws://127.0.0.1:8765/');
+    // `ws://` / `wss://` ⇒ 先换成 http(s)，否则 URL 解析出的 protocol 不对
+    const http = raw.replace(/^ws:\/\//, 'http://').replace(/^wss:\/\//, 'https://');
+    const u = new URL(http);
+    const port = Number(u.port || (u.protocol === 'https:' ? 443 : 8765));
+    const pairPort = port + 1;
+    const scheme = (u.protocol === 'https:') ? 'https' : 'http';
+    return scheme + '://' + u.hostname + ':' + pairPort + '/status';
+  } catch (e) {
+    return 'http://127.0.0.1:8766/status';
+  }
+}
+
+/**
+ * 刷新「服务端建议倍率」并（若建议变了）请求 popup 侧重新设置。
+ *
+ * ★ 为什么要周期刷新：`recommended_rate` 依赖**实测** `tts_over_src`，
+ *   而那要等跑出几段才有值 ⇒ 起流时多半还拿不到 ⇒ 需要随会话推进更新。
+ *   ⚠️ 刷新**不阻塞**任何主流程；失败**如实**记录。
+ */
+async function refreshSlowdownRecommendation(wsUrl) {
+  try {
+    const rec = await readSlowdownRecord();
+    if (!rec || !rec.enabled) return null;   // 用户关了 ⇒ 不动
+    const cfg = await chrome.storage.local.get({ wsUrl: wsUrl || 'ws://127.0.0.1:8765/' });
+    // ★ EXT-043 C1：用 `pairStatusUrl()` 拼地址（原实现拼出 `http://:8766`）。
+    const url = pairStatusUrl(cfg.wsUrl);
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const j = await r.json();
+    const sd = (j && j.status && j.status.slowdown) || null;
+    if (!sd || typeof sd.recommended_rate !== 'number') return null;
+    const newRate = sd.recommended_rate;
+    metrics.slowdownRecommended = newRate;
+    // ★ 建议变了 ⇒ 请求后台/弹窗重新设置（popup 可能已关闭 ⇒ 这里直接尝试注入）
+    const cur = (rec && typeof rec.rate === 'number') ? rec.rate : null;
+    if (cur != null && Math.abs(cur - newRate) < 1e-4) return sd;
+    const tabId = await cfgTargetTabId();
+    if (tabId) {
+      const res = await applyMediaSlowdownToTab(tabId, newRate);
+      const rec2 = {
+        enabled: true,
+        applied: !!(res && res.applied),
+        rate: (res && typeof res.rate === 'number') ? res.rate : null,
+        videos: (res && typeof res.videos === 'number') ? res.videos : null,
+        reason: (res && res.reason) ? String(res.reason) : null,
+        recommended: newRate,
+        at: Date.now(),
+      };
+      try { await chrome.storage.local.set({ slowdown: rec2 }); } catch (e) { }
+      metrics.slowdown = {
+        applied: rec2.applied, rate: rec2.rate, videos: rec2.videos,
+        reason: rec2.reason,
+      };
+      report({ kind: 'slowdown_result', result: metrics.slowdown });
+    }
+    return sd;
+  } catch (e) {
+    return null;
+  }
+}
+
+/** 向目标标签页注入内容脚本并设置 `playbackRate`（player 侧兜底路径）。 */
+async function applyMediaSlowdownToTab(tabId, rate) {
+  let r = Number(rate);
+  if (!isFinite(r) || r <= 0) {
+    return { ok: false, applied: false, rate: null, videos: null,
+             reason: '倍率非法：' + String(rate) };
+  }
+  r = Math.max(SLOWDOWN_FLOOR, Math.min(SLOWDOWN_CEIL, r));
+  if (tabId == null) {
+    return { ok: false, applied: false, rate: r, videos: null,
+             reason: '不知道目标标签页 id ⇒ 没有降速' };
+  }
+  try {
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ['slowdown.js'],
+      });
+    } catch (e) {
+      // 注入失败（如该页不允许扩展注入）⇒ 如实记录
+      return { ok: false, applied: false, rate: r, videos: null,
+               reason: '注入内容脚本失败：' + String((e && e.message) || e) };
+    }
+    const res = await chrome.tabs.sendMessage(tabId, { cmd: 'set-rate', rate: r });
+    return {
+      ok: !!(res && res.ok),
+      applied: !!(res && res.applied),
+      rate: (res && typeof res.rate === 'number') ? res.rate : null,
+      videos: (res && typeof res.videos === 'number') ? res.videos : null,
+      reason: (res && res.reason) ? String(res.reason) : null,
+    };
+  } catch (e) {
+    return { ok: false, applied: false, rate: r, videos: null,
+             reason: '设置 playbackRate 失败：' + String((e && e.message) || e) };
+  }
+}
+
+/**
+ * 启动「周期刷新建议倍率」的定时器。
+ *
+ * ★ 为什么要周期刷新：`recommended_rate` 依赖**实测** `tts_over_src`，
+ *   而那要等跑出几段才有值 ⇒ 起流时多半还拿不到 ⇒ 需要随会话推进更新。
+ * ⚠️ 幂等：重复调用**不会**起多个定时器（用标记位）。
+ */
+let _slowdownTimer = null;
+function startSlowdownRefreshTimer(wsUrl) {
+  if (_slowdownTimer) return;
+  _slowdownTimer = setInterval(() => {
+    refreshSlowdownRecommendation(wsUrl).catch(() => { });
+  }, SLOWDOWN_REFRESH_MS);
+}
+
+async function reportClientMetrics() {
   // 上行 WS 优先（它就是产出段的那条连接 ⇒ 记到同一个会话）
   const w = upState.ws
     && upState.ws.readyState === 1 ? upState.ws : null;
@@ -1814,12 +2051,35 @@ function reportClientMetrics() {
       if (typeof v === 'number' && isFinite(v) && v >= 0) pq.push(v);
     }
     const off = metrics.t0UpPlayerOffsetSec;
+    // ★★★ EXT-041：上报前**再读一次** storage 里的降速实测。
+    //   为什么：降速初始化是 fire-and-forget ⇒ 早于它完成时
+    //   `metrics.slowdown` 还是 null ⇒ 会**漏报**「实际降了多少」。
+    //   ⇒ 每次上报都取**最新**的实测记录（storage 是 popup 写的唯一真源）。
+    //   ⚠️ 读不到就保持原值（**不臆造**）。
+    if (metrics.slowdownEnabled) {
+      const rec = await readSlowdownRecord();
+      if (rec) {
+        metrics.slowdown = {
+          applied: !!rec.applied,
+          rate: (typeof rec.rate === 'number') ? rec.rate : null,
+          videos: (typeof rec.videos === 'number') ? rec.videos : null,
+          reason: rec.reason || null,
+        };
+        if (typeof rec.recommended === 'number') {
+          metrics.slowdownRecommended = rec.recommended;
+        }
+      }
+    }
     const payload = {
       type: 'client_metrics',
       downlink_ms: dlMs.slice(-200),
       player_queue_sec: pq.slice(-200),
       t0_up_player_offset_sec:
         (typeof off === 'number' && isFinite(off) ? off : null),
+      // ★★★ EXT-041：**媒体降速的实测**（实际降了多少 ⇒ 服务端落盘）。
+      //   ⚠️ 没降过速 ⇒ `metrics.slowdown` 为 null ⇒ **不报**（不臆造）。
+      //   ⚠️ 只报**实测到的**倍率与是否真的作用到了媒体元素上。
+      slowdown: (metrics.slowdown || null),
     };
     w.send(JSON.stringify(payload));
     metrics.link.clientMetricsSent =
@@ -1842,7 +2102,7 @@ async function requestMarginDump(timeoutMs) {
     }
     // ★★ EXT-036：先上报**实测**的下行/排队数据 ⇒ 服务端落盘时才有这三项
     //   ⇒ 否则 `sync_rootcause` 里它们恒为 null（归因不完整）。
-    const cmRes = reportClientMetrics();
+    const cmRes = await reportClientMetrics();
     report({ kind: 'client_metrics_sent', result: cmRes });
     const got = new Promise((resolve) => {
       const h = (ev) => {
@@ -2257,6 +2517,45 @@ async function startCapture() {
     metrics.captureModeDetail = captureMode;
     metrics.tabCaptureError = captureErr || null;
     metrics.captureError = null;
+
+    // ★★★ EXT-041：**媒体降速**（让画面追配音 ⇒ 压平累积斜率）。
+    //   ★ **popup 已经注入并设置好了倍率**（用户手势 ⇒ activeTab 授权）
+    //     ⇒ 这里**只读实测结果**，并**周期刷新**建议（实测 `tts_over_src`
+    //     要跑出几段才有值 ⇒ 起流时多半拿不到）。
+    //   ⚠️ 失败**不影响**抓流主流程，但必须**如实记录**（`metrics.slowdown`）。
+    //   ⚠️ 这一步是**异步**的 ⇒ **不 await 阻塞**抓流（fire-and-forget）。
+    try {
+      const sdOn = await chrome.storage.local.get({ slowdownOn: true });
+      metrics.slowdownEnabled = (sdOn && sdOn.slowdownOn != null)
+        ? !!sdOn.slowdownOn : true;
+    } catch (e) { /* ignore */ }
+    if (metrics.slowdownEnabled) {
+      (async () => {
+        try {
+          // ① 先把 popup 的实测结果读进来（没记录 ⇒ null ⇒ **不臆造**）
+          const rec = await readSlowdownRecord();
+          if (rec) {
+            metrics.slowdown = {
+              applied: !!rec.applied,
+              rate: (typeof rec.rate === 'number') ? rec.rate : null,
+              videos: (typeof rec.videos === 'number') ? rec.videos : null,
+              reason: rec.reason || null,
+            };
+            metrics.slowdownRecommended =
+              (typeof rec.recommended === 'number') ? rec.recommended : null;
+            report({ kind: 'slowdown_result', result: metrics.slowdown });
+          }
+          // ② 周期刷新建议（建议变了就重新设置）
+          await refreshSlowdownRecommendation(cfg.wsUrl);
+          startSlowdownRefreshTimer(cfg.wsUrl);
+        } catch (e) {
+          metrics.slowdown = { applied: false, rate: null, videos: null,
+                               reason: '降速初始化失败：'
+                                 + String((e && e.message) || e) };
+          report({ kind: 'slowdown_result', result: metrics.slowdown });
+        }
+      })();
+    }
 
     const vt = stream.getVideoTracks()[0];
     const at = stream.getAudioTracks()[0];

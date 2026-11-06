@@ -1419,6 +1419,9 @@ class Session:
         self.client_downlink_ms: List[float] = []     # 逐段下行耗时（ms）
         self.client_player_queue_sec: List[float] = []  # 逐段就绪→起播（s）
         self.client_t0_up_player_offset_sec: Optional[float] = None
+        # ★★★ EXT-041：客户端上报的**媒体降速实测**（实际降了多少）。
+        #   ⚠️ 没报就是 None（**不臆造**）⇒ 落盘在 `margin.json:slowdown`。
+        self.client_slowdown: Optional[dict] = None
         # ★★★ EXT-024 E：**分开**的三段计数（ASR / MT / TTS）。
         #   为什么必须分开（而不是沿用一个 `n_segments`）：
         #     `n_segments`（= len(self.margins)）只说明「一共收口了几段」，
@@ -1641,6 +1644,41 @@ class Session:
                 self.client_t0_up_player_offset_sec = float(off)
             except (TypeError, ValueError):
                 pass
+
+        # ── ★★★ EXT-041：**媒体降速的客户端实测** ─────────────
+        #   插件（内容脚本）把「实际降了多少」回报上来
+        #   ⇒ 落盘进 `margin.json:slowdown.client_*`
+        #   ⇒ reviewer 要的「视频是否降速以及降了多少」就有据可查。
+        #   ⚠️ **如实**：客户端没报 ⇒ 保持 None（**不臆造**）。
+        #   ⚠️ 只接受 [0.5, 1.0] 区间（**永不加速**；越界视为无效）。
+        slow = msg.get("slowdown")
+        if isinstance(slow, dict):
+            applied = slow.get("applied")
+            rate = slow.get("rate")
+            _rec = {
+                "applied": (bool(applied) if applied is not None else None),
+                "rate": None,
+                "videos": None,
+                "reason": (str(slow.get("reason"))[:200]
+                           if slow.get("reason") is not None else None),
+            }
+            if rate is not None:
+                try:
+                    _r = float(rate)
+                    if 0.5 <= _r <= 1.0:
+                        _rec["rate"] = round(_r, 4)
+                    else:
+                        _rec["reason"] = ("客户端上报的倍率 %.4f 越界"
+                                          "（只接受 0.5–1.0，永不加速）⇒ 已忽略"
+                                          % _r)
+                except (TypeError, ValueError):
+                    pass
+            if slow.get("videos") is not None:
+                try:
+                    _rec["videos"] = int(slow.get("videos"))
+                except (TypeError, ValueError):
+                    pass
+            self.client_slowdown = _rec
 
     # ── 客户端实测值的**汇总**（供 margin.json 落盘用）────────
     def client_metrics_summary(self) -> dict:
@@ -4143,6 +4181,66 @@ def _client_rootcause_kwargs(sess) -> dict:
     return kw
 
 
+def _slowdown_record(sess) -> dict:
+    """★ EXT-041：媒体降速的**建议** + **客户端实测是否生效**。
+
+    两部分必须**分列**（不能混成一个数）：
+
+    * `recommended_rate` —— **服务端**按实测 `tts_over_src` 算出的建议倍率
+      （`ext/media_slowdown.py`）⇒ 这是"应该降多少"；
+    * `client_applied_rate` / `client_applied` —— **客户端实测**
+      （插件把内容脚本的执行结果回报上来）⇒ 这是"**实际降了多少**"
+      ⇒ reviewer EXT-041 要的「视频是否降速以及降了多少」就看这两个。
+
+    ⚠️ 客户端没回报 ⇒ 就是 `None`（**不臆造 0 / 不臆造 1.0**）。
+    """
+    out: dict = {
+        "recommended_rate": None,
+        "tts_over_src": None,
+        "speech_over_src": None,
+        "r_critical": None,
+        "reason": None,
+        "needs_slowdown": None,
+        "est_slope_sec_per_sec": None,
+        "slope_target": 0.01,
+        "rate_floor": 0.90,
+        "rate_ceil": 1.00,
+        "client_applied": None,
+        "client_applied_rate": None,
+        "client_videos": None,
+        "client_reason": None,
+    }
+    if sess is None:
+        return out
+    try:
+        from .media_slowdown import rate_for as _ms_rate_for
+        _rtf = compute_rtf_breakdown(getattr(sess, "margins", []) or [])
+        _tor = _rtf.get("tts_over_src")
+        _sos = _rtf.get("speech_over_src")
+        _dec = _ms_rate_for(_tor, speech_over_src=_sos)
+        out["tts_over_src"] = _tor
+        out["speech_over_src"] = _sos
+        out["recommended_rate"] = _dec.rate
+        out["r_critical"] = _dec.r_critical
+        out["reason"] = _dec.reason
+        out["needs_slowdown"] = _dec.needs_slowdown
+        out["est_slope_sec_per_sec"] = _dec.est_slope
+        out["slope_target"] = _dec.to_dict()["slope_target"]
+    except Exception as e:
+        out["reason"] = "计算建议倍率失败：%s" % str(e)[:160]
+    # ── 客户端实测（插件回报）──
+    try:
+        _cm = getattr(sess, "client_slowdown", None)
+        if isinstance(_cm, dict):
+            out["client_applied"] = _cm.get("applied")
+            out["client_applied_rate"] = _cm.get("rate")
+            out["client_videos"] = _cm.get("videos")
+            out["client_reason"] = _cm.get("reason")
+    except Exception:
+        pass
+    return out
+
+
 def _dump_margin(holder: dict, out_path: Optional[str], engine,
                  session=None) -> None:
     """把余量统计与逐句时间表落盘（EXT-006 P1 验收要求）。
@@ -4204,6 +4302,13 @@ def _dump_margin(holder: dict, out_path: Optional[str], engine,
         #   混进了「中文译文比英文原声长 1.196 倍」⇒ 归因会错。
         "rtf_breakdown": (compute_rtf_breakdown(sess.margins)
                           if sess else {}),
+        # ★★★ EXT-041：**媒体降速**的建议与**实际是否生效**。
+        #   * `recommended_rate` —— 按实测 `tts_over_src` 算出的 `playbackRate`
+        #     （`ext/media_slowdown.py`；下限 0.90、**永不加速**）；
+        #   * `client_applied_rate` / `client_applied` —— **客户端实测**
+        #     （插件把降速结果回报给服务端）⇒ 没有就是 None（**不臆造**）。
+        #   ⚠️ reviewer 要的「视频是否降速以及降了多少」就在这两个字段里。
+        "slowdown": _slowdown_record(sess),
         # ★★ EXT-034 ④：**要满足同步需要的 D 估算**（交用户决定）
         "delay_requirement": (estimate_required_delay(sess.margins,
                                                        delay_sec=_dl)
@@ -4370,6 +4475,31 @@ def _pair_status(holder: dict) -> dict:
         out["thread_limits"] = dict(THREAD_LIMIT_RECORD)
     except Exception:
         pass
+    # ★★★ EXT-041：**媒体降速建议**（给插件按实测占用率算 `playbackRate`）。
+    #   插件（内容脚本）拿这个倍率去降速宿主页面的 `<video>`/`<audio>`
+    #   ⇒ 源到达速率下降 ⇒ 配音不再无限堆积（见 `ext/media_slowdown.py`）。
+    #   ⚠️ 这里只给**建议**，**不代插件执行**（插件才有宿主页面的控制权）。
+    #   ⚠️ 实测值来自**已产出段**的会话 ⇒ 没有段时是 None（插件用默认值 0.92）。
+    try:
+        from .media_slowdown import rate_for as _ms_rate_for
+        _rtf = compute_rtf_breakdown(sess.margins) if sess else {}
+        _tor = _rtf.get("tts_over_src")
+        _sos = _rtf.get("speech_over_src")
+        _dec = _ms_rate_for(_tor, speech_over_src=_sos)
+        out["slowdown"] = {
+            "tts_over_src": _tor,
+            "speech_over_src": _sos,
+            "recommended_rate": _dec.rate,
+            "reason": _dec.reason,
+            "r_critical": _dec.r_critical,
+            "needs_slowdown": _dec.needs_slowdown,
+            "est_slope_sec_per_sec": _dec.est_slope,
+            "slope_target": _dec.to_dict()["slope_target"],
+            "rate_floor": 0.90,
+            "rate_ceil": 1.00,
+        }
+    except Exception as e:
+        out["slowdown"] = {"error": str(e)[:200]}
     return out
 
 

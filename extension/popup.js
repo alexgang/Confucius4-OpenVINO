@@ -35,6 +35,132 @@ function setStatus(text, cls) {
   el.className = cls || '';
 }
 
+// ────────────────────────────────────────────────────────────────
+// ★★★ EXT-041：**媒体轻微降速**（`video.playbackRate`）
+//
+// ## 为什么在 **popup** 里做（而不是 player.js）
+//   `chrome.scripting.executeScript` 往宿主页注入内容脚本，
+//   需要该页面的 **activeTab / host 权限**。
+//   ★ **popup 的「开始」按钮是真实用户手势** ⇒ 点击时 Chrome 已把
+//     `activeTab` 授予**当前标签页** ⇒ 此时注入**必定成功**。
+//   ⇒ 而 player.html 是另一个扩展页，它**没有**该标签页的授权
+//     ⇒ 从 player.js 注入会失败（"Cannot access contents of the page"）。
+//   ⇒ 所以：**popup 在起流时注入并设置倍率**，player.js 只负责
+//     **上报实测结果**与**周期刷新**（服务端建议变了要跟着变）。
+//
+// ## ★ 诚实说明
+//   * 页面里**没有** `<video>`/`<audio>` ⇒ 降速**无效**
+//     ⇒ 必须如实回报 `applied=false`，**不假装成功**；
+//   * 只降速、**永不加速**（>1.0 会改变语义时轴）；
+//   * **不改译文、不改引擎、不改 ASR/MT**。
+// ────────────────────────────────────────────────────────────────
+
+/** 媒体降速的**下限 / 上限**（与服务端 `ext/media_slowdown.py` 一致）。 */
+const SLOWDOWN_FLOOR = 0.90;
+const SLOWDOWN_CEIL = 1.00;
+const SLOWDOWN_DEFAULT = 0.92;
+
+/**
+ * 向桥接服务要**建议倍率**（按实测 `tts_over_src` 算）。
+ * 拿不到就返回 null（**不臆造**）⇒ 调用方用默认 0.92。
+ *
+ * ★ EXT-043 C1：用 `pairUrl()` 拼地址（**不要**手拼 host/port
+ *   ⇒ 原写法会拼出 `http://:8766/status`，node 实测 Invalid URL）。
+ */
+async function fetchSlowdownRecommendation(wsUrl) {
+  try {
+    const base = pairUrl(wsUrl);
+    const r = await fetch(`${base}/status`, { method: 'GET' });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const sd = (j && j.status && j.status.slowdown) || null;
+    if (!sd || typeof sd.recommended_rate !== 'number') return null;
+    return sd;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * ★ 在目标标签页注入内容脚本并设置 `playbackRate`。
+ *
+ * @param {number} tabId 目标标签页（就是被翻译的那个媒体页）
+ * @param {number} rate  倍率（会被钳到 [0.90, 1.00]）
+ * @returns {Promise<object>} `{ok, applied, rate, videos, reason}`
+ */
+async function applyMediaSlowdown(tabId, rate) {
+  let r = Number(rate);
+  if (!isFinite(r) || r <= 0) {
+    return { ok: false, applied: false, rate: null, videos: null,
+             reason: '倍率非法：' + String(rate) };
+  }
+  // 钳位：**永不加速**
+  r = Math.max(SLOWDOWN_FLOOR, Math.min(SLOWDOWN_CEIL, r));
+  if (tabId == null) {
+    return { ok: false, applied: false, rate: r, videos: null,
+             reason: '不知道目标标签页 id ⇒ 没有降速' };
+  }
+  try {
+    // ① 注入内容脚本（幂等：已注入过也不报错）
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ['slowdown.js'],
+      });
+    } catch (e) {
+      return { ok: false, applied: false, rate: r, videos: null,
+               reason: '注入内容脚本失败：' + String((e && e.message) || e) };
+    }
+    // ② 下发倍率
+    const res = await chrome.tabs.sendMessage(tabId, { cmd: 'set-rate', rate: r });
+    return {
+      ok: !!(res && res.ok),
+      applied: !!(res && res.applied),
+      rate: (res && typeof res.rate === 'number') ? res.rate : r,
+      videos: (res && typeof res.videos === 'number') ? res.videos : null,
+      reason: (res && res.reason) ? String(res.reason) : null,
+    };
+  } catch (e) {
+    return { ok: false, applied: false, rate: r, videos: null,
+             reason: '设置 playbackRate 失败：' + String((e && e.message) || e) };
+  }
+}
+
+/**
+ * ★ 起流后调用：按服务端建议（或默认）给目标页降速。
+ *
+ * ⚠️ **不阻塞**起流主流程（降速只是机制，失败不影响翻译配音）。
+ * ⚠️ 结果**如实**写进 storage（player.js 会读它并上报给服务端）。
+ */
+async function setupMediaSlowdown(tabId, wsUrl) {
+  let cfg = {};
+  try { cfg = await chrome.storage.local.get({ slowdownOn: true }); } catch (e) { }
+  const enabled = (cfg && cfg.slowdownOn != null) ? !!cfg.slowdownOn : true;
+  if (!enabled) {
+    const rec = { enabled: false, applied: false, rate: 1.0, videos: null,
+                  reason: '用户关闭了媒体降速开关' };
+    try { await chrome.storage.local.set({ slowdown: rec }); } catch (e) { }
+    return rec;
+  }
+  const sd = await fetchSlowdownRecommendation(wsUrl);
+  const rate = (sd && typeof sd.recommended_rate === 'number'
+                && sd.recommended_rate > 0)
+    ? sd.recommended_rate : SLOWDOWN_DEFAULT;
+  const res = await applyMediaSlowdown(tabId, rate);
+  const rec = {
+    enabled: true,
+    applied: !!res.applied,
+    rate: (res && typeof res.rate === 'number') ? res.rate : null,
+    videos: (res && typeof res.videos === 'number') ? res.videos : null,
+    reason: res.reason || null,
+    recommended: (sd && typeof sd.recommended_rate === 'number')
+      ? sd.recommended_rate : null,
+    at: Date.now(),
+  };
+  try { await chrome.storage.local.set({ slowdown: rec }); } catch (e) { }
+  return rec;
+}
+
 function setBadge(text, cls) {
   const el = $('conn');
   if (!el) return;
@@ -89,6 +215,9 @@ function readCfg() {
     duckDb: Number($('duck').value),
     subsOn: $('subs').checked,
     playerOpen: $('player').checked,
+    // ★★★ EXT-041：**媒体降速**（让画面追配音 ⇒ 压平累积斜率）。
+    //   默认开（reviewer 明文）；用户可关。
+    slowdownOn: $('slowdown').checked,
   };
 }
 
@@ -119,7 +248,9 @@ function schedulePersistCfg() {
 function bindPersistListeners() {
   if (bindPersistListeners._bound) return;
   bindPersistListeners._bound = true;
-  const ids = ['ws', 'token', 'delay', 'lang', 'voice', 'duck', 'subs', 'player'];
+  const ids = ['ws', 'token', 'delay', 'lang', 'voice', 'duck', 'subs', 'player',
+    // ★★★ EXT-041：媒体降速开关也要**改了立刻落盘**。
+    'slowdown'];
   for (const id of ids) {
     const el = $(id);
     if (!el) continue;
@@ -144,6 +275,8 @@ async function loadCfg() {
     duckDb: -15,
     subsOn: true,
     playerOpen: false,
+    // ★★★ EXT-041：媒体降速**默认开**（reviewer 明文）。
+    slowdownOn: true,
   });
   $('ws').value = cfg.wsUrl;
   $('token').value = cfg.token || '';
@@ -155,6 +288,8 @@ async function loadCfg() {
   $('duck').value = cfg.duckDb;
   $('subs').checked = !!cfg.subsOn;
   $('player').checked = !!cfg.playerOpen;
+  // ★★★ EXT-041：媒体降速开关回填（默认开）。
+  $('slowdown').checked = (cfg.slowdownOn != null) ? !!cfg.slowdownOn : true;
 }
 
 /**
@@ -335,6 +470,20 @@ $('btnStart').addEventListener('click', async () => {
     });
     if (!res || !res.ok) throw new Error((res && res.error) || '启动失败');
 
+    // ★★★ EXT-041：**媒体轻微降速**（让画面追配音 ⇒ 压平累积斜率）。
+    //   ★ **必须在这里做**：popup 的「开始」是**真实用户手势**
+    //     ⇒ Chrome 已把 `activeTab` 授予**当前标签页**
+    //     ⇒ 此时 `chrome.scripting.executeScript` 注入**必定成功**。
+    //   ⚠️ **不阻塞**启动主流程：降速失败只影响「机制①」，
+    //     翻译配音照常（**不假装成功**：结果如实写进 storage）。
+    let sdInfo = null;
+    try {
+      sdInfo = await setupMediaSlowdown(tab.id, cfg.wsUrl);
+    } catch (e) {
+      sdInfo = { enabled: true, applied: false, rate: null, videos: null,
+                 reason: '降速初始化失败：' + String((e && e.message) || e) };
+    }
+
     if (cfg.playerOpen) {
       await chrome.tabs.create({ url: chrome.runtime.getURL('player.html') });
     }
@@ -342,12 +491,19 @@ $('btnStart').addEventListener('click', async () => {
     // ★★★ EXT-026：启动成功后，「停止并收尾」才可用。
     $('btnFlush').disabled = false;
     setBadge('已连接', 'ok');
+    // ★ 降速状态**如实**显示：没生效就说没生效（不粉饰）。
+    const sdLine = (!sdInfo || !sdInfo.enabled)
+      ? '视频降速：关'
+      : (sdInfo.applied
+        ? `视频降速：开（×${(sdInfo.rate == null ? '?' : sdInfo.rate.toFixed(3))}）`
+        : `视频降速：**未生效**（${sdInfo.reason || '?'}）`);
     setStatus(
       `已启动\n标签页：${tab.title || tab.id}\n延迟 D=${cfg.delaySec}s\n` +
       `目标语言：${normalizeLang(cfg.targetLang)}\n` +
       `音色：${normalizeVoice(cfg.voice)}\n` +
       `原声压低：${cfg.duckDb} dB\n` +
       `字幕：${cfg.subsOn ? '开' : '关'}\n` +
+      `${sdLine}\n` +
       `抓流方式：${res.captureMode || '?'}`,
       'ok'
     );
@@ -359,6 +515,20 @@ $('btnStart').addEventListener('click', async () => {
 });
 
 $('btnStop').addEventListener('click', async () => {
+  // ★★★ EXT-041：**停止时必须恢复 `playbackRate = 1.0`**。
+  //   否则用户点完「停止」后，页面**还在慢放** ⇒ 观感事故。
+  //   ⚠️ 恢复失败**不阻断**停止流程（停止是用户的主要诉求）。
+  try {
+    const st = await chrome.storage.local.get({ targetTabId: null });
+    const tid = (st && st.targetTabId != null) ? Number(st.targetTabId) : null;
+    if (tid != null && isFinite(tid) && tid > 0) {
+      await chrome.tabs.sendMessage(tid, { cmd: 'reset-rate' });
+    }
+    await chrome.storage.local.set({
+      slowdown: { enabled: false, applied: false, rate: 1.0, videos: null,
+                  reason: '已停止 ⇒ 已恢复 playbackRate = 1.0', at: Date.now() },
+    });
+  } catch (e) { /* ignore：恢复失败不影响停止 */ }
   try {
     await chrome.runtime.sendMessage({ target: 'sw', cmd: 'stop' });
   } catch (e) { /* ignore */ }
