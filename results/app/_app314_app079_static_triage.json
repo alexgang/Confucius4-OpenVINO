@@ -1,0 +1,172 @@
+{
+  "tool": "_app314_app079_static_triage",
+  "app": "APP-079",
+  "scope": "static_only_no_device_no_minimax",
+  "verdict": "PASS",
+  "n_pass": 10,
+  "n_fail": 0,
+  "counterproof_identified": "4/4",
+  "checks": [
+    {
+      "name": "r2_data_present",
+      "ok": true,
+      "detail": "submit=82 tts=46"
+    },
+    {
+      "name": "submit_spk_conf_all_null",
+      "ok": true,
+      "detail": "spk_conf null 82/82 ⇒ conf 门槛拿不到输入"
+    },
+    {
+      "name": "clone_active_all_false",
+      "ok": true,
+      "detail": "clone_active=False 46/46（与 reviewer 独立复核一致）"
+    },
+    {
+      "name": "voice_kind_clone_is_not_clone_evidence",
+      "ok": true,
+      "detail": "voice_kind='clone'=44 但 clone_active=False 46/46 ⇒ 旧判据把 voice_kind 当「克隆已生效」证据是失真的"
+    },
+    {
+      "name": "labels_did_reach_worker_via_late_binding",
+      "ok": true,
+      "detail": "voice_spk 非空 43/46 ⇒ 标签经 spk_update/seg 晚到路径进了 worker，不能简单归因为「spk 完全没传」；clone_active 恒 False 的确切根因属「无法判定」，必须靠 APP-079(a) 的 TTS 入口运行期日志才能定案"
+    },
+    {
+      "name": "seg_conf_below_registration_gate",
+      "ok": true,
+      "detail": "seg.jsonl 最小 spk_conf=0.0602 < REG_CONF_MIN=0.5 ⇒ reviewer 指出的 S2 seg1 conf=0.129 本应被登记门槛拒绝"
+    },
+    {
+      "name": "seg_has_conf_but_submit_does_not",
+      "ok": true,
+      "detail": "seg.jsonl 有 43 个非空 spk_conf（最小 0.0602）⇒ 断链发生在 seg→submit 传递"
+    },
+    {
+      "name": "tts_service_submit_drops_null_spk",
+      "ok": true,
+      "detail": "submit() 只在 spk 非空时写 spk/spk_conf ⇒ spk=None 时命令体无说话人字段"
+    },
+    {
+      "name": "registration_conf_gate_exists",
+      "ok": true,
+      "detail": "speaker_voice.py 有 REG_CONF_MIN 门槛 ⇒ conf=None 不可能过闸"
+    },
+    {
+      "name": "f0_gate_not_passed",
+      "ok": true,
+      "detail": "gate.json verdict_counts={'true': 21, 'false': 19, 'none': 6} applicable=44"
+    }
+  ],
+  "measured": {
+    "n_submit": 82,
+    "n_tts": 46,
+    "spk_null": 73,
+    "spk_non_null": 9,
+    "spk_conf_null": 82,
+    "clone_active_false": 46,
+    "voice_kind_clone": 44,
+    "voice_spk_null": 3,
+    "voice_spk_non_null": 43,
+    "seg_conf_non_null": 43,
+    "seg_conf_min": 0.0602,
+    "f0_verdict_counts": {
+      "true": 21,
+      "false": 19,
+      "none": 6
+    }
+  },
+  "reviewer_claim": {
+    "clone_active_all_false_consistent": true,
+    "submit_spk_all_null_consistent": false,
+    "note": "本机 submit.jsonl 有 9/82 行 spk 非空（spk_conf 全 null）；与 reviewer「spk/spk_conf 全为 null」的措辞存在口径差异，可能与 _app309 补齐的提交映射版本有关 ⇒ 记「需 reviewer 确认」，不判 reviewer 错、也不自行改写结论"
+  },
+  "counterproof": [
+    {
+      "name": "E1_fake_clone_active_true",
+      "identified": true,
+      "expect": "clone_active_all_false / voice_kind_evidence",
+      "n_pass": 8,
+      "n_fail": 2,
+      "failed_checks": [
+        "clone_active_all_false",
+        "voice_kind_clone_is_not_clone_evidence"
+      ]
+    },
+    {
+      "name": "E2_fake_spk_conf",
+      "identified": true,
+      "expect": "submit_spk_conf_all_null",
+      "n_pass": 9,
+      "n_fail": 1,
+      "failed_checks": [
+        "submit_spk_conf_all_null"
+      ]
+    },
+    {
+      "name": "E3_fake_f0_gate_pass",
+      "identified": true,
+      "expect": "f0_gate_not_passed",
+      "n_pass": 9,
+      "n_fail": 1,
+      "failed_checks": [
+        "f0_gate_not_passed"
+      ]
+    },
+    {
+      "name": "E4_remove_submit_anchor",
+      "identified": true,
+      "expect": "tts_service_submit_drops_null_spk",
+      "n_pass": 9,
+      "n_fail": 1,
+      "failed_checks": [
+        "tts_service_submit_drops_null_spk"
+      ]
+    }
+  ],
+  "conclusion": "APP-079 本条按 APP-080 用户决定转入后续版本（本条需等 reviewer 复核）；本轮只交付 (a)/2 的静态归因：submit.spk_conf 82/82 全 null ⇒ REG_CONF_MIN 门槛在该链路拿不到输入；submit.spk 73/82 为 null ⇒ submit() 命令体不带说话人字段；但 tts.jsonl 的 voice_spk 43/46 非空 ⇒ 标签其实经晚到绑定进了 worker，不能简单归因为「完全没传」；voice_kind='clone' 44/46 与 clone_active=False 46/46 自相矛盾 ⇒ 旧判据失真，clone_active 恒 False 的确切根因记为「无法判定」，须靠 (a) 的 TTS 入口运行期日志定案。(b)(c)(d) 需设备级作业，按「v2.3 发布前不再为克隆占用设备」不做。",
+  "evidence_files": [
+    {
+      "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone_r2\\submit.jsonl",
+      "bytes": 4486,
+      "mtime": "2026-11-06T12:46:53.408083",
+      "sha256": "9218f961f538621b3e2bc6feb250f6480c145661e8dbfc93e772359066336ab7"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone_r2\\seg.jsonl",
+      "bytes": 4125,
+      "mtime": "2026-11-06T12:46:53.406768",
+      "sha256": "a95143efc50e32ba0dcfb8ce857eca7282199c0a6034d451f90eac4af14fbce3"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone_r2\\tts.jsonl",
+      "bytes": 57800,
+      "mtime": "2026-11-06T12:46:54.161571",
+      "sha256": "ba64da9b709d6e12e3560f65f75b8310b93dcd0c1262574f4e73b0f7b0079080"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone_r2\\gate.json",
+      "bytes": 9820,
+      "mtime": "2026-11-06T13:37:33.515329",
+      "sha256": "bca5ebf6059448e5ff2a7efd682551d1ce8041a49e87d619365effd2a373f2af"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone_r2\\manifest.json",
+      "bytes": 10390,
+      "mtime": "2026-11-06T13:59:40.164654",
+      "sha256": "c6be9c50eb8ef752e7280a2489c4af47b85ef9e87d16357b848aa085352e4817"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_service.py",
+      "bytes": 133411,
+      "mtime": "2026-11-05T11:08:49.266302",
+      "sha256": "6cc0645ef286870ac79ecd4baa0bc02154e8bf712ae54d54ce11aaba7997d70c"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\speaker_voice.py",
+      "bytes": 41413,
+      "mtime": "2026-11-06T10:40:06.808351",
+      "sha256": "6bc1e7314e3dc985a4f6272e19ddfc461295a4a2facaf6be341fe67b25c3e1fc"
+    }
+  ]
+}

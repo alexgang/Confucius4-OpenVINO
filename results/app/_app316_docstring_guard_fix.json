@@ -1,0 +1,80 @@
+{
+  "tool": "_app316_docstring_guard_fix",
+  "app": "APP-080",
+  "scope": "static_only_no_device_no_packaging",
+  "generated_at": "2026-11-06T23:18:10",
+  "reason": "_app315 首版闸门插在 def 与 docstring 之间 ⇒ 5 个目标函数补丁后 __doc__ 变 None；改为 ast 定位 docstring 结束行后插入，并补判据 + 反证 E8",
+  "blocks": [
+    {
+      "file": "live_caption\\v23_preset_only.py",
+      "block": 1,
+      "old_sha256": "e19b852f1676f8908f913e5855aca064ab47bbb3568241bd5bc1bf6bdf1b869a",
+      "old_bytes": 803,
+      "new_bytes": 1081,
+      "unique_hits": 1
+    },
+    {
+      "file": "live_caption\\v23_preset_only.py",
+      "block": 2,
+      "old_sha256": "7c3db7a042ee166756516e05a8c4696dda34697c995251d40d8710c4a893c997",
+      "old_bytes": 1073,
+      "new_bytes": 1091,
+      "unique_hits": 1
+    },
+    {
+      "file": "live_caption\\v23_preset_only.py",
+      "block": 3,
+      "old_sha256": "8f5fd8494e4dfe0fbd14772dc3875d29ef41c79c54eccbba69eab598b59c0afb",
+      "old_bytes": 305,
+      "new_bytes": 1456,
+      "unique_hits": 1
+    },
+    {
+      "file": "results\\app\\_app315_app080_preset_only_selftest.py",
+      "block": 1,
+      "old_sha256": "0578139baa8835231355e06f7fc51643ad48d2c6333bd0777e80b84a93b8aad7",
+      "old_bytes": 16,
+      "new_bytes": 27,
+      "unique_hits": 1
+    },
+    {
+      "file": "results\\app\\_app315_app080_preset_only_selftest.py",
+      "block": 2,
+      "old_sha256": "0f8185acd8c151e9ec54ed89129273e289bcefc223977bdd3e1e295f764261ff",
+      "old_bytes": 96,
+      "new_bytes": 1112,
+      "unique_hits": 1
+    },
+    {
+      "file": "results\\app\\_app315_app080_preset_only_selftest.py",
+      "block": 3,
+      "old_sha256": "f69c411f6323c51599a42d6d7e27f6d0f659372272bd86b2ef317464f1a741ae",
+      "old_bytes": 57,
+      "new_bytes": 590,
+      "unique_hits": 1
+    }
+  ],
+  "files": [
+    {
+      "file": "live_caption\\v23_preset_only.py",
+      "before_bytes": 15813,
+      "after_bytes": 17260,
+      "eol": "LF",
+      "ast_parse": "PASS",
+      "readback_equal": true,
+      "before_sha256": "6a14e8d9080a76be731dfb368e2f0abd9e6686e0e56ca53bbad85c94bcb02d71",
+      "after_sha256": "362825e644d2edc42ef662505aaaa8dbd07cad5522da642d36cef8266dd043c7"
+    },
+    {
+      "file": "results\\app\\_app315_app080_preset_only_selftest.py",
+      "before_bytes": 15571,
+      "after_bytes": 17131,
+      "eol": "LF",
+      "ast_parse": "PASS",
+      "readback_equal": true,
+      "before_sha256": "3595aeddcee3363efbfe65dc70699aa74187108da03456815f1078abb8b99b02",
+      "after_sha256": "3d37db4d0360dce2119bf3786a9ff73fa2161023fff31fc4ceaf2134394d0853"
+    }
+  ],
+  "verdict": "PASS"
+}
