@@ -1,0 +1,716 @@
+{
+  "tool": "_app324_app080_prereq_readonly_audit",
+  "verdict": "PASS",
+  "scope": "static_only_no_device_no_packaging_no_minimax",
+  "n_pass": 25,
+  "n_fail": 0,
+  "n_unknown": 1,
+  "counterproof_identified": "12/12",
+  "checks": [
+    {
+      "id": "A1",
+      "name": "纠偏文件开工基线四项全等（SHA/字节/mtime/条数）",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "A2",
+      "name": "APP 编号 1..080 连续无缺号且 max_id=80",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "A3",
+      "name": "STATUS 头部 last_ack=APP-080",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "A4",
+      "name": "无编号大于 last_ack 的新条目（步骤 3 无条可执行）",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "B1",
+      "name": "§146 原始字段 verdict=PASS / 33 PASS / 0 FAIL / 0 UNKNOWN",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "B2",
+      "name": "§146 反证 8/8 全被识破",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "B3",
+      "name": "§146 dev 三份源文件 18/18 锚点唯一命中",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "B4",
+      "name": "§146 包内 v2.2 基底 14/18 且缺的恰是 4 个 P 锚点",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "B5",
+      "name": "§146 直接套补丁不可用（须先升级基底）",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "B6",
+      "name": "§146 包内 3 文件写前/写后 SHA 与字节逐文件相等",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "C1",
+      "name": "本轮实算：dev 3 源文件与 §146 facts.dev_sources 逐字节一致",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "C2",
+      "name": "本轮实算：v2.2 包 3 源文件与 §146 pkg_v22_before 逐字节一致",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "C3",
+      "name": "本轮实算：2 份 APP-080 资产与 §145 facts.app080_assets 逐字节一致",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "C4",
+      "name": "§143 产物表登记的 v23_preset_only.py 与磁盘逐字节一致",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "D1",
+      "name": "按 §145 口径复核：打包链路对 APP-080 资产引用数 0（NOT_WIRED）",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "D2",
+      "name": "pack_v13.py 与 §145 登记 SHA/字节一致（打包脚本未被改动）",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "D3",
+      "name": "KEEP_SPK_FILES 5 个：v2.2 包内 3/5、影子包 5/5，缺的恰是 2 个新文件",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "D4",
+      "name": "5 s 静态 seg IR：仓库/v2.2 包内均无，影子包 2 个文件已落盘",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "D5",
+      "name": "影子包与 ASR 源目录的 seg xml 是否同版（不同 ⇒ 无法判定取哪份）",
+      "verdict": "UNKNOWN",
+      "ok": null
+    },
+    {
+      "id": "D6",
+      "name": "APP-077 清单：v2.2 包根 ext/bridge_token.txt 仍 1 处、dev 有 bridge_bootstrap.py",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "E1",
+      "name": "git：HEAD=7079e05 / ahead=0 / branch=main（§146 已推送）",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "E2",
+      "name": "CORRECTIONS_APP.md 仍是 reviewer 未提交改动（本轮只读）",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "E3",
+      "name": "MACHINE_LOCK 空闲（本轮未占设备）",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "E4",
+      "name": "STATUS 写前 39 860 B / 195 行 / SHA 与开工实测一致",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "E5",
+      "name": "§146 产物表 4 行的字节/SHA 与磁盘逐文件一致",
+      "verdict": "PASS",
+      "ok": true
+    },
+    {
+      "id": "E6",
+      "name": "§146 产物表行数恰为 4（不多报不漏报）",
+      "verdict": "PASS",
+      "ok": true
+    }
+  ],
+  "counterproof": [
+    {
+      "id": "P1",
+      "name": "纠偏条数 80→79",
+      "target_check": "A2",
+      "result_after_mutation": "FAIL",
+      "identified": true
+    },
+    {
+      "id": "P2",
+      "name": "last_ack 改成 APP-079",
+      "target_check": "A3",
+      "result_after_mutation": "FAIL",
+      "identified": true
+    },
+    {
+      "id": "P3",
+      "name": "§146 n_pass 33→32",
+      "target_check": "B1",
+      "result_after_mutation": "FAIL",
+      "identified": true
+    },
+    {
+      "id": "P4",
+      "name": "包内锚点 14→18（假装可直接套补丁）",
+      "target_check": "B4",
+      "result_after_mutation": "FAIL",
+      "identified": true
+    },
+    {
+      "id": "P5",
+      "name": "dev 某源文件 SHA 改 1 字符（模拟 dev 被改）",
+      "target_check": "C1",
+      "result_after_mutation": "FAIL",
+      "identified": true
+    },
+    {
+      "id": "P6",
+      "name": "v2.2 包内某文件 SHA 改 1 字符（模拟客户包被原地改）",
+      "target_check": "C2",
+      "result_after_mutation": "FAIL",
+      "identified": true
+    },
+    {
+      "id": "P7",
+      "name": "APP-080 资产 SHA 改 1 字符（模拟资产被替换）",
+      "target_check": "C3",
+      "result_after_mutation": "FAIL",
+      "identified": true
+    },
+    {
+      "id": "P8",
+      "name": "打包脚本注入 PKG_INCLUDE_FILES 引用",
+      "target_check": "D1",
+      "result_after_mutation": "FAIL",
+      "identified": true
+    },
+    {
+      "id": "P9",
+      "name": "影子包 spk 文件假装只有 4 个",
+      "target_check": "D3",
+      "result_after_mutation": "FAIL",
+      "identified": true
+    },
+    {
+      "id": "P10",
+      "name": "MACHINE_LOCK 伪装存在",
+      "target_check": "E3",
+      "result_after_mutation": "FAIL",
+      "identified": true
+    },
+    {
+      "id": "P11",
+      "name": "git HEAD 伪装未推送旧值",
+      "target_check": "E1",
+      "result_after_mutation": "FAIL",
+      "identified": true
+    },
+    {
+      "id": "P12",
+      "name": "§146 产物表某行 SHA 改 1 字符",
+      "target_check": "E5",
+      "result_after_mutation": "FAIL",
+      "identified": true
+    }
+  ],
+  "facts": {
+    "generated_at": "2026-11-07 04:12:29",
+    "corrections": {
+      "sha256": "b3ae9ea9fb72282bbf619dd26b73de688f8c771911bd0b56e0faf8f392b937d5",
+      "bytes": 224562,
+      "mtime": "2026-11-06 21:40:34",
+      "n_headings": 80,
+      "max_id": 80,
+      "missing_ids": []
+    },
+    "status_header": {
+      "last_ack": "APP-080",
+      "bytes": 39860,
+      "lines": 195,
+      "sha256": "641690865d1986c3827bba0d02aad096f9c3392a0e8299c19491e4af3a8d9d57",
+      "crlf": 0
+    },
+    "sec146": {
+      "verdict": "PASS",
+      "n_pass": 33,
+      "n_fail": 0,
+      "n_unknown": 0,
+      "counterproof_identified": "8/8",
+      "dev_hits": {
+        "live_caption/live_caption_app.py": {
+          "P00-import": 1,
+          "P01-voices": 1,
+          "P02-label": 1,
+          "P03-checkbox": 1,
+          "P04-hint": 1,
+          "P05-startup": 1,
+          "P06-tts-start": 1,
+          "P07-statusbar": 1,
+          "P08-onchange": 1,
+          "P09-cli": 1,
+          "P10-help": 1
+        },
+        "live_caption/tts_service.py": {
+          "S00-import": 1,
+          "S01-set_clone_pcm": 1,
+          "S02-register_spk_voice": 1
+        },
+        "live_caption/tts_worker.py": {
+          "W00-import": 1,
+          "W01-update_clone": 1,
+          "W02-register_spk_voice": 1,
+          "W03-apply_spk_voice": 1
+        }
+      },
+      "pkg_v22_hits": {
+        "live_caption/live_caption_app.py": {
+          "P00-import": 1,
+          "P01-voices": 1,
+          "P02-label": 1,
+          "P03-checkbox": 0,
+          "P04-hint": 0,
+          "P05-startup": 0,
+          "P06-tts-start": 1,
+          "P07-statusbar": 1,
+          "P08-onchange": 0,
+          "P09-cli": 1,
+          "P10-help": 1
+        },
+        "live_caption/tts_service.py": {
+          "S00-import": 1,
+          "S01-set_clone_pcm": 1,
+          "S02-register_spk_voice": 1
+        },
+        "live_caption/tts_worker.py": {
+          "W00-import": 1,
+          "W01-update_clone": 1,
+          "W02-register_spk_voice": 1,
+          "W03-apply_spk_voice": 1
+        }
+      },
+      "dev_sources": {
+        "live_caption/live_caption_app.py": {
+          "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\live_caption_app.py",
+          "bytes": 425546,
+          "mtime": "2026-11-06T10:39:49.400914",
+          "sha256": "b30cb3611db899ae25cc87056862ed213e6a00caf7ba65a319e2007591dc79cd"
+        },
+        "live_caption/tts_service.py": {
+          "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_service.py",
+          "bytes": 133411,
+          "mtime": "2026-11-05T11:08:49.266302",
+          "sha256": "6cc0645ef286870ac79ecd4baa0bc02154e8bf712ae54d54ce11aaba7997d70c"
+        },
+        "live_caption/tts_worker.py": {
+          "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_worker.py",
+          "bytes": 247121,
+          "mtime": "2026-11-05T10:41:53.631175",
+          "sha256": "bf2277e60e62d7399b88e5bee7590af9c0105a51ada468f8d4438a77683a0606"
+        }
+      },
+      "pkg_v22_before": {
+        "live_caption/live_caption_app.py": {
+          "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app\\live_caption_app.py",
+          "bytes": 361384,
+          "mtime": "2026-11-02T01:33:05.491540",
+          "sha256": "cab9896dbaa9810610f05df9c9195c7af8a8e92a9ac92ab3b6bc7fdf1695b13b"
+        },
+        "live_caption/tts_service.py": {
+          "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app\\tts_service.py",
+          "bytes": 127483,
+          "mtime": "2026-11-02T01:33:05.522242",
+          "sha256": "fa93cebcf67aa6e0425b6a6f247627e4256109325b080ef4ddd63f41621bae38"
+        },
+        "live_caption/tts_worker.py": {
+          "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app\\tts_worker.py",
+          "bytes": 229782,
+          "mtime": "2026-11-02T01:33:05.510051",
+          "sha256": "e94d61f7d2f1fb15495cd22d20a7f85a36820f57d404909f4ffed26d9359ea16"
+        }
+      },
+      "pkg_v22_after": {
+        "live_caption/live_caption_app.py": {
+          "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app\\live_caption_app.py",
+          "bytes": 361384,
+          "mtime": "2026-11-02T01:33:05.491540",
+          "sha256": "cab9896dbaa9810610f05df9c9195c7af8a8e92a9ac92ab3b6bc7fdf1695b13b"
+        },
+        "live_caption/tts_service.py": {
+          "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app\\tts_service.py",
+          "bytes": 127483,
+          "mtime": "2026-11-02T01:33:05.522242",
+          "sha256": "fa93cebcf67aa6e0425b6a6f247627e4256109325b080ef4ddd63f41621bae38"
+        },
+        "live_caption/tts_worker.py": {
+          "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app\\tts_worker.py",
+          "bytes": 229782,
+          "mtime": "2026-11-02T01:33:05.510051",
+          "sha256": "e94d61f7d2f1fb15495cd22d20a7f85a36820f57d404909f4ffed26d9359ea16"
+        }
+      },
+      "pkg_v22_missing_anchors": {
+        "live_caption/live_caption_app.py": [
+          "P03-checkbox",
+          "P04-hint",
+          "P05-startup",
+          "P08-onchange"
+        ],
+        "live_caption/tts_service.py": [],
+        "live_caption/tts_worker.py": []
+      },
+      "total_anchors": 18,
+      "pkg_v22_unique_anchors": 14,
+      "pkg_v22_direct_patch_applicable": false,
+      "git": {
+        "head": "a9049e8",
+        "ahead": "0",
+        "branch": "main",
+        "corrections_status": "M status/app/CORRECTIONS_APP.md"
+      },
+      "status_before": {
+        "bytes": 39914,
+        "lines": 195,
+        "crlf": 0,
+        "sha256": "e17bc67c80ada1c20dccf1678f7bfc1a4b9876cb18e0a7e568d9a183a4217cca"
+      },
+      "machine_lock_present": false
+    },
+    "sec145_packaging_chain": {
+      "pack_v13_bytes": 72531,
+      "pack_v13_sha256": "2e7a232eddd7c541a4d3690d41609043a915ea2481c162f713bbf0e25d6185be",
+      "pack_v13_hits": 0,
+      "build_scripts_scanned": 22,
+      "excluded_self": "_app320_v23_build_readiness.py",
+      "build_scripts_nonzero_hits": {},
+      "total_hits": 0,
+      "wired": false,
+      "verdict": "NOT_WIRED"
+    },
+    "sec145_assets": {
+      "v23_preset_only": {
+        "path": "live_caption/v23_preset_only.py",
+        "mtime": "2026-11-06T23:18:10",
+        "bytes": 17260,
+        "sha256": "362825e644d2edc42ef662505aaaa8dbd07cad5522da642d36cef8266dd043c7"
+      },
+      "assert_pkg_clean": {
+        "path": "live_caption/assert_pkg_clean.py",
+        "mtime": "2026-11-06T13:45:53",
+        "bytes": 3458,
+        "sha256": "ba76906938492b06de7b9449055af08b28ab6ace47d0bb922fb5859195aff47a"
+      },
+      "pkg_include_files": [
+        "app/v23_preset_only.py",
+        "app/assert_pkg_clean.py"
+      ],
+      "selftest": {
+        "verdict": "PASS",
+        "n_pass": 36,
+        "n_fail": 0,
+        "n_unknown": 0,
+        "counterproof_identified": "8/8"
+      },
+      "docfix": {
+        "verdict": "PASS"
+      },
+      "diff_bytes": 8021
+    },
+    "sec146_table": {
+      "results/app/_app322_v23_pkg_baseline_dryrun.py": {
+        "mtime": "2026-11-07T02:59:09",
+        "bytes": 16406,
+        "sha256": "04efb71387f0da24e3133a14841edf5f1cc19c341794c69ebdd6809e90d73fe7"
+      },
+      "results/app/_app322_v23_pkg_baseline_dryrun.json": {
+        "mtime": "2026-11-07T02:59:15",
+        "bytes": 12504,
+        "sha256": "b13ea09d3b30c2f37d06a38efadf8ffdaa4113a344354e662d598635bfb01350"
+      },
+      "status/archive/STATUS_APP_sec145_20261107.md": {
+        "mtime": "2026-11-07T03:02:36",
+        "bytes": 5520,
+        "sha256": "614f4d714751e41613d06e5e98b94bdb6c24695137295fe094d2dd09a73e4e01"
+      },
+      "results/app/_app323_write_status_sec146.py": {
+        "mtime": "2026-11-07T03:02:34",
+        "bytes": 15496,
+        "sha256": "3d17ddf5edd1d2dae8ebeaae1015136cb0b4600551b42d3e3bbc42d48c6d63c1"
+      }
+    },
+    "sec143_table": {
+      "live_caption/v23_preset_only.py": {
+        "mtime": "2026-11-06T23:18:10",
+        "bytes": 17260,
+        "sha256": "362825e644d2edc42ef662505aaaa8dbd07cad5522da642d36cef8266dd043c7"
+      },
+      "results/app/_app314_app079_static_triage.py": {
+        "mtime": "2026-11-06T22:09:17",
+        "bytes": 9968,
+        "sha256": "ff3d72f52d7338a5a96b4eae7f665b3c16b3648b369ebe18abe9e7050b6e50c1"
+      },
+      "results/app/_app314_app079_static_triage.json": {
+        "mtime": "2026-11-06T23:13:32",
+        "bytes": 6439,
+        "sha256": "09926115669a4f1037924ab87371e26df7520b2291257d9ac7c1d4d3c6baaa19"
+      },
+      "results/app/_app315_app080_preset_only_selftest.py": {
+        "mtime": "2026-11-06T23:18:22",
+        "bytes": 17153,
+        "sha256": "c702017d8b47b1aed94df042156a10a60f0127c04ee2ed4d2f145e5862b0b6e6"
+      },
+      "results/app/_app315_app080_preset_only_selftest.json": {
+        "mtime": "2026-11-06T23:18:29",
+        "bytes": 12043,
+        "sha256": "9abb774c5646241da554a9a77d015e8a3572df25961a71c545749a3c23a73e3d"
+      },
+      "results/app/_app315_v23_preset_only.diff": {
+        "mtime": "2026-11-06T23:18:28",
+        "bytes": 8021,
+        "sha256": "b6840f8a743bd1065dcae6f577f816815c06c8ea0d1bb7481bce73063b3888e6"
+      },
+      "results/app/_app316_docstring_guard_fix.py": {
+        "mtime": "2026-11-06T23:17:56",
+        "bytes": 11660,
+        "sha256": "57fa12e7fe2b495c300eb1ecad8ca6b61aaa49d360eba6b27c946f684de5bfbb"
+      },
+      "results/app/_app316_docstring_guard_fix.json": {
+        "mtime": "2026-11-06T23:18:10",
+        "bytes": 2673,
+        "sha256": "ed5ed7a8ef9b3bb594046b2e0378dc9d10b4a24fcfb8c8ef1a78b47189c7bc45"
+      },
+      "results/app/_app317_sec143_body.md": {
+        "mtime": "2026-11-06T23:22:29",
+        "bytes": 9094,
+        "sha256": "77cbe1efc660c31818c5255e3e5e83fdfd5ac739df407d64dfa782d75c07a3c6"
+      },
+      "results/app/_app317_write_status_sec143.py": {
+        "mtime": "2026-11-06T23:22:20",
+        "bytes": 13146,
+        "sha256": "0f4fca412ce782e1b0a82da0ef153acd6c30ded82c018e99bab4bacd39f67a61"
+      },
+      "status/archive/STATUS_APP_sec141_142_20261106.md": {
+        "mtime": "2026-11-06T23:22:36",
+        "bytes": 8743,
+        "sha256": "4b1e347f6c173d3b27652717d99154a92f1fc4646b086cc5e402e3e8b681f46d"
+      },
+      "status/archive/STATUS_APP_unfinished_corrections_upto_20261106.md": {
+        "mtime": "2026-11-06T23:22:36",
+        "bytes": 4905,
+        "sha256": "a587034577f76466a97e85c058dd15f6561496e15eee8c1a148c698220bf941c"
+      }
+    },
+    "disk": {
+      "dev_sources": {
+        "live_caption/live_caption_app.py": {
+          "bytes": 425546,
+          "sha256": "b30cb3611db899ae25cc87056862ed213e6a00caf7ba65a319e2007591dc79cd",
+          "mtime": "2026-11-06T10:39:49"
+        },
+        "live_caption/tts_service.py": {
+          "bytes": 133411,
+          "sha256": "6cc0645ef286870ac79ecd4baa0bc02154e8bf712ae54d54ce11aaba7997d70c",
+          "mtime": "2026-11-05T11:08:49"
+        },
+        "live_caption/tts_worker.py": {
+          "bytes": 247121,
+          "sha256": "bf2277e60e62d7399b88e5bee7590af9c0105a51ada468f8d4438a77683a0606",
+          "mtime": "2026-11-05T10:41:53"
+        }
+      },
+      "pkg_v22_sources": {
+        "live_caption_app.py": {
+          "bytes": 361384,
+          "sha256": "cab9896dbaa9810610f05df9c9195c7af8a8e92a9ac92ab3b6bc7fdf1695b13b",
+          "mtime": "2026-11-02T01:33:05"
+        },
+        "tts_service.py": {
+          "bytes": 127483,
+          "sha256": "fa93cebcf67aa6e0425b6a6f247627e4256109325b080ef4ddd63f41621bae38",
+          "mtime": "2026-11-02T01:33:05"
+        },
+        "tts_worker.py": {
+          "bytes": 229782,
+          "sha256": "e94d61f7d2f1fb15495cd22d20a7f85a36820f57d404909f4ffed26d9359ea16",
+          "mtime": "2026-11-02T01:33:05"
+        }
+      },
+      "v23_assets": {
+        "live_caption/v23_preset_only.py": {
+          "bytes": 17260,
+          "sha256": "362825e644d2edc42ef662505aaaa8dbd07cad5522da642d36cef8266dd043c7",
+          "mtime": "2026-11-06T23:18:10"
+        },
+        "live_caption/assert_pkg_clean.py": {
+          "bytes": 3458,
+          "sha256": "ba76906938492b06de7b9449055af08b28ab6ace47d0bb922fb5859195aff47a",
+          "mtime": "2026-11-06T13:45:53"
+        }
+      },
+      "pack_v13": {
+        "bytes": 72531,
+        "sha256": "2e7a232eddd7c541a4d3690d41609043a915ea2481c162f713bbf0e25d6185be",
+        "mtime": "2026-11-02T01:01:05"
+      },
+      "sec146_table_files": {
+        "results/app/_app322_v23_pkg_baseline_dryrun.py": {
+          "bytes": 16406,
+          "sha256": "04efb71387f0da24e3133a14841edf5f1cc19c341794c69ebdd6809e90d73fe7",
+          "mtime": "2026-11-07T02:59:09"
+        },
+        "results/app/_app322_v23_pkg_baseline_dryrun.json": {
+          "bytes": 12504,
+          "sha256": "b13ea09d3b30c2f37d06a38efadf8ffdaa4113a344354e662d598635bfb01350",
+          "mtime": "2026-11-07T02:59:15"
+        },
+        "status/archive/STATUS_APP_sec145_20261107.md": {
+          "bytes": 5520,
+          "sha256": "614f4d714751e41613d06e5e98b94bdb6c24695137295fe094d2dd09a73e4e01",
+          "mtime": "2026-11-07T03:02:36"
+        },
+        "results/app/_app323_write_status_sec146.py": {
+          "bytes": 15496,
+          "sha256": "3d17ddf5edd1d2dae8ebeaae1015136cb0b4600551b42d3e3bbc42d48c6d63c1",
+          "mtime": "2026-11-07T03:02:34"
+        }
+      }
+    },
+    "packaging_chain": {
+      "scanned": 23,
+      "refs_by_file": {
+        "pack_v13.py": 0,
+        "results/app/_app232_build_shadow_pkg.py": 0,
+        "results/app/_app240_build_app067_shadow.py": 0,
+        "results/app/_app242_build_minimvp.py": 0,
+        "results/app/_app244_build_minimvp_rc1.py": 0,
+        "results/app/_app255_build_minimvp_rc2.py": 0,
+        "results/app/_app255_make_rc2_builder.py": 0,
+        "results/app/_app269_build_minimvp_rc3.py": 0,
+        "results/app/_app303_build_v23_clone_r2.py": 0,
+        "results/app/app007_build_final_table.py": 0,
+        "results/app/app007_build_list.py": 0,
+        "results/app/app007_build_replace_text.py": 0,
+        "results/app/app007_build_replace_text2.py": 0,
+        "results/app/app007_rebuild_table.py": 0,
+        "results/app/app014b_build_v15_dir.py": 0,
+        "results/app/app023_build_round2.py": 0,
+        "results/app/app023_build_round3.py": 0,
+        "results/app/app023_build_supplement.py": 0,
+        "results/app/app198_build_shadow_pkg.py": 0,
+        "results/app/app206_app057_v20_stage.py": 0,
+        "results/app/app217_app057_v21_stage.py": 0,
+        "results/app/app221_app061_v22_build.py": 0,
+        "results/app/app251_app067_build_deliverables.py": 0
+      },
+      "total_refs": 0
+    },
+    "spk": {
+      "keep": [
+        "asr052_speaker_tracker_api.py",
+        "asr052_spk_runtime.py",
+        "asr_thread_defaults.py",
+        "asr_spk_window.py",
+        "asr_runtime_switches.py"
+      ],
+      "pkg22_present": [
+        "asr052_speaker_tracker_api.py",
+        "asr052_spk_runtime.py",
+        "asr_thread_defaults.py"
+      ],
+      "pkg22_missing": [
+        "asr_spk_window.py",
+        "asr_runtime_switches.py"
+      ],
+      "shadow_present": [
+        "asr052_speaker_tracker_api.py",
+        "asr052_spk_runtime.py",
+        "asr_thread_defaults.py",
+        "asr_spk_window.py",
+        "asr_runtime_switches.py"
+      ],
+      "shadow_missing": []
+    },
+    "seg_w5": {
+      "pkg22_dir_exists": false,
+      "repo_dir_exists": false,
+      "shadow_files": [
+        {
+          "name": "pyannote_seg_3_0_w5.bin",
+          "bytes": 2978960,
+          "sha256": "a394cfbd0b3909598bf0433c807f9f8b1d43b321ffd11d1c9b353cba22916b36",
+          "mtime": "2026-11-02T09:33:21"
+        },
+        {
+          "name": "pyannote_seg_3_0_w5.xml",
+          "bytes": 73206,
+          "sha256": "4e8b69281f4b02142c156050b3d5b9febd02e37f335cc81189f3759b2c9ac192",
+          "mtime": "2026-11-04T17:07:07"
+        }
+      ],
+      "asr_src_files": [
+        "export_meta.json",
+        "pyannote_seg_3_0_w5.bin",
+        "pyannote_seg_3_0_w5.xml",
+        "pyannote_seg_3_0_w5.xml.bak_before_path_scrub_20261105_085534"
+      ],
+      "shadow_xml_sha256": "4e8b69281f4b02142c156050b3d5b9febd02e37f335cc81189f3759b2c9ac192",
+      "asr_src_xml_sha256": "613b6a5e83e7751bdb580b74559fb190a654992822530de49bb6763f53a6aeb4",
+      "xml_differs": true
+    },
+    "bridge": {
+      "v22_token_paths": [
+        "ext/bridge_token.txt"
+      ],
+      "bootstrap": {
+        "bytes": 9978,
+        "sha256": "b73d88f114ed5b5f77b977d6d6123c8af97e74a490a75a51d5c13fb40f0eebdd",
+        "mtime": "2026-11-06T13:43:06"
+      }
+    },
+    "git": {
+      "head": "7079e05",
+      "ahead": "0",
+      "branch": "main",
+      "corrections_status": "M status/app/CORRECTIONS_APP.md"
+    },
+    "machine_lock_present": false
+  },
+  "conclusion": "无新纠偏（80 条 / last_ack=APP-080）；按 APP-046② 不空转，§143/§145/§146 关键证据与 3+3+2 份源文件重新实算一致；新增 APP-080 ⑤ 前置资产定位：v2.2 包内 asr_spk 5 个文件只有 3 个、无 fp16-w5，影子包已有 5/5 + 2 个 5 s seg IR；PKG_INCLUDE_FILES 仍 NOT_WIRED。",
+  "stop_point": "APP-075/079 与 APP-080 ⑤⑥ 仍停 reviewer 复核节点；v2.3 不打包、未改任何客户安装目录、未占设备。"
+}

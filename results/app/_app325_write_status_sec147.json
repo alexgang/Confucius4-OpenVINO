@@ -1,0 +1,197 @@
+{
+  "tool": "_app325_write_status_sec147",
+  "verdict": "PASS",
+  "n_checks": 24,
+  "n_fail": 0,
+  "checks": [
+    {
+      "name": "corrections_closing_rechecked",
+      "ok": true,
+      "detail": "closing={'sha256': 'b3ae9ea9fb72282bbf619dd26b73de688f8c771911bd0b56e0faf8f392b937d5', 'bytes': 224562, 'mtime': '2026-11-06 21:40:34', 'n_headings': 80, 'max_id': 80}"
+    },
+    {
+      "name": "sec146_located",
+      "ok": true,
+      "detail": "pos=23313"
+    },
+    {
+      "name": "archive_contains_verbatim_block",
+      "ok": true,
+      "detail": "block_sha=9a68ea495d02b5a2b063254ea07ec97fc98e58ffe12a78e9d8fb1cab0976bb2e arc_bytes=4937"
+    },
+    {
+      "name": "sec143_located",
+      "ok": true,
+      "detail": "pos=16803"
+    },
+    {
+      "name": "archive2_contains_verbatim_block",
+      "ok": true,
+      "detail": "block_sha=855cd58c552ae6e5a88e5ff9ab232c7ffda9b3745fa586fd0d7f033f3a45928c arc2_bytes=10634"
+    },
+    {
+      "name": "header_unique_更新时间",
+      "ok": true,
+      "detail": "duplicate line 4"
+    },
+    {
+      "name": "header_unique_当前任务",
+      "ok": true,
+      "detail": "duplicate line 5"
+    },
+    {
+      "name": "header_unique_已压缩",
+      "ok": true,
+      "detail": "duplicate line 7"
+    },
+    {
+      "name": "header_3_lines_found",
+      "ok": true,
+      "detail": "indices={'更新时间': 3, '当前任务': 4, '已压缩': 6}"
+    },
+    {
+      "name": "header_replace_unique_更新时间",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "header_replace_unique_当前任务",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "header_replace_unique_已压缩",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "last_ack_unchanged_APP080",
+      "ok": true,
+      "detail": "本轮无新编号，last_ack 保持 APP-080"
+    },
+    {
+      "name": "no_crlf",
+      "ok": true,
+      "detail": "CRLF count=0"
+    },
+    {
+      "name": "within_40000_bytes",
+      "ok": true,
+      "detail": "new_bytes=33623 limit=40000"
+    },
+    {
+      "name": "within_300_lines",
+      "ok": true,
+      "detail": "new_lines=177 limit=300"
+    },
+    {
+      "name": "sections_not_reduced_and_appended",
+      "ok": true,
+      "detail": "old=['## §141', '## §142', '## §143', '## §146'] new=['## §141', '## §142', '## §147'] expected=['## §141', '## §142', '## §147']"
+    },
+    {
+      "name": "verbatim_block_in_archive",
+      "ok": true,
+      "detail": "block sha=9a68ea495d02b5a2b063254ea07ec97fc98e58ffe12a78e9d8fb1cab0976bb2e"
+    },
+    {
+      "name": "verbatim_block2_in_archive",
+      "ok": true,
+      "detail": "block sha=855cd58c552ae6e5a88e5ff9ab232c7ffda9b3745fa586fd0d7f033f3a45928c"
+    },
+    {
+      "name": "restore_quick_tail",
+      "ok": true,
+      "detail": "tail matches"
+    },
+    {
+      "name": "restore_header_unique",
+      "ok": true,
+      "detail": "new line count=1"
+    },
+    {
+      "name": "restore_header_unique",
+      "ok": true,
+      "detail": "new line count=1"
+    },
+    {
+      "name": "restore_header_unique",
+      "ok": true,
+      "detail": "new line count=1"
+    },
+    {
+      "name": "reverse_restore_equals_old_fulltext",
+      "ok": true,
+      "detail": "restored=39860 old=39860 equal=True"
+    },
+    {
+      "name": "post_write_disk_byte_equal",
+      "ok": true,
+      "detail": "disk=33623 planned=33623"
+    }
+  ],
+  "status_before": {
+    "bytes": 39860,
+    "lines": 195,
+    "sha256": "641690865d1986c3827bba0d02aad096f9c3392a0e8299c19491e4af3a8d9d57"
+  },
+  "status_after_planned": {
+    "bytes": 33623,
+    "lines": 178,
+    "sha256": "3803d07499238c079ef5c1336b8f6906686c95939cbc6f927c21e9003d16ce20"
+  },
+  "archived_block": {
+    "file": "status/archive/STATUS_APP_sec146_20261107.md",
+    "bytes": 4629,
+    "lines": 19,
+    "sha256": "9a68ea495d02b5a2b063254ea07ec97fc98e58ffe12a78e9d8fb1cab0976bb2e"
+  },
+  "archived_block2": {
+    "file": "status/archive/STATUS_APP_sec143_20261107.md",
+    "bytes": 10301,
+    "lines": 25,
+    "sha256": "855cd58c552ae6e5a88e5ff9ab232c7ffda9b3745fa586fd0d7f033f3a45928c"
+  },
+  "corrections_closing_recheck": {
+    "sha256": "b3ae9ea9fb72282bbf619dd26b73de688f8c771911bd0b56e0faf8f392b937d5",
+    "bytes": 224562,
+    "mtime": "2026-11-06 21:40:34",
+    "n_headings": 80,
+    "max_id": 80
+  },
+  "corrections_equals_opening": true,
+  "artifacts": [
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app324_app080_prereq_readonly_audit.py",
+      "bytes": 20910,
+      "mtime": "2026-11-07T04:12:22",
+      "sha256": "343b351c3fe9e711e447df45658386499f5593ac09cc35497460dedef6f27538"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app324_app080_prereq_readonly_audit.json",
+      "bytes": 23759,
+      "mtime": "2026-11-07T04:12:29",
+      "sha256": "4ff11d490fde9d251eec4dce8d9f8fc333498860f16e8f7de351be0f2e2e4368"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\archive\\STATUS_APP_sec146_20261107.md",
+      "bytes": 4937,
+      "mtime": "2026-11-07T04:16:20",
+      "sha256": "df88e9abd71ac7b1da84ded96dab995c295c0823cc8580b4efba141107c0cc0e"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\archive\\STATUS_APP_sec143_20261107.md",
+      "bytes": 10634,
+      "mtime": "2026-11-07T04:16:20",
+      "sha256": "1cbdba94f629ef1b70aa40cbce5ff4ea7d964011110c1ba5831f10a6bcc6a5dc"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app325_write_status_sec147.py",
+      "bytes": 21748,
+      "mtime": "2026-11-07T04:16:11",
+      "sha256": "57d7a2166b68c63f756effcb72951659eb55304b9d8e4ceea820825e4d2008ec"
+    }
+  ],
+  "status_written": true,
+  "post_write_disk_equal": true
+}
