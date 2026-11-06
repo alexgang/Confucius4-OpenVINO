@@ -608,42 +608,27 @@ class BridgeRunner:
 
 def _make_shortcut(desktop_dir: str, target: str, args: str,
                    description: str) -> Optional[str]:
-    """在桌面创建 .lnk 快捷方式。
+    """Write the desktop entry 实时配音桥接.cmd.
 
-    ⛔ 不依赖 pywin32（本机**没装**）⇒ 用 Windows 自带的
-       `IShellLink` COM 太重 ⇒ 改用**最朴素、零依赖**的做法：
-       生成一个 `.cmd` 启动器 + 一个 `.url` 风格的桌面快捷方式不靠 COM 很难，
-       ⇒ 采用 **Windows Script Host (.vbs)** 生成 .lnk —— 不行，同样依赖 COM。
-
-    ⇒ **最终方案**：直接写一个 `.cmd` 文件到桌面，双击即可运行。
-       Windows 会给 `.cmd` 正常显示图标与名称，用户体验等价于快捷方式，
-       且**零依赖**、**不装 pywin32**、**不写注册表**。
-
-    ★★ EXT-017①（乱码修复）：`.cmd` 文件本身也有两个坑：
-      1. **文件编码**：`.cmd` 默认按 **OEM 代码页（936/GBK）**解读，
-         UTF-8 存的中文注释会显示成乱码 ⇒ 本函数**按 GBK 写**，
-         保证在中文 Windows 上 `rem` 注释与 `echo` 提示都能正常显示。
-      2. **控制台代码页**：`.cmd` 继承的 cmd.exe 默认代码页是 936 ⇒
-         后续 Python 输出若按 UTF-8 写就会显示成乱码 ⇒ **先 `chcp 65001`**。
-         （`chcp 65001 >nul` 里的 `>nul` 用来吞掉 chcp 自己的输出。）
+    11-06 fix (user hit "Windows 找不到文件 ...v1.12/python/pythonw.exe"):
+    the old version baked the interpreter path *at install time* into the .cmd,
+    so every App upgrade that removed the old dir broke the shortcut.
+    Now the .cmd contains NO App path at all; it runs tools/start_ext.ps1,
+    which resolves the newest complete App at RUNTIME and shows its own
+    message box + log on failure.  `target`/`args` are kept for signature
+    compatibility but intentionally unused.
     """
     try:
         os.makedirs(desktop_dir, exist_ok=True)
         path = os.path.join(desktop_dir, "实时配音桥接.cmd")
-        # ★ 按 **GBK（cp936）** 写：.cmd 默认按 OEM 代码页解读，
-        #   UTF-8 内容会变乱码。GBK 是中文 Windows 的原生代码页。
+        ps1 = os.path.join(ROOT, "tools", "start_ext.ps1")
         lines = [
             "@echo off",
-            "rem %s" % description,
-            "rem ==== EXT-017①：切控制台到 UTF-8，避免中文/符号乱码 ====",
-            "chcp 65001 >nul",
-            "set PYTHONUTF8=1",
-            "set PYTHONIOENCODING=utf-8",
-            "start \"\" \"%s\" %s" % (target, args),
+            "rem live dub bridge launcher - resolves the LiveCaption App at runtime (no version hardcoded)",
+            'start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%s"' % ps1,
         ]
-        text = "\r\n".join(lines) + "\r\n"
         with open(path, "wb") as f:
-            f.write(text.encode("gbk", errors="replace"))
+            f.write(("\r\n".join(lines) + "\r\n").encode("gbk", errors="replace"))
         return path
     except Exception:
         return None
