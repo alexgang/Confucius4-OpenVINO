@@ -1,0 +1,142 @@
+{
+  "tool": "_app319_write_status_sec144",
+  "stamp_source": "PowerShell Get-Date 实测",
+  "stamp": "2026-11-07 00:29:43",
+  "first_attempt": {
+    "planned_bytes": 40813,
+    "limit": 40000,
+    "status_written": false,
+    "note": "写前自检拦下，STATUS 未落盘"
+  },
+  "before": {
+    "bytes": 38020,
+    "lines": 186,
+    "sections": 7,
+    "sha256": "7c2434a6f201d290ac90e18ff87c4cbe0ae7ab6a25c6476fce5d6059d037f66f"
+  },
+  "after_planned": {
+    "bytes": 39577,
+    "lines": 200,
+    "sections": 8
+  },
+  "archive": {
+    "path": "status/archive/STATUS_APP_recent_updates_upto_20261107.md",
+    "bytes": 2245,
+    "sha256": "ead2fbf22a3aa1582ca5545d8e73babc13c3befbb9825607a918b450fbc97ebe",
+    "block_sha256": "853a0d85678f895f4b88ee294faaaeabec61ca31c2a3a247958a8f8c442f1c8d"
+  },
+  "head_lines_changed": 3,
+  "artifacts": [
+    {
+      "path": "results/app/_app318_sec143_evidence_recheck.py",
+      "mtime": "2026-11-07T00:29:27",
+      "bytes": 11072,
+      "sha256": "20e2216d084abcc3b2df5ec42c292a086d67fe9e743cfed706d5b3a6ea29fcf2"
+    },
+    {
+      "path": "results/app/_app318_sec143_evidence_recheck.json",
+      "mtime": "2026-11-07T00:29:31",
+      "bytes": 14111,
+      "sha256": "60e0a8fd2a1c1a864e4de1fb6640e3dd84c57059b910b41e66a6bb759130214a"
+    },
+    {
+      "path": "status/archive/STATUS_APP_recent_updates_upto_20261107.md",
+      "mtime": "2026-11-07T00:34:44",
+      "bytes": 2245,
+      "sha256": "ead2fbf22a3aa1582ca5545d8e73babc13c3befbb9825607a918b450fbc97ebe"
+    }
+  ],
+  "checks": [
+    {
+      "id": "W01",
+      "desc": "头部 3 行与归档块均唯一命中并定点替换",
+      "ok": true,
+      "evidence": {
+        "old_time": "更新时间: 2026-11-06 23:22:36",
+        "block_lines": 2
+      }
+    },
+    {
+      "id": "W02",
+      "desc": "反向还原后与旧全文逐字相等（旧正文一字未删）",
+      "ok": true,
+      "evidence": {
+        "old_bytes": 38020,
+        "restored_bytes": 38020
+      }
+    },
+    {
+      "id": "W03",
+      "desc": "归档件含旧条目原文逐字命中",
+      "ok": true,
+      "evidence": {
+        "block_sha256": "853a0d85678f895f4b88ee294faaaeabec61ca31c2a3a247958a8f8c442f1c8d",
+        "archive_bytes": 2245
+      }
+    },
+    {
+      "id": "W04",
+      "desc": "章节数不减",
+      "ok": true,
+      "evidence": {
+        "old": 7,
+        "new": 8
+      }
+    },
+    {
+      "id": "W05",
+      "desc": "LF 行尾未破",
+      "ok": true,
+      "evidence": {
+        "crlf": 0
+      }
+    },
+    {
+      "id": "W06",
+      "desc": "限额 ≤40 000 B / ≤300 行",
+      "ok": true,
+      "evidence": {
+        "bytes": 39577,
+        "lines": 200
+      }
+    },
+    {
+      "id": "W07",
+      "desc": "§144 章节恰好追加一次",
+      "ok": true,
+      "evidence": {
+        "count": 1
+      }
+    },
+    {
+      "id": "W08",
+      "desc": "last_ack 保持 APP-080（无新编号）",
+      "ok": true,
+      "evidence": {
+        "last_ack": "APP-080"
+      }
+    },
+    {
+      "id": "W09",
+      "desc": "写后磁盘逐字节与计划一致",
+      "ok": true,
+      "evidence": {
+        "bytes": 39577,
+        "lines": 200,
+        "sha256": "ec9e5673bfc4db68e91d5e8e5af0263dda62d057452010eead4b98abf6841c14",
+        "crlf": 0
+      }
+    }
+  ],
+  "n_pass": 9,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "status_written": true,
+  "atomic_replace": true,
+  "after_disk": {
+    "bytes": 39577,
+    "lines": 200,
+    "sha256": "ec9e5673bfc4db68e91d5e8e5af0263dda62d057452010eead4b98abf6841c14",
+    "crlf": 0
+  }
+}
