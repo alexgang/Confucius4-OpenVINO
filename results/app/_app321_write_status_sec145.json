@@ -1,0 +1,184 @@
+{
+  "tool": "_app321_write_status_sec145",
+  "stamp_source": "PowerShell Get-Date 实测",
+  "stamp": "2026-11-07 01:45:30",
+  "first_attempt": {
+    "planned_bytes": 40720,
+    "limit": 40000,
+    "status_written": false,
+    "note": "仅归档 A+B 时超限，写前自检拦下；追加归档块 C 后达标"
+  },
+  "before": {
+    "bytes": 39577,
+    "lines": 200,
+    "sections": 8,
+    "sha256": "ec9e5673bfc4db68e91d5e8e5af0263dda62d057452010eead4b98abf6841c14"
+  },
+  "after_planned": {
+    "bytes": 39914,
+    "lines": 195,
+    "sections": 8
+  },
+  "archives": [
+    {
+      "path": "status/archive/STATUS_APP_sec144_20261107.md",
+      "bytes": 3269,
+      "sha256": "bd0529841c8b5c3d80a85ec1f3b5de4c06c43674d78652a7538daf38d3c70b33",
+      "block_sha256": "53214dba94e14e870731c1399e79a248bdd2e89a602f6ccd314ad7b77b8b2461",
+      "block_bytes": 2964
+    },
+    {
+      "path": "status/archive/STATUS_APP_sec143_artifacts_20261107.md",
+      "bytes": 2176,
+      "sha256": "e9d914a95af7c4642d463f850e84efe66e1f65945de6f84ad2093dce72085547",
+      "block_sha256": "38f401fad509a9e32f1e5320bf8754bab952f560905322769095802182518264",
+      "block_bytes": 1859
+    },
+    {
+      "path": "status/archive/STATUS_APP_compress_index_upto_20261107.md",
+      "bytes": 1398,
+      "sha256": "f0c9cc98febcbc51eed7eb35f7b933bbd9929f64ed7238ad253af4e1141e663b",
+      "block_sha256": "75b01f1482e3f8fbee1e4a2c8ff7cfbd3310ca89474984a8aea3a11afa2be0f3",
+      "block_bytes": 1072
+    }
+  ],
+  "head_lines_changed": 3,
+  "artifacts": [
+    {
+      "path": "results/app/_app320_v23_build_readiness.py",
+      "mtime": "2026-11-07T01:44:34",
+      "bytes": 14763,
+      "sha256": "344ad71a212452ebb52da16148efee6649ac9dab8291a588ef46faae0af036e0"
+    },
+    {
+      "path": "results/app/_app320_v23_build_readiness.json",
+      "mtime": "2026-11-07T01:44:37",
+      "bytes": 9554,
+      "sha256": "0c61c1077b68e1bcded92f31036bbdf8912d09bbd82342f725f87a45fbaa9c94"
+    },
+    {
+      "path": "status/archive/STATUS_APP_sec144_20261107.md",
+      "mtime": "2026-11-07T01:51:55",
+      "bytes": 3269,
+      "sha256": "bd0529841c8b5c3d80a85ec1f3b5de4c06c43674d78652a7538daf38d3c70b33"
+    },
+    {
+      "path": "status/archive/STATUS_APP_sec143_artifacts_20261107.md",
+      "mtime": "2026-11-07T01:51:55",
+      "bytes": 2176,
+      "sha256": "e9d914a95af7c4642d463f850e84efe66e1f65945de6f84ad2093dce72085547"
+    },
+    {
+      "path": "status/archive/STATUS_APP_compress_index_upto_20261107.md",
+      "mtime": "2026-11-07T01:51:55",
+      "bytes": 1398,
+      "sha256": "f0c9cc98febcbc51eed7eb35f7b933bbd9929f64ed7238ad253af4e1141e663b"
+    }
+  ],
+  "checks": [
+    {
+      "id": "W01",
+      "desc": "头部 3 行与三块归档原文均唯一命中并定点替换",
+      "ok": true,
+      "evidence": {
+        "block_a_lines": 15,
+        "block_b_lines": 14,
+        "block_c_bytes": 1072
+      }
+    },
+    {
+      "id": "W02",
+      "desc": "反向还原后与旧全文逐字相等（旧正文一字未删）",
+      "ok": true,
+      "evidence": {
+        "old_bytes": 39577,
+        "restored_bytes": 39577
+      }
+    },
+    {
+      "id": "W03",
+      "desc": "三个归档件均含原文逐字命中",
+      "ok": true,
+      "evidence": {
+        "sha_a": "53214dba94e14e870731c1399e79a248bdd2e89a602f6ccd314ad7b77b8b2461",
+        "sha_b": "38f401fad509a9e32f1e5320bf8754bab952f560905322769095802182518264",
+        "sha_c": "75b01f1482e3f8fbee1e4a2c8ff7cfbd3310ca89474984a8aea3a11afa2be0f3"
+      }
+    },
+    {
+      "id": "W04",
+      "desc": "章节数不减",
+      "ok": true,
+      "evidence": {
+        "old": 8,
+        "new": 8
+      }
+    },
+    {
+      "id": "W05",
+      "desc": "LF 行尾未破",
+      "ok": true,
+      "evidence": {
+        "crlf": 0
+      }
+    },
+    {
+      "id": "W06",
+      "desc": "限额 ≤40 000 B / ≤300 行",
+      "ok": true,
+      "evidence": {
+        "bytes": 39914,
+        "lines": 195
+      }
+    },
+    {
+      "id": "W07",
+      "desc": "§145 章节恰好追加一次",
+      "ok": true,
+      "evidence": {
+        "count": 1
+      }
+    },
+    {
+      "id": "W08",
+      "desc": "last_ack 保持 APP-080（无新编号）",
+      "ok": true,
+      "evidence": {
+        "last_ack": "APP-080"
+      }
+    },
+    {
+      "id": "W09",
+      "desc": "§145 引用字段与 _app320 JSON 原始字段一致",
+      "ok": true,
+      "evidence": {
+        "evidence_verdict": "PASS",
+        "total_hits": 0,
+        "scanned": 22,
+        "head": "c6ae632"
+      }
+    },
+    {
+      "id": "W10",
+      "desc": "写后磁盘逐字节与计划一致",
+      "ok": true,
+      "evidence": {
+        "bytes": 39914,
+        "lines": 195,
+        "sha256": "e17bc67c80ada1c20dccf1678f7bfc1a4b9876cb18e0a7e568d9a183a4217cca",
+        "crlf": 0
+      }
+    }
+  ],
+  "n_pass": 10,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "status_written": true,
+  "atomic_replace": true,
+  "after_disk": {
+    "bytes": 39914,
+    "lines": 195,
+    "sha256": "e17bc67c80ada1c20dccf1678f7bfc1a4b9876cb18e0a7e568d9a183a4217cca",
+    "crlf": 0
+  }
+}
