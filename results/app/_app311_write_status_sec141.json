@@ -1,0 +1,95 @@
+{
+  "tool": "app311_write_status_sec141",
+  "ts": "2026-11-06 19:59:04",
+  "measured_status_time": "2026-11-06 19:58:30",
+  "before": {
+    "bytes": 39853,
+    "lines": 172,
+    "sha256": "9d2b352fb3d7dc11cfa3cb35875d96a2fb22b046564f45e1912b04b4f2f953e0"
+  },
+  "after": {
+    "bytes": 33883,
+    "lines": 167,
+    "sha256": "a7f0bdbad852b802bdb850643d964fa79463d2b55324e0141ccbf8a5c450ebce"
+  },
+  "compressed_block": {
+    "lines": 16,
+    "bytes": 9766,
+    "sha256": "b14fb9b97026e9eaef29fbd3d8a7bc6277e7d4477000344d61c5693819817d47",
+    "archive": "status/archive/STATUS_APP_recent_updates_upto_20261106.md"
+  },
+  "header_lines_changed": [
+    3,
+    4,
+    5,
+    6
+  ],
+  "checks": [
+    {
+      "name": "newline_LF_only",
+      "pass": true,
+      "detail": "CRLF=0"
+    },
+    {
+      "name": "size_limit",
+      "pass": true,
+      "detail": "33883 <= 40000"
+    },
+    {
+      "name": "line_limit",
+      "pass": true,
+      "detail": "167 <= 300"
+    },
+    {
+      "name": "old_body_byte_identical_outside_whitelist",
+      "pass": true,
+      "detail": "changed_old=20 allowed=20 extra=[]"
+    },
+    {
+      "name": "archive_byte_hit",
+      "pass": true,
+      "detail": "block_sha=b14fb9b97026e9eaef29fbd3d8a7bc6277e7d4477000344d61c5693819817d47 block_bytes=9766"
+    },
+    {
+      "name": "compressed_block_removed",
+      "pass": true,
+      "detail": "old block absent from STATUS"
+    },
+    {
+      "name": "no_section_lost",
+      "pass": true,
+      "detail": "old=6 new=6 missing=[]"
+    },
+    {
+      "name": "sec141_added",
+      "pass": true,
+      "detail": "sec141 heading present"
+    },
+    {
+      "name": "last_ack_unchanged",
+      "pass": true,
+      "detail": "no new id => unchanged"
+    },
+    {
+      "name": "update_time_is_measured",
+      "pass": true,
+      "detail": "2026-11-06 19:58:30"
+    },
+    {
+      "name": "corrections_never_written_by_this_run",
+      "pass": true,
+      "detail": "只读文件，本轮未写入；开工/收尾差异在 §141 如实记录（不阻断）"
+    }
+  ],
+  "n_pass": 11,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "corrections_fingerprint": {
+    "sha256": "bbc95c4382f29fa3c8b4f1b49ff644339b025f78447a3bb263e6b680ad4d82af",
+    "bytes": 220735,
+    "mtime": "2026-11-06 13:31:54",
+    "n_items": 78,
+    "max_id": "APP-078"
+  },
+  "status_written": true
+}
