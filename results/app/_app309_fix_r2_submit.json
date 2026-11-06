@@ -1,0 +1,131 @@
+{
+ "tool": "_app309_fix_r2_submit",
+ "app": "APP-075(e)",
+ "ts": "2026-11-06 13:59:40",
+ "out_dir": "C:\\Users\\Trekker-PTL\\shared\\app_listen\\v23_clone_r2",
+ "first_run": false,
+ "note": "首跑补齐 submit.jsonl 并重签；本轮复跑为判据订正后的幂等复核（AST 判据取代文本包含判据）",
+ "manifest_rev": 4,
+ "before": {
+  "n_files": 54,
+  "n_bytes": 20175499
+ },
+ "after": {
+  "n_files": 54,
+  "n_bytes": 20175499
+ },
+ "submit": {
+  "rel": "submit.jsonl",
+  "src": "tts_on_clone_0.seg.jsonl.submit.jsonl",
+  "bytes": 4486,
+  "sha256": "9218f961f538621b3e2bc6feb250f6480c145661e8dbfc93e772359066336ab7"
+ },
+ "manifest": {
+  "rel": "manifest.json",
+  "bytes": 10390,
+  "sha256": "c6be9c50eb8ef752e7280a2489c4af47b85ef9e87d16357b848aa085352e4817",
+  "fixed_point_iters": 1
+ },
+ "gate": {
+  "true": 21,
+  "false": 19,
+  "none": 6,
+  "counter_evidence_ok": true
+ },
+ "incomplete": "第 2 臂 preset 对照未跑（后台作业被会话中断杀掉）；真 x-vector 余弦矩阵未产出（app299 是 offline_stat_embed，硬判据 FAIL）⇒ 本条需等 reviewer 复核；v2.3 不打包",
+ "checks": [
+  {
+   "name": "构建脚本 _app303 语法通过（ast.parse）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "_app303 已改为显式 _JSONL_SRC 映射",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "_app303 显式映射指向真实源文件名",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "_app303 缺源改为 assert（AST：无静默 If / 有 Assert）",
+   "ok": true,
+   "detail": "assert=True silent_if=0"
+  },
+  {
+   "name": "反证①：旧文件名 tts_on_clone_0.submit.jsonl 不存在（旧逻辑会漏）",
+   "ok": true,
+   "detail": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app301_device_out\\tts_on_clone_0.submit.jsonl"
+  },
+  {
+   "name": "反证②：新文件名真实存在",
+   "ok": true,
+   "detail": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app301_device_out\\tts_on_clone_0.seg.jsonl.submit.jsonl"
+  },
+  {
+   "name": "submit.jsonl 首跑前缺失／复跑已存在（幂等）",
+   "ok": true,
+   "detail": "first_run=False"
+  },
+  {
+   "name": "submit.jsonl 与设备源逐字节一致",
+   "ok": true,
+   "detail": "9218f961f538621b3e2bc6feb250f6480c145661e8dbfc93e772359066336ab7 4486 B"
+  },
+  {
+   "name": "manifest 自指大小不动点收敛",
+   "ok": true,
+   "detail": "iters=1 自记=10390 序列化=10390"
+  },
+  {
+   "name": "磁盘实测 n_files == manifest 自记",
+   "ok": true,
+   "detail": "54 / 54"
+  },
+  {
+   "name": "磁盘实测 n_bytes == manifest 自记",
+   "ok": true,
+   "detail": "20175499 / 20175499"
+  },
+  {
+   "name": "files 含且仅含 1 条 manifest 自身条目",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "自身条目 bytes == 磁盘 manifest.json 实测",
+   "ok": true,
+   "detail": "10390 B"
+  },
+  {
+   "name": "全部非自身条目 SHA/字节与磁盘逐条相符",
+   "ok": true,
+   "detail": "53 条，bad=[]"
+  },
+  {
+   "name": "写前记录的产物 SHA 写后逐条未变（只改 manifest 自身）",
+   "ok": true,
+   "detail": "54 条旧记录，changed=[]"
+  },
+  {
+   "name": "文件数变化符合首跑/复跑预期",
+   "ok": true,
+   "detail": "first_run=False 54 -> 54"
+  },
+  {
+   "name": "submit.jsonl 已落盘且非空",
+   "ok": true,
+   "detail": "4486 B"
+  },
+  {
+   "name": "未完成项声明未被抹掉（incomplete 原文保留）",
+   "ok": true,
+   "detail": ""
+  }
+ ],
+ "n_pass": 18,
+ "n_fail": 0,
+ "verdict": "PASS"
+}

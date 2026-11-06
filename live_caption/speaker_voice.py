@@ -81,6 +81,84 @@ from typing import Callable, Dict, List, Optional, Tuple
 MIN_S = 1.5
 REFINE_S = 3.0
 
+# ══════════════════════════════════════════════════════════════
+# 🔴🔴🔴 APP-071(c) / APP-075(a)：**登记门槛**（防止「用错人的音频登记音色」）
+# ══════════════════════════════════════════════════════════════
+# 📌 背景（实测，见 `results/app/_app293_label_overlap.json`）：
+#    ASR 给 seg1（9.6–19.2 s）打的标签是 **S2**，但 `spk_conf=0.1292`
+#    ⇒ 该段的**真实说话人是女声**（实测 F0 197.53 Hz，GT = S1）。
+#    旧逻辑**不看 `spk_conf`** ⇒ 拿这段女声给「S2」登记了 x-vector
+#    ⇒ 之后**所有**男声句子都用女声播出（用户实测「男声听上去也是女声」）。
+#
+# 🔴🔴🔴 APP-075(a) 的要求是**三件事同时成立**才可登记：
+#    ① `spk_conf ≥ REG_CONF_MIN`；
+#    ② 该段落在 ASR 给的 `clean_ranges` **内**；
+#    ③ 去掉**切换点前后 `SWITCH_GUARD_S`** 之后，仍有**连续 ≥ REG_MIN_CONT_S**
+#       的音频。
+#
+# 🔴🔴🔴🔴 **实测硬证据：①（conf 门槛）与③（边界守卫）**都**挡不住**
+#    **「标签已切给新人、但音频还属于旧人」的那几段**：
+#
+#    | 段 | 时间(s) | `spk_conf` | 边界守卫 | 真实性别（实测 F0） |
+#    |---|---|---|---|---|
+#    | seg1 | 9.6–19.2 | 0.1292 | 被挡 | 女 197.53 Hz |
+#    | **seg2** | 19.2–25.6 | **0.8996** | **挡不住** | **女 175.82 Hz** |
+#    | **seg3** | 25.6–32.0 | **0.9104** | **挡不住** | **女 188.24 Hz** |
+#    | seg4 | 32.0–38.4 | 0.3757 | 被挡 | 中性 168.42 Hz |
+#    | seg5 | 38.4–44.8 | 0.4016 | 挡不住 | 男 108.84 Hz |
+#    | seg6–14 | 44.8–102.4 | 0.73–0.95 | 挡不住 | **男 100–135 Hz** |
+#
+#    ⇒ S1→S2 的切换点只有 **9.6 s**（S2 的 seg1 之后**再无换人**）
+#      ⇒ seg2/seg3（19.2–32.0 s）**离切换点很远** ⇒ **守卫挡不住**
+#      ⇒ 且它们的 `spk_conf` 高达 0.90/0.91 ⇒ **conf 门槛也挡不住**
+#    ⇒ **①③ 只能挡掉 seg1/seg4 两段**，女声的 seg2/seg3 **必然**成为合格段。
+#    ⇒ 🔴 **真正能选对人的是「择段策略」**（见 `registration_ticket()`）：
+#      **最长**合格段 = 男声 57.6 s（seg6–14）＞ 女声 12.8 s（seg2–3）
+#      ⇒ 登记到**对的人**。
+#
+# 🔴 `REG_CONF_MIN`：**登记用的 `spk_conf` 门槛**。
+#    依据（`_app292_threshold_probe.json`，app250 设备实测段表）：
+#      · 必须 **> 0.3217**（S4 首现段的 conf）⇒ 才能挡住**全部三处**
+#        「切换边界首现」的高危段（S2 0.1292 / S3 0.0602 / S4 0.3217）；
+#      · 必须 **≤ 0.6** ⇒ 门槛再高，S4 就**再也攒不够 2.5 s 连续合格音频**
+#        （实测 0.7 ⇒ S4 最长连续 0.0 s ⇒ 该说话人**永远登记不上**）。
+#    ⇒ 可行窗口 **[0.4, 0.6]** ⇒ 取中点 **0.5**（余量最大）。
+#    🔴 **口径声明（APP-075(c)）**：该窗口**只来自一份 5 分钟样本**
+#      （`SPE_mix_3303_3603.wav`）⇒ 见 §140 的第二份材料复验
+#      （ASR-122 `asr122_asr050_regression.json`，900 s / 3 clip / 136 段）。
+#    ⚠️ **语义澄清（ASR-048/049 明文）**：`spk_conf` = **与已登记者的最大余弦
+#      相似度** ⇒ **低 = 新人**，**不是**「标签不可信」
+#      ⇒ 所以门槛的**唯一作用**是「**选哪段音频登记**」（APP-075(b) 明文）
+#      ⇒ **绝不**因为首段 conf 低就不登记、不播。
+REG_CONF_MIN = 0.5
+
+# 🔴 `REG_MIN_CONT_S`：**登记所需的最短「连续合格音频」**（秒）。
+#    APP-071(c) 原文：「该说话人连续干净 ≥ 2.5 s 的音频登记」。
+REG_MIN_CONT_S = 2.5
+
+# 🔴 `SWITCH_GUARD_S`：**切换边界前后各留 0.5 s 不取**（APP-071(c) 原文）。
+#    🔴 **这是本轮最关键的一条**（见上方 seg2/seg3 的反例）⇒ 不能调小。
+SWITCH_GUARD_S = 0.5
+
+# 🔴 `CONT_GAP_TOL_S`：**同一人相邻干净区间之间允许的间隙**（秒）。
+#    ASR 的 `clean_ranges` 是段内 `p_speech>=0.5` 的子区间 ⇒ 同一人连续说话时
+#    区间之间会有**几十到几百毫秒**的静音间隙 ⇒ 若间隙 > 0 则永远攒不够 2.5 s。
+#    ⇒ 间隙 ≤ 0.5 s 视为**同一段连续发言**；间隙 > 0.5 s ⇒ 判为**断开**。
+CONT_GAP_TOL_S = 0.5
+
+# 🔴🔴🔳 **为什么没有「登记稳定期」参数**（本轮**评估后否决**的设计，写在
+#    代码里避免以后重复走一遍）：
+#   曾考虑加 `REG_SETTLE_S`（「等该标签的合格段不再增长 N 秒再登记」）
+#   ⇒ 用真实数据推演后发现**会引入新的误判**：
+#     S2 的女声合格段（19.2–32.0 s，12.8 s）在 seg3 到手后**不再增长**
+#     ⇒ 稳定期一到（≈40 s）就登记**女声**
+#     ⇒ 而真男声合格段要到 **44.8 s** 才出现 ⇒ **稳定期反而更早锁错**。
+#   ⇒ **否决**：改用「**最长合格段优先 ＋ 变长即升级**」
+#     （`registration_ticket()` + `mark_registered()`）
+#     ⇒ 离线取到的是**男声**（57.6 s）；流式下**随合格段变长自动升级**。
+#   🔴 **残留局限**（必须写进 STATUS）：升级**之前**已合成的句子仍用旧音色
+#     ⇒ APP-029 明文「**已合成的不改**」⇒ 只能靠**选交付段**规避。
+
 # 🔴 单个 spk 最多保留多少秒干净语音（**有界** ⇒ 内存不无界增长）
 MAX_PER_SPK_S = 10.0
 
@@ -132,6 +210,14 @@ class SpeakerVoiceTable:
         self._seg_spk: Dict[int, str] = {}
         # spk -> [(start_s, end_s)]（ASR 给的干净区间，**只用来定位 PCM**）
         self._clean_ranges: Dict[str, List[Tuple[float, float]]] = []
+        # 🔴🔴🔳 APP-075(a)：seg -> 该段的 `spk_conf`（登记门槛用）
+        self._seg_conf: Dict[int, float] = {}
+        # 🔴🔴🔳 APP-075(a)：seg -> 该段的干净区间（登记门槛用）
+        self._seg_clean: Dict[int, List[Tuple[float, float]]] = {}
+        # 🔴🔴🔳 APP-075(a)：**切换点**（秒，全局时间轴）⇒ 边界守卫用
+        self._switch_points: List[float] = []
+        # 🔴🔴🔳 APP-075(a)(b)：spk -> **已登记所用的那一段**（判「要不要升级」）
+        self._reg_run: Dict[str, dict] = {}
         # 统计（APP-039 验收③：声纹计算次数）
         self.n_embed = 0          # 实际提取 x-vector 的次数
         self.n_switch = 0         # 说话人切换次数
@@ -159,13 +245,42 @@ class SpeakerVoiceTable:
                 last_error=self.last_error,
             )
 
+    def gate_stats(self) -> dict:
+        """🔴🔴🔳 **登记门槛的可观测快照**（APP-075(b)：不能静默）。
+
+        ⇒ 「这个 spk 现在有没有合格段」必须**看得见**
+        ⇒ 否则「回落预设 A」就变成静默降级（用户以为在用克隆音色）。
+        """
+        out = {}
+        with self._lock:
+            spks = sorted(self._table.keys())
+            for s in spks:
+                runs = self._qualified_runs_locked(s)
+                out[s] = dict(
+                    n_qualified=len(runs),
+                    qualified_dur_s=round(sum(r['dur_s'] for r in runs), 3),
+                    longest_s=round(max([r['dur_s'] for r in runs] or [0.0]), 3),
+                    reg_run=dict(self._reg_run.get(s) or {}),
+                    voice=self._table.get(s, {}).get('voice'),
+                )
+        return out
+
+
     # ── ① 记录「这一句是谁说的」────────────────────────────────
     def note_final(self, seg: int, spk: Optional[str],
-                   clean_ranges: Optional[list] = None) -> bool:
+                   clean_ranges: Optional[list] = None,
+                   spk_conf: Optional[float] = None) -> bool:
         """**按句绑定**：`seg` → `spk`。
 
         🔴 **与合成时刻无关**（APP-039「音色按句绑定…跟'当前时间'无关」）
         ⇒ 这一步**不做任何声纹计算**（APP-039「没有新 spk 时不做任何声纹计算」）。
+
+        🔴🔴🔳 **APP-075(a)**：新增 `spk_conf` 参数 ⇒ 登记门槛要用的
+        **置信度**必须**随段一起进来** ⇒ 旧签名只有 `clean_ranges`
+        ⇒ 「这一段有多确信」这条信息**根本没进来** ⇒ 门槛无从谈起。
+
+        🔴🔴🔳 **APP-075(a)**：同时记录**切换点**（相邻两段 spk 不同处）
+        ⇒ 供「切换边界前后 `SWITCH_GUARD_S` 不取」使用。
 
         返回：是否**新出现**的说话人（`is_new_spk`）。
         """
@@ -190,6 +305,19 @@ class SpeakerVoiceTable:
                 #   ⇒ `dur_s` 不再恒为 0 ⇒ APP-040② 的「攒够 3 s 重算」
                 #      才有可能发生。
                 self._merge_clean_spans(str(spk), clean_ranges)
+                # 🔴🔴🔳 APP-075(a)：**登记用的干净区间**必须与**该段的
+                #   `spk_conf`** 绑定 ⇒ 后面 `qualified_spans()` 才能
+                #   「只看 conf 达标的段」。
+                self._seg_clean.setdefault(int(seg), []).extend(
+                    [(float(a), float(b)) for a, b in clean_ranges])
+            # 🔴🔴🔳 APP-075(a)：**逐段记 conf**（登记门槛用）。
+            if spk_conf is not None:
+                try:
+                    self._seg_conf[int(seg)] = float(spk_conf)
+                except Exception:
+                    pass
+            # 🔴🔴🔳 APP-075(a)：**切换点**（相邻两段 spk 不同 ⇒ 交界处）
+            #   ⇒ 供 `qualified_spans()` 做「边界前后 0.5 s 守卫」。
             if prev is not None and prev != spk:
                 self.n_switch += 1
         if is_new:
@@ -224,6 +352,197 @@ class SpeakerVoiceTable:
         row['clean_spans'] = out
         row['clean_dur_s'] = sum((b - a) for a, b in out)
         row['dur_s'] = row['clean_dur_s']
+
+    # ── ② 登记门槛（APP-075(a)(b)）────────────────────────────────
+    #
+    # 🔴🔴🔳 **本模块是「登记音色」的唯一守门人**：
+    #   旧实现 `clean_ranges_of(spk)` 返回该 spk 的**全部**干净区间
+    #   ⇒ 拿**第一段**（= 切换边界那一段）去登记 ⇒ **用错人的音频**
+    #   ⇒ 克隆音色串音（APP-071 / APP-075 的根因）。
+    #
+    #   现在：**只有「合格段」才能登记**（`qualified_runs()`），
+    #   合格 = ① `spk_conf ≥ REG_CONF_MIN`
+    #        ② 落在该段的 `clean_ranges` 内
+    #        ③ 去掉**切换点前后 `SWITCH_GUARD_S`**
+    #        ④ 连续 ≥ `REG_MIN_CONT_S`（间隙 ≤ `CONT_GAP_TOL_S` 视为连续）
+
+    def _switch_points_locked(self) -> List[float]:
+        """**切换点**（秒，全局时间轴）⇒ 边界守卫用。
+
+        🔴 判定：**相邻两段**（按 seg 号）**说话人不同** ⇒ 交界处即切换点。
+        ⚠️ **调用方必须已持有 `self._lock`**。
+        """
+        segs = sorted(self._seg_spk.keys())
+        pts = []
+        for a, b in zip(segs, segs[1:]):
+            if self._seg_spk.get(a) == self._seg_spk.get(b):
+                continue
+            ra = self._seg_clean.get(int(a)) or []
+            rb = self._seg_clean.get(int(b)) or []
+            if not ra or not rb:
+                continue          # 该侧没有区间 ⇒ 无法定位交界 ⇒ 跳过
+            prev_end = max(x[1] for x in ra)
+            cur_start = min(x[0] for x in rb)
+            if cur_start < prev_end:
+                cur_start = prev_end
+            pts.append(round((prev_end + cur_start) / 2.0, 4))
+        return pts
+
+    @staticmethod
+    def _subtract_guard(a: float, b: float, pts) -> List[Tuple[float, float]]:
+        """从 `[a,b]` 里**挖掉所有切换点前后 `SWITCH_GUARD_S`**。"""
+        pieces = [(float(a), float(b))]
+        for p in pts:
+            lo = p - SWITCH_GUARD_S
+            hi = p + SWITCH_GUARD_S
+            nxt = []
+            for (x, y) in pieces:
+                if y <= lo or x >= hi:
+                    nxt.append((x, y))      # 不相交 ⇒ 整段保留
+                    continue
+                if x < lo:
+                    nxt.append((x, lo))      # 守卫左侧
+                if y > hi:
+                    nxt.append((hi, y))      # 守卫右侧
+            pieces = [(x, y) for (x, y) in nxt if y - x > 1e-6]
+            if not pieces:
+                break
+        return pieces
+
+    def qualified_runs(self, spk: str) -> List[dict]:
+        """🔴🔴🔳 **该 spk 的「合格登记段」**（APP-075(a)）。
+
+        返回 `[{'a','b','dur_s','segs'}, ...]`，按**时间先后**排序。
+        🔴 **没有合格段 ⇒ 返回 `[]`** ⇒ 调用方**不得**用不合格段登记
+        ⇒ 回落预设 A 并记日志（APP-075(b)）。
+
+        合格判定（**三条同时成立**）：
+        ① 该段的 `spk_conf ≥ REG_CONF_MIN`；
+        ② 取该段的 `clean_ranges`（**必须落在 clean_ranges 内**）；
+        ③ 挖掉**切换点前后 `SWITCH_GUARD_S`**；
+        ④ 合并间隙 ≤ `CONT_GAP_TOL_S` 的相邻区间 ⇒ 连续时长 ≥ `REG_MIN_CONT_S`。
+        """
+        with self._lock:
+            return self._qualified_runs_locked(spk)
+
+    def _qualified_runs_locked(self, spk: str) -> List[dict]:
+        """🔴 `qualified_runs` 的**无锁版本**（调用方必须已持有 `self._lock`）。
+
+        🔴 **为什么要有这一层**：`self._lock` 是**不可重入**的
+        `threading.Lock` ⇒ 「持锁再调 `qualified_runs`（它自己又取锁）」
+        ⇒ **死锁**（实测：自检脚本挂死 ⇒ 定位到此）。
+        ⇒ 所有**内部调用**一律走 `_qualified_runs_locked`。
+        """
+        pts = self._switch_points_locked()
+        spans = []
+        for seg, s in self._seg_spk.items():
+            if str(s) != str(spk):
+                continue
+            conf = self._seg_conf.get(int(seg))
+            if conf is None:
+                # 🔴 **没有 conf ⇒ 无法判定 ⇒ 不许登记**
+                #   （APP-075(a)：登记必须「conf ≥ 阈值 且落在 clean_ranges 内」）
+                continue
+            if float(conf) < REG_CONF_MIN:
+                continue
+            for (x, y) in (self._seg_clean.get(int(seg)) or []):
+                for piece in self._subtract_guard(x, y, pts):
+                    spans.append((piece[0], piece[1], int(seg)))
+        if not spans:
+            return []
+        spans.sort()
+        merged = []          # [a, b, [seg...]]
+        for (x, y, seg) in spans:
+            if merged and (x - merged[-1][1]) <= CONT_GAP_TOL_S:
+                if y > merged[-1][1]:
+                    merged[-1][1] = y
+                merged[-1][2].append(seg)
+            else:
+                merged.append([x, y, [seg]])
+        out = []
+        for (x, y, segs) in merged:
+            dur = y - x
+            if dur < REG_MIN_CONT_S:
+                continue          # ④ 连续时长不够 ⇒ 不合格
+            out.append(dict(a=round(x, 4), b=round(y, 4),
+                            dur_s=round(dur, 4),
+                            segs=sorted(set(segs))))
+        return out
+
+    def registration_ticket(self, spk: str):
+        """🔴🔴🔳 **本次登记该用哪一段 ＋ 身份票**（APP-075(a)(b)）。
+
+        返回 `([(a, b)], key)`：
+        - **没有合格段** ⇒ `([], None)`
+          ⇒ 调用方**不得**用不合格段登记 ⇒ **回落预设 A ＋ 记日志**
+          （APP-075(b) 明文：「不得用不合格段登记」）。
+        - `key` 变化 ⇒ 说明该重发（**升级登记**，APP-075(b)）。
+
+        🔴🔴🔳 **选段策略 =「最长的一段合格段」**（**不是**最早的那段）：
+
+        ## 为什么不能「谁先来用谁」
+        实测（`results/app/_app295_f0_verify.json` / `_app293_label_overlap.json`）：
+        ASR 的**同一个标签** `S2` 先覆盖了**女声**（seg2–3，F0 175.82/188.24 Hz），
+        后覆盖**男声**（seg6–14，F0 100–135 Hz）
+        ⇒ **同一个标签下先后是两个人**。
+        ⇒ 「先来先登记」⇒ 登记到**女声** ⇒ 之后**所有**该标签的句子
+        （包括真正的男声）都用女声播出 ⇒ **这就是 APP-071 的现象**。
+        ⇒ 只能等**更长**的合格段出现（= 更长的干净音频）⇒ 声纹更稳 ⇒ 更可靠。
+
+        ## 为什么「最长」能选对
+        S2 的合格段：女声段 12.8 s（seg2–3）／男声段 **57.6 s**（seg6–14）
+        ⇒ 「最长」= **男声** ⇒ 登记到**对的人**。
+        （女声段虽然 `spk_conf` 高达 0.90/0.91，但**时长短** ⇒ 落选。）
+
+        🔴🔴🔳 **升级语义（APP-075(b)「有合格段后升级登记」）**：
+        已经用某段登记过 ⇒ **只有出现「更长」的合格段**才返回新票
+        （⇒ 覆盖旧登记）；否则返回**空票** ⇒ 调用方**不会重发**
+        ⇒ 避免「每来一段就重登记一次」⇒ 声纹计算次数不受控。
+
+        ## 代价（必须写进 STATUS）
+        🔴 首次登记会**晚一点**才定型（要等到「更长的一段」出现）
+        ⇒ APP-040②「第一段就够 1.5 s 立即用」的**即时性被牺牲**
+        ⇒ 这是**为正确性付的代价**（串音比延迟严重）。
+        ⇒ 期间**回落预设 A**（APP-075(b)）⇒ 不出声错人。
+        """
+        with self._lock:
+            runs = self._qualified_runs_locked(spk)
+            if not runs:
+                return [], None
+            # 🔴 **最长**优先；等长时取**更晚**的那段（更新的数据更可信）
+            best = runs[0]
+            for r in runs[1:]:
+                if (r['dur_s'], r['a']) > (best['dur_s'], best['a']):
+                    best = r
+            # 🔴🔴🔳 **升级判定**：已登记过 ⇒ 只有「更长」的合格段才给新票。
+            prev = self._reg_run.get(str(spk)) or {}
+            if prev:
+                prev_dur = float(prev.get('dur_s') or 0.0)
+                if float(best['dur_s']) <= prev_dur + 1e-6:
+                    # 🔴 没有更长的合格段 ⇒ **不给票**（调用方不会重发）
+                    return [], None
+            key = (round(best['a'], 3), round(best['b'], 3),
+                   round(best['dur_s'], 3))
+            return [(float(best['a']), float(best['b']))], key
+
+
+    def mark_registered(self, spk: str, a: float, b: float) -> None:
+        """🔴 **记下「这个 spk 已用哪一段登记了」**（下次判「要不要升级」用）。
+
+        🔴🔴🔳 **APP-075(b)**：「有合格段后升级登记（覆盖旧登记）」
+        ⇒ 必须知道**上一次登记用的是哪一段**、**多长**
+        ⇒ 只有「新的合格段**更长**」才算升级（否则反复重登记 ⇒ 白耗算力）。
+        """
+        with self._lock:
+            self._reg_run[str(spk)] = dict(a=float(a), b=float(b),
+                                           dur_s=round(float(b) - float(a), 4),
+                                           at=time.time())
+
+    def reg_run_of(self, spk: str) -> dict:
+        """🔴🔴🔳 **读回「这个 spk 上次登记用的是哪一段」**（判升级用）。"""
+        with self._lock:
+            return dict(self._reg_run.get(str(spk)) or {})
+
 
     def rebind(self, seg: int, spk: str) -> bool:
         """🔴 APP-040④：**标签晚到时补标签**（`on_spk_update`）。
@@ -336,15 +655,55 @@ class SpeakerVoiceTable:
         return True
 
     def ready_to_embed(self, spk: str) -> bool:
-        """该 spk 是否**攒够门槛**（可以提 x-vector 了）。"""
+        """该 spk 是否**攒够门槛**（可以提 x-vector 了）。
+
+        🔴🔴🔳 **APP-075(a)(b)**：门槛**必须看「合格段」**，不能看
+        「该 spk 的全部干净时长」⇒ 否则第一段（切换边界那一段）就会被
+        当成「够 1.5 s」⇒ 用错人的音频登记。
+
+        🔴🔴🔳 **升级口径**：已登记过（`voice=='clone'`）⇒
+        只有「**出现更长的合格段**」才允许重算（覆盖旧登记，APP-075(b)）
+        ⇒ 旧的 `refined` 一票否决**改为**「没有更长合格段 ⇒ 不更新」
+        （否则升级路径永远走不到）。
+
+        🔴🔴🔳 **兜底路径（保持旧行为逐字一致）**：
+        **当这个 spk 压根没有 `spk_conf` 记录**（= 该 spk 的段**全都没有**
+        conf ⇒ 走的是 `add_sample()` 老路径 / 单测）⇒ **退回旧口径**
+        （看 `dur_s`）⇒ 否则 app150 回归套件的 A6b 会 FAIL
+        （旧行为：攒够 `REFINE_S` ⇒ 可细化）。
+        🔴 **判别条件必须严格**：只要**有任何一段**带 conf ⇒ 走**合格段**
+        口径（⇒ 绝不放宽）；**一段 conf 都没有** ⇒ 走旧口径。
+        """
         with self._lock:
             row = self._table.get(str(spk))
             if row is None:
                 return False
-            if row['voice'] == 'clone' and row['refined']:
-                return False        # 已经重算过 ⇒ 不再更新（APP-040②）
-            need = self._refine_s if row['voice'] == 'clone' else self._min_s
-            return row['dur_s'] >= need
+            runs = self._qualified_runs_locked(spk)
+            # 🔴🔴🔳 **有没有任何一段带 conf**？（区分「新门槛口径」与「旧口径」）
+            has_conf = any(
+                self._seg_conf.get(int(s)) is not None
+                for s in self._seg_spk if str(self._seg_spk.get(s)) == str(spk))
+            if not runs:
+                if has_conf:
+                    return False        # 🔴 有 conf 却没合格段 ⇒ 不许登记
+                # 🔴 旧口径兜底：没有任何 conf ⇒ 按累计干净时长判断
+                need = (self._refine_s if row['voice'] == 'clone'
+                        else self._min_s)
+                if row['voice'] == 'clone' and row['refined']:
+                    return False        # 已细化 ⇒ 不再更新（APP-040②）
+                return row['dur_s'] >= need
+            longest = max(r['dur_s'] for r in runs)
+            if row['voice'] == 'clone':
+                # 🔴 已登记 ⇒ 只在「有更长合格段」时允许升级
+                prev = self._reg_run.get(str(spk)) or {}
+                prev_dur = float(prev.get('dur_s') or 0.0)
+                if not prev:
+                    # 🔴🔴🔳 **没记录登记段**（老路径 / 单测直接 mark_embedded）
+                    #   ⇒ 退回旧的「refined 一票否决」口径（保持旧行为逐字一致）
+                    return not bool(row['refined'])
+                return longest > prev_dur + 1e-6
+            need = self._min_s
+            return longest >= need
 
     def take_pcm(self, spk: str):
         """取出该 spk 攒下的 PCM（调用方提 x-vector 用）⇒ **内存里交出副本**。"""
@@ -438,6 +797,12 @@ class SpeakerVoiceTable:
             self._table.clear()
             self._seg_spk.clear()
             del self._clean_ranges[:]
+            # 🔴🔴🔳 APP-075(a)：一并清掉门槛用的状态（否则下一个会话
+            #   会继承上一个会话的 conf / clean / 登记记录 ⇒ 串音）。
+            self._seg_conf.clear()
+            self._seg_clean.clear()
+            del self._switch_points[:]
+            self._reg_run.clear()
             self.n_embed = 0
             self.n_switch = 0
             self.last_error = ''
@@ -451,4 +816,7 @@ class SpeakerVoiceTable:
             pass
 
 
-__all__ = ['SpeakerVoiceTable', 'MIN_S', 'REFINE_S', 'MAX_PER_SPK_S', 'SR']
+__all__ = ['SpeakerVoiceTable', 'MIN_S', 'REFINE_S', 'MAX_PER_SPK_S', 'SR',
+           # 🔴🔴🔳 APP-075(a)：登记门槛常量（必须可被测试/STATUS 引用）
+           'REG_CONF_MIN', 'REG_MIN_CONT_S', 'SWITCH_GUARD_S',
+           'CONT_GAP_TOL_S']

@@ -95,6 +95,11 @@ ASR_FILES = [
     'asr052_spk_runtime.py',           # 运行时内核（fbank / OV 嵌入 / 聚类 / 分段）
     'asr_thread_defaults.py',          # 限线程（ASR-031 §1 交付默认）
     'asr_spk_window.py',               # 🔴 APP-067 ⑤：窗口长度的唯一事实来源
+    # 🔴🔴🔳 APP-076（2026-11-06，ASR-050 交接）：补第 **5** 个 ASR 交付文件
+    #   ⇒ ASR-050 交接单明写「`ASR_FILES` 实测只有 4 项 ⇒ 确无此文件」
+    #   ⇒ `asr_runtime_switches.py`（ASR-046 运行时开关）**必须一起进包**
+    #   ⇒ 缺它 ⇒ 运行时开关**静默失效**（旁路仍按默认跑 ⇒ 行为不可控）。
+    'asr_runtime_switches.py',
 ]
 
 # 🔴🔴🔴 **需要从包内移除的旧文件**（ASR-033 拆分前的评估/测试代码 + 旧依赖闭包）。

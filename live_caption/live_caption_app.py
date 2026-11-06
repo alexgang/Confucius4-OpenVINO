@@ -2224,6 +2224,9 @@ class App:
         #   ⇒ 新增 reason（如 'embed_shape_out_of_range'）必被记进日志，
         #   但**不刷屏**。
         self._spk_reason_seen = set()
+        # 🔴🔴🔳 APP-075(b)：「回落预设 A」**每个 spk 只记一次**
+        #   ⇒ 单独一个 set（不与 `_spk_reason_seen` 混用 ⇒ 语义清晰）
+        self._spk_fallback_seen = set()
         # 🔴🔴🔴 APP-039/040：**说话人 → 音色**表（**只在内存里**，绝不落盘）
         #   ⇒ 「音色按句绑定」的核心状态；
         #   ⇒ **只在 `is_new_spk` 时取样一次**（不渐变、不滞后、不一直采样）。
@@ -4706,9 +4709,26 @@ class App:
                 if any(s == spk for s, _r in self._spk_voice_sent):
                     continue
                 if not self._spk_voices.has_voice(spk):
-                    # ── 先看能不能取到「该 spk 自己的干净语音」──
+                    # ── 先看能不能取到「该 spk 自己的**合格**干净语音」──
+                    #   🔴🔴🔳 APP-075(a)(b)：`_spk_pcm_for` 现在**只认合格段**
+                    #   ⇒ 没有合格段 ⇒ 返回 `None` ⇒ **不得**用不合格段登记。
                     pcm = self._spk_pcm_for(spk, seg)
                     if pcm is None or pcm.size < int(speaker_voice.MIN_S * SR):
+                        # 🔴🔴🔳 APP-075(b)：**回落预设 A ＋ 记日志**（不静默）。
+                        #   ⚠️ **不是「不播」** ⇒ `voice_for_sentence()` 回落
+                        #   ⇒ 该句照播，只是用预设 A（**不用错人的音色**）。
+                        self._spk_voices.mark_fallback(
+                            spk, 'no_qualified_run')
+                        if spk not in self._spk_fallback_seen:
+                            self._spk_fallback_seen.add(spk)
+                            _g = self._spk_voices.gate_stats().get(spk) or {}
+                            self._ui_log(
+                                '[spk] %s 暂无合格登记段（回落预设 A）：'
+                                '合格段数=%d 最长=%.1fs 门槛 conf≥%.2f 连续≥%.1fs'
+                                % (spk, _g.get('n_qualified', 0),
+                                   _g.get('longest_s', 0.0),
+                                   speaker_voice.REG_CONF_MIN,
+                                   speaker_voice.REG_MIN_CONT_S))
                         continue          # 还不够 ⇒ **等下一段**（不阻塞）
                     ok = self.tts.register_spk_voice(spk, pcm)
                     if not ok:
@@ -4717,6 +4737,12 @@ class App:
                             (s, k) for (s, k) in self._spk_pending_embed
                             if k != spk]
                         continue
+                    # 🔴🔴🔳 APP-075(b)：**记下这一段** ⇒ 下次只有「更长」的
+                    #   合格段才重发（覆盖旧登记 ⇒ 升级登记）。
+                    _rr, _kk = self._spk_voices.registration_ticket(spk)
+                    if _rr:
+                        self._spk_voices.mark_registered(
+                            spk, _rr[0][0], _rr[0][1])
                     # 🔴 §99（断链 C）：**不立即 mark_embedded**
                     #   ⇒ 等 worker 回执（见本函数开头）。
                     self._spk_voice_sent.add((spk, False))
@@ -4727,22 +4753,42 @@ class App:
                         if pcm is not None and \
                                 pcm.size >= int(speaker_voice.REFINE_S * SR):
                             if self.tts.register_spk_voice(spk, pcm):
+                                # 🔴🔴🔳 APP-075(b)：**记下这一段**（升级登记）
+                                _rr2, _kk2 = \
+                                    self._spk_voices.registration_ticket(spk)
+                                if _rr2:
+                                    self._spk_voices.mark_registered(
+                                        spk, _rr2[0][0], _rr2[0][1])
                                 # 🔴 §99（断链 C）：细化也等回执
                                 self._spk_voice_sent.add((spk, True))
             except Exception as e:
                 self._ui_log('[spk] 取样失败（忽略）：%s' % e)
 
     def _spk_pcm_for(self, spk: str, seg: int):
-        """🔴 按 `clean_ranges` 切出**该 spk 自己的**干净 PCM。
+        """🔴🔴🔳 APP-075(a)：**按「合格登记段」**切出该 spk 的干净 PCM。
+
+        ## 🔴🔴🔳 为什么不能再用 `clean_ranges_of(spk)`（旧行为）
+        旧行为取该 spk 的**全部**干净区间 ⇒ **包含切换边界那一段**
+        ⇒ 拿**边界那一段**（可能属于**上一个人**）去登记
+        ⇒ 克隆音色串音（APP-071 现象）。
+
+        ## 现在
+        ① `registration_ticket()` 给出**唯一一段**合格音频
+           （`spk_conf ≥ REG_CONF_MIN` ＋ 落在 `clean_ranges` 内
+            ＋ 挖掉切换点前后 `SWITCH_GUARD_S`
+            ＋ 连续 ≥ `REG_MIN_CONT_S` ＋ **取最长的那段**）；
+        ② **没有合格段 ⇒ 返回 `None`**
+           ⇒ 调用方**不得**用不合格段登记（APP-075(b)）
+           ⇒ **回落预设 A ＋ 记日志**。
 
         ⚠️ **区间只含该 spk** ⇒ 结构性保证「不渐变、不混入别人」。
         """
         try:
-            with self._spk_pcm_lock:
-                buf = self._spk_pcm_buf
-            rngs = self._spk_voices.clean_ranges_of(spk)
+            rngs, _key = self._spk_voices.registration_ticket(spk)
             if not rngs:
                 return None
+            with self._spk_pcm_lock:
+                buf = self._spk_pcm_buf
             # 🔁 §99（断链 E）：传给缓冲起点，出口不对应全局时间轴。
             return self._spk_bridge.pcm_for_ranges(
                 rngs, keep=buf, max_s=10.0, keep_t0=self._spk_pcm_t0)
@@ -4830,7 +4876,12 @@ class App:
                 #   ⇒ 每句都用预设 A（用户实测 `spk_voice` 登记 **0 条**）。
                 #   ⇒ 这里与**同步路径**（`_on_final` 里的 4176-4181）口径一致：
                 #     `is_new` 为真 ⇒ 把该 spk 放进「待取样」队列。
-                _is_new = self._spk_voices.note_final(seg, spk, clean_ranges)
+                # 🔴🔴🔳 APP-075(a)：**必须把 `spk_conf` 一起传进去**
+                #   ⇒ 登记门槛（`REG_CONF_MIN`）才有依据
+                #   ⇒ 旧签名只有 `clean_ranges` ⇒ 「这一段有多确信」
+                #     **根本没进来** ⇒ 门槛无从谈起（APP-075 原话）。
+                _is_new = self._spk_voices.note_final(
+                    seg, spk, clean_ranges, spk_conf=spk_conf)
                 # 🔴🔴🔳 APP-067 ①(b)：**晚到的标签 ⇒ 补发给 worker**。
                 #   ⇒ 该句提交时标签还没到 ⇒ 命令里的 `spk` 是空的
                 #   ⇒ worker **出队（合成）那一刻**按 seg 解析 ⇒ 用上克隆音色。
@@ -4914,8 +4965,11 @@ class App:
                     self._spk_push_update(seg, spk, spk_conf)
                 # 🔴 **按句绑定**（与合成时刻无关 ⇒ APP-039 核心）
                 #   ⇒ 这一步**不做任何声纹计算**。
+                # 🔴🔴🔳 APP-075(a)：**必须把 `spk_conf` 一起传进去**
+                #   ⇒ 登记门槛（`REG_CONF_MIN`）才有依据。
                 _is_new = self._spk_voices.note_final(
-                    seg, spk, _res.get('clean_ranges'))
+                    seg, spk, _res.get('clean_ranges'),
+                    spk_conf=_res.get('spk_conf', spk_conf))
                 # 🔴 APP-039/040：**新 spk 才取样**
                 #   ⇒ 老 spk 直接用缓存（不重算）⇒ 声纹计算次数极少。
                 if _is_new:
@@ -6655,6 +6709,8 @@ def run_cli(args):
     _spk_by_seg = {}
     # 🔴 APP-047：CLI 侧已见过的「本段无标签」reason（只记一次每种）
     _cli_spk_reason_seen = set()
+    # 🔴🔴🔳 APP-075(b)：「回落预设 A」**每个 spk 只记一次**（同 GUI 侧口径）
+    _cli_spk_fallback_seen = set()
     # 🔴 §99（断链 C）：**已发出登记命令但尚未被 worker 确认**的 spk。
     #   ⇒ 元素为 `(spk, refined)`；收到 worker 回执才 `mark_embedded`。
     _spk_voice_sent = set()
@@ -6819,7 +6875,21 @@ def run_cli(args):
                 if any(s == spk for s, _r in _spk_voice_sent):
                     continue
                 if not _spk_voices.has_voice(spk):
-                    rngs = _spk_voices.clean_ranges_of(spk)
+                    # 🔴🔴🔳 APP-075(a)(b)：**只认合格段**（同 GUI 侧口径）
+                    #   ⇒ 没有合格段 ⇒ **不得**用不合格段登记 ⇒ 回落预设 A。
+                    rngs, _key = _spk_voices.registration_ticket(spk)
+                    if not rngs:
+                        _spk_voices.mark_fallback(spk, 'no_qualified_run')
+                        if spk not in _cli_spk_fallback_seen:
+                            _cli_spk_fallback_seen.add(spk)
+                            _g = _spk_voices.gate_stats().get(spk) or {}
+                            print(f'  [spk] {spk} 暂无合格登记段（回落预设 A）：'
+                                  f'合格段数={_g.get("n_qualified", 0)} '
+                                  f'最长={_g.get("longest_s", 0.0):.1f}s '
+                                  f'门槛 conf>={speaker_voice.REG_CONF_MIN} '
+                                  f'连续>={speaker_voice.REG_MIN_CONT_S}s',
+                                  flush=True)
+                        continue
                     with _spk_pcm_lock:
                         buf = _spk_pcm_buf
                     pcm = _spk_bridge.pcm_for_ranges(
@@ -6831,10 +6901,15 @@ def run_cli(args):
                         _spk_pending_embed = [
                             (x, k) for (x, k) in _spk_pending_embed if k != spk]
                         continue
+                    # 🔴🔴🔳 APP-075(b)：**记下这一段** ⇒ 变长才升级
+                    _spk_voices.mark_registered(spk, rngs[0][0], rngs[0][1])
                     # 🔴 §99（断链 C）：**不立即 mark_embedded** ⇒ 等 worker 回执
                     _spk_voice_sent.add((spk, False))
                 elif _spk_voices.ready_to_embed(spk):
-                    rngs = _spk_voices.clean_ranges_of(spk)
+                    # 🔴🔴🔳 APP-075(a)：细化也**只认合格段**
+                    rngs, _key2 = _spk_voices.registration_ticket(spk)
+                    if not rngs:
+                        continue
                     with _spk_pcm_lock:
                         buf = _spk_pcm_buf
                     pcm = _spk_bridge.pcm_for_ranges(
@@ -6867,7 +6942,10 @@ def run_cli(args):
                 # 🔴🔴🔴 APP-054：**必须带 clean_ranges**（同 GUI 侧口径）
                 # 🔴🔴🔴 APP-061⑤b：**必须接住 `is_new`**（同 GUI 侧口径）
                 #   ⇒ 否则新说话人永远不会被取样 ⇒ 每句都用预设 A。
-                _is_new = _spk_voices.note_final(seg, spk, clean_ranges)
+                # 🔴🔴🔳 APP-075(a)：**必须把 `spk_conf` 一起传进去**
+                #   ⇒ 登记门槛（`REG_CONF_MIN`）才有依据（同 GUI 侧口径）。
+                _is_new = _spk_voices.note_final(
+                    seg, spk, clean_ranges, spk_conf=spk_conf)
                 # 🔴🔴🔳 APP-067 ①(b)：**晚到的标签 ⇒ 补发给 worker**（同 GUI 口径）
                 try:
                     if tts is not None and getattr(tts, 'active', False):
@@ -6961,8 +7039,11 @@ def run_cli(args):
                 #   ⇒ GUI 侧同一份数据在 `self._spk_by_seg` ⇒ CLI 侧补齐
                 #     ⇒ 两条路径**口径一致**（APP-040④）。
                 _spk_by_seg[_seg] = (spk, spk_conf)
-            _is_new = _spk_voices.note_final(_seg, spk,
-                                             _res.get('clean_ranges'))
+            # 🔴🔴🔳 APP-075(a)：**必须把 `spk_conf` 一起传进去**
+            #   ⇒ 登记门槛（`REG_CONF_MIN`）才有依据（同 GUI 侧口径）。
+            _is_new = _spk_voices.note_final(
+                _seg, spk, _res.get('clean_ranges'),
+                spk_conf=_res.get('spk_conf', spk_conf))
             if _is_new:
                 _spk_pending_embed.append((_seg, spk))
         except Exception as e:

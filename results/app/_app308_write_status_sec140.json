@@ -1,0 +1,77 @@
+{
+ "tool": "_app308_write_status_sec140",
+ "ts": "2026-11-06 14:03:43",
+ "before_bytes": 37741,
+ "after_bytes": 39853,
+ "before_lines": 161,
+ "after_lines": 173,
+ "old_body_bytes": 34806,
+ "sec140_bytes": 1921,
+ "archive_bytes": 18641,
+ "archive_sha256": "8005ce5c169e5222fe20d213ae70a920bf14bc5bc949cf1783a590d1a5479015",
+ "checks": [
+  {
+   "name": "章节数不少于写前",
+   "ok": true,
+   "detail": "5 -> 6"
+  },
+  {
+   "name": "旧正文逐字未变（两段整块原样保留）",
+   "ok": true,
+   "detail": "head=968 tail=22046"
+  },
+  {
+   "name": "新增更新行插在「最近更新」标题之后、旧列表之前",
+   "ok": true
+  },
+  {
+   "name": "§139 旧章节标题仍在",
+   "ok": true
+  },
+  {
+   "name": "§140 新章节已追加",
+   "ok": true
+  },
+  {
+   "name": "行尾未破（纯 LF）",
+   "ok": true
+  },
+  {
+   "name": "≤40 000 B（APP-052④）",
+   "ok": true,
+   "detail": 39853
+  },
+  {
+   "name": "≤300 行（APP-052④）",
+   "ok": true,
+   "detail": 173
+  },
+  {
+   "name": "last_ack = APP-078",
+   "ok": true
+  },
+  {
+   "name": "更新时间为 Get-Date 实测",
+   "ok": true
+  },
+  {
+   "name": "归档件存在且非空",
+   "ok": true,
+   "detail": "18641 B / SHA 8005ce5c169e5222"
+  },
+  {
+   "name": "§140 指向归档件路径逐字命中",
+   "ok": true
+  },
+  {
+   "name": "归档件含 8 音色完整 SHA（非省略号）",
+   "ok": true
+  },
+  {
+   "name": "归档件含 r2 最终 54 文件口径",
+   "ok": true
+  }
+ ],
+ "n_fail": 0,
+ "verdict": "PASS"
+}
