@@ -1,0 +1,447 @@
+{
+  "tool": "_app318_sec143_evidence_recheck",
+  "app": "APP",
+  "scope": "§143 报数证据链静态自证（无新纠偏；不占设备）",
+  "generated_at": "2026-11-07 00:29:31",
+  "machine_lock": "NOT_USED (static CPU only, no model loaded)",
+  "corrections_baseline": {
+    "sha256": "b3ae9ea9fb72282bbf619dd26b73de688f8c771911bd0b56e0faf8f392b937d5",
+    "bytes": 224562,
+    "mtime": "2026-11-06 21:40:34",
+    "count": 80,
+    "min_no": 1,
+    "max_no": 80
+  },
+  "status": {
+    "bytes": 38020,
+    "lines": 186,
+    "crlf": 0,
+    "sections": 7,
+    "last_ack": "APP-080",
+    "updated_at": "2026-11-06 23:22:36"
+  },
+  "git": {
+    "head": "cd2c435",
+    "ahead": "0",
+    "head_files_n": 14,
+    "corrections_in_head_commit": false
+  },
+  "artifacts": [
+    {
+      "path": "live_caption/v23_preset_only.py",
+      "disk_bytes": 17260,
+      "disk_mtime": "2026-11-06T23:18:10",
+      "disk_sha256": "362825e644d2edc42ef662505aaaa8dbd07cad5522da642d36cef8266dd043c7",
+      "reported_match": true
+    },
+    {
+      "path": "results/app/_app314_app079_static_triage.py",
+      "disk_bytes": 9968,
+      "disk_mtime": "2026-11-06T22:09:17",
+      "disk_sha256": "ff3d72f52d7338a5a96b4eae7f665b3c16b3648b369ebe18abe9e7050b6e50c1",
+      "reported_match": true
+    },
+    {
+      "path": "results/app/_app314_app079_static_triage.json",
+      "disk_bytes": 6439,
+      "disk_mtime": "2026-11-06T23:13:32",
+      "disk_sha256": "09926115669a4f1037924ab87371e26df7520b2291257d9ac7c1d4d3c6baaa19",
+      "reported_match": true
+    },
+    {
+      "path": "results/app/_app315_app080_preset_only_selftest.py",
+      "disk_bytes": 17153,
+      "disk_mtime": "2026-11-06T23:18:22",
+      "disk_sha256": "c702017d8b47b1aed94df042156a10a60f0127c04ee2ed4d2f145e5862b0b6e6",
+      "reported_match": true
+    },
+    {
+      "path": "results/app/_app315_app080_preset_only_selftest.json",
+      "disk_bytes": 12043,
+      "disk_mtime": "2026-11-06T23:18:29",
+      "disk_sha256": "9abb774c5646241da554a9a77d015e8a3572df25961a71c545749a3c23a73e3d",
+      "reported_match": true
+    },
+    {
+      "path": "results/app/_app315_v23_preset_only.diff",
+      "disk_bytes": 8021,
+      "disk_mtime": "2026-11-06T23:18:28",
+      "disk_sha256": "b6840f8a743bd1065dcae6f577f816815c06c8ea0d1bb7481bce73063b3888e6",
+      "reported_match": true
+    },
+    {
+      "path": "results/app/_app316_docstring_guard_fix.py",
+      "disk_bytes": 11660,
+      "disk_mtime": "2026-11-06T23:17:56",
+      "disk_sha256": "57fa12e7fe2b495c300eb1ecad8ca6b61aaa49d360eba6b27c946f684de5bfbb",
+      "reported_match": true
+    },
+    {
+      "path": "results/app/_app316_docstring_guard_fix.json",
+      "disk_bytes": 2673,
+      "disk_mtime": "2026-11-06T23:18:10",
+      "disk_sha256": "ed5ed7a8ef9b3bb594046b2e0378dc9d10b4a24fcfb8c8ef1a78b47189c7bc45",
+      "reported_match": true
+    },
+    {
+      "path": "results/app/_app317_sec143_body.md",
+      "disk_bytes": 9094,
+      "disk_mtime": "2026-11-06T23:22:29",
+      "disk_sha256": "77cbe1efc660c31818c5255e3e5e83fdfd5ac739df407d64dfa782d75c07a3c6",
+      "reported_match": true
+    },
+    {
+      "path": "results/app/_app317_write_status_sec143.py",
+      "disk_bytes": 13146,
+      "disk_mtime": "2026-11-06T23:22:20",
+      "disk_sha256": "0f4fca412ce782e1b0a82da0ef153acd6c30ded82c018e99bab4bacd39f67a61",
+      "reported_match": true
+    },
+    {
+      "path": "status/archive/STATUS_APP_sec141_142_20261106.md",
+      "disk_bytes": 8743,
+      "disk_mtime": "2026-11-06T23:22:36",
+      "disk_sha256": "4b1e347f6c173d3b27652717d99154a92f1fc4646b086cc5e402e3e8b681f46d",
+      "reported_match": true
+    },
+    {
+      "path": "status/archive/STATUS_APP_unfinished_corrections_upto_20261106.md",
+      "disk_bytes": 4905,
+      "disk_mtime": "2026-11-06T23:22:36",
+      "disk_sha256": "a587034577f76466a97e85c058dd15f6561496e15eee8c1a148c698220bf941c",
+      "reported_match": true
+    }
+  ],
+  "reported_fields": {
+    "_app314_app079_static_triage.json": {
+      "verdict": "PASS",
+      "n_pass": 10,
+      "n_fail": 0,
+      "counterproof_identified": "4/4"
+    },
+    "_app315_app080_preset_only_selftest.json": {
+      "verdict": "PASS",
+      "n_pass": 36,
+      "n_fail": 0,
+      "n_unknown": 0,
+      "counterproof_identified": "8/8"
+    },
+    "_app316_docstring_guard_fix.json": {
+      "verdict": "PASS"
+    },
+    "_app317_write_status_sec143.json": {
+      "verdict": "PASS"
+    }
+  },
+  "checks": [
+    {
+      "id": "C01",
+      "desc": "CORRECTIONS 开工基线 SHA/字节/mtime/条数/编号连续 全等",
+      "ok": true,
+      "evidence": {
+        "sha256": "b3ae9ea9fb72282bbf619dd26b73de688f8c771911bd0b56e0faf8f392b937d5",
+        "bytes": 224562,
+        "mtime": "2026-11-06 21:40:34",
+        "count": 80,
+        "min": 1,
+        "max": 80
+      }
+    },
+    {
+      "id": "C02",
+      "desc": "STATUS 头部 last_ack 与纠偏最大编号对齐",
+      "ok": true,
+      "evidence": {
+        "last_ack": "APP-080",
+        "max_no": 80
+      }
+    },
+    {
+      "id": "C03",
+      "desc": "STATUS §143 产物表解析出 12 行且路径互异",
+      "ok": true,
+      "evidence": {
+        "n_rows": 12
+      }
+    },
+    {
+      "id": "C04",
+      "desc": "12 个产物的 mtime/字节/SHA256 与 STATUS 报数逐条一致",
+      "ok": true,
+      "evidence": {
+        "matched": 12,
+        "total": 12
+      }
+    },
+    {
+      "id": "C05",
+      "desc": "4 个结果 JSON 的原始字段与 §143 报数一致",
+      "ok": true,
+      "evidence": {
+        "_app314_app079_static_triage.json": {
+          "verdict": "PASS",
+          "n_pass": 10,
+          "n_fail": 0,
+          "counterproof_identified": "4/4"
+        },
+        "_app315_app080_preset_only_selftest.json": {
+          "verdict": "PASS",
+          "n_pass": 36,
+          "n_fail": 0,
+          "n_unknown": 0,
+          "counterproof_identified": "8/8"
+        },
+        "_app316_docstring_guard_fix.json": {
+          "verdict": "PASS"
+        },
+        "_app317_write_status_sec143.json": {
+          "verdict": "PASS"
+        }
+      }
+    },
+    {
+      "id": "C06",
+      "desc": "STATUS 限额 ≤40000 B / ≤300 行 且 LF 行尾未破",
+      "ok": true,
+      "evidence": {
+        "bytes": 38020,
+        "lines": 186,
+        "crlf": 0,
+        "sections": 7
+      }
+    },
+    {
+      "id": "C07",
+      "desc": "§143 章节存在且章节数不减（≥7）",
+      "ok": true,
+      "evidence": {
+        "sections": 7,
+        "has_sec143": true
+      }
+    },
+    {
+      "id": "C08",
+      "desc": "STATUS 更新时间与 _app317 落盘时间一致",
+      "ok": true,
+      "evidence": {
+        "status_updated_at": "2026-11-06 23:22:36",
+        "app317_generated_at": "2026-11-06 23:22:36"
+      }
+    },
+    {
+      "id": "C09",
+      "desc": "_app317 写 STATUS 自检 verdict=PASS 且纠偏文件开工/收尾 identical",
+      "ok": true,
+      "evidence": {
+        "verdict": "PASS",
+        "identical": true
+      }
+    },
+    {
+      "id": "C10",
+      "desc": "上轮提交不含 CORRECTIONS_APP.md",
+      "ok": true,
+      "evidence": {
+        "head": "cd2c435",
+        "ahead": "0",
+        "head_files_n": 14,
+        "corrections_in_head_commit": false
+      }
+    },
+    {
+      "id": "C11",
+      "desc": "origin/main..HEAD = 0（无半交付）",
+      "ok": true,
+      "evidence": {
+        "ahead": "0"
+      }
+    },
+    {
+      "id": "A01",
+      "desc": "产物 live_caption/v23_preset_only.py 磁盘元数据匹配",
+      "ok": true,
+      "evidence": {
+        "path": "live_caption/v23_preset_only.py",
+        "disk_bytes": 17260,
+        "disk_mtime": "2026-11-06T23:18:10",
+        "disk_sha256": "362825e644d2edc42ef662505aaaa8dbd07cad5522da642d36cef8266dd043c7",
+        "reported_match": true
+      }
+    },
+    {
+      "id": "A02",
+      "desc": "产物 results/app/_app314_app079_static_triage.py 磁盘元数据匹配",
+      "ok": true,
+      "evidence": {
+        "path": "results/app/_app314_app079_static_triage.py",
+        "disk_bytes": 9968,
+        "disk_mtime": "2026-11-06T22:09:17",
+        "disk_sha256": "ff3d72f52d7338a5a96b4eae7f665b3c16b3648b369ebe18abe9e7050b6e50c1",
+        "reported_match": true
+      }
+    },
+    {
+      "id": "A03",
+      "desc": "产物 results/app/_app314_app079_static_triage.json 磁盘元数据匹配",
+      "ok": true,
+      "evidence": {
+        "path": "results/app/_app314_app079_static_triage.json",
+        "disk_bytes": 6439,
+        "disk_mtime": "2026-11-06T23:13:32",
+        "disk_sha256": "09926115669a4f1037924ab87371e26df7520b2291257d9ac7c1d4d3c6baaa19",
+        "reported_match": true
+      }
+    },
+    {
+      "id": "A04",
+      "desc": "产物 results/app/_app315_app080_preset_only_selftest.py 磁盘元数据匹配",
+      "ok": true,
+      "evidence": {
+        "path": "results/app/_app315_app080_preset_only_selftest.py",
+        "disk_bytes": 17153,
+        "disk_mtime": "2026-11-06T23:18:22",
+        "disk_sha256": "c702017d8b47b1aed94df042156a10a60f0127c04ee2ed4d2f145e5862b0b6e6",
+        "reported_match": true
+      }
+    },
+    {
+      "id": "A05",
+      "desc": "产物 results/app/_app315_app080_preset_only_selftest.json 磁盘元数据匹配",
+      "ok": true,
+      "evidence": {
+        "path": "results/app/_app315_app080_preset_only_selftest.json",
+        "disk_bytes": 12043,
+        "disk_mtime": "2026-11-06T23:18:29",
+        "disk_sha256": "9abb774c5646241da554a9a77d015e8a3572df25961a71c545749a3c23a73e3d",
+        "reported_match": true
+      }
+    },
+    {
+      "id": "A06",
+      "desc": "产物 results/app/_app315_v23_preset_only.diff 磁盘元数据匹配",
+      "ok": true,
+      "evidence": {
+        "path": "results/app/_app315_v23_preset_only.diff",
+        "disk_bytes": 8021,
+        "disk_mtime": "2026-11-06T23:18:28",
+        "disk_sha256": "b6840f8a743bd1065dcae6f577f816815c06c8ea0d1bb7481bce73063b3888e6",
+        "reported_match": true
+      }
+    },
+    {
+      "id": "A07",
+      "desc": "产物 results/app/_app316_docstring_guard_fix.py 磁盘元数据匹配",
+      "ok": true,
+      "evidence": {
+        "path": "results/app/_app316_docstring_guard_fix.py",
+        "disk_bytes": 11660,
+        "disk_mtime": "2026-11-06T23:17:56",
+        "disk_sha256": "57fa12e7fe2b495c300eb1ecad8ca6b61aaa49d360eba6b27c946f684de5bfbb",
+        "reported_match": true
+      }
+    },
+    {
+      "id": "A08",
+      "desc": "产物 results/app/_app316_docstring_guard_fix.json 磁盘元数据匹配",
+      "ok": true,
+      "evidence": {
+        "path": "results/app/_app316_docstring_guard_fix.json",
+        "disk_bytes": 2673,
+        "disk_mtime": "2026-11-06T23:18:10",
+        "disk_sha256": "ed5ed7a8ef9b3bb594046b2e0378dc9d10b4a24fcfb8c8ef1a78b47189c7bc45",
+        "reported_match": true
+      }
+    },
+    {
+      "id": "A09",
+      "desc": "产物 results/app/_app317_sec143_body.md 磁盘元数据匹配",
+      "ok": true,
+      "evidence": {
+        "path": "results/app/_app317_sec143_body.md",
+        "disk_bytes": 9094,
+        "disk_mtime": "2026-11-06T23:22:29",
+        "disk_sha256": "77cbe1efc660c31818c5255e3e5e83fdfd5ac739df407d64dfa782d75c07a3c6",
+        "reported_match": true
+      }
+    },
+    {
+      "id": "A10",
+      "desc": "产物 results/app/_app317_write_status_sec143.py 磁盘元数据匹配",
+      "ok": true,
+      "evidence": {
+        "path": "results/app/_app317_write_status_sec143.py",
+        "disk_bytes": 13146,
+        "disk_mtime": "2026-11-06T23:22:20",
+        "disk_sha256": "0f4fca412ce782e1b0a82da0ef153acd6c30ded82c018e99bab4bacd39f67a61",
+        "reported_match": true
+      }
+    },
+    {
+      "id": "A11",
+      "desc": "产物 status/archive/STATUS_APP_sec141_142_20261106.md 磁盘元数据匹配",
+      "ok": true,
+      "evidence": {
+        "path": "status/archive/STATUS_APP_sec141_142_20261106.md",
+        "disk_bytes": 8743,
+        "disk_mtime": "2026-11-06T23:22:36",
+        "disk_sha256": "4b1e347f6c173d3b27652717d99154a92f1fc4646b086cc5e402e3e8b681f46d",
+        "reported_match": true
+      }
+    },
+    {
+      "id": "A12",
+      "desc": "产物 status/archive/STATUS_APP_unfinished_corrections_upto_20261106.md 磁盘元数据匹配",
+      "ok": true,
+      "evidence": {
+        "path": "status/archive/STATUS_APP_unfinished_corrections_upto_20261106.md",
+        "disk_bytes": 4905,
+        "disk_mtime": "2026-11-06T23:22:36",
+        "disk_sha256": "a587034577f76466a97e85c058dd15f6561496e15eee8c1a148c698220bf941c",
+        "reported_match": true
+      }
+    }
+  ],
+  "n_pass": 23,
+  "n_fail": 0,
+  "n_unknown": 0,
+  "counterproof": [
+    {
+      "id": "E1",
+      "mutation": "把产物表第 1 行 SHA256 改成全 0",
+      "detected": true
+    },
+    {
+      "id": "E2",
+      "mutation": "把产物表第 4 行字节数 +1",
+      "detected": true
+    },
+    {
+      "id": "E3",
+      "mutation": "把 _app314 的 n_pass 从 10 改成 9",
+      "detected": true
+    },
+    {
+      "id": "E4",
+      "mutation": "模拟 reviewer 中途追加条目（SHA/字节变化）",
+      "detected": true
+    },
+    {
+      "id": "E5",
+      "mutation": "把 last_ack 改成 APP-079（未追平）",
+      "detected": true
+    },
+    {
+      "id": "E6",
+      "mutation": "模拟 STATUS 超 40 000 B 限额",
+      "detected": true
+    },
+    {
+      "id": "E7",
+      "mutation": "删掉产物表最后一行（模拟产物漏落盘）",
+      "detected": true
+    }
+  ],
+  "counterproof_identified": "7/7",
+  "verdict": "PASS",
+  "note": "只读项目文件；不 import 被测模块；不创建 MACHINE_LOCK；不在 CPU 跑推理；未调 MiniMax。"
+}

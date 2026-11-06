@@ -1,15 +1,14 @@
 # STATUS_APP
 
 last_ack: APP-080
-更新时间: 2026-11-06 23:22:36
-当前任务: **§143 APP-079 静态归因 + APP-080「v2.3 只交付预设音色」构建期补丁与静态自证（_app314 10/0、_app315 36/0、反证 8/8）** —— 两条均停在「需 reviewer 复核」节点；v2.3 **未打包**、旧包一字节未动
+更新时间: 2026-11-07 00:29:43
+当前任务: **§144 无新纠偏（last_ack=APP-080）｜§143 证据链静态自证 23/0 ＋ 反证 7/7；APP-075/079/080 停在 reviewer 复核节点，v2.3 未打包**
 阻塞 / 待用户决定: 🔴🔴 **APP-075 未闭环（BLOCKING）**：r2 已交付但 F0 闸门未通过，`app299` 是 `offline_stat_embed`（统计嵌入，硬判据 cos_S2_S2=0.745841 < cos_S2_S1=0.772995 ⇒ FAIL）⇒ **真 x-vector 需 reviewer 复核**；第 2 臂（preset 对照）因设备作业被会话中断杀死未跑（已用 ctypes err=87 确证 PID 死并回收孤儿锁）→ **按 APP-075「需 Opus 复核」节点停止，不自行判定通过，v2.3 不打包**｜🔴 **v2.3 打包待办**：5 个 ASR 文件＋`models/spk/pyannote_seg_3_0/fp16-w5/`＋`assert_pkg_clean.py` 闸门＋桥接 .lnk 指向 `bridge_bootstrap`（本轮**未打包、未落进任何包**）｜🔴 **reviewer 本轮中途追加 APP-078**：纠偏文件开工 77 条 / SHA `3f759ebe…7f359` ⇒ 收尾 **78 条** / SHA `bbc95c43…d82af`（全程只读未改，**不得声称零改动**）｜旧包 v2.0/v2.1/v2.2 目录与 zip **一字节未动**，受影响清单见 §140，等 reviewer 转告用户｜本轮需 reviewer 复核：r2 F0 表 / APP-074 结论改正 / 3 个旧包清单 / 未打包 ｜**§141 补充**：本轮 `ac61878` 已提交且 `origin/main..HEAD` 为空（无半交付漏项）；APP-075 的 r2 F0 表／APP-074 结论改正／3 旧包 `bridge_token.txt` 清单／本轮未打包 **仍等 reviewer 复核**
-已压缩: **§135–§137 的正文均已原样归档**到 `status/archive/STATUS_APP_sec135_upto_20261105.md`（18 133 B）／`STATUS_APP_sec136_upto_20261105.md`（12 364 B）／`STATUS_APP_sec137_20261105.md`（9 705 B）／`STATUS_APP_sec135_137_infofast_20261105.md`（8 585 B）＋ **§138 正文归档**到 `status/archive/STATUS_APP_sec138_20261105.md`（28 336 B）＋ 本轮压缩前的逐字正文另见 `STATUS_APP_sec138_live_20261105.md` ＋ **§139 正文归档**到 `status/archive/STATUS_APP_sec139_20261105.md` ⇒ 本文件内只留**速查行**；限额 ≤ 40000 B / ≤ 300 行（APP-052 ④）｜写后实测见归档件 §3｜**§140 正文归档**到 `status/archive/STATUS_APP_sec140_20261106.md` ｜**§141 本轮压缩**：「最近更新」中 2026-11-05 及更早的条目整块逐字归档 ⇒ `status/archive/STATUS_APP_recent_updates_upto_20261106.md`（被搬迁块 SHA256 见 `_app311` 证据）
+已压缩: **§135–§137 的正文均已原样归档**到 `status/archive/STATUS_APP_sec135_upto_20261105.md`（18 133 B）／`STATUS_APP_sec136_upto_20261105.md`（12 364 B）／`STATUS_APP_sec137_20261105.md`（9 705 B）／`STATUS_APP_sec135_137_infofast_20261105.md`（8 585 B）＋ **§138 正文归档**到 `status/archive/STATUS_APP_sec138_20261105.md`（28 336 B）＋ 本轮压缩前的逐字正文另见 `STATUS_APP_sec138_live_20261105.md` ＋ **§139 正文归档**到 `status/archive/STATUS_APP_sec139_20261105.md` ⇒ 本文件内只留**速查行**；限额 ≤ 40000 B / ≤ 300 行（APP-052 ④）｜写后实测见归档件 §3｜**§140 正文归档**到 `status/archive/STATUS_APP_sec140_20261106.md` ｜**§141 本轮压缩**：「最近更新」中 2026-11-05 及更早的条目整块逐字归档 ⇒ `status/archive/STATUS_APP_recent_updates_upto_20261106.md`（被搬迁块 SHA256 见 `_app311` 证据）｜**§144 压缩**：「最近更新」§139/§140 两条整块逐字归档 ⇒ `status/archive/STATUS_APP_recent_updates_upto_20261107.md`
 
 
 ## 最近更新
-- 2026-11-05 18:07:58 **§139 已写** ⇒ **APP-073 + APP-074 本条已完成**：**解压副本冒烟 7/0**（rev2 zip 的解压副本：`--check` 5/0／CLI rc=0 wall 87.98 s／log 无 Traceback／**tts.jsonl 非零 wav 17/17**／音色 A 未回落／无 babelvox 示例音色）＋ 内容判据 **PASS**（零段 0）＋ 反证 **PASS**（rc2 旧产物 FAIL/受损 24）｜🔴 **reviewer 的核心疑问已定案：`--tts-voice A` 不依赖被剪掉的 babelvox 示例音色**（`--tts-voice` 的 `choices` 只有 `A`/`follow_speaker` ⇒ **传不进 cindy**；`A` → `preset_A.wav`，**在包内**）｜**README 文件数已改正**（10 503 → **10 474**，唯一命中，写后逐字节复核）｜**zip 已重打（新文件名 ⇒ 不覆盖旧 zip）**：`…_v1.0-rc3_perftest_rev2.zip`（**5 591 630 139 B／10 474 条目／SHA256 `90ae8b9da38eeca6ab9e6a693e9ac6395bdcb678e9377c5a4f655a7c5a06f58f`**）｜**一致性对账**：逐条 CRC32 ⇒ **只 `README_perftest.txt` 1 个不同**，其余 10 473 个逐条未变；旧 zip SHA 逐字未变 ｜🔴 **APP-074(a)② 已答**：预设 A 在 v1.13/v2.0/v2.1/v2.2/rc3 五个包里 **SHA 全部相同**（来源 **Amphion metis prompt.wav**，NOTICE 已署名 Apache-2.0）⇒ **不来自 babelvox 示例 ⇒ v2.x 不违规**｜⛔ **APP-071 仍未完成（BLOCKING）**：本轮未动（reviewer 明文放 rc4）；上一会话的 `app283_app071_diag/` 一字未动
-- 2026-11-06 13:59:48 **§140 已写** ⇒ **APP-076/077/078 本条已完成**（39/0｜26/0＋27/0｜28/0＋14/0）、**APP-075 需等 reviewer 复核**（r2 最终 54 文件／20 175 499 B，`_app309` 18/0 补齐 `submit.jsonl`，F0 21/19/6 未通过）；**改正 §139**（目录≠zip）；**reviewer 中途追加 APP-078**（77→78 条，SHA 变化如实记录）；⛔ **v2.3 不打包、旧包一字节未动**
+> 🔴 §139 / §140 两条「最近更新」原文（2 行）已**整块逐字归档** ⇒ `status/archive/STATUS_APP_recent_updates_upto_20261107.md`（块 SHA256 `853a0d85678f895f4b88ee294faaaeabec61ca31c2a3a247958a8f8c442f1c8d`）；速查：§139 APP-073/074 冒烟 7/0＋rev2 最终 SHA `90ae8b9d…`；§140 APP-076/077/078 39/0・26/0＋27/0・28/0＋14/0，APP-075 需等复核。
 > 🔴 2026-11-05 及更早的「最近更新」条目（16 行）已**逐字归档** ⇒ `status/archive/STATUS_APP_recent_updates_upto_20261106.md`（块 SHA256 `b14fb9b97026e9eaef29fbd3d8a7bc6277e7d4477000344d61c5693819817d47`）；本节只留 §139 / §140 两条速查。
 ## 当前有效结论
 
@@ -183,3 +182,18 @@ last_ack: APP-080
 | `status/archive/STATUS_APP_unfinished_corrections_upto_20261106.md` | 2026-11-06T23:22:36 | 4905 | `a587034577f76466a97e85c058dd15f6561496e15eee8c1a148c698220bf941c` |
 - **git 纪律**：逐文件 `git add`（禁 `-A`）⇒ main **普通 push**、不 force；**绝不提交 `status/app/CORRECTIONS_APP.md`**（其 `M` 状态是 reviewer 的未提交改动），不吞 ASR/MT/TTS 其它模块的未提交改动；提交号与清单见本轮 git 日志。
 - **写入纪律（APP-052④）**：写 §143 前先把 §141／§142 正文 **整块逐字归档**到 `status/archive/STATUS_APP_sec141_142_20261106.md`，另把「未完成纠偏」旧表整块归档到 `status/archive/STATUS_APP_unfinished_corrections_upto_20261106.md`（首版 **42 007 B** 超 40 000 B 限额被写前自检拦下 ⇒ 未落盘，压缩后达标），原位只留速查行；头部仅定点改 `last_ack`／`更新时间`／`当前任务` **3 行**；末尾仅追加本章节；自检「旧正文逐字未变・章节数不减・LF 行尾未破・≤40 000 B / ≤300 行」＋临时文件 `os.replace` 原子替换＋写后磁盘逐字节复核，报告 `results/app/_app317_write_status_sec143.json`。
+
+## §144 无新纠偏（last_ack=APP-080）｜§143 报数证据链静态自证 23/0 ＋ 反证 7/7（2026-11-07 00:29:43）
+
+- **步骤 1–2**：`status/app/CORRECTIONS_APP.md`（reviewer 独占，只读／未改／未提交）开工＝收尾 SHA `b3ae9ea9…f392b937d5`／224 562 B／mtime 2026-11-06 21:40:34／**80 条**（1..80 无缺号）⇒ **逐字一致，本轮未追加**；`last_ack: APP-080` 对齐最大编号 ⇒ **无新条目，步骤 3 无条可执行**。
+- **APP-046② 不空转**：`results/app/_app318_sec143_evidence_recheck.json` ⇒ `verdict=PASS`／`n_pass=23`／`n_fail=0`／`n_unknown=0`／`counterproof_identified=7/7`；`checks[].ok` 覆盖 §143 产物表 **12/12** 文件 mtime／字节／SHA256（`artifacts[].reported_match`）、4 个结果 JSON 原始字段（`_app314` PASS/10/0/4-4・`_app315` PASS/36/0/0/8-8・`_app316` PASS・`_app317` PASS＋`corrections.identical=true`）、写前 STATUS 38 020 B／186 行／LF、git HEAD `cd2c435`／`origin/main..HEAD=0`／上轮提交不含纠偏文件；`counterproof[].detected` **7/7**（改 SHA・字节・n_pass・last_ack・模拟追加・超限・删产物行）⇒ 判据非恒真。纯 CPU 静态：未建 `MACHINE_LOCK`／未推理／未调 MiniMax。⚠️ 为写 §144 前快照，写后 `更新时间` 变化属预期。
+- ⛔ **停止点**：APP-075「需 Opus 复核」、APP-079「需 reviewer 复核」、APP-080 ⑤⑥「复核通过后才通知用户／v2.3 发布前不再为克隆占用设备」⇒ 本轮 **未打包／未打新版本目录与 zip／未改客户安装目录与旧 zip／未改 .lnk／未改 `live_dub_ext`**；**v2.3 不打包**。
+- **写前自检**：首版 **40 813 B** 超限（STATUS 未落盘）⇒ 按 APP-052④ 把「最近更新」§139/§140 两条原文整块逐字归档到 `status/archive/STATUS_APP_recent_updates_upto_20261107.md`（块 SHA `853a0d85678f895f4b88ee294faaaeabec61ca31c2a3a247958a8f8c442f1c8d`），原位留 1 行速查。
+- **产物清单（写 STATUS 时磁盘实测，共 3 个文件）**：
+| 文件 | mtime | 字节数 | SHA256 |
+|---|---|---|---|
+| `results/app/_app318_sec143_evidence_recheck.py` | 2026-11-07T00:29:27 | 11072 | `20e2216d084abcc3b2df5ec42c292a086d67fe9e743cfed706d5b3a6ea29fcf2` |
+| `results/app/_app318_sec143_evidence_recheck.json` | 2026-11-07T00:29:31 | 14111 | `60e0a8fd2a1c1a864e4de1fb6640e3dd84c57059b910b41e66a6bb759130214a` |
+| `status/archive/STATUS_APP_recent_updates_upto_20261107.md` | 2026-11-07T00:34:44 | 2245 | `ead2fbf22a3aa1582ca5545d8e73babc13c3befbb9825607a918b450fbc97ebe` |
+
+- **写入**：头部定点改 `更新时间`／`当前任务`／`已压缩` 3 行＋原位速查＋末尾只追加本章节；自检「反向还原==旧全文」・章节不减・LF 未破・限额内＋临时文件原子替换＋写后逐字节复核 ⇒ `_app319_write_status_sec144.json`。git 逐文件 add、main 普通 push、不提交 `CORRECTIONS_APP.md`、不吞其它模块。
