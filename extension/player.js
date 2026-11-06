@@ -2686,6 +2686,9 @@ async function attachVideoTrack(track) {
           encSize = { w: w & ~1, h: h & ~1 };
           metrics.videoWidth = encSize.w;
           metrics.videoHeight = encSize.h;
+          // 11-06 (user: picture too small): canvas was stuck at 640x360.
+          //   Match the source resolution; CSS scales it to ~80% of the window.
+          cv.width = encSize.w; cv.height = encSize.h;
           try {
             const codec = await initVideoCodecs(encSize.w, encSize.h);
             report({ kind: 'video_start', codec, width: encSize.w, height: encSize.h,
@@ -3347,6 +3350,50 @@ function listenSwBroadcast() {
 }
 listenSwBroadcast();
 
+// ── 11-06 (user): play the DUB on headphones when available ─────────────────
+//   The delayed original stays on the default device (speakers); the dub is
+//   moved to a headphone/headset output via MediaStreamDestination + <audio>
+//   .setSinkId().  If no headphone-like device is found, nothing changes.
+const HEADPHONE_RE = /耳机|耳麦|headphone|headset|earphone|earbud|buds|airpods|hands-?free|免提|蓝牙|bluetooth/i;
+let dubSinkEl = null;
+async function listOutputs() {
+  let outs = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audiooutput');
+  if (outs.length && outs.every((d) => !d.label)) {
+    // labels are hidden until the page holds a media permission: ask once, release at once
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+      s.getTracks().forEach((t) => t.stop());
+      outs = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audiooutput');
+    } catch (e) { /* user declined: keep default routing */ }
+  }
+  return outs;
+}
+async function routeDubToHeadphones() {
+  try {
+    const pref = (await chrome.storage.local.get({ dubSink: 'auto' })).dubSink;
+    if (pref === 'default') { metrics.dubSink = 'default（设置为默认设备）'; return; }
+    const outs = await listOutputs();
+    const real = outs.filter((d) => d.deviceId !== 'default' && d.deviceId !== 'communications');
+    let pick = null;
+    if (pref && pref !== 'auto') pick = real.find((d) => d.deviceId === pref || d.label === pref) || null;
+    if (!pick) pick = real.find((d) => HEADPHONE_RE.test(d.label)) || null;
+    metrics.dubSinkCandidates = outs.map((d) => d.label || '(无名称)');
+    if (!pick) { metrics.dubSink = 'default（未发现耳机）'; report({ kind: 'dub_sink', sink: metrics.dubSink, outs: metrics.dubSinkCandidates }); return; }
+    const dest = audioCtx.createMediaStreamDestination();
+    dubSinkEl = new Audio();
+    dubSinkEl.srcObject = dest.stream;
+    await dubSinkEl.setSinkId(pick.deviceId);
+    await dubSinkEl.play();
+    dubBus.disconnect(audioCtx.destination);
+    dubBus.connect(dest);
+    metrics.dubSink = pick.label;
+    report({ kind: 'dub_sink', sink: pick.label, outs: metrics.dubSinkCandidates });
+  } catch (e) {
+    metrics.dubSink = 'default（切换耳机失败：' + String((e && e.message) || e) + '）';
+    report({ kind: 'dub_sink', sink: metrics.dubSink });
+  }
+}
+
 async function boot() {
   const cfg = await chrome.storage.local.get({
     wsUrl: 'ws://127.0.0.1:8765/', token: '', delaySec: 20,
@@ -3425,6 +3472,7 @@ async function boot() {
   dubBus = audioCtx.createGain();
   dubBus.gain.value = 1.0;
   dubBus.connect(audioCtx.destination);
+  routeDubToHeadphones();   // 11-06: user wants the dub on headphones when present
   // ★★★ EXT-033 B：**无损 PCM 抓取支路**（并联、sink 静音 ⇒ 不重复出声）。
   //   ★ 为什么用 AudioWorklet 而不是 ScriptProcessor：
   //       ScriptProcessorNode 已在 Chrome 弃用，且跑在**主线程**上
@@ -3662,6 +3710,7 @@ function updateHud() {
   set('mDrop', m.dropped);
   set('mCodec', m.codecUsed || '—');
   set('mDelay', delaySec);
+  set('mSink', m.dubSink || '—');
   set('mLip', m.lipSyncMs == null ? '—' : m.lipSyncMs.toFixed(1));
   set('mSched', m.schedErrMs == null ? '—' : m.schedErrMs.toFixed(2));
   set('mCpu', m.cpuPct == null ? '—' : m.cpuPct.toFixed(1));

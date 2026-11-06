@@ -79,9 +79,9 @@ TTS_RATE_MIN = 1.0
 #   滞回：降速时 lag < 2 s 才回到 1.0×（避免来回抖动）
 #   按句变速：每句开播时定一次速度，句内不变
 #   相邻句之间每次变化不超过 0.1×（听感更平滑）
-ADAPT_LAG_FREE_SEC = 3.0      # lag ≤ 此值 ⇒ 1.0×
-ADAPT_LAG_HYST_SEC = 2.0      # 降速滞回门槛（lag < 此值才回 1.0×）
-ADAPT_GAIN_PER_SEC = 0.025    # 每秒滞后的加速系数
+ADAPT_LAG_FREE_SEC = 0.5   # 11-06: was 3.0 — lag was allowed to build up (user saw drift; dub/source=1.16)      # lag ≤ 此值 ⇒ 1.0×
+ADAPT_LAG_HYST_SEC = 0.3   # 11-06: was 2.0      # 降速滞回门槛（lag < 此值才回 1.0×）
+ADAPT_GAIN_PER_SEC = 0.08  # 11-06: was 0.025 (only 1.18x at 10 s lag); now 1.12x@2s, 1.28x@4s    # 每秒滞后的加速系数
 ADAPT_SPEED_MAX = 1.30        # 速度上限
 ADAPT_SPEED_MIN = 1.0
 ADAPT_MAX_STEP = 0.10         # 相邻句之间的最大速度变化（0.1×）
