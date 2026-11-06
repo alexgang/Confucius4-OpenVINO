@@ -1,0 +1,170 @@
+{
+  "tool": "_app323_write_status_sec146",
+  "verdict": "PASS",
+  "n_checks": 21,
+  "n_fail": 0,
+  "checks": [
+    {
+      "name": "corrections_closing_recheck_unchanged",
+      "ok": true,
+      "detail": "closing={'sha256': 'b3ae9ea9fb72282bbf619dd26b73de688f8c771911bd0b56e0faf8f392b937d5', 'bytes': 224562, 'mtime': '2026-11-06 21:40:34', 'n_headings': 80, 'max_id': 80}"
+    },
+    {
+      "name": "sec145_located",
+      "ok": true,
+      "detail": "pos=22926"
+    },
+    {
+      "name": "archive_contains_verbatim_block",
+      "ok": true,
+      "detail": "block_sha=995473db9e8b117635229aa7c1152791b2bc85ccb7b1e0de645c0de550fae949 arc_bytes=5520"
+    },
+    {
+      "name": "header_unique_更新时间",
+      "ok": true,
+      "detail": "duplicate line 4"
+    },
+    {
+      "name": "header_unique_当前任务",
+      "ok": true,
+      "detail": "duplicate line 5"
+    },
+    {
+      "name": "header_unique_已压缩",
+      "ok": true,
+      "detail": "duplicate line 7"
+    },
+    {
+      "name": "header_3_lines_found",
+      "ok": true,
+      "detail": "indices={'更新时间': 3, '当前任务': 4, '已压缩': 6}"
+    },
+    {
+      "name": "header_replace_unique_更新时间",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "header_replace_unique_当前任务",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "header_replace_unique_已压缩",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "last_ack_unchanged_APP080",
+      "ok": true,
+      "detail": "本轮无新编号，last_ack 保持 APP-080"
+    },
+    {
+      "name": "no_crlf",
+      "ok": true,
+      "detail": "CRLF count=0"
+    },
+    {
+      "name": "within_40000_bytes",
+      "ok": true,
+      "detail": "new_bytes=39860 limit=40000"
+    },
+    {
+      "name": "within_300_lines",
+      "ok": true,
+      "detail": "new_lines=194 limit=300"
+    },
+    {
+      "name": "sections_not_reduced_and_appended",
+      "ok": true,
+      "detail": "old=['## §141', '## §142', '## §143', '## §145'] new=['## §141', '## §142', '## §143', '## §146'] expected=['## §141', '## §142', '## §143', '## §146']"
+    },
+    {
+      "name": "verbatim_block_in_archive",
+      "ok": true,
+      "detail": "block sha=995473db9e8b117635229aa7c1152791b2bc85ccb7b1e0de645c0de550fae949"
+    },
+    {
+      "name": "restore_quick_tail",
+      "ok": true,
+      "detail": "tail matches"
+    },
+    {
+      "name": "restore_header_unique",
+      "ok": true,
+      "detail": "new line count=1"
+    },
+    {
+      "name": "restore_header_unique",
+      "ok": true,
+      "detail": "new line count=1"
+    },
+    {
+      "name": "restore_header_unique",
+      "ok": true,
+      "detail": "new line count=1"
+    },
+    {
+      "name": "reverse_restore_equals_old_fulltext",
+      "ok": true,
+      "detail": "restored=39914 old=39914 equal=True"
+    },
+    {
+      "name": "post_write_disk_byte_equal",
+      "ok": true,
+      "detail": "disk=39860 planned=39860"
+    }
+  ],
+  "status_before": {
+    "bytes": 39914,
+    "lines": 195,
+    "sha256": "e17bc67c80ada1c20dccf1678f7bfc1a4b9876cb18e0a7e568d9a183a4217cca"
+  },
+  "status_after_planned": {
+    "bytes": 39860,
+    "lines": 195,
+    "sha256": "641690865d1986c3827bba0d02aad096f9c3392a0e8299c19491e4af3a8d9d57"
+  },
+  "archived_block": {
+    "file": "status/archive/STATUS_APP_sec145_20261107.md",
+    "bytes": 5212,
+    "lines": 21,
+    "sha256": "995473db9e8b117635229aa7c1152791b2bc85ccb7b1e0de645c0de550fae949"
+  },
+  "corrections_closing_recheck": {
+    "sha256": "b3ae9ea9fb72282bbf619dd26b73de688f8c771911bd0b56e0faf8f392b937d5",
+    "bytes": 224562,
+    "mtime": "2026-11-06 21:40:34",
+    "n_headings": 80,
+    "max_id": 80
+  },
+  "corrections_equals_opening": true,
+  "artifacts": [
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app322_v23_pkg_baseline_dryrun.py",
+      "bytes": 16406,
+      "mtime": "2026-11-07T02:59:09",
+      "sha256": "04efb71387f0da24e3133a14841edf5f1cc19c341794c69ebdd6809e90d73fe7"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app322_v23_pkg_baseline_dryrun.json",
+      "bytes": 12504,
+      "mtime": "2026-11-07T02:59:15",
+      "sha256": "b13ea09d3b30c2f37d06a38efadf8ffdaa4113a344354e662d598635bfb01350"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\archive\\STATUS_APP_sec145_20261107.md",
+      "bytes": 5520,
+      "mtime": "2026-11-07T03:02:36",
+      "sha256": "614f4d714751e41613d06e5e98b94bdb6c24695137295fe094d2dd09a73e4e01"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app323_write_status_sec146.py",
+      "bytes": 15496,
+      "mtime": "2026-11-07T03:02:34",
+      "sha256": "3d17ddf5edd1d2dae8ebeaae1015136cb0b4600551b42d3e3bbc42d48c6d63c1"
+    }
+  ],
+  "status_written": true,
+  "post_write_disk_equal": true
+}
