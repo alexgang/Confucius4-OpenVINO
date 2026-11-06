@@ -1,0 +1,409 @@
+{
+  "tool": "_app322_v23_pkg_baseline_dryrun",
+  "app": "APP-080/§145 ⑤",
+  "scope": "static_only_no_device_no_packaging_no_minimax_no_pkg_write",
+  "generated_at": "2026-11-07T02:59:15",
+  "verdict": "PASS",
+  "n_pass": 33,
+  "n_fail": 0,
+  "n_unknown": 0,
+  "counterproof_identified": "8/8",
+  "checks": [
+    {
+      "name": "corrections_baseline_80_no_new",
+      "ok": true,
+      "detail": "headings=80 max_id=80 new=[]"
+    },
+    {
+      "name": "last_ack_aligned",
+      "ok": true,
+      "detail": "last_ack='APP-080'"
+    },
+    {
+      "name": "dev_unique_hits_live_caption_app.py",
+      "ok": true,
+      "detail": "n_unique=11/11 bad={}"
+    },
+    {
+      "name": "dev_verify_live_caption_app.py",
+      "ok": true,
+      "detail": "reasons=[]"
+    },
+    {
+      "name": "dev_applied_live_caption_app.py",
+      "ok": true,
+      "detail": "applied=11/11"
+    },
+    {
+      "name": "dev_ast_live_caption_app.py",
+      "ok": true,
+      "detail": "ast.parse OK"
+    },
+    {
+      "name": "dev_eol_live_caption_app.py",
+      "ok": true,
+      "detail": "source EOL=LF"
+    },
+    {
+      "name": "dev_unique_hits_tts_service.py",
+      "ok": true,
+      "detail": "n_unique=3/3 bad={}"
+    },
+    {
+      "name": "dev_verify_tts_service.py",
+      "ok": true,
+      "detail": "reasons=[]"
+    },
+    {
+      "name": "dev_applied_tts_service.py",
+      "ok": true,
+      "detail": "applied=3/3"
+    },
+    {
+      "name": "dev_ast_tts_service.py",
+      "ok": true,
+      "detail": "ast.parse OK"
+    },
+    {
+      "name": "dev_eol_tts_service.py",
+      "ok": true,
+      "detail": "source EOL=CRLF"
+    },
+    {
+      "name": "dev_unique_hits_tts_worker.py",
+      "ok": true,
+      "detail": "n_unique=4/4 bad={}"
+    },
+    {
+      "name": "dev_verify_tts_worker.py",
+      "ok": true,
+      "detail": "reasons=[]"
+    },
+    {
+      "name": "dev_applied_tts_worker.py",
+      "ok": true,
+      "detail": "applied=4/4"
+    },
+    {
+      "name": "dev_ast_tts_worker.py",
+      "ok": true,
+      "detail": "ast.parse OK"
+    },
+    {
+      "name": "dev_eol_tts_worker.py",
+      "ok": true,
+      "detail": "source EOL=CRLF"
+    },
+    {
+      "name": "dev_docstrings_preserved",
+      "ok": true,
+      "detail": "n_dev=5 equal=True"
+    },
+    {
+      "name": "pkg_untouched_live_caption_app.py",
+      "ok": true,
+      "detail": "before=after sha=cab9896dbaa9 bytes=361384"
+    },
+    {
+      "name": "pkg_is_independent_copy_live_caption_app.py",
+      "ok": true,
+      "detail": "dev bytes=425546 pkg bytes=361384"
+    },
+    {
+      "name": "pkg_fail_reason_consistent_live_caption_app.py",
+      "ok": true,
+      "detail": "bad=['P03-checkbox', 'P04-hint', 'P05-startup', 'P08-onchange'] first_bad_in_error=P03-checkbox err=AssertionError('live_caption/live_caption_app.py: anchor P03-checkbox hit 0 times (need exactly 1)')"
+    },
+    {
+      "name": "pkg_unpatched_verify_false_live_caption_app.py",
+      "ok": true,
+      "detail": "verify_source on raw v2.2 = False"
+    },
+    {
+      "name": "pkg_untouched_tts_service.py",
+      "ok": true,
+      "detail": "before=after sha=fa93cebcf67a bytes=127483"
+    },
+    {
+      "name": "pkg_is_independent_copy_tts_service.py",
+      "ok": true,
+      "detail": "dev bytes=133411 pkg bytes=127483"
+    },
+    {
+      "name": "pkg_fail_reason_consistent_tts_service.py",
+      "ok": true,
+      "detail": "applicable=True ⇒ bad_anchors 必须为空"
+    },
+    {
+      "name": "pkg_unpatched_verify_false_tts_service.py",
+      "ok": true,
+      "detail": "verify_source on raw v2.2 = False"
+    },
+    {
+      "name": "pkg_untouched_tts_worker.py",
+      "ok": true,
+      "detail": "before=after sha=e94d61f7d2f1 bytes=229782"
+    },
+    {
+      "name": "pkg_is_independent_copy_tts_worker.py",
+      "ok": true,
+      "detail": "dev bytes=247121 pkg bytes=229782"
+    },
+    {
+      "name": "pkg_fail_reason_consistent_tts_worker.py",
+      "ok": true,
+      "detail": "applicable=True ⇒ bad_anchors 必须为空"
+    },
+    {
+      "name": "pkg_unpatched_verify_false_tts_worker.py",
+      "ok": true,
+      "detail": "verify_source on raw v2.2 = False"
+    },
+    {
+      "name": "git_clean_main_ahead0",
+      "ok": true,
+      "detail": "head=a9049e8 ahead=0 branch=main"
+    },
+    {
+      "name": "corrections_reviewer_only_uncommitted",
+      "ok": true,
+      "detail": "status='M status/app/CORRECTIONS_APP.md'"
+    },
+    {
+      "name": "machine_lock_not_taken",
+      "ok": true,
+      "detail": "MACHINE_LOCK present=False（纯静态，不占设备）"
+    }
+  ],
+  "counterproof": [
+    {
+      "name": "E1_missing_anchor",
+      "identified": true,
+      "expect": "apply_patches raises AssertionError"
+    },
+    {
+      "name": "E2_duplicated_anchor",
+      "identified": true,
+      "expect": "apply_patches raises AssertionError"
+    },
+    {
+      "name": "E3_unpatched_dev_source",
+      "identified": true,
+      "expect": "verify_source=False"
+    },
+    {
+      "name": "E4_guard_before_docstring",
+      "identified": true,
+      "expect": "__doc__ lost ⇒ FAIL"
+    },
+    {
+      "name": "E5_simulated_pkg_write",
+      "identified": true,
+      "expect": "sha differ ⇒ FAIL"
+    },
+    {
+      "name": "E6_dev_baseline_judged_ready",
+      "identified": true,
+      "expect": "all anchors 1/1 ⇒ applicable=True"
+    },
+    {
+      "name": "E7_simulated_APP081",
+      "identified": true,
+      "expect": "max_id>last_ack ⇒ new item detected"
+    },
+    {
+      "name": "E8_double_apply",
+      "identified": true,
+      "expect": "apply_patches raises AssertionError"
+    }
+  ],
+  "facts": {
+    "corrections": {
+      "sha256": "b3ae9ea9fb72282bbf619dd26b73de688f8c771911bd0b56e0faf8f392b937d5",
+      "bytes": 224562,
+      "mtime": "2026-11-06T21:40:34.517134",
+      "n_headings": 80,
+      "max_id": 80,
+      "missing_ids": [],
+      "last_ack": "APP-080",
+      "new_items": []
+    },
+    "dev_hits": {
+      "live_caption/live_caption_app.py": {
+        "P00-import": 1,
+        "P01-voices": 1,
+        "P02-label": 1,
+        "P03-checkbox": 1,
+        "P04-hint": 1,
+        "P05-startup": 1,
+        "P06-tts-start": 1,
+        "P07-statusbar": 1,
+        "P08-onchange": 1,
+        "P09-cli": 1,
+        "P10-help": 1
+      },
+      "live_caption/tts_service.py": {
+        "S00-import": 1,
+        "S01-set_clone_pcm": 1,
+        "S02-register_spk_voice": 1
+      },
+      "live_caption/tts_worker.py": {
+        "W00-import": 1,
+        "W01-update_clone": 1,
+        "W02-register_spk_voice": 1,
+        "W03-apply_spk_voice": 1
+      }
+    },
+    "dev_sources": {
+      "live_caption/live_caption_app.py": {
+        "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\live_caption_app.py",
+        "bytes": 425546,
+        "mtime": "2026-11-06T10:39:49.400914",
+        "sha256": "b30cb3611db899ae25cc87056862ed213e6a00caf7ba65a319e2007591dc79cd"
+      },
+      "live_caption/tts_service.py": {
+        "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_service.py",
+        "bytes": 133411,
+        "mtime": "2026-11-05T11:08:49.266302",
+        "sha256": "6cc0645ef286870ac79ecd4baa0bc02154e8bf712ae54d54ce11aaba7997d70c"
+      },
+      "live_caption/tts_worker.py": {
+        "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_worker.py",
+        "bytes": 247121,
+        "mtime": "2026-11-05T10:41:53.631175",
+        "sha256": "bf2277e60e62d7399b88e5bee7590af9c0105a51ada468f8d4438a77683a0606"
+      }
+    },
+    "pkg_v22_hits": {
+      "live_caption/live_caption_app.py": {
+        "P00-import": 1,
+        "P01-voices": 1,
+        "P02-label": 1,
+        "P03-checkbox": 0,
+        "P04-hint": 0,
+        "P05-startup": 0,
+        "P06-tts-start": 1,
+        "P07-statusbar": 1,
+        "P08-onchange": 0,
+        "P09-cli": 1,
+        "P10-help": 1
+      },
+      "live_caption/tts_service.py": {
+        "S00-import": 1,
+        "S01-set_clone_pcm": 1,
+        "S02-register_spk_voice": 1
+      },
+      "live_caption/tts_worker.py": {
+        "W00-import": 1,
+        "W01-update_clone": 1,
+        "W02-register_spk_voice": 1,
+        "W03-apply_spk_voice": 1
+      }
+    },
+    "pkg_v22_apply": {
+      "live_caption/live_caption_app.py": {
+        "applicable": false,
+        "error": "AssertionError('live_caption/live_caption_app.py: anchor P03-checkbox hit 0 times (need exactly 1)')",
+        "n_unique": 7,
+        "n_total": 11,
+        "bad_anchors": {
+          "P03-checkbox": 0,
+          "P04-hint": 0,
+          "P05-startup": 0,
+          "P08-onchange": 0
+        }
+      },
+      "live_caption/tts_service.py": {
+        "applicable": true,
+        "error": null,
+        "n_unique": 3,
+        "n_total": 3,
+        "bad_anchors": {}
+      },
+      "live_caption/tts_worker.py": {
+        "applicable": true,
+        "error": null,
+        "n_unique": 4,
+        "n_total": 4,
+        "bad_anchors": {}
+      }
+    },
+    "pkg_v22_before": {
+      "live_caption/live_caption_app.py": {
+        "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app\\live_caption_app.py",
+        "bytes": 361384,
+        "mtime": "2026-11-02T01:33:05.491540",
+        "sha256": "cab9896dbaa9810610f05df9c9195c7af8a8e92a9ac92ab3b6bc7fdf1695b13b"
+      },
+      "live_caption/tts_service.py": {
+        "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app\\tts_service.py",
+        "bytes": 127483,
+        "mtime": "2026-11-02T01:33:05.522242",
+        "sha256": "fa93cebcf67aa6e0425b6a6f247627e4256109325b080ef4ddd63f41621bae38"
+      },
+      "live_caption/tts_worker.py": {
+        "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app\\tts_worker.py",
+        "bytes": 229782,
+        "mtime": "2026-11-02T01:33:05.510051",
+        "sha256": "e94d61f7d2f1fb15495cd22d20a7f85a36820f57d404909f4ffed26d9359ea16"
+      }
+    },
+    "pkg_v22_after": {
+      "live_caption/live_caption_app.py": {
+        "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app\\live_caption_app.py",
+        "bytes": 361384,
+        "mtime": "2026-11-02T01:33:05.491540",
+        "sha256": "cab9896dbaa9810610f05df9c9195c7af8a8e92a9ac92ab3b6bc7fdf1695b13b"
+      },
+      "live_caption/tts_service.py": {
+        "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app\\tts_service.py",
+        "bytes": 127483,
+        "mtime": "2026-11-02T01:33:05.522242",
+        "sha256": "fa93cebcf67aa6e0425b6a6f247627e4256109325b080ef4ddd63f41621bae38"
+      },
+      "live_caption/tts_worker.py": {
+        "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app\\tts_worker.py",
+        "bytes": 229782,
+        "mtime": "2026-11-02T01:33:05.510051",
+        "sha256": "e94d61f7d2f1fb15495cd22d20a7f85a36820f57d404909f4ffed26d9359ea16"
+      }
+    },
+    "pkg_v22_missing_anchors": {
+      "live_caption/live_caption_app.py": [
+        "P03-checkbox",
+        "P04-hint",
+        "P05-startup",
+        "P08-onchange"
+      ],
+      "live_caption/tts_service.py": [],
+      "live_caption/tts_worker.py": []
+    },
+    "pkg_v22_multi_hit_anchors": {
+      "live_caption/live_caption_app.py": {},
+      "live_caption/tts_service.py": {},
+      "live_caption/tts_worker.py": {}
+    },
+    "total_anchors": 18,
+    "pkg_v22_unique_anchors": 14,
+    "pkg_v22_direct_patch_applicable": false,
+    "pkg_include_files": [
+      "app/v23_preset_only.py",
+      "app/assert_pkg_clean.py"
+    ],
+    "git": {
+      "head": "a9049e8",
+      "ahead": "0",
+      "branch": "main",
+      "corrections_status": "M status/app/CORRECTIONS_APP.md"
+    },
+    "status_before": {
+      "bytes": 39914,
+      "lines": 195,
+      "crlf": 0,
+      "sha256": "e17bc67c80ada1c20dccf1678f7bfc1a4b9876cb18e0a7e568d9a183a4217cca"
+    },
+    "machine_lock_present": false
+  },
+  "conclusion": "dev 基底 18/18 锚点唯一命中、补丁后静态判据成立；v2.2 包内为 11-02 旧基底，14/18 锚点唯一命中 ⇒ 直接对 v2.2 包内副本套补丁会 AssertionError（属版本差异，非产品缺陷）。v2.3 打新版本的前置条件：新包目录的 3 份源文件须先升级到 dev 基底（骨架等价校验后定点升级），再应用 18 锚点补丁，并同时带上 PKG_INCLUDE_FILES 两个文件（§145 已判 NOT_WIRED，属接入待办）。",
+  "stop_point": "APP-075/079/080 仍停 reviewer 复核节点；本轮未打包、未打新版本目录与 zip、未改客户安装目录与 .lnk、未在 CPU 跑推理测速、未调 MiniMax。"
+}

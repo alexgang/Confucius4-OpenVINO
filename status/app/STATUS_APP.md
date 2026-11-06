@@ -1,10 +1,10 @@
 # STATUS_APP
 
 last_ack: APP-080
-更新时间: 2026-11-07 01:45:30
-当前任务: **§145 无新纠偏（last_ack=APP-080）｜APP-080 打包链路就绪度静态盘点 18/0 ＋ 反证 7/7；打包链路 NOT_WIRED 列入 ⑤ 待办，APP-075/079/080 仍停 reviewer 复核，v2.3 未打包**
+更新时间: 2026-11-07 02:59:44
+当前任务: **§146 无新纠偏（last_ack=APP-080）｜APP-080 构建期补丁对 v2.2 包内基底只读 dry-run 对账 33/0 ＋ 反证 8/8；14/18 锚点命中 ⇒ 须先升级新包基底，APP-075/079/080 仍停 reviewer 复核，v2.3 未打包**
 阻塞 / 待用户决定: 🔴🔴 **APP-075 未闭环（BLOCKING）**：r2 已交付但 F0 闸门未通过，`app299` 是 `offline_stat_embed`（统计嵌入，硬判据 cos_S2_S2=0.745841 < cos_S2_S1=0.772995 ⇒ FAIL）⇒ **真 x-vector 需 reviewer 复核**；第 2 臂（preset 对照）因设备作业被会话中断杀死未跑（已用 ctypes err=87 确证 PID 死并回收孤儿锁）→ **按 APP-075「需 Opus 复核」节点停止，不自行判定通过，v2.3 不打包**｜🔴 **v2.3 打包待办**：5 个 ASR 文件＋`models/spk/pyannote_seg_3_0/fp16-w5/`＋`assert_pkg_clean.py` 闸门＋桥接 .lnk 指向 `bridge_bootstrap`（本轮**未打包、未落进任何包**）｜🔴 **reviewer 本轮中途追加 APP-078**：纠偏文件开工 77 条 / SHA `3f759ebe…7f359` ⇒ 收尾 **78 条** / SHA `bbc95c43…d82af`（全程只读未改，**不得声称零改动**）｜旧包 v2.0/v2.1/v2.2 目录与 zip **一字节未动**，受影响清单见 §140，等 reviewer 转告用户｜本轮需 reviewer 复核：r2 F0 表 / APP-074 结论改正 / 3 个旧包清单 / 未打包 ｜**§141 补充**：本轮 `ac61878` 已提交且 `origin/main..HEAD` 为空（无半交付漏项）；APP-075 的 r2 F0 表／APP-074 结论改正／3 旧包 `bridge_token.txt` 清单／本轮未打包 **仍等 reviewer 复核**
-已压缩: 压缩索引（旧正文逐字归档）⇒ `status/archive/STATUS_APP_compress_index_upto_20261107.md`；限额 ≤40000 B / ≤300 行（APP-052④）｜**§145 压缩**：§144 正文＋§143 产物表 ⇒ `status/archive/STATUS_APP_sec144_20261107.md` ／ `status/archive/STATUS_APP_sec143_artifacts_20261107.md`
+已压缩: 压缩索引（旧正文逐字归档）⇒ `status/archive/STATUS_APP_compress_index_upto_20261107.md`；限额 ≤40000 B / ≤300 行（APP-052④）｜**§145 压缩**：§144 正文＋§143 产物表 ⇒ `status/archive/STATUS_APP_sec144_20261107.md` ／ `status/archive/STATUS_APP_sec143_artifacts_20261107.md`｜**§146 压缩**：§145 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec145_20261107.md`
 
 
 ## 最近更新
@@ -172,23 +172,23 @@ last_ack: APP-080
 
 > 🔴 §144 正文（15 行）已**整块逐字归档** ⇒ `status/archive/STATUS_APP_sec144_20261107.md`（块 SHA256 `53214dba94e14e870731c1399e79a248bdd2e89a602f6ccd314ad7b77b8b2461`）；速查：`_app318` 对 §143 产物表 12/12 自证 **23/0 ＋ 反证 7/7**，APP-075/079/080 停在 reviewer 复核节点，v2.3 未打包。
 
-## §145 无新纠偏（last_ack=APP-080）｜APP-080 打包链路就绪度静态盘点 18/0 ＋ 反证 7/7（2026-11-07 01:45:30）
+> 🔴 §145 正文（21 行／5 212 B／块 SHA256 `995473db9e8b117635229aa7c1152791b2bc85ccb7b1e0de645c0de550fae949`）已**整块逐字归档** ⇒ `status/archive/STATUS_APP_sec145_20261107.md`；速查：`_app320` 18/0・反证 7/7，`pack_v13.py`＋22 个建包脚本对 `PKG_INCLUDE_FILES` 引用数 0 ⇒ 打包链路 NOT_WIRED，APP-075/079/080 停 reviewer 复核、v2.3 未打包。
 
-- **步骤 1–2**：`status/app/CORRECTIONS_APP.md`（reviewer 独占，只读／未改／未提交）开工＝收尾 SHA `b3ae9ea9…f392b937d5`／224 562 B／mtime 2026-11-06 21:40:34／**80 条**（APP-001..080 无缺号无重复）⇒ `facts.corrections` 同值；`last_ack: APP-080` 对齐最大编号 ⇒ **无编号大于 last_ack 的新条目，步骤 3 无条可执行**。
-- **APP-046② 不空转**：`results/app/_app320_v23_build_readiness.json` ⇒ `verdict=PASS`／`n_pass=18`／`n_fail=0`／`n_unknown=0`／`counterproof_identified=7/7`（7 条反证全被识破，含模拟追加 APP-081・插消费引用・改 SHA・删 include 项）。纯 CPU 静态：`facts.machine_lock_present=false`／未推理／未调 MiniMax／未打包／未改客户安装目录与旧 zip／未改 .lnk／未改 `live_dub_ext`。
-- 🔴 **本轮新结论（APP-080 ⑤ 待办，需 reviewer 复核）**：`facts.packaging_chain` ⇒ `pack_v13_bytes=72531`／`pack_v13_sha256=2e7a232e…`／`pack_v13_hits=0`／`build_scripts_scanned=22`／`build_scripts_nonzero_hits={}`／`total_hits=0`／`wired=false`／`verdict=NOT_WIRED` ⇒ **§143 警示的「包内必须同时带 `PKG_INCLUDE_FILES=[app/v23_preset_only.py, app/assert_pkg_clean.py]`」尚未被 `pack_v13.py` 或任何建包脚本消费**。两份 dev 资产与 §143 产物表逐字一致：`facts.app080_assets.v23_preset_only.sha256=362825e6…`／`bytes=17260`；`assert_pkg_clean.sha256=ba769069…`／`bytes=3458`；`pkg_include_files` 两路径在开发树均有源、`ast.parse` 通过；`selftest`＝`PASS/36/0/0/8-8`、`docfix.verdict=PASS`、`diff_bytes=8021`。⇒ **不是代码缺陷，是接入待办**：v2.3 打新版本时须把构建期补丁应用到包内 3 份源文件并复制 2 个随包文件，否则 `from v23_preset_only import …` 会 ImportError。
-- 🔴 **判据缺陷已自纠（非产品缺陷）**：`_app320` 首跑 `FAIL/2` —— glob `*build*.py` 把**本自证脚本自身**算进被测集合（29 次自引用）⇒ 假 FAIL；按「FAIL 先怀疑判据」排除自身（`excluded_self=_app320_v23_build_readiness.py`）后复跑 **18/0、反证 7/7**。
-- **git / 限额只读核查**：`facts.git` ⇒ `head=c6ae632`／`ahead=0`／`branch=main`／`head_files` 5 个全在 `results/app/`・`status/app/`・`status/archive/` ⇒ 无半交付、上轮提交不含 `CORRECTIONS`、未吞其它模块；`facts.status_before` ⇒ 写前 **39 577 B／200 行**／SHA `ec9e5673…`（限额仅余 423 B）。
-- ⛔ **停止点**：APP-075「需 Opus 复核」・APP-079「需 reviewer 复核」・APP-080 ⑤⑥「reviewer 复核通过后才通知用户／v2.3 发布前不再为克隆占用设备」⇒ 本轮未自行推进 ⑤⑥、**v2.3 不打包**；新待办「打包链路接入」并入 ⑤ 等复核。3 个旧包 zip 本轮**未重复全量实算**（§142 已实算留证，`facts.not_rechecked` 如实说明）⇒ 不写新的「一字节未动」结论。
-- **写入纪律（APP-052④）**：写 §145 前把 §144 正文（15 行／2964 B／块 SHA `53214dba94e14e870731c1399e79a248bdd2e89a602f6ccd314ad7b77b8b2461`）、§143 产物清单表（14 行／1859 B／块 SHA `38f401fad509a9e32f1e5320bf8754bab952f560905322769095802182518264`）与头部旧「已压缩」行（1072 B／块 SHA `75b01f1482e3f8fbee1e4a2c8ff7cfbd3310ca89474984a8aea3a11afa2be0f3`）**整块逐字归档**，原位留速查/短版；头部仅定点改 `更新时间`／`当前任务`／`已压缩` 3 行；末尾只追加本章节；自检「反向还原==旧全文」・章节不减・LF 未破・限额内＋原子替换＋写后逐字节复核 ⇒ `_app321_write_status_sec145.json`；首版 A+B **40 720 B** 超限被拦（STATUS 未落盘）。
-- **纠偏文件收尾复核**：开工＝收尾 SHA `b3ae9ea9…f392b937d5`／224 562 B／2026-11-06 21:40:34／**80 条**（最大 APP-080）⇒ reviewer 本轮未追加；全程只读／未改／未提交，可称零改动；若收尾后出现新条目按步骤 4 如实记录。
-- **产物清单（写 STATUS 时磁盘实测，共 5 个文件）**：
+## §146 无新纠偏（last_ack=APP-080）｜APP-080 补丁对包内基底只读 dry-run 对账 33/0 ＋ 反证 8/8（2026-11-07 02:59:44）
+
+- **步骤 1–2**：`status/app/CORRECTIONS_APP.md`（reviewer 独占，只读／未改／未提交）开工 SHA `b3ae9ea9…f392b937d5`／224 562 B／mtime 2026-11-06 21:40:34／**80 条**（APP-001..080 无缺号，`max_id=80`）；`last_ack: APP-080` 对齐 ⇒ **无编号大于 last_ack 的新条目，步骤 3 无条可执行**。
+- **APP-046② 不空转**：`results/app/_app322_v23_pkg_baseline_dryrun.json` ⇒ `verdict=PASS`／`n_pass=33`／`n_fail=0`／`n_unknown=0`／`counterproof_identified=8/8`（8/8 全被识破，逐条明细见该 JSON 的 `counterproof` 字段）。纯 CPU 静态：`facts.machine_lock_present=false`／未推理／未调 MiniMax／未打包。
+- 🔴 **本轮新结论（APP-080 ⑤ 前置条件，需 reviewer 复核）**：`facts.dev_hits` ⇒ dev 三份源文件 **18/18 锚点唯一命中**，补丁后 `verify_source=True`／`ast.parse` 通过／5 个函数 `__doc__` 保持／行尾还原；`facts.pkg_v22_hits` 对真实 `Confucius4_LiveCaption_v2.2/app/` **只读**副本 ⇒ `pkg_v22_unique_anchors=14`／`total_anchors=18`、缺 `P03-checkbox`／`P04-hint`／`P05-startup`／`P08-onchange`（全在 `live_caption_app.py`；`tts_service.py` 3/3、`tts_worker.py` 4/4 全命中）⇒ `pkg_v22_direct_patch_applicable=false` ⇒ **直接对 v2.2 包内副本套 §143 补丁会 AssertionError**。🔴 按「FAIL 先怀疑判据／环境」记**基底版本差异，非产品缺陷**（包内 mtime 2026-11-02 01:33、dev 11-05/11-06）⇒ **v2.3 打新版本前置条件**：新包目录 3 份源文件须先按「骨架等价校验后升级基底」同步到 dev 基底，再应用 18 锚点补丁；`PKG_INCLUDE_FILES` 仍 **NOT_WIRED**（§145 接入待办）。
+- **只读纪律**：`facts.pkg_v22_before` / `pkg_v22_after` 逐文件 `sha256` 与 `bytes` 相等（`live_caption_app.py` 361 384 B／`tts_service.py` 127 483 B／`tts_worker.py` 229 782 B）；反证 E5 证明「写包」会被识破。旧 zip 本轮未重复全量实算（§142 已留证）⇒ 不新写「一字节未动」。
+- **git / 限额只读核查**：`facts.git` ⇒ `head=a9049e8`／`ahead=0`／`branch=main`／`corrections_status='M status/app/CORRECTIONS_APP.md'`（reviewer 未提交，本轮只读）；`facts.status_before` ⇒ 写前 **39914 B／195 行**（余量仅 86 B）⇒ 按 APP-052④ 先压缩。
+- ⛔ **停止点**：APP-075「需 Opus 复核」・APP-079「需 reviewer 复核」・APP-080 ⑤⑥「reviewer 复核通过后才通知用户」⇒ 未自行推进 ⑤⑥、**v2.3 不打包**；未打新版本目录与 zip／未改客户安装目录与 .lnk／未建 `MACHINE_LOCK`／未在 CPU 跑推理测速。**没落盘的不写「已交付」**。
+- **写入纪律（APP-052④）**：§145 正文（21 行／5 212 B／块 SHA256 `995473db9e8b117635229aa7c1152791b2bc85ccb7b1e0de645c0de550fae949`）**整块逐字归档** ⇒ `status/archive/STATUS_APP_sec145_20261107.md`，原位留速查行；头部仅定点改 `更新时间`／`当前任务`／`已压缩` 3 行，`last_ack` 保持 APP-080；末尾只追加本章节；写前自检「反向还原==旧全文・归档件逐字命中・章节不减・LF 未破・≤40 000 B / ≤300 行」＋临时文件 `os.replace` 原子替换＋写后磁盘逐字节复核 ⇒ `results/app/_app323_write_status_sec146.json`。
+- **纠偏文件收尾复核（步骤 4）**：SHA `b3ae9ea9fb72282bbf619dd26b73de688f8c771911bd0b56e0faf8f392b937d5`／224562 B／2026-11-06 21:40:34／**80 条**（最大 APP-080）⇒ 与开工逐字一致，**reviewer 本轮未追加**；全程只读／未改／未提交，可称零改动。
+- **产物清单（写 STATUS 时磁盘实测，共 4 个文件）**：
 | 文件 | mtime | 字节数 | SHA256 |
 |---|---|---|---|
-| `results/app/_app320_v23_build_readiness.py` | 2026-11-07T01:44:34 | 14763 | `344ad71a212452ebb52da16148efee6649ac9dab8291a588ef46faae0af036e0` |
-| `results/app/_app320_v23_build_readiness.json` | 2026-11-07T01:44:37 | 9554 | `0c61c1077b68e1bcded92f31036bbdf8912d09bbd82342f725f87a45fbaa9c94` |
-| `status/archive/STATUS_APP_sec144_20261107.md` | 2026-11-07T01:51:55 | 3269 | `bd0529841c8b5c3d80a85ec1f3b5de4c06c43674d78652a7538daf38d3c70b33` |
-| `status/archive/STATUS_APP_sec143_artifacts_20261107.md` | 2026-11-07T01:51:55 | 2176 | `e9d914a95af7c4642d463f850e84efe66e1f65945de6f84ad2093dce72085547` |
-| `status/archive/STATUS_APP_compress_index_upto_20261107.md` | 2026-11-07T01:51:55 | 1398 | `f0c9cc98febcbc51eed7eb35f7b933bbd9929f64ed7238ad253af4e1141e663b` |
-
-- **git**：逐文件 `git add`（禁 `-A`）⇒ main 普通 push、不 force；不提交 `CORRECTIONS_APP.md`（其 `M` 属 reviewer），不吞其它模块。
+| `results/app/_app322_v23_pkg_baseline_dryrun.py` | 2026-11-07T02:59:09 | 16406 | `04efb71387f0da24e3133a14841edf5f1cc19c341794c69ebdd6809e90d73fe7` |
+| `results/app/_app322_v23_pkg_baseline_dryrun.json` | 2026-11-07T02:59:15 | 12504 | `b13ea09d3b30c2f37d06a38efadf8ffdaa4113a344354e662d598635bfb01350` |
+| `status/archive/STATUS_APP_sec145_20261107.md` | 2026-11-07T03:02:36 | 5520 | `614f4d714751e41613d06e5e98b94bdb6c24695137295fe094d2dd09a73e4e01` |
+| `results/app/_app323_write_status_sec146.py` | 2026-11-07T03:02:34 | 15496 | `3d17ddf5edd1d2dae8ebeaae1015136cb0b4600551b42d3e3bbc42d48c6d63c1` |
+- **git**：逐文件 `git add`（禁 `-A`）⇒ main 普通 push、不 force；不提交 `CORRECTIONS_APP.md`，不吞其它模块。
