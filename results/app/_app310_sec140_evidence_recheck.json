@@ -1,0 +1,592 @@
+{
+  "tool": "app310_sec140_evidence_recheck",
+  "correction": "APP-046 ② 无新纠偏续做 — §140 证据链自证",
+  "ts": "2026-11-06 19:54:25",
+  "checks": [
+    {
+      "pass": true,
+      "field": "n_pass",
+      "expected": 26,
+      "actual": 26,
+      "id": "C01",
+      "source": "_app302_app077_token_gate.json",
+      "note": "APP-077① 打包闸门 26/0"
+    },
+    {
+      "pass": true,
+      "field": "n_fail",
+      "expected": 0,
+      "actual": 0,
+      "id": "C02",
+      "source": "_app302_app077_token_gate.json",
+      "note": "APP-077① 打包闸门 26/0"
+    },
+    {
+      "pass": true,
+      "field": "verdict",
+      "expected": "PASS",
+      "actual": "PASS",
+      "id": "C03",
+      "source": "_app302_app077_token_gate.json",
+      "note": "APP-077① verdict"
+    },
+    {
+      "pass": true,
+      "field": "n_pass",
+      "expected": 39,
+      "actual": 39,
+      "id": "C04",
+      "source": "_app304_app076_md5_audit.json",
+      "note": "APP-076 md5 对照 39/0"
+    },
+    {
+      "pass": true,
+      "field": "n_fail",
+      "expected": 0,
+      "actual": 0,
+      "id": "C05",
+      "source": "_app304_app076_md5_audit.json",
+      "note": "APP-076 md5 对照 39/0"
+    },
+    {
+      "pass": true,
+      "field": "verdict",
+      "expected": "PASS",
+      "actual": "PASS",
+      "id": "C06",
+      "source": "_app304_app076_md5_audit.json",
+      "note": "APP-076 verdict"
+    },
+    {
+      "pass": true,
+      "field": "n_pass",
+      "expected": 27,
+      "actual": 27,
+      "id": "C07",
+      "source": "_app305_app077_shortcut_selftest.json",
+      "note": "APP-077② 启动器 27/0"
+    },
+    {
+      "pass": true,
+      "field": "n_fail",
+      "expected": 0,
+      "actual": 0,
+      "id": "C08",
+      "source": "_app305_app077_shortcut_selftest.json",
+      "note": "APP-077② 启动器 27/0"
+    },
+    {
+      "pass": true,
+      "field": "verdict",
+      "expected": "PASS",
+      "actual": "PASS",
+      "id": "C09",
+      "source": "_app305_app077_shortcut_selftest.json",
+      "note": "APP-077② verdict"
+    },
+    {
+      "pass": true,
+      "field": "n_pass",
+      "expected": 28,
+      "actual": 28,
+      "id": "C10",
+      "source": "_app306_app078_babelvox_audit.json",
+      "note": "APP-078 音色审计 28/0"
+    },
+    {
+      "pass": true,
+      "field": "n_fail",
+      "expected": 0,
+      "actual": 0,
+      "id": "C11",
+      "source": "_app306_app078_babelvox_audit.json",
+      "note": "APP-078 音色审计 28/0"
+    },
+    {
+      "pass": true,
+      "field": "verdict",
+      "expected": "PASS",
+      "actual": "PASS",
+      "id": "C12",
+      "source": "_app306_app078_babelvox_audit.json",
+      "note": "APP-078 verdict"
+    },
+    {
+      "pass": true,
+      "field": "n_pass",
+      "expected": 14,
+      "actual": 14,
+      "id": "C13",
+      "source": "_app307_assert_pkg_clean_selftest.json",
+      "note": "APP-078 建包闸门 14/0"
+    },
+    {
+      "pass": true,
+      "field": "n_fail",
+      "expected": 0,
+      "actual": 0,
+      "id": "C14",
+      "source": "_app307_assert_pkg_clean_selftest.json",
+      "note": "APP-078 建包闸门 14/0"
+    },
+    {
+      "pass": true,
+      "field": "verdict",
+      "expected": "PASS",
+      "actual": "PASS",
+      "id": "C15",
+      "source": "_app307_assert_pkg_clean_selftest.json",
+      "note": "APP-078 建包闸门 verdict"
+    },
+    {
+      "pass": true,
+      "field": "n_pass",
+      "expected": 18,
+      "actual": 18,
+      "id": "C16",
+      "source": "_app309_fix_r2_submit.json",
+      "note": "_app309 补齐 submit.jsonl 18/0"
+    },
+    {
+      "pass": true,
+      "field": "n_fail",
+      "expected": 0,
+      "actual": 0,
+      "id": "C17",
+      "source": "_app309_fix_r2_submit.json",
+      "note": "_app309 补齐 submit.jsonl 18/0"
+    },
+    {
+      "pass": true,
+      "field": "after.n_files",
+      "expected": 54,
+      "actual": 54,
+      "id": "C18",
+      "source": "_app309_fix_r2_submit.json",
+      "note": "r2 最终 54 文件"
+    },
+    {
+      "pass": true,
+      "field": "after.n_bytes",
+      "expected": 20175499,
+      "actual": 20175499,
+      "id": "C19",
+      "source": "_app309_fix_r2_submit.json",
+      "note": "r2 最终 20 175 499 B"
+    },
+    {
+      "pass": true,
+      "field": "gate.true",
+      "expected": 21,
+      "actual": 21,
+      "id": "C20",
+      "source": "_app309_fix_r2_submit.json",
+      "note": "F0 闸门 21 PASS"
+    },
+    {
+      "pass": true,
+      "field": "gate.false",
+      "expected": 19,
+      "actual": 19,
+      "id": "C21",
+      "source": "_app309_fix_r2_submit.json",
+      "note": "F0 闸门 19 FAIL"
+    },
+    {
+      "pass": true,
+      "field": "gate.none",
+      "expected": 6,
+      "actual": 6,
+      "id": "C22",
+      "source": "_app309_fix_r2_submit.json",
+      "note": "F0 闸门 6 NONE"
+    },
+    {
+      "pass": true,
+      "field": "n_files",
+      "expected": 52,
+      "actual": 52,
+      "id": "C23",
+      "source": "_app303_build_v23_clone_r2.json",
+      "note": "写前口径 52 文件（§140 已声明作废）"
+    },
+    {
+      "pass": true,
+      "field": "n_bytes",
+      "expected": 20160623,
+      "actual": 20160623,
+      "id": "C24",
+      "source": "_app303_build_v23_clone_r2.json",
+      "note": "写前口径 20 160 623 B"
+    },
+    {
+      "pass": true,
+      "field": "f0_criterion.male_max_hz",
+      "expected": 160.0,
+      "actual": 160.0,
+      "id": "C25",
+      "source": "_app295_f0_verify.json",
+      "note": "F0 闸门 男<160 Hz"
+    },
+    {
+      "pass": true,
+      "field": "f0_criterion.female_min_hz",
+      "expected": 170.0,
+      "actual": 170.0,
+      "id": "C26",
+      "source": "_app295_f0_verify.json",
+      "note": "F0 闸门 女>170 Hz"
+    },
+    {
+      "pass": true,
+      "field": "n_pass",
+      "expected": 3,
+      "actual": 3,
+      "id": "C27",
+      "source": "_app298_conf_window_recheck.json",
+      "note": "APP-075(c) 第二份材料复验 3/0"
+    },
+    {
+      "pass": true,
+      "field": "n_fail",
+      "expected": 0,
+      "actual": 0,
+      "id": "C28",
+      "source": "_app298_conf_window_recheck.json",
+      "note": "APP-075(c) 第二份材料复验 3/0"
+    },
+    {
+      "pass": true,
+      "field": "n_fail",
+      "expected": 0,
+      "actual": 0,
+      "id": "C29",
+      "source": "_app308_write_status_sec140.json",
+      "note": "§140 写入自检"
+    },
+    {
+      "pass": true,
+      "field": "verdict",
+      "expected": "PASS",
+      "actual": "PASS",
+      "id": "C30",
+      "source": "_app308_write_status_sec140.json",
+      "note": "§140 写入自检 verdict"
+    },
+    {
+      "pass": true,
+      "field": "mode",
+      "expected": "offline_stat_embed",
+      "actual": "offline_stat_embed",
+      "id": "C31",
+      "source": "app299_app075_reg_diag/app299_app075_reg_diag.json",
+      "note": "真 x-vector 未产出"
+    },
+    {
+      "pass": true,
+      "field": "verdict",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "id": "C32",
+      "source": "app299_app075_reg_diag/app299_app075_reg_diag.json",
+      "note": "统计嵌入硬判据 FAIL"
+    },
+    {
+      "pass": true,
+      "field": "n_pass",
+      "expected": 5,
+      "actual": 5,
+      "id": "C33",
+      "source": "app299_app075_reg_diag/app299_app075_reg_diag.json",
+      "note": "app299 5 PASS"
+    },
+    {
+      "pass": true,
+      "field": "n_fail",
+      "expected": 1,
+      "actual": 1,
+      "id": "C34",
+      "source": "app299_app075_reg_diag/app299_app075_reg_diag.json",
+      "note": "app299 1 FAIL"
+    },
+    {
+      "pass": true,
+      "field": "counter_evidence.wrong_expected_value",
+      "expected": "must FAIL",
+      "actual": "FAIL",
+      "note": "反证：判据须能识破错误输入",
+      "id": "X01",
+      "source": "counter_evidence"
+    },
+    {
+      "pass": true,
+      "field": "counter_evidence.missing_field",
+      "expected": "must FAIL",
+      "actual": "FAIL",
+      "note": "反证：判据须能识破错误输入",
+      "id": "X02",
+      "source": "counter_evidence"
+    },
+    {
+      "pass": true,
+      "field": "counter_evidence.wrong_gate_counts",
+      "expected": "must FAIL",
+      "actual": "FAIL",
+      "note": "反证：判据须能识破错误输入",
+      "id": "X03",
+      "source": "counter_evidence"
+    },
+    {
+      "id": "A01",
+      "source": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+      "field": "STATUS_APP.md text",
+      "expected": "last_ack: APP-078",
+      "actual": "found",
+      "pass": true,
+      "note": "报数须在 STATUS 中落盘"
+    },
+    {
+      "id": "A02",
+      "source": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+      "field": "STATUS_APP.md text",
+      "expected": "26/0",
+      "actual": "found",
+      "pass": true,
+      "note": "报数须在 STATUS 中落盘"
+    },
+    {
+      "id": "A03",
+      "source": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+      "field": "STATUS_APP.md text",
+      "expected": "27/0",
+      "actual": "found",
+      "pass": true,
+      "note": "报数须在 STATUS 中落盘"
+    },
+    {
+      "id": "A04",
+      "source": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+      "field": "STATUS_APP.md text",
+      "expected": "28/0",
+      "actual": "found",
+      "pass": true,
+      "note": "报数须在 STATUS 中落盘"
+    },
+    {
+      "id": "A05",
+      "source": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+      "field": "STATUS_APP.md text",
+      "expected": "14/0",
+      "actual": "found",
+      "pass": true,
+      "note": "报数须在 STATUS 中落盘"
+    },
+    {
+      "id": "A06",
+      "source": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+      "field": "STATUS_APP.md text",
+      "expected": "39/0",
+      "actual": "found",
+      "pass": true,
+      "note": "报数须在 STATUS 中落盘"
+    },
+    {
+      "id": "A07",
+      "source": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+      "field": "STATUS_APP.md text",
+      "expected": "18/0",
+      "actual": "found",
+      "pass": true,
+      "note": "报数须在 STATUS 中落盘"
+    },
+    {
+      "id": "A08",
+      "source": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+      "field": "STATUS_APP.md text",
+      "expected": "21/19/6",
+      "actual": "found",
+      "pass": true,
+      "note": "报数须在 STATUS 中落盘"
+    },
+    {
+      "id": "A09",
+      "source": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+      "field": "STATUS_APP.md text",
+      "expected": "54 文件",
+      "actual": "found",
+      "pass": true,
+      "note": "报数须在 STATUS 中落盘"
+    },
+    {
+      "id": "A10",
+      "source": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+      "field": "STATUS_APP.md text",
+      "expected": "20 175 499 B",
+      "actual": "found",
+      "pass": true,
+      "note": "报数须在 STATUS 中落盘"
+    },
+    {
+      "id": "A11",
+      "source": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+      "field": "STATUS_APP.md text",
+      "expected": "APP-078",
+      "actual": "found",
+      "pass": true,
+      "note": "报数须在 STATUS 中落盘"
+    }
+  ],
+  "n_pass": 48,
+  "n_fail": 0,
+  "verdict": "PASS",
+  "status_anchors": [
+    {
+      "anchor": "last_ack: APP-078",
+      "found": true
+    },
+    {
+      "anchor": "26/0",
+      "found": true
+    },
+    {
+      "anchor": "27/0",
+      "found": true
+    },
+    {
+      "anchor": "28/0",
+      "found": true
+    },
+    {
+      "anchor": "14/0",
+      "found": true
+    },
+    {
+      "anchor": "39/0",
+      "found": true
+    },
+    {
+      "anchor": "18/0",
+      "found": true
+    },
+    {
+      "anchor": "21/19/6",
+      "found": true
+    },
+    {
+      "anchor": "54 文件",
+      "found": true
+    },
+    {
+      "anchor": "20 175 499 B",
+      "found": true
+    },
+    {
+      "anchor": "APP-078",
+      "found": true
+    }
+  ],
+  "counter_evidence": [
+    {
+      "name": "wrong_expected_value",
+      "caught": true,
+      "pass": true
+    },
+    {
+      "name": "missing_field",
+      "caught": true,
+      "pass": true
+    },
+    {
+      "name": "wrong_gate_counts",
+      "caught": true,
+      "pass": true
+    }
+  ],
+  "evidence_files": [
+    {
+      "file": "results/app/_app295_f0_verify.json",
+      "bytes": 13224,
+      "sha256": "c9b2ab4bddf4b979d228e2b8824b7a732aee116fd4713fc17f5499501cd23aaa",
+      "mtime": "2026-11-06 09:57:35"
+    },
+    {
+      "file": "results/app/_app298_conf_window_recheck.json",
+      "bytes": 8488,
+      "sha256": "18ba73d072965273579779a2e2b02c639d440ca535544e13749a774ff47bab32",
+      "mtime": "2026-11-06 10:42:35"
+    },
+    {
+      "file": "results/app/_app302_app077_token_gate.json",
+      "bytes": 7212,
+      "sha256": "07d4c43027c151528ba54c8232334f1a78098709053898a178c68dff42447485",
+      "mtime": "2026-11-06 13:33:13"
+    },
+    {
+      "file": "results/app/_app303_build_v23_clone_r2.json",
+      "bytes": 10168,
+      "sha256": "426c82f21069c5fdc309c4372c21fdfedc9ec561dfd55e6d8df7e971d47371f8",
+      "mtime": "2026-11-06 13:37:33"
+    },
+    {
+      "file": "results/app/_app304_app076_md5_audit.json",
+      "bytes": 10009,
+      "sha256": "ac187b81e1a7a5f80e94195bbabef2a91a2da5a35c78a1056c1137f607659065",
+      "mtime": "2026-11-06 13:40:34"
+    },
+    {
+      "file": "results/app/_app305_app077_shortcut_selftest.json",
+      "bytes": 3882,
+      "sha256": "0744304a6ab452d362c5e2f5db78816d80ae6e2c3010d6cf2aaa7549a213b16e",
+      "mtime": "2026-11-06 13:43:35"
+    },
+    {
+      "file": "results/app/_app306_app078_babelvox_audit.json",
+      "bytes": 13796,
+      "sha256": "859d327f368acf8c77bca600a37417d96148d5251ba6e74b0b476f18cfbe35f6",
+      "mtime": "2026-11-06 13:50:08"
+    },
+    {
+      "file": "results/app/_app307_assert_pkg_clean_selftest.json",
+      "bytes": 1791,
+      "sha256": "0a7e13456f046ed80d6fa6e800e823fa8c23ce895ae1f0ea0342c3448780bf29",
+      "mtime": "2026-11-06 13:46:20"
+    },
+    {
+      "file": "results/app/_app308_write_status_sec140.json",
+      "bytes": 1596,
+      "sha256": "0d33b4dfb6020fd1b8ef521c89a4baebf59ac6359aa06dda8cf758c5eefd0ad1",
+      "mtime": "2026-11-06 14:03:43"
+    },
+    {
+      "file": "results/app/_app309_fix_r2_submit.json",
+      "bytes": 3650,
+      "sha256": "cdbc6c0da11f57c134c33670818261d926cdeb1213d1646fa876f89b4b9f84b3",
+      "mtime": "2026-11-06 13:59:40"
+    },
+    {
+      "file": "results/app/app299_app075_reg_diag/app299_app075_reg_diag.json",
+      "bytes": 17007,
+      "sha256": "a5d1003d0a02ceffc856d84a4238cd1c76f80e384dbfd751a429cae76ed7140f",
+      "mtime": "2026-11-06 10:43:51"
+    },
+    {
+      "file": "status/app/STATUS_APP.md",
+      "bytes": 39853,
+      "sha256": "9d2b352fb3d7dc11cfa3cb35875d96a2fb22b046564f45e1912b04b4f2f953e0",
+      "mtime": "2026-11-06 14:03:43"
+    },
+    {
+      "file": "status/app/CORRECTIONS_APP.md",
+      "bytes": 220735,
+      "sha256": "bbc95c4382f29fa3c8b4f1b49ff644339b025f78447a3bb263e6b680ad4d82af",
+      "mtime": "2026-11-06 13:31:54"
+    }
+  ],
+  "corrections_baseline": {
+    "file": "status/app/CORRECTIONS_APP.md",
+    "bytes": 220735,
+    "sha256": "bbc95c4382f29fa3c8b4f1b49ff644339b025f78447a3bb263e6b680ad4d82af",
+    "mtime": "2026-11-06 13:31:54"
+  },
+  "note": "纯静态复核；不占设备、不打包、不改纠偏文件。APP-075 仍停在「需 Opus 复核」节点，本脚本不对其做任何推进或判定。"
+}
