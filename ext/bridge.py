@@ -3519,14 +3519,20 @@ def _log_segment(task: dict, roles: List[str]) -> None:
         s = str(v).replace("\n", " ").strip()
         return (s[:n] + "…") if len(s) > n else (s or "—")
 
+    # 11-06 (reviewer): per-stage compute seconds added, to find which stage
+    #   cannot keep up in real time (user: dub lag keeps growing).
     _log("段 %s | t_start=%.3f t_end=%.3f | ASR=%r | MT=%r | TTS=%.2fs"
-         " | 下发到=%s"
+         " | 耗时 asr=%.2f mt=%.2f tts=%.2f | 倍率=%s | 下发到=%s"
          % (task.get("id", "?"),
             float(task.get("t_start") or 0.0),
             float(task.get("t_end") or 0.0),
             _cut(task.get("src")),
             _cut(task.get("tgt")),
             float(task.get("speech_sec") or 0.0),
+            float(task.get("asr_sec") or 0.0),
+            float(task.get("mt_sec") or 0.0),
+            float(task.get("tts_sec") or 0.0),
+            task.get("total_rate", task.get("speed", "—")),
             ",".join(roles) if roles else "无"))
 
 
