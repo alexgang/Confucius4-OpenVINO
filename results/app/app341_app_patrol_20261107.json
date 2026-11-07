@@ -1,0 +1,153 @@
+{
+  "section": "§150",
+  "patrol_time_get_date": "2026-11-07 17:43:17",
+  "lease": {
+    "module": "app",
+    "token": "b68c0cf5",
+    "acquire_exit": 0,
+    "takeover": false
+  },
+  "corrections_file": {
+    "path": "status/app/CORRECTIONS_APP.md",
+    "policy": "reviewer_exclusive__readonly_never_modified_never_committed"
+  },
+  "open_fingerprint": {
+    "sha256": "d80ad25d1da40a2714958cbf3c8491ebaf186edafa2aeec3b860607f47c5dd9a",
+    "bytes": 227215,
+    "mtime": "2026-11-07 14:51:02",
+    "n_app_sections": 81,
+    "max_app_id": 81
+  },
+  "close_fingerprint": {
+    "sha256": "d80ad25d1da40a2714958cbf3c8491ebaf186edafa2aeec3b860607f47c5dd9a",
+    "bytes": 227215,
+    "mtime": "2026-11-07 14:51:02",
+    "n_app_sections": 81,
+    "max_app_id": 81
+  },
+  "last_ack": "APP-081",
+  "n_app_sections": 81,
+  "max_app_id": 81,
+  "new_items_after_last_ack": [],
+  "verdict": "NO_NEW_CORRECTION__STOP_AT_REVIEWER_GATE",
+  "stop_reason": [
+    "APP-081 第 5 点：reviewer 自算 zip SHA / 抽查 zip 内容 / 看截图后才通知用户",
+    "APP-081 第 6 点：不要再新增覆盖审计/静态自证类轮次；本条处理完前不自创其他任务",
+    "任务规则：明确写了需要停下来等 reviewer 复核时，做到该节点即停止"
+  ],
+  "git": {
+    "head": "4f0e931",
+    "branch": "main",
+    "ahead": 0,
+    "n_worktree_changes": 644,
+    "corrections_file_modified_in_worktree": true,
+    "policy": "per_file_git_add__no_-A__never_commit_CORRECTIONS_APP.md__ordinary_push_main"
+  },
+  "machine_lock": {
+    "path": "C:/Users/Trekker-PTL/shared/MACHINE_LOCK",
+    "exists": false
+  },
+  "prior_background_pids": [
+    {
+      "pid": 17220,
+      "verdict": "DEAD_err87",
+      "err": 87
+    },
+    {
+      "pid": 7396,
+      "verdict": "DEAD_err87",
+      "err": 87
+    }
+  ],
+  "prior_evidence_fields": {
+    "results/app/app339_v23_verify_final.json": "items(zip_sha/unzip_check/gui/cli=PASS, blacklist=UNKNOWN) / artifacts=20",
+    "results/app/app332_v23_zip_sha.json": "sha256=4b4a977ab1dba640748e1a7347220089a384a7f7e9e8e6778b61902cbadcbfed / bytes=11235945990 / n_zip_entries=14320",
+    "results/app/app337_v23_cli_rerun.json": "verdict=PASS / tts_final_stats.submitted=70 / zero_segment_check.n_bad_rows=0"
+  },
+  "archive_artifact": {
+    "path": "status/archive/STATUS_APP_sec149_20261107.md",
+    "n_files": 1,
+    "bytes": 12416,
+    "mtime": "2026-11-07 17:43:17",
+    "sha256": "29784e3e09e787a4c3328e8c3d5559eef5b459a42554a182d0ddd6745567aebe"
+  },
+  "discipline": {
+    "packed": false,
+    "new_zip": false,
+    "pkg_dirs_modified": false,
+    "shortcut_modified": false,
+    "user_notified": false,
+    "device_occupied": false,
+    "cpu_inference_or_benchmark": false,
+    "minimax_called": false,
+    "force_push": false,
+    "old_versions_untouched": "v2.0/v2.1/v2.2/v2.3"
+  },
+  "checks": [
+    {
+      "name": "corrections_open_equals_close",
+      "pass": true,
+      "detail": "open={'sha256': 'd80ad25d1da40a2714958cbf3c8491ebaf186edafa2aeec3b860607f47c5dd9a', 'bytes': 227215, 'mtime': '2026-11-07 14:51:02', 'n_app_sections': 81, 'max_app_id': 81} close={'sha256': 'd80ad25d1da40a2714958cbf3c8491ebaf186edafa2aeec3b860607f47c5dd9a', 'bytes': 227215, 'mtime': '2026-11-07 14:51:02', 'n_app_sections': 81, 'max_app_id': 81}"
+    },
+    {
+      "name": "git_head_is_4f0e931",
+      "pass": true,
+      "detail": "4f0e931"
+    },
+    {
+      "name": "git_branch_main",
+      "pass": true,
+      "detail": "main"
+    },
+    {
+      "name": "git_ahead_zero",
+      "pass": true,
+      "detail": "0"
+    },
+    {
+      "name": "corrections_not_staged_for_commit_rule",
+      "pass": true,
+      "detail": "worktree modified; never add"
+    },
+    {
+      "name": "machine_lock_absent",
+      "pass": true,
+      "detail": "False"
+    },
+    {
+      "name": "prior_pids_all_dead",
+      "pass": true,
+      "detail": "[{'pid': 17220, 'verdict': 'DEAD_err87', 'err': 87}, {'pid': 7396, 'verdict': 'DEAD_err87', 'err': 87}]"
+    },
+    {
+      "name": "old_status_lf_only",
+      "pass": true,
+      "detail": "0"
+    },
+    {
+      "name": "old_status_size",
+      "pass": true,
+      "detail": "38768 B / 183 L"
+    },
+    {
+      "name": "sec149_heading_unique",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "sec149_is_last_section",
+      "pass": true,
+      "detail": "8459"
+    },
+    {
+      "name": "archive_verbatim",
+      "pass": true,
+      "detail": "29784e3e09e787a4c3328e8c3d5559eef5b459a42554a182d0ddd6745567aebe"
+    },
+    {
+      "name": "sec141_sec142_nonempty",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

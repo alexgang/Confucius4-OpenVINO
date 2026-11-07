@@ -1,0 +1,4 @@
+{
+  "stage": "gui",
+  "exception": "NotADirectoryError(20, '目录名称无效。', None, 267, None)"
+}

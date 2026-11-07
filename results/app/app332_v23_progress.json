@@ -1,0 +1,57 @@
+{
+  "started_at": "2026-11-07 15:57:35",
+  "stages": {
+    "zip_sha": "PASS",
+    "unzip_check": "PASS",
+    "blacklist": "FAIL",
+    "gui": "PASS",
+    "cli": "PARTIAL",
+    "summary": "DONE"
+  },
+  "lock": "TO_RELEASE",
+  "summary": {
+    "tool": "app332",
+    "app": "APP-081 4d/4e",
+    "at": "2026-11-07 16:05:42",
+    "stages": {
+      "zip_sha": {
+        "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_zip_sha.json",
+        "verdict": "PASS",
+        "sha256": "f6231090254e0dd7ab08972d606b73222435a25f64857e73d6464a5040986111",
+        "bytes": 426
+      },
+      "unzip_check": {
+        "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_unzip_check.json",
+        "verdict": "PASS",
+        "sha256": "e2a0c9e27c1cdad4bf321b2b517abd2a83a5cbcbde966b56a1dfe5d18708afb0",
+        "bytes": 1571
+      },
+      "blacklist": {
+        "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_blacklist.json",
+        "verdict": "FAIL",
+        "sha256": "b0a3cd40d3523ddfb27f83dc4551b7d271d7f6f8d0fe63ae25a49e29c47c36dd",
+        "bytes": 7066
+      },
+      "gui": {
+        "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_gui_wrapper.json",
+        "verdict": "PASS",
+        "sha256": "d77308952c913ff63c4ec598a7bbd7c36e37e040b0ae45debfd1f261b4d3df1f",
+        "bytes": 1890
+      },
+      "cli": {
+        "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_cli.json",
+        "verdict": "PARTIAL",
+        "sha256": "280cb1b750d90638ea2237995a1ef469b968f8c5261ec1559d228e127562e178",
+        "bytes": 4651
+      }
+    },
+    "verdicts": {
+      "zip_sha": "PASS",
+      "unzip_check": "PASS",
+      "blacklist": "FAIL",
+      "gui": "PASS",
+      "cli": "PARTIAL"
+    },
+    "all_pass": false
+  }
+}
