@@ -2477,6 +2477,9 @@ class Session:
 
         return [{
             "type": "tts",
+            # 11-07 (reviewer): per-stage compute seconds, for the segment log line
+            "asr_sec": round(asr_s, 4), "mt_sec": round(mt_s, 4), "tts_sec": round(tts_s, 4),
+            "total_rate": round(total_rate, 4),
             # ★★★ EXT-026 ⑤：**对外**的段 id 带会话前缀
             #   ⇒ 跨会话不可能撞号 ⇒ 插件侧常驻的 `seenDubIds`
             #     不会把新会话的段误判成「旧会话的重复段」而静默丢掉。
