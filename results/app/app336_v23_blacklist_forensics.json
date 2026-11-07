@@ -1,0 +1,168 @@
+{
+  "tool": "app336",
+  "app": "APP-080 ⑥ / APP-081 4d",
+  "at": "2026-11-07 16:21:00",
+  "pkg": "C:\\v23_cleantest\\Confucius4_LiveCaption_v2.3",
+  "n_files": 14320,
+  "total_bytes": 13692567925,
+  "scope": "只新增补充诊断；不修改 app332/app335 两份原始结果文件",
+  "prior_results": {
+    "app332_v23_blacklist": {
+      "verdict": "FAIL",
+      "n_hits_real": 33,
+      "n_rule_self_reference": 1
+    },
+    "app335_v23_blacklist_recheck": {
+      "verdict": "FAIL",
+      "n_real_violations": 14,
+      "counterproof_identified": "7/7"
+    }
+  },
+  "core_4_categories": {
+    "hits": {
+      "meeting": [],
+      "clone_wav": [],
+      "babelvox_demo": [],
+      "bridge_token": []
+    },
+    "n_hits": 0,
+    "verdict": true,
+    "note": "会议录音 / 克隆音色 / babelvox 示例音色 / bridge_token.txt"
+  },
+  "dev_path": {
+    "verdict": null,
+    "n_regex_hits": 1,
+    "n_true_leaked_file_reference": 0,
+    "n_rule_literal_self_reference": 1,
+    "hits": [
+      {
+        "path": "app/v23_preset_only.py",
+        "match": "C:\\\\Users\\\\Trekker-PTL",
+        "line": "r'(?i)C:\\\\Users\\\\Trekker-PTL',",
+        "classification": "rule_literal_self_reference",
+        "is_real_leaked_file_reference": false
+      }
+    ],
+    "note": "命中项为随包闸门 app/v23_preset_only.py 的 BLACKLIST_PATTERNS 正则字面量，属「判据自引用」而非开发机文件引用；但字面量本身把开发机用户名带进了交付包 ⇒ 已识别的交付瑕疵，如实列出，不静默判 PASS。是否计入 APP-080 ⑥「开发路径」由 reviewer 裁定；本轮按 APP-081 6 不自创任务、不重打包，转后续版本去除用户名。"
+  },
+  "torch_cuda": {
+    "verdict": true,
+    "n_cuda_native_binary": 0,
+    "cuda_native_binary": [],
+    "n_app_cuda_backend": 0,
+    "app_cuda_backend": [],
+    "n_third_party_python_shim": 13,
+    "third_party_python_shim_sample": [
+      "python/Lib/site-packages/openvino/torch/__init__.py",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/fft.py",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/linalg.py",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/_aliases.py",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/_info.py",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/_typing.py",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/__init__.py",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/__pycache__/fft.cpython-312.pyc",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/__pycache__/linalg.cpython-312.pyc",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/__pycache__/_aliases.cpython-312.pyc",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/__pycache__/_info.cpython-312.pyc",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/__pycache__/_typing.cpython-312.pyc",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/__pycache__/__init__.cpython-312.pyc"
+    ],
+    "n_third_party_cuda_source": 15,
+    "third_party_cuda_source_sample": [
+      "python/Lib/site-packages/numba/cuda/cpp_function_wrappers.cu",
+      "python/Lib/site-packages/numba/cuda/tests/data/cuda_include.cu",
+      "python/Lib/site-packages/numba/cuda/tests/data/error.cu",
+      "python/Lib/site-packages/numba/cuda/tests/data/jitlink.cu",
+      "python/Lib/site-packages/numba/cuda/tests/data/warn.cu",
+      "python/Lib/site-packages/numba/cuda/tests/doc_examples/ffi/functions.cu",
+      "python/Lib/site-packages/transformers/kernels/deta/cuda/ms_deform_attn_cuda.cu",
+      "python/Lib/site-packages/transformers/kernels/deta/cuda/ms_deform_attn_cuda.cuh",
+      "python/Lib/site-packages/transformers/kernels/deta/cuda/ms_deform_im2col_cuda.cuh",
+      "python/Lib/site-packages/transformers/kernels/mra/cuda_kernel.cu",
+      "python/Lib/site-packages/transformers/kernels/mra/cuda_launch.cu",
+      "python/Lib/site-packages/transformers/kernels/rwkv/wkv_cuda.cu",
+      "python/Lib/site-packages/transformers/kernels/rwkv/wkv_cuda_bf16.cu",
+      "python/Lib/site-packages/transformers/kernels/yoso/fast_lsh_cumulation.cu",
+      "python/Lib/site-packages/transformers/kernels/yoso/fast_lsh_cumulation_cuda.cu"
+    ],
+    "criteria": {
+      "CUDA_NATIVE": "(?i)(^|/)(cuda|cudnn|cublas|cufft|curand|cusparse|nccl|nvidia)[^/]*\\.(dll|pyd|so|lib|exe)$|(^|/)nvidia/[^/]+/|(^|/)torch/(lib|bin)/|(^|/)torch[^/]*_cuda[^/]*\\.(pyd|dll|so)$|(^|/)libtorch[^/]*\\.(dll|so|lib)$",
+      "APP_CUDA_BACKEND": "(?i)^app/(tts_cuda[^/]*\\.py|tts_cuda_sidecar\\.py)$|(^|/)_fq3tts_env",
+      "THIRD_PARTY_SHIM": "(?i)^python/Lib/site-packages/(openvino/torch/|scipy/_external/array_api_compat/torch/)"
+    },
+    "note": "app335 的 active_cuda=13 全部来自 openvino/torch 与 scipy/_external/array_api_compat/torch 的纯 Python 兼容 shim（含 .pyc），因 ACTIVE_CUDA 正则里裸 `torch/` 命中；包内 CUDA 运行时二进制 / torch 原生库 / App 侧 CUDA 后端实测计数见上。第三方 .cu 源码只作 informational 不判负。"
+  },
+  "counterproof": [
+    {
+      "id": "CP_cuda_native_dll",
+      "injected": "python/Lib/site-packages/torch/lib/torch_cuda.dll",
+      "detected": true,
+      "identified": true
+    },
+    {
+      "id": "CP_cudnn_runtime",
+      "injected": "python/Lib/site-packages/nvidia/cudnn/lib/cudnn64_8.dll",
+      "detected": true,
+      "identified": true
+    },
+    {
+      "id": "CP_app_cuda_backend",
+      "injected": "app/tts_cuda.py",
+      "detected": true,
+      "identified": true
+    },
+    {
+      "id": "CP_meeting_wav",
+      "injected": "results/260902_SPE_spoken.wav",
+      "detected": true,
+      "identified": true
+    },
+    {
+      "id": "CP_clone_wav",
+      "injected": "app/voices/spk_clone_s1.wav",
+      "detected": true,
+      "identified": true
+    },
+    {
+      "id": "CP_babelvox_demo",
+      "injected": "python/Lib/site-packages/babelvox/data/speakers/cindy.json",
+      "detected": true,
+      "identified": true
+    },
+    {
+      "id": "CP_bridge_token",
+      "injected": "ext/bridge_token.txt",
+      "detected": true,
+      "identified": true
+    },
+    {
+      "id": "CP_real_dev_path_leak",
+      "injected": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\secret.txt",
+      "detected": true,
+      "identified": true
+    },
+    {
+      "id": "CP_clean_preset_A",
+      "injected": "app/voices/preset_A.wav",
+      "detected": false,
+      "identified": true
+    },
+    {
+      "id": "CP_clean_third_party_shim",
+      "injected": "python/Lib/site-packages/openvino/torch/__init__.py",
+      "detected": false,
+      "identified": true
+    },
+    {
+      "id": "CP_clean_doc",
+      "injected": "README_zh.md",
+      "detected": false,
+      "identified": true
+    }
+  ],
+  "counterproof_identified": "11/11",
+  "counterproof_all_pass": true,
+  "verdict_tristate": null,
+  "verdict": "UNKNOWN",
+  "verdict_note": "UNKNOWN = 核心 4 类 0 命中、无 CUDA 运行时、反证全过，但存在 1 项「规则字面量是否算开发路径」口径歧义 ⇒ 按三态纪律「无法判定」≠「不合格」，转 reviewer 复核；不自行改判 PASS。"
+}

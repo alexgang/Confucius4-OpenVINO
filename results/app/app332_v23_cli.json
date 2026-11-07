@@ -1,0 +1,90 @@
+{
+  "stage": "cli",
+  "cmd": [
+    "C:\\v23_cleantest\\Confucius4_LiveCaption_v2.3\\python\\python.exe",
+    "C:\\v23_cleantest\\Confucius4_LiveCaption_v2.3\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app264_SPE_1500s.wav",
+    "--max-seconds",
+    "300",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "follow_speaker",
+    "--speaker",
+    "off",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_cli_final.txt",
+    "--tts-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_cli_tts.jsonl",
+    "--spk-seg-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_cli_spk_seg.jsonl"
+  ],
+  "rc": 0,
+  "wall_s": 314.5,
+  "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_cli_output.txt",
+  "log_stat": {
+    "bytes": 43114,
+    "mtime": "2026-11-07 16:05:41",
+    "sha256": "d80376fbba423f6eb431377782c72edcf0f981b95b3a4ae8afba0046f71fab69"
+  },
+  "clone_fallback_log_lines": [
+    "[v23] APP-080：音色残留值 'follow_speaker' 不在 v2.3 交付范围 ⇒ 回落预设 A"
+  ],
+  "n_clone_fallback_log_lines": 1,
+  "n_zero_audio_log_lines": 0,
+  "zero_audio_log_lines": [],
+  "n_rtf_backlog_log_lines": 6,
+  "rtf_backlog_log_lines": [
+    "[实时] Agenda topics today, we'll talk about three.  [TTS] [TTS] [tts_engine] cp_decode: NPU（生产配置要求；实测 RTF 1.912→1.218、首块 1.296→0.837 s）",
+    "[gpu_int8] 音频 300.1s  墙钟 300.6s  RTF(计算) 0.701  出字延迟中位 388 ms  最大积压 1.2s  段 46",
+    "[TTS] 首包 —s  积压 当前 0.00s / 最大 0.00s  提交 0  播完 0  丢弃 0  重启 0  state=ready",
+    "[TTS] 收尾（close 前）：结尾滞后 —s  关闭作废 0  空句 0  积压 最大 0.00s",
+    "[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\tts_backlog_curve.csv（200 个采样点）",
+    "[TTS] 最终统计（close 后）：提交 0  播完 0  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 —s  积压 最大 0.00s"
+  ],
+  "tts_jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_cli_tts.jsonl",
+  "n_tts_jsonl_rows": 0,
+  "final_text": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_cli_final.txt",
+  "final_text_bytes": 4707,
+  "asr_wer": null,
+  "asr_wer_note": "质量判定由 reviewer 用 MiniMax 回转写；本轮只落盘 CLI 定稿文本，不自行调用 MiniMax、不在 CPU 上算 WER（三态：无法判定）",
+  "output_tail": [
+    "[实时] Solutions, Nov",
+    "[实时] Solutions. Novellik solves",
+    "[实时] Solutions. Novellix solves that problem.",
+    "[实时] Solutions. Novellix solves that problem. When we come",
+    "[实时] Solutions. Novellix solves that problem. When we come out with Nov",
+    "[定稿] Solutions. Novellix solves that problem. When we come out with Novellix, we",
+    "  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'",
+    "",
+    "[gpu_int8] 音频 300.1s  墙钟 300.6s  RTF(计算) 0.701  出字延迟中位 388 ms  最大积压 1.2s  段 46",
+    "[TTS] 首包 —s  积压 当前 0.00s / 最大 0.00s  提交 0  播完 0  丢弃 0  重启 0  state=ready",
+    "[TTS] 收尾（close 前）：结尾滞后 —s  关闭作废 0  空句 0  积压 最大 0.00s",
+    "[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\tts_backlog_curve.csv（200 个采样点）",
+    "  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）",
+    "[TTS] 最终统计（close 后）：提交 0  播完 0  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 —s  积压 最大 0.00s",
+    "[spk] 段表已落盘：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_cli_spk_seg.jsonl（46 段）"
+  ],
+  "artifacts": {
+    "log": {
+      "bytes": 43114,
+      "mtime": "2026-11-07 16:05:41",
+      "sha256": "d80376fbba423f6eb431377782c72edcf0f981b95b3a4ae8afba0046f71fab69"
+    },
+    "tts_jsonl": null,
+    "final_text": {
+      "bytes": 4707,
+      "mtime": "2026-11-07 16:05:40",
+      "sha256": "535608ae01e2e59bb32bfc1f7c571f95009e14ab638a90f04d15a1df2012702d"
+    },
+    "spk_jsonl": {
+      "bytes": 4094,
+      "mtime": "2026-11-07 16:05:41",
+      "sha256": "f6efc5535748c709c9930dcf4f0ad93a41cf53a972abcae5672ae7d7cf96eae5"
+    }
+  },
+  "clone_fallback_verdict": "PASS",
+  "verdict": "PARTIAL"
+}

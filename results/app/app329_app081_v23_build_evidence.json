@@ -1,0 +1,231 @@
+{
+  "tool": "app329",
+  "app": "APP-081 / APP-080",
+  "started_at": "2026-11-07 15:17:45",
+  "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2",
+  "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.3",
+  "src_probe_before": {
+    "ext/bridge_token.txt": {
+      "bytes": 32,
+      "sha256": "a637f357500c55a4f9cab1291e0b4fb3966b000bfa62805ab49b35c1c82e8fd1"
+    },
+    "app/live_caption_app.py": {
+      "bytes": 361384,
+      "sha256": "cab9896dbaa9810610f05df9c9195c7af8a8e92a9ac92ab3b6bc7fdf1695b13b"
+    },
+    "app/tts_service.py": {
+      "bytes": 127483,
+      "sha256": "fa93cebcf67aa6e0425b6a6f247627e4256109325b080ef4ddd63f41621bae38"
+    },
+    "app/tts_worker.py": {
+      "bytes": 229782,
+      "sha256": "e94d61f7d2f1fb15495cd22d20a7f85a36820f57d404909f4ffed26d9359ea16"
+    },
+    "app/MANIFEST.json": {
+      "bytes": 23421,
+      "sha256": "7e192b71bb1c6953da6adcfe23a7e1426bd8dc6d40803a0055dcd598e20ebf88"
+    }
+  },
+  "src_files": 14463,
+  "src_bytes": 13693019733,
+  "n_exclude_rules": 5,
+  "skipped_excluded": [
+    "ext/bridge_token.txt",
+    "python/Lib/site-packages/babelvox/data/speakers/cindy.json",
+    "python/Lib/site-packages/babelvox/data/speakers/cindy.npy",
+    "python/Lib/site-packages/babelvox/data/speakers/lou.json",
+    "python/Lib/site-packages/babelvox/data/speakers/lou.npy",
+    "python/Lib/site-packages/babelvox/data/speakers/phil.json",
+    "python/Lib/site-packages/babelvox/data/speakers/phil.npy",
+    "python/Lib/site-packages/babelvox/data/speakers/steve.json",
+    "python/Lib/site-packages/babelvox/data/speakers/steve.npy"
+  ],
+  "added": [
+    {
+      "path": "app/v23_preset_only.py",
+      "bytes": 17260,
+      "sha256": "362825e644d2edc42ef662505aaaa8dbd07cad5522da642d36cef8266dd043c7"
+    },
+    {
+      "path": "app/assert_pkg_clean.py",
+      "bytes": 4823,
+      "sha256": "9469b33f879cf1c699cb0d5caf8cd889e7391aa314d269d4b8be1096fe2ee255"
+    }
+  ],
+  "synced": [
+    {
+      "module": "live_caption_app.py",
+      "n_anchors": 11,
+      "applied_ids": [
+        "P00-import",
+        "P01-voices",
+        "P02-label",
+        "P03-checkbox",
+        "P04-hint",
+        "P05-startup",
+        "P06-tts-start",
+        "P07-statusbar",
+        "P08-onchange",
+        "P09-cli",
+        "P10-help"
+      ],
+      "skeleton_old_n": 87,
+      "skeleton_dev_n": 91,
+      "skeleton_missing_in_dev": [],
+      "sha256_before": "cab9896dbaa9810610f05df9c9195c7af8a8e92a9ac92ab3b6bc7fdf1695b13b",
+      "sha256_after": "0e43e40b9515ce2c43a81cd6ba08b5594bc6ba0137ac998b2f0f2e88473780ef",
+      "bytes": 425287,
+      "verify_source_ok": true
+    },
+    {
+      "module": "tts_service.py",
+      "n_anchors": 3,
+      "applied_ids": [
+        "S00-import",
+        "S01-set_clone_pcm",
+        "S02-register_spk_voice"
+      ],
+      "skeleton_old_n": 19,
+      "skeleton_dev_n": 19,
+      "skeleton_missing_in_dev": [],
+      "sha256_before": "fa93cebcf67aa6e0425b6a6f247627e4256109325b080ef4ddd63f41621bae38",
+      "sha256_after": "084fab063152357d0d3c232556b3abff7ad1b0dd49781aa178a29629003349d5",
+      "bytes": 131379,
+      "verify_source_ok": true
+    },
+    {
+      "module": "tts_worker.py",
+      "n_anchors": 4,
+      "applied_ids": [
+        "W00-import",
+        "W01-update_clone",
+        "W02-register_spk_voice",
+        "W03-apply_spk_voice"
+      ],
+      "skeleton_old_n": 30,
+      "skeleton_dev_n": 31,
+      "skeleton_missing_in_dev": [],
+      "sha256_before": "e94d61f7d2f1fb15495cd22d20a7f85a36820f57d404909f4ffed26d9359ea16",
+      "sha256_after": "aa3caa066725567806629f129e8b4e03061c8e51a72c33e468bd867fa5d4d262",
+      "bytes": 243054,
+      "verify_source_ok": true
+    }
+  ],
+  "patches": {
+    "live_caption/live_caption_app.py": [
+      "P00-import",
+      "P01-voices",
+      "P02-label",
+      "P03-checkbox",
+      "P04-hint",
+      "P05-startup",
+      "P06-tts-start",
+      "P07-statusbar",
+      "P08-onchange",
+      "P09-cli",
+      "P10-help"
+    ],
+    "live_caption/tts_service.py": [
+      "S00-import",
+      "S01-set_clone_pcm",
+      "S02-register_spk_voice"
+    ],
+    "live_caption/tts_worker.py": [
+      "W00-import",
+      "W01-update_clone",
+      "W02-register_spk_voice",
+      "W03-apply_spk_voice"
+    ]
+  },
+  "spk_assets": [
+    {
+      "path": "app/asr_spk/asr052_speaker_tracker_api.py",
+      "bytes": 33478,
+      "sha256": "8643b926e23bb0018018f35122920da7933712d1f1a24372186d69c1dc5b664b",
+      "source": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\scripts\\asr052_speaker_tracker_api.py"
+    },
+    {
+      "path": "app/asr_spk/asr052_spk_runtime.py",
+      "bytes": 29825,
+      "sha256": "18bf28332b59388bd29e646c9fc3ad75909e459bc04ce774b387f7856b4b346a",
+      "source": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\scripts\\asr052_spk_runtime.py"
+    },
+    {
+      "path": "app/asr_spk/asr_thread_defaults.py",
+      "bytes": 2843,
+      "sha256": "250afa4d5797cba0ba32b639a35f8f0626b0eca699efda6b30e58a714094a998",
+      "source": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\scripts\\asr_thread_defaults.py"
+    },
+    {
+      "path": "app/asr_spk/asr_spk_window.py",
+      "bytes": 8738,
+      "sha256": "601ff1214d47900e3d6870b8a9eda8f33050d7cb1e9bf66e3c4c2360a7078e57",
+      "source": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\scripts\\asr_spk_window.py"
+    },
+    {
+      "path": "app/asr_spk/asr_runtime_switches.py",
+      "bytes": 13721,
+      "sha256": "462b5fbc9a87cb18a78622090ac3f8311ce7f2a5090ca56e780abe3743761aab",
+      "source": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\scripts\\asr_runtime_switches.py"
+    }
+  ],
+  "w5_assets": [
+    {
+      "path": "models/spk/pyannote_seg_3_0/fp16-w5/pyannote_seg_3_0_w5.bin",
+      "bytes": 2978960,
+      "sha256": "a394cfbd0b3909598bf0433c807f9f8b1d43b321ffd11d1c9b353cba22916b36",
+      "source": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\pyannote_seg\\ov-fp16-w5\\pyannote_seg_3_0_w5.bin",
+      "source_mtime": "2026-11-02 09:33:21"
+    },
+    {
+      "path": "models/spk/pyannote_seg_3_0/fp16-w5/pyannote_seg_3_0_w5.xml",
+      "bytes": 73172,
+      "sha256": "613b6a5e83e7751bdb580b74559fb190a654992822530de49bb6763f53a6aeb4",
+      "source": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\pyannote_seg\\ov-fp16-w5\\pyannote_seg_3_0_w5.xml",
+      "source_mtime": "2026-11-05 10:52:38"
+    }
+  ],
+  "n_hardlinks": 14173,
+  "n_anchors_total": 18,
+  "n_src_files": 14463,
+  "n_dst_files": 14460,
+  "n_missing": 0,
+  "n_extra": 0,
+  "gate_clean_rc": 0,
+  "accepted": {
+    "bytes": 4255,
+    "sha256": "3474d092306d4e7b7aa6b60b4565b6f343fa50d1cd549da87532042d53837c3d",
+    "code_fingerprint": "ca68717760a22122c0a48423cf08cbc34bf57dd40e5cd754b7604de744a34192",
+    "n_production_modules": 30
+  },
+  "manifest_version_before": "2.2",
+  "manifest_version_after": "2.3",
+  "dst_files": 14460,
+  "dst_bytes": 13696192881,
+  "bytes_delta": 3173148,
+  "src_probe_after": {
+    "ext/bridge_token.txt": {
+      "bytes": 32,
+      "sha256": "a637f357500c55a4f9cab1291e0b4fb3966b000bfa62805ab49b35c1c82e8fd1"
+    },
+    "app/live_caption_app.py": {
+      "bytes": 361384,
+      "sha256": "cab9896dbaa9810610f05df9c9195c7af8a8e92a9ac92ab3b6bc7fdf1695b13b"
+    },
+    "app/tts_service.py": {
+      "bytes": 127483,
+      "sha256": "fa93cebcf67aa6e0425b6a6f247627e4256109325b080ef4ddd63f41621bae38"
+    },
+    "app/tts_worker.py": {
+      "bytes": 229782,
+      "sha256": "e94d61f7d2f1fb15495cd22d20a7f85a36820f57d404909f4ffed26d9359ea16"
+    },
+    "app/MANIFEST.json": {
+      "bytes": 23421,
+      "sha256": "7e192b71bb1c6953da6adcfe23a7e1426bd8dc6d40803a0055dcd598e20ebf88"
+    }
+  },
+  "src_unchanged": true,
+  "elapsed_s": 8.8,
+  "verdict": "PASS"
+}

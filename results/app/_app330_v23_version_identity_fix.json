@@ -1,0 +1,59 @@
+{
+  "tool": "_app330",
+  "app": "APP-081",
+  "at": "2026-11-07 15:19:37",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.3",
+  "blocks": [
+    {
+      "file": "README_zh.md",
+      "old_hits": 1,
+      "bytes_before": 51114,
+      "sha256_before": "5495d985404ff1ed906f0f4f7d9cf6d379d2dca8782effc84a05b6f953df9e90",
+      "crlf_before": 0,
+      "crlf_after": 0,
+      "bytes_after": 51114,
+      "sha256_after": "3f7c1f03b8e1f33172a8bf7aaa7777262ef76a682f21246c05ccc165d3c1886f",
+      "verdict": "PASS"
+    },
+    {
+      "file": "README_en.md",
+      "old_hits": 1,
+      "bytes_before": 57015,
+      "sha256_before": "8b016d254b33069a99f23d9a8e59b40a573a34e1505e168ae8498fbdb4579c7a",
+      "crlf_before": 0,
+      "crlf_after": 0,
+      "bytes_after": 57015,
+      "sha256_after": "06f6790466b0e12402c265577f2a7622786a96c023ca929e20291868d2c22e7e",
+      "verdict": "PASS"
+    },
+    {
+      "file": "NOTICE",
+      "old_hits": 1,
+      "bytes_before": 10339,
+      "sha256_before": "e9c9cfc34dba907ca28b35ffbb8437fdbc238cb510265ca2f0ff19b733e0728f",
+      "crlf_before": 0,
+      "crlf_after": 0,
+      "bytes_after": 10327,
+      "sha256_after": "f320168a242980879e093894fbae22905bea3ac2d2c6e5d73aa6da9c09e79d6d",
+      "verdict": "PASS"
+    }
+  ],
+  "gate_after": {
+    "rc": 0,
+    "tail": [
+      "  [PASS] BUG/ADV     D7 README_en 披露「bound per sentence」                  ",
+      "  [PASS] BUG/ADV     D7 README_en 披露「Adaptive speed-up」                   ",
+      "  [PASS] BUG/ADV     D7 README_en 披露「Status information split per module」 ",
+      "",
+      "==========================================================================",
+      "PASS=20 / FAIL=0 / verdict=PASS",
+      "",
+      "提醒（**不阻断打包**）：",
+      "  · D4 README_zh 有 v2.3 改动说明段（恰好 1 次） count=0",
+      "  · D5 README_en 有 v2.3 段（恰好 1 次） count=0",
+      "==========================================================================",
+      "证据：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app170_version_identity_gate_evidence.json"
+    ]
+  },
+  "verdict": "PASS"
+}
