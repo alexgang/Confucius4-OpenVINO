@@ -37,6 +37,51 @@ import numpy as np
 from babelvox.pipeline import BabelVox
 
 
+class _LazyCompiled:
+    """Compile an NPU model on first use instead of at engine load.
+
+    reviewer 2026-11-07: babelvox compiles the base vocoder at max_decoder_frames=512
+    (816 MB blob, ~7 min of the ~20 min cold NPU compile).  With the multi-bucket
+    decoder the streaming path never reaches it (chunk 8 + ctx 25 <= 33 frames, all
+    covered by buckets); it is only the fallback for a chunk larger than every bucket.
+    => compile it lazily: same output, no cold-start cost unless actually needed.
+    Env LIVECAP_TTS_EAGER_DEC512=1 restores the old eager compile.
+    """
+
+    def __init__(self, core, model, compile_fn, name):
+        import threading
+        self._core, self._model, self._fn, self._name = core, model, compile_fn, name
+        self._cm = None
+        self._lock = threading.Lock()
+
+    def _get(self):
+        if self._cm is None:
+            with self._lock:
+                if self._cm is None:
+                    import time as _t
+                    from babelvox.pipeline import logger
+                    t1 = _t.time()
+                    cm, dev = self._fn(self._core, self._model, self._name)
+                    self._cm, self._model = cm, None
+                    logger.info("    %s (lazy, first use): %.1fs (%s)",
+                                self._name, _t.time() - t1, dev)
+        return self._cm
+
+    def __call__(self, *a, **k):
+        return self._get()(*a, **k)
+
+    def get_property(self, key):
+        # device probes (APP-050) must not trigger the compile
+        if self._cm is None and key == 'EXECUTION_DEVICES':
+            return ['NPU(lazy)']
+        return self._get().get_property(key)
+
+    def __getattr__(self, name):
+        if name.startswith('_'):
+            raise AttributeError(name)
+        return getattr(self._get(), name)
+
+
 class MultiDecoderBabelVox(BabelVox):
     """BabelVox + 多桶 tokenizer_decoder（解耦「解码器形状」与「生成上限」）。
 
@@ -82,6 +127,13 @@ class MultiDecoderBabelVox(BabelVox):
     # ------------------------------------------------------------------
     # 编译额外的解码器桶
     # ------------------------------------------------------------------
+    # reviewer 2026-11-07: base max_decoder_frames vocoder is compiled lazily (see _LazyCompiled)
+    def _compile_npu(self, core, model, name):
+        if (name == 'tokenizer_decoder' and self.decoder_buckets
+                and os.environ.get('LIVECAP_TTS_EAGER_DEC512') != '1'):
+            return _LazyCompiled(core, model, super()._compile_npu, name), 'NPU'
+        return super()._compile_npu(core, model, name)
+
     def _load_npu_models(self, core, export_dir):
         super()._load_npu_models(core, export_dir)
         if not self.decoder_buckets:
