@@ -1,0 +1,190 @@
+{
+  "module": "app",
+  "round": "§152",
+  "lease_token": "2635e27b",
+  "run_ts": "2026-11-07 20:20:51",
+  "corrections_open": {
+    "sha256": "587c8b938b1b814c0931130dcdae590b1a17f52e87ca3c1eb4f121de0b0e6a02",
+    "bytes": 229909,
+    "mtime": "2026-11-07 19:27:40",
+    "n_headings": 83,
+    "n_uniq": 83,
+    "min": 1,
+    "max": 83,
+    "missing_numbers": [],
+    "duplicate_numbers": [],
+    "headings_tail": [
+      "APP-079",
+      "APP-080",
+      "APP-081",
+      "APP-082",
+      "APP-083"
+    ]
+  },
+  "corrections_close": {
+    "sha256": "587c8b938b1b814c0931130dcdae590b1a17f52e87ca3c1eb4f121de0b0e6a02",
+    "bytes": 229909,
+    "mtime": "2026-11-07 19:27:40",
+    "n_headings": 83,
+    "n_uniq": 83,
+    "min": 1,
+    "max": 83,
+    "missing_numbers": [],
+    "duplicate_numbers": [],
+    "headings_tail": [
+      "APP-079",
+      "APP-080",
+      "APP-081",
+      "APP-082",
+      "APP-083"
+    ]
+  },
+  "corrections_open_equals_close": true,
+  "corrections_open_matches_manual_baseline": true,
+  "reviewer_appended_this_round": false,
+  "status_last_ack_before": "APP-081",
+  "status_last_ack_after": "APP-083",
+  "n_new_headings": 2,
+  "new_headings": [
+    "APP-082",
+    "APP-083"
+  ],
+  "correction_decisions": {
+    "APP-082": {
+      "priority": "NORMAL",
+      "ts": "2026-11-07 19:25",
+      "verdict": "本条需等 reviewer 复核（审计转 v2.4、reviewer 交付后再做）",
+      "requirements_read_in_full": [
+        "① 根因 reviewer 已定位：v2.3 包内 app/speaker_voice.py:163 note_final(seg, spk, clean_ranges) 无 spk_conf，而 live_caption_app.py 按 APP-075(a) 传 spk_conf=，日志 46 次 unexpected keyword；preset-only 下影响 0、不阻塞 v2.3",
+        "② 只读审计产出 json：v2.3 包 app/**/*.py 逐文件与「打包所用源提交」比对 md5 并列出不一致文件+原因；AST 扫跨模块调用关键字参数 vs 被调函数签名（至少 speaker_voice/tts_worker/speaker_tracker/caption_render/translator）",
+        "③ 修复放下一版本号（禁止就地改 v2.3）；v23_preset_only.py 的 BLACKLIST_PATTERNS 里字面量 C:\\Users\\Trekker-PTL 改为从环境/构建参数注入，不进客户包",
+        "④ 验收：审计 json 中「错配文件数」「签名不匹配调用数」两个计数；下一版重跑 CLI 日志 unexpected keyword = 0"
+      ],
+      "audit_performed_this_round": false,
+      "defer_reason": "APP-083 第1点「v2.3 不交付、不再做任何 v2.3 验收」禁止对 v2.3 审计；第3点把 APP-082 审计「改为对 v2.4 做（reviewer 交付后再说）」",
+      "defer_to": "v2.4 由 reviewer 交付后再执行",
+      "dev_code_modified": false
+    },
+    "APP-083": {
+      "priority": "HIGH",
+      "ts": "2026-11-07 19:50",
+      "source": "用户决定",
+      "verdict": "本条已完成（ack）",
+      "requirements_read_in_full": [
+        "① 用户原话 \"drop v2.3 and package v2.4 once you fix the voice clone issue and integrate patches into v2.4\" ⇒ v2.3 不交付、不再做任何 v2.3 验收；v2.3 目录/zip 保留不动（不就地改、不删）",
+        "② v2.4 由 reviewer 本人构建（App 本周额度 0，避免两边同时打包）：克隆升级修复 claude-clone 3a8e45f／说话人聚类 v2（用户已批准默认开、ASR_SPK_CLUSTER=v1 可退）／app 全模块取 dev 当前版本（APP-082 发现 v2.3 有 9 个模块停在 v2.2）／TTS NPU 首编译去掉未用声码器形状",
+        "③ App 现在要做的：什么都不打包；APP-082 的审计可改为对 v2.4 做（reviewer 交付后再说）；保持 last_ack 规范，ack 本条即可"
+      ],
+      "ack_done": true
+    }
+  },
+  "stop_at_reviewer_delivery": true,
+  "stop_reason": "APP-083 第3点「什么都不打包／ack 本条即可」＋第2点 v2.4 由 reviewer 构建；按任务「明确写了需停下来等 reviewer 就停止」处理",
+  "withdrawn": [
+    "§149 v2.3 交付候选与 APP-080 ⑥ 全套验收结论",
+    "§150/§151 APP-081 第5点「reviewer 复核 §149 后通知用户」节点"
+  ],
+  "app082_audit_backlog": {
+    "audit_target": "v2.4（reviewer 交付后），非 v2.3",
+    "md5_compare": "app/**/*.py vs 打包所用源提交",
+    "ast_modules": [
+      "speaker_voice",
+      "tts_worker",
+      "speaker_tracker",
+      "caption_render",
+      "translator"
+    ],
+    "counters": [
+      "错配文件数",
+      "签名不匹配调用数"
+    ],
+    "literal_injection": "v23_preset_only.py BLACKLIST_PATTERNS 的 C:\\Users\\Trekker-PTL 改环境/构建参数注入",
+    "cli_acceptance": "下一版 CLI 日志 unexpected keyword = 0"
+  },
+  "literal_audit": {
+    "path": "live_caption/v23_preset_only.py",
+    "bytes": 17260,
+    "literal_Trekker_PTL_count": 1,
+    "BLACKLIST_PATTERNS_count": 1,
+    "modified_this_round": false
+  },
+  "git": {
+    "head": "cc8cb498f114bf2ff002c6b4ef5e5624298191be",
+    "branch": "main",
+    "ahead": "0",
+    "staged_before": [],
+    "corrections_worktree_status": "M status/app/CORRECTIONS_APP.md"
+  },
+  "machine_lock": {
+    "exists": false,
+    "content": null
+  },
+  "prior_background_pids": [
+    {
+      "pid": 17220,
+      "state": "DEAD_err87"
+    },
+    {
+      "pid": 7396,
+      "state": "DEAD_err87"
+    }
+  ],
+  "packages_metadata_only": {
+    "zips": {
+      "v2.0": {
+        "bytes": 11233134015,
+        "mtime": "2026-11-01 17:49:21"
+      },
+      "v2.1": {
+        "bytes": 11233135359,
+        "mtime": "2026-11-01 20:38:13"
+      },
+      "v2.2": {
+        "bytes": 11233149299,
+        "mtime": "2026-11-02 01:54:03"
+      },
+      "v2.3": {
+        "bytes": 11235945990,
+        "mtime": "2026-11-07 15:54:15"
+      }
+    },
+    "dirs": {
+      "v2.3": {
+        "n_files": 14460,
+        "mtime": "2026-11-07 15:19:37"
+      },
+      "v2.4": {
+        "n_files": 14462,
+        "mtime": "2026-11-07 19:35:08"
+      },
+      "v2.3_aborted": {
+        "n_files": 14454,
+        "mtime": "2026-11-07 15:16:33"
+      }
+    },
+    "note": "仅读元数据，未做全量 SHA 复算 ⇒ 不写「一字节未动」实测结论"
+  },
+  "discipline": {
+    "built_machine_lock": false,
+    "occupied_device": false,
+    "cpu_inference_or_bench": false,
+    "called_minimax": false,
+    "packed": false,
+    "made_zip": false,
+    "modified_customer_package": false,
+    "modified_lnk": false,
+    "notified_user": false,
+    "same_version_repack": false,
+    "force_push": false,
+    "committed_corrections": false,
+    "self_invented_task": false,
+    "v23_retired_not_modified": true
+  },
+  "status_before": {
+    "bytes": 34967,
+    "lines": 197,
+    "sha256": "79685258f2ab0f4bfff1e4ab4d0186fe75df12885708f89a00e3a547c334bc4f",
+    "lf_only": true,
+    "section_markers": 11
+  }
+}
