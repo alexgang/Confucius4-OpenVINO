@@ -1,0 +1,430 @@
+{
+  "tool": "_app326_v23_pkg_gate_audit",
+  "generated_at": "2026-11-07T13:55:14",
+  "verdict": "PASS",
+  "n_pass": 41,
+  "n_fail": 0,
+  "n_unknown": 1,
+  "counterproof_identified": "9/9",
+  "checks": [
+    {
+      "name": "corrections_baseline_80_continuous",
+      "ok": true,
+      "detail": "{'sha256': 'b3ae9ea9fb72282bbf619dd26b73de688f8c771911bd0b56e0faf8f392b937d5', 'bytes': 224562, 'mtime': '2026-11-06 21:40:34', 'n_headings': 80, 'max_id': 80, 'continuous': True}"
+    },
+    {
+      "name": "last_ack_is_APP080",
+      "ok": true,
+      "detail": "last_ack: APP-080"
+    },
+    {
+      "name": "status_within_limit",
+      "ok": true,
+      "detail": "bytes=33623 lines=177"
+    },
+    {
+      "name": "machine_lock_free",
+      "ok": true,
+      "detail": "present=False"
+    },
+    {
+      "name": "patterns_5_and_5",
+      "ok": true,
+      "detail": "exclude=5 blacklist=5"
+    },
+    {
+      "name": "all_patterns_compilable",
+      "ok": true,
+      "detail": "n=10"
+    },
+    {
+      "name": "preset_constants",
+      "ok": true,
+      "detail": "PRESET_ONLY=True PRESET_VOICE='A'"
+    },
+    {
+      "name": "keep_spk_files_unchanged",
+      "ok": true,
+      "detail": "['asr052_speaker_tracker_api.py', 'asr052_spk_runtime.py', 'asr_thread_defaults.py', 'asr_spk_window.py', 'asr_runtime_switches.py']"
+    },
+    {
+      "name": "pkg_include_files_unchanged",
+      "ok": true,
+      "detail": "['app/v23_preset_only.py', 'app/assert_pkg_clean.py']"
+    },
+    {
+      "name": "gate_detects_token_and_babelvox",
+      "ok": true,
+      "detail": "['ext/bridge_token.txt', 'python/Lib/site-packages/babelvox/data/speakers/cindy.json', 'python/Lib/site-packages/babelvox/data/speakers/steve.npy']"
+    },
+    {
+      "name": "gate_does_not_detect_3_app080_classes",
+      "ok": true,
+      "detail": "['APP-080 ④ 克隆音色', 'APP-080 ④ 克隆产物目录', 'APP-080 ④ 测试 wav']"
+    },
+    {
+      "name": "exclude_patterns_detect_all_6_classes",
+      "ok": true,
+      "detail": "[1, 1, 1, 1, 1, 1]"
+    },
+    {
+      "name": "clean_paths_not_flagged",
+      "ok": true,
+      "detail": "{'clean_scan': [], 'clean_ex': {'app/voices/preset_A.wav': [], 'python/Lib/site-packages/babelvox/__init__.py': [], 'app/tokenizer/config.json': [], 'app/tts_engine.py': []}}"
+    },
+    {
+      "name": "coverage_gap_exactly_3_classes",
+      "ok": true,
+      "detail": "['APP-080 ④ 克隆音色', 'APP-080 ④ 克隆产物目录', 'APP-080 ④ 测试 wav']"
+    },
+    {
+      "name": "blacklist_all_positive_samples_hit",
+      "ok": true,
+      "detail": "{'C:\\\\Users\\\\Trekker-PTL\\\\confucius4-openvino\\\\hy_bench\\\\run.py': [0, 1], 'app/results/session_spoken.txt': [2], 'python/Lib/site-packages/torch/__init__.py': [3], 'app/cuda_stub.py': [4], 'reports/hy_bench/log.txt': [1]}"
+    },
+    {
+      "name": "blacklist_5_patterns_all_exercised",
+      "ok": true,
+      "detail": "[0, 1, 2, 3, 4]"
+    },
+    {
+      "name": "blacklist_no_false_positive_on_clean_strings",
+      "ok": true,
+      "detail": "clean strings"
+    },
+    {
+      "name": "gate_restored_after_counterproof",
+      "ok": true,
+      "detail": "scan result identical"
+    },
+    {
+      "name": "dev_sources_match_sec147_recomputed",
+      "ok": true,
+      "detail": "{'live_caption/live_caption_app.py': [425546, 425546], 'live_caption/tts_service.py': [133411, 133411], 'live_caption/tts_worker.py': [247121, 247121]}"
+    },
+    {
+      "name": "patch_applied_live_caption/live_caption_app.py",
+      "ok": true,
+      "detail": "n=11"
+    },
+    {
+      "name": "verify_source_live_caption/live_caption_app.py",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "docstrings_preserved_live_caption/live_caption_app.py",
+      "ok": true,
+      "detail": "multiset equal"
+    },
+    {
+      "name": "eol_restored_live_caption/live_caption_app.py",
+      "ok": true,
+      "detail": "before='\\n' after='\\n'"
+    },
+    {
+      "name": "patch_applied_live_caption/tts_service.py",
+      "ok": true,
+      "detail": "n=3"
+    },
+    {
+      "name": "verify_source_live_caption/tts_service.py",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "docstrings_preserved_live_caption/tts_service.py",
+      "ok": true,
+      "detail": "multiset equal"
+    },
+    {
+      "name": "eol_restored_live_caption/tts_service.py",
+      "ok": true,
+      "detail": "before='\\r\\n' after='\\r\\n'"
+    },
+    {
+      "name": "patch_applied_live_caption/tts_worker.py",
+      "ok": true,
+      "detail": "n=4"
+    },
+    {
+      "name": "verify_source_live_caption/tts_worker.py",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "docstrings_preserved_live_caption/tts_worker.py",
+      "ok": true,
+      "detail": "multiset equal"
+    },
+    {
+      "name": "eol_restored_live_caption/tts_worker.py",
+      "ok": true,
+      "detail": "before='\\r\\n' after='\\r\\n'"
+    },
+    {
+      "name": "total_18_unique_anchors_applied",
+      "ok": true,
+      "detail": "n=18 unique=18"
+    },
+    {
+      "name": "dev_sources_unchanged_on_disk",
+      "ok": true,
+      "detail": "patch applied in memory only"
+    },
+    {
+      "name": "sec147_packaging_chain_not_wired",
+      "ok": true,
+      "detail": "scanned=23 total_refs=0 files=23 sum=0"
+    },
+    {
+      "name": "sec146_pkg_v22_baseline_14_of_18",
+      "ok": true,
+      "detail": "unique=14 applicable=False total=18"
+    },
+    {
+      "name": "sec147_bridge_token_still_in_v22",
+      "ok": true,
+      "detail": "['ext/bridge_token.txt']"
+    },
+    {
+      "name": "sec147_d5_xml_differs_unknown",
+      "ok": true,
+      "detail": "xml_differs=true"
+    },
+    {
+      "name": "independent_packaging_chain_refs_zero",
+      "ok": true,
+      "detail": "scanned=23 refs=0"
+    },
+    {
+      "name": "app080_stop_at_reviewer",
+      "ok": true,
+      "detail": "anchor present"
+    },
+    {
+      "name": "app075_stop_anchor",
+      "ok": true,
+      "detail": "anchor present"
+    },
+    {
+      "name": "app079_v23_no_pack",
+      "ok": true,
+      "detail": "anchor present"
+    }
+  ],
+  "counterproof": [
+    {
+      "name": "E1_remove_token_regex",
+      "identified": true,
+      "detail": "token_violation_still_reported=False"
+    },
+    {
+      "name": "E2_remove_voice_regex",
+      "identified": true,
+      "detail": "demo_voice_still_reported=False"
+    },
+    {
+      "name": "E3_drop_clone_exclude_pattern",
+      "identified": true,
+      "detail": "clone_wav_still_hit=False"
+    },
+    {
+      "name": "E4_drop_token_exclude_pattern",
+      "identified": true,
+      "detail": "token_still_hit=False"
+    },
+    {
+      "name": "E5_empty_blacklist",
+      "identified": true,
+      "detail": "dev_path_still_hit=False"
+    },
+    {
+      "name": "E6_never_match_exclude",
+      "identified": true,
+      "detail": "all_violations_missed=True"
+    },
+    {
+      "name": "E7_unpatched_dev_live_caption/live_caption_app.py",
+      "identified": true,
+      "detail": "unpatched_ok=False reasons=7"
+    },
+    {
+      "name": "E7_unpatched_dev_live_caption/tts_service.py",
+      "identified": true,
+      "detail": "unpatched_ok=False reasons=2"
+    },
+    {
+      "name": "E7_unpatched_dev_live_caption/tts_worker.py",
+      "identified": true,
+      "detail": "unpatched_ok=False reasons=2"
+    }
+  ],
+  "facts": {
+    "corrections": {
+      "sha256": "b3ae9ea9fb72282bbf619dd26b73de688f8c771911bd0b56e0faf8f392b937d5",
+      "bytes": 224562,
+      "mtime": "2026-11-06 21:40:34",
+      "n_headings": 80,
+      "max_id": 80,
+      "continuous": true
+    },
+    "last_ack": "last_ack: APP-080",
+    "status_before": {
+      "bytes": 33623,
+      "lines": 177,
+      "sha256": "3803d07499238c079ef5c1336b8f6906686c95939cbc6f927c21e9003d16ce20"
+    },
+    "machine_lock_present": false,
+    "assets": {
+      "v23_preset_only": {
+        "sha256": "362825e644d2edc42ef662505aaaa8dbd07cad5522da642d36cef8266dd043c7",
+        "bytes": 17260
+      },
+      "assert_pkg_clean": {
+        "sha256": "ba76906938492b06de7b9449055af08b28ab6ace47d0bb922fb5859195aff47a",
+        "bytes": 3458
+      }
+    },
+    "pattern_counts": {
+      "exclude": 5,
+      "blacklist": 5
+    },
+    "coverage_matrix": [
+      {
+        "path": "ext/bridge_token.txt",
+        "cls": "APP-077 固定 token",
+        "scan_detected": true,
+        "exclude_hits": [
+          0
+        ]
+      },
+      {
+        "path": "python/Lib/site-packages/babelvox/data/speakers/cindy.json",
+        "cls": "APP-078 示例音色",
+        "scan_detected": true,
+        "exclude_hits": [
+          1
+        ]
+      },
+      {
+        "path": "python/Lib/site-packages/babelvox/data/speakers/steve.npy",
+        "cls": "APP-078 示例音色",
+        "scan_detected": true,
+        "exclude_hits": [
+          1
+        ]
+      },
+      {
+        "path": "app/voices/spk_clone_s1.wav",
+        "cls": "APP-080 ④ 克隆音色",
+        "scan_detected": false,
+        "exclude_hits": [
+          2
+        ]
+      },
+      {
+        "path": "app/v23_clone_r2/male_01_seg5.wav",
+        "cls": "APP-080 ④ 克隆产物目录",
+        "scan_detected": false,
+        "exclude_hits": [
+          3
+        ]
+      },
+      {
+        "path": "app/audio/foo_test.wav",
+        "cls": "APP-080 ④ 测试 wav",
+        "scan_detected": false,
+        "exclude_hits": [
+          4
+        ]
+      }
+    ],
+    "clean_paths_not_flagged": {
+      "scan": [],
+      "exclude": {
+        "app/voices/preset_A.wav": [],
+        "python/Lib/site-packages/babelvox/__init__.py": [],
+        "app/tokenizer/config.json": [],
+        "app/tts_engine.py": []
+      }
+    },
+    "gate_not_covered_classes": [
+      "APP-080 ④ 克隆音色",
+      "APP-080 ④ 克隆产物目录",
+      "APP-080 ④ 测试 wav"
+    ],
+    "blacklist_positive_hits": {
+      "C:\\Users\\Trekker-PTL\\confucius4-openvino\\hy_bench\\run.py": [
+        0,
+        1
+      ],
+      "app/results/session_spoken.txt": [
+        2
+      ],
+      "python/Lib/site-packages/torch/__init__.py": [
+        3
+      ],
+      "app/cuda_stub.py": [
+        4
+      ],
+      "reports/hy_bench/log.txt": [
+        1
+      ]
+    },
+    "patches": [
+      {
+        "file": "live_caption/live_caption_app.py",
+        "n_anchors": 11,
+        "verify_source_ok": true,
+        "eol": "LF"
+      },
+      {
+        "file": "live_caption/tts_service.py",
+        "n_anchors": 3,
+        "verify_source_ok": true,
+        "eol": "CRLF"
+      },
+      {
+        "file": "live_caption/tts_worker.py",
+        "n_anchors": 4,
+        "verify_source_ok": true,
+        "eol": "CRLF"
+      }
+    ],
+    "applied_anchor_total": 18,
+    "dev_sources": {
+      "live_caption/live_caption_app.py": {
+        "sha256": "b30cb3611db899ae25cc87056862ed213e6a00caf7ba65a319e2007591dc79cd",
+        "bytes": 425546
+      },
+      "live_caption/tts_service.py": {
+        "sha256": "6cc0645ef286870ac79ecd4baa0bc02154e8bf712ae54d54ce11aaba7997d70c",
+        "bytes": 133411
+      },
+      "live_caption/tts_worker.py": {
+        "sha256": "bf2277e60e62d7399b88e5bee7590af9c0105a51ada468f8d4438a77683a0606",
+        "bytes": 247121
+      }
+    },
+    "historical_fields": {
+      "sec147_packaging_chain": {
+        "scanned": 23,
+        "total_refs": 0
+      },
+      "sec146_pkg_v22_unique_anchors": 14,
+      "sec146_direct_patch_applicable": false,
+      "sec147_bridge_token_paths": [
+        "ext/bridge_token.txt"
+      ],
+      "sec147_seg_w5_xml_differs": true
+    },
+    "independent_packaging_scan": {
+      "scanned": 23,
+      "refs": 0
+    }
+  },
+  "conclusion": "APP-080 ④⑥ 随包闸门覆盖一致性审计：assert_pkg_clean.scan() 实算只检出 APP-077 固定 token 与 APP-078 babelvox 示例音色 2 类；对「克隆音色 / 克隆产物目录 / 测试 wav」3 类 APP-080 ④ 违规路径 0 检出，而同文件配套的 PKG_EXCLUDE_PATTERNS 5 条正则对 6 类路径全覆盖 ⇒ 随包闸门覆盖不全 （NOT_COVERED 3/6）。判据非恒真：9 条反证全被识破。构建期补丁在 dev 基底 18/18 锚点唯一命中、ast.parse、docstring 多重集不变、行尾还原、磁盘零写入。",
+  "unknown": "闸门覆盖缺口是否需在 v2.3 建包前扩展 assert_pkg_clean.py（或改由 PKG_EXCLUDE_PATTERNS 统一驱动）⇒ 属 APP-080 ⑤ 待办且当前停在 「reviewer 复核」节点，本轮不自行改代码、不自行裁定。",
+  "stop_point": "APP-075 需 Opus 复核 / APP-079 需 reviewer 复核 / APP-080 ⑤⑥ 「reviewer 复核通过后才通知用户」＋用户级「不通知不打包」⇒ 未打包、未打新版本目录与 zip、未改客户安装目录与 .lnk、未占设备。"
+}
