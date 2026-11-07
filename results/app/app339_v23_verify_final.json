@@ -1,0 +1,288 @@
+{
+  "tool": "app339",
+  "app": "APP-081 4d/5",
+  "at": "2026-11-07 17:13:17",
+  "zip": {
+    "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.3.zip",
+    "bytes": 11235945990,
+    "mtime": "2026-11-07 15:54:15",
+    "sha256": "4b4a977ab1dba640748e1a7347220089a384a7f7e9e8e6778b61902cbadcbfed"
+  },
+  "first_pass_summary": {
+    "source": "app332_v23_verify_summary.json",
+    "verdicts": {
+      "zip_sha": "PASS",
+      "unzip_check": "PASS",
+      "blacklist": "FAIL",
+      "gui": "PASS",
+      "cli": "PARTIAL"
+    },
+    "all_pass": false
+  },
+  "items": {
+    "zip_sha256": {
+      "verdict": "PASS",
+      "source": "app332_v23_zip_sha.json",
+      "fields": {
+        "bytes": 11235945990,
+        "mtime": "2026-11-07 15:54:15",
+        "sha256": "4b4a977ab1dba640748e1a7347220089a384a7f7e9e8e6778b61902cbadcbfed",
+        "n_zip_entries": 14320,
+        "n_files": 14320,
+        "top_level": [
+          "Confucius4_LiveCaption_v2.3"
+        ],
+        "has_babelvox_demo": false,
+        "has_bridge_token": false
+      }
+    },
+    "unzip_check_clean_dir": {
+      "verdict": "PASS",
+      "source": "app332_v23_unzip_check.json",
+      "fields": {
+        "rc": 0,
+        "n_extracted_files": 14320,
+        "n_ok_lines": 28,
+        "n_fail_lines": 0
+      }
+    },
+    "gui_100_150": {
+      "verdict": "PASS",
+      "source": "app332_v23_gui_wrapper.json / app332_v23_gui.json",
+      "fields": {
+        "rc": 0,
+        "clone_texts": null,
+        "follow_speaker_texts": null,
+        "tts_voices": null,
+        "shots": null
+      }
+    },
+    "blacklist": {
+      "verdict_tristate": "UNKNOWN",
+      "verdict_first_pass": "FAIL",
+      "verdict_recheck": "FAIL",
+      "source": [
+        "app332_v23_blacklist.json",
+        "app335_v23_blacklist_recheck.json",
+        "app336_v23_blacklist_forensics.json"
+      ],
+      "fields": {
+        "core_4_categories_n_hits": 0,
+        "n_true_leaked_file_reference": 0,
+        "n_rule_literal_self_reference": 1,
+        "n_cuda_native_binary": 0,
+        "n_app_cuda_backend": 0,
+        "n_third_party_python_shim": 13,
+        "counterproof_identified": "11/11",
+        "first_pass_n_hits_real": 33,
+        "recheck_n_real_violations": 14
+      }
+    },
+    "cli_spe_5min": {
+      "verdict": "PASS",
+      "verdict_first_pass": "PARTIAL",
+      "source": [
+        "app332_v23_cli.json",
+        "app337_v23_cli_rerun.json"
+      ],
+      "fields": {
+        "rc": 0,
+        "wall_s": 361.3,
+        "n_tts_jsonl_rows": 70,
+        "tts_final_stats": {
+          "submitted": 70,
+          "played": 70,
+          "dropped": 0,
+          "void_on_close": 0,
+          "empty_sentences": 0,
+          "failed": 0
+        },
+        "zero_segment_check": {
+          "criteria": "逐句本体特征 n_samples>0 / peak>0 / not dropped / not error + 日志最终统计 提交>0 播完>0 空句=0（非弱标记）",
+          "n_bad_rows": 0,
+          "bad_rows": [],
+          "verdict": true
+        },
+        "n_clone_fallback_log_lines": 1,
+        "clone_fallback_log_lines": [
+          "[v23] APP-080：音色残留值 'follow_speaker' 不在 v2.3 交付范围 ⇒ 回落预设 A"
+        ],
+        "n_zero_audio_log_lines": 0,
+        "rtf_backlog_log_lines": [
+          "[TTS] [TTS] [tts_engine] cp_decode: NPU（生产配置要求；实测 RTF 1.912→1.218、首块 1.296→0.837 s）",
+          "[gpu_int8] 音频 300.2s  墙钟 300.9s  RTF(计算) 0.798  出字延迟中位 544 ms  最大积压 2.3s  段 46",
+          "[TTS] 首包 0.40s  积压 当前 5.89s / 最大 57.08s  提交 70  播完 70  丢弃 0  重启 0  state=ready",
+          "[TTS] 收尾（close 前）：结尾滞后 47.34s  关闭作废 0  空句 0  积压 最大 57.08s",
+          "[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\tts_backlog_curve.csv（232 个采样点）",
+          "[TTS] 最终统计（close 后）：提交 70  播完 70  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 47.34s  积压 最大 57.08s"
+        ],
+        "counterproof_identified": "4/4",
+        "devices_not_cpu": true,
+        "lock_chain_ok": true,
+        "asr_wer": null,
+        "asr_wer_note": "质量判定由 reviewer 用 MiniMax 回转写；本轮只落盘 CLI 定稿文本，不自行调用 MiniMax、不在 CPU 上算 WER（三态：无法判定）",
+        "n_spk_conf_signature_errors": 46,
+        "first_pass_n_tts_jsonl_rows": 0
+      }
+    }
+  },
+  "tristate_conclusion": {
+    "zip_sha256": true,
+    "unzip_check_clean_dir": true,
+    "gui_100_150": true,
+    "cli_spe_5min": true,
+    "blacklist": null,
+    "asr_wer": null,
+    "note": "blacklist=None 因 app/v23_preset_only.py 的 BLACKLIST_PATTERNS 正则字面量含开发机用户名，是否计入「开发路径」属口径歧义 ⇒ 按三态纪律「无法判定」≠「不合格」，交 reviewer 裁定；核心 4 类 0 命中、CUDA 运行时二进制 0、反证 11/11。asr_wer=None 由 reviewer 用 MiniMax 回转写，本轮不自行判定。"
+  },
+  "known_defects_for_reviewer": [
+    {
+      "id": "D1",
+      "detail": "app/v23_preset_only.py 的 BLACKLIST_PATTERNS 字面量含 C:\\\\Users\\\\Trekker-PTL ⇒ 开发机用户名进包；app336 判为规则自引用（真泄漏 0），口径待裁定；本轮按 APP-081 6 / 不主动打包 / APP-055 不原地改包，转后续版本去除。"
+    },
+    {
+      "id": "D2",
+      "detail": "CLI 日志 46 次 SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf' ⇒ 包内 asr_spk_window 与 dev 基底签名不一致；被 try/except 吞掉、字幕与 TTS 均正常（46 段 / 70 句），但属已识别缺陷，转 reviewer 复核，未自行改包。"
+    },
+    {
+      "id": "D3",
+      "detail": "r2 开启 MT 后 NPU 上 MT+TTS 争用：TTS 积压最大 57.08 s、结尾滞后 47.34 s（原始字段见 app337_v23_cli_rerun.json 的 rtf_backlog_log_lines）；ASR RTF(计算) 0.798 / 最大积压 2.3 s。如实记录，不调阈值。"
+    }
+  ],
+  "incident": {
+    "r1": "首轮重跑 PID 17220 中途被外部清理；ctypes OpenProcess err==87 确证死，孤儿锁已回收，半成品另存 app337_r1_partial_*",
+    "reap_evidence": "app338_orphan_lock_reap.json",
+    "r2": "PID 7396 完整跑完，PASS，锁已释放"
+  },
+  "artifacts": {
+    "Confucius4_LiveCaption_v2.3.zip": {
+      "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.3.zip",
+      "bytes": 11235945990,
+      "mtime": "2026-11-07 15:54:15",
+      "sha256": "4b4a977ab1dba640748e1a7347220089a384a7f7e9e8e6778b61902cbadcbfed"
+    },
+    "app332_v23_blacklist.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_blacklist.json",
+      "bytes": 7066,
+      "mtime": "2026-11-07 16:00:17",
+      "sha256": "b0a3cd40d3523ddfb27f83dc4551b7d271d7f6f8d0fe63ae25a49e29c47c36dd"
+    },
+    "app332_v23_cli.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_cli.json",
+      "bytes": 4651,
+      "mtime": "2026-11-07 16:05:42",
+      "sha256": "280cb1b750d90638ea2237995a1ef469b968f8c5261ec1559d228e127562e178"
+    },
+    "app332_v23_exception_gui.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_exception_gui.json",
+      "bytes": 106,
+      "mtime": "2026-11-07 15:38:55",
+      "sha256": "6f9d187903a3488c564cc96a7ea12cc203e5410b3284db2e9006c784710b1dbf"
+    },
+    "app332_v23_gui.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_gui.json",
+      "bytes": 1501,
+      "mtime": "2026-11-07 16:00:27",
+      "sha256": "69364011782dccabc438ce7d54c163c64a140b35f2e7aa95475b09ae04ddbc1e"
+    },
+    "app332_v23_gui_wrapper.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_gui_wrapper.json",
+      "bytes": 1890,
+      "mtime": "2026-11-07 16:00:27",
+      "sha256": "d77308952c913ff63c4ec598a7bbd7c36e37e040b0ae45debfd1f261b4d3df1f"
+    },
+    "app332_v23_progress.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_progress.json",
+      "bytes": 1906,
+      "mtime": "2026-11-07 16:05:42",
+      "sha256": "b5bdfe8af5b9a095b53fb67350b266cb1c03ff110f5e3b090a6aa2e2130399ce"
+    },
+    "app332_v23_unzip_check.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_unzip_check.json",
+      "bytes": 1571,
+      "mtime": "2026-11-07 15:59:42",
+      "sha256": "e2a0c9e27c1cdad4bf321b2b517abd2a83a5cbcbde966b56a1dfe5d18708afb0"
+    },
+    "app332_v23_verify_summary.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_verify_summary.json",
+      "bytes": 1569,
+      "mtime": "2026-11-07 16:05:42",
+      "sha256": "18679b3bbacb0e3b1834861e3a2a7fd15dae96993387503a27b156e30086350e"
+    },
+    "app332_v23_zip_sha.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_zip_sha.json",
+      "bytes": 426,
+      "mtime": "2026-11-07 15:57:41",
+      "sha256": "f6231090254e0dd7ab08972d606b73222435a25f64857e73d6464a5040986111"
+    },
+    "app335_v23_blacklist_recheck.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app335_v23_blacklist_recheck.json",
+      "bytes": 9459,
+      "mtime": "2026-11-07 16:06:50",
+      "sha256": "6a54cc454aad5b37e2c3ced31d17fa7160a278a5879259c11e04029d6e1423d9"
+    },
+    "app336_v23_blacklist_forensics.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app336_v23_blacklist_forensics.json",
+      "bytes": 7473,
+      "mtime": "2026-11-07 16:21:00",
+      "sha256": "1add4596459c276adec23360e418a1e2bf253688bdd042e0e71df379d069cced"
+    },
+    "app337_v23_cli_rerun.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app337_v23_cli_rerun.json",
+      "bytes": 9174,
+      "mtime": "2026-11-07 17:09:26",
+      "sha256": "1fe951da506d0c45a4807bfb110cc05a2f360b54532ab5b064511090c5f046d5"
+    },
+    "app337_v23_cli_rerun_progress.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app337_v23_cli_rerun_progress.json",
+      "bytes": 87,
+      "mtime": "2026-11-07 17:09:26",
+      "sha256": "6e41ef2edc9e5b391d42ebf34e208c66417075f249131b458fb2bf0e374313b5"
+    },
+    "app338_orphan_lock_reap.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app338_orphan_lock_reap.json",
+      "bytes": 573,
+      "mtime": "2026-11-07 17:01:42",
+      "sha256": "304911e6e0d76952e0431039bde442ed0403e4dabbee5c5ca9eb9195e29545d6"
+    },
+    "app329_app081_v23_build_evidence.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app329_app081_v23_build_evidence.json",
+      "bytes": 7871,
+      "mtime": "2026-11-07 15:17:53",
+      "sha256": "ce657ac3dd18193317230064dc33308299626763781a456f2b658fa4306036b6"
+    },
+    "_app328_app081_gate_fix_regression.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app328_app081_gate_fix_regression.json",
+      "bytes": 5625,
+      "mtime": "2026-11-07 15:22:09",
+      "sha256": "54537023175fdf4f4f95cbfa970fe10277a8d0224b19a4a5f40e3d2f8a4559b4"
+    },
+    "_app330_v23_version_identity_fix.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app330_v23_version_identity_fix.json",
+      "bytes": 2216,
+      "mtime": "2026-11-07 15:19:37",
+      "sha256": "64b4638641d197a3cc5f2066494bcb58c7c5c12c11aa1fe7ebf4c2fca551bdc0"
+    },
+    "app170_version_identity_gate_evidence.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app170_version_identity_gate_evidence.json",
+      "bytes": 742,
+      "mtime": "2026-11-07 15:44:44",
+      "sha256": "567dad7b818c8219a94868185ae8acc7549b69c1a87b97e1408ec682e55faca1"
+    },
+    "DELIVERY_2.3.json": {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\DELIVERY_2.3.json",
+      "bytes": 441,
+      "mtime": "2026-11-07 15:57:28",
+      "sha256": "03319148988b5282d2790f56171733b546db816edd5238c7c0ff7984512887cb"
+    }
+  },
+  "n_artifacts": 20,
+  "zip_unchanged_since_pack": true,
+  "zip_integrity": {
+    "current_sha256": "4b4a977ab1dba640748e1a7347220089a384a7f7e9e8e6778b61902cbadcbfed",
+    "app332_zip_sha_json": "4b4a977ab1dba640748e1a7347220089a384a7f7e9e8e6778b61902cbadcbfed",
+    "DELIVERY_2_3_json": "4b4a977ab1dba640748e1a7347220089a384a7f7e9e8e6778b61902cbadcbfed",
+    "three_way_equal": true
+  },
+  "note": "本文件只汇总，不覆盖任何首轮原始结果文件；未重新打包、未改旧版本目录/zip。"
+}

@@ -1,0 +1,49 @@
+{
+  "tool": "app333",
+  "app": "APP-081 4d GUI",
+  "at": "2026-11-07 15:33:33",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.3",
+  "lca_file": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.3\\app\\live_caption_app.py",
+  "lca_sha256": "0e43e40b9515ce2c43a81cd6ba08b5594bc6ba0137ac998b2f0f2e88473780ef",
+  "runs": [
+    {
+      "scaling": 1.0,
+      "tk_scaling_actual": 1.0006771314250538,
+      "tts_voices": [
+        "A"
+      ],
+      "n_widget_texts": 121,
+      "clone_texts": [],
+      "follow_speaker_texts": [],
+      "shot": "results/app/_app333_pretest_shots\\v23_gui_scaling100.png",
+      "shot_why": "OK",
+      "shot_bytes": 32083,
+      "shot_sha256": "bee794d960990b1bb8987579298eb1e0aec793b278a39a7a41c7584c94f0aa3d",
+      "window": [
+        1080,
+        820
+      ],
+      "verdict": "PASS"
+    },
+    {
+      "scaling": 1.5,
+      "tk_scaling_actual": 1.4989396035039186,
+      "tts_voices": [
+        "A"
+      ],
+      "n_widget_texts": 121,
+      "clone_texts": [],
+      "follow_speaker_texts": [],
+      "shot": "results/app/_app333_pretest_shots\\v23_gui_scaling150.png",
+      "shot_why": "OK",
+      "shot_bytes": 51520,
+      "shot_sha256": "f78e8c78f88031f88e809efc96604868a3e2588228cd6a95a71c3114ae89e66a",
+      "window": [
+        1618,
+        1229
+      ],
+      "verdict": "PASS"
+    }
+  ],
+  "verdict": "PASS"
+}

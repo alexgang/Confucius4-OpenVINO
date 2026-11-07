@@ -1,0 +1,15 @@
+{
+  "stage": "zip_sha",
+  "zip": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.3.zip",
+  "bytes": 11235945990,
+  "mtime": "2026-11-07 15:54:15",
+  "sha256": "4b4a977ab1dba640748e1a7347220089a384a7f7e9e8e6778b61902cbadcbfed",
+  "n_zip_entries": 14320,
+  "n_files": 14320,
+  "top_level": [
+    "Confucius4_LiveCaption_v2.3"
+  ],
+  "has_babelvox_demo": false,
+  "has_bridge_token": false,
+  "verdict": "PASS"
+}

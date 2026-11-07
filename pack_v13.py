@@ -1047,6 +1047,79 @@ def main():
         lk.release()
 
 
+def check_v23_pkg_gate(pkg):
+    """APP-081 第 4a / 第 3 点：**PKG_INCLUDE_FILES 接进建包链路**。
+
+    闸门（v2.3 起强制，dry-run 也跑）：
+      ① `v23_preset_only.PKG_INCLUDE_FILES` 每个文件都必须在包内且与 dev
+         逐字节一致（行尾归一）⇒ 否则包内 `from v23_preset_only import …`
+         会 ImportError；
+      ② `assert_pkg_clean.scan()` 必须 0 违规（6 类 PKG_EXCLUDE_PATTERNS）；
+      ③ 包内 3 份生产模块必须已套 APP-080 18 锚点补丁（verify_source PASS）。
+    🔴 只读，绝不修改包目录；旧版本（<2.3）不启用本闸门。
+    """
+    try:
+        cur = tuple(int(x) for x in str(PKG_VERSION).split('.'))
+    except Exception:
+        cur = (0,)
+    if cur < (2, 3):
+        return 0
+    here = os.path.dirname(os.path.abspath(__file__))
+    dev = os.path.join(here, 'live_caption')
+    if dev not in sys.path:
+        sys.path.insert(0, dev)
+    try:
+        import v23_preset_only as _v23
+        from assert_pkg_clean import scan as _gate_scan
+    except Exception as e:
+        print('[gate-v23] FAIL：无法导入 v23_preset_only / assert_pkg_clean：%r' % (e,))
+        return 1
+
+    print('=' * 70)
+    print('打包前闸门③（APP-081）：PKG_INCLUDE_FILES / 交付洁净度 / 补丁')
+    print('=' * 70)
+    ok = True
+    for rel in _v23.PKG_INCLUDE_FILES:
+        p = os.path.join(pkg, rel.replace('/', os.sep))
+        if not os.path.isfile(p):
+            print('  [FAIL] 缺少随包文件 %s' % rel)
+            ok = False
+            continue
+        src = os.path.join(dev, os.path.basename(rel))
+        want = open(src, 'rb').read().replace(b'\r\n', b'\n')
+        got = open(p, 'rb').read()
+        if got != want:
+            print('  [FAIL] %s 与 dev 逐字节不一致' % rel)
+            ok = False
+        else:
+            print('  [OK] %-40s %d B（与 dev 逐字节一致）' % (rel, len(got)))
+    bad = _gate_scan(pkg)
+    if bad:
+        ok = False
+        print('  [FAIL] 交付洁净度闸门：%d 项违规' % len(bad))
+        for b in bad[:10]:
+            print('     - %s (%s)' % (b[0], b[1]))
+    else:
+        print('  [OK] 交付洁净度闸门：0 违规（6 类 PKG_EXCLUDE_PATTERNS 驱动）')
+    for fname, key in (('live_caption_app.py', 'live_caption/live_caption_app.py'),
+                       ('tts_service.py', 'live_caption/tts_service.py'),
+                       ('tts_worker.py', 'live_caption/tts_worker.py')):
+        p = os.path.join(pkg, 'app', fname)
+        if not os.path.isfile(p):
+            print('  [FAIL] 包内缺 %s' % fname)
+            ok = False
+            continue
+        text = open(p, 'rb').read().replace(b'\r\n', b'\n').decode('utf-8')
+        good, why = _v23.verify_source(text, key)
+        if not good:
+            print('  [FAIL] %s 未套 APP-080 补丁：%r' % (fname, why))
+            ok = False
+        else:
+            print('  [OK] %-24s APP-080 verify_source=PASS' % fname)
+    print('  ⇒ 闸门③ %s' % ('PASS' if ok else 'FAIL'))
+    return 0 if ok else 1
+
+
 def _run(args):
     PKG = args.pkg
     ZIP = args.zip
@@ -1075,6 +1148,13 @@ def _run(args):
     if rc:
         print()
         print('结论：FAIL（版本标识一致闸门未通过）')
+        return rc
+
+    # 🔴 APP-081 第 4a：PKG_INCLUDE_FILES 接进建包链路（v2.3 起强制）
+    rc = check_v23_pkg_gate(PKG)
+    if rc:
+        print()
+        print('结论：FAIL（APP-081 v2.3 随包闸门未通过）')
         return rc
 
     if args.dry_run:
@@ -1429,8 +1509,23 @@ def _verify_and_report(ZIP, args, PKG, PREFIX):
         if os.path.isdir(repo_live):
             repo_modules = {fn[:-3] for fn in os.listdir(repo_live)
                             if fn.endswith('.py')}
-        certain = [(f, m) for f, m in missing_local if m in repo_modules]
-        suspect = [(f, m) for f, m in missing_local if m not in repo_modules]
+        # 🔴 APP-081（2026-11-07）：`pkg_exclude.INTERNAL_EXACT` 里按设计
+        #    排除的 `app/*.py`（APP-062③ D3：tts_cuda / tts_cuda_sidecar，
+        #    CUDA 边车只在开发树保留）⇒ 包内全是 try/except 条件导入，
+        #    `tts_worker.py` 甚至明说「本包不提供 CUDA 后端模块」。
+        #    ⇒ 「仓库有、包内没有」是**预期**，不能判「确定缺失」；
+        #    判据对其余模块照常生效（真实缺失照样 FAIL）。
+        by_design_absent = {
+            os.path.basename(p)[:-3]
+            for p in pkg_exclude.INTERNAL_EXACT
+            if isinstance(p, str) and p.startswith('app/') and p.endswith('.py')
+        }
+        certain = [(f, m) for f, m in missing_local
+                   if m in repo_modules and m not in by_design_absent]
+        suspect = [(f, m) for f, m in missing_local
+                   if m not in repo_modules]
+        design_hits = [(f, m) for f, m in missing_local
+                       if m in by_design_absent]
         print()
         print('包内本地模块导入完整性（app/ 下互引）：')
         print(f'  zip 内 app/*.py = {len(app_py_in_zip)} 个；'
@@ -1439,6 +1534,10 @@ def _verify_and_report(ZIP, args, PKG, PREFIX):
               f'（{len(certain)} 条）')
         for f, m in certain[:20]:
             print(f'      ⚠️ {f}  →  import {m}（仓库有 {m}.py，包内没有）')
+        if design_hits:
+            print(f'  [按设计不带] 有意排除的可选模块（APP-062③ D3）：'
+                  f'{sorted(set(m for _f, m in design_hits))}；'
+                  f'{len(design_hits)} 处 try/except 条件导入，不判负')
         if suspect:
             print(f'  [提示] 疑似第三方依赖（不判负）：{len(suspect)} 条')
             for f, m in suspect[:10]:
@@ -1454,7 +1553,7 @@ def _verify_and_report(ZIP, args, PKG, PREFIX):
         content_ok, n_chk, mism = verify_zip_matches_pkg(ZIP, PKG, PREFIX)
         print(f'  比对 {n_chk} 个文件')
         if content_ok:
-            print('  [{"OK" if content_ok else "不符"}] 全部逐字节一致')
+            print('  [OK] 全部逐字节一致')
         else:
             print(f'  ✗ 内容不一致 {len(mism)} 个文件：')
             for rel, zs, ds in mism[:30]:

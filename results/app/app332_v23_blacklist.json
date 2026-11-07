@@ -1,0 +1,212 @@
+{
+  "stage": "blacklist",
+  "pkg": "C:\\v23_cleantest\\Confucius4_LiveCaption_v2.3",
+  "n_files": 14320,
+  "total_bytes": 13692567925,
+  "n_hits_real": 33,
+  "n_rule_self_reference": 1,
+  "hits": {
+    "meeting": [],
+    "clone_wav": [],
+    "babelvox_demo": [],
+    "bridge_token": [],
+    "torch_cuda": [
+      {
+        "path": "python/Lib/site-packages/numba/cuda/cpp_function_wrappers.cu",
+        "bytes": 1000
+      },
+      {
+        "path": "python/Lib/site-packages/numba/cuda/cudadrv/_extras.cp312-win_amd64.pyd",
+        "bytes": 10752
+      },
+      {
+        "path": "python/Lib/site-packages/numba/cuda/tests/data/cuda_include.cu",
+        "bytes": 299
+      },
+      {
+        "path": "python/Lib/site-packages/numba/cuda/tests/data/error.cu",
+        "bytes": 145
+      },
+      {
+        "path": "python/Lib/site-packages/numba/cuda/tests/data/jitlink.cu",
+        "bytes": 564
+      },
+      {
+        "path": "python/Lib/site-packages/numba/cuda/tests/data/warn.cu",
+        "bytes": 179
+      },
+      {
+        "path": "python/Lib/site-packages/numba/cuda/tests/doc_examples/ffi/functions.cu",
+        "bytes": 926
+      },
+      {
+        "path": "python/Lib/site-packages/transformers/kernels/deta/cuda/ms_deform_attn_cuda.cu",
+        "bytes": 7360
+      },
+      {
+        "path": "python/Lib/site-packages/transformers/kernels/deta/cuda/ms_deform_attn_cuda.cuh",
+        "bytes": 61433
+      },
+      {
+        "path": "python/Lib/site-packages/transformers/kernels/deta/cuda/ms_deform_im2col_cuda.cuh",
+        "bytes": 54695
+      },
+      {
+        "path": "python/Lib/site-packages/transformers/kernels/mra/cuda_kernel.cu",
+        "bytes": 11678
+      },
+      {
+        "path": "python/Lib/site-packages/transformers/kernels/mra/cuda_launch.cu",
+        "bytes": 4072
+      }
+    ],
+    "dev_path_in_text": [
+      {
+        "path": "README_en.md",
+        "match": "confucius4-openvino",
+        "line": "directory and dev directories (e.g. `C:\\Users\\<build-user>\\confucius4-openvino`)."
+      },
+      {
+        "path": "README_zh.md",
+        "match": "confucius4-openvino",
+        "line": "真实家目录与开发目录（例如 `C:\\Users\\<构建机用户名>\\confucius4-openvino`）。"
+      },
+      {
+        "path": "app/live_caption_app.py",
+        "match": "hy_bench",
+        "line": "ASR 与翻译的设备/量化各自独立选择（C-098 阶段 B，实测结论见 hy_bench\\STATUS_hy.md）："
+      },
+      {
+        "path": "app/MANIFEST.json",
+        "match": "hy_bench",
+        "line": "\"notes\": \"v1.13 修订（2026-11-01，APP-052 执行后）：（17）**包内不再含开发机路径** —— 此前客户机上会看到「C:\\\\Users\\\\<开发机用户名>\\\\...」这类路径（代码注释与说明文字里）。现全部"
+      },
+      {
+        "path": "app/MANIFEST.json",
+        "match": "hy_bench",
+        "line": "\"notes\": \"v1.13 修订（2026-11-01，APP-052 执行后）：（17）**包内不再含开发机路径** —— 此前客户机上会看到「C:\\\\Users\\\\<开发机用户名>\\\\...」这类路径（代码注释与说明文字里）。现全部"
+      },
+      {
+        "path": "app/speaker_assets.py",
+        "match": "confucius4-openvino",
+        "line": "REPO   = r'<HOME>\\confucius4-openvino'"
+      },
+      {
+        "path": "app/speaker_tracker.py",
+        "match": "hy_bench",
+        "line": "reviewer 的 A/B 实测（`hy_bench/spk_ab_run.py`）："
+      },
+      {
+        "path": "app/translator.py",
+        "match": "hy_bench",
+        "line": "支持运行时热切换（set_engine）。MT2 实测结论见 hy_bench\\STATUS_hy.md："
+      },
+      {
+        "path": "app/translator.py",
+        "match": "hy_bench",
+        "line": "#   3) 开发机 <用户目录>/hy_bench/ov/<name>（本仓库导出产物）"
+      },
+      {
+        "path": "app/translator.py",
+        "match": "hy_bench",
+        "line": "os.path.join(os.path.expanduser('~'), 'hy_bench', 'ov'),"
+      },
+      {
+        "path": "app/translator.py",
+        "match": "hy_bench",
+        "line": "os.path.join(ROOT, 'hy_bench', 'ov'),"
+      },
+      {
+        "path": "app/translator.py",
+        "match": "hy_bench",
+        "line": "\"\"\"按通道量化产物的目录解析：客户包 models/mt/<name> → 开发机 hy_bench/ov/<name>。\"\"\""
+      },
+      {
+        "path": "app/translator.py",
+        "match": "hy_bench",
+        "line": "#   依据 **H-001 / H-007**（MT 模块 `hy_bench/STATUS_hy.md` §37）："
+      },
+      {
+        "path": "app/translator.py",
+        "match": "hy_bench",
+        "line": "# ★ C-102 实测（hy_bench/bench_mt2.py，7 句 × 3 次取中位）："
+      },
+      {
+        "path": "ext/bridge/engines.py",
+        "match": "confucius4-openvino",
+        "line": "- ASR  R2T2 INT8 @ GPU.0     → <HOME>\\\\confucius4-openvino"
+      },
+      {
+        "path": "ext/bridge/engines.py",
+        "match": "hy_bench",
+        "line": "- MT   Hy-MT2 INT8 @ GPU.0    → <HOME>\\\\hy_bench"
+      },
+      {
+        "path": "ext/bridge/engines.py",
+        "match": "confucius4-openvino",
+        "line": "（原 `<HOME>\\\\confucius4-openvino` /"
+      },
+      {
+        "path": "ext/bridge/engines.py",
+        "match": "hy_bench",
+        "line": "`…\\\\hy_bench` / `…\\\\confucius4-tts`）"
+      },
+      {
+        "path": "ext/bridge/engine_runtime.py",
+        "match": "hy_bench",
+        "line": "⇒ 与 App 的 `DEFAULT_MODEL` 保持同一套查找顺序（含开发机 hy_bench 回退）。"
+      },
+      {
+        "path": "ext/bridge/segmenter.py",
+        "match": "confucius4-openvino",
+        "line": "* 优先 **import** 现有交付版本 `confucius4-openvino/seg_stream.py`，"
+      },
+      {
+        "path": "ext/bridge/segmenter.py",
+        "match": "confucius4-openvino",
+        "line": "#   `<HOME>\\confucius4-openvino`）⇒ 改成："
+      }
+    ],
+    "rule_self_reference": [
+      {
+        "path": "app/v23_preset_only.py",
+        "match": "hy_bench",
+        "line": "r'(?i)hy_bench',"
+      }
+    ]
+  },
+  "rule_self_reference_note": "app/v23_preset_only.py 的 BLACKLIST_PATTERNS/PKG_EXCLUDE_PATTERNS 是黑名单规则本身（内含 hy_bench 等关键词），不是硬编码开发路径；如实单列，判据对其它文件照常生效",
+  "checks": [
+    {
+      "name": "meeting",
+      "verdict": true,
+      "n": 0
+    },
+    {
+      "name": "clone_wav",
+      "verdict": true,
+      "n": 0
+    },
+    {
+      "name": "babelvox_demo",
+      "verdict": true,
+      "n": 0
+    },
+    {
+      "name": "bridge_token",
+      "verdict": true,
+      "n": 0
+    },
+    {
+      "name": "torch_cuda",
+      "verdict": false,
+      "n": 12
+    },
+    {
+      "name": "dev_path_in_text",
+      "verdict": false,
+      "n": 21
+    }
+  ],
+  "verdict": "FAIL"
+}

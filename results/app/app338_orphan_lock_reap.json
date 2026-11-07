@@ -1,0 +1,17 @@
+{
+  "tool": "app338",
+  "at": "2026-11-07 17:01:42",
+  "lock_raw": "app-v23-cli-rerun PID 17220 started 2026-11-07 16:27:40\nmodule: app-v23-cli-rerun\npid: 17220\nstarted: 2026-11-07 16:27:40\nhost: LAPTOP-0GDQGD3I\n",
+  "pid": 17220,
+  "openprocess_handle": 0,
+  "getlasterror": 87,
+  "dead_confirmed_err87": true,
+  "own_module": true,
+  "partial_outputs_saved": [
+    "app337_r1_partial_output.txt",
+    "app337_r1_partial_spk_seg.jsonl",
+    "app337_r1_partial_spk_seg.jsonl.submit.jsonl",
+    "app337_r1_partial_tts.jsonl"
+  ],
+  "lock_reaped": true
+}

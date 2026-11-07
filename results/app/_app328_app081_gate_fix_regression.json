@@ -1,0 +1,182 @@
+{
+  "tool": "_app328",
+  "app": "APP-081 第 3 点",
+  "generated_at": "2026-11-07 15:22:09",
+  "verdict": "PASS",
+  "n_pass": 18,
+  "n_fail": 0,
+  "counterproof_identified": "3/3",
+  "gate": {
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\assert_pkg_clean.py",
+    "bytes": 4823,
+    "sha256": "9469b33f879cf1c699cb0d5caf8cd889e7391aa314d269d4b8be1096fe2ee255"
+  },
+  "n_exclude_patterns_source": 5,
+  "n_exclude_rules_loaded": 5,
+  "fixture_violations": [
+    [
+      "APP-077 固定 token",
+      "ext/bridge_token.txt"
+    ],
+    [
+      "APP-078 示例音色",
+      "python/Lib/site-packages/babelvox/data/speakers/cindy.json"
+    ],
+    [
+      "APP-078 示例音色",
+      "python/Lib/site-packages/babelvox/data/speakers/steve.npy"
+    ],
+    [
+      "APP-080 ④ 克隆音色",
+      "app/voices/spk_clone_s1.wav"
+    ],
+    [
+      "APP-080 ④ 克隆产物目录",
+      "app/v23_clone_r2/male_01_seg5.wav"
+    ],
+    [
+      "APP-080 ④ 测试 wav",
+      "app/audio/foo_test.wav"
+    ]
+  ],
+  "fixture_clean": [
+    "app/voices/preset_A.wav",
+    "python/Lib/site-packages/babelvox/speakers.py",
+    "models/tokenizer_config.json"
+  ],
+  "checks": [
+    {
+      "name": "rules_from_PKG_EXCLUDE_PATTERNS",
+      "pass": true,
+      "detail": "src labels=['PKG_EXCLUDE_PATTERNS', 'PKG_EXCLUDE_PATTERNS', 'PKG_EXCLUDE_PATTERNS', 'PKG_EXCLUDE_PATTERNS', 'PKG_EXCLUDE_PATTERNS']"
+    },
+    {
+      "name": "rule_count_matches_source",
+      "pass": true,
+      "detail": "n=5/5"
+    },
+    {
+      "name": "detect_ext_bridge_token.txt",
+      "pass": true,
+      "detail": "category=APP-077 固定 token hits=1 reason=PKG_EXCLUDE_PATTERNS: (?i)(^|/)bridge_token\\.txt$"
+    },
+    {
+      "name": "detect_python_Lib_site-packages_babelvox_data_speakers_cindy.json",
+      "pass": true,
+      "detail": "category=APP-078 示例音色 hits=1 reason=PKG_EXCLUDE_PATTERNS: (?i)python/Lib/site-packages/babelvox/data/speakers/(cindy|lou|phil|steve)\\.(json|npy)$"
+    },
+    {
+      "name": "detect_python_Lib_site-packages_babelvox_data_speakers_steve.npy",
+      "pass": true,
+      "detail": "category=APP-078 示例音色 hits=1 reason=PKG_EXCLUDE_PATTERNS: (?i)python/Lib/site-packages/babelvox/data/speakers/(cindy|lou|phil|steve)\\.(json|npy)$"
+    },
+    {
+      "name": "detect_app_voices_spk_clone_s1.wav",
+      "pass": true,
+      "detail": "category=APP-080 ④ 克隆音色 hits=1 reason=PKG_EXCLUDE_PATTERNS: (?i)(^|/)voices/.*clone.*\\.(wav|npz)$"
+    },
+    {
+      "name": "detect_app_v23_clone_r2_male_01_seg5.wav",
+      "pass": true,
+      "detail": "category=APP-080 ④ 克隆产物目录 hits=1 reason=PKG_EXCLUDE_PATTERNS: (?i)(^|/)v23_clone[^/]*/.*\\.(wav|npz)$"
+    },
+    {
+      "name": "detect_app_audio_foo_test.wav",
+      "pass": true,
+      "detail": "category=APP-080 ④ 测试 wav hits=1 reason=PKG_EXCLUDE_PATTERNS: (?i)(^|/).*(_clone_test|_test)\\.wav$"
+    },
+    {
+      "name": "clean_not_flagged_app_voices_preset_A.wav",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "clean_not_flagged_python_Lib_site-packages_babelvox_speakers.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "clean_not_flagged_models_tokenizer_config.json",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no_extra_violations",
+      "pass": true,
+      "detail": "n_bad=6 expect=6"
+    },
+    {
+      "name": "counterproof_E1_old_gate_identified",
+      "pass": true,
+      "detail": "old gate detects 3/6 (must be <6)"
+    },
+    {
+      "name": "counterproof_E2_empty_rules_identified",
+      "pass": true,
+      "detail": "empty rules detects 0"
+    },
+    {
+      "name": "counterproof_E3_dropped_rules_identified",
+      "pass": true,
+      "detail": "missed=['app/voices/spk_clone_s1.wav', 'app/v23_clone_r2/male_01_seg5.wav', 'app/audio/foo_test.wav']"
+    },
+    {
+      "name": "assert_clean_return_codes",
+      "pass": true,
+      "detail": "clean=0 bad=1"
+    },
+    {
+      "name": "v22_readonly_historical_violations_detected",
+      "pass": true,
+      "detail": "n=9"
+    },
+    {
+      "name": "v22_not_modified",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "counterproof": [
+    {
+      "id": "E1_old_two_class_gate",
+      "n_detected": 3,
+      "n_of_6": 3,
+      "clone_or_test_detected": 0,
+      "identified": true
+    },
+    {
+      "id": "E2_empty_rules",
+      "n_detected": 0,
+      "identified": true
+    },
+    {
+      "id": "E3_drop_last3_rules",
+      "n_detected": 3,
+      "missed": [
+        "app/voices/spk_clone_s1.wav",
+        "app/v23_clone_r2/male_01_seg5.wav",
+        "app/audio/foo_test.wav"
+      ],
+      "identified": true
+    }
+  ],
+  "v22_readonly": {
+    "present": true,
+    "n_violations": 9,
+    "reasons": [
+      "PKG_EXCLUDE_PATTERNS"
+    ],
+    "bridge_token_sha_unchanged": true,
+    "sample": [
+      "ext/bridge_token.txt",
+      "python/Lib/site-packages/babelvox/data/speakers/cindy.json",
+      "python/Lib/site-packages/babelvox/data/speakers/cindy.npy",
+      "python/Lib/site-packages/babelvox/data/speakers/lou.json",
+      "python/Lib/site-packages/babelvox/data/speakers/lou.npy",
+      "python/Lib/site-packages/babelvox/data/speakers/phil.json",
+      "python/Lib/site-packages/babelvox/data/speakers/phil.npy",
+      "python/Lib/site-packages/babelvox/data/speakers/steve.json",
+      "python/Lib/site-packages/babelvox/data/speakers/steve.npy"
+    ]
+  }
+}

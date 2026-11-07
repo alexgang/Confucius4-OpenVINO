@@ -1,0 +1,4 @@
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+  [gui] scale=1.0 PASS clone_texts=[] tts_voices=['A']
+  [gui] scale=1.5 PASS clone_texts=[] tts_voices=['A']
+[PASS] C:\Users\Trekker-PTL\confucius4-openvino\results\app\app332_v23_gui.json

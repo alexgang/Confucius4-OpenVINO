@@ -20,10 +20,13 @@ python live_caption/assert_pkg_clean.py <新包目录>       # 检查，违规 �
 🔴 对 v2.0/v2.1/v2.2 等旧目录调用会得到 FAIL ⇒ 这是**预期**
    （如实报告历史违规，不是让你去原地删）。
 
-## 判据
-* 违规 A：任意层级存在文件名精确为 `bridge_token.txt`
-* 违规 B：`python/Lib/site-packages/babelvox/data/speakers/` 下存在
-  `cindy|lou|phil|steve` 开头的 `.json` / `.npy`
+## 判据（APP-081 第 3 点：单一事实来源）
+🔴 **由 `v23_preset_only.PKG_EXCLUDE_PATTERNS` 驱动**，覆盖全部 6 类：
+  ① `bridge_token.txt`（APP-077）② babelvox 8 个示例音色（APP-078）
+  ③ 克隆音色 `voices/*clone*.wav/npz` ④ 克隆产物目录 `v23_clone*/`
+  ⑤ 测试 wav `*_test.wav` ⑥ `*_clone_test.wav`。
+  独立运行（同目录拿不到 `v23_preset_only` 时）回落到内置同款 5 条正则，
+  ⇒ 绝不出现「规则表有、闸门查不到」的覆盖缺口。
 * 不误伤：`preset_A.wav`、babelvox 库代码、tokenizer 配置
 """
 from __future__ import annotations
@@ -32,33 +35,60 @@ import os
 import re
 import sys
 
+# 兼容旧判据脚本（results/app/_app326）的导入；**scan() 本身不再依赖它们**，
+# 否则「改 TOKEN_RE 做反证」就碰不到被测对象，会变成恒真判据。
 TOKEN_RE = re.compile(r'^bridge_token\.txt$', re.I)
 SPEAKERS_REL = os.path.join('python', 'Lib', 'site-packages', 'babelvox',
                             'data', 'speakers')
 VOICE_RE = re.compile(r'^(cindy|lou|phil|steve)\.(json|npy)$', re.I)
 
+#: 独立运行时的兜底规则（与 v23_preset_only.PKG_EXCLUDE_PATTERNS 逐字一致）。
+_FALLBACK_EXCLUDE_PATTERNS = [
+    r'(?i)(^|/)bridge_token\.txt$',
+    r'(?i)python/Lib/site-packages/babelvox/data/speakers/(cindy|lou|phil|steve)\.(json|npy)$',
+    r'(?i)(^|/)voices/.*clone.*\.(wav|npz)$',
+    r'(?i)(^|/)v23_clone[^/]*/.*\.(wav|npz)$',
+    r'(?i)(^|/).*(_clone_test|_test)\.wav$',
+]
+
+
+def load_exclude_rules():
+    """返回 [(compiled_re, label)]；优先取 v23_preset_only 的规则表。"""
+    try:
+        from v23_preset_only import PKG_EXCLUDE_PATTERNS as _pats
+        src = 'PKG_EXCLUDE_PATTERNS'
+    except Exception:
+        _pats = _FALLBACK_EXCLUDE_PATTERNS
+        src = 'FALLBACK'
+    return [(re.compile(p), '%s: %s' % (src, p)) for p in _pats]
+
+
+EXCLUDE_RULES = load_exclude_rules()
+
 
 def scan(pkg_root: str) -> list:
-    """返回违规项列表 [(relpath, reason, bytes)]；空列表 = 干净。"""
+    """返回违规项列表 [(relpath, reason, bytes)]；空列表 = 干净。
+
+    APP-081 第 3 点：对**每个文件的 posix 相对路径**跑 EXCLUDE_RULES，
+    命中即记违规并附命中的规则（不再是硬编码的两类文件名判断）。
+    """
     bad = []
+    seen = set()
     for dp, _dn, fns in os.walk(pkg_root):
         for fn in fns:
             full = os.path.join(dp, fn)
             rel = os.path.relpath(full, pkg_root).replace('\\', '/')
-            if TOKEN_RE.match(fn):
-                try:
-                    sz = os.path.getsize(full)
-                except OSError:
-                    sz = 0
-                bad.append((rel, 'APP-077 fixed bridge token', sz))
-            norm = rel.replace('/', os.sep)
-            if os.path.dirname(norm).endswith(SPEAKERS_REL) \
-                    and VOICE_RE.match(fn):
-                try:
-                    sz = os.path.getsize(full)
-                except OSError:
-                    sz = 0
-                bad.append((rel, 'APP-078 third-party demo voice', sz))
+            for cre, label in EXCLUDE_RULES:
+                if cre.search(rel):
+                    key = (rel, label)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    try:
+                        sz = os.path.getsize(full)
+                    except OSError:
+                        sz = 0
+                    bad.append((rel, label, sz))
     return bad
 
 
