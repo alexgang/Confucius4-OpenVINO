@@ -1,0 +1,169 @@
+{
+  "task": "App 模块 reviewer 纠偏巡检（自动化轮次）",
+  "timestamp_getdate": "2026-11-07 18:52:27",
+  "lease": {
+    "module": "app",
+    "token": "9123f89a",
+    "acquire_exit": 0,
+    "takeover": false
+  },
+  "corrections_open_baseline": {
+    "sha256": "d80ad25d1da40a2714958cbf3c8491ebaf186edafa2aeec3b860607f47c5dd9a",
+    "bytes": 227215,
+    "mtime": "2026-11-07 14:51:02",
+    "n_headings": 81
+  },
+  "corrections_open": {
+    "sha256": "d80ad25d1da40a2714958cbf3c8491ebaf186edafa2aeec3b860607f47c5dd9a",
+    "bytes": 227215,
+    "mtime": "2026-11-07 14:51:02",
+    "n_headings": 81,
+    "first_heading": "APP-001",
+    "last_heading": "APP-081",
+    "max_heading_num": 81,
+    "missing_numbers": [],
+    "duplicate_numbers": []
+  },
+  "corrections_close": {
+    "sha256": "d80ad25d1da40a2714958cbf3c8491ebaf186edafa2aeec3b860607f47c5dd9a",
+    "bytes": 227215,
+    "mtime": "2026-11-07 14:51:02",
+    "n_headings": 81,
+    "first_heading": "APP-001",
+    "last_heading": "APP-081",
+    "max_heading_num": 81,
+    "missing_numbers": [],
+    "duplicate_numbers": []
+  },
+  "corrections_open_matches_manual_baseline": true,
+  "corrections_open_equals_close": true,
+  "reviewer_appended_this_round": false,
+  "status_last_ack": "APP-081",
+  "status_bytes_before": 30929,
+  "status_lines_before": 181,
+  "new_headings": [],
+  "n_new_headings": 0,
+  "stop_at_reviewer_review": true,
+  "stop_reason": "APP-081 第 5 点：reviewer 自算 zip SHA／抽查 zip 内容／看截图后才通知用户；第 6 点：不再新增覆盖审计/静态自证类轮次、本条处理完前不自创其他任务",
+  "git": {
+    "branch": "main",
+    "head": "91abc26",
+    "ahead": 0,
+    "n_worktree_changes": 644,
+    "corrections_worktree_status": "M status/app/CORRECTIONS_APP.md",
+    "staged_before": []
+  },
+  "machine_lock": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\MACHINE_LOCK",
+    "exists": false
+  },
+  "prior_background_pids": [
+    {
+      "pid": 17220,
+      "err": 87,
+      "verdict": "DEAD_err87"
+    },
+    {
+      "pid": 7396,
+      "err": 87,
+      "verdict": "DEAD_err87"
+    }
+  ],
+  "packages_metadata_only": [
+    {
+      "name": "Confucius4_LiveCaption_v1.13",
+      "kind": "dir",
+      "bytes": null,
+      "mtime": "2026-11-01 17:09:10"
+    },
+    {
+      "name": "Confucius4_LiveCaption_v1.13.zip",
+      "kind": "file",
+      "bytes": 11232363846,
+      "mtime": "2026-11-01 15:02:24"
+    },
+    {
+      "name": "Confucius4_LiveCaption_v1.5",
+      "kind": "dir",
+      "bytes": null,
+      "mtime": "2026-10-27 11:00:51"
+    },
+    {
+      "name": "Confucius4_LiveCaption_v2.0",
+      "kind": "dir",
+      "bytes": null,
+      "mtime": "2026-11-01 17:34:23"
+    },
+    {
+      "name": "Confucius4_LiveCaption_v2.0.zip",
+      "kind": "file",
+      "bytes": 11233134015,
+      "mtime": "2026-11-01 17:49:21"
+    },
+    {
+      "name": "Confucius4_LiveCaption_v2.1",
+      "kind": "dir",
+      "bytes": null,
+      "mtime": "2026-11-01 21:05:37"
+    },
+    {
+      "name": "Confucius4_LiveCaption_v2.1.zip",
+      "kind": "file",
+      "bytes": 11233135359,
+      "mtime": "2026-11-01 20:38:13"
+    },
+    {
+      "name": "Confucius4_LiveCaption_v2.2",
+      "kind": "dir",
+      "bytes": null,
+      "mtime": "2026-11-02 01:33:05"
+    },
+    {
+      "name": "Confucius4_LiveCaption_v2.2.zip",
+      "kind": "file",
+      "bytes": 11233149299,
+      "mtime": "2026-11-02 01:54:03"
+    },
+    {
+      "name": "Confucius4_LiveCaption_v2.3",
+      "kind": "dir",
+      "bytes": null,
+      "mtime": "2026-11-07 15:19:37"
+    },
+    {
+      "name": "Confucius4_LiveCaption_v2.3.zip",
+      "kind": "file",
+      "bytes": 11235945990,
+      "mtime": "2026-11-07 15:54:15"
+    },
+    {
+      "name": "Confucius4_LiveCaption_v2.3_aborted_20261107_1517",
+      "kind": "dir",
+      "bytes": null,
+      "mtime": "2026-11-07 15:16:33"
+    }
+  ],
+  "status_write_plan": {
+    "mode": "header 2 lines + append one section, old body byte-identical",
+    "limit_bytes": 40000,
+    "limit_lines": 300,
+    "n_write_prechecks": 10,
+    "compressed_this_round": false,
+    "compression_reason": "写前 30929 B / 180 行，限额余量 9071 B / 120 行，本轮不删旧正文、不归档"
+  },
+  "discipline": {
+    "read_corrections": true,
+    "modified_corrections": false,
+    "staged_corrections": false,
+    "packed": false,
+    "zip_written": false,
+    "customer_package_modified": false,
+    "lnk_modified": false,
+    "machine_lock_created": false,
+    "cpu_inference": false,
+    "minimax_called": false,
+    "force_push": false,
+    "same_version": false,
+    "user_notified": false
+  }
+}
