@@ -1526,6 +1526,12 @@ def _verify_and_report(ZIP, args, PKG, PREFIX):
             for p in pkg_exclude.INTERNAL_EXACT
             if isinstance(p, str) and p.startswith('app/') and p.endswith('.py')
         }
+        # reviewer 2026-11-07 (v2.4): two more guarded dev-only imports (verified):
+        #   assert_pkg_clean -> v23_preset_only: try/except, falls back to built-in rules
+        #     (v2.4 ships cloning, so the v2.3 preset-only module is not shipped);
+        #   backends / npu_embeds_backend -> backends_torch: APP-069(5) moved the torch
+        #     code to a dev-only module; lazy import with a clear 'use OpenVINO' error.
+        by_design_absent |= {'v23_preset_only', 'backends_torch'}
         certain = [(f, m) for f, m in missing_local
                    if m in repo_modules and m not in by_design_absent]
         suspect = [(f, m) for f, m in missing_local
