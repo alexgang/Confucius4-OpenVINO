@@ -1,0 +1,746 @@
+[device] 🔴 MT 与 TTS 同时在 NPU ⇒ 已禁止（APP-062 D4）⇒ MT 自动改到 GPU.0
+[v23] APP-080：音色残留值 'follow_speaker' 不在 v2.3 交付范围 ⇒ 回落预设 A
+加载 Intel GPU · INT8（ov-int8-past）…
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+[gpu_int8] 加载 5.5 s，设备 GPU.0，识别语种 自动检测
+[TTS] worker 已启动（设备 NPU，音色 A，精度 f32）
+  [翻译] 加载翻译模型（GPU.0）…
+  [spk] 说话人资产（包内）：wespeaker fp16；pyannote_seg_3_0 fp16
+  [TTS] [TTS] [tts_worker] 播放流已启动：sr=22050 device=默认设备 ⇒ **实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）** blocksize=1024 latency=0.18575963718820862
+[实时] Good morning.[实时] Good morning, everyone.  [TTS] [TTS][stderr] None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+[实时] Good morning everyone. Good morning.[实时] Good morning everyone. Good morning. Let's get[实时] Good morning everyone. Good morning. Let's get started.  [TTS] [TTS] [tts_engine] NPU 不支持 f32 推理精度 ⇒ 已自动改用 f16
+  [TTS] [TTS] [tts_engine] OV 推理精度 = f16（权重位宽恒为 INT8）
+  [TTS] [TTS] [tts_engine] 使用 MultiDecoderBabelVox（解码器多桶 + 左上下文 25 帧）
+  [TTS] [TTS] [tts_engine] 加载模型：device=NPU root=C:\v23_cleantest\Confucius4_LiveCaption_v2.3\models\qwen3tts cache=C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\tts_npu_cache
+  [TTS] [TTS] [tts_engine] 已把 INFERENCE_PRECISION_HINT=f16 注入 NPU 的编译
+[实时] Good morning everyone. Good morning. Let's get started. So,
+[定稿] Good morning everyone. Good morning. Let's get started. So, welcome
+  [spk] 第 0 段无说话人标签：speaker_disabled
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] Welcome to[实时] Welcome to our Q3  [翻译] 翻译模型就绪（自动 · INT8-CW 模型（默认） · GPU.0，加载 9.1 s）
+[实时] Welcome to our Q3 20
+[草稿·未定稿] 那么，欢迎您
+[实时] Welcome to our Q3 26
+[译文] 大家早上好。
+
+[译文] 早上好。
+[实时] Welcome to our Q3 26 QGS.
+[译文] 让我们开始吧。
+
+[定稿] to our Q3 26 QGS.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+
+[译文] 致我们的Q3 26 QGS。
+[实时] agenda topic[实时] Agenda topics today[实时] Agenda topics today, we'll[实时] Agenda topics today, we'll talk about three[实时] Agenda topics today, we'll talk about three.[实时] Agenda topics today, we'll talk about three. One, I[实时] Agenda topics today, we'll talk about three. One, I want to share  [TTS] [TTS][stderr] The tokenizer you are loading from 'C:\v23_cleantest\Confucius4_LiveCaption_v2.3\models\qwen3tts\tokenizer' with an incorrect regex pattern: https://huggingface.co/mistralai/Mistral-Small-3.1-24B-Instruct-2503/discussions/84#69121093e8b480e709447d5e. This will lead to incorrect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.
+  [TTS] [TTS] [tts_engine] 模型加载完成（9.6 s）
+  [TTS] [TTS] [tts_engine] cp_decode: NPU（生产配置要求；实测 RTF 1.912→1.218、首块 1.296→0.837 s）
+[实时] Agenda topics today, we'll talk about three. One, I want to share our engineering  [TTS] [TTS] [tts_engine] cp_prefill: NPU（TTS-017① 交付配置：运行时输入恒为 (1,2,1024) ⇒ 静态形状安全）
+  [TTS] [TTS] [tts_engine] SpeakerLibrary 就绪：C:\Users\Trekker-PTL\AppData\Local\Confucius4LiveCaption\tts_speakers（0 个音色：无；内置音色走**只读回退**，**不复制**到用户目录）
+  [TTS] [TTS] [tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU
+  [TTS] [TTS] [tts_engine] 实测执行设备：NPU
+  [TTS] [TTS] [tts_engine] 各组件落点：cp_decode=NPU，cp_prefill=NPU，decoder_bucket@128=NPU，decoder_bucket@16=NPU，decoder_bucket@256=NPU，decoder_bucket@32=NPU，decoder_bucket@33=NPU，decoder_bucket@40=NPU，decoder_bucket@64=NPU，decoder_bucket@8=NPU，speaker_enc=NPU，talker_bucket@128=NPU，talker_bucket@256=NPU，talker_bucket@384=NPU，talker_bucket@512=NPU，talker_bucket@64=NPU，tok_decoder=NPU
+  [TTS] [TTS] [tts_engine] 落点统计：NPU 上 17 个组件 ['cp_decode', 'cp_prefill', 'decoder_bucket@128', 'decoder_bucket@16', 'decoder_bucket@256', 'decoder_bucket@32', 'decoder_bucket@33', 'decoder_bucket@40', 'decoder_bucket@64', 'decoder_bucket@8', 'speaker_enc', 'talker_bucket@128', 'talker_bucket@256', 'talker_bucket@384', 'talker_bucket@512', 'talker_bucket@64', 'tok_decoder']；CPU 上 0 个组件 []
+  [TTS] [TTS] [tts_engine] 未启用（该档位下不编译）的组件：talker_prefill，talker_decode，talker（以 5 个桶形式存在，落点见上），code_predictor
+[实时] genda topics today, we'll talk about three. One, I want to share our engineering strategy.
+[定稿] Agenda topics today, we'll talk about three. One, I want to share our engineering strategy.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+  [TTS] [TTS] [tts_engine] speaker embedding 就绪：C:\v23_cleantest\Confucius4_LiveCaption_v2.3\models\qwen3tts\voices\preset_A.wav -> (1, 1024)
+[实时] Country to
+[译文] 今天的议程主题，我们将讨论三个。
+  [TTS] [TTS] [tts_worker] 播放流已启动：sr=24000 device=默认设备 ⇒ **实际输出: Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）** blocksize=1024 latency=0.21333333333333335
+  [TTS] [TTS] [tts_worker] 播放流已按 24000 Hz 重建
+  [TTS] [TTS] [tts_worker] 模型加载完成 16.2s
+  [TTS] [TTS] 就绪：NPU · 音色 A
+
+[译文] 首先，我想分享我们的工程策略。
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=1.637 s ⇒ speed=1.0000
+[实时] to realize the business[实时] to realize the business growth  [TTS] [TTS] 首包分段 id=0：排队 0.005 s + 合成 0.887 s
+[实时] to realize the business growth that Alex[实时] to realize the business growth that Alex spoke about[实时] to realize the business growth that Alex spoke about in his last[实时] to realize the business growth that Alex spoke about in his last QGS.  [TTS] [TTS] [tts_worker] 合成遥测 id=0 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=86400 parts=6 peak=0.5687 rms_dbfs=-19.9 nan_inf=0 cb_delta=88 read_delta=68608 underflow_delta=21 ring=17792/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 遥测 id=0 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=86400 parts=6 peak=0.5687 rms_dbfs=-19.9 nan_inf=0 cb_delta=106 read_delta=86400 underflow_delta=22 ring=0/72000 consumed=True
+  [TTS] [TTS] 遥测 id=0 peak=0.568688 rms_dbfs=-19.86 read_delta=86400 consumed=True
+[实时] to realize the business growth that Alex spoke about in his last QGS. We'll then talk[实时] ze the business growth that Alex spoke about in his last QGS. We'll then talk about engine
+[定稿] to realize the business growth that Alex spoke about in his last QGS. We'll then talk about engine
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] planning
+[草稿·未定稿] 然后我们就会讨论发动机的问题
+
+[译文] 实现亚历克斯在最后一次QGS中提到的业务增长目标。
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=1.449 s ⇒ speed=1.0000
+[实时] engineering priorities and just  [TTS] [TTS] 首包分段 id=1：排队 0.000 s + 合成 0.508 s
+[实时] engineering priorities and just general execution[实时] engineering priorities and just general execution, and then[实时] engineering priorities and just general execution, and then Lisa will join[实时] engineering priorities and just general execution, and then Lisa will join me and go[实时] iorities and just general execution, and then Lisa will join me and go through all through[实时] and just general execution, and then Lisa will join me and go through all of the work that  [TTS] [TTS] [tts_worker] 合成遥测 id=1 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=126720 parts=9 peak=0.4785 rms_dbfs=-18.4 nan_inf=0 cb_delta=119 read_delta=109568 underflow_delta=12 ring=17152/72000 consumed=-
+[实时] eral execution, and then Lisa will join me and go through all of the work that's done when  [TTS] [TTS] [tts_worker] 遥测 id=1 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=126720 parts=9 peak=0.4785 rms_dbfs=-18.4 nan_inf=0 cb_delta=136 read_delta=126720 underflow_delta=13 ring=0/72000 consumed=True
+  [TTS] [TTS] 遥测 id=1 peak=0.478516 rms_dbfs=-18.43 read_delta=126720 consumed=True
+[实时] d then Lisa will join me and go through all of the work that's done with the software team[实时] n Lisa will join me and go through all of the work that's done with the software team, who
+[定稿] engineering priorities and just general execution, and then Lisa will join me and go through all of the work that's done with the software team, who
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] We think is probably
+[草稿·未定稿] 然后丽莎会加入我，一起处理软件团队所完成的所有工作。
+[实时] I think is probably one of the
+[译文] 那么我们将讨论发动机工程方面的优先事项以及整体实施问题。
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=2.775 s ⇒ speed=1.0000
+[实时] I think is probably one of the largest pivots[实时] I think is probably one of the largest pivots to do.  [TTS] [TTS] 首包分段 id=2：排队 0.000 s + 合成 0.623 s
+[实时] I think is probably one of the largest pivots to do, to[实时] I think is probably one of the largest pivots to do to go enable[实时] I think is probably one of the largest pivots to do to go enable to grow to[实时] I think is probably one of the largest pivots to do to go enable to grow it ahead of us[实时]  is probably one of the largest pivots to do to go enable to grow it ahead of us that I'll[实时] y one of the largest pivots to do to go enable to grow it ahead of us that I'll expose to.
+[定稿] I think is probably one of the largest pivots to do to go enable to grow it ahead of us that I'll expose to.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] And then at the end
+[译文] 然后丽莎会加入我，一起处理软件团队所完成的所有工作。
+  [TTS] [TTS] [tts_worker] 合成遥测 id=2 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=145920 parts=10 peak=0.5249 rms_dbfs=-19.8 nan_inf=0 cb_delta=144 read_delta=132096 underflow_delta=15 ring=13824/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=2.495 s ⇒ speed=1.0000
+[实时] And then at the end we'll have  [TTS] [TTS] [tts_worker] 遥测 id=2 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=145920 parts=10 peak=0.5249 rms_dbfs=-19.8 nan_inf=0 cb_delta=158 read_delta=145920 underflow_delta=16 ring=0/72000 consumed=True
+  [TTS] [TTS] 遥测 id=2 peak=0.524902 rms_dbfs=-19.76 read_delta=145920 consumed=True
+
+[译文] 我认为这可能是为了促进其发展而进行的规模最大的转型之一。
+  [TTS] [TTS] 首包分段 id=3：排队 0.000 s + 合成 0.714 s
+[实时] And then at the end we'll have plenty of time
+[译文] 我将会揭露的。
+[实时] And then at the end we'll have plenty of time for Q&A[实时] And then at the end we'll have plenty of time for Q&A but in room[实时] And then at the end we'll have plenty of time for Q&A both in room and on[实时] And then at the end we'll have plenty of time for Q&A, both in room and online.[实时] And then at the end we'll have plenty of time for Q&A, both in room and online. Okay.
+[定稿] And then at the end we'll have plenty of time for Q&A, both in room and online. Okay.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] So[实时] So you recall,
+[译文] 最后，我们还有充足的时间进行问答环节，既可以在现场进行，也可以在线进行。
+  [TTS] [TTS] [tts_worker] 合成遥测 id=3 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=144000 parts=10 peak=0.5288 rms_dbfs=-19.0 nan_inf=0 cb_delta=148 read_delta=146944 underflow_delta=5 ring=10880/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=8.843 s ⇒ speed=1.1000
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0000（r_recent=1.016 ⇒ 1/r=0.9839；合成跟不上 ⇒ 不抽空缓冲）
+
+[译文] 好的。
+  [TTS] [TTS] [tts_worker] 遥测 id=3 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=144000 parts=10 peak=0.5288 rms_dbfs=-19.0 nan_inf=0 cb_delta=159 read_delta=157824 underflow_delta=6 ring=0/72000 consumed=True
+  [TTS] [TTS] 遥测 id=3 peak=0.528809 rms_dbfs=-19.04 read_delta=157824 consumed=True
+[实时] So you recall Alex spoke about  [TTS] [TTS] 首包分段 id=4：排队 0.000 s + 合成 0.606 s
+[实时] So you recall Alex spoke about biz[实时] So you recall, Alex spoke about business growth,[实时] So you recall, Alex spoke about business growth, about client[实时] So you recall, Alex spoke about business growth, about client, agentic[实时] So you recall, Alex spoke about business growth, about client, agentic, edge and[实时] o you recall, Alex spoke about business growth, about client, agentic, edge and physically
+[定稿] So you recall, Alex spoke about business growth, about client, agentic, edge and physically
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+  [TTS] [TTS] [tts_worker] 合成遥测 id=4 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=132480 parts=9 peak=0.4739 rms_dbfs=-19.5 nan_inf=0 cb_delta=124 read_delta=122496 underflow_delta=5 ring=20864/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=14.118 s ⇒ speed=1.1000
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0000（r_recent=1.004 ⇒ 1/r=0.9958；合成跟不上 ⇒ 不抽空缓冲）
+  [TTS] [TTS] 首包分段 id=5：排队 0.000 s + 合成 0.677 s
+  [TTS] [TTS] [tts_worker] 遥测 id=4 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=132480 parts=9 peak=0.4739 rms_dbfs=-19.5 nan_inf=0 cb_delta=145 read_delta=144000 underflow_delta=5 ring=14720/72000 consumed=True
+  [TTS] [TTS] 遥测 id=4 peak=0.473877 rms_dbfs=-19.53 read_delta=144000 consumed=True
+[实时] So the goal
+[草稿·未定稿] 你记得吗，亚历克斯谈到了业务增长、客户、代理关系以及物理层面问题
+  [TTS] [TTS] [tts_worker] 合成遥测 id=5 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=28800 parts=2 peak=0.4263 rms_dbfs=-18.2 nan_inf=0 cb_delta=29 read_delta=29696 underflow_delta=0 ring=19968/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=8.977 s ⇒ speed=1.1000
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0000（r_recent=1.012 ⇒ 1/r=0.9885；合成跟不上 ⇒ 不抽空缓冲）
+[实时] So the goal of this slide[实时] So the goal of this slide is to describe  [TTS] [TTS] 首包分段 id=6：排队 0.000 s + 合成 0.536 s
+  [TTS] [TTS] [tts_worker] 遥测 id=5 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=28800 parts=2 peak=0.4263 rms_dbfs=-18.2 nan_inf=0 cb_delta=49 read_delta=50176 underflow_delta=0 ring=14848/72000 consumed=True
+  [TTS] [TTS] 遥测 id=5 peak=0.42627 rms_dbfs=-18.22 read_delta=50176 consumed=True
+[实时] So the goal of this slide is to describe our strategy[实时] So the goal of this slide is to describe our strategy on a pitch[实时] So the goal of this slide is to describe our strategy on a page, how[实时] So the goal of this slide is to describe our strategy on a page, how we as a[实时] So the goal of this slide is to describe our strategy on a page, how we as an engineer[实时] of this slide is to describe our strategy on a page, how we as an engineering organization[实时] lide is to describe our strategy on a page, how we as an engineering organization, in this
+[定稿] So the goal of this slide is to describe our strategy on a page, how we as an engineering organization, in this
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] enable that
+[草稿·未定稿] 作为一家工程机构，我们如何做？
+[实时] enable that growth again
+[译文] 你记得吗，亚历克斯谈到了业务增长，以及客户和代理问题。
+[实时] enable that growth. Again,  [TTS] [TTS] [tts_worker] 合成遥测 id=6 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=184320 parts=12 peak=0.5920 rms_dbfs=-19.4 nan_inf=0 cb_delta=186 read_delta=188928 underflow_delta=2 ring=15360/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=16.913 s ⇒ speed=1.1000
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0000（r_recent=1.014 ⇒ 1/r=0.9861；合成跟不上 ⇒ 不抽空缓冲）
+[实时] enable that growth. Again, we are the
+[译文] 从边缘和物理层面来看，因此本幻灯片的目的是在页面上描述我们的策略。
+  [TTS] [TTS] [tts_worker] 遥测 id=6 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=184320 parts=12 peak=0.5920 rms_dbfs=-19.4 nan_inf=0 cb_delta=201 read_delta=204288 underflow_delta=2 ring=0/72000 consumed=True
+  [TTS] [TTS] 遥测 id=6 peak=0.592012 rms_dbfs=-19.39 read_delta=204288 consumed=True
+  [TTS] [TTS] 首包分段 id=7：排队 0.000 s + 合成 0.648 s
+[实时] enable that growth. Again, we are the scale function  [TTS] [TTS] [tts_worker] 合成遥测 id=7 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=17280 parts=2 peak=0.6035 rms_dbfs=-19.0 nan_inf=0 cb_delta=19 read_delta=18432 underflow_delta=1 ring=14208/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=4.308 s ⇒ speed=1.0327
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.0327 ⇒ 1.0000（r_recent=1.025 ⇒ 1/r=0.9754；合成跟不上 ⇒ 不抽空缓冲）
+[实时] enable that growth. Again, we are the scale function that will drive  [TTS] [TTS] [tts_worker] 遥测 id=7 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=17280 parts=2 peak=0.6035 rms_dbfs=-19.0 nan_inf=0 cb_delta=33 read_delta=32640 underflow_delta=2 ring=0/72000 consumed=True
+  [TTS] [TTS] 遥测 id=7 peak=0.603516 rms_dbfs=-18.97 read_delta=32640 consumed=True
+  [TTS] [TTS] 首包分段 id=8：排队 0.000 s + 合成 0.638 s
+[实时] enable that growth. Again, we are the scale function that will drive growth for[实时] able that growth. Again, we are the scale function that will drive growth for all of these[实时] . Again, we are the scale function that will drive growth for all of these business units.
+[定稿] enable that growth. Again, we are the scale function that will drive growth for all of these business units.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] So the way it looks
+[译文] 作为一家工程机构，我们如何推动这种发展。
+[实时] So the way to look at it is
+[译文] 再次强调，我们就是那个将推动所有业务单元发展的增长引擎。
+[实时] So the way to look at a simplified stack[实时] So the way to look at a simplified stack is just just[实时] So the way to look at a simplified stack is just meant to describe  [TTS] [TTS] [tts_worker] 合成遥测 id=8 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=138240 parts=9 peak=0.5239 rms_dbfs=-20.4 nan_inf=0 cb_delta=140 read_delta=138112 underflow_delta=6 ring=14336/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=10.258 s ⇒ speed=1.1000
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0000（r_recent=1.024 ⇒ 1/r=0.9767；合成跟不上 ⇒ 不抽空缓冲）
+  [TTS] [TTS] 首包分段 id=9：排队 0.000 s + 合成 0.415 s
+  [TTS] [TTS] [tts_worker] 遥测 id=8 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=138240 parts=9 peak=0.5239 rms_dbfs=-20.4 nan_inf=0 cb_delta=154 read_delta=152448 underflow_delta=6 ring=15360/72000 consumed=True
+  [TTS] [TTS] 遥测 id=8 peak=0.523947 rms_dbfs=-20.4 read_delta=152448 consumed=True
+[实时] So the way to look at a simplified stack is just meant to describe what are the[实时] o look at a simplified stack is just meant to describe what are the competitive advantages[实时]  look at a simplified stack is just meant to describe what are the competitive advantages.[实时] t a simplified stack is just meant to describe what are the competitive advantages and the
+[定稿] So the way to look at a simplified stack is just meant to describe what are the competitive advantages and the
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+
+[草稿·未定稿] 那个
+[实时] strategy[实时] strategy by which we
+[译文] 因此，对简化栈的理解方式只是为了说明其竞争优势是什么。
+[实时] strategy by which we will enable[实时] strategy by which we will enable our business  [TTS] [TTS] [tts_worker] 合成遥测 id=9 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=149760 parts=10 peak=0.5208 rms_dbfs=-17.6 nan_inf=0 cb_delta=145 read_delta=148480 underflow_delta=0 ring=15616/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=10.049 s ⇒ speed=1.1000
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0000（r_recent=1.028 ⇒ 1/r=0.9729；合成跟不上 ⇒ 不抽空缓冲）
+[实时] strategy by which we will enable our businesses to  [TTS] [TTS] 首包分段 id=10：排队 0.000 s + 合成 0.544 s
+[实时] strategy by which we will enable our businesses to grow.  [TTS] [TTS] [tts_worker] 遥测 id=9 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=149760 parts=10 peak=0.5208 rms_dbfs=-17.6 nan_inf=0 cb_delta=161 read_delta=164864 underflow_delta=0 ring=14592/72000 consumed=True
+  [TTS] [TTS] 遥测 id=9 peak=0.520804 rms_dbfs=-17.56 read_delta=164864 consumed=True
+[实时] strategy by which we will enable our businesses to grow. It'll[实时] strategy by which we will enable our businesses to grow. It'll guide our decisions[实时] strategy by which we will enable our businesses to grow. It'll guide our decision making.  [TTS] [TTS] [tts_worker] 合成遥测 id=10 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=78720 parts=6 peak=0.5264 rms_dbfs=-16.8 nan_inf=0 cb_delta=68 read_delta=69632 underflow_delta=0 ring=24704/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=12.970 s ⇒ speed=1.1000
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0000（r_recent=1.013 ⇒ 1/r=0.9869；合成跟不上 ⇒ 不抽空缓冲）
+[实时] we will enable our businesses to grow. It'll guide our decision making and our principles.
+[定稿] strategy by which we will enable our businesses to grow. It'll guide our decision making and our principles.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+  [TTS] [TTS] 首包分段 id=11：排队 0.000 s + 合成 0.625 s
+  [TTS] [TTS] [tts_worker] 遥测 id=10 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=78720 parts=6 peak=0.5264 rms_dbfs=-16.8 nan_inf=0 cb_delta=93 read_delta=95232 underflow_delta=0 ring=14464/72000 consumed=True
+  [TTS] [TTS] 遥测 id=10 peak=0.526367 rms_dbfs=-16.84 read_delta=95232 consumed=True
+
+[译文] 我们用来推动业务发展的策略。
+
+[译文] 它将指导我们的决策和原则。
+[实时] tools and then[实时] and then to simplify[实时] and it's a simplified view,[实时] and it's a simplified view, but one thing[实时] and it's a simplified view, but one thing that's very[实时] and it's a simplified view, but one thing that's very important to understand[实时] and it's a simplified view, but one thing that's very important to understand is, it  [TTS] [TTS] [tts_worker] 合成遥测 id=11 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=144000 parts=10 peak=0.5469 rms_dbfs=-19.1 nan_inf=0 cb_delta=137 read_delta=140288 underflow_delta=0 ring=28416/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=12.421 s ⇒ speed=1.1000
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0000（r_recent=1.003 ⇒ 1/r=0.9971；合成跟不上 ⇒ 不抽空缓冲）
+[实时] implified view, but one thing that's very important to understand is it's not an optimized  [TTS] [TTS] 首包分段 id=12：排队 0.000 s + 合成 0.493 s
+[实时] fied view, but one thing that's very important to understand is it's not an optimized view
+[定稿] and it's a simplified view, but one thing that's very important to understand is it's not an optimized view
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+  [TTS] [TTS] [tts_worker] 遥测 id=11 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=144000 parts=10 peak=0.5469 rms_dbfs=-19.1 nan_inf=0 cb_delta=165 read_delta=168960 underflow_delta=0 ring=30464/72000 consumed=True
+  [TTS] [TTS] 遥测 id=11 peak=0.546875 rms_dbfs=-19.1 read_delta=168960 consumed=True
+[实时] optimizing[实时] Optimizing one layer
+[草稿·未定稿] 这只是一个简化版视图，但有一点非常重要需要理解：它并非经过优化的视图。
+[实时] optimizing one layer above all[实时] optimizing one layer above all else[实时] optimizing one layer above all else. It's[实时] optimizing one layer above all else. It's looking at this  [TTS] [TTS] [tts_worker] 合成遥测 id=12 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=130560 parts=9 peak=0.5327 rms_dbfs=-17.2 nan_inf=0 cb_delta=123 read_delta=125952 underflow_delta=0 ring=33024/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=11.238 s ⇒ speed=1.1000
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0000（r_recent=1.003 ⇒ 1/r=0.9966；合成跟不上 ⇒ 不抽空缓冲）
+[实时] optimizing one layer above all else. It's looking at this whole stack and  [TTS] [TTS] 首包分段 id=13：排队 0.000 s + 合成 0.598 s
+[实时] optimizing one layer above all else. It's looking at this whole stack end to end.  [TTS] [TTS] [tts_worker] 遥测 id=12 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=130560 parts=9 peak=0.5327 rms_dbfs=-17.2 nan_inf=0 cb_delta=156 read_delta=159744 underflow_delta=0 ring=29952/72000 consumed=True
+  [TTS] [TTS] 遥测 id=12 peak=0.532657 rms_dbfs=-17.25 read_delta=159744 consumed=True
+[实时] ptimizing one layer above all else. It's looking at this whole stack end to end to bring a
+[定稿] optimizing one layer above all else. It's looking at this whole stack end to end to bring a
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+  [TTS] [TTS] [tts_worker] 合成遥测 id=13 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=67200 parts=5 peak=0.4834 rms_dbfs=-17.6 nan_inf=0 cb_delta=64 read_delta=65536 underflow_delta=0 ring=34688/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=13.988 s ⇒ speed=1.1000
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0051（r_recent=0.995 ⇒ 1/r=1.0051；合成跟不上 ⇒ 不抽空缓冲）
+[实时] platform
+[草稿·未定稿] 从整体上看这一整套系统，以带来……
+  [TTS] [TTS] 首包分段 id=14：排队 0.000 s + 合成 0.655 s
+[实时] Platform leadership
+[译文] 这只是一个简化版视图，但有一点非常重要需要理解：它并非经过优化的视图。
+  [TTS] [TTS] [tts_worker] 遥测 id=13 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=67200 parts=5 peak=0.4834 rms_dbfs=-17.6 nan_inf=0 cb_delta=98 read_delta=100352 underflow_delta=0 ring=28432/72000 consumed=True
+  [TTS] [TTS] 遥测 id=13 peak=0.483398 rms_dbfs=-17.56 read_delta=100352 consumed=True
+[实时] Platform leadership at scale
+[译文] 所有事物中的最上层。
+[实时] Platform leadership at scale with quality  [TTS] [TTS] [tts_worker] 合成遥测 id=14 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=55680 parts=4 peak=0.5176 rms_dbfs=-19.2 nan_inf=0 cb_delta=59 read_delta=60416 underflow_delta=0 ring=29712/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=3.709 s ⇒ speed=1.0177
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.0177 ⇒ 1.0000（r_recent=1.002 ⇒ 1/r=0.9979；合成跟不上 ⇒ 不抽空缓冲）
+[实时] Platform leadership at scale with quality and predictability  [TTS] [TTS] 首包分段 id=15：排队 0.000 s + 合成 0.409 s
+[实时] Platform leadership at scale with quality and predictable execution.  [TTS] [TTS] [tts_worker] 遥测 id=14 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=55680 parts=4 peak=0.5176 rms_dbfs=-19.2 nan_inf=0 cb_delta=89 read_delta=91136 underflow_delta=0 ring=29712/72000 consumed=True
+  [TTS] [TTS] 遥测 id=14 peak=0.517578 rms_dbfs=-19.25 read_delta=91136 consumed=True
+[实时] Platform leadership at scale with quality and predictable execution, like[实时] Platform leadership at scale with quality and predictable execution. Like as an example[实时] form leadership at scale with quality and predictable execution. Like as an example, as an[实时] rm leadership at scale with quality and predictable execution. Like as an example, Silicon
+[定稿] Platform leadership at scale with quality and predictable execution. Like as an example, Silicon
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+
+[草稿·未定稿] 例如，硅
+[实时] itself[实时] Itself about to solve
+[译文] 从整体层面审视这一整个体系，以实现具有质量与可预测性的大规模平台领导力。
+[实时] Itself about the software value to unlock
+[译文] 执行。
+[实时] Itself about the software value to unlock it.[实时] Itself about the software value to unlock it, it's not[实时] Itself about the software value to unlock it, it's not a good platform[实时] Itself about the software value to unlock it, it's not a good platform play.
+[定稿] Itself about the software value to unlock it, it's not a good platform play.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] Right  [TTS] [TTS] [tts_worker] 合成遥测 id=15 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=203520 parts=14 peak=0.4817 rms_dbfs=-19.9 nan_inf=0 cb_delta=207 read_delta=211968 underflow_delta=0 ring=21264/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=12.537 s ⇒ speed=1.1000
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0057（r_recent=0.994 ⇒ 1/r=1.0057；合成跟不上 ⇒ 不抽空缓冲）
+
+[译文] 例如，就软件价值而言，硅本身并不是一个理想的平台选择。
+[实时] Right, so Starling  [TTS] [TTS] 首包分段 id=16：排队 0.000 s + 合成 0.623 s
+[实时] Right, so starting at the bottom  [TTS] [TTS] [tts_worker] 遥测 id=15 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=203520 parts=14 peak=0.4817 rms_dbfs=-19.9 nan_inf=0 cb_delta=228 read_delta=233472 underflow_delta=0 ring=13200/72000 consumed=True
+  [TTS] [TTS] 遥测 id=15 peak=0.481689 rms_dbfs=-19.87 read_delta=233472 consumed=True
+[实时] Right, so starting at the bottom,  [TTS] [TTS] [tts_worker] 合成遥测 id=16 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=49920 parts=4 peak=0.4722 rms_dbfs=-17.8 nan_inf=0 cb_delta=43 read_delta=44032 underflow_delta=0 ring=26912/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=7.966 s ⇒ speed=1.1057
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1057 ⇒ 1.0252（r_recent=0.975 ⇒ 1/r=1.0252；合成跟不上 ⇒ 不抽空缓冲）
+[实时] Right, so starting at the bottom, process and  [TTS] [TTS] 首包分段 id=17：排队 0.000 s + 合成 0.608 s
+[实时] Right, so starting at the bottom, process and packaging  [TTS] [TTS] [tts_worker] 遥测 id=16 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=49920 parts=4 peak=0.4722 rms_dbfs=-17.8 nan_inf=0 cb_delta=70 read_delta=71680 underflow_delta=0 ring=27104/72000 consumed=True
+  [TTS] [TTS] 遥测 id=16 peak=0.472168 rms_dbfs=-17.84 read_delta=71680 consumed=True
+[实时] Right, so starting at the bottom, process and packaging are[实时] Right, so starting at the bottom, process and packaging, our strategy[实时] Right, so starting at the bottom, process and packaging, our strategy will[实时] Right, so starting at the bottom, process and packaging, our strategy will and has
+[定稿] Right, so starting at the bottom, process and packaging, our strategy will and has
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] has been[实时] has been to maximize
+[草稿·未定稿] 没错，从底部开始，即加工和包装环节，我们的策略过去和现在都是如此。
+[实时] has been to maximize the idm[实时] has been to maximize the idm advantage.[实时] has been to maximize the IDM advantage.[实时] has been to maximize the IDM advantage. So working close  [TTS] [TTS] [tts_worker] 合成遥测 id=17 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=186240 parts=13 peak=0.5298 rms_dbfs=-18.6 nan_inf=0 cb_delta=179 read_delta=183296 underflow_delta=0 ring=25776/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=15.629 s ⇒ speed=1.1252
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1252 ⇒ 1.0259（r_recent=0.975 ⇒ 1/r=1.0259；合成跟不上 ⇒ 不抽空缓冲）
+  [TTS] [TTS] 首包分段 id=18：排队 0.000 s + 合成 0.479 s
+[实时] has been to maximize the IDM advantage. So working closely with[实时] has been to maximize the IDM advantage. So working closely with TD,  [TTS] [TTS] [tts_worker] 合成遥测 id=18 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=26880 parts=2 peak=0.3293 rms_dbfs=-22.6 nan_inf=0 cb_delta=24 read_delta=24576 underflow_delta=0 ring=27840/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=12.121 s ⇒ speed=1.1259
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1259 ⇒ 1.0265（r_recent=0.974 ⇒ 1/r=1.0265；合成跟不上 ⇒ 不抽空缓冲）
+  [TTS] [TTS] [tts_worker] 遥测 id=17 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=186240 parts=13 peak=0.5298 rms_dbfs=-18.6 nan_inf=0 cb_delta=205 read_delta=209920 underflow_delta=0 ring=25792/72000 consumed=True
+  [TTS] [TTS] 遥测 id=17 peak=0.529785 rms_dbfs=-18.63 read_delta=209920 consumed=True
+[实时] has been to maximize the IDM advantage. So working closely with TD on how we can  [TTS] [TTS] 首包分段 id=19：排队 0.000 s + 合成 0.528 s
+  [TTS] [TTS] [tts_worker] 遥测 id=18 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=26880 parts=2 peak=0.3293 rms_dbfs=-22.6 nan_inf=0 cb_delta=52 read_delta=53248 underflow_delta=0 ring=27008/72000 consumed=True
+[实时] n to maximize the IDM advantage. So working closely with TD on how we can optimize the IDM  [TTS] [TTS] 遥测 id=18 peak=0.329346 rms_dbfs=-22.61 read_delta=53248 consumed=True
+[实时] mize the IDM advantage. So working closely with TD on how we can optimize for performance.[实时] antage. So working closely with TD on how we can optimize for performance, for performance
+[定稿] been to maximize the IDM advantage. So working closely with TD on how we can optimize for performance, for performance
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] cost
+[草稿·未定稿] 因此，我们与TD紧密合作，共同探讨如何优化性能。
+[实时] cost and for power  [TTS] [TTS] [tts_worker] 合成遥测 id=19 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=130560 parts=9 peak=0.5591 rms_dbfs=-17.3 nan_inf=0 cb_delta=124 read_delta=126976 underflow_delta=0 ring=28304/72000 consumed=-
+
+[译文] 没错，从底部开始，即加工和包装环节，我们的策略一直都是最大化IDM的优势。
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=3.634 s ⇒ speed=1.0265
+[实时] cost and for power, I would say[实时] cost and for power, I would say that's a  [TTS] [TTS] 首包分段 id=20：排队 0.000 s + 合成 0.612 s
+  [TTS] [TTS] [tts_worker] 遥测 id=19 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=130560 parts=9 peak=0.5591 rms_dbfs=-17.3 nan_inf=0 cb_delta=152 read_delta=155648 underflow_delta=0 ring=12352/72000 consumed=True
+  [TTS] [TTS] 遥测 id=19 peak=0.559082 rms_dbfs=-17.32 read_delta=155648 consumed=True
+[实时] cost and for power, I would say that's a strategy that's[实时] cost and for power, I would say that's a strategy that's well in motion[实时] cost and for power, I would say that's a strategy that's well in motion.[实时] cost and for power, I would say that's a strategy that's well in motion. If you look[实时] st and for power, I would say that's a strategy that's well in motion. If you look at all,
+[定稿] cost and for power, I would say that's a strategy that's well in motion. If you look at all,
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+
+[草稿·未定稿] 如果全部考虑进去的话，
+[实时] prqs[实时] The PRQs we
+[译文] 因此，我们与 TD密切合作，共同探讨如何优化性能、降低性能成本以及减少功耗。
+[实时] PRQs we did as an example
+[译文] 我认为这是一项正在顺利实施的策略。
+[实时] PRQs we did as an example back in[实时] PRQs we did as an example back in 24[实时] PRQs we did as an example back in 24, that was[实时] PRQs we did as an example back in 24, that was predominantly  [TTS] [TTS] [tts_worker] 合成遥测 id=20 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=190080 parts=13 peak=0.5623 rms_dbfs=-19.2 nan_inf=0 cb_delta=196 read_delta=191984 underflow_delta=11 ring=14912/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=5.600 s ⇒ speed=1.0650
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.0650 ⇒ 1.0142（r_recent=0.986 ⇒ 1/r=1.0142；合成跟不上 ⇒ 不抽空缓冲）
+[实时] PRQs we did as an example back in 24 that was predominantly external[实时] PRQs we did as an example back in 24 that was predominantly external silicon.  [TTS] [TTS] 首包分段 id=21：排队 0.000 s + 合成 0.547 s
+  [TTS] [TTS] [tts_worker] 遥测 id=20 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=190080 parts=13 peak=0.5623 rms_dbfs=-19.2 nan_inf=0 cb_delta=211 read_delta=207344 underflow_delta=11 ring=12992/72000 consumed=True
+  [TTS] [TTS] 遥测 id=20 peak=0.562293 rms_dbfs=-19.19 read_delta=207344 consumed=True
+[实时] PRQs we did as an example back in 24 that was predominantly external silicon. You
+[定稿] PRQs we did as an example back in 24 that was predominantly external silicon. You
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] Contrast
+[草稿·未定稿] 总的来说，我们早在24年时所做的PRQ项目，主要使用的是外部硅材料。
+[实时] Contrast that to what[实时] Contrast that to what we're going[实时] Contrast that to what we're going to do in[实时] Contrast that to what we're going to do in Hammerlick,[实时] Contrast that to what we're going to do in Hammerlick, and I[实时] Contrast that to what we're going to do in Hammerlick, and I'll show[实时] Contrast that to what we're going to do in Hammerlick, and I'll show on the roadmap[实时] trast that to what we're going to do in Hammerlick, and I'll show on the roadmap later on,  [TTS] [TTS] [tts_worker] 合成遥测 id=21 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=170880 parts=12 peak=0.5117 rms_dbfs=-18.7 nan_inf=0 cb_delta=168 read_delta=168528 underflow_delta=6 ring=15584/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=12.729 s ⇒ speed=1.1142
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1142 ⇒ 1.0115（r_recent=0.989 ⇒ 1/r=1.0115；合成跟不上 ⇒ 不抽空缓冲）
+  [TTS] [TTS] 首包分段 id=22：排队 0.000 s + 合成 0.406 s
+  [TTS] [TTS] [tts_worker] 遥测 id=21 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=170880 parts=12 peak=0.5117 rms_dbfs=-18.7 nan_inf=0 cb_delta=184 read_delta=184912 underflow_delta=6 ring=12640/72000 consumed=True
+  [TTS] [TTS] 遥测 id=21 peak=0.511719 rms_dbfs=-18.66 read_delta=184912 consumed=True
+[实时] at to what we're going to do in Hammerlick, and I'll show on the roadmap later on, where 1
+[定稿] Contrast that to what we're going to do in Hammerlick, and I'll show on the roadmap later on, where 100% internal silicon
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+
+[译文] 总的来说，我们早在24年时所做的PRQ项目主要使用的是外部硅材料。
+[实时] And that's a fun  [TTS] [TTS] [tts_worker] 合成遥测 id=22 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=72960 parts=5 peak=0.4685 rms_dbfs=-19.1 nan_inf=0 cb_delta=71 read_delta=72704 underflow_delta=0 ring=15600/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=2.973 s ⇒ speed=1.0115
+[实时] And that's a function of where  [TTS] [TTS] 首包分段 id=23：排队 0.000 s + 合成 0.659 s
+  [TTS] [TTS] [tts_worker] 遥测 id=22 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=72960 parts=5 peak=0.4685 rms_dbfs=-19.1 nan_inf=0 cb_delta=87 read_delta=89088 underflow_delta=0 ring=12656/72000 consumed=True
+  [TTS] [TTS] 遥测 id=22 peak=0.468506 rms_dbfs=-19.14 read_delta=89088 consumed=True
+
+[译文] 这与我们在哈默利克将要做的事情形成对比，我稍后会在这张路线图上说明。
+[实时] And that's a function of working with working
+[译文] 其中100%为内部硅材料
+[实时] And that's a function of working with Intel Foundry.[实时] And that's a function of working with Intel Foundry on progress[实时] And that's a function of working with Intel Foundry on progressing a[实时] And that's a function of working with Intel Foundry on progressing 18a[实时] And that's a function of working with Intel Foundry on progressing 18a, 1
+[定稿] And that's a function of working with Intel Foundry on progressing 18a, 18ap
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] until[实时] Until three
+[草稿·未定稿] 这得益于与英特尔代工公司在 18a、18ap项目中的合作。
+[实时] until three on yield[实时] 3 until 3 on yield performance  [TTS] [TTS] [tts_worker] 合成遥测 id=23 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=155520 parts=11 peak=0.5146 rms_dbfs=-19.0 nan_inf=0 cb_delta=163 read_delta=155840 underflow_delta=15 ring=13840/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=9.952 s ⇒ speed=1.1115
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1115 ⇒ 1.0181（r_recent=0.982 ⇒ 1/r=1.0181；合成跟不上 ⇒ 不抽空缓冲）
+[实时] 3 until 3 on yield, performance and power  [TTS] [TTS] 首包分段 id=24：排队 0.000 s + 合成 0.440 s
+  [TTS] [TTS] [tts_worker] 遥测 id=23 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=155520 parts=11 peak=0.5146 rms_dbfs=-19.0 nan_inf=0 cb_delta=177 read_delta=170176 underflow_delta=15 ring=12944/72000 consumed=True
+  [TTS] [TTS] 遥测 id=23 peak=0.514648 rms_dbfs=-19.01 read_delta=170176 consumed=True
+[实时] 3 until 3 on yield, performance and power.[实时] 3 until 3 on yield, performance and power. That does not[实时] 3 until 3 on yield, performance and power. That does not mean we we[实时] 3 until 3 on yield, performance and power. That does not mean we want yield, performance[实时] 3 until 3 on yield, performance and power. That does not mean we won't use excellence
+[定稿] 3 until 3 on yield, performance and power. That does not mean we won't use excellence
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+
+[草稿·未定稿] 但这并不意味着我们不会追求卓越
+[实时] external[实时] external options[实时] External options where we
+[译文] 这得益于与Intel Foundry合作，逐步将18a、18ap 3的性能提升至3，从而提高产量。
+
+[译文] 性能与功率。
+[实时] External options where we got to augment[实时] External options where we gotta augment our business.  [TTS] [TTS] [tts_worker] 合成遥测 id=24 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=157440 parts=11 peak=0.5339 rms_dbfs=-17.8 nan_inf=0 cb_delta=158 read_delta=152640 underflow_delta=10 ring=16000/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=16.678 s ⇒ speed=1.1181
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1181 ⇒ 1.0000（r_recent=1.001 ⇒ 1/r=0.9994；合成跟不上 ⇒ 不抽空缓冲）
+  [TTS] [TTS] 首包分段 id=25：排队 0.000 s + 合成 0.452 s
+[实时] External options where we gotta augment our business. That  [TTS] [TTS] [tts_worker] 遥测 id=24 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=157440 parts=11 peak=0.5339 rms_dbfs=-17.8 nan_inf=0 cb_delta=174 read_delta=169024 underflow_delta=10 ring=14976/72000 consumed=True
+  [TTS] [TTS] 遥测 id=24 peak=0.533872 rms_dbfs=-17.76 read_delta=169024 consumed=True
+[实时] External options where we gotta augment our business. That could be in[实时] External options where we gotta augment our business. That could be in situations like[实时] rnal options where we gotta augment our business. That could be in situations like chipset  [TTS] [TTS] [tts_worker] 合成遥测 id=25 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=76800 parts=5 peak=0.6631 rms_dbfs=-19.7 nan_inf=0 cb_delta=64 read_delta=65536 underflow_delta=0 ring=27264/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=6.600 s ⇒ speed=1.0900
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.0900 ⇒ 1.0171（r_recent=0.983 ⇒ 1/r=1.0171；合成跟不上 ⇒ 不抽空缓冲）
+  [TTS] [TTS] 首包分段 id=26：排队 0.000 s + 合成 0.487 s
+[实时] ns where we gotta augment our business. That could be in situations like chipsets where we[实时] nt our business. That could be in situations like chipsets where we use Samsung technology  [TTS] [TTS] [tts_worker] 遥测 id=25 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=76800 parts=5 peak=0.6631 rms_dbfs=-19.7 nan_inf=0 cb_delta=91 read_delta=93184 underflow_delta=0 ring=28176/72000 consumed=True
+  [TTS] [TTS] 遥测 id=25 peak=0.663086 rms_dbfs=-19.69 read_delta=93184 consumed=True
+[实时] ur business. That could be in situations like chipsets where we use Samsung technology, or[实时] iness. That could be in situations like chipsets where we use Samsung technology or Wi-Fi.
+[定稿] External options where we gotta augment our business. That could be in situations like chipsets where we use Samsung technology or Wi-Fi.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] Or if we need
+[译文] 但这并不意味着我们不会利用优秀的外部资源来加强我们的业务。
+[实时] or if we need to do a[实时] or if we need to do a dual drive
+[译文] 这种情况可能出现在那些使用三星技术的芯片组或 Wi-Fi 设备中。
+[实时] or if we need to do a dual drive because we have[实时] or if we need to do a dual drive because we have limitations.[实时] or if we need to do a dual drive because we have limitations, but prime[实时] or if we need to do a dual drive because we have limitations, but primary strategy  [TTS] [TTS] [tts_worker] 合成遥测 id=26 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=197760 parts=13 peak=0.5249 rms_dbfs=-19.5 nan_inf=0 cb_delta=198 read_delta=202752 underflow_delta=0 ring=19632/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=15.068 s ⇒ speed=1.1171
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1171 ⇒ 1.0000（r_recent=1.001 ⇒ 1/r=0.9991；合成跟不上 ⇒ 不抽空缓冲）
+[实时] or if we need to do a dual drive because we have limitations, but primary strategy is idm  [TTS] [TTS] 首包分段 id=27：排队 0.000 s + 合成 0.570 s
+  [TTS] [TTS] [tts_worker] 遥测 id=26 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=197760 parts=13 peak=0.5249 rms_dbfs=-19.5 nan_inf=0 cb_delta=218 read_delta=223232 underflow_delta=0 ring=14512/72000 consumed=True
+  [TTS] [TTS] 遥测 id=26 peak=0.524902 rms_dbfs=-19.5 read_delta=223232 consumed=True
+[实时] need to do a dual drive because we have limitations, but primary strategy is idm advantage
+[定稿] or if we need to do a dual drive because we have limitations, but primary strategy is idm advantage
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+  [TTS] [TTS] [tts_worker] 合成遥测 id=27 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=42240 parts=3 peak=0.4827 rms_dbfs=-17.9 nan_inf=0 cb_delta=42 read_delta=43008 underflow_delta=0 ring=18864/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=7.944 s ⇒ speed=1.1000
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0000（r_recent=1.005 ⇒ 1/r=0.9947；合成跟不上 ⇒ 不抽空缓冲）
+[实时] Leverage  [TTS] [TTS] 首包分段 id=28：排队 0.000 s + 合成 0.669 s
+  [TTS] [TTS] [tts_worker] 遥测 id=27 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=42240 parts=3 peak=0.4827 rms_dbfs=-17.9 nan_inf=0 cb_delta=61 read_delta=62464 underflow_delta=0 ring=14768/72000 consumed=True
+  [TTS] [TTS] 遥测 id=27 peak=0.482666 rms_dbfs=-17.91 read_delta=62464 consumed=True
+[实时] Leverage that
+[草稿·未定稿] 或者，由于存在限制，我们可能需要采用双驱动策略，但主要策略还是以 IDM 优势为主。
+[实时] Leverage that, good for[实时] Leverage that good for good for[实时] Leverage that good for us, good for us[实时] Leverage that good for good for us, good for Intel.[实时] Leverage that good for good for us, good for Intel. Sitting about that[实时] Leverage that good for good for us, good for Intel. Sitting above that then is Silicon  [TTS] [TTS] [tts_worker] 合成遥测 id=28 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=138240 parts=9 peak=0.5072 rms_dbfs=-18.2 nan_inf=0 cb_delta=129 read_delta=132096 underflow_delta=0 ring=25008/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=13.467 s ⇒ speed=1.1000
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0073（r_recent=0.993 ⇒ 1/r=1.0073；合成跟不上 ⇒ 不抽空缓冲）
+[实时] rage that good for good for us, good for Intel. Sitting above that then a silicon roadmap.
+[定稿] Leverage that good for good for us, good for Intel. Sitting above that then a silicon roadmap.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+  [TTS] [TTS] 首包分段 id=29：排队 0.000 s + 合成 0.664 s
+[实时] job  [TTS] [TTS] [tts_worker] 遥测 id=28 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=138240 parts=9 peak=0.5072 rms_dbfs=-18.2 nan_inf=0 cb_delta=154 read_delta=157696 underflow_delta=0 ring=12848/72000 consumed=True
+  [TTS] [TTS] 遥测 id=28 peak=0.507196 rms_dbfs=-18.2 read_delta=157696 consumed=True
+
+[译文] 或者，如果由于某些限制，我们需要使用双驱动装置的话。
+[实时] Job there is simple[实时] Job there is simple, deliver
+[译文] 但主要策略是利用 IDM 优势，将这一优势转化为对我们的好处，也对英特尔有利。
+[实时] Job there is simple. Deliver leadership.
+[译文] 在其上方则是一个硅芯片路线图。
+[实时] Job there is simple. Deliver leadership. Silicon[实时] Job there is simple, deliver leadership, silicon, ip[实时] Job there is simple, deliver leadership, silicon, ip, so[实时] Job there is simple, deliver leadership, silicon, ip, soc at[实时] Job there is simple, deliver leadership, silicon, ip, soc at scale.  [TTS] [TTS] [tts_worker] 合成遥测 id=29 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=138240 parts=9 peak=0.5058 rms_dbfs=-18.7 nan_inf=0 cb_delta=143 read_delta=145008 underflow_delta=2 ring=17520/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=6.766 s ⇒ speed=1.0941
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.0941 ⇒ 1.0007（r_recent=0.999 ⇒ 1/r=1.0007；合成跟不上 ⇒ 不抽空缓冲）
+[实时] Job there is simple, deliver leadership, silicon, ip, soc at scale, right?
+[定稿] Job there is simple, deliver leadership, silicon, ip, soc at scale, right?
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+  [TTS] [TTS] 首包分段 id=30：排队 0.000 s + 合成 0.627 s
+  [TTS] [TTS] [tts_worker] 遥测 id=29 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=138240 parts=9 peak=0.5058 rms_dbfs=-18.7 nan_inf=0 cb_delta=161 read_delta=163440 underflow_delta=2 ring=12528/72000 consumed=True
+  [TTS] [TTS] 遥测 id=29 peak=0.505841 rms_dbfs=-18.7 read_delta=163440 consumed=True
+[实时] and[实时] And a scale
+[译文] 那里的工作很简单，就是提供领导力、硅芯片、IP和soc产品的大规模供应，对吧？
+[实时] And the scale is very important[实时] And the scale is very important. We see[实时] And the scale is very important. We see the benefit.[实时] And the scale is very important. We see the benefit of that today.  [TTS] [TTS] [tts_worker] 合成遥测 id=30 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=122880 parts=8 peak=0.6714 rms_dbfs=-18.6 nan_inf=0 cb_delta=114 read_delta=115408 underflow_delta=2 ring=25232/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=11.639 s ⇒ speed=1.1007
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1007 ⇒ 1.0072（r_recent=0.993 ⇒ 1/r=1.0072；合成跟不上 ⇒ 不抽空缓冲）
+  [TTS] [TTS] 首包分段 id=31：排队 0.000 s + 合成 0.424 s
+[实时] And the scale is very important. We see the benefit of that today, even in our  [TTS] [TTS] [tts_worker] 遥测 id=30 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=122880 parts=8 peak=0.6714 rms_dbfs=-18.6 nan_inf=0 cb_delta=139 read_delta=141008 underflow_delta=2 ring=13072/72000 consumed=True
+  [TTS] [TTS] 遥测 id=30 peak=0.671387 rms_dbfs=-18.55 read_delta=141008 consumed=True
+[实时] ale is very important. We see the benefit of that today, even in our traditional business.[实时] portant. We see the benefit of that today, even in our traditional business, where all our[实时] ortant. We see the benefit of that today, even in our traditional business where OEMs love[实时] see the benefit of that today, even in our traditional business where OEMs love the scale.
+[定稿] And the scale is very important. We see the benefit of that today, even in our traditional business where OEMs love the scale.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+
+[译文] 而且规模非常重要。
+[实时] and[实时] Scale and compatibility[实时] Scale and compatibility from multiple
+[译文] 今天我们就能看到其好处，甚至在我们传统的业务领域也是如此，因为OEM厂商非常喜欢这种规模效应。
+[实时] Scale and compatibility for multiple generations[实时] Scale and compatibility for multiple generations, and a lot[实时] Scale and compatibility for multiple generations, and a lot of what we  [TTS] [TTS] [tts_worker] 合成遥测 id=31 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=172800 parts=12 peak=0.4788 rms_dbfs=-19.6 nan_inf=0 cb_delta=173 read_delta=177152 underflow_delta=0 ring=20160/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=18.988 s ⇒ speed=1.1072
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1072 ⇒ 1.0143（r_recent=0.986 ⇒ 1/r=1.0143；合成跟不上 ⇒ 不抽空缓冲）
+  [TTS] [TTS] 首包分段 id=32：排队 0.000 s + 合成 0.518 s
+[实时] Scale and compatibility for multiple generations, and a lot of what we're building towards  [TTS] [TTS] [tts_worker] 遥测 id=31 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=172800 parts=12 peak=0.4788 rms_dbfs=-19.6 nan_inf=0 cb_delta=193 read_delta=197632 underflow_delta=0 ring=13120/72000 consumed=True
+  [TTS] [TTS] 遥测 id=31 peak=0.478777 rms_dbfs=-19.57 read_delta=197632 consumed=True
+[实时] atibility for multiple generations, and a lot of what we're building towards the future at[实时] ltiple generations, and a lot of what we're building towards the future at a silicon level  [TTS] [TTS] [tts_worker] 合成遥测 id=32 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=80640 parts=6 peak=0.5933 rms_dbfs=-17.3 nan_inf=0 cb_delta=69 read_delta=70656 underflow_delta=0 ring=29424/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=15.530 s ⇒ speed=1.1143
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1143 ⇒ 1.0341（r_recent=0.967 ⇒ 1/r=1.0341；合成跟不上 ⇒ 不抽空缓冲）
+[实时] erations, and a lot of what we're building towards the future at a silicon level will be a[实时] a lot of what we're building towards the future at a silicon level will be a scale up type  [TTS] [TTS] 首包分段 id=33：排队 0.000 s + 合成 0.581 s
+
+[定稿] and compatibility for multiple generations, and a lot of what we're building towards the future at a silicon level will be a scale up type of
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+
+[草稿·未定稿] 属于规模扩展型
+  [TTS] [TTS] [tts_worker] 遥测 id=32 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=80640 parts=6 peak=0.5933 rms_dbfs=-17.3 nan_inf=0 cb_delta=98 read_delta=100352 underflow_delta=0 ring=27568/72000 consumed=True
+  [TTS] [TTS] 遥测 id=32 peak=0.593262 rms_dbfs=-17.26 read_delta=100352 consumed=True
+[实时] discussion[实时] discussion. Very successful
+[译文] 以及多代之间的兼容性，我们正在硅层面为未来所构建的许多东西都与此相关
+[实时] discussion. Very successful execution[实时] Discussion. Very successful execution and pantret[实时] Discussion. Very successful execution on Pantherlick and Wildc[实时] Discussion. Very successful execution on Pantherlick and Wildcat[实时] Discussion. Very successful execution on Pantherlick and Wildcat and Novell[实时] Discussion. Very successful execution on Pantherlick and Wildcat and Novellik on a[实时] ry successful execution on Pantherlick and Wildcat and Novellik on a base derivative model
+[定稿] Discussion. Very successful execution on Pantherlick and Wildcat and Novellik on a base derivative model
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] So[实时] We need to continue
+[草稿·未定稿] 在Pantherlick、Wildcat和Novellik基础衍生模型上取得了非常成功的成果
+
+[译文] 属于一种扩展型讨论方式。
+  [TTS] [TTS] [tts_worker] 合成遥测 id=33 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=201600 parts=14 peak=0.5132 rms_dbfs=-19.0 nan_inf=0 cb_delta=211 read_delta=210704 underflow_delta=6 ring=13840/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=16.837 s ⇒ speed=1.1341
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1341 ⇒ 1.0049（r_recent=0.995 ⇒ 1/r=1.0049；合成跟不上 ⇒ 不抽空缓冲）
+[实时] We need to continue to do that[实时] We need to continue to do that because it allows  [TTS] [TTS] 首包分段 id=34：排队 0.000 s + 合成 0.517 s
+  [TTS] [TTS] [tts_worker] 遥测 id=33 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=201600 parts=14 peak=0.5132 rms_dbfs=-19.0 nan_inf=0 cb_delta=225 read_delta=225040 underflow_delta=6 ring=12944/72000 consumed=True
+  [TTS] [TTS] 遥测 id=33 peak=0.513184 rms_dbfs=-18.97 read_delta=225040 consumed=True
+[实时] We need to continue to do that because it allows us to address  [TTS] [TTS] [tts_worker] 合成遥测 id=34 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=49920 parts=4 peak=0.5161 rms_dbfs=-17.4 nan_inf=0 cb_delta=40 read_delta=40960 underflow_delta=0 ring=22560/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=18.573 s ⇒ speed=1.1049
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1049 ⇒ 1.0299（r_recent=0.971 ⇒ 1/r=1.0299；合成跟不上 ⇒ 不抽空缓冲）
+[实时] We need to continue to do that because it allows us to address multiple  [TTS] [TTS] 首包分段 id=35：排队 0.000 s + 合成 0.622 s
+[实时] We need to continue to do that because it allows us to address multiple segments.  [TTS] [TTS] [tts_worker] 遥测 id=34 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=49920 parts=4 peak=0.5161 rms_dbfs=-17.4 nan_inf=0 cb_delta=63 read_delta=64512 underflow_delta=0 ring=12448/72000 consumed=True
+  [TTS] [TTS] 遥测 id=34 peak=0.516113 rms_dbfs=-17.36 read_delta=64512 consumed=True
+[实时] continue to do that because it allows us to address multiple segments in multiple segments[实时] ontinue to do that because it allows us to address multiple segments in the most efficient[实时]  do that because it allows us to address multiple segments in the most efficient schedule.
+[定稿] We need to continue to do that because it allows us to address multiple segments in the most efficient schedule.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] a[实时] costs and optics
+[译文] 在Pantherlick、Wildcat和Novellik基础衍生模型上取得了非常成功的成果，我们仍需继续努力。
+[实时] costs and opex. I[实时] costs and opex. I'll actually show
+[译文] 因为它使我们能够以最高效的安排方式处理多个部分。
+[实时] costs and opex. I'll actually show you guys a[实时] costs and opex. I'll actually show you guys a visual of Nov[实时] costs and opex. I'll actually show you guys a visual of Novellik later[实时] costs and opex. I'll actually show you guys a visual of Novellik later on and the[实时]  opex. I'll actually show you guys a visual of Novellik later on and the entire skew stack  [TTS] [TTS] [tts_worker] 合成遥测 id=35 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=213120 parts=14 peak=0.4871 rms_dbfs=-18.8 nan_inf=0 cb_delta=216 read_delta=212688 underflow_delta=10 ring=17232/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=20.076 s ⇒ speed=1.1299
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1299 ⇒ 1.0263（r_recent=0.974 ⇒ 1/r=1.0263；合成跟不上 ⇒ 不抽空缓冲）
+[实时] lly show you guys a visual of Novellik later on and the entire skew stack we're delivering
+[定稿] costs and opex. I'll actually show you guys a visual of Novellik later on and the entire skew stack we're delivering.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+  [TTS] [TTS] 首包分段 id=36：排队 0.000 s + 合成 0.631 s
+  [TTS] [TTS] [tts_worker] 遥测 id=35 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=213120 parts=14 peak=0.4871 rms_dbfs=-18.8 nan_inf=0 cb_delta=233 read_delta=230096 underflow_delta=10 ring=13264/72000 consumed=True
+  [TTS] [TTS] 遥测 id=35 peak=0.487061 rms_dbfs=-18.83 read_delta=230096 consumed=True
+
+[译文] 成本和运营费用。
+[实时] through the small[实时] Through this model
+[译文] 稍后我会给大家展示一个Novellik的可视化画面，以及我们提供的整个Skew Stack。
+[实时] through this model, software I[实时] through this model, software I want to release[实时] through this model, software I want to steal Lisa's thunder[实时] through this model, software I want to deal Lisa Thunder. She'll come[实时] through this model, software I want to deal Lisa Thunder, she'll come and talk about[实时] this model, software I want to deal Lisa Thunder, she'll come and talk about the degree of[实时] l, software I want to deal Lisa Thunder, she'll come and talk about the degree of software[实时] e I want to deal Lisa Thunder, she'll come and talk about the degree of software verticals  [TTS] [TTS] [tts_worker] 合成遥测 id=36 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=153600 parts=10 peak=0.5142 rms_dbfs=-18.3 nan_inf=0 cb_delta=150 read_delta=146992 underflow_delta=9 ring=20000/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=20.078 s ⇒ speed=1.1263
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1263 ⇒ 1.0209（r_recent=0.979 ⇒ 1/r=1.0209；合成跟不上 ⇒ 不抽空缓冲）
+
+[定稿] through this model, software I want to deal Lisa Thunder, she'll come and talk about the degree of software verticals
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+  [TTS] [TTS] 首包分段 id=37：排队 0.000 s + 合成 0.654 s
+  [TTS] [TTS] [tts_worker] 遥测 id=36 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=153600 parts=10 peak=0.5142 rms_dbfs=-18.3 nan_inf=0 cb_delta=170 read_delta=167472 underflow_delta=9 ring=12960/72000 consumed=True
+  [TTS] [TTS] 遥测 id=36 peak=0.51416 rms_dbfs=-18.27 read_delta=167472 consumed=True
+[实时] We need to go
+[草稿·未定稿] 通过这个模型，我想要处理的软件是Lisa Thunder，她会来谈论软件垂直领域的程度问题
+[实时] We need to go support[实时] We need to go support, but[实时] We need to go support both open ecosystems[实时] We need to go support both open ecosystem and our  [TTS] [TTS] [tts_worker] 合成遥测 id=37 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=71040 parts=5 peak=0.4720 rms_dbfs=-19.6 nan_inf=0 cb_delta=73 read_delta=73920 underflow_delta=2 ring=15920/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=16.783 s ⇒ speed=1.1209
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1209 ⇒ 1.0218（r_recent=0.979 ⇒ 1/r=1.0218；合成跟不上 ⇒ 不抽空缓冲）
+[实时] We need to go support both open ecosystem and our traditional on  [TTS] [TTS] 首包分段 id=38：排队 0.000 s + 合成 0.467 s
+  [TTS] [TTS] [tts_worker] 遥测 id=37 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=71040 parts=5 peak=0.4720 rms_dbfs=-19.6 nan_inf=0 cb_delta=89 read_delta=90304 underflow_delta=2 ring=12976/72000 consumed=True
+  [TTS] [TTS] 遥测 id=37 peak=0.471954 rms_dbfs=-19.65 read_delta=90304 consumed=True
+[实时] We need to go support both open ecosystem and our traditional OS partners.[实时] We need to go support both open ecosystem and our traditional OS partners, references.[实时] need to go support both open ecosystem and our traditional OS partners, reference designs.
+[定稿] We need to go support both open ecosystem and our traditional OS partners, reference designs.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] Are we bring
+[译文] 通过这个模型，我想要处理的软件是Lisa Thunder，她会来谈论软件垂直领域的程度问题
+[实时] How we bring leadership, reference[实时] How we bring leadership, reference, design
+[译文] 我们需要去支持开放生态系统以及我们的传统操作系统合作伙伴，并参考相关设计。
+[实时] How we bring leadership reference designs to market[实时] How we bring leadership reference designs to market that allow us to[实时] How we bring leadership reference designs to market that allow our customers to[实时] ow we bring leadership reference designs to market that allow our customers to innovate on  [TTS] [TTS] [tts_worker] 合成遥测 id=38 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=192000 parts=13 peak=0.6441 rms_dbfs=-18.3 nan_inf=0 cb_delta=191 read_delta=187312 underflow_delta=9 ring=16528/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=24.929 s ⇒ speed=1.1218
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1218 ⇒ 1.0126（r_recent=0.988 ⇒ 1/r=1.0126；合成跟不上 ⇒ 不抽空缓冲）
+  [TTS] [TTS] 首包分段 id=39：排队 0.000 s + 合成 0.403 s
+  [TTS] [TTS] [tts_worker] 遥测 id=38 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=192000 parts=13 peak=0.6441 rms_dbfs=-18.3 nan_inf=0 cb_delta=208 read_delta=204720 underflow_delta=9 ring=12560/72000 consumed=True
+  [TTS] [TTS] 遥测 id=38 peak=0.644092 rms_dbfs=-18.34 read_delta=204720 consumed=True
+[实时] eadership reference designs to market that allow our customers to innovate on form factor.
+[定稿] How we bring leadership reference designs to market that allow our customers to innovate on form factor.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] and technology
+[译文] 我们如何将领导力参考设计推向市场，让客户能够在形态方面进行创新。
+[实时] and technology, and then[实时] and technology and then really using  [TTS] [TTS] [tts_worker] 合成遥测 id=39 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=107520 parts=7 peak=0.4199 rms_dbfs=-20.1 nan_inf=0 cb_delta=100 read_delta=102400 underflow_delta=0 ring=20688/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=22.798 s ⇒ speed=1.1126
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1126 ⇒ 1.0221（r_recent=0.978 ⇒ 1/r=1.0221；合成跟不上 ⇒ 不抽空缓冲）
+[实时] and technology, and then really using our customer  [TTS] [TTS] 首包分段 id=40：排队 0.000 s + 合成 0.402 s
+  [TTS] [TTS] [tts_worker] 遥测 id=39 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=107520 parts=7 peak=0.4199 rms_dbfs=-20.1 nan_inf=0 cb_delta=121 read_delta=123904 underflow_delta=0 ring=12624/72000 consumed=True
+  [TTS] [TTS] 遥测 id=39 peak=0.419922 rms_dbfs=-20.08 read_delta=123904 consumed=True
+[实时] and technology, and then really using our customer enabling as a[实时] and technology, and then really using our customer enabling as a competitive  [TTS] [TTS] [tts_worker] 合成遥测 id=40 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=46080 parts=3 peak=0.5361 rms_dbfs=-17.5 nan_inf=0 cb_delta=36 read_delta=36864 underflow_delta=0 ring=29184/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=24.357 s ⇒ speed=1.1221
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1221 ⇒ 1.0319（r_recent=0.969 ⇒ 1/r=1.0319；合成跟不上 ⇒ 不抽空缓冲）
+[实时] and technology, and then really using our customer enabling as a competitive advantage.  [TTS] [TTS] 首包分段 id=41：排队 0.000 s + 合成 0.503 s
+[实时] ology, and then really using our customer enabling as a competitive advantage, which we do  [TTS] [TTS] [tts_worker] 遥测 id=40 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=46080 parts=3 peak=0.5361 rms_dbfs=-17.5 nan_inf=0 cb_delta=65 read_delta=66560 underflow_delta=0 ring=27328/72000 consumed=True
+  [TTS] [TTS] 遥测 id=40 peak=0.536133 rms_dbfs=-17.49 read_delta=66560 consumed=True
+[实时] and then really using our customer enabling as a competitive advantage, which we do today.[实时] really using our customer enabling as a competitive advantage, which we do today, bringing
+[定稿] and technology, and then really using our customer enabling as a competitive advantage, which we do today, bringing
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] all of that[实时] All of that together,
+[草稿·未定稿] 以及技术，然后真正将客户赋能作为我们的竞争优势，这正是我们如今正在做的，带来
+[实时] all of that together to ensure we can[实时] all of that together to ensure we can transition[实时] all of that together to ensure we can transition all of the[实时] all of that together to ensure we can transition all of the collaterals[实时] all of that together to ensure we can transition all of the collaterals we have  [TTS] [TTS] [tts_worker] 合成遥测 id=41 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=167040 parts=11 peak=0.5142 rms_dbfs=-19.0 nan_inf=0 cb_delta=161 read_delta=164864 underflow_delta=0 ring=26320/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=18.409 s ⇒ speed=1.1319
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1319 ⇒ 1.0437（r_recent=0.958 ⇒ 1/r=1.0437；合成跟不上 ⇒ 不抽空缓冲）
+[实时] all of that together to ensure we can transition all of the collaterals we have over to  [TTS] [TTS] 首包分段 id=42：排队 0.000 s + 合成 0.539 s
+  [TTS] [TTS] [tts_worker] 遥测 id=41 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=167040 parts=11 peak=0.5142 rms_dbfs=-19.0 nan_inf=0 cb_delta=187 read_delta=191488 underflow_delta=0 ring=27536/72000 consumed=True
+  [TTS] [TTS] 遥测 id=41 peak=0.51416 rms_dbfs=-18.96 read_delta=191488 consumed=True
+[实时] her to ensure we can transition all of the collaterals we have over to customers building.[实时] re we can transition all of the collaterals we have over to customers building leadership.
+[定稿] all of that together to ensure we can transition all of the collaterals we have over to customers building leadership.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] platforms[实时] platforms. So
+[译文] 以及技术，然后真正将客户赋能作为我们的竞争优势来运用，这正是我们如今正在做的。
+[实时] platforms. So this is our
+[译文] 将所有这些因素综合起来，以确保我们能够将所有的辅助资产转移给客户使用
+
+[译文] 领导力。
+[实时] platforms. So this is our strategy.[实时] platforms. So this is our strategy. We will always[实时] platforms. So this is our strategy. We will always keep this in[实时] platforms. So this is our strategy. We will always keep this in mind as[实时] platforms. So this is our strategy. We will always keep this in mind as we make decisions[实时]  is our strategy. We will always keep this in mind as we make decisions and make decisions  [TTS] [TTS] [tts_worker] 合成遥测 id=42 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=190080 parts=13 peak=0.5856 rms_dbfs=-18.8 nan_inf=0 cb_delta=193 read_delta=195008 underflow_delta=3 ring=14192/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=26.627 s ⇒ speed=1.1437
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1437 ⇒ 1.0168（r_recent=0.984 ⇒ 1/r=1.0168；合成跟不上 ⇒ 不抽空缓冲）
+[实时] So this is our strategy. We will always keep this in mind as we make decisions. And again,
+[定稿] platforms. So this is our strategy. We will always keep this in mind as we make decisions. And again,
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+  [TTS] [TTS] [tts_worker] 遥测 id=42 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=190080 parts=13 peak=0.5856 rms_dbfs=-18.8 nan_inf=0 cb_delta=207 read_delta=209200 underflow_delta=4 ring=0/72000 consumed=True
+  [TTS] [TTS] 遥测 id=42 peak=0.585587 rms_dbfs=-18.79 read_delta=209200 consumed=True
+  [TTS] [TTS] 首包分段 id=43：排队 0.000 s + 合成 0.633 s
+
+[草稿·未定稿] 再次，
+
+[译文] 平台。
+[实时] Doing this
+[译文] 这就是我们的策略。
+[实时] Doing this from an end
+[译文] 我们在做决策时始终会记住这一点。
+[实时] Doing this from an end to end[实时] Doing this from an end to end point of view[实时] Doing this from an end to end point of view to deliver[实时] Doing this from an end to end point of view to deliver a platform[实时] Doing this from an end to end point of view to deliver platforms.[实时] Doing this from an end to end point of view to deliver platforms, it's not going[实时] is from an end to end point of view to deliver platforms, it's not going to differentiate.[实时] m an end to end point of view to deliver platforms, it's what's going to differentiate us.
+[定稿] Doing this from an end to end point of view to deliver platforms, it's what's going to differentiate us.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+[实时] moving forward
+[译文] 再次强调，从整体角度来打造平台，这样才能实现目标。
+  [TTS] [TTS] [tts_worker] 合成遥测 id=43 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=176640 parts=12 peak=0.4604 rms_dbfs=-21.0 nan_inf=0 cb_delta=183 read_delta=176000 underflow_delta=15 ring=12432/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=28.051 s ⇒ speed=1.1168
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1168 ⇒ 1.0133（r_recent=0.987 ⇒ 1/r=1.0133；合成跟不上 ⇒ 不抽空缓冲）
+
+[译文] 这就是我们将与众不同的地方。
+  [TTS] [TTS] [tts_worker] 遥测 id=43 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=176640 parts=12 peak=0.4604 rms_dbfs=-21.0 nan_inf=0 cb_delta=196 read_delta=188432 underflow_delta=16 ring=0/72000 consumed=True
+  [TTS] [TTS] 遥测 id=43 peak=0.460449 rms_dbfs=-21.04 read_delta=188432 consumed=True
+  [TTS] [TTS] 首包分段 id=44：排队 0.000 s + 合成 0.569 s
+[实时] moving forward. Okay, next[实时] moving forward. Okay, next slide.[实时] moving forward. Okay, next slide. Alex[实时] moving forward. Okay, next slide. Alex shared this.[实时] moving forward. Okay, next slide. Alex shared this and he talked[实时] moving forward. Okay, next slide. Alex shared this and he talked about the[实时] moving forward. Okay, next slide. Alex shared this and he talked about the business.
+[定稿] moving forward. Okay, next slide. Alex shared this and he talked about the business.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+
+[译文] 继续前进。
+[实时] strategies  [TTS] [TTS] [tts_worker] 合成遥测 id=44 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=163200 parts=11 peak=0.5693 rms_dbfs=-18.8 nan_inf=0 cb_delta=154 read_delta=156816 underflow_delta=1 ring=16896/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=21.225 s ⇒ speed=1.1133
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1133 ⇒ 1.0171（r_recent=0.983 ⇒ 1/r=1.0171；合成跟不上 ⇒ 不抽空缓冲）
+
+[译文] 好的，下一个幻灯片。
+  [TTS] [TTS] 首包分段 id=45：排队 0.000 s + 合成 0.665 s
+  [TTS] [TTS] [tts_worker] 遥测 id=44 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=163200 parts=11 peak=0.5693 rms_dbfs=-18.8 nan_inf=0 cb_delta=171 read_delta=174224 underflow_delta=1 ring=12928/72000 consumed=True
+  [TTS] [TTS] 遥测 id=44 peak=0.569302 rms_dbfs=-18.79 read_delta=174224 consumed=True
+[实时] Strategies for growth across
+[译文] 亚历克斯分享了这个，还谈了关于业务的事情。
+[实时] Strategies for growth across CCPs[实时] Strategies for growth across CCPG[实时] Strategies for growth across CCPG. I just want[实时] Strategies for growth across CCPG. I just want to spend time[实时] Strategies for growth across CCPG. I just want to spend time dissecting[实时] Strategies for growth across CCPG. I just want to spend time dissecting into what[实时] tegies for growth across CCPG. I just want to spend time dissecting into what does it mean[实时]  growth across CCPG. I just want to spend time dissecting into what does it mean for us as[实时] CPG. I just want to spend time dissecting into what does it mean for us as engineering. So[实时]  want to spend time dissecting into what does it mean for us as engineering. So what do we[实时] end time dissecting into what does it mean for us as engineering. So what do we need to go  [TTS] [TTS] [tts_worker] 合成遥测 id=45 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=192000 parts=13 peak=0.5673 rms_dbfs=-18.2 nan_inf=0 cb_delta=184 read_delta=188032 underflow_delta=1 ring=18224/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=29.078 s ⇒ speed=1.1171
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1171 ⇒ 1.0258（r_recent=0.975 ⇒ 1/r=1.0258；合成跟不上 ⇒ 不抽空缓冲）
+[实时] ecting into what does it mean for us as engineering. So what do we need to go do to enable  [TTS] [TTS] 首包分段 id=46：排队 0.000 s + 合成 0.529 s
+
+[定稿] Strategies for growth across CCPG. I just want to spend time dissecting into what does it mean for us as engineering. So what do we need to go do to enable
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+  [TTS] [TTS] [tts_worker] 遥测 id=45 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=192000 parts=13 peak=0.5673 rms_dbfs=-18.2 nan_inf=0 cb_delta=202 read_delta=206464 underflow_delta=1 ring=13232/72000 consumed=True
+  [TTS] [TTS] 遥测 id=45 peak=0.567329 rms_dbfs=-18.24 read_delta=206464 consumed=True
+[实时] table that
+[草稿·未定稿] 那么，我们需要做些什么才能实现呢？
+
+[译文] CCPG领域的增长策略。
+[实时] table that grew.[实时] Table that grew, so I'm
+[译文] 我只是想花时间仔细思考：对于我们这些工程师来说，这意味着什么。
+[实时] Table that grew. So on client[实时] Table that grew. So on client strategy[实时] Table that grew. So on client strategy is take[实时] Table that grew. So on client strategy is take back msa[实时] Table that grew. So on client strategy is take back MSS.[实时] Table that grew. So on client strategy is take back MSS. Windows  [TTS] [TTS] [tts_worker] 合成遥测 id=46 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=151680 parts=10 peak=0.5024 rms_dbfs=-19.4 nan_inf=0 cb_delta=151 read_delta=149792 underflow_delta=8 ring=16752/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=35.521 s ⇒ speed=1.1258
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1258 ⇒ 1.0257（r_recent=0.975 ⇒ 1/r=1.0257；合成跟不上 ⇒ 不抽空缓冲）
+[实时] Table that grew. So on client strategy is take back MSS, win the agenda.
+[定稿] Table that grew. So on client strategy is take back MSS, win the agenda.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+  [TTS] [TTS] 首包分段 id=47：排队 0.000 s + 合成 0.611 s
+  [TTS] [TTS] [tts_worker] 遥测 id=46 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=151680 parts=10 peak=0.5024 rms_dbfs=-19.4 nan_inf=0 cb_delta=168 read_delta=167200 underflow_delta=8 ring=12784/72000 consumed=True
+  [TTS] [TTS] 遥测 id=46 peak=0.502441 rms_dbfs=-19.39 read_delta=167200 consumed=True
+[实时] pute  [TTS] [TTS] [tts_worker] 合成遥测 id=47 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=26880 parts=2 peak=0.5239 rms_dbfs=-17.7 nan_inf=0 cb_delta=27 read_delta=27648 underflow_delta=0 ring=15744/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=30.290 s ⇒ speed=1.1257
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1257 ⇒ 1.0135（r_recent=0.987 ⇒ 1/r=1.0135；合成跟不上 ⇒ 不抽空缓冲）
+
+[译文] 那么，我们需要做些什么来启用不断增长的表格呢？
+[实时] compute and grow connectivity  [TTS] [TTS] [tts_worker] 遥测 id=47 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=26880 parts=2 peak=0.5239 rms_dbfs=-17.7 nan_inf=0 cb_delta=43 read_delta=43392 underflow_delta=1 ring=0/72000 consumed=True
+  [TTS] [TTS] 遥测 id=47 peak=0.523926 rms_dbfs=-17.68 read_delta=43392 consumed=True
+  [TTS] [TTS] 首包分段 id=48：排队 0.000 s + 合成 0.712 s
+[实时] compute and grow connectivity. So connectivity
+[译文] 因此，在客户策略上就是收回 MSS，赢得市场。
+  [TTS] [TTS] [tts_worker] 合成遥测 id=48 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=28800 parts=2 peak=0.3577 rms_dbfs=-22.4 nan_inf=0 cb_delta=30 read_delta=28160 underflow_delta=3 ring=15360/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=31.603 s ⇒ speed=1.1135
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1135 ⇒ 1.0000（r_recent=1.023 ⇒ 1/r=0.9771；合成跟不上 ⇒ 不抽空缓冲）
+[实时] compute and grow connectivity. So connectivities are  [TTS] [TTS] 首包分段 id=49：排队 0.000 s + 合成 0.504 s
+  [TTS] [TTS] [tts_worker] 遥测 id=48 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=28800 parts=2 peak=0.3577 rms_dbfs=-22.4 nan_inf=0 cb_delta=45 read_delta=43520 underflow_delta=3 ring=15360/72000 consumed=True
+  [TTS] [TTS] 遥测 id=48 peak=0.357666 rms_dbfs=-22.4 read_delta=43520 consumed=True
+[实时] compute and grow connectivity. So connectivities are wired and[实时] compute and grow connectivity. So connectivities are wired and wireless business.  [TTS] [TTS] [tts_worker] 合成遥测 id=49 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=59520 parts=4 peak=0.5586 rms_dbfs=-20.1 nan_inf=0 cb_delta=48 read_delta=49152 underflow_delta=0 ring=25728/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=33.640 s ⇒ speed=1.1000
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0000（r_recent=1.003 ⇒ 1/r=0.9969；合成跟不上 ⇒ 不抽空缓冲）
+  [TTS] [TTS] 首包分段 id=50：排队 0.000 s + 合成 0.542 s
+[实时] compute and grow connectivity. So connectivities are wired and wireless business, right?  [TTS] [TTS] [tts_worker] 遥测 id=49 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=59520 parts=4 peak=0.5586 rms_dbfs=-20.1 nan_inf=0 cb_delta=74 read_delta=75776 underflow_delta=0 ring=14464/72000 consumed=True
+  [TTS] [TTS] 遥测 id=49 peak=0.558594 rms_dbfs=-20.05 read_delta=75776 consumed=True
+[实时] onnectivity. So connectivities are wired and wireless business, right? What does that mean[实时] ity. So connectivities are wired and wireless business, right? What does that mean for us?
+[定稿] compute and grow connectivity. So connectivities are wired and wireless business, right? What does that mean for us?
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+
+[译文] 计算并构建连通性。
+  [TTS] [TTS] [tts_worker] 合成遥测 id=50 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=78720 parts=6 peak=0.4150 rms_dbfs=-19.5 nan_inf=0 cb_delta=79 read_delta=80896 underflow_delta=0 ring=23552/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=30.590 s ⇒ speed=1.1000
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0000（r_recent=1.001 ⇒ 1/r=0.9991；合成跟不上 ⇒ 不抽空缓冲）
+[实时] No change in what
+[译文] 所以，连接性既涉及有线的也涉及无线的业务，对吧？
+  [TTS] [TTS] 首包分段 id=51：排队 0.000 s + 合成 0.665 s
+
+[译文] 这对我们意味着什么？
+  [TTS] [TTS] [tts_worker] 遥测 id=50 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=78720 parts=6 peak=0.4150 rms_dbfs=-19.5 nan_inf=0 cb_delta=102 read_delta=104448 underflow_delta=0 ring=15360/72000 consumed=True
+  [TTS] [TTS] 遥测 id=50 peak=0.415039 rms_dbfs=-19.46 read_delta=104448 consumed=True
+[实时] No change in what we're doing[实时] No change in what we're doing today. Job[实时] No change in what we're doing today. Job one, noble[实时] No change in what we're doing today. Job one, noble at scale.[实时] No change in what we're doing today. Job one, noble liquid scale, right?[实时] No change in what we're doing today. Job one, noble liquid scale. Right, if you look at[实时]  in what we're doing today. Job one, noble liquid scale. Right? If you look at where we've
+[定稿] No change in what we're doing today. Job one, noble liquid scale. Right? If you look at where we've lost
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+  [TTS] [TTS] [tts_worker] 合成遥测 id=51 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=136320 parts=9 peak=0.6699 rms_dbfs=-20.3 nan_inf=0 cb_delta=129 read_delta=132096 underflow_delta=0 ring=27776/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=36.109 s ⇒ speed=1.1000
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1000 ⇒ 1.0106（r_recent=0.990 ⇒ 1/r=1.0106；合成跟不上 ⇒ 不抽空缓冲）
+
+[草稿·未定稿] 如果你看看我们失去了什么
+[实时] Lost  [TTS] [TTS] 首包分段 id=52：排队 0.000 s + 合成 0.661 s
+
+[译文] 今天我们的工作没有任何变化。
+[实时] Lost, competitive,  [TTS] [TTS] [tts_worker] 遥测 id=51 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=136320 parts=9 peak=0.6699 rms_dbfs=-20.3 nan_inf=0 cb_delta=157 read_delta=160768 underflow_delta=0 ring=12544/72000 consumed=True
+  [TTS] [TTS] 遥测 id=51 peak=0.669922 rms_dbfs=-20.27 read_delta=160768 consumed=True
+
+[译文] 工作一，高纯度液体刻度。
+
+[译文] 对吧？
+[实时] Lost competitive share in the[实时] Lost competitive share in the last few years[实时] Lost competitive share in the last few generations.  [TTS] [TTS] [tts_worker] 合成遥测 id=52 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=84480 parts=6 peak=0.4172 rms_dbfs=-19.6 nan_inf=0 cb_delta=78 read_delta=79872 underflow_delta=0 ring=32144/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=32.318 s ⇒ speed=1.1106
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1106 ⇒ 1.0139（r_recent=0.986 ⇒ 1/r=1.0139；合成跟不上 ⇒ 不抽空缓冲）
+  [TTS] [TTS] 首包分段 id=53：排队 0.000 s + 合成 0.524 s
+  [TTS] [TTS] [tts_worker] 合成遥测 id=53 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=23040 parts=2 peak=0.3596 rms_dbfs=-19.6 nan_inf=0 cb_delta=21 read_delta=21504 underflow_delta=0 ring=33680/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=33.217 s ⇒ speed=1.1139
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1139 ⇒ 1.0202（r_recent=0.980 ⇒ 1/r=1.0202；合成跟不上 ⇒ 不抽空缓冲）
+[实时] Lost competitive share in the last few generations. It's been lacking  [TTS] [TTS] [tts_worker] 遥测 id=52 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=84480 parts=6 peak=0.4172 rms_dbfs=-19.6 nan_inf=0 cb_delta=110 read_delta=112640 underflow_delta=0 ring=22416/72000 consumed=True
+  [TTS] [TTS] 遥测 id=52 peak=0.417236 rms_dbfs=-19.62 read_delta=112640 consumed=True
+  [TTS] [TTS] 首包分段 id=54：排队 0.000 s + 合成 0.542 s
+[实时] Lost competitive share in the last few generations. It's been lack of performance[实时] Lost competitive share in the last few generations. It's been lack of performance.  [TTS] [TTS] [tts_worker] 遥测 id=53 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=23040 parts=2 peak=0.3596 rms_dbfs=-19.6 nan_inf=0 cb_delta=54 read_delta=55296 underflow_delta=0 ring=28448/72000 consumed=True
+  [TTS] [TTS] 遥测 id=53 peak=0.359619 rms_dbfs=-19.58 read_delta=55296 consumed=True
+[实时] ost competitive share in the last few generations. It's been lack of performance desktops.  [TTS] [TTS] [tts_worker] 合成遥测 id=54 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=48000 parts=4 peak=0.4220 rms_dbfs=-21.8 nan_inf=0 cb_delta=43 read_delta=44032 underflow_delta=0 ring=37168/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=35.069 s ⇒ speed=1.1202
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1202 ⇒ 1.0326（r_recent=0.968 ⇒ 1/r=1.0326；合成跟不上 ⇒ 不抽空缓冲）
+
+[定稿] competitive share in the last few generations. It's been lack of performance desktops.
+  [spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'
+  [TTS] [TTS] 首包分段 id=55：排队 0.000 s + 合成 0.657 s
+[实时] solutions
+[译文] 如果你看看我们在过去几代中失去了多少竞争份额。
+[实时] Solutions, Nov  [TTS] [TTS] [tts_worker] 遥测 id=54 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=48000 parts=4 peak=0.4220 rms_dbfs=-21.8 nan_inf=0 cb_delta=80 read_delta=81920 underflow_delta=0 ring=27120/72000 consumed=True
+  [TTS] [TTS] 遥测 id=54 peak=0.42203 rms_dbfs=-21.75 read_delta=81920 consumed=True
+
+[译文] 就是性能不足的台式机问题。
+[实时] Solutions. Novellik solves[实时] Solutions. Novellix solves that problem.[实时] Solutions. Novellix solves that problem. When we come  [TTS] [TTS] [tts_worker] 合成遥测 id=55 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=92160 parts=6 peak=0.4709 rms_dbfs=-20.1 nan_inf=0 cb_delta=86 read_delta=88064 underflow_delta=0 ring=39104/72000 consumed=-
+  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）
+  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=29.828 s ⇒ speed=1.1326
+  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.1326 ⇒ 1.0449（r_recent=0.957 ⇒ 1/r=1.0449；合成跟不上 ⇒ 不抽空缓冲）

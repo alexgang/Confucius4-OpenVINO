@@ -1,0 +1,199 @@
+{
+  "tool": "app337",
+  "app": "APP-080 ⑥ / APP-081 4d+4e",
+  "at_start": "2026-11-07 17:02:39",
+  "reason": "首轮 app332 CLI 漏传 --translate zh ⇒ MT 未启用 ⇒ tts.submit 从不触发；零段检查弱标记恒真 ⇒ 判据修正后重跑",
+  "pkg": "C:\\v23_cleantest\\Confucius4_LiveCaption_v2.3",
+  "cmd": [
+    "C:\\v23_cleantest\\Confucius4_LiveCaption_v2.3\\python\\python.exe",
+    "C:\\v23_cleantest\\Confucius4_LiveCaption_v2.3\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app264_SPE_1500s.wav",
+    "--max-seconds",
+    "300",
+    "--translate",
+    "zh",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "NPU",
+    "--tts-device",
+    "NPU",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "follow_speaker",
+    "--speaker",
+    "off",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app337_v23_cli_rerun_final.txt",
+    "--tts-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app337_v23_cli_rerun_tts.jsonl",
+    "--spk-seg-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app337_v23_cli_rerun_spk_seg.jsonl"
+  ],
+  "lock_intact_before": [
+    true,
+    "锁完好（pid=7396）"
+  ],
+  "quiet_window": {
+    "ok": true,
+    "info": {
+      "quiet_seconds": 45.0,
+      "timeout": 1800.0,
+      "waited_s": 45.02695608139038,
+      "n_samples": 4,
+      "n_busy_samples": 0,
+      "n_idle_samples": 4,
+      "n_unknown_samples": 0,
+      "last_busy_pids": [],
+      "last_idle_pids": [],
+      "classifier": "cpu-delta",
+      "quiet_since": 1794042159.8340347
+    }
+  },
+  "lock_intact_after_quiet": [
+    true,
+    "锁完好（pid=7396）"
+  ],
+  "lock_intact_after_run": [
+    true,
+    "锁完好（pid=7396）"
+  ],
+  "lock": "RELEASED",
+  "at_end": "2026-11-07 17:09:26",
+  "rc": 0,
+  "wall_s": 361.3,
+  "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app337_v23_cli_rerun_output.txt",
+  "log_stat": {
+    "bytes": 121144,
+    "mtime": "2026-11-07 17:09:23",
+    "sha256": "1e5b889d580201f63e4bfcbeed075530d6dc8b88db83ead0866c65dd4615e680"
+  },
+  "clone_fallback_log_lines": [
+    "[v23] APP-080：音色残留值 'follow_speaker' 不在 v2.3 交付范围 ⇒ 回落预设 A"
+  ],
+  "n_clone_fallback_log_lines": 1,
+  "n_zero_audio_log_lines": 0,
+  "zero_audio_log_lines": [],
+  "n_rtf_backlog_log_lines": 6,
+  "rtf_backlog_log_lines": [
+    "[TTS] [TTS] [tts_engine] cp_decode: NPU（生产配置要求；实测 RTF 1.912→1.218、首块 1.296→0.837 s）",
+    "[gpu_int8] 音频 300.2s  墙钟 300.9s  RTF(计算) 0.798  出字延迟中位 544 ms  最大积压 2.3s  段 46",
+    "[TTS] 首包 0.40s  积压 当前 5.89s / 最大 57.08s  提交 70  播完 70  丢弃 0  重启 0  state=ready",
+    "[TTS] 收尾（close 前）：结尾滞后 47.34s  关闭作废 0  空句 0  积压 最大 57.08s",
+    "[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\tts_backlog_curve.csv（232 个采样点）",
+    "[TTS] 最终统计（close 后）：提交 70  播完 70  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 47.34s  积压 最大 57.08s"
+  ],
+  "n_spk_conf_signature_errors": 46,
+  "spk_conf_signature_error_sample": [
+    "[spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'",
+    "[spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'",
+    "[spk] 定稿旁路异常（忽略）：SpeakerVoiceTable.note_final() got an unexpected keyword argument 'spk_conf'"
+  ],
+  "tts_final_stats": {
+    "submitted": 70,
+    "played": 70,
+    "dropped": 0,
+    "void_on_close": 0,
+    "empty_sentences": 0,
+    "failed": 0
+  },
+  "tts_jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app337_v23_cli_rerun_tts.jsonl",
+  "n_tts_jsonl_rows": 70,
+  "zero_segment_check": {
+    "criteria": "逐句本体特征 n_samples>0 / peak>0 / not dropped / not error + 日志最终统计 提交>0 播完>0 空句=0（非弱标记）",
+    "n_bad_rows": 0,
+    "bad_rows": [],
+    "verdict": true
+  },
+  "final_text": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app337_v23_cli_rerun_final.txt",
+  "final_text_bytes": 4707,
+  "asr_wer": null,
+  "asr_wer_note": "质量判定由 reviewer 用 MiniMax 回转写；本轮只落盘 CLI 定稿文本，不自行调用 MiniMax、不在 CPU 上算 WER（三态：无法判定）",
+  "devices_not_cpu": true,
+  "lock_chain_ok": true,
+  "counterproof": [
+    {
+      "id": "CP_first_run_no_tts",
+      "injected": "app332_v23_cli.json: n_tts_jsonl_rows=0",
+      "detected": true,
+      "identified": true
+    },
+    {
+      "id": "CP_zero_samples_row",
+      "injected": "{\"n_samples\": 0, \"peak\": 0.0, \"dropped\": false, \"error\": null}",
+      "detected": true,
+      "identified": true
+    },
+    {
+      "id": "CP_dropped_row",
+      "injected": "{\"n_samples\": 24000, \"peak\": 0.3, \"dropped\": true, \"error\": null}",
+      "detected": true,
+      "identified": true
+    },
+    {
+      "id": "CP_clean_row_not_flagged",
+      "injected": "{\"n_samples\": 24960, \"peak\": 0.42, \"rms\": 0.08, \"dropped\": false, \"error\": null, \"read_delta\": 24960}",
+      "detected": false,
+      "identified": true
+    }
+  ],
+  "counterproof_identified": "4/4",
+  "checks": {
+    "rc0": true,
+    "fallback": true,
+    "have_audio": true,
+    "zero_ok": true,
+    "rtf": true,
+    "counterproof": true,
+    "devices_not_cpu": true,
+    "lock_chain": true
+  },
+  "artifacts": {
+    "log": {
+      "bytes": 121144,
+      "mtime": "2026-11-07 17:09:23",
+      "sha256": "1e5b889d580201f63e4bfcbeed075530d6dc8b88db83ead0866c65dd4615e680"
+    },
+    "tts_jsonl": {
+      "bytes": 85986,
+      "mtime": "2026-11-07 17:09:22",
+      "sha256": "df1c32661a9b724d9db3fdc16b43f85ebf46a8031afb0e63b669ca577eda949b"
+    },
+    "final_text": {
+      "bytes": 4707,
+      "mtime": "2026-11-07 17:08:36",
+      "sha256": "535608ae01e2e59bb32bfc1f7c571f95009e14ab638a90f04d15a1df2012702d"
+    },
+    "spk_jsonl": {
+      "bytes": 4094,
+      "mtime": "2026-11-07 17:09:23",
+      "sha256": "50b587c2e7e12f7b06c2a23e61563f286ea8e5ad3c4c08025376181f24ae0918"
+    },
+    "backlog_curve": {
+      "bytes": 10938,
+      "mtime": "2026-11-07 17:09:22",
+      "sha256": "aa4e9dbd6fe07a6389abd5ee13b4dad258ab552722282c7f1a33c47f4d3a0837"
+    }
+  },
+  "output_tail": [
+    "  [TTS] [TTS] [tts_worker] 合成遥测 id=69 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=61440 parts=4 peak=0.5488 rms_dbfs=-17.7 nan_inf=0 cb_delta=41 read_delta=41984 underflow_delta=0 ring=141424/72000 consumed=-",
+    "  [TTS] [TTS] [tts_worker] 遥测 id=66 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=69120 parts=5 peak=0.5537 rms_dbfs=-18.7 nan_inf=0 cb_delta=171 read_delta=175104 underflow_delta=0 ring=130160/72000 consumed=True",
+    "  [TTS] [TTS] 遥测 id=66 peak=0.553711 rms_dbfs=-18.7 read_delta=175104 consumed=True",
+    "  [TTS] [TTS] [tts_worker] 遥测 id=67 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=24960 parts=2 peak=0.5430 rms_dbfs=-17.6 nan_inf=0 cb_delta=144 read_delta=147456 underflow_delta=0 ring=110704/72000 consumed=True",
+    "  [TTS] [TTS] 遥测 id=67 peak=0.542969 rms_dbfs=-17.61 read_delta=147456 consumed=True",
+    "  [TTS] [TTS] [tts_worker] 遥测 id=68 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=82560 parts=6 peak=0.5732 rms_dbfs=-18.4 nan_inf=0 cb_delta=190 read_delta=194560 underflow_delta=0 ring=47216/72000 consumed=True",
+    "  [TTS] [TTS] 遥测 id=68 peak=0.573242 rms_dbfs=-18.4 read_delta=194560 consumed=True",
+    "  [TTS] [TTS] [tts_worker] 遥测 id=69 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=61440 parts=4 peak=0.5488 rms_dbfs=-17.7 nan_inf=0 cb_delta=180 read_delta=183408 underflow_delta=1 ring=0/72000 consumed=True",
+    "  [TTS] [TTS] 遥测 id=69 peak=0.548828 rms_dbfs=-17.69 read_delta=183408 consumed=True",
+    "[TTS] 首包 0.40s  积压 当前 5.89s / 最大 57.08s  提交 70  播完 70  丢弃 0  重启 0  state=ready",
+    "[TTS] 收尾（close 前）：结尾滞后 47.34s  关闭作废 0  空句 0  积压 最大 57.08s",
+    "[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\tts_backlog_curve.csv（232 个采样点）",
+    "  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）",
+    "[TTS] 最终统计（close 后）：提交 70  播完 70  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 47.34s  积压 最大 57.08s",
+    "[spk] 段表已落盘：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app337_v23_cli_rerun_spk_seg.jsonl（46 段）"
+  ],
+  "verdict": "PASS"
+}

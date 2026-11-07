@@ -1,0 +1,234 @@
+{
+  "tool": "app335",
+  "app": "APP-080 ⑥ / APP-081 4d",
+  "at": "2026-11-07 16:06:50",
+  "pkg": "C:\\v23_cleantest\\Confucius4_LiveCaption_v2.3",
+  "n_files": 14320,
+  "total_bytes": 13692567925,
+  "criteria": {
+    "core_4_categories": [
+      "babelvox_demo",
+      "bridge_token",
+      "clone_wav",
+      "meeting"
+    ],
+    "real_dev_path_regex": "(?i)C:[\\\\/]+Users[\\\\/]+Trekker-PTL",
+    "active_cuda_regex": "(?i)(^|/)(app/tts_cuda[^/]*\\.py$|app/tts_cuda_sidecar\\.py$|_fq3tts_env|torch/)",
+    "informational_not_scored": [
+      "third_party_cuda_sources（numba/transformers 自带 .cu/.cuh/.pyd，v2.2 已交付包同样包含）",
+      "dev_dir_mentions（<build-user>/<HOME> 占位示例、注释引用、相对回退路径）"
+    ]
+  },
+  "core_hits": {
+    "meeting": [],
+    "clone_wav": [],
+    "babelvox_demo": [],
+    "bridge_token": [],
+    "real_dev_path": [
+      {
+        "path": "app/v23_preset_only.py",
+        "match": "C:\\\\Users\\\\Trekker-PTL"
+      }
+    ],
+    "active_cuda": [
+      "python/Lib/site-packages/openvino/torch/__init__.py",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/fft.py",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/linalg.py",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/_aliases.py",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/_info.py",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/_typing.py",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/__init__.py",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/__pycache__/fft.cpython-312.pyc",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/__pycache__/linalg.cpython-312.pyc",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/__pycache__/_aliases.cpython-312.pyc",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/__pycache__/_info.cpython-312.pyc",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/__pycache__/_typing.cpython-312.pyc",
+      "python/Lib/site-packages/scipy/_external/array_api_compat/torch/__pycache__/__init__.cpython-312.pyc"
+    ]
+  },
+  "n_real_violations": 14,
+  "informational": {
+    "third_party_cuda_sources": [
+      "python/Lib/site-packages/numba/cuda/cpp_function_wrappers.cu",
+      "python/Lib/site-packages/numba/cuda/cudadrv/_extras.cp312-win_amd64.pyd",
+      "python/Lib/site-packages/numba/cuda/tests/data/cuda_include.cu",
+      "python/Lib/site-packages/numba/cuda/tests/data/error.cu",
+      "python/Lib/site-packages/numba/cuda/tests/data/jitlink.cu",
+      "python/Lib/site-packages/numba/cuda/tests/data/warn.cu",
+      "python/Lib/site-packages/numba/cuda/tests/doc_examples/ffi/functions.cu",
+      "python/Lib/site-packages/transformers/kernels/deta/cuda/ms_deform_attn_cuda.cu",
+      "python/Lib/site-packages/transformers/kernels/deta/cuda/ms_deform_attn_cuda.cuh",
+      "python/Lib/site-packages/transformers/kernels/deta/cuda/ms_deform_im2col_cuda.cuh",
+      "python/Lib/site-packages/transformers/kernels/mra/cuda_kernel.cu",
+      "python/Lib/site-packages/transformers/kernels/mra/cuda_launch.cu",
+      "python/Lib/site-packages/transformers/kernels/rwkv/wkv_cuda.cu",
+      "python/Lib/site-packages/transformers/kernels/rwkv/wkv_cuda_bf16.cu",
+      "python/Lib/site-packages/transformers/kernels/yoso/fast_lsh_cumulation_cuda.cu"
+    ],
+    "dev_dir_mentions_placeholder_or_comment": [
+      {
+        "path": "README_en.md",
+        "match": "confucius4-openvino",
+        "line": "directory and dev directories (e.g. `C:\\Users\\<build-user>\\confucius4-openvino`)."
+      },
+      {
+        "path": "README_zh.md",
+        "match": "confucius4-openvino",
+        "line": "真实家目录与开发目录（例如 `C:\\Users\\<构建机用户名>\\confucius4-openvino`）。"
+      },
+      {
+        "path": "app/live_caption_app.py",
+        "match": "hy_bench",
+        "line": "ASR 与翻译的设备/量化各自独立选择（C-098 阶段 B，实测结论见 hy_bench\\STATUS_hy.md）："
+      },
+      {
+        "path": "app/MANIFEST.json",
+        "match": "hy_bench",
+        "line": "\"notes\": \"v1.13 修订（2026-11-01，APP-052 执行后）：（17）**包内不再含开发机路径** —— 此前客户机上会看到「C:\\\\Users\\\\<开发机用户名>\\\\...」这类路径（代码注释与说明文字里）。现全部"
+      },
+      {
+        "path": "app/MANIFEST.json",
+        "match": "hy_bench",
+        "line": "\"notes\": \"v1.13 修订（2026-11-01，APP-052 执行后）：（17）**包内不再含开发机路径** —— 此前客户机上会看到「C:\\\\Users\\\\<开发机用户名>\\\\...」这类路径（代码注释与说明文字里）。现全部"
+      },
+      {
+        "path": "app/speaker_assets.py",
+        "match": "confucius4-openvino",
+        "line": "REPO   = r'<HOME>\\confucius4-openvino'"
+      },
+      {
+        "path": "app/speaker_tracker.py",
+        "match": "hy_bench",
+        "line": "reviewer 的 A/B 实测（`hy_bench/spk_ab_run.py`）："
+      },
+      {
+        "path": "app/translator.py",
+        "match": "hy_bench",
+        "line": "支持运行时热切换（set_engine）。MT2 实测结论见 hy_bench\\STATUS_hy.md："
+      },
+      {
+        "path": "app/translator.py",
+        "match": "hy_bench",
+        "line": "#   3) 开发机 <用户目录>/hy_bench/ov/<name>（本仓库导出产物）"
+      },
+      {
+        "path": "app/translator.py",
+        "match": "hy_bench",
+        "line": "os.path.join(os.path.expanduser('~'), 'hy_bench', 'ov'),"
+      },
+      {
+        "path": "app/translator.py",
+        "match": "hy_bench",
+        "line": "os.path.join(ROOT, 'hy_bench', 'ov'),"
+      },
+      {
+        "path": "app/translator.py",
+        "match": "hy_bench",
+        "line": "\"\"\"按通道量化产物的目录解析：客户包 models/mt/<name> → 开发机 hy_bench/ov/<name>。\"\"\""
+      },
+      {
+        "path": "app/translator.py",
+        "match": "hy_bench",
+        "line": "#   依据 **H-001 / H-007**（MT 模块 `hy_bench/STATUS_hy.md` §37）："
+      },
+      {
+        "path": "app/translator.py",
+        "match": "hy_bench",
+        "line": "# ★ C-102 实测（hy_bench/bench_mt2.py，7 句 × 3 次取中位）："
+      },
+      {
+        "path": "app/v23_preset_only.py",
+        "match": "hy_bench",
+        "line": "r'(?i)hy_bench',"
+      },
+      {
+        "path": "ext/bridge/engines.py",
+        "match": "confucius4-openvino",
+        "line": "- ASR  R2T2 INT8 @ GPU.0     → <HOME>\\\\confucius4-openvino"
+      },
+      {
+        "path": "ext/bridge/engines.py",
+        "match": "hy_bench",
+        "line": "- MT   Hy-MT2 INT8 @ GPU.0    → <HOME>\\\\hy_bench"
+      },
+      {
+        "path": "ext/bridge/engines.py",
+        "match": "confucius4-openvino",
+        "line": "（原 `<HOME>\\\\confucius4-openvino` /"
+      },
+      {
+        "path": "ext/bridge/engines.py",
+        "match": "hy_bench",
+        "line": "`…\\\\hy_bench` / `…\\\\confucius4-tts`）"
+      },
+      {
+        "path": "ext/bridge/engine_runtime.py",
+        "match": "hy_bench",
+        "line": "⇒ 与 App 的 `DEFAULT_MODEL` 保持同一套查找顺序（含开发机 hy_bench 回退）。"
+      },
+      {
+        "path": "ext/bridge/segmenter.py",
+        "match": "confucius4-openvino",
+        "line": "* 优先 **import** 现有交付版本 `confucius4-openvino/seg_stream.py`，"
+      },
+      {
+        "path": "ext/bridge/segmenter.py",
+        "match": "confucius4-openvino",
+        "line": "#   `<HOME>\\confucius4-openvino`）⇒ 改成："
+      }
+    ]
+  },
+  "first_pass": {
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app332_v23_blacklist.json",
+    "verdict": "FAIL",
+    "n_hits_real": 33,
+    "n_rule_self_reference": 1,
+    "note": "首轮 app332 判据把裸目录名与第三方库自带 CUDA 源码计入违规；本复算按 APP-080 ⑥ 与历史 app281 原始口径，命中明细全部保留供 reviewer 复核"
+  },
+  "counterproof": [
+    {
+      "id": "CP_meeting",
+      "injected": "results/260902_SPE_spoken.wav",
+      "detected": true,
+      "identified": true
+    },
+    {
+      "id": "CP_clone_wav",
+      "injected": "app/voices/spk_clone_s1.wav",
+      "detected": true,
+      "identified": true
+    },
+    {
+      "id": "CP_babelvox_demo",
+      "injected": "python/Lib/site-packages/babelvox/data/speakers/cindy.json",
+      "detected": true,
+      "identified": true
+    },
+    {
+      "id": "CP_bridge_token",
+      "injected": "ext/bridge_token.txt",
+      "detected": true,
+      "identified": true
+    },
+    {
+      "id": "CP_active_cuda",
+      "injected": "app/tts_cuda.py",
+      "detected": true,
+      "identified": true
+    },
+    {
+      "id": "CP_real_dev_path",
+      "injected": "docs/leak.md",
+      "detected": true,
+      "identified": true
+    },
+    {
+      "id": "CP_clean_not_flagged",
+      "injected": "app/voices/preset_A.wav",
+      "detected": false,
+      "identified": true
+    }
+  ],
+  "counterproof_identified": "7/7",
+  "verdict": "FAIL"
+}
