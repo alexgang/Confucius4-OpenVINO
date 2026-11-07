@@ -4681,10 +4681,7 @@ class App:
                 self._spk_voices.mark_embedded(_s, refined=_refined)
                 self._spk_voice_sent.discard(_sent)
                 if _refined:
-                    # 🔴 §99（断链 F）：细化完成 ⇒ 这条路走完了 ⇒ 移出 pending
-                    self._spk_pending_embed = [
-                        (s, k) for (s, k) in self._spk_pending_embed
-                        if k != _s]
+                    # reviewer 11-07: keep in pending so a longer run can upgrade (see CLI)
                     self._ui_log('[spk] %s 音色已细化' % _s)
                 else:
                     # 🔴🔴🔴 §99（断链 F）：**不要**把 spk 从 pending 移除！
@@ -6851,8 +6848,9 @@ def run_cli(args):
                 _spk_voices.mark_embedded(_s, refined=_refined)
                 _spk_voice_sent.discard(_sent)
                 if _refined:
-                    _spk_pending_embed = [
-                        (x, k) for (x, k) in _spk_pending_embed if k != _s]
+                    # reviewer 11-07: do NOT drop from pending — a later, LONGER qualified
+                    #   run must still be able to upgrade the voice (mixed clusters:
+                    #   ASR label S2 = female question 9.6-32 s + male answer 32-111 s).
                     print(f'  [spk] {_s} 音色已细化', flush=True)
                 else:
                     # 🔴🔴🔴 §99（断链 F）：**不要**把 spk 从 pending 移除！
@@ -6894,6 +6892,7 @@ def run_cli(args):
                         buf = _spk_pcm_buf
                     pcm = _spk_bridge.pcm_for_ranges(
                         rngs, keep=buf, max_s=10.0, keep_t0=_spk_pcm_t0[0])
+                    _claude_dump_reg(spk, rngs, buf, _spk_pcm_t0[0], pcm)
                     if pcm is None or pcm.size < int(speaker_voice.MIN_S * SR):
                         continue
                     if not tts.register_spk_voice(spk, pcm):
@@ -6917,6 +6916,9 @@ def run_cli(args):
                     if pcm is not None and \
                             pcm.size >= int(speaker_voice.REFINE_S * SR):
                         if tts.register_spk_voice(spk, pcm):
+                            # reviewer 11-07: remember which run we used => only a LONGER run re-triggers
+                            _spk_voices.mark_registered(spk, rngs[0][0], rngs[0][1])
+                            _claude_dump_reg(spk, rngs, buf, _spk_pcm_t0[0], pcm) if '_claude_dump_reg' in globals() else None
                             # 🔴 §99（断链 C）：细化也等回执
                             _spk_voice_sent.add((spk, True))
             except Exception as e:
@@ -7608,6 +7610,32 @@ def run_check():
         if not ok_backends:
             print('  结论：模型文件不完整，请确认包已完整解压。')
     print('=' * 68)
+
+
+def _claude_dump_reg(spk, rngs, buf, keep_t0, pcm):
+    """reviewer diag (env LIVECAP_SPK_DUMP=<dir>): dump what audio a speaker voice is registered from."""
+    d = os.environ.get('LIVECAP_SPK_DUMP')
+    if not d:
+        return
+    try:
+        import json as _j, wave as _w, time as _t
+        os.makedirs(d, exist_ok=True)
+        tag = '%s_%d' % (spk, int(_t.time() * 1000) % 10000000)
+        meta = {'spk': spk, 'ranges': [[float(a), float(b)] for a, b in (rngs or [])],
+                'keep_t0': float(keep_t0), 'buf_s': (0 if buf is None else buf.size / 16000.0),
+                'buf_end': float(keep_t0) + (0 if buf is None else buf.size / 16000.0),
+                'pcm_s': (0 if pcm is None else pcm.size / 16000.0)}
+        open(os.path.join(d, tag + '.json'), 'w', encoding='utf-8').write(_j.dumps(meta))
+        if pcm is not None and pcm.size:
+            with _w.open(os.path.join(d, tag + '.wav'), 'wb') as o:
+                o.setnchannels(1); o.setsampwidth(2); o.setframerate(16000)
+                o.writeframes((np.clip(pcm, -1, 1) * 32767).astype('<i2').tobytes())
+        if buf is not None and buf.size:
+            with _w.open(os.path.join(d, tag + '_ring.wav'), 'wb') as o:
+                o.setnchannels(1); o.setsampwidth(2); o.setframerate(16000)
+                o.writeframes((np.clip(buf, -1, 1) * 32767).astype('<i2').tobytes())
+    except Exception as e:
+        print('  [claude-dump] failed: %s' % e, flush=True)
 
 
 def main():
