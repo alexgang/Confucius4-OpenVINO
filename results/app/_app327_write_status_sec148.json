@@ -1,0 +1,171 @@
+{
+  "tool": "_app327_write_status_sec148",
+  "verdict": "PASS",
+  "n_checks": 20,
+  "n_fail": 0,
+  "checks": [
+    {
+      "name": "corrections_closing_rechecked",
+      "ok": true,
+      "detail": "{'sha256': 'b3ae9ea9fb72282bbf619dd26b73de688f8c771911bd0b56e0faf8f392b937d5', 'bytes': 224562, 'mtime': '2026-11-06 21:40:34', 'n_headings': 80, 'max_id': 80, 'continuous': True}"
+    },
+    {
+      "name": "sec147_located",
+      "ok": true,
+      "detail": "pos=17597"
+    },
+    {
+      "name": "archive_contains_verbatim_block",
+      "ok": true,
+      "detail": "block_sha=cd4ea569b3434e1e6327c1b553825ebecf462e80dc3571e3aae9804c2ef84957 arc_bytes=7824"
+    },
+    {
+      "name": "header_unique_更新时间",
+      "ok": true,
+      "detail": "duplicate line 4"
+    },
+    {
+      "name": "header_unique_当前任务",
+      "ok": true,
+      "detail": "duplicate line 5"
+    },
+    {
+      "name": "header_2_lines_found",
+      "ok": true,
+      "detail": "indices={'更新时间': 3, '当前任务': 4}"
+    },
+    {
+      "name": "header_replace_unique_更新时间",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "header_replace_unique_当前任务",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "last_ack_unchanged_APP080",
+      "ok": true,
+      "detail": "本轮无新编号，last_ack 保持 APP-080"
+    },
+    {
+      "name": "no_crlf",
+      "ok": true,
+      "detail": "CRLF count=0"
+    },
+    {
+      "name": "within_40000_bytes",
+      "ok": true,
+      "detail": "new_bytes=35279 limit=40000"
+    },
+    {
+      "name": "within_300_lines",
+      "ok": true,
+      "detail": "new_lines=187 limit=300"
+    },
+    {
+      "name": "sections_not_reduced_and_appended",
+      "ok": true,
+      "detail": "old=['## §141', '## §142', '## §147'] new=['## §141', '## §142', '## §148'] expected=['## §141', '## §142', '## §148']"
+    },
+    {
+      "name": "verbatim_block_in_archive",
+      "ok": true,
+      "detail": "block sha=cd4ea569b3434e1e6327c1b553825ebecf462e80dc3571e3aae9804c2ef84957"
+    },
+    {
+      "name": "append_separator_present",
+      "ok": true,
+      "detail": "tail='\\n'"
+    },
+    {
+      "name": "restore_quick_tail",
+      "ok": true,
+      "detail": "quick len=349"
+    },
+    {
+      "name": "restore_body_equals_head_plus_sec147",
+      "ok": true,
+      "detail": "restored=23097 expected=23097"
+    },
+    {
+      "name": "restore_header_unique",
+      "ok": true,
+      "detail": "new line count=1"
+    },
+    {
+      "name": "restore_header_unique",
+      "ok": true,
+      "detail": "new line count=1"
+    },
+    {
+      "name": "reverse_restore_equals_old_fulltext",
+      "ok": true,
+      "detail": "restored=33623 old=33623 equal=True"
+    },
+    {
+      "name": "post_write_disk_byte_equal",
+      "ok": true,
+      "detail": "disk=35279 planned=35279"
+    }
+  ],
+  "status_before": {
+    "bytes": 33623,
+    "lines": 177,
+    "sha256": "3803d07499238c079ef5c1336b8f6906686c95939cbc6f927c21e9003d16ce20"
+  },
+  "status_after_planned": {
+    "bytes": 35279,
+    "lines": 187,
+    "sha256": "3259448006e99edebc1ec5a2b430b5ce25f55ac36f322c4cf9eccc996750da47"
+  },
+  "header_changed_lines": [
+    "更新时间: 2026-11-07 13:55:33",
+    "当前任务: **§148 无新纠偏（last_ack=APP-080）｜APP-080 ④⑥ 随包洁净度闸门覆盖一致性只读审计 41/0・UNKNOWN 1・反证 9/9；🔴 新结论：`assert_pkg_clean.scan()` 只检出 2/6 类违规，对「克隆音色／克隆产物目录／测试 wav」3 类零检出 ⇒ 随包闸门覆盖不全，须并入 APP-080 ⑤ 待 reviewer 复核；构建期补丁 dev 基底 18/18 端到端回归通过；APP-075/079/080 仍停 reviewer 复核，v2.3 未打包**"
+  ],
+  "archived_block": {
+    "file": "status/archive/STATUS_APP_sec147_20261107.md",
+    "bytes": 7516,
+    "lines": 22,
+    "sha256": "cd4ea569b3434e1e6327c1b553825ebecf462e80dc3571e3aae9804c2ef84957"
+  },
+  "last_ack": "APP-080",
+  "corrections_closing_recheck": {
+    "sha256": "b3ae9ea9fb72282bbf619dd26b73de688f8c771911bd0b56e0faf8f392b937d5",
+    "bytes": 224562,
+    "mtime": "2026-11-06 21:40:34",
+    "n_headings": 80,
+    "max_id": 80,
+    "continuous": true
+  },
+  "corrections_equals_opening": true,
+  "artifacts": [
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app326_v23_pkg_gate_audit.py",
+      "bytes": 21408,
+      "mtime": "2026-11-07T13:55:11",
+      "sha256": "b1c63a47ba9ab25e572a5b82855e5d981c78eb8ee28661eac20298b0ee436ed5"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app326_v23_pkg_gate_audit.json",
+      "bytes": 12694,
+      "mtime": "2026-11-07T13:55:14",
+      "sha256": "3edd80930ab4dd83b9e598f314fb1a35160c9f730379a19a9c57aff32a3f98c7"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\archive\\STATUS_APP_sec147_20261107.md",
+      "bytes": 7824,
+      "mtime": "2026-11-07T13:59:13",
+      "sha256": "dbbcaab205bd56a2fc631c66f5e291e2be0b9cdd6ad0c17da865a38d056641b6"
+    },
+    {
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app327_write_status_sec148.py",
+      "bytes": 20388,
+      "mtime": "2026-11-07T13:59:10",
+      "sha256": "12b4980ca36e2fc53c261505022deb3f5cda6a8d4074dc0ef7c46bdfd3b43e14"
+    }
+  ],
+  "status_written": true,
+  "post_write_disk_equal": true
+}
