@@ -4660,6 +4660,10 @@ class App:
         """
         if self.tts is None or not getattr(self.tts, 'active', False):
             return
+        # reviewer 2026-11-07 (v2.4): only in 'follow_speaker' mode; pending speakers stay
+        #   queued, so switching to clone later still registers them.
+        if not getattr(self, '_clone_enabled', False):
+            return
         pending = list(self._spk_pending_embed)
         if not pending:
             return
@@ -6832,6 +6836,10 @@ def run_cli(args):
         #   ⇒ 不算绑定 ⇒ 安全；这里仍显式声明以免歧义）。
         nonlocal _spk_pending_embed, _spk_voice_sent
         if tts is None or not getattr(tts, 'active', False):
+            return
+        # reviewer 2026-11-07 (v2.4): preset voice selected => never register clone voices
+        #   (v2.4 acceptance: --tts-voice A still dubbed 18/20 sentences with clone voices).
+        if not _want_clone:
             return
         # 🔴🔴🔴 §99（断链 C）：**先查 worker 回执**。
         #   ⇒ `register_spk_voice()` 返回 True 只代表「命令写进管道了」，
