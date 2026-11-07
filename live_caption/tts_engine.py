@@ -223,7 +223,10 @@ CHUNK_FRAMES = 8
 # 🔴 解码器静态桶：必须覆盖「左上下文 + 一个 chunk」的最大帧数
 #    （8 + 25 = 33）以及「历史满 + 末块」的组合（25 + 12 = 37 ⇒ 取 40）。
 #    ⇒ 新增 33 / 40 两个桶，其余沿用。
-DECODER_BUCKETS_CTX = [8, 16, 32, 33, 40, 64, 128, 256]
+# reviewer 2026-11-07: streaming (chunk 8, ctx 25) only ever decodes 8 / 16 / 24->32 / 33
+#   frames => the 40/64/128/256 buckets were compiled (~3-4 min cold) but never used.
+#   Anything larger falls back to the lazily compiled base decoder (same output).
+DECODER_BUCKETS_CTX = [8, 16, 32, 33]
 
 # 🔴🔴🔴 **cp_decode 的静态形状**（APP-018 第 1 条 —— 补上从未实现的生产配置）
 #
