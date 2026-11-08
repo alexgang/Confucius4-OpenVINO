@@ -18,6 +18,8 @@ import numpy as np
 
 SR = 16000
 KEEP_S = 90.0
+REF_FIRST_S = 3.0      # first registration as soon as >= 3 s of clean labelled sentences
+REF_UPGRADE_S = 8.0    # one upgrade when >= 8 s, then the reference is frozen
 
 
 def _seg_int(seg_id) -> int:
@@ -46,6 +48,10 @@ class CloneVoices:
         self._latest = None
         self._span = {}
         self._reasons = {}
+        self._seg_pcm = {}       # seg -> (pcm16k float32, ASR text), last 80 sentences
+        self._cands = {}         # spk -> [(seg, dur, pcm, text)] reference-quality sentences
+        self._ref_dur = {}
+        self._upgraded = {}
         self.dir = os.path.join(os.environ.get("LOCALAPPDATA", "."),
                                 "LiveDubEXT", "clone_voices")
         os.makedirs(self.dir, exist_ok=True)
@@ -63,7 +69,7 @@ class CloneVoices:
         self._th.start()
 
     # ── ASR 线程：每段定稿后调用 ──────────────────────────────
-    def on_segment(self, seg_id, audio, t_start: float, t_end: float) -> None:
+    def on_segment(self, seg_id, audio, t_start: float, t_end: float, text: str = "") -> None:
         a = np.asarray(audio)
         if a.dtype == np.int16:
             a = a.astype(np.float32) / 32768.0
@@ -71,13 +77,13 @@ class CloneVoices:
         with self._lock:
             self._buf = np.concatenate((self._buf, a))[-int(KEEP_S * SR):]
             self._buf_t0 = float(t_end) - self._buf.size / float(SR)
-        self._q.put((_seg_int(seg_id), a, float(t_start), float(t_end)))
+        self._q.put((_seg_int(seg_id), a, float(t_start), float(t_end), str(text or "")))
 
     def _worker(self) -> None:
         import queue as _queue, time as _t
         while not self._stop.is_set():
             try:
-                seg, a, t_start, t_end = self._q.get(timeout=0.25)
+                seg, a, t_start, t_end, text = self._q.get(timeout=0.25)
             except _queue.Empty:
                 seg = None
             try:
@@ -85,7 +91,17 @@ class CloneVoices:
                     self._span[seg] = (t_start, t_end)
                     self.br.feed(a, t_end)
                     self._unlabelled[seg] = _t.monotonic()
+                    self._seg_pcm[seg] = (a, text)
+                    if len(self._seg_pcm) > 80:
+                        self._seg_pcm.pop(next(iter(self._seg_pcm)))
                     self._handle(seg, self.br.on_final(seg, t_start, t_end))
+                    # 11-08 test 6: provisional label right away (bypass label arrives 2-8 s later
+                    #   and overrides it); stricter threshold than the final fallback.
+                    if not self.tab.spk_of(seg):
+                        _p = self._nearest(seg, min_sim=0.4)
+                        if _p:
+                            self.tab.note_final(seg, _p, [], spk_conf=0.2)
+                            self._reasons["provisional"] = self._reasons.get("provisional", 0) + 1
                 self._pump()
                 # still unlabelled 6 s after ASR (bypass pending / refused) => nearest speaker
                 now = _t.monotonic()
@@ -104,6 +120,7 @@ class CloneVoices:
         if r.get("spk"):
             self._note(seg, r["spk"], r.get("spk_conf"), r.get("clean_ranges"))
             self._reasons["label"] = self._reasons.get("label", 0) + 1
+            self._candidate(seg, r)
             return
         if r.get("pending"):
             return
@@ -121,7 +138,61 @@ class CloneVoices:
         if n and n % 20 == 0:
             self._log("[spk] 标签来源统计：%s" % self._reasons)
 
-    def _nearest(self, seg) -> Optional[str]:
+    def _candidate(self, seg, r) -> None:
+        """A whole sentence usable as clone reference: bypass label (not fallback), conf >= 0.5,
+        clean speech covers >= 80 % of it, 1.5-12 s, and we still hold its audio + ASR text."""
+        try:
+            span = self._span.get(seg); item = self._seg_pcm.get(seg)
+            if not span or not item or not item[1].strip():
+                return
+            dur = span[1] - span[0]
+            cover = sum(max(0.0, float(b) - float(a))
+                        for a, b in (r.get("clean_ranges") or [])) / max(dur, 1e-6)
+            if float(r.get("spk_conf") or 0) < 0.5 or cover < 0.8 or not (1.5 <= dur <= 12.0):
+                return
+            self._cands.setdefault(r["spk"], []).append((seg, dur, item[0], item[1].strip()))
+        except Exception as e:
+            self._log("[spk] 参考句记录失败：%s" % e)
+
+    def _register_sentences(self) -> None:
+        """11-08 test 6: reference = whole clean sentences + their transcript (ICL clone).
+        Frozen: first at >= REF_FIRST_S, one upgrade at >= REF_UPGRADE_S, then never changes
+        (each new reference changed the timbre - user heard the same speaker drift)."""
+        for spk, cands in list(self._cands.items()):
+            cur = self._ref_dur.get(spk, 0.0)
+            if cur > 0 and (cur >= REF_UPGRADE_S or self._upgraded.get(spk)):
+                continue
+            total = sum(c[1] for c in cands)
+            need = REF_FIRST_S if cur <= 0 else REF_UPGRADE_S
+            if total < need:
+                continue
+            pick, acc = [], 0.0
+            for c in reversed(cands):            # most recent sentences first, up to 12 s
+                if acc + c[1] > 12.0 and pick:
+                    break
+                pick.append(c); acc += c[1]
+            pick.reverse()
+            gap = np.zeros(int(0.2 * SR), dtype=np.float32)
+            pcm = np.concatenate([x for c in pick for x in (c[2], gap)])[:-gap.size]
+            text = " ".join(c[3] for c in pick)
+            refined = spk in self.paths
+            self.n_reg += 1
+            path = os.path.join(self.dir, "%s_%d.wav" % (spk, self.n_reg))
+            with wave.open(path, "wb") as w:
+                w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
+                w.writeframes((np.clip(pcm, -1, 1) * 32767).astype("<i2").tobytes())
+            with open(path + ".txt", "w", encoding="utf-8") as f:
+                f.write(text)
+            if refined:
+                self._upgraded[spk] = True
+            self._ref_dur[spk] = acc
+            self.tab.mark_embedded(spk, refined=refined)
+            self.paths[spk] = path
+            self._latest = spk
+            self._log("[spk] %s 音色%s（整句 %d 句 %.1f s + 文本，ICL）" % (
+                spk, "升级" if refined else "已登记", len(pick), acc))
+
+    def _nearest(self, seg, min_sim: float = 0.2) -> Optional[str]:
         """11-08 test 4: the bypass leaves not-clean / overlap / too-long sentences unlabelled
         (42/57 in the user run) and they inherited the previous speaker's voice (man dubbed with a
         woman's voice). Embed the sentence and take the nearest existing speaker centroid."""
@@ -152,7 +223,7 @@ class CloneVoices:
         v = v / (np.linalg.norm(v) + 1e-9)
         sims = [float(np.dot(v, np.asarray(c).reshape(-1))) for c in cents]
         k = int(np.argmax(sims))
-        return labels[k] if sims[k] >= 0.2 else None
+        return labels[k] if sims[k] >= min_sim else None
 
     def _note(self, seg, spk, conf, ranges) -> None:
         self._spks.add(spk)
@@ -171,34 +242,10 @@ class CloneVoices:
                     self._note(seg, spk, conf, ranges)
         except Exception as e:
             self._log("[spk] 取标签失败：%s" % e)
-        for spk in list(self._spks):
-            try:
-                rngs, key = self.tab.registration_ticket(spk)
-                if not rngs or key == self._reg_key.get(spk):
-                    continue
-                with self._lock:
-                    buf, t0 = self._buf, self._buf_t0
-                pcm = self.br.pcm_for_ranges(rngs, keep=buf, max_s=10.0, keep_t0=t0)
-                if pcm is None or pcm.size < int(self.sv.MIN_S * SR):
-                    continue
-                refined = spk in self.paths
-                self.n_reg += 1
-                path = os.path.join(self.dir, "%s_%d.wav" % (spk, self.n_reg))
-                with wave.open(path, "wb") as w:
-                    w.setnchannels(1)
-                    w.setsampwidth(2)
-                    w.setframerate(SR)
-                    w.writeframes((np.clip(pcm, -1, 1) * 32767).astype("<i2").tobytes())
-                a, b = rngs[0]
-                self.tab.mark_registered(spk, a, b)
-                self.tab.mark_embedded(spk, refined=refined)
-                self._reg_key[spk] = key
-                self.paths[spk] = path
-                self._latest = spk
-                self._log("[spk] %s 音色%s（%.1f s 参考）" % (
-                    spk, "已细化" if refined else "已登记", pcm.size / float(SR)))
-            except Exception as e:
-                self._log("[spk] %s 登记失败（回落预设 A）：%s" % (spk, e))
+        try:
+            self._register_sentences()
+        except Exception as e:
+            self._log("[spk] 登记失败（沿用已有音色）：%s" % e)
 
     # ── TTS 线程：合成前调用 ──────────────────────────────────
     def voice_for(self, seg_id, wait: float = 0.0) -> Optional[str]:

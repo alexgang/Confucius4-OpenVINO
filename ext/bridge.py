@@ -2969,7 +2969,7 @@ class PipelineSession(Session):
         _cv = self._clone_mgr()
         if _cv is not None:
             try:
-                _cv.on_segment(job.seg_id, job.audio, job.t_start, job.t_end)
+                _cv.on_segment(job.seg_id, job.audio, job.t_start, job.t_end, text=job.text)
             except Exception as e:
                 _log(f"克隆旁路失败（段 {job.seg_id}）: {e}")
 

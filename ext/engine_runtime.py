@@ -533,6 +533,15 @@ class RuntimeEngine:
                 self.on_log("TTS: CUDA 边车模块不可用：%s" % e)
             if cuda_ok:
                 try:
+                    # 11-08 reviewer: EXT copy of the sidecar = ICL clone when <ref>.txt exists
+                    #   + steadier sampling (App package untouched).
+                    _sc = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                       "tts_cuda_sidecar_ext.py")
+                    if os.path.isfile(_sc):
+                        tts_cuda.SIDECAR = _sc
+                        os.environ.setdefault("LIVECAP_PKG", APP_ROOT)
+                        os.environ.setdefault("EXT_TTS_TEMPERATURE", "0.6")
+                        os.environ.setdefault("EXT_TTS_TOP_K", "20")
                     eng = tts_cuda.CudaTTSEngine(on_log=self.on_log)
                     eng.start()
                     self._tts_eng = eng
