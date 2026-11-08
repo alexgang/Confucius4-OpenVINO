@@ -82,12 +82,12 @@ TTS_RATE_MIN = 1.0
 ADAPT_LAG_FREE_SEC = 0.5   # 11-06: was 3.0 — lag was allowed to build up (user saw drift; dub/source=1.16)      # lag ≤ 此值 ⇒ 1.0×
 ADAPT_LAG_HYST_SEC = 0.3   # 11-06: was 2.0      # 降速滞回门槛（lag < 此值才回 1.0×）
 ADAPT_GAIN_PER_SEC = 0.08  # 11-06: was 0.025 (only 1.18x at 10 s lag); now 1.12x@2s, 1.28x@4s    # 每秒滞后的加速系数
-ADAPT_SPEED_MAX = 1.30        # 速度上限
+ADAPT_SPEED_MAX = 2.00        # 11-08 用户批准上限 2.0×（原 1.30：中文配音/原声≈1.30，封顶 1.3 必然越积越多）
 ADAPT_SPEED_MIN = 1.0
 ADAPT_MAX_STEP = 0.10         # 相邻句之间的最大速度变化（0.1×）
 # ★ EXT-009 EXT 侧：**两者相乘后总倍率仍然不超过 1.30×**
 #   （单句时长适配的 1.25× 与自适应加速相乘 ⇒ 必须再封顶一次）
-ADAPT_TOTAL_RATE_MAX = 1.30   # 时长适配 × 自适应加速 的总倍率上限
+ADAPT_TOTAL_RATE_MAX = 2.00   # 11-08 用户批准 2.0×（原 1.30）
 
 # ── 目标语言码（引擎只认这 4 种）────────────────────────────────
 # ★★ T-3：这份表与 `ext/engine_runtime.py` 的 LANG_TO_MT / LANG_TO_TTS
@@ -202,3 +202,7 @@ RELEASE_MODE = _release_mode()
 #:   ⇒ 整机 `getDisplayMedia` 回退**默认关闭**。
 CAPTURE_MODES = (["tabCapture"] if RELEASE_MODE
                  else ["tabCapture", "getDisplayMedia"])
+
+# 11-08 reviewer: 配音队列模型——当前句应在「原声结束 + 当前滞后的一半」之前播完
+#   rate_need = speech / max(seg_len × FIT_MIN_FRAC, seg_len − lag)，封顶 ADAPT_TOTAL_RATE_MAX
+QUEUE_FIT_MIN_FRAC = 0.5

@@ -1375,6 +1375,7 @@ class Session:
         # ★ EXT-009：上一句实际采用的**自适应加速倍率**
         #   （用于「相邻句变化 ≤ 0.1×」与「滞回」两条约束）
         self._prev_adapt_speed = 1.0
+        self._play_end_est = 0.0   # 11-08: 模拟 player 配音队列的结束时刻（perf_counter 轴）
         # ── ★ T-1：抓流方式（captureMode）────────────────────
         #   **为什么需要**：EXT-005 ① / EXT-008 都要求「tabCapture 生产路径
         #   到底有没有被实测过」必须**能从数据核对**，而不是靠人读日志。
@@ -2322,7 +2323,10 @@ class Session:
         #   但滞后的主导项是**管线 backlog**（占 83.18%，§6.4.3）
         #   ⇒ 偏差是二阶效应；且速度曲线在 lag=15 s 就饱和到 1.30×，
         #   小偏差在饱和区无影响。本轮如实记录该口径，不宣称「精确」。
-        lag_est = max(0.0, -deadline_margin)
+        # 11-08 reviewer: player 按 max(目标时刻, 上一句播完, 到达) 排程 ⇒ 服务端照此模拟队列，
+        #   否则 TTS 一快 lag_est 就≈0，看不到排队造成的累积滞后（用户实测 6 分钟涨到 10+ s）。
+        start_est = max(deadline, ready_at, self._play_end_est)
+        lag_est = max(0.0, start_est - deadline)
         dec = decide_speed(lag_est, prev_speed=self._prev_adapt_speed)
 
         # 时长适配（单句超长时压缩）—— EXT-009 明文「保留」
@@ -2332,6 +2336,12 @@ class Session:
         #   **相乘**，总倍率封顶 1.30×，超出的部分顺延。
         rates = combine_rates(fit.rate, dec.speed)
         total_rate = rates["total_rate"]
+        # 11-08: 按队列模型补足所需倍率（句长窗口扣掉当前滞后），封顶 2.0×
+        _seg_len = max(0.3, t_end - t_start)
+        _win = max(_seg_len * C.QUEUE_FIT_MIN_FRAC, _seg_len - lag_est)
+        if speech_sec > 0:
+            total_rate = min(C.ADAPT_TOTAL_RATE_MAX, max(total_rate, speech_sec / _win))
+            rates["total_rate"] = round(total_rate, 4)
         self._prev_adapt_speed = dec.speed
 
         # ★ 保持音高变速在**主机侧单线程**做（EXT-009 明文：
@@ -2354,6 +2364,8 @@ class Session:
                 pcm_out = pcm24k
                 speech_out = speech_sec
 
+        if pcm_out is not None and speech_out > 0:
+            self._play_end_est = start_est + speech_out
         # 顺延量：按**实际采用的**总倍率算（封顶掉的部分排不进窗口 ⇒ 顺延）
         budget = fit.target_sec + fit.extend_sec
         defer_total = fit.defer_sec
@@ -3673,6 +3685,10 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                 #     player 的 hello 在抓流之后 ⇒ 直接带在 hello 里。）
                 #   两条路径都汇到 `note_client`，字段口径一致。
                 session.note_client(msg)
+                continue
+            if mtype == "player_log":
+                # 11-08 reviewer: player-side state (video slow-down) into bridge.log
+                _log("[player] " + str(msg.get("text", ""))[:400])
                 continue
             if mtype == "client_metrics":
                 # ★★★★★★ EXT-036 ①/②：客户端上报**实测**的下行耗时 /

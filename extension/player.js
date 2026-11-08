@@ -268,7 +268,7 @@ const ADAPT = {
   lagFreeSec: 3.0,      // lag ≤ 3 s ⇒ 1.0×
   lagHystSec: 2.0,      // 降速滞回门槛
   gainPerSec: 0.025,    // 每秒滞后的加速系数
-  speedMax: 1.30,       // 上限
+  speedMax: 2.00,       // 上限（11-08 用户批准 2.0×，与 ext/config.py 一致）
   maxStep: 0.10,        // 相邻句变化上限
 };
 
@@ -1998,8 +1998,16 @@ async function refreshSlowdownRecommendation(wsUrl) {
 //   playback lag (actual dub start − target start, metrics.adaptLagSec) and
 //   slow the SOURCE video just enough to hold lag near 0.5 s (0.80–1.00x).
 let lagCtlTimer = null, lagCtlRate = 1.0;
+// 11-08: send a line to bridge.log (player-side state was invisible in the 11-08 user test)
+function bridgeLog(text) {
+  try {
+    const w = upState.ws && upState.ws.readyState === 1 ? upState.ws : null;
+    if (w) w.send(JSON.stringify({ type: 'player_log', text: String(text).slice(0, 400) }));
+  } catch (e) { /* ignore */ }
+}
 function startLagRateController() {
   if (lagCtlTimer) return;
+  bridgeLog('降速闭环已启动 floor=' + SLOWDOWN_FLOOR);
   lagCtlTimer = setInterval(async () => {
     try {
       const lag = Number(metrics.adaptLagSec);
@@ -2013,7 +2021,9 @@ function startLagRateController() {
       const r = await applyMediaSlowdownToTab(tid, lagCtlRate);
       metrics.slowdown = { applied: !!r.applied, rate: lagCtlRate, videos: r.videos,
                            reason: r.reason || ('闭环：lag=' + lag.toFixed(2) + 's') };
-    } catch (e) { /* keep trying next tick */ }
+      bridgeLog('降速 rate=' + lagCtlRate + ' lag=' + lag.toFixed(2) + 's applied=' + !!r.applied
+                + ' videos=' + r.videos + (r.reason ? ' reason=' + r.reason : ''));
+    } catch (e) { bridgeLog('降速闭环异常：' + String((e && e.message) || e)); }
   }, 2000);
 }
 
@@ -2572,7 +2582,9 @@ async function startCapture() {
       metrics.slowdownEnabled = (sdOn && sdOn.slowdownOn != null)
         ? !!sdOn.slowdownOn : true;
     } catch (e) { /* ignore */ }
+    if (!metrics.slowdownEnabled) bridgeLog('降速已关闭（slowdownOn=false）');
     if (metrics.slowdownEnabled) {
+      startLagRateController();   // 11-08: start before anything that can throw
       (async () => {
         try {
           // ① 先把 popup 的实测结果读进来（没记录 ⇒ null ⇒ **不臆造**）
@@ -2590,7 +2602,6 @@ async function startCapture() {
           }
           // ② 周期刷新建议（建议变了就重新设置）
           await refreshSlowdownRecommendation(cfg.wsUrl);
-          startLagRateController();   // 11-06: closed-loop on measured dub lag (replaces fixed server recommendation)
         } catch (e) {
           metrics.slowdown = { applied: false, rate: null, videos: null,
                                reason: '降速初始化失败：'
