@@ -148,7 +148,7 @@ class CloneVoices:
             dur = span[1] - span[0]
             cover = sum(max(0.0, float(b) - float(a))
                         for a, b in (r.get("clean_ranges") or [])) / max(dur, 1e-6)
-            if float(r.get("spk_conf") or 0) < 0.5 or cover < 0.8 or not (1.5 <= dur <= 12.0):
+            if float(r.get("spk_conf") or 0) < 0.5 or cover < 0.7 or not (1.5 <= dur <= 12.0):
                 return
             self._cands.setdefault(r["spk"], []).append((seg, dur, item[0], item[1].strip()))
         except Exception as e:
@@ -159,7 +159,7 @@ class CloneVoices:
         Frozen: first at >= REF_FIRST_S, one upgrade at >= REF_UPGRADE_S, then never changes
         (each new reference changed the timbre - user heard the same speaker drift)."""
         for spk, cands in list(self._cands.items()):
-            cur = self._ref_dur.get(spk, 0.0)
+            cur = self._ref_dur.get(spk, 0.0)      # ICL reference seconds (interim = 0)
             if cur > 0 and (cur >= REF_UPGRADE_S or self._upgraded.get(spk)):
                 continue
             total = sum(c[1] for c in cands)
@@ -183,7 +183,7 @@ class CloneVoices:
                 w.writeframes((np.clip(pcm, -1, 1) * 32767).astype("<i2").tobytes())
             with open(path + ".txt", "w", encoding="utf-8") as f:
                 f.write(text)
-            if refined:
+            if cur > 0:
                 self._upgraded[spk] = True
             self._ref_dur[spk] = acc
             self.tab.mark_embedded(spk, refined=refined)
@@ -246,6 +246,37 @@ class CloneVoices:
             self._register_sentences()
         except Exception as e:
             self._log("[spk] 登记失败（沿用已有音色）：%s" % e)
+        try:
+            self._register_interim()
+        except Exception as e:
+            self._log("[spk] 临时登记失败：%s" % e)
+
+    def _register_interim(self) -> None:
+        """Interim x-vector voice from the bypass clean ranges (App gate: >= 2.5 s continuous,
+        conf >= 0.5) for speakers that have no voice yet; replaced once by the ICL reference."""
+        for spk in list(self._spks):
+            if spk in self.paths:
+                continue
+            rngs, key = self.tab.registration_ticket(spk)
+            if not rngs:
+                continue
+            with self._lock:
+                buf, t0 = self._buf, self._buf_t0
+            pcm = self.br.pcm_for_ranges(rngs, keep=buf, max_s=10.0, keep_t0=t0)
+            if pcm is None or pcm.size < int(self.sv.MIN_S * SR):
+                continue
+            self.n_reg += 1
+            path = os.path.join(self.dir, "%s_%d.wav" % (spk, self.n_reg))
+            with wave.open(path, "wb") as w:
+                w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
+                w.writeframes((np.clip(pcm, -1, 1) * 32767).astype("<i2").tobytes())
+            a, b = rngs[0]
+            self.tab.mark_registered(spk, a, b)
+            self.tab.mark_embedded(spk, refined=False)
+            self.paths[spk] = path
+            self._latest = spk
+            self._log("[spk] %s 临时音色（x-vector，%.1f s 干净段；整句 ICL 参考就绪后替换）"
+                      % (spk, pcm.size / float(SR)))
 
     # ── TTS 线程：合成前调用 ──────────────────────────────────
     def voice_for(self, seg_id, wait: float = 0.0) -> Optional[str]:
@@ -256,12 +287,26 @@ class CloneVoices:
             if spk and spk in self.paths:
                 return self.paths[spk]
             if _t.perf_counter() >= end:
-                return None
+                break
             _t.sleep(0.2)
+        # 11-08 self-test: still no label => embed this sentence now and take the nearest
+        #   registered speaker (inheriting the previous sentence's voice gave the first sentence
+        #   of every new turn the previous speaker's voice).
+        if not self.tab.spk_of(_seg_int(seg_id)):
+            spk = self._nearest(_seg_int(seg_id), min_sim=0.25)
+            if spk and spk in self.paths:
+                self._reasons["tts_nearest"] = self._reasons.get("tts_nearest", 0) + 1
+                return self.paths[spk]
+        return None
 
     def latest_path(self) -> Optional[str]:
         """Most recently registered reference (used before any sentence has a label)."""
         return self.paths.get(self._latest) if self._latest else None
+
+    def has_voice_label(self, seg_id) -> bool:
+        """The sentence has a speaker label but that speaker has no voice yet."""
+        spk = self.tab.spk_of(_seg_int(seg_id))
+        return bool(spk) and spk not in self.paths
 
     def spk_of(self, seg_id) -> str:
         return self.tab.spk_of(_seg_int(seg_id))

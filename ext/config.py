@@ -34,6 +34,7 @@ FRAME_MAX_MS = 100           # 插件上行帧长上限
 # ⚠️ 这里的常量**同时**被 `ext/segmenter.py` 与 R2T2 等价性自测使用
 #   ⇒ 改了它，两边**同时**用新参数 ⇒ 等价性自测依然成立。
 SEG_MIN_SEC = 3.0            # ★ EXT-027④：12.0 → 3.0（reviewer 要求 2–3 s）
+SEG_MIN_SEC_CLONE = 1.5      # 11-08: clone mode - split at speaker-turn pauses from 1.5 s
 SEG_MAX_SEC = 8.0            # ★ EXT-027④：20.0 → 8.0（reviewer 要求 6–8 s）
 
 # ★★★★★ EXT-034 ④：**首段单独限长**（缩短「起步」）。

@@ -1867,7 +1867,11 @@ class Session:
         #     ⚠️ 最终网格必须与
         #       `ext/segmenter.plan_segments_first_capped()` **一致**
         #       ⇒ 客户端预期段数才不会漂。
-        segs = plan_segments(self._buf)
+        # 11-08 self-test: clone mode cuts at silences from SEG_MIN_SEC_CLONE (short turns such as
+        #   "Can you give us an example?" were merged with the next speaker => wrong voice)
+        _clone_on = (self.client_voice or "").strip().lower() == "clone"
+        segs = plan_segments(self._buf, min_segment_sec=(C.SEG_MIN_SEC_CLONE if _clone_on
+                                                         else C.SEG_MIN_SEC))
         # ★★★★★★ EXT-036 ④：**首段提前交付 + 切点栅格锚定**。
         #   ## 病根（reviewer EXT-036 ④ 的实测）
         #     旧流程：`plan_segments()` 只能在**原段（最多 8 s）音频到齐**后
@@ -3012,7 +3016,12 @@ class PipelineSession(Session):
                 # 11-08 测试2：标签未到 ⇒ 沿用上一句音色（10-28 方案 A），不是直接回落预设 A
                 if _v:
                     self._last_clone_voice = _v
-                job.voice = _v or getattr(self, '_last_clone_voice', None) or C.PRESET_VOICE
+                if not _v and _cv.has_voice_label(job.seg_id):
+                    # 11-08 self-test: known speaker without a voice yet => preset A, never
+                    #   another speaker's voice (that made one person sound like the other)
+                    job.voice = C.PRESET_VOICE
+                else:
+                    job.voice = _v or getattr(self, '_last_clone_voice', None) or C.PRESET_VOICE
                 job.spk = job.spk or (_cv.spk_of(job.seg_id) or None)
                 _log("[spk] 段 %s 标签=%s 音色=%s（等标签 %.1f s）" % (
                     job.seg_id, _cv.spk_of(job.seg_id) or "-",
