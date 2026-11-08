@@ -723,16 +723,41 @@ class RuntimeEngine:
         #   再用硬上限封顶（防止 est 估偏大时闸门形同虚设）。
         wall_limit = min(runaway_threshold_s(est_sec), TTS_WALL_CLOCK_CAP_SEC)
 
+        spk_embed = self._apply_voice(voice)
         pcm = self._collect_tts(text, language=language, max_tok=max_tok,
-                                wall_limit=wall_limit)
+                                wall_limit=wall_limit, speaker_embed=spk_embed)
         if pcm is None:
             return (None, 0.0)
         speech_sec = len(pcm) / 2.0 / 24000.0
         self.n_calls["tts"] += 1
         return (pcm, speech_sec)
 
+    def _apply_voice(self, voice):
+        """11-08 reviewer: voice = 克隆参考 wav 路径 ⇒ 用该说话人音色；否则预设 A。
+        CUDA 边车按请求带 ref_audio ⇒ 当句生效；NPU 走 x-vector（按路径缓存）。"""
+        path = voice if (voice and os.path.isfile(str(voice))) else None
+        eng = self._tts_eng
+        if getattr(eng, 'USES_REF_AUDIO', False):
+            if not hasattr(self, '_preset_ref'):
+                self._preset_ref = getattr(eng, 'ref_audio', None)
+            want = path or self._preset_ref
+            if want and getattr(eng, 'ref_audio', None) != want:
+                eng.set_ref_audio(want)
+            return None
+        if path is None:
+            return self._tts_spk_embed
+        cache = self.__dict__.setdefault('_clone_embeds', {})
+        if path not in cache:
+            try:
+                from tts_engine import speaker_embedding
+                cache[path] = speaker_embedding(eng, ref_wav=path, on_log=self.on_log)
+            except Exception as e:
+                self.on_log('克隆 x-vector 失败（用预设 A）：%s' % e)
+                cache[path] = None
+        return cache[path] if cache[path] is not None else self._tts_spk_embed
+
     def _collect_tts(self, text: str, *, language: str, max_tok: int,
-                     wall_limit: float) -> Optional[bytes]:
+                     wall_limit: float, speaker_embed=None) -> Optional[bytes]:
         """跑 TTS 流式合成并收集 PCM，同时执行两道失控中止。"""
         from tts_engine import stream as tts_stream
 
@@ -743,7 +768,7 @@ class RuntimeEngine:
         try:
             for wave, sample_rate in tts_stream(
                     self._tts_eng, text, language=language,
-                    speaker_embed=self._tts_spk_embed,   # ★ 预设音色 A（x-vector）
+                    speaker_embed=speaker_embed,   # 11-08: 预设 A 或克隆说话人的 x-vector（CUDA 为 None）
                     speaker=None,
                     max_new_tokens=max_tok,
                     on_log=self.on_log):

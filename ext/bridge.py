@@ -1376,6 +1376,8 @@ class Session:
         #   （用于「相邻句变化 ≤ 0.1×」与「滞回」两条约束）
         self._prev_adapt_speed = 1.0
         self._play_end_est = 0.0   # 11-08: 模拟 player 配音队列的结束时刻（perf_counter 轴）
+        self._clone = None          # 11-08: 克隆说话人（ext/clone_voice.py），面板选 clone 时懒加载
+        self._clone_failed = False
         # ── ★ T-1：抓流方式（captureMode）────────────────────
         #   **为什么需要**：EXT-005 ① / EXT-008 都要求「tabCapture 生产路径
         #   到底有没有被实测过」必须**能从数据核对**，而不是靠人读日志。
@@ -1722,6 +1724,20 @@ class Session:
                      "分位用**最近秩**口径（与 `_pct` 一致）。"),
         }
         return out
+
+    def _clone_mgr(self):
+        """11-08: 面板选 clone 且接了真实引擎 ⇒ 懒加载 CloneVoices；否则 None。"""
+        if (self.client_voice or "A").strip().lower() != "clone" or self._engine is None:
+            return None
+        if self._clone is None and not self._clone_failed:
+            try:
+                from .clone_voice import CloneVoices
+                self._clone = CloneVoices(on_log=_log)
+                _log("克隆说话人已启用（说话人旁路 + 按句绑定音色）")
+            except Exception as e:
+                self._clone_failed = True
+                _log(f"克隆说话人启用失败（回落预设 A）：{e}")
+        return self._clone
 
     # ── 音色选择（T-3） ──────────────────────────────────────
     def _pick_voice(self, spk) -> str:
@@ -2935,6 +2951,13 @@ class PipelineSession(Session):
                 job.mark_error("asr", e)
         job.asr_sec = time.perf_counter() - t0
         job.text = text
+        # 11-08 reviewer: 克隆说话人——把定稿段喂给说话人旁路（不阻塞，失败只记日志）
+        _cv = self._clone_mgr()
+        if _cv is not None:
+            try:
+                _cv.on_segment(job.seg_id, job.audio, job.t_start, job.t_end)
+            except Exception as e:
+                _log(f"克隆旁路失败（段 {job.seg_id}）: {e}")
 
     def _stage_mt(self, job) -> None:
         """MT 阶段（在 MT 线程里跑）。"""
@@ -2962,6 +2985,15 @@ class PipelineSession(Session):
         self.tracker.register_pending(job.seg_id, job.spk,
                                        job.t_start, job.t_end)
         job.voice = self._pick_voice(job.spk)
+        # 11-08 reviewer: 面板选 clone ⇒ 用该句说话人的已登记参考（wav 路径）；未到 ⇒ 预设 A
+        _cv = self._clone_mgr()
+        if _cv is not None:
+            try:
+                job.voice = _cv.voice_for(job.seg_id) or C.PRESET_VOICE
+                job.spk = job.spk or (_cv.spk_of(job.seg_id) or None)
+            except Exception as e:
+                _log(f"克隆选音色失败（段 {job.seg_id}）: {e}")
+                job.voice = C.PRESET_VOICE
 
         t0 = time.perf_counter()
         pcm24k = None
