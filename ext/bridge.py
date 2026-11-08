@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import base64
+import contextlib
 import json
 import os
 import secrets
@@ -2362,6 +2363,14 @@ class Session:
         total_rate = round(max(1.0, min(C.ADAPT_TOTAL_RATE_MAX, total_rate)), 4)
         self._queue_rate = total_rate
         rates["total_rate"] = total_rate
+        # 11-08 test 3: a dub that can only start > LATE_DROP_SEC after its picture slot is
+        #   not played (subtitle only) - keeps the voice on the right picture instead of drifting.
+        _late = start_est - deadline
+        if pcm24k is not None and _late > C.LATE_DROP_SEC:
+            self._n_late_drop = getattr(self, "_n_late_drop", 0) + 1
+            _log("[sync] 段 %s 已晚 %.1f s（>%.0f s）=> 不播配音、只出字幕（累计 %d 句）"
+                 % (seg_id, _late, C.LATE_DROP_SEC, self._n_late_drop))
+            pcm24k = None
         self._prev_adapt_speed = dec.speed
 
         # ★ 保持音高变速在**主机侧单线程**做（EXT-009 明文：
@@ -2906,6 +2915,9 @@ class PipelineSession(Session):
             emit_fn=self._stage_emit,
             device_lock=self._device_lock,
             on_log=_log,
+            # 11-08: MT on NPU => not serialized with ASR on GPU.0
+            mt_lock=(contextlib.nullcontext()
+                     if str(getattr(engine, "mt_device", "")).upper() == "NPU" else None),
         )
         self._seg_index = 0
         # ★★★ EXT-029 ①/④：**说话人旁路**（独立线程 + 有界队列）。
@@ -2991,12 +3003,20 @@ class PipelineSession(Session):
         _cv = self._clone_mgr()
         if _cv is not None:
             try:
+                # 11-08 测试3：有余量时短等这一句的说话人标签（旁路窗口 5 s，标签常晚到）
+                _slack = (self.t0 + job.t_start + self.delay_sec) - time.perf_counter()
+                _wait = min(C.CLONE_LABEL_WAIT_SEC, max(0.0, _slack - C.CLONE_LABEL_RESERVE_SEC))
+                _v = _cv.voice_for(job.seg_id, wait=_wait)
+                if not _v and not getattr(self, '_last_clone_voice', None):
+                    _v = _cv.latest_path()   # 还没有任何带标签的句子 => 先用最近登记的说话人
                 # 11-08 测试2：标签未到 ⇒ 沿用上一句音色（10-28 方案 A），不是直接回落预设 A
-                _v = _cv.voice_for(job.seg_id)
                 if _v:
                     self._last_clone_voice = _v
                 job.voice = _v or getattr(self, '_last_clone_voice', None) or C.PRESET_VOICE
                 job.spk = job.spk or (_cv.spk_of(job.seg_id) or None)
+                _log("[spk] 段 %s 标签=%s 音色=%s（等标签 %.1f s）" % (
+                    job.seg_id, _cv.spk_of(job.seg_id) or "-",
+                    os.path.basename(job.voice) if job.voice else "-", _wait))
             except Exception as e:
                 _log(f"克隆选音色失败（段 {job.seg_id}）: {e}")
                 job.voice = C.PRESET_VOICE

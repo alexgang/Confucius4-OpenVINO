@@ -160,13 +160,25 @@ SEG_TIMING_HISTORY = 50
 
 # ── 引擎设备摆放（EXT-001 总原则） ──────────────────────────────
 DEVICE_ASR = "GPU.0"         # R2T2 INT8
-DEVICE_MT = "GPU.0"          # Hy-MT2 INT8
 import os as _os
 # 11-06 (reviewer): TTS on NPU cannot keep up in EXT (dub is ~1.27x the source and
 #   NPU TTS runs ~1.2x real time under contention => backlog grows).  "AUTO" uses the
 #   App's CUDA sidecar (faster-qwen3-tts on the NVIDIA GPU) when its env exists,
 #   else NPU.  Override with env EXT_TTS_DEVICE=NPU|CUDA|AUTO.
 DEVICE_TTS = (_os.environ.get("EXT_TTS_DEVICE", "AUTO").strip().upper() or "AUTO")           # Qwen3-TTS 全 NPU
+# 11-08 reviewer (user test 3): ASR+MT+clone bypass kept GPU.0 ~98% busy => dub drifted to 90 s.
+#   MT AUTO = NPU when TTS runs on the CUDA sidecar (NPU idle then; measured 0.81 s/sentence vs
+#   0.55 s on GPU.0, identical output), else GPU.0.  Override: env EXT_MT_DEVICE=GPU.0|NPU|AUTO.
+DEVICE_MT = (_os.environ.get("EXT_MT_DEVICE", "AUTO").strip().upper() or "AUTO")
+if DEVICE_MT == "GPU":
+    DEVICE_MT = "GPU.0"
+# 11-08: a dub that would start more than this many seconds after its picture slot is not
+#   played (subtitle only) - playing it would put the voice on the wrong picture.
+LATE_DROP_SEC = float(_os.environ.get("EXT_LATE_DROP_SEC", "6.0"))
+# 11-08: clone - wait up to this long in the TTS stage for the sentence speaker label,
+#   only while the sentence still has more than CLONE_LABEL_RESERVE_SEC of slack.
+CLONE_LABEL_WAIT_SEC = 3.0
+CLONE_LABEL_RESERVE_SEC = 9.0
 
 
 # ── 发行版模式（EXT-031③） ──────────────────────────────────────

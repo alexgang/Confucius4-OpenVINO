@@ -431,6 +431,18 @@ class RuntimeEngine:
             from translator import HunyuanTranslator
         except Exception as e:
             raise EngineNeedsChange("Hy-MT2", "import HunyuanTranslator 失败: %s" % e)
+        # 11-08 reviewer: MT AUTO => NPU when TTS will use the CUDA sidecar (frees GPU.0 for ASR)
+        if str(self.mt_device or "").upper() == "AUTO":
+            _cuda = False
+            if str(self.tts_device or "").upper() in ("AUTO", "CUDA"):
+                try:
+                    import tts_cuda
+                    _cuda = bool(tts_cuda.available())
+                except Exception:
+                    _cuda = False
+            self.mt_device = "NPU" if _cuda else "GPU.0"
+            self.on_log("MT 设备 AUTO => %s（TTS %s CUDA 边车）"
+                        % (self.mt_device, "走" if _cuda else "不走"))
         # ★ 运行时重新解析（支持 import 之后才设的环境变量）
         model_dir = _resolve_mt_model_dir()
         if not model_dir:

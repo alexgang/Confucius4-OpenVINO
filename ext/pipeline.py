@@ -176,7 +176,8 @@ class EnginePipeline:
                  tts_fn: Callable[[SegmentJob], None],
                  emit_fn: Callable[[SegmentJob], Optional[dict]],
                  device_lock: Optional[threading.Lock] = None,
-                 on_log: Callable[[str], None] = lambda _m: None) -> None:
+                 on_log: Callable[[str], None] = lambda _m: None,
+                 mt_lock=None) -> None:
         self._asr_fn = asr_fn
         self._mt_fn = mt_fn
         self._tts_fn = tts_fn
@@ -185,6 +186,8 @@ class EnginePipeline:
         #   `threading.Lock` 不保证公平 ⇒ ASR 会连续拿锁、MT 饿死
         #   ⇒ 三个阶段退化成串行 ⇒ 流水线反而比串行更慢。
         self._device_lock = device_lock if device_lock is not None else _FairLock()
+        # 11-08: MT on NPU does not share GPU.0 with ASR => its own (no-op) lock
+        self._mt_lock = mt_lock if mt_lock is not None else self._device_lock
         self._on_log = on_log
 
         self._q_asr: "queue.Queue[Optional[SegmentJob]]" = \
@@ -345,7 +348,7 @@ class EnginePipeline:
                 break
             t0 = time.perf_counter()
             try:
-                with self._device_lock:
+                with self._mt_lock:
                     self._mt_fn(job)
             except BaseException as e:
                 job.mark_error(STAGE_MT, e)

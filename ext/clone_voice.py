@@ -43,6 +43,7 @@ class CloneVoices:
         self._spks = set()
         self._reg_key = {}
         self.paths = {}
+        self._latest = None
         self.dir = os.path.join(os.environ.get("LOCALAPPDATA", "."),
                                 "LiveDubEXT", "clone_voices")
         os.makedirs(self.dir, exist_ok=True)
@@ -112,16 +113,28 @@ class CloneVoices:
                 self.tab.mark_embedded(spk, refined=refined)
                 self._reg_key[spk] = key
                 self.paths[spk] = path
+                self._latest = spk
                 self._log("[spk] %s 音色%s（%.1f s 参考）" % (
                     spk, "已细化" if refined else "已登记", pcm.size / float(SR)))
             except Exception as e:
                 self._log("[spk] %s 登记失败（回落预设 A）：%s" % (spk, e))
 
     # ── TTS 线程：合成前调用 ──────────────────────────────────
-    def voice_for(self, seg_id) -> Optional[str]:
-        self.pump()
-        spk = self.tab.voice_for_sentence(_seg_int(seg_id))
-        return self.paths.get(spk) if spk else None
+    def voice_for(self, seg_id, wait: float = 0.0) -> Optional[str]:
+        import time as _t
+        end = _t.perf_counter() + max(0.0, wait)
+        while True:
+            self.pump()
+            spk = self.tab.voice_for_sentence(_seg_int(seg_id))
+            if spk and spk in self.paths:
+                return self.paths[spk]
+            if _t.perf_counter() >= end:
+                return None
+            _t.sleep(0.2)
+
+    def latest_path(self) -> Optional[str]:
+        """Most recently registered reference (used before any sentence has a label)."""
+        return self.paths.get(self._latest) if self._latest else None
 
     def spk_of(self, seg_id) -> str:
         return self.tab.spk_of(_seg_int(seg_id))
