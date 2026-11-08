@@ -268,7 +268,7 @@ const ADAPT = {
   lagFreeSec: 3.0,      // lag ≤ 3 s ⇒ 1.0×
   lagHystSec: 2.0,      // 降速滞回门槛
   gainPerSec: 0.025,    // 每秒滞后的加速系数
-  speedMax: 2.00,       // 上限（11-08 用户批准 2.0×，与 ext/config.py 一致）
+  speedMax: 1.50,       // 上限（11-08 用户定 1.5×，与 ext/config.py 一致）
   maxStep: 0.10,        // 相邻句变化上限
 };
 

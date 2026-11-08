@@ -2336,12 +2336,14 @@ class Session:
         #   **相乘**，总倍率封顶 1.30×，超出的部分顺延。
         rates = combine_rates(fit.rate, dec.speed)
         total_rate = rates["total_rate"]
-        # 11-08: 按队列模型补足所需倍率（句长窗口扣掉当前滞后），封顶 2.0×
-        _seg_len = max(0.3, t_end - t_start)
-        _win = max(_seg_len * C.QUEUE_FIT_MIN_FRAC, _seg_len - lag_est)
-        if speech_sec > 0:
-            total_rate = min(C.ADAPT_TOTAL_RATE_MAX, max(total_rate, speech_sec / _win))
-            rates["total_rate"] = round(total_rate, 4)
+        # 11-08 用户：倍率只由滞后严重程度决定，1.0×→1.5× 渐进（不再用时长适配的固定倍率）
+        _raw = 1.0 + max(0.0, lag_est - C.ADAPT_LAG_FREE_SEC) * C.ADAPT_GAIN_PER_SEC
+        _raw = min(C.ADAPT_TOTAL_RATE_MAX, max(1.0, _raw))
+        _prev = getattr(self, "_queue_rate", 1.0)
+        total_rate = max(_prev - C.ADAPT_MAX_STEP, min(_prev + C.ADAPT_MAX_STEP, _raw))
+        total_rate = round(max(1.0, min(C.ADAPT_TOTAL_RATE_MAX, total_rate)), 4)
+        self._queue_rate = total_rate
+        rates["total_rate"] = total_rate
         self._prev_adapt_speed = dec.speed
 
         # ★ 保持音高变速在**主机侧单线程**做（EXT-009 明文：
