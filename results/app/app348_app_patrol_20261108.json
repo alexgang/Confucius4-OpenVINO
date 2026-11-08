@@ -1,0 +1,127 @@
+{
+  "round": "§157",
+  "now": "2026-11-08 19:24:59",
+  "lease_token": "036393c3",
+  "task": "app_patrol_no_new_corrections_ack_only",
+  "lease": {
+    "acquire_exit": 0,
+    "takeover": false,
+    "beats": "OK each step",
+    "addpid": "NOT_NEEDED_no_long_job",
+    "release": "at end of round"
+  },
+  "corrections_open": {
+    "sha256": "b3a1a90037c399d59875494bed8b8a02e899d02e6d5c480cae033b4ebda59b62",
+    "bytes": 231064,
+    "mtime": "2026-11-07 23:10:48",
+    "n_headings": 84,
+    "n_loose_app_headings": 84,
+    "max_heading_num": 84,
+    "min_heading_num": 1,
+    "missing_numbers": [],
+    "duplicate_numbers": [],
+    "headings_gt_084": [],
+    "mentions_ge_085": []
+  },
+  "corrections_close": {
+    "sha256": "b3a1a90037c399d59875494bed8b8a02e899d02e6d5c480cae033b4ebda59b62",
+    "bytes": 231064,
+    "mtime": "2026-11-07 23:10:48",
+    "n_headings": 84,
+    "n_loose_app_headings": 84,
+    "max_heading_num": 84,
+    "min_heading_num": 1,
+    "missing_numbers": [],
+    "duplicate_numbers": [],
+    "headings_gt_084": [],
+    "mentions_ge_085": []
+  },
+  "corrections_open_equals_close": true,
+  "reviewer_appended_this_round": false,
+  "n_headings": 84,
+  "max_heading_num": 84,
+  "status_last_ack_before": "APP-084",
+  "status_last_ack_after": "APP-084",
+  "n_new_headings": 0,
+  "new_headings": [],
+  "app084_status": "本条已完成（ack，§153）；待合并分项需等 reviewer 复核与发起",
+  "stop_at_reviewer": true,
+  "ack_only_no_new_round": true,
+  "app082_audit_performed_this_round": false,
+  "git": {
+    "head": "28b5c61",
+    "branch": "main",
+    "ahead": "0",
+    "worktree_changes": 644,
+    "staged_before": [],
+    "corrections_worktree_status": "M status/app/CORRECTIONS_APP.md",
+    "clone_is_ancestor_of_main_rc": 1,
+    "clone_note": "rc!=0 => claude-clone not merged into main; APP-084 merge gate not advanced"
+  },
+  "machine_lock": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\MACHINE_LOCK",
+    "exists": false
+  },
+  "prior_background_pids": {
+    "17220": {
+      "verdict": "DEAD_err87",
+      "openprocess_err": 87
+    },
+    "7396": {
+      "verdict": "DEAD_err87",
+      "openprocess_err": 87
+    }
+  },
+  "packages": {
+    "v23_zip": {
+      "exists": true,
+      "bytes": 11235945990,
+      "mtime": "2026-11-07 15:54:15",
+      "sha256": "NOT_RECOMPUTED_metadata_only"
+    },
+    "v24_zip": {
+      "exists": true,
+      "bytes": 11235954241,
+      "mtime": "2026-11-07 23:04:25",
+      "sha256": "NOT_RECOMPUTED_metadata_only"
+    }
+  },
+  "status_before": {
+    "bytes": 39911,
+    "lines": 212,
+    "sha256": "f93c5260aaa273fc850800cd589563f266be48a1353e7cdc81ee95259cd9771b"
+  },
+  "archive_block": {
+    "path": "status/archive/STATUS_APP_sec156_20261108.md",
+    "bytes": 6755,
+    "sha256": "67e9b45d85887e6fff370ef7475d7830f490a490e8a936dfa4b8de6ab5d7ac00",
+    "verbatim": true
+  },
+  "selfcheck_expected": [
+    "corrections read-only open==close",
+    "n_new_headings==0 and 84 headings",
+    "4 header lines unique-hit",
+    "archive block unique + archive file verbatim",
+    "reverse restore == old full text",
+    "sections not fewer",
+    "LF not broken",
+    "within 40000 B / 300 lines",
+    "3 artifact SHAs present and disk-equal",
+    "self-size fixed point converged"
+  ],
+  "discipline": {
+    "cpu_static_only": true,
+    "machine_lock_created": false,
+    "inference_or_benchmark": false,
+    "minimax_called": false,
+    "packaging": false,
+    "customer_pkg_modified": false,
+    "shortcut_modified": false,
+    "user_notified": false,
+    "corrections_file_written": false,
+    "corrections_file_staged": false,
+    "force_push": false,
+    "same_version_repack": false,
+    "new_self_invented_audit_round": false
+  }
+}
