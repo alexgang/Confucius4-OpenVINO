@@ -96,6 +96,13 @@ def resolve_app_root(explicit: Optional[str] = None) -> Optional[str]:
             return env
         # 显式指定但目录不存在 ⇒ **不静默回退**（显式配置错了必须暴露）
         return None
+    # 11-08 (user: ship EXT inside the App package): EXT placed inside a package
+    #   (<pkg>/<ext dir>/ext/app_root.py) uses THAT package first, not the newest one in ~.
+    d = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for _ in range(3):
+        d = os.path.dirname(d)
+        if d and _is_complete(d):
+            return d
     for root in candidate_roots():
         if _is_complete(root):
             return root
