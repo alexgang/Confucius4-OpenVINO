@@ -54,6 +54,13 @@ class CloneVoices:
             self.br.ensure_started()
         except Exception as e:
             on_log("[spk] 旁路启动失败（克隆回落预设 A）：%s" % e)
+        # 11-08 test 5: all clone work on its own thread (never in the ASR stage / GPU lock)
+        import queue as _queue
+        self._q = _queue.Queue()
+        self._unlabelled = {}          # seg -> time.monotonic() when finalized by ASR
+        self._stop = threading.Event()
+        self._th = threading.Thread(target=self._worker, name="clone-voices", daemon=True)
+        self._th.start()
 
     # ── ASR 线程：每段定稿后调用 ──────────────────────────────
     def on_segment(self, seg_id, audio, t_start: float, t_end: float) -> None:
@@ -64,11 +71,32 @@ class CloneVoices:
         with self._lock:
             self._buf = np.concatenate((self._buf, a))[-int(KEEP_S * SR):]
             self._buf_t0 = float(t_end) - self._buf.size / float(SR)
-        self._span[_seg_int(seg_id)] = (float(t_start), float(t_end))
-        self.br.feed(a, t_end)
-        r = self.br.on_final(_seg_int(seg_id), t_start, t_end)
-        self._handle(_seg_int(seg_id), r)
-        self.pump()
+        self._q.put((_seg_int(seg_id), a, float(t_start), float(t_end)))
+
+    def _worker(self) -> None:
+        import queue as _queue, time as _t
+        while not self._stop.is_set():
+            try:
+                seg, a, t_start, t_end = self._q.get(timeout=0.25)
+            except _queue.Empty:
+                seg = None
+            try:
+                if seg is not None:
+                    self._span[seg] = (t_start, t_end)
+                    self.br.feed(a, t_end)
+                    self._unlabelled[seg] = _t.monotonic()
+                    self._handle(seg, self.br.on_final(seg, t_start, t_end))
+                self._pump()
+                # still unlabelled 6 s after ASR (bypass pending / refused) => nearest speaker
+                now = _t.monotonic()
+                for sg, ts in list(self._unlabelled.items()):
+                    if self.tab.spk_of(sg):
+                        self._unlabelled.pop(sg, None)
+                    elif now - ts > 6.0:
+                        self._unlabelled.pop(sg, None)
+                        self._fallback(sg, "timeout")
+            except Exception as e:
+                self._log("[spk] 克隆线程异常：%s" % e)
 
     def _handle(self, seg, r) -> None:
         if not r:
@@ -79,7 +107,10 @@ class CloneVoices:
             return
         if r.get("pending"):
             return
-        why = str(r.get("reason") or "none")
+        self._unlabelled.pop(seg, None)
+        self._fallback(seg, str(r.get("reason") or "none"))
+
+    def _fallback(self, seg, why) -> None:
         self._reasons[why] = self._reasons.get(why, 0) + 1
         spk = self._nearest(seg)
         if spk:
@@ -128,12 +159,8 @@ class CloneVoices:
         self.tab.note_final(seg, spk, ranges or [], spk_conf=conf)
 
     def pump(self) -> None:
-        if not self._pump_lock.acquire(blocking=False):
-            return
-        try:
-            self._pump()
-        finally:
-            self._pump_lock.release()
+        """kept for callers; the clone thread pumps continuously."""
+        return None
 
     def _pump(self) -> None:
         try:
@@ -178,7 +205,6 @@ class CloneVoices:
         import time as _t
         end = _t.perf_counter() + max(0.0, wait)
         while True:
-            self.pump()
             spk = self.tab.voice_for_sentence(_seg_int(seg_id))
             if spk and spk in self.paths:
                 return self.paths[spk]
@@ -194,6 +220,7 @@ class CloneVoices:
         return self.tab.spk_of(_seg_int(seg_id))
 
     def close(self) -> None:
+        self._stop.set()
         try:
             self.br.stop()
         except Exception:
