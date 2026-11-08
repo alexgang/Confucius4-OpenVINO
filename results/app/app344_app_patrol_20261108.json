@@ -1,0 +1,236 @@
+{
+  "round": "§153",
+  "module": "app",
+  "token": "612790ec",
+  "get_date_measured": "2026-11-08 14:33:52",
+  "corrections_open": {
+    "sha256": "b3a1a90037c399d59875494bed8b8a02e899d02e6d5c480cae033b4ebda59b62",
+    "bytes": 231064,
+    "mtime": "2026-11-07 23:10:48",
+    "n_headings": 84,
+    "max_heading_num": 84,
+    "min_heading_num": 1,
+    "missing_numbers": [],
+    "duplicate_numbers": [],
+    "headings_gt_083": [
+      84
+    ]
+  },
+  "corrections_close": {
+    "sha256": "b3a1a90037c399d59875494bed8b8a02e899d02e6d5c480cae033b4ebda59b62",
+    "bytes": 231064,
+    "mtime": "2026-11-07 23:10:48",
+    "n_headings": 84,
+    "max_heading_num": 84,
+    "min_heading_num": 1,
+    "missing_numbers": [],
+    "duplicate_numbers": [],
+    "headings_gt_083": [
+      84
+    ]
+  },
+  "corrections_open_equals_close": true,
+  "reviewer_appended_this_round": false,
+  "corrections_readonly_not_modified": true,
+  "status_last_ack_before": "APP-083",
+  "status_last_ack_after": "APP-084",
+  "n_new_headings": 1,
+  "new_headings": [
+    "APP-084"
+  ],
+  "APP-084": {
+    "heading": "## APP-084 [NORMAL] 2026-11-07 23:15 — FYI：v2.4 已由 reviewer 构建并交付用户测试（App 无需动作，ack 即可）",
+    "classification": "FYI / ack-only",
+    "ack_done": true,
+    "action_required": "none",
+    "stop_at_reviewer": true,
+    "stop_reason": "等用户测完再把 claude-clone 合回 main（reviewer 发起）；App 期间不要改这几处文件",
+    "key_anchors_hit": {
+      "App 无需动作，ack 即可": true,
+      "等用户测完再把 claude-clone 合回 main": true,
+      "App 期间不要改这几处文件": true,
+      "11,235,954,241 B": true,
+      "spk_conf 报错 0（v2.3 同片段 45）": true,
+      "APP-082 的版本错配在 v2.4 已消除": true
+    },
+    "section_text": "## APP-084 [NORMAL] 2026-11-07 23:15 — FYI：v2.4 已由 reviewer 构建并交付用户测试（App 无需动作，ack 即可）\n\n- 包：`C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\` + `Confucius4_LiveCaption_v2.4.zip`（11,235,954,241 B；pack_v13 全部闸门 PASS，确定缺失 0，逐字节一致 14320/14320）。桌面新增 `Confucius4 实时字幕 v2.4.lnk`。\n- 源：clone_dev 分支 `claude-clone`（main 已合入）：3a8e45f 克隆升级、a3d2137 懒编译声码器/桶 8-16-32-33/说话人聚类 v2 默认、98cf8fc 预设音色不再登记克隆、92a6492+7e60afb 构建脚本与 pack 闸门版本化。建包脚本 `results/app/app_v24_build.py`（app/ 全部模块取 dev ⇒ APP-082 的版本错配在 v2.4 已消除）。\n- 验收（同一 SPE Q&A 300 s 片段）：克隆 82/84 句、男声段 22/23 为男声、女声 50/50；预设 84/84 预设；spk_conf 报错 0（v2.3 同片段 45）；TTS NPU 冷编译 1209→468 s。结尾滞后 v2.4 150 s vs v2.3 154 s（NPU 吞吐上限，非回归）。\n- 待合并：等用户测完再把 claude-clone 合回 main（reviewer 发起）。App 期间不要改这几处文件。\n",
+    "app082_audit_performed_this_round": false,
+    "app082_audit_deferred_reason": "APP-083 第 3 点「reviewer 交付后再说」＋APP-084「App 无需动作」⇒ 是否对 v2.4 做、以何口径转 reviewer 裁定"
+  },
+  "git": {
+    "head": "7f0b3fa",
+    "branch": "main",
+    "ahead": 0,
+    "staged_before": [],
+    "worktree_n_changes": 645,
+    "corrections_worktree_status": "M status/app/CORRECTIONS_APP.md"
+  },
+  "machine_lock": {
+    "exists": false
+  },
+  "v24": {
+    "dir_exists": true,
+    "zip_exists": true,
+    "zip_bytes": 11235954241,
+    "zip_mtime": "2026-11-07 23:04:25",
+    "dir_mtime": "2026-11-07 21:29:39"
+  },
+  "discipline": {
+    "packaged": false,
+    "new_version_dir_created": false,
+    "zip_written": false,
+    "customer_pkg_modified": false,
+    "shortcut_modified": false,
+    "clone_five_files_modified": false,
+    "user_notified": false,
+    "minimax_called": false,
+    "cpu_inference_or_bench": false,
+    "device_lock_created": false,
+    "new_selfproof_round": false,
+    "force_push": false,
+    "corrections_file_staged": false,
+    "same_version_overwrite": false
+  },
+  "criteria": {
+    "crit_ack": true,
+    "crit_corr": true,
+    "crit_anchors": true
+  },
+  "counterproof": [
+    {
+      "name": "ack: last_ack 未推进",
+      "detected": true
+    },
+    {
+      "name": "ack: 新条目数错",
+      "detected": true
+    },
+    {
+      "name": "ack: 新条目编号错",
+      "detected": true
+    },
+    {
+      "name": "corr: 收尾指纹被改一字",
+      "detected": true
+    },
+    {
+      "name": "anchors: 删掉 ack 锚点",
+      "detected": true
+    },
+    {
+      "name": "archive: 块字节被改",
+      "detected": true
+    },
+    {
+      "name": "archive: 反向还原失败",
+      "detected": true
+    },
+    {
+      "name": "archive: 归档件不逐字",
+      "detected": true
+    }
+  ],
+  "n_counterproof": 8,
+  "n_counterproof_detected": 8,
+  "products_excluding_self": [
+    {
+      "path": "status/archive/STATUS_APP_sec152_20261108.md",
+      "files": 1,
+      "bytes": 7789,
+      "mtime": "2026-11-08 14:34:38",
+      "sha256": "3902c3035665e61903397474d0905fe9142d2f0fbb0049d16ca3e83e87b5c9bc"
+    },
+    {
+      "path": "results/app/app344_app_patrol_20261108.py",
+      "files": 1,
+      "bytes": 29090,
+      "mtime": "2026-11-08 14:34:28",
+      "sha256": "9fb036d80a1e0eb512b6a2a796463649e72fd8c286fb16655ba7c4ad429038b9"
+    }
+  ],
+  "status_write": {
+    "before_bytes": 38999,
+    "before_lines": 203,
+    "before_sha256": "5be890f737236efd98ea131eba88be42cbd6110d48dab30a9c166fd774641d60",
+    "after_bytes": 39654,
+    "after_lines": 207,
+    "archive_file": "status/archive/STATUS_APP_sec152_20261108.md",
+    "archive_bytes": 7789,
+    "archive_sha256": "3902c3035665e61903397474d0905fe9142d2f0fbb0049d16ca3e83e87b5c9bc",
+    "reverse_restore_equals_old": true,
+    "sections_not_decreased": true,
+    "lf_preserved": true,
+    "atomic_replace": true,
+    "selfcheck": [
+      {
+        "name": "reverse_restore_equals_old_fulltext",
+        "result": "PASS",
+        "detail": "反向逐对还原后与写前全文逐字相同"
+      },
+      {
+        "name": "all_old_pairs_unique_hit",
+        "result": "PASS",
+        "detail": ""
+      },
+      {
+        "name": "archive_file_verbatim_matches_section152",
+        "result": "PASS",
+        "detail": "归档件 == §152 正文原块（7789 B）"
+      },
+      {
+        "name": "sections_not_decreased",
+        "result": "PASS",
+        "detail": ""
+      },
+      {
+        "name": "lf_line_endings_preserved",
+        "result": "PASS",
+        "detail": ""
+      },
+      {
+        "name": "within_size_limit_bytes",
+        "result": "PASS",
+        "detail": "39702 B"
+      },
+      {
+        "name": "within_line_limit",
+        "result": "PASS",
+        "detail": "207 lines"
+      },
+      {
+        "name": "header_last_ack_bumped",
+        "result": "PASS",
+        "detail": "头部第 3 行逐字比较（避免正文引用 APP-083 造成误判）"
+      },
+      {
+        "name": "ack_only_no_new_selfproof_round",
+        "result": "PASS",
+        "detail": ""
+      },
+      {
+        "name": "products_sha_match_disk",
+        "result": "PASS",
+        "detail": ""
+      }
+    ],
+    "n_selfcheck": 10,
+    "n_selfcheck_fail": 0
+  },
+  "products": [
+    {
+      "path": "status/archive/STATUS_APP_sec152_20261108.md",
+      "files": 1,
+      "bytes": 7789,
+      "mtime": "2026-11-08 14:34:38",
+      "sha256": "3902c3035665e61903397474d0905fe9142d2f0fbb0049d16ca3e83e87b5c9bc"
+    },
+    {
+      "path": "results/app/app344_app_patrol_20261108.py",
+      "files": 1,
+      "bytes": 29090,
+      "mtime": "2026-11-08 14:34:28",
+      "sha256": "9fb036d80a1e0eb512b6a2a796463649e72fd8c286fb16655ba7c4ad429038b9"
+    }
+  ],
+  "products_note": "JSON 自身 SHA 由 STATUS 产物表引用，JSON 内不自引用"
+}
