@@ -2342,7 +2342,9 @@ class Session:
         # 11-08 reviewer: player 按 max(目标时刻, 上一句播完, 到达) 排程 ⇒ 服务端照此模拟队列，
         #   否则 TTS 一快 lag_est 就≈0，看不到排队造成的累积滞后（用户实测 6 分钟涨到 10+ s）。
         start_est = max(deadline, ready_at, self._play_end_est)
-        lag_est = max(0.0, start_est - deadline)
+        # 11-08 测试2：只按**排队**滞后变速（前一句没播完而被推后的部分）。
+        #   到达晚（ASR/克隆旁路慢）变速追不回，旧口径会一直卡在 1.5×。
+        lag_est = max(0.0, start_est - max(deadline, ready_at))
         dec = decide_speed(lag_est, prev_speed=self._prev_adapt_speed)
 
         # 时长适配（单句超长时压缩）—— EXT-009 明文「保留」
@@ -2989,7 +2991,11 @@ class PipelineSession(Session):
         _cv = self._clone_mgr()
         if _cv is not None:
             try:
-                job.voice = _cv.voice_for(job.seg_id) or C.PRESET_VOICE
+                # 11-08 测试2：标签未到 ⇒ 沿用上一句音色（10-28 方案 A），不是直接回落预设 A
+                _v = _cv.voice_for(job.seg_id)
+                if _v:
+                    self._last_clone_voice = _v
+                job.voice = _v or getattr(self, '_last_clone_voice', None) or C.PRESET_VOICE
                 job.spk = job.spk or (_cv.spk_of(job.seg_id) or None)
             except Exception as e:
                 _log(f"克隆选音色失败（段 {job.seg_id}）: {e}")
