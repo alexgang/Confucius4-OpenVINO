@@ -44,6 +44,8 @@ class CloneVoices:
         self._reg_key = {}
         self.paths = {}
         self._latest = None
+        self._span = {}
+        self._reasons = {}
         self.dir = os.path.join(os.environ.get("LOCALAPPDATA", "."),
                                 "LiveDubEXT", "clone_voices")
         os.makedirs(self.dir, exist_ok=True)
@@ -62,11 +64,64 @@ class CloneVoices:
         with self._lock:
             self._buf = np.concatenate((self._buf, a))[-int(KEEP_S * SR):]
             self._buf_t0 = float(t_end) - self._buf.size / float(SR)
+        self._span[_seg_int(seg_id)] = (float(t_start), float(t_end))
         self.br.feed(a, t_end)
         r = self.br.on_final(_seg_int(seg_id), t_start, t_end)
-        if r and r.get("spk"):
-            self._note(_seg_int(seg_id), r["spk"], r.get("spk_conf"), r.get("clean_ranges"))
+        self._handle(_seg_int(seg_id), r)
         self.pump()
+
+    def _handle(self, seg, r) -> None:
+        if not r:
+            return
+        if r.get("spk"):
+            self._note(seg, r["spk"], r.get("spk_conf"), r.get("clean_ranges"))
+            self._reasons["label"] = self._reasons.get("label", 0) + 1
+            return
+        if r.get("pending"):
+            return
+        why = str(r.get("reason") or "none")
+        self._reasons[why] = self._reasons.get(why, 0) + 1
+        spk = self._nearest(seg)
+        if spk:
+            self._reasons["fallback"] = self._reasons.get("fallback", 0) + 1
+            # bind only (no clean ranges, low conf) => never seeds/refines a voice registration
+            self.tab.note_final(seg, spk, [], spk_conf=0.2)
+        n = sum(v for k, v in self._reasons.items() if k != "fallback")
+        if n and n % 20 == 0:
+            self._log("[spk] 标签来源统计：%s" % self._reasons)
+
+    def _nearest(self, seg) -> Optional[str]:
+        """11-08 test 4: the bypass leaves not-clean / overlap / too-long sentences unlabelled
+        (42/57 in the user run) and they inherited the previous speaker's voice (man dubbed with a
+        woman's voice). Embed the sentence and take the nearest existing speaker centroid."""
+        span = self._span.get(seg)
+        tr = getattr(self.br, "_tracker", None)
+        if not span or tr is None or getattr(tr, "_enc", None) is None or getattr(tr, "_clu", None) is None:
+            return None
+        with self._lock:
+            buf, t0 = self._buf, self._buf_t0
+        i0 = int((span[0] - t0) * SR); i1 = int((span[1] - t0) * SR)
+        if i0 < 0 or i1 > buf.size or i1 - i0 < int(1.0 * SR):
+            return None
+        pcm = buf[i0:i1]
+        if pcm.size > int(6.0 * SR):            # encoder has a compiled upper bound; middle 6 s
+            m = (pcm.size - int(6.0 * SR)) // 2
+            pcm = pcm[m:m + int(6.0 * SR)]
+        try:
+            with tr._lock:
+                v = np.asarray(tr._enc.embed(pcm, SR), dtype=np.float64).reshape(-1)
+                clu = tr._clu
+                cents = list(clu.centroids)
+                labels = [clu._label(k) for k in range(len(cents))]
+        except Exception as e:
+            self._log("[spk] 兜底标签失败：%s" % e)
+            return None
+        if not cents:
+            return None
+        v = v / (np.linalg.norm(v) + 1e-9)
+        sims = [float(np.dot(v, np.asarray(c).reshape(-1))) for c in cents]
+        k = int(np.argmax(sims))
+        return labels[k] if sims[k] >= 0.2 else None
 
     def _note(self, seg, spk, conf, ranges) -> None:
         self._spks.add(spk)
@@ -83,8 +138,7 @@ class CloneVoices:
     def _pump(self) -> None:
         try:
             for seg, r in self.br.poll_results() or []:
-                if r and r.get("spk"):
-                    self._note(seg, r["spk"], r.get("spk_conf"), r.get("clean_ranges"))
+                self._handle(seg, r)
             for seg, spk, conf, ranges in self.br.retry_pending() or []:
                 if spk:
                     self._note(seg, spk, conf, ranges)

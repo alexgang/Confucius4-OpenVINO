@@ -3021,6 +3021,24 @@ class PipelineSession(Session):
                 _log(f"克隆选音色失败（段 {job.seg_id}）: {e}")
                 job.voice = C.PRESET_VOICE
 
+        # 11-08 test 4: decide the late drop BEFORE synthesis. Synthesizing a sentence that is
+        #   dropped afterwards costs the full TTS time, so the backlog never drained and every
+        #   later dub was dropped too (user: "translation and voice stopped").
+        _txt = job.tgt or job.text or ""
+        _cjk = sum(1 for ch in _txt if "\u3000" <= ch <= "\u9fff")
+        _est = C.TTS_EST_RTF * (_cjk / 4.5 + (len(_txt) - _cjk) / 14.0)
+        _deadline = self.t0 + job.t_start + self.delay_sec
+        _start = max(_deadline, time.perf_counter() + _est, getattr(self, "_play_end_est", 0.0))
+        if self._engine is not None and _txt and _start - _deadline > C.LATE_DROP_SEC:
+            self._n_skip_tts = getattr(self, "_n_skip_tts", 0) + 1
+            _log("[sync] 段 %s 预计晚 %.1f s（>%.0f s）=> 跳过合成、只出字幕（累计 %d 句）"
+                 % (job.seg_id, _start - _deadline, C.LATE_DROP_SEC, self._n_skip_tts))
+            job.tts_sec = 0.0
+            job.pcm24k = None
+            job.speech_sec = 0.0
+            job.ready_at = time.perf_counter()
+            return
+
         t0 = time.perf_counter()
         pcm24k = None
         speech_sec = 0.0

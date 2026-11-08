@@ -178,6 +178,9 @@ LATE_DROP_SEC = float(_os.environ.get("EXT_LATE_DROP_SEC", "6.0"))
 # 11-08: clone - wait up to this long in the TTS stage for the sentence speaker label,
 #   only while the sentence still has more than CLONE_LABEL_RESERVE_SEC of slack.
 CLONE_LABEL_WAIT_SEC = 3.0
+# 11-08: CUDA sidecar wall time per second of dub audio (measured 0.6-0.8 live) - used to
+#   predict whether a sentence can still make its slot before synthesizing it.
+TTS_EST_RTF = 0.8
 CLONE_LABEL_RESERVE_SEC = 9.0
 
 
