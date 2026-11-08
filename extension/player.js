@@ -361,6 +361,9 @@ let t0 = 0;
 const T0_OFFSET_FRAMES = 60;
 const t0OffsetCandidates = [];
 let t0Established = false;
+let t0Src = null;          // 11-08: 配音排程用的 t0（上行样本直接测得）
+let dubSyncLogAt = 0;
+function dubT0() { return (t0Src == null) ? t0 : t0Src; }
 // ★ uplink↔player 两个 AudioContext 的原点差（秒，player 域表示）。
 let upToPlayerOffsetSec = null;
 const upToPlayerCandidates = [];
@@ -1350,7 +1353,9 @@ function scheduleDub(msg) {
   const sr = resolvePcmSampleRate(msg);
   const buf = b64ToAudioBuffer(msg.pcm24k, sr.rate);
   metrics.pcmRateLast = sr.rate;
-  const planned = t0 + Number(msg.t_start || 0) + delaySec;
+  // 11-08 reviewer: 用「上行样本 ↔ 音频时钟」直接测得的 t0Src 排程（画面 = 抓帧时刻 + D，
+  //   配音 = 该句原声被抓到的时刻 + D ⇒ 同一把尺）。旧 t0 推导链曾整体偏早十几秒（配音抢在画面前）。
+  const planned = dubT0() + Number(msg.t_start || 0) + delaySec;
   const src = audioCtx.createBufferSource();
   src.buffer = buf;
   // ★★ probe（自测）排程走**独立总线**（真实缺陷，实测双峰 0.02 / 43.02 ms）：
@@ -1427,7 +1432,16 @@ function scheduleDub(msg) {
   //     （目标开播时刻 = t0 + t_start + D；实际开播时刻 = when，含钳位）
   //   - 本地按 EXT-009 公式**复核**一遍倍率，便于发现两侧口径差异。
   if (!isProbe) {
-    const targetStart = t0 + Number(msg.t_start || 0) + delaySec;
+    const targetStart = planned;
+    if (!isProbe) {
+      const _now = audioCtx.currentTime;
+      if (!dubSyncLogAt || _now - dubSyncLogAt > 15) {
+        dubSyncLogAt = _now;
+        bridgeLog('[sync] t_start=' + Number(msg.t_start || 0).toFixed(2) + ' t0Src-t0=' +
+          (t0Src == null ? 'na' : (t0Src - t0).toFixed(2)) + 's lag=' + (when - planned).toFixed(2) +
+          's speed=' + Number(msg.speed || 1).toFixed(2));
+      }
+    }
     const actualStart = when;
     const lagSec = actualStart - targetStart;
     const serverSpeed = Number(msg.speed || 1.0);
@@ -2181,6 +2195,12 @@ function onUplinkFrame(d) {
   const nSamples = pcm.byteLength / 2;
   const seq = d.seq;
   const sampleIndex = d.sampleIndex;
+  // 11-08 reviewer: 样本 (sampleIndex+n) 刚被抓到 ≈ 现在 ⇒ 样本 0 的音频时钟时刻 ≤ now − 已抓秒数；
+  //   取所有帧的最小值（= 真值 + 最小传输延迟，与画面抓帧口径一致）。
+  if (audioCtx && typeof sampleIndex === 'number') {
+    const est = audioCtx.currentTime - (sampleIndex + nSamples) / 16000;
+    if (t0Src == null || est < t0Src) t0Src = est;
+  }
 
   // ★ 基准点：首个输入样本到达工作线程的时刻。
   //   首帧到达主线程时，worklet 已处理了 inSamples 个 48 kHz 输入样本，
