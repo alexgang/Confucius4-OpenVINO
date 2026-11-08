@@ -1,0 +1,127 @@
+{
+  "round": "§155",
+  "now": "2026-11-08 17:08:04",
+  "corrections_open": {
+    "sha256": "b3a1a90037c399d59875494bed8b8a02e899d02e6d5c480cae033b4ebda59b62",
+    "bytes": 231064,
+    "mtime": "2026-11-07 23:10:48",
+    "n_headings": 84,
+    "n_loose_app_headings": 84,
+    "max_heading_num": 84,
+    "min_heading_num": 1,
+    "missing_numbers": [],
+    "duplicate_numbers": [],
+    "headings_gt_084": [],
+    "mentions_ge_085": []
+  },
+  "corrections_close": {
+    "sha256": "b3a1a90037c399d59875494bed8b8a02e899d02e6d5c480cae033b4ebda59b62",
+    "bytes": 231064,
+    "mtime": "2026-11-07 23:10:48",
+    "n_headings": 84,
+    "n_loose_app_headings": 84,
+    "max_heading_num": 84,
+    "min_heading_num": 1,
+    "missing_numbers": [],
+    "duplicate_numbers": [],
+    "headings_gt_084": [],
+    "mentions_ge_085": []
+  },
+  "corrections_final_after_status_write": {
+    "sha256": "b3a1a90037c399d59875494bed8b8a02e899d02e6d5c480cae033b4ebda59b62",
+    "bytes": 231064,
+    "mtime": "2026-11-07 23:10:48",
+    "n_headings": 84,
+    "n_loose_app_headings": 84,
+    "max_heading_num": 84,
+    "min_heading_num": 1,
+    "missing_numbers": [],
+    "duplicate_numbers": [],
+    "headings_gt_084": [],
+    "mentions_ge_085": []
+  },
+  "open_equals_final": true,
+  "reviewer_appended_this_round": false,
+  "corrections_file_written": false,
+  "corrections_file_staged": false,
+  "selfcheck": {
+    "n_pass": 10,
+    "n_fail": 0,
+    "checks": [
+      {
+        "name": "corrections read-only open==close",
+        "ok": true
+      },
+      {
+        "name": "n_new_headings==0 and 84 headings",
+        "ok": true
+      },
+      {
+        "name": "4 header lines unique-hit",
+        "ok": true
+      },
+      {
+        "name": "archive block unique + archive file verbatim",
+        "ok": true
+      },
+      {
+        "name": "reverse restore == old full text",
+        "ok": true
+      },
+      {
+        "name": "sections not fewer",
+        "ok": true
+      },
+      {
+        "name": "LF not broken",
+        "ok": true
+      },
+      {
+        "name": "within 40000 B / 300 lines",
+        "ok": true
+      },
+      {
+        "name": "3 artifact SHAs present and disk-equal",
+        "ok": true
+      },
+      {
+        "name": "self-size fixed point converged",
+        "ok": true
+      }
+    ]
+  },
+  "status_after": {
+    "bytes": 39407,
+    "lines": 209,
+    "sha256": "1a42f612f3ff26094a69ec829690d6b6447368e4841b16daa099b2acc4c037b5"
+  },
+  "status_before": {
+    "bytes": 38352,
+    "lines": 207,
+    "sha256": "dae17e266305a66264490d6e20bfb8a78662af4be4b31edafc9fb7386a0c0521"
+  },
+  "archive": {
+    "path": "status/archive/STATUS_APP_sec154_20261108.md",
+    "files": 1,
+    "bytes": 6328,
+    "mtime": "2026-11-08 17:08:29",
+    "sha256": "b50177e7b215778ffb873b27457eef5d2643914af07b4ab596aba5a4db2bb13d"
+  },
+  "artifacts": {
+    "json": {
+      "path": "results/app/app346_app_patrol_20261108.json",
+      "files": 1,
+      "bytes": 3548,
+      "mtime": "2026-11-08 17:08:29",
+      "sha256": "880d4a5f542dcbd52b74308758e1c6f00a5aae7734e1ff6b7b89f59354cc9ec9"
+    },
+    "script": {
+      "path": "results/app/app346_app_patrol_20261108.py",
+      "files": 1,
+      "bytes": 25276,
+      "mtime": "2026-11-08 17:07:55",
+      "sha256": "4ef8be4fcffcea5351fe21cbe1bbf21fedd93f3562f5182f88bafa56089b920c"
+    }
+  },
+  "post_write_disk_bytes_equal": true
+}
