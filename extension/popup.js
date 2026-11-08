@@ -135,7 +135,8 @@ async function applyMediaSlowdown(tabId, rate) {
 async function setupMediaSlowdown(tabId, wsUrl) {
   let cfg = {};
   try { cfg = await chrome.storage.local.get({ slowdownOn: true }); } catch (e) { }
-  const enabled = (cfg && cfg.slowdownOn != null) ? !!cfg.slowdownOn : true;
+  // 11-08 用户：画面速度不调，只调配音语速 ⇒ 媒体降速永久关闭（忽略存量配置）
+  const enabled = false;
   if (!enabled) {
     const rec = { enabled: false, applied: false, rate: 1.0, videos: null,
                   reason: '用户关闭了媒体降速开关' };
@@ -276,7 +277,7 @@ async function loadCfg() {
     subsOn: true,
     playerOpen: false,
     // ★★★ EXT-041：媒体降速**默认开**（reviewer 明文）。
-    slowdownOn: true,
+    slowdownOn: false,   // 11-08 用户：不调画面速度
   });
   $('ws').value = cfg.wsUrl;
   $('token').value = cfg.token || '';

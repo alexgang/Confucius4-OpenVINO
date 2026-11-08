@@ -2579,8 +2579,8 @@ async function startCapture() {
     //   ⚠️ 这一步是**异步**的 ⇒ **不 await 阻塞**抓流（fire-and-forget）。
     try {
       const sdOn = await chrome.storage.local.get({ slowdownOn: true });
-      metrics.slowdownEnabled = (sdOn && sdOn.slowdownOn != null)
-        ? !!sdOn.slowdownOn : true;
+      // 11-08 用户：画面速度不调，只调配音语速 ⇒ 永久关闭媒体降速
+      metrics.slowdownEnabled = false && !!(sdOn && sdOn.slowdownOn);
     } catch (e) { /* ignore */ }
     if (!metrics.slowdownEnabled) bridgeLog('降速已关闭（slowdownOn=false）');
     if (metrics.slowdownEnabled) {
