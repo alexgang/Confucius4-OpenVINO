@@ -4005,6 +4005,11 @@ def main(argv=None) -> int:
         try:
             from .engines import load_runtime_engine
             engine = load_runtime_engine(target_lang=args.target_lang)
+            try:
+                from .version import version_label as _vl
+                _log("实时配音桥接 " + _vl())
+            except Exception:
+                pass
             _log(f"真实引擎已接线：ASR(R2T2 INT8@{C.DEVICE_ASR}) → "
                  f"MT(Hy-MT2 INT8@{C.DEVICE_MT}) → "
                  f"TTS(Qwen3-TTS@{C.DEVICE_TTS})，目标语言={args.target_lang}")

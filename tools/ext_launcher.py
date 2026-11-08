@@ -706,8 +706,13 @@ def main(argv=None) -> int:
 
     os.makedirs(APPDATA_DIR, exist_ok=True)
 
+    try:
+        from ext.version import version_label as _vl
+        _VER = " " + _vl()
+    except Exception:
+        _VER = ""
     app = tk.Tk()
-    app.title("实时配音桥接（EXT）")
+    app.title("实时配音桥接（EXT）" + _VER)
     app.geometry("620x460")
     app.configure(bg="#f6f8fa")
 
@@ -756,7 +761,7 @@ def main(argv=None) -> int:
         color = {"ok": "#1a7f37", "err": "#cf222e", "warn": "#9a6700"}.get(kind, "#1f2328")
         try:
             state_var.set(text)
-            app.title("实时配音桥接（EXT） — " + text)
+            app.title("实时配音桥接（EXT）" + _VER + " — " + text)
             for w in app.winfo_children():
                 pass
             lbl = app.winfo_children()[1]
