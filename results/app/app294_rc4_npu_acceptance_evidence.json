@@ -1,0 +1,188 @@
+{
+ "script": "_app294_rc4_npu_acceptance.py",
+ "ts": "2026-11-10 00:45:22",
+ "pkg": "C:\\minimvp_rc4_clean\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4",
+ "wav": "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+ "arms": {
+  "npu": {
+   "arm": "npu",
+   "engine": "npu_int8",
+   "asr_device": "NPU",
+   "cmd": [
+    "C:\\minimvp_rc4_clean\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4\\python\\python.exe",
+    "C:\\minimvp_rc4_clean\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+    "--engine",
+    "npu_int8",
+    "--asr-device",
+    "NPU",
+    "--translate",
+    "zh",
+    "--mt-device",
+    "GPU.0",
+    "--mt-engine",
+    "gpu_int4cw",
+    "--tts",
+    "off",
+    "--speaker",
+    "off",
+    "--max-seconds",
+    "300",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app294_rc4_npu_out\\npu\\transcript.txt"
+   ],
+   "rc": 0,
+   "wall_s": 306.96,
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app294_rc4_npu_out\\npu\\run.log",
+   "transcript": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app294_rc4_npu_out\\npu\\transcript.txt",
+   "log_bytes": 41415,
+   "transcript_bytes": 4699,
+   "peak_mem_mb": 5212.6,
+   "mem_samples": 1208,
+   "parsed": {
+    "summary": {
+     "engine": "npu_int8",
+     "audio": 300.0,
+     "wall": 300.8,
+     "rtf": 0.803,
+     "backlog": 1.1,
+     "segs": 46,
+     "lat_ms": 540.0
+    },
+    "device_log": "GPU.0",
+    "asr_load_line": [
+     "npu_int8",
+     "3.0",
+     "NPU"
+    ]
+   }
+  },
+  "igpu": {
+   "arm": "igpu",
+   "engine": "gpu_int8",
+   "asr_device": "GPU.0",
+   "cmd": [
+    "C:\\minimvp_rc4_clean\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4\\python\\python.exe",
+    "C:\\minimvp_rc4_clean\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+    "--engine",
+    "gpu_int8",
+    "--asr-device",
+    "GPU.0",
+    "--translate",
+    "zh",
+    "--mt-device",
+    "GPU.0",
+    "--mt-engine",
+    "gpu_int4cw",
+    "--tts",
+    "off",
+    "--speaker",
+    "off",
+    "--max-seconds",
+    "300",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app294_rc4_npu_out\\igpu\\transcript.txt"
+   ],
+   "rc": 0,
+   "wall_s": 312.81,
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app294_rc4_npu_out\\igpu\\run.log",
+   "transcript": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app294_rc4_npu_out\\igpu\\transcript.txt",
+   "log_bytes": 42437,
+   "transcript_bytes": 4704,
+   "peak_mem_mb": 4819.5,
+   "mem_samples": 1220,
+   "parsed": {
+    "summary": {
+     "engine": "gpu_int8",
+     "audio": 300.0,
+     "wall": 300.8,
+     "rtf": 0.696,
+     "backlog": 1.2,
+     "segs": 46,
+     "lat_ms": 376.0
+    },
+    "device_log": "GPU.0",
+    "asr_load_line": [
+     "gpu_int8",
+     "8.4",
+     "GPU"
+    ]
+   }
+  },
+  "npu_full": {
+   "arm": "npu_full",
+   "engine": "npu_int8",
+   "asr_device": "NPU",
+   "cmd": [
+    "C:\\minimvp_rc4_clean\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4\\python\\python.exe",
+    "C:\\minimvp_rc4_clean\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+    "--engine",
+    "npu_int8",
+    "--asr-device",
+    "NPU",
+    "--translate",
+    "zh",
+    "--mt-device",
+    "GPU.0",
+    "--mt-engine",
+    "gpu_int4cw",
+    "--tts",
+    "on",
+    "--speaker",
+    "off",
+    "--max-seconds",
+    "300",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app294_rc4_npu_out\\npu_full\\transcript.txt",
+    "--tts-voice",
+    "A",
+    "--tts-device",
+    "NPU",
+    "--tts-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app294_rc4_npu_out\\npu_full\\mix.wav",
+    "--tts-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app294_rc4_npu_out\\npu_full\\tts.jsonl"
+   ],
+   "rc": 0,
+   "wall_s": 429.32,
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app294_rc4_npu_out\\npu_full\\run.log",
+   "transcript": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app294_rc4_npu_out\\npu_full\\transcript.txt",
+   "log_bytes": 105426,
+   "transcript_bytes": 4699,
+   "peak_mem_mb": 5213.1,
+   "mem_samples": 1687,
+   "parsed": {
+    "summary": {
+     "engine": "npu_int8",
+     "audio": 300.0,
+     "wall": 415.7,
+     "rtf": 1.264,
+     "backlog": 84.4,
+     "segs": 46,
+     "lat_ms": 55362.0
+    },
+    "exec_devices_log": "EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU",
+    "device_log": "GPU.0",
+    "asr_load_line": [
+     "npu_int8",
+     "3.1",
+     "NPU"
+    ],
+    "npu_compile_s_log": "0.837"
+   }
+  }
+ },
+ "transcripts": {
+  "npu": "Good morning, everyone. Good morning. Let's get started. So, welcome.\nto our Q3 26 QGS.\nAgenda topics today we'll talk about three. One I want to share our engineering strategy.\nto realize the business growth that Alex spoke about in his last QGS. We'll then talk about engine\nengineering priorities and just general execution, and then Lisa will join me and go through all of the work that's done with the software team, who\nI think is probably one of the largest pivots to do to go enable to grow it ahead of us that I'll explore to.\nAnd then at the end we'll have plenty of time for Q&A, both in room and online. Okay.\nSo you recall, Alex spoke about business growth, about client, agentic, edge and physicality.\nSo the goal of this slide is to describe our strategy on a page how we, as an engineering organization, in this\nEnable that growth. Again, we are the scale function that will drive growth for all of these business units.\nSo the way to look at a simplified stack is just meant to describe what are the competitive advantages and the\nStrategy by which we will enable our businesses to grow. It'll guide our decision making and our principles.\nand it's a simplified view, but one thing that's very important to understand is it's not an optimized\noptimizing one layer above all else. It's looking at this whole stack end to end to bring a\nPlatform leadership at scale with quality and predictable execution. Like as an example, Silicon\nItself about the software value to unlock it, it's not a good platform play.\nRight, so starting at the bottom, process and packaging, our strategy will and has\nbeen to maximize the IDM advantage. So working closely with TD on how we can optimize for performance for performance.\ncost and for power, I would say that's a strategy that's well in motion. If you look at all,\nPrqs we did as an example back in 24 that was predominantly external silicon. You\nContrast that to what we're going to do in Hammerlic, and I'll show on the roadmap later on. We're 100% internal silicon.\nAnd that's a function of working with Intel Foundry on progressing 18a 18ap.\nUntil three on yield, performance and power. That does not mean we won't use performance and power.\nExternal options where we gotta augment our business that could be in situations like chipsets where we use Samsung technology or Wi-Fi.\nOr if we need to do a dual drive because we have limitations, but primary strategy is idm advantage.\nLeverage that good for us, good for Intel. Sitting above that then a silicon roadmap.\nThe job there is simple: deliver leadership, silicon, IP, SoC at scale, right?\nAnd the scale is very important. We see the benefit of that today, even in our traditional business where OEMs love the scale.\nand compatibility for multiple generations and a lot of what we're building towards the future at a silicon level will be a scale up type of\nDiscussion. Very successful execution on Pantheric and Wildcat and Novellik on a base derivative model.\nWe need to continue to do that because it allows us to address multiple segments in the most efficient schedule.\nCosts and opex. I'll actually show you guys a visual of Novellik later on and the entire skew stack we're delivering.\nThrough this model, software I want to thank Lisa Thunder. She'll come and talk about the degree of software verticals.\nWe need to go support both open ecosystem and our traditional OS partners, reference designs.\nHow we bring leadership reference designs to market that allow our customers to innovate on form factor.\nand technology, and then really using our customer enabling as a competitive advantage, which we do today, bringing\nAll of that together to ensure we can transition all of the collaterals we have over to customers building leadership.\nPlatforms. So this is our strategy. We will always keep this in mind as we make decisions. And again,\nDoing this from an end to end point of view to deliver platforms, it's not going to differentiate us.\nMoving forward. Okay, next slide. Alex shared this and he talked about the business.\nStrategies for growth across CCPG. I just want to spend time dissecting into what does it mean for us as engineering. So what do we need to go do to enable\nTable that grew. So on client strategy is take back mss, win the agenda.\nand grow connectivity. So connectivities are wired and wireless business. Right? What does that mean for us?\nNo change in what we're doing today. Job one, noble at scale, right? If you look at where we've lost\ncompetitive share in the last few generations. It's been lack of performance desktops.\nSolutions. Novellik solves that problem. When we come out with Novellik, we\n",
+  "igpu": "Good morning everyone. Good morning. Let's get started. So, welcome\nto our Q3 26 QGS.\nAgenda topics today, we'll talk about three. One, I want to share our engineering strategy.\nto realize the business growth that Alex spoke about in his last QGS. We'll then talk about engine\nengineering priorities and just general execution, and then Lisa will join me and go through all of the work that's done with the software team, who\nI think is probably one of the largest pivots to do to go enable to grow it ahead of us that I'll expose to.\nAnd then at the end we'll have plenty of time for Q&A, both in room and online. Okay.\nSo you recall, Alex spoke about business growth, about client, agentic, edge and physically\nSo the goal of this slide is to describe our strategy on a page, how we as an engineering organization, in this\nenable that growth. Again, we are the scale function that will drive growth for all of these business units.\nSo the way to look at a simplified stack is just meant to describe what are the competitive advantages and the\nstrategy by which we will enable our businesses to grow. It'll guide our decision making and our principles.\nand it's a simplified view, but one thing that's very important to understand is it's not an optimized view\noptimizing one layer above all else. It's looking at this whole stack end to end to bring a\nPlatform leadership at scale with quality and predictable execution. Like as an example, Silicon\nItself about the software value to unlock it, it's not a good platform play.\nRight, so starting at the bottom, process and packaging, our strategy will and has\nbeen to maximize the IDM advantage. So working closely with TD on how we can optimize for performance, for performance\ncost and for power, I would say that's a strategy that's well in motion. If you look at all,\nPRQs we did as an example back in 24 that was predominantly external silicon. You\nContrast that to what we're going to do in Hammerlick, and I'll show on the roadmap later on, where 100% internal silicon\nAnd that's a function of working with Intel Foundry on progressing 18a, 18ap\n3 until 3 on yield, performance and power. That does not mean we won't use excellence\nExternal options where we gotta augment our business. That could be in situations like chipsets where we use Samsung technology or Wi-Fi.\nor if we need to do a dual drive because we have limitations, but primary strategy is idm advantage\nLeverage that good for good for us, good for Intel. Sitting above that then a silicon roadmap.\nJob there is simple, deliver leadership, silicon, ip, soc at scale, right?\nAnd the scale is very important. We see the benefit of that today, even in our traditional business where OEMs love the scale.\nand compatibility for multiple generations, and a lot of what we're building towards the future at a silicon level will be a scale up type of\nDiscussion. Very successful execution on Pantherlick and Wildcat and Novellik on a base derivative model\nWe need to continue to do that because it allows us to address multiple segments in the most efficient schedule.\ncosts and opex. I'll actually show you guys a visual of Novellik later on and the entire skew stack we're delivering.\nthrough this model, software I want to deal Lisa Thunder, she'll come and talk about the degree of software verticals\nWe need to go support both open ecosystem and our traditional OS partners, reference designs.\nHow we bring leadership reference designs to market that allow our customers to innovate on form factor.\nand technology, and then really using our customer enabling as a competitive advantage, which we do today, bringing\nall of that together to ensure we can transition all of the collaterals we have over to customers building leadership.\nplatforms. So this is our strategy. We will always keep this in mind as we make decisions. And again,\nDoing this from an end to end point of view to deliver platforms, it's what's going to differentiate us.\nmoving forward. Okay, next slide. Alex shared this and he talked about the business.\nStrategies for growth across CCPG. I just want to spend time dissecting into what does it mean for us as engineering. So what do we need to go do to enable\nTable that grew. So on client strategy is take back MSS, win the agenda.\ncompute and grow connectivity. So connectivities are wired and wireless business, right? What does that mean for us?\nNo change in what we're doing today. Job one, noble liquid scale. Right? If you look at where we've lost\ncompetitive share in the last few generations. It's been lack of performance desktops.\nSolutions. Novellix solves that problem. When we come out with Novellix,\n",
+  "npu_full": "Good morning, everyone. Good morning. Let's get started. So, welcome.\nto our Q3 26 QGS.\nAgenda topics today we'll talk about three. One I want to share our engineering strategy.\nto realize the business growth that Alex spoke about in his last QGS. We'll then talk about engine\nengineering priorities and just general execution, and then Lisa will join me and go through all of the work that's done with the software team, who\nI think is probably one of the largest pivots to do to go enable to grow it ahead of us that I'll explore to.\nAnd then at the end we'll have plenty of time for Q&A, both in room and online. Okay.\nSo you recall, Alex spoke about business growth, about client, agentic, edge and physicality.\nSo the goal of this slide is to describe our strategy on a page how we, as an engineering organization, in this\nEnable that growth. Again, we are the scale function that will drive growth for all of these business units.\nSo the way to look at a simplified stack is just meant to describe what are the competitive advantages and the\nStrategy by which we will enable our businesses to grow. It'll guide our decision making and our principles.\nand it's a simplified view, but one thing that's very important to understand is it's not an optimized\noptimizing one layer above all else. It's looking at this whole stack end to end to bring a\nPlatform leadership at scale with quality and predictable execution. Like as an example, Silicon\nItself about the software value to unlock it, it's not a good platform play.\nRight, so starting at the bottom, process and packaging, our strategy will and has\nbeen to maximize the IDM advantage. So working closely with TD on how we can optimize for performance for performance.\ncost and for power, I would say that's a strategy that's well in motion. If you look at all,\nPrqs we did as an example back in 24 that was predominantly external silicon. You\nContrast that to what we're going to do in Hammerlic, and I'll show on the roadmap later on. We're 100% internal silicon.\nAnd that's a function of working with Intel Foundry on progressing 18a 18ap.\nUntil three on yield, performance and power. That does not mean we won't use performance and power.\nExternal options where we gotta augment our business that could be in situations like chipsets where we use Samsung technology or Wi-Fi.\nOr if we need to do a dual drive because we have limitations, but primary strategy is idm advantage.\nLeverage that good for us, good for Intel. Sitting above that then a silicon roadmap.\nThe job there is simple: deliver leadership, silicon, IP, SoC at scale, right?\nAnd the scale is very important. We see the benefit of that today, even in our traditional business where OEMs love the scale.\nand compatibility for multiple generations and a lot of what we're building towards the future at a silicon level will be a scale up type of\nDiscussion. Very successful execution on Pantheric and Wildcat and Novellik on a base derivative model.\nWe need to continue to do that because it allows us to address multiple segments in the most efficient schedule.\nCosts and opex. I'll actually show you guys a visual of Novellik later on and the entire skew stack we're delivering.\nThrough this model, software I want to thank Lisa Thunder. She'll come and talk about the degree of software verticals.\nWe need to go support both open ecosystem and our traditional OS partners, reference designs.\nHow we bring leadership reference designs to market that allow our customers to innovate on form factor.\nand technology, and then really using our customer enabling as a competitive advantage, which we do today, bringing\nAll of that together to ensure we can transition all of the collaterals we have over to customers building leadership.\nPlatforms. So this is our strategy. We will always keep this in mind as we make decisions. And again,\nDoing this from an end to end point of view to deliver platforms, it's not going to differentiate us.\nMoving forward. Okay, next slide. Alex shared this and he talked about the business.\nStrategies for growth across CCPG. I just want to spend time dissecting into what does it mean for us as engineering. So what do we need to go do to enable\nTable that grew. So on client strategy is take back mss, win the agenda.\nand grow connectivity. So connectivities are wired and wireless business. Right? What does that mean for us?\nNo change in what we're doing today. Job one, noble at scale, right? If you look at where we've lost\ncompetitive share in the last few generations. It's been lack of performance desktops.\nSolutions. Novellik solves that problem. When we come out with Novellik, we\n"
+ }
+}

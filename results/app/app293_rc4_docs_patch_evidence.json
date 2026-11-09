@@ -1,0 +1,49 @@
+{
+ "script": "_app293_rc4_docs_patch.py",
+ "rc4": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4",
+ "rc3": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+ "dry_run": false,
+ "patches": [
+  {
+   "old": "Confucius4 LiveCaption · MiniMVP v1.0-rc3 —— 性能测试版说明",
+   "count": 1,
+   "applied": true
+  },
+  {
+   "old": "这是 **MiniMVP v1.0-rc3 的性能测试构建**，用于在其他机器上测",
+   "count": 1,
+   "applied": true
+  },
+  {
+   "old": "⚠️ **rc3 的 A+C（后台编译 + 首句先出）方案尚未做设备级验证**，\n        所以 rc3 的首次启",
+   "count": 1,
+   "applied": true
+  },
+  {
+   "old": "rc2 实测 6 次启动里崩 2 次；**rc3 未做有效复测**。",
+   "count": 1,
+   "applied": true
+  },
+  {
+   "old": "实测结果（rc3，设备级 3(a) 验收，76 段全部出声）：",
+   "count": 1,
+   "applied": true
+  },
+  {
+   "old": "· 首次 NPU 编译     1209.3 s（rc2 实测；rc3 未复测）",
+   "count": 1,
+   "applied": true
+  }
+ ],
+ "npu_section_inserted": true,
+ "unapplied": [],
+ "checks": {
+  "rc3_bytes_unchanged": true,
+  "rc3_sha256": "e6710514395d6451b9feffedcbe5e8f829fcb3877ee744c24b57d0e4c6847fdc",
+  "rc3_still_has_rc3": true,
+  "rc4_has_rc4": true,
+  "rc4_inode_differs": true,
+  "pass": true
+ },
+ "verdict": "PATCHED_OK"
+}
