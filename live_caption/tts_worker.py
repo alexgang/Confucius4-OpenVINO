@@ -1178,6 +1178,11 @@ class TTSWorker:
         #   ⇒ worker 在**出队（合成）那一刻**按 seg 解析音色
         #   ⇒ 「提交时标签还没到」的那一批也能用上克隆音色。
         self._spk_bind = {}            # seg -> (spk, spk_conf)
+        # 🔴🔴🔳 APP-086(2)：jid -> seg（**纯附加**）
+        #   ⇒ 逐句遥测 JSONL 行里有 `seg` ⇒ reviewer 能把
+        #     「逐句的音色」与「这句属于谁」对上
+        #     ⇒ 可算「用对了说话人音色的句子占比」。
+        self._job_seg = {}
         self._spk_bind_lock = threading.Lock()
         # 🔴🔴🔴 APP-039/040：**本句实际用的音色来源**（逐句遥测）
         #   'clone' = 用了该 spk 自己的克隆向量；'preset' = 用预设 A。
@@ -1738,8 +1743,15 @@ class TTSWorker:
                 self._last_voice_kind = ('clone' if self._clone_active
                                          else 'preset')
                 self._log_keep_clone()
-            elif self._has_clone_voice():
+            elif self._has_clone_voice() and not _bound:
                 # 🔴🔴🔴 APP-061⑤c：**已有克隆音色 ⇒ 沿用上一句的克隆音色**。
+                #   ⚠️🔴🔴🔴 **APP-086·2a（2026-11-09）收窄**：**只在「非按句绑定」模式**
+                #     （`_bound` 为空 ⇒ worker 没拿到任何按句音色）才沿用。
+                #   ⇒ 按句绑定模式（App GUI/CLI 的常态）下 `spk=None` ⇒ **回落预设 A**
+                #     ⇒ **绝不沿用上一句的克隆音色**
+                #     （= 「男声被配成女声」的主因，APP-086·2a 明文）。
+                #   ⚠️ 与本函数上方 1696–1713 的注释口径**一致**
+                #     （那里写的就是「spk 为 None ⇒ 必须回落预设 A」）。
                 #   用户方案 A（2026-10-28）原文允许「spk 未到时用**上一句音色**
                 #   或预设 A」⇒ 这里取「上一句音色」。
                 #   🔴 **只有真的存在克隆音色时**才沿用 ⇒ 还没有任何克隆时
@@ -2882,7 +2894,13 @@ class TTSWorker:
           `t_dequeue` / `t_first_chunk` / `t_last_chunk`。
         ⚠️ `tel` 是**可选**的 ⇒ 失败/丢句的行照样写（字段为空）。
         """
-        row = dict(id=jid, text=text,
+        # 🔴🔴🔳 APP-086(2)：**逐句带 `seg`**
+        #   ⇒ reviewer 可把「这句用了谁的音色」与「这句属于谁」对上。
+        try:
+            _seg_of = self._job_seg.get(jid)
+        except Exception:
+            _seg_of = None
+        row = dict(id=jid, text=text, seg=_seg_of,
                    t_submit=round(t_submit, 4),
                    t_first_packet=(round(t_first - t_submit, 4)
                                    if t_first is not None else None),
@@ -3577,6 +3595,10 @@ class TTSWorker:
                 # 🔴🔴🔴 APP-042：再带一个 `speed`（**纯附加**）。
                 # 🔴🔴🔳 APP-067 ①(b)：再带一个 `seg`（**纯附加**）
                 #   ⇒ 出队时按 seg 解析「晚到」的说话人标签。
+                try:
+                    self._job_seg[jid] = seg
+                except Exception:
+                    pass
                 self._synth_q.put((jid, text, spk, spk_conf, lang, t_recv,
                                    speed, target_wall, seg))
                 self._emit_synth_state()

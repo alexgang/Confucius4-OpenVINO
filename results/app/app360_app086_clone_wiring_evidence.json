@@ -1,0 +1,80 @@
+{
+ "task": "APP-086(2) 接线验收",
+ "groups": {
+  "G1": {
+   "pass": true,
+   "msg": "OK"
+  },
+  "G2": {
+   "pass": true,
+   "msg": "OK（4 个 tts.submit 全部是 `voice_for_sentence(...) or None`）"
+  },
+  "G3": {
+   "pass": true,
+   "msg": "OK"
+  },
+  "G4": {
+   "pass": true,
+   "msg": "OK"
+  },
+  "G5": {
+   "pass": true,
+   "msg": "OK"
+  },
+  "G6": {
+   "pass": true,
+   "msg": "OK"
+  }
+ },
+ "n_pass": 6,
+ "n_fail": 0,
+ "counterexamples": {
+  "G1": {
+   "must_fail": true,
+   "failed_as_expected": true,
+   "msg": "未找到受 `not _bound` 守护的「沿用上一句音色」分支"
+  },
+  "G2": {
+   "must_fail": true,
+   "failed_as_expected": true,
+   "msg": "有一个 tts.submit 的 spk 不是 voice_for_sentence(...)：\"'S2'\""
+  },
+  "G3": {
+   "must_fail": true,
+   "failed_as_expected": true,
+   "msg": "App 未把既有旁路/音色表注入策略层"
+  },
+  "G4": {
+   "must_fail": true,
+   "failed_as_expected": true,
+   "msg": "cos 不足时仍推了：[(3, 'S2', 0.1)]"
+  },
+  "G5": {
+   "must_fail": true,
+   "failed_as_expected": true,
+   "msg": "on_segment 里做了嵌入（阻塞 ASR/音频线程）：['_seg_int', '_embed', 'put', 'float', 'float', 'str']"
+  },
+  "G6": {
+   "must_fail": true,
+   "failed_as_expected": true,
+   "msg": "策略层出现了登记类调用（第二条登记路径）：['register_spk_voice']"
+  }
+ },
+ "n_cex_detected": 6,
+ "n_cex": 6,
+ "files": {
+  "live_caption_app.py": {
+   "sha256": "92b220c8448f6cb14dba884f0eda615a6744bc44cde71fc45c7a97b914e954dc",
+   "bytes": 439547
+  },
+  "tts_worker.py": {
+   "sha256": "314290d8f722ca0379961e1f2eeb5bf628f36d7bcc21a31672de5d9fc9c50338",
+   "bytes": 248515
+  },
+  "clone_voice.py": {
+   "sha256": "ab9bab0a8a08faf2f1ce39645f753d4b220c4fd875988c693d0385b4c3015c1b",
+   "bytes": 19877
+  }
+ },
+ "verdict": "PASS"
+}

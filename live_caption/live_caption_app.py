@@ -122,6 +122,10 @@ import clone_collector
 # 🔴🔴🔴 APP-039/040：说话人旁路（ASR-029 接口桥接）+ 说话人音色表
 import speaker_tracker
 import speaker_voice
+# 🔴🔴🔴 APP-086(2)：克隆**策略层**（a–f）——**复用上面那份旁路与音色表**
+#   ⇒ 全程**只有一份** `SpeakerBridge` / `SpeakerVoiceTable`
+#   ⇒ **不可能双旁路**（§159 的接线口径隐患就此消除）。
+import clone_voice
 # 🔴🔴 APP-048：**分区状态条**（ASR / 翻译 / 语音 各自的紧凑状态行）
 #   ⇒ 纯逻辑层**不依赖 tkinter** ⇒ 可离线验收（不起窗口、不占 GPU）。
 import gui_status
@@ -2243,6 +2247,35 @@ class App:
         # 🔴 APP-039/040：**主进程侧**的「每段时间区间」（App 自己的切段口径）
         #   ⇒ 交给 ASR 旁路做说话人判定。
         self._seg_span = {}
+        # 🔴🔴🔳 APP-086(2)：克隆**策略层**（a–f）
+        #   ⇒ **注入既有的旁路与音色表** ⇒ 不新建旁路（不双跑 wespeaker）。
+        #   ⚠️ 本层**不做音色登记** ⇒ 登记仍走 `_pump_spk_voices()`
+        #   ⇒ 不会双登记、不会互相覆盖。
+        self._clone_pol = clone_voice.CloneVoices(
+            on_log=lambda m: self._ui_log(m),
+            bridge=self._spk_bridge, table=self._spk_voices,
+            pcm_getter=lambda: (self._spk_pcm_buf, self._spk_pcm_t0),
+            span_getter=lambda seg: self._seg_span.get(seg),
+            on_nearest=self._clone_nearest)
+
+    def _clone_nearest(self, seg, spk, sim):
+        """🔴🔴🔳 APP-086(2)a：**无标签句 ⇒ 最近已登记说话人**（cos ≥ 0.25）。
+
+        🔴 **走既有的 `spk_update` 通道**（不是提交命令的 `spk`）
+        ⇒ worker 侧 `_spk_bind` 后写覆盖先写
+        ⇒ **官方标签晚到时自动胜出**（不会用错的人）。
+        🔴 **已有官方标签 ⇒ 一律不推**（官方优先）。
+        """
+        try:
+            if self._spk_voices.spk_of(seg):
+                return
+            if self.tts is None or not getattr(self.tts, 'active', False):
+                return
+            if self.tts.spk_update_seg(seg, spk, None):
+                self._ui_log('[spk] 第 %d 段无标签 ⇒ 取最近说话人 %s'
+                             '（cos %.3f）' % (seg, spk, sim))
+        except Exception as e:
+            self._ui_log('[spk] 最近说话人补发失败（忽略）：%s' % e)
         # 🔴🔴🔴 APP-053：**上一段的结束时刻**（全局时间轴）
         #   ⇒ App 的断句是**连续**的 ⇒ 段自身区间 = [上一段末, 本段末]
         #   ⇒ 用它替代「只往前借 2.5 s」⇒ 离线复算打标率 89.13% → **95.65%**
@@ -4422,6 +4455,11 @@ class App:
                                         #   ⚠️ 该 spk 还没有可用音色 ⇒ `''`
                                         #     ⇒ worker 用**预设 A**
                                         #     ⇒ **绝不用上一个人的声音冒充**。
+                                        # 🔴🔴🔳 APP-086(2)a：**提交时 `spk` 仍留空**
+                                        #   ⇒ worker 的晚到标签通道（`_spk_bind`）
+                                        #     才有生效的机会（`if not spk`）。
+                                        #   ⇒ 「最近说话人」改由策略层**补发**
+                                        #     （`_clone_nearest` → `spk_update`）。
                                         spk=(self._spk_voices.voice_for_sentence(
                                             ev['seg']) or None),
                                         # 🔴🔴🔴 APP-042：**目标开播墙钟**
@@ -4665,6 +4703,13 @@ class App:
         #   queued, so switching to clone later still registers them.
         if not getattr(self, '_clone_enabled', False):
             return
+        # 🔴🔴🔳 APP-086(2)a：质心长出来之后**零成本重算**最近说话人
+        #   （嵌入已缓存 ⇒ 这里只做余弦比较）
+        #   ⇒ 该说话人已登记音色时 ⇒ 通过 `spk_update` 补发给 worker。
+        try:
+            self._clone_pol.pump()
+        except Exception:
+            pass
         pending = list(self._spk_pending_embed)
         if not pending:
             return
@@ -4938,6 +4983,12 @@ class App:
                 # 🔴 记下本段末（供**下一段**当起点）
                 self._spk_prev_seg_end = float(self._seg_audio_end)
                 self._seg_span[seg] = (_t0, _t1)
+                # 🔴🔴🔳 APP-086(2) b：定稿即请求「最近质心」⇒ 临时标签
+                #   ⇒ ASR/音频线程**只入队**；嵌入在策略线程里算（f）。
+                try:
+                    self._clone_pol.on_segment(seg, _t0, _t1, text)
+                except Exception:
+                    pass
                 _res = self._spk_bridge.on_final(seg, _t0, _t1)
                 _spk2 = _res.get('spk')
                 # 🔴🔴🔴 APP-047：**「本段无标签」要可观测**（不静默）。
@@ -6700,6 +6751,34 @@ def run_cli(args):
         enabled=bool(_spk_enabled))
     _spk_voices = speaker_voice.SpeakerVoiceTable(
         on_event=lambda k, p: print(f'  [spk] {k} {p}', flush=True))
+    # 🔴🔴🔳 APP-086(2)：CLI 侧**每段的时间区间**（策略层算最近质心要用）
+    _spk_span = {}
+    # 🔴🔴🔳 APP-086(2)：克隆**策略层**（a–f）——与 GUI 侧**同一份实现**
+    #   ⇒ **注入既有的旁路与音色表** ⇒ 不新建旁路（不双跑 wespeaker）。
+    #   ⚠️ 本层**不做音色登记** ⇒ 登记仍走 `_cli_pump_spk_voices()`。
+    _clone_pol = clone_voice.CloneVoices(
+        on_log=lambda m: print(f'  [spk] {m}', flush=True),
+        bridge=_spk_bridge, table=_spk_voices,
+        pcm_getter=lambda: (_spk_pcm_buf, _spk_pcm_t0[0]),
+        span_getter=lambda seg: _spk_span.get(seg),
+        on_nearest=_cli_clone_nearest)
+
+    def _cli_clone_nearest(seg, spk, sim):
+        """🔴🔴🔳 APP-086(2)a：**无标签句 ⇒ 最近已登记说话人**（CLI 侧）。
+
+        🔴 与 GUI 侧**同一口径**：走既有 `spk_update` 通道
+        ⇒ 官方标签晚到时自动胜出（不会用错的人）。
+        """
+        try:
+            if _spk_voices.spk_of(seg):
+                return
+            if tts is None or not getattr(tts, 'active', False):
+                return
+            if tts.spk_update_seg(seg, spk, None):
+                print(f'  [spk] 第 {seg} 段无标签 ⇒ 取最近说话人 {spk}'
+                      f'（cos {sim:.3f}）', flush=True)
+        except Exception as e:
+            print(f'  [spk] 最近说话人补发失败（忽略）：{e}', flush=True)
     _spk_pcm_buf = np.zeros(0, dtype=np.float32)
     _spk_pcm_t0 = [0.0]      # 🔁 §99: 缓冲起点的全局时刻（闭包内可变）
     _spk_pcm_lock = threading.Lock()
@@ -6827,6 +6906,12 @@ def run_cli(args):
 
     def _cli_pump_spk_voices():
         """🔴 APP-039/040：给新 spk 取样 + 登记音色（只在新 spk 时做事）。"""
+        # 🔴🔴🔳 APP-086(2)a：质心长出来之后**零成本重算**最近说话人
+        #   （嵌入已缓存 ⇒ 这里只做余弦比较）
+        try:
+            _clone_pol.pump()
+        except Exception:
+            pass
         # 🔴🔴🔴 §97 **修真实缺陷**：本函数**重绑**了 `_spk_pending_embed`
         #   ⇒ Python 静态判定它是**本函数的局部变量** ⇒ 第 4601 行
         #     `for seg, spk in list(_spk_pending_embed)` 读取时**未赋值**
@@ -7026,6 +7111,13 @@ def run_cli(args):
             _spk_prev_seg_end[0] = float(_spk_audio_end[0])
             # 🔴🔴🔳 APP-067 ②：把本段的**音频区间**记进段表（只落盘，不改逻辑）
             _spk_seg_note(_seg, t0=_t0, t1=_t1)
+            _spk_span[_seg] = (_t0, _t1)
+            # 🔴🔴🔳 APP-086(2) b：定稿即请求「最近质心」⇒ 临时标签
+            #   ⇒ ASR/音频线程**只入队**；嵌入在策略线程里算（f）。
+            try:
+                _clone_pol.on_segment(_seg, _t0, _t1, t)
+            except Exception:
+                pass
             _res = _spk_bridge.on_final(_seg, _t0, _t1)
             _spk2 = _res.get('spk')
             if _spk2:
@@ -7068,6 +7160,8 @@ def run_cli(args):
             tts.submit(t, seg=len(finals) - 1, lang='en',
                        # 🔴🔴🔴 APP-039/040：**按句绑定音色**
                        #   ⇒ 该 spk 没音色 ⇒ `None` ⇒ worker 用预设 A。
+                       # 🔴🔴🔳 APP-086(2)a：提交时 `spk` 仍留空
+                       #   ⇒ 晚到的官方标签才有生效机会。
                        spk=(_spk_voices.voice_for_sentence(
                            len(finals) - 1) or None),
                        # 🔴🔴🔴 APP-042：**目标开播墙钟**（CLI 版）
@@ -7132,6 +7226,8 @@ def run_cli(args):
                         tts.submit(txt, seg=ev['seg'], lang=mt.target,
                                    # 🔴🔴🔴 APP-039/040：**按句绑定音色**
                                    #   ⇒ 该 spk 没音色 ⇒ `None` ⇒ 预设 A。
+                                   # 🔴🔴🔳 APP-086(2)a：提交时 `spk` 仍留空
+                                   #   ⇒ 晚到的官方标签才有生效机会。
                                    spk=(_spk_voices.voice_for_sentence(
                                        ev['seg']) or None),
                                    # 🔴🔴🔴 APP-042：**目标开播墙钟**（CLI 版）
