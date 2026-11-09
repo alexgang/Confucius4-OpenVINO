@@ -30,6 +30,11 @@ CLONE_ICL = os.environ.get("EXT_CLONE_ICL", "0").strip() == "1"
 XV_FIRST_S = 3.0       # x-vector speaker reference: first at >= 3 s of clean labelled sentences
 XV_UPGRADE_S = 8.0     # one upgrade at >= 8 s, then frozen
 XV_MAX_S = 10.0
+# 11-09 user: "timbre keeps adjusting; the first one was closest" => anchor on the first good dub
+CLONE_ANCHOR = os.environ.get("EXT_CLONE_ANCHOR", "0").strip() == "1"   # off until measured
+ANCHOR_MIN_S, ANCHOR_MAX_S = 4.0, 7.0
+ANCHOR_MIN_CHARS = 12
+ANCHOR_SEC_PER_CHAR = (0.17, 0.32)      # natural Chinese speaking rate (rejects runaway / clipped)
 SELF_REF_MIN_S = 1.5   # sentence-own-audio x-vector clone (before the speaker has a voice)
 # 11-09 speaker-change split (calibrated on dialog3 tight/normal: 24/32 change segments cut, 0/66 false)
 SPLIT_MIN_SEG_S = 3.2
@@ -486,6 +491,34 @@ class CloneVoices:
             self._log("[spk] 说话人切分：本次 %.2f s（%d 段 -> %d 段）；累计 %d 次 平均 %.3f s 最大 %.2f s"
                       % (_dt, len(segs), len(out), st[0], st[1] / st[0], st[2]))
         return out
+
+    def offer_dub(self, spk, voice_path, text, pcm24k, sr: int = 24000) -> None:
+        """11-09 anchor: the speaker's first good Chinese dub becomes his fixed ICL reference."""
+        if not CLONE_ANCHOR or not spk or not pcm24k or not voice_path:
+            return
+        anch = self.__dict__.setdefault("_anchored", {})
+        if spk in anch or self.paths.get(spk) != voice_path:
+            return                      # already anchored / dub not made with his registered voice
+        import re as _re
+        n = len(_re.sub(r"[\s\W_]+", "", text or ""))
+        x = np.frombuffer(pcm24k, dtype="<i2")
+        dur = x.size / float(sr)
+        if n < ANCHOR_MIN_CHARS or not (ANCHOR_MIN_S <= dur <= ANCHOR_MAX_S):
+            return
+        if not (ANCHOR_SEC_PER_CHAR[0] <= dur / n <= ANCHOR_SEC_PER_CHAR[1]):
+            return
+        self.n_reg += 1
+        path = os.path.join(self.dir, "%s_anchor_%d.wav" % (spk, self.n_reg))
+        with wave.open(path, "wb") as w:
+            w.setnchannels(1); w.setsampwidth(2); w.setframerate(int(sr))
+            w.writeframes(x.tobytes())
+        with open(path + ".txt", "w", encoding="utf-8") as f:
+            f.write(text.strip())
+        anch[spk] = path
+        self._upgraded[spk] = True
+        self._ref_dur[spk] = 99.0          # frozen: no further upgrades
+        self.paths[spk] = path
+        self._log("[spk] %s 音色锚定（首句中文配音 %.1f s / %d 字 + 文本；之后固定）" % (spk, dur, n))
 
     def latest_path(self) -> Optional[str]:
         """Most recently registered reference (used before any sentence has a label)."""

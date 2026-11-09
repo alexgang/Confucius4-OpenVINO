@@ -34,7 +34,11 @@ FRAME_MAX_MS = 100           # 插件上行帧长上限
 # ⚠️ 这里的常量**同时**被 `ext/segmenter.py` 与 R2T2 等价性自测使用
 #   ⇒ 改了它，两边**同时**用新参数 ⇒ 等价性自测依然成立。
 SEG_MIN_SEC = 3.0            # ★ EXT-027④：12.0 → 3.0（reviewer 要求 2–3 s）
+CLIENT_DELAY_MIN = 6.0       # 11-09: panel delay range (popup.html 6-20 s)
+CLIENT_DELAY_MAX = 20.0
 SEG_MIN_SEC_CLONE = 1.5      # 11-08: clone mode - split at speaker-turn pauses from 1.5 s
+SEG_MAX_FLOOR_SEC = 3.5      # 11-09: segment max follows D: min(SEG_MAX, max(floor, D - reserve))
+SEG_MAX_RESERVE_SEC = 6.5    #   reserve = ASR + MT + TTS start under load
 SEG_MAX_SEC = 8.0            # ★ EXT-027④：20.0 → 8.0（reviewer 要求 6–8 s）
 
 # ★★★★★ EXT-034 ④：**首段单独限长**（缩短「起步」）。
@@ -178,7 +182,7 @@ if DEVICE_MT == "GPU":
 LATE_DROP_SEC = float(_os.environ.get("EXT_LATE_DROP_SEC", "6.0"))
 # 11-08: clone - wait up to this long in the TTS stage for the sentence speaker label,
 #   only while the sentence still has more than CLONE_LABEL_RESERVE_SEC of slack.
-CLONE_LABEL_WAIT_SEC = 3.0
+CLONE_LABEL_WAIT_SEC = float(os.environ.get("EXT_CLONE_LABEL_WAIT_SEC", "0"))   # 11-09: waits blocked the TTS thread 50 s / 6 min
 # 11-08: CUDA sidecar wall time per second of dub audio (measured 0.6-0.8 live) - used to
 #   predict whether a sentence can still make its slot before synthesizing it.
 TTS_EST_RTF = 0.8

@@ -1870,8 +1870,14 @@ class Session:
         # 11-08 self-test: clone mode cuts at silences from SEG_MIN_SEC_CLONE (short turns such as
         #   "Can you give us an example?" were merged with the next speaker => wrong voice)
         _clone_on = (self.client_voice or "").strip().lower() == "clone"
+        # 11-09: with a small panel delay long segments can never be dubbed in time => cap by D
+        _smax = min(C.SEG_MAX_SEC, max(C.SEG_MAX_FLOOR_SEC, float(self.delay_sec) - C.SEG_MAX_RESERVE_SEC))
+        if getattr(self, "_smax_logged", None) != _smax:
+            self._smax_logged = _smax
+            _log("分段上限 %.1f s（D=%.1f s）" % (_smax, float(self.delay_sec)))
         segs = plan_segments(self._buf, min_segment_sec=(C.SEG_MIN_SEC_CLONE if _clone_on
-                                                         else C.SEG_MIN_SEC))
+                                                         else C.SEG_MIN_SEC),
+                             max_segment_sec=_smax)
         # ★★★★★★ EXT-036 ④：**首段提前交付 + 切点栅格锚定**。
         #   ## 病根（reviewer EXT-036 ④ 的实测）
         #     旧流程：`plan_segments()` 只能在**原段（最多 8 s）音频到齐**后
@@ -2965,10 +2971,27 @@ class PipelineSession(Session):
                      "%s: %s" % (type(e).__name__, e))
 
     # ── 阶段函数（各自在流水线线程里跑） ────────────────────────
+    def _catch_up_skip(self, job, stage: str) -> bool:
+        """11-09: segment already hopelessly late when this stage picks it up => skip (drain backlog)."""
+        if self._engine is None:
+            return False
+        late = time.perf_counter() - (self.t0 + job.t_start + self.delay_sec)
+        if late <= C.LATE_DROP_SEC:
+            return False
+        self._n_catchup = getattr(self, "_n_catchup", 0) + 1
+        if self._n_catchup <= 3 or self._n_catchup % 10 == 0:
+            _log("[sync] 段 %s 进入%s时已晚 %.1f s（>%.0f s）=> 跳过（追赶实时，累计 %d 段）"
+                 % (job.seg_id, stage, late, C.LATE_DROP_SEC, self._n_catchup))
+        return True
+
     def _stage_asr(self, job) -> None:
         """ASR 阶段（在 ASR 线程里跑）。"""
         t0 = time.perf_counter()
         text = ""
+        if self._catch_up_skip(job, "识别"):
+            job.asr_sec = 0.0
+            job.text = ""
+            return
         if self._engine is not None:
             try:
                 text = self._engine.asr(job.audio, job.t_start, job.t_end) or ""
@@ -2993,6 +3016,11 @@ class PipelineSession(Session):
         # ★★ T-4：流水线路径同样要真正用上**面板上选的目标语言**
         #   （与串行路径 `_process_segment` 同一口径）。
         _tgt_lang = self._effective_target_lang()
+        if job.text and self._catch_up_skip(job, "翻译"):
+            job.mt_sec = 0.0
+            job.tgt = ""
+            job.text = ""          # else the TTS stage would read the English text
+            return
         if self._engine is not None and job.text:
             try:
                 tgt = self._mt_with_lang(job.text, _tgt_lang) or ""
@@ -3077,6 +3105,13 @@ class PipelineSession(Session):
         job.pcm24k = pcm24k
         job.speech_sec = speech_sec
         job.ready_at = time.perf_counter()
+        # 11-09 user: timbre drift => offer the dub as the speaker's anchor reference
+        if pcm24k and self._clone is not None:
+            try:
+                self._clone.offer_dub(job.spk or self._clone.spk_of(job.seg_id), job.voice,
+                                      job.tgt or "", pcm24k)
+            except Exception as e:
+                _log(f"音色锚定失败（忽略）: {e}")
 
     def _stage_emit(self, job) -> Optional[dict]:
         """主机侧收口阶段（**单线程** ⇒ WSOLA 变速不占满 CPU）。
@@ -3466,6 +3501,7 @@ def _propagate_client_settings(holder: Optional[dict],
     # 收集「非 None」的值（先到先得）
     lang = None
     voice = None
+    dly = None
     for s in sessions:
         v = getattr(s, "client_target_lang", None)
         if v and not lang:
@@ -3473,6 +3509,18 @@ def _propagate_client_settings(holder: Optional[dict],
         v = getattr(s, "client_voice", None)
         if v and not voice:
             voice = v
+        v = getattr(s, "client_delay_sec", None)
+        if v and not dly:
+            dly = v
+    # 11-09: panel delay is a user setting too (the uplink session produces the segments)
+    if dly:
+        for s in sessions:
+            try:
+                if not getattr(s, "client_delay_sec", None):
+                    s.client_delay_sec = dly
+                    s.delay_sec = dly
+            except Exception:
+                pass
     if not lang and not voice:
         return
     for s in sessions:
@@ -3748,6 +3796,18 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                 #   典型场景：player 连接（面板所在）报了 targetLang='Chinese'，
                 #   而**产出段的是 uplink 会话** ⇒ 若不传播，
                 #   uplink 会话就不知道要译成中文（用的是服务端启动参数）。
+                # 11-09 user: "panel delay 6-20 s is always 20 s" => the panel value wins
+                _dreq = msg.get("delay_sec")
+                try:
+                    _dreq = float(_dreq) if _dreq is not None else None
+                except (TypeError, ValueError):
+                    _dreq = None
+                if _dreq is not None and _dreq > 0:
+                    _dreq = min(C.CLIENT_DELAY_MAX, max(C.CLIENT_DELAY_MIN, _dreq))
+                    if abs(_dreq - float(session.delay_sec)) > 1e-6:
+                        _log(f"延迟 D：面板设置 {_dreq:.1f} s（原 {session.delay_sec:.1f} s）")
+                    session.delay_sec = _dreq
+                    session.client_delay_sec = _dreq
                 _propagate_client_settings(session_holder, registry,
                                            session.token, session)
                 # ★★ EXT-024 A/F：hello_ack 里补三个字段 ——
@@ -3756,7 +3816,7 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                 #     （老客户端忽略未知字段）。
                 await websocket.send(json.dumps({
                     "type": "hello_ack",
-                    "delay_sec": delay_sec,
+                    "delay_sec": session.delay_sec,
                     "sample_rate": C.SAMPLE_RATE,
                     "segmentation": describe_segmenter(),
                     # ★ T-1：回显服务端**实际记到的**抓流方式，
