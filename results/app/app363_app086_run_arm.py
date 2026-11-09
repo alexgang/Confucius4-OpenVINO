@@ -48,12 +48,12 @@ def main() -> int:
         # 🔴 **排队等待，不抢锁**：别的模块正在占设备 ⇒ 等它释放。
         waited = 0
         print('⏳ MACHINE_LOCK 被占用 ⇒ 排队等待（不抢锁）…', flush=True)
-        while os.path.exists(LOCK) and waited < 2700:
+        while os.path.exists(LOCK) and waited < 5400:
             time.sleep(30)
             waited += 30
             print('   …已等 %d s' % waited, flush=True)
         if os.path.exists(LOCK):
-            print('🔴 等锁超时（45 min）⇒ 本臂放弃（不抢锁）')
+            print('🔴 等锁超时（90 min）⇒ 本臂放弃（不抢锁）')
             return 2
         print('🔓 锁已释放 ⇒ 开始本臂', flush=True)
 
