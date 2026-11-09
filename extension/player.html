@@ -9,7 +9,9 @@
     canvas { width: 96vw; height: 80vh; object-fit: contain; background: #000; border-radius: 6px; }
     #wrap { padding-top: 4px; }
     #bar { display: flex; flex-wrap: wrap; gap: 14px; padding: 4px 10px; background: #161b22; border-radius: 6px; font-variant-numeric: tabular-nums; }
-    #subs { position: fixed; left: 0; right: 0; bottom: 8%; text-align: center; font-size: 20px; pointer-events: none; }
+    #stage { position: relative; width: 96vw; height: 80vh; }
+    #stage canvas { width: 100%; height: 100%; }
+    #subs { position: absolute; left: 0; right: 0; bottom: 5%; text-align: center; font-size: 20px; pointer-events: none; }
     #subs span { background: rgba(0,0,0,.65); padding: 2px 8px; border-radius: 4px; }
     #subs span.src { font-size: 15px; opacity: .85; line-height: 1.9; }
     .k { color: #8b949e; }
@@ -24,7 +26,7 @@
 </head>
 <body>
   <div id="wrap">
-    <canvas id="cv" width="640" height="360"></canvas>
+    <div id="stage"><canvas id="cv" width="640" height="360"></canvas><div id="subs"></div></div>
     <div style="margin:4px 0"><button id="btnCapture" style="display:none;padding:6px 16px;font:inherit">开始捕获（选择要配音的标签页）</button>
       <!-- ★★★ EXT-026 修正：停止时必须让服务端**收口尾段**
            （否则最后一句永远不会被翻译/配音）。 -->
@@ -52,7 +54,6 @@
     <div id="linkBar" class="ok">音频 0.0s | ASR 0 | MT 0 | TTS 0 | 下发 0 | 滞后 —</div>
     <div id="linkReason" class="ok"></div>
   </div>
-  <div id="subs"></div>
   <script src="player.js"></script>
 </body>
 </html>
