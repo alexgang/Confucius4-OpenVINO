@@ -1,0 +1,36 @@
+{
+ "script": "_app296_rc4_exec_device.py",
+ "ts": "2026-11-10 00:49:06",
+ "pkg": "C:\\minimvp_rc4_clean\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4",
+ "python": "C:\\minimvp_rc4_clean\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4\\python\\python.exe",
+ "ov_version": "2026.4.1-22982-e213a147257-releases/2026/4",
+ "available_devices": [
+  "CPU",
+  "GPU.0",
+  "GPU.1",
+  "NPU"
+ ],
+ "npu_full_name": "Intel(R) AI Boost",
+ "npu_driver": 20114005,
+ "npu_arch": "5010",
+ "resolved_dirs": {
+  "encoder": "C:\\minimvp_rc4_clean\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4\\models\\encoder-fp16",
+  "decoder": "C:\\minimvp_rc4_clean\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4\\models\\decoder-npu-int8",
+  "tokenizer": "C:\\minimvp_rc4_clean\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4\\models\\decoder-gpu-int8"
+ },
+ "backend_build_s": 3.07,
+ "npu_enc_compile_s": 0.4,
+ "npu_dec_compile_s": 0.1,
+ "npu_props": {
+  "NPU_USE_NPUW": "YES",
+  "NPUW_LLM": "YES",
+  "NPUW_LLM_MAX_PROMPT_LEN": "512",
+  "NPUW_LLM_MIN_RESPONSE_LEN": "64",
+  "CACHE_DIR": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app296_npu_cache"
+ },
+ "encoder_exec_devices": "NPU",
+ "decoder_exec_devices": "NPU",
+ "encoder_on_npu_only": true,
+ "decoder_on_npu_only": true,
+ "verdict": "EXEC_ON_NPU_OK"
+}

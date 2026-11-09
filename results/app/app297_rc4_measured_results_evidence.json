@@ -1,0 +1,136 @@
+{
+ "script": "_app297_rc4_measured_results.py",
+ "npu_exec_devices": [
+  "NPU",
+  "NPU"
+ ],
+ "exec_verdict": "EXEC_ON_NPU_OK",
+ "wer": {
+  "npu": {
+   "wer": 0.155266,
+   "n_edits": 143,
+   "n_ref_words": 921,
+   "n_hyp_words": 819,
+   "wer_pct": 15.5266
+  },
+  "igpu": {
+   "wer": 0.145494,
+   "n_edits": 134,
+   "n_ref_words": 921,
+   "n_hyp_words": 820,
+   "wer_pct": 14.5494
+  }
+ },
+ "wer_npu_vs_igpu": {
+  "wer": 0.02561,
+  "n_edits": 21,
+  "n_ref_words": 820,
+  "n_hyp_words": 819,
+  "wer_pct": 2.561
+ },
+ "perf": {
+  "npu": {
+   "engine": "npu_int8",
+   "asr_device": "NPU",
+   "rc": 0,
+   "wall_s": 306.96,
+   "rtf_wall_over_audio": 1.0232,
+   "peak_mem_mb": 5212.6,
+   "mem_samples": 1208,
+   "parsed": {
+    "summary": {
+     "engine": "npu_int8",
+     "audio": 300.0,
+     "wall": 300.8,
+     "rtf": 0.803,
+     "backlog": 1.1,
+     "segs": 46,
+     "lat_ms": 540.0
+    },
+    "device_log": "GPU.0",
+    "asr_load_line": [
+     "npu_int8",
+     "3.0",
+     "NPU"
+    ]
+   },
+   "transcript_bytes": 4699,
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app294_rc4_npu_out\\npu\\run.log"
+  },
+  "igpu": {
+   "engine": "gpu_int8",
+   "asr_device": "GPU.0",
+   "rc": 0,
+   "wall_s": 312.81,
+   "rtf_wall_over_audio": 1.0427,
+   "peak_mem_mb": 4819.5,
+   "mem_samples": 1220,
+   "parsed": {
+    "summary": {
+     "engine": "gpu_int8",
+     "audio": 300.0,
+     "wall": 300.8,
+     "rtf": 0.696,
+     "backlog": 1.2,
+     "segs": 46,
+     "lat_ms": 376.0
+    },
+    "device_log": "GPU.0",
+    "asr_load_line": [
+     "gpu_int8",
+     "8.4",
+     "GPU"
+    ]
+   },
+   "transcript_bytes": 4704,
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app294_rc4_npu_out\\igpu\\run.log"
+  },
+  "npu_full": {
+   "engine": "npu_int8",
+   "asr_device": "NPU",
+   "rc": 0,
+   "wall_s": 429.32,
+   "rtf_wall_over_audio": 1.4311,
+   "peak_mem_mb": 5213.1,
+   "mem_samples": 1687,
+   "parsed": {
+    "summary": {
+     "engine": "npu_int8",
+     "audio": 300.0,
+     "wall": 415.7,
+     "rtf": 1.264,
+     "backlog": 84.4,
+     "segs": 46,
+     "lat_ms": 55362.0
+    },
+    "exec_devices_log": "EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU/NPU",
+    "device_log": "GPU.0",
+    "asr_load_line": [
+     "npu_int8",
+     "3.1",
+     "NPU"
+    ],
+    "npu_compile_s_log": "0.837"
+   },
+   "transcript_bytes": 4699,
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app294_rc4_npu_out\\npu_full\\run.log"
+  }
+ },
+ "size": {
+  "base_bytes": 7176245176,
+  "dst_bytes": 10702220425,
+  "delta_bytes": 3525975249,
+  "delta_gb": 3.2838,
+  "base_gb": 6.6834,
+  "dst_gb": 9.9672,
+  "n_files": 10510,
+  "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app291_minimvp_rc4_build_evidence.json"
+ },
+ "checks": {
+  "rc3_bytes_unchanged": true,
+  "rc3_inode_differs": true,
+  "rc4_has_measured_block": true,
+  "pass": true
+ },
+ "verdict": "DOCS_OK"
+}

@@ -1,0 +1,138 @@
+{
+ "script": "_app291_build_minimvp_rc4.py",
+ "ts": "2026-11-10 00:16:13",
+ "version": "1.0-rc4",
+ "base": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+ "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4",
+ "dry_run": false,
+ "base_copy_s": 7.83,
+ "npu_models_added": {
+  "encoder-fp16": {
+   "ok": true,
+   "logical_name": "ov-encoder-segment-reviewer",
+   "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\encoder-fp16",
+   "bytes": 635969904,
+   "n_files": 2,
+   "files": {
+    "openvino_encoder_model.bin": {
+     "bytes": 634984412,
+     "sha256": "39a5866a1c5af075c201ecae96d9bee43377791b3e3f29181bcbdcb04715b728"
+    },
+    "openvino_encoder_model.xml": {
+     "bytes": 985492,
+     "sha256": "a22976b7299b11c2d82183858ed4acc819c912e381c0d90e5d8363964c083062"
+    }
+   },
+   "copy_s": 0.37
+  },
+  "decoder-npu-int8": {
+   "ok": true,
+   "logical_name": "qwen3-lm-int8sym-cleanie-ov",
+   "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\decoder-npu-int8",
+   "bytes": 1724957980,
+   "n_files": 2,
+   "files": {
+    "openvino_model.bin": {
+     "bytes": 1722397965,
+     "sha256": "09eb815b41124580b7222e4b08d7ba8789d2dd446321896561b2a1959ee61c8a"
+    },
+    "openvino_model.xml": {
+     "bytes": 2560015,
+     "sha256": "284f09904d13c11bf7b7391c626d4f853a6d45d154ec2302c013c6906f96bee2"
+    }
+   },
+   "copy_s": 1.19
+  },
+  "decoder-npu-int4": {
+   "ok": true,
+   "logical_name": "c089_int4/R4",
+   "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\decoder-npu-int4",
+   "bytes": 1165047365,
+   "n_files": 2,
+   "files": {
+    "openvino_model.bin": {
+     "bytes": 1162210441,
+     "sha256": "025264422827929df780c9011b3d383abb33941b4111c7adbd123a0fea4b830a"
+    },
+    "openvino_model.xml": {
+     "bytes": 2836924,
+     "sha256": "f160267da70399ae0f3528d5397208800c185083cd03c7aa6a54eb1f5989b674"
+    }
+   },
+   "copy_s": 0.77
+  }
+ },
+ "igpu_models_kept": {
+  "encoder-int8": {
+   "exists": true,
+   "bytes": 319913646
+  },
+  "decoder-gpu-int8": {
+   "exists": true,
+   "bytes": 1741963224
+  }
+ },
+ "version_patch": {
+  "README_zh.md": [
+   {
+    "old": "MiniMVP v1.0-rc3",
+    "count": 1,
+    "applied": true
+   },
+   {
+    "old": "MiniMVP_v1.0-rc3",
+    "count": 0,
+    "applied": false,
+    "why": "不是唯一命中 ⇒ 不改"
+   }
+  ],
+  "README_en.md": [
+   {
+    "old": "MiniMVP v1.0-rc3",
+    "count": 1,
+    "applied": true
+   },
+   {
+    "old": "MiniMVP_v1.0-rc3",
+    "count": 0,
+    "applied": false,
+    "why": "不是唯一命中 ⇒ 不改"
+   }
+  ],
+  "NOTICE": [
+   {
+    "old": "MiniMVP v1.0-rc3",
+    "count": 1,
+    "applied": true
+   },
+   {
+    "old": "MiniMVP_v1.0-rc3",
+    "count": 0,
+    "applied": false,
+    "why": "不是唯一命中 ⇒ 不改"
+   }
+  ],
+  "README_perftest.txt": [
+   {
+    "old": "MiniMVP v1.0-rc3",
+    "count": 2,
+    "applied": false,
+    "why": "不是唯一命中 ⇒ 不改"
+   },
+   {
+    "old": "MiniMVP_v1.0-rc3",
+    "count": 0,
+    "applied": false,
+    "why": "不是唯一命中 ⇒ 不改"
+   }
+  ]
+ },
+ "manifest_patched": false,
+ "precompiled_cache_in_pkg": [],
+ "pkg_no_precompiled_npu_cache": true,
+ "base_bytes": 7176245176,
+ "dst_bytes": 10702220425,
+ "delta_bytes": 3525975249,
+ "n_files": 10510,
+ "verdict": "BUILT"
+}

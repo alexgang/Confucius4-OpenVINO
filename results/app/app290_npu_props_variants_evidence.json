@@ -1,0 +1,67 @@
+{
+ "script": "_app290_npu_props_variants.py",
+ "ts": "2026-11-10 00:15:36",
+ "purpose": "NPU 属性变体探针：找 Meteor Lake 可用的最小属性集",
+ "ov_version": "2026.4.1-22982-e213a147257-releases/2026/4",
+ "npu_full_name": "Intel(R) AI Boost",
+ "npu_driver": 20114005,
+ "npu_arch": "5010",
+ "arms": [
+  {
+   "model": "encoder-fp16",
+   "label": "encoder+frozen+plain",
+   "ok": true,
+   "wall_s": 25.26,
+   "props": {
+    "PERFORMANCE_HINT": "LATENCY",
+    "CACHE_DIR": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app290_npu_probe_cache"
+   },
+   "execution_devices": "NPU"
+  },
+  {
+   "model": "encoder-fp16",
+   "label": "encoder+frozen+NPUW_only",
+   "ok": true,
+   "wall_s": 31.19,
+   "props": {
+    "NPU_USE_NPUW": "YES",
+    "CACHE_DIR": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app290_npu_probe_cache"
+   },
+   "execution_devices": "NPU"
+  },
+  {
+   "model": "decoder-npu-int8",
+   "label": "decoder+NPUW_all",
+   "ok": true,
+   "wall_s": 10.7,
+   "props": {
+    "NPU_USE_NPUW": "YES",
+    "NPUW_LLM": "YES",
+    "NPUW_LLM_MAX_PROMPT_LEN": "512",
+    "NPUW_LLM_MIN_RESPONSE_LEN": "64",
+    "CACHE_DIR": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app290_npu_probe_cache"
+   },
+   "execution_devices": "NPU"
+  },
+  {
+   "model": "decoder-npu-int8",
+   "label": "decoder+NPUW_only",
+   "ok": false,
+   "wall_s": 0.34,
+   "error": "RuntimeError: Exception from src\\inference\\src\\cpp\\core.cpp:120:\nException from src\\inference\\src\\dev\\plugin.cpp:54:\nException from src\\core\\src\\partial_shape.cpp:261:\nto_shape was called on a dynamic shape.\n\n\n"
+  },
+  {
+   "model": "decoder-npu-int8",
+   "label": "decoder+plain",
+   "ok": false,
+   "wall_s": 1.45,
+   "error": "RuntimeError: Exception from src\\inference\\src\\cpp\\core.cpp:120:\nException from src\\inference\\src\\dev\\plugin.cpp:54:\nException from src\\plugins\\intel_npu\\src\\plugin\\src\\plugin.cpp:560:\nException from src\\plugins\\intel_npu\\src\\compiler_adapter\\src\\compiler_impl.cpp:323:\nCompilation failed. vclAllocatedExecutableCreate4 result: 0x78000004 - [NPU_VCL] Compiler returned msg:\nException from src\\core\\src\\partial_shape.cpp:261:\nto_shape was called on a dynamic shape.\n\n\n\n\n"
+  }
+ ],
+ "verdict": {
+  "encoder_plain_ok": true,
+  "decoder_npuw_all_ok": true,
+  "decoder_npuw_only_ok": false,
+  "decoder_plain_ok": false
+ }
+}

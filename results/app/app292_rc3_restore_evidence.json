@@ -1,0 +1,51 @@
+{
+ "script": "_app292_rc3_restore.py",
+ "zip": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest_rev2.zip",
+ "rc3": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+ "rc4": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4",
+ "affected": [
+  "NOTICE",
+  "README_zh.md",
+  "README_en.md"
+ ],
+ "dry_run": true,
+ "plan": [
+  {
+   "rel": "NOTICE",
+   "zip_bytes": 10339,
+   "zip_sha256": "e9c9cfc34dba907ca28b35ffbb8437fdbc238cb510265ca2f0ff19b733e0728f",
+   "rc3_now_bytes": 10339,
+   "rc3_now_sha256": "e9c9cfc34dba907ca28b35ffbb8437fdbc238cb510265ca2f0ff19b733e0728f",
+   "rc3_matches_zip": true,
+   "rc3_ino": 1970324839318560,
+   "rc4_ino": 4503599629701136,
+   "shared_inode": false,
+   "rc4_has_rc4_word": true
+  },
+  {
+   "rel": "README_zh.md",
+   "zip_bytes": 1637,
+   "zip_sha256": "db39b514322a4cb8f257bac6c2eb65c9121b88406d414304fa544450bb898e0f",
+   "rc3_now_bytes": 1637,
+   "rc3_now_sha256": "db39b514322a4cb8f257bac6c2eb65c9121b88406d414304fa544450bb898e0f",
+   "rc3_matches_zip": true,
+   "rc3_ino": 4785074606427178,
+   "rc4_ino": 5629499536557098,
+   "shared_inode": false,
+   "rc4_has_rc4_word": true
+  },
+  {
+   "rel": "README_en.md",
+   "zip_bytes": 1437,
+   "zip_sha256": "9c0d599cd36ed5fe591e15b142f60a7a1e560c79d7b20682c611da0d166b87a4",
+   "rc3_now_bytes": 1437,
+   "rc3_now_sha256": "9c0d599cd36ed5fe591e15b142f60a7a1e560c79d7b20682c611da0d166b87a4",
+   "rc3_matches_zip": true,
+   "rc3_ino": 1125899909212372,
+   "rc4_ino": 5629499535047524,
+   "shared_inode": false,
+   "rc4_has_rc4_word": true
+  }
+ ],
+ "verdict": "DRY_RUN"
+}

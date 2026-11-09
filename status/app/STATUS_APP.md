@@ -1,13 +1,15 @@
 # STATUS_APP
 
 last_ack: APP-088
-更新时间: 2026-11-09 09:38:39
-当前任务: **APP-086 ① 合并已完成／② 代码资产已落盘（接线＋验收数字未完成）／③ GUI 已完成 ⇒ 停在 APP-086⑤ 等 reviewer 复核**
-阻塞 / 待用户决定: **APP-086 验收数字与主循环接线待设备会话；复核通过前不打包、不建 v2.5、不通知用户（APP-087⑦ / APP-088④）**
-已压缩: 压缩索引（旧正文逐字归档）⇒ `status/archive/STATUS_APP_compress_index_upto_20261107.md`；限额 ≤40000 B / ≤300 行（APP-052④）｜**§145 压缩**：§144 正文＋§143 产物表 ⇒ `status/archive/STATUS_APP_sec144_20261107.md` ／ `status/archive/STATUS_APP_sec143_artifacts_20261107.md`｜**§146 压缩**：§145 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec145_20261107.md`｜**§147 压缩（首版 42 844 B 超限被拦，STATUS 未落盘 ⇒ 二次压缩）**：§146 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec146_20261107.md`；§143 正文＋§144/§145 速查行整块逐字归档 ⇒ `status/archive/STATUS_APP_sec143_20261107.md`｜**§150 压缩**：§149 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec149_20261107.md`（块 SHA256 `29784e3e09e787a4c3328e8c3d5559eef5b459a42554a182d0ddd6745567aebe`）｜**§153 压缩**：§152 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec152_20261108.md`（块 SHA256 `3902c3035665e61903397474d0905fe9142d2f0fbb0049d16ca3e83e87b5c9bc`）｜**§154 压缩**：§153 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec153_20261108.md`（块 SHA256 `9e517bc709e87168e922aafbe5715ece75f24ab9b8c59ba3d87a8d5d58d17117`）｜**§155 压缩**：§154 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec154_20261108.md`（块 SHA256 `b50177e7b215778ffb873b27457eef5d2643914af07b4ab596aba5a4db2bb13d`）｜**§156 压缩**：§155 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec155_20261108.md`（块 SHA256 `584d8681aa4a89665d1bd2e2a2df1df3754ee869efb41284637705cefed1d41d`）｜**§157 压缩**：§156 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec156_20261108.md`（块 SHA256 `67e9b45d85887e6fff370ef7475d7830f490a490e8a936dfa4b8de6ab5d7ac00`）｜**§158 压缩**：§157 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec157_20261108.md`（块 SHA256 `5e6236cc5548d0aff9d29493ea7f574d2651594dc384c54664511318c6676d27`）
+更新时间: 2026-11-10 00:52:12
+当前任务: **MiniMVP rc4 已建**（补 3 个 NPU ASR IR，+3.28 GB）＋ `--check` 显示「Intel NPU · INT8 模型齐全」＋ 设备级验收完成（EXEC_DEVICES 双 NPU；WER 15.53 % vs iGPU 14.55 %；RTF 0.803 vs 0.696；峰值内存 5 212.6 MB）⇒ **等用户确认是否打 rc4 zip**
+阻塞 / 待用户决定: **用户确认**：① 是否打 rc4 zip（未打，遵循「不主动打包」）② Meteor Lake 目标机：decoder **必须** NPUW（无回落路径，`app290` 实测）⇒ 若目标机 NPUW 不可用需改用 iGPU 档 ③ **纠偏 APP-089…092 仍未执行**（本轮用户改任务为 MiniMVP rc4）
+已压缩: 压缩索引（旧正文逐字归档）⇒ `status/archive/STATUS_APP_compress_index_upto_20261107.md`；限额 ≤40000 B / ≤300 行（APP-052④）｜**§159 压缩**：§159 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec159_20261109.md`（块 SHA256 `da8241c04798cbf70798b0588f54fd7da8a35e5c4530cfff1eb653f3df9d32db`）｜**§160 压缩**：头部「已压缩」行原文（2012 B）已归档进同一索引 ⇒ 头部只留精简行
 
 
 ## 最近更新
+> 🔴 2026-11-10 ｜ **MiniMVP rc4 已建**：补 `encoder-fp16`／`decoder-npu-int8`／`decoder-npu-int4`（+3.28 GB）⇒ `--check` 显示「**Intel NPU · INT8 模型齐全**」；设备级：EXEC_DEVICES encoder=NPU／decoder=NPU、WER 15.53 %（iGPU 14.55 %，两档直接差 2.56 %）、RTF 0.803（iGPU 0.696）、峰值内存 5 212.6 MB；**包内 0 个预编译 blob** ⇒ 目标机现编；🔴 rc3 曾被硬链接写穿，已用已交付 zip 权威字节**逐字节复原**并复核 PASS。
+> 🔴 2026-11-09 12:46:57｜**APP-086② 接线已完成**：口径裁定＝**复用 App 既有的那一份旁路与音色表**（不双旁路）＋策略层只做策略（不登记）＋worker 侧「沿用上一句音色」收窄为「非按句绑定模式」⇒ **无标签句回落预设 A，绝不沿用上一句的克隆音色**；判据 **6/6 PASS ＋ 反证 6/6 识破**（`app360…json`）；回归 **4 PASS/2 FAIL（与 §159 同基线，无新增）**；**未打包／未建 v2.5／未通知用户** ⇒ 停在 APP-086⑤ 等 reviewer 复核。
 > 🔴 §139 / §140 两条「最近更新」原文（2 行）已**整块逐字归档** ⇒ `status/archive/STATUS_APP_recent_updates_upto_20261107.md`（块 SHA256 `853a0d85678f895f4b88ee294faaaeabec61ca31c2a3a247958a8f8c442f1c8d`）；速查：§139 APP-073/074 冒烟 7/0＋rev2 最终 SHA `90ae8b9d…`；§140 APP-076/077/078 39/0・26/0＋27/0・28/0＋14/0，APP-075 需等复核。
 > 🔴 2026-11-05 及更早的「最近更新」条目（16 行）已**逐字归档** ⇒ `status/archive/STATUS_APP_recent_updates_upto_20261106.md`（块 SHA256 `b14fb9b97026e9eaef29fbd3d8a7bc6277e7d4477000344d61c5693819817d47`）；本节只留 §139 / §140 两条速查。
 > 🔴 2026-11-08 21:52:39｜**APP-085 本条已完成**（验收待 reviewer 复核）：待命期停止巡检脚本＋§章节＋归档＋提交 ⇒ 不建脚本/json、不新增章节、不归档、不 commit/push；纠偏 84→85 条、SHA `b3a1a900…b62`→`1f7dcc28…642` ⇒ **中途追加，不声称零改动**（只读未改未提交）；`app350` 已按验收清除；APP-083/084 停下节点不变。
@@ -167,50 +169,71 @@ last_ack: APP-088
 
 ## §159 执行 APP-086 / APP-087 / APP-088（last_ack=APP-088）｜合并＋克隆移植＋GUI 文案已落盘，停在「等 reviewer 复核」节点（2026-11-09 09:38:39）
 
-- **步骤 0 租约（APP-056）**：`acquire app` ⇒ exit **0**、`TOKEN=8bd109ab`、**无 TAKEOVER**；每步 `beat` OK；本轮无长作业故未 `addpid`；收尾 `release`。纯 CPU 静态 ⇒ `MACHINE_LOCK` 全程 **NOT_PRESENT**（实测 `exists=false`），未占设备／未在 CPU 推理或测速／未调 MiniMax。
-- **步骤 1 全文扫描（只读）**：`CORRECTIONS_APP.md` **88 条**（APP-001..088 无缺号），开工＝收尾＝写后三次指纹全等：SHA `d66746ed00be0cc1bb24bcc05ef74428ebbaccba1487c2d6cd07a2b02ded6c1f`／**242 619 B**／mtime **2026-11-09 09:11:06** ⇒ **reviewer 本轮未中途追加**（只读、未改、未提交）。写前 `last_ack: APP-085` ⇒ **3 条新条目 APP-086 / 087 / 088**（均 [HIGH] 用户决定）。
-- **ACK（APP-088 明文要求）**：`last_ack` APP-085→**APP-088** ＋「最近更新」追加 **1 行**（`app351` 24/0 PASS）；STATUS 39 996 B→**30 017 B** ⇒ 按 APP-052④ 把 §158（5 694 B）／§150（6 255 B）正文**整块逐字归档**，反向还原==旧全文、章节数 9→9 不减、LF 未破、写后磁盘逐字节复核。
+> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec159_20261109.md`（11156 B／块 SHA256 `da8241c04798cbf70798b0588f54fd7da8a35e5c4530cfff1eb653f3df9d32db`；含开工/收尾指纹、合并提交号 `9d51ceb`/`b1496ba`、产物表与 v2.3/v2.4 zip 元数据）。
+> 🔴 **速查**：APP-086① 合并 `9d51ceb`（11 文件）已完成；② 克隆 a–f **代码资产**已落盘（`clone_voice.py`）但**接线＋验收数字未完成**；③ GUI CUDA 文案已完成；④⑤ / APP-087 / APP-088 ⇒ **停在「等 reviewer 复核」**（未打包、未建 v2.5、未通知用户）。
+> 🔴 **续接**：§160 继续做完了 ② 的**接线**（口径裁定见 §160）＋**验收数字**。
 
-### 三条纠偏逐条状态（本条已完成 / 本条需等 reviewer 复核）
+## §160 续做 APP-086② 克隆接线＋验收（last_ack=APP-088）｜**接线已完成**，验收数字见下表 ⇒ 停在 APP-086⑤ 等 reviewer 复核（2026-11-09 12:46:57）
+> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec160_20261110.md`（10985 B／块 SHA256 `82c35e22353d63f7639b4f469b154c19efd9de3e0763e6ba36040c01f4cb6ebf`）。
 
-| 编号 | 状态 | 依据（结果文件 → 原始字段） |
+## §161 MiniMVP rc4：补打包全 NPU ASR 模型（用户直驱，2026-11-10）
+
+**本条不是 reviewer 纠偏**（`last_ack` 仍是 **APP-088**）⇒ 纠偏链 **APP-089…092 未动**（那 4 条是上一轮读到的，见下「⑥ 遗留」）。
+
+### ① 交付物
+* **新目录** `C:\Users\Trekker-PTL\Confucius4_LiveCaption_MiniMVP_v1.0-rc4`（**rc3 一字未改**，见「④ 事故与修复」）。
+* 补 3 个 NPU IR（源 = `Confucius4_LiveCaption_v2.4/models/`，与 v2.2 **逐字节同 SHA**）：
+
+| 包内目录 | 逻辑名（`_MODEL_ALIASES`） | 文件 | 字节 |
+|---|---|---|---|
+| `models/encoder-fp16` | `ov-encoder-segment-reviewer` | 2 | 635 969 904 |
+| `models/decoder-npu-int8` | `qwen3-lm-int8sym-cleanie-ov` | 2 | 1 724 957 980 |
+| `models/decoder-npu-int4` | `c089_int4/R4` | 2 | 1 165 047 365 |
+
+* **iGPU 版模型保留**：`encoder-int8` / `decoder-gpu-int8` 均在（`app291` 证据 `igpu_models_kept`）。
+* **体积**：rc3 **6.68 GB** → rc4 **9.97 GB**（**+3.28 GB**／`delta_bytes=3525975249`）；文件数 10 474 → **10 510**。
+
+### ② `--check` 验收（干净目录 `C:\minimvp_rc4_clean\`，用**包内 python**）
+`[ OK ] **Intel NPU · INT8  模型齐全**` ／ `[ OK ] Intel NPU · INT4（实验）  模型齐全`
+⇒ **用户要求 2 达成**（证据 `results/app/app298_rc4_check_output.txt`）。
+
+### ③ 设备级验收（5 min 英文 SPE `shared/SPE_0000_0500.wav` 300.0 s）
+* **实际执行设备（OpenVINO `EXECUTION_DEVICES` 直证，`app296`）**：
+  `encoder = NPU` ／ `decoder = NPU` ⇒ **两者的实际执行设备都是 NPU**（`verdict=EXEC_ON_NPU_OK`）。
+* **WER / RTF / 延迟 / 内存**（参考 = 同一段音频的离线转写 921 词，**非人工校对稿** ⇒ 两档可比）：
+
+| 档 | RTF | 出字延迟中位 | 最大积压 | 峰值内存 | WER vs 参考 | NPU-vs-iGPU |
+|---|---|---|---|---|---|---|
+| ASR=NPU（TTS off） | **0.803** | 540 ms | 1.1 s | 5 212.6 MB | **15.5266 %**（143 编辑/819 词） | **2.5610 %**（21 编辑） |
+| ASR=GPU.0（TTS off） | **0.696** | 376 ms | 1.2 s | 4 819.5 MB | **14.5494 %**（134 编辑/820 词） | — |
+| ASR=NPU + TTS=NPU | 1.264 | 55 362 ms | 84.4 s | 5 213.1 MB | — | — |
+
+⇒ **NPU 档质量与 iGPU 档基本一致**（两档直接只差 2.56 %）；**NPU 比 iGPU 慢 ~15 %**（RTF 0.803 vs 0.696）、峰值内存多 ~393 MB。
+🔴 **第三行不是 ASR 慢**：ASR 与 TTS **抢同一个 NPU** ⇒ 积压 84.4 s ⇒ **全 NPU 家家桶当前不可用于实时字幕**（TTS 需走 iGPU）。
+* **素材可自证**：`SPE_0000_0500.wav` 与 `test_audio/260902_SPE_audio.wav` 前 300 s **逐样本相关系数 1.000000**。
+
+### ④ 🔴 事故与修复（必须记录）
+* **事故**：`_app291` 用 `copytree(copy_function=os.link)` 把 rc3 复制成 rc4 ⇒ **rc4 与 rc3 共享 inode**；随后「原地写」改版本号 ⇒ **写穿 ⇒ rc3 的 `NOTICE`/`README_zh.md`/`README_en.md` 被一起改成 rc4 字样**（违反「不改已交付的 rc3」）。
+* **修复**：`_app292` 用**已交付 zip** `shared/minimvp/..._perftest_rev2.zip` 里的权威字节**断链重写** rc3 ⇒ rc3 三文件与 zip **逐字节相同**（复核 PASS）；rc4 保留 rc4 字样、inode 已分离。
+* **根因修法**：`_app291` 的 `patch_text`／`MANIFEST` 写入改为 **`unlink_then_write`（断链后写）** ⇒ 不会再写穿。
+* 🔴 **教训**：**硬链接复制 ⇒ 任何原地写都会波及源**。凡「要改写的文件」必须先断链。
+
+### ⑤ 🔴 Meteor Lake（Ultra 7 155H）可移植性（用户要求 4）
+* **包内预编译缓存 = 0 个**（`app291.precompiled_cache_in_pkg=[]`）⇒ **不带任何 Panther Lake 专属 blob**；编译缓存写在 `%LOCALAPPDATA%\Confucius4LiveCaption\npu_cache` ⇒ **目标机首次运行现编**。
+* 🔴 **NPU decoder 必须用 NPUW**（`app290` 实测四臂）：
+
+| 臂 | 结果 | 原因 |
 |---|---|---|
-| **APP-086① 合并** | **本分项已完成** | `git log -1` = `9d51ceb APP-086(1): merge claude-clone (7e60afb) v2.4 build into main`；`git merge-base --is-ancestor claude-clone main` rc **0**；`git show --stat` **11 文件 / +1 405 行**／`ort` 无冲突。clone_dev 3 个未提交改动已看清（`app170_version_identity_gate_evidence.json`、`app_v24_build_evidence.json` 为 v2.3→v2.4 证据刷新，`DELIVERY_2.4.json` 为新增交付记录）⇒ 属 reviewer 工作区未提交资产，**未纳入合并、未改 clone_dev、交 reviewer 处理**。 |
-| **APP-086① 测试** | **本分项已完成** | `app352_app086_merge_test_evidence.json`：8 个合并 .py `ast` **8/8 PASS**；6 个既有纯 CPU 闸门 **4 PASS / 2 FAIL**；两处 FAIL 由 `app353_app086_fail_diagnosis.json`（**6/0 PASS**）证明为**既有判据/夹具问题、非合并回归**：`app307` 真实 `scan()` 返回 9 项违规但 label 为 `FALLBACK: <正则>`，判据按 `'voice' in label` 计数 ⇒ 命中 **0**（`assert_pkg_clean.py` 在 `92bdbae..9d51ceb` **逐字节未变**）；`app236` 静态 9 PASS + 反证 9 PASS，`verdict=FAIL` 来自 FAILLOG 夹具 hits `{"engine_not_ready":0,"registered":1}`（成功日志≠失败日志 ⇒ 三态应为 UNKNOWN），6 个被检查函数源码合并前后逐字相同。**本轮不改判据，口径交 reviewer 裁定。** 5 个被测试脚本重写的既有证据已**另存** `results/app/app352_rerun/` 并恢复，未覆盖仓库原证据。 |
-| **APP-086② 克隆 a–f** | **代码资产已完成；接线与验收数字未完成** | `app354_app086_clone_port_evidence.json`：**33 PASS / 0 FAIL**、**8/8 组判据含反证**（逐项破坏锚点 ⇒ 判据必须 FAIL）。新增 `live_caption/clone_voice.py`（15 691 B）完整实现 a 无标签不沿用上一句音色（`min_sim=0.25`）／b 临时标签（`min_sim=0.4`）／c 先出临时音色（`registration_ticket`）／d 整句 clean（conf≥0.5、cover≥0.7、1.5–12 s）+ ASR 文本走 ICL／e 参考冻结（`REF_FIRST_S=3.0`、`REF_UPGRADE_S=8.0`）／f 克隆全在 `clone-voices` 线程；`tts_cuda_sidecar.py` 生成调用改 `xvec_only=not _ref_text` + `ref_text`，采样 **0.6 / 20**。只读 `live_dub_ext claude-dev`，**未切分支、未改 EXT**；`package_untouched=true`（v2.4 包内 3 文件 SHA 前后全等）。🔴 **未完成**：主循环（GUI/CLI）接线与「带真值多人对话改前/改后 NPU（闸门）+ CUDA（可选）」验收数字、wav 落盘 `shared/app_listen/` —— 属设备作业，须持 `MACHINE_LOCK` 另起后台会话，本轮**不虚报已交付**。 |
-| **APP-086③ GUI** | **本分项已完成** | `build_tts_options()` 的 CUDA 选项在 APP-061②/062③ 已存在（dev 树 `disabled`+`why`，包内 `if not _in_customer_package()` ⇒ **整个选项不出现**，满足 APP-088②「隐藏而非置灰」）；本轮定点补 `需要另装 CUDA 环境` 文案（`git diff` **3 行**）；默认仍 NPU（`or 'NPU'` 未改）；GUI 布局重排未启动。`ast.parse` 全过、行尾原样（app CRLF / sidecar LF，`git diff --stat` 3 + 26 行，无行尾噪声）。 |
-| **APP-086④ / ⑤** | **本条需等 reviewer 复核** | ④ 本轮**未打包**（符合 APP-087⑦/088④ 顺序）；⑤ 明文「合并＋克隆改动连同验收数字完成后停下等 reviewer 复核，不通知用户、不先打 v2.5」⇒ **本轮停在此节点**，且验收数字未出 ⇒ 复核所需清单见下。 |
-| **APP-087** | **本条需等 reviewer 复核** | 已 ack；⑦ 明文「先做完 APP-086 → 停下等复核 → 复核通过后再打 v2.5（新目录＋新 zip，含 `<pkg>\live_dub_ext\`）」⇒ v2.5 打包、EXT 来源 `master@7f2a5d6`、25/25 回放、zip 统计、体积增量**全部未启动**。未改 EXT 仓库（只读 `git show`），未发现需报的 EXT bug。 |
-| **APP-088** | **本条需等 reviewer 复核** | 已 ack；① 本地开发树保留 CUDA/NV5050 选项**已满足**（默认 NPU）；② v2.5 只含 iGPU/NPU（排除 `tts_cuda_sidecar_ext.py`、CUDA venv、torch、faster-qwen3-tts，包内 GUI 只列 GPU/NPU）与 ③ 追加验收数字属**打包阶段**，按 ④ 顺序未启动。 |
+| decoder + `NPU_USE_NPUW`+`NPUW_LLM` | ✅ 10.7 s，EXEC=NPU | |
+| decoder + 仅 `NPU_USE_NPUW` | ❌ | `to_shape was called on a dynamic shape` |
+| decoder + 完全不开 NPUW | ❌ | 同上 |
+| encoder **冻结形状后** + plain（**不开 NPUW**） | ✅ 25.3 s，EXEC=NPU | 冻结前 ❌ `IE.Reshape doesn't support dynamic shapes` |
 
-- **撤回旧节点**：APP-083③ / APP-084「等用户测完 v2.4 再合 / App 期间不要改克隆相关文件」由 **APP-086 明文解除** ⇒ §152–§158 的「等 reviewer 发起合并」节点关闭；APP-085 待命期禁空巡检在**有新条目时**不适用，但本轮未建任何 `patrol` 脚本／未做覆盖审计式自证。
+⇒ **decoder 没有「不开 NPUW」的回落路径** ⇒ 若目标机 NPUW 不可用，**NPU ASR 起不来**（encoder 不受影响）。
+⇒ 已把该风险与「先用 iGPU 档验收」写进 rc4 的 `README_perftest.txt`。
+⚠️ **未自行改属性口径**（改属性＝改行为，需 reviewer 裁定）。
 
-### 停下节点：交 reviewer 复核的清单（本轮不自行推进）
-
-1. **APP-086② 接线口径**：`clone_voice.CloneVoices` 自带 `SpeakerBridge` + `SpeakerVoiceTable`，与 App 现有 GUI/CLI 各一份 `_spk_voices` 实例并存 ⇒ 直接替换会双旁路。请裁定「独立编排层替换」还是「把 a–f 行为并回现有表」；本轮只落盘模块，**未改主循环**。
-2. **验收数字（APP-086② + APP-088③）**：改前/改后「用对音色的句子占比」「换人后切到正确音色的延迟（秒）」，**以 NPU 为闸门**、CUDA 可选；须持 `MACHINE_LOCK` 后台跑 `dialog3.wav`+`truth.json`，`eval_spk.py` 复制到 `results/app` 再改，wav 落 `shared/app_listen/` 交回转写。
-3. **两处既有判据口径**（`app307` label 计数 / `app236` FAILLOG 三态）是否修正，由 reviewer 定。
-4. **APP-086 复核通过后**才打 **v2.5**（新目录＋新 zip＋新 MANIFEST＋重签 ACCEPTED），含 APP-087 的 EXT 与 APP-088 的 CUDA 排除；**绝不原地改 v2.4**（APP-055）。用户未通知 ⇒ 不主动打包（用户级长期记忆）。
-
-### 产物（实时采集：文件数 / mtime / 字节 / SHA256）
-
-| 文件 | 说明 | 文件数 | mtime | 字节 | SHA256 |
-|---|---|---|---|---|---|
-| `results/app/app351_app086_ack_status.py` | ACK + APP-052④ 压缩写入脚本（自检 24/0） | 1 | 2026-11-09 09:26:17 | 9996 | `3aacaec80f225527613b8cc988edece13b8ad2448150754f805dfa54062da16f` |
-| `results/app/app351_app086_ack_evidence.json` | ACK 写前自检/归档指纹原始字段 | 1 | 2026-11-09 09:26:22 | 3906 | `edc93e0531b1a0e0afc6fc8c3841b1961857d0f01fba2175f67f0f97d136b185` |
-| `status/archive/STATUS_APP_sec158_20261109.md` | §158 正文整块逐字归档 | 1 | 2026-11-09 09:26:22 | 5694 | `b5ea34eb55109a6bf72892de1237b408c1257f381466b11d1edb735a4e8a00eb` |
-| `status/archive/STATUS_APP_sec150_20261109.md` | §150 正文整块逐字归档 | 1 | 2026-11-09 09:26:22 | 6255 | `b3a055b6394c8de9e8f0e5b44005635d75b3202bcd1480efe9817b18e4939521` |
-| `results/app/app352_app086_merge_tests.py` | 合并后回归运行器（ast + 6 闸门 + 前后 SHA 快照） | 1 | 2026-11-09 09:28:16 | 5431 | `22026e1422f974a0b67834e558cb7c2957c3384023cf32f4b89f05459fbfe6ae` |
-| `results/app/app352_app086_merge_test_evidence.json` | 回归原始字段（rc/wall/stdout_tail） | 1 | 2026-11-09 09:29:05 | 7302 | `de6e9afbf944d90d14751404ee6725cdb4721b3e301085463a672954430c32a4` |
-| `results/app/app352_rerun/` | 本轮重跑输出另存目录（5 文件，既有证据已恢复） | 5 | 2026-11-09 09:30:22 | 34505 | `bd3cfc14fdb449ddfc17c185de0949ed862da6a9c7af48f0b3f11cdb6ee58791` |
-| `results/app/app353_app086_fail_diagnosis.py` | 两处 FAIL 归因脚本（反证基线=当前被测对象） | 1 | 2026-11-09 09:32:14 | 6946 | `267b5c87ab720ce598a56d99a25e12fc5974591b6feb3239791fa0aad5c13476` |
-| `results/app/app353_app086_fail_diagnosis.json` | FAIL 归因原始字段（6/0 PASS） | 1 | 2026-11-09 09:32:27 | 3388 | `7e91ee8b55b236b65de85beaf95e87d3721bc07d5de4899926f6e0d88e666a66` |
-| `results/app/app354_app086_clone_port.py` | EXT→App 定点移植脚本（a–f 8 组反证） | 1 | 2026-11-09 09:36:51 | 14675 | `6cb85881d83346e1e5145a14e4e71c0dfce0e4b0a58f12f9f5c9bb9495c785ef` |
-| `results/app/app354_app086_clone_port_evidence.json` | 移植原始字段（33/0、8/8、包零写入） | 1 | 2026-11-09 09:36:56 | 8601 | `4db3619a1067acf935c6665c09e2ec1e7ecbb93235282f9625b4fca5c051dc91` |
-| `live_caption/clone_voice.py` | APP-086② a–f 克隆编排层（新增） | 1 | 2026-11-09 09:36:56 | 15691 | `536cfa33f70eb3016ff5d493e995c46294d6e207c59baf08bf776059ca22eed1` |
-| `live_caption/tts_cuda_sidecar.py` | APP-086②(d) ICL 参考 + 0.6/20 采样（定点改 26 行） | 1 | 2026-11-09 09:36:56 | 26699 | `abdd1d6c9a624ccd4d84fed9b592a22d575700a486ca1cbd5f8d2cd269a7c3f5` |
-| `live_caption/live_caption_app.py` | APP-086③ CUDA 选项文案（定点改 3 行） | 1 | 2026-11-09 09:36:56 | 434041 | `3c8fa32197eabd9ff1f342a049c00feab6f07a710aae636f59453efc3fe7aa21` |
-
-- **纪律**：纠偏文件全程只读、未改、未 `git add`、未提交；STATUS 只改头部 3 行＋追加本节，旧正文一字未删；未打包／未建 v2.5 目录与 zip／未改客户包与 .lnk／未 `--same-version`／未 force push／未通知用户／未调 MiniMax／未在 CPU 推理或测速；`MACHINE_LOCK` 全程 NOT_PRESENT。
-- **git**：合并提交 `9d51ceb`（11 文件全 App 侧）；本轮 App 侧文件与 STATUS 在本节落盘后按「逐文件 `git add`」普通提交并 push，commit hash 见 `git log -1`（本节不回填，避免改旧章节）；暂存守卫：无 `CORRECTIONS_APP.md`、无 ASR/MT/TTS 其它模块文件。
-- **下一轮必读**：① 节点仍是「等 reviewer 复核 APP-086」＋「接线口径裁定」＋「验收数字设备作业」；复核通过前**不打包、不通知用户**；② 若追加 APP-089+ 按编号执行，设备作业先排队 `MACHINE_LOCK` 并 `addpid`；③ STATUS 写 §160 前仍须按限额评估压缩；④ 「不主动打包」规则不变。
+### ⑥ 遗留 / 未做
+* **纠偏 APP-089…092 仍未执行**（上一轮读到 4 条新纠偏：APP-089 ICL 去除＋self_ref＋换人切段／APP-090 EXT v0.3.4＋各项移植／APP-091 用户三项决定／APP-092 方案 B＋EXT v0.3.5）⇒ **本轮用户改任务为 MiniMVP rc4，故未动**；`last_ack` 保持 **APP-088**。
+* **未打 rc4 zip**（本轮只建目录；zip 待用户确认，遵循「不主动打包」纪律）。
+* **未提交 git**（本条脚本/证据待与 APP-089 侧改动一并处理，避免混入别的模块未提交改动）。
