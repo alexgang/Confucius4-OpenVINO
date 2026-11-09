@@ -24,6 +24,12 @@ KEEP_S = 90.0
 REF_FIRST_S = 4.0      # shortest sentence accepted as ICL reference
 REF_MAX_S = 7.0        # longest sentence accepted as ICL reference
 REF_UPGRADE_GAIN = 1.0 # one upgrade to a sentence >= cur + 1.0 s, then frozen
+# 11-09 user run: ICL references from real audio hit the frame cap in 22/60 calls (noise, garbled,
+#   backlog) => x-vector clone by default; ICL only with EXT_CLONE_ICL=1.
+CLONE_ICL = os.environ.get("EXT_CLONE_ICL", "0").strip() == "1"
+XV_FIRST_S = 3.0       # x-vector speaker reference: first at >= 3 s of clean labelled sentences
+XV_UPGRADE_S = 8.0     # one upgrade at >= 8 s, then frozen
+XV_MAX_S = 10.0
 SELF_REF_MIN_S = 1.5   # sentence-own-audio x-vector clone (before the speaker has a voice)
 # 11-09 speaker-change split (calibrated on dialog3 tight/normal: 24/32 change segments cut, 0/66 false)
 SPLIT_MIN_SEG_S = 3.2
@@ -65,6 +71,11 @@ class CloneVoices:
         self.dir = os.path.join(os.environ.get("LOCALAPPDATA", "."),
                                 "LiveDubEXT", "clone_voices")
         os.makedirs(self.dir, exist_ok=True)
+        for _f in os.listdir(self.dir):            # references are per session
+            try:
+                os.remove(os.path.join(self.dir, _f))
+            except OSError:
+                pass
         self.n_reg = 0
         try:
             self.br.ensure_started()
@@ -160,7 +171,8 @@ class CloneVoices:
             dur = span[1] - span[0]
             cover = sum(max(0.0, float(b) - float(a))
                         for a, b in (r.get("clean_ranges") or [])) / max(dur, 1e-6)
-            if float(r.get("spk_conf") or 0) < 0.5 or cover < 0.7 or not (1.5 <= dur <= REF_MAX_S):
+            if float(r.get("spk_conf") or 0) < 0.5 or cover < 0.7 or not (
+                    1.5 <= dur <= (REF_MAX_S if CLONE_ICL else XV_MAX_S)):
                 return
             self._cands.setdefault(r["spk"], []).append((seg, dur, item[0], item[1].strip()))
         except Exception as e:
@@ -172,18 +184,31 @@ class CloneVoices:
         (each new reference changed the timbre - user heard the same speaker drift)."""
         for spk, cands in list(self._cands.items()):
             cur = self._ref_dur.get(spk, 0.0)      # ICL reference seconds (interim = 0)
-            if cur > 0 and (self._upgraded.get(spk) or cur + REF_UPGRADE_GAIN > REF_MAX_S):
+            if cur > 0 and (self._upgraded.get(spk) or
+                            (CLONE_ICL and cur + REF_UPGRADE_GAIN > REF_MAX_S) or
+                            (not CLONE_ICL and cur >= XV_UPGRADE_S)):
                 continue
-            # most recent sentences first, skip any that would overflow REF_MAX_S (incl. 0.2 s gaps)
-            # one sentence only (concatenated references broke the Chinese pronunciation)
-            ok = [c for c in cands if REF_FIRST_S <= c[1] <= REF_MAX_S]
-            if not ok:
-                continue
-            best = max(ok, key=lambda c: (c[1], c[0]))
-            need = REF_FIRST_S if cur <= 0 else cur + REF_UPGRADE_GAIN
-            if best[1] < need:
-                continue
-            pick, acc = [best], best[1]
+            if CLONE_ICL:
+                # one sentence only (concatenated references broke the Chinese pronunciation)
+                ok = [c for c in cands if REF_FIRST_S <= c[1] <= REF_MAX_S]
+                if not ok:
+                    continue
+                best = max(ok, key=lambda c: (c[1], c[0]))
+                need = REF_FIRST_S if cur <= 0 else cur + REF_UPGRADE_GAIN
+                if best[1] < need:
+                    continue
+                pick, acc = [best], best[1]
+            else:
+                # x-vector: most recent clean sentences up to XV_MAX_S
+                pick, acc = [], 0.0
+                for c in reversed(cands):
+                    if acc + c[1] > XV_MAX_S and pick:
+                        break
+                    pick.append(c); acc += c[1]
+                pick.reverse()
+                need = XV_FIRST_S if cur <= 0 else XV_UPGRADE_S
+                if acc < need or (cur > 0 and acc < cur + 2.0):
+                    continue
             gap = np.zeros(int(0.2 * SR), dtype=np.float32)
             pcm = np.concatenate([x for c in pick for x in (c[2], gap)])[:-gap.size]
             text = " ".join(c[3] for c in pick)
@@ -193,16 +218,20 @@ class CloneVoices:
             with wave.open(path, "wb") as w:
                 w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
                 w.writeframes((np.clip(pcm, -1, 1) * 32767).astype("<i2").tobytes())
-            with open(path + ".txt", "w", encoding="utf-8") as f:
-                f.write(text)
+            if CLONE_ICL:
+                with open(path + ".txt", "w", encoding="utf-8") as f:
+                    f.write(text)
+            elif os.path.exists(path + ".txt"):
+                os.remove(path + ".txt")
             if cur > 0:
                 self._upgraded[spk] = True
             self._ref_dur[spk] = acc
             self.tab.mark_embedded(spk, refined=refined)
             self.paths[spk] = path
             self._latest = spk
-            self._log("[spk] %s 音色%s（整句 %d 句 %.1f s + 文本，ICL）" % (
-                spk, "升级" if refined else "已登记", len(pick), acc))
+            self._log("[spk] %s 音色%s（整句 %d 句 %.1f s%s）" % (
+                spk, "升级" if refined else "已登记", len(pick), acc,
+                " + 文本，ICL" if CLONE_ICL else "，x-vector"))
 
     def _nearest(self, seg, min_sim: float = 0.2) -> Optional[str]:
         """11-08 test 4: the bypass leaves not-clean / overlap / too-long sentences unlabelled
