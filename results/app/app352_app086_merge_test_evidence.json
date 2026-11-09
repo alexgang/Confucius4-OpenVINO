@@ -1,0 +1,161 @@
+{
+ "tool": "app352_app086_merge_tests",
+ "python": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\.venv\\Scripts\\python.exe",
+ "merge_commit": "9d51ceb APP-086(1): merge claude-clone (7e60afb) v2.4 build into main",
+ "merged_py": [
+  {
+   "file": "live_caption\\asr_spk_v24\\asr052_speaker_tracker_api.py",
+   "bytes": 36098,
+   "sha256": "d96e93416ff55bd0f6a50e2216a39d423d4aa8e31e64a394de55681da92e1747",
+   "ast": "PASS"
+  },
+  {
+   "file": "live_caption\\asr_spk_v24\\asr_spk_cluster_v2.py",
+   "bytes": 5715,
+   "sha256": "e448d1e0791b2092cb2c9cc161b798e8700a251aa45839690256e429a9c9386c",
+   "ast": "PASS"
+  },
+  {
+   "file": "live_caption\\live_caption_app.py",
+   "bytes": 433995,
+   "sha256": "67ee1e4def4fe4ebc131ab90ef209f87065a7a5d35deb75440b4a8d28d95bbca",
+   "ast": "PASS"
+  },
+  {
+   "file": "live_caption\\speaker_voice.py",
+   "bytes": 42666,
+   "sha256": "0b54643053d0a49c45b36416c33e9f7c0f4b82dc6b95b51daabc08d65f11caee",
+   "ast": "PASS"
+  },
+  {
+   "file": "live_caption\\tts_engine.py",
+   "bytes": 90771,
+   "sha256": "9860d8c724941421874da60fa1ee0deac41a26a0d7960d848fa2222ce3fb8039",
+   "ast": "PASS"
+  },
+  {
+   "file": "live_caption\\tts_engine_patch.py",
+   "bytes": 22702,
+   "sha256": "a188bcfdb38a89f310645f617b84be466e22a8eb9d2119dd50b164c5e2fc7008",
+   "ast": "PASS"
+  },
+  {
+   "file": "pack_v13.py",
+   "bytes": 79501,
+   "sha256": "389d700f642c4e37ae6e87d15792ad5b313a64840d83a36f22b40ff31d33a209",
+   "ast": "PASS"
+  },
+  {
+   "file": "results\\app\\app_v24_build.py",
+   "bytes": 13003,
+   "sha256": "c9f9bcffa1509d7beff0c531c261457f48d7d0558d3a9cc35d1ce5796162fdf9",
+   "ast": "PASS"
+  }
+ ],
+ "tests": [
+  {
+   "script": "app007_gate_selftest.py",
+   "rc": 0,
+   "wall_s": 0.13,
+   "stdout_tail": "e  内部产品规格 [REDACTED]\n  ✓ [4] 命中=True 误伤=False  会议人名片段\n  ✓ [5] 命中=True 误伤=False  内部产品规格 [REDACTED]\n  ✓ [6] 命中=True 误伤=False  内部交付信息\n  ✓ [7] 命中=True 误伤=False  内部客户信息\n  ✓ [8] 命中=True 误伤=False  内部业务信息\n\n=== 文件名模式 ===\n  ✓ int8_gpu_spoken.txt => True\n  ✓ transcript_adaptive.txt => True\n  ✓ segments_adaptive.json => True\n  ✓ preset_B.npz => True\n  ✓ clone_A.wav => True\n  ✓ normal_results.json => False\n\n[gate] PASS=15 FAIL=0\n",
+   "stderr_tail": "",
+   "verdict": "PASS"
+  },
+  {
+   "script": "app049_gate_selftest.py",
+   "rc": 0,
+   "wall_s": 28.51,
+   "stdout_tail": "出含「0 处违规」\n  [PASS] S3 注入缺陷后闸门 FAIL — rc=1\n  [PASS] S4 抓到类别 A（活跃验收脚本）\n  [PASS] S5 抓到类别 B（会进包的生产模块）\n  [PASS] S6 报出违规数 = 2\n  [PASS] S7 移除缺陷后闸门回到 PASS — rc=0\n\n========================================================================\nPASS 7 / FAIL 0\n总判定：PASS\n========================================================================\n证据已落盘：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app049_gate_selftest_evidence.json\n",
+   "stderr_tail": "",
+   "verdict": "PASS"
+  },
+  {
+   "script": "_app294_gate_selftest.py",
+   "rc": 0,
+   "wall_s": 0.15,
+   "stdout_tail": ": 108.11}, \"all_tickets\": [{\"seg\": 2, \"ticket\": [[19.2, 25.6]], \"segs\": [2], \"f0_max\": 175.82, \"f0_median\": 175.82}, {\"seg\": 3, \"ticket\": [[19.2, 32.0]], \"segs\": [2, 3], \"f0_max\n[PASS] 【升级·流式】出现更长合格段时票会更换（≥2 张不同的票）  {\"n_tickets\": 3, \"distinct\": [\"[(19.2, 25.6)]\", \"[(19.2, 32.0)]\", \"[(44.8, 64.0)]\"]}\n\n结果：11 PASS / 0 FAIL ⇒ PASS\n[evidence] C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app294_gate_selftest.json\n",
+   "stderr_tail": "",
+   "verdict": "PASS"
+  },
+  {
+   "script": "_app307_assert_pkg_clean_selftest.py",
+   "rc": 1,
+   "wall_s": 4.04,
+   "stdout_tail": "_clean 返回 1（拒绝交付）\n\n[2] 干净临时目录（不误伤）\n  [PASS] 干净目录 0 违规 -- []\n[PASS] C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app307_clean_4jjqnv3d 交付洁净度闸门：0 违规\n  [PASS] assert_clean 返回 0（允许交付）\n\n[3] 注入反证（判据非恒真）\n  [FAIL] 注入固定 token ⇒ 被判出\n  [FAIL] 注入 8 个第三方音色 ⇒ 全被判出\n  [FAIL] README.md / cindy_backup.json 不被误伤（仍是 8）\n\nverdict = FAIL (8 PASS / 6 FAIL)  C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app307_assert_pkg_clean_selftest.json\n",
+   "stderr_tail": "",
+   "verdict": "FAIL"
+  },
+  {
+   "script": "_app315_app080_preset_only_selftest.py",
+   "rc": 0,
+   "wall_s": 1.23,
+   "stdout_tail": "{\n  \"verdict\": \"PASS\",\n  \"n_pass\": 36,\n  \"n_fail\": 0,\n  \"n_unknown\": 0,\n  \"counterproof_identified\": \"8/8\",\n  \"diff_bytes\": 8021,\n  \"v22_samples\": 8,\n  \"sample_bytes\": 18145,\n  \"v22_gate_violations\": 9\n}\n",
+   "stderr_tail": "",
+   "verdict": "PASS"
+  },
+  {
+   "script": "app236_app067_clone_fix_gate.py",
+   "rc": 1,
+   "wall_s": 3.08,
+   "stdout_tail": "SS  发命令=False 按seg=False\nG7 App 晚到标签补发                      PASS  GUI=True CLI=False 同步路径=True helper=False\nG8 D4 状态栏模型取真值                     PASS  真值优先=False 旧只看combo=False\nG9 combo 同步到 GPU.0                 PASS  enforce调用=False 找GPU.0=True\n--- 真实失败日志反查 ---\n   真实失败日志可被识别（引擎未就绪 0 次 / 已登记音色 1 次）\n结果：9 PASS / 0 FAIL  ⇒ FAIL\n产物： C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app236_app067_clone_fix_evidence.json\n",
+   "stderr_tail": "",
+   "verdict": "FAIL"
+  }
+ ],
+ "n_tests": 6,
+ "n_test_pass": 4,
+ "snapshot_before_n": 1138,
+ "snapshot_after_n": 1138,
+ "tracked_files_changed": [
+  "results/app/_app294_gate_selftest.json",
+  "results/app/_app307_assert_pkg_clean_selftest.json",
+  "results/app/_app315_app080_preset_only_selftest.json",
+  "results/app/_app315_v23_preset_only.diff",
+  "results/app/app236_app067_clone_fix_evidence.json"
+ ],
+ "checks": [
+  {
+   "name": "ast_all_merged_py",
+   "ok": true,
+   "detail": "8/8"
+  },
+  {
+   "name": "test_app007_gate_selftest.py",
+   "ok": true,
+   "detail": "rc=0 wall=0.13"
+  },
+  {
+   "name": "test_app049_gate_selftest.py",
+   "ok": true,
+   "detail": "rc=0 wall=28.51"
+  },
+  {
+   "name": "test__app294_gate_selftest.py",
+   "ok": true,
+   "detail": "rc=0 wall=0.15"
+  },
+  {
+   "name": "test__app307_assert_pkg_clean_selftest.py",
+   "ok": false,
+   "detail": "rc=1 wall=4.04"
+  },
+  {
+   "name": "test__app315_app080_preset_only_selftest.py",
+   "ok": true,
+   "detail": "rc=0 wall=1.23"
+  },
+  {
+   "name": "test_app236_app067_clone_fix_gate.py",
+   "ok": false,
+   "detail": "rc=1 wall=3.08"
+  },
+  {
+   "name": "tracked_files_unchanged_by_tests",
+   "ok": false,
+   "detail": "changed=5 ['results/app/_app294_gate_selftest.json', 'results/app/_app307_assert_pkg_clean_selftest.json', 'results/app/_app315_app080_preset_only_selftest.json', 'results/app/_app315_v23_preset_only.diff', 'results/app/app236_app067_clone_fix_evidence.json']"
+  }
+ ],
+ "n_pass": 5,
+ "n_fail": 3,
+ "verdict": "FAIL"
+}

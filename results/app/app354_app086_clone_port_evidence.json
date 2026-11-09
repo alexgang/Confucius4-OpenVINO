@@ -1,0 +1,324 @@
+{
+ "tool": "app354_app086_clone_port",
+ "ext_ref": {
+  "repo": "C:\\Users\\Trekker-PTL\\live_dub_ext",
+  "branch": "claude-dev",
+  "files": [
+   "ext/clone_voice.py",
+   "ext/tts_cuda_sidecar_ext.py"
+  ],
+  "read_only": true,
+  "branch_switched": false
+ },
+ "app086_mapping": {
+  "a": "无标签不沿用上一句音色：voice_for() 用 wespeaker 最近质心 min_sim=0.25，无音色回落预设 A",
+  "b": "定稿即给临时标签：_worker 中 _nearest(min_sim=0.4) + note_final(spk_conf=0.2)，旁路标签覆盖",
+  "c": "先出临时音色：_register_interim 用旁路 clean ranges + registration_ticket（App 闸门 2.5 s）",
+  "d": "更好参考：_candidate 整句 clean（conf>=0.5 / cover>=0.7 / 1.5-12 s）+ ASR 文本；边车 ICL",
+  "e": "参考冻结：REF_FIRST_S=3.0 首次、REF_UPGRADE_S=8.0 最多升级一次、之后不改",
+  "f": "克隆工作全部在 clone-voices 线程（_q 队列），ASR 定稿只入队"
+ },
+ "criteria": [
+  {
+   "name": "a_no_inherit_previous_voice",
+   "anchors": [
+    "min_sim=0.25",
+    "def voice_for(",
+    "_nearest("
+   ],
+   "pass_on_real": true,
+   "break_token": "min_sim=0.25",
+   "fail_on_broken": true,
+   "verdict": "PASS"
+  },
+  {
+   "name": "b_provisional_label",
+   "anchors": [
+    "min_sim=0.4",
+    "\"provisional\"",
+    "note_final(seg, _p"
+   ],
+   "pass_on_real": true,
+   "break_token": "min_sim=0.4",
+   "fail_on_broken": true,
+   "verdict": "PASS"
+  },
+  {
+   "name": "c_interim_voice",
+   "anchors": [
+    "REF_FIRST_S = 3.0",
+    "def _register_interim",
+    "registration_ticket("
+   ],
+   "pass_on_real": true,
+   "break_token": "REF_FIRST_S = 3.0",
+   "fail_on_broken": true,
+   "verdict": "PASS"
+  },
+  {
+   "name": "d_icl_reference",
+   "anchors": [
+    "cover < 0.7",
+    "1.5 <= dur <= 12.0",
+    "ICL",
+    "def _candidate"
+   ],
+   "pass_on_real": true,
+   "break_token": "cover < 0.7",
+   "fail_on_broken": true,
+   "verdict": "PASS"
+  },
+  {
+   "name": "e_freeze_reference",
+   "anchors": [
+    "REF_UPGRADE_S = 8.0",
+    "_upgraded"
+   ],
+   "pass_on_real": true,
+   "break_token": "REF_UPGRADE_S = 8.0",
+   "fail_on_broken": true,
+   "verdict": "PASS"
+  },
+  {
+   "name": "f_off_asr_thread",
+   "anchors": [
+    "threading.Thread(target=self._worker",
+    "self._q.put(",
+    "def _worker("
+   ],
+   "pass_on_real": true,
+   "break_token": "threading.Thread(target=self._worker",
+   "fail_on_broken": true,
+   "verdict": "PASS"
+  },
+  {
+   "name": "sidecar_icl",
+   "anchors": [
+    "xvec_only=not _ref_text",
+    "_gen_kw['ref_text']",
+    "'0.6'",
+    "'20'"
+   ],
+   "pass_on_real": true,
+   "break_token": "xvec_only=not _ref_text",
+   "fail_on_broken": true,
+   "verdict": "PASS"
+  },
+  {
+   "name": "gui_cuda_option",
+   "anchors": [
+    "if not _in_customer_package():",
+    "需要另装 CUDA 环境",
+    "or 'NPU'"
+   ],
+   "pass_on_real": true,
+   "break_token": "需要另装 CUDA 环境",
+   "fail_on_broken": true,
+   "verdict": "PASS"
+  }
+ ],
+ "n_criteria": 8,
+ "n_criteria_pass": 8,
+ "files_written": [
+  {
+   "path": "live_caption/clone_voice.py",
+   "bytes": 15691,
+   "sha256": "536cfa33f70eb3016ff5d493e995c46294d6e207c59baf08bf776059ca22eed1",
+   "eol": "LF"
+  },
+  {
+   "path": "live_caption/tts_cuda_sidecar.py",
+   "bytes": 26699,
+   "sha256": "abdd1d6c9a624ccd4d84fed9b592a22d575700a486ca1cbd5f8d2cd269a7c3f5",
+   "eol": "LF"
+  },
+  {
+   "path": "live_caption/live_caption_app.py",
+   "bytes": 434041,
+   "sha256": "3c8fa32197eabd9ff1f342a049c00feab6f07a710aae636f59453efc3fe7aa21",
+   "eol": "CRLF"
+  }
+ ],
+ "package_v24_before": {
+  "app\\live_caption_app.py": "8d8d081c29136711bbffaa1367f20298cfa9e43a2b392bddb37c4d3cd6ccb6d6",
+  "app\\speaker_voice.py": "2d901a6990977e73df8177f1458f80ed8138b523af4b1558cf977631286ac915",
+  "app\\tts_cuda_sidecar.py": "677daaee11082184af2f5588d2b95eb004a3c86c7e2b24e446d5c4f6fb9f653b"
+ },
+ "package_v24_after": {
+  "app\\live_caption_app.py": "8d8d081c29136711bbffaa1367f20298cfa9e43a2b392bddb37c4d3cd6ccb6d6",
+  "app\\speaker_voice.py": "2d901a6990977e73df8177f1458f80ed8138b523af4b1558cf977631286ac915",
+  "app\\tts_cuda_sidecar.py": "677daaee11082184af2f5588d2b95eb004a3c86c7e2b24e446d5c4f6fb9f653b"
+ },
+ "package_untouched": true,
+ "checks": [
+  {
+   "name": "ext_imp_anchor_unique",
+   "ok": true,
+   "detail": "1"
+  },
+  {
+   "name": "ext_dir_anchor_unique",
+   "ok": true,
+   "detail": "1"
+  },
+  {
+   "name": "ext_doc_anchor_unique",
+   "ok": true,
+   "detail": "1"
+  },
+  {
+   "name": "clone_voice_ast_parse",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "clone_voice_no_ext_relative_import",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "clone_voice_voices_outside_pkg",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "sidecar_gen_anchor_unique",
+   "ok": true,
+   "detail": "1"
+  },
+  {
+   "name": "sidecar_imports_os",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "sidecar_ast_parse_after",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "gui_note_anchor_unique",
+   "ok": true,
+   "detail": "1"
+  },
+  {
+   "name": "gui_ast_parse_after",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "criterion_a_no_inherit_previous_voice_pass",
+   "ok": true,
+   "detail": "missing=[]"
+  },
+  {
+   "name": "counterproof_a_no_inherit_previous_voice_detects",
+   "ok": true,
+   "detail": "break_token=min_sim=0.25 broken_still_pass=False"
+  },
+  {
+   "name": "criterion_b_provisional_label_pass",
+   "ok": true,
+   "detail": "missing=[]"
+  },
+  {
+   "name": "counterproof_b_provisional_label_detects",
+   "ok": true,
+   "detail": "break_token=min_sim=0.4 broken_still_pass=False"
+  },
+  {
+   "name": "criterion_c_interim_voice_pass",
+   "ok": true,
+   "detail": "missing=[]"
+  },
+  {
+   "name": "counterproof_c_interim_voice_detects",
+   "ok": true,
+   "detail": "break_token=REF_FIRST_S = 3.0 broken_still_pass=False"
+  },
+  {
+   "name": "criterion_d_icl_reference_pass",
+   "ok": true,
+   "detail": "missing=[]"
+  },
+  {
+   "name": "counterproof_d_icl_reference_detects",
+   "ok": true,
+   "detail": "break_token=cover < 0.7 broken_still_pass=False"
+  },
+  {
+   "name": "criterion_e_freeze_reference_pass",
+   "ok": true,
+   "detail": "missing=[]"
+  },
+  {
+   "name": "counterproof_e_freeze_reference_detects",
+   "ok": true,
+   "detail": "break_token=REF_UPGRADE_S = 8.0 broken_still_pass=False"
+  },
+  {
+   "name": "criterion_f_off_asr_thread_pass",
+   "ok": true,
+   "detail": "missing=[]"
+  },
+  {
+   "name": "counterproof_f_off_asr_thread_detects",
+   "ok": true,
+   "detail": "break_token=threading.Thread(target=self._worker broken_still_pass=False"
+  },
+  {
+   "name": "criterion_sidecar_icl_pass",
+   "ok": true,
+   "detail": "missing=[]"
+  },
+  {
+   "name": "counterproof_sidecar_icl_detects",
+   "ok": true,
+   "detail": "break_token=xvec_only=not _ref_text broken_still_pass=False"
+  },
+  {
+   "name": "criterion_gui_cuda_option_pass",
+   "ok": true,
+   "detail": "missing=[]"
+  },
+  {
+   "name": "counterproof_gui_cuda_option_detects",
+   "ok": true,
+   "detail": "break_token=需要另装 CUDA 环境 broken_still_pass=False"
+  },
+  {
+   "name": "package_files_exist_all",
+   "ok": true,
+   "detail": "{\"app\\\\live_caption_app.py\": \"8d8d081c29136711bbffaa1367f20298cfa9e43a2b392bddb37c4d3cd6ccb6d6\", \"app\\\\speaker_voice.py\": \"2d901a6990977e73df8177f1458f80ed8138b523af4b1558cf977631286ac915\", \"app\\\\tts_"
+  },
+  {
+   "name": "all_pre_write_checks_pass",
+   "ok": true,
+   "detail": "28/28"
+  },
+  {
+   "name": "disk_matches_clone_voice.py",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "disk_matches_tts_cuda_sidecar.py",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "disk_matches_live_caption_app.py",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "v24_package_untouched",
+   "ok": true,
+   "detail": "{\"app\\\\live_caption_app.py\": \"8d8d081c29136711bbffaa1367f20298cfa9e43a2b392bddb37c4d3cd6ccb6d6\", \"app\\\\speaker_voice.py\": \"2d901a6990977e73df8177f1458f80ed8138b523af4b1558cf977631286ac915\", \"app\\\\tts_"
+  }
+ ],
+ "n_pass": 33,
+ "n_fail": 0,
+ "verdict": "PASS",
+ "limitation": "本脚本只落盘 dev 树代码资产与静态判据；APP-086② 要求的「带真值多人对话改前/改后 + NPU/CUDA 计时数字 + wav 落盘 shared/app_listen」属设备作业，本轮未执行，须持 MACHINE_LOCK 另起后台会话。"
+}

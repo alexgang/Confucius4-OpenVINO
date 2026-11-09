@@ -1,0 +1,57 @@
+{
+ "tool": "app356_compress_sec142",
+ "before": {
+  "bytes": 30017,
+  "sha256": "4294e06d0bd361efc2e3da6dbc2ae54ff75c1f0fd2c8538308578ac80ef35ab9"
+ },
+ "after": {
+  "bytes": 28387,
+  "sha256": "e5dacaa24d62a554238fb822b9c1e6e455f412f9a9664b3531aefc3ecd276197"
+ },
+ "archive": {
+  "path": "status/archive/STATUS_APP_sec142_20261109.md",
+  "bytes": 2128,
+  "sha256": "912e9b29e5b6ee4eb44849cc4ffaf8094ace2d4a89702fdb75e4dc47c5c2cd84",
+  "verbatim": true
+ },
+ "checks": [
+  {
+   "name": "limit_bytes",
+   "ok": true,
+   "detail": "28387"
+  },
+  {
+   "name": "lf_intact",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "h2_unchanged",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "reverse_restore",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "quick_present",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "archive_verbatim",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "disk_identical",
+   "ok": true,
+   "detail": ""
+  }
+ ],
+ "n_pass": 7,
+ "n_fail": 0,
+ "verdict": "PASS"
+}
