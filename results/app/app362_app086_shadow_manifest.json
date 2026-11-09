@@ -1,0 +1,45 @@
+{
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4",
+ "dev": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption",
+ "base": "C:\\Users\\Trekker-PTL\\_app_shadow",
+ "arms": {
+  "before": {
+   "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\before",
+   "app_py": {
+    "live_caption_app.py": {
+     "sha256": "8d8d081c29136711bbffaa1367f20298cfa9e43a2b392bddb37c4d3cd6ccb6d6",
+     "bytes": 426187
+    },
+    "tts_worker.py": {
+     "sha256": "be840716f089a172d9de686393716ba40ad203196209a2b80221562b4851f2c2",
+     "bytes": 242753
+    }
+   },
+   "n_app_py": 29,
+   "models_junction": true,
+   "python_junction": true,
+   "manifest_present": true
+  },
+  "after": {
+   "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\after",
+   "app_py": {
+    "live_caption_app.py": {
+     "sha256": "92b220c8448f6cb14dba884f0eda615a6744bc44cde71fc45c7a97b914e954dc",
+     "bytes": 439547
+    },
+    "clone_voice.py": {
+     "sha256": "ab9bab0a8a08faf2f1ce39645f753d4b220c4fd875988c693d0385b4c3015c1b",
+     "bytes": 19877
+    },
+    "tts_worker.py": {
+     "sha256": "314290d8f722ca0379961e1f2eeb5bf628f36d7bcc21a31672de5d9fc9c50338",
+     "bytes": 248515
+    }
+   },
+   "n_app_py": 30,
+   "models_junction": true,
+   "python_junction": true,
+   "manifest_present": true
+  }
+ }
+}
