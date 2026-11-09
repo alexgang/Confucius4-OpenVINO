@@ -1938,6 +1938,15 @@ class Session:
         ready = list(segs[:-1])
         if not ready:
             return None
+        # 11-09 user: "different speakers must be cut into different segments" - clone mode splits
+        #   ready segments at speaker changes (outer bounds unchanged => grid/trim logic untouched)
+        if _clone_on:
+            _cvs = self._clone_mgr()
+            if _cvs is not None:
+                try:
+                    ready = _cvs.split_by_speaker(self._buf, ready)
+                except Exception as e:
+                    _log(f"说话人切分失败（按停顿切）: {e}")
         tasks = []
         # ★ 段索引是相对**当前缓冲区**的 ⇒ 换算成会话绝对样本偏移。
         #   旧实现每处理一段就把 self._buf 裁掉前段，却继续用旧的 (s0, s1)
@@ -3011,12 +3020,16 @@ class PipelineSession(Session):
                 _slack = (self.t0 + job.t_start + self.delay_sec) - time.perf_counter()
                 _wait = min(C.CLONE_LABEL_WAIT_SEC, max(0.0, _slack - C.CLONE_LABEL_RESERVE_SEC))
                 _v = _cv.voice_for(job.seg_id, wait=_wait)
-                if not _v and not getattr(self, '_last_clone_voice', None):
-                    _v = _cv.latest_path()   # 还没有任何带标签的句子 => 先用最近登记的说话人
-                # 11-08 测试2：标签未到 ⇒ 沿用上一句音色（10-28 方案 A），不是直接回落预设 A
+                # 11-09 user: "first clone > 10 s" => no registered voice for this sentence yet
+                #   => clone it from its own audio (x-vector) right away
+                _self = None if _v else _cv.self_ref(job.seg_id)
                 if _v:
                     self._last_clone_voice = _v
-                if not _v and _cv.has_voice_label(job.seg_id):
+                if _self:
+                    job.voice = _self
+                elif not _v and not getattr(self, '_last_clone_voice', None) and _cv.latest_path():
+                    job.voice = _cv.latest_path()
+                elif not _v and _cv.has_voice_label(job.seg_id):
                     # 11-08 self-test: known speaker without a voice yet => preset A, never
                     #   another speaker's voice (that made one person sound like the other)
                     job.voice = C.PRESET_VOICE

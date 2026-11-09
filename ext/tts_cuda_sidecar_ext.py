@@ -29,6 +29,7 @@ CUDA-TTS 边车（sidecar）—— **用独立 venv 的 python 跑 PyTorch+CUDA 
 from __future__ import annotations
 
 import json
+import re
 import os
 import queue
 import sys
@@ -506,6 +507,11 @@ def main() -> int:
                     with open(ref + '.txt', encoding='utf-8') as _f:
                         _ref_text = _f.read().strip()
             except Exception:
+                _ref_text = ''
+            # EXT 11-09 (reviewer): very short texts (当然 / 没错) came out as English with ICL
+            #   => same reference in x-vector mode below EXT_ICL_MIN_CHARS characters
+            _n = len(re.sub(r'[\s\W_]+', '', text))
+            if _ref_text and _n < int(os.environ.get('EXT_ICL_MIN_CHARS', '7')):
                 _ref_text = ''
             _gen_kw = dict(text=text, language=_lang(req.get('language')),
                            ref_audio=ref, xvec_only=not _ref_text,

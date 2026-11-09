@@ -18,8 +18,18 @@ import numpy as np
 
 SR = 16000
 KEEP_S = 90.0
-REF_FIRST_S = 3.0      # first registration as soon as >= 3 s of clean labelled sentences
-REF_UPGRADE_S = 8.0    # one upgrade when >= 8 s, then the reference is frozen
+# 11-09 A/B: ICL reference = ONE whole sentence of 4.0-7.0 s. >= 8.7 s or 2 concatenated sentences
+#   (6.9 s) => the model speaks English / pinyin-accented Chinese (CER 0.34-0.87);
+#   < 4 s => similarity only at x-vector level.
+REF_FIRST_S = 4.0      # shortest sentence accepted as ICL reference
+REF_MAX_S = 7.0        # longest sentence accepted as ICL reference
+REF_UPGRADE_GAIN = 1.0 # one upgrade to a sentence >= cur + 1.0 s, then frozen
+SELF_REF_MIN_S = 1.5   # sentence-own-audio x-vector clone (before the speaker has a voice)
+# 11-09 speaker-change split (calibrated on dialog3 tight/normal: 24/32 change segments cut, 0/66 false)
+SPLIT_MIN_SEG_S = 3.2
+SPLIT_WIN_S = (1.6, 2.0, 2.5)
+SPLIT_MIN_SIM = 0.30
+SPLIT_MIN_MARGIN = 0.10
 
 
 def _seg_int(seg_id) -> int:
@@ -103,6 +113,8 @@ class CloneVoices:
                             self.tab.note_final(seg, _p, [], spk_conf=0.2)
                             self._reasons["provisional"] = self._reasons.get("provisional", 0) + 1
                 self._pump()
+                if self.__dict__.get("_split_enc") is None:
+                    self._split_encoder()          # compile here, never on the receive thread
                 # still unlabelled 6 s after ASR (bypass pending / refused) => nearest speaker
                 now = _t.monotonic()
                 for sg, ts in list(self._unlabelled.items()):
@@ -148,7 +160,7 @@ class CloneVoices:
             dur = span[1] - span[0]
             cover = sum(max(0.0, float(b) - float(a))
                         for a, b in (r.get("clean_ranges") or [])) / max(dur, 1e-6)
-            if float(r.get("spk_conf") or 0) < 0.5 or cover < 0.7 or not (1.5 <= dur <= 12.0):
+            if float(r.get("spk_conf") or 0) < 0.5 or cover < 0.7 or not (1.5 <= dur <= REF_MAX_S):
                 return
             self._cands.setdefault(r["spk"], []).append((seg, dur, item[0], item[1].strip()))
         except Exception as e:
@@ -160,18 +172,18 @@ class CloneVoices:
         (each new reference changed the timbre - user heard the same speaker drift)."""
         for spk, cands in list(self._cands.items()):
             cur = self._ref_dur.get(spk, 0.0)      # ICL reference seconds (interim = 0)
-            if cur > 0 and (cur >= REF_UPGRADE_S or self._upgraded.get(spk)):
+            if cur > 0 and (self._upgraded.get(spk) or cur + REF_UPGRADE_GAIN > REF_MAX_S):
                 continue
-            total = sum(c[1] for c in cands)
-            need = REF_FIRST_S if cur <= 0 else REF_UPGRADE_S
-            if total < need:
+            # most recent sentences first, skip any that would overflow REF_MAX_S (incl. 0.2 s gaps)
+            # one sentence only (concatenated references broke the Chinese pronunciation)
+            ok = [c for c in cands if REF_FIRST_S <= c[1] <= REF_MAX_S]
+            if not ok:
                 continue
-            pick, acc = [], 0.0
-            for c in reversed(cands):            # most recent sentences first, up to 12 s
-                if acc + c[1] > 12.0 and pick:
-                    break
-                pick.append(c); acc += c[1]
-            pick.reverse()
+            best = max(ok, key=lambda c: (c[1], c[0]))
+            need = REF_FIRST_S if cur <= 0 else cur + REF_UPGRADE_GAIN
+            if best[1] < need:
+                continue
+            pick, acc = [best], best[1]
             gap = np.zeros(int(0.2 * SR), dtype=np.float32)
             pcm = np.concatenate([x for c in pick for x in (c[2], gap)])[:-gap.size]
             text = " ".join(c[3] for c in pick)
@@ -246,10 +258,6 @@ class CloneVoices:
             self._register_sentences()
         except Exception as e:
             self._log("[spk] 登记失败（沿用已有音色）：%s" % e)
-        try:
-            self._register_interim()
-        except Exception as e:
-            self._log("[spk] 临时登记失败：%s" % e)
 
     def _register_interim(self) -> None:
         """Interim x-vector voice from the bypass clean ranges (App gate: >= 2.5 s continuous,
@@ -298,6 +306,157 @@ class CloneVoices:
                 self._reasons["tts_nearest"] = self._reasons.get("tts_nearest", 0) + 1
                 return self.paths[spk]
         return None
+
+    def self_ref(self, seg_id) -> Optional[str]:
+        """11-09: x-vector reference = THIS sentence's own audio (no transcript => x-vector mode).
+        Used while the sentence's speaker has no ICL voice yet, so the clone starts with the first
+        dubbed sentence instead of preset A / another speaker's voice."""
+        seg = _seg_int(seg_id)
+        span = self._span.get(seg)
+        with self._lock:
+            buf, t0 = self._buf, self._buf_t0
+        pcm = None
+        if span:
+            i0 = int((span[0] - t0) * SR); i1 = int((span[1] - t0) * SR)
+            if 0 <= i0 < i1 <= buf.size:
+                pcm = buf[i0:i1]
+        if pcm is None:
+            item = self._seg_pcm.get(seg)
+            pcm = item[0] if item else None
+        if pcm is None or pcm.size < int(SELF_REF_MIN_S * SR):
+            return None
+        if pcm.size > int(8.0 * SR):
+            m = (pcm.size - int(8.0 * SR)) // 2
+            pcm = pcm[m:m + int(8.0 * SR)]
+        path = os.path.join(self.dir, "self_%d.wav" % seg)
+        with wave.open(path, "wb") as w:
+            w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
+            w.writeframes((np.clip(pcm, -1, 1) * 32767).astype("<i2").tobytes())
+        q = self.__dict__.setdefault("_self_files", [])
+        q.append(path)
+        while len(q) > 30:
+            try:
+                os.remove(q.pop(0))
+            except OSError:
+                pass
+        self._reasons["self_ref"] = self._reasons.get("self_ref", 0) + 1
+        return path
+
+    # ── 11-09: speaker-change split (receive thread, clone mode) ─────────────────
+    def _split_encoder(self):
+        """Own WeSpeaker encoder instance (the bypass one sits behind the tracker lock)."""
+        enc = self.__dict__.get("_split_enc")
+        if enc is None and not self.__dict__.get("_split_enc_failed"):
+            tr = getattr(self.br, "_tracker", None)
+            src = getattr(tr, "_enc", None) if tr is not None else None
+            ir = getattr(tr, "wes_ir", None) if tr is not None else None
+            if src is None or not ir:
+                return None
+            try:
+                enc = type(src)(ir, getattr(src, "device", "GPU.0"), range_lo=60)
+                z = np.zeros(int(max(SPLIT_WIN_S) * SR), np.float32) + 1e-3
+                for w in SPLIT_WIN_S:                 # one compile per window length
+                    enc.embed(z[:int(w * SR)], SR)
+                self._split_enc = enc
+            except Exception as e:
+                self._split_enc_failed = True
+                self._log("[spk] 说话人切分不可用：%s" % e)
+                return None
+        return enc
+
+    def _centroids(self):
+        tr = getattr(self.br, "_tracker", None)
+        clu = getattr(tr, "_clu", None) if tr is not None else None
+        if clu is not None and tr._lock.acquire(timeout=0.05):
+            try:
+                cs = [np.asarray(c, np.float64).reshape(-1) for c in clu.centroids]
+                self._cents = [c / (np.linalg.norm(c) + 1e-9) for c in cs]
+            finally:
+                tr._lock.release()
+        return self.__dict__.get("_cents") or []
+
+    def _ident(self, enc, cents, x):
+        v = np.asarray(enc.embed(x, SR), np.float64).reshape(-1)
+        v = v / (np.linalg.norm(v) + 1e-9)
+        sims = sorted(((float(v @ c), k) for k, c in enumerate(cents)), reverse=True)
+        if sims[0][0] >= SPLIT_MIN_SIM and sims[0][0] - sims[1][0] >= SPLIT_MIN_MARGIN:
+            return sims[0][1], sims[0][0] - sims[1][0]
+        return None, 0.0
+
+    def _best_cut(self, enc, cents, x):
+        L = x.size / float(SR)
+        lo, hi = SPLIT_WIN_S[0], L - SPLIT_WIN_S[0]
+        if hi < lo:
+            return None
+
+        def score(t):
+            m = int(t * SR)
+            wl = max(w for w in SPLIT_WIN_S if w <= t + 1e-6)
+            wr = max(w for w in SPLIT_WIN_S if w <= L - t + 1e-6)
+            kl, ml = self._ident(enc, cents, x[m - int(wl * SR):m])
+            kr, mr = self._ident(enc, cents, x[m:m + int(wr * SR)])
+            return min(ml, mr) if (kl is not None and kr is not None and kl != kr) else None
+
+        best = None
+        for t in np.arange(lo, hi + 1e-6, 0.5):            # coarse 0.5 s, then refine +-0.25 s
+            sc = score(t)
+            if sc is not None and (best is None or sc > best[0]):
+                best = (sc, t)
+        if best is None:
+            return None
+        for t in (best[1] - 0.25, best[1] + 0.25):
+            if lo <= t <= hi:
+                sc = score(t)
+                if sc is not None and sc > best[0]:
+                    best = (sc, t)
+        # snap to the quietest 20 ms frame within +-0.25 s
+        c = int(best[1] * SR); fr = int(0.02 * SR)
+        a0 = max(int(lo * SR), c - int(0.25 * SR)); a1 = min(int(hi * SR), c + int(0.25 * SR))
+        if a1 - a0 > fr:
+            e = [float(np.mean(x[i:i + fr] ** 2)) for i in range(a0, a1 - fr, fr // 2)]
+            c = a0 + int(np.argmin(e)) * (fr // 2) + fr // 2
+        return c
+
+    def split_by_speaker(self, buf, segs):
+        """Split [(s0, s1), ...] (sample offsets into buf) at speaker changes; outer bounds unchanged."""
+        if not segs or not any((b - a) >= int(SPLIT_MIN_SEG_S * SR) for a, b in segs):
+            return segs
+        cents = self._centroids()
+        if len(cents) < 2:
+            return segs
+        import time as _t
+        _t0 = _t.perf_counter()
+        enc = self.__dict__.get("_split_enc")   # built on the clone thread
+        if enc is None:
+            return segs
+        out = []
+        for a, b in segs:
+            parts = [(a, b)]
+            for _round in range(2):
+                nxt = []
+                for p0, p1 in parts:
+                    c = None
+                    if p1 - p0 >= int(SPLIT_MIN_SEG_S * SR):
+                        try:
+                            c = self._best_cut(enc, cents, np.asarray(buf[p0:p1], np.float32))
+                        except Exception as e:
+                            self._log("[spk] 说话人切分失败：%s" % e)
+                    if c:
+                        nxt += [(p0, p0 + c), (p0 + c, p1)]
+                        self._reasons["spk_split"] = self._reasons.get("spk_split", 0) + 1
+                    else:
+                        nxt.append((p0, p1))
+                if len(nxt) == len(parts):
+                    break
+                parts = nxt
+            out += parts
+        _dt = _t.perf_counter() - _t0
+        st = self.__dict__.setdefault("_split_stats", [0, 0.0, 0.0])
+        st[0] += 1; st[1] += _dt; st[2] = max(st[2], _dt)
+        if _dt > 0.5 or st[0] % 20 == 0:
+            self._log("[spk] 说话人切分：本次 %.2f s（%d 段 -> %d 段）；累计 %d 次 平均 %.3f s 最大 %.2f s"
+                      % (_dt, len(segs), len(out), st[0], st[1] / st[0], st[2]))
+        return out
 
     def latest_path(self) -> Optional[str]:
         """Most recently registered reference (used before any sentence has a label)."""
