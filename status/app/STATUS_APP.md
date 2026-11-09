@@ -1,13 +1,14 @@
 # STATUS_APP
 
 last_ack: APP-092
-更新时间: 2026-11-10 06:29:03
-当前任务: **APP-089/090/091/092 移植完成＋NPU 验收已跑**（§162）⇒ **停在等 reviewer 复核**：复核通过后才打 v2.5（EXT @23aae0b / v0.3.5）
-阻塞 / 待用户决定: **reviewer 复核 §162**（① 音色归属匹配率 35 % 是否达标 ② CER 回转写（reviewer 本机 MiniMax）③ 过载臂 `--speed 2.0` 的数字）｜**未打 v2.5、未通知用户**（reviewer 明文）
+更新时间: 2026-11-10 07:40:54
+当前任务: **MiniMVP rc4 已打包**（zip 8.02 GB／SHA256 `f0ebcc72…`，10 480 条逐条 CRC 全对；rc3 两个 zip 逐字未动）＋ **从 zip 解压的干净包** `--check` 显示「Intel NPU · INT8 模型齐全」、`EXECUTION_DEVICES` encoder=NPU／decoder=NPU ⇒ **本条已完成**
+阻塞 / 待用户决定: **reviewer 复核 §162**（音色归属匹配率 35 % 是否达标／CER 回转写／过载臂 `--speed 2.0`）｜**未打 v2.5、未通知用户**（APP-087⑦/088④/092④）
 已压缩: 压缩索引（旧正文逐字归档）⇒ `status/archive/STATUS_APP_compress_index_upto_20261107.md`；限额 ≤40000 B / ≤300 行（APP-052④）｜**§159 压缩**：§159 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec159_20261109.md`（块 SHA256 `da8241c04798cbf70798b0588f54fd7da8a35e5c4530cfff1eb653f3df9d32db`）｜**§160 压缩**：头部「已压缩」行原文（2012 B）已归档进同一索引 ⇒ 头部只留精简行｜**§161 压缩**：§161 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec161_20261110.md`（块 SHA256 `0636d5145b65f2c142d886f62e529d9cd2e1a1d966035fbee75bed842574a557`）
 
 
 ## 最近更新
+> 🔴 2026-11-10 07:41 ｜ **MiniMVP rc4 zip 已出**：`shared/minimvp/Confucius4_LiveCaption_MiniMVP_v1.0-rc4_perftest.zip`（8 609 378 581 B／SHA256 `f0ebcc72…`）；**10 480 条逐条 CRC32 全对**、缺/多条目 0/0；**rc3 两个 zip SHA 逐字未变**；**从 zip 解压的干净包**（10 480 条／68.29 s）用**包内 python** 跑 `--check` 显示「**Intel NPU · INT8 模型齐全**」、`EXECUTION_DEVICES` encoder=NPU／decoder=NPU；🔴 打包前修掉 README 沿用 rc3 数字（6.7 GB/10 474 ⇒ 实测 10.0 GB/10 480）这一 **APP-073(c) 同类**缺陷。
 > 🔴 2026-11-10 ｜ **MiniMVP rc4 已建**：补 `encoder-fp16`／`decoder-npu-int8`／`decoder-npu-int4`（+3.28 GB）⇒ `--check` 显示「**Intel NPU · INT8 模型齐全**」；设备级：EXEC_DEVICES encoder=NPU／decoder=NPU、WER 15.53 %（iGPU 14.55 %，两档直接差 2.56 %）、RTF 0.803（iGPU 0.696）、峰值内存 5 212.6 MB；**包内 0 个预编译 blob** ⇒ 目标机现编；🔴 rc3 曾被硬链接写穿，已用已交付 zip 权威字节**逐字节复原**并复核 PASS。
 > 🔴 2026-11-09 12:46:57｜**APP-086② 接线已完成**：口径裁定＝**复用 App 既有的那一份旁路与音色表**（不双旁路）＋策略层只做策略（不登记）＋worker 侧「沿用上一句音色」收窄为「非按句绑定模式」⇒ **无标签句回落预设 A，绝不沿用上一句的克隆音色**；判据 **6/6 PASS ＋ 反证 6/6 识破**（`app360…json`）；回归 **4 PASS/2 FAIL（与 §159 同基线，无新增）**；**未打包／未建 v2.5／未通知用户** ⇒ 停在 APP-086⑤ 等 reviewer 复核。
 > 🔴 §139 / §140 两条「最近更新」原文（2 行）已**整块逐字归档** ⇒ `status/archive/STATUS_APP_recent_updates_upto_20261107.md`（块 SHA256 `853a0d85678f895f4b88ee294faaaeabec61ca31c2a3a247958a8f8c442f1c8d`）；速查：§139 APP-073/074 冒烟 7/0＋rev2 最终 SHA `90ae8b9d…`；§140 APP-076/077/078 39/0・26/0＋27/0・28/0＋14/0，APP-075 需等复核。
@@ -220,3 +221,47 @@ last_ack: APP-092
 
 ### ⑤ 产物
 * `results/app/app385_app089_accept_runs_after.json`（after 四跑清单）／`app388_app089_scores_after_all.json`（打分）／`app389_app089_voice_margin_after_dialog3.json`（音色归属）／`app375_app089_fixes_static_check.json`（静态闸门 **49 PASS / 0 FAIL**）／`app378_app089_session_reset_check.json`（**5 PASS / 0 FAIL**）／`app391_app089_before_and_overload.json`（before 臂＋过载臂）。
+
+## §163 MiniMVP rc4 打 zip 完成（用户 2026-11-10 指示「打包 rc4 吧」）
+
+### ① 交付物
+* **zip**：`C:\Users\Trekker-PTL\shared\minimvp\Confucius4_LiveCaption_MiniMVP_v1.0-rc4_perftest.zip`
+  **8 609 378 581 B（8.018 GB）**｜SHA256 `f0ebcc7272ea26776f6b7bd3cd83ebdc94e5a8bfaa8e5aaeb6f5b16d55ccc4ba`｜打包 192.8 s（7-Zip `-mx=5 -mmt=on`，BELOW_NORMAL 优先级）。
+* **rc3 的两个 zip 一字节未动**（SHA 前后逐字相同：`dda6f229…`／`90ae8b9d…`）⇒ **新文件名，不覆盖**（APP-055）。
+* 清单口径 **`pkg_exclude`（单一数据源）** ⇒ 与 rc3 zip **同口径**
+  （实测 rc3：`pkg_exclude` 10 474 == rc3 zip 条目 10 474 ✔）。
+
+### ② 打包后逐条复核（`app302`）
+| 项 | 值 |
+|---|---|
+| 源文件数 / zip 条目数 | 10 480 / **10 480**（`n_entries_match=true`） |
+| 缺条目 / 多条目 | **0 / 0** |
+| **逐条 CRC32 不符** | **0 / 10 480**（每个条目都比对了源文件 CRC） |
+| 清单里 U+FFFD / 绝对路径 / `.bak` | 0 / 0 / 0 |
+| NPU IR 齐全 / iGPU 保留 | 6/6 在 / 2/2 在 |
+
+### ③ 🔴 打包前修掉的一个真实缺陷（APP-073(c) 同类）
+rc4 的 README **沿用了 rc3 的**「解压后 约 6.7 GB（10 474 个文件）」⇒ 与实际 **9.967 GB / 10 480 个文件**对不上
+⇒ **打进 zip 的说明书本身就是错的**。
+⇒ `_app301` 按**实测值**定点改写（7 处，唯一命中断言，写前断链）：
+① 磁盘 **约 10.0 GB / 10 480 个文件**（zip 条目口径）② 缓存加 `npu_cache ≈ 0.7 GB` ⇒ **合计留 20 GB 以上**
+③ 内存段由「尚未实测峰值内存」改为**实测 5 212.6 MB**（含 OV 编译期）④ CPU 要求**补 Meteor Lake / 100 系列**
+⑤ NPU 要求**补「ASR 也可走 NPU」**⑥ 下一版号 rc4→**rc5** ⑦ 本机基准段补实测峰值内存。
+⇒ `_app300` 审计确认：README 数字 **== 清单实测**（`readme_matches_actual`）。
+
+### ④ 从 zip 解压出来的干净包验收（`app303`，用户要求 3 的原文）
+* 解压到**全新目录** `C:\minimvp_rc4_ziptest\`（先删后建 ⇒ 真干净）→ **68.29 s / 10 480 条**。
+* **用包内自带的 python** 跑 `--check`（rc=0）⇒
+  `[ OK ] **Intel NPU · INT8  模型齐全**` ／ `[ OK ] Intel NPU · INT4（实验）  模型齐全`。
+* **执行设备直证**（`npu_delivery_backend` + `EXECUTION_DEVICES`，**跑在解出来的包里**）：
+  `encoder = NPU` ／ `decoder = NPU` ⇒ `verdict=EXEC_ON_NPU_OK`
+  （enc 编译 28.2 s／dec 9.7 s；OV 2026.4.1 随包自带；缓存写**独立临时目录** ⇒ 未复用本机 Panther Lake 产物冒充证据）。
+
+### ⑤ 与 §161 的关系
+§161 建的是**目录**；本条补的是**zip** ⇒ §161 的「① 交付物」现补齐 zip 一项。
+§161 的设备级验收数字（WER 15.53 %／RTF 0.803／峰值 5 212.6 MB／EXEC 双 NPU）**不变**，本条只增加「zip 可用性」这一层。
+
+### ⑥ 未做 / 待确认
+* **v2.5（APP-087/088/092）仍未打** ⇒ 仍停在 §162 的「等 reviewer 复核」节点（`last_ack` 保持 **APP-092**）。
+* **未通知用户**（reviewer 明文；本条是**用户直接指示**打 rc4 zip，不是 APP 流程里的打包）。
+* **纠偏 APP-089…092 的验收数字仍在等 reviewer 复核**（见 §162）。
