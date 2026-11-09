@@ -1,0 +1,57 @@
+{
+ "n_pass": 5,
+ "n_fail": 0,
+ "good": {
+  "n_txt_before": 1,
+  "n_files_before": 3,
+  "n_txt_after": 0,
+  "n_files_after": 0,
+  "cache": {
+   "span": 0,
+   "nearest": 0,
+   "emb": 0,
+   "pushed": 0,
+   "split_res": 0
+  }
+ },
+ "neg": {
+  "n_txt_before": 1,
+  "n_files_before": 3,
+  "n_txt_after": 1,
+  "n_files_after": 3,
+  "cache": {
+   "span": 0,
+   "nearest": 0,
+   "emb": 0,
+   "pushed": 0,
+   "split_res": 0
+  }
+ },
+ "checks": [
+  {
+   "name": "前置: 第 1 次会话留下残留（含 .txt）",
+   "ok": true,
+   "detail": "before={'n_txt_before': 1, 'n_files_before': 3, 'n_txt_after': 0, 'n_files_after': 0, 'cache': {'span': 0, 'nearest': 0, 'emb': 0, 'pushed': 0, 'split_res': 0}}"
+  },
+  {
+   "name": "APP-089 §4: 第 2 次会话开始时克隆目录为空（总文件 0）",
+   "ok": true,
+   "detail": "n_files_after=0"
+  },
+  {
+   "name": "APP-089 §4: 克隆目录 .txt 数 = 0",
+   "ok": true,
+   "detail": "n_txt_after=0"
+  },
+  {
+   "name": "策略层缓存已清（span/nearest/emb/pushed/split_res 全 0）",
+   "ok": true,
+   "detail": "cache={'span': 0, 'nearest': 0, 'emb': 0, 'pushed': 0, 'split_res': 0}"
+  },
+  {
+   "name": "反证: 去掉清目录 ⇒ 闸门②真的 FAIL",
+   "ok": true,
+   "detail": "good=0 bad=3"
+  }
+ ]
+}

@@ -1,10 +1,10 @@
 # STATUS_APP
 
-last_ack: APP-088
-更新时间: 2026-11-10 00:52:12
-当前任务: **MiniMVP rc4 已建**（补 3 个 NPU ASR IR，+3.28 GB）＋ `--check` 显示「Intel NPU · INT8 模型齐全」＋ 设备级验收完成（EXEC_DEVICES 双 NPU；WER 15.53 % vs iGPU 14.55 %；RTF 0.803 vs 0.696；峰值内存 5 212.6 MB）⇒ **等用户确认是否打 rc4 zip**
-阻塞 / 待用户决定: **用户确认**：① 是否打 rc4 zip（未打，遵循「不主动打包」）② Meteor Lake 目标机：decoder **必须** NPUW（无回落路径，`app290` 实测）⇒ 若目标机 NPUW 不可用需改用 iGPU 档 ③ **纠偏 APP-089…092 仍未执行**（本轮用户改任务为 MiniMVP rc4）
-已压缩: 压缩索引（旧正文逐字归档）⇒ `status/archive/STATUS_APP_compress_index_upto_20261107.md`；限额 ≤40000 B / ≤300 行（APP-052④）｜**§159 压缩**：§159 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec159_20261109.md`（块 SHA256 `da8241c04798cbf70798b0588f54fd7da8a35e5c4530cfff1eb653f3df9d32db`）｜**§160 压缩**：头部「已压缩」行原文（2012 B）已归档进同一索引 ⇒ 头部只留精简行
+last_ack: APP-092
+更新时间: 2026-11-10 06:29:03
+当前任务: **APP-089/090/091/092 移植完成＋NPU 验收已跑**（§162）⇒ **停在等 reviewer 复核**：复核通过后才打 v2.5（EXT @23aae0b / v0.3.5）
+阻塞 / 待用户决定: **reviewer 复核 §162**（① 音色归属匹配率 35 % 是否达标 ② CER 回转写（reviewer 本机 MiniMax）③ 过载臂 `--speed 2.0` 的数字）｜**未打 v2.5、未通知用户**（reviewer 明文）
+已压缩: 压缩索引（旧正文逐字归档）⇒ `status/archive/STATUS_APP_compress_index_upto_20261107.md`；限额 ≤40000 B / ≤300 行（APP-052④）｜**§159 压缩**：§159 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec159_20261109.md`（块 SHA256 `da8241c04798cbf70798b0588f54fd7da8a35e5c4530cfff1eb653f3df9d32db`）｜**§160 压缩**：头部「已压缩」行原文（2012 B）已归档进同一索引 ⇒ 头部只留精简行｜**§161 压缩**：§161 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec161_20261110.md`（块 SHA256 `0636d5145b65f2c142d886f62e529d9cd2e1a1d966035fbee75bed842574a557`）
 
 
 ## 最近更新
@@ -176,64 +176,47 @@ last_ack: APP-088
 ## §160 续做 APP-086② 克隆接线＋验收（last_ack=APP-088）｜**接线已完成**，验收数字见下表 ⇒ 停在 APP-086⑤ 等 reviewer 复核（2026-11-09 12:46:57）
 > 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec160_20261110.md`（10985 B／块 SHA256 `82c35e22353d63f7639b4f469b154c19efd9de3e0763e6ba36040c01f4cb6ebf`）。
 
-## §161 MiniMVP rc4：补打包全 NPU ASR 模型（用户直驱，2026-11-10）
+## §162 执行 APP-089/090/091/092（last_ack=APP-092）｜移植完成＋NPU 验收已跑 ⇒ **停在等 reviewer 复核**（2026-11-10 06:29:03）
 
-**本条不是 reviewer 纠偏**（`last_ack` 仍是 **APP-088**）⇒ 纠偏链 **APP-089…092 未动**（那 4 条是上一轮读到的，见下「⑥ 遗留」）。
+> 🔴 **顺序遵守 APP-089/090/091/092 的「合并一次跑 → 停下等复核」**：本节**只交移植＋验收数字**；**未打 v2.5、未通知用户**。
 
-### ① 交付物
-* **新目录** `C:\Users\Trekker-PTL\Confucius4_LiveCaption_MiniMVP_v1.0-rc4`（**rc3 一字未改**，见「④ 事故与修复」）。
-* 补 3 个 NPU IR（源 = `Confucius4_LiveCaption_v2.4/models/`，与 v2.2 **逐字节同 SHA**）：
+### ① 移植落地（开发树 `live_caption/`，9 文件）
+| 纠偏 | 落地 |
+|---|---|
+| **APP-089** ① 去掉 ICL | `tts_cuda_sidecar.py` **不再读 `<ref>.txt`** ⇒ 固定 `xvec_only=True`；`clone_voice.py` 不再写 `.txt` |
+| **APP-089** ② 会话开始清空 | 会话开始清**克隆目录**＋`_spk_bind`/`_spk_voices`/策略层缓存（`app378` **5 PASS / 0 FAIL**，含反证组） |
+| **APP-089** ③ 三项行为 | `self_ref`（本句音频 ≥1.5 s）＋`xv_reference_ticket`（≥3 s 定稿／≥8 s 升级／最长 10 s）＋`split_by_speaker`（**克隆线程**上编译，**不在接收/ASR 线程**） |
+| **APP-090** ②a 不等标签 | `n_label_wait` 计数器（默认 `tts_label_wait_sec=0` ⇒ **恒 0**）⇒ jsonl＋stats 均落盘 |
+| **APP-090** ②c 中文语速 | 中文目标 **1.10×–1.50×**（`tts_speed_min_zh`/`tts_speed_max_zh`），其他语言仍 1.0–1.30× |
+| **APP-091** ③ 字幕条 | **3 行**：① 定稿译文（主字号）② **定稿原文（小字 0.75×）**③ 实时识别（行为不变） |
+| **APP-092** ① ASR/MT 永不跳段 | **无** ASR/MT 级 catch-up 代码（`grep` 0 命中） |
+| **APP-092** ② TTS 级跳过过期句 | `tts_late_drop_sec`（默认 **6.0 s**，键名可配）⇒ 逐句记「滞后秒数＋阈值」进 jsonl |
 
-| 包内目录 | 逻辑名（`_MODEL_ALIASES`） | 文件 | 字节 |
-|---|---|---|---|
-| `models/encoder-fp16` | `ov-encoder-segment-reviewer` | 2 | 635 969 904 |
-| `models/decoder-npu-int8` | `qwen3-lm-int8sym-cleanie-ov` | 2 | 1 724 957 980 |
-| `models/decoder-npu-int4` | `c089_int4/R4` | 2 | 1 165 047 365 |
+### ② 🔴 本轮修掉的一个**真缺陷**（上一会话 02:02 的改法）
+* 上一会话把「目标开播墙钟」从 `t0+已消费源秒` 改成 `t0+已消费源秒/实测速率`；**实测速率极不稳定**（隐含速率 p50 **1.49**、范围 **0.28–13.6**，真值恒为 1.0）⇒ **普通跑（speed=1.0）误跳 19 句**（修正前 3 句）⇒ 直接违反 APP-092 §3(d)。
+* 改法：`audio_source` 新增 **构造期已知**的 `pace` 属性（`FileSource.speed`／实时源 1.0）⇒ **无估计噪声 ⇒ 确定性**；`speed=0`（全速跑批）⇒ `pace=0` ⇒ 退回旧口径。
+* **修后实测**：dialog3 误跳 **19 → 3**（与修正前基线一致）；`--speed 0.35` 臂 **83/83 全跳过 → 0 句**（口径修复的直接证据）。
 
-* **iGPU 版模型保留**：`encoder-int8` / `decoder-gpu-int8` 均在（`app291` 证据 `igpu_models_kept`）。
-* **体积**：rc3 **6.68 GB** → rc4 **9.97 GB**（**+3.28 GB**／`delta_bytes=3525975249`）；文件数 10 474 → **10 510**。
+### ③ NPU 验收数字（after 臂，一次持锁会话连跑）
+素材 `C:\Users\Trekker-PTL\_reviewer_tmp\spktest\`；ASR+MT→GPU.0，TTS→NPU；影子包 `_app_shadow/after/`。
+| 素材 | TTS 行 | 有配音 | 只有字幕 | TTS 跳过 | 等标签 | 倍率 min/p50 | 首包 P50/P95 |
+|---|---|---|---|---|---|---|---|
+| dialog3 | 81 | 78 | 3 | 3 | 0 | 1.1 / 1.1 | 0.5339 / 0.682 |
+| dialog3_tight | 78 | 57 | 21 | 21 | 0 | 1.1 / 1.1 | 0.5303 / 0.6621 |
+| dialog3_dave | 84 | 54 | 30 | 30 | 0 | 1.1 / 1.1 | 0.5454 / 0.6977 |
 
-### ② `--check` 验收（干净目录 `C:\minimvp_rc4_clean\`，用**包内 python**）
-`[ OK ] **Intel NPU · INT8  模型齐全**` ／ `[ OK ] Intel NPU · INT4（实验）  模型齐全`
-⇒ **用户要求 2 达成**（证据 `results/app/app298_rc4_check_output.txt`）。
+* **只有字幕＝TTS 跳过**（APP-092 §2：内容仍完整留在字幕/转写）⇒ **ASR/MT 段数一条不少**。
+* **等标签 = 0**（APP-090 §2a「必须是 0」）✅；**倍率 min = 1.10**（APP-091 §2「min 必须 ≥1.10」）✅。
+* **音色归属**（`app389`，dialog3）：输出 x-vector 与**本句自己原声**比余弦，严格大于另两人 ⇒ 判「音色最接近本人」：**18/51 = 35.3 %**；**对照（源 vs 源）51/51 = 100.0 %** ⇒ 判据非恒真（源永远 100%）。
+  ⚠️ **匹配率 35 % 明显低于对照** ⇒ 克隆音色**离本人原声仍有距离**，**须 reviewer 复核是否达标**（未自行改判据）。
+* **换人切段**：dialog3 切 **1** 段（`spk_seg.jsonl` 的 `n_split`）；dialog3_tight 切 **0** 段。
+* **克隆目录 `.txt` 数 = 0**（APP-089 §4 结构检查）✅。
 
-### ③ 设备级验收（5 min 英文 SPE `shared/SPE_0000_0500.wav` 300.0 s）
-* **实际执行设备（OpenVINO `EXECUTION_DEVICES` 直证，`app296`）**：
-  `encoder = NPU` ／ `decoder = NPU` ⇒ **两者的实际执行设备都是 NPU**（`verdict=EXEC_ON_NPU_OK`）。
-* **WER / RTF / 延迟 / 内存**（参考 = 同一段音频的离线转写 921 词，**非人工校对稿** ⇒ 两档可比）：
+### ④ ⛔ 未完成 / 需 reviewer 裁定
+* **CER 回转写**：wav＋译文已落盘（`mix.wav` / `subtitles.txt`），**由 reviewer 在本机用 MiniMax 回转写**（本轮**未调 MiniMax**）。
+* **过载臂方向修正**：reviewer 原文「`--speed` **调高**」⇒ **调高才是过载**（`speed=S` ⇒ 机器须以 S× 实时产出语音；本机 TTS 有效 RTF≈0.90 ⇒ **S>1.22 才积压**）⇒ 上一轮用 `--speed 0.35` 当过载**方向反了**（它之所以 83/83 全跳，是**旧口径**把 0.35× 消费当 1.0×）⇒ 本轮改用 **`--speed 2.0`** ＋ 0.35 轻负载对照。
+* **v2.5 打包**：**未打**（按 APP-089 §5/APP-090 §4/APP-092 §4，须复核通过后才打；EXT 版本以 **APP-092 的 @23aae0b（v0.3.5）** 为准）。
+* **未通知用户**（reviewer 明文）。
 
-| 档 | RTF | 出字延迟中位 | 最大积压 | 峰值内存 | WER vs 参考 | NPU-vs-iGPU |
-|---|---|---|---|---|---|---|
-| ASR=NPU（TTS off） | **0.803** | 540 ms | 1.1 s | 5 212.6 MB | **15.5266 %**（143 编辑/819 词） | **2.5610 %**（21 编辑） |
-| ASR=GPU.0（TTS off） | **0.696** | 376 ms | 1.2 s | 4 819.5 MB | **14.5494 %**（134 编辑/820 词） | — |
-| ASR=NPU + TTS=NPU | 1.264 | 55 362 ms | 84.4 s | 5 213.1 MB | — | — |
-
-⇒ **NPU 档质量与 iGPU 档基本一致**（两档直接只差 2.56 %）；**NPU 比 iGPU 慢 ~15 %**（RTF 0.803 vs 0.696）、峰值内存多 ~393 MB。
-🔴 **第三行不是 ASR 慢**：ASR 与 TTS **抢同一个 NPU** ⇒ 积压 84.4 s ⇒ **全 NPU 家家桶当前不可用于实时字幕**（TTS 需走 iGPU）。
-* **素材可自证**：`SPE_0000_0500.wav` 与 `test_audio/260902_SPE_audio.wav` 前 300 s **逐样本相关系数 1.000000**。
-
-### ④ 🔴 事故与修复（必须记录）
-* **事故**：`_app291` 用 `copytree(copy_function=os.link)` 把 rc3 复制成 rc4 ⇒ **rc4 与 rc3 共享 inode**；随后「原地写」改版本号 ⇒ **写穿 ⇒ rc3 的 `NOTICE`/`README_zh.md`/`README_en.md` 被一起改成 rc4 字样**（违反「不改已交付的 rc3」）。
-* **修复**：`_app292` 用**已交付 zip** `shared/minimvp/..._perftest_rev2.zip` 里的权威字节**断链重写** rc3 ⇒ rc3 三文件与 zip **逐字节相同**（复核 PASS）；rc4 保留 rc4 字样、inode 已分离。
-* **根因修法**：`_app291` 的 `patch_text`／`MANIFEST` 写入改为 **`unlink_then_write`（断链后写）** ⇒ 不会再写穿。
-* 🔴 **教训**：**硬链接复制 ⇒ 任何原地写都会波及源**。凡「要改写的文件」必须先断链。
-
-### ⑤ 🔴 Meteor Lake（Ultra 7 155H）可移植性（用户要求 4）
-* **包内预编译缓存 = 0 个**（`app291.precompiled_cache_in_pkg=[]`）⇒ **不带任何 Panther Lake 专属 blob**；编译缓存写在 `%LOCALAPPDATA%\Confucius4LiveCaption\npu_cache` ⇒ **目标机首次运行现编**。
-* 🔴 **NPU decoder 必须用 NPUW**（`app290` 实测四臂）：
-
-| 臂 | 结果 | 原因 |
-|---|---|---|
-| decoder + `NPU_USE_NPUW`+`NPUW_LLM` | ✅ 10.7 s，EXEC=NPU | |
-| decoder + 仅 `NPU_USE_NPUW` | ❌ | `to_shape was called on a dynamic shape` |
-| decoder + 完全不开 NPUW | ❌ | 同上 |
-| encoder **冻结形状后** + plain（**不开 NPUW**） | ✅ 25.3 s，EXEC=NPU | 冻结前 ❌ `IE.Reshape doesn't support dynamic shapes` |
-
-⇒ **decoder 没有「不开 NPUW」的回落路径** ⇒ 若目标机 NPUW 不可用，**NPU ASR 起不来**（encoder 不受影响）。
-⇒ 已把该风险与「先用 iGPU 档验收」写进 rc4 的 `README_perftest.txt`。
-⚠️ **未自行改属性口径**（改属性＝改行为，需 reviewer 裁定）。
-
-### ⑥ 遗留 / 未做
-* **纠偏 APP-089…092 仍未执行**（上一轮读到 4 条新纠偏：APP-089 ICL 去除＋self_ref＋换人切段／APP-090 EXT v0.3.4＋各项移植／APP-091 用户三项决定／APP-092 方案 B＋EXT v0.3.5）⇒ **本轮用户改任务为 MiniMVP rc4，故未动**；`last_ack` 保持 **APP-088**。
-* **未打 rc4 zip**（本轮只建目录；zip 待用户确认，遵循「不主动打包」纪律）。
-* **未提交 git**（本条脚本/证据待与 APP-089 侧改动一并处理，避免混入别的模块未提交改动）。
+### ⑤ 产物
+* `results/app/app385_app089_accept_runs_after.json`（after 四跑清单）／`app388_app089_scores_after_all.json`（打分）／`app389_app089_voice_margin_after_dialog3.json`（音色归属）／`app375_app089_fixes_static_check.json`（静态闸门 **49 PASS / 0 FAIL**）／`app378_app089_session_reset_check.json`（**5 PASS / 0 FAIL**）／`app391_app089_before_and_overload.json`（before 臂＋过载臂）。

@@ -343,6 +343,15 @@ class TTSService:
         #   ⇒ 不变式变成三段式：
         #     `n_played + n_dropped + n_empty == n_submitted`
         self.n_empty = 0
+        # 🔴🔴🔳 APP-090 a：**等标签的等待次数与累计秒数**
+        #   ⇒ reviewer 要求「**必须是 0**」⇒ 计数器**证明**没有阻塞等待。
+        self._n_label_wait = 0
+        # 🔍🔍🔋 APP-090§2c：**倍率下限冲突次数**
+        self._n_speed_floor_conflict = 0
+        self._label_wait_s = 0.0
+        # 🔴🔴🔳 APP-092 §2：**TTS 跳过过期句**（late drop）的计数与滞后明细
+        self._n_late_drop = 0
+        self._late_drop_lags = []
         # 🔴🔴🔴 APP-036 C3：**结尾滞后**（真实定义）
         #   reviewer 原话：「`end_lag_s=0.0` 是 drain 之后取的值，没有意义。
         #     新增 `end_lag_s = 最后一句播完（或写完）的时刻 − 源音频结束时刻`」
@@ -626,6 +635,15 @@ class TTSService:
             #   ⇒ 真实播放路径**必须显式传**，否则逐句遥测**无处可落盘**。
             if self.jsonl_path:
                 cmd += ['--jsonl', self.jsonl_path]
+            # 🔴🔴🔳 APP-092 §2：**跳过过期句的阈值**（**可配**）
+            #   ⇒ 键名 `tts_late_drop_sec`，默认 **6.0**（同 EXT `LATE_DROP_SEC`）
+            #   ⇒ 来源：`device_config.json` / 环境变量 `LIVECAP_TTS_LATE_DROP_SEC`。
+            try:
+                import device_config as _dc
+                _lds = float(_dc.get_numeric('tts_late_drop_sec', 6.0))
+            except Exception:
+                _lds = 6.0
+            cmd += ['--late-drop-sec', str(_lds)]
             try:
                 # 🔴 §53：`encoding='utf-8'` **必须显式写** ⇒ 不依赖 locale/环境变量
                 #   （详见上面 env 那段注释里的完整根因）。
@@ -1058,7 +1076,11 @@ class TTSService:
                 _lag = max(_lag_target, _lag_queue)
                 with self.lock:
                     _prev = float(self._last_speed or 1.0)
-                _sp = float(_ts.speed_for_lag(_lag, _prev))
+                # 🔴🔴🔳 APP-090②c / APP-091②：**按目标语言定倍率区间**
+                #   ⇒ 中文目标 1.10–1.50×，其他 1.00–1.30×（原口径不变）。
+                #   ⚠️ worker 出队时会**自己重算**（以 worker 为准）
+                #   ⇒ 这里只是**向下兼容老 worker** 的下发值。
+                _sp = float(_ts.speed_for_lag(_lag, _prev, lang=lang))
                 with self.lock:
                     self._last_speed = _sp
                 cmd['speed'] = round(_sp, 4)
@@ -1785,7 +1807,46 @@ class TTSService:
                         self._sec_per_char = float(spc)
                     except Exception:
                         pass
+                # 🔴🔴🔳 APP-090 a：**等标签的等待次数与累计秒数**
+                #   ⇒ reviewer 要求「必须是 0」⇒ 主进程侧也留一份（可机检）。
+                try:
+                    _nlw = msg.get('n_label_wait')
+                    if _nlw is not None:
+                        self._n_label_wait = int(_nlw)
+                    _lws = msg.get('label_wait_s')
+                    if _lws is not None:
+                        self._label_wait_s = float(_lws)
+                    _nsfc = msg.get('n_speed_floor_conflict')
+                    if _nsfc is not None:
+                        self._n_speed_floor_conflict = int(_nsfc)
+                except Exception:
+                    pass
+                # 🔴🔴🔳 APP-092 §2：**TTS 跳过过期句**的计数
+                try:
+                    _nld = msg.get('n_late_drop')
+                    if _nld is not None:
+                        self._n_late_drop = int(_nld)
+                except Exception:
+                    pass
             self._update_backlog()
+        elif kind == 'late_drop':
+            # 🔴🔴🔳 APP-092 §2：worker 跳过了一句「太晚」的句子。
+            #   ⇒ **计丢句**（保持 `n_played + n_dropped + n_empty == n_submitted`）
+            #   ⇒ 内容仍在字幕/转写里（**只丢语音**）。
+            try:
+                self.n_dropped += 1
+            except Exception:
+                pass
+            self._n_late_drop = int(getattr(self, '_n_late_drop', 0) or 0) + 1
+            try:
+                self._late_drop_lags.append(
+                    float(msg.get('lag_s') or 0.0))
+            except Exception:
+                pass
+            self.on_log('[TTS] ⏭ 跳过过期句（lag=%.1f s，阈值 %.0f s）'
+                        '⇒ 只出字幕不配音'
+                        % (float(msg.get('lag_s') or 0.0),
+                           float(msg.get('threshold_s') or 0.0)))
         elif kind == 'clone':
             # 🔴🔴🔴 APP-027⑤：克隆音色更新结果。
             #   ⇒ GUI 要能看见「**当前实际使用的音色**」
@@ -1962,11 +2023,47 @@ class TTSService:
             return self._spk_voice_status.pop(str(spk), None)
 
     def clear_spk_voices(self) -> bool:
-        """🔴 APP-039：**会话结束清空**说话人音色表（隐私纪律）。"""
+        """🔴 APP-039：**会话结束清空**说话人音色表（隐私纪律）。
+
+        🔴🔴🔳 **APP-089 §2b**：worker 侧现在**连 `_spk_bind`（晚到标签绑定表）
+        一起清** ⇒ 不再有「跨会话残留」（新会话的同号 seg 会命中旧绑定
+        ⇒ 用错音色）。
+        """
         try:
             return self._send({'cmd': 'spk_voice_drop'})
         except Exception as e:
             self.on_log(f'[TTS] 清空说话人音色表失败：{e}')
+            return False
+
+    def spk_voice_seg(self, seg, pcm) -> bool:
+        """🔴🔴🔳 APP-089 §2c-1：**self_ref** —— 用**这句自己的音频**提 x-vector。
+
+        ## 用途（EXT v0.3.2 行为，reviewer 要求移植）
+        句子所属说话人**还没有登记音色**时 ⇒ 用**这句自己的音频**克隆
+        ⇒ **从第一句就开始克隆**（不再回落预设 A）。
+
+        🔴 **向量由 worker 自己的 speaker encoder 算**（ASR-026/§50 铁律）
+        ⇒ 主进程只传 PCM。
+
+        🔴 **只对本句生效**（worker 侧存 `_seg_voice[seg]`）
+        ⇒ **绝不串到别的句子**（不引入 APP-071 那类串音）。
+
+        ⚠️ **失败不抛异常**：返回 False ⇒ 调用方按「没有 self_ref」处理。
+        """
+        if seg is None:
+            return False
+        try:
+            import base64
+            import numpy as np
+            a = np.asarray(pcm, dtype=np.float32).reshape(-1)
+            # 🔴 门槛：≥ 1.5 s（SELF_REF_MIN_S）⇒ 太短提不出可靠 x-vector
+            if a.size < int(1.5 * 16000):
+                return False
+            b64 = base64.b64encode(a.tobytes()).decode('ascii')
+            return self._send({'cmd': 'spk_voice_seg', 'seg': int(seg),
+                               'pcm': b64})
+        except Exception as e:
+            self.on_log(f'[TTS] self_ref 登记失败：{e}')
             return False
 
     def _emit(self, kind, payload):
@@ -2244,6 +2341,16 @@ class TTSService:
             uf_idle_ms_total=int(self.uf_idle_ms_total or 0),
             n_sent_tel=int(self.n_sent_tel or 0),
             n_sent_uf_zero=int(self.n_sent_uf_zero or 0),
+            # 🔴🔴🔳 APP-090 a：**等标签的等待次数与累计秒数**（**必须为 0**）
+            n_label_wait=int(self._n_label_wait or 0),
+            # 🔍🔍🔋 APP-090§2c：**倍率下限与「speed ≤ 1/r」的冲突次数**
+            #   ⇒ reviewer 明文「以 1.10 为准，并且记下冲突次数」
+            n_speed_floor_conflict=int(self._n_speed_floor_conflict or 0),
+            label_wait_s=round(float(self._label_wait_s or 0.0), 3),
+            # 🔴🔴🔳 APP-092 §2：**TTS 跳过过期句**（只丢语音，内容仍在字幕/转写）
+            n_late_drop=int(self._n_late_drop or 0),
+            late_drop_lags=[round(float(x), 3)
+                            for x in (self._late_drop_lags or [])],
             # 🔴🔴🔴 APP-042：**自适应加速**的状态（GUI 底栏显示）
             #   `cur_speed`        上一句用的倍率
             #   `play_lag_s`       上一句的**实际开播滞后**（worker 回报）

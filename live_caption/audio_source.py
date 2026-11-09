@@ -314,6 +314,19 @@ class BaseAudioSource(threading.Thread):
         self.name_used = ''              # 实际使用的设备 / 文件名
         self.total_s = 0.0               # 已送出的音频时长（秒）
 
+    # -- 🔴🔴🔳 APP-092②：**本源的「播放速率」**（源秒 / 墙钟秒）--------
+    # ⚠️ **为什么要这个属性**：`--speed` ≠ 1.0 时，源音频的**消费速率**
+    #   ≠ 墙钟流逝 ⇒ 「目标开播墙钟 = t0 + 已消费源秒」的旧口径会**系统性失真**
+    #   ⇒ APP-092② 的「滞后秒数」被放大 ⇒ late-drop 判据失真。
+    # 🔴 **本属性是「构造期已知的确切值」**（不是实测估计）：
+    #   * `FileSource`：回放速度（`speed`；>0 时确切，0 = 全速跑批 ⇒ 不定时）
+    #   * `MicSource` / `SystemAudioSource`：**实时 ⇒ 1.0**
+    # ⇒ 目标墙钟 = `t0 + 已消费源秒 / pace`（**确定性、无估计噪声**）。
+    @property
+    def pace(self) -> float:
+        """🔴 本源的播放速率（源秒 / 墙钟秒）。**默认 1.0（实时）**。"""
+        return 1.0
+
     # 子类实现 run()
     def run(self):
         try:
@@ -466,6 +479,22 @@ class FileSource(BaseAudioSource):
         self.speed = float(speed)
         self.loop = bool(loop)
         self.name_used = os.path.basename(path)
+
+    # -- 🔴🔴🔳 APP-092②：**回放速率是构造期已知的** --------------------
+    @property
+    def pace(self) -> float:
+        """🔴 本源的播放速率（源秒 / 墙钟秒）。
+
+        🔴🔴🔳 **APP-092② 修正（本轮）**：`--speed` ≠ 1.0 时源音频消费
+          **不等于**墙钟流逝 ⇒ 旧口径（目标墙钟 = t0 + 已消费源秒）
+          会让「滞后秒数」**系统性失真** ⇒ late-drop 判据失效
+          （实测 `--speed 0.35` ⇒ 83/83 句全被跳过 ⇒ 不可用）。
+
+        ⚠️ **`speed = 0` = 全速跑批**（不按实时节流）⇒ 消费速率由机器决定、
+          **没有确定值** ⇒ 返回 **0.0** ⇒ 调用方**退回旧口径**（`t0 + 已消费源秒`）
+          ⇒ 宁可沿用旧口径，也**不猜**一个速率。
+        """
+        return self.speed if self.speed > 0.0 else 0.0
 
     # -- 解码 ------------------------------------------------------------
     def _load_soundfile(self):

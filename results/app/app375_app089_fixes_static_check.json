@@ -1,0 +1,251 @@
+{
+ "n_pass": 49,
+ "n_fail": 0,
+ "checks": [
+  {
+   "name": "worker: _n_label_wait 有自增语句",
+   "ok": true,
+   "detail": "self._n_label_wait += 1 未找到 ⇒ 计数器恒 0（弱标记恒真）"
+  },
+  {
+   "name": "worker: 存在 _wait_for_label() 测量点",
+   "ok": true,
+   "detail": "未找到 _wait_for_label()"
+  },
+  {
+   "name": "worker: 自增在 _wait_for_label 内",
+   "ok": true,
+   "detail": "自增不在 _wait_for_label 内 ⇒ 计数器与真实等待无关"
+  },
+  {
+   "name": "worker: 默认阈值 0（绝不等标签）",
+   "ok": true,
+   "detail": "找不到默认 0.0 的阈值初始化"
+  },
+  {
+   "name": "worker: jsonl 落 n_label_wait",
+   "ok": true,
+   "detail": "jsonl 行里没有 n_label_wait 字段"
+  },
+  {
+   "name": "worker: jsonl 落 label_wait_s",
+   "ok": true,
+   "detail": "jsonl 行里没有 label_wait_s 字段"
+  },
+  {
+   "name": "service: stats 暴露 n_label_wait",
+   "ok": true,
+   "detail": "tts_service.stats() 未暴露 n_label_wait"
+  },
+  {
+   "name": "scorer: n_label_wait 不是常量 0",
+   "ok": true,
+   "detail": "打分脚本仍写死 n_label_wait: 0 ⇒ 恒真"
+  },
+  {
+   "name": "scorer: n_label_wait 从 jsonl 读",
+   "ok": true,
+   "detail": "打分脚本未从 jsonl 读 n_label_wait"
+  },
+  {
+   "name": "speaker_voice: 定义 xv_reference_ticket",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "app: 调用 xv_reference_ticket（GUI 侧）",
+   "ok": true,
+   "detail": "GUI 侧未调用 ⇒ APP-089 §2c-2 未实施"
+  },
+  {
+   "name": "app: 调用 xv_reference_ticket（CLI 侧）",
+   "ok": true,
+   "detail": "CLI 侧未调用 ⇒ APP-089 §2c-2 未实施"
+  },
+  {
+   "name": "app: 用 XV 状态判定升级（upgrade）",
+   "ok": true,
+   "detail": "未按 XV 状态判定升级 ⇒ 升级/冻结语义缺失"
+  },
+  {
+   "name": "app: 记 XV 登记状态 mark_xv_registered",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "speaker_voice: mark_registered 合并而非覆盖",
+   "ok": true,
+   "detail": "mark_registered 仍整份覆盖 ⇒ 会冲掉 xv_dur_s/upgraded ⇒ 冻结语义失效"
+  },
+  {
+   "name": "clone_voice: 有独立切段线程",
+   "ok": true,
+   "detail": "没有 clone-split 线程 ⇒ 切段会落在调用方线程"
+  },
+  {
+   "name": "clone_voice: 有 request_split（只入队）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "clone_voice: 有 poll_split（取结果）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "app: CLI 不再直接调 split_ready_segments（接收线程）",
+   "ok": true,
+   "detail": "CLI 仍在接收线程直接切段 ⇒ 违反线程纪律"
+  },
+  {
+   "name": "app: CLI 用 request_split（异步）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "app: GUI 用 request_split（异步）",
+   "ok": true,
+   "detail": "GUI 侧未请求切段 ⇒ GUI 模式切段数为 0"
+  },
+  {
+   "name": "app: 轮询取回切段结果",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "worker: 记逐句 late_drop_lag_s",
+   "ok": true,
+   "detail": "未记录逐句滞后秒数"
+  },
+  {
+   "name": "worker: 记逐句 late_drop_threshold_s",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "worker: jsonl 落 late_drop_lag_s",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "worker: jsonl 落 late_drop_threshold_s",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "worker: 跳过后清空滞后字段（不串味）",
+   "ok": true,
+   "detail": "跳过后未清空 ⇒ 下一句会带上上一句的滞后值"
+  },
+  {
+   "name": "scorer: late_drop_lags_s 取真滞后（不是 t_submit）",
+   "ok": true,
+   "detail": "打分脚本仍取 t_submit ⇒ 字段名与值不符"
+  },
+  {
+   "name": "GUI: 有 _source_pace()（构造期已知的播放速率）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "GUI: 目标墙钟按 pace 换算（a / _pace）",
+   "ok": true,
+   "detail": "GUI 目标墙钟未按 pace 换算 ⇒ --speed≠1.0 时滞后秒数失真"
+  },
+  {
+   "name": "CLI: 目标墙钟按 pace 换算",
+   "ok": true,
+   "detail": "CLI 目标墙钟未按 pace 换算"
+  },
+  {
+   "name": "GUI: 不再用滑窗实测采样点（确定性）",
+   "ok": true,
+   "detail": "仍有滑窗采样点 ⇒ 速率估计噪声"
+  },
+  {
+   "name": "CLI: 不再用滑窗实测采样点（确定性）",
+   "ok": true,
+   "detail": "仍有滑窗采样点 ⇒ 速率估计噪声"
+  },
+  {
+   "name": "audio_source: BaseAudioSource 提供 pace 属性",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "audio_source: FileSource.pace 返回 speed",
+   "ok": true,
+   "detail": "FileSource.pace 未返回 speed ⇒ 换算不确定"
+  },
+  {
+   "name": "反证: 去掉自增 ⇒ 闸门①真的 FAIL",
+   "ok": true,
+   "detail": "闸门①在改坏后仍为 True ⇒ 闸门恒真"
+  },
+  {
+   "name": "反证: 去掉 xv 调用 ⇒ 闸门②真的 FAIL",
+   "ok": true,
+   "detail": "闸门②在改坏后仍为 True ⇒ 闸门恒真"
+  },
+  {
+   "name": "反证: 还原成接收线程直切 ⇒ 闸门③真的 FAIL",
+   "ok": true,
+   "detail": "闸门③在改坏后仍为 True ⇒ 闸门恒真"
+  },
+  {
+   "name": "反证: scorer 改回 t_submit ⇒ 闸门④真的 FAIL",
+   "ok": true,
+   "detail": "闸门④在改坏后仍为 True ⇒ 闸门恒真"
+  },
+  {
+   "name": "反证: mark_registered 改回覆盖 ⇒ 闸门②b真的 FAIL",
+   "ok": true,
+   "detail": "闸门②b在改坏后仍为 True ⇒ 闸门恒真"
+  },
+  {
+   "name": "反证: 目标墙钟改回不换算 ⇒ 闸门⑤真的 FAIL",
+   "ok": true,
+   "detail": "闸门⑤在改坏后仍为 True ⇒ 闸门恒真"
+  },
+  {
+   "name": "AST: clone_voice.py",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "AST: device_config.py",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "AST: live_caption_app.py",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "AST: speaker_voice.py",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "AST: time_stretch.py",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "AST: tts_cuda_sidecar.py",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "AST: tts_service.py",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "AST: tts_worker.py",
+   "ok": true,
+   "detail": ""
+  }
+ ]
+}

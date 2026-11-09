@@ -1,0 +1,142 @@
+{
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4",
+ "dev": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption",
+ "base": "C:\\Users\\Trekker-PTL\\_app_shadow",
+ "arms": {
+  "before": {
+   "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\before",
+   "app_py": {
+    "clone_voice.py": {
+     "sha256": "ab9bab0a8a08faf2f1ce39645f753d4b220c4fd875988c693d0385b4c3015c1b",
+     "bytes": 19877,
+     "dev_sha256": "b29315a1cf58eb9f41b0b771aca82d4b72088ef37389513bbd94331b7704bc12",
+     "head_sha256": "ab9bab0a8a08faf2f1ce39645f753d4b220c4fd875988c693d0385b4c3015c1b"
+    },
+    "device_config.py": {
+     "sha256": "f386785af866f934b37e2b61c6e5a1ac46ec788e598c640b394b52dd53332417",
+     "bytes": 19248,
+     "dev_sha256": "04e554c290a5a4676903612a885751a4961167e2e68b3b977e0308308cefd592",
+     "head_sha256": "f386785af866f934b37e2b61c6e5a1ac46ec788e598c640b394b52dd53332417"
+    },
+    "live_caption_app.py": {
+     "sha256": "133f52ea6edf2a4f529a9b6ddbd3a129913b9ede67f4045cb4a607d5f891fe03",
+     "bytes": 431679,
+     "dev_sha256": "25245b0c0b0a39fac6cdacfa732692e79887eef515ff36a54d0b8fecc20f4a24",
+     "head_sha256": "3ada8155eb2831c55702289d0583980c1de72ba02a7ddd48295789e5a7e60430"
+    },
+    "speaker_voice.py": {
+     "sha256": "2d901a6990977e73df8177f1458f80ed8138b523af4b1558cf977631286ac915",
+     "bytes": 41838,
+     "dev_sha256": "cf5b7532b9ad0e7305bd7a6f905815869302a5fce799bf07b4efeca468e4632c",
+     "head_sha256": "2d901a6990977e73df8177f1458f80ed8138b523af4b1558cf977631286ac915"
+    },
+    "time_stretch.py": {
+     "sha256": "f1f7f5e1c18c3e1e57f7e717abbacb5830309515bcef1897b2940060fae4c629",
+     "bytes": 19765,
+     "dev_sha256": "7f46d66dc296014694bafe65f72e055278d0ce59a4ddc2063f2f1467b25dfced",
+     "head_sha256": "f1f7f5e1c18c3e1e57f7e717abbacb5830309515bcef1897b2940060fae4c629"
+    },
+    "tts_cuda_sidecar.py": {
+     "sha256": "abdd1d6c9a624ccd4d84fed9b592a22d575700a486ca1cbd5f8d2cd269a7c3f5",
+     "bytes": 26699,
+     "dev_sha256": "cf4841b74b5e69f7e72a76290ff6cd9e600261947711d8b60d199d0585d132cd",
+     "head_sha256": "abdd1d6c9a624ccd4d84fed9b592a22d575700a486ca1cbd5f8d2cd269a7c3f5"
+    },
+    "tts_service.py": {
+     "sha256": "0c6e5679115759c6c6b29c6db1651a12af70c41e4b84a9b1a3d04e30646ed316",
+     "bytes": 131149,
+     "dev_sha256": "27add286341460164012e2d005be6bfd92a844c11326711536b8d9279aa81951",
+     "head_sha256": "0c6e5679115759c6c6b29c6db1651a12af70c41e4b84a9b1a3d04e30646ed316"
+    },
+    "tts_worker.py": {
+     "sha256": "3bbc4b8e6eab66659c4dd45b818d5ea28af34fc986866ffc7afc3656518b12c7",
+     "bytes": 245407,
+     "dev_sha256": "b581006fd6b68a63905d3871b7cbb9a247ce524ed229cd68a2d43f2e9a7c234c",
+     "head_sha256": "3bbc4b8e6eab66659c4dd45b818d5ea28af34fc986866ffc7afc3656518b12c7"
+    }
+   },
+   "n_app_py": 30,
+   "models_junction": true,
+   "python_junction": true,
+   "manifest_present": true
+  },
+  "after": {
+   "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\after",
+   "app_py": {
+    "clone_voice.py": {
+     "sha256": "b29315a1cf58eb9f41b0b771aca82d4b72088ef37389513bbd94331b7704bc12",
+     "bytes": 40081,
+     "dev_sha256": "b29315a1cf58eb9f41b0b771aca82d4b72088ef37389513bbd94331b7704bc12",
+     "head_sha256": "ab9bab0a8a08faf2f1ce39645f753d4b220c4fd875988c693d0385b4c3015c1b"
+    },
+    "device_config.py": {
+     "sha256": "04e554c290a5a4676903612a885751a4961167e2e68b3b977e0308308cefd592",
+     "bytes": 22770,
+     "dev_sha256": "04e554c290a5a4676903612a885751a4961167e2e68b3b977e0308308cefd592",
+     "head_sha256": "f386785af866f934b37e2b61c6e5a1ac46ec788e598c640b394b52dd53332417"
+    },
+    "live_caption_app.py": {
+     "sha256": "25245b0c0b0a39fac6cdacfa732692e79887eef515ff36a54d0b8fecc20f4a24",
+     "bytes": 454822,
+     "dev_sha256": "25245b0c0b0a39fac6cdacfa732692e79887eef515ff36a54d0b8fecc20f4a24",
+     "head_sha256": "3ada8155eb2831c55702289d0583980c1de72ba02a7ddd48295789e5a7e60430"
+    },
+    "speaker_voice.py": {
+     "sha256": "cf5b7532b9ad0e7305bd7a6f905815869302a5fce799bf07b4efeca468e4632c",
+     "bytes": 49933,
+     "dev_sha256": "cf5b7532b9ad0e7305bd7a6f905815869302a5fce799bf07b4efeca468e4632c",
+     "head_sha256": "2d901a6990977e73df8177f1458f80ed8138b523af4b1558cf977631286ac915"
+    },
+    "time_stretch.py": {
+     "sha256": "7f46d66dc296014694bafe65f72e055278d0ce59a4ddc2063f2f1467b25dfced",
+     "bytes": 22645,
+     "dev_sha256": "7f46d66dc296014694bafe65f72e055278d0ce59a4ddc2063f2f1467b25dfced",
+     "head_sha256": "f1f7f5e1c18c3e1e57f7e717abbacb5830309515bcef1897b2940060fae4c629"
+    },
+    "tts_cuda_sidecar.py": {
+     "sha256": "cf4841b74b5e69f7e72a76290ff6cd9e600261947711d8b60d199d0585d132cd",
+     "bytes": 27056,
+     "dev_sha256": "cf4841b74b5e69f7e72a76290ff6cd9e600261947711d8b60d199d0585d132cd",
+     "head_sha256": "abdd1d6c9a624ccd4d84fed9b592a22d575700a486ca1cbd5f8d2cd269a7c3f5"
+    },
+    "tts_service.py": {
+     "sha256": "27add286341460164012e2d005be6bfd92a844c11326711536b8d9279aa81951",
+     "bytes": 138735,
+     "dev_sha256": "27add286341460164012e2d005be6bfd92a844c11326711536b8d9279aa81951",
+     "head_sha256": "0c6e5679115759c6c6b29c6db1651a12af70c41e4b84a9b1a3d04e30646ed316"
+    },
+    "tts_worker.py": {
+     "sha256": "b581006fd6b68a63905d3871b7cbb9a247ce524ed229cd68a2d43f2e9a7c234c",
+     "bytes": 273482,
+     "dev_sha256": "b581006fd6b68a63905d3871b7cbb9a247ce524ed229cd68a2d43f2e9a7c234c",
+     "head_sha256": "3bbc4b8e6eab66659c4dd45b818d5ea28af34fc986866ffc7afc3656518b12c7"
+    }
+   },
+   "n_app_py": 30,
+   "models_junction": true,
+   "python_junction": true,
+   "manifest_present": true
+  }
+ },
+ "changed_files": [
+  "clone_voice.py",
+  "device_config.py",
+  "live_caption_app.py",
+  "speaker_voice.py",
+  "time_stretch.py",
+  "tts_cuda_sidecar.py",
+  "tts_service.py",
+  "tts_worker.py"
+ ],
+ "arms_differ_files": [
+  "clone_voice.py",
+  "device_config.py",
+  "live_caption_app.py",
+  "speaker_voice.py",
+  "time_stretch.py",
+  "tts_cuda_sidecar.py",
+  "tts_service.py",
+  "tts_worker.py"
+ ],
+ "arms_identical": false
+}

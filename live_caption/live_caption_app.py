@@ -194,6 +194,10 @@ MIN_SEG_SEC = float(os.environ.get('LIVECAP_MIN_SEG_SEC', '6.0'))
 MAX_SEG_SEC = 20.0
 SIL_LOOKBACK_SEC = 3.0
 
+# 🔴🔴🔳 APP-089 §2c-1：**self_ref 素材保留多少段**（**有界** ⇒ 内存不无界增长）
+#   ⇒ 每段 ≤ 8 s × 16 kHz × 4 B ≈ 512 KB ⇒ 32 段 ≈ 16 MB（可接受）。
+SELF_REF_KEEP = 32
+
 # 静音超时切段（解决「说完话迟迟不定稿」/ cut on silence timeout）
 # 段尾连续静音多久就切段定稿。
 #
@@ -1997,22 +2001,36 @@ class CaptionOverlay:
         except Exception:
             pass
         self.font = tkfont.Font(family='Microsoft YaHei UI', size=font_size)
+        # 🔴🔴🔳 APP-091 §3：**定稿原文**用**更小的字号**（第二行）
+        #   ⇒ 口径与 EXT v0.3.4 一致（`extension/player.html`：
+        #     `#subs span.src { font-size: 15px; opacity: .85; }`
+        #     vs 主字幕 `font-size: 20px` ⇒ 约 **0.75×**）
+        #   ⚠️ **最小 12 px**（再小就不可读了）。
+        self.src_font = tkfont.Font(family='Microsoft YaHei UI',
+                                    size=max(12, int(round(font_size * 0.75))))
         sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
         self.w = int(sw * 0.8)
         line = self.font.metrics('linespace')
-        # 2 行：定稿译文 / 实时识别
-        h = 2 * line + 30
+        src_line = self.src_font.metrics('linespace')
+        # 3 行：定稿译文 / **定稿原文（小字）** / 实时识别
+        # 🔴🔴🔳 APP-091 §3：这一行**取代** APP-007 对字幕条「不显示原文」的限制
+        #   （**仅限字幕条** ⇒ 主文本区与保存的 txt 行为不变）。
+        h = line + src_line + line + 30
         self.win.geometry(f'{self.w}x{h}+{(sw - self.w) // 2}+{sh - h - int(sh * 0.07)}')
         self.win.configure(bg='#111111')
-        # ── 两行 Label（顺序即显示顺序：译文在上，实时在下）──
+        # ── 三行 Label（顺序即显示顺序：译文 / 原文小字 / 实时识别）──
         self.mt = tk.Label(self.win, text='', fg='#5fd7d7', bg='#111111',
                            font=self.font, anchor='w')
+        # 🔴🔴🔳 APP-091 §3：**定稿原文**（白 #f2f2f2，小字）
+        self.src = tk.Label(self.win, text='', fg='#f2f2f2', bg='#111111',
+                            font=self.src_font, anchor='w')
         self.partial = tk.Label(self.win, text='', fg='#ffd75e', bg='#111111',
                                 font=self.font, anchor='w')
         self.mt.pack(fill='x', padx=20, pady=(10, 0))
+        self.src.pack(fill='x', padx=20)
         self.partial.pack(fill='x', padx=20)
         # 兜底拖动：**穿透失败时**（降级路径）字幕窗口本身仍可直接拖。
-        for wdg in (self.win, self.mt, self.partial):
+        for wdg in (self.win, self.mt, self.src, self.partial):
             wdg.bind('<ButtonPress-1>', self._press)
             wdg.bind('<B1-Motion>', self._drag)
 
@@ -2155,13 +2173,19 @@ class CaptionOverlay:
                 lo = mid + 1
         return '…' + text[lo:].lstrip()
 
-    def show(self, mt='', partial=''):
-        """更新两行。
+    def show(self, mt='', partial='', src=''):
+        """更新三行。
 
-        ⚠️ 签名已从 4 参（final_tail, partial, mt, draft）改为 2 参
-        （mt, partial）—— 定稿原文与草稿预览不再上屏幕字幕。
+        🔴🔴🔳 **APP-091 §3**：新增第三参 `src` = **定稿原文**
+        ⇒ 显示在**译文下方**、**字号更小**的第二行（与 EXT v0.3.4 一致）。
+        ⚠️ 这**取代** APP-007 对字幕条「不显示原文」的限制（**仅限字幕条**）。
+
+        ⚠️ 旧签名说明：曾从 4 参（final_tail, partial, mt, draft）改为 2 参
+        （mt, partial）—— 那时定稿原文与草稿预览都不上屏幕字幕；
+        **本轮按 APP-091 §3 把「定稿原文」加回来**（草稿预览仍不上屏）。
         """
         self.mt.configure(text=self._tail_fit(mt[-400:]) if mt else '')
+        self.src.configure(text=self._tail_fit(src[-400:]) if src else '')
         self.partial.configure(text=self._tail_fit(partial[-400:]) if partial else '')
 
     def destroy(self):
@@ -2232,6 +2256,15 @@ class App:
         # 🔴🔴🔳 APP-075(b)：「回落预设 A」**每个 spk 只记一次**
         #   ⇒ 单独一个 set（不与 `_spk_reason_seen` 混用 ⇒ 语义清晰）
         self._spk_fallback_seen = set()
+        # 🔴🔴🔳 APP-089 §2c-1：**self_ref 素材**（seg → 这句自己的 PCM）
+        #   ⇒ 该 spk 还没有登记音色时 ⇒ 用它提 x-vector ⇒ **从第一句就克隆**。
+        #   ⚠️ **有界**（`SELF_REF_KEEP` 段）⇒ 内存不无界增长。
+        self._spk_self_ref = {}
+        # 🔴🔴🔳 APP-089 §2c-3：**换人切段**（异步）的状态
+        #   ⇒ `_spk_split_seen` ＝ 已取过结果的段号（每段只处理一次）
+        #   ⇒ `_spk_split_mixed` ＝ 段号 → 切点数（>0 表示该段里换了人）
+        self._spk_split_seen = set()
+        self._spk_split_mixed = {}
         # 🔴🔴🔴 APP-039/040：**说话人 → 音色**表（**只在内存里**，绝不落盘）
         #   ⇒ 「音色按句绑定」的核心状态；
         #   ⇒ **只在 `is_new_spk` 时取样一次**（不渐变、不滞后、不一直采样）。
@@ -2257,6 +2290,101 @@ class App:
             pcm_getter=lambda: (self._spk_pcm_buf, self._spk_pcm_t0),
             span_getter=lambda seg: self._seg_span.get(seg),
             on_nearest=self._clone_nearest)
+
+    def _capture_self_ref_pcm(self, seg) -> None:
+        """🔴🔴🔳 APP-089 §2c-1：**抓 self_ref 素材**（这句自己的音频）。
+
+        🔴 **只做 numpy 切片**（不算嵌入、不算 x-vector）
+        ⇒ **ASR 线程零阻塞**（切片是 O(n) 内存拷贝，不是计算）。
+
+        ⚠️ **有界**：只留最近 `SELF_REF_KEEP` 段（每段 ≤ 8 s ⇒ 内存有界）。
+        """
+        try:
+            pcm = self._clone_pol.self_ref_pcm(seg)
+        except Exception:
+            return
+        if pcm is None:
+            return
+        try:
+            self._spk_self_ref[seg] = pcm
+            if len(self._spk_self_ref) > SELF_REF_KEEP:
+                for _k in list(self._spk_self_ref.keys())[:-SELF_REF_KEEP]:
+                    self._spk_self_ref.pop(_k, None)
+        except Exception:
+            pass
+
+    def _maybe_send_self_ref(self, seg) -> bool:
+        """🔴🔴🔳 APP-089 §2c-1：**提交前**按需发 self_ref（用这句自己的音频）。
+
+        ## 触发条件
+        该句所属说话人**还没有登记音色** ⇒ 用**这句自己的音频**提 x-vector
+        ⇒ **从第一句就开始克隆**（不再回落预设 A）。
+
+        🔴 **不发的情况**：
+        - 该 spk **已经**有登记音色 ⇒ 用它自己的（更准）；
+        - 没有 self_ref 素材（音频太短 / 已被缓冲挤掉）；
+        - 已经在克隆模式且有全局音色（EXT 的 `latest_path` 路径，本轮不移植）。
+
+        ⚠️ **失败不抛异常**：发不出去就回落预设 A（旧行为）。
+        """
+        try:
+            if seg is None or self.tts is None:
+                return False
+            if not getattr(self.tts, 'active', False):
+                return False
+            spk = self._spk_voices.spk_of(seg)
+            if spk and self._spk_voices.has_voice(spk):
+                return False       # 该 spk 已有音色 ⇒ 不用 self_ref
+            pcm = self._spk_self_ref.get(seg)
+            if pcm is None:
+                return False
+            ok = self.tts.spk_voice_seg(seg, pcm)
+            if ok:
+                self._spk_self_ref.pop(seg, None)
+                self._ui_log('[spk] 第 %d 段用**自己的音频**做 self_ref 克隆'
+                             '（该说话人还没有登记音色）' % seg)
+            return bool(ok)
+        except Exception as e:
+            self._ui_log('[spk] self_ref 发送失败（忽略）：%s' % e)
+            return False
+
+    def _reset_clone_session(self) -> None:
+        """🔴🔴🔳 APP-089 §2b：**会话开始清空**克隆状态。
+
+        reviewer 原话（`CORRECTIONS_APP.md` APP-089 §2b）：
+        > **每个会话用自己的克隆参考**：会话开始时清空克隆目录
+        > （`%LOCALAPPDATA%\\Confucius4LiveCaption\\clone_voices` 或
+        > `LIVECAP_CLONE_VOICES_DIR`），同时清空 `_spk_bind`/`_spk_voices`/
+        > 策略层的缓存。
+
+        ⇒ 本方法做三件事：
+        ① 策略层 `reset_session()`（清克隆目录 + 本层缓存）；
+        ② worker 侧 `clear_spk_voices()`（清 `_spk_voices` **和** `_spk_bind`）；
+        ③ App 侧的 `_spk_by_seg` / `_seg_span` / 各种 pending 队列清空。
+
+        ⚠️ **失败不抛异常**：清理失败不该让会话起不来。
+        """
+        # ① 策略层（克隆目录 + 缓存）
+        try:
+            self._clone_pol.reset_session()
+        except Exception as e:
+            self._ui_log('[spk] 会话重置（策略层）失败（忽略）：%s' % e)
+        # ② worker 侧（`_spk_voices` + `_spk_bind`）
+        try:
+            if self.tts is not None and getattr(self.tts, 'active', False):
+                self.tts.clear_spk_voices()
+        except Exception as e:
+            self._ui_log('[spk] 会话重置（worker 侧）失败（忽略）：%s' % e)
+        # ③ App 侧
+        try:
+            self._spk_by_seg.clear()
+            self._seg_span.clear()
+            self._spk_pending_embed = []
+            self._spk_voice_sent = set()
+            self._spk_fallback_seen = set()
+            self._spk_reason_seen = set()
+        except Exception as e:
+            self._ui_log('[spk] 会话重置（App 侧）失败（忽略）：%s' % e)
 
     def _clone_nearest(self, seg, spk, sim):
         """🔴🔴🔳 APP-086(2)a：**无标签句 ⇒ 最近已登记说话人**（cos ≥ 0.25）。
@@ -3544,6 +3672,14 @@ class App:
         #   ⚠️ 用 `time.time()`（墙钟）⇒ 与 worker 进程**跨进程可比**。
         self._session_wall0 = time.time()
         self._seg_target_wall.clear()
+        # 🔴🔴🔳 APP-092②：**目标墙钟的基准**（会话起点）已在上面设置
+        #   ⇒ 无需滑窗采样点（确定性换算）。
+        # 🔴🔴🔳 APP-089 §2b：**会话开始清空**（克隆目录 + 跨会话残留）
+        #   ⇒ 「每个会话用自己的克隆参考」
+        #   ⇒ ① 克隆目录清空（不再残留上一次的 `<spk>_<n>.wav` / `.txt`）
+        #   ⇒ ② worker 侧 `_spk_voices` + **`_spk_bind`**（晚到标签绑定表）清空
+        #      （不清 ⇒ 新会话的同号 seg 会命中旧绑定 ⇒ 用错音色）
+        self._reset_clone_session()
         self.session.start()
         self.btn.configure(text='■ 停止')
         kind = self._cur_source_key()
@@ -4447,6 +4583,12 @@ class App:
                                 '[TTS] 语音模型**首次准备中** ⇒ 本句**不排队**'
                                 '（编译完成后只念新句）')
                             continue
+                        # 🔴🔴🔳 APP-089 §2c-1：**先**按需发 self_ref
+                        #   ⇒ 该 spk 还没有登记音色时，用**这句自己的音频**克隆
+                        #     ⇒ **从第一句就开始克隆**（不再回落预设 A）。
+                        #   🔴 **必须在 submit 之前** ⇒ worker 按顺序处理命令
+                        #     ⇒ self_ref 先到 ⇒ 出队时已就绪。
+                        self._maybe_send_self_ref(ev['seg'])
                         self.tts.submit(ev['txt'], seg=ev['seg'],
                                         lang=self._cur_mt_target(),
                                         # 🔴🔴🔴 APP-039/040：**按句绑定音色**
@@ -4710,6 +4852,24 @@ class App:
             self._clone_pol.pump()
         except Exception:
             pass
+        # 🔴🔴🔳 APP-089 §2c-3：**取回切段结果**（异步 ⇒ 在这里轮询）
+        #   ⇒ 切分在 `clone-split` 线程上完成 ⇒ 这里只读结果（微秒级）
+        #   ⇒ 切出多块 ⇒ **这一段里换了人** ⇒ 记进 `_spk_split_mixed`
+        #   ⚠️ **每段只处理一次**（`_spk_split_seen`）⇒ 否则每轮泵都重复记。
+        try:
+            for _sg in list(self._spk_seg_span.keys()):
+                if _sg in self._spk_split_seen:
+                    continue
+                _rs = self._clone_pol.poll_split(_sg)
+                if not _rs:
+                    continue
+                self._spk_split_seen.add(_sg)
+                if int(_rs.get('n_parts', 1)) > 1:
+                    self._spk_split_mixed[_sg] = int(_rs.get('n_split', 0))
+                    self._ui_log('[spk] 第 %d 段内检测到换人（切成 %d 块）'
+                                 % (_sg, int(_rs.get('n_parts', 1))))
+        except Exception:
+            pass
         pending = list(self._spk_pending_embed)
         if not pending:
             return
@@ -4759,6 +4919,9 @@ class App:
                     # ── 先看能不能取到「该 spk 自己的**合格**干净语音」──
                     #   🔴🔴🔳 APP-075(a)(b)：`_spk_pcm_for` 现在**只认合格段**
                     #   ⇒ 没有合格段 ⇒ 返回 `None` ⇒ **不得**用不合格段登记。
+                    # 🔴🔴🔳 APP-089 §2c-2：**改用 XV 口径**（拼接多段）
+                    #   ⇒ `_spk_pcm_for` 内部已改走 `xv_reference_ticket()`
+                    #   ⇒ 首次写入门槛 `XV_FIRST_S`(3.0 s)（原 `MIN_S` 1.5 s）
                     pcm = self._spk_pcm_for(spk, seg)
                     if pcm is None or pcm.size < int(speaker_voice.MIN_S * SR):
                         # 🔴🔴🔳 APP-075(b)：**回落预设 A ＋ 记日志**（不静默）。
@@ -4786,16 +4949,28 @@ class App:
                         continue
                     # 🔴🔴🔳 APP-075(b)：**记下这一段** ⇒ 下次只有「更长」的
                     #   合格段才重发（覆盖旧登记 ⇒ 升级登记）。
-                    _rr, _kk = self._spk_voices.registration_ticket(spk)
-                    if _rr:
+                    # 🔴🔴🔳 APP-089 §2c-2：**同时记 XV 状态**
+                    #   ⇒ `xv_dur_s`（已登记多少秒）＋ `upgraded`（是否已升级过）
+                    #   ⇒ 「≥8 s 升级**一次**，之后冻结」的判据才有依据。
+                    _xr, _xk, _xd, _xs = \
+                        self._spk_voices.xv_reference_ticket(spk)
+                    if _xr:
                         self._spk_voices.mark_registered(
-                            spk, _rr[0][0], _rr[0][1])
+                            spk, _xr[0][0], _xr[0][1])
+                        self._spk_voices.mark_xv_registered(
+                            spk, _xd, upgraded=(_xs == 'upgrade'))
                     # 🔴 §99（断链 C）：**不立即 mark_embedded**
                     #   ⇒ 等 worker 回执（见本函数开头）。
                     self._spk_voice_sent.add((spk, False))
                 else:
                     # ── 已登记：够 `REFINE_S` 就用**自己的段**重算一次 ──
+                    # 🔴🔴🔳 APP-089 §2c-2：**升级一次之后冻结**（EXT 口径）
+                    #   ⇒ `xv_reference_ticket` 返回 `'frozen'` ⇒ 不再升级。
                     if self._spk_voices.ready_to_embed(spk):
+                        _xr2, _xk2, _xd2, _xs2 = \
+                            self._spk_voices.xv_reference_ticket(spk)
+                        if _xs2 != 'upgrade':
+                            continue      # 冻结／不到门槛 ⇒ 不升级
                         pcm = self._spk_pcm_for(spk, seg)
                         if pcm is not None and \
                                 pcm.size >= int(speaker_voice.REFINE_S * SR):
@@ -4806,6 +4981,9 @@ class App:
                                 if _rr2:
                                     self._spk_voices.mark_registered(
                                         spk, _rr2[0][0], _rr2[0][1])
+                                # 🔴🔴🔳 APP-089 §2c-2：标记「已升级」⇒ 冻结
+                                self._spk_voices.mark_xv_registered(
+                                    spk, _xd2, upgraded=True)
                                 # 🔴 §99（断链 C）：细化也等回执
                                 self._spk_voice_sent.add((spk, True))
             except Exception as e:
@@ -4829,16 +5007,37 @@ class App:
            ⇒ **回落预设 A ＋ 记日志**。
 
         ⚠️ **区间只含该 spk** ⇒ 结构性保证「不渐变、不混入别人」。
+
+        ## 🔴🔴🔳 APP-089 §2c-2：**改用 EXT v0.3.2 的「说话人参考」口径**
+        reviewer 原文：
+        > **说话人参考**：把这个人干净、有标签的句子**拼起来**，
+        > ≥3 s 时首次写入（XV_FIRST_S），≥8 s 时**升级一次**
+        > （XV_UPGRADE_S，最长 10 s，XV_MAX_S），之后**冻结**。
+        > **只生成 x-vector，不写 `.txt`**。
+
+        ⇒ 旧行为：只取**最长**的一段（`registration_ticket`）。
+        ⇒ 新行为：`xv_reference_ticket()` 给**拼接**区间 + 状态
+          （`wait` / `first` / `upgrade` / `frozen`）。
+        ⚠️ **仍然复用 APP-075 的合格段门槛**（conf ≥ REG_CONF_MIN ＋
+          clean_ranges ＋ 切换点守卫 ＋ 连续 ≥ REG_MIN_CONT_S）
+          ⇒ **不回归 APP-071/075**（低置信度误标段进不来）。
+        ⚠️ `frozen`（已升级过一次）⇒ **不再重算**（EXT 口径）。
         """
         try:
-            rngs, _key = self._spk_voices.registration_ticket(spk)
+            rngs, _key, _dur, _state = self._spk_voices.xv_reference_ticket(spk)
             if not rngs:
+                return None
+            if _state == 'frozen':
+                # 🔴 已升级过一次 ⇒ 冻结 ⇒ 不再取新素材（EXT 口径）
                 return None
             with self._spk_pcm_lock:
                 buf = self._spk_pcm_buf
             # 🔁 §99（断链 E）：传给缓冲起点，出口不对应全局时间轴。
+            # 🔴🔴🔳 APP-089 §2c-2：**多段拼接** ⇒ `pcm_for_ranges` 已支持
+            #   （`np.concatenate(parts)`）⇒ 天然是「拼起来的参考」。
             return self._spk_bridge.pcm_for_ranges(
-                rngs, keep=buf, max_s=10.0, keep_t0=self._spk_pcm_t0)
+                rngs, keep=buf, max_s=speaker_voice.XV_MAX_S,
+                keep_t0=self._spk_pcm_t0)
         except Exception:
             return None
 
@@ -5027,6 +5226,33 @@ class App:
                 #   ⇒ 老 spk 直接用缓存（不重算）⇒ 声纹计算次数极少。
                 if _is_new:
                     self._spk_pending_embed.append((seg, spk))
+                # 🔴🔴🔳 APP-089 §2c-1：**self_ref** 素材
+                #   ⇒ 抓**这句自己的音频**（≥ 1.5 s）存起来
+                #     ⇒ 提交给 TTS 时若该 spk **还没有登记音色**
+                #       ⇒ 用它提 x-vector（worker 侧算）⇒ **从第一句就克隆**
+                #   🔴 **在这里抓**（ASR 线程）⇒ PCM **一定还在环形缓冲里**
+                #     （提交时可能已被 30 s 缓冲挤掉）。
+                #   ⚠️ 只做 numpy 切片（**不算嵌入**）⇒ ASR 线程零阻塞。
+                self._capture_self_ref_pcm(seg)
+                # 🔴🔴🔳 APP-089 §2c-3：**请求换人切段**（GUI 侧）
+                #   ⇒ **只入队**（`request_split`）⇒ ASR 线程零阻塞
+                #   ⇒ 真正的切分在 `clone-split` 线程上做（结果由
+                #     `_pump_spk_voices` 轮询取回）⇒ **绝不在 ASR/接收线程上切**。
+                try:
+                    if getattr(self, '_clone_enabled', False) and \
+                            (_t1 - _t0) >= 3.2:
+                        with self._spk_pcm_lock:
+                            _gbuf = self._spk_pcm_buf
+                            _gt0 = self._spk_pcm_t0
+                        if _gbuf is not None:
+                            _gi0 = int((float(_t0) - float(_gt0)) * SR)
+                            _gi1 = int((float(_t1) - float(_gt0)) * SR)
+                            if 0 <= _gi0 < _gi1 <= len(_gbuf):
+                                self._clone_pol.request_split(
+                                    seg, _gbuf[_gi0:_gi1],
+                                    [(0, _gi1 - _gi0)])
+                except Exception:
+                    pass
             except Exception as e:
                 self._ui_log('[spk] 定稿旁路异常（忽略）：%s' % e)
         self.mt.submit(text, seg=seg, spk=spk, spk_conf=spk_conf)
@@ -5038,8 +5264,28 @@ class App:
         ⚠️ **当前 ASR 不给段级时间戳** ⇒ 用「已消费的源音频时长」近似：
           - `session.audio_s` = 已经喂进引擎的源音频秒数；
           - 会话起点墙钟 `self._session_wall0` ⇒ 目标墙钟 = `t0 + audio_s`。
+
+        🔴🔴🔳 **APP-092② 修正（本轮）**：旧实现假设**源音频按 1× 实时消费**
+          ⇒ 目标墙钟 = `t0 + audio_s`。
+        🔴 **缺陷**：`--speed`（回放速度）≠ 1.0 时，源音频消费**不等于**墙钟流逝
+          ⇒ 目标墙钟被**系统性低估**（例如 `--speed 0.35` ⇒ 真实落后 ≈ 2.86×）
+          ⇒ **APP-092② 的「滞后秒数」被放大** ⇒ late-drop 判据**失真**
+          （实测：`--speed 0.35` 时 **83/83 句全被跳过** ⇒ 不可用）。
+        ⇒ 修法：用**实测消费速率**换算 ⇒ 目标墙钟 = `t0 + audio_s / rate`
+          （`rate` = 源音频秒 / 墙钟秒 ⇒ 实测得出，不假设）。
         ⚠️ **没有会话**（未 start）⇒ 返回 None ⇒ 不下发加速参数
           ⇒ 旧行为逐字不变。
+        ⚠️ **测不到速率**（刚开跑）⇒ 退回 1.0 ⇒ 与旧行为一致。
+
+        🔴🔴🔳 **APP-092② 再修正（本轮，用实测值反证）**：
+          第一版修法改用「**实测**消费速率」（滑窗估计 `da/dt`）。
+          🔴 **实测速率极不稳定**：实测隐含速率 p50 = **1.49**、范围 **0.28 – 13.6**
+            （真实值恒为 1.0）⇒ 目标墙钟**忽早忽晚**
+            ⇒ **普通跑（speed=1.0）就误跳 19 句**（修正前只有 3 句）
+            ⇒ 直接违反 APP-092 §3(d)「正常跑 TTS 跳过 ≈ 0」。
+          ⇒ **改用构造期已知的 `pace`**（`FileSource.speed` / 实时源 1.0）
+            ⇒ **无估计噪声 ⇒ 确定性**。
+        ⚠️ **`pace` 不可知**（全速跑批 `speed=0`）⇒ 退回旧口径（1.0）。
         """
         if self._session_wall0 is None:
             return None
@@ -5047,7 +5293,33 @@ class App:
             a = float(self.session.audio_s) if self.session else 0.0
         except Exception:
             a = 0.0
+        # 🔴🔴🔳 **实测源音频消费速率**（源秒 / 墙钟秒）
+        # 🔴🔴🔳 **本源的播放速率**（构造期已知 ⇒ 确定性 ⇒ 无估计噪声）
+        _pace = self._source_pace()
+        if _pace and _pace > 0.0:
+            return self._session_wall0 + a / _pace
         return self._session_wall0 + a
+
+    def _source_pace(self):
+        """🔴🔴🔳 APP-092②：**本源的**播放速率**（源秒 / 墙钟秒）。
+
+        🔴 **为什么不用实测值**：滑窗实测速率**极不稳定**
+          （实测隐含速率 p50 = 1.49、范围 0.28 – 13.6，真实值恒为 1.0）
+          ⇒ 目标墙钟忽早忽晚 ⇒ **普通跑就误跳 19 句**
+          ⇒ 违反 APP-092 §3(d)。**改用构造期已知的确定值。**
+
+        ⚠️ **取不到**（没有会话 / 源没有 `pace` 属性）⇒ 返回 **0.0**
+          ⇒ 调用方**退回旧口径**（`t0 + 已消费源秒`）⇒ 不猜。
+        """
+        try:
+            src = getattr(self.session, 'src', None)
+            if src is None:
+                return 0.0
+            p = float(getattr(src, 'pace', 0.0) or 0.0)
+            return p if p > 0.0 else 0.0
+        except Exception:
+            return 0.0
+
 
     def clear(self):
         self.final_text = ''
@@ -5386,9 +5658,18 @@ class App:
             mt_tail = ' '.join(
                 m for m in (self._mt_of(i) for i in range(len(self.blocks) - 3,
                                                             len(self.blocks))) if m)
-            # APP-007：屏幕字幕只保留**定稿译文**（青）与**实时识别**（黄）两行。
-            # 定稿原文与草稿译文预览不再上屏幕字幕（仍在主文本区里）。
-            self.overlay.show(mt_tail, partial)
+            # 🔴🔴🔳 APP-091 §3：**定稿原文**也上屏幕字幕（**小字第二行**）
+            #   ⇒ 与 EXT v0.3.4 一致（译文 + 原文小字）
+            #   ⚠️ `self.blocks` 存的就是**定稿原文**（ASR 的 `on_final` 文本）
+            #   ⇒ 取最近 3 段拼起来（与译文行同口径）。
+            #   🔴 **只取有译文的段**（否则原文行会领先译文行 ⇒ 看着别扭）。
+            src_tail = ' '.join(
+                s for s in (self.blocks[i]
+                            for i in range(len(self.blocks) - 3, len(self.blocks))
+                            if self._mt_of(i)) if s)
+            # APP-007 的「不显示原文」限制：**被 APP-091 §3 取代（仅限字幕条）**。
+            # 草稿译文预览仍不上屏（仍在主文本区里）。
+            self.overlay.show(mt_tail, partial, src_tail)
 
     # ══════════════════════════════════════════════════════════════════
     # 🔴🔴🔴 APP-048：分区状态条（ASR / 翻译 / 语音 各自的紧凑状态行）
@@ -6737,6 +7018,9 @@ def run_cli(args):
     #   ⚠️ **查不到 ⇒ 传 None** ⇒ 服务端不下发加速参数 ⇒ 旧行为逐字不变。
     _cli_wall0 = None       # 会话起点墙钟（`time.time()` 口径）
     _seg_target_wall = {}   # 段号 → 目标开播墙钟
+    # 🔴🔴🔳 APP-092②：**目标墙钟的基准**（会话起点墙钟）
+    #   ⇒ 换算用的是**构造期已知的 `pace`**（确定值）
+    #   ⇒ 不再需要滑窗实测采样点。
     s = None                # 供下面的闭包在 `Session` 建好后引用
 
     # 🔴🔴🔴 APP-039/040（§97 接线）：**CLI 侧**的说话人旁路 + 音色表
@@ -6756,12 +7040,66 @@ def run_cli(args):
     # 🔴🔴🔳 APP-086(2)：克隆**策略层**（a–f）——与 GUI 侧**同一份实现**
     #   ⇒ **注入既有的旁路与音色表** ⇒ 不新建旁路（不双跑 wespeaker）。
     #   ⚠️ 本层**不做音色登记** ⇒ 登记仍走 `_cli_pump_spk_voices()`。
+    # 🔴🔴🔳 **APP-089 修**：`on_nearest=_cli_clone_nearest` ⇒ **UnboundLocalError**
+    #   ⇒ 原因：`def _cli_clone_nearest` 在**下方**才定义（Python 局部名在
+    #   **函数体执行到该行时**才绑定 ⇒ 构造 `CloneVoices` 时它还不存在）
+    #   ⇒ **CLI 整条路径在建策略层时就崩**（`UnboundLocalError`）
+    #   ⇒ 症状：`--cli` 跑起来立刻挂 ⇒ **APP-089/090/091/092 的设备验收根本跑不了**。
+    #   ⚠️ GUI 侧没事（`self._clone_nearest` 是**已绑定方法**，定义顺序无关）。
+    #   ⇒ 修法：**延迟绑定**（lambda 在**调用时**才查名字）
+    #   ⇒ 等价语义（回调行为逐字不变），且不再依赖定义顺序。
     _clone_pol = clone_voice.CloneVoices(
         on_log=lambda m: print(f'  [spk] {m}', flush=True),
         bridge=_spk_bridge, table=_spk_voices,
         pcm_getter=lambda: (_spk_pcm_buf, _spk_pcm_t0[0]),
         span_getter=lambda seg: _spk_span.get(seg),
-        on_nearest=_cli_clone_nearest)
+        on_nearest=lambda seg, spk, sim: _cli_clone_nearest(seg, spk, sim))
+
+    def _cli_capture_self_ref(seg):
+        """🔴🔴🔳 APP-089 §2c-1：**抓 self_ref 素材**（CLI 侧）。
+
+        🔴 与 GUI 侧**同一口径**：只做 numpy 切片（不算嵌入）
+        ⇒ ASR 线程零阻塞。
+        """
+        try:
+            pcm = _clone_pol.self_ref_pcm(seg)
+        except Exception:
+            return
+        if pcm is None:
+            return
+        try:
+            _spk_self_ref[seg] = pcm
+            if len(_spk_self_ref) > SELF_REF_KEEP:
+                for _k in list(_spk_self_ref.keys())[:-SELF_REF_KEEP]:
+                    _spk_self_ref.pop(_k, None)
+        except Exception:
+            pass
+
+    def _cli_maybe_send_self_ref(seg):
+        """🔴🔴🔳 APP-089 §2c-1：**提交前**按需发 self_ref（CLI 侧）。
+
+        🔴 与 GUI 侧 `_maybe_send_self_ref` **同一口径**。
+        """
+        try:
+            if seg is None or tts is None:
+                return False
+            if not getattr(tts, 'active', False):
+                return False
+            spk = _spk_voices.spk_of(seg)
+            if spk and _spk_voices.has_voice(spk):
+                return False       # 该 spk 已有音色 ⇒ 不用 self_ref
+            pcm = _spk_self_ref.get(seg)
+            if pcm is None:
+                return False
+            ok = tts.spk_voice_seg(seg, pcm)
+            if ok:
+                _spk_self_ref.pop(seg, None)
+                print(f'  [spk] 第 {seg} 段用**自己的音频**做 self_ref 克隆'
+                      f'（该说话人还没有登记音色）', flush=True)
+            return bool(ok)
+        except Exception as e:
+            print(f'  [spk] self_ref 发送失败（忽略）：{e}', flush=True)
+            return False
 
     def _cli_clone_nearest(seg, spk, sim):
         """🔴🔴🔳 APP-086(2)a：**无标签句 ⇒ 最近已登记说话人**（CLI 侧）。
@@ -6783,6 +7121,8 @@ def run_cli(args):
     _spk_pcm_t0 = [0.0]      # 🔁 §99: 缓冲起点的全局时刻（闭包内可变）
     _spk_pcm_lock = threading.Lock()
     _spk_pending_embed = []
+    # 🔴🔴🔳 APP-089 §2c-1：**self_ref 素材**（seg → 这句自己的 PCM，**有界**）
+    _spk_self_ref = {}
     # 🔴🔴🔴 §100（断链 I）：CLI 侧**说话人标签表**（seg → (spk, spk_conf)）
     #   ⇒ GUI 侧有 `self._spk_by_seg`，CLI 侧**完全没有** ⇒
     #     APP-040④「原文字幕和译文字幕每句前面都显示说话人标签」
@@ -6808,18 +7148,22 @@ def run_cli(args):
     #   ⇒ 这里**只做落盘**，不改任何判定/取值逻辑 ⇒ 行为逐字不变。
     _spk_seg_info = {}            # seg → {seg, t0, t1, spk, spk_conf, source}
     _spk_submit_rows = []         # 提交序号（= worker 的 id）→ {jid, seg, spk}
+    # 🔴🔴🔳 APP-089 §2c-3：**已取过切段结果的段号**（每段只记一次）
+    _spk_split_noted = set()
     # 🔴 用 `getattr` ⇒ 任何**手工构造的 Namespace**（老调用方）也不会炸
     _spk_seg_path = getattr(args, 'spk_seg_jsonl', None)
 
     def _spk_seg_note(seg, t0=None, t1=None, spk=None, spk_conf=None,
-                      source=None):
+                      source=None, mixed_spk=None, n_split=None):
         """记一段的（区间, 说话人）⇒ 只在 `--spk-seg-jsonl` 给了才干活。"""
         if not _spk_seg_path:
             return
         row = _spk_seg_info.get(seg)
         if row is None:
             row = {'seg': seg, 't0': None, 't1': None, 'spk': None,
-                   'spk_conf': None, 'spk_source': None}
+                   'spk_conf': None, 'spk_source': None,
+                   # 🔴🔴🕳 APP-089 §2c-3：换人切段的判定结果
+                   'mixed_spk': False, 'n_split': 0}
             _spk_seg_info[seg] = row
         if t0 is not None:
             row['t0'] = round(float(t0), 3)
@@ -6833,6 +7177,10 @@ def run_cli(args):
                                else spk_conf)
         if source is not None:
             row['spk_source'] = source
+        if mixed_spk is not None:
+            row['mixed_spk'] = bool(mixed_spk)
+        if n_split is not None:
+            row['n_split'] = int(n_split)
 
     def _spk_seg_flush():
         """把段表落盘（**每次变化都重写** ⇒ 中途崩溃也不丢已写的数据）。"""
@@ -6912,6 +7260,26 @@ def run_cli(args):
             _clone_pol.pump()
         except Exception:
             pass
+        # 🔴🔴🔳 APP-089 §2c-3：**取回切段结果**（异步 ⇒ 在这里轮询）
+        #   ⇒ 切分在 `clone-split` 线程上完成 ⇒ 这里只读结果（微秒级）
+        #   ⇒ 切出多块 ⇒ **这一段里换了人** ⇒ 记进段表（mixed_spk / n_split）
+        #   ⚠️ **每段只记一次**（`_spk_split_noted`）⇒ 否则每轮泵都重复记。
+        try:
+            for _sg in list(_spk_seg_info.keys()):
+                if _sg in _spk_split_noted:
+                    continue
+                _rs = _clone_pol.poll_split(_sg)
+                if not _rs:
+                    continue
+                _spk_split_noted.add(_sg)
+                if int(_rs.get('n_parts', 1)) > 1:
+                    _spk_seg_note(_sg, mixed_spk=True,
+                                  n_split=int(_rs.get('n_split', 0)))
+                    print(f'  [spk] 第 {_sg} 段内检测到换人'
+                          f"（切成 {int(_rs.get('n_parts', 1))} 块）",
+                          flush=True)
+        except Exception:
+            pass
         # 🔴🔴🔴 §97 **修真实缺陷**：本函数**重绑**了 `_spk_pending_embed`
         #   ⇒ Python 静态判定它是**本函数的局部变量** ⇒ 第 4601 行
         #     `for seg, spk in list(_spk_pending_embed)` 读取时**未赋值**
@@ -6969,8 +7337,12 @@ def run_cli(args):
                 if not _spk_voices.has_voice(spk):
                     # 🔴🔴🔳 APP-075(a)(b)：**只认合格段**（同 GUI 侧口径）
                     #   ⇒ 没有合格段 ⇒ **不得**用不合格段登记 ⇒ 回落预设 A。
-                    rngs, _key = _spk_voices.registration_ticket(spk)
-                    if not rngs:
+                    # 🔴🔴🔳 APP-089 §2c-2：**改用 XV 口径**（拼接多段）
+                    #   ⇒ 首次写入门槛 `XV_FIRST_S`(3.0 s)；≥`XV_UPGRADE_S`(8.0 s)
+                    #     升级**一次**；最长 `XV_MAX_S`(10 s)；之后**冻结**。
+                    _xr, _xk, _xd, _xs = _spk_voices.xv_reference_ticket(spk)
+                    rngs = _xr
+                    if not rngs or _xs not in ('first', 'upgrade'):
                         _spk_voices.mark_fallback(spk, 'no_qualified_run')
                         if spk not in _cli_spk_fallback_seen:
                             _cli_spk_fallback_seen.add(spk)
@@ -6985,7 +7357,8 @@ def run_cli(args):
                     with _spk_pcm_lock:
                         buf = _spk_pcm_buf
                     pcm = _spk_bridge.pcm_for_ranges(
-                        rngs, keep=buf, max_s=10.0, keep_t0=_spk_pcm_t0[0])
+                        rngs, keep=buf, max_s=speaker_voice.XV_MAX_S,
+                        keep_t0=_spk_pcm_t0[0])
                     if pcm is None or pcm.size < int(speaker_voice.MIN_S * SR):
                         continue
                     if not tts.register_spk_voice(spk, pcm):
@@ -6995,22 +7368,33 @@ def run_cli(args):
                         continue
                     # 🔴🔴🔳 APP-075(b)：**记下这一段** ⇒ 变长才升级
                     _spk_voices.mark_registered(spk, rngs[0][0], rngs[0][1])
+                    # 🔴🔴🔳 APP-089 §2c-2：记 XV 状态（升级一次 ⇒ 冻结）
+                    _spk_voices.mark_xv_registered(
+                        spk, _xd, upgraded=(_xs == 'upgrade'))
                     # 🔴 §99（断链 C）：**不立即 mark_embedded** ⇒ 等 worker 回执
                     _spk_voice_sent.add((spk, False))
                 elif _spk_voices.ready_to_embed(spk):
                     # 🔴🔴🔳 APP-075(a)：细化也**只认合格段**
-                    rngs, _key2 = _spk_voices.registration_ticket(spk)
+                    # 🔴🔴🔳 APP-089 §2c-2：**升级一次之后冻结**（EXT 口径）
+                    _xr2, _xk2, _xd2, _xs2 = _spk_voices.xv_reference_ticket(spk)
+                    if _xs2 != 'upgrade':
+                        continue      # 冻结／不到门槛 ⇒ 不升级
+                    rngs = _xr2
                     if not rngs:
                         continue
                     with _spk_pcm_lock:
                         buf = _spk_pcm_buf
                     pcm = _spk_bridge.pcm_for_ranges(
-                        rngs, keep=buf, max_s=10.0, keep_t0=_spk_pcm_t0[0])
+                        rngs, keep=buf, max_s=speaker_voice.XV_MAX_S,
+                        keep_t0=_spk_pcm_t0[0])
                     if pcm is not None and \
                             pcm.size >= int(speaker_voice.REFINE_S * SR):
                         if tts.register_spk_voice(spk, pcm):
                             # reviewer 11-07: remember which run we used => only a LONGER run re-triggers
                             _spk_voices.mark_registered(spk, rngs[0][0], rngs[0][1])
+                            # 🔴🔴🔳 APP-089 §2c-2：标记「已升级」⇒ 冻结
+                            _spk_voices.mark_xv_registered(
+                                spk, _xd2, upgraded=True)
                             # 🔴 §99（断链 C）：细化也等回执
                             _spk_voice_sent.add((spk, True))
             except Exception as e:
@@ -7062,6 +7446,11 @@ def run_cli(args):
           目标 = 「源音频中这句的结束时刻」对应的墙钟
                = 会话起点墙钟 `t0` + 已消费的源音频秒数 `session.audio_s`。
         ⚠️ **ASR 不给段级时间戳** ⇒ 用已消费音频时长近似（与 GUI 同）。
+
+        🔴🔴🔳 **APP-092② 修正（本轮）**：`--speed` ≠ 1.0 时源音频消费
+          **不等于**墙钟流逝 ⇒ 旧口径会让「滞后秒数」**系统性失真**
+          ⇒ late-drop 判据失效（实测 `--speed 0.35` ⇒ 83/83 句全跳过）。
+        ⇒ 修法：用**实测消费速率**换算（`rate` = 源秒 / 墙钟秒）。
         """
         if _cli_wall0 is None:
             return None
@@ -7069,6 +7458,17 @@ def run_cli(args):
             a = float(s.audio_s) if s is not None else 0.0
         except Exception:
             a = 0.0
+        # 🔴🔴🔳 **本源的播放速率**（与 GUI 侧同一口径）
+        #   ⚠️ **构造期已知的确定值**（不是实测估计）⇒ 无估计噪声
+        #   ⇒ 普通跑（speed=1.0）不会误跳句。
+        try:
+            _src = getattr(s, 'src', None)
+            _pace = float(getattr(_src, 'pace', 0.0) or 0.0) \
+                if _src is not None else 0.0
+            if _pace > 0.0:
+                return _cli_wall0 + a / _pace
+        except Exception:
+            pass
         return _cli_wall0 + a
 
     # 🔴🔴🔴 2026-10-27 §78 **修真实缺陷**：CLI 模式的 `on_final` **签名对不上**
@@ -7118,6 +7518,35 @@ def run_cli(args):
                 _clone_pol.on_segment(_seg, _t0, _t1, t)
             except Exception:
                 pass
+            # 🔴🔴🔳 **APP-089 §2c-3：换人切段**（CLI 侧）
+            #   reviewer 原话：「克隆模式下，对**已经 ready 的段落**做
+            #   `split_by_speaker`（窗口 1.6/2.0/2.5 s、min_sim 0.30、
+            #   margin 0.10、最短段 3.2 s）；用**自己的编码器**，
+            #   在**克隆线程上编译**，**绝不能放在接收线程或 ASR 线程上**。」
+            #   ⇒ 这里做**登记 + 统计**（切点数量）：
+            #     ⚠️ **不改变合成行为**（App 的 ASR 一次解码整段、
+            #        **无词级时间戳** ⇒ 切出来的子段**没有文本**
+            #        ⇒ 不能变成新的待合成句；EXT 那边能切是因为它的段
+            #        是**按静音网格**派发的）。
+            #   ⇒ 切出来的多块 ⇒ **这一段里换了人** ⇒ 计入「混合说话人段」。
+            # 🔴🔴🔳 **本轮修正**：旧实现**直接在接收线程**调
+            #   `split_ready_segments` ⇒ 编码器首次编译会**卡住接收线程**
+            #   ⇒ **违反 reviewer 的线程纪律**。
+            #   ⇒ 现在改成**异步**：这里只 `request_split()`（入队即返回）
+            #   ⇒ 真正的切分在 `clone-split` 线程上做（结果用 `poll_split` 取）。
+            try:
+                if _want_clone and (_t1 - _t0) >= 3.2:
+                    _i0 = int((float(_t0) - float(_spk_pcm_t0[0])) * SR)
+                    _i1 = int((float(_t1) - float(_spk_pcm_t0[0])) * SR)
+                    _buf, _bt0 = _spk_pcm_buf, _spk_pcm_t0[0]
+                    if 0 <= _i0 < _i1 <= len(_buf):
+                        _clone_pol.request_split(_seg, _buf[_i0:_i1],
+                                                 [(0, _i1 - _i0)])
+            except Exception:
+                pass
+            # 🔴🔴🔳 APP-089 §2c-1：**抓 self_ref 素材**（CLI 侧）
+            #   ⇒ 在这里抓 ⇒ PCM **一定还在环形缓冲里**（提交时可能已被挤掉）。
+            _cli_capture_self_ref(_seg)
             _res = _spk_bridge.on_final(_seg, _t0, _t1)
             _spk2 = _res.get('spk')
             if _spk2:
@@ -7176,6 +7605,36 @@ def run_cli(args):
     #   ⇒ 不接 ⇒ 克隆源语音永远采集不到 ⇒ **V3 客观做不了**。
     #   ⚠️ **默认行为逐字不变**：`_clone_col is None` ⇒ `on_audio=None`
     #   ⇒ `Session._loop` 里的 `if self.on_audio is not None` 短路 ⇒ 零开销。
+    # 🔴🔴🔳 **APP-089 §2b（CLI 侧补齐）**：**会话开始清空**克隆状态
+    #   ⇒ GUI 侧有 `App._reset_clone_session()`（L3675 调用），
+    #     **CLI 侧原本没有** ⇒ 同一台机器连开两次 CLI 会话时，
+    #     第二次会命中第一次留在克隆目录里的参考 wav / `.txt`
+    #     ⇒ 正是 reviewer 说的「文件名被复用时旁边旧的 `.txt` 悄悄把克隆切成 ICL」。
+    #   ⇒ 这里做**与 GUI 同一口径**的三件事：
+    #     ① 策略层 `reset_session()`（清克隆目录 + 本层缓存）
+    #     ② worker 侧 `clear_spk_voices()`（清 `_spk_voices` **和** `_spk_bind`）
+    #     ③ App 侧标签表 / pending 队列清空
+    #   ⚠️ **失败不抛异常**（清理失败不该让会话起不来）。
+    try:
+        _clone_pol.reset_session()
+    except Exception as e:
+        print(f'  [spk] 会话重置（策略层）失败（忽略）：{e}', flush=True)
+    try:
+        if tts is not None and getattr(tts, 'active', False):
+            tts.clear_spk_voices()
+    except Exception as e:
+        print(f'  [spk] 会话重置（worker 侧）失败（忽略）：{e}', flush=True)
+    try:
+        _spk_by_seg.clear()
+        _spk_pending_embed = []
+        _spk_voice_sent = set()
+        _spk_fallback_seen = set()
+        _cli_spk_fallback_seen = set()
+        _cli_spk_reason_seen = set()
+        _spk_seg_info = {}
+        _spk_submit_rows = []
+    except Exception:
+        pass
     s = Session(eng, _cli_source(args), on_final=on_final,
                 on_audio=(_clone_col.feed if _clone_col is not None else None),
                 # 🔴🔴🔴 APP-039/040：**喂说话人旁路**（CLI 与 GUI 同一份实现）
@@ -7185,6 +7644,7 @@ def run_cli(args):
     #     （`perf_counter()` 各进程基准不同 ⇒ 不可比）。
     #   ⚠️ 必须在 `s.start()` **之前**赋值 ⇒ 首句的目标时刻才不是 None。
     _cli_wall0 = time.time()
+    # 🔴🔴🔳 APP-092②：**重置速率采样点**（新会话 ⇒ 新起点）
     t0 = time.perf_counter()
     s.start()
     last, lags, max_backlog = '', [], 0.0
@@ -7221,6 +7681,10 @@ def run_cli(args):
                         if getattr(tts, 'state', '') != 'ready':
                             _skip_nr += 1
                             continue
+                        # 🔴🔴🔳 APP-089 §2c-1：**先**按需发 self_ref
+                        #   ⇒ 该 spk 还没有登记音色时，用**这句自己的音频**克隆
+                        #     ⇒ **从第一句就开始克隆**（不再回落预设 A）。
+                        _cli_maybe_send_self_ref(ev['seg'])
                         # 🔴🔴🔴 APP-030①：**显式下传 MT 目标语言**
                         #   （CLI 没有下拉 ⇒ 用 `mt.target`）
                         tts.submit(txt, seg=ev['seg'], lang=mt.target,
@@ -7273,6 +7737,8 @@ def run_cli(args):
                     if getattr(tts, 'state', '') != 'ready':
                         _skip_nr += 1
                         continue
+                    # 🔴🔴🔳 APP-089 §2c-1：**先**按需发 self_ref（CLI 侧）
+                    _cli_maybe_send_self_ref(ev['seg'])
                     # 🔴🔴🔴 APP-030①：**显式下传 MT 目标语言**
                     tts.submit(txt, seg=ev['seg'], lang=mt.target,
                                # 🔴🔴🔴 APP-039/040：**按句绑定音色**
