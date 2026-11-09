@@ -1,0 +1,158 @@
+{
+ "tool": "app351_app086_ack_status",
+ "stamp": "2026-11-09 09:24:27",
+ "status_before": {
+  "bytes": 39996,
+  "lines": 218,
+  "sha256": "dd60ffdbc949502a893500b40da5bd792190de125bf25ccb47ec4c4efc061b44",
+  "last_ack": "APP-085",
+  "h2": 9
+ },
+ "status_after": {
+  "bytes": 30017,
+  "lines": 175,
+  "sha256": "4294e06d0bd361efc2e3da6dbc2ae54ff75c1f0fd2c8538308578ac80ef35ab9",
+  "last_ack": "APP-088",
+  "h2": 9
+ },
+ "archives": [
+  {
+   "path": "status/archive/STATUS_APP_sec158_20261109.md",
+   "bytes": 5694,
+   "sha256": "b5ea34eb55109a6bf72892de1237b408c1257f381466b11d1edb735a4e8a00eb",
+   "verbatim": true
+  },
+  {
+   "path": "status/archive/STATUS_APP_sec150_20261109.md",
+   "bytes": 6255,
+   "sha256": "b3a055b6394c8de9e8f0e5b44005635d75b3202bcd1480efe9817b18e4939521",
+   "verbatim": true
+  }
+ ],
+ "ack_line": "> 🔴 2026-11-09 2026-11-09 09:24:27｜**APP-086 / APP-087 / APP-088 已 ack，开始按编号执行**（APP-088「ack 要求」）：纠偏 85→**88 条**（新增 3 条 [HIGH] 用户决定），开工 SHA `d66746ed…6c1f`／**242 619 B**／mtime **2026-11-09 09:11:06**；APP-086⑤／APP-087⑦／APP-088④ 顺序＝**先做完 APP-086（合并＋克隆 a–f＋GUI＋验收数字）→ 停下等 reviewer 复核 → 复核通过后才打 v2.5（含 EXT、CUDA 排除）**；APP-083/084「等用户测完」节点由 APP-086 解除；本轮不打包、不通知用户；APP-085 待命期空巡检禁令在有新条目时解除。",
+ "checks": [
+  {
+   "name": "section_158_unique_and_nonempty",
+   "ok": true,
+   "detail": "3739"
+  },
+  {
+   "name": "section_150_unique_and_nonempty",
+   "ok": true,
+   "detail": "4288"
+  },
+  {
+   "name": "block_158_single_hit",
+   "ok": true,
+   "detail": "1"
+  },
+  {
+   "name": "block_150_single_hit",
+   "ok": true,
+   "detail": "1"
+  },
+  {
+   "name": "header_last_ack",
+   "ok": true,
+   "detail": "last_ack: APP-085"
+  },
+  {
+   "name": "header_update_time",
+   "ok": true,
+   "detail": "更新时间: 2026-11-08 21:52:39"
+  },
+  {
+   "name": "recent_anchor_unique",
+   "ok": true,
+   "detail": "[12]"
+  },
+  {
+   "name": "replace_158_applied",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "replace_150_applied",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "header_line_single_hit",
+   "ok": true,
+   "detail": "last_ack: APP-085"
+  },
+  {
+   "name": "header_line_single_hit",
+   "ok": true,
+   "detail": "更新时间: 2026-11-08 21:52:39"
+  },
+  {
+   "name": "header_line_single_hit",
+   "ok": true,
+   "detail": "当前任务: **APP-085 已 ack：本条已完成｜待命期停止巡检产出与提交"
+  },
+  {
+   "name": "header_line_single_hit",
+   "ok": true,
+   "detail": "阻塞 / 待用户决定: **等用户测完＋reviewer 发起 claude-c"
+  },
+  {
+   "name": "ack_anchor_single_hit",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "lf_intact",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "limit_bytes",
+   "ok": true,
+   "detail": "30017 <= 40000"
+  },
+  {
+   "name": "limit_lines",
+   "ok": true,
+   "detail": "175"
+  },
+  {
+   "name": "h2_not_reduced",
+   "ok": true,
+   "detail": "9 -> 9"
+  },
+  {
+   "name": "reverse_restore_equals_old",
+   "ok": true,
+   "detail": "rev=39996 old=39996"
+  },
+  {
+   "name": "all_checks_pass",
+   "ok": true,
+   "detail": "19/19"
+  },
+  {
+   "name": "archive_verbatim_STATUS_APP_sec158_202611",
+   "ok": true,
+   "detail": "5694"
+  },
+  {
+   "name": "archive_verbatim_STATUS_APP_sec150_202611",
+   "ok": true,
+   "detail": "6255"
+  },
+  {
+   "name": "disk_byte_identical_after_write",
+   "ok": true,
+   "detail": "30017"
+  },
+  {
+   "name": "corrections_untouched_by_this_script",
+   "ok": true,
+   "detail": "script writes STATUS/archive only"
+  }
+ ],
+ "n_pass": 24,
+ "n_fail": 0,
+ "verdict": "PASS"
+}

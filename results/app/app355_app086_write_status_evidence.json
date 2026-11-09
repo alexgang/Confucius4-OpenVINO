@@ -1,0 +1,203 @@
+{
+ "tool": "app355_app086_write_status",
+ "stamp": "2026-11-09 09:38:39",
+ "status_before": {
+  "bytes": 28387,
+  "lines": 166,
+  "sha256": "e5dacaa24d62a554238fb822b9c1e6e455f412f9a9664b3531aefc3ecd276197"
+ },
+ "status_after": {
+  "bytes": 39491,
+  "lines": 217,
+  "sha256": "6933c30e69fe370a73a036ede401e5d97efb9c8a5a4a8f4a2f2200df3e2fd92d"
+ },
+ "artifacts": [
+  {
+   "path": "results/app/app351_app086_ack_status.py",
+   "desc": "ACK + APP-052④ 压缩写入脚本（自检 24/0）",
+   "n": 1,
+   "mtime": "2026-11-09 09:26:17",
+   "bytes": 9996,
+   "sha256": "3aacaec80f225527613b8cc988edece13b8ad2448150754f805dfa54062da16f"
+  },
+  {
+   "path": "results/app/app351_app086_ack_evidence.json",
+   "desc": "ACK 写前自检/归档指纹原始字段",
+   "n": 1,
+   "mtime": "2026-11-09 09:26:22",
+   "bytes": 3906,
+   "sha256": "edc93e0531b1a0e0afc6fc8c3841b1961857d0f01fba2175f67f0f97d136b185"
+  },
+  {
+   "path": "status/archive/STATUS_APP_sec158_20261109.md",
+   "desc": "§158 正文整块逐字归档",
+   "n": 1,
+   "mtime": "2026-11-09 09:26:22",
+   "bytes": 5694,
+   "sha256": "b5ea34eb55109a6bf72892de1237b408c1257f381466b11d1edb735a4e8a00eb"
+  },
+  {
+   "path": "status/archive/STATUS_APP_sec150_20261109.md",
+   "desc": "§150 正文整块逐字归档",
+   "n": 1,
+   "mtime": "2026-11-09 09:26:22",
+   "bytes": 6255,
+   "sha256": "b3a055b6394c8de9e8f0e5b44005635d75b3202bcd1480efe9817b18e4939521"
+  },
+  {
+   "path": "results/app/app352_app086_merge_tests.py",
+   "desc": "合并后回归运行器（ast + 6 闸门 + 前后 SHA 快照）",
+   "n": 1,
+   "mtime": "2026-11-09 09:28:16",
+   "bytes": 5431,
+   "sha256": "22026e1422f974a0b67834e558cb7c2957c3384023cf32f4b89f05459fbfe6ae"
+  },
+  {
+   "path": "results/app/app352_app086_merge_test_evidence.json",
+   "desc": "回归原始字段（rc/wall/stdout_tail）",
+   "n": 1,
+   "mtime": "2026-11-09 09:29:05",
+   "bytes": 7302,
+   "sha256": "de6e9afbf944d90d14751404ee6725cdb4721b3e301085463a672954430c32a4"
+  },
+  {
+   "path": "results/app/app352_rerun/",
+   "desc": "本轮重跑输出另存目录（5 文件，既有证据已恢复）",
+   "n": 5,
+   "mtime": "2026-11-09 09:30:22",
+   "bytes": 34505,
+   "sha256": "bd3cfc14fdb449ddfc17c185de0949ed862da6a9c7af48f0b3f11cdb6ee58791"
+  },
+  {
+   "path": "results/app/app353_app086_fail_diagnosis.py",
+   "desc": "两处 FAIL 归因脚本（反证基线=当前被测对象）",
+   "n": 1,
+   "mtime": "2026-11-09 09:32:14",
+   "bytes": 6946,
+   "sha256": "267b5c87ab720ce598a56d99a25e12fc5974591b6feb3239791fa0aad5c13476"
+  },
+  {
+   "path": "results/app/app353_app086_fail_diagnosis.json",
+   "desc": "FAIL 归因原始字段（6/0 PASS）",
+   "n": 1,
+   "mtime": "2026-11-09 09:32:27",
+   "bytes": 3388,
+   "sha256": "7e91ee8b55b236b65de85beaf95e87d3721bc07d5de4899926f6e0d88e666a66"
+  },
+  {
+   "path": "results/app/app354_app086_clone_port.py",
+   "desc": "EXT→App 定点移植脚本（a–f 8 组反证）",
+   "n": 1,
+   "mtime": "2026-11-09 09:36:51",
+   "bytes": 14675,
+   "sha256": "6cb85881d83346e1e5145a14e4e71c0dfce0e4b0a58f12f9f5c9bb9495c785ef"
+  },
+  {
+   "path": "results/app/app354_app086_clone_port_evidence.json",
+   "desc": "移植原始字段（33/0、8/8、包零写入）",
+   "n": 1,
+   "mtime": "2026-11-09 09:36:56",
+   "bytes": 8601,
+   "sha256": "4db3619a1067acf935c6665c09e2ec1e7ecbb93235282f9625b4fca5c051dc91"
+  },
+  {
+   "path": "live_caption/clone_voice.py",
+   "desc": "APP-086② a–f 克隆编排层（新增）",
+   "n": 1,
+   "mtime": "2026-11-09 09:36:56",
+   "bytes": 15691,
+   "sha256": "536cfa33f70eb3016ff5d493e995c46294d6e207c59baf08bf776059ca22eed1"
+  },
+  {
+   "path": "live_caption/tts_cuda_sidecar.py",
+   "desc": "APP-086②(d) ICL 参考 + 0.6/20 采样（定点改 26 行）",
+   "n": 1,
+   "mtime": "2026-11-09 09:36:56",
+   "bytes": 26699,
+   "sha256": "abdd1d6c9a624ccd4d84fed9b592a22d575700a486ca1cbd5f8d2cd269a7c3f5"
+  },
+  {
+   "path": "live_caption/live_caption_app.py",
+   "desc": "APP-086③ CUDA 选项文案（定点改 3 行）",
+   "n": 1,
+   "mtime": "2026-11-09 09:36:56",
+   "bytes": 434041,
+   "sha256": "3c8fa32197eabd9ff1f342a049c00feab6f07a710aae636f59453efc3fe7aa21"
+  }
+ ],
+ "checks": [
+  {
+   "name": "all_artifacts_present",
+   "ok": true,
+   "detail": "14/14"
+  },
+  {
+   "name": "header_last_ack_still_088",
+   "ok": true,
+   "detail": "last_ack: APP-088"
+  },
+  {
+   "name": "header_update_line",
+   "ok": true,
+   "detail": "更新时间: 2026-11-09 09:24:27"
+  },
+  {
+   "name": "header_line_unique",
+   "ok": true,
+   "detail": "更新时间: 2026-11-09 09:24:27"
+  },
+  {
+   "name": "header_line_unique",
+   "ok": true,
+   "detail": "当前任务: **APP-086/087/088 已 ack（last_a"
+  },
+  {
+   "name": "header_line_unique",
+   "ok": true,
+   "detail": "阻塞 / 待用户决定: **APP-086 完成后停下等 reviewe"
+  },
+  {
+   "name": "lf_intact",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "limit_bytes",
+   "ok": true,
+   "detail": "39491<=40000"
+  },
+  {
+   "name": "limit_lines",
+   "ok": true,
+   "detail": "217"
+  },
+  {
+   "name": "h2_not_reduced",
+   "ok": true,
+   "detail": "9->10"
+  },
+  {
+   "name": "section159_single",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "reverse_restore_equals_old",
+   "ok": true,
+   "detail": "rev=28387 old=28387"
+  },
+  {
+   "name": "all_checks_pass",
+   "ok": true,
+   "detail": "12/12"
+  },
+  {
+   "name": "disk_byte_identical",
+   "ok": true,
+   "detail": ""
+  }
+ ],
+ "n_pass": 14,
+ "n_fail": 0,
+ "verdict": "PASS"
+}

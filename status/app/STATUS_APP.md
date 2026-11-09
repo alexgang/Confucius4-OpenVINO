@@ -1,15 +1,17 @@
 # STATUS_APP
 
-last_ack: APP-084
-更新时间: 2026-11-08 20:37:51
-当前任务: **§158 巡检无新纠偏（last_ack=APP-084）｜APP-084 停下节点未变：等用户测完 + reviewer 发起把 claude-clone 合回 main；本轮仅 ack，不打包、不通知用户、不自创自证轮次、不改克隆五处文件**
-阻塞 / 待用户决定: **v2.3 已作废（APP-083）｜v2.4 由 reviewer 构建并交付用户测试（APP-084）｜当前节点＝等用户测完，由 reviewer 发起把 claude-clone 合回 main（本轮实测 merge-base exit 1，节点未推进）；APP-082 审计是否对 v2.4 做、以何口径仍待 reviewer 裁定；本轮无新纠偏、不改桌面 .lnk、不通知用户**
+last_ack: APP-088
+更新时间: 2026-11-09 09:38:39
+当前任务: **APP-086 ① 合并已完成／② 代码资产已落盘（接线＋验收数字未完成）／③ GUI 已完成 ⇒ 停在 APP-086⑤ 等 reviewer 复核**
+阻塞 / 待用户决定: **APP-086 验收数字与主循环接线待设备会话；复核通过前不打包、不建 v2.5、不通知用户（APP-087⑦ / APP-088④）**
 已压缩: 压缩索引（旧正文逐字归档）⇒ `status/archive/STATUS_APP_compress_index_upto_20261107.md`；限额 ≤40000 B / ≤300 行（APP-052④）｜**§145 压缩**：§144 正文＋§143 产物表 ⇒ `status/archive/STATUS_APP_sec144_20261107.md` ／ `status/archive/STATUS_APP_sec143_artifacts_20261107.md`｜**§146 压缩**：§145 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec145_20261107.md`｜**§147 压缩（首版 42 844 B 超限被拦，STATUS 未落盘 ⇒ 二次压缩）**：§146 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec146_20261107.md`；§143 正文＋§144/§145 速查行整块逐字归档 ⇒ `status/archive/STATUS_APP_sec143_20261107.md`｜**§150 压缩**：§149 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec149_20261107.md`（块 SHA256 `29784e3e09e787a4c3328e8c3d5559eef5b459a42554a182d0ddd6745567aebe`）｜**§153 压缩**：§152 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec152_20261108.md`（块 SHA256 `3902c3035665e61903397474d0905fe9142d2f0fbb0049d16ca3e83e87b5c9bc`）｜**§154 压缩**：§153 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec153_20261108.md`（块 SHA256 `9e517bc709e87168e922aafbe5715ece75f24ab9b8c59ba3d87a8d5d58d17117`）｜**§155 压缩**：§154 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec154_20261108.md`（块 SHA256 `b50177e7b215778ffb873b27457eef5d2643914af07b4ab596aba5a4db2bb13d`）｜**§156 压缩**：§155 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec155_20261108.md`（块 SHA256 `584d8681aa4a89665d1bd2e2a2df1df3754ee869efb41284637705cefed1d41d`）｜**§157 压缩**：§156 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec156_20261108.md`（块 SHA256 `67e9b45d85887e6fff370ef7475d7830f490a490e8a936dfa4b8de6ab5d7ac00`）｜**§158 压缩**：§157 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec157_20261108.md`（块 SHA256 `5e6236cc5548d0aff9d29493ea7f574d2651594dc384c54664511318c6676d27`）
 
 
 ## 最近更新
 > 🔴 §139 / §140 两条「最近更新」原文（2 行）已**整块逐字归档** ⇒ `status/archive/STATUS_APP_recent_updates_upto_20261107.md`（块 SHA256 `853a0d85678f895f4b88ee294faaaeabec61ca31c2a3a247958a8f8c442f1c8d`）；速查：§139 APP-073/074 冒烟 7/0＋rev2 最终 SHA `90ae8b9d…`；§140 APP-076/077/078 39/0・26/0＋27/0・28/0＋14/0，APP-075 需等复核。
 > 🔴 2026-11-05 及更早的「最近更新」条目（16 行）已**逐字归档** ⇒ `status/archive/STATUS_APP_recent_updates_upto_20261106.md`（块 SHA256 `b14fb9b97026e9eaef29fbd3d8a7bc6277e7d4477000344d61c5693819817d47`）；本节只留 §139 / §140 两条速查。
+> 🔴 2026-11-08 21:52:39｜**APP-085 本条已完成**（验收待 reviewer 复核）：待命期停止巡检脚本＋§章节＋归档＋提交 ⇒ 不建脚本/json、不新增章节、不归档、不 commit/push；纠偏 84→85 条、SHA `b3a1a900…b62`→`1f7dcc28…642` ⇒ **中途追加，不声称零改动**（只读未改未提交）；`app350` 已按验收清除；APP-083/084 停下节点不变。
+> 🔴 2026-11-09 2026-11-09 09:24:27｜**APP-086 / APP-087 / APP-088 已 ack，开始按编号执行**（APP-088「ack 要求」）：纠偏 85→**88 条**（新增 3 条 [HIGH] 用户决定），开工 SHA `d66746ed…6c1f`／**242 619 B**／mtime **2026-11-09 09:11:06**；APP-086⑤／APP-087⑦／APP-088④ 顺序＝**先做完 APP-086（合并＋克隆 a–f＋GUI＋验收数字）→ 停下等 reviewer 复核 → 复核通过后才打 v2.5（含 EXT、CUDA 排除）**；APP-083/084「等用户测完」节点由 APP-086 解除；本轮不打包、不通知用户；APP-085 待命期空巡检禁令在有新条目时解除。
 ## 当前有效结论
 
 > 🔴 **每个数字都注明来源产物**；**被推翻的旧结论不在此表**（见归档）。
@@ -147,17 +149,8 @@ last_ack: APP-084
 
 ## §142 无新纠偏（last_ack=APP-078）｜版本纪律与证据落盘静态自证 26/0（2026-11-06 20:55:30）
 
-> 🔴 **本节正文已原样归档** ⇒ `status/archive/STATUS_APP_sec141_142_20261106.md`（§142 全文，逐字保留）。
-> 🔴 **速查**：`_app312` **26/0**＋反证 **4/4**；3 个旧包 zip 全量 SHA256 与 `DELIVERY_2.x.json` 基准全等；🔴 1 项历史证据 `app048_layout_1920x1080.png` 仓库内未落盘 ⇒ 记「无法判定」，**需 reviewer 确认存放位置**。
-
-> 🔴 §143 正文＋§144/§145 速查行（25 行／10301 B／块 SHA256 `855cd58c552ae6e5a88e5ff9ab232c7ffda9b3745fa586fd0d7f033f3a45928c`）已**整块逐字归档** ⇒ `status/archive/STATUS_APP_sec143_20261107.md`；速查：APP-079 静态归因 10/0、APP-080 构建期补丁 36/0・反证 8/8、docstring 修正、界面/运行时/旁路/包内容四项；⑤⑥ 停 reviewer 复核、v2.3 未打包。
-
-> 🔴 §146 正文（19 行／4629 B／块 SHA256 `9a68ea495d02b5a2b063254ea07ec97fc98e58ffe12a78e9d8fb1cab0976bb2e`）已**整块逐字归档** ⇒ `status/archive/STATUS_APP_sec146_20261107.md`；速查：`_app322` 33/0・反证 8/8，dev 18/18 锚点唯一命中、v2.2 包内基底仅 14/18（缺 P03/P04/P05/P08）⇒ v2.3 打新版本须先升级包内 3 份源文件基底再套 18 锚点补丁，v2.3 未打包。
-
-> 🔴 §147 正文（22 行／7516 B／块 SHA256 `cd4ea569b3434e1e6327c1b553825ebecf462e80dc3571e3aae9804c2ef84957`）已**整块逐字归档** ⇒ `status/archive/STATUS_APP_sec147_20261107.md`；速查：`_app324` 25/0・UNKNOWN 1・反证 12/12，v2.2 包内 asr_spk 仅 3/5、5 s seg IR 只在影子包、D5 两份 xml SHA 不同待 reviewer 裁定；`PKG_INCLUDE_FILES` NOT_WIRED、v2.2 包内基底 14/18、`ext/bridge_token.txt` 仍在；v2.3 未打包。
-
-> 🔴 §148 正文（8534 B／块 SHA256 `41fc4e67eee63d789da263bd6e7be5e3e8f550a39ce1a94db3d0958362dea7de`）已**整块逐字归档** ⇒ `status/archive/STATUS_APP_sec148_20261107.md`；速查：`_app326` 41 PASS/0 FAIL・反证 9/9，随包闸门仅检出 2/6 类违规（APP-081 第 3 点已修复）。
-
+> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec142_20261109.md`（2128 B／块 SHA256 `912e9b29e5b6ee4eb44849cc4ffaf8094ace2d4a89702fdb75e4dc47c5c2cd84`；含版本纪律与证据落盘 26/0 静态自证）。
+> 🔴 **速查**：APP-078 版本纪律（不 `--same-version`／不原地改客户包）与证据落盘口径不变；26 PASS / 0 FAIL。
 ## §149 执行 APP-081（last_ack=APP-081）｜v2.3 新目录＋新 zip 已打，APP-080 ⑥ 全套验收（2026-11-07 17:14）
 
 > 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec149_20261107.md`（12416 B／块 SHA256 `29784e3e09e787a4c3328e8c3d5559eef5b459a42554a182d0ddd6745567aebe`；含开工/收尾指纹、4a–4e 全部原始字段、20 项产物清单、r1 事故与 reviewer 待裁定项）。
@@ -165,52 +158,59 @@ last_ack: APP-084
 
 ## §150 巡检无新纠偏（last_ack=APP-081）｜APP-081 第 5 点仍停在「需等 reviewer 复核」节点（2026-11-07 17:43:17）
 
-- **步骤 1–3**：`status/app/CORRECTIONS_APP.md`（reviewer 独占，全程只读／未改／未提交）全文 **81 条**（APP-001..APP-081 无缺号），全文最大编号 **81**；`STATUS_APP.md` 头部 `last_ack: APP-081` ⇒ **编号大于 last_ack 的新条目 = 0**（`results/app/app341_app_patrol_20261107.json` → `new_items_after_last_ack=[]`、`verdict=NO_NEW_CORRECTION__STOP_AT_REVIEWER_GATE`），本轮无条目可执行。租约 `acquire app` exit 0（TOKEN `b68c0cf5`，**无 TAKEOVER**）。
-- 🔴 **本条需等 reviewer 复核**：APP-081 第 5 点明文「reviewer 将自算 SHA、抽查 zip 内容、看截图后再通知用户」；§149 已把 v2.3 全套验收原始结果文件与 20 项产物清单（逐项 `bytes`／`mtime`／`sha256`）落盘。按任务「若纠偏明确写了需要停下来等 reviewer 复核就做到那一步停止」＋ APP-081 第 6 点「不要再新增『覆盖审计/静态自证』类轮次、本条处理完前不自创其他任务」⇒ **本轮不自行推进、不自创任务、不重跑静态自证**。当前节点仍是 reviewer 复核 §149 后由 reviewer 通知用户；本轮**不通知用户、不改桌面 .lnk、不重打包、不动 v2.0/2.1/2.2 与 v2.3**。
-- **证据（结果文件 → 原始字段）**：`results/app/app339_v23_verify_final.json` → `items`（`zip_sha`/`unzip_check`/`gui`/`cli` 均 PASS、`blacklist=UNKNOWN`）／`artifacts` **20 项**；`app332_v23_zip_sha.json` → `sha256=4b4a977a…cbfed`／`bytes=11235945990`／`n_zip_entries=14320`；`app337_v23_cli_rerun.json` → `verdict=PASS`／`tts_final_stats.submitted=70`／`zero_segment_check.n_bad_rows=0`。本轮**未打包、未产出新交付物、未写「已交付」**。
-- **半交付／环境巡检（实测字段，见巡检 JSON）**：`git` → `head=4f0e931`／`branch=main`／`ahead=0` ⇒ 上轮 69 文件已普通 push、**无半交付**；`machine_lock.exists=false`；`prior_background_pids` 两条 PID 17220／7396 均由 `ctypes OpenProcess` **`verdict=DEAD_err87`** 确证死 ⇒ 无孤儿锁、无登记 PID。工作区 `n_worktree_changes=644` 且 `corrections_file_modified_in_worktree=true` ⇒ 本轮**逐文件 `git add`**，绝不 `git add -A`、绝不提交纠偏文件、不吞 ASR/MT/TTS 其它模块改动。
-- **收尾复核（步骤 4）**：`CORRECTIONS_APP.md` 开工 SHA `d80ad25d1da40…c5dd9a`／**227 215 B**／mtime **2026-11-07 14:51:02**／**81 条**；收尾重取 `close_fingerprint` 与 `open_fingerprint` 逐项相同（`corrections_open_equals_close=PASS`）⇒ reviewer 本轮**未追加新条目**，可如实写 SHA 零改动；全程只读、未改、未提交。
-- **本轮产物**（文件数／mtime／字节数／SHA256 全部落盘实测）：
-
-  | 产物 | 用途 | 文件数 | mtime | 字节数 | SHA256 |
-  |---|---|---|---|---|---|
-  | `status/archive/STATUS_APP_sec149_20261107.md` | §149 正文整块逐字归档（APP-052④ 压缩） | 1 | 2026-11-07 17:43:17 | 12416 | `29784e3e09e787a4c3328e8c3d5559eef5b459a42554a182d0ddd6745567aebe` |
-  | `results/app/app341_app_patrol_20261107.json` | 本轮巡检事实记录（指纹／编号／git／锁／PID／14 项自检） | 1 | 2026-11-07 17:43:17 | 4607 | `10427f9e94203afa4e3f82b30d3c78b51234f497d550eb97dc610619ab40ec75` |
-
-- **纪律**：纯 CPU 静态巡检；未建 `MACHINE_LOCK`、未占设备、未在 CPU 跑推理或测速、未调 MiniMax；未打包／未打 zip／未改客户包与 .lnk／未 `--same-version`／未 force push。`last_ack` 保持 **APP-081**（无更大编号可推），「更新时间」取 `Get-Date` 实测 2026-11-07 17:43:17。
-
-> 🔴 §151 正文（3985 B）已**整块逐字归档** ⇒ `status/archive/STATUS_APP_sec151_20261107.md`（块 SHA256 `d2c36c15a1e75b442c3950b8a8ecf393cd24a0b604a3a88e4eabec39a0dc9250`）；速查：§151 无新纠偏、last_ack=APP-081、停在 APP-081 第 5 点 reviewer 复核节点（该节点已由 §152 撤回）。
-
-
-> 🔴 §152 正文（7789 B）已**整块逐字归档** ⇒ `status/archive/STATUS_APP_sec152_20261108.md`（块 SHA256 `3902c3035665e61903397474d0905fe9142d2f0fbb0049d16ca3e83e87b5c9bc`）；速查：§152 执行 APP-082 / APP-083（last_ack=APP-083）、APP-083 作废 v2.3 且 App 暂停打包、停在等 reviewer 交付 v2.4 节点（该节点已由 §153 关闭）。
-
-
-> 🔴 §153 正文（8062 B，块 SHA256 `9e517bc709e87168e922aafbe5715ece75f24ab9b8c59ba3d87a8d5d58d17117`）已**整块逐字归档** ⇒ `status/archive/STATUS_APP_sec153_20261108.md`；速查：APP-084 ack-only／v2.4 由 reviewer 构建并交付用户测试／停在等用户测完＋reviewer 发起合并／APP-082 审计口径交 reviewer 裁定。
-
-> 🔴 §154 正文（6328 B，块 SHA256 `b50177e7b215778ffb873b27457eef5d2643914af07b4ab596aba5a4db2bb13d`）已**整块逐字归档** ⇒ `status/archive/STATUS_APP_sec154_20261108.md`；速查：§154 无新纠偏、last_ack=APP-084、停在「等用户测完＋reviewer 发起把 claude-clone 合回 main」节点（本轮该节点未推进）。
-
-> 🔴 §155 正文（6790 B，块 SHA256 `584d8681aa4a89665d1bd2e2a2df1df3754ee869efb41284637705cefed1d41d`）已**整块逐字归档** ⇒ `status/archive/STATUS_APP_sec155_20261108.md`；速查：§155 无新纠偏、last_ack=APP-084、停在「等用户测完＋reviewer 发起把 claude-clone 合回 main」节点（本轮该节点未推进）。
-
-> 🔴 §156 正文（6755 B，块 SHA256 `67e9b45d85887e6fff370ef7475d7830f490a490e8a936dfa4b8de6ab5d7ac00`）已**整块逐字归档** ⇒ `status/archive/STATUS_APP_sec156_20261108.md`；速查：§156 无新纠偏、last_ack=APP-084、停在「等用户测完＋reviewer 发起把 claude-clone 合回 main」节点（本轮该节点未推进）。
-
-> 🔴 §157 正文（6190 B，块 SHA256 `5e6236cc5548d0aff9d29493ea7f574d2651594dc384c54664511318c6676d27`）已**整块逐字归档** ⇒ `status/archive/STATUS_APP_sec157_20261108.md`；速查：§157 无新纠偏、last_ack=APP-084、停在「等用户测完＋reviewer 发起把 claude-clone 合回 main」节点（本轮该节点未推进）。
-
+> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec150_20261109.md`（6255 B／块 SHA256 `b3a055b6394c8de9e8f0e5b44005635d75b3202bcd1480efe9817b18e4939521`；含 APP-081 第 5/6 点判据、§149 归档链、产物表与 git 91abc26）。
+> 🔴 **速查**：APP-081 第 5 点「reviewer 复核后再通知用户」＋第 6 点「不自创覆盖审计/静态自证轮次」⇒ 本轮仅 ack；不打包、不通知用户、不改 .lnk。
 ## §158 巡检无新纠偏（last_ack=APP-084）｜APP-084 停下节点未变：等用户测完 + reviewer 发起合回 main（2026-11-08 20:37:51）
 
-- **步骤 0 租约（APP-056）**：`acquire app` ⇒ exit **0**、`TOKEN=fb99def7`、**无 TAKEOVER**；每步 `beat` OK、无长作业故无 `addpid`、收尾 `release`。纯 CPU 静态 ⇒ 未建 `MACHINE_LOCK`（`machine_lock.exists=false`）、未占设备／未在 CPU 推理或测速／未调 MiniMax。
-- **步骤 1 全文扫描（只读）**：`CORRECTIONS_APP.md` **84 条**（APP-001..084；缺号/重复=[]／`max_heading_num=84`／宽松扫描 84／`mentions_ge_085=[]`）。开工指纹 `corrections_open`（`app349…json` → `corrections_open.*`）：SHA `b3a1a90037c399d59875494bed8b8a02e899d02e6d5c480cae033b4ebda59b62`／**231064 B**／mtime `2026-11-07 23:10:48`／**84 条**。
-- **步骤 2 头部对账**：写前 `last_ack: APP-084` ⇒ **编号大于 last_ack 的新条目 `n_new_headings=0`**（`new_headings=[]`）⇒ **本轮无新纠偏，按「跳过」处理**；`last_ack` 保持 **APP-084**（头部只改 4 行）。
-- **步骤 3 停在等 reviewer 节点**：APP-084 原话「**App 无需动作，ack 即可**」「**等用户测完再把 claude-clone 合回 main（reviewer 发起）**」⇒ **APP-084 本条已完成（ack，§153 已落盘）／「待合并」分项需等 reviewer 复核与发起**；本轮无新编号条目，无新增「本条已完成／需等 reviewer 复核」裁定对象。实测 `git merge-base --is-ancestor claude-clone main` exit **1** ⇒ 节点本轮**未推进、未解除**。叠加 APP-083③「什么都不打包」＋ APP-081⑥「不新增覆盖审计/静态自证轮次、不自创任务」⇒ 本轮**仅 ack**：不打包／不打新版本目录与 zip／不改客户包与桌面 .lnk／不改克隆五处文件／不通知用户／不启动 APP-082 审计（`app082_audit_performed_this_round=false`，是否对 v2.4 做及口径仍交 reviewer 裁定）／不新增自证轮次。仅做指令要求的开工-收尾复核与 STATUS 落盘（`app349…json` → `discipline.*`），**非**自创覆盖审计。
-- **步骤 4 开工／收尾复核**：开工 `corrections_open`＝收尾 `corrections_close`：SHA `b3a1a90037c399d59875494bed8b8a02e899d02e6d5c480cae033b4ebda59b62`／**231064 B**／mtime **2026-11-07 23:10:48**／**84 条**（`corrections_open_equals_close=true`／`reviewer_appended_this_round=false`）⇒ **reviewer 本轮未追加，本轮零改动**；全程只读、未改、未 `git add`／未提交。写 STATUS 后第三次指纹见 `app349_final_recheck_20261108.json` → `open_equals_final`；若中途被追加则以收尾实测为准、如实记录、绝不修改纠偏文件。
-- **半交付／环境巡检（实测字段）**：`git.head=07e3f0a`／`git.branch=main`／`git.ahead=0`／`git.worktree_changes=646`／`git.staged_before=[]` ⇒ 上轮 §157 产物已普通 push、**无半交付**；`git.corrections_worktree_status=" M status/app/CORRECTIONS_APP.md"`（reviewer 自己的改动，未暂存、未提交）；`git.clone_is_ancestor_of_main_rc=1`；`machine_lock.exists=false`；遗留 PID 17220／7396 由 `ctypes OpenProcess` **both DEAD_err87**（探测失败一律视为存活）；v2.3 zip `11235945990 B`／mtime `2026-11-07 15:54:15`、v2.4 zip `11235954241 B`／mtime `2026-11-07 23:04:25` 均**仅读元数据**（未全量 SHA 复算）。
-- **STATUS 写入（APP-052④）**：写前 **39885 B／214 行**（限额 ≤40 000 B／≤300 行，余量 115 B）⇒ §157 正文 **6190 B 整块逐字归档** ⇒ `status/archive/STATUS_APP_sec157_20261108.md`（块 SHA256 `5e6236cc5548d0aff9d29493ea7f574d2651594dc384c54664511318c6676d27`）＋速查行；头部只改 4 行（`last_ack` 不动，`Get-Date` 实测 **2026-11-08 20:37:51**）；旧正文逐字未变。写后 **39928 B／216 行**，写前自检 **10/10 PASS**（唯一命中・归档逐字命中・反向还原==旧全文・章节不减・LF 未破・限额内・产物 SHA 与磁盘一致・自指收敛）＋原子替换＋写后逐字节复核。
-- **本轮产物**（文件数／mtime／字节数／SHA256 全部落盘实测）：
+> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec158_20261109.md`（5694 B／块 SHA256 `b5ea34eb55109a6bf72892de1237b408c1257f381466b11d1edb735a4e8a00eb`；含开工/收尾指纹、`merge-base` exit 1、产物表与 v2.3/v2.4 zip 元数据）。
+> 🔴 **速查**：无新纠偏（84 条／`b3a1a900…b62`）；ack-only 停在「等 reviewer 发起把 claude-clone 合回 main」；`MACHINE_LOCK` NOT_PRESENT、未打包、未通知用户。
 
-  | 产物 | 用途 | 文件数 | mtime | 字节数 | SHA256 |
-  |---|---|---|---|---|---|
-  | `results/app/app349_app_patrol_20261108.json` | 本轮巡检事实记录（开工/收尾指纹・编号对账・裁定・git・锁・包元数据・PID） | 1 | 2026-11-08 20:37:52 | 3714 | `5182a3f0a37a46fbc0952769f3008bfa71e3ddfd8f25b48a5dcf479bb226c9e2` |
-  | `results/app/app349_app_patrol_20261108.py` | 巡检取证 + STATUS §158 定点写入脚本（自检＋原子替换） | 1 | 2026-11-08 20:37:46 | 24563 | `0c73b981bb8575c8faa60e5720dbb015d11581e2f0a8cf1bf4a31062c3b5faa5` |
-  | `status/archive/STATUS_APP_sec157_20261108.md` | §157 正文整块逐字归档 | 1 | 2026-11-08 20:37:52 | 6190 | `5e6236cc5548d0aff9d29493ea7f574d2651594dc384c54664511318c6676d27` |
+## §159 执行 APP-086 / APP-087 / APP-088（last_ack=APP-088）｜合并＋克隆移植＋GUI 文案已落盘，停在「等 reviewer 复核」节点（2026-11-09 09:38:39）
 
-- **纪律**：纯 CPU 静态；未建 `MACHINE_LOCK`／未占设备／未推理测速／未调 MiniMax／未打包／未改客户包与 .lnk／未 `--same-version`／未 force push／未提交纠偏文件（逐文件 `git add`）／未通知用户。
-- **下一轮必读**：① 节点＝等用户测完＋reviewer 发起把 claude-clone 合回 main（`merge-base` exit 1，未推进）；② 合并前不打包、不通知用户、不自创自证轮次、不改克隆五处文件；③ 若裁定做 APP-082 审计 ⇒ 对象 **v2.4**；④ 修缺陷须打 **v2.5 新目录＋新 zip**，不原地改 v2.4（APP-055）；⑤ STATUS 现 39928 B（余量 72 B）⇒ 写 §159 前须按限额压缩；⑥「不主动打包」规则不变。
+- **步骤 0 租约（APP-056）**：`acquire app` ⇒ exit **0**、`TOKEN=8bd109ab`、**无 TAKEOVER**；每步 `beat` OK；本轮无长作业故未 `addpid`；收尾 `release`。纯 CPU 静态 ⇒ `MACHINE_LOCK` 全程 **NOT_PRESENT**（实测 `exists=false`），未占设备／未在 CPU 推理或测速／未调 MiniMax。
+- **步骤 1 全文扫描（只读）**：`CORRECTIONS_APP.md` **88 条**（APP-001..088 无缺号），开工＝收尾＝写后三次指纹全等：SHA `d66746ed00be0cc1bb24bcc05ef74428ebbaccba1487c2d6cd07a2b02ded6c1f`／**242 619 B**／mtime **2026-11-09 09:11:06** ⇒ **reviewer 本轮未中途追加**（只读、未改、未提交）。写前 `last_ack: APP-085` ⇒ **3 条新条目 APP-086 / 087 / 088**（均 [HIGH] 用户决定）。
+- **ACK（APP-088 明文要求）**：`last_ack` APP-085→**APP-088** ＋「最近更新」追加 **1 行**（`app351` 24/0 PASS）；STATUS 39 996 B→**30 017 B** ⇒ 按 APP-052④ 把 §158（5 694 B）／§150（6 255 B）正文**整块逐字归档**，反向还原==旧全文、章节数 9→9 不减、LF 未破、写后磁盘逐字节复核。
+
+### 三条纠偏逐条状态（本条已完成 / 本条需等 reviewer 复核）
+
+| 编号 | 状态 | 依据（结果文件 → 原始字段） |
+|---|---|---|
+| **APP-086① 合并** | **本分项已完成** | `git log -1` = `9d51ceb APP-086(1): merge claude-clone (7e60afb) v2.4 build into main`；`git merge-base --is-ancestor claude-clone main` rc **0**；`git show --stat` **11 文件 / +1 405 行**／`ort` 无冲突。clone_dev 3 个未提交改动已看清（`app170_version_identity_gate_evidence.json`、`app_v24_build_evidence.json` 为 v2.3→v2.4 证据刷新，`DELIVERY_2.4.json` 为新增交付记录）⇒ 属 reviewer 工作区未提交资产，**未纳入合并、未改 clone_dev、交 reviewer 处理**。 |
+| **APP-086① 测试** | **本分项已完成** | `app352_app086_merge_test_evidence.json`：8 个合并 .py `ast` **8/8 PASS**；6 个既有纯 CPU 闸门 **4 PASS / 2 FAIL**；两处 FAIL 由 `app353_app086_fail_diagnosis.json`（**6/0 PASS**）证明为**既有判据/夹具问题、非合并回归**：`app307` 真实 `scan()` 返回 9 项违规但 label 为 `FALLBACK: <正则>`，判据按 `'voice' in label` 计数 ⇒ 命中 **0**（`assert_pkg_clean.py` 在 `92bdbae..9d51ceb` **逐字节未变**）；`app236` 静态 9 PASS + 反证 9 PASS，`verdict=FAIL` 来自 FAILLOG 夹具 hits `{"engine_not_ready":0,"registered":1}`（成功日志≠失败日志 ⇒ 三态应为 UNKNOWN），6 个被检查函数源码合并前后逐字相同。**本轮不改判据，口径交 reviewer 裁定。** 5 个被测试脚本重写的既有证据已**另存** `results/app/app352_rerun/` 并恢复，未覆盖仓库原证据。 |
+| **APP-086② 克隆 a–f** | **代码资产已完成；接线与验收数字未完成** | `app354_app086_clone_port_evidence.json`：**33 PASS / 0 FAIL**、**8/8 组判据含反证**（逐项破坏锚点 ⇒ 判据必须 FAIL）。新增 `live_caption/clone_voice.py`（15 691 B）完整实现 a 无标签不沿用上一句音色（`min_sim=0.25`）／b 临时标签（`min_sim=0.4`）／c 先出临时音色（`registration_ticket`）／d 整句 clean（conf≥0.5、cover≥0.7、1.5–12 s）+ ASR 文本走 ICL／e 参考冻结（`REF_FIRST_S=3.0`、`REF_UPGRADE_S=8.0`）／f 克隆全在 `clone-voices` 线程；`tts_cuda_sidecar.py` 生成调用改 `xvec_only=not _ref_text` + `ref_text`，采样 **0.6 / 20**。只读 `live_dub_ext claude-dev`，**未切分支、未改 EXT**；`package_untouched=true`（v2.4 包内 3 文件 SHA 前后全等）。🔴 **未完成**：主循环（GUI/CLI）接线与「带真值多人对话改前/改后 NPU（闸门）+ CUDA（可选）」验收数字、wav 落盘 `shared/app_listen/` —— 属设备作业，须持 `MACHINE_LOCK` 另起后台会话，本轮**不虚报已交付**。 |
+| **APP-086③ GUI** | **本分项已完成** | `build_tts_options()` 的 CUDA 选项在 APP-061②/062③ 已存在（dev 树 `disabled`+`why`，包内 `if not _in_customer_package()` ⇒ **整个选项不出现**，满足 APP-088②「隐藏而非置灰」）；本轮定点补 `需要另装 CUDA 环境` 文案（`git diff` **3 行**）；默认仍 NPU（`or 'NPU'` 未改）；GUI 布局重排未启动。`ast.parse` 全过、行尾原样（app CRLF / sidecar LF，`git diff --stat` 3 + 26 行，无行尾噪声）。 |
+| **APP-086④ / ⑤** | **本条需等 reviewer 复核** | ④ 本轮**未打包**（符合 APP-087⑦/088④ 顺序）；⑤ 明文「合并＋克隆改动连同验收数字完成后停下等 reviewer 复核，不通知用户、不先打 v2.5」⇒ **本轮停在此节点**，且验收数字未出 ⇒ 复核所需清单见下。 |
+| **APP-087** | **本条需等 reviewer 复核** | 已 ack；⑦ 明文「先做完 APP-086 → 停下等复核 → 复核通过后再打 v2.5（新目录＋新 zip，含 `<pkg>\live_dub_ext\`）」⇒ v2.5 打包、EXT 来源 `master@7f2a5d6`、25/25 回放、zip 统计、体积增量**全部未启动**。未改 EXT 仓库（只读 `git show`），未发现需报的 EXT bug。 |
+| **APP-088** | **本条需等 reviewer 复核** | 已 ack；① 本地开发树保留 CUDA/NV5050 选项**已满足**（默认 NPU）；② v2.5 只含 iGPU/NPU（排除 `tts_cuda_sidecar_ext.py`、CUDA venv、torch、faster-qwen3-tts，包内 GUI 只列 GPU/NPU）与 ③ 追加验收数字属**打包阶段**，按 ④ 顺序未启动。 |
+
+- **撤回旧节点**：APP-083③ / APP-084「等用户测完 v2.4 再合 / App 期间不要改克隆相关文件」由 **APP-086 明文解除** ⇒ §152–§158 的「等 reviewer 发起合并」节点关闭；APP-085 待命期禁空巡检在**有新条目时**不适用，但本轮未建任何 `patrol` 脚本／未做覆盖审计式自证。
+
+### 停下节点：交 reviewer 复核的清单（本轮不自行推进）
+
+1. **APP-086② 接线口径**：`clone_voice.CloneVoices` 自带 `SpeakerBridge` + `SpeakerVoiceTable`，与 App 现有 GUI/CLI 各一份 `_spk_voices` 实例并存 ⇒ 直接替换会双旁路。请裁定「独立编排层替换」还是「把 a–f 行为并回现有表」；本轮只落盘模块，**未改主循环**。
+2. **验收数字（APP-086② + APP-088③）**：改前/改后「用对音色的句子占比」「换人后切到正确音色的延迟（秒）」，**以 NPU 为闸门**、CUDA 可选；须持 `MACHINE_LOCK` 后台跑 `dialog3.wav`+`truth.json`，`eval_spk.py` 复制到 `results/app` 再改，wav 落 `shared/app_listen/` 交回转写。
+3. **两处既有判据口径**（`app307` label 计数 / `app236` FAILLOG 三态）是否修正，由 reviewer 定。
+4. **APP-086 复核通过后**才打 **v2.5**（新目录＋新 zip＋新 MANIFEST＋重签 ACCEPTED），含 APP-087 的 EXT 与 APP-088 的 CUDA 排除；**绝不原地改 v2.4**（APP-055）。用户未通知 ⇒ 不主动打包（用户级长期记忆）。
+
+### 产物（实时采集：文件数 / mtime / 字节 / SHA256）
+
+| 文件 | 说明 | 文件数 | mtime | 字节 | SHA256 |
+|---|---|---|---|---|---|
+| `results/app/app351_app086_ack_status.py` | ACK + APP-052④ 压缩写入脚本（自检 24/0） | 1 | 2026-11-09 09:26:17 | 9996 | `3aacaec80f225527613b8cc988edece13b8ad2448150754f805dfa54062da16f` |
+| `results/app/app351_app086_ack_evidence.json` | ACK 写前自检/归档指纹原始字段 | 1 | 2026-11-09 09:26:22 | 3906 | `edc93e0531b1a0e0afc6fc8c3841b1961857d0f01fba2175f67f0f97d136b185` |
+| `status/archive/STATUS_APP_sec158_20261109.md` | §158 正文整块逐字归档 | 1 | 2026-11-09 09:26:22 | 5694 | `b5ea34eb55109a6bf72892de1237b408c1257f381466b11d1edb735a4e8a00eb` |
+| `status/archive/STATUS_APP_sec150_20261109.md` | §150 正文整块逐字归档 | 1 | 2026-11-09 09:26:22 | 6255 | `b3a055b6394c8de9e8f0e5b44005635d75b3202bcd1480efe9817b18e4939521` |
+| `results/app/app352_app086_merge_tests.py` | 合并后回归运行器（ast + 6 闸门 + 前后 SHA 快照） | 1 | 2026-11-09 09:28:16 | 5431 | `22026e1422f974a0b67834e558cb7c2957c3384023cf32f4b89f05459fbfe6ae` |
+| `results/app/app352_app086_merge_test_evidence.json` | 回归原始字段（rc/wall/stdout_tail） | 1 | 2026-11-09 09:29:05 | 7302 | `de6e9afbf944d90d14751404ee6725cdb4721b3e301085463a672954430c32a4` |
+| `results/app/app352_rerun/` | 本轮重跑输出另存目录（5 文件，既有证据已恢复） | 5 | 2026-11-09 09:30:22 | 34505 | `bd3cfc14fdb449ddfc17c185de0949ed862da6a9c7af48f0b3f11cdb6ee58791` |
+| `results/app/app353_app086_fail_diagnosis.py` | 两处 FAIL 归因脚本（反证基线=当前被测对象） | 1 | 2026-11-09 09:32:14 | 6946 | `267b5c87ab720ce598a56d99a25e12fc5974591b6feb3239791fa0aad5c13476` |
+| `results/app/app353_app086_fail_diagnosis.json` | FAIL 归因原始字段（6/0 PASS） | 1 | 2026-11-09 09:32:27 | 3388 | `7e91ee8b55b236b65de85beaf95e87d3721bc07d5de4899926f6e0d88e666a66` |
+| `results/app/app354_app086_clone_port.py` | EXT→App 定点移植脚本（a–f 8 组反证） | 1 | 2026-11-09 09:36:51 | 14675 | `6cb85881d83346e1e5145a14e4e71c0dfce0e4b0a58f12f9f5c9bb9495c785ef` |
+| `results/app/app354_app086_clone_port_evidence.json` | 移植原始字段（33/0、8/8、包零写入） | 1 | 2026-11-09 09:36:56 | 8601 | `4db3619a1067acf935c6665c09e2ec1e7ecbb93235282f9625b4fca5c051dc91` |
+| `live_caption/clone_voice.py` | APP-086② a–f 克隆编排层（新增） | 1 | 2026-11-09 09:36:56 | 15691 | `536cfa33f70eb3016ff5d493e995c46294d6e207c59baf08bf776059ca22eed1` |
+| `live_caption/tts_cuda_sidecar.py` | APP-086②(d) ICL 参考 + 0.6/20 采样（定点改 26 行） | 1 | 2026-11-09 09:36:56 | 26699 | `abdd1d6c9a624ccd4d84fed9b592a22d575700a486ca1cbd5f8d2cd269a7c3f5` |
+| `live_caption/live_caption_app.py` | APP-086③ CUDA 选项文案（定点改 3 行） | 1 | 2026-11-09 09:36:56 | 434041 | `3c8fa32197eabd9ff1f342a049c00feab6f07a710aae636f59453efc3fe7aa21` |
+
+- **纪律**：纠偏文件全程只读、未改、未 `git add`、未提交；STATUS 只改头部 3 行＋追加本节，旧正文一字未删；未打包／未建 v2.5 目录与 zip／未改客户包与 .lnk／未 `--same-version`／未 force push／未通知用户／未调 MiniMax／未在 CPU 推理或测速；`MACHINE_LOCK` 全程 NOT_PRESENT。
+- **git**：合并提交 `9d51ceb`（11 文件全 App 侧）；本轮 App 侧文件与 STATUS 在本节落盘后按「逐文件 `git add`」普通提交并 push，commit hash 见 `git log -1`（本节不回填，避免改旧章节）；暂存守卫：无 `CORRECTIONS_APP.md`、无 ASR/MT/TTS 其它模块文件。
+- **下一轮必读**：① 节点仍是「等 reviewer 复核 APP-086」＋「接线口径裁定」＋「验收数字设备作业」；复核通过前**不打包、不通知用户**；② 若追加 APP-089+ 按编号执行，设备作业先排队 `MACHINE_LOCK` 并 `addpid`；③ STATUS 写 §160 前仍须按限额评估压缩；④ 「不主动打包」规则不变。

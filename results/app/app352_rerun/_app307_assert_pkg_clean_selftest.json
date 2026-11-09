@@ -1,0 +1,81 @@
+{
+ "tool": "_app307_assert_pkg_clean_selftest",
+ "app": "APP-077(1)+APP-078(3)",
+ "ts": "2026-11-09 09:29:01",
+ "checks": [
+  {
+   "name": "v2.0 判出 1 个固定 token",
+   "ok": true,
+   "detail": "1"
+  },
+  {
+   "name": "v2.0 判出 8 个第三方音色文件",
+   "ok": false,
+   "detail": "0"
+  },
+  {
+   "name": "v2.0 assert_clean 返回 1（拒绝交付）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "v2.1 判出 1 个固定 token",
+   "ok": true,
+   "detail": "1"
+  },
+  {
+   "name": "v2.1 判出 8 个第三方音色文件",
+   "ok": false,
+   "detail": "0"
+  },
+  {
+   "name": "v2.1 assert_clean 返回 1（拒绝交付）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "v2.2 判出 1 个固定 token",
+   "ok": true,
+   "detail": "1"
+  },
+  {
+   "name": "v2.2 判出 8 个第三方音色文件",
+   "ok": false,
+   "detail": "0"
+  },
+  {
+   "name": "v2.2 assert_clean 返回 1（拒绝交付）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "干净目录 0 违规",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "name": "assert_clean 返回 0（允许交付）",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "注入固定 token ⇒ 被判出",
+   "ok": false,
+   "detail": ""
+  },
+  {
+   "name": "注入 8 个第三方音色 ⇒ 全被判出",
+   "ok": false,
+   "detail": ""
+  },
+  {
+   "name": "README.md / cindy_backup.json 不被误伤（仍是 8）",
+   "ok": false,
+   "detail": "0"
+  }
+ ],
+ "n_pass": 8,
+ "n_fail": 6,
+ "verdict": "FAIL",
+ "note": "v2.3 起建包脚本复制完目录后必须调用 `python live_caption/assert_pkg_clean.py <新包目录>`；违规 ⇒ 拒绝交付。本模块**只检查不删除**，旧包不原地改（APP-055 / APP-078 ④）。"
+}

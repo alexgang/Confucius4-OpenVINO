@@ -948,7 +948,8 @@ def build_tts_options(devices):
             disabled=(not _cuda_ok), why=_cuda_why,
             note=('✅ 实测可用（PyTorch+CUDA，RTX 5050）：流式首包 0.547 s / RTF 0.892'
                   '（比 NPU 快 12.7×）⇒ 最快；'
-                  '⚠️ 走独立 venv（torch 不进客户包），首次加载 ~27 s'
+                  '⚠️ 需要另装 CUDA 环境（独立 venv，torch 不进客户包），'
+                  '首次加载 ~27 s'
                   if _cuda_ok else
                   '🔴 不可用：' + _cuda_why)))
     return out

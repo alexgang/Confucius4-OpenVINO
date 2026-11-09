@@ -1,0 +1,110 @@
+{
+ "tool": "app353_app086_fail_diagnosis",
+ "merge": {
+  "base": "92bdbae",
+  "head": "9d51ceb"
+ },
+ "conclusion": "app307 / app236 两处 FAIL 均为既有判据口径与夹具问题，非 claude-clone 合并引入的回归；本轮不改判据、不改既有证据，口径变更交 reviewer 裁定。",
+ "app307": {
+  "module_unchanged_by_merge": true,
+  "real_scan_n": 9,
+  "labels_sample": [
+   "PKG_EXCLUDE_PATTERNS: (?i)(^|/)bridge_token\\.txt$",
+   "PKG_EXCLUDE_PATTERNS: (?i)python/Lib/site-packages/babelvox/data/speakers/(cindy|lou|phil|steve)\\.(json|npy)$",
+   "PKG_EXCLUDE_PATTERNS: (?i)python/Lib/site-packages/babelvox/data/speakers/(cindy|lou|phil|steve)\\.(json|npy)$"
+  ],
+  "criterion_voice_hits": 0,
+  "criterion_token_endswith_hits": 0,
+  "criterion_token_any_hits": 1,
+  "root_cause": "scan() label 为 FALLBACK 正则串，判据按分类名计数 ⇒ 恒 0"
+ },
+ "app236": {
+  "static_checks": "9 PASS / 0 FAIL",
+  "counterproof": "9 PASS / 0 FAIL",
+  "faillog_hits": {
+   "engine_not_ready": 0,
+   "registered": 1
+  },
+  "faillog_files": 13,
+  "checked_functions": [
+   {
+    "func": "_retry_spk_labels",
+    "found": true,
+    "identical": true,
+    "old_bytes": 4092,
+    "new_bytes": 4092
+   },
+   {
+    "func": "_on_final",
+    "found": true,
+    "identical": true,
+    "old_bytes": 5350,
+    "new_bytes": 5350
+   },
+   {
+    "func": "_spk_push_update",
+    "found": true,
+    "identical": true,
+    "old_bytes": 1556,
+    "new_bytes": 1556
+   },
+   {
+    "func": "_fill_mt_strip",
+    "found": true,
+    "identical": true,
+    "old_bytes": 2924,
+    "new_bytes": 2924
+   },
+   {
+    "func": "_sync_mt_combo_to_gpu0",
+    "found": true,
+    "identical": true,
+    "old_bytes": 1628,
+    "new_bytes": 1628
+   },
+   {
+    "func": "_enforce_no_npu_conflict",
+    "found": true,
+    "identical": true,
+    "old_bytes": 5188,
+    "new_bytes": 5188
+   }
+  ],
+  "root_cause": "FAILLOG 是成功日志（已登记音色>0），判据要求失败特征 ⇒ 三态应为 UNKNOWN"
+ },
+ "checks": [
+  {
+   "name": "assert_pkg_clean_unchanged_by_merge",
+   "ok": true,
+   "detail": "base=9469b33f879c head=9469b33f879c disk=9469b33f879c"
+  },
+  {
+   "name": "app307_real_scan_has_violations",
+   "ok": true,
+   "detail": "9"
+  },
+  {
+   "name": "app307_criterion_voice_label_is_zero",
+   "ok": true,
+   "detail": "n_bad=9 n_voice=0 n_token_endswith=0 n_token_any=1 labels_sample=['PKG_EXCLUDE_PATTERNS: (?i)(^|/)bridge_token\\\\.txt$', 'PKG_EXCLUDE_PATTERNS: (?i)python/Lib/site-packages/babelvox/data/speakers/(cindy|lou|phil|steve)\\\\.(json|npy)$']"
+  },
+  {
+   "name": "app307_criterion_mismatch_confirmed",
+   "ok": true,
+   "detail": "判据按 label 计数，真实 label=FALLBACK 正则串 ⇒ 恒 0"
+  },
+  {
+   "name": "app236_faillog_is_success_log",
+   "ok": true,
+   "detail": "hits={'engine_not_ready': 0, 'registered': 1} files=13"
+  },
+  {
+   "name": "app236_checked_functions_unchanged",
+   "ok": true,
+   "detail": "[{\"func\": \"_retry_spk_labels\", \"found\": true, \"identical\": true, \"old_bytes\": 4092, \"new_bytes\": 4092}, {\"func\": \"_on_final\", \"found\": true, \"identical\": true, \"old_bytes\": 5350, \"new_bytes\": 5350}, {\"func\": \"_spk_push_update\", \"found\": tru"
+  }
+ ],
+ "n_pass": 6,
+ "n_fail": 0,
+ "verdict": "PASS"
+}
