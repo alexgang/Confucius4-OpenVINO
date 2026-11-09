@@ -1517,7 +1517,10 @@ function scheduleSub(msg, when) {
     metrics.subsDropped = (metrics.subsDropped || 0) + 1;
     return;
   }
-  const item = { text: msg.tgt || msg.src || '', at: when, id: msg.id };
+  // 11-09 user: show the finalized source text under the translation
+  const _src = (msg.src && msg.src !== '—') ? String(msg.src) : '';
+  const _tgt = (msg.tgt && msg.tgt !== '—') ? String(msg.tgt) : '';
+  const item = { text: _tgt || _src, src: (_tgt && _src) ? _src : '', at: when, id: msg.id };
   const last = subs[subs.length - 1];
   if (!last || last.at <= when) {
     subs.push(item);
@@ -1556,7 +1559,8 @@ function pumpSubs() {
   const div = document.getElementById('subs');
   while (subs.length && subs[0].at <= now) {
     const s = subs.shift();
-    div.innerHTML = `<span>${escapeHtml(s.text)}</span>`;
+    div.innerHTML = `<span>${escapeHtml(s.text)}</span>` +
+      (s.src ? `<br><span class="src">${escapeHtml(s.src)}</span>` : '');
   }
 }
 

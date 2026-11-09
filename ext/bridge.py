@@ -2376,10 +2376,16 @@ class Session:
         total_rate = rates["total_rate"]
         # 11-08 用户：倍率只由滞后严重程度决定，1.0×→1.5× 渐进（不再用时长适配的固定倍率）
         _raw = 1.0 + max(0.0, lag_est - C.ADAPT_LAG_FREE_SEC) * C.ADAPT_GAIN_PER_SEC
-        _raw = min(C.ADAPT_TOTAL_RATE_MAX, max(1.0, _raw))
-        _prev = getattr(self, "_queue_rate", 1.0)
+        # 11-09 user: Chinese dubs are ~17 % longer than the English source => speed floor for zh
+        try:
+            _tl = str(self._effective_target_lang() or "").strip().lower()
+        except Exception:
+            _tl = ""
+        _base = C.ZH_BASE_SPEED if (_tl.startswith("zh") or "chinese" in _tl or "中文" in _tl) else 1.0
+        _raw = min(C.ADAPT_TOTAL_RATE_MAX, max(_base, _raw))
+        _prev = getattr(self, "_queue_rate", _base)
         total_rate = max(_prev - C.ADAPT_MAX_STEP, min(_prev + C.ADAPT_MAX_STEP, _raw))
-        total_rate = round(max(1.0, min(C.ADAPT_TOTAL_RATE_MAX, total_rate)), 4)
+        total_rate = round(max(_base, min(C.ADAPT_TOTAL_RATE_MAX, total_rate)), 4)
         self._queue_rate = total_rate
         rates["total_rate"] = total_rate
         # 11-08 test 3: a dub that can only start > LATE_DROP_SEC after its picture slot is
