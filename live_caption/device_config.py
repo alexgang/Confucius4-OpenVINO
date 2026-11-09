@@ -406,12 +406,19 @@ def resolve_device(role: str, wanted: Optional[str],
 
 # ── 配置持久化 ────────────────────────────────────────────────────────
 def load_config() -> Dict[str, str]:
-    """读 ``device_config.json``；损坏/不存在时返回空字典。"""
+    """读 ``device_config.json``；损坏/不存在时返回空字典。
+
+    🔴🔴🔳 **APP-090②c / APP-092②**：现在**也保留非字符串值**
+    （数字/布尔）⇒ 「倍率上下限」「late 阈值」这类**数值配置**能存进去。
+
+    ⚠️ `get_devices()` 只读 `asr`/`mt`/`tts` 三个键 ⇒ 多余的键**无害**。
+    """
     try:
         with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
             d = json.load(f)
         if isinstance(d, dict):
-            return {k: v for k, v in d.items() if isinstance(v, str)}
+            return {k: v for k, v in d.items()
+                    if isinstance(v, (str, int, float, bool))}
     except Exception:
         pass
     return {}
@@ -422,16 +429,78 @@ def save_config(devices: Dict[str, str]) -> bool:
 
     ⚠️ 写失败（只读目录/权限）**不能抛异常** —— 设备选择只是偏好，
     存不下来最多下次要重选，不该让 App 起不来。
+
+    🔴🔴🔳 **APP-090②c / APP-092②**：**保留文件里的非设备键**
+    （数值配置项）⇒ GUI 每次保存设备选择**不会**把
+    「中文倍率上下限」「late 阈值」抹掉。
+    ⚠️ 旧实现直接 `json.dump(devices)` ⇒ **会**抹掉额外键。
     """
     try:
         os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+        merged = dict(load_config())
+        for k, v in (devices or {}).items():
+            merged[k] = v
         tmp = CONFIG_PATH + '.tmp'
         with open(tmp, 'w', encoding='utf-8') as f:
-            json.dump(devices, f, ensure_ascii=False, indent=2)
+            json.dump(merged, f, ensure_ascii=False, indent=2)
         os.replace(tmp, CONFIG_PATH)
         return True
     except Exception:
         return False
+
+
+# ══════════════════════════════════════════════════════════════
+# 🔴🔴🔳 APP-090②c / APP-091② / APP-092②：**数值配置项**（可配）
+# ══════════════════════════════════════════════════════════════
+# 📌 reviewer 的要求（`status/app/CORRECTIONS_APP.md`）：
+#   - APP-090 ②c：「可配置：device_config 加一项，加 CLI 参数，GUI 里可以不露出」
+#   - APP-091 ②：「上下限可配置（device_config 或 GUI 配置项，**写明键名**）」
+#   - APP-092 ②：「阈值可配，**写明键名与默认值**」
+#
+# 🔴 **键名**（写在 `device_config.json` 里，与 `asr`/`mt`/`tts` 平级）：
+#   `tts_speed_min_zh`  中文目标倍率**下限**（默认 **1.10**）
+#   `tts_speed_max_zh`  中文目标倍率**上限**（默认 **1.50**）
+#   `tts_late_drop_sec`  TTS 跳过过期句的滞后阈值（默认 **6.0** 秒）
+#   ⚠️ **非中文目标**的 1.00–1.30× 口径**不变**（10-29 用户决定）⇒ 不配。
+# ⚠️ 这三项**不进 GUI**（reviewer：「GUI 里可以不露出」）。
+
+#: 数值配置项的默认值（**写明** ⇒ reviewer 可核对）
+NUMERIC_DEFAULTS: Dict[str, float] = {
+    'tts_speed_min_zh': 1.10,     # 中文目标倍率下限（APP-090②c / APP-091②）
+    'tts_speed_max_zh': 1.50,     # 中文目标倍率上限（APP-090②c / APP-091②）
+    'tts_late_drop_sec': 6.0,     # TTS 跳过过期句阈值（APP-092②；同 EXT LATE_DROP_SEC）
+    # 🔴🔴🔳 APP-090②a：**等说话人标签的上限**（秒）
+    #   ⇒ 默认 **0.0 = 绝不等**（reviewer：「不引入任何阻塞等待」）
+    #   ⇒ 调大 ⇒ 真的会等 ⇒ `n_label_wait` 计数器**可被证伪**（反证组）
+    'tts_label_wait_sec': 0.0,
+}
+
+
+def get_numeric(key: str, default: Optional[float] = None) -> float:
+    """🔴 读一个数值配置项（**读不到就用默认值**）。
+
+    优先级：**环境变量** > **device_config.json** > **默认值**。
+    ⚠️ 环境变量名 = ``LIVECAP_`` + 键名（大写）。
+    """
+    if default is None:
+        default = NUMERIC_DEFAULTS.get(key, 0.0)
+    env_name = 'LIVECAP_' + str(key).upper()
+    raw = os.environ.get(env_name)
+    if raw is not None and str(raw).strip() != '':
+        try:
+            return float(raw)
+        except Exception:
+            pass
+    try:
+        v = load_config().get(key)
+        if v is not None:
+            return float(v)
+    except Exception:
+        pass
+    try:
+        return float(default)
+    except Exception:
+        return 0.0
 
 
 def get_devices(cli_overrides: Optional[Dict[str, str]] = None) -> Tuple[Dict[str, str], List[str]]:

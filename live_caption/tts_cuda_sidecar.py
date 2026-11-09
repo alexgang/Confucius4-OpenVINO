@@ -496,26 +496,26 @@ def main() -> int:
             #     否则 ⇒ 正常 EOS（eos）
             frames = 0
             cancelled = False
-            # 🔴 APP-086②(d)：整句干净参考 + 对应 ASR 文本（<ref>.txt）⇒ CUDA 路径走 ICL 克隆
-            #   （ref_text / xvec_only=False）；参考冻结见 clone_voice._register_sentences。
-            #   采样参数按 APP-086②(d) 定为 temperature 0.6 / top_k 20，
+            # 🔴🔴🔴 **APP-089 §2a（2026-11-09）：本边车改为「只用 x-vector」**。
+            #
+            # reviewer 的实测结论（`status/app/CORRECTIONS_APP.md` §2a）：
+            # > 真实音频上 ICL 克隆（参考音频 + ASR 文本）不稳定：用户实跑 60 次 TTS
+            # > 里有 22 次撞上帧上限；140 段里 68 段只剩字幕；Dave's Take 6 分钟回放
+            # > ICL 的 CER 是 20.1 %，x-vector 是 8.4 %，撞上限次数 2 比 0。
+            # > 参考 ≥8.7 s 或者拼接成的参考，还会让模型说出英语腔或拼音腔的中文。
+            #
+            # ⇒ **不再读 `<ref>.txt`** ⇒ **不再传 `ref_text`** ⇒ **固定 `xvec_only=True`**。
+            #   （原来 `xvec_only=not _ref_text`：只要克隆目录里残留一个 `.txt`，
+            #     就会**自动切到 ICL**，用错文本克隆 —— 这正是 EXT 刚踩过的坑。）
+            # ⇒ 采样参数沿用 APP-086②(d)：temperature 0.6 / top_k 20，
             #   可用 LIVECAP_TTS_TEMPERATURE / LIVECAP_TTS_TOP_K 覆盖（本地开发树专用）。
-            #   只读参考：live_dub_ext claude-dev:ext/tts_cuda_sidecar_ext.py（不改 EXT 源码）。
-            _ref_text = ''
-            try:
-                if ref and os.path.isfile(ref + '.txt'):
-                    with open(ref + '.txt', encoding='utf-8') as _f:
-                        _ref_text = _f.read().strip()
-            except Exception:
-                _ref_text = ''
+            #   只读参考：live_dub_ext @dc0e70e:ext/tts_cuda_sidecar_ext.py（不改 EXT 源码）。
             _gen_kw = dict(text=text, language=_lang(req.get('language')),
-                           ref_audio=ref, xvec_only=not _ref_text,
+                           ref_audio=ref, xvec_only=True,
                            max_new_tokens=mnt,
                            temperature=float(os.environ.get('LIVECAP_TTS_TEMPERATURE', '0.6')),
                            top_k=int(os.environ.get('LIVECAP_TTS_TOP_K', '20')),
                            chunk_size=int(req.get('chunk_size') or 8))
-            if _ref_text:
-                _gen_kw['ref_text'] = _ref_text
             for chunk, sr, timing in model.generate_voice_clone_streaming(**_gen_kw):
                 # 🔴🔴🔴 APP-030②：**每块检查一次取消**（失控守卫）
                 #   🔴 §90：改用**线程安全**的 `_take_cancel()`

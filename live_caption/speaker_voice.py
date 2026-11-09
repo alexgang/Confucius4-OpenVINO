@@ -162,6 +162,29 @@ CONT_GAP_TOL_S = 0.5
 # 🔴 单个 spk 最多保留多少秒干净语音（**有界** ⇒ 内存不无界增长）
 MAX_PER_SPK_S = 10.0
 
+# ══════════════════════════════════════════════════════════════
+# 🔴🔴🔴 APP-089 §2c-2：**EXT v0.3.2 的「说话人参考」口径**（XV_*）
+# ══════════════════════════════════════════════════════════════
+# 📌 EXT v0.3.2 `ext/clone_voice.py:_register_sentences` 的 x-vector 分支：
+#   把这个人**干净、有标签**的句子**拼起来** ⇒ ≥ `XV_FIRST_S` 首次写入
+#   ⇒ ≥ `XV_UPGRADE_S` **升级一次** ⇒ 最长 `XV_MAX_S` ⇒ 之后**冻结**。
+#   🔴 **只生成 x-vector，不写 `.txt`**（ICL 已按 APP-089 §2a 删除）。
+#
+# 🔴 **与 APP-075 的关系（必须说清）**：
+#   本口径**复用** APP-075 的合格段门槛（`REG_CONF_MIN` + `clean_ranges`
+#   + 切换点守卫 + 连续 `REG_MIN_CONT_S`）⇒ **不会**把「低置信度段」
+#   （APP-071 的女声误标段，`spk_conf=0.1292`）拉进来
+#   ⇒ **不回归 APP-071/075**。
+#   差别只在：**拼接多个合格段**（EXT 口径）而不是**只取最长那一段**。
+XV_FIRST_S = 3.0     # 首次写入门槛（攒够 3.0 s 干净有标签语音）
+XV_UPGRADE_S = 8.0   # 升级门槛（≥ 8.0 s 时升级**一次**）
+XV_MAX_S = 10.0      # 单个参考最长 10.0 s
+# 🔴🔴🔳 **纪元分簇的间隙阈值**（APP-071 保护）
+#   ⇒ 同一个标签**先后覆盖两个人**时（实测 S2 先女声后男声）
+#     ⇒ 两段**绝不能拼**（拼出来的 x-vector 是两个声音的平均 ⇒ 串音）
+#   ⇒ 间隙 > 这个值 ⇒ 视为**不同纪元** ⇒ 分开处理。
+XV_CLUSTER_GAP_S = 1.5
+
 # 🔴 采样率（16 kHz 单声道）
 SR = 16000
 
@@ -531,6 +554,99 @@ class SpeakerVoiceTable:
                    round(best['dur_s'], 3))
             return [(float(best['a']), float(best['b']))], key
 
+    # ══════════════════════════════════════════════════════════════
+    # 🔴🔴🔴 APP-089 §2c-2：**EXT v0.3.2 的「说话人参考」（XV_*）**
+    # ══════════════════════════════════════════════════════════════
+    def xv_reference_ticket(self, spk: str):
+        """🔴🔴🔴 **EXT v0.3.2 的「说话人参考」**：拼接该 spk 的干净有标签句子。
+
+        ## 与 `registration_ticket()` 的差别
+
+        | | `registration_ticket()`（APP-075） | **本方法**（APP-089 §2c-2） |
+        |---|---|---|
+        | 取哪几段 | **只取最长**的一段 | **拼接多个**合格段（按时间序） |
+        | 首次写入门槛 | ≥ `MIN_S`(1.5 s) | ≥ `XV_FIRST_S`(3.0 s) |
+        | 升级 | 变长即升级（可多次） | ≥ `XV_UPGRADE_S`(8.0 s) 时**升级一次** ⇒ 之后冻结 |
+        | 最长 | `MAX_PER_SPK_S`(10 s) | `XV_MAX_S`(10 s) |
+        | 产出 | 段区间 | 段区间（**只产 x-vector，不写 `.txt`**） |
+
+        🔴 **不回归 APP-071/075**：候选段**仍然**必须过 APP-075 的合格门槛
+        （`REG_CONF_MIN` + 落在 `clean_ranges` 内 + 切换点守卫 +
+        连续 `REG_MIN_CONT_S`）⇒ 低置信度误标段**进不来**。
+
+        返回 `([(a, b), ...], key, total_s, state)`：
+        - `state` ∈ `'wait'`（还不够 `XV_FIRST_S`）/ `'first'`（可首次写入）
+          / `'upgrade'`（可升级一次）/ `'frozen'`（已冻结，不再改）
+        - 无合格段 ⇒ `([], None, 0.0, 'wait')`
+        """
+        spk = str(spk)
+        with self._lock:
+            runs = self._qualified_runs_locked(spk)
+            row = self._table.get(spk)
+            voice = (row or {}).get('voice')
+            prev = dict(self._reg_run.get(spk) or {})
+        if not runs:
+            return [], None, 0.0, 'wait'
+        # 🔴🔴🔳 **按「说话人纪元」分簇**（APP-071 保护）
+        #   ⇒ 同一个标签**先后覆盖两个人**时（APP-071 实测：S2 先女声后男声）
+        #     ⇒ 两段**不能拼在一起**（拼出来的 x-vector 是两个声音的平均 ⇒ 串音）
+        #   ⇒ 分簇规则：相邻合格段之间的间隙 > `XV_CLUSTER_GAP_S` ⇒ 换簇
+        #   ⇒ 取**总时长最长**的那一簇（= APP-075「最长合格段优先」的推广）
+        ordered = sorted(runs, key=lambda r: float(r['a']))
+        clusters = []
+        cur = [ordered[0]]
+        for r in ordered[1:]:
+            gap = float(r['a']) - float(cur[-1]['b'])
+            if gap > XV_CLUSTER_GAP_S:
+                clusters.append(cur)
+                cur = [r]
+            else:
+                cur.append(r)
+        clusters.append(cur)
+        best = max(clusters, key=lambda c: sum(float(x['dur_s']) for x in c))
+        # 🔴 **按时间序拼接**该簇（EXT：`for c in reversed(cands)` 取最近几句 ⇒
+        #   这里等价于「按时间序取满 `XV_MAX_S`」）。
+        picked = []
+        acc = 0.0
+        for r in best:
+            d = float(r['dur_s'])
+            if picked and acc + d > XV_MAX_S:
+                break
+            picked.append(r)
+            acc += d
+        if acc <= 0.0:
+            return [], None, 0.0, 'wait'
+        rngs = [(float(r['a']), float(r['b'])) for r in picked]
+        key = (round(acc, 3), len(rngs),
+               tuple((round(a, 3), round(b, 3)) for a, b in rngs))
+        if voice != 'clone':
+            # 🔴 还没登记 ⇒ 首次写入门槛
+            if acc < XV_FIRST_S:
+                return rngs, None, acc, 'wait'
+            return rngs, key, acc, 'first'
+        # 🔴 已登记 ⇒ 升级判定
+        prev_dur = float(prev.get('xv_dur_s') or prev.get('dur_s') or 0.0)
+        if prev.get('upgraded'):
+            return rngs, None, acc, 'frozen'    # 已升级过一次 ⇒ 冻结
+        if acc < XV_UPGRADE_S:
+            return rngs, None, acc, 'frozen'    # 还没到升级门槛 ⇒ 不动
+        if acc <= prev_dur + 1e-6:
+            return rngs, None, acc, 'frozen'    # 没变长 ⇒ 不动
+        return rngs, key, acc, 'upgrade'
+
+    def mark_xv_registered(self, spk: str, total_s: float,
+                           upgraded: bool = False) -> None:
+        """🔴 记下「已用 XV 参考登记了多久」＋**是否已升级过**（冻结用）。
+
+        🔴 `upgraded=True` **只在「升级那次」登记时传**
+        （EXT：首次写入 `cur==0` ⇒ 不置 `upgraded`；升级那次才置 ⇒ 之后冻结）。
+        """
+        with self._lock:
+            prev = self._reg_run.get(str(spk)) or {}
+            prev['xv_dur_s'] = round(float(total_s), 4)
+            if upgraded:
+                prev['upgraded'] = True
+            self._reg_run[str(spk)] = prev
 
     def mark_registered(self, spk: str, a: float, b: float) -> None:
         """🔴 **记下「这个 spk 已用哪一段登记了」**（下次判「要不要升级」用）。
@@ -538,11 +654,18 @@ class SpeakerVoiceTable:
         🔴🔴🔳 **APP-075(b)**：「有合格段后升级登记（覆盖旧登记）」
         ⇒ 必须知道**上一次登记用的是哪一段**、**多长**
         ⇒ 只有「新的合格段**更长**」才算升级（否则反复重登记 ⇒ 白耗算力）。
+
+        🔴🔴🔳 **APP-089 §2c-2 修正**：旧实现**整份覆盖** `_reg_run[spk]`
+        ⇒ 会把 `mark_xv_registered` 写的 `xv_dur_s` / `upgraded` **冲掉**
+        ⇒ XV 的「升级一次然后冻结」状态**丢失** ⇒ 可能反复升级。
+        ⇒ 现在改成**合并**（保留 XV 字段）。
         """
         with self._lock:
-            self._reg_run[str(spk)] = dict(a=float(a), b=float(b),
-                                           dur_s=round(float(b) - float(a), 4),
-                                           at=time.time())
+            prev = dict(self._reg_run.get(str(spk)) or {})
+            prev.update(a=float(a), b=float(b),
+                        dur_s=round(float(b) - float(a), 4),
+                        at=time.time())
+            self._reg_run[str(spk)] = prev
 
     def reg_run_of(self, spk: str) -> dict:
         """🔴🔴🔳 **读回「这个 spk 上次登记用的是哪一段」**（判升级用）。"""

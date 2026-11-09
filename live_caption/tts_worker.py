@@ -1178,6 +1178,52 @@ class TTSWorker:
         #   ⇒ worker 在**出队（合成）那一刻**按 seg 解析音色
         #   ⇒ 「提交时标签还没到」的那一批也能用上克隆音色。
         self._spk_bind = {}            # seg -> (spk, spk_conf)
+        # 🔴🔴🔴 APP-089 §2c-1：**self_ref**（这句自己的音频 ⇒ 该句专属 x-vector）
+        #   ⇒ 句子所属说话人**还没有登记音色**时，用**这句自己的音频**克隆
+        #     （≥ `SELF_REF_MIN_S` = 1.5 s）⇒ **从第一句就开始克隆**。
+        #   ⇒ **取代** APP-086 的「无标签 ⇒ 预设 A」规则。
+        #   ⚠️ **只在本句用**（不进 `_spk_voices` 共享表）⇒ 绝不串到别人身上。
+        self._seg_voice = {}           # seg -> dict(vec=..., ref_path=None)
+        # 🔴🔴🔳 APP-090 a：**等标签**的等待次数与累计秒数（**必须恒为 0**）
+        #   ⇒ reviewer 要求「不引入任何阻塞等待」⇒ 用计数器**证明**。
+        #   ⇒ 任何真正阻塞等标签的代码路径都会让它 > 0 ⇒ 判据可机检。
+        # 🔴🔴🔴 **本轮（APP-090②a）修正**：旧实现**只初始化、永不自增**
+        #   ⇒ `n_label_wait` 恒为 0 ⇒ **弱标记恒真**（判据形同虚设）。
+        #   ⇒ 现在改成**真实测量**：`_wait_for_label()` 里真的等了就计。
+        #   ⚠️ 默认**不等**（`tts_label_wait_sec` = 0.0）⇒ 生产恒为 0；
+        #   但把该阈值调大就能真的等 ⇒ 计数器**可被证伪**（反证组）。
+        self._n_label_wait = 0
+        self._label_wait_s = 0.0
+        # 🔴🔴🔳 **等标签的上限**（秒）：0.0 = **绝不等**（默认，APP-090②a）
+        #   ⇒ 可配：环境变量 `LIVECAP_TTS_LABEL_WAIT_SEC` > `device_config`
+        #     `tts_label_wait_sec` > 默认 0.0。
+        #   ⚠️ **只在「标签还没到」时等**，且**最多**等这么多秒 ⇒ 有界。
+        self._label_wait_sec = float(os.environ.get(
+            'LIVECAP_TTS_LABEL_WAIT_SEC', '') or 0.0)
+        try:
+            import device_config as _dc_lw
+            _lw_cfg = _dc_lw.get_numeric('tts_label_wait_sec', 0.0)
+            if not os.environ.get('LIVECAP_TTS_LABEL_WAIT_SEC', ''):
+                self._label_wait_sec = float(_lw_cfg or 0.0)
+        except Exception:
+            pass
+        # 🔴🔴🔳 APP-092 §2：**TTS 级跳过过期句**（late drop）
+        #   ⇒ 滞后超过阈值 ⇒ 这句**不配音**（内容仍在字幕/转写里）。
+        #   ⇒ 阈值**可配**：键名 **`tts_late_drop_sec`**，默认 **6.0 s**
+        #     （同 EXT `LATE_DROP_SEC`）。
+        #   ⚠️ 优先级：环境变量 `LIVECAP_TTS_LATE_DROP_SEC` > 命令行 > 默认值。
+        self._late_drop_sec = float(os.environ.get(
+            'LIVECAP_TTS_LATE_DROP_SEC', '') or 6.0)
+        self._n_late_drop = 0         # 跳过的句数
+        self._late_drop_lags = []     # 每次跳过的滞后秒数（验收用）
+        self._last_late_drop = False  # 本句是否被跳过（逐句遥测用）
+        # 🔴🔴🔳 APP-092 §2：**逐句**记录「本句的滞后秒数 / 阈值」
+        #   ⇒ 供 jsonl 落盘（reviewer 要「句 id、滞后秒数、阈值」）
+        self._last_late_drop_lag_s = None
+        self._last_late_drop_threshold_s = None
+        # 🔴🔴🔳 APP-090②c：**倍率下限与「speed ≤ 1/r」的冲突次数**
+        #   ⇒ reviewer 明文「如果两者冲突，以 1.10 为准，并且记下冲突次数」。
+        self._n_speed_floor_conflict = 0
         # 🔴🔴🔳 APP-086(2)：jid -> seg（**纯附加**）
         #   ⇒ 逐句遥测 JSONL 行里有 `seg` ⇒ reviewer 能把
         #     「逐句的音色」与「这句属于谁」对上
@@ -1192,6 +1238,9 @@ class TTSWorker:
         # 🔴🔴🔳 APP-086(2)：**本句是否沿用了上一句的克隆音色**
         #   ⇒ 逐句遥测里可机检判（不只能靠日志文字）。
         self._voice_inherited = False
+        # 🔴🔴🔳 APP-089 §2c-1：**本句是否用了 self_ref**（这句自己的音频）
+        #   ⇒ 与「沿用上一句」区分开 ⇒ 逐句遥测可机检。
+        self._voice_self_ref = False
         # ── 落盘模式（--tts-out 回放测试）──
         self._timeline = []          # [(t_start_s, wav)]
         self._t0 = None
@@ -1578,6 +1627,58 @@ class TTSWorker:
         return out
 
     # -- 合成 ------------------------------------------------------------
+    def _wait_for_label(self, seg, spk):
+        """🔴🔴🔳 APP-090②a：**唯一**允许「等说话人标签」的地方。
+
+        ## 为什么要有这个方法（reviewer 的要求）
+        > 另外加一个计数器 `n_label_wait`（等待次数和累计秒数），
+        > 写进 TTS 的 jsonl 和 stats。
+
+        🔴🔴🔴 **旧实现只初始化计数器、永不自增** ⇒ `n_label_wait` 恒为 0
+        ⇒ **弱标记恒真**（判据形同虚设）⇒ 本轮修正。
+
+        ## 口径
+        * **默认 `self._label_wait_sec == 0.0` ⇒ 绝不等** ⇒
+          `_n_label_wait` 恒为 0（APP-090②a「必须是 0」）。
+        * 阈值 > 0 时 ⇒ **真的会等**（有界：最多 `_label_wait_sec` 秒）
+          ⇒ 计数器**可被证伪**（反证组：把阈值调大 ⇒ 计数 > 0）。
+        * 等待期间**轮询** `_spk_bind`（标签一到就立刻返回）⇒ 不白等。
+
+        ## 线程纪律
+        * 只在**合成线程**（`_synth_loop`）里调用 ⇒ 不卡 ASR、不卡接收线程。
+        * 等待期间**不持** `_spk_bind_lock`（只做瞬时读取）⇒ 不死锁。
+        """
+        if spk or seg is None:
+            return spk, 0
+        try:
+            limit = float(self._label_wait_sec or 0.0)
+        except Exception:
+            limit = 0.0
+        if limit <= 0.0:
+            # 🔴 **默认路径：绝不等**（不计数 ⇒ 计数只反映「真的等了」）
+            return None, 0
+        # 🔴 阈值 > 0 ⇒ 真的会等（反证路径）
+        t0 = time.perf_counter()
+        waited = 0.0
+        got = None
+        while True:
+            with self._spk_bind_lock:
+                _b = self._spk_bind.get(seg)
+            if _b:
+                got = _b[0]
+                break
+            waited = time.perf_counter() - t0
+            if waited >= limit:
+                break
+            time.sleep(min(0.05, limit - waited))
+        waited = time.perf_counter() - t0
+        # 🔴🔴 **计数**（等待发生 ⇒ 次数 +1，累计秒数 += waited）
+        self._n_label_wait += 1
+        self._label_wait_s += waited
+        log('[tts_worker] ⏳ 等标签 %.2f s（段 %s，阈值 %.2f s）'
+            % (waited, seg, limit))
+        return got, waited
+
     def synth(self, jid: int, text: str, spk=None, spk_conf=None, lang=None,
               t_recv=None, speed: float = 1.0, target_wall=None):
         """合成一句并播放。
@@ -1700,6 +1801,10 @@ class TTSWorker:
         # 🔴🔴🔳 APP-086(2)：每句重置「是否沿用上一句音色」
         #   ⇒ 只有真正走了「沿用」那条路才会置 True。
         self._voice_inherited = False
+        # 🔴🔴🔳 APP-089 §2c-1：每句重置「是否用了 self_ref」
+        self._voice_self_ref = False
+        # 🔴🔴🔳 APP-089 §2c-1：**本句的 seg**（self_ref 按句查表用）
+        self._cur_seg = self._job_seg.get(jid)
         # 🔴🔴🔴 APP-039/040：**按句绑定音色**（本句用「这句的 spk」的声音）
         #   ⚠️ **必须在合成之前**切换 ⇒ 句内音色恒定（与「按句变速」同一纪律）。
         #   ⚠️ **没有该 spk 的音色 ⇒ 回落预设 A**（不用别人冒充）。
@@ -1739,33 +1844,44 @@ class TTSWorker:
         #     主进程又登记了 spk 音色）⇒ 有 spk 标签的句子按句绑定；
         #     无标签的句子**回落预设 A**（宁可少一段克隆音，也不用错人的声音）。
         if spk:
-            self._apply_spk_voice(spk)
+            _kind = self._apply_spk_voice(spk)
+            # 🔴🔴🔳 APP-089 §2c-1：**self_ref**（这句自己的音频）
+            #   ⇒ 该 spk **还没登记音色**时（`_apply_spk_voice` 回落到预设 A）
+            #     ⇒ 改用**这句自己的音频**提的 x-vector
+            #     ⇒ **从第一句就开始克隆**（EXT v0.3.2 行为）。
+            if _kind != 'clone':
+                self._apply_self_ref_voice()
         else:
             with self._spk_voice_lock:
                 _bound = bool(self._spk_voices)
-            if self.clone_mode and not _bound:
-                # 🔴 语义 ②：全局克隆模式 ⇒ **保留**当前克隆音色
-                self._last_voice_spk = None
-                self._last_voice_kind = ('clone' if self._clone_active
-                                         else 'preset')
-                self._log_keep_clone()
-            elif self._has_clone_voice() and not _bound:
-                # 🔴🔴🔴 APP-061⑤c：**已有克隆音色 ⇒ 沿用上一句的克隆音色**。
-                #   ⚠️🔴🔴🔴 **APP-086·2a（2026-11-09）收窄**：**只在「非按句绑定」模式**
-                #     （`_bound` 为空 ⇒ worker 没拿到任何按句音色）才沿用。
-                #   ⇒ 按句绑定模式（App GUI/CLI 的常态）下 `spk=None` ⇒ **回落预设 A**
-                #     ⇒ **绝不沿用上一句的克隆音色**
-                #     （= 「男声被配成女声」的主因，APP-086·2a 明文）。
-                #   ⚠️ 与本函数上方 1696–1713 的注释口径**一致**
-                #     （那里写的就是「spk 为 None ⇒ 必须回落预设 A」）。
-                #   用户方案 A（2026-10-28）原文允许「spk 未到时用**上一句音色**
-                #   或预设 A」⇒ 这里取「上一句音色」。
-                #   🔴 **只有真的存在克隆音色时**才沿用 ⇒ 还没有任何克隆时
-                #     仍回落预设 A（⇒ 不会用错人的声音冒充）。
-                self._log_keep_last_clone()
-            else:
-                # 🔴 语义 ①：按句绑定模式（或没有克隆模式）⇒ 回落预设 A
-                self._fallback_to_preset('no_spk_label')
+            # 🔴🔴🔳 APP-089 §2c-1：**self_ref** 优先于「沿用上一句音色 / 预设 A」
+            #   ⇒ 「无标签 ⇒ 预设 A」这条（APP-086）**被取代**。
+            #   ⚠️ **但**「不许沿用上一个说话人的克隆音色」这条兜底**保留**
+            #     （reviewer APP-089 §2c-1 明文）⇒ self_ref 也没有 ⇒ 才往下走。
+            if not self._apply_self_ref_voice():
+                if self.clone_mode and not _bound:
+                    # 🔴 语义 ②：全局克隆模式 ⇒ **保留**当前克隆音色
+                    self._last_voice_spk = None
+                    self._last_voice_kind = ('clone' if self._clone_active
+                                             else 'preset')
+                    self._log_keep_clone()
+                elif self._has_clone_voice() and not _bound:
+                    # 🔴🔴🔴 APP-061⑤c：**已有克隆音色 ⇒ 沿用上一句的克隆音色**。
+                    #   ⚠️🔴🔴🔴 **APP-086·2a（2026-11-09）收窄**：**只在「非按句绑定」模式**
+                    #     （`_bound` 为空 ⇒ worker 没拿到任何按句音色）才沿用。
+                    #   ⇒ 按句绑定模式（App GUI/CLI 的常态）下 `spk=None` ⇒ **回落预设 A**
+                    #     ⇒ **绝不沿用上一句的克隆音色**
+                    #     （= 「男声被配成女声」的主因，APP-086·2a 明文）。
+                    #   ⚠️ 与本函数上方 1696–1713 的注释口径**一致**
+                    #     （那里写的就是「spk 为 None ⇒ 必须回落预设 A」）。
+                    #   用户方案 A（2026-10-28）原文允许「spk 未到时用**上一句音色**
+                    #   或预设 A」⇒ 这里取「上一句音色」。
+                    #   🔴 **只有真的存在克隆音色时**才沿用 ⇒ 还没有任何克隆时
+                    #     仍回落预设 A（⇒ 不会用错人的声音冒充）。
+                    self._log_keep_last_clone()
+                else:
+                    # 🔴 语义 ①：按句绑定模式（或没有克隆模式）⇒ 回落预设 A
+                    self._fallback_to_preset('no_spk_label')
 
         if is_babelvox:
             # BabelVox 路线：音色由 speaker_embed / 内置 speaker 提供
@@ -1928,9 +2044,13 @@ class TTSWorker:
                 # 🔴 步长限制需要「上一句的倍率」⇒ worker 侧自己维护
                 #   （单一合成线程 ⇒ 无需加锁）。
                 _prev_sp = float(self._last_speed or 1.0)
-                _sp = float(_ts.speed_for_lag(_lag_at_dequeue, _prev_sp))
+                # 🔴🔴🔳 APP-090②c / APP-091②：**按目标语言定倍率区间**
+                #   ⇒ 中文目标：下限 1.10×、上限 1.50×
+                #   ⇒ 其他目标：1.00–1.30×（**原口径不变**）
+                _sp = float(_ts.speed_for_lag(_lag_at_dequeue, _prev_sp,
+                                              lang=lang))
                 log('[tts_worker] APP-042 定速：出队 lag=%.3f s ⇒ speed=%.4f'
-                    % (_lag_at_dequeue, _sp))
+                    '（lang=%s）' % (_lag_at_dequeue, _sp, lang))
             except Exception as e:
                 _sp = float(speed) if speed else 1.0
                 log('[tts_worker] APP-042 worker 侧定速失败 ⇒ 用主进程下发值：%s'
@@ -1947,7 +2067,7 @@ class TTSWorker:
         #        ⇒ 旧写法（封顶写在 ① 里面）⇒ 那条路径**不封顶** ⇒ 漏。
         #   ⚠️ **必须在 `self._last_speed = _sp` 之前**
         #     ⇒ 下一句的「上一句倍率」= **实际用掉的倍率**（不是被封顶前的）。
-        _cap = self._speed_cap_by_rtf()
+        _cap = self._speed_cap_by_rtf(lang=lang)
         if _cap is not None and _sp > _cap:
             log('[tts_worker] APP-061③c 倍速封顶：speed %.4f ⇒ %.4f'
                 '（r_recent=%.3f ⇒ 1/r=%.4f；合成跟不上 ⇒ 不抽空缓冲）'
@@ -2915,6 +3035,35 @@ class TTSWorker:
                              if self._last_spk else None),
                    # 🔴🔴🔳 APP-086(2)：**本句是否沿用了上一句的克隆音色**
                    voice_inherited=bool(self._voice_inherited),
+                   # 🔴🔴🔳 APP-089 §2c-1：**本句是否用了 self_ref**
+                   #   （= 这句自己的音频提的 x-vector ⇒ 从第一句就克隆）
+                   #   ⇒ 与 `voice_inherited`（沿用上一句）**互斥**。
+                   voice_self_ref=bool(self._voice_self_ref),
+                   # 🔴🔴🔳 APP-092 §2：**本句是否因「太晚」被跳过**（不配音）
+                   #   ⇒ 内容仍在字幕/转写里（只丢语音）。
+                   late_drop=bool(getattr(self, '_last_late_drop', False)),
+                   # 🔴🔴🔳 APP-092 §2：**本句被跳过时的滞后秒数 + 阈值**
+                   #   ⇒ reviewer 要「句 id、滞后秒数、阈值」三个字段
+                   #   ⇒ 旧实现只把 lag 写进 emit 事件（不进 jsonl）
+                   #     ⇒ 验收只能去 grep 日志散文 ⇒ **不可机检**。
+                   #   ⇒ 现在逐句落盘（`late_drop=False` 时为 None）。
+                   late_drop_lag_s=(getattr(self, '_last_late_drop_lag_s', None)
+                                    if getattr(self, '_last_late_drop', False)
+                                    else None),
+                   late_drop_threshold_s=(
+                       (getattr(self, '_last_late_drop_threshold_s', None)
+                        if getattr(self, '_last_late_drop', False) else None)),
+                   # 🔴🔴🔳 APP-090②a：**等标签的累计次数 / 累计秒数**
+                   #   ⇒ reviewer 要「n_label_wait 次数和累计秒数」进 jsonl
+                   #   ⇒ 默认恒 0（绝不等标签）；阈值调大 ⇒ 计数可被证伪。
+                   n_label_wait=int(getattr(self, '_n_label_wait', 0) or 0),
+                   label_wait_s=round(float(
+                       getattr(self, '_label_wait_s', 0.0) or 0.0), 3),
+                   # 🔍🔍🔋 APP-090§2c：**倍率下限与「speed ≤ 1/r」的冲突次数**
+                   #   ⇒ reviewer 明文「如果两者冲突，以 1.10 为准，并且记下冲突次数」
+                   #   ⇒ 累计值进 jsonl ⇒ reviewer 可直接核对。
+                   n_speed_floor_conflict=int(getattr(
+                       self, '_n_speed_floor_conflict', 0) or 0),
                    t_submit=round(t_submit, 4),
                    t_first_packet=(round(t_first - t_submit, 4)
                                    if t_first is not None else None),
@@ -3309,7 +3458,43 @@ class TTSWorker:
         except Exception:
             return 0.3
 
-    def _speed_cap_by_rtf(self):
+    def _speed_bounds(self, lang=None):
+        """🔴🔴🔳 APP-090②c / APP-091②：**按目标语言取倍率区间**（可配）。
+
+        🔴 **可配**（APP-091②「写明键名」）：
+        - `tts_speed_min_zh`（默认 **1.10**）
+        - `tts_speed_max_zh`（默认 **1.50**）
+        ⇒ 来源：环境变量 `LIVECAP_TTS_SPEED_MIN_ZH` / `LIVECAP_TTS_SPEED_MAX_ZH`
+          或 `device_config.json`（**键名同上**）。
+        ⚠️ **读不到就用默认值** ⇒ 不影响任何既有行为。
+
+        🔴 **为什么在这里取**（而不是 `time_stretch` 里）：
+        `time_stretch` 的客户包纪律是「**只依赖 numpy/wave**」（app140 判据）
+        ⇒ 配置读取放在**调用方**（worker / service 都能 import `device_config`）。
+        """
+        try:
+            import time_stretch as _ts
+            _lo, _hi = _ts.speed_bounds_for_lang(lang)
+        except Exception:
+            return (1.0, 1.30)
+        if not _ts.is_zh_lang(lang):
+            return (_lo, _hi)
+        # 🔴 中文目标 ⇒ 上下限**可配**
+        try:
+            import os as _os
+            _mn = _os.environ.get('LIVECAP_TTS_SPEED_MIN_ZH')
+            _mx = _os.environ.get('LIVECAP_TTS_SPEED_MAX_ZH')
+            if _mn is None or _mx is None:
+                import device_config as _dc
+                if _mn is None:
+                    _mn = _dc.get_numeric('tts_speed_min_zh', _lo)
+                if _mx is None:
+                    _mx = _dc.get_numeric('tts_speed_max_zh', _hi)
+            return (float(_mn), float(_mx))
+        except Exception:
+            return (_lo, _hi)
+
+    def _speed_cap_by_rtf(self, lang=None):
         """🔴🔴🔴 APP-061③(c)：**按实测合成速度给倍速封顶**（`speed ≤ 1/r`）。
 
         🔴 **推导**（reviewer 原文「`speed ≤ 1/r_recent`」）：
@@ -3324,6 +3509,14 @@ class TTSWorker:
         🔴 **只封顶、不加速**：APP-042「用户定的 1.30× 上限」**不变**，
           这里只是**再加一个更严的动态上限**。
 
+        🔴🔴🔳 **APP-090②c / APP-091②（中文目标）**：
+        - 上限随语言变（中文 1.50×，其他 1.30×）；
+        - **下限也不能压到 1.10 以下**：reviewer 明文
+          「『合成跟不上就宁可滞后』（speed ≤ 1/r_recent）这条保留，
+          但它**不能把下限压到 1.10 以下**。如果两者冲突，
+          **以 1.10 为准**，并且**记下冲突次数**」。
+        ⇒ 冲突时 `cap = 1.10`（中文）并 `self._n_speed_floor_conflict += 1`。
+
         ⚠️ **没有实测 RTF**（第一句）⇒ 不封顶（返回 None）⇒ 行为不变。
         """
         try:
@@ -3332,11 +3525,19 @@ class TTSWorker:
             return None
         if not r or r <= 0.05 or r > 20.0:
             return None
+        try:
+            import time_stretch as _ts
+            _lo, _hi = _ts.speed_bounds_for_lang(lang)
+        except Exception:
+            _lo, _hi = 1.0, 1.30
         cap = 1.0 / r
-        if cap > 1.30:            # 用户定的 1.30× 上限（不变）
-            cap = 1.30
-        if cap < 1.0:
-            cap = 1.0
+        if cap > _hi:                 # 用户定的上限（中文 1.50 / 其他 1.30）
+            cap = _hi
+        if cap < _lo:
+            # 🔴🔴🔳 APP-090②c：**冲突** ⇒ 以语言下限为准 + 记冲突次数
+            if _lo > 1.0:
+                self._n_speed_floor_conflict += 1
+            cap = _lo
         return float(cap)
 
     # -- 🔴🔴🔴 APP-027④：**唯一合成线程**（FIFO 消费）-------------------
@@ -3384,6 +3585,60 @@ class TTSWorker:
                     _b = self._spk_bind.get(seg)
                 if _b:
                     spk, spk_conf = _b
+                else:
+                    # 🔴🔴🔳 APP-090②a：**唯一**允许等标签的地方
+                    #   ⇒ 默认 `_label_wait_sec=0` ⇒ **绝不等**（计数器恒 0）
+                    #   ⇒ 阈值 > 0 时才真的等（反证组 ⇒ 计数器可被证伪）
+                    spk, _waited = self._wait_for_label(seg, spk)
+            # 🔴🔴🔳 APP-092 §2：**TTS 级跳过过期句**（late drop）
+            #   ⇒ 「已经太晚、来不及说」的句子**直接跳过**（不配音）。
+            #   ⇒ **只丢语音**：内容仍完整保留在**字幕**与**转写 txt**里
+            #     （字幕/转写由 ASR/MT 侧产出 ⇒ 本跳句**不影响**它们）。
+            #   ⇒ 阈值**可配**（`LIVECAP_TTS_LATE_DROP_SEC`，默认 6.0 s
+            #     ⇒ 同 EXT `LATE_DROP_SEC`）。
+            #   🔴 **判据**：滞后 = `now − target_wall`（墙钟，跨进程可比）
+            #     ⇒ `target_wall` 为 None ⇒ **无法判晚** ⇒ 不跳（照常合成）。
+            #   ⚠️ **必须在这里判**（`synth()` 之前）⇒ 一旦开跑就停不下来。
+            _late_drop = False
+            if target_wall is not None and self._late_drop_sec > 0.0:
+                try:
+                    _lag_now = time.time() - float(target_wall)
+                    if _lag_now > self._late_drop_sec:
+                        _late_drop = True
+                        self._n_late_drop += 1
+                        self._late_drop_lags.append(round(_lag_now, 3))
+                        # 🔴🔴🔳 APP-092 §2：**逐句**记下「滞后秒数 + 阈值」
+                        #   ⇒ 供 jsonl 落盘（reviewer 要「句 id、滞后秒数、阈值」）
+                        self._last_late_drop_lag_s = round(_lag_now, 3)
+                        self._last_late_drop_threshold_s = float(
+                            self._late_drop_sec)
+                        log('[tts_worker] ⏭ 段 %s 已晚 %.1f s（>%.0f s）'
+                            '⇒ 不播配音、只出字幕（累计 %d 句）'
+                            % (seg, _lag_now, self._late_drop_sec,
+                               self._n_late_drop))
+                        emit({'kind': 'late_drop', 'id': jid, 'seg': seg,
+                              'lag_s': round(_lag_now, 3),
+                              'threshold_s': self._late_drop_sec,
+                              'count': 1})
+                except Exception:
+                    _late_drop = False
+            if _late_drop:
+                # 🔴 记账：跳过 ⇒ 这句**不算「播完」**⇒ 主进程那边
+                #   `n_played + n_dropped + n_empty == n_submitted` 不变式
+                #   ⇒ 必须让主进程知道（emit 已发 ⇒ 主进程计 n_dropped）。
+                self._last_late_drop = True
+                try:
+                    self._record_jsonl(jid, text, time.perf_counter(),
+                                       dropped=True)
+                except Exception:
+                    pass
+                # 🔴🔴🔳 APP-092 §2：**清掉本句的滞后/阈值**
+                #   ⇒ 否则**下一句**（未跳过）会带上上一句的滞后值
+                #   ⇒ jsonl 里 `late_drop_lag_s` 会串味。
+                self._last_late_drop = False
+                self._last_late_drop_lag_s = None
+                self._last_late_drop_threshold_s = None
+                continue
             # ── 出队时刻（APP-027② 的 `t_dequeue` 真正的口径）──
             t_dequeue = time.perf_counter()
             with self._synth_state_lock:
@@ -3465,7 +3720,14 @@ class TTSWorker:
                   # 🔴 APP-027④：实测「音频秒/字」⇒ 主进程估时用同一口径
                   #   （**不写死 5 字/秒**）
                   'sec_per_char': (round(float(spc), 5)
-                                   if spc else None)})
+                                   if spc else None),
+                  # 🔴🔴🔳 APP-090 a：**等标签的等待次数与累计秒数**
+                  #   ⇒ reviewer 要求「必须是 0」⇒ 用计数器**证明**没阻塞。
+                  'n_label_wait': int(self._n_label_wait),
+                  'label_wait_s': round(float(self._label_wait_s), 3),
+                  # 🔴🔴🔳 APP-092 §2：**TTS 跳过过期句**的计数
+                  'n_late_drop': int(self._n_late_drop),
+                  'late_drop_sec': round(float(self._late_drop_sec), 3)})
         except Exception:
             pass
 
@@ -3559,10 +3821,19 @@ class TTSWorker:
                     speed = float(msg.get('speed') or 1.0)
                 except Exception:
                     speed = 1.0
-                if speed < 1.0:
-                    speed = 1.0
-                if speed > 1.30:
-                    speed = 1.30
+                # 🔴🔴🔳 APP-090②c / APP-091②：**按目标语言取倍率区间**
+                #   ⇒ 中文目标 1.10–1.50×（取代 10-29 的 1.30× 上限）
+                #   ⇒ 其他目标 1.00–1.30×（**原口径不变**）
+                #   ⚠️ `lang` 此时**已经**归一化（上面刚算完）⇒ 可直接用。
+                try:
+                    import time_stretch as _ts0
+                    _lo, _hi = _ts0.speed_bounds_for_lang(lang)
+                except Exception:
+                    _lo, _hi = 1.0, 1.30
+                if speed < _lo:
+                    speed = _lo
+                if speed > _hi:
+                    speed = _hi
                 # 🔴🔴🔴 APP-042：**目标开播墙钟**（跨进程可比 ⇒ 用 `time.time()`）
                 #   ⚠️ 缺这个字段的旧命令仍要能跑 ⇒ 兜底 None。
                 target_wall = msg.get('target_wall')
@@ -3717,11 +3988,29 @@ class TTSWorker:
                     self._register_spk_voice(msg)
                 except Exception as e:
                     log(f'[tts_worker] 说话人音色登记失败：{e}')
+            elif cmd == 'spk_voice_seg':
+                # 🔴🔴🔳 APP-089 §2c-1：**self_ref**（这句自己的音频 ⇒ 本句专属音色）
+                #   ⇒ 主进程把**这句自己的 PCM**（≥ 1.5 s）发来
+                #     ⇒ worker 用**自己的** speaker encoder 算 x-vector
+                #     ⇒ 存进 `_seg_voice[seg]`（**不进共享 spk 表**）
+                #     ⇒ 该句所属说话人**还没登记音色**时用这个 ⇒ **从第一句就克隆**。
+                #   ⚠️ **不落盘**（只在本进程内存里）。
+                try:
+                    self._register_seg_voice(msg)
+                except Exception as e:
+                    log(f'[tts_worker] self_ref 登记失败：{e}')
             elif cmd == 'spk_voice_drop':
                 # 🔴 APP-039：**会话结束清空**说话人音色表（隐私）
+                # 🔴🔴🔳 APP-089 §2b：**连 `_spk_bind`（晚到标签绑定表）一起清**
+                #   ⇒ 否则**跨会话残留**（reviewer 明写「必须修」）：
+                #     新会话里 seg 号从 0 重新数 ⇒ 旧会话的 seg→spk 绑定
+                #     会被**新会话的同号 seg 命中** ⇒ 用错音色。
                 try:
                     with self._spk_voice_lock:
                         self._spk_voices.clear()
+                        self._seg_voice.clear()
+                    with self._spk_bind_lock:
+                        self._spk_bind.clear()
                     log('[tts_worker] 说话人音色表已清空（会话结束）')
                 except Exception as e:
                     log(f'[tts_worker] 清空说话人音色表失败：{e}')
@@ -3935,7 +4224,11 @@ class TTSWorker:
         log('[tts_worker] ♻️ 补登记排队的 spk 音色：%d 条' % len(pend))
         for m in pend:
             try:
-                self._register_spk_voice(m)
+                # 🔴🔴🔳 APP-089 §2c-1：区分 **self_ref**（按 seg）与普通 spk 登记
+                if m.get('_seg_voice'):
+                    self._register_seg_voice(m)
+                else:
+                    self._register_spk_voice(m)
             except Exception as e:
                 log('[tts_worker] 🔴 补登记 spk 音色失败：%s' % e)
 
@@ -4037,6 +4330,75 @@ class TTSWorker:
                   'message': str(e)})
             return False
 
+    def _register_seg_voice(self, msg):
+        """🔴🔴🔳 APP-089 §2c-1：**self_ref**（本句自己的音频 ⇒ 本句专属 x-vector）。
+
+        ## 命令体
+        ```json
+        {"cmd": "spk_voice_seg", "seg": 12, "pcm": "<base64 float32 16k>"}
+        ```
+
+        🔴 **为什么需要**（EXT v0.3.2 行为，reviewer 要求移植）：
+        句子所属说话人**还没有登记音色**时，EXT 不用预设 A、也不用别人的音色，
+        而是**直接用这句自己的音频**提 x-vector ⇒ **从第一句就开始克隆**。
+
+        🔴 **向量必须由 worker 自己的 encoder 算**（ASR-026/§50 铁律：
+        wespeaker 的向量只用于 ASR 内部聚类 ⇒ TTS 必须用自己的）。
+
+        🔴 **只在本句用**：存进 `_seg_voice[seg]`（**不进** `_spk_voices`
+        共享表）⇒ **绝不串到别的句子上**（不引入 APP-071 那类串音）。
+
+        ⚠️ **失败不静默**：算不出来 ⇒ 记日志 + 不登记 ⇒ 该句回落预设 A。
+        """
+        import numpy as np
+
+        seg = msg.get('seg')
+        try:
+            seg = int(seg) if seg is not None else None
+        except Exception:
+            seg = None
+        if seg is None:
+            log('[tts_worker] 🔴 spk_voice_seg 命令缺少 seg ⇒ 忽略')
+            return False
+        try:
+            import base64
+            pcm = np.frombuffer(base64.b64decode(msg.get('pcm', '')),
+                                dtype=np.float32)
+        except Exception as e:
+            log(f'[tts_worker] 🔴 spk_voice_seg 的 PCM 解码失败（{e}）⇒ 忽略')
+            return False
+        # 🔴 门槛：≥ 1.5 s（SELF_REF_MIN_S）⇒ 太短提不出可靠 x-vector
+        if pcm.size < int(1.5 * 16000):
+            log('[tts_worker] 🔴 spk_voice_seg 的 PCM 太短（<1.5 s）⇒ 忽略')
+            return False
+
+        eng = self.engine
+        if eng is None or not self._voice_ready:
+            # 🔴 加载中 ⇒ 排队（不丢）：模型就绪后补登记。
+            with self._pending_spk_lock:
+                self._pending_spk_voice.append(dict(msg, _seg_voice=True))
+            log('[tts_worker] ⏳ 模型加载中 ⇒ self_ref 登记**排队**（seg=%s）' % seg)
+            return True
+
+        try:
+            import tts_engine
+            vec = tts_engine.speaker_embedding_from_pcm(
+                eng, pcm, sr=16000, on_log=log)
+            if vec is None:
+                raise RuntimeError('speaker_embedding_from_pcm 返回 None')
+            with self._spk_voice_lock:
+                self._seg_voice[seg] = dict(vec=vec, ref_path=None)
+            log(f'[tts_worker] ✅ self_ref 已登记（seg={seg}，'
+                f'x-vector，{pcm.size / 16000.0:.1f} s）')
+            emit({'kind': 'spk_voice_seg', 'seg': seg, 'ok': True,
+                  'dur_s': round(pcm.size / 16000.0, 2)})
+            return True
+        except Exception as e:
+            log(f'[tts_worker] 🔴 self_ref 登记失败（seg={seg}）：{e}')
+            emit({'kind': 'spk_voice_seg', 'seg': seg, 'ok': False,
+                  'message': str(e)})
+            return False
+
     def _apply_spk_voice(self, spk):
         """🔴🔴🔴 APP-039/040：**把本句的音色切成「这句的 spk」**。
 
@@ -4101,6 +4463,43 @@ class TTSWorker:
         self._last_voice_spk = str(spk)
         self._last_voice_kind = 'clone'
         return 'clone'
+
+    def _apply_self_ref_voice(self) -> bool:
+        """🔴🔴🔳 APP-089 §2c-1：**self_ref** —— 用**这句自己的音频**当音色。
+
+        ## 什么时候用
+        句子所属说话人**还没有登记音色**时（EXT v0.3.2 的行为，reviewer 要求移植）：
+        不用预设 A、也不用别人的音色 ⇒ **从第一句就开始克隆**。
+
+        🔴 **只在本句用**：`_seg_voice[seg]` 是**按句**存的
+        ⇒ **绝不串到别的句子上**（不引入 APP-071 那类串音）。
+
+        🔴 **返回值**：`True` = 本句已用上 self_ref（调用方**不要**再回落）；
+        `False` = 没有 self_ref（调用方按原逻辑走：沿用上一句 / 回落预设 A）。
+
+        ⚠️ **只对 BabelVox 路线有效**（CUDA 边车路线没有 x-vector
+        ⇒ self_ref 提不出向量 ⇒ 返回 False ⇒ 行为不变）。
+        """
+        seg = getattr(self, '_cur_seg', None)
+        if seg is None:
+            return False
+        try:
+            with self._spk_voice_lock:
+                row = self._seg_voice.get(int(seg))
+        except Exception:
+            return False
+        if not row:
+            return False
+        vec = row.get('vec')
+        if vec is None:
+            return False
+        # 🔴🔴🔳 遥测：**记下本句用的是 self_ref**（机器可检）
+        self._last_voice_spk = None
+        self._last_voice_kind = 'clone'
+        self._voice_self_ref = True
+        self.speaker_embed = vec
+        self.speaker_name = None
+        return True
 
     def _log_keep_clone(self):
         """🔴 §101：**保留全局克隆音色**时的一致日志（语义 ②）。
@@ -4353,6 +4752,12 @@ def main():
     ap.add_argument('--seed', type=int, default=1234)
     ap.add_argument('--steps', type=int, default=25)
     ap.add_argument('--cfg-rate', type=float, default=0.7)
+    # 🔴🔴🔳 APP-092 §2：**跳过过期句的滞后阈值**（秒）
+    #   ⇒ 键名 `tts_late_drop_sec`，默认 **6.0**（同 EXT `LATE_DROP_SEC`）。
+    #   ⚠️ **0 表示不跳**（关掉这个功能）。
+    ap.add_argument('--late-drop-sec', type=float, default=None,
+                    help='滞后超过这个秒数就跳过这句配音（只出字幕）；'
+                         '0 = 不跳过。默认 6.0')
     args = ap.parse_args()
 
     # 🔴🔴 [APP-FIX-20261023] 主线程**预导入**重依赖（numpy / scipy.linalg）
@@ -4387,6 +4792,9 @@ def main():
                   bigvgan_ir=args.bigvgan_ir, precision=args.precision,
                   out_wav=args.out_wav, seed=args.seed, steps=args.steps,
                   cfg_rate=args.cfg_rate)
+    # 🔴🔴🔳 APP-092 §2：命令行给的 late-drop 阈值（**不给 ⇒ 用默认 6.0**）
+    if args.late_drop_sec is not None:
+        w._late_drop_sec = float(args.late_drop_sec)
     w.dump_dir = args.dump_dir
     w.tts_cache_dir = args.tts_cache_dir
     # jsonl 路径：`--out-wav` 存在时默认 `<out-wav>.tts.jsonl`
