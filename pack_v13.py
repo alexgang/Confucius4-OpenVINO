@@ -1079,7 +1079,12 @@ def check_v23_pkg_gate(pkg):
     print('打包前闸门③（APP-081）：PKG_INCLUDE_FILES / 交付洁净度 / 补丁')
     print('=' * 70)
     ok = True
-    for rel in _v23.PKG_INCLUDE_FILES:
+    # reviewer 2026-11-07 (v2.4): the preset-only include list and the APP-080 patch
+    #   checks are v2.3-specific (v2.4 ships cloning again); >= 2.4 keeps only the
+    #   assert_pkg_clean presence check + the clean-gate scan.
+    _include = (_v23.PKG_INCLUDE_FILES if cur == (2, 3)
+                else [r for r in _v23.PKG_INCLUDE_FILES if r.endswith('assert_pkg_clean.py')])
+    for rel in _include:
         p = os.path.join(pkg, rel.replace('/', os.sep))
         if not os.path.isfile(p):
             print('  [FAIL] 缺少随包文件 %s' % rel)
@@ -1101,9 +1106,10 @@ def check_v23_pkg_gate(pkg):
             print('     - %s (%s)' % (b[0], b[1]))
     else:
         print('  [OK] 交付洁净度闸门：0 违规（6 类 PKG_EXCLUDE_PATTERNS 驱动）')
-    for fname, key in (('live_caption_app.py', 'live_caption/live_caption_app.py'),
-                       ('tts_service.py', 'live_caption/tts_service.py'),
-                       ('tts_worker.py', 'live_caption/tts_worker.py')):
+    for fname, key in ((('live_caption_app.py', 'live_caption/live_caption_app.py'),
+                        ('tts_service.py', 'live_caption/tts_service.py'),
+                        ('tts_worker.py', 'live_caption/tts_worker.py'))
+                       if cur == (2, 3) else ()):
         p = os.path.join(pkg, 'app', fname)
         if not os.path.isfile(p):
             print('  [FAIL] 包内缺 %s' % fname)
@@ -1520,6 +1526,12 @@ def _verify_and_report(ZIP, args, PKG, PREFIX):
             for p in pkg_exclude.INTERNAL_EXACT
             if isinstance(p, str) and p.startswith('app/') and p.endswith('.py')
         }
+        # reviewer 2026-11-07 (v2.4): two more guarded dev-only imports (verified):
+        #   assert_pkg_clean -> v23_preset_only: try/except, falls back to built-in rules
+        #     (v2.4 ships cloning, so the v2.3 preset-only module is not shipped);
+        #   backends / npu_embeds_backend -> backends_torch: APP-069(5) moved the torch
+        #     code to a dev-only module; lazy import with a clear 'use OpenVINO' error.
+        by_design_absent |= {'v23_preset_only', 'backends_torch'}
         certain = [(f, m) for f, m in missing_local
                    if m in repo_modules and m not in by_design_absent]
         suspect = [(f, m) for f, m in missing_local

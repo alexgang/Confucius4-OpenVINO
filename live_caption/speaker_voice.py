@@ -521,6 +521,12 @@ class SpeakerVoiceTable:
                 if float(best['dur_s']) <= prev_dur + 1e-6:
                     # 🔴 没有更长的合格段 ⇒ **不给票**（调用方不会重发）
                     return [], None
+                # reviewer 11-07: the SAME run growing past the cap gives the same
+                #   (MAX_PER_SPK_S-capped) audio => no new ticket (was: re-register on
+                #   every final, 9x identical x-vectors in the SPE mix test).
+                if (abs(float(best['a']) - float(prev.get('a', -1.0))) < 1e-3
+                        and prev_dur >= MAX_PER_SPK_S - 1e-6):
+                    return [], None
             key = (round(best['a'], 3), round(best['b'], 3),
                    round(best['dur_s'], 3))
             return [(float(best['a']), float(best['b']))], key

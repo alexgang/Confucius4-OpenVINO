@@ -4660,6 +4660,10 @@ class App:
         """
         if self.tts is None or not getattr(self.tts, 'active', False):
             return
+        # reviewer 2026-11-07 (v2.4): only in 'follow_speaker' mode; pending speakers stay
+        #   queued, so switching to clone later still registers them.
+        if not getattr(self, '_clone_enabled', False):
+            return
         pending = list(self._spk_pending_embed)
         if not pending:
             return
@@ -4681,10 +4685,7 @@ class App:
                 self._spk_voices.mark_embedded(_s, refined=_refined)
                 self._spk_voice_sent.discard(_sent)
                 if _refined:
-                    # 🔴 §99（断链 F）：细化完成 ⇒ 这条路走完了 ⇒ 移出 pending
-                    self._spk_pending_embed = [
-                        (s, k) for (s, k) in self._spk_pending_embed
-                        if k != _s]
+                    # reviewer 11-07: keep in pending so a longer run can upgrade (see CLI)
                     self._ui_log('[spk] %s 音色已细化' % _s)
                 else:
                     # 🔴🔴🔴 §99（断链 F）：**不要**把 spk 从 pending 移除！
@@ -6836,6 +6837,10 @@ def run_cli(args):
         nonlocal _spk_pending_embed, _spk_voice_sent
         if tts is None or not getattr(tts, 'active', False):
             return
+        # reviewer 2026-11-07 (v2.4): preset voice selected => never register clone voices
+        #   (v2.4 acceptance: --tts-voice A still dubbed 18/20 sentences with clone voices).
+        if not _want_clone:
+            return
         # 🔴🔴🔴 §99（断链 C）：**先查 worker 回执**。
         #   ⇒ `register_spk_voice()` 返回 True 只代表「命令写进管道了」，
         #     **不代表 worker 真的算出了 x-vector**。
@@ -6851,8 +6856,9 @@ def run_cli(args):
                 _spk_voices.mark_embedded(_s, refined=_refined)
                 _spk_voice_sent.discard(_sent)
                 if _refined:
-                    _spk_pending_embed = [
-                        (x, k) for (x, k) in _spk_pending_embed if k != _s]
+                    # reviewer 11-07: do NOT drop from pending — a later, LONGER qualified
+                    #   run must still be able to upgrade the voice (mixed clusters:
+                    #   ASR label S2 = female question 9.6-32 s + male answer 32-111 s).
                     print(f'  [spk] {_s} 音色已细化', flush=True)
                 else:
                     # 🔴🔴🔴 §99（断链 F）：**不要**把 spk 从 pending 移除！
@@ -6917,6 +6923,8 @@ def run_cli(args):
                     if pcm is not None and \
                             pcm.size >= int(speaker_voice.REFINE_S * SR):
                         if tts.register_spk_voice(spk, pcm):
+                            # reviewer 11-07: remember which run we used => only a LONGER run re-triggers
+                            _spk_voices.mark_registered(spk, rngs[0][0], rngs[0][1])
                             # 🔴 §99（断链 C）：细化也等回执
                             _spk_voice_sent.add((spk, True))
             except Exception as e:
