@@ -1,0 +1,53 @@
+{
+ "script": "_app301_rc4_readme_nums.py",
+ "patches": [
+  {
+   "old": "· 正式验收（APP-066 §4）、桌面快捷方式、其余 bug 修复 → 留到下一版",
+   "count": 1,
+   "applied": true
+  },
+  {
+   "old": "· CPU     ：Intel Core Ultra（Panther Lake / Core Ultra 200 系列）",
+   "count": 1,
+   "applied": true
+  },
+  {
+   "old": "· NPU     ：Intel NPU（TTS 走 NPU）",
+   "count": 1,
+   "applied": true
+  },
+  {
+   "old": "  · 内存   ：建议 **>= 16 GB**。",
+   "count": 1,
+   "applied": true
+  },
+  {
+   "old": "· 磁盘   ：解压后 **约 6.7 GB**（10 474 个文件）",
+   "count": 1,
+   "applied": true
+  },
+  {
+   "old": "    文件数 10 474 → 10 510；**包内 0 个预编译 blob**（编译缓存写用户目录）。",
+   "count": 1,
+   "applied": true
+  },
+  {
+   "old": "    · CPU 峰值/均值     **本机未采集**（打包时设备被其它模块占用）",
+   "count": 1,
+   "applied": true
+  }
+ ],
+ "n_files_in_pkg": 10480,
+ "pkg_gb": 10.0,
+ "all_applied": true,
+ "checks": {
+  "rc3_bytes_unchanged": true,
+  "rc3_inode_differs": true,
+  "all_patches_applied": true,
+  "readme_has_new_nfiles": true,
+  "readme_no_old_claim": true,
+  "readme_has_peak_mem": true,
+  "pass": true
+ },
+ "verdict": "README_NUMS_OK"
+}

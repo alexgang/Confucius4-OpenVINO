@@ -1,0 +1,11 @@
+{
+ "encoder_exec_devices": "NPU",
+ "decoder_exec_devices": "NPU",
+ "encoder_on_npu_only": true,
+ "decoder_on_npu_only": true,
+ "ov_version": "2026.4.1-22982-e213a147257-releases/2026/4",
+ "cache": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app303_npu_cache",
+ "npu_enc_compile_s": 28.2,
+ "npu_dec_compile_s": 9.7,
+ "verdict": "EXEC_ON_NPU_OK"
+}

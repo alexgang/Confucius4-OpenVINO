@@ -1,0 +1,68 @@
+{
+ "script": "_app302_rc4_zip.py",
+ "ts": "2026-11-10 07:28:35",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4",
+ "zip": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4_perftest.zip",
+ "mode": "run",
+ "rc3_zips_before": {
+  "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest.zip": {
+   "sha256": "dda6f229e9d1e70accc4417b328d33b8c929f868a033ad4546e39d7d0f2d45f1",
+   "bytes": 5591630138
+  },
+  "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest_rev2.zip": {
+   "sha256": "90ae8b9da38eeca6ab9e6a693e9ac6395bdcb678e9377c5a4f655a7c5a06f58f",
+   "bytes": 5591630139
+  }
+ },
+ "n_files": 10480,
+ "src_bytes": 10702133708,
+ "src_gb": 9.967,
+ "listfile_ufffd": 0,
+ "listfile_abs_path": 0,
+ "listfile_bak": 0,
+ "readme_claims": {
+  "gb": 10.0,
+  "n_files": 10480
+ },
+ "missing_npu_ir": [],
+ "missing_igpu_ir": [],
+ "listfile": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app302_zip_listfile.txt",
+ "cmd": [
+  "C:\\Program Files\\7-Zip\\7z.exe",
+  "a",
+  "-tzip",
+  "-mx=5",
+  "-mmt=on",
+  "-bso0",
+  "-bsp0",
+  "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4_perftest.zip",
+  "-i@C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app302_zip_listfile.txt"
+ ],
+ "pid": 47636,
+ "priority": "BELOW_NORMAL",
+ "rc": 0,
+ "wall_s": 192.8,
+ "n_zip_entries": 10480,
+ "zip_bytes": 8609378581,
+ "zip_gb": 8.018,
+ "zip_sha256": "f0ebcc7272ea26776f6b7bd3cd83ebdc94e5a8bfaa8e5aaeb6f5b16d55ccc4ba",
+ "n_entries_match": true,
+ "n_missing_in_zip": 0,
+ "n_extra_in_zip": 0,
+ "missing_sample": [],
+ "extra_sample": [],
+ "n_crc_mismatch": 0,
+ "crc_mismatch_sample": [],
+ "rc3_zips_after": {
+  "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest.zip": {
+   "sha256": "dda6f229e9d1e70accc4417b328d33b8c929f868a033ad4546e39d7d0f2d45f1",
+   "bytes": 5591630138
+  },
+  "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest_rev2.zip": {
+   "sha256": "90ae8b9da38eeca6ab9e6a693e9ac6395bdcb678e9377c5a4f655a7c5a06f58f",
+   "bytes": 5591630139
+  }
+ },
+ "rc3_zips_unchanged": true,
+ "verdict": "ZIP_OK"
+}

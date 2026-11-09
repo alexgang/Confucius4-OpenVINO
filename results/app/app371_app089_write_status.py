@@ -216,7 +216,7 @@ def _reverse(new: str, old: str, arch_map: dict, recent_line: str) -> str:
        old = old_pre + 拼接(旧章节)
 
        逆步骤：
-       ① 去掉尾部 `sec_body`（即 §161 整块）；
+       ① 去掉尾部 `sec_body`（即**新增的那一节**）；
        ② 把**被归档**的章节正文从**归档件**逐字还原
           （`arch_map`：header → 原正文）；
        ③ 头部：`new_pre` 里去掉插入的 `recent_line`，
@@ -224,14 +224,20 @@ def _reverse(new: str, old: str, arch_map: dict, recent_line: str) -> str:
           ⇒ 应逐字等于 `old_pre`。
 
     ⇒ 全部还原成功 ⇒ `result == old` ⇒ 证明本次写入**只**做了
-       「追加 §161 + 改 4 个头部行 + 插入 1 行最近更新 + 归档替换」
+       「追加一节 + 改 4 个头部行 + 插入 1 行最近更新 + 归档替换」
        这些**已声明**的改动，**没有别的副作用**。
+
+    ⚠️ **不能写死节号**（旧版写死 `'## §161'`，而实际新增的可能是 §162/§163…）
+       ⇒ 改为「**最后一个** `## §` 开头」定位 ⇒ 与节号无关。
     """
-    # ① 去掉尾部 §161
-    i = new.find('## §161')
-    if i < 0:
+    # ① 去掉尾部**新增的那一节**（= 最后一个 `## §` 段）
+    #    ⚠️ 切点要在**分隔用的换行之前**：旧文件最后一节以 `\n` 结尾，
+    #    新文件在它后面接 `\n## §163…` ⇒ 若切到 `\n## §` 的换行**之后**，
+    #    会多留一个 `\n`（实测多 1 B ⇒ 校验失败）。
+    idx = new.rfind('\n## §')
+    if idx < 0:
         return new
-    rev = new[:i]
+    rev = new[:idx]
     # ② 被归档章节：正文还原
     if arch_map:
         for hdr, orig_body in arch_map.items():
