@@ -141,9 +141,24 @@ def score_arm(arm_dir, truth):
     if os.path.isdir(dd):
         wavs = sorted(f for f in os.listdir(dd) if f.endswith('.wav'))
 
+    # ── 「沿用上一句音色」的**跨臂可比**计数 ──────────────────────
+    # 🔴 遥测字段 `voice_inherited` 只有 after 臂有（before 臂是 v2.4 的旧代码）
+    # ⇒ 跨臂比较用 **worker 日志里的固定标记** `spk_pending⇒keep_last`
+    #   （APP-061⑤c 的 reviewer 原文关键词）⇒ 两臂都有。
+    n_keep_last = 0
+    log_path = os.path.join(arm_dir, 'run.log')
+    if os.path.exists(log_path):
+        for line in open(log_path, encoding='utf-8', errors='replace'):
+            if 'spk_pending' in line and 'keep_last' in line:
+                n_keep_last += 1
+    n_inherited_flag = sum(1 for r in tts_rows
+                            if r.get('voice_inherited') is True)
+
     return {
         'arm_dir': arm_dir,
         'n_tts_rows': len(tts_rows), 'n_seg_rows': len(seg_rows),
+        'n_keep_last_log': n_keep_last,
+        'n_voice_inherited_flag': n_inherited_flag,
         'n_scored': n_total,
         'n_clone': n_clone, 'n_clone_correct': n_clone_ok,
         'n_preset': n_preset, 'n_unlabeled_seg': n_unlabeled,

@@ -1189,6 +1189,9 @@ class TTSWorker:
         #   ⇒ reviewer 可直接核对「这句用的是哪个 spk 的音色」。
         self._last_voice_spk = None
         self._last_voice_kind = None
+        # 🔴🔴🔳 APP-086(2)：**本句是否沿用了上一句的克隆音色**
+        #   ⇒ 逐句遥测里可机检判（不只能靠日志文字）。
+        self._voice_inherited = False
         # ── 落盘模式（--tts-out 回放测试）──
         self._timeline = []          # [(t_start_s, wav)]
         self._t0 = None
@@ -1694,6 +1697,9 @@ class TTSWorker:
         is_babelvox = self.engine is not None
         # 🔴 APP-022：记住本句的说话人（**只在本进程内存里**）
         self._last_spk, self._last_spk_conf = spk, spk_conf
+        # 🔴🔴🔳 APP-086(2)：每句重置「是否沿用上一句音色」
+        #   ⇒ 只有真正走了「沿用」那条路才会置 True。
+        self._voice_inherited = False
         # 🔴🔴🔴 APP-039/040：**按句绑定音色**（本句用「这句的 spk」的声音）
         #   ⚠️ **必须在合成之前**切换 ⇒ 句内音色恒定（与「按句变速」同一纪律）。
         #   ⚠️ **没有该 spk 的音色 ⇒ 回落预设 A**（不用别人冒充）。
@@ -2901,6 +2907,14 @@ class TTSWorker:
         except Exception:
             _seg_of = None
         row = dict(id=jid, text=text, seg=_seg_of,
+                   # 🔴🔴🔳 APP-086(2)：`spk_label` = 这一句**解析出来的说话人**
+                   #   ⇒ 与 `voice_spk`（**实际使用的克隆音色**）不同：
+                   #   有标签但回落预设 A 时 `voice_spk=null` 且 `spk_label=S2`
+                   #   ⇒ 两者一起才能区分「无标签」与「回落」。
+                   spk_label=(str(self._last_spk)
+                             if self._last_spk else None),
+                   # 🔴🔴🔳 APP-086(2)：**本句是否沿用了上一句的克隆音色**
+                   voice_inherited=bool(self._voice_inherited),
                    t_submit=round(t_submit, 4),
                    t_first_packet=(round(t_first - t_submit, 4)
                                    if t_first is not None else None),
@@ -4184,6 +4198,10 @@ class TTSWorker:
         """
         self._last_voice_spk = None
         self._last_voice_kind = 'clone'
+        # 🔴🔴🔳 APP-086(2)：**此句沿用了上一句的克隆音色**
+        #   ⇒ 逐句遥测写 `voice_inherited=true`
+        #   ⇒ reviewer 可以机检判「是否仍在沿用上一句音色」。
+        self._voice_inherited = True
         log('[tts_worker] spk_pending⇒keep_last'
             '（说话人标签未到，沿用上一句的克隆音色）')
 
