@@ -1,0 +1,41 @@
+--- dev/live_caption/clone_voice.py
++++ after_split/app/clone_voice.py
+@@ -236,6 +236,18 @@
+             arr = np.asarray(buf, dtype=np.float32).reshape(-1)
+             if arr.size == 0 or not segs:
+                 return False
++            # 🔬 [PROBE-ONLY·APP-093 §3.6] 只读计数 + env 门控提前返回。
++            #    **不改任何判定/阈值** ⇒ 两臂的其余代码路径完全一致。
++            _probe_nosplit = (os.environ.get('LIVECAP_PROBE_NOSPLIT', '0')
++                              .strip() == '1')
++            with self._lock:
++                self._probe_req = getattr(self, '_probe_req', 0) + 1
++                if _probe_nosplit:
++                    self._probe_suppressed = getattr(self, '_probe_suppressed', 0) + 1
++            self._log('[split-probe] request seg=%s dur=%.2f suppressed=%s'
++                      % (int(seg), arr.size / float(SR), _probe_nosplit))
++            if _probe_nosplit:
++                return False
+             # 🔴 **立即复制**要用的片段（避免调用方的环形缓冲被挤掉）
+             a = max(0, int(segs[0][0]))
+             b = min(arr.size, int(segs[0][1]))
+@@ -277,6 +289,10 @@
+                 seg, piece, rngs = item
+                 parts = self.split_by_speaker(piece, rngs)
+                 n_parts = len(parts)
++                # 🔬 [PROBE-ONLY·APP-093 §3.6] 只记事实。
++                self._log('[split-probe] done seg=%s n_parts=%d n_cents=%d '
++                          'enc_ready=%s' % (int(seg), n_parts, len(self._cents),
++                                            self._split_enc is not None))
+                 with self._lock:
+                     self._split_res[int(seg)] = {
+                         'n_parts': n_parts,
+@@ -725,6 +741,8 @@
+             return segs
+         cents = self._split_centroids()
+         if len(cents) < 2:
++            # 🔬 [PROBE-ONLY·APP-093 §3.6] 只记事实，不改判定。
++            self._log('[split-probe] bail n_cents=%d (<2) => 不切段' % len(cents))
+             return segs
+         # 🔴🔴🔴 **修真实缺陷**：本方法**从不调用** `_split_encoder()`
+         #   ⇒ `self._split_enc` **恒为 None** ⇒ `split_by_speaker` **恒直接返回**
