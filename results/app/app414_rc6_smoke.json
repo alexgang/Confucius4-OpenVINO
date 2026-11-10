@@ -1,0 +1,163 @@
+{
+ "created_at": "2026-11-10 23:01:43",
+ "pkg": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_MiniMVP_v1.0-rc6",
+ "seconds": 60.0,
+ "arms": [
+  {
+   "arm": "asr_gpu",
+   "opts": [
+    "--engine",
+    "gpu_int8",
+    "--asr-device",
+    "GPU.0"
+   ],
+   "exit_code": 0,
+   "seconds": 35.9,
+   "log_bytes": 7523,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app414_rc6_smoke\\asr_gpu.log",
+   "exec_devices_lines": [
+    "[asr06b] EXECUTION_DEVICES：encoder=GPU.0，decoder=GPU.0（请求设备 GPU.0）",
+    "[TTS] [TTS] [tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU(lazy)"
+   ],
+   "n_exec_devices_lines": 2,
+   "has_output": true,
+   "output_chars": 411,
+   "output_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app414_rc6_smoke\\asr_gpu.txt",
+   "output_head": "Welcome back to the show. Today we are talking about how small habits can change the way we work.\nThanks for having me. I think most people underestimate how much a tiny routine in the morning can shape the whole day.\nCan you give us an example?\nSure, I write down three things I want to finish before lunch. It takes two minutes.\nAnd it keeps me focused when the emails start coming in.\nI tried some"
+  },
+  {
+   "arm": "asr_npu",
+   "opts": [
+    "--engine",
+    "npu_int8",
+    "--asr-device",
+    "NPU"
+   ],
+   "exit_code": 0,
+   "seconds": 133.0,
+   "log_bytes": 7360,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app414_rc6_smoke\\asr_npu.log",
+   "exec_devices_lines": [
+    "[asr06b] EXECUTION_DEVICES：encoder=NPU，decoder=NPU（请求设备 NPU）",
+    "[TTS] [TTS] [tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU(lazy)"
+   ],
+   "n_exec_devices_lines": 2,
+   "has_output": true,
+   "output_chars": 411,
+   "output_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app414_rc6_smoke\\asr_npu.txt",
+   "output_head": "Welcome back to the show. Today we are talking about how small habits can change the way we work.\nThanks for having me. I think most people underestimate how much a tiny routine in the morning can shape the whole day.\nCan you give us an example?\nSure, I write down three things I want to finish before lunch. It takes two minutes.\nAnd it keeps me focused when the emails start coming in.\nI tried some"
+  },
+  {
+   "arm": "mt_gpu",
+   "opts": [
+    "--engine",
+    "npu_int8",
+    "--asr-device",
+    "NPU",
+    "--translate",
+    "zh",
+    "--mt-device",
+    "GPU.0"
+   ],
+   "exit_code": 0,
+   "seconds": 161.6,
+   "log_bytes": 12162,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app414_rc6_smoke\\mt_gpu.log",
+   "exec_devices_lines": [
+    "[asr06b] EXECUTION_DEVICES：encoder=NPU，decoder=NPU（请求设备 NPU）",
+    "[TTS] [TTS] [tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU(lazy)"
+   ],
+   "n_exec_devices_lines": 2,
+   "has_output": true,
+   "output_chars": 411,
+   "output_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app414_rc6_smoke\\mt_gpu.txt",
+   "output_head": "Welcome back to the show. Today we are talking about how small habits can change the way we work.\nThanks for having me. I think most people underestimate how much a tiny routine in the morning can shape the whole day.\nCan you give us an example?\nSure, I write down three things I want to finish before lunch. It takes two minutes.\nAnd it keeps me focused when the emails start coming in.\nI tried some"
+  },
+  {
+   "arm": "mt_npu",
+   "opts": [
+    "--engine",
+    "npu_int8",
+    "--asr-device",
+    "NPU",
+    "--translate",
+    "zh",
+    "--mt-device",
+    "NPU"
+   ],
+   "exit_code": 0,
+   "seconds": 161.5,
+   "log_bytes": 12261,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app414_rc6_smoke\\mt_npu.log",
+   "exec_devices_lines": [
+    "[asr06b] EXECUTION_DEVICES：encoder=NPU，decoder=NPU（请求设备 NPU）",
+    "[TTS] [TTS] [tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU(lazy)"
+   ],
+   "n_exec_devices_lines": 2,
+   "has_output": true,
+   "output_chars": 411,
+   "output_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app414_rc6_smoke\\mt_npu.txt",
+   "output_head": "Welcome back to the show. Today we are talking about how small habits can change the way we work.\nThanks for having me. I think most people underestimate how much a tiny routine in the morning can shape the whole day.\nCan you give us an example?\nSure, I write down three things I want to finish before lunch. It takes two minutes.\nAnd it keeps me focused when the emails start coming in.\nI tried some"
+  },
+  {
+   "arm": "tts_gpu",
+   "opts": [
+    "--engine",
+    "npu_int8",
+    "--asr-device",
+    "NPU",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "A",
+    "--tts-device",
+    "GPU.0"
+   ],
+   "exit_code": 0,
+   "seconds": 85.2,
+   "log_bytes": 6680,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app414_rc6_smoke\\tts_gpu.log",
+   "exec_devices_lines": [
+    "[asr06b] EXECUTION_DEVICES：encoder=NPU，decoder=NPU（请求设备 NPU）",
+    "[TTS] [TTS] [tts_engine] EXECUTION_DEVICES talker=GPU.0，cp_prefill=GPU.0，cp_decode=GPU.0，decoder=GPU.0"
+   ],
+   "n_exec_devices_lines": 2,
+   "has_output": true,
+   "output_chars": 411,
+   "output_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app414_rc6_smoke\\tts_gpu.txt",
+   "output_head": "Welcome back to the show. Today we are talking about how small habits can change the way we work.\nThanks for having me. I think most people underestimate how much a tiny routine in the morning can shape the whole day.\nCan you give us an example?\nSure, I write down three things I want to finish before lunch. It takes two minutes.\nAnd it keeps me focused when the emails start coming in.\nI tried some"
+  },
+  {
+   "arm": "tts_npu",
+   "opts": [
+    "--engine",
+    "npu_int8",
+    "--asr-device",
+    "NPU",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "A",
+    "--tts-device",
+    "NPU"
+   ],
+   "exit_code": 0,
+   "seconds": 85.2,
+   "log_bytes": 7359,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app414_rc6_smoke\\tts_npu.log",
+   "exec_devices_lines": [
+    "[asr06b] EXECUTION_DEVICES：encoder=NPU，decoder=NPU（请求设备 NPU）",
+    "[TTS] [TTS] [tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU(lazy)"
+   ],
+   "n_exec_devices_lines": 2,
+   "has_output": true,
+   "output_chars": 411,
+   "output_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app414_rc6_smoke\\tts_npu.txt",
+   "output_head": "Welcome back to the show. Today we are talking about how small habits can change the way we work.\nThanks for having me. I think most people underestimate how much a tiny routine in the morning can shape the whole day.\nCan you give us an example?\nSure, I write down three things I want to finish before lunch. It takes two minutes.\nAnd it keeps me focused when the emails start coming in.\nI tried some"
+  }
+ ],
+ "verdict": "PASS",
+ "lock": "app 22532 2026-11-10 23:01:43 rc6_smoke",
+ "n_arms": 6,
+ "n_arms_ok": 6
+}

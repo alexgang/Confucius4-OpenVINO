@@ -236,6 +236,25 @@ def is_cuda_device(dev: str) -> bool:
     return any(h in full for h in CUDA_DEVICE_HINTS)
 
 
+def is_cuda_device_by_name(dev: str, full_name: str = '') -> bool:
+    """**只看名字**判定是否 NVIDIA/CUDA 设备（不查 OV）。
+
+    🔴 **为什么单独有一个函数**（APP-098 一.1）：
+    ``detect_devices()`` 在**枚举时**就已经拿到了 ``FULL_DEVICE_NAME``，
+    此时再调 ``is_cuda_device(dev)`` 会**二次查询 OV**（慢，且在
+    ``core.available_devices`` 迭代过程中再查属性不稳）⇒
+    ⇒ 枚举路径用这个「名字直判」版本。
+
+    ⚠️ **判据与 `is_cuda_device` 一致**（同一组 hints）⇒ 两处不会打架。
+    🔴 名字取不到（FULL_DEVICE_NAME 读失败）⇒ **保守当作不是 CUDA**
+       （宁可漏滤一个 NVIDIA 设备，也不要误滤掉 Intel 集显/NPU）。
+    """
+    name = (full_name or '').strip().lower()
+    if not name:
+        return False
+    return any(h in name for h in CUDA_DEVICE_HINTS)
+
+
 def has_cuda_plugin() -> bool:
     """OpenVINO 是否**真的**带 CUDA plugin（而不是借 Intel GPU plugin 驱动 NVIDIA）。
 
@@ -291,18 +310,40 @@ def detect_devices() -> Dict[str, str]:
        出现在 GUI / CLI 的设备清单里 —— 它在集显/NPU 上是负加速
        （声码器在 iGPU 上 0.42~0.64× 且 SNR 仅 21 dB），列出来只会诱导
        用户误选。
+
+    🔴🔴🔳 **APP-098 一.1：NVIDIA / CUDA 设备也不进清单**
+       （reviewer 原话：「三个后端都去掉所有 NVIDIA/CUDA 选项」）
+       ⇒ 本函数是**三个后端 + `--check` 的唯一设备来源**
+       ⇒ 在这里过滤 ⇒ **一处**生效 ⇒ GUI 下拉、CLI 解析、`--check` 全部一致。
+       ⚠️ **为什么要滤**：本机的 ``GPU.1`` 是 NVIDIA 独显（RTX 5050），
+          它是**被 Intel GPU plugin（OpenCL ICD）枚举到的**，
+          **不是 CUDA plugin** ⇒ OV 跑在它上面实际用的是 Intel 的 kernel 集。
+          既然 App 已**删掉全部 CUDA 后端档**（APP-098），
+          留一条「NVIDIA 独显」选项只会让用户选到一个**没有对应后端**的设备。
+       🔴 **可关闭**：``package_profile.allow_cuda()`` 为 True 时保留
+          （开发机对照基准用；默认 False ⇒ 两个包都不出现 NVIDIA）。
     """
     try:
         import openvino as ov
         core = ov.Core()
         out: Dict[str, str] = {}
+        # 🔴 APP-098：NVIDIA 设备是否保留（默认不保留）。
+        try:
+            import package_profile
+            _keep_cuda_dev = package_profile.allow_cuda()
+        except Exception:
+            _keep_cuda_dev = False
         for d in core.available_devices:
             if is_excluded_device(d):
                 continue
             try:
-                out[d] = core.get_property(d, 'FULL_DEVICE_NAME')
+                full = core.get_property(d, 'FULL_DEVICE_NAME')
             except Exception:
-                out[d] = d
+                full = d
+            if not _keep_cuda_dev and is_cuda_device_by_name(d, full):
+                # 🔴 APP-098 一.1：NVIDIA 设备不进可选清单。
+                continue
+            out[d] = full
         return out
     except Exception:
         return {}

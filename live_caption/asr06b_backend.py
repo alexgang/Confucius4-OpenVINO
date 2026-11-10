@@ -141,6 +141,26 @@ class ASR06BBackend(ASRBackend):
         self.dec_infer = self.dec.create_infer_request()
         self._logits_port = self.dec.outputs[0].get_any_name()
 
+        # 🔴🔴🔳 **APP-098 二.3：编译完 encoder+decoder 后打印 EXECUTION_DEVICES**
+        #   reviewer 原话：「asr06b_backend 编译完 encoder 和 decoder 后，
+        #   要打印 EXECUTION_DEVICES。」
+        #   🔴 **为什么必须打印**：`device='GPU.0'` **只是「请求的设备」**，
+        #      **不等于「实际落点」** ⇒ OV 可能悄悄回落到 CPU
+        #      （实测 NPU 档 `EXECUTION_DEVICES` 返回**字符串** `'NPU'`，
+        #        CPU 档返回**列表** `['CPU']` ⇒ 绝不逐字符拆！）
+        #      ⇒ 只有打印出来才能证明「ASR 真的跑在 NPU 上」。
+        #   🔴 **归一化**：OV 返回的可能是**字符串**（`'NPU'`）
+        #      ⇒ `list('NPU')` 会拆成 `['N','P','U']` ⇒ **误读**。
+        #      ⇒ 这里**字符串按单个设备名**处理（逗号分隔可多个）。
+        self.exec_devices = {}
+        for _role, _model in (('encoder', self.enc), ('decoder', self.dec)):
+            self.exec_devices[_role] = self._read_exec_devices(_model)
+        _dev_txt = '，'.join(
+            '%s=%s' % (_r, ('/'.join(_d) if _d else '?'))
+            for _r, _d in self.exec_devices.items())
+        print('[asr06b] EXECUTION_DEVICES：%s（请求设备 %s）'
+              % (_dev_txt, device), flush=True)
+
         # ── tokenizer（0.6B 的那一份）────────────────────────────────
         # ⚠️ `chat_template.json` 是 **Processor 专用**（transformers legacy 约定）
         #    ⇒ `AutoTokenizer` 拿不到 chat_template ⇒ 这里**不依赖模板**，
@@ -176,6 +196,33 @@ class ASR06BBackend(ASRBackend):
                 return p
         raise FileNotFoundError(
             f"none of {names} found in {d}")
+
+    @staticmethod
+    def _read_exec_devices(model) -> List[str]:
+        """读 `EXECUTION_DEVICES` 并**归一化**成设备名列表（APP-098 二.3）。
+
+        🔴🔴🔳 **绝不能逐字符拆字符串**（实测，OV 2026.4.1）：
+          - NPU 档 ⇒ 返回**字符串** `'NPU'`
+          - CPU 档 ⇒ 返回**列表** `['CPU']`
+        ⇒ `list('NPU')` = `['N','P','U']` ⇒ **误读成「三个设备」**
+        ⇒ 正确：**字符串按「单个设备名」**处理（逗号分隔可多个）。
+
+        🔴 **「属性不存在」≠「跑在 CPU 上」** ⇒ 读不到就返回**空列表**
+           （调用方据此说「落点未知」，**不猜**）。
+        """
+        try:
+            raw = model.get_property('EXECUTION_DEVICES')
+        except Exception:
+            return []
+        if raw is None:
+            return []
+        if isinstance(raw, str):
+            parts = [p.strip() for p in raw.split(',')]
+            return [p for p in parts if p]
+        try:
+            return [str(x).strip() for x in raw if str(x).strip()]
+        except Exception:
+            return []
 
     def _build_prompt_ids(self) -> Tuple[List[int], List[int]]:
         ids_left = self.tokenizer.encode(_PROMPT_LEFT, add_special_tokens=False)

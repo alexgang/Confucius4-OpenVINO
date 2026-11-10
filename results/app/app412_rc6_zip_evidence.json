@@ -1,0 +1,10 @@
+{
+ "script": "_app412_rc6_zip.py",
+ "ts": "2026-11-10 23:49:42",
+ "correction": "APP-098",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6",
+ "zip": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6_perftest.zip",
+ "mode": "dry-run",
+ "verdict": "FAIL",
+ "reason": "目标 zip 已存在（拒绝覆盖，APP-055）：C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6_perftest.zip"
+}

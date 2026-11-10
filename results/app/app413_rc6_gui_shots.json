@@ -1,0 +1,42 @@
+{
+ "created_at": "2026-11-10 22:49:25",
+ "pkg": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_MiniMVP_v1.0-rc6",
+ "title_filter": "实时字幕 MiniMVP",
+ "shots": [
+  {
+   "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app413_rc6_gui_shots\\00_main.png",
+   "bytes": 27117,
+   "density": 0.180248,
+   "not_black": true,
+   "name": "主窗口（整体）"
+  },
+  {
+   "name": "识别后端下拉",
+   "path": null,
+   "not_black": false,
+   "note": "未找到下拉弹出窗口"
+  },
+  {
+   "name": "翻译后端下拉",
+   "path": null,
+   "not_black": false,
+   "note": "未找到下拉弹出窗口"
+  },
+  {
+   "name": "语音输出下拉",
+   "path": null,
+   "not_black": false,
+   "note": "未找到下拉弹出窗口"
+  }
+ ],
+ "verdict": "FAIL",
+ "gui_pid": 15300,
+ "main_window": {
+  "hwnd": 47646350,
+  "title": "实时字幕 MiniMVP v1.0",
+  "w": 1455,
+  "h": 1132
+ },
+ "n_shots": 4,
+ "n_good": 1
+}

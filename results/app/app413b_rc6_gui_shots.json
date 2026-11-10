@@ -1,0 +1,206 @@
+{
+ "tool": "app413b",
+ "correction": "APP-098 三.1",
+ "at": "2026-11-10 23:01:10",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6",
+ "lca_file": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6\\app\\live_caption_app.py",
+ "lca_sha256": "3c39bdfae8d1398dfac1591cc32ced2cd7f504d38061ef155dac56910c2efc6c",
+ "shots": [
+  {
+   "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app413b_rc6_gui_shots\\00_main.png",
+   "exists": true,
+   "bytes": 42146,
+   "extrema": [
+    0,
+    255
+   ],
+   "not_black": true,
+   "density": 0.213694,
+   "name": "主窗口（整体）",
+   "shot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app413b_rc6_gui_shots\\00_main.png"
+  },
+  {
+   "name": "识别后端下拉（展开）",
+   "widget": "cb_asr_combo",
+   "note": "",
+   "values": [
+    "Intel GPU（集显） · INT8",
+    "Intel NPU · INT8"
+   ],
+   "current": "Intel GPU（集显） · INT8",
+   "popdown_path": ".!frame2.!labelframe.!frame.!frame.!combobox.popdown",
+   "popdown_id_raw": "0x1490b82",
+   "popdown_hwnd": 21564290,
+   "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app413b_rc6_gui_shots\\01_combo_asr.png",
+   "exists": true,
+   "bytes": 1781,
+   "extrema": [
+    0,
+    255
+   ],
+   "not_black": true,
+   "density": 0.0,
+   "capture_return": true,
+   "shot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app413b_rc6_gui_shots\\01_combo_asr.png",
+   "shot_sha256": "c213cd28d2ea290e6de9b74dbd65ceed9331424eee56ff4083173e78a6e7bdb8",
+   "attempts": [
+    "try1 opened=True geo=233x40+80+87 capture=True extrema=[0, 255]"
+   ]
+  },
+  {
+   "name": "翻译后端下拉（展开）",
+   "widget": "cb_mt_combo",
+   "note": "",
+   "values": [
+    "Intel NPU · INT4-CW",
+    "Intel GPU（集显） · INT4-CW"
+   ],
+   "current": "Intel GPU（集显） · INT4-CW",
+   "popdown_path": ".!frame2.!labelframe.!frame.!frame.!combobox2.popdown",
+   "popdown_id_raw": "0x1310cea",
+   "popdown_hwnd": 19991786,
+   "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app413b_rc6_gui_shots\\02_combo_mt.png",
+   "exists": true,
+   "bytes": 2190,
+   "extrema": [
+    0,
+    255
+   ],
+   "not_black": true,
+   "density": 0.0,
+   "capture_return": true,
+   "shot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app413b_rc6_gui_shots\\02_combo_mt.png",
+   "shot_sha256": "f108efe024bfce9e00c471d860afc1ebe82af2d089d8493e1e9523a4961fe409",
+   "attempts": [
+    "try1 opened=True geo=161x184+0+0 capture=False extrema=None",
+    "try2 opened=True geo=233x40+80+110 capture=True extrema=[0, 255]"
+   ]
+  },
+  {
+   "name": "语音输出后端下拉（展开）",
+   "widget": "cb_tts_combo",
+   "note": "",
+   "values": [
+    "Intel NPU · F16",
+    "Intel GPU（集显） · F32"
+   ],
+   "current": "Intel NPU · F16",
+   "popdown_path": ".!frame2.!labelframe.!frame.!frame.!combobox3.popdown",
+   "popdown_id_raw": "0x950e50",
+   "popdown_hwnd": 9768528,
+   "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app413b_rc6_gui_shots\\03_combo_tts.png",
+   "exists": true,
+   "bytes": 1609,
+   "extrema": [
+    0,
+    255
+   ],
+   "not_black": true,
+   "density": 0.0,
+   "capture_return": true,
+   "shot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app413b_rc6_gui_shots\\03_combo_tts.png",
+   "shot_sha256": "c05198e93848b8681633209d2c13df7b213a0c4f2cd4440d5239c246a0b344f1",
+   "attempts": [
+    "try1 opened=True geo=161x184+0+0 capture=False extrema=None",
+    "try2 opened=True geo=233x40+80+133 capture=True extrema=[0, 255]"
+   ]
+  },
+  {
+   "name": "音色下拉（克隆项应置灰/带原因）",
+   "widget": "cb_tts_voice",
+   "note": "",
+   "values": [
+    "预设 A",
+    "跟随说话人（克隆·实验）〔MiniMVP 不提供音色克隆〕"
+   ],
+   "current": "预设 A",
+   "popdown_path": ".!frame2.!labelframe5.!frame.!combobox.popdown",
+   "popdown_id_raw": "0x9c0b66",
+   "popdown_hwnd": 10226534,
+   "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app413b_rc6_gui_shots\\04_combo_voice.png",
+   "exists": true,
+   "bytes": 2518,
+   "extrema": [
+    0,
+    255
+   ],
+   "not_black": true,
+   "density": 0.0,
+   "capture_return": true,
+   "shot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app413b_rc6_gui_shots\\04_combo_voice.png",
+   "shot_sha256": "ce9d693578e54960638095019eb90e6386829c0e86728cf363842c897807ceee",
+   "attempts": [
+    "try1 opened=True geo=161x184+0+0 capture=False extrema=None",
+    "try2 opened=True geo=233x40+88+264 capture=True extrema=[0, 255]"
+   ]
+  },
+  {
+   "name": "目标语言下拉（应 10 种）",
+   "widget": "cb_mt",
+   "note": "",
+   "values": [
+    "关闭",
+    "中文",
+    "English",
+    "日本語",
+    "한국어",
+    "Deutsch",
+    "Français",
+    "Español",
+    "Português",
+    "Italiano",
+    "Русский"
+   ],
+   "current": "中文",
+   "popdown_path": ".!frame2.!labelframe4.!frame.!combobox.popdown",
+   "popdown_id_raw": "0xb80b5c",
+   "popdown_hwnd": 12061532,
+   "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app413b_rc6_gui_shots\\05_combo_target_lang.png",
+   "exists": true,
+   "bytes": 3187,
+   "extrema": [
+    0,
+    255
+   ],
+   "not_black": true,
+   "density": 0.124514,
+   "capture_return": true,
+   "shot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app413b_rc6_gui_shots\\05_combo_target_lang.png",
+   "shot_sha256": "d040cc428351d1831c9f1e24e9e124782c6846eebbc89bf3012d6ce28209c2c7",
+   "attempts": [
+    "try1 opened=True geo=161x184+0+0 capture=False extrema=None",
+    "try2 opened=True geo=233x184+88+196 capture=True extrema=[0, 255]"
+   ]
+  }
+ ],
+ "verdict": "PASS",
+ "clone_check": {
+  "values": [
+   "预设 A",
+   "跟随说话人（克隆·实验）〔MiniMVP 不提供音色克隆〕"
+  ],
+  "current": "预设 A",
+  "clone_allowed": false,
+  "clone_why": "MiniMVP 不提供音色克隆",
+  "clone_item_label": "跟随说话人（克隆·实验）〔MiniMVP 不提供音色克隆〕",
+  "clone_item_is_not_plain": true
+ },
+ "target_lang_check": {
+  "n_values": 11,
+  "values": [
+   "关闭",
+   "中文",
+   "English",
+   "日本語",
+   "한국어",
+   "Deutsch",
+   "Français",
+   "Español",
+   "Português",
+   "Italiano",
+   "Русский"
+  ]
+ },
+ "n_shots": 6,
+ "n_good": 6
+}

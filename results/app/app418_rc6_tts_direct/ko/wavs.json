@@ -1,0 +1,46 @@
+{
+ "lang": "ko",
+ "device": "NPU",
+ "wavs": [
+  {
+   "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\ko\\ko_00_00.wav",
+   "sr": 24000,
+   "samples": 326400,
+   "dur_s": 13.6,
+   "text": "2분만 걸려서, 이메일이 계속 쏟아져 들어올 때는 제가 집중할 수 있게 해줍니다. 비밀은 커피를 끓이는 것과 같은, 이미 하던 일들과 새로운 습관을 연결하는 것입니다.",
+   "end_reason": null
+  },
+  {
+   "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\ko\\ko_01_00.wav",
+   "sr": 24000,
+   "samples": 462720,
+   "dur_s": 19.28,
+   "text": "의지가 필요 없고, 이미 존재하는 트리거 요인만 있으면 됩니다. 우리 팀은 매일 아침 짧은 서면 회의를 진행합니다. 이는 매주 오래한 검토보다는 더 효과적입니다. 모든 사람은 어제 무엇을 했는지, 오늘 무엇을 할 예정인지, 그리고 어떤 장애물이 있는지에 대해 말할 것이다.",
+   "end_reason": null
+  }
+ ],
+ "end_reasons": [
+  null,
+  null
+ ],
+ "log_tail": [
+  "[tts_engine] NPU 不支持 f32 推理精度 ⇒ 已自动改用 f16",
+  "[tts_engine] OV 推理精度 = f16（权重位宽恒为 INT8）",
+  "[tts_engine] 使用 MultiDecoderBabelVox（解码器多桶 + 左上下文 25 帧）",
+  "[tts_engine] 加载模型：device=NPU root=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6\\models\\qwen3tts cache=C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_npu_cache",
+  "[tts_engine] 已把 INFERENCE_PRECISION_HINT=f16 注入 NPU 的编译",
+  "[tts_engine] 模型加载完成（5.1 s）",
+  "[tts_engine] cp_decode: NPU（生产配置要求；实测 RTF 1.912→1.218、首块 1.296→0.837 s）",
+  "[tts_engine] cp_prefill: NPU（TTS-017① 交付配置：运行时输入恒为 (1,2,1024) ⇒ 静态形状安全）",
+  "[tts_engine] SpeakerLibrary 就绪：C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_speakers（4 个音色：cindy, lou, phil, steve；内置音色走**只读回退**，**不复制**到用户目录）",
+  "[tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU(lazy)",
+  "[tts_engine] 实测执行设备：NPU/NPU(lazy)",
+  "[tts_engine] 各组件落点：cp_decode=NPU，cp_prefill=NPU，decoder_bucket@16=NPU，decoder_bucket@32=NPU，decoder_bucket@33=NPU，decoder_bucket@8=NPU，speaker_enc=NPU，talker_bucket@128=NPU，talker_bucket@256=NPU，talker_bucket@384=NPU，talker_bucket@512=NPU，talker_bucket@64=NPU，tok_decoder=NPU(lazy)",
+  "[tts_engine] 落点统计：NPU 上 12 个组件 ['cp_decode', 'cp_prefill', 'decoder_bucket@16', 'decoder_bucket@32', 'decoder_bucket@33', 'decoder_bucket@8', 'speaker_enc', 'talker_bucket@128', 'talker_bucket@256', 'talker_bucket@384', 'talker_bucket@512', 'talker_bucket@64']；CPU 上 0 个组件 []",
+  "[tts_engine] 未启用（该档位下不编译）的组件：talker_prefill，talker_decode，talker（以 5 个桶形式存在，落点见上），code_predictor",
+  "预设音色路径：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6\\models\\qwen3tts\\voices\\preset_A.wav",
+  "[tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6\\models\\qwen3tts\\voices\\preset_A.wav -> (1, 1024)",
+  "落盘：ko_00_00.wav（13.60 s，end_reason=None）",
+  "落盘：ko_01_00.wav（19.28 s，end_reason=None）"
+ ]
+}

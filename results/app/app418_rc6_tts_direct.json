@@ -1,0 +1,325 @@
+{
+ "created_at": "2026-11-10 23:49:39",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6",
+ "device": "NPU",
+ "n_sent": 2,
+ "criterion": "APP-097 §2-3 同款口径：直接调 tts_engine.stream()（map_language → language_supported → split_long_text → clamp_max_new_tokens → estimate_sec → stream）",
+ "per_lang": {
+  "zh": {
+   "lang": "zh",
+   "exit_code": 0,
+   "seconds": 35.2,
+   "n_wav": 2,
+   "wavs": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\zh\\zh_00_00.wav",
+     "sr": 24000,
+     "samples": 270720,
+     "dur_s": 11.28,
+     "text": "只需要两分钟，当邮件不断涌入时，它能让我保持专注。 诀窍在于将新习惯与你已经做的事情联系起来，比如煮咖啡。",
+     "end_reason": null
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\zh\\zh_01_00.wav",
+     "sr": 24000,
+     "samples": 414720,
+     "dur_s": 17.28,
+     "text": "不需要意志力，只需要一个已经存在的触发因素即可。 我的团队，我们每天早上都举行简短的站立会议，这比每周的长时间回顾更有效。 每个人都会说出他们昨天做了什么，今天会做什么，以及是否有任何事情阻碍着他们。",
+     "end_reason": null
+    }
+   ],
+   "end_reasons": [
+    null,
+    null
+   ],
+   "n_sent_used": 2,
+   "json_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\zh\\wavs.json"
+  },
+  "en": {
+   "lang": "en",
+   "exit_code": 0,
+   "seconds": 34.4,
+   "n_wav": 2,
+   "wavs": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\en\\en_00_00.wav",
+     "sr": 24000,
+     "samples": 224640,
+     "dur_s": 9.36,
+     "text": "Just two minutes—as constant emails keep pouring in, it keeps me focused. The trick is to link the new habit with something you already do, like making coffee.",
+     "end_reason": null
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\en\\en_01_00.wav",
+     "sr": 24000,
+     "samples": 435840,
+     "dur_s": 18.16,
+     "text": "No willpower needed; just a pre-existing trigger factor is sufficient. My team holds short standing meetings every morning, which is more effective than the longer reviews we have once a week. Everyone will talk about what they did yesterday, what they will do today, and whether there is anything getting in their way.",
+     "end_reason": null
+    }
+   ],
+   "end_reasons": [
+    null,
+    null
+   ],
+   "n_sent_used": 2,
+   "json_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\en\\wavs.json"
+  },
+  "ja": {
+   "lang": "ja",
+   "exit_code": 0,
+   "seconds": 45.0,
+   "n_wav": 2,
+   "wavs": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\ja\\ja_00_00.wav",
+     "sr": 24000,
+     "samples": 305280,
+     "dur_s": 12.72,
+     "text": "2分しかかからない。 メールが絶えず流れ込むとき、私が集中を保つことができる。 コツは、例えばコーヒーを淹れるときなど、新しい習慣を既存の行動と結びつけることです。",
+     "end_reason": null
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\ja\\ja_01_00.wav",
+     "sr": 24000,
+     "samples": 549120,
+     "dur_s": 22.88,
+     "text": "意志力は必要ありません。 既にある触発因子があればよいのです。 私たちのチームでは、毎日の早朝に短い立ち会いを開きます。 これは、毎週の長時間の振り返りよりも効果的です。 みんじめんは、昨日何をしたか、今日何をするか、そして何かが彼らを妨げているかどうかを話す。",
+     "end_reason": null
+    }
+   ],
+   "end_reasons": [
+    null,
+    null
+   ],
+   "n_sent_used": 2,
+   "json_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\ja\\wavs.json"
+  },
+  "ko": {
+   "lang": "ko",
+   "exit_code": 0,
+   "seconds": 39.8,
+   "n_wav": 2,
+   "wavs": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\ko\\ko_00_00.wav",
+     "sr": 24000,
+     "samples": 326400,
+     "dur_s": 13.6,
+     "text": "2분만 걸려서, 이메일이 계속 쏟아져 들어올 때는 제가 집중할 수 있게 해줍니다. 비밀은 커피를 끓이는 것과 같은, 이미 하던 일들과 새로운 습관을 연결하는 것입니다.",
+     "end_reason": null
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\ko\\ko_01_00.wav",
+     "sr": 24000,
+     "samples": 462720,
+     "dur_s": 19.28,
+     "text": "의지가 필요 없고, 이미 존재하는 트리거 요인만 있으면 됩니다. 우리 팀은 매일 아침 짧은 서면 회의를 진행합니다. 이는 매주 오래한 검토보다는 더 효과적입니다. 모든 사람은 어제 무엇을 했는지, 오늘 무엇을 할 예정인지, 그리고 어떤 장애물이 있는지에 대해 말할 것이다.",
+     "end_reason": null
+    }
+   ],
+   "end_reasons": [
+    null,
+    null
+   ],
+   "n_sent_used": 2,
+   "json_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\ko\\wavs.json"
+  },
+  "de": {
+   "lang": "de",
+   "exit_code": 0,
+   "seconds": 38.8,
+   "n_wav": 2,
+   "wavs": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\de\\de_00_00.wav",
+     "sr": 24000,
+     "samples": 299520,
+     "dur_s": 12.48,
+     "text": "Nur zwei Minuten, wenn die E-Mails ununterbrochen einfließen, kann es mich konzentriert halten. Der Schlüssel liegt darin, neue Gewohnheiten mit den bereits getanen Dingen zu verbinden – zum Beispiel das Kochen von Kaffee.",
+     "end_reason": null
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\de\\de_01_00.wav",
+     "sr": 24000,
+     "samples": 468480,
+     "dur_s": 19.52,
+     "text": "Es ist nicht notwendig, Willenskraft – nur ein bereits vorhandener Auslöser reicht aus. Meine Teamgruppe hält jeden Morgen kurze Standarbeitsgespräche ab – das ist effektiver als die langen, mehrfache Wiederholungen wöchentlich. Jeder erzählt, was er gestern getan hat, was er heute tun wird und ob irgendetwas sie behindert.",
+     "end_reason": null
+    }
+   ],
+   "end_reasons": [
+    null,
+    null
+   ],
+   "n_sent_used": 2,
+   "json_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\de\\wavs.json"
+  },
+  "fr": {
+   "lang": "fr",
+   "exit_code": 0,
+   "seconds": 38.9,
+   "n_wav": 2,
+   "wavs": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\fr\\fr_00_00.wav",
+     "sr": 24000,
+     "samples": 305280,
+     "dur_s": 12.72,
+     "text": "Il ne prend que deux minutes, et lorsque les e-mails affluent sans cesse, cela me permet de rester concentré. La clé réside dans le lien entre les nouvelles habitudes et ce que vous faites déjà, comme préparer du café.",
+     "end_reason": null
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\fr\\fr_01_00.wav",
+     "sr": 24000,
+     "samples": 466560,
+     "dur_s": 19.44,
+     "text": "Il n’est pas nécessaire d’exercer de volonté, il suffit d’un facteur déclencheur déjà existant. Notre équipe organise des réunions debout courtes chaque matin, ce qui est plus efficace que les revues longues et complètes semblables à une réunion hebdomadaire. Chacun dira ce qu’il a fait hier, ce qu’il fera aujourd’hui, et si quelque chose les empêche.",
+     "end_reason": null
+    }
+   ],
+   "end_reasons": [
+    null,
+    null
+   ],
+   "n_sent_used": 2,
+   "json_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\fr\\wavs.json"
+  },
+  "es": {
+   "lang": "es",
+   "exit_code": 0,
+   "seconds": 38.7,
+   "n_wav": 2,
+   "wavs": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\es\\es_00_00.wav",
+     "sr": 24000,
+     "samples": 347520,
+     "dur_s": 14.48,
+     "text": "Solo toman dos minutos; cuando llegan constantemente correos electrónicos, me permite mantener mi concentración. El truco está en relacionar la nueva costumbre con las cosas que ya haces, como por ejemplo, hacer café.",
+     "end_reason": null
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\es\\es_01_00.wav",
+     "sr": 24000,
+     "samples": 420480,
+     "dur_s": 17.52,
+     "text": "No se necesita voluntad, solo un factor desencadenante que ya existe. Mi equipo: cada mañana tenemos reuniones en pie breves, lo cual es más efectivo que las revisiones largas y detalladas semanalmente. Cada persona cuenta lo que hizo ayer, lo que hará hoy, y si hay algo que les obstaculice.",
+     "end_reason": null
+    }
+   ],
+   "end_reasons": [
+    null,
+    null
+   ],
+   "n_sent_used": 2,
+   "json_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\es\\wavs.json"
+  },
+  "pt": {
+   "lang": "pt",
+   "exit_code": 0,
+   "seconds": 37.5,
+   "n_wav": 2,
+   "wavs": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\pt\\pt_00_00.wav",
+     "sr": 24000,
+     "samples": 297600,
+     "dur_s": 12.4,
+     "text": "Só precisam de dois minutos. Quando os e-mails continuam a chegar, isso me ajuda a manter a concentração. O segredo é relacionar a nova hábito com o que você já faz, como fazer café.",
+     "end_reason": null
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\pt\\pt_01_00.wav",
+     "sr": 24000,
+     "samples": 445440,
+     "dur_s": 18.56,
+     "text": "Não é preciso vontade de agir; basta de um fator desencorcado que já existe. A minha equipe realiza reuniões de pé curtas todas as manhãs, o que é mais eficaz do que uma revisão longa e demorada a cada semana. Todos dizem o que fizeram ontem, o que farão hoje, e se houve algo que os dificultou.",
+     "end_reason": null
+    }
+   ],
+   "end_reasons": [
+    null,
+    null
+   ],
+   "n_sent_used": 2,
+   "json_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\pt\\wavs.json"
+  },
+  "it": {
+   "lang": "it",
+   "exit_code": 0,
+   "seconds": 37.0,
+   "n_wav": 2,
+   "wavs": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\it\\it_00_00.wav",
+     "sr": 24000,
+     "samples": 293760,
+     "dur_s": 12.24,
+     "text": "Basta due minuti; quando arrivano continuamente email, mi permette di mantenere la concentrazione. Il trucco sta nel collegare la nuova abitudine alle cose che già fai, come preparare caffè.",
+     "end_reason": null
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\it\\it_01_00.wav",
+     "sr": 24000,
+     "samples": 437760,
+     "dur_s": 18.24,
+     "text": "Non è necessaria la volontà, basta un fattore innescante già esistente. La mia squadra tiene riunioni in piedi brevi ogni mattina; questo è più efficace di una revisione lunga e lunga. Ognuno dice cosa ha fatto ieri, cosa farà oggi, e se c’è qualcosa che gli ostacola.",
+     "end_reason": null
+    }
+   ],
+   "end_reasons": [
+    null,
+    null
+   ],
+   "n_sent_used": 2,
+   "json_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\it\\wavs.json"
+  },
+  "ru": {
+   "lang": "ru",
+   "exit_code": 0,
+   "seconds": 45.7,
+   "n_wav": 2,
+   "wavs": [
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\ru\\ru_00_00.wav",
+     "sr": 24000,
+     "samples": 397440,
+     "dur_s": 16.56,
+     "text": "Просто два минута. Когда поступает множество писем, это помогает мне сохранять концентрацию. Секрет заключается в том, чтобы связать новые привычки с уже сделанными вами действиями, например, в приготовление кофе.",
+     "end_reason": null
+    },
+    {
+     "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\ru\\ru_01_00.wav",
+     "sr": 24000,
+     "samples": 528000,
+     "dur_s": 22.0,
+     "text": "Не нужна сила воли, достаточно лишь уже существующей ключевой причина. Мой коллектив каждое утро проводит короткие стоячие встречи, что более эффективно, чем длинные обзоры, которые проходят каждую неделю. Каждый человек расскажет о том, что он делал вчера, что будет делать сегодня, и есть ли какие-либо препятствия на их пути.",
+     "end_reason": null
+    }
+   ],
+   "end_reasons": [
+    null,
+    null
+   ],
+   "n_sent_used": 2,
+   "json_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app418_rc6_tts_direct\\ru\\wavs.json"
+  }
+ },
+ "verdict": "PASS",
+ "mt_sentences_found": {
+  "zh": 3,
+  "en": 3,
+  "ja": 3,
+  "ko": 3,
+  "de": 3,
+  "fr": 3,
+  "es": 3,
+  "pt": 3,
+  "it": 3,
+  "ru": 3
+ },
+ "lock": "app 3916 2026-11-10 23:49:39 rc6_tts_direct",
+ "n_langs": 10,
+ "n_langs_ok": 10
+}
