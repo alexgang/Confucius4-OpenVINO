@@ -1,0 +1,453 @@
+{
+ "n_rows": 240,
+ "end_reason_field": "tts.jsonl.end_reason（App worker 归一化：None⇒eos）",
+ "cap_criterion": "frames_out >= max_new_tokens（tts.jsonl 两个字段）",
+ "end_reason_dist": {
+  "None": 240
+ },
+ "n_hit_frame_cap_end_reason": 0,
+ "n_hit_frame_cap_frames": 0,
+ "per_lang": {
+  "de": {
+   "preset": {
+    "n": 15,
+    "n_empty": 0,
+    "out_dur_p50": 9.52,
+    "rtf_p50": 0.8277,
+    "rtf_p95": 0.8711,
+    "n_hit_frame_cap_frames": 0,
+    "end_reason_dist": {
+     "None": 15
+    },
+    "sec_per_char_p50": 0.072184,
+    "sec_per_char_p25": 0.065185,
+    "sec_per_char_p75": 0.075168,
+    "src_dur_ratio_p50": 1.3403,
+    "n_with_src_dur": 15
+   },
+   "clone": {
+    "n": 15,
+    "n_empty": 0,
+    "out_dur_p50": 9.04,
+    "rtf_p50": 0.8242,
+    "rtf_p95": 0.8869,
+    "n_hit_frame_cap_frames": 0,
+    "end_reason_dist": {
+     "None": 15
+    },
+    "sec_per_char_p50": 0.072518,
+    "sec_per_char_p25": 0.069071,
+    "sec_per_char_p75": 0.074943,
+    "src_dur_ratio_p50": 1.2987,
+    "n_with_src_dur": 15
+   }
+  },
+  "en": {
+   "preset": {
+    "n": 15,
+    "n_empty": 0,
+    "out_dur_p50": 7.2,
+    "rtf_p50": 0.8377,
+    "rtf_p95": 0.8859,
+    "n_hit_frame_cap_frames": 0,
+    "end_reason_dist": {
+     "None": 15
+    },
+    "sec_per_char_p50": 0.077838,
+    "sec_per_char_p25": 0.071111,
+    "sec_per_char_p75": 0.08,
+    "src_dur_ratio_p50": 1.1221,
+    "n_with_src_dur": 15
+   },
+   "clone": {
+    "n": 15,
+    "n_empty": 0,
+    "out_dur_p50": 7.84,
+    "rtf_p50": 0.8197,
+    "rtf_p95": 0.8637,
+    "n_hit_frame_cap_frames": 0,
+    "end_reason_dist": {
+     "None": 15
+    },
+    "sec_per_char_p50": 0.077168,
+    "sec_per_char_p25": 0.071529,
+    "sec_per_char_p75": 0.079192,
+    "src_dur_ratio_p50": 1.1156,
+    "n_with_src_dur": 15
+   }
+  },
+  "es": {
+   "preset": {
+    "n": 15,
+    "n_empty": 0,
+    "out_dur_p50": 9.36,
+    "rtf_p50": 0.7931,
+    "rtf_p95": 0.8299,
+    "n_hit_frame_cap_frames": 0,
+    "end_reason_dist": {
+     "None": 15
+    },
+    "sec_per_char_p50": 0.0848,
+    "sec_per_char_p25": 0.073125,
+    "sec_per_char_p75": 0.089302,
+    "src_dur_ratio_p50": 1.2625,
+    "n_with_src_dur": 15
+   },
+   "clone": {
+    "n": 15,
+    "n_empty": 0,
+    "out_dur_p50": 9.04,
+    "rtf_p50": 0.7943,
+    "rtf_p95": 0.8396,
+    "n_hit_frame_cap_frames": 0,
+    "end_reason_dist": {
+     "None": 15
+    },
+    "sec_per_char_p50": 0.078505,
+    "sec_per_char_p25": 0.074419,
+    "sec_per_char_p75": 0.08,
+    "src_dur_ratio_p50": 1.2477,
+    "n_with_src_dur": 15
+   }
+  },
+  "fr": {
+   "preset": {
+    "n": 15,
+    "n_empty": 0,
+    "out_dur_p50": 8.48,
+    "rtf_p50": 0.7889,
+    "rtf_p95": 0.8399,
+    "n_hit_frame_cap_frames": 0,
+    "end_reason_dist": {
+     "None": 15
+    },
+    "sec_per_char_p50": 0.069542,
+    "sec_per_char_p25": 0.0672,
+    "sec_per_char_p75": 0.070654,
+    "src_dur_ratio_p50": 1.2819,
+    "n_with_src_dur": 15
+   },
+   "clone": {
+    "n": 15,
+    "n_empty": 0,
+    "out_dur_p50": 8.72,
+    "rtf_p50": 0.7881,
+    "rtf_p95": 0.8566,
+    "n_hit_frame_cap_frames": 0,
+    "end_reason_dist": {
+     "None": 15
+    },
+    "sec_per_char_p50": 0.067606,
+    "sec_per_char_p25": 0.064538,
+    "sec_per_char_p75": 0.070323,
+    "src_dur_ratio_p50": 1.1897,
+    "n_with_src_dur": 15
+   }
+  },
+  "it": {
+   "preset": {
+    "n": 15,
+    "n_empty": 0,
+    "out_dur_p50": 9.2,
+    "rtf_p50": 0.8133,
+    "rtf_p95": 0.9062,
+    "n_hit_frame_cap_frames": 0,
+    "end_reason_dist": {
+     "None": 15
+    },
+    "sec_per_char_p50": 0.080769,
+    "sec_per_char_p25": 0.074961,
+    "sec_per_char_p75": 0.084553,
+    "src_dur_ratio_p50": 1.3506,
+    "n_with_src_dur": 15
+   },
+   "clone": {
+    "n": 15,
+    "n_empty": 0,
+    "out_dur_p50": 8.72,
+    "rtf_p50": 0.7864,
+    "rtf_p95": 0.8554,
+    "n_hit_frame_cap_frames": 0,
+    "end_reason_dist": {
+     "None": 15
+    },
+    "sec_per_char_p50": 0.074783,
+    "sec_per_char_p25": 0.071111,
+    "sec_per_char_p75": 0.079304,
+    "src_dur_ratio_p50": 1.2625,
+    "n_with_src_dur": 15
+   }
+  },
+  "pt": {
+   "preset": {
+    "n": 15,
+    "n_empty": 0,
+    "out_dur_p50": 8.88,
+    "rtf_p50": 0.7886,
+    "rtf_p95": 0.8375,
+    "n_hit_frame_cap_frames": 0,
+    "end_reason_dist": {
+     "None": 15
+    },
+    "sec_per_char_p50": 0.079,
+    "sec_per_char_p25": 0.074805,
+    "sec_per_char_p75": 0.090667,
+    "src_dur_ratio_p50": 1.2364,
+    "n_with_src_dur": 15
+   },
+   "clone": {
+    "n": 15,
+    "n_empty": 0,
+    "out_dur_p50": 8.32,
+    "rtf_p50": 0.7857,
+    "rtf_p95": 0.8558,
+    "n_hit_frame_cap_frames": 0,
+    "end_reason_dist": {
+     "None": 15
+    },
+    "sec_per_char_p50": 0.08,
+    "sec_per_char_p25": 0.071412,
+    "sec_per_char_p75": 0.083404,
+    "src_dur_ratio_p50": 1.1596,
+    "n_with_src_dur": 15
+   }
+  },
+  "ru": {
+   "preset": {
+    "n": 15,
+    "n_empty": 0,
+    "out_dur_p50": 9.76,
+    "rtf_p50": 0.809,
+    "rtf_p95": 0.8854,
+    "n_hit_frame_cap_frames": 0,
+    "end_reason_dist": {
+     "None": 15
+    },
+    "sec_per_char_p50": 0.082645,
+    "sec_per_char_p25": 0.078261,
+    "sec_per_char_p75": 0.085437,
+    "src_dur_ratio_p50": 1.4125,
+    "n_with_src_dur": 15
+   },
+   "clone": {
+    "n": 15,
+    "n_empty": 0,
+    "out_dur_p50": 9.76,
+    "rtf_p50": 0.8031,
+    "rtf_p95": 0.8792,
+    "n_hit_frame_cap_frames": 0,
+    "end_reason_dist": {
+     "None": 15
+    },
+    "sec_per_char_p50": 0.080661,
+    "sec_per_char_p25": 0.07767,
+    "sec_per_char_p75": 0.084828,
+    "src_dur_ratio_p50": 1.3125,
+    "n_with_src_dur": 15
+   }
+  },
+  "zh": {
+   "preset": {
+    "n": 15,
+    "n_empty": 0,
+    "out_dur_p50": 8.96,
+    "rtf_p50": 0.8546,
+    "rtf_p95": 0.9046,
+    "n_hit_frame_cap_frames": 0,
+    "end_reason_dist": {
+     "None": 15
+    },
+    "sec_per_char_p50": 0.217143,
+    "sec_per_char_p25": 0.205333,
+    "sec_per_char_p75": 0.224681,
+    "src_dur_ratio_p50": 1.2987,
+    "n_with_src_dur": 15
+   },
+   "clone": {
+    "n": 15,
+    "n_empty": 0,
+    "out_dur_p50": 8.64,
+    "rtf_p50": 0.8408,
+    "rtf_p95": 0.9031,
+    "n_hit_frame_cap_frames": 0,
+    "end_reason_dist": {
+     "None": 15
+    },
+    "sec_per_char_p50": 0.214054,
+    "sec_per_char_p25": 0.200976,
+    "sec_per_char_p75": 0.214545,
+    "src_dur_ratio_p50": 1.2375,
+    "n_with_src_dur": 15
+   }
+  }
+ },
+ "neg_control": {
+  "base_hit": 0,
+  "tampered_hit": 3,
+  "n_tampered_rows": 3,
+  "pass": true,
+  "note": "🔴 反证：把前 3 行的 frames_out 抬到 max_new_tokens ⇒ 计数必须增加 ⇒ 证明判据能触发（否则「撞上限=0」无说服力）"
+ },
+ "notes": [],
+ "frame_cap_margin_p50": 242,
+ "frame_cap_margin_min": 103,
+ "n_rows_with_frames_and_cap": 240,
+ "verdict": "RAN",
+ "mt_rows": 160,
+ "tts_exec_devices": {
+  "ok": true,
+  "devices": {
+   "speaker_enc": [
+    "NPU"
+   ],
+   "cp_prefill": [
+    "NPU"
+   ],
+   "cp_decode": [
+    "NPU"
+   ],
+   "tok_decoder": [
+    "NPU(lazy)"
+   ],
+   "talker_bucket@64": [
+    "NPU"
+   ],
+   "talker_bucket@128": [
+    "NPU"
+   ],
+   "talker_bucket@256": [
+    "NPU"
+   ],
+   "talker_bucket@384": [
+    "NPU"
+   ],
+   "talker_bucket@512": [
+    "NPU"
+   ],
+   "decoder_bucket@8": [
+    "NPU"
+   ],
+   "decoder_bucket@16": [
+    "NPU"
+   ],
+   "decoder_bucket@32": [
+    "NPU"
+   ],
+   "decoder_bucket@33": [
+    "NPU"
+   ]
+  },
+  "devices_raw": {
+   "speaker_enc": "NPU",
+   "cp_prefill": "NPU",
+   "cp_decode": "NPU",
+   "tok_decoder": [
+    "NPU(lazy)"
+   ],
+   "talker_bucket@64": "NPU",
+   "talker_bucket@128": "NPU",
+   "talker_bucket@256": "NPU",
+   "talker_bucket@384": "NPU",
+   "talker_bucket@512": "NPU",
+   "decoder_bucket@8": "NPU",
+   "decoder_bucket@16": "NPU",
+   "decoder_bucket@32": "NPU",
+   "decoder_bucket@33": "NPU"
+  },
+  "unknown": [],
+  "absent": [
+   "talker_prefill",
+   "talker_decode",
+   "talker",
+   "code_predictor"
+  ],
+  "requested": "NPU",
+  "devices_norm": {
+   "speaker_enc": [
+    "NPU"
+   ],
+   "cp_prefill": [
+    "NPU"
+   ],
+   "cp_decode": [
+    "NPU"
+   ],
+   "tok_decoder": [
+    "NPU(lazy)"
+   ],
+   "talker_bucket@64": [
+    "NPU"
+   ],
+   "talker_bucket@128": [
+    "NPU"
+   ],
+   "talker_bucket@256": [
+    "NPU"
+   ],
+   "talker_bucket@384": [
+    "NPU"
+   ],
+   "talker_bucket@512": [
+    "NPU"
+   ],
+   "decoder_bucket@8": [
+    "NPU"
+   ],
+   "decoder_bucket@16": [
+    "NPU"
+   ],
+   "decoder_bucket@32": [
+    "NPU"
+   ],
+   "decoder_bucket@33": [
+    "NPU"
+   ]
+  },
+  "actual": {
+   "speaker_enc": "NPU",
+   "cp_prefill": "NPU",
+   "cp_decode": "NPU",
+   "tok_decoder": "NPU(lazy)",
+   "talker_bucket@64": "NPU",
+   "talker_bucket@128": "NPU",
+   "talker_bucket@256": "NPU",
+   "talker_bucket@384": "NPU",
+   "talker_bucket@512": "NPU",
+   "decoder_bucket@8": "NPU",
+   "decoder_bucket@16": "NPU",
+   "decoder_bucket@32": "NPU",
+   "decoder_bucket@33": "NPU"
+  },
+  "on_npu": [
+   "cp_decode",
+   "cp_prefill",
+   "decoder_bucket@16",
+   "decoder_bucket@32",
+   "decoder_bucket@33",
+   "decoder_bucket@8",
+   "speaker_enc",
+   "talker_bucket@128",
+   "talker_bucket@256",
+   "talker_bucket@384",
+   "talker_bucket@512",
+   "talker_bucket@64"
+  ],
+  "on_cpu": [],
+  "on_unknown": [
+   "tok_decoder"
+  ],
+  "key4_line": "EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU(lazy)"
+ },
+ "tts_engine": {
+  "preset_embed_shape": [
+   1,
+   1024
+  ],
+  "clone_embed_shape": [
+   1,
+   1024
+  ],
+  "preset_wav": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\models\\qwen3tts\\voices\\preset_A.wav",
+  "clone_ref_wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app326_app097_lang_out\\wav\\_clone_ref_A.wav"
+ }
+}

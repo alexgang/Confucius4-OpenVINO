@@ -1,0 +1,229 @@
+{
+ "created_at": "2026-11-10 14:52:27",
+ "correction": "APP-093 §3.3 过载臂（修正后重算）",
+ "criterion": "单会话过载臂：1.0× → 2.0× → 1.0×；报过载起止（源秒/墙钟）、ASR/MT/TTS 积压曲线、过载期跳过句数、过载结束到 dequeue lag 回到 6 s 以内的用时、字幕完整度",
+ "method": "对**已落盘**的 runs4 产物**重算**（不重跑设备）；修正两处分析缺陷：① sitecustomize patch 改为轮询 __main__ ② 阶段划分改用 t_submit + 中位数 offset（覆盖 late_drop 行）",
+ "device_job": false,
+ "lock_note": "本次为**只读重算**（不加载模型、不占 GPU/NPU）⇒ 按项目纪律**不持 MACHINE_LOCK**；设备跑那一轮（_app327_overload_driver.py）的锁记录见 app327_overload_after.json",
+ "arms": {
+  "after": {
+   "arm": "after",
+   "out": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs4\\after\\dialog3_overload3",
+   "meta": {
+    "t0_wall": 1794292896.1129496,
+    "T1_wall": 1794292956.1129496,
+    "T2_wall": 1794293001.1129496,
+    "plan": {
+     "src_normal_end": 60.0,
+     "src_overload_end": 150.0,
+     "pace_normal": 1.0,
+     "pace_overload": 2.0
+    },
+    "events": []
+   },
+   "n_tts_rows": 81,
+   "n_seg_rows": 54,
+   "clock_offset": {
+    "method": "wall_est = t_submit + median(play_wall - t_submit)",
+    "n_used": 59,
+    "offset_s": 1793407449.3404,
+    "offset_std_s": 1.6686,
+    "note": "🔴 `t_submit` 是单调钟、`play_wall` 是墙钟 ⇒ 不能直接相减；取差值中位数做平移 ⇒ late_drop 行（play_wall=None）也能定位"
+   },
+   "wall_window": {
+    "normal_end_s": 60.0,
+    "overload_end_s": 105.0,
+    "t0_wall": 1794292896.1129496,
+    "note": "reviewer 的 60/150 s 是**源秒**；过载段 90 s 源在 pace 2.0 下花 45 s 墙钟⇒ 过载墙钟区间 = [60, 105] s"
+   },
+   "phases_old": {
+    "normal": {
+     "n_rows": 9,
+     "n_with_play_wall": 9,
+     "n_late_drop": 0,
+     "speed_lag_p50": 2.788,
+     "speed_lag_p95": 5.661,
+     "speed_lag_max": 5.842,
+     "play_lag_p50": 8.036,
+     "play_lag_p95": 9.035,
+     "worker_fifo_wait_p50": 0.0,
+     "synth_rtf_p50": 1.0075,
+     "synth_rtf_p95": 1.0569,
+     "late_drop_lag_s_p50": null,
+     "late_drop_lag_s_max": null,
+     "n_speed_floor_conflict_max": 8,
+     "end_reason_dist": {
+      "eos": 9
+     }
+    },
+    "overload": {
+     "n_rows": 1,
+     "n_with_play_wall": 1,
+     "n_late_drop": 0,
+     "speed_lag_p50": 2.104,
+     "speed_lag_p95": 2.104,
+     "speed_lag_max": 2.104,
+     "play_lag_p50": 7.411,
+     "play_lag_p95": 7.411,
+     "worker_fifo_wait_p50": 0.0,
+     "synth_rtf_p50": 1.0118,
+     "synth_rtf_p95": 1.0118,
+     "late_drop_lag_s_p50": null,
+     "late_drop_lag_s_max": null,
+     "n_speed_floor_conflict_max": 9,
+     "end_reason_dist": {
+      "eos": 1
+     }
+    },
+    "recover": {
+     "n_rows": 49,
+     "n_with_play_wall": 49,
+     "n_late_drop": 0,
+     "speed_lag_p50": -32.35,
+     "speed_lag_p95": -26.501,
+     "speed_lag_max": -24.782,
+     "play_lag_p50": -28.842,
+     "play_lag_p95": -23.182,
+     "worker_fifo_wait_p50": 0.0,
+     "synth_rtf_p50": 0.9996,
+     "synth_rtf_p95": 1.115,
+     "late_drop_lag_s_p50": null,
+     "late_drop_lag_s_max": null,
+     "n_speed_floor_conflict_max": 58,
+     "end_reason_dist": {
+      "eos": 49
+     }
+    }
+   },
+   "phases": {
+    "normal": {
+     "n_rows": 10,
+     "n_with_play_wall": 9,
+     "n_late_drop": 1,
+     "speed_lag_p50": 2.788,
+     "speed_lag_p95": 5.661,
+     "speed_lag_max": 5.842,
+     "play_lag_p50": 8.036,
+     "play_lag_p95": 9.035,
+     "worker_fifo_wait_p50": 0.0,
+     "synth_rtf_p50": 1.0075,
+     "synth_rtf_p95": 1.0569,
+     "late_drop_lag_s_p50": 6.213,
+     "late_drop_lag_s_max": 6.213,
+     "n_speed_floor_conflict_max": 8,
+     "end_reason_dist": {
+      "eos": 9,
+      "error": 1
+     }
+    },
+    "overload": {
+     "n_rows": 20,
+     "n_with_play_wall": 1,
+     "n_late_drop": 19,
+     "speed_lag_p50": 2.104,
+     "speed_lag_p95": 2.104,
+     "speed_lag_max": 2.104,
+     "play_lag_p50": 7.411,
+     "play_lag_p95": 7.411,
+     "worker_fifo_wait_p50": 0.0,
+     "synth_rtf_p50": 1.0118,
+     "synth_rtf_p95": 1.0118,
+     "late_drop_lag_s_p50": 35.072,
+     "late_drop_lag_s_max": 38.683,
+     "n_speed_floor_conflict_max": 9,
+     "end_reason_dist": {
+      "eos": 1,
+      "error": 19
+     }
+    },
+    "recover": {
+     "n_rows": 51,
+     "n_with_play_wall": 49,
+     "n_late_drop": 2,
+     "speed_lag_p50": -32.35,
+     "speed_lag_p95": -26.501,
+     "speed_lag_max": -24.782,
+     "play_lag_p50": -28.842,
+     "play_lag_p95": -23.182,
+     "worker_fifo_wait_p50": 0.0,
+     "synth_rtf_p50": 0.9996,
+     "synth_rtf_p95": 1.115,
+     "late_drop_lag_s_p50": 40.196,
+     "late_drop_lag_s_max": 40.206,
+     "n_speed_floor_conflict_max": 58,
+     "end_reason_dist": {
+      "error": 2,
+      "eos": 49
+     }
+    }
+   },
+   "recovery": {
+    "threshold_s": 6.0,
+    "field": "speed_lag_s（worker 出队滞后；tts_worker.py:2514）",
+    "overload_end_wall": 1794293001.1129496,
+    "recovery_s_after_overload": 3.597,
+    "recovery_s_old_criterion": null,
+    "neg_control": null,
+    "neg_control_pass": true,
+    "neg_control_note": "🔴 反证：把 speed_lag_s 全部 +1000 ⇒ 恢复用时必须变 None（否则判据恒真）"
+   },
+   "asr_backlog_curve": {
+    "path": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs4\\after\\dialog3_overload3\\mix.wav.backlog_curve.csv",
+    "exists": true,
+    "columns": [
+     "t_s",
+     "backlog_s",
+     "lag_s",
+     "ring_s",
+     "synth_s",
+     "queued_s",
+     "n_played",
+     "n_dropped",
+     "n_empty",
+     "n_submitted"
+    ],
+    "phases": {
+     "normal": {
+      "n_points": 40,
+      "backlog_s_max": 9.512,
+      "backlog_s_p50": 4.819,
+      "lag_s_max": 0.057,
+      "lag_s_p50": 0.0,
+      "synth_s_max": 6.21,
+      "queued_s_max": 6.675,
+      "n_dropped_final": 1
+     },
+     "overload": {
+      "n_points": 30,
+      "backlog_s_max": 66.68,
+      "backlog_s_p50": 35.169,
+      "lag_s_max": 0.057,
+      "lag_s_p50": 0.0,
+      "synth_s_max": 5.788,
+      "queued_s_max": 66.68,
+      "n_dropped_final": 20
+     },
+     "recover": {
+      "n_points": 172,
+      "backlog_s_max": 97.209,
+      "backlog_s_p50": 77.051,
+      "lag_s_max": 0.1,
+      "lag_s_p50": 0.07,
+      "synth_s_max": 8.265,
+      "queued_s_max": 91.14,
+      "n_dropped_final": 22
+     }
+    },
+    "n_points": 242
+   },
+   "subtitle_completeness": {
+    "n_subtitle_lines": 54,
+    "n_seg_rows": 54,
+    "n_tts_rows": 81,
+    "n_sub_n_seg_equal": true,
+    "note": "App 侧 subtitles.txt 与 spk_seg.jsonl 同源同序（一 定稿一段）⇒ 段数应相等；**跳句只丢语音，不影响字幕/转写**"
+   }
+  }
+ },
+ "verdict": "RAN"
+}

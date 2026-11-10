@@ -1,0 +1,392 @@
+{
+ "created_at": "2026-11-10 14:09:27",
+ "correction": "APP-097 §2-6 模型身份（实测对照版）",
+ "criterion": "MANIFEST 里 ASR/MT/TTS 的目录、源模型和 SHA 与改前一致⇒ 实测：真包 v2.4 与影子包 after2 逐模型目录树 SHA 对照",
+ "device_job": false,
+ "lock_note": "本项为**只读静态核对**（不加载模型）⇒ 按项目纪律不占 GPU/NPU ⇒ **不持 MACHINE_LOCK**",
+ "manifest": {
+  "real_v2.4": {
+   "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\app\\MANIFEST.json",
+   "present": true,
+   "bytes": 23421,
+   "sha256": "cc95bce3e7b766ffe9912d65baf545244ff7a5305c615de51427eebef695ae2d",
+   "top_fields": {
+    "files": 14319,
+    "bytes": 13692564165,
+    "version": "2.4",
+    "notes": "v1.13 修订（2026-11-01，APP-052 执行后）：（17）**包内不再含开发机路径** —— 此前客户机上会看到「C:\\Users\\<开发机用户名>\\...」这类路径（代码注释与说明文字里）。现全部改为按**当前用户家目录**自动推导（客户机自动指向自己的家目录），文档中的示例一律写成 <HOME> 占位。（18）**随包不再附带开发期测试输出** —— results/ 下的精度比对中间产物（各精度/设备的逐句输出）已剔除；保留的是完整精度汇总报告（results/mt2_accuracy.json 与 .md）。（19）**桌面快捷方式由 Windows 原生接口生成** —— 此前版本的手工构造方式会产生「点开没有反应」的快捷方式；现由系统生成，双击即可启动本包，并已验证从快捷方式连续两次冷启动均正常。v1.6 修订（2026-10-27，APP-028 执行后）：（13）**默认设备摆放定案** —— ASR → Intel 集显（GPU.0）、翻译 → Intel 集显（GPU.0）、**语音输出 → Intel NPU**，**NPU 只给语音输出独占使用**（ASR / 翻译的回退链里**不含 NPU**，避免与语音输出抢同一个加速器）。CUDA **不作为默认**。（14）**语音输出改为「边合成边播」的生产/消费者架构** —— 旧实现里合成线程要等这一句**播完**才开始下一句 ⇒ 句与句之间白白串行等待、越积越慢。现改为：合成线程写完音频**立刻**返回去合成下一句，音频按**句**进无界内存队列，由独立播放看门狗按原顺序取出播放 ⇒ **句内句间严格保序**，队列空时输出静音并计入欠载次数。（15）**不再丢句** —— 旧实现在语音积压超过阈值时会「中止已写入的句子」，导致**说过的内容直接消失**。本版**删除该丢句逻辑**（含所有「中止已写入句子」的路径），积压只做提示不再丢内容；「取消」改为把整句从队列里摘除。⚠️ **本项只保证代码已实现**；「丢句数为 0」的实听验收需由使用方在真实会话中确认。（16）**界面底栏实时显示「语音滞后 X 秒」** —— 便于直接观察合成与播放的积压，而不必猜测。v1.5 修订（2026-10-25，APP-014② / APP-012② / APP-014① 执行后）：（6）**设备下拉按实际硬件显示全名** —— 原先把 NVIDIA 独显误标成「Intel GPU 2」（该设备不存在），现改为按 OpenVINO 报告的 FULL_DEVICE_NAME 逐字显示（如「Intel(R) Graphics (iGPU)」/ 「NVIDIA GeForce RTX 5050 Laptop GPU (dGPU)」/「Intel(R) AI Boost」），查不到全名才回落简写标签。（7）**ASR 语音分区新增 CUDA 选项 + 去重** —— NVIDIA 设备只在 **ASR** 列表里单列一条「NVIDIA GPU（CUDA）」（另一种后端：audio.cpp + GGUF）；原先同一块物理显卡还被 OpenVINO 档重复列成「NVIDIA 独显 · INT8」⇒ v1.5 已去重（**保留 CUDA 那条**，按物理设备而非 label 判定）。⚠️ 诚实警示：本包**未随附** audio.cpp 运行包与 GGUF 模型（包内无 cuda/ 目录），该选项在另行部署前不可用。（8）**修掉段接缝处的重复词** —— 旧去重只试 3-gram / 2-gram，而实测段边界的 n-gram 重复分布是 n≥3 = 0、n=2 = 0、n=1 = 36~42 处 ⇒ **一次都没命中过**，重复词 100% 漏到屏幕上。现改为整词级 1~3-gram，且 1-gram 用「切点穿词」判据（后段首词大写开头 / 前段末尾非句末标点）区分「切点穿词」与「真内容」，避免误删真实复读。（9）**TTS（译文语音输出）转为正式功能，默认开启** —— 去掉「实验性」标注，CLI `--tts` 默认 None（区分「没给」与「显式 off」），GUI 初值默认开；开关旁常驻「⚠️ 请佩戴耳机，避免回授」提示。（10）**语音输出只列「实测真的能用」的设备 × 精度组合** —— 实测（真实 INT8 IR + 真实音色）：**Intel NPU · F16 可用**（7/7 编译；5.52 s 音频 / 6.4 s 合成）；Intel 集显 · F32 可用但**很慢**（5.68 s 音频需 88.7 s）；**Intel 集显 · F16 能编过但合成失控**（talker 不发结束符 ⇒ 跑满 512 帧 ⇒ 40.96 s 削波音频 peak=1.000）；**NVIDIA 独显仅 3/7 编译**，且 F32 与 F16 失败**完全相同** ⇒ 引擎整体加载失败。⇒ 不可用组合**不再列出**（原因写在说明行，不静默隐藏）。同时修掉两个隐藏缺陷：① GUI 的「精度 F32/F16」下拉**从未生效**（make_engine 没有 precision 形参 → worker 不传 → BabelVox 自建 ov.Core 不传 property）⇒ 现已注入 INFERENCE_PRECISION_HINT；② GUI **完全不监视 TTS 状态** ⇒ 加载失败时界面零提示 ⇒ 现已加状态跟踪。（11）**修掉「语音输出无论 NPU/GPU 都听不到声音」** —— 根因：播放环形缓冲是「**整句原子写入**」（`while count + n > cap` 才写），容量只有 `sr*3` = **72 000 样本（3 s）**，而 BabelVox 一句 19 字就是 **138 240 样本（5.76 s）** ⇒ `count + n > cap` **永远成立** ⇒ 等满 30 s 必然超时 ⇒ 该句被判「合成失败（已丢弃）」⇒ **一声都不响**（与设备、精度、NPU/GPU **全都无关**；实测即使播放回调在正常工作也照样超时）。现改为**按空位分片推进**（语义不变：**仍不丢样本、不切断句子**），并在「缓冲已满且长时间无进展」时抛出一条可定位的诊断（提示播放设备被占用/静音），把原来 30 s 的静默挂起变成 5 s 内的明示报错。实测：NPU·F16 首包 **6.96 s**、播放完成；集显·F32 首包 **33.9 s**、播放完成。v1.4 修订（2026-10-23，APP-005② / APP-004 执行后）：（4）**TTS（Qwen3-TTS / BabelVox）随包分发** —— models/qwen3tts/（int8 IR 18 文件 + weights 37 文件 + tokenizer + voices/preset_A.wav），运行时 babelvox 1.7.1 及其依赖（librosa / scipy / num2words / numba / llvmlite / soxr / soundfile / cloudpickle / joblib / pooch / platformdirs / defusedxml / msgpack / decorator）以 vendored 方式随包，**客户机离线可跑，无需联网 pip install**；许可证归属见包根 NOTICE。**只附带音色 A（预设音色）** —— 音色 B / 克隆音色 / 会议录音素材一律不含在包内。（5）**打包断言已按 INT8 默认模型更新** —— 原「v1.3 只附带 INT4」的断言与目录排除在 INT8 成为默认后会导致打包必然 FAIL，现改为「INT8 必需 + INT4 可选 + 无旧量化目录」。v1.4 修订（2026-10-23，App 模块 C-134 + APP-002/003 执行后）：（1）**默认翻译量化改为 INT8 按通道**（models/mt/mt2-int8sym-cw-q，用户决定）—— 依据 MT 模块 H-001/H-007 的语料级 bootstrap 重算：INT4 四个组合全部显著劣化，INT8 全部不劣化；包体 +0.72 GB，GPU 吞吐 37.5 tok/s 仍满足实时；INT4 保留为可选。（2）**编译缓存不再写包内**（C-133）：改到 %LOCALAPPDATA%\\Confucius4LiveCaption\\，包内 ov_cache/npu_cache/mt_cache 全部剔除，包体显著缩小。（3）**results/ 只含公开新闻语料**（wmt24pp）：内部会议录音的转写与译文**不含在包内**。v1.3 修订（2026-10-22，Hy-MT2 纠偏 H-001~H-004 执行后）：（1）补齐**正确率基准** —— 200 句 wmt24pp（en→zh 正向、zh→en 反向构造，因 FLORES 仓库受限），BF16-CPU / INT8-GPU / INT8-NPU / INT4-GPU / INT4-NPU 五配置 × 两方向，指标 BLEU + chrF++ + paired bootstrap 95% CI。结论：**INT4 相对 BF16 掉 1.53~1.81 chrF++**（CI 不含 0、p≈0.001，落在 1.0~2.0 灰区），**INT8 与 BF16 统计等价**（|Δ|≤0.25，CI 含 0）。质量矩阵（BLEU / chrF++ / paired bootstrap 95% CI）随包附在 `results\\`（mt2_accuracy.md / mt2_accuracy.json / mt2_acc_outputs/，均为**公开新闻语料** wmt24pp；**内部会议录音的转写与译文不含在包内**）。（2）**内存实测**：INT4-CW 常驻约 1.2 GB（集显）/ 1.6 GB（NPU），INT8-CW 约 2.0 GB / 2.5 GB；BF16 约 7 GB，不建议客户端使用（内存实测数据未随包附）。（3）IR 目录的 tokenizer_config / generation_config 已覆盖为 HF Hy-MT2 原件，openvino_tokenizer/detokenizer 从 Hy-MT2 重新生成（H-002）。（4）新增可选术语表开关 `--mt-glossary`（默认关闭，延迟 +62 ms / +11.6%）（H-003）。（5）README 中「INT8 随包」「设备不影响输出（逐字一致）」两处表述已更正。v1.3 翻译模型替换（C-102）：翻译模型由通用指令模型 Hunyuan-1.8B-Instruct 换成**翻译专用**的 Hy-MT2-1.8B（tencent/Hy-MT2-1.8B，架构同为 hunyuan_v1_dense，导出/量化链路不变）。换模型的原因是旧模型不是翻译模型：遇专业术语会乱译、偶尔会输出解释性文字而非译文。包内 models/mt/ 下原有 mt2-int4sym-cw-q（约 993 MB，INT4_SYM per-channel，GPU/NPU 通吃）；**v1.4 起默认改用 mt2-int8sym-cw-q（约 1.7 GB，INT8_SYM per-channel）**，INT4 保留为可选（显存吃紧时选）。旧的 int4sym-cw-q / int8sym-cw-q 目录已删除。app/translator.py 同步更新：模型目录解析（DEFAULT_MODEL 与 _cw_model 均指向 mt2-* 目录）、prompt 改为 Hy-MT2 官方 Default Translation 指令模板（**无 system prompt**，指令与待译文本同放 user 消息，官方模板见 tencent/Hy-MT2-1.8B README）、带上下文的分支改用官方 Structured Data 模板的简化版、generation config 去掉旧 Instruct 专用的 </answer> stop_strings（MT2 直接输出译文正文，EOS 自停）。GUI/CLI 的翻译后端下拉 5 项（自动 / GPU·INT4 / GPU·INT8 / NPU·INT4 / NPU·INT8）在新版全部可用，--check 逐项报 [ OK ]。实测（hy_bench/bench_mt2.py，7 句 × 3 次取中位）：GPU·INT4 57.9 tok/s / TTFT 35 ms，NPU·INT4 44.0 tok/s / TTFT 292 ms，GPU·INT8 37.5 tok/s / TTFT 44 ms，NPU·INT8 29.6 tok/s / TTFT 300 ms；四配置均无空输出、无乱码；**更正**：同量化在 GPU 与 NPU 上**并非逐字一致**（200 句 wmt24pp 上 INT4 仅 39/200、INT8 116/200 逐字相同），只能说**质量等价**（chrF++ 差 0.1~0.3）；INT8 与 INT4 相似度中位 0.966（最低 0.852），差异均为同义改写。与旧 Instruct 模型相比，MT2 **更快**（INT4 57.9 vs 49.4 tok/s）且译文质量明显更好。对客户是**透明升级**：界面、配置、命令行参数全部不变，解压新版即可。⚠️ v1.4 **更正**：默认量化由 INT4 改为 **INT8 按通道**（用户决定，依据 H-001/H-007）。原「INT8 与 INT4 译文差异仅为同义改写、对客户机没有实际收益」的结论**基于旧的句子级配对检验口径，已被 200 句 wmt24pp 语料级配对 bootstrap（1000 次）推翻** —— 实测 INT4 在 en→zh / zh→en × GPU / NPU 四个组合上**全部显著劣化**（ΔchrF −2.320 / −2.058 / −1.632 / −1.536，95% CI 均不含 0）；INT8 四个组合**全部不劣化**（Δ +0.219 / +0.318 / −0.039 / +0.027）。代价：包体 **+0.72 GB**（INT8 IR 1.79 GB vs INT4 1.02 GB），GPU 吞吐 57.9 → 37.5 tok/s（仍满足实时），显存 +0.75 GB。开发机 hy_bench/ov/ 下仍保留 INT8 产物供对比测试。配套代码调整：translator.py 的 _MT_CANDIDATES 增加 bundled 标记（区分「本包不附带」与「本机缺模型」），live_caption_app.py 的 --check 对不带附带的项显示 [ — ]（本包不附带该量化版本）而非 [缺 ]（缺模型），避免客户误判为安装故障；GUI 下拉本身无需改动 —— 客户机上模型目录不存在时该两项自动不出现。v1.3 新增翻译术语表（H-003）：起因是「QS」被模型译错（QS = Qualification Sample 资格样品，既不是 QPS，也不是「击打」）。translator.py 内置芯片/硬件会议场景的默认术语表（QS→资格样品、ES→工程样品、power on→点亮、tape-out→流片、share→市场份额、silicon→芯片、milestone→里程碑 等 10 条），走 Hy-MT2 官方 **Terminology 模板**（先给「参考译法」，再下翻译指令）；可用环境变量 LIVECAP_MT_GLOSSARY 指向 JSON 文件扩充或覆盖。命令行参数 --mt-glossary 开启，**默认关闭** —— 开启后 prompt 变长约 +200 token、延迟会涨。对客户是**可选增强**，关闭时行为与之前完全一致。v1.2 修复屏幕字幕（overlay）不显示译文：算 overlay 译文尾行时写的是「for b in self.blocks[-3:]」，迭代出的是**原文文本**，而 _mt_of(seg) 需要的是**段序号**（blocks 的下标），查 seg_keys 自然查不到 —— 结果是屏幕字幕条的译文行**永远为空**（主窗口的译文正常，所以此前一直没人发现）。现改为按段序号取最近 3 段的译文。同时修掉草稿预览被顶掉的问题：原来用「mt_tail or draft」，定稿译文一出现就把草稿预览挤掉（草稿开关等于白开）——现在 overlay 扩为四行：①定稿原文（白）②实时文本（黄）③定稿译文（青）④草稿预览（浅蓝），两者互不覆盖。因此**关掉草稿译文后，屏幕字幕上仍然显示定稿英文的译文**。v1.2 修正路径硬编码问题：原先 app/live_caption_app.py 与 app/translator.py 内写死了开发机的绝对路径（<HOME>\\... 的 models/、CUDA 运行包、编译缓存），换台机器或换个安装目录就会找不到模型。现全部改为**相对包根目录**推导 —— APP_DIR = 代码目录，PKG_ROOT = APP_DIR 的上一级，模型统一在 <包根>/models/；并新增模型目录别名表 _MODEL_ALIASES（客户包把开发机的模型目录重命名并重组过，权重逐个 md5 一致、仅目录名不同）与 _model_path() 解析层，两种布局都能定位到同一份权重。CUDA 运行包改为「LIVECAP_CUDA_DIR 环境变量 → <包根>/cuda/ → 用户目录/confucius4-r2t2」三级查找，且必须存在 audio.cpp/audiocpp_cli.exe 才认；编译缓存改放用户可写目录（%LOCALAPPDATA% 之外的 ~/.openvino/models/...），避免装到 Program Files 时写不进去。环境变量统一为 LIVECAP_MODELS_DIR（新主名，保留 LIVECAP_MODELS 兼容）、LIVECAP_MT_MODEL、LIVECAP_MT_CW_ROOT、LIVECAP_CUDA_DIR。已实测：把整包复制到带空格与中文的全新路径后，ASR 与翻译端到端均正常（60s 英文音频识别出 9 段译文，RTF 0.909）。v1.2 补齐 --check 环境检查参数：Diagnose.bat 一直在调用 live_caption_app.py --check，但该参数此前**从未实现**，客户机双击 Diagnose.bat 第一步就报 unrecognized arguments。新增 run_check()，依次输出依赖、OpenVINO 设备（含「Intel 集显」「Intel NPU」单独结论）、6 个 ASR 后端的模型与设备匹配、5 个翻译后端的模型是否在本机、麦克风与可回环输出设备，每项前缀 [ OK ] / [缺 ]，缺项在括号里说明原因（缺 audio.cpp / 缺模型 / 本机没有该设备）；不检查 torch（本程序刻意 USE_TORCH=0 不依赖它，客户包也不带）。v1.2 新增三种音频输入：麦克风 / 系统声音（Windows WASAPI 回环，app/audio_source.py，依赖 soundcard）/ 音频文件（WAV/FLAC/OGG/MP3 走 soundfile，m4a/mp4 走 PyAV）。v1.2 新增翻译后端「Intel GPU · INT8-CW」（gpu_int8cw，设备 GPU.0）：翻译模型新增 INT8_SYM per-channel 产物 models/mt/int8sym-cw-q（约 1.7 GB，与 INT4 目录结构完全一致），使翻译后端下拉共 5 项 —— 自动/INT4-CW、GPU·INT4-CW、GPU·INT8-CW、NPU·INT4-CW、NPU·INT8-CW；实测 GPU·INT8-CW 31.7 tok/s、TTFT 中位 82 ms、加载 5.9 s，质量与 INT4 持平、无乱码，比 GPU·INT4-CW（49.4 tok/s、TTFT 45 ms）慢约 35% 且多占约 700 MB 显存，ASR 同在集显上时会互相争抢（已在选项说明中提示）。包体因此由约 7.05 GB 增至约 8.8 GB。v1.2 新增 GUI「识别语种」设置：可从模型内置的 30 种语言中指定 ASR 识别语种（默认自动检测），语种提示以 prompt 后缀 language {lang}<asr_text> 注入模型；命令行等价参数 --asr-lang。同时修复一个既有缺陷：此前语种提示只存在于 state.prompt_raw，而三个 backend 实际喂给模型的是不含语种的静态 prompt 模板（segment_encoder_backend / backends / npu_embeds_backend 的 ids_right），导致语种根本没进模型输入、输出被 language None<asr_text> 元信息污染 —— 现已把语种后缀编码进 ids_right / NPU 的 emb_right。v1.2 实时翻译默认行为调整：草稿译文（未定稿那半句的实时预览）由「默认开启」改为**默认关闭**，默认只翻译已经定稿的文本；GUI 新增「草稿译文 Draft」复选框可运行时开关（translator.TranslationService.draft_on 由类常量 DRAFT_ON 改为实例属性，新增 set_draft()），命令行等价参数 --mt-draft，环境变量 LIVECAP_DRAFT=1 可用于脚本/CI 开启；原 LIVECAP_NO_DRAFT 语义随默认关闭而失效、不再读取。草稿开启时每 1.5s 翻一次近整句 partial，是 ASR 积压的主要来源（关掉 RTF +0.042，开启 1.5s 间隔+积压暂停 +0.144）。v1.2 修复「说话结束后字幕迟迟不定稿」：段尾连续 1.2s 静音即切段定稿（seg_stream.find_trailing_silence + Segmenter 静音超时规则），定稿延迟由约 5.8s 降至约 1.3s。v1.2 修复「翻译一直显示 GPU.0 加载中…」：①transformers 4.57 lazy import 并发竞态（ASR 引擎线程与翻译线程同时首次 import 时必有一方 ImportError）——新增 translator.import_transformers_auto_tokenizer 重试锁 + GUI 主线程 prewarm_transformers 预热；②加载失败后工作线程已死但 self.th 仍非 None，导致状态永久卡在 loading ——新增 TranslationService._thread_alive() 判断线程存活，set_engine() 在线程已死时真正重启，并新增 restart() 供界面「↻ 重试翻译」按钮调用。界面同步改进：加载耗时提示、失败原因摘要写入 live_caption.log。v1.1 内置实时翻译：app/translator.py、models/mt/int4sym-cw-q（Hunyuan-1.8B-Instruct INT4_SYM 按通道，约 993 MB）。v1.2 修复「断句把句子切碎导致译文出错」：原 split_sentences() 只按「见到句末标点就切」的正则切分，ASR 输出里的小数点、缩写点、版本号点都会把句子切碎，切碎会直接产出错误译文 —— 实测「It cost 1.5 million dollars.」被切成「It cost 1.」+「5 million dollars.」（译文变成「1.」+「500万美元。」），「Dr. Smith joined at 9 a.m. today.」被切成「Dr.」+「Smith joined at 9 a.m.」+「today.」（译文丢掉主语）。重写为「先扫候选切点、再逐点判定是否真是句末」：①小数点不切（两侧都是数字：1.5 / 3.14 / 1.2.3 / v1.0）；②缩写不切（整个点分链作为一个单位：Dr. / Prof. / U.S. / a.m.）；③守卫 —— 缩写点后必须是「空白+大写字母」，否则按句末处理，防止「We shipped no.」「The max.」这类普通词结尾的句号被误当缩写导致该断不断；④碎片合并规则改为「只有不以句末标点收尾的碎片才并回上一句」，避免中文短句（如「好吧。」3 字）被并进上一句。另按业界实时翻译通行做法（ACL N13-1023 / EMNLP 2020）加入段长控制：上限 20 词 / 中文 60 字，超限时**优先在逗号顿号处断开**而非机械按词数硬切 —— 硬切会切出语义不完整的片段（实测「...has now」+「hit qs.」被模型译成「击打。」，改进后为「我们的28个核心模块已经达到了里程碑。」）。修复后译文：「The U.S. economy grew 3.5 percent.」→「美国经济增长率提高了3.5个百分点。」（修复前为「美国」+「经济增长率为3%。」+「百分之五。」）；「Prof. Wang will present at 3 p.m.」→「王教授将于下午3点进行报告。」。配套新增 verify_segmentation.py（51 项）与 verify_segmentation_e2e.py（真实模型前后对比）。 v1.2 翻译模型替换（C-102）：models/mt/ 下的 Hunyuan-1.8B-Instruct 两个产物（int4sym-cw-q 约 993 MB、int8sym-cw-q 约 1.7 GB）已删除，替换为翻译专用 Hy-MT2-1.8B 的 INT4_SYM 按通道产物 models/mt/mt2-int4sym-cw-q（约 993 MB，GPU/NPU 通吃）；app/translator.py 同步更新（模型路径、官方 Default Translation 指令模板、去 </answer> stop）。GPU·INT8-CW / NPU·INT8-CW 两项在客户机上因缺模型自动从下拉消失（--check 显示 [缺 ]）。实测：包内 Python 25s 端到端 gpu_int8 + gpu_int4cw 正常出 7 句译文、62.1 tok/s、state=ready。 v1.2 翻译后端补齐（C-102 续）：新增 models/mt/mt2-int8sym-cw-q（约 1.7 GB，Hy-MT2 INT8_SYM 按通道），GUI/CLI 的 GPU·INT8-CW 与 NPU·INT8-CW 两项在客户机上恢复可用，翻译后端下拉共 5 项全可用。四配置对比（bench_mt2.py，7 句 × 3 次）：性能 GPU·INT4 57.9 tok/s / TTFT 35ms，NPU·INT4 44.0 / 292ms，GPU·INT8 37.5 / 44ms，NPU·INT8 29.6 / 300ms；准确度 GPU·INT4 与 NPU·INT4 输出逐字一致，INT8 双设备亦逐字一致，INT8 与 INT4 相似度中位 0.966、最低 0.852，差异均为同义改写，四配置均无空输出无乱码。包内端到端实测：gpu_int8cw 7 句 43.5 tok/s、npu_int8cw 7 句 33.3 tok/s，state=ready。\n（12）**新增可选 CUDA（PyTorch）语音输出后端** —— 与 OV 的 CUDA plugin 无关：本机装了独立 CUDA 环境（`faster-qwen3-tts` + `torch cu128`）时，「语音输出」会**自动多出一项** `NVIDIA CUDA（PyTorch）· bf16`（实测稳态流式首包 **0.547 s**、RTF **0.892**），并作为首选；**客户包不含该环境**（torch + 权重约 +5.7 GB，且与包内 transformers 4.57.6 冲突）⇒ 客户机上该项**不出现也不报错**，语音输出默认仍走 Intel NPU。安装说明见包内 `docs/CUDA_TTS.md`。",
+    "packages": "<dict len=51>"
+   },
+   "version": "2.4",
+   "files": 14319,
+   "bytes_total": 13692564165,
+   "has_per_model_sha_field": false,
+   "per_model_sha_note": "MANIFEST 顶层无「源模型 / SHA」字段⇒ 模型身份只能由**目录树 SHA**给出"
+  },
+  "shadow_after2": {
+   "path": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\app\\MANIFEST.json",
+   "present": true,
+   "bytes": 23421,
+   "sha256": "cc95bce3e7b766ffe9912d65baf545244ff7a5305c615de51427eebef695ae2d",
+   "top_fields": {
+    "files": 14319,
+    "bytes": 13692564165,
+    "version": "2.4",
+    "notes": "v1.13 修订（2026-11-01，APP-052 执行后）：（17）**包内不再含开发机路径** —— 此前客户机上会看到「C:\\Users\\<开发机用户名>\\...」这类路径（代码注释与说明文字里）。现全部改为按**当前用户家目录**自动推导（客户机自动指向自己的家目录），文档中的示例一律写成 <HOME> 占位。（18）**随包不再附带开发期测试输出** —— results/ 下的精度比对中间产物（各精度/设备的逐句输出）已剔除；保留的是完整精度汇总报告（results/mt2_accuracy.json 与 .md）。（19）**桌面快捷方式由 Windows 原生接口生成** —— 此前版本的手工构造方式会产生「点开没有反应」的快捷方式；现由系统生成，双击即可启动本包，并已验证从快捷方式连续两次冷启动均正常。v1.6 修订（2026-10-27，APP-028 执行后）：（13）**默认设备摆放定案** —— ASR → Intel 集显（GPU.0）、翻译 → Intel 集显（GPU.0）、**语音输出 → Intel NPU**，**NPU 只给语音输出独占使用**（ASR / 翻译的回退链里**不含 NPU**，避免与语音输出抢同一个加速器）。CUDA **不作为默认**。（14）**语音输出改为「边合成边播」的生产/消费者架构** —— 旧实现里合成线程要等这一句**播完**才开始下一句 ⇒ 句与句之间白白串行等待、越积越慢。现改为：合成线程写完音频**立刻**返回去合成下一句，音频按**句**进无界内存队列，由独立播放看门狗按原顺序取出播放 ⇒ **句内句间严格保序**，队列空时输出静音并计入欠载次数。（15）**不再丢句** —— 旧实现在语音积压超过阈值时会「中止已写入的句子」，导致**说过的内容直接消失**。本版**删除该丢句逻辑**（含所有「中止已写入句子」的路径），积压只做提示不再丢内容；「取消」改为把整句从队列里摘除。⚠️ **本项只保证代码已实现**；「丢句数为 0」的实听验收需由使用方在真实会话中确认。（16）**界面底栏实时显示「语音滞后 X 秒」** —— 便于直接观察合成与播放的积压，而不必猜测。v1.5 修订（2026-10-25，APP-014② / APP-012② / APP-014① 执行后）：（6）**设备下拉按实际硬件显示全名** —— 原先把 NVIDIA 独显误标成「Intel GPU 2」（该设备不存在），现改为按 OpenVINO 报告的 FULL_DEVICE_NAME 逐字显示（如「Intel(R) Graphics (iGPU)」/ 「NVIDIA GeForce RTX 5050 Laptop GPU (dGPU)」/「Intel(R) AI Boost」），查不到全名才回落简写标签。（7）**ASR 语音分区新增 CUDA 选项 + 去重** —— NVIDIA 设备只在 **ASR** 列表里单列一条「NVIDIA GPU（CUDA）」（另一种后端：audio.cpp + GGUF）；原先同一块物理显卡还被 OpenVINO 档重复列成「NVIDIA 独显 · INT8」⇒ v1.5 已去重（**保留 CUDA 那条**，按物理设备而非 label 判定）。⚠️ 诚实警示：本包**未随附** audio.cpp 运行包与 GGUF 模型（包内无 cuda/ 目录），该选项在另行部署前不可用。（8）**修掉段接缝处的重复词** —— 旧去重只试 3-gram / 2-gram，而实测段边界的 n-gram 重复分布是 n≥3 = 0、n=2 = 0、n=1 = 36~42 处 ⇒ **一次都没命中过**，重复词 100% 漏到屏幕上。现改为整词级 1~3-gram，且 1-gram 用「切点穿词」判据（后段首词大写开头 / 前段末尾非句末标点）区分「切点穿词」与「真内容」，避免误删真实复读。（9）**TTS（译文语音输出）转为正式功能，默认开启** —— 去掉「实验性」标注，CLI `--tts` 默认 None（区分「没给」与「显式 off」），GUI 初值默认开；开关旁常驻「⚠️ 请佩戴耳机，避免回授」提示。（10）**语音输出只列「实测真的能用」的设备 × 精度组合** —— 实测（真实 INT8 IR + 真实音色）：**Intel NPU · F16 可用**（7/7 编译；5.52 s 音频 / 6.4 s 合成）；Intel 集显 · F32 可用但**很慢**（5.68 s 音频需 88.7 s）；**Intel 集显 · F16 能编过但合成失控**（talker 不发结束符 ⇒ 跑满 512 帧 ⇒ 40.96 s 削波音频 peak=1.000）；**NVIDIA 独显仅 3/7 编译**，且 F32 与 F16 失败**完全相同** ⇒ 引擎整体加载失败。⇒ 不可用组合**不再列出**（原因写在说明行，不静默隐藏）。同时修掉两个隐藏缺陷：① GUI 的「精度 F32/F16」下拉**从未生效**（make_engine 没有 precision 形参 → worker 不传 → BabelVox 自建 ov.Core 不传 property）⇒ 现已注入 INFERENCE_PRECISION_HINT；② GUI **完全不监视 TTS 状态** ⇒ 加载失败时界面零提示 ⇒ 现已加状态跟踪。（11）**修掉「语音输出无论 NPU/GPU 都听不到声音」** —— 根因：播放环形缓冲是「**整句原子写入**」（`while count + n > cap` 才写），容量只有 `sr*3` = **72 000 样本（3 s）**，而 BabelVox 一句 19 字就是 **138 240 样本（5.76 s）** ⇒ `count + n > cap` **永远成立** ⇒ 等满 30 s 必然超时 ⇒ 该句被判「合成失败（已丢弃）」⇒ **一声都不响**（与设备、精度、NPU/GPU **全都无关**；实测即使播放回调在正常工作也照样超时）。现改为**按空位分片推进**（语义不变：**仍不丢样本、不切断句子**），并在「缓冲已满且长时间无进展」时抛出一条可定位的诊断（提示播放设备被占用/静音），把原来 30 s 的静默挂起变成 5 s 内的明示报错。实测：NPU·F16 首包 **6.96 s**、播放完成；集显·F32 首包 **33.9 s**、播放完成。v1.4 修订（2026-10-23，APP-005② / APP-004 执行后）：（4）**TTS（Qwen3-TTS / BabelVox）随包分发** —— models/qwen3tts/（int8 IR 18 文件 + weights 37 文件 + tokenizer + voices/preset_A.wav），运行时 babelvox 1.7.1 及其依赖（librosa / scipy / num2words / numba / llvmlite / soxr / soundfile / cloudpickle / joblib / pooch / platformdirs / defusedxml / msgpack / decorator）以 vendored 方式随包，**客户机离线可跑，无需联网 pip install**；许可证归属见包根 NOTICE。**只附带音色 A（预设音色）** —— 音色 B / 克隆音色 / 会议录音素材一律不含在包内。（5）**打包断言已按 INT8 默认模型更新** —— 原「v1.3 只附带 INT4」的断言与目录排除在 INT8 成为默认后会导致打包必然 FAIL，现改为「INT8 必需 + INT4 可选 + 无旧量化目录」。v1.4 修订（2026-10-23，App 模块 C-134 + APP-002/003 执行后）：（1）**默认翻译量化改为 INT8 按通道**（models/mt/mt2-int8sym-cw-q，用户决定）—— 依据 MT 模块 H-001/H-007 的语料级 bootstrap 重算：INT4 四个组合全部显著劣化，INT8 全部不劣化；包体 +0.72 GB，GPU 吞吐 37.5 tok/s 仍满足实时；INT4 保留为可选。（2）**编译缓存不再写包内**（C-133）：改到 %LOCALAPPDATA%\\Confucius4LiveCaption\\，包内 ov_cache/npu_cache/mt_cache 全部剔除，包体显著缩小。（3）**results/ 只含公开新闻语料**（wmt24pp）：内部会议录音的转写与译文**不含在包内**。v1.3 修订（2026-10-22，Hy-MT2 纠偏 H-001~H-004 执行后）：（1）补齐**正确率基准** —— 200 句 wmt24pp（en→zh 正向、zh→en 反向构造，因 FLORES 仓库受限），BF16-CPU / INT8-GPU / INT8-NPU / INT4-GPU / INT4-NPU 五配置 × 两方向，指标 BLEU + chrF++ + paired bootstrap 95% CI。结论：**INT4 相对 BF16 掉 1.53~1.81 chrF++**（CI 不含 0、p≈0.001，落在 1.0~2.0 灰区），**INT8 与 BF16 统计等价**（|Δ|≤0.25，CI 含 0）。质量矩阵（BLEU / chrF++ / paired bootstrap 95% CI）随包附在 `results\\`（mt2_accuracy.md / mt2_accuracy.json / mt2_acc_outputs/，均为**公开新闻语料** wmt24pp；**内部会议录音的转写与译文不含在包内**）。（2）**内存实测**：INT4-CW 常驻约 1.2 GB（集显）/ 1.6 GB（NPU），INT8-CW 约 2.0 GB / 2.5 GB；BF16 约 7 GB，不建议客户端使用（内存实测数据未随包附）。（3）IR 目录的 tokenizer_config / generation_config 已覆盖为 HF Hy-MT2 原件，openvino_tokenizer/detokenizer 从 Hy-MT2 重新生成（H-002）。（4）新增可选术语表开关 `--mt-glossary`（默认关闭，延迟 +62 ms / +11.6%）（H-003）。（5）README 中「INT8 随包」「设备不影响输出（逐字一致）」两处表述已更正。v1.3 翻译模型替换（C-102）：翻译模型由通用指令模型 Hunyuan-1.8B-Instruct 换成**翻译专用**的 Hy-MT2-1.8B（tencent/Hy-MT2-1.8B，架构同为 hunyuan_v1_dense，导出/量化链路不变）。换模型的原因是旧模型不是翻译模型：遇专业术语会乱译、偶尔会输出解释性文字而非译文。包内 models/mt/ 下原有 mt2-int4sym-cw-q（约 993 MB，INT4_SYM per-channel，GPU/NPU 通吃）；**v1.4 起默认改用 mt2-int8sym-cw-q（约 1.7 GB，INT8_SYM per-channel）**，INT4 保留为可选（显存吃紧时选）。旧的 int4sym-cw-q / int8sym-cw-q 目录已删除。app/translator.py 同步更新：模型目录解析（DEFAULT_MODEL 与 _cw_model 均指向 mt2-* 目录）、prompt 改为 Hy-MT2 官方 Default Translation 指令模板（**无 system prompt**，指令与待译文本同放 user 消息，官方模板见 tencent/Hy-MT2-1.8B README）、带上下文的分支改用官方 Structured Data 模板的简化版、generation config 去掉旧 Instruct 专用的 </answer> stop_strings（MT2 直接输出译文正文，EOS 自停）。GUI/CLI 的翻译后端下拉 5 项（自动 / GPU·INT4 / GPU·INT8 / NPU·INT4 / NPU·INT8）在新版全部可用，--check 逐项报 [ OK ]。实测（hy_bench/bench_mt2.py，7 句 × 3 次取中位）：GPU·INT4 57.9 tok/s / TTFT 35 ms，NPU·INT4 44.0 tok/s / TTFT 292 ms，GPU·INT8 37.5 tok/s / TTFT 44 ms，NPU·INT8 29.6 tok/s / TTFT 300 ms；四配置均无空输出、无乱码；**更正**：同量化在 GPU 与 NPU 上**并非逐字一致**（200 句 wmt24pp 上 INT4 仅 39/200、INT8 116/200 逐字相同），只能说**质量等价**（chrF++ 差 0.1~0.3）；INT8 与 INT4 相似度中位 0.966（最低 0.852），差异均为同义改写。与旧 Instruct 模型相比，MT2 **更快**（INT4 57.9 vs 49.4 tok/s）且译文质量明显更好。对客户是**透明升级**：界面、配置、命令行参数全部不变，解压新版即可。⚠️ v1.4 **更正**：默认量化由 INT4 改为 **INT8 按通道**（用户决定，依据 H-001/H-007）。原「INT8 与 INT4 译文差异仅为同义改写、对客户机没有实际收益」的结论**基于旧的句子级配对检验口径，已被 200 句 wmt24pp 语料级配对 bootstrap（1000 次）推翻** —— 实测 INT4 在 en→zh / zh→en × GPU / NPU 四个组合上**全部显著劣化**（ΔchrF −2.320 / −2.058 / −1.632 / −1.536，95% CI 均不含 0）；INT8 四个组合**全部不劣化**（Δ +0.219 / +0.318 / −0.039 / +0.027）。代价：包体 **+0.72 GB**（INT8 IR 1.79 GB vs INT4 1.02 GB），GPU 吞吐 57.9 → 37.5 tok/s（仍满足实时），显存 +0.75 GB。开发机 hy_bench/ov/ 下仍保留 INT8 产物供对比测试。配套代码调整：translator.py 的 _MT_CANDIDATES 增加 bundled 标记（区分「本包不附带」与「本机缺模型」），live_caption_app.py 的 --check 对不带附带的项显示 [ — ]（本包不附带该量化版本）而非 [缺 ]（缺模型），避免客户误判为安装故障；GUI 下拉本身无需改动 —— 客户机上模型目录不存在时该两项自动不出现。v1.3 新增翻译术语表（H-003）：起因是「QS」被模型译错（QS = Qualification Sample 资格样品，既不是 QPS，也不是「击打」）。translator.py 内置芯片/硬件会议场景的默认术语表（QS→资格样品、ES→工程样品、power on→点亮、tape-out→流片、share→市场份额、silicon→芯片、milestone→里程碑 等 10 条），走 Hy-MT2 官方 **Terminology 模板**（先给「参考译法」，再下翻译指令）；可用环境变量 LIVECAP_MT_GLOSSARY 指向 JSON 文件扩充或覆盖。命令行参数 --mt-glossary 开启，**默认关闭** —— 开启后 prompt 变长约 +200 token、延迟会涨。对客户是**可选增强**，关闭时行为与之前完全一致。v1.2 修复屏幕字幕（overlay）不显示译文：算 overlay 译文尾行时写的是「for b in self.blocks[-3:]」，迭代出的是**原文文本**，而 _mt_of(seg) 需要的是**段序号**（blocks 的下标），查 seg_keys 自然查不到 —— 结果是屏幕字幕条的译文行**永远为空**（主窗口的译文正常，所以此前一直没人发现）。现改为按段序号取最近 3 段的译文。同时修掉草稿预览被顶掉的问题：原来用「mt_tail or draft」，定稿译文一出现就把草稿预览挤掉（草稿开关等于白开）——现在 overlay 扩为四行：①定稿原文（白）②实时文本（黄）③定稿译文（青）④草稿预览（浅蓝），两者互不覆盖。因此**关掉草稿译文后，屏幕字幕上仍然显示定稿英文的译文**。v1.2 修正路径硬编码问题：原先 app/live_caption_app.py 与 app/translator.py 内写死了开发机的绝对路径（<HOME>\\... 的 models/、CUDA 运行包、编译缓存），换台机器或换个安装目录就会找不到模型。现全部改为**相对包根目录**推导 —— APP_DIR = 代码目录，PKG_ROOT = APP_DIR 的上一级，模型统一在 <包根>/models/；并新增模型目录别名表 _MODEL_ALIASES（客户包把开发机的模型目录重命名并重组过，权重逐个 md5 一致、仅目录名不同）与 _model_path() 解析层，两种布局都能定位到同一份权重。CUDA 运行包改为「LIVECAP_CUDA_DIR 环境变量 → <包根>/cuda/ → 用户目录/confucius4-r2t2」三级查找，且必须存在 audio.cpp/audiocpp_cli.exe 才认；编译缓存改放用户可写目录（%LOCALAPPDATA% 之外的 ~/.openvino/models/...），避免装到 Program Files 时写不进去。环境变量统一为 LIVECAP_MODELS_DIR（新主名，保留 LIVECAP_MODELS 兼容）、LIVECAP_MT_MODEL、LIVECAP_MT_CW_ROOT、LIVECAP_CUDA_DIR。已实测：把整包复制到带空格与中文的全新路径后，ASR 与翻译端到端均正常（60s 英文音频识别出 9 段译文，RTF 0.909）。v1.2 补齐 --check 环境检查参数：Diagnose.bat 一直在调用 live_caption_app.py --check，但该参数此前**从未实现**，客户机双击 Diagnose.bat 第一步就报 unrecognized arguments。新增 run_check()，依次输出依赖、OpenVINO 设备（含「Intel 集显」「Intel NPU」单独结论）、6 个 ASR 后端的模型与设备匹配、5 个翻译后端的模型是否在本机、麦克风与可回环输出设备，每项前缀 [ OK ] / [缺 ]，缺项在括号里说明原因（缺 audio.cpp / 缺模型 / 本机没有该设备）；不检查 torch（本程序刻意 USE_TORCH=0 不依赖它，客户包也不带）。v1.2 新增三种音频输入：麦克风 / 系统声音（Windows WASAPI 回环，app/audio_source.py，依赖 soundcard）/ 音频文件（WAV/FLAC/OGG/MP3 走 soundfile，m4a/mp4 走 PyAV）。v1.2 新增翻译后端「Intel GPU · INT8-CW」（gpu_int8cw，设备 GPU.0）：翻译模型新增 INT8_SYM per-channel 产物 models/mt/int8sym-cw-q（约 1.7 GB，与 INT4 目录结构完全一致），使翻译后端下拉共 5 项 —— 自动/INT4-CW、GPU·INT4-CW、GPU·INT8-CW、NPU·INT4-CW、NPU·INT8-CW；实测 GPU·INT8-CW 31.7 tok/s、TTFT 中位 82 ms、加载 5.9 s，质量与 INT4 持平、无乱码，比 GPU·INT4-CW（49.4 tok/s、TTFT 45 ms）慢约 35% 且多占约 700 MB 显存，ASR 同在集显上时会互相争抢（已在选项说明中提示）。包体因此由约 7.05 GB 增至约 8.8 GB。v1.2 新增 GUI「识别语种」设置：可从模型内置的 30 种语言中指定 ASR 识别语种（默认自动检测），语种提示以 prompt 后缀 language {lang}<asr_text> 注入模型；命令行等价参数 --asr-lang。同时修复一个既有缺陷：此前语种提示只存在于 state.prompt_raw，而三个 backend 实际喂给模型的是不含语种的静态 prompt 模板（segment_encoder_backend / backends / npu_embeds_backend 的 ids_right），导致语种根本没进模型输入、输出被 language None<asr_text> 元信息污染 —— 现已把语种后缀编码进 ids_right / NPU 的 emb_right。v1.2 实时翻译默认行为调整：草稿译文（未定稿那半句的实时预览）由「默认开启」改为**默认关闭**，默认只翻译已经定稿的文本；GUI 新增「草稿译文 Draft」复选框可运行时开关（translator.TranslationService.draft_on 由类常量 DRAFT_ON 改为实例属性，新增 set_draft()），命令行等价参数 --mt-draft，环境变量 LIVECAP_DRAFT=1 可用于脚本/CI 开启；原 LIVECAP_NO_DRAFT 语义随默认关闭而失效、不再读取。草稿开启时每 1.5s 翻一次近整句 partial，是 ASR 积压的主要来源（关掉 RTF +0.042，开启 1.5s 间隔+积压暂停 +0.144）。v1.2 修复「说话结束后字幕迟迟不定稿」：段尾连续 1.2s 静音即切段定稿（seg_stream.find_trailing_silence + Segmenter 静音超时规则），定稿延迟由约 5.8s 降至约 1.3s。v1.2 修复「翻译一直显示 GPU.0 加载中…」：①transformers 4.57 lazy import 并发竞态（ASR 引擎线程与翻译线程同时首次 import 时必有一方 ImportError）——新增 translator.import_transformers_auto_tokenizer 重试锁 + GUI 主线程 prewarm_transformers 预热；②加载失败后工作线程已死但 self.th 仍非 None，导致状态永久卡在 loading ——新增 TranslationService._thread_alive() 判断线程存活，set_engine() 在线程已死时真正重启，并新增 restart() 供界面「↻ 重试翻译」按钮调用。界面同步改进：加载耗时提示、失败原因摘要写入 live_caption.log。v1.1 内置实时翻译：app/translator.py、models/mt/int4sym-cw-q（Hunyuan-1.8B-Instruct INT4_SYM 按通道，约 993 MB）。v1.2 修复「断句把句子切碎导致译文出错」：原 split_sentences() 只按「见到句末标点就切」的正则切分，ASR 输出里的小数点、缩写点、版本号点都会把句子切碎，切碎会直接产出错误译文 —— 实测「It cost 1.5 million dollars.」被切成「It cost 1.」+「5 million dollars.」（译文变成「1.」+「500万美元。」），「Dr. Smith joined at 9 a.m. today.」被切成「Dr.」+「Smith joined at 9 a.m.」+「today.」（译文丢掉主语）。重写为「先扫候选切点、再逐点判定是否真是句末」：①小数点不切（两侧都是数字：1.5 / 3.14 / 1.2.3 / v1.0）；②缩写不切（整个点分链作为一个单位：Dr. / Prof. / U.S. / a.m.）；③守卫 —— 缩写点后必须是「空白+大写字母」，否则按句末处理，防止「We shipped no.」「The max.」这类普通词结尾的句号被误当缩写导致该断不断；④碎片合并规则改为「只有不以句末标点收尾的碎片才并回上一句」，避免中文短句（如「好吧。」3 字）被并进上一句。另按业界实时翻译通行做法（ACL N13-1023 / EMNLP 2020）加入段长控制：上限 20 词 / 中文 60 字，超限时**优先在逗号顿号处断开**而非机械按词数硬切 —— 硬切会切出语义不完整的片段（实测「...has now」+「hit qs.」被模型译成「击打。」，改进后为「我们的28个核心模块已经达到了里程碑。」）。修复后译文：「The U.S. economy grew 3.5 percent.」→「美国经济增长率提高了3.5个百分点。」（修复前为「美国」+「经济增长率为3%。」+「百分之五。」）；「Prof. Wang will present at 3 p.m.」→「王教授将于下午3点进行报告。」。配套新增 verify_segmentation.py（51 项）与 verify_segmentation_e2e.py（真实模型前后对比）。 v1.2 翻译模型替换（C-102）：models/mt/ 下的 Hunyuan-1.8B-Instruct 两个产物（int4sym-cw-q 约 993 MB、int8sym-cw-q 约 1.7 GB）已删除，替换为翻译专用 Hy-MT2-1.8B 的 INT4_SYM 按通道产物 models/mt/mt2-int4sym-cw-q（约 993 MB，GPU/NPU 通吃）；app/translator.py 同步更新（模型路径、官方 Default Translation 指令模板、去 </answer> stop）。GPU·INT8-CW / NPU·INT8-CW 两项在客户机上因缺模型自动从下拉消失（--check 显示 [缺 ]）。实测：包内 Python 25s 端到端 gpu_int8 + gpu_int4cw 正常出 7 句译文、62.1 tok/s、state=ready。 v1.2 翻译后端补齐（C-102 续）：新增 models/mt/mt2-int8sym-cw-q（约 1.7 GB，Hy-MT2 INT8_SYM 按通道），GUI/CLI 的 GPU·INT8-CW 与 NPU·INT8-CW 两项在客户机上恢复可用，翻译后端下拉共 5 项全可用。四配置对比（bench_mt2.py，7 句 × 3 次）：性能 GPU·INT4 57.9 tok/s / TTFT 35ms，NPU·INT4 44.0 / 292ms，GPU·INT8 37.5 / 44ms，NPU·INT8 29.6 / 300ms；准确度 GPU·INT4 与 NPU·INT4 输出逐字一致，INT8 双设备亦逐字一致，INT8 与 INT4 相似度中位 0.966、最低 0.852，差异均为同义改写，四配置均无空输出无乱码。包内端到端实测：gpu_int8cw 7 句 43.5 tok/s、npu_int8cw 7 句 33.3 tok/s，state=ready。\n（12）**新增可选 CUDA（PyTorch）语音输出后端** —— 与 OV 的 CUDA plugin 无关：本机装了独立 CUDA 环境（`faster-qwen3-tts` + `torch cu128`）时，「语音输出」会**自动多出一项** `NVIDIA CUDA（PyTorch）· bf16`（实测稳态流式首包 **0.547 s**、RTF **0.892**），并作为首选；**客户包不含该环境**（torch + 权重约 +5.7 GB，且与包内 transformers 4.57.6 冲突）⇒ 客户机上该项**不出现也不报错**，语音输出默认仍走 Intel NPU。安装说明见包内 `docs/CUDA_TTS.md`。",
+    "packages": "<dict len=51>"
+   },
+   "version": "2.4",
+   "files": 14319,
+   "bytes_total": 13692564165,
+   "has_per_model_sha_field": false,
+   "per_model_sha_note": "MANIFEST 顶层无「源模型 / SHA」字段⇒ 模型身份只能由**目录树 SHA**给出"
+  }
+ },
+ "model_dirs": {
+  "real_v2.4": {
+   "mt": {
+    "n_files": 24,
+    "bytes": 2852612824,
+    "tree_sha256": "1561e05c3f793d032bece679cdaa9699480dd8374e185c97b7a12c5279b37101",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\mt"
+   },
+   "qwen3tts": {
+    "n_files": 74,
+    "bytes": 5953039499,
+    "tree_sha256": "3f48734c0426f5393533bb362904e1e4080e81ec2c4f647514864013d720ac5e",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts"
+   },
+   "spk": {
+    "n_files": 6,
+    "bytes": 19532019,
+    "tree_sha256": "dd417fe09639f87dcb8c8532f7136fc3c9fb92ef2437d6007ef9519abac18953",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\spk"
+   },
+   "tokenizer": {
+    "n_files": 9,
+    "bytes": 15901752,
+    "tree_sha256": "488d84427e2add70a0fe5b9223ccee610e782ee2e7873f958b7a1a1542687c30",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\tokenizer"
+   },
+   "encoder-fp16": {
+    "n_files": 2,
+    "bytes": 635969904,
+    "tree_sha256": "5372f0ee2f61aee9ad4acf34080f6feccb7d2d507c8e1e22ae66db7a0fc5cb2d",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\encoder-fp16"
+   },
+   "encoder-int8": {
+    "n_files": 2,
+    "bytes": 319913646,
+    "tree_sha256": "73c6f0c7982f4110f6fa04d4bacccd8862a87bd1cac6465b96fc80159d42fc69",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\encoder-int8"
+   },
+   "encoder-int4": {
+    "n_files": 2,
+    "bytes": 171703033,
+    "tree_sha256": "4527734d73e418c93f5ce2c81d4a4a954a94ffa7d0fa9d71fcf4cb10768f0884",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\encoder-int4"
+   },
+   "decoder-npu-int8": {
+    "n_files": 2,
+    "bytes": 1724957980,
+    "tree_sha256": "089289d30203c1fc349ed3ba7a864a618ce6e0e4d5c0f3371cb4854e59b50514",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\decoder-npu-int8"
+   },
+   "decoder-npu-int4": {
+    "n_files": 2,
+    "bytes": 1165047365,
+    "tree_sha256": "bf221bae950aa5fbc116566de907c14934cbae11387893b52517032077e96d3e",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\decoder-npu-int4"
+   },
+   "decoder-gpu-int8": {
+    "n_files": 11,
+    "bytes": 1741963224,
+    "tree_sha256": "790280ac7cd7a6577e969277d80efb7e950d3f765aca1b7c9c5b381069a600a1",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\decoder-gpu-int8"
+   },
+   "decoder-gpu-int4": {
+    "n_files": 11,
+    "bytes": 906503739,
+    "tree_sha256": "c046c87972fbff86c9f9439ab7fbc4b570eca5000d832f7ea2a59eb2be0eee12",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\decoder-gpu-int4"
+   },
+   "embed_tokens_f16.npy": {
+    "dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\embed_tokens_f16.npy",
+    "n_files": 1,
+    "bytes": 622329984,
+    "tree_sha256": "b026cd9198336893aab334505f4c23a6b3a3a2eb78bdcd8186c37b35b2ed1fa5"
+   }
+  },
+  "shadow_after2": {
+   "mt": {
+    "n_files": 24,
+    "bytes": 2852612824,
+    "tree_sha256": "1561e05c3f793d032bece679cdaa9699480dd8374e185c97b7a12c5279b37101",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\models\\mt"
+   },
+   "qwen3tts": {
+    "n_files": 74,
+    "bytes": 5953039499,
+    "tree_sha256": "3f48734c0426f5393533bb362904e1e4080e81ec2c4f647514864013d720ac5e",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\models\\qwen3tts"
+   },
+   "spk": {
+    "n_files": 6,
+    "bytes": 19532019,
+    "tree_sha256": "dd417fe09639f87dcb8c8532f7136fc3c9fb92ef2437d6007ef9519abac18953",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\models\\spk"
+   },
+   "tokenizer": {
+    "n_files": 9,
+    "bytes": 15901752,
+    "tree_sha256": "488d84427e2add70a0fe5b9223ccee610e782ee2e7873f958b7a1a1542687c30",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\models\\tokenizer"
+   },
+   "encoder-fp16": {
+    "n_files": 2,
+    "bytes": 635969904,
+    "tree_sha256": "5372f0ee2f61aee9ad4acf34080f6feccb7d2d507c8e1e22ae66db7a0fc5cb2d",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\models\\encoder-fp16"
+   },
+   "encoder-int8": {
+    "n_files": 2,
+    "bytes": 319913646,
+    "tree_sha256": "73c6f0c7982f4110f6fa04d4bacccd8862a87bd1cac6465b96fc80159d42fc69",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\models\\encoder-int8"
+   },
+   "encoder-int4": {
+    "n_files": 2,
+    "bytes": 171703033,
+    "tree_sha256": "4527734d73e418c93f5ce2c81d4a4a954a94ffa7d0fa9d71fcf4cb10768f0884",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\models\\encoder-int4"
+   },
+   "decoder-npu-int8": {
+    "n_files": 2,
+    "bytes": 1724957980,
+    "tree_sha256": "089289d30203c1fc349ed3ba7a864a618ce6e0e4d5c0f3371cb4854e59b50514",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\models\\decoder-npu-int8"
+   },
+   "decoder-npu-int4": {
+    "n_files": 2,
+    "bytes": 1165047365,
+    "tree_sha256": "bf221bae950aa5fbc116566de907c14934cbae11387893b52517032077e96d3e",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\models\\decoder-npu-int4"
+   },
+   "decoder-gpu-int8": {
+    "n_files": 11,
+    "bytes": 1741963224,
+    "tree_sha256": "790280ac7cd7a6577e969277d80efb7e950d3f765aca1b7c9c5b381069a600a1",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\models\\decoder-gpu-int8"
+   },
+   "decoder-gpu-int4": {
+    "n_files": 11,
+    "bytes": 906503739,
+    "tree_sha256": "c046c87972fbff86c9f9439ab7fbc4b570eca5000d832f7ea2a59eb2be0eee12",
+    "n_tampered": 0,
+    "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\models\\decoder-gpu-int4"
+   },
+   "embed_tokens_f16.npy": {
+    "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\models\\embed_tokens_f16.npy",
+    "n_files": 1,
+    "bytes": 622329984,
+    "tree_sha256": "b026cd9198336893aab334505f4c23a6b3a3a2eb78bdcd8186c37b35b2ed1fa5"
+   }
+  }
+ },
+ "compare": {
+  "rows": [
+   {
+    "model": "decoder-gpu-int4",
+    "present_real": true,
+    "present_shadow": true,
+    "n_files_real": 11,
+    "n_files_shadow": 11,
+    "bytes_real": 906503739,
+    "bytes_shadow": 906503739,
+    "tree_sha256_real": "c046c87972fbff86c9f9439ab7fbc4b570eca5000d832f7ea2a59eb2be0eee12",
+    "tree_sha256_shadow": "c046c87972fbff86c9f9439ab7fbc4b570eca5000d832f7ea2a59eb2be0eee12",
+    "same": true
+   },
+   {
+    "model": "decoder-gpu-int8",
+    "present_real": true,
+    "present_shadow": true,
+    "n_files_real": 11,
+    "n_files_shadow": 11,
+    "bytes_real": 1741963224,
+    "bytes_shadow": 1741963224,
+    "tree_sha256_real": "790280ac7cd7a6577e969277d80efb7e950d3f765aca1b7c9c5b381069a600a1",
+    "tree_sha256_shadow": "790280ac7cd7a6577e969277d80efb7e950d3f765aca1b7c9c5b381069a600a1",
+    "same": true
+   },
+   {
+    "model": "decoder-npu-int4",
+    "present_real": true,
+    "present_shadow": true,
+    "n_files_real": 2,
+    "n_files_shadow": 2,
+    "bytes_real": 1165047365,
+    "bytes_shadow": 1165047365,
+    "tree_sha256_real": "bf221bae950aa5fbc116566de907c14934cbae11387893b52517032077e96d3e",
+    "tree_sha256_shadow": "bf221bae950aa5fbc116566de907c14934cbae11387893b52517032077e96d3e",
+    "same": true
+   },
+   {
+    "model": "decoder-npu-int8",
+    "present_real": true,
+    "present_shadow": true,
+    "n_files_real": 2,
+    "n_files_shadow": 2,
+    "bytes_real": 1724957980,
+    "bytes_shadow": 1724957980,
+    "tree_sha256_real": "089289d30203c1fc349ed3ba7a864a618ce6e0e4d5c0f3371cb4854e59b50514",
+    "tree_sha256_shadow": "089289d30203c1fc349ed3ba7a864a618ce6e0e4d5c0f3371cb4854e59b50514",
+    "same": true
+   },
+   {
+    "model": "embed_tokens_f16.npy",
+    "present_real": true,
+    "present_shadow": true,
+    "n_files_real": 1,
+    "n_files_shadow": 1,
+    "bytes_real": 622329984,
+    "bytes_shadow": 622329984,
+    "tree_sha256_real": "b026cd9198336893aab334505f4c23a6b3a3a2eb78bdcd8186c37b35b2ed1fa5",
+    "tree_sha256_shadow": "b026cd9198336893aab334505f4c23a6b3a3a2eb78bdcd8186c37b35b2ed1fa5",
+    "same": true
+   },
+   {
+    "model": "encoder-fp16",
+    "present_real": true,
+    "present_shadow": true,
+    "n_files_real": 2,
+    "n_files_shadow": 2,
+    "bytes_real": 635969904,
+    "bytes_shadow": 635969904,
+    "tree_sha256_real": "5372f0ee2f61aee9ad4acf34080f6feccb7d2d507c8e1e22ae66db7a0fc5cb2d",
+    "tree_sha256_shadow": "5372f0ee2f61aee9ad4acf34080f6feccb7d2d507c8e1e22ae66db7a0fc5cb2d",
+    "same": true
+   },
+   {
+    "model": "encoder-int4",
+    "present_real": true,
+    "present_shadow": true,
+    "n_files_real": 2,
+    "n_files_shadow": 2,
+    "bytes_real": 171703033,
+    "bytes_shadow": 171703033,
+    "tree_sha256_real": "4527734d73e418c93f5ce2c81d4a4a954a94ffa7d0fa9d71fcf4cb10768f0884",
+    "tree_sha256_shadow": "4527734d73e418c93f5ce2c81d4a4a954a94ffa7d0fa9d71fcf4cb10768f0884",
+    "same": true
+   },
+   {
+    "model": "encoder-int8",
+    "present_real": true,
+    "present_shadow": true,
+    "n_files_real": 2,
+    "n_files_shadow": 2,
+    "bytes_real": 319913646,
+    "bytes_shadow": 319913646,
+    "tree_sha256_real": "73c6f0c7982f4110f6fa04d4bacccd8862a87bd1cac6465b96fc80159d42fc69",
+    "tree_sha256_shadow": "73c6f0c7982f4110f6fa04d4bacccd8862a87bd1cac6465b96fc80159d42fc69",
+    "same": true
+   },
+   {
+    "model": "mt",
+    "present_real": true,
+    "present_shadow": true,
+    "n_files_real": 24,
+    "n_files_shadow": 24,
+    "bytes_real": 2852612824,
+    "bytes_shadow": 2852612824,
+    "tree_sha256_real": "1561e05c3f793d032bece679cdaa9699480dd8374e185c97b7a12c5279b37101",
+    "tree_sha256_shadow": "1561e05c3f793d032bece679cdaa9699480dd8374e185c97b7a12c5279b37101",
+    "same": true
+   },
+   {
+    "model": "qwen3tts",
+    "present_real": true,
+    "present_shadow": true,
+    "n_files_real": 74,
+    "n_files_shadow": 74,
+    "bytes_real": 5953039499,
+    "bytes_shadow": 5953039499,
+    "tree_sha256_real": "3f48734c0426f5393533bb362904e1e4080e81ec2c4f647514864013d720ac5e",
+    "tree_sha256_shadow": "3f48734c0426f5393533bb362904e1e4080e81ec2c4f647514864013d720ac5e",
+    "same": true
+   },
+   {
+    "model": "spk",
+    "present_real": true,
+    "present_shadow": true,
+    "n_files_real": 6,
+    "n_files_shadow": 6,
+    "bytes_real": 19532019,
+    "bytes_shadow": 19532019,
+    "tree_sha256_real": "dd417fe09639f87dcb8c8532f7136fc3c9fb92ef2437d6007ef9519abac18953",
+    "tree_sha256_shadow": "dd417fe09639f87dcb8c8532f7136fc3c9fb92ef2437d6007ef9519abac18953",
+    "same": true
+   },
+   {
+    "model": "tokenizer",
+    "present_real": true,
+    "present_shadow": true,
+    "n_files_real": 9,
+    "n_files_shadow": 9,
+    "bytes_real": 15901752,
+    "bytes_shadow": 15901752,
+    "tree_sha256_real": "488d84427e2add70a0fe5b9223ccee610e782ee2e7873f958b7a1a1542687c30",
+    "tree_sha256_shadow": "488d84427e2add70a0fe5b9223ccee610e782ee2e7873f958b7a1a1542687c30",
+    "same": true
+   }
+  ],
+  "n_models": 12,
+  "n_same": 12,
+  "all_same": true,
+  "verdict": "PASS_unchanged",
+  "note": "两包 models 树 SHA 逐目录一致 ⇒ **本条未换任何模型**成立；且 models 根是**同一物理目录**（realpath 相同）⇒ 一致是**结构事实 + 实测复核**双重确认"
+ },
+ "neg_control": {
+  "method": "在**内存里**把 tokenizer 里一个文件的 SHA 换成全 0 （**不改盘**）⇒ 树 SHA 必须变化",
+  "tampered_file": "added_tokens.json",
+  "base_tree_sha256": "488d84427e2add70a0fe5b9223ccee610e782ee2e7873f958b7a1a1542687c30",
+  "tampered_tree_sha256": "9fa4917a16de29065f6d40ca73319184880ebd5ebb98a405b2ad935b99d94d80",
+  "n_tampered": 1,
+  "pass": true,
+  "note": "🔴 反证：树 SHA 判据必须**对文件内容敏感** ⇒ 否则「两包一致」可能只是判据恒等"
+ },
+ "roots": {
+  "real_v2.4": {
+   "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models",
+   "realpath": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models"
+  },
+  "shadow_after2": {
+   "path": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\models",
+   "realpath": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models"
+  },
+  "is_junction_note": "🔴 Windows **目录联接**（junction）下 `os.path.islink()` 返回 **False** ⇒ 判「是否同一物理目录」必须用 `os.path.realpath()`",
+  "same_physical_dir": true
+ },
+ "verdict": "RAN"
+}

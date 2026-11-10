@@ -1,0 +1,156 @@
+{
+ "created_at": "2026-11-10 14:09:56",
+ "correction": "APP-093 §3.5 音色归属（按 APP-089 原判据重算）",
+ "criterion": "输出 x-vector 与 truth.json 三人参考分别比余弦 ⇒ 取最大者；若最大者 == 该句真值说话人 ⇒ 命中",
+ "method": "NPU 设备跑（speaker_embedding）⇒ 持 MACHINE_LOCK；4 组：before/after × dialog3/tight",
+ "device_job": true,
+ "shadow_root": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2",
+ "groups": [
+  {
+   "label": "before_dialog3",
+   "arm": "before",
+   "rc": 0,
+   "wall_s": 23.5,
+   "out_json": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app329_before_dialog3.json",
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app329_before_dialog3.log",
+   "run_dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3",
+   "n_dump": 197,
+   "summary": {
+    "n_scored": 81,
+    "n_match_truth_ref": 38,
+    "match_rate_truth_ref": 0.4691,
+    "margin_p50": 0.026355,
+    "margin_p90": 0.030673,
+    "margin_min": 0.008329,
+    "note": "🔴 三个人的真值参考**两两余弦**见 ref_pair_cosine ⇒ 若该值很高（≈0.95），则「最接近正确说话人」这个判据在余弦尺度上**可分性极低** ⇒ 占比低不等于 App 缺陷。"
+   },
+   "ref_pair_cosine": {
+    "A-B": 0.967428,
+    "A-C": 0.971264,
+    "B-C": 0.957272
+   },
+   "neg_control": {
+    "method": "把每句的「真值说话人」余弦压到最低（模拟参考用错人）⇒ 命中数必须下降",
+    "base_n_match": 38,
+    "neg_n_match": 0,
+    "base_rate": 0.4691,
+    "neg_rate": 0.0,
+    "pass": true,
+    "note": "🔴 反证：判据必须**对参考敏感** ⇒ 命中数下降 （否则说明判据恒真，命中率没有意义）"
+   },
+   "log_tail": "You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.\n[va] [tts_engine] 模型加载完成（7.1 s）\n[va] [tts_engine] cp_decode: NPU（生产配置要求；实测 RTF 1.912→1.218、首块 1.296→0.837 s）\n[va] [tts_engine] cp_prefill: NPU（TTS-017① 交付配置：运行时输入恒为 (1,2,1024) ⇒ 静态形状安全）\n[va] [tts_engine] SpeakerLibrary 就绪：C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_speakers（0 个音色：无；内置音色走**只读回退**，**不复制**到用户目录）\n[va] [tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU(lazy)\n[va] [tts_engine] 实测执行设备：NPU/NPU(lazy)\n[va] [tts_engine] 各组件落点：cp_decode=NPU，cp_prefill=NPU，decoder_bucket@16=NPU，decoder_bucket@32=NPU，decoder_bucket@33=NPU，decoder_bucket@8=NPU，speaker_enc=NPU，talker_bucket@128=NPU，talker_bucket@256=NPU，talker_bucket@384=NPU，talker_bucket@512=NPU，talker_bucket@64=NPU，tok_decoder=NPU(lazy)\n[va] [tts_engine] 落点统计：NPU 上 12 个组件 ['cp_decode', 'cp_prefill', 'decoder_bucket@16', 'decoder_bucket@32', 'decoder_bucket@33', 'decoder_bucket@8', 'speaker_enc', 'talker_bucket@128', 'talker_bucket@256', 'talker_bucket@384', 'talker_bucket@512', 'talker_bucket@64']；CPU 上 0 个组件 []\n[va] [tts_engine] 未启用（该档位下不编译）的组件：talker_prefill，talker_decode，talker（以 5 个桶形式存在，落点见上），code_predictor\n[va] 参考 A: 0.00-6.74 s (6.74 s) -> C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_A.wav\n[va] 参考 B: 161.61-171.64 s (10.03 s) -> C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_B.wav\n[va] 参考 C: 197.02-205.70 s (8.69 s) -> C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_C.wav\n[va] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_A.wav -> (1, 1024)\n[va] ref A emb=[1, 1024]\n[va] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_B.wav -> (1, 1024)\n[va] ref B emb=[1, 1024]\n[va] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_C.wav -> (1, 1024)\n[va] ref C emb=[1, 1024]\n[va] scored 10\n[va] scored 20\n[va] scored 30\n[va] scored 40\n[va] scored 50\n[va] scored 60\n[va] scored 70\n[va] scored 80\n[va] wrote C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app329_before_dialog3.json\n[va] summary={\"n_scored\": 81, \"n_match_truth_ref\": 38, \"match_rate_truth_ref\": 0.4691, \"margin_p50\": 0.026355, \"margin_p90\": 0.030673, \"margin_min\": 0.008329, \"note\": \"🔴 三个人的真值参考**两两余弦**见 ref_pair_cosine ⇒ 若该值很高（≈0.95），则「最接近正确说话人」这个判据在余弦尺度上**可分性极低** ⇒ 占比低不等于 App 缺陷。\"}\n"
+  },
+  {
+   "label": "after_dialog3",
+   "arm": "after",
+   "rc": 0,
+   "wall_s": 12.7,
+   "out_json": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app329_after_dialog3.json",
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app329_after_dialog3.log",
+   "run_dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3",
+   "n_dump": 156,
+   "summary": {
+    "n_scored": 79,
+    "n_match_truth_ref": 27,
+    "match_rate_truth_ref": 0.3418,
+    "margin_p50": 0.02222,
+    "margin_p90": 0.03044,
+    "margin_min": 0.002545,
+    "note": "🔴 三个人的真值参考**两两余弦**见 ref_pair_cosine ⇒ 若该值很高（≈0.95），则「最接近正确说话人」这个判据在余弦尺度上**可分性极低** ⇒ 占比低不等于 App 缺陷。"
+   },
+   "ref_pair_cosine": {
+    "A-B": 0.967428,
+    "A-C": 0.971264,
+    "B-C": 0.957272
+   },
+   "neg_control": {
+    "method": "把每句的「真值说话人」余弦压到最低（模拟参考用错人）⇒ 命中数必须下降",
+    "base_n_match": 27,
+    "neg_n_match": 0,
+    "base_rate": 0.3418,
+    "neg_rate": 0.0,
+    "pass": true,
+    "note": "🔴 反证：判据必须**对参考敏感** ⇒ 命中数下降 （否则说明判据恒真，命中率没有意义）"
+   },
+   "log_tail": "ect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.\n[va] [tts_engine] 模型加载完成（6.4 s）\n[va] [tts_engine] cp_decode: NPU（生产配置要求；实测 RTF 1.912→1.218、首块 1.296→0.837 s）\n[va] [tts_engine] cp_prefill: NPU（TTS-017① 交付配置：运行时输入恒为 (1,2,1024) ⇒ 静态形状安全）\n[va] [tts_engine] SpeakerLibrary 就绪：C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_speakers（0 个音色：无；内置音色走**只读回退**，**不复制**到用户目录）\n[va] [tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU(lazy)\n[va] [tts_engine] 实测执行设备：NPU/NPU(lazy)\n[va] [tts_engine] 各组件落点：cp_decode=NPU，cp_prefill=NPU，decoder_bucket@16=NPU，decoder_bucket@32=NPU，decoder_bucket@33=NPU，decoder_bucket@8=NPU，speaker_enc=NPU，talker_bucket@128=NPU，talker_bucket@256=NPU，talker_bucket@384=NPU，talker_bucket@512=NPU，talker_bucket@64=NPU，tok_decoder=NPU(lazy)\n[va] [tts_engine] 落点统计：NPU 上 12 个组件 ['cp_decode', 'cp_prefill', 'decoder_bucket@16', 'decoder_bucket@32', 'decoder_bucket@33', 'decoder_bucket@8', 'speaker_enc', 'talker_bucket@128', 'talker_bucket@256', 'talker_bucket@384', 'talker_bucket@512', 'talker_bucket@64']；CPU 上 0 个组件 []\n[va] [tts_engine] 未启用（该档位下不编译）的组件：talker_prefill，talker_decode，talker（以 5 个桶形式存在，落点见上），code_predictor\n[va] 参考 A: 0.00-6.74 s (6.74 s) -> C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_A.wav\n[va] 参考 B: 161.61-171.64 s (10.03 s) -> C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_B.wav\n[va] 参考 C: 197.02-205.70 s (8.69 s) -> C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_C.wav\n[va] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_A.wav -> (1, 1024)\n[va] ref A emb=[1, 1024]\n[va] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_B.wav -> (1, 1024)\n[va] ref B emb=[1, 1024]\n[va] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_C.wav -> (1, 1024)\n[va] ref C emb=[1, 1024]\n[va] scored 10\n[va] scored 20\n[va] scored 30\n[va] scored 40\n[va] scored 50\n[va] scored 60\n[va] scored 70\n[va] wrote C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app329_after_dialog3.json\n[va] summary={\"n_scored\": 79, \"n_match_truth_ref\": 27, \"match_rate_truth_ref\": 0.3418, \"margin_p50\": 0.02222, \"margin_p90\": 0.03044, \"margin_min\": 0.002545, \"note\": \"🔴 三个人的真值参考**两两余弦**见 ref_pair_cosine ⇒ 若该值很高（≈0.95），则「最接近正确说话人」这个判据在余弦尺度上**可分性极低** ⇒ 占比低不等于 App 缺陷。\"}\n"
+  },
+  {
+   "label": "before_tight",
+   "arm": "before",
+   "rc": 0,
+   "wall_s": 12.4,
+   "out_json": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app329_before_tight.json",
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app329_before_tight.log",
+   "run_dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3_tight",
+   "n_dump": 307,
+   "summary": {
+    "n_scored": 78,
+    "n_match_truth_ref": 47,
+    "match_rate_truth_ref": 0.6026,
+    "margin_p50": 0.023704,
+    "margin_p90": 0.026994,
+    "margin_min": 0.01046,
+    "note": "🔴 三个人的真值参考**两两余弦**见 ref_pair_cosine ⇒ 若该值很高（≈0.95），则「最接近正确说话人」这个判据在余弦尺度上**可分性极低** ⇒ 占比低不等于 App 缺陷。"
+   },
+   "ref_pair_cosine": {
+    "A-B": 0.968116,
+    "A-C": 0.971529,
+    "B-C": 0.957555
+   },
+   "neg_control": {
+    "method": "把每句的「真值说话人」余弦压到最低（模拟参考用错人）⇒ 命中数必须下降",
+    "base_n_match": 47,
+    "neg_n_match": 0,
+    "base_rate": 0.6026,
+    "neg_rate": 0.0,
+    "pass": true,
+    "note": "🔴 反证：判据必须**对参考敏感** ⇒ 命中数下降 （否则说明判据恒真，命中率没有意义）"
+   },
+   "log_tail": "rect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.\n[va] [tts_engine] 模型加载完成（6.2 s）\n[va] [tts_engine] cp_decode: NPU（生产配置要求；实测 RTF 1.912→1.218、首块 1.296→0.837 s）\n[va] [tts_engine] cp_prefill: NPU（TTS-017① 交付配置：运行时输入恒为 (1,2,1024) ⇒ 静态形状安全）\n[va] [tts_engine] SpeakerLibrary 就绪：C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_speakers（0 个音色：无；内置音色走**只读回退**，**不复制**到用户目录）\n[va] [tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU(lazy)\n[va] [tts_engine] 实测执行设备：NPU/NPU(lazy)\n[va] [tts_engine] 各组件落点：cp_decode=NPU，cp_prefill=NPU，decoder_bucket@16=NPU，decoder_bucket@32=NPU，decoder_bucket@33=NPU，decoder_bucket@8=NPU，speaker_enc=NPU，talker_bucket@128=NPU，talker_bucket@256=NPU，talker_bucket@384=NPU，talker_bucket@512=NPU，talker_bucket@64=NPU，tok_decoder=NPU(lazy)\n[va] [tts_engine] 落点统计：NPU 上 12 个组件 ['cp_decode', 'cp_prefill', 'decoder_bucket@16', 'decoder_bucket@32', 'decoder_bucket@33', 'decoder_bucket@8', 'speaker_enc', 'talker_bucket@128', 'talker_bucket@256', 'talker_bucket@384', 'talker_bucket@512', 'talker_bucket@64']；CPU 上 0 个组件 []\n[va] [tts_engine] 未启用（该档位下不编译）的组件：talker_prefill，talker_decode，talker（以 5 个桶形式存在，落点见上），code_predictor\n[va] 参考 A: 0.00-5.63 s (5.63 s) -> C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_A.wav\n[va] 参考 B: 122.62-131.58 s (8.96 s) -> C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_B.wav\n[va] 参考 C: 150.35-157.90 s (7.55 s) -> C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_C.wav\n[va] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_A.wav -> (1, 1024)\n[va] ref A emb=[1, 1024]\n[va] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_B.wav -> (1, 1024)\n[va] ref B emb=[1, 1024]\n[va] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_C.wav -> (1, 1024)\n[va] ref C emb=[1, 1024]\n[va] scored 10\n[va] scored 20\n[va] scored 30\n[va] scored 40\n[va] scored 50\n[va] scored 60\n[va] scored 70\n[va] wrote C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app329_before_tight.json\n[va] summary={\"n_scored\": 78, \"n_match_truth_ref\": 47, \"match_rate_truth_ref\": 0.6026, \"margin_p50\": 0.023704, \"margin_p90\": 0.026994, \"margin_min\": 0.01046, \"note\": \"🔴 三个人的真值参考**两两余弦**见 ref_pair_cosine ⇒ 若该值很高（≈0.95），则「最接近正确说话人」这个判据在余弦尺度上**可分性极低** ⇒ 占比低不等于 App 缺陷。\"}\n"
+  },
+  {
+   "label": "after_tight",
+   "arm": "after",
+   "rc": 0,
+   "wall_s": 12.2,
+   "out_json": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app329_after_tight.json",
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app329_after_tight.log",
+   "run_dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs3\\after\\dialog3_tight_thr6",
+   "n_dump": 90,
+   "summary": {
+    "n_scored": 46,
+    "n_match_truth_ref": 17,
+    "match_rate_truth_ref": 0.3696,
+    "margin_p50": 0.022962,
+    "margin_p90": 0.025043,
+    "margin_min": 0.005755,
+    "note": "🔴 三个人的真值参考**两两余弦**见 ref_pair_cosine ⇒ 若该值很高（≈0.95），则「最接近正确说话人」这个判据在余弦尺度上**可分性极低** ⇒ 占比低不等于 App 缺陷。"
+   },
+   "ref_pair_cosine": {
+    "A-B": 0.968116,
+    "A-C": 0.971529,
+    "B-C": 0.957555
+   },
+   "neg_control": {
+    "method": "把每句的「真值说话人」余弦压到最低（模拟参考用错人）⇒ 命中数必须下降",
+    "base_n_match": 17,
+    "neg_n_match": 0,
+    "base_rate": 0.3696,
+    "neg_rate": 0.0,
+    "pass": true,
+    "note": "🔴 反证：判据必须**对参考敏感** ⇒ 命中数下降 （否则说明判据恒真，命中率没有意义）"
+   },
+   "log_tail": "1093e8b480e709447d5e. This will lead to incorrect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.\n[va] [tts_engine] 模型加载完成（6.5 s）\n[va] [tts_engine] cp_decode: NPU（生产配置要求；实测 RTF 1.912→1.218、首块 1.296→0.837 s）\n[va] [tts_engine] cp_prefill: NPU（TTS-017① 交付配置：运行时输入恒为 (1,2,1024) ⇒ 静态形状安全）\n[va] [tts_engine] SpeakerLibrary 就绪：C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_speakers（0 个音色：无；内置音色走**只读回退**，**不复制**到用户目录）\n[va] [tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU(lazy)\n[va] [tts_engine] 实测执行设备：NPU/NPU(lazy)\n[va] [tts_engine] 各组件落点：cp_decode=NPU，cp_prefill=NPU，decoder_bucket@16=NPU，decoder_bucket@32=NPU，decoder_bucket@33=NPU，decoder_bucket@8=NPU，speaker_enc=NPU，talker_bucket@128=NPU，talker_bucket@256=NPU，talker_bucket@384=NPU，talker_bucket@512=NPU，talker_bucket@64=NPU，tok_decoder=NPU(lazy)\n[va] [tts_engine] 落点统计：NPU 上 12 个组件 ['cp_decode', 'cp_prefill', 'decoder_bucket@16', 'decoder_bucket@32', 'decoder_bucket@33', 'decoder_bucket@8', 'speaker_enc', 'talker_bucket@128', 'talker_bucket@256', 'talker_bucket@384', 'talker_bucket@512', 'talker_bucket@64']；CPU 上 0 个组件 []\n[va] [tts_engine] 未启用（该档位下不编译）的组件：talker_prefill，talker_decode，talker（以 5 个桶形式存在，落点见上），code_predictor\n[va] 参考 A: 0.00-5.63 s (5.63 s) -> C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_A.wav\n[va] 参考 B: 122.62-131.58 s (8.96 s) -> C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_B.wav\n[va] 参考 C: 150.35-157.90 s (7.55 s) -> C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_C.wav\n[va] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_A.wav -> (1, 1024)\n[va] ref A emb=[1, 1024]\n[va] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_B.wav -> (1, 1024)\n[va] ref B emb=[1, 1024]\n[va] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_C.wav -> (1, 1024)\n[va] ref C emb=[1, 1024]\n[va] scored 10\n[va] scored 20\n[va] scored 30\n[va] scored 40\n[va] wrote C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app329_after_tight.json\n[va] summary={\"n_scored\": 46, \"n_match_truth_ref\": 17, \"match_rate_truth_ref\": 0.3696, \"margin_p50\": 0.022962, \"margin_p90\": 0.025043, \"margin_min\": 0.005755, \"note\": \"🔴 三个人的真值参考**两两余弦**见 ref_pair_cosine ⇒ 若该值很高（≈0.95），则「最接近正确说话人」这个判据在余弦尺度上**可分性极低** ⇒ 占比低不等于 App 缺陷。\"}\n"
+  }
+ ],
+ "lock_record": {
+  "module": "app",
+  "pid": 39092,
+  "start": "2026-11-10 14:09:56",
+  "tag": "app093-voice-attrib",
+  "file": "C:\\Users\\Trekker-PTL\\shared\\MACHINE_LOCK",
+  "content": "module=app\npid=39092\nstart=2026-11-10 14:09:56\ntag=app093-voice-attrib"
+ },
+ "lock_released": false,
+ "verdict": "RAN"
+}

@@ -2290,120 +2290,6 @@ class App:
             pcm_getter=lambda: (self._spk_pcm_buf, self._spk_pcm_t0),
             span_getter=lambda seg: self._seg_span.get(seg),
             on_nearest=self._clone_nearest)
-
-    def _capture_self_ref_pcm(self, seg) -> None:
-        """🔴🔴🔳 APP-089 §2c-1：**抓 self_ref 素材**（这句自己的音频）。
-
-        🔴 **只做 numpy 切片**（不算嵌入、不算 x-vector）
-        ⇒ **ASR 线程零阻塞**（切片是 O(n) 内存拷贝，不是计算）。
-
-        ⚠️ **有界**：只留最近 `SELF_REF_KEEP` 段（每段 ≤ 8 s ⇒ 内存有界）。
-        """
-        try:
-            pcm = self._clone_pol.self_ref_pcm(seg)
-        except Exception:
-            return
-        if pcm is None:
-            return
-        try:
-            self._spk_self_ref[seg] = pcm
-            if len(self._spk_self_ref) > SELF_REF_KEEP:
-                for _k in list(self._spk_self_ref.keys())[:-SELF_REF_KEEP]:
-                    self._spk_self_ref.pop(_k, None)
-        except Exception:
-            pass
-
-    def _maybe_send_self_ref(self, seg) -> bool:
-        """🔴🔴🔳 APP-089 §2c-1：**提交前**按需发 self_ref（用这句自己的音频）。
-
-        ## 触发条件
-        该句所属说话人**还没有登记音色** ⇒ 用**这句自己的音频**提 x-vector
-        ⇒ **从第一句就开始克隆**（不再回落预设 A）。
-
-        🔴 **不发的情况**：
-        - 该 spk **已经**有登记音色 ⇒ 用它自己的（更准）；
-        - 没有 self_ref 素材（音频太短 / 已被缓冲挤掉）；
-        - 已经在克隆模式且有全局音色（EXT 的 `latest_path` 路径，本轮不移植）。
-
-        ⚠️ **失败不抛异常**：发不出去就回落预设 A（旧行为）。
-        """
-        try:
-            if seg is None or self.tts is None:
-                return False
-            if not getattr(self.tts, 'active', False):
-                return False
-            spk = self._spk_voices.spk_of(seg)
-            if spk and self._spk_voices.has_voice(spk):
-                return False       # 该 spk 已有音色 ⇒ 不用 self_ref
-            pcm = self._spk_self_ref.get(seg)
-            if pcm is None:
-                return False
-            ok = self.tts.spk_voice_seg(seg, pcm)
-            if ok:
-                self._spk_self_ref.pop(seg, None)
-                self._ui_log('[spk] 第 %d 段用**自己的音频**做 self_ref 克隆'
-                             '（该说话人还没有登记音色）' % seg)
-            return bool(ok)
-        except Exception as e:
-            self._ui_log('[spk] self_ref 发送失败（忽略）：%s' % e)
-            return False
-
-    def _reset_clone_session(self) -> None:
-        """🔴🔴🔳 APP-089 §2b：**会话开始清空**克隆状态。
-
-        reviewer 原话（`CORRECTIONS_APP.md` APP-089 §2b）：
-        > **每个会话用自己的克隆参考**：会话开始时清空克隆目录
-        > （`%LOCALAPPDATA%\\Confucius4LiveCaption\\clone_voices` 或
-        > `LIVECAP_CLONE_VOICES_DIR`），同时清空 `_spk_bind`/`_spk_voices`/
-        > 策略层的缓存。
-
-        ⇒ 本方法做三件事：
-        ① 策略层 `reset_session()`（清克隆目录 + 本层缓存）；
-        ② worker 侧 `clear_spk_voices()`（清 `_spk_voices` **和** `_spk_bind`）；
-        ③ App 侧的 `_spk_by_seg` / `_seg_span` / 各种 pending 队列清空。
-
-        ⚠️ **失败不抛异常**：清理失败不该让会话起不来。
-        """
-        # ① 策略层（克隆目录 + 缓存）
-        try:
-            self._clone_pol.reset_session()
-        except Exception as e:
-            self._ui_log('[spk] 会话重置（策略层）失败（忽略）：%s' % e)
-        # ② worker 侧（`_spk_voices` + `_spk_bind`）
-        try:
-            if self.tts is not None and getattr(self.tts, 'active', False):
-                self.tts.clear_spk_voices()
-        except Exception as e:
-            self._ui_log('[spk] 会话重置（worker 侧）失败（忽略）：%s' % e)
-        # ③ App 侧
-        try:
-            self._spk_by_seg.clear()
-            self._seg_span.clear()
-            self._spk_pending_embed = []
-            self._spk_voice_sent = set()
-            self._spk_fallback_seen = set()
-            self._spk_reason_seen = set()
-        except Exception as e:
-            self._ui_log('[spk] 会话重置（App 侧）失败（忽略）：%s' % e)
-
-    def _clone_nearest(self, seg, spk, sim):
-        """🔴🔴🔳 APP-086(2)a：**无标签句 ⇒ 最近已登记说话人**（cos ≥ 0.25）。
-
-        🔴 **走既有的 `spk_update` 通道**（不是提交命令的 `spk`）
-        ⇒ worker 侧 `_spk_bind` 后写覆盖先写
-        ⇒ **官方标签晚到时自动胜出**（不会用错的人）。
-        🔴 **已有官方标签 ⇒ 一律不推**（官方优先）。
-        """
-        try:
-            if self._spk_voices.spk_of(seg):
-                return
-            if self.tts is None or not getattr(self.tts, 'active', False):
-                return
-            if self.tts.spk_update_seg(seg, spk, None):
-                self._ui_log('[spk] 第 %d 段无标签 ⇒ 取最近说话人 %s'
-                             '（cos %.3f）' % (seg, spk, sim))
-        except Exception as e:
-            self._ui_log('[spk] 最近说话人补发失败（忽略）：%s' % e)
         # 🔴🔴🔴 APP-053：**上一段的结束时刻**（全局时间轴）
         #   ⇒ App 的断句是**连续**的 ⇒ 段自身区间 = [上一段末, 本段末]
         #   ⇒ 用它替代「只往前借 2.5 s」⇒ 离线复算打标率 89.13% → **95.65%**
@@ -3155,6 +3041,120 @@ class App:
             pass
         self.load_engine()
         root.after(self.POLL_MS, self._poll)
+
+    def _capture_self_ref_pcm(self, seg) -> None:
+        """🔴🔴🔳 APP-089 §2c-1：**抓 self_ref 素材**（这句自己的音频）。
+
+        🔴 **只做 numpy 切片**（不算嵌入、不算 x-vector）
+        ⇒ **ASR 线程零阻塞**（切片是 O(n) 内存拷贝，不是计算）。
+
+        ⚠️ **有界**：只留最近 `SELF_REF_KEEP` 段（每段 ≤ 8 s ⇒ 内存有界）。
+        """
+        try:
+            pcm = self._clone_pol.self_ref_pcm(seg)
+        except Exception:
+            return
+        if pcm is None:
+            return
+        try:
+            self._spk_self_ref[seg] = pcm
+            if len(self._spk_self_ref) > SELF_REF_KEEP:
+                for _k in list(self._spk_self_ref.keys())[:-SELF_REF_KEEP]:
+                    self._spk_self_ref.pop(_k, None)
+        except Exception:
+            pass
+
+    def _maybe_send_self_ref(self, seg) -> bool:
+        """🔴🔴🔳 APP-089 §2c-1：**提交前**按需发 self_ref（用这句自己的音频）。
+
+        ## 触发条件
+        该句所属说话人**还没有登记音色** ⇒ 用**这句自己的音频**提 x-vector
+        ⇒ **从第一句就开始克隆**（不再回落预设 A）。
+
+        🔴 **不发的情况**：
+        - 该 spk **已经**有登记音色 ⇒ 用它自己的（更准）；
+        - 没有 self_ref 素材（音频太短 / 已被缓冲挤掉）；
+        - 已经在克隆模式且有全局音色（EXT 的 `latest_path` 路径，本轮不移植）。
+
+        ⚠️ **失败不抛异常**：发不出去就回落预设 A（旧行为）。
+        """
+        try:
+            if seg is None or self.tts is None:
+                return False
+            if not getattr(self.tts, 'active', False):
+                return False
+            spk = self._spk_voices.spk_of(seg)
+            if spk and self._spk_voices.has_voice(spk):
+                return False       # 该 spk 已有音色 ⇒ 不用 self_ref
+            pcm = self._spk_self_ref.get(seg)
+            if pcm is None:
+                return False
+            ok = self.tts.spk_voice_seg(seg, pcm)
+            if ok:
+                self._spk_self_ref.pop(seg, None)
+                self._ui_log('[spk] 第 %d 段用**自己的音频**做 self_ref 克隆'
+                             '（该说话人还没有登记音色）' % seg)
+            return bool(ok)
+        except Exception as e:
+            self._ui_log('[spk] self_ref 发送失败（忽略）：%s' % e)
+            return False
+
+    def _reset_clone_session(self) -> None:
+        """🔴🔴🔳 APP-089 §2b：**会话开始清空**克隆状态。
+
+        reviewer 原话（`CORRECTIONS_APP.md` APP-089 §2b）：
+        > **每个会话用自己的克隆参考**：会话开始时清空克隆目录
+        > （`%LOCALAPPDATA%\\Confucius4LiveCaption\\clone_voices` 或
+        > `LIVECAP_CLONE_VOICES_DIR`），同时清空 `_spk_bind`/`_spk_voices`/
+        > 策略层的缓存。
+
+        ⇒ 本方法做三件事：
+        ① 策略层 `reset_session()`（清克隆目录 + 本层缓存）；
+        ② worker 侧 `clear_spk_voices()`（清 `_spk_voices` **和** `_spk_bind`）；
+        ③ App 侧的 `_spk_by_seg` / `_seg_span` / 各种 pending 队列清空。
+
+        ⚠️ **失败不抛异常**：清理失败不该让会话起不来。
+        """
+        # ① 策略层（克隆目录 + 缓存）
+        try:
+            self._clone_pol.reset_session()
+        except Exception as e:
+            self._ui_log('[spk] 会话重置（策略层）失败（忽略）：%s' % e)
+        # ② worker 侧（`_spk_voices` + `_spk_bind`）
+        try:
+            if self.tts is not None and getattr(self.tts, 'active', False):
+                self.tts.clear_spk_voices()
+        except Exception as e:
+            self._ui_log('[spk] 会话重置（worker 侧）失败（忽略）：%s' % e)
+        # ③ App 侧
+        try:
+            self._spk_by_seg.clear()
+            self._seg_span.clear()
+            self._spk_pending_embed = []
+            self._spk_voice_sent = set()
+            self._spk_fallback_seen = set()
+            self._spk_reason_seen = set()
+        except Exception as e:
+            self._ui_log('[spk] 会话重置（App 侧）失败（忽略）：%s' % e)
+
+    def _clone_nearest(self, seg, spk, sim):
+        """🔴🔴🔳 APP-086(2)a：**无标签句 ⇒ 最近已登记说话人**（cos ≥ 0.25）。
+
+        🔴 **走既有的 `spk_update` 通道**（不是提交命令的 `spk`）
+        ⇒ worker 侧 `_spk_bind` 后写覆盖先写
+        ⇒ **官方标签晚到时自动胜出**（不会用错的人）。
+        🔴 **已有官方标签 ⇒ 一律不推**（官方优先）。
+        """
+        try:
+            if self._spk_voices.spk_of(seg):
+                return
+            if self.tts is None or not getattr(self.tts, 'active', False):
+                return
+            if self.tts.spk_update_seg(seg, spk, None):
+                self._ui_log('[spk] 第 %d 段无标签 ⇒ 取最近说话人 %s'
+                             '（cos %.3f）' % (seg, spk, sim))
+        except Exception as e:
+            self._ui_log('[spk] 最近说话人补发失败（忽略）：%s' % e)
 
     # -- 组合下拉（APP-007）---------------------------------------------
     def _resolve_mt_engine_key(self, key, dev):
