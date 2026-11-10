@@ -8,7 +8,7 @@ last_ack: APP-097
 
 
 ## 最近更新
-> 🔴 {stamp} ｜ **APP-093 §3 + APP-097 §2 已补齐**（详见 §167）：🔴 **定位并修掉一个阻断级真缺陷** —— `commit 874924a` 把 `_clone_nearest` **误插进 `App.__init__` 中间** ⇒ **整个 GUI 布局代码被吞进该方法体** ⇒ GUI 一直只是空壳 `tk` 200×200（无标题/无控件/引擎不加载/字幕永不出现）⇒ **dev 树已修**（纯搬移，8 项校验全 PASS）｜**§3.7 截图 PASS**（主窗 1455×1132＋**三行字幕条** 1638×157，读图确认 译文/原文/实时 三行）｜**§3.3 过载臂**：过载段 20 句/19 句被跳过，**恢复用时 3.597 s**；**§3.5 判据失效已量化**（三人真值余弦 0.957–0.972）⇒ 未自行换判据；MT 8 语种 ×20 句 **0 空译/0 错误**；TTS **撞帧上限 0**；模型身份 12/12 一致｜**本条需等 reviewer 复核**｜未打 v2.5、未通知用户。 **APP-097 已 ack**（reviewer 11-10 中途追加，96→97 条）：目标语言从 zh/en/ja/ko 扩到 **Qwen3-TTS 支持的全部 10 种**（+de/fr/es/pt/it/ru）；`LANG_MAP`/`SUPPORTED_LANGS`/`_LANG_NAME`/`TARGETS`/`TARGET_LABELS` 已扩；**未知语言不再静默退回 English**（`map_language(strict=True)` 显式报错）；**西里尔判成 ru**、**拉丁字母语言之间不再凭脚本跳过翻译**；GUI/CLI 下拉自动跟随｜**逐语种设备验收未跑 ⇒ 本条需等 reviewer 复核**｜EXT 内嵌版本以 reviewer 最后通知为准（**v0.3.7 @c414294**）。
+> 🔴 2026-11-10 15:59 ｜ **APP-093 §3 + APP-097 §2 已补齐**（详见 §167）：🔴 **定位并修掉一个阻断级真缺陷** —— `commit 874924a` 把 `_clone_nearest` **误插进 `App.__init__` 中间** ⇒ **整个 GUI 布局代码被吞进该方法体** ⇒ GUI 一直只是空壳 `tk` 200×200（无标题/无控件/引擎不加载/字幕永不出现）⇒ **dev 树已修**（纯搬移，8 项校验全 PASS）｜**§3.7 截图 PASS**（主窗 1455×1132＋**三行字幕条** 1638×157，读图确认 译文/原文/实时 三行）｜**§3.3 过载臂**：过载段 20 句/19 句被跳过，**恢复用时 3.597 s**；**§3.5 判据失效已量化**（三人真值余弦 0.957–0.972）⇒ 未自行换判据；MT 8 语种 ×20 句 **0 空译/0 错误**；TTS **撞帧上限 0**；模型身份 12/12 一致｜**本条需等 reviewer 复核**｜未打 v2.5、未通知用户。 **APP-097 已 ack**（reviewer 11-10 中途追加，96→97 条）：目标语言从 zh/en/ja/ko 扩到 **Qwen3-TTS 支持的全部 10 种**（+de/fr/es/pt/it/ru）；`LANG_MAP`/`SUPPORTED_LANGS`/`_LANG_NAME`/`TARGETS`/`TARGET_LABELS` 已扩；**未知语言不再静默退回 English**（`map_language(strict=True)` 显式报错）；**西里尔判成 ru**、**拉丁字母语言之间不再凭脚本跳过翻译**；GUI/CLI 下拉自动跟随｜**逐语种设备验收未跑 ⇒ 本条需等 reviewer 复核**｜EXT 内嵌版本以 reviewer 最后通知为准（**v0.3.7 @c414294**）。
 > 🔴 2026-11-10 12:15:35 ｜ **APP-094/095/096 已执行**：MiniMVP **rc5** 出包（ASR→**Qwen3-ASR-0.6B** mask2 INT8；R2T2 的 ASR IR **全删**；zip 清单 INT4/R2T2 计数 **0**；4424246739 B／SHA256 `1fd56fbd9572…`／10473 条目 CRC32 全对）；**两臂设备验收**：iGPU RTF **0.73**／延迟 472 ms／峰值 3585.5 MB，NPU RTF **0.89**／延迟 670 ms／峰值 3455.1 MB（WER 交 reviewer 复算）；**EXECUTION_DEVICES 直证 encoder=NPU/decoder=NPU**；**APP-094① keep-first 落地**（判据 5/5，含反证组）｜**APP-093 §3 只完成 §3.2 ⇒ 需等 reviewer 复核**；未打 v2.5、未通知用户。
 > 🔴 2026-11-10 08:49 ｜ **APP-093 [HIGH] 已 ack**（reviewer 08:13 中途追加，92→93 条）：§162 复核「移植结构接受／验收不通过」⇒ **app394 `verdict=FAIL` 如实入册**、`app391…json` 幻影产物撤回、`tts_late_drop_sec` 默认保持 6.0；§3.1 静态诊断＋§3.4 before 补算已落盘（app395／app396）⇒ 设备作业（阈值 A/B・过载臂重做・切段・GUI 截图）本轮未跑 ⇒ **本条需等 reviewer 复核**；未打 v2.5、未通知用户。
 > 🔴 2026-11-10 07:41 ｜ **MiniMVP rc4 zip 已出**：`shared/minimvp/Confucius4_LiveCaption_MiniMVP_v1.0-rc4_perftest.zip`（8 609 378 581 B／SHA256 `f0ebcc72…`）；**10 480 条逐条 CRC32 全对**、缺/多条目 0/0；**rc3 两个 zip SHA 逐字未变**；**从 zip 解压的干净包**（10 480 条／68.29 s）用**包内 python** 跑 `--check` 显示「**Intel NPU · INT8 模型齐全**」、`EXECUTION_DEVICES` encoder=NPU／decoder=NPU；🔴 打包前修掉 README 沿用 rc3 数字（6.7 GB/10 474 ⇒ 实测 10.0 GB/10 480）这一 **APP-073(c) 同类**缺陷。
@@ -145,7 +145,7 @@ last_ack: APP-097
 
 > 🔴 本节正文已整块逐字归档 ⇒ `status/archive/STATUS_APP_sec166_20261110.md`（块 SHA256 `ddc46f321b1833cf7c04be048847a55f57677eaac4004fdc9fd405f93eb85f3f`）
 
-## §167 续做 APP-093 §3 + APP-097 §2 设备验收（last_ack=APP-097）｜**§3.7 截图 PASS（含一个阻断级真缺陷的根因修复）**｜**本条需等 reviewer 复核**
+## §167 续做 APP-093 §3 + APP-097 §2 设备验收（last_ack=APP-097，2026-11-10 15:59）｜**§3.7 截图 PASS（含一个阻断级真缺陷的根因修复）**｜**本条需等 reviewer 复核**
 
 ### ① 🔴🔴🔴 本轮最重要的发现：**GUI 布局代码被吞进 `_clone_nearest` ⇒ GUI 一直是空壳**
 
