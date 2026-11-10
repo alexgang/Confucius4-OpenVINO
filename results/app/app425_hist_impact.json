@@ -1,0 +1,269 @@
+{
+ "created_at": "2026-11-11 00:43:40",
+ "purpose": "APP-098 §170 ⑨ 两项「历史影响未评估」的机械化定界",
+ "criteria": {
+  "D1_gui_swallowed": "AST: _clone_nearest 是否嵌套在 App.__init__ 内 + __init__ 语句条数 + 布局调用是否存在",
+  "D2_asr06b_label_collision": "AST: build_asr_options 函数体实际处理的 kind 集合是否含 'asr06b'",
+  "note": "🔴 不用全文搜字符串：`_check_models()` 里本来就有 `if cfg['kind'] == 'asr06b':` ⇒ 锚点不唯一 ⇒ 恒真 ⇒ 无鉴别力"
+ },
+ "packages": [
+  {
+   "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+   "state": "PRESENT",
+   "app_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\app\\live_caption_app.py",
+   "app_py_meta": {
+    "bytes": 330874,
+    "mtime": "2026-11-01 17:09:10"
+   },
+   "verdict_d1": "OK",
+   "detail_d1": "App.__init__ n_stmts=228, layout calls present, _clone_nearest at class level",
+   "verdict_d2": "NA",
+   "detail_d2": "no asr06b engine table (kinds=['cuda', 'npu'])"
+  },
+  {
+   "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5",
+   "state": "PRESENT",
+   "app_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\app\\live_caption_app.py",
+   "app_py_meta": {
+    "bytes": 229543,
+    "mtime": "2026-10-27 16:21:55"
+   },
+   "verdict_d1": "OK",
+   "detail_d1": "App.__init__ n_stmts=194, layout calls present, _clone_nearest at class level",
+   "verdict_d2": "NA",
+   "detail_d2": "no asr06b engine table (kinds=['cuda', 'npu'])"
+  },
+  {
+   "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0",
+   "state": "PRESENT",
+   "app_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0\\app\\live_caption_app.py",
+   "app_py_meta": {
+    "bytes": 339230,
+    "mtime": "2026-11-01 14:33:34"
+   },
+   "verdict_d1": "OK",
+   "detail_d1": "App.__init__ n_stmts=236, layout calls present, _clone_nearest at class level",
+   "verdict_d2": "NA",
+   "detail_d2": "no asr06b engine table (kinds=['cuda', 'npu'])"
+  },
+  {
+   "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1",
+   "state": "PRESENT",
+   "app_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\app\\live_caption_app.py",
+   "app_py_meta": {
+    "bytes": 339230,
+    "mtime": "2026-11-01 14:33:34"
+   },
+   "verdict_d1": "OK",
+   "detail_d1": "App.__init__ n_stmts=236, layout calls present, _clone_nearest at class level",
+   "verdict_d2": "NA",
+   "detail_d2": "no asr06b engine table (kinds=['cuda', 'npu'])"
+  },
+  {
+   "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2",
+   "state": "PRESENT",
+   "app_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app\\live_caption_app.py",
+   "app_py_meta": {
+    "bytes": 361384,
+    "mtime": "2026-11-02 01:33:05"
+   },
+   "verdict_d1": "OK",
+   "detail_d1": "App.__init__ n_stmts=241, layout calls present, _clone_nearest at class level",
+   "verdict_d2": "NA",
+   "detail_d2": "no asr06b engine table (kinds=['cuda', 'npu'])"
+  },
+  {
+   "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.3",
+   "state": "PRESENT",
+   "app_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.3\\app\\live_caption_app.py",
+   "app_py_meta": {
+    "bytes": 425287,
+    "mtime": "2026-11-07 15:17:52"
+   },
+   "verdict_d1": "OK",
+   "detail_d1": "App.__init__ n_stmts=282, layout calls present, _clone_nearest at class level",
+   "verdict_d2": "NA",
+   "detail_d2": "no asr06b engine table (kinds=['cuda', 'npu'])"
+  },
+  {
+   "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4",
+   "state": "PRESENT",
+   "app_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\app\\live_caption_app.py",
+   "app_py_meta": {
+    "bytes": 426187,
+    "mtime": "2026-11-07 21:29:38"
+   },
+   "verdict_d1": "OK",
+   "detail_d1": "App.__init__ n_stmts=282, layout calls present, _clone_nearest at class level",
+   "verdict_d2": "NA",
+   "detail_d2": "no asr06b engine table (kinds=['cuda', 'npu'])"
+  },
+  {
+   "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0",
+   "state": "PRESENT",
+   "app_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0\\app\\live_caption_app.py",
+   "app_py_meta": {
+    "bytes": 361384,
+    "mtime": "2026-11-02 01:33:05"
+   },
+   "verdict_d1": "OK",
+   "detail_d1": "App.__init__ n_stmts=241, layout calls present, _clone_nearest at class level",
+   "verdict_d2": "NA",
+   "detail_d2": "no asr06b engine table (kinds=['cuda', 'npu'])"
+  },
+  {
+   "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc1",
+   "state": "PRESENT",
+   "app_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc1\\app\\live_caption_app.py",
+   "app_py_meta": {
+    "bytes": 408466,
+    "mtime": "2026-11-04 20:44:35"
+   },
+   "verdict_d1": "OK",
+   "detail_d1": "App.__init__ n_stmts=280, layout calls present, _clone_nearest at class level",
+   "verdict_d2": "NA",
+   "detail_d2": "no asr06b engine table (kinds=['cuda', 'npu'])"
+  },
+  {
+   "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2",
+   "state": "PRESENT",
+   "app_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\app\\live_caption_app.py",
+   "app_py_meta": {
+    "bytes": 413905,
+    "mtime": "2026-11-04 22:58:39"
+   },
+   "verdict_d1": "OK",
+   "detail_d1": "App.__init__ n_stmts=280, layout calls present, _clone_nearest at class level",
+   "verdict_d2": "NA",
+   "detail_d2": "no asr06b engine table (kinds=['cuda', 'npu'])"
+  },
+  {
+   "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+   "state": "PRESENT",
+   "app_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\app\\live_caption_app.py",
+   "app_py_meta": {
+    "bytes": 415773,
+    "mtime": "2026-11-05 10:59:14"
+   },
+   "verdict_d1": "OK",
+   "detail_d1": "App.__init__ n_stmts=280, layout calls present, _clone_nearest at class level",
+   "verdict_d2": "NA",
+   "detail_d2": "no asr06b engine table (kinds=['cuda', 'npu'])"
+  },
+  {
+   "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4",
+   "state": "PRESENT",
+   "app_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4\\app\\live_caption_app.py",
+   "app_py_meta": {
+    "bytes": 415773,
+    "mtime": "2026-11-05 10:59:14"
+   },
+   "verdict_d1": "OK",
+   "detail_d1": "App.__init__ n_stmts=280, layout calls present, _clone_nearest at class level",
+   "verdict_d2": "NA",
+   "detail_d2": "no asr06b engine table (kinds=['cuda', 'npu'])"
+  },
+  {
+   "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5",
+   "state": "PRESENT",
+   "app_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5\\app\\live_caption_app.py",
+   "app_py_meta": {
+    "bytes": 418478,
+    "mtime": "2026-11-10 11:46:19"
+   },
+   "verdict_d1": "OK",
+   "detail_d1": "App.__init__ n_stmts=280, layout calls present, _clone_nearest at class level",
+   "verdict_d2": "NA",
+   "detail_d2": "no asr06b engine table (kinds=['cuda', 'npu'])"
+  },
+  {
+   "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6",
+   "state": "PRESENT",
+   "app_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6\\app\\live_caption_app.py",
+   "app_py_meta": {
+    "bytes": 475504,
+    "mtime": "2026-11-11 00:21:11"
+   },
+   "verdict_d1": "OK",
+   "detail_d1": "App.__init__ n_stmts=291, layout calls present, _clone_nearest at class level",
+   "verdict_d2": "BUG",
+   "detail_d2": "ENGINES_ASR06B table present but build_asr_options handles kinds=['npu'] (asr06b MISSING => falls into \"iterate all devices\" => duplicate labels)"
+  },
+  {
+   "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc7",
+   "state": "PRESENT",
+   "app_py": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc7\\app\\live_caption_app.py",
+   "app_py_meta": {
+    "bytes": 476874,
+    "mtime": "2026-11-11 00:22:08"
+   },
+   "verdict_d1": "OK",
+   "detail_d1": "App.__init__ n_stmts=291, layout calls present, _clone_nearest at class level",
+   "verdict_d2": "OK",
+   "detail_d2": "build_asr_options handles kinds=['asr06b', 'npu'] (asr06b recognized)"
+  }
+ ],
+ "neg_control": {
+  "broken_874924a": {
+   "verdict_d1": "BROKEN",
+   "detail_d1": "App.__init__ collapsed to 24 stmts, no layout calls",
+   "verdict_d2": "NA",
+   "detail_d2": "no asr06b engine table (kinds=['cuda', 'npu'])"
+  },
+  "fixed_ba76ea5": {
+   "verdict_d1": "OK",
+   "detail_d1": "App.__init__ n_stmts=286, layout calls present, _clone_nearest at class level",
+   "verdict_d2": "NA",
+   "detail_d2": "no asr06b engine table (kinds=['cuda', 'npu'])"
+  },
+  "parent_874924a~1": {
+   "verdict_d1": "OK",
+   "detail_d1": "App.__init__ n_stmts=282, layout calls present, _clone_nearest at class level",
+   "verdict_d2": "NA",
+   "detail_d2": "no asr06b engine table (kinds=['cuda', 'npu'])"
+  }
+ },
+ "summary": {
+  "n_pkgs_present": 15,
+  "d1_gui_swallowed_affected": [],
+  "d1_ok_or_na": [
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.3",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc1",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc7"
+  ],
+  "d2_asr06b_label_collision_affected": [
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6"
+  ],
+  "d2_ok_or_na": [
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.3",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc1",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5",
+   "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc7"
+  ]
+ },
+ "neg_control_selfcheck": {
+  "d1_separates_broken_from_fixed": true
+ }
+}
