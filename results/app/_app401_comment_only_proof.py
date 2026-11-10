@@ -80,13 +80,15 @@ def main():
     with open(cur_path, encoding='utf-8') as f:
         cur = f.read()
 
-    # 上一版（HEAD）的同一文件
-    try:
-        old = subprocess.run(['git', '-C', REPO, 'show', 'HEAD:' + TARGET],
-                             capture_output=True, text=True, encoding='utf-8',
-                             errors='replace', check=True).stdout
-    except subprocess.CalledProcessError:
-        old = None
+    # 🔴 **改前基线 = 客户包 v2.4 的副本**（不是 HEAD）：
+    #    HEAD 已含本轮改动 ⇒ 拿 HEAD 当基线会必然 FAIL（提交后不自洽）。
+    #    客户包那份是**未被本轮改动的原始注释版** ⇒ 稳定的「改前」参照，
+    #    且顺带证明「开发树与客户包的**可执行代码逐条相同**」。
+    PKG = r'C:\Users\Trekker-PTL\Confucius4_LiveCaption_v2.4'
+    pkg_copy = os.path.join(PKG, 'app', 'speaker_tracker.py')
+    old = None
+    if os.path.isfile(pkg_copy):
+        old = open(pkg_copy, encoding='utf-8').read()
 
     checks = []
 
@@ -102,9 +104,9 @@ def main():
     a = fingerprint(old, strip=STRIP_DOCSTRINGS)
     b = fingerprint(cur, strip=STRIP_DOCSTRINGS)
 
-    chk('ast_parses', True, 'HEAD 与工作树均 ast.parse 成功')
+    chk('ast_parses', True, '改前基线（客户包副本）与工作树均 ast.parse 成功')
     chk('stmt_multiset_same', a['stmts'] == b['stmts'],
-        '语句多重集 %s（HEAD %d 条 / 当前 %d 条）'
+        '语句多重集 %s（改前基线 %d 条 / 当前 %d 条）'
         % ('相等' if a['stmts'] == b['stmts'] else '不等', len(a['stmts']), len(b['stmts'])))
     chk('const_multiset_same', a['consts'] == b['consts'],
         '常量多重集 %s' % ('相等' if a['consts'] == b['consts'] else '不等'))
@@ -125,7 +127,7 @@ def main():
     cb = {l for l in cur.splitlines() if l.lstrip().startswith('#')}
     chk('only_comments_and_docstrings_changed',
         (ca != cb) or doc_changed,
-        '注释行集合 %s（HEAD %d 行 / 当前 %d 行）；docstring %s'
+        '注释行集合 %s（改前基线 %d 行 / 当前 %d 行）；docstring %s'
         % ('已变' if ca != cb else '未变', len(ca), len(cb),
            '已变' if doc_changed else '未变'))
 
@@ -142,8 +144,10 @@ def main():
         'target': TARGET,
         'device_job': False,
         'lock_note': '纯 CPU 静态检查（不加载模型）⇒ 不需要 MACHINE_LOCK',
-        'criterion': 'AST：语句多重集 / 常量多重集 / 函数签名 三者相等 ⇒ 仅注释与 docstring 变化',
-        'head_sha256': hashlib.sha256(old.encode('utf-8')).hexdigest(),
+        'criterion': ('AST：语句多重集 / 常量多重集 / 函数签名 三者相等 '
+                      '⇒ 仅注释与 docstring 变化；改前基线 = 客户包 v2.4 副本（稳定参照）'),
+        'baseline_kind': '客户包 v2.4 的 app/speaker_tracker.py（未被本轮改动 ⇒ 稳定的「改前」参照）',
+        'baseline_sha256': hashlib.sha256(old.encode('utf-8')).hexdigest(),
         'worktree_sha256': sha256_of(cur_path),
         'head_bytes': len(old.encode('utf-8')),
         'worktree_bytes': os.path.getsize(cur_path),
@@ -163,15 +167,21 @@ def main():
     for c in checks:
         print(('  PASS ' if c['pass'] else '  FAIL '), c['name'], '|', c['detail'])
 
-    # 🔴 反证组：判据必须有鉴别力 —— 关掉「忽略 docstring」后必须 FAIL
-    a2 = fingerprint(old, strip=False)
-    b2 = fingerprint(cur, strip=False)
-    neg = (a2['stmts'] != b2['stmts']) or (a2['consts'] != b2['consts'])
-    print('NEG_CONTROL(not stripping docstrings ⇒ must differ):',
+    # 🔴 反证组：判据必须有鉴别力 —— **改动可执行代码**（而不只是注释）必须被判 FAIL
+    #    做法：把工作树副本里的一行注释改成代码 ⇒ 语句/常量多重集必须不再相等。
+    import copy as _copy
+    mutated = cur.replace('_WIN_S_DEFAULT = 10.0',
+                           '_WIN_S_DEFAULT = 10.0\n_WIN_S_MUTANT = 1', 1)
+    assert mutated != cur, '反证构造失败：目标行未命中'
+    m1 = fingerprint(old, strip=STRIP_DOCSTRINGS)
+    m2 = fingerprint(mutated, strip=STRIP_DOCSTRINGS)
+    neg = (m1['stmts'] != m2['stmts']) or (m1['consts'] != m2['consts'])
+    print('NEG_CONTROL(注入一行可执行代码 ⇒ 必须被识破):',
           'PASS' if neg else 'FAIL(判据无鉴别力!)')
+    out['neg_control'] = ('PASS：注入可执行代码后语句/常量多重集不再相等 ⇒ 判据有鉴别力'
+                          if neg else 'FAIL：注入可执行代码后仍判相等 ⇒ 判据恒真')
     if not neg:
         out['verdict'] = 'FAIL'
-        out['neg_control'] = 'FAIL：忽略 docstring 后两者仍相同 ⇒ 判据恒真'
         with open(dest, 'w', encoding='utf-8', newline='\n') as f:
             json.dump(out, f, ensure_ascii=False, indent=2)
         return 2
