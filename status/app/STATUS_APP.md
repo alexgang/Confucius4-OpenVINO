@@ -1,14 +1,14 @@
 # STATUS_APP
 
 last_ack: APP-097
-更新时间: 2026-11-10 12:26:15
-当前任务: **APP-094/095/096/097 已执行**：MiniMVP **rc5** 已出包（ASR→Qwen3-ASR-0.6B mask2 INT8，R2T2 ASR IR 全删，iGPU/NPU 两臂设备验收已跑，EXECUTION_DEVICES 直证 encoder=NPU/decoder=NPU）；**APP-094① keep-first 落地 + 判据 5/5**；EXT v0.3.6 暂存区已备（v2.5 未打包）；**APP-097 目标语言扩到 10 种**（静态+单元全过）｜**APP-093 §3 仅完成 §3.2、§3.5 判据失效（x-vector 分不开三人）；APP-097 §2 逐语种验收未跑 ⇒ 均需等 reviewer 复核**
-阻塞 / 待用户决定: **APP-093 §3 的 §3.3/§3.4/§3.5/§3.6/§3.7 未跑**（过载臂重做・before 臂补齐・音色归属真值余弦・切段 RTF・GUI 截图）⇒ 需 MACHINE_LOCK 长作业；**§3.5 判据失效已定位根因**（三人 x-vector 两两余弦 0.947–0.967 ⇒ 对照组 A 71.4% / B 65.7%）⇒ 未自行换判据｜**APP-097 §2 逐语种设备验收未跑**（MT/TTS 6 语种・时长校准・zh 回归・模型身份）｜阈值取舍由 reviewer 拿 §3.1/§3.2 数字报主会话请用户决定（**默认值仍 6.0**）｜**v2.5 未打包、未通知用户**
-已压缩: 压缩索引（旧正文逐字归档）⇒ `status/archive/STATUS_APP_compress_index_upto_20261107.md`；限额 ≤40000 B / ≤300 行（APP-052④）｜**§159 压缩**：§159 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec159_20261109.md`（块 SHA256 `da8241c04798cbf70798b0588f54fd7da8a35e5c4530cfff1eb653f3df9d32db`）｜**§160 压缩**：头部「已压缩」行原文（2012 B）已归档进同一索引 ⇒ 头部只留精简行｜**§161 压缩**：§161 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec161_20261110.md`（块 SHA256 `0636d5145b65f2c142d886f62e529d9cd2e1a1d966035fbee75bed842574a557`）
+更新时间: 2026-11-10 15:59:16
+当前任务: **APP-093 §3 + APP-097 §2 的设备/静态验收已补齐**（§3.3 单会话过载臂・§3.4 before 臂・§3.5 音色归属・§3.6 切段分析・**§3.7 截图 PASS**；APP-097 §2-2 MT・§2-3 TTS・§2-4 时长・§2-5 回归+ja/ko 冒烟・§2-6 模型身份）｜🔴 **本轮定位并修掉一个阻断级真缺陷**：`commit 874924a` 把 `_clone_nearest` **误插进 `App.__init__` 中间** ⇒ **整个 GUI 布局代码被吞进该方法体** ⇒ GUI 一直只是空壳 `tk` 200×200（无标题/无控件/引擎不加载/字幕永不出现）⇒ **dev 树已修**（纯搬移，8 项校验全 PASS）｜**本条需等 reviewer 复核**
+阻塞 / 待用户决定: 🔴 **GUI 布局缺陷修复未同步进客户包**（只在 dev 树 + 影子包 `after_fix_tmp`）⇒ **v2.5 未打包、未同步任何客户包目录**（APP-055 须走打新版本号）⇒ **请 reviewer 裁定**：是立刻修还是随 v2.5 一起出｜🔴 **该缺陷的历史影响未评估**（`874924a` 之后的 GUI 类验收都跑在空壳 GUI 上）｜**§3.5 音色归属判据失效已量化**（三人真值 x-vector 两两余弦 0.957–0.972 ⇒ 余弦尺度上不可分）⇒ **未自行换判据**｜**§3.6「切段开/关的 ASR RTF」对照未跑** ⇒ 已列入 gaps 未报数｜**APP-097 §2-4 只报实测 p50、未改 `_SEC_PER_CHAR` 默认值**｜阈值取舍由 reviewer 拿 §3.1/§3.2 数字报主会话请用户决定（**默认值仍 6.0**）｜**未打包 v2.5、未通知用户**
+已压缩: 压缩索引（旧正文逐字归档）⇒ `status/archive/STATUS_APP_compress_index_upto_20261107.md`；限额 ≤40000 B / ≤300 行（APP-052④）｜**§166 压缩**：§166 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec166_20261110.md`（块 SHA256 见该节末）｜**§135–§140 压缩**：摘要行整块归档 ⇒ `status/archive/STATUS_APP_sec135_140_summary_20261110.md`（6 442 B／块 SHA256 `12cf171e63e62f99…`）｜**关键数字表压缩**：整表逐字归档 ⇒ `status/archive/STATUS_APP_key_numbers_20261110.md`（5 540 B／块 SHA256 `0b1e0843e6192300…`）
 
 
 ## 最近更新
-> 🔴 2026-11-10 12:26:15 ｜ **APP-097 已 ack**（reviewer 11-10 中途追加，96→97 条）：目标语言从 zh/en/ja/ko 扩到 **Qwen3-TTS 支持的全部 10 种**（+de/fr/es/pt/it/ru）；`LANG_MAP`/`SUPPORTED_LANGS`/`_LANG_NAME`/`TARGETS`/`TARGET_LABELS` 已扩；**未知语言不再静默退回 English**（`map_language(strict=True)` 显式报错）；**西里尔判成 ru**、**拉丁字母语言之间不再凭脚本跳过翻译**；GUI/CLI 下拉自动跟随｜**逐语种设备验收未跑 ⇒ 本条需等 reviewer 复核**｜EXT 内嵌版本以 reviewer 最后通知为准（**v0.3.7 @c414294**）。
+> 🔴 {stamp} ｜ **APP-093 §3 + APP-097 §2 已补齐**（详见 §167）：🔴 **定位并修掉一个阻断级真缺陷** —— `commit 874924a` 把 `_clone_nearest` **误插进 `App.__init__` 中间** ⇒ **整个 GUI 布局代码被吞进该方法体** ⇒ GUI 一直只是空壳 `tk` 200×200（无标题/无控件/引擎不加载/字幕永不出现）⇒ **dev 树已修**（纯搬移，8 项校验全 PASS）｜**§3.7 截图 PASS**（主窗 1455×1132＋**三行字幕条** 1638×157，读图确认 译文/原文/实时 三行）｜**§3.3 过载臂**：过载段 20 句/19 句被跳过，**恢复用时 3.597 s**；**§3.5 判据失效已量化**（三人真值余弦 0.957–0.972）⇒ 未自行换判据；MT 8 语种 ×20 句 **0 空译/0 错误**；TTS **撞帧上限 0**；模型身份 12/12 一致｜**本条需等 reviewer 复核**｜未打 v2.5、未通知用户。 **APP-097 已 ack**（reviewer 11-10 中途追加，96→97 条）：目标语言从 zh/en/ja/ko 扩到 **Qwen3-TTS 支持的全部 10 种**（+de/fr/es/pt/it/ru）；`LANG_MAP`/`SUPPORTED_LANGS`/`_LANG_NAME`/`TARGETS`/`TARGET_LABELS` 已扩；**未知语言不再静默退回 English**（`map_language(strict=True)` 显式报错）；**西里尔判成 ru**、**拉丁字母语言之间不再凭脚本跳过翻译**；GUI/CLI 下拉自动跟随｜**逐语种设备验收未跑 ⇒ 本条需等 reviewer 复核**｜EXT 内嵌版本以 reviewer 最后通知为准（**v0.3.7 @c414294**）。
 > 🔴 2026-11-10 12:15:35 ｜ **APP-094/095/096 已执行**：MiniMVP **rc5** 出包（ASR→**Qwen3-ASR-0.6B** mask2 INT8；R2T2 的 ASR IR **全删**；zip 清单 INT4/R2T2 计数 **0**；4424246739 B／SHA256 `1fd56fbd9572…`／10473 条目 CRC32 全对）；**两臂设备验收**：iGPU RTF **0.73**／延迟 472 ms／峰值 3585.5 MB，NPU RTF **0.89**／延迟 670 ms／峰值 3455.1 MB（WER 交 reviewer 复算）；**EXECUTION_DEVICES 直证 encoder=NPU/decoder=NPU**；**APP-094① keep-first 落地**（判据 5/5，含反证组）｜**APP-093 §3 只完成 §3.2 ⇒ 需等 reviewer 复核**；未打 v2.5、未通知用户。
 > 🔴 2026-11-10 08:49 ｜ **APP-093 [HIGH] 已 ack**（reviewer 08:13 中途追加，92→93 条）：§162 复核「移植结构接受／验收不通过」⇒ **app394 `verdict=FAIL` 如实入册**、`app391…json` 幻影产物撤回、`tts_late_drop_sec` 默认保持 6.0；§3.1 静态诊断＋§3.4 before 补算已落盘（app395／app396）⇒ 设备作业（阈值 A/B・过载臂重做・切段・GUI 截图）本轮未跑 ⇒ **本条需等 reviewer 复核**；未打 v2.5、未通知用户。
 > 🔴 2026-11-10 07:41 ｜ **MiniMVP rc4 zip 已出**：`shared/minimvp/Confucius4_LiveCaption_MiniMVP_v1.0-rc4_perftest.zip`（8 609 378 581 B／SHA256 `f0ebcc72…`）；**10 480 条逐条 CRC32 全对**、缺/多条目 0/0；**rc3 两个 zip SHA 逐字未变**；**从 zip 解压的干净包**（10 480 条／68.29 s）用**包内 python** 跑 `--check` 显示「**Intel NPU · INT8 模型齐全**」、`EXECUTION_DEVICES` encoder=NPU／decoder=NPU；🔴 打包前修掉 README 沿用 rc3 数字（6.7 GB/10 474 ⇒ 实测 10.0 GB/10 480）这一 **APP-073(c) 同类**缺陷。
@@ -35,35 +35,8 @@ last_ack: APP-097
 
 ### 关键数字
 
-| 指标 | 值 | 来源产物 / 字段 |
-|---|---|---|
-| **说话人标签覆盖率（修复后）** | **93.48 %**（**43 / 46** 句带标签）⇒ 修复前 **7.23 %**（**×12.9**） | `results/app/app202_app053_coverage_evidence.json` → `after.measured_coverage_pct` / `before.coverage_pct` |
-| 覆盖率 vs pyannote 自身（1c 口径） | App 原规则 **89.13 %** ⇒ 差 **4.35 pp**；ASR 参考真值 **95.65 %** ⇒ 差 **2.17 pp**（均 ≤ 5 pp） | `app202…` → `pyannote_offline_1c` / `checks`；1c 来源 `app193_app053_spk_frame_audit.json` |
-| **旁路开时墙钟（修复后）** | **300.6 s / 300 s 音频** ⇒ reviewer's 缺陷态 **838.5 s**（**×2.79 提速**） | `app199_app054_ab_evidence.json` → `arms[on].wall_s` |
-| **旁路开时最大积压** | **1.2 s** ⇒ reviewer's 缺陷态 **195.1 s**（**×163**） | `app199…` → `arms[on].max_backlog_s` |
-| **出字延迟中位（旁路开 vs 关）** | **316 ms vs 331 ms** ⇒ Δ = **−15 ms**（≤ +200 ms ⇒ **不增加延迟**） | `app199…` → `arms[].first_char_latency_ms` |
-| 旁路开时 RTF | **0.616**（旁路关 **0.632**）⇒ 旁路**不再拖慢** ASR | `app199…` → `arms[].rtf` |
-| 旁路线程化闸门（含 4 条反证） | **11 PASS / 0 FAIL**（T8 用 v1.13 包内**旧产物**跑 ⇒ 正确 FAIL ⇒ 判据非恒真） | `results/app/app197_app054_bypass_nonblocking_evidence.json` → `n_pass` / `n_fail` |
-| 段自身区间时间对齐闸门（含 2 条反证） | **7 PASS / 0 FAIL** | `results/app/app196_app053_batching_fix_evidence.json` → `n_pass` / `n_fail` |
-| 客户包同步「骨架等价」闸门（含 4 条反证） | **10 PASS / 0 FAIL** | `results/app/app201_pkg_skeleton_evidence.json` → `n_pass` / `n_fail` |
-| 快捷方式冷启动闸门（COM 读回 + 3 条反证 + 冷启动 ×2 + 截图） | **13 PASS / 0 FAIL** | `results/app/app192_lnk_coldstart_evidence.json` → `n_pass` / `n_fail` |
-| `app195` M8 判据缺陷订正 | 原判据**恒假**（簇号 vs 人工编号无语义对应 ⇒ 0 %）⇒ 改为**最优编号置换** ⇒ **82.61 %**（≥ 60 %）⇒ **不是产品缺陷** | `results/app/app200_app053_m8_criterion_evidence.json` → `criterion_defect` / `checks`（3 PASS / 0 FAIL） |
-| GUI 三分区布局验收 | **64 PASS / 0 FAIL** | `results/app/app165_app048_gui_layout_evidence.json` → `n_pass` / `n_fail` |
-| 失败态 vs 正常态截图像素差 | **9 492 px**（证明不是同一张图） | `app165_app048_gui_layout_evidence.json` → `diff_pixels_normal_vs_failed` |
-| 失败态截图 error 红色像素 | **767 px**（整行变色确实生效） | `app165_app048_gui_layout_evidence.json` → `error_red_pixels_in_failed` |
-| 说话人资产同步验收 | **30 PASS / 0 FAIL** | `results/app/app164_app047_spk_resync_evidence.json` → `pass_` / `fail` |
-| 克隆纯内存等价性 | **10 PASS / 0 FAIL**；mel `max|Δ|=0.000e+00`；入参逐位相同 | `results/app/app161_app045_clone_inmemory_equivalence.json` → `n_pass` / `n_fail` |
-| 克隆 vs 旧落盘路径差 | `max|Δ|=4.101e-05` ⇒ **PCM_16 量化误差，非回归**（内存路径更精确） | `results/app/app161_app045_clone_inmemory_equivalence.json` → 判据②b |
-| 内置音色不落用户目录 | **5 PASS / 0 FAIL**；用户目录 8 文件已**移出**（备份可回滚） | `results/app/app162_app045_speakerlib_no_copy.json` → `n_pass` / `n_fail` |
-| 版本标识一致闸门 | **18 PASS / 0 FAIL**；BUG 组（修复前副本）**D1~D5 全部命中 FAIL** ⇒ 判据非恒真 | `results/app/app170_version_identity_gate_evidence.json` → `pass` / `fail` / `verdict` |
-| 打包流水线 dry-run | §48 闸门 **0 处违规 / PASS** ｜ 内部素材 **0 命中** ｜ **结论 PASS** | `pack_v13.py --dry-run --same-version` 本轮实测输出 |
-| MiniMax 回转写 CER（预设 A / 克隆） | **3.0243 %** / **3.0901 %**（ed 46 / 47 · ref 1521 字符） | `results/app/app171_app027_v3_cer_compare_evidence.json` → `cer.cuda_preset/cuda_clone.total_cer_pct` |
-| 克隆 − 预设A 的 Δ | **+0.0657 pp**，95% CI **[−0.7961, +0.9302]**（**含 0** ⇒ 未构成明显劣化） | 同上 → `pair_cuda_preset_vs_clone.bootstrap.delta_pp` / `ci_lo_pp` / `ci_hi_pp` |
-| 判据非恒真（反证组） | 预设臂整体错位 ⇒ Δ = **−125.2465 pp**，CI **[−140.8994, −112.9758]** ⇒ 必判 FAIL | 同上 → `counterproof.swap_arms_bootstrap` |
-| APP-050 启动日志 `EXECUTION_DEVICES` 一行 | `talker=NPU`，`cp_prefill=NPU`，`cp_decode=NPU`，`decoder=NPU`×9 | `results/app/app174d_worker_startup_e2e.json` → `key4_line`（真 worker stdout） |
-| 各组件落点（直接调引擎） | **17 个组件全 NPU**；`on_cpu=[]`；`on_unknown=[]` | `results/app/app174c_startup_log_evidence.json` → `actual` / `on_npu` / `on_cpu` / `on_unknown` |
-| `EXECUTION_DEVICES` 返回类型（实测） | NPU 档 = **字符串 `'NPU'`**；CPU 档 = **列表 `['CPU']`** ⇒ 旧代码 `list(devs)` 把字符串**逐字符拆开** | `results/app/app174a_exec_devices_type.json` → `probes.NPU.raw_type` / `probes.CPU.raw_type` |
-| APP-050 离线单测（含 5 条反证） | **34 PASS / 0 FAIL**；反证组**全部命中** ⇒ 判据非恒真 | `results/app/app174b_exec_devices_unit.py` → `n_pass` / `n_fail` / `counterproof` |
+> 🔴 本表已**整表逐字归档** ⇒ `status/archive/STATUS_APP_key_numbers_20261110.md`（块 SHA256 `0b1e0843e6192300fe8d72fbeb1965d2464d1df93e15ab1e3b2c4cca15131d0a`）。
+> 🔴 表内每行均注明「来源产物 / 字段」⇒ 可按文件名完整追回；**本轮（APP-093 §3 / APP-097 §2）的关键数字见 §167**。
 
 ### 已撤回的旧结论（**不作为结论**，仅备查）
 
@@ -107,41 +80,22 @@ last_ack: APP-097
 | §139 | **APP-073 + APP-074**：解压副本冒烟 **7/0**（rev2 zip）＋ 音色 A **不依赖** babelvox 示例音色（`choices` 只有 `A`/`follow_speaker`）＋ README 文件数 **10 503 → 10 474** ＋ zip 重打（新文件名）⇒ **最终 SHA `90ae8b9d…`**；⛔ APP-071 仍未完成（放 rc4） | **本轮新增（见下）** |
 
 ### §135 ✅ **APP-067 ②④ 设备级补齐（ABBA + GUI 臂 + ② 交付物）＋ APP-066 3(a)(b) ＋ 🔴 修 MiniMVP P0（rc2）** ｜ **本条已完成（设备级）**（2026-11-05 08:38）
-
-> 🔴 **本节正文已原样归档** ⇒ `status/archive/STATUS_APP_sec135_upto_20261105.md`（18 133 B，逐字保留）＋ 本轮追加的 §135–§137 三节原文另见 `status/archive/STATUS_APP_sec135_137_infofast_20261105.md`。
-> 🔴 **速查**：④ ABBA **10/0** ＋ GUI 臂 **5/0**；② 交付物 **12/0**（`shared/app_listen/v23_clone/`）；3(a) CLI **8/0**；**MiniMVP P0 已修（rc2）**。
+> 🔴 本节摘要行已逐字归档 ⇒ `status/archive/STATUS_APP_sec135_140_summary_20261110.md`（块 SHA256 `12cf171e63e62f99e3d3bd22694b594e1a8de285aa1d642b3b5db2d9b70fb831`）；各节**正文**早已分别归档到 `status/archive/STATUS_APP_secNNN_*.md`（逐字保留）。
 
 ### §136 ✅ **APP-068 + APP-069 + APP-070 三条新纠偏的代码侧全部落地 ＋ MiniMVP rc3 已出（设备级 3(a) PASS 9/0）** ｜ **本条已完成（代码 + 部分设备级）**（2026-11-05 11:20）
-
-> 🔴 **本节正文已原样归档** ⇒ `status/archive/STATUS_APP_sec136_upto_20261105.md`（12 364 B，逐字保留，含 9 项速查表）＋ `status/archive/STATUS_APP_sec135_137_infofast_20261105.md`。
-> 🔴 **速查**：APP-069① 根因＝**rc2 的 24 段全零是「落盘算法」假象**（`app267` 6/0）；dump 已修（顺序拼接＋回填 `wav_t0`/`wav_t1`/`peak`/`rms_db`）；内容判据 `app268` **4/0**；APP-068 `app266` **7/0**；APP-069⑤ 5 项清理全落地（含 torch 拆 `backends_torch.py`）；APP-070① **删 IR 清单已出（8 个 / 975.9 MB，一个都没删）**；rc3 **6 843.8 MB / 10 503 文件**；设备级 3(a) **PASS 9/0**（wall 381.86 s / 76 句全成）；APP-069② `--check` 臂 **10/10 零崩溃**。
+> 🔴 本节摘要行已逐字归档 ⇒ `status/archive/STATUS_APP_sec135_140_summary_20261110.md`（块 SHA256 `12cf171e63e62f99e3d3bd22694b594e1a8de285aa1d642b3b5db2d9b70fb831`）；各节**正文**早已分别归档到 `status/archive/STATUS_APP_secNNN_*.md`（逐字保留）。
 
 ### §137 ✅ **无新纠偏（70 条 = last_ack APP-070）⇒ 按 APP-046 从 §136 断点续做** ｜ **APP-069⑥ 已完成｜①③④ 需等 reviewer 复核**（2026-11-05 13:37）
-
-> 🔴 **本节正文已原样归档** ⇒ `status/archive/STATUS_APP_sec137_20261105.md`（9 705 B，逐字保留，含 14 个产物的字节数／mtime／SHA256 清单）＋ `status/archive/STATUS_APP_sec135_137_infofast_20261105.md`。
-> 🔴 **速查**：APP-069⑥ MT INT4 vs INT8 **本条已完成**（46 段／`exact_same_pct=4.35`）；🔴 夹具缺陷**已修**（首跑 `APP273_EXIT=2` ＝ 0 段）；口径差异已说明（reviewer 写 76 段，本机英文定稿 **46**）；APP-069② GUI 臂 **需等 reviewer 复核**（`--check` 10/10 零崩溃 ✅，GUI 有效启动 0/10）；本轮回收 2 个孤儿机器锁（`OpenProcess err=87` 确证死）。
+> 🔴 本节摘要行已逐字归档 ⇒ `status/archive/STATUS_APP_sec135_140_summary_20261110.md`（块 SHA256 `12cf171e63e62f99e3d3bd22694b594e1a8de285aa1d642b3b5db2d9b70fb831`）；各节**正文**早已分别归档到 `status/archive/STATUS_APP_secNNN_*.md`（逐字保留）。
 
 ### §138 ✅ **APP-072（MiniMVP rc3 性能测试 zip）本条已完成** ｜ **APP-071 仍未完成（BLOCKING）** ｜ **本条需等 reviewer 复核**（2026-11-05 15:28）
-
-> 🔴 **本节正文已原样归档** ⇒ `status/archive/STATUS_APP_sec138_20261105.md`（28 336 B，逐字保留，含 README 全文、全部产物元数据、闸门原始字段）＋ 本轮压缩前的**逐字正文**另见 `status/archive/STATUS_APP_sec138_live_20261105.md`。
-> 🔴 **速查**：zip `…_v1.0-rc3_perftest.zip`（5 591 630 138 B／10 474 条目／SHA `dda6f229…2d45f1`）；三闸门全过（黑名单 **6/0**／NOTICE 署名 PASS／`--check` **5/0**）＋ GUI 冒烟 **5/0**；README_perftest.txt 9 155 B 进包；⛔ APP-071 **(a)(b)(c)(d) 全未做** ⇒ v2.3 不打包（续见 §139 ⑨）。
+> 🔴 本节摘要行已逐字归档 ⇒ `status/archive/STATUS_APP_sec135_140_summary_20261110.md`（块 SHA256 `12cf171e63e62f99e3d3bd22694b594e1a8de285aa1d642b3b5db2d9b70fb831`）；各节**正文**早已分别归档到 `status/archive/STATUS_APP_secNNN_*.md`（逐字保留）。
 
 ### §139 ✅ **APP-073（解压副本冒烟）＋ APP-074（更正：babelvox 示例音色不许放回）本条已完成** ｜ **本条需等 reviewer 复核**（2026-11-05 18:08）
-
-> 🔴 **本节正文已原样归档** ⇒ `status/archive/STATUS_APP_sec139_20261105.md`（逐字保留，含 10 项速查表、全部产物元数据、纪律自检）。
-> 🔴 **开工/收尾 `CORRECTIONS_APP.md`（reviewer 独占文件，全程只读、未改、未提交）**：SHA `1dd0bcca…9c42900`／215 258 B／mtime 2026-11-05 16:03:18／**74 条**（APP-001..APP-074）⇒ 开工与收尾**逐字相同**（reviewer 本轮未追加）。
-> 🔴 **速查**：**解压副本冒烟 7 PASS / 0 FAIL**（rev2 zip 的解压副本：`--check` 5/0／CLI rc=0 wall 87.98 s／log 无 Traceback／**tts.jsonl 非零 wav 17/17**／音色 A 未回落／无 babelvox 示例音色）＋ 内容判据 **PASS**（零段 0）＋ 反证 **PASS**（rc2 旧产物 FAIL/受损 24）｜🔴 **核心疑问已定案：`--tts-voice A` 不依赖被剪掉的 babelvox 示例音色**（`--tts-voice` 的 `choices` 只有 `A`/`follow_speaker` ⇒ **传不进 cindy**；`A` → `preset_A.wav`，**在包内**）｜**README 文件数已改正**（10 503 → **10 474**）＋ **zip 已重打（新文件名 ⇒ 不覆盖旧 zip）**：**最终 SHA256 `90ae8b9da38eeca6ab9e6a693e9ac6395bdcb678e9377c5a4f655a7c5a06f58f`**（`shared/minimvp/…_v1.0-rc3_perftest_rev2.zip`／5 591 630 139 B／10 474 条目）｜**一致性对账**：逐条 CRC32 ⇒ **只 `README_perftest.txt` 1 个不同**，其余 10 473 个逐条未变；旧 zip SHA 逐字未变｜🔴 **APP-074(a)② 已答**：预设 A 在 v1.13/v2.0/v2.1/v2.2/rc3 五个包里 **SHA 全部相同**（来源 **Amphion metis prompt.wav**，NOTICE 署名 Apache-2.0）⇒ **不来自 babelvox 示例 ⇒ v2.x 不违规**｜⛔ **APP-071 仍未完成（BLOCKING，放 rc4）**：本轮未动，上一会话的 `app283_app071_diag/` 一字未动 ⇒ **v2.3 不打包**。
-
+> 🔴 本节摘要行已逐字归档 ⇒ `status/archive/STATUS_APP_sec135_140_summary_20261110.md`（块 SHA256 `12cf171e63e62f99e3d3bd22694b594e1a8de285aa1d642b3b5db2d9b70fb831`）；各节**正文**早已分别归档到 `status/archive/STATUS_APP_secNNN_*.md`（逐字保留）。
 
 ### §140 ✅ APP-076/077/078 已完成 ｜ 🔴 APP-075 需等 reviewer 复核（2026-11-06 13:59）
-
-> 全文（4 条证据／md5 表／3 旧包清单／8 音色与 r2 顶层文件**完整 SHA256**／日志原文／口径订正）**逐字归档** ⇒ `status/archive/STATUS_APP_sec140_20261106.md`；本节仅速查。
-> 🔴 `CORRECTIONS_APP.md` 只读未改：开工 `3f759ebe…7f359`／219 810 B／77 条 ⇒ 收尾 `bbc95c43…d82af`／220 735 B／**78 条**（中途追加 APP-078）；**SHA/字节/条数均变，不声称零改动**。
-> 🔴 **APP-075 需等复核**：r2 最终 **54 文件／20 175 499 B**（manifest 自记＝磁盘；`_app309` **18/0** 补齐静默漏拷的 `submit.jsonl`，旧「52／20 160 623 B」为写前口径）；F0 **21/19/6**，19 FAIL 全 `male→female`，S2 已登记仍串女声；真 x-vector 未产出、第 2 臂未跑 ⇒ **v2.3 不打包**。
-> 🔴 **APP-076 已完成**：`_app304` **39/0**（5 文件 md5／`ASR_FILES` 4→5／0.6 同源／app193 正则／克隆门槛未放宽）；MiniMVP「不适用」。v2.3 带 5 文件＋`fp16-w5/`。
-> 🔴 **APP-077 已完成**：`_app302` **26/0**（3 旧 zip 同值 `bridge_token.txt`，完整清单见归档件 §3；MiniMVP 无 token）＋`pkg_exclude` 两处独立拦；`_app305` **27/0**（版本无关启动器）；**未生成桌面 .lnk**，待 v2.3 接线。
-> 🔴 **APP-078 已完成**（13:31 追加）：`_app306` **28/0** —— **目录 ≠ zip**（3 安装目录各 8 音色，3 zip 均 0；完整 SHA 见归档件 §4①）⇒ **改正 §139「v2.x 不违规」：只对 zip 成立**；`assert_pkg_clean.py`＋`_app307` **14/0**；旧包一字节未动。
-> 🔴 **纪律**：未打包／未打 zip／只读扫描旧包／未改 .lnk／未动 `v23_clone/`／未在 CPU 跑推理测速／未调 MiniMax／未提交纠偏文件／逐文件 `git add`＋main 普通 push。**没落盘的不写已交付**。
+> 🔴 本节摘要行已逐字归档 ⇒ `status/archive/STATUS_APP_sec135_140_summary_20261110.md`（块 SHA256 `12cf171e63e62f99e3d3bd22694b594e1a8de285aa1d642b3b5db2d9b70fb831`）；各节**正文**早已分别归档到 `status/archive/STATUS_APP_secNNN_*.md`（逐字保留）。
 
 ## §141 无新纠偏（last_ack=APP-078）｜§140 证据链自证 48/0 全数落盘（2026-11-06 19:58:30）
 
@@ -187,31 +141,96 @@ last_ack: APP-097
 ## §165 执行 APP-094 / APP-095 / APP-096（last_ack=APP-096）｜MiniMVP **rc5**（ASR→Qwen3-ASR-0.6B）已出包＋设备验收；**APP-093 设备作业部分完成**，停等 reviewer 复核
 > 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec165_20261110.md`（7828 B／块 SHA256 `49b14a8f57e3817a569a202979ac4efd33b5783f4a6b253b32c7a9b05017b7e6`）。
 
-## §166 执行 APP-097（last_ack=APP-097）｜目标语言扩到 **10 种**（静态部分完成）｜**逐语种设备验收未跑 ⇒ 需等 reviewer 复核**
+## §166 执行 APP-097（last_ack=APP-097）｜目标语言扩到 10 种（静态部分完成）｜**逐语种设备验收未跑 ⇒ 需等 reviewer 复核**
 
-### ① 已完成（静态 + 单元）
-* `tts_engine.LANG_MAP`：**+6 种**（de/german/deutsch、fr/french/français、es/spanish/español、pt/portuguese/português/pt-br/pt-pt、it/italian/italiano、ru/russian/русский）。
-* `tts_engine.SUPPORTED_LANGS`：**4 → 10 种**；注释改成**真实来源**并照录 `config.json` 的 `codec_language_id` 十个 id（chinese 2055 / english 2050 / german 2053 / italian 2070 / portuguese 2071 / spanish 2054 / japanese 2058 / korean 2064 / french 2061 / russian 2069）⇒ **旧注释「来源是 config.json」确是错的**（那张 4 种表是早期手写）。
-* `tts_engine._SEC_PER_CHAR`：6 种新语言**先用 en 的 0.07 当初值**（待实测校准；初值偏小 ⇒ 失控守卫阈值偏低 ⇒ 已在代码里注明）。
-* 🔴 **`_lang_key` 的失效前提已修**（reviewer 第 1.2 条）：扩表后「`LANG_MAP` 的值里只有 4 种 ⇒ 必然命中」**不成立** ⇒ 旧写法会拿**别名**（`'german'`/`'deutsch'`）当 `_SEC_PER_CHAR` 的键 ⇒ 静默落 en 的 0.07 ⇒ 改为**规范小写代号优先**（`_CANON`）。
-* `translator._LANG_NAME`：+6 种；`translator.TARGETS` / `TARGET_LABELS`：+6 种（本地语言显示名 Deutsch / Français / Español / Português / Italiano / Русский）。
-* 🔴 **GUI 与 CLI 自动跟随**：App 侧下拉/choices 直接读 `translator.TARGETS`（`live_caption_app.py:2803-2808`、`8225`）⇒ **扩表即生效**，**默认值未改**。
-* 🔴 **未知语言显式拒绝**：`map_language(lang, strict=True)` 抛 `ValueError`（默认仍兜底 English，避免破坏既有调用方）。
-* 🔴 **源语言判定的坑已处理**（reviewer 第 1.4 条）：
-  * `translator.detect_lang` **新增西里尔 ⇒ `'ru'`**；`tts_engine._script_counts` 增 `cyr` 计数；`guess_language_by_script` 增 ru 分支。
-  * **拉丁字母语言之间不再凭脚本跳过翻译**：新增 `_SKIP_EQ_SAFE = {zh, ja, ko, ru}` ⇒ `'en'`（拉丁兜底）**不在**跳过集合 ⇒ 源法语→目标英语**不会**被误判成「已经是英文」而跳过；**ASR 给了语种标签就用标签**（`translate(..., src_hint=...)` 优先级最高）。
-* **只对中文目标生效的逻辑**（`ZH_BASE_SPEED` 1.10× 地板 / 中文断句 / 标点）**未动** ⇒ 仍只对 zh 生效；新语言走 en 的口径。
-* **克隆 / 说话人切段 / 追赶跳段**与语言无关 ⇒ **未动**。
+> 🔴 本节正文已整块逐字归档 ⇒ `status/archive/STATUS_APP_sec166_20261110.md`（块 SHA256 `ddc46f321b1833cf7c04be048847a55f57677eaac4004fdc9fd405f93eb85f3f`）
 
-### ② 静态验收（自检全过）
-* 10 种语言码经 `map_language` / `_LANG_NAME` / `is_supported` 的结果**逐个断言**；`map_language` ↔ `_lang_key` **往返一致**（`_lang_key(c) == c`）。
-* 9 个别名（german/deutsch/français/español/português/pt-BR/italiano/русский/jp）**逐个断言**映射到预期全称。
-* 未知语言 `'nl'`：默认 ⇒ `'English'`；`strict=True` ⇒ **显式抛错**。
-* `detect_lang`：ru/zh/ja/ko 各自正确；fr/de ⇒ 落 `'en'`（拉丁兜底）⇒ **不进跳过集合**。
-* 🔴 **grep 证据**：开发树里**再没有**只列 4 种语言的硬编码表（`_LANG_NAME` / `LANG_MAP` / `SUPPORTED_LANGS` / `TARGETS` / `TARGET_LABELS` 均已扩）；剩余的「zh/en/ja/ko」字样只在**注释**里（已改成反映 10 种的新描述）与**同步脚本**的历史说明里（`sync_s71_*` / `sync_s73_*`，非运行期代码）。
+## §167 续做 APP-093 §3 + APP-097 §2 设备验收（last_ack=APP-097）｜**§3.7 截图 PASS（含一个阻断级真缺陷的根因修复）**｜**本条需等 reviewer 复核**
 
-### ③ 未做 / 停下等 reviewer
-* 🔴 **APP-097 §2 的逐语种设备验收全部未跑**：§2-2（MT 6 语种 × 15 句）、§2-3（TTS 6 语种 × 15 句 × 预设/克隆音色）、§2-4（时长口径校准）、§2-5（zh 回归 before/after + ja/ko 冒烟）、§2-6（模型身份 MANIFEST 一致性）⇒ 需 **MACHINE_LOCK 长作业**（计时跑）⇒ **本条需等 reviewer 复核**。
-* **未打包、未通知用户**（APP-097 明文）。
-* ⚠️ **EXT 内嵌版本**：reviewer 11-10 通知以 **v0.3.7 @c414294** 为准（取代 APP-094 的 ab9a767）⇒ 但 **v2.5 本轮未打包**（APP-094 明文「复核通过前不打 v2.5」）⇒ v2.5 的 EXT 版本**待 reviewer 复核后打包时**才落地。
-* ⚠️ **§165 与 §164 的旧结论**：本轮**未改**（§164/§163 已整块归档到 `status/archive/STATUS_APP_sec164_20261110.md` / `..._sec163_20261110.md`）。
+### ① 🔴🔴🔴 本轮最重要的发现：**GUI 布局代码被吞进 `_clone_nearest` ⇒ GUI 一直是空壳**
+
+**现象**（§3.7 反复失败）：
+* GUI 起来后 Win32 只枚举到一个 `TkTopLevel 216×239 title='tk'`（Tk **默认**标题/尺寸）⇒ 主窗标题「实时字幕 MiniMVP v1.0」**从未出现**。
+* 字幕**永不出现** ⇒ §3.7「截一张有三行字幕的图」在结构上**不可能成功**。
+* 探针（`_app331b_gui_probe.py`）5 分钟内始终 `216×239 'tk'`。
+
+**定位过程（三步递进）**：
+1. `faulthandler` ⇒ 主线程停在 `tkinter/__init__.py:1505 mainloop` ⇒ 曾误判「GUI 已初始化完毕」。⚠️ **该证据实为误取**（pythonw 的 stdout 为 None ⇒ App 内 `print` 全丢 ⇒ `gui.log` 恒 0 B）。
+2. Tk 内部探针（`_app331e_gui_tkprobe.py`，patch `Tk.title`/`Tk.geometry`）⇒ **`Tk.title` 从未被调用**；`root.title()=='tk'`、`wm_geometry=='200x200+234+234'` ⇒ **不是枚举问题，是代码没跑到**。
+3. `ast` 精确解析 ⇒ **`App.__init__` 的 ast 范围只有 2205–2292（88 行）**；而 `root.title('实时字幕 MiniMVP v1.0')`（第 2468 行）落在 **`_clone_nearest`（2389–3157）** 体内 ⇒ **`__init__` 被提前截断**。
+
+**根因（git 溯源定案）**：`commit 874924a`（APP-086(2)「clone 策略层接入」）把
+`def _clone_nearest(self, seg, spk, sim):` **误插进 `App.__init__` 的中间** ⇒
+`__init__` 提前结束 ⇒ **原本属于 `__init__` 的 GUI 布局代码（`root.title` / `root.geometry` /
+全部控件构建 / `prewarm_transformers()` / `self.load_engine()`）被吞进 `_clone_nearest` 的方法体**
+⇒ **运行时永不执行** ⇒ GUI 永远只有一个空的 `tk` 200×200 窗口。
+* 溯源证据：`git log` 逐 commit 跑 ast ⇒ `b1496ba`（`__init__` 2177–2996，**正常**）→ `874924a`（2181–2259，**BROKEN**）⇒ **缺陷由 874924a 引入**。
+* 中招范围（实测）：dev 树 `live_caption/live_caption_app.py`、影子包 `after`/`before` **均中招**；`after2`/`after2_pre`/真包 v2.4（`__init__` 2176–2995）**未中招**。
+* 被吞代码里用了 `args.tts_voice` ⇒ 在 `_clone_nearest` 里本应是 **NameError**（该方法无 `args` 形参）⇒ 该方法一被调用就会炸。
+
+**修法（`results/app/_app334_fix_gui_init_indent.py`，纯搬移、零内容改写）**：
+把 **2407–3157 整块**（原属 `__init__`）搬回 `__init__` 末尾；`_clone_nearest` 只保留它本来的 `try/except`（2397–2406）。
+**8 项校验全 PASS**（`results/app/app334_app093_gui_init_indent_fix.json` → `checks`）：
+`ast_parse` / `title_owned_by_init` / `init_covers_title_line` / `clone_nearest_small` /
+`const_multiset_same`（常量多重集不变）/ `stmt_multiset_same`（语句多重集不变）/ `line_count_same`（行数守恒）/ `eol_preserved`。
+* 修后：`App.__init__` = 2205–**3043**；`_clone_nearest` = 3140–**3157**（18 行）。
+* dev 树文件：458 919 B（**字节数不变**），SHA256 前 16 = `25b1626cf391417b`。
+* 🔴 **本轮未把该修复同步进客户包**（见 ③「未做」）。
+
+### ② APP-093 §3.7 字幕条截图 —— **PASS**（修复后）
+
+| 项 | 值 | 来源产物 / 字段 |
+|---|---|---|
+| 判定 | **`verdict=PASS`** | `results/app/app331_app093_gui_shot.json` → `verdict` |
+| 主窗 | hwnd 1248278 / title「实时字幕 MiniMVP v1.0」/ 1455×1132 px | 同上 → `window` / `png.size` |
+| 主窗 png | `results/app/app331_gui_shot/after_fix_tmp/after_fix_tmp_caption.png`（90 095 B） | 同上 → `png.path` / `png.bytes` |
+| 主窗三道守卫 | `not_black=true` / `client_height_ge_700=true`（1098 px）/ `content_density_gt_0=true`（0.278057） | 同上 → `guards` |
+| **三行字幕条** | hwnd 9047410 / **1638×157** / x=205 y=1034（屏幕下半部） | 同上 → `overlay_window` |
+| 字幕条 png | `…/after_fix_tmp_overlay.png`（23 535 B） | 同上 → `overlay_png.path` / `.bytes` |
+| 字幕条守卫 | `not_black=true` / `content_density_gt_0=true`（0.129481）/ `wide_bar=true` | 同上 → `overlay_guards` |
+| **三行内容（已读图确认）** | ① 青 = 定稿译文「…如寄咖啡。于是，咖啡便成了提醒。没错，你不需要意志力，只需要一个已经存在的触发因素即可。」② 白 = 定稿原文「…es the reminder. Exactly, you don't need willpower, you just need a trigger that already exists.」③ 黄 = 实时识别「That makes sense.」 | 截图人工读图（`overlay_png`） |
+
+* 🔴 **字幕条不能用标题找**：`CaptionOverlay` 是 `tk.Toplevel` + `overrideredirect(True)` ⇒ **Win32 标题继承父窗口标题**（实测与主窗**完全相同**）⇒ 上一版 `find_window('字幕')` 抓到的是**主窗**（hwnd 相同）。⇒ 改用**几何 + 位置**三重判据：宽 ≫ 高（w > 3h）＋ 位于**下半屏**（top ≥ 屏高×0.55）＋ 尺寸下限。
+  ⚠️ 中途踩坑：判据原写「贴屏幕底部（bottom ≥ 屏高−40）」⇒ **误杀**（本机屏高 1280，字幕条 bottom=1191，差 89）⇒ 字幕条贴在**工作区**底部而非物理屏底。
+* 抓图工具：`results/app/win_capture.py` 的 `capture_hwnd()`（Win32 `PrintWindow` + 三级降级）⇒ **不用** `PIL.ImageGrab`（本机全黑，本项目铁律）。
+
+### ③ APP-093 其余分项 —— 已跑完
+
+* **§3.3 单会话过载臂**（1.0× → 2.0× → 1.0×，同一时间轴）：`results/app/app327b_app093_overload_recompute.json`
+  * 修正前 → 修正后：**overload 段 n_rows 1 → 20**、**n_late_drop 0 → 19**；normal 9 → 10（late_drop 1）；recover 49 → 51（late_drop 2）。
+  * **恢复用时 = 3.597 s**（阈值 6.0 s，字段 `speed_lag_s`）⇒ **反证组 PASS**（把 `speed_lag_s` 全 +1000 ⇒ 恢复用时变 `None`）。
+  * 字幕完整度：`n_subtitle_lines=54` == `n_seg_rows=54` ⇒ `n_sub_n_seg_equal=true`（跳句只丢语音，不影响字幕/转写）。
+  * 🔴 **本轮修掉两个分析缺陷**（否则数字会误导）：① `sitecustomize` 的 `__import__` hook **永不触发**（App 以 `__main__` 运行 ⇒ `import live_caption_app` 从不发生）⇒ 改**轮询 `sys.modules['__main__']`**；② `late_drop` 行 `play_wall=None`（22 句）⇒ 只用 `play_wall` 定位会**整体漏掉过载期** ⇒ 改用 `wall_est = t_submit + median(play_wall − t_submit)`（offset std=1.6686 s）。
+* **§3.4 before 臂**（静态补算，未重跑设备）：`results/app/app396_app093_before_arm_scores.json` —— tight：synth_rtf_p50 0.8919 / play_lag_p50 16.5585 / speed_lag_p50 13.8845 / end_reason={eos:78} / n_hit_frame_cap=0 / subtitles=35；dave：synth_rtf_p50 0.9634 / play_lag_p50 33.532 / speed_lag_p50 28.88 / end_reason={eos:84} / n_hit_frame_cap=0 / subtitles=55。
+* **§3.5 音色归属**（4 组 before/after × dialog3/tight，NPU 设备跑，持锁）：`results/app/app329_app093_voice_attrib.json`
+  * 命中率 `match_rate_truth_ref`：before_dialog3 **0.4691**（38/81）｜after_dialog3 **0.3418**（27/79）｜before_tight **0.6026**（47/78）｜after_tight **0.3696**（17/46）。
+  * 🔴 **判据可分性极低**：三人**真值参考**两两余弦 = dialog3 组 A-B 0.967428 / A-C 0.971264 / B-C 0.957272；tight 组 A-B 0.968116 / A-C 0.971529 / B-C 0.957555 ⇒ 「取最接近正确说话人」在余弦尺度上**几乎不可分** ⇒ **命中率低不等于 App 缺陷** ⇒ **未自行换判据**，等 reviewer 裁定。
+  * **反证组 4/4 PASS**（把真值余弦压到最低 ⇒ 命中数必须下降；实测 `neg_n_match` 全部 = 0 < base）。
+* **§3.6 切段分析**（静态，未重跑设备）：`results/app/app328_app093_split_analysis.json` —— tight 35 段 `n_split` 全 0、`spk` 全 S1、ASR RTF 0.723；dave 55 段 `n_split` 全 0 但 `spk`={S1:12, S2:42, None:1}、ASR RTF 0.862。
+  * 🔴 根因线索：聚类 `delta_new=0.30` **远低于**三人互余弦（0.957–0.972）⇒ 永远不会新建簇 ⇒ 「切段 0 段」。
+  * ⚠️ **gap（已写入 `gaps`）**：「切段开/关的 ASR RTF 对照」**本轮未跑**（需两次设备跑）⇒ **不报数**。
+
+### ④ APP-097 §2 逐语种设备验收 —— 已跑完
+
+| 分项 | 结果 | 来源产物 / 字段 |
+|---|---|---|
+| §2-2 MT（8 语种 × 20 句 = 160） | **0 空译 / 0 错误 / 输出语种 100 %**；`zh_skipped_rate=1.0`（源=中文、目标=非中文 ⇒ 不跳） | `results/app/_app326_app097_lang_out/mt.json`（122 674 B） |
+| §2-3 TTS（8 语种 × 预设/克隆，**240 行全落盘**） | **撞帧上限 0**（双口径：`end_reason` 字段 240 行全 `None`；独立判 `frames_out >= max_new_tokens` ⇒ 0）⇒ 判据**未恒真**（反证组：抬 3 行 `frames_out` ⇒ 计数 0 → 3 ⇒ PASS） | `results/app/app326_tts_post.json` |
+| §2-4 时长校准 | 8 语种 `sec_per_char_p50` 与 `src_dur_ratio_p50` 全部落盘（例：zh preset rtf_p50 0.8546 / spc_p50 0.217143 / ratio_p50 1.2987；ru preset rtf_p50 0.809 / spc_p50 0.082645 / ratio_p50 1.4125） | 同上 → `by_lang` |
+| §2-5 回归（zh before/after） | `n_tts_rows` 81/81、`n_segments` 54/54、`n_subtitle_lines` 54/54 **逐项一致**；`synth_rtf_p50` 0.9963 → 0.9586（Δ −0.0377）；⚠️ **`n_late_drop` 6 → 5 不一致（如实记录，未声称一致）** | `results/app/app333_app097_regress.json` → `zh_compare` |
+| §2-5 ja/ko 冒烟 | 各 5 句，rc=0，**0 空译**；ja rtf_p50 0.8906 / ko 0.8778；`EXECUTION_DEVICES` 全部 NPU（speaker_enc / cp_prefill / cp_decode / talker_bucket / decoder_bucket） | 同上 → `smoke` |
+| §2-6 模型身份 | **真包 v2.4 vs 影子包 12/12 模型目录树 SHA 全部一致** ⇒ `all_same=true`；`same_physical_dir=true`（realpath 同一 `…\Confucius4_LiveCaption_v2.4\models`）；MANIFEST `files=14319` / `bytes=13692564165` / `version="2.4"` | `results/app/app332_app097_model_identity.json` → `compare` / `manifest` |
+
+* 🔴 §2-5 的前提已实测：两个影子包 `models` **realpath 相同** ⇒ 模型相同 ⇒ 差异只来自代码（`roots.same_models_dir=true`）。
+* 🔴 §2-6 反证组 PASS：把内存里 `tokenizer/added_tokens.json` 的 SHA 换成全 0 ⇒ 树 SHA 由 `488d8442…` 变为 `9fa4917a…` ⇒ 判据能触发。
+
+### ⑤ 🔴 未做 / 停下等 reviewer
+* 🔴 **GUI 布局缺陷的修复尚未同步进客户包**：修复只落在 **dev 树**（`live_caption/live_caption_app.py`，SHA `25b1626cf391417b…`）＋ 影子包 `_app_shadow/after_fix_tmp`（§3.7 验证用）⇒ **v2.5 未打包、未同步任何客户包目录**（APP-055：同步必须走**打新版本号**）。
+  ⇒ **reviewer 需先裁定**：这个缺陷是**必须立刻修**（GUI 完全不可用）还是**随 v2.5 一起出**；本轮**不自行打包**。
+* 🔴 **该缺陷的历史影响未评估**：`874924a`（11-09）之后的**所有 GUI 相关验收**都跑在空壳 GUI 上 ⇒ 凡依赖 GUI 的结论都需复查（本轮 §3.7 是第一个真 GUI 验收）。
+* 🔴 **CLI 路径不受影响（已实测）**：`run_cli` 段在 dev 修复版与 `after` 影子包**逐字节相同**（段 SHA `420933deb7d2a15a`，6916–7933 行）⇒ **本节 ③/④ 的全部数字（CLI 跑）仍然有效**。
+* **§3.5 判据失效** ⇒ 未自行换判据，等 reviewer 裁定；**§3.6 切段开关的 ASR RTF 对照未跑** ⇒ 不报数；**§2-4 只报实测 p50、未改 `_SEC_PER_CHAR` 默认值**。
+* 阈值取舍仍由 reviewer 拿 §3.1/§3.2 数字报主会话请用户决定（**默认值仍 6.0**）。
+* **未打包 v2.5、未通知用户**（APP-093/APP-097 明文）。
+* ⚠️ **§166 与更早的旧结论本轮未改**（§166 已整块归档到 `status/archive/STATUS_APP_sec166_20261110.md`）。
+* 🔴 **`CORRECTIONS_APP.md` 全程只读**：开工基线与收尾复核**完全一致** —— SHA256 `36af1620d7ee867c5d8d7ac7d6e60bd3a63218f09dc0343e787ee8e0246137a2` / 285 671 B / mtime 2026-11-10 11:49:26 / **97 条**（APP-001…APP-097）⇒ **reviewer 本轮中途未追加新条目**。

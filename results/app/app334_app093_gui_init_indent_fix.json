@@ -1,0 +1,91 @@
+{
+ "file": "live_caption/live_caption_app.py",
+ "bytes_before": 458919,
+ "eol": "LF",
+ "lines_before": 8371,
+ "init_range_before": [
+  2205,
+  2292
+ ],
+ "clone_nearest_range_before": [
+  2389,
+  3157
+ ],
+ "init_len_before": 88,
+ "clone_real_body_end": 2406,
+ "cn_direct_stmt_count": 261,
+ "block_a_moved": [
+  2407,
+  3157
+ ],
+ "block_a_first_line": "        # 🔴🔴🔴 APP-053：**上一段的结束时刻**（全局时间轴）",
+ "block_a_last_line": "        root.after(self.POLL_MS, self._poll)",
+ "lines_after": 8371,
+ "lines_ conserved": true,
+ "init_range_after": [
+  2205,
+  3043
+ ],
+ "clone_nearest_range_after": [
+  3140,
+  3157
+ ],
+ "title_call_owners_after": [
+  [
+   2354,
+   "__init__"
+  ]
+ ],
+ "call_sites_after": [
+  {
+   "call": "geometry",
+   "arg": "f'{self.w}x{h}+{(sw - self.w) // 2}+{sh - h - int(sh * 0.07)}'",
+   "line": 2019,
+   "owner": "__init__"
+  },
+  {
+   "call": "geometry",
+   "arg": "f'+{x}+{y}'",
+   "line": 2102,
+   "owner": "move_to"
+  },
+  {
+   "call": "title",
+   "arg": "'实时字幕 MiniMVP v1.0'",
+   "line": 2354,
+   "owner": "__init__"
+  },
+  {
+   "call": "geometry",
+   "arg": "'%dx%d' % (int(_LOGIC_W * _scaling), int(_LOGIC_H * _scaling))",
+   "line": 2373,
+   "owner": "__init__"
+  },
+  {
+   "call": "geometry",
+   "arg": "f'{self.HANDLE_W}x{self.HANDLE_H}+{hx}+{hy}'",
+   "line": 2095,
+   "owner": "_place_handle"
+  },
+  {
+   "call": "geometry",
+   "arg": "f'+{x}+{y}'",
+   "line": 5935,
+   "owner": "_enter"
+  }
+ ],
+ "checks": {
+  "ast_parse": true,
+  "title_owned_by_init": true,
+  "init_covers_title_line": true,
+  "clone_nearest_small": true,
+  "const_multiset_same": true,
+  "stmt_multiset_same": true,
+  "line_count_same": true,
+  "eol_preserved": true
+ },
+ "all_checks_pass": true,
+ "verdict": "PASS",
+ "applied": true,
+ "bytes_after": 458919
+}

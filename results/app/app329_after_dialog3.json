@@ -1,0 +1,1241 @@
+{
+ "created_at": "2026-11-10 14:10:31",
+ "label": "after_dialog3",
+ "truth_file": "C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\truth.json",
+ "wav": "C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\dialog3.wav",
+ "spks": [
+  "A",
+  "B",
+  "C"
+ ],
+ "refs": {
+  "A": [
+   0.0,
+   6.744
+  ],
+  "B": [
+   161.612,
+   171.644
+  ],
+  "C": [
+   197.016,
+   205.704
+  ]
+ },
+ "ref_wavs": {
+  "A": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_A.wav",
+  "B": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_B.wav",
+  "C": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_va_refs\\ref_C.wav"
+ },
+ "ref_pair_cosine": {
+  "A-B": 0.967428,
+  "A-C": 0.971264,
+  "B-C": 0.957272
+ },
+ "criterion": "输出 x-vector 与 truth.json 三人参考分别比余弦 ⇒ 取最大者；若最大者 == 该句真值说话人 ⇒ 命中",
+ "rows": [
+  {
+   "seg": 1,
+   "t0": 6.4,
+   "t1": 14.8,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.9531,
+    "B": 0.981122,
+    "C": 0.93943
+   },
+   "margin": 0.028022,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_1_0003.wav"
+  },
+  {
+   "seg": 1,
+   "t0": 6.4,
+   "t1": 14.8,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.9531,
+    "B": 0.981122,
+    "C": 0.93943
+   },
+   "margin": 0.028022,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_1_0003.wav"
+  },
+  {
+   "seg": 2,
+   "t0": 14.8,
+   "t1": 18.0,
+   "truth_spk": "A",
+   "best_ref": "A",
+   "ok": true,
+   "cos": {
+    "A": 0.967994,
+    "B": 0.944474,
+    "C": 0.953231
+   },
+   "margin": 0.014763,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_2_0005.wav"
+  },
+  {
+   "seg": 3,
+   "t0": 18.0,
+   "t1": 24.4,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.939883,
+    "B": 0.968894,
+    "C": 0.932992
+   },
+   "margin": 0.029011,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_3_0007.wav"
+  },
+  {
+   "seg": 3,
+   "t0": 18.0,
+   "t1": 24.4,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.939883,
+    "B": 0.968894,
+    "C": 0.932992
+   },
+   "margin": 0.029011,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_3_0007.wav"
+  },
+  {
+   "seg": 5,
+   "t0": 28.8,
+   "t1": 34.6,
+   "truth_spk": "C",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.954181,
+    "B": 0.981563,
+    "C": 0.945288
+   },
+   "margin": 0.027382,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_5_0009.wav"
+  },
+  {
+   "seg": 6,
+   "t0": 34.6,
+   "t1": 42.9,
+   "truth_spk": "B",
+   "best_ref": "C",
+   "ok": false,
+   "cos": {
+    "A": 0.961387,
+    "B": 0.94317,
+    "C": 0.978851
+   },
+   "margin": 0.017464,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_6_0011.wav"
+  },
+  {
+   "seg": 6,
+   "t0": 34.6,
+   "t1": 42.9,
+   "truth_spk": "B",
+   "best_ref": "C",
+   "ok": false,
+   "cos": {
+    "A": 0.961387,
+    "B": 0.94317,
+    "C": 0.978851
+   },
+   "margin": 0.017464,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_6_0011.wav"
+  },
+  {
+   "seg": 7,
+   "t0": 42.9,
+   "t1": 46.8,
+   "truth_spk": "A",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.949055,
+    "B": 0.974261,
+    "C": 0.941457
+   },
+   "margin": 0.025206,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_7_0013.wav"
+  },
+  {
+   "seg": 8,
+   "t0": 46.8,
+   "t1": 53.2,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.945964,
+    "B": 0.976922,
+    "C": 0.934922
+   },
+   "margin": 0.030958,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_8_0015.wav"
+  },
+  {
+   "seg": 9,
+   "t0": 53.2,
+   "t1": 59.6,
+   "truth_spk": "C",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.970908,
+    "B": 0.95065,
+    "C": 0.963892
+   },
+   "margin": 0.007016,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_9_0017.wav"
+  },
+  {
+   "seg": 9,
+   "t0": 53.2,
+   "t1": 59.6,
+   "truth_spk": "C",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.970908,
+    "B": 0.95065,
+    "C": 0.963892
+   },
+   "margin": 0.007016,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_9_0017.wav"
+  },
+  {
+   "seg": 10,
+   "t0": 59.6,
+   "t1": 62.8,
+   "truth_spk": "C",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.952962,
+    "B": 0.980331,
+    "C": 0.94048
+   },
+   "margin": 0.027369,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_10_0019.wav"
+  },
+  {
+   "seg": 11,
+   "t0": 62.8,
+   "t1": 65.3,
+   "truth_spk": "A",
+   "best_ref": "C",
+   "ok": false,
+   "cos": {
+    "A": 0.945449,
+    "B": 0.924462,
+    "C": 0.958073
+   },
+   "margin": 0.012624,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_11_0021.wav"
+  },
+  {
+   "seg": 12,
+   "t0": 65.3,
+   "t1": 71.7,
+   "truth_spk": "C",
+   "best_ref": "C",
+   "ok": true,
+   "cos": {
+    "A": 0.947094,
+    "B": 0.930937,
+    "C": 0.975773
+   },
+   "margin": 0.028679,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_12_0023.wav"
+  },
+  {
+   "seg": 13,
+   "t0": 71.7,
+   "t1": 74.3,
+   "truth_spk": "C",
+   "best_ref": "C",
+   "ok": true,
+   "cos": {
+    "A": 0.957841,
+    "B": 0.935999,
+    "C": 0.976552
+   },
+   "margin": 0.018711,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_13_0025.wav"
+  },
+  {
+   "seg": 14,
+   "t0": 74.3,
+   "t1": 80.7,
+   "truth_spk": "B",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.955798,
+    "B": 0.947318,
+    "C": 0.943277
+   },
+   "margin": 0.00848,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_14_0027.wav"
+  },
+  {
+   "seg": 14,
+   "t0": 74.3,
+   "t1": 80.7,
+   "truth_spk": "B",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.955798,
+    "B": 0.947318,
+    "C": 0.943277
+   },
+   "margin": 0.00848,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_14_0027.wav"
+  },
+  {
+   "seg": 15,
+   "t0": 80.7,
+   "t1": 87.1,
+   "truth_spk": "A",
+   "best_ref": "C",
+   "ok": false,
+   "cos": {
+    "A": 0.938651,
+    "B": 0.939999,
+    "C": 0.943342
+   },
+   "margin": 0.003343,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_15_0029.wav"
+  },
+  {
+   "seg": 15,
+   "t0": 80.7,
+   "t1": 87.1,
+   "truth_spk": "A",
+   "best_ref": "C",
+   "ok": false,
+   "cos": {
+    "A": 0.938651,
+    "B": 0.939999,
+    "C": 0.943342
+   },
+   "margin": 0.003343,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_15_0029.wav"
+  },
+  {
+   "seg": 16,
+   "t0": 87.1,
+   "t1": 93.5,
+   "truth_spk": "B",
+   "best_ref": "C",
+   "ok": false,
+   "cos": {
+    "A": 0.958447,
+    "B": 0.939769,
+    "C": 0.974751
+   },
+   "margin": 0.016304,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_16_0031.wav"
+  },
+  {
+   "seg": 17,
+   "t0": 93.5,
+   "t1": 96.7,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.95185,
+    "B": 0.981398,
+    "C": 0.940189
+   },
+   "margin": 0.029548,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_17_0033.wav"
+  },
+  {
+   "seg": 19,
+   "t0": 101.8,
+   "t1": 104.4,
+   "truth_spk": "A",
+   "best_ref": "A",
+   "ok": true,
+   "cos": {
+    "A": 0.972573,
+    "B": 0.948856,
+    "C": 0.950406
+   },
+   "margin": 0.022167,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_19_0035.wav"
+  },
+  {
+   "seg": 20,
+   "t0": 104.4,
+   "t1": 112.0,
+   "truth_spk": "B",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.97828,
+    "B": 0.954592,
+    "C": 0.959892
+   },
+   "margin": 0.018388,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_20_0037.wav"
+  },
+  {
+   "seg": 20,
+   "t0": 104.4,
+   "t1": 112.0,
+   "truth_spk": "B",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.97828,
+    "B": 0.954592,
+    "C": 0.959892
+   },
+   "margin": 0.018388,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_20_0037.wav"
+  },
+  {
+   "seg": 21,
+   "t0": 112.0,
+   "t1": 117.8,
+   "truth_spk": "C",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.951496,
+    "B": 0.980411,
+    "C": 0.943248
+   },
+   "margin": 0.028915,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_21_0039.wav"
+  },
+  {
+   "seg": 22,
+   "t0": 117.8,
+   "t1": 122.9,
+   "truth_spk": "A",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.949507,
+    "B": 0.981155,
+    "C": 0.942521
+   },
+   "margin": 0.031648,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_22_0041.wav"
+  },
+  {
+   "seg": 22,
+   "t0": 117.8,
+   "t1": 122.9,
+   "truth_spk": "A",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.949507,
+    "B": 0.981155,
+    "C": 0.942521
+   },
+   "margin": 0.031648,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_22_0041.wav"
+  },
+  {
+   "seg": 23,
+   "t0": 122.9,
+   "t1": 129.3,
+   "truth_spk": "B",
+   "best_ref": "C",
+   "ok": false,
+   "cos": {
+    "A": 0.960825,
+    "B": 0.94109,
+    "C": 0.97779
+   },
+   "margin": 0.016965,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_23_0043.wav"
+  },
+  {
+   "seg": 23,
+   "t0": 122.9,
+   "t1": 129.3,
+   "truth_spk": "B",
+   "best_ref": "C",
+   "ok": false,
+   "cos": {
+    "A": 0.960825,
+    "B": 0.94109,
+    "C": 0.97779
+   },
+   "margin": 0.016965,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_23_0043.wav"
+  },
+  {
+   "seg": 24,
+   "t0": 129.3,
+   "t1": 133.2,
+   "truth_spk": "B",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.962798,
+    "B": 0.942831,
+    "C": 0.954586
+   },
+   "margin": 0.008212,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_24_0045.wav"
+  },
+  {
+   "seg": 24,
+   "t0": 129.3,
+   "t1": 133.2,
+   "truth_spk": "B",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.962798,
+    "B": 0.942831,
+    "C": 0.954586
+   },
+   "margin": 0.008212,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_24_0045.wav"
+  },
+  {
+   "seg": 25,
+   "t0": 133.2,
+   "t1": 141.5,
+   "truth_spk": "A",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.941883,
+    "B": 0.966658,
+    "C": 0.931729
+   },
+   "margin": 0.024775,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_25_0047.wav"
+  },
+  {
+   "seg": 25,
+   "t0": 133.2,
+   "t1": 141.5,
+   "truth_spk": "A",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.941883,
+    "B": 0.966658,
+    "C": 0.931729
+   },
+   "margin": 0.024775,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_25_0047.wav"
+  },
+  {
+   "seg": 25,
+   "t0": 133.2,
+   "t1": 141.5,
+   "truth_spk": "A",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.941883,
+    "B": 0.966658,
+    "C": 0.931729
+   },
+   "margin": 0.024775,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_25_0047.wav"
+  },
+  {
+   "seg": 25,
+   "t0": 133.2,
+   "t1": 141.5,
+   "truth_spk": "A",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.941883,
+    "B": 0.966658,
+    "C": 0.931729
+   },
+   "margin": 0.024775,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_25_0047.wav"
+  },
+  {
+   "seg": 26,
+   "t0": 141.5,
+   "t1": 147.9,
+   "truth_spk": "A",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.951676,
+    "B": 0.982,
+    "C": 0.940382
+   },
+   "margin": 0.030324,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_26_0049.wav"
+  },
+  {
+   "seg": 26,
+   "t0": 141.5,
+   "t1": 147.9,
+   "truth_spk": "A",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.951676,
+    "B": 0.982,
+    "C": 0.940382
+   },
+   "margin": 0.030324,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_26_0049.wav"
+  },
+  {
+   "seg": 27,
+   "t0": 147.9,
+   "t1": 150.4,
+   "truth_spk": "A",
+   "best_ref": "C",
+   "ok": false,
+   "cos": {
+    "A": 0.954007,
+    "B": 0.939558,
+    "C": 0.976227
+   },
+   "margin": 0.02222,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_27_0051.wav"
+  },
+  {
+   "seg": 28,
+   "t0": 150.4,
+   "t1": 158.1,
+   "truth_spk": "B",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.920919,
+    "B": 0.907119,
+    "C": 0.915806
+   },
+   "margin": 0.005113,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_28_0053.wav"
+  },
+  {
+   "seg": 28,
+   "t0": 150.4,
+   "t1": 158.1,
+   "truth_spk": "B",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.920919,
+    "B": 0.907119,
+    "C": 0.915806
+   },
+   "margin": 0.005113,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_28_0053.wav"
+  },
+  {
+   "seg": 29,
+   "t0": 158.1,
+   "t1": 161.3,
+   "truth_spk": "A",
+   "best_ref": "A",
+   "ok": true,
+   "cos": {
+    "A": 0.976081,
+    "B": 0.955472,
+    "C": 0.955396
+   },
+   "margin": 0.020609,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_29_0055.wav"
+  },
+  {
+   "seg": 30,
+   "t0": 161.3,
+   "t1": 167.7,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.946915,
+    "B": 0.97864,
+    "C": 0.938404
+   },
+   "margin": 0.031725,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_30_0057.wav"
+  },
+  {
+   "seg": 30,
+   "t0": 161.3,
+   "t1": 167.7,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.946915,
+    "B": 0.97864,
+    "C": 0.938404
+   },
+   "margin": 0.031725,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_30_0057.wav"
+  },
+  {
+   "seg": 30,
+   "t0": 161.3,
+   "t1": 167.7,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.946915,
+    "B": 0.97864,
+    "C": 0.938404
+   },
+   "margin": 0.031725,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_30_0057.wav"
+  },
+  {
+   "seg": 31,
+   "t0": 167.7,
+   "t1": 172.2,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.953668,
+    "B": 0.982512,
+    "C": 0.942823
+   },
+   "margin": 0.028844,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_31_0059.wav"
+  },
+  {
+   "seg": 32,
+   "t0": 172.2,
+   "t1": 177.3,
+   "truth_spk": "C",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.922281,
+    "B": 0.932831,
+    "C": 0.919487
+   },
+   "margin": 0.01055,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_32_0061.wav"
+  },
+  {
+   "seg": 33,
+   "t0": 177.3,
+   "t1": 186.3,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.949236,
+    "B": 0.979676,
+    "C": 0.938026
+   },
+   "margin": 0.03044,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_33_0063.wav"
+  },
+  {
+   "seg": 33,
+   "t0": 177.3,
+   "t1": 186.3,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.949236,
+    "B": 0.979676,
+    "C": 0.938026
+   },
+   "margin": 0.03044,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_33_0063.wav"
+  },
+  {
+   "seg": 34,
+   "t0": 186.3,
+   "t1": 190.1,
+   "truth_spk": "A",
+   "best_ref": "A",
+   "ok": true,
+   "cos": {
+    "A": 0.957378,
+    "B": 0.935938,
+    "C": 0.949841
+   },
+   "margin": 0.007537,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_34_0065.wav"
+  },
+  {
+   "seg": 35,
+   "t0": 190.1,
+   "t1": 196.5,
+   "truth_spk": "B",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.971444,
+    "B": 0.950183,
+    "C": 0.954982
+   },
+   "margin": 0.016462,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_35_0067.wav"
+  },
+  {
+   "seg": 35,
+   "t0": 190.1,
+   "t1": 196.5,
+   "truth_spk": "B",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.971444,
+    "B": 0.950183,
+    "C": 0.954982
+   },
+   "margin": 0.016462,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_35_0067.wav"
+  },
+  {
+   "seg": 35,
+   "t0": 190.1,
+   "t1": 196.5,
+   "truth_spk": "B",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.971444,
+    "B": 0.950183,
+    "C": 0.954982
+   },
+   "margin": 0.016462,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_35_0067.wav"
+  },
+  {
+   "seg": 36,
+   "t0": 196.5,
+   "t1": 202.9,
+   "truth_spk": "C",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.952535,
+    "B": 0.938683,
+    "C": 0.946964
+   },
+   "margin": 0.005571,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_36_0069.wav"
+  },
+  {
+   "seg": 36,
+   "t0": 196.5,
+   "t1": 202.9,
+   "truth_spk": "C",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.952535,
+    "B": 0.938683,
+    "C": 0.946964
+   },
+   "margin": 0.005571,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_36_0069.wav"
+  },
+  {
+   "seg": 37,
+   "t0": 202.9,
+   "t1": 206.1,
+   "truth_spk": "C",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.965301,
+    "B": 0.940505,
+    "C": 0.948901
+   },
+   "margin": 0.0164,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_37_0071.wav"
+  },
+  {
+   "seg": 38,
+   "t0": 206.1,
+   "t1": 208.7,
+   "truth_spk": "A",
+   "best_ref": "A",
+   "ok": true,
+   "cos": {
+    "A": 0.967418,
+    "B": 0.938335,
+    "C": 0.955375
+   },
+   "margin": 0.012043,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_38_0073.wav"
+  },
+  {
+   "seg": 39,
+   "t0": 208.7,
+   "t1": 215.1,
+   "truth_spk": "C",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.945145,
+    "B": 0.923647,
+    "C": 0.94234
+   },
+   "margin": 0.002805,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_39_0075.wav"
+  },
+  {
+   "seg": 40,
+   "t0": 215.1,
+   "t1": 217.6,
+   "truth_spk": "C",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.971212,
+    "B": 0.946569,
+    "C": 0.968667
+   },
+   "margin": 0.002545,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_40_0077.wav"
+  },
+  {
+   "seg": 41,
+   "t0": 217.6,
+   "t1": 224.0,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.936969,
+    "B": 0.966734,
+    "C": 0.929961
+   },
+   "margin": 0.029765,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_41_0079.wav"
+  },
+  {
+   "seg": 41,
+   "t0": 217.6,
+   "t1": 224.0,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.936969,
+    "B": 0.966734,
+    "C": 0.929961
+   },
+   "margin": 0.029765,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_41_0079.wav"
+  },
+  {
+   "seg": 42,
+   "t0": 224.0,
+   "t1": 230.4,
+   "truth_spk": "A",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.956345,
+    "B": 0.982115,
+    "C": 0.942124
+   },
+   "margin": 0.02577,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_42_0081.wav"
+  },
+  {
+   "seg": 42,
+   "t0": 224.0,
+   "t1": 230.4,
+   "truth_spk": "A",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.956345,
+    "B": 0.982115,
+    "C": 0.942124
+   },
+   "margin": 0.02577,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_42_0081.wav"
+  },
+  {
+   "seg": 43,
+   "t0": 230.4,
+   "t1": 236.8,
+   "truth_spk": "B",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.966242,
+    "B": 0.944369,
+    "C": 0.949738
+   },
+   "margin": 0.016504,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_43_0083.wav"
+  },
+  {
+   "seg": 44,
+   "t0": 236.8,
+   "t1": 240.0,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.937514,
+    "B": 0.965409,
+    "C": 0.927979
+   },
+   "margin": 0.027895,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_44_0085.wav"
+  },
+  {
+   "seg": 45,
+   "t0": 240.0,
+   "t1": 245.2,
+   "truth_spk": "C",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.913166,
+    "B": 0.937747,
+    "C": 0.90153
+   },
+   "margin": 0.024581,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_45_0087.wav"
+  },
+  {
+   "seg": 46,
+   "t0": 245.2,
+   "t1": 247.7,
+   "truth_spk": "A",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.952296,
+    "B": 0.979869,
+    "C": 0.943288
+   },
+   "margin": 0.027573,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_46_0089.wav"
+  },
+  {
+   "seg": 47,
+   "t0": 247.7,
+   "t1": 255.4,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.954187,
+    "B": 0.980882,
+    "C": 0.941285
+   },
+   "margin": 0.026695,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_47_0091.wav"
+  },
+  {
+   "seg": 47,
+   "t0": 247.7,
+   "t1": 255.4,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.954187,
+    "B": 0.980882,
+    "C": 0.941285
+   },
+   "margin": 0.026695,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_47_0091.wav"
+  },
+  {
+   "seg": 48,
+   "t0": 255.4,
+   "t1": 261.2,
+   "truth_spk": "C",
+   "best_ref": "C",
+   "ok": true,
+   "cos": {
+    "A": 0.957384,
+    "B": 0.939307,
+    "C": 0.97902
+   },
+   "margin": 0.021636,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_48_0093.wav"
+  },
+  {
+   "seg": 49,
+   "t0": 261.2,
+   "t1": 266.3,
+   "truth_spk": "A",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.947078,
+    "B": 0.975111,
+    "C": 0.935407
+   },
+   "margin": 0.028033,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_49_0095.wav"
+  },
+  {
+   "seg": 49,
+   "t0": 261.2,
+   "t1": 266.3,
+   "truth_spk": "A",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.947078,
+    "B": 0.975111,
+    "C": 0.935407
+   },
+   "margin": 0.028033,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_49_0095.wav"
+  },
+  {
+   "seg": 50,
+   "t0": 266.3,
+   "t1": 272.7,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.942162,
+    "B": 0.974406,
+    "C": 0.932369
+   },
+   "margin": 0.032244,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_50_0097.wav"
+  },
+  {
+   "seg": 50,
+   "t0": 266.3,
+   "t1": 272.7,
+   "truth_spk": "B",
+   "best_ref": "B",
+   "ok": true,
+   "cos": {
+    "A": 0.942162,
+    "B": 0.974406,
+    "C": 0.932369
+   },
+   "margin": 0.032244,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_50_0097.wav"
+  },
+  {
+   "seg": 51,
+   "t0": 272.7,
+   "t1": 276.5,
+   "truth_spk": "B",
+   "best_ref": "A",
+   "ok": false,
+   "cos": {
+    "A": 0.97107,
+    "B": 0.954201,
+    "C": 0.963775
+   },
+   "margin": 0.007295,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_51_0099.wav"
+  },
+  {
+   "seg": 52,
+   "t0": 276.5,
+   "t1": 282.9,
+   "truth_spk": "A",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.929668,
+    "B": 0.94961,
+    "C": 0.926449
+   },
+   "margin": 0.019942,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_52_0101.wav"
+  },
+  {
+   "seg": 52,
+   "t0": 276.5,
+   "t1": 282.9,
+   "truth_spk": "A",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.929668,
+    "B": 0.94961,
+    "C": 0.926449
+   },
+   "margin": 0.019942,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_52_0101.wav"
+  },
+  {
+   "seg": 52,
+   "t0": 276.5,
+   "t1": 282.9,
+   "truth_spk": "A",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.929668,
+    "B": 0.94961,
+    "C": 0.926449
+   },
+   "margin": 0.019942,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_52_0101.wav"
+  },
+  {
+   "seg": 53,
+   "t0": 282.9,
+   "t1": 286.6,
+   "truth_spk": "C",
+   "best_ref": "B",
+   "ok": false,
+   "cos": {
+    "A": 0.9335,
+    "B": 0.959423,
+    "C": 0.92119
+   },
+   "margin": 0.025923,
+   "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_53_0103.wav"
+  }
+ ],
+ "summary": {
+  "n_scored": 79,
+  "n_match_truth_ref": 27,
+  "match_rate_truth_ref": 0.3418,
+  "margin_p50": 0.02222,
+  "margin_p90": 0.03044,
+  "margin_min": 0.002545,
+  "note": "🔴 三个人的真值参考**两两余弦**见 ref_pair_cosine ⇒ 若该值很高（≈0.95），则「最接近正确说话人」这个判据在余弦尺度上**可分性极低** ⇒ 占比低不等于 App 缺陷。"
+ },
+ "neg_control": {
+  "method": "把每句的「真值说话人」余弦压到最低（模拟参考用错人）⇒ 命中数必须下降",
+  "base_n_match": 27,
+  "neg_n_match": 0,
+  "base_rate": 0.3418,
+  "neg_rate": 0.0,
+  "pass": true,
+  "note": "🔴 反证：判据必须**对参考敏感** ⇒ 命中数下降 （否则说明判据恒真，命中率没有意义）"
+ }
+}

@@ -1,0 +1,141 @@
+{
+ "created_at": "2026-11-10 13:46:05",
+ "correction": "APP-093 §3.6（切段 0 段 + 旁路单标签 + 切段开关 ASR RTF）",
+ "method": "静态分析既有落盘产物（runs3/after），未重跑设备、未改默认值",
+ "device_job": false,
+ "lock_record": null,
+ "lock_note": "本文件为静态分析（非计时跑）⇒ 不持 MACHINE_LOCK；「切段开/关的 ASR RTF 对照」需要两次设备跑，**本轮未做**（下见 gaps）",
+ "constants": {
+  "SPLIT_MIN_SEG_S": "3.2      # 最短段 3.2 s（太短的段不切）",
+  "SPLIT_WIN_S": "(1.6, 2.0, 2.5)   # 三个切分窗口（秒）",
+  "SPLIT_MIN_SIM": "0.30       # 质心识别的最小余弦",
+  "SPLIT_MIN_MARGIN": "0.10    # 第一名与第二名的最小差距",
+  "_cv_file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\clone_voice.py",
+  "_cv_sha256": "e3281c41708932767d43c047c351ac06122d073177bdd0d3d9d47892552a79af",
+  "clu_delta_new": 0.3,
+  "clu_rho_update": 0.55,
+  "clu_merge_sim": 0.7,
+  "clu_young_s": 8.0,
+  "clu_min_new_s": 2.0,
+  "_clu_file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\asr_spk_v24\\asr_spk_cluster_v2.py",
+  "_clu_sha256": "e448d1e0791b2092cb2c9cc161b798e8700a251aa45839690256e429a9c9386c"
+ },
+ "materials": {
+  "dialog3_tight_thr6": {
+   "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs3\\after\\dialog3_tight_thr6",
+   "spk_seg_jsonl": {
+    "path": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs3\\after\\dialog3_tight_thr6\\spk_seg.jsonl",
+    "bytes": 4422,
+    "sha256": "4c10c45ea2ab2072d2748d9c50e89d999de61b0ff9050084b54fca463d1a625c"
+   },
+   "n_segments": 35,
+   "n_split_dist": {
+    "0": 35
+   },
+   "spk_label_dist": {
+    "S1": 35
+   },
+   "spk_source_dist": {
+    "retry": 35
+   },
+   "spk_conf_p50": 0.3184,
+   "spk_conf_min": 0.2572,
+   "asr_rtf_from_log": 0.723,
+   "asr_rtf_field": "run.log 尾行「RTF(计算)」",
+   "asr_log_tail": "TL\\_app_shadow\\runs3\\after\\dialog3_tight_thr6\\mix.wav.backlog_curve.csv（226 个采样点）\n[TTS] 克隆采集：语音 0.0s / 已发 0.0s  更新 0 次  失败 0 次  状态「采集中…」\n[TTS] 克隆生效：clone_active=False  clone_mode=None  clone_dur_s=None\n  [TTS] [TTS] 关闭语音输出，29 句未播译文作废（已计丢句），0 句待发作废\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n  [TTS] [TTS] [tts_worker] 已落盘 C:\\Users\\Trekker-PTL\\_app_shadow\\runs3\\after\\dialog3_tight_thr6\\mix.wav（151.38s，45 句，24000 Hz）\n[TTS] 最终统计（close 后）：提交 74  播完 45  丢弃 58  关闭作废 29  空句 0  失败 0  结尾滞后 5.31s  积压 最大 67.03s\n[spk] 段表已落盘：C:\\Users\\Trekker-PTL\\_app_shadow\\runs3\\after\\dialog3_tight_thr6\\spk_seg.jsonl（35 段）\n",
+   "synth_rtf_p50": 1.0554,
+   "synth_rtf_p95": 1.1752,
+   "speed_lag_p50": 3.217,
+   "n_tts_rows": 74
+  },
+  "dialog3_dave_thr6": {
+   "dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs3\\after\\dialog3_dave_thr6",
+   "spk_seg_jsonl": {
+    "path": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs3\\after\\dialog3_dave_thr6\\spk_seg.jsonl",
+    "bytes": 7031,
+    "sha256": "828a3c22134e1df1eb9b76fe1c338735d120d21422df3241a6866880abc85b96"
+   },
+   "n_segments": 55,
+   "n_split_dist": {
+    "0": 55
+   },
+   "spk_label_dist": {
+    "S1": 12,
+    "None": 1,
+    "S2": 42
+   },
+   "spk_source_dist": {
+    "retry": 54,
+    "None": 1
+   },
+   "spk_conf_p50": 0.8641,
+   "spk_conf_min": 0.1726,
+   "asr_rtf_from_log": 0.862,
+   "asr_rtf_field": "run.log 尾行「RTF(计算)」",
+   "asr_log_tail": "-PTL\\_app_shadow\\runs3\\after\\dialog3_dave_thr6\\mix.wav.backlog_curve.csv（418 个采样点）\n[TTS] 克隆采集：语音 0.0s / 已发 0.0s  更新 0 次  失败 0 次  状态「采集中…」\n[TTS] 克隆生效：clone_active=False  clone_mode=None  clone_dur_s=None\n  [TTS] [TTS] 关闭语音输出，41 句未播译文作废（已计丢句），0 句待发作废\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n  [TTS] [TTS] [tts_worker] 已落盘 C:\\Users\\Trekker-PTL\\_app_shadow\\runs3\\after\\dialog3_dave_thr6\\mix.wav（217.74s，41 句，24000 Hz）\n[TTS] 最终统计（close 后）：提交 82  播完 41  丢弃 82  关闭作废 41  空句 0  失败 0  结尾滞后 7.75s  积压 最大 176.24s\n[spk] 段表已落盘：C:\\Users\\Trekker-PTL\\_app_shadow\\runs3\\after\\dialog3_dave_thr6\\spk_seg.jsonl（55 段）\n",
+   "synth_rtf_p50": 1.1847,
+   "synth_rtf_p95": 1.3285,
+   "speed_lag_p50": 3.625,
+   "n_tts_rows": 82
+  }
+ },
+ "gaps": [
+  {
+   "item": "切段开/关的 ASR RTF 对照",
+   "status": "NOT_DONE",
+   "why": "切段在**克隆线程**上做（clone_voice._split_worker）⇒ 原则上不影响 ASR 主循环；但 `_split_encoder()` 会**首次编译**（占 GPU）⇒ 需要「开/关各跑一次」才能给出对照 RTF。本轮未做 ⇒ **不报数**（不拿单次运行的 RTF 冒充对照）。",
+   "how_to_do": "同一素材、同一命令，`--speaker off`（旁路关 ⇒ 不切段）vs `--speaker on`（旁路开）各跑一次，比 run.log 的 「RTF(计算)」字段。"
+  }
+ ],
+ "conclusions": [
+  {
+   "material": "dialog3_tight_thr6",
+   "finding_1_n_split_0": {
+    "claim": "tight 的 `split_by_speaker` 切出 0 段",
+    "evidence": "spk_seg.jsonl 的 n_split 分布 = {'0': 35}",
+    "n_segments": 35
+   },
+   "finding_2_single_label": {
+    "claim": "旁路只出一个标签",
+    "evidence": "spk_seg.jsonl 的 spk 标签分布 = {'S1': 35}",
+    "n_labels": 1
+   },
+   "finding_3_root_cause": {
+    "claim": "根因：切段判据要求「窗口相似度 ≥ SPLIT_MIN_SIM **且** margin ≥ SPLIT_MIN_MARGIN」；旁路聚类判据要求「余弦 < delta_new 才算新说话人」。而真值三人的 x-vector 两两余弦实测 **0.947/0.965/0.967**（见 app389 的 cos_other）⇒ ①相似度**必然**过阈（≥0.30）；②但三人**互相太像** ⇒ margin ≈ 0 ⇒ 切不出点；③余弦**远高于** delta_new ⇒ **永不新建簇** ⇒ 全归 S1。",
+    "constants": {
+     "SPLIT_MIN_SIM": "0.30       # 质心识别的最小余弦",
+     "SPLIT_MIN_MARGIN": "0.10    # 第一名与第二名的最小差距",
+     "clu_delta_new": 0.3,
+     "clu_rho_update": 0.55
+    },
+    "evidence_xvector": "results/app/app389_app089_voice_margin_after_dialog3.json → detail[].cos_other（三人两两余弦 0.9349–0.9762）",
+    "note": "🔴 **只报根因，不改阈值**（reviewer §4：「你不要自己改默认值，也不要自己改判据」）"
+   }
+  },
+  {
+   "material": "dialog3_dave_thr6",
+   "finding_1_n_split_0": {
+    "claim": "tight 的 `split_by_speaker` 切出 0 段",
+    "evidence": "spk_seg.jsonl 的 n_split 分布 = {'0': 55}",
+    "n_segments": 55
+   },
+   "finding_2_single_label": {
+    "claim": "旁路只出一个标签",
+    "evidence": "spk_seg.jsonl 的 spk 标签分布 = {'S1': 12, 'None': 1, 'S2': 42}",
+    "n_labels": 3
+   },
+   "finding_3_root_cause": {
+    "claim": "根因：切段判据要求「窗口相似度 ≥ SPLIT_MIN_SIM **且** margin ≥ SPLIT_MIN_MARGIN」；旁路聚类判据要求「余弦 < delta_new 才算新说话人」。而真值三人的 x-vector 两两余弦实测 **0.947/0.965/0.967**（见 app389 的 cos_other）⇒ ①相似度**必然**过阈（≥0.30）；②但三人**互相太像** ⇒ margin ≈ 0 ⇒ 切不出点；③余弦**远高于** delta_new ⇒ **永不新建簇** ⇒ 全归 S1。",
+    "constants": {
+     "SPLIT_MIN_SIM": "0.30       # 质心识别的最小余弦",
+     "SPLIT_MIN_MARGIN": "0.10    # 第一名与第二名的最小差距",
+     "clu_delta_new": 0.3,
+     "clu_rho_update": 0.55
+    },
+    "evidence_xvector": "results/app/app389_app089_voice_margin_after_dialog3.json → detail[].cos_other（三人两两余弦 0.9349–0.9762）",
+    "note": "🔴 **只报根因，不改阈值**（reviewer §4：「你不要自己改默认值，也不要自己改判据」）"
+   }
+  }
+ ],
+ "verdict": "RAN"
+}

@@ -1,0 +1,136 @@
+{
+ "created_at": "2026-11-10 15:51:00",
+ "arm": "after_fix_tmp",
+ "criterion": "APP-093 §3.7 字幕条截图（三行字幕，png + 路径 + 尺寸）",
+ "method": "GUI（--file 播素材）⇒ 找主窗 ⇒ Win32 PrintWindow 抓图 ⇒ **像素级守卫**（非黑 + 客户区高 ≥700 + 内容密度 >0）",
+ "note": "🔴 不用 ImageGrab（本机全黑）⇒ 用 win_capture.capture_hwnd（PrintWindow + 三级降级 + 纯 stdlib PNG）",
+ "shots": [
+  {
+   "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app331_gui_shot\\after_fix_tmp\\after_fix_tmp_caption.png",
+   "bytes": 102510,
+   "size": [
+    1455,
+    1132
+   ],
+   "width": 1455,
+   "height": 1132,
+   "client_height_px": 1098,
+   "full_n_colors": 725,
+   "client_n_colors": 649,
+   "bg": [
+    255,
+    255,
+    255
+   ],
+   "content_density": 0.288064
+  },
+  {
+   "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app331_gui_shot\\after_fix_tmp\\after_fix_tmp_overlay.png",
+   "bytes": 23535,
+   "size": [
+    1638,
+    157
+   ],
+   "width": 1638,
+   "height": 157,
+   "full_n_colors": 214,
+   "client_n_colors": 213,
+   "bg": [
+    17,
+    17,
+    17
+   ],
+   "content_density": 0.129481
+  }
+ ],
+ "verdict": "PASS",
+ "cmd": [
+  "C:\\Users\\Trekker-PTL\\_app_shadow\\after_fix_tmp\\python\\pythonw.exe",
+  "C:\\Users\\Trekker-PTL\\_app_shadow\\after_fix_tmp\\app\\live_caption_app.py",
+  "--file",
+  "C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\dialog3.wav",
+  "--autostart",
+  "--engine",
+  "gpu_int8",
+  "--asr-device",
+  "GPU.0",
+  "--translate",
+  "zh",
+  "--mt-engine",
+  "gpu_int8cw",
+  "--mt-device",
+  "GPU.0",
+  "--tts",
+  "on",
+  "--tts-device",
+  "NPU",
+  "--tts-precision",
+  "f16",
+  "--out",
+  "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app331_gui_shot\\after_fix_tmp\\subtitles.txt"
+ ],
+ "gui_log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app331_gui_shot\\after_fix_tmp\\gui.log",
+ "window_diag": {},
+ "window": {
+  "hwnd": 20251620,
+  "title": "实时字幕 MiniMVP v1.0",
+  "pid": 30640
+ },
+ "overlay_window": {
+  "hwnd": 9047410,
+  "w": 1638,
+  "h": 157,
+  "x": 205,
+  "y": 1034,
+  "bottom": 1191,
+  "vis": true
+ },
+ "capture_ok": true,
+ "png": {
+  "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app331_gui_shot\\after_fix_tmp\\after_fix_tmp_caption.png",
+  "bytes": 102510,
+  "size": [
+   1455,
+   1132
+  ],
+  "width": 1455,
+  "height": 1132,
+  "client_height_px": 1098,
+  "full_n_colors": 725,
+  "client_n_colors": 649,
+  "bg": [
+   255,
+   255,
+   255
+  ],
+  "content_density": 0.288064
+ },
+ "guards": {
+  "not_black": true,
+  "client_height_ge_700": true,
+  "content_density_gt_0": true
+ },
+ "overlay_png": {
+  "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app331_gui_shot\\after_fix_tmp\\after_fix_tmp_overlay.png",
+  "bytes": 23535,
+  "size": [
+   1638,
+   157
+  ],
+  "width": 1638,
+  "height": 157,
+  "full_n_colors": 214,
+  "client_n_colors": 213,
+  "bg": [
+   17,
+   17,
+   17
+  ],
+  "content_density": 0.129481
+ },
+ "overlay_guards": {
+  "not_black": true,
+  "content_density_gt_0": true,
+  "wide_bar": true
+ }
+}

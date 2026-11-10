@@ -1,0 +1,529 @@
+{
+ "created_at": "2026-11-10 14:13:23",
+ "correction": "APP-097 §2-5 回归（zh before/after + ja/ko 冒烟）",
+ "criterion": "zh 目标在 dialog3 上跑正常速度，扩表前后的「跳过句数 / 字幕行数 / 合成 RTF」一致；ja/ko 各 5 句冒烟",
+ "device_job": true,
+ "method": "两个影子包各跑一次（`after2_pre`＝扩表前 / `after2`＝扩表后）；两者 models/ 是**同一物理目录** ⇒ 模型相同 ⇒ 差异只来自代码",
+ "outroot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress",
+ "lock_record": {
+  "module": "app",
+  "pid": 29076,
+  "start": "2026-11-10 14:13:23",
+  "tag": "app097-regress",
+  "file": "C:\\Users\\Trekker-PTL\\shared\\MACHINE_LOCK",
+  "content": "module=app\npid=29076\nstart=2026-11-10 14:13:23\ntag=app097-regress"
+ },
+ "roots": {
+  "before": {
+   "path": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2_pre",
+   "models_realpath": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models"
+  },
+  "after": {
+   "path": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2",
+   "models_realpath": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models"
+  },
+  "same_models_dir": true
+ },
+ "lang_table": {
+  "before": {
+   "file": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2_pre\\app\\tts_engine.py",
+   "sha256": "f82263149a141478dd5a502eaab63b3ec3513fc3eee45302b5b514005b33e838",
+   "supported_langs_line": "SUPPORTED_LANGS = ('Chinese', 'English', 'Japanese', 'Korean')"
+  },
+  "after": {
+   "file": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\app\\tts_engine.py",
+   "sha256": "12f47d0e3f9094f490ef254e67567bf377dc44f02bf7c2f0dd591c056874ff37",
+   "supported_langs_line": "SUPPORTED_LANGS = ('Chinese', 'English', 'German', 'French', 'Spanish',"
+  }
+ },
+ "zh_regress": {
+  "before": {
+   "arm": "before",
+   "root": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2_pre",
+   "out": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_before",
+   "rc": 0,
+   "wall_s": 418.4,
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_before\\run.log",
+   "tts_jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_before\\tts.jsonl",
+   "n_tts_rows": 81,
+   "n_segments": 54,
+   "n_subtitle_lines": 54,
+   "n_late_drop": 6,
+   "n_dropped": 6,
+   "n_error": 0,
+   "synth_rtf_p50": 0.9963,
+   "synth_rtf_p95": 1.1095,
+   "synth_rtf_mean": 0.9933,
+   "asr_rtf_from_log": 0.674,
+   "cmd": [
+    "C:\\Users\\Trekker-PTL\\_app_shadow\\after2_pre\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\_app_shadow\\after2_pre\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\dialog3.wav",
+    "--speaker",
+    "on",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "follow_speaker",
+    "--tts-precision",
+    "f16",
+    "--tts-device",
+    "NPU",
+    "--translate",
+    "zh",
+    "--mt-engine",
+    "gpu_int8cw",
+    "--mt-device",
+    "GPU.0",
+    "--engine",
+    "gpu_int8",
+    "--asr-device",
+    "GPU.0",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_before\\subtitles.txt",
+    "--tts-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_before\\mix.wav",
+    "--tts-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_before\\tts.jsonl",
+    "--tts-dump-dir",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_before\\dump",
+    "--spk-seg-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_before\\spk_seg.jsonl"
+   ],
+   "log_tail": "fs=-22.97 read_delta=0 consumed=None\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 worker 侧定速失败 ⇒ 用主进程下发值：speed_for_lag() got an unexpected keyword argument 'lang'\n  [TTS] [TTS] 首包分段 id=80：排队 0.000 s + 合成 0.450 s\n  [TTS] [TTS] [tts_worker] 已落盘分段 wav：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_before\\dump\\seg_80_0075.wav\n  [TTS] [TTS] [tts_worker] 合成遥测 id=80 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=51840 parts=4 peak=0.6123 rms_dbfs=-16.6 nan_inf=0 cb_delta=39 read_delta=0 underflow_delta=39 ring=0/72000 consumed=-\n  [TTS] [TTS] 遥测 id=80 peak=0.612305 rms_dbfs=-16.55 read_delta=0 consumed=None\n  [TTS] [TTS] drain 超时：仍有 6 句未完成\n[TTS] 首包 0.45s  积压 当前 12.16s / 最大 28.31s  提交 81  播完 75  丢弃 0  重启 0  state=ready\n[TTS] 收尾（close 前）：结尾滞后 3.33s  关闭作废 0  空句 0  积压 最大 28.31s\n[TTS] 语音已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_before\\mix.wav，逐句时间线 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_before\\mix.wav.tts.jsonl\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_before\\mix.wav.backlog_curve.csv（272 个采样点）\n[TTS] 克隆采集：语音 0.0s / 已发 0.0s  更新 0 次  失败 0 次  状态「采集中…」\n[TTS] 克隆生效：clone_active=False  clone_mode=None  clone_dur_s=None\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n  [TTS] [TTS] 关闭语音输出，6 句未播译文作废（已计丢句），0 句待发作废\n  [TTS] [TTS] [tts_worker] 已落盘 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_before\\mix.wav（243.44s，75 句，24000 Hz）\n[TTS] 最终统计（close 后）：提交 81  播完 75  丢弃 6  关闭作废 6  空句 0  失败 0  结尾滞后 3.33s  积压 最大 28.31s\n[spk] 段表已落盘：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_before\\spk_seg.jsonl（54 段）\n"
+  },
+  "after": {
+   "arm": "after",
+   "root": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2",
+   "out": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_after",
+   "rc": 0,
+   "wall_s": 416.8,
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_after\\run.log",
+   "tts_jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_after\\tts.jsonl",
+   "n_tts_rows": 81,
+   "n_segments": 54,
+   "n_subtitle_lines": 54,
+   "n_late_drop": 5,
+   "n_dropped": 5,
+   "n_error": 0,
+   "synth_rtf_p50": 0.9586,
+   "synth_rtf_p95": 1.0726,
+   "synth_rtf_mean": 0.9694,
+   "asr_rtf_from_log": 0.62,
+   "cmd": [
+    "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\dialog3.wav",
+    "--speaker",
+    "on",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "follow_speaker",
+    "--tts-precision",
+    "f16",
+    "--tts-device",
+    "NPU",
+    "--translate",
+    "zh",
+    "--mt-engine",
+    "gpu_int8cw",
+    "--mt-device",
+    "GPU.0",
+    "--engine",
+    "gpu_int8",
+    "--asr-device",
+    "GPU.0",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_after\\subtitles.txt",
+    "--tts-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_after\\mix.wav",
+    "--tts-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_after\\tts.jsonl",
+    "--tts-dump-dir",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_after\\dump",
+    "--spk-seg-jsonl",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_after\\spk_seg.jsonl"
+   ],
+   "log_tail": "rms_dbfs=-23.72 read_delta=0 consumed=None\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 worker 侧定速失败 ⇒ 用主进程下发值：speed_for_lag() got an unexpected keyword argument 'lang'\n  [TTS] [TTS] 首包分段 id=80：排队 0.000 s + 合成 0.436 s\n  [TTS] [TTS] [tts_worker] 已落盘分段 wav：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_after\\dump\\seg_80_0076.wav\n  [TTS] [TTS] [tts_worker] 合成遥测 id=80 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=34560 parts=3 peak=0.4844 rms_dbfs=-17.5 nan_inf=0 cb_delta=26 read_delta=0 underflow_delta=26 ring=0/72000 consumed=-\n  [TTS] [TTS] 遥测 id=80 peak=0.484375 rms_dbfs=-17.53 read_delta=0 consumed=None\n  [TTS] [TTS] drain 超时：仍有 5 句未完成\n[TTS] 首包 0.44s  积压 当前 12.10s / 最大 25.42s  提交 81  播完 76  丢弃 0  重启 0  state=ready\n[TTS] 收尾（close 前）：结尾滞后 1.93s  关闭作废 0  空句 0  积压 最大 25.42s\n[TTS] 语音已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_after\\mix.wav，逐句时间线 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_after\\mix.wav.tts.jsonl\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_after\\mix.wav.backlog_curve.csv（272 个采样点）\n[TTS] 克隆采集：语音 0.0s / 已发 0.0s  更新 0 次  失败 0 次  状态「采集中…」\n[TTS] 克隆生效：clone_active=False  clone_mode=None  clone_dur_s=None\n  [TTS] [TTS] 关闭语音输出，5 句未播译文作废（已计丢句），0 句待发作废\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n  [TTS] [TTS] [tts_worker] 已落盘 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_after\\mix.wav（240.64s，76 句，24000 Hz）\n[TTS] 最终统计（close 后）：提交 81  播完 76  丢弃 5  关闭作废 5  空句 0  失败 0  结尾滞后 1.93s  积压 最大 25.42s\n[spk] 段表已落盘：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\zh_after\\spk_seg.jsonl（54 段）\n"
+  }
+ },
+ "zh_compare": {
+  "metric_rows": [
+   {
+    "metric": "n_late_drop",
+    "before": 6,
+    "after": 5
+   },
+   {
+    "metric": "n_dropped",
+    "before": 6,
+    "after": 5
+   },
+   {
+    "metric": "n_tts_rows",
+    "before": 81,
+    "after": 81
+   },
+   {
+    "metric": "n_segments",
+    "before": 54,
+    "after": 54
+   },
+   {
+    "metric": "n_subtitle_lines",
+    "before": 54,
+    "after": 54
+   },
+   {
+    "metric": "synth_rtf_p50",
+    "before": 0.9963,
+    "after": 0.9586
+   },
+   {
+    "metric": "synth_rtf_p95",
+    "before": 1.1095,
+    "after": 1.0726
+   },
+   {
+    "metric": "asr_rtf_from_log",
+    "before": 0.674,
+    "after": 0.62
+   }
+  ],
+  "same_late_drop": false,
+  "same_subtitle_lines": true,
+  "same_segments": true,
+  "rtf_delta_p50": -0.0377,
+  "note": "🔴 RTF 允许小幅漂移（同一机器不同会话 ±5 %）；「跳过句数 / 字幕行数 / 段数」必须**逐项一致**"
+ },
+ "smoke": {
+  "ja": {
+   "lang": "ja",
+   "rc_mt": 0,
+   "rc_tts": 0,
+   "out": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\smoke_ja",
+   "tts_json": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\smoke_ja\\tts.json",
+   "mt_json": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\smoke_ja\\mt.json",
+   "n_rows": 5,
+   "n_empty": 0,
+   "rtf_p50": 0.8906,
+   "rtf_p95": 0.9057,
+   "end_reason_dist": {
+    "None": 5
+   },
+   "exec_devices": {
+    "ok": true,
+    "devices": {
+     "speaker_enc": [
+      "NPU"
+     ],
+     "cp_prefill": [
+      "NPU"
+     ],
+     "cp_decode": [
+      "NPU"
+     ],
+     "tok_decoder": [
+      "NPU(lazy)"
+     ],
+     "talker_bucket@64": [
+      "NPU"
+     ],
+     "talker_bucket@128": [
+      "NPU"
+     ],
+     "talker_bucket@256": [
+      "NPU"
+     ],
+     "talker_bucket@384": [
+      "NPU"
+     ],
+     "talker_bucket@512": [
+      "NPU"
+     ],
+     "decoder_bucket@8": [
+      "NPU"
+     ],
+     "decoder_bucket@16": [
+      "NPU"
+     ],
+     "decoder_bucket@32": [
+      "NPU"
+     ],
+     "decoder_bucket@33": [
+      "NPU"
+     ]
+    },
+    "devices_raw": {
+     "speaker_enc": "NPU",
+     "cp_prefill": "NPU",
+     "cp_decode": "NPU",
+     "tok_decoder": [
+      "NPU(lazy)"
+     ],
+     "talker_bucket@64": "NPU",
+     "talker_bucket@128": "NPU",
+     "talker_bucket@256": "NPU",
+     "talker_bucket@384": "NPU",
+     "talker_bucket@512": "NPU",
+     "decoder_bucket@8": "NPU",
+     "decoder_bucket@16": "NPU",
+     "decoder_bucket@32": "NPU",
+     "decoder_bucket@33": "NPU"
+    },
+    "unknown": [],
+    "absent": [
+     "talker_prefill",
+     "talker_decode",
+     "talker",
+     "code_predictor"
+    ],
+    "requested": "NPU",
+    "devices_norm": {
+     "speaker_enc": [
+      "NPU"
+     ],
+     "cp_prefill": [
+      "NPU"
+     ],
+     "cp_decode": [
+      "NPU"
+     ],
+     "tok_decoder": [
+      "NPU(lazy)"
+     ],
+     "talker_bucket@64": [
+      "NPU"
+     ],
+     "talker_bucket@128": [
+      "NPU"
+     ],
+     "talker_bucket@256": [
+      "NPU"
+     ],
+     "talker_bucket@384": [
+      "NPU"
+     ],
+     "talker_bucket@512": [
+      "NPU"
+     ],
+     "decoder_bucket@8": [
+      "NPU"
+     ],
+     "decoder_bucket@16": [
+      "NPU"
+     ],
+     "decoder_bucket@32": [
+      "NPU"
+     ],
+     "decoder_bucket@33": [
+      "NPU"
+     ]
+    },
+    "actual": {
+     "speaker_enc": "NPU",
+     "cp_prefill": "NPU",
+     "cp_decode": "NPU",
+     "tok_decoder": "NPU(lazy)",
+     "talker_bucket@64": "NPU",
+     "talker_bucket@128": "NPU",
+     "talker_bucket@256": "NPU",
+     "talker_bucket@384": "NPU",
+     "talker_bucket@512": "NPU",
+     "decoder_bucket@8": "NPU",
+     "decoder_bucket@16": "NPU",
+     "decoder_bucket@32": "NPU",
+     "decoder_bucket@33": "NPU"
+    },
+    "on_npu": [
+     "cp_decode",
+     "cp_prefill",
+     "decoder_bucket@16",
+     "decoder_bucket@32",
+     "decoder_bucket@33",
+     "decoder_bucket@8",
+     "speaker_enc",
+     "talker_bucket@128",
+     "talker_bucket@256",
+     "talker_bucket@384",
+     "talker_bucket@512",
+     "talker_bucket@64"
+    ],
+    "on_cpu": [],
+    "on_unknown": [
+     "tok_decoder"
+    ],
+    "key4_line": "EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU(lazy)"
+   },
+   "log_tail": "@8', 'speaker_enc', 'talker_bucket@128', 'talker_bucket@256', 'talker_bucket@384', 'talker_bucket@512', 'talker_bucket@64']；CPU 上 0 个组件 []\n[tts] [tts_engine] 未启用（该档位下不编译）的组件：talker_prefill，talker_decode，talker（以 5 个桶形式存在，落点见上），code_predictor\n[tts] EXECUTION_DEVICES={\"ok\": true, \"devices\": {\"speaker_enc\": [\"NPU\"], \"cp_prefill\": [\"NPU\"], \"cp_decode\": [\"NPU\"], \"tok_decoder\": [\"NPU(lazy)\"], \"talker_bucket@64\": [\"NPU\"], \"talker_bucket@128\": [\"NPU\"], \"talker_bucket@256\": [\"NPU\"], \"talker_bucket@384\": [\"NPU\"], \"talker_bucket@512\": [\"NPU\"], \"decoder_bucket@8\": [\"NPU\"]\n[tts] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\models\\qwen3tts\\voices\\preset_A.wav -> (1, 1024)\n[tts] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\smoke_ja\\wav\\_clone_ref_A.wav -> (1, 1024)\n[tts] ja/preset #0 dur=11.12 rtf=0.9165 er=None\n[tts] ja/preset #1 dur=11.44 rtf=0.8737 er=None\n[tts] ja/preset #2 dur=3.36 rtf=0.7783 er=None\n[tts] ja/preset #3 dur=13.76 rtf=0.9057 er=None\n[tts] ja/preset #4 dur=12.72 rtf=0.8906 er=None\n[tts] ja/clone #0 dur=11.04 rtf=0.8731 er=None\n[tts] ja/clone #1 dur=10.88 rtf=0.8585 er=None\n[tts] ja/clone #2 dur=3.44 rtf=0.7677 er=None\n[tts] ja/clone #3 dur=13.04 rtf=0.899 er=None\n[tts] ja/clone #4 dur=13.28 rtf=0.9019 er=None\n[tts] ja 完成：preset rtf_p50=0.8906 cap=0 ｜ clone rtf_p50=0.8731 cap=0\n[tts] wrote C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\smoke_ja\\tts.json\n"
+  },
+  "ko": {
+   "lang": "ko",
+   "rc_mt": 0,
+   "rc_tts": 0,
+   "out": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\smoke_ko",
+   "tts_json": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\smoke_ko\\tts.json",
+   "mt_json": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\smoke_ko\\mt.json",
+   "n_rows": 5,
+   "n_empty": 0,
+   "rtf_p50": 0.8778,
+   "rtf_p95": 0.889,
+   "end_reason_dist": {
+    "None": 5
+   },
+   "exec_devices": {
+    "ok": true,
+    "devices": {
+     "speaker_enc": [
+      "NPU"
+     ],
+     "cp_prefill": [
+      "NPU"
+     ],
+     "cp_decode": [
+      "NPU"
+     ],
+     "tok_decoder": [
+      "NPU(lazy)"
+     ],
+     "talker_bucket@64": [
+      "NPU"
+     ],
+     "talker_bucket@128": [
+      "NPU"
+     ],
+     "talker_bucket@256": [
+      "NPU"
+     ],
+     "talker_bucket@384": [
+      "NPU"
+     ],
+     "talker_bucket@512": [
+      "NPU"
+     ],
+     "decoder_bucket@8": [
+      "NPU"
+     ],
+     "decoder_bucket@16": [
+      "NPU"
+     ],
+     "decoder_bucket@32": [
+      "NPU"
+     ],
+     "decoder_bucket@33": [
+      "NPU"
+     ]
+    },
+    "devices_raw": {
+     "speaker_enc": "NPU",
+     "cp_prefill": "NPU",
+     "cp_decode": "NPU",
+     "tok_decoder": [
+      "NPU(lazy)"
+     ],
+     "talker_bucket@64": "NPU",
+     "talker_bucket@128": "NPU",
+     "talker_bucket@256": "NPU",
+     "talker_bucket@384": "NPU",
+     "talker_bucket@512": "NPU",
+     "decoder_bucket@8": "NPU",
+     "decoder_bucket@16": "NPU",
+     "decoder_bucket@32": "NPU",
+     "decoder_bucket@33": "NPU"
+    },
+    "unknown": [],
+    "absent": [
+     "talker_prefill",
+     "talker_decode",
+     "talker",
+     "code_predictor"
+    ],
+    "requested": "NPU",
+    "devices_norm": {
+     "speaker_enc": [
+      "NPU"
+     ],
+     "cp_prefill": [
+      "NPU"
+     ],
+     "cp_decode": [
+      "NPU"
+     ],
+     "tok_decoder": [
+      "NPU(lazy)"
+     ],
+     "talker_bucket@64": [
+      "NPU"
+     ],
+     "talker_bucket@128": [
+      "NPU"
+     ],
+     "talker_bucket@256": [
+      "NPU"
+     ],
+     "talker_bucket@384": [
+      "NPU"
+     ],
+     "talker_bucket@512": [
+      "NPU"
+     ],
+     "decoder_bucket@8": [
+      "NPU"
+     ],
+     "decoder_bucket@16": [
+      "NPU"
+     ],
+     "decoder_bucket@32": [
+      "NPU"
+     ],
+     "decoder_bucket@33": [
+      "NPU"
+     ]
+    },
+    "actual": {
+     "speaker_enc": "NPU",
+     "cp_prefill": "NPU",
+     "cp_decode": "NPU",
+     "tok_decoder": "NPU(lazy)",
+     "talker_bucket@64": "NPU",
+     "talker_bucket@128": "NPU",
+     "talker_bucket@256": "NPU",
+     "talker_bucket@384": "NPU",
+     "talker_bucket@512": "NPU",
+     "decoder_bucket@8": "NPU",
+     "decoder_bucket@16": "NPU",
+     "decoder_bucket@32": "NPU",
+     "decoder_bucket@33": "NPU"
+    },
+    "on_npu": [
+     "cp_decode",
+     "cp_prefill",
+     "decoder_bucket@16",
+     "decoder_bucket@32",
+     "decoder_bucket@33",
+     "decoder_bucket@8",
+     "speaker_enc",
+     "talker_bucket@128",
+     "talker_bucket@256",
+     "talker_bucket@384",
+     "talker_bucket@512",
+     "talker_bucket@64"
+    ],
+    "on_cpu": [],
+    "on_unknown": [
+     "tok_decoder"
+    ],
+    "key4_line": "EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU(lazy)"
+   },
+   "log_tail": "et@8', 'speaker_enc', 'talker_bucket@128', 'talker_bucket@256', 'talker_bucket@384', 'talker_bucket@512', 'talker_bucket@64']；CPU 上 0 个组件 []\n[tts] [tts_engine] 未启用（该档位下不编译）的组件：talker_prefill，talker_decode，talker（以 5 个桶形式存在，落点见上），code_predictor\n[tts] EXECUTION_DEVICES={\"ok\": true, \"devices\": {\"speaker_enc\": [\"NPU\"], \"cp_prefill\": [\"NPU\"], \"cp_decode\": [\"NPU\"], \"tok_decoder\": [\"NPU(lazy)\"], \"talker_bucket@64\": [\"NPU\"], \"talker_bucket@128\": [\"NPU\"], \"talker_bucket@256\": [\"NPU\"], \"talker_bucket@384\": [\"NPU\"], \"talker_bucket@512\": [\"NPU\"], \"decoder_bucket@8\": [\"NPU\"]\n[tts] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\models\\qwen3tts\\voices\\preset_A.wav -> (1, 1024)\n[tts] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\smoke_ko\\wav\\_clone_ref_A.wav -> (1, 1024)\n[tts] ko/preset #0 dur=11.12 rtf=0.9009 er=None\n[tts] ko/preset #1 dur=10.40 rtf=0.8563 er=None\n[tts] ko/preset #2 dur=3.60 rtf=0.7625 er=None\n[tts] ko/preset #3 dur=12.48 rtf=0.889 er=None\n[tts] ko/preset #4 dur=12.08 rtf=0.8778 er=None\n[tts] ko/clone #0 dur=12.24 rtf=0.8855 er=None\n[tts] ko/clone #1 dur=11.44 rtf=0.868 er=None\n[tts] ko/clone #2 dur=3.92 rtf=0.778 er=None\n[tts] ko/clone #3 dur=13.92 rtf=0.9122 er=None\n[tts] ko/clone #4 dur=11.68 rtf=0.8809 er=None\n[tts] ko 完成：preset rtf_p50=0.8778 cap=0 ｜ clone rtf_p50=0.8809 cap=0\n[tts] wrote C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_app097_regress\\smoke_ko\\tts.json\n"
+  }
+ },
+ "verdict": "RAN",
+ "lock_released": false,
+ "lock_exists_after": true
+}
