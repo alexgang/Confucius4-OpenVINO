@@ -1,7 +1,7 @@
 {
   "tool": "_app429_status_pointer_audit",
   "section": "§173",
-  "created_at": "2026-11-11 04:09:31",
+  "created_at": "2026-11-11 06:32:42",
   "device_job": false,
   "read_only": true,
   "corrections_fingerprint_open": {
@@ -15,34 +15,34 @@
   },
   "status_doc": {
     "path": "status/app/STATUS_APP.md",
-    "bytes": 37839,
-    "lines": 185,
-    "sha256": "b4594724d34909cbc5edb9e3235515253dd8c25bdb140a53151daabff5d5d3f3",
+    "bytes": 37879,
+    "lines": 184,
+    "sha256": "5867bc666da7de5a38e182260534663bd656b335103a641cbe047948b8a9dd2b",
     "crlf_count": 0,
-    "n_sections": 19
+    "n_sections": 20
   },
   "header_sync": {
-    "latest_section": 173,
+    "latest_section": 174,
     "header_current_task_refs": [
-      171,
-      172,
-      173
+      168,
+      173,
+      174
     ],
     "header_points_to_latest": true,
     "header_refs_missing_section": [],
     "last_ack": "APP-098",
-    "更新时间": "2026-11-11 04:07:00",
+    "更新时间": "2026-11-11 06:32:29",
     "当前任务_line": 5,
     "阻塞_line": 6,
-    "当前任务_text": "**巡检无新纠偏**（`last_ack=APP-098`；纠偏文件仍是 97 条 / 最大 APP-097 ⇒ 无编号更大的新条目）｜**本轮修掉 STATUS 头部 4 处过期／自相矛盾**（H1 头部引用滞后一章／H2 头部称「未改 `_SEC_PER_CHAR`」而 §172 已回填（自相矛盾）／H3 头部称「历史影响未评估」而 §171 已定界 D1/D2／H4 磁盘「17 G」实测 22.7 G）⇒ **已按「只动头部」定点修**（旧章节结论一字未改；§172 按 APP-052④ 索引化、完整原文逐字留归档件）｜**新增「归档指针可核对性」判据**（32 指针 ⇒ OK 25／FAIL 0／7 条早期索引行「从未声明 SHA」只记信息）＋ **3 个反证组全触发**（篡改 §171 归档件 1 字节 ⇒ OK→FAIL／给 §172 末行注入 SHA ⇒ 悬空→OK／改头部引用 ⇒ H1 消失）｜**顺带查出并消除 §172 悬空指针**（原指针写「块 SHA256 见本节末『归档』行」但该行无 SHA ⇒ 读者核对不上；索引化时已把真值 4 415 B／`92efe1c1…` 写进指针行，**归档件逐字节未动**）｜**既有闸门复跑全绿**（sec_per_char 27/27、app109 34/34、pkg_clean 对 v2.4 0 违规、window 同源 PASS）｜**未打包 v2.5、未改生产代码、未改客户包、未通知用户、未调 MiniMax、未占设备**｜结果见 §173｜**本条需等 reviewer 复核**",
-    "阻塞_text": "🔴 **GUI 布局缺陷修复仍未同步进客户包**（只在 dev 树 + 影子包）⇒ **v2.5 未打包、未同步任何客户包目录**（APP-055 须走打新版本号）⇒ **请 reviewer 裁定**：立刻修还是随 v2.5 一起出｜🔴 **该缺陷的历史影响「已定界」**（§171：D1 零交付物受影响／**D2 影响已交付的 rc5**）⇒ **不再是「未评估」**｜🔴 **§3.5 音色归属判据失效**（三人真值余弦 0.957–0.972 ⇒ 不可分）⇒ 未自行换判据｜🔴 **§3.6「切段真实发生时的设备开销」在本素材上结构性不可测**（质心恒 1）⇒ 需 reviewer 裁定是否调聚类阈值/换素材｜**APP-097 §2-4 的 `_SEC_PER_CHAR` 已由 §172 回填**（de .073／fr .070／es .085／pt .080／it .081／ru .083；zh/en/ja/ko 未动；守卫阈值只会变松）｜**倍率地板仍未裁定** ⇒ 等 reviewer｜🔴 **C 盘 22.7 G 可用（99 %）** ⇒ v2.5 打包需 10–15 G（**本轮未删任何文件**）｜**未打包 v2.5、未通知用户**"
+    "当前任务_text": "**巡检无新纠偏**（`last_ack=APP-098`；纠偏文件仍是 97 条 / 最大 APP-097 ⇒ 无编号更大的新条目）｜**本轮修掉 2 个 App 侧真缺陷**：**① 🔴 self_ref 克隆漏「克隆模式」闸门**（§168 ⑤ 实测 `--tts-voice A` 时 **78/78 句** `voice_kind='clone'` ⇒ 用户选预设 A 却每句都在克隆⇒ 与 reviewer 2026-11-07 已定口径「preset voice selected => never register clone voices」**冲突**⇒ 已补闸门：GUI 用 `_clone_enabled`、CLI 用 `_want_clone`（**与姊妹闸门 98cf8fc 同源同口径**）⇒ **行为级判据 8/8 PASS**（含反证 2/2）｜**② 🔴 开发期 `assert_*.py` 闸门可能随包泄漏**（§173 ⑥ 下一轮必读项：`pkg_exclude` 只排 `_` 前缀 ⇒ `assert_sec_per_char_calibrated.py` 等 3 个开发闸门**不会被排除** ⇒ 内含开发机路径 ⇒ 已加 `APP_DEV_ONLY_ASSERT_RE` 排除规则（`assert_pkg_clean.py` **必须随包** ⇒ 白名单例外）⇒ **判据 13/13 PASS**（含反证 2/2）｜**既有闸门复跑全绿**（sec_per_char 27/27、app109 34/34、pkg_clean 对 v2.4 0 违规、window 同源 PASS）｜**未打包 v2.5、未同步任何客户包、未通知用户、未调 MiniMax、未占设备**｜结果见 §174｜**本条需等 reviewer 复核**",
+    "阻塞_text": "🔴 **GUI 布局缺陷修复仍未同步进客户包**（只在 dev 树 + 影子包）⇒ **v2.5 未打包、未同步任何客户包目录**（APP-055 须走打新版本号）⇒ **请 reviewer 裁定**：立刻修还是随 v2.5 一起出｜🔴 **该缺陷的历史影响「已定界」**（§171：D1 零交付物受影响／**D2 影响已交付的 rc5**）⇒ **不再是「未评估」**｜🔴 **§3.5 音色归属判据失效**（三人真值余弦 0.957–0.972 ⇒ 不可分）⇒ 未自行换判据｜🔴 **§3.6「切段真实发生时的设备开销」在本素材上结构性不可测**（质心恒 1）⇒ 需 reviewer 裁定是否调聚类阈值/换素材｜**APP-097 §2-4 的 `_SEC_PER_CHAR` 已由 §172 回填**（de .073／fr .070／es .085／pt .080／it .081／ru .083；zh/en/ja/ko 未动；守卫阈值只会变松）｜**倍率地板仍未裁定** ⇒ 等 reviewer｜🔴 **本轮 2 处修复待 reviewer 复核**：① self_ref 克隆闸门（**已改 dev 树**，客户包未动 ⇒ **已交付的 rc6/rc7 不受影响**——判据已证 `clone_voice.py` 不在包内 ⇒ 该路径为死代码）② `assert_*.py` 排除规则（**只改打包规则**，不改任何客户包目录）｜🔴 **C 盘 22.7 G 可用（99 %）** ⇒ v2.5 打包需 10–15 G（**本轮未删任何文件**）｜**未打包 v2.5、未通知用户**"
   },
   "header_contradictions": [],
   "archive_pointer_audit": {
-    "n_pointers": 32,
+    "n_pointers": 34,
     "verdict_counts": {
-      "OK": 27,
-      "NO_SHA_CLAIMED": 5
+      "OK": 28,
+      "NO_SHA_CLAIMED": 6
     },
     "rows": [
       {
@@ -452,8 +452,8 @@
         "verdict": "OK"
       },
       {
-        "line": 179,
-        "segment": "> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec173_20261111.md`（10835 B／块 SHA256 `2400cc27b26fba6b6ddb71d1cab64e9151fc8595b65a1369aef839e04a0de4a3`）",
+        "line": 178,
+        "segment": "> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec173_20261111.md`（10 835 B／块 SHA256 `2400cc27b26fba6b6ddb71d1cab64e9151fc8595b65a1369aef839e04a0de4a3`）",
         "archive": "STATUS_APP_sec173_20261111.md",
         "on_disk": true,
         "claimed_sha": "2400cc27b26fba6b6ddb71d1cab64e9151fc8595b65a1369aef839e04a0de4a3",
@@ -463,6 +463,32 @@
         "actual_bytes": 10835,
         "matched_form": "raw",
         "verdict": "OK"
+      },
+      {
+        "line": 181,
+        "segment": "> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec174_20261111.md`（10904 B／块 SHA256 `367ba690c97b1bd345970291600cb141f1347b4da723804c9857c59a3b02cb39`）",
+        "archive": "STATUS_APP_sec174_20261111.md",
+        "on_disk": true,
+        "claimed_sha": "367ba690c97b1bd345970291600cb141f1347b4da723804c9857c59a3b02cb39",
+        "claim_source": "inline",
+        "xref": null,
+        "actual_raw": "367ba690c97b1bd345970291600cb141f1347b4da723804c9857c59a3b02cb39",
+        "actual_bytes": 10904,
+        "matched_form": "raw",
+        "verdict": "OK"
+      },
+      {
+        "line": 183,
+        "segment": "> 🔴 **证据**：`results/app/app432_self_ref_clone_gate.json`（8/8）／`results/app/app433_pkg_dev_only_assert_gate.json`（13/13）／`_app432_self_ref_clone_gate.py`／`_app433_pkg_dev_only_asser",
+        "archive": "STATUS_APP_sec174_20261111.md",
+        "on_disk": true,
+        "claimed_sha": null,
+        "claim_source": null,
+        "xref": null,
+        "actual_raw": "367ba690c97b1bd345970291600cb141f1347b4da723804c9857c59a3b02cb39",
+        "actual_bytes": 10904,
+        "verdict": "NO_SHA_CLAIMED",
+        "matched_form": null
       }
     ]
   },
@@ -527,7 +553,7 @@
     },
     "B": {
       "case": "inject_sha_into_section_tail",
-      "section": 173,
+      "section": 174,
       "before": "FAIL_UNVERIFIABLE (悬空：末行无 SHA)",
       "after": "OK",
       "discriminating": true,
@@ -544,8 +570,8 @@
   },
   "verdict": {
     "n_fail": 0,
-    "n_ok": 27,
-    "n_no_sha_claimed": 5,
+    "n_ok": 28,
+    "n_no_sha_claimed": 6,
     "n_header_contradictions": 0,
     "anti_A_discriminating": true,
     "anti_B_discriminating": true,
