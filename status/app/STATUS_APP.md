@@ -2,8 +2,8 @@
 
 last_ack: APP-097
 更新时间: 2026-11-10 12:26:15
-当前任务: **APP-094/095/096 已执行**：MiniMVP **rc5** 已出包（ASR→Qwen3-ASR-0.6B mask2 INT8，R2T2 ASR IR 全删，iGPU/NPU 两臂设备验收已跑，EXECUTION_DEVICES 直证 encoder=NPU/decoder=NPU）；**APP-094① keep-first 落地 + 判据 5/5**；EXT v0.3.6 暂存区已备（v2.5 未打包）｜**APP-093 §3 仅完成 §3.2，其余未跑 ⇒ 需等 reviewer 复核**
-阻塞 / 待用户决定: **APP-093 §3 的 §3.3/§3.4/§3.5/§3.6/§3.7 未跑**（过载臂重做・before 臂补齐・音色归属真值余弦・切段 RTF・GUI 截图）⇒ 需 MACHINE_LOCK 长作业；阈值取舍由 reviewer 拿 §3.1/§3.2 数字报主会话请用户决定（**默认值仍 6.0**）｜**v2.5 未打包、未通知用户**
+当前任务: **APP-094/095/096/097 已执行**：MiniMVP **rc5** 已出包（ASR→Qwen3-ASR-0.6B mask2 INT8，R2T2 ASR IR 全删，iGPU/NPU 两臂设备验收已跑，EXECUTION_DEVICES 直证 encoder=NPU/decoder=NPU）；**APP-094① keep-first 落地 + 判据 5/5**；EXT v0.3.6 暂存区已备（v2.5 未打包）；**APP-097 目标语言扩到 10 种**（静态+单元全过）｜**APP-093 §3 仅完成 §3.2、§3.5 判据失效（x-vector 分不开三人）；APP-097 §2 逐语种验收未跑 ⇒ 均需等 reviewer 复核**
+阻塞 / 待用户决定: **APP-093 §3 的 §3.3/§3.4/§3.5/§3.6/§3.7 未跑**（过载臂重做・before 臂补齐・音色归属真值余弦・切段 RTF・GUI 截图）⇒ 需 MACHINE_LOCK 长作业；**§3.5 判据失效已定位根因**（三人 x-vector 两两余弦 0.947–0.967 ⇒ 对照组 A 71.4% / B 65.7%）⇒ 未自行换判据｜**APP-097 §2 逐语种设备验收未跑**（MT/TTS 6 语种・时长校准・zh 回归・模型身份）｜阈值取舍由 reviewer 拿 §3.1/§3.2 数字报主会话请用户决定（**默认值仍 6.0**）｜**v2.5 未打包、未通知用户**
 已压缩: 压缩索引（旧正文逐字归档）⇒ `status/archive/STATUS_APP_compress_index_upto_20261107.md`；限额 ≤40000 B / ≤300 行（APP-052④）｜**§159 压缩**：§159 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec159_20261109.md`（块 SHA256 `da8241c04798cbf70798b0588f54fd7da8a35e5c4530cfff1eb653f3df9d32db`）｜**§160 压缩**：头部「已压缩」行原文（2012 B）已归档进同一索引 ⇒ 头部只留精简行｜**§161 压缩**：§161 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec161_20261110.md`（块 SHA256 `0636d5145b65f2c142d886f62e529d9cd2e1a1d966035fbee75bed842574a557`）
 
 
