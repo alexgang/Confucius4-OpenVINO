@@ -1,0 +1,83 @@
+{
+  "created_at": "2026-11-10T18:55:51",
+  "device_job": false,
+  "lock_note": "纯 CPU 静态检查（不加载模型、不占 GPU/NPU）⇒ 不需要 MACHINE_LOCK",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4",
+  "pkg_asr_spk": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\app\\asr_spk",
+  "dev_speaker_tracker": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\speaker_tracker.py",
+  "checks": [
+    {
+      "name": "app_resolves_asr_win_s",
+      "pass": true,
+      "detail": "App 解析窗长 5.0 vs ASR asr_spk_window.WIN_S 5.0"
+    },
+    {
+      "name": "app_source_is_same_source",
+      "pass": true,
+      "detail": "来源串 = '同源 asr_spk_window.WIN_S=5.0'"
+    },
+    {
+      "name": "asr_seg_window_consistent",
+      "pass": true,
+      "detail": "SEG_WIN_S=5.0 WIN_S=5.0"
+    },
+    {
+      "name": "fallback_window_matches_ir_fallback",
+      "pass": true,
+      "detail": "App 兜底窗长 10.0 vs IR 兜底窗长 10.0（fp16 = 160000 样本）"
+    },
+    {
+      "name": "neg_control_fallback_mismatch_is_caught",
+      "pass": true,
+      "detail": "把 App 兜底改成 5.0 ⇒ 与 IR 兜底 10.0 失配（差 5.0 s）⇒ 判据必须 FAIL"
+    },
+    {
+      "name": "pkg_has_seg_ir_for_window",
+      "pass": true,
+      "detail": "窗长 5.0 ⇒ 需要变体 'fp16-w5'；包内实际 ['fp16', 'fp16-w5']"
+    },
+    {
+      "name": "pkg_app_fallback_matches_ir_fallback",
+      "pass": true,
+      "detail": "包内 _WIN_S_DEFAULT=10.0 vs IR 兜底窗长 10.0"
+    },
+    {
+      "name": "neg_control_app_follows_asr_change",
+      "pass": true,
+      "detail": "把 ASR WIN_S_DEFAULT 改成 7.0 ⇒ App 解析 7.0（应 7.0）；来源 '同源 asr_spk_window.WIN_S=7.0'"
+    }
+  ],
+  "asr_side": {
+    "WIN_S": 5.0,
+    "WIN_S_DEFAULT": 5.0,
+    "SEG_WIN_S": 5.0,
+    "WIN_N": 80000,
+    "file": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\app\\asr_spk\\asr_spk_window.py",
+    "sha256": "601ff1214d47900e3d6870b8a9eda8f33050d7cb1e9bf66e3c4c2360a7078e57"
+  },
+  "app_side": {
+    "resolved_win_s": 5.0,
+    "source": "同源 asr_spk_window.WIN_S=5.0",
+    "hardcoded_fallback": 10.0,
+    "env_name": "LIVECAP_SPK_WINDOW_S",
+    "dev_file_sha256": "6c8719c3f454cbe682f1f16ec33c2c15844ea5274942ef6ec03dc2428f303a20"
+  },
+  "fallback_pairing": {
+    "app_fallback_win_s": 10.0,
+    "ir_fallback_win_s": 10.0,
+    "ir_fallback_samples": 160000,
+    "note": "speaker_assets 的 IR 兜底 = SEG_PRECISIONS 首项 fp16（160000 样本 = 10 s）"
+  },
+  "pkg_seg_ir_variants": [
+    "fp16",
+    "fp16-w5"
+  ],
+  "pkg_app_side": {
+    "file": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\app\\speaker_tracker.py",
+    "hardcoded_fallback": "10.0",
+    "sha256": "5f7f1824f8596d073264bea42e6c143da9334618ce5578bde5509b369bad8a76"
+  },
+  "n_pass": 8,
+  "n_fail": 0,
+  "verdict": "PASS"
+}
