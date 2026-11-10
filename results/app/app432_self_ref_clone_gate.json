@@ -1,0 +1,76 @@
+{
+  "task": "APP-098 §3 自查 + §168 ⑤ 复现：self_ref 克隆必须受克隆模式闸门约束",
+  "src_root": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption",
+  "src_file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\live_caption_app.py",
+  "criterion": "behavior-level (AST-extract + exec in isolated namespace)",
+  "note": "本判据**不改生产代码**；A1/B1 若 FAIL ⇒ dev HEAD 的 self_ref 通道确实缺「克隆模式」闸门（与 §168 ⑤ 实测 78/78 一致）。",
+  "pass_count": 8,
+  "fail_count": 0,
+  "total": 8,
+  "checks": [
+    {
+      "id": "A1",
+      "group": "A",
+      "name": "GUI：克隆模式关 ⇒ self_ref 发送次数 == 0",
+      "ok": true,
+      "got": 0,
+      "want": 0
+    },
+    {
+      "id": "A2",
+      "group": "A",
+      "name": "GUI：克隆模式开 ⇒ self_ref 能发（≥1 次，≠0）",
+      "ok": true,
+      "got": 1,
+      "want": ">=1"
+    },
+    {
+      "id": "A3",
+      "group": "A",
+      "name": "GUI：该 spk 已有登记音色 ⇒ 不发 self_ref",
+      "ok": true,
+      "got": 0,
+      "want": 0
+    },
+    {
+      "id": "B1",
+      "group": "B",
+      "name": "CLI：克隆模式关 ⇒ self_ref 发送次数 == 0",
+      "ok": true,
+      "got": 0,
+      "want": 0
+    },
+    {
+      "id": "B2",
+      "group": "B",
+      "name": "CLI：克隆模式开 ⇒ self_ref 能发（≥1 次，≠0）",
+      "ok": true,
+      "got": 1,
+      "want": ">=1"
+    },
+    {
+      "id": "B3",
+      "group": "B",
+      "name": "CLI：该 spk 已有登记音色 ⇒ 不发 self_ref",
+      "ok": true,
+      "got": 0,
+      "want": 0
+    },
+    {
+      "id": "C1",
+      "group": "C",
+      "name": "反证：GUI 闸门被做掉 ⇒ A1 必须 FAIL（有鉴别力）",
+      "ok": true,
+      "got": false,
+      "want": false
+    },
+    {
+      "id": "C2",
+      "group": "C",
+      "name": "反证：CLI 闸门被做掉 ⇒ B1 必须 FAIL（有鉴别力）",
+      "ok": true,
+      "got": false,
+      "want": false
+    }
+  ]
+}

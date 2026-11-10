@@ -1,0 +1,134 @@
+{
+  "task": "App 侧打包卫生：开发期 assert_*.py 闸门不得进客户包（assert_pkg_clean 除外）",
+  "repo": "C:\\Users\\Trekker-PTL\\confucius4-openvino",
+  "criterion": "behavior-level (真调 pkg_exclude.is_app_dev_only / is_excluded + 扫真实包目录)",
+  "dev_gates": [
+    "assert_sec_per_char_calibrated.py",
+    "assert_status_citations.py",
+    "assert_window_same_source.py"
+  ],
+  "must_ship": "assert_pkg_clean.py",
+  "pass_count": 13,
+  "fail_count": 0,
+  "total": 13,
+  "checks": [
+    {
+      "id": "A1",
+      "group": "A",
+      "name": "is_app_dev_only(app/assert_sec_per_char_calibrated.py) == True（开发闸门须排除）",
+      "ok": true,
+      "got": true,
+      "want": true
+    },
+    {
+      "id": "A2",
+      "group": "A",
+      "name": "is_app_dev_only(app/assert_status_citations.py) == True（开发闸门须排除）",
+      "ok": true,
+      "got": true,
+      "want": true
+    },
+    {
+      "id": "A3",
+      "group": "A",
+      "name": "is_app_dev_only(app/assert_window_same_source.py) == True（开发闸门须排除）",
+      "ok": true,
+      "got": true,
+      "want": true
+    },
+    {
+      "id": "A4",
+      "group": "A",
+      "name": "is_excluded(app/assert_sec_per_char_calibrated.py) == True",
+      "ok": true,
+      "got": true,
+      "want": true
+    },
+    {
+      "id": "A5",
+      "group": "A",
+      "name": "is_app_dev_only(app/assert_pkg_clean.py) == False（必须随包）",
+      "ok": true,
+      "got": false,
+      "want": false
+    },
+    {
+      "id": "A6",
+      "group": "A",
+      "name": "is_excluded(app/assert_pkg_clean.py) == False（必须随包）",
+      "ok": true,
+      "got": false,
+      "want": false
+    },
+    {
+      "id": "B1",
+      "group": "B",
+      "name": "客户包 Confucius4_LiveCaption_v2.3/app 下无开发闸门（只允许 assert_pkg_clean.py）",
+      "ok": true,
+      "got": [
+        "assert_pkg_clean.py"
+      ],
+      "want": [
+        "assert_pkg_clean.py"
+      ]
+    },
+    {
+      "id": "B2",
+      "group": "B",
+      "name": "客户包 Confucius4_LiveCaption_v2.4/app 下无开发闸门（只允许 assert_pkg_clean.py）",
+      "ok": true,
+      "got": [
+        "assert_pkg_clean.py"
+      ],
+      "want": [
+        "assert_pkg_clean.py"
+      ]
+    },
+    {
+      "id": "B3",
+      "group": "B",
+      "name": "客户包 Confucius4_LiveCaption_MiniMVP_v1.0-rc5/app 下无开发闸门（只允许 assert_pkg_clean.py）",
+      "ok": true,
+      "got": [],
+      "want": [
+        "assert_pkg_clean.py"
+      ]
+    },
+    {
+      "id": "B4",
+      "group": "B",
+      "name": "客户包 Confucius4_LiveCaption_MiniMVP_v1.0-rc6/app 下无开发闸门（只允许 assert_pkg_clean.py）",
+      "ok": true,
+      "got": [],
+      "want": [
+        "assert_pkg_clean.py"
+      ]
+    },
+    {
+      "id": "B5",
+      "group": "B",
+      "name": "客户包 Confucius4_LiveCaption_MiniMVP_v1.0-rc7/app 下无开发闸门（只允许 assert_pkg_clean.py）",
+      "ok": true,
+      "got": [],
+      "want": [
+        "assert_pkg_clean.py"
+      ]
+    },
+    {
+      "id": "C1",
+      "group": "C",
+      "name": "反证：例外名单被做掉 ⇒ assert_pkg_clean 必须 FAIL",
+      "ok": true,
+      "got": true,
+      "want": true
+    },
+    {
+      "id": "C2",
+      "group": "C",
+      "name": "反证：例外名单被做掉 ⇒ is_excluded 必须 True",
+      "ok": true,
+      "got": true,
+      "want": true
+    }
+  ]
+}

@@ -78,6 +78,8 @@ __all__ = [
     'MT2_ACC_OUTPUTS_DIR',
     'APP_DIR',
     'APP_DEV_ONLY_FILE_RE',
+    'APP_DEV_ONLY_ASSERT_RE',
+    'APP_DEV_ONLY_ASSERT_KEEP',
     'is_app_dev_only',
     'BRIDGE_TOKEN_FILE_RE',
     'is_bridge_token_file',
@@ -379,10 +381,29 @@ APP_DIR = 'app/'
 # 🔴 **开发专用**（下划线前缀）—— 命中即排除
 APP_DEV_ONLY_FILE_RE = re.compile(r'^_[A-Za-z0-9_]+\.(py|ps1|bat|sh)$', re.I)
 
+# 🔴🔴🔳 **开发期静态闸门**（`assert_*.py`）—— 命中即排除（**有例外**）
+#
+#   🔴 **为什么也要排**（与下划线规则**同一个理由**）：
+#     这些闸门脚本里写着**开发机路径**（例：
+#     `assert_sec_per_char_calibrated.py` → `REPO/results/app/app326_app097_lang_out/tts.json`、
+#     `assert_status_citations.py` → `status/app/STATUS_APP.md`、
+#     `assert_window_same_source.py` → `REPO/live_caption/speaker_tracker.py`）
+#     ⇒ 进客户包 = **开发机路径泄漏**（正是 APP-052③ / §120 处理过的那类缺陷）。
+#   🔴 **例外**：`assert_pkg_clean.py` **必须随包**
+#     （它是**打包阶段**的交付洁净度闸门；`PKG_INCLUDE_FILES` 列了它、
+#      `pack_v13.py` 闸门③ 逐字节比对它 ⇒ **绝不能**被排除）。
+APP_DEV_ONLY_ASSERT_RE = re.compile(r'^assert_[A-Za-z0-9_]+\.py$', re.I)
+
 # 🔴 **明确保留**（虽然也可能命中上面的规则）—— 键 = 文件名（不含目录）
 APP_DEV_ONLY_KEEP = frozenset({
     # 客户自检用（`verify_pkg_zip.py` 的 KEY_APP_FILES 列为必需）
     'selftest_audio_sources.py',
+})
+
+# 🔴 **`assert_*` 规则的例外**（必须随包 ⇒ 不得被排除）
+APP_DEV_ONLY_ASSERT_KEEP = frozenset({
+    # 交付洁净度闸门（PKG_INCLUDE_FILES + pack_v13 闸门③ 都要求它在包内）
+    'assert_pkg_clean.py',
 })
 
 # 🔴 **App 侧代码会主动引用**的文件（防止误排除）
@@ -418,6 +439,10 @@ def is_app_dev_only(relpath: str) -> bool:
     name = relpath.rsplit('/', 1)[-1]
     if name in APP_DEV_ONLY_KEEP or name in APP_DEV_ONLY_REFERENCED:
         return False
+    # 🔴🔴🔳 开发期静态闸门（`assert_*.py`）⇒ 开发机路径泄漏 ⇒ 排除
+    #   ⚠️ `assert_pkg_clean.py` **必须随包**（打包阶段洁净度闸门）⇒ 例外。
+    if APP_DEV_ONLY_ASSERT_RE.match(name):
+        return name not in APP_DEV_ONLY_ASSERT_KEEP
     return bool(APP_DEV_ONLY_FILE_RE.match(name))
 
 

@@ -3257,6 +3257,20 @@ class App:
                 return False
             if not getattr(self.tts, 'active', False):
                 return False
+            # 🔴🔴🔳 APP-089 §2c-1 **闸门**：**只有克隆模式才允许 self_ref 克隆**
+            #   🔴 **漏这道闸门 ⇒ 选中「预设 A」时每句都走 self_ref 克隆**
+            #     （§168 ⑤ 实测：78/78 句 `voice_kind='clone'`、`voice_self_ref=true`
+            #      ⇒ 用户选了预设 A，实际每句都在克隆 ⇒ 与 reviewer 2026-11-07（v2.4）
+            #      已定的口径「`preset voice selected => never register clone voices`」
+            #      **直接冲突** ⇒ 这是**同一口径的漏实现**，不是新口径）。
+            #   ⇒ **与同文件姊妹闸门同一口径**（98cf8fc）：
+            #     GUI `_pump_spk_voices` 用 `_clone_enabled`；CLI 用 `_want_clone`。
+            #   ⚠️ **与 `_pump_spk_voices` 的差别**：那边是「pending 排队」，
+            #     切到克隆后仍会登记；这边 self_ref **按句现算现用** ⇒
+            #     预设 A 时**根本不产生** self_ref 素材 ⇒ 切到克隆后**从下一句起**
+            #     才有 self_ref（**不改既有「切到克隆后能克隆」的能力**）。
+            if not getattr(self, '_clone_enabled', False):
+                return False
             spk = self._spk_voices.spk_of(seg)
             if spk and self._spk_voices.has_voice(spk):
                 return False       # 该 spk 已有音色 ⇒ 不用 self_ref
@@ -7343,6 +7357,16 @@ def run_cli(args):
             if seg is None or tts is None:
                 return False
             if not getattr(tts, 'active', False):
+                return False
+            # 🔴🔴🔳 APP-089 §2c-1 **闸门**：**只有克隆模式才允许 self_ref 克隆**
+            #   🔴 与 GUI 侧**同一口径**（见 `_maybe_send_self_ref` 的注释）：
+            #     漏这道闸门 ⇒ 选中预设 A 时每句都走 self_ref 克隆
+            #     （§168 ⑤ 实测 78/78 句 `voice_kind='clone'`）
+            #     ⇒ 与 reviewer 2026-11-07（v2.4）口径
+            #       「`preset voice selected => never register clone voices`」冲突。
+            #   ⇒ **与姊妹闸门同一口径**（98cf8fc 的 `_cli_pump_spk_voices` 用
+            #     `_want_clone`）⇒ 预设 A ⇒ **绝不**发 self_ref ⇒ 回落预设 A。
+            if not _want_clone:
                 return False
             spk = _spk_voices.spk_of(seg)
             if spk and _spk_voices.has_voice(spk):
