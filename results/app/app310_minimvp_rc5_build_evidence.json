@@ -1,0 +1,59 @@
+{
+ "built_at": "2026-11-10T10:41:26",
+ "version": "1.0-rc5",
+ "base_pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4",
+ "dst_pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5",
+ "corrections": [
+  "APP-095 (1a only; 1b superseded by APP-096)",
+  "APP-096"
+ ],
+ "dry_run": false,
+ "actions": [
+  "copy rc4 -> rc5 (real copy, no hardlink)",
+  "drop R2T2 ASR IR: ['encoder-int8', 'decoder-gpu-int8', 'encoder-fp16', 'decoder-npu-int8', 'decoder-npu-int4', 'embed_tokens_f16.npy']",
+  "install 0.6B models/tokenizer",
+  "patch app/live_caption_app.py: ['aliases', 'engines', 'precision', 'ovengine', 'check', 'kind_doc']",
+  "add app/asr06b_backend.py",
+  "docs: pending _app311 (separate script)"
+ ],
+ "tokenizer_files_missing": [
+  "tokenizer.json",
+  "special_tokens_map.json",
+  "added_tokens.json"
+ ],
+ "rc4_fingerprint_before": {
+  "zip_sha256": "f0ebcc7272ea26776f6b7bd3cd83ebdc94e5a8bfaa8e5aaeb6f5b16d55ccc4ba",
+  "zip_bytes": 8609378581,
+  "files": 10510,
+  "bytes": 10702224079,
+  "mtime": "2026-11-10T07:27:49"
+ },
+ "dropped": [
+  "encoder-int8",
+  "decoder-gpu-int8",
+  "encoder-fp16",
+  "decoder-npu-int8",
+  "decoder-npu-int4",
+  "embed_tokens_f16.npy"
+ ],
+ "patch_ids": [
+  "aliases",
+  "engines",
+  "precision",
+  "ovengine",
+  "check",
+  "kind_doc"
+ ],
+ "rc5": {
+  "files": 10503,
+  "bytes": 5936829540,
+  "mtime": "2026-11-10T07:27:49"
+ },
+ "rc4_fingerprint_after": {
+  "zip_sha256": "f0ebcc7272ea26776f6b7bd3cd83ebdc94e5a8bfaa8e5aaeb6f5b16d55ccc4ba",
+  "files": 10510,
+  "bytes": 10702224079
+ },
+ "build_s": 102.7,
+ "rc4_unchanged": true
+}

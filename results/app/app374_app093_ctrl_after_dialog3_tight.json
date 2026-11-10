@@ -1,0 +1,22 @@
+{
+ "arm": "after",
+ "material": "dialog3_tight",
+ "run_dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs3\\after\\dialog3_tight_thr6",
+ "control_A_source_human": {
+  "n": 35,
+  "n_match": 25,
+  "match_rate": 0.7143,
+  "note": "对照组 A＝**源人声**（已知正确）⇒ 应当接近 1.0 ⇒ 低于此值说明判据/映射有问题"
+ },
+ "control_B_preset_A": {
+  "n": 35,
+  "n_match": 23,
+  "match_rate": 0.6571,
+  "preset_wav": "C:\\Users\\Trekker-PTL\\_app_shadow\\after\\app\\..\\models\\qwen3tts\\voices\\preset_A.wav",
+  "note": "对照组 B＝**预设 A 音色**（反证：克隆音色 ≠ 预设 A）⇒ 应当接近 0 ⇒ 高于此值说明判据恒真"
+ },
+ "src": {
+  "truth": "C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\truth_tight.json",
+  "spk_seg_jsonl": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs3\\after\\dialog3_tight_thr6\\spk_seg.jsonl"
+ }
+}

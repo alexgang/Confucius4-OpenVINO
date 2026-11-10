@@ -68,13 +68,21 @@ DEFAULT_MODEL = os.environ.get(
     ))
 
 # 目标语言下拉：off 表示不翻译
+# 🔴🔴🔳 **APP-097①**：扩到 Qwen3-TTS 支持的**全部 10 种**
+#    ⚠️ **默认值不变**（仍是 'off'／由 App 侧决定）⇒ 只扩**选项集合**。
 TARGETS = OrderedDict([
     ('off', None), ('zh', 'Chinese'), ('en', 'English'),
     ('ja', 'Japanese'), ('ko', 'Korean'),
+    # 🔴 APP-097①：6 种新语言（顺序＝Qwen3-TTS `codec_language_id` 的顺序）
+    ('de', 'German'), ('fr', 'French'), ('es', 'Spanish'),
+    ('pt', 'Portuguese'), ('it', 'Italian'), ('ru', 'Russian'),
 ])
 TARGET_LABELS = OrderedDict([
     ('off', '关闭'), ('zh', '中文'), ('en', 'English'),
     ('ja', '日本語'), ('ko', '한국어'),
+    # 🔴 APP-097①：6 种新语言的**本地语言显示名**
+    ('de', 'Deutsch'), ('fr', 'Français'), ('es', 'Español'),
+    ('pt', 'Português'), ('it', 'Italiano'), ('ru', 'Русский'),
 ])
 
 # ── A3 翻译后端：设备 × 量化 ───────────────────────────────────────────
@@ -495,16 +503,49 @@ def _split_by_len(text, max_chars):
 
 
 def detect_lang(text):
-    """粗判语言：ko / ja / zh / en / ''（判别不出）。"""
-    if _HANGUL.search(text or ''):
+    """粗判语言：ko / ja / zh / ru / en / ''（判别不出）。
+
+    🔴🔴🔳 **APP-097①.4：源语言判定的坑（reviewer 明确点名）**
+
+    旧实现只按**文字系统**判定 ⇒ **法语/德语/西语/葡语/意语**全被判成 `'en'`
+    ⇒ 「源 == 目标就跳过翻译」的逻辑会**误跳**：
+      · 源是法语、目标是英语 ⇒ 判成 `en == en` ⇒ **不翻译**（错）
+      · 源是英语、目标是法语 ⇒ 判成 `en`，目标 `fr` ≠ `en` ⇒ 会翻译（对）
+    ⇒ **修法（按 reviewer 要求）**：
+      ① **西里尔字母判成 `'ru'`**（俄语有独立文字系统 ⇒ 可判定）；
+      ② **拉丁字母语言之间不允许凭脚本判定跳过翻译**
+         ⇒ 拉丁文本**只判成 `'en'`（或更中性）**，且**跳过条件收紧**：
+         只有「**脚本判定唯一确定**」的语言（zh/ja/ko/ru）才允许与目标相同而跳过；
+         `'en'` 是「不知道是哪种拉丁语言」的**兜底**⇒ **不参与跳过判定**。
+      ③ **ASR 给了语种标签就用标签**（调用方可传 `src_hint`）⇒ 优先级最高。
+    """
+    t = text or ''
+    if _HANGUL.search(t):
         return 'ko'
-    if _KANA.search(text or ''):
+    if _KANA.search(t):
         return 'ja'
-    if _CJK.search(text or ''):
+    if _CJK.search(t):
         return 'zh'
-    if _LATIN.search(text or ''):
+    # 🔴 APP-097①.4①：**西里尔 ⇒ 俄语**（新增）
+    if _CYRILLIC.search(t):
+        return 'ru'
+    if _LATIN.search(t):
+        # ⚠️ 拉丁字母语言（en/de/fr/es/pt/it）**无法凭脚本区分**
+        #    ⇒ 统一落 'en'，但**下游不许据此跳过翻译**（见 `translate`）。
         return 'en'
     return ''
+
+
+#: 🔴 APP-097①.4①：**西里尔字母**（俄语）
+_CYRILLIC = re.compile(r'[\u0400-\u04FF\u0500-\u052F]')
+
+#: 🔴🔴🔳 **APP-097①.4②**：**允许「源==目标 ⇒ 跳过翻译」的语言集合**
+#:   ⇒ **只有脚本能唯一确定的语言**才在集合里（zh/ja/ko/ru）。
+#:   ⚠️ `'en'` **不在集合里** ⇒ 拉丁文本**永远不会被脚本判定跳过**
+#:      ⇒ 源法语→目标英语、源英语→目标法语 **都会正常翻译**。
+#:   🔴 若 ASR 给了**显式语种标签**（`src_hint`）⇒ 走 `_SKIP_EQ_SAFE` 的判断
+#:      （标签可信 ⇒ 可以跳过）。
+_SKIP_EQ_SAFE = frozenset(('zh', 'ja', 'ko', 'ru'))
 
 
 def _norm_tight(s):
@@ -539,7 +580,17 @@ def ends_sentence(text):
 
 
 # ── prompt / 清洗 ───────────────────────────────────────────────────────
-_LANG_NAME = {'zh': 'Chinese', 'en': 'English', 'ja': 'Japanese', 'ko': 'Korean'}
+#: 目标语言代号 → MT prompt 里用的**英文全称**
+#:
+#: 🔴🔴🔳 **APP-097①**：补齐 Qwen3-TTS 支持的其余 6 种
+#:    （`tts_engine.LANG_MAP` 是**同一个**语言集合的另一份视角）
+#:    ⇒ 两张表**必须同步**：扩了一边忘了另一边 ⇒ KeyError / 静默退回 English。
+_LANG_NAME = {
+    'zh': 'Chinese', 'en': 'English', 'ja': 'Japanese', 'ko': 'Korean',
+    # 🔴 APP-097①：6 种新语言
+    'de': 'German', 'fr': 'French', 'es': 'Spanish',
+    'pt': 'Portuguese', 'it': 'Italian', 'ru': 'Russian',
+}
 # C-102：Hy-MT2 **没有默认 system prompt**，官方指令直接放 user 消息里
 # （Default Translation 模板，见 tencent/Hy-MT2-1.8B README）。原先给通用
 # Instruct 模型自造的 system prompt 已废弃。
@@ -749,10 +800,20 @@ class HunyuanTranslator:
             build_messages(text, tgt, src, ctx=ctx, glossary=glossary), tokenize=False,
             add_generation_prompt=True)
 
-    def translate(self, text, tgt, on_token=None, ctx=None, glossary=None):
-        """返回 dict(text, lat_ms, ttft_ms, n_in, n_out, skipped)。"""
-        src = detect_lang(text)
-        if tgt != 'off' and src and src == tgt:
+    def translate(self, text, tgt, on_token=None, ctx=None, glossary=None,
+                    src_hint=None):
+        """返回 dict(text, lat_ms, ttft_ms, n_in, n_out, skipped)。
+
+        🔴🔴🔳 **APP-097①.4**：源语言判定的**三级优先级**
+          ① `src_hint`（ASR 给的**语种标签**）⇒ **最可信**；
+          ② `detect_lang(text)` 的**脚本判定**（仅 zh/ja/ko/ru 可信）；
+          ③ 都不是 ⇒ 不跳过翻译。
+        ⚠️ **拉丁字母语言之间不再凭脚本跳过**（旧版会把法语判成 'en'）。
+        """
+        # ① ASR 的语种标签优先（reviewer：「ASR 给了语种标签就用标签」）
+        src = (src_hint or '').strip().lower() or detect_lang(text)
+        # ② 跳过判定：只有**脚本唯一确定**的语言（zh/ja/ko/ru）才允许
+        if tgt != 'off' and src and src == tgt and src in _SKIP_EQ_SAFE:
             return dict(text=text, lat_ms=0.0, ttft_ms=0.0, n_in=0, n_out=0, skipped=True)
         prompt = self.render(text, tgt, src, ctx=ctx, glossary=glossary)
         try:

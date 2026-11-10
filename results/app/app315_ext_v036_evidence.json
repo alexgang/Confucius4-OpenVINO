@@ -1,0 +1,111 @@
+{
+ "created_at": "2026-11-10T11:21:51",
+ "correction": "APP-094 §3 (v2.5 embeds EXT @ab9a767 / v0.3.6)",
+ "ext_repo": "C:\\Users\\Trekker-PTL\\live_dub_ext",
+ "ext_commit": "ab9a767",
+ "ext_version": "0.3.6",
+ "dry_run": false,
+ "checks": [
+  {
+   "name": "ext_commit_exists",
+   "pass": true,
+   "detail": "ab9a767 -> 'commit'"
+  },
+  {
+   "name": "version_py_is_036",
+   "pass": true,
+   "detail": "version.py 里的 EXT_VERSION 片段: ['EXT_VERSION = \"0.3.6\"\\r']"
+  },
+  {
+   "name": "version_py_has_label",
+   "pass": true,
+   "detail": "version_label() 存在（横幅来源）"
+  },
+  {
+   "name": "manifest_version_036",
+   "pass": true,
+   "detail": "manifest.json version='0.3.6'"
+  },
+  {
+   "name": "clone_voice_has_xv_upgrade_switch",
+   "pass": true,
+   "detail": "clone_voice.py 含 XV_UPGRADE 开关"
+  },
+  {
+   "name": "clone_voice_xv_upgrade_default_off",
+   "pass": true,
+   "detail": "默认 EXT_CLONE_XV_UPGRADE=\"0\"（keep first）"
+  },
+  {
+   "name": "clone_voice_anchor_default_off",
+   "pass": true,
+   "detail": "默认 EXT_CLONE_ANCHOR=\"0\"（不加 anchor，APP-094 §2）"
+  },
+  {
+   "name": "package_side_file_present_bridge_launcher.py",
+   "pass": true,
+   "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\ext\\bridge\\bridge_launcher.py"
+  },
+  {
+   "name": "package_side_file_present_start_bridge.cmd",
+   "pass": true,
+   "detail": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\ext\\bridge\\start_bridge.cmd"
+  },
+  {
+   "name": "bridge_logs_version_banner",
+   "pass": true,
+   "detail": "bridge.py 输出「实时配音桥接」+ version_label()"
+  }
+ ],
+ "n_bridge_py": 23,
+ "n_plugin_files": 17,
+ "manifest_key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyTksqa76aAULYGSr4qJuLJFfyuALr3EQ/9kJg4qOf7CtnTKXaJEin0WqU5P7ngSM8vWP3lzF+Zw8D/4+BJ4ijlP14gz3olaFrbquRvmwoh7ahCchzsrK+aQMTXmDLNQiqTfEn0VHrWCm2KyYtRP6Y/w1SUXiJ55xss8Au7JbmQHmEnQYpumvcoNWTmpou7KKPA2Kanv6r/ySM9eJ7IRBoP7+qqB7uNbqrL6Y9NwJFzfUBe5GiVHxZHMXcqt/acROYbfyxlHCAPTwJycheRoz9I2ufuzpZdQQ0Pz03a00+S4L8oj8hGnyVbEheJHzgbSMzZj4d2+sydJ4ZlG0Q77IKQIDAQAB",
+ "n_fail": 0,
+ "verdict": "PASS",
+ "stage": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_ext_v036_stage",
+ "written": {
+  "ext/bridge/__init__.py": "aef2644af049ae095efe2efa05cca9d46dde2f737225a09fcf7784e49b28630f",
+  "ext/bridge/adaptive_speed.py": "eee24deae0650efc3dbb77d3d295cc217e2f090dfc2499bedd82d9f7c3ff10c6",
+  "ext/bridge/app_root.py": "7c70d92762d3c8170641d3987d094f5af0a7b9b8c1854e5e1d894b2a83f73e30",
+  "ext/bridge/audio_dump.py": "15fa0e5e23a74fe05c693472187266b1862f11a94758b0d1134462ba12bf5be3",
+  "ext/bridge/bridge.py": "14a645393ee0a4fadd9bf421d0f1c897a4d8ca8c0d9e5afa493ee6217058c564",
+  "ext/bridge/clone_voice.py": "8b5ca5449d25dc65861efe20c4dea2aee82e51f18b37ba1c0162a7e0168aa0d4",
+  "ext/bridge/config.py": "2a83f828c398c4f64b2ae2b5f893f7f7f6c4f2a69acbd997d5cf1209c3d20884",
+  "ext/bridge/duration.py": "65c552dc980f76ce41eb7ffbfc54ca3beef52e05f23b7e475eab19ccffd16c59",
+  "ext/bridge/engine_runtime.py": "4533936e9c0bfc8bd42f11fb7944b0c930e5a615bd862947e59c8e98c436bf10",
+  "ext/bridge/engines.py": "8e703ba48b9a1864533ef36752196f604f1b1d91693465d5c458e0610d68bbd9",
+  "ext/bridge/extension_id.py": "a92bc1e625f94a5e5024997262a9bee66df8cfe7cc5b480512d5b9c3f8932ca9",
+  "ext/bridge/media_slowdown.py": "964a3446c180e16b417cf65cbb373266f1d298fbc51c37088dece9572f1aae79",
+  "ext/bridge/pair_server.py": "ec73eaebb249307f5bd90e87aa75c0b1bc4313ec0dfe176775deb2a9ae8c76c7",
+  "ext/bridge/pipeline.py": "9ab7ee5d76ef86ab1acd12903d018debe53ddab5039f101ee653049a21b2c5a2",
+  "ext/bridge/segmenter.py": "4c9dbbda6a32693f7aecee377acaaffe5c688ca60b0842c0e242e1c6e4d12b00",
+  "ext/bridge/speaker.py": "b15e75adc3fc1cd1a66de3435192864b71ce8ce74fe59d65660e038746a758dd",
+  "ext/bridge/speaker_bypass.py": "c8dc467a6bed3db9df8a5bdab67b5500744280a51d801ef695944d9d13c74c92",
+  "ext/bridge/spk_engine.py": "66b78d0708d1c4f78066cc4ea7095d6916caa9bfe41a6f3df2587d64830352af",
+  "ext/bridge/thread_limits.py": "af1845ee39bb340263bbd59987d61f13db1d12b1d142a68dee330afc0ed97e58",
+  "ext/bridge/time_stretch.py": "225ce96554b3ecca3be39db16b9e989a4cbcbdc3525164fd5c590d84a989af73",
+  "ext/bridge/tts_cuda_sidecar_ext.py": "b1bbf6565887ec5409d4d6f74bc174a3401f03522a27174aca63d4fb19c8c2e3",
+  "ext/bridge/utf8_io.py": "e2023751fa62eeba084f365f7f35da1155997945ee8bd93934a5315d52f1864a",
+  "ext/bridge/version.py": "2b4ef4b1ab33faf81e11301cb6a6f974791e661ad83030bc77a87fc12d9bab4d",
+  "ext/extension/USER_GUIDE.md": "7a42c7642e631152685184af6027f4f9dbb76232a4731d9f09c035fb7fad1276",
+  "ext/extension/capture-worklet.js": "302969b247cd76aa08abb358c25e7b963177ce82276b587f0489a0053ee1dd8c",
+  "ext/extension/dub-pcm-worklet.js": "a9dbc844117d52bdeb0fe91de1f63f2bb54ab5285447e763a46dc36be04420a3",
+  "ext/extension/icons/icon128.png": "7b34197e6e8cd56d5e5e83c582f26538a9cb01d06e4f099a96be71aa33ae56f5",
+  "ext/extension/icons/icon16.png": "f6fbd09a6d127e9b869479a44aeec7479b668e4ee69a720c808b779f108a9526",
+  "ext/extension/icons/icon32.png": "1e1f118bc33cb0308c87a2cb9443f2dfec1c5aeb5f271b6b5744c5112a8ccf05",
+  "ext/extension/icons/icon48.png": "5fbae5b9e7422140aea8f53c0b6b5a4d9d4f6539026bfde8ca8f2adb9264dbbb",
+  "ext/extension/manifest.json": "00d3893e4fe3a95ee91b505c556416e4b4b719746a02169785261c86eb0b85b0",
+  "ext/extension/offscreen.html": "2b39fc0aab66b0422a6d027a9c77bab09d122035ef99f2aabbb9b6c24f7ac0e0",
+  "ext/extension/offscreen.js": "9689d245777041c9fed0f96b8ec5036780fa29b6b35e1bfac754f646afa6bcbd",
+  "ext/extension/onset-worklet.js": "5ce18a8044f705e3db62ffbcc2fb2d8a42a7796a46408b859c50dd5ef3836736",
+  "ext/extension/player.html": "e0639bdce1e132206c569f412ac6e5a0b3e0b0a0a4d418b4cd56207d655a7e18",
+  "ext/extension/player.js": "09b1ecced437efb61d46b832ba055cc6035a64a227b23549cbcf121a0915a795",
+  "ext/extension/popup.html": "00bca938dea2858648ea26ab2781eeb4a9bd9be656de9421cac59d7fbf58a94d",
+  "ext/extension/popup.js": "6a9925ddee6a3888fad43f22fe2a4a774f99d0aec47f190ec0d63cefeebdb05d",
+  "ext/extension/slowdown.js": "976405d5cedc24d2ec97519952673d5d360767c1c7831a97b093f5ae02f1542f",
+  "ext/extension/sw.js": "daddef83270f7f3e0fac3916882e8ec81162171e62531e74ff3c94eb842b8ef2",
+  "ext/bridge/bridge_launcher.py": "78248087b328646469d06e699fe2fe433ce2d7e8f0ac29e069f9481aee1c2c3a",
+  "ext/bridge/start_bridge.cmd": "53c9055d597bb1cef8b5347739f30c15fd9b4f066b20f22998d8f59a0193ae24"
+ },
+ "n_written": 42
+}

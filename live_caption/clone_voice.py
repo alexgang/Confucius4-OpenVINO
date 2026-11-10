@@ -82,6 +82,11 @@ MIN_SIM_DEFAULT = 0.20      # 内部默认（与移植版一致）
 XV_FIRST_S = 3.0      # 首次写入门槛：攒够 3.0 s「干净、有标签」的句子
 XV_UPGRADE_S = 8.0    # 升级门槛：到 8.0 s 允许**升级一次**，之后冻结
 XV_MAX_S = 10.0       # 单个参考最长 10.0 s
+# 🔴🔴🔳 **APP-094①**：默认 = **keep first**（保留第一份 x-vector 参考，不再 8 s 升级）
+# ⚠️ 这是 `speaker_voice.py` 里同名常量的**副本** ⇒ 两处必须同口径，
+#    否则行为分叉（`speaker_voice.XV_UPGRADE` 才是**真正生效**的那一份：
+#    状态机在 `speaker_voice.xv_reference_ticket` 里）。
+XV_UPGRADE = os.environ.get('LIVECAP_XV_UPGRADE', '0').strip() == '1'
 
 # ── APP-089 §2c-1：self_ref（用**这句自己的音频**做 x-vector）──────────────
 SELF_REF_MIN_S = 1.5  # 这句自己的音频 ≥ 1.5 s 才够提 x-vector
@@ -841,7 +846,7 @@ class CloneVoices:
 
 __all__ = ['CloneVoices', 'SR', 'KEEP_S',
            'MIN_SIM_NEAREST', 'MIN_SIM_PROVISIONAL', 'MIN_SIM_DEFAULT',
-           'XV_FIRST_S', 'XV_UPGRADE_S', 'XV_MAX_S',
+           'XV_FIRST_S', 'XV_UPGRADE_S', 'XV_MAX_S', 'XV_UPGRADE',
            'SELF_REF_MIN_S',
            'SPLIT_MIN_SEG_S', 'SPLIT_WIN_S', 'SPLIT_MIN_SIM',
            'SPLIT_MIN_MARGIN']

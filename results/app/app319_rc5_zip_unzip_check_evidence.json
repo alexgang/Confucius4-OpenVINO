@@ -1,0 +1,93 @@
+{
+ "created_at": "2026-11-10T11:53:22",
+ "correction": "APP-096 §3b/§3c/§3d",
+ "checks": [
+  {
+   "name": "zip 清单 R2T2/INT4 计数为 0",
+   "pass": true,
+   "detail": "{}"
+  },
+  {
+   "name": "zip 清单含 0.6B 物料",
+   "pass": true,
+   "detail": "missing=[]"
+  },
+  {
+   "name": "zip 内无预编译 NPU blob（§3d）",
+   "pass": true,
+   "detail": "n=0"
+  },
+  {
+   "name": "App 自有代码不写死 NPU 架构 5010（§3d）",
+   "pass": true,
+   "detail": "hits=[]"
+  },
+  {
+   "name": "解压后包目录存在",
+   "pass": true,
+   "detail": "C:\\Users\\Trekker-PTL\\minimvp_rc5_clean\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5"
+  },
+  {
+   "name": "--check 退出码为 0",
+   "pass": true,
+   "detail": "rc=0"
+  },
+  {
+   "name": "--check 显示 Intel NPU · INT8 模型齐全",
+   "pass": true,
+   "detail": "命中=True"
+  },
+  {
+   "name": "--check 的 ASR 段无 INT4 档（APP-095 1a）",
+   "pass": true,
+   "detail": "ASR 段含 INT4=False（段长 163）"
+  },
+  {
+   "name": "--check 的 ASR 段：GPU INT8 与 NPU INT8 都齐全",
+   "pass": true,
+   "detail": "gpu=True npu=True（ASR 段行数 4）"
+  }
+ ],
+ "n_entries": 10473,
+ "forbidden_grep": {
+  "models/encoder-int8/": {
+   "count": 0,
+   "samples": []
+  },
+  "models/decoder-gpu-int8/": {
+   "count": 0,
+   "samples": []
+  },
+  "models/encoder-fp16/": {
+   "count": 0,
+   "samples": []
+  },
+  "models/decoder-npu-int8/": {
+   "count": 0,
+   "samples": []
+  },
+  "models/decoder-npu-int4/": {
+   "count": 0,
+   "samples": []
+  },
+  "embed_tokens_f16\\.npy": {
+   "count": 0,
+   "samples": []
+  }
+ },
+ "npu_arch_5010_hits": [],
+ "zip5_bytes": 4424246739,
+ "zip4_bytes": 8609378581,
+ "zip_delta_bytes": -4185131842,
+ "zip_delta_gb": -3.898,
+ "zip_entries_delta": -7,
+ "clean_dir_old_renamed_to": "C:\\Users\\Trekker-PTL\\minimvp_rc5_clean.old_20261110_115322",
+ "unzip_s": 48.5,
+ "unzipped_files": 10473,
+ "check_rc": 0,
+ "check_s": 35.1,
+ "check_out": "====================================================================\n  Confucius4 实时字幕 MiniMVP · 环境检查\n====================================================================\n包目录：C:\\Users\\Trekker-PTL\\minimvp_rc5_clean\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5\n模型目录：C:\\Users\\Trekker-PTL\\minimvp_rc5_clean\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5\\models\n\n── 依赖 ──\n  [ OK ] numpy            2.4.6\n  [ OK ] openvino         2026.4.1-22982-e213a147257-releases/2026/4\n  [ OK ] openvino_genai   2026.4.1.0-3408-ab01d1771e4\n  [ OK ] transformers     4.57.6\n  [ OK ] sounddevice      0.5.6\n  [ OK ] soundcard        \n  [ OK ] babelvox(Qwen3-TTS) 1.7.1\n  [ OK ] qwen3tts 模型   C:\\Users\\Trekker-PTL\\minimvp_rc5_clean\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5\\models\\qwen3tts\n\n── OpenVINO 设备 ──\n  [ OK ] GPU.0    Intel(R) Graphics (iGPU)\n  [ OK ] GPU.1    NVIDIA GeForce RTX 5050 Laptop GPU (dGPU)\n  [ OK ] NPU      Intel(R) AI Boost\n  Intel 集显 (GPU)：[ OK ] 可用\n  Intel NPU     ：[ OK ] 可用\n  注：CPU 推理已从可选设备清单移除（性能不推荐）；如确需 CPU 请用命令行 --asr-device CPU / --mt-device CPU。\n\n── ASR 后端（识别）──\n  [ OK ] Intel GPU · INT8           模型齐全\n  [ OK ] Intel NPU · INT8           模型齐全\n  [ OK ] NVIDIA GPU · CUDA Q8_0     模型齐全\n  [ OK ] NVIDIA GPU · CUDA Q4_K     模型齐全\n\n── 翻译后端（Hy-MT2-1.8B）──\n  [缺 ] Intel GPU · INT8-CW（默认） GPU.0    （缺模型）\n  [ OK ] Intel GPU · INT4-CW        GPU.0    \n  [缺 ] Intel NPU · INT8-CW        NPU      （缺模型）\n  [ OK ] Intel NPU · INT4-CW        NPU      \n  [ OK ] 自动 · INT4-CW 模型（默认） 跟随 --mt-device \n\n── 音频设备 ──\n  [ OK ] 麦克风 [1] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · MME（默认）\n  [ OK ] 麦克风 [0] Microsoft 声音映射器 - Input · MME\n  [ OK ] 麦克风 [9] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · Windows WASAPI\n  [ OK ] 输出 Speaker (Realtek(R) Audio)（2 声道）  id={0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}\n\n====================================================================\n  结论：环境正常。ASR 可用后端 4 个，Intel 集显可用。\n====================================================================\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+ "asr_block": "  [ OK ] Intel GPU · INT8           模型齐全\n  [ OK ] Intel NPU · INT8           模型齐全\n  [ OK ] NVIDIA GPU · CUDA Q8_0     模型齐全\n  [ OK ] NVIDIA GPU · CUDA Q4_K     模型齐全",
+ "n_fail": 0,
+ "verdict": "PASS"
+}

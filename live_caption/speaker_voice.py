@@ -67,6 +67,7 @@ APP-039 用户原话：
 """
 from __future__ import annotations
 
+import os
 import threading
 import time
 from typing import Callable, Dict, List, Optional, Tuple
@@ -179,6 +180,27 @@ MAX_PER_SPK_S = 10.0
 XV_FIRST_S = 3.0     # 首次写入门槛（攒够 3.0 s 干净有标签语音）
 XV_UPGRADE_S = 8.0   # 升级门槛（≥ 8.0 s 时升级**一次**）
 XV_MAX_S = 10.0      # 单个参考最长 10.0 s
+# 🔴🔴🔳 **APP-094①：默认 = keep first（保留第一份 x-vector 参考）**
+#
+# 依据（reviewer 转达的用户 2026-11-10 决定 + EXT v0.3.6 @ab9a767 的 A/B）：
+#   「就按这个方案」——每个说话人在累计到 >=3 s 干净且已标注说话人的语音时
+#   注册他的**第一份** x-vector 参考，之后**一直沿用这份**，**不再在 8 s 升级**。
+#   EXT 侧 A/B（3 人 edge-tts 对话，82 句配音）：
+#     保留第一份 T0.6 ⇒ 最接近正确说话人 **81/82**、CER **1.2 %**、撞帧上限 **0**
+#     8 s 升级   T0.6 ⇒ 最接近正确说话人  77/82、CER 1.7 %、撞帧上限 1
+#     保留第一份 T0.4 ⇒ 76/82、CER 1.9 %、撞帧上限 1（⇒ **温度不动**）
+#   ⇒ 与 EXT 侧 `EXT_CLONE_XV_UPGRADE`（@ab9a767，默认 "0"）**语义对齐**。
+#
+# ⚠️ **旧的升级行为保留为可选项**：`LIVECAP_XV_UPGRADE=1` ⇒ 回到
+#    「≥8 s 升级一次 ⇒ 之后冻结」。
+# ⚠️ **不设锚点（anchor）**：APP-094② 明文不加 anchor（ICL 参考）
+#    ⇒ App 侧本就**没有** ICL/anchor 代码（APP-089 已全删）⇒ 天然满足。
+#
+# 🔴 **闸门放在状态机里**（`xv_reference_ticket`）：返回 `'frozen'` ⇒
+#    GUI/CLI 两份触发代码（`live_caption_app.py` 的
+#    `if _xs2 != 'upgrade': continue` 与 `_spk_pcm_for` 的
+#    `if _state == 'frozen': return None`）**自动不可达** ⇒ 一处改动全链生效。
+XV_UPGRADE = os.environ.get('LIVECAP_XV_UPGRADE', '0').strip() == '1'
 # 🔴🔴🔳 **纪元分簇的间隙阈值**（APP-071 保护）
 #   ⇒ 同一个标签**先后覆盖两个人**时（实测 S2 先女声后男声）
 #     ⇒ 两段**绝不能拼**（拼出来的 x-vector 是两个声音的平均 ⇒ 串音）
@@ -626,6 +648,12 @@ class SpeakerVoiceTable:
             return rngs, key, acc, 'first'
         # 🔴 已登记 ⇒ 升级判定
         prev_dur = float(prev.get('xv_dur_s') or prev.get('dur_s') or 0.0)
+        if not XV_UPGRADE:
+            # 🔴🔴🔳 **APP-094①**：**keep first** ⇒ 已注册即冻结，**永不升级**
+            #   （与 EXT v0.3.6 @ab9a767 的 `XV_UPGRADE` 默认 "0" 同语义）
+            # ⚠️ 这里返回 'frozen' ⇒ GUI/CLI 的升级触发分支**不可达**
+            #    ⇒ **每个说话人恰好注册一次**，没有第二次注册/升级。
+            return rngs, None, acc, 'frozen'
         if prev.get('upgraded'):
             return rngs, None, acc, 'frozen'    # 已升级过一次 ⇒ 冻结
         if acc < XV_UPGRADE_S:
@@ -640,13 +668,46 @@ class SpeakerVoiceTable:
 
         🔴 `upgraded=True` **只在「升级那次」登记时传**
         （EXT：首次写入 `cur==0` ⇒ 不置 `upgraded`；升级那次才置 ⇒ 之后冻结）。
+
+        🔴🔴🔳 **APP-094④**：同时记下**注册时刻**与**注册次数**
+        （验收要报「说话人、注册时刻、累计秒数」，且要求
+        **每个说话人恰好注册一次** ⇒ 必须能检出「第二次注册」）。
         """
         with self._lock:
             prev = self._reg_run.get(str(spk)) or {}
             prev['xv_dur_s'] = round(float(total_s), 4)
+            # 🔴 APP-094④：注册记录（首次注册的时刻 + 次数）
+            n_prev = int(prev.get('xv_reg_count') or 0)
+            if n_prev == 0:
+                prev['xv_reg_at'] = time.time()
+            prev['xv_reg_count'] = n_prev + 1
+            prev['xv_reg_history'] = list(prev.get('xv_reg_history') or []) + [
+                {'at': time.time(), 'total_s': round(float(total_s), 4),
+                 'upgraded': bool(upgraded)}]
             if upgraded:
                 prev['upgraded'] = True
             self._reg_run[str(spk)] = prev
+
+    def xv_registration_records(self) -> List[dict]:
+        """🔴🔴🔳 **APP-094④**：导出**每个说话人的参考注册记录**。
+
+        返回每条：`{'spk', 'registered_at', 'total_s', 'count', 'history', 'upgraded'}`
+        ⇒ STATUS 里可直接贴这张表证明「每个说话人恰好注册一次」。
+        """
+        with self._lock:
+            out = []
+            for spk, prev in sorted(self._reg_run.items()):
+                if not (prev.get('xv_reg_count') or prev.get('xv_dur_s')):
+                    continue
+                out.append({
+                    'spk': spk,
+                    'registered_at': prev.get('xv_reg_at'),
+                    'total_s': prev.get('xv_dur_s'),
+                    'count': int(prev.get('xv_reg_count') or 0),
+                    'upgraded': bool(prev.get('upgraded')),
+                    'history': list(prev.get('xv_reg_history') or []),
+                })
+            return out
 
     def mark_registered(self, spk: str, a: float, b: float) -> None:
         """🔴 **记下「这个 spk 已用哪一段登记了」**（下次判「要不要升级」用）。
