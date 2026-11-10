@@ -1,0 +1,61 @@
+{
+  "tool": "_app430_write_status173",
+  "created_at": "2026-11-11 04:07:00",
+  "pre_checks": {
+    "status_sha256_before": "6f01c53614320675e51e65f8e653e65457c68e85ae3ecfb6eab2d65b136886a4",
+    "status_bytes_before": 36698,
+    "status_lines_before": 182,
+    "crlf_before": 0,
+    "n_sections_before": 18,
+    "header_lines_before": {
+      "L3": "last_ack: APP-098",
+      "L4": "更新时间: 2026-11-11 02:21:21",
+      "L5": "当前任务: **巡检无新纠偏**（`last_ack=APP-098`；纠偏文件仍是 97 条 / 最大 APP-097 ⇒ 无编号更大的新条目）｜**本轮把 §170 ⑨ 两项「历史影响未评估」定界完毕**：**D1（GUI 布局被吞）历史影响 = 零交付物受影响**（缺陷只在 dev 树的 2 个 commit 快照里，15 个包逐个 AST 判定 0 中招；窗口内 PASS 结论也未被污染）｜**D2（asr06b 档位 label 撞车）历史影响 = 已交付的 rc5 中招**（rc5/rc6 GUI 静默错档；rc7 已修；其余 12 包 NA；zip 级复核一致）｜**D2 判据改了三轮才对**（v1 假阴性／v2 假阳性／v3 定案，带反证组）｜**新风险：C 盘 100 %、仅剩 17 G ⇒ 下次打包空间不足**（本轮未删任何文件）｜**未打包 v2.5、未改生产代码、未改客户包、未通知用户、未调 MiniMax**｜结果见 §171｜**本条需等 reviewer 复核**",
+      "L6": "阻塞 / 待用户决定: 🔴 **GUI 布局缺陷修复仍未同步进客户包**（只在 dev 树 + 影子包）⇒ **v2.5 未打包、未同步任何客户包目录**（APP-055 须走打新版本号）⇒ **请 reviewer 裁定**：立刻修还是随 v2.5 一起出｜🔴 **该缺陷的历史影响未评估**（`874924a` 之后的 GUI 类验收都跑在空壳 GUI 上）｜🔴 **§3.5 音色归属判据失效**（三人真值余弦 0.957–0.972 ⇒ 不可分）⇒ 未自行换判据｜🔴 **§3.6「切段真实发生时的设备开销」在本素材上结构性不可测**（质心恒 1）⇒ 需 reviewer 裁定是否调聚类阈值/换素材｜**APP-097 §2-4 只报实测 p50、未改 `_SEC_PER_CHAR` 默认值**｜阈值取舍由 reviewer 报主会话请用户决定（**默认值仍 6.0**）｜**未打包 v2.5、未通知用户**"
+    },
+    "corrections_sha256_before": "36af1620d7ee867c5d8d7ac7d6e60bd3a63218f09dc0343e787ee8e0246137a2",
+    "corrections_bytes_before": 285671,
+    "sec172_archive_sha256_before": "92efe1c19232ce508fe83e208ef7682f9ba7911050aef032fe72871c10f8aab3",
+    "sec172_archive_bytes_before": 4415
+  },
+  "planned": {
+    "bytes_after": 37839,
+    "lines_after": 185,
+    "bytes_limit": 40000,
+    "lines_limit": 300,
+    "arch173_bytes": 10835,
+    "arch173_sha256": "2400cc27b26fba6b6ddb71d1cab64e9151fc8595b65a1369aef839e04a0de4a3",
+    "sec173_live_bytes": 3140,
+    "sec172_live_bytes_before": 4414,
+    "sec172_live_bytes_after": 1731
+  },
+  "post_checks": {
+    "status_sha256_after": "b4594724d34909cbc5edb9e3235515253dd8c25bdb140a53151daabff5d5d3f3",
+    "status_bytes_after": 37839,
+    "status_lines_after": 185,
+    "crlf_after": 0,
+    "n_sections_after": 19,
+    "new_sections": [
+      "## §173 巡检（last_ack=APP-098，2026-11-11 04:07:00）｜**无新纠偏**；修掉 STATUS **头部四处过期／自相矛盾** ＋ 新增「归档指针可核对性」判据（25/25 OK ＋ 3 反证全触发）｜**本条需等 reviewer 复核**"
+    ],
+    "old_sections_all_intact": true,
+    "bytes_limit_ok": true,
+    "lines_limit_ok": true,
+    "no_crlf": true,
+    "archive_claim_matches_disk": true,
+    "archive_exists": true,
+    "archive_sha256": "2400cc27b26fba6b6ddb71d1cab64e9151fc8595b65a1369aef839e04a0de4a3",
+    "archive_bytes": 10835,
+    "sec172_archive_untouched": true,
+    "sec172_archive_sha256": "92efe1c19232ce508fe83e208ef7682f9ba7911050aef032fe72871c10f8aab3",
+    "old_sec172_body_still_verbatim_in_archive": true,
+    "corrections_sha256_unchanged": true,
+    "corrections_bytes_unchanged": true,
+    "old_blocks_verbatim": true,
+    "old_blocks_changed": [],
+    "quick_lines_not_in_archive": []
+  },
+  "verdict": {
+    "all_ok": true
+  }
+}
