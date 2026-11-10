@@ -4294,6 +4294,21 @@ class TTSWorker:
                     raise RuntimeError('speaker_embedding_from_pcm 返回 None')
                 with self._spk_voice_lock:
                     self._spk_voices[spk] = dict(vec=vec, ref_path=None)
+                # 🔴🔴🔳 **APP-093 §3.5**：**诊断用**的 x-vector 落盘
+                #   （APP-093 要「输出 x-vector 和 truth.json 里三个人的
+                #   参考比余弦」⇒ 必须能拿到**实际使用的**向量）
+                #   ⇒ 只在 `LIVECAP_DUMP_SPK_VEC` 目录被设置时写盘；
+                #   **默认不写** ⇒ 交付行为与隐私口径（APP-039「只放内存」）不变。
+                try:
+                    _d = os.environ.get('LIVECAP_DUMP_SPK_VEC', '').strip()
+                    if _d:
+                        import numpy as _np   # 🔴 本模块的 numpy 都是局部 import
+                        os.makedirs(_d, exist_ok=True)
+                        _p = os.path.join(_d, 'spkvoice_%s.npy' % spk)
+                        _np.save(_p, _np.asarray(vec, dtype=_np.float32))
+                        log('[tts_worker] [diag] x-vector 已落盘：%s' % _p)
+                except Exception as e:
+                    log('[tts_worker] [diag] x-vector 落盘失败（不影响主流程）：%s' % e)
                 log(f'[tts_worker] ✅ 说话人 {spk} 的音色已登记'
                     f'（x-vector，{pcm.size / 16000.0:.1f} s）')
                 emit({'kind': 'spk_voice', 'spk': spk, 'ok': True,

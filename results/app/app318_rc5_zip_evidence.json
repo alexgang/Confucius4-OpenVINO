@@ -1,0 +1,42 @@
+{
+ "script": "_app318_rc5_zip.py",
+ "ts": "2026-11-10 11:48:20",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5",
+ "zip": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5_perftest.zip",
+ "mode": "run",
+ "prior_zips_before": {
+  "Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest.zip": "dda6f229e9d1e70accc4417b328d33b8c929f868a033ad4546e39d7d0f2d45f1",
+  "Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest_rev2.zip": "90ae8b9da38eeca6ab9e6a693e9ac6395bdcb678e9377c5a4f655a7c5a06f58f",
+  "Confucius4_LiveCaption_MiniMVP_v1.0-rc4_perftest.zip": "f0ebcc7272ea26776f6b7bd3cd83ebdc94e5a8bfaa8e5aaeb6f5b16d55ccc4ba"
+ },
+ "n_entries": 10473,
+ "total_bytes": 5936741397,
+ "total_gb": 5.529,
+ "readme_numbers_match": true,
+ "forbidden_counts": {
+  "models/encoder-int8/": 0,
+  "models/decoder-gpu-int8/": 0,
+  "models/encoder-fp16/": 0,
+  "models/decoder-npu-int8/": 0,
+  "models/decoder-npu-int4/": 0,
+  "models/embed_tokens_f16.npy": 0
+ },
+ "required_06b_present": true,
+ "n_blob": 0,
+ "pack_s": 225.9,
+ "zip_rc": 0,
+ "zip_bytes": 4424246739,
+ "zip_sha256": "1fd56fbd9572b39f62f113717c02dfc4037bde762c2b34e937f691e830066ae5",
+ "zip_mtime": "2026-11-10 11:52:30",
+ "crc32_ok": 10473,
+ "crc32_mismatch": [],
+ "n_missing_in_zip": 0,
+ "missing_in_zip": [],
+ "prior_zips_after": {
+  "Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest.zip": "dda6f229e9d1e70accc4417b328d33b8c929f868a033ad4546e39d7d0f2d45f1",
+  "Confucius4_LiveCaption_MiniMVP_v1.0-rc3_perftest_rev2.zip": "90ae8b9da38eeca6ab9e6a693e9ac6395bdcb678e9377c5a4f655a7c5a06f58f",
+  "Confucius4_LiveCaption_MiniMVP_v1.0-rc4_perftest.zip": "f0ebcc7272ea26776f6b7bd3cd83ebdc94e5a8bfaa8e5aaeb6f5b16d55ccc4ba"
+ },
+ "prior_zips_unchanged": true,
+ "verdict": "PASS"
+}

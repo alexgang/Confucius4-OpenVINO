@@ -1,0 +1,78 @@
+{
+ "arm": "npu",
+ "started_at": "2026-11-10T11:02:26",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5",
+ "wav": "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+ "wav_sha256": "3fb129d7a8f277318dec037b23120532c5eea33c6cf3d5ae99cb29ee00aae10a",
+ "seconds": 300.0,
+ "rc4_ref": {
+  "wer_pct": 15.5266,
+  "rtf": 0.803,
+  "latency_ms": 540,
+  "peak_mem_mb": 5212.6
+ },
+ "cmd": [
+  "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5\\python\\python.exe",
+  "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5\\app\\live_caption_app.py",
+  "--cli",
+  "--file",
+  "C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav",
+  "--engine",
+  "npu_int8",
+  "--asr-device",
+  "NPU",
+  "--translate",
+  "zh",
+  "--mt-device",
+  "GPU.0",
+  "--mt-engine",
+  "gpu_int4cw",
+  "--tts",
+  "off",
+  "--speaker",
+  "off",
+  "--max-seconds",
+  "300",
+  "--out",
+  "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app312_rc5_out\\npu\\transcript.txt"
+ ],
+ "lock": {
+  "acquired": true,
+  "waited_s": 0,
+  "payload": "module=app-rc5-acceptance-npu\npid=34560\nstarted=2026-11-10T11:02:26.520980"
+ },
+ "cache_dir": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\rc5_cache_npu_r6zkebf0",
+ "pid": 34844,
+ "rc": 0,
+ "wall_s": 409.75,
+ "peak_rss_mb": 3455.1,
+ "log_bytes": 39346,
+ "summary": {
+  "engine": "npu_int8",
+  "audio": 300.0,
+  "wall": 300.9,
+  "rtf": 0.89,
+  "lat": "670",
+  "backlog": 1.2,
+  "segs": 46,
+  "lat_ms": 670
+ },
+ "artifacts": {
+  "transcript.txt": {
+   "bytes": 4703,
+   "sha256": "1d06b5dbbdd6b8ae6e4e86e73bf6b1ac5143baae3aa1db4af86099ea1e3cf2b3",
+   "mtime": "2026-11-10T11:09:15"
+  },
+  "transcript.mt.txt": {
+   "bytes": 4875,
+   "sha256": "e54db6ba158d1026b3711c68aba9e9231bdfbefbe1b31d66ec5f277041fc3775",
+   "mtime": "2026-11-10T11:09:15"
+  }
+ },
+ "transcript_chars": 4657,
+ "transcript_head": "All right. Good morning, everyone. Good morning. Let's get started. So well.\nWelcome to our Q three twenty six QGS.\nAgenda topics today. We'll talk about three. One. I want to share our engineering strategy.\nTo realize the business growth that Alex spoke about in his last QGS, we'll then talk about.\nPriorities and just general execution, and then Lisa will join me and go through all of the work that's done with the software team.\nI think is probably one of the largest pivots to do, to go enable the growth ahead of us that I'll expect to.\nAnd then at the end we'll have plenty of time for Q and A, both in room and online. Okay.\nSo you recall Alex spoke about business growth, about client, agentic edge, and physical AI.\nSo the goal of this slide is to describe our strategy on a page: how we, ",
+ "finished_at": "2026-11-10T11:09:16",
+ "verdict": "RAN",
+ "lock_released": true,
+ "lock_exists_after": false
+}

@@ -1,0 +1,46 @@
+All right. Good morning, everyone. Good morning. Let's get started. So well.
+Welcome to our Q three twenty six QGS.
+Agenda topics today. We'll talk about three. One. I want to share our engineering strategy.
+To realize the business growth that Alex spoke about in his last QGS, we'll then talk about.
+Priorities and just general execution, and then Lisa will join me and go through all of the work that's done with the software team.
+I think is probably one of the largest pivots to do, to go enable the growth ahead of us that I'll expect to.
+And then at the end we'll have plenty of time for Q and A, both in room and online. Okay.
+So you recall Alex spoke about business growth, about client, agentic edge, and physical AI.
+So the goal of this slide is to describe our strategy on a page: how we, as an engineering organization, in.
+Enable that growth again. We are the scale function that will drive growth for all of these business units.
+So the way we look at a simplified stack is just meant to describe, what are the competitive advantages and the.
+Strategy by which we will enable our businesses to grow, it'll guide our decision making and our.
+And then to simplified view, but one thing that's very important to understand is, it's not about the optimize.
+Minimizing one layer above all else. It's looking at this whole stack end to end, to bring a.
+Platform leadership at scale with quality and predictable execution. Like as an example, silicon by.
+Itself about the software value to unlock it, it's not a good platform play.
+Right. So starting at the bottom, process and packaging, our strategy will and has.
+been to maximize the IDM advantage, so working closely with TD on how we can optimize for performance for.
+Cost and for power, I would say that's a strategy that's well in motion. If you look at all.
+PR cues we did as an example back in twenty four, that was predominantly external silicon.
+Contrast that with what we're going to do in Hammer Lake, and I'll show it on a road map later on, where one hundred percent internal silica.
+And that's a function of working with Intel Foundry, on progressing 18A, 18AP.
+Until three on yield, performance, and power, that does not mean we won't use.
+External options, where we got to augment our business. That could be in situations like chipsets, where we use Samsung technology or Wi-Fi.
+Or if we need to do a dual drive because we have limitations, but primary strategy, is idiom advantage.
+Leveraged that, good for good for us, good for Intel, sitting above that then a silicon roadmap.
+Job there is simple, deliver leadership silicon IP SOC at scale, right.
+And the scale is very important. We see the benefit of that today, even in our traditional business where OEMs love the scale.
+In compatibility from multiple generations, and a lot of what we're building towards the future at a silicon level will be a scale up type of the.
+Discussion. Very successful execution on Patrick and Wildcat, and Novelick on a base derivative model.
+We need to continue to do that because it allows us to address multiple segments in a more efficient schedule.
+Car synopses. I'll actually show you guys a visual of Novolikli Tehran and the entire ski stack we're delivering.
+Through this model, software I want still Lisa's thunder. She'll come and talk about the degree of software vertiggals.
+We need to go support both open ecosystem and our traditional OS partners, reference designs.
+We bring leadership reference designs to market, that allow our customers to innovate on form factor.
+And technology, and then really using our customer enabling as a competitive advantage, which we do today, bringing.
+All of that together to ensure we can transition all of the collateral we have, over to customers building leadership.
+Platforms. So this is their strategy: We will always keep this in mind as we make decisions. And again.
+Doing this from an end to end point of view to deliver platforms, it's what going to differentiate us.
+Moving forward. Okay, next slide. Alex shared this, and he talked about the business.
+Strategies for growth across CCPG. I just want to spend time dissecting into what does it mean for us as engineering. So what do we need to go do to an
+Black road, so on client strategy is tape back MSS, win Magento.
+Compute and grow connectivity. So connectivities are wired and wireless business. Right? What does that mean for us?
+No change in what we're doing today. Job one: Novelick at scale, right? If you look at where we've.
+Competitive share in the last few generations, it's been lack of performance desktop.
+Novelink solves that problem. When we come out with Novelink.

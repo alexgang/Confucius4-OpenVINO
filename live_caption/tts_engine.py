@@ -1509,17 +1509,37 @@ LANG_MAP = {
     'en': 'English', 'english': 'English',
     'ja': 'Japanese', 'japanese': 'Japanese', 'jp': 'Japanese',
     'ko': 'Korean', 'korean': 'Korean',
+    # 🔴🔴🔳 **APP-097①**：补齐 Qwen3-TTS 支持的其余 6 种
+    #   （名字用**模型认的英文全称**；别名含本地语言名与地区写法）
+    'de': 'German', 'german': 'German', 'deutsch': 'German',
+    'fr': 'French', 'french': 'French', 'français': 'French',
+    'es': 'Spanish', 'spanish': 'Spanish', 'español': 'Spanish',
+    'pt': 'Portuguese', 'portuguese': 'Portuguese', 'português': 'Portuguese',
+    'pt-br': 'Portuguese', 'pt-pt': 'Portuguese',
+    'it': 'Italian', 'italian': 'Italian', 'italiano': 'Italian',
+    'ru': 'Russian', 'russian': 'Russian', 'русский': 'Russian',
 }
 
 #: babelvox / faster-qwen3-tts 侧**确认支持**的语言 id
-#: （来源：包内 `models/qwen3tts/weights/config.json` 的 `codec_language_id`）
-SUPPORTED_LANGS = ('Chinese', 'English', 'Japanese', 'Korean')
+#:
+#: 🔴🔴🔳 **APP-097①：来源改正** —— 旧注释写「来源是 config.json」**是错的**
+#:    （当时那张表只有 4 种，是按中英会议场景手写的）。
+#:    **真实来源**＝包内 `models/qwen3tts/weights/config.json` 的
+#:    `codec_language_id`，**共 10 种**（原文照录）：
+#:       chinese 2055 / english 2050 / german 2053 / italian 2070 /
+#:       portuguese 2071 / spanish 2054 / japanese 2058 / korean 2064 /
+#:       french 2061 / russian 2069
+#:    ⇒ 4 种只是早期的手写限制，**模型本身不受此限制**。
+SUPPORTED_LANGS = ('Chinese', 'English', 'German', 'French', 'Spanish',
+                   'Portuguese', 'Italian', 'Russian', 'Japanese', 'Korean')
 
 
-def map_language(lang: str) -> str:
+def map_language(lang: str, strict: bool = False) -> str:
     """把「目标语言代号」映射成引擎用的**全称**。
 
-    🔴 **兜底是 English**（不是 Auto）⇒ 与历史行为一致（`_guess_lang` 的 else 分支）。
+    🔴🔴🔳 **APP-097①**：默认**仍兜底 English**（与历史行为一致，
+    避免破坏既有调用方）；但 **`strict=True` 时未知语言**显式抛错**
+    ⇒ 满足「未知语言（'nl'）要**显式报错或拒绝**，不能悄悄变成 English」。
     ⚠️ 调用方应先用 `guess_language()` 拿到**显式**语言再调本函数。
     """
     s = (lang or '').strip().lower()
@@ -1527,10 +1547,14 @@ def map_language(lang: str) -> str:
         return 'English'
     if s in LANG_MAP:
         return LANG_MAP[s]
-    # 'zh-CN' / 'ja-JP' 这类带区域的
+    # 'zh-CN' / 'ja-JP' / 'pt-BR' 这类带区域的
     base = s.split('-')[0]
     if base in LANG_MAP:
         return LANG_MAP[base]
+    if strict:
+        raise ValueError(
+            '未知目标语言 %r；支持：%s'
+            % (lang, ', '.join(sorted(set(LANG_MAP.values())))))
     return LANG_MAP.get(s, 'English')
 
 
@@ -1547,7 +1571,7 @@ def _script_counts(s: str) -> dict:
       ⇒ 日文长句被**大幅低估** ⇒ `split_long_text` 不切
       ⇒ NPU 侧撞 478 帧桶上限（截断或失控）。
     """
-    han = kana = hang = latin = digits = 0
+    han = kana = hang = latin = digits = cyr = 0
     for ch in s:
         o = ord(ch)
         if 0x4E00 <= o <= 0x9FFF:
@@ -1556,11 +1580,15 @@ def _script_counts(s: str) -> dict:
             kana += 1
         elif 0xAC00 <= o <= 0xD7AF or 0x1100 <= o <= 0x11FF:
             hang += 1
+        elif 0x0400 <= o <= 0x04FF or 0x0500 <= o <= 0x052F:
+            # 🔴🔴🔳 **APP-097①.4①**：**西里尔字母**（俄语）
+            cyr += 1
         elif ('a' <= ch <= 'z') or ('A' <= ch <= 'Z'):
             latin += 1
         elif ch.isdigit():
             digits += 1
-    return dict(han=han, kana=kana, hang=hang, latin=latin, digits=digits)
+    return dict(han=han, kana=kana, hang=hang, latin=latin, digits=digits,
+                cyr=cyr)
 
 
 def guess_language(text: str, hint: str = '') -> str:
@@ -1589,13 +1617,21 @@ def guess_language(text: str, hint: str = '') -> str:
 
 
 def guess_language_by_script(text: str) -> str:
-    """**纯启发式**语言判定（不看 hint）。返回 'zh'/'ja'/'ko'/'en'。"""
+    """**纯启发式**语言判定（不看 hint）。返回 'zh'/'ja'/'ko'/'ru'/'en'。
+
+    🔴🔴🔳 **APP-097①.4**：**西里尔字母判成 `'ru'`**（俄语）。
+    ⚠️ **拉丁字母语言（en/de/fr/es/pt/it）无法凭脚本区分** ⇒ 一律落 `'en'`
+       ⇒ **调用方不得凭这个结果跳过翻译**（见 `translator._SKIP_EQ_SAFE`）。
+    """
     t = text or ''
     c = _script_counts(t)
     if c['kana'] > 0:
         return 'ja'
     if c['hang'] > 0:
         return 'ko'
+    # 🔴 APP-097①.4①：**西里尔 ⇒ 俄语**
+    if c.get('cyr', 0) > 0:
+        return 'ru'
     visible = c['han'] + c['kana'] + c['hang'] + c['latin'] + c['digits']
     if visible <= 0:
         return 'en'
@@ -1617,7 +1653,18 @@ def guess_language_by_script(text: str) -> str:
 
 #: 每字符的预计秒数（APP-030② 的参考值）
 #: 🔴🔴 **键必须是「小写语言代号」** ⇒ 取值前**必须**先过 `_lang_key()`。
-_SEC_PER_CHAR = {'zh': 0.25, 'ja': 0.15, 'ko': 0.18, 'en': 0.07}
+#: 每字符预估秒数（**估算**，用于失控守卫阈值与帧数上限）
+#:
+#: 🔴🔴🔳 **APP-097①**：新增的 6 种语言**先用 en 的 0.07 当初值**，
+#:    真实值由 APP-097 §2-4 的「合成时长 ÷ 字符数」p50 **实测校准**后回填。
+#:    ⚠️ 初值偏小 ⇒ 失控守卫阈值偏低 ⇒ **可能误杀正常长句**
+#:    ⇒ 实测校准前，这 6 种语言**只用于目标语言选择**，不用于长文本批量合成。
+_SEC_PER_CHAR = {
+    'zh': 0.25, 'ja': 0.15, 'ko': 0.18, 'en': 0.07,
+    # 🔴 APP-097①：6 种新语言（初值＝en，待实测校准）
+    'de': 0.07, 'fr': 0.07, 'es': 0.07,
+    'pt': 0.07, 'it': 0.07, 'ru': 0.07,
+}
 
 #: 起停余量（秒）
 _LANG_TAIL_S = 0.6
@@ -1640,9 +1687,12 @@ def _lang_key(lang: str) -> str:
       ⇒ 后果 = **失控守卫的阈值被算得过低**：
         `RUNAWAY` 阈值 `max(3×est, est+8)` 用小 est ⇒ **更容易误杀正常长句**，
         而 `clamp_max_new_tokens` 用小 est ⇒ **帧数上限偏松**（= 失控上限放行）。
-      ⚠️ 当前生产路径**恰好**只传小写代号（`translator.TARGETS` = zh/en/ja/ko）
+      ⚠️ 当前生产路径**恰好**只传小写代号（`translator.TARGETS`）
       ⇒ 缺陷**未暴露**；但这属于「同一个标识两套口径」的隐患
       ⇒ 一旦有人传全称或带区域写法就静默失准。
+      🔴🔴🔳 **APP-097①**：`translator.TARGETS` 已扩到 **10 种**
+      （zh/en/ja/ko/de/fr/es/pt/it/ru）⇒ 下面「只认 4 种」的旧描述已失效，
+      故 `_lang_key` 改为**按规范小写代号优先**（见下）。
 
     ⇒ 修法：**统一走 `map_language()`**（唯一映射表）再反查小写代号。
       未知语言仍落 `'en'`（与历史行为一致）。
@@ -1651,10 +1701,19 @@ def _lang_key(lang: str) -> str:
         full = map_language(lang)
     except Exception:
         full = 'English'
+    # 🔴🔴🔳 **APP-097①.2**：扩表后这个「必然命中」的前提**已不成立**
+    #   （`LANG_MAP` 的值现在有 10 种，且**同一全称有多个别名**
+    #   ⇒ 字典序第一个匹配可能是**别名**（如 `'de'`/`'german'`/`'deutsch'`）
+    #   ⇒ 必须**优先取「规范小写代号」**，不能拿别名当 `_SEC_PER_CHAR` 的键。
+    #   ⇒ 旧写法（拿第一个匹配）会让 `'german'` 落成 `'german'` 键
+    #      ⇒ `_SEC_PER_CHAR.get('german', ...)` 落 **en 的 0.07** ⇒ 静默失准。
+    _CANON = ('zh', 'en', 'ja', 'ko', 'de', 'fr', 'es', 'pt', 'it', 'ru')
+    for k in _CANON:
+        if LANG_MAP.get(k) == full:
+            return k if k in _SEC_PER_CHAR else 'en'
     for k, v in LANG_MAP.items():
         if v == full:
             return k if k in _SEC_PER_CHAR else 'en'
-    # `LANG_MAP` 的值里只有 Chinese/English/Japanese/Korean ⇒ 上面必然命中
     return 'en'
 
 

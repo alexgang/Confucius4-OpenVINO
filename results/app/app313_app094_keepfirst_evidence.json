@@ -1,0 +1,117 @@
+{
+ "created_at": "2026-11-10T10:58:57",
+ "correction": "APP-094 (1)",
+ "cases": {
+  "default_keep_first": {
+   "stages": [
+    {
+     "stage": "acc_3.2s",
+     "state": "first",
+     "total_s": 3.2
+    },
+    {
+     "stage": "acc_8.5s",
+     "state": "frozen",
+     "total_s": 8.5
+    },
+    {
+     "stage": "acc_12s",
+     "state": "frozen",
+     "total_s": 12.0
+    }
+   ],
+   "records": [
+    {
+     "spk": "S1",
+     "registered_at": 1794279537.4254816,
+     "total_s": 3.2,
+     "count": 1,
+     "upgraded": false,
+     "history": [
+      {
+       "at": 1794279537.4254816,
+       "total_s": 3.2,
+       "upgraded": false
+      }
+     ]
+    }
+   ],
+   "n_records": 1,
+   "max_count": 1,
+   "upgrade_flag": false
+  },
+  "counterexample_upgrade_on": {
+   "stages": [
+    {
+     "stage": "acc_3.2s",
+     "state": "first",
+     "total_s": 3.2
+    },
+    {
+     "stage": "acc_8.5s",
+     "state": "upgrade",
+     "total_s": 8.5
+    },
+    {
+     "stage": "acc_12s",
+     "state": "frozen",
+     "total_s": 12.0
+    }
+   ],
+   "records": [
+    {
+     "spk": "S1",
+     "registered_at": 1794279537.5843132,
+     "total_s": 8.5,
+     "count": 2,
+     "upgraded": true,
+     "history": [
+      {
+       "at": 1794279537.5843132,
+       "total_s": 3.2,
+       "upgraded": false
+      },
+      {
+       "at": 1794279537.5843132,
+       "total_s": 8.5,
+       "upgraded": true
+      }
+     ]
+    }
+   ],
+   "n_records": 1,
+   "max_count": 2,
+   "upgrade_flag": true
+  }
+ },
+ "checks": [
+  {
+   "name": "default_flag_is_keep_first",
+   "pass": true,
+   "detail": "XV_UPGRADE=False（期望 False）"
+  },
+  {
+   "name": "default_exactly_once",
+   "pass": true,
+   "detail": "n_records=1 max_count=1（期望 1 / 1）"
+  },
+  {
+   "name": "default_no_upgrade_state",
+   "pass": true,
+   "detail": "states=['first', 'frozen', 'frozen']"
+  },
+  {
+   "name": "default_record_fields",
+   "pass": true,
+   "detail": "records=[{'spk': 'S1', 'registered_at': 1794279537.4254816, 'total_s': 3.2, 'count': 1, 'upgraded': False, 'history': [{'at': 1794279537.4254816, 'total_s': 3.2, 'upgraded': False}]}]"
+  },
+  {
+   "name": "counterexample_detects_upgrade",
+   "pass": true,
+   "detail": "counter max_count=2（期望 >=2 ⇒ 闸门真的起作用）"
+  }
+ ],
+ "n_pass": 5,
+ "n_fail": 0,
+ "verdict": "PASS"
+}

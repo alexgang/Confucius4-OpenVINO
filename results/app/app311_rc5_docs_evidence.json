@@ -1,0 +1,51 @@
+{
+ "created_at": "2026-11-10T11:05:37",
+ "corrections": [
+  "APP-095 1a (README INT4 mentions)",
+  "APP-096 §2"
+ ],
+ "dry_run": false,
+ "rc5_stats": {
+  "files": 10473,
+  "bytes": 5936739169
+ },
+ "rc4_stats": {
+  "files": 10480,
+  "bytes": 10702133708
+ },
+ "size_delta": {
+  "files": -7,
+  "bytes": -4765394539,
+  "gb": -4.438
+ },
+ "perftest_int4_hits_before": 3,
+ "perftest_int4_hits_after": 3,
+ "perftest_int4_npu_hits_after": 1,
+ "rc4_docs_unchanged": {
+  "README_en": "959e4037842a6b933a44bab7434a95cd2b95b308dfd8f8ac9d18e4b88918178c",
+  "README_zh": "b79dbf541951755e84ca73720829a0a7d989b31e39fe11fd81a7b913fd523288",
+  "README_perftest": "4d83e191dab8fa6d696385ea3f7078a91a036c3c6bfe880a43aa2951c3a057de"
+ },
+ "written": {
+  "README_en.md": {
+   "bytes": 1916,
+   "sha256": "b50f2d7450317bb694ba170496cc9d5213c06d7bd8de1b0ff9e197604378e730"
+  },
+  "README_zh.md": {
+   "bytes": 2112,
+   "sha256": "3bc32d3ee2977363751288eb7b7160c45a078ea6cb05da1ba7db8a839e756513"
+  },
+  "README_perftest.txt": {
+   "bytes": 13649,
+   "sha256": "4ff235b072053dce2457395d666da64b467fd3b8d3f0c7988e57d40dbf999f6b"
+  },
+  "G4_WHITELIST.md": {
+   "bytes": 1744,
+   "sha256": "539399b553d223fd2c3e0a0848949726409ca4500e6e896795ebe8a926c3b381"
+  },
+  "release.json": {
+   "bytes": 196,
+   "sha256": "30aa4bb81f2317bc13a79aadc568cf4d1dc70793cefe737e41123bbfec12a30d"
+  }
+ }
+}
