@@ -1,0 +1,56 @@
+{
+  "created_at": "2026-11-10T18:55:58",
+  "target": "live_caption/speaker_tracker.py",
+  "device_job": false,
+  "lock_note": "纯 CPU 静态检查（不加载模型）⇒ 不需要 MACHINE_LOCK",
+  "criterion": "AST：语句多重集 / 常量多重集 / 函数签名 三者相等 ⇒ 仅注释与 docstring 变化",
+  "head_sha256": "5f7f1824f8596d073264bea42e6c143da9334618ce5578bde5509b369bad8a76",
+  "worktree_sha256": "6c8719c3f454cbe682f1f16ec33c2c15844ea5274942ef6ec03dc2428f303a20",
+  "head_bytes": 60631,
+  "worktree_bytes": 62428,
+  "checks": [
+    {
+      "name": "target_exists",
+      "pass": true,
+      "detail": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption/speaker_tracker.py"
+    },
+    {
+      "name": "ast_parses",
+      "pass": true,
+      "detail": "HEAD 与工作树均 ast.parse 成功"
+    },
+    {
+      "name": "stmt_multiset_same",
+      "pass": true,
+      "detail": "语句多重集 相等（HEAD 597 条 / 当前 597 条）"
+    },
+    {
+      "name": "const_multiset_same",
+      "pass": true,
+      "detail": "常量多重集 相等"
+    },
+    {
+      "name": "signatures_same",
+      "pass": true,
+      "detail": "函数签名 相等（30 个函数）"
+    },
+    {
+      "name": "docstring_text_changed_as_expected",
+      "pass": true,
+      "detail": "docstring 文本 已变（这是本轮**预期**要改的部分）"
+    },
+    {
+      "name": "only_comments_and_docstrings_changed",
+      "pass": true,
+      "detail": "注释行集合 已变（HEAD 195 行 / 当前 210 行）；docstring 已变"
+    },
+    {
+      "name": "eol_preserved",
+      "pass": true,
+      "detail": "工作树文件不含 CRLF（保持 LF）"
+    }
+  ],
+  "n_pass": 8,
+  "n_fail": 0,
+  "verdict": "PASS"
+}

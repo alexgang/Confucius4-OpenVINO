@@ -65,9 +65,14 @@ _ASR_SCRIPTS = os.path.join(os.path.expanduser('~'),
 _SR = 16000
 
 # 🔴🔴🔴 APP-053：**旁路分段的滑窗长度**（秒）。
-#   ASR 侧 `asr052_spk_runtime.WIN_S = 10.0`（`WIN_N = 160000` 样本）。
-#   🔴 **喂满一整窗时帧数恰好 589 ⇒ 零取整漂移**（见 `feed()` 的注释）。
-#   （APP-053 的实测证据：`results/app/app195_app053_mechanism_evidence.json`）
+#   🔴 **窗长是唯一事实来源 `asr_spk_window.WIN_S`**，**不写死**（APP-062 ① D1）。
+#   ⚠️ **窗长是「可配的量」，不是常量**：ASR 侧自 ASR-043/ASR-045 起默认 **5.0 s**
+#      （`asr_spk_window.WIN_S_DEFAULT = 5.0`，`WIN_N = 80000` 样本）；
+#      10 s（`WIN_N = 160000` 样本）是**旧默认**，现在只作为**回退**档存在
+#      （`KNOWN_WINDOWS = {10.0: (589, 58.9), 5.0: (293, 58.6)}`）。
+#   🔴 **喂满一整窗 ⇒ 帧数恰好等于该窗长的登记帧数 ⇒ 零取整漂移**
+#      （5 s ⇒ 293 帧 / 58.6 fps；10 s ⇒ 589 帧 / 58.9 fps；见 `feed()` 的注释）。
+#      （APP-053 的实测证据：`results/app/app195_app053_mechanism_evidence.json`）
 #
 # 🔴🔴🔴 APP-062 ①（D1）：**不再写死**，改为**与 ASR 侧常量同源** ＋ **可配置**。
 #   reviewer 原文：「App 侧把窗口长度做成配置项（和 ASR 侧常量同源，
@@ -76,12 +81,21 @@ _SR = 16000
 #   🔴 **为什么要同源**：`WIN_S` 决定**喂给 ASR 的窗长**
 #     ⇒ App 侧写死一份、ASR 侧写死一份 ⇒ 改一边不改另一边 ⇒ **静默错位**
 #     ⇒ ASR 拿到的窗长与它自己以为的不一致 ⇒ 换人点判定漂移。
-#   🔴 **同源怎么做**：`asr052_spk_runtime` **随包分发**（实测包内
-#     `app/asr_spk/asr052_spk_runtime.py` 里就有 `WIN_S = 10.0`）
+#   🔴 **同源怎么做**：`asr_spk_window` **随包分发**（实测包内
+#     `app/asr_spk/asr_spk_window.py` 就有 `WIN_S`，且 `WIN_S_DEFAULT = 5.0`）
 #     ⇒ 开发机与客户机**都能读到** ⇒ 直接读它，不另写一份。
+#     读取顺序：`asr_spk_window`（唯一事实来源）→ `asr052_spk_runtime`（兜底）
+#     → 都读不到 ⇒ 退回本文件的 `_WIN_S_DEFAULT`。
 #   🔴 **配置项**：`LIVECAP_SPK_WINDOW_S` 环境变量可覆盖
 #     ⇒ ASR-040 的「10 s vs 5 s」对比实验**不必改代码**就能跑两档。
-#   🔴 **读不到时**退回 10.0（= ASR 侧默认值）⇒ **行为与改前完全一致**。
+#   🔴🔴🔴 **读不到时退回 10.0 —— 这不是「ASR 侧默认值」（那已是 5.0）**，
+#     而是**与 IR 兜底配套**：本值必须等于 `speaker_assets.find_seg_ir()`
+#     在「窗长读不到」时挑的那份 IR 的窗长（`SEG_PRECISIONS` 首项 `fp16`
+#     = 160000 样本 = **10 s**）⇒ 两侧都退到 10 s ⇒ shape 仍匹配。
+#     🔴 **把它改成 5.0 是真 bug**：App 会喂 5 s，而 `speaker_assets`
+#     仍选 10 s 的 `fp16` IR ⇒ 输入 shape 不兼容 ⇒ 旁路静默降级、零标签。
+#     ⇒ 改这一行**必须**同时改 `speaker_assets` 的 IR 兜底。
+#     闸门：`live_caption/assert_window_same_source.py`（含反证组）。
 #   🔴 **非法值**（非数字 / ≤ 0）⇒ 退回默认（不静默改语义）。
 _WIN_S_DEFAULT = 10.0
 _WIN_S_ENV = 'LIVECAP_SPK_WINDOW_S'
@@ -127,10 +141,12 @@ def _asr_win_s():
     🔴🔴🔴 **读取顺序（§131 对齐 ASR-041）**：
       ① **`asr_spk_window`** —— ASR-041 落地的**唯一事实来源**
          （其 docstring 明写「说话人旁路窗口长度的唯一事实来源（ASR 侧）」）
-         ⇒ **将来 ASR 把它改成 5.0 并随包分发 ⇒ App 侧自动跟随**
+         ⇒ **ASR 改它（已改成 5.0）并随包分发 ⇒ App 侧自动跟随**
       ② **`asr052_spk_runtime`** —— **随包分发**的 ASR 运行时内核
          ⇒ 客户机上 `asr_spk_window` 未随包时的**兜底**
-      ③ 都没有 ⇒ 返回 None ⇒ 由 `_resolve_win_s()` 退回默认 10.0
+      ③ 都没有 ⇒ 返回 None ⇒ 由 `_resolve_win_s()` 退回 `_WIN_S_DEFAULT`
+         （10.0 ⇒ **与 IR 兜底 `fp16`（160000 样本 = 10 s）配套**，
+         **不是** ASR 的当前默认值 5.0 ⇒ 见模块顶部注释的警示）
     """
     scripts_dir = _asr_scripts_dir()
     for mod_name in ('asr_spk_window', 'asr052_spk_runtime'):
@@ -144,7 +160,11 @@ def _asr_win_s():
 
 
 def _resolve_win_s():
-    """🔴 解析旁路窗长：**环境变量（配置项） > ASR 侧常量（同源） > 默认 10.0**。"""
+    """🔴 解析旁路窗长：**环境变量（配置项） > ASR 侧常量（同源） > 兜底 10.0**。
+
+    🔴 兜底 10.0 的含义见模块顶部注释：**与 IR 兜底 `fp16`（10 s）配套**，
+    **不是**「ASR 的当前默认值」（那是 5.0）⇒ 两者都退到 10 s ⇒ shape 仍匹配。
+    """
     raw = os.environ.get(_WIN_S_ENV, '')
     if raw not in (None, ''):
         try:
@@ -620,9 +640,10 @@ class SpeakerBridge:
         ## 本次修法（App 侧，**不改 ASR 一行**）
 
         * `feed()` **只把 PCM 放进队列**就返回 ⇒ 主循环**永不阻塞**。
-        * 独立**后台工作线程**消费队列：攒够一整窗（`WIN_S = 10 s`）再喂
-          tracker ⇒ **顺带修掉 APP-053 的帧数取整漂移**
-          （喂满整窗 ⇒ 帧数恰好 589 ⇒ **零漂移**）。
+        * 独立**后台工作线程**消费队列：攒够一整窗（窗长 = ASR 侧 `WIN_S`，
+          当前 5 s；回退档 10 s）再喂 tracker
+          ⇒ **顺带修掉 APP-053 的帧数取整漂移**
+          （喂满整窗 ⇒ 帧数恰好等于该窗长的登记帧数 ⇒ **零漂移**）。
         * 队列积压超 `max_queue_s` ⇒ **丢弃最旧的窗口**并标记**降级**
           ⇒ **只降级，绝不反压 ASR**（APP-054 明文）。
         * 旁路**默认关闭**（`enabled=False`）⇒ v1.13 的默认行为与 **v1.12
@@ -768,8 +789,9 @@ class SpeakerBridge:
                     buf = np.concatenate((buf, _a))
                 # ── ② 把缓冲里**能喂的都喂完**（内层循环）────────────
                 #   🔴🔴🔴 **一次只喂**一个整窗（`win_n`）
-                #     ⇒ ASR 侧 `run_seg_side` 每次拿到**恰好 10 s**
-                #       ⇒ 帧数 = ceil(10.0 × 58.9) = **589**（零取整漂移）
+                #     ⇒ ASR 侧 `run_seg_side` 每次拿到**恰好一整窗**
+                #       ⇒ 帧数 = 该窗长的登记帧数（5 s ⇒ 293 / 58.6 fps；
+                #         10 s ⇒ 589 / 58.9 fps）⇒ **零取整漂移**
                 #     ⇒ 且**内存占用恒定**（不会把 30 s 一次性塞进去）。
                 #   ⚠️ 旧实现把**整个批次**一次喂完（30 s ⇒ 一次调用）
                 #     ⇒ 虽也零漂移，但**喂的粒度与 ASR 侧窗口不一致**

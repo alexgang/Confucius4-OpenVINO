@@ -1,0 +1,622 @@
+{
+  "created_at": "2026-11-10T18:55:51",
+  "criterion": "硬闸门 = 活文档 status/app/STATUS_APP.md：反引号包裹的仓库内相对路径引用必须能在 仓库根 / shared 根 上定位到；含通配或占位的引用不计；reviewer 已点名并撤回的幻影单列 known_phantom。归档件是逐字冻结的历史正文 ⇒ 其中的旧笔误只登记进 archive_findings，不判 FAIL、也不改写（按「只追加」纪律需在新节说明并请 reviewer 裁定）。",
+  "device_job": false,
+  "lock_note": "纯 CPU 静态检查（不加载模型、不占 GPU/NPU）⇒ 不需要 MACHINE_LOCK",
+  "n_files_scanned": 59,
+  "n_cited_unique_live": 35,
+  "n_ok_live": 34,
+  "n_bad_live": 0,
+  "n_documented_live": 1,
+  "documented_live": [
+    {
+      "path": "results/app/_app326_app097_lang_out/mt.json",
+      "note": "同名文件在别处（**同一行已给出正确路径 ⇒ 属「已如实记录的错误引用」**）",
+      "file": "status/app/STATUS_APP.md",
+      "actual": [
+        "results/app/app326_app097_lang_out/mt.json",
+        "results/app/app333_app097_regress/smoke_ja/mt.json",
+        "results/app/app333_app097_regress/smoke_ko/mt.json"
+      ]
+    }
+  ],
+  "n_documented_archive": 0,
+  "n_known_phantom_live": 0,
+  "n_placeholder_live": 1,
+  "n_abspath_live": 0,
+  "n_external_outside_repo_live": 0,
+  "bad_live": [],
+  "known_phantom_live": [],
+  "external_outside_repo_live": [],
+  "n_archive_findings": 13,
+  "archive_findings": [
+    {
+      "path": "results/mt2_accuracy.json/.md",
+      "note": "磁盘上找不到",
+      "file": "status/archive/STATUS_APP_sec126_upto_20261101.md",
+      "actual": []
+    },
+    {
+      "path": "results/app/app252_gui_out/gui_shot_045s/150s/260s.png",
+      "note": "磁盘上找不到",
+      "file": "status/archive/STATUS_APP_sec135_upto_20261105.md",
+      "actual": []
+    },
+    {
+      "path": "results/app/app264_app191_on_rc2.json",
+      "note": "磁盘上找不到",
+      "file": "status/archive/STATUS_APP_sec135_upto_20261105.md",
+      "actual": []
+    },
+    {
+      "path": "results/app/DELIVERY_2.x.json",
+      "note": "磁盘上找不到",
+      "file": "status/archive/STATUS_APP_sec141_142_20261106.md",
+      "actual": []
+    },
+    {
+      "path": "results/app/app364_app086_score_evidence.json",
+      "note": "磁盘上找不到",
+      "file": "status/archive/STATUS_APP_sec160_20261109.md",
+      "actual": []
+    },
+    {
+      "path": "results/app/app364_app086_score_evidence.json",
+      "note": "磁盘上找不到",
+      "file": "status/archive/STATUS_APP_sec160_20261110.md",
+      "actual": []
+    },
+    {
+      "path": "results/app/_app326_app097_lang_out/mt.json",
+      "note": "同名文件在别处",
+      "file": "status/archive/STATUS_APP_sec167_20261110.md",
+      "actual": [
+        "results/app/app326_app097_lang_out/mt.json",
+        "results/app/app333_app097_regress/smoke_ja/mt.json",
+        "results/app/app333_app097_regress/smoke_ko/mt.json"
+      ]
+    },
+    {
+      "path": "results/mt2_accuracy.json/.md",
+      "note": "磁盘上找不到",
+      "file": "status/archive/STATUS_APP_unfinished_corrections_upto_20261106.md",
+      "actual": []
+    },
+    {
+      "path": "live_caption/sync_c111_revert_to_pkg.py",
+      "note": "磁盘上找不到",
+      "file": "status/archive/STATUS_APP_upto_20261030.md",
+      "actual": []
+    },
+    {
+      "path": "live_caption/sync_c1XX_to_pkg.py",
+      "note": "磁盘上找不到",
+      "file": "status/archive/STATUS_APP_upto_20261030.md",
+      "actual": []
+    },
+    {
+      "path": "reports/x/transcript_a.txt",
+      "note": "磁盘上找不到",
+      "file": "status/archive/STATUS_APP_upto_20261030.md",
+      "actual": []
+    },
+    {
+      "path": "results/asr_diag/x.txt",
+      "note": "磁盘上找不到",
+      "file": "status/archive/STATUS_APP_upto_20261030.md",
+      "actual": []
+    },
+    {
+      "path": "results/c134_replay/x.txt",
+      "note": "磁盘上找不到",
+      "file": "status/archive/STATUS_APP_upto_20261030.md",
+      "actual": []
+    }
+  ],
+  "archive_known_phantom": [
+    {
+      "path": "results/app/app391_app089_before_and_overload.json",
+      "note": "APP-093 ②(d)：§162 幻影引用；§164 已撤回该引用并改列 app393/app394",
+      "file": "status/archive/STATUS_APP_sec164_20261110.md"
+    }
+  ],
+  "live_per_file": [
+    {
+      "file": "status/app/STATUS_APP.md",
+      "bytes": 33178,
+      "sha256": "0798e9ae7e65a6e97ddf15296120d1b524c76d09f6f8c7a0d112a8624db1fef5",
+      "n_cited": 36,
+      "n_bad": 0,
+      "bad": []
+    }
+  ],
+  "archive_per_file": [
+    {
+      "file": "status/archive/STATUS_APP_compress_index_upto_20261107.md",
+      "bytes": 3424,
+      "sha256": "8c412c99d8a3912a8cbedb1632df7436cb1f20f30385f5e141c2af3e92012a97",
+      "n_cited": 19,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_key_numbers_20261110.md",
+      "bytes": 5540,
+      "sha256": "0b1e0843e6192300fe8d72fbeb1965d2464d1df93e15ab1e3b2c4cca15131d0a",
+      "n_cited": 16,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_recent_updates_upto_20261106.md",
+      "bytes": 10056,
+      "sha256": "e978112f6d7ce2d9f1961a61ec4c05a7112b4be6a5dd2128938db17b2b65e392",
+      "n_cited": 1,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_recent_updates_upto_20261107.md",
+      "bytes": 2245,
+      "sha256": "ead2fbf22a3aa1582ca5545d8e73babc13c3befbb9825607a918b450fbc97ebe",
+      "n_cited": 1,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_recent_updates_upto_20261110.md",
+      "bytes": 3069,
+      "sha256": "2a78e95911802ddc2f1bf0304c07a2caaef06589a18b1effdcea7752d176bbbd",
+      "n_cited": 2,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec109_113_upto_20261030.md",
+      "bytes": 8182,
+      "sha256": "2362c72f86cb74373cdccb1eaa2227e1aa6049482071b39c48cac3228fccb3c9",
+      "n_cited": 6,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec109_114_upto_20261031.md",
+      "bytes": 25909,
+      "sha256": "2ff567bbbe3c7da58eeee542ccdd641891fa38426bac1c5df82a9c06bbdc9ad2",
+      "n_cited": 17,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec109_122_upto_20261101.md",
+      "bytes": 116062,
+      "sha256": "249eae7c31e396e339b83333cbeb6c90af85ad02de01777aca9023c10d817403",
+      "n_cited": 56,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec123_upto_20261101.md",
+      "bytes": 17518,
+      "sha256": "dbb4eebefa9a7a88f0a1462074076ad337935ca6e633c7fd291a6b3400562db8",
+      "n_cited": 15,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec124_upto_20261101.md",
+      "bytes": 20697,
+      "sha256": "da0b51dbb5211c750e2e0c3c8f5dc7bb619f256bd628a08f43cdf4a004598a2a",
+      "n_cited": 8,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec126_upto_20261101.md",
+      "bytes": 40343,
+      "sha256": "ebc091dd0cfb8f4ebe22428797c0fc8a51e75c59ba137ddeb4ea3d4c1e06b6ec",
+      "n_cited": 36,
+      "n_bad": 1,
+      "bad": [
+        "results/mt2_accuracy.json/.md"
+      ]
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec127_128_upto_20261102.md",
+      "bytes": 17605,
+      "sha256": "454846e61a1fdf20c3f5bfe39dc934ee70060ddda40070593cc5742c51d298bd",
+      "n_cited": 21,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec129_upto_20261102.md",
+      "bytes": 12603,
+      "sha256": "fcb9523913c1c6456c5ed58bbceaccadf3e8aafecce78bbd704dafde6777daf9",
+      "n_cited": 12,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec130_134_upto_20261105.md",
+      "bytes": 9092,
+      "sha256": "6dfa878eb07c74638eb3c8b24c4e961594d60e9799e1f2137d27edf55bf18e1d",
+      "n_cited": 4,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec130_upto_20261102.md",
+      "bytes": 11870,
+      "sha256": "6ba127f51c15c7e24d670feeda7430952436cc42dbadea7c5d93bb3457ff18e8",
+      "n_cited": 16,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec131_upto_20261102.md",
+      "bytes": 11645,
+      "sha256": "f7153fcc683cd196e8728a67e9dc44d37114f92155a36f5457358b3c3205559b",
+      "n_cited": 6,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec132_upto_20261103.md",
+      "bytes": 11128,
+      "sha256": "30145fdfccb06993049d81f2a656c90d8fa24db987ea3b6eaa10a0ad6d9bce41",
+      "n_cited": 2,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec135_137_infofast_20261105.md",
+      "bytes": 8585,
+      "sha256": "e0b9a6c7083c7a73d79c00c51227a9de46b3f3406d42e84ba3bc7128667ce48f",
+      "n_cited": 4,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec135_140_summary_20261110.md",
+      "bytes": 6442,
+      "sha256": "12cf171e63e62f99e3d3bd22694b594e1a8de285aa1d642b3b5db2d9b70fb831",
+      "n_cited": 9,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec135_upto_20261105.md",
+      "bytes": 18133,
+      "sha256": "04b3ff158079a1ac7745c2ba83f69ef016e109ec9e89777884a3618716cad33f",
+      "n_cited": 12,
+      "n_bad": 2,
+      "bad": [
+        "results/app/app252_gui_out/gui_shot_045s/150s/260s.png",
+        "results/app/app264_app191_on_rc2.json"
+      ]
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec136_upto_20261105.md",
+      "bytes": 12364,
+      "sha256": "4982db50426392c799feb8a1a473236fa15e2d167aa15468b32cf8382f0528e3",
+      "n_cited": 11,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec137_20261105.md",
+      "bytes": 9705,
+      "sha256": "1d229ec67a176d27546289acc6a6f800a78f034d67791ca0c64d19d3df988ffa",
+      "n_cited": 5,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec138_20261105.md",
+      "bytes": 28337,
+      "sha256": "991253db3456b36c9ba7c3a122de9d12bba3a77287d388a51df317837df80a81",
+      "n_cited": 21,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec138_live_20261105.md",
+      "bytes": 6711,
+      "sha256": "aa252157d4119f611ff4f4ad5557b096d59a48c676eb804579e97daab1db59f2",
+      "n_cited": 6,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec139_20261105.md",
+      "bytes": 8935,
+      "sha256": "6c4e5c7d98e0dac2692b1b26d795f5244b87d44caa885f6c9dba24341e8a5a80",
+      "n_cited": 6,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec140_20261106.md",
+      "bytes": 18641,
+      "sha256": "8005ce5c169e5222fe20d213ae70a920bf14bc5bc949cf1783a590d1a5479015",
+      "n_cited": 16,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec141_142_20261106.md",
+      "bytes": 8743,
+      "sha256": "4b1e347f6c173d3b27652717d99154a92f1fc4646b086cc5e402e3e8b681f46d",
+      "n_cited": 8,
+      "n_bad": 1,
+      "bad": [
+        "results/app/DELIVERY_2.x.json"
+      ]
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec142_20261109.md",
+      "bytes": 2128,
+      "sha256": "912e9b29e5b6ee4eb44849cc4ffaf8094ace2d4a89702fdb75e4dc47c5c2cd84",
+      "n_cited": 5,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec143_20261107.md",
+      "bytes": 10634,
+      "sha256": "1cbdba94f629ef1b70aa40cbce5ff4ea7d964011110c1ba5831f10a6bcc6a5dc",
+      "n_cited": 10,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec143_artifacts_20261107.md",
+      "bytes": 2176,
+      "sha256": "e9d914a95af7c4642d463f850e84efe66e1f65945de6f84ad2093dce72085547",
+      "n_cited": 12,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec144_20261107.md",
+      "bytes": 3269,
+      "sha256": "bd0529841c8b5c3d80a85ec1f3b5de4c06c43674d78652a7538daf38d3c70b33",
+      "n_cited": 4,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec145_20261107.md",
+      "bytes": 5520,
+      "sha256": "614f4d714751e41613d06e5e98b94bdb6c24695137295fe094d2dd09a73e4e01",
+      "n_cited": 6,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec146_20261107.md",
+      "bytes": 4937,
+      "sha256": "df88e9abd71ac7b1da84ded96dab995c295c0823cc8580b4efba141107c0cc0e",
+      "n_cited": 6,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec147_20261107.md",
+      "bytes": 7824,
+      "sha256": "dbbcaab205bd56a2fc631c66f5e291e2be0b9cdd6ad0c17da865a38d056641b6",
+      "n_cited": 10,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec148_20261107.md",
+      "bytes": 8843,
+      "sha256": "46b62f059cd53bdd38b7217ba55f9a2cb1b80e550858971e0c28545ab3144a87",
+      "n_cited": 8,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec149_20261107.md",
+      "bytes": 12416,
+      "sha256": "29784e3e09e787a4c3328e8c3d5559eef5b459a42554a182d0ddd6745567aebe",
+      "n_cited": 5,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec150_20261109.md",
+      "bytes": 6255,
+      "sha256": "b3a055b6394c8de9e8f0e5b44005635d75b3202bcd1480efe9817b18e4939521",
+      "n_cited": 11,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec151_20261107.md",
+      "bytes": 3985,
+      "sha256": "d2c36c15a1e75b442c3950b8a8ecf393cd24a0b604a3a88e4eabec39a0dc9250",
+      "n_cited": 4,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec152_20261108.md",
+      "bytes": 7789,
+      "sha256": "3902c3035665e61903397474d0905fe9142d2f0fbb0049d16ca3e83e87b5c9bc",
+      "n_cited": 5,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec153_20261108.md",
+      "bytes": 8062,
+      "sha256": "9e517bc709e87168e922aafbe5715ece75f24ab9b8c59ba3d87a8d5d58d17117",
+      "n_cited": 5,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec154_20261108.md",
+      "bytes": 6328,
+      "sha256": "b50177e7b215778ffb873b27457eef5d2643914af07b4ab596aba5a4db2bb13d",
+      "n_cited": 4,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec155_20261108.md",
+      "bytes": 6790,
+      "sha256": "584d8681aa4a89665d1bd2e2a2df1df3754ee869efb41284637705cefed1d41d",
+      "n_cited": 4,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec156_20261108.md",
+      "bytes": 6755,
+      "sha256": "67e9b45d85887e6fff370ef7475d7830f490a490e8a936dfa4b8de6ab5d7ac00",
+      "n_cited": 3,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec157_20261108.md",
+      "bytes": 6190,
+      "sha256": "5e6236cc5548d0aff9d29493ea7f574d2651594dc384c54664511318c6676d27",
+      "n_cited": 3,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec158_20261109.md",
+      "bytes": 5694,
+      "sha256": "b5ea34eb55109a6bf72892de1237b408c1257f381466b11d1edb735a4e8a00eb",
+      "n_cited": 3,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec159_20261109.md",
+      "bytes": 11156,
+      "sha256": "da8241c04798cbf70798b0588f54fd7da8a35e5c4530cfff1eb653f3df9d32db",
+      "n_cited": 13,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec160_20261109.md",
+      "bytes": 10985,
+      "sha256": "82c35e22353d63f7639b4f469b154c19efd9de3e0763e6ba36040c01f4cb6ebf",
+      "n_cited": 15,
+      "n_bad": 1,
+      "bad": [
+        "results/app/app364_app086_score_evidence.json"
+      ]
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec160_20261110.md",
+      "bytes": 10985,
+      "sha256": "82c35e22353d63f7639b4f469b154c19efd9de3e0763e6ba36040c01f4cb6ebf",
+      "n_cited": 15,
+      "n_bad": 1,
+      "bad": [
+        "results/app/app364_app086_score_evidence.json"
+      ]
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec161_20261110.md",
+      "bytes": 5151,
+      "sha256": "0636d5145b65f2c142d886f62e529d9cd2e1a1d966035fbee75bed842574a557",
+      "n_cited": 2,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec162_20261110.md",
+      "bytes": 5347,
+      "sha256": "6bb05a503efe7d816f8f463813c3fa83b58127d73be7eaa15200fc4502683254",
+      "n_cited": 1,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec163_20261110.md",
+      "bytes": 3299,
+      "sha256": "3cf5cc22541fdd65da07bc58211757c056c83d8f37eccef551020957ad9ed3ef",
+      "n_cited": 0,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec164_20261110.md",
+      "bytes": 7496,
+      "sha256": "d1b7efee44eb62e30d82e286916d327fdf0da8bf4f8f33aa419819ad70747f3a",
+      "n_cited": 3,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec165_20261110.md",
+      "bytes": 7828,
+      "sha256": "49b14a8f57e3817a569a202979ac4efd33b5783f4a6b253b32c7a9b05017b7e6",
+      "n_cited": 2,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec166_20261110.md",
+      "bytes": 4417,
+      "sha256": "ddc46f321b1833cf7c04be048847a55f57677eaac4004fdc9fd405f93eb85f3f",
+      "n_cited": 1,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec167_20261110.md",
+      "bytes": 12277,
+      "sha256": "f072058905e5663af6f2faa1244af68aea08ffd1b2de86700a1f754f17773e88",
+      "n_cited": 15,
+      "n_bad": 1,
+      "bad": [
+        "results/app/_app326_app097_lang_out/mt.json"
+      ]
+    },
+    {
+      "file": "status/archive/STATUS_APP_sec168_20261110.md",
+      "bytes": 8599,
+      "sha256": "f7c1462abbe2a03fc6a0887fcaae762984a2ef3fbfcfcb78ece98acf1e65b343",
+      "n_cited": 2,
+      "n_bad": 0,
+      "bad": []
+    },
+    {
+      "file": "status/archive/STATUS_APP_unfinished_corrections_upto_20261106.md",
+      "bytes": 4905,
+      "sha256": "a587034577f76466a97e85c058dd15f6561496e15eee8c1a148c698220bf941c",
+      "n_cited": 4,
+      "n_bad": 1,
+      "bad": [
+        "results/mt2_accuracy.json/.md"
+      ]
+    },
+    {
+      "file": "status/archive/STATUS_APP_upto_20261030.md",
+      "bytes": 1437968,
+      "sha256": "8fbdd7fe2b6b4547d3fa2962402839f1be57410e0cd58f818694c4ad6a8fe334",
+      "n_cited": 460,
+      "n_bad": 5,
+      "bad": [
+        "live_caption/sync_c111_revert_to_pkg.py",
+        "live_caption/sync_c1XX_to_pkg.py",
+        "reports/x/transcript_a.txt",
+        "results/asr_diag/x.txt",
+        "results/c134_replay/x.txt"
+      ]
+    }
+  ],
+  "verdict": "PASS",
+  "verdict_note": "活文档 STATUS_APP.md 的所有具体产物引用都能在磁盘上定位"
+}
