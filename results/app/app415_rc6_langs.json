@@ -1,0 +1,181 @@
+{
+ "created_at": "2026-11-10 23:14:36",
+ "pkg": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_MiniMVP_v1.0-rc6",
+ "langs": [
+  "zh",
+  "en",
+  "ja",
+  "ko",
+  "de",
+  "fr",
+  "es",
+  "pt",
+  "it",
+  "ru"
+ ],
+ "mt_sents_per_lang": 5,
+ "tts_sents_per_lang": 2,
+ "per_lang": {
+  "zh": {
+   "lang": "zh",
+   "exit_code": 0,
+   "seconds": 157.9,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\zh\\run.log",
+   "log_bytes": 12079,
+   "n_wav": 0,
+   "wavs": [],
+   "subtitles_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\zh\\subtitles.txt",
+   "tts_jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\zh\\tts.jsonl",
+   "n_subtitle_chars": 192,
+   "has_output": true
+  },
+  "en": {
+   "lang": "en",
+   "exit_code": 0,
+   "seconds": 158.9,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\en\\run.log",
+   "log_bytes": 13368,
+   "n_wav": 2,
+   "wavs": [
+    "seg_0_0001.wav",
+    "seg_0_0002_acc107.wav"
+   ],
+   "subtitles_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\en\\subtitles.txt",
+   "tts_jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\en\\tts.jsonl",
+   "n_subtitle_chars": 192,
+   "has_output": true
+  },
+  "ja": {
+   "lang": "ja",
+   "exit_code": 0,
+   "seconds": 159.0,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\ja\\run.log",
+   "log_bytes": 13695,
+   "n_wav": 2,
+   "wavs": [
+    "seg_0_0001.wav",
+    "seg_0_0002_acc106.wav"
+   ],
+   "subtitles_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\ja\\subtitles.txt",
+   "tts_jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\ja\\tts.jsonl",
+   "n_subtitle_chars": 192,
+   "has_output": true
+  },
+  "ko": {
+   "lang": "ko",
+   "exit_code": 0,
+   "seconds": 159.0,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\ko\\run.log",
+   "log_bytes": 13690,
+   "n_wav": 2,
+   "wavs": [
+    "seg_0_0001.wav",
+    "seg_0_0002_acc106.wav"
+   ],
+   "subtitles_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\ko\\subtitles.txt",
+   "tts_jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\ko\\tts.jsonl",
+   "n_subtitle_chars": 192,
+   "has_output": true
+  },
+  "de": {
+   "lang": "de",
+   "exit_code": 0,
+   "seconds": 158.8,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\de\\run.log",
+   "log_bytes": 12469,
+   "n_wav": 0,
+   "wavs": [],
+   "subtitles_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\de\\subtitles.txt",
+   "tts_jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\de\\tts.jsonl",
+   "n_subtitle_chars": 192,
+   "has_output": true
+  },
+  "fr": {
+   "lang": "fr",
+   "exit_code": 0,
+   "seconds": 158.9,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\fr\\run.log",
+   "log_bytes": 13688,
+   "n_wav": 2,
+   "wavs": [
+    "seg_0_0001.wav",
+    "seg_0_0002_acc105.wav"
+   ],
+   "subtitles_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\fr\\subtitles.txt",
+   "tts_jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\fr\\tts.jsonl",
+   "n_subtitle_chars": 192,
+   "has_output": true
+  },
+  "es": {
+   "lang": "es",
+   "exit_code": 0,
+   "seconds": 158.9,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\es\\run.log",
+   "log_bytes": 13598,
+   "n_wav": 2,
+   "wavs": [
+    "seg_0_0001.wav",
+    "seg_0_0002_acc106.wav"
+   ],
+   "subtitles_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\es\\subtitles.txt",
+   "tts_jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\es\\tts.jsonl",
+   "n_subtitle_chars": 192,
+   "has_output": true
+  },
+  "pt": {
+   "lang": "pt",
+   "exit_code": 0,
+   "seconds": 159.0,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\pt\\run.log",
+   "log_bytes": 13571,
+   "n_wav": 2,
+   "wavs": [
+    "seg_0_0001.wav",
+    "seg_0_0002_acc106.wav"
+   ],
+   "subtitles_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\pt\\subtitles.txt",
+   "tts_jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\pt\\tts.jsonl",
+   "n_subtitle_chars": 192,
+   "has_output": true
+  },
+  "it": {
+   "lang": "it",
+   "exit_code": 0,
+   "seconds": 158.9,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\it\\run.log",
+   "log_bytes": 13549,
+   "n_wav": 2,
+   "wavs": [
+    "seg_0_0001.wav",
+    "seg_0_0002_acc106.wav"
+   ],
+   "subtitles_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\it\\subtitles.txt",
+   "tts_jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\it\\tts.jsonl",
+   "n_subtitle_chars": 192,
+   "has_output": true
+  },
+  "ru": {
+   "lang": "ru",
+   "exit_code": 0,
+   "seconds": 158.8,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\ru\\run.log",
+   "log_bytes": 14158,
+   "n_wav": 2,
+   "wavs": [
+    "seg_0_0001.wav",
+    "seg_0_0002_acc106.wav"
+   ],
+   "subtitles_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\ru\\subtitles.txt",
+   "tts_jsonl": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\ru\\tts.jsonl",
+   "n_subtitle_chars": 192,
+   "has_output": true
+  }
+ },
+ "verdict": "PARTIAL",
+ "sentences_source": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app333_en_sents.json",
+ "n_sentences_available": 15,
+ "lock": "app 12448 2026-11-10 23:14:36 rc6_langs",
+ "summary_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app415_rc6_langs\\summary.json",
+ "n_langs": 10,
+ "n_langs_ok": 8
+}

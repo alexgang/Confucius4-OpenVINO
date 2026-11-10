@@ -1,0 +1,110 @@
+{
+ "script": "_app423_rc6_dir_rollback.py",
+ "judgement_version": "v2",
+ "rc6_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6",
+ "rc6_zip": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6_perftest.zip",
+ "rc7_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc7",
+ "zip_root": "Confucius4_LiveCaption_MiniMVP_v1.0-rc6",
+ "n_zip_entries": 10466,
+ "before": {
+  "dir_vs_zip_diff": [],
+  "zip_target_sha256": "291b076a95c807d7df0a5a4f3302bf3d31301112a7d1e5b7ecf9c1b982c7576c",
+  "zip_target_bytes": 475504,
+  "dir_target_sha256": "291b076a95c807d7df0a5a4f3302bf3d31301112a7d1e5b7ecf9c1b982c7576c",
+  "dir_target_bytes": 475504,
+  "dir_target_mtime": 1794327539.2449772
+ },
+ "pre_rollback_proof": {
+  "a_rc6_zip_build_options_handles_asr06b": false,
+  "a_rc6_zip_build_options_kinds": [
+   "npu"
+  ],
+  "a_rc6_zip_code_sha256": "291b076a95c807d7df0a5a4f3302bf3d31301112a7d1e5b7ecf9c1b982c7576c",
+  "a_rc6_zip_code_bytes": 475504,
+  "b_dev_tree_file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\live_caption_app.py",
+  "b_dev_tree_sha256": "3c39bdfae8d1398dfac1591cc32ced2cd7f504d38061ef155dac56910c2efc6c",
+  "b_rc7_app_sha256": "3c39bdfae8d1398dfac1591cc32ced2cd7f504d38061ef155dac56910c2efc6c",
+  "b_rc7_build_options_handles_asr06b": true,
+  "b_rc7_build_options_kinds": [
+   "npu",
+   "asr06b"
+  ],
+  "note": "回滚前 rc6 目录内那份 == dev 树那份（修复后代码）；回滚后 rc6 目录 == rc6 zip 内那份（缺陷代码）⇒ 二者的 SHA 可在上列字段中互相核对",
+  "b_dev_eq_rc7": true,
+  "verdict": true
+ },
+ "rolled_back": true,
+ "rolled_back_target": "app/live_caption_app.py",
+ "after_dir_vs_zip_diff": [],
+ "criterion_1_dir_equals_zip": true,
+ "rc6_vs_rc7": {
+  "only_rc6": [
+   "app/live_caption_app.py.rollback_bak"
+  ],
+  "only_rc7": [],
+  "differing": [
+   "README_perftest.txt",
+   "app/live_caption_app.py",
+   "release.json"
+  ]
+ },
+ "criterion_2_diff_count": 3,
+ "criterion_2_exact_set": true,
+ "rc6_vs_rc7_diff_lines": {
+  "README_perftest.txt": [
+   "-  · **zip**：**4.42 GB**（4420655547 字节，实测；打包后写回本文件，压缩级不同会差几 KB）",
+   "+  · **zip**：**4.42 GB**（4420655873 字节，实测；打包后写回本文件，压缩级不同会差几 KB）"
+  ],
+  "app/live_caption_app.py": [
+   "+                            fixed=True, note=note))",
+   "+            continue",
+   "+        if cfg['kind'] == 'asr06b':",
+   "+            # 🔴🔴🔳 **APP-098 一.1 的真缺陷修复**：`kind=='asr06b'`（Qwen3-ASR-0.6B）",
+   "+            #   **既不是 `'ov'` 也不是 `'npu'`** ⇒ 旧代码落进下面的「遍历所有设备」",
+   "+            #   分支 ⇒ **两个引擎档都产出同一条 label**",
+   "+            #   （「Intel GPU（集显） · INT8」×2）⇒",
+   "+            #   ① GUI 靠 **label 反查**（`_cur_asr_opt`）⇒ **取到的永远是第一条**",
+   "+            #      ⇒ 用户选 NPU 那条 ⇒ 实际仍用 GPU 档（**静默错档**）；",
+   "+            #   ② **NPU 档在 GUI 里根本不存在**（NPU 被 `continue` 跳过）。",
+   "+            #   ⇒ 修法：**0.6B 档的设备由引擎表自己写死**（`cfg['device']`），",
+   "+            #      不参与「设备 × 精度」笛卡尔积（0.6B 的 encoder 是 fp16 静态图，",
+   "+            #      NPU/GPU 各自一份 IR ⇒ 本来就是**两条固定的档**）。",
+   "+            #   ⇒ label 用设备名 ⇒ 两档 label 天然不同（GPU 档 vs NPU 档）。",
+   "+            dev = cfg.get('device') or 'NPU'",
+   "+            out.append(dict(id=f'{key}@{dev}',",
+   "+                            label=f'{device_config.device_label(dev)} · {prec}',",
+   "+                            engine=key, device=dev, precision=prec,"
+  ],
+  "release.json": [
+   "-  \"version\": \"1.0-rc6\",",
+   "+  \"version\": \"1.0-rc7\","
+  ]
+ },
+ "criterion_2_readme_version_only": true,
+ "criterion_2_release_version_only": true,
+ "ast_rc6_build_options_handles_asr06b": false,
+ "ast_rc6_build_options_kinds": [
+  "npu"
+ ],
+ "ast_rc7_build_options_handles_asr06b": true,
+ "ast_rc7_build_options_kinds": [
+  "npu",
+  "asr06b"
+ ],
+ "criterion_2_code_is_fix_block": true,
+ "code_diff_plus": 18,
+ "code_diff_minus": 0,
+ "criterion_2_code_fix_is_additive": true,
+ "negative_control_kinds": [
+  "npu"
+ ],
+ "negative_control_would_fail_ast_judge": true,
+ "criterion_3_negative_control_detects": true,
+ "negative_control_readme_lines": 4,
+ "negative_control_readme_would_fail_version_judge": true,
+ "criterion_3b_negative_control_detects": true,
+ "after_negative_control_restore_diff_count": 3,
+ "rc7_restored": true,
+ "backup_removed": true,
+ "verdict": "PASS"
+}

@@ -1,0 +1,594 @@
+{
+ "built_at": "2026-11-10T21:12:55",
+ "version": "1.0-rc6",
+ "correction": "APP-098",
+ "base_pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5",
+ "dst_pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6",
+ "dry_run": false,
+ "actions": [
+  "copy rc5 -> rc6 (real copy, no hardlink)",
+  "overwrite app/*.py from dev tree: 25 files",
+  "add app modules from dev tree: ['package_profile.py']",
+  "drop R2T2 residue: ['tokenizer']",
+  "write package_profile.json (minimvp)",
+  "rewrite README_perftest.txt",
+  "bat: set PYTHONIOENCODING=utf-8 in ['Start_LiveCaption.bat', 'Diagnose.bat']",
+  "update release.json"
+ ],
+ "rc5_fingerprint_before": {
+  "zip_sha256": "1fd56fbd9572b39f62f113717c02dfc4037bde762c2b34e937f691e830066ae5",
+  "zip_bytes": 4424246739,
+  "files": 10503,
+  "bytes": 5936831768,
+  "mtime": "2026-11-10T07:27:49"
+ },
+ "dev_tree_checks": {
+  "package_profile imported": true,
+  "no cuda_q8 engine": true,
+  "no cuda_q4 engine": true,
+  "stdout reconfigure": true
+ },
+ "copied_from_dev": [
+  "asr06b_backend.py",
+  "audio_source.py",
+  "backends.py",
+  "caption_render.py",
+  "clone_collector.py",
+  "device_config.py",
+  "gui_status.py",
+  "live_caption_app.py",
+  "npu_delivery_backend.py",
+  "npu_embeds_backend.py",
+  "offline_reader.py",
+  "offline_reader_gui.py",
+  "seg_stream.py",
+  "segment_encoder_backend.py",
+  "speaker_assets.py",
+  "speaker_tracker.py",
+  "speaker_voice.py",
+  "streaming_asr.py",
+  "time_stretch.py",
+  "translator.py",
+  "tts_engine.py",
+  "tts_engine_patch.py",
+  "tts_service.py",
+  "tts_worker.py",
+  "win_clickthrough.py"
+ ],
+ "added_from_dev": [
+  "package_profile.py"
+ ],
+ "added_from_dev_why": {
+  "package_profile.py": "APP-098：MiniMVP/完整版形态标记（CUDA/克隆音色开关）"
+ },
+ "forbidden_files_in_app": [],
+ "dropped": [
+  "tokenizer"
+ ],
+ "model_identity": {
+  "asr06b-decoder-int8": {
+   "source_model": "Qwen3-ASR-0.6B",
+   "artifact": "ov-dec-06b-embed-mask2-int8sym",
+   "note": "OV IR，mask2 INT8（per-channel 权重），含 attention_mask 端口，无 KV cache，静态长度 512，右对齐",
+   "exists": true,
+   "files": 2,
+   "bytes": 755575166,
+   "file_list": [
+    {
+     "name": "openvino_model.bin",
+     "bytes": 753127748,
+     "sha256": "7fbeb8ef999ddfba0cd5e1bc39e6c84b2112bc73d9434436439328271b07716a"
+    },
+    {
+     "name": "openvino_model.xml",
+     "bytes": 2447418,
+     "sha256": "e4a284ac100161f29ad8dd5f268eb8955dbf22f92f620559071f9b87c535560e"
+    }
+   ]
+  },
+  "asr06b-encoder-fp16": {
+   "source_model": "Qwen3-ASR-0.6B",
+   "artifact": "ov-encoder-06b-fp16-static",
+   "note": "OV IR，FP16 静态形状（[1,128,2400]），iGPU/NPU 共用同一份",
+   "exists": true,
+   "files": 2,
+   "bytes": 373557473,
+   "file_list": [
+    {
+     "name": "ov-encoder-06b-fp16-static.bin",
+     "bytes": 372778452,
+     "sha256": "0b7463d6f952dd64f97c5ff205f12efb04ca89e6e772448289aa06e4941beb89"
+    },
+    {
+     "name": "ov-encoder-06b-fp16-static.xml",
+     "bytes": 779021,
+     "sha256": "62e7665b8186f49aa35056e6aed416ddaefa8f1798611aeba94542b640d0ebb1"
+    }
+   ]
+  },
+  "asr06b-tokenizer": {
+   "source_model": "Qwen3-ASR-0.6B",
+   "artifact": "（HF 目录，未导出 OV）",
+   "note": "tokenizer + feature extractor（transformers 直接读）",
+   "exists": true,
+   "files": 7,
+   "bytes": 4468999,
+   "file_list": [
+    {
+     "name": "chat_template.json",
+     "bytes": 1161,
+     "sha256": "75a8cfca24f00de72d796fbfed6858fc9614ef3dabd8696684cc3bc03a9c58ff"
+    },
+    {
+     "name": "config.json",
+     "bytes": 6193,
+     "sha256": "76d3ae4601ce939830b2517f4a6cadb86cc51316c3900af6b020b051c21a478c"
+    },
+    {
+     "name": "generation_config.json",
+     "bytes": 142,
+     "sha256": "1da527824d81e07118facff437e03f2e24a23311e3bdeb2368973fe77e5f275c"
+    },
+    {
+     "name": "merges.txt",
+     "bytes": 1671853,
+     "sha256": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5"
+    },
+    {
+     "name": "preprocessor_config.json",
+     "bytes": 330,
+     "sha256": "45e120a4eda2c20c5d7f2ea9354e63536bf35e27aa573fb7cdf78017b378770d"
+    },
+    {
+     "name": "tokenizer_config.json",
+     "bytes": 12487,
+     "sha256": "4942d005604266809309cabc9f4e9cb89ce855d59b14681fdc0e1cc62ea26c4c"
+    },
+    {
+     "name": "vocab.json",
+     "bytes": 2776833,
+     "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+    }
+   ]
+  },
+  "embed_tokens_06b_f16.npy": {
+   "source_model": "Qwen3-ASR-0.6B",
+   "artifact": "（权重表，FP16）",
+   "note": "文本 embedding 表 [151936, 1024]（hidden=1024，与 R2T2 的 2048 不同 ⇒ 独立文件名）",
+   "exists": true,
+   "files": 1,
+   "bytes": 311165056,
+   "file_list": [
+    {
+     "name": "embed_tokens_06b_f16.npy",
+     "bytes": 311165056,
+     "sha256": "e8d4448c57626ff9a6396b06f05f0e2c2d9ca4fa2436988f012c171e9f861f2c"
+    }
+   ]
+  },
+  "mt/mt2-int4sym-cw-q": {
+   "source_model": "Hy-MT2-1.8B",
+   "artifact": "mt2-int4sym-cw-q",
+   "note": "OV IR，INT4 对称按通道（INT4-CW），GPU/NPU 通吃",
+   "exists": true,
+   "files": 12,
+   "bytes": 1040491337,
+   "file_list": [
+    {
+     "name": "chat_template.jinja",
+     "bytes": 654,
+     "sha256": "b7491ec0e9c869dfce20f2176758099bf248d979dd05530ede99deb21698acee"
+    },
+    {
+     "name": "config.json",
+     "bytes": 1402,
+     "sha256": "04db81009c0a04c7e89d4186a7e76f1894fc93110724f0001c8ecf35998296b5"
+    },
+    {
+     "name": "generation_config.json",
+     "bytes": 221,
+     "sha256": "0e28667f1cb4c7b880b9223b2d87978f88e79ed7ae037de1021f826c18d4ed6f"
+    },
+    {
+     "name": "openvino_detokenizer.bin",
+     "bytes": 1817980,
+     "sha256": "aed86402f658d488d2d83ac790dd759733639b88755715a6960a0249931d7d23"
+    },
+    {
+     "name": "openvino_detokenizer.xml",
+     "bytes": 9266,
+     "sha256": "c4a750f4d581b96f36a4747966fc75a57657508539a32cd1cd285796c2d49ee9"
+    },
+    {
+     "name": "openvino_model.bin",
+     "bytes": 1021360620,
+     "sha256": "667cd34d77f637cab4893d93a4226af65bc5d6666ce2b550cb3617015a62cce9"
+    },
+    {
+     "name": "openvino_model.xml",
+     "bytes": 2959933,
+     "sha256": "b21f5fa2f3f0392a0e86e5a8a39a3fc9824a9c4f1a403a49e69e0afe00ac00f7"
+    },
+    {
+     "name": "openvino_tokenizer.bin",
+     "bytes": 4620103,
+     "sha256": "9f35d0a39c7f66dfec379a7b9908531bf7d5302383affdda079eefc5f3e38ad1"
+    },
+    {
+     "name": "openvino_tokenizer.xml",
+     "bytes": 27568,
+     "sha256": "cb02ae4683b3ad6d24e130a83cb97202926712a24ce8dced7208ef57d004aba8"
+    },
+    {
+     "name": "special_tokens_map.json",
+     "bytes": 488,
+     "sha256": "bb9f59990034dae326581b9c62471523975417869f78a244b7ae2ce8cbb085eb"
+    },
+    {
+     "name": "tokenizer.json",
+     "bytes": 9527287,
+     "sha256": "b475bbef1b0b2fd57dcb865332b546475bd1ede2deb3bb91bafd0c047a8a530a"
+    },
+    {
+     "name": "tokenizer_config.json",
+     "bytes": 165815,
+     "sha256": "53bd8581b601a8ee9caefeb988207de50b3fc0b733295bdf5ad68dec4cc0b07c"
+    }
+   ]
+  },
+  "qwen3tts": {
+   "source_model": "Qwen3-TTS",
+   "artifact": "（BabelVox 运行时目录）",
+   "note": "Qwen3-TTS 权重 + 声码器；codec_language_id 共 10 种（chinese 2055 / english 2050 / german 2053 / italian 2070 / portuguese 2071 / spanish 2054 / japanese 2058 / korean 2064 / french 2061 / russian 2069）",
+   "exists": true,
+   "files": 60,
+   "bytes": 2670415958,
+   "file_list": [
+    {
+     "name": "int8/code_predictor.bin",
+     "bytes": 78791628,
+     "sha256": "faa9081a3c4851252b478dd6126e7ef7fa5db1ae12c0af3a673cdbe6b4d9b3e9"
+    },
+    {
+     "name": "int8/code_predictor.xml",
+     "bytes": 501339,
+     "sha256": "b50ae422667d6d241830ce2ded60b7052236875da49d1dd6fa680e67f9318384"
+    },
+    {
+     "name": "int8/cp_decode.bin",
+     "bytes": 78791754,
+     "sha256": "7bc57ef8cdd768f5d4eca2a385128b8eb4dd3d62e0659bb491b9888396fc07f0"
+    },
+    {
+     "name": "int8/cp_decode.xml",
+     "bytes": 527980,
+     "sha256": "71384c42fe1b7c5f6db5eb672cbba86e78b15bd0e1672f454d99844d2eeaefc0"
+    },
+    {
+     "name": "int8/cp_prefill.bin",
+     "bytes": 78791628,
+     "sha256": "6bbae79481ec29cc2dda4da233765fc102cbd613581cdf21a8fd728ba31e2f89"
+    },
+    {
+     "name": "int8/cp_prefill.xml",
+     "bytes": 493499,
+     "sha256": "2aaf2b97c01a43290d8b6509604889d907adf72798ebd2869ccc03a5baf5b896"
+    },
+    {
+     "name": "int8/speaker_encoder.bin",
+     "bytes": 8887690,
+     "sha256": "7f0d1b16d4e337ec4f45837a346d09a8b2178c23ef5b65e065df7eb15e2d54cd"
+    },
+    {
+     "name": "int8/speaker_encoder.xml",
+     "bytes": 297919,
+     "sha256": "22ef2113d3e1b1b4d885c8a4d6bf509967cd16c9033a46a19a9d465fda600923"
+    },
+    {
+     "name": "int8/talker.bin",
+     "bytes": 444373680,
+     "sha256": "bdf18144211fb428e145ca171c0f64810c6bdd2c05b081915680b3e5d866e8d9"
+    },
+    {
+     "name": "int8/talker.xml",
+     "bytes": 2951866,
+     "sha256": "79106c2c3540fe9b18cb66f19d2b70d5b771f7c7be9efb32d4c018e276cb82a2"
+    },
+    {
+     "name": "int8/talker_decode.bin",
+     "bytes": 444375018,
+     "sha256": "66b46907e7c8a27a870adf4189f0793559a959b92bd3ed18449ef5a15b70525a"
+    },
+    {
+     "name": "int8/talker_decode.xml",
+     "bytes": 2836039,
+     "sha256": "3471e995345140660c2807513853998145cd62d238d0c6bce0229a92a39171be"
+    },
+    {
+     "name": "int8/talker_prefill.bin",
+     "bytes": 444373680,
+     "sha256": "647d6772a0d0648a5882a38696c675f5a49085f5dccd2c5e4b1c6577f72a7d7b"
+    },
+    {
+     "name": "int8/talker_prefill.xml",
+     "bytes": 2737511,
+     "sha256": "e73619b976078a8e4236a2b6544abdd0b2917435947e24430aa5d9a58b4e8d0b"
+    },
+    {
+     "name": "int8/tokenizer_decoder.bin",
+     "bytes": 114326316,
+     "sha256": "fc7c8649c06c2ff62a53217acf01af296acf9b7062f6d542a49e69ffbfa9cd58"
+    },
+    {
+     "name": "int8/tokenizer_decoder.xml",
+     "bytes": 1233462,
+     "sha256": "f16049bf6cb838d5596a504dd8794e2d82902631a31107e03c4d11279d2745b8"
+    },
+    {
+     "name": "int8/tokenizer_encoder.bin",
+     "bytes": 48294176,
+     "sha256": "b0a52284cd1d9592543e75920e4a2ca1dc86b45a288186ed628253d2f188412a"
+    },
+    {
+     "name": "int8/tokenizer_encoder.xml",
+     "bytes": 1423894,
+     "sha256": "805b3838598f8e44df7f45055b23f9e417026047d319a2daa9f7f9256962cc91"
+    },
+    {
+     "name": "tokenizer/config.json",
+     "bytes": 4494,
+     "sha256": "2e714c787c8edb98b05432685cddb634add2de4d4e645f653d68251ef72ba011"
+    },
+    {
+     "name": "tokenizer/merges.txt",
+     "bytes": 1671839,
+     "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3"
+    },
+    {
+     "name": "tokenizer/tokenizer_config.json",
+     "bytes": 7344,
+     "sha256": "dc3c31c3bdaedd5016382bb3cbe07323026775ad51f5a4fb564505992ae4a670"
+    },
+    {
+     "name": "tokenizer/vocab.json",
+     "bytes": 2776833,
+     "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+    },
+    {
+     "name": "voices/preset_A.wav",
+     "bytes": 192044,
+     "sha256": "e021c255a715d4fd17dd6d19c3092a293d0d35a1e4e7ca8bf67bce6f8c94db53"
+    },
+    {
+     "name": "weights/codec_embedding.npy",
+     "bytes": 12583040,
+     "sha256": "47fa9e30f98b1528fc9b332d314f22a32fa33e187509a4d3537f8b2c31199e39"
+    },
+    {
+     "name": "weights/config.json",
+     "bytes": 597,
+     "sha256": "10af7006eda91d5cbcab8dc8fcdb96d8433f3462e10108e286a6bf623cad7ea9"
+    },
+    {
+     "name": "weights/cp_embedding_0.npy",
+     "bytes": 8388736,
+     "sha256": "2cf4b5d6f6fca977657bc82634eea275cd072036a6a16484febd41b5445abff1"
+    },
+    {
+     "name": "weights/cp_embedding_1.npy",
+     "bytes": 8388736,
+     "sha256": "c8655ecd642f17d04a85ea37c2665205a8666843925227b25dc8c8bceb8015f5"
+    },
+    {
+     "name": "weights/cp_embedding_10.npy",
+     "bytes": 8388736,
+     "sha256": "bf17275629b464a4a38826beeb79b99e0e58cc02c530da2e572b9b7d9972fb2d"
+    },
+    {
+     "name": "weights/cp_embedding_11.npy",
+     "bytes": 8388736,
+     "sha256": "dee4af40f34626a4951fba2b894120c8cf8293024ae068d1f2579f356c6e2284"
+    },
+    {
+     "name": "weights/cp_embedding_12.npy",
+     "bytes": 8388736,
+     "sha256": "e307b70fbaddc6e7e48259b4e8c9417f24b155be9281205f38bbf40c64359951"
+    },
+    {
+     "name": "weights/cp_embedding_13.npy",
+     "bytes": 8388736,
+     "sha256": "cc15bfc4290be77523f8f14c78b9b1710042b5d078291ee87038dfb7ecb3f185"
+    },
+    {
+     "name": "weights/cp_embedding_14.npy",
+     "bytes": 8388736,
+     "sha256": "aa0de98365775e1cb968514595ff7e23936bea21c2bda6e5bab7e7052cdf97ba"
+    },
+    {
+     "name": "weights/cp_embedding_2.npy",
+     "bytes": 8388736,
+     "sha256": "5436624853b3091bc1b88cf37a4d60af46346c508237d72e597bed561a5b2138"
+    },
+    {
+     "name": "weights/cp_embedding_3.npy",
+     "bytes": 8388736,
+     "sha256": "1041b78ea5158c96cda4aae45bd21707a6fe8c92e6831715075d70d7b5b8e77a"
+    },
+    {
+     "name": "weights/cp_embedding_4.npy",
+     "bytes": 8388736,
+     "sha256": "17af8770454ab26ca82f092d0d5a634680e4d14412d327fb8b6f94a57b256800"
+    },
+    {
+     "name": "weights/cp_embedding_5.npy",
+     "bytes": 8388736,
+     "sha256": "b9abbf163b50ba0207e2196772c67b2e1025cf7f4fbe378c6a44123869253ad9"
+    },
+    {
+     "name": "weights/cp_embedding_6.npy",
+     "bytes": 8388736,
+     "sha256": "1fb06414cb7d4edcd73142e79cbb4bd46f918517e5812b73345ade9535c6eafb"
+    },
+    {
+     "name": "weights/cp_embedding_7.npy",
+     "bytes": 8388736,
+     "sha256": "08b8d7bd125d75ffa42f515153e66ade42cb16c2eea6ebe1935a2ac2509cbad0"
+    },
+    {
+     "name": "weights/cp_embedding_8.npy",
+     "bytes": 8388736,
+     "sha256": "a2cf331bb3e2f2c0d44c91c55af045b9c975199331e4566a373b883ce04e9964"
+    },
+    {
+     "name": "weights/cp_embedding_9.npy",
+     "bytes": 8388736,
+     "sha256": "389422edef8c0b6dbf6cdb48359a0274b11984c04668c004810866784dab2942"
+    },
+    {
+     "name": "weights/cp_lm_head_0_weight.npy",
+     "bytes": 8388736,
+     "sha256": "10bb9b553c42009759d63a7749a9ffbbd923fc86d78307f088f7af3d6bc71f29"
+    },
+    {
+     "name": "weights/cp_lm_head_10_weight.npy",
+     "bytes": 8388736,
+     "sha256": "607560e0abf9e06f3b61a21dcfe07d15eadeb64a73e22e620dc4a60e9bf26eae"
+    },
+    {
+     "name": "weights/cp_lm_head_11_weight.npy",
+     "bytes": 8388736,
+     "sha256": "499be2b7e6fc4811616196ee85c794f81233bcb7a2623dddc86e77d01f80d2a3"
+    },
+    {
+     "name": "weights/cp_lm_head_12_weight.npy",
+     "bytes": 8388736,
+     "sha256": "5617bf5cf470b2c07256789656d78f55bcc37cec12d0822e6ff40df117cfcacd"
+    },
+    {
+     "name": "weights/cp_lm_head_13_weight.npy",
+     "bytes": 8388736,
+     "sha256": "66de1d223f7551c26d3f7892e3bc7c9cf2ea2d8f45a00e410f8e40c2164875fd"
+    },
+    {
+     "name": "weights/cp_lm_head_14_weight.npy",
+     "bytes": 8388736,
+     "sha256": "49701ef6848f63fe998bb6951fe86bdf2c49075fb1b67f516af212de45b4d8a5"
+    },
+    {
+     "name": "weights/cp_lm_head_1_weight.npy",
+     "bytes": 8388736,
+     "sha256": "241588f9fc3dd40cc7d7f0e0e85131b3d112e611119dfc3573a71738fdd5cfb4"
+    },
+    {
+     "name": "weights/cp_lm_head_2_weight.npy",
+     "bytes": 8388736,
+     "sha256": "96e6003433318333f26f92787d382010fd26638b9f72f5cd80d8d4fda0511689"
+    },
+    {
+     "name": "weights/cp_lm_head_3_weight.npy",
+     "bytes": 8388736,
+     "sha256": "85d87eda663cf621fa8f7b30dcf2b3c621bf8785dad32c43eb7c19c7bc0f15e1"
+    },
+    {
+     "name": "weights/cp_lm_head_4_weight.npy",
+     "bytes": 8388736,
+     "sha256": "9af431ccc21c47e9a9f4d6b6c74168008878249364ad1c213f9a7b407fa6d11f"
+    },
+    {
+     "name": "weights/cp_lm_head_5_weight.npy",
+     "bytes": 8388736,
+     "sha256": "7e10cbab1aa24e8f629d3d5d61fa89349ccf7ce45c911b7600b2334a8c26abb5"
+    },
+    {
+     "name": "weights/cp_lm_head_6_weight.npy",
+     "bytes": 8388736,
+     "sha256": "3394097718eada11ef25aec8c7290efebb196fa1380315adae08648dfb2d6100"
+    },
+    {
+     "name": "weights/cp_lm_head_7_weight.npy",
+     "bytes": 8388736,
+     "sha256": "097d7b4165c581a3f11d8dfc97c018b84926d6289cdc049a34830b02b5c261ad"
+    },
+    {
+     "name": "weights/cp_lm_head_8_weight.npy",
+     "bytes": 8388736,
+     "sha256": "4e16d10b2c7c03f0646db639be854d65e3deaccda7d0c2c5c9b4532fa84a7fcb"
+    },
+    {
+     "name": "weights/cp_lm_head_9_weight.npy",
+     "bytes": 8388736,
+     "sha256": "ca042adc8718824cd5823afb040496018b5cf21ecff237bc834e1a8e4d5290ba"
+    },
+    {
+     "name": "weights/text_embedding.npy",
+     "bytes": 622329984,
+     "sha256": "6fab9de0a8bc144aa3efefdacb5e8292b8499a9ae1d60fcee240bac528b7441e"
+    },
+    {
+     "name": "weights/text_proj_fc1_bias.npy",
+     "bytes": 8320,
+     "sha256": "2ca292516e9574fa67e0174a49770051156246bb0679096f0514286091eea7c3"
+    },
+    {
+     "name": "weights/text_proj_fc1_weight.npy",
+     "bytes": 16777344,
+     "sha256": "94b62d00b306c5db843ac86dc135354889a2ce40d7adce79ae23f63c3d6acf19"
+    },
+    {
+     "name": "weights/text_proj_fc2_bias.npy",
+     "bytes": 4224,
+     "sha256": "0725b7f7d0318f430723177d046eaf3b08c7a65d4a4a6dd264d61e574e66ff19"
+    },
+    {
+     "name": "weights/text_proj_fc2_weight.npy",
+     "bytes": 8388736,
+     "sha256": "d6d31d3bca45fee1d05612f3c9eb26e0c34587be52d2c34c208c79e6656f15a6"
+    }
+   ]
+  }
+ },
+ "asr_bin_sha": {
+  "decoder": "7fbeb8ef999ddfba0cd5e1bc39e6c84b2112bc73d9434436439328271b07716a",
+  "encoder": "0b7463d6f952dd64f97c5ff205f12efb04ca89e6e772448289aa06e4941beb89"
+ },
+ "asr_bin_sha_expected_prefix": {
+  "decoder": "7FBEB8EF999DDFBA",
+  "encoder": "0B7463D6F952DD64"
+ },
+ "asr_bin_sha_match": {
+  "decoder": true,
+  "encoder": true
+ },
+ "asr_bin_found": {
+  "decoder": true,
+  "encoder": true
+ },
+ "readme": {
+  "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6\\README_perftest.txt",
+  "bytes": 5542,
+  "n_entries": 10466,
+  "pkg_bytes": 5920995330,
+  "pkg_gb": 5.921,
+  "pkg_gib": 5.514,
+  "model_bytes": 5155673989,
+  "model_files": 84,
+  "model_identity_lines": 6
+ },
+ "bat_edits": [
+  "Start_LiveCaption.bat",
+  "Diagnose.bat"
+ ],
+ "rc6": {
+  "files": 10496,
+  "bytes": 5921077933,
+  "gib": 5.514,
+  "mtime": "2026-11-10T21:13:28"
+ },
+ "rc5_fingerprint_after": {
+  "zip_sha256": "1fd56fbd9572b39f62f113717c02dfc4037bde762c2b34e937f691e830066ae5",
+  "files": 10503,
+  "bytes": 5936831768
+ },
+ "rc5_unchanged": true,
+ "build_s": 38.9
+}

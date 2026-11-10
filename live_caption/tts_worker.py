@@ -62,6 +62,21 @@ import time
 from collections import deque
 from typing import Optional
 
+# 🔴🔴🔳 **APP-098 二.1：worker 入口也强制 UTF-8**。
+#   **为什么 worker 也要做**：TTS worker 是**独立子进程**
+#   （`pythonw.exe` ⇒ 连控制台都没有 ⇒ stdout 是**管道/文件**）
+#   ⇒ 英文 Windows 上同样是 cp1252 ⇒ worker 往管道写中文日志会
+#   `UnicodeEncodeError` ⇒ **worker 直接崩**（而主进程只看到「TTS worker 退出」）。
+#   ⚠️ 根因同上：`PYTHONIOENCODING` 是**启动时**读的 ⇒ 必须在**进程内** reconfigure。
+#   ⚠️ `errors='replace'`：不可编码字符只丢字符、不抛异常。
+for _stream_name in ('stdout', 'stderr'):
+    try:
+        _stream = getattr(sys, _stream_name, None)
+        if _stream is not None and hasattr(_stream, 'reconfigure'):
+            _stream.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 SR = 22050
 CHUNK_SAMPLES = 1024          # 音频回调每次取多少采样
 

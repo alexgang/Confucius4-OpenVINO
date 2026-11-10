@@ -129,7 +129,7 @@ _LEGACY_INT4 = None
 #   mt2-int8sym-cw-q  GPU.0 37.5 tok/s / TTFT 44 ms
 #                     NPU   29.6 tok/s / TTFT 300 ms
 _MT_CANDIDATES = [
-    ('gpu_int8cw', 'Intel GPU · INT8-CW（默认）', 'GPU.0', 'mt2-int8sym-cw-q',
+    ('gpu_int8cw', 'Intel GPU · INT8-CW', 'GPU.0', 'mt2-int8sym-cw-q',
      'Hy-MT2 INT8_SYM 按通道，1.7 GB。**默认**：37.5 tok/s，TTFT 44 ms，'
      '质量与 BF16 统计等价（ΔchrF ≤0.32）；显存 +0.75 GB', True),
     ('gpu_int4cw', 'Intel GPU · INT4-CW', 'GPU.0', 'mt2-int4sym-cw-q',
@@ -140,6 +140,50 @@ _MT_CANDIDATES = [
     ('npu_int4cw', 'Intel NPU · INT4-CW', 'NPU', 'mt2-int4sym-cw-q',
      'NPU 备用：44.0 tok/s、零乱码，约 993 MB，但质量显著低于 INT8（ΔchrF++ −1.5）', True),
 ]
+
+# 🔴🔴🔳 **APP-098 一.2：「（默认）」标记必须跟着**实际默认模型**走**。
+#   **真缺陷（rc5 实测）**：上面表里 `gpu_int8cw` 的 label **写死**「（默认）」，
+#   但 MiniMVP 包**只带 INT4-CW** ⇒ 实际默认是 INT4（`DEFAULT_MODEL` 回落链）
+#   ⇒ `--check` 打出「Intel GPU · INT8-CW（默认）…（缺模型）」——
+#   ⇒ **既标着「默认」又标着「缺模型」** ⇒ 自相矛盾。
+#   ⇒ 修法：**静态表里不写「（默认）」**，改为**按 `DEFAULT_MODEL` 的量化动态加**。
+_DEFAULT_MARK = '（默认）'
+
+
+def _default_quant_tag() -> str:
+    """实际默认模型的量化标记（'int8' / 'int4' / ''）。"""
+    try:
+        base = os.path.basename(os.path.normpath(str(DEFAULT_MODEL))).lower()
+    except Exception:
+        base = ''
+    if 'int4' in base:
+        return 'int4'
+    if 'int8' in base:
+        return 'int8'
+    return ''
+
+
+#: 🔴🔴🔳 **APP-098 一.2：候选 label 表**（**一次性算好**，两处共用）。
+#:
+#: 🔴 **为什么要有这张表**（一次踩到的坑）：
+#:   旧实现用「**有状态的全局开关**」决定谁带「（默认）」标记
+#:   ⇒ `MT_ENGINES` 先算（吃掉标记）⇒ `MT_ALL_CANDIDATES` 再算时**标记没了**
+#:   ⇒ **GUI 下拉有「（默认）」、`--check` 里没有** ⇒ 两处显示**不一致**。
+#:   ⇒ 现在：**启动时算一次** `{候选名: label}` ⇒ 两处**必然一致**。
+#:
+#: 🔴 **只标一个**（GPU 那档）：同一个模型目录被 GPU/NPU 两档共用
+#: ⇒ 若两档都标「（默认）」，用户会以为「有两个默认」⇒ **只标第一档**。
+_MT_CANDIDATE_LABELS = {}
+_def_tag = _default_quant_tag()
+_default_marked = False
+for _k, _label, _dev, _name, _note, _bundled in _MT_CANDIDATES:
+    _lab = _label
+    if (_def_tag and _def_tag in _name.lower()
+            and not _default_marked and _DEFAULT_MARK not in _label):
+        _lab = _label + _DEFAULT_MARK
+        _default_marked = True
+    _MT_CANDIDATE_LABELS[_k] = _lab
+del _k, _label, _dev, _name, _note, _bundled, _lab, _default_marked
 
 def _auto_model_label() -> str:
     """🔴🔴🔳 APP-069⑤ 清理项 2：`auto` 的 label **按实际模型目录动态生成**。
@@ -171,7 +215,8 @@ MT_ENGINES['auto'] = dict(
 for _k, _label, _dev, _name, _note, _bundled in _MT_CANDIDATES:
     _m = _cw_model(_name)
     if os.path.isdir(_m):
-        MT_ENGINES[_k] = dict(label=_label, device=_dev, model=_m, note=_note,
+        MT_ENGINES[_k] = dict(label=_MT_CANDIDATE_LABELS.get(_k, _label),
+                               device=_dev, model=_m, note=_note,
                                bundled=_bundled)
 MT_DEFAULT = 'auto'
 
@@ -181,11 +226,43 @@ MT_DEFAULT = 'auto'
 # GUI 下拉只用 MT_ENGINES（本机真实存在的那些）；诊断则需要把缺的也列出来。
 # bundled=False 的项表示「**本包不附带**」（不是客户机缺文件），--check 里
 # 要区别于「本机缺模型」报出来 —— 否则客户会误以为安装坏了。
+#
+# 🔴🔴🔳 **APP-098 一.2：`bundled` 必须由「包内实际有什么」决定，不能写死 True**
+#   **真缺陷（rc5 实测）**：`bundled` 原来在 `_MT_CANDIDATES` 里**写死 True** ⇒
+#   MiniMVP 包**只带 INT4-CW**（`models/mt/` 下只有 `mt2-int4sym-cw-q`），
+#   但 `--check` 仍按「本包附带 INT8-CW」来报 ⇒ 打出
+#   「[缺 ] Intel GPU · INT8-CW（默认）… （缺模型）」——
+#   ⇒ **既说「本包附带」又说「缺模型」** ⇒ 自相矛盾，且用户会以为装坏了。
+#   ⇒ **修法**：`bundled` = 「**本包的 models/mt/ 下真有这个量化目录**」
+#     （不是开发机的 hy_bench/ov —— 那是开发机产物，不是包内容）。
+#   ⇒ 于是：
+#     * MiniMVP（只有 INT4-CW）⇒ INT8-CW 报 `[ — ]（本包不附带该量化版本）`
+#       ⇒ **不再是「缺模型」**；
+#     * 完整版包（INT4+INT8 都有）⇒ 两档都 `[ OK ]`。
+#   🔴 **判据来源**：包内目录（`MODELS/mt/<name>`）—— 与「包附带什么」同一口径。
 MT_ALL_CANDIDATES = OrderedDict()
+
+
+def _is_bundled_q(name: str) -> bool:
+    """该量化版本是否**随本包附带**（判据：包内 ``models/mt/<name>`` 存在）。
+
+    🔴 **不看开发机目录**（`hy_bench/ov`）⇒ 那是开发机产物，**不是包内容**。
+    ⚠️ 开发树上 `models/mt/` 不存在 ⇒ 全部 False ⇒ `--check` 会说
+       「本包不附带该量化版本」⇒ 对开发机而言这是**如实**的（开发树不是包）。
+    """
+    try:
+        return os.path.isdir(os.path.join(MODELS, 'mt', name))
+    except Exception:
+        return False
+
+
 for _k, _label, _dev, _name, _note, _bundled in _MT_CANDIDATES:
     MT_ALL_CANDIDATES[_k] = dict(
-        label=_label, device=_dev, model=_cw_model(_name), note=_note,
-        available=os.path.isdir(_cw_model(_name)), bundled=_bundled)
+        label=_MT_CANDIDATE_LABELS.get(_k, _label), device=_dev,
+        model=_cw_model(_name), note=_note,
+        available=os.path.isdir(_cw_model(_name)),
+        # 🔴 APP-098 一.2：**按包内实际内容**判定（不再写死 True）。
+        bundled=_is_bundled_q(_name))
 MT_ALL_CANDIDATES['auto'] = dict(
     label=_AUTO_LABEL, device=None, model=DEFAULT_MODEL, note='',
     available=os.path.isdir(DEFAULT_MODEL), bundled=True)

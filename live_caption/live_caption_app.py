@@ -1,4 +1,4 @@
-r"""live_caption_app.py — Confucius4-R2T2 实时字幕（多后端对比测试应用）
+r"""live_caption_app.py — Confucius4 实时字幕（多后端对比测试应用）
 
 采集音频（16 kHz 单声道），流式识别，并把字幕实时显示在屏幕上。
 可在界面里切换推理后端：
@@ -7,7 +7,15 @@ r"""live_caption_app.py — Confucius4-R2T2 实时字幕（多后端对比测试
   Intel GPU · INT4     集显，编码器与解码器都是 INT4
   Intel NPU · INT8     编码器与解码器都在 NPU（inputs_embeds 版解码器，INT8_SYM）
   Intel NPU · INT4     同上，解码器 INT4（AWQ + 20% INT8 混合，实验配置，WER 显著变差）
-  NVIDIA GPU · CUDA    audio.cpp + GGUF（Q8_0 / Q4_K），独显
+
+🔴🔴🔳 **APP-098 一.1：没有 NVIDIA/CUDA 后端了**
+  （`audio.cpp + GGUF` 那两档与「CUDA TTS」**已全部移除** ⇒
+  三个后端只剩 **Intel GPU / Intel NPU**。）
+
+🔴🔴🔳 **APP-096 / APP-098「共用部分只改一处」**：
+  本文件是 **MiniMVP 与完整版共用的唯一一份** ⇒ 两者的差别**只由**
+  ① 包内 `package_profile.json`（产品形态：CUDA / 克隆音色开关）与
+  ② **模型是否就位**（0.6B vs R2T2 的 ASR 引擎族）决定 ⇒ **代码只有一份**。
 
 ## 音频输入（三种，见 audio_source.py）
 
@@ -20,8 +28,7 @@ r"""live_caption_app.py — Confucius4-R2T2 实时字幕（多后端对比测试
 OpenVINO 后端复用仓库里的流式实现（streaming_asr + seg_stream，640 ms 分块，
 LSP 前缀回滚，自适应生成预算）；分段规则与 mic_asr_app.py 相同：
 段长 ≥12 s 且最近 3 s 内出现 ≥300 ms 静音就切段，最长 20 s 硬切。
-CUDA 后端每段起一个 audiocpp_cli 流式进程（stdin 喂 PCM，stdout 读 partial_text），
-并提前预热下一段要用的进程，切段时无需等模型加载。
+（🔴 APP-098：**CUDA（audio.cpp）后端已移除** ⇒ 不再有 audiocpp_cli 子进程。）
 
 用法:
   python live_caption_app.py                         # GUI
@@ -56,6 +63,29 @@ from typing import Optional
 os.environ.setdefault('USE_TORCH', '0')
 os.environ.setdefault('PYTHONUTF8', '1')
 os.environ.setdefault('PYTHONIOENCODING', 'utf-8')
+
+# 🔴🔴🔳 **APP-098 二.1：入口处把 stdout/stderr 强制成 UTF-8**
+#   **真缺陷（B 机实测）**：英文 Windows（cp1252）上把输出**重定向到文件**时，
+#   打印中文会报 `UnicodeEncodeError: 'charmap' codec can't encode character`。
+#   🔴 **根因（不是「编码没设」）**：
+#      `PYTHONIOENCODING` / `PYTHONUTF8` 是**解释器启动时**读的
+#      ⇒ 在 Python 代码里 `os.environ.setdefault('PYTHONIOENCODING', 'utf-8')`
+#      **对当前进程已经太晚** ⇒ `sys.stdout` 的编码**早已**按 cp1252 定型
+#      ⇒ 上一行那个 setdefault **只对子进程有效**，**救不了本进程**。
+#   ⇒ **正解**：在入口处**显式 reconfigure** 已建好的流对象。
+#   ⚠️ `errors='replace'`：万一还有**不可编码**的字符（如某些 emoji），
+#      也**只丢字符、不抛异常** ⇒ 诊断输出不会因为一个字符就整个失败。
+#   ⚠️ 必须**在任何 print 之前**做 ⇒ 放在 import 之后、模块级代码之前。
+#   🔴 **reconfigure 只在有 `reconfigure` 的流对象上存在**
+#      （Python 3.7+ 的 TextIOWrapper 有；被替换成别的东西时没有）⇒ 先 hasattr 检查。
+for _stream_name in ('stdout', 'stderr'):
+    try:
+        _stream = getattr(sys, _stream_name, None)
+        if _stream is not None and hasattr(_stream, 'reconfigure'):
+            _stream.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        # 🔴 绝不让「编码设置失败」变成启动失败。
+        pass
 
 # 🔴🔴🔴 APP-043：**在任何 numpy / OpenVINO import 之前**限线程。
 #   依据（ASR-029 通知 §5 / ASR-026 实测）：
@@ -106,6 +136,22 @@ from translator import (MT_DEFAULT, MT_ALL_CANDIDATES, MT_ENGINES, TARGETS,
                         prewarm_transformers, split_sentences)
 import device_config
 import audio_source
+# 🔴🔴🔳 **APP-098 一.1／一.3**：**包形态标记**（MiniMVP / 完整版）。
+#   CUDA 后端与克隆音色的**开关**在这里**只写一份** ⇒ MiniMVP 与 v2.5
+#   **共用同一份代码**（「共用的部分只改一处」⇒ 差别只由包内标记驱动）。
+import package_profile
+
+#: 🔴🔴🔳 **APP-098：产品名按包形态**（同一份代码 ⇒ 两个包各显示各的名字）。
+#:   MiniMVP ⇒ 「实时字幕 MiniMVP v1.0」；完整版 ⇒ 「实时字幕 v2.5」。
+#:   ⚠️ 旧实现里窗口标题**写死**「实时字幕 MiniMVP v1.0」⇒ 完整版包也显示
+#:      MiniMVP（= **产品名写错**）⇒ 现在按包形态取。
+if package_profile.is_minimvp():
+    _PRODUCT_NAME = 'Confucius4 实时字幕 MiniMVP'
+    _WINDOW_TITLE = '实时字幕 MiniMVP v1.0'
+else:
+    _PRODUCT_NAME = 'Confucius4 实时字幕'
+    _WINDOW_TITLE = '实时字幕 v2.5'
+
 from audio_source import (BLOCK_MS, SR, default_output_device_id,
                           list_input_devices, list_output_devices, make_source,
                           resample_to_16k, soundcard_available)
@@ -122,10 +168,21 @@ import clone_collector
 # 🔴🔴🔴 APP-039/040：说话人旁路（ASR-029 接口桥接）+ 说话人音色表
 import speaker_tracker
 import speaker_voice
-# 🔴🔴🔴 APP-086(2)：克隆**策略层**（a–f）——**复用上面那份旁路与音色表**
-#   ⇒ 全程**只有一份** `SpeakerBridge` / `SpeakerVoiceTable`
-#   ⇒ **不可能双旁路**（§159 的接线口径隐患就此消除）。
-import clone_voice
+# 🔴🔴🔳 **APP-098 一.3：克隆策略层按包形态**导入。
+#   ⚠️ **为什么改成条件导入**（MiniMVP 不带 `clone_voice.py`）：
+#      旧实现是**模块级无条件 import** ⇒ MiniMVP 包里没有这个文件 ⇒
+#      **一 import 就 ModuleNotFoundError** ⇒ 整个 App 起不来。
+#      ⇒ 现在：**只有提供克隆音色的包**才 import 它
+#      （`package_profile.allow_clone_voice()` ⇒ 完整版 True / MiniMVP False）。
+#   🔴 **判定用「包形态」而不是「文件在不在」**：后者会在「文件漏拷」时
+#      静默降级（用户选了克隆却没克隆 ⇒ 难查）。这里**缺文件就报错**。
+if package_profile.allow_clone_voice():
+    # 🔴🔴🔴 APP-086(2)：克隆**策略层**（a–f）——**复用上面那份旁路与音色表**
+    #   ⇒ 全程**只有一份** `SpeakerBridge` / `SpeakerVoiceTable`
+    #   ⇒ **不可能双旁路**（§159 的接线口径隐患就此消除）。
+    import clone_voice
+else:
+    clone_voice = None
 # 🔴🔴 APP-048：**分区状态条**（ASR / 翻译 / 语音 各自的紧凑状态行）
 #   ⇒ 纯逻辑层**不依赖 tkinter** ⇒ 可离线验收（不起窗口、不占 GPU）。
 import gui_status
@@ -396,6 +453,16 @@ _MODEL_ALIASES = {
     'c089_int4/R4': ['decoder-npu-int4'],
     # NPU 用的 embedding 表（开发版在 decoder 目录里，包内提到了 models/ 根）
     'qwen3-lm-int8sym-cleanie-ov/embed_tokens_f16.npy': ['embed_tokens_f16.npy'],
+    # 🔴🔴🔳 **APP-096：0.6B（MiniMVP）的三样**
+    #   ⚠️ **别名不冲突**（键是逻辑名）⇒ 两套可以并存于同一张表。
+    #   0.6B 编码器（fp16 static，静态形状 ⇒ NPU 可直接编，不需要冻结）
+    'ov-encoder-06b-fp16-static': ['asr06b-encoder-fp16'],
+    # 0.6B 解码器（mask2 INT8，带 attention_mask 端口，**无 KV cache**）
+    'ov-dec-06b-embed-mask2-int8sym': ['asr06b-decoder-int8'],
+    # 0.6B 的 embedding 表（hidden 1024，与 R2T2 的 2048 不同 ⇒ 独立文件名）
+    'embed_tokens_06b_f16.npy': ['embed_tokens_06b_f16.npy'],
+    # 0.6B 的 tokenizer / feature extractor 来源目录
+    'asr06b-tokenizer': ['asr06b-tokenizer'],
 }
 
 
@@ -484,6 +551,17 @@ def _cache(name):
         return os.path.join(APP_DIR, name)
 
 
+# 🔴🔴🔳 **APP-098 一.1：ASR 只保留 Intel GPU / Intel NPU 两档**
+#   ⇒ **删掉 `cuda_q8` / `cuda_q4` 两档**（audio.cpp + GGUF 那条路）。
+#   理由（reviewer 原话）：「识别、翻译、语音三个后端都去掉所有 NVIDIA/CUDA
+#   选项，包括 audio.cpp CUDA、CUDA TTS 等。」
+#   ⚠️ 这两档**从来就不能在客户包用**（audio.cpp 可执行文件与 GGUF 模型
+#      **不随包分发**，见 APP-062 ③ D3）⇒ 之前只是「列出来 + 说明缺资产」，
+#      现在**直接不存在** ⇒ 用户在 GUI/CLI/`--check` 里都看不到 NVIDIA 后端。
+#   🔴 **对开发机的影响**：开发树原本靠这两档做「对照基准」。
+#      ⇒ 基准能力改由 `package_profile.allow_cuda()` 之外的方式保留：
+#      **开发树默认也不再提供 CUDA 档**（APP-098 明确要求「三个后端都去掉」），
+#      实测对照基准用 EXT 侧与影子包，不在本 App 的下拉里。
 ENGINES = {
     'gpu_int8': dict(label='Intel GPU · INT8', kind='ov', device='GPU.0',
                      enc='ov-encoder-segment-reviewer-int8asym', dec='ov-int8-past',
@@ -497,10 +575,35 @@ ENGINES = {
     'npu_int4': dict(label='Intel NPU · INT4（实验）', kind='npu',
                      enc='ov-encoder-segment-reviewer', dec=r'c089_int4\R4',
                      note='实验配置：更快，但 61 分钟 WER 比 INT8 显著差约 2 个百分点'),
-    'cuda_q8': dict(label='NVIDIA GPU · CUDA Q8_0', kind='cuda',
-                    gguf='r2t2-q8_0.gguf', note='audio.cpp + GGUF Q8_0，RTX 独显'),
-    'cuda_q4': dict(label='NVIDIA GPU · CUDA Q4_K', kind='cuda',
-                    gguf='r2t2-q4_k.gguf', note='audio.cpp + GGUF Q4_K，RTX 独显'),
+}
+
+# 🔴🔴🔳 **APP-096：MiniMVP 的 ASR = Qwen3-ASR-0.6B（mask2 INT8）**
+#
+#   🔴🔴🔳 **为什么这段在开发树里（而不是在 MiniMVP 的构建脚本里打补丁）**：
+#   reviewer 原话：「**MiniMVP 和 v2.5 共用的部分只改一处**。」
+#   ⇒ 旧做法（rc5 的 `_app310`）是把 0.6B 的引擎表/别名/接线**用字符串替换
+#     打进 MiniMVP 的 app/live_caption_app.py** ⇒ **代码在两处**（dev 树一份、
+#     MiniMVP 包一份）⇒ 以后改引擎表要**改两处** ⇒ 必然漏。
+#   ⇒ 现在：**0.6B 的引擎定义就放在 dev 树这一处**，
+#     MiniMVP 包**用同一份文件**（靠 `package_profile` + IR 是否就位来选档）。
+#
+#   🔴 **两档如何共存**：完整版包带 **R2T2** 的 IR，MiniMVP 包带 **0.6B** 的 IR
+#   ⇒ **两套引擎表都留在 dev 树**，`build_asr_options()` 靠既有的
+#   `_asr_ir_ready()`（IR 在不在本机）**自动只列出就位的那一套**
+#   ⇒ 用户在 GUI 里看到的永远是「本机能跑的那档」⇒ 不用维护两份代码。
+#
+#   ⚠️ 0.6B 的两档**共用同一份 IR**（只是编译目标设备不同）⇒ 只放一份。
+#   ⚠️ 0.6B decoder **无 KV cache**、静态 512、右对齐
+#   ⇒ 与 R2T2 的两套后端**接口相似但语义不同** ⇒ 独立实现（`asr06b_backend.py`）。
+ENGINES_ASR06B = {
+    'gpu_int8': dict(label='Intel GPU · INT8', kind='asr06b', device='GPU.0',
+                     enc='ov-encoder-06b-fp16-static',
+                     dec='ov-dec-06b-embed-mask2-int8sym',
+                     note='集显：Qwen3-ASR-0.6B（编码器 FP16 + 解码器 INT8 mask2）'),
+    'npu_int8': dict(label='Intel NPU · INT8', kind='asr06b', device='NPU',
+                     enc='ov-encoder-06b-fp16-static',
+                     dec='ov-dec-06b-embed-mask2-int8sym',
+                     note='编码器与解码器都在 NPU，不占 GPU（Qwen3-ASR-0.6B INT8 mask2）'),
 }
 
 
@@ -515,7 +618,11 @@ ENGINES = {
 ASR_PRECISION = {
     'gpu_int8': 'INT8', 'gpu_int4': 'INT4',
     'npu_int8': 'INT8', 'npu_int4': 'INT4',
-    'cuda_q8': 'Q8_0', 'cuda_q4': 'Q4_K',
+}
+#: 🔴 APP-096：0.6B 只有 INT8 两档（iGPU / NPU）⇒ **无 INT4 ASR 档**
+ASR_PRECISION_ASR06B = {
+    'gpu_int8': 'INT8',
+    'npu_int8': 'INT8',
 }
 MT_PRECISION = {
     'gpu_int8cw': 'INT8-CW', 'gpu_int4cw': 'INT4-CW',
@@ -537,6 +644,46 @@ def _asr_ir_ready(cfg):
                 and os.path.isdir(_model_path(cfg['dec'])))
     except Exception:
         return False
+
+
+def _asr06b_models_present() -> bool:
+    """本机/本包是否带 **0.6B（MiniMVP）** 的 ASR 模型。
+
+    🔴🔴🔳 **判据 = 0.6B 的三件套是否就位**（编码器 IR + 解码器 IR + embedding 表）
+       ⇒ **不靠「包名/标记」判断** ⇒ 同一份代码在开发树、完整版包、MiniMVP 包里
+       **自动各选各的**（开发树与完整版有 R2T2 的 IR ⇒ 选 R2T2；
+       MiniMVP 包只有 0.6B 的 IR ⇒ 选 0.6B）。
+    🔴 **为什么不用 `package_profile` 判断**：包形态标记是**产品意图**，
+       而「模型在不在」是**物理事实** ⇒ 后者更可靠（标记写错也不会选错引擎）。
+       ⇒ 两者**不冲突**：标记管「CUDA/克隆」这类**策略**，模型就位管**引擎族**。
+    """
+    try:
+        enc = _model_path('ov-encoder-06b-fp16-static')
+        dec = _model_path('ov-dec-06b-embed-mask2-int8sym')
+        npy = _model_path('embed_tokens_06b_f16.npy')
+        return (os.path.isdir(enc)
+                and os.path.exists(os.path.join(enc, 'ov-encoder-06b-fp16-static.xml'))
+                and os.path.isdir(dec)
+                and os.path.exists(os.path.join(dec, 'openvino_model.xml'))
+                and os.path.exists(npy))
+    except Exception:
+        return False
+
+
+def active_asr_engines():
+    """**当前生效**的 ASR 引擎表（0.6B 或 R2T2）。
+
+    🔴🔴🔳 **APP-096 + APP-098「共用部分只改一处」**：
+    两套引擎表**都放在 dev 树**（`ENGINES_ASR06B` 与 `ENGINES`）⇒
+    **代码只有一份**；此处按「0.6B 模型是否就位」**选一套**。
+    ⇒ 完整版包 ⇒ R2T2；MiniMVP 包 ⇒ 0.6B；开发树 ⇒ 按本机 models/ 的事实。
+    """
+    return ENGINES_ASR06B if _asr06b_models_present() else ENGINES
+
+
+def active_asr_precision():
+    """当前生效的 ASR 精度表（与 `active_asr_engines()` 同源）。"""
+    return ASR_PRECISION_ASR06B if _asr06b_models_present() else ASR_PRECISION
 
 
 def build_asr_options(devices):
@@ -572,28 +719,36 @@ def build_asr_options(devices):
        对**同一块物理显卡**的重复展示上 ⇒ 保留 CUDA 那条（用户要求）。
     """
     out = []
-    # 🔴 ASR 的 CUDA 后端需要**外部资产**（audio.cpp 的 audiocpp_cli.exe + GGUF）
-    #    ⇒ 客户包里**没有**（包内无 cuda/ 目录、无 audiocpp_cli.exe、无 .gguf）
-    #    ⇒ 客户机上必然不可用 ⇒ note 必须**说清楚**，不能让用户白选。
-    cuda_assets_ok = bool(CUDA_DIR)
-    for key, cfg in ENGINES.items():
-        prec = ASR_PRECISION.get(key, 'INT8')
+    # 🔴🔴🔳 **APP-098 一.1**：**没有 kind=='cuda' 的档了**
+    #   （`cuda_q8`/`cuda_q4` 已从 `ENGINES` 删除）⇒ 这里**不再有** CUDA 那条。
+    #   ⇒ ASR 下拉只剩 **Intel GPU / Intel NPU** 两类（OV 档 + NPU 档）。
+    for key, cfg in active_asr_engines().items():
+        prec = active_asr_precision().get(key, 'INT8')
         note = cfg.get('note', '')
-        if cfg['kind'] == 'cuda':
-            if not cuda_assets_ok:
-                note = (note + '；🔴 客户包未随附 audio.cpp / GGUF 模型'
-                                '（不在包内）⇒ 需另行部署才能用')
-            out.append(dict(id=f'{key}@CUDA',
-                            label=f'NVIDIA GPU（CUDA） · {prec}',
-                            engine=key, device='CUDA', precision=prec,
-                            fixed=True, note=note))
-            continue
         if not _asr_ir_ready(cfg):
             continue                       # 本机缺该精度的 IR ⇒ 不出现
         if cfg['kind'] == 'npu':
             out.append(dict(id=f'{key}@NPU',
                             label=f'Intel NPU · {prec}',
                             engine=key, device='NPU', precision=prec,
+                            fixed=True, note=note))
+            continue
+        if cfg['kind'] == 'asr06b':
+            # 🔴🔴🔳 **APP-098 一.1 的真缺陷修复**：`kind=='asr06b'`（Qwen3-ASR-0.6B）
+            #   **既不是 `'ov'` 也不是 `'npu'`** ⇒ 旧代码落进下面的「遍历所有设备」
+            #   分支 ⇒ **两个引擎档都产出同一条 label**
+            #   （「Intel GPU（集显） · INT8」×2）⇒
+            #   ① GUI 靠 **label 反查**（`_cur_asr_opt`）⇒ **取到的永远是第一条**
+            #      ⇒ 用户选 NPU 那条 ⇒ 实际仍用 GPU 档（**静默错档**）；
+            #   ② **NPU 档在 GUI 里根本不存在**（NPU 被 `continue` 跳过）。
+            #   ⇒ 修法：**0.6B 档的设备由引擎表自己写死**（`cfg['device']`），
+            #      不参与「设备 × 精度」笛卡尔积（0.6B 的 encoder 是 fp16 静态图，
+            #      NPU/GPU 各自一份 IR ⇒ 本来就是**两条固定的档**）。
+            #   ⇒ label 用设备名 ⇒ 两档 label 天然不同（GPU 档 vs NPU 档）。
+            dev = cfg.get('device') or 'NPU'
+            out.append(dict(id=f'{key}@{dev}',
+                            label=f'{device_config.device_label(dev)} · {prec}',
+                            engine=key, device=dev, precision=prec,
                             fixed=True, note=note))
             continue
         for dev in devices:
@@ -786,10 +941,10 @@ def _tts_device_problem(dev: str, prec: Optional[str] = None) -> str:
         return '未指定设备'
     up = str(dev).upper()
     if up.startswith('CUDA'):
-        # 🔴🆕 **PyTorch + CUDA 是另一条路径**（STATUS §40），与 OV 的 CUDA plugin 无关
-        #   ⇒ 绝不能套用下面「OV 没装 CUDA plugin」那条判定（那是 OV IR 的限制）。
-        return '' if _cuda_tts_available() else \
-            '未安装 CUDA 后端环境（需独立 venv：torch cu128 + transformers==5.15.1）'
+        # 🔴🔴🔳 **APP-098 一.1**：CUDA 设备**不再作为可选设备**
+        #   （三个后端都已去掉 CUDA 档 ⇒ 选它必然无后端可跑）
+        #   ⇒ 明确拒绝并说明原因（**不静默回落**）。
+        return ('本版本已移除 NVIDIA/CUDA 语音后端 ⇒ 请选 Intel GPU 或 Intel NPU')
     if up == 'CPU':
         return ''                        # CPU 是兜底，允许
     if device_config.is_cuda_device(dev) and not device_config.has_cuda_plugin():
@@ -887,19 +1042,19 @@ def build_tts_options(devices):
     out = []
     skipped = {}                     # dev -> {'precs': [...], 'why': str}
     for dev in devices:
-        is_cuda = device_config.is_cuda_device(dev)
+        # 🔴🔴🔳 **APP-098 一.1**：NVIDIA 设备**根本不会进 `devices`**
+        #   （`device_config.detect_devices()` 已过滤）⇒ 这里**不需要**
+        #   `is_cuda` 分支 ⇒ 标签/说明里**不会出现 CUDA 字样**。
         for prec in TTS_PRECISIONS:
             if device_config.check_precision(dev, prec):
                 continue                   # 例如 NPU + f32 ⇒ 不出现
             prob = _tts_device_problem(dev, prec)
             if prob:
-                # 🔴 实测不可用（NVIDIA 编不过 / 集显 f16 失控）⇒ **不列**
+                # 🔴 实测不可用（集显 f16 失控）⇒ **不列**
                 slot = skipped.setdefault(dev, {'precs': [], 'why': prob})
                 slot['precs'].append(prec.upper())
                 continue
-            if is_cuda:
-                note = 'CUDA 后端（NVIDIA 显卡加速组件已安装）'
-            elif str(dev).upper() == 'NPU':
+            if str(dev).upper() == 'NPU':
                 # 🔴 APP-052 ②：去掉 markdown 星号（原样显示 `**推荐**`）
                 note = '✅ 实测可用（端到端合成 PASS，RTF≈1.16）⇒ 推荐'
             else:
@@ -909,8 +1064,6 @@ def build_tts_options(devices):
                         '（首包 30 s 量级）⇒ 实时朗读不推荐；'
                         '半精度（f16）会失控所以不在此列')
             label = f'{device_config.device_label(dev)} · {prec.upper()}'
-            if is_cuda:
-                label = f'CUDA · {label}'
             out.append(dict(id=f'{dev}@{prec}',
                             label=label,
                             device=dev, precision=prec, fixed=False, note=note))
@@ -925,41 +1078,13 @@ def build_tts_options(devices):
                           else '') + ('🔴 已从语音输出列表移除（实测不可用）：'
                                       + detail)
 
-    # 🔴🆕 **CUDA（PyTorch）后端**放在最前面（STATUS §40：实测最快，首包 0.547 s）
-    # 🔴🔴🔴 APP-061②：**始终列出** CUDA，但**检测不到边车环境时置灰并写明原因**。
-    #   旧实现：`if _cuda_tts_available(): out.insert(...)`
-    #   ⇒ 客户机上 CUDA **整条消失** ⇒ 用户看不到「为什么没有 NVIDIA」
-    #   （reviewer 原话：「不能让用户选了以后才发现没声音」）。
-    #   ⇒ 现在：
-    #     * 可用   ⇒ 正常项（`disabled` 不设）；
-    #     * 不可用 ⇒ **仍列出**，但 `disabled=True` + `why=<原因>`
-    #       ⇒ GUI 选中它时**拒绝启动**并把原因显示出来。
-    #   ⚠️ **D3 待用户决定**：客户包是否保留 TTS=CUDA 选项
-    #     （CUDA 边车依赖包外的独立 venv，**不随包分发** ⇒ 客户机上不存在）。
-    #     本轮**不删该选项**，只做到「置灰 + 显示原因」。
-    # 🔴🔴🔴 APP-062 ③（D3）：**客户包里去掉 TTS=CUDA** ⇒ **整个选项不出现**。
-    #   reviewer 原文：「**客户包里去掉**（界面不显示，CLI 也拒绝这个选项）。
-    #     只在开发目录保留，用于对照基准。」
-    #   ⚠️ 与 APP-061② 的「置灰 + 显示原因」**不冲突**（三条路径互斥）：
-    #     - **客户包** ⇒ **不列**（D3；且 `tts_cuda*.py` 根本不在包里）
-    #     - **开发目录**（有 CUDA 环境）⇒ 照旧列出（可用于对照基准）
-    #     - **开发目录**（无 CUDA 环境）⇒ 照旧**置灰 + 显示原因**（APP-061②）
-    if not _in_customer_package():
-        _cuda_ok = _cuda_tts_available()
-        _cuda_why = '' if _cuda_ok else _cuda_tts_unavailable_reason()
-        _cuda_label = 'NVIDIA CUDA（PyTorch） · bf16'
-        if not _cuda_ok:
-            _cuda_label += '（不可用）'
-        out.insert(0, dict(
-            id='CUDA@bf16', label=_cuda_label,
-            device='CUDA', precision='bf16', fixed=False,
-            disabled=(not _cuda_ok), why=_cuda_why,
-            note=('✅ 实测可用（PyTorch+CUDA，RTX 5050）：流式首包 0.547 s / RTF 0.892'
-                  '（比 NPU 快 12.7×）⇒ 最快；'
-                  '⚠️ 需要另装 CUDA 环境（独立 venv，torch 不进客户包），'
-                  '首次加载 ~27 s'
-                  if _cuda_ok else
-                  '🔴 不可用：' + _cuda_why)))
+    # 🔴🔴🔳 **APP-098 一.1：TTS 的 CUDA（PyTorch）后端整条删掉**
+    #   （reviewer 原话：「语音…也去掉所有 NVIDIA/CUDA 选项…CUDA TTS」）
+    #   ⚠️ 旧实现有**三种**行为（APP-061② 置灰 / APP-062③ D3 客户包不列 /
+    #      开发机照旧列出）⇒ 现在**统一为「不列」**。
+    #   🔴 依据：CUDA TTS 依赖**包外**的独立 venv（torch 不进包），
+    #      客户机上**根本不存在** ⇒ 列出来只会诱导用户选了以后才发现没声音。
+    #   ⇒ 两种包（MiniMVP / 完整版）**都不出现** ⇒ 行为一致、无灰项。
     return out
 
 # Qwen3-ASR 模型内置 support_languages（见 models/hf/config.json），
@@ -1466,7 +1591,7 @@ class OVEngine:
         from seg_stream import _make_segment_state
         from streaming_asr import (streaming_transcribe, finish_streaming_transcribe,
                                    parse_asr_output, _normalize_punct_by_context)
-        self.key, self.cfg = key, ENGINES[key]
+        self.key, self.cfg = key, active_asr_engines()[key]
         # 用户显式选的设备优先（APP-004 第 3 条）；NPU 档忽略（all-NPU 后端写死）。
         if device and self.cfg['kind'] == 'ov':
             self.cfg = dict(self.cfg)
@@ -1487,6 +1612,23 @@ class OVEngine:
             self.backend = SegmentEncoderOVBackend(
                 encoder_dir=enc, decoder_dir=dec, device=self.cfg['device'],
                 precision='f16', cache_dir=_cache('ov_cache'))
+            self.device_desc = self.cfg['device']
+        elif self.cfg['kind'] == 'asr06b':
+            # 🔴🔴🔳 **APP-096：Qwen3-ASR-0.6B（mask2 INT8）后端**
+            # ⚠️ 0.6B 的 decoder **无 KV cache**、静态 512、右对齐
+            #    ⇒ 与 R2T2 的两套后端**接口相似但语义不同** ⇒ 独立实现。
+            # ⚠️ NPU 上 **不设 NPUW_LLM**：0.6B decoder 不是 causal-LM-with-past 图
+            #    （无 KV cache）⇒ 走 plain 编译即可（reviewer 的 NPU 档已实测跑通）。
+            from asr06b_backend import ASR06BBackend
+            on_log(f'加载 {self.cfg["label"]}（Qwen3-ASR-0.6B mask2 INT8）…')
+            self.backend = ASR06BBackend(
+                encoder_dir=enc, decoder_dir=dec,
+                tokenizer_dir=_model_path('asr06b-tokenizer'),
+                embed_npy=_model_path('embed_tokens_06b_f16.npy'),
+                device=self.cfg['device'],
+                precision='f16',
+                cache_dir=_cache('ov_cache' if self.cfg['device'] != 'NPU'
+                                 else 'npu_cache'))
             self.device_desc = self.cfg['device']
         else:
             import npu_embeds_backend
@@ -1660,7 +1802,7 @@ class _CudaProc:
 
 class CudaEngine:
     def __init__(self, key, on_log=print, force_language=None):
-        self.key, self.cfg = key, ENGINES[key]
+        self.key, self.cfg = key, active_asr_engines()[key]
         if not CUDA_CLI or not os.path.exists(CUDA_CLI):
             raise FileNotFoundError(
                 f'未找到 audio.cpp 可执行文件（audiocpp_cli.exe）：{CUDA_CLI or "<未配置>"}。'
@@ -1773,7 +1915,7 @@ def make_engine(key, on_log=print, force_language=None, device=None):
          unexpected keyword argument 'device'``（APP-007 实测）；
        - kind=='npu' → 设备写死 NPU，OVEngine 内部自己忽略。
     """
-    kind = ENGINES[key]['kind']
+    kind = active_asr_engines()[key]['kind']
     if kind == 'cuda':
         return CudaEngine(key, on_log=on_log, force_language=force_language)
     if device and kind == 'ov':
@@ -2284,12 +2426,17 @@ class App:
         #   ⇒ **注入既有的旁路与音色表** ⇒ 不新建旁路（不双跑 wespeaker）。
         #   ⚠️ 本层**不做音色登记** ⇒ 登记仍走 `_pump_spk_voices()`
         #   ⇒ 不会双登记、不会互相覆盖。
-        self._clone_pol = clone_voice.CloneVoices(
+        # 🔴🔴🔳 **APP-098 一.3：本包不提供克隆音色 ⇒ 没有策略层**。
+        #   ⇒ `_clone_pol = None` ⇒ 下面所有 `self._clone_pol.xxx` 的调用点
+        #   **都必然在「克隆已禁用」的分支里**（旁路默认关 + 音色只能选 A）
+        #   ⇒ 调用不会发生 ⇒ **不需要逐个加 if**（避免 13 处判空噪音）。
+        self._clone_pol = (clone_voice.CloneVoices(
             on_log=lambda m: self._ui_log(m),
             bridge=self._spk_bridge, table=self._spk_voices,
             pcm_getter=lambda: (self._spk_pcm_buf, self._spk_pcm_t0),
             span_getter=lambda seg: self._seg_span.get(seg),
             on_nearest=self._clone_nearest)
+            if clone_voice is not None else None)
         # 🔴🔴🔴 APP-053：**上一段的结束时刻**（全局时间轴）
         #   ⇒ App 的断句是**连续**的 ⇒ 段自身区间 = [上一段末, 本段末]
         #   ⇒ 用它替代「只往前借 2.5 s」⇒ 离线复算打标率 89.13% → **95.65%**
@@ -2351,7 +2498,7 @@ class App:
         # 🔴🔴🔳 APP-069⑤ 清理项 3：标题是**内部名称** ⇒ 改成产品名
         #   （reviewer 原文：「窗口标题现在是『Confucius4-R2T2 实时字幕 · 多后端测试』，
         #   属于内部名称，MiniMVP 要改成产品名，比如『实时字幕 MiniMVP v1.0』」）
-        root.title('实时字幕 MiniMVP v1.0')
+        root.title(_WINDOW_TITLE)
         # ⚠️ 1080x820：三分区改**纵向三行**后（每行 = 控件行 + 说明行），
         #    700 高装不下，主文本区会被压扁。820 能让三行都完整显示。
         #
@@ -2772,8 +2919,35 @@ class App:
         self._tts_voice_label = {'A': '预设 A',
                                  'follow_speaker': '跟随说话人（克隆·实验）'}
         self._tts_voice_back = {v: k for k, v in self._tts_voice_label.items()}
+        # 🔴🔴🔳 **APP-098 一.3：MiniMVP 不提供音色克隆 ⇒ 该项置灰**。
+        #   reviewer 原话：「克隆音色在 GUI 上置灰，提示『MiniMVP 不提供音色克隆』，
+        #   默认用预设音色 A。」
+        #   ⚠️ **置灰而不是删掉**（reviewer 明确要「置灰 + 提示」）
+        #      ⇒ 做法与项目既有约定一致（APP-061②）：
+        #        **不可用的项不作初值** + **选中它 ⇒ 拒绝启动 + 显示原因**。
+        #   🔴 **Tk Combobox 不支持逐项 disabled**
+        #      （`state=['disabled']` 会让**整个下拉**不可用 ⇒ 不可用）
+        #      ⇒ 改用「**该项 + 原因后缀**」的**标签**表达不可用，
+        #        并在 `_on_tts_voice_changed` 里**拦截**（拒绝切过去）。
+        self._clone_voice_allowed = package_profile.allow_clone_voice()
+        self._clone_voice_why = ('' if self._clone_voice_allowed
+                                 else package_profile.clone_voice_unavailable_reason())
+        if not self._clone_voice_allowed:
+            # 🔴 不可用 ⇒ 标签带上原因（用户一眼看出为什么灰）
+            self._tts_voice_label['follow_speaker'] = (
+                '跟随说话人（克隆·实验）〔%s〕' % self._clone_voice_why)
+            self._tts_voice_back = {v: k for k, v in self._tts_voice_label.items()}
+        # 🔴 默认音色：不可用克隆时**强制预设 A**（reviewer：「默认用预设音色 A」）
+        _voice_init = str(getattr(args, 'tts_voice', 'A') or 'A')
+        if not self._clone_voice_allowed and _voice_init == 'follow_speaker':
+            _voice_init = 'A'
+            try:
+                print('[tts] 🔴 %s ⇒ 音色回落「预设 A」'
+                      % self._clone_voice_why, file=sys.stderr, flush=True)
+            except Exception:
+                pass
         self.var_tts_voice = tk.StringVar(
-            value=self._tts_voice_label.get(args.tts_voice, '预设 A'))
+            value=self._tts_voice_label.get(_voice_init, '预设 A'))
         self.cb_tts_voice = ttk.Combobox(
             g_tts, state='readonly', width=_GRID_CTRL_CHARS,
             textvariable=self.var_tts_voice,
@@ -3531,7 +3705,7 @@ class App:
         self._asr_effective_device = dev
         self.cb_asr_combo.configure(state='readonly')
         self.btn.configure(state='normal')
-        self.var_status.set(f'{ENGINES[key]["label"]} 就绪（加载 {eng.load_s:.1f} s）')
+        self.var_status.set(f'{active_asr_engines()[key]["label"]} 就绪（加载 {eng.load_s:.1f} s）')
         # 翻译模型要等 ASR 就绪后再加载（同一张卡上并行编译会把 GUI 卡死）。
         # 这里必须用 GUI 的实时状态，不能用 args.translate —— 那是启动时的快照：
         # 用户在下拉里改过翻译后，任何一次切换 ASR 后端都会把翻译重置回启动值，
@@ -3683,7 +3857,7 @@ class App:
         self.session.start()
         self.btn.configure(text='■ 停止')
         kind = self._cur_source_key()
-        self.var_status.set(f'识别中 · {ENGINES[self.engine_key]["label"]} · '
+        self.var_status.set(f'识别中 · {active_asr_engines()[self.engine_key]["label"]} · '
                             f'{audio_source.SOURCES[kind]}')
 
     def stop(self):
@@ -3946,6 +4120,11 @@ class App:
             return
         self._dev_choices['asr'] = opt['device']
         self.var_asr_note.set(opt.get('note', ''))
+        # 🔴🔴🔳 **APP-098 二.4**：ASR 与 MT 同在 GPU ⇒ **提示**（不改设备）。
+        try:
+            self._warn_asr_mt_same_gpu('GUI 选择 ASR=%s' % opt['device'])
+        except Exception:
+            pass
         device_config.save_config(dict(self._dev_choices))
         if (opt['engine'] == self.engine_key
                 and opt['device'] == getattr(self, '_asr_effective_device', None)):
@@ -3988,6 +4167,11 @@ class App:
             if not opt:
                 return
             self._dev_choices['mt'] = opt['device']
+        # 🔴🔴🔳 **APP-098 二.4**：ASR 与 MT 同在 GPU ⇒ **提示**（不改设备）。
+        try:
+            self._warn_asr_mt_same_gpu('GUI 选择 MT=%s' % opt['device'])
+        except Exception:
+            pass
         device_config.save_config(dict(self._dev_choices))
         if not self.mt.set_engine(opt['engine']):
             self.var_status.set('翻译后端切换失败（保持原后端）')
@@ -4171,9 +4355,12 @@ class App:
             #   用户实测「TTS 选 CUDA 时语音输出不工作」⇒ 客户机上 CUDA 依赖
             #   **包外**的独立 venv（**不随包分发**）⇒ 根本不存在。
             #   ⇒ 这里在**起 worker 之前**就拦住 + 明确告知原因。
-            if str(dev).upper().startswith('CUDA') and not _cuda_tts_available():
-                why = _cuda_tts_unavailable_reason()
-                self._ui_log(f'[tts] 🔴 CUDA 语音后端不可用：{why} ⇒ 自动改用可用设备')
+            if str(dev).upper().startswith('CUDA'):
+                # 🔴🔴🔳 **APP-098 一.1**：CUDA 设备**不再可选**
+                #   （TTS 下拉里已没有 CUDA 档 ⇒ 只可能是配置文件里的**残留值**）
+                #   ⇒ 明确告知 + 自动改用可用设备（**不静默**）。
+                why = '本版本已移除 NVIDIA/CUDA 语音后端（APP-098）'
+                self._ui_log(f'[tts] 🔴 {why} ⇒ 自动改用可用设备')
                 alt = _first_usable_tts_device(self._dev_avail, skip=dev,
                                                prec=prec)
                 if alt is None:
@@ -4409,6 +4596,23 @@ class App:
     def _on_tts_voice_changed(self, *_a):
         """切换音色：需要重启 worker（音色条件在加载时绑定）。"""
         voice = self._tts_voice_back.get(self.var_tts_voice.get(), 'A')
+        # 🔴🔴🔳 **APP-098 一.3：选中「不可用的克隆音色」⇒ 拒绝 + 回落 A**。
+        #   （Tk Combobox 不能逐项置灰 ⇒ 用「拦截」表达不可用）
+        #   ⇒ **不静默**：给用户看原因 + 回落到预设 A。
+        if (voice == 'follow_speaker'
+                and not getattr(self, '_clone_voice_allowed', True)):
+            why = getattr(self, '_clone_voice_why', '本包不提供音色克隆')
+            self.var_tts_voice.set(self._tts_voice_label['A'])
+            try:
+                self._ui_log('[tts] 🔴 %s ⇒ 音色回落「预设 A」' % why)
+            except Exception:
+                pass
+            try:
+                self.var_tts_note.set('🔴 %s ⇒ 已回落「预设 A」' % why)
+                self.var_status.set('音色克隆不可用，已回落预设 A')
+            except Exception:
+                pass
+            return
         # 🔴🔴🔴 APP-061④：文案改成「**换人时取样**」，删掉「每 30 s」的字样。
         #   旧文案承诺的是**定时重采集**（APP-027⑤ 的老机制）⇒ 与 v2.2 实际行为不符
         #   ⇒ 用户实测反馈「为什么是 10 秒」正是这段文案造成的误解。
@@ -6653,6 +6857,49 @@ class App:
             pass
         return True
 
+    def _warn_asr_mt_same_gpu(self, origin: str = ''):
+        """🔴🔴🔳 **APP-098 二.4：ASR 与 MT **都放 GPU** 时给提示**。
+
+        **实测（B 机 Meteor Lake）**：ASR 和 MT 都放 GPU.0 ⇒ 跑 268 s 后报
+        `CL_OUT_OF_RESOURCES`（GPU 显存/资源耗尽）⇒ **崩溃**。
+        reviewer 原话：「ASR 和 MT 都放 GPU.0 时崩溃…GUI 和 CLI 在两者都选 GPU 时
+        给提示，建议 ASR 放 NPU，**不要偷偷改用户选的设备**。」
+
+        🔴🔴🔴 **只提示、不改设备**（与 APP-062 D4 的「MT 与 TTS 同 NPU ⇒ 自动改」
+        **刻意不同**）：
+        - D4 那条是 reviewer **明文要求自动改**的（MT→GPU.0）；
+        - 这条 reviewer **明文说「不要偷偷改用户选的设备」**
+        ⇒ ⇒ **只提示 + 建议**，用户自己决定。
+        ⚠️ 提示**必须可见**（状态栏 + 日志），且**不弹模态框**
+          （模态会挂起无头探针，见 APP-067 ④）。
+        """
+        try:
+            dev = dict(getattr(self, '_dev_choices', {}) or {})
+        except Exception:
+            dev = {}
+        asr_dev = str(dev.get('asr') or '').upper()
+        mt_dev = str(dev.get('mt') or '').upper()
+        if 'GPU' not in asr_dev or 'GPU' not in mt_dev:
+            return False
+        msg = ('⚠️ ASR 与 MT 都放在 %s ⇒ 长时间运行可能报 '
+               'CL_OUT_OF_RESOURCES（GPU 资源耗尽）。'
+               '建议把 ASR 放 NPU。' % asr_dev)
+        if origin:
+            msg += '（来源：%s）' % origin
+        try:
+            self._ui_log('[device] %s' % msg)
+        except Exception:
+            pass
+        try:
+            self.var_status.set(msg)
+        except Exception:
+            pass
+        try:
+            self.var_mt_note.set(msg)
+        except Exception:
+            pass
+        return True
+
     def _npu_conflict_note(self):
         """🔴🔴🔴 APP-061③(d)：**NPU 共用**检测（MT / ASR 与 TTS 同在 NPU）。
 
@@ -6936,6 +7183,15 @@ def run_cli(args):
     _clone_col = None
     _want_clone = (str(getattr(args, 'tts_voice', 'A') or 'A')
                    == 'follow_speaker')
+    # 🔴🔴🔳 **APP-098 一.3：CLI 传 `follow_speaker` 而本包不提供克隆 ⇒ 回落 A + 打一行日志**。
+    #   reviewer 原话：「CLI 传 follow_speaker 时回落到 A，并打一行日志。」
+    #   🔴 **必须打日志**（不静默）⇒ 用户知道自己要的克隆没生效。
+    if _want_clone and not package_profile.allow_clone_voice():
+        _want_clone = False
+        args.tts_voice = 'A'
+        print('[TTS] 🔴 %s ⇒ `--tts-voice follow_speaker` 已回落「预设 A」'
+              % package_profile.clone_voice_unavailable_reason(),
+              file=sys.stderr, flush=True)
     _spk_enabled = (str(getattr(args, 'speaker', 'off') or 'off')
                     .strip().lower() == 'on')
     if _want_clone and not _spk_enabled:
@@ -7048,12 +7304,15 @@ def run_cli(args):
     #   ⚠️ GUI 侧没事（`self._clone_nearest` 是**已绑定方法**，定义顺序无关）。
     #   ⇒ 修法：**延迟绑定**（lambda 在**调用时**才查名字）
     #   ⇒ 等价语义（回调行为逐字不变），且不再依赖定义顺序。
-    _clone_pol = clone_voice.CloneVoices(
+    # 🔴🔴🔳 **APP-098 一.3：本包不提供克隆音色 ⇒ 不建策略层**
+    #   （`clone_voice` 为 None ⇒ `_clone_pol = None` ⇒ 克隆路径根本不会被走到）
+    _clone_pol = (clone_voice.CloneVoices(
         on_log=lambda m: print(f'  [spk] {m}', flush=True),
         bridge=_spk_bridge, table=_spk_voices,
         pcm_getter=lambda: (_spk_pcm_buf, _spk_pcm_t0[0]),
         span_getter=lambda seg: _spk_span.get(seg),
         on_nearest=lambda seg, spk, sim: _cli_clone_nearest(seg, spk, sim))
+        if clone_voice is not None else None)
 
     def _cli_capture_self_ref(seg):
         """🔴🔴🔳 APP-089 §2c-1：**抓 self_ref 素材**（CLI 侧）。
@@ -7985,20 +8244,33 @@ def _check_models():
     返回 (key -> (是否就绪, 说明))。
     """
     out = {}
-    for key, cfg in ENGINES.items():
-        if cfg['kind'] == 'cuda':
-            cli = CUDA_CLI
-            gguf = os.path.join(CUDA_DIR or '', 'models', cfg['gguf'])
-            if not cli or not os.path.exists(cli):
-                out[key] = (False, '缺 audio.cpp（audiocpp_cli.exe），本包不自带')
-            elif not os.path.exists(gguf):
-                out[key] = (False, f'缺模型 {cfg["gguf"]}')
-            else:
-                out[key] = (True, '模型齐全')
-            continue
+    for key, cfg in active_asr_engines().items():
+        # 🔴🔴🔳 **APP-098 一.1**：**没有 kind=='cuda' 的档了**
+        #   ⇒ 原来的「audio.cpp / GGUF 资产」判定分支**整段删掉**
+        #   （否则 `--check` 会继续打 NVIDIA 行）。
         enc = _model_path(cfg['enc'])
         dec = _model_path(cfg['dec'])
         missing = []
+        if cfg['kind'] == 'asr06b':
+            # 🔴🔴🔳 **APP-096**：0.6B 档的三件套
+            #   编码器 = `ov-encoder-06b-fp16-static.xml`
+            #   解码器 = `openvino_model.xml`（mask2 INT8）
+            #   embedding 表 = `embed_tokens_06b_f16.npy`（hidden 1024）
+            if not (os.path.isdir(enc) and os.path.exists(os.path.join(
+                    enc, 'ov-encoder-06b-fp16-static.xml'))):
+                missing.append('编码器')
+            if not (os.path.isdir(dec) and os.path.exists(os.path.join(
+                    dec, 'openvino_model.xml'))):
+                missing.append('解码器')
+            if not os.path.exists(_model_path('embed_tokens_06b_f16.npy')):
+                missing.append('embedding 表')
+            if not os.path.isdir(_model_path('asr06b-tokenizer')):
+                missing.append('tokenizer')
+            if missing:
+                out[key] = (False, '缺 ' + '、'.join(missing))
+            else:
+                out[key] = (True, '模型齐全')
+            continue
         # 编码器
         if not (os.path.isdir(enc) and
                 os.path.exists(os.path.join(enc, 'openvino_encoder_model.xml'))):
@@ -8030,7 +8302,8 @@ def run_check():
     输出用 UTF-8，Windows 控制台按 chcp 65001 显示。
     """
     print('=' * 68)
-    print('  Confucius4-R2T2 实时字幕 · 环境检查')
+    # 🔴🔴🔳 **APP-098：产品名按包形态**（同一份代码，两个包各显示各的名字）。
+    print('  %s · 环境检查' % _PRODUCT_NAME)
     print('=' * 68)
     print(f'包目录：{PKG_ROOT}')
     print(f'模型目录：{MODELS}')
@@ -8109,7 +8382,7 @@ def run_check():
     # ── 3. ASR 后端 ────────────────────────────────────────────────
     print('── ASR 后端（识别）──')
     models = _check_models()
-    for key, cfg in ENGINES.items():
+    for key, cfg in active_asr_engines().items():
         ok, why = models[key]
         need = cfg.get('device', '')
         dev_ok = True
@@ -8182,8 +8455,8 @@ def run_check():
 
 
 def main():
-    ap = argparse.ArgumentParser(description='Confucius4-R2T2 实时字幕（多后端）')
-    ap.add_argument('--engine', choices=list(ENGINES), default='gpu_int8')
+    ap = argparse.ArgumentParser(description='%s（多后端）' % _PRODUCT_NAME)
+    ap.add_argument('--engine', choices=list(active_asr_engines()), default='gpu_int8')
     ap.add_argument('--source', choices=list(audio_source.SOURCES), default=None,
                     help='音频来源：mic=麦克风（默认）/ system=系统声音（WASAPI 回环）/ '
                          'file=音频文件')
@@ -8307,18 +8580,19 @@ def main():
         'mt': args.mt_device,
         'tts': args.tts_device,
     }
-    # 🔴🔴🔴 APP-062 ③（D3）：**客户包里 CLI 拒绝 TTS=CUDA**。
-    #   reviewer 原文：「（界面不显示，**CLI 也拒绝这个选项**）。」
+    # 🔴🔴🔳 **APP-098 一.1：CLI 也拒绝 CUDA**（不只是客户包）。
+    #   reviewer 原话：「CLI 的参数选项和 `--check` 里也不再出现 NVIDIA 后端。」
     #   ⇒ 显式给了 `--tts-device CUDA` ⇒ **明确报错 + 非零退出**
     #   ⇒ **不是**「静默降级成 NPU」（静默降级会让用户以为在用 CUDA）。
+    #   ⚠️ 旧实现只拦「客户包」（`_in_customer_package()`）⇒ 开发树仍能选 CUDA；
+    #      现在**两个包 + 开发树一律拒绝**（与 GUI 侧「不列」同一口径）。
     try:
         _want_cuda = (str(getattr(args, 'tts_device', '') or '')
                       .strip().upper() == 'CUDA')
     except Exception:
         _want_cuda = False
-    if _want_cuda and _in_customer_package():
-        print('🔴 客户包不提供 TTS=CUDA 后端（APP-062 D3）：'
-              '该选项依赖包外的独立 venv，交付包不随包分发。'
+    if _want_cuda:
+        print('🔴 本版本已移除 NVIDIA/CUDA 语音后端（APP-098）：'
               '请改用 --tts-device NPU（或 GPU.0）。', file=sys.stderr)
         sys.exit(2)
     _dev_sel, _dev_notes = device_config.get_devices(_dev_cli)
@@ -8326,6 +8600,21 @@ def main():
     args.mt_device = _dev_sel['mt']
     args.tts_device = _dev_sel['tts']
     args.device_notes = _dev_notes
+    # 🔴🔴🔳 **APP-098 二.4：ASR 与 MT 都放 GPU ⇒ CLI 也给提示**。
+    #   实测（B 机）：两者都在 GPU.0 ⇒ 跑 268 s 后 `CL_OUT_OF_RESOURCES` 崩溃。
+    #   reviewer 原话：「GUI 和 CLI 在两者都选 GPU 时给提示，建议 ASR 放 NPU，
+    #   **不要偷偷改用户选的设备**。」
+    #   🔴 **只提示、不改设备**（与上面 MT+TTS 同 NPU 的「自动改」**刻意不同**）。
+    try:
+        _asr_d = str(args.asr_device or '').strip().upper()
+        _mt_d2 = str(args.mt_device or '').strip().upper()
+        if 'GPU' in _asr_d and 'GPU' in _mt_d2:
+            print('[device] ⚠️ ASR 与 MT 都放在 %s ⇒ 长时间运行可能报 '
+                  'CL_OUT_OF_RESOURCES（GPU 资源耗尽）。'
+                  '建议把 ASR 放 NPU（--asr-device NPU）。'
+                  % _asr_d, file=sys.stderr, flush=True)
+    except Exception:
+        pass
     # 🔴🔴🔴 APP-063 ①（D4 CLI 侧，2026-11-02）：**MT 与 TTS 同 NPU ⇒ 禁止**。
     #   reviewer 原文：「另外 CLI 的 `--mt-device NPU --tts-device NPU`
     #     也要按同样规则处理（MT 自动改到 GPU.0，打日志），
