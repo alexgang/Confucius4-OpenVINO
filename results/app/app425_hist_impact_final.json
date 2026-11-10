@@ -1,0 +1,139 @@
+{
+ "created_at": "2026-11-11 01:05:00",
+ "title": "APP-098 §170 ⑨ 两项「历史影响未评估」的定界结论（App 侧，纯静态 + 行为级复现，未占设备）",
+ "scope": "confucius4-openvino App 模块 · live caption 集成 / 客户包打包 / git",
+
+ "trigger": {
+  "no_new_corrections": {
+   "verdict": "本轮无新 reviewer 纠偏指令",
+   "CORRECTIONS_APP_md": {
+    "n_entries_APP_xxx": 97,
+    "max_entry": "APP-097",
+    "sha256": "36af1620d7ee867c5d8d7ac7d6e60bd3a63218f09dc0343e787ee8e0246137a2",
+    "bytes": 285671,
+    "mtime": "2026-11-10 11:49:26",
+    "read_only": true,
+    "modified_by_this_session": false
+   },
+   "STATUS_last_ack": "APP-098",
+   "note": "APP-098 为 reviewer 口头下达、未落 CORRECTIONS_APP.md，已由上一会话执行完毕（commit 4637861，2026-11-11 00:25:45）。本会话开工时 HEAD 已是 4637861、ahead=0、暂存区空 ⇒ 无半交付。",
+   "shared_NOTICE_check": "shared/ 下无新增 NOTICE_*（最新为 NOTICE_asr_to_app_asr045_window_5s_kernel_fix.md，2026-11-05）"
+  }
+ },
+
+ "D1_gui_layout_swallowed": {
+  "conclusion": "历史影响 = 【零交付物受影响】。缺陷只存在于 dev 树的 2 个 commit 快照里，未进入任何客户包 / MiniMVP 包。",
+  "true_root_cause": "874924a 把 App.__init__ 的后半段（GUI 布局代码：root.title / root.geometry / 全部控件构建 / prewarm_transformers / self.load_engine）并进了 _clone_nearest 的方法体。_clone_nearest 是 App 的【兄弟方法】（不是嵌套函数）—— 此点纠正旧记忆里「误插进 App.__init__ 中间 ⇒ 嵌套」的措辞。",
+  "measured_signature": {
+   "874924a_broken": "App.__init__ stmt=24, 布局调用(pack/grid/migrate)=0；_clone_nearest stmt=261 且含 69 个布局调用",
+   "parent_b1496ba_ok": "App.__init__ stmt=282, 布局调用=69；_clone_nearest 不存在",
+   "fixed_ba76ea5_ok": "App.__init__ stmt=286, 布局调用=69"
+  },
+  "broken_commits": ["874924a (2026-11-09 12:26:26)", "1cc86b2 (2026-11-10 06:30:12)"],
+  "fixed_at": "ba76ea5 (2026-11-10 16:00:50)",
+  "broken_window": "2026-11-09 12:26 ⇒ 2026-11-10 16:00",
+  "packages_scanned": 15,
+  "packages_with_D1_broken": [],
+  "package_verdict": "15/15 全部 D1=OK（含 v2.4 真包与 rc5/rc6/rc7 三个 MiniMVP 包）",
+  "why_packages_clean": "MiniMVP rc5/rc6 的 app/live_caption_app.py 来自 rc4→rc3 一路【字符串补丁】打出来的独立血脉（不是 dev 树快照）⇒ 与 dev 树缺陷窗口无交集；rc7 走 dev 树定点覆盖 ⇒ 已含 ba76ea5 的搬移修复。",
+  "acceptance_evidence_impact": {
+   "app372_app091_subtitle_shot": {
+    "mtime": "2026-11-10 02:19:33",
+    "inside_broken_window": true,
+    "result": "{\"shot\": null, \"caption_shots\": [], \"main_shots\": []} ⇒ GUI 一张截图都没产出",
+    "interpretation": "该次 GUI 截图失败的【症状】正是 D1 空壳；但当时未归因（§164 仅登记「未做」），直到 §167 才定位根因。⇒ 属【早期失败，非错误结论】。"
+   },
+   "app331_app093_gui_shot": {
+    "mtime": "2026-11-10 15:52",
+    "inside_broken_window": true,
+    "result": "verdict=PASS（主窗 1455×1132 / 三道像素守卫全过）",
+    "interpretation": "PASS 成立且有效——因为该次跑的是影子包 after_fix_tmp（已含 _app334 的搬移修复），不是缺陷快照。⇒ 窗口内的 PASS 结论未被污染。"
+   },
+   "no_false_claims": "窗口内没有任何 STATUS 章节基于空壳 GUI 宣称 GUI/布局验收通过；§164 对 app372 如实登记「未做」。"
+  },
+  "verdict": "D1 未污染任何已交付包，也未污染任何已登记的 GUI 验收结论 ⇒ 历史影响评估完毕，无需补救动作。"
+ },
+
+ "D2_asr06b_label_collision": {
+  "conclusion": "历史影响 = 【rc5 与 rc6 两个 MiniMVP 包受影响】；rc7 已修。其余 12 个包全部 NA（无 0.6B 档 ⇒ 与本缺陷无关）。",
+  "true_root_cause": "kind=='asr06b'（Qwen3-ASR-0.6B）在 ENGINES/ENGINES_ASR06B 里存在，但 build_asr_options 只比较 kind=='cuda'/'npu' ⇒ asr06b 落入末尾的「遍历所有设备」笛卡尔积分支 ⇒ 两个引擎档产出同一条 label ⇒ GUI 的 _cur_asr_opt() 靠 label 反查（先命中先返回）⇒ 永远取第一条 ⇒ 静默错档；且 NPU 档因循环内 continue 跳过 NPU 而【根本不出现在下拉里】。",
+  "method": "行为级：把包内 build_asr_options 的真实源码抽出，在桩环境（_model_path 指向包内真实 models/、_asr_ir_ready=True、device_config 打桩）里真跑一遍，统计输出 label 是否重复。",
+  "package_verdicts": {
+   "MiniMVP_v1.0-rc5": {"d2": "BUG", "n_opts_gpu_npu_only": 4, "dup_labels": ["Intel GPU（集显） · INT8"], "note": "另含 2 个 CUDA 选项（NVIDIA GPU（CUDA） · Q8_0 / Q4_K）"},
+   "MiniMVP_v1.0-rc6": {"d2": "BUG", "n_opts_gpu_npu_only": 2, "dup_labels": ["Intel GPU（集显） · INT8"]},
+   "MiniMVP_v1.0-rc7": {"d2": "OK", "n_opts_gpu_npu_only": 2, "labels": ["Intel GPU（集显） · INT8", "Intel NPU · INT8"], "dup_labels": []},
+   "other_12_packages": {"d2": "NA", "reason": "ASR 引擎表里无 kind=='asr06b' 条目（v1.13/v1.5/v2.0/v2.1/v2.2/v2.3/v2.4/MiniMVP v1.0/rc1/rc2/rc3/rc4）⇒ 本缺陷不适用"}
+  },
+  "robustness": "结论对设备集合不敏感：['GPU.0','NPU'] 与 ['GPU.0','NPU','GPU.1'] 两个口径下 rc5/rc6 均出现重复 label、rc7 均无重复 ⇒ 在本机真实配置（iGPU+NPU）下同样成立。",
+  "zip_level_check": {
+   "method": "交付口径 =「zip 内含本轮代码」（看 mtime）⇒ 三个 zip 的 app/live_caption_app.py 都单独抽出真跑一遍",
+   "rc5_zip": {"bytes": 4424246739, "mtime": "2026-11-10 11:52:30", "member_bytes": 418478, "zip_eq_dir": true, "d2": "BUG"},
+   "rc6_zip": {"bytes": 4420655558, "mtime": "2026-11-10 21:19:18", "member_bytes": 475504, "zip_eq_dir": true, "d2": "BUG"},
+   "rc7_zip": {"bytes": 4420655883, "mtime": "2026-11-11 00:03:15", "member_bytes": 476874, "zip_eq_dir": true, "d2": "OK"}
+  },
+  "dev_tree_git_history": "ENGINES_ASR06B 只在 4637861（2026-11-11 00:25）进过 dev 树，且【同一提交里就带着修复】⇒ dev 树从未出现过「只有缺陷没有修复」的提交状态 ⇒ 本缺陷的全部历史载体就是 rc5/rc6 两个包。",
+  "why_rc5_acceptance_missed_it": "rc5 的设备验收（_app312_rc5_device_acceptance.py::build_cmd）走的是 --cli + --engine/--asr-device 显式指定 ⇒ 完全绕开 GUI 下拉与 label 反查 ⇒ 该缺陷对 rc5 的 CLI 验收【结构性不可见】。且 rc5 从未做过 GUI 截图验收（磁盘上无 rc5 GUI 截图产物）⇒ GUI 路径在 rc5 上从未被验收过。",
+  "delivery_status_impact": {
+   "rc5": "已交付给 reviewer（§165，APP-096 验收通过并已 push）⇒ ⚠️ 该包 GUI 的 ASR 档位存在静默错档；CLI 路径不受影响",
+   "rc6": "已登记为「含缺陷、未交付」",
+   "rc7": "已修（唯一可交付的 MiniMVP 包）"
+  },
+  "action_taken": "🔴 本轮【未改任何生产代码、未改任何客户包、未重打包】—— APP-055 禁止原地改旧版；rc5/rc6 只能通过「打新版本号」修复，而新版本号属于打包动作 ⇒ 按用户级铁律（用户不通知 ⇒ 不主动打包）本轮不做，等 reviewer 裁定。"
+ },
+
+ "criterion_self_discipline": {
+  "lesson": "本轮把 D2 判据改了【三轮】才对（v1 → v2 → v3），每一版都有自身缺陷：",
+  "v1_defects": [
+   "用 ast.literal_eval 读引擎表 ⇒ 真表的值是 dict(...) 调用 ⇒ 抛异常 ⇒ 表被读成空 ⇒ 假阴性（rc5/rc6 有缺陷被判成 NA）",
+   "判据依赖表名 ENGINES_ASR06B ⇒ rc5 把 kind='asr06b' 直接写在 ENGINES 表里 ⇒ rc5 假阴性"
+  ],
+  "v2_defects": [
+   "收集时没有只筛 asr06b ⇒ 把所有 kind 都算成命中 ⇒ 假阳性（v1.13…rc4 全部被判 BUG）",
+   "行为级执行时用自己写的 _model_path 桩 ⇒ 未走 _MODEL_ALIASES ⇒ 0.6B 模型被误判为『不在位』⇒ active_asr_engines() 走错引擎表"
+  ],
+  "v3_fixes": [
+   "AST 直读引擎表（兼容 dict(...) 调用与 {...} 字面量），只筛 kind=='asr06b'",
+   "行为级执行时把 __file__ 设成包内真实路径 ⇒ APP_DIR/PKG_ROOT/MODELS/_MODEL_ALIASES/_model_path 全部取真实值 ⇒ 0.6B 是否就位成为事实判定",
+   "反证组改为【AST 定位调用点】的定点手术（全文该串出现 2 次，全文替换会误伤另一处）"
+  ],
+  "anti_control": {
+   "surgery": "把 rc7 的 build_asr_options 内那处 `if cfg['kind'] == 'asr06b':` 换成 `if False:`（用替换而非删行：删行会掏空 if 块 ⇒ SyntaxError ⇒ 假 FAIL）",
+   "intact_rc7": "d2=OK（2 个选项，label 全唯一）",
+   "anticontrol_rc7": "d2=BUG（4 个选项，重复 label = ['Intel GPU（集显） · INT8', 'NVIDIA 独显 · INT8']）",
+   "conclusion": "判据有鉴别力（能识破「已知有缺陷」且不误报「已知已修」）⇒ 结论可信"
+  },
+  "note": "本轮又撞上 MEMORY §四同一条：「闸门自己的判据也会是错的」。⇒ 判据必须带反证组，且要问「这条判据若被人当真去改生产代码，会不会改坏」。"
+ },
+
+ "artifacts": [
+  "results/app/_app425_hist_scan3.py — 定案版扫描脚本（含反证组 + zip 级复核）",
+  "results/app/app425_hist_scan3.json — 扫描原始结果（15 包 + 71 commit + zip 级 + 反证组）",
+  "results/app/_app425_hist_impact.py — v1（判据有缺陷，仅留档）",
+  "results/app/_app425_hist_scan.py — v2（判据有缺陷，仅留档）",
+  "results/app/_app425_hist_scan2.py — v3 前身（判据有缺陷，仅留档）",
+  "results/app/_app425_hist/ — 缺陷快照样本（874924a / 874924a~1 / ba76ea5 / rc5zip）"
+ ],
+
+ "not_done_waiting_reviewer": [
+  "未打包 v2.5（APP-055 + 用户级铁律：用户不通知 ⇒ 不主动打包；且 GUI 布局缺陷同步策略仍等 reviewer 裁定）",
+  "未修 rc5/rc6 的 D2 缺陷（旧版本目录/zip 一律不覆盖、不删除、不原地改 ⇒ 只能打新版本号 ⇒ 属打包动作）",
+  "未通知用户、未调 MiniMax（质量判定由 reviewer 回转写）",
+  "未改 §3.5 音色归属判据（三人真值余弦 0.957–0.972 ⇒ 不可分 ⇒ 不自行换判据）",
+  "未改 _SEC_PER_CHAR 默认值（阈值取舍由 reviewer 报主会话请用户决定）"
+ ],
+
+ "operational_risk_new": {
+  "issue": "C: 磁盘 100% 占用，仅剩 17 G 可用（1.9 T）",
+  "measured": "du: shared/minimvp=31 G（6 个 zip：rc3 5.59 G / rc3_rev2 5.59 G / rc4 8.61 G / rc5 4.42 G / rc6 4.42 G / rc7 4.42 G）；MiniMVP 目录 6.8+4.3M+4.2M+4.5M+3.3+5.6+5.6+5.6 G；真包 v1.13=13 G、v1.5=13 G、v2.4=3.1 G、v2.4.zip=11 G",
+  "impact": "下一次打包（v2.5 或新 MiniMVP 版）需约 10–15 G ⇒ 空间不足会直接失败",
+  "action": "🔴 本轮【未删除任何文件】（删除交付物不在本轮授权内，且「任何旧版本目录和 zip 都不覆盖、不删除」是硬纪律）⇒ 已如实登记，等 reviewer / 用户决定清理哪些"
+ },
+
+ "session_discipline": {
+  "lease": "acquire exit 0，TOKEN=d1b1fd4d；全程 beat OK；收尾 release",
+  "machine_lock": "全程 NOT_PRESENT（本轮纯静态 + 桩内执行，无设备推理、无测速 ⇒ 无需持锁）",
+  "corrections_file": "全程只读、未改、未提交（开工＝收尾 SHA/字节/mtime 一致 ⇒ 可称「SHA 零改动」）",
+  "packaging": "未打包、未重打包、未改任何客户包目录",
+  "cpu_inference": "未在 CPU 上跑推理或测速（桩环境只执行 GUI 选项构造函数，不加载模型）"
+ }
+}
