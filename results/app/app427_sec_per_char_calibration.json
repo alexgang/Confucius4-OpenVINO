@@ -1,0 +1,58 @@
+{
+  "created_at": "2026-11-11T02:20:24",
+  "app": "APP-097 §2-4",
+  "action": "backfill _SEC_PER_CHAR for the 6 new languages (dev tree only)",
+  "src_file": "live_caption/tts_engine.py",
+  "evidence_source": "results/app/app326_app097_lang_out/tts.json",
+  "rule": "value = ceil3(max(preset_p50, clone_p50)) of out_dur_s/n_chars",
+  "unchanged_langs": {
+    "zh": 0.25,
+    "ja": 0.15,
+    "ko": 0.18,
+    "en": 0.07
+  },
+  "per_lang": {
+    "de": {
+      "preset_p50": 0.072184,
+      "clone_p50": 0.072518,
+      "max_p50": 0.072518,
+      "value": 0.073
+    },
+    "fr": {
+      "preset_p50": 0.069542,
+      "clone_p50": 0.067606,
+      "max_p50": 0.069542,
+      "value": 0.07
+    },
+    "es": {
+      "preset_p50": 0.0848,
+      "clone_p50": 0.078505,
+      "max_p50": 0.0848,
+      "value": 0.085
+    },
+    "pt": {
+      "preset_p50": 0.079,
+      "clone_p50": 0.08,
+      "max_p50": 0.08,
+      "value": 0.08
+    },
+    "it": {
+      "preset_p50": 0.080769,
+      "clone_p50": 0.074783,
+      "max_p50": 0.080769,
+      "value": 0.081
+    },
+    "ru": {
+      "preset_p50": 0.082645,
+      "clone_p50": 0.080661,
+      "max_p50": 0.082645,
+      "value": 0.083
+    }
+  },
+  "before_sha256": "12f47d0e3f9094f490ef254e67567bf377dc44f02bf7c2f0dd591c056874ff37",
+  "after_sha256": "b53e5670e228f8fbec7e5e674cef1ba488e91fb3a78de6038cf254be14919551",
+  "before_bytes": 94500,
+  "after_bytes": 95063,
+  "pkg_touched": false,
+  "ratio_floor_changed": false
+}
