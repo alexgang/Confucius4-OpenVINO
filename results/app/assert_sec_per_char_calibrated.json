@@ -1,0 +1,297 @@
+{
+  "created_at": "2026-11-11T02:20:56",
+  "app": "APP-097 §2-4",
+  "criterion": "A=6 新值==证据复算的 ceil3(max(preset,clone)p50)；B=zh/en/ja/ko 未变；C=表形状 10 键；D=新值>=0.07（守卫只会变松）；E=别名口径同值；F=反证组（改值必须 FAIL）",
+  "device_job": false,
+  "lock_note": "纯 CPU 静态检查（不加载模型、不占 GPU/NPU）⇒ 不需要 MACHINE_LOCK",
+  "src": "live_caption/tts_engine.py",
+  "evidence_source": "results/app/app326_app097_lang_out/tts.json",
+  "expected_values": {
+    "de": 0.073,
+    "fr": 0.07,
+    "es": 0.085,
+    "pt": 0.08,
+    "it": 0.081,
+    "ru": 0.083
+  },
+  "n_checks": 27,
+  "n_ok": 27,
+  "n_bad": 0,
+  "verdict": "PASS",
+  "checks": [
+    {
+      "id": "A-de",
+      "group": "A",
+      "name": "sec_per_char[de] == 实测校准值",
+      "ok": true,
+      "got": 0.073,
+      "want": 0.073
+    },
+    {
+      "id": "A-fr",
+      "group": "A",
+      "name": "sec_per_char[fr] == 实测校准值",
+      "ok": true,
+      "got": 0.07,
+      "want": 0.07
+    },
+    {
+      "id": "A-es",
+      "group": "A",
+      "name": "sec_per_char[es] == 实测校准值",
+      "ok": true,
+      "got": 0.085,
+      "want": 0.085
+    },
+    {
+      "id": "A-pt",
+      "group": "A",
+      "name": "sec_per_char[pt] == 实测校准值",
+      "ok": true,
+      "got": 0.08,
+      "want": 0.08
+    },
+    {
+      "id": "A-it",
+      "group": "A",
+      "name": "sec_per_char[it] == 实测校准值",
+      "ok": true,
+      "got": 0.081,
+      "want": 0.081
+    },
+    {
+      "id": "A-ru",
+      "group": "A",
+      "name": "sec_per_char[ru] == 实测校准值",
+      "ok": true,
+      "got": 0.083,
+      "want": 0.083
+    },
+    {
+      "id": "B-zh",
+      "group": "B",
+      "name": "sec_per_char[zh] 未变",
+      "ok": true,
+      "got": 0.25,
+      "want": 0.25
+    },
+    {
+      "id": "B-ja",
+      "group": "B",
+      "name": "sec_per_char[ja] 未变",
+      "ok": true,
+      "got": 0.15,
+      "want": 0.15
+    },
+    {
+      "id": "B-ko",
+      "group": "B",
+      "name": "sec_per_char[ko] 未变",
+      "ok": true,
+      "got": 0.18,
+      "want": 0.18
+    },
+    {
+      "id": "B-en",
+      "group": "B",
+      "name": "sec_per_char[en] 未变",
+      "ok": true,
+      "got": 0.07,
+      "want": 0.07
+    },
+    {
+      "id": "C1",
+      "group": "C",
+      "name": "键集合 == 4 既有 + 6 新增",
+      "ok": true,
+      "got": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "ja",
+        "ko",
+        "pt",
+        "ru",
+        "zh"
+      ],
+      "want": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "ja",
+        "ko",
+        "pt",
+        "ru",
+        "zh"
+      ]
+    },
+    {
+      "id": "C2",
+      "group": "C",
+      "name": "无 4 语言之外的额外键",
+      "ok": true,
+      "got": 10,
+      "want": 10
+    },
+    {
+      "id": "D-de",
+      "group": "D",
+      "name": "sec_per_char[de] >= 占位初值 0.07",
+      "ok": true,
+      "got": 0.073,
+      "want": ">= 0.07"
+    },
+    {
+      "id": "D-fr",
+      "group": "D",
+      "name": "sec_per_char[fr] >= 占位初值 0.07",
+      "ok": true,
+      "got": 0.07,
+      "want": ">= 0.07"
+    },
+    {
+      "id": "D-es",
+      "group": "D",
+      "name": "sec_per_char[es] >= 占位初值 0.07",
+      "ok": true,
+      "got": 0.085,
+      "want": ">= 0.07"
+    },
+    {
+      "id": "D-pt",
+      "group": "D",
+      "name": "sec_per_char[pt] >= 占位初值 0.07",
+      "ok": true,
+      "got": 0.08,
+      "want": ">= 0.07"
+    },
+    {
+      "id": "D-it",
+      "group": "D",
+      "name": "sec_per_char[it] >= 占位初值 0.07",
+      "ok": true,
+      "got": 0.081,
+      "want": ">= 0.07"
+    },
+    {
+      "id": "D-ru",
+      "group": "D",
+      "name": "sec_per_char[ru] >= 占位初值 0.07",
+      "ok": true,
+      "got": 0.083,
+      "want": ">= 0.07"
+    },
+    {
+      "id": "E-de",
+      "group": "E",
+      "name": "_lang_key('german') -> 'de' 且取到同一校准值",
+      "ok": true,
+      "got": [
+        "de",
+        7.8999999999999995
+      ],
+      "want": [
+        "de",
+        7.8999999999999995
+      ]
+    },
+    {
+      "id": "E-fr",
+      "group": "E",
+      "name": "_lang_key('français') -> 'fr' 且取到同一校准值",
+      "ok": true,
+      "got": [
+        "fr",
+        7.6000000000000005
+      ],
+      "want": [
+        "fr",
+        7.6000000000000005
+      ]
+    },
+    {
+      "id": "E-es",
+      "group": "E",
+      "name": "_lang_key('español') -> 'es' 且取到同一校准值",
+      "ok": true,
+      "got": [
+        "es",
+        9.1
+      ],
+      "want": [
+        "es",
+        9.1
+      ]
+    },
+    {
+      "id": "E-pt",
+      "group": "E",
+      "name": "_lang_key('português') -> 'pt' 且取到同一校准值",
+      "ok": true,
+      "got": [
+        "pt",
+        8.6
+      ],
+      "want": [
+        "pt",
+        8.6
+      ]
+    },
+    {
+      "id": "E-it",
+      "group": "E",
+      "name": "_lang_key('italiano') -> 'it' 且取到同一校准值",
+      "ok": true,
+      "got": [
+        "it",
+        8.7
+      ],
+      "want": [
+        "it",
+        8.7
+      ]
+    },
+    {
+      "id": "E-ru",
+      "group": "E",
+      "name": "_lang_key('русский') -> 'ru' 且取到同一校准值",
+      "ok": true,
+      "got": [
+        "ru",
+        8.9
+      ],
+      "want": [
+        "ru",
+        8.9
+      ]
+    },
+    {
+      "id": "F1",
+      "group": "F",
+      "name": "改回占位初值 0.07 ⇒ A 组必须 FAIL（fr 校准值恰为 0.070 ⇒ 预期 5 条）",
+      "ok": true,
+      "got": 5,
+      "want": ">= 5"
+    },
+    {
+      "id": "F2",
+      "group": "F",
+      "name": "把 ru 改成 0.123 ⇒ A 组必须 FAIL",
+      "ok": true,
+      "got": 1,
+      "want": ">= 1"
+    },
+    {
+      "id": "F3",
+      "group": "F",
+      "name": "把 zh 改成 0.30 ⇒ B 组必须 FAIL",
+      "ok": true,
+      "got": 1,
+      "want": ">= 1"
+    }
+  ]
+}
