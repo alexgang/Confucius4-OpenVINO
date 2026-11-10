@@ -1,0 +1,1202 @@
+{
+ "created_at": "2026-11-11 00:44:43",
+ "file": "live_caption/live_caption_app.py",
+ "n_commits": 63,
+ "criterion_d2_note": "🔴 上一版判据依赖表名 `ENGINES_ASR06B` ⇒ 在 rc5 上假阴性 (rc5 把 kind=asr06b 直接写在 ENGINES 表里) ⇒ 本版改为「表里有没有 kind==asr06b 的条目」+ 「build_asr_options 是否比较到它」⇒ 不依赖表名",
+ "commits": [
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=291 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 291,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "asr06b",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "4637861",
+   "date": "2026-11-11 00:25:45",
+   "subject": "app: APP-098 MiniMVP rc7 —— 三后端去 CUDA/克隆置灰/10 语种 + rc5 五问题 + 新查 asr06b label 撞车"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=286 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 286,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "ba76ea5",
+   "date": "2026-11-10 16:00:50",
+   "subject": "APP-093/APP-097: fix GUI layout swallowed by _clone_nearest; finish §3 device acceptance"
+  },
+  {
+   "d1": "BROKEN",
+   "d1_detail": "__init__ collapsed to 27 stmts, no layout calls",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 27,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": false,
+   "engine_tables": [],
+   "sha": "1cc86b2",
+   "date": "2026-11-10 06:30:12",
+   "subject": "APP-089/090/091/092: x-vector-only clone + self_ref/XV/split + zh speed 1.10-1.50 + 3-line subtitle + TTS late-drop"
+  },
+  {
+   "d1": "BROKEN",
+   "d1_detail": "__init__ collapsed to 24 stmts, no layout calls",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 24,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": false,
+   "engine_tables": [],
+   "sha": "874924a",
+   "date": "2026-11-09 12:26:26",
+   "subject": "APP-086(2): wire clone policy into App main loop (GUI+CLI); worker guard: no previous-speaker voice; seg in TTS jsonl"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=282 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 282,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "b1496ba",
+   "date": "2026-11-09 09:43:26",
+   "subject": "APP-086/087/088: merge claude-clone, port clone a-f + CUDA ICL, ack; stop at reviewer gate"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=282 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 282,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "98cf8fc",
+   "date": "2026-11-07 21:29:24",
+   "subject": "v2.4: preset voice never registers/uses clone voices (CLI + GUI pumps gated on clone mode)"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=282 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 282,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "a3d2137",
+   "date": "2026-11-07 19:31:58",
+   "subject": "v2.4 prep: drop debug dump hook, lazy 512-frame vocoder + trimmed buckets, speaker clustering v2 overrides"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=282 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 282,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "3a8e45f",
+   "date": "2026-11-07 18:48:41",
+   "subject": "clone: let a speaker's cloned voice upgrade to a later, longer run; stop re-registering"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=282 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 282,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "ac61878",
+   "date": "2026-11-06 14:05:08",
+   "subject": "App: §140 执行 APP-075/076/077/078 并落盘证据"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=281 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 281,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "b189561",
+   "date": "2026-11-05 11:20:15",
+   "subject": "app(§136): APP-068/069/070 代码侧落地 + MiniMVP rc3 设备级 3(a) PASS 9/0"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=280 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 280,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "485a961",
+   "date": "2026-11-05 08:39:55",
+   "subject": "app(§135): APP-067 ②④ 设备级补齐 + APP-066 3(a)(b) + 修 MiniMVP rc2 的 app191 缺陷"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=280 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 280,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "e804108",
+   "date": "2026-11-04 16:52:06",
+   "subject": "app(APP-067 ③④): 修 D4 状态栏显示 NPU + 150% 按钮截断 + 高级组截图 + 模态弹框挡探针"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=277 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 277,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "42b62e7",
+   "date": "2026-11-04 16:17:08",
+   "subject": "app(APP-067 ①③⑤): 修克隆 0% 根因（加载期排队 + seg→spk 绑定）+ D4 状态栏取真值 + D1 5s 窗口包侧落地"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=277 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 277,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "0fb3387",
+   "date": "2026-11-02 20:56:56",
+   "subject": "app(APP-063/064/065): 修 D4 覆盖 bug + 补齐 D2 四入口 + APP-065 A 界面重排 5 组 + 改名 + 锁纪律"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=242 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 242,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "6d284ff",
+   "date": "2026-11-02 10:59:52",
+   "subject": "app(APP-062): §131 执行 D1-D4 + §130 自查 3 个真缺陷（闸门口径 + 串音 + 判据作用域）"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=241 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 241,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "d61e7a1",
+   "date": "2026-11-02 02:01:29",
+   "subject": "app(APP-061): 用户实测 v2.1 的 6 个问题 ⇒ 代码层全修 ＋ 打 v2.2 候选包"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=236 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 236,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "f220c14",
+   "date": "2026-11-01 15:41:10",
+   "subject": "fix(app): §123 —— APP-052/053/054（.lnk 坏链 + ACCEPTED 重签 + 说话人标签 7 %→93.48 % + 旁路线程化）"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=228 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 228,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "d866c47",
+   "date": "2026-11-01 01:08:22",
+   "subject": "feat(app): §117 —— APP-051 三条子项全部完成（重打 v1.13 + APP-043 真机验收 + ACCEPTED.json + 桌面快捷方式）"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=228 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 228,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "4034bbb",
+   "date": "2026-10-30 18:56:09",
+   "subject": "feat(app): APP-046…049 —— 说话人资产按新清单重同步 + GUI 三分区状态条 + STATUS/CORRECTIONS 压缩"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=210 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 210,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "ff031da",
+   "date": "2026-10-30 09:44:26",
+   "subject": "fix(app): §100 — APP-039/040 第二轮审计 4 处断链（G/H/I/J）＋ 修掉 4 处验收判据自身缺陷 ＋ 客户包 v1.11 持锁重打 zip（zip 半交付）"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=210 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 210,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "b5bd143",
+   "date": "2026-10-30 04:02:00",
+   "subject": "fix(app): §99 — 修掉 APP-039/040 侧「音色按句绑定」链路的 5 处断链（A/B/C/E/F）＋ 3 个验收脚本判据自身缺陷"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=208 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 208,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "0df9c3e",
+   "date": "2026-10-30 02:03:03",
+   "subject": "app: §97 半交付闭环 — APP-039/040 音色按句绑定 + APP-042 worker 侧定速（含 app149 判据缺陷修复）"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=201 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 201,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "423c14e",
+   "date": "2026-10-29 21:57:55",
+   "subject": "app: 修掉 APP-042 CLI 路径不传 target_play_at 导致自适应加速永不触发的真机实测缺陷"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=201 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 201,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "37d278a",
+   "date": "2026-10-29 17:18:18",
+   "subject": "app: APP-041 启动时显式初始化 TTS + APP-042 自适应加速播放（WSOLA 保音高）"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=195 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 195,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "35634fd",
+   "date": "2026-10-29 16:14:16",
+   "subject": "app: §94 执行 APP-039/040 的显示层部分；打包版本号改为每次自动递增（v1.7）"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=195 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 195,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "dc7603b",
+   "date": "2026-10-29 13:03:32",
+   "subject": "app: §92 执行 APP-034/035/036/037/038 五条纠偏（代码侧）"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=195 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 195,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "5f4159b",
+   "date": "2026-10-28 16:29:57",
+   "subject": "App §84+§85: APP-027 V3（克隆）实测跑完（CUDA/NPU 各 20 PASS/0 FAIL）＋ 客户包 NOTICE 许可不实表述修正"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=194 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 194,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "20da2de",
+   "date": "2026-10-28 11:14:40",
+   "subject": "App §81: APP-027 V2 争用定量 ABBA 实测(4 臂) + 补齐「TTS 单独」引擎级基线 + 修掉整目录删除触发批量删除保护"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=194 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 194,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "c89bbc8",
+   "date": "2026-10-27 23:55:23",
+   "subject": "App: 修 CLI 模式 on_final 签名契约缺陷(预先存在) + 定点同步脚本 + 9 条判据证据"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=194 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 194,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "83cac33",
+   "date": "2026-10-27 22:56:15",
+   "subject": "App §77: 补上 APP-030① 离线朗读路径漏传 lang 的真实缺陷 + APP-031/032 已执行 + 客户包定点同步"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=194 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 194,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "a9ed250",
+   "date": "2026-10-27 21:30:30",
+   "subject": "App §75: APP-030 日文失控修复(代码侧 5 项全完成) + APP-029 接口预留"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=194 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 194,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "6d90715",
+   "date": "2026-10-27 16:21:48",
+   "subject": "§70 APP-028（BLOCKING）代码侧改造：① 默认设备摆放定案 + ② 无界队列连续推理播放架构"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=194 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 194,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "d80ef22",
+   "date": "2026-10-27 12:33:27",
+   "subject": "§68 APP-026 + APP-027（BLOCKING）代码侧改造：NPU 卡顿 / CUDA 全丢 / 克隆未接入"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=184 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 184,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "6d7ef24",
+   "date": "2026-10-27 09:50:59",
+   "subject": "feat(app): APP-023①③④ / APP-025 —— CUDA 边车 std 句柄 + worker 解释器 + 去掉旧引擎回落 + 测试音不依赖 worker"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=184 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 184,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "37d06de",
+   "date": "2026-10-27 06:51:06",
+   "subject": "feat(app): §61 补齐 APP-021⑥「逐句 wav 落盘」的 App CLI 半边（--tts-dump-dir）"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=184 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 184,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "48b646f",
+   "date": "2026-10-26 20:50:33",
+   "subject": "feat(app): §55 响应 APP-022 —— 预留 spk/spk_conf 接口（未集成）+ TTS-017① cp_prefill → NPU"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=179 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 179,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "a68d121",
+   "date": "2026-10-26 16:25:02",
+   "subject": "feat(app): §54 响应 APP-021 —— 把播放链路做成可观测 + 撤回「played ≥ 1 ⇒ 能出声」"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=176 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 176,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "48956d4",
+   "date": "2026-10-26 15:49:00",
+   "subject": "feat(app): 合入 MT 方案 C 补丁 + App 侧 5 元组事件契约改造"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=176 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 176,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "e2d7bc2",
+   "date": "2026-10-26 14:59:21",
+   "subject": "fix(app): §52 TTS worker error —— 设备解析稳定化 + 故障自带原因 + 可重试"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=176 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 176,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "62bd589",
+   "date": "2026-10-26 13:32:34",
+   "subject": "feat(app): §51 TTS 离线朗读 —— 文件/对话框文本直接语音播报（不经过 ASR/翻译）"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=170 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 170,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "57e3860",
+   "date": "2026-10-26 10:30:18",
+   "subject": "fix(app): §48 响应 APP-018/APP-019 —— TTS 流式化 + 第三方素材排除 + 两道新闸门"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=169 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 169,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "ccb8b22",
+   "date": "2026-10-25 21:28:11",
+   "subject": "feat(app): 按用户决定落地「CUDA（PyTorch）」为本机可选语音输出后端（§41）"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=169 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 169,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "5c8400a",
+   "date": "2026-10-25 19:29:26",
+   "subject": "fix(app): 修掉「语音输出无论 NPU/GPU 都听不到声音」—— 环形缓冲整句原子写入的容量死锁"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=169 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 169,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "a479e00",
+   "date": "2026-10-25 18:11:04",
+   "subject": "fix(app): ASR 设备去重（保留 CUDA）+ 修掉「语音输出无法工作」"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=169 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 169,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "20f5adb",
+   "date": "2026-10-25 10:43:32",
+   "subject": "APP-014②: v1.5 打包准备 —— 脱敏接缝判据注释里的内部会议片段 + 版本号升 1.5 + README v1.5 段 + 打包前自检"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=169 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 169,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "84fcf79",
+   "date": "2026-10-25 10:25:08",
+   "subject": "APP: APP-014① TTS 转为正式功能 —— 去「实验性」标注 + 默认开启 + 耳机提示"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=167 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 167,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "e301333",
+   "date": "2026-10-25 10:16:59",
+   "subject": "APP: APP-012②/APP-014① 修掉段接缝重复词 —— 旧 stitch 只试 n=3,2 一次都没命中"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=167 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 167,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "6a1dee6",
+   "date": "2026-10-25 09:22:29",
+   "subject": "APP: 修掉设备下拉里不存在的「Intel GPU 2」+ TTS 设备下拉加 CUDA 选项"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=167 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 167,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "5b99bfd",
+   "date": "2026-10-25 07:50:20",
+   "subject": "APP §31: 巡检（无新纠偏条目）+ 修掉 TTS close() 不计丢句 与 GUI 退出丢最后一句译文"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=167 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 167,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "48b8bd3",
+   "date": "2026-10-25 00:33:52",
+   "subject": "APP §25: 合入 MT 移交的 translator.py 三处修复 + 修掉 App 侧 clear() 不重置 MT 会话的真实缺口 + 客户包定点同步（3 文件）"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=167 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 167,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "60d2f81",
+   "date": "2026-10-24 03:18:58",
+   "subject": "APP §17: v1.4 客户包「真正交付闭环」+ 修掉 4 个打包脚本缺陷 + App 侧改动入库"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=167 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 167,
+   "asr06b_in_table": false,
+   "kinds_handled": [
+    "cuda",
+    "npu"
+   ],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "94a4aed",
+   "date": "2026-10-23 16:56:27",
+   "subject": "APP: GUI 四项改造 —— 三分区配置面板 / 状态栏迁移 / 字幕两栏 / 鼠标穿透"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=123 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 123,
+   "asr06b_in_table": false,
+   "kinds_handled": [],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "0ec3b43",
+   "date": "2026-10-23 13:58:06",
+   "subject": "APP-005①②③ + APP-006 第1~2步：内部素材脱库、打包断言改 INT8、回放语种与统计口径纠正、历史改写预备"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=123 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 123,
+   "asr06b_in_table": false,
+   "kinds_handled": [],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "ca29a83",
+   "date": "2026-10-23 11:24:42",
+   "subject": "C-133/C-134：默认 MT 改 INT8-CW（用户决定）+ 客户包瘦身 + results 内部内容隔离"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=123 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 123,
+   "asr06b_in_table": false,
+   "kinds_handled": [],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "5ca8b9c",
+   "date": "2026-10-23 11:14:59",
+   "subject": "C-111：翻译层「段尾半句当段即翻 + 补全后修正」"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=123 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 123,
+   "asr06b_in_table": false,
+   "kinds_handled": [],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "b0f252f",
+   "date": "2026-10-22 22:24:28",
+   "subject": "C-109：MIN_SEG_SEC 12s → 6s（用户决策），不做 Manual 模式"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=123 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 123,
+   "asr06b_in_table": false,
+   "kinds_handled": [],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "e39094e",
+   "date": "2026-10-22 18:54:57",
+   "subject": "C-108：按 Qwen3-ASR-Flash-Realtime 方案改造分句定稿规则"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=123 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 123,
+   "asr06b_in_table": false,
+   "kinds_handled": [],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "8e65027",
+   "date": "2026-10-22 17:38:39",
+   "subject": "C-106/C-107：语音准入门槛收紧到 -40dB + 分句算法缺陷诊断"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=123 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 123,
+   "asr06b_in_table": false,
+   "kinds_handled": [],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "a037e55",
+   "date": "2026-10-22 16:17:02",
+   "subject": "C-105：保护期改用相对阈值（绝对 ∪ 相对）—— 真实录音上白字提前中位 5.76s"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=123 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 123,
+   "asr06b_in_table": false,
+   "kinds_handled": [],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "81fa5cc",
+   "date": "2026-10-22 09:49:26",
+   "subject": "H-003：翻译术语表（--mt-glossary），走 MT2 官方 Terminology 模板"
+  },
+  {
+   "d1": "OK",
+   "d1_detail": "__init__ n_stmts=123 + layout calls + _clone_nearest at class level",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 123,
+   "asr06b_in_table": false,
+   "kinds_handled": [],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "9cc1ac4",
+   "date": "2026-10-22 09:34:54",
+   "subject": "C-102 完成 + 客户包 v1.3：翻译模型换 Hy-MT2、断句重写、FTP 服务、发布工具链"
+  },
+  {
+   "d1": "UNKNOWN",
+   "d1_detail": "n_init_stmts=71 nested=False layout=True",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 71,
+   "asr06b_in_table": false,
+   "kinds_handled": [],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "94b5333",
+   "date": "2026-10-20 09:41:52",
+   "subject": "C-101 前置：translator.py 支持客户包布局 + --out 目录自动创建"
+  },
+  {
+   "d1": "UNKNOWN",
+   "d1_detail": "n_init_stmts=71 nested=False layout=True",
+   "d2": "NA",
+   "d2_detail": "no kind==\"asr06b\" entry in ASR engine table (tables=[], n_entries=0)",
+   "n_init_stmts": 71,
+   "asr06b_in_table": false,
+   "kinds_handled": [],
+   "n_asr_entries": 0,
+   "clone_nested": false,
+   "has_layout_call": true,
+   "engine_tables": [],
+   "sha": "528dff3",
+   "date": "2026-10-20 09:23:41",
+   "subject": "C-098~C-100: live_caption 实时字幕 App 源码入库（含 Hunyuan 实时翻译）"
+  }
+ ],
+ "defect_window": {
+  "introduced_at": "874924a",
+  "fixed_at": "ba76ea5",
+  "n_commits_in_window": 2,
+  "commits": [
+   {
+    "sha": "ba76ea5",
+    "date": "2026-11-10 16:00:50",
+    "d1": "OK",
+    "d2": "NA",
+    "subject": "APP-093/APP-097: fix GUI layout swallowed by _clone_nearest; finish §3"
+   },
+   {
+    "sha": "1cc86b2",
+    "date": "2026-11-10 06:30:12",
+    "d1": "BROKEN",
+    "d2": "NA",
+    "subject": "APP-089/090/091/092: x-vector-only clone + self_ref/XV/split + zh spee"
+   }
+  ],
+  "d1_broken_commits": [
+   "1cc86b2"
+  ],
+  "d2_bug_commits": []
+ },
+ "all_d1_broken": [
+  "1cc86b2",
+  "874924a"
+ ],
+ "all_d2_bug": []
+}
