@@ -1,0 +1,117 @@
+{
+ "ts": "2026-11-10T08:47:43",
+ "criterion": "APP-093 §3.4 before 臂补齐 + §2e 撞帧上限/late p50-p95 数字",
+ "method": "静态补算：复用已落盘的 before 运行目录（rc=0 / run_manifest 完整 / wav_sha256 与 after 逐字一致），未重跑设备、未改默认值",
+ "device_job": false,
+ "lock_record": null,
+ "lock_note": "APP-093 §2e 指出 app385 无 lock/timing_valid 字段；本文件为静态补算非计时跑，明确不持锁",
+ "n_materials": 2,
+ "scores": [
+  {
+   "arm": "before",
+   "material": "dialog3_tight",
+   "run_rc": 0,
+   "wav_sha256": "45afb44850e6991dfd5dad03d46b686eed6c736fbf51c0e82f2bd76443865deb",
+   "manifest_started": "2026-11-10 06:31:05",
+   "manifest_ended": null,
+   "n_tts_rows": 78,
+   "n_voiced_rows": 78,
+   "n_late_drop": 0,
+   "late_drop_note": "before 代码 jsonl 无 late_drop 字段（late_drop_field_present=False），跳过机制不存在，故 n_late_drop=0 是结构性的、非测量值",
+   "late_drop_field_present": false,
+   "speed_p50": 1.1129,
+   "speed_p90": 1.1656,
+   "synth_rtf_p50": 0.8919,
+   "synth_rtf_p90": 0.9874,
+   "synth_rtf_p95": 1.0247,
+   "play_lag_s_p50": 16.5585,
+   "play_lag_s_p95": 20.2544,
+   "speed_lag_s_p50": 13.8845,
+   "speed_lag_s_p95": 18.3613,
+   "in_dur_s_p50": 2.32,
+   "in_dur_s_p95": 6.064,
+   "end_reason_counts": {
+    "eos": 78
+   },
+   "n_frames_nonempty": 0,
+   "n_hit_frame_cap": 0,
+   "n_hit_frame_cap_note": "APP-093 §2e：frames 字段全空（n_frames_nonempty=0）；以 end_reason 判定，全部为 eos ⇒ 撞帧上限=0（字段来源 tts.jsonl.end_reason）",
+   "n_subtitle_lines": 35,
+   "spk_match_rate": null,
+   "spk_match_note": "音色归属真值余弦需 x-vector 与 truth.json 三人参考比对，静态补算不做，列 APP-093 §3.5 待办",
+   "src": {
+    "tts_jsonl": {
+     "path": "C:/Users/Trekker-PTL/_app_shadow/runs2/before/dialog3_tight/tts.jsonl",
+     "bytes": 107857,
+     "sha256": "adf3b95dea66d8d35999893e95c4a8011eb13fbc87447a4e12ee2bcc2e211169",
+     "mtime": "2026-11-10T06:35:01"
+    },
+    "run_manifest": {
+     "path": "C:/Users/Trekker-PTL/_app_shadow/runs2/before/dialog3_tight/run_manifest.json",
+     "bytes": 57354,
+     "sha256": "3a9662e0c12220641cf9480d42fb549f2f47e809ef0ad289fe6ad1742dd36215",
+     "mtime": "2026-11-10T06:35:05"
+    },
+    "subtitles": {
+     "path": "C:/Users/Trekker-PTL/_app_shadow/runs2/before/dialog3_tight/subtitles.txt",
+     "bytes": 3873,
+     "sha256": "2b9522837e440b2bf67d16bd8c15a9bc88f05f5af556b4904e7cb68df85f1d5f",
+     "mtime": "2026-11-10T06:34:50"
+    }
+   }
+  },
+  {
+   "arm": "before",
+   "material": "dialog3_dave",
+   "run_rc": 0,
+   "wav_sha256": "b2da188a020d453e8d1e1508cda77632548c2b4039058041e9a2627d6861d231",
+   "manifest_started": "2026-11-10 06:35:05",
+   "manifest_ended": null,
+   "n_tts_rows": 84,
+   "n_voiced_rows": 84,
+   "n_late_drop": 0,
+   "late_drop_note": "before 代码 jsonl 无 late_drop 字段（late_drop_field_present=False），跳过机制不存在，故 n_late_drop=0 是结构性的、非测量值",
+   "late_drop_field_present": false,
+   "speed_p50": 1.0438,
+   "speed_p90": 1.122,
+   "synth_rtf_p50": 0.9634,
+   "synth_rtf_p90": 1.0473,
+   "synth_rtf_p95": 1.0649,
+   "play_lag_s_p50": 33.532,
+   "play_lag_s_p95": 53.8113,
+   "speed_lag_s_p50": 28.88,
+   "speed_lag_s_p95": 47.7622,
+   "in_dur_s_p50": 4.8,
+   "in_dur_s_p95": 8.776,
+   "end_reason_counts": {
+    "eos": 84
+   },
+   "n_frames_nonempty": 0,
+   "n_hit_frame_cap": 0,
+   "n_hit_frame_cap_note": "APP-093 §2e：frames 字段全空（n_frames_nonempty=0）；以 end_reason 判定，全部为 eos ⇒ 撞帧上限=0（字段来源 tts.jsonl.end_reason）",
+   "n_subtitle_lines": 55,
+   "spk_match_rate": null,
+   "spk_match_note": "音色归属真值余弦需 x-vector 与 truth.json 三人参考比对，静态补算不做，列 APP-093 §3.5 待办",
+   "src": {
+    "tts_jsonl": {
+     "path": "C:/Users/Trekker-PTL/_app_shadow/runs2/before/dialog3_dave/tts.jsonl",
+     "bytes": 118205,
+     "sha256": "87b31aa62a6c19bdffdf94ff460a5444a7ae7f4806900827f298b1f8ca842e8b",
+     "mtime": "2026-11-10T06:42:01"
+    },
+    "run_manifest": {
+     "path": "C:/Users/Trekker-PTL/_app_shadow/runs2/before/dialog3_dave/run_manifest.json",
+     "bytes": 58464,
+     "sha256": "c52dd8a071b1600f3b97caf3ec73017fa1ab01bce4758090d944cbf2f917f5ce",
+     "mtime": "2026-11-10T06:42:06"
+    },
+    "subtitles": {
+     "path": "C:/Users/Trekker-PTL/_app_shadow/runs2/before/dialog3_dave/subtitles.txt",
+     "bytes": 6137,
+     "sha256": "2e71e67bf3001a8952f2e1f206aa6d1999cc5da9a479604881c072fca2e923f0",
+     "mtime": "2026-11-10T06:41:12"
+    }
+   }
+  }
+ ]
+}
