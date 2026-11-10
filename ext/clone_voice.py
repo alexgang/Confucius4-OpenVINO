@@ -30,6 +30,7 @@ CLONE_ICL = os.environ.get("EXT_CLONE_ICL", "0").strip() == "1"
 XV_FIRST_S = 3.0       # x-vector speaker reference: first at >= 3 s of clean labelled sentences
 XV_UPGRADE_S = 8.0     # one upgrade at >= 8 s, then frozen
 XV_MAX_S = 10.0
+XV_UPGRADE = os.environ.get("EXT_CLONE_XV_UPGRADE", "0").strip() == "1"   # 11-10: 0 = keep the first reference
 # 11-09 user: "timbre keeps adjusting; the first one was closest" => anchor on the first good dub
 CLONE_ANCHOR = os.environ.get("EXT_CLONE_ANCHOR", "0").strip() == "1"   # off until measured
 ANCHOR_MIN_S, ANCHOR_MAX_S = 4.0, 7.0
@@ -191,7 +192,7 @@ class CloneVoices:
             cur = self._ref_dur.get(spk, 0.0)      # ICL reference seconds (interim = 0)
             if cur > 0 and (self._upgraded.get(spk) or
                             (CLONE_ICL and cur + REF_UPGRADE_GAIN > REF_MAX_S) or
-                            (not CLONE_ICL and cur >= XV_UPGRADE_S)):
+                            (not CLONE_ICL and (cur >= XV_UPGRADE_S or not XV_UPGRADE))):
                 continue
             if CLONE_ICL:
                 # one sentence only (concatenated references broke the Chinese pronunciation)
