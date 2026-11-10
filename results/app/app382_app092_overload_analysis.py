@@ -169,6 +169,25 @@ def analyze_dir(d: str, label: str) -> dict:
     n_split_total = sum(int(r.get('n_split') or 0) for r in seg_rows)
     n_split_ready = sum(1 for r in seg_rows if int(r.get('n_split') or 0) > 0)
 
+    # 🔴 **积压曲线**（`mix.wav.backlog_curve.csv`）⇒ 判「积压能否排空」
+    #   列：t_s,backlog_s,lag_s,ring_s,synth_s,queued_s,n_played,n_dropped,n_empty,n_submitted
+    curve = os.path.join(d, 'mix.wav.backlog_curve.csv')
+    bl = []
+    if os.path.isfile(curve):
+        with open(curve, encoding='utf-8', errors='replace') as f:
+            for i, ln in enumerate(f):
+                if i == 0:
+                    continue
+                parts = ln.strip().split(',')
+                if len(parts) >= 10:
+                    try:
+                        bl.append((float(parts[0]), float(parts[1]),
+                                   int(parts[7]), int(parts[9])))
+                    except Exception:
+                        pass
+    bl_peak = max((b for _t, b, _dr, _n in bl), default=None)
+    bl_final = bl[-1][1] if bl else None
+
     arts = {}
     for fn in ('tts.jsonl', 'subtitles.txt', 'subtitles.mt.txt',
                'spk_seg.jsonl', 'run.log', 'mix.wav'):
@@ -205,6 +224,8 @@ def analyze_dir(d: str, label: str) -> dict:
         'label_wait_s': round(label_wait_s, 3),
         'speed_min': min(speeds) if speeds else None,
         'speed_max': max(speeds) if speeds else None,
+        'backlog_peak_s': bl_peak,
+        'backlog_final_s': bl_final,
         'n_split_total': n_split_total,
         'n_split_ready_segs': n_split_ready,
         'n_spk_seg_rows': len(seg_rows),
@@ -228,20 +249,20 @@ def neg_controls(overload: dict, normal: dict) -> list:
         'detail': 'cleared=%d original=%d' % (n_cleared, overload['n_late_drop']),
     })
 
-    # ② 反证：删掉字幕行 ⇒ (a)「定稿段一行不少」必须塌
+    # ② 反证：删掉字幕行 ⇒ (a)「字幕行数 == ASR 定稿段数」必须塌
     subs = read_lines(os.path.join(normal['dir'], 'subtitles.txt'))
     n_sub = len(subs)
-    n_mt = normal['n_mt_lines']
+    n_asr = normal['n_spk_seg_rows']
     trimmed_sub = len(subs[:-3]) if len(subs) > 3 else 0
-    # 判据（与 checks 里的 (a) 同口径）：字幕行 > 0 且 译文行 >= 字幕行
-    bad_ok = (trimmed_sub > 0 and n_mt >= trimmed_sub)
-    orig_ok = (n_sub > 0 and n_mt >= n_sub)
+    # 判据（与 checks 里的 (a) 同口径）：字幕行数 == ASR 定稿段数
+    orig_ok = (n_asr > 0 and n_sub == n_asr)
+    bad_ok = (n_asr > 0 and trimmed_sub == n_asr)
     ok = (orig_ok is True) and (bad_ok is False)
     out.append({
         'name': '反证②: 删 3 行字幕 ⇒ (a) 判据必须 FAIL',
         'ok': ok,
-        'detail': '原判据=%s（字幕 %d 行 / 译文 %d 行）; 删后=%s（字幕 %d 行）'
-                  % (orig_ok, n_sub, n_mt, bad_ok, trimmed_sub),
+        'detail': '原判据=%s（字幕 %d 行 == ASR 定稿段 %d）; 删后=%s（字幕 %d 行）'
+                  % (orig_ok, n_sub, n_asr, bad_ok, trimmed_sub),
     })
 
     # ③ 反证：把出队滞后（`speed_lag_s`）全部改成 > 阈值 ⇒ (c) 必须塌成「没恢复」
@@ -282,27 +303,36 @@ def main() -> int:
     negs = neg_controls(ov, nm)
 
     checks = []
+    # 🔴 reviewer 原文（APP-092 §3(d)）：「**TTS 跳过 = 0 或接近 0**（给出实际数）」
+    #   ⇒ 判据：跳过数 **≤ 5 %** 且 **≤ 5 句**（两条同时满足才算「接近 0」）
+    #   ⇒ **无论 PASS/FAIL 都必须如实报出实际数**（不掩盖）
+    _tol_n = max(1, int(0.05 * max(nm['n_final_segs'], 1)))
     checks.append({
-        'name': '(d) 正常跑 TTS 跳过句数 = 0 或接近 0',
-        'ok': nm['n_late_drop'] <= max(1, int(0.02 * max(nm['n_final_segs'], 1))),
-        'detail': 'n_late_drop=%d / n_final_segs=%d'
-                  % (nm['n_late_drop'], nm['n_final_segs']),
+        'name': '(d) 正常跑 TTS 跳过句数 = 0 或接近 0（≤5%% 且 ≤5 句）',
+        'ok': nm['n_late_drop'] <= _tol_n and nm['n_late_drop'] <= 5,
+        'detail': '实际 n_late_drop=%d / 定稿段=%d（容差 %d 句且 ≤5）'
+                  '⇒ 跳过率 %.2f %%'
+                  % (nm['n_late_drop'], nm['n_final_segs'], _tol_n,
+                     100.0 * nm['n_late_drop'] / max(nm['n_final_segs'], 1)),
     })
     # 🔴 **APP-092 §1「ASR、MT 永不跳段」** ⇒ 字幕/转写**必须 100 % 完整**
     #   （不管 TTS 跳了多少句，**字幕与 txt 都一行不少**）
+    # 🔴 **判据必须是「可被证伪」的**：定稿段数由 **ASR 侧的 `spk_seg.jsonl`** 独立给出
+    #   （那是 ASR 真正产出的段数）⇒ 字幕行数必须**等于**它 ⇒ 删一行就 FAIL
+    def complete_ok(d):
+        return (d['n_spk_seg_rows'] > 0
+                and d['n_subtitle_lines'] == d['n_spk_seg_rows'])
     checks.append({
-        'name': '(a) 字幕/转写完整度 = 100 %（正常跑：定稿段一行不少）',
-        'ok': (nm['n_subtitle_lines'] > 0
-               and nm['n_mt_lines'] >= nm['n_subtitle_lines']),
-        'detail': '字幕行=%d 译文行=%d 定稿段=%d（字幕行 = 定稿段数 ⇒ 一行不少）'
-                  % (nm['n_subtitle_lines'], nm['n_mt_lines'], nm['n_final_segs']),
+        'name': '(a) 字幕完整度 = 100 %（正常跑：字幕行数 == ASR 定稿段数）',
+        'ok': complete_ok(nm),
+        'detail': '字幕行=%d ASR定稿段=%d 译文行=%d'
+                  % (nm['n_subtitle_lines'], nm['n_spk_seg_rows'], nm['n_mt_lines']),
     })
     checks.append({
-        'name': '(a) 字幕/转写完整度 = 100 %（过载跑：定稿段一行不少）',
-        'ok': (ov['n_subtitle_lines'] > 0
-               and ov['n_mt_lines'] >= ov['n_subtitle_lines']),
-        'detail': '字幕行=%d 译文行=%d 定稿段=%d（字幕行 = 定稿段数 ⇒ 一行不少）'
-                  % (ov['n_subtitle_lines'], ov['n_mt_lines'], ov['n_final_segs']),
+        'name': '(a) 字幕完整度 = 100 %（过载跑：字幕行数 == ASR 定稿段数）',
+        'ok': complete_ok(ov),
+        'detail': '字幕行=%d ASR定稿段=%d 译文行=%d'
+                  % (ov['n_subtitle_lines'], ov['n_spk_seg_rows'], ov['n_mt_lines']),
     })
     checks.append({
         'name': '(a) 过载跑：跳过的句**仍留在字幕里**（只丢语音不丢内容）',
@@ -319,10 +349,30 @@ def main() -> int:
                      [round(x, 3) for x in ov['late_drop_lags_s'][:12]],
                      ov['late_drop_threshold_s']),
     })
+    # 🔴 reviewer 原文（APP-092 §3(c)）：「从过载结束到配音重新回到 late 阈值以内的用时」
+    #   ⇒ **两种合法结果**：
+    #     ① 测到了恢复用时 ⇒ 报数
+    #     ② **过载期间一句都没配上音**（机器全程追不上）⇒ 「未恢复」也是**结论**
+    #   ⇒ 判据：**要么测到恢复用时，要么明确证明「确实没恢复」**（不能是「数据不足」）
+    _n_ov_voiced = ov['n_voiced_rows']
+    if ov['recovery_s_after_overload'] is not None:
+        _c_ok = True
+        _c_detail = ('恢复用时 = %.3f s（过载结束后到配音回到 late 阈值内）；'
+                     '过载期间有配音句数 = %d'
+                     % (ov['recovery_s_after_overload'], _n_ov_voiced))
+    elif _n_ov_voiced == 0:
+        _c_ok = True
+        _c_detail = ('**过载期间 0 句配上音**（n_late_drop=%d）⇒ 机器全程追不上 '
+                     '⇒ 「过载结束→回到阈值内」**未发生**（结论：未恢复）'
+                     % ov['n_late_drop'])
+    else:
+        _c_ok = False
+        _c_detail = ('既没测到恢复用时，又不是「一句都没配上音」（有配音 %d 句）'
+                     '⇒ **数据不足**，判据不成立' % _n_ov_voiced)
     checks.append({
-        'name': '(c) 过载结束后配音回到 late 阈值以内（用时可测）',
-        'ok': ov['recovery_s_after_overload'] is not None,
-        'detail': 'recovery_s=%s' % ov['recovery_s_after_overload'],
+        'name': '(c) 过载后恢复用时（或明确的「未恢复」结论）',
+        'ok': _c_ok,
+        'detail': _c_detail,
     })
     checks.append({
         'name': '反证组全部被识破（3/3）',

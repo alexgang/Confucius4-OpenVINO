@@ -1,0 +1,845 @@
+{
+ "ts": "2026-11-10T08:47:43",
+ "criterion": "APP-093 §3.1 先诊断不改默认值；§2e 静态可补项（撞帧上限 / late p50-p95 / 段长）",
+ "defaults_untouched": {
+  "tts_late_drop_sec": 6.0,
+  "note": "未改任何默认值；6.0 取自 app394 late_drop_threshold_s 实读"
+ },
+ "device_job": false,
+ "lock_record": null,
+ "lock_note": "本文件为纯静态重算已落盘 jsonl，未启动设备作业、未持 MACHINE_LOCK",
+ "main_after_normal_runs": {
+  "dialog3_tight": {
+   "fields": {
+    "mt_submit_minus_recv_s": {
+     "n": 57,
+     "p50": 0.97,
+     "p90": 4.0002,
+     "p95": 4.4692,
+     "max": 5.0795
+    },
+    "fifo_dequeue_minus_submit_s": {
+     "n": 57,
+     "p50": -0.0001,
+     "p90": 0.0,
+     "p95": 0.0,
+     "max": 0.0
+    },
+    "fifo_worker_fifo_wait_s_reported": {
+     "n": 57,
+     "p50": 0.0,
+     "p90": 0.0,
+     "p95": 0.0,
+     "max": 0.0024
+    },
+    "synth_wall_done_minus_dequeue_s": {
+     "n": 57,
+     "p50": 2.5053,
+     "p90": 5.6459,
+     "p95": 6.3619,
+     "max": 6.9829
+    },
+    "synth_rtf": {
+     "n": 57,
+     "p50": 0.9056,
+     "p90": 0.9884,
+     "p95": 1.0312,
+     "max": 1.0785
+    },
+    "play_lag_s": {
+     "n": 57,
+     "p50": 5.831,
+     "p90": 7.9948,
+     "p95": 8.4764,
+     "max": 9.522
+    },
+    "speed_lag_s": {
+     "n": 57,
+     "p50": 2.53,
+     "p90": 5.1484,
+     "p95": 5.6508,
+     "max": 5.832
+    },
+    "in_dur_s": {
+     "n": 57,
+     "p50": 2.8,
+     "p90": 5.952,
+     "p95": 6.592,
+     "max": 7.44
+    },
+    "ratio_zh_out_dur_div_in_dur": {
+     "n": 57,
+     "p50": 0.913,
+     "p90": 0.9205,
+     "p95": 0.9255,
+     "max": 0.9375
+    },
+    "speed": {
+     "n": 57,
+     "p50": 1.1,
+     "p90": 1.1113,
+     "p95": 1.1182,
+     "max": 1.1391
+    }
+   },
+   "n_late_drop": 21,
+   "late_drop_rate_pct": 26.92,
+   "n_speed_floor_conflict_last": null,
+   "flags": {
+    "synth_rtf_p50_ge_0p9": true,
+    "mt_p50_le_0p1s": false,
+    "fifo_p50_le_0p1s": true,
+    "play_lag_p50_gt_6s": false,
+    "speed_p50_capped_at_1p10": true
+   },
+   "conclusion": "合成 RTF p50=0.9056（p90=0.9884 / p95=1.0312）接近实时，无追回余量；倍率 p50=1.1（加速曲线基本未启用）；n_speed_floor_conflict 字段在本臂 jsonl 中不存在（改以 speed 恒 1.1 佐证） ⇒ 1.10-1.5x 加速曲线未生效。FIFO/出队段 t_dequeue-t_submit p50=-0.0001 s（worker_fifo_wait_s p50=0.0 s）⇒ 队列不贡献滞后。MT 段 t_submit-t_recv p50=0.97 s / p90=4.0002 s ⇒ MT 段不可忽略，是次级贡献（p90 达 4.0002 s）。播放积压 play_lag_s p50=5.831 / p95=8.4764 ⇒ 播放积压 p50 未越过 6.0 s，但 p95 达 8.4764 s，尾部句子触阈值。源段长 in_dur_s p50=2.8 / p95=6.592 / max=7.44 s；中文时长÷源时长 p50=0.913（译文比源短约 8.7%）。结论：正常跑跳过 21/78=26.92% 的首要原因是 TTS 合成吞吐不足（RTF p50≈0.9-1.0 且加速被 1.10 封顶），队列不是瓶颈；MT 段为次级贡献。",
+   "timestamp_caveat": "jsonl 中 t_dequeue-t_submit 出现 -0.0001 s 的微小负值（t_dequeue 略早于 t_submit），属时间戳写入顺序/精度差异，非真实负滞后；队列等待以引擎自报字段 worker_fifo_wait_s（p50=0.0 s）为准。",
+   "reviewer_assumption_check": {
+    "item": "APP-093 §3.1 括号原文：「App 的段长有 12-20 s，比 EXT 的 ≤8 s 长得多」",
+    "field": "tts.jsonl.in_dur_s（TTS 输入段时长）",
+    "measured_p50_s": 2.8,
+    "measured_p95_s": 6.592,
+    "measured_max_s": 7.44,
+    "note": "实测 max=7.44 s < 12 s，与纠偏原文假设不符；疑为口径不同（ASR 定稿段/合并段 vs TTS 输入段）。本诊断未自行改判据、未自改口径，列为 reviewer 裁定项。"
+   }
+  },
+  "dialog3_dave": {
+   "fields": {
+    "mt_submit_minus_recv_s": {
+     "n": 54,
+     "p50": 0.298,
+     "p90": 2.9692,
+     "p95": 3.2096,
+     "max": 3.6232
+    },
+    "fifo_dequeue_minus_submit_s": {
+     "n": 54,
+     "p50": -0.0001,
+     "p90": 0.0,
+     "p95": 0.0,
+     "max": 0.0
+    },
+    "fifo_worker_fifo_wait_s_reported": {
+     "n": 54,
+     "p50": 0.0,
+     "p90": 0.0001,
+     "p95": 0.0001,
+     "max": 0.0021
+    },
+    "synth_wall_done_minus_dequeue_s": {
+     "n": 54,
+     "p50": 5.6909,
+     "p90": 9.0677,
+     "p95": 9.4867,
+     "max": 11.5874
+    },
+    "synth_rtf": {
+     "n": 54,
+     "p50": 0.9901,
+     "p90": 1.1043,
+     "p95": 1.1509,
+     "max": 1.2005
+    },
+    "play_lag_s": {
+     "n": 54,
+     "p50": 8.9725,
+     "p90": 11.9499,
+     "p95": 12.9602,
+     "max": 15.983
+    },
+    "speed_lag_s": {
+     "n": 54,
+     "p50": 3.354,
+     "p90": 5.1348,
+     "p95": 5.3791,
+     "max": 5.768
+    },
+    "in_dur_s": {
+     "n": 54,
+     "p50": 5.76,
+     "p90": 8.352,
+     "p95": 9.12,
+     "max": 10.64
+    },
+    "ratio_zh_out_dur_div_in_dur": {
+     "n": 54,
+     "p50": 0.9118,
+     "p90": 0.9157,
+     "p95": 0.9167,
+     "max": 0.9187
+    },
+    "speed": {
+     "n": 54,
+     "p50": 1.1,
+     "p90": 1.1,
+     "p95": 1.1,
+     "max": 1.1
+    }
+   },
+   "n_late_drop": 30,
+   "late_drop_rate_pct": 35.71,
+   "n_speed_floor_conflict_last": 53,
+   "flags": {
+    "synth_rtf_p50_ge_0p9": true,
+    "mt_p50_le_0p1s": false,
+    "fifo_p50_le_0p1s": true,
+    "play_lag_p50_gt_6s": true,
+    "speed_p50_capped_at_1p10": true
+   },
+   "conclusion": "合成 RTF p50=0.9901（p90=1.1043 / p95=1.1509）接近实时，无追回余量；倍率 p50=1.1（加速曲线基本未启用）；n_speed_floor_conflict 末值=53 ⇒ 1.10-1.5x 加速曲线未生效。FIFO/出队段 t_dequeue-t_submit p50=-0.0001 s（worker_fifo_wait_s p50=0.0 s）⇒ 队列不贡献滞后。MT 段 t_submit-t_recv p50=0.298 s / p90=2.9692 s ⇒ MT 段不可忽略，是次级贡献（p90 达 2.9692 s）。播放积压 play_lag_s p50=8.9725 / p95=12.9602 ⇒ 播放积压 p50 已越过 late 阈值 6.0 s。源段长 in_dur_s p50=5.76 / p95=9.12 / max=10.64 s；中文时长÷源时长 p50=0.9118（译文比源短约 8.82%）。结论：正常跑跳过 30/84=35.71% 的首要原因是 TTS 合成吞吐不足（RTF p50≈0.9-1.0 且加速被 1.10 封顶），队列不是瓶颈；MT 段为次级贡献。",
+   "timestamp_caveat": "jsonl 中 t_dequeue-t_submit 出现 -0.0001 s 的微小负值（t_dequeue 略早于 t_submit），属时间戳写入顺序/精度差异，非真实负滞后；队列等待以引擎自报字段 worker_fifo_wait_s（p50=0.0 s）为准。",
+   "reviewer_assumption_check": {
+    "item": "APP-093 §3.1 括号原文：「App 的段长有 12-20 s，比 EXT 的 ≤8 s 长得多」",
+    "field": "tts.jsonl.in_dur_s（TTS 输入段时长）",
+    "measured_p50_s": 5.76,
+    "measured_p95_s": 9.12,
+    "measured_max_s": 10.64,
+    "note": "实测 max=10.64 s < 12 s，与纠偏原文假设不符；疑为口径不同（ASR 定稿段/合并段 vs TTS 输入段）。本诊断未自行改判据、未自改口径，列为 reviewer 裁定项。"
+   }
+  }
+ },
+ "all_arms": {
+  "before/dialog3": {
+   "arm": "before",
+   "material": "dialog3",
+   "src_tts_jsonl": {
+    "path": "C:/Users/Trekker-PTL/_app_shadow/runs2/before/dialog3/tts.jsonl",
+    "bytes": 111064,
+    "sha256": "e666b90adde696aee468fd63e3b74e2a0b7683131902b15626cdf92ac53ed21b",
+    "mtime": "2026-11-10T06:31:02"
+   },
+   "n_tts_rows": 81,
+   "n_voiced_rows": 81,
+   "n_late_drop": 0,
+   "late_drop_lags_s": [],
+   "late_drop_threshold_s": null,
+   "late_drop_field_present_in_jsonl": false,
+   "n_speed_floor_conflict_last": null,
+   "n_speed_floor_conflict_series_n": 0,
+   "end_reason_counts": {
+    "eos": 81
+   },
+   "n_frames_nonempty": 0,
+   "segments": {
+    "mt_submit_minus_recv_s": {
+     "n": 81,
+     "p50": 0.8853,
+     "p90": 3.1079,
+     "p95": 3.7054,
+     "max": 5.4277
+    },
+    "fifo_dequeue_minus_submit_s": {
+     "n": 81,
+     "p50": 0.0,
+     "p90": 0.0,
+     "p95": 0.0,
+     "max": 0.0
+    },
+    "fifo_worker_fifo_wait_s_reported": {
+     "n": 81,
+     "p50": 0.0,
+     "p90": 0.0001,
+     "p95": 0.0001,
+     "max": 0.0002
+    },
+    "synth_wall_done_minus_dequeue_s": {
+     "n": 81,
+     "p50": 2.3784,
+     "p90": 5.0901,
+     "p95": 5.322,
+     "max": 7.2569
+    },
+    "synth_rtf": {
+     "n": 81,
+     "p50": 0.8838,
+     "p90": 0.9621,
+     "p95": 0.9762,
+     "max": 1.0466
+    },
+    "play_lag_s": {
+     "n": 81,
+     "p50": 5.535,
+     "p90": 7.79,
+     "p95": 8.266,
+     "max": 9.266
+    },
+    "speed_lag_s": {
+     "n": 81,
+     "p50": 1.97,
+     "p90": 4.832,
+     "p95": 5.353,
+     "max": 7.791
+    },
+    "in_dur_s": {
+     "n": 81,
+     "p50": 2.64,
+     "p90": 5.52,
+     "p95": 5.84,
+     "max": 7.44
+    },
+    "ratio_zh_out_dur_div_in_dur": {
+     "n": 81,
+     "p50": 1.0,
+     "p90": 1.0,
+     "p95": 1.0,
+     "max": 1.0086
+    },
+    "speed": {
+     "n": 81,
+     "p50": 1.0,
+     "p90": 1.0588,
+     "p95": 1.1,
+     "max": 1.1061
+    }
+   }
+  },
+  "before/dialog3_tight": {
+   "arm": "before",
+   "material": "dialog3_tight",
+   "src_tts_jsonl": {
+    "path": "C:/Users/Trekker-PTL/_app_shadow/runs2/before/dialog3_tight/tts.jsonl",
+    "bytes": 107857,
+    "sha256": "adf3b95dea66d8d35999893e95c4a8011eb13fbc87447a4e12ee2bcc2e211169",
+    "mtime": "2026-11-10T06:35:01"
+   },
+   "n_tts_rows": 78,
+   "n_voiced_rows": 78,
+   "n_late_drop": 0,
+   "late_drop_lags_s": [],
+   "late_drop_threshold_s": null,
+   "late_drop_field_present_in_jsonl": false,
+   "n_speed_floor_conflict_last": null,
+   "n_speed_floor_conflict_series_n": 0,
+   "end_reason_counts": {
+    "eos": 78
+   },
+   "n_frames_nonempty": 0,
+   "segments": {
+    "mt_submit_minus_recv_s": {
+     "n": 78,
+     "p50": 12.1644,
+     "p90": 16.6889,
+     "p95": 16.9348,
+     "max": 17.5308
+    },
+    "fifo_dequeue_minus_submit_s": {
+     "n": 78,
+     "p50": 0.0,
+     "p90": 0.0,
+     "p95": 0.0,
+     "max": 0.0
+    },
+    "fifo_worker_fifo_wait_s_reported": {
+     "n": 78,
+     "p50": 0.0,
+     "p90": 0.0001,
+     "p95": 0.0001,
+     "max": 0.0002
+    },
+    "synth_wall_done_minus_dequeue_s": {
+     "n": 78,
+     "p50": 2.0101,
+     "p90": 5.1101,
+     "p95": 6.083,
+     "max": 7.1648
+    },
+    "synth_rtf": {
+     "n": 78,
+     "p50": 0.8919,
+     "p90": 0.9874,
+     "p95": 1.0247,
+     "max": 1.0873
+    },
+    "play_lag_s": {
+     "n": 78,
+     "p50": 16.5585,
+     "p90": 19.6173,
+     "p95": 20.2544,
+     "max": 22.27
+    },
+    "speed_lag_s": {
+     "n": 78,
+     "p50": 13.8845,
+     "p90": 17.9453,
+     "p95": 18.3613,
+     "max": 20.197
+    },
+    "in_dur_s": {
+     "n": 78,
+     "p50": 2.32,
+     "p90": 5.44,
+     "p95": 6.064,
+     "max": 7.52
+    },
+    "ratio_zh_out_dur_div_in_dur": {
+     "n": 78,
+     "p50": 0.9068,
+     "p90": 0.9682,
+     "p95": 0.9808,
+     "max": 1.0
+    },
+    "speed": {
+     "n": 78,
+     "p50": 1.1129,
+     "p90": 1.1656,
+     "p95": 1.2562,
+     "max": 1.2917
+    }
+   }
+  },
+  "before/dialog3_dave": {
+   "arm": "before",
+   "material": "dialog3_dave",
+   "src_tts_jsonl": {
+    "path": "C:/Users/Trekker-PTL/_app_shadow/runs2/before/dialog3_dave/tts.jsonl",
+    "bytes": 118205,
+    "sha256": "87b31aa62a6c19bdffdf94ff460a5444a7ae7f4806900827f298b1f8ca842e8b",
+    "mtime": "2026-11-10T06:42:01"
+   },
+   "n_tts_rows": 84,
+   "n_voiced_rows": 84,
+   "n_late_drop": 0,
+   "late_drop_lags_s": [],
+   "late_drop_threshold_s": null,
+   "late_drop_field_present_in_jsonl": false,
+   "n_speed_floor_conflict_last": null,
+   "n_speed_floor_conflict_series_n": 0,
+   "end_reason_counts": {
+    "eos": 84
+   },
+   "n_frames_nonempty": 0,
+   "segments": {
+    "mt_submit_minus_recv_s": {
+     "n": 84,
+     "p50": 26.6413,
+     "p90": 44.7327,
+     "p95": 46.2293,
+     "max": 49.0243
+    },
+    "fifo_dequeue_minus_submit_s": {
+     "n": 84,
+     "p50": 0.0,
+     "p90": 0.0,
+     "p95": 0.0,
+     "max": 0.0
+    },
+    "fifo_worker_fifo_wait_s_reported": {
+     "n": 84,
+     "p50": 0.0,
+     "p90": 0.0001,
+     "p95": 0.0001,
+     "max": 0.0002
+    },
+    "synth_wall_done_minus_dequeue_s": {
+     "n": 84,
+     "p50": 4.4298,
+     "p90": 7.9131,
+     "p95": 8.9289,
+     "max": 11.0543
+    },
+    "synth_rtf": {
+     "n": 84,
+     "p50": 0.9634,
+     "p90": 1.0473,
+     "p95": 1.0649,
+     "max": 1.1162
+    },
+    "play_lag_s": {
+     "n": 84,
+     "p50": 33.532,
+     "p90": 52.3375,
+     "p95": 53.8113,
+     "max": 55.038
+    },
+    "speed_lag_s": {
+     "n": 84,
+     "p50": 28.88,
+     "p90": 47.3618,
+     "p95": 47.7622,
+     "max": 51.087
+    },
+    "in_dur_s": {
+     "n": 84,
+     "p50": 4.8,
+     "p90": 8.056,
+     "p95": 8.776,
+     "max": 10.16
+    },
+    "ratio_zh_out_dur_div_in_dur": {
+     "n": 84,
+     "p50": 0.9643,
+     "p90": 0.9887,
+     "p95": 1.0,
+     "max": 1.0096
+    },
+    "speed": {
+     "n": 84,
+     "p50": 1.0438,
+     "p90": 1.122,
+     "p95": 1.2956,
+     "max": 1.3
+    }
+   }
+  },
+  "after/dialog3": {
+   "arm": "after",
+   "material": "dialog3",
+   "src_tts_jsonl": {
+    "path": "C:/Users/Trekker-PTL/_app_shadow/runs2/after/dialog3/tts.jsonl",
+    "bytes": 120171,
+    "sha256": "7818e4ac0ef99c673a9cb745c9efd195b8c55867c498e847ec8e0d43e5207fe4",
+    "mtime": "2026-11-10T05:55:10"
+   },
+   "n_tts_rows": 81,
+   "n_voiced_rows": 78,
+   "n_late_drop": 3,
+   "late_drop_lags_s": [
+    6.965,
+    7.083,
+    6.549
+   ],
+   "late_drop_threshold_s": 6.0,
+   "late_drop_field_present_in_jsonl": true,
+   "n_speed_floor_conflict_last": null,
+   "n_speed_floor_conflict_series_n": 0,
+   "end_reason_counts": {
+    "eos": 78,
+    "error": 3
+   },
+   "n_frames_nonempty": 0,
+   "segments": {
+    "mt_submit_minus_recv_s": {
+     "n": 78,
+     "p50": 0.8649,
+     "p90": 2.7304,
+     "p95": 3.0912,
+     "max": 4.6047
+    },
+    "fifo_dequeue_minus_submit_s": {
+     "n": 78,
+     "p50": 0.0,
+     "p90": 0.0,
+     "p95": 0.0,
+     "max": 0.0
+    },
+    "fifo_worker_fifo_wait_s_reported": {
+     "n": 78,
+     "p50": 0.0,
+     "p90": 0.0001,
+     "p95": 0.0001,
+     "max": 0.0023
+    },
+    "synth_wall_done_minus_dequeue_s": {
+     "n": 78,
+     "p50": 2.3454,
+     "p90": 4.9331,
+     "p95": 5.2751,
+     "max": 7.1148
+    },
+    "synth_rtf": {
+     "n": 78,
+     "p50": 0.8902,
+     "p90": 0.9732,
+     "p95": 1.0128,
+     "max": 1.0841
+    },
+    "play_lag_s": {
+     "n": 78,
+     "p50": 5.179,
+     "p90": 7.797,
+     "p95": 8.1993,
+     "max": 8.778
+    },
+    "speed_lag_s": {
+     "n": 78,
+     "p50": 2.096,
+     "p90": 4.1015,
+     "p95": 4.953,
+     "max": 5.729
+    },
+    "in_dur_s": {
+     "n": 78,
+     "p50": 2.64,
+     "p90": 5.52,
+     "p95": 5.728,
+     "max": 7.68
+    },
+    "ratio_zh_out_dur_div_in_dur": {
+     "n": 78,
+     "p50": 0.9141,
+     "p90": 0.925,
+     "p95": 0.9276,
+     "max": 0.9375
+    },
+    "speed": {
+     "n": 78,
+     "p50": 1.1,
+     "p90": 1.1055,
+     "p95": 1.1205,
+     "max": 1.1361
+    }
+   }
+  },
+  "after/dialog3_tight": {
+   "arm": "after",
+   "material": "dialog3_tight",
+   "src_tts_jsonl": {
+    "path": "C:/Users/Trekker-PTL/_app_shadow/runs2/after/dialog3_tight/tts.jsonl",
+    "bytes": 99531,
+    "sha256": "a829ff643d751898eb90b7aaf4a069d6561d05be65441edec36dc006ed90b48d",
+    "mtime": "2026-11-10T06:00:58"
+   },
+   "n_tts_rows": 78,
+   "n_voiced_rows": 57,
+   "n_late_drop": 21,
+   "late_drop_lags_s": [
+    6.668,
+    6.669,
+    6.852,
+    6.852,
+    7.941,
+    8.069,
+    8.069,
+    8.927,
+    7.159,
+    7.947,
+    7.947,
+    7.534,
+    6.535,
+    6.871,
+    7.358,
+    7.717,
+    9.522,
+    9.476,
+    8.101,
+    6.01,
+    6.331
+   ],
+   "late_drop_threshold_s": 6.0,
+   "late_drop_field_present_in_jsonl": true,
+   "n_speed_floor_conflict_last": null,
+   "n_speed_floor_conflict_series_n": 0,
+   "end_reason_counts": {
+    "eos": 57,
+    "error": 21
+   },
+   "n_frames_nonempty": 0,
+   "segments": {
+    "mt_submit_minus_recv_s": {
+     "n": 57,
+     "p50": 0.97,
+     "p90": 4.0002,
+     "p95": 4.4692,
+     "max": 5.0795
+    },
+    "fifo_dequeue_minus_submit_s": {
+     "n": 57,
+     "p50": -0.0001,
+     "p90": 0.0,
+     "p95": 0.0,
+     "max": 0.0
+    },
+    "fifo_worker_fifo_wait_s_reported": {
+     "n": 57,
+     "p50": 0.0,
+     "p90": 0.0,
+     "p95": 0.0,
+     "max": 0.0024
+    },
+    "synth_wall_done_minus_dequeue_s": {
+     "n": 57,
+     "p50": 2.5053,
+     "p90": 5.6459,
+     "p95": 6.3619,
+     "max": 6.9829
+    },
+    "synth_rtf": {
+     "n": 57,
+     "p50": 0.9056,
+     "p90": 0.9884,
+     "p95": 1.0312,
+     "max": 1.0785
+    },
+    "play_lag_s": {
+     "n": 57,
+     "p50": 5.831,
+     "p90": 7.9948,
+     "p95": 8.4764,
+     "max": 9.522
+    },
+    "speed_lag_s": {
+     "n": 57,
+     "p50": 2.53,
+     "p90": 5.1484,
+     "p95": 5.6508,
+     "max": 5.832
+    },
+    "in_dur_s": {
+     "n": 57,
+     "p50": 2.8,
+     "p90": 5.952,
+     "p95": 6.592,
+     "max": 7.44
+    },
+    "ratio_zh_out_dur_div_in_dur": {
+     "n": 57,
+     "p50": 0.913,
+     "p90": 0.9205,
+     "p95": 0.9255,
+     "max": 0.9375
+    },
+    "speed": {
+     "n": 57,
+     "p50": 1.1,
+     "p90": 1.1113,
+     "p95": 1.1182,
+     "max": 1.1391
+    }
+   }
+  },
+  "after/dialog3_dave": {
+   "arm": "after",
+   "material": "dialog3_dave",
+   "src_tts_jsonl": {
+    "path": "C:/Users/Trekker-PTL/_app_shadow/runs2/after/dialog3_dave/tts.jsonl",
+    "bytes": 105264,
+    "sha256": "aeea2b5abb44c9fe4b7c5978658338c099a5e6afa376ec9f6a54a0363a72fb05",
+    "mtime": "2026-11-10T06:10:33"
+   },
+   "n_tts_rows": 84,
+   "n_voiced_rows": 54,
+   "n_late_drop": 30,
+   "late_drop_lags_s": [
+    6.7,
+    9.464,
+    7.085,
+    7.085,
+    11.457,
+    11.457,
+    10.845,
+    10.846,
+    11.834,
+    11.733,
+    11.734,
+    11.417,
+    11.039,
+    8.341,
+    7.937,
+    11.303,
+    11.303,
+    6.319,
+    6.32,
+    7.103,
+    6.331,
+    10.108,
+    13.814,
+    7.414,
+    7.414,
+    6.471,
+    8.984,
+    10.487,
+    6.987,
+    10.185
+   ],
+   "late_drop_threshold_s": 6.0,
+   "late_drop_field_present_in_jsonl": true,
+   "n_speed_floor_conflict_last": 53,
+   "n_speed_floor_conflict_series_n": 54,
+   "end_reason_counts": {
+    "eos": 54,
+    "error": 30
+   },
+   "n_frames_nonempty": 0,
+   "segments": {
+    "mt_submit_minus_recv_s": {
+     "n": 54,
+     "p50": 0.298,
+     "p90": 2.9692,
+     "p95": 3.2096,
+     "max": 3.6232
+    },
+    "fifo_dequeue_minus_submit_s": {
+     "n": 54,
+     "p50": -0.0001,
+     "p90": 0.0,
+     "p95": 0.0,
+     "max": 0.0
+    },
+    "fifo_worker_fifo_wait_s_reported": {
+     "n": 54,
+     "p50": 0.0,
+     "p90": 0.0001,
+     "p95": 0.0001,
+     "max": 0.0021
+    },
+    "synth_wall_done_minus_dequeue_s": {
+     "n": 54,
+     "p50": 5.6909,
+     "p90": 9.0677,
+     "p95": 9.4867,
+     "max": 11.5874
+    },
+    "synth_rtf": {
+     "n": 54,
+     "p50": 0.9901,
+     "p90": 1.1043,
+     "p95": 1.1509,
+     "max": 1.2005
+    },
+    "play_lag_s": {
+     "n": 54,
+     "p50": 8.9725,
+     "p90": 11.9499,
+     "p95": 12.9602,
+     "max": 15.983
+    },
+    "speed_lag_s": {
+     "n": 54,
+     "p50": 3.354,
+     "p90": 5.1348,
+     "p95": 5.3791,
+     "max": 5.768
+    },
+    "in_dur_s": {
+     "n": 54,
+     "p50": 5.76,
+     "p90": 8.352,
+     "p95": 9.12,
+     "max": 10.64
+    },
+    "ratio_zh_out_dur_div_in_dur": {
+     "n": 54,
+     "p50": 0.9118,
+     "p90": 0.9157,
+     "p95": 0.9167,
+     "max": 0.9187
+    },
+    "speed": {
+     "n": 54,
+     "p50": 1.1,
+     "p90": 1.1,
+     "p95": 1.1,
+     "max": 1.1
+    }
+   }
+  }
+ },
+ "neg_controls": [
+  {
+   "name": "反证① 把 synth_rtf 全改成 0.5 ⇒ synth_rtf_p50_ge_0p9 必须翻转为 False",
+   "ok": true,
+   "detail": "hacked_p50=0.5 original_tight_p50=0.9056"
+  },
+  {
+   "name": "反证② pct() 数值自检（[1,2,3,4] p50=2.5 / p95=3.85）",
+   "ok": true,
+   "detail": "p50=2.5 p95=3.85"
+  },
+  {
+   "name": "反证③ 清零 late_drop ⇒ 跳过率必须塌成 0（原式非恒真）",
+   "ok": true,
+   "detail": "cleared_rate=0.0 original_rate=26.92%"
+  }
+ ],
+ "n_neg_pass": 3
+}

@@ -1,0 +1,72 @@
+{
+ "arm": "before",
+ "materials": [
+  "dialog3"
+ ],
+ "scores": [
+  {
+   "arm": "before",
+   "material": "dialog3",
+   "out_dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3",
+   "run_rc": 0,
+   "n_artifacts": 206,
+   "n_tts_rows": 81,
+   "n_synth_ok": 81,
+   "n_voiced": 81,
+   "n_subtitle_only": 0,
+   "n_errors": 0,
+   "n_late_drop": 0,
+   "late_drop_lags_s": [],
+   "late_drop_threshold_s": [
+    null
+   ],
+   "n_label_wait": 0,
+   "label_wait_s": 0.0,
+   "speed_p50": 1.0,
+   "speed_p90": 1.0588,
+   "speed_min": 1.0,
+   "speed_max": 1.1061,
+   "speed_buckets": {
+    "<1.0": 0,
+    "1.0-1.09": 76,
+    "1.10-1.29": 5,
+    "1.30-1.49": 0,
+    ">=1.50": 0
+   },
+   "n_speed_rows": 81,
+   "first_packet_p50_s": 0.5267,
+   "first_packet_p95_s": 0.6651,
+   "n_voice_self_ref": 0,
+   "n_voice_inherited": 0,
+   "n_spk_label": 46,
+   "first_clone_voice_t_submit_s": 855743.2905,
+   "first_clone_voice_src_t_s": 6.4,
+   "first_clone_voice_seg": 1,
+   "n_mixed_spk_segs": 20,
+   "n_truth_segs": 44,
+   "n_seg_rows": 54,
+   "n_seg_labeled": 27,
+   "n_seg_multi_truth_spk": 9,
+   "n_spk_match_truth": 27,
+   "spk_label_map": {
+    "S1": "A",
+    "S2": "B",
+    "S3": "C"
+   },
+   "spk_match_rate": 1.0,
+   "n_subtitle_lines": 54,
+   "n_clone_txt_files": 0,
+   "n_dump_wav": 197,
+   "cer": null,
+   "cer_note": "待 reviewer 在本机用 MiniMax 回转写（本机不调 MiniMax）",
+   "wav_for_review": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3\\mix.wav",
+   "subs_for_review": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3\\subtitles.txt",
+   "src": {
+    "tts_jsonl": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3\\tts.jsonl",
+    "spk_seg_jsonl": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3\\spk_seg.jsonl",
+    "subtitles": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3\\subtitles.txt",
+    "run_manifest": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3\\run_manifest.json"
+   }
+  }
+ ]
+}

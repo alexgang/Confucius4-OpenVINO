@@ -1,0 +1,262 @@
+{
+ "ts": "2026-11-10 06:53:05",
+ "criterion": "APP-092 §3：过载跑 ⇒ (a) 字幕/转写完整度 100 % (b) TTS 跳过句数 (c) 过载结束→回到 late 阈值内的用时 (d) 正常跑 TTS 跳过 ≈ 0",
+ "late_drop_threshold_s": 6.0,
+ "normal": {
+  "label": "normal",
+  "dir": "C:/Users/Trekker-PTL/_app_shadow/runs2/after/dialog3",
+  "n_tts_rows": 81,
+  "n_final_segs": 54,
+  "n_subtitle_lines": 54,
+  "n_mt_lines": 59,
+  "n_voiced_rows": 78,
+  "n_jsonl_unique_segs": 53,
+  "subtitle_completeness_pct": 100.0,
+  "n_late_drop": 3,
+  "late_drop_lags_s": [
+   6.965,
+   7.083,
+   6.549
+  ],
+  "late_drop_threshold_s": 6.0,
+  "recovery_s_after_overload": 0.551,
+  "dequeue_lag_max_s": 5.729,
+  "dequeue_lag_p50_s": 2.099,
+  "n_dequeue_lag_over_threshold": 0,
+  "audio_s": 286.6,
+  "wall_s": 288.3,
+  "n_label_wait": 0,
+  "label_wait_s": 0.0,
+  "speed_min": 1.1,
+  "speed_max": 1.1361,
+  "n_split_total": 1,
+  "n_split_ready_segs": 1,
+  "n_spk_seg_rows": 54,
+  "artifacts": {
+   "tts.jsonl": {
+    "bytes": 120171,
+    "mtime": "2026-11-10 05:55:10",
+    "sha256": "7818e4ac0ef99c673a9cb745c9efd195b8c55867c498e847ec8e0d43e5207fe4"
+   },
+   "subtitles.txt": {
+    "bytes": 3885,
+    "mtime": "2026-11-10 05:53:10",
+    "sha256": "1eec6822786c208c4a304857f1e110e5f6d6a9757c5a6d10b80910d4ad55af19"
+   },
+   "subtitles.mt.txt": {
+    "bytes": 4141,
+    "mtime": "2026-11-10 05:53:10",
+    "sha256": "70b448bc70d41f288c2eae96dc23464cbdff251ec1ba8af86e64171f546c33ac"
+   },
+   "spk_seg.jsonl": {
+    "bytes": 6752,
+    "mtime": "2026-11-10 05:55:11",
+    "sha256": "7cd42c547fed4cd72e95b800d5b804a141c0845ec34cda9bbaa51095fec308bf"
+   },
+   "run.log": {
+    "bytes": 129377,
+    "mtime": "2026-11-10 05:55:11",
+    "sha256": "aa109faeb7c624c185b3ac7b3f450cd30d60eb6ccf996818f3a7a1ed7dcecb40"
+   },
+   "mix.wav": {
+    "bytes": 10703564,
+    "mtime": "2026-11-10 05:55:10",
+    "sha256": "89edce7da95218d99c5c1b23ae3a8a244360fbef50f0b951c47ec1ac97891622"
+   }
+  }
+ },
+ "overload": {
+  "label": "overload",
+  "dir": "C:/Users/Trekker-PTL/_app_shadow/runs2/after/dialog3_overload2x",
+  "n_tts_rows": 79,
+  "n_final_segs": 54,
+  "n_subtitle_lines": 54,
+  "n_mt_lines": 59,
+  "n_voiced_rows": 2,
+  "n_jsonl_unique_segs": 52,
+  "subtitle_completeness_pct": 3.7037,
+  "n_late_drop": 77,
+  "late_drop_lags_s": [
+   8.636,
+   6.437,
+   7.678,
+   6.491,
+   7.278,
+   8.629,
+   7.245,
+   8.249,
+   8.249,
+   8.059,
+   8.127,
+   8.714,
+   9.489,
+   9.564,
+   9.752,
+   9.472,
+   9.661,
+   10.183,
+   10.348,
+   10.897,
+   11.281,
+   10.819,
+   11.609,
+   11.523,
+   11.031,
+   11.425,
+   12.71,
+   12.712,
+   11.986,
+   12.377,
+   13.058,
+   13.446,
+   13.649,
+   13.852,
+   13.461,
+   14.053,
+   14.444,
+   14.227,
+   14.227,
+   14.743,
+   14.349,
+   14.536,
+   14.943,
+   14.815,
+   15.104,
+   15.516,
+   15.516,
+   16.166,
+   15.703,
+   15.891,
+   16.296,
+   16.106,
+   16.106,
+   16.637,
+   16.347,
+   16.893,
+   17.286,
+   17.434,
+   17.435,
+   17.471,
+   17.473,
+   17.526,
+   18.483,
+   17.963,
+   18.041,
+   18.53,
+   18.531,
+   18.832,
+   19.214,
+   19.215,
+   19.835,
+   20.428,
+   20.172,
+   20.57,
+   20.573,
+   20.574,
+   21.449
+  ],
+  "late_drop_threshold_s": 6.0,
+  "recovery_s_after_overload": null,
+  "dequeue_lag_max_s": 4.997,
+  "dequeue_lag_p50_s": 4.997,
+  "n_dequeue_lag_over_threshold": 0,
+  "audio_s": 286.6,
+  "wall_s": 164.7,
+  "n_label_wait": 0,
+  "label_wait_s": 0.0,
+  "speed_min": 1.1,
+  "speed_max": 1.1,
+  "n_split_total": 1,
+  "n_split_ready_segs": 1,
+  "n_spk_seg_rows": 54,
+  "artifacts": {
+   "tts.jsonl": {
+    "bytes": 52882,
+    "mtime": "2026-11-10 06:50:21",
+    "sha256": "ffac6ce88061efa7f33ef1bf1073045175c6bfc59e5c7e059da1b6777e493c8f"
+   },
+   "subtitles.txt": {
+    "bytes": 3885,
+    "mtime": "2026-11-10 06:44:56",
+    "sha256": "1eec6822786c208c4a304857f1e110e5f6d6a9757c5a6d10b80910d4ad55af19"
+   },
+   "subtitles.mt.txt": {
+    "bytes": 4141,
+    "mtime": "2026-11-10 06:44:56",
+    "sha256": "70b448bc70d41f288c2eae96dc23464cbdff251ec1ba8af86e64171f546c33ac"
+   },
+   "spk_seg.jsonl": {
+    "bytes": 6752,
+    "mtime": "2026-11-10 06:50:22",
+    "sha256": "7cd42c547fed4cd72e95b800d5b804a141c0845ec34cda9bbaa51095fec308bf"
+   },
+   "run.log": {
+    "bytes": 82433,
+    "mtime": "2026-11-10 06:50:22",
+    "sha256": "bd57bb76d1eb359df5037f8eaa0a3bb01414991e6902dee76bd912bbd3290191"
+   },
+   "mix.wav": {
+    "bytes": 253484,
+    "mtime": "2026-11-10 06:50:21",
+    "sha256": "05050c0bd7f6fde338635dfef01d65d7cc8ea5d32fae019891f4e226625fee2e"
+   }
+  }
+ },
+ "neg_controls": [
+  {
+   "name": "反证①: 清零 late_drop ⇒ (b) 跳过句数塌成 0",
+   "ok": true,
+   "detail": "cleared=0 original=77"
+  },
+  {
+   "name": "反证②: 删 3 行字幕 ⇒ (a) 判据必须 FAIL",
+   "ok": true,
+   "detail": "原判据=True（字幕 54 行 == ASR 定稿段 54）; 删后=False（字幕 51 行）"
+  },
+  {
+   "name": "反证③: 把 speed_lag_s 全改成 > 阈值 ⇒ (c) 判定必须为「未恢复」",
+   "ok": true,
+   "detail": "n_hacked=2 thr=6.000 all_above=True"
+  }
+ ],
+ "checks": [
+  {
+   "name": "(d) 正常跑 TTS 跳过句数 = 0 或接近 0（≤5%% 且 ≤5 句）",
+   "ok": false,
+   "detail": "实际 n_late_drop=3 / 定稿段=54（容差 2 句且 ≤5）⇒ 跳过率 5.56 %"
+  },
+  {
+   "name": "(a) 字幕完整度 = 100 %（正常跑：字幕行数 == ASR 定稿段数）",
+   "ok": true,
+   "detail": "字幕行=54 ASR定稿段=54 译文行=59"
+  },
+  {
+   "name": "(a) 字幕完整度 = 100 %（过载跑：字幕行数 == ASR 定稿段数）",
+   "ok": true,
+   "detail": "字幕行=54 ASR定稿段=54 译文行=59"
+  },
+  {
+   "name": "(a) 过载跑：跳过的句**仍留在字幕里**（只丢语音不丢内容）",
+   "ok": true,
+   "detail": "字幕行=54 ≥ 有配音行=2（n_late_drop=77）"
+  },
+  {
+   "name": "(b) 过载跑 TTS 确实跳过了过期句（> 0）",
+   "ok": true,
+   "detail": "n_late_drop=77 lags=[8.636, 6.437, 7.678, 6.491, 7.278, 8.629, 7.245, 8.249, 8.249, 8.059, 8.127, 8.714] thr=6.000"
+  },
+  {
+   "name": "(c) 过载后恢复用时（或明确的「未恢复」结论）",
+   "ok": false,
+   "detail": "既没测到恢复用时，又不是「一句都没配上音」（有配音 2 句）⇒ **数据不足**，判据不成立"
+  },
+  {
+   "name": "反证组全部被识破（3/3）",
+   "ok": true,
+   "detail": "反证①: 清零 late_drop ⇒ (b) 跳过句数=True; 反证②: 删 3 行字幕 ⇒ (a) 判据必须 FAIL=True; 反证③: 把 speed_lag_s 全改成 > 阈值 =True"
+  }
+ ],
+ "n_pass": 5,
+ "n_fail": 2,
+ "verdict": "FAIL"
+}
