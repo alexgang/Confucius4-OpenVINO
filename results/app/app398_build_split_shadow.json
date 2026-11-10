@@ -1,0 +1,152 @@
+{
+ "created_at": "2026-11-10 16:19:33",
+ "dst_shadow": "C:\\Users\\Trekker-PTL\\_app_shadow\\after_split",
+ "renamed_old_to": "C:\\Users\\Trekker-PTL\\_app_shadow\\after_split.old_20261110_161933",
+ "app_copied_from": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\app",
+ "models_link": "junction",
+ "python_link": "junction",
+ "py_synced_from_dev": {
+  "assert_pkg_clean.py": {
+   "bytes": 4823,
+   "sha256": "9469b33f879cf1c699cb0d5caf8cd889e7391aa314d269d4b8be1096fe2ee255"
+  },
+  "audio_check.py": {
+   "bytes": 4341,
+   "sha256": "30332dfbb70414d27265ae213ab9403262a88c99f01741d13e403f1e52e49d51"
+  },
+  "audio_source.py": {
+   "bytes": 26386,
+   "sha256": "92671ddade41708dc77458625ad556c6cf775d59ff86f94b86a286ad43327e74"
+  },
+  "backends.py": {
+   "bytes": 18324,
+   "sha256": "e6dbeb5d103c3d56db5b9ec18c919a4f2acef1a9c514bb05c5edabbeeed576fb"
+  },
+  "caption_render.py": {
+   "bytes": 28044,
+   "sha256": "be9e1d43918424c3bdbda5d512f7a567bb6a783887b744f530d0c5006975064c"
+  },
+  "clone_collector.py": {
+   "bytes": 10703,
+   "sha256": "f1a0f0bc8f5e7a3a8465576b5d4b51780fe570348740877a8de1bfb337cfd34a"
+  },
+  "clone_voice.py": {
+   "bytes": 40526,
+   "sha256": "e3281c41708932767d43c047c351ac06122d073177bdd0d3d9d47892552a79af"
+  },
+  "device_config.py": {
+   "bytes": 22770,
+   "sha256": "04e554c290a5a4676903612a885751a4961167e2e68b3b977e0308308cefd592"
+  },
+  "gui_status.py": {
+   "bytes": 8320,
+   "sha256": "c78813b5bdb6e99ef0b8843824c8a59c05d2f4a355cd5ff0911d49f7646de494"
+  },
+  "live_caption_app.py": {
+   "bytes": 458919,
+   "sha256": "25b1626cf391417bb7bcb260bc891bc751c4822b2d961ab6136c49995f731375"
+  },
+  "npu_delivery_backend.py": {
+   "bytes": 9132,
+   "sha256": "983c39f209e80bff1b68f8e8b87dc7da5977ba5014c6ca0c281e3a08c203550f"
+  },
+  "npu_embeds_backend.py": {
+   "bytes": 14941,
+   "sha256": "a33c8e7a0e4a728997e2bfa22fbc6dfb24c1284fdd87a2bd6fe6ad743af770bc"
+  },
+  "offline_reader.py": {
+   "bytes": 25316,
+   "sha256": "94e0c839d05c2fe58d8695859af08d394a5e2a72d4d1f700c2aa06d7bdea8b4b"
+  },
+  "offline_reader_gui.py": {
+   "bytes": 27317,
+   "sha256": "a442b45a2e717dcba01cf22c0b119b6d185f843ec26e8e7c3d4b27b12ffa3db9"
+  },
+  "seg_stream.py": {
+   "bytes": 15940,
+   "sha256": "9d006500793139f5e76b4c906bcf6a9a78b65cac9bc03b84c683d74e127c8edc"
+  },
+  "segment_encoder_backend.py": {
+   "bytes": 12668,
+   "sha256": "c2c701dd928cff61b76df78f2b5b01e343871347a849924f73bbf99e50c0123a"
+  },
+  "selftest_audio_sources.py": {
+   "bytes": 4381,
+   "sha256": "a6f8bd1f763a138396cedfeb8d95fb4b46512b983e5f0090ec2f508f12b80f6d"
+  },
+  "speaker_assets.py": {
+   "bytes": 15820,
+   "sha256": "f39137277b8f27699a926291379cfe1d7b5c57bd7fc70baa73f457f5270ad0de"
+  },
+  "speaker_tracker.py": {
+   "bytes": 60631,
+   "sha256": "5f7f1824f8596d073264bea42e6c143da9334618ce5578bde5509b369bad8a76"
+  },
+  "speaker_voice.py": {
+   "bytes": 53653,
+   "sha256": "0da76b62278789df3867bfb9d340d398df5d921c0d050cec03009fa3d7c0c55b"
+  },
+  "streaming_asr.py": {
+   "bytes": 25485,
+   "sha256": "a807635124607361afa0ce334ed964a6aea1d531da17cabd4c358ec73f6f4e39"
+  },
+  "time_stretch.py": {
+   "bytes": 22645,
+   "sha256": "7f46d66dc296014694bafe65f72e055278d0ce59a4ddc2063f2f1467b25dfced"
+  },
+  "translator.py": {
+   "bytes": 90663,
+   "sha256": "e60b17b6a756474ad8a50ca1c66a71aafaf7c4342915a6f075e3d4635757c524"
+  },
+  "tts_cuda.py": {
+   "bytes": 52197,
+   "sha256": "7d0d886d85cb7ca1674eed229ec9d6f1d89d66fc7af4059cb3b57962c4ff56cb"
+  },
+  "tts_cuda_sidecar.py": {
+   "bytes": 27056,
+   "sha256": "cf4841b74b5e69f7e72a76290ff6cd9e600261947711d8b60d199d0585d132cd"
+  },
+  "tts_engine.py": {
+   "bytes": 94500,
+   "sha256": "12f47d0e3f9094f490ef254e67567bf377dc44f02bf7c2f0dd591c056874ff37"
+  },
+  "tts_engine_patch.py": {
+   "bytes": 22702,
+   "sha256": "a188bcfdb38a89f310645f617b84be466e22a8eb9d2119dd50b164c5e2fc7008"
+  },
+  "tts_service.py": {
+   "bytes": 139274,
+   "sha256": "abb38a13f22ea570405cac20137c498477870e329171741c0426ea9082fe6588"
+  },
+  "tts_worker.py": {
+   "bytes": 274997,
+   "sha256": "50fb76ce287588aa3a5781f5a328345695b3321955653bc5acee7b2de3663ed8"
+  },
+  "win_clickthrough.py": {
+   "bytes": 7817,
+   "sha256": "db376c52bfe20f2665954bee133a3f20e325d0916559083884b8e6d50ab3e9d1"
+  }
+ },
+ "n_py_synced_from_dev": 30,
+ "clone_voice_py": {
+  "src": "dev HEAD + PROBE",
+  "dev_bytes": 40526,
+  "dev_sha256": "e3281c41708932767d43c047c351ac06122d073177bdd0d3d9d47892552a79af",
+  "dst_bytes": 41723,
+  "dst_sha256": "a3ea34a2d671ed9fb70e96b08bed5b6b42d185021062b9badc2b40f2fa0c6e39",
+  "probes_applied": 3,
+  "eol": "LF"
+ },
+ "probe_diff": {
+  "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app398_probe_patch.diff",
+  "bytes": 2245,
+  "sha256": "2c32211305cdd8c4dd078a57cbbd2ed13b1734a61f476e7daf96a5f5882ef42d",
+  "n_diff_lines": 41
+ },
+ "py_files_differing_from_dev": [
+  "clone_voice.py"
+ ],
+ "only_probe_file_differs": true,
+ "tts_service_has_spk_voice_seg": true,
+ "live_caption_app_calls_spk_voice_seg": true
+}
