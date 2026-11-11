@@ -1,7 +1,7 @@
 {
   "tool": "_app429_status_pointer_audit",
   "section": "§173",
-  "created_at": "2026-11-11 18:58:53",
+  "created_at": "2026-11-11 19:09:49",
   "device_job": false,
   "read_only": true,
   "corrections_fingerprint_open": {
@@ -18,17 +18,18 @@
   },
   "status_doc": {
     "path": "status/app/STATUS_APP.md",
-    "bytes": 39931,
-    "lines": 205,
-    "sha256": "b95debf34e12126d5e7fa2ec5bac5ffbb0fffb19cdc00b3712fc62b1ed2f774a",
+    "bytes": 39403,
+    "lines": 209,
+    "sha256": "f4341c9e88140afff35a70be6f8af56921890e698a70df6c50277f2d75d56604",
     "crlf_count": 0,
-    "n_sections": 24
+    "n_sections": 25
   },
   "header_sync": {
-    "latest_section": 179,
+    "latest_section": 180,
     "header_current_task_refs": [
       178,
-      179
+      179,
+      180
     ],
     "header_points_to_latest": true,
     "header_refs_missing_section": [],
@@ -36,14 +37,14 @@
     "更新时间": "2026-11-11 18:55:00",
     "当前任务_line": 5,
     "阻塞_line": 6,
-    "当前任务_text": "**巡检无新纠偏**（`last_ack=APP-100`；纠偏文件 **100 条 / 最大 APP-100**（SHA `219ef841…`／308 340 B）⇒ 无编号更大的新条目）｜**本轮修掉 6 处 git 半交付**（STATUS 引用的归档件／证据产物在磁盘上却从没进过 git ⇒ 换 clone 即断链）＋ **新增「git 半交付」判据**（**稳态 185 行／0 FAIL／反证 3/3**）｜**未打包 v2.5／未打 rc8／未通知用户／未调 MiniMax／未占设备**｜结果见 §179 归档件（§179 是对 §178「判据 177 行」这一**自指快照数字**的勘误；§178 的结论与 6 处修复本身全部成立）",
+    "当前任务_text": "**巡检无新纠偏**（`last_ack=APP-100`；纠偏文件 **100 条 / 最大 APP-100**（SHA `219ef841…`／308 340 B）⇒ 无编号更大的新条目）｜**本轮修掉 6 处 git 半交付**（STATUS 引用的归档件／证据产物在磁盘上却从没进过 git ⇒ 换 clone 即断链）＋ **新增「git 半交付」判据**（**不变量：`FAIL=0`／`MISSING=0`／反证 3/3**；审计行数是**观察量、非定值** ⇒ §180 已撤回「行数＝定值」的措辞）｜**未打包 v2.5／未打 rc8／未通知用户／未调 MiniMax／未占设备**｜结果见 §180 归档件（§179／§180 两节是把「自指数字」这一**概念错误**连根拔除：**只引用不变量**；§178 的结论与 6 处修复本身全部成立）",
     "阻塞_text": "🔴 **本轮 6 处 git 半交付已补交**（只补交、未改内容）⇒ 换 clone 的读者不再断链｜🔴 **`late_drop` 修复未进任何客户包**（只改 dev 树）⇒ APP-055 须打新版本号；且 MiniMVP 按用户决定**暂不打包** ⇒ **等 reviewer 裁定何时随 v2.5 / rc8 出**｜🔴 **该缺陷正落在 `tts_late_drop_sec` 阈值上**（用户 11-11 定「下次再定」）⇒ 修好后影响面会变｜🔴 **GUI 布局修复仍未同步客户包**（v2.5 未打包）⇒ **请 reviewer 裁定**：立刻修还是随 v2.5 一起出｜🔴 **§3.5 音色归属判据失效**（三人真值余弦 0.957–0.972）⇒ 未自行换判据｜🔴 **§3.6 切段开销不可测**（质心恒 1）⇒ 需 reviewer 裁定｜**倍率地板** 与 **`tts_late_drop_sec`** 仍未裁定｜🔴 **新发现：引用字节数须区分 LF/CRLF**（`core.autocrlf=true` 且无 `.gitattributes`）⇒ 已加进判据"
   },
   "header_contradictions": [],
   "archive_pointer_audit": {
-    "n_pointers": 40,
+    "n_pointers": 41,
     "verdict_counts": {
-      "OK": 32,
+      "OK": 33,
       "NO_SHA_CLAIMED": 8
     },
     "rows": [
@@ -429,7 +430,7 @@
       },
       {
         "line": 165,
-        "segment": "> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec171_20261111.md`（10930 B／块 SHA256 `45348f1f5e639e7b91a39e2ff1288264cabe6b60d9be7de4bdfe3842ce7081ff`）。",
+        "segment": "> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec171_20261111.md`（10 930 B／块 SHA256 `45348f1f5e639e7b91a39e2ff1288264cabe6b60d9be7de4bdfe3842ce7081ff`）",
         "archive": "STATUS_APP_sec171_20261111.md",
         "on_disk": true,
         "claimed_sha": "45348f1f5e639e7b91a39e2ff1288264cabe6b60d9be7de4bdfe3842ce7081ff",
@@ -441,7 +442,7 @@
         "verdict": "OK"
       },
       {
-        "line": 171,
+        "line": 168,
         "segment": "> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec172_20261111.md`（4415 B／块 SHA256 `92efe1c19232ce508fe83e208ef7682f9ba7911050aef032fe72871c10f8aab3`）",
         "archive": "STATUS_APP_sec172_20261111.md",
         "on_disk": true,
@@ -454,7 +455,7 @@
         "verdict": "OK"
       },
       {
-        "line": 174,
+        "line": 171,
         "segment": "> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec173_20261111.md`（10 835 B／块 SHA256 `2400cc27b26fba6b6ddb71d1cab64e9151fc8595b65a1369aef839e04a0de4a3`）",
         "archive": "STATUS_APP_sec173_20261111.md",
         "on_disk": true,
@@ -467,7 +468,7 @@
         "verdict": "OK"
       },
       {
-        "line": 177,
+        "line": 174,
         "segment": "> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec174_20261111.md`（10904 B／块 SHA256 `367ba690c97b1bd345970291600cb141f1347b4da723804c9857c59a3b02cb39`）",
         "archive": "STATUS_APP_sec174_20261111.md",
         "on_disk": true,
@@ -480,7 +481,7 @@
         "verdict": "OK"
       },
       {
-        "line": 179,
+        "line": 176,
         "segment": "> 🔴 **证据**：`results/app/app432_self_ref_clone_gate.json`（8/8）／`results/app/app433_pkg_dev_only_assert_gate.json`（13/13）／`_app432_self_ref_clone_gate.py`／`_app433_pkg_dev_only_asser",
         "archive": "STATUS_APP_sec174_20261111.md",
         "on_disk": true,
@@ -493,7 +494,7 @@
         "matched_form": null
       },
       {
-        "line": 184,
+        "line": 181,
         "segment": "> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec175_20261111.md`（10 537 B／块 SHA256 `fd7f36a293539ffd460d6d613822192d0909c6a4acd12ded9067936322ce2622`）",
         "archive": "STATUS_APP_sec175_20261111.md",
         "on_disk": true,
@@ -506,7 +507,7 @@
         "verdict": "OK"
       },
       {
-        "line": 187,
+        "line": 184,
         "segment": "> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec177_20261111.md`（16568 B／SHA256 `d669945462e8feeaa67fd3138e832d1eef8557d5dc827d668645920801fd6246`）",
         "archive": "STATUS_APP_sec177_20261111.md",
         "on_disk": true,
@@ -519,7 +520,7 @@
         "verdict": "OK"
       },
       {
-        "line": 187,
+        "line": 184,
         "segment": "**上一会话的 §176 归档件 `status/archive/STATUS_APP_sec176_20261111.md`（13851 B／SHA256 `7c43b365e3f958a9…`）此前从未被活文档引用**（会话中途死亡）⇒ 一并索引，结论以 §177 归档件为准。",
         "archive": "STATUS_APP_sec176_20261111.md",
         "on_disk": true,
@@ -532,7 +533,7 @@
         "matched_form": null
       },
       {
-        "line": 194,
+        "line": 191,
         "segment": "> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec178_20261111.md`（12 105 B／SHA256 `de11dd84f8f3fc30658016a8fc3bdc31d6414cdf25fbba8e57b0e906575779a9`）",
         "archive": "STATUS_APP_sec178_20261111.md",
         "on_disk": true,
@@ -545,7 +546,7 @@
         "verdict": "OK"
       },
       {
-        "line": 199,
+        "line": 196,
         "segment": "> 🔴 **证据**：`results/app/app468_status_git_halfdelivery.json`（本轮判据产物）＋`results/app/_app468_status_git_halfdelivery.py`（判据脚本）＋`status/archive/STATUS_APP_sec178_20261111.md`（§178 正文全文",
         "archive": "STATUS_APP_sec178_20261111.md",
         "on_disk": true,
@@ -558,7 +559,7 @@
         "matched_form": null
       },
       {
-        "line": 203,
+        "line": 200,
         "segment": "> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec179_20261111.md`（3 193 B／SHA256 `7c204c71e98d1d55de8f13012dee75deefec5e6effab49340e30733e4c094913`）",
         "archive": "STATUS_APP_sec179_20261111.md",
         "on_disk": true,
@@ -567,6 +568,19 @@
         "xref": null,
         "actual_raw": "7c204c71e98d1d55de8f13012dee75deefec5e6effab49340e30733e4c094913",
         "actual_bytes": 3193,
+        "matched_form": "raw",
+        "verdict": "OK"
+      },
+      {
+        "line": 206,
+        "segment": "> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec180_20261111.md`（3 215 B／SHA256 `5b1a4fe859c0726feee3645c639c9f6905bdcb22e41b0737c33cfe92a088044e`）",
+        "archive": "STATUS_APP_sec180_20261111.md",
+        "on_disk": true,
+        "claimed_sha": "5b1a4fe859c0726feee3645c639c9f6905bdcb22e41b0737c33cfe92a088044e",
+        "claim_source": "inline",
+        "xref": null,
+        "actual_raw": "5b1a4fe859c0726feee3645c639c9f6905bdcb22e41b0737c33cfe92a088044e",
+        "actual_bytes": 3215,
         "matched_form": "raw",
         "verdict": "OK"
       }
@@ -633,7 +647,7 @@
     },
     "B": {
       "case": "inject_sha_into_section_tail",
-      "section": 179,
+      "section": 180,
       "before": "FAIL_UNVERIFIABLE (悬空：末行无 SHA)",
       "after": "OK",
       "discriminating": true,
@@ -650,7 +664,7 @@
   },
   "verdict": {
     "n_fail": 0,
-    "n_ok": 32,
+    "n_ok": 33,
     "n_no_sha_claimed": 8,
     "n_header_contradictions": 0,
     "anti_A_discriminating": true,
