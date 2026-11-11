@@ -605,8 +605,36 @@ setInterval(async () => {
 }, 1000);
 
 // ★ EXT-012 ②：状态端点轮询（连接状态 / 延迟 / 倍率 / 滞后）
+// v0.4.6：桥接在别的电脑上、还没授权访问该主机 ⇒ 返回主机名（否则 null）
+async function remoteHostNeedingPermission(wsUrl) {
+  try {
+    const h = new URL(String(wsUrl || '').trim().replace(/^ws/, 'http')).hostname;
+    if (!h || h === '127.0.0.1' || h === 'localhost') return null;
+    const ok = await chrome.permissions.contains({ origins: ['http://' + h + '/*'] });
+    return ok ? null : h;
+  } catch (e) {
+    return null;
+  }
+}
+
 async function refreshStatus() {
   const cfg = await chrome.storage.local.get({ wsUrl: 'ws://127.0.0.1:8765/' });
+  const needHost = await remoteHostNeedingPermission(cfg.wsUrl);
+  if (needHost) {
+    setBadge('需要授权', 'warn');
+    const me0 = $('mEngine');
+    if (me0) me0.textContent = '—';
+    setMode('unknown', '点「开始」，在浏览器弹窗里允许访问 ' + needHost);
+    const b = $('btnStart');
+    const running = b && b.disabled && !$('btnStop').disabled;
+    if (b && !running) { b.disabled = false; b.title = ''; }
+    const el = $('status');
+    if (el && !running) {
+      el.textContent = '桥接在 ' + needHost + '：第一次使用请点「开始」，在浏览器弹窗里点「允许」';
+      el.className = 'warn';
+    }
+    return;
+  }
   const st = await pollPairStatus(cfg.wsUrl);
   if (!st) {
     setBadge('桥接未启动', 'err');
