@@ -1,9 +1,9 @@
 # STATUS_APP
 
 last_ack: APP-100
-更新时间: 2026-11-11 17:28:39
-当前任务: **执行 APP-100（长跑改固定 10 分钟片段）｜canonical SPE 0–600 s 连续，两臂都自然退出（951.9 s／1759.1 s，PASS）｜查出并修掉 1 个 App 侧真缺陷**（`late_drop` 双记 ＋ drain 永不退出，已修 dev 树）**｜结果见 §177 归档件**
-阻塞 / 待用户决定: 🔴 **`late_drop` 修复未进任何客户包**（只改 dev 树）⇒ APP-055 须打新版本号；且 MiniMVP 按用户决定**暂不打包** ⇒ **等 reviewer 裁定何时随 v2.5 / rc8 出**｜🔴 **该缺陷正落在 `tts_late_drop_sec` 阈值上**（用户 11-11 定「下次再定」）⇒ 修好后影响面会变｜🔴 **GUI 布局修复仍未同步客户包**（v2.5 未打包）⇒ **请 reviewer 裁定**：立刻修还是随 v2.5 一起出｜🔴 **§3.5 音色归属判据失效**（三人真值余弦 0.957–0.972）⇒ 未自行换判据｜🔴 **§3.6 切段开销不可测**（质心恒 1）⇒ 需 reviewer 裁定｜**倍率地板** 与 **`tts_late_drop_sec`** 仍未裁定
+更新时间: 2026-11-11 18:55:00
+当前任务: **巡检无新纠偏**（`last_ack=APP-100`；纠偏文件 **100 条 / 最大 APP-100**（SHA `219ef841…`／308 340 B）⇒ 无编号更大的新条目）｜**本轮修掉 6 处 git 半交付**（STATUS 引用的归档件／证据产物在磁盘上却从没进过 git ⇒ 换 clone 即断链）＋ **新增「git 半交付」判据**（177 行／0 FAIL／反证 3/3）｜**未打包 v2.5／未打 rc8／未通知用户／未调 MiniMax／未占设备**｜结果见 §178 归档件
+阻塞 / 待用户决定: 🔴 **本轮 6 处 git 半交付已补交**（只补交、未改内容）⇒ 换 clone 的读者不再断链｜🔴 **`late_drop` 修复未进任何客户包**（只改 dev 树）⇒ APP-055 须打新版本号；且 MiniMVP 按用户决定**暂不打包** ⇒ **等 reviewer 裁定何时随 v2.5 / rc8 出**｜🔴 **该缺陷正落在 `tts_late_drop_sec` 阈值上**（用户 11-11 定「下次再定」）⇒ 修好后影响面会变｜🔴 **GUI 布局修复仍未同步客户包**（v2.5 未打包）⇒ **请 reviewer 裁定**：立刻修还是随 v2.5 一起出｜🔴 **§3.5 音色归属判据失效**（三人真值余弦 0.957–0.972）⇒ 未自行换判据｜🔴 **§3.6 切段开销不可测**（质心恒 1）⇒ 需 reviewer 裁定｜**倍率地板** 与 **`tts_late_drop_sec`** 仍未裁定｜🔴 **新发现：引用字节数须区分 LF/CRLF**（`core.autocrlf=true` 且无 `.gitattributes`）⇒ 已加进判据
 已压缩: 压缩索引（旧正文逐字归档）⇒ `status/archive/STATUS_APP_compress_index_upto_20261107.md`；限额 ≤40000 B / ≤300 行（APP-052④）｜**§166 压缩**：§166 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec166_20261110.md`（块 SHA256 见该节末）｜**§135–§140 压缩**：摘要行整块归档 ⇒ `status/archive/STATUS_APP_sec135_140_summary_20261110.md`（6 442 B／块 SHA256 `12cf171e63e62f99…`）｜**关键数字表压缩**：整表逐字归档 ⇒ `status/archive/STATUS_APP_key_numbers_20261110.md`（5 540 B／块 SHA256 `0b1e0843e6192300…`）｜**§167 压缩**：§167 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec167_20261110.md`（12277 B／块 SHA256 `f072058905e5663af6f2faa1244af68aea08ffd1b2de86700a1f754f17773e88`）｜**§168 压缩**：§168 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec168_20261110.md`（8599 B／块 SHA256 `f7c1462abbe2a03fc6a0887fcaae762984a2ef3fbfcfcb78ece98acf1e65b343`）
 
 
@@ -181,16 +181,19 @@ last_ack: APP-100
 
 ## §175 执行 APP-099（last_ack=APP-099）｜rc7 六臂冒烟重做 + A 机 GPU 同占复现 + dev 树修正 + MANIFEST｜**本条需等 reviewer 复核**
 
-> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec175_20261111.md`（10537 B／块 SHA256 `fd7f36a293539ffd460d6d613822192d0909c6a4acd12ded9067936322ce2622`）。
-> 🔴 **速查**：第 4 节 8 项 —— ① 六臂冒烟 **6/6 PASS**（MT·NPU/TTS·GPU/TTS·NPU 真在被测设备且有产出）｜② GPU 同占 **PARTIAL**（gpu_same_asr_mt: dedicated=0.0 MB / shared=2262.1 MB / rss=7676.5 MB, exit=0, 自然退出；gpu_control_asr_npu: dedicated=0.0 MB / shared=1810.6 MB / rss=7096.0 MB, exit=-9, 框架超时强杀(非程序自崩)；🔴 `peak_gpu_dedicated_mb=0.0` 是**实测**：381/381 个样本里 Dedicated Usage 非零数 0，而 `n_gpu_instances=1` ⇒ 计数器实例确实被找到（非失效），本机 Intel 集显 UMA 架构下显存计入 Shared ⇒ **不能把 0 解读成「无显存占用」**；只报共享显存与进程 RSS 的实测峰值）｜③ dev 修正 **33/33 ＋反证 7/7**｜④ MANIFEST **PASS**（真实逐项 84/84）｜⑤ 不打 rc8、脚本 16/16 ＋反证 7/7｜⑥ APP-093/094 部分完成（wespeaker `SEPARABLE` ＋四组重算 4 组；阈值暂缓／`xv_reg_*` 无日志／预设 A 重跑 `NOT_RUN_BLOCKED_BY_SHADOW_ALIGNMENT`）｜⑦ v2.5 变化 11 条｜⑧ EXT `181233f` 只核对不暂存。
-> 🔴 **勘误**：§174 归档件误引 `app429_self_ref_clone_gate.json`／`app430_pkg_dev_only_assert_gate.json`，真实是 `app432_self_ref_clone_gate.json`／`app433_pkg_dev_only_assert_gate.json`（归档件 write-once 不回改）；「交付配置」旧表停在 v2.2/v2.1、TTS NPU 已过期 ⇒ 当前真值：**v2.4 真包 / MiniMVP rc7 / 完整版 TTS GPU.0 / MiniMVP ASR NPU·MT GPU.0·TTS NPU**。
-> 🔴 **rc6 删除**：C 盘 `594.986 → 594.977` GB（`freed_gb=-0.009`，送回收站不释放空间属正常），只删 rc6、rc5/rc7 均在；`app438.pass=false` 是旧判据（`rc=2`）误报 ⇒ `app453` → `pass_rechecked=True`（回收站 11620+1 条可查、可逆）。｜**APP-100**：GPU 两臂用固定 0–300 s ×2（600 s 时间线，本机无更长素材）。
-> 🔴 **判据修正**：`app437` 旧判据未看 `exit_code`／`timing_valid` 恒真 ⇒ `gpu_control_asr_npu`（rc=-9，框架超时强杀、非程序自崩）被误判 PASS；已在 `_app437` 修三处并 `ast` 真跑 + 7/7 反证（`app452` → `pass=True`）；**`app437.verdict=PASS` 作废** ⇒ 第 4 节第 2 项 **PARTIAL**（A 臂 806.3 s 自然退出、未复现 B 机 268 s 崩溃；对照臂无效、不可比），是否重跑交 reviewer 裁定。
-> 🔴 **未打 v2.5／未打 rc8／未通知用户／未调 MiniMax／未改任何默认值或产品判据**（第 3 节裁定除外；仅修正本轮验收脚本自身的记账判据 bug）⇒ `app437_app099_device.json` → `lock`，`app452` → `timing_valid=False`；**停下等 reviewer 复核**；目标机不调 MiniMax。
-
+> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec175_20261111.md`（10 537 B／块 SHA256 `fd7f36a293539ffd460d6d613822192d0909c6a4acd12ded9067936322ce2622`）｜**归档件逐字节未动**（write-once）｜**正文全文（含第 4 节 8 项逐项结论、判据修正、§174 勘误、rc6 删除、锁/计时记录）逐字见该归档件**，活文档只留指针。
 ## §177 执行 APP-100（last_ack=APP-100）｜canonical 10 分钟片段两臂**都自然退出**（A 951.9 s／B 1759.1 s，**PASS**）＋ 查出并修掉 **1 个 App 侧真缺陷**（`late_drop` 双记 ＋ drain 永不退出）｜**本条需等 reviewer 复核**
 
 > 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec177_20261111.md`（16568 B／SHA256 `d669945462e8feeaa67fd3138e832d1eef8557d5dc827d668645920801fd6246`）｜**归档件逐字节未动**（write-once）｜**上一会话的 §176 归档件 `status/archive/STATUS_APP_sec176_20261111.md`（13851 B／SHA256 `7c43b365e3f958a9…`）此前从未被活文档引用**（会话中途死亡）⇒ 一并索引，结论以 §177 归档件为准。
 > 🔴 **速查①APP-100 已执行** ⇒ canonical **SPE 0–600 s 连续**（`test_audio/clip_10min_0_600.wav`／19 200 044 B／SHA256 `d412f00af6b792ce…`，**与 ASR 侧逐字节相同**）⇒ **§175「本机只有 300 s」前提经实测证伪**，旧「0–300 s ×2」违反 APP-100「所有臂都用这同一段」⇒ 弃用。
 > 🔴 **速查②两臂都自然退出（exit=0）**：A（ASR GPU.0＋MT GPU.0＋TTS NPU）**951.9 s**／shared **2262.1 MB**／RSS **7688.2 MB**；B（ASR NPU＋MT GPU.0＋TTS NPU）**1759.1 s**／shared **1810.6 MB**／RSS **7097.1 MB** ⇒ **PASS、`timing_valid=True`** ⇒ **A 臂未复现 B 机 268 s 崩溃**；两臂差异真因是 **NPU 争用**（B 臂 ASR＋TTS 同在 NPU ⇒ TTS 被挤 ⇒ 积压 763.70 s vs A 臂 229.22 s）。
 > 🔴 **速查③查实并修掉 1 个 App 侧真缺陷**：`tts_service.py` 的 `late_drop` 分支只 `n_dropped += 1` 而**不摘 `pending`** ⇒ ① `drain()` 退出条件 `pending_n==0` **永不成立** ⇒ 必然空等到超时（**B 臂白等 1157.8 s ≈ 19 min**）；② `close()` 再把同一批当 orphan 计一次 ⇒ §29 不变式破坏（**A 臂提交 159 播完 93 丢弃 132 ⇒ 多 66 句**，＝ jsonl 实测 `late_drop` 66 句）⇒ 改走 §60 唯一原子口径 `_drop_one(jid)` ⇒ **只改 dev 树**（已交付包零影响）｜**判据 8/8 PASS**（REAL 4/4 ＋ **反证 4/4 全触发**）｜另修 harness 3 个缺陷（verdict 期望臂数假阴性／`n, _` 解包崩溃／**`--outroot` 相对路径把产物落进 rc7 包内** ⇒ 已改绝对路径、10 个产物**逐字节抢救**回仓库、**rc7 包已复原**）｜**纠偏文件全程只读**：开工＝收尾 SHA `219ef841…`／308 340 B／**100 条** ⇒ **SHA 零改动**｜**未打包 v2.5、未打 rc8、未通知用户、未调 MiniMax、未改任何默认值或产品判据**｜**本条需等 reviewer 复核**。
+
+## §178 巡检（last_ack=APP-100，2026-11-11 18:55:00）｜**无新 reviewer 纠偏**；查出并修掉 **6 处 git 半交付**（STATUS 引用的归档件／证据产物**在磁盘上却从没进过 git**）＋ 新增「**git 半交付**」判据（177 行／**0 FAIL**＋反证 **3/3**）｜**本条需等 reviewer 复核**
+
+> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec178_20261111.md`（12 105 B／SHA256 `de11dd84f8f3fc30658016a8fc3bdc31d6414cdf25fbba8e57b0e906575779a9`）｜**归档件逐字节未动**（write-once）｜**上一会话（token `3face6f5`）死于「收尾复核」中途** ⇒ 本轮从其断点续做，**未推翻任何 §177 结论**。
+> 🔴 **速查①根因**：§173 的「归档指针可核对性」判据只查**磁盘存在 + SHA** ⇒ **查不出 git 半交付**（它报「30 OK／0 FAIL」，而实测 **6 处引用在磁盘上却从未进过 git** ⇒ 换 clone 即断链）⇒ 新判据加第 3 维度：**已跟踪 ＋ 已提交到 HEAD 树**（查 `git ls-tree HEAD`，不查暂存区 ⇒ 铁律「「包里对」≠「已交付」」）。
+> 🔴 **速查②已修 6 处半交付**（只补交、未改内容）：`sec159`（11 156 B）／`sec176`（13 851 B）／`app326_app097_lang_out/mt.json`（122 674 B）／`app326_app097_lang_out/tts.json`（214 657 B，**§172 `_SEC_PER_CHAR` 回填的唯一数据源**）／`app372…/subtitle_layout.json`（386 B）／`app458_app100_device.json` ＋ 8 份产物 ⇒ git `14531d0` ＋ `fe6f1bc`。
+> 🔴 **速查③新发现第 4 种形态 `lf`/`crlf`**：本仓库 `core.autocrlf=true` 且**无 `.gitattributes`** ⇒ git 存 LF、工作区 CRLF ⇒ 旧章节引用算的是**工作区 CRLF 字节**（§172 的 6 288 B、§177 的 2 138 B，**差值恰等于行数**）⇒ 拿 LF 比 ⇒ **3 个假 FAIL** ⇒ 🔴 **教训：引用里的字节数须先确认指的是 LF 还是 CRLF**（**假 FAIL 比漏检更费时间**）。
+> 🔴 **速查④判据** `results/app/_app468_status_git_halfdelivery.py`（只读）⇒ **177 行／OK 173／FAIL 0／MISSING 0／反证 3/3 全触发 ⇒ PASS**；反证 C 用 `git ls-tree <修复前 ref>` **从历史重建**修复前状态（抓到 6 处）⇒ **不用手工快照**（快照会随判据演进失真 ⇒ 假自证）。
+> 🔴 **证据**：`results/app/app468_status_git_halfdelivery.json`（本轮判据产物）＋`results/app/_app468_status_git_halfdelivery.py`（判据脚本）＋`status/archive/STATUS_APP_sec178_20261111.md`（§178 正文全文）｜**未打包 v2.5／未打 rc8／未通知用户／未调 MiniMax／未改任何默认值或产品判据／未占设备／未持锁**｜**纠偏文件全程只读**（开工＝收尾 SHA `219ef841…`／308 340 B／100 条 ⇒ **SHA 零改动**）。
