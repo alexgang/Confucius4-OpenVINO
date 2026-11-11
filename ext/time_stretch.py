@@ -17,6 +17,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+import math
+
 import numpy as np
 
 from .config import SAMPLE_RATE
@@ -88,86 +90,77 @@ def _normalized_xcorr_best(seg: np.ndarray, ref: np.ndarray) -> int:
     return int(np.argmax(scores))
 
 
-def wsola(x: np.ndarray, rate: float, *, frame_ms: int = 60,
+def wsola(x: np.ndarray, rate: float, *, frame_ms: int = 40,
           tol_ms: int = 10, sample_rate: Optional[int] = None) -> np.ndarray:
     """保持音高的变速（WSOLA）。
 
+    ★ v0.4.5（用户 11-11 抽听 A/B 后选定）：算法换成 App `live_caption/time_stretch.time_stretch`
+      的同一套实现。旧实现拿**上一帧的开头**做相似度参考（应该是刚放下那一帧的重叠尾部）
+      ⇒ 每次拼接相位对不齐 ⇒ 音色/音高被拉偏（30 句实测：说话人相似度 1.1× 0.79、1.5× 0.68，
+      音高偏差约 350 音分）。换算法后 1.1× 0.98、1.5× 0.86，音高偏差 14–25 音分，速度快约 40 倍。
+      数据：reviewer `ext/tsm_ab/results2.json`（A0 = 旧实现，A4 = 本实现）。
+
     Parameters
     ----------
-    x : np.ndarray
-        输入波形（float32，单声道）。
-    rate : float
-        变速倍率；>1 变短（加速），<1 变长（减速），1.0 原样返回。
-    frame_ms, tol_ms : int
-        合成帧长与相似度搜索容忍窗（**毫秒**，与采样率无关）。
-    sample_rate : int or None
-        输入波形的采样率；缺省用 `config.SAMPLE_RATE`（16 kHz）。
-        ★ 必须传对：TTS 的输出是 **24 kHz**，若沿用 16 kHz 的帧长，
-          帧/容忍窗的实际时长会缩掉 1/3（60 ms 变成 40 ms）
-          ⇒ 拼接粒度变粗、容忍窗变窄 ⇒ 音质变差。
+    x : 输入波形（float32，单声道）。
+    rate : 变速倍率；>1 变短（加速），<1 变长（减速），1.0 原样返回。
+    frame_ms : 分析帧长（毫秒）；tol_ms : 相似度搜索窗（毫秒）。
+    sample_rate : 输入采样率；缺省 `config.SAMPLE_RATE`。TTS 输出是 24 kHz，必须传对。
 
     Returns
     -------
-    np.ndarray
-        变速后波形，长度约为 len(x) / rate。
+    长度约为 len(x) / rate 的波形（float32）。
     """
-    x = np.asarray(x, dtype=np.float32)
-    if abs(rate - 1.0) < 1e-6 or x.shape[0] == 0:
-        return x
-
+    arr = np.asarray(x, dtype=np.float32).reshape(-1)
+    n = arr.size
+    sp = float(rate) if rate is not None else 1.0
+    if n == 0 or sp != sp or sp <= 0 or abs(sp - 1.0) < 1e-9:
+        return arr.copy()
     sr = int(sample_rate or SAMPLE_RATE)
-    frame = int(sr * frame_ms / 1000)
-    tol = int(sr * tol_ms / 1000)
-    if frame <= 0:
-        return x
+    if n < 64:
+        out_len = max(1, int(round(n / sp)))
+        idx = np.linspace(0, n - 1, out_len)
+        return np.interp(idx, np.arange(n), arr).astype(np.float32)
 
-    win = _hann(frame)
-    # 合成步长 = 分析步长 / rate
-    ana_step = frame // 2
-    syn_step = int(round(ana_step / rate))
-    if syn_step <= 0:
-        return x
+    ha = max(64, int(round(sr * frame_ms / 1000.0)))     # 分析帧长
+    ov = max(16, ha // 4)                                 # 重叠长度
+    hs_out = max(16, ha - ov)                             # 合成 hop
+    ha_in = max(16, int(round(hs_out * sp)))              # 分析 advance = 合成 hop × 倍率
+    search = max(4, int(round(sr * tol_ms / 1000.0)))
 
-    n_out = int(x.shape[0] / rate) + frame
-    out = np.zeros(n_out, dtype=np.float32)
-    win_sum = np.zeros(n_out, dtype=np.float32)
+    win = np.hanning(ha).astype(np.float32)
+    n_frames = max(1, int(math.ceil(max(0, n - ha) / float(ha_in))) + 1)
+    out_len = max(1, int(round(n / sp)))   # 也支持 <1（放慢）；bridge 只用 >1
+    total = n_frames * hs_out + ha + 4
+    out = np.zeros(total, dtype=np.float32)
+    norm = np.zeros(total, dtype=np.float32)
 
-    # 第一个帧直接放在 0
-    out[:frame] += x[:frame] * win
-    win_sum[:frame] += win
+    template = None   # 上一帧的重叠尾部（下一帧要和它对齐）
+    pos = 0
+    out_pos = 0
+    while pos + ha + search < n:
+        best = pos
+        if template is not None:
+            lo = max(0, pos - search)
+            hi = min(n - ha, pos + search)
+            if hi > lo:
+                t = template
+                tt = float(np.dot(t, t))
+                if tt > 1e-9:
+                    seg = arr[lo:hi + ha]
+                    c = np.correlate(seg, t, mode='valid')
+                    energy = np.convolve(seg ** 2, np.ones(t.size, dtype=np.float32), mode='valid')
+                    ncc = c / np.sqrt(np.maximum(energy, 1e-9) * tt)
+                    best = lo + int(np.argmax(ncc))
+        frame = arr[best:best + ha]
+        if frame.size < ha:
+            frame = np.pad(frame, (0, ha - frame.size))
+        out[out_pos:out_pos + ha] += frame * win
+        norm[out_pos:out_pos + ha] += win
+        template = arr[best + ha - ov: best + ha].copy()
+        pos += ha_in
+        out_pos += hs_out
 
-    ana_pos = frame
-    syn_pos = frame
-    prev_tail = x[:frame]
-    # ★ 上一帧的**尾部**（长度 tol*2）作为相似度参考
-    ref_len = max(1, tol * 2)
-
-    while ana_pos + frame < x.shape[0]:
-        # 在 [ana_pos - tol, ana_pos + tol] 里找与 prev_tail 最相似的偏移
-        lo = max(0, ana_pos - tol)
-        hi = min(x.shape[0] - frame, ana_pos + tol)
-        if hi <= lo:
-            best = ana_pos
-        else:
-            cand = x[lo:hi + frame]
-            ref = prev_tail[:ref_len] if prev_tail.shape[0] >= ref_len else prev_tail
-            if ref.shape[0] < 8 or cand.shape[0] < 8:
-                best = ana_pos
-            else:
-                # ★ 缺陷 21 修法：真正在候选窗口里搜索（见 _normalized_xcorr_best）
-                off = _normalized_xcorr_best(cand, ref)
-                best = lo + off
-        seg = x[best:best + frame]
-        if seg.shape[0] < frame:
-            break
-        if syn_pos + frame > n_out:
-            break
-        out[syn_pos:syn_pos + frame] += seg * win
-        win_sum[syn_pos:syn_pos + frame] += win
-        prev_tail = seg
-        ana_pos = best + ana_step
-        syn_pos += syn_step
-
-    nz = win_sum > 1e-6
-    out[nz] /= win_sum[nz]
-    return out
+    nz = norm > 1e-6
+    out[nz] /= norm[nz]
+    return out[:out_len].astype(np.float32)
