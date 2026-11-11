@@ -279,6 +279,22 @@ def main():
         print('[zip] %s' % ' '.join(cmd))
         return subprocess.run(cmd, capture_output=True, text=True, cwd=HOME)
 
+    # 🔴🔴 APP-099 四.4：**打包前逐项与源目录比对，任何一项不一致就终止**。
+    #   共用实现在 live_caption/manifest_gen.py（与 _app420 同一份）。
+    #   ⚠️ 放在第 1 遍 do_zip() **之前** ⇒ 不一致时连 zip 都不会生成。
+    _dev = os.path.join(REPO, 'live_caption')
+    if _dev not in sys.path:
+        sys.path.insert(0, _dev)
+    import manifest_gen
+    try:
+        manifest_gen.verify_or_die(PKG)
+        out['app099_manifest_verify'] = 'PASS'
+        print('[manifest] 逐项与源目录一致 ⇒ 允许打包')
+    except manifest_gen.ManifestMismatch as e:
+        out['app099_manifest_verify'] = 'FAIL'
+        print('🔴 %s' % e)
+        return 1
+
     print('[zip] 第 1 遍（量体积）…')
     p1 = do_zip()
     out['zip_rc_pass1'] = p1.returncode

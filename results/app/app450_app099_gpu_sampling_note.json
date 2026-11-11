@@ -1,0 +1,15 @@
+{
+ "task": "APP-099 §4.2 采样口径复核：GPU Dedicated=0 的含义",
+ "files": {
+  "gpu_same_asr_mt_samples.jsonl": {
+   "n_samples": 381,
+   "gpu_dedicated_max": 0,
+   "gpu_dedicated_n_nonzero": 0,
+   "n_gpu_instances_max": 1,
+   "gpu_shared_peak_mb": 2262.1,
+   "proc_rss_peak_mb": 7676.5
+  }
+ },
+ "pass": true,
+ "conclusion": "Intel 集显 UMA：Dedicated Usage 恒 0，n_gpu_instances=1 ⇒ 计数器工作正常，显存计入 Shared；不得把 0 写成「无占用」"
+}

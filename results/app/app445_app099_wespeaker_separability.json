@@ -1,0 +1,255 @@
+{
+ "task": "APP-099 四.6(c) / reviewer 第 3 节：§3.5 换 wespeaker 后的可分性",
+ "created_at": "2026-11-11 12:41:27",
+ "criterion": "separable = min(同人不同段两两余弦) > max(异人两两余弦)；纯序关系，无自造阈值",
+ "source": {
+  "truth": "C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\truth.json",
+  "src_wav": "C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\dialog3.wav",
+  "wespeaker_ir": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\wespeaker-resnet34-fp16",
+  "encoder": "C:\\Users\\Trekker-PTL\\_app_shadow\\after2\\app\\asr_spk\\asr052_spk_runtime.py::WespeakerOVEncoder",
+  "device": "GPU.0",
+  "sample_rate": 16000,
+  "min_dur_s": 1.5,
+  "note": "IR 与编码器就是 ASR 说话人旁路用的那一份；只读取，不修改、不交付"
+ },
+ "lock": {
+  "module": "app",
+  "payload": "app PID 31160 started 2026-11-11 12:41:27\nmodule: app\npid: 31160\nstarted: 2026-11-11 12:41:27\nhost: LAPTOP-0GDQGD3I\n",
+  "started": "2026-11-11 12:41:28",
+  "ended": "2026-11-11 12:41:44",
+  "pid": 31160,
+  "released": true
+ },
+ "data": {
+  "n_truth": 44,
+  "n_embedded": 44,
+  "n_skipped": 0,
+  "per_spk": {
+   "A": 16,
+   "B": 16,
+   "C": 12
+  },
+  "skipped": [],
+  "src_seconds": 286.53
+ },
+ "separability": {
+  "ref_pair_cosine": {
+   "A-B": 0.146926,
+   "A-C": 0.201308,
+   "B-C": 0.129374
+  },
+  "same_spk_pairs": {
+   "n": 306,
+   "min": 0.483703,
+   "p50": 0.86625,
+   "max": 1.0
+  },
+  "diff_spk_pairs": {
+   "n": 640,
+   "min": -0.002351,
+   "p50": 0.120128,
+   "max": 0.401077
+  },
+  "gap_median_minus_diff_max": 0.465173,
+  "separable": true,
+  "same_pairs_detail": [
+   {
+    "spk": "A",
+    "a": 0,
+    "b": 2,
+    "cos": 0.725237
+   },
+   {
+    "spk": "A",
+    "a": 0,
+    "b": 6,
+    "cos": 0.875224
+   },
+   {
+    "spk": "A",
+    "a": 0,
+    "b": 9,
+    "cos": 0.644115
+   },
+   {
+    "spk": "A",
+    "a": 0,
+    "b": 12,
+    "cos": 0.765458
+   },
+   {
+    "spk": "A",
+    "a": 0,
+    "b": 15,
+    "cos": 0.644153
+   },
+   {
+    "spk": "A",
+    "a": 0,
+    "b": 18,
+    "cos": 0.753523
+   },
+   {
+    "spk": "A",
+    "a": 0,
+    "b": 20,
+    "cos": 0.812268
+   },
+   {
+    "spk": "A",
+    "a": 0,
+    "b": 22,
+    "cos": 1.0
+   },
+   {
+    "spk": "A",
+    "a": 0,
+    "b": 24,
+    "cos": 0.725237
+   },
+   {
+    "spk": "A",
+    "a": 0,
+    "b": 28,
+    "cos": 0.875224
+   },
+   {
+    "spk": "A",
+    "a": 0,
+    "b": 31,
+    "cos": 0.644115
+   },
+   {
+    "spk": "A",
+    "a": 0,
+    "b": 34,
+    "cos": 0.765458
+   }
+  ],
+  "diff_pairs_detail": [
+   {
+    "a_spk": "A",
+    "b_spk": "B",
+    "a": 0,
+    "b": 1,
+    "cos": 0.14834
+   },
+   {
+    "a_spk": "A",
+    "b_spk": "B",
+    "a": 0,
+    "b": 3,
+    "cos": 0.155582
+   },
+   {
+    "a_spk": "A",
+    "b_spk": "B",
+    "a": 0,
+    "b": 5,
+    "cos": 0.162864
+   },
+   {
+    "a_spk": "A",
+    "b_spk": "B",
+    "a": 0,
+    "b": 7,
+    "cos": 0.175942
+   },
+   {
+    "a_spk": "A",
+    "b_spk": "B",
+    "a": 0,
+    "b": 11,
+    "cos": 0.106114
+   },
+   {
+    "a_spk": "A",
+    "b_spk": "B",
+    "a": 0,
+    "b": 13,
+    "cos": 0.20306
+   },
+   {
+    "a_spk": "A",
+    "b_spk": "B",
+    "a": 0,
+    "b": 16,
+    "cos": 0.138196
+   },
+   {
+    "a_spk": "A",
+    "b_spk": "B",
+    "a": 0,
+    "b": 19,
+    "cos": 0.15892
+   },
+   {
+    "a_spk": "A",
+    "b_spk": "B",
+    "a": 0,
+    "b": 23,
+    "cos": 0.14834
+   },
+   {
+    "a_spk": "A",
+    "b_spk": "B",
+    "a": 0,
+    "b": 25,
+    "cos": 0.155582
+   },
+   {
+    "a_spk": "A",
+    "b_spk": "B",
+    "a": 0,
+    "b": 27,
+    "cos": 0.162864
+   },
+   {
+    "a_spk": "A",
+    "b_spk": "B",
+    "a": 0,
+    "b": 29,
+    "cos": 0.175942
+   }
+  ],
+  "n_same_pairs": 306,
+  "n_diff_pairs": 640
+ },
+ "neg_controls": {
+  "swapped": {
+   "detected": true,
+   "expect_separable": false,
+   "got_separable": false,
+   "note": "把「同人两段」的第二段换成别人的段 ⇒ 判据应判不可分"
+  },
+  "diff_as_same": {
+   "detected": true,
+   "expect_separable": false,
+   "got_separable": false,
+   "note": "把异人对冒充同人对 ⇒ min(same) > max(diff) 恒不成立 ⇒ 判据非恒真"
+  },
+  "random": {
+   "detected": true,
+   "expect_separable": false,
+   "got_separable": false,
+   "note": "随机单位向量 ⇒ 判据应判不可分（辅助，不单独决定 pass）"
+  },
+  "identical": {
+   "detected": true,
+   "expect_separable": true,
+   "got_separable": true,
+   "note": "同一段向量两次（恒 1.0）⇒ 判据应判可分（阳性对照）"
+  }
+ },
+ "neg_all_detected": true,
+ "neg_required_detected": true,
+ "pass": true,
+ "verdict": "SEPARABLE",
+ "next_step": "按第 3 节裁定：wespeaker 可分 ⇒ 需做 before/after × dialog3/tight 四组 + 预设 A 对照组重跑",
+ "app329_old_encoder_ref_pair": {
+  "A-B": 0.967428,
+  "A-C": 0.971264,
+  "B-C": 0.957272,
+  "note": "旧 TTS speaker_encoder 的三人参考两两余弦（app329_app093_voice_attrib.json）"
+ }
+}

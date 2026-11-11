@@ -267,6 +267,23 @@ def main():
     print('[5/7] 生成 MANIFEST（模型身份）…')
     model_identity = build_model_identity(models)
     ev['model_identity'] = model_identity
+    # 🔴🔴 APP-099 四.4：**从源目录生成包内 app/MANIFEST.json**。
+    #   旧实现只把 model_identity 写进 evidence ⇒ 包内没有任何 MANIFEST
+    #   （APP-099 §2c 复核结论）。共用实现只写一份：live_caption/manifest_gen.py。
+    if DEV not in sys.path:
+        sys.path.insert(0, DEV)
+    import manifest_gen
+    _mpath = manifest_gen.write_manifest(DST_PKG)
+    _mjson = json.load(open(_mpath, encoding='utf-8'))
+    ev['app099_manifest_path'] = _mpath
+    ev['app099_manifest_n_models'] = _mjson['n_models']
+    ev['app099_manifest_all_match'] = _mjson['all_match']
+    ev['app099_manifest_mismatches'] = _mjson['mismatches']
+    if not _mjson['all_match']:
+        raise RuntimeError('APP-099 四.4：MANIFEST 与源目录不一致，终止构建：%s'
+                           % _mjson['mismatches'][:3])
+    print('[5/7] MANIFEST 已写入（%d 个模型目录，逐项与源目录一致）：%s'
+          % (_mjson['n_models'], _mpath))
 
     # 🔴 ASR 两个 bin 的 SHA 复核（必须与 reviewer 给的基准一致）
     # ⚠️ **两个 bin 的文件名不同**（实测 rc6）：

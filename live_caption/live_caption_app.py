@@ -1655,6 +1655,7 @@ class OVEngine:
                                       force_language=self.force_language)
         self.state.diag_log = []
         self.cur_text = ''
+        self.cur_lang = ''
 
     def set_force_language(self, lang):
         """设置 ASR 识别语种（None/'' = 自动检测）。
@@ -1682,7 +1683,9 @@ class OVEngine:
         self.stats['chunks'] += n_new
         self.stats['proc_s'] += n_new * CHUNK_SEC
         self.stats['lag_ms'] = (time.perf_counter() - t_capture) * 1000
-        _, self.cur_text = self._parse(self.state._raw_decoded, user_language=None)
+        # 🔴 APP-099 四.3(d)：lang 以前被丢掉 ⇒ 现在留下来给 MT 当 src_hint
+        self.cur_lang, self.cur_text = self._parse(
+            self.state._raw_decoded, user_language=None)
         outs = []
         while self.seg.due(self.state.audio_accum):
             outs.append(self._close_segment())
@@ -1698,7 +1701,7 @@ class OVEngine:
         gen = self.backend.generate_with_prefix(st, st.audio_accum, prefix, 64)
         gen = self._norm(gen).replace('\ufffd', '')
         st._raw_decoded = ((prefix + gen) if prefix else gen).split('|')[0]
-        _, txt = self._parse(st._raw_decoded, user_language=None)
+        self.cur_lang, txt = self._parse(st._raw_decoded, user_language=None)
         return txt.split('|')[0]
 
     def _close_segment(self):
@@ -2482,10 +2485,17 @@ class App:
         self._ui_log_q = queue.Queue()
         # 设备解析结果（APP-004 第 3 条）：命令行 > 配置文件 > 推荐默认值。
         # 已在 main() 里解析过一次并回退过不可用的设备。
+        # 🔴🔴 APP-099 第 0 节 1/2：**默认设备同源跟随** `device_config.DEFAULT_DEVICES`。
+        #   旧实现在这里又写了一份字面量（GPU.0 / GPU.0 / NPU）⇒ 改了
+        #   `device_config` 也没用 ⇒ GUI 默认值与「唯一事实来源」漂移。
+        #   ⇒ 现在只留 `args.*`（命令行/配置文件解析结果）与这里的表作为兜底。
         self._dev_selected = {
-            'asr': getattr(args, 'asr_device', None) or 'GPU.0',
-            'mt': getattr(args, 'mt_device', None) or 'GPU.0',
-            'tts': getattr(args, 'tts_device', None) or 'NPU',
+            'asr': (getattr(args, 'asr_device', None)
+                    or device_config.DEFAULT_DEVICES['asr']),
+            'mt': (getattr(args, 'mt_device', None)
+                   or device_config.DEFAULT_DEVICES['mt']),
+            'tts': (getattr(args, 'tts_device', None)
+                    or device_config.DEFAULT_DEVICES['tts']),
         }
         self._device_notes = list(getattr(args, 'device_notes', []) or [])
         self.mt = TranslationService(
@@ -2529,7 +2539,7 @@ class App:
         # 顶栏只留「开始 / 清空 / 保存 / 屏幕字幕」这类全局操作。
         top = ttk.Frame(root, padding=(8, 3))
         top.pack(fill='x')
-        ttk.Label(top, text='Confucius4 实时字幕').pack(side='left')
+        ttk.Label(top, text=_PRODUCT_NAME).pack(side='left')
 
         self.btn = ttk.Button(top, text='▶ 开始', command=self.toggle, state='disabled')
         self.btn.pack(side='left', padx=(12, 0))
@@ -2886,9 +2896,10 @@ class App:
         self._tts_opts = build_tts_options(self._dev_avail)
         self._tts_opt_by_id = {o['id']: o for o in self._tts_opts}
         self.var_tts_combo = tk.StringVar(value='')
-        ttk.Label(g_tts, text='音色', 
-                  anchor='e').grid(row=1, column=0, sticky='e',
-                                   padx=(0, 8), pady=0)
+        _tts_voice_lbl = ttk.Label(g_tts, text='音色',
+                                   anchor='e')
+        _tts_voice_lbl.grid(row=1, column=0, sticky='e',
+                            padx=(0, 8), pady=0)
         # 🔴🔴 **只保留音色 A**（APP-007 交付修正，2026-10-23）。
         #    客户包只带 `models/qwen3tts/voices/preset_A.wav`（BRIEF 硬要求：
         #    同事音色 B / 克隆音色 C 一律不进包）。
@@ -2919,27 +2930,29 @@ class App:
         self._tts_voice_label = {'A': '预设 A',
                                  'follow_speaker': '跟随说话人（克隆·实验）'}
         self._tts_voice_back = {v: k for k, v in self._tts_voice_label.items()}
-        # 🔴🔴🔳 **APP-098 一.3：MiniMVP 不提供音色克隆 ⇒ 该项置灰**。
-        #   reviewer 原话：「克隆音色在 GUI 上置灰，提示『MiniMVP 不提供音色克隆』，
-        #   默认用预设音色 A。」
-        #   ⚠️ **置灰而不是删掉**（reviewer 明确要「置灰 + 提示」）
-        #      ⇒ 做法与项目既有约定一致（APP-061②）：
-        #        **不可用的项不作初值** + **选中它 ⇒ 拒绝启动 + 显示原因**。
-        #   🔴 **Tk Combobox 不支持逐项 disabled**
-        #      （`state=['disabled']` 会让**整个下拉**不可用 ⇒ 不可用）
-        #      ⇒ 改用「**该项 + 原因后缀**」的**标签**表达不可用，
-        #        并在 `_on_tts_voice_changed` 里**拦截**（拒绝切过去）。
+        # 🔴🔴🔳 **APP-099 四.3(a)：MiniMVP 的「整个音色下拉」置灰不可选**。
+        #   reviewer APP-099 §2d 复核 APP-098 一.3 后的原话：「克隆并没有
+        #   『置灰、不可选』」—— `app413b.clone_check.values` 里那一项仍可选，
+        #   `00_main.png` 的音色下拉也是可用状态。旧实现只是给标签加原因后缀、
+        #   选中后再拒绝 ⇒ 不满足「置灰、不可选」。
+        #   ⇒ 本轮按 reviewer 给的**第一个选项**实现：
+        #     ① `ttk.Combobox(state='disabled')` ⇒ 整控件不可交互；
+        #     ② 固定显示「预设 A」（MiniMVP 下连克隆项也不列出）；
+        #     ③ 悬停提示「MiniMVP 不提供音色克隆」；
+        #     ④ 写进 README（见 `docs/APP099_minimvp_voice.md`）。
+        #   ⚠️ ttk 的 disabled 控件**不派发 <Enter>** ⇒ tooltip 必须同时挂在
+        #      旁边可交互的「音色」Label 上，否则提示永远不会弹出来。
         self._clone_voice_allowed = package_profile.allow_clone_voice()
         self._clone_voice_why = ('' if self._clone_voice_allowed
                                  else package_profile.clone_voice_unavailable_reason())
         if not self._clone_voice_allowed:
-            # 🔴 不可用 ⇒ 标签带上原因（用户一眼看出为什么灰）
-            self._tts_voice_label['follow_speaker'] = (
-                '跟随说话人（克隆·实验）〔%s〕' % self._clone_voice_why)
+            # 🔴 不列克隆项 ⇒ values 里根本没有「跟随说话人」这一档。
+            self.tts_voices = ['A']
+            self._tts_voice_label = {'A': '预设 A'}
             self._tts_voice_back = {v: k for k, v in self._tts_voice_label.items()}
         # 🔴 默认音色：不可用克隆时**强制预设 A**（reviewer：「默认用预设音色 A」）
         _voice_init = str(getattr(args, 'tts_voice', 'A') or 'A')
-        if not self._clone_voice_allowed and _voice_init == 'follow_speaker':
+        if not self._clone_voice_allowed and _voice_init not in self.tts_voices:
             _voice_init = 'A'
             try:
                 print('[tts] 🔴 %s ⇒ 音色回落「预设 A」'
@@ -2949,11 +2962,16 @@ class App:
         self.var_tts_voice = tk.StringVar(
             value=self._tts_voice_label.get(_voice_init, '预设 A'))
         self.cb_tts_voice = ttk.Combobox(
-            g_tts, state='readonly', width=_GRID_CTRL_CHARS,
+            g_tts,
+            state=('readonly' if self._clone_voice_allowed else 'disabled'),
+            width=_GRID_CTRL_CHARS,
             textvariable=self.var_tts_voice,
             values=[self._tts_voice_label[k] for k in self.tts_voices])
         self.cb_tts_voice.grid(row=1, column=1, sticky='w', pady=0)
         self.cb_tts_voice.bind('<<ComboboxSelected>>', self._on_tts_voice_changed)
+        if not self._clone_voice_allowed:
+            self._set_strip_tooltip(_tts_voice_lbl, self._clone_voice_why)
+            self._set_strip_tooltip(self.cb_tts_voice, self._clone_voice_why)
         # 🔴🔴 APP-027⑤：**当前实际使用的音色**（独立标签，不在下拉里）
         #   ⇒ 用户随时能看见「现在到底在用预设 A 还是克隆」。
         # 🔴🔴🔴 APP-065 A：放在**音色下拉右侧**（column 4）。
@@ -3536,6 +3554,23 @@ class App:
         """当前选中的识别语种（英文名；None = 自动检测）。"""
         k = self._asr_lang_label_back.get(self.var_asr_lang.get(), ASR_LANG_AUTO)
         return None if k == ASR_LANG_AUTO else k
+
+    def _asr_src_hint(self):
+        """🔴🔴 APP-099 四.3(d)：给 translator 的**可信**源语种标签。
+
+        优先级：
+          ① 用户显式指定的识别语种（GUI 下拉 / ``--asr-lang``）⇒ 最可信；
+          ② ASR 模型自报的 ``language {X}`` 标签（``OVEngine.cur_lang``，
+             本轮把 ``_parse()`` 已经解析出来却被丢弃的 lang 留了下来）。
+        两者都没有 ⇒ None ⇒ translator 退回 APP-097 的脚本判定
+        （拉丁文本**不会**被当成 en 跳过）。
+
+        ⚠️ 只作为 ``src_hint`` 下传，**不改任何默认值、不跳过 ASR 识别**。
+        """
+        forced = self._cur_asr_lang()
+        if forced:
+            return forced
+        return getattr(getattr(self, 'engine', None), 'cur_lang', None) or None
 
     def _on_asr_lang_changed(self, *_a):
         """切换识别语种。
@@ -5473,7 +5508,8 @@ class App:
                     pass
             except Exception as e:
                 self._ui_log('[spk] 定稿旁路异常（忽略）：%s' % e)
-        self.mt.submit(text, seg=seg, spk=spk, spk_conf=spk_conf)
+        self.mt.submit(text, seg=seg, spk=spk, spk_conf=spk_conf,
+                      src_hint=self._asr_src_hint())
 
     def _target_play_wall(self):
         """🔴🔴🔴 APP-042：**这句的目标开播墙钟**（`time.time()` 口径）。
@@ -7881,7 +7917,8 @@ def run_cli(args):
                        target_play_at=_seg_target_wall.get(len(finals) - 1))
         # 🔴 APP-022：`spk` / `spk_conf` **接口预留**（当前恒为 None）
         #   ⇒ 透传给 MT（MT 侧同样只预留不使用）⇒ 行为不变。
-        mt.submit(t, seg=len(finals) - 1)
+        mt.submit(t, seg=len(finals) - 1,
+                  src_hint=(asr_lang or getattr(eng, 'cur_lang', None) or None))
 
     # 🔴🔴🔴 APP-027 V3（§84）：**CLI 接上克隆采集器**
     #   ⇒ `on_audio` 是 `Session._loop` 里**唯一**把 16 kHz PCM 交出来的地方

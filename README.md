@@ -761,6 +761,18 @@ if last_chunk_count > 0:
 - **分段位置编码 hard cap**：encoder `max_source_positions=1500`（120 s）→ 必须 ≤ 20 s 段长。
   - 提升路径：换 encoder IR 重新 trace，把 dynamic shape 上限拉到 4096（成本是 IR 重导 + benchmark）
 
+## MiniMVP 音色下拉（APP-099 四.3a）
+
+MiniMVP 包（包根 `package_profile.json` 里 `profile="minimvp"`）**不提供音色克隆**。
+GUI 的「音色」下拉在 MiniMVP 下**整体置灰**（`ttk.Combobox(state='disabled')`），
+下拉列表只列「预设 A」，鼠标悬停在「音色」标签或下拉上会提示
+「MiniMVP 不提供音色克隆」；CLI 传 `--tts-voice follow_speaker` 也会回落预设 A。
+完整版（v2.5）不受影响，克隆音色仍可选。
+
+> 实现：`live_caption/live_caption_app.py`（`App.__init__` 的 `self.cb_tts_voice`）
+> 与 `live_caption/package_profile.py`（`allow_clone_voice()`）。
+> 将来重打 MiniMVP 时，本节要同步进包内 `README_zh.md` / `README_en.md`。
+
 ## 弃用的旧实现
 
 - `ov_r2t2.py`（旧手写 OVR2T2ASR）— 已被 `backends.py::OVBackend` 取代

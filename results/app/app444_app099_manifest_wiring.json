@@ -1,0 +1,35 @@
+{
+ "task": "APP-099 四.4 MANIFEST 接入打包脚本（不触发打包）",
+ "timestamp": "2026-11-11 11:47:01",
+ "files": [
+  {
+   "file": "results/app/_app420_build_minimvp_rc7.py",
+   "before": {
+    "bytes": 20486,
+    "sha256": "c1d35ba83b2b2b87d81a8ecb0fc02a564018937b5bff18cb0495d789a0763f81"
+   },
+   "after": {
+    "bytes": 21476,
+    "sha256": "d2cc29495f25506aec2cfa5985a74581a9cfb49cf0c07c1f36412e539c29ba39"
+   },
+   "hits": 1,
+   "ast_parse": true
+  },
+  {
+   "file": "results/app/_app422_rc7_zip.py",
+   "before": {
+    "bytes": 16697,
+    "sha256": "bb985c25a46dc5ad034e94262bb4f3199658b061a55225d9c0518133843c82e7"
+   },
+   "after": {
+    "bytes": 17418,
+    "sha256": "eb7390856eff9616e2765967c664e03c1cbc5c296a0e11bb4a4c1d7ef7725d4a"
+   },
+   "hits": 1,
+   "ast_parse": true
+  }
+ ],
+ "pack_v13_unchanged_reason": "pack_v13.py 的 refresh_manifest() 会重写完整版 MANIFEST（files/bytes/version/packages），且完整版 models/ 树（decoder-gpu-int8 / encoder-fp16 / spk/ …）与 APP-099 §4.4 给的 0.6B 源目录清单（asr06b-*）不同 ⇒ 硬接 verify_or_die 会把完整版打包判成永久 FAIL。本轮不改 pack_v13.py；若 reviewer 要求完整版也走同一清单，需另补 MODEL_SOURCES_FULL 映射。",
+ "not_run": "APP-099 第 0 节 5：MiniMVP 暂不打包 ⇒ 两个脚本本轮只改代码、不执行。",
+ "pass": true
+}

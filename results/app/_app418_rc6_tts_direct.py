@@ -49,7 +49,10 @@ OUTROOT = os.path.join(HERE, 'app418_rc6_tts_direct')
 REPORT = os.path.join(HERE, 'app418_rc6_tts_direct.json')
 
 LANGS = ('zh', 'en', 'ja', 'ko', 'de', 'fr', 'es', 'pt', 'it', 'ru')
-N_SENT = 2
+# 🔴 APP-099 四.5：每种语言 **5 个 TTS wav**（旧值 2 是 app419「每语种只有
+#    2 个 wav」的直接原因之一，见 app439_app099_lang_evidence.json）。
+#    ⚠️ 只改复验句数，不动生产默认值/判据阈值；同时要求素材本身够 5 句。
+N_SENT = 5
 
 
 def now():

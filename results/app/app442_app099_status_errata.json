@@ -1,0 +1,48 @@
+{
+ "task": "APP-099 第 4 节 6(d)：STATUS 勘误 + 交付配置表现状；并记 §6(b) 阻塞",
+ "timestamp": "2026-11-11 11:42:29",
+ "errata": {
+  "archive": "status/archive/STATUS_APP_sec174_20261111.md",
+  "archive_write_once": true,
+  "archive_unchanged": true,
+  "wrong_refs_in_archive": [
+   "app429_self_ref_clone_gate.json",
+   "app430_pkg_dev_only_assert_gate.json"
+  ],
+  "correct_files": [
+   "results/app/app432_self_ref_clone_gate.json",
+   "results/app/app433_pkg_dev_only_assert_gate.json"
+  ],
+  "correct_files_exist": [
+   true,
+   true
+  ],
+  "what_are_app429_app430": [
+   "results/app/app429_status_pointer_audit.json（§173 指针审计）",
+   "results/app/app430_status173_write.json（§173 写入）"
+  ],
+  "status_live_doc_already_correct": true,
+  "action": "在 STATUS 活文档 §175 加勘误行；归档件一字不动（write-once）"
+ },
+ "delivery_table_current": {
+  "path": "status/app/STATUS_APP.md → ### 交付配置（第 24–32 行）",
+  "currently_says": "v2.2 候选 / v2.1 当前交付；默认 TTS NPU、ASR GPU.0",
+  "current_truth": {
+   "full_package": "Confucius4_LiveCaption_v2.4（真包）",
+   "minimvp": "Confucius4_LiveCaption_MiniMVP_v1.0-rc7（rc6 已作废）",
+   "default_full": "ASR GPU.0 / MT GPU.0 / TTS GPU.0（APP-099 第 0 节 1）",
+   "default_minimvp": "ASR NPU / MT GPU.0 / TTS NPU（APP-099 第 0 节 2）"
+  },
+  "action": "在 §175 追加「交付配置（当前）」表，不回改旧表（STATUS 旧正文一字不删）"
+ },
+ "section6b": {
+  "requirement": "在这 4 臂的真实运行日志里报 xv_reg_count / xv_reg_at",
+  "status": "BLOCKED_BY_USER_DECISION",
+  "reason": "APP-099 第 0 节 3（用户决定）明确「阈值重跑暂缓」⇒ 第 6 项 (a) 的 dave/tight thr6/thr10 4 臂本轮不跑；(b) 明确要求「在**这 4 臂**的真实运行日志里」报 ⇒ 没有这 4 臂就没有可报的运行日志。",
+  "existing_code": "live_caption/speaker_voice.py:665 mark_xv_registered / :691 xv_registration_records 已有埋点（APP-094④）",
+  "existing_stub_evidence": "results/app/_app313_app094_keepfirst_verify.py（桩级 5/5）",
+  "real_logs_found": [],
+  "real_logs_note": "本轮在 results/ 下未找到 runs3 的 tts.jsonl；APP-099 §2k 也指出 runs3 的 jsonl 没有注册记录。",
+  "next": "等用户裁定恢复 (a) 后，在 4 臂真实运行时把 xv_registration_records() 导出进结果 json。"
+ }
+}

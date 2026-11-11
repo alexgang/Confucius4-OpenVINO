@@ -1,0 +1,29 @@
+{
+  "task": "APP-099 开工 ack（STATUS 头部定点写入）",
+  "timestamp_source": "PowerShell Get-Date -Format yyyy-MM-dd HH:mm:ss",
+  "timestamp": "2026-11-11 10:19:33",
+  "before": {
+    "bytes": 37879,
+    "lines": 185,
+    "sha256": "5867bc666da7de5a38e182260534663bd656b335103a641cbe047948b8a9dd2b",
+    "sections": 24,
+    "crlf": 0
+  },
+  "after": {
+    "bytes": 38433,
+    "lines": 186,
+    "sha256": "74e8ed89efe496db609241a930e516b2427fd1acedd39ca35caf524cd317235b",
+    "sections": 24,
+    "crlf": 0
+  },
+  "checks": {
+    "last_ack_app099": true,
+    "timestamp_measured": true,
+    "recent_update_row": true,
+    "old_body_verbatim": true,
+    "sections_not_reduced": true,
+    "no_crlf": true,
+    "within_limit": true
+  },
+  "pass": true
+}

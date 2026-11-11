@@ -1,0 +1,188 @@
+{
+ "task": "APP-099 第 4 节 7：v2.5 可见变化清单（只列，不打包）",
+ "timestamp": "2026-11-11 11:42:29",
+ "baseline": "C://Users//Trekker-PTL//Confucius4_LiveCaption_v2.4（真包，app/live_caption_app.py）",
+ "dev": "live_caption/（dev 树）",
+ "n_changes": 11,
+ "changes": [
+  {
+   "n": 1,
+   "change": "ASR 引擎下拉不再有「NVIDIA GPU · CUDA Q8_0 / Q4_K」两档",
+   "correction": "APP-098 一.1；APP-099 第 0 节 1（用户接受 §2j）",
+   "dev": {
+    "file": "live_caption/live_caption_app.py",
+    "line": 565,
+    "marker": "cuda_q8/cuda_q4 已从 ENGINES 删除，仅注释保留"
+   },
+   "v24": {
+    "file": "v2.4 app/live_caption_app.py",
+    "line": "492 / 494",
+    "marker": "ENGINES 里仍有 'cuda_q8': / 'cuda_q4':"
+   },
+   "user_visible": true
+  },
+  {
+   "n": 2,
+   "change": "窗口标题/顶栏产品名按包形态显示（完整版 = 「实时字幕 v2.5」）",
+   "correction": "APP-098；APP-099 §2i、§4.3(b)",
+   "dev": {
+    "file": "live_caption/live_caption_app.py",
+    "line": 149,
+    "marker": "144–153 定义；2511 root.title(_WINDOW_TITLE)；2532 顶栏改用 _PRODUCT_NAME（本轮）"
+   },
+   "v24": {
+    "file": "v2.4 app/live_caption_app.py",
+    "line": 2306,
+    "marker": "root.title('实时字幕 MiniMVP v1.0') 写死（产品名写错）"
+   },
+   "user_visible": true
+  },
+  {
+   "n": 3,
+   "change": "clone_voice 改为条件 import（模块不在包内时不再 ImportError）",
+   "correction": "APP-098 / APP-099 §1（§174 影响范围判定接受）",
+   "dev": {
+    "file": "live_caption/live_caption_app.py",
+    "line": 183,
+    "marker": "带 try/except 的条件 import"
+   },
+   "v24": {
+    "file": "v2.4 app/live_caption_app.py",
+    "line": null,
+    "marker": "v2.4 及以前没有 self_ref / clone_voice 代码"
+   },
+   "user_visible": false
+  },
+  {
+   "n": 4,
+   "change": "目标语言从 4 种扩到 10 种（+de/fr/es/pt/it/ru）",
+   "correction": "APP-097 §1；APP-099 §1 接受",
+   "dev": {
+    "file": "live_caption/translator.py",
+    "line": 673,
+    "marker": "translator._LANG_NAME / TARGETS；tts_engine.LANG_MAP / SUPPORTED_LANGS 同源"
+   },
+   "v24": {
+    "file": "v2.4 app/live_caption_app.py",
+    "line": null,
+    "marker": "旧 4 语种"
+   },
+   "user_visible": true
+  },
+  {
+   "n": 5,
+   "change": "self_ref 克隆加「克隆模式」闸门：选预设 A 时不再偷偷克隆",
+   "correction": "§174；APP-099 §1 明确接受",
+   "dev": {
+    "file": "live_caption/live_caption_app.py",
+    "line": 3259,
+    "marker": "_maybe_send_self_ref / _cli_maybe_send_self_ref 用 _clone_enabled / _want_clone"
+   },
+   "v24": {
+    "file": "v2.4 app/live_caption_app.py",
+    "line": null,
+    "marker": "无 self_ref 代码 ⇒ 不受影响"
+   },
+   "user_visible": true
+  },
+  {
+   "n": 6,
+   "change": "完整版默认 TTS 设备 NPU → GPU.0（iGPU）；克隆说话人编码器/x-vector 同走 GPU.0",
+   "correction": "APP-099 第 0 节 1（用户决定）",
+   "dev": {
+    "file": "live_caption/device_config.py",
+    "line": 64,
+    "marker": "_DEFAULT_DEVICES_FULL.tts=GPU.0；speaker_tracker 默认本就是 GPU.0"
+   },
+   "v24": {
+    "file": "v2.4 app/live_caption_app.py",
+    "line": null,
+    "marker": "TTS 默认 NPU"
+   },
+   "user_visible": true,
+   "note": "高级选项仍可选 NPU；完整版 ASR/MT 默认不变"
+  },
+  {
+   "n": 7,
+   "change": "开发期 assert_*.py 不再随包泄漏（打包排除规则）",
+   "correction": "§174 ②；APP-099 §1 接受",
+   "dev": {
+    "file": "pack_v13.py",
+    "line": null,
+    "marker": "pkg_exclude 加 APP_DEV_ONLY_ASSERT_RE；assert_pkg_clean.py 白名单例外"
+   },
+   "v24": {
+    "file": "v2.4",
+    "line": null,
+    "marker": "无此规则"
+   },
+   "user_visible": false
+  },
+  {
+   "n": 8,
+   "change": "英文源 + 目标 en 时原样透传，不再被 MT 改写",
+   "correction": "APP-099 §2e / §4.3(d)（本轮新增）",
+   "dev": {
+    "file": "live_caption/translator.py",
+    "line": 633,
+    "marker": "normalize_src_hint + _SKIP_EQ_SAFE_WITH_HINT；_Job.src_hint 随任务走"
+   },
+   "v24": {
+    "file": "v2.4",
+    "line": null,
+    "marker": "en→en 走 MT 被改写"
+   },
+   "user_visible": true
+  },
+  {
+   "n": 9,
+   "change": "被「太晚」跳过的句子在 jsonl 里记 end_reason=late_drop，不再混进 error",
+   "correction": "APP-099 §2k / §4.3(c)（本轮新增）",
+   "dev": {
+    "file": "live_caption/tts_worker.py",
+    "line": 3137,
+    "marker": "_record_jsonl 的 tel 为空分支"
+   },
+   "v24": {
+    "file": "v2.4",
+    "line": null,
+    "marker": "兜底成 error"
+   },
+   "user_visible": false
+  },
+  {
+   "n": 10,
+   "change": "MiniMVP 音色下拉整体置灰（完整版不受影响）",
+   "correction": "APP-099 §2d / §4.3(a)（本轮新增）",
+   "dev": {
+    "file": "live_caption/live_caption_app.py",
+    "line": 2966,
+    "marker": "README.md 已写明"
+   },
+   "v24": {
+    "file": "v2.4",
+    "line": null,
+    "marker": "不适用（完整版仍可选克隆）"
+   },
+   "user_visible": "仅 MiniMVP"
+  },
+  {
+   "n": 11,
+   "change": "EXT 拟由 v0.3.7 @c414294 升到 v0.3.8 @181233f（局域网远程模式）",
+   "correction": "APP-099 §2k / §4.8",
+   "dev": {
+    "file": "results/app/_ext_v036_stage/ext/bridge/version.py",
+    "line": 3,
+    "marker": "当前暂存仍是 v0.3.6 ⇒ 未暂存 v0.3.8"
+   },
+   "v24": {
+    "file": "v2.4",
+    "line": null,
+    "marker": "内嵌 v0.3.7 @c414294"
+   },
+   "user_visible": true,
+   "note": "本轮只核对提交存在，等 v2.5 获准打包时再暂存"
+  }
+ ],
+ "note": "diff --no-index 显示 dev 相对 v2.4 主文件 +1047 / -134 行；本表只列「用户能看到或会改变行为」的差异，逐条给纠偏来源与文件行号。未打包 v2.5（APP-099 第 5 节）。"
+}

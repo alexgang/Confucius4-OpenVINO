@@ -1,0 +1,231 @@
+{
+ "task": "APP-099 第 4 节 3(d)(e)：en 透传改前/改后 + app419 每语种只 3 条译文根因",
+ "timestamp": "2026-11-11 11:39:29",
+ "d_en_passthrough": {
+  "source_5_sents": "results/app/app333_en_sents.json（list[dict].text，取前 5）",
+  "before_source": "results/app/app326_app097_lang_out/mt.json → rows[tgt==en]（真实 MT 输出，已落盘）",
+  "after_source": "live_caption/translator.py → HunyuanTranslator.translate（真跑透传分支；透传不进模型，故未加载 MT）",
+  "before_n_en_rows": 20,
+  "before_src_hint_all_null": true,
+  "before_skipped_true_count": 0,
+  "before_same_as_src_count": 5,
+  "after_all_five_skipped": true,
+  "after_all_five_verbatim": true,
+  "five": [
+   {
+    "src_line": 0,
+    "src": "Welcome back to the show. Today we are talking about how small habits can change the way we work. Thanks for having me.",
+    "before": {
+     "json": "results/app/app326_app097_lang_out/mt.json",
+     "row_keys": [
+      "src",
+      "out",
+      "skipped",
+      "same_as_src",
+      "src_hint"
+     ],
+     "src_hint": null,
+     "skipped": false,
+     "same_as_src": false,
+     "out": "Welcome back to the program. Today, we’re discussing how small habits can change the way we work. Thank you for inviting me."
+    },
+    "after": {
+     "src_hint": "English",
+     "skipped": true,
+     "text": "Welcome back to the show. Today we are talking about how small habits can change the way we work. Thanks for having me.",
+     "same_as_src": true
+    }
+   },
+   {
+    "src_line": 1,
+    "src": "I think most people underestimate how much a tiny routine in the morning can shape the whole day. Can you give us an example? Sure.",
+    "before": {
+     "json": "results/app/app326_app097_lang_out/mt.json",
+     "row_keys": [
+      "src",
+      "out",
+      "skipped",
+      "same_as_src",
+      "src_hint"
+     ],
+     "src_hint": null,
+     "skipped": false,
+     "same_as_src": false,
+     "out": "I believe most people underestimate the impact of small daily habits in the morning on the rest of the day. Can you give us an example? Of course."
+    },
+    "after": {
+     "src_hint": "English",
+     "skipped": true,
+     "text": "I think most people underestimate how much a tiny routine in the morning can shape the whole day. Can you give us an example? Sure.",
+     "same_as_src": true
+    }
+   },
+   {
+    "src_line": 2,
+    "src": "I write down three things I want to finish before lunch.",
+    "before": {
+     "json": "results/app/app326_app097_lang_out/mt.json",
+     "row_keys": [
+      "src",
+      "out",
+      "skipped",
+      "same_as_src",
+      "src_hint"
+     ],
+     "src_hint": null,
+     "skipped": false,
+     "same_as_src": false,
+     "out": "I write down the three things I need to finish before lunch."
+    },
+    "after": {
+     "src_hint": "English",
+     "skipped": true,
+     "text": "I write down three things I want to finish before lunch.",
+     "same_as_src": true
+    }
+   },
+   {
+    "src_line": 3,
+    "src": "It takes two minutes, and it keeps me focused when the emails start coming in. I tried something like that last year, but I kept forgetting to do it after the first week. That happens to almost everyone.",
+    "before": {
+     "json": "results/app/app326_app097_lang_out/mt.json",
+     "row_keys": [
+      "src",
+      "out",
+      "skipped",
+      "same_as_src",
+      "src_hint"
+     ],
+     "src_hint": null,
+     "skipped": false,
+     "same_as_src": false,
+     "out": "It only takes two minutes. When emails keep coming in, it helps me stay focused. I tried this last year too, but I always forget to do it after the first week. Almost everyone experiences this."
+    },
+    "after": {
+     "src_hint": "English",
+     "skipped": true,
+     "text": "It takes two minutes, and it keeps me focused when the emails start coming in. I tried something like that last year, but I kept forgetting to do it after the first week. That happens to almost everyone.",
+     "same_as_src": true
+    }
+   },
+   {
+    "src_line": 4,
+    "src": "The trick is to attach the new habit to something you already do, like making coffee. So the coffee becomes the reminder. Exactly.",
+    "before": {
+     "json": "results/app/app326_app097_lang_out/mt.json",
+     "row_keys": [
+      "src",
+      "out",
+      "skipped",
+      "same_as_src",
+      "src_hint"
+     ],
+     "src_hint": null,
+     "skipped": false,
+     "same_as_src": false,
+     "out": "The trick is to connect new habits with things you already do, like making coffee. So, coffee becomes a reminder. Exactly."
+    },
+    "after": {
+     "src_hint": "English",
+     "skipped": true,
+     "text": "The trick is to attach the new habit to something you already do, like making coffee. So the coffee becomes the reminder. Exactly.",
+     "same_as_src": true
+    }
+   }
+  ],
+  "zh_zh_behavior": {
+   "zh_zh": {
+    "text": "今天天气很好。",
+    "lat_ms": 0.0,
+    "ttft_ms": 0.0,
+    "n_in": 0,
+    "n_out": 0,
+    "skipped": true
+   }
+  },
+  "ja_ja_behavior": {
+   "ja_ja": {
+    "text": "今日はいい天気です。",
+    "lat_ms": 0.0,
+    "ttft_ms": 0.0,
+    "n_in": 0,
+    "n_out": 0,
+    "skipped": true
+   }
+  },
+  "zh_ja_note": "zh/ja/ko/ru 在 _SKIP_EQ_SAFE 内 ⇒ 有无 hint 都原样透传（APP-097 口径未变）",
+  "scope_note": "本轮只放行 en（APP-099 §2e）。de/fr/es/pt/it 同语种仍走 MT；若要「有可信标签就全面放行」需 reviewer 另作裁定（第 5 节「不改任何默认值或判据」）。"
+ },
+ "e_app419_root_cause": {
+  "wav": "results/app/_app415_src.wav",
+  "wav_duration_s": 32.6,
+  "wav_sr": 24000,
+  "wav_is_chinese_tts": true,
+  "asr_output": "results/app/app415_rc6_langs/de/subtitles.txt",
+  "asr_output_n_lines": 3,
+  "asr_output_first_line": "只需要两分钟，当邮件不断涌入时，它能让我保持专注。诀窍在于将新习惯与你已经做的事情联系起来，比如煮咖啡。",
+  "app419_per_lang": {
+   "zh": {
+    "n_source_sentences": 5,
+    "n_translations": 3,
+    "n_wavs": 2
+   },
+   "en": {
+    "n_source_sentences": 5,
+    "n_translations": 3,
+    "n_wavs": 2
+   },
+   "ja": {
+    "n_source_sentences": 5,
+    "n_translations": 3,
+    "n_wavs": 2
+   },
+   "ko": {
+    "n_source_sentences": 5,
+    "n_translations": 3,
+    "n_wavs": 2
+   },
+   "de": {
+    "n_source_sentences": 5,
+    "n_translations": 3,
+    "n_wavs": 2
+   },
+   "fr": {
+    "n_source_sentences": 5,
+    "n_translations": 3,
+    "n_wavs": 2
+   },
+   "es": {
+    "n_source_sentences": 5,
+    "n_translations": 3,
+    "n_wavs": 2
+   },
+   "pt": {
+    "n_source_sentences": 5,
+    "n_translations": 3,
+    "n_wavs": 2
+   },
+   "it": {
+    "n_source_sentences": 5,
+    "n_translations": 3,
+    "n_wavs": 2
+   },
+   "ru": {
+    "n_source_sentences": 5,
+    "n_translations": 3,
+    "n_wavs": 2
+   }
+  },
+  "app419_all_langs_same": true,
+  "app415_max_seconds": "0",
+  "app418_N_SENT": 2,
+  "causes": [
+   "① 3 条译文：app415 的 --file 用的是 32.6 s / 24 kHz 的**中文 TTS 合成音频**（_app415_src.wav），不是 load_sentences() 取的那 15 句英文。ASR 从 wav 里识别并按 VAD 切成 **3 段** ⇒ subtitles.txt 只有 3 行 ⇒ 每语种 3 条译文。",
+   "② 前几句没出现：该 wav 的**内容起点就是源文第 4 句**（首行=「只需要两分钟…诀窍在于将新习惯…」对应 src_line 3/4），前 3 句（src_line 0/1/2）根本不在 wav 里 ⇒ 不是 ASR 段合并丢的、也不是 late_drop 丢的。",
+   "③ 2 个 wav：来自 _app418_rc6_tts_direct.py 的 N_SENT=2（直接调引擎，与 app415 的 App 链路是两条独立链路），与「5 句」无关。",
+   "④ 不是 60 s 截断：app415 用 --max-seconds 0（不截断），且素材只有 32.6 s。"
+  ],
+  "verdict": "根因 = 素材选错（中文 TTS 片段，且起点在源文第 4 句）+ 直接调引擎只取 2 句；不是 ASR 段合并、不是 60 s 截断、不是 late_drop 丢译文。APP-099 §4.5「10 种 × 5 句 MT + 每种 5 个 TTS wav」等将来重打 MiniMVP 时必须用**覆盖全部 5 句**的素材重做。"
+ },
+ "pass": true
+}

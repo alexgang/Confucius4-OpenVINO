@@ -196,10 +196,22 @@ def main():
         a.pkg, 'models', 'qwen3tts', 'voices', 'preset_A.wav'))
 
     # ── 闸门②：`--check`（不占设备）────────────────────────────────
-    env = dict(os.environ)
-    env.pop('PYTHONPATH', None)
-    env.pop('PYTHONHOME', None)
+    # 🔴 APP-099 四.5：「编码测试在清空 `PYTHON*` 的进程里做」。
+    #   旧实现只 pop 了 PYTHONPATH/PYTHONHOME ⇒ PYTHONIOENCODING、PYTHONUTF8
+    #   仍会把编码「修好」，测不出包内入口 `sys.stdout.reconfigure` 是否生效。
+    #   ⇒ 现在清空**所有** PYTHON* 前缀变量，并把清掉的键如实写进 json。
+    _py_vars = sorted(k for k in os.environ if k.upper().startswith('PYTHON'))
+    env = {k: v for k, v in os.environ.items()
+           if not k.upper().startswith('PYTHON')}
     env['LIVECAP_PKG'] = a.pkg
+    out['encoding_clean_env'] = {
+        'removed_keys': _py_vars,
+        'n_removed': len(_py_vars),
+        'criterion': 'APP-099 四.5：清空所有 PYTHON* 后，`--check` 的中文输出仍须可 utf-8 解码',
+        'why': ('包内入口 live_caption_app.py 自带 sys.stdout.reconfigure('
+                "encoding='utf-8', errors='replace')；bat 里的 "
+                'PYTHONIOENCODING 只是第二道保险，不能靠它掩盖入口缺陷'),
+    }
     check_cmd = [py, app, '--check']
     out['check_cmd'] = check_cmd
     t0 = time.time()

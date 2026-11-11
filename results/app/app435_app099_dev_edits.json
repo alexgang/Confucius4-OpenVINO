@@ -1,0 +1,92 @@
+{
+ "task": "APP-099 第 4 节 3(d)：ASR 语种标签接进 translator.src_hint",
+ "timestamp": "2026-11-11 11:15:00",
+ "files": [
+  {
+   "file": "live_caption/translator.py",
+   "before": {
+    "bytes": 95939,
+    "sha256": "6ced97f37a01e5120ec5f63ba7e14babd770d8cdf127d3097bd8b6b2255578e8"
+   },
+   "after": {
+    "bytes": 96292,
+    "sha256": "162aaa36a1c5cbec26095cf6b9635b2ec64f4f85f6aca982f730cf784d40dbc8"
+   },
+   "edits": [
+    {
+     "i": 1,
+     "hits": 1,
+     "anchor": "                self.q.put(_Job('draft', dk, self._pend, seg=seg, unit_id=uid,"
+    },
+    {
+     "i": 2,
+     "hits": 1,
+     "anchor": "                    self.q.put(_Job('final', k, s, seg=seg, unit_id=uid,"
+    },
+    {
+     "i": 3,
+     "hits": 1,
+     "anchor": "            self.q.put(_Job('final', k, s, seg=seg, unit_id=uid,"
+    },
+    {
+     "i": 4,
+     "hits": 2,
+     "anchor": "            self.q.put(_Job('final', k, pend, seg=seg, unit_id=uid,"
+    },
+    {
+     "i": 5,
+     "hits": 1,
+     "anchor": "            r = tr.translate(job.text, svc.target, ctx=ctx, glossary=gl)"
+    }
+   ],
+   "ast_parse": true,
+   "no_crlf": true
+  },
+  {
+   "file": "live_caption/live_caption_app.py",
+   "before": {
+    "bytes": 479892,
+    "sha256": "55ea22dee291ef121894ac90d6f359f81cca108744d4e455156acc7e936fe9bb"
+   },
+   "after": {
+    "bytes": 481011,
+    "sha256": "e9f33df1e1f2901016c7fea3912958b63ab5e0470f8f7d0dcc3109cb15587aae"
+   },
+   "edits": [
+    {
+     "i": 1,
+     "hits": 1,
+     "anchor": "        _, self.cur_text = self._parse(self.state._raw_decoded, user_language=No"
+    },
+    {
+     "i": 2,
+     "hits": 1,
+     "anchor": "        _, txt = self._parse(st._raw_decoded, user_language=None)"
+    },
+    {
+     "i": 3,
+     "hits": 1,
+     "anchor": "        self.state.diag_log = []"
+    },
+    {
+     "i": 4,
+     "hits": 1,
+     "anchor": "    def _on_asr_lang_changed(self, *_a):"
+    },
+    {
+     "i": 5,
+     "hits": 1,
+     "anchor": "        self.mt.submit(text, seg=seg, spk=spk, spk_conf=spk_conf)"
+    },
+    {
+     "i": 6,
+     "hits": 1,
+     "anchor": "        mt.submit(t, seg=len(finals) - 1)"
+    }
+   ],
+   "ast_parse": true,
+   "no_crlf": true
+  }
+ ],
+ "pass": true
+}

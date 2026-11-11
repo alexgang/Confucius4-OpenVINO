@@ -1,0 +1,18 @@
+{
+ "task": "APP-099 4.6c 可分性判据：纯逻辑自测（不加载模型/不占设备）",
+ "script": "results/app/_app445_app099_wespeaker_sep.py",
+ "py_compile": true,
+ "checks": {
+  "perfect_separable": true,
+  "not_separable": true,
+  "neg_diff_as_same": true,
+  "neg_identical": true,
+  "empty_is_false": true,
+  "judge_not_constant": true,
+  "pair_stats": true
+ },
+ "n_checks": 7,
+ "n_pass": 7,
+ "pass": true,
+ "note": "ast 抽函数后 exec；验收脚本不 import 被测模块，避免触发 OV/GPU 加载"
+}

@@ -1,0 +1,221 @@
+{
+ "task": "APP-099 第 4 节 3 dev 修改：行为级验收 + 反证组",
+ "version": "v3（判据自身缺陷共修 5 处；生产代码未因这些假 FAIL 改动）",
+ "timestamp": "2026-11-11 11:20:02",
+ "checks": {
+  "default_full": {
+   "pass": true,
+   "detail": "{'asr': 'GPU.0', 'mt': 'GPU.0', 'tts': 'GPU.0'}"
+  },
+  "default_minimvp": {
+   "pass": true,
+   "detail": "{'asr': 'NPU', 'mt': 'GPU.0', 'tts': 'NPU'}"
+  },
+  "profile_marker_absent_is_full": {
+   "pass": true,
+   "detail": "dev 树无 package_profile.json ⇒ full"
+  },
+  "dev_selected_single_source": {
+   "pass": true,
+   "detail": ""
+  },
+  "gui_minimvp_voice_disabled": {
+   "pass": true,
+   "detail": ""
+  },
+  "topbar_product_name": {
+   "pass": true,
+   "detail": ""
+  },
+  "late_drop_end_reason": {
+   "pass": true,
+   "detail": "{'end_reason': 'late_drop', 'late_drop': True}"
+  },
+  "real_error_still_error": {
+   "pass": true,
+   "detail": ""
+  },
+  "other_end_reason_preserved": {
+   "pass": true,
+   "detail": ""
+  },
+  "tr_en_en_with_hint_fullname": {
+   "pass": true,
+   "detail": "{'want': True, 'got': True, 'hint': 'English'}"
+  },
+  "tr_en_en_with_hint_code": {
+   "pass": true,
+   "detail": "{'want': True, 'got': True, 'hint': 'en'}"
+  },
+  "tr_en_en_no_hint": {
+   "pass": true,
+   "detail": "{'want': False, 'got': False, 'hint': None}"
+  },
+  "tr_zh_zh": {
+   "pass": true,
+   "detail": "{'want': True, 'got': True, 'hint': None}"
+  },
+  "tr_ja_ja": {
+   "pass": true,
+   "detail": "{'want': True, 'got': True, 'hint': None}"
+  },
+  "tr_fr_to_en_no_hint": {
+   "pass": true,
+   "detail": "{'want': False, 'got': False, 'hint': None}"
+  },
+  "tr_fr_to_en_with_hint": {
+   "pass": true,
+   "detail": "{'want': False, 'got': False, 'hint': 'French'}"
+  },
+  "tr_en_to_fr_with_hint": {
+   "pass": true,
+   "detail": "{'want': False, 'got': False, 'hint': 'English'}"
+  },
+  "tr_unknown_hint_no_skip": {
+   "pass": true,
+   "detail": "{'want': False, 'got': False, 'hint': 'Klingon'}"
+  },
+  "chain_job_slot": {
+   "pass": true,
+   "detail": ""
+  },
+  "chain_submit_signature": {
+   "pass": true,
+   "detail": ""
+  },
+  "chain_job_final_hint": {
+   "pass": true,
+   "detail": ""
+  },
+  "chain_job_flush_hint": {
+   "pass": true,
+   "detail": ""
+  },
+  "chain_worker_call": {
+   "pass": true,
+   "detail": ""
+  },
+  "chain_app_gui_call": {
+   "pass": true,
+   "detail": ""
+  },
+  "chain_app_cli_call": {
+   "pass": true,
+   "detail": ""
+  },
+  "chain_asr_lang_retained": {
+   "pass": true,
+   "detail": ""
+  },
+  "chain_normalize_helper": {
+   "pass": true,
+   "detail": ""
+  },
+  "chain_readme": {
+   "pass": true,
+   "detail": ""
+  },
+  "syntax_live_caption_translator.py": {
+   "pass": true,
+   "detail": {
+    "bytes": 96292,
+    "sha256": "162aaa36a1c5cbec",
+    "eol": "LF",
+    "uniform": true,
+    "ast_parse": true,
+    "ast_error": null
+   }
+  },
+  "syntax_live_caption_live_caption_app.py": {
+   "pass": true,
+   "detail": {
+    "bytes": 481011,
+    "sha256": "e9f33df1e1f29010",
+    "eol": "LF",
+    "uniform": true,
+    "ast_parse": true,
+    "ast_error": null
+   }
+  },
+  "syntax_live_caption_device_config.py": {
+   "pass": true,
+   "detail": {
+    "bytes": 26175,
+    "sha256": "1697bfdd004d43c1",
+    "eol": "LF",
+    "uniform": true,
+    "ast_parse": true,
+    "ast_error": null
+   }
+  },
+  "syntax_live_caption_tts_worker.py": {
+   "pass": true,
+   "detail": {
+    "bytes": 276850,
+    "sha256": "8a1426662c455bd6",
+    "eol": "CRLF",
+    "uniform": true,
+    "ast_parse": true,
+    "ast_error": null
+   }
+  },
+  "syntax_README.md": {
+   "pass": true,
+   "detail": {
+    "bytes": 45718,
+    "sha256": "56804ac0e2fbb62a",
+    "eol": "LF",
+    "uniform": true,
+    "ast_parse": true,
+    "ast_error": null
+   }
+  }
+ },
+ "neg_controls": {
+  "default_profile": {
+   "detected": true,
+   "detail": "反证组（恒 full）minimvp 默认={'asr': 'GPU.0', 'mt': 'GPU.0', 'tts': 'GPU.0'}，与新实现 {'asr': 'NPU', 'mt': 'GPU.0', 'tts': 'NPU'} 不同 ⇒ 判据非恒真"
+  },
+  "dev_selected_single_source": {
+   "detected": true,
+   "detail": "换回字面量 ⇒ FAIL"
+  },
+  "gui_minimvp_voice_disabled": {
+   "detected": true,
+   "detail": "换回 readonly ⇒ FAIL"
+  },
+  "topbar_product_name": {
+   "detected": true,
+   "detail": "换回写死 ⇒ FAIL"
+  },
+  "late_drop_end_reason": {
+   "detected": true,
+   "detail": "旧实现记成 'error' ⇒ 新判据能识破"
+  },
+  "translator_en_passthrough": {
+   "detected": true,
+   "detail": "旧实现两臂 en→en skipped=[False, False]（都应 False）⇒ 判据非恒真"
+  },
+  "chain_worker_call": {
+   "detected": true,
+   "detail": "去掉 worker 下传 ⇒ FAIL"
+  }
+ },
+ "notes": [],
+ "judge_fixes": [
+  "v1 反证组 exec 命名空间漏抽 _DEFAULT_DEVICES_FULL/_MINIMVP ⇒ NameError ⇒ except 把已 PASS 的 default_full 覆盖成 FAIL",
+  "v1 用类名 Translator 抽方法；真实类名是 HunyuanTranslator ⇒ StopIteration",
+  "v1 用「b\"\\r\" not in b」当行尾判据；tts_worker.py 本来就是全 CRLF ⇒ 恒假 FAIL（伪不变量）⇒ 改「行尾一致」",
+  "v2 eol_uniform() 写成 (lf-crlf==0) ⇒ 把「纯 LF」文件（crlf=0, lf=N）判成不统一 ⇒ 4 个假 FAIL ⇒ 改为「无裸 CR 且（无 CRLF 或 无裸 LF）」",
+  "v2 对 README.md 也跑 ast.parse ⇒ Markdown 当然 SyntaxError ⇒ .md 只查行尾、不查语法"
+ ],
+ "summary": {
+  "checks_total": 33,
+  "checks_pass": 33,
+  "checks_fail": [],
+  "neg_total": 7,
+  "neg_detected": 7,
+  "neg_missed": []
+ },
+ "pass": true
+}

@@ -102,9 +102,11 @@ def main():
         return 3
     print('[lock] 已取得：%r' % (payload,))
     try:
-        env = dict(os.environ)
-        env.pop('PYTHONPATH', None)
-        env.pop('PYTHONHOME', None)
+        # 🔴 APP-099 四.5：编码/CLI 验收必须在**清空所有 PYTHON* 变量**的
+        #   进程里做（旧实现只 pop PYTHONPATH/PYTHONHOME，PYTHONIOENCODING
+        #   会掩盖包内入口的 stdout.reconfigure 是否真的生效）。
+        env = {k: v for k, v in os.environ.items()
+               if not k.upper().startswith('PYTHON')}
         env['LIVECAP_PKG'] = a.pkg
         # 🔴 必须钉住**包内 INT4** MT（'auto' 在本机会挑开发机的 INT8）
         mt_dir = os.path.join(a.pkg, 'models', 'mt', 'mt2-int4sym-cw-q')
