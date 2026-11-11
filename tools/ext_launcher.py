@@ -738,7 +738,7 @@ def main(argv=None) -> int:
     delay_var = tk.StringVar(value=str(DEFAULT_DELAY))
     tk.Label(opts, text="目标语言", bg="#f6f8fa").grid(row=0, column=0, sticky="w")
     cb_lang = ttk.Combobox(opts, textvariable=lang_var, width=8, state="readonly",
-                           values=["zh", "en", "ja", "ko"])
+                           values=["zh", "en", "ja", "ko", "de", "fr", "es", "pt", "it", "ru"])
     cb_lang.grid(row=0, column=1, padx=4)
     tk.Label(opts, text="延迟 D(秒)", bg="#f6f8fa").grid(row=0, column=2, sticky="w", padx=(12, 0))
     tk.Entry(opts, textvariable=delay_var, width=6).grid(row=0, column=3, padx=4)

@@ -103,7 +103,7 @@ ADAPT_TOTAL_RATE_MAX = 1.50   # 11-08 用户定 1.5×（原 1.30）
 #   而 engine_runtime 会拉 numpy 与引擎路径（重）⇒ 轻量的语言表放 config。
 #   ⚠️ 插件面板（popup）此前用的却是语言**全称**（Chinese/English/Japanese）
 #     ⇒ 与引擎不匹配 ⇒ 面板上选语言实际不生效。插件侧已改为直接用这里的码。
-LANG_CODES = ("zh", "en", "ja", "ko")
+LANG_CODES = ("zh", "en", "ja", "ko", "de", "fr", "es", "pt", "it", "ru")  # v0.4.4：扩到 Qwen3-TTS 的 10 种
 
 # ── ★★ EXT-024 G：语言**全称/别名** → 引擎码 的映射 ─────────────
 # ★ 为什么服务端也要有这张表（用户 10-31 实测的现场证据）：
@@ -119,6 +119,13 @@ LANG_ALIASES = {
     "en": "en", "english": "en", "英文": "en", "英语": "en",
     "ja": "ja", "jp": "ja", "japanese": "ja", "日文": "ja", "日语": "ja",
     "ko": "ko", "kr": "ko", "korean": "ko", "韩文": "ko", "韩语": "ko",
+    # v0.4.4：新增 6 种
+    "de": "de", "german": "de", "deutsch": "de", "德语": "de", "德文": "de",
+    "fr": "fr", "french": "fr", "français": "fr", "francais": "fr", "法语": "fr", "法文": "fr",
+    "es": "es", "spanish": "es", "español": "es", "espanol": "es", "西班牙语": "es",
+    "pt": "pt", "portuguese": "pt", "português": "pt", "portugues": "pt", "pt-br": "pt", "pt-pt": "pt", "葡萄牙语": "pt",
+    "it": "it", "italian": "it", "italiano": "it", "意大利语": "it",
+    "ru": "ru", "russian": "ru", "русский": "ru", "俄语": "ru", "俄文": "ru",
 }
 
 

@@ -414,6 +414,13 @@ const LANG_ALIASES = {
   english: 'en', en: 'en',
   japanese: 'ja', ja: 'ja', '日本語': 'ja',
   korean: 'ko', ko: 'ko', '한국어': 'ko',
+  // v0.4.4：新增 6 种
+  german: 'de', de: 'de', deutsch: 'de',
+  french: 'fr', fr: 'fr', 'français': 'fr',
+  spanish: 'es', es: 'es', 'español': 'es',
+  portuguese: 'pt', pt: 'pt', 'português': 'pt',
+  italian: 'it', it: 'it', italiano: 'it',
+  russian: 'ru', ru: 'ru', 'русский': 'ru',
 };
 
 function normalizeLang(v) {

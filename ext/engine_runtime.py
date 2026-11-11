@@ -147,6 +147,13 @@ LANG_TO_TTS = {
     "en": "English",
     "ja": "Japanese",
     "ko": "Korean",
+    # v0.4.4（用户 11-11）：模型的 codec_language_id 本来就有这 6 种；v2.4 包的代码表在内存里补（见 _patch_app_langs）
+    "de": "German",
+    "fr": "French",
+    "es": "Spanish",
+    "pt": "Portuguese",
+    "it": "Italian",
+    "ru": "Russian",
 }
 
 # MT 的目标语言码（与 Hy-MT2 的 `_LANG_NAME` 一致）
@@ -155,7 +162,50 @@ LANG_TO_MT = {
     "en": "en",
     "ja": "ja",
     "ko": "ko",
+    "de": "de",
+    "fr": "fr",
+    "es": "es",
+    "pt": "pt",
+    "it": "it",
+    "ru": "ru",
 }
+
+# v0.4.4：v2.4 包的代码表只写了 4 种（模型支持 10 种）。已发布的包不能原地改 ⇒ 加载时在内存里补表。
+#   秒/字 = APP-097 实测校准值（App 开发树 tts_engine._SEC_PER_CHAR）。
+_NEW_LANGS = {"de": "German", "fr": "French", "es": "Spanish",
+              "pt": "Portuguese", "it": "Italian", "ru": "Russian"}
+_NEW_SEC_PER_CHAR = {"de": 0.073, "fr": 0.070, "es": 0.085, "pt": 0.080, "it": 0.081, "ru": 0.083}
+_APP_LANGS_PATCHED = False
+
+
+def _patch_app_langs() -> None:
+    global _APP_LANGS_PATCHED
+    if _APP_LANGS_PATCHED:
+        return
+    _APP_LANGS_PATCHED = True
+    try:
+        import translator as _tr
+        ln = getattr(_tr, "_LANG_NAME", None)
+        if isinstance(ln, dict):
+            for k, v in _NEW_LANGS.items():
+                ln.setdefault(k, v)
+    except Exception as e:
+        _log("补翻译语言表失败（新语言的翻译会报错）：%s" % e)
+    try:
+        import tts_engine as _tt
+        lm = getattr(_tt, "LANG_MAP", None)
+        if isinstance(lm, dict):
+            for k, v in _NEW_LANGS.items():
+                lm.setdefault(k, v)
+                lm.setdefault(v.lower(), v)
+        sl = tuple(getattr(_tt, "SUPPORTED_LANGS", ()) or ())
+        _tt.SUPPORTED_LANGS = sl + tuple(v for v in _NEW_LANGS.values() if v not in sl)
+        spc = getattr(_tt, "_SEC_PER_CHAR", None)
+        if isinstance(spc, dict):
+            for k, v in _NEW_SEC_PER_CHAR.items():
+                spc.setdefault(k, v)
+    except Exception as e:
+        _log("补配音语言表失败（新语言的配音会退成英文）：%s" % e)
 
 # 失控中止：单句合成墙钟上限（秒）。超过 ⇒ 中止该句并记录。
 # ★ 与 App 的 RUNAWAY 判据口径一致：`runaway_threshold_s(est_sec)` =
@@ -181,6 +231,7 @@ def _ensure_app_on_path() -> None:
     """把 App 的 `app/` 目录挂到 sys.path（只读引用，不改对方文件）。"""
     if APP_DIR not in sys.path:
         sys.path.insert(0, APP_DIR)
+    _patch_app_langs()
 
 
 def _log(msg: str) -> None:
