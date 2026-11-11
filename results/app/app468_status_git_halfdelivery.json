@@ -1,7 +1,7 @@
 {
  "tool": "_app468_status_git_halfdelivery",
  "section": "§178",
- "created_at": "2026-11-11 18:57:14",
+ "created_at": "2026-11-11 18:57:37",
  "device_job": false,
  "read_only": true,
  "corrections_fingerprint_open": {
@@ -651,8 +651,8 @@
    "claimed_sha": "de11dd84f8f3fc30658016a8fc3bdc31d6414cdf25fbba8e57b0e906575779a9",
    "resolved": "status/archive/STATUS_APP_sec178_20261111.md",
    "on_disk": true,
-   "git_tracked": false,
-   "git_committed": false,
+   "git_tracked": true,
+   "git_committed": true,
    "rel": "status/archive/STATUS_APP_sec178_20261111.md",
    "gitignored": false,
    "actual_bytes": 12105,
@@ -663,10 +663,8 @@
     "lf"
    ],
    "bytes_match": true,
-   "fail_reasons": [
-    "NOT_GIT_TRACKED"
-   ],
-   "verdict": "FAIL"
+   "fail_reasons": [],
+   "verdict": "OK"
   },
   {
    "path": "results/app/app398_probe_patch.diff",
@@ -723,19 +721,14 @@
    "git_committed": true,
    "rel": "results/app/assert_sec_per_char_calibrated.json",
    "gitignored": false,
-   "actual_bytes": 6288,
-   "matched_form": null,
+   "actual_bytes": 5992,
+   "matched_form": "crlf",
    "bytes_match_forms": [
-    "raw",
-    "rstrip",
-    "lstrip",
     "crlf"
    ],
    "bytes_match": true,
-   "fail_reasons": [
-    "SHA_MISMATCH"
-   ],
-   "verdict": "FAIL"
+   "fail_reasons": [],
+   "verdict": "OK"
   },
   {
    "path": "results/app/_app427_apply_sec_per_char.py",
@@ -1310,8 +1303,8 @@
    "resolved": "results/app/_app468_status_git_halfdelivery.py",
    "rel": "results/app/_app468_status_git_halfdelivery.py",
    "on_disk": true,
-   "git_tracked": false,
-   "git_committed": false,
+   "git_tracked": true,
+   "git_committed": true,
    "gitignored": false,
    "cited_bytes": null,
    "claimed_sha": null,
@@ -1320,30 +1313,26 @@
    "bytes_match_forms": [],
    "actual_bytes": 23157,
    "note": "引用未声明 SHA ⇒ 不判 SHA/字节；仅查 git 半交付",
-   "fail_reasons": [
-    "NOT_GIT_TRACKED"
-   ],
-   "verdict": "FAIL"
+   "fail_reasons": [],
+   "verdict": "OK"
   },
   {
    "path": "results/app/app468_status_git_halfdelivery.json",
    "resolved": "results/app/app468_status_git_halfdelivery.json",
    "rel": "results/app/app468_status_git_halfdelivery.json",
    "on_disk": true,
-   "git_tracked": false,
-   "git_committed": false,
+   "git_tracked": true,
+   "git_committed": true,
    "gitignored": false,
    "cited_bytes": null,
    "claimed_sha": null,
    "matched_form": null,
    "bytes_match": null,
    "bytes_match_forms": [],
-   "actual_bytes": 122106,
+   "actual_bytes": 121644,
    "note": "引用未声明 SHA ⇒ 不判 SHA/字节；仅查 git 半交付",
-   "fail_reasons": [
-    "NOT_GIT_TRACKED"
-   ],
-   "verdict": "FAIL"
+   "fail_reasons": [],
+   "verdict": "OK"
   },
   {
    "path": "results/app/app202_app053_coverage_evidence.json",
@@ -3230,7 +3219,7 @@
    "matched_form": null,
    "bytes_match": null,
    "bytes_match_forms": [],
-   "actual_bytes": 6288,
+   "actual_bytes": 5992,
    "note": "引用未声明 SHA ⇒ 不判 SHA/字节；仅查 git 半交付",
    "fail_reasons": [],
    "verdict": "OK"
@@ -3585,8 +3574,8 @@
    "resolved": "results/app/_app468_status_git_halfdelivery.py",
    "rel": "results/app/_app468_status_git_halfdelivery.py",
    "on_disk": true,
-   "git_tracked": false,
-   "git_committed": false,
+   "git_tracked": true,
+   "git_committed": true,
    "gitignored": false,
    "cited_bytes": null,
    "claimed_sha": null,
@@ -3595,30 +3584,26 @@
    "bytes_match_forms": [],
    "actual_bytes": 23157,
    "note": "引用未声明 SHA ⇒ 不判 SHA/字节；仅查 git 半交付",
-   "fail_reasons": [
-    "NOT_GIT_TRACKED"
-   ],
-   "verdict": "FAIL"
+   "fail_reasons": [],
+   "verdict": "OK"
   },
   {
    "path": "results/app/app468_status_git_halfdelivery.json",
    "resolved": "results/app/app468_status_git_halfdelivery.json",
    "rel": "results/app/app468_status_git_halfdelivery.json",
    "on_disk": true,
-   "git_tracked": false,
-   "git_committed": false,
+   "git_tracked": true,
+   "git_committed": true,
    "gitignored": false,
    "cited_bytes": null,
    "claimed_sha": null,
    "matched_form": null,
    "bytes_match": null,
    "bytes_match_forms": [],
-   "actual_bytes": 122106,
+   "actual_bytes": 121644,
    "note": "引用未声明 SHA ⇒ 不判 SHA/字节；仅查 git 半交付",
-   "fail_reasons": [
-    "NOT_GIT_TRACKED"
-   ],
-   "verdict": "FAIL"
+   "fail_reasons": [],
+   "verdict": "OK"
   }
  ],
  "paths_without_sha_claimed": [
@@ -3794,30 +3779,34 @@
   {
    "case": "anti_C_non_empty_selfproof",
    "expect": "修复前的 ref 状态抓到 ≥1 个未入库/未提交引用，且当前为 0 ⇒ 判据非恒真",
-   "prefix_ref": null,
-   "n_prefix_fail": 0,
-   "prefix_fail_paths": [],
-   "n_now_fail": 5,
-   "now_fail_paths": [
-    "status/archive/STATUS_APP_sec178_20261111.md",
+   "prefix_ref": "2f0f597efd165ba3371f84cec615e38521cb57a3",
+   "n_prefix_fail": 13,
+   "prefix_fail_paths": [
     "results/app/_app468_status_git_halfdelivery.py",
+    "results/app/app326_app097_lang_out/mt.json",
+    "results/app/app326_app097_lang_out/tts.json",
+    "results/app/app372_app091_subtitle_shot/subtitle_layout.json",
+    "results/app/app458_app100_device.json",
     "results/app/app468_status_git_halfdelivery.json",
-    "results/app/_app468_status_git_halfdelivery.py",
-    "results/app/app468_status_git_halfdelivery.json"
+    "status/archive/STATUS_APP_sec159_20261109.md",
+    "status/archive/STATUS_APP_sec176_20261111.md",
+    "status/archive/STATUS_APP_sec178_20261111.md"
    ],
-   "discriminating": false
+   "n_now_fail": 0,
+   "now_fail_paths": [],
+   "discriminating": true
   }
  ],
  "verdict": {
   "n_rows": 184,
-  "n_ok": 173,
-  "n_fail": 6,
+  "n_ok": 179,
+  "n_fail": 0,
   "n_missing": 0,
   "n_ok_gitignored": 3,
   "n_known_errata": 1,
   "n_ok_duplicate": 1,
   "n_no_sha_claimed": 150,
-  "anti_all_discriminating": false,
-  "pass": false
+  "anti_all_discriminating": true,
+  "pass": true
  }
 }
