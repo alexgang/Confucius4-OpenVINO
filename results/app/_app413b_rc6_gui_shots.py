@@ -113,6 +113,30 @@ def guard_png(path):
     return rec
 
 
+def win32_window_title(root):
+    """🔴 APP-099 四.5：截图带不了标题栏 ⇒ 用 Win32 读出标题**写进 json**。
+
+    `PrintWindow` 抓的是客户区，标题栏不一定在画面里 ⇒ reviewer 要求
+    「如果截图带不了标题栏，就用 Win32 读出标题写进 json」。
+    Tk 的 `winfo_id()` 是**子窗口**句柄 ⇒ 用 `GetAncestor(GA_ROOT)` 取顶层
+    再 `GetWindowTextW`，避免读到空标题。
+    """
+    import ctypes
+    u32 = ctypes.windll.user32
+    hwnd = int(root.winfo_id())
+    GA_ROOT = 2
+    top = u32.GetAncestor(hwnd, GA_ROOT) or hwnd
+    buf = ctypes.create_unicode_buffer(1024)
+    n = u32.GetWindowTextW(top, buf, 1024)
+    return {
+        'method': 'user32.GetAncestor(GA_ROOT)+GetWindowTextW',
+        'tk_hwnd': hwnd, 'top_hwnd': int(top),
+        'title': buf.value if n else '',
+        'n_chars': int(n),
+        'nonempty': bool(n and buf.value.strip()),
+    }
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--pkg', required=True)
@@ -261,6 +285,10 @@ def main():
     time.sleep(0.5)
     root.update()
     p_main = os.path.join(a.out_dir, '00_main.png')
+    # 🔴 APP-099 四.5：主窗口标题用 Win32 读出并写进 json（截图可能带不了标题栏）。
+    ev['window_title'] = win32_window_title(root)
+    print('[title] %r (%s)' % (ev['window_title']['title'],
+                               ev['window_title']['method']))
     ok = capture_hwnd(root.winfo_id(), p_main)
     g = guard_png(p_main) if ok else {'path': p_main, 'not_black': False}
     g['name'] = '主窗口（整体）'

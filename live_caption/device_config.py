@@ -52,26 +52,49 @@ def _config_dir() -> str:
 CONFIG_DIR = _config_dir()
 CONFIG_PATH = os.path.join(CONFIG_DIR, 'device_config.json')
 
-# ── 三个模型的默认摆放（各模块 reviewer 推荐的配置）────────────────────
-# 🔴🔴 APP-028①（用户 2026-10-27 13:22 定案）：「默认配置，ASR/翻译都用
-#   iGPU INT8，语音输出模型用 NPU」⇒ **NPU 只给 TTS 独占**。
-# ASR：GPU.0（集显）。
-# MT：GPU.0（INT8-CW 在集显上 37.5 tok/s，实时够用）。
-# TTS：NPU（交接单 §1.1 推荐，RTF 1.04 / 首包 0.67 s）。
-DEFAULT_DEVICES: Dict[str, str] = {
+# ── 三个模型的默认摆放（按包形态；APP-099 第 0 节 1/2 用户决定）───────────
+# 🔴🔴 APP-099 0.1（用户 2026-11-11）：完整版 v2.5 的 **TTS 默认走 iGPU
+#   （GPU.0）**，克隆用的说话人编码器 / x-vector 同走 GPU.0；
+#   高级选项里仍可选 NPU。**完整版的 ASR / MT 默认不变**（仍 GPU.0）。
+# 🔴🔴 APP-099 0.2（用户 2026-11-11）：**MiniMVP 默认 ASR=NPU、MT=GPU.0**
+#   （避开 B 机 268 s 后崩溃的「ASR GPU + MT GPU」组合）；
+#   高级选项里可以调整。这一条**只改 MiniMVP 的默认**。
+# 🔴 **唯一事实来源**：GUI/CLI 的默认值都必须读这里的 `DEFAULT_DEVICES`，
+#    不得在 `live_caption_app.py` 里再写第二份字面量（APP-055 同源纪律）。
+_DEFAULT_DEVICES_FULL: Dict[str, str] = {
     'asr': 'GPU.0',
+    'mt': 'GPU.0',
+    'tts': 'GPU.0',
+}
+_DEFAULT_DEVICES_MINIMVP: Dict[str, str] = {
+    'asr': 'NPU',
     'mt': 'GPU.0',
     'tts': 'NPU',
 }
 
+
+def _profile_default_devices() -> Dict[str, str]:
+    """按包形态选默认摆放；标记缺失/损坏 ⇒ 完整版（`package_profile` 三态）。"""
+    try:
+        import package_profile
+        return dict(_DEFAULT_DEVICES_MINIMVP
+                    if package_profile.is_minimvp() else _DEFAULT_DEVICES_FULL)
+    except Exception:
+        # 🔴 探测失败一律按完整版（**不静默降级成 MiniMVP 的默认**）。
+        return dict(_DEFAULT_DEVICES_FULL)
+
+
+DEFAULT_DEVICES: Dict[str, str] = _profile_default_devices()
+
 # 兜底候选（用户选的设备本机不存在时，依次尝试）
-# 🔴🔴 APP-028①：**ASR / MT 的回退链里**不能有 NPU** —— NPU 独占给 TTS。
+# 🔴🔴 APP-028①：ASR / MT 的**回退候选**里不能有 NPU —— NPU 独占给 TTS。
 #   ⚠️ 旧实现 ASR/MT 的兜底里带 NPU（'asr': ['GPU.0','NPU','CPU']）
 #      ⇒ 当 GPU.0 不可用时会把 ASR/MT **静默回退到 NPU**
 #      ⇒ 与 TTS 抢 NPU ⇒ 与「NPU 独占给 TTS」冲突。
 #      ⇒ 现在 ASR/MT 只在 **GPU.x → CPU** 之间回退。
-#      （用户仍可在 GUI 里手动把 ASR/MT 指到 NPU —— 那是**用户显式选择**，
-#        不属于「出厂默认的兜底链」。）
+# 🔴 APP-099 0.2 **例外说明**：MiniMVP 的 **ASR 默认值本身就是 NPU**（用户
+#   明确决定），但那是「出厂默认」而不是「回退候选」⇒ 本条链的约束不变；
+#   NPU 不可用时仍按 GPU.0 → CPU 回退，与完整版同一条链。
 FALLBACK_ORDER: Dict[str, List[str]] = {
     'asr': ['GPU.0', 'CPU'],
     'mt': ['GPU.0', 'CPU'],

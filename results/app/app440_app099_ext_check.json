@@ -1,0 +1,23 @@
+{
+ "task": "APP-099 第 4 节 8：EXT v0.3.8 @181233f 核对（只核对，不暂存）",
+ "timestamp": "2026-11-11 11:42:29",
+ "repo": "C:/Users/Trekker-PTL/live_dub_ext",
+ "v038": {
+  "short": "181233f",
+  "type": "commit",
+  "full": "181233f6e4755cf46be00acc3d5c082f34e146c5",
+  "log": "181233f6e4755cf46be00acc3d5c082f34e146c5\n2026-11-11 09:20:40 +0800\nEXT v0.3.8: LAN mode - run the bridge on device A, use the extension from other PCs"
+ },
+ "v037": {
+  "short": "c414294",
+  "full": "c4142943c9a10500f899f8730817a204183f1cd0",
+  "log": "c4142943c9a10500f899f8730817a204183f1cd0\n2026-11-10 10:21:23 +0800\nEXT v0.3.7: subtitles in their own strip at the bottom of the window"
+ },
+ "staging": {
+  "path": "results/app/_ext_v036_stage/ext/bridge/version.py",
+  "version_file_exists": true,
+  "EXT_VERSION": "0.3.6"
+ },
+ "action": "本轮不暂存（APP-099 §4.8：等 v2.5 获准打包时再暂存）",
+ "pass": true
+}

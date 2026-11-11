@@ -1,0 +1,142 @@
+{
+ "task": "APP-099 第 0 节第 4 条：rc6 删除判据复核（不重跑删除）",
+ "source": "results/app/app438_app099_rc6_delete.json",
+ "source_pass_field": "pass",
+ "source_pass_value": false,
+ "purpose": "修正 _app447 的成功判据；原始证据 write-once 不改写",
+ "why_old_criterion_wrong": [
+  "SHFileOperationW 返回值是 shell 专用码，rc=2 不等于「目标没删掉」；_app447 把 rc==0 当作唯一成功条件",
+  "FOF_ALLOWUNDO 送回收站属同盘元数据移动 ⇒ C 盘可用空间不释放；freed_gb≈0 是正常结果，不能当失败",
+  "真正需要证明的是：目标不在原位 + 保护对象完好 + 回收站可查（可逆）",
+  "初版 $I 解析把 offset 24 当路径起点 ⇒ 只解出 1 个字符 ⇒ 「回收站零命中」是假 FAIL；正确偏移为 28（offset 24 是路径字符数）"
+ ],
+ "recycle_bin_scan": {
+  "root": "C:\\$Recycle.Bin",
+  "n_i_records_scanned": 11771,
+  "n_under_rc6_dir": 11620,
+  "n_exact_zip": 1,
+  "n_r_exists": 11620,
+  "n_r_missing": 0,
+  "dir_samples": [
+   {
+    "ver": 2,
+    "size_bytes": 1402,
+    "deleted_utc": "2026-11-11 03:36:35",
+    "deleted_local_utc8": "2026-11-11 11:36:35",
+    "orig_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6\\python\\Lib\\site-packages\\_yaml\\__init__.py",
+    "i_file": "C:\\$Recycle.Bin\\S-1-5-21-3596433078-3420442427-1014397441-1001\\$I000R6U.py",
+    "r_path": "C:\\$Recycle.Bin\\S-1-5-21-3596433078-3420442427-1014397441-1001\\$R000R6U.py",
+    "r_exists": true,
+    "r_isdir": false
+   },
+   {
+    "ver": 2,
+    "size_bytes": 0,
+    "deleted_utc": "2026-11-11 04:33:36",
+    "deleted_local_utc8": "2026-11-11 12:33:36",
+    "orig_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6\\python\\Lib\\site-packages\\transformers\\models\\deprecated\\gptsan_japanese",
+    "i_file": "C:\\$Recycle.Bin\\S-1-5-21-3596433078-3420442427-1014397441-1001\\$I0019FO",
+    "r_path": "C:\\$Recycle.Bin\\S-1-5-21-3596433078-3420442427-1014397441-1001\\$R0019FO",
+    "r_exists": true,
+    "r_isdir": true
+   },
+   {
+    "ver": 2,
+    "size_bytes": 209,
+    "deleted_utc": "2026-11-11 04:33:47",
+    "deleted_local_utc8": "2026-11-11 12:33:47",
+    "orig_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6\\python\\tcl\\tix8.4.3\\bitmaps\\plusarm.xbm",
+    "i_file": "C:\\$Recycle.Bin\\S-1-5-21-3596433078-3420442427-1014397441-1001\\$I001GND.xbm",
+    "r_path": "C:\\$Recycle.Bin\\S-1-5-21-3596433078-3420442427-1014397441-1001\\$R001GND.xbm",
+    "r_exists": true,
+    "r_isdir": false
+   }
+  ],
+  "zip_records": [
+   {
+    "ver": 2,
+    "size_bytes": 4420655558,
+    "deleted_utc": "2026-11-11 04:33:38",
+    "deleted_local_utc8": "2026-11-11 12:33:38",
+    "orig_path": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6_perftest.zip",
+    "i_file": "C:\\$Recycle.Bin\\S-1-5-21-3596433078-3420442427-1014397441-1001\\$IW114TN.zip",
+    "r_path": "C:\\$Recycle.Bin\\S-1-5-21-3596433078-3420442427-1014397441-1001\\$RW114TN.zip",
+    "r_exists": true,
+    "r_isdir": false
+   }
+  ],
+  "errors": [
+   "S-1-5-18: PermissionError(13, '拒绝访问。')",
+   "S-1-5-21-2469365397-191036855-283389916-500: PermissionError(13, '拒绝访问。')",
+   "S-1-5-21-3125250419-1584157097-1596433571-500: PermissionError(13, '拒绝访问。')",
+   "S-1-5-21-3596433078-3420442427-1014397441-500: PermissionError(13, '拒绝访问。')"
+  ]
+ },
+ "checks": {
+  "no_protected_in_targets": true,
+  "rc6_dir_gone": true,
+  "rc6_zip_gone": true,
+  "all_protected_present": true,
+  "recycle_dir_records_found": true,
+  "recycle_zip_record_found": true,
+  "recycle_r_entities_present": true,
+  "reversible": true
+ },
+ "pass_rechecked": true,
+ "disk_space_note": {
+  "before_free_gb": 594.986,
+  "after_free_gb": 594.977,
+  "freed_gb": -0.009,
+  "criterion": "APP-099 只要求「删除前后各记一次 C 盘剩余空间」，不要求释放空间；可逆删除（回收站）下 freed_gb≈0 属正常"
+ },
+ "shfileop_diagnostic": {
+  "rc": 2,
+  "aborted": false,
+  "note": "只作诊断记录；rc=2 与「两个目标均已不在原位、且回收站两项可查」不矛盾"
+ },
+ "negative_controls": [
+  {
+   "name": "dir_still_present",
+   "expect_pass": false,
+   "got_pass": false,
+   "detected": true,
+   "note": "目录没删掉 ⇒ 必须 FAIL"
+  },
+  {
+   "name": "zip_still_present",
+   "expect_pass": false,
+   "got_pass": false,
+   "detected": true,
+   "note": "zip 没删掉 ⇒ 必须 FAIL"
+  },
+  {
+   "name": "protected_missing",
+   "expect_pass": false,
+   "got_pass": false,
+   "detected": true,
+   "note": "rc5/rc7 之一被动到 ⇒ 必须 FAIL"
+  },
+  {
+   "name": "no_recycle_records",
+   "expect_pass": false,
+   "got_pass": false,
+   "detected": true,
+   "note": "找不到回收站记录 ⇒ 无法证明可逆 ⇒ 必须 FAIL"
+  },
+  {
+   "name": "recycle_r_entity_missing",
+   "expect_pass": false,
+   "got_pass": false,
+   "detected": true,
+   "note": "$R 实体不在 ⇒ 回收站记录残缺 ⇒ 必须 FAIL"
+  }
+ ],
+ "n_neg": 5,
+ "n_neg_detected": 5,
+ "old_criterion_on_real_data": {
+  "recomputed": false,
+  "note": "旧判据 rc==0 不成立 ⇒ 对真实数据误报 FAIL"
+ },
+ "status_field_note": "STATUS §175 请以本文件 pass_rechecked 与 disk_space_note 为准；app438 的 pass=false 是旧判据输出，作废但保留原始证据。",
+ "pass": true
+}

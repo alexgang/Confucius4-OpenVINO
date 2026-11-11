@@ -1,0 +1,108 @@
+{
+ "task": "APP-099 四.5：不打 rc8，只把打包/复验脚本准备好并在 dev 树上自测",
+ "note": "本轮只改测试脚本（句数口径 / Win32 标题 / 清空 PYTHON*），生产代码与判据阈值零改动",
+ "checks": {
+  "langs_mt_5": true,
+  "langs_tts_5": true,
+  "langs_10_langs": true,
+  "tts_direct_5": true,
+  "gui_win32_func": true,
+  "gui_win32_api": true,
+  "gui_title_into_json": true,
+  "unzip_py_star": true,
+  "cli_py_star": true,
+  "unzip_reason_recorded": true,
+  "smoke_part_smoke": true,
+  "smoke_judge_components": true,
+  "smoke_mt_no_auto_redirect": true,
+  "smoke_tts_has_translate": true,
+  "all_syntax_ok": true,
+  "prod_code_unchanged": true
+ },
+ "n_checks": 16,
+ "n_pass": 16,
+ "n_fail": 0,
+ "neg_controls": {
+  "langs_tts_5": {
+   "detected": true,
+   "expect_pass_after_neg": false,
+   "got_pass_after_neg": false,
+   "n_anchor_hits": 1,
+   "detail": "把 langs 的 1 处锚点全部改回旧值 ⇒ 判据应 FAIL"
+  },
+  "tts_direct_5": {
+   "detected": true,
+   "expect_pass_after_neg": false,
+   "got_pass_after_neg": false,
+   "n_anchor_hits": 1,
+   "detail": "把 tts_direct 的 1 处锚点全部改回旧值 ⇒ 判据应 FAIL"
+  },
+  "gui_win32_func": {
+   "detected": true,
+   "expect_pass_after_neg": false,
+   "got_pass_after_neg": false,
+   "n_anchor_hits": 1,
+   "detail": "把 gui 的 1 处锚点全部改回旧值 ⇒ 判据应 FAIL"
+  },
+  "unzip_py_star": {
+   "detected": true,
+   "expect_pass_after_neg": false,
+   "got_pass_after_neg": false,
+   "n_anchor_hits": 2,
+   "detail": "把 unzip 的 2 处锚点全部改回旧值 ⇒ 判据应 FAIL"
+  },
+  "cli_py_star": {
+   "detected": true,
+   "expect_pass_after_neg": false,
+   "got_pass_after_neg": false,
+   "n_anchor_hits": 1,
+   "detail": "把 cli 的 1 处锚点全部改回旧值 ⇒ 判据应 FAIL"
+  },
+  "smoke_judge_components": {
+   "detected": true,
+   "expect_pass_after_neg": false,
+   "got_pass_after_neg": false,
+   "n_anchor_hits": 1,
+   "detail": "把 smoke 的 1 处锚点全部改回旧值 ⇒ 判据应 FAIL"
+  },
+  "smoke_mt_no_auto_redirect": {
+   "detected": true,
+   "expect_pass_after_neg": false,
+   "got_pass_after_neg": false,
+   "n_anchor_hits": 2,
+   "detail": "把 smoke 的 2 处锚点全部改回旧值 ⇒ 判据应 FAIL"
+  }
+ },
+ "n_neg": 7,
+ "n_neg_detected": 7,
+ "syntax": {
+  "langs": true,
+  "tts_direct": true,
+  "gui": true,
+  "unzip": true,
+  "cli": true,
+  "smoke": true
+ },
+ "prod_sha16": {
+  "live_caption/translator.py": "162aaa36a1c5cbec",
+  "live_caption/live_caption_app.py": "e9f33df1e1f29010",
+  "live_caption/device_config.py": "1697bfdd004d43c1",
+  "live_caption/tts_worker.py": "8a1426662c455bd6",
+  "README.md": "56804ac0e2fbb62a"
+ },
+ "scripts": {
+  "langs": "results/app/_app415_rc6_langs.py",
+  "tts_direct": "results/app/_app418_rc6_tts_direct.py",
+  "gui": "results/app/_app413b_rc6_gui_shots.py",
+  "unzip": "results/app/_app286_rc3_unzip_smoke.py",
+  "cli": "results/app/_app271_minimvp_rc3_cli_acceptance.py",
+  "smoke": "results/app/_app437_app099_device_jobs.py"
+ },
+ "not_executed": "按第 0 节第 5 条，MiniMVP 暂不打包 ⇒ rc8 全套复验本轮不执行；本证据只证明脚本已准备好且 dev 自测通过",
+ "pass": true,
+ "judge_fixes": [
+  "v1 反证组只 replace(old,new,1)：`unzip` 与 `smoke` 的锚点各有 2 处命中 ⇒ 只破坏第一处、第二处仍让判据成立 ⇒ 出现 2 个**假「未识破」**。",
+  "v2 改为 replace(old,new) 全替换，并用与正向判据完全同一套 judge() 函数复算 ⇒ 7/7 识破。",
+  "🔴 生产代码零改动；本条只修反证构造，不动任何被测脚本。"
+ ]
+}

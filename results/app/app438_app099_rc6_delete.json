@@ -1,0 +1,52 @@
+{
+ "task": "APP-099 第 0 节第 4 条：删除作废 rc6（只删 rc6）",
+ "created_at": "2026-11-11 12:33:34",
+ "mode": "APPLY",
+ "method": "Win32 SHFileOperationW + FOF_ALLOWUNDO（回收站，可逆）",
+ "targets": [
+  "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6",
+  "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6_perftest.zip"
+ ],
+ "protected_must_not_be_touched": [
+  "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5",
+  "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc7",
+  "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5_perftest.zip",
+  "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc7_perftest.zip"
+ ],
+ "before": {
+  "free_gb": 594.986,
+  "total_gb": 1906.178,
+  "rc6_dir_exists": true,
+  "rc6_zip_exists": true,
+  "rc6_zip_bytes": 4420655558,
+  "protected": {
+   "Confucius4_LiveCaption_MiniMVP_v1.0-rc5": true,
+   "Confucius4_LiveCaption_MiniMVP_v1.0-rc7": true,
+   "Confucius4_LiveCaption_MiniMVP_v1.0-rc5_perftest.zip": true,
+   "Confucius4_LiveCaption_MiniMVP_v1.0-rc7_perftest.zip": true
+  }
+ },
+ "after": {
+  "free_gb": 594.977,
+  "total_gb": 1906.178,
+  "rc6_dir_exists": false,
+  "rc6_zip_exists": false,
+  "protected": {
+   "Confucius4_LiveCaption_MiniMVP_v1.0-rc5": true,
+   "Confucius4_LiveCaption_MiniMVP_v1.0-rc7": true,
+   "Confucius4_LiveCaption_MiniMVP_v1.0-rc5_perftest.zip": true,
+   "Confucius4_LiveCaption_MiniMVP_v1.0-rc7_perftest.zip": true
+  }
+ },
+ "delete_result": {
+  "rc": 2,
+  "aborted": false
+ },
+ "pass": false,
+ "no_protected_in_targets": true,
+ "actually_targeted": [
+  "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6",
+  "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc6_perftest.zip"
+ ],
+ "freed_gb": -0.009
+}

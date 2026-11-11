@@ -1,0 +1,754 @@
+{
+ "task": "APP-099 四.6(c)：§3.5 换 wespeaker 嵌入空间后 before/after × dialog3/tight 四组重算",
+ "created_at": "2026-11-11 12:47:40",
+ "criterion": "输出 wav 的 wespeaker 嵌入与 truth 三人参考分别比余弦 ⇒ 取最大者 == 真值说话人 ⇒ 命中（与 app329 口径一致，仅换嵌入空间）",
+ "encoder": {
+  "ir": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\wespeaker-resnet34-fp16",
+  "device": "GPU.0",
+  "class": "WespeakerOVEncoder（与 ASR 说话人旁路同一份）",
+  "resample": "TTS dump 24 kHz → 16 kHz（scipy.signal.resample_poly）",
+  "min_dur_s": 1.5,
+  "separability_prior": {
+   "file": "app445_app099_wespeaker_separability.json",
+   "verdict": "SEPARABLE",
+   "separable": true,
+   "same_min": 0.483703,
+   "diff_max": 0.401077
+  }
+ },
+ "source_of_groups": "app329_app093_voice_attrib.json → groups[].run_dir（不手抄）",
+ "old_encoder_report": "app329_app093_voice_attrib.json",
+ "lock": {
+  "module": "app",
+  "payload": "app PID 45680 started 2026-11-11 12:50:40\nmodule: app\npid: 45680\nstarted: 2026-11-11 12:50:40\nhost: LAPTOP-0GDQGD3I\n",
+  "pid": 45680,
+  "started": "2026-11-11 12:50:40",
+  "ended": "2026-11-11 12:51:26",
+  "released": true
+ },
+ "groups": [
+  {
+   "label": "before_dialog3",
+   "arm": "before",
+   "run_dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3",
+   "truth_file": "C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\truth.json",
+   "src_wav": "C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\dialog3.wav",
+   "spks": [
+    "A",
+    "B",
+    "C"
+   ],
+   "refs": {
+    "A": [
+     0.0,
+     6.744
+    ],
+    "B": [
+     161.612,
+     171.644
+    ],
+    "C": [
+     197.016,
+     205.704
+    ]
+   },
+   "ref_pair_cosine": {
+    "A-B": 0.155582,
+    "A-C": 0.068384,
+    "B-C": 0.120128
+   },
+   "n_tts_rows": 81,
+   "n_scored": 67,
+   "skipped": {
+    "no_seg_time": 0,
+    "no_dump": 0,
+    "embed_none": 14
+   },
+   "n_match_truth_ref": 26,
+   "match_rate_truth_ref": 0.3881,
+   "margin_p50": 0.121108,
+   "margin_p90": 0.336034,
+   "rows_head": [
+    {
+     "seg": 1,
+     "t0": 6.4,
+     "t1": 14.8,
+     "truth_spk": "B",
+     "best_ref": "A",
+     "ok": false,
+     "cos": {
+      "A": 0.044548,
+      "B": -0.015266,
+      "C": -0.023708
+     },
+     "margin": 0.059814,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3\\dump\\seg_1_0002.wav",
+     "orig_sr": 24000
+    },
+    {
+     "seg": 1,
+     "t0": 6.4,
+     "t1": 14.8,
+     "truth_spk": "B",
+     "best_ref": "A",
+     "ok": false,
+     "cos": {
+      "A": 0.044548,
+      "B": -0.015266,
+      "C": -0.023708
+     },
+     "margin": 0.059814,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3\\dump\\seg_1_0002.wav",
+     "orig_sr": 24000
+    },
+    {
+     "seg": 2,
+     "t0": 14.8,
+     "t1": 18.0,
+     "truth_spk": "A",
+     "best_ref": "B",
+     "ok": false,
+     "cos": {
+      "A": 0.106891,
+      "B": 0.111168,
+      "C": 0.041986
+     },
+     "margin": 0.004277,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3\\dump\\seg_2_0003.wav",
+     "orig_sr": 24000
+    },
+    {
+     "seg": 3,
+     "t0": 18.0,
+     "t1": 24.4,
+     "truth_spk": "B",
+     "best_ref": "B",
+     "ok": true,
+     "cos": {
+      "A": 0.124423,
+      "B": 0.339936,
+      "C": -0.014413
+     },
+     "margin": 0.215513,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3\\dump\\seg_3_0004.wav",
+     "orig_sr": 24000
+    },
+    {
+     "seg": 3,
+     "t0": 18.0,
+     "t1": 24.4,
+     "truth_spk": "B",
+     "best_ref": "B",
+     "ok": true,
+     "cos": {
+      "A": 0.124423,
+      "B": 0.339936,
+      "C": -0.014413
+     },
+     "margin": 0.215513,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3\\dump\\seg_3_0004.wav",
+     "orig_sr": 24000
+    }
+   ],
+   "neg_control": {
+    "truth_cos_suppressed": {
+     "base_n_match": 26,
+     "neg_n_match": 0,
+     "detected": true,
+     "note": "把真值说话人余弦压到最低 ⇒ 命中数必须下降（否则判据恒真）"
+    },
+    "rotated_ref_labels": {
+     "base_n_match": 26,
+     "neg_n_match": 18,
+     "base_best_ref_distribution": {
+      "A": 24,
+      "B": 34,
+      "C": 9
+     },
+     "rotated_best_ref_distribution": {
+      "B": 24,
+      "C": 34,
+      "A": 9
+     },
+     "detected": true,
+     "note": "把三人参考标签轮换 ⇒ best_ref 分布必须变化（证明判据真的在用参考）"
+    }
+   },
+   "old_encoder_summary": {
+    "n_scored": 81,
+    "n_match_truth_ref": 38,
+    "match_rate_truth_ref": 0.4691,
+    "margin_p50": 0.026355,
+    "margin_p90": 0.030673,
+    "margin_min": 0.008329,
+    "note": "🔴 三个人的真值参考**两两余弦**见 ref_pair_cosine ⇒ 若该值很高（≈0.95），则「最接近正确说话人」这个判据在余弦尺度上**可分性极低** ⇒ 占比低不等于 App 缺陷。"
+   },
+   "old_encoder_ref_pair_cosine": {
+    "A-B": 0.967428,
+    "A-C": 0.971264,
+    "B-C": 0.957272
+   },
+   "neg_all_detected": true
+  },
+  {
+   "label": "after_dialog3",
+   "arm": "after",
+   "run_dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3",
+   "truth_file": "C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\truth.json",
+   "src_wav": "C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\dialog3.wav",
+   "spks": [
+    "A",
+    "B",
+    "C"
+   ],
+   "refs": {
+    "A": [
+     0.0,
+     6.744
+    ],
+    "B": [
+     161.612,
+     171.644
+    ],
+    "C": [
+     197.016,
+     205.704
+    ]
+   },
+   "ref_pair_cosine": {
+    "A-B": 0.155582,
+    "A-C": 0.068384,
+    "B-C": 0.120128
+   },
+   "n_tts_rows": 81,
+   "n_scored": 67,
+   "skipped": {
+    "no_seg_time": 0,
+    "no_dump": 2,
+    "embed_none": 12
+   },
+   "n_match_truth_ref": 26,
+   "match_rate_truth_ref": 0.3881,
+   "margin_p50": 0.32264,
+   "margin_p90": 0.383563,
+   "rows_head": [
+    {
+     "seg": 1,
+     "t0": 6.4,
+     "t1": 14.8,
+     "truth_spk": "B",
+     "best_ref": "B",
+     "ok": true,
+     "cos": {
+      "A": 0.107516,
+      "B": 0.330536,
+      "C": -0.037172
+     },
+     "margin": 0.22302,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_1_0003.wav",
+     "orig_sr": 24000
+    },
+    {
+     "seg": 1,
+     "t0": 6.4,
+     "t1": 14.8,
+     "truth_spk": "B",
+     "best_ref": "B",
+     "ok": true,
+     "cos": {
+      "A": 0.107516,
+      "B": 0.330536,
+      "C": -0.037172
+     },
+     "margin": 0.22302,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_1_0003.wav",
+     "orig_sr": 24000
+    },
+    {
+     "seg": 2,
+     "t0": 14.8,
+     "t1": 18.0,
+     "truth_spk": "A",
+     "best_ref": "A",
+     "ok": true,
+     "cos": {
+      "A": 0.448348,
+      "B": 0.079776,
+      "C": 0.079194
+     },
+     "margin": 0.368572,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_2_0005.wav",
+     "orig_sr": 24000
+    },
+    {
+     "seg": 3,
+     "t0": 18.0,
+     "t1": 24.4,
+     "truth_spk": "B",
+     "best_ref": "B",
+     "ok": true,
+     "cos": {
+      "A": 0.131698,
+      "B": 0.480621,
+      "C": -0.008937
+     },
+     "margin": 0.348923,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_3_0007.wav",
+     "orig_sr": 24000
+    },
+    {
+     "seg": 3,
+     "t0": 18.0,
+     "t1": 24.4,
+     "truth_spk": "B",
+     "best_ref": "B",
+     "ok": true,
+     "cos": {
+      "A": 0.131698,
+      "B": 0.480621,
+      "C": -0.008937
+     },
+     "margin": 0.348923,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\after\\dialog3\\dump\\seg_3_0007.wav",
+     "orig_sr": 24000
+    }
+   ],
+   "neg_control": {
+    "truth_cos_suppressed": {
+     "base_n_match": 26,
+     "neg_n_match": 0,
+     "detected": true,
+     "note": "把真值说话人余弦压到最低 ⇒ 命中数必须下降（否则判据恒真）"
+    },
+    "rotated_ref_labels": {
+     "base_n_match": 26,
+     "neg_n_match": 17,
+     "base_best_ref_distribution": {
+      "B": 37,
+      "A": 20,
+      "C": 10
+     },
+     "rotated_best_ref_distribution": {
+      "C": 37,
+      "B": 20,
+      "A": 10
+     },
+     "detected": true,
+     "note": "把三人参考标签轮换 ⇒ best_ref 分布必须变化（证明判据真的在用参考）"
+    }
+   },
+   "old_encoder_summary": {
+    "n_scored": 79,
+    "n_match_truth_ref": 27,
+    "match_rate_truth_ref": 0.3418,
+    "margin_p50": 0.02222,
+    "margin_p90": 0.03044,
+    "margin_min": 0.002545,
+    "note": "🔴 三个人的真值参考**两两余弦**见 ref_pair_cosine ⇒ 若该值很高（≈0.95），则「最接近正确说话人」这个判据在余弦尺度上**可分性极低** ⇒ 占比低不等于 App 缺陷。"
+   },
+   "old_encoder_ref_pair_cosine": {
+    "A-B": 0.967428,
+    "A-C": 0.971264,
+    "B-C": 0.957272
+   },
+   "neg_all_detected": true
+  },
+  {
+   "label": "before_tight",
+   "arm": "before",
+   "run_dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3_tight",
+   "truth_file": "C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\truth_tight.json",
+   "src_wav": "C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\dialog3_tight.wav",
+   "spks": [
+    "A",
+    "B",
+    "C"
+   ],
+   "refs": {
+    "A": [
+     0.0,
+     5.63
+    ],
+    "B": [
+     122.62,
+     131.58
+    ],
+    "C": [
+     150.35,
+     157.9
+    ]
+   },
+   "ref_pair_cosine": {
+    "A-B": 0.135322,
+    "A-C": 0.049874,
+    "B-C": 0.08282
+   },
+   "n_tts_rows": 78,
+   "n_scored": 65,
+   "skipped": {
+    "no_seg_time": 0,
+    "no_dump": 0,
+    "embed_none": 13
+   },
+   "n_match_truth_ref": 34,
+   "match_rate_truth_ref": 0.5231,
+   "margin_p50": 0.278251,
+   "margin_p90": 0.352874,
+   "rows_head": [
+    {
+     "seg": 1,
+     "t0": 7.1,
+     "t1": 14.8,
+     "truth_spk": "B",
+     "best_ref": "B",
+     "ok": true,
+     "cos": {
+      "A": 0.073478,
+      "B": 0.405567,
+      "C": -0.012555
+     },
+     "margin": 0.332089,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3_tight\\dump\\seg_1_0002.wav",
+     "orig_sr": 24000
+    },
+    {
+     "seg": 1,
+     "t0": 7.1,
+     "t1": 14.8,
+     "truth_spk": "B",
+     "best_ref": "B",
+     "ok": true,
+     "cos": {
+      "A": 0.073478,
+      "B": 0.405567,
+      "C": -0.012555
+     },
+     "margin": 0.332089,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3_tight\\dump\\seg_1_0002.wav",
+     "orig_sr": 24000
+    },
+    {
+     "seg": 1,
+     "t0": 7.1,
+     "t1": 14.8,
+     "truth_spk": "B",
+     "best_ref": "B",
+     "ok": true,
+     "cos": {
+      "A": 0.073478,
+      "B": 0.405567,
+      "C": -0.012555
+     },
+     "margin": 0.332089,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3_tight\\dump\\seg_1_0002.wav",
+     "orig_sr": 24000
+    },
+    {
+     "seg": 3,
+     "t0": 18.6,
+     "t1": 29.5,
+     "truth_spk": "C",
+     "best_ref": "B",
+     "ok": false,
+     "cos": {
+      "A": 0.130121,
+      "B": 0.443668,
+      "C": 0.039936
+     },
+     "margin": 0.313547,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3_tight\\dump\\seg_3_0005.wav",
+     "orig_sr": 24000
+    },
+    {
+     "seg": 3,
+     "t0": 18.6,
+     "t1": 29.5,
+     "truth_spk": "C",
+     "best_ref": "B",
+     "ok": false,
+     "cos": {
+      "A": 0.130121,
+      "B": 0.443668,
+      "C": 0.039936
+     },
+     "margin": 0.313547,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs2\\before\\dialog3_tight\\dump\\seg_3_0005.wav",
+     "orig_sr": 24000
+    }
+   ],
+   "neg_control": {
+    "truth_cos_suppressed": {
+     "base_n_match": 34,
+     "neg_n_match": 0,
+     "detected": true,
+     "note": "把真值说话人余弦压到最低 ⇒ 命中数必须下降（否则判据恒真）"
+    },
+    "rotated_ref_labels": {
+     "base_n_match": 34,
+     "neg_n_match": 23,
+     "base_best_ref_distribution": {
+      "B": 65
+     },
+     "rotated_best_ref_distribution": {
+      "C": 65
+     },
+     "detected": true,
+     "note": "把三人参考标签轮换 ⇒ best_ref 分布必须变化（证明判据真的在用参考）"
+    }
+   },
+   "old_encoder_summary": {
+    "n_scored": 78,
+    "n_match_truth_ref": 47,
+    "match_rate_truth_ref": 0.6026,
+    "margin_p50": 0.023704,
+    "margin_p90": 0.026994,
+    "margin_min": 0.01046,
+    "note": "🔴 三个人的真值参考**两两余弦**见 ref_pair_cosine ⇒ 若该值很高（≈0.95），则「最接近正确说话人」这个判据在余弦尺度上**可分性极低** ⇒ 占比低不等于 App 缺陷。"
+   },
+   "old_encoder_ref_pair_cosine": {
+    "A-B": 0.968116,
+    "A-C": 0.971529,
+    "B-C": 0.957555
+   },
+   "neg_all_detected": true
+  },
+  {
+   "label": "after_tight",
+   "arm": "after",
+   "run_dir": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs3\\after\\dialog3_tight_thr6",
+   "truth_file": "C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\truth_tight.json",
+   "src_wav": "C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\dialog3_tight.wav",
+   "spks": [
+    "A",
+    "B",
+    "C"
+   ],
+   "refs": {
+    "A": [
+     0.0,
+     5.63
+    ],
+    "B": [
+     122.62,
+     131.58
+    ],
+    "C": [
+     150.35,
+     157.9
+    ]
+   },
+   "ref_pair_cosine": {
+    "A-B": 0.135322,
+    "A-C": 0.049874,
+    "B-C": 0.08282
+   },
+   "n_tts_rows": 74,
+   "n_scored": 43,
+   "skipped": {
+    "no_seg_time": 0,
+    "no_dump": 28,
+    "embed_none": 3
+   },
+   "n_match_truth_ref": 17,
+   "match_rate_truth_ref": 0.3953,
+   "margin_p50": 0.287654,
+   "margin_p90": 0.359372,
+   "rows_head": [
+    {
+     "seg": 3,
+     "t0": 18.6,
+     "t1": 29.5,
+     "truth_spk": "C",
+     "best_ref": "B",
+     "ok": false,
+     "cos": {
+      "A": 0.102489,
+      "B": 0.336812,
+      "C": -0.00161
+     },
+     "margin": 0.234323,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs3\\after\\dialog3_tight_thr6\\dump\\seg_3_0003.wav",
+     "orig_sr": 24000
+    },
+    {
+     "seg": 3,
+     "t0": 18.6,
+     "t1": 29.5,
+     "truth_spk": "C",
+     "best_ref": "B",
+     "ok": false,
+     "cos": {
+      "A": 0.102489,
+      "B": 0.336812,
+      "C": -0.00161
+     },
+     "margin": 0.234323,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs3\\after\\dialog3_tight_thr6\\dump\\seg_3_0003.wav",
+     "orig_sr": 24000
+    },
+    {
+     "seg": 3,
+     "t0": 18.6,
+     "t1": 29.5,
+     "truth_spk": "C",
+     "best_ref": "B",
+     "ok": false,
+     "cos": {
+      "A": 0.102489,
+      "B": 0.336812,
+      "C": -0.00161
+     },
+     "margin": 0.234323,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs3\\after\\dialog3_tight_thr6\\dump\\seg_3_0003.wav",
+     "orig_sr": 24000
+    },
+    {
+     "seg": 6,
+     "t0": 43.6,
+     "t1": 51.9,
+     "truth_spk": "C",
+     "best_ref": "B",
+     "ok": false,
+     "cos": {
+      "A": 0.085315,
+      "B": 0.380618,
+      "C": -0.010964
+     },
+     "margin": 0.295303,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs3\\after\\dialog3_tight_thr6\\dump\\seg_6_0005.wav",
+     "orig_sr": 24000
+    },
+    {
+     "seg": 6,
+     "t0": 43.6,
+     "t1": 51.9,
+     "truth_spk": "C",
+     "best_ref": "B",
+     "ok": false,
+     "cos": {
+      "A": 0.085315,
+      "B": 0.380618,
+      "C": -0.010964
+     },
+     "margin": 0.295303,
+     "dump": "C:\\Users\\Trekker-PTL\\_app_shadow\\runs3\\after\\dialog3_tight_thr6\\dump\\seg_6_0005.wav",
+     "orig_sr": 24000
+    }
+   ],
+   "neg_control": {
+    "truth_cos_suppressed": {
+     "base_n_match": 17,
+     "neg_n_match": 0,
+     "detected": true,
+     "note": "把真值说话人余弦压到最低 ⇒ 命中数必须下降（否则判据恒真）"
+    },
+    "rotated_ref_labels": {
+     "base_n_match": 17,
+     "neg_n_match": 18,
+     "base_best_ref_distribution": {
+      "B": 41,
+      "A": 2
+     },
+     "rotated_best_ref_distribution": {
+      "C": 41,
+      "B": 2
+     },
+     "detected": true,
+     "note": "把三人参考标签轮换 ⇒ best_ref 分布必须变化（证明判据真的在用参考）"
+    }
+   },
+   "old_encoder_summary": {
+    "n_scored": 46,
+    "n_match_truth_ref": 17,
+    "match_rate_truth_ref": 0.3696,
+    "margin_p50": 0.022962,
+    "margin_p90": 0.025043,
+    "margin_min": 0.005755,
+    "note": "🔴 三个人的真值参考**两两余弦**见 ref_pair_cosine ⇒ 若该值很高（≈0.95），则「最接近正确说话人」这个判据在余弦尺度上**可分性极低** ⇒ 占比低不等于 App 缺陷。"
+   },
+   "old_encoder_ref_pair_cosine": {
+    "A-B": 0.968116,
+    "A-C": 0.971529,
+    "B-C": 0.957555
+   },
+   "neg_all_detected": true
+  }
+ ],
+ "pass": true,
+ "verdict": "RAN",
+ "old_vs_wespeaker": [
+  {
+   "label": "before_dialog3",
+   "old_rate": 0.4691,
+   "old_ref_pair": {
+    "A-B": 0.967428,
+    "A-C": 0.971264,
+    "B-C": 0.957272
+   },
+   "wes_rate": 0.3881,
+   "wes_ref_pair": {
+    "A-B": 0.155582,
+    "A-C": 0.068384,
+    "B-C": 0.120128
+   },
+   "n_scored_old": 81,
+   "n_scored_wes": 67
+  },
+  {
+   "label": "after_dialog3",
+   "old_rate": 0.3418,
+   "old_ref_pair": {
+    "A-B": 0.967428,
+    "A-C": 0.971264,
+    "B-C": 0.957272
+   },
+   "wes_rate": 0.3881,
+   "wes_ref_pair": {
+    "A-B": 0.155582,
+    "A-C": 0.068384,
+    "B-C": 0.120128
+   },
+   "n_scored_old": 79,
+   "n_scored_wes": 67
+  },
+  {
+   "label": "before_tight",
+   "old_rate": 0.6026,
+   "old_ref_pair": {
+    "A-B": 0.968116,
+    "A-C": 0.971529,
+    "B-C": 0.957555
+   },
+   "wes_rate": 0.5231,
+   "wes_ref_pair": {
+    "A-B": 0.135322,
+    "A-C": 0.049874,
+    "B-C": 0.08282
+   },
+   "n_scored_old": 78,
+   "n_scored_wes": 65
+  },
+  {
+   "label": "after_tight",
+   "old_rate": 0.3696,
+   "old_ref_pair": {
+    "A-B": 0.968116,
+    "A-C": 0.971529,
+    "B-C": 0.957555
+   },
+   "wes_rate": 0.3953,
+   "wes_ref_pair": {
+    "A-B": 0.135322,
+    "A-C": 0.049874,
+    "B-C": 0.08282
+   },
+   "n_scored_old": 46,
+   "n_scored_wes": 43
+  }
+ ],
+ "preset_a_control_rerun": {
+  "status": "NOT_RUN_BLOCKED_BY_SHADOW_ALIGNMENT",
+  "reason": "reviewer 第 3 节要求「预设 A 对照组在 self_ref 闸门修好后重跑」；实测影子包 after2 的 _maybe_send_self_ref 计数为 0，未全量对齐 dev 树（§174 闸门修复），按「混版影子包不能报数」纪律不拿它跑数；且 §4.6(a) 阈值四臂按第 0 节第 3 条暂缓 ⇒ 无干净运行日志。",
+  "decision": "交 reviewer 裁定：先同步影子包底座，或指定用 rc7（self_ref 死路径）重跑"
+ }
+}

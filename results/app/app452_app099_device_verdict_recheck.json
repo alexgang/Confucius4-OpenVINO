@@ -1,0 +1,269 @@
+{
+ "source": "results/app/app437_app099_device.json",
+ "source_sha256": "81351c8a6673b8978491adbac5a777717b4c270bcd3fe1a5272419320c23d3ae",
+ "source_verdict_field": "verdict",
+ "source_verdict_value": "PASS",
+ "source_timing_valid_field": "timing_valid",
+ "source_timing_valid_value": true,
+ "purpose": "判据修正复核（非新增审计闸门）；不重跑设备作业",
+ "script_fix": {
+  "file": "results/app/_app437_app099_device_jobs.py",
+  "sha256": "0665821d9491df456dcf4d09e459d9a3450700dddf093732cca730c23f2c0293",
+  "ast_parse": true,
+  "anchors": {
+   "rec['pass_components_only'] = rec['pass']": true,
+   "rec['terminated_by_harness'] = (rc == -9)": true,
+   "rec['crash'] = (rc != 0 and rc != -9)": true,
+   "rec['natural_exit'] = (rc == 0)": true,
+   "rec['pass'] = bool(rec['pass'] and rc == 0)": true,
+   "ev['timing_valid'] = (len(non_natural) == 0)": true,
+   "and ev['timing_valid'] else 'PARTIAL')": true
+  },
+  "all_anchors_present": true,
+  "n_stmts_run_one": 9,
+  "n_stmts_final_verdict": 11
+ },
+ "old_criterion": {
+  "recomputed_verdict": "PASS",
+  "recomputed_timing_valid": true,
+  "note": "旧判据只数臂数、timing 恒 True ⇒ 识破不了被框架强杀的对照臂"
+ },
+ "fixed_criterion": {
+  "verdict": "PARTIAL",
+  "timing_valid": false,
+  "timing_notes": [
+   "非自然退出臂：gpu_control_asr_npu ⇒ 这些臂的计时/显存曲线不可与自然退出臂对比"
+  ],
+  "n_arms": 6,
+  "n_arms_ok": 6,
+  "n_gpu_arms": 2,
+  "n_gpu_arms_ok": 1
+ },
+ "arm_classification": {
+  "asr_gpu": {
+   "exit_code": 0,
+   "seconds": 87.9,
+   "pass_components_only": true,
+   "pass_after_fix": true,
+   "crash": false,
+   "terminated_by_harness": false,
+   "natural_exit": true
+  },
+  "asr_npu": {
+   "exit_code": 0,
+   "seconds": 179.0,
+   "pass_components_only": true,
+   "pass_after_fix": true,
+   "crash": false,
+   "terminated_by_harness": false,
+   "natural_exit": true
+  },
+  "mt_gpu": {
+   "exit_code": 0,
+   "seconds": 67.0,
+   "pass_components_only": true,
+   "pass_after_fix": true,
+   "crash": false,
+   "terminated_by_harness": false,
+   "natural_exit": true
+  },
+  "mt_npu": {
+   "exit_code": 0,
+   "seconds": 71.3,
+   "pass_components_only": true,
+   "pass_after_fix": true,
+   "crash": false,
+   "terminated_by_harness": false,
+   "natural_exit": true
+  },
+  "tts_gpu": {
+   "exit_code": 0,
+   "seconds": 188.0,
+   "pass_components_only": true,
+   "pass_after_fix": true,
+   "crash": false,
+   "terminated_by_harness": false,
+   "natural_exit": true
+  },
+  "tts_npu": {
+   "exit_code": 0,
+   "seconds": 196.0,
+   "pass_components_only": true,
+   "pass_after_fix": true,
+   "crash": false,
+   "terminated_by_harness": false,
+   "natural_exit": true
+  },
+  "gpu_same_asr_mt": {
+   "exit_code": 0,
+   "seconds": 806.3,
+   "pass_components_only": true,
+   "pass_after_fix": true,
+   "crash": false,
+   "terminated_by_harness": false,
+   "natural_exit": true
+  },
+  "gpu_control_asr_npu": {
+   "exit_code": -9,
+   "seconds": 1500.1,
+   "pass_components_only": true,
+   "pass_after_fix": false,
+   "crash": false,
+   "terminated_by_harness": true,
+   "natural_exit": false
+  }
+ },
+ "negative_controls": [
+  {
+   "name": "b_arm_to_exit0",
+   "expect_verdict": "PASS",
+   "expect_timing_valid": true,
+   "got_verdict": "PASS",
+   "got_timing_valid": true,
+   "detected": true,
+   "note": "把被强杀的对照臂改成自然退出 ⇒ 修正后判据应升为 PASS"
+  },
+  {
+   "name": "a_arm_to_minus9",
+   "expect_verdict": "PARTIAL",
+   "expect_timing_valid": false,
+   "got_verdict": "PARTIAL",
+   "got_timing_valid": false,
+   "detected": true,
+   "note": "把自然退出的 A 臂改成 -9 ⇒ 必须识破"
+  },
+  {
+   "name": "smoke_arm_to_minus9",
+   "expect_verdict": "PARTIAL",
+   "expect_timing_valid": false,
+   "got_verdict": "PARTIAL",
+   "got_timing_valid": false,
+   "detected": true,
+   "note": "六臂冒烟之一改成 -9 ⇒ 必须识破"
+  },
+  {
+   "name": "old_criterion_misses_timeout_arm",
+   "expect": "旧判据会漏判（仍得 PASS）",
+   "got_verdict": "PASS",
+   "got_timing_valid": true,
+   "detected": true,
+   "note": "若旧判据也变 PARTIAL，说明反证构造有问题"
+  },
+  {
+   "name": "run_one_rc_minus9",
+   "rc": -9,
+   "expect": {
+    "pass": false,
+    "crash": false,
+    "terminated_by_harness": true,
+    "natural_exit": false
+   },
+   "got": {
+    "pass": false,
+    "crash": false,
+    "terminated_by_harness": true,
+    "natural_exit": false
+   },
+   "detected": true,
+   "note": "checks 恒真；只有 exit_code 变化，验证三态分类与 pass"
+  },
+  {
+   "name": "run_one_rc_zero",
+   "rc": 0,
+   "expect": {
+    "pass": true,
+    "crash": false,
+    "terminated_by_harness": false,
+    "natural_exit": true
+   },
+   "got": {
+    "pass": true,
+    "crash": false,
+    "terminated_by_harness": false,
+    "natural_exit": true
+   },
+   "detected": true,
+   "note": "checks 恒真；只有 exit_code 变化，验证三态分类与 pass"
+  },
+  {
+   "name": "run_one_rc_one",
+   "rc": 1,
+   "expect": {
+    "pass": false,
+    "crash": true,
+    "terminated_by_harness": false,
+    "natural_exit": false
+   },
+   "got": {
+    "pass": false,
+    "crash": true,
+    "terminated_by_harness": false,
+    "natural_exit": false
+   },
+   "detected": true,
+   "note": "checks 恒真；只有 exit_code 变化，验证三态分类与 pass"
+  }
+ ],
+ "n_neg": 7,
+ "n_neg_detected": 7,
+ "gpu_arm_a": {
+  "arm": "gpu_same_asr_mt",
+  "combo": "ASR gpu_int8 + MT GPU.0 + TTS NPU（B 机 268 s 崩溃的组合）",
+  "exit_code": 0,
+  "seconds": 806.3,
+  "crash_after_fix": false,
+  "natural_exit": true,
+  "peak_gpu_dedicated_mb": 0.0,
+  "peak_gpu_shared_mb": 2262.1,
+  "peak_proc_rss_mb": 7676.5,
+  "n_samples": 381,
+  "field_path": "app437_app099_device.json → gpu_arms[gpu_same_asr_mt].sampling.*",
+  "conclusion": "A 机 806.3 s 自然退出、无崩溃 ⇒ 未复现 B 机 268 s 崩溃；Dedicated 恒 0 是 Intel 集显 UMA，显存计入 Shared（见 app450）"
+ },
+ "gpu_arm_b": {
+  "arm": "gpu_control_asr_npu",
+  "combo": "ASR NPU + MT GPU.0 + TTS NPU（对照）",
+  "exit_code": -9,
+  "seconds": 1500.1,
+  "terminated_by_harness": true,
+  "crash_after_fix": false,
+  "peak_gpu_shared_mb": 1810.6,
+  "peak_proc_rss_mb": 7096.0,
+  "n_samples": 709,
+  "stall": {
+   "n_samples": 709,
+   "t_last_s": 1499.97,
+   "n_distinct_shared_mb_in_late_half": 1,
+   "n_distinct_rss_mb_in_late_half": 2,
+   "late_half_shared_mb_minmax": [
+    1632.3,
+    1632.3
+   ],
+   "late_half_rss_mb_minmax": [
+    6865.5,
+    6865.6
+   ],
+   "flat_in_late_half": false
+  },
+  "field_path": "app437_app099_device.json → gpu_arms[gpu_control_asr_npu]；app437_app099_device/gpu_control_asr_npu_samples.jsonl",
+  "conclusion": "rc=-9 是本脚本 wait(timeout=1500) 后 p.kill() 强杀，不是被测程序自崩；日志显示 ASR/MT 已完成（600.4 s / 145 句译文），但采样后半段 Shared/RSS 恒定、日志停在 TTS 跳句循环 ⇒ 收尾未退出，该臂与自然退出的 A 臂不可比、判为无效"
+ },
+ "per_item": {
+  "4.1": {
+   "result": "PASS",
+   "evidence": "app437_app099_device.json → arms[6]，6 臂 exit_code=0、按组件 checks 全真（ASR/MT/TTS 分开判定）",
+   "n_arms": 6,
+   "n_arms_ok": 6
+  },
+  "4.2": {
+   "result": "PARTIAL",
+   "evidence": "app452 本文件 → fixed_criterion.verdict / gpu_arm_a / gpu_arm_b",
+   "reason": "A 臂有效且未复现崩溃；B 对照臂被框架超时强杀、收尾停滞 ⇒ 「同样时长」的对照不成立，峰值对比无可比性",
+   "no_program_crash_in_either_arm": true
+  }
+ },
+ "raw_json_left_unchanged": true,
+ "status_field_note": "STATUS §175 请以本文件 fixed_criterion.verdict=PARTIAL 与 per_item 为准；app437_app099_device.json 的 verdict=PASS / timing_valid=true 是旧判据输出，已作废但保留原始证据，不得引用。",
+ "reviewer_decision_needed": "是否需要重跑对照臂（约 25 min 持锁）以补齐 §4.2 的「同样时长」对照，由 reviewer 裁定；本轮不自行重跑、不改判据以外的默认值。",
+ "pass": true
+}

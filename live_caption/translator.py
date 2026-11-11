@@ -623,6 +623,14 @@ _CYRILLIC = re.compile(r'[\u0400-\u04FF\u0500-\u052F]')
 #:   🔴 若 ASR 给了**显式语种标签**（`src_hint`）⇒ 走 `_SKIP_EQ_SAFE` 的判断
 #:      （标签可信 ⇒ 可以跳过）。
 _SKIP_EQ_SAFE = frozenset(('zh', 'ja', 'ko', 'ru'))
+#: 🔴🔴 **APP-099 四.3(d)**：**有可信 ASR 语种标签时**才额外允许 `en` 透传。
+#:   APP-099 §2e：英文源、目标也是 en 时应原样透传（app419 里
+#:   `n_translation_same_as_source=0`，英文被 MT 改写过了）。
+#:   ⚠️ **不能把 'en' 无条件加进 `_SKIP_EQ_SAFE`**：`detect_lang()` 对**所有**
+#:      拉丁字母文本都兜成 'en' ⇒ 法语→英语会被判成 `en == en` 而**误跳过**
+#:      （这正是 APP-097①.4② 修掉的坑）。
+#:   ⇒ 只有调用方**显式给了 ASR 标签**（`src_hint`）时才用这个更宽的集合。
+_SKIP_EQ_SAFE_WITH_HINT = _SKIP_EQ_SAFE | frozenset(('en',))
 
 
 def _norm_tight(s):
@@ -668,6 +676,28 @@ _LANG_NAME = {
     'de': 'German', 'fr': 'French', 'es': 'Spanish',
     'pt': 'Portuguese', 'it': 'Italian', 'ru': 'Russian',
 }
+
+#: 🔴 **APP-099 四.3(d)**：ASR 自报的语种标签是**英文全称**
+#:   （`streaming_asr.parse_language_output` 从 `language English<asr_text>`
+#:   取出的原值），而 `_LANG_NAME` / 目标语言用的是**代号**。
+#:   ⇒ 这里做一次归一化；未知值一律返回 `''`（⇒ 退回脚本判定，绝不猜）。
+_ASR_LANG_FULL_TO_CODE = {v.lower(): k for k, v in _LANG_NAME.items()}
+
+
+def normalize_src_hint(hint):
+    """把 ASR 语种标签归一成目标语言代号；不可信/未知 ⇒ 返回 ``''``。
+
+    接受 ``'English'`` / ``'english'`` / ``'en'`` / ``'Chinese'`` / ``'zh'`` …
+    ⚠️ 返回 ``''`` 时 `translate()` **不放行 en 透传**（APP-097①.4②）。
+    """
+    s = str(hint or '').strip().lower()
+    if not s or s in ('auto', 'none'):
+        return ''
+    if s in _ASR_LANG_FULL_TO_CODE:
+        return _ASR_LANG_FULL_TO_CODE[s]
+    if s in _LANG_NAME:
+        return s
+    return ''
 # C-102：Hy-MT2 **没有默认 system prompt**，官方指令直接放 user 消息里
 # （Default Translation 模板，见 tencent/Hy-MT2-1.8B README）。原先给通用
 # Instruct 模型自造的 system prompt 已废弃。
@@ -888,9 +918,17 @@ class HunyuanTranslator:
         ⚠️ **拉丁字母语言之间不再凭脚本跳过**（旧版会把法语判成 'en'）。
         """
         # ① ASR 的语种标签优先（reviewer：「ASR 给了语种标签就用标签」）
-        src = (src_hint or '').strip().lower() or detect_lang(text)
-        # ② 跳过判定：只有**脚本唯一确定**的语言（zh/ja/ko/ru）才允许
-        if tgt != 'off' and src and src == tgt and src in _SKIP_EQ_SAFE:
+        #    🔴🔴 APP-099 四.3(d)：先**归一化**（'English' → 'en'），并把
+        #      「有没有可信标签」单独记下来 ⇒ 决定下面能不能放行 en。
+        hint = normalize_src_hint(src_hint)
+        src = hint or detect_lang(text)
+        # ② 跳过判定：脚本唯一确定的语言（zh/ja/ko/ru）恒可跳过；
+        #    **`en` 只有拿到可信 ASR 标签时才可以跳过**：
+        #      · 有标签 `en` + 目标 `en` ⇒ 原样透传（APP-099 §2e）；
+        #      · 无标签时 `detect_lang()` 会把法语/德语等也兜成 'en'
+        #        ⇒ 若放行就会「法语→英语」不翻译（APP-097①.4② 的坑）。
+        safe = _SKIP_EQ_SAFE_WITH_HINT if hint else _SKIP_EQ_SAFE
+        if tgt != 'off' and src and src == tgt and src in safe:
             return dict(text=text, lat_ms=0.0, ttft_ms=0.0, n_in=0, n_out=0, skipped=True)
         prompt = self.render(text, tgt, src, ctx=ctx, glossary=glossary)
         try:
@@ -974,12 +1012,15 @@ class _Job:
       old_seg  —— 旧 key 原本归属的段（半句产生的那一段）
     """
     __slots__ = ('kind', 'key', 'text', 'seg', 'old_key', 'old_seg', 'unit_id',
-                 'spk', 'spk_conf')
+                 'spk', 'spk_conf', 'src_hint')
 
     def __init__(self, kind, key, text, seg=None, old_key=None, old_seg=None,
-                 unit_id=None, spk=None, spk_conf=None):
+                 unit_id=None, spk=None, spk_conf=None, src_hint=None):
         self.kind, self.key, self.text = kind, key, text
         self.seg, self.old_key, self.old_seg = seg, old_key, old_seg
+        # 🔴🔴 APP-099 四.3(d)：**源语种标签随任务走**（不是放 `svc` 上）
+        #   ⇒ worker 消费队列时不会被「下一次 submit」覆盖 ⇒ 不会错配句子。
+        self.src_hint = src_hint or None
         # ★ 方案 C（H-019）：**单元 id** —— 草稿与正式稿共用 ⇒ App 按 id 原位替换
         self.unit_id = unit_id
         # 🔴🔴 APP-022（**接口预留，本轮不集成**）：
@@ -1256,8 +1297,14 @@ class TranslationService:
         k = slot_key or norm_key(text)
         self.q.put(_Job('fix', k, text, seg=seg, old_key=old_key))
 
-    def submit(self, sentence, seg=None, spk=None, spk_conf=None):
+    def submit(self, sentence, seg=None, spk=None, spk_conf=None,
+               src_hint=None):
         """[方案 C] 定稿段：**按完整句**切分后逐句提交 + **尾巴先出草稿**。
+
+        🔴🔴 **APP-099 四.3(d)**：`src_hint` = ASR 给的**可信源语种标签**
+        （英文全名或代号，见 `normalize_src_hint`）。随 `_Job` 一起进队列，
+        worker 翻译时传给 `translate()` ⇒ en→en 可原样透传。
+        ⚠️ 不给（None）时行为与改造前**逐字一致**（拉丁文本永不凭脚本跳过）。
 
         ★★ C-111-UNIT（§48）：翻译与显示的最小单元 = **完整句**。
         ★★ 方案 C（H-016/H-017/H-019，用户 10-25 已定）：
@@ -1307,6 +1354,9 @@ class TranslationService:
         """
         if not self.active:
             return []
+        # 🔴 APP-099 四.3(d)：本段的语种标签（`flush()` 出来的尾巴也用它）。
+        _hint = normalize_src_hint(src_hint) or None
+        self._src_hint = _hint
         text = (sentence or '').strip()
         if not text:
             return []
@@ -1418,7 +1468,7 @@ class TranslationService:
                     u['spk'] = spk
                     u['spk_conf'] = spk_conf
                 self.q.put(_Job('draft', dk, self._pend, seg=seg, unit_id=uid,
-                                spk=spk, spk_conf=spk_conf))
+                                spk=spk, spk_conf=spk_conf, src_hint=_hint))
 
         # ── 正式稿 ────────────────────────────────────────────────────
         #   发射顺序：`ready`（本段凑齐的整句）→ `forced_parts`（强制切出的）
@@ -1464,7 +1514,7 @@ class TranslationService:
                 else:
                     # 缓存里没有（被 CACHE_MAX 淘汰）⇒ 老实重翻一次
                     self.q.put(_Job('final', k, s, seg=seg, unit_id=uid,
-                                    spk=spk, spk_conf=spk_conf))
+                                    spk=spk, spk_conf=spk_conf, src_hint=_hint))
                 continue
             self._seen.add(k)
             keys.append(k)
@@ -1472,7 +1522,7 @@ class TranslationService:
                                    unit_id=uid, partial=is_forced,
                                    spk=spk, spk_conf=spk_conf))
             self.q.put(_Job('final', k, s, seg=seg, unit_id=uid,
-                            spk=spk, spk_conf=spk_conf))
+                            spk=spk, spk_conf=spk_conf, src_hint=_hint))
 
         if seg is not None:
             self.seg_keys.setdefault(seg, [])
@@ -1519,7 +1569,8 @@ class TranslationService:
             self.units.append(dict(key=k, src=pend, seg=seg, mt=None, kind='final',
                                    unit_id=uid, spk=spk, spk_conf=spk_conf))
             self.q.put(_Job('final', k, pend, seg=seg, unit_id=uid,
-                            spk=spk, spk_conf=spk_conf))
+                            spk=spk, spk_conf=spk_conf,
+                            src_hint=getattr(self, '_src_hint', None)))
             if seg is not None:
                 self.seg_keys.setdefault(seg, [])
                 if k not in self.seg_keys[seg]:
@@ -1537,7 +1588,8 @@ class TranslationService:
                                              spk, spk_conf))
         else:
             self.q.put(_Job('final', k, pend, seg=seg, unit_id=uid,
-                            spk=spk, spk_conf=spk_conf))
+                            spk=spk, spk_conf=spk_conf,
+                            src_hint=getattr(self, '_src_hint', None)))
         return [k]
 
     def mt_of_seg(self, seg):
@@ -1758,7 +1810,9 @@ def _run_jobs(svc, tr):
             ctx = svc._last_src if svc.use_ctx else None
             # H-003：术语表（关掉时 glossary=None，行为与之前一致）
             gl = GLOSSARY if svc.glossary_on else None
-            r = tr.translate(job.text, svc.target, ctx=ctx, glossary=gl)
+            # 🔴 APP-099 四.3(d)：把随任务携带的 ASR 语种标签交给 translate
+            r = tr.translate(job.text, svc.target, ctx=ctx, glossary=gl,
+                             src_hint=getattr(job, 'src_hint', None))
         except Exception as e:
             svc.err = f'{type(e).__name__}: {e}'
             svc._busy -= 1

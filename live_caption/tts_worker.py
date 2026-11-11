@@ -3125,7 +3125,18 @@ class TTSWorker:
             row['voice_spk'] = (str(self._last_voice_spk)
                                 if self._last_voice_spk else None)
             row['voice_kind'] = self._last_voice_kind or 'preset'
-            row['end_reason'] = self._last_end_reason or 'error'
+            # 🔴🔴 **APP-099 四.3(c)：被跳过的句子用单独 `end_reason='late_drop'`**。
+            #   APP-099 §2k 原文：「被跳过的句子记成了 `end_reason='error'`
+            #   （tight thr6：29 句 error = 29 句 late_drop），和真错误混在一起。」
+            #   根因就在这一行：late_drop 分支调用本函数时 `tel=None`、
+            #   `_last_end_reason` 也没设 ⇒ 旧实现兜底成 `'error'`。
+            #   ⇒ 现在按与 `row['late_drop']` **同一个判据**（`_last_late_drop`）
+            #     写 `'late_drop'`；真错误路径该标志为 False ⇒ 仍是 `'error'`。
+            #   ⚠️ 不复用 `dropped` 参数：`empty`/`cancel` 等也会置 dropped，
+            #      那些不是「太晚跳过」，不能一律记 late_drop。
+            row['end_reason'] = ('late_drop'
+                                 if getattr(self, '_last_late_drop', False)
+                                 else (self._last_end_reason or 'error'))
         # 🔴🔴🔴 APP-028②：队列水位 / 峰值（**验收要「队列峰值（秒和 MB）」**）
         #   ⚠️ 不依赖 `tel` ⇒ 失败/丢句的行也能带上水位（诊断用）。
         try:

@@ -1,0 +1,69 @@
+{
+ "task": "APP-099 第 4 节 4/5：MANIFEST 生成器 dev 自测（小文件，不占设备/不算大模型 SHA）",
+ "timestamp": "2026-11-11 11:45:07",
+ "checks": {
+  "config_dims_nested": {
+   "pass": true,
+   "detail": "{'config.json': {'thinker_config.text_config.hidden_size': 1024, 'thinker_config.text_config.num_hidden_layers': 28, 'thinker_config.audio_config.d_model': 896, 'thinker_config.audio_config.encoder_layers': 18}}"
+  },
+  "schema": {
+   "pass": true,
+   "detail": "app099-manifest-v1"
+  },
+  "source_path_recorded": {
+   "pass": true,
+   "detail": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app099_manifest_krfujfdy\\sources\\pkgA"
+  },
+  "config_recorded": {
+   "pass": true,
+   "detail": ""
+  },
+  "per_file_sha": {
+   "pass": true,
+   "detail": "[{'name': 'config.json', 'bytes': 161, 'source_path': 'C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\app099_manifest_krfujfdy\\\\sources\\\\pkgA\\\\config.json', 'source_exists': True, 'sha256': 'd3bc45cd67729bab89641f912f8ff241544dc99f8b04a2a9081bba4e464fae3"
+  },
+  "all_match_initial": {
+   "pass": true,
+   "detail": "[]"
+  },
+  "manifest_written": {
+   "pass": true,
+   "detail": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app099_manifest_krfujfdy\\pkg\\app\\MANIFEST.json"
+  },
+  "verify_ok": {
+   "pass": true,
+   "detail": "[]"
+  },
+  "verify_or_die_ok": {
+   "pass": true,
+   "detail": ""
+  }
+ },
+ "neg_controls": {
+  "pkg_file_tampered": {
+   "detected": true,
+   "detail": "['moda/w.bin: SHA 与源目录不一致', 'moda/w.bin: 包内文件 SHA 与 MANIFEST 不一致']"
+  },
+  "source_dir_changed": {
+   "detected": true,
+   "detail": "['moda/w.bin: SHA 与源目录不一致']"
+  },
+  "manifest_missing": {
+   "detected": true,
+   "detail": "['缺 MANIFEST：C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\app099_manifest_krfujfdy\\\\pkg\\\\app\\\\MANIFEST.json']"
+  },
+  "verify_or_die_terminates": {
+   "detected": true,
+   "detail": "MANIFEST 与源目录不一致，终止打包：\n  - moda/w.bin: SHA 与源目录不一致\n  - moda/w.bin: 包内文件 SHA 与 MANIFEST 不一致"
+  }
+ },
+ "summary": {
+  "checks_total": 9,
+  "checks_pass": 9,
+  "checks_fail": [],
+  "neg_total": 4,
+  "neg_detected": 4,
+  "neg_missed": []
+ },
+ "pass": true
+}

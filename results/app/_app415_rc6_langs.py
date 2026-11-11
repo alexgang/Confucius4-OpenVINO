@@ -126,7 +126,10 @@ def main():
     ap.add_argument('--pkg', required=True)
     ap.add_argument('--lock', action='store_true')
     ap.add_argument('--mt-sents', type=int, default=5)
-    ap.add_argument('--tts-sents', type=int, default=2)
+    # 🔴 APP-099 四.5：每种语言 **5 句 MT + 5 个 TTS wav**（旧口径是 2 句，
+    #    reviewer §2e 已指出 app419 每语种只有 2 个 wav 属验收不足）。
+    #    ⚠️ 这里改的是**测试脚本的复验句数**，不是生产默认值/判据阈值。
+    ap.add_argument('--tts-sents', type=int, default=5)
     args = ap.parse_args()
     PKG = args.pkg
     py = os.path.join(PKG, 'python', 'python.exe')
