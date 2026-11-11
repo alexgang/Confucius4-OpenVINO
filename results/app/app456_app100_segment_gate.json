@@ -1,0 +1,170 @@
+{
+ "gate": "app100_segment",
+ "n_checks": 26,
+ "n_pass": 26,
+ "n_fail": 0,
+ "pass": true,
+ "checks": [
+  {
+   "check": "A.clip_exists",
+   "pass": true,
+   "detail": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav"
+  },
+  {
+   "check": "A.duration_600s",
+   "pass": true,
+   "detail": "duration_s=600.0"
+  },
+  {
+   "check": "A.payload_sha_matches",
+   "pass": true,
+   "detail": "payload_sha=2f02e4c0b172bd952e5ba20018eeaeeb91673c0e778fa85c4a6305edf62fd54e"
+  },
+  {
+   "check": "A.file_sha_matches",
+   "pass": true,
+   "detail": "file_sha=d412f00af6b792ce033d5d36c71f9c0a0efd1da19d0643107a56336e16f378d0"
+  },
+  {
+   "check": "A.start_is_0_no_shift",
+   "pass": true,
+   "detail": "start_s=0.0"
+  },
+  {
+   "check": "A.end_is_600",
+   "pass": true,
+   "detail": "end_s=600.0"
+  },
+  {
+   "check": "A.loops_is_1_continuous",
+   "pass": true,
+   "detail": "loops=1 continuous=True"
+  },
+  {
+   "check": "A.recomputed_from_source",
+   "pass": true,
+   "detail": "recomputed=2f02e4c0b172bd952e5ba20018eeaeeb91673c0e778fa85c4a6305edf62fd54e"
+  },
+  {
+   "check": "A.byte_identical_to_asr_canonical",
+   "pass": true,
+   "detail": "asr=d412f00af6b792ce033d5d36c71f9c0a0efd1da19d0643107a56336e16f378d0"
+  },
+  {
+   "check": "B1.end_s_is_600",
+   "pass": true,
+   "detail": "LONG_SEG_END_S=600.0"
+  },
+  {
+   "check": "B2.loops_is_1",
+   "pass": true,
+   "detail": "LONG_LOOPS=1"
+  },
+  {
+   "check": "B3.audio_is_canonical_clip",
+   "pass": true,
+   "detail": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav"
+  },
+  {
+   "check": "B4.start_s_is_0",
+   "pass": true,
+   "detail": "LONG_SEG_START_S=0.0"
+  },
+  {
+   "check": "B5.timeline_is_600",
+   "pass": true,
+   "detail": "LONG_TIMELINE_S=600.0"
+  },
+  {
+   "check": "B6.uses_seg_module",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "B7.arm_timeout_ge_2700",
+   "pass": true,
+   "detail": "ARM_TIMEOUT_S=2700"
+  },
+  {
+   "check": "C1.new_block_has_fields",
+   "pass": true,
+   "detail": "['caliber', 'app100', 'audio', 'source_wav', 'source_duration_s', 'start_s', 'end_s', 'loops']"
+  },
+  {
+   "check": "C2.new_block_has_sha256",
+   "pass": true,
+   "detail": "['payload_sha256', 'expected_payload_sha256', 'file_sha256', 'expected_file_sha256']"
+  },
+  {
+   "check": "C3.new_block_is_canonical",
+   "pass": true,
+   "detail": "end_s=600.0 loops=1"
+  },
+  {
+   "check": "C4.legacy_block_detected_as_legacy",
+   "pass": true,
+   "detail": "is_legacy=True is_canonical=False"
+  },
+  {
+   "check": "R1.end300_detected",
+   "pass": true,
+   "detail": "end_s=300.0 timeline=300.0"
+  },
+  {
+   "check": "R2.loop2_detected",
+   "pass": true,
+   "detail": "loops=2 timeline=1200.0"
+  },
+  {
+   "check": "R3.legacy_audio_detected",
+   "pass": true,
+   "detail": "audio=C:\\Users\\Trekker-PTL\\shared\\SPE_0000_0500.wav duration=300.0"
+  },
+  {
+   "check": "R4.tampered_detected",
+   "pass": true,
+   "detail": "sha=b3e36387937a4233"
+  },
+  {
+   "check": "R5.missing_sha_detected",
+   "pass": true,
+   "detail": "has_sha=False is_canonical=False"
+  },
+  {
+   "check": "R6.timeout1500_detected",
+   "pass": true,
+   "detail": "ARM_TIMEOUT_S=1500"
+  }
+ ],
+ "segment": {
+  "caliber": "10 分钟片段口径",
+  "app100": true,
+  "audio": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+  "source_wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\260902_SPE_audio.wav",
+  "source_duration_s": 3671.189313,
+  "start_s": 0.0,
+  "end_s": 600.0,
+  "loops": 1,
+  "timeline_s": 600.0,
+  "continuous": true,
+  "start_reason": "开头即语音（首 10 s 窗 rms=0.035654 / peak=0.351379，远高于静音判据）⇒ 起点取 0.0 s，不顺延",
+  "duration_s": 600.0,
+  "sr": 16000,
+  "channels": 1,
+  "bits": 16,
+  "payload_sha256": "2f02e4c0b172bd952e5ba20018eeaeeb91673c0e778fa85c4a6305edf62fd54e",
+  "expected_payload_sha256": "2f02e4c0b172bd952e5ba20018eeaeeb91673c0e778fa85c4a6305edf62fd54e",
+  "file_sha256": "d412f00af6b792ce033d5d36c71f9c0a0efd1da19d0643107a56336e16f378d0",
+  "expected_file_sha256": "d412f00af6b792ce033d5d36c71f9c0a0efd1da19d0643107a56336e16f378d0",
+  "bytes": 19200044
+ },
+ "job_runtime": {
+  "end_s": 600.0,
+  "loops": 1,
+  "start_s": 0.0,
+  "timeline_s": 600.0,
+  "audio": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+  "arm_timeout_s": 2700,
+  "uses_seg_module": true
+ }
+}

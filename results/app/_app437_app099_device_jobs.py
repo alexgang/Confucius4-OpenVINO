@@ -19,10 +19,16 @@ APP-099 §2a：rc6 六臂冒烟有 3 臂无效
 
 ## APP-100（10:38 追加）长跑口径
 「已下发、还没做完的纠偏（例如 APP-099）里的长跑，也按本条执行」。
-本机只有 ``SPE_0000_0500.wav``（实测 **300.0 s**），无法直接取 0–600 s
-原始片段 ⇒ 固定片段 = **0–300 s**，`--loop` 播 **2 次** = 600 s 音频时间线；
-两臂、所有版本都用同一段同一循环次数；起止秒/循环数写进本脚本与结果 json。
-⚠️ 素材起点 0 s（未发现开头长静音/纯音乐，故不顺延）。
+🔴 **2026-11-11 13:5x 修正（§176）**：本脚本原先写的
+「本机只有 ``SPE_0000_0500.wav``（300.0 s），无法直接取 0–600 s 原始片段
+⇒ 改为 0–300 s 播 2 次」——**该前提经实测证伪**：
+  · 全长 SPE 素材 **3671.189 s** 一直在本仓库 ``test_audio/260902_SPE_audio.wav``；
+    ``shared/SPE_0000_0500.wav`` 只是它的**前 300 s 截断拷贝**（SHA256 实测相同）；
+  · ASR 侧 canonical clip ``clip_10min_0_600.wav`` 实测 mtime **10:52:30**，
+    比本作业开工（11:32:08）**早 40 分钟** ⇒ 当时就能拿到。
+⇒ 现改为 APP-100 的 canonical 片段：**SPE 0.0–600.0 s 连续（不循环）**，
+  起止秒 + payload/file SHA256 写进本脚本与结果 json（``_app455_app100_segment.py``
+  是唯一事实来源）。
 
 ## 纪律
 * 只用 ``machine_lock_app.acquire/release``（fail-closed、PID 判活、排队）；
@@ -51,19 +57,31 @@ import machine_lock_app as ML  # noqa: E402
 OUTROOT = os.path.join(HERE, 'app437_app099_device')
 REPORT = os.path.join(HERE, 'app437_app099_device.json')
 SMOKE_AUDIO = r'C:\Users\Trekker-PTL\_reviewer_tmp\spktest\smoke30.wav'
-LONG_AUDIO = r'C:\Users\Trekker-PTL\shared\SPE_0000_0500.wav'
-LONG_SEG_START_S = 0.0
-LONG_SEG_END_S = 300.0
-LONG_LOOPS = 2
-LONG_TIMELINE_S = (LONG_SEG_END_S - LONG_SEG_START_S) * LONG_LOOPS   # 600 s
+#: 🔴 APP-100 canonical 10 分钟片段（**唯一事实来源** ⇒ _app455_app100_segment.py）
+sys.path.insert(0, HERE)
+import _app455_app100_segment as SEG  # noqa: E402
+
+LONG_AUDIO = SEG.CLIP_WAV
+LONG_SEG_START_S = SEG.START_S            # 0.0
+LONG_SEG_END_S = SEG.END_S                # 600.0
+LONG_LOOPS = 1                            # **连续，不循环**（APP-100）
+LONG_TIMELINE_S = (LONG_SEG_END_S - LONG_SEG_START_S) * LONG_LOOPS   # 600.0 s
 SAMPLE_INTERVAL_S = 2.0
 TOTAL_BUDGET_S = 55 * 60
+#: 🔴 单臂 harness 超时（秒）。
+#: §175 用的是 **1500 s** ⇒ 🔴 **B 臂被误杀**：实测 B 臂 ASR **已完成**
+#:   （`[npu_int8] 音频 600.4s 墙钟 610.8s RTF 0.931 段 92` ⇒ 与 A 臂**同段数 92**），
+#:   进程是在 **TTS drain 阶段**（146 句过期丢弃）拖到 1500 s 才被 harness 强杀
+#:   ⇒ rc=-9 **不是**被测程序崩溃，也不是 ASR 没跑完。
+#: ⇒ 提到 2700 s（45 min）：给 TTS drain 留够时间，同时 < TOTAL_BUDGET_S(55 min)。
+ARM_TIMEOUT_S = 2700
 
-#: 🔴 模块租约（APP-056）：沿用本轮 token；长作业必须 addpid + 定期 beat
+#: 🔴 模块租约（APP-056）：长作业必须 addpid + 定期 beat
 #:   否则 >30 min 没有 beat ⇒ 被视为死会话。
 LEASE_PY = r'C:\Users\Trekker-PTL\shared\tools\session_lease.py'
 LEASE_MOD = 'app'
-LEASE_TOKEN = 'b7a6c270'
+#: token 由环境变量传入（不同轮次不同 token ⇒ 不能写死在脚本里）
+LEASE_TOKEN = os.environ.get('LIVECAP_LEASE_TOKEN', '')
 
 
 def _lease(argv):
@@ -159,9 +177,21 @@ class Sampler:
         self._stop = threading.Event()
         self._th = threading.Thread(target=self._run, daemon=True)
         self.t0 = None
+        #: 🔴 §176：采样线程自己的失败（import 失败 / 其它异常）⇒ 判据可见
+        self.error = None
 
     def _run(self):
-        import psutil
+        # 🔴 §176：采样线程**必须能报告自己的失败**。
+        #   §175 的写法（`import psutil` 直接写在循环里）在本机系统 Python 上
+        #   抛 ModuleNotFoundError ⇒ **线程静默死掉** ⇒ 采样行数为 0，
+        #   而主流程照样往下跑 ⇒ 显存/RSS 峰值**悄悄丢失**。
+        #   ⇒ 改成：import 失败就**记进 self.error 并停止采样**，
+        #      且 `summary()` 把它带出来 ⇒ 判据能看见「没采到」。
+        try:
+            import psutil
+        except Exception as e:
+            self.error = 'psutil import failed: %r' % (e,)
+            return
         while not self._stop.is_set():
             t = round(time.perf_counter() - self.t0, 2)
             ded, n1 = _pdh_sum('Dedicated Usage')
@@ -195,6 +225,9 @@ class Sampler:
             return max(vals) if vals else None
         return {'n_samples': len(self.rows),
                 'interval_s': self.interval,
+                # 🔴 §176：采样线程失败 ⇒ 显式带出来（n_samples=0 时判据看得见）
+                'sampler_error': self.error,
+                'sampling_ok': (self.error is None and len(self.rows) > 0),
                 'peak_gpu_dedicated_bytes': peak('gpu_dedicated_bytes'),
                 'peak_gpu_shared_bytes': peak('gpu_shared_bytes'),
                 'peak_proc_rss_bytes': peak('proc_rss_bytes'),
@@ -299,7 +332,7 @@ def run_one(py, app, pkg, name, opts, audio, seconds, outroot,
             sampler.get_pid = lambda: proc_holder.get('pid')
             sampler.start()
         try:
-            rc = p.wait(timeout=1500)
+            rc = p.wait(timeout=ARM_TIMEOUT_S)
         except subprocess.TimeoutExpired:
             p.kill(); rc = -9
     if sampler:
@@ -334,8 +367,25 @@ def main():
     ap.add_argument('--smoke-seconds', type=float, default=60.0)
     ap.add_argument('--long-seconds', type=float, default=LONG_TIMELINE_S)
     ap.add_argument('--no-lock', action='store_true')
+    # 🔴 §176：产物目录/报告文件**可指定** ⇒ 重跑不覆盖 §175 的既有证据
+    ap.add_argument('--outroot', default=OUTROOT)
+    ap.add_argument('--report', default=REPORT)
+    # 🔴 §177：**只跑指定臂**（逗号分隔）⇒ 补跑单臂时不重跑已完成的臂
+    #    （A 臂已完成且自然退出 ⇒ 不重复消耗设备时间；B 臂单独重跑做对照）
+    ap.add_argument('--only-arm', default='')
     args = ap.parse_args()
-    os.makedirs(OUTROOT, exist_ok=True)
+    only = [x.strip() for x in (args.only_arm or '').split(',') if x.strip()]
+    # 🔴🔴🔴 §177：**产物目录必须转绝对路径**。
+    #   本轮实测事故：`--outroot results/app/xxx`（相对路径）⇒
+    #   被测程序以 `cwd=pkg` 运行 ⇒ `--out` / `--tts-out` 落进
+    #   **rc7 包目录内**（`rc7/results/app/xxx/`）⇒
+    #   ① 证据散落在客户包里（污染交付包）；
+    #   ② 判据读 `out_path`（相对仓库根）读不到 ⇒ `asr_nonempty=False`
+    #      ⇒ **假 FAIL**。
+    # ⇒ 强制 `os.path.abspath` ⇒ 无论 cwd 在哪，产物都落回指定的证据目录。
+    outroot = os.path.abspath(args.outroot)
+    report = os.path.abspath(args.report)
+    os.makedirs(outroot, exist_ok=True)
     py = os.path.join(args.pkg, 'python', 'python.exe')
     app = os.path.join(args.pkg, 'app', 'live_caption_app.py')
     for p in (py, app, SMOKE_AUDIO, LONG_AUDIO):
@@ -346,13 +396,11 @@ def main():
     ev = {
         'task': 'APP-099 第 4 节 1/2：rc7 六臂冒烟 + A 机 GPU 同占复现',
         'created_at': now(), 'pkg': args.pkg,
-        'app100_segment': {'audio': LONG_AUDIO,
-                           'start_s': LONG_SEG_START_S, 'end_s': LONG_SEG_END_S,
-                           'loops': LONG_LOOPS, 'timeline_s': args.long_seconds,
-                           'note': '本机只有 300 s 的 SPE_0000_0500.wav；'
-                                   'APP-100 的 0–600 s 无法直接取，'
-                                   '改为固定 0–300 s 片段 --loop ×2；两臂完全同段'},
+        # 🔴 APP-100：片段口径的**完整**元信息（含 SHA256）写进结果 json
+        'app100_segment': dict(SEG.segment_meta(LONG_AUDIO),
+                               timeline_s=args.long_seconds),
         'smoke_seconds': args.smoke_seconds,
+        'only_arm': only,
         'arms': [], 'gpu_arms': [], 'verdict': 'PENDING',
     }
 
@@ -363,7 +411,7 @@ def main():
         if not ok:
             ev['verdict'] = 'SKIPPED_LOCK_BUSY'
             ev['lock'] = {'error': str(payload)}
-            json.dump(ev, open(REPORT, 'w', encoding='utf-8'),
+            json.dump(ev, open(report, 'w', encoding='utf-8'),
                       ensure_ascii=False, indent=1)
             print('🔴 拿不到 MACHINE_LOCK ⇒ 不跑设备作业')
             return 1
@@ -385,37 +433,45 @@ def main():
         if args.part in ('both', 'smoke'):
             print('=== 六臂冒烟（%s s / 臂）===' % args.smoke_seconds)
             for name, *opts in ARMS:
+                if only and name not in only:
+                    continue
                 if time.time() - t_start > TOTAL_BUDGET_S:
                     ev['timing_notes'].append('总时限 55 min 到 ⇒ 提前停止')
                     break
                 print('[arm] %s %s' % (name, ' '.join(opts)), flush=True)
                 rec = run_one(py, app, args.pkg, name, opts, SMOKE_AUDIO,
-                              args.smoke_seconds, OUTROOT,
+                              args.smoke_seconds, outroot,
                               wav=name.startswith('tts_'), loop=True)
                 ev['arms'].append(rec)
                 print('   exit=%s %ss pass=%s checks=%s' % (
                     rec['exit_code'], rec['seconds'], rec['pass'],
                     rec['checks']), flush=True)
-                json.dump(ev, open(REPORT, 'w', encoding='utf-8'),
+                json.dump(ev, open(report, 'w', encoding='utf-8'),
                           ensure_ascii=False, indent=1)
 
         if args.part in ('both', 'gpu'):
             print('=== A 机 GPU 同占复现（%s s 音频时间线 / 臂）===' % args.long_seconds)
             for name, *opts in GPU_ARMS:
+                if only and name not in only:
+                    continue
                 if time.time() - t_start > TOTAL_BUDGET_S:
                     ev['timing_notes'].append('总时限 55 min 到 ⇒ 提前停止')
                     break
                 print('[gpu-arm] %s %s' % (name, ' '.join(opts)), flush=True)
                 s = Sampler(lambda: None)
+                # 🔴 APP-100：canonical 片段 = **0–600 s 连续**（文件恰好 600.0 s）
+                #    ⇒ **不需要 --loop**（加了会在 600 s 边界回卷第二遍，污染尾端）。
+                #    仅当素材短于目标时长才循环。
+                _need_loop = SEG.wav_info(LONG_AUDIO)['duration_s'] < args.long_seconds
                 rec = run_one(py, app, args.pkg, name, opts, LONG_AUDIO,
-                              args.long_seconds, OUTROOT,
-                              wav=True, loop=True, sampler=s)
+                              args.long_seconds, outroot,
+                              wav=True, loop=_need_loop, sampler=s)
                 rec['app100_segment'] = ev['app100_segment']
                 ev['gpu_arms'].append(rec)
                 print('   exit=%s %ss crash=%s peak_ded_mb=%s pass=%s' % (
                     rec['exit_code'], rec['seconds'], rec['crash'],
                     rec['sampling']['peak_gpu_dedicated_mb'], rec['pass']), flush=True)
-                json.dump(ev, open(REPORT, 'w', encoding='utf-8'),
+                json.dump(ev, open(report, 'w', encoding='utf-8'),
                           ensure_ascii=False, indent=1)
     finally:
         if payload is not None:
@@ -443,10 +499,28 @@ def main():
                 '非自然退出臂：%s ⇒ 这些臂的计时/显存曲线不可与自然退出臂对比'
                 % ', '.join(non_natural))
         # 🔴 verdict 必须纳入 GPU 臂的退出状态，不能只数「臂数」
-        ev['verdict'] = ('PASS' if ev['n_arms'] == 6 and ok_arms == 6
-                         and ev['n_gpu_arms'] == 2 and ok_gpu == 2
+        # 🔴 §177：**期望臂数按本轮实际要跑的臂算** ⇒ 否则会**假阴性**：
+        #    ① `--part gpu`（只跑 GPU 两臂）⇒ smoke 臂根本没跑 ⇒ 旧硬编码 6/2
+        #       会把「两臂全绿」判成 PARTIAL；
+        #    ② `--only-arm <单臂>`（补跑一臂）⇒ 同上。
+        #    ⇒ 期望臂数 = 本轮**真的要跑**的臂数（受 --part 与 --only-arm 双重约束）。
+        _smoke_ran = args.part in ('both', 'smoke')
+        _gpu_ran = args.part in ('both', 'gpu')
+        # 🔴🔴 臂元组是 `(name, *opts)` ⇒ **长度不定** ⇒ 解包必须写 `n, *_`
+        #    （写 `n, _` ⇒ 「too many values to unpack」⇒ 收尾 json 写不出来）
+        want_smoke = ([n for n, *_ in ARMS if not only or n in only]
+                      if _smoke_ran else [])
+        want_gpu = ([n for n, *_ in GPU_ARMS if not only or n in only]
+                    if _gpu_ran else [])
+        ev['want_arms'] = len(want_smoke)
+        ev['want_gpu_arms'] = len(want_gpu)
+        ev['want_arm_names'] = want_smoke + want_gpu
+        ev['verdict'] = ('PASS' if ev['n_arms'] == len(want_smoke)
+                         and ok_arms == len(want_smoke)
+                         and ev['n_gpu_arms'] == len(want_gpu)
+                         and ok_gpu == len(want_gpu)
                          and ev['timing_valid'] else 'PARTIAL')
-        json.dump(ev, open(REPORT, 'w', encoding='utf-8'),
+        json.dump(ev, open(report, 'w', encoding='utf-8'),
                   ensure_ascii=False, indent=1)
     print('[done] verdict=%s arms=%d/%d gpu=%d elapsed=%ss' % (
         ev['verdict'], ok_arms, ev['n_arms'], ev['n_gpu_arms'], ev['elapsed_s']))
