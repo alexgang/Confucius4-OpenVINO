@@ -1,0 +1,8 @@
+{
+ "shot": null,
+ "caption_shots": [],
+ "main_shots": [],
+ "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app372_app091_subtitle_shot\\gui.log",
+ "ts": "2026-11-10 02:19:33",
+ "note": "字幕条最终布局 = **3 行**：① 定稿译文（主字号）② **定稿原文（小字，APP-091 §3 加回）** ③ 实时识别（ASR 实时行，行为不变）"
+}

@@ -1,0 +1,175 @@
+{
+ "task": "APP-099 第 4 节 1/2：rc7 六臂冒烟 + A 机 GPU 同占复现",
+ "created_at": "2026-11-11 14:14:39",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc7",
+ "app100_segment": {
+  "caliber": "10 分钟片段口径",
+  "app100": true,
+  "audio": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+  "source_wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\260902_SPE_audio.wav",
+  "source_duration_s": 3671.189313,
+  "start_s": 0.0,
+  "end_s": 600.0,
+  "loops": 1,
+  "timeline_s": 600.0,
+  "continuous": true,
+  "start_reason": "开头即语音（首 10 s 窗 rms=0.035654 / peak=0.351379，远高于静音判据）⇒ 起点取 0.0 s，不顺延",
+  "duration_s": 600.0,
+  "sr": 16000,
+  "channels": 1,
+  "bits": 16,
+  "payload_sha256": "2f02e4c0b172bd952e5ba20018eeaeeb91673c0e778fa85c4a6305edf62fd54e",
+  "expected_payload_sha256": "2f02e4c0b172bd952e5ba20018eeaeeb91673c0e778fa85c4a6305edf62fd54e",
+  "file_sha256": "d412f00af6b792ce033d5d36c71f9c0a0efd1da19d0643107a56336e16f378d0",
+  "expected_file_sha256": "d412f00af6b792ce033d5d36c71f9c0a0efd1da19d0643107a56336e16f378d0",
+  "bytes": 19200044
+ },
+ "smoke_seconds": 60.0,
+ "arms": [],
+ "gpu_arms": [
+  {
+   "arm": "gpu_same_asr_mt",
+   "opts": [
+    "--engine",
+    "gpu_int8",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--translate",
+    "zh",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "A"
+   ],
+   "log_path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app458_app100_device\\gpu_same_asr_mt.log",
+   "exit_code": 0,
+   "seconds": 929.4,
+   "log_bytes": 162518,
+   "n_exec_devices_lines": 2,
+   "exec_devices_lines": [
+    "[asr06b] EXECUTION_DEVICES：encoder=GPU.0，decoder=GPU.0（请求设备 GPU.0）",
+    "[TTS] [TTS] [tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU(lazy)"
+   ],
+   "auto_redirect": false,
+   "asr": {
+    "text_chars": 9796,
+    "nonempty": true,
+    "exec_devices_present": true,
+    "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app458_app100_device\\gpu_same_asr_mt.txt"
+   },
+   "mt": {
+    "path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app458_app100_device\\gpu_same_asr_mt.mt.txt",
+    "text_chars": 3695,
+    "nonempty": true,
+    "differs_from_src": true,
+    "ready_lines": [
+     "[翻译] 翻译模型就绪（自动 · INT4-CW 模型（默认） · GPU.0，加载 1.5 s）"
+    ],
+    "requested_device": "GPU.0",
+    "observed_device": "GPU.0",
+    "load_lines": [
+     "GPU.0"
+    ]
+   },
+   "tts": {
+    "wav_path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app458_app100_device\\gpu_same_asr_mt.wav",
+    "wav_seconds": 428.04,
+    "n_submit": 155,
+    "n_played": 93
+   },
+   "checks": {
+    "no_auto_redirect": true,
+    "asr_nonempty": true,
+    "asr_exec_devices": true
+   },
+   "pass": true,
+   "cmd": [
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc7\\python\\python.exe",
+    "-s",
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc7\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+    "--max-seconds",
+    "600.0",
+    "--out",
+    "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app458_app100_device\\gpu_same_asr_mt.txt",
+    "--engine",
+    "gpu_int8",
+    "--asr-device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--translate",
+    "zh",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "A",
+    "--tts-out",
+    "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app458_app100_device\\gpu_same_asr_mt.wav"
+   ],
+   "pass_components_only": true,
+   "terminated_by_harness": false,
+   "crash": false,
+   "crash_at_s": null,
+   "natural_exit": true,
+   "sampling": {
+    "n_samples": 439,
+    "interval_s": 2.0,
+    "sampler_error": null,
+    "sampling_ok": true,
+    "peak_gpu_dedicated_bytes": 0.0,
+    "peak_gpu_shared_bytes": 2371932160.0,
+    "peak_proc_rss_bytes": 8063008768,
+    "peak_gpu_dedicated_mb": 0.0,
+    "peak_gpu_shared_mb": 2262.1,
+    "peak_proc_rss_mb": 7689.5,
+    "rows_path": "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app458_app100_device\\gpu_same_asr_mt_samples.jsonl"
+   },
+   "app100_segment": {
+    "caliber": "10 分钟片段口径",
+    "app100": true,
+    "audio": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+    "source_wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\260902_SPE_audio.wav",
+    "source_duration_s": 3671.189313,
+    "start_s": 0.0,
+    "end_s": 600.0,
+    "loops": 1,
+    "timeline_s": 600.0,
+    "continuous": true,
+    "start_reason": "开头即语音（首 10 s 窗 rms=0.035654 / peak=0.351379，远高于静音判据）⇒ 起点取 0.0 s，不顺延",
+    "duration_s": 600.0,
+    "sr": 16000,
+    "channels": 1,
+    "bits": 16,
+    "payload_sha256": "2f02e4c0b172bd952e5ba20018eeaeeb91673c0e778fa85c4a6305edf62fd54e",
+    "expected_payload_sha256": "2f02e4c0b172bd952e5ba20018eeaeeb91673c0e778fa85c4a6305edf62fd54e",
+    "file_sha256": "d412f00af6b792ce033d5d36c71f9c0a0efd1da19d0643107a56336e16f378d0",
+    "expected_file_sha256": "d412f00af6b792ce033d5d36c71f9c0a0efd1da19d0643107a56336e16f378d0",
+    "bytes": 19200044
+   }
+  }
+ ],
+ "verdict": "PENDING",
+ "lock": {
+  "module": "app",
+  "pid": 36180,
+  "started": "2026-11-11 14:14:39",
+  "payload": "app PID 36180 started 2026-11-11 14:14:39\nmodule: app\npid: 36180\nstarted: 2026-11-11 14:14:39\nhost: LAPTOP-0GDQGD3I\n",
+  "ended": null,
+  "host": "LAPTOP-0GDQGD3I"
+ },
+ "timing_valid": null,
+ "timing_notes": [],
+ "lease": {
+  "addpid": "OK pids [1572, 32816, 36180]",
+  "beat_interval_s": 300
+ }
+}

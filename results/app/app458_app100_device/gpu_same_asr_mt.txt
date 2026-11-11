@@ -1,0 +1,93 @@
+All right. Good morning, everyone. Good morning. Let's get started. So well.
+Welcome to our Q three twenty six QGS.
+Agenda topics today. We'll talk about three. One, I want to share our engineering strategy.
+To realize the business growth that Alex spoke about in his last QGS, we'll then talk about.
+Priorities and just general execution, and then Lisa will join me. Go through all of the work that's done with the software team.
+I think is probably one of the largest pivots to do, to go enable the growth ahead of us that I'll expect to.
+And then at the end we'll have plenty of time for Q and A, both in room and online. Okay.
+So you recall Alex spoke about business growth, about client, agentic edge, and physical AI.
+So the goal of this slide is to describe our strategy on a page: how we, as an engineering organization, in.
+Enable that growth again. We are the scale function that will drive growth for all of these business units.
+So the way we look at a simplified stack is just meant to describe, what are the competitive advantages and the.
+Strategy by which we will enable our businesses to grow, it'll guide our decision making and our.
+And then to simplified view, but one thing that's very important to understand is, it's not about the optimize.
+Optimizing one layer above all else. It's looking at this whole stack end to end, to bring a.
+Platform leadership at scale with quality and predictable execution. Like as an example, silicon by.
+Itself, about the software value to unlock it, it's not a good platform play.
+Right. So starting at the bottom, process and packaging, our strategy will and has.
+been to maximize the IDM advantage, so working closely with TD on how we can optimize for performance for.
+Cost and for power, I would say that's a strategy that's well in motion. If you look at all.
+PR cues we did as an example back in twenty four, that was predominantly external silicon.
+Contrast that with what we're going to do in Hammer Lake, and I'll show it on a road map later on, where one hundred percent internal.
+And that's a function of working with Intel Foundry, on progressing 18A, 18AP.
+Until three on yield, performance, and power, that does not mean we won't use.
+External options, where we got to augment our business. That could be in situations like chipsets, where we use Samsung technology or Wi-Fi.
+Or if we need to do a dual drive because we have limitations, but primary strategy, is idiom advantage.
+Leveraged that, good for good for us, good for Intel, sitting above that then a silicon roadmap.
+Job there is simple, deliver leadership, silicon, IP, SOC at scale, right.
+And the scale is very important. We see the benefit of that today, even in our traditional business where OEMs love the scale.
+In compatibility from multiple generations, and a lot of what we're building towards the future at a silicon level will be a scale up type of the.
+Discussion. Very successful execution on Patrick and Wildcat, and Novelick on a base derivative model.
+We need to continue to do that because it allows us to address multiple segments in a more efficient schedule.
+Car synopses. I'll actually show you guys a visual of Novolikli Tehran and the entire ski stack we're delivering.
+Through this model, software I want to steal Lisa's thunder. She'll come and talk about the degree of software vertiggals.
+We need to go support both open ecosystem and our traditional OS partners, reference designs.
+We bring leadership reference designs to market, that allow our customers to innovate on form factor.
+And technology, and then really using our customer enabling as a competitive advantage, which we do today, bringing.
+All of that together to ensure we can transition all of the collateral we have, over to customers building leadership.
+Platforms. So this is their strategy: we will always keep this in mind as we make decisions. And again.
+Doing this from an end to end point of view to deliver platforms, it's what going to differentiate us.
+Moving forward. Okay, next slide. Alex shared this, and he talked about the business.
+Strategies for growth across CCPG. I just want to spend time dissecting into what does it mean for us as engineering. So what do we need to go do to an
+Black road, so on client strategy is tape back MSS, Win Magnetta.
+Compute and grow connectivity. So connectivities are wired and wireless business. Right? What does that mean for us?
+No change in what we're doing today. Job one: Novelick at scale, right? If you look at where we've.
+Competitive share in the last few generations, it's been lack of performance desktop.
+Novelink solves that problem. When we come out with Novelink, we will be leadership versus N five.
+We when they come out with Zen Six middle of next year, you know we'll be in a dog fight again. There'll be some metrics they'll be ahead, there'll be some behind, but in.
+We quickly come up with Griffin, Cove, and Razor Lake, which puts back in leadership again. So great opportunity with Nova Lake.
+To win share in performance desktop, other end of the spectrum, Wildcat Lake, great opportunity.
+To win share in mainstream, gray construction. If you recall, we waterfall all our IPs from Panther Lake down. So.
+Versus a lot of our competition, they play in that space with older chips, with legacy IOs, we.
+Have the right cost structure with the right thing. So big opportunity to win share. We just got to execute in Overlake and continue to.
+Scale wild cat lake.
+The second category then is Pantaleo Twelve X C has exceeded all of our expectations. Volume and demand is about five X what we ever planned.
+We got to take that and scale it to Novelleg Twelve XC Titan Lake AX, right, and then.
+Last thing, we got to win in what we call a new infrastructure, or a new appliance category called Agent.
+The computer, and I'll walk you through what our roadmap is on the silicon later on, and then Lisa will talk about what we're doing on software.
+Edge strategy accelerate revenue growth. You gotta remember for edge today we have a great foundation.
+In that our volume penetration edge is very high, so the question is: How do you go scale that? We have an open.
+Sulfur platform, which has already been deployed, we need to increase the scale by which we do that with ISVs, OSVs.
+And there's a whole program there to go enable that. Tactically, there's an ask from the edge team to do a Novolik AX on memory down versus memory on package.
+We've added that to our roadmap, right? So that's something we've done intentionally to help drive the edge growth.
+And then physical AI. And look, the way to look at physical AI is the world of humanoids running around.
+Doing everything for us. I'm sure it will happen at some point in time. It ain't going to happen tomorrow, and so we got to look at the.
+There's a lot of volume and scale with fixed robots, AMR machines that we've an opportunity.
+To win, then there's the future state of that humanoid that will come, and so for us.
+We got to tactically drive opportunities with twelve XE, with Novatek to win current designs.
+And as we win those current designs, it gives us access to actually understand better that market. Right, the second.
+thing is working with Dan's team. Is how do we get access to definitional partners, who help.
+Our understanding of the requirements of the future, because we don't understand everything in physical AI, it's different.
+And client, and as we go into this engagement, we need to go into that mindset of: There's things we know, there's things we have to learn. How do.
+You learn. You gain access with definitional partners, and then as we approach physical AI, the kind of same playbook I spoke about.
+Having turnkey solutions, software plus hardware plus reference design, customer enabling is how we will win.
+Turning up at a Silicon Valley road map, we won't win. Turning up a software out Silicon, you're guaranteed not to win, and then what.
+The last thing I would tell us, you guys, as an organization, is as we grow, there.
+Areas we will need to adapt to.
+We don't fully understand all the future technology needs that these markets will go. We will have to retool some of our skills.
+We'll have to adapt the way we work, and that's a positive thing, right? Because nobody wants to stay static.
+But in order to move forward, there are going to be capabilities we simply don't have today, and we're going to have to keep retooling our.
+Organization to understand how do we fuel the growth ahead of us for the future.
+All right. Quick update on road map. I'm not going to true every box on this.
+I did want to share a couple of quick updates, and then things ahead for the rest of the quarter. So if you look out.
+Through twenty-seven to twenty-nine, which was really the Hammerlake family, we've now defined what those programs are.
+So we did product concept. There is clarity around what those programs are. There is clarity around the key metrics.
+And they're often running and moving in execution. Hammer Lake is going to be an extremely profitable program for the company as measured by gross margin, both on the Intel side.
+And the foundry side, as we move to a simplified architecture, we've moved to more traditional packaging. So great.
+All of that now is clearly defined.
+We've also added. You can see on the top here a swim line for AI boxes, and I'll do one click down.
+On what that means, but this is where we're going to leverage Crescent Island, which is a.
+The data center inferring chip has massive memory bandwidth, and flops above what we're building today.
+For an NX two class of product, and think of the usage for us and client, is the pair that will like a novel.
+S, for like a tower config, or even up to a workstation config.
+Right now we're in the process of working with the data center.
