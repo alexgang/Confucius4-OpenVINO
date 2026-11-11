@@ -414,6 +414,14 @@ function startGate(st) {
 }
 
 $('btnStart').addEventListener('click', async () => {
+  // v0.3.8：桥接在别的机器上 ⇒ 先申请该主机的访问权限（必须在用户点击的同步阶段发起）
+  try {
+    const _h = new URL($('ws').value.trim().replace(/^ws/, 'http')).hostname;
+    if (_h && _h !== '127.0.0.1' && _h !== 'localhost') {
+      const ok = await chrome.permissions.request({ origins: ['http://' + _h + '/*'] });
+      if (!ok) { setStatus('未授权访问桥接主机 ' + _h, 'err'); return; }
+    }
+  } catch (e) { /* 地址解析失败 ⇒ 交给后面的连接报错 */ }
   // ★★ EXT-024 F：点之前**再查一次**门禁（轮询有 2 秒间隔 ⇒ 状态可能已变）
   try {
     const gcfg = await chrome.storage.local.get({ wsUrl: 'ws://127.0.0.1:8765/' });

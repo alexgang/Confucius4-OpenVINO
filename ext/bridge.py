@@ -4061,15 +4061,41 @@ async def serve(host: str, port: int, *, delay_sec: float, echo_mode: bool,
     registry = ConnectionRegistry()
     # ★★ EXT-024 F：连接模式（真实引擎 / 回声）—— 放进 hello_ack。
     mode = "echo" if echo_mode else "real"
-    async with websockets.serve(
-        lambda ws: handle_ws(ws, tokens=tokens, delay_sec=delay_sec,
-                              echo_mode=echo_mode, engine=engine,
+    def _handle_ws_inner(ws):
+        return handle_ws(ws, tokens=tokens, delay_sec=delay_sec, echo_mode=echo_mode, engine=engine,
                               session_holder=session_holder,
                               margin_out=margin_out,
                               use_pipeline=use_pipeline,
                               registry=registry,
                               mode=mode, audio_dump=audio_dump,
-                              spk_bypass=spk_bypass),
+                              spk_bypass=spk_bypass)
+
+    # v0.3.8：对端网段闸门 + 单用户（按对端 IP 计）
+    _active = {"ip": None, "n": 0}
+
+    async def _gated(ws):
+        try:
+            peer = (ws.remote_address or ("?",))[0]
+        except Exception:
+            peer = "?"
+        if not C.peer_allowed(peer):
+            _log(f"拒绝连接：对端 {peer} 不在允许的网段（LAN_MODE={C.LAN_MODE}）")
+            await ws.close(code=1008, reason="peer not allowed")
+            return
+        if _active["n"] > 0 and _active["ip"] != peer:
+            _log(f"拒绝连接：桥接正在服务 {_active['ip']}，{peer} 需等待（同一时间只服务一个用户）")
+            await ws.close(code=1013, reason="busy: bridge in use by another user")
+            return
+        _active["ip"] = peer; _active["n"] += 1
+        try:
+            await _handle_ws_inner(ws)
+        finally:
+            _active["n"] -= 1
+            if _active["n"] <= 0:
+                _active["n"] = 0; _active["ip"] = None
+
+    async with websockets.serve(
+        _gated,
         host, port,
         origins=None,
         max_size=32 * 1024 * 1024,
@@ -4226,6 +4252,9 @@ def main(argv=None) -> int:
     #   ⚠️ 诚实性：echo ⇒ "echo"；real ⇒ "real"（**不代表引擎已就绪**，
     #     就绪与否看 engine_state / warmup，popup 两者都要看）。
     holder["mode"] = "echo" if (args.echo or engine is None) else "real"
+    if C.LAN_MODE and args.host == C.BRIDGE_HOST:
+        args.host = "0.0.0.0"
+        _log(f"局域网模式：监听 0.0.0.0，允许网段 {[str(n) for n in C.lan_allowed_nets()]}，同一时间只服务一个用户")
 
     # ★★ EXT-012：配对 HTTP 端点（**用户不需要手动复制 token**）
     #   插件从 http://127.0.0.1:<pair_port>/pair 自动取 token
@@ -4236,6 +4265,7 @@ def main(argv=None) -> int:
         pair_server = PairServer(
             port=args.pair_port,
             host=args.host,
+            peer_check=C.peer_allowed,
             token_provider=lambda: (_tokens.token if _tokens else ""),
             status_provider=lambda: _pair_status(holder),
         )

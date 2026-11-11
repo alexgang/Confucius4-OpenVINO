@@ -143,6 +143,66 @@ def normalize_lang_code(value) -> str | None:
 
 # ── 桥接服务 ──────────────────────────────────────────────────────
 BRIDGE_HOST = "127.0.0.1"
+
+# ── v0.3.8 局域网模式（用户 2026-11-11：插件装在别的机器上，桥接跑在 A 上）────────
+# EXT_BRIDGE_LAN=1 ⇒ 桥接 WS 和配对端点改为监听 0.0.0.0；默认仍只绑 127.0.0.1。
+# 只接受 loopback 或 EXT_LAN_ALLOW（逗号分隔 CIDR）里的对端；不设则取本机每个网卡的真实网段（Get-NetIPAddress，取不到时退回 /24）。
+# 同一时间只服务一个用户（按对端 IP 计）：别的 IP 连上来 ⇒ close(1013, "busy")。
+LAN_MODE = os.environ.get("EXT_BRIDGE_LAN", "0").strip() == "1"
+LAN_ALLOW = os.environ.get("EXT_LAN_ALLOW", "").strip()
+
+
+def lan_allowed_nets():
+    import ipaddress, socket
+    nets = []
+    if LAN_ALLOW:
+        for c in LAN_ALLOW.split(","):
+            c = c.strip()
+            if c:
+                nets.append(ipaddress.ip_network(c, strict=False))
+        return nets
+    try:
+        import subprocess
+        out = subprocess.run(["powershell", "-NoProfile", "-Command",
+                              "Get-NetIPAddress -AddressFamily IPv4 | % { $_.IPAddress + '/' + $_.PrefixLength }"],
+                             capture_output=True, text=True, timeout=15).stdout.split()
+        for c in out:
+            if not c.startswith("127.") and not c.startswith("169.254."):
+                nets.append(ipaddress.ip_network(c.strip(), strict=False))
+    except Exception:
+        nets = []
+    if nets:
+        return nets
+    try:
+        ips = socket.gethostbyname_ex(socket.gethostname())[2]
+    except Exception:
+        ips = []
+    for ip in ips:
+        if not ip.startswith("127."):
+            nets.append(ipaddress.ip_network(ip + "/24", strict=False))
+    return nets
+
+
+_LAN_NETS = None
+
+
+def peer_allowed(ip) -> bool:
+    """loopback 永远放行；LAN 模式下再放行 LAN_ALLOW 网段；其它一律拒绝。"""
+    import ipaddress
+    global _LAN_NETS
+    try:
+        a = ipaddress.ip_address(str(ip).split("%")[0])
+    except Exception:
+        return False
+    if getattr(a, "ipv4_mapped", None):
+        a = a.ipv4_mapped
+    if a.is_loopback:
+        return True
+    if not LAN_MODE:
+        return False
+    if _LAN_NETS is None:
+        _LAN_NETS = lan_allowed_nets()
+    return any(a in n for n in _LAN_NETS)
 BRIDGE_PORT = 8765
 BRIDGE_TOKEN_FILE = "bridge_token.txt"
 ALLOWED_ORIGIN_PREFIX = "chrome-extension://"

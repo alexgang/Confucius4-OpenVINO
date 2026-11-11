@@ -44,7 +44,7 @@ from .extension_id import origin_is_this_extension, resolve_extension_id
 DEFAULT_PAIR_PORT = 8766
 
 
-def _make_handler(token_provider: Callable[[], str],
+def _make_handler(token_provider: Callable[[], str], peer_check=None, *,
                   status_provider: Callable[[], dict],
                   extension_id: Optional[str] = None):
     """构造请求处理类。
@@ -85,6 +85,9 @@ def _make_handler(token_provider: Callable[[], str],
 
         def do_GET(self):  # noqa: N802
             path = (self.path or "/").split("?")[0]
+            if peer_check is not None and not peer_check(self.client_address[0]):
+                self._send_json(403, {"ok": False, "error": "对端不在允许的网段"})
+                return
             if path == "/pair":
                 if not self._origin_ok():
                     # ★ 非扩展来源 ⇒ 明确拒绝（不放宽安全口径）
@@ -129,7 +132,9 @@ class PairServer:
     def __init__(self, *, port: int = DEFAULT_PAIR_PORT, host: str = "127.0.0.1",
                  token_provider: Callable[[], str],
                  status_provider: Optional[Callable[[], dict]] = None,
-                 extension_id: Optional[str] = None):
+                 extension_id: Optional[str] = None,
+                 peer_check: Optional[Callable[[str], bool]] = None):
+        self.peer_check = peer_check
         self.port = port
         self.host = host
         self.token_provider = token_provider
@@ -142,8 +147,9 @@ class PairServer:
     def start(self) -> tuple[bool, str]:
         try:
             eid = self.extension_id or resolve_extension_id()
-            handler = _make_handler(self.token_provider, self.status_provider,
-                                    eid)
+            handler = _make_handler(self.token_provider, peer_check=self.peer_check,
+                                    status_provider=self.status_provider,
+                                    extension_id=eid)
             self._srv = ThreadingHTTPServer((self.host, self.port), handler)
             self._srv.daemon_threads = True
             self._thread = threading.Thread(target=self._srv.serve_forever,
