@@ -109,6 +109,10 @@ class TokenStore:
         return bool(candidate) and secrets.compare_digest(candidate, self.token)
 
 
+# v0.4.0：取消 token 配对后，所有连接共用的会话键（只用于把 player / uplink 连接归到同一会话）
+NO_PAIR_TOKEN = "nopair"
+
+
 def check_origin(origin: Optional[str], extension_id: Optional[str] = None) -> bool:
     """校验 Origin。
 
@@ -3325,16 +3329,9 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
             _log("拒绝连接：缺少 token")
             await websocket.close(code=1008, reason="no token")
             return
-        token = str(first.get("token") or "")
-        if not token:
-            _log("拒绝连接：缺少 token")
-            await websocket.close(code=1008, reason="no token")
-            return
-        if not tokens.verify(token):
-            _log("拒绝连接：token 不匹配")
-            await websocket.close(code=1008, reason="bad token")
-            return
-        _log(f"已通过首个 hello 消息鉴权（role={first.get('role')}）")
+        # v0.4.0：用户取消 token 配对 ⇒ 不再校验 token；所有连接共用一个会话键
+        token = NO_PAIR_TOKEN
+        _log(f"已连接（无配对，role={first.get('role')}）")
         session = _make_session(token, delay_sec=delay_sec, engine=engine,
                                  use_pipeline=use_pipeline,
                                  audio_dump=audio_dump,
@@ -3360,10 +3357,7 @@ async def handle_ws(websocket, *, tokens: TokenStore, delay_sec: float,
             if registry is not None and conn_id is not None:
                 registry.remove(conn_id)
         return
-    if not tokens.verify(token):
-        _log("拒绝连接：token 不匹配")
-        await websocket.close(code=1008, reason="bad token")
-        return
+    token = NO_PAIR_TOKEN  # v0.4.0：不再校验 token
 
     _log(f"已连接（origin={origin}）")
     session = _make_session(token, delay_sec=delay_sec, engine=engine,

@@ -440,18 +440,8 @@ $('btnStart').addEventListener('click', async () => {
   setStatus('正在启动…');
 
   try {
-    // ★ 自动配对：没 token 就去本机取
-    let token = cfg.token;
-    if (!token) {
-      setStatus('正在自动配对…');
-      const r = await fetchToken(cfg.wsUrl);
-      if (!r.ok) {
-        throw new Error(
-          `自动配对失败（${r.error}）。请先启动「实时配音桥接」，` +
-          '或手动把 bridge_token.txt 的内容粘贴到上面的 token 框。');
-      }
-      token = r.token;
-    }
+    // v0.4.0：用户取消 token 配对 ⇒ 不再取 token
+    const token = 'nopair';
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab) throw new Error('找不到活动标签页');

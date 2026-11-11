@@ -89,6 +89,9 @@ def _make_handler(token_provider: Callable[[], str], peer_check=None, *,
                 self._send_json(403, {"ok": False, "error": "对端不在允许的网段"})
                 return
             if path == "/pair":
+                # v0.4.0：取消 token 配对 ⇒ 直接返回固定值，兼容旧版插件
+                self._send_json(200, {"ok": True, "token": "nopair"})
+                return
                 if not self._origin_ok():
                     # ★ 非扩展来源 ⇒ 明确拒绝（不放宽安全口径）
                     self._send_json(403, {"ok": False,
