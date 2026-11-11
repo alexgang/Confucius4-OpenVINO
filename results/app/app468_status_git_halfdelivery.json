@@ -1,7 +1,7 @@
 {
  "tool": "_app468_status_git_halfdelivery",
  "section": "§178",
- "created_at": "2026-11-11 18:57:37",
+ "created_at": "2026-11-11 18:58:41",
  "device_job": false,
  "read_only": true,
  "corrections_fingerprint_open": {
@@ -15,8 +15,8 @@
  },
  "status_doc": {
   "path": "status/app/STATUS_APP.md",
-  "bytes": 38640,
-  "sha256": "81dadd1349e401d06e8318d8b39625f2628121eb7359dab7b618344d2d8e3822"
+  "bytes": 39788,
+  "sha256": "c95d0e56f1fc960faf749e3fa25f23dbfc77abf254b384870ed5768a1cf96d0c"
  },
  "live_rows": [
   {
@@ -138,6 +138,11 @@
    "path": "status/archive/STATUS_APP_sec178_20261111.md",
    "cited_bytes": 12105,
    "claimed_sha": "de11dd84f8f3fc30658016a8fc3bdc31d6414cdf25fbba8e57b0e906575779a9"
+  },
+  {
+   "path": "status/archive/STATUS_APP_sec179_20261111.md",
+   "cited_bytes": 3193,
+   "claimed_sha": "7c204c71e98d1d55de8f13012dee75deefec5e6effab49340e30733e4c094913"
   }
  ],
  "archive_rows_from": [
@@ -164,7 +169,8 @@
   "STATUS_APP_sec175_20261111.md",
   "STATUS_APP_sec176_20261111.md",
   "STATUS_APP_sec177_20261111.md",
-  "STATUS_APP_sec178_20261111.md"
+  "STATUS_APP_sec178_20261111.md",
+  "STATUS_APP_sec179_20261111.md"
  ],
  "rows": [
   {
@@ -667,6 +673,29 @@
    "verdict": "OK"
   },
   {
+   "path": "status/archive/STATUS_APP_sec179_20261111.md",
+   "cited_bytes": 3193,
+   "claimed_sha": "7c204c71e98d1d55de8f13012dee75deefec5e6effab49340e30733e4c094913",
+   "resolved": "status/archive/STATUS_APP_sec179_20261111.md",
+   "on_disk": true,
+   "git_tracked": false,
+   "git_committed": false,
+   "rel": "status/archive/STATUS_APP_sec179_20261111.md",
+   "gitignored": false,
+   "actual_bytes": 3193,
+   "matched_form": "raw",
+   "bytes_match_forms": [
+    "raw",
+    "lstrip",
+    "lf"
+   ],
+   "bytes_match": true,
+   "fail_reasons": [
+    "NOT_GIT_TRACKED"
+   ],
+   "verdict": "FAIL"
+  },
+  {
    "path": "results/app/app398_probe_patch.diff",
    "cited_bytes": 2245,
    "claimed_sha": "2c32211305cdd8c4dd078a57cbbd2ed13b1734a61f476e7daf96a5f5882ef42d",
@@ -721,14 +750,19 @@
    "git_committed": true,
    "rel": "results/app/assert_sec_per_char_calibrated.json",
    "gitignored": false,
-   "actual_bytes": 5992,
-   "matched_form": "crlf",
+   "actual_bytes": 6288,
+   "matched_form": null,
    "bytes_match_forms": [
+    "raw",
+    "rstrip",
+    "lstrip",
     "crlf"
    ],
    "bytes_match": true,
-   "fail_reasons": [],
-   "verdict": "OK"
+   "fail_reasons": [
+    "SHA_MISMATCH"
+   ],
+   "verdict": "FAIL"
   },
   {
    "path": "results/app/_app427_apply_sec_per_char.py",
@@ -1329,7 +1363,7 @@
    "matched_form": null,
    "bytes_match": null,
    "bytes_match_forms": [],
-   "actual_bytes": 121644,
+   "actual_bytes": 121048,
    "note": "引用未声明 SHA ⇒ 不判 SHA/字节；仅查 git 半交付",
    "fail_reasons": [],
    "verdict": "OK"
@@ -3219,7 +3253,7 @@
    "matched_form": null,
    "bytes_match": null,
    "bytes_match_forms": [],
-   "actual_bytes": 5992,
+   "actual_bytes": 6288,
    "note": "引用未声明 SHA ⇒ 不判 SHA/字节；仅查 git 半交付",
    "fail_reasons": [],
    "verdict": "OK"
@@ -3255,7 +3289,7 @@
    "matched_form": null,
    "bytes_match": null,
    "bytes_match_forms": [],
-   "actual_bytes": 30873,
+   "actual_bytes": 31647,
    "note": "引用未声明 SHA ⇒ 不判 SHA/字节；仅查 git 半交付",
    "fail_reasons": [],
    "verdict": "OK"
@@ -3600,7 +3634,7 @@
    "matched_form": null,
    "bytes_match": null,
    "bytes_match_forms": [],
-   "actual_bytes": 121644,
+   "actual_bytes": 121048,
    "note": "引用未声明 SHA ⇒ 不判 SHA/字节；仅查 git 半交付",
    "fail_reasons": [],
    "verdict": "OK"
@@ -3780,7 +3814,7 @@
    "case": "anti_C_non_empty_selfproof",
    "expect": "修复前的 ref 状态抓到 ≥1 个未入库/未提交引用，且当前为 0 ⇒ 判据非恒真",
    "prefix_ref": "2f0f597efd165ba3371f84cec615e38521cb57a3",
-   "n_prefix_fail": 13,
+   "n_prefix_fail": 14,
    "prefix_fail_paths": [
     "results/app/_app468_status_git_halfdelivery.py",
     "results/app/app326_app097_lang_out/mt.json",
@@ -3790,23 +3824,26 @@
     "results/app/app468_status_git_halfdelivery.json",
     "status/archive/STATUS_APP_sec159_20261109.md",
     "status/archive/STATUS_APP_sec176_20261111.md",
-    "status/archive/STATUS_APP_sec178_20261111.md"
+    "status/archive/STATUS_APP_sec178_20261111.md",
+    "status/archive/STATUS_APP_sec179_20261111.md"
    ],
-   "n_now_fail": 0,
-   "now_fail_paths": [],
-   "discriminating": true
+   "n_now_fail": 1,
+   "now_fail_paths": [
+    "status/archive/STATUS_APP_sec179_20261111.md"
+   ],
+   "discriminating": false
   }
  ],
  "verdict": {
-  "n_rows": 184,
-  "n_ok": 179,
-  "n_fail": 0,
+  "n_rows": 185,
+  "n_ok": 178,
+  "n_fail": 2,
   "n_missing": 0,
   "n_ok_gitignored": 3,
   "n_known_errata": 1,
   "n_ok_duplicate": 1,
   "n_no_sha_claimed": 150,
-  "anti_all_discriminating": true,
-  "pass": true
+  "anti_all_discriminating": false,
+  "pass": false
  }
 }
