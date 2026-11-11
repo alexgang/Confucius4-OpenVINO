@@ -216,9 +216,7 @@ function readCfg() {
     duckDb: Number($('duck').value),
     subsOn: $('subs').checked,
     playerOpen: $('player').checked,
-    // ★★★ EXT-041：**媒体降速**（让画面追配音 ⇒ 压平累积斜率）。
-    //   默认开（reviewer 明文）；用户可关。
-    slowdownOn: $('slowdown').checked,
+    slowdownOn: false,   // v0.4.3：用户去掉「视频轻微降速」⇒ 永远不改视频速度
   };
 }
 
@@ -249,9 +247,7 @@ function schedulePersistCfg() {
 function bindPersistListeners() {
   if (bindPersistListeners._bound) return;
   bindPersistListeners._bound = true;
-  const ids = ['ws', 'token', 'delay', 'lang', 'voice', 'duck', 'subs', 'player',
-    // ★★★ EXT-041：媒体降速开关也要**改了立刻落盘**。
-    'slowdown'];
+  const ids = ['ws', 'token', 'delay', 'lang', 'voice', 'duck', 'subs', 'player'];
   for (const id of ids) {
     const el = $(id);
     if (!el) continue;
@@ -289,8 +285,6 @@ async function loadCfg() {
   $('duck').value = cfg.duckDb;
   $('subs').checked = !!cfg.subsOn;
   $('player').checked = !!cfg.playerOpen;
-  // ★★★ EXT-041：媒体降速开关回填（默认开）。
-  $('slowdown').checked = (cfg.slowdownOn != null) ? !!cfg.slowdownOn : true;
 }
 
 /**
@@ -489,13 +483,7 @@ $('btnStart').addEventListener('click', async () => {
     //     ⇒ 此时 `chrome.scripting.executeScript` 注入**必定成功**。
     //   ⚠️ **不阻塞**启动主流程：降速失败只影响「机制①」，
     //     翻译配音照常（**不假装成功**：结果如实写进 storage）。
-    let sdInfo = null;
-    try {
-      sdInfo = await setupMediaSlowdown(tab.id, cfg.wsUrl);
-    } catch (e) {
-      sdInfo = { enabled: true, applied: false, rate: null, videos: null,
-                 reason: '降速初始化失败：' + String((e && e.message) || e) };
-    }
+    // v0.4.3：用户去掉「视频轻微降速」⇒ 不再调用 setupMediaSlowdown，视频速度永远不动
 
     if (via === 'offscreen' && cfg.playerOpen) {
       await chrome.tabs.create({ url: chrome.runtime.getURL('player.html') });
@@ -511,19 +499,12 @@ $('btnStart').addEventListener('click', async () => {
     // ★★★ EXT-026：启动成功后，「停止并收尾」才可用。
     $('btnFlush').disabled = false;
     setBadge('已连接', 'ok');
-    // ★ 降速状态**如实**显示：没生效就说没生效（不粉饰）。
-    const sdLine = (!sdInfo || !sdInfo.enabled)
-      ? '视频降速：关'
-      : (sdInfo.applied
-        ? `视频降速：开（×${(sdInfo.rate == null ? '?' : sdInfo.rate.toFixed(3))}）`
-        : `视频降速：**未生效**（${sdInfo.reason || '?'}）`);
     setStatus(
       `已启动\n标签页：${tab.title || tab.id}\n延迟 D=${cfg.delaySec}s\n` +
       `目标语言：${normalizeLang(cfg.targetLang)}\n` +
       `音色：${normalizeVoice(cfg.voice)}\n` +
       `原声压低：${cfg.duckDb} dB\n` +
       `字幕：${cfg.subsOn ? '开' : '关'}\n` +
-      `${sdLine}\n` +
       `抓流方式：${res.captureMode || '?'}`,
       'ok'
     );
