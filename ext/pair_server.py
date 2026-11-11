@@ -117,6 +117,7 @@ def _make_handler(token_provider: Callable[[], str], peer_check=None, *,
                     st = status_provider() or {}
                 except Exception as e:
                     st = {"error": str(e)[:200]}
+                st["you"] = self.client_address[0]  # v0.4.2：popup 用来判断「是不是别人在用」
                 self._send_json(200, {"ok": True, "status": st})
                 return
 

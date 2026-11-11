@@ -1723,8 +1723,10 @@ async function startUplink(stream, wsUrl, token, captureMode) {
           handleBridgeMessage(JSON.parse(ev.data));
         } catch (e) { /* ignore */ }
       };
-      ws.onclose = () => {
+      ws.onclose = (ev) => {
         upState.wsOpen = false;
+        const r = bridgeCloseReason(ev);
+        if (r) { metrics.link.wsConnected = false; metrics.link.wsError = r; }
       };
     });
 
@@ -3019,8 +3021,10 @@ function connectBridge(wsUrl, token, role) {
       metrics.link.wsError = 'WS 失败（桥接服务未启动或端口不通）';
       reject(new Error('WS 失败'));
     };
-    w.onclose = () => {
+    w.onclose = (ev) => {
       metrics.link.wsConnected = false;
+      const r = bridgeCloseReason(ev);
+      if (r) metrics.link.wsError = r;
     };
     w.onmessage = (ev) => {
       try {
@@ -3028,6 +3032,16 @@ function connectBridge(wsUrl, token, role) {
       } catch (e) { /* ignore */ }
     };
   });
+}
+
+// v0.4.2：桥接主动关连接时，把原因翻译成人话（局域网模式同一时间只服务一个人）
+function bridgeCloseReason(ev) {
+  const code = ev && ev.code, why = String((ev && ev.reason) || '');
+  if (code === 1013 || /busy/i.test(why)) return '桥接正在被另一台电脑使用（同一时间只服务一个人），请等对方停止后再点「开始」';
+  if (code === 1008 && /peer/i.test(why)) return '桥接拒绝连接：这台电脑不在桥接允许的网段内';
+  if (code === 1008 && /origin/i.test(why)) return '桥接拒绝连接：插件身份不对（请重新加载原版插件文件夹）';
+  if (code === 1008) return '桥接拒绝连接：' + (why || '策略拒绝');
+  return null;
 }
 
 // ★ report 只发**摘要**，不发整个 metrics。
@@ -3699,7 +3713,7 @@ function diagnoseLink(link, nowMs) {
   let ok = true;
 
   if (!L.wsConnected) {
-    reason = L.wsError || 'WS 未连接（桥接服务没启动？点桌面「实时配音桥接.cmd」）';
+    reason = L.wsError || 'WS 未连接（桥接服务没启动？或开着 VPN？局域网使用要在桥接窗口勾「允许局域网访问」）';
     ok = false;
   } else if (L.mode === 'echo') {
     reason = '★ 回声模式（不是真实翻译配音）';

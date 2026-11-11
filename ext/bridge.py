@@ -109,6 +109,10 @@ class TokenStore:
         return bool(candidate) and secrets.compare_digest(candidate, self.token)
 
 
+# v0.4.2：当前正在使用桥接的对端 IP（局域网模式同一时间只服务一个人）
+ACTIVE_PEER = {"ip": None, "n": 0}
+
+
 # v0.4.0：取消 token 配对后，所有连接共用的会话键（只用于把 player / uplink 连接归到同一会话）
 NO_PAIR_TOKEN = "nopair"
 
@@ -4064,8 +4068,8 @@ async def serve(host: str, port: int, *, delay_sec: float, echo_mode: bool,
                               mode=mode, audio_dump=audio_dump,
                               spk_bypass=spk_bypass)
 
-    # v0.3.8：对端网段闸门 + 单用户（按对端 IP 计）
-    _active = {"ip": None, "n": 0}
+    # v0.3.8：对端网段闸门 + 单用户（按对端 IP 计）；v0.4.2：放到模块级，/status 也能报「谁在用」
+    _active = ACTIVE_PEER
 
     async def _gated(ws):
         try:
@@ -4261,7 +4265,8 @@ def main(argv=None) -> int:
             host=args.host,
             peer_check=C.peer_allowed,
             token_provider=lambda: (_tokens.token if _tokens else ""),
-            status_provider=lambda: _pair_status(holder),
+            status_provider=lambda: dict(_pair_status(holder) or {},
+                                         active_peer=(ACTIVE_PEER["ip"] if ACTIVE_PEER["n"] > 0 else None)),
         )
         ok, msg = pair_server.start()
         if ok:

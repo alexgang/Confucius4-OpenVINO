@@ -393,7 +393,11 @@ function fmtLag(v) {
  */
 function startGate(st) {
   if (!st) {
-    return { ok: false, reason: '桥接服务未启动（先点桌面「实时配音桥接.cmd」）' };
+    return { ok: false, reason: '连不上桥接服务（没启动？开着 VPN？局域网使用要在桥接窗口勾「允许局域网访问」）' };
+  }
+  // v0.4.2：局域网模式同一时间只服务一个人
+  if (st.active_peer && st.you && st.active_peer !== st.you) {
+    return { ok: false, reason: '桥接正在被另一台电脑（' + st.active_peer + '）使用，同一时间只服务一个人，请等对方停止' };
   }
   const mode = st.mode;
   if (mode === 'echo') {
