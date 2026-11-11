@@ -717,7 +717,7 @@ function applyStartGate(st) {
 
 // ★ EXT-012 ③：打开说明
 $('btnGuide').addEventListener('click', async () => {
-  const url = chrome.runtime.getURL('USER_GUIDE.md');
+  const url = chrome.runtime.getURL('guide.html');  // v0.4.1：UTF-8 渲染，修乱码
   await chrome.tabs.create({ url });
 });
 
