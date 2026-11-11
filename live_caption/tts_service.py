@@ -1833,10 +1833,37 @@ class TTSService:
             # 🔴🔴🔳 APP-092 §2：worker 跳过了一句「太晚」的句子。
             #   ⇒ **计丢句**（保持 `n_played + n_dropped + n_empty == n_submitted`）
             #   ⇒ 内容仍在字幕/转写里（**只丢语音**）。
+            #
+            # 🔴🔴🔴 **APP-099 §177 修（读码定案 + 设备实测）**：
+            #   旧实现只做 `self.n_dropped += 1` ⇒ **没有把 jid 从 `pending` 摘掉**
+            #   ⇒ 两个真缺陷：
+            #   ① **drain() 永远等不到排空**：`drain()` 的退出条件是
+            #      `pending_n == 0 and n_done >= n_sub`；late_drop 的句仍在
+            #      `pending` 里 ⇒ `pending_n` 永远 > 0 ⇒ **必然空等到超时**
+            #      （APP-036 C4：timeout = `max(120, 1.5×积压)`）
+            #      ⇒ 设备实测（B 臂对照）：ASR 跑完后**卡在 drain 逾 30 min、
+            #      CPU 0%**，日志最后一行停在「跳过过期句」。
+            #   ② **同一句被计两次丢句**：late_drop 已 `n_dropped += 1`，
+            #      而 `close()` 收尾时把**仍在 pending 的同一批**当 orphan
+            #      再 `n_dropped += len(orphan)` ⇒ §29 不变式被破坏。
+            #      设备实测（A 臂）：**提交 159 播完 93 丢弃 132** ⇒
+            #      `93 + 132 = 225 ≠ 159` ⇒ **多 66 句**，恰等于逐句 jsonl
+            #      实测的 **late_drop 66 句**。
+            # ⇒ 改走 §60 建立的**唯一原子口径** `_drop_one(jid)`：
+            #   `pending.pop` + `_inflight.discard` + `n_dropped += 1`
+            #   **在同一把锁内**完成 ⇒ ① 摘出 pending ⇒ drain 能正常退出；
+            #   ② close() 的 orphan 集合里不再有它 ⇒ 不会二次计。
+            #   ⚠️ `register_dropped=False`：late_drop 之后 worker **不会**再
+            #      为这一句回 `played`（它已经跳过了）⇒ 不必登记 `_dropped_ids`。
             try:
-                self.n_dropped += 1
+                self._drop_one(msg.get('id'), register_dropped=False)
             except Exception:
-                pass
+                # 🔴 兜底：`_drop_one` 异常时**仍然要计丢句**
+                #   ⇒ 否则该句会永远留在 pending ⇒ drain 卡死（更糟）。
+                try:
+                    self.n_dropped += 1
+                except Exception:
+                    pass
             self._n_late_drop = int(getattr(self, '_n_late_drop', 0) or 0) + 1
             try:
                 self._late_drop_lags.append(

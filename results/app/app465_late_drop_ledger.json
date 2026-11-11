@@ -1,0 +1,67 @@
+{
+ "gate": "late_drop_ledger",
+ "n_checks": 8,
+ "n_pass": 8,
+ "n_fail": 0,
+ "pass": true,
+ "checks": [
+  {
+   "check": "R1.late_drop_removed_from_pending",
+   "pass": true,
+   "detail": "n_pending=0（应为 0）"
+  },
+  {
+   "check": "R2.invariant_played_plus_dropped_eq_submitted",
+   "pass": true,
+   "detail": "played=0 dropped=5 submitted=5 sum=5"
+  },
+  {
+   "check": "R3.drain_returns_before_timeout",
+   "pass": true,
+   "detail": "drain() -> True（用时 0.00s）"
+  },
+  {
+   "check": "R4.invariant_holds_after_close",
+   "pass": true,
+   "detail": "played=0 dropped=5 submitted=5 sum=5"
+  },
+  {
+   "check": "R5.counterexample_pending_not_removed",
+   "pass": true,
+   "detail": "n_pending=5（旧写法应 > 0）"
+  },
+  {
+   "check": "R6.counterexample_extended_invariant_broken",
+   "pass": true,
+   "detail": "played+dropped+pending=10 submitted=5（旧写法应破「扩展不变式」）"
+  },
+  {
+   "check": "R7.counterexample_drain_times_out",
+   "pass": true,
+   "detail": "drain_ok=False drain_s=6.01（旧写法应等满 timeout）"
+  },
+  {
+   "check": "R8.counterexample_double_count_after_close",
+   "pass": true,
+   "detail": "after_close sum=10 submitted=5（旧写法应多计）"
+  }
+ ],
+ "real_group_ledger": {
+  "n_played": 0,
+  "n_dropped": 5,
+  "n_submitted": 5,
+  "n_pending": 0,
+  "sum": 5,
+  "invariant": true
+ },
+ "real_group_after_close": {
+  "n_played": 0,
+  "n_dropped": 5,
+  "n_submitted": 5,
+  "sum": 5,
+  "invariant": true
+ },
+ "defect": "tts_service._handle_event 的 late_drop 分支只 n_dropped += 1 而未把 jid 摘出 pending ⇒ ① drain() 退出条件 pending_n == 0 永不成立（必然空等到超时）② close() 再把同一批 orphan 计一次丢句 ⇒ §29 不变式被破坏",
+ "fix": "late_drop 分支改走唯一原子口径 _drop_one(jid)（摘 pending + 计数同锁）",
+ "evidence": "设备实测：results/app/app461_app100_device/gpu_same_asr_mt.log（A 臂 exit=0，drain 超时仍有 66 句，最终统计 提交 159 播完 93 丢弃 132 ⇒ 多 66 句 = 逐句 jsonl 实测 late_drop 66 句）"
+}
