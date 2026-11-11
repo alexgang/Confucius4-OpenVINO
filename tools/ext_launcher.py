@@ -342,13 +342,14 @@ class BridgeRunner:
     """后台跑桥接服务；把日志同时写到文件和回调（喂给 Tk）。"""
 
     def __init__(self, *, port: int = DEFAULT_PORT, delay: float = DEFAULT_DELAY,
-                 lang: str = DEFAULT_LANG, pipeline: bool = True,
+                 lang: str = DEFAULT_LANG, pipeline: bool = True, lan: bool = False,
                  on_log=None, on_state=None, cmd=None,
                  log_path=None, pid_path=None):
         self.port = port
         self.delay = delay
         self.lang = lang
         self.pipeline = pipeline
+        self.lan = bool(lan)  # v0.3.9：允许局域网访问（桥接监听 0.0.0.0，只放行本网段，同一时间一个用户）
         self.on_log = on_log
         self.on_state = on_state
         # ★ 自测注入点：外部给定命令 ⇒ 不需要 App 解释器。
@@ -458,6 +459,10 @@ class BridgeRunner:
         # ★ EXT-011：线程限制（必须在 numpy/openvino import 之前 —— 由
         #   ext.bridge 自己在 import 前设；这里只确保**不被外部环境关掉**）。
         env.pop("EXT_THREAD_LIMIT", None)
+        if self.lan:
+            env["EXT_BRIDGE_LAN"] = "1"
+        else:
+            env.pop("EXT_BRIDGE_LAN", None)
 
         log_path = self.log_path or LOG_PATH
         pid_path = self.pid_path or PID_PATH
@@ -741,6 +746,9 @@ def main(argv=None) -> int:
     pipe_var = tk.BooleanVar(value=True)
     tk.Checkbutton(opts, text="启用（推荐）", variable=pipe_var, bg="#f6f8fa").grid(
         row=0, column=5, sticky="w")
+    lan_var = tk.BooleanVar(value=False)
+    tk.Checkbutton(opts, text="允许局域网访问（同网段其它电脑可连，同一时间一个人）",
+                   variable=lan_var, bg="#f6f8fa").grid(row=1, column=0, columnspan=6, sticky="w", pady=(4, 0))
 
     # 日志区
     log_box = scrolledtext.ScrolledText(app, height=16, font=("Consolas", 9))
@@ -819,7 +827,7 @@ def main(argv=None) -> int:
         except Exception:
             delay = DEFAULT_DELAY
         r = BridgeRunner(port=DEFAULT_PORT, delay=delay, lang=lang_var.get(),
-                         pipeline=bool(pipe_var.get()),
+                         pipeline=bool(pipe_var.get()), lan=bool(lan_var.get()),
                          on_log=append_log, on_state=set_state)
         runner_box["r"] = r
         ok, msg = r.start()
