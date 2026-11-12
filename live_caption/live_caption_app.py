@@ -6957,20 +6957,26 @@ class App:
         return True
 
     def _warn_asr_mt_same_gpu(self, origin: str = ''):
-        """🔴🔴🔳 **APP-098 二.4：ASR 与 MT **都放 GPU** 时给提示**。
+        """🔴🔴🔳 **APP-105 §7：ASR 与 MT 同在 GPU 时**只记一行日志**。
 
-        **实测（B 机 Meteor Lake）**：ASR 和 MT 都放 GPU.0 ⇒ 跑 268 s 后报
-        `CL_OUT_OF_RESOURCES`（GPU 显存/资源耗尽）⇒ **崩溃**。
-        reviewer 原话：「ASR 和 MT 都放 GPU.0 时崩溃…GUI 和 CLI 在两者都选 GPU 时
-        给提示，建议 ASR 放 NPU，**不要偷偷改用户选的设备**。」
+        **历史（APP-098 二.4）**：当时 MiniMVP 的出厂默认是 ASR=NPU ⇒ 这条
+        提示只在用户**手动**把两个都放 GPU 时出现 ⇒ reviewer 当时的口径是
+        「给提示，建议 ASR 放 NPU，**不要偷偷改用户选的设备**」。
 
-        🔴🔴🔴 **只提示、不改设备**（与 APP-062 D4 的「MT 与 TTS 同 NPU ⇒ 自动改」
-        **刻意不同**）：
-        - D4 那条是 reviewer **明文要求自动改**的（MT→GPU.0）；
-        - 这条 reviewer **明文说「不要偷偷改用户选的设备」**
-        ⇒ ⇒ **只提示 + 建议**，用户自己决定。
-        ⚠️ 提示**必须可见**（状态栏 + 日志），且**不弹模态框**
-          （模态会挂起无头探针，见 APP-067 ④）。
+        **现在（APP-105 §7，用户 2026-11-12 14:30 决定）**：MiniMVP 的
+        **出厂默认就是 ASR GPU.0 + MT GPU.0 + TTS NPU** ⇒
+        ① 继续弹「⚠️ 会 CL_OUT_OF_RESOURCES ⇒ 建议把 ASR 放 NPU」
+           ⇒ **每次启动都出现**、**与出厂默认自相矛盾** ⇒ 误导人；
+        ② 「rc5 在 B 机 268 s 崩溃」是**旧解码器**的事；MiniMVP
+           现在用 **stateful（KV cache）解码器**，负载约为旧解码器的 1/3。
+        ⇒ MiniMVP 现在**只记一行日志**（**不再覆盖**状态栏 / MT 说明区）：
+
+            ASR 与 MT 同在 GPU.0（stateful 解码器负载约为旧解码器的 1/3；
+            rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）
+
+        ⚠️ **完整版（v2.x）不变**：它仍用**旧解码器** ⇒ 保留原来的告警文案
+        与状态栏显示（reviewer 只要求改 MiniMVP）。
+        ⚠️ **只提示、不改设备**的老规矩**不变**（APP-098 二.4 / APP-062 D4）。
         """
         try:
             dev = dict(getattr(self, '_dev_choices', {}) or {})
@@ -6980,23 +6986,32 @@ class App:
         mt_dev = str(dev.get('mt') or '').upper()
         if 'GPU' not in asr_dev or 'GPU' not in mt_dev:
             return False
-        msg = ('⚠️ ASR 与 MT 都放在 %s ⇒ 长时间运行可能报 '
-               'CL_OUT_OF_RESOURCES（GPU 资源耗尽）。'
-               '建议把 ASR 放 NPU。' % asr_dev)
+        try:
+            minimvp = device_config.current_profile() == 'minimvp'
+        except Exception:
+            minimvp = False
+        if minimvp:
+            msg = ('ASR 与 MT 同在 %s（stateful 解码器负载约为旧解码器的 1/3；'
+                   'rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）' % asr_dev)
+        else:
+            msg = ('⚠️ ASR 与 MT 都放在 %s ⇒ 长时间运行可能报 '
+                   'CL_OUT_OF_RESOURCES（GPU 资源耗尽）。'
+                   '建议把 ASR 放 NPU。' % asr_dev)
         if origin:
             msg += '（来源：%s）' % origin
         try:
             self._ui_log('[device] %s' % msg)
         except Exception:
             pass
-        try:
-            self.var_status.set(msg)
-        except Exception:
-            pass
-        try:
-            self.var_mt_note.set(msg)
-        except Exception:
-            pass
+        if not minimvp:
+            try:
+                self.var_status.set(msg)
+            except Exception:
+                pass
+            try:
+                self.var_mt_note.set(msg)
+            except Exception:
+                pass
         return True
 
     def _npu_conflict_note(self):
@@ -8729,19 +8744,27 @@ def main():
             print('[device] %s' % _n, file=sys.stderr, flush=True)
         except Exception:
             pass
-    # 🔴🔴🔳 **APP-098 二.4：ASR 与 MT 都放 GPU ⇒ CLI 也给提示**。
-    #   实测（B 机）：两者都在 GPU.0 ⇒ 跑 268 s 后 `CL_OUT_OF_RESOURCES` 崩溃。
-    #   reviewer 原话：「GUI 和 CLI 在两者都选 GPU 时给提示，建议 ASR 放 NPU，
-    #   **不要偷偷改用户选的设备**。」
-    #   🔴 **只提示、不改设备**（与上面 MT+TTS 同 NPU 的「自动改」**刻意不同**）。
+    # 🔴🔴🔳 **APP-105 §7：ASR 与 MT 同在 GPU ⇒ 只记一行日志**。
+    #   MiniMVP 的**出厂默认就是** ASR GPU.0 + MT GPU.0（用户 11-12 14:30 决定）
+    #   ⇒ 旧文案「⚠️ 会 CL_OUT_OF_RESOURCES ⇒ 建议把 ASR 放 NPU」
+    #      **每次启动都出现**、**与出厂默认自相矛盾** ⇒ 误导人 ⇒ 改写。
+    #   「rc5 在 B 机 268 s 崩溃」是**旧解码器**的事；MiniMVP 现在是
+    #   **stateful（KV cache）解码器**，负载约为旧解码器的 1/3。
+    #   ⚠️ **只提示、不改设备**的老规矩**不变**（APP-098 二.4）。
+    #   ⚠️ **完整版（v2.x）不变**（仍用旧解码器）⇒ 保留原告警文案。
     try:
         _asr_d = str(args.asr_device or '').strip().upper()
         _mt_d2 = str(args.mt_device or '').strip().upper()
         if 'GPU' in _asr_d and 'GPU' in _mt_d2:
-            print('[device] ⚠️ ASR 与 MT 都放在 %s ⇒ 长时间运行可能报 '
-                  'CL_OUT_OF_RESOURCES（GPU 资源耗尽）。'
-                  '建议把 ASR 放 NPU（--asr-device NPU）。'
-                  % _asr_d, file=sys.stderr, flush=True)
+            if device_config.current_profile() == 'minimvp':
+                print('[device] ASR 与 MT 同在 %s（stateful 解码器负载约为'
+                      '旧解码器的 1/3；rc5 在 B 机 268 s 崩溃是旧解码器，'
+                      '待 B 机复核）' % _asr_d, file=sys.stderr, flush=True)
+            else:
+                print('[device] ⚠️ ASR 与 MT 都放在 %s ⇒ 长时间运行可能报 '
+                      'CL_OUT_OF_RESOURCES（GPU 资源耗尽）。'
+                      '建议把 ASR 放 NPU（--asr-device NPU）。'
+                      % _asr_d, file=sys.stderr, flush=True)
     except Exception:
         pass
     # 🔴🔴🔴 APP-063 ①（D4 CLI 侧，2026-11-02）：**MT 与 TTS 同 NPU ⇒ 禁止**。
