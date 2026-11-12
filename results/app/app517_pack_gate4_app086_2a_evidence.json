@@ -1,0 +1,80 @@
+{
+ "script": "gate4 verification (behaviour-level)",
+ "cases": [
+  {
+   "case": "real_defective:Confucius4_LiveCaption_v2.2",
+   "expect": "FAIL",
+   "rc": 1,
+   "ok": true
+  },
+  {
+   "case": "real_defective:Confucius4_LiveCaption_v2.3",
+   "expect": "FAIL",
+   "rc": 1,
+   "ok": true
+  },
+  {
+   "case": "real_defective:Confucius4_LiveCaption_v2.4",
+   "expect": "FAIL",
+   "rc": 1,
+   "ok": true
+  },
+  {
+   "case": "real_good:Confucius4_LiveCaption_v2.1",
+   "expect": "PASS",
+   "rc": 0,
+   "ok": true
+  },
+  {
+   "case": "real_good:Confucius4_LiveCaption_v2.0",
+   "expect": "PASS",
+   "rc": 0,
+   "ok": true
+  },
+  {
+   "case": "real_good:Confucius4_LiveCaption_v1.13",
+   "expect": "PASS",
+   "rc": 0,
+   "ok": true
+  },
+  {
+   "case": "real_good:Confucius4_LiveCaption_MiniMVP_v1.0-rc10",
+   "expect": "PASS",
+   "rc": 0,
+   "ok": true
+  },
+  {
+   "case": "real_good:dev_tree",
+   "expect": "PASS",
+   "rc": 0,
+   "ok": true
+  },
+  {
+   "case": "synthetic:dev_minus_guard",
+   "expect": "FAIL",
+   "rc": 1,
+   "ok": true
+  },
+  {
+   "case": "synthetic:guard_parenthesised",
+   "expect": "PASS",
+   "rc": 0,
+   "ok": true
+  },
+  {
+   "case": "synthetic:no_clone_branch",
+   "expect": "PASS",
+   "rc": 0,
+   "ok": true
+  },
+  {
+   "case": "synthetic:missing_file",
+   "expect": "PASS",
+   "rc": 0,
+   "ok": true
+  }
+ ],
+ "n_ok": 12,
+ "n_total": 12,
+ "verdict": "PASS"
+}
