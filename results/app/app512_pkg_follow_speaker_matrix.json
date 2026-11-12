@@ -3,6 +3,186 @@
  "note": "对客户包**只读**；判据跑在临时仓库里 ⇒ 不覆盖仓库既有 evidence",
  "packages": [
   {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0\\app",
+   "branch2_exists": true,
+   "branch2_has_bound_guard": false,
+   "verdict": "FAIL",
+   "pass_": 9,
+   "fail": 2,
+   "B1": {
+    "ok": true,
+    "msg": "speaker_embed=VEC_CLONE_FROM_FOLLOW_SPEAKER clone_active=True"
+   },
+   "B3": {
+    "ok": false,
+    "msg": "{'after_embed': 'VEC_S2', 'after_kind': 'clone', 'after_spk': None, 'clone_still_alive': False, 'clone_active': True}"
+   },
+   "tag": "🔴 **缺 APP-086·2a 收窄**（分支 ② 无 _bound 守卫）"
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc1",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc1\\app",
+   "branch2_exists": true,
+   "branch2_has_bound_guard": false,
+   "verdict": "FAIL",
+   "pass_": 9,
+   "fail": 2,
+   "B1": {
+    "ok": true,
+    "msg": "speaker_embed=VEC_CLONE_FROM_FOLLOW_SPEAKER clone_active=True"
+   },
+   "B3": {
+    "ok": false,
+    "msg": "{'after_embed': 'VEC_S2', 'after_kind': 'clone', 'after_spk': None, 'clone_still_alive': False, 'clone_active': True}"
+   },
+   "tag": "🔴 **缺 APP-086·2a 收窄**（分支 ② 无 _bound 守卫）"
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc10",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc10\\app",
+   "branch2_exists": true,
+   "branch2_has_bound_guard": true,
+   "verdict": "PASS",
+   "pass_": 11,
+   "fail": 0,
+   "B1": {
+    "ok": true,
+    "msg": "speaker_embed=VEC_CLONE_FROM_FOLLOW_SPEAKER clone_active=True"
+   },
+   "B3": {
+    "ok": true,
+    "msg": "{'after_embed': 'VEC_PRESET_A', 'after_kind': 'preset', 'after_spk': None, 'clone_still_alive': False, 'clone_active': False}"
+   },
+   "tag": "APP-086·2a 收窄**在**包里"
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc2",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\app",
+   "branch2_exists": true,
+   "branch2_has_bound_guard": false,
+   "verdict": "FAIL",
+   "pass_": 9,
+   "fail": 2,
+   "B1": {
+    "ok": true,
+    "msg": "speaker_embed=VEC_CLONE_FROM_FOLLOW_SPEAKER clone_active=True"
+   },
+   "B3": {
+    "ok": false,
+    "msg": "{'after_embed': 'VEC_S2', 'after_kind': 'clone', 'after_spk': None, 'clone_still_alive': False, 'clone_active': True}"
+   },
+   "tag": "🔴 **缺 APP-086·2a 收窄**（分支 ② 无 _bound 守卫）"
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\app",
+   "branch2_exists": true,
+   "branch2_has_bound_guard": false,
+   "verdict": "FAIL",
+   "pass_": 9,
+   "fail": 2,
+   "B1": {
+    "ok": true,
+    "msg": "speaker_embed=VEC_CLONE_FROM_FOLLOW_SPEAKER clone_active=True"
+   },
+   "B3": {
+    "ok": false,
+    "msg": "{'after_embed': 'VEC_S2', 'after_kind': 'clone', 'after_spk': None, 'clone_still_alive': False, 'clone_active': True}"
+   },
+   "tag": "🔴 **缺 APP-086·2a 收窄**（分支 ② 无 _bound 守卫）"
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc4",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4\\app",
+   "branch2_exists": true,
+   "branch2_has_bound_guard": false,
+   "verdict": "FAIL",
+   "pass_": 9,
+   "fail": 2,
+   "B1": {
+    "ok": true,
+    "msg": "speaker_embed=VEC_CLONE_FROM_FOLLOW_SPEAKER clone_active=True"
+   },
+   "B3": {
+    "ok": false,
+    "msg": "{'after_embed': 'VEC_S2', 'after_kind': 'clone', 'after_spk': None, 'clone_still_alive': False, 'clone_active': True}"
+   },
+   "tag": "🔴 **缺 APP-086·2a 收窄**（分支 ② 无 _bound 守卫）"
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc5",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5\\app",
+   "branch2_exists": true,
+   "branch2_has_bound_guard": false,
+   "verdict": "FAIL",
+   "pass_": 9,
+   "fail": 2,
+   "B1": {
+    "ok": true,
+    "msg": "speaker_embed=VEC_CLONE_FROM_FOLLOW_SPEAKER clone_active=True"
+   },
+   "B3": {
+    "ok": false,
+    "msg": "{'after_embed': 'VEC_S2', 'after_kind': 'clone', 'after_spk': None, 'clone_still_alive': False, 'clone_active': True}"
+   },
+   "tag": "🔴 **缺 APP-086·2a 收窄**（分支 ② 无 _bound 守卫）"
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc7",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc7\\app",
+   "branch2_exists": true,
+   "branch2_has_bound_guard": true,
+   "verdict": "PASS",
+   "pass_": 11,
+   "fail": 0,
+   "B1": {
+    "ok": true,
+    "msg": "speaker_embed=VEC_CLONE_FROM_FOLLOW_SPEAKER clone_active=True"
+   },
+   "B3": {
+    "ok": true,
+    "msg": "{'after_embed': 'VEC_PRESET_A', 'after_kind': 'preset', 'after_spk': None, 'clone_still_alive': False, 'clone_active': False}"
+   },
+   "tag": "APP-086·2a 收窄**在**包里"
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc8",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc8\\app",
+   "branch2_exists": true,
+   "branch2_has_bound_guard": true,
+   "verdict": "PASS",
+   "pass_": 11,
+   "fail": 0,
+   "B1": {
+    "ok": true,
+    "msg": "speaker_embed=VEC_CLONE_FROM_FOLLOW_SPEAKER clone_active=True"
+   },
+   "B3": {
+    "ok": true,
+    "msg": "{'after_embed': 'VEC_PRESET_A', 'after_kind': 'preset', 'after_spk': None, 'clone_still_alive': False, 'clone_active': False}"
+   },
+   "tag": "APP-086·2a 收窄**在**包里"
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc9",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9\\app",
+   "branch2_exists": true,
+   "branch2_has_bound_guard": true,
+   "verdict": "PASS",
+   "pass_": 11,
+   "fail": 0,
+   "B1": {
+    "ok": true,
+    "msg": "speaker_embed=VEC_CLONE_FROM_FOLLOW_SPEAKER clone_active=True"
+   },
+   "B3": {
+    "ok": true,
+    "msg": "{'after_embed': 'VEC_PRESET_A', 'after_kind': 'preset', 'after_spk': None, 'clone_still_alive': False, 'clone_active': False}"
+   },
+   "tag": "APP-086·2a 收窄**在**包里"
+  },
+  {
    "pkg": "Confucius4_LiveCaption_v1.13",
    "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\app",
    "branch2_exists": false,
