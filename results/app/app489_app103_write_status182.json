@@ -1,0 +1,116 @@
+{
+ "at": "2026-11-12 10:44:44",
+ "checks": [
+  {
+   "name": "anchor_unique:last_ack: ",
+   "ok": true,
+   "detail": "hits=1"
+  },
+  {
+   "name": "anchor_unique:更新时间: ",
+   "ok": true,
+   "detail": "hits=1"
+  },
+  {
+   "name": "anchor_unique:当前任务: ",
+   "ok": true,
+   "detail": "hits=1"
+  },
+  {
+   "name": "anchor_unique:阻塞 / 待用户决定: ",
+   "ok": true,
+   "detail": "hits=1"
+  },
+  {
+   "name": "anchor_unique:| 语音输出设备 |",
+   "ok": true,
+   "detail": "hits=1"
+  },
+  {
+   "name": "anchor_unique:| MiniMVP 默认设备（新） |",
+   "ok": true,
+   "detail": "hits=1"
+  },
+  {
+   "name": "anchor_unique:| 磁盘最新 MiniMVP 包 |",
+   "ok": true,
+   "detail": "hits=1"
+  },
+  {
+   "name": "recent_update_anchor",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "no_sec182_yet",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "size_before",
+   "ok": true,
+   "detail": "37263 B / 204 lines"
+  },
+  {
+   "name": "no_bare_CR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "n_replaced",
+   "ok": true,
+   "detail": "n=7"
+  },
+  {
+   "name": "sections_not_lost",
+   "ok": true,
+   "detail": "26 -> 27"
+  },
+  {
+   "name": "old_sections_verbatim",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "head_last_ack",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "head_timestamp",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "size_after",
+   "ok": true,
+   "detail": "39275 B / 209 lines"
+  },
+  {
+   "name": "no_bare_CR_after",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "sec182_three_lines",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "byte_verify_after_write",
+   "ok": true,
+   "detail": ""
+  }
+ ],
+ "before": {
+  "sha256": "56e29864e49e1ab3a9975a2cfa91db27d1b4e894cec32f105c2fdc8f2119a151",
+  "bytes": 37263,
+  "lines": 204
+ },
+ "after": {
+  "sha256": "9f9ee536b99f61387e88a6bfb0add39936028c4aa4dec36a6f60ce35ed7dd5e7",
+  "bytes": 39275,
+  "lines": 209
+ },
+ "verdict": "PASS"
+}

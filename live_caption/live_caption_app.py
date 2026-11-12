@@ -457,8 +457,8 @@ _MODEL_ALIASES = {
     #   ⚠️ **别名不冲突**（键是逻辑名）⇒ 两套可以并存于同一张表。
     #   0.6B 编码器（fp16 static，静态形状 ⇒ NPU 可直接编，不需要冻结）
     'ov-encoder-06b-fp16-static': ['asr06b-encoder-fp16'],
-    # 0.6B 解码器（mask2 INT8，带 attention_mask 端口，**无 KV cache**）
-    'ov-dec-06b-embed-mask2-int8sym': ['asr06b-decoder-int8'],
+    # 0.6B 解码器（stateful INT8，带 KV cache；APP-101/102：rc8 只带这一份）
+    'ov-dec-06b-stateful-int8sym': ['asr06b-decoder-int8'],
     # 0.6B 的 embedding 表（hidden 1024，与 R2T2 的 2048 不同 ⇒ 独立文件名）
     'embed_tokens_06b_f16.npy': ['embed_tokens_06b_f16.npy'],
     # 0.6B 的 tokenizer / feature extractor 来源目录
@@ -577,7 +577,7 @@ ENGINES = {
                      note='实验配置：更快，但 61 分钟 WER 比 INT8 显著差约 2 个百分点'),
 }
 
-# 🔴🔴🔳 **APP-096：MiniMVP 的 ASR = Qwen3-ASR-0.6B（mask2 INT8）**
+# 🔴🔴🔳 **APP-101/102/103：MiniMVP 的 ASR = Qwen3-ASR-0.6B（stateful INT8，KV cache）**
 #
 #   🔴🔴🔳 **为什么这段在开发树里（而不是在 MiniMVP 的构建脚本里打补丁）**：
 #   reviewer 原话：「**MiniMVP 和 v2.5 共用的部分只改一处**。」
@@ -593,17 +593,18 @@ ENGINES = {
 #   ⇒ 用户在 GUI 里看到的永远是「本机能跑的那档」⇒ 不用维护两份代码。
 #
 #   ⚠️ 0.6B 的两档**共用同一份 IR**（只是编译目标设备不同）⇒ 只放一份。
-#   ⚠️ 0.6B decoder **无 KV cache**、静态 512、右对齐
-#   ⇒ 与 R2T2 的两套后端**接口相似但语义不同** ⇒ 独立实现（`asr06b_backend.py`）。
+#   ⚠️ 0.6B stateful decoder **有 KV cache**、上界 512、每调用重置
+#   ⇒ 与 R2T2 的两套后端**接口相似但语义不同** ⇒ 独立实现
+#     （`asr06b_stateful_backend.py`）；无 KV 的旧基线只留在 dev 树。
 ENGINES_ASR06B = {
-    'gpu_int8': dict(label='Intel GPU · INT8', kind='asr06b', device='GPU.0',
+    'gpu_int8': dict(label='Intel GPU · INT8 (stateful)', kind='asr06b', device='GPU.0',
                      enc='ov-encoder-06b-fp16-static',
-                     dec='ov-dec-06b-embed-mask2-int8sym',
-                     note='集显：Qwen3-ASR-0.6B（编码器 FP16 + 解码器 INT8 mask2）'),
-    'npu_int8': dict(label='Intel NPU · INT8', kind='asr06b', device='NPU',
+                     dec='ov-dec-06b-stateful-int8sym',
+                     note='集显：Qwen3-ASR-0.6B（编码器 FP16 + 解码器 stateful INT8 / KV cache）'),
+    'npu_int8': dict(label='Intel NPU · INT8 (stateful)', kind='asr06b', device='NPU',
                      enc='ov-encoder-06b-fp16-static',
-                     dec='ov-dec-06b-embed-mask2-int8sym',
-                     note='编码器与解码器都在 NPU，不占 GPU（Qwen3-ASR-0.6B INT8 mask2）'),
+                     dec='ov-dec-06b-stateful-int8sym',
+                     note='NPUW_LLM：Qwen3-ASR-0.6B（编码器 FP16 + 解码器 stateful INT8 / KV cache）'),
 }
 
 
@@ -659,7 +660,7 @@ def _asr06b_models_present() -> bool:
     """
     try:
         enc = _model_path('ov-encoder-06b-fp16-static')
-        dec = _model_path('ov-dec-06b-embed-mask2-int8sym')
+        dec = _model_path('ov-dec-06b-stateful-int8sym')
         npy = _model_path('embed_tokens_06b_f16.npy')
         return (os.path.isdir(enc)
                 and os.path.exists(os.path.join(enc, 'ov-encoder-06b-fp16-static.xml'))
@@ -1614,14 +1615,17 @@ class OVEngine:
                 precision='f16', cache_dir=_cache('ov_cache'))
             self.device_desc = self.cfg['device']
         elif self.cfg['kind'] == 'asr06b':
-            # 🔴🔴🔳 **APP-096：Qwen3-ASR-0.6B（mask2 INT8）后端**
-            # ⚠️ 0.6B 的 decoder **无 KV cache**、静态 512、右对齐
-            #    ⇒ 与 R2T2 的两套后端**接口相似但语义不同** ⇒ 独立实现。
-            # ⚠️ NPU 上 **不设 NPUW_LLM**：0.6B decoder 不是 causal-LM-with-past 图
-            #    （无 KV cache）⇒ 走 plain 编译即可（reviewer 的 NPU 档已实测跑通）。
-            from asr06b_backend import ASR06BBackend
-            on_log(f'加载 {self.cfg["label"]}（Qwen3-ASR-0.6B mask2 INT8）…')
-            self.backend = ASR06BBackend(
+            # 🔴🔴🔳 **APP-101/102/103：Qwen3-ASR-0.6B stateful（KV cache）后端**
+            # ⚠️ NPU 上 decoder 需 NPU_USE_NPUW / NPUW_LLM（B-kit bk_run 口径）；
+            #    encoder 不带 NPUW 属性。每次 generate 新建 InferRequest + reset_state。
+            # ⚠️ dev 侧可用 LIVECAP_ASR_BACKEND_MODULE 切到无 KV 的旧基线模块
+            #    （该模块只在开发树，客户包内不存在，也不出现在 GUI / --check）。
+            import importlib
+            _mod_name = os.environ.get('LIVECAP_ASR_BACKEND_MODULE',
+                                       'asr06b_stateful_backend')
+            _backend_cls = importlib.import_module(_mod_name).BACKEND_CLASS
+            on_log(f'加载 {self.cfg["label"]}（Qwen3-ASR-0.6B stateful INT8 / KV cache）…')
+            self.backend = _backend_cls(
                 encoder_dir=enc, decoder_dir=dec,
                 tokenizer_dir=_model_path('asr06b-tokenizer'),
                 embed_npy=_model_path('embed_tokens_06b_f16.npy'),
@@ -8315,7 +8319,7 @@ def _check_models():
         if cfg['kind'] == 'asr06b':
             # 🔴🔴🔳 **APP-096**：0.6B 档的三件套
             #   编码器 = `ov-encoder-06b-fp16-static.xml`
-            #   解码器 = `openvino_model.xml`（mask2 INT8）
+            #   解码器 = `openvino_model.xml`（stateful INT8 / KV cache）
             #   embedding 表 = `embed_tokens_06b_f16.npy`（hidden 1024）
             if not (os.path.isdir(enc) and os.path.exists(os.path.join(
                     enc, 'ov-encoder-06b-fp16-static.xml'))):

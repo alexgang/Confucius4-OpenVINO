@@ -1,0 +1,100 @@
+{
+ "at": "2026-11-12T10:09:37",
+ "correction": "APP-101/102/103",
+ "checks": [
+  {
+   "tag": "model_alias",
+   "file": "live_caption_app.py",
+   "hits": 1,
+   "ok": true
+  },
+  {
+   "tag": "section_header",
+   "file": "live_caption_app.py",
+   "hits": 1,
+   "ok": true
+  },
+  {
+   "tag": "comment_kv",
+   "file": "live_caption_app.py",
+   "hits": 1,
+   "ok": true
+  },
+  {
+   "tag": "engine_table",
+   "file": "live_caption_app.py",
+   "hits": 1,
+   "ok": true
+  },
+  {
+   "tag": "ir_ready_probe",
+   "file": "live_caption_app.py",
+   "hits": 1,
+   "ok": true
+  },
+  {
+   "tag": "backend_init",
+   "file": "live_caption_app.py",
+   "hits": 1,
+   "ok": true
+  },
+  {
+   "tag": "check_comment",
+   "file": "live_caption_app.py",
+   "hits": 1,
+   "ok": true
+  },
+  {
+   "tag": "manifest_decoder",
+   "file": "manifest_gen.py",
+   "hits": 1,
+   "ok": true
+  },
+  {
+   "tag": "manifest_embed",
+   "file": "manifest_gen.py",
+   "hits": 1,
+   "ok": true
+  },
+  {
+   "tag": "baseline_factory",
+   "file": "asr06b_backend.py",
+   "hits": 1,
+   "ok": true
+  }
+ ],
+ "files": [
+  {
+   "path": "live_caption/live_caption_app.py",
+   "bytes_before": 481011,
+   "bytes_after": 481385,
+   "sha256_after": "9d6a95bd586dd50c85df96e8a4e623ccb010e7783428686a842e4a8240a45184",
+   "eol": "LF"
+  },
+  {
+   "path": "live_caption/manifest_gen.py",
+   "bytes_before": 12951,
+   "bytes_after": 13133,
+   "sha256_after": "75154a855e0b20f7490954d1f39b031252b55ddfdca1b90c7b302a33aecae019",
+   "eol": "LF"
+  },
+  {
+   "path": "live_caption/asr06b_backend.py",
+   "bytes_before": 20642,
+   "bytes_after": 20848,
+   "sha256_after": "d74ed167d32c79ab116eb30b37ac2125cee551677d5465b031aa6fd9cd40681f",
+   "eol": "LF"
+  }
+ ],
+ "post_check": {
+  "dev_py_with_old_decoder_literal": {},
+  "stateful_module_exists": true,
+  "stateful_module_mask2_hits": 0,
+  "engine_labels": [
+   "Intel GPU · INT8 (stateful)",
+   "Intel NPU · INT8 (stateful)"
+  ],
+  "manifest_decoder_source": "qwen3asr_06b\\models\\ov-dec-06b-stateful-int8sym"
+ },
+ "verdict": "PASS"
+}

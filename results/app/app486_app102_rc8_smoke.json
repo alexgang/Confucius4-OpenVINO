@@ -1,0 +1,252 @@
+{
+ "at": "2026-11-12 10:24:19",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc8",
+ "audio": "C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\smoke30.wav",
+ "seconds": 30.0,
+ "correction": "APP-102 §2",
+ "arms": [
+  {
+   "arm": "stateful_gpu",
+   "opts": [
+    "--engine",
+    "gpu_int8",
+    "--asr-device",
+    "GPU.0"
+   ],
+   "exit_code": 0,
+   "wall_s": 37.1,
+   "log_bytes": 7778,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app486_app102_rc8_smoke\\stateful_gpu.log",
+   "output_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app486_app102_rc8_smoke\\stateful_gpu.txt",
+   "output_chars": 411,
+   "output_head": "Welcome back to the show. Today we are talking about how small habits can change the way we work.\nThanks for having me. I think most people underestimate how much a tiny routine in the morning can shape the whole day.\nCan you give us an example?\nSure, I write down three things I want to finish befor",
+   "has_output": true,
+   "replacement_chars": 0,
+   "not_garbled": true,
+   "exec_devices_lines": [
+    "[asr06b-stateful] EXECUTION_DEVICES：encoder=GPU.0，decoder=GPU.0（请求设备 GPU.0）"
+   ],
+   "asr_exec_encoder": "GPU.0",
+   "asr_exec_decoder": "GPU.0",
+   "asr_rtf": 0.397,
+   "audio_s": 30.0,
+   "asr_wall_s": 30.2,
+   "tts_submitted": 0,
+   "tts_played": 0,
+   "tts_dropped": 0,
+   "tts_ready_device": "NPU",
+   "tts_ready_voice": "A",
+   "npuw_lines": [
+    "[asr06b-stateful] NPUW 配置=（无，GPU 档/plain 编译）；decoder 输入端口=['attention_mask', 'position_ids', 'beam_idx', 'inputs_embeds']；KV=每次 generate 新建 InferRequest + reset_state"
+   ],
+   "kv_reset_lines": [
+    "[asr06b-stateful] NPUW 配置=（无，GPU 档/plain 编译）；decoder 输入端口=['attention_mask', 'position_ids', 'beam_idx', 'inputs_embeds']；KV=每次 generate 新建 InferRequest + reset_state"
+   ],
+   "truncation_lines": [],
+   "on_gpu": true,
+   "arm_pass": true
+  },
+  {
+   "arm": "stateful_npu",
+   "opts": [
+    "--engine",
+    "npu_int8",
+    "--asr-device",
+    "NPU"
+   ],
+   "exit_code": 0,
+   "wall_s": 68.9,
+   "log_bytes": 7686,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app486_app102_rc8_smoke\\stateful_npu.log",
+   "output_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app486_app102_rc8_smoke\\stateful_npu.txt",
+   "output_chars": 411,
+   "output_head": "Welcome back to the show. Today we are talking about how small habits can change the way we work.\nThanks for having me. I think most people underestimate how much a tiny routine in the morning can shape the whole day.\nCan you give us an example?\nSure, I write down three things I want to finish befor",
+   "has_output": true,
+   "replacement_chars": 0,
+   "not_garbled": true,
+   "exec_devices_lines": [
+    "[asr06b-stateful] EXECUTION_DEVICES：encoder=NPU，decoder=NPU（请求设备 NPU）"
+   ],
+   "asr_exec_encoder": "NPU",
+   "asr_exec_decoder": "NPU",
+   "asr_rtf": 0.538,
+   "audio_s": 30.0,
+   "asr_wall_s": 30.4,
+   "tts_submitted": 0,
+   "tts_played": 0,
+   "tts_dropped": 0,
+   "tts_ready_device": "NPU",
+   "tts_ready_voice": "A",
+   "npuw_lines": [
+    "[asr06b-stateful] NPUW 配置={'NPU_USE_NPUW': 'YES', 'NPUW_LLM': 'YES', 'NPUW_LLM_MAX_PROMPT_LEN': '512', 'NPUW_LLM_MIN_RESPONSE_LEN': '64'}；decoder 输入端口=['attention_mask', 'position_ids', 'beam_idx', 'inputs_embeds']；KV=每次 generate 新建 InferRequest + reset_state"
+   ],
+   "kv_reset_lines": [
+    "[asr06b-stateful] NPUW 配置={'NPU_USE_NPUW': 'YES', 'NPUW_LLM': 'YES', 'NPUW_LLM_MAX_PROMPT_LEN': '512', 'NPUW_LLM_MIN_RESPONSE_LEN': '64'}；decoder 输入端口=['attention_mask', 'position_ids', 'beam_idx', 'inputs_embeds']；KV=每次 generate 新建 InferRequest + reset_state"
+   ],
+   "truncation_lines": [],
+   "on_npu": true,
+   "arm_pass": true
+  },
+  {
+   "arm": "default_chain",
+   "opts": [
+    "--engine",
+    "npu_int8",
+    "--asr-device",
+    "NPU",
+    "--translate",
+    "zh",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "A",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "GPU.0"
+   ],
+   "exit_code": 0,
+   "wall_s": 62.7,
+   "log_bytes": 9014,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app486_app102_rc8_smoke\\default_chain.log",
+   "output_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app486_app102_rc8_smoke\\default_chain.txt",
+   "output_chars": 411,
+   "output_head": "Welcome back to the show. Today we are talking about how small habits can change the way we work.\nThanks for having me. I think most people underestimate how much a tiny routine in the morning can shape the whole day.\nCan you give us an example?\nSure, I write down three things I want to finish befor",
+   "has_output": true,
+   "replacement_chars": 0,
+   "not_garbled": true,
+   "exec_devices_lines": [
+    "[asr06b-stateful] EXECUTION_DEVICES：encoder=NPU，decoder=NPU（请求设备 NPU）"
+   ],
+   "asr_exec_encoder": "NPU",
+   "asr_exec_decoder": "NPU",
+   "asr_rtf": 0.573,
+   "audio_s": 30.0,
+   "asr_wall_s": 30.4,
+   "tts_submitted": 2,
+   "tts_played": 1,
+   "tts_dropped": 1,
+   "tts_ready_device": "GPU.0",
+   "tts_ready_voice": "A",
+   "npuw_lines": [
+    "[asr06b-stateful] NPUW 配置={'NPU_USE_NPUW': 'YES', 'NPUW_LLM': 'YES', 'NPUW_LLM_MAX_PROMPT_LEN': '512', 'NPUW_LLM_MIN_RESPONSE_LEN': '64'}；decoder 输入端口=['attention_mask', 'position_ids', 'beam_idx', 'inputs_embeds']；KV=每次 generate 新建 InferRequest + reset_state"
+   ],
+   "kv_reset_lines": [
+    "[asr06b-stateful] NPUW 配置={'NPU_USE_NPUW': 'YES', 'NPUW_LLM': 'YES', 'NPUW_LLM_MAX_PROMPT_LEN': '512', 'NPUW_LLM_MIN_RESPONSE_LEN': '64'}；decoder 输入端口=['attention_mask', 'position_ids', 'beam_idx', 'inputs_embeds']；KV=每次 generate 新建 InferRequest + reset_state"
+   ],
+   "truncation_lines": [],
+   "chain_ok": true,
+   "tts_default_gpu0": true,
+   "arm_pass": true
+  }
+ ],
+ "lock": {
+  "module": "app",
+  "pid": 24868,
+  "started": "2026-11-12 10:24:19",
+  "ended": "2026-11-12 10:27:25",
+  "timing_valid": true,
+  "payload": "app 24868 2026-11-12 10:24:19 app102_rc8_smoke",
+  "released": true
+ },
+ "factory_default_probe": {
+  "default_devices": {
+   "asr": "NPU",
+   "mt": "GPU.0",
+   "tts": "GPU.0"
+  },
+  "minimvp": true,
+  "config_path": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\device_config.json",
+  "saved_config": {
+   "asr": "GPU.0",
+   "mt": "GPU.0",
+   "tts": "NPU"
+  }
+ },
+ "explicit_devices_reason": "本机 AppData 的 device_config.json 有历史选择（tts=NPU）覆盖出厂默认 ⇒ 不改用户配置，冒烟整链臂显式给 --mt-device GPU.0 --tts-device GPU.0 还原 APP-101 §0.3 的新默认组合；出厂默认值单独在上面 probe 里核对",
+ "gui": {
+  "exit_code": 0,
+  "evidence": {
+   "pkg": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_MiniMVP_v1.0-rc8",
+   "shot": "results/app/app486_app102_rc8_smoke/rc8_gui.png",
+   "asr_options": [
+    {
+     "id": "gpu_int8@GPU.0",
+     "label": "Intel GPU（集显） · INT8",
+     "engine": "gpu_int8",
+     "device": "GPU.0",
+     "note": "集显：Qwen3-ASR-0.6B（编码器 FP16 + 解码器 stateful INT8 / KV cache）"
+    },
+    {
+     "id": "npu_int8@NPU",
+     "label": "Intel NPU · INT8",
+     "engine": "npu_int8",
+     "device": "NPU",
+     "note": "NPUW_LLM：Qwen3-ASR-0.6B（编码器 FP16 + 解码器 stateful INT8 / KV cache）"
+    }
+   ],
+   "n_asr_options": 2,
+   "asr_two_stateful": true,
+   "tts_voice_state": "disabled",
+   "tts_voice_values": [
+    "预设 A"
+   ],
+   "clone_disabled": true,
+   "n_target_entries": 11,
+   "target_lang_codes": [
+    "zh",
+    "en",
+    "ja",
+    "ko",
+    "de",
+    "fr",
+    "es",
+    "pt",
+    "it",
+    "ru"
+   ],
+   "n_target_langs": 10,
+   "target_langs_10": true,
+   "default_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "GPU.0"
+   },
+   "capture_ok": true,
+   "shot_exists": true,
+   "shot_bytes": 42549,
+   "shot_extrema": [
+    [
+     0,
+     255
+    ],
+    [
+     0,
+     255
+    ],
+    [
+     0,
+     255
+    ]
+   ],
+   "shot_not_blank": true,
+   "shot_size": [
+    1439,
+    1093
+   ],
+   "verdict": "PASS"
+  },
+  "note": "GUI 单独补跑：首轮 capture_hwnd 二次转换 HWND 抛 TypeError（截图工具调用错误，非产品缺陷）；目标语言判据口径修正为 10 语种 + 1 个「关闭」"
+ },
+ "n_arms": 4,
+ "n_arms_ok": 4,
+ "verdict": "PASS",
+ "lang_smoke": {
+  "report": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app487_app102_10lang_smoke.json",
+  "verdict": "PASS",
+  "n_mt_ok": 30,
+  "n_tts_ok": 30,
+  "n_new_keys": 0,
+  "n_cap_hits": 0
+ }
+}
