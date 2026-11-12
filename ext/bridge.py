@@ -116,6 +116,15 @@ _PROC_USAGE = {"t": None, "cpu": None, "pct": None}
 _ACCEL = None
 
 
+def _dub_drops(sess) -> dict:
+    """v0.4.9: dubs not played (late) - shown in the player HUD."""
+    try:
+        n = sum(int(getattr(sess, k, 0) or 0) for k in ("_n_skip_tts", "_n_late_drop"))
+        return {"dub_dropped": n, "seg_skipped": int(getattr(sess, "_n_catchup", 0) or 0)}
+    except Exception:
+        return {}
+
+
 def _proc_usage() -> dict:
     out = {"proc_cpu_pct": None, "proc_mem_mb": None, "igpu_pct": None, "npu_pct": None}
     # v0.4.8：iGPU / NPU 占用（整机，PDH 计数器；后台线程每秒采一次）
@@ -2436,7 +2445,14 @@ class Session:
         rates = combine_rates(fit.rate, dec.speed)
         total_rate = rates["total_rate"]
         # 11-08 用户：倍率只由滞后严重程度决定，1.0×→1.5× 渐进（不再用时长适配的固定倍率）
-        _raw = 1.0 + max(0.0, lag_est - C.ADAPT_LAG_FREE_SEC) * C.ADAPT_GAIN_PER_SEC
+        # v0.4.9: drive = max(queue lag, lateness vs the picture slot). A late sentence also gets
+        #   the rate that ends it by its own slot end, so the next one is not pushed back further.
+        _late0 = max(0.0, start_est - deadline)
+        _drive = max(lag_est, _late0)
+        _raw = 1.0 + max(0.0, _drive - C.ADAPT_LAG_FREE_SEC) * C.ADAPT_GAIN_PER_SEC
+        if _late0 > C.ADAPT_LAG_FREE_SEC and speech_sec > 0:
+            _avail = deadline + max(0.5, t_end - t_start) - start_est
+            _raw = max(_raw, speech_sec / max(0.5, _avail))
         # 11-09 user: Chinese dubs are ~17 % longer than the English source => speed floor for zh
         try:
             _tl = str(self._effective_target_lang() or "").strip().lower()
@@ -2445,7 +2461,8 @@ class Session:
         _base = C.ZH_BASE_SPEED if (_tl.startswith("zh") or "chinese" in _tl or "中文" in _tl) else 1.0
         _raw = min(C.ADAPT_TOTAL_RATE_MAX, max(_base, _raw))
         _prev = getattr(self, "_queue_rate", _base)
-        total_rate = max(_prev - C.ADAPT_MAX_STEP, min(_prev + C.ADAPT_MAX_STEP, _raw))
+        # v0.4.9: jump up at once when late; only slow down gradually
+        total_rate = _raw if _raw >= _prev else max(_prev - C.ADAPT_MAX_STEP, _raw)
         total_rate = round(max(_base, min(C.ADAPT_TOTAL_RATE_MAX, total_rate)), 4)
         self._queue_rate = total_rate
         rates["total_rate"] = total_rate
@@ -3931,7 +3948,8 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                                           session.token)
                 await websocket.send(json.dumps(
                     {"type": "stats", **(_sess.stats() if _sess is not None
-                                         else session.stats()), **_proc_usage()}))
+                                         else session.stats()), **_proc_usage(),
+                     **_dub_drops(_sess if _sess is not None else session)}))
                 continue
             if mtype == "pcm":
                 # ★ EXT-008：记下**这一帧到达消息循环**的墙钟时刻。

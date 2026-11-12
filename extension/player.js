@@ -2971,6 +2971,8 @@ function handleBridgeMessage(m) {
     // v0.4.8：运算那台电脑的 iGPU / NPU 占用（整机）
     if (typeof m.igpu_pct === 'number') metrics.igpuPct = m.igpu_pct;
     if (typeof m.npu_pct === 'number') metrics.npuPct = m.npu_pct;
+    // v0.4.9：太晚而没播的配音句数（字幕照出）
+    if (typeof m.dub_dropped === 'number') metrics.dubDropped = m.dub_dropped;
     if (typeof m.proc_mem_mb === 'number') metrics.memMB = m.proc_mem_mb;
     // ★★ EXT-024 E 修正：**原来把三者都设成同一个 `m.n_segments`**
     //   ⇒ **口径失真**：只要服务端收口过一段，`n_segments` 就 >0，
@@ -3803,6 +3805,7 @@ function updateHud() {
   set('mSched', m.schedErrMs == null ? '—' : m.schedErrMs.toFixed(2));
   set('mIgpu', m.igpuPct == null ? '—' : m.igpuPct.toFixed(0));
   set('mNpu', m.npuPct == null ? '—' : m.npuPct.toFixed(0));
+  set('mDubDrop', m.dubDropped == null ? '0' : String(m.dubDropped));
   set('mMem', m.memMB == null ? '—' : m.memMB.toFixed(1));
   // ★ EXT-009：底栏显示当前语速倍率与滞后秒数
   set('mSpeed', (m.adaptSpeed == null ? 1.0 : m.adaptSpeed).toFixed(2));

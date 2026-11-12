@@ -248,7 +248,8 @@ if DEVICE_MT == "GPU":
     DEVICE_MT = "GPU.0"
 # 11-08: a dub that would start more than this many seconds after its picture slot is not
 #   played (subtitle only) - playing it would put the voice on the wrong picture.
-LATE_DROP_SEC = float(_os.environ.get("EXT_LATE_DROP_SEC", "6.0"))
+# v0.4.9 (user 11-12: whole passages without dub): 6 -> 12 s; late dubs catch up at <=1.5x
+LATE_DROP_SEC = float(_os.environ.get("EXT_LATE_DROP_SEC", "12.0"))
 # 11-08: clone - wait up to this long in the TTS stage for the sentence speaker label,
 #   only while the sentence still has more than CLONE_LABEL_RESERVE_SEC of slack.
 CLONE_LABEL_WAIT_SEC = float(os.environ.get("EXT_CLONE_LABEL_WAIT_SEC", "0"))   # 11-09: waits blocked the TTS thread 50 s / 6 min
