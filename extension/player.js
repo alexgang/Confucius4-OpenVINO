@@ -2966,6 +2966,9 @@ function handleBridgeMessage(m) {
   } else if (kind === 'stats') {
     // ★★ EXT-024 E：服务端报的段数/滞后 ⇒ 记进状态条。
     metrics.link.lastStatsAt = performance.now();
+    // v0.4.7：桥接进程（运算那台电脑）的 CPU / 内存 ⇒ 底栏（此前这两个字段从没赋值，恒为空）
+    if (typeof m.proc_cpu_pct === 'number') metrics.cpuPct = m.proc_cpu_pct;
+    if (typeof m.proc_mem_mb === 'number') metrics.memMB = m.proc_mem_mb;
     // ★★ EXT-024 E 修正：**原来把三者都设成同一个 `m.n_segments`**
     //   ⇒ **口径失真**：只要服务端收口过一段，`n_segments` 就 >0，
     //     于是「TTS 从没出段」这种**最关键的故障信号**永远显示不出来。

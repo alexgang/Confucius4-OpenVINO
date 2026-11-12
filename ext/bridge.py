@@ -109,6 +109,47 @@ class TokenStore:
         return bool(candidate) and secrets.compare_digest(candidate, self.token)
 
 
+# v0.4.7：桥接进程自身的 CPU / 内存（播放界面底栏显示；不依赖 psutil）
+_PROC_USAGE = {"t": None, "cpu": None, "pct": None}
+
+
+def _proc_usage() -> dict:
+    out = {"proc_cpu_pct": None, "proc_mem_mb": None}
+    try:
+        t = time.perf_counter()
+        _ot = os.times()
+        c = float(_ot[0]) + float(_ot[1])
+        if _PROC_USAGE["t"] is None:
+            _PROC_USAGE["t"], _PROC_USAGE["cpu"] = t, c
+        elif t - _PROC_USAGE["t"] >= 0.5:
+            _PROC_USAGE["pct"] = max(0.0, 100.0 * (c - _PROC_USAGE["cpu"])
+                                     / ((t - _PROC_USAGE["t"]) * float(os.cpu_count() or 1)))
+            _PROC_USAGE["t"], _PROC_USAGE["cpu"] = t, c
+        if _PROC_USAGE["pct"] is not None:
+            out["proc_cpu_pct"] = round(_PROC_USAGE["pct"], 1)
+    except Exception:
+        pass
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class _PMC(ctypes.Structure):
+            _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
+                        ("PeakWorkingSetSize", ctypes.c_size_t), ("WorkingSetSize", ctypes.c_size_t),
+                        ("QuotaPeakPagedPoolUsage", ctypes.c_size_t), ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                        ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t), ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                        ("PagefileUsage", ctypes.c_size_t), ("PeakPagefileUsage", ctypes.c_size_t)]
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        k32.GetCurrentProcess.restype = wintypes.HANDLE
+        k32.K32GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, ctypes.POINTER(_PMC), wintypes.DWORD]
+        pmc = _PMC(); pmc.cb = ctypes.sizeof(_PMC)
+        if k32.K32GetProcessMemoryInfo(k32.GetCurrentProcess(), ctypes.byref(pmc), pmc.cb):
+            out["proc_mem_mb"] = round(pmc.WorkingSetSize / 1048576.0, 1)
+    except Exception:
+        pass
+    return out
+
+
 # v0.4.2：当前正在使用桥接的对端 IP（局域网模式同一时间只服务一个人）
 ACTIVE_PEER = {"ip": None, "n": 0}
 
@@ -3878,7 +3919,7 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                                           session.token)
                 await websocket.send(json.dumps(
                     {"type": "stats", **(_sess.stats() if _sess is not None
-                                         else session.stats())}))
+                                         else session.stats()), **_proc_usage()}))
                 continue
             if mtype == "pcm":
                 # ★ EXT-008：记下**这一帧到达消息循环**的墙钟时刻。
