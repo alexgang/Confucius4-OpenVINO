@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-11-12 09:44:56",
+  "correction": "APP-101 §4.5 / APP-102 §1-2",
+  "decoder": {
+    "dir": "C:/Users/Trekker-PTL\\qwen3asr_06b\\models\\ov-dec-06b-stateful-int8sym",
+    "bin": "openvino_model.bin",
+    "bin_bytes": 752386441,
+    "bin_sha256": "0059531a2b4ccd4ceb3f4c1dc3519e68421a310a262baba4dc55e603b600d6a3",
+    "expect": "0059531a2b4ccd4ceb3f4c1dc3519e68421a310a262baba4dc55e603b600d6a3",
+    "bin_sha_match": true,
+    "xml_bytes": 2855877,
+    "ports": {
+      "inputs_embeds": [
+        "1,1..512,1024",
+        "f32"
+      ],
+      "attention_mask": [
+        "?,?",
+        "i64"
+      ],
+      "position_ids": [
+        "?,?",
+        "i64"
+      ],
+      "beam_idx": [
+        "?",
+        "i32"
+      ]
+    },
+    "hidden_size": 1024,
+    "num_hidden_layers": 28,
+    "num_attention_heads": 16,
+    "eos_token_id": 151673,
+    "audio_token_id": 151676,
+    "hidden_1024_and_28_layers_ok": true
+  },
+  "encoder": {
+    "dir": "C:/Users/Trekker-PTL\\qwen3asr_06b\\models\\ov-encoder-06b-fp16-static",
+    "bin": "ov-encoder-06b-fp16-static.bin",
+    "bin_sha256": "0b7463d6f952dd64f97c5ff205f12efb04ca89e6e772448289aa06e4941beb89",
+    "expect_prefix": "0b7463d6f952dd64",
+    "prefix_match": true
+  },
+  "ext": {
+    "stage_dir": "C:/Users/Trekker-PTL\\confucius4-openvino\\_ext_v048_stage",
+    "commit": "817abcbe30c213844cda6f32c81361524ab53de8",
+    "manifest_version": "0.4.8",
+    "n_files": 167,
+    "accel_usage_py": true,
+    "archive_method": "git archive 817abcb (NOT working-tree copy; checkout is claude-dev)"
+  },
+  "notes": "纯静态核对，未占设备、未推理、未打包"
+}

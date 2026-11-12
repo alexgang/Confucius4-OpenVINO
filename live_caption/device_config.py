@@ -69,7 +69,8 @@ _DEFAULT_DEVICES_FULL: Dict[str, str] = {
 _DEFAULT_DEVICES_MINIMVP: Dict[str, str] = {
     'asr': 'NPU',
     'mt': 'GPU.0',
-    'tts': 'NPU',
+    # 🔴 APP-101 §0.3 / APP-102 §0（用户 2026-11-12 决定）：MiniMVP 配音默认 GPU.0。
+    'tts': 'GPU.0',
 }
 
 
