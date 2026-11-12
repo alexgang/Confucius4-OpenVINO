@@ -1,0 +1,19 @@
+{
+ "at": "2026-11-12 12:24:55",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9",
+ "port": 8785,
+ "pidfile": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app497_isolated\\bridge.pid",
+ "lock": {
+  "module": "app",
+  "pid": 16524,
+  "started": "2026-11-12 12:24:55",
+  "ended": "2026-11-12 12:32:37",
+  "released": true
+ },
+ "reason_for_isolation": "本机 8765 被 reviewer 自己的 v2.4 桥接实例占用 ⇒ 包内启动器按设计拒绝起第二个实例；本轮只在**运行时**把端口换成 8785，包内 tools/ext_launcher.py 与 817abcb 仍逐字节一致",
+ "driver_exit_code": 0,
+ "driver_stdout_tail": "",
+ "driver_stderr_tail": "",
+ "wall_s": 462.5,
+ "verdict": "FAIL"
+}

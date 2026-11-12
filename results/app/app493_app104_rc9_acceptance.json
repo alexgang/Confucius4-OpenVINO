@@ -1,0 +1,224 @@
+{
+ "at": "2026-11-12 12:33:16",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9",
+ "correction": "APP-104 §5",
+ "lock": {
+  "module": "app",
+  "pid": 15508,
+  "started": "2026-11-12 12:33:16",
+  "ended": "2026-11-12 12:39:30",
+  "timing_valid": true,
+  "mode": "created",
+  "payload": "app 15508 2026-11-12 12:33:16 app104_rc9_acceptance",
+  "released": true
+ },
+ "tests": [
+  {
+   "name": "A_check_stale_config_migrated",
+   "exit_code": 0,
+   "wall_s": 5.3,
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app493_app104_rc9_acceptance\\check.log",
+   "note_has_migration": true,
+   "no_asr_mt_same_gpu_warning": true,
+   "devices_in_note": {
+    "asr": true,
+    "mt": true,
+    "tts": true
+   },
+   "stdout_head": "====================================================================\n  Confucius4 实时字幕 MiniMVP · 环境检查\n====================================================================\n包目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9\n模型目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9\\models\n\n── 依赖 ──\n  [ OK ] numpy            2.4.6\n  [ OK ] openvino         2026.4.1-22982-e213a147257-releases/2026/4\n  [ OK ] openvino_genai   2026.4.1.0-3408-ab01d1771e4\n  [ OK ] transformers     4.57.6\n  [ OK ] sounddevice      0.5.6\n  [ OK ] soundcard        \n  [ OK ] babelvox(Qwen3-TTS) 1.7.1\n  [ OK ] qwen3tts 模型   C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9\\models\\qwen3tts\n\n── OpenVINO 设备 ──\n  [ OK ] GPU.0    Intel(R) Graphics (iGPU)\n  [ OK ] NPU      Intel(R) AI Boost\n  Intel 集显 (GPU)：[ OK ] 可用\n  Intel NPU     ：[ OK ] 可用\n  注：CPU 推理已从可选设备清单移除（性能不推荐）；如确需 CPU 请用命令行 --asr-device CPU / --mt-device CPU。\n\n── ASR 后端（识别）──\n  [ OK ] Intel GPU · INT8 (stateful) 模型齐全\n  [ OK ] Intel NPU · INT8 (stateful) 模型齐全\n\n── 翻译后端（Hy-MT2-1.8B）──\n  [ — ] Intel GPU · INT8-CW        GPU.0    （本包不附带该量化版本）\n  [ OK ] Intel GPU · INT4-CW（默认） GPU.0    \n  [ — ] Intel NPU · INT8-CW        NPU      ",
+   "stderr_tail": "[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=NPU）—— 那是 MiniMVP rc8 之前的出厂默认，会把 ASR 与 MT 一起放在 GPU.0（长时间运行会报 CL_OUT_OF_RESOURCES）⇒ 改用本包出厂默认（asr=NPU，mt=GPU.0，tts=GPU.0）\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+   "pass": true
+  },
+  {
+   "name": "B_gui_stale_config_migrated",
+   "exit_code": 0,
+   "wall_s": 6.3,
+   "evidence": {
+    "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9",
+    "shot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app493_app104_rc9_acceptance\\rc9_gui.png",
+    "asr_options": [
+     {
+      "id": "gpu_int8@GPU.0",
+      "label": "Intel GPU（集显） · INT8",
+      "engine": "gpu_int8",
+      "device": "GPU.0",
+      "note": "集显：Qwen3-ASR-0.6B（编码器 FP16 + 解码器 stateful INT8 / KV cache）"
+     },
+     {
+      "id": "npu_int8@NPU",
+      "label": "Intel NPU · INT8",
+      "engine": "npu_int8",
+      "device": "NPU",
+      "note": "NPUW_LLM：Qwen3-ASR-0.6B（编码器 FP16 + 解码器 stateful INT8 / KV cache）"
+     }
+    ],
+    "n_asr_options": 2,
+    "asr_two_stateful": true,
+    "tts_voice_state": "disabled",
+    "tts_voice_values": [
+     "预设 A"
+    ],
+    "clone_disabled": true,
+    "n_target_entries": 11,
+    "target_lang_codes": [
+     "zh",
+     "en",
+     "ja",
+     "ko",
+     "de",
+     "fr",
+     "es",
+     "pt",
+     "it",
+     "ru"
+    ],
+    "n_target_langs": 10,
+    "target_langs_10": true,
+    "default_devices": {
+     "asr": "NPU",
+     "mt": "GPU.0",
+     "tts": "GPU.0"
+    },
+    "devices_migrated": true,
+    "device_notes": [],
+    "migration_note": false,
+    "status_text": "prewarm transformers 2.0s",
+    "no_asr_mt_same_gpu_warning": true,
+    "capture_ok": true,
+    "shot_exists": true,
+    "shot_bytes": 42564,
+    "shot_extrema": [
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ],
+     [
+      0,
+      255
+     ]
+    ],
+    "shot_not_blank": true,
+    "shot_size": [
+     1439,
+     1093
+    ],
+    "verdict": "PASS"
+   },
+   "default_devices": {
+    "asr": "NPU",
+    "mt": "GPU.0",
+    "tts": "GPU.0"
+   },
+   "devices_ok": true,
+   "pass": true
+  },
+  {
+   "name": "C_chain_no_device_flags",
+   "exit_code": 0,
+   "wall_s": 55.2,
+   "cmd": "-s C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9\\app\\live_caption_app.py --cli --file C:\\Users\\Trekker-PTL\\_reviewer_tmp\\spktest\\smoke30.wav --max-seconds 30 --out C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app493_app104_rc9_acceptance\\chain_out.txt --translate zh --tts on --tts-voice A",
+   "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app493_app104_rc9_acceptance\\chain.log",
+   "output_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app493_app104_rc9_acceptance\\chain_out.txt",
+   "output_chars": 411,
+   "output_head": "Welcome back to the show. Today we are talking about how small habits can change the way we work.\nThanks for having me. I think most people underestimate how much a tiny routine in the morning can shape the whole day.\nCan you give us an example?\nSure, I write down three things I want to finish befor",
+   "not_garbled": true,
+   "asr_exec_encoder": "NPU",
+   "asr_exec_decoder": "NPU",
+   "tts_ready_device": "GPU.0",
+   "tts_submitted": 7,
+   "tts_played": 2,
+   "tts_dropped": 5,
+   "asr_rtf": 0.558,
+   "migration_note_in_log": true,
+   "no_asr_mt_same_gpu_warning": true,
+   "pass": true
+  },
+  {
+   "name": "D_ext_launcher_starts_bridge",
+   "exit_code": 0,
+   "wall_s": 305.4,
+   "evidence": {
+    "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9",
+    "launcher": "tools\\ext_launcher.py",
+    "launcher_sha256": "fcda80b53e508adee1e931c15fd5d51b413121fba1dfc97682ffa735923d74a3",
+    "port_override": 8785,
+    "pid_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app493_app104_rc9_acceptance\\isolated_bridge.pid",
+    "started": true,
+    "ready": false,
+    "stopped": true,
+    "elapsed_s": 302.0,
+    "window_title": "实时配音桥接（EXT） v0.4.8（2026-11-08） — 正在加载模型…",
+    "has_real_engine_line": false,
+    "has_tts_ready": false,
+    "n_combobox": 0,
+    "no_target_lang_combo": true,
+    "engine_partial_failure": "[bridge 12:34:41] ❌ 部分引擎加载失败：{'asr': 'EngineNeedsChange: [R2T2] SegmentEncoderOVBackend 构造失败（device=GPU.0）: Exception from src\\\\inference\\\\src\\\\cpp\\\\core.cpp:84:\\nCheck \\'util::directory_exists(path) || util::file_exists(path)\\' failed at src\\\\frontends\\\\common\\\\src\\\\frontend.cpp:120:\\nFrontEnd API failed with GeneralFailure:\\nir: Could not open the file: \"C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9\\\\models\\\\encoder-int8\\\\openvino_encoder_model.xml\"\\n\\n'}",
+    "engine_ready_line": "[bridge 12:34:41] 引擎预热完成：成功 2/3，总耗时 14.1 秒",
+    "log_tail": "y)\n[ext-engine] [tts_engine] 落点统计：NPU 上 12 个组件 ['cp_decode', 'cp_prefill', 'decoder_bucket@16', 'decoder_bucket@32', 'decoder_bucket@33', 'decoder_bucket@8', 'speaker_enc', 'talker_bucket@128', 'talker_bucket@256', 'talker_bucket@384', 'talker_bucket@512', 'talker_bucket@64']；CPU 上 0 个组件 []\n[ext-engine] [tts_engine] 未启用（该档位下不编译）的组件：talker_prefill，talker_decode，talker（以 5 个桶形式存在，落点见上），code_predictor\n[ext-engine] TTS 就绪（Qwen3-TTS @ NPU，9.9s）\n[ext-engine] [TTS-EXEC] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU(lazy)\n[ext-engine] [TTS-EXEC] cp_decode              → ['NPU']\n[ext-engine] [TTS-EXEC] cp_prefill             → ['NPU']\n[ext-engine] [TTS-EXEC] decoder_bucket@16      → ['NPU']\n[ext-engine] [TTS-EXEC] decoder_bucket@32      → ['NPU']\n[ext-engine] [TTS-EXEC] decoder_bucket@33      → ['NPU']\n[ext-engine] [TTS-EXEC] decoder_bucket@8       → ['NPU']\n[ext-engine] [TTS-EXEC] speaker_enc            → ['NPU']\n[ext-engine] [TTS-EXEC] talker_bucket@128      → ['NPU']\n[ext-engine] [TTS-EXEC] talker_bucket@256      → ['NPU']\n[ext-engine] [TTS-EXEC] talker_bucket@384      → ['NPU']\n[ext-engine] [TTS-EXEC] talker_bucket@512      → ['NPU']\n[ext-engine] [TTS-EXEC] talker_bucket@64       → ['NPU']\n[ext-engine] [TTS-EXEC] tok_decoder            → ['NPU(lazy)']\n[ext-engine] [TTS-EXEC] on_npu=12 on_cpu=0 unknown=0 absent=4\n[ext-engine] [TTS-EXEC] 已落盘：C:\\Users\\Trekker-PTL\\AppData\\Local\\LiveDubEXT\\tts_exec_devices.json\n[ext-engine] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9\\models\\qwen3tts\\voices\\preset_A.wav -> (1, 1024)\n[ext-engine] 预设音色 A embedding 就绪：shape=(1, 1024)\n[bridge 12:34:41] (3/3) TTS（Qwen3-TTS） 加载完成（10.2 秒）\n[bridge 12:34:41] 引擎预热完成：成功 2/3，总耗时 14.1 秒\n[bridge 12:34:41] ❌ 部分引擎加载失败：{'asr': 'EngineNeedsChange: [R2T2] SegmentEncoderOVBackend 构造失败（device=GPU.0）: Exception from src\\\\inference\\\\src\\\\cpp\\\\core.cpp:84:\\nCheck \\'util::directory_exists(path) || util::file_exists(path)\\' failed at src\\\\frontends\\\\common\\\\src\\\\frontend.cpp:120:\\nFrontEnd API failed with GeneralFailure:\\nir: Could not open the file: \"C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9\\\\models\\\\encoder-int8\\\\openvino_encoder_model.xml\"\\n\\n'}\n[bridge 12:34:41]    详细日志见本文件（%LOCALAPPDATA%\\LiveDubEXT\\bridge.log）\n[bridge 12:34:41] token 文件：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9\\ext\\bridge_token.txt\n[bridge 12:34:41] 监听 ws://127.0.0.1:8785（echo=False, D=20.0s，pipeline=True）\n\n",
+    "shot_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app493_app104_rc9_acceptance\\ext_launcher.png",
+    "shot_bytes": 35251,
+    "error": null,
+    "verdict": "PARTIAL",
+    "partial_reason": "启动器 GUI 正常（无目标语言下拉框、截图非黑图）且桥接进程起来了，但 **EXT v0.4.8 的 engine_runtime 写死 R2T2 ASR（models/encoder-int8）** ⇒ MiniMVP 包里没有这套模型 ⇒ ASR 引擎装不上 ⇒ 「真实引擎已接线」/「TTS 就绪」不会出现 ⇒ **属 EXT 侧缺口（跨模块）**，需 EXT 支持 0.6B stateful ASR"
+   },
+   "port_8765_occupied_by_foreign": true,
+   "isolated_port_used": 8785,
+   "isolation_note": "本机 8765 被 reviewer 自己的 v2.4 桥接实例占着 ⇒ 包内启动器按设计拒绝起第二个实例；本轮只在**运行时**把端口换成 8785（`ext_launcher.DEFAULT_PORT` 模块属性），**包内 tools/ext_launcher.py 与 817abcb 仍逐字节一致**",
+   "pass": true
+  },
+  {
+   "name": "E_user_choice_persists_after_restart",
+   "exit_code": 0,
+   "wall_s": 1.0,
+   "probe": {
+    "save_ok": true,
+    "profile": "minimvp",
+    "defaults_version": 8,
+    "devices": {
+     "asr": "GPU.0",
+     "mt": "GPU.0",
+     "tts": "NPU"
+    },
+    "notes": []
+   },
+   "pass": true
+  }
+ ],
+ "user_config": {
+  "path": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\device_config.json",
+  "existed": true,
+  "sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+  "bytes": 59
+ },
+ "stale_config_installed": {
+  "path": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\device_config.json",
+  "sha256": "7638ac4c1f084e8b56caa2b3141e985ec02f009bdd04230174266ff041482806",
+  "content": {
+   "asr": "GPU.0",
+   "mt": "GPU.0",
+   "tts": "NPU",
+   "tts_speed_min_zh": 1.25,
+   "tts_late_drop_sec": 7.5
+  }
+ },
+ "ext_cross_module_gap": {
+  "what": "EXT v0.4.8 的 ext/engine_runtime.py **写死 R2T2 ASR**（models/encoder-int8）⇒ MiniMVP 包里是 0.6B stateful ASR（models/asr06b-*）⇒ ASR 引擎装不上 ⇒ 「真实引擎已接线」/「TTS 就绪」在 MiniMVP 里不可能出现",
+  "evidence": "[bridge 12:34:41] ❌ 部分引擎加载失败：{'asr': 'EngineNeedsChange: [R2T2] SegmentEncoderOVBackend 构造失败（device=GPU.0）: Exception from src\\\\inference\\\\src\\\\cpp\\\\core.cpp:84:\\nCheck \\'util::directory_exists(path) || util::file_exists(path)\\' failed at src\\\\frontends\\\\common\\\\src\\\\frontend.cpp:120:\\nFrontEnd API failed with GeneralFailure:\\nir: Could not open the file: \"C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9\\\\models\\\\encoder-int8\\\\openvino_encoder_model.xml\"\\n\\n'}",
+  "who_must_fix": "EXT 模块（engine_runtime.py 需支持 0.6B stateful ASR）⇒ **跨模块缺口，App 侧不改 EXT 源文件**",
+  "app_side_done": "启动器 + Start_Bridge.bat + ext/bridge/__main__.py + 3 个兼容垫片 + .runtime_deps（websockets/psutil）+ USER_GUIDE 包内相对路径 ⇒ 全部已在包内"
+ },
+ "user_config_restored": {
+  "sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+  "match_backup": true
+ },
+ "n_pass": 5,
+ "n_fail": 0,
+ "n_partial": 1,
+ "verdict": "PASS_WITH_FINDING",
+ "verdict_note": "按修正后的口径重算（原 verdict=PASS）：EXT 那条是 **PARTIAL**（EXT v0.4.8 写死 R2T2 ASR ⇒ MiniMVP 包里 ASR 引擎装不上 ⇒ 跨模块缺口，见 ext_cross_module_gap）⇒ 整体记 PASS_WITH_FINDING，不写纯 PASS",
+ "verdict_recomputed_at": "2026-11-12T12:40:10"
+}

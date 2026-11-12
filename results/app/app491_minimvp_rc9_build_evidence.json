@@ -1,0 +1,85 @@
+{
+ "at": "2026-11-12T12:43:52",
+ "version": "1.0-rc9",
+ "correction": "APP-104",
+ "base_pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc8",
+ "dst_pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9",
+ "dry_run": false,
+ "actions": [
+  "zip written after acceptance PASS (2-pass, converged)"
+ ],
+ "readme": {
+  "files": {
+   "README_zh.md": 3069,
+   "README_en.md": 2818,
+   "README_perftest.txt": 2779
+  },
+  "n_files": 10692,
+  "dir_bytes": 5924223916,
+  "zip_bytes_field": 5927246232,
+  "defaults": {
+   "default_devices": {
+    "asr": "NPU",
+    "mt": "GPU.0",
+    "tts": "GPU.0"
+   },
+   "profile": "minimvp",
+   "defaults_version": 8
+  }
+ },
+ "zip": {
+  "path": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9_perftest.zip",
+  "bytes": 5927246232,
+  "pass_sizes": [
+   5927246232,
+   5927246232
+  ],
+  "converged": true,
+  "smoke_verdict": "PASS_WITH_FINDING",
+  "sha256": null,
+  "sha_note": "用户规则：zip 不做 SHA 校验"
+ },
+ "readme_gate": {
+  "rows": [
+   {
+    "file": "README_zh.md",
+    "forbidden_hits": [],
+    "dev_path_hits": [],
+    "file_count_matches": true,
+    "zip_bytes_matches": true,
+    "dir_bytes_matches": true,
+    "device_table_matches_defaults": true,
+    "pass": true
+   },
+   {
+    "file": "README_en.md",
+    "forbidden_hits": [],
+    "dev_path_hits": [],
+    "file_count_matches": true,
+    "zip_bytes_matches": true,
+    "dir_bytes_matches": true,
+    "device_table_matches_defaults": true,
+    "pass": true
+   },
+   {
+    "file": "README_perftest.txt",
+    "forbidden_hits": [],
+    "dev_path_hits": [],
+    "file_count_matches": true,
+    "zip_bytes_matches": true,
+    "dir_bytes_matches": true,
+    "device_table_matches_defaults": true,
+    "pass": true
+   }
+  ],
+  "n_pass": 3,
+  "n_fail": 0
+ },
+ "elapsed_s": 77.2,
+ "pkg": {
+  "files": 10692,
+  "bytes": 5924223916,
+  "gib": 5.517
+ },
+ "pkg_stats_note": "zip 阶段补记（磁盘实测，未重打 zip）"
+}

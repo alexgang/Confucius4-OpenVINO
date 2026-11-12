@@ -1,0 +1,116 @@
+{
+ "at": "2026-11-12T11:50:41",
+ "correction": "APP-104 §1",
+ "dev_file": "live_caption\\device_config.py",
+ "config_defaults_version": 8,
+ "default_devices": {
+  "asr": "NPU",
+  "mt": "GPU.0",
+  "tts": "GPU.0"
+ },
+ "cases": [
+  {
+   "case": "stale_residual_config_is_ignored",
+   "expect": {
+    "asr": "NPU",
+    "mt": "GPU.0",
+    "tts": "GPU.0"
+   },
+   "got": {
+    "asr": "NPU",
+    "mt": "GPU.0",
+    "tts": "GPU.0"
+   },
+   "note_has_ignored_values": true,
+   "numeric_preserved": {
+    "tts_speed_min_zh": 1.25,
+    "tts_late_drop_sec": 7.5
+   },
+   "numeric_expect": {
+    "tts_speed_min_zh": 1.25,
+    "tts_late_drop_sec": 7.5
+   },
+   "file_untouched_by_read": true,
+   "pass": true
+  },
+  {
+   "case": "counterexample_new_format_keeps_user_choice",
+   "expect": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "got": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "no_migration_note": true,
+   "pass": true
+  },
+  {
+   "case": "counterexample_older_version_is_ignored",
+   "expect": {
+    "asr": "NPU",
+    "mt": "GPU.0",
+    "tts": "GPU.0"
+   },
+   "got": {
+    "asr": "NPU",
+    "mt": "GPU.0",
+    "tts": "GPU.0"
+   },
+   "pass": true
+  },
+  {
+   "case": "counterexample_missing_version_is_ignored",
+   "expect": {
+    "asr": "NPU",
+    "mt": "GPU.0",
+    "tts": "GPU.0"
+   },
+   "got": {
+    "asr": "NPU",
+    "mt": "GPU.0",
+    "tts": "GPU.0"
+   },
+   "pass": true
+  },
+  {
+   "case": "save_config_writes_profile_and_version_then_keeps_choice",
+   "saved_keys": [
+    "asr",
+    "defaults_version",
+    "mt",
+    "profile",
+    "tts"
+   ],
+   "saved_profile": "minimvp",
+   "saved_defaults_version": 8,
+   "save_ok": true,
+   "got_after_restart": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "pass": true
+  },
+  {
+   "case": "counterexample_full_profile_not_migrated",
+   "expect": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "got": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "pass": true
+  }
+ ],
+ "n_pass": 6,
+ "n_fail": 0,
+ "verdict": "PASS"
+}

@@ -1,0 +1,75 @@
+{
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9",
+ "shot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app493_app104_rc9_acceptance\\rc9_gui.png",
+ "asr_options": [
+  {
+   "id": "gpu_int8@GPU.0",
+   "label": "Intel GPU（集显） · INT8",
+   "engine": "gpu_int8",
+   "device": "GPU.0",
+   "note": "集显：Qwen3-ASR-0.6B（编码器 FP16 + 解码器 stateful INT8 / KV cache）"
+  },
+  {
+   "id": "npu_int8@NPU",
+   "label": "Intel NPU · INT8",
+   "engine": "npu_int8",
+   "device": "NPU",
+   "note": "NPUW_LLM：Qwen3-ASR-0.6B（编码器 FP16 + 解码器 stateful INT8 / KV cache）"
+  }
+ ],
+ "n_asr_options": 2,
+ "asr_two_stateful": true,
+ "tts_voice_state": "disabled",
+ "tts_voice_values": [
+  "预设 A"
+ ],
+ "clone_disabled": true,
+ "n_target_entries": 11,
+ "target_lang_codes": [
+  "zh",
+  "en",
+  "ja",
+  "ko",
+  "de",
+  "fr",
+  "es",
+  "pt",
+  "it",
+  "ru"
+ ],
+ "n_target_langs": 10,
+ "target_langs_10": true,
+ "default_devices": {
+  "asr": "NPU",
+  "mt": "GPU.0",
+  "tts": "GPU.0"
+ },
+ "devices_migrated": true,
+ "device_notes": [],
+ "migration_note": false,
+ "status_text": "prewarm transformers 2.0s",
+ "no_asr_mt_same_gpu_warning": true,
+ "capture_ok": true,
+ "shot_exists": true,
+ "shot_bytes": 42564,
+ "shot_extrema": [
+  [
+   0,
+   255
+  ],
+  [
+   0,
+   255
+  ],
+  [
+   0,
+   255
+  ]
+ ],
+ "shot_not_blank": true,
+ "shot_size": [
+  1439,
+  1093
+ ],
+ "verdict": "PASS"
+}

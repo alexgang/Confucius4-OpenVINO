@@ -87,6 +87,90 @@ def _profile_default_devices() -> Dict[str, str]:
 
 DEFAULT_DEVICES: Dict[str, str] = _profile_default_devices()
 
+
+# ══════════════════════════════════════════════════════════════
+# 🔴🔴🔳 APP-104 §1：**残留旧配置的出厂默认迁移**
+# ══════════════════════════════════════════════════════════════
+# 背景（reviewer 2026-11-12 在 A 机上独立复核 rc8 包目录时实测到）：
+#   测试机/客户机上可能残留 **rc5/rc7 时期**写的
+#   ``%LOCALAPPDATA%\Confucius4LiveCaption\device_config.json``
+#   （实测内容：asr=GPU.0 / mt=GPU.0 / tts=NPU）
+#   ⇒ ``get_devices()`` 的优先级是「命令行 > 配置文件 > 默认值」
+#   ⇒ **残留文件会覆盖 MiniMVP 的出厂默认**（ASR=NPU / MT=GPU.0 / TTS=GPU.0）
+#   ⇒ 实际跑出「ASR 与 MT 同在 GPU.0」这个**会崩**的组合
+#      （B 机实测 268 s ⇒ CL_OUT_OF_RESOURCES）。
+#
+# 处置（reviewer 明文要求，逐条对齐）：
+#   ① 配置文件里加 ``profile`` 与 ``defaults_version`` 两个字段；
+#   ② 若是 MiniMVP，且文件里**没有**这两个字段、或者 ``defaults_version``
+#      **比 rc8 旧** ⇒ **忽略**文件里的 asr/mt/tts 三个键，
+#      改用 ``DEFAULT_DEVICES``（**数值类配置项照旧保留**）；
+#   ③ **不删用户的文件**；
+#   ④ **日志里打一行**，说明忽略了哪些旧值。
+#
+# ⚠️ **不在启动时自动改写用户文件**：只有用户在 GUI 里改设备
+#    （``save_config()``）时才写入新字段 ⇒ 首次启动仍能打出「忽略了哪些旧值」
+#    这一行（reviewer 验收要看这行日志），旧文件也不会被静默覆盖。
+CONFIG_DEFAULTS_VERSION = 8
+
+
+def current_profile() -> str:
+    """当前包形态：``'minimvp'`` / ``'full'``（探测失败 ⇒ 完整版）。"""
+    try:
+        import package_profile
+        return 'minimvp' if package_profile.is_minimvp() else 'full'
+    except Exception:
+        return 'full'
+
+
+def _config_version(raw) -> int:
+    """把配置里的 ``defaults_version`` 读成整数；读不到 ⇒ -1（比任何版本旧）。"""
+    try:
+        if isinstance(raw, bool):
+            return -1
+        return int(raw)
+    except Exception:
+        return -1
+
+
+def stale_device_keys(saved: Dict[str, object]) -> List[str]:
+    """返回**应当被忽略**的设备键（APP-104 §1 的迁移判据）。
+
+    规则（只在 MiniMVP 下生效）：
+      * 文件里有 asr/mt/tts 任意一个 ⇒ 才需要判；
+      * ``profile == 'minimvp'`` **且** ``defaults_version >= 8``
+        ⇒ **信任**用户的选择（返回空列表）；
+      * 其余情况（缺 profile / 缺 defaults_version / 版本比 rc8 旧 /
+        profile 不是 minimvp）⇒ 返回 asr/mt/tts 里**实际存在**的键。
+    """
+    if not saved:
+        return []
+    if current_profile() != 'minimvp':
+        return []
+    present = [k for k in ('asr', 'mt', 'tts') if k in saved]
+    if not present:
+        return []
+    prof = str(saved.get('profile') or '').strip().lower()
+    ver = _config_version(saved.get('defaults_version'))
+    if prof == 'minimvp' and ver >= CONFIG_DEFAULTS_VERSION:
+        return []
+    return present
+
+
+def stale_device_note(saved: Dict[str, object]) -> str:
+    """给用户看的一句话（说明忽略了哪些旧值、改用了什么）。"""
+    keys = stale_device_keys(saved)
+    if not keys:
+        return ''
+    ignored = '，'.join('%s=%s' % (k, saved.get(k)) for k in keys)
+    used = '，'.join('%s=%s' % (r, DEFAULT_DEVICES.get(r))
+                     for r in ('asr', 'mt', 'tts'))
+    return ('已忽略旧配置里的设备项（%s）—— 那是 MiniMVP rc8 之前的出厂默认，'
+            '会把 ASR 与 MT 一起放在 GPU.0（长时间运行会报 '
+            'CL_OUT_OF_RESOURCES）⇒ 改用本包出厂默认（%s）'
+            % (ignored, used))
+
+
 # 兜底候选（用户选的设备本机不存在时，依次尝试）
 # 🔴🔴 APP-028①：ASR / MT 的**回退候选**里不能有 NPU —— NPU 独占给 TTS。
 #   ⚠️ 旧实现 ASR/MT 的兜底里带 NPU（'asr': ['GPU.0','NPU','CPU']）
@@ -499,12 +583,24 @@ def save_config(devices: Dict[str, str]) -> bool:
     （数值配置项）⇒ GUI 每次保存设备选择**不会**把
     「中文倍率上下限」「late 阈值」抹掉。
     ⚠️ 旧实现直接 `json.dump(devices)` ⇒ **会**抹掉额外键。
+
+    🔴🔴🔳 **APP-104 §1**：保存设备选择时**一并写入**两个新字段
+    ``profile``（包形态：``minimvp`` / ``full``）与
+    ``defaults_version``（出厂默认代次，当前 = 8）。
+    ⇒ 下次启动时 ``stale_device_keys()`` 就能判定
+    「这份配置是**新格式**」⇒ **不再忽略**用户的设备选择
+    ⇒ **用户在 GUI 里手动改的设备，重启后保留**。
+    ⚠️ 只有**真的带了设备键**的保存才写这两个字段
+    （避免空保存把旧值「盖章」成新格式）。
     """
     try:
         os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
         merged = dict(load_config())
         for k, v in (devices or {}).items():
             merged[k] = v
+        if any(k in (devices or {}) for k in ('asr', 'mt', 'tts')):
+            merged['profile'] = current_profile()
+            merged['defaults_version'] = CONFIG_DEFAULTS_VERSION
         tmp = CONFIG_PATH + '.tmp'
         with open(tmp, 'w', encoding='utf-8') as f:
             json.dump(merged, f, ensure_ascii=False, indent=2)
@@ -573,7 +669,13 @@ def get_devices(cli_overrides: Optional[Dict[str, str]] = None) -> Tuple[Dict[st
 
     优先级：**命令行 > 配置文件 > 推荐默认值**。
 
-    返回 ``(设备字典, 提示列表)``；提示非空表示发生过回退，
+    🔴🔴🔳 **APP-104 §1**：**配置文件里的旧出厂默认会被忽略**
+    （残留 rc5/rc7 的 device_config.json 会把 ASR 与 MT 一起放到 GPU.0
+    ⇒ 长时间运行会 `CL_OUT_OF_RESOURCES`）⇒ 判定见
+    ``stale_device_keys()``；被忽略的键会**从候选里剔掉**，
+    并在**提示列表**里加一行（GUI/CLI 都会打出来）。
+
+    返回 ``(设备字典, 提示列表)``；提示非空表示发生过回退或配置迁移，
     应展示给用户。
     """
     saved = load_config()
@@ -581,6 +683,13 @@ def get_devices(cli_overrides: Optional[Dict[str, str]] = None) -> Tuple[Dict[st
     avail = available_devices()
     out: Dict[str, str] = {}
     notes: List[str] = []
+    # 🔴🔴🔳 APP-104 §1：旧出厂默认 ⇒ 忽略文件里的设备项（数值项保留）
+    _stale = stale_device_keys(saved)
+    if _stale:
+        _note = stale_device_note(saved)
+        saved = {k: v for k, v in saved.items() if k not in _stale}
+        if _note:
+            notes.append(_note)
     for role in ('asr', 'mt', 'tts'):
         wanted = cli.get(role) or saved.get(role) or DEFAULT_DEVICES.get(role)
         dev, note = resolve_device(role, wanted, avail)
