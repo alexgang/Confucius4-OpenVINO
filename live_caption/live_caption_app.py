@@ -687,6 +687,31 @@ def active_asr_precision():
     return ASR_PRECISION_ASR06B if _asr06b_models_present() else ASR_PRECISION
 
 
+def default_asr_engine_for_device(dev: str) -> str:
+    """按**解析出来的 ASR 设备**选默认引擎（🔴🔴🔳 APP-104 §1）。
+
+    🔴 **旧实现把 `--engine` 的默认值写死成 `'gpu_int8'`** ⇒ MiniMVP 的
+    出厂默认（ASR=**NPU**）下，GUI 的 ASR 组合会落到 `gpu_int8@GPU.0`
+    （`_init_combo_values` 找 `'gpu_int8@NPU'` 找不到 ⇒ 回退「同引擎、
+    任意设备」）⇒ **界面显示与实际落点都是 GPU.0**
+    ⇒ APP-104 §1 的「旧出厂默认会覆盖出厂默认」**只修了一半**。
+
+    ⇒ 现在：**设备决定引擎**（引擎表里 `device` 写死 ⇒ 1:1 对应：
+    `gpu_int8`→GPU.0、`npu_int8`→NPU）⇒ 出厂默认设备 = NPU 时
+    默认引擎 = `npu_int8` ⇒ GUI/CLI 都落在 NPU。
+
+    ⚠️ **只在用户没显式指定 `--engine` 时才用本函数**（显式指定优先）。
+    """
+    table = active_asr_engines()
+    d = str(dev or '').strip().upper()
+    for key, cfg in table.items():
+        if str(cfg.get('device', '')).strip().upper() == d:
+            return key
+    if 'gpu_int8' in table:
+        return 'gpu_int8'
+    return next(iter(table), 'gpu_int8')
+
+
 def build_asr_options(devices):
     """ASR 分区的「设备+精度」组合选项。
 
@@ -2502,6 +2527,26 @@ class App:
                     or device_config.DEFAULT_DEVICES['tts']),
         }
         self._device_notes = list(getattr(args, 'device_notes', []) or [])
+        # 🔴🔴🔳 **APP-104 §1**：GUI 入口也要**按设备定引擎**
+        #   （CLI 路径在 `main()` 里已定；GUI 直接构造时这里补上）
+        #   ⇒ 出厂默认 ASR=NPU ⇒ 引擎 npu_int8（不是写死的 gpu_int8）。
+        if not getattr(args, 'engine', None):
+            try:
+                args.engine = default_asr_engine_for_device(
+                    self._dev_selected['asr'])
+            except Exception:
+                pass
+        # 🔴🔴🔳 **APP-104 §1**：设备提示（含「已忽略旧配置里的设备项」）
+        #   **必须让用户看见** ⇒ 进日志区（同时落盘会话日志）。
+        for _n in self._device_notes:
+            try:
+                self._ui_log('[device] %s' % _n)
+            except Exception:
+                try:
+                    from tts_service import append_session_log
+                    append_session_log('[device] %s' % _n)
+                except Exception:
+                    print('[device] %s' % _n)
         self.mt = TranslationService(
             target=args.translate, device=self._dev_selected['mt'], auto=False,
             engine_key=args.mt_engine, use_ctx=getattr(args, 'mt_ctx', False),
@@ -8521,7 +8566,12 @@ def run_check():
 
 def main():
     ap = argparse.ArgumentParser(description='%s（多后端）' % _PRODUCT_NAME)
-    ap.add_argument('--engine', choices=list(active_asr_engines()), default='gpu_int8')
+    # 🔴🔴🔳 APP-104 §1：默认引擎**不写死** ⇒ 解析完设备后再定
+    #   （出厂默认 ASR=NPU ⇒ 默认引擎 npu_int8；见
+    #    `default_asr_engine_for_device()`）⇒ 用户显式给 --engine 仍优先。
+    ap.add_argument('--engine', choices=list(active_asr_engines()), default=None,
+                    help='ASR 引擎档（不写＝按解析出的 ASR 设备自动选：'
+                         'NPU⇒npu_int8，GPU.0⇒gpu_int8）')
     ap.add_argument('--source', choices=list(audio_source.SOURCES), default=None,
                     help='音频来源：mic=麦克风（默认）/ system=系统声音（WASAPI 回环）/ '
                          'file=音频文件')
@@ -8665,6 +8715,20 @@ def main():
     args.mt_device = _dev_sel['mt']
     args.tts_device = _dev_sel['tts']
     args.device_notes = _dev_notes
+    # 🔴🔴🔳 APP-104 §1：**引擎跟着设备走**（用户没显式给 --engine 时）
+    #   ⇒ 出厂默认 ASR=NPU 时默认引擎 = npu_int8（不再是写死的 gpu_int8）
+    if not getattr(args, 'engine', None):
+        try:
+            args.engine = default_asr_engine_for_device(_dev_sel['asr'])
+        except Exception:
+            pass
+    # 🔴🔴🔳 **APP-104 §1**：设备提示**打出来**（含「已忽略旧配置里的设备项」）
+    #   ⇒ `--check` / CLI 的 stderr 里能直接看到忽略了哪些旧值。
+    for _n in (args.device_notes or []):
+        try:
+            print('[device] %s' % _n, file=sys.stderr, flush=True)
+        except Exception:
+            pass
     # 🔴🔴🔳 **APP-098 二.4：ASR 与 MT 都放 GPU ⇒ CLI 也给提示**。
     #   实测（B 机）：两者都在 GPU.0 ⇒ 跑 268 s 后 `CL_OUT_OF_RESOURCES` 崩溃。
     #   reviewer 原话：「GUI 和 CLI 在两者都选 GPU 时给提示，建议 ASR 放 NPU，

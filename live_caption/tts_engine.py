@@ -1027,7 +1027,8 @@ def _move_cp_prefill_to_npu(eng, on_log=print) -> bool:
     if not is_npu:
         dev = str(getattr(eng, 'device', '') or '')
         if not dev.upper().startswith('NPU'):
-            on_log(f'[tts_engine] cp_prefill: CPU（非 NPU 档 device={dev}）')
+            on_log(f'[tts_engine] cp_prefill: 未迁到 NPU'
+                   f'（沿用 {dev} 编译）')
             return False
 
     ir = _cp_ir_path(eng, 'cp_prefill')
@@ -1083,8 +1084,8 @@ def _move_cp_decode_to_npu(eng, on_log=print) -> bool:
     if not is_npu:
         dev = str(getattr(eng, 'device', '') or '')
         if not dev.upper().startswith('NPU'):
-            on_log(f'[tts_engine] cp_decode: CPU'
-                   f'（非 NPU 档 device={dev}）')
+            on_log(f'[tts_engine] cp_decode: 未迁到 NPU'
+                   f'（沿用 {dev} 编译）')
             return False
 
     ir = _cp_ir_path(eng, 'cp_decode')

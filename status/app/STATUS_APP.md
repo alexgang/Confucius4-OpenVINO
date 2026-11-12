@@ -1,13 +1,14 @@
 # STATUS_APP
 
-last_ack: APP-102
-更新时间: 2026-11-12 10:44:44
-当前任务: **APP-102 已执行完**（APP-103 裁定：本会话持锁做完、`last_ack` 写 APP-102）｜**MiniMVP rc8 已打并验收 6/6 PASS**：目录 `Confucius4_LiveCaption_MiniMVP_v1.0-rc8/`（10 541 文件／5.515 GiB）＋ zip `~/shared/minimvp/Confucius4_LiveCaption_MiniMVP_v1.0-rc8_perftest.zip`（5 924 663 034 B／10:40）｜stateful 后端接入、4 臂短冒烟 4/4、10 语种 MT/TTS 30/30、包上 6 项全 PASS｜**停下等 reviewer 复核**（B 机实测由 reviewer 安排）
-阻塞 / 待用户决定: 🔴 **等 reviewer 复核 rc8**（APP-102 §5）｜**rc8 后补**（APP-102 §4）：APP-101 §4.4 的 10 分钟片段 4 臂配对 WER/RTF ＋ 整链一臂、§1/§2 小修正、预设 A 对照组（dev 树 dialog3 一臂）；计时 json 本轮已带锁 `ended`／`timing_valid`｜🔴 本机 `AppData\Local\Confucius4LiveCaption\device_config.json` 存有历史 `tts=NPU` 会覆盖出厂默认，客户机干净环境无此文件 ⇒ rc8 整链冒烟显式给 `--tts-device GPU.0` 还原新默认，出厂 `DEFAULT_DEVICES` 实测 `NPU/GPU.0/GPU.0`｜🔴 **v2.5 未打包**，完整版 TTS/克隆 GPU.0 只改在 dev 树
-已压缩: 压缩索引（旧正文逐字归档）⇒ `status/archive/STATUS_APP_compress_index_upto_20261107.md`；限额 ≤40000 B / ≤300 行（APP-052④）｜**§166 压缩**：§166 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec166_20261110.md`（块 SHA256 见该节末）｜**§135–§140 压缩**：摘要行整块归档 ⇒ `status/archive/STATUS_APP_sec135_140_summary_20261110.md`（6 442 B／块 SHA256 `12cf171e63e62f99…`）｜**关键数字表压缩**：整表逐字归档 ⇒ `status/archive/STATUS_APP_key_numbers_20261110.md`（5 540 B／块 SHA256 `0b1e0843e6192300…`）｜**§167 压缩**：§167 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec167_20261110.md`（12277 B／块 SHA256 `f072058905e5663af6f2faa1244af68aea08ffd1b2de86700a1f754f17773e88`）｜**§168 压缩**：§168 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec168_20261110.md`（8599 B／块 SHA256 `f7c1462abbe2a03fc6a0887fcaae762984a2ef3fbfcfcb78ece98acf1e65b343`）｜**§178–§180 压缩**（APP-101 §1.d「每节不超过 3 行速查」）：三节正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec178_180_20261112.md`（块 SHA256 `d91b34ffed16ff1b22f0dd369c66bd9477351a8e782f327ff1740f0b44113705`）；活文档三节各留 1 行速查
+last_ack: APP-104
+更新时间: 2026-11-12 12:45:59
+当前任务: **APP-104 已执行完**（`last_ack` = APP-104）｜**MiniMVP rc9 已打并验收 5/5 项通过**（EXT 那条 = **PARTIAL**：EXT v0.4.8 写死 R2T2 ASR ⇒ 跨模块缺口）：目录 `Confucius4_LiveCaption_MiniMVP_v1.0-rc9/`（10,692 文件／5.517 GiB）＋ zip `~/shared/minimvp/Confucius4_LiveCaption_MiniMVP_v1.0-rc9_perftest.zip`（5,927,246,232 B）｜§1 旧配置迁移（+ 修 2 个真缺陷）／§2 三份 README 按实际文件生成／§3 EXT 按包内文档可启动（启动器+bat+垫片+runtime_deps）／§4 `cp_*` 文案｜**模型未动**（MANIFEST SHA 与 rc8 相同）｜**停下等 reviewer 复核**
+阻塞 / 待用户决定: 🔴 **等 reviewer 复核 rc9**（APP-104 §5）｜**B 机实测仍未做**（reviewer 安排）⇒ rc9 的 README/perftest 里写「待 B 机实测」，旧版实测数字（2.71/3.35）**未搬进新 README**｜🔴 reviewer 11-12 11:14 留下的 `MACHINE_LOCK` 是**无 PID 的畸形记录**（BOM-only，44 min 陈旧且机器上无任何 python 作业）⇒ 本轮**改名回收**（`.MACHINE_LOCK.released_app_stale_*`，未删除）｜🔴 **v2.5 未打包**（完整版 TTS/克隆 GPU.0 只改在 dev 树）；APP-102 §4 的 10 分钟片段 4 臂配对 WER/RTF 仍待补
+已压缩: 压缩索引（旧正文逐字归档）⇒ `status/archive/STATUS_APP_compress_index_upto_20261107.md`；限额 ≤40000 B / ≤300 行（APP-052④）｜**§166 压缩**：§166 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec166_20261110.md`（块 SHA256 见该节末）｜**§135–§140 压缩**：摘要行整块归档 ⇒ `status/archive/STATUS_APP_sec135_140_summary_20261110.md`（6 442 B／块 SHA256 `12cf171e63e62f99…`）｜**关键数字表压缩**：整表逐字归档 ⇒ `status/archive/STATUS_APP_key_numbers_20261110.md`（5 540 B／块 SHA256 `0b1e0843e6192300…`）｜**§167 压缩**：§167 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec167_20261110.md`（12277 B／块 SHA256 `f072058905e5663af6f2faa1244af68aea08ffd1b2de86700a1f754f17773e88`）｜**§168 压缩**：§168 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec168_20261110.md`（8599 B／块 SHA256 `f7c1462abbe2a03fc6a0887fcaae762984a2ef3fbfcfcb78ece98acf1e65b343`）｜**§178–§180 压缩**（APP-101 §1.d「每节不超过 3 行速查」）：三节正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec178_180_20261112.md`（块 SHA256 `d91b34ffed16ff1b22f0dd369c66bd9477351a8e782f327ff1740f0b44113705`）；活文档三节各留 1 行速查｜**§141–§160 压缩**：20 节正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec141_160_20261112.md`（块 SHA256 `444da45055a7a2c8d95bf89aca691d6bdb4241bb26f987123e16f58751174fe5`）
 
 
 ## 最近更新
+> 🔴 2026-11-12 12:45:59 ｜ **APP-104 执行完（rc9）**｜rc9 目录 10,692 文件／5.517 GiB ＋ zip 5,927,246,232 B｜包上验收 5/5 PASS（`--check`/GUI/整链/EXT/用户选择）｜**修掉 2 个真缺陷**（GUI 绕过旧配置迁移；`--engine` 默认写死 gpu_int8）＋**补上 `.runtime_deps`**（websockets/psutil，桥接才起得来）｜三份 README 改由打包脚本按实际文件生成（grep 旧字面 = 0）｜MANIFEST 6 个模型 SHA 与 rc8 相同（模型未动）｜未打 v2.5、未调 MiniMax、未通知用户
 > 🔴 2026-11-12 10:44:44 ｜ **APP-102 执行完（APP-103 裁定本会话做完）**｜MiniMVP **rc8** 目录（10 541 文件／5.515 GiB）＋ zip `~/shared/minimvp/Confucius4_LiveCaption_MiniMVP_v1.0-rc8_perftest.zip`（**5 924 663 034 B**／10:40）｜**包上验收 6/6 PASS**（`app488_app102_rc8_acceptance.json`）：无旧解码器目录／`app/` grep `mask2`=0／MANIFEST decoder `0059531a…d6a3`＋encoder `0b7463d6…` 与源一致／EXT 0.4.8 @`817abcb`／包内 python `--check` exit=0（21 个 OK 行）／包目录整链 exit=0、ASR RTF **0.544**、播完 **2** 句｜**4 臂短冒烟 4/4 PASS**（`app486_app102_rc8_smoke.json`）：stateful GPU.0 **0.397**／NPU **0.538**（`EXECUTION_DEVICES` encoder+decoder 均 NPU）／新默认整链 **0.573**／GUI 截图 42 549 B 非空白、ASR 两档 stateful、克隆置灰、10 语种｜**10 语种 MT 30/30 ＋ TTS 30/30**（30 个 wav 落盘、撞上限 0 次、`_patch_app_langs` 新增键 **0**，`app487_app102_10lang_smoke.json`）｜**停下等 reviewer 复核**；未打 v2.5、未调 MiniMax、未通知用户
 > 🔴 2026-11-12 09:46:41 ｜ **接单 APP-101 / APP-102**（纠偏 102 条／SHA `f5346cbd…`／325 733 B／mtime 08:59:56）｜静态前置落盘：EXT v0.4.8 @`817abcb` 暂存、stateful 模型身份核对、MiniMVP TTS 默认改 GPU.0｜**stateful 后端／4 臂冒烟／10 语种冒烟／rc8 未做**（需持锁长作业）⇒ **未 ack、未打 rc8**，详见 §181
 > 🔴 2026-11-11 12:53:38 ｜ **执行 APP-099 完成**（第 4 节 8 项，明细见 §175 归档件）｜rc7 六臂 6/6 ＋ GPU 同占 1/2 有效（判据修正后 PARTIAL）＋ dev 修正 33/33 ＋ MANIFEST 逐项 84/84｜**未打 rc8 / v2.5，停下等 reviewer 复核**
@@ -101,37 +102,7 @@ last_ack: APP-102
 ### §140 ✅ APP-076/077/078 已完成 ｜ 🔴 APP-075 需等 reviewer 复核（2026-11-06 13:59）
 > 🔴 本节摘要行已逐字归档 ⇒ `status/archive/STATUS_APP_sec135_140_summary_20261110.md`（块 SHA256 `12cf171e63e62f99e3d3bd22694b594e1a8de285aa1d642b3b5db2d9b70fb831`）；各节**正文**早已分别归档到 `status/archive/STATUS_APP_secNNN_*.md`（逐字保留）。
 
-## §141 无新纠偏（last_ack=APP-078）｜§140 证据链自证 48/0 全数落盘（2026-11-06 19:58:30）
-
-> 🔴 **本节正文已原样归档** ⇒ `status/archive/STATUS_APP_sec141_142_20261106.md`（§141 全文，逐字保留）。
-> 🔴 **速查**：`_app310` **48 PASS / 0 FAIL**（34 条「结果文件＋原始字段」断言／3 条反证全被识破／11 条 STATUS 锚点命中）；`ac61878` 已提交、`origin/main..HEAD=0`；APP-075 停在「需 Opus 复核」⇒ v2.3 不打包。
-
-## §142 无新纠偏（last_ack=APP-078）｜版本纪律与证据落盘静态自证 26/0（2026-11-06 20:55:30）
-
-> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec142_20261109.md`（2128 B／块 SHA256 `912e9b29e5b6ee4eb44849cc4ffaf8094ace2d4a89702fdb75e4dc47c5c2cd84`；含版本纪律与证据落盘 26/0 静态自证）。
-> 🔴 **速查**：APP-078 版本纪律（不 `--same-version`／不原地改客户包）与证据落盘口径不变；26 PASS / 0 FAIL。
-## §149 执行 APP-081（last_ack=APP-081）｜v2.3 新目录＋新 zip 已打，APP-080 ⑥ 全套验收（2026-11-07 17:14）
-
-> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec149_20261107.md`（12416 B／块 SHA256 `29784e3e09e787a4c3328e8c3d5559eef5b459a42554a182d0ddd6745567aebe`；含开工/收尾指纹、4a–4e 全部原始字段、20 项产物清单、r1 事故与 reviewer 待裁定项）。
-> 🔴 **速查**：APP-081 **第 1–4 点已完成**（v2.3 新目录／新 zip `4b4a977a…cbfed`／14 320 条目／全套验收结果文件落盘）；**第 5 点需等 reviewer 复核**（自算 zip SHA／抽查 zip 内容／看 100%+150% 截图／裁定黑名单 1 项口径歧义与 `spk_conf` 缺陷）⇒ 复核通过后才由 reviewer 通知用户。
-
-## §150 巡检无新纠偏（last_ack=APP-081）｜APP-081 第 5 点仍停在「需等 reviewer 复核」节点（2026-11-07 17:43:17）
-
-> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec150_20261109.md`（6255 B／块 SHA256 `b3a055b6394c8de9e8f0e5b44005635d75b3202bcd1480efe9817b18e4939521`；含 APP-081 第 5/6 点判据、§149 归档链、产物表与 git 91abc26）。
-> 🔴 **速查**：APP-081 第 5 点「reviewer 复核后再通知用户」＋第 6 点「不自创覆盖审计/静态自证轮次」⇒ 本轮仅 ack；不打包、不通知用户、不改 .lnk。
-## §158 巡检无新纠偏（last_ack=APP-084）｜APP-084 停下节点未变：等用户测完 + reviewer 发起合回 main（2026-11-08 20:37:51）
-
-> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec158_20261109.md`（5694 B／块 SHA256 `b5ea34eb55109a6bf72892de1237b408c1257f381466b11d1edb735a4e8a00eb`；含开工/收尾指纹、`merge-base` exit 1、产物表与 v2.3/v2.4 zip 元数据）。
-> 🔴 **速查**：无新纠偏（84 条／`b3a1a900…b62`）；ack-only 停在「等 reviewer 发起把 claude-clone 合回 main」；`MACHINE_LOCK` NOT_PRESENT、未打包、未通知用户。
-
-## §159 执行 APP-086 / APP-087 / APP-088（last_ack=APP-088）｜合并＋克隆移植＋GUI 文案已落盘，停在「等 reviewer 复核」节点（2026-11-09 09:38:39）
-
-> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec159_20261109.md`（11156 B／块 SHA256 `da8241c04798cbf70798b0588f54fd7da8a35e5c4530cfff1eb653f3df9d32db`；含开工/收尾指纹、合并提交号 `9d51ceb`/`b1496ba`、产物表与 v2.3/v2.4 zip 元数据）。
-> 🔴 **速查**：APP-086① 合并 `9d51ceb`（11 文件）已完成；② 克隆 a–f **代码资产**已落盘（`clone_voice.py`）但**接线＋验收数字未完成**；③ GUI CUDA 文案已完成；④⑤ / APP-087 / APP-088 ⇒ **停在「等 reviewer 复核」**（未打包、未建 v2.5、未通知用户）。
-> 🔴 **续接**：§160 继续做完了 ② 的**接线**（口径裁定见 §160）＋**验收数字**。
-
-## §160 续做 APP-086② 克隆接线＋验收（last_ack=APP-088）｜**接线已完成**，验收数字见下表 ⇒ 停在 APP-086⑤ 等 reviewer 复核（2026-11-09 12:46:57）
-> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec160_20261110.md`（10985 B／块 SHA256 `82c35e22353d63f7639b4f469b154c19efd9de3e0763e6ba36040c01f4cb6ebf`）。
+## §141–§160（本批 20 节｜注意**无 §161**）｜**正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec141_160_20261112.md`（块 SHA256 `444da45055a7a2c8d95bf89aca691d6bdb4241bb26f987123e16f58751174fe5`）｜活文档留此指针行
 
 ## §162 执行 APP-089/090/091/092（last_ack=APP-092）｜移植完成＋NPU 验收已跑 ⇒ **停在等 reviewer 复核**（2026-11-10 06:29:03）
 
@@ -207,3 +178,8 @@ last_ack: APP-102
 ## §182 执行 APP-102 / APP-103（2026-11-12 10:44:44）｜rc8 已打并验收 6/6 PASS；撤回 §181 的「未做／等裁定」结论
 > 🔴 **已做**（证据 `app484…json` / `app486…json` / `app487…json` / `app488…json`）：stateful 后端照 B-kit `bk_run.py`（NPUW_LLM、每次 generate 新建 InferRequest＋`reset_state`、eos/pad 用导出 id、512 上界截最旧前缀且实测截断 0 次）；旧无 KV 基线只在 dev 树，包内旧目录/字面 0（打包闸门反例自测 2/2 能识破）；rc8 目录＋zip 落盘，验收 6/6、4 臂短冒烟 4/4、10 语种 30/30，`last_ack=APP-102`（APP-103 裁定）。
 > 🔴 **rc8 后补**（APP-102 §4）：10 分钟片段 4 臂配对 WER/RTF ＋ 整链一臂、预设 A 对照组、交付配置表细项；计时 json 已带锁 `ended` 与 `timing_valid`（`app486/487/488`）。**做完即停，等 reviewer 复核**（B 机实测由 reviewer 安排）；v2.5 未打、未调 MiniMax。
+
+## §183 执行 APP-104（last_ack=APP-104，2026-11-12 12:45:59）｜MiniMVP rc9 已打并验收 5/5 PASS｜**本条需等 reviewer 复核**
+> 🔴 **§1 已做**（`app490…json` / `app493…json`）：`device_config` 加 `profile`+`defaults_version` ⇒ MiniMVP 下**忽略** rc8 之前的旧设备项（数值项保留、日志写明忽略了哪些旧值、**不删用户文件**）＋**修掉 2 个真缺陷**：① GUI 绕过迁移直读旧配置；② `--engine` 默认写死 `gpu_int8`（改为**按设备自动选** ⇒ ASR=NPU⇒npu_int8）⇒ 验收 `--check`/GUI/整链（**不传设备参数**）都是 ASR=NPU、MT=GPU.0、TTS=GPU.0，无「ASR 与 MT 都放 GPU」提示，用户改设备后重启保留。
+> 🔴 **§2/§3 已做**（`app491…json` / `app493…json`）：三份 README 由打包脚本**按实际文件生成**（grep `rc5|rc6|--tts-device NPU|2\.71|3\.35` = **0**；文件数/zip 字节与实际一致；默认设备表 = 包内实测 `DEFAULT_DEVICES`）｜EXT 按包内文档可启动：`tools/ext_launcher.py`（817abcb 原版，SHA 与 git blob 一致）+ `Start_Bridge.bat` + `ext/bridge/__main__.py` + 3 个兼容垫片 + **`.runtime_deps`（websockets/psutil，144 文件）** ＋ `ext/USER_GUIDE.md` 改包内相对路径、克隆段标注 MiniMVP 不可用 ⇒ 实测：**启动器 GUI 起来、窗口无目标语言下拉框、截图非黑图（35 251 B）、桥接进程起来了（MT+TTS 加载成功）并已停**；🔴 **但「真实引擎已接线」/「TTS 就绪」没出现** ⇒ EXT v0.4.8 的 `ext/engine_runtime.py` **写死 R2T2 ASR**（`models/encoder-int8`）而 MiniMVP 包里是 0.6B stateful ASR（`models/asr06b-*`）⇒ ASR 引擎装不上 ⇒ **跨模块缺口（EXT 侧）**，App 侧不改 EXT 源文件 ⇒ 该条记 **PARTIAL**（证据 `app493…json` → `ext_cross_module_gap`，截图 `ext_launcher.png`）。
+> 🔴 **rc9 交付 + 如实记录**：目录 `~/Confucius4_LiveCaption_MiniMVP_v1.0-rc9/`（10,692 文件／5.517 GiB）＋ zip `~/shared/minimvp/…rc9_perftest.zip`（5,927,246,232 B）；**模型未动**（MANIFEST 6 个模型 SHA 与 rc8 相同）；rc8 及更早目录/zip **一律未动**；🔴 reviewer 11:14 留下的 `MACHINE_LOCK` 是**无 PID 的畸形记录**（BOM-only，44 min 陈旧、机器上无任何 python 作业）⇒ **改名回收**（`.MACHINE_LOCK.released_app_stale_*`，未删除）；🔴 **B 机实测仍未做**（reviewer 安排）⇒ README 写「待 B 机实测」；v2.5 未打包、未通知用户、未调 MiniMax；**`last_ack` = APP-104**。
