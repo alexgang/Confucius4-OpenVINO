@@ -1,13 +1,14 @@
 # STATUS_APP
 
 last_ack: APP-100
-更新时间: 2026-11-11 18:55:00
-当前任务: **巡检无新纠偏**（`last_ack=APP-100`；纠偏文件 **100 条 / 最大 APP-100**（SHA `219ef841…`／308 340 B）⇒ 无编号更大的新条目）｜**本轮修掉 6 处 git 半交付**（STATUS 引用的归档件／证据产物在磁盘上却从没进过 git ⇒ 换 clone 即断链）＋ **新增「git 半交付」判据**（**不变量：`FAIL=0`／`MISSING=0`／反证 3/3**；审计行数是**观察量、非定值** ⇒ §180 已撤回「行数＝定值」的措辞）｜**未打包 v2.5／未打 rc8／未通知用户／未调 MiniMax／未占设备**｜结果见 §180 归档件（§179／§180 两节是把「自指数字」这一**概念错误**连根拔除：**只引用不变量**；§178 的结论与 6 处修复本身全部成立）
-阻塞 / 待用户决定: 🔴 **本轮 6 处 git 半交付已补交**（只补交、未改内容）⇒ 换 clone 的读者不再断链｜🔴 **`late_drop` 修复未进任何客户包**（只改 dev 树）⇒ APP-055 须打新版本号；且 MiniMVP 按用户决定**暂不打包** ⇒ **等 reviewer 裁定何时随 v2.5 / rc8 出**｜🔴 **该缺陷正落在 `tts_late_drop_sec` 阈值上**（用户 11-11 定「下次再定」）⇒ 修好后影响面会变｜🔴 **GUI 布局修复仍未同步客户包**（v2.5 未打包）⇒ **请 reviewer 裁定**：立刻修还是随 v2.5 一起出｜🔴 **§3.5 音色归属判据失效**（三人真值余弦 0.957–0.972）⇒ 未自行换判据｜🔴 **§3.6 切段开销不可测**（质心恒 1）⇒ 需 reviewer 裁定｜**倍率地板** 与 **`tts_late_drop_sec`** 仍未裁定｜🔴 **新发现：引用字节数须区分 LF/CRLF**（`core.autocrlf=true` 且无 `.gitattributes`）⇒ 已加进判据
-已压缩: 压缩索引（旧正文逐字归档）⇒ `status/archive/STATUS_APP_compress_index_upto_20261107.md`；限额 ≤40000 B / ≤300 行（APP-052④）｜**§166 压缩**：§166 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec166_20261110.md`（块 SHA256 见该节末）｜**§135–§140 压缩**：摘要行整块归档 ⇒ `status/archive/STATUS_APP_sec135_140_summary_20261110.md`（6 442 B／块 SHA256 `12cf171e63e62f99…`）｜**关键数字表压缩**：整表逐字归档 ⇒ `status/archive/STATUS_APP_key_numbers_20261110.md`（5 540 B／块 SHA256 `0b1e0843e6192300…`）｜**§167 压缩**：§167 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec167_20261110.md`（12277 B／块 SHA256 `f072058905e5663af6f2faa1244af68aea08ffd1b2de86700a1f754f17773e88`）｜**§168 压缩**：§168 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec168_20261110.md`（8599 B／块 SHA256 `f7c1462abbe2a03fc6a0887fcaae762984a2ef3fbfcfcb78ece98acf1e65b343`）
+更新时间: 2026-11-12 09:46:41
+当前任务: **接单 APP-101 / APP-102**（reviewer 11-12 08:59:56 追加；纠偏文件 **102 条 / 最大 APP-102** / SHA `f5346cbd…` / 325 733 B）｜APP-102 用户决定「直接打 rc8」⇒ 本轮已完成**不依赖设备**的静态前置（EXT v0.4.8 @`817abcb` 暂存、stateful 模型身份核对、MiniMVP TTS 默认改 GPU.0）｜**stateful 后端接入／4 臂短冒烟／10 语种冒烟／rc8 打包与验收未做**（需持 `MACHINE_LOCK` 长作业）⇒ **未打 rc8／未打 v2.5／未 ack**｜详见 §181
+阻塞 / 待用户决定: 🔴 **`last_ack` 暂保持 `APP-100`**：APP-101 §6 要求「开始时先写 APP-101」，但同节又要求第 3/4 节做完才逐项写 PASS/FAIL；为免下一轮巡检把未完成的 §3/§4 当作已执行完而跳过 ⇒ **不虚报 ack，请 reviewer 裁定**｜🔴 APP-101 §4 草案与 App `ASRBackend` 契约 3 处不一致（prompt 硬上界 512／EOS 多 `151673`／runner 用 torch embedding 而 App 只有 npy）⇒ **列出报 reviewer，未自行改 ASR 侧**｜🔴 rc8 需 4 臂设备冒烟（GPU/NPU）＋10 语种冒烟＋GUI 截图＋包上验收 ⇒ 需专门持锁长作业会话｜🔴 交付配置表已按 §1.b 更新（v2.4／rc7 为磁盘最新，v2.5／rc8 未打包）；§3.5 判据失效已由 wespeaker 解决，旧阻塞项已清除｜**倍率地板** 与 **`tts_late_drop_sec`** 仍未裁定
+已压缩: 压缩索引（旧正文逐字归档）⇒ `status/archive/STATUS_APP_compress_index_upto_20261107.md`；限额 ≤40000 B / ≤300 行（APP-052④）｜**§166 压缩**：§166 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec166_20261110.md`（块 SHA256 见该节末）｜**§135–§140 压缩**：摘要行整块归档 ⇒ `status/archive/STATUS_APP_sec135_140_summary_20261110.md`（6 442 B／块 SHA256 `12cf171e63e62f99…`）｜**关键数字表压缩**：整表逐字归档 ⇒ `status/archive/STATUS_APP_key_numbers_20261110.md`（5 540 B／块 SHA256 `0b1e0843e6192300…`）｜**§167 压缩**：§167 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec167_20261110.md`（12277 B／块 SHA256 `f072058905e5663af6f2faa1244af68aea08ffd1b2de86700a1f754f17773e88`）｜**§168 压缩**：§168 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec168_20261110.md`（8599 B／块 SHA256 `f7c1462abbe2a03fc6a0887fcaae762984a2ef3fbfcfcb78ece98acf1e65b343`）｜**§178–§180 压缩**（APP-101 §1.d「每节不超过 3 行速查」）：三节正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec178_180_20261112.md`（块 SHA256 `d91b34ffed16ff1b22f0dd369c66bd9477351a8e782f327ff1740f0b44113705`）；活文档三节各留 1 行速查
 
 
 ## 最近更新
+> 🔴 2026-11-12 09:46:41 ｜ **接单 APP-101 / APP-102**（纠偏 102 条／SHA `f5346cbd…`／325 733 B／mtime 08:59:56）｜静态前置落盘：EXT v0.4.8 @`817abcb` 暂存、stateful 模型身份核对、MiniMVP TTS 默认改 GPU.0｜**stateful 后端／4 臂冒烟／10 语种冒烟／rc8 未做**（需持锁长作业）⇒ **未 ack、未打 rc8**，详见 §181
 > 🔴 2026-11-11 12:53:38 ｜ **执行 APP-099 完成**（第 4 节 8 项，明细见 §175 归档件）｜rc7 六臂 6/6 ＋ GPU 同占 1/2 有效（判据修正后 PARTIAL）＋ dev 修正 33/33 ＋ MANIFEST 逐项 84/84｜**未打 rc8 / v2.5，停下等 reviewer 复核**
 > 🔴 2026-11-11 10:19:33 ｜ **开始执行 APP-099**（reviewer 09:20 追加，纠偏文件 **99 条** / SHA `F01C5C88…` / 307 394 B / mtime 09:28:13）｜第 0 节 **5 项用户决定** ＋ 第 4 节 **8 项任务** ｜**修在 dev 树、暂不打 rc8、不打 v2.5、不通知用户、做完停等复核**｜🔴 **设备作业排队**：`MACHINE_LOCK` 09:38:49 空文件（无 PID 可解析 ⇒ fail-closed 视为存活）＋ ASR 租约活跃（token `9bda917a`，beat 10:11）⇒ 第 1/2 项须等锁，不抢｜本条**需等 reviewer 复核**
 > 🔴 本节 7 条较旧「最近更新」原文已**整块逐字归档** ⇒ `status/archive/STATUS_APP_recent_updates_upto_20261111.md`（块 SHA256 `35882165a9e7ba88a39e134ea72a81cee4a4f3d41961c751cb6a359097eed9fe`／5198 B）；速查：APP-098 rc6 修整／§169 两真缺陷／§168 ABBA／APP-093 §3+APP-097 §2 补齐／APP-094-096 rc5／APP-093 ack／rc4 zip。
@@ -24,13 +25,16 @@ last_ack: APP-100
 | 客户包 zip | 🔴 **候选 = v2.2**（**2026-11-02 01:54:03** / **11 233 149 299 B** / **14 317 文件** / SHA256 **`ea5c5c850f8836a7edab982611cdd59d0ba0e83f8d5ff880cc797b7c67c23b75`**）⇒ 含 APP-061 全部代码（①④⑤＋③⑥）＋ EXT 插件 + 桥接服务 ＋ **重签的 `ACCEPTED.json`**（`code_fingerprint=fddb2dc6b06d…` / 28 个生产模块 / `binding_gate=app191`）＋ v2.2 改动说明（zh/en）⇒ **未改桌面快捷方式、未通知用户**（待抽听）｜ **当前交付版仍是 v2.1**（**2026-11-01 20:38:13** / **11 233 135 359 B** / SHA256 `835803a7246470faf0725a3f429b0339ccb6dac8ba7e1d1854176775e6cbaaa4`）⇒ **v2.0 首包（17:49 / SHA `8198924f…`）保留不删** | `results/app/DELIVERY_2.2.json` → `sha256` / `bytes` / `mtime`；打包日志 `_pack_v22_run.log` → 「比对 14 317 个文件 / 全部逐字节一致」＋ `testzip()` OK ＋ 「--no-shortcut 跳过桌面快捷方式更新」；v2.1 见 `DELIVERY_2.1.json` |
 | 默认翻译模型 | Hy-MT2 INT8-CW，设备 GPU.0（Intel 集显） | `status/app/CORRECTIONS_APP.md` → APP-002（用户决定）；设备实测见 `app048_layout_1920x1080.png` |
 | ASR 模型 | Qwen3-ASR 路线，精度 INT8，设备 GPU.0 | `app048_layout_1920x1080.png`（ASR 区实测「Intel GPU（集显）· INT8」） |
-| 语音输出设备 | TTS 走 NPU（F16 / INT8 视配置） | `app048_layout_1920x1080.png`（语音区实测「语音区 · Intel NPU · F16」） |
+| 语音输出设备 | 🔴 **APP-101 §0.3 / APP-102 §0（用户 11-12 决定）**：完整版 TTS 与克隆（说话人编码器／x-vector）→ **GPU.0**；MiniMVP TTS → **GPU.0**（克隆置灰）｜**dev 树已改**、**未进任何客户包** ⇒ 须随 v2.5 / rc8 新版本号出 | `live_caption/device_config.py:69-74` → `_DEFAULT_DEVICES_MINIMVP[tts]=GPU.0`（`ast.parse` OK）；`CORRECTIONS_APP.md` → APP-101 §0.3 / APP-102 §0；旧「TTS 走 NPU」实测 `app048_layout_1920x1080.png` **已过期** |
 | 说话人 IR 精度 | **FP16**（ASR 聚类结果与 FP32 **0 段不一致**） | `asr067_fp16_vs_fp32_cluster.json` → `n_diff_segments=0`（APP-047） |
 | 说话人资产（随包） | **恰好 3 个文件**（`asr052_speaker_tracker_api.py` / `asr052_spk_runtime.py` / `asr_thread_defaults.py`） | `app164_app047_spk_resync_evidence.json` → `pass_=30` |
 | 音色策略 | **按句绑定原说话人**（APP-039/040 核心已实施） | `status/archive/STATUS_APP_upto_20261030.md` → §99 / §100 |
 | GUI 状态布局 | **三分区状态条**（ASR / 翻译 / 语音输出） | `app185_app048_gui_layout_pkg_evidence.json` → `verdict=PASS` / `n_pass=64` / `n_fail=0`（**在客户包内代码上跑**） |
 | 桌面快捷方式 | **v2.1 两个**（`Confucius4 实时字幕 v2.1.lnk` ＋ `实时配音桥接服务 v2.1.lnk`，均由 `WScript.Shell.CreateShortcut` 生成 ＋ COM 读回验证 ⇒ 非坏链）；⚠️ 桌面仍残留 `实时配音桥接服务 v2.0.lnk`（**未删**，待用户/reviewer 决定） | `results/app/app212_app057_v21_shortcuts_evidence.json` → `checks`（**9 PASS / 0 FAIL**，含 3 条反证） |
 | 说话人识别旁路 | **默认关闭**（`--speaker off` 是默认；GUI 有「说话人识别」勾选框）⇒ v1.13 的阻断级回归已止血 | `results/app/app199_app054_ab_evidence.json` → `checks`（4 PASS / 0 FAIL）；`app197` → T7 |
+| MiniMVP 默认设备（新） | ASR **NPU** / MT **GPU.0** / TTS **GPU.0**；`device_config.DEFAULT_DEVICES` 为唯一事实来源，GUI `_dev_selected` 与 CLI `get_devices()` 同源（无第二份字面量） | `live_caption/device_config.py:69-74`；`_DEFAULT_DEVICES_FULL` 三档仍全 GPU.0 |
+| 磁盘最新完整版包 | `Confucius4_LiveCaption_v2.4/` 与 `Confucius4_LiveCaption_v2.4.zip`（**11 235 954 241 B** / 2026-11-07 23:04）在位；**v2.5 未打包**；v1.5 / v1.13 / v2.0–v2.3 / `v2.3_aborted_20261107_1517` 均保留未删 | 磁盘实测 `ls -d` / `ls -la`（2026-11-12 09:47） |
+| 磁盘最新 MiniMVP 包 | `Confucius4_LiveCaption_MiniMVP_v1.0-rc7/` 在位；**rc6 已按 APP-099 移入回收站**（可逆）；**rc8 未打包**（APP-102 要求「直接打 rc8」⇒ 前置冒烟未完成，本轮未打） | 磁盘实测 `ls -d`（2026-11-12 09:47）；`CORRECTIONS_APP.md` → APP-102 §3 |
 
 ### 关键数字
 
@@ -186,24 +190,15 @@ last_ack: APP-100
 > 🔴 **速查②两臂都自然退出（exit=0）**：A（ASR GPU.0＋MT GPU.0＋TTS NPU）**951.9 s**／shared **2262.1 MB**／RSS **7688.2 MB**；B（ASR NPU＋MT GPU.0＋TTS NPU）**1759.1 s**／shared **1810.6 MB**／RSS **7097.1 MB** ⇒ **PASS、`timing_valid=True`** ⇒ **A 臂未复现 B 机 268 s 崩溃**；两臂差异真因是 **NPU 争用**（B 臂 ASR＋TTS 同在 NPU ⇒ TTS 被挤 ⇒ 积压 763.70 s vs A 臂 229.22 s）。
 > 🔴 **速查③查实并修掉 1 个 App 侧真缺陷**：`tts_service.py` 的 `late_drop` 分支只 `n_dropped += 1` 而**不摘 `pending`** ⇒ ① `drain()` 退出条件 `pending_n==0` **永不成立** ⇒ 必然空等到超时（**B 臂白等 1157.8 s ≈ 19 min**）；② `close()` 再把同一批当 orphan 计一次 ⇒ §29 不变式破坏（**A 臂提交 159 播完 93 丢弃 132 ⇒ 多 66 句**，＝ jsonl 实测 `late_drop` 66 句）⇒ 改走 §60 唯一原子口径 `_drop_one(jid)` ⇒ **只改 dev 树**（已交付包零影响）｜**判据 8/8 PASS**（REAL 4/4 ＋ **反证 4/4 全触发**）｜另修 harness 3 个缺陷（verdict 期望臂数假阴性／`n, _` 解包崩溃／**`--outroot` 相对路径把产物落进 rc7 包内** ⇒ 已改绝对路径、10 个产物**逐字节抢救**回仓库、**rc7 包已复原**）｜**纠偏文件全程只读**：开工＝收尾 SHA `219ef841…`／308 340 B／**100 条** ⇒ **SHA 零改动**｜**未打包 v2.5、未打 rc8、未通知用户、未调 MiniMax、未改任何默认值或产品判据**｜**本条需等 reviewer 复核**。
 
-## §178 巡检（last_ack=APP-100，2026-11-11 18:55:00）｜**无新 reviewer 纠偏**；查出并修掉 **6 处 git 半交付**（STATUS 引用的归档件／证据产物**在磁盘上却从没进过 git**）＋ 新增「**git 半交付**」判据（177 行／**0 FAIL**＋反证 **3/3**）｜**本条需等 reviewer 复核**
+## §178 巡检（last_ack=APP-100，2026-11-11 18:55:00）｜**6 处 git 半交付已补交**
+> 🔴 正文整块逐字归档 ⇒ `status/archive/STATUS_APP_sec178_180_20261112.md`（SHA256 `d91b34ffed16ff1b22f0dd369c66bd9477351a8e782f327ff1740f0b44113705`）；结论：补交 6 处漏提交产物（`app468` FAIL=0／MISSING=0／反证 3/3）。
 
-> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec178_20261111.md`（12 105 B／SHA256 `de11dd84f8f3fc30658016a8fc3bdc31d6414cdf25fbba8e57b0e906575779a9`）｜**归档件逐字节未动**（write-once）｜**上一会话（token `3face6f5`）死于「收尾复核」中途** ⇒ 本轮从其断点续做，**未推翻任何 §177 结论**。
-> 🔴 **速查①根因**：§173 的「归档指针可核对性」判据只查**磁盘存在 + SHA** ⇒ **查不出 git 半交付**（它报「30 OK／0 FAIL」，而实测 **6 处引用在磁盘上却从未进过 git** ⇒ 换 clone 即断链）⇒ 新判据加第 3 维度：**已跟踪 ＋ 已提交到 HEAD 树**（查 `git ls-tree HEAD`，不查暂存区 ⇒ 铁律「「包里对」≠「已交付」」）。
-> 🔴 **速查②已修 6 处半交付**（只补交、未改内容）：`sec159`（11 156 B）／`sec176`（13 851 B）／`app326_app097_lang_out/mt.json`（122 674 B）／`app326_app097_lang_out/tts.json`（214 657 B，**§172 `_SEC_PER_CHAR` 回填的唯一数据源**）／`app372…/subtitle_layout.json`（386 B）／`app458_app100_device.json` ＋ 8 份产物 ⇒ git `14531d0` ＋ `fe6f1bc`。
-> 🔴 **速查③新发现第 4 种形态 `lf`/`crlf`**：本仓库 `core.autocrlf=true` 且**无 `.gitattributes`** ⇒ git 存 LF、工作区 CRLF ⇒ 旧章节引用算的是**工作区 CRLF 字节**（§172 的 6 288 B、§177 的 2 138 B，**差值恰等于行数**）⇒ 拿 LF 比 ⇒ **3 个假 FAIL** ⇒ 🔴 **教训：引用里的字节数须先确认指的是 LF 还是 CRLF**（**假 FAIL 比漏检更费时间**）。
-> 🔴 **速查④判据** `results/app/_app468_status_git_halfdelivery.py`（只读）⇒ **177 行／OK 173／FAIL 0／MISSING 0／反证 3/3 全触发 ⇒ PASS**；反证 C 用 `git ls-tree <修复前 ref>` **从历史重建**修复前状态（抓到 6 处）⇒ **不用手工快照**（快照会随判据演进失真 ⇒ 假自证）。
-> 🔴 **证据**：`results/app/app468_status_git_halfdelivery.json`（本轮判据产物）＋`results/app/_app468_status_git_halfdelivery.py`（判据脚本）＋`status/archive/STATUS_APP_sec178_20261111.md`（§178 正文全文）｜**未打包 v2.5／未打 rc8／未通知用户／未调 MiniMax／未改任何默认值或产品判据／未占设备／未持锁**｜**纠偏文件全程只读**（开工＝收尾 SHA `219ef841…`／308 340 B／100 条 ⇒ **SHA 零改动**）。
+## §179 勘误（2026-11-11 18:55:00）｜撤回「判据 177 行」
+> 🔴 同上归档件；§178 的自指行数快照作废。
 
-## §179 勘误（2026-11-11 18:55:00）｜**撤回 §178 归档件里的「判据 177 行」这一数字** ⇒ **稳态真值 = 184 行**（OK 179／FAIL 0／反证 3/3）｜§178 的**结论与修复本身全部成立、不变**
+## §180 勘误（2026-11-11 18:55:00）｜撤回「184 行＝稳态真值」
+> 🔴 同上归档件；结论只引用不变量（FAIL=0／MISSING=0／反证 3/3）。
 
-> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec179_20261111.md`（3 193 B／SHA256 `7c204c71e98d1d55de8f13012dee75deefec5e6effab49340e30733e4c094913`）｜**归档件逐字节未动**（write-once）。
-> 🔴 **勘误**：§178 归档件写的「177 行／OK 173」是**写 §178 那一刻的自指快照**（判据要审计活文档与归档件里引用到的每个产物 ⇒ §178 自身入库后**多 7 行**）⇒ **稳态 = 184 行／OK 179**（本轮实测 **2 次一致**）；**只撤回这一个数字** ⇒ **FAIL = 0／MISSING = 0／反证 3/3／6 处半交付已修复／CRLF 形态这个新发现** —— **全部成立、不变**。
-> 🔴 **教训**：**自指数字必须以磁盘实测稳态为准**；且判据的**结论口径不依赖行数**（`FAIL=0`＋反证 3/3 才是不变量）⇒ **结论不受自指影响**，行数只作参考、**不作阈值**。
-
-## §180 勘误（2026-11-11 18:55:00）｜**撤回 §179 的「184 行 = 稳态真值」措辞** ⇒ **审计行数是观察量、不是定值**；判据的**不变量 = `FAIL=0` ＋ 反证 3/3**（本轮实测 **185 行／OK 180／FAIL 0**）｜§178／§179 的**结论与 6 处修复本身全部成立、不变**
-
-> 🔴 **本节正文已整块逐字归档** ⇒ `status/archive/STATUS_APP_sec180_20261111.md`（3 215 B／SHA256 `5b1a4fe859c0726feee3645c639c9f6905bdcb22e41b0737c33cfe92a088044e`）｜**归档件逐字节未动**（write-once）。
-> 🔴 **勘误**：判据审计的对象**包含活文档自身引用的产物** ⇒ §178 入库涨 7 行、§179 入库再涨 1 行 ⇒ 🔴 **行数永远没有「稳态」** ⇒ 撤回 §179 的「184 行 = 稳态真值」措辞（本轮实测 **185 行**）。
-> 🔴 **根因消除（不是逐轮打补丁）**：判据 `pass` 条件**本来就不含行数**（`n_fail==0 and n_missing==0 and anti_all_discriminating`）⇒ **行数从一开始就不参与结论** ⇒ 自本节起 STATUS **只引用不变量**（`FAIL=0`／`MISSING=0`／反证 **3/3**），`n_rows` 仅留作调试、**不作阈值** ⇒ **后续轮次不再需要为行数写勘误**。
-> 🔴 **对照 MEMORY 老坑**「自指大小必须与磁盘实测一致」：本例形态是「**审计对象包含审计结论自身**」⇒ 任何**绝对**数字必然滞后一轮 ⇒ 正确做法是**改口径**，不是把数字追平。
+## §181 接单 APP-101 / APP-102（2026-11-12 09:46:41）｜静态前置完成；设备作业与 rc8 未做
+> 🔴 **已做**（证据 `results/app/app482_app101_102_model_identity.json`）：EXT v0.4.8 @`817abcbe…` 用 `git archive` 暂存 `_ext_v048_stage`（167 文件／`ext/accel_usage.py` 在位／manifest `version=0.4.8`）；decoder bin SHA `0059531a…d6a3` 与 reviewer 一致、IR `inputs_embeds [1,1..512,1024]`、hidden 1024／28 层、encoder bin `0b7463d6…` 前缀一致；`device_config.py:69-74` MiniMVP `tts` `NPU`→`GPU.0`（`ast.parse` OK、GUI/CLI 同源）。
+> 🔴 **未做**（需持 `MACHINE_LOCK` 长作业，**不虚报**）：`backends_stateful.py` 后端／`make_backend` 分派／`manifest_gen` 源目录／rc8 打包脚本、4 臂短冒烟、10 语种冒烟、GUI 截图、rc8 目录+zip 与包上验收 ⇒ **未打 rc8／v2.5、未通知用户、未调 MiniMax、未占设备**；`last_ack` 保持 `APP-100`（理由见头部），**等 reviewer 裁定**。
