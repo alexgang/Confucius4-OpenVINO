@@ -1,0 +1,64 @@
+{
+ "script": "gate4 real-package matrix (read-only)",
+ "generated": "2026-11-13 04:44:59",
+ "gate": "check_app086_2a_narrowing",
+ "cases": [
+  {
+   "case": "real_defective:Confucius4_LiveCaption_v2.2",
+   "expect": "FAIL",
+   "rc": 1,
+   "ok": true
+  },
+  {
+   "case": "real_defective:Confucius4_LiveCaption_v2.3",
+   "expect": "FAIL",
+   "rc": 1,
+   "ok": true
+  },
+  {
+   "case": "real_defective:Confucius4_LiveCaption_v2.3_aborted_20261107_1517",
+   "expect": "FAIL",
+   "rc": 1,
+   "ok": true
+  },
+  {
+   "case": "real_defective:Confucius4_LiveCaption_v2.4",
+   "expect": "FAIL",
+   "rc": 1,
+   "ok": true
+  },
+  {
+   "case": "real_good:Confucius4_LiveCaption_v2.1",
+   "expect": "PASS",
+   "rc": 0,
+   "ok": true
+  },
+  {
+   "case": "real_good:Confucius4_LiveCaption_v2.0",
+   "expect": "PASS",
+   "rc": 0,
+   "ok": true
+  },
+  {
+   "case": "real_good:Confucius4_LiveCaption_v1.13",
+   "expect": "PASS",
+   "rc": 0,
+   "ok": true
+  },
+  {
+   "case": "real_good:Confucius4_LiveCaption_MiniMVP_v1.0-rc10",
+   "expect": "PASS",
+   "rc": 0,
+   "ok": true
+  },
+  {
+   "case": "real_good:dev_tree",
+   "expect": "PASS",
+   "rc": 0,
+   "ok": true
+  }
+ ],
+ "n_ok": 9,
+ "n_total": 9,
+ "verdict": "PASS"
+}
