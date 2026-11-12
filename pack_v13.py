@@ -1145,12 +1145,20 @@ def check_app086_2a_narrowing(pkg):
     判据（AST，查**分支本体特征** ⇒ 不是恒真标记）
     ----------------------------------------------
     对包内 `app/tts_worker.py` 的 AST 找出**所有**条件里调用了
-    `self._has_clone_voice()` 的 `if` / `elif` 分支 ⇒ 每个都必须同时含
+    `self._has_clone_voice()` 的 `if` / `elif` 分支 ⇒ 每个都必须**蕴含**
     「非按句绑定」守卫（`not _bound` 一类）。
       * 没有这类分支 ⇒ 该版本没有「沿用上一句克隆音色」这条路径
         ⇒ **不适用**（PASS）；
-      * 有分支且都带守卫 ⇒ **PASS**；
-      * 有分支缺守卫 ⇒ **FAIL**（阻断定版打包）。
+      * 有分支且都带**有效**守卫 ⇒ **PASS**；
+      * 有分支缺**有效**守卫 ⇒ **FAIL**（阻断定版打包）。
+
+    🔴🔴 「**有效**」二字的含义（§188 实测并修掉 ⇒ 见下方蕴含规则）：
+       * 守卫必须**逻辑蕴含**该分支条件，而不只是「树上出现过 `not _bound`」
+         ⇒ `not _bound or self._has_clone_voice()` 里的 `not _bound`
+           **管不住**这个分支（`_bound` 为真且有克隆音色时照样会取）
+           ⇒ 旧判据会**放行** ⇒ 串音照旧 ⇒ **fail-open**；
+       * 悬空调用（`use_clone = self._has_clone_voice()` + `if use_clone:`）
+         也必须纳入检查，否则完全看不到该分支 ⇒ 同样 fail-open。
 
     🔴 只读，绝不修改包目录。
     """
@@ -1176,32 +1184,101 @@ def check_app086_2a_narrowing(pkg):
                     return True
         return False
 
-    def _has_bound_guard(node):
-        for n in _ast.walk(node):
-            if isinstance(n, _ast.UnaryOp) and isinstance(n.op, _ast.Not):
-                o = n.operand
-                if isinstance(o, _ast.Name) and o.id.endswith('_bound'):
-                    return True
-                if isinstance(o, _ast.Attribute) \
-                        and o.attr.endswith('_bound'):
-                    return True
+    def _is_not_bound_term(node):
+        """`not X` 且 `X` 名以 `_bound` 结尾 ⇒ 守卫项（等价 `not _bound`）。"""
+        if isinstance(node, _ast.UnaryOp) and isinstance(node.op, _ast.Not):
+            o = node.operand
+            if isinstance(o, _ast.Name) and o.id.endswith('_bound'):
+                return True
+            if isinstance(o, _ast.Attribute) \
+                    and o.attr.endswith('_bound'):
+                return True
         return False
 
-    branches = [n for n in _ast.walk(tree)
-                if isinstance(n, _ast.If) and _calls_clone_voice(n.test)]
+    def _ref_keys(node):
+        """表达式里引用到的标识符键（Name.id / Attribute.attr）。"""
+        keys = set()
+        for n in _ast.walk(node):
+            if isinstance(n, _ast.Name):
+                keys.add(n.id)
+            elif isinstance(n, _ast.Attribute):
+                keys.add(n.attr)
+        return keys
+
+    def _implies_not_bound(node, tainted):
+        """node 是否在逻辑上**蕴含** `not _bound`
+        （⇒ `_bound` 为真时 node 必为假 ⇒ 该分支取不到 ⇒ 安全）。
+
+        🔴🔴 为什么要「蕴含」而不是「出现过 `not _bound`」（§188 实测缺陷）
+        --------------------------------------------------------------
+        旧判据是「test 树里**任意位置**出现过 `not _bound` 就算有守卫」⇒
+        `elif not _bound or self._has_clone_voice():` 也能过 ⇒
+        但该分支在 `_bound` 为真**且**有克隆音色时**照样会被取** ⇒
+        **守卫是摆设 ⇒ 串音照旧** ⇒ 闸门放行 = **fail-open**。
+        ⇒ 蕴含规则：`Or` 要求**每一支**都蕴含；`And` 只要**一支**蕴含。
+        """
+        if _is_not_bound_term(node):
+            return True
+        if isinstance(node, _ast.BoolOp):
+            if isinstance(node.op, _ast.And):
+                return any(_implies_not_bound(v, tainted)
+                           for v in node.values)
+            if isinstance(node.op, _ast.Or):
+                return all(_implies_not_bound(v, tainted)
+                           for v in node.values)
+            return False
+        # 悬空调用：条件里是一个「被污染」的变量名
+        #   （`use_clone = self._has_clone_voice()` + `if use_clone:`）
+        #   ⇒ 该变量所有赋值都必须蕴含 not_bound（fail-closed：
+        #   任一赋值不蕴含 ⇒ 放行风险）。
+        for key in _ref_keys(node):
+            exprs = tainted.get(key)
+            if exprs:
+                return all(_implies_not_bound(e, tainted) for e in exprs)
+        return False
+
+    # 🔴 悬空调用登记（把 `_has_clone_voice()` 提到赋值里再用）：
+    #   `use_clone = self._has_clone_voice()` + `if use_clone:`
+    #   ⇒ 旧判据只扫 `If.test` ⇒ 一个分支都看不到 ⇒ 判「不适用」⇒ **放行**
+    #   ⇒ 但代码**完全没守卫** ⇒ 串音照旧 ⇒ 同样 **fail-open**。
+    tainted = {}
+    for n in _ast.walk(tree):
+        if isinstance(n, _ast.Assign) and _calls_clone_voice(n.value):
+            for tgt in n.targets:
+                if isinstance(tgt, _ast.Name):
+                    tainted.setdefault(tgt.id, []).append(n.value)
+                elif isinstance(tgt, _ast.Attribute):
+                    tainted.setdefault(tgt.attr, []).append(n.value)
+        elif isinstance(n, _ast.AnnAssign) and n.value is not None \
+                and isinstance(n.target, _ast.Name) \
+                and _calls_clone_voice(n.value):
+            tainted.setdefault(n.target.id, []).append(n.value)
+
+    branches = []
+    for n in _ast.walk(tree):
+        if not isinstance(n, _ast.If):
+            continue
+        if _calls_clone_voice(n.test):
+            branches.append((n.lineno, n.test, '条件内直接调用'))
+            continue
+        if any(k in tainted for k in _ref_keys(n.test)):
+            branches.append((n.lineno, n.test, '经变量间接调用'))
+
     if not branches:
         print('  [OK] 无「沿用上一句克隆音色」分支 ⇒ 本闸门不适用')
         return 0
-    bad = [n for n in branches if not _has_bound_guard(n.test)]
+    bad = [(ln, why) for (ln, cond, why) in branches
+           if not _implies_not_bound(cond, tainted)]
     if bad:
-        for n in bad:
+        for ln, why in bad:
             print('  [FAIL] app/tts_worker.py:%d 分支「沿用上一句克隆音色」'
-                  '缺 `and not _bound` 守卫（APP-086·2a）' % (n.lineno,))
+                  '缺**有效** `not _bound` 守卫（APP-086·2a，%s）' % (ln, why))
         print('     ⇒ 按句绑定模式 + 标签晚到会沿用上一句克隆音色（串音）')
         return 1
-    print('  [OK] %d 个「沿用上一句克隆音色」分支全部带 `not _bound` 守卫'
+    print('  [OK] %d 个「沿用上一句克隆音色」分支全部带**有效** `not _bound` 守卫'
           '（APP-086·2a）' % (len(branches),))
     return 0
+
 
 
 def _run(args):

@@ -1,0 +1,8 @@
+{
+ "script": "gate4 e2e fail-closed",
+ "generated": "2026-11-13 04:45:43",
+ "gate4_rc_on_defective": 1,
+ "gate4_rc_on_narrowed": 0,
+ "gate3_rc_on_real_v2.4": 0,
+ "verdict": "PASS"
+}
