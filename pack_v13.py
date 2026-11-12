@@ -1126,6 +1126,84 @@ def check_v23_pkg_gate(pkg):
     return 0 if ok else 1
 
 
+def check_app086_2a_narrowing(pkg):
+    """打包前闸门④（§187）：包内 `app/tts_worker.py` 必须带 APP-086·2a 收窄。
+
+    🔴 为什么这道闸门必须有（**实测**，不是推测）
+    ----------------------------------------------
+    * 完整版 v2.4 的 `app/tts_worker.py` 的 `synth()` 分支② 是
+      `elif self._has_clone_voice():`（**缺** `and not _bound` 守卫）
+      ⇒ 「按句绑定模式 + 标签晚到（spk=None）」会**沿用上一句克隆音色**、
+        **不回落预设 A** ⇒ 即「**男声被配成女声 / 串音**」根因。
+    * 闸门③（APP-081 随包闸门）对 **v2.4 / v2.5 不查 `tts_worker.py`**
+      （APP-080 的 `verify_source` 只在 `cur == (2, 3)` 跑）
+      ⇒ **实测**：拿带缺陷的 v2.4 `tts_worker.py` 造探针包，
+        `PKG_VERSION=2.4` 与 `2.5` 下闸门③**都判 PASS**（见 STATUS §187）。
+    * `pack_v13.py` **不从 dev 树拷 `app/`**（包目录即事实来源）
+      ⇒ 下一版若从 v2.4 目录改名而来，缺陷会**原样带走**且**打包全绿**。
+
+    判据（AST，查**分支本体特征** ⇒ 不是恒真标记）
+    ----------------------------------------------
+    对包内 `app/tts_worker.py` 的 AST 找出**所有**条件里调用了
+    `self._has_clone_voice()` 的 `if` / `elif` 分支 ⇒ 每个都必须同时含
+    「非按句绑定」守卫（`not _bound` 一类）。
+      * 没有这类分支 ⇒ 该版本没有「沿用上一句克隆音色」这条路径
+        ⇒ **不适用**（PASS）；
+      * 有分支且都带守卫 ⇒ **PASS**；
+      * 有分支缺守卫 ⇒ **FAIL**（阻断定版打包）。
+
+    🔴 只读，绝不修改包目录。
+    """
+    import ast as _ast
+
+    path = os.path.join(pkg, 'app', 'tts_worker.py')
+    if not os.path.isfile(path):
+        print('  [SKIP] 包内无 app/tts_worker.py ⇒ 本闸门不适用')
+        return 0
+    try:
+        with open(path, 'rb') as f:
+            tree = _ast.parse(f.read().decode('utf-8', 'replace'))
+    except Exception as e:
+        print('  [FAIL] 无法解析包内 tts_worker.py：%r' % (e,))
+        return 1
+
+    def _calls_clone_voice(node):
+        for n in _ast.walk(node):
+            if isinstance(n, _ast.Call):
+                fn = n.func
+                if isinstance(fn, _ast.Attribute) \
+                        and fn.attr == '_has_clone_voice':
+                    return True
+        return False
+
+    def _has_bound_guard(node):
+        for n in _ast.walk(node):
+            if isinstance(n, _ast.UnaryOp) and isinstance(n.op, _ast.Not):
+                o = n.operand
+                if isinstance(o, _ast.Name) and o.id.endswith('_bound'):
+                    return True
+                if isinstance(o, _ast.Attribute) \
+                        and o.attr.endswith('_bound'):
+                    return True
+        return False
+
+    branches = [n for n in _ast.walk(tree)
+                if isinstance(n, _ast.If) and _calls_clone_voice(n.test)]
+    if not branches:
+        print('  [OK] 无「沿用上一句克隆音色」分支 ⇒ 本闸门不适用')
+        return 0
+    bad = [n for n in branches if not _has_bound_guard(n.test)]
+    if bad:
+        for n in bad:
+            print('  [FAIL] app/tts_worker.py:%d 分支「沿用上一句克隆音色」'
+                  '缺 `and not _bound` 守卫（APP-086·2a）' % (n.lineno,))
+        print('     ⇒ 按句绑定模式 + 标签晚到会沿用上一句克隆音色（串音）')
+        return 1
+    print('  [OK] %d 个「沿用上一句克隆音色」分支全部带 `not _bound` 守卫'
+          '（APP-086·2a）' % (len(branches),))
+    return 0
+
+
 def _run(args):
     PKG = args.pkg
     ZIP = args.zip
@@ -1161,6 +1239,13 @@ def _run(args):
     if rc:
         print()
         print('结论：FAIL（APP-081 v2.3 随包闸门未通过）')
+        return rc
+
+    # 🔴🔴🔴 打包前闸门④（§187）：APP-086·2a 收窄（串音缺陷）
+    rc = check_app086_2a_narrowing(PKG)
+    if rc:
+        print()
+        print('结论：FAIL（APP-086·2a 收窄闸门未通过）')
         return rc
 
     if args.dry_run:

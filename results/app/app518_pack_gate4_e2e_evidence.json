@@ -1,0 +1,6 @@
+{
+ "gate3_rc_on_defective": 0,
+ "gate4_rc_on_defective": 1,
+ "gate4_rc_on_narrowed": 0,
+ "verdict": "PASS"
+}
