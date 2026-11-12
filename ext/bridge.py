@@ -113,8 +113,20 @@ class TokenStore:
 _PROC_USAGE = {"t": None, "cpu": None, "pct": None}
 
 
+_ACCEL = None
+
+
 def _proc_usage() -> dict:
-    out = {"proc_cpu_pct": None, "proc_mem_mb": None}
+    out = {"proc_cpu_pct": None, "proc_mem_mb": None, "igpu_pct": None, "npu_pct": None}
+    # v0.4.8：iGPU / NPU 占用（整机，PDH 计数器；后台线程每秒采一次）
+    global _ACCEL
+    try:
+        if _ACCEL is None:
+            from .accel_usage import AccelUsage
+            _ACCEL = AccelUsage(1.0).start()
+        out.update(_ACCEL.latest)
+    except Exception:
+        pass
     try:
         t = time.perf_counter()
         _ot = os.times()

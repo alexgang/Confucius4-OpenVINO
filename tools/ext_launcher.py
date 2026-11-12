@@ -734,12 +734,8 @@ def main(argv=None) -> int:
     # 参数区
     opts = tk.Frame(app, bg="#f6f8fa")
     opts.pack(fill="x", padx=16)
-    lang_var = tk.StringVar(value=DEFAULT_LANG)
+    # v0.4.8（用户 11-12）：去掉「目标语言」——插件面板每次「开始」都会带上语言，以面板为准
     delay_var = tk.StringVar(value=str(DEFAULT_DELAY))
-    tk.Label(opts, text="目标语言", bg="#f6f8fa").grid(row=0, column=0, sticky="w")
-    cb_lang = ttk.Combobox(opts, textvariable=lang_var, width=8, state="readonly",
-                           values=["zh", "en", "ja", "ko", "de", "fr", "es", "pt", "it", "ru"])
-    cb_lang.grid(row=0, column=1, padx=4)
     tk.Label(opts, text="延迟 D(秒)", bg="#f6f8fa").grid(row=0, column=2, sticky="w", padx=(12, 0))
     tk.Entry(opts, textvariable=delay_var, width=6).grid(row=0, column=3, padx=4)
     tk.Label(opts, text="流水线", bg="#f6f8fa").grid(row=0, column=4, sticky="w", padx=(12, 0))
@@ -826,7 +822,7 @@ def main(argv=None) -> int:
             delay = float(delay_var.get())
         except Exception:
             delay = DEFAULT_DELAY
-        r = BridgeRunner(port=DEFAULT_PORT, delay=delay, lang=lang_var.get(),
+        r = BridgeRunner(port=DEFAULT_PORT, delay=delay, lang=DEFAULT_LANG,
                          pipeline=bool(pipe_var.get()), lan=bool(lan_var.get()),
                          on_log=append_log, on_state=set_state)
         runner_box["r"] = r

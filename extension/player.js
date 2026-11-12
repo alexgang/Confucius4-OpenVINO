@@ -2968,6 +2968,9 @@ function handleBridgeMessage(m) {
     metrics.link.lastStatsAt = performance.now();
     // v0.4.7：桥接进程（运算那台电脑）的 CPU / 内存 ⇒ 底栏（此前这两个字段从没赋值，恒为空）
     if (typeof m.proc_cpu_pct === 'number') metrics.cpuPct = m.proc_cpu_pct;
+    // v0.4.8：运算那台电脑的 iGPU / NPU 占用（整机）
+    if (typeof m.igpu_pct === 'number') metrics.igpuPct = m.igpu_pct;
+    if (typeof m.npu_pct === 'number') metrics.npuPct = m.npu_pct;
     if (typeof m.proc_mem_mb === 'number') metrics.memMB = m.proc_mem_mb;
     // ★★ EXT-024 E 修正：**原来把三者都设成同一个 `m.n_segments`**
     //   ⇒ **口径失真**：只要服务端收口过一段，`n_segments` 就 >0，
@@ -3798,7 +3801,8 @@ function updateHud() {
   set('mSink', m.dubSink || '—');
   set('mLip', m.lipSyncMs == null ? '—' : m.lipSyncMs.toFixed(1));
   set('mSched', m.schedErrMs == null ? '—' : m.schedErrMs.toFixed(2));
-  set('mCpu', m.cpuPct == null ? '—' : m.cpuPct.toFixed(1));
+  set('mIgpu', m.igpuPct == null ? '—' : m.igpuPct.toFixed(0));
+  set('mNpu', m.npuPct == null ? '—' : m.npuPct.toFixed(0));
   set('mMem', m.memMB == null ? '—' : m.memMB.toFixed(1));
   // ★ EXT-009：底栏显示当前语速倍率与滞后秒数
   set('mSpeed', (m.adaptSpeed == null ? 1.0 : m.adaptSpeed).toFixed(2));
