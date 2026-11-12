@@ -32,7 +32,12 @@ def sha(p):
 
 def main() -> int:
     arm = sys.argv[1] if len(sys.argv) > 1 else 'before'
-    wav = sys.argv[2] if len(sys.argv) > 2 else WAV
+    # 🔴 参数解析：只把**非选项**当作 wav 路径
+    #   （之前把 '--wait' 当成 wav 了 ⇒ 一个脆的 FileNotFoundError）
+    wav = WAV
+    for _a in sys.argv[2:]:
+        if not _a.startswith('--'):
+            wav = _a
     wait = '--wait' in sys.argv
     root = os.path.join(BASE, arm)
     out = os.path.join(OUTROOT, arm)
@@ -79,7 +84,22 @@ def main() -> int:
         '--spk-seg-jsonl', os.path.join(out, 'spk_seg.jsonl'),
     ]
     started = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    with open(LOCK, 'w', encoding='utf-8') as f:
+    # 🔴🔴 **原子拿锁**（O_CREAT|O_EXCL）⇒ 没有「检查后再创建」的竞态窗口
+    #   （否则别的模块可能在我们 check 与 create 之间抢到锁 ⇒ 两模块同占设备）。
+    fd = None
+    for _try in range(3):
+        try:
+            fd = os.open(LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            break
+        except FileExistsError:
+            print('🔴 拿锁时发现锁已存在（竞态）⇒ 再等一轮', flush=True)
+            time.sleep(20)
+            if not wait:
+                return 2
+    if fd is None:
+        print('🔴 三次都没拿到锁 ⇒ 本臂放弃（不抢锁）')
+        return 2
+    with os.fdopen(fd, 'w', encoding='utf-8') as f:
         f.write('module=app\npid=%d\nstart=%s\narm=%s\n' %
                 (os.getpid(), started, arm))
     print('🔒 MACHINE_LOCK 已创建 pid=%d arm=%s' % (os.getpid(), arm), flush=True)

@@ -106,12 +106,15 @@ def extract_worker(live_dir: str):
         return None, None, src
 
     # 抽 TTSWorker 的相关方法
+    # 🔴🔴🔳 APP-089 §2c-1：新增 `_apply_self_ref_voice`（self_ref 决策）
+    #   ⇒ 必须一起抽 ⇒ 否则判据跑的是**不完整**的决策路径。
     for node in tree.body:
         if isinstance(node, ast.ClassDef) and node.name == 'TTSWorker':
             keep = [s for s in node.body
                     if isinstance(s, ast.FunctionDef) and s.name in
                     ('_apply_spk_voice', '_fallback_to_preset',
-                     '_log_keep_clone')]
+                     '_log_keep_clone', '_apply_self_ref_voice',
+                     '_has_clone_voice', '_log_keep_last_clone')]
             exec(compile(ast.Module(body=keep, type_ignores=[]),
                          path, 'exec'), ns)
             break
@@ -151,6 +154,11 @@ class _FakeWorker:
         self._preset_ref_path = None
         # 🔴 §101：worker 启动参数 `--clone` ⇒「跟随说话人（克隆）」模式标志
         self.clone_mode = False
+        # 🔴🔴🔳 APP-089 §2c-1：self_ref 相关状态
+        #   ⇒ `_cur_seg` = 本句 seg；`_seg_voice` = 按句的 self_ref 素材
+        self._cur_seg = None
+        self._seg_voice = {}
+        self._voice_self_ref = False
 
     def _log_keep_clone(self):
         """§101：保留全局克隆音色时的一致日志。
@@ -169,6 +177,42 @@ class _FakeWorker:
 
     def _fallback_to_preset(self, why=''):
         return self._ns['_fallback_to_preset'](self, why)
+
+    def _apply_self_ref_voice(self):
+        """🔴🔴🔳 APP-089 §2c-1：**self_ref**（这句自己的音频 ⇒ 本句专属音色）。
+
+        🔴 **委托给真实实现**（AST 抽出来的源码）⇒ 判据验的是**真实代码**。
+        ⚠️ 默认**没有** self_ref 素材 ⇒ 返回 False ⇒ 行为与旧版一致
+        （⇒ 原有 B1/B2/B3 判据的语义不变）。
+        """
+        fn = self._ns.get('_apply_self_ref_voice')
+        if fn is None:
+            return False
+        return fn(self)
+
+    def _has_clone_voice(self):
+        """🔴🔴🔳 APP-061⑤c：当前**是否已经有可用的克隆音色**。
+
+        ⚠️ 这条分支在 APP-086·2a 之后进入了 `synth()` 的决策路径
+        ⇒ 判据必须能跑它 ⇒ 委托给**真实实现**（AST 抽出来的源码）。
+        """
+        fn = self._ns.get('_has_clone_voice')
+        if fn is None:
+            return bool(self._clone_active) or self._last_voice_kind == 'clone'
+        return fn(self)
+
+    def _log_keep_last_clone(self):
+        """APP-061⑤c：**沿用上一句的克隆音色**（标签晚到、未登记按句）。
+
+        ⚠️ **委托给真实实现**（AST 抽出的源码）
+        ⇒ 判据验的仍是**真实代码**，不是手抄的桩。
+        """
+        fn = self._ns.get('_log_keep_last_clone')
+        if fn is None:
+            self._last_voice_spk = None
+            self._last_voice_kind = 'clone'
+            return None
+        return fn(self)
 
 
 def build_decider(decision_src: str, ns: dict):
@@ -301,22 +345,63 @@ def mutate_unconditional(decision_src: str) -> str:
 
 
 def mutate_always_fallback(decision_src: str) -> str:
-    """反证 3（§101 新增）：把 `self.clone_mode and (not _bound)` 改成
-    `False` ⇒ 永远回落 ⇒ 判据 B1（follow_speaker 下必须保留克隆）**必须 FAIL**。"""
-    return decision_src.replace('self.clone_mode and (not _bound)',
-                                'False')
+    """反证 3：**永远回落** ⇒ 判据 B1（follow_speaker 下必须保留克隆）**必须 FAIL**。
+
+    🔴 **必须废掉源码里**所有**「保留克隆」条件**（一条都不能漏）：
+      ① `if self.clone_mode and (not _bound):`            → 保留全局克隆
+      ② `elif self._has_clone_voice() and (not _bound):`  → 沿用上一句克隆
+    ⇒ 只废 ① 会落进 ② ⇒ 克隆音色**照样保留** ⇒ 反证**永远 PASS = 假反证**。
+
+    🔴 **版本容忍**（2026-11-13）：**老客户包**（如 `Confucius4_LiveCaption_v2.4`）
+      的决策分支**只有 ①**、没有 ② ⇒ 断言按「源码里**实际存在**的条件」逐条核，
+      而不是写死「必须有 2 条」⇒ 否则在老包上会抛 `AssertionError`
+      （看起来像假 FAIL，实际是判据写死了版本）。
+      但「**一条都没废掉**」仍然 fail-closed。
+    """
+    conds = ('self.clone_mode and (not _bound)',
+             'self._has_clone_voice() and (not _bound)')
+    out = decision_src
+    n_hit = 0
+    for c in conds:
+        if c in out:
+            assert out.count(c) == 1, \
+                'mutate_always_fallback: %r 命中不唯一' % c
+            out = out.replace(c, 'False')
+            n_hit += 1
+    assert n_hit >= 1, 'mutate_always_fallback: 源码里没有任何「保留克隆」条件'
+    for c in conds:
+        assert c not in out, 'mutate_always_fallback: %r 没被废掉' % c
+    return out
 
 
 def mutate_never_fallback(decision_src: str) -> str:
-    """反证 4（§101 新增）：把 `self.clone_mode and (not _bound)` 改成
-    `True` ⇒ 永不回落 ⇒ 判据 B3（按句绑定模式必须回落）**必须 FAIL**。"""
-    return decision_src.replace('self.clone_mode and (not _bound)',
-                                'True')
+    """反证 4：**永不回落** ⇒ 判据 B3（按句绑定模式必须回落）**必须 FAIL**。
 
+    🔴 同 `mutate_always_fallback`：**源码里实际存在的**每一条「保留克隆」条件
+      全换 `'True'`（一条都不能漏 ⇒ 否则落进另一条分支 ⇒ 变异没生效
+      ⇒ 反证**永远 PASS = 假反证**）。
+    🔴 **版本容忍**（2026-11-13）：老客户包只有 ① ⇒ 只换那一条。
+    """
+    conds = ('self.clone_mode and (not _bound)',
+             'self._has_clone_voice() and (not _bound)')
+    out = decision_src
+    n_hit = 0
+    for c in conds:
+        if c in out:
+            assert out.count(c) == 1, \
+                'mutate_never_fallback: %r 命中不唯一' % c
+            out = out.replace(c, 'True')
+            n_hit += 1
+    assert n_hit >= 1, 'mutate_never_fallback: 源码里没有任何「保留克隆」条件'
+    for c in conds:
+        assert c not in out, 'mutate_never_fallback: %r 没被废掉' % c
+    return out
 
 # ══════════════════════════════════════════════════════════════════
 # ② 静态：主进程在「没有说话人旁路」时恒传 spk=None
 # ══════════════════════════════════════════════════════════════════
+
+
 def check_main_submit(live_dir: str) -> dict:
     """静态核对：`tts.submit(..., spk=voice_for_sentence(...) or None)`
     ⇒ **没有说话人旁路时恒为 None** ⇒ 这是「follow_speaker 每句都回落」的根因。"""

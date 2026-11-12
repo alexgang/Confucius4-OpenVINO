@@ -1,0 +1,64 @@
+{
+ "script": "app157_follow_speaker_regression_test.py",
+ "live": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.11/app",
+ "pass_": 11,
+ "fail": 0,
+ "verdict": "PASS",
+ "detail": [
+  {
+   "name": "S1 主进程有 tts.submit 调用点",
+   "ok": true,
+   "msg": "{'n_submit_calls': 7, 'uses_voice_for_sentence': 4, 'voice_for_sentence_defined': False}"
+  },
+  {
+   "name": "S2 submit 的 spk 来自 voice_for_sentence（无旁路 ⇒ 恒 None）",
+   "ok": true,
+   "msg": "{'n_submit_calls': 7, 'uses_voice_for_sentence': 4, 'voice_for_sentence_defined': False}"
+  },
+  {
+   "name": "S3 spk 键只在非 None 时进命令体（worker 无法区分两种 None）",
+   "ok": true,
+   "msg": "{'spk_key_only_when_not_none': False, 'guards_spk_key': True, 'has_spk_none_sentinel': False}"
+  },
+  {
+   "name": "B0 场景可复现",
+   "ok": true,
+   "msg": "{'after_embed': 'VEC_CLONE_FROM_FOLLOW_SPEAKER', 'after_kind': 'clone', 'after_spk': None, 'clone_still_alive': True, 'clone_active': True}"
+  },
+  {
+   "name": "B1 🔴 follow_speaker 下克隆音色**不得**被打回预设 A",
+   "ok": true,
+   "msg": "speaker_embed=VEC_CLONE_FROM_FOLLOW_SPEAKER clone_active=True"
+  },
+  {
+   "name": "B2 对照：按句绑定下切到 S2 的克隆音色",
+   "ok": true,
+   "msg": "{'after_embed': 'VEC_S2', 'after_kind': 'clone', 'after_spk': 'S2', 'clone_still_alive': False, 'clone_active': False}"
+  },
+  {
+   "name": "B3 按句绑定模式下 spk=None ⇒ 必须回落预设 A（不得沿用克隆音）",
+   "ok": true,
+   "msg": "{'after_embed': 'VEC_PRESET_A', 'after_kind': 'preset', 'after_spk': None, 'clone_still_alive': False, 'clone_active': False}"
+  },
+  {
+   "name": "D-B1 反证：去掉 else 回落 ⇒ 克隆音色保留 ⇒ B1 必须 FAIL",
+   "ok": true,
+   "msg": "（若这条 FAIL ⇒ 说明 B1 恒 FAIL，不是真判据）"
+  },
+  {
+   "name": "D-B2 反证：无条件回落预设 A ⇒ B1（follow_speaker 保留克隆）必须 FAIL",
+   "ok": true,
+   "msg": "（若这条 FAIL ⇒ 说明判据分不出两种模式）"
+  },
+  {
+   "name": "D-B3 反证：永远回落 ⇒ B1（follow_speaker 保留克隆）必须 FAIL",
+   "ok": true,
+   "msg": "（若这条 FAIL ⇒ 说明 B1 是恒判据，分不出模式）"
+  },
+  {
+   "name": "D-B4 反证：永不回落 ⇒ B3（按句绑定必须回落）必须 FAIL",
+   "ok": true,
+   "msg": "（若这条 FAIL ⇒ 说明 B3 是恒判据，分不出模式）"
+  }
+ ]
+}

@@ -1,9 +1,9 @@
 {
  "script": "app157_follow_speaker_regression_test.py",
- "live": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v1.11/app",
- "pass_": 11,
- "fail": 0,
- "verdict": "PASS",
+ "live": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.4/app",
+ "pass_": 9,
+ "fail": 2,
+ "verdict": "FAIL",
  "detail": [
   {
    "name": "S1 主进程有 tts.submit 调用点",
@@ -37,8 +37,8 @@
   },
   {
    "name": "B3 按句绑定模式下 spk=None ⇒ 必须回落预设 A（不得沿用克隆音）",
-   "ok": true,
-   "msg": "{'after_embed': 'VEC_PRESET_A', 'after_kind': 'preset', 'after_spk': None, 'clone_still_alive': False, 'clone_active': False}"
+   "ok": false,
+   "msg": "{'after_embed': 'VEC_S2', 'after_kind': 'clone', 'after_spk': None, 'clone_still_alive': False, 'clone_active': True}"
   },
   {
    "name": "D-B1 反证：去掉 else 回落 ⇒ 克隆音色保留 ⇒ B1 必须 FAIL",
@@ -52,7 +52,7 @@
   },
   {
    "name": "D-B3 反证：永远回落 ⇒ B1（follow_speaker 保留克隆）必须 FAIL",
-   "ok": true,
+   "ok": false,
    "msg": "（若这条 FAIL ⇒ 说明 B1 是恒判据，分不出模式）"
   },
   {
