@@ -1,0 +1,15 @@
+{
+ "root": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc10",
+ "zip": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc10_perftest.zip",
+ "n_disk_files": 10629,
+ "testzip": null,
+ "n_zip_entries": 10629,
+ "only_in_zip": [],
+ "n_only_in_zip": 0,
+ "only_in_disk": [],
+ "n_only_in_disk": 0,
+ "n_byte_mismatch": 0,
+ "byte_mismatch_sample": [],
+ "zip_bytes": 5926048165,
+ "pass": true
+}

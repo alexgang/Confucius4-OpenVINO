@@ -1,0 +1,40 @@
+{
+ "at": "2026-11-12 16:43:18",
+ "bat": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc10\\Start_Bridge.bat",
+ "bat_bytes": 485,
+ "cmd": "cmd /c <pkg>\\Start_Bridge.bat",
+ "cmd_returncode": 0,
+ "cmd_return_s": 0.03,
+ "stdout_log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app501_app105_rc10_acceptance\\start_bridge_stdout.log",
+ "stderr_log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app501_app105_rc10_acceptance\\start_bridge_stderr.log",
+ "stdout": "",
+ "stderr": "",
+ "windows_before": [],
+ "windows_after": [
+  {
+   "hwnd": 985216,
+   "title": "实时配音桥接（EXT） v0.4.8（2026-11-08）",
+   "pid": 4256
+  }
+ ],
+ "new_windows": [
+  {
+   "hwnd": 985216,
+   "title": "实时配音桥接（EXT） v0.4.8（2026-11-08）",
+   "pid": 4256
+  }
+ ],
+ "target_window": {
+  "hwnd": 985216,
+  "title": "实时配音桥接（EXT） v0.4.8（2026-11-08）",
+  "pid": 4256
+ },
+ "shot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app501_app105_rc10_acceptance\\rc10_start_bridge.png",
+ "shot_ok": true,
+ "shot_bytes": 10619,
+ "killed_pids": [
+  4256
+ ],
+ "still_alive": [],
+ "pass": true
+}

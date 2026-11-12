@@ -1,0 +1,318 @@
+{
+ "at": "2026-11-12 16:46:53",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc10",
+ "zip": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc10_perftest.zip",
+ "correction": "APP-105",
+ "rebuilt": true,
+ "rebuild_note": "本报告由 `_app506_app105_rc10_rebuild_report.py` 重建：首轮 `_app501` 在最后一项（`cmd /c Start_Bridge.bat`）上因**启动器继承 stdout 管道**导致 `subprocess.run` 挂死 ⇒ 180 s 超时 ⇒ **报告没落盘**。重建用的**都是同一批原始产物**（check.log / chain10min.log / app505 两份复跑件），**整链 10 分钟没有重跑**。",
+ "items": {
+  "1_no_legacy_dir": {
+   "pass": true,
+   "hits": []
+  },
+  "2_app_grep_zero": {
+   "pass": true,
+   "hits": []
+  },
+  "3_manifest": {
+   "decoder_sha256": "0059531a2b4ccd4ceb3f4c1dc3519e68421a310a262baba4dc55e603b600d6a3",
+   "encoder_sha256": "0b7463d6f952dd64f97c5ff205f12efb04ca89e6e772448289aa06e4941beb89",
+   "decoder_ok": true,
+   "encoder_ok": true,
+   "all_match": true,
+   "verify_ok": true,
+   "verify_bad": [],
+   "pass": true
+  },
+  "4_ext_048": {
+   "manifest_version": "0.4.8",
+   "commit": "817abcbe30c213844cda6f32c81361524ab53de8",
+   "pass": true
+  },
+  "5_blacklist_zero": {
+   "pass": true,
+   "hits": [],
+   "patterns": [
+    "bridge_token*",
+    "*.pid",
+    "*.log"
+   ]
+  },
+  "6_bats_crlf_ascii": {
+   "pass": true,
+   "rows": [
+    {
+     "file": "Diagnose.bat",
+     "bytes": 362,
+     "crlf": 13,
+     "bare_lf": 0,
+     "non_ascii_bytes": 0,
+     "pass": true
+    },
+    {
+     "file": "Start_Bridge.bat",
+     "bytes": 485,
+     "crlf": 13,
+     "bare_lf": 0,
+     "non_ascii_bytes": 0,
+     "pass": true
+    },
+    {
+     "file": "Start_LiveCaption.bat",
+     "bytes": 316,
+     "crlf": 10,
+     "bare_lf": 0,
+     "non_ascii_bytes": 0,
+     "pass": true
+    },
+    {
+     "file": "python/Lib/ctypes/macholib/fetch_macholib.bat",
+     "bytes": 75,
+     "crlf": 1,
+     "bare_lf": 0,
+     "non_ascii_bytes": 0,
+     "pass": true
+    },
+    {
+     "file": "python/Lib/idlelib/idle.bat",
+     "bytes": 177,
+     "crlf": 4,
+     "bare_lf": 0,
+     "non_ascii_bytes": 0,
+     "pass": true
+    }
+   ],
+   "n_bats": 5
+  },
+  "7_docs_ext_unusable": {
+   "user_guide_states_ext_asr_unusable": true,
+   "user_guide_has_bridge_token_note": true,
+   "pass": true
+  },
+  "8_no_pyc": {
+   "pass": true,
+   "n_pyc_files": 0,
+   "n_pycache_dirs": 3,
+   "note": "判据只认**过期字节码文件**（.pyc）；PYTHONDONTWRITEBYTECODE=1 下 Python 仍会建**空** __pycache__ 目录（不写 .pyc）=> 空目录在打 zip 前清掉（见 app500 证据的 pre_zip_purge）"
+  },
+  "9_factory_defaults_new": {
+   "default_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "defaults_version": 9,
+   "profile": "minimvp",
+   "pass": true
+  },
+  "10_pkg_check": {
+   "exit_code": 0,
+   "exit_code_source": "首轮 subprocess 返回码（见 _app501_rc10_acceptance.log 的「[10] --check exit=0」）",
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app501_app105_rc10_acceptance\\check.log",
+   "log_bytes": 2202,
+   "n_ok_lines": 21,
+   "has_asr_section": true,
+   "device_lines": [
+    "[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是 MiniMVP rc9 之前的出厂默认⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。",
+    "[device] ASR 与 MT 同在 GPU.0（stateful 解码器负载约为旧 旧解码器的 1/3；rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）"
+   ],
+   "stale_migration_line": [
+    "[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是 MiniMVP rc9 之前的出厂默认⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。"
+   ],
+   "new_warning_line": [
+    "[device] ASR 与 MT 同在 GPU.0（stateful 解码器负载约为旧 旧解码器的 1/3；rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）"
+   ],
+   "old_warning_absent": true,
+   "pass": true
+  },
+  "12_chain_10min": {
+   "exit_code": 0,
+   "exit_code_source": "首轮 subprocess 返回码（见 _app501_rc10_acceptance.log 的「[12] chain exit=0」）",
+   "cmd": "包内 python -s app/live_caption_app.py --cli --file test_audio/clip_10min_0_600.wav --max-seconds 600 --out … --translate zh --tts on --tts-voice A（**不带设备参数**）",
+   "audio": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app501_app105_rc10_acceptance\\chain10min.log",
+   "log_bytes": 177510,
+   "output": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app501_app105_rc10_acceptance\\chain10min.txt",
+   "output_chars": 9797,
+   "output_head": "All right. Good morning, everyone. Good morning. Let's get started. So well.\nWelcome to our Q three twenty six QGS.\nAgenda topics today. We'll talk about three. One, I want to share our engineering strategy.\nTo realize the business growth that Alex spoke about in his last QGS, we'll then talk about.",
+   "replacement_chars": 0,
+   "asr_rtf": 0.538,
+   "asr_exec_encoder": "GPU.0",
+   "asr_exec_decoder": "GPU.0",
+   "asr_exec_line": "[asr06b-stateful] EXECUTION_DEVICES：encoder=GPU.0，decoder=GPU.0（",
+   "tts_exec_devices": "NPU/NPU(lazy)",
+   "tts_exec_line": "[tts_engine] EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU/NPU/NPU/NPU(lazy)\r\n  [TTS] [TTS] [tts_engine] 实测执行设备：NPU/NPU(lazy)\r\n  [TTS] [TTS] [tts_engine] 各组件落点：cp_decode=NPU，cp_prefill=NPU，decoder_bucket@16=NPU，decoder_bucket@32=NPU，decoder_bucket@33=NPU，decoder_bucket@8=",
+   "tts_places": "cp_decode=NPU，cp_prefill=NPU，decoder_bucket@16=NPU，decoder_bucket@32=NPU，decoder_bucket@33=NPU，decoder_bucket@8=NPU，speaker_enc=NPU，talker_bucket@128=NPU，talker_bucket@256=NPU，talker_bucket@384=NPU，talker_bucket@512=NPU，talker_bucket@64=NPU，tok_decoder=NPU(lazy)\r",
+   "tts_npu_components": 12,
+   "tts_submitted": 158,
+   "tts_played": 126,
+   "tts_dropped": 32,
+   "tts_final_line": "[TTS] 最终统计（close 后）：提交 158  播完 126  丢弃 32",
+   "pass": true
+  },
+  "11_gui": {
+   "first_attempt": "FAIL（验收脚本用错解释器：系统 python 缺 numpy/openvino ⇒ ImportError；**非产品缺陷**）",
+   "superseded_by": "app505_app105_rc10_gui_retry.json",
+   "pass": false
+  },
+  "11_gui_retry": {
+   "verdict": "PASS",
+   "checks": {
+    "asr_two_stateful": true,
+    "clone_disabled": true,
+    "target_langs_10": true,
+    "shot_not_blank": true,
+    "devices_are_new_default": true,
+    "no_old_warning": true,
+    "pkg_defaults_new": true,
+    "defaults_version_9": true,
+    "migration_note_visible_if_stale": true
+   },
+   "default_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "device_notes": [
+    "已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是 MiniMVP rc9 之前的出厂默认⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。"
+   ],
+   "status_text": "prewarm transformers 1.9s",
+   "shot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app501_app105_rc10_acceptance\\rc10_gui.png",
+   "shot_bytes": 42619,
+   "shot_not_blank": true,
+   "real_device_notes": [
+    "已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是 MiniMVP rc9 之前的出厂默认⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。"
+   ],
+   "stale_config_detected": true,
+   "evidence": "app505_app105_rc10_gui_retry.json",
+   "pass": true
+  },
+  "13_start_bridge_bat": {
+   "first_attempt": "超时（`subprocess.run(capture_output=True)` 等 stdout 管道 EOF，而启动器继承管道 ⇒ 挂死 ⇒ 180 s TimeoutExpired；**非产品缺陷**）",
+   "superseded_by": "app505_app105_rc10_bridge_retry.json",
+   "pass": false
+  },
+  "13_start_bridge_bat_retry": {
+   "cmd": "cmd /c <pkg>\\Start_Bridge.bat",
+   "cmd_returncode": 0,
+   "cmd_return_s": 0.03,
+   "new_windows": [
+    {
+     "hwnd": 985216,
+     "title": "实时配音桥接（EXT） v0.4.8（2026-11-08）",
+     "pid": 4256
+    }
+   ],
+   "target_window": {
+    "hwnd": 985216,
+    "title": "实时配音桥接（EXT） v0.4.8（2026-11-08）",
+    "pid": 4256
+   },
+   "shot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app501_app105_rc10_acceptance\\rc10_start_bridge.png",
+   "shot_ok": true,
+   "shot_bytes": 10619,
+   "killed_pids": [
+    4256
+   ],
+   "still_alive": [],
+   "stdout": "",
+   "stderr": "",
+   "evidence": "app505_app105_rc10_bridge_retry.json",
+   "pass": true
+  }
+ },
+ "lock": {
+  "module": "app",
+  "pid": null,
+  "started": "2026-11-12 16:25:19",
+  "ended": "2026-11-12 16:43:08",
+  "timing_valid": true,
+  "note": "首轮持锁区间（含首轮死掉的那一次）"
+ },
+ "pkg_defaults": {
+  "default_devices": {
+   "asr": "GPU.0",
+   "mt": "GPU.0",
+   "tts": "NPU"
+  },
+  "profile": "minimvp",
+  "defaults_version": 9
+ },
+ "readme_gate": {
+  "rows": [
+   {
+    "file": "README_zh.md",
+    "forbidden_hits": [],
+    "dev_path_hits": [],
+    "file_count_matches": true,
+    "zip_bytes_matches": true,
+    "dir_bytes_matches": false,
+    "device_table_matches_defaults": true,
+    "localappdata_has_backslash": true,
+    "ext_unusable_stated": true,
+    "en_no_cjk": true,
+    "en_table_english": true,
+    "n_cjk_en": 0,
+    "perftest_two_groups": true,
+    "pass": false
+   },
+   {
+    "file": "README_en.md",
+    "forbidden_hits": [],
+    "dev_path_hits": [],
+    "file_count_matches": true,
+    "zip_bytes_matches": true,
+    "dir_bytes_matches": false,
+    "device_table_matches_defaults": true,
+    "localappdata_has_backslash": true,
+    "ext_unusable_stated": true,
+    "en_no_cjk": true,
+    "en_table_english": true,
+    "n_cjk_en": 0,
+    "perftest_two_groups": true,
+    "pass": false
+   },
+   {
+    "file": "README_perftest.txt",
+    "forbidden_hits": [],
+    "dev_path_hits": [],
+    "file_count_matches": true,
+    "zip_bytes_matches": true,
+    "dir_bytes_matches": false,
+    "device_table_matches_defaults": true,
+    "localappdata_has_backslash": true,
+    "ext_unusable_stated": true,
+    "en_no_cjk": true,
+    "en_table_english": true,
+    "n_cjk_en": 0,
+    "perftest_two_groups": true,
+    "pass": false
+   }
+  ],
+  "n_pass": 0,
+  "n_fail": 3,
+  "note": "**体积字段**（zip 字节 / 目录字节）此刻还没最终值：打包脚本会在**打 zip 的两遍里**用实测值回填 README⇒ 这两项**在打包后**由 `app500` 证据里的 `readme_gate` 终判；此处只看**其余**项。",
+  "pass_except_numbers": true,
+  "pass_except_zip_bytes": true
+ },
+ "n_items": 13,
+ "n_items_pass": 13,
+ "n_items_note": "逻辑验收项 13 个（①–⑬）；首轮失败的两项（⑪GUI／⑬Start_Bridge.bat）**由复跑件取代**（`11_gui_retry` / `13_start_bridge_bat_retry`）⇒ 不重复计数；首轮记录**原样保留**在 items 里（标了 first_attempt / superseded_by）。",
+ "effective_items": {
+  "10_pkg_check": true,
+  "11_gui": true,
+  "12_chain_10min": true,
+  "13_start_bridge_bat": true,
+  "1_no_legacy_dir": true,
+  "2_app_grep_zero": true,
+  "3_manifest": true,
+  "4_ext_048": true,
+  "5_blacklist_zero": true,
+  "6_bats_crlf_ascii": true,
+  "7_docs_ext_unusable": true,
+  "8_no_pyc": true,
+  "9_factory_defaults_new": true
+ },
+ "readme_ok": true,
+ "verdict": "PASS"
+}

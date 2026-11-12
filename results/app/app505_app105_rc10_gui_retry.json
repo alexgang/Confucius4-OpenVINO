@@ -1,0 +1,36 @@
+{
+ "at": "2026-11-12 16:43:14",
+ "exit_code": 0,
+ "cmd": "包内 python _app503_app105_rc10_gui_shot.py <pkg> <png> <json>",
+ "stdout": "{\n \"asr_two_stateful\": true,\n \"clone_disabled\": true,\n \"target_langs_10\": true,\n \"shot_not_blank\": true,\n \"devices_are_new_default\": true,\n \"no_old_warning\": true,\n \"pkg_defaults_new\": true,\n \"defaults_version_9\": true,\n \"migration_note_visible_if_stale\": true\n}\nVERDICT PASS\n",
+ "stderr": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+ "verdict": "PASS",
+ "checks": {
+  "asr_two_stateful": true,
+  "clone_disabled": true,
+  "target_langs_10": true,
+  "shot_not_blank": true,
+  "devices_are_new_default": true,
+  "no_old_warning": true,
+  "pkg_defaults_new": true,
+  "defaults_version_9": true,
+  "migration_note_visible_if_stale": true
+ },
+ "default_devices": {
+  "asr": "GPU.0",
+  "mt": "GPU.0",
+  "tts": "NPU"
+ },
+ "device_notes": [
+  "已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是 MiniMVP rc9 之前的出厂默认⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。"
+ ],
+ "status_text": "prewarm transformers 1.9s",
+ "shot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app501_app105_rc10_acceptance\\rc10_gui.png",
+ "shot_bytes": 42619,
+ "shot_not_blank": true,
+ "real_device_notes": [
+  "已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是 MiniMVP rc9 之前的出厂默认⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。"
+ ],
+ "stale_config_detected": true,
+ "pass": true
+}
