@@ -3134,19 +3134,24 @@ class PipelineSession(Session):
                 _v = _cv.voice_for(job.seg_id, wait=_wait)
                 # 11-09 user: "first clone > 10 s" => no registered voice for this sentence yet
                 #   => clone it from its own audio (x-vector) right away
-                _self = None if _v else _cv.self_ref(job.seg_id)
+                # v0.4.11 (user 11-12: voice switched between sentences of one speaker): a
+                #   sentence without a label no longer gets its own self_ref clone; it keeps the
+                #   current voice. A new labeled speaker gets ONE self_ref until anchored.
+                _lab = _cv.spk_of(job.seg_id) or ""
+                _last = getattr(self, '_last_clone_voice', None)
                 if _v:
-                    self._last_clone_voice = _v
-                if _self:
-                    job.voice = _self
-                elif not _v and not getattr(self, '_last_clone_voice', None) and _cv.latest_path():
-                    job.voice = _cv.latest_path()
-                elif not _v and _cv.has_voice_label(job.seg_id):
-                    # 11-08 self-test: known speaker without a voice yet => preset A, never
-                    #   another speaker's voice (that made one person sound like the other)
-                    job.voice = C.PRESET_VOICE
+                    job.voice = _v
+                elif _lab:
+                    _pv = self.__dict__.setdefault('_pending_voice', {})
+                    if not (_pv.get(_lab) and os.path.exists(_pv[_lab])):
+                        _pv[_lab] = _cv.self_ref(job.seg_id)
+                    job.voice = _pv[_lab] or _last or C.PRESET_VOICE
+                elif _last and os.path.exists(_last):
+                    job.voice = _last
                 else:
-                    job.voice = _v or getattr(self, '_last_clone_voice', None) or C.PRESET_VOICE
+                    job.voice = _cv.self_ref(job.seg_id) or _cv.latest_path() or C.PRESET_VOICE
+                if job.voice and job.voice != C.PRESET_VOICE:
+                    self._last_clone_voice = job.voice
                 job.spk = job.spk or (_cv.spk_of(job.seg_id) or None)
                 _log("[spk] 段 %s 标签=%s 音色=%s（等标签 %.1f s）" % (
                     job.seg_id, _cv.spk_of(job.seg_id) or "-",
