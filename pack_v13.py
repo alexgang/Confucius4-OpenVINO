@@ -1152,6 +1152,13 @@ def check_app086_2a_narrowing(pkg):
       * 有分支且都带**有效**守卫 ⇒ **PASS**；
       * 有分支缺**有效**守卫 ⇒ **FAIL**（阻断定版打包）。
 
+    🔴🔴 §189（判据范围补全）：「沿用上一句克隆音色」
+    不只有「条件里调 `_has_clone_voice()`」这一条路：**分支①**
+    （`if self.clone_mode and not _bound:`）的分支体里只调 `_log_keep_clone()`，
+    **不调** `_has_clone_voice()` ⇒ 旧判据**看不到它** ⇒ 它若丢掉
+    `and not _bound`（= 串音）时闸门仍判 PASS（实测）。
+    ⇒ 现在亦把「分支体直接执行 keep-logger」纳入检查。
+
     🔴🔴 「**有效**」二字的含义（§188 实测并修掉 ⇒ 见下方蕴含规则）：
        * 守卫必须**逻辑蕴含**该分支条件，而不只是「树上出现过 `not _bound`」
          ⇒ `not _bound or self._has_clone_voice()` 里的 `not _bound`
@@ -1184,15 +1191,39 @@ def check_app086_2a_narrowing(pkg):
                     return True
         return False
 
+    # 🔴🔴 §189：守卫的 `not X` 里的 `X` 必须**真的被绑定过**
+    #   为什么（实测）
+    #   ------------------------------
+    #   合成矩阵里变体 `b1_guard_not_self_bound`（把分支① 改成
+    #   `if self.clone_mode and not self._bound:`）：
+    #   * 旧判据判 **PASS**（只看「名字/属性以 `_bound` 结尾」）；
+    #   * 行为判据 **B3 FAIL**（真串音）⇒ 两条判据**不一致**。
+    #   根因：`_bound` 在 `synth()` 里是**局部变量**（`_bound = bool(self._spk_voices)`），
+    #   **`self._bound` 这个属性在整个模块里从来不存在**
+    #   ⇒ `not self._bound` 会 `AttributeError`/恒假 ⇒ **守卫是摆设** ⇒ 旧判据放行。
+    #   ⇒ 修法：`X` 必须在**本模块里真的被绑定过**（Name 出现在 Store 上下文；
+    #   `self.X` 真的被赋值过）。
+    def _collect_bindings(tree_):
+        names, attrs = set(), set()
+        for n in _ast.walk(tree_):
+            if isinstance(n, _ast.Name) and isinstance(n.ctx, _ast.Store):
+                names.add(n.id)
+            elif isinstance(n, _ast.Attribute) \
+                    and isinstance(n.ctx, _ast.Store):
+                attrs.add(n.attr)
+        return names, attrs
+
+    _bound_names, _bound_attrs = _collect_bindings(tree)
+
     def _is_not_bound_term(node):
-        """`not X` 且 `X` 名以 `_bound` 结尾 ⇒ 守卫项（等价 `not _bound`）。"""
+        """`not X` 且 `X` 是**真存在的**「结尾 `_bound`」绑定 ⇒ 守卫项。"""
         if isinstance(node, _ast.UnaryOp) and isinstance(node.op, _ast.Not):
             o = node.operand
-            if isinstance(o, _ast.Name) and o.id.endswith('_bound'):
-                return True
-            if isinstance(o, _ast.Attribute) \
-                    and o.attr.endswith('_bound'):
-                return True
+            if isinstance(o, _ast.Name):
+                return o.id.endswith('_bound') and o.id in _bound_names
+            if isinstance(o, _ast.Attribute):
+                return (o.attr.endswith('_bound')
+                        and o.attr in _bound_attrs)
         return False
 
     def _ref_keys(node):
@@ -1204,6 +1235,47 @@ def check_app086_2a_narrowing(pkg):
             elif isinstance(n, _ast.Attribute):
                 keys.add(n.attr)
         return keys
+
+    # 🔴🔴 §189：分支体里的「保留克隆音色」操作
+    #   为什么要单独拿出来（判据范围的补全）
+    #   --------------------------------------------------------------
+    #   旧判据只看**分支条件**里有没有 `self._has_clone_voice()`
+    #   ⇒ **分支①**（`if self.clone_mode and not _bound:`，体体里只调
+    #     `_log_keep_clone()`，**不调** `_has_clone_voice()`）完全看不到
+    #   ⇒ 把它的 `and not _bound` 去掉（= 串音）时闸门④ **仍判 PASS**
+    #   ⇒ 实测探针：闸门④ rc=0（放行）而 app157 行为判据
+    #     **B3 FAIL**（观测 `after_embed=VEC_S2`）⇒ 判据自问自答：**会**
+    #     （照旧判据把分支①的守卫删掉是「安全的」）
+    #   ⇒ 修法：**分支体**里若直接执行了「保留克隆音色」
+    #     操作（`_log_keep_clone` / `_log_keep_last_clone`）→ 也纳入检查
+    #     ⇒ 该分支也必须带 `not _bound` 守卫。
+    KEEP_LOGGERS = ('_log_keep_clone', '_log_keep_last_clone')
+
+    class _KeepFinder(_ast.NodeVisitor):
+        """收集**分支自己**语句里的 keep-logger 调用。
+
+        🔴 **不下钻进嵌套 If**：嵌套 If 的分支体归**它自己**
+        ⇒ 否则外层 `if not self._apply_self_ref_voice():` 会被误判成 keeper
+        ⇒ 误拦（fail-closed）会把正确的包也拒绝打包。
+        """
+
+        def __init__(self):
+            self.hits = set()
+
+        def visit_If(self, node):
+            return  # 嵌套 If 归它自己
+
+        def visit_Call(self, node):
+            fn = node.func
+            if isinstance(fn, _ast.Attribute) and fn.attr in KEEP_LOGGERS:
+                self.hits.add(fn.attr)
+            self.generic_visit(node)
+
+    def _branch_keeps_clone_voice(body):
+        finder = _KeepFinder()
+        for st in body:
+            finder.visit(st)
+        return sorted(finder.hits)
 
     def _implies_not_bound(node, tainted):
         """node 是否在逻辑上**蕴含** `not _bound`
@@ -1258,11 +1330,19 @@ def check_app086_2a_narrowing(pkg):
     for n in _ast.walk(tree):
         if not isinstance(n, _ast.If):
             continue
+        why = []
+        # 🔴🔴 §189：先看**分支体**里是否直接执行了
+        #   「保留克隆音色」（keep-logger）⇒ 这才是「沿用上一句
+        #   克隆音色」的**实质分支**（分支① 就是这种）。
+        keeps = _branch_keeps_clone_voice(n.body)
+        if keeps:
+            why.append('分支体保留克隆音色(%s)' % ','.join(keeps))
         if _calls_clone_voice(n.test):
-            branches.append((n.lineno, n.test, '条件内直接调用'))
-            continue
-        if any(k in tainted for k in _ref_keys(n.test)):
-            branches.append((n.lineno, n.test, '经变量间接调用'))
+            why.append('条件内直接调用')
+        elif any(k in tainted for k in _ref_keys(n.test)):
+            why.append('经变量间接调用')
+        if why:
+            branches.append((n.lineno, n.test, '、'.join(why)))
 
     if not branches:
         print('  [OK] 无「沿用上一句克隆音色」分支 ⇒ 本闸门不适用')

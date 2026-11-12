@@ -62,7 +62,13 @@ TMP_REPO = None
 def pkg_dirs():
     out = []
     for name in sorted(os.listdir(PKG_ROOT)):
-        if not name.startswith('Confucius4_LiveCaption_v'):
+        # 🔴🔴 §189：**MiniMVP 也要扫**。原条件
+        #   `startswith('Confucius4_LiveCaption_v')` 只匹配**完整版**
+        #   ⇒ MiniMVP 目录名 `Confucius4_LiveCaption_MiniMVP_v1.0-rcN` 全部被漏掉
+        #   ⇒ §185/§186/§188 引用的「真包矩阵 9/9」**只覆盖了完整版**
+        #   ⇒ 实测 MiniMVP rc1/rc2/rc3/rc4/rc5（及 base v1.0）同样缺 APP-086·2a 收窄
+        if not (name.startswith('Confucius4_LiveCaption_v')
+                or name.startswith('Confucius4_LiveCaption_MiniMVP_v')):
             continue
         d = os.path.join(PKG_ROOT, name)
         app = os.path.join(d, 'app')
