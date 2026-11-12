@@ -399,3 +399,8 @@ def load_chat_template_06b(tokenizer_dir: str) -> str:
     p = os.path.join(tokenizer_dir, 'chat_template.json')
     with open(p, encoding='utf-8') as f:
         return json.load(f)['chat_template']
+
+
+#: dev 树基线开关：LIVECAP_ASR_BACKEND_MODULE=asr06b_backend 时由工厂取这个类。
+#: 🔴 本模块只在开发树，客户包内不存在（APP-101 §4.2）。
+BACKEND_CLASS = ASR06BBackend

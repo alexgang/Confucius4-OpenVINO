@@ -41,9 +41,9 @@ SOURCE_ROOT = r'C:\Users\Trekker-PTL'
 #:      改这里必须同步改 STATUS 的「模型身份」表。
 MODEL_SOURCES = OrderedDict([
     ('asr06b-decoder-int8', {
-        'source_path': r'qwen3asr_06b\models\ov-dec-06b-embed-mask2-int8sym',
+        'source_path': r'qwen3asr_06b\models\ov-dec-06b-stateful-int8sym',
         'source_model': 'Qwen3-ASR-0.6B',
-        'note': 'OV IR，mask2 INT8（per-channel 权重）；decoder bin 应与 B 机 rc5 实测 7FBEB8EF999DDFBA… 一致'}),
+        'note': 'APP-101/102/103：OV IR，stateful INT8（KV cache）；decoder bin SHA256 应为 0059531a2b4ccd4ceb3f4c1dc3519e68421a310a262baba4dc55e603b600d6a3'}),
     ('asr06b-encoder-fp16', {
         'source_path': r'qwen3asr_06b\models\ov-encoder-06b-fp16-static',
         'source_model': 'Qwen3-ASR-0.6B',
@@ -53,9 +53,11 @@ MODEL_SOURCES = OrderedDict([
         'source_model': 'Qwen3-ASR-0.6B',
         'note': 'HF 目录（未导出 OV）；config.json 里 text hidden 1024 / 28 层、audio d_model 896 / 18 层'}),
     ('embed_tokens_06b_f16.npy', {
-        'source_path': r'confucius4-openvino\results\app\_rc5_stage\embed_tokens_06b_f16.npy',
+        'source_path': r'qwen3asr_06b\b_kit_stateful\assets\embed_tokens.npy',
         'source_model': 'Qwen3-ASR-0.6B',
-        'note': '从 HF 文本 embedding 表导出的 FP16 权重表 [151936, 1024]；产物在 rc5 构建暂存区'}),
+        'note': 'APP-103：B-kit 导出的 fp16 文本 embedding 表 [151936, 1024]（免 torch）；'
+                'SHA256 e8d4448c57626ff9a6396b06f05f0e2c2d9ca4fa2436988f012c171e9f861f2c，'
+                '与 rc5 暂存区的 embed_tokens_06b_f16.npy 逐字节同一份'}),
     ('mt/mt2-int4sym-cw-q', {
         'source_path': r'hy_bench\ov\mt2-int4sym-cw-q',
         'source_model': 'Hy-MT2-1.8B',

@@ -1,0 +1,92 @@
+{
+ "at": "2026-11-12 10:42:16",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc8",
+ "zip": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc8_perftest.zip",
+ "correction": "APP-102 §3",
+ "items": {
+  "1_no_legacy_dir": {
+   "pass": true,
+   "hits": []
+  },
+  "2_app_grep_zero": {
+   "pass": true,
+   "hits": []
+  },
+  "3_manifest": {
+   "decoder_sha256": "0059531a2b4ccd4ceb3f4c1dc3519e68421a310a262baba4dc55e603b600d6a3",
+   "encoder_sha256": "0b7463d6f952dd64f97c5ff205f12efb04ca89e6e772448289aa06e4941beb89",
+   "decoder_ok": true,
+   "encoder_ok": true,
+   "decoder_source": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\ov-dec-06b-stateful-int8sym",
+   "embed_source": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\b_kit_stateful\\assets\\embed_tokens.npy",
+   "all_match": true,
+   "verify_ok": true,
+   "verify_bad": [],
+   "pass": true
+  },
+  "4_ext_048": {
+   "manifest_version": "0.4.8",
+   "commit": "817abcbe30c213844cda6f32c81361524ab53de8",
+   "accel_usage_py": true,
+   "pass": true
+  },
+  "5_pkg_check": {
+   "exit_code": 0,
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app488_app102_rc8_acceptance\\check.log",
+   "log_bytes": 2066,
+   "asr_section": true,
+   "n_ok_lines": 21,
+   "n_asr_stateful_lines": 2,
+   "tail": "n3-TTS) 1.7.1\r\n  [ OK ] qwen3tts 模型   C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc8\\models\\qwen3tts\r\n\r\n── OpenVINO 设备 ──\r\n  [ OK ] GPU.0    Intel(R) Graphics (iGPU)\r\n  [ OK ] NPU      Intel(R) AI Boost\r\n  Intel 集显 (GPU)：[ OK ] 可用\r\n  Intel NPU     ：[ OK ] 可用\r\n  注：CPU 推理已从可选设备清单移除（性能不推荐）；如确需 CPU 请用命令行 --asr-device CPU / --mt-device CPU。\r\n\r\n── ASR 后端（识别）──\r\n  [ OK ] Intel GPU · INT8 (stateful) 模型齐全\r\n  [ OK ] Intel NPU · INT8 (stateful) 模型齐全\r\n\r\n── 翻译后端（Hy-MT2-1.8B）──\r\n  [ — ] Intel GPU · INT8-CW        GPU.0    （本包不附带该量化版本）\r\n  [ OK ] Intel GPU · INT4-CW（默认） GPU.0    \r\n  [ — ] Intel NPU · INT8-CW        NPU      （本包不附带该量化版本）\r\n  [ OK ] Intel NPU · INT4-CW        NPU      \r\n  [ OK ] 自动 · INT4-CW 模型（默认） 跟随 --mt-device \r\n\r\n── 音频设备 ──\r\n  [ OK ] 麦克风 [1] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · MME（默认）\r\n  [ OK ] 麦克风 [0] Microsoft 声音映射器 - Input · MME\r\n  [ OK ] 麦克风 [9] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · Windows WASAPI\r\n  [ OK ] 输出 Speaker (Realtek(R) Audio)（2 声道）  id={0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}\r\n\r\n====================================================================\r\n  结论：环境正常。ASR 可用后端 2 个，Intel 集显可用。\r\n====================================================================\r\n",
+   "pass": true
+  },
+  "6_pkg_chain": {
+   "exit_code": 0,
+   "wall_s": 56.1,
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app488_app102_rc8_acceptance\\chain.log",
+   "output": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app488_app102_rc8_acceptance\\chain.txt",
+   "output_chars": 411,
+   "output_head": "Welcome back to the show. Today we are talking about how small habits can change the way we work.\nThanks for having me. I think most people underestimate how much a tiny routine in the morning can shape the whole day.\nCan you give us an example?\nSure, I write down three things I want to finish befor",
+   "replacement_chars": 0,
+   "asr_rtf": 0.544,
+   "asr_exec_encoder": "NPU",
+   "asr_exec_decoder": "NPU",
+   "tts_submitted": 7,
+   "tts_played": 2,
+   "pass": true
+  }
+ },
+ "lock": {
+  "module": "app",
+  "pid": 11772,
+  "started": "2026-11-12 10:42:28",
+  "ended": "2026-11-12 10:43:33",
+  "timing_valid": true,
+  "released": true
+ },
+ "zip_check": {
+  "zip_bytes": 5924663034,
+  "n_pkg_files": 10541,
+  "n_zip_entries": 10541,
+  "counts_equal": true,
+  "top_dir_ok": true,
+  "zip_has_legacy_path": false,
+  "pass": true
+ },
+ "forbidden_material": {
+  "name_hits": [
+   "app\\clone_collector.py",
+   "ext\\bridge\\clone_voice.py",
+   "python\\Lib\\site-packages\\openvino\\include\\openvino\\op\\embedding_segments_sum.hpp"
+  ],
+  "name_hit_note": "命中项均为代码文件 / 第三方头文件，不是录音、克隆音色或同事声音素材；未改包",
+  "n_wav": 23,
+  "package_wavs": [
+   "models/qwen3tts/voices/preset_A.wav"
+  ],
+  "note": "包内业务 wav 只有 models/qwen3tts/voices/preset_A.wav（预设音色 A）；其余为 python 自带 scipy 测试数据"
+ },
+ "n_items": 6,
+ "n_items_pass": 6,
+ "verdict": "PASS"
+}
