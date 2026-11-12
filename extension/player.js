@@ -3801,8 +3801,15 @@ function updateHud() {
   set('mCodec', m.codecUsed || '—');
   set('mDelay', delaySec);
   set('mSink', m.dubSink || '—');
-  set('mLip', m.lipSyncMs == null ? '—' : m.lipSyncMs.toFixed(1));
-  set('mSched', m.schedErrMs == null ? '—' : m.schedErrMs.toFixed(2));
+  // v0.4.10：唇音/排程误差只在测试视频和自测探针下有值 ⇒ 底栏改显示配音晚于画面的秒数
+  {
+    const e = m.dubSyncErrs || [];
+    const last = e.length ? e[e.length - 1] / 1000 : null;
+    const tail = e.slice(-20);
+    const avg = tail.length ? tail.reduce((a, b) => a + b, 0) / tail.length / 1000 : null;
+    set('mDubLate', last == null ? '—' : last.toFixed(1));
+    set('mDubLateAvg', avg == null ? '—' : avg.toFixed(1));
+  }
   set('mIgpu', m.igpuPct == null ? '—' : m.igpuPct.toFixed(0));
   set('mNpu', m.npuPct == null ? '—' : m.npuPct.toFixed(0));
   set('mDubDrop', m.dubDropped == null ? '0' : String(m.dubDropped));
