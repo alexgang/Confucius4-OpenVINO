@@ -26,13 +26,37 @@ import sys
 import threading
 import time
 
+def _pkg_cuda_env() -> str:
+    """**包内自带**的 CUDA 环境（Special MVP）⇒ 返回包内 python 路径。
+
+    🔴🔴🔳 **Special MVP**（用户 2026-11-13 决定）：**把 NV5050 的推理环境
+    打包进去**（`<包根>/cuda_env/`）⇒ 客户机**不依赖**家目录里的
+    `_fq3tts_env` ⇒ 优先用它。
+    🔴 开发树里没有 `cuda_env/` ⇒ 返回空串 ⇒ 回落老的家目录推导（行为不变）。
+    """
+    try:
+        here = os.path.dirname(os.path.abspath(__file__))
+        pkg = os.path.dirname(here)          # <pkg>/app/ ⇒ <pkg>
+        for cand in (os.path.join(pkg, 'cuda_env', 'Scripts', 'python.exe'),
+                     os.path.join(pkg, 'cuda_env', 'python.exe')):
+            if os.path.isfile(cand):
+                return cand
+    except Exception:
+        pass
+    return ''
+
+
 # 🔴 §120：默认值不再写死开发机家目录 ⇒ 改为按**当前用户家目录**推导
 #   ⚠️ 客户机上家目录下通常没有 `_fq3tts_env` ⇒ `available()` 返 False
 #      ⇒ GUI 显示「CUDA 不可用」⇒ 用户按 `docs/CUDA_TTS.md` 设 `LIVECAP_CUDA_PY`。
 #   ⚠️ **默认值取不到时必须明确报错**，不能静默指向一个不存在的路径。
+# 🔴🔴🔳 **Special MVP**：**包内自带的 `cuda_env/` 优先**
+#   （打包进去 ⇒ 客户机开箱即用，不看家目录）。
+_PKG_ENV_PY = _pkg_cuda_env()
 _ENV_PY_DEFAULT = os.path.join(os.path.expanduser('~'),
                                '_fq3tts_env', 'Scripts', 'python.exe')
-ENV_PY = os.environ.get('LIVECAP_CUDA_PY', _ENV_PY_DEFAULT)
+ENV_PY = (os.environ.get('LIVECAP_CUDA_PY', '').strip()
+          or _PKG_ENV_PY or _ENV_PY_DEFAULT)
 SIDECAR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                        'tts_cuda_sidecar.py')
 READY_TIMEOUT_S = float(os.environ.get('LIVECAP_CUDA_READY_S', '180'))
@@ -325,6 +349,15 @@ class CudaTTSEngine:
         # ⇒ 现在两处都走 `default_pkg_dir()`（同一函数、同一规则）。
         env['LIVECAP_PKG'] = default_pkg_dir() or os.path.dirname(
             os.path.dirname(os.path.abspath(__file__)))
+        # 🔴🔴🔳 **Special MVP**：TTS 模型**随包**（`<包根>/models/tts_cuda/`）
+        #   ⇒ 显式指给边车 ⇒ **不依赖客户机的 HF 缓存**（离线可用）。
+        #   ⚠️ 其它包/开发树没有这个目录 ⇒ **不设** ⇒ 边车沿用默认 HF id +
+        #   本机缓存（行为不变）。
+        _pkg_dir = env.get('LIVECAP_PKG') or ''
+        _model_dir = (os.path.join(_pkg_dir, 'models', 'tts_cuda')
+                      if _pkg_dir else '')
+        if _model_dir and os.path.isdir(_model_dir):
+            env['LIVECAP_CUDA_TTS_MODEL'] = _model_dir
 
         t0 = time.monotonic()
         self.on_log('[tts_cuda] 启动 CUDA 边车：%s' % self._py)

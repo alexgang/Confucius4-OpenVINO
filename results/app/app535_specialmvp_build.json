@@ -1,0 +1,236 @@
+{
+ "actions": [
+  "copy rc11 -> Confucius4_LiveCaption_SpecialMVP_v1.0-sp1 (real copy, no __pycache__/*.pyc)",
+  "copy _fq3tts_env -> cuda_env/ (torch 2.11.0+cu128)",
+  "editable install -> real package copy; pyvenv.cfg home -> <pkg>/python",
+  "copy Qwen3-TTS-12Hz-0.6B-Base snapshot -> models/tts_cuda/",
+  "align app/*.py from dev tree (30) + add tts_cuda*.py; byte-identical verified",
+  "package_profile.json -> specialmvp (allow_cuda=True)",
+  "release.json -> version 1.0-sp1 + specialmvp_changes",
+  "MANIFEST: +tts_cuda(12 files, per-file SHA) ; re-verified 7 existing entries, mismatches=0",
+  "hygiene gates: blacklist/pyc/legacy/bat all PASS",
+  "README_zh.md: 6 处定点替换（唯一命中断言）"
+ ],
+ "pkg": {
+  "n_files": 41374,
+  "bytes": 14232024958,
+  "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11",
+  "dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1"
+ },
+ "cuda_env": {
+  "moved_aside": "C:\\Users\\Trekker-PTL\\_tmp_cuda_env_polluted_1",
+  "src": "C:\\Users\\Trekker-PTL\\_fq3tts_env",
+  "n_files": 30723,
+  "bytes": 5021012530,
+  "robocopy_rc": 1,
+  "pyvenv_cfg": "home = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\python\ninclude-system-site-packages = false\nversion = 3.12.10\nexecutable = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\python\\python.exe\ncommand = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\python\\python.exe -m venv C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\cuda_env\n",
+  "editable_moved_aside": {
+   "dir": "C:\\Users\\Trekker-PTL\\_tmp_cuda_editable_backup",
+   "files": [
+    "__editable__.faster_qwen3_tts-0.5.4.pth",
+    "__editable___faster_qwen3_tts_0_5_4_finder.py"
+   ]
+  },
+  "faster_qwen3_tts_src": "C:\\Users\\Trekker-PTL\\_fq3tts_src\\faster-qwen3-tts-main"
+ },
+ "model": {
+  "src": "C:\\Users\\Trekker-PTL\\.cache\\huggingface\\hub\\models--Qwen--Qwen3-TTS-12Hz-0.6B-Base\\snapshots\\5d83992436eae1d760afd27aff78a71d676296fc",
+  "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models\\tts_cuda",
+  "n_files": 12,
+  "bytes": 2516104532,
+  "files": [
+   {
+    "name": "README.md",
+    "bytes": 3640,
+    "sha256": "181187b6057906bd960bc7f938d0b7a16652509776a0d52c4885b4ae5ccda0ea"
+   },
+   {
+    "name": "config.json",
+    "bytes": 4494,
+    "sha256": "2e714c787c8edb98b05432685cddb634add2de4d4e645f653d68251ef72ba011"
+   },
+   {
+    "name": "generation_config.json",
+    "bytes": 245,
+    "sha256": "f1b90b4513f3b34c62851049e2492d7b4c5940daf1276f89c82b8ef04127f3aa"
+   },
+   {
+    "name": "merges.txt",
+    "bytes": 1671839,
+    "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3"
+   },
+   {
+    "name": "model.safetensors",
+    "bytes": 1829344272,
+    "sha256": "180b3b10eb1c9f1b4db7806d5475bae3071c0243c299d49926bab1da3b6946f6"
+   },
+   {
+    "name": "preprocessor_config.json",
+    "bytes": 127,
+    "sha256": "efdde1022ea9d76928bf7a9cd53139138f5ba2e466e837f08f6105ab1af1c119"
+   },
+   {
+    "name": "tokenizer_config.json",
+    "bytes": 7344,
+    "sha256": "dc3c31c3bdaedd5016382bb3cbe07323026775ad51f5a4fb564505992ae4a670"
+   },
+   {
+    "name": "vocab.json",
+    "bytes": 2776833,
+    "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+   },
+   {
+    "name": "speech_tokenizer/config.json",
+    "bytes": 2336,
+    "sha256": "ee65bb901c876664ab8707c487157aa1a6ee57c65969b28fb5ec9dc211e68167"
+   },
+   {
+    "name": "speech_tokenizer/configuration.json",
+    "bytes": 76,
+    "sha256": "6bc26d64eb5024b4d1dab5a52371958b429256d6c9d59787f1f5294a54e0cebd"
+   },
+   {
+    "name": "speech_tokenizer/model.safetensors",
+    "bytes": 682293092,
+    "sha256": "836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258"
+   },
+   {
+    "name": "speech_tokenizer/preprocessor_config.json",
+    "bytes": 234,
+    "sha256": "fcb3805e597e786d4067706e602f6688524640f8d3396790e2e09b5942fcbdfb"
+   }
+  ]
+ },
+ "gates": {
+  "blacklist_selftest": [
+   {
+    "case": "blacklist_detected",
+    "n_hits": 3,
+    "expected": 3,
+    "pass": true
+   },
+   {
+    "case": "blacklist_purged",
+    "n_hits": 0,
+    "expected": 0,
+    "pass": true
+   }
+  ],
+  "pyc": {
+   "n_pyc": 0,
+   "note": "拷贝时排除（robocopy /XF *.pyc /XD __pycache__）⇒ 天然为 0；此处只断言"
+  },
+  "blacklist_left": 0,
+  "n_pyc": 0,
+  "legacy_selftest": [
+   {
+    "case": "legacy_dir_present",
+    "expected_pass": false,
+    "pass": true
+   },
+   {
+    "case": "legacy_literal_in_app",
+    "expected_pass": false,
+    "pass": true
+   }
+  ],
+  "legacy": {
+   "ok": true,
+   "reasons": []
+  },
+  "bat": {
+   "rows": [
+    {
+     "file": "Diagnose.bat",
+     "bytes": 362,
+     "crlf": 13,
+     "bare_lf": 0,
+     "non_ascii_bytes": 0,
+     "pass": true
+    },
+    {
+     "file": "Start_Bridge.bat",
+     "bytes": 485,
+     "crlf": 13,
+     "bare_lf": 0,
+     "non_ascii_bytes": 0,
+     "pass": true
+    },
+    {
+     "file": "Start_LiveCaption.bat",
+     "bytes": 316,
+     "crlf": 10,
+     "bare_lf": 0,
+     "non_ascii_bytes": 0,
+     "pass": true
+    },
+    {
+     "file": "cuda_env/Scripts/activate.bat",
+     "bytes": 1021,
+     "crlf": 34,
+     "bare_lf": 0,
+     "non_ascii_bytes": 0,
+     "pass": true
+    },
+    {
+     "file": "cuda_env/Scripts/deactivate.bat",
+     "bytes": 393,
+     "crlf": 22,
+     "bare_lf": 0,
+     "non_ascii_bytes": 0,
+     "pass": true
+    },
+    {
+     "file": "python/Lib/ctypes/macholib/fetch_macholib.bat",
+     "bytes": 75,
+     "crlf": 1,
+     "bare_lf": 0,
+     "non_ascii_bytes": 0,
+     "pass": true
+    },
+    {
+     "file": "python/Lib/idlelib/idle.bat",
+     "bytes": 177,
+     "crlf": 4,
+     "bare_lf": 0,
+     "non_ascii_bytes": 0,
+     "pass": true
+    }
+   ],
+   "n_fail": 0
+  }
+ },
+ "app_synced": [
+  "asr06b_stateful_backend.py",
+  "audio_source.py",
+  "backends.py",
+  "caption_render.py",
+  "clone_collector.py",
+  "device_config.py",
+  "gui_status.py",
+  "live_caption_app.py",
+  "npu_delivery_backend.py",
+  "npu_embeds_backend.py",
+  "offline_reader.py",
+  "offline_reader_gui.py",
+  "package_profile.py",
+  "seg_stream.py",
+  "segment_encoder_backend.py",
+  "speaker_assets.py",
+  "speaker_tracker.py",
+  "speaker_voice.py",
+  "streaming_asr.py",
+  "time_stretch.py",
+  "translator.py",
+  "tts_cuda.py",
+  "tts_cuda_sidecar.py",
+  "tts_engine.py",
+  "tts_engine_patch.py",
+  "tts_service.py",
+  "tts_worker.py",
+  "win_clickthrough.py",
+  "tts_cuda.py",
+  "tts_cuda_sidecar.py"
+ ],
+ "elapsed_s": 68.9
+}

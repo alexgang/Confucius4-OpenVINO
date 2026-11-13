@@ -970,6 +970,11 @@ def _tts_device_problem(dev: str, prec: Optional[str] = None) -> str:
         # 🔴🔴🔳 **APP-098 一.1**：CUDA 设备**不再作为可选设备**
         #   （三个后端都已去掉 CUDA 档 ⇒ 选它必然无后端可跑）
         #   ⇒ 明确拒绝并说明原因（**不静默回落**）。
+        # 🔴🔴🔳 **Special MVP 例外**（用户 2026-11-13 决定）：本包**自带**
+        #   NV5050 的 PyTorch+CUDA 环境 ⇒ 'CUDA' **是本包的出厂 TTS 设备**
+        #   ⇒ 这里**不拦**（能不能用由 `tts_cuda.available()` 决定）。
+        if 'CUDA' in device_config.tts_extra_devices():
+            return ''
         return ('本版本已移除 NVIDIA/CUDA 语音后端 ⇒ 请选 Intel GPU 或 Intel NPU')
     if up == 'CPU':
         return ''                        # CPU 是兜底，允许
@@ -1067,11 +1072,15 @@ def build_tts_options(devices):
     """
     out = []
     skipped = {}                     # dev -> {'precs': [...], 'why': str}
-    for dev in devices:
+    for dev in list(devices) + list(device_config.tts_extra_devices()):
         # 🔴🔴🔳 **APP-098 一.1**：NVIDIA 设备**根本不会进 `devices`**
         #   （`device_config.detect_devices()` 已过滤）⇒ 这里**不需要**
         #   `is_cuda` 分支 ⇒ 标签/说明里**不会出现 CUDA 字样**。
-        for prec in TTS_PRECISIONS:
+        # 🔴🔴🔳 **Special MVP 例外**：'CUDA' 由 `tts_extra_devices()` 追加
+        #   ⇒ 它是 **PyTorch+CUDA 边车**（**不是** OV 设备 ⇒ OV 推理精度
+        #   **不适用**）⇒ 只列**一档**（不重复 f32/f16）。
+        _cuda_extra = str(dev).upper() == 'CUDA'
+        for prec in (TTS_PRECISIONS[:1] if _cuda_extra else TTS_PRECISIONS):
             if device_config.check_precision(dev, prec):
                 continue                   # 例如 NPU + f32 ⇒ 不出现
             prob = _tts_device_problem(dev, prec)
@@ -1080,7 +1089,11 @@ def build_tts_options(devices):
                 slot = skipped.setdefault(dev, {'precs': [], 'why': prob})
                 slot['precs'].append(prec.upper())
                 continue
-            if str(dev).upper() == 'NPU':
+            if _cuda_extra:
+                # 🔴🔴🔳 Special MVP：包内自带 NV5050 的 CUDA 环境
+                note = ('✅ Special MVP：包内自带 NV5050 的 PyTorch+CUDA 环境 ⇒ '
+                        '语音输出由 NVIDIA 独显推理（实测首包 ≈1.7 s、RTF≈0.9）')
+            elif str(dev).upper() == 'NPU':
                 # 🔴 APP-052 ②：去掉 markdown 星号（原样显示 `**推荐**`）
                 note = '✅ 实测可用（端到端合成 PASS，RTF≈1.16）⇒ 推荐'
             else:
@@ -4454,28 +4467,36 @@ class App:
             #   **包外**的独立 venv（**不随包分发**）⇒ 根本不存在。
             #   ⇒ 这里在**起 worker 之前**就拦住 + 明确告知原因。
             if str(dev).upper().startswith('CUDA'):
-                # 🔴🔴🔳 **APP-098 一.1**：CUDA 设备**不再可选**
-                #   （TTS 下拉里已没有 CUDA 档 ⇒ 只可能是配置文件里的**残留值**）
-                #   ⇒ 明确告知 + 自动改用可用设备（**不静默**）。
-                why = '本版本已移除 NVIDIA/CUDA 语音后端（APP-098）'
-                self._ui_log(f'[tts] 🔴 {why} ⇒ 自动改用可用设备')
-                alt = _first_usable_tts_device(self._dev_avail, skip=dev,
-                                               prec=prec)
-                if alt is None:
-                    self.var_tts_on.set(False)
-                    self.var_tts_note.set('🔴 语音输出不可用：%s'
-                                          '；且本机没有其它可用设备'
-                                          '（已自动关闭，详见日志）' % why)
-                    self.var_status.set('语音输出不可用（不影响字幕与翻译）')
-                    self._ui_log('[tts] 无可用设备 ⇒ 启动失败，开关已自动关闭')
-                    return
-                dev = alt
-                prec = 'f32'
-                self._dev_choices['tts'] = dev
-                self._tts_precision = prec
-                self.var_status.set(f'🔴 CUDA 语音后端不可用（{why}）⇒ 已自动改用 {dev}')
-                self.var_tts_note.set(f'🔴 CUDA 语音后端不可用：{why}；已自动改用 {dev}')
-                bad = ''
+                # 🔴🔴🔳 **Special MVP 例外**（用户 2026-11-13 决定）：
+                #   本包**自带** NV5050 的 PyTorch+CUDA 环境 ⇒ 'CUDA' **可用**
+                #   ⇒ **直接用它**（不回落、不改设备）⇒ TTS 走 NV5050。
+                if 'CUDA' in device_config.tts_extra_devices():
+                    self._ui_log('[tts] ✅ 使用包内 CUDA 环境（Special MVP）'
+                                 '⇒ 语音输出走 NV5050')
+                    bad = ''
+                else:
+                    # 🔴🔴🔳 **APP-098 一.1**：CUDA 设备**不再可选**
+                    #   （TTS 下拉里已没有 CUDA 档 ⇒ 只可能是配置文件里的**残留值**）
+                    #   ⇒ 明确告知 + 自动改用可用设备（**不静默**）。
+                    why = '本版本已移除 NVIDIA/CUDA 语音后端（APP-098）'
+                    self._ui_log(f'[tts] 🔴 {why} ⇒ 自动改用可用设备')
+                    alt = _first_usable_tts_device(self._dev_avail, skip=dev,
+                                                   prec=prec)
+                    if alt is None:
+                        self.var_tts_on.set(False)
+                        self.var_tts_note.set('🔴 语音输出不可用：%s'
+                                              '；且本机没有其它可用设备'
+                                              '（已自动关闭，详见日志）' % why)
+                        self.var_status.set('语音输出不可用（不影响字幕与翻译）')
+                        self._ui_log('[tts] 无可用设备 ⇒ 启动失败，开关已自动关闭')
+                        return
+                    dev = alt
+                    prec = 'f32'
+                    self._dev_choices['tts'] = dev
+                    self._tts_precision = prec
+                    self.var_status.set(f'🔴 CUDA 语音后端不可用（{why}）⇒ 已自动改用 {dev}')
+                    self.var_tts_note.set(f'🔴 CUDA 语音后端不可用：{why}；已自动改用 {dev}')
+                    bad = ''
             if bad:
                 self._ui_log(f'[tts] 设备 {dev}（{prec}）不可用：{bad} ⇒ 自动改用可用设备')
                 alt = _first_usable_tts_device(self._dev_avail, skip=dev,
@@ -8565,6 +8586,31 @@ def run_check():
         print('  [缺 ] 未找到可回环的输出设备（--source system 需要 Windows WASAPI）')
     print()
 
+    # ── 5b. CUDA 环境（**仅 Special MVP**：包内自带 NV5050 运行时）──────
+    try:
+        _cuda_on = package_profile.allow_cuda()
+    except Exception:
+        _cuda_on = False
+    if _cuda_on:
+        print('── CUDA 语音后端（Special MVP：包内自带 NV5050 运行时）──')
+        try:
+            import tts_cuda
+            _py = tts_cuda.python_exe()
+            print(f'  CUDA 运行时：{_py}')
+            print(f'  运行时 python：{"[ OK ] 存在" if os.path.isfile(_py) else "[缺 ] 不存在"}')
+            _mdir = os.path.join(PKG_ROOT, 'models', 'tts_cuda')
+            print(f'  TTS CUDA 模型：{_mdir}')
+            if os.path.isdir(_mdir):
+                _nf = sum(len(f) for _, _, f in os.walk(_mdir))
+                print(f'  模型文件：{_nf} 个（随包离线可用）')
+            else:
+                print('  模型文件：[缺 ] 未找到（语音输出无法用 CUDA 后端）')
+            _ok, _detail = tts_cuda.probe(timeout=60)
+            print(f'  CUDA 可用性：{"[ OK ] " if _ok else "[缺 ] "}{_detail}')
+        except Exception as e:
+            print(f'  [缺 ] CUDA 后端不可用：{type(e).__name__}: {e}')
+        print()
+
     # ── 6. 结论 ────────────────────────────────────────────────────
     ok_backends = [k for k, (ok, _) in models.items() if ok]
     print('=' * 68)
@@ -8722,9 +8768,15 @@ def main():
     except Exception:
         _want_cuda = False
     if _want_cuda:
-        print('🔴 本版本已移除 NVIDIA/CUDA 语音后端（APP-098）：'
-              '请改用 --tts-device NPU（或 GPU.0）。', file=sys.stderr)
-        sys.exit(2)
+        # 🔴🔴🔳 **Special MVP 例外**（用户 2026-11-13 决定）：包内自带
+        #   NV5050 的 PyTorch+CUDA 环境 ⇒ **允许** `--tts-device CUDA`。
+        #   ⚠️ 其它包（MiniMVP / 完整版）**仍然拒绝**（APP-098 口径不变）。
+        if 'CUDA' in device_config.tts_extra_devices():
+            pass
+        else:
+            print('🔴 本版本已移除 NVIDIA/CUDA 语音后端（APP-098）：'
+                  '请改用 --tts-device NPU（或 GPU.0）。', file=sys.stderr)
+            sys.exit(2)
     _dev_sel, _dev_notes = device_config.get_devices(_dev_cli)
     args.asr_device = _dev_sel['asr']
     args.mt_device = _dev_sel['mt']
