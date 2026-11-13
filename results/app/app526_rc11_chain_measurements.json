@@ -1,0 +1,28 @@
+{
+ "at": "2026-11-13 10:10:50",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11",
+ "audio": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+ "defaults": {
+  "asr": "GPU.0",
+  "mt": "GPU.0",
+  "tts": "NPU"
+ },
+ "mt_model": "mt2-int8sym-cw-q",
+ "mt_quant": "INT8-CW",
+ "asr_rtf": 0.735,
+ "asr_exec_encoder": "GPU.0",
+ "asr_exec_decoder": "GPU.0",
+ "mt_latency_median_ms": 763.5,
+ "mt_latency_p95_ms": 1354.0,
+ "mt_ttft_ms": 228.1,
+ "mt_tok_per_s": 23.9,
+ "mt_sentences": 163,
+ "tts_submitted": 155,
+ "tts_played": 99,
+ "tts_dropped": 56,
+ "tts_device": "NPU/NPU(lazy)",
+ "cl_out_of_resources": 0,
+ "n_traceback": 0,
+ "wall_s": 618.4,
+ "source": "app526_app107_rc11_acceptance/chain10min.log"
+}

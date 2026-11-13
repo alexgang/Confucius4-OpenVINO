@@ -1,0 +1,135 @@
+{
+ "at": "2026-11-13T10:23:08",
+ "version": "1.0-rc11",
+ "correction": "APP-107 (+APP-106 §2)",
+ "base_pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc10",
+ "dst_pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11",
+ "dry_run": false,
+ "actions": [
+  "zip written after acceptance PASS (2-pass, converged)"
+ ],
+ "meas_used": {
+  "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app526_rc11_chain_measurements.json",
+  "at": "2026-11-13 10:10:50",
+  "defaults": {
+   "asr": "GPU.0",
+   "mt": "GPU.0",
+   "tts": "NPU"
+  },
+  "asr_rtf": 0.735,
+  "mt_latency_median_ms": 763.5,
+  "mt_latency_p95_ms": 1354.0,
+  "mt_ttft_ms": 228.1,
+  "mt_tok_per_s": 23.9,
+  "tts_submitted": 155,
+  "tts_played": 99,
+  "tts_dropped": 56,
+  "tts_device": "NPU/NPU(lazy)"
+ },
+ "readme": {
+  "files": {
+   "README_zh.md": 4182,
+   "README_en.md": 3934,
+   "README_perftest.txt": 4670
+  },
+  "n_files": 10629,
+  "dir_bytes": 6694657456,
+  "zip_bytes_field": 6697683352,
+  "defaults": {
+   "default_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "profile": "minimvp",
+   "defaults_version": 9
+  }
+ },
+ "blacklist": {
+  "patterns": [
+   "bridge_token*",
+   "*.pid",
+   "*.log"
+  ],
+  "n_found": 0,
+  "n_removed": 0,
+  "removed": []
+ },
+ "pre_zip_purge": {
+  "n_pyc_left": 0,
+  "empty_pycache_dirs_removed": [],
+  "blacklist_removed": 0
+ },
+ "pkg": {
+  "files": 10629,
+  "bytes": 6694657456,
+  "gib": 6.235
+ },
+ "zip": {
+  "path": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11_perftest.zip",
+  "bytes": 6697683352,
+  "pass_sizes": [
+   6697683352,
+   6697683352
+  ],
+  "converged": true,
+  "accept_verdict": "PASS",
+  "sha256": null,
+  "sha_note": "用户规则：zip 不做 SHA 校验"
+ },
+ "readme_gate": {
+  "rows": [
+   {
+    "file": "README_zh.md",
+    "forbidden_hits": [],
+    "dev_path_hits": [],
+    "file_count_matches": true,
+    "zip_bytes_matches": true,
+    "dir_bytes_matches": true,
+    "device_table_matches_defaults": true,
+    "localappdata_has_backslash": true,
+    "ext_unusable_stated": true,
+    "en_no_cjk": true,
+    "en_table_english": true,
+    "n_cjk_en": 0,
+    "perftest_two_groups": true,
+    "pass": true
+   },
+   {
+    "file": "README_en.md",
+    "forbidden_hits": [],
+    "dev_path_hits": [],
+    "file_count_matches": true,
+    "zip_bytes_matches": true,
+    "dir_bytes_matches": true,
+    "device_table_matches_defaults": true,
+    "localappdata_has_backslash": true,
+    "ext_unusable_stated": true,
+    "en_no_cjk": true,
+    "en_table_english": true,
+    "n_cjk_en": 0,
+    "perftest_two_groups": true,
+    "pass": true
+   },
+   {
+    "file": "README_perftest.txt",
+    "forbidden_hits": [],
+    "dev_path_hits": [],
+    "file_count_matches": true,
+    "zip_bytes_matches": true,
+    "dir_bytes_matches": true,
+    "device_table_matches_defaults": true,
+    "localappdata_has_backslash": true,
+    "ext_unusable_stated": true,
+    "en_no_cjk": true,
+    "en_table_english": true,
+    "n_cjk_en": 0,
+    "perftest_two_groups": true,
+    "pass": true
+   }
+  ],
+  "n_pass": 3,
+  "n_fail": 0
+ },
+ "elapsed_s": 46.2
+}

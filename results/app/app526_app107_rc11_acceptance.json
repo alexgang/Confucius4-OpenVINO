@@ -1,0 +1,419 @@
+{
+ "at": "2026-11-13 09:58:44",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11",
+ "zip": "C:\\Users\\Trekker-PTL\\shared\\minimvp\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11_perftest.zip",
+ "correction": "APP-107 (+APP-106 §2)",
+ "items": {
+  "mt_int8_only": {
+   "dirs": [
+    "mt2-int8sym-cw-q"
+   ],
+   "n_files": 12,
+   "bytes": 1812121487,
+   "int4_present": false,
+   "bytes_match_expected": true,
+   "n_source_files": 12,
+   "all_sha_match": true,
+   "mismatches": [],
+   "sha_rows_sample": [
+    {
+     "name": "chat_template.jinja",
+     "bytes": 654,
+     "sha256": "b7491ec0e9c869dfce20f2176758099bf248d979dd05530ede99deb21698acee",
+     "source_sha256": "b7491ec0e9c869dfce20f2176758099bf248d979dd05530ede99deb21698acee",
+     "match": true
+    },
+    {
+     "name": "config.json",
+     "bytes": 1402,
+     "sha256": "04db81009c0a04c7e89d4186a7e76f1894fc93110724f0001c8ecf35998296b5",
+     "source_sha256": "04db81009c0a04c7e89d4186a7e76f1894fc93110724f0001c8ecf35998296b5",
+     "match": true
+    },
+    {
+     "name": "generation_config.json",
+     "bytes": 221,
+     "sha256": "0e28667f1cb4c7b880b9223b2d87978f88e79ed7ae037de1021f826c18d4ed6f",
+     "source_sha256": "0e28667f1cb4c7b880b9223b2d87978f88e79ed7ae037de1021f826c18d4ed6f",
+     "match": true
+    }
+   ],
+   "pass": true
+  },
+  "manifest_int8": {
+   "manifest_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11\\app\\MANIFEST.json",
+   "n_models": 7,
+   "all_match": true,
+   "n_mismatches": 0,
+   "source_path": "C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q",
+   "source_path_ok": true,
+   "hidden_size": 2048,
+   "num_hidden_layers": 32,
+   "n_files": 12,
+   "all_files_match": true,
+   "int4_entry": {
+    "pkg_exists": false,
+    "optional": true,
+    "absent_in_package": true
+   },
+   "pass": true
+  },
+  "mt_default_behaviour": {
+   "exit_code": 0,
+   "data": {
+    "default_model": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11\\models\\mt\\mt2-int8sym-cw-q",
+    "default_quant": "int8",
+    "auto_label": "自动 · INT8-CW 模型（默认）",
+    "mt_engines": [
+     "auto",
+     "gpu_int8cw",
+     "npu_int8cw"
+    ],
+    "bundled_int8": true,
+    "bundled_int4": false
+   },
+   "default_is_int8": true,
+   "auto_label_int8": true,
+   "no_int4_engine": true,
+   "bundled_int8": true,
+   "bundled_int4": false,
+   "pass": true
+  },
+  "int4_literals_in_app": {
+   "n_hits": 9,
+   "hits": [
+    {
+     "file": "app/npu_embeds_backend.py",
+     "line": 28,
+     "text": "端口（`models/qwen3-lm-{int8sym,int4sym}-cleanie-ov`）"
+    },
+    {
+     "file": "app/npu_embeds_backend.py",
+     "line": 90,
+     "text": "decoder_dir: str = \"models/qwen3-lm-int4sym-cleanie-ov\","
+    },
+    {
+     "file": "app/translator.py",
+     "line": 11,
+     "text": "· mt2-int4sym-cw-q：GPU.0 57.9 tok/s / TTFT 35 ms；NPU 44.0 tok/s / TTFT 292 ms，"
+    },
+    {
+     "file": "app/translator.py",
+     "line": 65,
+     "text": "os.path.join(MODELS, 'mt', 'mt2-int4sym-cw-q'),"
+    },
+    {
+     "file": "app/translator.py",
+     "line": 66,
+     "text": "os.path.join(MODELS, 'mt2-int4sym-cw-q'),"
+    },
+    {
+     "file": "app/translator.py",
+     "line": 67,
+     "text": "os.path.join(_HY_ROOT, 'mt2-int4sym-cw-q'),"
+    },
+    {
+     "file": "app/translator.py",
+     "line": 127,
+     "text": "#   mt2-int4sym-cw-q  GPU.0 57.9 tok/s / TTFT 35 ms / 加载 6.9 s"
+    },
+    {
+     "file": "app/translator.py",
+     "line": 135,
+     "text": "('gpu_int4cw', 'Intel GPU · INT4-CW', 'GPU.0', 'mt2-int4sym-cw-q',"
+    },
+    {
+     "file": "app/translator.py",
+     "line": 140,
+     "text": "('npu_int4cw', 'Intel NPU · INT4-CW', 'NPU', 'mt2-int4sym-cw-q',"
+    }
+   ],
+   "note": "APP-107 §2：int4sym 只剩注释/回退链，**不再作为默认值**（判定见 mt_default_behaviour）"
+  },
+  "factory_defaults": {
+   "data": {
+    "default_devices": {
+     "asr": "GPU.0",
+     "mt": "GPU.0",
+     "tts": "NPU"
+    },
+    "profile": "minimvp",
+    "defaults_version": 9
+   },
+   "pass": true
+  },
+  "hygiene": {
+   "n_blacklist": 0,
+   "blacklist": [],
+   "n_pyc": 0,
+   "bats": [
+    {
+     "file": "Diagnose.bat",
+     "crlf": 13,
+     "bare_lf": 0,
+     "non_ascii": 0,
+     "pass": true
+    },
+    {
+     "file": "Start_Bridge.bat",
+     "crlf": 13,
+     "bare_lf": 0,
+     "non_ascii": 0,
+     "pass": true
+    },
+    {
+     "file": "Start_LiveCaption.bat",
+     "crlf": 10,
+     "bare_lf": 0,
+     "non_ascii": 0,
+     "pass": true
+    },
+    {
+     "file": "python/Lib/ctypes/macholib/fetch_macholib.bat",
+     "crlf": 1,
+     "bare_lf": 0,
+     "non_ascii": 0,
+     "pass": true
+    },
+    {
+     "file": "python/Lib/idlelib/idle.bat",
+     "crlf": 4,
+     "bare_lf": 0,
+     "non_ascii": 0,
+     "pass": true
+    }
+   ],
+   "n_bat_fail": 0,
+   "pass": true
+  },
+  "readmes": {
+   "files": {
+    "README_zh.md": {
+     "bytes": 3966,
+     "has_int8": true,
+     "has_int4_dir_literal": false,
+     "has_groups": true,
+     "has_localapp_backslash": true,
+     "has_ext_note": true,
+     "has_measured_placeholder": true,
+     "has_measured_numbers": false
+    },
+    "README_en.md": {
+     "bytes": 3731,
+     "has_int8": true,
+     "has_int4_dir_literal": false,
+     "has_groups": true,
+     "has_localapp_backslash": true,
+     "has_ext_note": true,
+     "has_measured_placeholder": true,
+     "has_measured_numbers": false
+    },
+    "README_perftest.txt": {
+     "bytes": 4454,
+     "has_int8": true,
+     "has_int4_dir_literal": false,
+     "has_groups": true,
+     "has_localapp_backslash": true,
+     "has_ext_note": true,
+     "has_measured_placeholder": true,
+     "has_measured_numbers": false
+    }
+   },
+   "pass": true
+  },
+  "10_pkg_check": {
+   "exit_code": 0,
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app526_app107_rc11_acceptance\\check.log",
+   "log_bytes": 2050,
+   "n_ok_lines": 21,
+   "mt_section_lines": [
+    "  [ OK ] Intel GPU · INT8-CW（默认） GPU.0    ",
+    "  [ — ] Intel GPU · INT4-CW        GPU.0    （本包不附带该量化版本）",
+    "  [ OK ] Intel NPU · INT8-CW        NPU      ",
+    "  [ — ] Intel NPU · INT4-CW        NPU      （本包不附带该量化版本）",
+    "  [ OK ] 自动 · INT8-CW 模型（默认） 跟随 --mt-device "
+   ],
+   "ok_int8_default": true,
+   "ok_auto_int8": true,
+   "int4_lines": [
+    "  [ — ] Intel GPU · INT4-CW        GPU.0    （本包不附带该量化版本）",
+    "  [ — ] Intel NPU · INT4-CW        NPU      （本包不附带该量化版本）"
+   ],
+   "int4_all_not_bundled": true,
+   "mt_device_gpu0": true,
+   "mt_ready_line": null,
+   "device_lines": [
+    "[device] ASR 与 MT 同在 GPU.0（stateful 解码器负载约为旧解码器的 1/3；rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）"
+   ],
+   "tail": "3-TTS) 1.7.1\r\n  [ OK ] qwen3tts 模型   C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11\\models\\qwen3tts\r\n\r\n── OpenVINO 设备 ──\r\n  [ OK ] GPU.0    Intel(R) Graphics (iGPU)\r\n  [ OK ] NPU      Intel(R) AI Boost\r\n  Intel 集显 (GPU)：[ OK ] 可用\r\n  Intel NPU     ：[ OK ] 可用\r\n  注：CPU 推理已从可选设备清单移除（性能不推荐）；如确需 CPU 请用命令行 --asr-device CPU / --mt-device CPU。\r\n\r\n── ASR 后端（识别）──\r\n  [ OK ] Intel GPU · INT8 (stateful) 模型齐全\r\n  [ OK ] Intel NPU · INT8 (stateful) 模型齐全\r\n\r\n── 翻译后端（Hy-MT2-1.8B）──\r\n  [ OK ] Intel GPU · INT8-CW（默认） GPU.0    \r\n  [ — ] Intel GPU · INT4-CW        GPU.0    （本包不附带该量化版本）\r\n  [ OK ] Intel NPU · INT8-CW        NPU      \r\n  [ — ] Intel NPU · INT4-CW        NPU      （本包不附带该量化版本）\r\n  [ OK ] 自动 · INT8-CW 模型（默认） 跟随 --mt-device \r\n\r\n── 音频设备 ──\r\n  [ OK ] 麦克风 [1] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · MME（默认）\r\n  [ OK ] 麦克风 [0] Microsoft 声音映射器 - Input · MME\r\n  [ OK ] 麦克风 [9] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · Windows WASAPI\r\n  [ OK ] 输出 Speaker (Realtek(R) Audio)（2 声道）  id={0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}\r\n\r\n====================================================================\r\n  结论：环境正常。ASR 可用后端 2 个，Intel 集显可用。\r\n====================================================================\r\n",
+   "pass": true
+  },
+  "12_chain_10min": {
+   "exit_code": 0,
+   "wall_s": 618.4,
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app526_app107_rc11_acceptance\\chain10min.log",
+   "output": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app526_app107_rc11_acceptance\\chain10min.txt",
+   "output_chars": 9797,
+   "replacement_chars": 0,
+   "asr_rtf": 0.735,
+   "asr_exec_encoder": "GPU.0",
+   "asr_exec_decoder": "GPU.0",
+   "tts_exec_devices": "NPU/NPU(lazy)",
+   "tts_places": "cp_decode=NPU，cp_prefill=NPU，decoder_bucket@16=NPU，decoder_bucket@32=NPU，decoder_bucket@33=NPU，decoder_bucket@8=NPU，speaker_enc=NPU，talker_bucket@128=NPU，talker_bucket@256=NPU，talker_bucket@384=NPU，talker_bucket@512=NPU，talker_bucket@64=NPU，tok_decoder=NPU(lazy)\r",
+   "tts_npu_components": 12,
+   "tts_submitted": 155,
+   "tts_played": 99,
+   "tts_dropped": 56,
+   "cl_out_of_resources": 0,
+   "mt_line": "翻译 target=zh 后端=auto 设备 GPU.0 state=ready 句数 163  延迟中位 763.5 ms  P95 1354.0 ms  TTFT 228.1 ms  23.9 tok/s",
+   "mt_target": "zh",
+   "mt_backend": "auto",
+   "mt_device": "GPU.0",
+   "mt_state": "ready",
+   "mt_sentences": 163,
+   "mt_latency_median_ms": 763.5,
+   "mt_latency_p95_ms": 1354.0,
+   "mt_ttft_ms": 228.1,
+   "mt_tok_per_s": 23.9,
+   "mt_ready_line": "[翻译] 翻译模型就绪（自动 · INT8-CW 模型（默认） · GPU.0，加载 3.8 s）",
+   "mt_ready_label": "自动 · INT8-CW 模型（默认）",
+   "n_traceback": 0,
+   "pass": true
+  },
+  "11_gui": {
+   "exit_code": 0,
+   "shot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app526_app107_rc11_acceptance\\rc11_gui.png",
+   "shot_bytes": 42689,
+   "verdict": "PASS",
+   "checks": {
+    "asr_two_stateful": true,
+    "clone_disabled": true,
+    "target_langs_10": true,
+    "shot_not_blank": true,
+    "devices_are_new_default": true,
+    "no_old_warning": true,
+    "pkg_defaults_new": true,
+    "defaults_version_9": true,
+    "migration_note_visible_if_stale": true,
+    "mt_default_is_int8": true,
+    "mt_no_int4_engine": true,
+    "mt_combo_shows_int8": true,
+    "mt_combo_no_int4": true,
+    "mt_bundled_int8": true,
+    "mt_not_bundled_int4": true
+   },
+   "mt_combo_labels": [
+    "Intel NPU · INT8-CW",
+    "Intel GPU（集显） · INT8-CW"
+   ],
+   "mt_auto_label": "自动 · INT8-CW 模型（默认）",
+   "default_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "device_notes": [],
+   "stdout_tail": "{\n \"asr_two_stateful\": true,\n \"clone_disabled\": true,\n \"target_langs_10\": true,\n \"shot_not_blank\": true,\n \"devices_are_new_default\": true,\n \"no_old_warning\": true,\n \"pkg_defaults_new\": true,\n \"defaults_version_9\": true,\n \"migration_note_visible_if_stale\": true,\n \"mt_default_is_int8\": true,\n \"mt_no_int4_engine\": true,\n \"mt_combo_shows_int8\": true,\n \"mt_combo_no_int4\": true,\n \"mt_bundled_int8\": true,\n \"mt_not_bundled_int4\": true\n}\nVERDICT PASS\n",
+   "stderr_tail": " 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\nException in Tkinter callback\nTraceback (most recent call last):\n  File \"C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11\\python\\Lib\\tkinter\\__init__.py\", line 1968, in __call__\n    return self.func(*args)\n           ^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11\\python\\Lib\\tkinter\\__init__.py\", line 862, in callit\n    func(*args)\n  File \"C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11\\app\\live_caption_app.py\", line 6751, in _poll\n    if self.args.selftest and s and (s.audio_s >= self.args.selftest or not s.running):\n       ^^^^^^^^^^^^^^^^^^\nAttributeError: 'A' object has no attribute 'selftest'\n",
+   "pass": true
+  }
+ },
+ "audio": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+ "lock": {
+  "module": "app",
+  "pid": 13044,
+  "started": "2026-11-13 09:58:48",
+  "ended": "2026-11-13 10:10:50",
+  "timing_valid": false,
+  "released": false
+ },
+ "real_device_config": {
+  "path": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\device_config.json",
+  "sha256_before": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+  "bytes_before": 59,
+  "sha256_after": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+  "bytes_after": 59,
+  "unchanged": true
+ },
+ "static_verdict": "PASS",
+ "isolated_localappdata": {
+  "iso_root": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app526_app107_rc11_acceptance\\iso_localappdata",
+  "iso_app": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app526_app107_rc11_acceptance\\iso_localappdata\\Confucius4LiveCaption",
+  "junctions": [],
+  "real_dirs": [],
+  "failed": []
+ },
+ "chain_cmd": [
+  "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11\\python\\python.exe",
+  "-B",
+  "-s",
+  "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11\\app\\live_caption_app.py",
+  "--cli",
+  "--file",
+  "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+  "--max-seconds",
+  "600",
+  "--out",
+  "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app526_app107_rc11_acceptance\\chain10min.txt",
+  "--translate",
+  "zh",
+  "--tts",
+  "on",
+  "--tts-voice",
+  "A"
+ ],
+ "measurements": {
+  "at": "2026-11-13 10:10:50",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11",
+  "audio": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+  "defaults": {
+   "asr": "GPU.0",
+   "mt": "GPU.0",
+   "tts": "NPU"
+  },
+  "mt_model": "mt2-int8sym-cw-q",
+  "mt_quant": "INT8-CW",
+  "asr_rtf": 0.735,
+  "asr_exec_encoder": "GPU.0",
+  "asr_exec_decoder": "GPU.0",
+  "mt_latency_median_ms": 763.5,
+  "mt_latency_p95_ms": 1354.0,
+  "mt_ttft_ms": 228.1,
+  "mt_tok_per_s": 23.9,
+  "mt_sentences": 163,
+  "tts_submitted": 155,
+  "tts_played": 99,
+  "tts_dropped": 56,
+  "tts_device": "NPU/NPU(lazy)",
+  "cl_out_of_resources": 0,
+  "n_traceback": 0,
+  "wall_s": 618.4,
+  "source": "app526_app107_rc11_acceptance/chain10min.log"
+ },
+ "verdict": "PASS",
+ "verdict_detail": {
+  "static": true,
+  "device": true,
+  "real_config_untouched": true,
+  "device_items": {
+   "mt_int8_only": true,
+   "manifest_int8": true,
+   "mt_default_behaviour": true,
+   "int4_literals_in_app": null,
+   "factory_defaults": true,
+   "hygiene": true,
+   "readmes": true,
+   "10_pkg_check": true,
+   "12_chain_10min": true,
+   "11_gui": true
+  }
+ },
+ "lang_smoke": {
+  "report": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app528_app107_rc11_10lang_smoke.json",
+  "verdict": "PASS",
+  "n_mt_ok": 30,
+  "n_tts_ok": 30,
+  "n_new_keys": 0,
+  "n_cap_hits": 0
+ }
+}

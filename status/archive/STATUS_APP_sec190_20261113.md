@@ -1,0 +1,21 @@
+# STATUS_APP §190 整块逐字归档（2026-11-13）
+
+归档时间：2026-11-13 09:33:57
+归档原因：活文档逼近 **40 000 B** 上限（APP-052④），为 §191 出陠。
+正文一字未删。
+
+块 SHA256（正文块，含末尾换行）= 184a60612732eeffd7d6893cce15b7599d875a6df8227a0d7aace2eb4f09fbbc
+
+---
+
+> **① 纠偏文件复核（只读、未改、未提交）**：开工＝收尾 **105 条**／最大 **APP-105**／SHA `321be59c…`／**344 419 B**／mtime **2026-11-12 14:25:47** ⇒ **逐字一致 ⇒ SHA 零改动**；`last_ack` 保持 **APP-105**（不写 APP-106：那是 reviewer 的编号）。
+> **② 其它通道全空（⇒ 无遗漏指令）**：`shared/NOTICE*` 最新仍 **11-05**｜agent-mail 工具仍回 **`not_bound`**（面板显示 connected，实际未开通）｜`conversation_search` 两次不同措辞均 **0 命中**｜git `main...HEAD` ahead=0/behind=0｜`claude-clone`（worktree `clone_dev`）`git log claude-clone --not main` = **0**｜`MACHINE_LOCK` **NOT_PRESENT**（未占设备）。
+> **③ 复跑既有闸门 3/3 复现 §185／§188／§189 结论**：`app157` dev **11 PASS/0 FAIL**｜`app510` 反证 **VERDICT PASS**｜`app512` 包矩阵**判定未变**（v1.13／v2.0／v2.1 PASS 11/0；**v2.2 9-2／v2.3 8-3／v2.3_aborted 8-3／v2.4 9-2 FAIL**；v1.5 **2/8 判据不适用**；MiniMVP **v1.0／rc1–rc5 9-2 FAIL**、**rc7–rc10 11/0 PASS**）｜**5 个 evidence 复跑后与 HEAD 归一化行尾后逐字节一致**（零 diff 噪声）。
+> **④ 🔴 真缺陷 1（判据层；产品代码零改动、客户包零改动）：打包前闸门④ 看不见「终端 else 回落分支」**。**根因是 AST 结构**：`if/elif/else` 是**嵌套 If** ⇒ `else` 体挂在**最内层 If 的 `orelse`** 上、**不属于任何 If 的 `body`** ⇒ §189 的 `_branch_keeps_clone_voice(n.body)` **永远看不到它** ⇒ 「回落预设 A」这条**唯一**兜底对闸门④ **不可见**。**交付级**：按句绑定模式（`_bound` 真）下**两个 keep 分支都取不到** ⇒ 无终端 else ⇒ `self.speaker_embed` 仍是**上一句克隆向量** ⇒ **串音**。**实测（修法前）**：`fb_neutered`（兜底改 `pass`）／`fb_removed`（删掉终端 else）／`fb_replaced_keep`（兜底换 keep-logger）⇒ 闸门④ **rc=0 放行**而 app157 **B3 FAIL**（真串音）⇒ **fail-open** ⇒ 判据自问自答（「若被人当真去改生产代码，会不会改坏」）：**会**。
+> **⑤ 修法 1（只改 `pack_v13.py` 的闸门④）**：新增 `_terminal_else(node)`（顺 If 链找终端 else）＋ `_fallback_calls(stmts)`（找**名字含 fallback/preset 的 Call**）⇒ 在守卫检查**之后追加**「每个 keep 分支所在 If 链**必须有终端 else 回落预设 A**」⇒ 缺则**拒绝打包**。**只认 Call** ⇒ 只写 `self.speaker_embed = self._preset_embed` **不算数**（实测那种写法 B3 FAIL：`_clone_active`／`_clone_mode`／`speaker_name` 未复位 ⇒ 遥测与实际音色矛盾）。**只读**、闸门链位置不变。
+> **⑥ 鉴别力（`app522`：`results/app/app522_gate4_fallback_scope.py` ＋ evidence json）**：**静态闸门④ × 行为判据 app157 B3** 交叉验证 ⇒ **合成 9/9 一致**（`clean_dev` PASS｜**`fb_neutered`／`fb_removed`／`fb_replaced_keep` 改前 rc=0 ⇒ 改后 rc=1**｜`fb_inline_preset` rc=1｜**`fb_noarg` rc=0**（等价写法**未被误拦**）｜`b1/b2/both_guards_removed` rc=1 ⇒ §189 守卫检查**未回退**）｜**真包 17/18 一致**（唯一不一致 = v1.5 判据不适用）｜🔴 **真包判定未变：10 个带缺陷包仍 FAIL ＋ 8 个通过包仍 PASS ⇒ 不误伤**（先验：全部真包与 dev 树的 keep 分支**都有**合规终端 else）｜**e2e**：AST 读 `_run()` ⇒ 闸门④ 行 **1506** ＜ `zipfile.ZipFile` 行 **1555**。
+> **⑦ 🔴 真缺陷 2（同样在打包流水线；产品代码零改动、客户包零改动）：MUST 清单缺 TTS 生产模块 ⇒ 可交付「没有 TTS 的包」**。**改前事实**（`git cat-file blob HEAD:pack_v13.py` 可核）：① MUST **39 条里没有** `app/tts_worker.py`（`app/` 只有 `translator.py`／`live_caption_app.py`／`MANIFEST.json`）② 闸门③ 对 **v2.4/v2.5** 不查 `app/` 生产模块（`verify_source` 只在 `cur==(2,3)` 跑）③ 闸门④ 遇「包内无 `app/tts_worker.py`」打印 `[SKIP]` 并 **rc=0 放行** ⇒ **三处叠加 ⇒ 打包流水线全程绿灯 ⇒ 交付一个客户侧 TTS 全程无声的包**（静默缺陷）。
+> **⑧ 修法 2（同样只改 `pack_v13.py`）**：MUST 增 3 条（`app/tts_worker.py`／`app/tts_service.py`／`app/tts_engine.py`）⇒ 缺则 **dry-run 与 zip 校验双双 fail-closed**（`_verify_and_report` 的 FAIL 条件含 `missing` ⇒ 旧 zip 保持完好、**不改名**）；闸门④ 的「缺文件」分支由 `[SKIP] ⇒ rc=0` 改判 **FAIL（拒绝打包）**（早于 10 分钟 zip 构建，不白跑）。**证据 `app523`**：改前事实三项**全部成立**；探针（MUST 条目全在、**只缺** `app/tts_worker.py`）⇒ 闸门④ **rc=1** 且输出「拒绝打包」、dry-run **rc=1** 且关键文件检查**只有** `app/tts_worker.py` 标「缺」（其余 **38 条全 OK** ⇒ 不误伤）；补上 dev 收窄文件 ⇒ 闸门④ **rc=0**；**回归 18/18 个真包全部含这 3 个文件** ⇒ 新 MUST 条目**不误伤任何现存包**；e2e：zip 校验对 `missing` **fail-closed** ⇒ **VERDICT PASS**。
+> **⑨ 交付阻断项（结论更新）**：闸门④ 现覆盖**四类**放行缺口（① 分支① 的 keep-logger ② 守卫语义（逻辑蕴含／真实绑定）③ **终端 else 回落兜底** ④ **缺 `app/tts_worker.py` 的包**）⇒ **完整版 v2.5 必须带 APP-086·2a 收窄**（仍**待 reviewer 裁定**：何时打包；**10 个带缺陷包**是否作废／标注）｜**带缺陷的包仍是 10 个**（清单未变）｜**当前交付版 v2.1 不受影响**。
+> **⑩ 纪律**：**未打包**（用户不通知不打包；rc9／rc10 已打好 ⇒ 绝不重打包；**v2.5 未打**）｜**未改任何客户包**（全部只读）｜**未改产品代码**（`live_caption/` 零改动）｜**未改 `CORRECTIONS_APP.md`**（只读、未入库、未提交）｜**未跑推理** ⇒ 未取 `MACHINE_LOCK`｜**未调 MiniMax**｜**未通知用户**｜未提交其它模块的 `M`/`??` 文件。
+> **⑪ 本条需等 reviewer 复核**：① **完整版 v2.5 必须带 APP-086·2a 收窄**（闸门④ 已 fail-closed，但 **v2.5 仍未打包**）；② **10 个带缺陷包**是否作废／标注；③ **闸门④ 本轮两处改动是否接受**（「终端 else 回落兜底」判定含「只认 Call」口径；「缺 `app/tts_worker.py` ⇒ FAIL」）；④ **MUST 新增 3 条**是否接受；⑤ **§189 的 5 个脚本 ＋ 本轮新增 2 个脚本／2 个证据 JSON 是否保留**（与 APP-101 §1.d「不再新增审计／判据脚本」有张力）；⑥ rc10 仍待 B 机实测；⑦ GUI 布局修复仍未同步客户包。

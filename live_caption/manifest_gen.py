@@ -61,7 +61,20 @@ MODEL_SOURCES = OrderedDict([
     ('mt/mt2-int4sym-cw-q', {
         'source_path': r'hy_bench\ov\mt2-int4sym-cw-q',
         'source_model': 'Hy-MT2-1.8B',
-        'note': 'OV IR，INT4 对称按通道（INT4-CW）；bin 与 v2.4 相同（667CD34D77F637CA…）'}),
+        # 🔴 APP-107 §1.1：MiniMVP **rc11 起只带 INT8-CW** ⇒ INT4 对 MiniMVP
+        #   包是「**本包不附带**」而不是「**包内缺文件**」⇒ 标 optional。
+        #   完整版包仍带 INT4 ⇒ 该条照常逐文件对拍（optional 不影响已带时的校验）。
+        'optional': True,
+        'note': 'OV IR，INT4 对称按通道（INT4-CW）；bin 与 v2.4 相同（667CD34D77F637CA…）。'
+                '**APP-107 §1.1：MiniMVP rc11 起不再带 INT4**（只带 INT8-CW）'}),
+    ('mt/mt2-int8sym-cw-q', {
+        'source_path': r'hy_bench\ov\mt2-int8sym-cw-q',
+        'source_model': 'Hy-MT2-1.8B',
+        'note': 'OV IR，**INT8_SYM 对称按通道（INT8-CW）**；config **hidden_size 2048** / '
+                '**num_hidden_layers 32**（`config.json` 实测）。'
+                '**APP-107 §1.1/§1.3：MiniMVP rc11 起只带 INT8**'
+                '（拷贝源 `hy_bench\\ov\\mt2-int8sym-cw-q`，12 文件 / 1 812 121 487 B）'
+                '⇒ MANIFEST 记录**拷贝源路径 + 每个 bin/xml 的 SHA256**，且**与源目录逐个一致**'}),
     ('qwen3tts', {
         'source_path': r'Confucius4_LiveCaption_v2.4\models\qwen3tts',
         'source_model': 'Qwen3-TTS',
@@ -166,10 +179,15 @@ def build_manifest(pkg_models_root, source_root=SOURCE_ROOT, compute_sha=True):
     for rel, meta in MODEL_SOURCES.items():
         src = abs_source(meta['source_path'], source_root)
         dst = os.path.join(pkg_models_root, *rel.split('/'))
+        # 🔴 APP-107 §1.1：`optional=True` = **本包可以不附带**这个模型
+        #   （MiniMVP rc11 起不带 INT4）⇒ 包内没有它**不算不一致**，
+        #   但**带了就必须逐文件对拍**（optional 不放松已存在时的校验）。
+        optional = bool(meta.get('optional'))
         entry = {
             'source_path': src,
             'source_model': meta['source_model'],
             'note': meta['note'],
+            'optional': optional,
             'source_exists': os.path.exists(src),
             'pkg_exists': os.path.exists(dst),
             'config': config_dims(src) or None,
@@ -178,7 +196,10 @@ def build_manifest(pkg_models_root, source_root=SOURCE_ROOT, compute_sha=True):
         if not entry['source_exists']:
             mismatches.append('%s: 源目录不存在 %s' % (rel, src))
         if not entry['pkg_exists']:
-            mismatches.append('%s: 包内路径不存在 %s' % (rel, dst))
+            if optional:
+                entry['absent_in_package'] = True
+            else:
+                mismatches.append('%s: 包内路径不存在 %s' % (rel, dst))
         for item in scan_files(dst):
             sfile = (src if os.path.isfile(src)
                      else os.path.join(src, *item['name'].split('/')))

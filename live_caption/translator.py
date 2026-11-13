@@ -143,10 +143,14 @@ _MT_CANDIDATES = [
 
 # 🔴🔴🔳 **APP-098 一.2：「（默认）」标记必须跟着**实际默认模型**走**。
 #   **真缺陷（rc5 实测）**：上面表里 `gpu_int8cw` 的 label **写死**「（默认）」，
-#   但 MiniMVP 包**只带 INT4-CW** ⇒ 实际默认是 INT4（`DEFAULT_MODEL` 回落链）
+#   但 MiniMVP 包**只带 INT4-CW**（🔴 **APP-107 §1.1 起 rc11 改带 INT8-CW**）
+#   ⇒ 实际默认由 `DEFAULT_MODEL` 的回落链决定
 #   ⇒ `--check` 打出「Intel GPU · INT8-CW（默认）…（缺模型）」——
 #   ⇒ **既标着「默认」又标着「缺模型」** ⇒ 自相矛盾。
 #   ⇒ 修法：**静态表里不写「（默认）」**，改为**按 `DEFAULT_MODEL` 的量化动态加**。
+#   ★ **APP-107（11-13，用户决定）**：MiniMVP 改带 **INT8-CW**
+#     ⇒ `DEFAULT_MODEL` 命中 `models/mt/mt2-int8sym-cw-q`
+#     ⇒ 「（默认）」标记与 `auto` label **都自动落到 INT8**（无需另写分支）。
 _DEFAULT_MARK = '（默认）'
 
 
@@ -189,7 +193,8 @@ def _auto_model_label() -> str:
     """🔴🔴🔳 APP-069⑤ 清理项 2：`auto` 的 label **按实际模型目录动态生成**。
 
     🔴 **旧问题**：`auto` 的 label **写死**「INT8-CW」⇒ 而 `DEFAULT_MODEL`
-       可能是 **INT4** 目录（MiniMVP 客户包就是 INT4）⇒ CLI `--check` 与
+       可能是 **INT4** 目录（🔴 APP-107：MiniMVP **rc11 起是 INT8**，
+       rc10 及更早才是 INT4）⇒ CLI `--check` 与
        `auto` 的 `device_desc` 显示与实载**不符**（APP-069⑤ ⑤ 原文）。
     ⇒ 现在**从 `DEFAULT_MODEL` 的目录名反推**量化口径：
        目录含 `int4` ⇒ INT4-CW；含 `int8` ⇒ INT8-CW；认不出 ⇒ 不猜（写「自适应」）。
@@ -229,14 +234,15 @@ MT_DEFAULT = 'auto'
 #
 # 🔴🔴🔳 **APP-098 一.2：`bundled` 必须由「包内实际有什么」决定，不能写死 True**
 #   **真缺陷（rc5 实测）**：`bundled` 原来在 `_MT_CANDIDATES` 里**写死 True** ⇒
-#   MiniMVP 包**只带 INT4-CW**（`models/mt/` 下只有 `mt2-int4sym-cw-q`），
+#   MiniMVP 包**只带 INT4-CW**（🔴 **APP-107 §1.1：rc11 起只带 INT8-CW**，
+#   `models/mt/` 下只有 `mt2-int8sym-cw-q`），
 #   但 `--check` 仍按「本包附带 INT8-CW」来报 ⇒ 打出
 #   「[缺 ] Intel GPU · INT8-CW（默认）… （缺模型）」——
 #   ⇒ **既说「本包附带」又说「缺模型」** ⇒ 自相矛盾，且用户会以为装坏了。
 #   ⇒ **修法**：`bundled` = 「**本包的 models/mt/ 下真有这个量化目录**」
 #     （不是开发机的 hy_bench/ov —— 那是开发机产物，不是包内容）。
 #   ⇒ 于是：
-#     * MiniMVP（只有 INT4-CW）⇒ INT8-CW 报 `[ — ]（本包不附带该量化版本）`
+#     * MiniMVP（rc11 起只有 INT8-CW）⇒ INT4-CW 报 `[ — ]（本包不附带该量化版本）`
 #       ⇒ **不再是「缺模型」**；
 #     * 完整版包（INT4+INT8 都有）⇒ 两档都 `[ OK ]`。
 #   🔴 **判据来源**：包内目录（`MODELS/mt/<name>`）—— 与「包附带什么」同一口径。
