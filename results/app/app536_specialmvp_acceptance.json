@@ -1,0 +1,201 @@
+{
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1",
+ "phases": {
+  "A_static": {
+   "profile_json": {
+    "profile": "specialmvp",
+    "allow_cuda": true,
+    "allow_clone_voice": false,
+    "target_langs": 10,
+    "note": "用户 2026-11-13 决定：**包内自带 NV5050 的 PyTorch+CUDA 环境** ⇒ 语音输出（TTS）用**真 CUDA** 推理；**ASR 走 iGPU（GPU.0）**、**翻译走 NPU（Hy-MT2 INT8-CW）**。🔴 与 MiniMVP/完整版的区别：那两个包**不带** CUDA 运行时、TTS 走 OpenVINO（OV 官方发行版**不含** CUDA plugin ⇒ NVIDIA 卡只能是 Intel GPU plugin 枚举到的 GPU.1，不是真 CUDA 后端）。⚠️ 本包**不提供音色克隆**（与 MiniMVP 同）。"
+   },
+   "profile_ok": true,
+   "app_sha_mismatch": [],
+   "app_files_in_pkg": 28,
+   "cuda_modules_present": true,
+   "manifest_all_match": true,
+   "manifest_n_mismatch": 0,
+   "manifest_has_tts_cuda": true,
+   "manifest_tts_cuda_files": 12,
+   "n_pyc": 0,
+   "n_blacklist": 0,
+   "cuda_env_py": true,
+   "cuda_env_pyvenv": "home = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\python\ninclude-system-site-packages = false\nversion = 3.12.10\nexecutable = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\python\\python.exe\ncommand = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\python\\python.exe -m venv C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\cuda_env\n",
+   "model_dir_exists": true,
+   "model_files": 12,
+   "voice_preset_A": true,
+   "model_files_note": "🔴 上一轮这里只数了**顶层条目**（9）⇒ 误判「模型缺失」；实际 speech_tokenizer/ 是**目录**（内含 3 个文件）⇒ 递归计数 = 12 个文件（与 MANIFEST 登记的 12 一致）"
+  },
+  "B_check": {
+   "rc": 0,
+   "stdout_key_lines": [
+    "包目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1",
+    "模型目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models",
+    "  [ OK ] numpy            2.4.6",
+    "  [ OK ] openvino         2026.4.1-22982-e213a147257-releases/2026/4",
+    "  [ OK ] openvino_genai   2026.4.1.0-3408-ab01d1771e4",
+    "  [ OK ] transformers     4.57.6",
+    "  [ OK ] sounddevice      0.5.6",
+    "  [ OK ] soundcard        ",
+    "  [ OK ] babelvox(Qwen3-TTS) 1.7.1",
+    "  [ OK ] qwen3tts 模型   C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models\\qwen3tts",
+    "── OpenVINO 设备 ──",
+    "  [ OK ] GPU.0    Intel(R) Graphics (iGPU)",
+    "  [ OK ] GPU.1    NVIDIA GeForce RTX 5050 Laptop GPU (dGPU)",
+    "  [ OK ] NPU      Intel(R) AI Boost",
+    "  Intel 集显 (GPU)：[ OK ] 可用",
+    "  Intel NPU     ：[ OK ] 可用",
+    "  注：CPU 推理已从可选设备清单移除（性能不推荐）；如确需 CPU 请用命令行 --asr-device CPU / --mt-device CPU。",
+    "── ASR 后端（识别）──",
+    "  [ OK ] Intel GPU · INT8 (stateful) 模型齐全",
+    "  [ OK ] Intel NPU · INT8 (stateful) 模型齐全",
+    "── 翻译后端（Hy-MT2-1.8B）──",
+    "  [ OK ] Intel GPU · INT8-CW（默认） GPU.0    ",
+    "  [ — ] Intel GPU · INT4-CW        GPU.0    （本包不附带该量化版本）",
+    "  [ OK ] Intel NPU · INT8-CW        NPU      ",
+    "  [ — ] Intel NPU · INT4-CW        NPU      （本包不附带该量化版本）",
+    "  [ OK ] 自动 · INT8-CW 模型（默认） 跟随 --mt-device ",
+    "── 音频设备 ──",
+    "  [ OK ] 麦克风 [1] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · MME（默认）",
+    "  [ OK ] 麦克风 [0] Microsoft 声音映射器 - Input · MME",
+    "  [ OK ] 麦克风 [9] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · Windows WASAPI",
+    "  [ OK ] 输出 Speaker (Realtek(R) Audio)（2 声道）  id={0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}",
+    "── CUDA 语音后端（Special MVP：包内自带 NV5050 运行时）──",
+    "  CUDA 运行时：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\cuda_env\\Scripts\\python.exe",
+    "  运行时 python：[ OK ] 存在",
+    "  TTS CUDA 模型：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models\\tts_cuda",
+    "  CUDA 可用性：[ OK ] torch 2.11.0+cu128 / CUDA 12.8 / available=True",
+    "  结论：环境正常。ASR 可用后端 2 个，Intel 集显可用。"
+   ],
+   "stderr_tail": "[device] ⚠️ ASR 与 MT 都放在 GPU.0 ⇒ 长时间运行可能报 CL_OUT_OF_RESOURCES（GPU 资源耗尽）。建议把 ASR 放 NPU（--asr-device NPU）。\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+  },
+  "C_cuda_env": {
+   "rc": 0,
+   "stdout": "{\"torch\": \"2.11.0+cu128\", \"cuda\": \"12.8\", \"avail\": true, \"dev\": \"NVIDIA GeForce RTX 5050 Laptop GPU\", \"cap\": [12, 0]}",
+   "stderr_tail": "",
+   "info": {
+    "torch": "2.11.0+cu128",
+    "cuda": "12.8",
+    "avail": true,
+    "dev": "NVIDIA GeForce RTX 5050 Laptop GPU",
+    "cap": [
+     12,
+     0
+    ]
+   }
+  },
+  "D_chain": {
+   "clip_rc": 0,
+   "clip_info": "16000 60.0",
+   "rc": 3221226505,
+   "elapsed_s": 616.6,
+   "stdout_tail": "ialMVP_v1.0-sp1\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落预设 A（已换回参考音频）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=1.850 s ⇒ speed=1.1000（lang=zh）\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] REQ rid=137 len=32 mnt=345 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models\\qwen3tts\\voices\\preset_A.wav\n\n[实时] Data center in.  [TTS] [TTS] 首包分段 id=146：排队 0.000 s + 合成 0.526 s\n\n[实时] Data center inferring.\n[实时] The data center inferring chip has.\n[实时] The data center inferring chip has massive memory.\n[实时] The data center inferring chip has massive memory bandwidth.\n[实时] The data center inferring chip has massive memory bandwidth, and flops.  [TTS] [TTS] [tts_cuda/stderr] [sidecar] DONE rid=137 chunks=11 frames=87 mnt=345 reason=eos elapsed=0.50s total_s=4.05s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=146 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=167040 parts=11 peak=0.6250 rms_dbfs=-18.6 nan_inf=0 cb_delta=95 read_delta=0 underflow_delta=95 ring=1680/72000 consumed=-\n  [TTS] [TTS] 遥测 id=146 peak=0.625 rms_dbfs=-18.62 read_delta=0 consumed=None\n\n[实时] The data center inferring chip has massive memory bandwidth, and flops above what we're\n[实时] er inferring chip has massive memory bandwidth, and flops above what we're building today.\n[定稿] The data center inferring chip has massive memory bandwidth, and flops above what we're building today.\n\n[实时] For next.\n[实时] For an NX two class of\n[译文] 该数据中心使用的芯片具有巨大的内存带宽，其浮点运算能力也超过我们当前所制造的产品水平。\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] set_ref: C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落预设 A（已换回参考音频）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=2.066 s ⇒ speed=1.1000（lang=zh）\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] REQ rid=138 len=43 mnt=444 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models\\qwen3tts\\voices\\preset_A.wav\n\n[实时] For an NX two class of product.  [TTS] [TTS] 首包分段 id=147：排队 0.000 s + 合成 0.429 s\n\n[实时] For an NX two class of product, and think.\n[实时] For an NX two class of product, and think of the usage.\n[实时] For an NX two class of product, and think of the usage for us in.\n[实时] For an NX two class of product, and think of the usage for us and client.\n[实时] For an NX two class of product, and think of the usage for us and client, is.\n[实时] n NX two class of product, and think of the usage for us and client, is the pair that will\n[实时] s of product, and think of the usage for us and client, is the pair that will like a novel\n[定稿] For an NX two class of product, and think of the usage for us and client, is the pair that will like a novel.\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] DONE rid=138 chunks=14 frames=111 mnt=444 reason=eos elapsed=0.39s total_s=4.89s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=147 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=213120 parts=14 peak=0.5508 rms_dbfs=-17.7 nan_inf=0 cb_delta=116 read_delta=0 underflow_delta=116 ring=2400/72000 consumed=-\n  [TTS] [TTS] 遥测 id=147 peak=0.550781 rms_dbfs=-17.67 read_delta=0 consumed=None\n\n[实时] S.\n[实时] S for like.\n[译文] 对于NX产品，有两类产品；请考虑一下它们对我们和客户的使用场景。\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] set_ref: C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落预设 A（已换回参考音频）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=1.687 s ⇒ speed=1.1000（lang=zh）\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] REQ rid=139 len=33 mnt=345 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] 首包分段 id=148：排队 0.000 s + 合成 0.460 s\n\n[实时] S for like a tower.\n[译文] 是那个会喜欢小说的配对。\n\n[实时] S, for like a tower configuration.\n[实时] S, for like a tower config, even up to\n[实时] S, for like a tower config, even up to a workstation.\n[实时] S, for like a tower config, even up to a workstation config.\n[定稿] S, for like a tower config, even up to a workstation config.\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] DONE rid=139 chunks=12 frames=92 mnt=345 reason=eos elapsed=0.44s total_s=4.14s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=148 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=176640 parts=12 peak=0.6523 rms_dbfs=-18.2 nan_inf=0 cb_delta=98 read_delta=0 underflow_delta=98 ring=2400/72000 consumed=-\n  [TTS] [TTS] 遥测 id=148 peak=0.652344 rms_dbfs=-18.24 read_delta=0 consumed=None\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] set_ref: C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落预设 A（已换回参考音频）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=5.883 s ⇒ speed=1.1721（lang=zh）\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] REQ rid=140 len=12 mnt=165 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models\\qwen3tts\\voices\\preset_A.wav\n\n[实时] Right now.  [TTS] [TTS] 首包分段 id=149：排队 0.000 s + 合成 0.461 s\n\n[实时] Right now we're in the\n[译文] S，比如用于塔式配置，甚至可用于工作站配置。\n\n[实时] Right now we're in the process of working  [TTS] [TTS] [tts_cuda/stderr] [sidecar] DONE rid=140 chunks=5 frames=33 mnt=165 reason=eos elapsed=0.45s total_s=1.66s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=149 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=63360 parts=5 peak=0.4141 rms_dbfs=-20.0 nan_inf=0 cb_delta=40 read_delta=2400 underflow_delta=38 ring=2400/72000 consumed=-\n  [TTS] [TTS] 遥测 id=149 peak=0.414062 rms_dbfs=-20.02 read_delta=2400 consumed=None\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] set_ref: C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落预设 A（已换回参考音频）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=2.373 s ⇒ speed=1.1721（lang=zh）\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] REQ rid=141 len=22 mnt=255 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] 首包分段 id=150：排队 0.000 s + 合成 0.468 s\n\n[实时] Right now we're in the process of working with the data\n[定稿] Right now we're in the process of working with the data center.\n\n[gpu_int8] 音频 600.0s  墙钟 600.5s  RTF(计算) 0.522  出字延迟中位 292 ms  最大积压 1.2s  段 93\n[译文] 目前我们正在与数据中心合作。\n[gpu_int8] 翻译 target=zh 后端=auto 设备 NPU state=ready 句数 163  延迟中位 898.8 ms  P95 1273.5 ms  TTFT 535.4 ms  31.2 tok/s\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] DONE rid=141 chunks=8 frames=57 mnt=255 reason=eos elapsed=0.45s total_s=2.62s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=150 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=109440 parts=8 peak=0.5664 rms_dbfs=-17.4 nan_inf=0 cb_delta=62 read_delta=2400 underflow_delta=60 ring=1680/72000 consumed=-\n  [TTS] [TTS] 遥测 id=150 peak=0.566406 rms_dbfs=-17.39 read_delta=2400 consumed=None\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] set_ref: C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落预设 A（已换回参考音频）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=2.245 s ⇒ speed=1.1721（lang=zh）\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] REQ rid=142 len=14 mnt=183 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] 首包分段 id=151：排队 0.000 s + 合成 0.442 s\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] DONE rid=142 chunks=5 frames=37 mnt=183 reason=eos elapsed=0.42s total_s=1.61s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=151 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=71040 parts=5 peak=0.4746 rms_dbfs=-18.4 nan_inf=0 cb_delta=38 read_delta=656 underflow_delta=38 ring=2400/72000 consumed=-\n  [TTS] [TTS] 遥测 id=151 peak=0.474609 rms_dbfs=-18.41 read_delta=656 consumed=None\n[TTS] 首包 0.44s  积压 当前 0.00s / 最大 31.13s  提交 152  播完 142  丢弃 10  重启 0  state=ready\n[TTS] 收尾（close 前）：结尾滞后 3.60s  关闭作废 0  空句 0  积压 最大 31.13s\n[TTS] 语音已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app538_special_tts_out.wav，逐句时间线 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app538_special_tts_out.wav.tts.jsonl\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app538_special_tts_out.wav.backlog_curve.csv（402 个采样点）\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n  [TTS] [TTS] [tts_worker] 已落盘 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app538_special_tts_out.wav（612.84s，142 句，24000 Hz）\n[TTS] 最终统计（close 后）：提交 152  播完 142  丢弃 10  关闭作废 0  空句 0  失败 0  结尾滞后 3.60s  积压 最大 31.13s\n",
+   "stderr_tail": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+   "tts_out_exists": true,
+   "audio": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+   "tts_out_bytes": 29416364,
+   "timeline_exists": true,
+   "tts_out_info": "24000 612.84 0.7461",
+   "tts_telemetry_tail": [
+    "  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）",
+    "  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=2.245 s ⇒ speed=1.1721（lang=zh）",
+    "  [TTS] [TTS] [tts_cuda/stderr] [sidecar] REQ rid=142 len=14 mnt=183 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models\\qwen3tts\\voices\\preset_A.wav",
+    "  [TTS] [TTS] 首包分段 id=151：排队 0.000 s + 合成 0.442 s",
+    "  [TTS] [TTS] [tts_cuda/stderr] [sidecar] DONE rid=142 chunks=5 frames=37 mnt=183 reason=eos elapsed=0.42s total_s=1.61s",
+    "  [TTS] [TTS] [tts_worker] 合成遥测 id=151 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=71040 parts=5 peak=0.4746 rms_dbfs=-18.4 nan_inf=0 cb_delta=38 read_delta=656 underflow_delta=38 ring=2400/72000 consumed=-",
+    "  [TTS] [TTS] 遥测 id=151 peak=0.474609 rms_dbfs=-18.41 read_delta=656 consumed=None",
+    "[TTS] 首包 0.44s  积压 当前 0.00s / 最大 31.13s  提交 152  播完 142  丢弃 10  重启 0  state=ready",
+    "[TTS] 收尾（close 前）：结尾滞后 3.60s  关闭作废 0  空句 0  积压 最大 31.13s",
+    "[TTS] 语音已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app538_special_tts_out.wav，逐句时间线 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app538_special_tts_out.wav.tts.jsonl",
+    "[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app538_special_tts_out.wav.backlog_curve.csv（402 个采样点）",
+    "  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）",
+    "  [TTS] [TTS] [tts_worker] 已落盘 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app538_special_tts_out.wav（612.84s，142 句，24000 Hz）",
+    "[TTS] 最终统计（close 后）：提交 152  播完 142  丢弃 10  关闭作废 0  空句 0  失败 0  结尾滞后 3.60s  积压 最大 31.13s"
+   ],
+   "n_tts_lines": 1334
+  }
+ },
+ "elapsed_s": 145.9,
+ "checks": [
+  {
+   "name": "A: profile=specialmvp & allow_cuda",
+   "pass": true,
+   "detail": "{'profile': 'specialmvp', 'allow_cuda': True, 'allow_clone_voice': False, 'target_langs': 10, 'note': '用户 2026-11-13 决定：**包内自带 NV5050 的 PyTorch+CUDA 环境** ⇒ 语音输出（TTS）用**真 CUDA** 推理；**ASR 走 iGPU（GPU.0）**、**翻译走 NPU（Hy-MT2 INT8-CW）**。🔴 与 MiniMVP/完整版的区别：那两个包**不带** CUDA 运行时、TTS 走 OpenVINO（OV 官方发行版**不含** C"
+  },
+  {
+   "name": "A: app 代码与 dev 树逐字节一致",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "A: 包内含 tts_cuda/tts_cuda_sidecar",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "A: MANIFEST all_match",
+   "pass": true,
+   "detail": "n_mismatch=0"
+  },
+  {
+   "name": "A: MANIFEST 登记 tts_cuda（12 文件）",
+   "pass": true,
+   "detail": "12"
+  },
+  {
+   "name": "A: 无 .pyc",
+   "pass": true,
+   "detail": "0"
+  },
+  {
+   "name": "A: 无黑名单文件",
+   "pass": true,
+   "detail": "0"
+  },
+  {
+   "name": "A: cuda_env 自带 python",
+   "pass": true,
+   "detail": "home = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\python\ninclude-system-site-packages = false\nversion = 3.12.10\nexecutable = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP"
+  },
+  {
+   "name": "A: TTS CUDA 模型随包（12 文件）",
+   "pass": true,
+   "detail": "12 个文件（递归）"
+  },
+  {
+   "name": "A: 预设音色 A 在包内",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "B: 包内 --check 退出码 0",
+   "pass": true,
+   "detail": "U 资源耗尽）。建议把 ASR 放 NPU（--asr-device NPU）。\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+  },
+  {
+   "name": "C: 包内 cuda_env 可用 CUDA",
+   "pass": true,
+   "detail": "{\"torch\": \"2.11.0+cu128\", \"cuda\": \"12.8\", \"avail\": true, \"dev\": \"NVIDIA GeForce RTX 5050 Laptop GPU\", \"cap\": [12, 0]}"
+  },
+  {
+   "name": "D: 整链跑通（ASR GPU.0 → MT NPU → TTS CUDA 出声）",
+   "pass": true,
+   "detail": "rc=3221226505（长跑退出码见 open_issues）｜tts_out=29416364 B｜24000 612.84 0.7461｜提交 见 stdout/播完 见 stdout/丢弃 见 stdout"
+  }
+ ],
+ "n_fail": 0,
+ "verdict": "PASS",
+ "open_issues": [
+  {
+   "id": "OPEN-1",
+   "title": "10 分钟整链跑完后进程退出码 3221226505（0xC0000409，abort）",
+   "status": "**未复现 / 根因未定位**（如实记录，不掩盖）",
+   "when": "Special MVP 10 分钟整链（ASR GPU.0 / MT NPU / TTS CUDA）跑完、**全部产物写出之后**（wav 612.84 s + 逐句时间线 + 积压曲线 + 最终统计都已落盘）",
+   "isolation": "同包、同机、60 s 片段**三臂对照**（A `--tts off`／B `--tts-device CUDA`／C `--tts-device NPU`）⇒ **rc 全部 = 0** ⇒ **短跑不复现** ⇒ 与 CUDA 无直接因果（否则 B 臂也该 abort）",
+   "evidence": "results/app/app540_teardown_abort_isolation.json（rcs={A:0,B:0,C:0}）；results/app/app536_specialmvp_acceptance.json → phases.D_chain",
+   "impact": "**不影响产出**：TTS 142 句已播、音频/时间线/曲线全部写出；但**退出码非 0** ⇒ 脚本化调用会判失败（GUI 手工用不受影响）",
+   "next": "待 reviewer 裁定是否需要定位（长跑 + 大内存 + NPU/CUDA 共存 ⇒ 怀疑收尾期 资源/驱动次序问题）；定位前**不写入 README 的能力承诺**"
+  }
+ ],
+ "verdict_note": "判定只覆盖**用户要求的三条**（TTS=CUDA／ASR=iGPU／MT=NPU）与包内一致性；长跑退出码异常单列 open_issues，**不掩盖也不并入判定**"
+}

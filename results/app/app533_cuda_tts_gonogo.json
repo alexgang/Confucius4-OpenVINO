@@ -1,0 +1,29 @@
+{
+ "model_dir": "C:/Users/Trekker-PTL/.cache/huggingface/hub/models--Qwen--Qwen3-TTS-12Hz-0.6B-Base/snapshots/5d83992436eae1d760afd27aff78a71d676296fc",
+ "ref_wav": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_MiniMVP_v1.0-rc11/models/qwen3tts/voices/preset_A.wav",
+ "text": "你好，这是 Special MVP 的 CUDA 语音合成测试。",
+ "torch": "2.11.0+cu128",
+ "cuda_version": "12.8",
+ "cuda_available": true,
+ "device_name": "NVIDIA GeForce RTX 5050 Laptop GPU",
+ "device_capability": [
+  12,
+  0
+ ],
+ "load_s": 28.5,
+ "warmup_s": 1.95,
+ "warmup_ok": true,
+ "vram_peak_gb": 2.47,
+ "first_chunk_s": 1.672,
+ "total_synth_s": 3.516,
+ "n_chunks": 6,
+ "samples": 92160,
+ "sample_rates": [
+  24000
+ ],
+ "audio_s": 3.84,
+ "chunk_len_min": 15360,
+ "chunk_len_max": 15360,
+ "vram_peak_gb_after": 2.57,
+ "verdict": "PASS"
+}

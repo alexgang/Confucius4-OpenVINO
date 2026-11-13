@@ -1,0 +1,96 @@
+{
+ "zip": "C:\\Users\\Trekker-PTL\\shared\\specialmvp\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1.zip",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1",
+ "actions": [
+  "README_zh.md: 包体积行已回填（* **包体积（实测）**：解压后 **41,374 个文件 /     14,232,025,413 B（13.255）",
+  "README_zh.md: 包体积行已回填（* **包体积（实测）**：解压后 **41,374 个文件 /     14,232,025,413 B（13.255）",
+  "zip pass 1: 14244490059 B (143.3 s)",
+  "README_zh.md: 包体积行已回填（* **包体积（实测）**：解压后 **41,374 个文件 /     14,232,025,413 B（13.255）",
+  "zip pass 2: 14244490059 B (254.0 s)"
+ ],
+ "accept_verdict": "PASS",
+ "accept_checks": [
+  {
+   "name": "A: profile=specialmvp & allow_cuda",
+   "pass": true,
+   "detail": "{'profile': 'specialmvp', 'allow_cuda': True, 'allow_clone_voice': False, 'target_langs': 10, 'note': '用户 2026-11-13 决定：**包内自带 NV5050 的 PyTorch+CUDA 环境** ⇒ 语音输出（TTS）用**真 CUDA** 推理；**ASR 走 iGPU（GPU.0）**、**翻译走 NPU（Hy-MT2 INT8-CW）**。🔴 与 MiniMVP/完整版的区别：那两个包**不带** CUDA 运行时、TTS 走 OpenVINO（OV 官方发行版**不含** C"
+  },
+  {
+   "name": "A: app 代码与 dev 树逐字节一致",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "A: 包内含 tts_cuda/tts_cuda_sidecar",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "A: MANIFEST all_match",
+   "pass": true,
+   "detail": "n_mismatch=0"
+  },
+  {
+   "name": "A: MANIFEST 登记 tts_cuda（12 文件）",
+   "pass": true,
+   "detail": "12"
+  },
+  {
+   "name": "A: 无 .pyc",
+   "pass": true,
+   "detail": "0"
+  },
+  {
+   "name": "A: 无黑名单文件",
+   "pass": true,
+   "detail": "0"
+  },
+  {
+   "name": "A: cuda_env 自带 python",
+   "pass": true,
+   "detail": "home = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\python\ninclude-system-site-packages = false\nversion = 3.12.10\nexecutable = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP"
+  },
+  {
+   "name": "A: TTS CUDA 模型随包（12 文件）",
+   "pass": true,
+   "detail": "12 个文件（递归）"
+  },
+  {
+   "name": "A: 预设音色 A 在包内",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "B: 包内 --check 退出码 0",
+   "pass": true,
+   "detail": "U 资源耗尽）。建议把 ASR 放 NPU（--asr-device NPU）。\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+  },
+  {
+   "name": "C: 包内 cuda_env 可用 CUDA",
+   "pass": true,
+   "detail": "{\"torch\": \"2.11.0+cu128\", \"cuda\": \"12.8\", \"avail\": true, \"dev\": \"NVIDIA GeForce RTX 5050 Laptop GPU\", \"cap\": [12, 0]}"
+  },
+  {
+   "name": "D: 整链跑通（ASR GPU.0 → MT NPU → TTS CUDA 出声）",
+   "pass": true,
+   "detail": "rc=3221226505（长跑退出码见 open_issues）｜tts_out=29416364 B｜24000 612.84 0.7461｜提交 见 stdout/播完 见 stdout/丢弃 见 stdout"
+  }
+ ],
+ "pre_zip": {
+  "n_pyc": 0,
+  "n_blacklist": 0,
+  "n_empty_pycache_dirs": 6,
+  "note": "🔴 本机安全删除 shim 把删除转回收站且会失败 ⇒ **不删**，只断言；空的 __pycache__ 目录**不进 zip**（zipfile 只写文件）⇒ 符合「包内禁 .pyc」纪律"
+ },
+ "verify": {
+  "n_files_dir": 41374,
+  "n_entries_zip": 41374,
+  "n_files_match": true,
+  "pyc_in_zip": 0,
+  "blacklist_in_zip": 0,
+  "int4_in_zip": 21,
+  "zip_bytes": 14244490059,
+  "dir_bytes": 14232025413
+ },
+ "elapsed_s": 400.4
+}

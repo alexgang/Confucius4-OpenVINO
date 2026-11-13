@@ -83,12 +83,27 @@ _DEFAULT_DEVICES_MINIMVP: Dict[str, str] = {
     'mt': 'GPU.0',
     'tts': 'NPU',
 }
+# 🔴🔴🔳 **Special MVP**（用户 2026-11-13 决定）：
+#   **ASR = GPU.0（Intel 集显）／MT = NPU（Hy-MT2 INT8-CW）／TTS = CUDA（NV5050）**
+#   ⇒ 「包内**仅**用 CUDA 推理 TTS 模块」；ASR/MT 仍走 Intel 侧。
+#   ⚠️ 'CUDA' **不是 OV 设备**（OV 官方包无 CUDA plugin）⇒ 它是
+#      **PyTorch+CUDA 边车**的伪设备 ⇒ 由 `tts_cuda.py` 提供。
+_DEFAULT_DEVICES_SPECIALMVP: Dict[str, str] = {
+    'asr': 'GPU.0',
+    'mt': 'NPU',
+    'tts': 'CUDA',
+}
 
 
 def _profile_default_devices() -> Dict[str, str]:
-    """按包形态选默认摆放；标记缺失/损坏 ⇒ 完整版（`package_profile` 三态）。"""
+    """按包形态选默认摆放；标记缺失/损坏 ⇒ 完整版（`package_profile` 三态）。
+
+    🔴 **Special MVP**（用户 2026-11-13 决定）⇒ ASR=iGPU／MT=NPU／TTS=CUDA。
+    """
     try:
         import package_profile
+        if package_profile.is_specialmvp():
+            return dict(_DEFAULT_DEVICES_SPECIALMVP)
         return dict(_DEFAULT_DEVICES_MINIMVP
                     if package_profile.is_minimvp() else _DEFAULT_DEVICES_FULL)
     except Exception:
@@ -306,6 +321,10 @@ def device_label(dev: str) -> str:
             return label
 
     # 回落：静态表（**不含任何猜测编号的 GPU 标签**）
+    # 🔴🔴🔳 **'CUDA' 不是 OV 设备** ⇒ 不查 OV，直接给标签
+    #   （Special MVP：PyTorch+CUDA 边车 ⇒ 真实 NVIDIA 独显）。
+    if str(dev).upper() == 'CUDA':
+        return 'CUDA（NVIDIA 独显）'
     return _DEVICE_LABELS.get(dev, dev)
 
 
@@ -508,6 +527,10 @@ def available_devices() -> List[str]:
     🔴 CPU 不在清单里（用户决定 2026-10-23）⇒ 本机只有 CPU 时
        这里返回**空列表**。GUI 会据此在下拉里给明确提示，而不是
        让用户在一个没有意义的选项里瞎选。
+
+    🔴🔴🔳 **不含 'CUDA'**：'CUDA' **不是 OV 设备**，它是 PyTorch+CUDA
+       边车的伪设备 ⇒ 只在 **TTS** 下拉里出现（见 `tts_extra_devices()`）。
+       本函数喂给 ASR/MT/CLI 三处 ⇒ 混进去会让 ASR/MT 也出现 CUDA 档。
     """
     devs = detect_devices()
     if not devs:
@@ -520,6 +543,35 @@ def available_devices() -> List[str]:
             return (1, d)
         return (2, d)
     return sorted(devs.keys(), key=_key)
+
+
+def tts_extra_devices() -> List[str]:
+    """**只给 TTS 用**的额外设备（当前只有 'CUDA'）。
+
+    🔴 'CUDA' 不是 OV 设备（OV 官方发行版**不含** CUDA plugin）⇒
+       它是 **PyTorch+CUDA 边车**（`tts_cuda.py`）的伪设备 ⇒
+       **只**出现在 TTS 的设备清单里（`build_tts_options`）。
+
+    🔴🔴🔳 **Special MVP**（用户 2026-11-13 决定）：本包**自带**
+       `cuda_env/`（torch 2.11.0+cu128）⇒ `available()` 为真 ⇒
+       'CUDA' 出现，且是**出厂默认 TTS 设备**。
+    🔴 其它包（MiniMVP / 完整版）：`allow_cuda()` 为 False ⇒ 返回空 ⇒
+       **行为与 APP-098 一字不变**。
+    """
+    out: List[str] = []
+    try:
+        import package_profile
+        if not package_profile.allow_cuda():
+            return out
+    except Exception:
+        return out
+    try:
+        import tts_cuda
+        if tts_cuda.available():
+            out.append('CUDA')
+    except Exception:
+        pass
+    return out
 
 
 def check_precision(device: str, precision: str) -> Optional[str]:

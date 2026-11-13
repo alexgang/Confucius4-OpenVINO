@@ -57,7 +57,10 @@ PROFILE_FILE = 'package_profile.json'
 
 #: 🔴 允许的 profile 取值（**白名单**）——不在白名单里的一律当 'full'。
 #:    理由：标记文件写错时**绝不能**把完整版降级成 MiniMVP（那是「静默改行为」）。
-KNOWN_PROFILES = ('minimvp', 'full')
+#: 🔴🔴🔳 **'specialmvp'**（用户 2026-11-13 决定）：**Special MVP** ——
+#:    **包内自带 NV5050 的 PyTorch+CUDA 环境** ⇒ TTS 走**真 CUDA**，
+#:    ASR 走 iGPU（GPU.0）、MT 走 NPU（Hy-MT2）。
+KNOWN_PROFILES = ('minimvp', 'full', 'specialmvp')
 
 
 def _read_marker():
@@ -95,6 +98,15 @@ def is_minimvp() -> bool:
     return PROFILE == 'minimvp'
 
 
+def is_specialmvp() -> bool:
+    """本包是不是 **Special MVP**（NV5050 CUDA TTS 专供包）。
+
+    🔴🔴🔳 用户 2026-11-13 决定：**包内自带 NV5050 的 PyTorch+CUDA 环境**
+    ⇒ TTS 用**真 CUDA** 推理；ASR 用 iGPU（GPU.0）、MT 用 NPU（Hy-MT2）。
+    """
+    return PROFILE == 'specialmvp'
+
+
 def allow_cuda() -> bool:
     """本包**是否允许** NVIDIA/CUDA 后端。
 
@@ -102,9 +114,14 @@ def allow_cuda() -> bool:
     完整版客户包**也不带** CUDA 资产（audio.cpp + GGUF 不随包分发，
     见 APP-062 ③ D3「客户包里去掉 TTS=CUDA」）⇒ 完整版同样不该出现 CUDA 选项。
     ⇒ **默认 False** 是对两个包都正确的默认值。
+
+    🔴🔴🔳 **Special MVP 例外**（用户 2026-11-13 决定）：本包**自带**
+    CUDA 运行时（`cuda_env/`）⇒ CUDA 档**是本包的出厂 TTS 后端**。
     """
     if is_minimvp():
         return False
+    if is_specialmvp():
+        return bool(_MARKER.get('allow_cuda', True))
     return bool(_MARKER.get('allow_cuda', False))
 
 

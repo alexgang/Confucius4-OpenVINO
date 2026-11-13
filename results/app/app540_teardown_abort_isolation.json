@@ -1,0 +1,34 @@
+{
+ "A_tts_off": {
+  "rc": 0,
+  "rc_hex": "0x0",
+  "elapsed_s": 71.4,
+  "final_stats": "",
+  "stdout_tail": "o go build. Can that satisfy physical AI requirement?\n[实时] e next class of ax? We need to go build. Can that satisfy physical AI requirements? Is it.\n[实时]  of ax? We need to go build. Can that satisfy physical AI requirements? Is it a super set?\n[实时] x? We need to go build. Can that satisfy physical AI requirements? Is it a super set? How.\n[定稿] What's the next class of ax? We need to go build. Can that satisfy physical AI requirements? Is it a super set? How.\n\n[译文] 下一个AX课程是什么？\n\n[实时] The played.\n[译文] 我们需要去建造。\n\n[译文] 这能满足物理人工智能的需求吗？\n\n[定稿] That played resurrect.\n\n[译文] 它是一个超集吗？\n\n[译文] 如何。\n\n[gpu_int8] 音频 60.0s  墙钟 60.5s  RTF(计算) 0.564  出字延迟中位 323 ms  最大积压 1.1s  段 10\n[译文] 那次表演又重新出现了。\n[gpu_int8] 翻译 target=zh 后端=auto 设备 GPU.0 state=ready 句数 19  延迟中位 457.3 ms  P95 747.4 ms  TTFT 184.0 ms  39.7 tok/s\n"
+ },
+ "B_tts_cuda": {
+  "rc": 0,
+  "rc_hex": "0x0",
+  "elapsed_s": 103.0,
+  "final_stats": "[TTS] 最终统计（close 后）：提交 6  播完 0  丢弃 6  关闭作废 0  空句 0  失败 0  结尾滞后 —s  积压 最大 6.72s",
+  "stdout_tail": " 6 s）⇒ 只出字幕不配音\n  [TTS] [TTS] [tts_worker] ⏭ 段 8 已晚 33.0 s（>6 s）⇒ 不播配音、只出字幕（累计 3 句）\n  [TTS] [TTS] ⏭ 跳过过期句（lag=33.0 s，阈值 6 s）⇒ 只出字幕不配音\n  [TTS] [TTS] [tts_worker] ⏭ 段 8 已晚 33.0 s（>6 s）⇒ 不播配音、只出字幕（累计 4 句）\n  [TTS] [TTS] ⏭ 跳过过期句（lag=33.0 s，阈值 6 s）⇒ 只出字幕不配音\n  [TTS] [TTS] [tts_worker] ⏭ 段 8 已晚 33.0 s（>6 s）⇒ 不播配音、只出字幕（累计 5 句）\n  [TTS] [TTS] ⏭ 跳过过期句（lag=33.0 s，阈值 6 s）⇒ 只出字幕不配音\n  [TTS] [TTS] [tts_worker] ⏭ 段 9 已晚 31.9 s（>6 s）⇒ 不播配音、只出字幕（累计 6 句）\n  [TTS] [TTS] ⏭ 跳过过期句（lag=31.9 s，阈值 6 s）⇒ 只出字幕不配音\n[TTS] 首包 —s  积压 当前 6.72s / 最大 6.72s  提交 6  播完 0  丢弃 6  重启 0  state=ready\n[TTS] 收尾（close 前）：结尾滞后 —s  关闭作废 0  空句 0  积压 最大 6.72s\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\tts_backlog_curve.csv（30 个采样点）\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n[TTS] 最终统计（close 后）：提交 6  播完 0  丢弃 6  关闭作废 0  空句 0  失败 0  结尾滞后 —s  积压 最大 6.72s\n"
+ },
+ "C_tts_npu_ov": {
+  "rc": 0,
+  "rc_hex": "0x0",
+  "elapsed_s": 78.0,
+  "final_stats": "[TTS] 最终统计（close 后）：提交 15  播完 10  丢弃 5  关闭作废 0  空句 0  失败 0  结尾滞后 8.64s  积压 最大 20.44s",
+  "stdout_tail": " sr=24000 samples=55680 parts=4 peak=0.5557 rms_dbfs=-18.0 nan_inf=0 cb_delta=44 read_delta=45056 underflow_delta=0 ring=34832/72000 consumed=-\n  [TTS] [TTS] [tts_worker] 遥测 id=14 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=55680 parts=4 peak=0.5557 rms_dbfs=-18.0 nan_inf=0 cb_delta=79 read_delta=79888 underflow_delta=1 ring=0/72000 consumed=True\n  [TTS] [TTS] 遥测 id=14 peak=0.555664 rms_dbfs=-18.04 read_delta=79888 consumed=True\n[TTS] 首包 0.48s  积压 当前 9.57s / 最大 20.44s  提交 15  播完 10  丢弃 5  重启 0  state=ready\n[TTS] 收尾（close 前）：结尾滞后 8.64s  关闭作废 0  空句 0  积压 最大 20.44s\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\tts_backlog_curve.csv（47 个采样点）\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n[TTS] 最终统计（close 后）：提交 15  播完 10  丢弃 5  关闭作废 0  空句 0  失败 0  结尾滞后 8.64s  积压 最大 20.44s\n"
+ },
+ "verdict": "各臂退出码不一致 ⇒ 需进一步定位",
+ "rcs": {
+  "A_tts_off": 0,
+  "B_tts_cuda": 0,
+  "C_tts_npu_ov": 0
+ },
+ "aborts": {
+  "A_tts_off": false,
+  "B_tts_cuda": false,
+  "C_tts_npu_ov": false
+ }
+}
