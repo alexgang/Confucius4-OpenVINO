@@ -1,0 +1,196 @@
+{
+ "script": "app523_pack_must_ttsworker_probe.py",
+ "note": "「包内缺 app/tts_worker.py」在改前是否被放行；探针在临时目录；客户包只读",
+ "prefix_facts": {
+  "head_must_count": 39,
+  "head_has_tts_worker": false,
+  "head_gate4_missing_file_is_skip": true,
+  "head_gate4_missing_file_returns_0": true
+ },
+ "prefix_facts_ok": true,
+ "probe": {
+  "gate4_rc": 1,
+  "gate4_refuses": true,
+  "dryrun_rc": 1,
+  "dryrun_must_ok": 41,
+  "dryrun_must_missing": [
+   "app/tts_worker.py"
+  ],
+  "dryrun_missing_exactly_worker": true,
+  "gate4_output": "[FAIL] 包内缺 app/tts_worker.py ⇒ TTS 不可用（§190）\n     ⇒ 客户装完 TTS 全程无声（静默缺陷）⇒ 拒绝打包\nGATE4_RC=1",
+  "gate4_rc_with_worker": 0,
+  "dryrun_must_missing_with_worker": [],
+  "dryrun_rc_with_worker": 0
+ },
+ "packages": [
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0",
+   "files": {
+    "app/tts_worker.py": 229782,
+    "app/tts_service.py": 127483,
+    "app/tts_engine.py": 88613
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc1",
+   "files": {
+    "app/tts_worker.py": 242603,
+    "app/tts_service.py": 131309,
+    "app/tts_engine.py": 88595
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc10",
+   "files": {
+    "app/tts_worker.py": 271993,
+    "app/tts_service.py": 138950,
+    "app/tts_engine.py": 93114
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc2",
+   "files": {
+    "app/tts_worker.py": 242603,
+    "app/tts_service.py": 131309,
+    "app/tts_engine.py": 88595
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+   "files": {
+    "app/tts_worker.py": 247121,
+    "app/tts_service.py": 131309,
+    "app/tts_engine.py": 88595
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc4",
+   "files": {
+    "app/tts_worker.py": 247121,
+    "app/tts_service.py": 131309,
+    "app/tts_engine.py": 88595
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc5",
+   "files": {
+    "app/tts_worker.py": 247121,
+    "app/tts_service.py": 131309,
+    "app/tts_engine.py": 88595
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc7",
+   "files": {
+    "app/tts_worker.py": 271036,
+    "app/tts_service.py": 136905,
+    "app/tts_engine.py": 92523
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc8",
+   "files": {
+    "app/tts_worker.py": 271993,
+    "app/tts_service.py": 138950,
+    "app/tts_engine.py": 93081
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc9",
+   "files": {
+    "app/tts_worker.py": 271993,
+    "app/tts_service.py": 138950,
+    "app/tts_engine.py": 93114
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_v1.13",
+   "files": {
+    "app/tts_worker.py": 219189,
+    "app/tts_service.py": 125332,
+    "app/tts_engine.py": 88613
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_v1.5",
+   "files": {
+    "app/tts_worker.py": 150853,
+    "app/tts_service.py": 100333,
+    "app/tts_engine.py": 45341
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_v2.0",
+   "files": {
+    "app/tts_worker.py": 219189,
+    "app/tts_service.py": 125332,
+    "app/tts_engine.py": 88613
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_v2.1",
+   "files": {
+    "app/tts_worker.py": 219189,
+    "app/tts_service.py": 125332,
+    "app/tts_engine.py": 88613
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_v2.2",
+   "files": {
+    "app/tts_worker.py": 229782,
+    "app/tts_service.py": 127483,
+    "app/tts_engine.py": 88613
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_v2.3",
+   "files": {
+    "app/tts_worker.py": 243054,
+    "app/tts_service.py": 131379,
+    "app/tts_engine.py": 88613
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_v2.3_aborted_20261107_1517",
+   "files": {
+    "app/tts_worker.py": 243054,
+    "app/tts_service.py": 131379,
+    "app/tts_engine.py": 88613
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_v2.4",
+   "files": {
+    "app/tts_worker.py": 242753,
+    "app/tts_service.py": 131149,
+    "app/tts_engine.py": 88853
+   },
+   "all_present": true
+  }
+ ],
+ "packages_total": 18,
+ "packages_all_present": true,
+ "e2e": {
+  "verify_fail_condition": "missing or stale or stale_prefix or (not mt_dirs_ok) or (not files_ok) or (not bytes_ok) or spoken_hit or internal_hit or tts_bad or noise_hit or certain or (not content_ok) or (not ver_ok)",
+  "zip_verify_fail_closed": true
+ },
+ "verdict": "PASS"
+}

@@ -115,6 +115,21 @@ MUST = [
     'app/translator.py',
     'app/live_caption_app.py',
     'app/MANIFEST.json',
+    # 🔴🔴 §190：TTS 三个生产模块（**缺一 ⇒ 客户侧 TTS 直接不可用**）
+    #   ⚠️ 为什么必须列进 MUST（**实测**，§190）：
+    #     · 闸门③（APP-081）对 **v2.4 / v2.5** 只查 `assert_pkg_clean.py`
+    #       的存在性 + 洁净度扫描 ⇒ **不查** `app/tts_worker.py`；
+    #     · 闸门④（§187）遇到「包内无 app/tts_worker.py」原本打印
+    #       `[SKIP] ⇒ 本闸门不适用` 并 **rc=0 放行**；
+    #     · MUST 清单里原先**没有** `app/tts_worker.py`
+    #       ⇒ 打包流水线**全程绿灯** ⇒ 交付一个**没有 TTS worker** 的包
+    #       ⇒ 客户装完 TTS 全程无声（**静默**缺陷，客户与打包方都看不出来）。
+    #   ⇒ 修法：把 TTS 三个生产模块列入 MUST ⇒ 缺则 dry-run 与 zip 校验
+    #     **双双 fail-closed**（旧 zip 保持完好、不改名）。
+    #   ✅ 回归：磁盘上 **18 个客户包全部含这 3 个文件** ⇒ 不误伤任何现存包。
+    'app/tts_worker.py',
+    'app/tts_service.py',
+    'app/tts_engine.py',
     'README_zh.md',
     'README_en.md',
     'THIRD_PARTY.md',
@@ -1173,8 +1188,14 @@ def check_app086_2a_narrowing(pkg):
 
     path = os.path.join(pkg, 'app', 'tts_worker.py')
     if not os.path.isfile(path):
-        print('  [SKIP] 包内无 app/tts_worker.py ⇒ 本闸门不适用')
-        return 0
+        # 🔴🔴 §190：缺文件**不是**「本闸门不适用」，而是**包坏了**
+        #   （旧行为：`[SKIP] ⇒ return 0` ⇒ 闸门④ 对「没有 TTS worker 的包」
+        #     **完全无感**；而 MUST 里原先也没有它 ⇒ 打包流水线**全程绿灯**
+        #     ⇒ 交付一个客户侧 TTS 全程无声的包 ⇒ **静默**缺陷）
+        #   ⇒ 现在**拒绝打包**（早于 10 分钟的 zip 构建，不白跑）。
+        print('  [FAIL] 包内缺 app/tts_worker.py ⇒ TTS 不可用（§190）')
+        print('     ⇒ 客户装完 TTS 全程无声（静默缺陷）⇒ 拒绝打包')
+        return 1
     try:
         with open(path, 'rb') as f:
             tree = _ast.parse(f.read().decode('utf-8', 'replace'))
@@ -1277,6 +1298,57 @@ def check_app086_2a_narrowing(pkg):
             finder.visit(st)
         return sorted(finder.hits)
 
+    def _terminal_else(node):
+        """If 链的**终端 else** 语句列表（没有 ⇒ None）。
+
+        🔴🔴🔴 §190（判据范围的又一次补全，**实测**，不是推测）
+        -------------------------------------------------------
+        `if/elif/else` 在 AST 里是**嵌套 If**：`else` 的语句体挂在
+        **最内层 If 的 `orelse`** 上，**不属于任何 If 的 `body`**
+        ⇒ 旧判据 `_branch_keeps_clone_voice(n.body)` **永远看不到它**
+        ⇒ 「回落预设 A」这条**唯一**兜底，对闸门④ **完全不可见**。
+
+        🔴 为什么这是**交付级**缺陷：
+        按句绑定模式（`_bound` 为真）下**两个 keep 分支都取不到**
+        ⇒ **若无终端 else 兜底** ⇒ `self.speaker_embed` 仍是上一句的克隆向量
+        ⇒ 合成出来的这一句就是**上一个人的声音** ⇒ 串音（男声被配成女声）。
+        ⇒ 实测（§190）：把终端 else ①废掉 ②删除 ③换成 keep-logger
+          ⇒ 闸门④ **rc=0 放行**，而行为判据 app157 **B3 FAIL**（真串音）
+          ⇒ **fail-open** ⇒ 必须补这一项。
+        """
+        cur = node
+        while True:
+            orelse = cur.orelse
+            if not orelse:
+                return None
+            if len(orelse) == 1 and isinstance(orelse[0], _ast.If):
+                cur = orelse[0]
+                continue
+            return orelse
+
+    def _fallback_calls(stmts):
+        """终端 else 里有没有「回落」调用（名字含 fallback / preset 的 **Call**）。
+
+        🔴 **只认 Call**（`_fallback_to_preset(...)` 一类）：
+        只写 `self.speaker_embed = self._preset_embed` **不算数**
+        ⇒ 实测那种写法行为判据 **B3 FAIL**（`_clone_active` / `_clone_mode` /
+        `speaker_name` 都没复位 ⇒ 遥测与实际音色矛盾）⇒ 判据不通过。
+        """
+        hits = []
+        for st in stmts:
+            for n in _ast.walk(st):
+                if isinstance(n, _ast.Call):
+                    fn = n.func
+                    nm = None
+                    if isinstance(fn, _ast.Name):
+                        nm = fn.id
+                    elif isinstance(fn, _ast.Attribute):
+                        nm = fn.attr
+                    if nm and ('fallback' in nm.lower()
+                               or 'preset' in nm.lower()):
+                        hits.append(nm)
+        return sorted(set(hits))
+
     def _implies_not_bound(node, tainted):
         """node 是否在逻辑上**蕴含** `not _bound`
         （⇒ `_bound` 为真时 node 必为假 ⇒ 该分支取不到 ⇒ 安全）。
@@ -1342,12 +1414,12 @@ def check_app086_2a_narrowing(pkg):
         elif any(k in tainted for k in _ref_keys(n.test)):
             why.append('经变量间接调用')
         if why:
-            branches.append((n.lineno, n.test, '、'.join(why)))
+            branches.append((n.lineno, n.test, '、'.join(why), n))
 
     if not branches:
         print('  [OK] 无「沿用上一句克隆音色」分支 ⇒ 本闸门不适用')
         return 0
-    bad = [(ln, why) for (ln, cond, why) in branches
+    bad = [(ln, why) for (ln, cond, why, _nd) in branches
            if not _implies_not_bound(cond, tainted)]
     if bad:
         for ln, why in bad:
@@ -1355,8 +1427,40 @@ def check_app086_2a_narrowing(pkg):
                   '缺**有效** `not _bound` 守卫（APP-086·2a，%s）' % (ln, why))
         print('     ⇒ 按句绑定模式 + 标签晚到会沿用上一句克隆音色（串音）')
         return 1
+    # 🔴🔴🔴 §190：**终端 else 回落分支**必须存在（判据范围的又一次补全）
+    #   为什么（实测，§190）：
+    #     两条守卫都带 `not _bound` 时，按句绑定模式下两个 keep 分支都取不到
+    #     ⇒ 「回落预设 A」这条**唯一**兜底就落在**终端 else** 上
+    #     ⇒ 而 AST 里 `else` 体挂在**最内层 If 的 `orelse`** 上，
+    #       **不属于任何 If 的 `body`** ⇒ 旧判据**看不见**它
+    #     ⇒ 实测：终端 else ①废掉 ②删除 ③换成 keep-logger
+    #       ⇒ 闸门④ 仍 rc=0 **放行**，而行为判据 app157 **B3 FAIL**（真串音）
+    #       ⇒ **fail-open** ⇒ 本项必须存在。
+    no_fb = []
+    for ln, cond, why, nd in branches:
+        te = _terminal_else(nd)
+        if te is None:
+            no_fb.append((ln, why, '该 If 链**没有终端 else**'
+                          '（keep 分支取不到时无任何兜底 ⇒ `speaker_embed` '
+                          '仍是上一句克隆音色）'))
+        else:
+            fbs = _fallback_calls(te)
+            if not fbs:
+                no_fb.append((ln, why, '终端 else（第 %s 行）**没有回落调用**'
+                              '（只写 `speaker_embed` 之类**不完整**：'
+                              '`_clone_active`/`_clone_mode`/`speaker_name` '
+                              '都没复位 ⇒ 遥测与实际音色矛盾）'
+                              % ','.join(str(s.lineno) for s in te)))
+    if no_fb:
+        for ln, why, reason in no_fb:
+            print('  [FAIL] app/tts_worker.py:%d 分支「沿用上一句克隆音色」'
+                  '缺**回落预设 A** 兜底（APP-086·2a，%s）' % (ln, reason))
+        print('     ⇒ 按句绑定模式 + 标签晚到 ⇒ 上一句克隆音色被沿用（串音）')
+        return 1
     print('  [OK] %d 个「沿用上一句克隆音色」分支全部带**有效** `not _bound` 守卫'
           '（APP-086·2a）' % (len(branches),))
+    print('  [OK] 每个「沿用上一句克隆音色」If 链都有**终端 else 回落预设 A** 兜底'
+          '（APP-086·2a）')
     return 0
 
 
