@@ -1,0 +1,15 @@
+{
+ "host": "192.168.2.194",
+ "user": "test",
+ "checked_at": "2026-11-13 22:32:31",
+ "whoami": "laptop-vqsjm79a\\test\r\nLAPTOP-VQSJM79A",
+ "nvidia_smi_full": "Fri Nov 13 22:32:33 2026       \r\n+-----------------------------------------------------------------------------------------+\r\n| NVIDIA-SMI 592.82                 Driver Version: 592.82         CUDA Version: 13.1     |\r\n+-----------------------------------------+------------------------+----------------------+\r\n| GPU  Name                  Driver-Model | Bus-Id          Disp.A | Volatile Uncorr. ECC |\r\n| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |\r\n|                                         |                        |               MIG M. |\r\n|=========================================+========================+======================|\r\n|   0  NVIDIA GeForce RTX 4050 ...  WDDM  |   00000000:02:00.0 Off |                  N/A |\r\n| N/A   58C    P3            590W /   43W |       0MiB /   6141MiB |      0%      Default |\r\n|                                         |                        |                  N/A |\r\n+-----------------------------------------+------------------------+----------------------+\r\n\r\n+-----------------------------------------------------------------------------------------+\r\n| Processes:                                                                              |\r\n|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |\r\n|        ID   ID                                                               Usage      |\r\n|=========================================================================================|\r\n|  No running processes found                                                             |\r\n+-----------------------------------------------------------------------------------------+",
+ "nvidia_query": "name, memory.total [MiB], driver_version, compute_cap\r\nNVIDIA GeForce RTX 4050 Laptop GPU, 6141 MiB, 592.82, 8.9",
+ "nvidia_smi_top": "NVIDIA GeForce RTX 4050 Laptop GPU, 8.9, 6141 MiB, 5920 MiB",
+ "drives": "Name FreeGB UsedGB\r\n---- ------ ------\r\nC     15.18 937.33",
+ "userprofile": "C:\\Users\\63446 \r\nC:\\Users\\63446 \r\n--- \r\nDESKTOP_EXISTS",
+ "cwd": "C:\\Users\\63446",
+ "os": "Microsoft Windows [Version 10.0.26300.9818]\r\nMicrosoft Windows 11 Home",
+ "python": "C:\\Users\\63446\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe\r\nINFO: Could not find files for the given pattern(s).",
+ "net": "New connections will be remembered.\r\n\r\nThere are no entries in the list."
+}

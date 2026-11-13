@@ -1,0 +1,69 @@
+{
+ "host": "192.168.2.194",
+ "user": "test",
+ "remote_path": "C:\\Users\\63446\\Desktop\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1.zip",
+ "checked_at": "2026-11-13 22:42:04",
+ "curl_process_gone_after_s": 0,
+ "remote_bytes": 14244490059,
+ "remote_mtime": "2026-11-13 22:41:16",
+ "sha256_remote_certutil": null,
+ "certutil_raw": "CertUtil: -hashfile ??: 0x80070020 (WIN32: 32 ERROR_SHARING_VIOLATION)\r\nCertUtil: ????????????,???????",
+ "certutil_secs": 0.2,
+ "getfilehash_secs": 0.8,
+ "sha256_remote_getfilehash": null,
+ "free_gb": 1.55,
+ "size_ghash": 14244490059,
+ "used_gb": 950.95,
+ "getfilehash_raw": "ll a method on a null-valued expression.\r\nAt C:\\Users\\63446\\Desktop\\_hash.ps1:3 char:1\r\n+ $h = (Get-FileHash -Path $p -Algorithm SHA256).Hash.ToLower()\r\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : InvalidOperation: (:) [], RuntimeException\r\n    + FullyQualifiedErrorId : InvokeMethodOnNull\r\n \r\nSHA256=\r\nSIZE=14244490059\r\nFREE_GB=1.55\r\nUSED_GB=950.95",
+ "temp_ps1_removed": true,
+ "sha256_local_expected": "72d2727ad73ff6b0cf0aa8a39c449047f69aa8aedbf41ece83cadd0c5d3fa5a8",
+ "match_sha256": false,
+ "match_bytes": true,
+ "two_impls_agree": true,
+ "verdict": "SIZE_ONLY",
+ "finished_at": "2026-11-13 22:47:37",
+ "attempts_log": [
+  {
+   "attempt": 1,
+   "raw": "    ---\r\nDefenderAiPlatformHost 12992      0.0625\r\nDefenderSessionHelper   9228     0.40625\r\nexplorer               11220 2329.578125\r\nexplorer               13304  145.984375\r\nexplorer               31316   141.46875\r\nMpDefenderCoreService   7304     54.1875\r\nMsMpEng                 7140 18464.46875\r\nSearchIndexer          11852  4216.46875\r\n\r\n\r\n\r\n---MPS---\r\nSCAN=11/10/2026 02:42:04\r\nDETECTIONS=0"
+  },
+  {
+   "attempt": 2,
+   "raw": "\nDefenderAiPlatformHost 12992       0.0625\r\nDefenderSessionHelper   9228      0.40625\r\nexplorer               11220  2330.046875\r\nexplorer               13304   146.015625\r\nexplorer               31316   141.515625\r\nMpDefenderCoreService   7304    54.203125\r\nMsMpEng                 7140 18465.078125\r\nSearchIndexer          11852  4217.046875\r\n\r\n\r\n\r\n---MPS---\r\nSCAN=11/10/2026 02:42:04\r\nDETECTIONS=0"
+  },
+  {
+   "attempt": 3,
+   "raw": "\nDefenderAiPlatformHost 12992       0.0625\r\nDefenderSessionHelper   9228      0.40625\r\nexplorer               11220  2330.515625\r\nexplorer               13304     147.4375\r\nexplorer               31316   141.578125\r\nMpDefenderCoreService   7304    54.203125\r\nMsMpEng                 7140 18465.828125\r\nSearchIndexer          11852  4217.921875\r\n\r\n\r\n\r\n---MPS---\r\nSCAN=11/10/2026 02:42:04\r\nDETECTIONS=0"
+  },
+  {
+   "attempt": 4,
+   "raw": "\nDefenderAiPlatformHost 12992       0.0625\r\nDefenderSessionHelper   9228      0.40625\r\nexplorer               11220   2331.03125\r\nexplorer               13304      148.125\r\nexplorer               31316     142.4375\r\nMpDefenderCoreService   7304     54.21875\r\nMsMpEng                 7140 18466.890625\r\nSearchIndexer          11852  4218.515625\r\n\r\n\r\n\r\n---MPS---\r\nSCAN=11/10/2026 02:42:04\r\nDETECTIONS=0"
+  },
+  {
+   "attempt": 5,
+   "raw": "\nDefenderAiPlatformHost 12992       0.0625\r\nDefenderSessionHelper   9228      0.40625\r\nexplorer               11220   2332.40625\r\nexplorer               13304   148.484375\r\nexplorer               31316     147.3125\r\nMpDefenderCoreService   7304     54.21875\r\nMsMpEng                 7140 18471.546875\r\nSearchIndexer          11852   4219.34375\r\n\r\n\r\n\r\n---MPS---\r\nSCAN=11/10/2026 02:42:04\r\nDETECTIONS=0"
+  },
+  {
+   "attempt": 6,
+   "raw": "    ---\r\nDefenderAiPlatformHost 12992      0.0625\r\nDefenderSessionHelper   9228     0.40625\r\nexplorer               11220 2333.171875\r\nexplorer               13304   148.59375\r\nexplorer               31316  147.421875\r\nMpDefenderCoreService   7304    54.21875\r\nMsMpEng                 7140 18475.90625\r\nSearchIndexer          11852 4220.109375\r\n\r\n\r\n\r\n---MPS---\r\nSCAN=11/10/2026 02:42:04\r\nDETECTIONS=0"
+  },
+  {
+   "attempt": 7,
+   "raw": "  --        ---\r\nDefenderAiPlatformHost 12992     0.0625\r\nDefenderSessionHelper   9228    0.40625\r\nexplorer               11220 2333.71875\r\nexplorer               13304 148.609375\r\nexplorer               31316  147.53125\r\nMpDefenderCoreService   7304   54.21875\r\nMsMpEng                 7140  18479.125\r\nSearchIndexer          11852  4220.9375\r\n\r\n\r\n\r\n---MPS---\r\nSCAN=11/10/2026 02:42:04\r\nDETECTIONS=0"
+  },
+  {
+   "attempt": 8,
+   "raw": "\nDefenderAiPlatformHost 12992       0.0625\r\nDefenderSessionHelper   9228      0.40625\r\nexplorer               11220   2333.96875\r\nexplorer               13304   148.640625\r\nexplorer               31316   147.609375\r\nMpDefenderCoreService   7304     54.21875\r\nMsMpEng                 7140 18481.421875\r\nSearchIndexer          11852  4221.703125\r\n\r\n\r\n\r\n---MPS---\r\nSCAN=11/10/2026 02:42:04\r\nDETECTIONS=0"
+  },
+  {
+   "attempt": 9,
+   "raw": "\nDefenderAiPlatformHost 12992       0.0625\r\nDefenderSessionHelper   9228      0.40625\r\nexplorer               11220  2338.640625\r\nexplorer               13304    153.28125\r\nexplorer               31316    150.46875\r\nMpDefenderCoreService   7304     54.21875\r\nMsMpEng                 7140 18493.234375\r\nSearchIndexer          11852  4222.484375\r\n\r\n\r\n\r\n---MPS---\r\nSCAN=11/10/2026 02:42:04\r\nDETECTIONS=0"
+  },
+  {
+   "attempt": 10,
+   "raw": "    ---\r\nDefenderAiPlatformHost 12992      0.0625\r\nDefenderSessionHelper   9228     0.40625\r\nexplorer               11220 2343.859375\r\nexplorer               13304  158.796875\r\nexplorer               31316  154.234375\r\nMpDefenderCoreService   7304    54.21875\r\nMsMpEng                 7140     18506.5\r\nSearchIndexer          11852   4223.4375\r\n\r\n\r\n\r\n---MPS---\r\nSCAN=11/10/2026 02:42:04\r\nDETECTIONS=0"
+  }
+ ],
+ "sha256_remote": null,
+ "hash_method": "Get-FileHash (target) vs local python hashlib"
+}
