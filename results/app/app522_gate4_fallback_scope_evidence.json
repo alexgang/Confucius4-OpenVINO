@@ -1,0 +1,320 @@
+{
+ "script": "app522_gate4_fallback_scope.py",
+ "note": "闸门④「终端 else 回落分支」检测范围 × 行为判据 app157 B3 交叉验证；探针在临时目录；客户包只读",
+ "synthetic": [
+  {
+   "tag": "clean_dev",
+   "gate4_rc": 0,
+   "B1": true,
+   "B3": true,
+   "behavior_verdict": "PASS",
+   "behavior_pass": 11,
+   "behavior_fail": 0,
+   "consistent": true,
+   "gate4_output": "[OK] 2 个「沿用上一句克隆音色」分支全部带**有效** `not _bound` 守卫（APP-086·2a）\n  [OK] 每个「沿用上一句克隆音色」If 链都有**终端 else 回落预设 A** 兜底（APP-086·2a）\nGATE4_RC=0"
+  },
+  {
+   "tag": "fb_neutered",
+   "gate4_rc": 1,
+   "B1": true,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 9,
+   "behavior_fail": 2,
+   "consistent": true,
+   "gate4_output": "[FAIL] app/tts_worker.py:1877 分支「沿用上一句克隆音色」缺**回落预设 A** 兜底（APP-086·2a，终端 else（第 1899 行）**没有回落调用**（只写 `speaker_embed` 之类**不完整**：`_clone_active`/`_clone_mode`/`speaker_name` 都没复位 ⇒ 遥测与实际音色矛盾））\n  [FAIL] app/tts_worker.py:1883 分支「沿用上一句克隆音色」缺**回落预设 A** 兜底（APP-086·2a，终端 else（第 1899 行）**没有回落调用**（只写 `speaker_embed` 之类**不完整**：`_clone_active`/`_clone_mode`/`speaker_name` 都没复位 ⇒ 遥测与实际音色矛盾））\n     ⇒ 按句绑定模式 + 标签晚到 ⇒ 上一句克隆音色被沿用（串音）\nGATE4_RC=1"
+  },
+  {
+   "tag": "fb_removed",
+   "gate4_rc": 1,
+   "B1": true,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 9,
+   "behavior_fail": 2,
+   "consistent": true,
+   "gate4_output": "[FAIL] app/tts_worker.py:1877 分支「沿用上一句克隆音色」缺**回落预设 A** 兜底（APP-086·2a，该 If 链**没有终端 else**（keep 分支取不到时无任何兜底 ⇒ `speaker_embed` 仍是上一句克隆音色））\n  [FAIL] app/tts_worker.py:1883 分支「沿用上一句克隆音色」缺**回落预设 A** 兜底（APP-086·2a，该 If 链**没有终端 else**（keep 分支取不到时无任何兜底 ⇒ `speaker_embed` 仍是上一句克隆音色））\n     ⇒ 按句绑定模式 + 标签晚到 ⇒ 上一句克隆音色被沿用（串音）\nGATE4_RC=1"
+  },
+  {
+   "tag": "fb_replaced_keep",
+   "gate4_rc": 1,
+   "B1": true,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 9,
+   "behavior_fail": 2,
+   "consistent": true,
+   "gate4_output": "[FAIL] app/tts_worker.py:1877 分支「沿用上一句克隆音色」缺**回落预设 A** 兜底（APP-086·2a，终端 else（第 1898 行）**没有回落调用**（只写 `speaker_embed` 之类**不完整**：`_clone_active`/`_clone_mode`/`speaker_name` 都没复位 ⇒ 遥测与实际音色矛盾））\n  [FAIL] app/tts_worker.py:1883 分支「沿用上一句克隆音色」缺**回落预设 A** 兜底（APP-086·2a，终端 else（第 1898 行）**没有回落调用**（只写 `speaker_embed` 之类**不完整**：`_clone_active`/`_clone_mode`/`speaker_name` 都没复位 ⇒ 遥测与实际音色矛盾））\n     ⇒ 按句绑定模式 + 标签晚到 ⇒ 上一句克隆音色被沿用（串音）\nGATE4_RC=1"
+  },
+  {
+   "tag": "fb_noarg",
+   "gate4_rc": 0,
+   "B1": true,
+   "B3": true,
+   "behavior_verdict": "PASS",
+   "behavior_pass": 11,
+   "behavior_fail": 0,
+   "consistent": true,
+   "gate4_output": "[OK] 2 个「沿用上一句克隆音色」分支全部带**有效** `not _bound` 守卫（APP-086·2a）\n  [OK] 每个「沿用上一句克隆音色」If 链都有**终端 else 回落预设 A** 兜底（APP-086·2a）\nGATE4_RC=0"
+  },
+  {
+   "tag": "fb_inline_preset",
+   "gate4_rc": 1,
+   "B1": true,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 10,
+   "behavior_fail": 1,
+   "consistent": true,
+   "gate4_output": "[FAIL] app/tts_worker.py:1877 分支「沿用上一句克隆音色」缺**回落预设 A** 兜底（APP-086·2a，终端 else（第 1899 行）**没有回落调用**（只写 `speaker_embed` 之类**不完整**：`_clone_active`/`_clone_mode`/`speaker_name` 都没复位 ⇒ 遥测与实际音色矛盾））\n  [FAIL] app/tts_worker.py:1883 分支「沿用上一句克隆音色」缺**回落预设 A** 兜底（APP-086·2a，终端 else（第 1899 行）**没有回落调用**（只写 `speaker_embed` 之类**不完整**：`_clone_active`/`_clone_mode`/`speaker_name` 都没复位 ⇒ 遥测与实际音色矛盾））\n     ⇒ 按句绑定模式 + 标签晚到 ⇒ 上一句克隆音色被沿用（串音）\nGATE4_RC=1"
+  },
+  {
+   "tag": "b1_guard_removed",
+   "gate4_rc": 1,
+   "B1": true,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 9,
+   "behavior_fail": 2,
+   "consistent": true,
+   "gate4_output": "[FAIL] app/tts_worker.py:1877 分支「沿用上一句克隆音色」缺**有效** `not _bound` 守卫（APP-086·2a，分支体保留克隆音色(_log_keep_clone)）\n     ⇒ 按句绑定模式 + 标签晚到会沿用上一句克隆音色（串音）\nGATE4_RC=1"
+  },
+  {
+   "tag": "b2_guard_removed",
+   "gate4_rc": 1,
+   "B1": true,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 9,
+   "behavior_fail": 2,
+   "consistent": true,
+   "gate4_output": "[FAIL] app/tts_worker.py:1883 分支「沿用上一句克隆音色」缺**有效** `not _bound` 守卫（APP-086·2a，分支体保留克隆音色(_log_keep_last_clone)、条件内直接调用）\n     ⇒ 按句绑定模式 + 标签晚到会沿用上一句克隆音色（串音）\nGATE4_RC=1"
+  },
+  {
+   "tag": "both_guards_removed",
+   "gate4_rc": 1,
+   "B1": true,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 8,
+   "behavior_fail": 3,
+   "consistent": true,
+   "gate4_output": "[FAIL] app/tts_worker.py:1877 分支「沿用上一句克隆音色」缺**有效** `not _bound` 守卫（APP-086·2a，分支体保留克隆音色(_log_keep_clone)）\n  [FAIL] app/tts_worker.py:1883 分支「沿用上一句克隆音色」缺**有效** `not _bound` 守卫（APP-086·2a，分支体保留克隆音色(_log_keep_last_clone)、条件内直接调用）\n     ⇒ 按句绑定模式 + 标签晚到会沿用上一句克隆音色（串音）\nGATE4_RC=1"
+  }
+ ],
+ "synthetic_agree": 9,
+ "synthetic_total": 9,
+ "packages": [
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0\\app",
+   "gate4_rc": 1,
+   "B1": true,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 9,
+   "behavior_fail": 2,
+   "consistent": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc1",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc1\\app",
+   "gate4_rc": 1,
+   "B1": true,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 9,
+   "behavior_fail": 2,
+   "consistent": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc10",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc10\\app",
+   "gate4_rc": 0,
+   "B1": true,
+   "B3": true,
+   "behavior_verdict": "PASS",
+   "behavior_pass": 11,
+   "behavior_fail": 0,
+   "consistent": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc2",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc2\\app",
+   "gate4_rc": 1,
+   "B1": true,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 9,
+   "behavior_fail": 2,
+   "consistent": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc3",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc3\\app",
+   "gate4_rc": 1,
+   "B1": true,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 9,
+   "behavior_fail": 2,
+   "consistent": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc4",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc4\\app",
+   "gate4_rc": 1,
+   "B1": true,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 9,
+   "behavior_fail": 2,
+   "consistent": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc5",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc5\\app",
+   "gate4_rc": 1,
+   "B1": true,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 9,
+   "behavior_fail": 2,
+   "consistent": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc7",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc7\\app",
+   "gate4_rc": 0,
+   "B1": true,
+   "B3": true,
+   "behavior_verdict": "PASS",
+   "behavior_pass": 11,
+   "behavior_fail": 0,
+   "consistent": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc8",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc8\\app",
+   "gate4_rc": 0,
+   "B1": true,
+   "B3": true,
+   "behavior_verdict": "PASS",
+   "behavior_pass": 11,
+   "behavior_fail": 0,
+   "consistent": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc9",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc9\\app",
+   "gate4_rc": 0,
+   "B1": true,
+   "B3": true,
+   "behavior_verdict": "PASS",
+   "behavior_pass": 11,
+   "behavior_fail": 0,
+   "consistent": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_v1.13",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.13\\app",
+   "gate4_rc": 0,
+   "B1": true,
+   "B3": true,
+   "behavior_verdict": "PASS",
+   "behavior_pass": 11,
+   "behavior_fail": 0,
+   "consistent": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_v1.5",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.5\\app",
+   "gate4_rc": 0,
+   "B1": null,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 2,
+   "behavior_fail": 8,
+   "consistent": false
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_v2.0",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.0\\app",
+   "gate4_rc": 0,
+   "B1": true,
+   "B3": true,
+   "behavior_verdict": "PASS",
+   "behavior_pass": 11,
+   "behavior_fail": 0,
+   "consistent": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_v2.1",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\app",
+   "gate4_rc": 0,
+   "B1": true,
+   "B3": true,
+   "behavior_verdict": "PASS",
+   "behavior_pass": 11,
+   "behavior_fail": 0,
+   "consistent": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_v2.2",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.2\\app",
+   "gate4_rc": 1,
+   "B1": true,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 9,
+   "behavior_fail": 2,
+   "consistent": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_v2.3",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.3\\app",
+   "gate4_rc": 1,
+   "B1": true,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 8,
+   "behavior_fail": 3,
+   "consistent": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_v2.3_aborted_20261107_1517",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.3_aborted_20261107_1517\\app",
+   "gate4_rc": 1,
+   "B1": true,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 8,
+   "behavior_fail": 3,
+   "consistent": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_v2.4",
+   "app_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\app",
+   "gate4_rc": 1,
+   "B1": true,
+   "B3": false,
+   "behavior_verdict": "FAIL",
+   "behavior_pass": 9,
+   "behavior_fail": 2,
+   "consistent": true
+  }
+ ],
+ "packages_agree": 17,
+ "packages_total": 18,
+ "e2e": {
+  "chain": {
+   "gate4_call_lines": [
+    1506
+   ],
+   "zipfile_call_lines": [
+    1555
+   ],
+   "gate4_before_zip": true
+  }
+ }
+}
