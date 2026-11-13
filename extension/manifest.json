@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Live Dub EXT (实时翻译配音)",
-  "version": "0.4.12",
+  "version": "0.4.13",
   "description": "抓取网页/本地视频音频流，本机 ASR→翻译→TTS，按时间戳延迟播放配音。",
   "liveDub": {
     "_comment": "★ EXT-031③：发行版开关（release/build_release.py 会改写本段）。release=true ⇒ 只保留 EXT-027 的标签页音频路径，禁用整机 getDisplayMedia 回退；开发目录里保持 false。",

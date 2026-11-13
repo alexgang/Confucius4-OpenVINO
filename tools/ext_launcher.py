@@ -34,6 +34,60 @@ import threading
 import time
 from typing import Optional
 
+
+def _kill_on_close_job(pid: int):
+    """v0.4.13: put `pid` in a Job Object that kills all its processes when the launcher exits
+    (window closed, killed or crashed). Children started later (TTS sidecar) inherit the job.
+    Returns the job handle (keep it alive) or None."""
+    if os.name != "nt":
+        return None
+    try:
+        import ctypes
+        import ctypes.wintypes as W
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        k32.CreateJobObjectW.restype = W.HANDLE
+        k32.OpenProcess.restype = W.HANDLE
+
+        class _BASIC(ctypes.Structure):
+            _fields_ = [("PerProcessUserTimeLimit", ctypes.c_int64), ("PerJobUserTimeLimit", ctypes.c_int64),
+                        ("LimitFlags", W.DWORD), ("MinimumWorkingSetSize", ctypes.c_size_t),
+                        ("MaximumWorkingSetSize", ctypes.c_size_t), ("ActiveProcessLimit", W.DWORD),
+                        ("Affinity", ctypes.c_size_t), ("PriorityClass", W.DWORD),
+                        ("SchedulingClass", W.DWORD)]
+
+        class _IO(ctypes.Structure):
+            _fields_ = [(n, ctypes.c_uint64) for n in ("r", "w", "o", "rb", "wb", "ob")]
+
+        class _EXT(ctypes.Structure):
+            _fields_ = [("Basic", _BASIC), ("Io", _IO), ("ProcessMemoryLimit", ctypes.c_size_t),
+                        ("JobMemoryLimit", ctypes.c_size_t), ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                        ("PeakJobMemoryUsed", ctypes.c_size_t)]
+
+        job = k32.CreateJobObjectW(None, None)
+        if not job:
+            return None
+        info = _EXT()
+        info.Basic.LimitFlags = 0x2000                      # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        if not k32.SetInformationJobObject(job, 9, ctypes.byref(info), ctypes.sizeof(info)):
+            return None
+        h = k32.OpenProcess(0x0001 | 0x0100, False, int(pid))   # PROCESS_TERMINATE | SET_QUOTA
+        if not h:
+            return None
+        ok = k32.AssignProcessToJobObject(job, h)
+        k32.CloseHandle(h)
+        return job if ok else None
+    except Exception:
+        return None
+
+
+def _kill_tree(pid: int) -> None:
+    """v0.4.13: kill the bridge and everything it started (TTS sidecar, ...)."""
+    try:
+        subprocess.run(["taskkill", "/T", "/F", "/PID", str(int(pid))], capture_output=True,
+                       creationflags=(subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0), timeout=15)
+    except Exception:
+        pass
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
@@ -506,6 +560,8 @@ class BridgeRunner:
         except Exception:
             pass
 
+        # v0.4.13：子进程（及它再起的 TTS 边车）随启动器一起退出，不再残留占端口
+        self._job = _kill_on_close_job(self.proc.pid)
         self._thread = threading.Thread(target=self._pump, daemon=True)
         self._thread.start()
         # ★★ EXT-017②：start 之后**立刻**给出可见反馈 ——
@@ -576,8 +632,9 @@ class BridgeRunner:
     def stop(self) -> None:
         self._stop.set()
         if self.proc is not None and self.proc.poll() is None:
+            # v0.4.13：杀整棵进程树（含 TTS 边车），旧写法只停直接子进程
+            _kill_tree(self.proc.pid)
             try:
-                self.proc.terminate()
                 self.proc.wait(timeout=10)
             except Exception:
                 try:
@@ -849,6 +906,19 @@ def main(argv=None) -> int:
              bg="#f6f8fa", fg="#57606a", font=("Microsoft YaHei", 9),
              justify="left", anchor="w").pack(fill="x", padx=16, pady=(0, 10))
 
+    # v0.4.13（用户 11-13）：关窗口 = 停止桥接再退出（以前关窗口后桥接进程留在后台占端口）
+    def on_close():
+        try:
+            detail_var.set("正在停止桥接…")
+            app.update_idletasks()
+        except Exception:
+            pass
+        try:
+            on_stop()
+        finally:
+            app.destroy()
+
+    app.protocol("WM_DELETE_WINDOW", on_close)
     app.mainloop()
     return 0
 
