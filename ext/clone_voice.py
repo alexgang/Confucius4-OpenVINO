@@ -37,6 +37,25 @@ ANCHOR_MIN_S, ANCHOR_MAX_S = 4.0, 7.0
 ANCHOR_MIN_CHARS = 12
 ANCHOR_SEC_PER_CHAR = (0.17, 0.32)      # natural Chinese speaking rate (rejects runaway / clipped)
 SELF_REF_MIN_S = 1.5   # sentence-own-audio x-vector clone (before the speaker has a voice)
+SELF_REF_MIN_VOICED_S = 1.0   # v0.4.12: pitched speech needed in a self_ref reference
+
+
+def voiced_seconds(pcm, sr: int = SR) -> float:
+    """v0.4.12: seconds of pitched (voiced) frames, 40 ms window / 10 ms hop, F0 70-400 Hz,
+    RMS > 0.02 and autocorrelation peak > 0.35. Silence / music / noise => ~0."""
+    x = np.asarray(pcm, dtype=np.float32).reshape(-1)
+    fr, hop = int(0.04 * sr), int(0.01 * sr)
+    lo, hi = int(sr / 400), int(sr / 70)
+    n = 0
+    for i in range(0, max(0, x.size - fr), hop):
+        f = x[i:i + fr] - x[i:i + fr].mean()
+        e = float(np.dot(f, f))
+        if e < fr * 0.0004:
+            continue
+        ac = np.correlate(f, f, "full")[fr - 1:]
+        if float(ac[lo:hi].max()) > 0.35 * e:
+            n += 1
+    return n * hop / float(sr)
 # 11-09 speaker-change split (calibrated on dialog3 tight/normal: 24/32 change segments cut, 0/66 false)
 SPLIT_MIN_SEG_S = 3.2
 SPLIT_WIN_S = (1.6, 2.0, 2.5)
@@ -359,6 +378,11 @@ class CloneVoices:
             item = self._seg_pcm.get(seg)
             pcm = item[0] if item else None
         if pcm is None or pcm.size < int(SELF_REF_MIN_S * SR):
+            return None
+        _vs = voiced_seconds(pcm)
+        if _vs < SELF_REF_MIN_VOICED_S:
+            self._reasons["self_ref_unvoiced"] = self._reasons.get("self_ref_unvoiced", 0) + 1
+            self._log("[spk] 段 %d 不做克隆参考：有声段只有 %.2f s（静音/音乐/噪声）" % (seg, _vs))
             return None
         if pcm.size > int(8.0 * SR):
             m = (pcm.size - int(8.0 * SR)) // 2
