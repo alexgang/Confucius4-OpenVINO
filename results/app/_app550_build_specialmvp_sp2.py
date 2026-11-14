@@ -135,6 +135,49 @@ with open(pv, 'w', encoding='utf-8', newline='\n') as f:
 ev['actions'].append('cuda_env/pyvenv.cfg：sp1 路径 → sp2（4 处）')
 ev['pyvenv_cfg_after'] = open(pv, encoding='utf-8').read()
 
+# ── ③b app/MANIFEST.json：`pkg_models_root` 必须指向 **sp2 自己的** models 目录 ──
+# 🔴🔴 **2026-11-14 §205 修掉的真缺陷（构建期根因）**：上面的 robocopy 把 sp1 的
+#    MANIFEST **原样**带过来 ⇒ `pkg_models_root` 仍指向 **sp1** 的 models 目录
+#    （§202 的验收脚本本想重定向，但那段是**死代码**：`SP1 in mtxt` 在**裸 JSON
+#    文本**里找**未转义**路径 ⇒ 恒 False ⇒ 从未执行）
+#    ⇒ sp2 的 MANIFEST **自相矛盾**（指向不在包内的另一个包的 models 目录）＋
+#    泄漏构建机家目录字面量到交付包。
+#    这里在**构建期**就改对：转义形态定点替换 + 唯一命中断言 + 写盘后逐字节复核
+#    （只动 `pkg_models_root` 一个键）。
+mpath = os.path.join(SP2, 'app', 'MANIFEST.json')
+mtxt = open(mpath, encoding='utf-8', newline='').read()
+man = json.loads(mtxt)
+cur_root = man.get('pkg_models_root')
+want_root = os.path.join(SP2, 'models')
+if cur_root != want_root:
+    if not cur_root:
+        raise RuntimeError('MANIFEST 缺 pkg_models_root 字段')
+    esc_old = json.dumps(cur_root)[1:-1]
+    esc_new = json.dumps(want_root)[1:-1]
+    n_hit = mtxt.count(esc_old)
+    if n_hit != 1:
+        raise RuntimeError('MANIFEST 里 pkg_models_root 的转义形态出现 %d 次'
+                           '（预期 1）' % n_hit)
+    raw2 = mtxt.replace(esc_old, esc_new)
+    m2 = json.loads(raw2)
+    if m2.get('pkg_models_root') != want_root:
+        raise RuntimeError('替换后 pkg_models_root 仍不对')
+    diff_keys = {k for k in set(man) | set(m2) if man.get(k) != m2.get(k)}
+    if diff_keys - {'pkg_models_root'}:
+        raise RuntimeError('MANIFEST 改动范围超出预期（只允许 pkg_models_root，'
+                           '实际多了 %s）' % sorted(diff_keys - {'pkg_models_root'}))
+    with open(mpath, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(raw2)
+    if open(mpath, encoding='utf-8', newline='').read() != raw2:
+        raise RuntimeError('MANIFEST 写盘后逐字节不一致')
+    ev['actions'].append('app/MANIFEST.json: pkg_models_root sp1 → sp2'
+                         '（%s）' % want_root)
+    ev['manifest_repoint'] = {'from': cur_root, 'to': want_root,
+                              'raw_hits': n_hit}
+else:
+    ev['manifest_repoint'] = {'from': cur_root, 'to': want_root,
+                              'note': '已是 sp2 自己的 models 目录，无需改'}
+
 # ── ④ app 代码定点同步：逐文件比对，**只改不同的** ──
 appdir = os.path.join(SP2, 'app')
 synced, same, no_dev = [], [], []

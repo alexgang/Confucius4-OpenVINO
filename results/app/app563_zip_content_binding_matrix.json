@@ -1,0 +1,112 @@
+{
+ "script": "_app563_zip_content_binding_matrix.py",
+ "note": "§205 鉴别力矩阵：改前臂＝8b6775d 的闸门原文；改后臂＝磁盘上修好的闸门；零写客户包、零 zip",
+ "before_commit": "8b6775d",
+ "rows": [
+  {
+   "id": "T1",
+   "desc": "改前臂：证据 pkg 指向**不存在的目录** ⇒ 期望 ALLOW（漏洞实锤）",
+   "expect": "ALLOW",
+   "got": "ALLOW",
+   "pass": true,
+   "why": "ALLOW"
+  },
+  {
+   "id": "T2",
+   "desc": "改前臂：sp1 的验收证据 vs sp2 目标 ⇒ 期望 BLOCK",
+   "expect": "BLOCK",
+   "got": "BLOCK",
+   "pass": true,
+   "why": "RuntimeError: 验收证据属于另一个包：证据 pkg='C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1' ≠ 目标包='C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2'"
+  },
+  {
+   "id": "T3",
+   "desc": "改后臂：sp1 的验收证据 vs sp2 目标 ⇒ 期望 BLOCK",
+   "expect": "BLOCK",
+   "got": "BLOCK",
+   "pass": true,
+   "why": "RuntimeError: 验收证据属于另一个包：证据 pkg='C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1' ≠ 目标包='C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2'"
+  },
+  {
+   "id": "T4",
+   "desc": "改后臂：证据**无 pkg_content** ⇒ 期望 BLOCK（fail-closed）",
+   "expect": "BLOCK",
+   "got": "BLOCK",
+   "pass": true,
+   "why": "RuntimeError: 验收证据没有内容绑定字段 `pkg_content` ⇒ 无法确认包内容与验收时一致，拒绝打包（请重跑包上验收后再打包）"
+  },
+  {
+   "id": "T4b",
+   "desc": "改前臂：同一份「无绑定」证据 ⇒ 期望 ALLOW（证明差别就在这）",
+   "expect": "ALLOW",
+   "got": "ALLOW",
+   "pass": true,
+   "why": "ALLOW"
+  },
+  {
+   "id": "T5",
+   "desc": "改后臂：临时副本**改坏 1 个文件** ⇒ 期望 BLOCK",
+   "expect": "BLOCK",
+   "got": "BLOCK",
+   "pass": true,
+   "why": "RuntimeError: 包内容与验收证据不一致（1 项）：内容已变 app/MANIFEST.json",
+   "victim": "app/MANIFEST.json"
+  },
+  {
+   "id": "T6",
+   "desc": "改后臂：临时副本**原封不动** ⇒ 期望 ALLOW（不是一律拦）",
+   "expect": "ALLOW",
+   "got": "ALLOW",
+   "pass": true,
+   "why": "ALLOW"
+  },
+  {
+   "id": "T7",
+   "desc": "改后臂：验收后**新增 1 个 .py** ⇒ 期望 BLOCK（反向集合校验）",
+   "expect": "BLOCK",
+   "got": "BLOCK",
+   "pass": true,
+   "why": "RuntimeError: 包内容与验收证据不一致（1 项）：验收后新增 .py：['app/zz_new_module.py']"
+  },
+  {
+   "id": "T8",
+   "desc": "改后臂：verdict=FAIL ⇒ 期望 BLOCK",
+   "expect": "BLOCK",
+   "got": "BLOCK",
+   "pass": true,
+   "why": "RuntimeError: 包上验收未通过（verdict='FAIL'），拒绝打包"
+  },
+  {
+   "id": "T8b",
+   "desc": "改前臂：verdict=FAIL ⇒ 期望 BLOCK",
+   "expect": "BLOCK",
+   "got": "BLOCK",
+   "pass": true,
+   "why": "RuntimeError: 包上验收未通过（verdict='FAIL'），拒绝打包"
+  },
+  {
+   "id": "T9",
+   "desc": "改后臂：真 sp2 证据 vs 真 sp2 目录 ⇒ 期望 ALLOW",
+   "expect": "ALLOW",
+   "got": "ALLOW",
+   "pass": true,
+   "why": "ALLOW"
+  },
+  {
+   "id": "T9b",
+   "desc": "改前臂：真 sp2 证据 vs 真 sp2 目录 ⇒ 期望 ALLOW（内容未验证）",
+   "expect": "ALLOW",
+   "got": "ALLOW",
+   "pass": true,
+   "why": "ALLOW"
+  }
+ ],
+ "before_bytes": 11238,
+ "after_bytes": 13957,
+ "before_has_content_binding": false,
+ "after_has_content_binding": true,
+ "n_rows": 12,
+ "n_pass": 12,
+ "n_fail": 0,
+ "verdict": "PASS"
+}

@@ -1,7 +1,7 @@
 {
  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2",
  "version": "1.0-sp2",
- "started": "2026-11-14 17:13:00",
+ "started": "2026-11-14 20:50:11",
  "checks": [
   {
    "name": "A1: package_profile.json = specialmvp + allow_cuda=True",
@@ -113,6 +113,14 @@
    "detail": "sp1 的 10 分钟整链跑完、产物写全后进程 abort（0xC0000409）。APP-108 §3 要求做 10 分钟两臂对照并附 Windows 事件日志 —— 见 arms 字段与 §202 的结论。"
   }
  ],
+ "manifest_repointed": {
+  "from": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models",
+  "to": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models",
+  "raw_hits": 1,
+  "created_at": "updated",
+  "method": "escaped-text-targeted-replace",
+  "note": "§205：原 `SP1 in mtxt` 是死代码（裸 JSON 文本 vs 未转义路径）⇒ 重定向从未执行"
+ },
  "arms": [
   {
    "id": "A_mt_npu_tts_off",
@@ -162,9 +170,54 @@
    "wer_reports": []
   }
  ],
+ "pkg_content": {
+  "scope": [
+   "app/*.py",
+   "release.json",
+   "package_profile.json",
+   "app/MANIFEST.json"
+  ],
+  "alg": "sha256",
+  "n_files": 31,
+  "files": {
+   "app/MANIFEST.json": "ddb722941303ab200d4d1e9f937e2f9fe09682c811fc9f7c8acb37f26cb15290",
+   "app/asr06b_stateful_backend.py": "71c5fc2874168bd09ba59ee082c23bb31053ca9fc4ae376b076982cc4fef5aa5",
+   "app/audio_source.py": "92671ddade41708dc77458625ad556c6cf775d59ff86f94b86a286ad43327e74",
+   "app/backends.py": "e6dbeb5d103c3d56db5b9ec18c919a4f2acef1a9c514bb05c5edabbeeed576fb",
+   "app/caption_render.py": "be9e1d43918424c3bdbda5d512f7a567bb6a783887b744f530d0c5006975064c",
+   "app/clone_collector.py": "f1a0f0bc8f5e7a3a8465576b5d4b51780fe570348740877a8de1bfb337cfd34a",
+   "app/device_config.py": "6e65a40a81f7aac439d270b5a7438d11716563c9eaf71f7166d681e8c1f125d2",
+   "app/gui_status.py": "c78813b5bdb6e99ef0b8843824c8a59c05d2f4a355cd5ff0911d49f7646de494",
+   "app/live_caption_app.py": "c4a99eb860cf50f6c5337dc7339e3665aa96e43d1508bbde844e3583a73ef02c",
+   "app/npu_delivery_backend.py": "983c39f209e80bff1b68f8e8b87dc7da5977ba5014c6ca0c281e3a08c203550f",
+   "app/npu_embeds_backend.py": "a33c8e7a0e4a728997e2bfa22fbc6dfb24c1284fdd87a2bd6fe6ad743af770bc",
+   "app/offline_reader.py": "94e0c839d05c2fe58d8695859af08d394a5e2a72d4d1f700c2aa06d7bdea8b4b",
+   "app/offline_reader_gui.py": "a442b45a2e717dcba01cf22c0b119b6d185f843ec26e8e7c3d4b27b12ffa3db9",
+   "app/package_profile.py": "481b9c3713e2c746f060546978aabec32ca86c17f12e7385c7d9650a9dc35882",
+   "app/seg_stream.py": "9d006500793139f5e76b4c906bcf6a9a78b65cac9bc03b84c683d74e127c8edc",
+   "app/segment_encoder_backend.py": "c2c701dd928cff61b76df78f2b5b01e343871347a849924f73bbf99e50c0123a",
+   "app/speaker_assets.py": "f39137277b8f27699a926291379cfe1d7b5c57bd7fc70baa73f457f5270ad0de",
+   "app/speaker_tracker.py": "6c8719c3f454cbe682f1f16ec33c2c15844ea5274942ef6ec03dc2428f303a20",
+   "app/speaker_voice.py": "0da76b62278789df3867bfb9d340d398df5d921c0d050cec03009fa3d7c0c55b",
+   "app/streaming_asr.py": "a807635124607361afa0ce334ed964a6aea1d531da17cabd4c358ec73f6f4e39",
+   "app/time_stretch.py": "7f46d66dc296014694bafe65f72e055278d0ce59a4ddc2063f2f1467b25dfced",
+   "app/translator.py": "fb34b36c49fc918b34cb10f855089daf0b213cfb1ec08bcf0de716b2fe083e5b",
+   "app/tts_cuda.py": "7fe6e44cc34bc56f19e701b15ea5bd11f8f5e665a95c783ad95e89ed76e4cac3",
+   "app/tts_cuda_sidecar.py": "cf4841b74b5e69f7e72a76290ff6cd9e600261947711d8b60d199d0585d132cd",
+   "app/tts_engine.py": "f5fb0559ddbca1863c7aaeb9d28482119b7ec044c1b3a56e420436809f9682f4",
+   "app/tts_engine_patch.py": "a188bcfdb38a89f310645f617b84be466e22a8eb9d2119dd50b164c5e2fc7008",
+   "app/tts_service.py": "b92f8a24c66bac2f93e007c4a8af24b91a60783a15198b08d184794762f61dea",
+   "app/tts_worker.py": "0345c73ba2291fd5e6d970db973faa4202c0af6b18dc0f5a9bb25a508c38f03e",
+   "app/win_clickthrough.py": "db376c52bfe20f2665954bee133a3f20e325d0916559083884b8e6d50ab3e9d1",
+   "package_profile.json": "7420c83fc02c70fd384ed34b4ca76887c43dcfa1f743502f2ded7b8a9ec3b454",
+   "release.json": "038fefe50238e0bf08403f0e187704fe045ba1f0459d340b7fdec2824abd03fc"
+  },
+  "tree_digest": "08949bd2a3a6ba71d40fa8e8f601f1add4692de6e85ff733462046ef756cbba5",
+  "note": "§205：验收时的包内容指纹；出包闸门逐条重算比对 ⇒ 验收后改包会被拦住"
+ },
  "n_checks": 9,
  "n_fail": 0,
  "verdict": "PASS（有 1 项未结：退出码异常）",
  "verdict_note": "判定只覆盖**用户要求的三条**（TTS=CUDA／ASR=iGPU／MT=NPU）与包内一致性；**退出码异常单列 open_issues，不掩盖也不并入判定**（APP-108 §3）",
- "finished": "2026-11-14 17:13:06"
+ "finished": "2026-11-14 20:50:21"
 }

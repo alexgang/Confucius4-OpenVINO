@@ -1,0 +1,1018 @@
+{
+ "schema": "app099-manifest-v1",
+ "created_at": "2026-11-13 20:51:01",
+ "source_root": "C:\\Users\\Trekker-PTL",
+ "pkg_models_root": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1\\models",
+ "n_models": "8",
+ "models": {
+  "asr06b-decoder-int8": {
+   "source_path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\ov-dec-06b-stateful-int8sym",
+   "source_model": "Qwen3-ASR-0.6B",
+   "note": "APP-101/102/103：OV IR，stateful INT8（KV cache）；decoder bin SHA256 应为 0059531a2b4ccd4ceb3f4c1dc3519e68421a310a262baba4dc55e603b600d6a3",
+   "optional": false,
+   "source_exists": true,
+   "pkg_exists": true,
+   "config": null,
+   "files": [
+    {
+     "name": "openvino_model.bin",
+     "bytes": 752386441,
+     "source_path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\ov-dec-06b-stateful-int8sym\\openvino_model.bin",
+     "source_exists": true,
+     "sha256": "0059531a2b4ccd4ceb3f4c1dc3519e68421a310a262baba4dc55e603b600d6a3",
+     "source_sha256": "0059531a2b4ccd4ceb3f4c1dc3519e68421a310a262baba4dc55e603b600d6a3",
+     "match": true
+    },
+    {
+     "name": "openvino_model.xml",
+     "bytes": 2855877,
+     "source_path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\ov-dec-06b-stateful-int8sym\\openvino_model.xml",
+     "source_exists": true,
+     "sha256": "8408e8862670922809404994bfa1762397dbeaab983572b1a3c43e8e72a9fd7b",
+     "source_sha256": "8408e8862670922809404994bfa1762397dbeaab983572b1a3c43e8e72a9fd7b",
+     "match": true
+    }
+   ]
+  },
+  "asr06b-encoder-fp16": {
+   "source_path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\ov-encoder-06b-fp16-static",
+   "source_model": "Qwen3-ASR-0.6B",
+   "note": "OV IR，FP16 静态形状；encoder bin 应与 B 机 rc5 实测 0B7463D6F952DD64… 一致",
+   "optional": false,
+   "source_exists": true,
+   "pkg_exists": true,
+   "config": null,
+   "files": [
+    {
+     "name": "ov-encoder-06b-fp16-static.bin",
+     "bytes": 372778452,
+     "source_path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\ov-encoder-06b-fp16-static\\ov-encoder-06b-fp16-static.bin",
+     "source_exists": true,
+     "sha256": "0b7463d6f952dd64f97c5ff205f12efb04ca89e6e772448289aa06e4941beb89",
+     "source_sha256": "0b7463d6f952dd64f97c5ff205f12efb04ca89e6e772448289aa06e4941beb89",
+     "match": true
+    },
+    {
+     "name": "ov-encoder-06b-fp16-static.xml",
+     "bytes": 779021,
+     "source_path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\ov-encoder-06b-fp16-static\\ov-encoder-06b-fp16-static.xml",
+     "source_exists": true,
+     "sha256": "62e7665b8186f49aa35056e6aed416ddaefa8f1798611aeba94542b640d0ebb1",
+     "source_sha256": "62e7665b8186f49aa35056e6aed416ddaefa8f1798611aeba94542b640d0ebb1",
+     "match": true
+    }
+   ]
+  },
+  "asr06b-tokenizer": {
+   "source_path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\Qwen3-ASR-0.6B",
+   "source_model": "Qwen3-ASR-0.6B",
+   "note": "HF 目录（未导出 OV）；config.json 里 text hidden 1024 / 28 层、audio d_model 896 / 18 层",
+   "optional": false,
+   "source_exists": true,
+   "pkg_exists": true,
+   "config": {
+    "config.json": {
+     "thinker_config.audio_config.d_model": 896,
+     "thinker_config.audio_config.encoder_layers": 18,
+     "thinker_config.audio_config.num_hidden_layers": 18,
+     "thinker_config.audio_config.num_mel_bins": 128,
+     "thinker_config.text_config.hidden_size": 1024,
+     "thinker_config.text_config.intermediate_size": 3072,
+     "thinker_config.text_config.max_position_embeddings": 65536,
+     "thinker_config.text_config.num_attention_heads": 16,
+     "thinker_config.text_config.num_hidden_layers": 28,
+     "thinker_config.text_config.num_key_value_heads": 8,
+     "thinker_config.text_config.vocab_size": 151936
+    }
+   },
+   "files": [
+    {
+     "name": "chat_template.json",
+     "bytes": 1161,
+     "source_path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\Qwen3-ASR-0.6B\\chat_template.json",
+     "source_exists": true,
+     "sha256": "75a8cfca24f00de72d796fbfed6858fc9614ef3dabd8696684cc3bc03a9c58ff",
+     "source_sha256": "75a8cfca24f00de72d796fbfed6858fc9614ef3dabd8696684cc3bc03a9c58ff",
+     "match": true
+    },
+    {
+     "name": "config.json",
+     "bytes": 6193,
+     "source_path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\Qwen3-ASR-0.6B\\config.json",
+     "source_exists": true,
+     "sha256": "76d3ae4601ce939830b2517f4a6cadb86cc51316c3900af6b020b051c21a478c",
+     "source_sha256": "76d3ae4601ce939830b2517f4a6cadb86cc51316c3900af6b020b051c21a478c",
+     "match": true
+    },
+    {
+     "name": "generation_config.json",
+     "bytes": 142,
+     "source_path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\Qwen3-ASR-0.6B\\generation_config.json",
+     "source_exists": true,
+     "sha256": "1da527824d81e07118facff437e03f2e24a23311e3bdeb2368973fe77e5f275c",
+     "source_sha256": "1da527824d81e07118facff437e03f2e24a23311e3bdeb2368973fe77e5f275c",
+     "match": true
+    },
+    {
+     "name": "merges.txt",
+     "bytes": 1671853,
+     "source_path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\Qwen3-ASR-0.6B\\merges.txt",
+     "source_exists": true,
+     "sha256": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5",
+     "source_sha256": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5",
+     "match": true
+    },
+    {
+     "name": "preprocessor_config.json",
+     "bytes": 330,
+     "source_path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\Qwen3-ASR-0.6B\\preprocessor_config.json",
+     "source_exists": true,
+     "sha256": "45e120a4eda2c20c5d7f2ea9354e63536bf35e27aa573fb7cdf78017b378770d",
+     "source_sha256": "45e120a4eda2c20c5d7f2ea9354e63536bf35e27aa573fb7cdf78017b378770d",
+     "match": true
+    },
+    {
+     "name": "tokenizer_config.json",
+     "bytes": 12487,
+     "source_path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\Qwen3-ASR-0.6B\\tokenizer_config.json",
+     "source_exists": true,
+     "sha256": "4942d005604266809309cabc9f4e9cb89ce855d59b14681fdc0e1cc62ea26c4c",
+     "source_sha256": "4942d005604266809309cabc9f4e9cb89ce855d59b14681fdc0e1cc62ea26c4c",
+     "match": true
+    },
+    {
+     "name": "vocab.json",
+     "bytes": 2776833,
+     "source_path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\models\\Qwen3-ASR-0.6B\\vocab.json",
+     "source_exists": true,
+     "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+     "source_sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+     "match": true
+    }
+   ]
+  },
+  "embed_tokens_06b_f16.npy": {
+   "source_path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\b_kit_stateful\\assets\\embed_tokens.npy",
+   "source_model": "Qwen3-ASR-0.6B",
+   "note": "APP-103：B-kit 导出的 fp16 文本 embedding 表 [151936, 1024]（免 torch）；SHA256 e8d4448c57626ff9a6396b06f05f0e2c2d9ca4fa2436988f012c171e9f861f2c，与 rc5 暂存区的 embed_tokens_06b_f16.npy 逐字节同一份",
+   "optional": false,
+   "source_exists": true,
+   "pkg_exists": true,
+   "config": null,
+   "files": [
+    {
+     "name": "embed_tokens_06b_f16.npy",
+     "bytes": 311165056,
+     "source_path": "C:\\Users\\Trekker-PTL\\qwen3asr_06b\\b_kit_stateful\\assets\\embed_tokens.npy",
+     "source_exists": true,
+     "sha256": "e8d4448c57626ff9a6396b06f05f0e2c2d9ca4fa2436988f012c171e9f861f2c",
+     "source_sha256": "e8d4448c57626ff9a6396b06f05f0e2c2d9ca4fa2436988f012c171e9f861f2c",
+     "match": true
+    }
+   ]
+  },
+  "mt/mt2-int4sym-cw-q": {
+   "source_path": "C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int4sym-cw-q",
+   "source_model": "Hy-MT2-1.8B",
+   "note": "OV IR，INT4 对称按通道（INT4-CW）；bin 与 v2.4 相同（667CD34D77F637CA…）。**APP-107 §1.1：MiniMVP rc11 起不再带 INT4**（只带 INT8-CW）",
+   "optional": true,
+   "source_exists": true,
+   "pkg_exists": false,
+   "config": {
+    "config.json": {
+     "hidden_size": 2048,
+     "intermediate_size": 6144,
+     "max_position_embeddings": 262144,
+     "num_attention_heads": 16,
+     "num_hidden_layers": 32,
+     "num_key_value_heads": 4,
+     "vocab_size": 120818
+    }
+   },
+   "files": [],
+   "absent_in_package": true
+  },
+  "mt/mt2-int8sym-cw-q": {
+   "source_path": "C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q",
+   "source_model": "Hy-MT2-1.8B",
+   "note": "OV IR，**INT8_SYM 对称按通道（INT8-CW）**；config **hidden_size 2048** / **num_hidden_layers 32**（`config.json` 实测）。**APP-107 §1.1/§1.3：MiniMVP rc11 起只带 INT8**（拷贝源 `hy_bench\\ov\\mt2-int8sym-cw-q`，12 文件 / 1 812 121 487 B）⇒ MANIFEST 记录**拷贝源路径 + 每个 bin/xml 的 SHA256**，且**与源目录逐个一致**",
+   "optional": false,
+   "source_exists": true,
+   "pkg_exists": true,
+   "config": {
+    "config.json": {
+     "hidden_size": 2048,
+     "intermediate_size": 6144,
+     "max_position_embeddings": 262144,
+     "num_attention_heads": 16,
+     "num_hidden_layers": 32,
+     "num_key_value_heads": 4,
+     "vocab_size": 120818
+    }
+   },
+   "files": [
+    {
+     "name": "chat_template.jinja",
+     "bytes": 654,
+     "source_path": "C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q\\chat_template.jinja",
+     "source_exists": true,
+     "sha256": "b7491ec0e9c869dfce20f2176758099bf248d979dd05530ede99deb21698acee",
+     "source_sha256": "b7491ec0e9c869dfce20f2176758099bf248d979dd05530ede99deb21698acee",
+     "match": true
+    },
+    {
+     "name": "config.json",
+     "bytes": 1402,
+     "source_path": "C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q\\config.json",
+     "source_exists": true,
+     "sha256": "04db81009c0a04c7e89d4186a7e76f1894fc93110724f0001c8ecf35998296b5",
+     "source_sha256": "04db81009c0a04c7e89d4186a7e76f1894fc93110724f0001c8ecf35998296b5",
+     "match": true
+    },
+    {
+     "name": "generation_config.json",
+     "bytes": 221,
+     "source_path": "C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q\\generation_config.json",
+     "source_exists": true,
+     "sha256": "0e28667f1cb4c7b880b9223b2d87978f88e79ed7ae037de1021f826c18d4ed6f",
+     "source_sha256": "0e28667f1cb4c7b880b9223b2d87978f88e79ed7ae037de1021f826c18d4ed6f",
+     "match": true
+    },
+    {
+     "name": "openvino_detokenizer.bin",
+     "bytes": 1817980,
+     "source_path": "C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q\\openvino_detokenizer.bin",
+     "source_exists": true,
+     "sha256": "aed86402f658d488d2d83ac790dd759733639b88755715a6960a0249931d7d23",
+     "source_sha256": "aed86402f658d488d2d83ac790dd759733639b88755715a6960a0249931d7d23",
+     "match": true
+    },
+    {
+     "name": "openvino_detokenizer.xml",
+     "bytes": 9266,
+     "source_path": "C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q\\openvino_detokenizer.xml",
+     "source_exists": true,
+     "sha256": "c4a750f4d581b96f36a4747966fc75a57657508539a32cd1cd285796c2d49ee9",
+     "source_sha256": "c4a750f4d581b96f36a4747966fc75a57657508539a32cd1cd285796c2d49ee9",
+     "match": true
+    },
+    {
+     "name": "openvino_model.bin",
+     "bytes": 1792991738,
+     "source_path": "C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q\\openvino_model.bin",
+     "source_exists": true,
+     "sha256": "a9956484ceba95a892c05fbd6f86aae5b93b147ccabcfc6ce6fe83e8cfc27c36",
+     "source_sha256": "a9956484ceba95a892c05fbd6f86aae5b93b147ccabcfc6ce6fe83e8cfc27c36",
+     "match": true
+    },
+    {
+     "name": "openvino_model.xml",
+     "bytes": 2958965,
+     "source_path": "C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q\\openvino_model.xml",
+     "source_exists": true,
+     "sha256": "0963454f9ed5ab4c84258a575736a645bf5470d9ee6d2c9fea600fbec1173740",
+     "source_sha256": "0963454f9ed5ab4c84258a575736a645bf5470d9ee6d2c9fea600fbec1173740",
+     "match": true
+    },
+    {
+     "name": "openvino_tokenizer.bin",
+     "bytes": 4620103,
+     "source_path": "C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q\\openvino_tokenizer.bin",
+     "source_exists": true,
+     "sha256": "9f35d0a39c7f66dfec379a7b9908531bf7d5302383affdda079eefc5f3e38ad1",
+     "source_sha256": "9f35d0a39c7f66dfec379a7b9908531bf7d5302383affdda079eefc5f3e38ad1",
+     "match": true
+    },
+    {
+     "name": "openvino_tokenizer.xml",
+     "bytes": 27568,
+     "source_path": "C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q\\openvino_tokenizer.xml",
+     "source_exists": true,
+     "sha256": "cb02ae4683b3ad6d24e130a83cb97202926712a24ce8dced7208ef57d004aba8",
+     "source_sha256": "cb02ae4683b3ad6d24e130a83cb97202926712a24ce8dced7208ef57d004aba8",
+     "match": true
+    },
+    {
+     "name": "special_tokens_map.json",
+     "bytes": 488,
+     "source_path": "C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q\\special_tokens_map.json",
+     "source_exists": true,
+     "sha256": "bb9f59990034dae326581b9c62471523975417869f78a244b7ae2ce8cbb085eb",
+     "source_sha256": "bb9f59990034dae326581b9c62471523975417869f78a244b7ae2ce8cbb085eb",
+     "match": true
+    },
+    {
+     "name": "tokenizer.json",
+     "bytes": 9527287,
+     "source_path": "C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q\\tokenizer.json",
+     "source_exists": true,
+     "sha256": "b475bbef1b0b2fd57dcb865332b546475bd1ede2deb3bb91bafd0c047a8a530a",
+     "source_sha256": "b475bbef1b0b2fd57dcb865332b546475bd1ede2deb3bb91bafd0c047a8a530a",
+     "match": true
+    },
+    {
+     "name": "tokenizer_config.json",
+     "bytes": 165815,
+     "source_path": "C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q\\tokenizer_config.json",
+     "source_exists": true,
+     "sha256": "53bd8581b601a8ee9caefeb988207de50b3fc0b733295bdf5ad68dec4cc0b07c",
+     "source_sha256": "53bd8581b601a8ee9caefeb988207de50b3fc0b733295bdf5ad68dec4cc0b07c",
+     "match": true
+    }
+   ]
+  },
+  "qwen3tts": {
+   "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts",
+   "source_model": "Qwen3-TTS",
+   "note": "BabelVox 运行时目录（权重/声码器/tokenizer/voices）。原始导出件是 shared\\ovms_qwen3_tts\\ovms_qwen3_tts_1.1.zip；此处用 v2.4 真包内同名目录作逐字节对拍基线（APP-099 §1 已复核）",
+   "optional": false,
+   "source_exists": true,
+   "pkg_exists": true,
+   "config": {
+    "tokenizer/config.json": {
+     "talker_config.code_predictor_config.hidden_size": 1024,
+     "talker_config.code_predictor_config.intermediate_size": 3072,
+     "talker_config.code_predictor_config.max_position_embeddings": 65536,
+     "talker_config.code_predictor_config.num_attention_heads": 16,
+     "talker_config.code_predictor_config.num_hidden_layers": 5,
+     "talker_config.code_predictor_config.num_key_value_heads": 8,
+     "talker_config.code_predictor_config.vocab_size": 2048,
+     "talker_config.hidden_size": 1024,
+     "talker_config.intermediate_size": 3072,
+     "talker_config.max_position_embeddings": 32768,
+     "talker_config.num_attention_heads": 16,
+     "talker_config.num_hidden_layers": 28,
+     "talker_config.num_key_value_heads": 8,
+     "talker_config.vocab_size": 3072
+    },
+    "weights/config.json": {
+     "hidden_size": 1024
+    }
+   },
+   "files": [
+    {
+     "name": "int8/code_predictor.bin",
+     "bytes": 78791628,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\code_predictor.bin",
+     "source_exists": true,
+     "sha256": "faa9081a3c4851252b478dd6126e7ef7fa5db1ae12c0af3a673cdbe6b4d9b3e9",
+     "source_sha256": "faa9081a3c4851252b478dd6126e7ef7fa5db1ae12c0af3a673cdbe6b4d9b3e9",
+     "match": true
+    },
+    {
+     "name": "int8/code_predictor.xml",
+     "bytes": 501339,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\code_predictor.xml",
+     "source_exists": true,
+     "sha256": "b50ae422667d6d241830ce2ded60b7052236875da49d1dd6fa680e67f9318384",
+     "source_sha256": "b50ae422667d6d241830ce2ded60b7052236875da49d1dd6fa680e67f9318384",
+     "match": true
+    },
+    {
+     "name": "int8/cp_decode.bin",
+     "bytes": 78791754,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\cp_decode.bin",
+     "source_exists": true,
+     "sha256": "7bc57ef8cdd768f5d4eca2a385128b8eb4dd3d62e0659bb491b9888396fc07f0",
+     "source_sha256": "7bc57ef8cdd768f5d4eca2a385128b8eb4dd3d62e0659bb491b9888396fc07f0",
+     "match": true
+    },
+    {
+     "name": "int8/cp_decode.xml",
+     "bytes": 527980,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\cp_decode.xml",
+     "source_exists": true,
+     "sha256": "71384c42fe1b7c5f6db5eb672cbba86e78b15bd0e1672f454d99844d2eeaefc0",
+     "source_sha256": "71384c42fe1b7c5f6db5eb672cbba86e78b15bd0e1672f454d99844d2eeaefc0",
+     "match": true
+    },
+    {
+     "name": "int8/cp_prefill.bin",
+     "bytes": 78791628,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\cp_prefill.bin",
+     "source_exists": true,
+     "sha256": "6bbae79481ec29cc2dda4da233765fc102cbd613581cdf21a8fd728ba31e2f89",
+     "source_sha256": "6bbae79481ec29cc2dda4da233765fc102cbd613581cdf21a8fd728ba31e2f89",
+     "match": true
+    },
+    {
+     "name": "int8/cp_prefill.xml",
+     "bytes": 493499,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\cp_prefill.xml",
+     "source_exists": true,
+     "sha256": "2aaf2b97c01a43290d8b6509604889d907adf72798ebd2869ccc03a5baf5b896",
+     "source_sha256": "2aaf2b97c01a43290d8b6509604889d907adf72798ebd2869ccc03a5baf5b896",
+     "match": true
+    },
+    {
+     "name": "int8/speaker_encoder.bin",
+     "bytes": 8887690,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\speaker_encoder.bin",
+     "source_exists": true,
+     "sha256": "7f0d1b16d4e337ec4f45837a346d09a8b2178c23ef5b65e065df7eb15e2d54cd",
+     "source_sha256": "7f0d1b16d4e337ec4f45837a346d09a8b2178c23ef5b65e065df7eb15e2d54cd",
+     "match": true
+    },
+    {
+     "name": "int8/speaker_encoder.xml",
+     "bytes": 297919,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\speaker_encoder.xml",
+     "source_exists": true,
+     "sha256": "22ef2113d3e1b1b4d885c8a4d6bf509967cd16c9033a46a19a9d465fda600923",
+     "source_sha256": "22ef2113d3e1b1b4d885c8a4d6bf509967cd16c9033a46a19a9d465fda600923",
+     "match": true
+    },
+    {
+     "name": "int8/talker.bin",
+     "bytes": 444373680,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\talker.bin",
+     "source_exists": true,
+     "sha256": "bdf18144211fb428e145ca171c0f64810c6bdd2c05b081915680b3e5d866e8d9",
+     "source_sha256": "bdf18144211fb428e145ca171c0f64810c6bdd2c05b081915680b3e5d866e8d9",
+     "match": true
+    },
+    {
+     "name": "int8/talker.xml",
+     "bytes": 2951866,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\talker.xml",
+     "source_exists": true,
+     "sha256": "79106c2c3540fe9b18cb66f19d2b70d5b771f7c7be9efb32d4c018e276cb82a2",
+     "source_sha256": "79106c2c3540fe9b18cb66f19d2b70d5b771f7c7be9efb32d4c018e276cb82a2",
+     "match": true
+    },
+    {
+     "name": "int8/talker_decode.bin",
+     "bytes": 444375018,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\talker_decode.bin",
+     "source_exists": true,
+     "sha256": "66b46907e7c8a27a870adf4189f0793559a959b92bd3ed18449ef5a15b70525a",
+     "source_sha256": "66b46907e7c8a27a870adf4189f0793559a959b92bd3ed18449ef5a15b70525a",
+     "match": true
+    },
+    {
+     "name": "int8/talker_decode.xml",
+     "bytes": 2836039,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\talker_decode.xml",
+     "source_exists": true,
+     "sha256": "3471e995345140660c2807513853998145cd62d238d0c6bce0229a92a39171be",
+     "source_sha256": "3471e995345140660c2807513853998145cd62d238d0c6bce0229a92a39171be",
+     "match": true
+    },
+    {
+     "name": "int8/talker_prefill.bin",
+     "bytes": 444373680,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\talker_prefill.bin",
+     "source_exists": true,
+     "sha256": "647d6772a0d0648a5882a38696c675f5a49085f5dccd2c5e4b1c6577f72a7d7b",
+     "source_sha256": "647d6772a0d0648a5882a38696c675f5a49085f5dccd2c5e4b1c6577f72a7d7b",
+     "match": true
+    },
+    {
+     "name": "int8/talker_prefill.xml",
+     "bytes": 2737511,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\talker_prefill.xml",
+     "source_exists": true,
+     "sha256": "e73619b976078a8e4236a2b6544abdd0b2917435947e24430aa5d9a58b4e8d0b",
+     "source_sha256": "e73619b976078a8e4236a2b6544abdd0b2917435947e24430aa5d9a58b4e8d0b",
+     "match": true
+    },
+    {
+     "name": "int8/tokenizer_decoder.bin",
+     "bytes": 114326316,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\tokenizer_decoder.bin",
+     "source_exists": true,
+     "sha256": "fc7c8649c06c2ff62a53217acf01af296acf9b7062f6d542a49e69ffbfa9cd58",
+     "source_sha256": "fc7c8649c06c2ff62a53217acf01af296acf9b7062f6d542a49e69ffbfa9cd58",
+     "match": true
+    },
+    {
+     "name": "int8/tokenizer_decoder.xml",
+     "bytes": 1233462,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\tokenizer_decoder.xml",
+     "source_exists": true,
+     "sha256": "f16049bf6cb838d5596a504dd8794e2d82902631a31107e03c4d11279d2745b8",
+     "source_sha256": "f16049bf6cb838d5596a504dd8794e2d82902631a31107e03c4d11279d2745b8",
+     "match": true
+    },
+    {
+     "name": "int8/tokenizer_encoder.bin",
+     "bytes": 48294176,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\tokenizer_encoder.bin",
+     "source_exists": true,
+     "sha256": "b0a52284cd1d9592543e75920e4a2ca1dc86b45a288186ed628253d2f188412a",
+     "source_sha256": "b0a52284cd1d9592543e75920e4a2ca1dc86b45a288186ed628253d2f188412a",
+     "match": true
+    },
+    {
+     "name": "int8/tokenizer_encoder.xml",
+     "bytes": 1423894,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\int8\\tokenizer_encoder.xml",
+     "source_exists": true,
+     "sha256": "805b3838598f8e44df7f45055b23f9e417026047d319a2daa9f7f9256962cc91",
+     "source_sha256": "805b3838598f8e44df7f45055b23f9e417026047d319a2daa9f7f9256962cc91",
+     "match": true
+    },
+    {
+     "name": "tokenizer/config.json",
+     "bytes": 4494,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\tokenizer\\config.json",
+     "source_exists": true,
+     "sha256": "2e714c787c8edb98b05432685cddb634add2de4d4e645f653d68251ef72ba011",
+     "source_sha256": "2e714c787c8edb98b05432685cddb634add2de4d4e645f653d68251ef72ba011",
+     "match": true
+    },
+    {
+     "name": "tokenizer/merges.txt",
+     "bytes": 1671839,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\tokenizer\\merges.txt",
+     "source_exists": true,
+     "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3",
+     "source_sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3",
+     "match": true
+    },
+    {
+     "name": "tokenizer/tokenizer_config.json",
+     "bytes": 7344,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\tokenizer\\tokenizer_config.json",
+     "source_exists": true,
+     "sha256": "dc3c31c3bdaedd5016382bb3cbe07323026775ad51f5a4fb564505992ae4a670",
+     "source_sha256": "dc3c31c3bdaedd5016382bb3cbe07323026775ad51f5a4fb564505992ae4a670",
+     "match": true
+    },
+    {
+     "name": "tokenizer/vocab.json",
+     "bytes": 2776833,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\tokenizer\\vocab.json",
+     "source_exists": true,
+     "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+     "source_sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+     "match": true
+    },
+    {
+     "name": "voices/preset_A.wav",
+     "bytes": 192044,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\voices\\preset_A.wav",
+     "source_exists": true,
+     "sha256": "e021c255a715d4fd17dd6d19c3092a293d0d35a1e4e7ca8bf67bce6f8c94db53",
+     "source_sha256": "e021c255a715d4fd17dd6d19c3092a293d0d35a1e4e7ca8bf67bce6f8c94db53",
+     "match": true
+    },
+    {
+     "name": "weights/codec_embedding.npy",
+     "bytes": 12583040,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\codec_embedding.npy",
+     "source_exists": true,
+     "sha256": "47fa9e30f98b1528fc9b332d314f22a32fa33e187509a4d3537f8b2c31199e39",
+     "source_sha256": "47fa9e30f98b1528fc9b332d314f22a32fa33e187509a4d3537f8b2c31199e39",
+     "match": true
+    },
+    {
+     "name": "weights/config.json",
+     "bytes": 597,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\config.json",
+     "source_exists": true,
+     "sha256": "10af7006eda91d5cbcab8dc8fcdb96d8433f3462e10108e286a6bf623cad7ea9",
+     "source_sha256": "10af7006eda91d5cbcab8dc8fcdb96d8433f3462e10108e286a6bf623cad7ea9",
+     "match": true
+    },
+    {
+     "name": "weights/cp_embedding_0.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_embedding_0.npy",
+     "source_exists": true,
+     "sha256": "2cf4b5d6f6fca977657bc82634eea275cd072036a6a16484febd41b5445abff1",
+     "source_sha256": "2cf4b5d6f6fca977657bc82634eea275cd072036a6a16484febd41b5445abff1",
+     "match": true
+    },
+    {
+     "name": "weights/cp_embedding_1.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_embedding_1.npy",
+     "source_exists": true,
+     "sha256": "c8655ecd642f17d04a85ea37c2665205a8666843925227b25dc8c8bceb8015f5",
+     "source_sha256": "c8655ecd642f17d04a85ea37c2665205a8666843925227b25dc8c8bceb8015f5",
+     "match": true
+    },
+    {
+     "name": "weights/cp_embedding_10.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_embedding_10.npy",
+     "source_exists": true,
+     "sha256": "bf17275629b464a4a38826beeb79b99e0e58cc02c530da2e572b9b7d9972fb2d",
+     "source_sha256": "bf17275629b464a4a38826beeb79b99e0e58cc02c530da2e572b9b7d9972fb2d",
+     "match": true
+    },
+    {
+     "name": "weights/cp_embedding_11.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_embedding_11.npy",
+     "source_exists": true,
+     "sha256": "dee4af40f34626a4951fba2b894120c8cf8293024ae068d1f2579f356c6e2284",
+     "source_sha256": "dee4af40f34626a4951fba2b894120c8cf8293024ae068d1f2579f356c6e2284",
+     "match": true
+    },
+    {
+     "name": "weights/cp_embedding_12.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_embedding_12.npy",
+     "source_exists": true,
+     "sha256": "e307b70fbaddc6e7e48259b4e8c9417f24b155be9281205f38bbf40c64359951",
+     "source_sha256": "e307b70fbaddc6e7e48259b4e8c9417f24b155be9281205f38bbf40c64359951",
+     "match": true
+    },
+    {
+     "name": "weights/cp_embedding_13.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_embedding_13.npy",
+     "source_exists": true,
+     "sha256": "cc15bfc4290be77523f8f14c78b9b1710042b5d078291ee87038dfb7ecb3f185",
+     "source_sha256": "cc15bfc4290be77523f8f14c78b9b1710042b5d078291ee87038dfb7ecb3f185",
+     "match": true
+    },
+    {
+     "name": "weights/cp_embedding_14.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_embedding_14.npy",
+     "source_exists": true,
+     "sha256": "aa0de98365775e1cb968514595ff7e23936bea21c2bda6e5bab7e7052cdf97ba",
+     "source_sha256": "aa0de98365775e1cb968514595ff7e23936bea21c2bda6e5bab7e7052cdf97ba",
+     "match": true
+    },
+    {
+     "name": "weights/cp_embedding_2.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_embedding_2.npy",
+     "source_exists": true,
+     "sha256": "5436624853b3091bc1b88cf37a4d60af46346c508237d72e597bed561a5b2138",
+     "source_sha256": "5436624853b3091bc1b88cf37a4d60af46346c508237d72e597bed561a5b2138",
+     "match": true
+    },
+    {
+     "name": "weights/cp_embedding_3.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_embedding_3.npy",
+     "source_exists": true,
+     "sha256": "1041b78ea5158c96cda4aae45bd21707a6fe8c92e6831715075d70d7b5b8e77a",
+     "source_sha256": "1041b78ea5158c96cda4aae45bd21707a6fe8c92e6831715075d70d7b5b8e77a",
+     "match": true
+    },
+    {
+     "name": "weights/cp_embedding_4.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_embedding_4.npy",
+     "source_exists": true,
+     "sha256": "17af8770454ab26ca82f092d0d5a634680e4d14412d327fb8b6f94a57b256800",
+     "source_sha256": "17af8770454ab26ca82f092d0d5a634680e4d14412d327fb8b6f94a57b256800",
+     "match": true
+    },
+    {
+     "name": "weights/cp_embedding_5.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_embedding_5.npy",
+     "source_exists": true,
+     "sha256": "b9abbf163b50ba0207e2196772c67b2e1025cf7f4fbe378c6a44123869253ad9",
+     "source_sha256": "b9abbf163b50ba0207e2196772c67b2e1025cf7f4fbe378c6a44123869253ad9",
+     "match": true
+    },
+    {
+     "name": "weights/cp_embedding_6.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_embedding_6.npy",
+     "source_exists": true,
+     "sha256": "1fb06414cb7d4edcd73142e79cbb4bd46f918517e5812b73345ade9535c6eafb",
+     "source_sha256": "1fb06414cb7d4edcd73142e79cbb4bd46f918517e5812b73345ade9535c6eafb",
+     "match": true
+    },
+    {
+     "name": "weights/cp_embedding_7.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_embedding_7.npy",
+     "source_exists": true,
+     "sha256": "08b8d7bd125d75ffa42f515153e66ade42cb16c2eea6ebe1935a2ac2509cbad0",
+     "source_sha256": "08b8d7bd125d75ffa42f515153e66ade42cb16c2eea6ebe1935a2ac2509cbad0",
+     "match": true
+    },
+    {
+     "name": "weights/cp_embedding_8.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_embedding_8.npy",
+     "source_exists": true,
+     "sha256": "a2cf331bb3e2f2c0d44c91c55af045b9c975199331e4566a373b883ce04e9964",
+     "source_sha256": "a2cf331bb3e2f2c0d44c91c55af045b9c975199331e4566a373b883ce04e9964",
+     "match": true
+    },
+    {
+     "name": "weights/cp_embedding_9.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_embedding_9.npy",
+     "source_exists": true,
+     "sha256": "389422edef8c0b6dbf6cdb48359a0274b11984c04668c004810866784dab2942",
+     "source_sha256": "389422edef8c0b6dbf6cdb48359a0274b11984c04668c004810866784dab2942",
+     "match": true
+    },
+    {
+     "name": "weights/cp_lm_head_0_weight.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_lm_head_0_weight.npy",
+     "source_exists": true,
+     "sha256": "10bb9b553c42009759d63a7749a9ffbbd923fc86d78307f088f7af3d6bc71f29",
+     "source_sha256": "10bb9b553c42009759d63a7749a9ffbbd923fc86d78307f088f7af3d6bc71f29",
+     "match": true
+    },
+    {
+     "name": "weights/cp_lm_head_10_weight.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_lm_head_10_weight.npy",
+     "source_exists": true,
+     "sha256": "607560e0abf9e06f3b61a21dcfe07d15eadeb64a73e22e620dc4a60e9bf26eae",
+     "source_sha256": "607560e0abf9e06f3b61a21dcfe07d15eadeb64a73e22e620dc4a60e9bf26eae",
+     "match": true
+    },
+    {
+     "name": "weights/cp_lm_head_11_weight.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_lm_head_11_weight.npy",
+     "source_exists": true,
+     "sha256": "499be2b7e6fc4811616196ee85c794f81233bcb7a2623dddc86e77d01f80d2a3",
+     "source_sha256": "499be2b7e6fc4811616196ee85c794f81233bcb7a2623dddc86e77d01f80d2a3",
+     "match": true
+    },
+    {
+     "name": "weights/cp_lm_head_12_weight.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_lm_head_12_weight.npy",
+     "source_exists": true,
+     "sha256": "5617bf5cf470b2c07256789656d78f55bcc37cec12d0822e6ff40df117cfcacd",
+     "source_sha256": "5617bf5cf470b2c07256789656d78f55bcc37cec12d0822e6ff40df117cfcacd",
+     "match": true
+    },
+    {
+     "name": "weights/cp_lm_head_13_weight.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_lm_head_13_weight.npy",
+     "source_exists": true,
+     "sha256": "66de1d223f7551c26d3f7892e3bc7c9cf2ea2d8f45a00e410f8e40c2164875fd",
+     "source_sha256": "66de1d223f7551c26d3f7892e3bc7c9cf2ea2d8f45a00e410f8e40c2164875fd",
+     "match": true
+    },
+    {
+     "name": "weights/cp_lm_head_14_weight.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_lm_head_14_weight.npy",
+     "source_exists": true,
+     "sha256": "49701ef6848f63fe998bb6951fe86bdf2c49075fb1b67f516af212de45b4d8a5",
+     "source_sha256": "49701ef6848f63fe998bb6951fe86bdf2c49075fb1b67f516af212de45b4d8a5",
+     "match": true
+    },
+    {
+     "name": "weights/cp_lm_head_1_weight.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_lm_head_1_weight.npy",
+     "source_exists": true,
+     "sha256": "241588f9fc3dd40cc7d7f0e0e85131b3d112e611119dfc3573a71738fdd5cfb4",
+     "source_sha256": "241588f9fc3dd40cc7d7f0e0e85131b3d112e611119dfc3573a71738fdd5cfb4",
+     "match": true
+    },
+    {
+     "name": "weights/cp_lm_head_2_weight.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_lm_head_2_weight.npy",
+     "source_exists": true,
+     "sha256": "96e6003433318333f26f92787d382010fd26638b9f72f5cd80d8d4fda0511689",
+     "source_sha256": "96e6003433318333f26f92787d382010fd26638b9f72f5cd80d8d4fda0511689",
+     "match": true
+    },
+    {
+     "name": "weights/cp_lm_head_3_weight.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_lm_head_3_weight.npy",
+     "source_exists": true,
+     "sha256": "85d87eda663cf621fa8f7b30dcf2b3c621bf8785dad32c43eb7c19c7bc0f15e1",
+     "source_sha256": "85d87eda663cf621fa8f7b30dcf2b3c621bf8785dad32c43eb7c19c7bc0f15e1",
+     "match": true
+    },
+    {
+     "name": "weights/cp_lm_head_4_weight.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_lm_head_4_weight.npy",
+     "source_exists": true,
+     "sha256": "9af431ccc21c47e9a9f4d6b6c74168008878249364ad1c213f9a7b407fa6d11f",
+     "source_sha256": "9af431ccc21c47e9a9f4d6b6c74168008878249364ad1c213f9a7b407fa6d11f",
+     "match": true
+    },
+    {
+     "name": "weights/cp_lm_head_5_weight.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_lm_head_5_weight.npy",
+     "source_exists": true,
+     "sha256": "7e10cbab1aa24e8f629d3d5d61fa89349ccf7ce45c911b7600b2334a8c26abb5",
+     "source_sha256": "7e10cbab1aa24e8f629d3d5d61fa89349ccf7ce45c911b7600b2334a8c26abb5",
+     "match": true
+    },
+    {
+     "name": "weights/cp_lm_head_6_weight.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_lm_head_6_weight.npy",
+     "source_exists": true,
+     "sha256": "3394097718eada11ef25aec8c7290efebb196fa1380315adae08648dfb2d6100",
+     "source_sha256": "3394097718eada11ef25aec8c7290efebb196fa1380315adae08648dfb2d6100",
+     "match": true
+    },
+    {
+     "name": "weights/cp_lm_head_7_weight.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_lm_head_7_weight.npy",
+     "source_exists": true,
+     "sha256": "097d7b4165c581a3f11d8dfc97c018b84926d6289cdc049a34830b02b5c261ad",
+     "source_sha256": "097d7b4165c581a3f11d8dfc97c018b84926d6289cdc049a34830b02b5c261ad",
+     "match": true
+    },
+    {
+     "name": "weights/cp_lm_head_8_weight.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_lm_head_8_weight.npy",
+     "source_exists": true,
+     "sha256": "4e16d10b2c7c03f0646db639be854d65e3deaccda7d0c2c5c9b4532fa84a7fcb",
+     "source_sha256": "4e16d10b2c7c03f0646db639be854d65e3deaccda7d0c2c5c9b4532fa84a7fcb",
+     "match": true
+    },
+    {
+     "name": "weights/cp_lm_head_9_weight.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\cp_lm_head_9_weight.npy",
+     "source_exists": true,
+     "sha256": "ca042adc8718824cd5823afb040496018b5cf21ecff237bc834e1a8e4d5290ba",
+     "source_sha256": "ca042adc8718824cd5823afb040496018b5cf21ecff237bc834e1a8e4d5290ba",
+     "match": true
+    },
+    {
+     "name": "weights/text_embedding.npy",
+     "bytes": 622329984,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\text_embedding.npy",
+     "source_exists": true,
+     "sha256": "6fab9de0a8bc144aa3efefdacb5e8292b8499a9ae1d60fcee240bac528b7441e",
+     "source_sha256": "6fab9de0a8bc144aa3efefdacb5e8292b8499a9ae1d60fcee240bac528b7441e",
+     "match": true
+    },
+    {
+     "name": "weights/text_proj_fc1_bias.npy",
+     "bytes": 8320,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\text_proj_fc1_bias.npy",
+     "source_exists": true,
+     "sha256": "2ca292516e9574fa67e0174a49770051156246bb0679096f0514286091eea7c3",
+     "source_sha256": "2ca292516e9574fa67e0174a49770051156246bb0679096f0514286091eea7c3",
+     "match": true
+    },
+    {
+     "name": "weights/text_proj_fc1_weight.npy",
+     "bytes": 16777344,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\text_proj_fc1_weight.npy",
+     "source_exists": true,
+     "sha256": "94b62d00b306c5db843ac86dc135354889a2ce40d7adce79ae23f63c3d6acf19",
+     "source_sha256": "94b62d00b306c5db843ac86dc135354889a2ce40d7adce79ae23f63c3d6acf19",
+     "match": true
+    },
+    {
+     "name": "weights/text_proj_fc2_bias.npy",
+     "bytes": 4224,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\text_proj_fc2_bias.npy",
+     "source_exists": true,
+     "sha256": "0725b7f7d0318f430723177d046eaf3b08c7a65d4a4a6dd264d61e574e66ff19",
+     "source_sha256": "0725b7f7d0318f430723177d046eaf3b08c7a65d4a4a6dd264d61e574e66ff19",
+     "match": true
+    },
+    {
+     "name": "weights/text_proj_fc2_weight.npy",
+     "bytes": 8388736,
+     "source_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\weights\\text_proj_fc2_weight.npy",
+     "source_exists": true,
+     "sha256": "d6d31d3bca45fee1d05612f3c9eb26e0c34587be52d2c34c208c79e6656f15a6",
+     "source_sha256": "d6d31d3bca45fee1d05612f3c9eb26e0c34587be52d2c34c208c79e6656f15a6",
+     "match": true
+    }
+   ]
+  },
+  "tts_cuda": {
+   "source_path": "C:\\Users\\Trekker-PTL\\.cache\\huggingface\\hub\\models--Qwen--Qwen3-TTS-12Hz-0.6B-Base\\snapshots\\5d83992436eae1d760afd27aff78a71d676296fc",
+   "source_model": "Qwen3-TTS-12Hz-0.6B-Base（**PyTorch 权重 · CUDA 推理**）",
+   "note": "Special MVP：**TTS 走真 CUDA**（NV5050）⇒ 这里放的是 **PyTorch 权重**（model.safetensors + speech_tokenizer），**不是** OV IR。随包离线可用（边车用 LIVECAP_CUDA_TTS_MODEL 指向本目录，local_files_only=True）。",
+   "optional": false,
+   "source_exists": true,
+   "pkg_exists": true,
+   "files": [
+    {
+     "name": "README.md",
+     "bytes": 3640,
+     "source_path": "C:\\Users\\Trekker-PTL\\.cache\\huggingface\\hub\\models--Qwen--Qwen3-TTS-12Hz-0.6B-Base\\snapshots\\5d83992436eae1d760afd27aff78a71d676296fc\\README.md",
+     "source_exists": true,
+     "sha256": "181187b6057906bd960bc7f938d0b7a16652509776a0d52c4885b4ae5ccda0ea",
+     "source_sha256": "181187b6057906bd960bc7f938d0b7a16652509776a0d52c4885b4ae5ccda0ea",
+     "match": true
+    },
+    {
+     "name": "config.json",
+     "bytes": 4494,
+     "source_path": "C:\\Users\\Trekker-PTL\\.cache\\huggingface\\hub\\models--Qwen--Qwen3-TTS-12Hz-0.6B-Base\\snapshots\\5d83992436eae1d760afd27aff78a71d676296fc\\config.json",
+     "source_exists": true,
+     "sha256": "2e714c787c8edb98b05432685cddb634add2de4d4e645f653d68251ef72ba011",
+     "source_sha256": "2e714c787c8edb98b05432685cddb634add2de4d4e645f653d68251ef72ba011",
+     "match": true
+    },
+    {
+     "name": "generation_config.json",
+     "bytes": 245,
+     "source_path": "C:\\Users\\Trekker-PTL\\.cache\\huggingface\\hub\\models--Qwen--Qwen3-TTS-12Hz-0.6B-Base\\snapshots\\5d83992436eae1d760afd27aff78a71d676296fc\\generation_config.json",
+     "source_exists": true,
+     "sha256": "f1b90b4513f3b34c62851049e2492d7b4c5940daf1276f89c82b8ef04127f3aa",
+     "source_sha256": "f1b90b4513f3b34c62851049e2492d7b4c5940daf1276f89c82b8ef04127f3aa",
+     "match": true
+    },
+    {
+     "name": "merges.txt",
+     "bytes": 1671839,
+     "source_path": "C:\\Users\\Trekker-PTL\\.cache\\huggingface\\hub\\models--Qwen--Qwen3-TTS-12Hz-0.6B-Base\\snapshots\\5d83992436eae1d760afd27aff78a71d676296fc\\merges.txt",
+     "source_exists": true,
+     "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3",
+     "source_sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3",
+     "match": true
+    },
+    {
+     "name": "model.safetensors",
+     "bytes": 1829344272,
+     "source_path": "C:\\Users\\Trekker-PTL\\.cache\\huggingface\\hub\\models--Qwen--Qwen3-TTS-12Hz-0.6B-Base\\snapshots\\5d83992436eae1d760afd27aff78a71d676296fc\\model.safetensors",
+     "source_exists": true,
+     "sha256": "180b3b10eb1c9f1b4db7806d5475bae3071c0243c299d49926bab1da3b6946f6",
+     "source_sha256": "180b3b10eb1c9f1b4db7806d5475bae3071c0243c299d49926bab1da3b6946f6",
+     "match": true
+    },
+    {
+     "name": "preprocessor_config.json",
+     "bytes": 127,
+     "source_path": "C:\\Users\\Trekker-PTL\\.cache\\huggingface\\hub\\models--Qwen--Qwen3-TTS-12Hz-0.6B-Base\\snapshots\\5d83992436eae1d760afd27aff78a71d676296fc\\preprocessor_config.json",
+     "source_exists": true,
+     "sha256": "efdde1022ea9d76928bf7a9cd53139138f5ba2e466e837f08f6105ab1af1c119",
+     "source_sha256": "efdde1022ea9d76928bf7a9cd53139138f5ba2e466e837f08f6105ab1af1c119",
+     "match": true
+    },
+    {
+     "name": "tokenizer_config.json",
+     "bytes": 7344,
+     "source_path": "C:\\Users\\Trekker-PTL\\.cache\\huggingface\\hub\\models--Qwen--Qwen3-TTS-12Hz-0.6B-Base\\snapshots\\5d83992436eae1d760afd27aff78a71d676296fc\\tokenizer_config.json",
+     "source_exists": true,
+     "sha256": "dc3c31c3bdaedd5016382bb3cbe07323026775ad51f5a4fb564505992ae4a670",
+     "source_sha256": "dc3c31c3bdaedd5016382bb3cbe07323026775ad51f5a4fb564505992ae4a670",
+     "match": true
+    },
+    {
+     "name": "vocab.json",
+     "bytes": 2776833,
+     "source_path": "C:\\Users\\Trekker-PTL\\.cache\\huggingface\\hub\\models--Qwen--Qwen3-TTS-12Hz-0.6B-Base\\snapshots\\5d83992436eae1d760afd27aff78a71d676296fc\\vocab.json",
+     "source_exists": true,
+     "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+     "source_sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+     "match": true
+    },
+    {
+     "name": "speech_tokenizer/config.json",
+     "bytes": 2336,
+     "source_path": "C:\\Users\\Trekker-PTL\\.cache\\huggingface\\hub\\models--Qwen--Qwen3-TTS-12Hz-0.6B-Base\\snapshots\\5d83992436eae1d760afd27aff78a71d676296fc\\speech_tokenizer\\config.json",
+     "source_exists": true,
+     "sha256": "ee65bb901c876664ab8707c487157aa1a6ee57c65969b28fb5ec9dc211e68167",
+     "source_sha256": "ee65bb901c876664ab8707c487157aa1a6ee57c65969b28fb5ec9dc211e68167",
+     "match": true
+    },
+    {
+     "name": "speech_tokenizer/configuration.json",
+     "bytes": 76,
+     "source_path": "C:\\Users\\Trekker-PTL\\.cache\\huggingface\\hub\\models--Qwen--Qwen3-TTS-12Hz-0.6B-Base\\snapshots\\5d83992436eae1d760afd27aff78a71d676296fc\\speech_tokenizer\\configuration.json",
+     "source_exists": true,
+     "sha256": "6bc26d64eb5024b4d1dab5a52371958b429256d6c9d59787f1f5294a54e0cebd",
+     "source_sha256": "6bc26d64eb5024b4d1dab5a52371958b429256d6c9d59787f1f5294a54e0cebd",
+     "match": true
+    },
+    {
+     "name": "speech_tokenizer/model.safetensors",
+     "bytes": 682293092,
+     "source_path": "C:\\Users\\Trekker-PTL\\.cache\\huggingface\\hub\\models--Qwen--Qwen3-TTS-12Hz-0.6B-Base\\snapshots\\5d83992436eae1d760afd27aff78a71d676296fc\\speech_tokenizer\\model.safetensors",
+     "source_exists": true,
+     "sha256": "836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258",
+     "source_sha256": "836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258",
+     "match": true
+    },
+    {
+     "name": "speech_tokenizer/preprocessor_config.json",
+     "bytes": 234,
+     "source_path": "C:\\Users\\Trekker-PTL\\.cache\\huggingface\\hub\\models--Qwen--Qwen3-TTS-12Hz-0.6B-Base\\snapshots\\5d83992436eae1d760afd27aff78a71d676296fc\\speech_tokenizer\\preprocessor_config.json",
+     "source_exists": true,
+     "sha256": "fcb3805e597e786d4067706e602f6688524640f8d3396790e2e09b5942fcbdfb",
+     "source_sha256": "fcb3805e597e786d4067706e602f6688524640f8d3396790e2e09b5942fcbdfb",
+     "match": true
+    }
+   ]
+  }
+ },
+ "computed_sha": true,
+ "n_mismatches": 0,
+ "mismatches": [],
+ "all_match": true
+}

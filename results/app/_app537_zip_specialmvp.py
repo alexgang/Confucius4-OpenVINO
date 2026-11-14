@@ -17,8 +17,17 @@
     明文规定的口径 `'PASS'` 与 `'PASS（有 N 项未结：…）'`（未结项单列
     `open_issues`、不并入 PASS 判定）；其它写法一律拒绝；
   · 新增 `--check-only`：**只跑闸门、零写入**，可在用户通知打包前先验证就绪度。
+
+🔴 **2026-11-14 §205 修订**（闸门再加一条：验收证据必须与**包内容**绑定）：
+  · §204 修的是「**证据属于哪个包**」；但 Special MVP 的验收证据**一个 sha256 都没有**
+    （只有 "28 个 .py，不一致 0 个" 这类计数）⇒ 闸门**对包内容 0 字节验证**
+    ⇒ **验收后再改包照样能出包**；
+  · 现在要求证据带 `pkg_content`（验收时逐文件 SHA256），闸门**逐条重算比对**，
+    并做**反向集合校验**（包内 `app/*.py` 集合必须与证据一致 ⇒ 验收后新增 .py 也拦）；
+  · 证据没有内容绑定 ⇒ **直接拒绝**（fail-closed，提示重跑包上验收）。
 """
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -140,10 +149,65 @@ def check_release_identity(pkg_dir, pkg_name):
     return rel
 
 
+def sha256_file(path):
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(1 << 20), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def check_content_binding(pkg_dir, acc):
+    """🔴🔴 **§205 新增：验收证据必须与包的「当前内容」绑定**（fail-closed）。
+
+    🔴 **为什么 §204 之后还需要这一条（不同轴）**：§204 修的是「**证据属于哪个包**」
+       （`acc['pkg']` 必须等于目标包目录）。但**验收证据本身不记任何哈希**
+       （Special MVP 的验收证据里 **sha256 出现 0 次**，只有 "28 个 .py，不一致 0 个"
+       这类计数）⇒ 闸门**对包内容一个字节都没验证** ⇒
+       **验收之后再改包（同步新代码 / 手改文件），照样能出包**，
+       而验收记录会（不实地）声称这份包已被验收过。
+
+    ⇒ 现在要求证据里带 `pkg_content`（验收时逐文件 SHA256），
+      并**逐条重算比对**；另做**反向集合校验**（包内 `app/*.py` 集合必须与证据
+      记录一致 ⇒ 验收后**新增** .py 也会被抓住）。
+    ⇒ 证据**没有**内容绑定 ⇒ 直接拒绝（fail-closed，提示重跑包上验收）。
+    """
+    pc = acc.get('pkg_content')
+    if not isinstance(pc, dict):
+        raise RuntimeError('验收证据没有内容绑定字段 `pkg_content` ⇒ 无法确认包内容'
+                           '与验收时一致，拒绝打包（请重跑包上验收后再打包）')
+    files = pc.get('files')
+    if not isinstance(files, dict) or not files:
+        raise RuntimeError('验收证据的 `pkg_content.files` 为空 ⇒ 拒绝打包')
+    problems = []
+    for rel, want in sorted(files.items()):
+        p = os.path.join(pkg_dir, rel.replace('/', os.sep))
+        if not os.path.isfile(p):
+            problems.append('缺 %s' % rel)
+            continue
+        got = sha256_file(p)
+        if got != want:
+            problems.append('内容已变 %s' % rel)
+    # 反向集合：包内 app/*.py 必须与证据记录一致（防止验收后新增 .py）
+    appdir = os.path.join(pkg_dir, 'app')
+    now_py = set()
+    if os.path.isdir(appdir):
+        now_py = {'app/' + f for f in os.listdir(appdir) if f.endswith('.py')}
+    bound_py = {r for r in files if r.startswith('app/') and r.endswith('.py')}
+    if now_py - bound_py:
+        problems.append('验收后新增 .py：%s' % sorted(now_py - bound_py)[:3])
+    if bound_py - now_py:
+        problems.append('证据里的 .py 不在包内：%s' % sorted(bound_py - now_py)[:3])
+    if problems:
+        raise RuntimeError('包内容与验收证据不一致（%d 项）：%s'
+                           % (len(problems), '；'.join(problems[:5])))
+    return pc
+
+
 ev = {'zip': ZIP, 'pkg': DST_PKG, 'actions': []}
 t0 = time.time()
 
-# ── ① 验收必须 PASS（fail-closed；§204 重写：证据须属于本包）──
+# ── ① 验收必须 PASS（fail-closed；§204 重写：证据须属于本包；§205 加内容绑定）──
 acc = check_acceptance(DST_PKG, ACCEPT)
 ev['accept_verdict'] = acc.get('verdict')
 ev['accept_checks'] = acc.get('checks')
@@ -151,6 +215,9 @@ ev['accept_pkg'] = acc.get('pkg')
 ev['accept_open_issues'] = acc.get('open_issues')
 rel = check_release_identity(DST_PKG, PKG_NAME)
 ev['release_version'] = rel.get('version')
+pc = check_content_binding(DST_PKG, acc)
+ev['accept_content_binding'] = {'n_files': pc.get('n_files'),
+                                 'tree_digest': pc.get('tree_digest')}
 if os.path.exists(ZIP):
     raise RuntimeError('zip 已存在（不覆盖旧版本，APP-055）：%s' % ZIP)
 if _args.check_only:
@@ -162,6 +229,8 @@ if _args.check_only:
     if acc.get('open_issues'):
         print('⚠️ 验收带未结项（已随证据带入 zip 报告）：%s'
               % [oi.get('id') for oi in acc['open_issues']])
+    print('            内容绑定：%s 个文件，tree_digest=%s…'
+          % (pc.get('n_files'), str(pc.get('tree_digest'))[:16]))
     print('check-only：**未写任何文件**（未出 zip、未改 README）')
     raise SystemExit(0)
 os.makedirs(os.path.dirname(ZIP), exist_ok=True)
