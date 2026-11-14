@@ -521,6 +521,23 @@ def main() -> int:
                            chunk_size=int(req.get('chunk_size') or 8))
             if _ref_text:
                 _gen_kw['ref_text'] = _ref_text
+            # v0.4.14: the library caches the voice prompt by PATH; the EXT rewrites the same file
+            #   names every session (S1_1.wav, self_0.wav) => drop the cache when the file changed.
+            try:
+                _st = os.stat(ref) if ref else None
+                _sig = (_st.st_mtime_ns, _st.st_size) if _st else None
+                _seen = globals().setdefault('_REF_SIG', {})
+                if ref and _seen.get(str(ref)) != _sig:
+                    _vpc = getattr(model, '_voice_prompt_cache', None)
+                    if isinstance(_vpc, dict):
+                        _drop = [k for k in list(_vpc) if k and str(k[0]) == str(ref)]
+                        for k in _drop:
+                            _vpc.pop(k, None)
+                        if _drop or str(ref) in _seen:
+                            _trace('ref changed => cache dropped (%d): %s' % (len(_drop), ref))
+                    _seen[str(ref)] = _sig
+            except Exception as _e:
+                _trace('ref cache check failed: %r' % (_e,))
             for chunk, sr, timing in model.generate_voice_clone_streaming(**_gen_kw):
                 # 🔴🔴🔴 APP-030②：**每块检查一次取消**（失控守卫）
                 #   🔴 §90：改用**线程安全**的 `_take_cancel()`
