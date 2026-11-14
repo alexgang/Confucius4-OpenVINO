@@ -4699,8 +4699,14 @@ class TTSWorker:
 
         🔴 **为什么这里还必须落文件**：
           `faster_qwen3_tts.generate_voice_clone_streaming(ref_audio=...)`
-          **只接受路径**（且该库**不在交付包内** ⇒ 包内无 torch ⇒
-          这条路线在客户机上**不可达**）⇒ 保留仅为开发期 CUDA 调试。
+          **只接受路径** ⇒ 必须落成文件。
+          🔴🔴🔳 **APP-108 §5 FYI（2026-11-14 修正）**：本段原来写着
+          「该库**不在交付包内** ⇒ 包内无 torch ⇒ 这条路线在客户机上
+          **不可达**」—— **sp1 起已经不对了**：**Special MVP 包内自带**
+          `cuda_env/`（torch 2.11.0+cu128 ＋ faster_qwen3_tts 0.5.4）
+          ⇒ **这条路线在客户机上是可达的**（走 CUDA 边车 ＋ 克隆音色）。
+          ⚠️ 该包形态 `allow_clone_voice=False` ⇒ GUI 上克隆**置灰**、
+          正常路径走不到这里 ⇒ 但「不可达」这个说法**不成立**，故改写。
 
         🔴 **隐私加固**（APP-045①）：
           - 目录用 `tempfile.gettempdir()`（**不在客户包目录里**）

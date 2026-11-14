@@ -1,0 +1,57 @@
+{
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2",
+ "from_pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1",
+ "version": "1.0-sp2",
+ "started": "2026-11-14 16:33:29",
+ "actions": [
+  "precondition: sp2 目录不存在 ✔",
+  "robocopy rc=1（1 = 有复制成功）",
+  "cuda_env/pyvenv.cfg：sp1 路径 → sp2（4 处）",
+  "release.json：version=1.0-sp2；corrections += APP-108/APP-109；新增 sp2_changes（6 条）"
+ ],
+ "gates": {
+  "n_pyc": 0,
+  "n_blacklist": 0,
+  "blacklist": [],
+  "app_files_mismatch_vs_dev": [],
+  "pyvenv_cfg_has_sp1_path": false,
+  "pyvenv_cfg_has_sp2_path": true,
+  "profile": "specialmvp",
+  "allow_cuda": true,
+  "n_files": 41374,
+  "dir_bytes": 14232030829
+ },
+ "after_copy": {
+  "n_files": 41374,
+  "bytes": 14232025413,
+  "elapsed_s": 38.5
+ },
+ "pyvenv_cfg_after": "home = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\python\ninclude-system-site-packages = false\nversion = 3.12.10\nexecutable = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\python\\python.exe\ncommand = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\python\\python.exe -m venv C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\cuda_env\n",
+ "app_sync": {
+  "synced": [
+   {
+    "file": "device_config.py",
+    "sha256": "6e65a40a81f7aac439d270b5a7438d11716563c9eaf71f7166d681e8c1f125d2",
+    "bytes": 40707
+   },
+   {
+    "file": "live_caption_app.py",
+    "sha256": "c4a99eb860cf50f6c5337dc7339e3665aa96e43d1508bbde844e3583a73ef02c",
+    "bytes": 489816
+   }
+  ],
+  "n_same": 26,
+  "n_no_dev_counterpart": []
+ },
+ "readme_zh": {
+  "old_size_line": "* **包体积（实测）**：解压后 **41,374 个文件 /     14,232,025,413 B（13.255 GiB）**；zip **    14,244,490,059 B**。",
+  "new_size_line": "* **包体积（实测）**：解压后 **41,374 个文件 /     14,232,030,684 B（13.255 GiB）**；zip **待打包**（本版**只出包目录**；zip 须**用户通知后**才生成）。"
+ },
+ "readme_en": {
+  "old_size_line": "* **Package size (measured)**: unpacked **10,629 files /    6,694,657,456 B (6.235 GiB)**; zip **   6,697,683,352 B**.",
+  "new_size_line": "* **Package size (measured)**: unpacked **41,374 files /     14,232,030,684 B (13.255 GiB)**; zip **to be built** (this build ships the **package directory** only; the zip requires explicit user approval)."
+ },
+ "verdict": "PASS",
+ "finished": "2026-11-14 16:34:10",
+ "elapsed_s": 41.1
+}

@@ -7008,10 +7008,13 @@ class App:
         if 'GPU' not in asr_dev or 'GPU' not in mt_dev:
             return False
         try:
-            minimvp = device_config.current_profile() == 'minimvp'
+            # 🔴🔴🔳 APP-108 §2：Special MVP 也是 **stateful** 解码器 ⇒
+            #   旧文案「会 CL_OUT_OF_RESOURCES ⇒ 建议把 ASR 放 NPU」
+            #   对它**同样不成立** ⇒ 判据改成「本包是否 stateful」。
+            stateful = device_config.uses_stateful_asr_decoder()
         except Exception:
-            minimvp = False
-        if minimvp:
+            stateful = False
+        if stateful:
             msg = ('ASR 与 MT 同在 %s（stateful 解码器负载约为旧解码器的 1/3；'
                    'rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）' % asr_dev)
         else:
@@ -7024,7 +7027,7 @@ class App:
             self._ui_log('[device] %s' % msg)
         except Exception:
             pass
-        if not minimvp:
+        if not stateful:
             try:
                 self.var_status.set(msg)
             except Exception:
@@ -8808,7 +8811,8 @@ def main():
         _asr_d = str(args.asr_device or '').strip().upper()
         _mt_d2 = str(args.mt_device or '').strip().upper()
         if 'GPU' in _asr_d and 'GPU' in _mt_d2:
-            if device_config.current_profile() == 'minimvp':
+            # 🔴🔴🔳 APP-108 §2：Special MVP 也是 stateful ⇒ 同一口径。
+            if device_config.uses_stateful_asr_decoder():
                 print('[device] ASR 与 MT 同在 %s（stateful 解码器负载约为'
                       '旧解码器的 1/3；rc5 在 B 机 268 s 崩溃是旧解码器，'
                       '待 B 机复核）' % _asr_d, file=sys.stderr, flush=True)

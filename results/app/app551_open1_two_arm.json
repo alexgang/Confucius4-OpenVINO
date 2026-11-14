@@ -1,0 +1,140 @@
+{
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2",
+ "audio": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+ "audio_bytes": 19200044,
+ "started": "2026-11-14 16:37:31",
+ "real_cfg_before": {
+  "exists": true,
+  "bytes": 59,
+  "sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+  "mtime": 1794623753.483541
+ },
+ "arms": [
+  {
+   "id": "A_mt_npu_tts_off",
+   "desc": "MT=NPU + TTS off（完全不碰 CUDA）",
+   "cmd": [
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+    "--asr-device",
+    "GPU.0",
+    "--translate",
+    "zh",
+    "--mt-device",
+    "NPU",
+    "--tts",
+    "off",
+    "--tts-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app551_A_mt_npu_tts_off_tts.wav",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app551_A_mt_npu_tts_off_out.txt"
+   ],
+   "rc": 0,
+   "rc_hex": null,
+   "elapsed_s": 614.7,
+   "start": "2026-11-14 16:37:31",
+   "end": "2026-11-14 16:47:46",
+   "tts_out_exists": false,
+   "tts_out_bytes": null,
+   "out_txt_exists": true,
+   "out_txt_bytes": 9891,
+   "real_cfg_before": {
+    "exists": true,
+    "bytes": 59,
+    "sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+    "mtime": 1794623753.483541
+   },
+   "real_cfg_after": {
+    "exists": true,
+    "bytes": 59,
+    "sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+    "mtime": 1794623753.483541
+   },
+   "real_cfg_unchanged": true,
+   "stdout_tail": "off and running, and moving into execution. Hammer Lake is.\n[实时] And they're off and running, and moving into execution. Hammer Lake is going to be an\n[实时] they're off and running, and moving into execution. Hammer Lake is going to be an extreme.\n[实时] ey're off and running, and moving into execution. Hammer Lake is going to be an extremely.\n[实时] nd running, and moving into execution. Hammer Lake is going to be an extremely profitable.\n[实时] moving into execution. Hammer Lake is going to be an extremely profitable program for the.\n[实时] nto execution. Hammer Lake is going to be an extremely profitable program for the company.\n[实时] n. Hammer Lake is going to be an extremely profitable program for the company as measured.\n[实时] Lake is going to be an extremely profitable program for the company, as measured by gross.\n[实时] o be an extremely profitable program for the company, as measured by gross margin, both on\n[实时] tremely profitable program for the company, as measured by gross margin, both on the int'l\n[实时] y profitable program for the company, as measured by gross margin, both on the Intel side.\n[定稿] And they're off and running, and moving into execution. Hammer Lake is going to be an extremely profitable program for the company, as measured by gross margin, both on the Intel side.\n\n[实时] And the founder.\n[译文] 它们开始运行了，即将付诸实施。\n\n[实时] And the foundry side as.\n[实时] And the foundry side, as we move.\n[译文] 从毛利率来看，哈默湖项目将对公司来说是一个极其有利可图的项目。\n\n[实时] And the foundry side, as we move to a simplified.\n[译文] 都是英特尔方面的。\n\n[实时] And the foundry side, as we move to a simplified architecture.\n[实时] And the foundry side, as we move to a simplified architecture, we move.\n[实时] the foundry side, as we move to a simplified architecture, we've moved to more traditional\n[实时]  side, as we move to a simplified architecture, we've moved to more traditional packaging.\n[实时] we move to a simplified architecture, we've moved to more traditional packaging. So great.\n[定稿] And the foundry side, as we move to a simplified architecture, we've moved to more traditional packaging. So great.\n\n[实时] Our form.\n[实时] Platform, all of.\n[译文] 而铸造方面，随着我们转向更简单的架构，也采用了更传统的包装方式。\n\n[译文] 太棒了。\n\n[实时] All of that now is clear.\n[实时] All of that now is clearly defined.\n[定稿] All of that now is clearly defined.\n\n[实时] We've also.\n[译文] 现在所有这些都已经明确界定了。\n\n[实时] We've also added. You can\n[实时] We've also added. You can see on the\n[实时] We've also added. You can see on the top here a\n[实时] We've also added. You can see on the top here a swim line for\n[实时] We've also added. You can see on the top here a swim line for AI.\n[实时] We've also added. You can see on the top here a swim line for AI boxes.\n[实时] We've also added. You can see on the top here a swim line for AI boxes, and I'll\n[实时] We've also added. You can see on the top here a swim line for AI boxes, and I'll do one.\n[实时] o added. You can see on the top here a swim line for AI boxes, and I'll do one click down.\n[定稿] We've also added. You can see on the top here a swim line for AI boxes, and I'll do one click down.\n\n[实时] Rate her.\n[译文] 我们也添加了内容。\n\n[实时] On what that means.\n[译文] 在这里顶部可以看到AI框的泳线，我只需点击一下即可。\n\n[实时] On what that means, but this.\n[实时] On what that means, but this is where we're\n[实时] On what that means, but this is where we're going to leverage\n[实时] On what that means, but this is where we're going to leverage.\n[实时] On what that means, but this is where we're going to leverage Crescent Island.\n[实时] On what that means, but this is where we're going to leverage Crescent Island, which is a.\n[定稿] On what that means, but this is where we're going to leverage Crescent Island, which is a.\n\n[实时] Data.\n[实时] Data center in.\n[译文] 这意味着什么，不过我们打算利用新月岛来实现这一目标，它是一处……\n\n[实时] Data center inferring.\n[实时] The data center inferring chip has.\n[实时] The data center inferring chip has massive memory.\n[实时] The data center inferring chip has massive memory bandwidth.\n[实时] The data center inferring chip has massive memory bandwidth, and flops.\n[实时] The data center inferring chip has massive memory bandwidth, and flops above what we're\n[实时] er inferring chip has massive memory bandwidth, and flops above what we're building today.\n[定稿] The data center inferring chip has massive memory bandwidth, and flops above what we're building today.\n\n[实时] For next.\n[实时] For an NX two class of\n[译文] 该数据中心使用的芯片具有巨大的内存带宽，其浮点运算能力也超过我们当前所制造的产品水平。\n\n[实时] For an NX two class of product.\n[实时] For an NX two class of product, and think.\n[实时] For an NX two class of product, and think of the usage.\n[实时] For an NX two class of product, and think of the usage for us in.\n[实时] For an NX two class of product, and think of the usage for us and client.\n[实时] For an NX two class of product, and think of the usage for us and client, is.\n[实时] n NX two class of product, and think of the usage for us and client, is the pair that will\n[实时] s of product, and think of the usage for us and client, is the pair that will like a novel\n[定稿] For an NX two class of product, and think of the usage for us and client, is the pair that will like a novel.\n\n[实时] S.\n[实时] S for like.\n[译文] 对于NX产品，有两类产品；请考虑一下它们对我们和客户的使用场景。\n\n[实时] S for like a tower.\n[译文] 是那个会喜欢小说的配对。\n\n[实时] S, for like a tower configuration.\n[实时] S, for like a tower config, even up to\n[实时] S, for like a tower config, even up to a workstation.\n[实时] S, for like a tower config, even up to a workstation config.\n[定稿] S, for like a tower config, even up to a workstation config.\n\n[实时] Right now.\n[实时] Right now we're in the\n[译文] S，比如用于塔式配置，甚至可用于工作站配置。\n\n[实时] Right now we're in the process of working\n[实时] Right now we're in the process of working with the data\n[定稿] Right now we're in the process of working with the data center.\n\n[gpu_int8] 音频 600.0s  墙钟 600.3s  RTF(计算) 0.417  出字延迟中位 229 ms  最大积压 0.9s  段 93\n[译文] 目前我们正在与数据中心合作。\n[gpu_int8] 翻译 target=zh 后端=auto 设备 NPU state=ready 句数 163  延迟中位 874.8 ms  P95 1286.9 ms  TTFT 521.9 ms  32.1 tok/s\n[gpu_int8] 译文已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app551_A_mt_npu_tts_off_out.mt.txt\n",
+   "stderr_tail": "[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认—— 客户机若装过 MiniMVP 或完整版就会留下这种文件⇒ 本包的出厂默认不同 ⇒ 改用本包出厂默认（asr=GPU.0，mt=NPU，tts=CUDA）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+   "tts_telemetry_lines": [],
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app551_A_mt_npu_tts_off.log",
+   "eventlog": "",
+   "wer_reports": [
+    {
+     "dir": "NonCritical_Update;MoUpdateO_6a90cccac4b979f7ca9159331ba3367141b2_00000000_a9ebb304-df7f-4ee3-b730-e5750fb4bc18",
+     "mtime": "2026-11-14 16:29:38"
+    }
+   ]
+  },
+  {
+   "id": "B_mt_gpu0_tts_cuda",
+   "desc": "MT=GPU.0 + TTS=CUDA（真 CUDA 边车）",
+   "cmd": [
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+    "--asr-device",
+    "GPU.0",
+    "--translate",
+    "zh",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "CUDA",
+    "--tts",
+    "on",
+    "--tts-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app551_B_mt_gpu0_tts_cuda_tts.wav",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app551_B_mt_gpu0_tts_cuda_out.txt"
+   ],
+   "rc": 0,
+   "rc_hex": null,
+   "elapsed_s": 611.2,
+   "start": "2026-11-14 16:47:46",
+   "end": "2026-11-14 16:57:58",
+   "tts_out_exists": true,
+   "tts_out_bytes": 30407084,
+   "out_txt_exists": true,
+   "out_txt_bytes": 9891,
+   "real_cfg_before": {
+    "exists": true,
+    "bytes": 59,
+    "sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+    "mtime": 1794623753.483541
+   },
+   "real_cfg_after": {
+    "exists": true,
+    "bytes": 59,
+    "sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+    "mtime": 1794623753.483541
+   },
+   "real_cfg_unchanged": true,
+   "stdout_tail": "ink of the usage for us and client, is the pair that will like a novel\n[定稿] For an NX two class of product, and think of the usage for us and client, is the pair that will like a novel.\n\n[实时] S.\n[译文] 对于NX产品，有两类产品；请考虑一下它们对我们和客户的使用场景。\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] set_ref: C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落预设 A（已换回参考音频）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=1.076 s ⇒ speed=1.1000（lang=zh）\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] REQ rid=147 len=33 mnt=345 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] 首包分段 id=150：排队 0.000 s + 合成 0.390 s\n\n[译文] 是那个会喜欢小说的配对。\n\n[实时] S for like.\n[实时] S for like a tower.\n[实时] S, for like a tower configuration.\n[实时] S, for like a tower config, even up to\n[实时] S, for like a tower config, even up to a workstation.\n[实时] S, for like a tower config, even up to a workstation config.  [TTS] [TTS] [tts_cuda/stderr] [sidecar] DONE rid=147 chunks=12 frames=92 mnt=345 reason=eos elapsed=0.38s total_s=3.84s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=150 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=176640 parts=12 peak=0.5703 rms_dbfs=-18.8 nan_inf=0 cb_delta=91 read_delta=0 underflow_delta=91 ring=2400/72000 consumed=-\n  [TTS] [TTS] 遥测 id=150 peak=0.570312 rms_dbfs=-18.75 read_delta=0 consumed=None\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] set_ref: C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落预设 A（已换回参考音频）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=4.932 s ⇒ speed=1.1483（lang=zh）\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] REQ rid=148 len=12 mnt=165 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] 首包分段 id=151：排队 0.000 s + 合成 0.376 s\n\n[定稿] S, for like a tower config, even up to a workstation config.\n\n[实时] Right now.\n[译文] S，比如用于塔式配置，甚至可用于工作站配置。\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] DONE rid=148 chunks=4 frames=32 mnt=165 reason=eos elapsed=0.36s total_s=1.36s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=151 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=61440 parts=4 peak=0.5820 rms_dbfs=-19.0 nan_inf=0 cb_delta=32 read_delta=2400 underflow_delta=30 ring=2400/72000 consumed=-\n  [TTS] [TTS] 遥测 id=151 peak=0.582031 rms_dbfs=-19.04 read_delta=2400 consumed=None\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] set_ref: C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落预设 A（已换回参考音频）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=1.108 s ⇒ speed=1.1000（lang=zh）\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] REQ rid=149 len=22 mnt=255 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models\\qwen3tts\\voices\\preset_A.wav\n\n[实时] Right now we're in the  [TTS] [TTS] 首包分段 id=152：排队 0.000 s + 合成 0.404 s\n\n[实时] Right now we're in the process of working\n[实时] Right now we're in the process of working with the data\n[定稿] Right now we're in the process of working with the data center.\n\n[gpu_int8] 音频 600.0s  墙钟 600.9s  RTF(计算) 0.481  出字延迟中位 258 ms  最大积压 0.8s  段 93\n[译文] 目前我们正在与数据中心合作。\n[gpu_int8] 翻译 target=zh 后端=auto 设备 GPU.0 state=ready 句数 163  延迟中位 439.5 ms  P95 794.5 ms  TTFT 115.7 ms  35.7 tok/s\n[gpu_int8] 译文已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app551_B_mt_gpu0_tts_cuda_out.mt.txt\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] DONE rid=149 chunks=9 frames=71 mnt=255 reason=eos elapsed=0.41s total_s=2.98s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=152 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=136320 parts=9 peak=0.4824 rms_dbfs=-19.9 nan_inf=0 cb_delta=70 read_delta=2400 underflow_delta=68 ring=2400/72000 consumed=-\n  [TTS] [TTS] 遥测 id=152 peak=0.482422 rms_dbfs=-19.9 read_delta=2400 consumed=None\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] set_ref: C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落预设 A（已换回参考音频）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=1.292 s ⇒ speed=1.1000（lang=zh）\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] REQ rid=150 len=14 mnt=183 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] 首包分段 id=153：排队 0.000 s + 合成 0.374 s\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] DONE rid=150 chunks=5 frames=38 mnt=183 reason=eos elapsed=0.38s total_s=1.58s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=153 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=72960 parts=5 peak=0.6016 rms_dbfs=-16.4 nan_inf=0 cb_delta=37 read_delta=2400 underflow_delta=35 ring=2400/72000 consumed=-\n  [TTS] [TTS] 遥测 id=153 peak=0.601562 rms_dbfs=-16.39 read_delta=2400 consumed=None\n[TTS] 首包 0.37s  积压 当前 0.00s / 最大 18.55s  提交 154  播完 150  丢弃 4  重启 0  state=ready\n[TTS] 收尾（close 前）：结尾滞后 2.15s  关闭作废 0  空句 0  积压 最大 18.55s\n[TTS] 语音已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app551_B_mt_gpu0_tts_cuda_tts.wav，逐句时间线 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app551_B_mt_gpu0_tts_cuda_tts.wav.tts.jsonl\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app551_B_mt_gpu0_tts_cuda_tts.wav.backlog_curve.csv（401 个采样点）\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n  [TTS] [TTS] [tts_worker] 已落盘 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app551_B_mt_gpu0_tts_cuda_tts.wav（633.48s，150 句，24000 Hz）\n[TTS] 最终统计（close 后）：提交 154  播完 150  丢弃 4  关闭作废 0  空句 0  失败 0  结尾滞后 2.15s  积压 最大 18.55s\n",
+   "stderr_tail": "[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认—— 客户机若装过 MiniMVP 或完整版就会留下这种文件⇒ 本包的出厂默认不同 ⇒ 改用本包出厂默认（asr=GPU.0，mt=NPU，tts=CUDA）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\n[device] ASR 与 MT 同在 GPU.0（stateful 解码器负载约为旧解码器的 1/3；rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+   "tts_telemetry_lines": [],
+   "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app551_B_mt_gpu0_tts_cuda.log",
+   "eventlog": "",
+   "wer_reports": []
+  }
+ ],
+ "real_cfg_after": {
+  "exists": true,
+  "bytes": 59,
+  "sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+  "mtime": 1794623753.483541
+ },
+ "rcs": [
+  0,
+  0
+ ],
+ "aborted_arms": [],
+ "all_ok_arms": [
+  "A_mt_npu_tts_off",
+  "B_mt_gpu0_tts_cuda"
+ ],
+ "verdict_note": "PASS（有 1 项未结：退出码异常）—— 退出码 3221226505 (0xC0000409) **不并入 PASS 判定**（APP-108 §3）",
+ "finished": "2026-11-14 16:57:58"
+}

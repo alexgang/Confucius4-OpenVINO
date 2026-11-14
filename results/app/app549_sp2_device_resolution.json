@@ -1,0 +1,229 @@
+{
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2",
+ "tag": "sp2",
+ "started": "2026-11-14 17:12:03",
+ "real_config_before": {
+  "exists": true,
+  "bytes": 59,
+  "sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+  "mtime": 1794623753.483541,
+  "mtime_str": "2026-11-14 10:35:53"
+ },
+ "real_config_expect": {
+  "bytes": 59,
+  "sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2"
+ },
+ "cases": [
+  {
+   "iso_localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_i_empty_u_axq41e",
+   "config_written_bytes": null,
+   "config_written_sha256": null,
+   "config_content": null,
+   "check": {
+    "rc": 0,
+    "elapsed_s": 10.9,
+    "stdout": "====================================================================\n  Confucius4 实时字幕 · 环境检查\n====================================================================\n包目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\n模型目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models\n\n── 依赖 ──\n  [ OK ] numpy            2.4.6\n  [ OK ] openvino         2026.4.1-22982-e213a147257-releases/2026/4\n  [ OK ] openvino_genai   2026.4.1.0-3408-ab01d1771e4\n  [ OK ] transformers     4.57.6\n  [ OK ] sounddevice      0.5.6\n  [ OK ] soundcard        \n  [ OK ] babelvox(Qwen3-TTS) 1.7.1\n  [ OK ] qwen3tts 模型   C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models\\qwen3tts\n\n── OpenVINO 设备 ──\n  [ OK ] GPU.0    Intel(R) Graphics (iGPU)\n  [ OK ] GPU.1    NVIDIA GeForce RTX 5050 Laptop GPU (dGPU)\n  [ OK ] NPU      Intel(R) AI Boost\n  Intel 集显 (GPU)：[ OK ] 可用\n  Intel NPU     ：[ OK ] 可用\n  注：CPU 推理已从可选设备清单移除（性能不推荐）；如确需 CPU 请用命令行 --asr-device CPU / --mt-device CPU。\n\n── ASR 后端（识别）──\n  [ OK ] Intel GPU · INT8 (stateful) 模型齐全\n  [ OK ] Intel NPU · INT8 (stateful) 模型齐全\n\n── 翻译后端（Hy-MT2-1.8B）──\n  [ OK ] Intel GPU · INT8-CW（默认） GPU.0    \n  [ — ] Intel GPU · INT4-CW        GPU.0    （本包不附带该量化版本）\n  [ OK ] Intel NPU · INT8-CW        NPU      \n  [ — ] Intel NPU · INT4-CW        NPU      （本包不附带该量化版本）\n  [ OK ] 自动 · INT8-CW 模型（默认） 跟随 --mt-device \n\n── 音频设备 ──\n  [ OK ] 麦克风 [1] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · MME（默认）\n  [ OK ] 麦克风 [0] Microsoft 声音映射器 - Input · MME\n  [ OK ] 麦克风 [9] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · Windows WASAPI\n  [ OK ] 输出 Speaker (Realtek(R) Audio)（2 声道）  id={0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}\n\n── CUDA 语音后端（Special MVP：包内自带 NV5050 运行时）──\n  CUDA 运行时：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\cuda_env\\Scripts\\python.exe\n  运行时 python：[ OK ] 存在\n  TTS CUDA 模型：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models\\tts_cuda\n  模型文件：12 个（随包离线可用）\n  CUDA 可用性：[ OK ] torch 2.11.0+cu128 / CUDA 12.8 / available=True\n\n====================================================================\n  结论：环境正常。ASR 可用后端 2 个，Intel 集显可用。\n====================================================================\n",
+    "stderr": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+   },
+   "get_devices": {
+    "rc": 0,
+    "elapsed_s": 3.2,
+    "stdout": "{\"devices\": {\"asr\": \"GPU.0\", \"mt\": \"NPU\", \"tts\": \"CUDA\"}, \"notes\": [], \"current_profile\": \"specialmvp\", \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"NPU\", \"tts\": \"CUDA\"}, \"config_path\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\wb_iso_i_empty_u_axq41e\\\\Confucius4LiveCaption\\\\device_config.json\"}\n",
+    "stderr": "",
+    "parsed": {
+     "devices": {
+      "asr": "GPU.0",
+      "mt": "NPU",
+      "tts": "CUDA"
+     },
+     "notes": [],
+     "current_profile": "specialmvp",
+     "default_devices": {
+      "asr": "GPU.0",
+      "mt": "NPU",
+      "tts": "CUDA"
+     },
+     "config_path": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_i_empty_u_axq41e\\Confucius4LiveCaption\\device_config.json"
+    }
+   },
+   "warn_asr_mt_same_gpu_present": false,
+   "warn_lines": [],
+   "resolved_devices": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "CUDA"
+   },
+   "notes": [],
+   "current_profile": "specialmvp",
+   "default_devices": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "CUDA"
+   },
+   "id": "i_empty",
+   "desc": "空配置（无 device_config.json）"
+  },
+  {
+   "iso_localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_ii_legacy3_ljt6yron",
+   "config_written_bytes": 59,
+   "config_written_sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+   "config_content": "{\r\n  \"asr\": \"GPU.0\",\r\n  \"mt\": \"GPU.0\",\r\n  \"tts\": \"GPU.0\"\r\n}",
+   "check": {
+    "rc": 0,
+    "elapsed_s": 10.2,
+    "stdout": "====================================================================\n  Confucius4 实时字幕 · 环境检查\n====================================================================\n包目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\n模型目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models\n\n── 依赖 ──\n  [ OK ] numpy            2.4.6\n  [ OK ] openvino         2026.4.1-22982-e213a147257-releases/2026/4\n  [ OK ] openvino_genai   2026.4.1.0-3408-ab01d1771e4\n  [ OK ] transformers     4.57.6\n  [ OK ] sounddevice      0.5.6\n  [ OK ] soundcard        \n  [ OK ] babelvox(Qwen3-TTS) 1.7.1\n  [ OK ] qwen3tts 模型   C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models\\qwen3tts\n\n── OpenVINO 设备 ──\n  [ OK ] GPU.0    Intel(R) Graphics (iGPU)\n  [ OK ] GPU.1    NVIDIA GeForce RTX 5050 Laptop GPU (dGPU)\n  [ OK ] NPU      Intel(R) AI Boost\n  Intel 集显 (GPU)：[ OK ] 可用\n  Intel NPU     ：[ OK ] 可用\n  注：CPU 推理已从可选设备清单移除（性能不推荐）；如确需 CPU 请用命令行 --asr-device CPU / --mt-device CPU。\n\n── ASR 后端（识别）──\n  [ OK ] Intel GPU · INT8 (stateful) 模型齐全\n  [ OK ] Intel NPU · INT8 (stateful) 模型齐全\n\n── 翻译后端（Hy-MT2-1.8B）──\n  [ OK ] Intel GPU · INT8-CW（默认） GPU.0    \n  [ — ] Intel GPU · INT4-CW        GPU.0    （本包不附带该量化版本）\n  [ OK ] Intel NPU · INT8-CW        NPU      \n  [ — ] Intel NPU · INT4-CW        NPU      （本包不附带该量化版本）\n  [ OK ] 自动 · INT8-CW 模型（默认） 跟随 --mt-device \n\n── 音频设备 ──\n  [ OK ] 麦克风 [1] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · MME（默认）\n  [ OK ] 麦克风 [0] Microsoft 声音映射器 - Input · MME\n  [ OK ] 麦克风 [9] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · Windows WASAPI\n  [ OK ] 输出 Speaker (Realtek(R) Audio)（2 声道）  id={0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}\n\n── CUDA 语音后端（Special MVP：包内自带 NV5050 运行时）──\n  CUDA 运行时：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\cuda_env\\Scripts\\python.exe\n  运行时 python：[ OK ] 存在\n  TTS CUDA 模型：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models\\tts_cuda\n  模型文件：12 个（随包离线可用）\n  CUDA 可用性：[ OK ] torch 2.11.0+cu128 / CUDA 12.8 / available=True\n\n====================================================================\n  结论：环境正常。ASR 可用后端 2 个，Intel 集显可用。\n====================================================================\n",
+    "stderr": "[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认—— 客户机若装过 MiniMVP 或完整版就会留下这种文件⇒ 本包的出厂默认不同 ⇒ 改用本包出厂默认（asr=GPU.0，mt=NPU，tts=CUDA）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+   },
+   "get_devices": {
+    "rc": 0,
+    "elapsed_s": 2.7,
+    "stdout": "{\"devices\": {\"asr\": \"GPU.0\", \"mt\": \"NPU\", \"tts\": \"CUDA\"}, \"notes\": [\"已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认—— 客户机若装过 MiniMVP 或完整版就会留下这种文件⇒ 本包的出厂默认不同 ⇒ 改用本包出厂默认（asr=GPU.0，mt=NPU，tts=CUDA）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\"], \"current_profile\": \"specialmvp\", \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"NPU\", \"tts\": \"CUDA\"}, \"config_path\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\wb_iso_ii_legacy3_ljt6yron\\\\Confucius4LiveCaption\\\\device_config.json\"}\n",
+    "stderr": "",
+    "parsed": {
+     "devices": {
+      "asr": "GPU.0",
+      "mt": "NPU",
+      "tts": "CUDA"
+     },
+     "notes": [
+      "已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认—— 客户机若装过 MiniMVP 或完整版就会留下这种文件⇒ 本包的出厂默认不同 ⇒ 改用本包出厂默认（asr=GPU.0，mt=NPU，tts=CUDA）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。"
+     ],
+     "current_profile": "specialmvp",
+     "default_devices": {
+      "asr": "GPU.0",
+      "mt": "NPU",
+      "tts": "CUDA"
+     },
+     "config_path": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_ii_legacy3_ljt6yron\\Confucius4LiveCaption\\device_config.json"
+    }
+   },
+   "warn_asr_mt_same_gpu_present": false,
+   "warn_lines": [
+    "[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认—— 客户机若装过 MiniMVP 或完整版就会留下这种文件⇒ 本包的出厂默认不同 ⇒ 改用本包出厂默认（asr=GPU.0，mt=NPU，tts=CUDA）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。"
+   ],
+   "resolved_devices": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "CUDA"
+   },
+   "notes": [
+    "已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认—— 客户机若装过 MiniMVP 或完整版就会留下这种文件⇒ 本包的出厂默认不同 ⇒ 改用本包出厂默认（asr=GPU.0，mt=NPU，tts=CUDA）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。"
+   ],
+   "current_profile": "specialmvp",
+   "default_devices": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "CUDA"
+   },
+   "id": "ii_legacy3",
+   "desc": "59 B 旧 3 键配置（真实文件逐字节）"
+  },
+  {
+   "iso_localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_iii_minimvp_v9_x0x9ye0i",
+   "config_written_bytes": 102,
+   "config_written_sha256": "7fb738598a37970d120f49fbfe7056dce83cb5edc2864d8a2571db1d10978517",
+   "config_content": "{\n  \"asr\": \"GPU.0\",\n  \"mt\": \"GPU.0\",\n  \"tts\": \"NPU\",\n  \"profile\": \"minimvp\",\n  \"defaults_version\": 9\n}",
+   "check": {
+    "rc": 0,
+    "elapsed_s": 10.5,
+    "stdout": "====================================================================\n  Confucius4 实时字幕 · 环境检查\n====================================================================\n包目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\n模型目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models\n\n── 依赖 ──\n  [ OK ] numpy            2.4.6\n  [ OK ] openvino         2026.4.1-22982-e213a147257-releases/2026/4\n  [ OK ] openvino_genai   2026.4.1.0-3408-ab01d1771e4\n  [ OK ] transformers     4.57.6\n  [ OK ] sounddevice      0.5.6\n  [ OK ] soundcard        \n  [ OK ] babelvox(Qwen3-TTS) 1.7.1\n  [ OK ] qwen3tts 模型   C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models\\qwen3tts\n\n── OpenVINO 设备 ──\n  [ OK ] GPU.0    Intel(R) Graphics (iGPU)\n  [ OK ] GPU.1    NVIDIA GeForce RTX 5050 Laptop GPU (dGPU)\n  [ OK ] NPU      Intel(R) AI Boost\n  Intel 集显 (GPU)：[ OK ] 可用\n  Intel NPU     ：[ OK ] 可用\n  注：CPU 推理已从可选设备清单移除（性能不推荐）；如确需 CPU 请用命令行 --asr-device CPU / --mt-device CPU。\n\n── ASR 后端（识别）──\n  [ OK ] Intel GPU · INT8 (stateful) 模型齐全\n  [ OK ] Intel NPU · INT8 (stateful) 模型齐全\n\n── 翻译后端（Hy-MT2-1.8B）──\n  [ OK ] Intel GPU · INT8-CW（默认） GPU.0    \n  [ — ] Intel GPU · INT4-CW        GPU.0    （本包不附带该量化版本）\n  [ OK ] Intel NPU · INT8-CW        NPU      \n  [ — ] Intel NPU · INT4-CW        NPU      （本包不附带该量化版本）\n  [ OK ] 自动 · INT8-CW 模型（默认） 跟随 --mt-device \n\n── 音频设备 ──\n  [ OK ] 麦克风 [1] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · MME（默认）\n  [ OK ] 麦克风 [0] Microsoft 声音映射器 - Input · MME\n  [ OK ] 麦克风 [9] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · Windows WASAPI\n  [ OK ] 输出 Speaker (Realtek(R) Audio)（2 声道）  id={0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}\n\n── CUDA 语音后端（Special MVP：包内自带 NV5050 运行时）──\n  CUDA 运行时：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\cuda_env\\Scripts\\python.exe\n  运行时 python：[ OK ] 存在\n  TTS CUDA 模型：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\models\\tts_cuda\n  模型文件：12 个（随包离线可用）\n  CUDA 可用性：[ OK ] torch 2.11.0+cu128 / CUDA 12.8 / available=True\n\n====================================================================\n  结论：环境正常。ASR 可用后端 2 个，Intel 集显可用。\n====================================================================\n",
+    "stderr": "[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=NPU）—— 那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认—— 客户机若装过 MiniMVP 或完整版就会留下这种文件⇒ 本包的出厂默认不同 ⇒ 改用本包出厂默认（asr=GPU.0，mt=NPU，tts=CUDA）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+   },
+   "get_devices": {
+    "rc": 0,
+    "elapsed_s": 1.5,
+    "stdout": "{\"devices\": {\"asr\": \"GPU.0\", \"mt\": \"NPU\", \"tts\": \"CUDA\"}, \"notes\": [\"已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=NPU）—— 那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认—— 客户机若装过 MiniMVP 或完整版就会留下这种文件⇒ 本包的出厂默认不同 ⇒ 改用本包出厂默认（asr=GPU.0，mt=NPU，tts=CUDA）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\"], \"current_profile\": \"specialmvp\", \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"NPU\", \"tts\": \"CUDA\"}, \"config_path\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\wb_iso_iii_minimvp_v9_x0x9ye0i\\\\Confucius4LiveCaption\\\\device_config.json\"}\n",
+    "stderr": "",
+    "parsed": {
+     "devices": {
+      "asr": "GPU.0",
+      "mt": "NPU",
+      "tts": "CUDA"
+     },
+     "notes": [
+      "已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=NPU）—— 那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认—— 客户机若装过 MiniMVP 或完整版就会留下这种文件⇒ 本包的出厂默认不同 ⇒ 改用本包出厂默认（asr=GPU.0，mt=NPU，tts=CUDA）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。"
+     ],
+     "current_profile": "specialmvp",
+     "default_devices": {
+      "asr": "GPU.0",
+      "mt": "NPU",
+      "tts": "CUDA"
+     },
+     "config_path": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_iii_minimvp_v9_x0x9ye0i\\Confucius4LiveCaption\\device_config.json"
+    }
+   },
+   "warn_asr_mt_same_gpu_present": false,
+   "warn_lines": [
+    "[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=NPU）—— 那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认—— 客户机若装过 MiniMVP 或完整版就会留下这种文件⇒ 本包的出厂默认不同 ⇒ 改用本包出厂默认（asr=GPU.0，mt=NPU，tts=CUDA）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。"
+   ],
+   "resolved_devices": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "CUDA"
+   },
+   "notes": [
+    "已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=NPU）—— 那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认—— 客户机若装过 MiniMVP 或完整版就会留下这种文件⇒ 本包的出厂默认不同 ⇒ 改用本包出厂默认（asr=GPU.0，mt=NPU，tts=CUDA）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。"
+   ],
+   "current_profile": "specialmvp",
+   "default_devices": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "CUDA"
+   },
+   "id": "iii_minimvp_v9",
+   "desc": "minimvp v9 配置（profile=minimvp, defaults_version=9）"
+  }
+ ],
+ "real_config_after": {
+  "exists": true,
+  "bytes": 59,
+  "sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+  "mtime": 1794623753.483541,
+  "mtime_str": "2026-11-14 10:35:53"
+ },
+ "real_config_unchanged": true,
+ "finished": "2026-11-14 17:12:42",
+ "verdict_detail": [
+  {
+   "case": "i_empty",
+   "expect": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "CUDA"
+   },
+   "got": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "CUDA"
+   },
+   "pass": true
+  },
+  {
+   "case": "ii_legacy3",
+   "expect": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "CUDA"
+   },
+   "got": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "CUDA"
+   },
+   "pass": true
+  },
+  {
+   "case": "iii_minimvp_v9",
+   "expect": "profile 不同 ⇒ 不得沿用 minimvp 的设备项 ⇒ 同 (i)(ii)",
+   "got": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "CUDA"
+   },
+   "pass": true
+  }
+ ],
+ "warn_violations": [],
+ "real_config_ok": true,
+ "verdict": "PASS"
+}
