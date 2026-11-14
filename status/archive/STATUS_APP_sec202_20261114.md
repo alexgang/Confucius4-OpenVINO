@@ -1,0 +1,19 @@
+# STATUS_APP §202 整块逐字归档（2026-11-14）
+
+归档时间：2026-11-14 18:28:17
+归档原因：活文档逼近 **40 000 B** 上限（APP-052④），为 §203 出空间。
+正文一字未删（标题行仍留在活文档）。
+
+§202 正文块 SHA256（含标题行）：98e117978d02b50449e23804ce49dbe0294b8a5a669e12ab293ca45b0572a1c3（5903 B）
+
+---- 以下为 §202 原文，逐字 ----
+## §202 执行 **APP-108 / APP-109**（last_ack=APP-109，2026-11-14 17:17:05）｜🔴 **修掉 Special MVP 真缺陷（出厂默认 MT=NPU 曾被旧配置覆盖成 GPU.0）并出 sp2**｜🔴 **OPEN-1（0xC0000409）仍未定位**
+> 🔴 **本节是摘要；完整正文逐字存于** `status/app/STATUS_APP_sec202_detail_20261114.md`（活文档 40 000 B／300 行上限 APP-052④）｜证据 json 全在 `results/app/`。
+> **① 新纠偏**：开工 `CORRECTIONS_APP.md`＝**109 条／最大 APP-109**（SHA `30a55189…`／360 842 B）⇒ 新增 APP-108／APP-109 ⇒ 本轮执行。**APP-108 §1（明文口令）被 APP-109 ② 撤回** ⇒ 本轮**未处理**、**未改动**任何含口令的文件 ⇒ **该条验收口径未达成**（因已撤回，如实记录；本节不复述口令特征串）。
+> **② APP-108 §2｜🔴 真缺陷（已修）**：根因＝`device_config.current_profile()` **从不返回 `'specialmvp'`** ⇒ `stale_device_keys()` **从不忽略**旧配置的设备项 ⇒ 客户机残留的 59 B 旧 3 键配置（GPU.0×3）**覆盖出厂默认 MT=NPU**。**sp1 实测**（`app549_sp1_device_resolution.json` → **FAIL**）：59 B 旧 3 键→**`GPU.0/GPU.0/GPU.0`**✘、minimvp v9→**`GPU.0/GPU.0/NPU`**✘，两次都打出「ASR 与 MT 都放在 GPU.0」告警。**修法（dev 树 3 文件）**：`current_profile()` 返回三形态；`stale_device_keys()` 改「**profile＋代次都匹配才信任**」（specialmvp 第 10 代／minimvp 第 9 代不变）⇒ **profile 不同 ⇒ 不沿用**；`save_config()` 写当前代次；告警文案改按 `uses_stateful_asr_decoder()` 判。
+> **③ sp2 已出**（`Confucius4_LiveCaption_SpecialMVP_v1.0-sp2`）：`app550_specialmvp_sp2_build.json` → **PASS**（41 374 文件／14 232 030 829 B；`.pyc` 0；黑名单 0；28 个 `app/*.py` 与 dev 树逐字节一致；`pyvenv.cfg` 已重定位 sp2 ⇒ 随包离线可用）。**包内复验** `app549_sp2_device_resolution.json` → **PASS**：三配置**全**＝**GPU.0/NPU/CUDA**、**告警消失**、真实配置 SHA 前后不变（59 B／`9d484c1c…`）——**§3 三臂用的就是用户真实那份旧配置**（stderr 打出「已忽略旧配置里的设备项…」⇒ 真被读到并忽略）。**回归** `app552_special_profile_check_after_fix.json` → PASS（MiniMVP／完整版**一字不变**）。🔴 **只出包目录、没打 zip**（用户不通知不打包）⇒ README 的 zip 字段留占位。
+> **④ APP-108 §3｜OPEN-1 未定位**（`app551_open1_two_arm.json`＋`app551_open1_armC.json`）：sp2 上持锁跑同一段 10 分钟 —— **A** MT=NPU+TTS off → **rc=0**；**B** MT=GPU.0+TTS=CUDA → **rc=0**（丢弃 4／积压峰 18.55 s）；**C** MT=NPU+TTS=CUDA（**阳性对照**＝§195 ⑦b 原始 abort 那组，亦是 sp2 出厂默认）→ **rc=0**（丢弃 5／积压峰 23.06 s）⇒ **三臂都没 abort**（不是 NPU 单独、不是 CUDA 单独、也不是两者组合在 10 分钟尺度必然造成）⇒ **未定位**；**事件日志（ID 1000/1001）0 条、WER 无新增报告** ⇒ **无 faulting module 可取**。🔴 **验收结论已改写**（reviewer 明文「不要写 13/13」）：`app553_specialmvp_sp2_acceptance.json` → **「PASS（有 1 项未结：退出码异常）」** ⇒ **撤回 §195 ③ 与「最近更新」11-13 21:27:28 的「PASS（13/13）」写法**。
+> **⑤ APP-108 §4｜10 句丢弃已查清**（`app552_specialmvp_dropped_sentences.json`）：**10/10 全是 `late_drop`**（阈值 **6.0 s**、滞后 6.070–7.637 s）；**不是**关闭作废（0）、**不是**超时（失败 0）⇒ 🔴 **reviewer 猜的「8 s 规则」不是现役规则**：8 s 是**已删除**的旧 `BACKLOG_MAX_S`；现役 6.0 s 出自 **APP-092 §2**（明文「取代 10-27『TTS 不丢句』规则：内容仍完整保留在字幕和转写里，只丢过期的语音」）⇒ **不是违反用户决定**；要完全不丢需阈值＝**0** ⇒ 🔴 **改默认属用户决定，本轮未改**。**⑥ §195 ③ 的「?」字段已补齐**：**TTS 由 CUDA 合成（加载 25.4 s／预热 2.0 s，源＝sidecar READY 行）**；D 项 detail → **提交 152／播完 142／丢弃 10**（§195 ③ 已归档 write-once ⇒ 只登记补齐值）。
+> **⑦ APP-108 §5 FYI**：克隆缓存键现状正确（`_clone_tmp_wav` 文件名带 pid＋毫秒）⇒ 将来改固定文件名**必须**换路径/清缓存；缓存**只增不减** ⇒ 未改。**`_clone_tmp_wav` docstring 已按 §5 改掉**（「不在交付包内/不可达」**sp1 起不成立**：包内自带 `cuda_env/` ⇒ 该路线可达；该形态克隆置灰但正常路径走不到）⇒ 🔴 排在三臂实测**之后**，同步后已重跑 app549＋逐字节闸门（`app555…json` PASS）。
+> **⑧ 纪律**：**未打包 zip**｜**sp1 目录与 zip 一字未动**｜**旧包/zip 不覆盖不删**（APP-055）｜**未跑推理于 CPU**（设备作业全程持 `MACHINE_LOCK`，锁的活/死用 ctypes 判，探测失败即视为存活）｜**未调 MiniMax**｜**未改 `CORRECTIONS_APP.md`**（只读、未入库）｜**未提交**别的模块的未提交改动｜**未动 B 机任何文件**（APP-109 ④）。**其他通道**：ASR 侧新增 **ASR-058**（**无 App 条目**）｜git `origin/main...main`＝**0/1**（多是 **ASR 模块**自己的提交 `5f1aab5`，只含 `status/asr/*`）。
+> **⑨ 等用户/reviewer**：① **sp2 的 zip**（须**用户通知**才打；README 体积行已留占位）② **TTS 是否改为默认不丢句**（6.0 → 0？）③ **OPEN-1** 是否继续定位 ④ gradio 示例音频是否下一版排除 ⑤ B 机磁盘（82 MB）由用户自己处理 ⑥ 沿用未变：10 个缺陷包作废/标注、**v2.5** 何时打（**必须带收窄**）、EXT 通知、rc11 链号、`app523` 假 FAIL、目标机 SHA256 对账（需**开机＋凭据**）—— 详见 §201／§199。

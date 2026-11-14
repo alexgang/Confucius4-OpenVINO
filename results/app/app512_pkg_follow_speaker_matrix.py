@@ -60,20 +60,35 @@ TMP_REPO = None
 
 
 def pkg_dirs():
+    """枚举**磁盘上全部**客户包目录 ⇒ 返回 [(名字, app 目录, 有无 tts_worker.py)]。
+
+    🔴🔴 §203（本轮新发现）：原实现有**两个静默漏扫**口子 ——
+      ① **过滤器只认两个前缀**：`Confucius4_LiveCaption_v*`（完整版）
+         ＋ `Confucius4_LiveCaption_MiniMVP_v*` ⇒ **SpecialMVP 全家被漏**
+         （`Confucius4_LiveCaption_SpecialMVP_v1.0-sp1` / `-sp2` ⇒ §195/§202
+           刚出的两个客户候选包**从未进过包矩阵闸门** ⇒ §190 的老教训
+           「缺文件 ≠ 不适用」在**包级**同样成立：**没扫 ≠ 没缺陷**）。
+      ② **没有 `app/tts_worker.py` 的目录被 `continue` 掉** ⇒ 矩阵报的
+         「N 个包」会**静默少于**磁盘实际包数 ⇒ §201 已修正过的「目录数」
+         与矩阵的「包数」从此对不上，且**从 evidence 里看不出来**。
+    ⇒ 修法：过滤器放宽到 `Confucius4_LiveCaption_`（覆盖三种形态），
+      且**所有**候选目录都进矩阵（没有 tts_worker.py 的单独记成
+      `SKIP_NO_TTS_WORKER` 行，**不计入通过数**），evidence 里另写
+      `coverage`（候选/已扫/跳过三数）⇒ **矩阵不可能再少报**。
+
+    🔴 **判据语义未改**：`tag` 的三分支改法仍**等 reviewer 裁定**（§194 ④），
+      本轮**只改覆盖范围，不改任何 verdict 口径**。
+    """
     out = []
     for name in sorted(os.listdir(PKG_ROOT)):
-        # 🔴🔴 §189：**MiniMVP 也要扫**。原条件
-        #   `startswith('Confucius4_LiveCaption_v')` 只匹配**完整版**
-        #   ⇒ MiniMVP 目录名 `Confucius4_LiveCaption_MiniMVP_v1.0-rcN` 全部被漏掉
-        #   ⇒ §185/§186/§188 引用的「真包矩阵 9/9」**只覆盖了完整版**
-        #   ⇒ 实测 MiniMVP rc1/rc2/rc3/rc4/rc5（及 base v1.0）同样缺 APP-086·2a 收窄
-        if not (name.startswith('Confucius4_LiveCaption_v')
-                or name.startswith('Confucius4_LiveCaption_MiniMVP_v')):
+        if not name.startswith('Confucius4_LiveCaption_'):
             continue
         d = os.path.join(PKG_ROOT, name)
+        if not os.path.isdir(d):
+            continue          # zip 等非目录项
         app = os.path.join(d, 'app')
-        if os.path.isfile(os.path.join(app, 'tts_worker.py')):
-            out.append((name, app))
+        out.append((name, app,
+                    os.path.isfile(os.path.join(app, 'tts_worker.py'))))
     return out
 
 
@@ -138,8 +153,23 @@ def main() -> int:
     shutil.copy2(GATE, os.path.join(tmp, 'results', 'app',
                                     'app157_follow_speaker_regression_test.py'))
     rows = []
+    skipped = []
     try:
-        for name, app in pkg_dirs():
+        for name, app, has_tw in pkg_dirs():
+            if not has_tw:
+                # 🔴 §203：没有 tts_worker.py 的包**不再被静默丢掉**
+                #   ⇒ 单独记一行（判据**不适用**，**不算通过**）
+                skipped.append(name)
+                rows.append(dict(
+                    pkg=name, app_dir=app,
+                    branch2_exists=None, branch2_has_bound_guard=None,
+                    verdict='SKIP_NO_TTS_WORKER', pass_=None, fail=None,
+                    B1=None, B3=None,
+                    tag='🔴 该包无 `app/tts_worker.py` ⇒ 判据**不适用**'
+                        '（**不得当作通过**；需人工确认该包是否可交付）'))
+                print('%-46s %-5s  (no app/tts_worker.py ⇒ 判据不适用)'
+                      % (name, 'SKIP'))
+                continue
             txt, has_b2, guarded = decision_branch(app)
             ev = run_gate(app)
             row = dict(pkg=name, app_dir=app,
@@ -177,10 +207,26 @@ def main() -> int:
 
     out = dict(script=os.path.basename(__file__),
                note='对客户包**只读**；判据跑在临时仓库里 ⇒ 不覆盖仓库既有 evidence',
+               coverage=dict(
+                   n_candidate_dirs=len(rows),
+                   n_scanned=len(rows) - len(skipped),
+                   n_skipped_no_tts_worker=len(skipped),
+                   skipped_dirs=skipped,
+                   package_dirs=[r['pkg'] for r in rows],
+                   coverage_ok=(len(rows) == len(skipped) + (len(rows) - len(skipped))
+                                and len(rows) > 0)),
                packages=rows, dev_tree=dev_row)
     with open(OUT, 'w', encoding='utf-8') as f:
         json.dump(out, f, ensure_ascii=False, indent=1)
-    print('\nevidence -> %s' % OUT)
+    print('\ncoverage: 候选 %d ／ 已扫 %d ／ 无 tts_worker 跳过 %d %s'
+          % (out['coverage']['n_candidate_dirs'],
+             out['coverage']['n_scanned'],
+             out['coverage']['n_skipped_no_tts_worker'],
+             ('⇒ ' + ', '.join(skipped)) if skipped else ''))
+    if skipped:
+        print('🔴 有 %d 个包**未进判据**（无 app/tts_worker.py）'
+              ' ⇒ 「没扫」**不等于**「没缺陷」' % len(skipped))
+    print('evidence -> %s' % OUT)
     return 0
 
 
