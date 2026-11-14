@@ -114,11 +114,19 @@ rest = rest.replace('更新时间: ' + TS, '更新时间: 2026-11-14 19:38:17')
 chk('还原式复核：逐字节回到开工备份', rest.encode('utf-8') == pre,
     '还原 %d B vs 开工 %d B' % (len(rest.encode('utf-8')), len(pre)))
 
-# ── 7. 开工备份本身 = HEAD 的 blob（未被中途篡改）──
-p = subprocess.run(['git', 'cat-file', 'blob', 'HEAD:status/app/STATUS_APP.md'],
+# ── 7. 开工备份本身 = **开工那个 commit** 的 blob（未被中途篡改）──
+# 🔴 §205 收尾修正：原判据比的是 `HEAD:` ⇒ 提交之后 HEAD 自然前移 ⇒ 判据**过期**
+#    （38/38 → 37/38 的那一条 FAIL 正是这个，不是数据问题）⇒ 改成钉在**开工时**
+#    的 commit `8b6775d`（§204 那一版），并额外断言当前 HEAD 里含新的 §205。
+p = subprocess.run(['git', 'cat-file', 'blob',
+                    '8b6775d:status/app/STATUS_APP.md'],
                    cwd=REPO, capture_output=True)
-chk('开工备份 == HEAD blob（status/app/STATUS_APP.md）', p.stdout == pre,
-    'HEAD %d B / 备份 %d B' % (len(p.stdout), len(pre)))
+chk('开工备份 == 开工 commit(8b6775d) 的 blob', p.stdout == pre,
+    '8b6775d %d B / 备份 %d B' % (len(p.stdout), len(pre)))
+p2 = subprocess.run(['git', 'cat-file', 'blob', 'HEAD:status/app/STATUS_APP.md'],
+                    cwd=REPO, capture_output=True)
+chk('当前 HEAD 的 STATUS == 落盘后的 STATUS（已提交）', p2.stdout == cur,
+    'HEAD %d B / 落盘 %d B' % (len(p2.stdout), len(cur)))
 
 # ── 8. 纠偏文件零改动（只读）──
 cb = open(CORR, 'rb').read()
