@@ -17,7 +17,19 @@
 
 跑法（不需要 GPU、不需要模型、不需要机器锁）：
     .venv\\Scripts\\python.exe live_caption\\diag_device_gui.py
+
+🔴🔴 **本脚本不得写用户的真实配置**（APP-106 §1 / §191）：
+   构造 App 会走 ``_init_combo_values`` → ``device_config.save_config(...)``
+   ⇒ 旧实现一跑就把真实
+   ``%LOCALAPPDATA%\\Confucius4LiveCaption\\device_config.json`` 覆盖成
+   「当前出厂默认 + profile + defaults_version」
+   ⇒ APP-106 §1 要保住的「旧用户配置」现场当场被毁
+   （2026-11-12 16:43:10 那次 108 B 的覆盖就是这条路径）。
+   ⇒ 现在在 import 之前把 ``LOCALAPPDATA`` 指到**隔离目录**，
+   连模块级的 ``CONFIG_DIR`` 都在临时目录里 ⇒ 真实配置物理上够不到；
+   收尾再断言真实配置的 SHA256 未变。
 """
+import hashlib
 import json
 import os
 import sys
@@ -32,6 +44,17 @@ def check(name, cond, detail=''):
     print(f'  [{"PASS" if cond else "FAIL"}] {name}' + (f'  {detail}' if detail else ''))
     if not cond:
         FAILS.append(name)
+
+
+def _sha256(path):
+    """文件的 SHA256；文件不存在 ⇒ None（用于「真实配置有没有被改」的断言）。"""
+    if not os.path.exists(path):
+        return None
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(65536), b''):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 class _Args:
@@ -61,6 +84,19 @@ class _Args:
 
 
 def main():
+    import tempfile
+
+    # 🔴 隔离：import 之前先把 LOCALAPPDATA 指到临时目录 ⇒
+    #    device_config 的模块级 CONFIG_DIR / CONFIG_PATH 都在临时目录里
+    #    ⇒ App 构造期的 save_config（以及三次 combo 切换的 save_config）
+    #    **物理上够不到**用户的真实配置。
+    real_env = os.environ.get('LOCALAPPDATA')
+    real_path = os.path.join(real_env or os.path.expanduser('~'),
+                              'Confucius4LiveCaption', 'device_config.json')
+    real_sha_before = _sha256(real_path)
+    iso_dir = tempfile.mkdtemp(prefix='diag_gui_devcfg_')
+    os.environ['LOCALAPPDATA'] = iso_dir
+
     import tkinter as tk
     from live_caption_app import App
     import device_config as dc
@@ -186,6 +222,14 @@ def main():
               f"{app.mt.engine_key} vs {want['engine']}")
 
     root.destroy()
+
+    # 🔴 收尾断言：用户的**真实配置**必须逐字节没被动过。
+    if real_env is not None:
+        os.environ['LOCALAPPDATA'] = real_env
+    real_sha_after = _sha256(real_path)
+    check('真实配置未被本脚本改动', real_sha_before == real_sha_after,
+          f'{real_path}: {real_sha_before} -> {real_sha_after}')
+
     print()
     if FAILS:
         print(f'ALL FAIL ({len(FAILS)}): ' + ', '.join(FAILS))
