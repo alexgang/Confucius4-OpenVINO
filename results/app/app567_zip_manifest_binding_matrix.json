@@ -1,0 +1,145 @@
+{
+ "matrix": "app567 §206 出包闸门传递绑定鉴别力矩阵",
+ "gate": "results/app/_app537_zip_specialmvp.py",
+ "before_arm": "HEAD blob（git cat-file blob HEAD:...）逐字原文",
+ "after_arm": "工作区修复后脚本",
+ "how": "AST 抽函数（不执行脚本主体）＋ 临时目录假包真跑；零写真实客户包",
+ "n_arms": 12,
+ "n_pass": 12,
+ "n_fail": 0,
+ "verdict": "PASS",
+ "rows": [
+  {
+   "id": "T1",
+   "desc": "未改动（回归守卫）",
+   "expect_before": "ALLOW",
+   "before": "ALLOW",
+   "expect_after": "ALLOW",
+   "after": "ALLOW",
+   "pass": true,
+   "before_reason": "",
+   "after_reason": ""
+  },
+  {
+   "id": "T2",
+   "desc": "模型文件内容被换（7.86 GiB 那类的传递绑定）",
+   "expect_before": "ALLOW",
+   "before": "ALLOW",
+   "expect_after": "BLOCK",
+   "after": "BLOCK",
+   "pass": true,
+   "before_reason": "",
+   "after_reason": "模型内容与 MANIFEST 不一致（1 项）：模型内容已变 m1/w.bin"
+  },
+  {
+   "id": "T3",
+   "desc": "models/ 下塞未登记文件",
+   "expect_before": "ALLOW",
+   "before": "ALLOW",
+   "expect_after": "BLOCK",
+   "after": "BLOCK",
+   "pass": true,
+   "before_reason": "",
+   "after_reason": "模型内容与 MANIFEST 不一致（1 项）：models/ 下有未登记的文件：['m1/extra.bin']"
+  },
+  {
+   "id": "T4",
+   "desc": "模型文件被删",
+   "expect_before": "ALLOW",
+   "before": "ALLOW",
+   "expect_after": "BLOCK",
+   "after": "BLOCK",
+   "pass": true,
+   "before_reason": "",
+   "after_reason": "模型内容与 MANIFEST 不一致（2 项）：缺模型文件 m1/w.bin；登记的模型文件不在包内：['m1/w.bin']"
+  },
+  {
+   "id": "T5",
+   "desc": "app/ 顶层新增 .py",
+   "expect_before": "BLOCK",
+   "before": "BLOCK",
+   "expect_after": "BLOCK",
+   "after": "BLOCK",
+   "pass": true,
+   "before_reason": "包内容与验收证据不一致（1 项）：验收后新增 .py：['app/new.py']",
+   "after_reason": "包内容与验收证据不一致（1 项）：验收后新增 .py：['app/new.py']"
+  },
+  {
+   "id": "T6",
+   "desc": "app/ 子目录新增 .py",
+   "expect_before": "ALLOW",
+   "before": "ALLOW",
+   "expect_after": "BLOCK",
+   "after": "BLOCK",
+   "pass": true,
+   "before_reason": "",
+   "after_reason": "包内容与验收证据不一致（1 项）：验收后新增 .py：['app/sub/new.py']"
+  },
+  {
+   "id": "T7",
+   "desc": "app/a.py 内容被改",
+   "expect_before": "BLOCK",
+   "before": "BLOCK",
+   "expect_after": "BLOCK",
+   "after": "BLOCK",
+   "pass": true,
+   "before_reason": "包内容与验收证据不一致（1 项）：内容已变 app/a.py",
+   "after_reason": "包内容与验收证据不一致（1 项）：内容已变 app/a.py"
+  },
+  {
+   "id": "T8",
+   "desc": "证据属于另一个包（§204 回归）",
+   "expect_before": "BLOCK",
+   "before": "BLOCK",
+   "expect_after": "BLOCK",
+   "after": "BLOCK",
+   "pass": true,
+   "before_reason": "验收证据属于另一个包：证据 pkg='C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1' ≠ 目标包='C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\app567_fake_92y_x221\\\\T8\\\\Confucius4_LiveCa",
+   "after_reason": "验收证据属于另一个包：证据 pkg='C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp1' ≠ 目标包='C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\app567_fake_92y_x221\\\\T8\\\\Confucius4_LiveCa"
+  },
+  {
+   "id": "T9",
+   "desc": "验收 verdict=FAIL",
+   "expect_before": "BLOCK",
+   "before": "BLOCK",
+   "expect_after": "BLOCK",
+   "after": "BLOCK",
+   "pass": true,
+   "before_reason": "包上验收未通过（verdict='FAIL（3 项未过）'），拒绝打包",
+   "after_reason": "包上验收未通过（verdict='FAIL（3 项未过）'），拒绝打包"
+  },
+  {
+   "id": "T10",
+   "desc": "证据无 pkg_content（§205 回归）",
+   "expect_before": "BLOCK",
+   "before": "BLOCK",
+   "expect_after": "BLOCK",
+   "after": "BLOCK",
+   "pass": true,
+   "before_reason": "验收证据没有内容绑定字段 `pkg_content` ⇒ 无法确认包内容与验收时一致，拒绝打包（请重跑包上验收后再打包）",
+   "after_reason": "验收证据没有内容绑定字段 `pkg_content` ⇒ 无法确认包内容与验收时一致，拒绝打包（请重跑包上验收后再打包）"
+  },
+  {
+   "id": "T11",
+   "desc": "MANIFEST 指向别的包的 models（验收时就存在）",
+   "expect_before": "ALLOW",
+   "before": "ALLOW",
+   "expect_after": "BLOCK",
+   "after": "BLOCK",
+   "pass": true,
+   "before_reason": "",
+   "after_reason": "MANIFEST 的 pkg_models_root 指向的不是本包的 models 目录：'C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\app567_fake_92y_x221\\\\T11\\\\OTHERPKG\\\\models'（本包='C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp"
+  },
+  {
+   "id": "T12",
+   "desc": "release.json 版本与目录名不符",
+   "expect_before": "BLOCK",
+   "before": "BLOCK",
+   "expect_after": "BLOCK",
+   "after": "BLOCK",
+   "pass": true,
+   "before_reason": "版本标识不自洽：release.json.version='9.9-x' ≠ 目录名版本='1.0-t1'",
+   "after_reason": "版本标识不自洽：release.json.version='9.9-x' ≠ 目录名版本='1.0-t1'"
+  }
+ ]
+}
