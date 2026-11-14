@@ -219,6 +219,35 @@ chk('D: 整链跑通（ASR GPU.0 → MT NPU → TTS CUDA）',
     'rc=%s tts_out=%s bytes=%s' % (D.get('rc'), D.get('tts_out_exists'),
                                    D.get('tts_out_bytes')))
 ev['checks'] = checks
+# ── §205 新增：**内容绑定**（把「验收时的包内容」逐文件 SHA256 记进证据）──
+# 🔴 Special MVP 的验收证据原先**只记计数**（"28 个 .py"）⇒ **一个 sha256 都没有**
+#    ⇒ 出包闸门（`_app537`）无法判断「包内容自验收以来有没有被改过」
+#    ⇒ 验收后改包照样能出包。现在把绑定范围内每个文件的 SHA256 记进 `pkg_content`，
+#    闸门会**逐条重算比对**。
+#    绑定范围：包内代码 + 元数据；不含 README*.md / docs/（打包脚本会重写 README
+#    的包体积行）、不含 cuda_env/、不含 models/（由 MANIFEST 逐文件 SHA 绑定）。
+_bound = ['app/' + f for f in sorted(os.listdir(os.path.join(PKG, 'app')))
+          if f.endswith('.py')]
+for _rel in ('release.json', 'package_profile.json', 'app/MANIFEST.json'):
+    if os.path.isfile(os.path.join(PKG, _rel.replace('/', os.sep))):
+        _bound.append(_rel)
+_bound = sorted(set(_bound))
+_bound_files = {r: sha256_file(os.path.join(PKG, r.replace('/', os.sep)))
+                for r in _bound}
+_td = hashlib.sha256()
+for _r in sorted(_bound_files):
+    _td.update(_r.encode('utf-8') + b'\x00' + _bound_files[_r].encode()
+               + b'\n')
+ev['pkg_content'] = {
+    'scope': ['app/*.py', 'release.json', 'package_profile.json',
+              'app/MANIFEST.json'],
+    'alg': 'sha256',
+    'n_files': len(_bound_files),
+    'files': _bound_files,
+    'tree_digest': _td.hexdigest(),
+    'note': '§205：验收时的包内容指纹；出包闸门逐条重算比对 ⇒ '
+            '验收后改包会被拦住',
+}
 ev['n_fail'] = sum(1 for c in checks if not c['pass'])
 ev['verdict'] = 'PASS' if ev['n_fail'] == 0 else 'FAIL'
 with open(OUT, 'w', encoding='utf-8') as f:

@@ -105,17 +105,63 @@ add('A3: 包内无 .pyc、无黑名单文件', n_pyc == 0 and not black,
 
 # ── ④ 核模型身份：MANIFEST 逐文件 SHA 重算 ──
 mpath = os.path.join(appdir, 'MANIFEST.json')
-mtxt = open(mpath, encoding='utf-8').read()
-if SP1 in mtxt:
-    n_hit = mtxt.count(SP1)
+mtxt = open(mpath, encoding='utf-8', newline='').read()
+m = json.loads(mtxt)
+cur_root = m.get('pkg_models_root')
+want_root = os.path.join(SP2, 'models')
+if cur_root != want_root:
+    # 🔴🔴 **2026-11-14 §205 修掉的真缺陷（死代码 ⇒ 重定向从未执行）**：
+    #    原实现是 `if SP1 in mtxt:` —— `mtxt` 是**裸 JSON 文本**（反斜杠已被转义成
+    #    `\\`），而 `SP1` 是**未转义**的单反斜杠路径 ⇒ `SP1 in mtxt` **恒为 False**
+    #    ⇒ 整段重定向**从来没执行过** ⇒ sp2 的 `app/MANIFEST.json` 一直带着
+    #    **sp1 的** `pkg_models_root`（实测 `...SpecialMVP_v1.0-sp1\\models`）⇒
+    #    **MANIFEST 自相矛盾**（指向不在包内的、另一个包的 models 目录）＋
+    #    泄漏构建机家目录字面量到交付包。
+    #    现在改成：**解码后的值**比较 ＋ **转义形态**定点替换 ＋ 唯一命中断言 ＋
+    #    写盘后逐字节复核（不改文件其余任何字节）。
+    if not cur_root:
+        raise RuntimeError('MANIFEST 缺 pkg_models_root 字段，无法重定向')
+    esc_old = json.dumps(cur_root)[1:-1]
+    esc_new = json.dumps(want_root)[1:-1]
+    n_hit = mtxt.count(esc_old)
     if n_hit != 1:
-        raise RuntimeError('MANIFEST 里 sp1 路径出现 %d 次（预期 1）' % n_hit)
-    m = json.loads(mtxt)
-    m['pkg_models_root'] = os.path.join(SP2, 'models')
-    m['created_at'] = time.strftime('%Y-%m-%d %H:%M:%S')
+        raise RuntimeError('MANIFEST 里 pkg_models_root 的转义形态出现 %d 次'
+                           '（预期 1）' % n_hit)
+    raw2 = mtxt.replace(esc_old, esc_new)
+    # created_at：语义 =「这份 MANIFEST 是为哪个包生成的」⇒ 一并刷新（唯一定位，
+    # 命中不唯一就**不改**并如实记录，绝不模糊替换）。
+    old_created = m.get('created_at')
+    created_done = 'skipped'
+    if isinstance(old_created, str) and old_created:
+        c_old = json.dumps(old_created)[1:-1]
+        c_new = json.dumps(time.strftime('%Y-%m-%d %H:%M:%S'))[1:-1]
+        if raw2.count(c_old) == 1:
+            raw2 = raw2.replace(c_old, c_new)
+            created_done = 'updated'
+        else:
+            created_done = 'kept(count=%d)' % raw2.count(c_old)
+    m2 = json.loads(raw2)
+    if m2.get('pkg_models_root') != want_root:
+        raise RuntimeError('替换后 pkg_models_root 仍不是 %s' % want_root)
+    # 只允许这两个键发生变化（其余任何字段的字节都不能动）
+    diff_keys = {k for k in set(m) | set(m2) if m.get(k) != m2.get(k)}
+    if not diff_keys <= {'pkg_models_root', 'created_at'}:
+        raise RuntimeError('MANIFEST 改动范围超出预期（只允许 pkg_models_root'
+                           ' 与 created_at，实际多了 %s）'
+                           % sorted(diff_keys - {'pkg_models_root',
+                                                 'created_at'}))
     with open(mpath, 'w', encoding='utf-8', newline='\n') as f:
-        json.dump(m, f, ensure_ascii=False, indent=1)
-    ev['manifest_repointed'] = {'from': SP1, 'to': SP2, 'hits': n_hit}
+        f.write(raw2)
+    chk = open(mpath, encoding='utf-8', newline='').read()
+    if chk != raw2:
+        raise RuntimeError('MANIFEST 写盘后逐字节不一致')
+    if json.loads(chk).get('pkg_models_root') != want_root:
+        raise RuntimeError('写盘后 pkg_models_root 仍不对')
+    ev['manifest_repointed'] = {'from': cur_root, 'to': want_root,
+                                'raw_hits': n_hit, 'created_at': created_done,
+                                'method': 'escaped-text-targeted-replace',
+                                'note': '§205：原 `SP1 in mtxt` 是死代码（裸 JSON '
+                                        '文本 vs 未转义路径）⇒ 重定向从未执行'}
 
 m = json.load(open(mpath, encoding='utf-8'))
 n_ok = n_bad = 0
@@ -237,6 +283,42 @@ ev['open_issues'] = [{
               'APP-108 §3 要求做 10 分钟两臂对照并附 Windows 事件日志 —— '
               '见 arms 字段与 §202 的结论。',
 }]
+
+# ── ⑪ **内容绑定**（§205 新增）：把「验收时的包内容」逐文件 SHA256 记进证据 ──
+# 🔴 **为什么必须有**（§204 修完 fail-open 后的剩余轴）：验收证据原先**只记计数**
+#    （"28 个 .py，不一致 0 个"）⇒ **一个 sha256 都没有** ⇒ 打包闸门拿它无法判断
+#    「包内容自验收以来有没有被改过」⇒ 验收后改包照样能出包。
+#    现在把**绑定范围**内的每个文件逐个 SHA256 记进 `pkg_content`，
+#    出包闸门（`_app537`）会**逐条重算比对**（见 `check_content_binding`）。
+#    绑定范围：**包内代码 + 元数据**；
+#    **不含** README*.md / docs/（打包脚本自己会重写 README 的包体积行）、
+#    **不含** cuda_env/（数千个运行时文件）、**不含** models/（由 MANIFEST 的
+#    逐文件 SHA256 绑定，见 A4）。
+BOUND_SCOPE = ('app/*.py', 'release.json', 'package_profile.json',
+               'app/MANIFEST.json')
+_bound = []
+for _f in sorted(os.listdir(appdir)):
+    if _f.endswith('.py'):
+        _bound.append('app/' + _f)
+for _rel in ('release.json', 'package_profile.json', 'app/MANIFEST.json'):
+    if os.path.isfile(os.path.join(SP2, _rel.replace('/', os.sep))):
+        _bound.append(_rel)
+_bound = sorted(set(_bound))
+_bound_files = {r: sha256_file(os.path.join(SP2, r.replace('/', os.sep)))
+                for r in _bound}
+_tdigest = hashlib.sha256()
+for _r in sorted(_bound_files):
+    _tdigest.update(_r.encode('utf-8') + b'\x00' + _bound_files[_r].encode()
+                    + b'\n')
+ev['pkg_content'] = {
+    'scope': list(BOUND_SCOPE),
+    'alg': 'sha256',
+    'n_files': len(_bound_files),
+    'files': _bound_files,
+    'tree_digest': _tdigest.hexdigest(),
+    'note': '§205：验收时的包内容指纹；出包闸门逐条重算比对 ⇒ '
+            '验收后改包会被拦住',
+}
 
 n_fail = sum(1 for c in ev['checks'] if not c['pass'])
 ev['n_checks'] = len(ev['checks'])
