@@ -7,9 +7,21 @@
   · **两遍打包**：第 1 遍量出 zip 字节数 ⇒ 回填 README（固定宽度 ⇒ 长度不变）
     ⇒ 第 2 遍体积应**完全一致**（收敛）⇒ 不一致就报错（rc11 的老坑）；
   · zip 内**不含** `.pyc` / 黑名单文件（打之前断言）。
+
+🔴 **2026-11-14 §204 修订**（目标包参数化 + 闸门修正，见 STATUS §204）：
+  · 原先把 `PKG_NAME`/`DST_PKG`/`ZIP`/`ACCEPT`/`REPORT` **全写死成 sp1**
+    ⇒ 给 sp2 打 zip 必须改源码，最易漏改的正是 `ACCEPT` ⇒ **fail-closed
+    闸门被架空**（拿 sp1 的验收结论放行 sp2）；现在改为**参数指定**，
+    且闸门**强制「验收证据必须属于正在打包的那个包」**；
+  · 验收 verdict 的判定由**精确字符串 `'PASS'`** 改为接受 reviewer 在 §202
+    明文规定的口径 `'PASS'` 与 `'PASS（有 N 项未结：…）'`（未结项单列
+    `open_issues`、不并入 PASS 判定）；其它写法一律拒绝；
+  · 新增 `--check-only`：**只跑闸门、零写入**，可在用户通知打包前先验证就绪度。
 """
+import argparse
 import json
 import os
+import re
 import sys
 import time
 import zipfile
@@ -17,28 +29,141 @@ import zipfile
 HOME = r"C:\Users\Trekker-PTL"
 REPO = os.path.join(HOME, 'confucius4-openvino')
 RESULTS = os.path.join(REPO, 'results', 'app')
-PKG_NAME = 'Confucius4_LiveCaption_SpecialMVP_v1.0-sp1'
-DST_PKG = os.path.join(HOME, PKG_NAME)
-ZIP = os.path.join(HOME, 'shared', 'specialmvp',
-                   PKG_NAME + '.zip')
-ACCEPT = os.path.join(RESULTS, 'app536_specialmvp_acceptance.json')
-REPORT = os.path.join(RESULTS, 'app537_specialmvp_zip.json')
+
+# 🔴🔴 **2026-11-14 §204 重写**：原先 `PKG_NAME` / `DST_PKG` / `ZIP` / `ACCEPT`
+#    / `REPORT` **全部写死成 sp1** ⇒ 要给 sp2 打 zip **必须改源码**，
+#    而最容易被漏改的恰恰是 `ACCEPT`（验收证据）⇒ **fail-closed 闸门被架空**：
+#    实测「只改 PKG_NAME、ACCEPT 仍指 sp1」⇒ 拿 **sp1 的验收结论**放行
+#    **sp2**，闸门照样通过（详见 STATUS §204 ②）。
+#    ⇒ 现在：目标包 / 验收证据 / zip / 报告 **都可参数指定**，
+#      且闸门**强制「证据必须属于正在打包的那个包」**。
+DEFAULT_PKG_NAME = 'Confucius4_LiveCaption_SpecialMVP_v1.0-sp1'
+DEFAULT_ACCEPT = 'app536_specialmvp_acceptance.json'
+DEFAULT_REPORT = 'app537_specialmvp_zip.json'
 NUM_WIDTH = 18
+
+_ap = argparse.ArgumentParser(
+    description='给 Special MVP 打 zip（新版本号，不覆盖旧包；§204 参数化）')
+_ap.add_argument('--pkg-name', default=DEFAULT_PKG_NAME,
+                 help='目标包目录名（sp2 ⇒ '
+                      'Confucius4_LiveCaption_SpecialMVP_v1.0-sp2）')
+_ap.add_argument('--accept', default=DEFAULT_ACCEPT,
+                 help='包上验收证据文件名（在 results/app/ 下）；'
+                      '闸门会强制它**属于 --pkg-name**')
+_ap.add_argument('--report', default=None,
+                 help='zip 证据 json 路径（默认 results/app/<包名>_zip.json）')
+_ap.add_argument('--zip', default=None,
+                 help='输出 zip 路径（默认 shared/specialmvp/<包名>.zip）')
+_ap.add_argument('--check-only', action='store_true',
+                 help='只跑闸门并打印结论，**不写任何文件**'
+                      '（不出 zip、不改 README）')
+_args = _ap.parse_args()
+
+PKG_NAME = _args.pkg_name
+DST_PKG = os.path.join(HOME, PKG_NAME)
+ZIP = _args.zip or os.path.join(HOME, 'shared', 'specialmvp',
+                                PKG_NAME + '.zip')
+ACCEPT = os.path.join(RESULTS, _args.accept)
+if _args.report:
+    REPORT = _args.report
+elif PKG_NAME == DEFAULT_PKG_NAME:
+    REPORT = os.path.join(RESULTS, DEFAULT_REPORT)
+else:
+    REPORT = os.path.join(
+        RESULTS, PKG_NAME.replace('Confucius4_LiveCaption_', '') + '_zip.json')
+
+
+def _norm_pkg(p):
+    """归一化包目录路径（便于比较：大小写不敏感、去尾部分隔符）。"""
+    return os.path.normcase(os.path.normpath(p)).rstrip('\\/').lower()
+
+
+def _verdict_ok(v):
+    """验收 verdict 是否算「通过」。
+
+    🔴 **2026-11-14 §204**：原先是 `verdict != 'PASS'` **精确字符串**比较 ⇒
+    reviewer 在 §202 明文规定的口径「**PASS（有 1 项未结：退出码异常）**」
+    （未结项单列 `open_issues`、**不并入** PASS 判定）会被**误判为未通过**
+    ⇒ 正确指向 sp2 自己的证据反而**打不出 zip**（假 FAIL）。
+    ⇒ 现在接受 reviewer 口径的两种写法：'PASS' 与 'PASS（…）'／'PASS(…)'；
+      其它任何写法（'FAIL'／空／缺字段）一律拒绝。
+    """
+    if not isinstance(v, str):
+        return False
+    return v == 'PASS' or v.startswith('PASS（') or v.startswith('PASS(')
+
+
+def check_acceptance(pkg_dir, accept_path):
+    """🔴 **fail-closed 验收闸门**（§204 重写）：任一条不满足 ⇒ 抛错拒绝出包。
+
+    ① **证据存在**；
+    ② **证据属于正在打包的那个包**（`acc['pkg']` 归一化后必须等于 `pkg_dir`）
+       ⇒ 杜绝「拿 sp1 的验收结论放行 sp2」（§204 ② 实测的 fail-open）；
+    ③ **verdict 算通过**（见 `_verdict_ok`）⇒ 其它写法一律拒绝。
+    """
+    if not os.path.isfile(accept_path):
+        raise RuntimeError('缺包上验收证据，拒绝打包：%s' % accept_path)
+    acc = json.load(open(accept_path, encoding='utf-8'))
+    problems = []
+    acc_pkg = acc.get('pkg')
+    if not acc_pkg:
+        problems.append('验收证据缺 pkg 字段，无法确认它属于哪个包')
+    elif _norm_pkg(acc_pkg) != _norm_pkg(pkg_dir):
+        problems.append('验收证据属于另一个包：证据 pkg=%r ≠ 目标包=%r'
+                        % (acc_pkg, pkg_dir))
+    if not _verdict_ok(acc.get('verdict')):
+        problems.append('包上验收未通过（verdict=%r），拒绝打包'
+                        % (acc.get('verdict'),))
+    if problems:
+        raise RuntimeError('；'.join(problems))
+    return acc
+
+
+def check_release_identity(pkg_dir, pkg_name):
+    """🔴 包版本标识自洽：`release.json.version` 必须等于包目录名里的版本后缀。
+
+    ⇒ 杜绝「目录名 sp2、内容自称 sp1」这类张冠李戴。
+    ⚠️ SpecialMVP / MiniMVP 形态的 `app/MANIFEST.json` **没有** `version` 字段
+       （只有完整版有）⇒ 版本标识**只**在 `release.json` 里 ⇒ 这里必须查。
+    """
+    rp = os.path.join(pkg_dir, 'release.json')
+    if not os.path.isfile(rp):
+        raise RuntimeError('包内缺 release.json，拒绝打包：%s' % rp)
+    rel = json.load(open(rp, encoding='utf-8'))
+    m = re.search(r'_v([0-9][0-9A-Za-z.\-+]*)$', pkg_name)
+    if not m:
+        raise RuntimeError('包目录名里解析不出版本号，拒绝打包：%r' % pkg_name)
+    want, got = m.group(1), rel.get('version')
+    if got != want:
+        raise RuntimeError('版本标识不自洽：release.json.version=%r ≠ 目录名版本=%r'
+                           % (got, want))
+    return rel
+
 
 ev = {'zip': ZIP, 'pkg': DST_PKG, 'actions': []}
 t0 = time.time()
 
-# ── ① 验收必须 PASS ──
-if not os.path.isfile(ACCEPT):
-    raise RuntimeError('缺包上验收证据，拒绝打包：%s' % ACCEPT)
-acc = json.load(open(ACCEPT, encoding='utf-8'))
+# ── ① 验收必须 PASS（fail-closed；§204 重写：证据须属于本包）──
+acc = check_acceptance(DST_PKG, ACCEPT)
 ev['accept_verdict'] = acc.get('verdict')
 ev['accept_checks'] = acc.get('checks')
-if acc.get('verdict') != 'PASS':
-    raise RuntimeError('包上验收未通过（%s），拒绝打包'
-                       % acc.get('verdict'))
+ev['accept_pkg'] = acc.get('pkg')
+ev['accept_open_issues'] = acc.get('open_issues')
+rel = check_release_identity(DST_PKG, PKG_NAME)
+ev['release_version'] = rel.get('version')
 if os.path.exists(ZIP):
     raise RuntimeError('zip 已存在（不覆盖旧版本，APP-055）：%s' % ZIP)
+if _args.check_only:
+    ev['check_only'] = True
+    print('闸门 PASS：验收 verdict=%r（证据属于 %s）'
+          % (acc.get('verdict'), acc.get('pkg')))
+    print('            release.json.version=%r（目录名 %s）'
+          % (rel.get('version'), PKG_NAME))
+    if acc.get('open_issues'):
+        print('⚠️ 验收带未结项（已随证据带入 zip 报告）：%s'
+              % [oi.get('id') for oi in acc['open_issues']])
+    print('check-only：**未写任何文件**（未出 zip、未改 README）')
+    raise SystemExit(0)
 os.makedirs(os.path.dirname(ZIP), exist_ok=True)
 
 
@@ -139,7 +264,13 @@ for i in range(2):
     ev['actions'].append('zip pass %d: %d B (%.1f s)' % (i + 1, sz,
                                                           time.time() - t1))
     if i == 0:
-        os.remove(tmp)     # 第 1 遍只用来量体积
+        # 🔴 本机安全删除 shim 会把删除转回收站并可能失败 ⇒ 这里必须**报清楚**
+        #   （否则脚本带着「已回填 README 的半成品包」死掉，磁盘还留着 13 GiB 临时文件）
+        try:
+            os.remove(tmp)     # 第 1 遍只用来量体积
+        except OSError as e:
+            raise RuntimeError('第 1 遍临时 zip 删除失败（%s）⇒ 请手工处理并确认磁盘：%s'
+                               % (e, tmp))
     else:
         os.replace(tmp, ZIP)
 
