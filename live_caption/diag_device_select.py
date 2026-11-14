@@ -9,7 +9,16 @@
 
 跑法（不需要 GPU、不需要模型、不需要机器锁）：
     .venv\\Scripts\\python.exe live_caption\\diag_device_select.py
+
+🔴🔴 **自检脚本不得写用户的真实配置**（APP-106 §1 / §191）：
+   旧实现第 4 节写的是「**真实路径**」⇒ 跑一次自检就把 A 的
+   ``%LOCALAPPDATA%\\Confucius4LiveCaption\\device_config.json`` 覆盖成
+   ``{asr: GPU.0, mt: GPU.0, tts: NPU}``
+   （2026-11-13 15:10:34 实测发生 ⇒ §191 的还原被推翻）
+   ⇒ APP-106 §1 要保住的「旧用户配置」现场被毁。
+   ⇒ 现在**全程走隔离路径**，收尾断言真实配置的 SHA256 未变。
 """
+import hashlib
 import json
 import os
 import sys
@@ -28,7 +37,22 @@ def check(name, cond, detail=''):
         FAILS.append(name)
 
 
+def _sha256(path):
+    """文件的 SHA256；文件不存在 ⇒ None（用于「真实配置有没有被改」的断言）。"""
+    if not os.path.exists(path):
+        return None
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(65536), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def main():
+    # 🔴 真实配置路径：全程**只读**，只用来「比对有没有被改」。
+    real_path = dc.CONFIG_PATH
+    real_sha_before = _sha256(real_path)
+
     print('== 1. 实际检测 ==')
     avail = dc.available_devices()
     print(f'  可用设备：{avail}')
@@ -59,19 +83,38 @@ def main():
         sel, notes = dc.get_devices({'asr': avail[0]})
         check('命令行覆盖配置', sel['asr'] == avail[0], str(sel))
         # 都没有 → 推荐默认（会被回退到实际可用）
-        dc.save_config({})
+        # 🔴 `save_config({})` **清不掉**已有的设备键（APP-090②c / APP-104 的
+        #   「合并写」语义：空保存只补键、不删键）⇒ 想测「**没有配置文件**」
+        #   必须真的把文件拿掉，否则这条断言会拿旧值当「默认」⇒ 假 FAIL
+        #   （2026-11-14 实测：改前恒 FAIL `回落到推荐默认`）。
+        try:
+            os.remove(cfg)
+        except FileNotFoundError:
+            pass
         sel, notes = dc.get_devices({})
         check('回落到推荐默认', sel['mt'] == dc.DEFAULT_DEVICES['mt'], str(sel))
     finally:
         dc.CONFIG_PATH = orig_path
 
-    print('\n== 4. 配置持久化（真实路径）==')
-    saved = dc.save_config({'asr': 'GPU.0', 'mt': 'GPU.0', 'tts': 'NPU'})
-    check('写入成功', saved, dc.CONFIG_PATH)
-    back = dc.load_config()
-    check('读回一致', back.get('tts') == 'NPU', str(back))
-    check('配置文件在 LOCALAPPDATA 下',
-          'Confucius4LiveCaption' in dc.CONFIG_PATH, dc.CONFIG_PATH)
+    print('\n== 4. 配置持久化（隔离路径，不碰真实配置）==')
+    # 🔴 旧实现这里写的是**真实路径**（小节标题就叫「配置持久化（真实路径）」）
+    #    ⇒ 自检脚本一跑就把用户真实配置覆盖成 {GPU.0, GPU.0, NPU}
+    #    （APP-106 §1 / §191 的「旧用户配置」现场由此被毁，2026-11-13 15:10:34 实测）。
+    #    现在只写隔离路径，并断言没碰真实配置。
+    tmpdir4 = tempfile.mkdtemp(prefix='devcfg3_')
+    cfg4 = os.path.join(tmpdir4, 'device_config.json')
+    orig_path = dc.CONFIG_PATH
+    try:
+        dc.CONFIG_PATH = cfg4
+        saved = dc.save_config({'asr': 'GPU.0', 'mt': 'GPU.0', 'tts': 'NPU'})
+        check('写入成功', saved, cfg4)
+        back = dc.load_config()
+        check('读回一致', back.get('tts') == 'NPU', str(back))
+        check('写的是隔离路径，不是真实配置',
+              dc.CONFIG_PATH == cfg4 and dc.CONFIG_PATH != real_path,
+              dc.CONFIG_PATH)
+    finally:
+        dc.CONFIG_PATH = orig_path
 
     print('\n== 5. 精度约束 ==')
     e = dc.check_precision('NPU', 'f32')
@@ -92,6 +135,11 @@ def main():
         check('损坏配置返回空字典', dc.load_config() == {}, str(dc.load_config()))
     finally:
         dc.CONFIG_PATH = orig
+
+    # 🔴 收尾断言：用户的**真实配置**必须逐字节没被动过。
+    real_sha_after = _sha256(real_path)
+    check('真实配置未被本脚本改动', real_sha_before == real_sha_after,
+          f'{real_path}: {real_sha_before} -> {real_sha_after}')
 
     print()
     if FAILS:
