@@ -1,0 +1,170 @@
+{
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2",
+ "version": "1.0-sp2",
+ "started": "2026-11-14 17:13:00",
+ "checks": [
+  {
+   "name": "A1: package_profile.json = specialmvp + allow_cuda=True",
+   "pass": true,
+   "detail": "profile=specialmvp allow_cuda=True allow_clone_voice=False"
+  },
+  {
+   "name": "A2: 包内 app/*.py 与 dev 树逐字节一致",
+   "pass": true,
+   "detail": "28 个 .py，不一致 0 个 []"
+  },
+  {
+   "name": "A3: 包内无 .pyc、无黑名单文件",
+   "pass": true,
+   "detail": "pyc=0 blacklist=0"
+  },
+  {
+   "name": "A4: 核模型身份（MANIFEST 逐文件 SHA256 对包内实际文件）",
+   "pass": true,
+   "detail": "登记 96 个文件，一致 96，不一致 0 []",
+   "n_ok": 96,
+   "n_bad": 0
+  },
+  {
+   "name": "A5: cuda_env/pyvenv.cfg 已重定位到 sp2（随包离线可用）",
+   "pass": true,
+   "detail": "home = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2\\python"
+  },
+  {
+   "name": "B: 隔离 LOCALAPPDATA 下三种配置的设备解析（APP-108 §2）",
+   "pass": true,
+   "detail": "verdict=PASS；真实配置 SHA 前后不变=True",
+   "detail_cases": [
+    {
+     "id": "i_empty",
+     "resolved": {
+      "asr": "GPU.0",
+      "mt": "NPU",
+      "tts": "CUDA"
+     },
+     "warn": false
+    },
+    {
+     "id": "ii_legacy3",
+     "resolved": {
+      "asr": "GPU.0",
+      "mt": "NPU",
+      "tts": "CUDA"
+     },
+     "warn": false
+    },
+    {
+     "id": "iii_minimvp_v9",
+     "resolved": {
+      "asr": "GPU.0",
+      "mt": "NPU",
+      "tts": "CUDA"
+     },
+     "warn": false
+    }
+   ],
+   "real_config_unchanged": true
+  },
+  {
+   "name": "C: MiniMVP / 完整版默认设备一字不变（回归）",
+   "pass": true,
+   "detail": "minimvp={'asr': 'GPU.0', 'mt': 'GPU.0', 'tts': 'NPU'} full={'asr': 'GPU.0', 'mt': 'GPU.0', 'tts': 'GPU.0'}"
+  },
+  {
+   "name": "D: 10 分钟对照臂（MT=NPU+TTS off / MT=GPU.0+TTS=CUDA / 阳性对照 MT=NPU+TTS=CUDA）",
+   "pass": true,
+   "detail": "跑了 3 臂；rc=[0, 0, 0]；abort 臂=[]；事件日志条目合计 0"
+  },
+  {
+   "name": "E: 10 句丢弃逐句原因（APP-108 §4）",
+   "pass": true,
+   "detail": "提交 152 / 播完 142 / 丢弃 10；全部 late_drop（阈值 [6.0]，滞后 6.07–7.637 s）",
+   "filled": {
+    "section": "§195 ③ 包上验收",
+    "before": "TTS 由 ? 合成（加载 ? s / 预热 ? s）",
+    "after": "TTS 由 **CUDA**（真 CUDA 边车，NVIDIA GeForce RTX 5050 Laptop GPU / torch 2.11.0+cu128）合成（加载 **25.4 s** / 预热 **2.0 s**）",
+    "source": "sidecar READY 行（会话日志 session_20261113_205730.log）",
+    "ready": {
+     "device": "NVIDIA GeForce RTX 5050 Laptop GPU",
+     "torch": "2.11.0+cu128",
+     "load_s": 25.4,
+     "warmup_s": 2.0,
+     "raw": "20:57:58 [TTS] [tts_cuda] 就绪：NVIDIA GeForce RTX 5050 Laptop GPU / torch 2.11.0+cu128 / 加载 25.4s / 预热 2.0s",
+     "e2e_startup_s": 27.7,
+     "e2e_raw": "20:57:58 [TTS] [tts_cuda] 端到端启动耗时 27.7 s",
+     "model_load_done_s": 34.6,
+     "model_load_raw": "20:58:05 [TTS] [tts_worker] 模型加载完成 34.6s",
+     "ready_raw_lines": [
+      "20:57:58 [TTS] [tts_cuda] 就绪：NVIDIA GeForce RTX 5050 Laptop GPU / torch 2.11.0+cu128 / 加载 25.4s / 预热 2.0s",
+      "20:57:58 [TTS] [tts_cuda] 端到端启动耗时 27.7 s",
+      "20:58:05 [TTS] [tts_worker] 模型加载完成 34.6s"
+     ]
+    },
+    "d_arm_detail_before": "提交 见 stdout",
+    "d_arm_detail_after": "提交 152 / 播完 142 / 丢弃 10（积压峰值 31.13 s）"
+   }
+  }
+ ],
+ "open_issues": [
+  {
+   "id": "OPEN-1",
+   "title": "长跑退出码 3221226505（0xC0000409）未定位",
+   "status": "**未结**（本文件不把它并入 PASS 判定，也不掩盖）",
+   "detail": "sp1 的 10 分钟整链跑完、产物写全后进程 abort（0xC0000409）。APP-108 §3 要求做 10 分钟两臂对照并附 Windows 事件日志 —— 见 arms 字段与 §202 的结论。"
+  }
+ ],
+ "arms": [
+  {
+   "id": "A_mt_npu_tts_off",
+   "desc": "MT=NPU + TTS off（完全不碰 CUDA）",
+   "rc": 0,
+   "rc_hex": null,
+   "elapsed_s": 614.7,
+   "start": "2026-11-14 16:37:31",
+   "end": "2026-11-14 16:47:46",
+   "tts_out_bytes": null,
+   "eventlog_len": 0,
+   "real_cfg_unchanged": true,
+   "eventlog_head": "",
+   "wer_reports": [
+    {
+     "dir": "NonCritical_Update;MoUpdateO_6a90cccac4b979f7ca9159331ba3367141b2_00000000_a9ebb304-df7f-4ee3-b730-e5750fb4bc18",
+     "mtime": "2026-11-14 16:29:38"
+    }
+   ]
+  },
+  {
+   "id": "B_mt_gpu0_tts_cuda",
+   "desc": "MT=GPU.0 + TTS=CUDA（真 CUDA 边车）",
+   "rc": 0,
+   "rc_hex": null,
+   "elapsed_s": 611.2,
+   "start": "2026-11-14 16:47:46",
+   "end": "2026-11-14 16:57:58",
+   "tts_out_bytes": 30407084,
+   "eventlog_len": 0,
+   "real_cfg_unchanged": true,
+   "eventlog_head": "",
+   "wer_reports": []
+  },
+  {
+   "id": "C_mt_npu_tts_cuda",
+   "desc": "MT=NPU + TTS=CUDA（**阳性对照**＝ sp1 原始 abort 的那一组，同时就是 **sp2 的出厂默认**）",
+   "rc": 0,
+   "rc_hex": null,
+   "elapsed_s": 611.2,
+   "start": "2026-11-14 16:59:17",
+   "end": "2026-11-14 17:09:28",
+   "tts_out_bytes": 30195404,
+   "eventlog_len": 0,
+   "real_cfg_unchanged": true,
+   "eventlog_head": "",
+   "wer_reports": []
+  }
+ ],
+ "n_checks": 9,
+ "n_fail": 0,
+ "verdict": "PASS（有 1 项未结：退出码异常）",
+ "verdict_note": "判定只覆盖**用户要求的三条**（TTS=CUDA／ASR=iGPU／MT=NPU）与包内一致性；**退出码异常单列 open_issues，不掩盖也不并入判定**（APP-108 §3）",
+ "finished": "2026-11-14 17:13:06"
+}

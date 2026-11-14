@@ -1,0 +1,44 @@
+{
+ "verdict": "PASS",
+ "errors": [],
+ "detail": {
+  "specialmvp": {
+   "PROFILE": "specialmvp",
+   "allow_cuda": true,
+   "is_specialmvp": true,
+   "DEFAULT_DEVICES": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "CUDA"
+   },
+   "tts_extra_devices": [
+    "CUDA"
+   ],
+   "label_CUDA": "CUDA（NVIDIA 独显）"
+  },
+  "minimvp": {
+   "PROFILE": "minimvp",
+   "allow_cuda": false,
+   "is_specialmvp": false,
+   "DEFAULT_DEVICES": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "tts_extra_devices": [],
+   "label_CUDA": "CUDA（NVIDIA 独显）"
+  },
+  "full": {
+   "PROFILE": "full",
+   "allow_cuda": false,
+   "is_specialmvp": false,
+   "DEFAULT_DEVICES": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "GPU.0"
+   },
+   "tts_extra_devices": [],
+   "label_CUDA": "CUDA（NVIDIA 独显）"
+  }
+ }
+}

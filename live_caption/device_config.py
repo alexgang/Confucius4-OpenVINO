@@ -161,15 +161,53 @@ DEFAULT_DEVICES: Dict[str, str] = _profile_default_devices()
 #    升级到 rc10 的**第一次**启动会被忽略一次（配置里还是 8）⇒ 之后 rc10
 #    写回 9 ⇒ 保留。
 CONFIG_DEFAULTS_VERSION = 9
+# 🔴🔴🔳 APP-108 §2：**Special MVP 的出厂默认代次**（全局单调递增）。
+#   * MiniMVP = **9**（APP-105 §7，第 2 代）—— **不变**；
+#   * Special MVP = **10**（2026-11-14 sp2 起，第 1 代）——
+#     出厂默认 **ASR GPU.0 / MT NPU / TTS CUDA**，与 MiniMVP 的
+#     「GPU.0 / GPU.0 / NPU」**不是同一套** ⇒ 代次必须分开记。
+#   ⚠️ 代次只在**同一个 profile 内**比较（见 ``stale_device_keys()``），
+#      所以升 MiniMVP 的代次**不会**影响 MiniMVP 用户已存下的选择。
+CONFIG_DEFAULTS_VERSION_SPECIALMVP = 10
 
 
 def current_profile() -> str:
-    """当前包形态：``'minimvp'`` / ``'full'``（探测失败 ⇒ 完整版）。"""
+    """当前包形态：``'specialmvp'`` / ``'minimvp'`` / ``'full'``（探测失败 ⇒ 完整版）。
+
+    🔴🔴🔳 APP-108 §2（**真缺陷的根因**）：这里原来只返回
+    ``'minimvp'`` / ``'full'`` ⇒ **Special MVP 会被当成完整版** ⇒
+    ① `stale_device_keys()` 因为「不是 minimvp」而**从不忽略**旧配置里的
+       设备项 ⇒ 客户机上残留的 59 B 旧 3 键配置（asr/mt/tts 全 GPU.0）
+       **覆盖了 Special MVP 的出厂默认** ⇒ 实际跑出 **MT=GPU.0**
+       （而不是 NPU）；② `save_config()` 还会把 ``profile='full'``
+       盖到 Special MVP 用户的配置上。
+    ⇒ 现在**如实返回三种形态**。
+    """
     try:
         import package_profile
+        if package_profile.is_specialmvp():
+            return 'specialmvp'
         return 'minimvp' if package_profile.is_minimvp() else 'full'
     except Exception:
         return 'full'
+
+
+def current_defaults_version() -> int:
+    """当前包形态的**出厂默认代次**（写进配置文件 / 判「是不是旧代次」）。"""
+    if current_profile() == 'specialmvp':
+        return CONFIG_DEFAULTS_VERSION_SPECIALMVP
+    return CONFIG_DEFAULTS_VERSION
+
+
+def uses_stateful_asr_decoder() -> bool:
+    """本包的 ASR 是否用 **stateful（KV cache）解码器**。
+
+    🔴 MiniMVP（APP-105 §7）与 Special MVP 都是 **stateful** ⇒ 负载约为
+    旧解码器的 1/3 ⇒「ASR 与 MT 同在 GPU ⇒ 会 CL_OUT_OF_RESOURCES」
+    这条**旧文案对它们不成立**（rc5 在 B 机 268 s 崩溃是**旧解码器**的事）。
+    完整版 v2.x 仍用旧解码器 ⇒ 保留原告警文案。
+    """
+    return current_profile() in ('minimvp', 'specialmvp')
 
 
 def _config_version(raw) -> int:
@@ -183,15 +221,23 @@ def _config_version(raw) -> int:
 
 
 def stale_device_keys(saved: Dict[str, object]) -> List[str]:
-    """返回**应当被忽略**的设备键（APP-104 §1 的迁移判据 + APP-105 §7 的代次）。
+    """返回**应当被忽略**的设备键（APP-104 §1 的迁移判据 + APP-105 §7 的代次
+    + **APP-108 §2 的 Special MVP**）。
 
-    规则（只在 MiniMVP 下生效）：
+    规则（只在 **MiniMVP** 与 **Special MVP** 下生效）：
       * 文件里有 asr/mt/tts 任意一个 ⇒ 才需要判；
-      * ``profile == 'minimvp'`` **且** ``defaults_version >= 当前代次``
-        （当前 = ``CONFIG_DEFAULTS_VERSION`` = **9**，APP-105 §7）
+      * ``profile == 当前包形态`` **且** ``defaults_version >= 当前代次``
+        （minimvp = 9／APP-105 §7；specialmvp = 10／APP-108 §2）
         ⇒ **信任**用户的选择（返回空列表）；
       * 其余情况（缺 profile / 缺 defaults_version / 版本比当前代次旧 /
-        profile 不是 minimvp）⇒ 返回 asr/mt/tts 里**实际存在**的键。
+        **profile 不是当前包形态**）⇒ 返回 asr/mt/tts 里**实际存在**的键。
+
+    🔴🔴🔳 **APP-108 §2（Special MVP）**：**profile 不同时不能沿用** ——
+       客户机若装过 MiniMVP 或完整版，会留下 ``profile='minimvp'``
+       （``defaults_version``=9）或**没有 profile 的 3 键旧文件**
+       ⇒ 那套设备（GPU.0/GPU.0/NPU 或 GPU.0×3）**不是** Special MVP 的
+       出厂默认（GPU.0/NPU/CUDA）⇒ **必须忽略**，改用本包出厂默认。
+       ⇒ 判据与 MiniMVP 同构，只是**代次**与**形态**各用自己的。
 
     ⚠️ APP-105 §7：rc9 写下的配置（``defaults_version`` = 8）⇒ **被忽略**
        （那是 rc9 的出厂默认 NPU/GPU.0/GPU.0）⇒ 改用本包出厂默认。
@@ -200,14 +246,16 @@ def stale_device_keys(saved: Dict[str, object]) -> List[str]:
     """
     if not saved:
         return []
-    if current_profile() != 'minimvp':
+    prof_now = current_profile()
+    if prof_now not in ('minimvp', 'specialmvp'):
+        # 🔴 完整版（v2.x）沿用**旧行为**：从不忽略配置文件里的设备项。
         return []
     present = [k for k in ('asr', 'mt', 'tts') if k in saved]
     if not present:
         return []
     prof = str(saved.get('profile') or '').strip().lower()
     ver = _config_version(saved.get('defaults_version'))
-    if prof == 'minimvp' and ver >= CONFIG_DEFAULTS_VERSION:
+    if prof == prof_now and ver >= current_defaults_version():
         return []
     return present
 
@@ -218,6 +266,9 @@ def stale_device_note(saved: Dict[str, object]) -> str:
     🔴 APP-105 §7：**不得**再在这里说「会把 ASR 与 MT 一起放在 GPU.0 ⇒
     长时间运行会报 CL_OUT_OF_RESOURCES」—— 本包出厂默认**就是**
     ASR 与 MT 同在 GPU.0 ⇒ 那句话会**自相矛盾并误导人**。
+
+    🔴🔴🔳 APP-108 §2：**按包形态给不同的原因**（Special MVP 的旧值
+       来自**别的包形态**，不是「MiniMVP rc9 之前」）。
     """
     keys = stale_device_keys(saved)
     if not keys:
@@ -225,10 +276,16 @@ def stale_device_note(saved: Dict[str, object]) -> str:
     ignored = '，'.join('%s=%s' % (k, saved.get(k)) for k in keys)
     used = '，'.join('%s=%s' % (r, DEFAULT_DEVICES.get(r))
                      for r in ('asr', 'mt', 'tts'))
-    return ('已忽略旧配置里的设备项（%s）—— 那是 MiniMVP rc9 之前的出厂默认'
-            '⇒ 改用本包出厂默认（%s）；配置文件本身不会被删除，'
+    if current_profile() == 'specialmvp':
+        why = ('那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认'
+               '—— 客户机若装过 MiniMVP 或完整版就会留下这种文件'
+               '⇒ 本包的出厂默认不同')
+    else:
+        why = '那是 MiniMVP rc9 之前的出厂默认'
+    return ('已忽略旧配置里的设备项（%s）—— %s ⇒ 改用本包出厂默认（%s）；'
+            '配置文件本身不会被删除，'
             '你在本版里重新选一次设备后会按你的选择保留。'
-            % (ignored, used))
+            % (ignored, why, used))
 
 
 # 兜底候选（用户选的设备本机不存在时，依次尝试）
@@ -697,7 +754,7 @@ def save_config(devices: Dict[str, str]) -> bool:
             merged[k] = v
         if any(k in (devices or {}) for k in ('asr', 'mt', 'tts')):
             merged['profile'] = current_profile()
-            merged['defaults_version'] = CONFIG_DEFAULTS_VERSION
+            merged['defaults_version'] = current_defaults_version()
         tmp = CONFIG_PATH + '.tmp'
         with open(tmp, 'w', encoding='utf-8') as f:
             json.dump(merged, f, ensure_ascii=False, indent=2)

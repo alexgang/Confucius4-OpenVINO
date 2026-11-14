@@ -1,0 +1,20 @@
+{
+ "started": "2026-11-14 17:11:48",
+ "files": [
+  {
+   "file": "tts_worker.py",
+   "sha256_before": "8a1426662c455bd68a942a5e6ffc726563dab00a33f1754aa8f9f49ddae76dbb",
+   "sha256_after": "0345c73ba2291fd5e6d970db973faa4202c0af6b18dc0f5a9bb25a508c38f03e",
+   "bytes": 277362,
+   "changed": true,
+   "identical_after": true
+  }
+ ],
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp2",
+ "app_dir": {
+  "n_py": 28,
+  "mismatch": []
+ },
+ "verdict": "PASS",
+ "finished": "2026-11-14 17:11:48"
+}
