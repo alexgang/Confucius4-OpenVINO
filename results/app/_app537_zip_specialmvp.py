@@ -25,6 +25,19 @@
   · 现在要求证据带 `pkg_content`（验收时逐文件 SHA256），闸门**逐条重算比对**，
     并做**反向集合校验**（包内 `app/*.py` 集合必须与证据一致 ⇒ 验收后新增 .py 也拦）；
   · 证据没有内容绑定 ⇒ **直接拒绝**（fail-closed，提示重跑包上验收）。
+
+🔴 **2026-11-14 §206 修订**（闸门补上「传递绑定」与「fail-closed 顺序」）：
+  · §205 绑定的是「代码 + 元数据」（31 个文件）⇒ **7.86 GiB / 96 个模型文件**
+    的 SHA256 **只**记在包内 `app/MANIFEST.json` 里 ⇒ 闸门**从不再验证那条
+    传递链** ⇒ **验收后换掉模型文件 / 塞未登记文件，闸门照样放行**，
+    而验收记录会（不实地）声称「核模型身份 一致 96、不一致 0」；
+  · 现在新增 `check_manifest_model_binding()`：**逐条重算** MANIFEST 登记的
+    模型文件 SHA256 ＋ **反向集合校验**（`models/` 实际文件集合必须与登记集合
+    **完全相等**）＋ **MANIFEST 自洽**（`pkg_models_root` 必须指向本包）；
+  · 另修一处 **fail-closed 顺序缺陷**：「两遍体积是否收敛」的判定原先写在
+    `os.replace(tmp, ZIP)` **之后** ⇒ 不收敛时未收敛的 zip 已落在最终路径；
+    现在**先判定收敛再落位**；
+  · 另把 `app/` 的 .py 反向集合校验由**顶层**改成**递归**。
 """
 import argparse
 import hashlib
@@ -188,11 +201,17 @@ def check_content_binding(pkg_dir, acc):
         got = sha256_file(p)
         if got != want:
             problems.append('内容已变 %s' % rel)
-    # 反向集合：包内 app/*.py 必须与证据记录一致（防止验收后新增 .py）
+    # 反向集合：包内 app/ 下的 .py 必须与证据记录一致（防止验收后新增 .py）
+    # 🔴 **§206**：原先只看 `app/` **顶层**（`os.listdir`）⇒ `app/子目录/x.py`
+    #    这类**新增**文件看不见 ⇒ 现在改成**递归**。
     appdir = os.path.join(pkg_dir, 'app')
     now_py = set()
     if os.path.isdir(appdir):
-        now_py = {'app/' + f for f in os.listdir(appdir) if f.endswith('.py')}
+        for _dp, _dn, _fn in os.walk(appdir):
+            for _f in _fn:
+                if _f.endswith('.py'):
+                    now_py.add('app/' + os.path.relpath(
+                        os.path.join(_dp, _f), appdir).replace(os.sep, '/'))
     bound_py = {r for r in files if r.startswith('app/') and r.endswith('.py')}
     if now_py - bound_py:
         problems.append('验收后新增 .py：%s' % sorted(now_py - bound_py)[:3])
@@ -202,6 +221,84 @@ def check_content_binding(pkg_dir, acc):
         raise RuntimeError('包内容与验收证据不一致（%d 项）：%s'
                            % (len(problems), '；'.join(problems[:5])))
     return pc
+
+
+def check_manifest_model_binding(pkg_dir, pkg_name):
+    """🔴🔴 **§206 新增：闸门必须重算 MANIFEST 登记的模型文件 SHA256**（fail-closed）。
+
+    🔴 **为什么 §205 之后还需要这一条（不同轴：传递绑定 / transitive）**：
+       §205 的 `pkg_content` 绑定的是「**代码 + 元数据**」（31 个文件：
+       `app/*.py` 28 个 ＋ `release.json` ＋ `package_profile.json` ＋
+       `app/MANIFEST.json`）⇒ **7.86 GiB / 96 个模型文件**（ASR 编码器/解码器、
+       MT、**TTS**）**不在**绑定范围内；它们的 SHA256 **只**记在包内
+       `app/MANIFEST.json` 里（验收时的 A4「核模型身份」就是拿它逐文件重算）
+       ⇒ 而 `app/MANIFEST.json` 本身虽在绑定范围内，**闸门却从不再验证
+       那条传递链** ⇒ **验收后把模型文件换掉 / 塞一个未登记的文件，
+       闸门照样放行**，而验收记录会（不实地）声称「核模型身份：一致 96，
+       不一致 0」⇒ **交付包里的模型 ≠ 被验收过的模型**。
+
+    ⇒ 现在闸门**自己**重算这 96 个文件的 SHA256（逐条比对 MANIFEST 记录）
+      ＋ **反向集合校验**（`models/` 下的实际文件集合必须与 MANIFEST 登记集合
+      **完全相等** ⇒ 验收后新增/删除任一模型文件都会被抓住）
+      ＋ **MANIFEST 自洽**（`pkg_models_root` 必须指向**本包**的 models 目录
+      ⇒ 顺带把 §205 真缺陷①「指向另一个包」那一类在**闸门**上也拦住）。
+    ⇒ 任何一条不满足 ⇒ 直接拒绝出包（fail-closed）。
+    """
+    mpath = os.path.join(pkg_dir, 'app', 'MANIFEST.json')
+    if not os.path.isfile(mpath):
+        raise RuntimeError('包内缺 app/MANIFEST.json，无法验证模型绑定，拒绝打包：%s'
+                           % mpath)
+    m = json.load(open(mpath, encoding='utf-8'))
+    models = m.get('models')
+    if not isinstance(models, dict) or not models:
+        raise RuntimeError('MANIFEST 里没有 models 登记，无法验证模型绑定，拒绝打包')
+    # ── ① MANIFEST 自洽：pkg_models_root 必须指向**本包**的 models 目录 ──
+    root = m.get('pkg_models_root')
+    if root:
+        nr = os.path.normcase(os.path.normpath(root)).replace('\\', '/').lower()
+        same = nr == os.path.normcase(os.path.normpath(
+            os.path.join(pkg_dir, 'models'))).replace('\\', '/').lower()
+        tail = nr.endswith('/' + str(pkg_name).lower() + '/models')
+        if not (same or tail):
+            raise RuntimeError('MANIFEST 的 pkg_models_root 指向的不是本包的 models '
+                               '目录：%r（本包=%r）' % (root, pkg_dir))
+    # ── ② 逐条重算登记文件的 SHA256 ──
+    models_root = os.path.join(pkg_dir, 'models')
+    registered = {}
+    problems = []
+    for key, info in models.items():
+        d = os.path.join(models_root, str(key).replace('/', os.sep))
+        is_dir = os.path.isdir(d)
+        for fe in (info or {}).get('files', []):
+            name, want = fe.get('name'), fe.get('sha256')
+            if not name or not want:
+                problems.append('MANIFEST 条目缺 name/sha256：%s' % key)
+                continue
+            p = os.path.join(d, name) if is_dir else d
+            rel = os.path.relpath(p, models_root).replace(os.sep, '/')
+            registered[rel] = want
+            if not os.path.isfile(p):
+                problems.append('缺模型文件 %s' % rel)
+                continue
+            if sha256_file(p) != want:
+                problems.append('模型内容已变 %s' % rel)
+    # ── ③ 反向集合：models/ 下实际文件必须与登记集合完全相等 ──
+    actual = set()
+    if os.path.isdir(models_root):
+        for _dp, _dn, _fn in os.walk(models_root):
+            for _f in _fn:
+                actual.add(os.path.relpath(os.path.join(_dp, _f),
+                                           models_root).replace(os.sep, '/'))
+    reg = set(registered)
+    if actual - reg:
+        problems.append('models/ 下有未登记的文件：%s' % sorted(actual - reg)[:3])
+    if reg - actual:
+        problems.append('登记的模型文件不在包内：%s' % sorted(reg - actual)[:3])
+    if problems:
+        raise RuntimeError('模型内容与 MANIFEST 不一致（%d 项）：%s'
+                           % (len(problems), '；'.join(problems[:5])))
+    return {'n_models': len(models), 'n_files': len(registered),
+            'pkg_models_root': root, 'models_root': models_root}
 
 
 ev = {'zip': ZIP, 'pkg': DST_PKG, 'actions': []}
@@ -218,6 +315,8 @@ ev['release_version'] = rel.get('version')
 pc = check_content_binding(DST_PKG, acc)
 ev['accept_content_binding'] = {'n_files': pc.get('n_files'),
                                  'tree_digest': pc.get('tree_digest')}
+mb = check_manifest_model_binding(DST_PKG, PKG_NAME)
+ev['manifest_model_binding'] = mb
 if os.path.exists(ZIP):
     raise RuntimeError('zip 已存在（不覆盖旧版本，APP-055）：%s' % ZIP)
 if _args.check_only:
@@ -231,6 +330,8 @@ if _args.check_only:
               % [oi.get('id') for oi in acc['open_issues']])
     print('            内容绑定：%s 个文件，tree_digest=%s…'
           % (pc.get('n_files'), str(pc.get('tree_digest'))[:16]))
+    print('            模型绑定：%s 个模型 / %s 个文件逐条重算 SHA256 一致'
+          % (mb.get('n_models'), mb.get('n_files')))
     print('check-only：**未写任何文件**（未出 zip、未改 README）')
     raise SystemExit(0)
 os.makedirs(os.path.dirname(ZIP), exist_ok=True)
@@ -341,6 +442,14 @@ for i in range(2):
             raise RuntimeError('第 1 遍临时 zip 删除失败（%s）⇒ 请手工处理并确认磁盘：%s'
                                % (e, tmp))
     else:
+        # 🔴🔴 **§206 修掉的 fail-closed 顺序缺陷**：原先「两遍体积是否收敛」
+        #   的判定写在 `os.replace(tmp, ZIP)` **之后** ⇒ 体积**不收敛**时，
+        #   脚本虽然抛错，但**未收敛的 zip 已经落在最终路径** ⇒ 下一次重跑
+        #   会被「zip 已存在」挡住（APP-055 不覆盖）⇒ 操作者得手工清理。
+        #   现在：**先判定收敛，再落位**（不收敛 ⇒ 临时文件保留并报清楚）。
+        if len(set(sizes)) != 1:
+            raise RuntimeError('zip 体积未收敛（%s）⇒ **不落位到最终路径**，'
+                               '临时文件保留在：%s' % (sizes, tmp))
         os.replace(tmp, ZIP)
 
 if len(set(sizes)) != 1:

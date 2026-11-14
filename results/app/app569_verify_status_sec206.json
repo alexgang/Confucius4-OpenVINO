@@ -1,0 +1,184 @@
+{
+ "verifier": "_app569_verify_status_sec206",
+ "n_checks": 35,
+ "n_pass": 35,
+ "n_fail": 0,
+ "verdict": "PASS",
+ "checks": [
+  {
+   "name": "① 体积 ≤ 40 000 B",
+   "pass": true,
+   "detail": "39919 B"
+  },
+  {
+   "name": "② 行数 ≤ 300",
+   "pass": true,
+   "detail": "189 行"
+  },
+  {
+   "name": "③ 纯 LF（无 CRLF）",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "④ 无 BOM",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "⑤ 较开工变大（追加而非改写）",
+   "pass": true,
+   "detail": "38220 → 39919 B"
+  },
+  {
+   "name": "⑥ last_ack ＝ APP-109（无新纠偏 ⇒ 不写自己的编号）",
+   "pass": true,
+   "detail": "APP-109"
+  },
+  {
+   "name": "⑦ 头部「更新时间」＝ 22:05:11（Get-Date 实测值）",
+   "pass": true,
+   "detail": "2026-11-14 22:05:11"
+  },
+  {
+   "name": "⑧ 头部仅「更新时间」一处变化（last_ack 未动）",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "⑨ 章节 §198 恰好 1 次",
+   "pass": true,
+   "detail": "count=1"
+  },
+  {
+   "name": "⑨ 章节 §199 恰好 1 次",
+   "pass": true,
+   "detail": "count=1"
+  },
+  {
+   "name": "⑨ 章节 §200 恰好 1 次",
+   "pass": true,
+   "detail": "count=1"
+  },
+  {
+   "name": "⑨ 章节 §201 恰好 1 次",
+   "pass": true,
+   "detail": "count=1"
+  },
+  {
+   "name": "⑨ 章节 §202 恰好 1 次",
+   "pass": true,
+   "detail": "count=1"
+  },
+  {
+   "name": "⑨ 章节 §203 恰好 1 次",
+   "pass": true,
+   "detail": "count=1"
+  },
+  {
+   "name": "⑨ 章节 §204 恰好 1 次",
+   "pass": true,
+   "detail": "count=1"
+  },
+  {
+   "name": "⑨ 章节 §205 恰好 1 次",
+   "pass": true,
+   "detail": "count=1"
+  },
+  {
+   "name": "⑨ 章节 §206 恰好 1 次",
+   "pass": true,
+   "detail": "count=1"
+  },
+  {
+   "name": "⑩ §206 是最后一节",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "⑪ §206 摘要条目 ≥ 10 条",
+   "pass": true,
+   "detail": "10 条"
+  },
+  {
+   "name": "⑫ §206 摘要条目逐字出现在 companion",
+   "pass": true,
+   "detail": "缺 []"
+  },
+  {
+   "name": "⑬ companion 声明的正文块 SHA ＝ 实际",
+   "pass": true,
+   "detail": "c560fe781bfd6979"
+  },
+  {
+   "name": "⑭ companion 声明的正文块字节 ＝ 实际",
+   "pass": true,
+   "detail": "9789 vs 9789"
+  },
+  {
+   "name": "⑮ 活文档指针行引用的 companion 正文块 SHA ＝ 实际",
+   "pass": true,
+   "detail": "c560fe781bfd6979"
+  },
+  {
+   "name": "⑯ 活文档指针行引用的字节 ＝ 实际",
+   "pass": true,
+   "detail": "9789 vs 9789"
+  },
+  {
+   "name": "⑰ §205 归档正文块 ＝ 开工前 §205 块（逐字）",
+   "pass": true,
+   "detail": "4534 vs 4534 B"
+  },
+  {
+   "name": "⑱ §205 归档声明的 SHA/字节 ＝ 实际",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "⑲ 还原式复核 ⇒ 与开工前逐字节相同",
+   "pass": true,
+   "detail": "还原 38220 B vs 开工 38220 B"
+  },
+  {
+   "name": "⑳ 闸门脚本 ast.parse 通过",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "㉑ 闸门含 `check_manifest_model_binding`",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "㉒ 两遍收敛判定先于 `os.replace`（fail-closed 顺序）",
+   "pass": true,
+   "detail": "判定 L450 < 落位 L453"
+  },
+  {
+   "name": "㉓ `.py` 反向集合为递归（os.walk）",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "㉔ 矩阵 12 臂全 PASS",
+   "pass": true,
+   "detail": "12/12"
+  },
+  {
+   "name": "㉕ 改前臂确有 fail-open（ALLOW 的臂）",
+   "pass": true,
+   "detail": "['T1', 'T2', 'T3', 'T4', 'T6', 'T11']"
+  },
+  {
+   "name": "㉖ 纠偏文件 109 条 / 最大 APP-109",
+   "pass": true,
+   "detail": "109 条 / APP-109"
+  },
+  {
+   "name": "㉗ 纠偏文件 SHA ＝ 开工时的 30a55189…（零改动）",
+   "pass": true,
+   "detail": "30a55189bb358c95"
+  }
+ ]
+}
