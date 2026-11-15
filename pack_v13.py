@@ -920,6 +920,11 @@ def main():
     ap.add_argument('--no-shortcut', action='store_true',
                     help='打包成功后**不更新桌面快捷方式**'
                          '（APP-061：用户抽听通过后由主会话另行决定）')
+    # 🔴🔴🔴 §208：**验收绑定闸门的反证自测**（临时假包 ⇒ 零写客户包）。
+    #   ⇒ 只跑自测、不打包、不写任何文件；必须在版本号定案/目录改名**之前**跑。
+    ap.add_argument('--self-test-acceptance', action='store_true',
+                    help='只跑「验收绑定闸门」的反证自测（临时假包，'
+                         '零写客户包），不打包、不写任何文件')
     ap.add_argument('--no-lock', action='store_true',
                     help='不取共享机器锁（默认取；打包是长时重活，会干扰其它模块计时）')
     ap.add_argument('--lock-timeout', type=float, default=10800.0,
@@ -947,6 +952,20 @@ def main():
                          '打包时自动插入包内 README_en.md 的'
                          '「## What\'s new in vX.Y」段')
     args = ap.parse_args()
+
+    # 🔴🔴🔴 §208：验收绑定闸门的**反证自测**
+    #    ⇒ 必须在**版本号定案 / 源目录改名之前**（本脚本启动就可能改名源目录，
+    #      跑自测绝不能白吃一个版本号）⇒ 零写客户包、零产出 zip。
+    if getattr(args, 'self_test_acceptance', False):
+        print('[self-test] 验收绑定闸门反证自测（临时假包 ⇒ 零写客户包）')
+        rows = acceptance_gate_selftest()
+        bad = [r for r in rows if not r.get('pass')]
+        for r in rows:
+            print('  [%s] %-32s blocked=%-5s reason=%s'
+                  % ('PASS' if r.get('pass') else 'FAIL', r.get('case'),
+                     r.get('blocked'), r.get('reason')))
+        print('[self-test] %d/%d PASS' % (len(rows) - len(bad), len(rows)))
+        return 0 if not bad else 1
 
     # ── 版本号定案（含源目录改名）───────────────────────────────────
     cur_max = discover_max_version()
@@ -1465,6 +1484,235 @@ def check_app086_2a_narrowing(pkg):
 
 
 
+# ══════════════════════════════════════════════════════════════════════
+# 🔴🔴🔴 §208 打包前闸门⑤：**验收绑定**（身份 ＋ 内容）—— fail-closed
+# ══════════════════════════════════════════════════════════════════════
+
+def _acc_norm_bytes(b):
+    """归一化行尾（§119 铁律：`core.autocrlf=true` ⇒ clone 后 LF→CRLF）。"""
+    return b.replace(b'\r\n', b'\n')
+
+
+def _acc_pkg_version(pkg_dir):
+    """本包版本号 = **目录名**里的 `_vX.Y`（客户看到的那个身份）。"""
+    base = os.path.basename(os.path.normpath(pkg_dir))
+    m = re.search(r'_v(\d+(?:\.\d+)*)$', base)
+    return m.group(1) if m else ''
+
+
+def _acc_production_modules(pkg_app):
+    """包内 `app/` 的**生产模块**（与 app191 口径一致：排除开发专用）。"""
+    out = []
+    for n in sorted(os.listdir(pkg_app)):
+        if not n.endswith('.py'):
+            continue
+        try:
+            if pkg_exclude.is_app_dev_only('app/' + n):
+                continue
+        except Exception:
+            pass
+        out.append(n)
+    return out
+
+
+def _acc_module_fingerprints(pkg_app):
+    """{模块名: sha256(归一化行尾后的字节)}（app191 口径）。"""
+    fps = {}
+    for n in _acc_production_modules(pkg_app):
+        with open(os.path.join(pkg_app, n), 'rb') as f:
+            data = _acc_norm_bytes(f.read())
+        fps[n] = hashlib.sha256(data).hexdigest()
+    return fps
+
+
+def _acc_aggregate(fps):
+    """app191.package_fingerprint 口径：SHA256(name + NUL + sha256(bytes))，按名排序。"""
+    h = hashlib.sha256()
+    for n in sorted(fps):
+        h.update(n.encode('utf-8'))
+        h.update(b'\0')
+        h.update(bytes.fromhex(fps[n]))
+    return h.hexdigest()
+
+
+def check_acceptance_binding(pkg_dir, expect_version=None):
+    """🔴🔴🔴 打包前闸门⑤（§208）：**验收绑定**（身份 ＋ 内容），fail-closed。
+
+    为什么这道闸门必须有（**闸门层实测**，不是推测）
+    --------------------------------------------------
+    `pack_v13.py`（**完整版**形态）此前**完全没有验收闸门**：
+      ① `ACCEPTED.json` 全仓**只有** `shortcut_update.py` 读它
+         ⇒ 而它是在 **zip 已经写完之后**才跑的，只用来决定
+            「要不要把桌面快捷方式指过去」；
+      ② 真正会查漂移的 `app191_acceptance_code_binding_gate.py`
+         **从未被 `pack_v13.py` 调用**（仓库内无任何调用点）；
+      ⇒ 验收证据**不参与出包决策** ⇒ **验收后改包照样能出包**
+         （交付包 ≠ 被验收过的包）⇒ 与 §204／§205／§207 在
+         Special MVP／MiniMVP 形态上修掉的是**同一类 fail-open**，
+         只是这一形态**从来没被审过**。
+
+    本闸门做两件事（与 §204／§207 同一口径，**但绑定的是包内文件**）：
+      ① **身份绑定**：`<pkg>/ACCEPTED.json` 必须
+         · 存在（缺 ⇒ `NO_ACCEPTED`）；
+         · `accepted` 为真（⇒ `NOT_ACCEPTED`）；
+         · `version` == 本包版本（⇒ `VERSION_MISMATCH`）
+           —— 这正是 APP-055「打新版本号 ⇒ **重签 ACCEPTED**」那条纪律；
+         · `pkg_dir` 的**目录名** == 本包目录名（⇒ `PKG_MISMATCH`）；
+      ② **内容绑定**：`code_fingerprints` 必须存在
+         （⇒ `NO_CONTENT_BINDING`），且**逐条重算** ＋ **反向集合校验**
+         全部一致（⇒ `CONTENT_MISMATCH`／`CONTENT_SET_MISMATCH`）。
+
+    绑定范围 = 包内 `app/` 的**生产模块**（.py，排除开发专用）
+    ⇒ 与 app191 口径**完全一致** ⇒ **复用既有 ACCEPTED.json 格式**，
+       不需要新的证据格式，也不需要改验收侧脚本。
+    ⚠️ **README／NOTICE／MANIFEST.json 不在绑定范围内**
+       （打包会重写它们 ⇒ 字节必然不同 ⇒ 属**语义必需**，不是放水）。
+    """
+    detail = {'package_dir': pkg_dir, 'expect_version': expect_version}
+    acc_path = os.path.join(pkg_dir, 'ACCEPTED.json')
+    detail['accepted_path'] = acc_path
+    if not os.path.isfile(acc_path):
+        return (False, 'NO_ACCEPTED', detail)
+    try:
+        with open(acc_path, 'r', encoding='utf-8') as f:
+            ev = json.load(f)
+    except Exception as e:
+        detail['error'] = repr(e)
+        return (False, 'BAD_JSON', detail)
+    if not isinstance(ev, dict):
+        return (False, 'BAD_JSON', detail)
+    detail['accepted_version'] = str(ev.get('version') or '')
+    detail['accepted_pkg_dir'] = str(ev.get('pkg_dir') or '')
+
+    # ① 身份绑定
+    if not ev.get('accepted'):
+        return (False, 'NOT_ACCEPTED', detail)
+    want = str(expect_version or _acc_pkg_version(pkg_dir) or '').strip()
+    if not want:
+        return (False, 'NO_VERSION', detail)
+    detail['package_version'] = want
+    if detail['accepted_version'] != want:
+        return (False, 'VERSION_MISMATCH', detail)
+    acc_base = os.path.basename(os.path.normpath(
+        detail['accepted_pkg_dir'].replace('\\', os.sep).replace('/', os.sep)))
+    pkg_base = os.path.basename(os.path.normpath(pkg_dir))
+    detail['package_basename'] = pkg_base
+    if acc_base and acc_base != pkg_base:
+        return (False, 'PKG_MISMATCH', detail)
+
+    # ② 内容绑定
+    reg = ev.get('code_fingerprints')
+    if not isinstance(reg, dict) or not reg:
+        detail['note'] = ('ACCEPTED.json 未记录 code_fingerprints ⇒ '
+                          '无法证明「交付包 == 被验收过的包」')
+        return (False, 'NO_CONTENT_BINDING', detail)
+    app_dir = os.path.join(pkg_dir, 'app')
+    if not os.path.isdir(app_dir):
+        return (False, 'NO_APP_DIR', detail)
+    cur = _acc_module_fingerprints(app_dir)
+    reg = {str(k): str(v).strip().lower() for k, v in reg.items()}
+    changed = sorted(k for k in reg if k in cur and cur[k] != reg[k])
+    missing = sorted(k for k in reg if k not in cur)
+    extra = sorted(k for k in cur if k not in reg)
+    detail.update({'n_registered': len(reg), 'n_current': len(cur),
+                   'n_changed': len(changed), 'changed': changed[:20],
+                   'n_missing': len(missing), 'missing': missing[:20],
+                   'n_extra': len(extra), 'extra': extra[:20]})
+    if changed or missing:
+        return (False, 'CONTENT_MISMATCH', detail)
+    if extra:
+        return (False, 'CONTENT_SET_MISMATCH', detail)
+    agg = _acc_aggregate(cur)
+    reg_agg = str(ev.get('code_fingerprint') or '').strip().lower()
+    detail['current_code_fingerprint'] = agg
+    if reg_agg and agg != reg_agg:
+        detail['accepted_code_fingerprint'] = reg_agg
+        return (False, 'CONTENT_MISMATCH', detail)
+    return (True, 'OK', detail)
+
+
+def acceptance_gate_selftest():
+    """**反证自测**：验收绑定闸门必须能抓到「没验收／不是本包／内容被改过」。
+
+    沿用本文件既有 `*_gate_selftest` 约定（临时目录 ＋ 假包）
+    ⇒ **下一个版本复制本脚本时，这道自测会跟着走**
+    （否则每个新版本都要重新踩一遍同样的坑）。
+    """
+    import tempfile
+    out = []
+
+    def _case(name, expect_block, expect_reason, fn):
+        try:
+            ok, reason, detail = fn()
+        except Exception as e:
+            ok, reason, detail = False, 'EXCEPTION', {'error': repr(e)}
+        good = ((not ok) == expect_block
+                and (not expect_block or reason == expect_reason))
+        out.append({'case': name, 'blocked': (not ok), 'reason': reason,
+                    'expect_blocked': expect_block,
+                    'expect_reason': expect_reason, 'pass': good})
+
+    with tempfile.TemporaryDirectory() as td:
+        pkg = os.path.join(td, 'Confucius4_LiveCaption_v9.9')
+        os.makedirs(os.path.join(pkg, 'app'))
+        open(os.path.join(pkg, 'app', 'a.py'), 'w').write('x = 1\n')
+        open(os.path.join(pkg, 'app', 'b.py'), 'w').write('y = 2\n')
+
+        def _acc(**kw):
+            fps = _acc_module_fingerprints(os.path.join(pkg, 'app'))
+            d = {'accepted': True, 'version': '9.9',
+                 'pkg_dir': '<HOME>\\Confucius4_LiveCaption_v9.9',
+                 'code_fingerprint': _acc_aggregate(fps),
+                 'code_fingerprints': fps}
+            d.update(kw)
+            return d
+
+        def _write(d):
+            p = os.path.join(pkg, 'ACCEPTED.json')
+            with open(p, 'w', encoding='utf-8') as f:
+                json.dump(d, f, ensure_ascii=False, indent=2)
+            return p
+
+        def _rm(p):
+            """删文件（**本机有安全删除 shim**：真删会进回收站 ⇒ 只对临时目录用）。"""
+            try:
+                os.remove(p)
+            except FileNotFoundError:
+                pass
+
+        _write(_acc())
+        _case('correct_accepted_allowed', False, 'OK',
+              lambda: check_acceptance_binding(pkg, expect_version='9.9'))
+        _rm(os.path.join(pkg, 'ACCEPTED.json'))
+        _case('no_accepted_file_blocked', True, 'NO_ACCEPTED',
+              lambda: check_acceptance_binding(pkg, expect_version='9.9'))
+        _write(_acc(accepted=False))
+        _case('not_accepted_blocked', True, 'NOT_ACCEPTED',
+              lambda: check_acceptance_binding(pkg, expect_version='9.9'))
+        _write(_acc(version='9.8'))
+        _case('version_mismatch_blocked', True, 'VERSION_MISMATCH',
+              lambda: check_acceptance_binding(pkg, expect_version='9.9'))
+        _write(_acc(pkg_dir='<HOME>\\Confucius4_LiveCaption_v9.8'))
+        _case('pkg_dir_mismatch_blocked', True, 'PKG_MISMATCH',
+              lambda: check_acceptance_binding(pkg, expect_version='9.9'))
+        _write(_acc(code_fingerprints={}))
+        _case('no_content_binding_blocked', True, 'NO_CONTENT_BINDING',
+              lambda: check_acceptance_binding(pkg, expect_version='9.9'))
+        _write(_acc())
+        open(os.path.join(pkg, 'app', 'a.py'), 'w').write('x = 999\n')
+        _case('content_changed_blocked', True, 'CONTENT_MISMATCH',
+              lambda: check_acceptance_binding(pkg, expect_version='9.9'))
+        open(os.path.join(pkg, 'app', 'a.py'), 'w').write('x = 1\n')
+        open(os.path.join(pkg, 'app', 'c.py'), 'w').write('z = 3\n')
+        _case('extra_file_blocked', True, 'CONTENT_SET_MISMATCH',
+              lambda: check_acceptance_binding(pkg, expect_version='9.9'))
+        _rm(os.path.join(pkg, 'app', 'c.py'))
+        _rm(os.path.join(pkg, 'app', 'b.py'))
+        _case('deleted_file_blocked', True, 'CONTENT_MISMATCH',
+              lambda: check_acceptance_binding(pkg, expect_version='9.9'))
+    return out
+
+
 def _run(args):
     PKG = args.pkg
     ZIP = args.zip
@@ -1508,6 +1756,24 @@ def _run(args):
         print()
         print('结论：FAIL（APP-086·2a 收窄闸门未通过）')
         return rc
+
+    # 🔴🔴🔴 打包前闸门⑤（§208）：**验收绑定**（身份 ＋ 内容），fail-closed
+    #    ⇒ 没有它 ⇒ 验收后改包照样能出包（完整版形态从未审过这一层）。
+    ok_acc, reason_acc, detail_acc = check_acceptance_binding(
+        PKG, expect_version=PKG_VERSION)
+    if not ok_acc:
+        print()
+        print('[gate⑤] ❌ 验收绑定闸门未通过：%s' % reason_acc)
+        print('[gate⑤]    %s' % json.dumps(detail_acc, ensure_ascii=False)[:800])
+        print('[gate⑤]    ⇒ 本包没有「与本包身份一致、且内容未被改动」的验收签名')
+        print('[gate⑤]    ⇒ 请先在本包上跑验收脚本并**重签 ACCEPTED.json**'
+              '（APP-055：打新版本号 ⇒ 重签），再打包。')
+        print()
+        print('结论：FAIL（验收绑定闸门未通过）')
+        return 1
+    print('[gate⑤] [OK] 验收绑定通过：身份 %s ＋ %d 个生产模块指纹一致'
+          % (detail_acc.get('package_version'),
+             detail_acc.get('n_current', 0)))
 
     if args.dry_run:
         return do_dry_run(PKG, PREFIX)

@@ -1,0 +1,290 @@
+{
+  "generated_at": "2026-11-15 10:26:47",
+  "script": "results\\app\\app571_ful_version_acceptance_gate_matrix.py",
+  "purpose": "§208 完整版（pack_v13.py）出包闸门「验收绑定」的鉴别力矩阵；改前臂 = HEAD 逐字原文，改后臂 = 工作区",
+  "discipline": "零写客户包／不出正式 zip／交付指纹落盘打桩／不跑推理／不取机器锁",
+  "arms": {
+    "before": {
+      "source": "git cat-file blob 39c503a:pack_v13.py",
+      "bytes": 96183,
+      "sha256": "ee1bfa47128c7e783aa32252168080f39aafad8a970d858d1d7595e4b7a9e5c7"
+    },
+    "after": {
+      "source": "工作区 pack_v13.py",
+      "bytes": 111670,
+      "sha256": "a9831676cbf1fc8a45b475d344e6c8f31b1fea59877776c00dd1b26d937737e2"
+    }
+  },
+  "ast": {
+    "before_gates_in_run": [
+      "check_pkg_path_hardcode",
+      "check_version_identity",
+      "check_v23_pkg_gate",
+      "check_app086_2a_narrowing",
+      "check_internal_material"
+    ],
+    "after_gates_in_run": [
+      "check_pkg_path_hardcode",
+      "check_version_identity",
+      "check_v23_pkg_gate",
+      "check_app086_2a_narrowing",
+      "check_acceptance_binding",
+      "check_internal_material"
+    ],
+    "acceptance_touching_funcs_before": [],
+    "acceptance_touching_funcs_after": [
+      "_acc",
+      "_run",
+      "_write",
+      "acceptance_gate_selftest",
+      "check_acceptance_binding"
+    ],
+    "before_has_acceptance_gate": false,
+    "after_has_acceptance_gate": true
+  },
+  "before_rows": [
+    {
+      "rc": 0,
+      "error": null,
+      "zip_created": true,
+      "zip_bytes": 336,
+      "acceptance_reason": null,
+      "tail": [
+        "",
+        "----------------------------------------------------------------------",
+        "testzip() 校验…",
+        "[info] 校验通过 ⇒ 已原子改名到正式路径: C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\tmpy0nj4yi8\\out_before.zip",
+        "结论：PASS  md5=a6bce91d096775ca0f4c134c81240345",
+        "[shortcut] ⏭ 已按 --no-shortcut **跳过**桌面快捷方式更新（APP-061：用户抽听后再改）"
+      ],
+      "case": "T1_no_accepted_marker",
+      "expect_after_blocked": true,
+      "expect_before_blocked": false,
+      "before_judge_pass": true
+    },
+    {
+      "rc": 0,
+      "error": null,
+      "zip_created": true,
+      "zip_bytes": 794,
+      "acceptance_reason": null,
+      "tail": [
+        "",
+        "----------------------------------------------------------------------",
+        "testzip() 校验…",
+        "[info] 校验通过 ⇒ 已原子改名到正式路径: C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\tmpoo8ratev\\out_before.zip",
+        "结论：PASS  md5=073fb701f5481dd716c1c48be97a6445",
+        "[shortcut] ⏭ 已按 --no-shortcut **跳过**桌面快捷方式更新（APP-061：用户抽听后再改）"
+      ],
+      "case": "T2_version_mismatch",
+      "expect_after_blocked": true,
+      "expect_before_blocked": false,
+      "before_judge_pass": true
+    },
+    {
+      "rc": 0,
+      "error": null,
+      "zip_created": true,
+      "zip_bytes": 795,
+      "acceptance_reason": null,
+      "tail": [
+        "",
+        "----------------------------------------------------------------------",
+        "testzip() 校验…",
+        "[info] 校验通过 ⇒ 已原子改名到正式路径: C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\tmpg9z_otbs\\out_before.zip",
+        "结论：PASS  md5=5fe43301daa95151b22420a3b64bcf65",
+        "[shortcut] ⏭ 已按 --no-shortcut **跳过**桌面快捷方式更新（APP-061：用户抽听后再改）"
+      ],
+      "case": "T3_code_changed_after_acceptance",
+      "expect_after_blocked": true,
+      "expect_before_blocked": false,
+      "before_judge_pass": true
+    },
+    {
+      "rc": 0,
+      "error": null,
+      "zip_created": true,
+      "zip_bytes": 793,
+      "acceptance_reason": null,
+      "tail": [
+        "",
+        "----------------------------------------------------------------------",
+        "testzip() 校验…",
+        "[info] 校验通过 ⇒ 已原子改名到正式路径: C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\tmpouaukycx\\out_before.zip",
+        "结论：PASS  md5=5820e6cb1d1ab81a650d9d02cbea30b7",
+        "[shortcut] ⏭ 已按 --no-shortcut **跳过**桌面快捷方式更新（APP-061：用户抽听后再改）"
+      ],
+      "case": "T4_valid_accepted",
+      "expect_after_blocked": false,
+      "expect_before_blocked": false,
+      "before_judge_pass": true
+    }
+  ],
+  "after_rows": [
+    {
+      "rc": 1,
+      "error": null,
+      "zip_created": false,
+      "zip_bytes": 0,
+      "acceptance_reason": "NO_ACCEPTED",
+      "tail": [
+        "[gate⑤] ❌ 验收绑定闸门未通过：NO_ACCEPTED",
+        "[gate⑤]    {\"package_dir\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\tmpcx7tpwrn\\\\Confucius4_LiveCaption_v9.9\", \"expect_version\": \"9.9\", \"accepted_path\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\tmpcx7tpwrn\\\\Confucius4_LiveCaption_v9.9\\\\ACCEPTED.json\"}",
+        "[gate⑤]    ⇒ 本包没有「与本包身份一致、且内容未被改动」的验收签名",
+        "[gate⑤]    ⇒ 请先在本包上跑验收脚本并**重签 ACCEPTED.json**（APP-055：打新版本号 ⇒ 重签），再打包。",
+        "",
+        "结论：FAIL（验收绑定闸门未通过）"
+      ],
+      "case": "T1_no_accepted_marker",
+      "expect_after_blocked": true,
+      "expect_before_blocked": false,
+      "after_judge_pass": true
+    },
+    {
+      "rc": 1,
+      "error": null,
+      "zip_created": false,
+      "zip_bytes": 0,
+      "acceptance_reason": "VERSION_MISMATCH",
+      "tail": [
+        "[gate⑤] ❌ 验收绑定闸门未通过：VERSION_MISMATCH",
+        "[gate⑤]    {\"package_dir\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\tmput8bdn9o\\\\Confucius4_LiveCaption_v9.9\", \"expect_version\": \"9.9\", \"accepted_path\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\tmput8bdn9o\\\\Confucius4_LiveCaption_v9.9\\\\ACCEPTED.json\", \"accepted_version\": \"8.8\", \"accepted_pkg_dir\": \"<HOME>\\\\Confucius4_LiveCaption_v9.9\", \"package_version\": \"9.9\"}",
+        "[gate⑤]    ⇒ 本包没有「与本包身份一致、且内容未被改动」的验收签名",
+        "[gate⑤]    ⇒ 请先在本包上跑验收脚本并**重签 ACCEPTED.json**（APP-055：打新版本号 ⇒ 重签），再打包。",
+        "",
+        "结论：FAIL（验收绑定闸门未通过）"
+      ],
+      "case": "T2_version_mismatch",
+      "expect_after_blocked": true,
+      "expect_before_blocked": false,
+      "after_judge_pass": true
+    },
+    {
+      "rc": 1,
+      "error": null,
+      "zip_created": false,
+      "zip_bytes": 0,
+      "acceptance_reason": "CONTENT_MISMATCH",
+      "tail": [
+        "[gate⑤] ❌ 验收绑定闸门未通过：CONTENT_MISMATCH",
+        "[gate⑤]    {\"package_dir\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\tmp524jj6ee\\\\Confucius4_LiveCaption_v9.9\", \"expect_version\": \"9.9\", \"accepted_path\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\tmp524jj6ee\\\\Confucius4_LiveCaption_v9.9\\\\ACCEPTED.json\", \"accepted_version\": \"9.9\", \"accepted_pkg_dir\": \"<HOME>\\\\Confucius4_LiveCaption_v9.9\", \"package_version\": \"9.9\", \"package_basename\": \"Confucius4_LiveCaption_v9.9\", \"n_registered\": 2, \"n_current\": 2, \"n_changed\": 1, \"changed\": [\"a.py\"], \"n_missing\": 0, \"missing\": [], \"n_extra\": 0, \"extra\": []}",
+        "[gate⑤]    ⇒ 本包没有「与本包身份一致、且内容未被改动」的验收签名",
+        "[gate⑤]    ⇒ 请先在本包上跑验收脚本并**重签 ACCEPTED.json**（APP-055：打新版本号 ⇒ 重签），再打包。",
+        "",
+        "结论：FAIL（验收绑定闸门未通过）"
+      ],
+      "case": "T3_code_changed_after_acceptance",
+      "expect_after_blocked": true,
+      "expect_before_blocked": false,
+      "after_judge_pass": true
+    },
+    {
+      "rc": 0,
+      "error": null,
+      "zip_created": true,
+      "zip_bytes": 793,
+      "acceptance_reason": null,
+      "tail": [
+        "",
+        "----------------------------------------------------------------------",
+        "testzip() 校验…",
+        "[info] 校验通过 ⇒ 已原子改名到正式路径: C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\tmpw3esykje\\out_after.zip",
+        "结论：PASS  md5=5820e6cb1d1ab81a650d9d02cbea30b7",
+        "[shortcut] ⏭ 已按 --no-shortcut **跳过**桌面快捷方式更新（APP-061：用户抽听后再改）"
+      ],
+      "case": "T4_valid_accepted",
+      "expect_after_blocked": false,
+      "expect_before_blocked": false,
+      "after_judge_pass": true
+    }
+  ],
+  "before_judge": {
+    "n_pass": 4,
+    "n_fail": 0
+  },
+  "after_judge": {
+    "n_pass": 4,
+    "n_fail": 0
+  },
+  "real_pkg_readonly": [
+    {
+      "pkg": "Confucius4_LiveCaption_v2.1",
+      "blocked": false,
+      "reason": "OK",
+      "n_current": 28,
+      "n_registered": 28,
+      "accepted_version": "2.1",
+      "expect_pass": true
+    },
+    {
+      "pkg": "Confucius4_LiveCaption_v2.2",
+      "blocked": false,
+      "reason": "OK",
+      "n_current": 28,
+      "n_registered": 28,
+      "accepted_version": "2.2",
+      "expect_pass": true
+    },
+    {
+      "pkg": "Confucius4_LiveCaption_v2.4",
+      "blocked": false,
+      "reason": "OK",
+      "n_current": 29,
+      "n_registered": 29,
+      "accepted_version": "2.4",
+      "expect_pass": true
+    }
+  ],
+  "real_pkg_mutation": [
+    {
+      "pkg": "Confucius4_LiveCaption_v2.1 (临时副本)",
+      "before_mutation_blocked": false,
+      "before_mutation_reason": "OK",
+      "mutated_file": "audio_check.py",
+      "mutated": true,
+      "after_mutation_blocked": true,
+      "after_mutation_reason": "CONTENT_MISMATCH",
+      "expect_before": "PASS",
+      "expect_after": "BLOCK",
+      "pass": true
+    }
+  ],
+  "judge_selftest": [
+    {
+      "case": "M1_should_block_but_allowed_is_judged_FAIL",
+      "pass": true,
+      "detail": {
+        "n_pass": 0,
+        "n_fail": 1
+      }
+    },
+    {
+      "case": "M2_allowed_without_zip_is_judged_FAIL",
+      "pass": true,
+      "detail": {
+        "n_pass": 0,
+        "n_fail": 1
+      }
+    },
+    {
+      "case": "M3_neutered_gate_makes_matrix_FAIL",
+      "pass": true,
+      "detail": {
+        "judge": {
+          "n_pass": 3,
+          "n_fail": 1
+        },
+        "blocked_flags": [
+          false,
+          true,
+          true,
+          false
+        ],
+        "n_cases": 4
+      }
+    }
+  ],
+  "n_pass": 15,
+  "n_fail": 0,
+  "verdict": "PASS"
+}
