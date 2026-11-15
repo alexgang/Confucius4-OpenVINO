@@ -2469,7 +2469,7 @@ class Session:
         # 11-08 test 3: a dub that can only start > LATE_DROP_SEC after its picture slot is
         #   not played (subtitle only) - keeps the voice on the right picture instead of drifting.
         _late = start_est - deadline
-        if pcm24k is not None and _late > C.LATE_DROP_SEC:
+        if pcm24k is not None and C.LATE_DROP_SEC > 0 and _late > C.LATE_DROP_SEC:
             self._n_late_drop = getattr(self, "_n_late_drop", 0) + 1
             _log("[sync] 段 %s 已晚 %.1f s（>%.0f s）=> 不播配音、只出字幕（累计 %d 句）"
                  % (seg_id, _late, C.LATE_DROP_SEC, self._n_late_drop))
@@ -3060,7 +3060,7 @@ class PipelineSession(Session):
         if self._engine is None:
             return False
         late = time.perf_counter() - (self.t0 + job.t_start + self.delay_sec)
-        if late <= C.LATE_DROP_SEC:
+        if C.LATE_DROP_SEC <= 0 or late <= C.LATE_DROP_SEC:   # v0.4.15: 0 = never skip
             return False
         self._n_catchup = getattr(self, "_n_catchup", 0) + 1
         if self._n_catchup <= 3 or self._n_catchup % 10 == 0:
@@ -3168,7 +3168,7 @@ class PipelineSession(Session):
         _est = C.TTS_EST_RTF * (_cjk / 4.5 + (len(_txt) - _cjk) / 14.0)
         _deadline = self.t0 + job.t_start + self.delay_sec
         _start = max(_deadline, time.perf_counter() + _est, getattr(self, "_play_end_est", 0.0))
-        if self._engine is not None and _txt and _start - _deadline > C.LATE_DROP_SEC:
+        if self._engine is not None and _txt and C.LATE_DROP_SEC > 0 and _start - _deadline > C.LATE_DROP_SEC:
             self._n_skip_tts = getattr(self, "_n_skip_tts", 0) + 1
             _log("[sync] 段 %s 预计晚 %.1f s（>%.0f s）=> 跳过合成、只出字幕（累计 %d 句）"
                  % (job.seg_id, _start - _deadline, C.LATE_DROP_SEC, self._n_skip_tts))
