@@ -1,0 +1,639 @@
+{
+ "started": "2026-11-15 11:50:53",
+ "purpose": "APP-110 §0②(a)(b) 补测：三种形态的「手选保留 / 旧配置忽略」",
+ "real_config_before": {
+  "exists": true,
+  "bytes": 59,
+  "sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+  "mtime": 1794623753.483541,
+  "mtime_str": "2026-11-14 10:35:53"
+ },
+ "cases": [
+  {
+   "id": "a1_specialmvp_sp3_handselection",
+   "desc": "specialmvp 本代手选（sp3 包）",
+   "form": "specialmvp",
+   "source": "pkg:sp3",
+   "iso_localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_a1_specialmvp_sp3_handselection_yj9f_w23",
+   "config_written_bytes": 107,
+   "config_written_sha256": "4f5396d08c1b1fbad9e5c8277bb7f17308df1d9b4502639098732e9d5c8f3c4e",
+   "config_content": "{\n  \"asr\": \"GPU.0\",\n  \"mt\": \"GPU.0\",\n  \"tts\": \"CUDA\",\n  \"profile\": \"specialmvp\",\n  \"defaults_version\": 10\n}",
+   "expect": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "CUDA"
+   },
+   "expect_note": false,
+   "get_devices": {
+    "rc": 0,
+    "elapsed_s": 2.4,
+    "stdout": "{\"devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"CUDA\"}, \"notes\": [], \"current_profile\": \"specialmvp\", \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"NPU\", \"tts\": \"CUDA\"}, \"defaults_version\": 10, \"stale_keys\": [], \"has_current_profile\": true, \"has_stale_device_keys\": true, \"config_path\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\wb_iso_a1_specialmvp_sp3_handselection_yj9f_w23\\\\Confucius4LiveCaption\\\\device_config.json\"}\n",
+    "stderr": "",
+    "parsed": {
+     "devices": {
+      "asr": "GPU.0",
+      "mt": "GPU.0",
+      "tts": "CUDA"
+     },
+     "notes": [],
+     "current_profile": "specialmvp",
+     "default_devices": {
+      "asr": "GPU.0",
+      "mt": "NPU",
+      "tts": "CUDA"
+     },
+     "defaults_version": 10,
+     "stale_keys": [],
+     "has_current_profile": true,
+     "has_stale_device_keys": true,
+     "config_path": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_a1_specialmvp_sp3_handselection_yj9f_w23\\Confucius4LiveCaption\\device_config.json"
+    }
+   },
+   "check": {
+    "rc": 0,
+    "elapsed_s": 9.2,
+    "stdout": "====================================================================\n  Confucius4 实时字幕 · 环境检查\n====================================================================\n包目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp3\n模型目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp3\\models\n\n── 依赖 ──\n  [ OK ] numpy            2.4.6\n  [ OK ] openvino         2026.4.1-22982-e213a147257-releases/2026/4\n  [ OK ] openvino_genai   2026.4.1.0-3408-ab01d1771e4\n  [ OK ] transformers     4.57.6\n  [ OK ] sounddevice      0.5.6\n  [ OK ] soundcard        \n  [ OK ] babelvox(Qwen3-TTS) 1.7.1\n  [ OK ] qwen3tts 模型   C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp3\\models\\qwen3tts\n\n── OpenVINO 设备 ──\n  [ OK ] GPU.0    Intel(R) Graphics (iGPU)\n  [ OK ] GPU.1    NVIDIA GeForce RTX 5050 Laptop GPU (dGPU)\n  [ OK ] NPU      Intel(R) AI Boost\n  Intel 集显 (GPU)：[ OK ] 可用\n  Intel NPU     ：[ OK ] 可用\n  注：CPU 推理已从可选设备清单移除（性能不推荐）；如确需 CPU 请用命令行 --asr-device CPU / --mt-device CPU。\n\n── ASR 后端（识别）──\n  [ OK ] Intel GPU · INT8 (stateful) 模型齐全\n  [ OK ] Intel NPU · INT8 (stateful) 模型齐全\n\n── 翻译后端（Hy-MT2-1.8B）──\n  [ OK ] Intel GPU · INT8-CW（默认） GPU.0    \n  [ — ] Intel GPU · INT4-CW        GPU.0    （本包不附带该量化版本）\n  [ OK ] Intel NPU · INT8-CW        NPU      \n  [ — ] Intel NPU · INT4-CW        NPU      （本包不附带该量化版本）\n  [ OK ] 自动 · INT8-CW 模型（默认） 跟随 --mt-device \n\n── 音频设备 ──\n  [ OK ] 麦克风 [1] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · MME（默认）\n  [ OK ] 麦克风 [0] Microsoft 声音映射器 - Input · MME\n  [ OK ] 麦克风 [9] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · Windows WASAPI\n  [ OK ] 输出 Speaker (Realtek(R) Audio)（2 声道）  id={0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}\n\n── CUDA 语音后端（Special MVP：包内自带 NV5050 运行时）──\n  CUDA 运行时：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp3\\cuda_env\\Scripts\\python.exe\n  运行时 python：[ OK ] 存在\n  TTS CUDA 模型：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp3\\models\\tts_cuda\n  模型文件：12 个（随包离线可用）\n  CUDA 可用性：[ OK ] torch 2.11.0+cu128 / CUDA 12.8 / available=True\n\n====================================================================\n  结论：环境正常。ASR 可用后端 2 个，Intel 集显可用。\n====================================================================\n",
+    "stderr": "[device] ASR 与 MT 同在 GPU.0（stateful 解码器负载约为旧解码器的 1/3；rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+   },
+   "resolved_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "CUDA"
+   },
+   "notes": [],
+   "current_profile": "specialmvp",
+   "default_devices": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "CUDA"
+   },
+   "defaults_version": 10,
+   "stale_keys": [],
+   "note_has_ignored": false,
+   "check_has_ignored_note": false,
+   "check_warn_asr_mt_same_gpu": false,
+   "check_stderr_tail": "[device] ASR 与 MT 同在 GPU.0（stateful 解码器负载约为旧解码器的 1/3；rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+   "pass_devices": true,
+   "pass_note": true,
+   "pass": true
+  },
+  {
+   "id": "b1_minimvp_rc11_v9_handselection",
+   "desc": "minimvp v9 手选（rc11 包）",
+   "form": "minimvp",
+   "source": "pkg:rc11",
+   "iso_localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_b1_minimvp_rc11_v9_handselection_ki4o0c8u",
+   "config_written_bytes": 100,
+   "config_written_sha256": "9a60a58e2ee4f336d471c87ec9e98f428d8e1120d3caea5d4ea2f4f33c5b8df6",
+   "config_content": "{\n  \"asr\": \"GPU.0\",\n  \"mt\": \"NPU\",\n  \"tts\": \"NPU\",\n  \"profile\": \"minimvp\",\n  \"defaults_version\": 9\n}",
+   "expect": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "NPU"
+   },
+   "expect_note": false,
+   "get_devices": {
+    "rc": 0,
+    "elapsed_s": 1.9,
+    "stdout": "{\"devices\": {\"asr\": \"GPU.0\", \"mt\": \"NPU\", \"tts\": \"NPU\"}, \"notes\": [], \"current_profile\": \"minimvp\", \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}, \"defaults_version\": null, \"stale_keys\": [], \"has_current_profile\": true, \"has_stale_device_keys\": true, \"config_path\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\wb_iso_b1_minimvp_rc11_v9_handselection_ki4o0c8u\\\\Confucius4LiveCaption\\\\device_config.json\"}\n",
+    "stderr": "",
+    "parsed": {
+     "devices": {
+      "asr": "GPU.0",
+      "mt": "NPU",
+      "tts": "NPU"
+     },
+     "notes": [],
+     "current_profile": "minimvp",
+     "default_devices": {
+      "asr": "GPU.0",
+      "mt": "GPU.0",
+      "tts": "NPU"
+     },
+     "defaults_version": null,
+     "stale_keys": [],
+     "has_current_profile": true,
+     "has_stale_device_keys": true,
+     "config_path": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_b1_minimvp_rc11_v9_handselection_ki4o0c8u\\Confucius4LiveCaption\\device_config.json"
+    }
+   },
+   "check": {
+    "rc": 0,
+    "elapsed_s": 6.5,
+    "stdout": "====================================================================\n  Confucius4 实时字幕 MiniMVP · 环境检查\n====================================================================\n包目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11\n模型目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11\\models\n\n── 依赖 ──\n  [ OK ] numpy            2.4.6\n  [ OK ] openvino         2026.4.1-22982-e213a147257-releases/2026/4\n  [ OK ] openvino_genai   2026.4.1.0-3408-ab01d1771e4\n  [ OK ] transformers     4.57.6\n  [ OK ] sounddevice      0.5.6\n  [ OK ] soundcard        \n  [ OK ] babelvox(Qwen3-TTS) 1.7.1\n  [ OK ] qwen3tts 模型   C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11\\models\\qwen3tts\n\n── OpenVINO 设备 ──\n  [ OK ] GPU.0    Intel(R) Graphics (iGPU)\n  [ OK ] NPU      Intel(R) AI Boost\n  Intel 集显 (GPU)：[ OK ] 可用\n  Intel NPU     ：[ OK ] 可用\n  注：CPU 推理已从可选设备清单移除（性能不推荐）；如确需 CPU 请用命令行 --asr-device CPU / --mt-device CPU。\n\n── ASR 后端（识别）──\n  [ OK ] Intel GPU · INT8 (stateful) 模型齐全\n  [ OK ] Intel NPU · INT8 (stateful) 模型齐全\n\n── 翻译后端（Hy-MT2-1.8B）──\n  [ OK ] Intel GPU · INT8-CW（默认） GPU.0    \n  [ — ] Intel GPU · INT4-CW        GPU.0    （本包不附带该量化版本）\n  [ OK ] Intel NPU · INT8-CW        NPU      \n  [ — ] Intel NPU · INT4-CW        NPU      （本包不附带该量化版本）\n  [ OK ] 自动 · INT8-CW 模型（默认） 跟随 --mt-device \n\n── 音频设备 ──\n  [ OK ] 麦克风 [1] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · MME（默认）\n  [ OK ] 麦克风 [0] Microsoft 声音映射器 - Input · MME\n  [ OK ] 麦克风 [9] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · Windows WASAPI\n  [ OK ] 输出 Speaker (Realtek(R) Audio)（2 声道）  id={0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}\n\n====================================================================\n  结论：环境正常。ASR 可用后端 2 个，Intel 集显可用。\n====================================================================\n",
+    "stderr": "[device] 🔴 MT 与 TTS 同时在 NPU ⇒ 已禁止（APP-062 D4）⇒ MT 自动改到 GPU.0\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+   },
+   "resolved_devices": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "NPU"
+   },
+   "notes": [],
+   "current_profile": "minimvp",
+   "default_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "defaults_version": null,
+   "stale_keys": [],
+   "note_has_ignored": false,
+   "check_has_ignored_note": false,
+   "check_warn_asr_mt_same_gpu": false,
+   "check_stderr_tail": "[device] 🔴 MT 与 TTS 同时在 NPU ⇒ 已禁止（APP-062 D4）⇒ MT 自动改到 GPU.0\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+   "pass_devices": true,
+   "pass_note": true,
+   "pass": true
+  },
+  {
+   "id": "b2_minimvp_rc11_legacy3",
+   "desc": "minimvp 59 B 旧 3 键（rc11 包）",
+   "form": "minimvp",
+   "source": "pkg:rc11",
+   "iso_localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_b2_minimvp_rc11_legacy3_zecq09qp",
+   "config_written_bytes": 59,
+   "config_written_sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+   "config_content": "{\r\n  \"asr\": \"GPU.0\",\r\n  \"mt\": \"GPU.0\",\r\n  \"tts\": \"GPU.0\"\r\n}",
+   "expect": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "expect_note": true,
+   "get_devices": {
+    "rc": 0,
+    "elapsed_s": 0.8,
+    "stdout": "{\"devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}, \"notes\": [\"已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是 MiniMVP rc9 之前的出厂默认⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\"], \"current_profile\": \"minimvp\", \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}, \"defaults_version\": null, \"stale_keys\": [\"asr\", \"mt\", \"tts\"], \"has_current_profile\": true, \"has_stale_device_keys\": true, \"config_path\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\wb_iso_b2_minimvp_rc11_legacy3_zecq09qp\\\\Confucius4LiveCaption\\\\device_config.json\"}\n",
+    "stderr": "",
+    "parsed": {
+     "devices": {
+      "asr": "GPU.0",
+      "mt": "GPU.0",
+      "tts": "NPU"
+     },
+     "notes": [
+      "已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是 MiniMVP rc9 之前的出厂默认⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。"
+     ],
+     "current_profile": "minimvp",
+     "default_devices": {
+      "asr": "GPU.0",
+      "mt": "GPU.0",
+      "tts": "NPU"
+     },
+     "defaults_version": null,
+     "stale_keys": [
+      "asr",
+      "mt",
+      "tts"
+     ],
+     "has_current_profile": true,
+     "has_stale_device_keys": true,
+     "config_path": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_b2_minimvp_rc11_legacy3_zecq09qp\\Confucius4LiveCaption\\device_config.json"
+    }
+   },
+   "check": {
+    "rc": 0,
+    "elapsed_s": 6.4,
+    "stdout": "====================================================================\n  Confucius4 实时字幕 MiniMVP · 环境检查\n====================================================================\n包目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11\n模型目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11\\models\n\n── 依赖 ──\n  [ OK ] numpy            2.4.6\n  [ OK ] openvino         2026.4.1-22982-e213a147257-releases/2026/4\n  [ OK ] openvino_genai   2026.4.1.0-3408-ab01d1771e4\n  [ OK ] transformers     4.57.6\n  [ OK ] sounddevice      0.5.6\n  [ OK ] soundcard        \n  [ OK ] babelvox(Qwen3-TTS) 1.7.1\n  [ OK ] qwen3tts 模型   C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11\\models\\qwen3tts\n\n── OpenVINO 设备 ──\n  [ OK ] GPU.0    Intel(R) Graphics (iGPU)\n  [ OK ] NPU      Intel(R) AI Boost\n  Intel 集显 (GPU)：[ OK ] 可用\n  Intel NPU     ：[ OK ] 可用\n  注：CPU 推理已从可选设备清单移除（性能不推荐）；如确需 CPU 请用命令行 --asr-device CPU / --mt-device CPU。\n\n── ASR 后端（识别）──\n  [ OK ] Intel GPU · INT8 (stateful) 模型齐全\n  [ OK ] Intel NPU · INT8 (stateful) 模型齐全\n\n── 翻译后端（Hy-MT2-1.8B）──\n  [ OK ] Intel GPU · INT8-CW（默认） GPU.0    \n  [ — ] Intel GPU · INT4-CW        GPU.0    （本包不附带该量化版本）\n  [ OK ] Intel NPU · INT8-CW        NPU      \n  [ — ] Intel NPU · INT4-CW        NPU      （本包不附带该量化版本）\n  [ OK ] 自动 · INT8-CW 模型（默认） 跟随 --mt-device \n\n── 音频设备 ──\n  [ OK ] 麦克风 [1] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · MME（默认）\n  [ OK ] 麦克风 [0] Microsoft 声音映射器 - Input · MME\n  [ OK ] 麦克风 [9] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · Windows WASAPI\n  [ OK ] 输出 Speaker (Realtek(R) Audio)（2 声道）  id={0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}\n\n====================================================================\n  结论：环境正常。ASR 可用后端 2 个，Intel 集显可用。\n====================================================================\n",
+    "stderr": "[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是 MiniMVP rc9 之前的出厂默认⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\n[device] ASR 与 MT 同在 GPU.0（stateful 解码器负载约为旧解码器的 1/3；rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+   },
+   "resolved_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "notes": [
+    "已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是 MiniMVP rc9 之前的出厂默认⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。"
+   ],
+   "current_profile": "minimvp",
+   "default_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "defaults_version": null,
+   "stale_keys": [
+    "asr",
+    "mt",
+    "tts"
+   ],
+   "note_has_ignored": true,
+   "check_has_ignored_note": true,
+   "check_warn_asr_mt_same_gpu": false,
+   "check_stderr_tail": "[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是 MiniMVP rc9 之前的出厂默认⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\n[device] ASR 与 MT 同在 GPU.0（stateful 解码器负载约为旧解码器的 1/3；rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+   "pass_devices": true,
+   "pass_note": true,
+   "pass": true
+  },
+  {
+   "id": "b1b_minimvp_dev_v9_handselection",
+   "desc": "minimvp v9 手选（dev 树形态）",
+   "form": "minimvp",
+   "source": "dev-harness",
+   "iso_localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_b1b_minimvp_dev_v9_handselection_jspqk7ue",
+   "config_written_bytes": 100,
+   "config_written_sha256": "9a60a58e2ee4f336d471c87ec9e98f428d8e1120d3caea5d4ea2f4f33c5b8df6",
+   "config_content": "{\n  \"asr\": \"GPU.0\",\n  \"mt\": \"NPU\",\n  \"tts\": \"NPU\",\n  \"profile\": \"minimvp\",\n  \"defaults_version\": 9\n}",
+   "expect": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "NPU"
+   },
+   "expect_note": false,
+   "get_devices": {
+    "rc": 0,
+    "elapsed_s": 1.7,
+    "stdout": "{\"devices\": {\"asr\": \"GPU.0\", \"mt\": \"NPU\", \"tts\": \"NPU\"}, \"notes\": [], \"current_profile\": \"minimvp\", \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}, \"defaults_version\": 9, \"stale_keys\": [], \"has_current_profile\": true, \"has_stale_device_keys\": true, \"config_path\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\wb_iso_b1b_minimvp_dev_v9_handselection_jspqk7ue\\\\Confucius4LiveCaption\\\\device_config.json\"}\n",
+    "stderr": "",
+    "parsed": {
+     "devices": {
+      "asr": "GPU.0",
+      "mt": "NPU",
+      "tts": "NPU"
+     },
+     "notes": [],
+     "current_profile": "minimvp",
+     "default_devices": {
+      "asr": "GPU.0",
+      "mt": "GPU.0",
+      "tts": "NPU"
+     },
+     "defaults_version": 9,
+     "stale_keys": [],
+     "has_current_profile": true,
+     "has_stale_device_keys": true,
+     "config_path": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_b1b_minimvp_dev_v9_handselection_jspqk7ue\\Confucius4LiveCaption\\device_config.json"
+    }
+   },
+   "resolved_devices": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "NPU"
+   },
+   "notes": [],
+   "current_profile": "minimvp",
+   "default_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "defaults_version": 9,
+   "stale_keys": [],
+   "note_has_ignored": false,
+   "check_has_ignored_note": false,
+   "check_warn_asr_mt_same_gpu": false,
+   "check_stderr_tail": "",
+   "pass_devices": true,
+   "pass_note": true,
+   "pass": true
+  },
+  {
+   "id": "b2b_minimvp_dev_legacy3",
+   "desc": "minimvp 59 B 旧 3 键（dev 树形态）",
+   "form": "minimvp",
+   "source": "dev-harness",
+   "iso_localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_b2b_minimvp_dev_legacy3_9kukq22g",
+   "config_written_bytes": 59,
+   "config_written_sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+   "config_content": "{\r\n  \"asr\": \"GPU.0\",\r\n  \"mt\": \"GPU.0\",\r\n  \"tts\": \"GPU.0\"\r\n}",
+   "expect": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "expect_note": true,
+   "get_devices": {
+    "rc": 0,
+    "elapsed_s": 2.1,
+    "stdout": "{\"devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}, \"notes\": [\"已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是 MiniMVP rc9 之前的出厂默认 ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\"], \"current_profile\": \"minimvp\", \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}, \"defaults_version\": 9, \"stale_keys\": [\"asr\", \"mt\", \"tts\"], \"has_current_profile\": true, \"has_stale_device_keys\": true, \"config_path\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\wb_iso_b2b_minimvp_dev_legacy3_9kukq22g\\\\Confucius4LiveCaption\\\\device_config.json\"}\n",
+    "stderr": "",
+    "parsed": {
+     "devices": {
+      "asr": "GPU.0",
+      "mt": "GPU.0",
+      "tts": "NPU"
+     },
+     "notes": [
+      "已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是 MiniMVP rc9 之前的出厂默认 ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。"
+     ],
+     "current_profile": "minimvp",
+     "default_devices": {
+      "asr": "GPU.0",
+      "mt": "GPU.0",
+      "tts": "NPU"
+     },
+     "defaults_version": 9,
+     "stale_keys": [
+      "asr",
+      "mt",
+      "tts"
+     ],
+     "has_current_profile": true,
+     "has_stale_device_keys": true,
+     "config_path": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_b2b_minimvp_dev_legacy3_9kukq22g\\Confucius4LiveCaption\\device_config.json"
+    }
+   },
+   "resolved_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "notes": [
+    "已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是 MiniMVP rc9 之前的出厂默认 ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。"
+   ],
+   "current_profile": "minimvp",
+   "default_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "defaults_version": 9,
+   "stale_keys": [
+    "asr",
+    "mt",
+    "tts"
+   ],
+   "note_has_ignored": true,
+   "check_has_ignored_note": false,
+   "check_warn_asr_mt_same_gpu": false,
+   "check_stderr_tail": "",
+   "pass_devices": true,
+   "pass_note": true,
+   "pass": true
+  },
+  {
+   "id": "b3_full_dev_handselection",
+   "desc": "完整版本代手选（dev 树形态）",
+   "form": "full",
+   "source": "dev-harness",
+   "iso_localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_b3_full_dev_handselection_cth3mvvf",
+   "config_written_bytes": 99,
+   "config_written_sha256": "dc22ecc1c99bf141fee5d2ff127971784bfcd7ed82d5df7eb07d7b17845cad45",
+   "config_content": "{\n  \"asr\": \"GPU.0\",\n  \"mt\": \"NPU\",\n  \"tts\": \"GPU.0\",\n  \"profile\": \"full\",\n  \"defaults_version\": 9\n}",
+   "expect": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "GPU.0"
+   },
+   "expect_note": false,
+   "get_devices": {
+    "rc": 0,
+    "elapsed_s": 18.1,
+    "stdout": "{\"devices\": {\"asr\": \"GPU.0\", \"mt\": \"NPU\", \"tts\": \"GPU.0\"}, \"notes\": [], \"current_profile\": \"full\", \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"GPU.0\"}, \"defaults_version\": 9, \"stale_keys\": [], \"has_current_profile\": true, \"has_stale_device_keys\": true, \"config_path\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\wb_iso_b3_full_dev_handselection_cth3mvvf\\\\Confucius4LiveCaption\\\\device_config.json\"}\n",
+    "stderr": "",
+    "parsed": {
+     "devices": {
+      "asr": "GPU.0",
+      "mt": "NPU",
+      "tts": "GPU.0"
+     },
+     "notes": [],
+     "current_profile": "full",
+     "default_devices": {
+      "asr": "GPU.0",
+      "mt": "GPU.0",
+      "tts": "GPU.0"
+     },
+     "defaults_version": 9,
+     "stale_keys": [],
+     "has_current_profile": true,
+     "has_stale_device_keys": true,
+     "config_path": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_b3_full_dev_handselection_cth3mvvf\\Confucius4LiveCaption\\device_config.json"
+    }
+   },
+   "resolved_devices": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "GPU.0"
+   },
+   "notes": [],
+   "current_profile": "full",
+   "default_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "GPU.0"
+   },
+   "defaults_version": 9,
+   "stale_keys": [],
+   "note_has_ignored": false,
+   "check_has_ignored_note": false,
+   "check_warn_asr_mt_same_gpu": false,
+   "check_stderr_tail": "",
+   "pass_devices": true,
+   "pass_note": true,
+   "pass": true
+  },
+  {
+   "id": "b4_full_dev_legacy3",
+   "desc": "完整版 59 B 旧 3 键（dev 树形态）",
+   "form": "full",
+   "source": "dev-harness",
+   "iso_localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_b4_full_dev_legacy3_lw_8um9i",
+   "config_written_bytes": 59,
+   "config_written_sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+   "config_content": "{\r\n  \"asr\": \"GPU.0\",\r\n  \"mt\": \"GPU.0\",\r\n  \"tts\": \"GPU.0\"\r\n}",
+   "expect": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "GPU.0"
+   },
+   "expect_note": false,
+   "get_devices": {
+    "rc": 0,
+    "elapsed_s": 1.2,
+    "stdout": "{\"devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"GPU.0\"}, \"notes\": [], \"current_profile\": \"full\", \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"GPU.0\"}, \"defaults_version\": 9, \"stale_keys\": [], \"has_current_profile\": true, \"has_stale_device_keys\": true, \"config_path\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\wb_iso_b4_full_dev_legacy3_lw_8um9i\\\\Confucius4LiveCaption\\\\device_config.json\"}\n",
+    "stderr": "",
+    "parsed": {
+     "devices": {
+      "asr": "GPU.0",
+      "mt": "GPU.0",
+      "tts": "GPU.0"
+     },
+     "notes": [],
+     "current_profile": "full",
+     "default_devices": {
+      "asr": "GPU.0",
+      "mt": "GPU.0",
+      "tts": "GPU.0"
+     },
+     "defaults_version": 9,
+     "stale_keys": [],
+     "has_current_profile": true,
+     "has_stale_device_keys": true,
+     "config_path": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_b4_full_dev_legacy3_lw_8um9i\\Confucius4LiveCaption\\device_config.json"
+    }
+   },
+   "resolved_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "GPU.0"
+   },
+   "notes": [],
+   "current_profile": "full",
+   "default_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "GPU.0"
+   },
+   "defaults_version": 9,
+   "stale_keys": [],
+   "note_has_ignored": false,
+   "check_has_ignored_note": false,
+   "check_warn_asr_mt_same_gpu": false,
+   "check_stderr_tail": "",
+   "pass_devices": true,
+   "pass_note": true,
+   "pass": true
+  },
+  {
+   "id": "b5_full_v21_handselection",
+   "desc": "完整版本代手选（v2.1 包，记录用）",
+   "form": "full",
+   "source": "pkg:v2.1",
+   "iso_localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_b5_full_v21_handselection_m94u8s70",
+   "config_written_bytes": 99,
+   "config_written_sha256": "dc22ecc1c99bf141fee5d2ff127971784bfcd7ed82d5df7eb07d7b17845cad45",
+   "config_content": "{\n  \"asr\": \"GPU.0\",\n  \"mt\": \"NPU\",\n  \"tts\": \"GPU.0\",\n  \"profile\": \"full\",\n  \"defaults_version\": 9\n}",
+   "expect": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "GPU.0"
+   },
+   "expect_note": false,
+   "get_devices": {
+    "rc": 0,
+    "elapsed_s": 1.0,
+    "stdout": "{\"devices\": {\"asr\": \"GPU.0\", \"mt\": \"NPU\", \"tts\": \"GPU.0\"}, \"notes\": [], \"current_profile\": null, \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}, \"defaults_version\": null, \"stale_keys\": null, \"has_current_profile\": false, \"has_stale_device_keys\": false, \"config_path\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\wb_iso_b5_full_v21_handselection_m94u8s70\\\\Confucius4LiveCaption\\\\device_config.json\"}\n",
+    "stderr": "",
+    "parsed": {
+     "devices": {
+      "asr": "GPU.0",
+      "mt": "NPU",
+      "tts": "GPU.0"
+     },
+     "notes": [],
+     "current_profile": null,
+     "default_devices": {
+      "asr": "GPU.0",
+      "mt": "GPU.0",
+      "tts": "NPU"
+     },
+     "defaults_version": null,
+     "stale_keys": null,
+     "has_current_profile": false,
+     "has_stale_device_keys": false,
+     "config_path": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_b5_full_v21_handselection_m94u8s70\\Confucius4LiveCaption\\device_config.json"
+    }
+   },
+   "check": {
+    "rc": 0,
+    "elapsed_s": 4.5,
+    "stdout": "====================================================================\n  Confucius4-R2T2 实时字幕 · 环境检查\n====================================================================\n包目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\n模型目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\models\n\n── 依赖 ──\n  [ OK ] numpy            2.4.6\n  [ OK ] openvino         2026.4.1-22982-e213a147257-releases/2026/4\n  [ OK ] openvino_genai   2026.4.1.0-3408-ab01d1771e4\n  [ OK ] transformers     4.57.6\n  [ OK ] sounddevice      0.5.6\n  [ OK ] soundcard        \n  [ OK ] babelvox(Qwen3-TTS) 1.7.1\n  [ OK ] qwen3tts 模型   C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\models\\qwen3tts\n\n── OpenVINO 设备 ──\n  [ OK ] GPU.0    Intel(R) Graphics (iGPU)\n  [ OK ] GPU.1    NVIDIA GeForce RTX 5050 Laptop GPU (dGPU)\n  [ OK ] NPU      Intel(R) AI Boost\n  Intel 集显 (GPU)：[ OK ] 可用\n  Intel NPU     ：[ OK ] 可用\n  注：CPU 推理已从可选设备清单移除（性能不推荐）；如确需 CPU 请用命令行 --asr-device CPU / --mt-device CPU。\n\n── ASR 后端（识别）──\n  [ OK ] Intel GPU · INT8           模型齐全\n  [ OK ] Intel GPU · INT4           模型齐全\n  [ OK ] Intel NPU · INT8           模型齐全\n  [ OK ] Intel NPU · INT4（实验）   模型齐全\n  [ OK ] NVIDIA GPU · CUDA Q8_0     模型齐全\n  [ OK ] NVIDIA GPU · CUDA Q4_K     模型齐全\n\n── 翻译后端（Hy-MT2-1.8B）──\n  [ OK ] Intel GPU · INT8-CW（默认） GPU.0    \n  [ OK ] Intel GPU · INT4-CW        GPU.0    \n  [ OK ] Intel NPU · INT8-CW        NPU      \n  [ OK ] Intel NPU · INT4-CW        NPU      \n  [ OK ] 自动 · INT8-CW 模型（默认） 跟随 --mt-device \n\n── 音频设备 ──\n  [ OK ] 麦克风 [1] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · MME（默认）\n  [ OK ] 麦克风 [0] Microsoft 声音映射器 - Input · MME\n  [ OK ] 麦克风 [9] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · Windows WASAPI\n  [ OK ] 输出 Speaker (Realtek(R) Audio)（2 声道）  id={0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}\n\n====================================================================\n  结论：环境正常。ASR 可用后端 6 个，Intel 集显可用。\n====================================================================\n",
+    "stderr": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+   },
+   "resolved_devices": {
+    "asr": "GPU.0",
+    "mt": "NPU",
+    "tts": "GPU.0"
+   },
+   "notes": [],
+   "current_profile": null,
+   "default_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "defaults_version": null,
+   "stale_keys": null,
+   "note_has_ignored": false,
+   "check_has_ignored_note": false,
+   "check_warn_asr_mt_same_gpu": false,
+   "check_stderr_tail": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+   "pass_devices": true,
+   "pass_note": true,
+   "pass": true
+  },
+  {
+   "id": "b6_full_v21_legacy3",
+   "desc": "完整版 59 B 旧 3 键（v2.1 包，记录用）",
+   "form": "full",
+   "source": "pkg:v2.1",
+   "iso_localappdata": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_b6_full_v21_legacy3_j4zuha9w",
+   "config_written_bytes": 59,
+   "config_written_sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+   "config_content": "{\r\n  \"asr\": \"GPU.0\",\r\n  \"mt\": \"GPU.0\",\r\n  \"tts\": \"GPU.0\"\r\n}",
+   "expect": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "GPU.0"
+   },
+   "expect_note": false,
+   "get_devices": {
+    "rc": 0,
+    "elapsed_s": 1.9,
+    "stdout": "{\"devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"GPU.0\"}, \"notes\": [], \"current_profile\": null, \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}, \"defaults_version\": null, \"stale_keys\": null, \"has_current_profile\": false, \"has_stale_device_keys\": false, \"config_path\": \"C:\\\\Users\\\\TREKKE~1\\\\AppData\\\\Local\\\\Temp\\\\wb_iso_b6_full_v21_legacy3_j4zuha9w\\\\Confucius4LiveCaption\\\\device_config.json\"}\n",
+    "stderr": "",
+    "parsed": {
+     "devices": {
+      "asr": "GPU.0",
+      "mt": "GPU.0",
+      "tts": "GPU.0"
+     },
+     "notes": [],
+     "current_profile": null,
+     "default_devices": {
+      "asr": "GPU.0",
+      "mt": "GPU.0",
+      "tts": "NPU"
+     },
+     "defaults_version": null,
+     "stale_keys": null,
+     "has_current_profile": false,
+     "has_stale_device_keys": false,
+     "config_path": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\wb_iso_b6_full_v21_legacy3_j4zuha9w\\Confucius4LiveCaption\\device_config.json"
+    }
+   },
+   "check": {
+    "rc": 0,
+    "elapsed_s": 3.9,
+    "stdout": "====================================================================\n  Confucius4-R2T2 实时字幕 · 环境检查\n====================================================================\n包目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\n模型目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\models\n\n── 依赖 ──\n  [ OK ] numpy            2.4.6\n  [ OK ] openvino         2026.4.1-22982-e213a147257-releases/2026/4\n  [ OK ] openvino_genai   2026.4.1.0-3408-ab01d1771e4\n  [ OK ] transformers     4.57.6\n  [ OK ] sounddevice      0.5.6\n  [ OK ] soundcard        \n  [ OK ] babelvox(Qwen3-TTS) 1.7.1\n  [ OK ] qwen3tts 模型   C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.1\\models\\qwen3tts\n\n── OpenVINO 设备 ──\n  [ OK ] GPU.0    Intel(R) Graphics (iGPU)\n  [ OK ] GPU.1    NVIDIA GeForce RTX 5050 Laptop GPU (dGPU)\n  [ OK ] NPU      Intel(R) AI Boost\n  Intel 集显 (GPU)：[ OK ] 可用\n  Intel NPU     ：[ OK ] 可用\n  注：CPU 推理已从可选设备清单移除（性能不推荐）；如确需 CPU 请用命令行 --asr-device CPU / --mt-device CPU。\n\n── ASR 后端（识别）──\n  [ OK ] Intel GPU · INT8           模型齐全\n  [ OK ] Intel GPU · INT4           模型齐全\n  [ OK ] Intel NPU · INT8           模型齐全\n  [ OK ] Intel NPU · INT4（实验）   模型齐全\n  [ OK ] NVIDIA GPU · CUDA Q8_0     模型齐全\n  [ OK ] NVIDIA GPU · CUDA Q4_K     模型齐全\n\n── 翻译后端（Hy-MT2-1.8B）──\n  [ OK ] Intel GPU · INT8-CW（默认） GPU.0    \n  [ OK ] Intel GPU · INT4-CW        GPU.0    \n  [ OK ] Intel NPU · INT8-CW        NPU      \n  [ OK ] Intel NPU · INT4-CW        NPU      \n  [ OK ] 自动 · INT8-CW 模型（默认） 跟随 --mt-device \n\n── 音频设备 ──\n  [ OK ] 麦克风 [1] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · MME（默认）\n  [ OK ] 麦克风 [0] Microsoft 声音映射器 - Input · MME\n  [ OK ] 麦克风 [9] 麦克风阵列 (适用于数字麦克风的英特尔® 智音技术) · Windows WASAPI\n  [ OK ] 输出 Speaker (Realtek(R) Audio)（2 声道）  id={0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}\n\n====================================================================\n  结论：环境正常。ASR 可用后端 6 个，Intel 集显可用。\n====================================================================\n",
+    "stderr": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+   },
+   "resolved_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "GPU.0"
+   },
+   "notes": [],
+   "current_profile": null,
+   "default_devices": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+   },
+   "defaults_version": null,
+   "stale_keys": null,
+   "note_has_ignored": false,
+   "check_has_ignored_note": false,
+   "check_warn_asr_mt_same_gpu": false,
+   "check_stderr_tail": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+   "pass_devices": true,
+   "pass_note": true,
+   "pass": true
+  }
+ ],
+ "real_config_after": {
+  "exists": true,
+  "bytes": 59,
+  "sha256": "9d484c1c9402d7a9911f2af6a53f6e056a18039715b8bda9ec15ddecf6b473a2",
+  "mtime": 1794623753.483541,
+  "mtime_str": "2026-11-14 10:35:53"
+ },
+ "real_config_unchanged": true,
+ "n_cases": 9,
+ "n_pass": 9,
+ "n_fail": 0,
+ "failed_cases": [],
+ "verdict": "PASS",
+ "finished": "2026-11-15 11:51:54"
+}

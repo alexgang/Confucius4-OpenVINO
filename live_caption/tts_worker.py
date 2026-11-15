@@ -1224,11 +1224,15 @@ class TTSWorker:
             pass
         # 🔴🔴🔳 APP-092 §2：**TTS 级跳过过期句**（late drop）
         #   ⇒ 滞后超过阈值 ⇒ 这句**不配音**（内容仍在字幕/转写里）。
-        #   ⇒ 阈值**可配**：键名 **`tts_late_drop_sec`**，默认 **6.0 s**
-        #     （同 EXT `LATE_DROP_SEC`）。
+        #   ⇒ 阈值**可配**：键名 **`tts_late_drop_sec`**。
+        # 🔴🔴🔳 **APP-111 §1（用户 11-15 决定「TTS 跳句阈值改成 0」）**：
+        #   **默认 6.0 s → 0.0 s** ⇒ 语义是「**0 = 关闭跳句，一句都不丢**」
+        #   （11-15 取代 APP-092 §2 的 6.0 s 阈值）。
+        #   ⚠️ **阈值 ≤ 0 ⇒ 绝不跳句**（**不是**「晚 >0 s 就跳」）
+        #   ⇒ 真正的判定见下面的 `self._late_drop_sec > 0.0` 守卫。
         #   ⚠️ 优先级：环境变量 `LIVECAP_TTS_LATE_DROP_SEC` > 命令行 > 默认值。
         self._late_drop_sec = float(os.environ.get(
-            'LIVECAP_TTS_LATE_DROP_SEC', '') or 6.0)
+            'LIVECAP_TTS_LATE_DROP_SEC', '') or 0.0)
         self._n_late_drop = 0         # 跳过的句数
         self._late_drop_lags = []     # 每次跳过的滞后秒数（验收用）
         self._last_late_drop = False  # 本句是否被跳过（逐句遥测用）
@@ -2060,7 +2064,7 @@ class TTSWorker:
                 #   （单一合成线程 ⇒ 无需加锁）。
                 _prev_sp = float(self._last_speed or 1.0)
                 # 🔴🔴🔳 APP-090②c / APP-091②：**按目标语言定倍率区间**
-                #   ⇒ 中文目标：下限 1.10×、上限 1.50×
+                #   ⇒ 中文目标：下限 1.10×、上限 2.00×（APP-111 §1）
                 #   ⇒ 其他目标：1.00–1.30×（**原口径不变**）
                 _sp = float(_ts.speed_for_lag(_lag_at_dequeue, _prev_sp,
                                               lang=lang))
@@ -3489,7 +3493,7 @@ class TTSWorker:
 
         🔴 **可配**（APP-091②「写明键名」）：
         - `tts_speed_min_zh`（默认 **1.10**）
-        - `tts_speed_max_zh`（默认 **1.50**）
+        - `tts_speed_max_zh`（默认 **2.00**，APP-111 §1）
         ⇒ 来源：环境变量 `LIVECAP_TTS_SPEED_MIN_ZH` / `LIVECAP_TTS_SPEED_MAX_ZH`
           或 `device_config.json`（**键名同上**）。
         ⚠️ **读不到就用默认值** ⇒ 不影响任何既有行为。
@@ -3536,7 +3540,7 @@ class TTSWorker:
           这里只是**再加一个更严的动态上限**。
 
         🔴🔴🔳 **APP-090②c / APP-091②（中文目标）**：
-        - 上限随语言变（中文 1.50×，其他 1.30×）；
+        - 上限随语言变（中文 2.00×〔APP-111 §1〕，其他 1.30× 不变）；
         - **下限也不能压到 1.10 以下**：reviewer 明文
           「『合成跟不上就宁可滞后』（speed ≤ 1/r_recent）这条保留，
           但它**不能把下限压到 1.10 以下**。如果两者冲突，
@@ -3557,7 +3561,7 @@ class TTSWorker:
         except Exception:
             _lo, _hi = 1.0, 1.30
         cap = 1.0 / r
-        if cap > _hi:                 # 用户定的上限（中文 1.50 / 其他 1.30）
+        if cap > _hi:                 # 用户定的上限（中文 2.00〔APP-111 §1〕/ 其他 1.30）
             cap = _hi
         if cap < _lo:
             # 🔴🔴🔳 APP-090②c：**冲突** ⇒ 以语言下限为准 + 记冲突次数
@@ -3620,10 +3624,13 @@ class TTSWorker:
             #   ⇒ 「已经太晚、来不及说」的句子**直接跳过**（不配音）。
             #   ⇒ **只丢语音**：内容仍完整保留在**字幕**与**转写 txt**里
             #     （字幕/转写由 ASR/MT 侧产出 ⇒ 本跳句**不影响**它们）。
-            #   ⇒ 阈值**可配**（`LIVECAP_TTS_LATE_DROP_SEC`，默认 6.0 s
-            #     ⇒ 同 EXT `LATE_DROP_SEC`）。
+            #   ⇒ 阈值**可配**（`LIVECAP_TTS_LATE_DROP_SEC`，
+            #     默认 **0.0 s**（APP-111 §1）⇒ **0 = 关闭跳句，一句都不丢**）。
             #   🔴 **判据**：滞后 = `now − target_wall`（墙钟，跨进程可比）
             #     ⇒ `target_wall` 为 None ⇒ **无法判晚** ⇒ 不跳（照常合成）。
+            #   🔴🔴🔳 **APP-111 §1：阈值 ≤ 0 ⇒ 绝不跳句**
+            #     （守卫 `self._late_drop_sec > 0.0` ⇒ **0 时整段判定短路**
+            #     ⇒ 不会变成「晚 >0 s 就跳」）。
             #   ⚠️ **必须在这里判**（`synth()` 之前）⇒ 一旦开跑就停不下来。
             _late_drop = False
             if target_wall is not None and self._late_drop_sec > 0.0:
@@ -3848,7 +3855,7 @@ class TTSWorker:
                 except Exception:
                     speed = 1.0
                 # 🔴🔴🔳 APP-090②c / APP-091②：**按目标语言取倍率区间**
-                #   ⇒ 中文目标 1.10–1.50×（取代 10-29 的 1.30× 上限）
+                #   ⇒ 中文目标 1.10–2.00×（APP-111 §1；取代 10-29 的 1.30× 上限）
                 #   ⇒ 其他目标 1.00–1.30×（**原口径不变**）
                 #   ⚠️ `lang` 此时**已经**归一化（上面刚算完）⇒ 可直接用。
                 try:
@@ -4800,11 +4807,11 @@ def main():
     ap.add_argument('--steps', type=int, default=25)
     ap.add_argument('--cfg-rate', type=float, default=0.7)
     # 🔴🔴🔳 APP-092 §2：**跳过过期句的滞后阈值**（秒）
-    #   ⇒ 键名 `tts_late_drop_sec`，默认 **6.0**（同 EXT `LATE_DROP_SEC`）。
-    #   ⚠️ **0 表示不跳**（关掉这个功能）。
+    #   ⇒ 键名 `tts_late_drop_sec`，默认 **0.0**（APP-111 §1）。
+    #   ⚠️ **0 表示不跳**（关掉这个功能）⇒ 现在就是默认。
     ap.add_argument('--late-drop-sec', type=float, default=None,
                     help='滞后超过这个秒数就跳过这句配音（只出字幕）；'
-                         '0 = 不跳过。默认 6.0')
+                         '0 = 不跳过（默认，不丢句）')
     args = ap.parse_args()
 
     # 🔴🔴 [APP-FIX-20261023] 主线程**预导入**重依赖（numpy / scipy.linalg）
@@ -4839,7 +4846,8 @@ def main():
                   bigvgan_ir=args.bigvgan_ir, precision=args.precision,
                   out_wav=args.out_wav, seed=args.seed, steps=args.steps,
                   cfg_rate=args.cfg_rate)
-    # 🔴🔴🔳 APP-092 §2：命令行给的 late-drop 阈值（**不给 ⇒ 用默认 6.0**）
+    # 🔴🔴🔳 APP-092 §2：命令行给的 late-drop 阈值（**不给 ⇒ 用默认 0.0
+    #   = 关闭跳句**，APP-111 §1）
     if args.late_drop_sec is not None:
         w._late_drop_sec = float(args.late_drop_sec)
     w.dump_dir = args.dump_dir
