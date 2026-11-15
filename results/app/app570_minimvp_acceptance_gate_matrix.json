@@ -1,0 +1,244 @@
+{
+ "at": "2026-11-15T08:47:21",
+ "correction": "§207（巡检自查；reviewer 无新纠偏）",
+ "what": "MiniMVP 出包闸门鉴别力矩阵：改前臂 = HEAD blob 逐字原文，改后臂 = 修好的闸门；两臂在临时假包上真跑",
+ "before_source": {
+  "how": "git cat-file blob HEAD:results/app/_app524_build_minimvp_rc11.py",
+  "sha256": "a7241df1f004a2a2a363fef49bfa6c7850688b0fb6314f7cd9642e95308c064f",
+  "bytes": 71715,
+  "gate_statements": [
+   "if not os.path.isfile(ACCEPT_REPORT):\n    raise RuntimeError('缺包上验收证据，拒绝打包：%s' % ACCEPT_REPORT)",
+   "smoke = json.load(open(ACCEPT_REPORT, encoding='utf-8'))",
+   "if smoke.get('verdict') != 'PASS':\n    raise RuntimeError('包上验收未通过（%s），拒绝打包' % smoke.get('verdict'))"
+  ]
+ },
+ "after_source": {
+  "path": "results/app/_app524_build_minimvp_rc11.py",
+  "bytes": 86347,
+  "sha256": "139b148ac0e3749ce1f91483aedd8758f8bc520862088932483fb7bd63133ba9"
+ },
+ "arms": [
+  {
+   "case": "T1_correct_evidence",
+   "expect_before_blocked": false,
+   "expect_after_blocked": false,
+   "expect_after_reason": "OK",
+   "before": {
+    "blocked": false,
+    "reason": "ALLOW"
+   },
+   "after": {
+    "blocked": false,
+    "reason": "OK"
+   },
+   "pass": true
+  },
+  {
+   "case": "T2_other_package",
+   "expect_before_blocked": false,
+   "expect_after_blocked": true,
+   "expect_after_reason": "PKG_MISMATCH",
+   "before": {
+    "blocked": false,
+    "reason": "ALLOW"
+   },
+   "after": {
+    "blocked": true,
+    "reason": "PKG_MISMATCH"
+   },
+   "pass": true
+  },
+  {
+   "case": "T3_verdict_with_open_issues",
+   "expect_before_blocked": true,
+   "expect_after_blocked": false,
+   "expect_after_reason": "OK",
+   "before": {
+    "blocked": true,
+    "reason": "RuntimeError"
+   },
+   "after": {
+    "blocked": false,
+    "reason": "OK"
+   },
+   "pass": true
+  },
+  {
+   "case": "T4_verdict_fail",
+   "expect_before_blocked": true,
+   "expect_after_blocked": true,
+   "expect_after_reason": "VERDICT_NOT_PASS",
+   "before": {
+    "blocked": true,
+    "reason": "RuntimeError"
+   },
+   "after": {
+    "blocked": true,
+    "reason": "VERDICT_NOT_PASS"
+   },
+   "pass": true
+  },
+  {
+   "case": "T5_no_evidence",
+   "expect_before_blocked": true,
+   "expect_after_blocked": true,
+   "expect_after_reason": "NO_EVIDENCE",
+   "before": {
+    "blocked": true,
+    "reason": "RuntimeError"
+   },
+   "after": {
+    "blocked": true,
+    "reason": "NO_EVIDENCE"
+   },
+   "pass": true
+  },
+  {
+   "case": "T6_content_changed",
+   "expect_before_blocked": false,
+   "expect_after_blocked": true,
+   "expect_after_reason": "CONTENT_MISMATCH",
+   "before": {
+    "blocked": false,
+    "reason": "ALLOW"
+   },
+   "after": {
+    "blocked": true,
+    "reason": "CONTENT_MISMATCH"
+   },
+   "pass": true
+  },
+  {
+   "case": "T7_extra_file",
+   "expect_before_blocked": false,
+   "expect_after_blocked": true,
+   "expect_after_reason": "CONTENT_SET_MISMATCH",
+   "before": {
+    "blocked": false,
+    "reason": "ALLOW"
+   },
+   "after": {
+    "blocked": true,
+    "reason": "CONTENT_SET_MISMATCH"
+   },
+   "pass": true
+  },
+  {
+   "case": "T8_no_content_binding",
+   "expect_before_blocked": false,
+   "expect_after_blocked": true,
+   "expect_after_reason": "NO_CONTENT_BINDING",
+   "before": {
+    "blocked": false,
+    "reason": "ALLOW"
+   },
+   "after": {
+    "blocked": true,
+    "reason": "NO_CONTENT_BINDING"
+   },
+   "pass": true
+  },
+  {
+   "case": "T9_verdict_skipped",
+   "expect_before_blocked": true,
+   "expect_after_blocked": true,
+   "expect_after_reason": "VERDICT_NOT_PASS",
+   "before": {
+    "blocked": true,
+    "reason": "RuntimeError"
+   },
+   "after": {
+    "blocked": true,
+    "reason": "VERDICT_NOT_PASS"
+   },
+   "pass": true
+  },
+  {
+   "case": "T10_deleted_file",
+   "expect_before_blocked": false,
+   "expect_after_blocked": true,
+   "expect_after_reason": "CONTENT_MISMATCH",
+   "before": {
+    "blocked": false,
+    "reason": "ALLOW"
+   },
+   "after": {
+    "blocked": true,
+    "reason": "CONTENT_MISMATCH"
+   },
+   "pass": true
+  },
+  {
+   "case": "T11_pkg_path_variant",
+   "expect_before_blocked": false,
+   "expect_after_blocked": false,
+   "expect_after_reason": "OK",
+   "before": {
+    "blocked": false,
+    "reason": "ALLOW"
+   },
+   "after": {
+    "blocked": false,
+    "reason": "OK"
+   },
+   "pass": true
+  },
+  {
+   "case": "T12_malformed_json",
+   "expect_before_blocked": true,
+   "expect_after_blocked": true,
+   "expect_after_reason": "BAD_JSON",
+   "before": {
+    "blocked": true,
+    "reason": "JSONDecodeError"
+   },
+   "after": {
+    "blocked": true,
+    "reason": "BAD_JSON"
+   },
+   "pass": true
+  }
+ ],
+ "n_arms": 12,
+ "n_pass": 12,
+ "n_fail": 0,
+ "before_fail_open_arms": [
+  "T2_other_package",
+  "T6_content_changed",
+  "T7_extra_file",
+  "T8_no_content_binding",
+  "T10_deleted_file"
+ ],
+ "before_false_fail_arms": [
+  "T3_verdict_with_open_issues"
+ ],
+ "real_pkg_readonly": {
+  "before": {
+   "blocked": false,
+   "reason": "ALLOW"
+  },
+  "after_identity": {
+   "ok": true,
+   "reason": "OK",
+   "evidence_pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11",
+   "verdict": "PASS"
+  },
+  "after_content": {
+   "ok": false,
+   "reason": "NO_CONTENT_BINDING",
+   "n_bound": null,
+   "n_candidates": null,
+   "note": "验收证据未记录 pkg_content ⇒ 无法证明「交付包 == 被验收过的包」"
+  },
+  "pkg_mtime": "2026-11-12 12:15:28",
+  "pkg_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.0-rc11"
+ },
+ "discipline": {
+  "wrote_customer_package": 0,
+  "produced_zip": false,
+  "loaded_model": false,
+  "gpu_used": false,
+  "machine_lock_taken": false,
+  "note": "两臂都在临时目录假包上跑；真包只读（仅 stat + 读证据）"
+ }
+}
