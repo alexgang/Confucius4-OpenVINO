@@ -1134,7 +1134,11 @@ def legacy_gate_selftest():
 # 构建
 # ══════════════════════════════════════════════════════════════
 def build(ev):
-    print('[1/9] 复制 rc9 → rc10（真实拷贝，**跳过 .pyc/__pycache__**）…',
+    # 🔴 §207：原日志写死「复制 rc9 → rc10」，而本脚本实际复制的是 **rc10 → rc11**
+    #    ⇒ rc11 的构建日志里会写着「rc9 → rc10」（日志与事实不符）。
+    #    ⇒ 改成**按常量自述** ⇒ 下一个版本复制本脚本时自动正确。
+    print('[1/9] 复制 %s → %s（真实拷贝，**跳过 .pyc/__pycache__**）…'
+          % (os.path.basename(BASE_PKG), os.path.basename(DST_PKG)),
           flush=True)
     # 🔴 **拷贝时就排除** `__pycache__` / `*.pyc`：
     #   rc9 的**目录**比它的 zip 多了 1 515 个 .pyc（验收跑出来的），
@@ -1167,6 +1171,11 @@ def build(ev):
     probe_mt_default(DST_PKG, ev)
 
     print('[3/9] 旧解码器闸门 + 反例自测…', flush=True)
+    # 🔴 §207：出包闸门（身份/内容绑定）反证自测 ⇒ **本版本构建前先自证闸门能抓**
+    ev['acceptance_gate_selftest'] = acceptance_gate_selftest()
+    if not all(x['pass'] for x in ev['acceptance_gate_selftest']):
+        raise RuntimeError('出包证据闸门反例自测未通过：%s'
+                           % ev['acceptance_gate_selftest'])
     ev['legacy_gate_selftest'] = legacy_gate_selftest()
     if not all(x['pass'] for x in ev['legacy_gate_selftest']):
         raise RuntimeError('旧解码器闸门反例自测未通过：%s'
@@ -1291,14 +1300,300 @@ def build(ev):
     return ev
 
 
+# ══════════════════════════════════════════════════════════════
+# 🔴🔴🔴 出包闸门：验收证据 ↔ 交付包 的**身份绑定** ＋ **内容绑定**
+# ══════════════════════════════════════════════════════════════
+#: 🔴 **为什么必须加这一层**（2026-11-15 巡检实测，§207）：
+#:   改前 rc11 的出包闸门（`make_zip` 开头）只做了两件事：
+#:       ① 验收证据文件**存在**
+#:       ② `smoke.get('verdict') == 'PASS'`（**精确字符串**）
+#:   ⇒ ① **不绑包身份**：拿**别的包**的 PASS 证据照样能出包；
+#:   ⇒ ② **不绑包内容**：验收之后把包改了（换模型/塞文件/改代码/删文件）
+#:      照样能出包 ⇒ **交付包 ≠ 被验收过的包**（与 §205／§206 同类缺陷；
+#:      但那两轮只修 Special MVP 路径 ⇒ **MiniMVP 路径一直是裸的**）；
+#:   ⇒ ② 还有**口径脆**：reviewer 现行口径是「PASS（有 1 项未结：…）」
+#:      （APP-092 §2／§202）⇒ 精确字符串 `'PASS'` 会把它**误判成 FAIL**。
+#:
+#: **本文件的闸门 = 两层（全部 fail-closed）**：
+#:   ① `check_acceptance_evidence`  证据身份（pkg 必须是本包）＋ 判定口径
+#:   ② `check_pkg_content_binding`  交付包内容 == 被验收过的内容
+#:   ＋ `acceptance_gate_selftest`  反证自测（沿用本文件既有 `*_gate_selftest`
+#:      约定 ⇒ **下一个 MiniMVP 版本复制本脚本时，这道自测跟着走**）
+#:
+#: ⚠️ **内容绑定范围**（与 §205 同口径：代码 ＋ 元数据，**不含模型**）：
+#:   `app/**` 全部文件 ＋ 包根元数据（release.json / package_profile.json /
+#:   NOTICE / THIRD_PARTY.md / G4_WHITELIST.md / *.bat）
+#:   **排除**：① 三份 README（`make_zip` 打包时会**重写**它们以回填 zip 体积
+#:        ⇒ 验收时的字节与打包时**必然不同** ⇒ 排除是**语义必需**，不是放水）；
+#:        ② `models/`、`ext/`、`python/`、`.runtime_deps/`（模型/运行时树：
+#:        §206 ⑨③ 已把「`cuda_env` 要不要记 sha256」**请 reviewer 裁定**，
+#:        未裁定前**不擅自扩范围**）；③ 字节码与黑名单文件（build 自己会清）。
+
+#: **参与内容绑定的包根元数据文件**（其余根级文件不进绑定）
+CONTENT_ROOT_FILES = (
+    'release.json', 'package_profile.json', 'NOTICE', 'THIRD_PARTY.md',
+    'G4_WHITELIST.md', 'Start_LiveCaption.bat', 'Start_Bridge.bat',
+    'Diagnose.bat',
+)
+#: **不参与内容绑定**的包根文件（README：打包时会重写以回填 zip 体积）
+CONTENT_EXCLUDE_ROOT = ('README_zh.md', 'README_en.md', 'README_perftest.txt')
+#: 内容绑定时**一律跳过**的文件（字节码 ＋ 黑名单）
+CONTENT_SKIP_SUFFIX = ('.pyc',)
+CONTENT_SKIP_DIRS = ('__pycache__',)
+CONTENT_SKIP_NAMES = ('bridge_token.txt',)
+
+
+def _norm_pkg_path(p):
+    """包路径归一化：Windows 大小写不敏感 ＋ 去引号 ＋ 去末尾分隔符。"""
+    if p is None:
+        return ''
+    s = str(p).strip().strip('"').strip("'")
+    if not s:
+        return ''
+    return os.path.normcase(os.path.normpath(s)).rstrip('\\/')
+
+
+def _content_skip(rel):
+    """该文件是否**不参与**内容绑定（字节码／黑名单／README）。"""
+    parts = rel.split('/')
+    if any(d in CONTENT_SKIP_DIRS for d in parts):
+        return True
+    name = parts[-1]
+    if name in CONTENT_SKIP_NAMES or name.endswith(CONTENT_SKIP_SUFFIX):
+        return True
+    if name.endswith('.pid') or name.endswith('.log'):
+        return True
+    if len(parts) == 1 and name in CONTENT_EXCLUDE_ROOT:
+        return True
+    return False
+
+
+def content_binding_files(pkg_dir):
+    """枚举**参与内容绑定**的文件（相对路径，posix 风格，排序）。
+
+    🔴 口径必须与验收脚本 `_app526` 记录 `pkg_content` 时**完全一致**
+    ⇒ 两边都按同一份定义（同一组常量、同一套跳过规则）。
+    """
+    out = []
+    app = os.path.join(pkg_dir, 'app')
+    if os.path.isdir(app):
+        for dp, _dn, fn in os.walk(app):
+            for f in fn:
+                p = os.path.join(dp, f)
+                if not os.path.isfile(p):
+                    continue
+                rel = os.path.relpath(p, pkg_dir).replace(os.sep, '/')
+                if not _content_skip(rel):
+                    out.append(rel)
+    for name in CONTENT_ROOT_FILES:
+        p = os.path.join(pkg_dir, name)
+        if os.path.isfile(p) and not _content_skip(name):
+            out.append(name)
+    return sorted(set(out))
+
+
+def check_acceptance_evidence(accept_path, pkg_dir):
+    """🔴 验收证据闸门：**身份绑定** ＋ **判定口径**（fail-closed）。
+
+    返回 (ok, reason, detail)；reason ∈
+    {'NO_EVIDENCE','BAD_JSON','PKG_MISMATCH','NO_VERDICT','VERDICT_NOT_PASS','OK'}
+    """
+    detail = {'evidence_path': accept_path, 'package_dir': pkg_dir}
+    if not accept_path or not os.path.isfile(accept_path):
+        return (False, 'NO_EVIDENCE', detail)
+    try:
+        with open(accept_path, 'r', encoding='utf-8') as f:
+            ev = json.load(f)
+    except Exception as e:
+        detail['error'] = repr(e)
+        return (False, 'BAD_JSON', detail)
+    detail['evidence_pkg'] = ev.get('pkg')
+    detail['verdict'] = ev.get('verdict')
+    # ① **身份绑定**：证据里的 pkg 必须是**本包**（归一化后完全相等）
+    if _norm_pkg_path(ev.get('pkg')) != _norm_pkg_path(pkg_dir):
+        return (False, 'PKG_MISMATCH', detail)
+    # ② **判定口径**：'PASS' 与 'PASS（…）'／'PASS(...)' 都算通过；
+    #    FAIL／SKIPPED／缺失 一律拒绝
+    v = ev.get('verdict')
+    if not isinstance(v, str) or not v.strip():
+        return (False, 'NO_VERDICT', detail)
+    v = v.strip()
+    if not (v == 'PASS' or v.startswith('PASS（') or v.startswith('PASS(')):
+        return (False, 'VERDICT_NOT_PASS', detail)
+    detail['evidence'] = ev
+    return (True, 'OK', detail)
+
+
+def check_pkg_content_binding(accept_path, pkg_dir, evidence=None):
+    """🔴 内容绑定闸门：**交付包内容 == 被验收过的内容**（fail-closed）。
+
+    证据必须带 `pkg_content`（{rel: sha256} 或 [{'path','sha256'}]）；
+    **没有绑定 ⇒ 拒绝**（否则「验收后改包照样能出包」）。
+    """
+    detail = {'package_dir': pkg_dir}
+    if evidence is None:
+        if not accept_path or not os.path.isfile(accept_path):
+            return (False, 'NO_EVIDENCE', detail)
+        try:
+            with open(accept_path, 'r', encoding='utf-8') as f:
+                evidence = json.load(f)
+        except Exception as e:
+            detail['error'] = repr(e)
+            return (False, 'BAD_JSON', detail)
+    binding = evidence.get('pkg_content')
+    if not binding:
+        detail['note'] = ('验收证据未记录 pkg_content ⇒ '
+                          '无法证明「交付包 == 被验收过的包」')
+        return (False, 'NO_CONTENT_BINDING', detail)
+    if isinstance(binding, dict):
+        items = [{'path': k, 'sha256': v} if not isinstance(v, dict)
+                 else dict(v, path=k) for k, v in binding.items()]
+    else:
+        items = list(binding)
+    rows = {}
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        rel = str(it.get('path') or '').replace('\\', '/').lstrip('/')
+        sha = it.get('sha256')
+        if rel and sha:
+            rows[rel] = str(sha).strip().lower()
+    if not rows:
+        detail['note'] = 'pkg_content 为空'
+        return (False, 'NO_CONTENT_BINDING', detail)
+    # ① **逐条重算** SHA256
+    mismatches = []
+    for rel, sha in sorted(rows.items()):
+        p = os.path.join(pkg_dir, rel.replace('/', os.sep))
+        if not os.path.isfile(p):
+            mismatches.append({'path': rel, 'reason': 'MISSING_IN_PKG'})
+            continue
+        actual = sha256_file(p).lower()
+        if actual != sha:
+            mismatches.append({'path': rel, 'reason': 'SHA_MISMATCH',
+                               'expected': sha, 'actual': actual})
+    # ② **反向集合校验**：包内参与绑定的文件集合必须与登记集合**完全相等**
+    cand = set(content_binding_files(pkg_dir))
+    extra_in_pkg = sorted(cand - set(rows.keys()))
+    missing_in_pkg = sorted(set(rows.keys()) - cand)
+    detail.update({'n_bound': len(rows), 'n_candidates': len(cand),
+                   'n_mismatches': len(mismatches),
+                   'mismatches': mismatches[:20],
+                   'n_extra_in_pkg': len(extra_in_pkg),
+                   'extra_in_pkg': extra_in_pkg[:20],
+                   'n_missing_in_pkg': len(missing_in_pkg),
+                   'missing_in_pkg': missing_in_pkg[:20]})
+    if mismatches:
+        return (False, 'CONTENT_MISMATCH', detail)
+    if extra_in_pkg or missing_in_pkg:
+        return (False, 'CONTENT_SET_MISMATCH', detail)
+    return (True, 'OK', detail)
+
+
+def acceptance_gate_selftest():
+    """**反证自测**：出包闸门必须能抓到「证据不是本包的／内容被改过／无绑定」。
+
+    沿用本文件既有 `*_gate_selftest` 约定（临时目录 ＋ 假包 ＋ 假证据）
+    ⇒ **下一个 MiniMVP 版本复制本脚本时，这道自测会跟着走**
+    （否则每个新版本都要重新踩一遍同样的坑）。
+    """
+    out = []
+
+    def _case(name, expect_block, expect_reason, fn):
+        try:
+            ok, reason, detail = fn()
+        except Exception as e:
+            ok, reason, detail = False, 'EXCEPTION', {'error': repr(e)}
+        good = ((not ok) == expect_block
+                and (not expect_block or reason == expect_reason))
+        out.append({'case': name, 'blocked': (not ok), 'reason': reason,
+                    'expect_blocked': expect_block,
+                    'expect_reason': expect_reason, 'pass': good})
+
+    with tempfile.TemporaryDirectory() as td:
+        pkg = os.path.join(td, 'Confucius4_LiveCaption_MiniMVP_v1.0-rcXX')
+        os.makedirs(os.path.join(pkg, 'app'))
+        open(os.path.join(pkg, 'app', 'a.py'), 'w').write('x = 1\n')
+        open(os.path.join(pkg, 'app', 'b.py'), 'w').write('y = 2\n')
+        open(os.path.join(pkg, 'release.json'), 'w').write('{"v": "rcXX"}')
+        other = os.path.join(td, 'Confucius4_LiveCaption_MiniMVP_v1.0-rcYY')
+        os.makedirs(other)
+
+        def _binding():
+            return {rel: sha256_file(os.path.join(pkg,
+                                                  rel.replace('/', os.sep)))
+                    for rel in content_binding_files(pkg)}
+
+        def _ev(**kw):
+            d = {'pkg': pkg, 'verdict': 'PASS', 'pkg_content': _binding()}
+            d.update(kw)
+            return d
+
+        def _write(d, name):
+            p = os.path.join(td, name)
+            with open(p, 'w', encoding='utf-8') as f:
+                json.dump(d, f)
+            return p
+
+        def _gate(path):
+            ok, reason, detail = check_acceptance_evidence(path, pkg)
+            if not ok:
+                return (ok, reason, detail)
+            return check_pkg_content_binding(path, pkg, detail.get('evidence'))
+
+        p_ok = _write(_ev(), 'ev_ok.json')
+        _case('correct_evidence_allowed', False, 'OK', lambda: _gate(p_ok))
+        p_other = _write(_ev(pkg=other), 'ev_other.json')
+        _case('other_package_blocked', True, 'PKG_MISMATCH',
+              lambda: _gate(p_other))
+        p_open = _write(_ev(verdict='PASS（有 1 项未结：退出码异常）'),
+                        'ev_open.json')
+        _case('verdict_with_open_issues_allowed', False, 'OK',
+              lambda: _gate(p_open))
+        p_fail = _write(_ev(verdict='FAIL'), 'ev_fail.json')
+        _case('verdict_fail_blocked', True, 'VERDICT_NOT_PASS',
+              lambda: _gate(p_fail))
+        p_skip = _write(_ev(verdict='SKIPPED_LOCK_BUSY'), 'ev_skip.json')
+        _case('verdict_skipped_blocked', True, 'VERDICT_NOT_PASS',
+              lambda: _gate(p_skip))
+        p_nobind = _write({'pkg': pkg, 'verdict': 'PASS'}, 'ev_nobind.json')
+        _case('no_content_binding_blocked', True, 'NO_CONTENT_BINDING',
+              lambda: _gate(p_nobind))
+        p_none = os.path.join(td, 'no_such_evidence.json')
+        _case('no_evidence_blocked', True, 'NO_EVIDENCE', lambda: _gate(p_none))
+        # 内容被改过
+        open(os.path.join(pkg, 'app', 'a.py'), 'w').write('x = 999\n')
+        _case('content_changed_blocked', True, 'CONTENT_MISMATCH',
+              lambda: _gate(p_ok))
+        open(os.path.join(pkg, 'app', 'a.py'), 'w').write('x = 1\n')
+        # 多出文件
+        open(os.path.join(pkg, 'app', 'c.py'), 'w').write('z = 3\n')
+        _case('extra_file_blocked', True, 'CONTENT_SET_MISMATCH',
+              lambda: _gate(p_ok))
+        os.remove(os.path.join(pkg, 'app', 'c.py'))
+        # 文件被删
+        os.remove(os.path.join(pkg, 'app', 'b.py'))
+        _case('deleted_file_blocked', True, 'CONTENT_MISMATCH',
+              lambda: _gate(p_ok))
+    return out
+
+
 def make_zip(ev, passes=2):
     """两遍打包：第 1 遍量出 zip 字节数 ⇒ 回填 README ⇒ 第 2 遍体积应相同。"""
-    if not os.path.isfile(ACCEPT_REPORT):
-        raise RuntimeError('缺包上验收证据，拒绝打包：%s' % ACCEPT_REPORT)
-    smoke = json.load(open(ACCEPT_REPORT, encoding='utf-8'))
-    if smoke.get('verdict') != 'PASS':
-        raise RuntimeError('包上验收未通过（%s），拒绝打包'
-                           % smoke.get('verdict'))
+    # 🔴🔴 §207 出包闸门：**身份绑定 ＋ 内容绑定**，两层都 fail-closed
+    ok_acc, reason_acc, detail_acc = check_acceptance_evidence(ACCEPT_REPORT,
+                                                               DST_PKG)
+    if not ok_acc:
+        raise RuntimeError('验收证据闸门未通过（%s）：%s'
+                           % (reason_acc,
+                              json.dumps(detail_acc, ensure_ascii=False)[:600]))
+    ok_cnt, reason_cnt, detail_cnt = check_pkg_content_binding(
+        ACCEPT_REPORT, DST_PKG, detail_acc.get('evidence'))
+    if not ok_cnt:
+        raise RuntimeError('交付包内容绑定闸门未通过（%s）：%s'
+                           % (reason_cnt,
+                              json.dumps(detail_cnt, ensure_ascii=False)[:600]))
+    smoke = detail_acc['evidence']
     if os.path.exists(ZIP):
         raise RuntimeError('zip 已存在（不覆盖旧版本，APP-055）：%s' % ZIP)
     os.makedirs(os.path.dirname(ZIP), exist_ok=True)
@@ -1407,15 +1702,18 @@ def main():
         ev['legacy_gate_selftest'] = legacy_gate_selftest()
         ev['bat_gate_selftest'] = bat_gate_selftest()
         ev['blacklist_gate_selftest'] = blacklist_gate_selftest()
+        ev['acceptance_gate_selftest'] = acceptance_gate_selftest()
         ev['readme_gate_selftest'] = readme_gate_selftest(
             {'default_devices': {'asr': 'GPU.0', 'mt': 'GPU.0', 'tts': 'NPU'}})
         ok = all(all(x['pass'] for x in ev[k])
                  for k in ('legacy_gate_selftest', 'bat_gate_selftest',
-                           'blacklist_gate_selftest', 'readme_gate_selftest'))
+                           'blacklist_gate_selftest', 'readme_gate_selftest',
+                           'acceptance_gate_selftest'))
         print('[dry-run] 闸门反例自测：',
               {k: all(x['pass'] for x in ev[k]) for k in
                ('legacy_gate_selftest', 'bat_gate_selftest',
-                'blacklist_gate_selftest', 'readme_gate_selftest')})
+                'blacklist_gate_selftest', 'readme_gate_selftest',
+                'acceptance_gate_selftest')})
         json.dump(ev, open(REPORT, 'w', encoding='utf-8'),
                   ensure_ascii=False, indent=1)
         return 0 if ok else 2

@@ -185,6 +185,79 @@ def setup_isolated_localappdata():
 
 
 # ── 静态检查 ────────────────────────────────────────────────────────
+#: 🔴 §207：**参与内容绑定**的文件集合 —— 与出包脚本 `_app524` 的
+#: `content_binding_files()` **同一口径**（同一组常量、同一套跳过规则）。
+#: 范围：`app/**` ＋ 包根元数据；**排除**三份 README（出包时会被重写以回填
+#: zip 体积 ⇒ 验收时的字节与打包时**必然不同**）、字节码、黑名单、模型/运行时树。
+CONTENT_ROOT_FILES = (
+    'release.json', 'package_profile.json', 'NOTICE', 'THIRD_PARTY.md',
+    'G4_WHITELIST.md', 'Start_LiveCaption.bat', 'Start_Bridge.bat',
+    'Diagnose.bat',
+)
+CONTENT_EXCLUDE_ROOT = ('README_zh.md', 'README_en.md', 'README_perftest.txt')
+CONTENT_SKIP_SUFFIX = ('.pyc',)
+CONTENT_SKIP_DIRS = ('__pycache__',)
+CONTENT_SKIP_NAMES = ('bridge_token.txt',)
+
+
+def _content_skip(rel):
+    """该文件是否**不参与**内容绑定（字节码／黑名单／README）。"""
+    parts = rel.split('/')
+    if any(d in CONTENT_SKIP_DIRS for d in parts):
+        return True
+    name = parts[-1]
+    if name in CONTENT_SKIP_NAMES or name.endswith(CONTENT_SKIP_SUFFIX):
+        return True
+    if name.endswith('.pid') or name.endswith('.log'):
+        return True
+    if len(parts) == 1 and name in CONTENT_EXCLUDE_ROOT:
+        return True
+    return False
+
+
+def content_binding_files(pkg_dir):
+    """枚举**参与内容绑定**的文件（相对路径，posix 风格，排序）。"""
+    out = []
+    app = os.path.join(pkg_dir, 'app')
+    if os.path.isdir(app):
+        for dp, _dn, fn in os.walk(app):
+            for f in fn:
+                p = os.path.join(dp, f)
+                if not os.path.isfile(p):
+                    continue
+                rel = os.path.relpath(p, pkg_dir).replace(os.sep, '/')
+                if not _content_skip(rel):
+                    out.append(rel)
+    for name in CONTENT_ROOT_FILES:
+        p = os.path.join(pkg_dir, name)
+        if os.path.isfile(p) and not _content_skip(name):
+            out.append(name)
+    return sorted(set(out))
+
+
+def record_pkg_content(ev):
+    """🔴 §207：把**被验收的包内容**记进验收证据（逐文件 SHA256 ＋ 字节数）。
+
+    为什么必须有它：出包闸门要能证明「**交付包 == 被验收过的包**」。
+    没有这份绑定，闸门只能 fail-closed 拒绝出包（否则就是「验收后改包照样
+    能出包」——§205／§206 在 Special MVP 路径上修掉的正是这个）。
+    """
+    rows = {}
+    for rel in content_binding_files(PKG):
+        p = os.path.join(PKG, rel.replace('/', os.sep))
+        rows[rel] = {'sha256': sha256_file(p),
+                     'bytes': os.path.getsize(p)}
+    ev['pkg_content'] = rows
+    ev['pkg_content_meta'] = {
+        'n_files': len(rows),
+        'scope': 'app/** ＋ 包根元数据（不含 README / models / ext / python）',
+        'exclude_readme': list(CONTENT_EXCLUDE_ROOT),
+        'note': ('README 在出包时会被重写以回填 zip 体积 ⇒ 不参与绑定；'
+                 'models/ 与运行时树的 sha256 范围待 reviewer 裁定（§206 ⑨③）'),
+    }
+    return rows
+
+
 def check_static(ev):
     items = {}
 
@@ -610,6 +683,9 @@ def main():
     ev['measurements'] = meas
 
     # ── 总判定 ───────────────────────────────────────────────────────
+    # 🔴 §207：**先记录被验收的包内容**（供出包闸门做内容绑定），
+    #    再判定 ⇒ 证据里的 `pkg_content` 就是「被验收过的那一份」。
+    record_pkg_content(ev)
     static_ok = (ev.get('static_verdict') == 'PASS')
     dev_items = [ev['items'].get(k) for k in
                  ('10_pkg_check', '11_gui', '12_chain_10min')]
