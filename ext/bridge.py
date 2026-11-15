@@ -3150,6 +3150,9 @@ class PipelineSession(Session):
                     job.voice = _last
                 else:
                     job.voice = _cv.self_ref(job.seg_id) or _cv.latest_path() or C.PRESET_VOICE
+                # v0.4.15: voice guard - never dub a sentence with a voice it clearly does not match
+                if job.voice and job.voice != C.PRESET_VOICE:
+                    job.voice, _g = _cv.guard_voice(job.seg_id, job.voice)
                 if job.voice and job.voice != C.PRESET_VOICE:
                     self._last_clone_voice = job.voice
                 job.spk = job.spk or (_cv.spk_of(job.seg_id) or None)

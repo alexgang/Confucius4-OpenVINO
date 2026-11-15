@@ -61,6 +61,17 @@ SPLIT_MIN_SEG_S = 3.2
 SPLIT_WIN_S = (1.6, 2.0, 2.5)
 SPLIT_MIN_SIM = 0.30
 SPLIT_MIN_MARGIN = 0.10
+# v0.4.15 (user 11-15: a new speaker was dubbed with the previous speaker's voice for ~10 s, and in a
+#   second run the diarizer never opened S2 at all): voice guard. Before a sentence is dubbed, its own
+#   audio is embedded and compared with the chosen voice's reference. Calibrated 11-15 with the EXT
+#   wespeaker encoder on CC/Mike/Lisa 2-4.5 s chunks: same speaker cos min 0.51 (p5 0.59), different
+#   speakers max 0.26 (p95 0.20) => 0.40 sits in the gap. Only sentences >= 2 s (>= 1 s voiced) decide.
+GUARD = os.environ.get("EXT_CLONE_GUARD", "1").strip() != "0"
+GUARD_SAME_SIM = 0.40
+GUARD_MIN_S = 2.0          # sentence length that may decide (calibration chunks were 2-4.5 s)
+GUARD_MIN_VOICED_S = 1.0
+GUARD_MAX_VOICES = 8
+NEAREST_MIN_SIM = 0.40      # v0.4.15: was 0.25 (different speakers reach 0.26 => a man matched the only woman)
 
 
 def _seg_int(seg_id) -> int:
@@ -355,11 +366,108 @@ class CloneVoices:
         #   registered speaker (inheriting the previous sentence's voice gave the first sentence
         #   of every new turn the previous speaker's voice).
         if not self.tab.spk_of(_seg_int(seg_id)):
-            spk = self._nearest(_seg_int(seg_id), min_sim=0.25)
+            spk = self._nearest(_seg_int(seg_id), min_sim=NEAREST_MIN_SIM)
             if spk and spk in self.paths:
                 self._reasons["tts_nearest"] = self._reasons.get("tts_nearest", 0) + 1
                 return self.paths[spk]
         return None
+
+    def _seg_audio(self, seg: int):
+        span = self._span.get(seg)
+        with self._lock:
+            buf, t0 = self._buf, self._buf_t0
+        if span:
+            i0 = int((span[0] - t0) * SR); i1 = int((span[1] - t0) * SR)
+            if 0 <= i0 < i1 <= buf.size:
+                return buf[i0:i1]
+        item = self._seg_pcm.get(seg)
+        return item[0] if item else None
+
+    def _embed(self, pcm) -> Optional[np.ndarray]:
+        tr = getattr(self.br, "_tracker", None)
+        if tr is None or getattr(tr, "_enc", None) is None or pcm is None or pcm.size < int(1.0 * SR):
+            return None
+        if pcm.size > int(6.0 * SR):            # encoder has a compiled upper bound; middle 6 s
+            m = (pcm.size - int(6.0 * SR)) // 2
+            pcm = pcm[m:m + int(6.0 * SR)]
+        try:
+            with tr._lock:
+                v = np.asarray(tr._enc.embed(pcm, SR), dtype=np.float64).reshape(-1)
+        except Exception as e:
+            self._log("[spk] 音色守门嵌入失败：%s" % e)
+            return None
+        return v / (np.linalg.norm(v) + 1e-9)
+
+    def _voice_emb(self, path) -> Optional[np.ndarray]:
+        try:
+            st = os.stat(path)
+        except OSError:
+            return None
+        key = (path, st.st_mtime_ns, st.st_size)
+        cache = self.__dict__.setdefault("_vemb", {})
+        if key not in cache:
+            try:
+                with wave.open(path, "rb") as w:
+                    x = np.frombuffer(w.readframes(w.getnframes()), "<i2").astype(np.float32) / 32768.0
+                    sr = w.getframerate()
+            except Exception:
+                return None
+            if sr != SR:
+                return None
+            for k in [k for k in cache if k[0] == path]:
+                del cache[k]
+            cache[key] = self._embed(x)
+        return cache[key]
+
+    def guard_voice(self, seg_id, voice: Optional[str]):
+        """v0.4.15: keep `voice` only if this sentence sounds like its reference.
+        Returns (voice, reason); reason None = unchanged."""
+        if not GUARD or not voice or not os.path.exists(voice):
+            return voice, None
+        seg = _seg_int(seg_id)
+        pcm = self._seg_audio(seg)
+        if pcm is None or pcm.size < int(GUARD_MIN_S * SR) or voiced_seconds(pcm) < GUARD_MIN_VOICED_S:
+            return voice, None
+        v = self._embed(pcm)
+        ve = self._voice_emb(voice)
+        if v is None or ve is None:
+            return voice, None
+        s0 = float(v @ ve)
+        if s0 >= GUARD_SAME_SIM:
+            return voice, None
+        guards = self.__dict__.setdefault("_guard_voices", [])
+        best = None
+        for p in list(dict.fromkeys(list(self.paths.values()) + guards)):
+            if p == voice:
+                continue
+            e = self._voice_emb(p)
+            if e is not None:
+                s = float(v @ e)
+                if s >= GUARD_SAME_SIM and (best is None or s > best[0]):
+                    best = (s, p)
+        if best:
+            self._reasons["guard_match"] = self._reasons.get("guard_match", 0) + 1
+            self._log("[spk] 段 %d 音色守门：与 %s 不像（%.2f）=> 改用 %s（%.2f）" % (
+                seg, os.path.basename(voice), s0, os.path.basename(best[1]), best[0]))
+            return best[1], "guard_match"
+        p = self.self_ref(seg_id)
+        if not p:
+            return voice, None
+        g = os.path.join(self.dir, "guard_%d.wav" % seg)
+        try:
+            os.replace(p, g)
+        except OSError:
+            g = p
+        guards.append(g)
+        while len(guards) > GUARD_MAX_VOICES:
+            try:
+                os.remove(guards.pop(0))
+            except OSError:
+                pass
+        self._reasons["guard_new"] = self._reasons.get("guard_new", 0) + 1
+        self._log("[spk] 段 %d 音色守门：与 %s 不像（%.2f），也不像其他已知音色 => 用本句克隆 %s" % (
+            seg, os.path.basename(voice), s0, os.path.basename(g)))
+        return g, "guard_new"
 
     def self_ref(self, seg_id) -> Optional[str]:
         """11-09: x-vector reference = THIS sentence's own audio (no transcript => x-vector mode).
