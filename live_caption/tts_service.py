@@ -636,13 +636,16 @@ class TTSService:
             if self.jsonl_path:
                 cmd += ['--jsonl', self.jsonl_path]
             # 🔴🔴🔳 APP-092 §2：**跳过过期句的阈值**（**可配**）
-            #   ⇒ 键名 `tts_late_drop_sec`，默认 **6.0**（同 EXT `LATE_DROP_SEC`）
+            #   ⇒ 键名 `tts_late_drop_sec`，默认 **0.0**
+            #   （APP-111 §1：用户 11-15 决定「跳句阈值改成 0」⇒ **0 = 一句都不丢**）
             #   ⇒ 来源：`device_config.json` / 环境变量 `LIVECAP_TTS_LATE_DROP_SEC`。
+            #   ⚠️ 传 0.0 下去 ⇒ worker 侧 `self._late_drop_sec > 0.0` 守卫短路
+            #   ⇒ **不跳句**（不是「晚 >0 s 就跳」）。
             try:
                 import device_config as _dc
-                _lds = float(_dc.get_numeric('tts_late_drop_sec', 6.0))
+                _lds = float(_dc.get_numeric('tts_late_drop_sec', 0.0))
             except Exception:
-                _lds = 6.0
+                _lds = 0.0
             cmd += ['--late-drop-sec', str(_lds)]
             try:
                 # 🔴 §53：`encoding='utf-8'` **必须显式写** ⇒ 不依赖 locale/环境变量
@@ -1077,7 +1080,7 @@ class TTSService:
                 with self.lock:
                     _prev = float(self._last_speed or 1.0)
                 # 🔴🔴🔳 APP-090②c / APP-091②：**按目标语言定倍率区间**
-                #   ⇒ 中文目标 1.10–1.50×，其他 1.00–1.30×（原口径不变）。
+                #   ⇒ 中文目标 1.10–2.00×（APP-111 §1），其他 1.00–1.30×（原口径不变）。
                 #   ⚠️ worker 出队时会**自己重算**（以 worker 为准）
                 #   ⇒ 这里只是**向下兼容老 worker** 的下发值。
                 _sp = float(_ts.speed_for_lag(_lag, _prev, lang=lang))

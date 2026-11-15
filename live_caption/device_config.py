@@ -774,16 +774,25 @@ def save_config(devices: Dict[str, str]) -> bool:
 #
 # 🔴 **键名**（写在 `device_config.json` 里，与 `asr`/`mt`/`tts` 平级）：
 #   `tts_speed_min_zh`  中文目标倍率**下限**（默认 **1.10**）
-#   `tts_speed_max_zh`  中文目标倍率**上限**（默认 **1.50**）
-#   `tts_late_drop_sec`  TTS 跳过过期句的滞后阈值（默认 **6.0** 秒）
+#   `tts_speed_max_zh`  中文目标倍率**上限**（默认 **2.00**）
+#   `tts_late_drop_sec`  TTS 跳过过期句的滞后阈值（默认 **0.0** 秒
+#                        ⇒ **0 = 关闭跳句，一句都不丢**）
 #   ⚠️ **非中文目标**的 1.00–1.30× 口径**不变**（10-29 用户决定）⇒ 不配。
 # ⚠️ 这三项**不进 GUI**（reviewer：「GUI 里可以不露出」）。
 
 #: 数值配置项的默认值（**写明** ⇒ reviewer 可核对）
 NUMERIC_DEFAULTS: Dict[str, float] = {
     'tts_speed_min_zh': 1.10,     # 中文目标倍率下限（APP-090②c / APP-091②）
-    'tts_speed_max_zh': 1.50,     # 中文目标倍率上限（APP-090②c / APP-091②）
-    'tts_late_drop_sec': 6.0,     # TTS 跳过过期句阈值（APP-092②；同 EXT LATE_DROP_SEC）
+    # 🔴🔴🔳 APP-111 §1（用户 11-15 决定「TTS 语速上限改到 2.0x」）：
+    #   中文目标倍率**上限 1.50 → 2.00**（11-15 取代 APP-090②c / APP-091② 的 1.50）。
+    #   ⚠️ **非中文目标**的 1.00–1.30× 口径**不变**（10-29 用户决定）⇒ 不配。
+    'tts_speed_max_zh': 2.00,     # 中文目标倍率上限（APP-111 §1；原 APP-090②c/APP-091② 的 1.50）
+    # 🔴🔴🔳 APP-111 §1（用户 11-15 决定「TTS 跳句阈值改成 0」）：
+    #   **6.0 → 0.0** ⇒ 语义是「**0 = 关闭跳句，一句都不丢**」
+    #   （11-15 取代 APP-092② 的 6.0 s 阈值）。
+    #   ⚠️ 实现侧必须保证「阈值 ≤ 0 ⇒ **不跳**」（不是「晚 >0 s 就跳」）
+    #   ⇒ 见 `tts_worker.TTSWorker._late_drop_sec` 与出队前的 late_drop 判定。
+    'tts_late_drop_sec': 0.0,     # TTS 跳过过期句阈值（APP-111 §1；原 APP-092② 的 6.0）
     # 🔴🔴🔳 APP-090②a：**等说话人标签的上限**（秒）
     #   ⇒ 默认 **0.0 = 绝不等**（reviewer：「不引入任何阻塞等待」）
     #   ⇒ 调大 ⇒ 真的会等 ⇒ `n_label_wait` 计数器**可被证伪**（反证组）

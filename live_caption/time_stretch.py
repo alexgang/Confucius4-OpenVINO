@@ -79,8 +79,14 @@ MAX_STEP_CHANGE = 0.1
 # > p25 0.96、p50 1.17、p75 1.41 ⇒ 中文配音天然比英文源长 ~17 %。
 # ⇒ 中文目标若仍按 1.0–1.30× ⇒ 配音永远追不上画面 ⇒ 滞后越积越多。
 # ⇒ 中文目标：**下限 1.10×、上限 1.50×**（与 EXT v0.3.4 一致）。
+# 🔴🔴🔳 **APP-111 §1（用户 11-15 决定「TTS 语速上限改到 2.0x」）**：
+#   **上限 1.50× → 2.00×**（11-15 取代 APP-090②c / APP-091② 的 1.50×）。
+#   ⚠️ **只放开上限**：滞后→倍率的**增益曲线不变**
+#   （`LAG_DEADZONE_S` / `SPEED_PER_LAG_S` / `LAG_HYSTERESIS_S` /
+#   `MAX_STEP_CHANGE` 全部照旧）⇒ 视频不变速的规则也不变。
+#   ⚠️ **非中文目标**仍是 1.0–1.30×（`SPEED_MAX`，10-29 原口径，不变）。
 ZH_SPEED_MIN = 1.10
-ZH_SPEED_MAX = 1.50
+ZH_SPEED_MAX = 2.00
 
 #: 中文目标判定用的语言标记（小写比较；`zh` / `chinese` 都算中文）
 ZH_LANG_TOKENS = ('zh', 'chinese', 'cn', '中文')
@@ -106,12 +112,12 @@ def is_zh_lang(lang) -> bool:
 def speed_bounds_for_lang(lang, zh_min=None, zh_max=None):
     """🔴 **按目标语言返回 (speed_min, speed_max)**（APP-090②c / APP-091②）。
 
-    - 中文目标 ⇒ `(ZH_SPEED_MIN=1.10, ZH_SPEED_MAX=1.50)`
+    - 中文目标 ⇒ `(ZH_SPEED_MIN=1.10, ZH_SPEED_MAX=2.00)`
     - 其他目标 ⇒ `(SPEED_MIN=1.0, SPEED_MAX=1.30)`（10-29 原口径，**不变**）
 
     🔴🔴🔳 **可配**（APP-091②「写明键名」）：
     - `tts_speed_min_zh`（默认 **1.10**）
-    - `tts_speed_max_zh`（默认 **1.50**）
+    - `tts_speed_max_zh`（默认 **2.00**，APP-111 §1）
     ⇒ **由调用方传入**（`zh_min` / `zh_max`）⇒ 本模块**零新增依赖**
     （客户包纪律：`time_stretch` 只依赖 numpy/wave ⇒ app140 判据）。
     ⚠️ 传 `None` ⇒ 用模块常量（默认口径）。
@@ -148,7 +154,7 @@ def speed_for_lag(lag_s: float,
         上一句用的速度（用于滞回与步长限制）。第一句传 1.0。
     lang : str | None
         🔴🔴🔴 **APP-090②c / APP-091②**：目标语言。
-        中文目标 ⇒ 下限 `ZH_SPEED_MIN`(1.10) / 上限 `ZH_SPEED_MAX`(1.50)；
+        中文目标 ⇒ 下限 `ZH_SPEED_MIN`(1.10) / 上限 `ZH_SPEED_MAX`(2.00, APP-111 §1)；
         其他目标 ⇒ 1.0 / 1.30（**不变**）。
         ⚠️ 显式传入的 `speed_min` / `speed_max` **优先**（老调用方逐字不变）。
     """
