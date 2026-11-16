@@ -134,6 +134,11 @@ class CloneVoices:
         with self._lock:
             self._buf = np.concatenate((self._buf, a))[-int(KEEP_S * SR):]
             self._buf_t0 = float(t_end) - self._buf.size / float(SR)
+        # v0.4.15: span/audio known right away - the TTS stage (voice guard) can reach this
+        #   sentence before the clone thread has dequeued it (acceptance 11-15: guard saw no audio)
+        _s = _seg_int(seg_id)
+        self._span[_s] = (float(t_start), float(t_end))
+        self._seg_pcm[_s] = (a, str(text or ""))
         self._q.put((_seg_int(seg_id), a, float(t_start), float(t_end), str(text or "")))
 
     def _worker(self) -> None:
@@ -426,14 +431,21 @@ class CloneVoices:
             return voice, None
         seg = _seg_int(seg_id)
         pcm = self._seg_audio(seg)
-        if pcm is None or pcm.size < int(GUARD_MIN_S * SR) or voiced_seconds(pcm) < GUARD_MIN_VOICED_S:
+        _r = self._reasons
+        if pcm is None:
+            _r["guard_no_audio"] = _r.get("guard_no_audio", 0) + 1
+            return voice, None
+        if pcm.size < int(GUARD_MIN_S * SR) or voiced_seconds(pcm) < GUARD_MIN_VOICED_S:
+            _r["guard_short"] = _r.get("guard_short", 0) + 1
             return voice, None
         v = self._embed(pcm)
         ve = self._voice_emb(voice)
         if v is None or ve is None:
+            _r["guard_no_emb"] = _r.get("guard_no_emb", 0) + 1
             return voice, None
         s0 = float(v @ ve)
         if s0 >= GUARD_SAME_SIM:
+            _r["guard_keep"] = _r.get("guard_keep", 0) + 1
             return voice, None
         guards = self.__dict__.setdefault("_guard_voices", [])
         best = None
