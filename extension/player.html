@@ -53,7 +53,9 @@
       <span><span class="k">语速</span> <b id="mSpeed">1.00</b>×</span>
       <span><span class="k">滞后</span> <b id="mLag">0.0</b> s</span>
       <span><span class="k">滞后峰值</span> <b id="mLagPeak">0.0</b> s</span>
-      <span><span class="k">配音输出</span> <b id="mSink">—</b></span>
+      <span><span class="k" title="配音（TTS）从哪个音频设备播放；原声仍走系统默认设备。选择会被记住">配音输出</span>
+        <select id="sinkSel" style="max-width:260px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:4px;font:inherit"><option value="auto">自动（有耳机用耳机）</option><option value="default">系统默认设备</option></select>
+        <b id="mSink">—</b></span>
     </div>
     <!-- ★ EXT-024 E：链路状态条（常驻显示 5 个计数 + 当前滞后；卡住时红字写原因） -->
     <div id="linkBar" class="ok">音频 0.0s | ASR 0 | MT 0 | TTS 0 | 下发 0 | 滞后 —</div>

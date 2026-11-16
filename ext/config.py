@@ -87,14 +87,14 @@ TTS_RATE_MIN = 1.0
 ADAPT_LAG_FREE_SEC = 0.5   # 11-06: was 3.0 — lag was allowed to build up (user saw drift; dub/source=1.16)      # lag ≤ 此值 ⇒ 1.0×
 ADAPT_LAG_HYST_SEC = 0.3   # 11-06: was 2.0      # 降速滞回门槛（lag < 此值才回 1.0×）
 ADAPT_GAIN_PER_SEC = 0.15  # 11-08: 按滞后渐进 1.0×(≤0.5 s)→1.5×(≥3.8 s)；原 0.08  # 11-06: was 0.025 (only 1.18x at 10 s lag); now 1.12x@2s, 1.28x@4s    # 每秒滞后的加速系数
-ADAPT_SPEED_MAX = 2.00        # 11-15 用户：上限 2.0×，以便快速追回（11-08 曾定 1.5×，原 1.30）
+ADAPT_SPEED_MAX = 1.70        # 11-16 用户：2.0× 听着不舒服 → 1.7×；11-15 用户：上限 2.0×，以便快速追回（11-08 曾定 1.5×，原 1.30）
 ADAPT_SPEED_MIN = 1.0
 # 11-09 user: en->zh dubs are longer (median 1.17x the source) => minimum speed when target is Chinese
 ZH_BASE_SPEED = float(os.environ.get("EXT_ZH_BASE_SPEED", "1.10"))
 ADAPT_MAX_STEP = 0.20  # 11-08: 原 0.10         # 相邻句之间的最大速度变化（0.1×）
 # ★ EXT-009 EXT 侧：**两者相乘后总倍率仍然不超过 1.30×**
 #   （单句时长适配的 1.25× 与自适应加速相乘 ⇒ 必须再封顶一次）
-ADAPT_TOTAL_RATE_MAX = 2.00   # 11-15 用户定 2.0×（11-08 为 1.5×，原 1.30）
+ADAPT_TOTAL_RATE_MAX = 1.70   # 11-16 用户定 1.7×；11-15 用户定 2.0×（11-08 为 1.5×，原 1.30）
 
 # ── 目标语言码（引擎只认这 4 种）────────────────────────────────
 # ★★ T-3：这份表与 `ext/engine_runtime.py` 的 LANG_TO_MT / LANG_TO_TTS

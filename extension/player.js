@@ -268,7 +268,7 @@ const ADAPT = {
   lagFreeSec: 3.0,      // lag ≤ 3 s ⇒ 1.0×
   lagHystSec: 2.0,      // 降速滞回门槛
   gainPerSec: 0.025,    // 每秒滞后的加速系数
-  speedMax: 2.00,       // 上限（11-15 用户定 2.0×，与 ext/config.py 一致）
+  speedMax: 1.70,       // 上限（11-16 用户定 1.7×，与 ext/config.py 一致）
   maxStep: 0.10,        // 相邻句变化上限
 };
 
@@ -3446,6 +3446,7 @@ listenSwBroadcast();
 //   .setSinkId().  If no headphone-like device is found, nothing changes.
 const HEADPHONE_RE = /耳机|耳麦|headphone|headset|earphone|earbud|buds|airpods|hands-?free|免提|蓝牙|bluetooth/i;
 let dubSinkEl = null;
+let dubSinkDest = null;
 async function listOutputs() {
   let outs = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audiooutput');
   if (outs.length && outs.every((d) => !d.label)) {
@@ -3458,31 +3459,73 @@ async function listOutputs() {
   }
   return outs;
 }
-async function routeDubToHeadphones() {
+// 11-16 (user): let the user pick the dub (TTS) output device in the player window.
+//   pref = 'auto' (headphone if present, else default) | 'default' | deviceId.
+//   Re-entrant: switching at run time moves the dub without restarting.
+// only the audible edge moves; the PCM tap / onset detector edges are left alone
+function dubUnplugAudible() {
+  try { dubBus.disconnect(audioCtx.destination); } catch (e) { }
+  if (dubSinkDest) { try { dubBus.disconnect(dubSinkDest); } catch (e) { } }
+}
+function dubToDefault(why) {
+  dubUnplugAudible();
+  dubBus.connect(audioCtx.destination);
+  if (dubSinkEl) { try { dubSinkEl.pause(); } catch (e) { } }
+  metrics.dubSink = why;
+}
+async function fillSinkSelect(outs, pref) {
+  const sel = document.getElementById('sinkSel');
+  if (!sel) return;
+  const keep = [...sel.options].slice(0, 2);
+  sel.innerHTML = '';
+  keep.forEach((o) => sel.appendChild(o));
+  outs.filter((d) => d.deviceId !== 'default' && d.deviceId !== 'communications').forEach((d) => {
+    const o = document.createElement('option');
+    o.value = d.deviceId; o.textContent = d.label || '(无名称设备)';
+    sel.appendChild(o);
+  });
+  sel.value = [...sel.options].some((o) => o.value === pref) ? pref : 'auto';
+}
+async function routeDubToHeadphones(prefOverride) {
   try {
-    const pref = (await chrome.storage.local.get({ dubSink: 'auto' })).dubSink;
-    if (pref === 'default') { metrics.dubSink = 'default（设置为默认设备）'; return; }
+    const pref = prefOverride || (await chrome.storage.local.get({ dubSink: 'auto' })).dubSink || 'auto';
     const outs = await listOutputs();
+    metrics.dubSinkCandidates = outs.map((d) => d.label || '(无名称)');
+    fillSinkSelect(outs, pref);
+    if (pref === 'default') { dubToDefault('系统默认设备'); report({ kind: 'dub_sink', sink: metrics.dubSink }); return; }
     const real = outs.filter((d) => d.deviceId !== 'default' && d.deviceId !== 'communications');
     let pick = null;
-    if (pref && pref !== 'auto') pick = real.find((d) => d.deviceId === pref || d.label === pref) || null;
+    if (pref !== 'auto') pick = real.find((d) => d.deviceId === pref || d.label === pref) || null;
     if (!pick) pick = real.find((d) => HEADPHONE_RE.test(d.label)) || null;
-    metrics.dubSinkCandidates = outs.map((d) => d.label || '(无名称)');
-    if (!pick) { metrics.dubSink = 'default（未发现耳机）'; report({ kind: 'dub_sink', sink: metrics.dubSink, outs: metrics.dubSinkCandidates }); return; }
-    const dest = audioCtx.createMediaStreamDestination();
-    dubSinkEl = new Audio();
-    dubSinkEl.srcObject = dest.stream;
+    if (!pick) {
+      dubToDefault(pref === 'auto' ? 'default（未发现耳机）' : 'default（所选设备不在）');
+      report({ kind: 'dub_sink', sink: metrics.dubSink, outs: metrics.dubSinkCandidates });
+      return;
+    }
+    if (!dubSinkDest) dubSinkDest = audioCtx.createMediaStreamDestination();
+    if (!dubSinkEl) { dubSinkEl = new Audio(); dubSinkEl.srcObject = dubSinkDest.stream; }
     await dubSinkEl.setSinkId(pick.deviceId);
     await dubSinkEl.play();
-    dubBus.disconnect(audioCtx.destination);
-    dubBus.connect(dest);
+    dubUnplugAudible();
+    dubBus.connect(dubSinkDest);
     metrics.dubSink = pick.label;
     report({ kind: 'dub_sink', sink: pick.label, outs: metrics.dubSinkCandidates });
   } catch (e) {
-    metrics.dubSink = 'default（切换耳机失败：' + String((e && e.message) || e) + '）';
+    dubToDefault('default（切换失败：' + String((e && e.message) || e) + '）');
     report({ kind: 'dub_sink', sink: metrics.dubSink });
   }
 }
+try {
+  const sel = document.getElementById('sinkSel');   // script sits at the end of <body>
+  if (sel) sel.addEventListener('change', async () => {
+    const v = sel.value || 'auto';
+    try { await chrome.storage.local.set({ dubSink: v }); } catch (e) { }
+    if (audioCtx && dubBus) routeDubToHeadphones(v);
+  });
+  if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+    navigator.mediaDevices.addEventListener('devicechange', () => { if (audioCtx && dubBus) routeDubToHeadphones(); });
+  }
+} catch (e) { }
 
 async function boot() {
   const cfg = await chrome.storage.local.get({
