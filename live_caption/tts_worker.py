@@ -2065,7 +2065,7 @@ class TTSWorker:
                 _prev_sp = float(self._last_speed or 1.0)
                 # 🔴🔴🔳 APP-090②c / APP-091②：**按目标语言定倍率区间**
                 #   ⇒ 中文目标：下限 1.10×、上限 2.00×（APP-111 §1）
-                #   ⇒ 其他目标：1.00–1.30×（**原口径不变**）
+                #   ⇒ 其他目标：下限 1.00×、**上限 2.00×（APP-113 §3）**
                 _sp = float(_ts.speed_for_lag(_lag_at_dequeue, _prev_sp,
                                               lang=lang))
                 log('[tts_worker] APP-042 定速：出队 lag=%.3f s ⇒ speed=%.4f'
@@ -2077,7 +2077,8 @@ class TTSWorker:
         # 🔴🔴🔴 APP-061③(c)：**动态倍速封顶** `speed ≤ 1/r_recent`
         #   ⇒ 合成跟不上时**宁可滞后**（GUI 显示滞后），
         #     也不靠加速把环形缓冲抽空（那正是「断断续续」的来源）。
-        #   ⚠️ **用户定的 1.30× 上限不变**（`_speed_cap_by_rtf` 里已封顶）。
+        #   ⚠️ **用户定的 2.00× 上限**（APP-113 §3：两种目标语言一致；
+        #     `_speed_cap_by_rtf` 里已封顶）。
         #   🔴🔴 **两条路径都要封**（reviewer 原话是无条件的「speed ≤ 1/r_recent」）：
         #     ① 有 `target_wall`（worker 自己按 lag 定速）
         #     ② **没有** `target_wall`（用主进程下发的 `speed`）
@@ -3506,7 +3507,9 @@ class TTSWorker:
             import time_stretch as _ts
             _lo, _hi = _ts.speed_bounds_for_lang(lang)
         except Exception:
-            return (1.0, 1.30)
+            # 🔴🔴🔳 APP-113 §3：**上限对所有目标语言统一 2.00×**
+            #   （原非中文 1.30；`time_stretch` 不可用时的兜底也要一致）
+            return (1.0, 2.00)
         if not _ts.is_zh_lang(lang):
             return (_lo, _hi)
         # 🔴 中文目标 ⇒ 上下限**可配**
@@ -3536,11 +3539,12 @@ class TTSWorker:
             （例：r=1.31 ⇒ 合成比播放慢 ⇒ 倍速封顶 0.76 ⇒ 实际取 1.0×，
               **宁可滞后也不靠加速把缓冲抽空**）
 
-        🔴 **只封顶、不加速**：APP-042「用户定的 1.30× 上限」**不变**，
+        🔴 **只封顶、不加速**：APP-042「用户定的倍率上限」**不变**，
           这里只是**再加一个更严的动态上限**。
 
         🔴🔴🔳 **APP-090②c / APP-091②（中文目标）**：
-        - 上限随语言变（中文 2.00×〔APP-111 §1〕，其他 1.30× 不变）；
+        - 上限随语言变（🔴🔴🔳 **APP-113 §3：两种目标语言的上限现已统一为 2.00×**，
+          中文 2.00〔APP-111 §1〕／非中文 2.00〔APP-113 §3，原 1.30〕）；
         - **下限也不能压到 1.10 以下**：reviewer 明文
           「『合成跟不上就宁可滞后』（speed ≤ 1/r_recent）这条保留，
           但它**不能把下限压到 1.10 以下**。如果两者冲突，
@@ -3559,9 +3563,9 @@ class TTSWorker:
             import time_stretch as _ts
             _lo, _hi = _ts.speed_bounds_for_lang(lang)
         except Exception:
-            _lo, _hi = 1.0, 1.30
+            _lo, _hi = 1.0, 2.00
         cap = 1.0 / r
-        if cap > _hi:                 # 用户定的上限（中文 2.00〔APP-111 §1〕/ 其他 1.30）
+        if cap > _hi:                 # 用户定的上限（**2.00×〔APP-113 §3〕两种目标一致**）
             cap = _hi
         if cap < _lo:
             # 🔴🔴🔳 APP-090②c：**冲突** ⇒ 以语言下限为准 + 记冲突次数
@@ -3856,13 +3860,14 @@ class TTSWorker:
                     speed = 1.0
                 # 🔴🔴🔳 APP-090②c / APP-091②：**按目标语言取倍率区间**
                 #   ⇒ 中文目标 1.10–2.00×（APP-111 §1；取代 10-29 的 1.30× 上限）
-                #   ⇒ 其他目标 1.00–1.30×（**原口径不变**）
+                #   ⇒ 其他目标 1.00–**2.00**×（APP-113 §3：**上限也放开**，
+                #     下限 1.00 不变）
                 #   ⚠️ `lang` 此时**已经**归一化（上面刚算完）⇒ 可直接用。
                 try:
                     import time_stretch as _ts0
                     _lo, _hi = _ts0.speed_bounds_for_lang(lang)
                 except Exception:
-                    _lo, _hi = 1.0, 1.30
+                    _lo, _hi = 1.0, 2.00
                 if speed < _lo:
                     speed = _lo
                 if speed > _hi:

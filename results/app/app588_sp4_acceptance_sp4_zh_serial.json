@@ -1,0 +1,306 @@
+{
+ "purpose": "APP-113 §4：sp4 SpecialMVP 10 分钟整链验收（目标语言=zh）",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp4",
+ "audio": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+ "target_lang": "zh",
+ "target_lang_note": "中文目标：源=英文 SPE 片段 ⇒ `--translate zh`（英→中）",
+ "cmd_note": "与 app582（sp3 中文目标）**逐字同构**，只换包路径与输出名 ⇒ 可对照",
+ "started": "2026-11-16 20:49:36",
+ "prev_artifacts_moved": [],
+ "lock_evidence": {
+  "acquired": true,
+  "lock_content": "app 12376 2026-11-16 20:49:36 app113-sp4-zh",
+  "acquired_at": "2026-11-16 20:49:36",
+  "acquired_at_epoch": 1794833376.8102944,
+  "waited_s": 0.0,
+  "wait_history": [],
+  "released_at": "2026-11-16 20:59:53",
+  "released_at_epoch": 1794833993.1512125,
+  "lock_content_at_release": "app 12376 2026-11-16 20:49:36 app113-sp4-zh"
+ },
+ "cmd": [
+  "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp4\\python\\python.exe",
+  "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp4\\app\\live_caption_app.py",
+  "--cli",
+  "--file",
+  "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+  "--asr-device",
+  "GPU.0",
+  "--mt-device",
+  "NPU",
+  "--tts-device",
+  "CUDA",
+  "--translate",
+  "zh",
+  "--tts",
+  "on",
+  "--tts-out",
+  "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app588_sp4_zh_serial_tts_out.wav"
+ ],
+ "cwd": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp4",
+ "parallel_requested": "off",
+ "env_LIVECAP_TTS_PARALLEL": "0",
+ "rc": 0,
+ "rc_hex": "0x00000000",
+ "elapsed_s": 613.1,
+ "run_window": {
+  "started": "2026-11-16 20:49:37",
+  "finished": "2026-11-16 20:59:50",
+  "audio": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+  "audio_bytes": 19200044
+ },
+ "timing_valid": true,
+ "timing_invalid_reason": "",
+ "external_writes_during_run": [],
+ "gpu_apps_before": [
+  "19020, C:\\Users\\Trekker-PTL\\AppData\\Local\\Programs\\Python\\Python312\\python.exe, [N/A]"
+ ],
+ "gpu_apps_after": [
+  "19020, C:\\Users\\Trekker-PTL\\AppData\\Local\\Programs\\Python\\Python312\\python.exe, [N/A]"
+ ],
+ "gpu_note": "跑前/跑后 nvidia-smi 计算进程快照；**若出现非本作业的 PID ⇒ 有外部 GPU 任务**",
+ "artifacts": {
+  "_app588_sp4_zh_serial_tts_out.wav": {
+   "exists": true,
+   "bytes": 30120524,
+   "sha256": "662c38f76d24783574ea4440ad0d8b65cbf842c36d1dfdd62d7fda6e9f60a5f2",
+   "mtime": 1794833987.2944996
+  },
+  "_app588_sp4_zh_serial_tts_out.wav.tts.jsonl": {
+   "exists": true,
+   "bytes": 256738,
+   "sha256": "a88d99633c92051d795e3b8cc073594f5945c3bc0adc68bf3f15e516334a8d0e",
+   "mtime": 1794833987.2998998
+  },
+  "_app588_sp4_zh_serial_tts_out.wav.backlog_curve.csv": {
+   "exists": true,
+   "bytes": 17177,
+   "sha256": "4db9a082ebc2172754a4f343f596154c57d8ff5a6c397862c9c8d6f641c35324",
+   "mtime": 1794833986.845216
+  },
+  "_app588_sp4_zh_serial.log": {
+   "exists": true,
+   "bytes": 280931,
+   "sha256": "d69da4498298340cde17516fd2962d1e16b62bec73d4db9e3e17b2c208ccf223",
+   "mtime": 1794833990.5459948
+  }
+ },
+ "log_parse": {
+  "n_translations": 164,
+  "translation_lines_sample": [
+   "[译文] 好的。",
+   "[译文] 大家早上好。",
+   "[译文] 早上好。"
+  ],
+  "tts_ready_log": {
+   "line_no": 127,
+   "text": "  [TTS] [TTS] 就绪：CUDA · 音色 A"
+  },
+  "app113_lines": [
+   "[APP-113] 就绪前排队=12 溢出丢弃=0 已补发=12 ｜ TTS就绪=43.6s 积压清空=69.4s 积压清空口径=play_lag_s ｜ 并行=off ｜ ASR就绪=5.0s MT就绪=10.3s 进程已运行=608.2s"
+  ],
+  "final_stats_lines": [
+   "[TTS] 最终统计（close 后）：提交 164  播完 164  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 2.60s  积压 最大 47.79s"
+  ],
+  "tts_first_packet_lines": [
+   "[TTS] 首包 0.41s  积压 当前 0.00s / 最大 47.79s  提交 164  播完 164  丢弃 0  重启 0  state=ready"
+  ],
+  "cuda_ready_lines": [
+   "  [TTS] [TTS] [tts_cuda] 就绪：NVIDIA GeForce RTX 5050 Laptop GPU / torch 2.11.0+cu128 / 加载 29.3s / 预热 2.6s"
+  ],
+  "model_done_lines": [
+   "  [TTS] [TTS] [tts_worker] 模型加载完成 36.8s"
+  ],
+  "e2e_lines": [
+   "  [TTS] [TTS] [tts_cuda] 端到端启动耗时 32.1 s"
+  ],
+  "queue_log_count": 2,
+  "queue_log_sample": [
+   "  [TTS] [TTS] 语音模型**首次准备中** ⇒ 本句**排队等待**（APP-113 §1：不丢句；已排队 1 句）",
+   "  [TTS] [TTS] 语音模型**首次准备中** ⇒ 本句**排队等待**（APP-113 §1：不丢句；已排队 10 句）"
+  ],
+  "flush_log_lines": [
+   "  [TTS] [TTS] 语音模型就绪（相对启动 +43.6 s）（APP-113 §1：开始补发积压句）",
+   "[TTS] 语音模型就绪 ⇒ 补发积压的 12 句（APP-113 §1）"
+  ],
+  "overflow_log_lines": [],
+  "n_lines_total": 2918
+ },
+ "stdout_tail": "P_v1.0-sp4\\models\\qwen3tts\\voices\\preset_A.wav\n\n[定稿] S, for like a tower config, even up to a workstation config.\n  [TTS] [TTS] 首包分段 id=161：排队 0.000 s + 合成 0.418 s\n\n[实时] Right now.\n[译文] S，比如用于塔式配置，甚至可用于工作站配置。\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] DONE rid=162 chunks=4 frames=30 mnt=165 reason=eos elapsed=0.42s total_s=1.34s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=161 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=57600 parts=4 peak=0.6641 rms_dbfs=-18.3 nan_inf=0 cb_delta=32 read_delta=1680 underflow_delta=31 ring=2400/72000 consumed=-\n  [TTS] [TTS] 遥测 id=161 peak=0.664062 rms_dbfs=-18.3 read_delta=1680 consumed=None\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] set_ref: C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp4\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落预设 A（已换回参考音频）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=1.626 s ⇒ speed=1.1000（lang=zh）\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] REQ rid=163 len=22 mnt=255 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp4\\models\\qwen3tts\\voices\\preset_A.wav\n\n[实时] Right now we're in the  [TTS] [TTS] 首包分段 id=162：排队 0.000 s + 合成 0.417 s\n\n[实时] Right now we're in the process of working\n[实时] Right now we're in the process of working with the data\n[定稿] Right now we're in the process of working with the data center.\n\n[gpu_int8] 音频 600.0s  墙钟 600.5s  RTF(计算) 0.516  出字延迟中位 279 ms  最大积压 1.0s  段 93\n[译文] 目前我们正在与数据中心合作。\n[gpu_int8] 翻译 target=zh 后端=auto 设备 NPU state=ready 句数 163  延迟中位 888.7 ms  P95 1277.1 ms  TTFT 522.5 ms  32.6 tok/s\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] DONE rid=163 chunks=8 frames=57 mnt=255 reason=eos elapsed=0.41s total_s=2.48s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=162 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=109440 parts=8 peak=0.5352 rms_dbfs=-19.1 nan_inf=0 cb_delta=59 read_delta=2400 underflow_delta=57 ring=2400/72000 consumed=-\n  [TTS] [TTS] 遥测 id=162 peak=0.535156 rms_dbfs=-19.13 read_delta=2400 consumed=None\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] set_ref: C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp4\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落预设 A（已换回参考音频）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=1.316 s ⇒ speed=1.1000（lang=zh）\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] REQ rid=164 len=14 mnt=183 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp4\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] 首包分段 id=163：排队 0.000 s + 合成 0.410 s\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] DONE rid=164 chunks=5 frames=37 mnt=183 reason=eos elapsed=0.41s total_s=1.58s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=163 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=71040 parts=5 peak=0.5742 rms_dbfs=-17.3 nan_inf=0 cb_delta=37 read_delta=2400 underflow_delta=35 ring=1680/72000 consumed=-\n  [TTS] [TTS] 遥测 id=163 peak=0.574219 rms_dbfs=-17.33 read_delta=2400 consumed=None\n[TTS] 首包 0.41s  积压 当前 0.00s / 最大 47.79s  提交 164  播完 164  丢弃 0  重启 0  state=ready\n[APP-113] 就绪前排队=12 溢出丢弃=0 已补发=12 ｜ TTS就绪=43.6s 积压清空=69.4s 积压清空口径=play_lag_s ｜ 并行=off ｜ ASR就绪=5.0s MT就绪=10.3s 进程已运行=608.2s\n[TTS] 收尾（close 前）：结尾滞后 2.60s  关闭作废 0  空句 0  积压 最大 47.79s\n[TTS] 语音已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app588_sp4_zh_serial_tts_out.wav，逐句时间线 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app588_sp4_zh_serial_tts_out.wav.tts.jsonl\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app588_sp4_zh_serial_tts_out.wav.backlog_curve.csv（401 个采样点）\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n  [TTS] [TTS] [tts_worker] 已落盘 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app588_sp4_zh_serial_tts_out.wav（627.51s，164 句，24000 Hz）\n[TTS] 最终统计（close 后）：提交 164  播完 164  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 2.60s  积压 最大 47.79s\n",
+ "stderr_tail": "[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认—— 客户机若装过 MiniMVP 或完整版就会留下这种文件⇒ 本包的出厂默认不同 ⇒ 改用本包出厂默认（asr=GPU.0，mt=NPU，tts=CUDA）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+ "app113": {
+  "n_queued_before_ready": 12,
+  "n_drop_not_ready_overflow": 0,
+  "n_flushed": 12,
+  "tts_ready_rel_s": 43.6,
+  "backlog_cleared_rel_s": 69.4,
+  "backlog_cleared_lag_kind": "play_lag_s",
+  "parallel": false,
+  "asr_ready_s": 5.0,
+  "mt_ready_s": 10.3,
+  "proc_elapsed_at_print_s": 608.2
+ },
+ "telemetry_dup_ids": {
+  "n_dup_ids": 0,
+  "sample": {}
+ },
+ "telemetry": {
+  "n_rows": 164,
+  "n_dropped_worker": 0,
+  "n_drop_not_ready_overflow": 0,
+  "n_drop_total_any_reason": 0,
+  "n_played": 164,
+  "dropped_ids": [],
+  "dropped_reasons": [],
+  "speed_p50": 1.1029,
+  "speed_p95": 1.6737,
+  "speed_max": 1.6737,
+  "speed_min": 1.1,
+  "speed_mean": 1.1971,
+  "speed_gain_mean": 1.19,
+  "n_speed_ge_1_8": 0,
+  "n_speed_ge_2_0": 0,
+  "n_speed_at_floor_1_10": 79,
+  "rtf_ewma_min": 0.5242,
+  "rtf_ewma_max": 2.4862,
+  "rtf_ewma_mean": 0.5901,
+  "play_lag_max": 38.456,
+  "play_lag_p95": 32.6165,
+  "play_lag_end": 2.906,
+  "n_speed_floor_conflict": 6
+ },
+ "sentence_counts": {
+  "n_translations": 164,
+  "n_translations_source": "run log 里 [译文]/[修正译文] 行计数",
+  "n_queued_before_ready": 12,
+  "n_flushed": 12,
+  "n_submitted_worker": 164,
+  "n_drop_total_any_reason": 0,
+  "reconciliation_expr": "164（译文）== 164（进 TTS）+ 0（丢弃）",
+  "reconciliation_ok": true,
+  "queue_flush_expr": "12（就绪前排队）== 12（已补发）",
+  "queue_flush_ok": true
+ },
+ "tts_ready": {
+  "app113_rel_s": 43.6,
+  "proc_elapsed_at_print_s": 608.2,
+  "asr_ready_s": 5.0,
+  "mt_ready_s": 10.3,
+  "parallel": false,
+  "log_line": {
+   "line_no": 127,
+   "text": "  [TTS] [TTS] 就绪：CUDA · 音色 A"
+  },
+  "cuda_ready_lines": [
+   "  [TTS] [TTS] [tts_cuda] 就绪：NVIDIA GeForce RTX 5050 Laptop GPU / torch 2.11.0+cu128 / 加载 29.3s / 预热 2.6s"
+  ],
+  "model_done_lines": [
+   "  [TTS] [TTS] [tts_worker] 模型加载完成 36.8s"
+  ],
+  "e2e_lines": [
+   "  [TTS] [TTS] [tts_cuda] 端到端启动耗时 32.1 s"
+  ]
+ },
+ "backlog_cleared_rel_s": 69.4,
+ "backlog_cleared_lag_kind": "play_lag_s",
+ "checks": [
+  {
+   "name": "丢句数（任何原因）= 0",
+   "pass": true,
+   "detail": "worker丢弃=0 + 溢出丢弃=0"
+  },
+  {
+   "name": "译文句数 == 进 TTS 句数 + 丢弃总数（无其它丢失路径）",
+   "pass": true,
+   "detail": "164（译文）== 164（进 TTS）+ 0（丢弃）"
+  },
+  {
+   "name": "就绪前排队的句子**全部补发**（一句不丢）",
+   "pass": true,
+   "detail": "12（就绪前排队）== 12（已补发）"
+  },
+  {
+   "name": "倍率 max ≤ 2.0",
+   "pass": true,
+   "detail": "max=1.6737 p50=1.1029 p95=1.6737"
+  },
+  {
+   "name": "退出码 0",
+   "pass": true,
+   "detail": "rc=0"
+  },
+  {
+   "name": "产出齐备（wav + 逐句 jsonl + 积压曲线）",
+   "pass": true,
+   "detail": "_app588_sp4_zh_serial_tts_out.wav,_app588_sp4_zh_serial_tts_out.wav.tts.jsonl,_app588_sp4_zh_serial_tts_out.wav.backlog_curve.csv"
+  },
+  {
+   "name": "逐句 jsonl **无重复 id**（未混入上一轮的行）",
+   "pass": true,
+   "detail": "重复 id 数=0（[]）"
+  },
+  {
+   "name": "TTS 就绪时刻已记录",
+   "pass": true,
+   "detail": "TTS就绪=43.6 s（相对进程启动；收尾时进程已运行 608.2 s）"
+  },
+  {
+   "name": "积压清空时刻已记录（口径=play_lag_s）",
+   "pass": true,
+   "detail": "积压清空=69.4 s（口径 play_lag_s；末句播放滞后 2.906 s）"
+  },
+  {
+   "name": "ASR/TTS 强制串行生效（并行=off，对照臂）",
+   "pass": true,
+   "detail": "parallel=False（请求=off）"
+  }
+ ],
+ "n_fail": 0,
+ "verdict": "PASS",
+ "fast_samples": {
+  "min_speed": 1.8,
+  "n_candidates": 164,
+  "n_made": 3,
+  "fell_back_to_top_speed": false,
+  "samples": [
+   {
+    "file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app588_fast_samples\\sp4_zh_serial_fast_id13_speed1_67.wav",
+    "bytes": 110924,
+    "sha256": "254b972e467d71c3e94bd3c1747e3e9b6cfcfc8d16621c0c62001ca9c94ee4cf",
+    "id": 13,
+    "speed": 1.6737,
+    "text": "去推动我们前方的发展，这是我所期望的。",
+    "t0": 31.68,
+    "t1": 33.99,
+    "out_dur_s": 2.31,
+    "play_lag_s": 28.181
+   },
+   {
+    "file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app588_fast_samples\\sp4_zh_serial_fast_id14_speed1_67.wav",
+    "bytes": 220364,
+    "sha256": "fddce0aad718ec912d1196b0f57760b1f49253ce45234cc083d50a7c58332d0b",
+    "id": 14,
+    "speed": 1.6737,
+    "text": "最后，我们会有足够的时间进行问答环节，既可以在现场进行，也可以在线进行。",
+    "t0": 33.99,
+    "t1": 38.58,
+    "out_dur_s": 4.59,
+    "play_lag_s": 25.889
+   },
+   {
+    "file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app588_fast_samples\\sp4_zh_serial_fast_id15_speed1_67.wav",
+    "bytes": 28844,
+    "sha256": "cbbc968e0b52aa719f9fafdb5b2c0b7a10c5044b41f3979f1ad97d76a476f1d9",
+    "id": 15,
+    "speed": 1.6737,
+    "text": "好的。",
+    "t0": 38.58,
+    "t1": 39.18,
+    "out_dur_s": 0.6,
+    "play_lag_s": 26.526
+   }
+  ],
+  "note": "倍率 ≥1.8× 的句子共 164 句；抽出 3 段供抽听。"
+ },
+ "finished": "2026-11-16 20:59:52"
+}

@@ -1,0 +1,65 @@
+{
+ "source": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\live_caption_app.py",
+ "cases": [
+  {
+   "name": "正常等待后补发：一句不丢 + FIFO 顺序不变",
+   "n_queued_before_ready": 5,
+   "n_drop_not_ready_overflow": 0,
+   "n_flushed": 5,
+   "order": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "ready_at_set": true,
+   "backlog_cleared_rel_s": 0.0,
+   "pass": true
+  },
+  {
+   "name": "溢出保护：超过阈值仍未就绪 ⇒ 按最旧优先丢弃 + 计数",
+   "n_queued_before_ready": 5,
+   "n_drop_not_ready_overflow": 5,
+   "n_flushed": 0,
+   "order": [],
+   "log_has_overflow": true,
+   "pass": true
+  },
+  {
+   "name": "反证组：阈值放大 ⇒ 溢出丢弃必须 = 0（证明用例 2 不是恒真）",
+   "n_drop_not_ready_overflow": 0,
+   "pass": true
+  },
+  {
+   "name": "反证组：滞后 50 s ⇒ 不得记「积压清空」",
+   "backlog_cleared_at": null,
+   "pass": true
+  },
+  {
+   "name": "口径反证：lag_s=0 但 play_lag_s=48 ⇒ 不得记「积压清空」（证明判据用的是 play_lag_s，不是未播音频时长）",
+   "backlog_cleared_at": null,
+   "backlog_cleared_lag_kind": null,
+   "pass": true
+  },
+  {
+   "name": "两道闸反证：play_lag_s=0.1 但**一句都还没播** ⇒ 不得记清空",
+   "backlog_cleared_at": null,
+   "pass": true
+  },
+  {
+   "name": "两道闸正例：play_lag_s=0.1 且已播 2 句(=已补发) ⇒ 记「积压清空」",
+   "backlog_cleared_at_is_set": true,
+   "backlog_cleared_lag_kind": "play_lag_s",
+   "backlog_cleared_played_delta": 2,
+   "pass": true
+  },
+  {
+   "name": "口径反证：无 play_lag_s ⇒ **不回落** lag_s ⇒ 不得记「积压清空」",
+   "backlog_cleared_at": null,
+   "pass": true
+  }
+ ],
+ "verdict": "PASS",
+ "n_fail": 0
+}
