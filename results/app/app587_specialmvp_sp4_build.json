@@ -1,0 +1,81 @@
+{
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp4",
+ "from_pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp3",
+ "version": "1.0-sp4",
+ "started": "2026-11-16 20:28:45",
+ "actions": [
+  "RESUME: sp4 已存在（文件数 41374 = sp3）⇒ 跳过拷贝，从断点继续",
+  "cuda_env/pyvenv.cfg：已是 sp4 路径（续跑，跳过重定位）",
+  "app 代码同步：1 个文件被改写（live_caption_app.py）；其余与 dev 逐字相同 27 个",
+  "release.json：version=1.0-sp4；corrections += APP-113；新增 sp4_changes（4 条）"
+ ],
+ "gates": {
+  "n_pyc": 0,
+  "n_blacklist": 0,
+  "blacklist": [],
+  "app_files_mismatch_vs_dev": [],
+  "pyvenv_cfg_has_sp3_path": false,
+  "pyvenv_cfg_has_sp4_path": true,
+  "profile": "specialmvp",
+  "allow_cuda": true,
+  "n_files": 41374,
+  "dir_bytes": 14232064511
+ },
+ "resume": {
+  "n_files_sp3": 41374,
+  "n_files_sp4": 41374
+ },
+ "after_copy": {
+  "n_files": 41374,
+  "bytes": 14232063256,
+  "elapsed_s": 1.6
+ },
+ "pyvenv_cfg_after": "home = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp4\\python\ninclude-system-site-packages = false\nversion = 3.12.10\nexecutable = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp4\\python\\python.exe\ncommand = C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp4\\python\\python.exe -m venv C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp4\\cuda_env\n",
+ "manifest_repoint": {
+  "from": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp4\\models",
+  "to": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp4\\models",
+  "note": "已是 sp4 自己的 models 目录"
+ },
+ "app_sync": {
+  "sync_files_declared": [
+   "live_caption_app.py",
+   "time_stretch.py",
+   "tts_worker.py",
+   "tts_service.py",
+   "device_config.py"
+  ],
+  "synced": [
+   {
+    "file": "live_caption_app.py",
+    "sha256": "ef367412632ad7748ca35a84a9676cce07f48bdff11be11e61e19c828bf2d035",
+    "bytes": 515827
+   }
+  ],
+  "n_same": 27,
+  "n_no_dev_counterpart": []
+ },
+ "readme_zh": {
+  "old_size_line": "* **包体积（实测）**：解压后 **41,374 个文件 /     14,232,063,256 B（13.255 GiB）**；zip **待打包**（本版**只出包目录**；zip 须**用户通知后**才生成）。",
+  "new_size_line": "* **包体积（实测）**：解压后 **41,374 个文件 /     14,232,064,511 B（13.255 GiB）**；zip **待打包**（本版**只出包目录**；zip 须**用户通知后**才生成）。"
+ },
+ "readme_en": {
+  "old_size_line": "* **Package size (measured)**: unpacked **41,374 files /     14,232,063,256 B (13.255 GiB)**; zip **to be built** (this build ships the **package directory** only; the zip requires explicit user approval).",
+  "new_size_line": "* **Package size (measured)**: unpacked **41,374 files /     14,232,064,511 B (13.255 GiB)**; zip **to be built** (this build ships the **package directory** only; the zip requires explicit user approval)."
+ },
+ "param_check": {
+  "app_has_TtsReadyQueue": true,
+  "app_has_pending_queue": true,
+  "app_has_overflow_counter": true,
+  "app_no_longer_skips": true,
+  "app_cli_queues_not_skips": true,
+  "app_has_parallel_boot": true,
+  "app_parallel_only_cuda": true,
+  "time_stretch.SPEED_MAX==2.00": true,
+  "time_stretch.ZH_SPEED_MAX==2.00": true,
+  "worker_fallback_2.00": true,
+  "worker_bounds_fallback_2.00": true
+ },
+ "verdict": "PASS",
+ "finished": "2026-11-16 20:28:49",
+ "elapsed_s": 3.8
+}

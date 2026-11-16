@@ -191,6 +191,225 @@ import gui_status
 #    ⇒ 不设上限会无界增长（与 `translator.py` 的 `CACHE_MAX` 同一口径）。
 _DRAFT_MT_CACHE_MAX = 2000
 
+
+# ══════════════════════════════════════════════════════════════════
+# 🔴🔴🔳 APP-113 §1：**TTS 就绪前的定稿译文「排队等待」**（方案 B）
+# ══════════════════════════════════════════════════════════════════
+# reviewer 原文（`status/app/CORRECTIONS_APP.md` APP-113 §1）：
+#   「`live_caption_app.py` 的 `_tts_skip_not_ready`（APP-069/070 冷启动策略）改为：
+#     TTS 未就绪时，终稿译文**进队列等待**，就绪后按正常排程合成播放，
+#     滞后靠自适应语速（最高 2.0×）追回。不丢句。」
+#   「队列要有上限保护，防止 TTS 一直起不来时无限增长：例如超过 120 s 仍未就绪，
+#     才按最旧优先丢弃并计数（`n_drop_not_ready_overflow`），并在 GUI/日志明示。
+#     正常冷启动（≤60 s）必须一句不丢。」
+#   「保留计数字段：`n_queued_before_ready`、就绪时刻、就绪后清空积压所用时间
+#     （滞后回到 <2 s 的时刻）。」
+#
+# 🔴 **为什么队列放在 App 层（而不是 `tts_service`）**：
+#   `TTSService.pending` 只存 `seg` / `text` / `t`
+#   ⇒ **不存 `lang` / `spk` / `target_play_at`**
+#   ⇒ 服务层补发时**无法原样还原**（会丢语言、音色绑定、目标墙钟）
+#   ⇒ 队列必须留在**参数齐全**的 App 层（GUI 与 CLI 共用这一份实现）。
+#   ⚠️ 服务层 `_drop_pending_on_ready`（APP-069④/070② A）**保持不变**：
+#     App 层只在 **ready 之后**才调 `submit()` ⇒ 服务层的待发队列恒为空
+#     ⇒ 那条「准备期丢弃」逻辑**不会被触发**（老路径逐字不变）。
+
+#: 🔴 APP-113 §1：**队列溢出丢弃阈值**（秒）
+#:   ⇒ 「超过 120 s 仍未就绪」⇒ **按最旧优先丢弃**并计数。
+#:   ⚠️ 正常冷启动（≤60 s）**一句不丢**（sp4 实测 TTS 就绪 ≈ 88 s ⇒ 也不丢）。
+_TTS_QUEUE_OVERFLOW_S = 120.0
+
+#: 🔴 APP-113 §1：**积压清空判据**（语音滞后 < 该值 ⇒ 视为已追平）
+_TTS_BACKLOG_CLEAR_S = 2.0
+
+
+def _tts_parallel_enabled() -> bool:
+    """🔴🔴🔳 APP-113 §2：**「ASR 与 TTS 并行加载」开关**（可关掉做同机 A/B）。
+
+    🔴 **默认 = 开**：TTS 档位是 **CUDA** 时，启动瞬间就把边车拉起
+      （独立进程）⇒ 与 ASR 的模型加载**真并行**。
+    🔴 **只影响 CUDA 这一路**：TTS 档位是 **GPU.0 / NPU** 时**永远串行**
+      （沿用「auto=False 防 GPU 编译死锁」的历史经验）。
+    🔴 设环境变量 **`LIVECAP_TTS_PARALLEL=0`** ⇒ **强制串行**
+      ⇒ 供 reviewer 做「并行 vs 串行」的**同机同代码 A/B**
+      （APP-113 §2 要求记录「并行前后 TTS 就绪时刻对比」）。
+
+    ⚠️ **不影响功能**：串行时 TTS 边车照常在 ASR 之后启动
+      ⇒ 只是**就绪更晚**，不丢句（§1 的排队兜底）。
+    """
+    v = str(os.environ.get('LIVECAP_TTS_PARALLEL', '1') or '1').strip().lower()
+    return v not in ('0', 'false', 'off', 'no')
+
+
+class TtsReadyQueue:
+    """🔴🔴🔳 APP-113 §1：TTS 未就绪时**定稿译文的排队等待**（GUI / CLI 共用一份）。
+
+    🔴 **口径**：
+    - `push(fn, meta)`：TTS 未就绪 ⇒ 把「提交动作」入队（**不丢句**）；
+    - `take_ready()`：TTS 就绪 ⇒ 按 **FIFO** 取出全部待提交项（调用方提交）；
+    - `enforce_overflow()`：随时都在跑 ⇒ 若**队首**已等超过 `overflow_s`
+      （默认 120 s）⇒ **按最旧优先丢弃**并计 `n_drop_not_ready_overflow`；
+    - `poll(ready, lag_s)`：记录**就绪时刻**与**积压清空时刻**（滞后回到 <2 s）。
+
+    ⚠️ **线程安全**：GUI 的 `_pump_tts` 与 CLI 主循环都在主线程调，
+      但不假设调用方 ⇒ 一律用锁。
+    """
+
+    def __init__(self, overflow_s=_TTS_QUEUE_OVERFLOW_S, on_log=None,
+                 t0=None):
+        self._lock = threading.Lock()
+        self._q = []                       # [(入队墙钟, 提交动作, meta)]
+        self._overflow_s = float(overflow_s)
+        self._on_log = on_log
+        self._t0 = float(t0) if t0 else time.time()   # 相对基准（墙钟）
+        # ── APP-113 §1 要求保留的计数字段 ──
+        self.n_queued_before_ready = 0     # 就绪前入队句数
+        self.n_drop_not_ready_overflow = 0  # 溢出丢弃句数
+        self.n_flushed = 0                 # 就绪后已补发的句数
+        self.ready_at = None               # 就绪时刻（墙钟）
+        self.ready_at_rel_s = None         # 就绪时刻（相对创建，秒）
+        self.backlog_cleared_at = None     # 积压清空时刻（墙钟）
+        self.backlog_cleared_rel_s = None  # 积压清空（相对就绪，秒）
+        # 🔴🔴🔳 积压清空**口径**（'play_lag_s' / 'lag_s'）——可核对
+        self.backlog_cleared_lag_kind = None
+        # 🔴🔴🔳 就绪时刻的 `n_played` 基准 + 清空时刻的已播增量（可核对）
+        self.n_played_at_ready = None
+        self.backlog_cleared_played_delta = None
+
+    # -- 入队 -----------------------------------------------------------
+    def push(self, fn, meta=None):
+        """TTS 未就绪 ⇒ **入队等待**（不丢句）。"""
+        now = time.time()
+        with self._lock:
+            self._q.append((now, fn, dict(meta or {})))
+            self.n_queued_before_ready += 1
+            n = len(self._q)
+        # 🔴 **不要每句都刷屏**：只在**第 1 句**和**每 10 句**打一行。
+        if self._on_log and (n == 1 or n % 10 == 0):
+            self._on_log('[TTS] 语音模型**首次准备中** ⇒ 本句**排队等待**'
+                         '（APP-113 §1：不丢句；已排队 %d 句）' % n)
+        self.enforce_overflow()
+        return True
+
+    # -- 取回（就绪后补发）---------------------------------------------
+    def take_ready(self):
+        """TTS 就绪 ⇒ 取出**全部**待提交项（FIFO ⇒ 句序不变）。"""
+        with self._lock:
+            items = self._q
+            self._q = []
+            self.n_flushed += len(items)
+        return items
+
+    # -- 溢出保护 -------------------------------------------------------
+    def enforce_overflow(self):
+        """🔴 超过 `overflow_s`（默认 120 s）仍未就绪 ⇒ **按最旧优先丢弃**。
+
+        ⇒ 返回被丢弃的 meta 列表（供调用方记账/提示）。
+        """
+        now = time.time()
+        dropped = []
+        with self._lock:
+            while self._q and (now - self._q[0][0]) > self._overflow_s:
+                _t, _fn, meta = self._q.pop(0)
+                self.n_drop_not_ready_overflow += 1
+                dropped.append(meta)
+        if dropped:
+            if self._on_log:
+                self._on_log(
+                    '[TTS] 🔴 语音模型准备超过 %.0f s 仍未就绪 ⇒ '
+                    '**按最旧优先丢弃** %d 句（累计丢弃 %d 句）'
+                    '（APP-113 §1 的队列上限保护）'
+                    % (self._overflow_s, len(dropped),
+                       self.n_drop_not_ready_overflow))
+        return dropped
+
+    # -- 就绪 / 积压清空 -------------------------------------------------
+    def poll(self, ready, lag_s=None, ready_at=None, play_lag_s=None,
+             n_played=None):
+        """记录**就绪时刻**与**积压清空时刻**（滞后回到 < 2 s）。
+
+        ⚠️ **每次 poll 都跑一遍溢出保护** ⇒ 即使**不再有新句进来**，
+          超期的队首也会被丢掉（否则「TTS 一直起不来 + 句子不再来」
+          ⇒ 队列永远不释放 ⇒ 上限保护形同虚设）。
+
+        🔴🔴🔳 **口径（APP-113 §4 验收实测后两次修正，11-16 20:20 / 20:35）**：
+          「积压清空」＝ **worker 回报的 `play_lag_s`**
+          （＝这句的**实际开播时刻 − 目标开播时刻**）回到 < 2 s。
+          - ❌ **不能用** service 的 `lag_s`（＝**未播音频时长**）：
+            worker 刚开始合成时它恒为 **0** ⇒ 会把「刚就绪、队列还没开始
+            合成」误判成「积压已清空」⇒ 实测得到 **0.2 s**
+            （而同期**最大滞后 87.97 s**）＝**假口径**。
+          - ❌ **只看 `play_lag_s` 也不够**：它初始为 **0.0** ⇒ 「就绪后
+            一拍就清空」也是假的 ⇒ 因此**再加一道闸**：
+            **就绪之后至少真的播出了 `max(1, 已补发句数)` 句**
+            （`n_played` 增量）⇒ 才允许记「积压已清空」。
+        """
+        # 🔴 溢出保护**必须在锁外**调用（它自己要拿锁）。
+        self.enforce_overflow()
+        now = time.time()
+        became_ready = False
+        cleared = False
+        # 🔴 口径：**只认 worker 回报的 `play_lag_s`**（不回落 `lag_s`）
+        _lag = None
+        if play_lag_s is not None:
+            try:
+                _lag = float(play_lag_s)
+            except Exception:
+                _lag = None
+        try:
+            _np = int(n_played) if n_played is not None else None
+        except Exception:
+            _np = None
+        with self._lock:
+            if ready and self.ready_at is None:
+                self.ready_at = float(ready_at) if ready_at else now
+                self.ready_at_rel_s = round(self.ready_at - self._t0, 3)
+                self.n_played_at_ready = _np
+                became_ready = True
+            _played_delta = None
+            if _np is not None and self.n_played_at_ready is not None:
+                _played_delta = _np - self.n_played_at_ready
+            _need = max(1, self.n_flushed)
+            if (ready and self.ready_at is not None
+                    and not self._q and _lag is not None
+                    and _played_delta is not None
+                    and _played_delta >= _need
+                    and self.backlog_cleared_at is None):
+                if _lag < _TTS_BACKLOG_CLEAR_S:
+                    self.backlog_cleared_at = now
+                    self.backlog_cleared_rel_s = round(now - self.ready_at, 3)
+                    self.backlog_cleared_lag_kind = 'play_lag_s'
+                    self.backlog_cleared_played_delta = _played_delta
+                    cleared = True
+        if became_ready and self._on_log:
+            self._on_log('[TTS] 语音模型就绪（相对启动 +%.1f s）'
+                         '（APP-113 §1：开始补发积压句）'
+                         % (self.ready_at_rel_s or 0.0))
+        if cleared and self._on_log:
+            self._on_log('[TTS] 积压已清空（play_lag_s 回到 < %.0f s，'
+                         '用时 %.1f s）' % (_TTS_BACKLOG_CLEAR_S,
+                                           self.backlog_cleared_rel_s or 0.0))
+        return became_ready, cleared
+
+    # -- 快照（GUI / 验收 json 用）--------------------------------------
+    def stats(self):
+        with self._lock:
+            return {
+                'n_pending': len(self._q),
+                'n_queued_before_ready': self.n_queued_before_ready,
+                'n_drop_not_ready_overflow': self.n_drop_not_ready_overflow,
+                'n_flushed': self.n_flushed,
+                'ready_at': self.ready_at,
+                'ready_at_rel_s': self.ready_at_rel_s,
+                'backlog_cleared_at': self.backlog_cleared_at,
+                'backlog_cleared_rel_s': self.backlog_cleared_rel_s,
+                'backlog_cleared_lag_kind': self.backlog_cleared_lag_kind,
+                'n_played_at_ready': self.n_played_at_ready,
+                'backlog_cleared_played_delta': self.backlog_cleared_played_delta,
+                'overflow_s': self._overflow_s,
+                'backlog_clear_threshold_s': _TTS_BACKLOG_CLEAR_S,
+            }
+
 # 🔴🔴🔴 APP-027⑤：**克隆采集参数**（主进程侧）
 #   - 最短 3 s（worker 侧硬要求：不足 3 s 拒绝更新）
 #   - 最长 10 s（APP-027 明文：「取最近 3–10 s 语音」）
@@ -3039,7 +3258,12 @@ class App:
         # 🔴🔴🔴 APP-065 A：放在**音色下拉右侧**（column 4）。
         self.var_tts_voice_now = tk.StringVar(value='预设 A')
         # 🔴🔴🔳 APP-069④ / APP-070② A：未就绪被跳过的句数（诚实记账）
+        # 🔴🔴🔳 **APP-113 §1（方案 B）**：就绪前**不再跳过** ⇒ 改为**排队等待**
+        #   ⇒ 本计数器现在只统计「**溢出丢弃**」（队列上限保护触发时）；
+        #   正常冷启动（≤120 s）它恒为 0 ⇒ **一句不丢**。
         self._tts_skip_not_ready = 0
+        # 🔴🔴🔳 APP-113 §1：**就绪前排队**的定稿译文（GUI / CLI 共用一份实现）
+        self._tts_pending_q = TtsReadyQueue(on_log=self._ui_log)
         ttk.Label(g_tts, textvariable=self.var_tts_voice_now,
                   foreground='#1565c0').grid(row=1, column=2, sticky='w',
                                              padx=(8, 0), pady=0)
@@ -3293,6 +3517,41 @@ class App:
                 self._enable_speaker_for_clone('GUI 启动参数 --tts-voice follow_speaker')
         except Exception:
             pass
+        # 🔴🔴🔳 **APP-113 §2：ASR 与 TTS「并行加载」（GUI 侧）**
+        #   reviewer 原文：「现在 TTS 边车在 ASR 加载完之后才启动…改为**启动时
+        #     同时拉起 TTS 边车**（独立进程、CUDA，不和 ASR 抢 GPU.0）。」
+        #   ⇒ **在 ASR 开始加载之前**先把 CUDA 边车拉起来：
+        #     `TTSService.__init__` → `start()` → `Popen` **立即返回**
+        #     （模型在 **worker 进程内**加载）⇒ 随后的 ASR 加载与它**真并行**。
+        #   ⚠️ **非 CUDA（GPU.0/NPU）保持原来的串行顺序**
+        #     （沿用「auto=False 防 GPU 编译死锁」：同一张卡上不并行编译）。
+        #   ⚠️ **同一入口**（APP-041 明文「同一入口，不要另写一套」）：
+        #     仍然调 `_on_tts_toggled()` ⇒ 与手动勾选的行为一致。
+        #   ⚠️ 标 `_tts_startup_done = True` ⇒ `_arm_startup_tts` /
+        #     `_maybe_startup_tts`（等 ASR/MT 就绪那条）**不会再起第二次**。
+        self._tts_parallel_started = False
+        try:
+            _tdev = str(self._dev_choices.get('tts')
+                        or getattr(args, 'tts_device', '') or '')
+            if (_tdev.upper().startswith('CUDA') and self.var_tts_on.get()
+                    and _tts_parallel_enabled()):
+                self._tts_startup_done = True
+                self._tts_parallel_started = True
+                self._ui_log('[TTS] APP-113 §2：CUDA 边车**与 ASR 并行加载**'
+                             '（独立进程；不与 ASR 抢 GPU.0）')
+                self._on_tts_toggled()
+            else:
+                self._ui_log('[TTS] APP-113 §2：TTS 档位 = %s ⇒ **保持串行**'
+                             '（%s）'
+                             % (_tdev or '—',
+                                '非 CUDA ⇒ auto=False 防 GPU 编译死锁'
+                                if not _tdev.upper().startswith('CUDA')
+                                else '环境变量 LIVECAP_TTS_PARALLEL=0 ⇒ 强制串行'))
+        except Exception as e:
+            # 🔴 并行启动失败 ⇒ **回落串行**（不阻断启动）
+            self._tts_startup_done = False
+            self._tts_parallel_started = False
+            self._ui_log('[tts] APP-113 §2 并行启动异常（回落串行）：%r' % (e,))
         self.load_engine()
         root.after(self.POLL_MS, self._poll)
 
@@ -4878,6 +5137,8 @@ class App:
         try:
             if not self.mt.active:
                 return
+            # 🔴🔴🔳 APP-113 §1：TTS 就绪 ⇒ 先**补发**就绪前排队的句子
+            self._flush_tts_pending()
             for item in self.mt.pop_outbox():
                 ev = caption_render.unpack_event(item)
                 if ev is None:
@@ -4893,46 +5154,26 @@ class App:
                         #     ⇒ 一句拖 106 s ⇒ 后续句全堵（用户实测两次）
                         #   ⚠️ 用 `_cur_mt_target()`（**下拉当前值**）而不是
                         #     `self.mt.target` ⇒ 会话中途改下拉立即生效。
-                        # 🔴🔴🔳 APP-069④ / APP-070② A：**TTS 未就绪 ⇒ 不排队**
+                        # 🔴🔴🔳 **APP-113 §1（方案 B）**：**TTS 未就绪 ⇒ 进队列等待**
                         #   起因（reviewer 实测）：冷启动编译期间「排队 582」
-                        #   ⇒ 编译完成后会从 **20 分钟前**的句子开始念。
-                        #   ⇒ 现在：**未就绪就丢弃本次提交**（不排队）
-                        #     ⇒ 编完**只念就绪之后定稿的句子**。
-                        #   ⚠️ 与「不丢句」规则**不冲突**
-                        #     （那条规则针对的是 TTS **已经运行之后**）。
+                        #   ⇒ 编译完成后会从 **20 分钟前**的句子开始念
+                        #   ⇒ 旧实现（APP-069④/070② A）改成**直接丢弃**
+                        #   ⇒ 但那样**句子就没了**（APP-112 实测 sp3 丢 25/164 句）。
+                        #   ⇒ **现在：进队列等待**，就绪后按 FIFO 原样补发
+                        #     ⇒ **不丢句**；滞后靠自适应语速（上限 2.0×）追回。
+                        #   ⚠️ 队列有**上限保护**：120 s 仍未就绪 ⇒ 按最旧优先
+                        #     丢弃并计数 `n_drop_not_ready_overflow`。
                         if not self._tts_ready_for_speech():
-                            self._tts_skip_not_ready += 1
-                            self._ui_log(
-                                '[TTS] 语音模型**首次准备中** ⇒ 本句**不排队**'
-                                '（编译完成后只念新句）')
+                            self._tts_pending_q.push(
+                                self._tts_submit_fn(ev), meta={'seg': ev['seg']})
                             continue
                         # 🔴🔴🔳 APP-089 §2c-1：**先**按需发 self_ref
                         #   ⇒ 该 spk 还没有登记音色时，用**这句自己的音频**克隆
                         #     ⇒ **从第一句就开始克隆**（不再回落预设 A）。
                         #   🔴 **必须在 submit 之前** ⇒ worker 按顺序处理命令
                         #     ⇒ self_ref 先到 ⇒ 出队时已就绪。
-                        self._maybe_send_self_ref(ev['seg'])
-                        self.tts.submit(ev['txt'], seg=ev['seg'],
-                                        lang=self._cur_mt_target(),
-                                        # 🔴🔴🔴 APP-039/040：**按句绑定音色**
-                                        #   ⇒ 这一句该用**谁的**声音，
-                                        #     与合成时刻无关（APP-039 核心）。
-                                        #   ⚠️ 该 spk 还没有可用音色 ⇒ `''`
-                                        #     ⇒ worker 用**预设 A**
-                                        #     ⇒ **绝不用上一个人的声音冒充**。
-                                        # 🔴🔴🔳 APP-086(2)a：**提交时 `spk` 仍留空**
-                                        #   ⇒ worker 的晚到标签通道（`_spk_bind`）
-                                        #     才有生效的机会（`if not spk`）。
-                                        #   ⇒ 「最近说话人」改由策略层**补发**
-                                        #     （`_clone_nearest` → `spk_update`）。
-                                        spk=(self._spk_voices.voice_for_sentence(
-                                            ev['seg']) or None),
-                                        # 🔴🔴🔴 APP-042：**目标开播墙钟**
-                                        #   ⇒ 服务端据此算 lag 与加速倍率。
-                                        #   ⚠️ 查不到 ⇒ None ⇒ 服务端不下发
-                                        #     加速参数 ⇒ 旧行为逐字不变。
-                                        target_play_at=self._seg_target_wall.get(
-                                            ev['seg']))
+                        self._tts_submit_fn(ev)()
+
                 elif kind == 'draft' and ev['txt']:
                     # APP-015：草稿**只显示、不朗读** ⇒ 这里只记译文
                     # 🔴 **按单元 id 存**（不是翻译去重键）⇒ 与渲染层的
@@ -6460,6 +6701,82 @@ class App:
                     'total': None, 'eta': None}
         return out
 
+    # ── 🔴🔴🔳 APP-113 §1：**就绪前排队**（不丢句）────────────────────
+    def _tts_submit_fn(self, ev):
+        """🔴🔴🔳 APP-113 §1：把「提交这句定稿译文」封成**可排队的动作**。
+
+        ⇒ 未就绪时进 `TtsReadyQueue`；就绪后按 FIFO 原样补发；
+        ⇒ **参数在排队时就被冻结**（目标语言 / 按句音色 / 目标开播墙钟）
+          ⇒ 补发时与「当场就绪提交」的行为**逐字一致**。
+        ⚠️ `self.tts` 在**调用时**才取 ⇒ 中途重启 worker 也不会崩。
+        """
+        seg0 = ev['seg']
+        txt0 = ev['txt']
+        lang0 = self._cur_mt_target()
+        spk0 = (self._spk_voices.voice_for_sentence(seg0) or None)
+        tw0 = self._seg_target_wall.get(seg0)
+
+        def _do():
+            # 🔴🔴🔳 APP-089 §2c-1：**先**按需发 self_ref（必须在 submit 之前）
+            self._maybe_send_self_ref(seg0)
+            self.tts.submit(txt0, seg=seg0,
+                            lang=lang0,
+                            # 🔴🔴🔳 APP-039/040：**按句绑定音色**
+                            #   ⚠️ APP-086(2)a：**提交时 `spk` 仍留空**
+                            #   ⇒ worker 的晚到标签通道（`_spk_bind`）才有生效机会。
+                            spk=spk0,
+                            # 🔴🔴🔳 APP-042：**目标开播墙钟**
+                            #   ⚠️ 查不到 ⇒ None ⇒ 服务端不下发加速参数。
+                            target_play_at=tw0)
+        return _do
+
+    def _flush_tts_pending(self):
+        """🔴🔴🔳 APP-113 §1：TTS 就绪 ⇒ **按 FIFO 补发**排队中的定稿译文。
+
+        ⇒ 每次 `_pump_tts` 都调 ⇒ 就绪后**第一拍**就补发。
+        ⚠️ **不丢句**：队列里的句子一句都不跳（除非触发 120 s 溢出保护）。
+        """
+        try:
+            q = getattr(self, '_tts_pending_q', None)
+            if q is None or self.tts is None:
+                return
+            ready = self._tts_ready_for_speech()
+            try:
+                _lag = self.tts.stats().get('lag_s')
+            except Exception:
+                _lag = None
+            # 🔴🔴🔳 **积压清空口径**：用 service 的**顶层 `play_lag_s`**
+            #   （＝上一句的**实际开播滞后**，worker 回报）
+            #   + **`n_played`**（已播句数）⇒ 两道闸一起判「积压已清空」。
+            #   ⚠️ **不用 `lag_s`**（未播音频时长）⇒ 刚开始合成时恒为 0
+            #     ⇒ 会**假报「已清空」**。
+            _play_lag = None
+            _n_played = None
+            try:
+                _ts = self.tts.stats()
+                _play_lag = _ts.get('play_lag_s')
+                _n_played = _ts.get('n_played')
+            except Exception:
+                pass
+            q.poll(ready, lag_s=_lag, play_lag_s=_play_lag, n_played=_n_played)
+            if not ready:
+                return
+            items = q.take_ready()
+            if not items:
+                return
+            self._ui_log('[TTS] 语音模型就绪 ⇒ 补发积压的 %d 句（APP-113 §1）'
+                         % len(items))
+            for _t, _fn, _meta in items:
+                try:
+                    _fn()
+                except Exception as e:
+                    self._ui_log('[TTS] 补发失败（忽略）：%r' % (e,))
+        except Exception as e:
+            try:
+                self._ui_log('[TTS] 排队补发异常（忽略）：%r' % (e,))
+            except Exception:
+                pass
+
     def _tts_ready_for_speech(self) -> bool:
         """🔴🔴🔳 APP-069④ / APP-070② A：TTS **是否可以开始配音**了。
 
@@ -6534,7 +6851,18 @@ class App:
             n_q = len(tts.pending) + len(getattr(tts, '_queue', []) or [])
         except Exception:
             n_q = 0
-        st.set('queue', '排队', str(n_q), priority=5)
+        # 🔴🔴🔳 APP-113 §1：**就绪前排队**句数 + **溢出丢弃**计数（GUI 明示）
+        _qtxt = str(n_q)
+        try:
+            _qst = self._tts_pending_q.stats()
+            if _qst.get('n_queued_before_ready'):
+                n_q = n_q + int(_qst.get('n_pending') or 0)
+                _qtxt = '%d（就绪前排队 %d / 溢出丢弃 %d）' % (
+                    n_q, _qst.get('n_queued_before_ready') or 0,
+                    _qst.get('n_drop_not_ready_overflow') or 0)
+        except Exception:
+            pass
+        st.set('queue', '排队', _qtxt, priority=5)
         # 🔴🔴🔴 APP-061③(d)：**NPU 共用**黄色提示（**只提示、不禁止**）
         #   reviewer 原文：「用户把 MT 或 ASR 放到 NPU、同时 TTS 也在 NPU 时，
         #   GUI 标黄提示『NPU 共用，语音可能卡顿』。是否直接禁止，见 D4。」
@@ -7337,6 +7665,50 @@ def run_cli(args):
         print('[spk] 🔴 克隆（跟随说话人）需要说话人分离 '
               '⇒ 已自动打开说话人旁路（APP-062 D2 / APP-063 ②）',
               flush=True)
+    # 🔴🔴🔳 **APP-113 §2：ASR 与 TTS「并行加载」**（只并行 CUDA 边车这一路）
+    #   reviewer 原文：「现在 TTS 边车在 ASR 加载完之后才启动（app582：ASR 15.8 s，
+    #     之后边车加载）。改为**启动时同时拉起 TTS 边车**（独立进程、CUDA，
+    #     不和 ASR 抢 GPU.0），MT 照旧。」
+    #   ⚠️ **只并行 CUDA 边车**：TTS 档位若是 GPU.0/NPU（非 CUDA）⇒
+    #     **保持原来的串行顺序**（沿用「auto=False 防 GPU 编译死锁」的历史经验：
+    #     同一张卡上并行编译会把 GUI 卡死）。
+    #   ⇒ 实现：**后台线程先起** TTS worker 进程（`Popen` 立即返回，模型在
+    #     worker 进程内加载）⇒ 主线程接着加载 ASR ⇒ **两者真并行**。
+    _cli_t_start = time.time()
+    _tts_dev = str(getattr(args, 'tts_device', '') or '')
+    _tts_parallel = (_tts_dev.upper().startswith('CUDA')
+                     and getattr(args, 'tts', None) != 'off'
+                     and _tts_parallel_enabled())
+    _tts_holder = {}
+    _tts_thread = None
+    if _tts_parallel:
+        def _boot_tts_parallel():
+            try:
+                from tts_service import TTSService
+                _tts_holder['tts'] = TTSService(
+                    device=args.tts_device, voice=args.tts_voice,
+                    out_device=args.tts_out_device,
+                    precision=args.tts_precision,
+                    out_wav=args.tts_out,
+                    dump_dir=args.tts_dump_dir,
+                    jsonl_path=args.tts_jsonl,
+                    # 🔴🔴🔴 APP-027 V3：CLI 也要把「克隆」告诉 worker
+                    clone=_want_clone,
+                    on_log=lambda m: print(f'  [TTS] {m}', flush=True))
+            except Exception as e:
+                _tts_holder['err'] = e
+        _tts_thread = threading.Thread(target=_boot_tts_parallel, daemon=True)
+        _tts_thread.start()
+        print('[TTS] APP-113 §2：CUDA 边车**与 ASR 并行加载**'
+              '（独立进程；不与 ASR 抢 GPU.0）', flush=True)
+    else:
+        print('[TTS] APP-113 §2：TTS 档位 = %s ⇒ **保持串行**'
+              '（%s）'
+              % (_tts_dev or '—',
+                 '非 CUDA ⇒ 沿用「auto=False 防 GPU 编译死锁」：同一张卡上不并行编译'
+                 if not _tts_dev.upper().startswith('CUDA')
+                 else '环境变量 LIVECAP_TTS_PARALLEL=0 ⇒ 强制串行（对照用）'),
+              flush=True)
     eng = make_engine(args.engine, on_log=lambda m: print(m, flush=True),
                       force_language=asr_lang, device=args.asr_device)
     print(f'[{args.engine}] 加载 {eng.load_s:.1f} s，设备 {eng.device_desc}，'
@@ -7368,23 +7740,38 @@ def run_cli(args):
     #   （D2 (b) 需要 `_want_clone` 参与 `_spk_enabled` 的判定）
     #   ⇒ 这里**不再重复定义**（否则会覆盖前面的结果）。
     if getattr(args, 'tts', None) != 'off':
-        try:
-            from tts_service import TTSService
-            tts = TTSService(device=args.tts_device, voice=args.tts_voice,
-                             out_device=args.tts_out_device,
-                             precision=args.tts_precision,
-                             out_wav=args.tts_out,
-                             dump_dir=args.tts_dump_dir,
-                             jsonl_path=args.tts_jsonl,
-                             # 🔴🔴🔴 APP-027 V3：CLI 也要把「克隆」告诉 worker
-                             #   ⇒ 否则 worker 的 `clone_mode` 恒为 False。
-                             clone=_want_clone,
-                             on_log=lambda m: print(f'  [TTS] {m}', flush=True))
-            print(f'[TTS] worker 已启动（设备 {args.tts_device}，'
-                  f'音色 {args.tts_voice}，精度 {args.tts_precision}）', flush=True)
-        except Exception as e:
-            tts = None
-            print(f'[TTS] 启动失败（不影响字幕与翻译）：{e}', flush=True)
+        if _tts_parallel:
+            # 🔴🔴🔳 APP-113 §2：**并行路径** ⇒ 上面已在后台线程起好 worker
+            #   ⇒ 这里只**等它把服务对象建好**（worker 进程已在跑，模型在
+            #     worker 内加载 ⇒ **不阻塞 ASR**）。
+            _tts_thread.join(timeout=120)
+            tts = _tts_holder.get('tts')
+            if tts is None:
+                print(f'[TTS] 启动失败（不影响字幕与翻译）：'
+                      f'{_tts_holder.get("err")!r}', flush=True)
+            else:
+                print(f'[TTS] worker 已启动（设备 {args.tts_device}，'
+                      f'音色 {args.tts_voice}，精度 {args.tts_precision}）'
+                      f'｜**并行拉起**（APP-113 §2）', flush=True)
+        else:
+            try:
+                from tts_service import TTSService
+                tts = TTSService(device=args.tts_device, voice=args.tts_voice,
+                                 out_device=args.tts_out_device,
+                                 precision=args.tts_precision,
+                                 out_wav=args.tts_out,
+                                 dump_dir=args.tts_dump_dir,
+                                 jsonl_path=args.tts_jsonl,
+                                 # 🔴🔴🔴 APP-027 V3：CLI 也要把「克隆」告诉 worker
+                                 #   ⇒ 否则 worker 的 `clone_mode` 恒为 False。
+                                 clone=_want_clone,
+                                 on_log=lambda m: print(f'  [TTS] {m}', flush=True))
+                print(f'[TTS] worker 已启动（设备 {args.tts_device}，'
+                      f'音色 {args.tts_voice}，精度 {args.tts_precision}）',
+                      flush=True)
+            except Exception as e:
+                tts = None
+                print(f'[TTS] 启动失败（不影响字幕与翻译）：{e}', flush=True)
     if _want_clone:
         _clone_col = clone_collector.CloneCollector(lambda: tts)
         # 🔴🔴🔴 APP-061④：**定时采集器恒关**（同 GUI 侧口径）。
@@ -7402,8 +7789,71 @@ def run_cli(args):
     #     ⇒ **CLI 下自适应加速链路永不触发**。
     #   ⚠️ **根因**：APP-042 的目标墙钟机制**只做在 GUI `App` 类**
     #     （`_session_wall0` 只在 `App.start()` 里赋值；`App._on_final()` 里
-    # 🔴🔴🔳 APP-069④ / APP-070② A：**未就绪被跳过的句数**（诚实记账）
-    _skip_nr = 0
+    # 🔴🔴🔳 **APP-113 §1（方案 B）**：就绪前**不再跳过** ⇒ 改为**排队等待**
+    #   ⇒ 旧计数器 `_skip_nr`（「未就绪被跳过的句数」）**已删除**：
+    #     CLI 侧**不再有「跳过」这条路径**（旧路径见 APP-069④ / APP-070② A）。
+    #   ⇒ 现在**唯一的丢弃来源**是队列溢出保护
+    #     （`_pending_q.n_drop_not_ready_overflow`）
+    #   ⇒ 正常冷启动（≤120 s）它恒为 0 ⇒ **一句不丢**。
+    # 🔴🔴🔳 APP-113 §1：**就绪前排队**的定稿译文（GUI / CLI 共用一份实现）
+    _pending_q = TtsReadyQueue(
+        on_log=lambda m: print(f'  [TTS] {m}', flush=True), t0=_cli_t_start)
+    _mt_ready_rel_s = [None]        # 列表 ⇒ 闭包可写
+
+    def _cli_make_submit(txt_, seg_, lang_, spk_, tw_):
+        """🔴🔴🔳 APP-113 §1：把「提交这句定稿译文」封成**可排队的动作**。
+
+        ⇒ 参数在**入队时**就冻结（目标语言 / 按句音色 / 目标开播墙钟）
+          ⇒ 补发时与「当场就绪提交」的行为**逐字一致**。
+        """
+        def _do():
+            # 🔴🔴🔳 APP-089 §2c-1：**先**按需发 self_ref（必须在 submit 之前）
+            _cli_maybe_send_self_ref(seg_)
+            tts.submit(txt_, seg=seg_, lang=lang_, spk=spk_,
+                       target_play_at=tw_)
+        return _do
+
+    def _cli_flush_pending():
+        """🔴🔴🔳 APP-113 §1：TTS 就绪 ⇒ 按 FIFO **补发**排队的定稿译文。
+
+        ⇒ 每次主循环都调 ⇒ 就绪后**第一拍**就补发 ⇒ **不丢句**。
+        """
+        try:
+            if tts is None:
+                return
+            _ready = getattr(tts, 'state', '') == 'ready'
+            try:
+                _lag = tts.stats().get('lag_s')
+            except Exception:
+                _lag = None
+            # 🔴🔴🔳 **积压清空口径**：用 service 的**顶层 `play_lag_s`**
+            #   （＝上一句的**实际开播滞后**，worker 回报）
+            #   + **`n_played`**（已播句数）⇒ 两道闸一起判「积压已清空」。
+            #   ⚠️ **不用 `lag_s`**（未播音频时长）⇒ 刚开始合成时恒为 0
+            #     ⇒ 会**假报「已清空」**。
+            _play_lag = None
+            _n_played = None
+            try:
+                _ts = tts.stats()
+                _play_lag = _ts.get('play_lag_s')
+                _n_played = _ts.get('n_played')
+            except Exception:
+                pass
+            _pending_q.poll(_ready, lag_s=_lag, play_lag_s=_play_lag,
+                            n_played=_n_played)
+            if not _ready:
+                return
+            _items = _pending_q.take_ready()
+            if _items:
+                print(f'[TTS] 语音模型就绪 ⇒ 补发积压的 {len(_items)} 句'
+                      f'（APP-113 §1）', flush=True)
+                for _t, _fn, _m in _items:
+                    try:
+                        _fn()
+                    except Exception as e:
+                        print(f'  [TTS] 补发失败（忽略）：{e!r}', flush=True)
+        except Exception as e:
+            print(f'  [TTS] 排队补发异常（忽略）：{e!r}', flush=True)
     #     登记 `_seg_target_wall`）⇒ CLI 的 `tts.submit(...)`
     #     **三处全都不传 `target_play_at`** ⇒ 服务端 `target_play_at is None`
     #     ⇒ **不下发 `speed`/`target_wall`**。
@@ -8059,6 +8509,11 @@ def run_cli(args):
     try:
         while s.running:
             time.sleep(0.2)
+            # 🔴🔴🔳 APP-113 §1：TTS 就绪 ⇒ **补发**就绪前排队的句子（第一拍就补）
+            _cli_flush_pending()
+            # 🔴🔴🔳 APP-113 §2：**各组件就绪时刻**（相对启动）
+            if _mt_ready_rel_s[0] is None and getattr(mt, 'state', '') == 'ready':
+                _mt_ready_rel_s[0] = round(time.time() - _cli_t_start, 3)
             if eng.stats.get('lag_ms') is not None:
                 lags.append(eng.stats['lag_ms'])
             max_backlog = max(max_backlog, s.backlog_s)
@@ -8084,25 +8539,23 @@ def run_cli(args):
                     print(f'\n[{tag}] {txt}', flush=True)
                     # ── TTS：只提交**定稿译文**（C-101 P4 第 1 条）──
                     if tts is not None and tts.active:
-                        # 🔴🔴🔳 APP-069④ / APP-070② A：未就绪 ⇒ **不排队**
-                        #   （冷启动编译 20 分钟 ⇒ 攒 582 句 ⇒ 编完从 20 分钟前念）
+                        # 🔴🔴🔳 **APP-113 §1（方案 B）**：**TTS 未就绪 ⇒ 进队列**
+                        #   旧行为（APP-069④/070② A）是**直接丢弃**
+                        #   ⇒ APP-112 实测 sp3 静默丢掉 25/164 句。
+                        #   ⇒ 现在：进队列等待，就绪后按 FIFO 原样补发 ⇒ **不丢句**。
                         if getattr(tts, 'state', '') != 'ready':
-                            _skip_nr += 1
+                            _pending_q.push(
+                                _cli_make_submit(
+                                    txt, ev['seg'], mt.target,
+                                    (_spk_voices.voice_for_sentence(ev['seg'])
+                                     or None),
+                                    _seg_target_wall.get(ev['seg'])),
+                                meta={'seg': ev['seg']})
                             continue
-                        # 🔴🔴🔳 APP-089 §2c-1：**先**按需发 self_ref
-                        #   ⇒ 该 spk 还没有登记音色时，用**这句自己的音频**克隆
-                        #     ⇒ **从第一句就开始克隆**（不再回落预设 A）。
                         _cli_maybe_send_self_ref(ev['seg'])
-                        # 🔴🔴🔴 APP-030①：**显式下传 MT 目标语言**
-                        #   （CLI 没有下拉 ⇒ 用 `mt.target`）
                         tts.submit(txt, seg=ev['seg'], lang=mt.target,
-                                   # 🔴🔴🔴 APP-039/040：**按句绑定音色**
-                                   #   ⇒ 该 spk 没音色 ⇒ `None` ⇒ 预设 A。
-                                   # 🔴🔴🔳 APP-086(2)a：提交时 `spk` 仍留空
-                                   #   ⇒ 晚到的官方标签才有生效机会。
                                    spk=(_spk_voices.voice_for_sentence(
                                        ev['seg']) or None),
-                                   # 🔴🔴🔴 APP-042：**目标开播墙钟**（CLI 版）
                                    target_play_at=_seg_target_wall.get(ev['seg']))
             # 🔴🔴🔴 APP-039/040：**给新 spk 取样 + 登记音色**
             #   ⚠️ 只在有新 spk 时才做事 ⇒ 声纹计算次数极少。
@@ -8141,20 +8594,33 @@ def run_cli(args):
                 print(f'[{tag}] {txt}', flush=True)
                 # ── TTS：补交最后一批定稿译文 ──
                 if tts is not None and tts.active:
-                    # 🔴🔴🔳 APP-069④ / APP-070② A：未就绪 ⇒ **不排队**
+                    # 🔴🔴🔳 **APP-113 §1（方案 B）**：未就绪 ⇒ **进队列等待**
                     if getattr(tts, 'state', '') != 'ready':
-                        _skip_nr += 1
+                        _pending_q.push(
+                            _cli_make_submit(
+                                txt, ev['seg'], mt.target,
+                                (_spk_voices.voice_for_sentence(ev['seg'])
+                                 or None),
+                                _seg_target_wall.get(ev['seg'])),
+                            meta={'seg': ev['seg']})
                         continue
-                    # 🔴🔴🔳 APP-089 §2c-1：**先**按需发 self_ref（CLI 侧）
                     _cli_maybe_send_self_ref(ev['seg'])
-                    # 🔴🔴🔴 APP-030①：**显式下传 MT 目标语言**
                     tts.submit(txt, seg=ev['seg'], lang=mt.target,
-                               # 🔴🔴🔴 APP-039/040：**按句绑定音色**
                                spk=(_spk_voices.voice_for_sentence(
                                    ev['seg']) or None),
-                               # 🔴🔴🔴 APP-042：**目标开播墙钟**（CLI 版）
                                target_play_at=_seg_target_wall.get(ev['seg']))
         # 🔴🔴🔴 APP-039/040：收尾时再 pump 一次（补最后一批新 spk 的取样）
+        # 🔴🔴🔳 APP-113 §1：收尾时若还有**排队句** ⇒ 等 TTS 就绪后补发
+        #   （**有上限**：最多等 120 s ⇒ TTS 一直起不来也不挂死）。
+        try:
+            _waited = 0.0
+            while (_pending_q.stats()['n_pending'] and _waited < 120.0
+                   and getattr(tts, 'state', '') != 'ready'):
+                time.sleep(0.5)
+                _waited += 0.5
+            _cli_flush_pending()
+        except Exception as e:
+            print(f'  [TTS] 收尾补发异常（忽略）：{e!r}', flush=True)
         _cli_pump_spk_voices()
         # 🔴🔴🔴 §100（断链 J）：收尾时再补一次晚到的标签
         _cli_retry_spk_labels()
@@ -8248,6 +8714,24 @@ def run_cli(args):
                   f'提交 {st.get("n_submitted")}  播完 {st.get("n_played")}  '
                   f'丢弃 {st.get("n_dropped")}  重启 {st.get("n_restart")}  '
                   f'state={st.get("state")}', flush=True)
+            # 🔴🔴🔳 **APP-113 §1/§2 结算**（验收 json 直接取这一行）
+            _qs = _pending_q.stats()
+            _tts_ready_rel = _qs.get('ready_at_rel_s')
+            print('[APP-113] 就绪前排队=%d 溢出丢弃=%d 已补发=%d ｜ '
+                  'TTS就绪=%s 积压清空=%s 积压清空口径=%s ｜ 并行=%s ｜ '
+                  'ASR就绪=%.1fs MT就绪=%s 进程已运行=%.1fs'
+                  % (_qs.get('n_queued_before_ready'),
+                     _qs.get('n_drop_not_ready_overflow'),
+                     _qs.get('n_flushed'),
+                     ('%.1fs' % _tts_ready_rel) if _tts_ready_rel else '—',
+                     ('%.1fs' % _qs['backlog_cleared_rel_s'])
+                     if _qs.get('backlog_cleared_rel_s') is not None else '—',
+                     _qs.get('backlog_cleared_lag_kind') or '—',
+                     'on' if _tts_parallel else 'off',
+                     float(getattr(eng, 'load_s', 0.0) or 0.0),
+                     ('%.1fs' % _mt_ready_rel_s[0])
+                     if _mt_ready_rel_s[0] is not None else '—',
+                     time.time() - _cli_t_start), flush=True)
             # 🔴🔴🔴 APP-036 C3/C4：**收尾指标**（在这行统计**之前**打点）
             #   ⚠️ `end_lag_s` / `n_discard_on_close` 在这一行里可能还是旧值
             #     ⇒ 真正权威的数字在**下面 close() 之后的最终统计行**。
