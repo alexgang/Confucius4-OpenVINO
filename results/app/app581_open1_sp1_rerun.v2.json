@@ -1,0 +1,157 @@
+{
+ "purpose": "APP-112 §1：补齐 sp1 原命令复跑（app581）的**句数口径** —— n_translations / n_submitted / n_skip_not_ready",
+ "created": "2026-11-16 14:45:15",
+ "created_note": "按同一口径另存 v2，**原文件不覆盖**（原 json 一字未动，fingerprint 见 provenance）",
+ "correction_target": "status/app/STATUS_APP.md §210 ④⑤（由 §211 撤回并更正）＋ APP-110 §0③ 的 sp1 复跑记录",
+ "baseline_result_json": {
+  "path": "results/app/app581_open1_sp1_rerun.json",
+  "bytes": 16163,
+  "sha256": "b347035689817271f28d41e1d2143a0f9c8b962f3c5c5bd5dfa454c37dd55242",
+  "mtime": "2026-11-15T12:02:50.371260"
+ },
+ "run_window": {
+  "started": "2026-11-15 11:52:10",
+  "finished": "2026-11-15 12:02:49",
+  "elapsed_s": 639.0,
+  "rc": 0,
+  "audio": "test_audio/clip_10min_0_600.wav",
+  "audio_bytes": 19200044
+ },
+ "sentence_counts": {
+  "n_translations": 164,
+  "n_translations_source": "_app581_sp1_rerun.log 里 [译文] 行计数 = 164（空句 0；唯一文本 162）",
+  "n_skip_not_ready": 30,
+  "n_submitted": 134,
+  "n_submitted_source": "_app581_sp1_rerun_tts_out.wav.tts.jsonl 行数 = 134",
+  "late_drop": 10,
+  "dropped": 10,
+  "failed": 0,
+  "skip_ratio_pct": 18.29,
+  "reconciliation": {
+   "expr": "164 - 30 = 134",
+   "n_submitted": 134,
+   "ok": true
+  }
+ },
+ "count_methods": {
+  "method_A_log_lines_before_ready": {
+   "value": 30,
+   "ready_log_line_no": 285,
+   "ready_log_line_text": "  [TTS] [TTS] 就绪：CUDA · 音色 A",
+   "desc": "log 中 [译文] 行号 < 就绪行号 的行数"
+  },
+  "method_B_text_diff_vs_jsonl": {
+   "lines_not_in_jsonl": 30,
+   "unique_texts_not_in_jsonl": 28,
+   "desc": "log 全部 [译文] 文本（多重集） − jsonl 文本（多重集）"
+  },
+  "method_C_ordered_identity_post_ready": {
+   "post_ready_translations_equal_jsonl_texts_in_order": true,
+   "n_post_ready": 134,
+   "desc": "就绪行之后的 [译文] 文本序列与 jsonl 文本序列逐字同序相等 ⇒ 除就绪前被跳过外无其它丢失路径"
+  }
+ },
+ "tts_ready": {
+  "log_line_no": 285,
+  "log_line_text": "  [TTS] [TTS] 就绪：CUDA · 音色 A",
+  "audio_second": 103.6,
+  "audio_second_source": "log L284「  [TTS] [TTS] [tts_worker] 模型加载完成 103.6s」⇒ worker 侧加载墙钟 ≈ 音频秒（播放与墙钟 1:1：积压曲线 t_s 0.046→603.968 对应 600 s 片段）",
+  "first_submission_audio_second_range": [
+   107.19,
+   108.7
+  ],
+  "first_submission_audio_second_source": "积压曲线 _app581_sp1_rerun_tts_out.wav.backlog_curve.csv：首个 n_submitted>0 落在 t_s=108.7（前一采样 t_s=107.19）",
+  "cuda_ready_lines": [
+   {
+    "line_no": 249,
+    "text": "  [TTS] [TTS] [tts_cuda] 就绪：NVIDIA GeForce RTX 5050 Laptop GPU / torch 2.11.0+cu128 / 加载 89.4s / 预热 2.5s"
+   }
+  ],
+  "e2e_lines": [
+   {
+    "line_no": 250,
+    "text": "  [TTS] [TTS] [tts_cuda] 端到端启动耗时 92.2 s"
+   }
+  ]
+ },
+ "final_stats_lines": [
+  {
+   "line_no": 2571,
+   "text": "[TTS] 最终统计（close 后）：提交 134  播完 124  丢弃 10  关闭作废 0  空句 0  失败 0  结尾滞后 3.57s  积压 最大 31.28s"
+  }
+ ],
+ "mt_counter_in_result_json": {
+  "n_sentences": 163,
+  "source": "app581_open1_sp1_rerun.json → device_evidence.mt「[gpu_int8] 翻译 target=zh 后端=auto 设备 NPU state=ready 句数 163」",
+  "note": "**与 log 的 [译文] 行数 164 差 1** —— 两个口径不同源（MT 计数器 vs App 打印行）；**以 log 行数 164 为准**（它与 jsonl 逐句可对账）"
+ },
+ "late_drop_note": {
+  "late_drop": 10,
+  "dropped": 10,
+  "detail": "sp1 复跑跑的是 **sp1 包（阈值 6.0 s / 上限 1.5×）** ⇒ 本轮 **10 句 late_drop** 是**旧阈值**造成（不是 APP-111 的 0 阈值）；与 sp3 的 late_drop=0 **口径不同**，不可直接对比"
+ },
+ "conclusion": "sp1 复跑同样是「**就绪前跳过**」：164 句译文中 30 句在 TTS 就绪前被跳过（18.29%）⇒ 提交 134 句；另有 10 句 late_drop（旧阈值 6.0 s）",
+ "timing_valid": false,
+ "timing_invalid_reason": "同 APP-112 §2：app581 运行窗口 11:52:10→12:02:49 内也有外部大文件写入（pretrained_models.zip ctime 12:04:40 之前、mtime 12:11:16 在窗口之后 ⇒ **部分**落在窗口内）⇒ 冷启动计时类结论同样标 timing_valid=false；计数类结论不受影响。",
+ "external_writes_during_run": {
+  "pretrained_models.zip": {
+   "path": "C:\\Users\\Trekker-PTL\\gpt-sovits\\repo\\pretrained_models.zip",
+   "bytes": 4563188367,
+   "ctime": "2026-11-15T12:04:40.476312",
+   "mtime": "2026-11-15T12:11:16.536166",
+   "sha256_not_computed": "4.56 GB / 0.59 GB ⇒ 未算 SHA（只核时间窗）"
+  },
+  "G2PWModel.zip": {
+   "path": "C:\\Users\\Trekker-PTL\\gpt-sovits\\repo\\G2PWModel.zip",
+   "bytes": 588856634,
+   "ctime": "2026-11-15T12:11:17.350428",
+   "mtime": "2026-11-15T12:12:09.336329",
+   "sha256_not_computed": "4.56 GB / 0.59 GB ⇒ 未算 SHA（只核时间窗）"
+  }
+ },
+ "lock_evidence": {
+  "present_in_result_json": false,
+  "present_in_run_log": false,
+  "detail": "`_app583_locked_run.sh` 的「已取锁：…」打印在**脚本自身 stdout**（L77），而作业 stdout 被重定向到 $LOG（L79：`\"$PY\" \"$RES/$SCRIPT\" > \"$RES/$LOG\"`）⇒ 锁证据**既没进结果 json、也没进 run log**。",
+  "forward_rule": "今后每次计时/测速作业：**结果 json 必须写锁内容 + 取锁时刻 + 放锁时刻**（修法落点：`_app583_locked_run.sh` 把 `已取锁：$(cat $LOCK)` 与放锁时刻落成文件，由 python 侧并入结果 json 的 `lock_evidence` 字段）"
+ },
+ "this_round_discipline": {
+  "code_changed": false,
+  "new_package": false,
+  "zip_created": false,
+  "inference_run": false,
+  "machine_lock_taken": false
+ },
+ "provenance": {
+  "log": {
+   "path": "results/app/_app581_sp1_rerun.log",
+   "bytes": 233856,
+   "sha256": "e4c8b3a40d181169c8e8be2d4e295f289e05a0f7fa999e4e8d218948d89e6b49",
+   "mtime": "2026-11-15T12:02:49.947240"
+  },
+  "tts_jsonl": {
+   "path": "results/app/_app581_sp1_rerun_tts_out.wav.tts.jsonl",
+   "bytes": 201099,
+   "sha256": "d83b9d00619984a7fc4f8a83cc7c5a0268d26e7f675232ee09e4cd8a33437db2",
+   "mtime": "2026-11-15T12:02:46.408099"
+  },
+  "backlog_csv": {
+   "path": "results/app/_app581_sp1_rerun_tts_out.wav.backlog_curve.csv",
+   "bytes": 17115,
+   "sha256": "a878ce432519f815f79f602128d1b4cb9ade867eb9e5ff8676945f4c39508a69",
+   "mtime": "2026-11-15T12:02:45.992384"
+  },
+  "base_result_json": {
+   "path": "results/app/app581_open1_sp1_rerun.json",
+   "bytes": 16163,
+   "sha256": "b347035689817271f28d41e1d2143a0f9c8b962f3c5c5bd5dfa454c37dd55242",
+   "mtime": "2026-11-15T12:02:50.371260"
+  },
+  "original_run_json": {
+   "path": "results/app/app581_open1_sp1_rerun.json",
+   "bytes": 16163,
+   "sha256": "b347035689817271f28d41e1d2143a0f9c8b962f3c5c5bd5dfa454c37dd55242",
+   "mtime": "2026-11-15T12:02:50.371260"
+  }
+ }
+}

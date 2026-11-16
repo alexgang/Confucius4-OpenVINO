@@ -1,0 +1,165 @@
+{
+ "purpose": "APP-112 §1：补齐 sp3 10 分钟整链（app582）的**句数口径** —— n_translations / n_skip_not_ready / n_submitted / TTS 就绪时刻",
+ "created": "2026-11-16 14:45:15",
+ "created_note": "按 reviewer 要求「另存 v2，**原文件不覆盖**」⇒ 原 json 一字未动（fingerprint 见 provenance）",
+ "correction_target": "status/app/STATUS_APP.md §210 ④⑤（由 §211 撤回并更正）",
+ "baseline_result_json": {
+  "path": "results/app/app582_specialmvp_sp3_acceptance.json",
+  "bytes": 14375,
+  "sha256": "78ab854bc47ef308571d8d28e620d64c83b93ae7352ced0336605a6fc1fce419",
+  "mtime": "2026-11-15T12:14:27.511654"
+ },
+ "original_run_json": {
+  "path": "results/app/app582_specialmvp_sp3_acceptance.run1.json",
+  "bytes": 13468,
+  "sha256": "151311efd10a3ad8154f3374172a79ae55123b3cd8631e98b2d33878b7cc0a1a",
+  "mtime": "2026-11-15T12:14:25.889581"
+ },
+ "run_window": {
+  "started": "2026-11-15 12:03:03",
+  "finished": "2026-11-15 12:13:29",
+  "elapsed_s": 626.2,
+  "rc": 0,
+  "audio": "test_audio/clip_10min_0_600.wav",
+  "audio_bytes": 19200044
+ },
+ "sentence_counts": {
+  "n_translations": 164,
+  "n_translations_source": "_app582_sp3_acceptance.log 里 [译文] 行计数 = 164（空句 0；唯一文本 162）",
+  "n_skip_not_ready": 25,
+  "n_submitted": 139,
+  "n_submitted_source": "_app582_sp3_tts_out.wav.tts.jsonl 行数 = 139",
+  "late_drop": 0,
+  "dropped": 0,
+  "failed": 0,
+  "skip_ratio_pct": 15.24,
+  "reconciliation": {
+   "expr": "164 - 25 = 139",
+   "n_submitted": 139,
+   "ok": true
+  }
+ },
+ "count_methods": {
+  "method_A_log_lines_before_ready": {
+   "value": 25,
+   "ready_log_line_no": 242,
+   "ready_log_line_text": "  [TTS] [TTS] 就绪：CUDA · 音色 A",
+   "desc": "log 中 [译文] 行号 < 就绪行号 的行数"
+  },
+  "method_B_text_diff_vs_jsonl": {
+   "lines_not_in_jsonl": 25,
+   "unique_texts_not_in_jsonl": 23,
+   "desc": "log 全部 [译文] 文本（多重集） − jsonl 文本（多重集）"
+  },
+  "method_C_ordered_identity_post_ready": {
+   "post_ready_translations_equal_jsonl_texts_in_order": true,
+   "n_post_ready": 139,
+   "desc": "就绪行之后的 [译文] 文本序列与 jsonl 文本序列逐字同序相等 ⇒ 除就绪前被跳过外无其它丢失路径"
+  }
+ },
+ "tts_ready": {
+  "log_line_no": 242,
+  "log_line_text": "  [TTS] [TTS] 就绪：CUDA · 音色 A",
+  "audio_second": 87.7,
+  "audio_second_source": "log L241「  [TTS] [TTS] [tts_worker] 模型加载完成 87.7s」⇒ worker 侧加载墙钟 ≈ 音频秒（播放与墙钟 1:1：积压曲线 t_s 0.046→603.968 对应 600 s 片段）",
+  "first_submission_audio_second_range": [
+   90.521,
+   92.023
+  ],
+  "first_submission_audio_second_source": "积压曲线 _app582_sp3_tts_out.wav.backlog_curve.csv：首个 n_submitted>0 落在 t_s=92.023（前一采样 t_s=90.521）",
+  "cuda_ready_lines": [
+   {
+    "line_no": 224,
+    "text": "  [TTS] [TTS] [tts_cuda] 就绪：NVIDIA GeForce RTX 5050 Laptop GPU / torch 2.11.0+cu128 / 加载 78.9s / 预热 2.7s"
+   }
+  ],
+  "e2e_lines": [
+   {
+    "line_no": 225,
+    "text": "  [TTS] [TTS] [tts_cuda] 端到端启动耗时 81.9 s"
+   }
+  ]
+ },
+ "final_stats_lines": [
+  {
+   "line_no": 2684,
+   "text": "[TTS] 最终统计（close 后）：提交 139  播完 139  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 3.45s  积压 最大 15.89s"
+  }
+ ],
+ "speed_and_lag_unaffected": {
+  "speed_p50": 1.1154,
+  "speed_p95": 1.2119,
+  "speed_max": 1.2554,
+  "speed_mean": 1.1369,
+  "play_lag_max": 10.031,
+  "play_lag_end": 4.229,
+  "n_speed_ge_1_8": 0,
+  "n_speed_at_floor_1_10": 52,
+  "source": "app582_specialmvp_sp3_acceptance.json → telemetry（计数类结论**不受** timing_valid=false 影响）"
+ },
+ "timing_valid": false,
+ "timing_invalid_reason": "app582 运行窗口 2026-11-15 12:03:03→12:13:29 内，**外部**（非 App 线程）有两次大文件写入：pretrained_models.zip（4 563 188 367 B，ctime 12:04:40.476 / mtime 12:11:16.536）与 G2PWModel.zip（588 856 634 B，ctime 12:11:17.350 / mtime 12:12:09.336）⇒ 「CUDA 冷启动 78.9 s / 端到端 81.9 s / 模型加载完成 87.7 s」这类**计时**结论不成立（标 timing_valid=false）；**计数类结论（句数、丢句、倍率、滞后）不受影响**。",
+ "external_writes_during_run": {
+  "pretrained_models.zip": {
+   "path": "C:\\Users\\Trekker-PTL\\gpt-sovits\\repo\\pretrained_models.zip",
+   "bytes": 4563188367,
+   "ctime": "2026-11-15T12:04:40.476312",
+   "mtime": "2026-11-15T12:11:16.536166",
+   "sha256_not_computed": "4.56 GB / 0.59 GB ⇒ 未算 SHA（只核时间窗）"
+  },
+  "G2PWModel.zip": {
+   "path": "C:\\Users\\Trekker-PTL\\gpt-sovits\\repo\\G2PWModel.zip",
+   "bytes": 588856634,
+   "ctime": "2026-11-15T12:11:17.350428",
+   "mtime": "2026-11-15T12:12:09.336329",
+   "sha256_not_computed": "4.56 GB / 0.59 GB ⇒ 未算 SHA（只核时间窗）"
+  }
+ },
+ "conclusion": "late_drop=0（APP-111 的「阈值 0 ⇒ 一句都不丢」**达标**）；但「139 句全播完」≠「全部译句都播完」：**就绪前被跳过 25/164 句（15.24%）**（live_caption_app.py L4903-4904 `if not self._tts_ready_for_speech(): self._tts_skip_not_ready += 1; continue`（APP-069④/070② A 的冷启动策略；dev 树 / sp2 / sp3 三处**同一份代码**））⇒ 是否保留该冷启动策略（方案 A 保持 / 方案 B 排队）**待用户决定**。",
+ "why_original_json_missed_it": "`_tts_skip_not_ready` 计数器**只存在于 GUI/内存**（dev 树 L3042 初始化、L4904 自增，**没有任何地方把它写进 tts.jsonl / 最终统计行 / 结果 json**）⇒ 原 json 的 dropped=0 只表示「提交给 TTS 的 139 句没有一句被丢」，**看不到 25 句在提交前就被跳过**。",
+ "lock_evidence": {
+  "present_in_result_json": false,
+  "present_in_run_log": false,
+  "detail": "`_app583_locked_run.sh` 的「已取锁：…」打印在**脚本自身 stdout**（L77），而作业 stdout 被重定向到 $LOG（L79：`\"$PY\" \"$RES/$SCRIPT\" > \"$RES/$LOG\"`）⇒ 锁证据**既没进结果 json、也没进 run log**。",
+  "forward_rule": "今后每次计时/测速作业：**结果 json 必须写锁内容 + 取锁时刻 + 放锁时刻**（修法落点：`_app583_locked_run.sh` 把 `已取锁：$(cat $LOCK)` 与放锁时刻落成文件，由 python 侧并入结果 json 的 `lock_evidence` 字段）"
+ },
+ "this_round_discipline": {
+  "code_changed": false,
+  "new_package": false,
+  "zip_created": false,
+  "inference_run": false,
+  "machine_lock_taken": false
+ },
+ "provenance": {
+  "log": {
+   "path": "results/app/_app582_sp3_acceptance.log",
+   "bytes": 249592,
+   "sha256": "44c450acc0fcdc99acab495bbbee387ba3419b1f577f0e5a7ee78b341f2f7eba",
+   "mtime": "2026-11-15T12:13:29.635924"
+  },
+  "tts_jsonl": {
+   "path": "results/app/_app582_sp3_tts_out.wav.tts.jsonl",
+   "bytes": 218009,
+   "sha256": "7d2776f980984c7cf5483f545530f2367febe8a8171927fbdb21043bdfdd54ae",
+   "mtime": "2026-11-15T12:13:25.726833"
+  },
+  "backlog_csv": {
+   "path": "results/app/_app582_sp3_tts_out.wav.backlog_curve.csv",
+   "bytes": 16736,
+   "sha256": "ae804d0b64ef93ab16d9038da793cbd0d343d67d9cf6cbe818c79650ba1cdbe0",
+   "mtime": "2026-11-15T12:13:25.293101"
+  },
+  "base_result_json": {
+   "path": "results/app/app582_specialmvp_sp3_acceptance.json",
+   "bytes": 14375,
+   "sha256": "78ab854bc47ef308571d8d28e620d64c83b93ae7352ced0336605a6fc1fce419",
+   "mtime": "2026-11-15T12:14:27.511654"
+  },
+  "original_run_json": {
+   "path": "results/app/app582_specialmvp_sp3_acceptance.run1.json",
+   "bytes": 13468,
+   "sha256": "151311efd10a3ad8154f3374172a79ae55123b3cd8631e98b2d33878b7cc0a1a",
+   "mtime": "2026-11-15T12:14:25.889581"
+  }
+ }
+}
