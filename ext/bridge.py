@@ -3147,13 +3147,15 @@ class PipelineSession(Session):
                         _pv[_lab] = _cv.self_ref(job.seg_id)
                     job.voice = _pv[_lab] or _last or C.PRESET_VOICE
                 elif (_last and os.path.exists(_last)
-                      and not (os.path.basename(_last).startswith(('self_', 'guard_')) and _cv.latest_path())):
+                      and not (os.path.basename(_last).startswith('self_') and _cv.latest_path())):
                     job.voice = _last
                 elif _last and os.path.exists(_last):
-                    # v0.4.17: the current voice is a one-sentence clone (self_/guard_) but a real
+                    # v0.4.17: the current voice is a one-sentence clone (self_) but a real
                     #   speaker voice is registered now => move to it (user 11-17: S1 was registered
                     #   2 min in, yet every sentence stayed on the bad self_0); the guard below still
-                    #   checks the sentence against it
+                    #   checks the sentence against it. v0.4.18: NOT for guard_ voices - those are the
+                    #   guard's verified voice for a speaker the diarizer merged into another label; moving
+                    #   back to the label's voice made unguardable short sentences flip (user 11-17)
                     job.voice = _cv.latest_path()
                 else:
                     job.voice = _cv.self_ref(job.seg_id) or _cv.latest_path() or C.PRESET_VOICE

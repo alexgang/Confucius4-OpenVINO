@@ -72,6 +72,7 @@ GUARD_SAME_SIM = 0.40
 GUARD_MIN_S = 2.0          # sentence length that may decide (calibration chunks were 2-4.5 s)
 GUARD_MIN_VOICED_S = 1.0
 GUARD_MAX_VOICES = 8
+GUARD_MAX_PENDING = 4         # v0.4.18: unconfirmed one-sentence candidates kept
 NEAREST_MIN_SIM = 0.40      # v0.4.15: was 0.25 (different speakers reach 0.26 => a man matched the only woman)
 
 
@@ -455,13 +456,17 @@ class CloneVoices:
             _r["guard_keep"] = _r.get("guard_keep", 0) + 1
             return voice, None
         guards = self.__dict__.setdefault("_guard_voices", [])
+        pend = self.__dict__.setdefault("_guard_pending", [])
         best = None
+        near = (s0, voice)                     # closest known voice, even below the threshold
         for p in list(dict.fromkeys(list(self.paths.values()) + guards)):
             if p == voice:
                 continue
             e = self._voice_emb(p)
             if e is not None:
                 s = float(v @ e)
+                if s > near[0]:
+                    near = (s, p)
                 if s >= GUARD_SAME_SIM and (best is None or s > best[0]):
                     best = (s, p)
         if best:
@@ -469,24 +474,47 @@ class CloneVoices:
             self._log("[spk] 段 %d 音色守门：与 %s 不像（%.2f）=> 改用 %s（%.2f）" % (
                 seg, os.path.basename(voice), s0, os.path.basename(best[1]), best[0]))
             return best[1], "guard_match"
+        # v0.4.18 (user 11-17: "new voices I never heard keep appearing"): a voice cloned from ONE
+        #   sentence is only a candidate; it becomes a dub voice when a LATER sentence matches it.
+        #   One-off sentences no longer get their own never-heard clone.
+        cand = None
+        for p in list(pend):
+            e = self._voice_emb(p)
+            if e is not None:
+                s = float(v @ e)
+                if s >= GUARD_SAME_SIM and (cand is None or s > cand[0]):
+                    cand = (s, p)
+        if cand:
+            pend.remove(cand[1])
+            guards.append(cand[1])
+            while len(guards) > GUARD_MAX_VOICES:
+                try:
+                    os.remove(guards.pop(0))
+                except OSError:
+                    pass
+            self._reasons["guard_new"] = self._reasons.get("guard_new", 0) + 1
+            self._log("[spk] 段 %d 音色守门：与 %s 不像（%.2f），与候选 %s 像（%.2f）=> 确认为新音色" % (
+                seg, os.path.basename(voice), s0, os.path.basename(cand[1]), cand[0]))
+            return cand[1], "guard_new"
         p = self.self_ref(seg_id)
-        if not p:
-            return voice, None
-        g = os.path.join(self.dir, "guard_%d.wav" % seg)
-        try:
-            os.replace(p, g)
-        except OSError:
-            g = p
-        guards.append(g)
-        while len(guards) > GUARD_MAX_VOICES:
+        if p:
+            g = os.path.join(self.dir, "guard_%d.wav" % seg)
             try:
-                os.remove(guards.pop(0))
+                os.replace(p, g)
             except OSError:
-                pass
-        self._reasons["guard_new"] = self._reasons.get("guard_new", 0) + 1
-        self._log("[spk] 段 %d 音色守门：与 %s 不像（%.2f），也不像其他已知音色 => 用本句克隆 %s" % (
-            seg, os.path.basename(voice), s0, os.path.basename(g)))
-        return g, "guard_new"
+                g = p
+            pend.append(g)
+            while len(pend) > GUARD_MAX_PENDING:
+                try:
+                    os.remove(pend.pop(0))
+                except OSError:
+                    pass
+        self._reasons["guard_pending"] = self._reasons.get("guard_pending", 0) + 1
+        self._log("[spk] 段 %d 音色守门：与 %s 不像（%.2f），也不像其他已知音色 => 本句暂用最接近的 %s（%.2f），本句记为候选音色" % (
+            seg, os.path.basename(voice), s0, os.path.basename(near[1]), near[0]))
+        if near[1] != voice:
+            return near[1], "guard_near"
+        return voice, None
 
     def self_ref(self, seg_id) -> Optional[str]:
         """11-09: x-vector reference = THIS sentence's own audio (no transcript => x-vector mode).
