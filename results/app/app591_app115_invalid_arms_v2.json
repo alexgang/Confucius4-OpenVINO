@@ -1,0 +1,30 @@
+{
+ "correction": "APP-115 §3.3-1",
+ "note": "094715 / 100823 两臂计时无效（锁在运行中丢失 + synth_rtf P90>1.1）⇒ 旧 json 逐字节保留，另写 v2；本文件是对账索引。",
+ "arms": [
+  {
+   "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app591_acceptance_sp5_zh_run20261117-094715.json",
+   "out": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app591_acceptance_sp5_zh_run20261117-094715_v2.json",
+   "sha_before": "ecf214f413e03b44448d46278635767f0bd6ff1c057a4b703a85d76b5c96d119",
+   "sha_after": "ecf214f413e03b44448d46278635767f0bd6ff1c057a4b703a85d76b5c96d119",
+   "timing_valid": false,
+   "p50": 0.665,
+   "p90": 1.1653,
+   "n_gt_1": 37,
+   "bytes": 22397,
+   "sha256": "9b3b3c201ef2611207a66883845cb421c64feadeaa96f0d9a4a7671e80b2f3b7"
+  },
+  {
+   "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app591_acceptance_sp5_zh_run20261117-100823.json",
+   "out": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app591_acceptance_sp5_zh_run20261117-100823_v2.json",
+   "sha_before": "ad284921a7711a225774e1bdc7767fac7de576aefe549cd3f63f1a0bb30c24f9",
+   "sha_after": "ad284921a7711a225774e1bdc7767fac7de576aefe549cd3f63f1a0bb30c24f9",
+   "timing_valid": false,
+   "p50": 0.6644,
+   "p90": 1.2818,
+   "n_gt_1": 48,
+   "bytes": 24831,
+   "sha256": "295942b83fcd87270ea3cdb286bf94c33364d2cb8175d9ca1e91c59911be26f8"
+  }
+ ]
+}

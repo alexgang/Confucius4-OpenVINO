@@ -46,6 +46,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 
 HOME = r"C:\Users\Trekker-PTL"
@@ -170,6 +171,65 @@ def release_lock(ev):
     ev['released_at_epoch'] = time.time()
     ev['lock_content_at_release'] = (own or {}).get('raw')
     return ev
+
+
+class LockWatch(threading.Thread):
+    """🔴 APP-115 §3.2：**运行期间盯锁文件**（只读采样，不改锁）。
+
+    ⚠️ 目的：若锁在运行中**被别人动过**（删除／改写／抢走），本看门狗
+      记下**改动时刻 + 当时的内容**（谁动的：模块名 + PID + 说明）⇒
+      APP-115 §3.2「如果锁又丢了…就查是谁动了锁」有据可查，不靠猜。
+    ⚠️ 采样读**原始文本**（不解析）⇒ 别人的锁格式（`ext …`）也能照原样记录。
+    """
+
+    def __init__(self, interval=10.0):
+        super().__init__(daemon=True)
+        self.interval = float(interval)
+        self._stop = threading.Event()
+        self.samples = []
+        self.events = []
+        self.started_at = time.strftime('%Y-%m-%d %H:%M:%S')
+
+    def _read_raw(self):
+        try:
+            with open(LOCK, encoding='utf-8') as f:
+                return f.read().strip()
+        except Exception:
+            return None
+
+    def run(self):
+        last = '\x00INIT'
+        while not self._stop.wait(self.interval):
+            raw = self._read_raw()
+            rec = {'at': time.strftime('%Y-%m-%d %H:%M:%S'), 'raw': raw}
+            self.samples.append(rec)
+            if raw != last:
+                self.events.append(rec)
+                last = raw
+
+    def stop(self):
+        self._stop.set()
+
+    def summary(self, own_raw):
+        """⇒ 落进验收 json 的看门狗摘要。"""
+        foreign = [e for e in self.events
+                   if e['raw'] is None or e['raw'] != own_raw]
+        return {
+            'interval_s': self.interval,
+            'started_at': self.started_at,
+            'stopped_at': time.strftime('%Y-%m-%d %H:%M:%S'),
+            'n_samples': len(self.samples),
+            'n_events': len(self.events),
+            'own_lock_content': own_raw,
+            'n_foreign_events': len(foreign),
+            'foreign_events': foreign[:20],
+            'first_sample': self.samples[0] if self.samples else None,
+            'last_sample': self.samples[-1] if self.samples else None,
+            'note': ('🔴 报告项（APP-115 §3.2）：运行期间每 %g s 只读采样锁文件；'
+                     '`foreign_events` = 锁内容**不再是本作业**的时刻 ⇒ '
+                     '锁被谁动过（内容里带模块名 + PID + 说明）。'
+                     % self.interval),
+        }
 
 
 # ══════════════════════════════════════════════════════════════
@@ -562,6 +622,103 @@ def queue_probe(pkg):
     return out
 
 
+def finalize_app115(ev):
+    """🔴 **APP-115 §3.2**：两项**报告项**（**不是新闸门**）+ timing_valid 判定。
+
+    ① 「放锁时锁内容是否还是本作业」——读 `lock_evidence.lock_content_at_release`
+       （放锁那一刻的锁原文）⇒ 丢失 ⇒ `None`。
+    ② 「synth_rtf 中位 / P90」——**逐句** `synth_rtf`（与 reviewer 的算法一致：
+       线性插值分位数）⇒ 可直接对表。
+
+    🔴 **判定规则是 reviewer 给的**（APP-115 §3.2）：
+       丢句 0 + max≤1.70 + **RTF P90 ≤ 0.75** ⇒ `timing_valid=true`；
+       锁丢了 / RTF 异常 ⇒ `timing_valid=false` + 如实写原因。
+    ⚠️ 本函数**只加报告项 + 改 timing_valid**，**不新增任何判定门槛**
+       （`report_only=True` 的条目不进 `n_fail`）。
+    """
+    if not isinstance(ev, dict):
+        return ev
+    lock_ev = ev.get('lock_evidence') or {}
+    at_release = lock_ev.get('lock_content_at_release')
+    own_pid = os.getpid()
+    lock_at_release_ok = False
+    if at_release:
+        parts = str(at_release).split()
+        try:
+            lock_at_release_ok = (int(parts[1]) == own_pid)
+        except Exception:
+            lock_at_release_ok = (at_release == lock_ev.get('lock_content'))
+    tel = ev.get('telemetry') or {}
+    p50 = tel.get('synth_rtf_p50')
+    p90 = tel.get('synth_rtf_p90')
+    n_gt1 = tel.get('synth_rtf_n_gt_1')
+    n_rtf = tel.get('synth_rtf_n')
+    lw = ev.get('lock_watch') or {}
+
+    # ── timing_valid（沿用「外部大 IO」条件 + APP-115 新增两条）──
+    reasons = []
+    ext_writes = ev.get('external_writes_during_run') or []
+    if ext_writes:
+        reasons.append('运行窗口内有 %d 个 >100 MB 的文件被改写/新建' % len(ext_writes))
+    if not lock_at_release_ok:
+        reasons.append('锁在运行中丢失（放锁时锁内容=%r，**不是本作业 PID %d**）'
+                       % (at_release, own_pid))
+    if p90 is not None and float(p90) > 0.75:
+        reasons.append('synth_rtf P90=%.3f > 0.75（合成 RTF 异常 ⇒ 机器被占）'
+                       % float(p90))
+    ev['timing_valid'] = (len(reasons) == 0)
+    ev['timing_invalid_reason'] = (
+        '' if not reasons else
+        '；'.join(reasons) + ' ⇒ **计时类结论不成立**（计数类结论不受影响）')
+
+    items = [
+        {'name': '放锁时锁内容是否还是本作业（**报告项**：APP-115 §3.2）',
+         'pass': True, 'report_only': True,
+         'detail': ('放锁时锁内容=%r ⇒ 仍是本作业(PID %d)=**%s**；'
+                    '运行期间锁看门狗：采样 %s 次 / 内容变动 %s 次 / '
+                    '**非本作业的内容变动 %s 次**%s')
+                    % (at_release, own_pid, lock_at_release_ok,
+                       lw.get('n_samples'), lw.get('n_events'),
+                       lw.get('n_foreign_events'),
+                       ('；外来变动时刻：%s'
+                        % [(e.get('at'), e.get('raw')) for e in
+                           (lw.get('foreign_events') or [])][:5])
+                       if lw.get('n_foreign_events') else '')},
+        {'name': 'synth_rtf 中位 / P90（**报告项**：APP-115 §3.2；判定线 P90≤0.75）',
+         'pass': True, 'report_only': True,
+         'detail': ('synth_rtf 中位=%s P90=%s max=%s；RTF>1 的句数=%s / 共 %s 句'
+                    % (p50, p90, tel.get('synth_rtf_max'), n_gt1, n_rtf))},
+    ]
+    checks = ev.get('checks')
+    if isinstance(checks, list):
+        checks = [c for c in checks
+                  if not str(c.get('name', '')).startswith(
+                      ('放锁时锁内容', 'synth_rtf 中位'))]
+        checks.extend(items)
+        ev['checks'] = checks
+        ev['reports'] = [c for c in checks if c.get('report_only')]
+        ev['n_fail'] = sum(1 for c in checks
+                           if not c['pass'] and not c.get('report_only'))
+        ev['verdict'] = 'PASS' if ev['n_fail'] == 0 else 'FAIL'
+    rr = ev.get('required_report')
+    if isinstance(rr, dict):
+        rr['timing_valid'] = ev['timing_valid']
+        rr['timing_invalid_reason'] = ev['timing_invalid_reason']
+        rr['lock_content_at_release'] = at_release
+        rr['lock_at_release_is_own_job'] = lock_at_release_ok
+        rr['synth_rtf_p50'] = p50
+        rr['synth_rtf_p90'] = p90
+        rr['synth_rtf_max'] = tel.get('synth_rtf_max')
+        rr['synth_rtf_n_gt_1'] = n_gt1
+        rr['synth_rtf_n'] = n_rtf
+        rr['lock_watch_events'] = lw.get('foreign_events')
+        rr['note'] = (rr.get('note', '') +
+                      '｜**APP-115 §3.2**：新增两项报告项（放锁时锁内容是否还是本作业 / '
+                      'synth_rtf 中位+P90）；`timing_valid` 另加两条条件'
+                      '（锁未丢 + RTF P90≤0.75）⇒ 计时类结论只在锁未被动过且 RTF 正常时成立。')
+    return ev
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--lang', default='zh', choices=['zh', 'en'])
@@ -580,6 +737,9 @@ def main():
     ap.add_argument('--extra-evidence', default='',
                     help='额外的证据 json 路径 ⇒ **合并进本臂的结果 json**'
                          '（例如冷启动臂的「缓存挪开」记录）')
+    ap.add_argument('--lock-note', default='',
+                    help='🔴 APP-115：写进 MACHINE_LOCK 的说明（默认 app114-<lang>）'
+                         '⇒ 让别的模块看锁就知道是谁在跑')
     args = ap.parse_args()
 
     PKG = args.pkg
@@ -650,7 +810,14 @@ def main():
         ev['lock_evidence'] = {'acquired': False,
                                'note': '**--no-lock**（调试用；验收必须带锁）'}
     else:
-        ev['lock_evidence'] = acquire_lock('app114-%s' % args.lang)
+        ev['lock_evidence'] = acquire_lock(args.lock_note
+                                           or ('app114-%s' % args.lang))
+    # 🔴 APP-115 §3.2：**锁看门狗**（运行期间只读采样 ⇒ 锁被谁动过有据可查）
+    lock_watch = None
+    own_lock_content = (ev.get('lock_evidence') or {}).get('lock_content')
+    if own_lock_content:
+        lock_watch = LockWatch(interval=10.0)
+        lock_watch.start()
 
     try:
         cmd = [PKG_PY, os.path.join(PKG, 'app', 'live_caption_app.py'),
@@ -683,6 +850,16 @@ def main():
                     % (cmd, PKG, p.returncode, t1 - t0, so, se))
         after_files = snapshot_big_files()
         gpu_after = gpu_apps()
+
+        # 🔴 APP-115 §3.2：停看门狗 ⇒ 记「运行结束时锁是否还是本作业」
+        if lock_watch is not None:
+            lock_watch.stop()
+            ev['lock_watch'] = lock_watch.summary(own_lock_content)
+            ev['lock_watch']['stopped_at'] = time.strftime('%Y-%m-%d %H:%M:%S')
+        own_end = lock_owner()
+        ev['lock_intact_at_run_end'] = bool(
+            own_end and own_end.get('pid') == os.getpid())
+        ev['lock_owner_at_run_end'] = (own_end or {}).get('raw')
 
         ev['rc'] = p.returncode
         ev['rc_hex'] = ('0x%08X' % (p.returncode & 0xFFFFFFFF)
@@ -742,7 +919,11 @@ def main():
         gains = [float(r['speed_gain']) for r in rows
                  if r.get('speed_gain') is not None and not r.get('dropped')]
         rtfs = [float(r['rtf_ewma']) for r in rows
-                 if r.get('rtf_ewma') is not None and not r.get('dropped')]
+                if r.get('rtf_ewma') is not None and not r.get('dropped')]
+        # 🔴 APP-115 §3.2：**逐句 synth_rtf**（中位 / P90 / RTF>1 句数）
+        #   ⚠️ 与 reviewer 的算法一致（同一批 jsonl ⇒ 数值可直接对表）
+        sr = [float(r['synth_rtf']) for r in rows
+              if r.get('synth_rtf') is not None and not r.get('dropped')]
         n_drop_overflow = app113.get('n_drop_not_ready_overflow', 0)
         n_drop_worker_failed = app113.get('n_drop_worker_failed', 0)
         n_drop_worker = len(dropped)
@@ -770,6 +951,14 @@ def main():
             'rtf_ewma_min': (min(rtfs) if rtfs else None),
             'rtf_ewma_max': (max(rtfs) if rtfs else None),
             'rtf_ewma_mean': (round(sum(rtfs) / len(rtfs), 4) if rtfs else None),
+            # 🔴 APP-115 §3.2 报告项②：逐句合成 RTF
+            'synth_rtf_n': len(sr),
+            'synth_rtf_p50': pct(sr, 0.50),
+            'synth_rtf_p90': pct(sr, 0.90),
+            'synth_rtf_max': (max(sr) if sr else None),
+            'synth_rtf_min': (min(sr) if sr else None),
+            'synth_rtf_n_gt_1': sum(1 for x in sr if x > 1.0),
+            'synth_rtf_n_ge_0_75': sum(1 for x in sr if x > 0.75),
             'play_lag_max': (max(lags) if lags else None),
             'play_lag_p95': pct(lags, 0.95),
             'play_lag_end': (lags[-1] if lags else None),
@@ -921,6 +1110,8 @@ def main():
     finally:
         if not args.no_lock:
             release_lock(ev.get('lock_evidence'))
+        # 🔴 APP-115 §3.2：**放锁之后**才补报告项（放锁时刻的锁内容此时才有）
+        finalize_app115(ev)
 
     with open(out_json, 'w', encoding='utf-8') as f:
         json.dump(ev, f, ensure_ascii=False, indent=1)
