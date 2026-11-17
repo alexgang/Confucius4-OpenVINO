@@ -1080,8 +1080,8 @@ class TTSService:
                 with self.lock:
                     _prev = float(self._last_speed or 1.0)
                 # 🔴🔴🔳 APP-090②c / APP-091②：**按目标语言定倍率区间**
-                #   ⇒ 中文目标 1.10–2.00×（APP-111 §1），其他 1.00–**2.00**×
-                #     （APP-113 §3：**上限也放开**，下限不变）。
+                #   ⇒ 中文目标 1.10–1.70×（APP-114 §1），其他 1.00–**1.70**×
+                #     （APP-114 §1：**上限统一 1.70×**，下限不变）。
                 #   ⚠️ worker 出队时会**自己重算**（以 worker 为准）
                 #   ⇒ 这里只是**向下兼容老 worker** 的下发值。
                 _sp = float(_ts.speed_for_lag(_lag, _prev, lang=lang))

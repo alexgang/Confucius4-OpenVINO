@@ -1,0 +1,20 @@
+{
+ "purpose": "APP-114 §4 冷启动臂：把 OV 编译缓存「挪开」（改名，**可逆、不删除**）⇒ ASR(GPU.0) 需重新编译 ⇒ 真实冷启动",
+ "actions": [
+  {
+   "dir": "ov_cache",
+   "action": "moved aside (rename)",
+   "from": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\ov_cache",
+   "to": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\ov_cache.app591_coldarm_20261117",
+   "n_files": 2574,
+   "bytes": 14233231345
+  }
+ ],
+ "at": "2026-11-17 09:33:32",
+ "not_touched": [
+  "device_config.json",
+  "mt_cache",
+  "npu_cache",
+  "clone_voices"
+ ]
+}

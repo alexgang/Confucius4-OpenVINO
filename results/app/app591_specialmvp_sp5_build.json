@@ -1,0 +1,362 @@
+{
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5",
+ "from_pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp4",
+ "version": "1.0-sp5",
+ "pkg_name": "Confucius4_LiveCaption_SpecialMVP_v1.0-sp5",
+ "why_sp5_not_sp4": "APP-114 §3 给了两个分支：并入 sp4 ／ sp4 冻结则出 sp5。本轮选 **sp5**：① sp4 的包内容已被 app587 构建证据（app_sync.synced.live_caption_app.py sha256）与 §212 的三份验收 json **绑定** ⇒ 原地改 sp4 会让这些证据不再描述磁盘上的 sp4（APP-206/207/208：证据必须同时绑「包身份」+「包内容」）；② APP-055：旧版本目录不覆盖不删、不原地改包。⇒ **sp4 逐字节不动**（本脚本对 sp4 只做 stat）。",
+ "started": "2026-11-17 09:28:17",
+ "actions": [
+  "robocopy sp4→sp5 rc=1（1 = 有复制成功）",
+  "路径重定位：cuda_env/pyvenv.cfg(×4), app/MANIFEST.json(×1)",
+  "EXT 升级：v0.4.8 → v0.4.16（commit 7a92f12，43 个文件）",
+  "app 代码同步：5 个文件被改写；其余与 dev 逐字相同 23 个"
+ ],
+ "gates": {
+  "n_pyc": 0,
+  "n_blacklist": 0,
+  "blacklist": [],
+  "app_files_mismatch_vs_dev": [],
+  "pyvenv_cfg_has_sp4_path": false,
+  "pyvenv_cfg_has_sp5_path": true,
+  "manifest_has_sp4_path": false,
+  "manifest_has_sp5_path": true,
+  "profile": "specialmvp",
+  "allow_cuda": true,
+  "ext_version": "0.4.16",
+  "ext_commit": "7a92f12a7d83dd8e9c196d4181617d509b7d1113",
+  "pkg_speed_constants": {
+   "LAG_DEADZONE_S": 3.0,
+   "SPEED_PER_LAG_S": 0.025,
+   "SPEED_MIN": 1.0,
+   "SPEED_MAX": 1.7,
+   "LAG_HYSTERESIS_S": 2.0,
+   "MAX_STEP_CHANGE": 0.1,
+   "ZH_SPEED_MIN": 1.1,
+   "ZH_SPEED_MAX": 1.7
+  },
+  "pkg_speed_max_ok": true,
+  "pkg_gain_curve_unchanged": true,
+  "pkg_queue_overflow_s": null,
+  "pkg_queue_no_time_drop": true,
+  "n_files": 41374,
+  "dir_bytes": 14232088734
+ },
+ "sp4_before": {
+  "n_files": 41374,
+  "bytes": 14232064511,
+  "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp4"
+ },
+ "after_copy": {
+  "n_files": 41374,
+  "bytes": 14232064511,
+  "elapsed_s": 40.1
+ },
+ "repoint": [
+  {
+   "file": "cuda_env/pyvenv.cfg",
+   "n_replaced": 4,
+   "sha256_after": "4070ec0cbfce53aaaaea4a06df0b50d84cb43763a86b2f789fcf1f02c53c5b8a"
+  },
+  {
+   "file": "app/MANIFEST.json",
+   "n_replaced": 1,
+   "sha256_after": "44fa465089bbec745efb2aa917e1b315da8ac2574c84f083121e34047387ed2b"
+  }
+ ],
+ "ext": {
+  "repo": "C:\\Users\\Trekker-PTL\\live_dub_ext",
+  "commit": "7a92f12",
+  "expected_version": "0.4.16",
+  "files": [
+   {
+    "file": "ext/bridge/__init__.py",
+    "sha256": "aef2644af049ae095efe2efa05cca9d46dde2f737225a09fcf7784e49b28630f",
+    "bytes": 474
+   },
+   {
+    "file": "ext/bridge/accel_usage.py",
+    "sha256": "8b95174d7920df60802a52688d79f995270a0dbe0808083bf3a75c4b0047c2b2",
+    "bytes": 4089
+   },
+   {
+    "file": "ext/bridge/adaptive_speed.py",
+    "sha256": "eee24deae0650efc3dbb77d3d295cc217e2f090dfc2499bedd82d9f7c3ff10c6",
+    "bytes": 9909
+   },
+   {
+    "file": "ext/bridge/app_root.py",
+    "sha256": "7c70d92762d3c8170641d3987d094f5af0a7b9b8c1854e5e1d894b2a83f73e30",
+    "bytes": 6178
+   },
+   {
+    "file": "ext/bridge/audio_dump.py",
+    "sha256": "15fa0e5e23a74fe05c693472187266b1862f11a94758b0d1134462ba12bf5be3",
+    "bytes": 10661
+   },
+   {
+    "file": "ext/bridge/bridge.py",
+    "sha256": "300257eb34b609a0473d39c48c4bcb1a52b2de650ce981da52c936c2ac420342",
+    "bytes": 268779
+   },
+   {
+    "file": "ext/bridge/clone_voice.py",
+    "sha256": "ec7ed9d694701c258ac7c2baaaba3cc6ef2043289ab2de1947743bae09793231",
+    "bytes": 33140
+   },
+   {
+    "file": "ext/bridge/config.py",
+    "sha256": "f53b3c8725764b441ce8261725bc7bc1ef90c3ec071a4b68af58b2d4d480c51a",
+    "bytes": 17380
+   },
+   {
+    "file": "ext/bridge/duration.py",
+    "sha256": "65c552dc980f76ce41eb7ffbfc54ca3beef52e05f23b7e475eab19ccffd16c59",
+    "bytes": 3113
+   },
+   {
+    "file": "ext/bridge/engine_runtime.py",
+    "sha256": "1bfa0f17a12cbcc212c7e126ef0e011bfbc3c9b5a9ca9293223a68ee1ab80a53",
+    "bytes": 44005
+   },
+   {
+    "file": "ext/bridge/engines.py",
+    "sha256": "8e703ba48b9a1864533ef36752196f604f1b1d91693465d5c458e0610d68bbd9",
+    "bytes": 9260
+   },
+   {
+    "file": "ext/bridge/extension_id.py",
+    "sha256": "a92bc1e625f94a5e5024997262a9bee66df8cfe7cc5b480512d5b9c3f8932ca9",
+    "bytes": 4254
+   },
+   {
+    "file": "ext/bridge/media_slowdown.py",
+    "sha256": "964a3446c180e16b417cf65cbb373266f1d298fbc51c37088dece9572f1aae79",
+    "bytes": 12515
+   },
+   {
+    "file": "ext/bridge/pair_server.py",
+    "sha256": "53e3dea18c536197752f30a6e69bec7f37b3e2205a6903700323ac2da5518aea",
+    "bytes": 8589
+   },
+   {
+    "file": "ext/bridge/pipeline.py",
+    "sha256": "9ab7ee5d76ef86ab1acd12903d018debe53ddab5039f101ee653049a21b2c5a2",
+    "bytes": 19032
+   },
+   {
+    "file": "ext/bridge/segmenter.py",
+    "sha256": "4c9dbbda6a32693f7aecee377acaaffe5c688ca60b0842c0e242e1c6e4d12b00",
+    "bytes": 21235
+   },
+   {
+    "file": "ext/bridge/speaker.py",
+    "sha256": "b15e75adc3fc1cd1a66de3435192864b71ce8ce74fe59d65660e038746a758dd",
+    "bytes": 8754
+   },
+   {
+    "file": "ext/bridge/speaker_bypass.py",
+    "sha256": "c8dc467a6bed3db9df8a5bdab67b5500744280a51d801ef695944d9d13c74c92",
+    "bytes": 22863
+   },
+   {
+    "file": "ext/bridge/spk_engine.py",
+    "sha256": "66b78d0708d1c4f78066cc4ea7095d6916caa9bfe41a6f3df2587d64830352af",
+    "bytes": 31720
+   },
+   {
+    "file": "ext/bridge/thread_limits.py",
+    "sha256": "af1845ee39bb340263bbd59987d61f13db1d12b1d142a68dee330afc0ed97e58",
+    "bytes": 4968
+   },
+   {
+    "file": "ext/bridge/time_stretch.py",
+    "sha256": "b860fb688e46e58557e7a58ea225a2f917fce0eec8d73a1cffd878232dead02d",
+    "bytes": 7396
+   },
+   {
+    "file": "ext/bridge/utf8_io.py",
+    "sha256": "e2023751fa62eeba084f365f7f35da1155997945ee8bd93934a5315d52f1864a",
+    "bytes": 6645
+   },
+   {
+    "file": "ext/bridge/version.py",
+    "sha256": "c8737a2288d1f265022e62a2612cbf0361eaad27566e7538dfa058d387bea0a5",
+    "bytes": 333
+   },
+   {
+    "file": "ext/extension/USER_GUIDE.md",
+    "sha256": "b6a5785f1554081e1540e64754b9ac03759dfa13e9f11f4e6f63b030d296470e",
+    "bytes": 14650
+   },
+   {
+    "file": "ext/extension/capture-worklet.js",
+    "sha256": "302969b247cd76aa08abb358c25e7b963177ce82276b587f0489a0053ee1dd8c",
+    "bytes": 8479
+   },
+   {
+    "file": "ext/extension/dub-pcm-worklet.js",
+    "sha256": "a9dbc844117d52bdeb0fe91de1f63f2bb54ab5285447e763a46dc36be04420a3",
+    "bytes": 7825
+   },
+   {
+    "file": "ext/extension/guide.html",
+    "sha256": "fa4f1dab6edc474d842d5c7dbde15eabb329e4813dc945d88e7afa4f5a87d007",
+    "bytes": 921
+   },
+   {
+    "file": "ext/extension/guide.js",
+    "sha256": "eb714432e895248b2801145851d5c1838ee2ef38eb60a5221c6dcab570933454",
+    "bytes": 3133
+   },
+   {
+    "file": "ext/extension/manifest.json",
+    "sha256": "48052428b3cd58fa2d4717dcefc3798110befe062b10b4fb74bdf6d8df0e4315",
+    "bytes": 2532
+   },
+   {
+    "file": "ext/extension/offscreen.html",
+    "sha256": "2b39fc0aab66b0422a6d027a9c77bab09d122035ef99f2aabbb9b6c24f7ac0e0",
+    "bytes": 166
+   },
+   {
+    "file": "ext/extension/offscreen.js",
+    "sha256": "9689d245777041c9fed0f96b8ec5036780fa29b6b35e1bfac754f646afa6bcbd",
+    "bytes": 25064
+   },
+   {
+    "file": "ext/extension/onset-worklet.js",
+    "sha256": "5ce18a8044f705e3db62ffbcc2fb2d8a42a7796a46408b859c50dd5ef3836736",
+    "bytes": 2873
+   },
+   {
+    "file": "ext/extension/player.html",
+    "sha256": "2c5447da759c73a65d7e4614596dd129972c8e4825f8a600aea998ee71fa4d1f",
+    "bytes": 4837
+   },
+   {
+    "file": "ext/extension/player.js",
+    "sha256": "8852236b3b5edaf2019161600d554be74e2dc09794be90f090653a754abd4e32",
+    "bytes": 192606
+   },
+   {
+    "file": "ext/extension/popup.html",
+    "sha256": "29607b26972fc318e560755558f57f78b30785b99679b82de6a51f5cde5a4e74",
+    "bytes": 6078
+   },
+   {
+    "file": "ext/extension/popup.js",
+    "sha256": "e576418d59fdb25b514938339827138a5f596433483e2ed8e1a8d39ab31846e0",
+    "bytes": 31373
+   },
+   {
+    "file": "ext/extension/slowdown.js",
+    "sha256": "976405d5cedc24d2ec97519952673d5d360767c1c7831a97b093f5ae02f1542f",
+    "bytes": 7416
+   },
+   {
+    "file": "ext/extension/sw.js",
+    "sha256": "daddef83270f7f3e0fac3916882e8ec81162171e62531e74ff3c94eb842b8ef2",
+    "bytes": 14420
+   },
+   {
+    "file": "ext/extension/icons/icon128.png",
+    "sha256": "5c94915211c44aac09bcb749b07653d88a75734c33922382bcdc4f90fd802efe",
+    "bytes": 445
+   },
+   {
+    "file": "ext/extension/icons/icon16.png",
+    "sha256": "e01c2c0fa9095523aa64569d4906b38abe2961a8429a22620e796434143280ae",
+    "bytes": 117
+   },
+   {
+    "file": "ext/extension/icons/icon32.png",
+    "sha256": "e8a6ae3c264f06522c4be70c6e02102a9e2036dbc03e83c0268fa97c62547686",
+    "bytes": 153
+   },
+   {
+    "file": "ext/extension/icons/icon48.png",
+    "sha256": "ea4b023df15be6610b0daf340ff64d83651a7e54257250f114ed81a565e34fbf",
+    "bytes": 182
+   },
+   {
+    "file": "ext/USER_GUIDE.md",
+    "sha256": "b6a5785f1554081e1540e64754b9ac03759dfa13e9f11f4e6f63b030d296470e",
+    "bytes": 14650
+   }
+  ],
+  "shims_kept": [],
+  "skipped": [
+   {
+    "file": "ext/bridge/tts_cuda_sidecar_ext.py",
+    "reason": "包内无对应文件（沿用 v0.4.8 的嵌入清单）"
+   }
+  ],
+  "commit_full": "7a92f12a7d83dd8e9c196d4181617d509b7d1113",
+  "version_in_bridge_version_py": "0.4.16",
+  "release_json_sha256": "0c7a6d7fab258c4e465497e4ba999211dcea7a5f4542e30ba930e6b948693a74"
+ },
+ "app_sync": {
+  "sync_files_declared": [
+   "live_caption_app.py",
+   "time_stretch.py",
+   "tts_worker.py",
+   "tts_service.py",
+   "device_config.py"
+  ],
+  "synced": [
+   {
+    "file": "device_config.py",
+    "sha256": "847f825a25721559c1a21ce949b3c78f6b4ea5ef95b576cd133180bd30c63750",
+    "bytes": 42017,
+    "dev_sha256": "847f825a25721559c1a21ce949b3c78f6b4ea5ef95b576cd133180bd30c63750",
+    "pkg_sha256_after": "847f825a25721559c1a21ce949b3c78f6b4ea5ef95b576cd133180bd30c63750"
+   },
+   {
+    "file": "live_caption_app.py",
+    "sha256": "0572bfd02f8fbafd09e374dbf8c323f39a864d142a2a1e5b6c9d565c8e9340ad",
+    "bytes": 520002,
+    "dev_sha256": "0572bfd02f8fbafd09e374dbf8c323f39a864d142a2a1e5b6c9d565c8e9340ad",
+    "pkg_sha256_after": "0572bfd02f8fbafd09e374dbf8c323f39a864d142a2a1e5b6c9d565c8e9340ad"
+   },
+   {
+    "file": "time_stretch.py",
+    "sha256": "3e4c7ebef54fca5f10048a1950f2e78949041ffa45d3d201e80e0023cdbf2037",
+    "bytes": 25649,
+    "dev_sha256": "3e4c7ebef54fca5f10048a1950f2e78949041ffa45d3d201e80e0023cdbf2037",
+    "pkg_sha256_after": "3e4c7ebef54fca5f10048a1950f2e78949041ffa45d3d201e80e0023cdbf2037"
+   },
+   {
+    "file": "tts_service.py",
+    "sha256": "9ffa4e1be1f0781e4a194e6439798cc45fc09e70bf87219654c618897d608fbb",
+    "bytes": 141675,
+    "dev_sha256": "9ffa4e1be1f0781e4a194e6439798cc45fc09e70bf87219654c618897d608fbb",
+    "pkg_sha256_after": "9ffa4e1be1f0781e4a194e6439798cc45fc09e70bf87219654c618897d608fbb"
+   },
+   {
+    "file": "tts_worker.py",
+    "sha256": "bece3a7697f830e0b6da42622fec9be1a7daccb2bdb7ce73caa8d52ee3c6339d",
+    "bytes": 278541,
+    "dev_sha256": "bece3a7697f830e0b6da42622fec9be1a7daccb2bdb7ce73caa8d52ee3c6339d",
+    "pkg_sha256_after": "bece3a7697f830e0b6da42622fec9be1a7daccb2bdb7ce73caa8d52ee3c6339d"
+   }
+  ],
+  "n_same": 23,
+  "mismatch": []
+ },
+ "release_json_sha256": "742f4091b391f8f190c2865e9daf368286a19c1231fd65406eaf98cff5fde2e0",
+ "readme": {
+  "README_zh.md": {
+   "old_line": "* **包体积（实测）**：解压后 **41,374 个文件 /     14,232,064,511 B（13.255 GiB）**；zip **待打包**（本版**只出包目录**；zip 须**用户通知后**才生成）。",
+   "new_line": "* **包体积（实测）**：解压后 **41374 个文件 / 14232088734 B（13.255 GiB）**；zip **待打包**（本版**只出包目录**；zip 须**用户通知后**才生成）。",
+   "sha256_after": "8a3f5fd4836745c742ac6f07c039377410dfc07c5f90b851b44f7040533d2dae"
+  },
+  "README_en.md": {
+   "old_line": "* **Package size (measured)**: unpacked **41,374 files /     14,232,064,511 B (13.255 GiB)**; zip **to be built** (this build ships the **package directory** only; the zip requires explicit user appro",
+   "new_line": "* **Package size (measured)**: extracted **41374 files / 14232088734 B (13.255 GiB)**; zip **pending** (this release ships the folder only; zip is generated **only after the user asks**).",
+   "sha256_after": "257957bb43b51368e715e670b044fa54de5476205937452016c767769b6c3fec"
+  }
+ },
+ "verdict": "PASS",
+ "finished": "2026-11-17 09:29:00",
+ "elapsed_s": 43.1
+}
