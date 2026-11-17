@@ -98,18 +98,41 @@ def pid_alive(pid):
 
 
 def lock_owner():
-    """读锁文件 ⇒ (module, pid, start, note)；锁不存在 ⇒ None。"""
+    """读锁文件 ⇒ (module, pid, start, note)；锁不存在 ⇒ None。
+
+    🔴 **APP-115 §3.3-2 复核（2026-11-17）**：本函数原实现是 **fail-open** ——
+    锁文件**存在**但内容**解析不出 pid** 时返回 None ⇒ `acquire_lock` 把它当成
+    「锁不存在」⇒ **直接覆盖别人的锁**（实测：reviewer 的 `reviewer ext0417acc <ts> …`
+    这类格式 ⇒ `int(parts[1])` 抛异常 ⇒ 返回 None）。而 reviewer 的
+    `finally { Remove-Item $lock }` 会在作业结束时**无条件删掉**本模块刚写进去的锁
+    ⇒ 放锁时锁内容 = None ⇒ 计时类结论作废（094715 / 100823 两臂已实测复现）。
+
+    ⇒ **改为 fail-closed**：锁文件**存在**但内容不可解析时，返回
+    `{'pid': None, 'unparsed': True, ...}` ⇒ `acquire_lock` 走「排队等待」分支，
+    **绝不覆盖**；`release_lock` 也**只删自己的**（pid 匹配才删）。
+    """
     try:
         raw = open(LOCK, encoding='utf-8').read().strip()
-    except Exception:
+    except FileNotFoundError:
         return None
+    except Exception:
+        # 🔴 读不出来（权限/占用）⇒ 一律视为「有人在用」⇒ fail-closed
+        return {'raw': None, 'module': '?', 'pid': None, 'unparsed': True,
+                'start': '', 'note': ''}
+    if not raw:
+        return {'raw': raw, 'module': '?', 'pid': None, 'unparsed': True,
+                'start': '', 'note': ''}
     parts = raw.split()
     if len(parts) < 2:
-        return None
+        return {'raw': raw, 'module': parts[0] if parts else '?',
+                'pid': None, 'unparsed': True, 'start': '', 'note': ''}
     try:
         pid = int(parts[1])
     except Exception:
-        return None
+        # 🔴 内容存在但 pid 不可解析 ⇒ **不是「没有锁」** ⇒ fail-closed（不覆盖）
+        return {'raw': raw, 'module': parts[0], 'pid': None, 'unparsed': True,
+                'start': parts[2] if len(parts) > 2 else '',
+                'note': parts[3] if len(parts) > 3 else ''}
     return {'raw': raw, 'module': parts[0], 'pid': pid,
             'start': parts[2] if len(parts) > 2 else '',
             'note': parts[3] if len(parts) > 3 else ''}
@@ -124,8 +147,19 @@ def acquire_lock(note, timeout_s=7200):
         if own is None:
             content = 'app %d %s %s' % (os.getpid(),
                                         time.strftime('%Y-%m-%d %H:%M:%S'), note)
-            with open(LOCK, 'w', encoding='utf-8', newline='\n') as f:
-                f.write(content + '\n')
+            # 🔴 **原子创建**（O_EXCL）：避免「读时锁不存在 → 写时别人的锁已出现」
+            #    这个 TOCTOU 窗口把别人的锁**静默覆盖**掉 ⇒ 计时类结论作废。
+            try:
+                fd = os.open(LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                try:
+                    os.write(fd, (content + '\n').encode('utf-8'))
+                finally:
+                    os.close(fd)
+            except FileExistsError:
+                # 🔴 写锁的瞬间锁被别人占了 ⇒ **重新读**（不覆盖）⇒ 继续排队
+                waited.append({'at': time.strftime('%H:%M:%S'), 'raw': None,
+                               'reason': 'lock appeared while creating => retry (no overwrite)'})
+                continue
             got = lock_owner()
             if got and got['pid'] == os.getpid():
                 return {'acquired': True, 'lock_content': content,
@@ -141,6 +175,17 @@ def acquire_lock(note, timeout_s=7200):
                     'waited_s': round(time.time() - t0, 1),
                     'wait_history': waited}
         # 🔴 锁被别人占着 ⇒ **排队等待**；只有确认 PID 真死才回收
+        if own.get('unparsed'):
+            # 🔴 **锁文件存在但 pid 不可解析** ⇒ 无法判断持有者死活 ⇒
+            #    **保守等待**（fail-closed）⇒ **绝不覆盖别人的锁**。
+            #    （原实现会返回 None ⇒ 走上面「写锁」分支 ⇒ 静默覆盖 ⇒ 计时作废）
+            if time.time() - t0 > timeout_s:
+                raise RuntimeError('等锁超时 %d s（锁内容不可解析，疑似被占：%s）'
+                                   % (timeout_s, own['raw']))
+            time.sleep(20)
+            waited.append({'at': time.strftime('%H:%M:%S'), 'raw': own['raw'],
+                           'reason': 'lock present but PID unparsable => waiting (fail-closed)'})
+            continue
         alive = pid_alive(own['pid'])
         if not alive:
             try:
