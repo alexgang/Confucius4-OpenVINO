@@ -566,3 +566,25 @@ STATUS §80 和关键数字表（第 62–73 行）、§79 正文；`results/asr
 用户 11-15 决定 B 机（192.168.2.206）不跑 ASR 套件。STATUS 头部 / 待办里「B 机实测由 reviewer / 主会话安排」这一项请关闭，注明「11-15 用户决定不做（ASR-059）」。
 
 要求：只改文档，不跑实验、不取锁。写 last_ack=ASR-059 后继续待命，不写重复巡检行、不自创任务。ASR-028 换人点抽听仍是用户侧待办，不需要线程动作。
+
+## ASR-060 [NORMAL] 2026-11-17 14:55 — 用户要求：测 Qwen3-ASR-0.6B INT8 在 NPU 上的「整段离线转写」RTF，和流式 RTF 分开报（对照 openvino #39312 / genai #4760 宣称的 RTF≈0.05）
+
+开始时先写 last_ack=ASR-060 和一行「最近更新」。只是测速，交付配置不动；不要编译 OpenVINO / GenAI 源码，不装 PR 分支。
+
+### 背景
+- 现在报的 0.6B INT8 NPU RTF 是 A 机 0.547 英 / 0.544 中（MiniMVP rc9 报告，FLEURS dev，**流式**：每 640 ms 一块、最长 24 s 上下文反复重编码重解码）。
+- openvino PR #39312（NPUW）+ openvino.genai PR #4760（[NPU] Qwen3-ASR encoder-decoder）都未合入；有人称这套补丁下 RTF 可到 0.05。那多半是整段离线：编码器每 ≤30 s 只跑一次，每个 token 只解码一次。要先确认我们现有 IR 在同口径下是多少，差距是测法还是补丁。
+
+### 要做（持 MACHINE_LOCK；短任务，预计 <20 分钟）
+1. 模型用交付那套：encoder `qwen3asr_06b\models\ov-encoder-06b-fp16-static`，decoder `ov-dec-06b-stateful-int8sym`（bin SHA256 0059531a…，开头核对一次）。设备 NPU（encoder+decoder 都在 NPU，日志打 EXECUTION_DEVICES）。
+2. 素材：rc9 同一份 FLEURS dev 中英各 45 句（英 448.4 s / 中 467.4 s），再加固定 10 分钟片段（SPE 0–600 s）按 ≤30 s 无重叠切块（静音点切，不跨块回溯）。
+3. 离线口径：每句/每块 = 特征 → encoder 一次 → decoder 贪心解码到 EOS，不做流式重算。分别计时：特征、encoder、decoder prefill、decoder 每 token、合计。
+   - RTF = Σ合计墙钟 / Σ音频时长；同时报去掉首次编译/加载的 RTF，以及每块中位与 p95。
+   - 报 token/s、平均每秒音频的 token 数、模型加载/编译时间（有缓存、无缓存各一次）。
+4. 对照：同一会话、同素材，用现在的流式路径（bk_run.py 那套）跑一遍，报流式 RTF；再在 GPU.0 上跑一遍离线口径。三行放一张表。
+5. 准确率：离线和流式各报 WER/CER（同一 normalizer），只为确认离线没有掉字；reviewer 会用逐句结果复核。
+6. 结果写 STATUS 新一节 + json（逐句：id、时长、各段耗时、文本），路径写清楚。
+
+### 验收
+- 表：{NPU 离线, NPU 流式, GPU 离线} × {英, 中, SPE10min} 的 RTF（含/不含首编译）、各阶段占比、WER/CER；逐句 json 可重算；全程持锁，跑完释放，无残留进程。
+- 只写数据，不改交付默认。
