@@ -37,7 +37,8 @@ ANCHOR_MIN_S, ANCHOR_MAX_S = 4.0, 7.0
 ANCHOR_MIN_CHARS = 12
 ANCHOR_SEC_PER_CHAR = (0.17, 0.32)      # natural Chinese speaking rate (rejects runaway / clipped)
 SELF_REF_MIN_S = 1.5   # sentence-own-audio x-vector clone (before the speaker has a voice)
-SELF_REF_MIN_VOICED_S = 1.0   # v0.4.12: pitched speech needed in a self_ref reference
+SELF_REF_MIN_VOICED_S = 1.5   # v0.4.17: was 1.0 - user 11-17 run: self_0 (3.5 s, ~1.2 s voiced, mostly music/noise,
+                              #   cos 0.12 to the real speaker) became the voice for every sentence
 
 
 def voiced_seconds(pcm, sr: int = SR) -> float:
@@ -421,7 +422,13 @@ class CloneVoices:
                 return None
             for k in [k for k in cache if k[0] == path]:
                 del cache[k]
-            cache[key] = self._embed(x)
+            e = self._embed(x)
+            if e is None:
+                # v0.4.17: never cache a failed embedding - before the tracker's encoder is up
+                #   this returned None, the None stayed cached and the guard was off for the
+                #   whole session (user 11-17: guard_no_emb on every sentence)
+                return None
+            cache[key] = e
         return cache[key]
 
     def guard_voice(self, seg_id, voice: Optional[str]):
