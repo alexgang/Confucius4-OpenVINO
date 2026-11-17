@@ -198,10 +198,17 @@ _DRAFT_MT_CACHE_MAX = 2000
 # reviewer 原文（`status/app/CORRECTIONS_APP.md` APP-113 §1）：
 #   「`live_caption_app.py` 的 `_tts_skip_not_ready`（APP-069/070 冷启动策略）改为：
 #     TTS 未就绪时，终稿译文**进队列等待**，就绪后按正常排程合成播放，
-#     滞后靠自适应语速（最高 2.0×）追回。不丢句。」
+#     滞后靠自适应语速（最高 1.7×）追回。不丢句。」
 #   「队列要有上限保护，防止 TTS 一直起不来时无限增长：例如超过 120 s 仍未就绪，
 #     才按最旧优先丢弃并计数（`n_drop_not_ready_overflow`），并在 GUI/日志明示。
 #     正常冷启动（≤60 s）必须一句不丢。」
+# 🔴🔴🔳 **APP-114 §2.1 取代上面这句**（reviewer 裁定）：
+#   「120 s 溢出丢弃」与「一句不丢」**冲突** —— §212 冷启动臂实测
+#   **TTS 就绪用了 120.1 s** ⇒ 旧阈值 120 s **正好压在线上**
+#   ⇒ B 机或更冷的机器上**必然丢句**。
+#   ⇒ **取消「按时间丢弃」**（`_TTS_QUEUE_OVERFLOW_S = None`）
+#   ⇒ 只在「**TTS worker 明确失败或退出**」时清空队列（计数 + GUI 明示）
+#   ⇒ **正常加载慢的时候不按时间丢句**。
 #   「保留计数字段：`n_queued_before_ready`、就绪时刻、就绪后清空积压所用时间
 #     （滞后回到 <2 s 的时刻）。」
 #
@@ -214,10 +221,13 @@ _DRAFT_MT_CACHE_MAX = 2000
 #     App 层只在 **ready 之后**才调 `submit()` ⇒ 服务层的待发队列恒为空
 #     ⇒ 那条「准备期丢弃」逻辑**不会被触发**（老路径逐字不变）。
 
-#: 🔴 APP-113 §1：**队列溢出丢弃阈值**（秒）
-#:   ⇒ 「超过 120 s 仍未就绪」⇒ **按最旧优先丢弃**并计数。
-#:   ⚠️ 正常冷启动（≤60 s）**一句不丢**（sp4 实测 TTS 就绪 ≈ 88 s ⇒ 也不丢）。
-_TTS_QUEUE_OVERFLOW_S = 120.0
+#: 🔴🔴🔳 APP-114 §2.1：**「按时间丢弃」的阈值已取消**（`None` = **不设时间上限**）
+#:   ⇒ reviewer 原话：「正常加载慢的时候**不按时间丢句**；
+#:     只有 TTS worker 明确失败或退出时才清空队列，并计数、在 GUI 上显示」。
+#:   ⚠️ **实测依据**：§212 冷启动臂 **TTS 就绪 120.1 s** ⇒ 旧阈值 120 s 压线。
+#:   ⇒ **唯一的丢弃路径** = `clear_on_worker_failure()`（worker 失败/退出）。
+#:   ⚠️ 若将来要重新设时间上限，必须 **≫ 实测最坏冷启动**（建议 ≥600 s）。
+_TTS_QUEUE_OVERFLOW_S = None
 
 #: 🔴 APP-113 §1：**积压清空判据**（语音滞后 < 该值 ⇒ 视为已追平）
 _TTS_BACKLOG_CLEAR_S = 2.0
@@ -259,12 +269,14 @@ class TtsReadyQueue:
                  t0=None):
         self._lock = threading.Lock()
         self._q = []                       # [(入队墙钟, 提交动作, meta)]
-        self._overflow_s = float(overflow_s)
+        # 🔴 APP-114 §2.1：`None` ⇒ **不按时间丢弃**（默认 = `_TTS_QUEUE_OVERFLOW_S`）
+        self._overflow_s = (None if overflow_s is None else float(overflow_s))
         self._on_log = on_log
         self._t0 = float(t0) if t0 else time.time()   # 相对基准（墙钟）
         # ── APP-113 §1 要求保留的计数字段 ──
         self.n_queued_before_ready = 0     # 就绪前入队句数
-        self.n_drop_not_ready_overflow = 0  # 溢出丢弃句数
+        self.n_drop_not_ready_overflow = 0  # 溢出丢弃句数（APP-114 §2.1 后恒为 0）
+        self.n_drop_worker_failed = 0      # worker 失败/退出 ⇒ 清空的句数
         self.n_flushed = 0                 # 就绪后已补发的句数
         self.ready_at = None               # 就绪时刻（墙钟）
         self.ready_at_rel_s = None         # 就绪时刻（相对创建，秒）
@@ -302,10 +314,22 @@ class TtsReadyQueue:
 
     # -- 溢出保护 -------------------------------------------------------
     def enforce_overflow(self):
-        """🔴 超过 `overflow_s`（默认 120 s）仍未就绪 ⇒ **按最旧优先丢弃**。
+        """🔴🔴🔳 APP-114 §2.1：**「按时间丢弃」已取消** ⇒ **不丢句**。
 
-        ⇒ 返回被丢弃的 meta 列表（供调用方记账/提示）。
+        🔴 **reviewer 原话**（APP-114 §2.1）：
+          「120 s 溢出丢弃和『一句不丢』冲突 …… 改成：**只有 TTS worker 明确失败
+            或退出时才清空队列**，并计数、在 GUI 上显示；正常加载慢的时候
+            **不按时间丢句**。」
+
+        ⚠️ **实测依据**：§212 冷启动臂 **TTS 就绪 120.1 s** ⇒ 旧阈值 120 s
+          **压线** ⇒ B 机 / 更冷的机器上必然丢句。
+
+        ⚠️ **本方法保留**（调用点不变）⇒ 旧阈值不再生效；
+          若将来要重新设时间上限，必须 **≫ 实测最坏冷启动**（建议 ≥600 s）。
         """
+        # 🔴🔴🔳 APP-114 §2.1：**不设时间上限 ⇒ 不按时间丢弃**（一句不丢）
+        if self._overflow_s is None:
+            return []
         now = time.time()
         dropped = []
         with self._lock:
@@ -322,6 +346,26 @@ class TtsReadyQueue:
                     % (self._overflow_s, len(dropped),
                        self.n_drop_not_ready_overflow))
         return dropped
+
+    # -- worker 失败/退出 ⇒ 清空队列（APP-114 §2.1）---------------------
+    def clear_on_worker_failure(self, reason=''):
+        """🔴🔴🔳 APP-114 §2.1：**TTS worker 明确失败或退出** ⇒ 清空排队句。
+
+        ⇒ 这是**唯一**允许丢弃排队句的路径（正常慢加载**一律不丢**）；
+        ⇒ 丢弃句数计入 `n_drop_worker_failed`（GUI 明示 + 日志）。
+        """
+        with self._lock:
+            n = len(self._q)
+            self._q = []
+            if n:
+                self.n_drop_worker_failed += n
+        if self._on_log:
+            self._on_log(
+                '[TTS] 🔴 TTS worker 失败/退出（%s）⇒ **清空排队 %d 句**'
+                '（累计 worker 失败丢弃 %d 句；APP-114 §2.1：正常慢加载'
+                '不按时间丢句，只有 worker 失败/退出才清空）'
+                % (reason or '未知原因', n, self.n_drop_worker_failed))
+        return n
 
     # -- 就绪 / 积压清空 -------------------------------------------------
     def poll(self, ready, lag_s=None, ready_at=None, play_lag_s=None,
@@ -398,6 +442,7 @@ class TtsReadyQueue:
                 'n_pending': len(self._q),
                 'n_queued_before_ready': self.n_queued_before_ready,
                 'n_drop_not_ready_overflow': self.n_drop_not_ready_overflow,
+                'n_drop_worker_failed': self.n_drop_worker_failed,
                 'n_flushed': self.n_flushed,
                 'ready_at': self.ready_at,
                 'ready_at_rel_s': self.ready_at_rel_s,
@@ -407,6 +452,7 @@ class TtsReadyQueue:
                 'n_played_at_ready': self.n_played_at_ready,
                 'backlog_cleared_played_delta': self.backlog_cleared_played_delta,
                 'overflow_s': self._overflow_s,
+                'overflow_enabled': (self._overflow_s is not None),
                 'backlog_clear_threshold_s': _TTS_BACKLOG_CLEAR_S,
             }
 
@@ -3259,8 +3305,9 @@ class App:
         self.var_tts_voice_now = tk.StringVar(value='预设 A')
         # 🔴🔴🔳 APP-069④ / APP-070② A：未就绪被跳过的句数（诚实记账）
         # 🔴🔴🔳 **APP-113 §1（方案 B）**：就绪前**不再跳过** ⇒ 改为**排队等待**
-        #   ⇒ 本计数器现在只统计「**溢出丢弃**」（队列上限保护触发时）；
-        #   正常冷启动（≤120 s）它恒为 0 ⇒ **一句不丢**。
+        #   ⇒ 本计数器现在统计「**worker 失败/退出清空的句数**」
+        #     （APP-114 §2.1：唯一允许丢弃的路径）；正常慢加载 ⇒ 恒为 0
+        #     ⇒ **一句不丢**。
         self._tts_skip_not_ready = 0
         # 🔴🔴🔳 APP-113 §1：**就绪前排队**的定稿译文（GUI / CLI 共用一份实现）
         self._tts_pending_q = TtsReadyQueue(on_log=self._ui_log)
@@ -5160,9 +5207,10 @@ class App:
                         #   ⇒ 旧实现（APP-069④/070② A）改成**直接丢弃**
                         #   ⇒ 但那样**句子就没了**（APP-112 实测 sp3 丢 25/164 句）。
                         #   ⇒ **现在：进队列等待**，就绪后按 FIFO 原样补发
-                        #     ⇒ **不丢句**；滞后靠自适应语速（上限 2.0×）追回。
-                        #   ⚠️ 队列有**上限保护**：120 s 仍未就绪 ⇒ 按最旧优先
-                        #     丢弃并计数 `n_drop_not_ready_overflow`。
+                        #     ⇒ **不丢句**；滞后靠自适应语速（上限 1.7×）追回。
+                        #   🔴 APP-114 §2.1：**不再按时间丢弃** ⇒ 正常慢加载
+                        #     一句不丢；只有 **TTS worker 明确失败/退出**才清空
+                        #     队列（计数 `n_drop_worker_failed` + GUI 明示）。
                         if not self._tts_ready_for_speech():
                             self._tts_pending_q.push(
                                 self._tts_submit_fn(ev), meta={'seg': ev['seg']})
@@ -6734,7 +6782,8 @@ class App:
         """🔴🔴🔳 APP-113 §1：TTS 就绪 ⇒ **按 FIFO 补发**排队中的定稿译文。
 
         ⇒ 每次 `_pump_tts` 都调 ⇒ 就绪后**第一拍**就补发。
-        ⚠️ **不丢句**：队列里的句子一句都不跳（除非触发 120 s 溢出保护）。
+        ⚠️ **不丢句**：队列里的句子一句都不跳（**只有 TTS worker 明确失败/退出**
+        才清空 ⇒ APP-114 §2.1）。
         """
         try:
             q = getattr(self, '_tts_pending_q', None)
@@ -6857,9 +6906,10 @@ class App:
             _qst = self._tts_pending_q.stats()
             if _qst.get('n_queued_before_ready'):
                 n_q = n_q + int(_qst.get('n_pending') or 0)
-                _qtxt = '%d（就绪前排队 %d / 溢出丢弃 %d）' % (
+                # 🔴 APP-114 §2.1：唯一允许丢弃的路径 = worker 失败/退出
+                _qtxt = '%d（就绪前排队 %d / worker失败丢弃 %d）' % (
                     n_q, _qst.get('n_queued_before_ready') or 0,
-                    _qst.get('n_drop_not_ready_overflow') or 0)
+                    _qst.get('n_drop_worker_failed') or 0)
         except Exception:
             pass
         st.set('queue', '排队', _qtxt, priority=5)
@@ -7487,6 +7537,14 @@ class App:
                 f'🔴 语音输出不可用：{brief}\n详细信息见日志：{log_path}')
             self.var_status.set('语音输出加载失败（不影响字幕与翻译）')
             self._ui_log(f'[tts] worker error: {raw!r}')
+            # 🔴🔴🔳 APP-114 §2.1：worker **明确失败/退出** ⇒ 清空排队句
+            #   （**唯一**允许丢弃排队句的路径；计数 + GUI 明示）
+            try:
+                _q = getattr(self, '_tts_pending_q', None)
+                if _q is not None:
+                    _q.clear_on_worker_failure(raw or 'worker error')
+            except Exception:
+                pass
 
     def _retry_mt(self):
         """重新加载翻译模型（上次失败后用）。"""
@@ -7792,9 +7850,9 @@ def run_cli(args):
     # 🔴🔴🔳 **APP-113 §1（方案 B）**：就绪前**不再跳过** ⇒ 改为**排队等待**
     #   ⇒ 旧计数器 `_skip_nr`（「未就绪被跳过的句数」）**已删除**：
     #     CLI 侧**不再有「跳过」这条路径**（旧路径见 APP-069④ / APP-070② A）。
-    #   ⇒ 现在**唯一的丢弃来源**是队列溢出保护
-    #     （`_pending_q.n_drop_not_ready_overflow`）
-    #   ⇒ 正常冷启动（≤120 s）它恒为 0 ⇒ **一句不丢**。
+    #   ⇒ 现在**唯一的丢弃来源**是「TTS worker 明确失败/退出」
+    #     （`_pending_q.n_drop_worker_failed`；APP-114 §2.1）
+    #   ⇒ **正常加载慢一律不丢句**（不再按时间丢弃）。
     # 🔴🔴🔳 APP-113 §1：**就绪前排队**的定稿译文（GUI / CLI 共用一份实现）
     _pending_q = TtsReadyQueue(
         on_log=lambda m: print(f'  [TTS] {m}', flush=True), t0=_cli_t_start)
@@ -8511,6 +8569,11 @@ def run_cli(args):
             time.sleep(0.2)
             # 🔴🔴🔳 APP-113 §1：TTS 就绪 ⇒ **补发**就绪前排队的句子（第一拍就补）
             _cli_flush_pending()
+            # 🔴🔴🔳 APP-114 §2.1：TTS worker **明确失败/退出** ⇒ 清空排队句
+            #   （**唯一**允许丢弃排队句的路径；正常慢加载不按时间丢句）
+            if getattr(tts, 'state', '') == 'error':
+                _pending_q.clear_on_worker_failure(
+                    getattr(tts, 'err', '') or 'worker error')
             # 🔴🔴🔳 APP-113 §2：**各组件就绪时刻**（相对启动）
             if _mt_ready_rel_s[0] is None and getattr(mt, 'state', '') == 'ready':
                 _mt_ready_rel_s[0] = round(time.time() - _cli_t_start, 3)
@@ -8718,11 +8781,13 @@ def run_cli(args):
             _qs = _pending_q.stats()
             _tts_ready_rel = _qs.get('ready_at_rel_s')
             print('[APP-113] 就绪前排队=%d 溢出丢弃=%d 已补发=%d ｜ '
+                  'worker失败丢弃=%d ｜ '
                   'TTS就绪=%s 积压清空=%s 积压清空口径=%s ｜ 并行=%s ｜ '
                   'ASR就绪=%.1fs MT就绪=%s 进程已运行=%.1fs'
                   % (_qs.get('n_queued_before_ready'),
                      _qs.get('n_drop_not_ready_overflow'),
                      _qs.get('n_flushed'),
+                     _qs.get('n_drop_worker_failed') or 0,
                      ('%.1fs' % _tts_ready_rel) if _tts_ready_rel else '—',
                      ('%.1fs' % _qs['backlog_cleared_rel_s'])
                      if _qs.get('backlog_cleared_rel_s') is not None else '—',

@@ -1,29 +1,44 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""_app588_sp4_acceptance.py —— **APP-113 §4 的验收**：sp4 两次 10 分钟整链。
+"""_app588_sp4_acceptance.py —— **整链 10 分钟验收**（APP-113 §4 建，APP-114 §4 改判据）。
 
-🔴 **reviewer 原文（APP-113 §4）**：
-  「验收：持锁跑固定 10 分钟片段（SPE 0–600 s）两次：
-    1. sp4 SpecialMVP 中文目标；
-    2. sp4 英文目标（中→英或用同片段的英→英以外可行的配置，写明）。
-   每次报：译文句数 / 进 TTS 句数 / 丢句数（任何原因，必须 = 0）/ 排队句数 /
-   TTS 就绪时刻 / 积压清空时刻 / 倍率 P50/P95/max（max ≤ 2.0）/ 最大滞后。
-   **运行前确认 A 上没有其它大 IO 或 GPU 任务**（app582 期间有 5 GB 下载干扰，
-   那是 reviewer 的，已承认）；结果 json 里写锁证据和 timing_valid。
-   抽 3 段倍率 ≥1.8× 的配音 wav 放进 results，供用户抽听 2.0× 听感。」
+🔴 **reviewer 原文（APP-113 §4，本脚本的原型）**：
+  「验收：持锁跑固定 10 分钟片段（SPE 0–600 s）两次：sp4 SpecialMVP 中文目标；
+    sp4 英文目标。每次报：译文句数 / 进 TTS 句数 / 丢句数（任何原因，必须 = 0）/
+    排队句数 / TTS 就绪时刻 / 积压清空时刻 / 倍率 P50/P95/max（max ≤ 2.0）/
+    最大滞后。」
+
+🔴 **reviewer 原文（APP-114 §4，本轮的改动面）**：
+  「每臂都要满足：**speed max ≤ 1.70**（从逐句 tts.jsonl 原始字段计算）、
+    **丢句（任何原因）= 0**、译文句数 == 进 TTS 句数、排队句数 == 补发句数、rc=0。
+    每臂都要报：speed P50/P95/max 和 ≥1.6× 的句数；**lag max / lag end /
+    积压清空时刻**（口径用 play_lag_s）；TTS 就绪时刻、ASR 就绪时刻、边车加载时间；
+    `timing_valid` 以及外部大 IO 检查结果。……
+    **抽 3 段 1.6–1.7× 的配音样本给用户抽听，标注真实倍率。**
+    把三臂的 tts.jsonl、backlog_curve.csv、run log 原样留在 results/app/
+    （**不覆盖**），供 reviewer 本机复算。」
+  另 §2.2：「从现在起每臂的产物文件名都要带时间戳或 run 编号，**禁止覆盖**。」
+  另 §2.4：「在结果 json 里附上每句倍率的**直方图**（或排序后的前 15 个值），
+    说明为什么相等。」
 
 🔴 **本脚本的纪律**：
+  · **复用** APP-113 的同一个脚本（**不新建闸门/矩阵/判据脚本**，APP-110 §1）
+    ⇒ 只改**判据本身**（倍率上限 2.0→1.70、产物名带 run 编号不覆盖、
+      倍率直方图、抽听样本按真实倍率标注）+ 加 `--pkg` 参数以指向 sp5；
   · **持锁**：先建 `shared/MACHINE_LOCK`（内容 = 模块名 PID 开始时间 说明），
     锁已存在 ⇒ **排队等待**（不抢锁）；回收前用 ctypes OpenProcess +
     GetExitCodeProcess 确认 PID 真死（探测失败 ⇒ 视为存活 ⇒ 继续等）。
   · **锁证据进结果 json**（APP-112 §2 的立规）：锁内容 + 取锁时刻 + 放锁时刻。
   · **timing_valid**：跑前/跑后快照「监视目录里 >100 MB 的文件」的
     (size, mtime) ⇒ 运行窗口内有变化 ⇒ 判 `timing_valid=false` 并**如实列出**。
-  · **GPU 证据**：跑前/跑后/跑中采样 `nvidia-smi --query-compute-apps`
-    ⇒ 除本作业 worker 外**还有别的 GPU 进程** ⇒ 记 `gpu_external_tasks`。
+  · **GPU 证据**：跑前/跑后采样 `nvidia-smi --query-compute-apps`。
+  · **preflight（AST 直读，不 import）**：跑之前先确认**被测包**里的
+    `time_stretch.SPEED_MAX / ZH_SPEED_MAX = 1.70`、`_TTS_QUEUE_OVERFLOW_S is None`
+    ⇒ 验收结果确实落在「被测对象当前内容」上（§205 纪律）。
   · **不改产品代码、不打包 zip**（APP-055 + 用户级纪律）。
 """
 import argparse
+import ast
 import ctypes
 import hashlib
 import json
@@ -36,16 +51,18 @@ import time
 HOME = r"C:\Users\Trekker-PTL"
 REPO = os.path.join(HOME, 'confucius4-openvino')
 RESULTS = os.path.join(REPO, 'results', 'app')
-PKG = os.path.join(HOME, 'Confucius4_LiveCaption_SpecialMVP_v1.0-sp4')
+PKG_DEFAULT = os.path.join(HOME, 'Confucius4_LiveCaption_SpecialMVP_v1.0-sp5')
 AUDIO = os.path.join(REPO, 'test_audio', 'clip_10min_0_600.wav')
 LOCK = os.path.join(HOME, 'shared', 'MACHINE_LOCK')
-PKG_PY = os.path.join(PKG, 'python', 'python.exe')
+
+#: 🔴 **APP-114 §1**：语速上限（**所有目标语言**）
+SPEED_CAP = 1.70
 
 #: 🔴 **监视目录**（用于 timing_valid：这些目录里 >100 MB 的文件在运行窗口内
-#:   被改写 ⇒ 判「有外部大 IO」）—— app582 那次的 5 GB 下载就在 `Downloads`。
+#:   被改写 ⇒ 判「有外部大 IO」）
 WATCH_DIRS = [os.path.join(HOME, 'qwen3tts_eval'),
-               os.path.join(HOME, 'Downloads'),
-               os.path.join(HOME, 'gpt-sovits')]
+              os.path.join(HOME, 'Downloads'),
+              os.path.join(HOME, 'gpt-sovits')]
 WATCH_SKIP = {'.git', '.venv-cuda', '.venv-official-nb', '.venv-qwen3tts',
               '.tmp_ovms', 'node_modules', '__pycache__'}
 BIG_BYTES = 100 * 1024 * 1024
@@ -207,6 +224,59 @@ def gpu_apps():
 
 
 # ══════════════════════════════════════════════════════════════
+# preflight：被测包的「语速上限 / 队列语义」（AST 直读，不 import）
+# ══════════════════════════════════════════════════════════════
+def preflight(pkg):
+    """跑之前先确认**被测对象当前内容**（§205：证据必须描述被检对象）。"""
+    out = {'pkg': pkg, 'ok': False}
+    app_dir = os.path.join(pkg, 'app')
+    try:
+        src = open(os.path.join(app_dir, 'time_stretch.py'),
+                   encoding='utf-8').read()
+        tree = ast.parse(src)
+        consts = {}
+        for n in tree.body:
+            if isinstance(n, ast.Assign):
+                for tgt in n.targets:
+                    nm = getattr(tgt, 'id', None)
+                    if nm in ('SPEED_MAX', 'ZH_SPEED_MAX', 'SPEED_MIN',
+                              'ZH_SPEED_MIN', 'LAG_DEADZONE_S',
+                              'SPEED_PER_LAG_S', 'LAG_HYSTERESIS_S',
+                              'MAX_STEP_CHANGE'):
+                        consts[nm] = ast.literal_eval(n.value)
+        out['speed_constants'] = consts
+        out['speed_max_ok'] = (consts.get('SPEED_MAX') == SPEED_CAP
+                               and consts.get('ZH_SPEED_MAX') == SPEED_CAP)
+        out['gain_curve_unchanged'] = (
+            consts.get('LAG_DEADZONE_S') == 3.0
+            and consts.get('SPEED_PER_LAG_S') == 0.025
+            and consts.get('LAG_HYSTERESIS_S') == 2.0
+            and consts.get('MAX_STEP_CHANGE') == 0.1
+            and consts.get('SPEED_MIN') == 1.0
+            and consts.get('ZH_SPEED_MIN') == 1.10)
+        lca = open(os.path.join(app_dir, 'live_caption_app.py'),
+                   encoding='utf-8').read()
+        t2 = ast.parse(lca)
+        q = None
+        for n in t2.body:
+            if isinstance(n, ast.Assign):
+                for tgt in n.targets:
+                    if getattr(tgt, 'id', None) == '_TTS_QUEUE_OVERFLOW_S':
+                        q = ast.literal_eval(n.value)
+        out['queue_overflow_s'] = q
+        out['queue_no_time_drop'] = (q is None)
+        out['has_clear_on_worker_failure'] = ('clear_on_worker_failure'
+                                              in lca)
+    except Exception as e:
+        out['error'] = repr(e)
+        return out
+    out['ok'] = bool(out.get('speed_max_ok') and out.get('gain_curve_unchanged')
+                     and out.get('queue_no_time_drop')
+                     and out.get('has_clear_on_worker_failure'))
+    return out
+
+
+# ══════════════════════════════════════════════════════════════
 # 日志解析
 # ══════════════════════════════════════════════════════════════
 def parse_log(so):
@@ -227,6 +297,9 @@ def parse_log(so):
     queue_logs = [ln for ln in lines if '排队等待' in ln]
     flush_logs = [ln for ln in lines if '补发积压' in ln]
     overflow_logs = [ln for ln in lines if '丢弃' in ln and '准备' in ln]
+    asr_load = [ln for ln in lines if '加载' in ln and 'gpu_int8' in ln]
+    mt_ready = [ln for ln in lines if '翻译模型就绪' in ln]
+    worker_fail = [ln for ln in lines if 'worker 失败/退出' in ln]
     return {'n_translations': len(tr), 'translation_lines_sample': tr[:3],
             'tts_ready_log': ready, 'app113_lines': app113,
             'final_stats_lines': final_stats, 'tts_first_packet_lines': tts_first,
@@ -234,17 +307,23 @@ def parse_log(so):
             'e2e_lines': e2e, 'queue_log_count': len(queue_logs),
             'queue_log_sample': queue_logs[:3], 'flush_log_lines': flush_logs,
             'overflow_log_lines': overflow_logs,
+            'asr_load_lines': asr_load, 'mt_ready_lines': mt_ready,
+            'worker_failure_lines': worker_fail,
             'n_lines_total': len(lines)}
 
 
 def parse_app113_line(ln):
-    """解析 `[APP-113] 就绪前排队=N 溢出丢弃=N 已补发=N ｜ TTS就绪=… ｜ …`"""
+    """解析 `[APP-113] 就绪前排队=N 溢出丢弃=N 已补发=N ｜ worker失败丢弃=N ｜ …`"""
     out = {}
     m = re.search(r'就绪前排队=(\d+)\s+溢出丢弃=(\d+)\s+已补发=(\d+)', ln)
     if m:
         out['n_queued_before_ready'] = int(m.group(1))
         out['n_drop_not_ready_overflow'] = int(m.group(2))
         out['n_flushed'] = int(m.group(3))
+    # 🔴 APP-114 §2.1：**worker 失败/退出清空**的句数（唯一允许丢弃的路径）
+    m = re.search(r'worker失败丢弃=(\d+)', ln)
+    if m:
+        out['n_drop_worker_failed'] = int(m.group(1))
     m = re.search(r'TTS就绪=([\d.]+)s', ln)
     if m:
         out['tts_ready_rel_s'] = float(m.group(1))
@@ -263,9 +342,6 @@ def parse_app113_line(ln):
     m = re.search(r'MT就绪=([\d.]+)s', ln)
     if m:
         out['mt_ready_s'] = float(m.group(1))
-    # 🔴🔴 **口径修正（11-16 20:20）**：旧字段名 `TTS就绪(相对进程启动)` 实际打的是
-    #   **打印时刻的进程已运行秒数**（不是就绪时刻）⇒ **误标** ⇒ 已改名为
-    #   `进程已运行`，并把**真正的就绪时刻**放在 `TTS就绪=`（相对进程启动）。
     m = re.search(r'进程已运行=([\d.]+)s', ln)
     if m:
         out['proc_elapsed_at_print_s'] = float(m.group(1))
@@ -305,11 +381,51 @@ def sha256_file(p):
     return h.hexdigest()
 
 
-def extract_fast_wavs(rows, out_wav, wav_dir, tag, min_speed=1.8, want=3):
+def speed_histogram(speeds, step=0.05):
+    """🔴 APP-114 §2.4：**逐句倍率直方图**（回答「P95 为什么等于 max」）。"""
+    if not speeds:
+        return {'n': 0, 'bins': []}
+    bins = {}
+    for s in speeds:
+        k = round(round(s / step) * step, 4)
+        bins[k] = bins.get(k, 0) + 1
+    out = [{'speed_bin': k, 'n': v} for k, v in sorted(bins.items())]
+    top = sorted(speeds, reverse=True)
+    n_at_max = sum(1 for s in speeds if abs(s - top[0]) < 1e-9)
+    p95 = pct(speeds, 0.95)
+    return {
+        'n': len(speeds),
+        'step': step,
+        'bins': out,
+        'n_distinct_bins': len(out),
+        'max': top[0],
+        'n_at_max': n_at_max,
+        'p95': p95,
+        'p95_equals_max': (p95 is not None and abs(p95 - top[0]) < 1e-9),
+        'why_p95_equals_max': (
+            'P95 == max ⇒ 排序后第 95 百分位落在**最高倍率那一档**：'
+            '本臂 **%d/%d 句都停在同一个最高倍率 %.4f×** ⇒ 该档占比 %.1f %% '
+            '⇒ P95 与 max 必然相等（不是统计口径错）。'
+            % (n_at_max, len(speeds), top[0], 100.0 * n_at_max / len(speeds))
+            if p95 is not None and abs(p95 - top[0]) < 1e-9 else
+            'P95(%s) < max(%s) ⇒ 未落在同一档。' % (p95, top[0])),
+        'top15_sorted_desc': [round(x, 4) for x in top[:15]],
+        'top15_note': '排序后的前 15 个逐句倍率（降序）⇒ 可直接核对 P95/max。',
+    }
+
+
+def extract_fast_wavs(rows, out_wav, wav_dir, tag, lo=1.60, hi=1.70, want=3,
+                      pkg_py=None):
+    """🔴 APP-114 §4：抽 **3 段 1.6–1.7×** 的配音样本，**标注真实倍率**。
+
+    ⚠️ §2.3：「§212⑤ 写『候选 164 句（≥1.8×），抽出 3 段』，但这一臂
+      `n_speed_ge_1_8=0`，抽出的样本是 1.53×/1.37× ⇒ 改成按实际倍率的真实标注。」
+    ⇒ **没有命中目标档时**必须**如实标注**实际倍率，不得宣称是 ≥1.6× 的样本。
+    """
     if not os.path.isfile(out_wav):
         return {'error': 'tts out wav 不存在'}
     os.makedirs(wav_dir, exist_ok=True)
-    cands = []
+    played = []
     for r in rows:
         sp = r.get('speed')
         if sp is None or r.get('dropped'):
@@ -321,21 +437,22 @@ def extract_fast_wavs(rows, out_wav, wav_dir, tag, min_speed=1.8, want=3):
         t0, t1 = r.get('wav_t0'), r.get('wav_t1')
         if t0 is None or t1 is None:
             continue
-        cands.append({'id': r.get('id'), 'speed': round(sp, 4), 't0': t0,
-                      't1': t1, 'text': (r.get('text') or '')[:60],
-                      'out_dur_s': r.get('out_dur_s'),
-                      'play_lag_s': r.get('play_lag_s')})
-    cands.sort(key=lambda c: -c['speed'])
-    picked = cands[:want]
+        played.append({'id': r.get('id'), 'speed': round(sp, 4), 't0': t0,
+                       't1': t1, 'text': (r.get('text') or '')[:60],
+                       'out_dur_s': r.get('out_dur_s'),
+                       'play_lag_s': r.get('play_lag_s')})
+    band = [c for c in played if lo - 1e-9 <= c['speed'] <= hi + 1e-9]
     fell_back = False
-    if not picked:
+    if not band:
         fell_back = True
+        band = sorted(played, key=lambda c: -c['speed'])[:want]
+    picked = sorted(band, key=lambda c: -c['speed'])[:want]
     made = []
     for c in picked:
         dst = os.path.join(wav_dir, '%s_fast_id%s_speed%s.wav'
                            % (tag, c['id'], ('%.2f' % c['speed']).replace('.', '_')))
         p = subprocess.run(
-            [PKG_PY, '-c',
+            [pkg_py, '-c',
              "import soundfile as sf, numpy as np;"
              "d,sr=sf.read(r'%s');"
              "a=int(round(%r*sr)); b=int(round(%r*sr));"
@@ -347,22 +464,102 @@ def extract_fast_wavs(rows, out_wav, wav_dir, tag, min_speed=1.8, want=3):
         if os.path.isfile(dst):
             made.append({'file': dst, 'bytes': os.path.getsize(dst),
                          'sha256': sha256_file(dst), 'id': c['id'],
-                         'speed': c['speed'], 'text': c['text'],
-                         't0': c['t0'], 't1': c['t1'],
+                         'speed': c['speed'],
+                         'speed_label': ('真实倍率 %.4f×' % c['speed']),
+                         'in_target_band': (lo - 1e-9 <= c['speed'] <= hi + 1e-9),
+                         'text': c['text'], 't0': c['t0'], 't1': c['t1'],
                          'out_dur_s': c['out_dur_s'],
                          'play_lag_s': c['play_lag_s']})
         else:
             made.append({'file': dst, 'error': '切片失败', 'id': c['id'],
                          'speed': c['speed'], 'stderr': (p.stderr or '')[-300:]})
-    return {'min_speed': min_speed, 'n_candidates': len(cands),
+    note = ('目标档 **%.2f–%.2f×** 命中 **%d 句** ⇒ 抽出 %d 段（文件名与 '
+            'speed 字段均为**真实倍率**）。'
+            % (lo, hi, len([c for c in played if lo - 1e-9 <= c['speed'] <= hi + 1e-9]),
+               len(made)))
+    if fell_back:
+        note += ('　🔴 **本臂没有任何一句落在目标档** ⇒ 抽的是「倍率最高的 %d 句」'
+                 '（真实倍率见各样本 speed / speed_label）⇒ **不得**当作'
+                 '「1.6–1.7× 的样本」解读。' % len(made))
+    return {'target_band': [lo, hi], 'n_played_rows': len(played),
+            'n_in_band': len([c for c in played
+                              if lo - 1e-9 <= c['speed'] <= hi + 1e-9]),
             'n_made': len([m for m in made if 'error' not in m]),
-            'fell_back_to_top_speed': fell_back, 'samples': made,
-            'note': ('倍率 ≥%.1f× 的句子共 %d 句；抽出 %d 段供抽听。'
-                     % (min_speed, len(cands), len(made))
-                     + ('　🔴 **没有任何一句达到 %.1f×** ⇒ 样本是「倍率最高的前 %d 句」'
-                        '（实际倍率见 speed 字段）⇒ **不得**当作「≥%.1f× 的样本」解读。'
-                        % (min_speed, len(made), min_speed)
-                        if fell_back else ''))}
+            'fell_back_to_top_speed': fell_back, 'samples': made, 'note': note}
+
+
+def queue_probe(pkg):
+    """🔴 APP-114 §2.1 的**行为级**判据：真跑被测包里的 `TtsReadyQueue`。
+
+    ⇒ ① 入队 5 句 ⇒ 把入队时刻改到 **300 s 前**（远超旧阈值 120 s）
+      ⇒ **仍应全部保留、丢弃 0**（旧实现会按最旧优先丢弃）；
+    ⇒ ② `clear_on_worker_failure()` ⇒ 应清空并计数。
+    ⚠️ **不 import 被测模块**（它会拉起整套依赖）⇒ 用 **AST 直读 + exec**
+      把 `TtsReadyQueue` / `_TTS_QUEUE_OVERFLOW_S` / `_TTS_BACKLOG_CLEAR_S`
+      单独取出来跑（§205：证据必须属于被检对象 ⇒ 从**包内**文件取）。
+    """
+    out = {'pkg': pkg, 'ok': False}
+    app_dir = os.path.join(pkg, 'app')
+    path = os.path.join(app_dir, 'live_caption_app.py')
+    try:
+        import threading
+        import time as _time
+        src = open(path, encoding='utf-8').read()
+        tree = ast.parse(src)
+        want = {'TtsReadyQueue', '_TTS_QUEUE_OVERFLOW_S', '_TTS_BACKLOG_CLEAR_S'}
+        nodes = []
+        for n in tree.body:
+            nm = getattr(n, 'name', None)
+            if nm in want:
+                nodes.append(n)
+            if isinstance(n, ast.Assign):
+                for t in n.targets:
+                    if getattr(t, 'id', None) in want:
+                        nodes.append(n)
+        ns = {'threading': threading, 'time': _time, '__name__': 'app591_probe'}
+        exec(compile(ast.Module(body=nodes, type_ignores=[]), path, 'exec'), ns)
+        Q = ns['TtsReadyQueue']
+        out['overflow_s'] = ns['_TTS_QUEUE_OVERFLOW_S']
+        logs = []
+        q = Q(on_log=logs.append)
+        for i in range(5):
+            q.push((lambda i=i: None), meta={'i': i})
+        st1 = q.stats()
+        # 把入队时刻改到 300 s 前（模拟「等了很久仍未就绪」）
+        with q._lock:
+            for i, item in enumerate(q._q):
+                q._q[i] = (_time.time() - 300.0, item[1], item[2])
+        q.enforce_overflow()
+        q.poll(False)
+        st2 = q.stats()
+        n_cleared = q.clear_on_worker_failure('app591 probe')
+        st3 = q.stats()
+        out['n_pushed'] = 5
+        out['after_push'] = {'n_pending': st1['n_pending'],
+                             'n_drop_not_ready_overflow':
+                                 st1['n_drop_not_ready_overflow']}
+        out['after_300s_stale'] = {'n_pending': st2['n_pending'],
+                                   'n_drop_not_ready_overflow':
+                                       st2['n_drop_not_ready_overflow'],
+                                   'n_drop_worker_failed':
+                                       st2['n_drop_worker_failed']}
+        out['after_worker_failure'] = {'n_pending': st3['n_pending'],
+                                        'n_drop_worker_failed':
+                                            st3['n_drop_worker_failed'],
+                                        'n_cleared': n_cleared}
+        out['log'] = logs[-1] if logs else ''
+        out['ok'] = (st2['n_pending'] == 5
+                     and st2['n_drop_not_ready_overflow'] == 0
+                     and st2['n_drop_worker_failed'] == 0
+                     and st3['n_pending'] == 0
+                     and st3['n_drop_worker_failed'] == 5
+                     and n_cleared == 5)
+        out['criterion'] = ('入队 5 句 ⇒ 把入队时刻改到 300 s 前（> 旧阈值 120 s）'
+                            '⇒ 仍保留 5 句、丢弃 0；'
+                            'worker 失败 ⇒ 清空 5 句且计数 = 5')
+    except Exception as e:
+        out['error'] = repr(e)
+    return out
 
 
 def main():
@@ -373,62 +570,87 @@ def main():
                     help='调试用：跳过取锁（**验收必须带锁**）')
     ap.add_argument('--parallel', default='on', choices=['on', 'off'],
                     help='on = CUDA 边车与 ASR 并行加载（APP-113 §2 默认）；'
-                         'off = 强制串行（LIVECAP_TTS_PARALLEL=0）⇒ '
-                         '供「并行 vs 串行」同机 A/B')
+                         'off = 强制串行（LIVECAP_TTS_PARALLEL=0）')
     ap.add_argument('--tag', default='',
-                    help='产物文件名后缀覆盖（默认 sp4_<lang>）')
+                    help='产物文件名后缀覆盖（默认 <pkg>_<lang>）')
+    ap.add_argument('--pkg', default=PKG_DEFAULT,
+                    help='被测包目录（APP-114 ⇒ sp5）')
+    ap.add_argument('--run-id', default='',
+                    help='run 编号（默认 = 时间戳）⇒ **产物名唯一、禁止覆盖**')
+    ap.add_argument('--extra-evidence', default='',
+                    help='额外的证据 json 路径 ⇒ **合并进本臂的结果 json**'
+                         '（例如冷启动臂的「缓存挪开」记录）')
     args = ap.parse_args()
 
-    tag = args.tag or ('sp4_%s' % args.lang)
+    PKG = args.pkg
+    PKG_PY = os.path.join(PKG, 'python', 'python.exe')
+    tag = args.tag or ('%s_%s' % (os.path.basename(PKG).replace(
+        'Confucius4_LiveCaption_SpecialMVP_v1.0-', 'sp'), args.lang))
     if args.parallel == 'off':
         tag += '_serial'
-    tts_out = os.path.join(RESULTS, '_app588_%s_tts_out.wav' % tag)
+    # 🔴 APP-114 §2.2：**产物文件名带 run 编号（时间戳）** ⇒ 禁止同名覆盖
+    run_id = args.run_id or time.strftime('%Y%m%d-%H%M%S')
+    prefix = '_app591_%s_run%s' % (tag, run_id)
+    tts_out = os.path.join(RESULTS, '%s_tts_out.wav' % prefix)
     jsonl = tts_out + '.tts.jsonl'
     backlog = tts_out + '.backlog_curve.csv'
-    log_path = os.path.join(RESULTS, '_app588_%s.log' % tag)
-    out_json = os.path.join(RESULTS, 'app588_sp4_acceptance_%s.json' % tag)
-    wav_dir = os.path.join(RESULTS, '_app588_fast_samples')
+    log_path = os.path.join(RESULTS, '%s.log' % prefix)
+    out_json = os.path.join(RESULTS, 'app591_acceptance_%s_run%s.json'
+                            % (tag, run_id))
+    wav_dir = os.path.join(RESULTS, '_app591_fast_samples')
 
     if not os.path.isdir(PKG):
-        print('sp4 包不存在：%s' % PKG)
+        print('包不存在：%s' % PKG)
         return 2
+    for f_ in (tts_out, jsonl, backlog, log_path, out_json):
+        if os.path.exists(f_):
+            print('FAIL: 产物已存在（禁止覆盖，APP-114 §2.2）：%s' % f_)
+            return 2
 
-    ev = {'purpose': 'APP-113 §4：sp4 SpecialMVP 10 分钟整链验收（目标语言=%s）'
+    ev = {'purpose': 'APP-114 §4：SpecialMVP 10 分钟整链验收（目标语言=%s）'
                      % args.lang,
           'pkg': PKG, 'audio': AUDIO, 'target_lang': args.lang,
+          'run_id': run_id,
+          'artifact_prefix': prefix,
+          'artifact_note': '产物文件名带 run 编号（时间戳）⇒ **不覆盖**上一轮',
           'target_lang_note': (
               '中文目标：源=英文 SPE 片段 ⇒ `--translate zh`（英→中）'
               if args.lang == 'zh' else
               '英文目标：源=**英文** SPE 片段 ⇒ `--translate en`（**英→英**，'
               '同语言直译）⇒ reviewer 的「中→英」在**这段英文素材上不可行**'
               '（源不是中文）⇒ 改用同片段的**英→英**配置并在此**写明**；'
-              '该臂的用途是验证 **§3 非中文目标的语速上限 2.0×**'),
-          'cmd_note': '与 app582（sp3 中文目标）**逐字同构**，只换包路径与输出名 ⇒ 可对照',
+              '该臂的用途是验证 **§1 非中文目标的语速上限 1.70×**'),
+          'speed_cap_expected': SPEED_CAP,
           'started': time.strftime('%Y-%m-%d %H:%M:%S')}
 
-    # ── 🔴 **跑前把上一轮的产物挪开**（不是删）──
-    #   worker 的逐句 jsonl 是**追加**写（`'a'`）＋ 收尾整体重写（`'w'`）；
-    #   若本轮**中途崩溃** ⇒ jsonl 会留下「上一轮的旧行 + 本轮的新行」
-    #   ⇒ 句数/丢句统计会被污染 ⇒ **先把旧产物改名挪开**（可逆，不删）。
-    moved = []
-    for f_ in (tts_out, jsonl, backlog, log_path):
-        if os.path.isfile(f_):
-            bak = f_ + '.prev'
-            try:
-                os.replace(f_, bak)
-                moved.append({'from': os.path.basename(f_),
-                              'to': os.path.basename(bak),
-                              'bytes': os.path.getsize(bak)})
-            except Exception as e:
-                print('🔴 产物挪开失败（%s）：%r' % (f_, e))
-    ev['prev_artifacts_moved'] = moved
+    # ── preflight：被测包的代码事实 ──
+    pf = preflight(PKG)
+    ev['preflight'] = pf
+    qp = queue_probe(PKG)
+    ev['queue_probe'] = qp
+    pf['queue_probe_ok'] = qp.get('ok')
+    if args.extra_evidence and os.path.isfile(args.extra_evidence):
+        try:
+            with open(args.extra_evidence, encoding='utf-8') as f:
+                ev['extra_evidence'] = json.load(f)
+        except Exception as e:
+            ev['extra_evidence'] = {'error': repr(e),
+                                     'path': args.extra_evidence}
+    if not pf.get('ok'):
+        print('FAIL: preflight 不通过（被测包不是 APP-114 的代码）⇒ 零运行')
+        print(json.dumps(pf, ensure_ascii=False, indent=1))
+        return 3
+    if not qp.get('ok'):
+        print('FAIL: 队列行为探针不通过（§2.1 未生效）⇒ 零运行')
+        print(json.dumps(qp, ensure_ascii=False, indent=1))
+        return 3
 
     # ── 取锁 ──
     if args.no_lock:
         ev['lock_evidence'] = {'acquired': False,
                                'note': '**--no-lock**（调试用；验收必须带锁）'}
     else:
-        ev['lock_evidence'] = acquire_lock('app113-sp4-%s' % args.lang)
+        ev['lock_evidence'] = acquire_lock('app114-%s' % args.lang)
 
     try:
         cmd = [PKG_PY, os.path.join(PKG, 'app', 'live_caption_app.py'),
@@ -450,7 +672,7 @@ def main():
         before_files = snapshot_big_files()
         gpu_before = gpu_apps()
         t0 = time.time()
-        print('[app588] 起：%s' % ' '.join(cmd), flush=True)
+        print('[app591] 起：%s' % ' '.join(cmd), flush=True)
         p = subprocess.run(cmd, capture_output=True, text=True, timeout=7200,
                            cwd=PKG, env=env)
         t1 = time.time()
@@ -506,8 +728,6 @@ def main():
 
         # ── 逐句遥测 ──
         rows = parse_telemetry(jsonl)
-        # 🔴 **重复 id 自检**：worker 收尾会把 jsonl 整体重写 ⇒ 正常只有本轮的行；
-        #   若出现**重复 id** ⇒ 说明 jsonl 混进了上一轮的行（追加未重写）⇒ 统计不可信。
         _idc = {}
         for r in rows:
             _idc[r.get('id')] = _idc.get(r.get('id'), 0) + 1
@@ -522,14 +742,17 @@ def main():
         gains = [float(r['speed_gain']) for r in rows
                  if r.get('speed_gain') is not None and not r.get('dropped')]
         rtfs = [float(r['rtf_ewma']) for r in rows
-                if r.get('rtf_ewma') is not None and not r.get('dropped')]
+                 if r.get('rtf_ewma') is not None and not r.get('dropped')]
         n_drop_overflow = app113.get('n_drop_not_ready_overflow', 0)
+        n_drop_worker_failed = app113.get('n_drop_worker_failed', 0)
         n_drop_worker = len(dropped)
         ev['telemetry'] = {
             'n_rows': len(rows),
             'n_dropped_worker': n_drop_worker,
             'n_drop_not_ready_overflow': n_drop_overflow,
-            'n_drop_total_any_reason': n_drop_worker + n_drop_overflow,
+            'n_drop_worker_failed': n_drop_worker_failed,
+            'n_drop_total_any_reason': (n_drop_worker + n_drop_overflow
+                                         + n_drop_worker_failed),
             'n_played': len(rows) - n_drop_worker,
             'dropped_ids': [r.get('id') for r in dropped],
             'dropped_reasons': sorted(set(str(r.get('end_reason'))
@@ -539,8 +762,10 @@ def main():
             'speed_min': (min(speeds) if speeds else None),
             'speed_mean': (round(sum(speeds) / len(speeds), 4) if speeds else None),
             'speed_gain_mean': (round(sum(gains) / len(gains), 4) if gains else None),
+            'n_speed_ge_1_6': sum(1 for s in speeds if s >= 1.6),
+            'n_speed_ge_1_7': sum(1 for s in speeds if s >= 1.7 - 1e-9),
             'n_speed_ge_1_8': sum(1 for s in speeds if s >= 1.8),
-            'n_speed_ge_2_0': sum(1 for s in speeds if s >= 1.999),
+            'n_speed_ge_2_0': sum(1 for s in speeds if s >= 2.0 - 1e-9),
             'n_speed_at_floor_1_10': sum(1 for s in speeds if abs(s - 1.10) < 1e-6),
             'rtf_ewma_min': (min(rtfs) if rtfs else None),
             'rtf_ewma_max': (max(rtfs) if rtfs else None),
@@ -551,25 +776,23 @@ def main():
             'n_speed_floor_conflict': max([int(r.get('n_speed_floor_conflict') or 0)
                                            for r in rows] or [0]),
         }
+        # 🔴 APP-114 §2.4：逐句倍率直方图 + 排序前 15
+        ev['speed_histogram'] = speed_histogram(speeds)
         ev['sentence_counts'] = {
             'n_translations': lp['n_translations'],
             'n_translations_source': 'run log 里 [译文]/[修正译文] 行计数',
             'n_queued_before_ready': app113.get('n_queued_before_ready'),
             'n_flushed': app113.get('n_flushed'),
             'n_submitted_worker': len(rows),
-            'n_drop_total_any_reason': n_drop_worker + n_drop_overflow,
-            # 🔴🔴🔴 **口径修正（11-16 20:20）**：旧判据写成
-            #   「译文 == 就绪前排队 + 进 TTS」⇒ **把排队句重复计了一次**
-            #   （排队句本来就在「进 TTS」里）⇒ 上一轮**假 FAIL**。
-            #   正确不变式：**每一句译文要么进了 TTS，要么被丢** ⇒
-            #   `译文句数 == 进 TTS 句数 + 丢弃总数`。
-            #   另加一条独立不变式：**排队句全部补发**（n_flushed == n_queued）。
+            'n_drop_total_any_reason': (n_drop_worker + n_drop_overflow
+                                        + n_drop_worker_failed),
             'reconciliation_expr': '%s（译文）== %s（进 TTS）+ %s（丢弃）'
                                    % (lp['n_translations'], len(rows),
-                                      n_drop_worker + n_drop_overflow),
+                                      n_drop_worker + n_drop_overflow
+                                      + n_drop_worker_failed),
             'reconciliation_ok': (lp['n_translations']
                                   == len(rows) + n_drop_worker
-                                  + n_drop_overflow),
+                                  + n_drop_overflow + n_drop_worker_failed),
             'queue_flush_expr': '%s（就绪前排队）== %s（已补发）'
                                 % (app113.get('n_queued_before_ready'),
                                    app113.get('n_flushed')),
@@ -586,28 +809,32 @@ def main():
             'cuda_ready_lines': lp['cuda_ready_lines'],
             'model_done_lines': lp['model_done_lines'],
             'e2e_lines': lp['e2e_lines'],
+            'asr_load_lines': lp['asr_load_lines'],
+            'mt_ready_lines': lp['mt_ready_lines'],
         }
         ev['backlog_cleared_rel_s'] = app113.get('backlog_cleared_rel_s')
         ev['backlog_cleared_lag_kind'] = app113.get('backlog_cleared_lag_kind')
 
-        # ── 判定 ──
+        # ── 判定（APP-114 §4 的判据）──
+        n_drop_total = (n_drop_worker + n_drop_overflow + n_drop_worker_failed)
         checks = [
             {'name': '丢句数（任何原因）= 0',
-             'pass': (n_drop_worker + n_drop_overflow == 0),
-             'detail': 'worker丢弃=%d + 溢出丢弃=%d' % (n_drop_worker,
-                                                       n_drop_overflow)},
+             'pass': (n_drop_total == 0),
+             'detail': 'worker丢弃=%d + 溢出丢弃=%d + worker失败丢弃=%d'
+                       % (n_drop_worker, n_drop_overflow, n_drop_worker_failed)},
             {'name': '译文句数 == 进 TTS 句数 + 丢弃总数（无其它丢失路径）',
              'pass': ev['sentence_counts']['reconciliation_ok'],
              'detail': ev['sentence_counts']['reconciliation_expr']},
             {'name': '就绪前排队的句子**全部补发**（一句不丢）',
              'pass': ev['sentence_counts']['queue_flush_ok'],
              'detail': ev['sentence_counts']['queue_flush_expr']},
-            {'name': '倍率 max ≤ 2.0',
+            {'name': '倍率 max ≤ %.2f（APP-114 §1）' % SPEED_CAP,
              'pass': (ev['telemetry']['speed_max'] is not None
-                      and ev['telemetry']['speed_max'] <= 2.0 + 1e-9),
-             'detail': 'max=%s p50=%s p95=%s' % (ev['telemetry']['speed_max'],
-                                                ev['telemetry']['speed_p50'],
-                                                ev['telemetry']['speed_p95'])},
+                      and ev['telemetry']['speed_max'] <= SPEED_CAP + 1e-9),
+             'detail': 'max=%s p50=%s p95=%s'
+                       % (ev['telemetry']['speed_max'],
+                          ev['telemetry']['speed_p50'],
+                          ev['telemetry']['speed_p95'])},
             {'name': '退出码 0',
              'pass': (p.returncode == 0), 'detail': 'rc=%s' % p.returncode},
             {'name': '产出齐备（wav + 逐句 jsonl + 积压曲线）',
@@ -623,12 +850,15 @@ def main():
              'detail': 'TTS就绪=%s s（相对进程启动；收尾时进程已运行 %s s）'
                        % (app113.get('tts_ready_rel_s'),
                           app113.get('proc_elapsed_at_print_s'))},
-            {'name': '积压清空时刻已记录（口径=play_lag_s）',
-             'pass': app113.get('backlog_cleared_rel_s') is not None,
-             'detail': '积压清空=%s s（口径 %s；末句播放滞后 %s s）'
+            {'name': '积压清空时刻（**报告项**：APP-114 §4「lag 数字只报告、'
+                     '不设判定门槛」）',
+             'pass': True, 'report_only': True,
+             'detail': '积压清空=%s s（口径 %s；末句播放滞后 %s s；'
+                       'lag max=%s s）'
                        % (app113.get('backlog_cleared_rel_s'),
                           app113.get('backlog_cleared_lag_kind'),
-                          ev['telemetry'].get('play_lag_end'))},
+                          ev['telemetry'].get('play_lag_end'),
+                          ev['telemetry'].get('play_lag_max'))},
             {'name': ('ASR/TTS 并行生效（并行=on）' if args.parallel == 'on'
                       else 'ASR/TTS 强制串行生效（并行=off，对照臂）'),
              'pass': (app113.get('parallel') is True
@@ -636,14 +866,57 @@ def main():
                       else app113.get('parallel') is False),
              'detail': 'parallel=%s（请求=%s）'
                        % (app113.get('parallel'), args.parallel)},
+            {'name': 'preflight：被测包的语速上限=%.2f / 队列不按时间丢句'
+                     % SPEED_CAP,
+             'pass': bool(pf.get('ok')),
+             'detail': 'speed_constants=%s queue_overflow_s=%s'
+                       % (pf.get('speed_constants'), pf.get('queue_overflow_s'))},
+            {'name': '队列行为探针（§2.1）：300 s 过期仍不丢句；'
+                     'worker 失败才清空',
+             'pass': bool(qp.get('ok')),
+             'detail': '300s后保留=%s 丢弃=%s；worker失败清空=%s 计数=%s'
+                       % (qp.get('after_300s_stale', {}).get('n_pending'),
+                          qp.get('after_300s_stale', {}).get(
+                              'n_drop_not_ready_overflow'),
+                          qp.get('after_worker_failure', {}).get('n_cleared'),
+                          qp.get('after_worker_failure', {}).get(
+                              'n_drop_worker_failed'))},
         ]
         ev['checks'] = checks
-        ev['n_fail'] = sum(1 for c in checks if not c['pass'])
+        # 🔴 APP-114 §4：「lag 数字**只报告，不设判定门槛**」
+        #   ⇒ 带 `report_only` 的条目**不进判定**（只出现在报告里）。
+        ev['reports'] = [c for c in checks if c.get('report_only')]
+        ev['n_fail'] = sum(1 for c in checks
+                           if not c['pass'] and not c.get('report_only'))
         ev['verdict'] = 'PASS' if ev['n_fail'] == 0 else 'FAIL'
+        # ── APP-114 §4 明确要求「报」的指标（集中成一节，便于 reviewer 复算）──
+        ev['required_report'] = {
+            'speed_p50': ev['telemetry']['speed_p50'],
+            'speed_p95': ev['telemetry']['speed_p95'],
+            'speed_max': ev['telemetry']['speed_max'],
+            'n_speed_ge_1_6': ev['telemetry']['n_speed_ge_1_6'],
+            'n_speed_ge_1_7': ev['telemetry']['n_speed_ge_1_7'],
+            'play_lag_max': ev['telemetry']['play_lag_max'],
+            'play_lag_end': ev['telemetry']['play_lag_end'],
+            'backlog_cleared_rel_s': ev['backlog_cleared_rel_s'],
+            'backlog_cleared_lag_kind': ev['backlog_cleared_lag_kind'],
+            'tts_ready_rel_s': app113.get('tts_ready_rel_s'),
+            'asr_ready_s': app113.get('asr_ready_s'),
+            'mt_ready_s': app113.get('mt_ready_s'),
+            'sidecar_load_line': (lp['cuda_ready_lines'] or [None])[0],
+            'timing_valid': ev['timing_valid'],
+            'external_writes_during_run': ev['external_writes_during_run'],
+            'gpu_apps_before': ev['gpu_apps_before'],
+            'gpu_apps_after': ev['gpu_apps_after'],
+            'note': ('lag / 积压清空**只报告**（APP-114 §4：追赶会变慢，'
+                     'lag 数字不设判定门槛）⇒ 判定项只有 丢句=0 / 译文==进TTS / '
+                     '排队==补发 / max≤1.70 / rc=0 / 产出齐备 / 无重复 id / '
+                     '就绪时刻已记录 / 并行生效 / preflight / 队列探针。'),
+        }
 
-        # ── 抽 ≥1.8× 的 wav ──
-        ev['fast_samples'] = extract_fast_wavs(rows, tts_out, wav_dir, tag,
-                                                1.8, 3)
+        # ── 抽 1.6–1.7× 的 wav（真实倍率标注）──
+        ev['fast_samples'] = extract_fast_wavs(rows, tts_out, wav_dir, prefix,
+                                                1.60, 1.70, 3, PKG_PY)
         ev['finished'] = time.strftime('%Y-%m-%d %H:%M:%S')
     finally:
         if not args.no_lock:
