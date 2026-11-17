@@ -1,0 +1,226 @@
+{
+ "generated": "2026-11-17 21:15 (App module, session 3907664f)",
+ "readonly": true,
+ "purpose": "§215 取证：用实物证据闭合 §214 未结项「094715 臂的争用源未定位」，并给出「锁丢失」根因",
+ "method": "墙钟锚点＝**结束锚定**（jsonl mtime −（最后一句 t_done − 首句 t_submit））⇒ 与死会话逐臂窗口吻合 ±1–3 s；争用窗口＝**reviewer 作业窗口**（由落盘产物 mtime ＋ 脚本日志 ＋ 脚本 mtime 三重实物证据确定，**不靠 trace 时钟单独推日期**）；争用强度用 **App 自己的 sidecar elapsed**（App 日志自带字段）作独立佐证，不依赖 EXT 侧任何自述",
+ "reviewer_jobs_on_20261117": [
+  {
+   "name": "job1_run417",
+   "window": "09:46:49..09:54:10",
+   "date_basis": "run417.ps1 mtime 09:46:49 ＋ out_intro_busy/*.wav mtime 09:49:11-09:54:09（62 个文件 ↔ trace 该段 62 REQ）"
+  },
+  {
+   "name": "job2_q417",
+   "window": "10:07:53..10:18:28",
+   "date_basis": "q417.out: queued 10:05:23 / FREE 10:07:53 / DONE 10:18:28 / lock released ＋ out_intro/*.wav mtime 10:08:57-10:14:07（68 个文件 ↔ trace 该段 68 REQ）"
+  }
+ ],
+ "reviewer_trace_segments_on_20261117": [
+  {
+   "name": "seg_busy",
+   "clock": "09:48:59..09:54:10",
+   "n_req": 62,
+   "trace_lines": "4038-4195",
+   "date_basis": "落盘产物 mtime 落在该区间内 ⇒ 11-17"
+  },
+  {
+   "name": "seg_out_intro",
+   "clock": "10:08:50..10:14:07",
+   "n_req": 68,
+   "trace_lines": "4197-4371",
+   "date_basis": "落盘产物 mtime 落在该区间内 ⇒ 11-17"
+  }
+ ],
+ "replay2_lad_trace": {
+  "path": "C:\\Users\\Trekker-PTL\\live_dub_ext\\.tmp\\replay2_lad\\Confucius4LiveCaption\\tts_cuda_trace.log",
+  "bytes": 296649,
+  "sha256": "b06f4cd099cbe990b22c2bf281e0beacb70bfc1b7ffa0b01674710246584ac15",
+  "mtime": "2026-11-17T10:14:07.089298"
+ },
+ "arms": {
+  "094715_zh": {
+   "n_sent": 164,
+   "inside_reviewer_job": {
+    "n": 91,
+    "p50": 0.75,
+    "p90": 1.33,
+    "max": 2.03,
+    "n_gt_1s": 35,
+    "slow_rtf_gt_1": 37
+   },
+   "outside_reviewer_job": {
+    "n": 73,
+    "p50": 0.5,
+    "p90": 0.56,
+    "max": 0.62,
+    "n_gt_1s": 0,
+    "slow_rtf_gt_1": 0
+   },
+   "inside_trace_req_window": {
+    "n": 47,
+    "p50": 1.08,
+    "p90": 1.348,
+    "max": 1.45,
+    "n_gt_1s": 27,
+    "slow_rtf_gt_1": 26
+   },
+   "outside_trace_req_window": {
+    "n": 117,
+    "p50": 0.5,
+    "p90": 0.826,
+    "max": 2.03,
+    "n_gt_1s": 8,
+    "slow_rtf_gt_1": 11
+   },
+   "all_slow_inside_reviewer_job": true
+  },
+  "100823_zh": {
+   "n_sent": 164,
+   "inside_reviewer_job": {
+    "n": 154,
+    "p50": 0.58,
+    "p90": 1.34,
+    "max": 3.25,
+    "n_gt_1s": 45,
+    "slow_rtf_gt_1": 48
+   },
+   "outside_reviewer_job": {
+    "n": 10,
+    "p50": 0.415,
+    "p90": 0.443,
+    "max": 0.47,
+    "n_gt_1s": 0,
+    "slow_rtf_gt_1": 0
+   },
+   "inside_trace_req_window": {
+    "n": 44,
+    "p50": 1.21,
+    "p90": 1.468,
+    "max": 3.25,
+    "n_gt_1s": 35,
+    "slow_rtf_gt_1": 36
+   },
+   "outside_trace_req_window": {
+    "n": 120,
+    "p50": 0.53,
+    "p90": 0.67,
+    "max": 1.34,
+    "n_gt_1s": 10,
+    "slow_rtf_gt_1": 12
+   },
+   "all_slow_inside_reviewer_job": true
+  },
+  "093348_cold_zh": {
+   "n_sent": 164,
+   "inside_reviewer_job": {
+    "n": 0,
+    "slow_rtf_gt_1": 0
+   },
+   "outside_reviewer_job": {
+    "n": 164,
+    "p50": 0.45,
+    "p90": 0.5,
+    "max": 2.28,
+    "n_gt_1s": 1,
+    "slow_rtf_gt_1": 1
+   },
+   "inside_trace_req_window": {
+    "n": 0,
+    "slow_rtf_gt_1": 0
+   },
+   "outside_trace_req_window": {
+    "n": 164,
+    "p50": 0.45,
+    "p90": 0.5,
+    "max": 2.28,
+    "n_gt_1s": 1,
+    "slow_rtf_gt_1": 1
+   },
+   "all_slow_inside_reviewer_job": false
+  },
+  "095732_en": {
+   "n_sent": 164,
+   "inside_reviewer_job": {
+    "n": 0,
+    "slow_rtf_gt_1": 0
+   },
+   "outside_reviewer_job": {
+    "n": 164,
+    "p50": 0.39,
+    "p90": 0.42,
+    "max": 1.2,
+    "n_gt_1s": 1,
+    "slow_rtf_gt_1": 1
+   },
+   "inside_trace_req_window": {
+    "n": 0,
+    "slow_rtf_gt_1": 0
+   },
+   "outside_trace_req_window": {
+    "n": 164,
+    "p50": 0.39,
+    "p90": 0.42,
+    "max": 1.2,
+    "n_gt_1s": 1,
+    "slow_rtf_gt_1": 1
+   },
+   "all_slow_inside_reviewer_job": false
+  },
+  "101859_en": {
+   "n_sent": 164,
+   "inside_reviewer_job": {
+    "n": 0,
+    "slow_rtf_gt_1": 0
+   },
+   "outside_reviewer_job": {
+    "n": 164,
+    "p50": 0.44,
+    "p90": 0.487,
+    "max": 1.36,
+    "n_gt_1s": 1,
+    "slow_rtf_gt_1": 1
+   },
+   "inside_trace_req_window": {
+    "n": 0,
+    "slow_rtf_gt_1": 0
+   },
+   "outside_trace_req_window": {
+    "n": 164,
+    "p50": 0.44,
+    "p90": 0.487,
+    "max": 1.36,
+    "n_gt_1s": 1,
+    "slow_rtf_gt_1": 1
+   },
+   "all_slow_inside_reviewer_job": false
+  },
+  "140853_zh": {
+   "n_sent": 164,
+   "inside_reviewer_job": {
+    "n": 0,
+    "slow_rtf_gt_1": 0
+   },
+   "outside_reviewer_job": {
+    "n": 164,
+    "p50": 0.41,
+    "p90": 0.45,
+    "max": 2.88,
+    "n_gt_1s": 1,
+    "slow_rtf_gt_1": 1
+   },
+   "inside_trace_req_window": {
+    "n": 0,
+    "slow_rtf_gt_1": 0
+   },
+   "outside_trace_req_window": {
+    "n": 164,
+    "p50": 0.41,
+    "p90": 0.45,
+    "max": 2.88,
+    "n_gt_1s": 1,
+    "slow_rtf_gt_1": 1
+   },
+   "all_slow_inside_reviewer_job": false
+  }
+ }
+}
