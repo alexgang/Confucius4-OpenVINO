@@ -1,0 +1,513 @@
+{
+ "purpose": "APP-114 §4：SpecialMVP 10 分钟整链验收（目标语言=zh）｜**APP-115 v2**：计时无效（锁在运行中丢失 + synth_rtf P90>1.1）",
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5",
+ "audio": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+ "target_lang": "zh",
+ "run_id": "20261117-094715",
+ "artifact_prefix": "_app591_sp5_zh_run20261117-094715",
+ "artifact_note": "产物文件名带 run 编号（时间戳）⇒ **不覆盖**上一轮",
+ "target_lang_note": "中文目标：源=英文 SPE 片段 ⇒ `--translate zh`（英→中）",
+ "speed_cap_expected": 1.7,
+ "started": "2026-11-17 09:47:15",
+ "preflight": {
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5",
+  "ok": true,
+  "speed_constants": {
+   "LAG_DEADZONE_S": 3.0,
+   "SPEED_PER_LAG_S": 0.025,
+   "SPEED_MIN": 1.0,
+   "SPEED_MAX": 1.7,
+   "LAG_HYSTERESIS_S": 2.0,
+   "MAX_STEP_CHANGE": 0.1,
+   "ZH_SPEED_MIN": 1.1,
+   "ZH_SPEED_MAX": 1.7
+  },
+  "speed_max_ok": true,
+  "gain_curve_unchanged": true,
+  "queue_overflow_s": null,
+  "queue_no_time_drop": true,
+  "has_clear_on_worker_failure": true,
+  "queue_probe_ok": true
+ },
+ "queue_probe": {
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5",
+  "ok": true,
+  "overflow_s": null,
+  "n_pushed": 5,
+  "after_push": {
+   "n_pending": 5,
+   "n_drop_not_ready_overflow": 0
+  },
+  "after_300s_stale": {
+   "n_pending": 5,
+   "n_drop_not_ready_overflow": 0,
+   "n_drop_worker_failed": 0
+  },
+  "after_worker_failure": {
+   "n_pending": 0,
+   "n_drop_worker_failed": 5,
+   "n_cleared": 5
+  },
+  "log": "[TTS] 🔴 TTS worker 失败/退出（app591 probe）⇒ **清空排队 5 句**（累计 worker 失败丢弃 5 句；APP-114 §2.1：正常慢加载不按时间丢句，只有 worker 失败/退出才清空）",
+  "criterion": "入队 5 句 ⇒ 把入队时刻改到 300 s 前（> 旧阈值 120 s）⇒ 仍保留 5 句、丢弃 0；worker 失败 ⇒ 清空 5 句且计数 = 5"
+ },
+ "lock_evidence": {
+  "acquired": true,
+  "lock_content": "app 30104 2026-11-17 09:47:15 app114-zh",
+  "acquired_at": "2026-11-17 09:47:15",
+  "acquired_at_epoch": 1794880035.4702084,
+  "waited_s": 0.0,
+  "wait_history": [],
+  "released_at": "2026-11-17 09:57:32",
+  "released_at_epoch": 1794880652.0691042,
+  "lock_content_at_release": null
+ },
+ "cmd": [
+  "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5\\python\\python.exe",
+  "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5\\app\\live_caption_app.py",
+  "--cli",
+  "--file",
+  "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+  "--asr-device",
+  "GPU.0",
+  "--mt-device",
+  "NPU",
+  "--tts-device",
+  "CUDA",
+  "--translate",
+  "zh",
+  "--tts",
+  "on",
+  "--tts-out",
+  "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app591_sp5_zh_run20261117-094715_tts_out.wav"
+ ],
+ "cwd": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5",
+ "parallel_requested": "on",
+ "env_LIVECAP_TTS_PARALLEL": "(unset⇒on)",
+ "rc": 0,
+ "rc_hex": "0x00000000",
+ "elapsed_s": 613.5,
+ "run_window": {
+  "started": "2026-11-17 09:47:15",
+  "finished": "2026-11-17 09:57:29",
+  "audio": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+  "audio_bytes": 19200044
+ },
+ "timing_valid": false,
+ "timing_invalid_reason": "锁在运行中丢失（放锁时锁内容=None，**不是本作业 PID 21004**）；synth_rtf P90=1.165 > 0.75（合成 RTF 异常 ⇒ 机器被占） ⇒ **计时类结论不成立**（计数类结论不受影响）",
+ "external_writes_during_run": [],
+ "gpu_apps_before": [
+  "17752, [Insufficient Permissions], [N/A]",
+  "22744, C:\\Windows\\SystemApps\\MicrosoftWindows.Client.CoreAI_cw5n1h2txyewy\\ClickToDo.exe, [N/A]",
+  "29432, C:\\Program Files\\WindowsApps\\AD2F1837.OMENCommandCenter_1101.2611.2.0_x64__v10z8vjag6ke6\\OmenCommandCenterApp\\OmenCommandCenterBackground.exe, [N/A]"
+ ],
+ "gpu_apps_after": [
+  "17752, [Insufficient Permissions], [N/A]",
+  "22744, C:\\Windows\\SystemApps\\MicrosoftWindows.Client.CoreAI_cw5n1h2txyewy\\ClickToDo.exe, [N/A]",
+  "29432, C:\\Program Files\\WindowsApps\\AD2F1837.OMENCommandCenter_1101.2611.2.0_x64__v10z8vjag6ke6\\OmenCommandCenterApp\\OmenCommandCenterBackground.exe, [N/A]"
+ ],
+ "gpu_note": "跑前/跑后 nvidia-smi 计算进程快照；**若出现非本作业的 PID ⇒ 有外部 GPU 任务**",
+ "artifacts": {
+  "_app591_sp5_zh_run20261117-094715_tts_out.wav": {
+   "exists": true,
+   "bytes": 26838764,
+   "sha256": "d7b947bac298f4f91a1e5f2353cbdfe29b89028b6d165dc0dfcaca9cc0884511",
+   "mtime": 1794880646.8285217
+  },
+  "_app591_sp5_zh_run20261117-094715_tts_out.wav.tts.jsonl": {
+   "exists": true,
+   "bytes": 257698,
+   "sha256": "0334334e8f0f6f38f9bfed6537ffa4b1d655eca63d4d9aa80f062357352581b0",
+   "mtime": 1794880646.835771
+  },
+  "_app591_sp5_zh_run20261117-094715_tts_out.wav.backlog_curve.csv": {
+   "exists": true,
+   "bytes": 18643,
+   "sha256": "77aa3b0d36ffe22d31cfa602fdd15afad3247096a84db9e2643babc567993448",
+   "mtime": 1794880646.4133005
+  },
+  "_app591_sp5_zh_run20261117-094715.log": {
+   "exists": true,
+   "bytes": 295371,
+   "sha256": "9afadb665c4c54bbcb01c26ce93bd91e3384f6556370a85be1b122918c231bb3",
+   "mtime": 1794880649.4675694
+  }
+ },
+ "log_parse": {
+  "n_translations": 164,
+  "translation_lines_sample": [
+   "[译文] 好的。",
+   "[译文] 大家早上好。",
+   "[译文] 早上好。"
+  ],
+  "tts_ready_log": {
+   "line_no": 105,
+   "text": "  [TTS] [TTS] 就绪：CUDA · 音色 A"
+  },
+  "app113_lines": [
+   "[APP-113] 就绪前排队=10 溢出丢弃=0 已补发=10 ｜ worker失败丢弃=0 ｜ TTS就绪=33.0s 积压清空=— 积压清空口径=— ｜ 并行=on ｜ ASR就绪=4.2s MT就绪=8.6s 进程已运行=609.4s"
+  ],
+  "final_stats_lines": [
+   "[TTS] 最终统计（close 后）：提交 164  播完 164  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 4.47s  积压 最大 66.44s"
+  ],
+  "tts_first_packet_lines": [
+   "[TTS] 首包 0.39s  积压 当前 0.00s / 最大 66.44s  提交 164  播完 164  丢弃 0  重启 0  state=ready"
+  ],
+  "cuda_ready_lines": [
+   "  [TTS] [TTS] [tts_cuda] 就绪：NVIDIA GeForce RTX 5050 Laptop GPU / torch 2.11.0+cu128 / 加载 23.7s / 预热 2.0s"
+  ],
+  "model_done_lines": [
+   "  [TTS] [TTS] [tts_worker] 模型加载完成 31.3s"
+  ],
+  "e2e_lines": [
+   "  [TTS] [TTS] [tts_cuda] 端到端启动耗时 26.0 s"
+  ],
+  "queue_log_count": 2,
+  "queue_log_sample": [
+   "  [TTS] [TTS] 语音模型**首次准备中** ⇒ 本句**排队等待**（APP-113 §1：不丢句；已排队 1 句）",
+   "  [TTS] [TTS] 语音模型**首次准备中** ⇒ 本句**排队等待**（APP-113 §1：不丢句；已排队 10 句）"
+  ],
+  "flush_log_lines": [
+   "  [TTS] [TTS] 语音模型就绪（相对启动 +33.0 s）（APP-113 §1：开始补发积压句）",
+   "[TTS] 语音模型就绪 ⇒ 补发积压的 10 句（APP-113 §1）"
+  ],
+  "overflow_log_lines": [],
+  "asr_load_lines": [
+   "[gpu_int8] 加载 4.2 s，设备 GPU.0，识别语种 自动检测"
+  ],
+  "mt_ready_lines": [
+   "[实时] All right. Good morning, everyone.  [翻译] 翻译模型就绪（自动 · INT8-CW 模型（默认） · NPU，加载 4.1 s）"
+  ],
+  "worker_failure_lines": [],
+  "n_lines_total": 3008
+ },
+ "stdout_tail": "65 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5\\models\\qwen3tts\\voices\\preset_A.wav\n\n[译文] S，比如用于塔式配置，甚至可用于工作站配置。\n\n[实时] Right now we're in the process of working  [TTS] [TTS] 首包分段 id=161：排队 0.000 s + 合成 0.539 s\n\n[实时] Right now we're in the process of working with the data\n[定稿] Right now we're in the process of working with the data center.\n\n[gpu_int8] 音频 600.0s  墙钟 600.7s  RTF(计算) 0.793  出字延迟中位 826 ms  最大积压 22.8s  段 93\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] DONE rid=162 chunks=4 frames=28 mnt=165 reason=eos elapsed=0.53s total_s=1.45s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=161 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=53760 parts=4 peak=0.4727 rms_dbfs=-21.0 nan_inf=0 cb_delta=34 read_delta=1680 underflow_delta=33 ring=2400/72000 consumed=-\n  [TTS] [TTS] 遥测 id=161 peak=0.472656 rms_dbfs=-21.02 read_delta=1680 consumed=None\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] set_ref: C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落预设 A（已换回参考音频）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=3.643 s ⇒ speed=1.5557（lang=zh）\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] REQ rid=163 len=22 mnt=255 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] 首包分段 id=162：排队 0.000 s + 合成 0.545 s\n[译文] 目前我们正在与数据中心合作。\n[gpu_int8] 翻译 target=zh 后端=auto 设备 NPU state=ready 句数 163  延迟中位 1556.2 ms  P95 3868.6 ms  TTFT 950.6 ms  18.3 tok/s\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] DONE rid=163 chunks=8 frames=57 mnt=255 reason=eos elapsed=0.53s total_s=2.67s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=162 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=109440 parts=8 peak=0.5508 rms_dbfs=-19.1 nan_inf=0 cb_delta=63 read_delta=2400 underflow_delta=61 ring=1680/72000 consumed=-\n  [TTS] [TTS] 遥测 id=162 peak=0.550781 rms_dbfs=-19.11 read_delta=2400 consumed=None\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] set_ref: C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落预设 A（已换回参考音频）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=3.523 s ⇒ speed=1.5557（lang=zh）\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] REQ rid=164 len=14 mnt=183 ref=C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5\\models\\qwen3tts\\voices\\preset_A.wav\n  [TTS] [TTS] 首包分段 id=163：排队 0.000 s + 合成 0.392 s\n  [TTS] [TTS] [tts_cuda/stderr] [sidecar] DONE rid=164 chunks=5 frames=37 mnt=183 reason=eos elapsed=0.39s total_s=1.56s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=163 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=71040 parts=5 peak=0.4219 rms_dbfs=-19.1 nan_inf=0 cb_delta=36 read_delta=1680 underflow_delta=35 ring=1680/72000 consumed=-\n  [TTS] [TTS] 遥测 id=163 peak=0.421875 rms_dbfs=-19.05 read_delta=1680 consumed=None\n[TTS] 首包 0.39s  积压 当前 0.00s / 最大 66.44s  提交 164  播完 164  丢弃 0  重启 0  state=ready\n[APP-113] 就绪前排队=10 溢出丢弃=0 已补发=10 ｜ worker失败丢弃=0 ｜ TTS就绪=33.0s 积压清空=— 积压清空口径=— ｜ 并行=on ｜ ASR就绪=4.2s MT就绪=8.6s 进程已运行=609.4s\n[TTS] 收尾（close 前）：结尾滞后 4.47s  关闭作废 0  空句 0  积压 最大 66.44s\n[TTS] 语音已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app591_sp5_zh_run20261117-094715_tts_out.wav，逐句时间线 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app591_sp5_zh_run20261117-094715_tts_out.wav.tts.jsonl\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app591_sp5_zh_run20261117-094715_tts_out.wav.backlog_curve.csv（406 个采样点）\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n  [TTS] [TTS] [tts_worker] 已落盘 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app591_sp5_zh_run20261117-094715_tts_out.wav（559.14s，164 句，24000 Hz）\n[TTS] 最终统计（close 后）：提交 164  播完 164  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 4.47s  积压 最大 66.44s\n",
+ "stderr_tail": "[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认—— 客户机若装过 MiniMVP 或完整版就会留下这种文件⇒ 本包的出厂默认不同 ⇒ 改用本包出厂默认（asr=GPU.0，mt=NPU，tts=CUDA）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+ "app113": {
+  "n_queued_before_ready": 10,
+  "n_drop_not_ready_overflow": 0,
+  "n_flushed": 10,
+  "n_drop_worker_failed": 0,
+  "tts_ready_rel_s": 33.0,
+  "backlog_cleared_lag_kind": "—",
+  "parallel": true,
+  "asr_ready_s": 4.2,
+  "mt_ready_s": 8.6,
+  "proc_elapsed_at_print_s": 609.4
+ },
+ "telemetry_dup_ids": {
+  "n_dup_ids": 0,
+  "sample": {}
+ },
+ "telemetry": {
+  "n_rows": 164,
+  "n_dropped_worker": 0,
+  "n_drop_not_ready_overflow": 0,
+  "n_drop_worker_failed": 0,
+  "n_drop_total_any_reason": 0,
+  "n_played": 164,
+  "dropped_ids": [],
+  "dropped_reasons": [],
+  "speed_p50": 1.4246,
+  "speed_p95": 1.7,
+  "speed_max": 1.7,
+  "speed_min": 1.1,
+  "speed_mean": 1.3555,
+  "speed_gain_mean": 1.3455,
+  "n_speed_ge_1_6": 41,
+  "n_speed_ge_1_7": 21,
+  "n_speed_ge_1_8": 0,
+  "n_speed_ge_2_0": 0,
+  "n_speed_at_floor_1_10": 65,
+  "rtf_ewma_min": 0.5676,
+  "rtf_ewma_max": 2.2182,
+  "rtf_ewma_mean": 0.8277,
+  "play_lag_max": 72.181,
+  "play_lag_p95": 66.3581,
+  "play_lag_end": 5.073,
+  "n_speed_floor_conflict": 64,
+  "synth_rtf_n": 164,
+  "synth_rtf_p50": 0.665,
+  "synth_rtf_p90": 1.1653,
+  "synth_rtf_max": 2.2182,
+  "synth_rtf_min": 0.524,
+  "synth_rtf_n_gt_1": 37,
+  "synth_rtf_n_ge_0_75": 65
+ },
+ "speed_histogram": {
+  "n": 164,
+  "step": 0.05,
+  "bins": [
+   {
+    "speed_bin": 1.1,
+    "n": 68
+   },
+   {
+    "speed_bin": 1.15,
+    "n": 6
+   },
+   {
+    "speed_bin": 1.2,
+    "n": 2
+   },
+   {
+    "speed_bin": 1.25,
+    "n": 2
+   },
+   {
+    "speed_bin": 1.3,
+    "n": 1
+   },
+   {
+    "speed_bin": 1.35,
+    "n": 1
+   },
+   {
+    "speed_bin": 1.4,
+    "n": 11
+   },
+   {
+    "speed_bin": 1.45,
+    "n": 3
+   },
+   {
+    "speed_bin": 1.5,
+    "n": 6
+   },
+   {
+    "speed_bin": 1.55,
+    "n": 22
+   },
+   {
+    "speed_bin": 1.6,
+    "n": 13
+   },
+   {
+    "speed_bin": 1.65,
+    "n": 4
+   },
+   {
+    "speed_bin": 1.7,
+    "n": 25
+   }
+  ],
+  "n_distinct_bins": 13,
+  "max": 1.7,
+  "n_at_max": 21,
+  "p95": 1.7,
+  "p95_equals_max": true,
+  "why_p95_equals_max": "P95 == max ⇒ 排序后第 95 百分位落在**最高倍率那一档**：本臂 **21/164 句都停在同一个最高倍率 1.7000×** ⇒ 该档占比 12.8 % ⇒ P95 与 max 必然相等（不是统计口径错）。",
+  "top15_sorted_desc": [
+   1.7,
+   1.7,
+   1.7,
+   1.7,
+   1.7,
+   1.7,
+   1.7,
+   1.7,
+   1.7,
+   1.7,
+   1.7,
+   1.7,
+   1.7,
+   1.7,
+   1.7
+  ],
+  "top15_note": "排序后的前 15 个逐句倍率（降序）⇒ 可直接核对 P95/max。"
+ },
+ "sentence_counts": {
+  "n_translations": 164,
+  "n_translations_source": "run log 里 [译文]/[修正译文] 行计数",
+  "n_queued_before_ready": 10,
+  "n_flushed": 10,
+  "n_submitted_worker": 164,
+  "n_drop_total_any_reason": 0,
+  "reconciliation_expr": "164（译文）== 164（进 TTS）+ 0（丢弃）",
+  "reconciliation_ok": true,
+  "queue_flush_expr": "10（就绪前排队）== 10（已补发）",
+  "queue_flush_ok": true
+ },
+ "tts_ready": {
+  "app113_rel_s": 33.0,
+  "proc_elapsed_at_print_s": 609.4,
+  "asr_ready_s": 4.2,
+  "mt_ready_s": 8.6,
+  "parallel": true,
+  "log_line": {
+   "line_no": 105,
+   "text": "  [TTS] [TTS] 就绪：CUDA · 音色 A"
+  },
+  "cuda_ready_lines": [
+   "  [TTS] [TTS] [tts_cuda] 就绪：NVIDIA GeForce RTX 5050 Laptop GPU / torch 2.11.0+cu128 / 加载 23.7s / 预热 2.0s"
+  ],
+  "model_done_lines": [
+   "  [TTS] [TTS] [tts_worker] 模型加载完成 31.3s"
+  ],
+  "e2e_lines": [
+   "  [TTS] [TTS] [tts_cuda] 端到端启动耗时 26.0 s"
+  ],
+  "asr_load_lines": [
+   "[gpu_int8] 加载 4.2 s，设备 GPU.0，识别语种 自动检测"
+  ],
+  "mt_ready_lines": [
+   "[实时] All right. Good morning, everyone.  [翻译] 翻译模型就绪（自动 · INT8-CW 模型（默认） · NPU，加载 4.1 s）"
+  ]
+ },
+ "backlog_cleared_rel_s": null,
+ "backlog_cleared_lag_kind": "—",
+ "checks": [
+  {
+   "name": "丢句数（任何原因）= 0",
+   "pass": true,
+   "detail": "worker丢弃=0 + 溢出丢弃=0 + worker失败丢弃=0"
+  },
+  {
+   "name": "译文句数 == 进 TTS 句数 + 丢弃总数（无其它丢失路径）",
+   "pass": true,
+   "detail": "164（译文）== 164（进 TTS）+ 0（丢弃）"
+  },
+  {
+   "name": "就绪前排队的句子**全部补发**（一句不丢）",
+   "pass": true,
+   "detail": "10（就绪前排队）== 10（已补发）"
+  },
+  {
+   "name": "倍率 max ≤ 1.70（APP-114 §1）",
+   "pass": true,
+   "detail": "max=1.7 p50=1.4246 p95=1.7"
+  },
+  {
+   "name": "退出码 0",
+   "pass": true,
+   "detail": "rc=0"
+  },
+  {
+   "name": "产出齐备（wav + 逐句 jsonl + 积压曲线）",
+   "pass": true,
+   "detail": "_app591_sp5_zh_run20261117-094715_tts_out.wav,_app591_sp5_zh_run20261117-094715_tts_out.wav.tts.jsonl,_app591_sp5_zh_run20261117-094715_tts_out.wav.backlog_curve.csv"
+  },
+  {
+   "name": "逐句 jsonl **无重复 id**（未混入上一轮的行）",
+   "pass": true,
+   "detail": "重复 id 数=0（[]）"
+  },
+  {
+   "name": "TTS 就绪时刻已记录",
+   "pass": true,
+   "detail": "TTS就绪=33.0 s（相对进程启动；收尾时进程已运行 609.4 s）"
+  },
+  {
+   "name": "积压清空时刻已记录（口径=play_lag_s）",
+   "pass": false,
+   "detail": "积压清空=None s（口径 —；末句播放滞后 5.073 s）"
+  },
+  {
+   "name": "ASR/TTS 并行生效（并行=on）",
+   "pass": true,
+   "detail": "parallel=True（请求=on）"
+  },
+  {
+   "name": "preflight：被测包的语速上限=1.70 / 队列不按时间丢句",
+   "pass": true,
+   "detail": "speed_constants={'LAG_DEADZONE_S': 3.0, 'SPEED_PER_LAG_S': 0.025, 'SPEED_MIN': 1.0, 'SPEED_MAX': 1.7, 'LAG_HYSTERESIS_S': 2.0, 'MAX_STEP_CHANGE': 0.1, 'ZH_SPEED_MIN': 1.1, 'ZH_SPEED_MAX': 1.7} queue_overflow_s=None"
+  },
+  {
+   "name": "队列行为探针（§2.1）：300 s 过期仍不丢句；worker 失败才清空",
+   "pass": true,
+   "detail": "300s后保留=5 丢弃=0；worker失败清空=5 计数=5"
+  },
+  {
+   "name": "放锁时锁内容是否还是本作业（**报告项**：APP-115 §3.2）",
+   "pass": true,
+   "report_only": true,
+   "detail": "放锁时锁内容=None ⇒ 仍是本作业(PID 21004)=**False**；运行期间锁看门狗：采样 None 次 / 内容变动 None 次 / **非本作业的内容变动 None 次**"
+  },
+  {
+   "name": "synth_rtf 中位 / P90（**报告项**：APP-115 §3.2；判定线 P90≤0.75）",
+   "pass": true,
+   "report_only": true,
+   "detail": "synth_rtf 中位=0.665 P90=1.1653 max=2.2182；RTF>1 的句数=37 / 共 164 句"
+  }
+ ],
+ "n_fail": 1,
+ "verdict": "FAIL",
+ "fast_samples": {
+  "target_band": [
+   1.6,
+   1.7
+  ],
+  "n_played_rows": 164,
+  "n_in_band": 41,
+  "n_made": 3,
+  "fell_back_to_top_speed": false,
+  "samples": [
+   {
+    "file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app591_fast_samples\\_app591_sp5_zh_run20261117-094715_fast_id102_speed1_70.wav",
+    "bytes": 204524,
+    "sha256": "49b1ee5269d17f29685fdb66fd97a02e69ca9f19bd24f0b892ad50c5704e9437",
+    "id": 102,
+    "speed": 1.7,
+    "speed_label": "真实倍率 1.7000×",
+    "in_target_band": true,
+    "text": "因为我们的体积渗透率非常高，所以问题就是：该如何实现规模化发展呢？",
+    "t0": 391.65,
+    "t1": 395.91,
+    "out_dur_s": 4.26,
+    "play_lag_s": 58.018
+   },
+   {
+    "file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app591_fast_samples\\_app591_sp5_zh_run20261117-094715_fast_id103_speed1_70.wav",
+    "bytes": 53324,
+    "sha256": "56e5641f067299d882600c168568dfbe00c69a3619d8851f678ad912015175d6",
+    "id": 103,
+    "speed": 1.7,
+    "speed_label": "真实倍率 1.7000×",
+    "in_target_band": true,
+    "text": "我们处于开放状态。",
+    "t0": 395.91,
+    "t1": 397.02,
+    "out_dur_s": 1.11,
+    "play_lag_s": 59.335
+   },
+   {
+    "file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app591_fast_samples\\_app591_sp5_zh_run20261117-094715_fast_id105_speed1_70.wav",
+    "bytes": 25964,
+    "sha256": "4531a5bb34b4560cbfddc285618a5139185b4efdac12842c63f26dd5e5207613",
+    "id": 105,
+    "speed": 1.7,
+    "speed_label": "真实倍率 1.7000×",
+    "in_target_band": true,
+    "text": "OSVs。",
+    "t0": 400.8,
+    "t1": 401.34,
+    "out_dur_s": 0.54,
+    "play_lag_s": 55.951
+   }
+  ],
+  "note": "目标档 **1.60–1.70×** 命中 **41 句** ⇒ 抽出 3 段（文件名与 speed 字段均为**真实倍率**）。"
+ },
+ "finished": "2026-11-17 09:57:32",
+ "reports": [
+  {
+   "name": "放锁时锁内容是否还是本作业（**报告项**：APP-115 §3.2）",
+   "pass": true,
+   "report_only": true,
+   "detail": "放锁时锁内容=None ⇒ 仍是本作业(PID 21004)=**False**；运行期间锁看门狗：采样 None 次 / 内容变动 None 次 / **非本作业的内容变动 None 次**"
+  },
+  {
+   "name": "synth_rtf 中位 / P90（**报告项**：APP-115 §3.2；判定线 P90≤0.75）",
+   "pass": true,
+   "report_only": true,
+   "detail": "synth_rtf 中位=0.665 P90=1.1653 max=2.2182；RTF>1 的句数=37 / 共 164 句"
+  }
+ ],
+ "app115": {
+  "correction": "APP-115 §3.3-1",
+  "v2_of": "app591_acceptance_sp5_zh_run20261117-094715.json",
+  "original_untouched": true,
+  "original_sha256_before": "ecf214f413e03b44448d46278635767f0bd6ff1c057a4b703a85d76b5c96d119",
+  "reason": "锁在运行中丢失（放锁时锁内容=None ⇒ 不是本作业）+ synth_rtf P90=1.1653 > 1.1",
+  "reviewer_reference": "reviewer 的表：sp5 zh 094715 ⇒ synth_rtf 中位 0.665 / P90 1.165 / RTF>1 共 37 句；sp5 zh 100823 ⇒ 0.664 / 1.282 / 48 句 ⇒ 本 v2 用同一批 jsonl + 同一算法复算"
+ }
+}
