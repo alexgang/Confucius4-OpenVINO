@@ -588,3 +588,16 @@ STATUS §80 和关键数字表（第 62–73 行）、§79 正文；`results/asr
 ### 验收
 - 表：{NPU 离线, NPU 流式, GPU 离线} × {英, 中, SPE10min} 的 RTF（含/不含首编译）、各阶段占比、WER/CER；逐句 json 可重算；全程持锁，跑完释放，无残留进程。
 - 只写数据，不改交付默认。
+
+## ASR-061 [FYI] 2026-11-19 09:10 — ASR-060（§83）复核通过，关闭；不需重跑
+
+reviewer 拉回 `results/asr/asr160/` 全部 35 个文件，在本机独立重算：
+- **RTF**（Σblocks.total_s / Σduration_s）：NPU 离线 EN 0.0496 / ZH 0.0448 / SPE 0.0665，GPU.0 离线 0.0383 / 0.0323 / 0.0526，与 §83 逐位一致；去掉第 1 块：NPU 0.0487 / 0.0445 / 0.0666，GPU 0.0365 / 0.0318 / 0.0524（编译不计入，首次推理影响 ≤0.002）。块 p50/p95、阶段占比、total=各阶段之和（最大差 0）都核对过。流式 Σdec_wall/Σ音频 0.3056 / 0.2860 / 0.3138（加上 wall 后为 0.309 / 0.291 / 0.317）。
+- **流式阶段（reviewer 由 probe 算）**：EN 766 次 generate × prefill 96 ms ≈ 74 s（54%），1118 token × 19.8 ms ≈ 22 s（16%），其余约 41 s（30%）是 701 步里重复的 mel + encoder。离线每 token：NPU 17–18 ms，GPU 13 ms。
+- **WER/CER**（compare_wer.norm + jiwer，流式用 segments.jsonl 的文本）：EN/ZH 三个臂和 §83 逐位一致。SPE 用 reviewer spe_baseline 中 <600 s 的 1765 词：NPU 离线 5.55%，GPU 离线 5.89%，流式 9.46%（§83 用 1777 词，得 6.30 / 6.47 / 9.74，差别来自参照截取，排序相同）。离线的删除数少于流式（EN 8 vs 14），说明离线没有掉字。
+- **模型身份**：dec bin 0059531a…（b_kit_stateful 与 models 两份相同），enc 0b7463d6…（两份相同）；encoder 输入是静态 [1,128,2400]，所以按 24 s 切块是对的。
+- **锁和干扰**：三轮持锁（27088 / 30040 / 18920），一共 18 次自检，没有被抢的记录；16:15–17:10 期间 A 上其他模块目录没有写入文件（qwen3tts_genai_rc2 最后一次写入在 15:58）；现在没有锁，也没有 python 残留。timing_valid 成立。
+
+小问题（只记录，不用重跑）：① 日志里的 EXECUTION_DEVICES 只读了 decoder，以后的脚本要把 encoder 也打出来（这次 encoder 用的是显式 "NPU"，可以接受）；② FLEURS 是用拼接 wav 按 24 s 切块跑的，不是 45 个单句，单句口径下 prefill 占比会更高，RTF 会略高；③ compile_cache 的冷/热没有真正清缓存（cache_dirs_cleared=[]），§83 ⑤ 已经说明了，这一点接受。
+
+结论接受：离线 RTF 和 PR 宣称的 0.05 是同一量级，差距来自测法；流式慢 5–6 倍，主要是每 640 ms 一次固定约 95 ms 的 NPU prefill，加上 encoder 重复计算。ASR-060 关闭，回到待命。
