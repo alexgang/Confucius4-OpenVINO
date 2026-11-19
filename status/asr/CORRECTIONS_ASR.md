@@ -601,3 +601,25 @@ reviewer 拉回 `results/asr/asr160/` 全部 35 个文件，在本机独立重�
 小问题（只记录，不用重跑）：① 日志里的 EXECUTION_DEVICES 只读了 decoder，以后的脚本要把 encoder 也打出来（这次 encoder 用的是显式 "NPU"，可以接受）；② FLEURS 是用拼接 wav 按 24 s 切块跑的，不是 45 个单句，单句口径下 prefill 占比会更高，RTF 会略高；③ compile_cache 的冷/热没有真正清缓存（cache_dirs_cleared=[]），§83 ⑤ 已经说明了，这一点接受。
 
 结论接受：离线 RTF 和 PR 宣称的 0.05 是同一量级，差距来自测法；流式慢 5–6 倍，主要是每 640 ms 一次固定约 95 ms 的 NPU prefill，加上 encoder 重复计算。ASR-060 关闭，回到待命。
+
+## ASR-062 [NORMAL] 2026-11-19 09:30 — 用户要求：测两项改动对 Qwen3-ASR-0.6B **NPU 流式** RTF 的影响：① 降 NPUW_LLM_MAX_PROMPT_LEN；② encoder 按长度分档（静态多档）
+
+开始时先写 last_ack=ASR-062 和一行「最近更新」。只是实验，交付配置（MiniMVP/App 里的 `asr06b_stateful_backend.py`）不动；不升级 OpenVINO，不装 PR 分支，用现有 IR（decoder `ov-dec-06b-stateful-int8sym` bin 0059531a…，encoder `ov-encoder-06b-fp16-static` 0b7463d6…）。
+
+### 背景（reviewer 复核 ASR-060 得出）
+- NPU 流式纯 ASR RTF 0.29–0.32，离线 0.045–0.067。流式英文：766 次 prefill 每次约 96 ms 占 **54%**；701 步反复跑 mel+encoder 占 **30%**；逐 token 解码 16%。
+- 推断原因：NPU decoder 走 NPUW_LLM，`MAX_PROMPT_LEN=512` ⇒ 每次 prefill 都补齐到 512；encoder 是静态 `[1,128,2400]`，每 640 ms 都按满 24 s 计算。要实测证实。
+
+### 要做（持 MACHINE_LOCK；用原子创建锁，释放前核对锁内容是自己的）
+0. **先量实际长度**：用 ASR-060 同一套流式路径（bk_run.py 口径）跑 SPE 10 min + FLEURS 中英，记录每次 prefill 的真实 prompt 长度（前缀 + 音频 token）与每次送 encoder 的真实 mel 帧数；报 max / p99 / p50。
+1. **MAX_PROMPT_LEN 扫描**（只改 decoder 的 NPUW 属性，encoder 不加 NPUW）：取 {512 基线, ≥实测 max 向上取整到 64 的倍数, 再小一档（若 max 允许）}，必要时同步调整 `NPUW_LLM_MIN_RESPONSE_LEN` 并说明。超出 MAX_PROMPT_LEN 的段要能检测（报截断/报错计数，不得静默截断）。
+2. **encoder 分档**：不重新导出，用 `core.read_model` + `model.reshape({input: [1,128,N]})` 在 N ∈ {400, 800, 1600, 2400}（4/8/16/24 s）上各编译一份 NPU 静态模型；每次按实际 mel 长度选最小能放下的档、补零到该档。
+   - 先做数值对拍：同一段音频在 N 档与 2400 档的 encoder 输出（有效部分）余弦/最大误差，和下游文本是否一致；若不一致（补零长度影响结果）先报告再继续。
+   - 报每档编译时间、常驻内存增量。
+3. **组合**：{基线, 只①, 只②, ①+②} 四臂 × {SPE 10 min, FLEURS 英, FLEURS 中}，同一会话、同一素材连续跑；每臂报 RTF（不含编译）、prefill 每次 ms 中位/p95、encoder 每次 ms、逐 token ms、各阶段占比、出字延迟 p50/p95、WER/CER（同一 normalizer），以及截断次数。
+4. 有余力：同样两项在 GPU.0 流式上跑一臂（只②即可，GPU 本来就是动态 decoder），看是否也有收益。
+5. 结果写 STATUS 新一节 + 逐段 json（段 id、prompt 长度、mel 帧数、选中档、各阶段 ms、文本），路径写清楚。
+
+### 验收
+- 四臂表能从 json 重算；WER/CER 不劣化（配对 bootstrap 给 CI，判据用全集）；截断 0 或已列出；全程持锁、跑完释放、无残留进程。
+- 只写数据，是否改交付默认由用户决定。
