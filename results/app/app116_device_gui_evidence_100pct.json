@@ -1,0 +1,187 @@
+{
+  "ts_start": "2026-11-20 10:56:23",
+  "part_a": {
+    "ts": "2026-11-20 10:56:23",
+    "section": "A",
+    "devices": [
+      {
+        "id": "{0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}",
+        "name": "Speaker (Realtek(R) Audio)（2 声道）"
+      },
+      {
+        "id": "{0.0.0.00000000}.{2e4a781d-034e-4531-926c-cc620edf6d93}",
+        "name": "头戴式耳机 (Plantronics C320-M)（2 声道）"
+      }
+    ],
+    "target": {
+      "id": "{0.0.0.00000000}.{2e4a781d-034e-4531-926c-cc620edf6d93}",
+      "name": "头戴式耳机 (Plantronics C320-M)（2 声道）"
+    },
+    "reverse_lookup": {
+      "fixed": "{0.0.0.00000000}.{2e4a781d-034e-4531-926c-cc620edf6d93}",
+      "buggy": null
+    },
+    "resolve": {
+      "sd_device": 5,
+      "how": "端点 id → 「头戴式耳机 (Plantronics C320-M)」→ 播放索引 5"
+    },
+    "player_headphone": {
+      "out_desc": "头戴式耳机 (Plantronics C320-M)（hostapi=MME, ch=8, 设备默认 sr=44100）",
+      "out_requested": "{0.0.0.00000000}.{2e4a781d-034e-4531-926c-cc620edf6d93}",
+      "out_fallback": "",
+      "out_is_default": false,
+      "stream_open": true
+    },
+    "switch_log": [
+      {
+        "to": "Speaker (Realtek(R) Audio)（2 声道）",
+        "ok": true,
+        "out_desc": "Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100）",
+        "fallback": ""
+      },
+      {
+        "to": "头戴式耳机 (Plantronics C320-M)（2 声道）",
+        "ok": true,
+        "out_desc": "头戴式耳机 (Plantronics C320-M)（hostapi=MME, ch=8, 设备默认 sr=44100）",
+        "fallback": ""
+      }
+    ]
+  },
+  "part_b": {
+    "ts": "2026-11-20 10:56:25",
+    "section": "B",
+    "tk_scaling_base": 1.3330053300533005,
+    "tk_scaling_used": 1.3330053300533005,
+    "scale_factor": 1.0,
+    "removed_labels_present": [],
+    "defaults": {
+      "var_mt_draft": false,
+      "var_speaker": false,
+      "var_show_spk": true,
+      "_speaker_enabled": false
+    },
+    "advanced_grid": [
+      [
+        0,
+        0,
+        "识别后端"
+      ],
+      [
+        0,
+        1,
+        ""
+      ],
+      [
+        1,
+        0,
+        "翻译后端"
+      ],
+      [
+        1,
+        1,
+        ""
+      ],
+      [
+        2,
+        0,
+        "语音后端"
+      ],
+      [
+        2,
+        1,
+        ""
+      ],
+      [
+        3,
+        0,
+        "离线朗读"
+      ],
+      [
+        3,
+        1,
+        "📖 离线朗读…"
+      ],
+      [
+        3,
+        2,
+        "上传音频或输入文本直接播报，不经过识别与翻译"
+      ],
+      [
+        4,
+        0,
+        "测试声音"
+      ],
+      [
+        4,
+        1,
+        "🔊 测试声音"
+      ],
+      [
+        4,
+        2,
+        "播放 1 秒测试音，验证输出设备与播放链路"
+      ],
+      [
+        5,
+        0,
+        "⚠️ 戴耳机"
+      ],
+      [
+        5,
+        2,
+        "避免 TTS 声音被 ASR 回采造成回授"
+      ]
+    ],
+    "advanced_rows_used": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "advanced_overlaps": {},
+    "advanced_expanded": true,
+    "voice_values": [
+      "预设 A（女声）",
+      "预设 B（男声）",
+      "跟随说话人（克隆·实验）"
+    ],
+    "voice_current": "预设 A（女声）",
+    "screenshot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app116_gui_100pct.png",
+    "screenshot_bytes": 47941,
+    "screenshots": [
+      {
+        "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app116_gui_100pct.png",
+        "bytes": 47941
+      }
+    ]
+  },
+  "ts_end": "2026-11-20 10:56:30",
+  "n_pass": 21,
+  "n_fail": 0,
+  "fails": [],
+  "passes": [
+    "A2 修复后：名称→id 反查得到设备 id",
+    "A2 反证组：旧写法反查恒为 None（证明这一行就是根因）",
+    "A2 反证组：修复前后结果**不同**（证明修改确实生效）",
+    "A3 resolve_out_device(耳机 id) ⇒ 解析出设备（非 None）",
+    "A4 播放流打开成功",
+    "A4 实际输出落在**所选设备**（描述里含所选设备名关键词）",
+    "A4 **没有**回落到系统默认",
+    "A4 遥测带上「用户选的设备」",
+    "A5 切到「Speaker (Realtek(R) Audio)（2 声道）」⇒ 实际输出跟着变",
+    "A5 切回「头戴式耳机 (Plantronics C320-M)（2 声道）」⇒ 实际输出回到所选设备",
+    "A5 切换后**没有**回落",
+    "B1 控件 chk_mt_draft 已从界面移除",
+    "B1 控件 cb_show_spk 已从界面移除",
+    "B1 控件 cb_speaker 已从界面移除",
+    "B1 界面上不再出现 4 个选项的文字",
+    "B2 草稿译文默认**关闭**（行为不变）",
+    "B2 显示说话人默认**打开**（APP-040④ 不变）",
+    "B2 区分说话人默认值 = 旁路默认值（APP-054 不变）",
+    "B3 高级面板行号**连续**（无空洞）",
+    "B3 高级面板**无同格重叠**（旧的 row7/col1 重叠已消除）",
+    "B4 截图落盘（×1.00）"
+  ]
+}

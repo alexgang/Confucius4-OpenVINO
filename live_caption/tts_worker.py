@@ -936,6 +936,12 @@ class Player:
             if requested:
                 self.out_fallback = ('无法打开「%s」⇒ 已改用系统默认' % requested)
                 log(f'[tts_worker] 🔴 {self.out_fallback}')
+            # 🔴 连默认设备都打不开 ⇒ `out_desc` 不能留空（遥测/状态栏要看得到）
+            if not self.out_desc:
+                try:
+                    self.out_desc = _describe_out(sd, None)
+                except Exception:
+                    self.out_desc = '（未知设备）'
             log('[tts_worker] 🔴 默认设备也打不开 ⇒ 本次会话无法出声'
                 '（请检查系统是否有可用输出端点）')
             emit({'kind': 'error', 'message': f'播放设备打开失败：{err}'})

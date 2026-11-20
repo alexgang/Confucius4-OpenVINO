@@ -31,6 +31,16 @@ REPO = os.path.dirname(HERE)
 RESULTS = os.path.join(REPO, 'results', 'app')
 os.makedirs(RESULTS, exist_ok=True)
 
+# 🔴 缩放档位（reviewer 要 100 % 与 150 % 各一张）
+#   `--scale 1.0 --suffix 100pct` / `--scale 1.5 --suffix 150pct`
+SCALE = 1.0
+SUFFIX = '100pct'
+for _i, _a in enumerate(sys.argv):
+    if _a == '--scale' and _i + 1 < len(sys.argv):
+        SCALE = float(sys.argv[_i + 1])
+    if _a == '--suffix' and _i + 1 < len(sys.argv):
+        SUFFIX = sys.argv[_i + 1]
+
 FAILS = []
 PASSES = []
 
@@ -267,6 +277,18 @@ def part_b():
     import live_caption_app as lca
 
     root = tk.Tk()
+    # 🔴🔴🔴 **缩放必须在建控件之前设置**（否则 ttk 的渲染/布局不会重算
+    #   ⇒ 两次截图会**逐字节相同**）。
+    #   ⇒ 基准取本机默认 scaling，再乘以 --scale（1.0 / 1.5）。
+    _base_scaling = float(root.tk.call('tk', 'scaling'))
+    _want = _base_scaling * SCALE
+    root.tk.call('tk', 'scaling', _want)
+    ev['tk_scaling_base'] = _base_scaling
+    ev['tk_scaling_used'] = float(root.tk.call('tk', 'scaling'))
+    ev['scale_factor'] = SCALE
+    print('  tk scaling：%.4f ⇒ %.4f（×%.2f）'
+          % (_base_scaling, ev['tk_scaling_used'], SCALE), flush=True)
+
     _orig_load = lca.App.load_engine
     lca.App.load_engine = lambda self: None
     try:
@@ -392,21 +414,13 @@ def part_b():
     root.update()
     time.sleep(0.4)
     root.update()
-    p100 = os.path.join(RESULTS, 'app116_gui_100pct.png')
-    ok1 = _capture(root, p100)
-    check('B4 100% 截图落盘', ok1, p100)
-
-    root.tk.call('tk', 'scaling', 1.5)
-    root.update_idletasks()
-    root.update()
-    time.sleep(0.4)
-    root.update()
-    p150 = os.path.join(RESULTS, 'app116_gui_150pct.png')
-    ok2 = _capture(root, p150)
-    check('B4 150% 截图落盘', ok2, p150)
+    shot = os.path.join(RESULTS, 'app116_gui_%s.png' % SUFFIX)
+    ok2 = _capture(root, shot)
+    check('B4 截图落盘（×%.2f）' % SCALE, ok2, shot)
+    ev['screenshot'] = shot
+    ev['screenshot_bytes'] = os.path.getsize(shot) if os.path.exists(shot) else 0
     ev['screenshots'] = [
-        {'path': p100, 'bytes': os.path.getsize(p100) if os.path.exists(p100) else 0},
-        {'path': p150, 'bytes': os.path.getsize(p150) if os.path.exists(p150) else 0},
+        {'path': shot, 'bytes': os.path.getsize(shot) if os.path.exists(shot) else 0},
     ]
     try:
         root.destroy()
@@ -436,7 +450,7 @@ def main():
     ev['n_fail'] = len(FAILS)
     ev['fails'] = FAILS
     ev['passes'] = PASSES
-    out = os.path.join(RESULTS, 'app116_device_gui_evidence.json')
+    out = os.path.join(RESULTS, 'app116_device_gui_evidence_%s.json' % SUFFIX)
     with open(out, 'w', encoding='utf-8') as f:
         json.dump(ev, f, ensure_ascii=False, indent=2)
     print('\n=== 汇总：PASS %d / FAIL %d ===' % (len(PASSES), len(FAILS)))

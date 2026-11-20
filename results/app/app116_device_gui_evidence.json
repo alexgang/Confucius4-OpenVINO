@@ -1,7 +1,7 @@
 {
-  "ts_start": "2026-11-20 10:46:00",
+  "ts_start": "2026-11-20 10:56:07",
   "part_a": {
-    "ts": "2026-11-20 10:46:00",
+    "ts": "2026-11-20 10:56:07",
     "section": "A",
     "devices": [
       {
@@ -48,8 +48,11 @@
     ]
   },
   "part_b": {
-    "ts": "2026-11-20 10:46:02",
+    "ts": "2026-11-20 10:56:09",
     "section": "B",
+    "tk_scaling_base": 1.3330053300533005,
+    "tk_scaling_used": 2.0013542628501075,
+    "scale_factor": 1.5,
     "removed_labels_present": [],
     "defaults": {
       "var_mt_draft": false,
@@ -145,19 +148,17 @@
       "跟随说话人（克隆·实验）"
     ],
     "voice_current": "预设 A（女声）",
+    "screenshot": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app116_gui_150pct.png",
+    "screenshot_bytes": 73676,
     "screenshots": [
       {
-        "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app116_gui_100pct.png",
-        "bytes": 47941
-      },
-      {
         "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app116_gui_150pct.png",
-        "bytes": 47941
+        "bytes": 73676
       }
     ]
   },
-  "ts_end": "2026-11-20 10:46:09",
-  "n_pass": 22,
+  "ts_end": "2026-11-20 10:56:15",
+  "n_pass": 21,
   "n_fail": 0,
   "fails": [],
   "passes": [
@@ -181,7 +182,6 @@
     "B2 区分说话人默认值 = 旁路默认值（APP-054 不变）",
     "B3 高级面板行号**连续**（无空洞）",
     "B3 高级面板**无同格重叠**（旧的 row7/col1 重叠已消除）",
-    "B4 100% 截图落盘",
-    "B4 150% 截图落盘"
+    "B4 截图落盘（×1.50）"
   ]
 }
