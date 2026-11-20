@@ -38,7 +38,7 @@ RESULTS = os.path.join(REPO, 'results', 'app')
 OUT = os.path.join(RESULTS, 'app116_preset_eval')
 LISTEN = os.path.join(RESULTS, 'app116_preset_b_listen')
 LOCK = os.path.join(HOME, 'shared', 'MACHINE_LOCK')
-PKG_PY = os.path.join(HOME, 'Confucius4_LiveCaption_v2.4', 'python', 'python.exe')
+PKG_PY = os.path.join(HOME, 'Confucius4_LiveCaption_v2.5', 'python', 'python.exe')
 
 ZH = [
     '今天天气很好，我们去公园里走一走吧。',
@@ -240,6 +240,48 @@ def synthesize(voice, dump_dir, jsonl_path, mix_wav):
 
 
 # ── ASR 回转写 + CER/WER ────────────────────────────────────────
+def _sent_wavs(dump_dir):
+    """🔴🔴 **句 id → 主 wav** 的**正确**映射。
+
+    🔴 旧写法 `sorted(os.listdir(dump))` 是**错的**：
+    `--dump-dir` 里每句会落 **1～2 个**文件（主段 `seg_<id>_<seq>.wav`
+    ＋ 变速段 `seg_<id>_<seq>_acc110.wav`）⇒ 20 句会落 **30** 个文件
+    ⇒ 按文件名排序取 `items[i]` 会**整段错位**。
+    ⇒ 正确做法：按**句 id** 匹配 `seg_<id>_*.wav` 且**排除** `_acc110`。
+    """
+    import glob
+    out = {}
+    if not os.path.isdir(dump_dir):
+        return out
+    for f in glob.glob(os.path.join(dump_dir, 'seg_*.wav')):
+        b = os.path.basename(f)
+        if b.endswith('_acc110.wav'):
+            continue
+        m = re.match(r'seg_(\d+)_', b)
+        if not m:
+            continue
+        out[int(m.group(1))] = f
+    return out
+
+
+def _sent_texts(jsonl_path):
+    """句 id → 参考文本（从 worker 的 jsonl 取，避免手写列表与实际不同步）。"""
+    out = {}
+    if not os.path.exists(jsonl_path):
+        return out
+    for line in open(jsonl_path, encoding='utf-8', errors='replace'):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            d = json.loads(line)
+        except Exception:
+            continue
+        if 'id' in d and d.get('text'):
+            out[int(d['id'])] = d['text']
+    return out
+
+
 def transcribe(wavs):
     """用仓库现成的 OV ASR 回转写（GPU.0）。
 
@@ -250,6 +292,12 @@ def transcribe(wavs):
     import numpy as np
     import soundfile as sf
     sys.path.insert(0, REPO)
+    # 🔴 `backends.py` 里 `import qwen_asr`（触发 qwen3_asr 注册）⇒
+    #   该包在 **ASR 线程的 vendor 目录**里，不在本仓库根 ⇒ 必须显式加路径，
+    #   否则 `ModuleNotFoundError: No module named 'qwen_asr'`。
+    for _p in (os.path.join(HOME, 'qwen3asr_06b', 'vendor'),):
+        if os.path.isdir(_p):
+            sys.path.insert(0, _p)
     from backends import OVBackend, SAMPLE_RATE
     from streaming_asr import parse_asr_output
     log('加载 OV ASR（models/ov-int8-past, GPU.0）…')
@@ -315,6 +363,8 @@ def cer(ref, hyp, zh=True):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--skip-asr', action='store_true')
+    ap.add_argument('--reuse-synth', action='store_true',
+                    help='**复用**已落盘的合成结果（不重跑 TTS）')
     args = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
     os.makedirs(LISTEN, exist_ok=True)
@@ -327,15 +377,23 @@ def main():
             dump = os.path.join(OUT, 'dump_%s' % voice)
             jsonl = os.path.join(OUT, 'synth_%s.jsonl' % voice)
             mix = os.path.join(OUT, 'mix_%s.wav' % voice)
-            ok = synthesize(voice, dump, jsonl, mix)
-            wavs = []
-            if os.path.isdir(dump):
-                wavs = [os.path.join(dump, f) for f in sorted(os.listdir(dump))
-                        if f.endswith('.wav')]
-            log('音色 %s：落盘 %d 段 wav' % (voice, len(wavs)))
-            rec = {'n_wav': len(wavs), 'dump_dir': dump, 'jsonl': jsonl}
-            if wavs and not args.skip_asr:
-                rec['asr'] = transcribe(wavs)
+            sent = _sent_wavs(dump)
+            if args.reuse_synth and len(sent) >= len(ZH) + len(EN):
+                log('音色 %s：--reuse-synth ⇒ 跳过合成（已有 %d 句落盘）'
+                    % (voice, len(sent)))
+                ok = True
+            else:
+                ok = synthesize(voice, dump, jsonl, mix)
+                sent = _sent_wavs(dump)
+            log('音色 %s：按**句 id** 映射到 %d 段主 wav（dump 目录共 %d 个文件）'
+                % (voice, len(sent),
+                   len([f for f in os.listdir(dump) if f.endswith('.wav')])
+                   if os.path.isdir(dump) else 0))
+            rec = {'n_wav': len(sent), 'dump_dir': dump, 'jsonl': jsonl,
+                   'sent_wavs': {str(k): v for k, v in sorted(sent.items())},
+                   'synth_ok': bool(ok)}
+            if sent and not args.skip_asr:
+                rec['asr'] = transcribe(list(sent.values()))
             rep['voices'][voice] = rec
     finally:
         release_lock(content)
@@ -346,23 +404,25 @@ def main():
         if 'asr' not in rec:
             continue
         per = []
-        items = [('zh', t) for t in ZH] + [('en', t) for t in EN]
-        wavs = [os.path.join(rec['dump_dir'], f)
-                for f in sorted(os.listdir(rec['dump_dir']))
-                if f.endswith('.wav')] if os.path.isdir(rec['dump_dir']) else []
-        for i, (lang, ref) in enumerate(items):
-            if i >= len(wavs):
-                break
-            hyp = rec['asr'].get(wavs[i]) or ''
+        # 🔴 参考文本与 wav 都按**句 id** 取（不再靠排序位置）
+        texts = _sent_texts(rec.get('jsonl') or '')
+        sent = {int(k): v for k, v in (rec.get('sent_wavs') or {}).items()}
+        for sid in sorted(sent):
+            ref = texts.get(sid) or ''
+            lang = 'zh' if sid <= len(ZH) else 'en'
+            hyp = rec['asr'].get(sent[sid]) or ''
             e = cer(ref, hyp, zh=(lang == 'zh'))
-            per.append({'i': i, 'lang': lang, 'ref': ref, 'hyp': hyp,
+            per.append({'id': sid, 'lang': lang, 'ref': ref, 'hyp': hyp,
+                        'wav': sent[sid],
                         'err_rate': round(e, 4)})
         zhv = [x['err_rate'] for x in per if x['lang'] == 'zh']
         env = [x['err_rate'] for x in per if x['lang'] == 'en']
         rec['per_sentence'] = per
         rec['cer_zh'] = round(sum(zhv) / len(zhv), 4) if zhv else None
         rec['wer_en'] = round(sum(env) / len(env), 4) if env else None
-        summary[voice] = {'cer_zh': rec['cer_zh'], 'wer_en': rec['wer_en']}
+        rec['n_scored'] = len(per)
+        summary[voice] = {'cer_zh': rec['cer_zh'], 'wer_en': rec['wer_en'],
+                          'n_scored': len(per)}
     rep['summary'] = summary
     log('=== CER/WER 汇总 === %s' % json.dumps(summary, ensure_ascii=False))
 
@@ -375,15 +435,10 @@ def main():
         for x in (zh_p[:2] + en_p[:2]):
             picked.append(x)
     for x in picked:
-        i = x['i']
-        src_dir = recB.get('dump_dir')
-        if not src_dir or not os.path.isdir(src_dir):
-            break
-        cand = [f for f in sorted(os.listdir(src_dir)) if f.endswith('.wav')]
-        if i >= len(cand):
+        src = x.get('wav')
+        if not src or not os.path.isfile(src):
             continue
-        src = os.path.join(src_dir, cand[i])
-        dst = os.path.join(LISTEN, 'presetB_%s_%02d.wav' % (x['lang'], i))
+        dst = os.path.join(LISTEN, 'presetB_%s_%02d.wav' % (x['lang'], x['id']))
         shutil.copyfile(src, dst)
         x['listen_file'] = dst
     rep['listen_dir'] = LISTEN

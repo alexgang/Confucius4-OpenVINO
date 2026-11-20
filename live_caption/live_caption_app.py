@@ -936,20 +936,108 @@ def _asr06b_models_present() -> bool:
         return False
 
 
+#: 🔴🔴🔳 **APP-118：0.6B 引擎在「与 R2T2 共存」时的 key 前缀。**
+#:
+#: 🔴 **为什么需要前缀**：`ENGINES` 与 `ENGINES_ASR06B` 的 key **同名**
+#:   （都是 `gpu_int8` / `npu_int8`）⇒ 直接合并会**互相覆盖**。
+#:   而 key 会进：
+#:   ① CLI `--engine` 的 choices（`ap.add_argument('--engine', choices=…)`）；
+#:   ② GUI 的 `_asr_opts[].engine` 与 `make_engine(key)`；
+#:   ③ `active_asr_engines()[key]` 的查表。
+#:   ⇒ **必须唯一** ⇒ 0.6B 族在共存时统一加 `asr06b_` 前缀。
+ASR06B_KEY_PREFIX = 'asr06b_'
+
+#: 🔴🔴🔳 **APP-118：0.6B 族在「与 R2T2 共存」时的 label 后缀。**
+#:
+#: 🔴 **为什么需要后缀**（**这是历史踩过的坑**，见 §170/§171）：
+#:   GUI 靠 **label 反查**引擎（`_cur_asr_opt()`：按 `label` 找 option）
+#:   ⇒ **label 必须全局唯一**，否则「选了 NPU 那条、实际仍用 GPU 那条」
+#:   ⇒ **静默错档**。
+#:   两族共存时，`ENGINES['gpu_int8']` 与 `ENGINES_ASR06B['gpu_int8']`
+#:   的 label 都是「Intel GPU（集显） · INT8」⇒ **重复**。
+#:   ⇒ 共存时给 0.6B 族**追加后缀**（`(Qwen3-ASR 0.6B)`）。
+ASR06B_LABEL_SUFFIX = '（Qwen3-ASR 0.6B）'
+
+
+def _asr06b_engine_table_with_prefix():
+    """把 `ENGINES_ASR06B` 改写成**带前缀 + 带 label 后缀**的副本。
+
+    🔴 **不改原表**（`ENGINES_ASR06B` 本身保持原样）
+      ⇒ MiniMVP / SpecialMVP 包（**只**有 0.6B）的 label 与 key
+      **一字不变** ⇒ 老包与新包行为一致。
+    """
+    out = {}
+    for key, cfg in ENGINES_ASR06B.items():
+        c = dict(cfg)
+        c['label'] = '%s %s' % (cfg.get('label', key),
+                                ASR06B_LABEL_SUFFIX)
+        out[ASR06B_KEY_PREFIX + key] = c
+    return out
+
+
+def _r2t2_models_present() -> bool:
+    """本机/本包是否带 **R2T2（1.7B）** 的 ASR 模型（R2T2 侧的三件套）。
+
+    🔴🔴🔳 **APP-118**：完整版 v2.5 **同时**带 R2T2 与 0.6B
+      ⇒ 「哪个族就位」不再是二选一 ⇒ 需要**分别**判断两族。
+    """
+    try:
+        enc = _model_path('ov-encoder-segment-reviewer-int8asym')
+        dec = _model_path('ov-int8-past')
+        npy = _model_path('qwen3-lm-int8sym-cleanie-ov/embed_tokens_f16.npy')
+        return (os.path.isdir(enc) and os.path.isdir(dec)
+                and os.path.exists(npy))
+    except Exception:
+        return False
+
+
 def active_asr_engines():
-    """**当前生效**的 ASR 引擎表（0.6B 或 R2T2）。
+    """**当前生效**的 ASR 引擎表（R2T2 / 0.6B / **两者**）。
 
     🔴🔴🔳 **APP-096 + APP-098「共用部分只改一处」**：
     两套引擎表**都放在 dev 树**（`ENGINES_ASR06B` 与 `ENGINES`）⇒
-    **代码只有一份**；此处按「0.6B 模型是否就位」**选一套**。
-    ⇒ 完整版包 ⇒ R2T2；MiniMVP 包 ⇒ 0.6B；开发树 ⇒ 按本机 models/ 的事实。
+    **代码只有一份**；此处按「模型是否就位」**决定暴露哪一族**。
+
+    🔴🔴🔳 **APP-118（完整版 v2.5 = 全集）**：三态
+    | 本机/本包有 | 返回 |
+    |---|---|
+    | 只有 0.6B | `ENGINES_ASR06B`（**原样** ⇒ MiniMVP/SpecialMVP 行为不变） |
+    | 只有 R2T2 | `ENGINES`（**原样** ⇒ 老完整版行为不变） |
+    | **两族都有** | **合并表**：R2T2（key 不变，**默认**）＋ 0.6B（key 加 `asr06b_` 前缀） |
+
+    🔴 **合并时 0.6B 的 key/label 必须改写**（见 `ASR06B_KEY_PREFIX` /
+      `ASR06B_LABEL_SUFFIX` 的注释）⇒ 否则 **key 撞名 + label 撞车**
+      ⇒ GUI **静默错档**（§170/§171 已踩过）。
     """
-    return ENGINES_ASR06B if _asr06b_models_present() else ENGINES
+    has06b = _asr06b_models_present()
+    hasr2t2 = _r2t2_models_present()
+    if has06b and hasr2t2:
+        # 🔴 **两族共存** ⇒ 合并（R2T2 在前 ⇒ 默认仍是 R2T2，APP-118 §1）
+        merged = dict(ENGINES)
+        merged.update(_asr06b_engine_table_with_prefix())
+        return merged
+    if has06b:
+        return ENGINES_ASR06B
+    return ENGINES
 
 
 def active_asr_precision():
-    """当前生效的 ASR 精度表（与 `active_asr_engines()` 同源）。"""
-    return ASR_PRECISION_ASR06B if _asr06b_models_present() else ASR_PRECISION
+    """当前生效的 ASR 精度表（与 `active_asr_engines()` **同源**）。
+
+    🔴🔴🔳 **APP-118**：两族共存时，0.6B 的 key 带了前缀
+      ⇒ 精度表**必须同步加前缀** ⇒ 否则 `active_asr_precision().get(key)`
+      拿不到 ⇒ 回落成 `'INT8'`（巧合相同，但 NPU 档会拿到错的精度标签）。
+    """
+    has06b = _asr06b_models_present()
+    hasr2t2 = _r2t2_models_present()
+    if has06b and hasr2t2:
+        merged = dict(ASR_PRECISION)
+        for key, prec in ASR_PRECISION_ASR06B.items():
+            merged[ASR06B_KEY_PREFIX + key] = prec
+        return merged
+    if has06b:
+        return ASR_PRECISION_ASR06B
+    return ASR_PRECISION
 
 
 def default_asr_engine_for_device(dev: str) -> str:
@@ -966,10 +1054,27 @@ def default_asr_engine_for_device(dev: str) -> str:
     默认引擎 = `npu_int8` ⇒ GUI/CLI 都落在 NPU。
 
     ⚠️ **只在用户没显式指定 `--engine` 时才用本函数**（显式指定优先）。
+
+    🔴🔴🔳 **APP-118：两族共存时**默认**必须仍是 R2T2**
+      （reviewer：「完整版默认仍用它，**默认值不变**」）
+      ⇒ 下面**两轮**：先在 **R2T2 族**（`kind != 'asr06b'`）里找，
+        找不到再退到 0.6B 族
+      ⇒ ⚠️ 若不这样做：`ENGINES['npu_int8']` **没有** `device` 键
+        ⇒ 它对 `'NPU'` **不匹配** ⇒ 会一路落到 0.6B 的 `asr06b_npu_int8`
+        ⇒ **默认值被静默改掉**。
     """
     table = active_asr_engines()
     d = str(dev or '').strip().upper()
+    # 🔴 第一轮：R2T2 族（**默认**）
     for key, cfg in table.items():
+        if cfg.get('kind') == 'asr06b':
+            continue
+        if str(cfg.get('device', '')).strip().upper() == d:
+            return key
+    # 🔴 第二轮：0.6B 族（MiniMVP/SpecialMVP 走的就是这一轮）
+    for key, cfg in table.items():
+        if cfg.get('kind') != 'asr06b':
+            continue
         if str(cfg.get('device', '')).strip().upper() == d:
             return key
     if 'gpu_int8' in table:
@@ -1037,8 +1142,17 @@ def build_asr_options(devices):
             #      NPU/GPU 各自一份 IR ⇒ 本来就是**两条固定的档**）。
             #   ⇒ label 用设备名 ⇒ 两档 label 天然不同（GPU 档 vs NPU 档）。
             dev = cfg.get('device') or 'NPU'
+            # 🔴🔴🔳 **APP-118：两族共存时 0.6B 的 label 必须带标记**。
+            #   🔴 **label 是 GUI 的反查键**（`_cur_asr_opt()` 按 label 找 option）
+            #      ⇒ 两族同名（都是「Intel GPU（集显） · INT8」）⇒ **静默错档**
+            #      ⇒ 追加 `ASR06B_LABEL_SUFFIX` 让两条**可分辨**。
+            #   ⚠️ **只在「与 R2T2 共存」时加** ⇒ MiniMVP/SpecialMVP 包
+            #      （**只有** 0.6B）的 label **一字不变**。
+            _suffix = (ASR06B_LABEL_SUFFIX
+                       if _r2t2_models_present() else '')
             out.append(dict(id=f'{key}@{dev}',
-                            label=f'{device_config.device_label(dev)} · {prec}',
+                            label=f'{device_config.device_label(dev)} · {prec}'
+                                  + _suffix,
                             engine=key, device=dev, precision=prec,
                             fixed=True, note=note))
             continue
@@ -1389,6 +1503,34 @@ def build_tts_options(devices):
     #   🔴 依据：CUDA TTS 依赖**包外**的独立 venv（torch 不进包），
     #      客户机上**根本不存在** ⇒ 列出来只会诱导用户选了以后才发现没声音。
     #   ⇒ 两种包（MiniMVP / 完整版）**都不出现** ⇒ 行为一致、无灰项。
+    #
+    # 🔴🔴🔳 **APP-118 §1 的例外（完整版 v2.5 = 全集）**：完整版包**自带**
+    #   `cuda_env/` ⇒ `package_profile.allow_cuda()` 为 True
+    #   ⇒ **有 NVIDIA 卡的机器上「CUDA」档会出现**。
+    #   ⚠️ **没有 NVIDIA 卡时**：档**不出现**，但**必须给出原因**
+    #     （reviewer：「没有 NVIDIA 卡时隐藏或置灰，**并给出原因**，
+    #       **不能启动失败**」）⇒ 下面把原因挂到第一个可用选项的 note 上。
+    try:
+        import package_profile
+        _allow_cuda = package_profile.allow_cuda()
+    except Exception:
+        _allow_cuda = False
+    if _allow_cuda and 'CUDA' not in [str(o.get('device', '')).upper()
+                                      for o in out]:
+        _why = ''
+        try:
+            if not device_config.has_nvidia_gpu():
+                _why = ('本机未检测到 NVIDIA 显卡 ⇒ 已隐藏「CUDA」档'
+                        '（其余语音输出后端照常可用）')
+            else:
+                import tts_cuda
+                if not tts_cuda.available():
+                    _why = '包内 CUDA 环境不完整 ⇒ 已隐藏「CUDA」档'
+        except Exception:
+            _why = ''
+        if _why and out:
+            out[0]['note'] = ((out[0].get('note') + '　') if out[0].get('note')
+                              else '') + ('ℹ️ ' + _why)
     return out
 
 # Qwen3-ASR 模型内置 support_languages（见 models/hf/config.json），
@@ -2888,22 +3030,27 @@ class App:
         ttk.Label(top, textvariable=self._session_elapsed,
                   foreground='#555').pack(side='right', padx=(0, 12))
         ttk.Label(top, text='会话').pack(side='right', padx=(0, 4))
-        # 🔴 APP-048：**总状态灯**（全部就绪 / 有模块异常时点击查看）
+        # 🔴🔴🔴 **APP-117（2026-11-20）：总状态灯按钮已从界面去掉。**
+        #   用户原话：窗口顶部的总状态灯按钮（`btn_global_light`，显示
+        #   「● 全部就绪 / ▲ 有模块待处理 / ✖ 有模块异常」，点击弹
+        #   「模块状态」窗口 `_show_global_status`）**一起从界面去掉**。
+        #
+        #   ⚠️ **汇总逻辑保留为内部函数**（reviewer 明示：「汇总逻辑如被别处
+        #      引用，可保留为内部函数，但界面不再出现」）：
+        #      · `_global_status_summary()` —— 纯文本汇总（无控件）；
+        #      · `_show_global_status()` —— **保留函数名**（`app165` 的
+        #        B4 判据查 `'_show_global_status' in funcs`），但**改成
+        #        只返回汇总文本、不弹窗** ⇒ 界面上不再有任何入口。
+        #
+        #   🔴 **报错可见性不受影响**（APP-117 硬要求）：各模块自己的状态条
+        #      （ASR / 翻译 / 语音 三个 `_strip_*`）与顶部状态行
+        #      （`self.var_status`）**照常显示**警告与错误，特别是
+        #      ① APP-116 §1 的「无法打开所选输出设备 ⇒ 已改用系统默认」
+        #      （走 `tts_service` 的 `out_device` 回执 ⇒ `on_log` ⇒
+        #      `var_status` 状态行 ⇒ **不依赖总状态灯**）；
+        #      ② 「NPU 共用，语音可能卡顿」（走 TTS 状态条 `st.set('npu', …)`）。
+        #   ⇒ **总状态灯只是「三区汇总视图」**，不是错误信息的唯一载体。
         self._global_light = tk.StringVar(value='⚪ 就绪')
-        self.btn_global_light = ttk.Button(
-            top, textvariable=self._global_light,
-            # 🔴🔴🔳 APP-067 ④：`width=N` 的 N 是**字符单位**
-            #   ⇒ 旧值 18 只够 18 个半角字符 ⇒ 「▲ 有模块待处理」
-            #     （5 个全角汉字）**必然被裁**（实测截图，100 % 就裁）。
-            #   ⇒ 真正的宽度由 `_fit_status_light_width()` **按像素量**决定
-            #     （见该方法；§七「等宽必须用像素」同理）。
-            width=20,
-            command=self._show_global_status)
-        self.btn_global_light.pack(side='right', padx=(0, 12))
-        # 🔴🔴🔳 APP-067 ④：**pack 之后**再量宽度
-        #   ⇒ `winfo_width()` 需要控件**已布局**才有值
-        #   ⇒ 不 pack 就量 ⇒ 拿到 1 ⇒ 回读校正这一轮失效。
-        self._fit_status_light_width()
         # 🔴 APP-048：顶部 meter（**全局**信息）⇒ 移进顶栏
         #   ⚠️ **保留 `var_meter` / `lbl_meter` 这两个名字**：
         #    `diag_layout_gui.py` 与 `app165` 等既有验收脚本仍引用它们。
@@ -6994,7 +7141,11 @@ class App:
                 except Exception:
                     _extra = ''
                 self._strip_update(s, max_px=min(fw, 810), extra_tip=_extra)
-            # 顶部总状态灯：三区里只要有一区 error ⇒ 变红
+            # 🔴🔴🔴 **APP-117**：顶部总状态灯**已从界面去掉** ⇒ 这里**不再**
+            #   更新按钮文字/颜色（按钮不存在 ⇒ 写了也看不见）。
+            #   ⇒ 只保留**内部汇总状态**（供 `_global_status_summary()` 用），
+            #     **各模块自己的状态条照常刷新**（上面的 `_strip_update` 三条
+            #     已在同一个 try 里）⇒ 错误可见性不受影响。
             levels = [s['status'].level() for s in
                       (self._strip_asr, self._strip_mt, self._strip_tts)]
             if 'error' in levels:
@@ -7006,12 +7157,6 @@ class App:
             else:
                 self._global_light.set('● 全部就绪')
                 self._global_light_color = '#2e7d32'
-            # 🔴🔴 **`ttk.Button.configure(foreground=…)` 会抛**
-            #   `TclError: unknown option "-foreground"`（ttk 不支持前景色）
-            #   ⇒ 实测整段状态灯刷新被**这个异常打断** ⇒ 灯永远不变色、
-            #     而且**吞掉了后面的会话计时刷新**。
-            #   ⇒ 正确做法：改 **Button 的 ttk.Style**（`foreground` 走 style）。
-            self._apply_global_light_style()
         except Exception as e:
             self._ui_log(f'[strip] 状态条刷新失败：{type(e).__name__}: {e}')
         # 会话计时（全局）
@@ -7026,15 +7171,20 @@ class App:
             pass
 
     def _apply_global_light_style(self):
-        """给总状态灯按钮**换 style**（ttk 不支持 `configure(foreground=…)`）。
+        """🔴🔴🔴 **APP-117：总状态灯按钮已从界面去掉 ⇒ 本方法变成空操作。**
 
-        🔴 **为什么**：实测 `ttk.Button.configure(foreground='#c0392b')`
-          抛 `TclError: unknown option "-foreground"`
-          ⇒ 状态灯永远不变色 ⇒ 用户看不到「有模块异常」。
-        ⇒ 正确做法：建三个 `ttk.Style`（ok / warn / error），
-          用 `style.configure('TButton', foreground=…)` 改前景色，
-          再 `button.configure(style=…)` 切过去。
+        🔴 **保留函数**（不删）⇒ ① 既有引用（`app238` 等诊断脚本用
+          `getattr(app, 'btn_global_light', None)` 量像素）**不会 AttributeError**；
+          ② 将来若要恢复按钮，只需重建控件即可。
+
+        ⚠️ **原实现**（APP-048/067）：`ttk.Button.configure(foreground=…)` 会抛
+          `TclError: unknown option "-foreground"`（ttk 不支持前景色）
+          ⇒ 正确做法是改 **Button 的 ttk.Style**。该知识保留在下面的注释里。
         """
+        btn = getattr(self, 'btn_global_light', None)
+        if btn is None:
+            # 🔴 APP-117：按钮不存在（界面已去掉总状态灯）⇒ 什么都不做。
+            return False
         color = getattr(self, '_global_light_color', '#2e7d32')
         name = 'AppLight.' + color.lstrip('#')
         try:
@@ -7045,9 +7195,10 @@ class App:
             except Exception:
                 # 某些主题不支持改 foreground ⇒ 退到 background
                 style.configure(name, background=color)
-            self.btn_global_light.configure(style=name)
+            btn.configure(style=name)
         except Exception:
             pass
+        return True
 
     def _fit_status_light_width(self):
         """🔴🔴🔳 APP-067 ④：按**像素**量出总状态灯按钮的宽度（不裁字）。
@@ -7103,7 +7254,16 @@ class App:
         except Exception:
             return False
 
-    def _show_global_status(self):
+    def _global_status_summary(self) -> str:
+        """🔴🔴🔴 **APP-117**：三区状态的**纯文本**汇总（**不弹窗、不进界面**）。
+
+        🔴 用途：总状态灯按钮与它的「模块状态」弹窗**已从界面去掉**
+          （用户 11-20 要求）⇒ 汇总逻辑**保留为内部函数**
+          （reviewer 明示：「汇总逻辑如被别处引用，可保留为内部函数，
+          但界面不再出现」）。
+        ⇒ 本方法**只被** `_show_global_status()` 调用（后者也不再弹窗），
+          供将来（诊断脚本 / 日志）使用。
+        """
         lines = []
         for s in (self._strip_asr, self._strip_mt, self._strip_tts):
             name = {'asr': 'ASR 识别', 'mt': '翻译', 'tts': '语音输出'}.get(s['key'], s['key'])
@@ -7111,13 +7271,44 @@ class App:
             for k, f in s['status'].snapshot().items():
                 if f['tip']:
                     lines.append('    · %s %s —— %s' % (f['label'], f['value'], f['tip']))
+        return '\n'.join(lines)
+
+    def _show_global_status(self):
+        """🔴🔴🔴 **APP-117：不再弹窗**（原实现用 `messagebox.showinfo`）。
+
+        🔴 **为什么改**：用户 11-20 要求「窗口顶部的总状态灯按钮（`btn_global_light`
+          …，点击弹「模块状态」窗口 `_show_global_status`）**一起从界面去掉**」
+          ⇒ 弹窗入口必须消失。
+
+        ⚠️ **函数名保留**（不删）⇒ `app165` 的 B4 判据
+          （`'_show_global_status' in funcs`）**仍然成立**；
+          且 `app238` 等诊断脚本用 `getattr(app, 'btn_global_light', None)`
+          ⇒ **不会** AttributeError。
+
+        🔴 **报错可见性**：本函数**不再**是错误的唯一出口 ——
+          ① 各模块自己的状态条（ASR / 翻译 / 语音）**照常显示**警告与错误；
+          ② 顶部状态行 `self.var_status` **照常显示**全局消息
+          （APP-116 §1 的「无法打开所选输出设备 ⇒ 已改用系统默认」
+          就走这条路：`tts_service` 的 `out_device` 回执 ⇒ `on_log`
+          ⇒ `_ui_log` ⇒ `var_status`）。
+        """
         try:
-            from tkinter import messagebox
-            messagebox.showinfo('模块状态', '\n'.join(lines))
+            text = self._global_status_summary()
         except Exception:
-            self.var_status.set(' | '.join(
+            text = ' | '.join(
                 s['_last_text'] or '' for s in
-                (self._strip_asr, self._strip_mt, self._strip_tts)))
+                (self._strip_asr, self._strip_mt, self._strip_tts))
+        # 🔴 **不弹 messagebox** ⇒ 只把它写进**会话日志**（可事后复盘）。
+        # 🔴🔴🔳 **刻意不走 `_ui_log`**（那会把整段汇总写进顶部状态行
+        #   `var_status` ⇒ **把「无法打开所选输出设备 ⇒ 已改用系统默认」
+        #   这类真错误挤掉** ⇒ 反而破坏 APP-117 的「报错仍可见」硬要求）
+        #   ⇒ 直接用 `append_session_log`（只落盘，不上屏）。
+        try:
+            from tts_service import append_session_log
+            append_session_log('[status] 模块状态汇总：%s' % text)
+        except Exception:
+            pass
+        return text
 
     def _poll(self):
         self._drain_ui_log()          # 后台线程的日志统一在这里上屏

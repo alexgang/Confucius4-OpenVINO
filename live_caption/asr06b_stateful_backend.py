@@ -59,12 +59,161 @@ PAD_TOKEN_ID = 151643
 EOS_IDS = frozenset((EOS_TOKEN_ID, PAD_TOKEN_ID))
 
 #: NPU 编译属性（**只给 stateful decoder**；encoder 与 GPU 档都不带）
+#:
+#: 🔴🔴🔳 **APP-118 §1：并入 ASR-065 的结果**（用户 11-20 决定）：
+#:   `NPUW_LLM_MAX_PROMPT_LEN`：**512 → 320**
+#:   （依据见 `qwen3asr_06b/dev/asr065_handoff.md`：
+#:     `T = 18（模板 token）+ aftercnn_len(mel_frames)（音频 token）
+#:        + len(tok.encode(prefix_text))（前缀 token）`
+#:     段长上限 20.48 s ⇒ 音频 token 266 ⇒ `T = 18 + 266 + 前缀`
+#:     ⇒ 前缀 ≤ **36 token** 时 T ≤ 320；实测最大前缀 **29 token**（余量 7）
+#:     ⇒ 前缀**没有硬上限**（随段内累积文本增长）⇒ 必须靠**截断**兜底。）
+#:   `NPUW_LLM_MIN_RESPONSE_LEN`：**保持 64**（不变，理由见 handoff §一）
 NPUW_PROPS = {
     'NPU_USE_NPUW': 'YES',
     'NPUW_LLM': 'YES',
-    'NPUW_LLM_MAX_PROMPT_LEN': '512',
+    'NPUW_LLM_MAX_PROMPT_LEN': '320',
     'NPUW_LLM_MIN_RESPONSE_LEN': '64',
 }
+
+#: 🔴🔴🔳 **APP-118 §1：encoder 分档开关（`asr_enc_tiers`），默认 OFF。**
+#:
+#: 🔴 **默认必须 off** ⇒ 不设置时**行为与 ASR-065 之前完全一致**
+#:   （单档 2400 mel 帧；不构建、不多编、不多占内存）。
+#:   档位：`{400, 800, 1600, 2400}`（2400 = 24.0 s = 当前单档）。
+#:   开启时：**运行时从 base IR 现场构建各档 → 直接 compile → 不落盘**。
+ASR_ENC_TIERS = (400, 800, 1600, 2400)
+
+#: 🔴🔴🔳 **APP-118 §1：前缀截断计数**（ASR-065 §四 的日志字段）。
+#:   `prefix_truncations`（int，累加）＝ 本次会话累计触发降级的次数。
+#:   ⚠️ **正常素材不会触发**（实测 3 素材各 1 轮 ⇒ 计数 0、transcript 逐字节不变）
+#:   ⇒ **线上如果这个计数持续增长 ⇒ 说明段长/前缀策略有异常，值得告警**。
+PROBE_PREFIX_TRUNCATIONS = 'prefix_truncations'
+
+
+def _env_tiers_enabled() -> bool:
+    """`asr_enc_tiers` 开关是否打开（**默认 OFF**）。
+
+    🔴🔴🔳 **APP-118 §1（并入 ASR-065 §五）**：编码器分档是**可选开关**，
+      **默认 off** ⇒ 不设置时**行为与现状完全一样**
+      （单档 2400 mel 帧；不构建、不多编、不多占内存）。
+
+    🔴 **读取方式**（与本仓既有 `asr_runtime_switches` 风格一致）：
+      环境变量 `ASR_ENC_TIERS` ∈ {`1`,`on`,`true`,`yes`} ⇒ 开。
+    """
+    v = (os.environ.get('ASR_ENC_TIERS', '') or '').strip().lower()
+    return v in ('1', 'on', 'true', 'yes')
+
+
+#: 🔴🔴🔳 **ASR-065 §五：构建前必须断言每档 `patched == 60`**。
+#:   （这份 IR 上尺寸相关常量的数量；**IR 变了就退单档** ⇒ 不猜。）
+EXPECTED_PATCHED_CONSTS = 60
+
+
+def _patch_size_consts(model, G: int, T: int) -> list:
+    """把 **60 处尺寸相关常量**改掉（ASR-065 §五 的三步法第 ② 步）。
+
+    🔴 **为什么必须 patch**：这份 encoder IR 是**完全静态**的
+      （1577 个 layer 的端口维度全烘死成 2400/24/312）
+      ⇒ 只 `reshape` 会让 OV 的 shape inference 重算整张图 ⇒ **fail-closed 抛异常**。
+      ⇒ 必须把尺寸相关常量同步改掉。
+
+    🔴 **顺序不可换**：① 动态 reshape → ② patch → ③ 静态 reshape
+      （先 patch 再静态 reshape ⇒ 挂在第一个 Reshape；
+        先静态 reshape 再 patch ⇒ 挂在后面的 `aten::view/Reshape_1`）。
+    """
+    import openvino as ov
+    patched = []
+
+    def swap(node, new_vals):
+        node.output(0).replace(
+            ov.opset13.constant(np.array(new_vals, dtype=np.int64)).output(0))
+        patched.append({'node': node.get_friendly_name(),
+                        'new': list(new_vals)})
+
+    for op in model.get_ordered_ops():
+        if op.get_type_name() != 'Constant':
+            continue
+        try:
+            d = np.asarray(op.get_data())
+        except Exception:
+            continue
+        if d.dtype.kind not in 'iu':
+            continue
+        r = d.ravel().tolist()
+        new = None
+        if r == [24, 100, 128]:
+            new = [G, 100, 128]
+        elif r == [24, 13, 7680]:
+            new = [G, 13, 7680]
+        elif r == [312, -1]:
+            new = [T, -1]
+        elif r == [312, 14, -1]:
+            new = [T, 14, -1]
+        elif r == [1, 1, 1, 312]:
+            new = [1, 1, 1, T]
+        elif r == [1, 1, 312, 312]:
+            new = [1, 1, T, T]
+        elif len(r) == 312 and r == list(range(312)):
+            # 🔴 `aten::arange/Range` 的常量值本身就是 arange(312)
+            new = list(range(T))
+        if new is not None:
+            swap(op, new)
+    return patched
+
+
+def _build_encoder_tier(enc_xml: str, N: int, device: str):
+    """🔴 **运行时从 base IR 现场构建一档静态 encoder 并直接 compile（不落盘）**。
+
+    返回 ``(info, compiled_model_or_None)``。
+    🔴 **断言 `patched == 60`** ⇒ 不满足 ⇒ **退回单档 2400**（不猜、不硬编）。
+    """
+    import openvino as ov
+    import time as _time
+    G = N // 100
+    T = total_aftercnn_len(N)
+    info = {'N': N, 'G': G, 'T': T}
+    t0 = _time.perf_counter()
+    try:
+        m = ov.Core().read_model(enc_xml)
+        # ① 先放宽成动态维（让 OV 接受形状变化）
+        m.reshape({'input_features':
+                   ov.PartialShape([1, 128, ov.Dimension(1, 2400)])})
+        # ② patch 尺寸相关常量
+        patched = _patch_size_consts(m, G, T)
+        # ③ 再收回静态
+        m.reshape({'input_features': ov.PartialShape([1, 128, N])})
+        info['build_s'] = round(_time.perf_counter() - t0, 3)
+        info['n_patched'] = len(patched)
+    except Exception as e:
+        info['ok'] = False
+        info['error'] = '%s: %s' % (type(e).__name__, str(e)[:300])
+        info['n_patched'] = 0
+        return info, None
+    # 🔴 断言：patched 数必须 = 60（IR 变了就退单档）
+    if info['n_patched'] != EXPECTED_PATCHED_CONSTS:
+        info['ok'] = False
+        info['error'] = ('patched=%d != 期望 %d ⇒ IR 结构已变 ⇒ 退回 2400 单档'
+                         % (info['n_patched'], EXPECTED_PATCHED_CONSTS))
+        return info, None
+    t1 = _time.perf_counter()
+    try:
+        cm = ov.Core().compile_model(m, device)
+        info['compile_s'] = round(_time.perf_counter() - t1, 3)
+        info['ok'] = True
+        return info, cm
+    except Exception as e:
+        info['ok'] = False
+        info['error'] = 'compile: %s: %s' % (type(e).__name__, str(e)[:300])
+        return info, None
+
+
+def pick_encoder_tier(frames: int, tiers=ASR_ENC_TIERS):
+    """按实际 mel 帧数选**最小能放下的档**；放不下 ⇒ ``None``（**不得静默截断**）。"""
+    for n in sorted(tiers):
+        if frames <= n:
+            return n
+    return None
 
 #: prompt 模板（context='' 时官方 _build_text_prompt 的确切常量）
 _PROMPT_LEFT = ('<|im_start|>system\n<|im_end|>\n'
@@ -122,6 +271,22 @@ class ASR06BStatefulBackend(ASRBackend):
         self.npuw_props = dec_props
         self.precision_arg = precision
 
+        # 🔴🔴🔳 **APP-118 §1（并入 ASR-065）**：**实际生效的 prompt 上界**。
+        #   NPU 档用 NPUW 的 `MAX_PROMPT_LEN`（**320**）⇒ 前缀必须按 320 截；
+        #   GPU 档不走 NPUW ⇒ 仍可用 IR 的硬上界 **512**。
+        #   ⇒ 写成**实例属性**（不是模块常量）⇒ 不同档各用各的上界。
+        self._max_prompt_tok = (int(dec_props.get(
+            'NPUW_LLM_MAX_PROMPT_LEN', MAX_STATEFUL_TOK))
+            if device == 'NPU' else MAX_STATEFUL_TOK)
+
+        # 🔴🔴🔳 **APP-118 §1：`asr_enc_tiers` 开关（默认 OFF）**。
+        #   ON ⇒ 运行时从 base IR 现场构建各档（{400,800,1600,2400} mel 帧）
+        #        → 直接 compile → **不落盘**；
+        #   OFF ⇒ 单档 2400（**行为与现状完全一致**）。
+        #   🔴 **默认必须 off** ⇒ 不设置环境变量时**行为一字不变**。
+        self.asr_enc_tiers = bool(_env_tiers_enabled())
+        self.enc_tiers = {}
+
         enc_xml = self._find(encoder_dir, ('ov-encoder-06b-fp16-static.xml',
                                            'openvino_encoder_model.xml'))
         dec_xml = self._find(decoder_dir, ('openvino_model.xml',
@@ -130,6 +295,25 @@ class ASR06BStatefulBackend(ASRBackend):
         self.enc_infer = self.enc.create_infer_request()
         self.dec = core.compile_model(dec_xml, device, dec_props)
         self.dec_inputs = [i.get_any_name() for i in self.dec.inputs]
+
+        # 🔴🔴🔳 **APP-118 §1（并入 ASR-065 §五）：encoder 分档（默认 OFF）**。
+        #   ON ⇒ 运行时从 base IR 现场构建各档 → **直接 compile → 不落盘**。
+        #   ⚠️ **构建放这里（构造期）**，不在推理路径上
+        #   ⇒ 不占「计时窗口」⇒ 计时结论不被污染。
+        #   🔴 **任一档构建失败（patched ≠ 60 等）⇒ 退回单档 2400**
+        #   ⇒ 绝不「编了一半还继续用」。
+        self.enc_tier_build_log = []
+        if self.asr_enc_tiers:
+            for _n in ASR_ENC_TIERS:
+                if _n == ENC_MAX_FRAMES:
+                    continue                     # 基准档就是已编好的 self.enc
+                _info, _cm = _build_encoder_tier(enc_xml, _n, device)
+                self.enc_tier_build_log.append(_info)
+                if _info.get('ok') and _cm is not None:
+                    self.enc_tiers[_n] = _cm
+            print('[asr06b-stateful] encoder 分档已开启（ASR-065）：%s'
+                  % (sorted(self.enc_tiers) or '（全部失败 ⇒ 用单档 2400）'),
+                  flush=True)
 
         # 🔴 APP-101 §4.1：日志打印 EXECUTION_DEVICES 与 NPUW 配置。
         #    OV 的 EXECUTION_DEVICES 可能是字符串 'NPU'，也可能是 list
@@ -169,6 +353,8 @@ class ASR06BStatefulBackend(ASRBackend):
             'enc_ms': [], 'decode_ms': [], 'prefill_ms': [],
             'n_decode': [], 'prompt_len': [], 'n_audio': [],
             'out_tokens': [], 'truncations': 0, 'kv_resets': 0,
+            # 🔴🔴🔳 ASR-065 §四：前缀截断计数（**独立**于 512 上界的总截断）
+            PROBE_PREFIX_TRUNCATIONS: 0,
         }
 
     # ── 小工具 ───────────────────────────────────────────────────────
@@ -250,13 +436,31 @@ class ASR06BStatefulBackend(ASRBackend):
             raise ValueError(
                 f"segment too long: {mel_len} mel frames > {ENC_MAX_FRAMES} "
                 f"(≈{mel_len * 160 / 16000:.1f}s)")
-        enc_in = np.zeros((1, 128, ENC_MAX_FRAMES), dtype=np.float32)
+        # 🔴🔴🔳 **APP-118 §1（并入 ASR-065 §五）：encoder 分档（默认 OFF）**。
+        #   OFF ⇒ 单档 2400（**行为与现状完全一致**）。
+        #   ON  ⇒ 按 mel 长度选**最小能放下的档**（{400,800,1600,2400}），
+        #         用该档的模型推理（**零填充到该档长度**）。
+        #   🔴 **选不中 ⇒ 用单档 2400**（绝不静默截断）。
+        _tier = ENC_MAX_FRAMES
+        _cm = self.enc
+        _infer = self.enc_infer
+        if self.asr_enc_tiers and self.enc_tiers:
+            _picked = pick_encoder_tier(mel_len)
+            if _picked is not None and _picked != ENC_MAX_FRAMES:
+                _cm = self.enc_tiers.get(_picked) or self.enc
+                _tier = _picked
+                _infer = _cm.create_infer_request()
+            elif _picked is None:
+                print('[asr06b-stateful] ⚠️ mel %d 帧放不进任何档 ⇒ 用单档 %d'
+                      % (mel_len, ENC_MAX_FRAMES), flush=True)
+        enc_in = np.zeros((1, 128, _tier), dtype=np.float32)
         enc_in[0, :, :mel_len] = mel
         n_valid = np.array([N_audio], dtype=np.int32)
         assert int(N_audio) == total_aftercnn_len(mel_len), (
             f"N_audio mismatch: {N_audio} vs {total_aftercnn_len(mel_len)}")
-        out = self.enc_infer.infer([enc_in, n_valid])
+        out = _infer.infer([enc_in, n_valid])
         h = np.asarray(out[0])[0, :N_audio, :]
+        self.probe.setdefault('tier_used', []).append(_tier)
         return h.astype(np.float32), n_real, N_audio
 
     # ── embeds 拼装（官方 masked_scatter 语义）──────────────────────
@@ -269,22 +473,38 @@ class ASR06BStatefulBackend(ASRBackend):
         🔴 APP-103：上界 512。给生成 token 预留 ``reserve`` 位，
         超限时**从最旧的前缀 token 开始截**（不丢 prompt 骨架、不改 IR），
         截断次数记进 probe 与日志。
+
+        🔴🔴🔳 **APP-118 §1（并入 ASR-065）**：NPUW 侧的
+        `NPUW_LLM_MAX_PROMPT_LEN` 已从 512 降到 **320**
+        ⇒ **GPU 档**（不用 NPUW）仍可用 512，**NPU 档**必须用 **320**。
+        ⇒ 本方法按**实际生效的上界**截断：
+        `self._max_prompt_tok`（构造时按设备定：NPU ⇒ 320，GPU ⇒ 512）。
+        ⇒ 截断**从左**（保留右端＝最近的内容；前缀右端才是最新内容）
+        ⇒ **不抛错、不回退 512**（用户 11-20 定）。
         """
         prefix_ids = list(prefix_ids or [])
+        limit = int(getattr(self, '_max_prompt_tok', MAX_STATEFUL_TOK))
         skeleton = (len(self._ids_left) + int(audio_emb.shape[0])
                     + len(self._right_ids(force_language)))
-        allowed_prefix = MAX_STATEFUL_TOK - skeleton - max(1, int(reserve))
+        allowed_prefix = limit - skeleton - max(1, int(reserve))
         if allowed_prefix < 0:
             raise ValueError(
                 'prompt 骨架 %d + 预留 %d > stateful 上界 %d（音频过长）'
-                % (skeleton, reserve, MAX_STATEFUL_TOK))
+                % (skeleton, reserve, limit))
         if len(prefix_ids) > allowed_prefix:
             drop = len(prefix_ids) - allowed_prefix
+            # 🔴 **从左截断**（保留右端＝最近的内容）—— 前缀的**右端才是最新内容**
             prefix_ids = prefix_ids[drop:]
             self.probe['truncations'] += 1
-            print('[asr06b-stateful] 512 上界：截掉最旧的 %d 个前缀 token'
-                  '（累计截断 %d 次）'
-                  % (drop, self.probe['truncations']), flush=True)
+            # 🔴🔴🔳 ASR-065 §四：前缀截断**单独计数**（与 512 上界的通用截断分开）
+            self.probe[PROBE_PREFIX_TRUNCATIONS] = (
+                int(self.probe.get(PROBE_PREFIX_TRUNCATIONS, 0)) + 1)
+            print('[asr06b-stateful] %d 上界：前缀截断 T %d→%d dropped=%d'
+                  '（累计 prefix_truncations=%d，总截断=%d 次）'
+                  % (limit, skeleton + len(prefix_ids) + drop,
+                     skeleton + len(prefix_ids), drop,
+                     self.probe[PROBE_PREFIX_TRUNCATIONS],
+                     self.probe['truncations']), flush=True)
         parts = [np.ascontiguousarray(self._W[list(self._ids_left)], dtype=np.float32),
                  np.asarray(audio_emb, dtype=np.float32),
                  np.ascontiguousarray(self._W[self._right_ids(force_language)],

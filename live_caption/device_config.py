@@ -484,6 +484,41 @@ def is_cuda_device_by_name(dev: str, full_name: str = '') -> bool:
     return any(h in name for h in CUDA_DEVICE_HINTS)
 
 
+def has_nvidia_gpu() -> bool:
+    """本机**是否真的有 NVIDIA 显卡**（APP-118：决定要不要给用户「CUDA」档）。
+
+    🔴🔴🔳 **APP-118 §1 的硬要求**：
+    > 「本机检测到 NVIDIA 显卡时，界面里出现「CUDA」档可选；
+    > **没有 NVIDIA 卡时隐藏或置灰，并给出原因，不能启动失败**。」
+
+    ⇒ 判据 = **本机确实枚举得到 NVIDIA 设备**。
+    ⚠️ **不能只看「包里有 `cuda_env/`」** ⇒ 那是**资产**，不是**硬件**：
+      一台没有独显的机器同样能解包出 `cuda_env/`
+      ⇒ 若按资产判 ⇒ 会给用户列出一个**必然失败**的选项。
+    ⇒ 判据 = **OV 枚举到的设备里有 NVIDIA 名字的**。
+
+    🔴 **为什么不用 `is_cuda_device(dev)`**（那要**二次查 OV**）：
+      这里在 `detect_devices()` 的枚举结果上**顺带**判定 ⇒ 只查一次。
+    ⚠️ 名字取不到 ⇒ **保守当作「没有 NVIDIA」**（宁可少列一个档，
+      也不能列一个必然失败的档）。
+    """
+    try:
+        import openvino as ov
+        core = ov.Core()
+        for d in core.available_devices:
+            if is_excluded_device(d):
+                continue
+            try:
+                full = core.get_property(d, 'FULL_DEVICE_NAME')
+            except Exception:
+                full = ''
+            if is_cuda_device_by_name(d, full):
+                return True
+        return False
+    except Exception:
+        return False
+
+
 def has_cuda_plugin() -> bool:
     """OpenVINO 是否**真的**带 CUDA plugin（而不是借 Intel GPU plugin 驱动 NVIDIA）。
 
@@ -621,6 +656,13 @@ def tts_extra_devices() -> List[str]:
         if not package_profile.allow_cuda():
             return out
     except Exception:
+        return out
+    # 🔴🔴🔳 APP-118：**必须有真 NVIDIA 硬件**才给 CUDA 档。
+    #   ⚠️ 判据用 `has_nvidia_gpu()`（**硬件**），不是 `tts_cuda.available()`
+    #     （**资产**：有没有 `cuda_env/`）⇒ 一台没独显的机器解包出 `cuda_env/`
+    #     也不该出现 CUDA 档（reviewer：「没有 NVIDIA 卡时隐藏或置灰，
+    #     并给出原因，**不能启动失败**」）。
+    if not has_nvidia_gpu():
         return out
     try:
         import tts_cuda

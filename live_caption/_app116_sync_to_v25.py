@@ -114,7 +114,20 @@ def main():
                  '  (已更新)' if rec['changed'] else '  (本就一致)'))
 
     # 🔴 复核：包内 app/ 不应再有「本地模块缺失」
+    #   🔴 判据必须**排除标准库** ⇒ 用 `sys.stdlib_module_names`（写死清单会漏，
+    #      本轮就把 argparse/json/os/… 全报成「缺失」⇒ 假 FAIL）。
     pkg_py = {f for f in os.listdir(PKG_APP) if f.endswith('.py')}
+    third_party = {
+        'numpy', 'scipy', 'PIL', 'av', 'babelvox', 'openvino', 'openvino_genai',
+        'torch', 'transformers', 'soundcard', 'sounddevice', 'soundfile',
+        'librosa', 'fitz', 'pypdf', 'safetensors', 'qwen_asr',
+        'faster_qwen3_tts', 'backends_torch', 'tts_ov', 'yaml', 'requests',
+        'huggingface_hub', 'onnxruntime', 'typing_extensions', 'packaging',
+    }
+    # app/asr_spk/ 里的（ASR 模块的资产，不在本模块范围）
+    asr_assets = {'asr052_speaker_tracker_api', 'asr052_spk_runtime',
+                  'asr_thread_defaults', 'asr_spk_window',
+                  'asr_runtime_switches', 'asr_spk_cluster_v2'}
     miss = []
     for name in sorted(pkg_py):
         p = os.path.join(PKG_APP, name)
@@ -133,16 +146,9 @@ def main():
                     continue
                 if os.path.isdir(os.path.join(PKG_APP, m)):
                     continue
-                if m in ('asr052_speaker_tracker_api', 'asr052_spk_runtime',
-                         'asr_thread_defaults', 'asr_spk_window',
-                         'asr_runtime_switches', 'asr_spk_cluster_v2'):
-                    continue          # ← app/asr_spk/ 里（ASR 模块的）
-                if m in ('numpy', 'scipy', 'PIL', 'av', 'babelvox', 'openvino',
-                         'openvino_genai', 'torch', 'transformers', 'soundcard',
-                         'sounddevice', 'soundfile', 'librosa', 'fitz', 'pypdf',
-                         'safetensors', 'qwen_asr', 'faster_qwen3_tts',
-                         'backends_torch', 'tts_ov', 'yaml', 'requests',
-                         'huggingface_hub', 'onnxruntime', 'numpy.typing'):
+                if m in sys.stdlib_module_names:
+                    continue
+                if m in third_party or m in asr_assets:
                     continue
                 miss.append('%s -> %s' % (name, m))
     rep['missing_local_modules'] = sorted(set(miss))

@@ -110,18 +110,24 @@ def is_specialmvp() -> bool:
 def allow_cuda() -> bool:
     """本包**是否允许** NVIDIA/CUDA 后端。
 
-    🔴 **默认 False**（不靠标记文件也能满足 APP-098 一.1）：
-    完整版客户包**也不带** CUDA 资产（audio.cpp + GGUF 不随包分发，
-    见 APP-062 ③ D3「客户包里去掉 TTS=CUDA」）⇒ 完整版同样不该出现 CUDA 选项。
-    ⇒ **默认 False** 是对两个包都正确的默认值。
+    🔴🔴🔳 **APP-118（2026-11-20，用户决定：完整版 = 全集）**：
+    完整版 v2.5 **现在也带 CUDA 资产**（`cuda_env/` + `models/tts_cuda/`）
+    ⇒ CUDA 档**对完整版开放** ⇒ 由**包根的 `package_profile.json`**
+    的 `allow_cuda` 字段决定（完整版包会写 `"allow_cuda": true`）。
 
-    🔴🔴🔳 **Special MVP 例外**（用户 2026-11-13 决定）：本包**自带**
-    CUDA 运行时（`cuda_env/`）⇒ CUDA 档**是本包的出厂 TTS 后端**。
+    🔴 **默认 False**（**没有标记文件时**）：开发树没有标记文件
+      ⇒ 默认 False ⇒ 开发树**行为不变**（APP-098 一.1）。
+
+    🔴🔴🔳 **Special MVP**：本包**自带** CUDA 运行时（`cuda_env/`）
+      ⇒ CUDA 档**是本包的出厂 TTS 后端** ⇒ 默认 True。
     """
     if is_minimvp():
         return False
     if is_specialmvp():
         return bool(_MARKER.get('allow_cuda', True))
+    # 🔴 APP-118：完整版 ⇒ 读标记文件的 `allow_cuda`（默认 **False**）
+    #   ⇒ **没有** `package_profile.json` 的完整版包**仍然不出现 CUDA 档**
+    #   （v2.4 等老包行为不变）；v2.5 包会写 `"allow_cuda": true`。
     return bool(_MARKER.get('allow_cuda', False))
 
 

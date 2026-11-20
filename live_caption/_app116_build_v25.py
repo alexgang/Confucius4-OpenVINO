@@ -102,7 +102,9 @@ def acquire_lock(note):
                 pass
             continue
         log('等机器锁（持有者 pid=%s 仍存活 ⇒ 不抢）' % pid)
-        time.sleep(20)
+        # 🔴 轮询间隔取 **5 s**：别的模块是「跑一臂 ⇒ 放锁 ⇒ 下一臂」，
+        #   臂与臂之间只有很短的空窗 ⇒ 20 s 的轮询容易整轮错过。
+        time.sleep(5)
     content = 'app %d %s %s' % (os.getpid(),
                                 datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                                 note)
@@ -111,10 +113,48 @@ def acquire_lock(note):
         f.write(content)
     os.replace(tmp, LOCK)
     log('已取机器锁：%s' % content)
+    start_lock_watchdog(content)
     return content
 
 
+# 🔴🔴🔴 **锁看门狗**（APP-115 §3.3-2 已知缺陷的防御）：
+#   reviewer 侧脚本的 `finally { Remove-Item $lock }` 是**无条件删**的
+#   ⇒ 别的模块的作业结束时会把**我的**锁文件删掉 ⇒ 下一臂就能抢同一台机器
+#   ⇒ 我的打包/验收就在别人的计时窗口里跑 ⇒ 两边都作废。
+#   ⇒ 持锁期间每 20 s **把自己的锁内容写回去**（原子 os.replace）。
+_LOCK_WD = {'thread': None, 'stop': False}
+
+
+def start_lock_watchdog(content):
+    import threading
+
+    def _watch():
+        while not _LOCK_WD['stop']:
+            time.sleep(20)
+            if _LOCK_WD['stop']:
+                break
+            own = lock_owner()
+            if own is None or own.get('pid') == os.getpid():
+                try:
+                    tmp = LOCK + '.tmp_app116_wd'
+                    with open(tmp, 'w', encoding='utf-8') as f:
+                        f.write(content)
+                    os.replace(tmp, LOCK)
+                except Exception:
+                    pass
+
+    t = threading.Thread(target=_watch, daemon=True)
+    t.start()
+    _LOCK_WD['thread'] = t
+    log('锁看门狗已启动（每 20 s 写回自己的锁内容）')
+
+
+def stop_lock_watchdog():
+    _LOCK_WD['stop'] = True
+
+
 def release_lock(content):
+    stop_lock_watchdog()
     own = lock_owner()
     if own is None:
         return
@@ -158,6 +198,12 @@ def count_tree(root):
 
 def stage_copy():
     if os.path.exists(DST):
+        # 🔴 目标目录已存在 ⇒ **不覆盖**；但要区分是「上一阶段已复制好」
+        #   （本轮 v2.5）还是「别人的旧版本目录」（不许碰）。
+        if os.path.isdir(os.path.join(DST, 'app')) and \
+                os.path.isfile(os.path.join(DST, 'app', 'MANIFEST.json')):
+            log('目标目录已存在且是本轮已复制的 v2.5 ⇒ 跳过复制（不覆盖）')
+            return True
         log('🔴 目标目录已存在：%s ⇒ **不覆盖**（旧版本目录不许覆盖）' % DST)
         return False
     if os.path.exists(STAGING):
