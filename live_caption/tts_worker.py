@@ -861,29 +861,66 @@ class Player:
         # 🔴🔴 **把 GUI 的端点 id 转成 sounddevice 认的设备**（见 resolve_out_device）：
         #   GUI 传的是 WASAPI GUID，直接塞给 `sd.OutputStream` 必然 ValueError
         #   ⇒ 旧实现「播放设备打开失败」⇒ **一句都不出声**（用户反馈的真因之一）。
+        #
+        # 🔴🔴🔴 APP-116 §1：把「开播放流」抽成 `_open_stream()`，
+        #   好让**初始化**与**运行中切设备**走**同一条**逻辑（口径一致），
+        #   并且**解析失败 / 打不开绝不静默**（日志 + `out_fallback` 字段）。
+        self.out_requested = None    # 上游指定的原始值（None = 系统默认）
+        self.out_fallback = ''       # 非空 = 曾「无法打开 X ⇒ 已改用系统默认」
+        self.out_how = ''
+        self.out_sd_device = None
+        self.out_desc = ''
+        self.out_is_default = True
+        self._open_stream(device)
+
+    # 🔴🔴🔴 APP-116 §1：**打开播放流的唯一入口**。
+    #   返回 `(ok: bool, err: str|None)`。
+    def _open_stream(self, device):
+        """在 `device` 上打开播放流；打不开 ⇒ 回退系统默认（**不静默**）。
+
+        🔴🔴🔴 **APP-116 §1 的硬要求**：
+          ① **解析失败不能静默回退** ⇒ 日志明确写「无法打开 X ⇒ 已改用系统默认」，
+             并把原因记进 `self.out_fallback`（遥测会带上 ⇒ 状态栏能显示）；
+          ② 日志里的「实际输出」**必须是真实落到的设备**（`out_desc`）；
+          ③ **逐跳可查**：本函数打印「输出设备解析」+「播放流已启动」两行。
+        """
+        import sounddevice as sd
+        self._sd = sd
         sd_dev, how = resolve_out_device(device)
         self.out_how = how
         self.out_sd_device = sd_dev
-        self.out_desc = _describe_out(sd, sd_dev)
-        self.out_is_default = sd_dev is None
-        if str(device).strip() and device is not None and sd_dev != device:
-            log(f'[tts_worker] 输出设备解析：{device!r} ⇒ {how}')
+        requested = None
+        try:
+            requested = str(device).strip() or None
+        except Exception:
+            requested = None
+        self.out_requested = requested
+        self.out_fallback = ''
+        # 🔴 逐跳日志 hop4/worker：上游给了什么 ⇒ 解析成了什么
+        if requested:
+            log(f'[tts_worker] 输出设备解析：{requested!r} ⇒ {how}')
+        else:
+            log('[tts_worker] 输出设备解析：（未指定 ⇒ 系统默认设备）')
         # ① 先用解析出的设备开流；② 失败 ⇒ **回退系统默认再试一次**
         #   （「一句都不出声」远比「播到默认设备」严重 ⇒ 宁可回退也不静音）
         err = None
         for dev_try in ([sd_dev] if sd_dev is None else [sd_dev, None]):
             try:
                 self._stream = sd.OutputStream(
-                    samplerate=sr, channels=1, dtype='float32',
+                    samplerate=self.sr, channels=1, dtype='float32',
                     device=dev_try, blocksize=CHUNK_SAMPLES,
                     callback=self._cb)
                 self._stream.start()
                 if dev_try is None and sd_dev is not None:
                     self.out_desc = _describe_out(sd, None)
                     self.out_is_default = True
+                    self.out_fallback = ('指定的输出设备打不开 ⇒ 已改用系统默认')
                     log('[tts_worker] ⚠️ 指定的输出设备打不开 ⇒ **已回退到系统默认**'
                         f'（实际输出: {self.out_desc}）')
-                log(f'[tts_worker] 播放流已启动：sr={sr} '
+                else:
+                    self.out_desc = _describe_out(sd, dev_try)
+                    self.out_is_default = (dev_try is None)
+                log(f'[tts_worker] 播放流已启动：sr={self.sr} '
                     f'device={"默认设备" if self.out_is_default else dev_try} '
                     f'⇒ **实际输出: {self.out_desc}** '
                     f'blocksize={CHUNK_SAMPLES} '
@@ -896,9 +933,37 @@ class Player:
                     f'{how}）：{e}')
                 self._stream = None
         if self._stream is None:
+            if requested:
+                self.out_fallback = ('无法打开「%s」⇒ 已改用系统默认' % requested)
+                log(f'[tts_worker] 🔴 {self.out_fallback}')
             log('[tts_worker] 🔴 默认设备也打不开 ⇒ 本次会话无法出声'
                 '（请检查系统是否有可用输出端点）')
             emit({'kind': 'error', 'message': f'播放设备打开失败：{err}'})
+            return False, (str(err) if err else 'unknown')
+        return True, None
+
+    # 🔴🔴🔴 APP-116 §1：**运行中切输出设备**（重开播放流，**不重启 worker**）。
+    #   为什么**不新建 Player**：新 Player 会丢掉 `self.ring` 里已排队的音频
+    #     ⇒ 切设备会**吞掉在途的句子**（违反「一句不丢」）。
+    #   ⇒ 这里**只换 `_stream`**（同一个 Player、同一个队列）⇒ 不丢句。
+    #   返回 `(ok: bool, info: dict)`。
+    def switch_device(self, device):
+        old_stream = self._stream
+        if old_stream is not None:
+            try:
+                old_stream.stop()
+                old_stream.close()
+            except Exception:
+                pass
+        self._stream = None
+        ok, err = self._open_stream(device)
+        info = dict(requested=self.out_requested,
+                    out_desc=self.out_desc,
+                    is_default=self.out_is_default,
+                    fallback=self.out_fallback,
+                    how=self.out_how,
+                    error=err)
+        return ok, info
 
     def _cb(self, outdata, frames, time_info, status):
         self.n_cb += 1
@@ -1012,6 +1077,11 @@ class Player:
             ring = self.ring
             return dict(
                 out_desc=self.out_desc,
+                # 🔴🔴🔴 APP-116 §1：**用户选的设备**与**实际落到的设备**
+                #   都进遥测 ⇒ 状态栏/验收脚本能核对「选什么就出什么」。
+                out_requested=self.out_requested,
+                out_fallback=self.out_fallback,
+                out_is_default=self.out_is_default,
                 sr=self.sr,
                 n_cb=self.n_cb,
                 n_underflow=self.n_underflow,
@@ -1346,6 +1416,35 @@ class TTSWorker:
         self._voice_ready = True
         self._flush_pending_spk_voice()
 
+    # 🔴🔴🔴 APP-116 §1：**运行中切输出设备**（重开播放流，**不重启 worker**）。
+    #   ⇒ 用户在下拉里换设备 ⇒ **立即生效**（不用等模型重新加载）。
+    #   ⇒ 返回 `(ok, info)`；`info` 里带**实际落到的设备**与**回落原因**。
+    def _set_out_device(self, device):
+        self.out_device = device
+        log(f'[tts_worker] 收到切设备指令：{device!r}')
+        if self.player is None:
+            log('[tts_worker] 🔴 播放流尚未就绪 ⇒ 无法切换输出设备')
+            emit({'kind': 'out_device', 'ok': False,
+                  'requested': device, 'out_desc': '', 'is_default': True,
+                  'fallback': '播放流尚未就绪', 'how': '', 'error': 'no_player'})
+            return
+        try:
+            ok, info = self.player.switch_device(device)
+        except Exception as e:
+            log(f'[tts_worker] 🔴 切设备异常：{type(e).__name__}: {e}')
+            emit({'kind': 'out_device', 'ok': False,
+                  'requested': device, 'out_desc': '', 'is_default': True,
+                  'fallback': '切设备异常：%s' % e, 'how': '',
+                  'error': '%s: %s' % (type(e).__name__, e)})
+            return
+        if ok:
+            log(f'[tts_worker] ✅ 播放流已切到：{info.get("out_desc")}'
+                + (f'（⚠️ {info.get("fallback")}）' if info.get('fallback') else ''))
+        else:
+            log(f'[tts_worker] 🔴 切设备失败：{info.get("error")}')
+        info['requested'] = device
+        emit(dict({'kind': 'out_device', 'ok': bool(ok)}, **info))
+
     def _reopen_player(self, sr: int):
         """按新的采样率**重建**播放流。
 
@@ -1353,6 +1452,9 @@ class TTSWorker:
         `sounddevice.OutputStream`，采样率是**流级属性**，之后改不了。
         BabelVox 输出 24000 Hz，而旧引擎是 22050 Hz
         ⇒ 播放流必须跟着引擎走，否则**变调/加速**。
+
+        🔴🔴🔴 APP-116 §1：重建时**沿用当前的 `self.out_device`**
+           ⇒ 用户中途换过设备 ⇒ 重建不会把设备**悄悄换回**默认。
         """
         if self.player is None:
             return
@@ -1477,13 +1579,21 @@ class TTSWorker:
                 f' ⇒ 改用参考 wav（音色 A）')
             # ↓ 继续走参考 wav 路线（音色 A）
 
-        wav = tts_engine.preset_voice_path()
+        # 🔴🔴🔴 APP-116 §2：**按「用哪个预设」取参考 wav**。
+        #   `key` ∈ {'A','B'} 时取对应预设；其它（clone / follow_speaker 等）
+        #   一律回落到 **A**（女声）⇒ 与旧行为逐字一致。
+        preset_key = key if key in ('A', 'B') else 'A'
+        wav = tts_engine.preset_voice_path(preset_key)
+        if not wav and preset_key != 'A':
+            log(f'[tts_worker] ⚠️ 预设 {preset_key} 的参考音频不存在 ⇒ 回落预设 A')
+            preset_key = 'A'
+            wav = tts_engine.preset_voice_path('A')
         if getattr(self.engine, 'USES_REF_AUDIO', False):
             # 🔴 CUDA 后端自己用参考音频做 x-vector（`ref_audio=` + `xvec_only=True`）
             #   ⇒ 不要在这里算 embedding（边车在另一个进程，没有 babelvox 编码器）
             self.speaker_embed = None
-            self.speaker_name = 'A'
-            # 🔴🔴 APP-027⑤：**缓存预设 A 的参考 wav**（克隆失败时回落用）
+            self.speaker_name = preset_key
+            # 🔴🔴 APP-027⑤：**缓存预设的参考 wav**（克隆失败时回落用）
             self._preset_ref_path = wav
             # 🔴🔴🔴 APP-061①：**必须同时缓存 `_preset_name`**。
             #   旧实现只设 `_preset_ref_path` ⇒ `_preset_name` 恒为 `__init__` 的 None
@@ -1492,12 +1602,12 @@ class TTSWorker:
             #     **成立** ⇒ 每句报「没有可用的音色」⇒ **CUDA 全程无声**
             #     （用户实测 21:23:19 起「就绪：CUDA」后每句都失败，
             #      `tts_cuda_trace.log` 里一条 `REQ` 都没有）。
-            self._preset_name = 'A'
+            self._preset_name = preset_key
             log(f'[tts_worker] CUDA 后端自行使用参考音频做音色：{wav}')
             return
         self.speaker_embed = tts_engine.speaker_embedding(self.engine, wav, on_log=log)
-        self.speaker_name = 'A'
-        # 🔴🔴 APP-027⑤：**缓存预设 A 的向量**（克隆失败时回落用）
+        self.speaker_name = preset_key
+        # 🔴🔴 APP-027⑤：**缓存预设的向量**（克隆失败时回落用）
         self._preset_embed = self.speaker_embed
         self._preset_name = self.speaker_name
         if self.speaker_embed is None:
@@ -3298,7 +3408,15 @@ class TTSWorker:
             for wav_chunk, sr in tts_engine.stream(
                     self.engine, p, language=blang,
                     speaker_embed=self.speaker_embed,
-                    speaker=self.speaker_name if self.speaker_embed is None else None,
+                    # 🔴🔴🔴 APP-116 §2：`speaker=` **只给内置 speaker**。
+                    #   旧写法 `self.speaker_name if self.speaker_embed is None else None`
+                    #   ⇒ 预设 B 时 `speaker_name='B'` 而 `speaker_embed` 为 None
+                    #     （CUDA 路线）⇒ 会把 'B' 当成内置 speaker 名传给引擎。
+                    #   ⇒ 现在显式限定在 `BUILTIN_SPEAKERS` 里。
+                    speaker=(self.speaker_name
+                             if (self.speaker_embed is None
+                                 and self.speaker_name in tts_engine.BUILTIN_SPEAKERS)
+                             else None),
                     cancel_event=self._stop,
                     max_new_tokens=_mnt,
                     est_sec=_est):
@@ -4074,6 +4192,11 @@ class TTSWorker:
                 self.dump_dir = d
                 log(f'[tts_worker] 逐句 wav 落盘目录：{d or "（关闭）"}')
                 emit({'kind': 'dump_dir', 'dir': d})
+            elif cmd == 'set_out_device':
+                # 🔴🔴🔴 APP-116 §1：**运行中切输出设备** ⇒ 重开播放流。
+                #   ⇒ 用户在 GUI 下拉里换设备 ⇒ **立即生效**（不重启 worker、
+                #     不重新加载模型、不丢在途句子）。
+                self._set_out_device(msg.get('device') or None)
 
         self._stop.set()
         # 🔴🔴🔴 APP-028②：**叫停播放看门狗线程**（否则它会一直阻塞在
@@ -4851,6 +4974,11 @@ def main():
                   bigvgan_ir=args.bigvgan_ir, precision=args.precision,
                   out_wav=args.out_wav, seed=args.seed, steps=args.steps,
                   cfg_rate=args.cfg_rate)
+    # 🔴🔴🔴 APP-116 §1：**逐跳打日志** hop3/worker-argv。
+    #   把「worker 进程实际收到的 --out-device」原样打出来
+    #   ⇒ 「GUI 选了耳机但 worker 收到空」这类问题**一眼可查**。
+    log(f'[tts_worker] 启动参数：--out-device={args.out_device!r}'
+        + ('（未指定 ⇒ 系统默认设备）' if not args.out_device else ''))
     # 🔴🔴🔳 APP-092 §2：命令行给的 late-drop 阈值（**不给 ⇒ 用默认 0.0
     #   = 关闭跳句**，APP-111 §1）
     if args.late_drop_sec is not None:

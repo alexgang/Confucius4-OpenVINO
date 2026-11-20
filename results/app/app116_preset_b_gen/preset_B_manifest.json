@@ -1,0 +1,54 @@
+{
+  "ts": "2026-11-20 10:43:47",
+  "asset": "preset_B.wav（预设 B · 男声）",
+  "source_model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+  "source_license": "apache-2.0",
+  "source_url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+  "download_mirror": "https://hf-mirror.com/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+  "method": "model.generate_custom_voice(text=..., language=\"Chinese\", speaker=\"Uncle_Fu\")",
+  "speaker": "Uncle_Fu（Seasoned male voice, mellow timbre）",
+  "source_text": "你好，这是一段用于生成预设音色的参考音频。声音清晰平稳，没有背景噪音，语速适中，像平常说话一样朗读这段文字。",
+  "no_human_material": true,
+  "candidate": {
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app116_preset_b_gen\\preset_B_candidate_Uncle_Fu.wav",
+    "sha256": "6e0d9eb23ee25303a96ccee8ec95b382e91ae30a2fae81933bb087874a3275b4",
+    "duration_s": 17.2
+  },
+  "processing": {
+    "trim_silence": "首尾静音（帧 RMS < -45 dBFS 视为静音）",
+    "onset_s": 0.52,
+    "trimmed_to_s": 10.0,
+    "peak_normalized_dbfs": -3.0,
+    "dc_offset_removed": true,
+    "fade_ms": 10,
+    "container": "PCM_16"
+  },
+  "output": {
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\models\\qwen3tts\\voices\\preset_B.wav",
+    "sha256": "ad8e3e80fbada9f409d953e2ad93eba6615de1c601df64318c7b2c242c8b5703",
+    "bytes": 480044,
+    "sample_rate": 24000,
+    "channels": 1,
+    "duration_s": 10.0,
+    "peak": 0.70798,
+    "rms_dbfs": -21.69
+  },
+  "checks": {
+    "sample_rate_24k": true,
+    "mono": true,
+    "duration_8_to_12s": true,
+    "no_clipping": true,
+    "not_silent": true,
+    "dc_offset_small": true,
+    "peak_normalized": true
+  },
+  "all_checks_pass": true,
+  "not_packaged_yet": true,
+  "not_packaged_reason": "reviewer APP-116 §2 明文：「**用户点头前不进包**」⇒ 抽听通过前，客户包里**不含** preset_B.wav；⇒ 客户机上的音色下拉也**不会**列出「预设 B（男声）」。",
+  "dev_preset_A_copied": {
+    "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.4\\models\\qwen3tts\\voices\\preset_A.wav",
+    "dst": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\models\\qwen3tts\\voices\\preset_A.wav",
+    "sha256": "e021c255a715d4fd17dd6d19c3092a293d0d35a1e4e7ca8bf67bce6f8c94db53",
+    "bytes": 192044
+  }
+}

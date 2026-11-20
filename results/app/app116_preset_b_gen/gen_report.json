@@ -1,0 +1,48 @@
+{
+  "ts": "2026-11-20 10:40:31",
+  "model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+  "license": "apache-2.0",
+  "source_url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+  "download_mirror": "https://hf-mirror.com/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+  "method": "generate_custom_voice(text, language=\"Chinese\", speaker=...)",
+  "text": "你好，这是一段用于生成预设音色的参考音频。声音清晰平稳，没有背景噪音，语速适中，像平常说话一样朗读这段文字。",
+  "no_human_material": true,
+  "outputs": [
+    {
+      "speaker": "Uncle_Fu",
+      "desc": "成熟男声（中文）",
+      "ok": true,
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app116_preset_b_gen\\preset_B_candidate_Uncle_Fu.wav",
+      "sr": 24000,
+      "channels": 1,
+      "duration_s": 17.2,
+      "bytes": 825644,
+      "peak": 0.73887,
+      "rms": 0.075828,
+      "rms_dbfs": -22.4,
+      "n_clipped_samples": 0,
+      "gen_s": 75.3,
+      "in_range_8_12s": false,
+      "mono": true,
+      "sr_ok": true
+    },
+    {
+      "speaker": "Dylan",
+      "desc": "青年男声（中文·北京口音）",
+      "ok": true,
+      "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app116_preset_b_gen\\preset_B_candidate_Dylan.wav",
+      "sr": 24000,
+      "channels": 1,
+      "duration_s": 13.68,
+      "bytes": 656684,
+      "peak": 0.47116,
+      "rms": 0.046991,
+      "rms_dbfs": -26.56,
+      "n_clipped_samples": 0,
+      "gen_s": 70.6,
+      "in_range_8_12s": false,
+      "mono": true,
+      "sr_ok": true
+    }
+  ]
+}

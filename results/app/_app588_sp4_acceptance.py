@@ -782,6 +782,19 @@ def main():
     ap.add_argument('--extra-evidence', default='',
                     help='额外的证据 json 路径 ⇒ **合并进本臂的结果 json**'
                          '（例如冷启动臂的「缓存挪开」记录）')
+    ap.add_argument('--asr-device', default='GPU.0',
+                    help='ASR 设备（默认 GPU.0；**完整版**验收用）')
+    ap.add_argument('--mt-device', default='NPU',
+                    help='MT 设备（默认 NPU = 原 SpecialMVP 口径；'
+                         '**完整版**用 GPU.0）')
+    ap.add_argument('--tts-device', default='CUDA',
+                    help='TTS 设备（默认 CUDA = 原 SpecialMVP 口径；'
+                         '**完整版**用 GPU.0）')
+    ap.add_argument('--tts-voice', default='A',
+                    help='音色（A = 预设 A 女声 / B = 预设 B 男声）')
+    ap.add_argument('--tts-out-device', default=None,
+                    help='语音输出设备（**APP-116 §1** 验收用：'
+                         '传 WASAPI 端点 id ⇒ 日志「实际输出」必须落在它上面）')
     ap.add_argument('--lock-note', default='',
                     help='🔴 APP-115：写进 MACHINE_LOCK 的说明（默认 app114-<lang>）'
                          '⇒ 让别的模块看锁就知道是谁在跑')
@@ -867,12 +880,15 @@ def main():
     try:
         cmd = [PKG_PY, os.path.join(PKG, 'app', 'live_caption_app.py'),
                '--cli', '--file', AUDIO,
-               '--asr-device', 'GPU.0',
-               '--mt-device', 'NPU',
-               '--tts-device', 'CUDA',
+               '--asr-device', args.asr_device,
+               '--mt-device', args.mt_device,
+               '--tts-device', args.tts_device,
                '--translate', args.lang,
                '--tts', 'on',
+               '--tts-voice', args.tts_voice,
                '--tts-out', tts_out]
+        if args.tts_out_device:
+            cmd += ['--tts-out-device', args.tts_out_device]
         ev['cmd'] = cmd
         ev['cwd'] = PKG
         env = dict(os.environ)
