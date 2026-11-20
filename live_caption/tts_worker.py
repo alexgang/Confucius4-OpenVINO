@@ -904,6 +904,14 @@ class Player:
         # ① 先用解析出的设备开流；② 失败 ⇒ **回退系统默认再试一次**
         #   （「一句都不出声」远比「播到默认设备」严重 ⇒ 宁可回退也不静音）
         err = None
+        # 🔴🔴🔴 APP-116 §1：**解析失败 ⇒ 必须把回落原因记进结构化字段**。
+        #   实测（worker 指令通路，11-20 11:45）：给一个**不存在的设备 id** 时，
+        #   日志里有「无法识别「…」⇒ 改用系统默认」，但 `out_fallback` **是空的**
+        #   ⇒ 遥测/状态栏**看不出发生了回落** ⇒ 等于「结构化层面静默」。
+        #   ⇒ 现在：只要**用户指定了设备**却解析不出来，就**立刻**记回落原因。
+        if sd_dev is None and requested:
+            self.out_fallback = ('无法打开「%s」⇒ 已改用系统默认' % requested)
+            log(f'[tts_worker] 🔴 {self.out_fallback}')
         for dev_try in ([sd_dev] if sd_dev is None else [sd_dev, None]):
             try:
                 self._stream = sd.OutputStream(
@@ -922,8 +930,9 @@ class Player:
                     self.out_is_default = (dev_try is None)
                 log(f'[tts_worker] 播放流已启动：sr={self.sr} '
                     f'device={"默认设备" if self.out_is_default else dev_try} '
-                    f'⇒ **实际输出: {self.out_desc}** '
-                    f'blocksize={CHUNK_SAMPLES} '
+                    f'⇒ **实际输出: {self.out_desc}**'
+                    + (f'  ⚠️ {self.out_fallback}' if self.out_fallback else '')
+                    + f' blocksize={CHUNK_SAMPLES} '
                     f'latency={getattr(self._stream, "latency", None)}')
                 err = None
                 break

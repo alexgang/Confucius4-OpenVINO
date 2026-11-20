@@ -32,6 +32,7 @@ BUILD = os.path.join(HERE, '_app116_build_v25.py')
 WORKER_SWITCH = os.path.join(HERE, 'diag_app116_worker_switch.py')
 ACCEPT = os.path.join(RESULTS, '_app588_sp4_acceptance.py')
 EVAL = os.path.join(HERE, '_app116_eval_preset.py')
+SIGN = os.path.join(HERE, '_app116_sign_accepted.py')
 
 
 def log(m):
@@ -60,19 +61,13 @@ def main():
         _dump(rep)
         return 1
 
-    # ② 打包
-    rc, out = run([PY, BUILD, '--stage', 'pack'], timeout=10800)
-    rep['phases']['pack'] = {'rc': rc, 'tail': out[-8000:]}
-    if rc != 0:
-        log('🔴 打包失败 ⇒ 中止')
-        _dump(rep)
-        return 1
-
-    # ③ worker 指令通路（§1）
+    # ② worker 指令通路（§1）：起真实 worker 进程验证 set_out_device
     rc, out = run([PY, WORKER_SWITCH, '--pkg', PKG], timeout=3600)
     rep['phases']['worker_switch'] = {'rc': rc, 'tail': out[-4000:]}
 
-    # ④ 10 分钟整链验收（zh / en 两臂；脚本自己取锁 ⇒ 锁证据完整）
+    # ③ 10 分钟整链验收（zh / en 两臂；脚本自己取锁 ⇒ 锁证据完整）
+    #    🔴 必须在**签 ACCEPTED 之前**跑（闸门⑤ 的语义 = 「交付包 == 被验收过的包」）
+    accept_ok = True
     for lang in ('zh', 'en'):
         rc, out = run([PY, ACCEPT, '--pkg', PKG, '--lang', lang,
                        '--asr-device', 'GPU.0', '--mt-device', 'GPU.0',
@@ -81,8 +76,23 @@ def main():
                        '--tag', 'app116_v25', '--lock-note',
                        'app116-v25-%s' % lang], timeout=10800)
         rep['phases']['accept_%s' % lang] = {'rc': rc, 'tail': out[-6000:]}
+        if rc != 0:
+            accept_ok = False
+    if not accept_ok:
+        log('🔴 整链验收有臂失败 ⇒ **不签 ACCEPTED**（闸门⑤ 语义）'
+            '⇒ 仍继续打包（让 reviewer 看到失败证据），但如实记录')
+    else:
+        # ④ 重签 ACCEPTED.json（APP-055）
+        rc, out = run([PY, SIGN], timeout=1800)
+        rep['phases']['sign_accepted'] = {'rc': rc, 'tail': out[-3000:]}
+        if rc != 0:
+            log('🔴 重签 ACCEPTED 失败 ⇒ 打包必被闸门⑤ 拦下（fail-closed）')
 
-    # ⑤ 预设 A/B 评测（§2）
+    # ⑤ 打包（zip + 逐文件 SHA256 复核 + 闸门全跑）
+    rc, out = run([PY, BUILD, '--stage', 'pack'], timeout=10800)
+    rep['phases']['pack'] = {'rc': rc, 'tail': out[-8000:]}
+
+    # ⑥ 预设 A/B 评测（§2）
     rc, out = run([PY, EVAL], timeout=10800)
     rep['phases']['preset_eval'] = {'rc': rc, 'tail': out[-6000:]}
 

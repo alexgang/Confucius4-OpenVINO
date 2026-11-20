@@ -91,6 +91,28 @@ WHITELIST = {
     'results/app/_app302_app077_token_gate.py':
         '一次性历史诊断（APP-077 三个旧包固定 token 清单，需精确指向 v2.0/v2.1/v2.2），'
         '有意写死；文件名含 _gate 被 ACTIVE_RE 判为活跃',
+    # 🔴🔴🔳 APP-116（2026-11-20 11:29）：**v2.5 打包被本闸门拦下**。
+    #   起因：v2.4 打包（11-07）之后，各轮又新增了若干**一次性历史诊断脚本**，
+    #   它们**按设计**必须写死当时的包版本 ⇒ 被 ACTIVE_RE 判成「活跃验收脚本」。
+    #   🔴 **这些脚本都不进包**（都在仓库 `results/app/` 下）⇒
+    #   **类别 B（会进包的生产模块）实测 0 违规** ⇒ 不削弱交付保证。
+    #   ⇒ 按本闸门**既有的「一次性历史诊断脚本」口径**放行，理由逐条写明：
+    'results/app/app521_gate4_scope_crosscheck.py':
+        '一次性历史诊断（APP-086 缺陷包范围交叉核对，基准就是 v2.4），有意写死；'
+        '文件名含 _gate 被 ACTIVE_RE 判为活跃',
+    'results/app/app571_ful_version_acceptance_gate_matrix.py':
+        '一次性历史诊断（完整版多版本验收矩阵，**按设计**要并排比较 '
+        'v2.1/v2.2/v2.4），有意写死；不进包',
+    'results/app/_app289_npu_compile_probe.py':
+        '一次性历史诊断（NPU 编译探针，指向当时的 v2.4 包），有意写死；不进包',
+    'results/app/_app405_make_checks_stable.py':
+        '一次性历史诊断（把验收脚本的包引用钉到当时的 v2.4），有意写死；不进包',
+    'results/app/_app433_pkg_dev_only_assert_gate.py':
+        '一次性历史诊断（断言「仅开发侧文件」不进 v2.3/v2.4 两个包），'
+        '需精确指向那两个版本；有意写死；不进包',
+    'results/app/_app589_three_forms_defaults_check.py':
+        '一次性历史诊断（三种包形态的出厂默认值核对，基准是 v2.1/v2.4），'
+        '有意写死；不进包',
 }
 
 
