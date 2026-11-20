@@ -3081,7 +3081,22 @@ class App:
         # 系统输出设备（loopback 目标）
         self.outs = list_output_devices()          # [(wasapi_id, 显示名), ...]
         self._out_label = {oid: name for oid, name in self.outs}
-        self._out_label_back = {name: oid for name, oid in self._out_label.items()}
+        # 🔴🔴🔴 APP-116 §1：**字典推导式的两个变量写反了**（真 bug，已实测）。
+        #   旧写法 `{name: oid for name, oid in self._out_label.items()}`：
+        #     `.items()` 给出的是 **(key=oid, value=name)** ⇒ 解包成
+        #       `name=oid`（真正的 id）、`oid=name`（真正的显示名）
+        #     ⇒ 建出来的是 `{id: 显示名}` —— **和 `_out_label` 一模一样**，
+        #       而不是想要的 `{显示名: id}`。
+        #   ⇒ 后果：`self._out_label_back.get(显示名)` **恒为 None**
+        #     ⇒ 「语音输出 → 输出设备」选了耳机，`out_id` 也是 None
+        #     ⇒ `--out-device` **根本没传给 worker** ⇒ 声音走系统默认设备
+        #     （实测 11-20 09:12：`%LOCALAPPDATA%\Confucius4LiveCaption\
+        #       session_20261120_091149.log`
+        #       「输出设备改为：头戴式耳机 (Plantronics C320-M)（2 声道）」
+        #       之后 worker 仍报 `device=默认设备 ⇒ 实际输出:
+        #       Speaker (Realtek(R) Audio)` ⇒ **与设备/精度/CUDA 全无关**）。
+        #   ⇒ 现在按 `_src_label_back` / `_asr_lang_label_back` 的**同一正确写法**。
+        self._out_label_back = {name: oid for oid, name in self._out_label.items()}
         dflt_out = default_output_device_id()
         init_out = dflt_out if dflt_out in self._out_label else \
             (self.outs[0][0] if self.outs else None)
@@ -3254,8 +3269,27 @@ class App:
         #     后台一直采样）⇒ 正确设计（音色按句绑定 spk + 检测到换人才取样）
         #     **要等 ASR 的说话人旁路接口（ASR-029）** ⇒ 在按新设计重做完之前，
         #     界面必须如实告诉用户它是**实验性**的，不能让默认状态看起来像成品。
-        self._tts_voice_label = {'A': '预设 A',
+        #
+        # 🔴🔴🔴 APP-116 §2：音色下拉**增加「预设 B（男声）」**，
+        #   且 A 的显示名改成「预设 A（女声）」（reviewer 明文）。
+        #   · 预设 A = 女声；预设 B = **模型生成的男声**
+        #     （Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice，Apache-2.0 ⇒ 允许分发；
+        #      **不是**录音／同事音色／克隆音色／babelvox 样本）。
+        #   🔴 **B 只在参考音频文件真的存在时列出**
+        #     ⇒ 客户包在**用户抽听点头前**不含 `models/qwen3tts/voices/preset_B.wav`
+        #       ⇒ 下拉里**没有**「预设 B（男声）」这一档
+        #       （APP-007 的教训：列一个选不了的项 = 静默错标
+        #        ——「选 B 却拿到 A 的声音」，用户无从察觉）。
+        try:
+            import tts_engine as _te0
+            _presets_avail = tuple(_te0.preset_voices_available())
+        except Exception:
+            _presets_avail = ('A',)
+        self._tts_voice_label = {'A': '预设 A（女声）',
                                  'follow_speaker': '跟随说话人（克隆·实验）'}
+        if 'B' in _presets_avail:
+            self.tts_voices = ['A', 'B', 'follow_speaker']
+            self._tts_voice_label['B'] = '预设 B（男声）'
         self._tts_voice_back = {v: k for k, v in self._tts_voice_label.items()}
         # 🔴🔴🔳 **APP-099 四.3(a)：MiniMVP 的「整个音色下拉」置灰不可选**。
         #   reviewer APP-099 §2d 复核 APP-098 一.3 后的原话：「克隆并没有
@@ -3274,8 +3308,11 @@ class App:
                                  else package_profile.clone_voice_unavailable_reason())
         if not self._clone_voice_allowed:
             # 🔴 不列克隆项 ⇒ values 里根本没有「跟随说话人」这一档。
-            self.tts_voices = ['A']
-            self._tts_voice_label = {'A': '预设 A'}
+            #   （🔴 APP-116 §2：**预设 B 仍要列**（只要参考音频在）
+            #     ⇒ MiniMVP / 不能克隆的形态也能用男声。）
+            self.tts_voices = ['A'] + (['B'] if 'B' in _presets_avail else [])
+            self._tts_voice_label = {k: v for k, v in self._tts_voice_label.items()
+                                     if k in self.tts_voices}
             self._tts_voice_back = {v: k for k, v in self._tts_voice_label.items()}
         # 🔴 默认音色：不可用克隆时**强制预设 A**（reviewer：「默认用预设音色 A」）
         _voice_init = str(getattr(args, 'tts_voice', 'A') or 'A')
@@ -3287,7 +3324,7 @@ class App:
             except Exception:
                 pass
         self.var_tts_voice = tk.StringVar(
-            value=self._tts_voice_label.get(_voice_init, '预设 A'))
+            value=self._tts_voice_label.get(_voice_init, '预设 A（女声）'))
         self.cb_tts_voice = ttk.Combobox(
             g_tts,
             state=('readonly' if self._clone_voice_allowed else 'disabled'),
@@ -3384,97 +3421,68 @@ class App:
             values=[o['label'] for o in self._tts_opts])
         self.cb_tts_combo.grid(row=2, column=1, sticky='w', pady=0)
         self.cb_tts_combo.bind('<<ComboboxSelected>>', self._on_tts_combo_changed)
-        # 草稿译文开关：默认**关闭**，只翻已经定稿的文本。勾上后还会实时翻译
-        # 还没定稿的那句，但会占翻译算力、抬高 ASR 积压。
-        # ⚠️ `self.var_mt_draft` **已在 ③ 翻译组里建好**（那里要用它）
-        #   ⇒ 这里只建控件，**不再重复定义**（旧实现此处误用 StringVar）。
-        ttk.Label(g_adv, text='草稿译文', 
-                  anchor='e').grid(row=3, column=0, sticky='e',
-                                   padx=(0, 8), pady=0)
-        self.chk_mt_draft = ttk.Checkbutton(
-            g_adv, text='Draft', variable=self.var_mt_draft,
-            command=self._on_mt_draft_toggled)
-        self.chk_mt_draft.grid(row=3, column=1, sticky='w', pady=0)
-        # 重试按钮：翻译模型加载失败时（状态栏显示「失败」）一键重试，
-        # 不用重启整个程序。加载中时禁用。
-        ttk.Label(g_adv, text='重试翻译', 
-                  anchor='e').grid(row=4, column=0, sticky='e',
-                                   padx=(0, 8), pady=0)
-        self.btn_mt_retry = ttk.Button(
-            g_adv, text='↻ 重试翻译 Retry', width=18,
-            command=self._retry_mt, state='disabled')
-        self.btn_mt_retry.grid(row=4, column=1, sticky='w', pady=0)
-        # 🔴🔴🔴 APP-022：字幕上**可以选择显示说话人标签**（S1、S2…）。
-        # 🔴🔴🔴 APP-040④：**默认改为打开**
-        #   APP-040④ 明文：「GUI 加一个开关，**默认打开**」
-        self.var_show_spk = tk.BooleanVar(value=True)
-        ttk.Label(g_adv, text='显示说话人', 
-                  anchor='e').grid(row=5, column=0, sticky='e',
-                                   padx=(0, 8), pady=0)
-        cb_show_spk = ttk.Checkbutton(
-            g_adv, text='在字幕上显示 S1/S2', variable=self.var_show_spk)
-        cb_show_spk.grid(row=5, column=1, sticky='w', pady=0)
-        # 🔴🔴🔴 APP-054：**说话人旁路开关**（**默认关闭**）
-        #   ⇒ v1.13 的阻断级回归：旁路**默认开着**且**同步阻塞 ASR 主循环**
-        #     ⇒ 用户实测：墙钟 838.5 s / 300 s 音频（最大积压 195.1 s）。
-        #   ⇒ 现在旁路**默认关闭** ⇒ 字幕/语音行为与 **v1.12 逐字一致**。
-        #   ⚠️ 勾选**只影响后续会话**（旁路线程在会话开始时建立）。
-        # 🔴🔴🔴 APP-065 B（2026-11-02）：**改名 + 移出 TTS 区**。
-        #   reviewer 原文：「GUI 上"说话人识别"改为在"音色"下拉选
-        #     "跟随说话人（克隆）"时自动启用的内部功能，
-        #     **不再作为一个独立的用户开关出现在 TTS 区**；
-        #     如保留，放进高级并命名为"区分说话人（用于克隆）"，
-        #     带提示"检测谁在说话，换人时重新克隆音色；只在音色=跟随说话人时生效"。」
-        #   ⇒ 现在：**在高级里** ＋ 改名「区分说话人（用于克隆）」
-        #     ＋ 带一句话提示 ＋ 绑定 `command`（APP-063 ② (c)：取消勾选 ⇒
-        #       音色切回 A 并提示 ⇒ 不再出现「界面勾了但没生效」）。
-        #   ⚠️ **变量名 `var_speaker` 保持不变**（`app227` 的 D2 判据
-        #     要求 `_enable_speaker_for_clone` 的 AST 里含 `var_speaker`；
-        #     `app204` 的快照也读 `var_speaker`）⇒ 只改**显示文案**。
+        # 🔴🔴🔴 APP-116 §3（用户 11-20：「使用频率不高」⇒ 界面去掉 4 个选项）：
+        #   从 GUI 移除：**草稿译文** / **重试翻译** / **区分说话人** / **显示说话人**。
+        #   ⚠️ **行为保持现在的默认值不变**，只是**不再在界面上出现**：
+        #     ① 草稿译文   ⇒ 默认**关闭**（`self.var_mt_draft` 仍在 ③ 翻译组建好，
+        #        行为完全不变；命令行 `--mt-draft` / `LIVECAP_DRAFT` 也保留）；
+        #     ② 重试翻译   ⇒ 按钮不再显示；`_retry_mt()` **函数保留**
+        #        （失败后重启进程仍可重试）；
+        #     ③ 区分说话人 ⇒ `self.var_speaker` 保留，**默认值不变**
+        #        （= `self._speaker_enabled`，即 APP-054 的「旁路默认关闭」）；
+        #     ④ 显示说话人 ⇒ `self.var_show_spk` 保留，**默认值不变**（True，
+        #        APP-040④「默认打开」）。
+        #   ⚠️ **变量名一律不改**（`app227` 的 D2 判据要求
+        #     `_enable_speaker_for_clone` 的 AST 里含 `var_speaker`；
+        #     `app204` 的快照也读 `var_speaker`）。
+        #   ⚠️ **行号重排**：3–6 四个行被删 ⇒ 后面几项**上移**，
+        #     避免布局留空洞（用户明确要求「布局不留空洞、不被裁剪」）。
+        #   🔴 **顺手修掉一个真重叠**：旧的「区分说话人」提示文字
+        #     与「离线朗读」按钮**都在 row=7 / column=1** ⇒ 互相压盖；
+        #     现在提示文字整块删除 ⇒ 重叠消失。
+        #
+        # 🔴🔴🔴 APP-054 / APP-065 B 的历史（保留供审计）：
+        #   · APP-054：**说话人旁路默认关闭**（v1.13 阻断级回归的止血措施），
+        #     勾选**只影响后续会话**（旁路线程在会话开始时建立）；
+        #   · APP-065 B：「说话人识别」改名「区分说话人（用于克隆）」，
+        #     放在高级里并绑 `command`（取消勾选 ⇒ 音色切回 A 并提示）。
+        #   ⇒ 现在只是**控件不再出现在界面上**，上述行为与默认值**一律不变**。
+        self.var_show_spk = tk.BooleanVar(value=True)   # APP-040④：默认打开
         self.var_speaker = tk.BooleanVar(value=bool(self._speaker_enabled))
-        ttk.Label(g_adv, text='区分说话人', 
-                  anchor='e').grid(row=6, column=0, sticky='e',
-                                   padx=(0, 8), pady=0)
-        self.cb_speaker = ttk.Checkbutton(
-            g_adv, text='区分说话人（用于克隆）',
-            variable=self.var_speaker,
-            command=self._on_speaker_toggled)
-        self.cb_speaker.grid(row=6, column=1, sticky='w', pady=0)
-        # 🔴 **提示**（APP-065 A：高级里每一项要有一句话说明作用）
-        ttk.Label(g_adv, text='检测谁在说话，换人时重新克隆音色；'
-                  '只在音色=跟随说话人时生效',
-                  foreground='#555').grid(row=7, column=1, sticky='w',
-                                          padx=(0, 8), pady=0)
+        # 「重试翻译」按钮已移除（APP-116 §3）⇒ 置 None 占位。
+        #   状态轮询里的 `self.btn_mt_retry.configure(...)` 会被既有
+        #   `except Exception` 吞掉（见 `_track_mt_state`）⇒ 不会报错。
+        self.btn_mt_retry = None
         # 🔴 **离线朗读入口**（用户需求：上传文件 / 对话框输入文本 ⇒ 直接播报）
         ttk.Label(g_adv, text='离线朗读',
-                  anchor='e').grid(row=7, column=0, sticky='e',
+                  anchor='e').grid(row=3, column=0, sticky='e',
                                    padx=(0, 8), pady=0)
         self.btn_offline = ttk.Button(
             g_adv, text='📖 离线朗读…', width=16,
             command=self._open_offline_reader)
-        self.btn_offline.grid(row=7, column=1, sticky='w', pady=0)
+        self.btn_offline.grid(row=3, column=1, sticky='w', pady=0)
         ttk.Label(g_adv, text='上传音频或输入文本直接播报，不经过识别与翻译',
-                  foreground='#555').grid(row=9, column=1, sticky='w',
-                                          padx=(0, 8), pady=0)
+                  foreground='#555').grid(row=3, column=2, sticky='w',
+                                          padx=(8, 0), pady=0)
         # 🔴 **测试声音**按钮（APP-021④）：把「播放链路」与「TTS 合成」拆开。
         #   走**同一个 worker 的 Player** 播 1 s 440 Hz 正弦波。
         ttk.Label(g_adv, text='测试声音',
-                  anchor='e').grid(row=8, column=0, sticky='e',
+                  anchor='e').grid(row=4, column=0, sticky='e',
                                    padx=(0, 8), pady=0)
         self.btn_tts_test = ttk.Button(g_adv, text='🔊 测试声音', width=14,
                                        command=self._on_tts_test_sound)
-        self.btn_tts_test.grid(row=8, column=1, sticky='w', pady=0)
+        self.btn_tts_test.grid(row=4, column=1, sticky='w', pady=0)
         ttk.Label(g_adv, text='播放 1 秒测试音，验证输出设备与播放链路',
-                  foreground='#555').grid(row=8, column=2, sticky='w',
+                  foreground='#555').grid(row=4, column=2, sticky='w',
                                           padx=(8, 0), pady=0)
         # ⚠️ **耳机提示**（APP-014：TTS 转正式功能 ⇒ 默认开启）
         #   TTS 从**系统输出设备**播放，而 ASR 可能采**系统回环**⇒
         #     不戴耳机会把 TTS 的声音**再采回去** ⇒ 自激 / 回声 / 重复词。
-        ttk.Label(g_adv, text='⚠️ 戴耳机', 
+        ttk.Label(g_adv, text='⚠️ 戴耳机',
                   anchor='e', foreground='#b26a00').grid(
-                      row=9, column=0, sticky='e', padx=(0, 8), pady=0)
+                      row=5, column=0, sticky='e', padx=(0, 8), pady=0)
         ttk.Label(g_adv, text='避免 TTS 声音被 ASR 回采造成回授',
-                  foreground='#b26a00').grid(row=9, column=2, sticky='w',
+                  foreground='#b26a00').grid(row=5, column=2, sticky='w',
                                            padx=(8, 0), pady=0)
         # 🔴 **全局说明文字**（APP-048：顶部说明也要换行）
         self._lbl_note.pack(fill='x', padx=4, pady=(2, 0))
@@ -4755,6 +4763,12 @@ class App:
                 self._clone_status = ''
             out_name = self.var_tts_out.get()
             out_id = self._out_label_back.get(out_name)
+            # 🔴🔴🔴 APP-116 §1：**逐跳打日志** hop1/GUI（启动路径）。
+            #   ⇒ 「选了哪个显示名 ⇒ 解析成哪个 id」写清楚
+            #     ⇒ 后面 service/worker 两跳都能对上。
+            self._ui_log('[tts] 输出设备：%s（hop1/GUI ⇒ id=%s）'
+                         % (out_name,
+                            out_id if out_id else '🔴 反查失败（None）⇒ 系统默认'))
             # ⚠️ 用 **GUI 的实时选择**，不是 args 的启动快照：
             #    用户在组合下拉里改过设备/精度后，args 里的值是旧的。
             dev = self._dev_choices.get('tts') or getattr(self.args, 'tts_device', 'NPU')
@@ -5074,14 +5088,31 @@ class App:
         out_id = self._out_label_back.get(out_name)
         old = getattr(self, '_tts_out_id', None)
         self._tts_out_id = out_id
-        self._ui_log(f'[tts] 输出设备改为：{out_name}')
+        # 🔴🔴🔴 APP-116 §1：**逐跳打日志** hop1/GUI。
+        #   ⇒ 把「下拉显示名 ⇒ 反查到的设备 id」写清楚
+        #     ⇒ 反查失败（None）时**明说**，不再静默走默认设备。
+        self._ui_log('[tts] 输出设备改为：%s（hop1/GUI ⇒ id=%s）'
+                     % (out_name, out_id if out_id else '🔴 反查失败（None）'))
+        if out_id is None:
+            self._ui_log('🔴 [tts] 下拉里的名称在设备列表中反查不到 id ⇒ '
+                         '无法定位该设备（请重新打开下拉或换一台设备）')
         if out_id == old:
             return
         if self.tts is None:
             # worker 没在跑 ⇒ 下次起 worker 自然会用新设备 ⇒ 不用重启
             return
-        self.var_tts_note.set(f'输出设备已改为 {out_name}（正在重启 TTS）')
+        self.var_tts_note.set(f'输出设备已改为 {out_name}（正在切换）')
         self.var_status.set(f'语音输出设备切换中：{out_name}')
+        # 🔴🔴🔴 APP-116 §1：**先试「重开播放流」**（立即生效、不重启 worker）。
+        #   ⇒ worker 侧只换 `_stream`，音频队列不动 ⇒ 不丢在途句子。
+        try:
+            if self.tts.set_out_device(out_id, out_name):
+                self._ui_log(f'[tts] ✅ 已下发「重开播放流」指令：{out_name}')
+                return
+        except Exception as e:
+            self._ui_log('[tts] 🔴 运行中切换失败（%r）⇒ 退回「重启 TTS」' % (e,))
+        # 兜底：重启 worker（旧路径）
+        self.var_tts_note.set(f'输出设备已改为 {out_name}（正在重启 TTS）')
         try:
             self.tts.close()
         except Exception:
@@ -9247,9 +9278,11 @@ def main():
                          '⚠️ 请佩戴耳机，避免 TTS 声音被 ASR 回采造成回授')
     ap.add_argument('--tts-precision', default='f32', choices=['f32', 'f16'],
                     help='TTS 推理精度')
-    ap.add_argument('--tts-voice', default='A', choices=['A', 'follow_speaker'],
-                    help='音色：预设 A（客户包只随包分发音色 A；'
-                         '音色 B / 克隆说话人素材按 BRIEF 不进包）；'
+    ap.add_argument('--tts-voice', default='A',
+                    choices=['A', 'B', 'follow_speaker'],
+                    help='音色：预设 A（**女声**）／预设 B（**男声**，'
+                         '**模型生成**；用户抽听点头前**不进包**⇒ '
+                         '包内没有该文件时回落预设 A）／'
                          'follow_speaker = 跟随说话人（克隆·实验）—— '
                          '🔴🔴 APP-061④：克隆改为「换人时取样」'
                          '（首段 ≥1.5 s，3 s 定稿），老说话人复用；'

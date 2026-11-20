@@ -619,6 +619,13 @@ class TTSService:
                    '--voice', self.voice]
             if self.out_device:
                 cmd += ['--out-device', self.out_device]
+            # 🔴🔴🔴 APP-116 §1：**逐跳打日志** hop2/service→worker。
+            #   把「主进程实际传给 worker 的 --out-device」原样打出来
+            #   ⇒ 若这一行是空 ⇒ 问题在 GUI→service 这一跳，不在 worker。
+            self.on_log('[TTS] 启动 worker：--out-device=%r%s'
+                        % (self.out_device,
+                           '' if self.out_device
+                           else '（未指定 ⇒ 系统默认设备）'))
             if self.model_dir:
                 cmd += ['--model-dir', self.model_dir]
             if self.clone:
@@ -1904,6 +1911,21 @@ class TTSService:
                         % ('成功' if ok else '失败',
                            msg.get('message', ''),
                            tel.get('cb_delta', '-'), tel.get('read_delta', '-')))
+        elif kind == 'out_device':
+            # 🔴🔴🔴 APP-116 §1：**输出设备切换回执**。
+            #   ⇒ 日志里必须写清「实际落到哪个设备」＋「有没有回落」。
+            #   ⇒ 回落（fallback 非空）⇒ **明说**，绝不静默。
+            ok = bool(msg.get('ok'))
+            desc = msg.get('out_desc') or '（未知）'
+            fb = msg.get('fallback') or ''
+            if ok and not fb:
+                self.on_log('[TTS] ✅ 输出设备已切换 ⇒ 实际输出: %s' % desc)
+            elif ok and fb:
+                self.on_log('[TTS] ⚠️ 输出设备切换：**%s** ⇒ 实际输出: %s' % (fb, desc))
+            else:
+                self.on_log('[TTS] 🔴 输出设备切换失败：%s（实际输出: %s）'
+                            % (msg.get('error') or msg.get('fallback') or '未知原因',
+                               desc))
         elif kind == 'telemetry':
             # 🔴 APP-021②：拉取到的遥测快照
             tel = msg.get('telemetry') or {}
@@ -1937,6 +1959,22 @@ class TTSService:
         with self._outbox_lock:
             out, self._outbox = self._outbox, []
         return out
+
+    # 🔴🔴🔴 APP-116 §1：**运行中切换输出设备**（重开播放流，**不重启 worker**）。
+    #   ⇒ 用户在 GUI 下拉里换设备 ⇒ **立即生效**（不用重新加载模型、
+    #     不会打断在途句子：worker 侧只换 `_stream`，音频队列不动）。
+    #   返回 True = 指令**已下发**；结果在 `out_device` 事件里回执。
+    def set_out_device(self, device, label: str = '') -> bool:
+        ok = self._send({'cmd': 'set_out_device', 'device': device})
+        if ok:
+            self.out_device = device
+            self.on_log('[TTS] 已下发输出设备切换指令：%s'
+                        % (label or device or '系统默认设备'))
+        else:
+            self.on_log('[TTS] 🔴 输出设备切换指令**下发失败**'
+                        '（worker 未运行？）⇒ %s'
+                        % (label or device or '系统默认设备'))
+        return ok
 
     # 🔴 APP-021④：让 GUI 能触发「测试声音」（走**同一个 worker 的 Player**）。
     def test_tone(self, freq: float = 440.0, dur_s: float = 1.0,

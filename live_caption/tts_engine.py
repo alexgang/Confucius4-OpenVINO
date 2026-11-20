@@ -123,13 +123,39 @@ def tokenizer_dir() -> Optional[str]:
     return None
 
 
-def preset_voice_path() -> Optional[str]:
-    """预设音色 A 的参考音频路径。"""
-    for p in (os.path.join(model_root(), 'voices', 'preset_A.wav'),
-              os.path.join(PKG_ROOT, 'models', 'qwen3tts', 'voices', 'preset_A.wav')):
+def preset_voice_path(voice: str = 'A') -> Optional[str]:
+    """预设音色的参考音频路径（`voice` = 'A' / 'B'）。
+
+    🔴🔴🔴 APP-116 §2：**新增预设 B（男声）**。
+      · `preset_A.wav` = 预设 A（**女声**）
+      · `preset_B.wav` = 预设 B（**男声**，**模型生成**：
+        Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice，Apache-2.0 ⇒ 允许分发；
+        **不是**录音／同事音色／克隆音色／babelvox 样本）
+      ⚠️ **B 的文件在用户抽听点头前不进客户包** ⇒ 客户机上 `preset_voice_path('B')`
+        返回 None ⇒ GUI **不列出**「预设 B（男声）」这一档
+        （APP-007 的教训：列一个选不了的项 = 静默错标）。
+    """
+    v = str(voice or 'A').strip().upper()
+    if v not in ('A', 'B'):
+        v = 'A'
+    fn = 'preset_%s.wav' % v
+    for p in (os.path.join(model_root(), 'voices', fn),
+              os.path.join(PKG_ROOT, 'models', 'qwen3tts', 'voices', fn)):
         if os.path.isfile(p):
             return p
     return None
+
+
+def preset_voices_available() -> tuple:
+    """当前环境里**真的可用**的预设音色（按参考音频文件是否存在判定）。
+
+    🔴 用途：GUI 的音色下拉**只列可用项**（APP-116 §2）。
+    """
+    out = []
+    for v in ('A', 'B'):
+        if preset_voice_path(v):
+            out.append(v)
+    return tuple(out)
 
 
 # 🔴🔴 **音色 A 的参考文本已作废，不要用**（交接单 2026-10-23 14:37 更新，TTS-005）
