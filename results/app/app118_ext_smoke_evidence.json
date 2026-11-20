@@ -1,0 +1,70 @@
+{
+  "ts": "2026-11-21 04:28:01",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5",
+  "mode": "echo",
+  "ext_version": "0.4.18",
+  "cmd": [
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5\\python\\python.exe",
+    "-m",
+    "ext.bridge",
+    "--echo",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "49742",
+    "--pair-port",
+    "49743"
+  ],
+  "health": "{\"ok\": true}",
+  "status": "{\"ok\": true, \"status\": {\"checked_at\": \"2026-11-21 04:28:03\", \"has_session\": false, \"delay_sec\": null, \"lag_sec\": null, \"speed\": null, \"n_segments\": 0, \"speed_time_share\": {}, \"n_dropped_dub\": 0, \"n_silent_fill_segments\": 0, \"engine_state\": \"unknown\", \"engine_loaded\": [], \"engine_failed\": {}, \"mode\": \"echo\", \"active_peer\": null, \"you\": \"127.0.0.1\"}}",
+  "pair_no_origin": {
+    "status": 200,
+    "token": "nopair"
+  },
+  "pair_with_origin": {
+    "status": 200,
+    "token": "nopair"
+  },
+  "pair_origin_check_is_deadcode": "🔴 `pair_server.py` 的 Origin 校验在 `return` 之后 ⇒ 死代码；这是 EXT v0.4.0 自己「取消 token 配对」的决定 ⇒ 属 EXT 模块，本轮**只记录、不改**（App 侧无权改 EXT 源码）。",
+  "port_conflict_rc": 6,
+  "caption_app_running": false,
+  "pass": 7,
+  "fail": 0,
+  "checks": [
+    {
+      "name": "A1 EXT 版本 = 0.4.18（bridge 与 manifest 一致）",
+      "ok": true,
+      "detail": "bridge=0.4.18 manifest=0.4.18"
+    },
+    {
+      "name": "A2 桥接**真能启动**（配对端口在听）",
+      "ok": true,
+      "detail": "pair_port=49743 up=True"
+    },
+    {
+      "name": "A3 /health 应答（HTTP 200 + JSON）",
+      "ok": true,
+      "detail": "status=200 body={\"ok\": true}"
+    },
+    {
+      "name": "A4 /status 应答（HTTP 200 + JSON + popup 需要的字段齐全）",
+      "ok": true,
+      "detail": "status=200 missing=[] body={\"ok\": true, \"status\": {\"checked_at\": \"2026-11-21 04:28:03\", \"has_session\": false, \"delay_sec\": null, \"lag_sec\": null, \"speed\": null, \"n_segments\": 0, \"speed_time_share\": {}, \"n_dropped_dub\": 0, \"n_silent_fill_segments\":"
+    },
+    {
+      "name": "A5 /pair 契约符合 v0.4.0（固定 token=nopair，与 Origin 无关）",
+      "ok": true,
+      "detail": "无Origin status=200 token='nopair'；带Origin status=200 token='nopair'"
+    },
+    {
+      "name": "A6 端口被占 ⇒ 拒绝启动（退出码 6，不白等）",
+      "ok": true,
+      "detail": "rc=6"
+    },
+    {
+      "name": "A7 与实时字幕 App 互斥检查（本机 App 未运行 ⇒ 不适用）",
+      "ok": true,
+      "detail": "live_caption_app 在运行=False ⇒ 本条不适用，代码路径存在（EXT-001）"
+    }
+  ]
+}

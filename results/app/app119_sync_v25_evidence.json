@@ -1,0 +1,54 @@
+{
+  "ts": "2026-11-21 01:57:38",
+  "app": "APP-119",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5",
+  "py_files": [
+    {
+      "name": "device_config.py",
+      "dev_sha256": "4e6b50266340c07d00882a3e2f62b1a84ffaefd23eb4626434c7d66c1f5690e0",
+      "pkg_sha256": "4e6b50266340c07d00882a3e2f62b1a84ffaefd23eb4626434c7d66c1f5690e0",
+      "pkg_sha256_before": "d9a179747b55dbbc8224f39c288d2152d559488482fabbfa0222f4c7cc6de63e",
+      "changed": true,
+      "bytes": 48828,
+      "mtime": "2026-11-21 01:57:38",
+      "identical_to_dev": true
+    },
+    {
+      "name": "live_caption_app.py",
+      "dev_sha256": "c0dc232fe788f47a13a4e4b28529dbbba7b1ee2c1f6f15b5950498f8601e39a3",
+      "pkg_sha256": "c0dc232fe788f47a13a4e4b28529dbbba7b1ee2c1f6f15b5950498f8601e39a3",
+      "pkg_sha256_before": "6c03bbc9c6dabd70abbf09d02363c27d9ea69d8b48dbf1e12c3b88901ee5074d",
+      "changed": true,
+      "bytes": 527453,
+      "mtime": "2026-11-21 01:57:38",
+      "identical_to_dev": true
+    }
+  ],
+  "readme": [
+    {
+      "name": "README_zh.md",
+      "repl_hits": [
+        "| **语音输出（TTS）** | **Intel NPU** | **NPU 只给语音输出独占使用** |",
+        "> ⚠️ ASR / 翻译的**回退链里不再有 NPU** —— 避免两者和语音输出抢同一个\n> 加速器，导致三边互相拖",
+        "默认设备摆放定案（ASR/翻译走集显、语音输出独占 NPU）"
+      ],
+      "bytes": 55968,
+      "mtime": "2026-11-21 01:57:38",
+      "sha256": "696a9f42bc896f98530373b64d29b7bea0843a90f593af65b1f118df9408db7e"
+    },
+    {
+      "name": "README_en.md",
+      "repl_hits": [
+        "| **Speech output (TTS)** | **Intel NPU** | **The NPU is use",
+        "> ⚠️ The **fallback chains for ASR and translation no longer",
+        "speech output with exclusive use of the NPU"
+      ],
+      "bytes": 62308,
+      "mtime": "2026-11-21 01:57:38",
+      "sha256": "deb07287d72c187a85bc5d27749d1a19a9cec1cf1c0296ef8277ee753906122d"
+    }
+  ],
+  "errors": [],
+  "pkg_file_count": 48790,
+  "result": "PASS"
+}

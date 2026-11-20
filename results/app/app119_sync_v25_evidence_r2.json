@@ -1,0 +1,51 @@
+{
+  "ts": "2026-11-21 03:22:49",
+  "app": "APP-119",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5",
+  "phase": "r2（仅运行时 .py；README 本轮不改）",
+  "py_files": [
+    {
+      "name": "device_config.py",
+      "dev_sha256": "4e6b50266340c07d00882a3e2f62b1a84ffaefd23eb4626434c7d66c1f5690e0",
+      "pkg_sha256": "4e6b50266340c07d00882a3e2f62b1a84ffaefd23eb4626434c7d66c1f5690e0",
+      "pkg_sha256_before": "4e6b50266340c07d00882a3e2f62b1a84ffaefd23eb4626434c7d66c1f5690e0",
+      "changed": false,
+      "bytes": 48828,
+      "mtime": "2026-11-21 03:22:49",
+      "identical_to_dev": true,
+      "ast_ok": true
+    },
+    {
+      "name": "live_caption_app.py",
+      "dev_sha256": "22371156a4564c379fac15fef1757ddf11dbdd6c2281080228ee7c25b522616c",
+      "pkg_sha256": "22371156a4564c379fac15fef1757ddf11dbdd6c2281080228ee7c25b522616c",
+      "pkg_sha256_before": "c0dc232fe788f47a13a4e4b28529dbbba7b1ee2c1f6f15b5950498f8601e39a3",
+      "changed": true,
+      "bytes": 531005,
+      "mtime": "2026-11-21 03:22:50",
+      "identical_to_dev": true,
+      "ast_ok": true
+    }
+  ],
+  "readme": [
+    {
+      "name": "README_zh.md",
+      "read_only": true,
+      "needles_ok": true,
+      "bytes": 55968,
+      "mtime": "2026-11-21 01:57:38",
+      "sha256": "696a9f42bc896f98530373b64d29b7bea0843a90f593af65b1f118df9408db7e"
+    },
+    {
+      "name": "README_en.md",
+      "read_only": true,
+      "needles_ok": true,
+      "bytes": 62308,
+      "mtime": "2026-11-21 01:57:38",
+      "sha256": "deb07287d72c187a85bc5d27749d1a19a9cec1cf1c0296ef8277ee753906122d"
+    }
+  ],
+  "errors": [],
+  "pkg_file_count": 48790,
+  "result": "PASS"
+}

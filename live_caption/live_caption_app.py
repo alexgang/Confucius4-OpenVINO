@@ -233,13 +233,63 @@ _TTS_QUEUE_OVERFLOW_S = None
 _TTS_BACKLOG_CLEAR_S = 2.0
 
 
+def _accel_class(dev: str) -> str:
+    """🔴🔴🔳 **APP-119 §2 连带**：把设备名归到「**加速卡类别**」。
+
+      · `CUDA…`   ⇒ **CUDA**（NVIDIA 独显，**自己一张卡**）
+      · `NPU…`    ⇒ **NPU**（Intel NPU，**自己一个加速器**）
+      · `GPU…`    ⇒ **GPU**（🔴 **保守**：所有 `GPU.x` 视作**同一张卡**）
+      · 其它/CPU  ⇒ 原样（`CPU` 等）
+
+    🔴 **为什么要归类**：APP-113 §2 的并行加载规则**原本**只认「CUDA 这一路」
+       （理由是「同一张卡上并行编译会把 GUI 卡死」）。
+       ⇒ **APP-119 §1 把完整版出厂默认改成 TTS = NPU** 之后，
+          **默认配置（ASR=GPU.0 ／ TTS=NPU）明明不是同一张卡**，
+          却因为「TTS 不是 CUDA」而被**静默地**永远串行
+          ⇒ **默认配置白丢 APP-113 §2 的并行收益**（TTS 就绪更晚）。
+       ⇒ 规则改成「**同一张卡才串行**」（见 `_same_accel`）。
+    """
+    d = str(dev or '').strip().upper()
+    if d.startswith('CUDA'):
+        return 'CUDA'
+    if d.startswith('NPU'):
+        return 'NPU'
+    if d.startswith('GPU'):
+        return 'GPU'
+    return d
+
+
+def _same_accel(dev_a: str, dev_b: str) -> bool:
+    """🔴🔴🔳 **APP-119 §2 连带**：两个模块是否在**同一张加速卡**上。
+
+    🔴 **判定口径**（取代 APP-113 §2 的「TTS 是不是 CUDA」）：
+      * **同卡**（`GPU` ↔ `GPU`、`NPU` ↔ `NPU`）⇒ **串行**
+        （沿用「auto=False 防编译死锁」：**同一张卡上并行编译会卡死**）
+      * **异卡**（`GPU` ↔ `NPU`、`GPU` ↔ `CUDA`、`NPU` ↔ `CUDA`）
+        ⇒ **允许并行**（各编各的卡 ⇒ 没有同卡编译死锁）
+      * **任一未知/空** ⇒ 🔴 **保守当同卡**（保持原来的串行行为）
+
+    ⚠️ **不是**「解除设备限制」：**APP-119 §2 的「任意组合都允许」说的是
+       **推理落点**不被改写**；本函数只决定**加载顺序**，
+       **不改任何模块的设备**，也**不影响**落点。
+    """
+    a = _accel_class(dev_a)
+    b = _accel_class(dev_b)
+    if not a or not b:
+        return True          # 🔴 未知 ⇒ 保守串行
+    return a == b
+
+
 def _tts_parallel_enabled() -> bool:
     """🔴🔴🔳 APP-113 §2：**「ASR 与 TTS 并行加载」开关**（可关掉做同机 A/B）。
 
-    🔴 **默认 = 开**：TTS 档位是 **CUDA** 时，启动瞬间就把边车拉起
+    🔴 **默认 = 开**：当 **ASR 与 TTS 不在同一张加速卡**时
+      （`_same_accel()` 为假），启动瞬间就把边车拉起
       （独立进程）⇒ 与 ASR 的模型加载**真并行**。
-    🔴 **只影响 CUDA 这一路**：TTS 档位是 **GPU.0 / NPU** 时**永远串行**
-      （沿用「auto=False 防 GPU 编译死锁」的历史经验）。
+    🔴 **同一张卡 ⇒ 永远串行**（沿用「auto=False 防编译死锁」的历史经验）。
+      🔴🔴🔳 **APP-119 §1 连带**：完整版**出厂默认**现在是
+      **ASR = GPU.0 ／ TTS = NPU** ⇒ **异卡** ⇒ 默认配置**恢复**并行加载
+      （此前因规则写死「TTS=CUDA」而被静默关掉）。
     🔴 设环境变量 **`LIVECAP_TTS_PARALLEL=0`** ⇒ **强制串行**
       ⇒ 供 reviewer 做「并行 vs 串行」的**同机同代码 A/B**
       （APP-113 §2 要求记录「并行前后 TTS 就绪时刻对比」）。
@@ -3140,21 +3190,20 @@ class App:
         self._wrapped_labels = getattr(self, '_wrapped_labels', [])
         self._wrapped_labels.append((self._lbl_status, root))
 
-        # ── 设备清单 + D4 启动时冲突处理 ────────────────────────────
+        # ── 设备清单（APP-119 §2：启动时**不再**有 D4 冲突处理）────────
         # 🔴 **必须在建控件之前**算好（③④⑤ 组的下拉都要用 `self._dev_avail`）。
         self._dev_avail = device_config.available_devices()
         self._dev_label_back = {device_config.device_label(d): d
                                 for d in self._dev_avail}
         # 命令行 > 配置文件 > 推荐默认值（device_config.get_devices 已解析）
         self._dev_choices = dict(self._dev_selected)
-        # 🔴🔴🔴 APP-062 ④（D4）：**启动时**若 `device_config.json` 里
-        #   就是「MT 与 TTS 同 NPU」⇒ **一样处理**（MT 自动改到 GPU.0）
-        #   reviewer 原文：「启动时如果 device_config.json 里是这种组合，
-        #     也一样处理。」
-        try:
-            self._enforce_no_npu_conflict('启动时读取 device_config.json')
-        except Exception:
-            pass
+        # 🔴🔴🔳 **APP-119 §2（2026-11-20）：启动时不再做 NPU 互斥处理** ——
+        #   旧的 D4 规则（MT 与 TTS 同在 NPU ⇒ 自动把 MT 挪到 GPU.0 ＋ 弹框）
+        #   **已删除** ⇒ `device_config.json` 里用户写的组合**原样生效**，
+        #   **不再自动改用户的选择**。
+        #   ⚠️ 只保留**一条不阻塞的性能提示**（NPU 共用 ⇒ 合成可能变慢）
+        #   ⇒ 挂在**语音输出（TTS）状态条**上，见 `_npu_conflict_note()`。
+        #   ⚠️ **不得**因此把 APP-117 的**全局状态灯**加回来（APP-119 §2）。
 
         # ── APP-065 A：按处理链分 5 组（竖排）──────────────────────
         #   reviewer 原文：「按处理链分组，从上到下：①音频输入 ②语音识别 ③翻译
@@ -3735,19 +3784,27 @@ class App:
         try:
             _tdev = str(self._dev_choices.get('tts')
                         or getattr(args, 'tts_device', '') or '')
-            if (_tdev.upper().startswith('CUDA') and self.var_tts_on.get()
+            # 🔴🔴🔳 **APP-119 §1 连带**：出厂默认现在是 ASR=GPU.0 ／ TTS=NPU
+            #   ⇒ **异卡** ⇒ 应当并行加载。
+            #   ⇒ 判定改成「**与 ASR 是否同一张卡**」（`_same_accel`），
+            #     不再是写死的「TTS 是不是 CUDA」。
+            _adev = str(self._dev_choices.get('asr')
+                        or getattr(args, 'asr_device', '') or '')
+            _same_card = _same_accel(_adev, _tdev)
+            if (not _same_card and self.var_tts_on.get()
                     and _tts_parallel_enabled()):
                 self._tts_startup_done = True
                 self._tts_parallel_started = True
-                self._ui_log('[TTS] APP-113 §2：CUDA 边车**与 ASR 并行加载**'
-                             '（独立进程；不与 ASR 抢 GPU.0）')
+                self._ui_log('[TTS] APP-113 §2：TTS 边车**与 ASR 并行加载**'
+                             '（独立进程；ASR=%s ／ TTS=%s ⇒ 异卡，不并行编译）'
+                             % (_adev or '—', _tdev or '—'))
                 self._on_tts_toggled()
             else:
                 self._ui_log('[TTS] APP-113 §2：TTS 档位 = %s ⇒ **保持串行**'
                              '（%s）'
                              % (_tdev or '—',
-                                '非 CUDA ⇒ auto=False 防 GPU 编译死锁'
-                                if not _tdev.upper().startswith('CUDA')
+                                ('与 ASR（%s）**同一张卡** ⇒ auto=False 防编译死锁'
+                                 % (_adev or '—')) if _same_card
                                 else '环境变量 LIVECAP_TTS_PARALLEL=0 ⇒ 强制串行'))
         except Exception as e:
             # 🔴 并行启动失败 ⇒ **回落串行**（不阻断启动）
@@ -3925,14 +3982,12 @@ class App:
             self.var_note.set(opt.get('note', ''))
 
         # ---- 翻译（auto 先解析成实际模型键）----
-        # 🔴🔴🔳 APP-067 ③/④：**用 `_dev_choices`（enforce 后的真值），
-        #   不是 `_dev_selected`（用户原始选择）**。
-        #   ⇒ 旧实现用 `_dev_selected['mt']` ⇒ **NPU+NPU 启动时**：
-        #      ① D4 enforce（`__init__` 早期）已把 `_dev_choices['mt']` 改成 GPU.0
-        #      ② 但这里**又用 `_dev_selected`（仍是 NPU）**去选 combo
-        #      ⇒ combo 停在 **NPU 那一项** ⇒ 状态栏显示「模型 Intel NPU」
-        #      ⇒ **违反 APP-063 的验收条件「状态栏不含 NPU」**。
-        #   ⇒ 现在用 `_dev_choices['mt']` ⇒ 直接落到 GPU.0 那一项。
+        # 🔴🔴🔳 **APP-119 §2：不再有「enforce 后的真值」** ——
+        #   旧的 D4 规则（MT 与 TTS 同 NPU ⇒ 自动把 MT 挪到 GPU.0）**已删除** ⇒
+        #   `_dev_choices` 就是**用户的原始选择**，不需要再区分「真值/原始值」。
+        #   ⚠️ 仍用 `_dev_choices`（而不是 `_dev_selected`）：`_dev_choices`
+        #     是**本机可用设备解析后的结果**（用户选的设备本机不存在时会回退）
+        #     ⇒ 用它选 combo ⇒ 界面显示与实际跑的一致。
         _mt_dev_truth = self._dev_choices.get('mt') or \
             self._dev_selected['mt']
         mt_key = self._resolve_mt_engine_key(args.mt_engine, _mt_dev_truth)
@@ -3958,6 +4013,8 @@ class App:
             #      ⇒ 即使 `want_dev` 是 GPU.0，兜底也会**落到 NPU**
             #      ⇒ `self._dev_choices['mt'] = 'NPU'`
             #      ⇒ 接着 D4 enforce 命中 ⇒ **模态弹框** ⇒ 无头探针挂死
+            #        （**APP-119 §2 之后 D4 enforce 已删除** ⇒ 这条历史坑
+            #          不再会发生；本兜底逻辑仍保留）
             #      ⇒ 状态栏也显示「模型 Intel NPU」（违反 APP-063）。
             #   ⇒ 现在：先找「同设备」的任意项 ⇒ 仍找不到才用 `_mt_opts[0]`
             #      （**最后**兜底，且这时 `want_dev` 本机不可用 ⇒ 无解）。
@@ -3973,17 +4030,12 @@ class App:
             self.var_mt_combo.set(opt['label'])
             self._dev_choices['mt'] = opt['device']
             self.var_mt_note.set(opt.get('note', ''))
-            # 🔴🔴🔳 APP-067 ③/④：**这里不再重复调 enforce**。
-            #   ⇒ 旧实现（APP-067 ③ 初版）在控件建好后再调一次 enforce
-            #      ⇒ **模态弹框在 `__init__` 里弹出** ⇒ 无头探针**永久挂起**
-            #        （实测 `app231` / `app238` 卡死 >5 min，
-            #          栈：`messagebox.showwarning` ← `_enforce_no_npu_conflict`
-            #          ← `_init_combo_values` ← `__init__`）
-            #   ⇒ 现在：**combo 的初值直接按 enforce 后的真值选**
-            #      （见上面 `_mt_dev_truth`）⇒ 组合本来就落在 GPU.0
-            #      ⇒ **不需要第二次 enforce** ⇒ 也不会重复弹框。
-            #   ⇒ D4 的**弹框**仍由 `__init__` 早期那一次 enforce 负责
-            #      （启动时确实发生了冲突 ⇒ 告知用户是对的）。
+            # 🔴🔴🔳 **APP-119 §2：这里不再（也不需要）调 enforce** ——
+            #   旧的 `_enforce_no_npu_conflict` **整体删除** ⇒
+            #   ① 不会再有「模态弹框」（当年 `app231`/`app238` 无头探针
+            #      **永久挂起** >5 min 的根因：`messagebox.showwarning`
+            #      ← `_enforce_no_npu_conflict` ← `_init_combo_values`）；
+            #   ② 用户把 MT 选到 NPU ⇒ **就真的跑在 NPU**（不再被偷偷挪走）。
             # 🔴 **GUI 显示的组合必须真的生效**：TranslationService 是用
             #    args.mt_engine（可能是 'auto'）建的 ⇒ 'auto' 恒等于 INT8-CW。
             #    若组合落在 INT4-CW（或别的 engine 键），必须在这里
@@ -4718,27 +4770,12 @@ class App:
             return
         self._dev_choices['mt'] = opt['device']
         self.var_mt_note.set(opt.get('note', ''))
-        # 🔴🔴🔴 APP-062 ④（D4）：MT 与 TTS 同 NPU ⇒ **禁止**
-        #   ⇒ MT 自动改到 GPU.0（reviewer：「MT 自动改到 GPU.0」）
-        # 🔴🔴🔴 APP-063 ①（D4 bug 修复，2026-11-02）：**enforce 之后必须重读 opt**。
-        #   旧实现（§131）在本函数里直接继续用**旧 opt**（NPU 那一项）去
-        #   `set_engine(opt['engine'])` + `set_device(opt['device'])`
-        #   ⇒ **把 enforce 刚改好的 GPU.0 又覆盖回 NPU**
-        #   ⇒ 配置文件写的是 GPU.0、实际跑在 NPU、还弹框告诉用户「已改到 GPU.0」。
-        #   ⇒ 现在：enforce 命中（返回 True）⇒ **重新读 opt**（此时 combo 已是
-        #     GPU.0 那一项）⇒ 再按 set_engine→set_device 铁律执行。
-        _forced = False
-        try:
-            _forced = bool(self._enforce_no_npu_conflict(
-                'GUI 选择 MT=%s' % opt['device']))
-        except Exception:
-            pass
-        if _forced:
-            # enforce 已把 combo 同步成 GPU.0 ⇒ 重读真值
-            opt = self._cur_mt_opt()
-            if not opt:
-                return
-            self._dev_choices['mt'] = opt['device']
+        # 🔴🔴🔳 **APP-119 §2：不再做 NPU 互斥处理** ——
+        #   旧的 D4 规则（MT 与 TTS 同在 NPU ⇒ 禁止 + 自动把 MT 挪到 GPU.0）
+        #   **已删除** ⇒ 用户把 MT 选到 NPU 就**真的跑在 NPU**
+        #   （**不再被偷偷改掉**，也不再弹模态框）。
+        #   ⚠️ 若该组合真失败（编译失败 / NPU OOM）⇒ 由 **MT 状态条**
+        #     显式报错（`mt.err`）＋ 写日志，**绝不静默换设备**。
         # 🔴🔴🔳 **APP-098 二.4**：ASR 与 MT 同在 GPU ⇒ **提示**（不改设备）。
         try:
             self._warn_asr_mt_same_gpu('GUI 选择 MT=%s' % opt['device'])
@@ -4795,11 +4832,12 @@ class App:
         self._dev_choices['tts'] = opt['device']
         self._tts_precision = opt['precision']
         self.var_tts_note.set(self._tts_note_text(opt))
-        # 🔴🔴🔴 APP-062 ④（D4）：TTS 选 NPU 且 MT 也在 NPU ⇒ **禁止**
-        try:
-            self._enforce_no_npu_conflict('GUI 选择 TTS=%s' % opt['device'])
-        except Exception:
-            pass
+        # 🔴🔴🔳 **APP-119 §2：不再做 NPU 互斥处理** ——
+        #   旧的 D4 规则（TTS 选 NPU 且 MT 也在 NPU ⇒ 禁止 + 把 MT 挪回
+        #   GPU.0）**已删除** ⇒ 用户选的组合**原样生效**。
+        #   ⚠️ 若该组合真失败（编译失败 / NPU OOM）⇒ 由 **TTS / MT 各自的
+        #     状态条**显式报错（`last_error` / `mt.err`）＋ 写日志，
+        #     **绝不静默换设备**（APP-119 §2）。
         device_config.save_config(dict(self._dev_choices))
         if getattr(self, 'tts', None) is not None:
             self._restart_tts_on_device(opt['device'], opt['precision'])
@@ -6854,6 +6892,8 @@ class App:
         #   ⇒ 违反 APP-063 的验收条件「状态栏不含 NPU」。
         #   ⇒ 现在：**优先用真值**（engine_key + 实际设备）反查 label；
         #   ⇒ combo 的 opt 只作**兜底**（真值查不到时）。
+        #   ⚠️ APP-119 §2 之后 D4 enforce **已删除** ⇒ 「真值 vs combo」
+        #     不会再因为自动挪设备而分叉（本段逻辑仍保留 ⇒ 更稳）。
         label = ''
         _ek = getattr(mt, 'engine_key', None)
         _dev = str(getattr(mt, 'device', None) or '')
@@ -7091,10 +7131,11 @@ class App:
         except Exception:
             pass
         st.set('queue', '排队', _qtxt, priority=5)
-        # 🔴🔴🔴 APP-061③(d)：**NPU 共用**黄色提示（**只提示、不禁止**）
-        #   reviewer 原文：「用户把 MT 或 ASR 放到 NPU、同时 TTS 也在 NPU 时，
-        #   GUI 标黄提示『NPU 共用，语音可能卡顿』。是否直接禁止，见 D4。」
-        #   ⚠️ **D4 未决** ⇒ 本轮**只标黄警告**（用户决定之前的默认实现）。
+        # 🔴🔴🔳 **APP-119 §2：NPU 共用的性能提示**（**只提示、不禁止**）
+        #   reviewer 原文：「最多保留一条不阻塞的性能提示，放在相关模块的
+        #   状态条上。**不要把全局状态灯加回来。**」
+        #   ⇒ 挂在**语音输出（TTS）状态条**上（合成变慢影响的是 TTS）
+        #   ⇒ **不碰**顶部总状态灯（APP-117 的全局状态灯不回来）。
         try:
             _npu_note = self._npu_conflict_note()
         except Exception:
@@ -7441,141 +7482,15 @@ class App:
                _fmt_num(tts_rtf, 3), _fmt_num(uf_ms, 0), _fmt_num(uf_idle, 0),
                _fmt_num(n_sent, 0), _fmt_num(n_zero, 0)))
 
-    def _sync_mt_combo_to_gpu0(self):
-        """🔴🔴🔳 APP-067 ③：把**翻译下拉**同步到 GPU.0 那一档。
-
-        ## 为什么需要
-
-        D4 enforce 把**真值**改成了 GPU.0（`mt.device` / `engine_key`）
-        ⇒ 但 `_fill_mt_strip()` 的「模型」按 **combo 的 label** 反查
-        ⇒ combo 停在 NPU 选项 ⇒ 状态栏显示「模型 Intel NPU · INT8-CW」
-        ⇒ **违反 APP-063 的验收条件「状态栏不含 NPU」**。
-
-        ## 口径
-
-        * 优先按 `id`（`INT8-CW@GPU.0`）找；找不到就按 **engine + device** 反查
-          ⇒ **不依赖 `_mt_opt_by_id` 是否已建好**（启动早期它还不存在）。
-        * **找不到就不动**（保持原样）⇒ 绝不抛错打断启动。
-        * 控件还不存在时（启动早期）⇒ 静默跳过，等控件建好后再同步。
-        """
-        try:
-            var = getattr(self, 'var_mt_combo', None)
-            if var is None:
-                return False
-            opt = None
-            by_id = getattr(self, '_mt_opt_by_id', None) or {}
-            opt = by_id.get('INT8-CW@GPU.0')
-            if opt is None:
-                for o in (getattr(self, '_mt_opts', None) or []):
-                    if (o.get('device') == 'GPU.0'
-                            and o.get('precision') == 'INT8-CW'):
-                        opt = o
-                        break
-            if opt is None:
-                return False
-            if var.get() != opt.get('label'):
-                var.set(opt.get('label'))
-            return True
-        except Exception:
-            return False
-
-    def _enforce_no_npu_conflict(self, origin: str = ''):
-        """🔴🔴🔴 APP-062 ④（D4）：**禁止 MT 与 TTS 同时在 NPU**。
-
-        🔴 reviewer 原文：「**禁止**。检测到这种组合时，MT 自动改到 GPU.0，
-          用状态栏或弹框告知用户，同时写进日志。
-          启动时如果 device_config.json 里是这种组合，也一样处理。」
-
-        🔴 **依据**（APP-061③(d)）：MT 和 TTS 同在 NPU ⇒ TTS 合成变慢
-          25–30 %（实测 1.31 vs 1.00–1.05）⇒ 播放环形缓冲欠载 ⇒ 卡顿。
-
-        ✅ **幂等**：不冲突 ⇒ 不动任何东西（**不写日志**、不弹框）。
-        🔴 **只改 MT**（不动 TTS）⇒ 与 reviewer「MT 自动改到 GPU.0」一致。
-        🔴 **返回值** = 是否发生了改动（调用方据此决定要不要刷新界面）。
-        """
-        try:
-            dev = dict(getattr(self, '_dev_choices', {}) or {})
-        except Exception:
-            dev = {}
-        tts_dev = str(dev.get('tts') or '').upper()
-        mt_dev = str(dev.get('mt') or '').upper()
-        if 'NPU' not in tts_dev or 'NPU' not in mt_dev:
-            return False
-        # 🔴 改成 GPU.0
-        dev['mt'] = 'GPU.0'
-        self._dev_choices = dev
-        msg = ('MT 与 TTS 同时在 NPU ⇒ 已禁止（APP-062 D4）'
-               '⇒ MT 自动改到 GPU.0'
-               + (('（来源：%s）' % origin) if origin else ''))
-        # 🔴 **写进日志**（`_ui_log` ⇒ 落盘会话日志）
-        self._ui_log('[device] 🔴 %s' % msg)
-        # 🔴 **状态栏告知**
-        try:
-            self.var_status.set(msg)
-        except Exception:
-            pass
-        try:
-            self.var_mt_note.set(msg)
-        except Exception:
-            pass
-        # 🔴 **同步 GUI 下拉**（否则界面显示与真值不一致）
-        # 🔴🔴🔳 APP-067 ③：**启动时也要同步**。
-        #   ⇒ 旧实现把 combo 同步放在「建控件之后」的路径里
-        #   ⇒ 启动时（`device_config.json` 就是 NPU+NPU）走的是**另一条路径**
-        #   ⇒ combo 仍停在 NPU 选项 ⇒ 状态栏显示「模型 Intel NPU」。
-        #   ⇒ 现在：**同源**（`_mt_opt_by_id` 找不到就按 engine+device 反查）
-        #   ⇒ 且**在控件建好之后**也会再同步一次（见 `_sync_mt_combo_to_gpu0`）。
-        try:
-            self._sync_mt_combo_to_gpu0()
-            self._mt_precision = 'INT8-CW'
-        except Exception:
-            pass
-        # 🔴 落到配置文件（下次启动仍是 GPU.0）
-        try:
-            device_config.save_config(dict(self._dev_choices))
-        except Exception:
-            pass
-        # 🔴 运行中的 MT 引擎也要换设备
-        # 🔴🔴🔴 APP-063 ①（D4 bug 修复，2026-11-02）：**必须 set_engine → set_device**。
-        #   旧实现只调 `set_device('GPU.0')` ⇒ **engine 仍停在 NPU 那一档**
-        #   （`set_device` 不动 engine_key ⇒ 引擎 key 与实际设备不一致）
-        #   ⇒ 违反本文件「顺序铁律」（`set_engine` 内部会把 device 重置成
-        #     该 engine 的默认值，只调 set_device 会被覆盖；反过来只调
-        #     set_engine 则设备回不到用户选的值）。
-        #   ⇒ 现在：**用 GPU.0 那一项的 engine key** 先 set_engine，再 set_device。
-        try:
-            mt = getattr(self, 'mt', None)
-            if mt is not None and hasattr(mt, 'set_device'):
-                _gpu_opt = self._mt_opt_by_id.get('INT8-CW@GPU.0')
-                if _gpu_opt is not None and hasattr(mt, 'set_engine'):
-                    try:
-                        mt.set_engine(_gpu_opt['engine'])
-                    except Exception:
-                        pass
-                mt.set_device('GPU.0')
-        except Exception:
-            pass
-        # 🔴 **弹框告知**（reviewer 允许「状态栏**或**弹框」⇒ 两个都给）
-        #   ⚠️ `messagebox.showwarning()` 是**模态**的 ⇒ 会阻塞到用户点掉
-        #     ⇒ **必须有真实 GUI root 才弹**（否则无头探针会永久挂起）
-        #     ⇒ 无 GUI 时**只走状态栏 + 日志**（reviewer 允许二选一）。
-        #   🔴🔴🔳 APP-067 ④：探针**有** GUI root（`tk.Tk()`）但**没人点**
-        #     ⇒ 上面的守卫**挡不住**（实测 app231/app238 挂死 >5 min）
-        #     ⇒ 加一个**显式开关**：`LIVECAP_NO_MODAL=1` ⇒ 跳过模态弹框
-        #       （状态栏 + 日志**照旧** ⇒ 判据仍能验到）。
-        try:
-            _root = getattr(self, 'root', None)
-            _no_modal = os.environ.get('LIVECAP_NO_MODAL', '') not in \
-                (None, '', '0')
-            if _root is not None and not _no_modal:
-                from tkinter import messagebox
-                messagebox.showwarning(
-                    'NPU 共用已禁止',
-                    msg + '\n\n（APP-062 D4：MT 与 TTS 同在 NPU '
-                    '会让语音合成变慢 25–30 %，造成卡顿。）')
-        except Exception:
-            pass
-        return True
+    # 🔴🔴🔳 **APP-119 §2（2026-11-20）：以下两个方法已整体删除** ——
+    #   * ``_sync_mt_combo_to_gpu0()``   —— 把翻译下拉强行指回 GPU.0
+    #   * ``_enforce_no_npu_conflict()`` —— 「MT 与 TTS 同在 NPU ⇒
+    #     自动把 MT 挪到 GPU.0 ＋ 写配置 ＋ 弹模态框」
+    #   reviewer 原文：「**删掉**『MT 和 TTS 不能同时放在 NPU ⇒ 自动把
+    #     MT 挪到 GPU.0』这条强制规则，不再自动改用户的选择。」
+    #   ⇒ 现在：**用户选什么就用什么**；共用 NPU 只在**语音输出状态条**
+    #     上留一条**不阻塞**的性能提示（`_npu_conflict_note()`）。
+    #   ⚠️ **不得**因此把 APP-117 的**全局状态灯**加回来。
 
     def _warn_asr_mt_same_gpu(self, origin: str = ''):
         """🔴🔴🔳 **APP-105 §7：ASR 与 MT 同在 GPU 时**只记一行日志**。
@@ -7597,7 +7512,9 @@ class App:
 
         ⚠️ **完整版（v2.x）不变**：它仍用**旧解码器** ⇒ 保留原来的告警文案
         与状态栏显示（reviewer 只要求改 MiniMVP）。
-        ⚠️ **只提示、不改设备**的老规矩**不变**（APP-098 二.4 / APP-062 D4）。
+        ⚠️ **只提示、不改设备**的老规矩**不变**（APP-098 二.4；
+           APP-062 D4 那条「MT/TTS 互斥自动改设备」已由 **APP-119 §2 删除**
+           ⇒ 本函数本来就是「只提示」，**不受影响**）。
         """
         try:
             dev = dict(getattr(self, '_dev_choices', {}) or {})
@@ -7639,16 +7556,25 @@ class App:
         return True
 
     def _npu_conflict_note(self):
-        """🔴🔴🔴 APP-061③(d)：**NPU 共用**检测（MT / ASR 与 TTS 同在 NPU）。
+        """🔴🔴🔳 **APP-119 §2：NPU 共用的「性能提示」**（MT / ASR 与 TTS 同在 NPU）。
 
         🔴 **实测依据**（reviewer APP-061③ 的 A/B 表）：
           - 21:21–21:22（ASR GPU.0 + **MT NPU** + TTS NPU）：合成墙钟/音频 = **1.31**
           - 21:25–21:31（ASR+MT GPU.0 + TTS NPU）：**1.05 / 1.00**
           ⇒ MT 与 TTS 同在 NPU ⇒ 合成慢 **25–30 %**（**确定**）。
 
-        ⚠️ **只提示、不禁止**（**D4 待用户/reviewer 决定**）
-          ⇒ 本轮按「用户决定之前的默认实现」：**黄色警告**。
+        🔴🔴🔳 **APP-119 §2 的口径**（reviewer 2026-11-20）：
+          「**最多保留一条不阻塞的性能提示**，放在**相关模块**的状态条上。
+            **不要把全局状态灯加回来。**」
+          ⇒ 本函数**只产出提示文案**：
+            ① **不禁止**、**不改设备**、**不弹框**；
+            ② 消费方 = **语音输出（TTS）状态条**（`_fill_tts_strip`）
+               ⇒ **不是**顶部总状态灯（APP-117 的全局状态灯**不得**回来）；
+            ③ 若组合真失败（编译失败 / NPU OOM）⇒ 由各模块**显式报错**
+               （`tts.stats()['last_error']` / `mt.err`）＋ 写日志
+               ⇒ **绝不静默换设备**。
         """
+
         try:
             dev = dict(getattr(self, '_dev_choices', {}) or {})
         except Exception:
@@ -7956,7 +7882,8 @@ def run_cli(args):
     #     worker 进程内加载）⇒ 主线程接着加载 ASR ⇒ **两者真并行**。
     _cli_t_start = time.time()
     _tts_dev = str(getattr(args, 'tts_device', '') or '')
-    _tts_parallel = (_tts_dev.upper().startswith('CUDA')
+    _tts_parallel = (not _same_accel(
+                         str(getattr(args, 'asr_device', '') or ''), _tts_dev)
                      and getattr(args, 'tts', None) != 'off'
                      and _tts_parallel_enabled())
     _tts_holder = {}
@@ -7979,14 +7906,22 @@ def run_cli(args):
                 _tts_holder['err'] = e
         _tts_thread = threading.Thread(target=_boot_tts_parallel, daemon=True)
         _tts_thread.start()
-        print('[TTS] APP-113 §2：CUDA 边车**与 ASR 并行加载**'
-              '（独立进程；不与 ASR 抢 GPU.0）', flush=True)
+        print('[TTS] APP-113 §2：TTS 边车**与 ASR 并行加载**'
+              '（独立进程；ASR=%s ／ TTS=%s ⇒ 异卡，不并行编译）'
+              % (str(getattr(args, 'asr_device', '') or '—'),
+                 _tts_dev or '—'), flush=True)
     else:
         print('[TTS] APP-113 §2：TTS 档位 = %s ⇒ **保持串行**'
               '（%s）'
               % (_tts_dev or '—',
-                 '非 CUDA ⇒ 沿用「auto=False 防 GPU 编译死锁」：同一张卡上不并行编译'
-                 if not _tts_dev.upper().startswith('CUDA')
+                 '与 ASR（%s）**同一张卡** ⇒ 沿用「auto=False 防编译死锁」：'
+                 '同一张卡上不并行编译'
+                 % (str(getattr(args, 'asr_device', '') or '—')
+                    if _same_accel(
+                        str(getattr(args, 'asr_device', '') or ''), _tts_dev)
+                    else '—')
+                 if _same_accel(
+                     str(getattr(args, 'asr_device', '') or ''), _tts_dev)
                  else '环境变量 LIVECAP_TTS_PARALLEL=0 ⇒ 强制串行（对照用）'),
               flush=True)
     eng = make_engine(args.engine, on_log=lambda m: print(m, flush=True),
@@ -9523,7 +9458,9 @@ def main():
                     help='翻译推理设备（GPU.0 / NPU；CPU 已从清单移除，'
                          '但仍可显式指定）。不给则用配置文件里的选择')
     ap.add_argument('--tts-device', default=None,
-                    help='语音输出推理设备（默认 NPU）。不给则用配置文件里的选择')
+                    help='语音输出推理设备（出厂默认：完整版 / MiniMVP = NPU，'
+                         'Special MVP = CUDA；见 device_config.DEFAULT_DEVICES）。'
+                         '不给则用配置文件里的选择')
     args = ap.parse_args()
 
     # 设备解析：命令行 > 配置文件 > 推荐默认值；不可用时回退并提示。
@@ -9596,21 +9533,23 @@ def main():
                       % _asr_d, file=sys.stderr, flush=True)
     except Exception:
         pass
-    # 🔴🔴🔴 APP-063 ①（D4 CLI 侧，2026-11-02）：**MT 与 TTS 同 NPU ⇒ 禁止**。
-    #   reviewer 原文：「另外 CLI 的 `--mt-device NPU --tts-device NPU`
-    #     也要按同样规则处理（MT 自动改到 GPU.0，打日志），
-    #     或者明确报错。现在 CLI 没有这一处理，请补上，
-    #     或者在 STATUS 里说明理由。」
-    #   ⇒ **补上**（与 GUI 侧 `_enforce_no_npu_conflict` 同一口径）：
-    #     MT 自动改到 GPU.0 ＋ **打日志**（CLI 无 GUI ⇒ 只走日志，不弹框）。
-    #   ⚠️ 只改 MT（不动 TTS）⇒ 与 reviewer「MT 自动改到 GPU.0」一致。
+    # 🔴🔴🔳 **APP-119 §2（2026-11-20）：CLI 侧不再禁止「MT 与 TTS 同在 NPU」** ——
+    #   reviewer 原文：「**删掉**「MT 和 TTS 不能同时放在 NPU ⇒ 自动把 MT 挪到
+    #   GPU.0」这条强制规则，不再自动改用户的选择。…… CLI 的
+    #   `--asr-device` / `--mt-device` / `--tts-device` 与 `device_config`
+    #   **一视同仁**，都不限制。」
+    #   ⇒ 现在：**照解析出来的设备跑**（上面 L9534 `get_devices()` 已把
+    #     命令行 > 配置文件 > 出厂默认解析完），**不改任何设备**，
+    #     只留一条**不阻塞**的性能提示（CLI 无 GUI ⇒ 只写 stderr）。
+    #   ⚠️ 若真失败（编译失败 / NPU OOM）⇒ 由各模块显式报错 + 写日志，
+    #     **绝不静默换设备**（APP-119 §2）。
     try:
         _mt_d = str(args.mt_device or '').strip().upper()
         _tts_d = str(args.tts_device or '').strip().upper()
         if 'NPU' in _mt_d and 'NPU' in _tts_d:
-            args.mt_device = 'GPU.0'
-            print('[device] 🔴 MT 与 TTS 同时在 NPU ⇒ 已禁止（APP-062 D4）'
-                  '⇒ MT 自动改到 GPU.0', file=sys.stderr, flush=True)
+            print('[device] NPU 共用：MT 与 TTS 同在 NPU ⇒ 合成可能变慢 '
+                  '25–30 ％（APP-119 §2：不再自动改设备）',
+                  file=sys.stderr, flush=True)
     except Exception:
         pass
 

@@ -59,9 +59,25 @@ CONFIG_PATH = os.path.join(CONFIG_DIR, 'device_config.json')
 # 🔴🔴 APP-099 0.2（用户 2026-11-11）：**MiniMVP 默认 ASR=NPU、MT=GPU.0**
 #   （避开 B 机 268 s 后崩溃的「ASR GPU + MT GPU」组合）；
 #   高级选项里可以调整。这一条**只改 MiniMVP 的默认**。
+# 🔴🔴🔳 **APP-119 §1（reviewer 2026-11-20）**：完整版的**出厂默认改成**
+#   **ASR = GPU.0 ／ MT = GPU.0 ／ TTS = NPU**
+#   （**取代** APP-099 0.1 的「完整版 TTS = GPU.0」；ASR/MT 仍 GPU.0 不变，
+#     ASR 模型**仍是 R2T2 1.7B**，不改）。
+#   ⇒ 与 MiniMVP 的第 2 代默认（GPU.0 / GPU.0 / NPU）**同形**，
+#     但**代次分开记**（见 `CONFIG_DEFAULTS_VERSION_FULL`）。
 # 🔴 **唯一事实来源**：GUI/CLI 的默认值都必须读这里的 `DEFAULT_DEVICES`，
 #    不得在 `live_caption_app.py` 里再写第二份字面量（APP-055 同源纪律）。
 _DEFAULT_DEVICES_FULL: Dict[str, str] = {
+    'asr': 'GPU.0',
+    'mt': 'GPU.0',
+    # 🔴🔴🔳 APP-119 §1：TTS 默认 **NPU**（语音输出独占 NPU 的老规矩已废）。
+    'tts': 'NPU',
+}
+# 🔴🔴🔳 **APP-119 §1：完整版「上一代出厂默认」**（迁移判据用）。
+#   APP-099 0.1 之后的完整版默认 = ASR GPU.0 / MT GPU.0 / **TTS GPU.0**。
+#   ⇒ 用户**没手动改过**、仍停在这一组三元组上的旧配置 ⇒ 迁移到新默认
+#     （GPU.0 / GPU.0 / **NPU**）；手动改过别的 ⇒ **保持不变**。
+_DEFAULT_DEVICES_FULL_PREV: Dict[str, str] = {
     'asr': 'GPU.0',
     'mt': 'GPU.0',
     'tts': 'GPU.0',
@@ -169,6 +185,15 @@ CONFIG_DEFAULTS_VERSION = 9
 #   ⚠️ 代次只在**同一个 profile 内**比较（见 ``stale_device_keys()``），
 #      所以升 MiniMVP 的代次**不会**影响 MiniMVP 用户已存下的选择。
 CONFIG_DEFAULTS_VERSION_SPECIALMVP = 10
+# 🔴🔴🔳 **APP-119 §1：完整版的出厂默认代次**（全局单调递增）。
+#   * MiniMVP = **9**（APP-105 §7，第 2 代）—— **不变**；
+#   * Special MVP = **10**（APP-108 §2，sp2 起，第 1 代）—— **不变**；
+#   * 完整版 = **11**（APP-119 §1，2026-11-20，**第 3 代**）——
+#     出厂默认 **ASR GPU.0 / MT GPU.0 / TTS NPU**
+#     （取代 APP-099 0.1 的「GPU.0 / GPU.0 / GPU.0」）。
+#   ⚠️ 代次只在**同一个 profile 内**比较（见 `stale_device_keys()`），
+#     所以升完整版的代次**不会**影响 MiniMVP / Special MVP 用户的选择。
+CONFIG_DEFAULTS_VERSION_FULL = 11
 
 
 def current_profile() -> str:
@@ -194,8 +219,11 @@ def current_profile() -> str:
 
 def current_defaults_version() -> int:
     """当前包形态的**出厂默认代次**（写进配置文件 / 判「是不是旧代次」）。"""
-    if current_profile() == 'specialmvp':
+    prof = current_profile()
+    if prof == 'specialmvp':
         return CONFIG_DEFAULTS_VERSION_SPECIALMVP
+    if prof == 'full':
+        return CONFIG_DEFAULTS_VERSION_FULL
     return CONFIG_DEFAULTS_VERSION
 
 
@@ -220,9 +248,44 @@ def _config_version(raw) -> int:
         return -1
 
 
+def _full_stale_device_keys(saved: Dict[str, object],
+                            present: List[str]) -> List[str]:
+    """🔴🔴🔳 **APP-119 §1：完整版的迁移判据**（**值判据**，不是代次判据）。
+
+    reviewer 原文：「用户没改过的旧默认配置自动迁移到新默认；
+    用户手动选过的设备保持不变，迁移写进日志。」
+
+    ⇒ 「**没改过**」= 三个键**整体**等于**上一代出厂默认**
+      （`_DEFAULT_DEVICES_FULL_PREV` = GPU.0 / GPU.0 / **GPU.0**）
+      ⇒ 只有这时才把设备项交给新出厂默认（GPU.0 / GPU.0 / **NPU**）。
+
+    🔴 **代次仍然要看**（否则用户在新默认下**手动**选回 GPU.0 会被改回去）：
+      * ``defaults_version >= 11``（APP-119 之后的代次）⇒ **一律信任**
+        ⇒ 用户在新默认下手动选过的设备**保持不变**；
+      * 代次更旧（9 / 8 / 没有）⇒ 走上面的**值判据**。
+
+    ⚠️ **已知局限**（与 MiniMVP rc9 同款，写在提示里）：
+       「旧代次里用户手动把 TTS 选成 GPU.0」与「出厂默认 GPU.0」**无法区分**
+       ⇒ 统一按旧默认迁移（reviewer 对 MiniMVP 给过同样口径）。
+    """
+    ver = _config_version(saved.get('defaults_version'))
+    if ver >= CONFIG_DEFAULTS_VERSION_FULL:
+        return []          # 新代次 ⇒ 用户的选择一律保留
+    # 值判据：三个键**整体**等于上一代出厂默认 ⇒ 才算「没改过」
+    if set(present) != set(('asr', 'mt', 'tts')):
+        return []
+    for k, v in _DEFAULT_DEVICES_FULL_PREV.items():
+        if str(saved.get(k)) != str(v):
+            return []
+    # 迁移：只交出**与新默认不同**的键（asr/mt 本来就没变 ⇒ 不必交出）
+    new = DEFAULT_DEVICES
+    return [k for k in ('asr', 'mt', 'tts')
+            if str(saved.get(k)) != str(new.get(k))]
+
+
 def stale_device_keys(saved: Dict[str, object]) -> List[str]:
     """返回**应当被忽略**的设备键（APP-104 §1 的迁移判据 + APP-105 §7 的代次
-    + **APP-108 §2 的 Special MVP**）。
+    + **APP-108 §2 的 Special MVP** + **APP-119 §1 的完整版**）。
 
     规则（只在 **MiniMVP** 与 **Special MVP** 下生效）：
       * 文件里有 asr/mt/tts 任意一个 ⇒ 才需要判；
@@ -243,15 +306,21 @@ def stale_device_keys(saved: Dict[str, object]) -> List[str]:
        （那是 rc9 的出厂默认 NPU/GPU.0/GPU.0）⇒ 改用本包出厂默认。
        「用户在 rc9 里手动选过设备」与「出厂默认」**无法区分** ⇒
        按 reviewer 的明文口径**统一按旧默认处理**，并在日志里写明。
+
+    🔴🔴🔳 **APP-119 §1（完整版）**：**不再「从不忽略」** —— 改用
+       `_full_stale_device_keys()` 的**值判据**（旧默认整体相等才迁移，
+       手动选过的保持不变）。
     """
     if not saved:
         return []
     prof_now = current_profile()
-    if prof_now not in ('minimvp', 'specialmvp'):
-        # 🔴 完整版（v2.x）沿用**旧行为**：从不忽略配置文件里的设备项。
-        return []
     present = [k for k in ('asr', 'mt', 'tts') if k in saved]
     if not present:
+        return []
+    if prof_now == 'full':
+        # 🔴🔴🔳 APP-119 §1：完整版 ⇒ 值判据（见 `_full_stale_device_keys`）。
+        return _full_stale_device_keys(saved, present)
+    if prof_now not in ('minimvp', 'specialmvp'):
         return []
     prof = str(saved.get('profile') or '').strip().lower()
     ver = _config_version(saved.get('defaults_version'))
@@ -280,6 +349,11 @@ def stale_device_note(saved: Dict[str, object]) -> str:
         why = ('那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认'
                '—— 客户机若装过 MiniMVP 或完整版就会留下这种文件'
                '⇒ 本包的出厂默认不同')
+    elif current_profile() == 'full':
+        why = ('那是**上一代出厂默认**（APP-099 0.1 的 GPU.0 / GPU.0 / GPU.0）'
+               '—— 你没有手动改过设备 ⇒ 按 APP-119 §1 迁移到新默认；'
+               '（若你在旧版本里手动把 TTS 选成过 GPU.0，这与出厂默认'
+               '**无法区分**，同样按旧默认迁移）')
     else:
         why = '那是 MiniMVP rc9 之前的出厂默认'
     return ('已忽略旧配置里的设备项（%s）—— %s ⇒ 改用本包出厂默认（%s）；'
@@ -289,13 +363,18 @@ def stale_device_note(saved: Dict[str, object]) -> str:
 
 
 # 兜底候选（用户选的设备本机不存在时，依次尝试）
-# 🔴🔴 APP-028①：ASR / MT 的**回退候选**里不能有 NPU —— NPU 独占给 TTS。
-#   ⚠️ 旧实现 ASR/MT 的兜底里带 NPU（'asr': ['GPU.0','NPU','CPU']）
-#      ⇒ 当 GPU.0 不可用时会把 ASR/MT **静默回退到 NPU**
-#      ⇒ 与 TTS 抢 NPU ⇒ 与「NPU 独占给 TTS」冲突。
-#      ⇒ 现在 ASR/MT 只在 **GPU.x → CPU** 之间回退。
+# 🔴🔴🔳 **APP-119 §2（2026-11-20）**：**NPU 不再是 TTS 独占** ——
+#   「MT 与 TTS 不能同在 NPU ⇒ 自动把 MT 挪到 GPU.0」这条**强制规则已删**，
+#   ASR / MT / TTS 可以**同时**放在 NPU ⇒ 用户的选择**不再被自动改掉**。
+#   ⚠️ **回退链仍然不含 NPU**（ASR/MT 只在 **GPU.x → CPU** 之间回退）：
+#     回退只在「**用户选的设备本机根本不存在**」时发生
+#     ⇒ 落到 NPU 等于**静默把模块挪到用户没选的设备**上
+#     ⇒ 与 APP-119 §2「**绝不静默换设备**」直接冲突。
+#     ⇒ 用户**显式**选 NPU 时走的是「用户选的那一档」，不是这条回退链。
+#   历史（APP-028①）：当年排除 NPU 的理由是「NPU 独占给 TTS」⇒ 该理由
+#     **已随 APP-119 §2 作废**，但**结论保留**（理由换成上面那条）。
 # 🔴 APP-105 §7 更新：MiniMVP 的 **ASR 默认值现在是 GPU.0**（旧版是 NPU）
-#   ⇒ **本链（ASR/MT 不回退到 NPU）现在与出厂默认一致**；NPU 由 TTS 独占。
+#   ⇒ **本链（ASR/MT 不回退到 NPU）现在与出厂默认一致**。
 #   NPU 不可用时仍按 GPU.0 → CPU 回退，与完整版同一条链。
 FALLBACK_ORDER: Dict[str, List[str]] = {
     'asr': ['GPU.0', 'CPU'],

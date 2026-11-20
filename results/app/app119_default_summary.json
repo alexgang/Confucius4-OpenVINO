@@ -1,0 +1,166 @@
+{
+  "verdict": "PASS",
+  "rc": 0,
+  "elapsed_s": 678.3,
+  "timing_valid": false,
+  "n_fail": 0,
+  "telemetry": {
+    "n_sent": null,
+    "n_drop_total_any_reason": 0,
+    "speed_p50": 1.1,
+    "speed_p95": 1.416,
+    "speed_max": 1.4368,
+    "synth_rtf_p50": 0.9656,
+    "synth_rtf_p90": 1.0604,
+    "synth_rtf_max": 1.1273,
+    "play_lag_max": 88.805,
+    "play_lag_end": 69.635,
+    "rtf_ewma_max": 1.0597
+  },
+  "sentence_counts": {
+    "n_translations": 150,
+    "n_translations_source": "run log 里 [译文]/[修正译文] 行计数",
+    "n_queued_before_ready": 0,
+    "n_flushed": 0,
+    "n_submitted_worker": 150,
+    "n_drop_total_any_reason": 0,
+    "reconciliation_expr": "150（译文）== 150（进 TTS）+ 0（丢弃）",
+    "reconciliation_ok": true,
+    "queue_flush_expr": "0（就绪前排队）== 0（已补发）",
+    "queue_flush_ok": true
+  },
+  "tts_ready": {
+    "app113_rel_s": 11.0,
+    "proc_elapsed_at_print_s": 675.1,
+    "asr_ready_s": 5.3,
+    "mt_ready_s": 7.2,
+    "parallel": true,
+    "log_line": {
+      "line_no": 28,
+      "text": "  [TTS] [TTS] [tts_engine] SpeakerLibrary 就绪：C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_speakers（0 个音色：无；内置音色走**只读回退**，**不复制**到用户目录）"
+    },
+    "cuda_ready_lines": [],
+    "model_done_lines": [
+      "  [TTS] [TTS] [tts_engine] 模型加载完成（6.9 s）",
+      "  [TTS] [TTS] [tts_worker] 模型加载完成 9.7s"
+    ],
+    "e2e_lines": [],
+    "asr_load_lines": [
+      "[gpu_int8] 加载 5.3 s，设备 GPU.0，识别语种 自动检测"
+    ],
+    "mt_ready_lines": [
+      "  [翻译] 翻译模型就绪（自动 · INT8-CW 模型（默认） · GPU.0，加载 1.7 s）"
+    ]
+  },
+  "backlog_cleared_rel_s": null,
+  "checks": [
+    {
+      "name": "丢句数（任何原因）= 0",
+      "pass": true,
+      "detail": "worker丢弃=0 + 溢出丢弃=0 + worker失败丢弃=0"
+    },
+    {
+      "name": "译文句数 == 进 TTS 句数 + 丢弃总数（无其它丢失路径）",
+      "pass": true,
+      "detail": "150（译文）== 150（进 TTS）+ 0（丢弃）"
+    },
+    {
+      "name": "就绪前排队的句子**全部补发**（一句不丢）",
+      "pass": true,
+      "detail": "0（就绪前排队）== 0（已补发）"
+    },
+    {
+      "name": "倍率 max ≤ 1.70（APP-114 §1）",
+      "pass": true,
+      "detail": "max=1.4368 p50=1.1 p95=1.416"
+    },
+    {
+      "name": "退出码 0",
+      "pass": true,
+      "detail": "rc=0"
+    },
+    {
+      "name": "产出齐备（wav + 逐句 jsonl + 积压曲线）",
+      "pass": true,
+      "detail": "_app591_app119_default_run20261121-032253_tts_out.wav,_app591_app119_default_run20261121-032253_tts_out.wav.tts.jsonl,_app591_app119_default_run20261121-032253_tts_out.wav.backlog_curve.csv"
+    },
+    {
+      "name": "逐句 jsonl **无重复 id**（未混入上一轮的行）",
+      "pass": true,
+      "detail": "重复 id 数=0（[]）"
+    },
+    {
+      "name": "TTS 就绪时刻已记录",
+      "pass": true,
+      "detail": "TTS就绪=11.0 s（相对进程启动；收尾时进程已运行 675.1 s）"
+    },
+    {
+      "name": "积压清空时刻（**报告项**：APP-114 §4「lag 数字只报告、不设判定门槛」）",
+      "pass": true,
+      "detail": "积压清空=None s（口径 —；末句播放滞后 69.635 s；lag max=88.805 s）"
+    },
+    {
+      "name": "ASR/TTS 并行生效（并行=on）",
+      "pass": true,
+      "detail": "parallel=True（请求=on）"
+    },
+    {
+      "name": "preflight：被测包的语速上限=1.70 / 队列不按时间丢句",
+      "pass": true,
+      "detail": "speed_constants={'LAG_DEADZONE_S': 3.0, 'SPEED_PER_LAG_S': 0.025, 'SPEED_MIN': 1.0, 'SPEED_MAX': 1.7, 'LAG_HYSTERESIS_S': 2.0, 'MAX_STEP_CHANGE': 0.1, 'ZH_SPEED_MIN': 1.1, 'ZH_SPEED_MAX': 1.7} queue_overflow_s=None"
+    },
+    {
+      "name": "队列行为探针（§2.1）：300 s 过期仍不丢句；worker 失败才清空",
+      "pass": true,
+      "detail": "300s后保留=5 丢弃=0；worker失败清空=5 计数=5"
+    },
+    {
+      "name": "放锁时锁内容是否还是本作业（**报告项**：APP-115 §3.2）",
+      "pass": true,
+      "detail": "放锁时锁内容='app 31532 2026-11-21 03:22:54 app119-default' ⇒ 仍是本作业(PID 31532)=**True**；运行期间锁看门狗：采样 67 次 / 内容变动 1 次 / **非本作业的内容变动 0 次**"
+    },
+    {
+      "name": "synth_rtf 中位 / P90（**报告项**：APP-115 §3.2；判定线 P90≤0.75）",
+      "pass": true,
+      "detail": "synth_rtf 中位=0.9656 P90=1.0604 max=1.1273；RTF>1 的句数=52 / 共 150 句"
+    }
+  ],
+  "artifacts": {
+    "_app591_app119_default_run20261121-032253_tts_out.wav": {
+      "exists": true,
+      "bytes": 29334284,
+      "sha256": "6169547b22308225043b59e52aa6ada532b1fc244cc390354df4ac1baa9846ec",
+      "mtime": 1795203251.6224732
+    },
+    "_app591_app119_default_run20261121-032253_tts_out.wav.tts.jsonl": {
+      "exists": true,
+      "bytes": 236222,
+      "sha256": "2b20f652efb90f1c4c6d446e6730cad3bdd7ddfe04a902043f7084dbc4bb6df9",
+      "mtime": 1795203251.6275983
+    },
+    "_app591_app119_default_run20261121-032253_tts_out.wav.backlog_curve.csv": {
+      "exists": true,
+      "bytes": 20642,
+      "sha256": "1c89af0a9a59d50fc50911ede93399909066b1ab7ddaf42341207e993e8f1ac7",
+      "mtime": 1795203251.122248
+    },
+    "_app591_app119_default_run20261121-032253.log": {
+      "exists": true,
+      "bytes": 206113,
+      "sha256": "8ec27dc0f3a32a7697fd71d11df07751870dfad7d29bac16dbd21e7a429b4aa2",
+      "mtime": 1795203253.6719325
+    }
+  },
+  "lock_evidence": {
+    "acquired": true,
+    "lock_content": "app 31532 2026-11-21 03:22:54 app119-default",
+    "acquired_at": "2026-11-21 03:22:54",
+    "acquired_at_epoch": 1795202574.8752632,
+    "waited_s": 0.0,
+    "wait_history": [],
+    "released_at": "2026-11-21 03:34:15",
+    "released_at_epoch": 1795203255.413845,
+    "lock_content_at_release": "app 31532 2026-11-21 03:22:54 app119-default"
+  },
+  "out_json": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app591_acceptance_app119_default_run20261121-032253.json"
+}

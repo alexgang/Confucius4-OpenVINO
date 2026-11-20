@@ -1,0 +1,86 @@
+{
+  "app": "APP-119",
+  "section": "§1 迁移判据",
+  "result": "PASS",
+  "n_cases": 15,
+  "n_fail": 0,
+  "fails": [],
+  "cases": [
+    {
+      "case": "A1 旧出厂默认 ⇒ 只迁移 tts",
+      "pass": true,
+      "detail": "{\"saved\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"GPU.0\", \"profile\": \"full\", \"defaults_version\": 9}, \"stale\": [\"tts\"], \"note\": \"已忽略旧配置里的设备项（tts=GPU.0）—— 那是**上一代出厂默认**（APP-099 0.1 的 GPU.0 / GPU.0 / GPU.0）—— 你没有手动改过设备 ⇒ 按 APP-119 §1 迁移到新默认；（若你在旧版本里手动把 TTS 选成过 GPU.0，这与出厂默认**无法区分**，同样按旧默认迁移） ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\", \"resolved\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}, \"notes\": [\"已忽略旧配置里的设备项（tts=GPU.0）—— 那是**上一代出厂默认**（APP-099 0.1 的 GPU.0 / GPU.0 / GPU.0）—— 你没有手动改过设备 ⇒ 按 APP-119 §1 迁移到新默认；（若你在旧版本里手动把 TTS 选成过 GPU.0，这与出厂默认**无法区分**，同样按旧默认迁移） ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\"], \"defaults_version\": 11, \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}}"
+    },
+    {
+      "case": "A1b 迁移**写进提示**（日志/状态条口径）",
+      "pass": true,
+      "detail": "已忽略旧配置里的设备项（tts=GPU.0）—— 那是**上一代出厂默认**（APP-099 0.1 的 GPU.0 / GPU.0 / GPU.0）—— 你没有手动改过设备 ⇒ 按 APP-119 §1 迁移到新默认；（若你在旧版本里手动把 TTS 选成过 GPU.0，这与出厂默认**无法区分**，同样按旧默认迁移） ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。"
+    },
+    {
+      "case": "A2 新代次默认 ⇒ 不迁移、不提示",
+      "pass": true,
+      "detail": "{\"saved\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\", \"profile\": \"full\", \"defaults_version\": 11}, \"stale\": [], \"note\": \"\", \"resolved\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}, \"notes\": [], \"defaults_version\": 11, \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}}"
+    },
+    {
+      "case": "A3 手动改过（ASR=NPU）⇒ 保持不变",
+      "pass": true,
+      "detail": "{\"saved\": {\"asr\": \"NPU\", \"mt\": \"GPU.0\", \"tts\": \"GPU.0\", \"profile\": \"full\", \"defaults_version\": 9}, \"stale\": [], \"note\": \"\", \"resolved\": {\"asr\": \"NPU\", \"mt\": \"GPU.0\", \"tts\": \"GPU.0\"}, \"notes\": [], \"defaults_version\": 11, \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}}"
+    },
+    {
+      "case": "A4 迁移后手动选回 TTS=GPU.0 ⇒ 保持不变（不被改回 NPU）",
+      "pass": true,
+      "detail": "{\"saved\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"GPU.0\", \"profile\": \"full\", \"defaults_version\": 11}, \"stale\": [], \"note\": \"\", \"resolved\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"GPU.0\"}, \"notes\": [], \"defaults_version\": 11, \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}}"
+    },
+    {
+      "case": "A5 无代次信息的残留旧配置 ⇒ 迁移",
+      "pass": true,
+      "detail": "{\"saved\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"GPU.0\"}, \"stale\": [\"tts\"], \"note\": \"已忽略旧配置里的设备项（tts=GPU.0）—— 那是**上一代出厂默认**（APP-099 0.1 的 GPU.0 / GPU.0 / GPU.0）—— 你没有手动改过设备 ⇒ 按 APP-119 §1 迁移到新默认；（若你在旧版本里手动把 TTS 选成过 GPU.0，这与出厂默认**无法区分**，同样按旧默认迁移） ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\", \"resolved\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}, \"notes\": [\"已忽略旧配置里的设备项（tts=GPU.0）—— 那是**上一代出厂默认**（APP-099 0.1 的 GPU.0 / GPU.0 / GPU.0）—— 你没有手动改过设备 ⇒ 按 APP-119 §1 迁移到新默认；（若你在旧版本里手动把 TTS 选成过 GPU.0，这与出厂默认**无法区分**，同样按旧默认迁移） ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\"], \"defaults_version\": 11, \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}}"
+    },
+    {
+      "case": "A6 无配置文件 ⇒ 用新出厂默认 GPU.0/GPU.0/NPU",
+      "pass": true,
+      "detail": "{\"saved\": null, \"stale\": [], \"note\": \"\", \"resolved\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}, \"notes\": [], \"defaults_version\": 11, \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}}"
+    },
+    {
+      "case": "A6b 完整版出厂默认代次 = 11",
+      "pass": true,
+      "detail": "11"
+    },
+    {
+      "case": "B1 MiniMVP 当代配置 ⇒ 信任（不迁移）",
+      "pass": true,
+      "detail": "{\"saved\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\", \"profile\": \"minimvp\", \"defaults_version\": 9}, \"stale\": [], \"note\": \"\", \"resolved\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}, \"notes\": [], \"defaults_version\": 9, \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}}"
+    },
+    {
+      "case": "B2 MiniMVP 旧代次 ⇒ 老口径（三个键全忽略）",
+      "pass": true,
+      "detail": "{\"saved\": {\"asr\": \"NPU\", \"mt\": \"GPU.0\", \"tts\": \"GPU.0\", \"profile\": \"minimvp\", \"defaults_version\": 8}, \"stale\": [\"asr\", \"mt\", \"tts\"], \"note\": \"已忽略旧配置里的设备项（asr=NPU，mt=GPU.0，tts=GPU.0）—— 那是 MiniMVP rc9 之前的出厂默认 ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\", \"resolved\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}, \"notes\": [\"已忽略旧配置里的设备项（asr=NPU，mt=GPU.0，tts=GPU.0）—— 那是 MiniMVP rc9 之前的出厂默认 ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\"], \"defaults_version\": 9, \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}}"
+    },
+    {
+      "case": "B2b MiniMVP 代次仍 = 9",
+      "pass": true,
+      "detail": "9"
+    },
+    {
+      "case": "B2c MiniMVP 出厂默认不变（GPU.0/GPU.0/NPU）",
+      "pass": true,
+      "detail": "{\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"NPU\"}"
+    },
+    {
+      "case": "C1 Special MVP 当代配置 ⇒ 信任",
+      "pass": true,
+      "detail": "{\"saved\": {\"asr\": \"GPU.0\", \"mt\": \"NPU\", \"tts\": \"CUDA\", \"profile\": \"specialmvp\", \"defaults_version\": 10}, \"stale\": [], \"note\": \"\", \"resolved\": {\"asr\": \"GPU.0\", \"mt\": \"NPU\", \"tts\": \"CUDA\"}, \"notes\": [], \"defaults_version\": 10, \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"NPU\", \"tts\": \"CUDA\"}}"
+    },
+    {
+      "case": "C2 Special MVP 看到别的形态的旧配置 ⇒ 忽略（老口径不变）",
+      "pass": true,
+      "detail": "{\"saved\": {\"asr\": \"GPU.0\", \"mt\": \"GPU.0\", \"tts\": \"GPU.0\", \"profile\": \"full\", \"defaults_version\": 9}, \"stale\": [\"asr\", \"mt\", \"tts\"], \"note\": \"已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认—— 客户机若装过 MiniMVP 或完整版就会留下这种文件⇒ 本包的出厂默认不同 ⇒ 改用本包出厂默认（asr=GPU.0，mt=NPU，tts=CUDA）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\", \"resolved\": {\"asr\": \"GPU.0\", \"mt\": \"NPU\", \"tts\": \"CUDA\"}, \"notes\": [\"已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=GPU.0）—— 那是**别的包形态**（MiniMVP / 完整版）或更早代次的出厂默认—— 客户机若装过 MiniMVP 或完整版就会留下这种文件⇒ 本包的出厂默认不同 ⇒ 改用本包出厂默认（asr=GPU.0，mt=NPU，tts=CUDA）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\"], \"defaults_version\": 10, \"default_devices\": {\"asr\": \"GPU.0\", \"mt\": \"NPU\", \"tts\": \"CUDA\"}}"
+    },
+    {
+      "case": "C2b Special MVP 出厂默认不变（GPU.0/NPU/CUDA）",
+      "pass": true,
+      "detail": "{\"asr\": \"GPU.0\", \"mt\": \"NPU\", \"tts\": \"CUDA\"}"
+    }
+  ],
+  "note": "纯逻辑验收（不加载模型、不占 GPU/NPU）；设备清单固定为 NPU/GPU.0 ⇒ 结果与本机硬件无关。"
+}

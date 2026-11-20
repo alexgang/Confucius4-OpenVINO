@@ -1,0 +1,127 @@
+{
+  "app": "APP-119",
+  "section": "§3 验收③：混合 1 分钟冒烟",
+  "selection": {
+    "asr": "NPU",
+    "mt": "NPU",
+    "tts": "GPU.0"
+  },
+  "ts": "2026-11-21 03:50:43",
+  "clip": {
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\app119_clip_0_60.wav",
+    "channels": 1,
+    "sampwidth": 2,
+    "framerate": 16000,
+    "bytes": 1920044
+  },
+  "lock_evidence": {
+    "acquired": true,
+    "lock_content": "app 29444 2026-11-21 03:50:43 app119-mixed-smoke",
+    "acquired_at": "2026-11-21 03:50:43",
+    "acquired_at_epoch": 1795204243.757376,
+    "waited_s": 0.0,
+    "wait_history": [],
+    "released_at": "2026-11-21 03:53:51",
+    "released_at_epoch": 1795204431.265825,
+    "lock_content_at_release": "app 29444 2026-11-21 03:50:43 app119-mixed-smoke"
+  },
+  "cmd": [
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5\\app\\live_caption_app.py",
+    "--cli",
+    "--file",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\app119_clip_0_60.wav",
+    "--max-seconds",
+    "60",
+    "--asr-device",
+    "NPU",
+    "--mt-device",
+    "NPU",
+    "--tts-device",
+    "GPU.0",
+    "--translate",
+    "zh",
+    "--tts",
+    "on",
+    "--tts-voice",
+    "A",
+    "--tts-out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app119_mixed_tts.wav"
+  ],
+  "rc": 0,
+  "elapsed_s": 187.5,
+  "log_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app119_mixed_run.log",
+  "log_bytes": 25399,
+  "log_sha256": "ae3a8355b8beebcd74876ed1d5162ca0910c3967e5b7c1f09320c5c65a61028a",
+  "observed": {
+    "asr_actual_devices": [
+      "NPU"
+    ],
+    "asr_exec_devices_lines": [
+      "encoder=NPU，decoder=NPU"
+    ],
+    "mt_actual_devices": [
+      "NPU"
+    ],
+    "tts_requested_device": [
+      "GPU.0"
+    ],
+    "tts_exec_devices_lines": [
+      "talker=GPU.0，cp_prefill=GPU.0，cp_decode=GPU.0，decoder=GPU.0"
+    ],
+    "device_notes": [],
+    "npu_shared_hint": [],
+    "asr_mt_same_gpu_note": []
+  },
+  "stdout_tail": "l）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=95.499 s ⇒ speed=1.2000（lang=zh）\n  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.2000 ⇒ 1.1000（r_recent=4.037 ⇒ 1/r=0.2477；合成跟不上 ⇒ 不抽空缓冲）\n  [TTS] [TTS] 首包分段 id=11：排队 0.000 s + 合成 2.278 s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=11 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=49920 parts=4 peak=0.6955 rms_dbfs=-17.7 nan_inf=0 cb_delta=240 read_delta=2400 underflow_delta=238 ring=2400/72000 consumed=-\n  [TTS] [TTS] 遥测 id=11 peak=0.695547 rms_dbfs=-17.72 read_delta=2400 consumed=None\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=99.342 s ⇒ speed=1.2000（lang=zh）\n  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.2000 ⇒ 1.1000（r_recent=4.120 ⇒ 1/r=0.2427；合成跟不上 ⇒ 不抽空缓冲）\n  [TTS] [TTS] 首包分段 id=12：排队 0.000 s + 合成 1.925 s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=12 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=115200 parts=8 peak=0.5631 rms_dbfs=-18.2 nan_inf=0 cb_delta=479 read_delta=2400 underflow_delta=477 ring=2400/72000 consumed=-\n  [TTS] [TTS] 遥测 id=12 peak=0.563095 rms_dbfs=-18.2 read_delta=2400 consumed=None\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=119.756 s ⇒ speed=1.2000（lang=zh）\n  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.2000 ⇒ 1.1000（r_recent=4.244 ⇒ 1/r=0.2356；合成跟不上 ⇒ 不抽空缓冲）\n  [TTS] [TTS] 首包分段 id=13：排队 0.000 s + 合成 2.292 s\n  [TTS] [TTS] [tts_worker] 合成遥测 id=13 out=Speaker (Realtek(R) Audio)（hostapi=MME, ch=2, 设备默认 sr=44100） sr=24000 samples=74880 parts=5 peak=0.5423 rms_dbfs=-18.0 nan_inf=0 cb_delta=325 read_delta=2400 underflow_delta=323 ring=1680/72000 consumed=-\n  [TTS] [TTS] 遥测 id=13 peak=0.542274 rms_dbfs=-18.02 read_delta=2400 consumed=None\n  [TTS] [TTS] [tts_worker] 🔴 ⇒ 已回落到预设 A（不静默）（原因：no_spk_label）\n  [TTS] [TTS] [tts_worker] APP-042 定速：出队 lag=127.240 s ⇒ speed=1.2000（lang=zh）\n  [TTS] [TTS] [tts_worker] APP-061③c 倍速封顶：speed 1.2000 ⇒ 1.1000（r_recent=4.189 ⇒ 1/r=0.2387；合成跟不上 ⇒ 不抽空缓冲）\n  [TTS] [TTS] 首包分段 id=14：排队 0.000 s + 合成 1.903 s\n  [TTS] [TTS] drain 超时：仍有 6 句未完成\n[TTS] 首包 1.90s  积压 当前 36.08s / 最大 77.93s  提交 20  播完 14  丢弃 0  重启 0  state=ready\n[APP-113] 就绪前排队=0 溢出丢弃=0 已补发=0 ｜ worker失败丢弃=0 ｜ TTS就绪=6.9s 积压清空=— 积压清空口径=— ｜ 并行=on ｜ ASR就绪=1.5s MT就绪=3.7s 进程已运行=183.1s\n[TTS] 收尾（close 前）：结尾滞后 110.52s  关闭作废 0  空句 0  积压 最大 77.93s\n[TTS] 语音已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app119_mixed_tts.wav，逐句时间线 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app119_mixed_tts.wav.tts.jsonl\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app119_mixed_tts.wav.backlog_curve.csv（122 个采样点）\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n  [TTS] [TTS] 关闭语音输出，6 句未播译文作废（已计丢句），0 句待发作废\n  [TTS] [TTS] [tts_worker] 已落盘 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app119_mixed_tts.wav（36.57s，14 句，24000 Hz）\n[TTS] 最终统计（close 后）：提交 20  播完 14  丢弃 6  关闭作废 6  空句 0  失败 0  结尾滞后 110.52s  积压 最大 77.93s\n",
+  "stderr_tail": "None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+  "checks": [
+    {
+      "name": "退出码 0",
+      "pass": true,
+      "detail": "rc=0"
+    },
+    {
+      "name": "ASR **实际**设备 == NPU",
+      "pass": true,
+      "detail": "加载行=['NPU']；EXECUTION_DEVICES 行=['encoder=NPU，decoder=NPU']"
+    },
+    {
+      "name": "MT **实际**设备 == NPU",
+      "pass": true,
+      "detail": "实际设备行=['NPU']"
+    },
+    {
+      "name": "TTS 请求设备 == GPU.0",
+      "pass": true,
+      "detail": "请求设备行=['GPU.0']"
+    },
+    {
+      "name": "TTS **实际落点**（EXECUTION_DEVICES）已回执",
+      "pass": true,
+      "detail": "EXECUTION_DEVICES 行=['talker=GPU.0，cp_prefill=GPU.0，cp_decode=GPU.0，decoder=GPU.0']"
+    },
+    {
+      "name": "**没有被自动改设备**：日志里没有「MT 自动改到 GPU.0」",
+      "pass": true,
+      "detail": "device 日志=[]"
+    },
+    {
+      "name": "1 分钟跑完（未因 NPU 共用被拦下）",
+      "pass": true,
+      "detail": "elapsed=187.5 s"
+    },
+    {
+      "name": "产出存在：逐句 jsonl",
+      "pass": true,
+      "detail": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app119_mixed_tts.wav.tts.jsonl（21591 B）"
+    },
+    {
+      "name": "产出存在：合成 wav",
+      "pass": true,
+      "detail": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app119_mixed_tts.wav（1755404 B）"
+    }
+  ],
+  "n_fail": 0,
+  "verdict": "PASS"
+}

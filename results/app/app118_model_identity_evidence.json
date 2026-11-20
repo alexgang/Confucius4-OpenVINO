@@ -1,0 +1,238 @@
+{
+  "ts": "2026-11-21 04:28:08",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5",
+  "pairs": [
+    {
+      "pkg": "models/asr06b-decoder-int8",
+      "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5\\models/asr06b-decoder-int8",
+      "n_cmp": 2,
+      "n_ok": 2,
+      "mismatch": [],
+      "src_missing": []
+    },
+    {
+      "pkg": "models/asr06b-encoder-fp16",
+      "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5\\models/asr06b-encoder-fp16",
+      "n_cmp": 2,
+      "n_ok": 2,
+      "mismatch": [],
+      "src_missing": []
+    },
+    {
+      "pkg": "models/asr06b-tokenizer",
+      "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5\\models/asr06b-tokenizer",
+      "n_cmp": 7,
+      "n_ok": 7,
+      "mismatch": [],
+      "src_missing": []
+    },
+    {
+      "pkg": "models/embed_tokens_06b_f16.npy",
+      "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5\\models/embed_tokens_06b_f16.npy",
+      "n_cmp": 1,
+      "n_ok": 1,
+      "mismatch": [],
+      "src_missing": []
+    },
+    {
+      "pkg": "models/tts_cuda",
+      "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5\\models/tts_cuda",
+      "n_cmp": 12,
+      "n_ok": 12,
+      "mismatch": [],
+      "src_missing": []
+    },
+    {
+      "pkg": "cuda_env",
+      "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_SpecialMVP_v1.0-sp5\\cuda_env",
+      "n_cmp": 34126,
+      "n_ok": 34126,
+      "mismatch": [],
+      "src_missing": []
+    }
+  ],
+  "self_contained": [
+    {
+      "rel": "models/decoder-gpu-int8",
+      "files": 11,
+      "dims": {
+        "config.json.hidden_size": 2048,
+        "config.json.num_hidden_layers": 28,
+        "config.json.num_attention_heads": 16,
+        "config.json.num_key_value_heads": 8,
+        "config.json.vocab_size": 151936,
+        "config.json.num_mel_bins": 128,
+        "config.json.d_model": 2048,
+        "config.json.encoder_layers": 24
+      }
+    },
+    {
+      "rel": "models/decoder-gpu-int4",
+      "files": 11,
+      "dims": {
+        "config.json.hidden_size": 2048,
+        "config.json.num_hidden_layers": 28,
+        "config.json.num_attention_heads": 16,
+        "config.json.num_key_value_heads": 8,
+        "config.json.vocab_size": 151936,
+        "config.json.num_mel_bins": 128,
+        "config.json.d_model": 2048,
+        "config.json.encoder_layers": 24
+      }
+    },
+    {
+      "rel": "models/decoder-npu-int8",
+      "files": 2,
+      "dims": {
+        "openvino_model.xml.dims": [
+          "1",
+          "2048",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1"
+        ]
+      }
+    },
+    {
+      "rel": "models/decoder-npu-int4",
+      "files": 2,
+      "dims": {
+        "openvino_model.xml.dims": [
+          "1",
+          "2048",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1"
+        ]
+      }
+    },
+    {
+      "rel": "models/encoder-int8",
+      "files": 2,
+      "dims": {}
+    },
+    {
+      "rel": "models/encoder-int4",
+      "files": 2,
+      "dims": {}
+    },
+    {
+      "rel": "models/encoder-fp16",
+      "files": 2,
+      "dims": {}
+    },
+    {
+      "rel": "models/mt/mt2-int8sym-cw-q",
+      "files": 12,
+      "dims": {
+        "config.json.hidden_size": 2048,
+        "config.json.num_hidden_layers": 32,
+        "config.json.num_attention_heads": 16,
+        "config.json.num_key_value_heads": 4,
+        "config.json.intermediate_size": 6144,
+        "config.json.vocab_size": 120818,
+        "config.json.max_position_embeddings": 262144,
+        "openvino_model.xml.dims": [
+          "2",
+          "1",
+          "2",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1"
+        ]
+      }
+    },
+    {
+      "rel": "models/mt/mt2-int4sym-cw-q",
+      "files": 12,
+      "dims": {
+        "config.json.hidden_size": 2048,
+        "config.json.num_hidden_layers": 32,
+        "config.json.num_attention_heads": 16,
+        "config.json.num_key_value_heads": 4,
+        "config.json.intermediate_size": 6144,
+        "config.json.vocab_size": 120818,
+        "config.json.max_position_embeddings": 262144,
+        "openvino_model.xml.dims": [
+          "2",
+          "1",
+          "2",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1"
+        ]
+      }
+    },
+    {
+      "rel": "models/qwen3tts/int8",
+      "files": 18,
+      "dims": {}
+    },
+    {
+      "rel": "models/qwen3tts/weights",
+      "files": 37,
+      "dims": {
+        "config.json.hidden_size": 1024
+      }
+    },
+    {
+      "rel": "models/qwen3tts/tokenizer",
+      "files": 4,
+      "dims": {}
+    },
+    {
+      "rel": "models/qwen3tts/voices",
+      "files": 1,
+      "dims": {}
+    },
+    {
+      "rel": "models/spk",
+      "files": 6,
+      "dims": {}
+    },
+    {
+      "rel": "models/tokenizer",
+      "files": 9,
+      "dims": {
+        "config.json.hidden_size": 2048,
+        "config.json.num_hidden_layers": 28,
+        "config.json.num_attention_heads": 16,
+        "config.json.num_key_value_heads": 8,
+        "config.json.vocab_size": 151936,
+        "config.json.num_mel_bins": 128,
+        "config.json.d_model": 2048,
+        "config.json.encoder_layers": 24
+      }
+    }
+  ],
+  "errors": [],
+  "asr06b_decoder_sha": "0059531a2b4ccd4ceb3f4c1dc3519e68421a310a262baba4dc55e603b600d6a3",
+  "asr06b_decoder_sha_ok": true,
+  "clean_violations": []
+}
