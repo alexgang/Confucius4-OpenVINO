@@ -1,12 +1,13 @@
-last_ack: ASR-065
-更新时间: 2026-11-20 14:14
-当前任务: 🟢 **ASR-064 + ASR-065 合并一轮已完成（§86）** —— 用户 11-20 定的交付形态已实测验收：**默认 `NPUW_LLM_MAX_PROMPT_LEN=320` ＋ 超长前缀按 token 从左截断**（不抛错、不回退 512、计数 `prefix_truncations`）、**encoder 分档做成可选开关 `asr_enc_tiers`、默认 off**（开启时运行时从 base IR 现场构建 ＋ 直接 compile、**不落盘**）。**只写数据，交付文件 `asr06b_stateful_backend.py` 未动**（由 App 线程在 reviewer 复核后再改 MiniMVP）。**交 App 的照做清单**：`qwen3asr_06b/dev/asr065_handoff.md`。
-阻塞 / 待用户决定: 🟢 **ASR-064 + ASR-065 已完成 ⇒ 无阻塞**。🟡 **待用户决定 3 项**（**数字以 §86 为准**）：**①** 要不要把「**整段离线转写**」加成一条交付路径；**②** 「RTF≈0.05」对外怎么写；**③** 🔴 **encoder 静态上限 = 2400 mel 帧 = 24.0 s** ⇒ 要上 30 s 上下文**得重导出 encoder**。🟡 **待 App 侧落地 3 项**（未变）：ASR 文件进 v2.3 / MiniMVP ＋ `ASR_FILES` 4→6；5 s **静态** seg IR 进 `models/spk/pyannote_seg_3_0/fp16-w5/`；App 侧 import `asr_runtime_switches` ＋ 实现 `LIVECAP_SPK_MIN_CLEAN_RATIO`。🟡 **待 App 线程决定**：新说话人首次登记用哪段音频（推荐**方案 B**）。🟡 **ASR-028 换人点抽听**：**用户侧待办**。⚠️ **ASR-042 第 3 步仍暂停**（ASR-047）⇒ **本模块不跑 TTS**。🔴 **B 机实测已关闭**（11-15 用户决定，ASR-059）⇒ B 套件冻结。🔴 **新增口径纪律**：**凡是与 §85/§86 参照比较的数字，必须用 OpenVINO 2026.4.1**（换 2026.5.0rc1 会让 transcript md5 变）。
+last_ack: ASR-066
+更新时间: 2026-11-20 17:08
+当前任务: 🟢 **ASR-066 已落地（§87）：§86 复核的 5 处已全部补齐** —— reviewer 核实 **§86 核心结论全部成立**（OV 版本根因、15 臂转写与 §85 逐字节同、pml-only 交错臂、截断不抛错、不落盘、内存、清理）⇒ 本轮**只改文档 / 改代码 / 改 json 标注，未重跑任何计时**。**① CI 口径已改**（主数字 = 逐轮范围；CI 标「轮内段级、不含轮间方差」；点估计与 CI 同源）⇒ **结论不变**。**② 分档回退已实现**（任一档失败 ⇒ `use_tier=False` ＋ `enc_tiers_fallback_reason`）＋ **负向用例 10/10 PASS**（期望 patched 改 59 ⇒ 3 档全败 ⇒ 回退成功 ⇒ **转写 md5 与 §85 参照逐字节同**）。**③ handoff 补 3(a) KV 容量 = 320+64 = 384（要求 `max_new ≤ 64`）＋ 3(b) 段长前提（≤20 s，临界 23.24 s）与自检代码**。**④ handoff 延迟改用 §86 pml-only 数字**（英 156.4→116.6 ms）。**⑤ json 标注修正 8/8 PASS**（REF_MD5 键冲突修好 ⇒ SPE `identical` 假阴性纠正、`per_run` 补到 15 键、`ov_version` 补进 session/bench、`exec_devices` `['N','P','U']`→`['NPU']`）。**只写数据/文档，交付文件 `asr06b_stateful_backend.py` 未动**（由 App 线程在复核后改 MiniMVP）。
+阻塞 / 待用户决定: 🟢 **ASR-066 已完成 ⇒ 无阻塞**。🟡 **待用户决定 3 项**（**数字以 §86 为准**）：**①** 要不要把「整段离线转写」加成一条交付路径；**②** 「RTF≈0.05」对外怎么写；**③** 🔴 encoder 静态上限 = 2400 mel 帧 = 24.0 s ⇒ 要上 30 s 上下文**得重导出 encoder**（🔴 已补注：**一旦放宽段长，pml=320 必须重算**，见 §87 §三 3(b)）。🟡 **待 App 侧落地 3 项**（未变）：ASR 文件进 v2.3 / MiniMVP ＋ `ASR_FILES` 4→6；5 s **静态** seg IR 进 `models/spk/pyannote_seg_3_0/fp16-w5/`；App 侧 import `asr_runtime_switches` ＋ 实现 `LIVECAP_SPK_MIN_CLEAN_RATIO`。🟡 **待 App 线程决定**：新说话人首次登记用哪段音频（推荐**方案 B**）。🟡 **ASR-028 换人点抽听**：**用户侧待办**。⚠️ **ASR-042 第 3 步仍暂停**（ASR-047）⇒ **本模块不跑 TTS**。🔴 **B 机实测已关闭**（11-15 用户决定，ASR-059）⇒ B 套件冻结。🔴 **口径纪律**：凡与 §85/§86 参照比较的数字**必须用 OpenVINO 2026.4.1**（换 2026.5.0rc1 会让 transcript md5 变）。
 已压缩: 原文见 `status/archive/STATUS_ASR_upto_20261030.md`；纠偏归档见 `status/archive/CORRECTIONS_ASR_closed_upto_20261030.md`（全量原文备份 `CORRECTIONS_ASR_full_before_compress_20261030.md`）。 §80 全文归档见 `status/archive/STATUS_ASR_sec80_upto_20261115.md`。
-自指大小: 37182 B / 157 行
+自指大小: 36013 B / 142 行
 
 
 ## 最近更新
+- 2026-11-20 17:08 **ASR-066 已落地（§87）：§86 复核的 5 处全部补齐（纯文档/代码/json 标注，**未重跑计时**、未取 MACHINE_LOCK、交付文件未动）** —— **① CI 口径已改**：主数字改**逐轮范围**（SPE −13.67/−13.76、英 −23.26/−21.41、中 −18.34/−17.55 %），CI 标「**轮内段级、不含轮间方差**」、点估计与 CI **同源**（−13.9306/−22.7257/−18.3901）⇒ **结论不变**（EN 第 2 轮落 CI 外**不是**被推翻）。**② 分档回退已实现**（`build_tiers_with_fallback()` ＋ runner 侧强制 `use_tier=False` ＋ `enc_tiers_fallback_reason`；🔴 旧实现**只 break 不回退**是真缺陷）⇒ **负向用例 10/10 PASS**：期望 patched 改 **59** ⇒ 3 档全败 ⇒ `use_tier=False`、`tier_cms={}`、`encode()` **不抛** ⇒ **转写 md5 = `ed3f52aa…` 与 §85 参照逐字节同**（`md5sum` 独立复核）。**③ handoff 补前提**：KV 容量 = **320+64 = 384** ⇒ **每次 `max_new ≤ 64`**（App 改 `max_new` 规则时必须一起查）；段长 **≤ MAX_SEG_SEC 20 s**（实测 20.48 s ⇒ base_len 284 ⇒ 余量 36；临界 **23.24 s**）＋ **自检代码**（`base_len > pml` ⇒ 显式抛错）＋ 待决③注明「放宽段长 ⇒ pml 必须重算」。**④ 延迟数字改用 §86 pml-only**（英 first p50 156.4→116.6 / SPE 147.9→121.8 / 中 144.9→114.7 ms）（🔴 旧版误引 §85 的 both 数字 144.3→93.3）。**⑤ json 标注 8/8 PASS**：SPE `identical` 假阴性纠正（false→true）、`per_run` 补到 **15 键**、`ov_version`/`env` 补进 bench+session、`exec_devices` `['N','P','U']`→`['NPU']`（字符串被拆成字符）、`md5_note` 改动态生成、`trunc_test` 的 `check_2.pass`/`verdict` 纠正为 **true** ⇒ **数值一律未改**。**产物** `results/asr166_tier_fallback/`（**4 文件**）＋ `results/asr165_ov241/`（98 文件，json 已标注修正）＋ `status/asr/notes/asr_s87.md`。
 - 2026-11-20 14:15 **ASR-064 + ASR-065 已完成（§86）：pml=320 默认形态 ＋ 前缀截断降级 ＋ 分档可选开关，全部实测验收** —— 🔴 **本轮最重要发现**：上一会话的 15 臂是用 **OV 2026.5.0rc1** 跑的 ⇒ transcript md5 与 §85 参照全不符；探针证明**根因 = OpenVINO 版本**（换回 kit 的 **2026.4.1** 即复现 `cd67417e…`），**不是** NPU 非确定性 ⇒ **全部 15 臂在 2.4.1 下重跑**。✅ **① 降 pml 单独实测**（§85 缺的臂）：RTF **−13.7% / −22.3% / −17.9%**（SPE/英/中，配对 bootstrap CI95 [−14.50,−13.37]/[−23.48,−22.10]/[−18.84,−17.93]）；✅ **② 分档开关 on**：再 **−13.5% / −15.3% / −9.1%**（仅 1 轮）；✅ **截断验收①**：T=321/330/350 **3/3 不抛错、有输出、计数=3**；✅ **验收②**：3 素材 transcript 与 §85 **逐字节相同**（`cd67417e`/`ed3f52aa`/`d93062a6`，md5sum 独立复核）；✅ **前缀来源与上界**：`T_max = 18+266+29 = 313` ⇒ **pml=320 余量 7 token**；🔴 **内存改正**：分档相对 base = **+1127.61 MB RSS / +1121.70 MB Private**（**撤回 §85⑦ 的 +1.9 GB**）；**降 pml 不省内存**（−0.37 MB）；✅ **运行时构建分档可行**（patched=60 全过、不落盘、启动多编译 33.40 s）；✅ **已清理** `asr162/tiers` ＋ `_tier_cpu`（2.8 GB → 1.9 MB，配方 JSON 已备份）。**产物** `results/asr165_ov241/`（**93 文件**）＋ 明细 `status/asr/notes/asr_s86.md` ＋ 交接 `dev/asr065_handoff.md`。
 - 2026-11-19 18:37 **ASR-063 已落地（§85）：ASR-062 复核的 3 个问题全部处理完毕** —— **① 交错重跑**（base/tier/both × 3 素材 × 2 轮，同进程 base→both→tier，锁自检 37 次 0 被抢）⇒ **both vs base = -20.41% / -27.00% / -26.00%**（SPE/英/中）（**§84 的 −31.6/−53.2/−42.2% 已撤回**）；**② tier 档计时前全编译好**（400/800/1600，2400 复用 base）⇒ **tier 单独降 -5.62% / -9.04% / -6.66%**、**§84⑨「正交互」已撤回**；**③ §84⑥ 机理改正**（prefill 只随 `MAX_PROMPT_LEN` ⇒ NPUW 静态补齐）；**补 (a)** 每档 encoder 内存增量（≈ +452–499 MB RSS/档）、**(b)** 出字/定稿延迟 p50/p95、**(d)** T 上界 ＋ **pml=320 超限 = 显式抛错、不静默截断**；**只写数据，交付默认未改**。
 - 2026-11-19 13:12 **ASR-062 已落地（§84）：NPU 流式 RTF 降 31.6–53.2%，WER/CER 逐字不变**—— **12 臂持锁跑完**（TAKEOVER 后**只补跑 4 臂**，锁自检 8 次 0 被抢）；**①+② 组合 RTF 0.2501 / 0.2264 / 0.2249**（base 0.3658 / 0.4836 / 0.3890）；**① 降 pml 512→320**：prefill p95 英 **267.18→70.60 ms（−73.6%）**；**② encoder 分档**：encoder p50 英 **37.00→11.50 ms（−68.9%）**；🔴 **12 臂 transcript 逐字节相同** ⇒ 配对 bootstrap **Δ=+0.0000 pp、CI95=[0,0]**；**截断 0**；**只写数据，交付默认未改**。
@@ -100,7 +101,6 @@ last_ack: ASR-065
 ## 未完成纠偏
 | 编号 | 一句话 | 状态 |
 |---|---|---|
-| ASR-065 | 用户决定：MiniMVP 先上「pml=320 ＋ 超长前缀截断」默认；encoder 分档做成可选开关、默认关闭 | ✅ **已落地**（§86；**只写数据，交付默认未改**）|
 | ASR-042 | VAD 门控 / 降频 / ASR+MT+TTS 并发 TTS RTF | ✅ **① VAD 门控已落盘**（§72.⑧-1；只给数据、不改默认值）；✅ **② 降频/合并窗口已落盘**（§72.⑧-2）；🟡 **③ 第 3 步（ASR+MT+TTS 同跑对比 TTS RTF）**⇒ **需与 TTS 线程协调 + 共用 TTS-044 负载脚本** ⇒ **本模块单方无法完成** |
 | ASR-036 | 压缩 STATUS 与 CORRECTIONS（索引表每个编号一行 + ≤40 KB） | 🟡 **压缩本体已完成**（STATUS ≤160 行；CORRECTIONS 25.7 KB ≤ 40 KB）；🔴 **索引表已由 reviewer 补到 ASR-046 ⇒ 只缺 ASR-047/048 共 2 行** ⇒ CORRECTIONS 由 reviewer 维护且不提交 ⇒ **待 reviewer 补齐**（本模块不改不提交） |
 
@@ -112,45 +112,30 @@ last_ack: ASR-065
 > 🔴 **§66–§68 的全文已归档**（`status/archive/STATUS_ASR_upto_20261030.md`）⇒ 正文只留摘要；明细在 `status/asr/notes/asr_s6*.md`（**已提交**）。
 > 🔴 **§70 / §71 / §72 已移入归档**（ASR-036「只保留最近 3 节」门禁）⇒ 明细见 `status/asr/notes/asr_s40.md` / `asr_s41.md` / `asr_s72.md`。
 
-- ✅ **§76（ASR-048 落地：给 App 的「新说话人登记用干净段」接口说明（a–d）＋ `overlap_ratio_max` 惰性参数的定性）**：**全文已归档** ⇒ `status/archive/STATUS_ASR_sec76_upto_20261111.md`（逐字保留）；结论摘要：给 App 的「新说话人登记用干净段」判据接口说明已交付（≤1 页版见 `status/asr/notes/asr_for_app_spk_enroll.md`）；`overlap_ratio_max` 惰性参数**定性为「是否修复＝新开发量」**，**ASR 未自行改** ⇒ 列为待用户决定项。
-- ✅ **§77（ASR-049 / ASR-050 落地：单页 App 说明 ＋ `min_clean_ratio` 默认值 0.8→0.6（三处一致）＋ 900 s 回归 ＋ 污染比例量化 ＋ 交接清单）**：**全文已归档** ⇒ `status/archive/STATUS_ASR_sec77_upto_20261111.md`（逐字保留）；结论摘要：单页说明 `status/asr/notes/asr_for_app_spk_enroll.md`（33 行）已交付；`min_clean_ratio` 默认值 **0.8 → 0.6**（代码默认值 / env 回退 / docstring **三处一致**）＋ 900 s 回归 **8/8 全 match**；交接清单 `notes/asr_for_app_asr050_handoff.md`；`overlap_ratio_max` 惰性参数**定性为「是否修复＝新开发量」**，**ASR 未自行改**。
-- ✅ **§80（ASR-055 落地：§79 的 ②④⑥ 三处结论改正 ＋ 按段配对 WER 重出 ＋ **B 机测试套件 `b_kit_stateful`**）**：**全文已归档** ⇒ `status/archive/STATUS_ASR_sec80_upto_20261115.md`（逐字保留）；结论摘要：三处撤回（§79② **REFUTED**／§79④ **跨脚本提速夸大**／§79⑥ **「显著变差 True」被推翻**）；**按段配对 WER** 6 组**全部不显著**（stateful NPU vs mask2 GPU0 **Δ +0.2251 pp**，CI [-0.2906, 0.776]，`significant_worse=false`，`asr146_wer_seg_paired.json`，93 块）；**同脚本同口径 10 分钟 RTF** GPU **0.2479 / 0.3998**、NPU **0.384 / 0.5696**；**B 套件** `b_kit_stateful`（明细见「关键数字」表末行 ＋ `status/asr/notes/asr_s80.md`）。
-
-- ✅ **§81（ASR-056 落地：§79 正文 4 处标撤回 ＋ 旧计时 json 标 unverified ＋ 跨脚本比较块清理 ＋ 关键数字表补 300 s/18 s 行 ＋ 套件最终版持锁补跑 4 组 ＋ 交付前小修 a–f）**：**全文已归档** ⇒ `status/archive/STATUS_ASR_sec81_82_upto_20261117.md`（逐字保留）；结论摘要：§79 正文 4 处旧结论已标「（已撤回，见 §80）」；**10 个**旧计时 json 标 `unverified`（数值未改）；4 个 bench json 的跨脚本比较块清理为 `cross_script_ref_1025` ＋ `"comparable": false`；关键数字表补 300 s/18 s 并排行；套件最终版脚本持锁补跑 4 组（**31/31 PASS**）⇒ 详见 `status/asr/notes/asr_s81.md`。
-- ✅ **§82（ASR-057 落地：`run_bk.cmd` 修好（CRLF+ASCII / `all`+`selftest` / 失败非 0 退出）＋ 套件清出 `.bak`+`results_A_local` ＋ `ref_A` 补最终版 18 s 三组 ＋ `sources` 拆 copy/derived ＋ 删过期遗留项）**：**全文已归档** ⇒ `status/archive/STATUS_ASR_sec81_82_upto_20261117.md`（逐字保留）；结论摘要：`run_bk.cmd` 重写为 **CRLF + 纯 ASCII**（3764 B）＋ 补 `all`(12 组)/`selftest`(1 组) 分支 ＋ **失败 ⇒ `exit /b 1`**；套件磁盘实际 **65 文件 == MANIFEST `n_files` 65**；`ref_A/` = **最终版 4 组 / 8 文件**；`sources` **14 条**（copy 10 / derived 4）⇒ 详见 `status/asr/notes/asr_s82.md`。
 
 
 
-- ✅ **§83（ASR-060 落地：Qwen3-ASR-0.6B INT8「整段离线转写」RTF ＋ 流式对照（2026-11-17 15:52–17:20））**：**全文已归档** ⇒ `status/archive/STATUS_ASR_sec83_upto_20261119.md`
+
 
 - ✅ **§84（ASR-062 落地：降 `NPUW_LLM_MAX_PROMPT_LEN` ＋ encoder 按长度分档对 NPU 流式 RTF 的影响（2026-11-19 09:30–13:10））**：**全文已归档** ⇒ `status/archive/STATUS_ASR_sec84_upto_20261119.md`
 
 - ✅ **§85（ASR-063 落地：ASR-062 复核 —— 交错重跑改写 RTF 降幅、tier 臂剔懒编译、§84⑥ 机理改正、补 3 项缺项（2026-11-19 17:04–18:05））**：**全文已归档** ⇒ `status/archive/STATUS_ASR_sec85_upto_20261120.md`
-- ✅ **§86（2026-11-20 14:15）**：ASR-064 ＋ ASR-065 合并一轮 —— **pml=320 ＋ 前缀截断降级 ＋ encoder 分档可选开关**，全部实测验收（**15 臂在 OV 2026.4.1 下重跑，md5 与 §85 逐字节一致**）
 
-### §86 ASR-064 + ASR-065 合并一轮：pml=320 默认形态 ＋ 前缀截断降级 ＋ encoder 分档可选开关（2026-11-20 13:04–14:15）
+- ✅ **§86（ASR-064 + ASR-065 合并一轮：pml=320 默认形态 ＋ 前缀截断降级 ＋ encoder 分档可选开关（2026-11-20 13:04–14:15））**：**全文已归档** ⇒ `status/archive/STATUS_ASR_sec86_upto_20261120.md`
+- ✅ **§87（2026-11-20 17:15）**：ASR-066 —— §86 复核的 5 处补齐（CI 口径改写 ＋ 分档回退实现与负向用例 ＋ handoff 补前提 ＋ json 标注修正）
 
-> 🔴 **口径事故**：上一会话用 **OV 2026.5.0rc1** 跑完 15 臂 ⇒ transcript md5 与 §85 参照**全不符**；
-> 探针证明**根因 = OpenVINO 版本**（换回 kit 的 **2026.4.1** 即复现 `cd67417e…`）⇒ **不是** NPU 非确定性
-> ⇒ **15 臂全部在 2.4.1 下重跑** ⇒ 本节数字**与 §85 同口径**。
-> 明细 `status/asr/notes/asr_s86.md`；交接 `qwen3asr_06b/dev/asr065_handoff.md`。
+### §87 ASR-066：§86 复核的 5 处补齐（2026-11-20 16:28–17:15）
 
-- ✅ **① 降 pml 单独（ASR-065 第 3 项，§85 缺的臂）**：`base(512)→pml(320)` 按素材交错 ×2 轮 = 12 臂 ＋ `pmltiers` 各 1 轮 = **15 臂**；**编译全在计时窗口外**（启动期 188.37 s 单列）。
-  RTF：SPE 0.3313/0.3524 → 0.2860/0.3039；英 0.3413/0.3190 → 0.2619/0.2507；中 0.2961/0.2946 → 0.2418/0.2429
-  ⇒ **① 单独 = −13.72% / −22.34% / −17.94%**（配对 bootstrap CI95 **[−14.50,−13.37] / [−23.48,−22.10] / [−18.84,−17.93]**，B=5000，seed=20261120）。
-- ✅ **② 分档开关 on（ASR-065 第 4 项）**：**运行时从 base IR 现场构建 ＋ 直接 compile、不落盘** ⇒ **patched=60 全过**（400/800/1600）、build 0.042–0.061 s/档、**启动多编译 33.40 s**；
-  RTF 再 **−13.46% / −15.27% / −9.14%**（⚠️ **仅 1 轮**，证据弱于 ①）；**①+② vs base = −25.29% / −34.98% / −25.80%**。
-- ✅ **③ 截断降级验收（ASR-064 问题 1）**：**①** 强制 T=321/330/350 ⇒ **3/3 不抛错、有输出、计数=3**（T 全部收敛 320，前缀丢 1/10/30 token）；
-  **②** 3 素材 transcript 与 §85 **逐字节相同**（`cd67417e…`/`ed3f52aa…`/`d93062a6…`，**`md5sum` 独立复核**）、**降级 0 次**；15 臂 `prefix_truncations` **total=0**。
-- ✅ **④ 前缀来源与上界（ASR-064 问题 2）**：来源 = `bk_run.py` 的 `_prefix_for_chunk()`（`nstep>2` 后取 `raw` 末 5 token 回退，`raw = prefix + g` 累积）；**长度由段内累积文本决定 ⇒ 无硬上限**；
-  实测前缀 max = **29**（SPE）/18（英）/1（中）⇒ **T_max = 18 + aftercnn(2048)=266 + 29 = 313** ⇒ **pml=320 余量仅 7 token** ⇒ 必须靠截断兜底（已实现并实测）。
-- 🔴 **⑤ 内存改正（ASR-064 问题 3）**：fresh 进程 ×5 场景 ⇒ **分档相对 base = +1127.61 MB RSS / +1121.70 MB Private** ⇒ 🔴 **撤回 §85⑦ 的「+1.9 GB」**；
-  **降 pml 不省内存**（pml320−pml512 = **−0.37 MB RSS**）；分档效果与 pml **解耦**（−1.74 MB）。
-- ✅ **⑥ 出字延迟口径**（§85⑧ 要求写明）：`first/incr/flush` = **每次 `generate` 的计算耗时（ms）**，**不含 640 ms 分块等待与排队**；
-  base first p50 147.9/156.4/144.9 → pml 121.8/116.6/114.7 → pmltiers 96.1/95.4/97.9 ⇒ **降 pml 才降出字延迟，分档只降 encoder 耗时**（encoder 占比 17.9%→12.2%）。
-- ✅ **⑦ 清理（ASR-065 第 7 项）**：运行时构建已证明可行 ⇒ 删 `results/asr162/tiers/`（1.4 GB）＋ `_tier_cpu/`（1.4 GB），**2.8 GB → 1.9 MB**；删除前已备份配方 JSON 到 `scripts/_asr062/enc_tiers.json`（53272 B）＋ `enc_tiers_cpu.json`（53918 B）。
-- 🔴 **⑧ 本轮修掉的真缺陷**：**①** md5 不符 = **OV 版本**（非 NPU 非确定性，2/2 复核复现）；**②** `REF_MD5[lang]` **键冲突**（SPE 的 lang 也是 `'en'`）⇒ 验收②假阴性、bench 对 SPE 恒报 `same=False` ⇒ 已改组合键 `ref_md5_of(mat, lang)`；**③** `psutil` 未装进 2.4.1 解释器 ⇒ 内存 5 场景全失败 ⇒ 已装 7.2.2 重跑全过；**④** 上一会话死时**未释放 MACHINE_LOCK**（残留 app pid 16064 已死）⇒ 已按 README_LOCK 口径回收归档。
-- ✅ **⑨ 锁与纪律**：全程持 `MACHINE_LOCK`（原子创建、释放前核对）＋ `LockProbe` 自检 **30 次 / 0 被抢** ⇒ `timing_valid=true`；各作业独立取锁、跑完释放、**无残留进程**；**只写数据**，`live_caption/` **未动**（改 MiniMVP 由 App 线程在 reviewer 复核后执行）。
-- ✅ **⑩ 产物**：`results/asr165_ov241/`（**93 文件**，mtime 2026-11-20 14:09，**按纪律未入库**）= `bench.json`（15 臂全量数组）＋ `analysis.json` ＋ `trunc_test.json` ＋ `mem/mem_cum.json` ＋ `mem/mem_*.json`（5）＋ `probe241/probe.json`（2/2 复现）＋ `run/`（15 子目录）＋ `normal/`（3 子目录）＋ `chain.json` ＋ 3 个日志；⚠️ `results/asr165/`（2.5.0 那轮）**只作根因证据，不作结论**。
+> 🔴 **reviewer 核实 §86 核心结论全部成立** ⇒ **本轮不重跑任何计时**、**未取 MACHINE_LOCK**
+> （16:26–16:57 该锁由 App 模块持有）、**交付文件 `live_caption/` 未动**。
+> 明细 `status/asr/notes/asr_s87.md`（含逐条数字与 json 字段）。
+
+- ✅ **① CI 口径改写（结论不变）**：主数字改**逐轮范围** —— SPE **−13.67 / −13.76 %**、英 **−23.26 / −21.41 %**、中 **−18.34 / −17.55 %**（均值 −13.72 / −22.34 / −17.94 %）；**CI 标「轮内段级配对 bootstrap（n_blocks=5，B=5000）⇒ 不含轮间方差、区间偏窄」**、**点估计与 CI 同源**（−13.9306 [−14.5006,−13.369] / −22.7257 [−23.4847,−22.0957] / −18.3901 [−18.8428,−17.9328]）⇒ 🔴 **EN 第 2 轮 −21.41 % 落在 CI 外 ≠ 结论被推翻**（轮级 vs 段级**不可混用**）。**pml 显著降 RTF 成立。**
+- 🔴 **② 分档回退已实现（旧实现是假回退）**：`build_tiers_with_fallback()`（任一档失败 ⇒ `tier_cms={}` ＋ `fallback_reason`）＋ **`Asr065Runner` 侧强制 `use_tier=False`**（🔴 旧实现**只 `break`、仍以 `use_tier=True` 建 runner** ⇒ 缺档时 `encode()` 抛 `tier N 未编译` ⇒ **根本不回退**）。**负向用例 10/10 PASS**（`results/asr166_tier_fallback/asr066_tier_fallback.json`，5911 B，mtime 17:01）：正例 patched=60 ⇒ 3/3 档成功、`use_tier=True`；**负例 patched=59** ⇒ **0/3**、`use_tier=False`、`tier_cms={}`、`encode()` **不抛错** ⇒ **回退后转写 md5 = `ed3f52aaf1415ca01d785da4e3a78cb4`**、与 §85 参照**逐字节相同**（`md5sum` 独立复核）、`prefix_truncations=0`。
+- ✅ **③ handoff 补前提（`dev/asr065_handoff.md`）**：**3(a)** KV 容量 = **320 + 64 = 384**（原 576 ⇒ 少 192 ⇒ 即降 RTF 机理之一）⇒ **每次 `max_new ≤ 64`**（`FLUSH_MAX_NEW=64` ⇒ 现状满足；⚠️ App 改 `max_new` 规则时必须一起查）；**3(b)** 截断**只砍前缀** ⇒ 临界 **2324 mel 帧 ≈ 23.24 s** 时「18+音频 token」就超 320 ⇒ **砍光也救不了** ⇒ **前提：段长 ≤ `MAX_SEG_SEC` 20.0 s**（实测 20.48 s ⇒ base_len **284** ⇒ 余量 **36**）⇒ **已加自检**（`base_len > pml` ⇒ **显式抛错**）＋ **待决③注明「放宽段长 ⇒ pml 必须重算」**；实测 15 臂 T 最大 **163 / 185 / 285**。
+- ✅ **④ handoff §二 延迟改用 §86 pml-only**（🔴 旧版误引 §85 的 **both** 数字 144.3→93.3 ms 却写成「降 pml」）：**英 156.4276→116.5739 ms（−25.46 %）**、**SPE 147.9330→121.8224（−17.65 %）**、**中 144.8717→114.7359（−20.81 %）**（first p50，2 轮均值；口径 = 每次 `generate` 计算耗时，**不含** 640 ms 分块等待）。
+- ✅ **⑤ 原始 json 标注修正 8/8 PASS（数值一律未改）**：🔴 根因 = **`REF_MD5[lang]` 键冲突**（**SPE 的 lang 也是 `'en'`**）⇒ 假阴性。**`bench.json`**：5 个 SPE run `transcript_identical` **false→true**、每 run 补 `env`（`ov_version=2026.4.1-22982-e213a147257`）＋ `enc_tiers_fallback_reason=null`、`tier exec_devices` **`['N','P','U']`→`['NPU']`**（🔴 `list("NPU")` 把字符串拆成字符）；**`analysis.json`（重生成）**：`prefix_truncations.per_run` 键改 **(arm, round, 素材标签 spe/en/zh)** ⇒ **10→15 键**（⚠️ 裸 `material` 仍会撞：FLEURS-EN 与 FLEURS-ZH 同为 `fleurs`）、`md5_note` 改**按 `md5_vs_sec85` 动态生成**（旧版写死 2.5.0 结论、与同文件全 true **自相矛盾**）、**新增 `ci_caliber_note`**；**`trunc_test.json`**：SPE `identical` false→true ⇒ `check_2.pass` / `verdict` **false→true**（截断用例①与 md5 未动）；**`session.json`** 补 `env`。备份 `.bak_asr066/`。
+- 🔴 **⑥ 本轮修掉 2 个真缺陷**：**①** 分档**假回退** ⇒ 已实现并实测；**②** `EXECUTION_DEVICES` **字符串被拆成字符** ⇒ 改用 kit 同口径 `_read_exec_devices()`。另：`build_embeds` 补**段长超限自检**。
+- 🔴 **⑦ 纪律**：**未重跑任何计时**（§86 的 RTF / 延迟 / 内存数字**全是原值**）、**未取 MACHINE_LOCK**、**未改交付文件**、**未打包**、**未改 `CORRECTIONS_ASR.md`**、`results/` **未入库**。
 
 > ⇒ **本轮完成 ⇒ 停下等 reviewer 复核。**

@@ -742,3 +742,44 @@ A 机的 ASR / MT / TTS / APP / EXT 各线程都要看本封。B 机不用处理
 ### 验收
 - 默认形态（pml320+截断）的交错 RTF 与 CI、transcript 逐字节相同、截断用例 3/3；分档开关 on/off 都能跑通、off 时行为与默认完全一致；内存与启动时间数字；handoff 文档存在。全程持锁（原子创建，释放前核对是自己的），跑完释放，无残留进程。
 - 做完回 STATUS（局域网文件照写；邮件协议见 T-MAIL-002，可同时发邮件）。改 MiniMVP 由 App 线程在 reviewer 复核后执行，并出新的版本号。
+
+# T-MAIL-003 A 机：局域网断开时，邮件是唯一通道；每份 STATUS 都必须发邮件
+
+A 机的 ASR / MT / TTS / APP / EXT 各线程都要看本封。本封不占模块纠偏编号，last_ack 不改。补充 T-MAIL-002，其余规则不变。
+
+## 背景
+reviewer 所在的机器经常切到别的网络。切走以后我**读不到你们的局域网文件**（STATUS、notes、results、wav 都看不到），也没法往 CORRECTIONS 文件里追加。用户要求：断网期间任务交互要通过邮箱继续进行。
+
+## 从现在起
+1. **STATUS 邮件从「可以发」改为「必须发」**：每次 `last_ack` 变化、做完、卡住、或者有需要用户决定的事，都要回一封 `[C4][A][STATUS][模块] 编号 …`。局域网 STATUS 文件照写，两边内容一致。
+2. **邮件要能单独看懂**：我可能只看得到邮件。正文写清结论、做了什么、关键数字（RTF、首包、CER/WER、丢句等）、所用的 OpenVINO 版本或 venv、提交号、遗留问题。复核要用的证据也直接写进正文，例如 md5/SHA、json 里的关键字段、截断或欠载的计数；不要只写「见某某路径」。
+3. **附件**：小结 json、截图、几条抽听 wav 可以附，按你们连接器的限制来（目前是单个 ≤1 MB、合计 ≤3 MB、≤3 个）。放不下就压缩，或者挑代表性的；大文件仍只写 A 机路径。克隆音色、录音、同事音色不随邮件发出。
+4. **纠偏只从邮件来时**：断网期间 CORRECTION 只走邮件，局域网文件里不会有。照 T-MAIL-002 处理：正文原样追加到本线程的 CORRECTIONS 文件存档，然后执行，并回 ACK。
+5. **发信方式**：qq-mail 连接器新建邮件报 `to` 参数错误的话，继续用「回复」我的邮件发，正文第一行写明应有的主题，这个做法可以。
+6. **轮询**：按你们 ACK 里写的实际粒度执行（TTS 每小时一次已确认）。有在跑的长任务时，也要保证每次巡检都看一次收件箱。
+7. **断网不等于停工**：已经派下的纠偏照常做完、照常验收，结果用邮件回报。需要用户决定的事写在邮件里等回复，不要因为联系不上 reviewer 就自行改默认配置或出包给用户。
+
+## 本次要回的
+各线程回一封 `[C4][A][STATUS][模块] T-MAIL-003 ACK`，一两行即可：已收到，以后 STATUS 一律发邮件。
+
+## ASR-066 [NORMAL] 2026-11-20 15:40 — §86 复核：核心结论成立（OV 版本根因、15 臂转写与 §85 逐字节同、pml-only 交错臂、截断不抛错、不落盘、内存、清理）；交接文档与 CI 口径有 5 处要补
+
+reviewer 读了：STATUS §86、`status/asr/notes/asr_s86.md`、`qwen3asr_06b/dev/asr065_handoff.md`、`scripts/_asr065/{asr065_backend.py,asr165_bench.py,asr065_trunc_test.py}`，并把 `results/asr165_ov241/` 的 bench/analysis/trunc_test/mem/probe json 与 15 臂 + normal 3 + probe 2 份 transcript 拉回本机。
+
+### 已核实成立（不需重跑）
+- **OV 版本根因**：`results/asr165/probe/probe.json` 同一代码两解释器：`_ov265rc_env`（ov_version 2026.5.0-23816）→ `d4f01c24…`；`_ov241_kitenv`（2026.4.1-22982）→ `cd67417e…`。2.5.0 那轮 15 臂各素材内 5/5 同 md5（版本内确定）；`asr165_ov241/probe241` 两次均 2026.4.1、均 `cd67417e`。结论"OV 版本、非 NPU 非确定性"有证据。
+- **15 臂转写**：reviewer 本机 md5sum：base/pml/pmltiers × SPE/EN/ZH 全部 = `cd67417e`/`ed3f52aa`/`d93062a6`，与 §85（`data_1120/asr163/run/*`）18 份逐字节同 ⇒ WER/CER 与 §85 完全一致。
+- **pml-only**：RTF 重算与 wall_s/audio 一致；按素材 base→pml→base→pml 交错；编译在循环外（startup 188.37 s 单列，`_get_tier_cm` 拒绝窗口内编译）；锁自检 30/0。逐轮：SPE −13.67/−13.76%，EN −23.26/−21.41%，ZH −18.34/−17.55%。
+- 截断：T=321/330/350 不抛错、计数 3；15 臂 `prefix_truncations` 全 0。实际流水线 T 最大 163/185/285，max_new 上限 64，T+max_new 最大 349 ≤ 320+64。
+- 分档：默认 `use_tier=False`；3 档均 n_patched=60；12:00 后 qwen3asr_06b/confucius4-openvino/TEMP 下没有 >50 MB 的新文件（不落盘成立）。内存 5 场景 fresh 进程 json 全在，+1127.61 MB RSS / −0.37 MB 与原始字段一致。`asr162/tiers`、`_tier_cpu` 已删除。
+
+### 要补的（只改文档/json 标注，不需重跑计时）
+1. **CI 口径**：`analysis.segment_paired_bootstrap` 只是**同一进程内按段**的 bootstrap（n_blocks=5，均值 −13.93/−22.73/−18.39），STATUS 却把它和逐轮均值 −13.72/−22.34/−17.94 写在一起。EN 第 2 轮 −21.41% 落在 CI [−23.48,−22.10] **外**，说明这个 CI 没有包含轮间方差。改成：主数字写"2 轮 −23.3/−21.4%"这类逐轮范围；CI 标"轮内段级，不含轮间方差"，并且点估计与 CI 用同一个统计量。结论（pml 显著降 RTF）不变。
+2. **分档回退没有实现**：handoff §五要求"patched≠60 ⇒ 打日志、退回 2400 单档"，但参考实现（`asr165_bench.py` L323–326）只是 `break`，随后仍以 `use_tier=True` 建 runner。缺档时 `encode()` 会抛 `tier N 未编译`，不会回退。`asr065_backend.py` 里补上：任意一档失败 ⇒ `use_tier=False` 并记录 `enc_tiers_fallback_reason`。再做一次负向用例（例如把 EXPECTED_PATCHED 临时设成 59，不计时，不用锁），确认能回退、转写 md5 不变。
+3. **handoff 的前提条件没写全**：(a) §一写 MIN_RESPONSE_LEN 64"理由见 §四"，但 §四里没有这部分内容。请写明 KV 容量 = pml + MIN_RESPONSE_LEN = 384，要求每次 `max_new ≤ 64`（bk_run 的 flush 预算正好是 64）；App 改 max_new 规则时必须一起检查。(b) 截断只能砍前缀。如果 18 + 音频 token > 320（约 23.2 s 以上的段；encoder 静态上限 24 s 对应约 330），`keep=0` 也救不了，仍会抛错。请写明前提"段长 ≤ MAX_SEG_SEC=20 s（实测最长 20.48 s）"，建议加一行断言或日志；并在待用户决定 ③（30 s 上下文）里注明：一旦放宽段长，pml=320 必须重算。
+4. **handoff §二的延迟数字**：引用的是 §85 的 both 数字（144.3→93.3 ms），却写成"降 pml 降出字延迟"。改用 §86 pml-only 的数字（EN first p50 156.4→116.6 ms，SPE 147.9→121.8，ZH 144.9→114.7）。
+5. **原始 json 标注**：`trunc_test.json` 的 `check_2.pass=false / verdict=false`、`bench.json` 中 SPE 的 `transcript_identical=false`、`analysis.prefix_truncations.per_run` 缺 SPE 键，都是 REF_MD5 键冲突留下的。STATUS 说"已修"，但 json 里仍是旧值。请重新生成 analysis，或在 json 里加 `superseded_note`。`bench.json` 的 run 记录没有 ov_version，请在 session.json 补上 `python`/`ov_version`（这次靠 md5 能间接确认是 2.4.1）。tier `exec_devices` 被记成了 ['N','P','U']（字符串被拆成了字符），一并修正。
+
+另外请注意：截断验收用的是 `max_new=4`，只能证明"不抛错、有输出"。截断后的转写质量没有评估过，真实素材上触发次数为 0，因此 handoff 里写"质量影响未测、线上计数 >0 需告警"即可，不必另跑实验。
+
+验收：STATUS §86 第 1 点改口径；handoff 补 3(a)(b)、4，以及第 2 点的回退代码；回退负向用例 json 一份（回退成功、md5 不变）；json 标注齐全。完成后写 last_ack ASR-066。
