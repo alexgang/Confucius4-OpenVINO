@@ -9461,7 +9461,26 @@ def main():
                     help='语音输出推理设备（出厂默认：完整版 / MiniMVP = NPU，'
                          'Special MVP = CUDA；见 device_config.DEFAULT_DEVICES）。'
                          '不给则用配置文件里的选择')
+    # 🔴🔴🔳 **APP-120 §0②（ASR-066 §2 / handoff §一·§五）**：
+    #   ASR **encoder 分档开关**（`asr_enc_tiers`）。
+    #   🔴 **默认 off** ⇒ 不给这个参数时**行为与接入前完全一致**
+    #      （单档 2400 mel 帧；不构建、不多编、不多占内存）。
+    #   on ⇒ 运行时从 base IR 现场构建 {400,800,1600,2400} 各档 → 直接 compile
+    #        → **不落盘**；**任一档构建失败 ⇒ 自动退回 2400 单档**
+    #        （`build_tiers_with_fallback` 的两处回退：构建处清空 + 调用处
+    #          强制 use_tier=False）。
+    ap.add_argument('--asr-enc-tiers', choices=['on', 'off'], default=None,
+                    help='ASR encoder 分档开关（默认 off＝单档 2400，不构建不多编）。'
+                         'on = 运行时构建 400/800/1600/2400 四档；'
+                         '任一档失败自动退回 2400 单档')
     args = ap.parse_args()
+
+    # 🔴🔴🔳 **APP-120 §0②**：把 CLI 开关落到环境变量
+    #   （`asr06b_stateful_backend._env_tiers_enabled()` 读 `ASR_ENC_TIERS`，
+    #     与 handoff 建议的读取方式一致）。
+    #   🔴 **不给 ⇒ 什么都不改** ⇒ 默认仍是 off。
+    if getattr(args, 'asr_enc_tiers', None) is not None:
+        os.environ['ASR_ENC_TIERS'] = ('1' if args.asr_enc_tiers == 'on' else '')
 
     # 设备解析：命令行 > 配置文件 > 推荐默认值；不可用时回退并提示。
     _dev_cli = {

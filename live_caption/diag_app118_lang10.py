@@ -299,6 +299,15 @@ def main():
     ap.add_argument('--device', default='GPU.0')
     ap.add_argument('--tts-device', default='GPU.0')
     ap.add_argument('--mt-device', default='GPU.0')
+    # 🔴🔴🔳 **APP-120 §2（2026-11-22）**：输出文件**可指定**。
+    # 🔴 **为什么必须加**：原先输出路径**写死** `app118_lang10_evidence.json`
+    #   ⇒ 跑 MiniMVP v1.1 时**覆盖了 v2.5（§217）的那份证据**
+    #   （2026-11-22 14:47 实测：`app118_lang10_evidence.json` 被换成 v1.1 的
+    #     5 139 B / 7 PASS·1 FAIL，v2.5 原件 8 988 B / SHA `7ce6fa9d…` 丢失）
+    #   ⇒ **不同包的证据必须写不同的文件** ⇒ 加 `--out`。
+    # 🔴 **默认仍写原路径**（保持旧调用方行为不变；v2.5 那份按此路径恢复）。
+    ap.add_argument('--out', default=None,
+                    help='证据输出路径（默认 results/app/app118_lang10_evidence.json）')
     args = ap.parse_args()
 
     os.makedirs(RESULTS, exist_ok=True)
@@ -396,6 +405,9 @@ def main():
            'pkg': _PKG_APP or os.path.join(REPO, 'live_caption'),
            'at': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
     op = os.path.join(RESULTS, 'app118_lang10_evidence.json')
+    if getattr(args, 'out', None):
+        op = os.path.abspath(args.out)
+        os.makedirs(os.path.dirname(op), exist_ok=True)
     with open(op, 'w', encoding='utf-8') as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
     print('\n结论：%d PASS / %d FAIL  →  %s' % (npass, nfail, op))

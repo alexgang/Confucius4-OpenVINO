@@ -90,6 +90,11 @@ ASR_ENC_TIERS = (400, 800, 1600, 2400)
 #:   ⇒ **线上如果这个计数持续增长 ⇒ 说明段长/前缀策略有异常，值得告警**。
 PROBE_PREFIX_TRUNCATIONS = 'prefix_truncations'
 
+#: 🔴🔴🔳 **APP-120 §0②（ASR-066 §2 / handoff §4.2）：分档回退原因**
+#:   `enc_tiers_fallback_reason`（str 或 null）＝**分档开关 on 时**若任一档构建失败
+#:   ⇒ 记回退原因；**null = 未回退**（分档正常生效或开关本来就是 off）。
+PROBE_ENC_TIERS_FALLBACK = 'enc_tiers_fallback_reason'
+
 
 def _env_tiers_enabled() -> bool:
     """`asr_enc_tiers` 开关是否打开（**默认 OFF**）。
@@ -208,6 +213,48 @@ def _build_encoder_tier(enc_xml: str, N: int, device: str):
         return info, None
 
 
+def build_tiers_with_fallback(enc_xml: str, device: str,
+                              tiers=ASR_ENC_TIERS):
+    """🔴🔴🔳 **APP-120 §0② / ASR-066 §2（handoff §5.1）**：encoder 分档构建
+    **带回退**。
+
+    返回 ``(tier_cms, fallback_reason, build_log)``。
+
+    🔴🔴 **必须两处都做**（handoff §5.1 明文）：
+      ① **构建处**（本函数）：任一档构建/编译失败 ⇒ ``tier_cms = {}``
+         （**不残留半截分档**）＋ 记 ``fallback_reason``；
+      ② **调用处**（runner / `ASR06BStatefulBackend.__init__`）：
+         ``fallback_reason`` 非空 ⇒ **强制 ``use_tier=False``**。
+    ⇒ 否则 ``encode()`` 仍会去取未编译的档 ⇒ 抛「tier N 未编译」。
+
+    ⚠️ **旧参考实现（``asr165_bench.py``）是错的**：它只是 ``break``，
+    随后**仍以 ``use_tier=True`` 建 runner** ⇒ **根本没有回退**。
+    ⇒ 本实现**不照抄**旧那段。
+    """
+    tier_cms = {}
+    build_log = []
+    failed = []
+    for _n in sorted(tiers):
+        if _n == ENC_MAX_FRAMES:
+            # 基准档就是已编好的 base（self.enc）⇒ 不需要单独构建
+            build_log.append({'N': _n, 'ok': True, 'skipped': 'base'})
+            continue
+        _info, _cm = _build_encoder_tier(enc_xml, _n, device)
+        build_log.append(_info)
+        if not _info.get('ok') or _cm is None:
+            failed.append('N=%d: %s' % (_n, _info.get('error')))
+            continue
+        tier_cms[_n] = _cm
+    if failed:
+        fallback_reason = (
+            'encoder 分档构建失败 ⇒ 退回 2400 单档（use_tier=False）；失败档：%s'
+            % ' | '.join(failed))
+        tier_cms = {}                     # 🔴 不残留半截分档
+    else:
+        fallback_reason = None
+    return tier_cms, fallback_reason, build_log
+
+
 def pick_encoder_tier(frames: int, tiers=ASR_ENC_TIERS):
     """按实际 mel 帧数选**最小能放下的档**；放不下 ⇒ ``None``（**不得静默截断**）。"""
     for n in sorted(tiers):
@@ -296,24 +343,30 @@ class ASR06BStatefulBackend(ASRBackend):
         self.dec = core.compile_model(dec_xml, device, dec_props)
         self.dec_inputs = [i.get_any_name() for i in self.dec.inputs]
 
-        # 🔴🔴🔳 **APP-118 §1（并入 ASR-065 §五）：encoder 分档（默认 OFF）**。
-        #   ON ⇒ 运行时从 base IR 现场构建各档 → **直接 compile → 不落盘**。
+        # 🔴🔴🔳 **APP-120 §0②（ASR-066 §2 / handoff §五）**：
+        #   encoder 分档（默认 OFF）—— ON ⇒ 运行时从 base IR 现场构建各档
+        #   → **直接 compile → 不落盘**。
         #   ⚠️ **构建放这里（构造期）**，不在推理路径上
         #   ⇒ 不占「计时窗口」⇒ 计时结论不被污染。
-        #   🔴 **任一档构建失败（patched ≠ 60 等）⇒ 退回单档 2400**
-        #   ⇒ 绝不「编了一半还继续用」。
+        #   🔴 **回退必须两处都做**（handoff §5.1）：
+        #     ① 构建处 ⇒ `build_tiers_with_fallback` 内部清空 `tier_cms`；
+        #     ② 调用处 ⇒ `fallback_reason` 非空 ⇒ **强制 use_tier=False**。
         self.enc_tier_build_log = []
+        self.enc_tiers_fallback_reason = None
         if self.asr_enc_tiers:
-            for _n in ASR_ENC_TIERS:
-                if _n == ENC_MAX_FRAMES:
-                    continue                     # 基准档就是已编好的 self.enc
-                _info, _cm = _build_encoder_tier(enc_xml, _n, device)
-                self.enc_tier_build_log.append(_info)
-                if _info.get('ok') and _cm is not None:
-                    self.enc_tiers[_n] = _cm
-            print('[asr06b-stateful] encoder 分档已开启（ASR-065）：%s'
-                  % (sorted(self.enc_tiers) or '（全部失败 ⇒ 用单档 2400）'),
-                  flush=True)
+            (self.enc_tiers,
+             self.enc_tiers_fallback_reason,
+             self.enc_tier_build_log) = build_tiers_with_fallback(
+                enc_xml, device)
+            if self.enc_tiers_fallback_reason:
+                # 🔴 **调用处**：强制 use_tier=False（handoff §5.1 第 ② 条）
+                self.asr_enc_tiers = False
+                print('[asr06b-stateful] ⚠ %s'
+                      % self.enc_tiers_fallback_reason, flush=True)
+            else:
+                print('[asr06b-stateful] encoder 分档已开启（ASR-065）：%s'
+                      % (sorted(self.enc_tiers) or '（全部失败 ⇒ 用单档 2400）'),
+                      flush=True)
 
         # 🔴 APP-101 §4.1：日志打印 EXECUTION_DEVICES 与 NPUW 配置。
         #    OV 的 EXECUTION_DEVICES 可能是字符串 'NPU'，也可能是 list
@@ -355,7 +408,12 @@ class ASR06BStatefulBackend(ASRBackend):
             'out_tokens': [], 'truncations': 0, 'kv_resets': 0,
             # 🔴🔴🔳 ASR-065 §四：前缀截断计数（**独立**于 512 上界的总截断）
             PROBE_PREFIX_TRUNCATIONS: 0,
+            # 🔴🔴🔳 APP-120 §0②（ASR-066 §2 / handoff §4.2）：分档回退原因
+            #   （null = 未回退；str = 回退原因）
+            PROBE_ENC_TIERS_FALLBACK: None,
         }
+        # 🔴🔴🔳 APP-120 §0②：把分档回退原因写进 probe（ASR-066 §4.2 字段）
+        self.probe[PROBE_ENC_TIERS_FALLBACK] = self.enc_tiers_fallback_reason
 
     # ── 小工具 ───────────────────────────────────────────────────────
     @staticmethod
@@ -446,13 +504,19 @@ class ASR06BStatefulBackend(ASRBackend):
         _infer = self.enc_infer
         if self.asr_enc_tiers and self.enc_tiers:
             _picked = pick_encoder_tier(mel_len)
-            if _picked is not None and _picked != ENC_MAX_FRAMES:
-                _cm = self.enc_tiers.get(_picked) or self.enc
-                _tier = _picked
-                _infer = _cm.create_infer_request()
-            elif _picked is None:
+            if _picked is None:
                 print('[asr06b-stateful] ⚠️ mel %d 帧放不进任何档 ⇒ 用单档 %d'
                       % (mel_len, ENC_MAX_FRAMES), flush=True)
+            elif _picked != ENC_MAX_FRAMES and _picked in self.enc_tiers:
+                _cm = self.enc_tiers[_picked]
+                _tier = _picked
+                _infer = _cm.create_infer_request()
+            else:
+                # 🔴 **模型与输入形状必须一致**：选中的档没编成功
+                #   ⇒ 用**单档 2400** 的模型 + 2400 帧输入（**绝不**拿 2400 的
+                #   模型去喂 400 帧的输入）。
+                print('[asr06b-stateful] ⚠️ 档 %d 未编成功 ⇒ 用单档 %d'
+                      % (_picked, ENC_MAX_FRAMES), flush=True)
         enc_in = np.zeros((1, 128, _tier), dtype=np.float32)
         enc_in[0, :, :mel_len] = mel
         n_valid = np.array([N_audio], dtype=np.int32)
