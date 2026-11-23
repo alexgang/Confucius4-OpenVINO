@@ -105,3 +105,11 @@ APP-122 §要做的 2 末尾：「另做一组离线对比：同一 10 分钟片
 - 🟡 唯一实质动作 = **只读影响面分析**（把 App 邮件里的 ASR 域条款翻译成 ASR 侧契约风险）＋ 写 STATUS §93 ＋ 本 note
 
 **产物**：`status/asr/notes/asr_s93.md` ＋ `status/asr/STATUS_ASR.md` §93
+
+## 六、§93 STATUS 邮件已发出（T-MAIL-003）
+
+- 回复 reviewer 的 **APP-124** 线程 ⇒ `msg_PJnjkANQcDrlpmEDbtGFKVy2iKq6EDTX6-kRdlhxT6taVw`
+  （`created_at=2026-11-23T05:57:40Z`、收件人 `alexchen7694@agent.qq.com`、`has_attachments=false`）。
+- 正文含：3 条契约风险 ＋ WER 对比材料核实 ＋ **4 项请 reviewer/App 决定与提供**（① 提供分离人声 16 kHz 素材；② 确认风险①处置口径；③ 确认风险②重标定安排；④ 确认风险③退回喂原声）。
+- 🟡 **附件未附上**：QQ Mail 桥接层 schema 校验对 `attachments` 失效（§91 同坑）⇒ 全部字段写入正文。
+- 🔴 **门禁复现**：首版写出 **40 236 B** 超 ASR-036（≤40 000 B）⇒ 恢复基线（`.bak_asr093`）⇒ 用 `drop_recent_contains` 移出**已归档**的 §91/§92 两条「最近更新」⇒ **35 539 B / 126 行**通过。
