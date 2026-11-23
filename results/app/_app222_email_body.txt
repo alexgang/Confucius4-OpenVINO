@@ -1,0 +1,38 @@
+[C4][A][STATUS][APP] §222 巡检（无新 reviewer 纠偏，last_ack 仍 APP-121）＋ 接续上一会话（TAKEOVER）闭合 4 处半交付
+
+一、结论
+六通道复核无新 App 纠偏 ⇒ last_ack 保持 APP-121。上一会话（租约 ae2aabbb，09:15 起、10:32 后失联）死在收尾 ⇒ 本轮从断点继续闭合其遗留的 4 处半交付。交付面只读复核全成立。未打包／未改客户包／未跑推理·计时／未改纠偏文件。
+
+二、六通道
+1) 局域网 status/app/CORRECTIONS_APP.md：119 条／max APP-121＝last_ack ⇒ 无 APP-122+。开工与收尾各测一次：SHA256 784474d0deed33caa8568bf8dded7550c31b4efd26414cf02c4afdfad8ffcf8a／407531 B／mtime 2026-11-23 09:04:26 ⇒ 四项一致，SHA 零改动（reviewer 独占，全程未写）。
+2) QQ 收件箱：最新 App 封仍是 APP-121（11-23 09:03，已执行＝§221）；其后 3 封均为 TTS-076/077（TTS 模块）。
+3) spam 0 封；4) trash 1 封＝MiniMVP rc9 报告（非 reviewer，未动未标已读）；5) agent-mail 仍 not_bound；6) 上轮 APP-121 STATUS 邮件已发（11-23 10:44:31）⇒ 本轮不重发。
+
+三、4 处半交付（本轮已闭合）
+HD1 发信记录与事实不符：HEAD 里的 results/app/_app121_email_body.txt 是发信前草稿——含未填占位符「提交 COMMIT_SHA（main）」＋写着「详见附件」，而那封邮件 has_attachments=false（无附件）。实际发出的是工作区版本（正文见 A 机 companion 24085 B／SHA bf176bdbddb7fb2b；提交 88b9ea8）。⇒ 已提交实际发出的那版。
+HD2 解压自检脚本未入库：其产物 results/app/app121_zip_extract_check.json 已入库且被 §221 §3（reviewer 第 3 条解压自检）引用，但 live_caption/_app121_zip_extract_check.py 未入库（另 13 个 _app121_*.py 全部入库）⇒ 无法重跑验证。⇒ 已入库。
+HD3 复算底本缺失：§221 §5 的验收 json 已入库，但其底本（逐句 tts.jsonl 258211 B＋backlog_curve.csv 22759 B）未入库；同侪 app119/sp5 臂同类文件全部入库。reviewer 对 APP-120 就是用 jsonl 复算（§221 §0 引原话「reviewer 本机用 jsonl 复算（SHA b3a72990…）」＝该 jsonl 实测 SHA）⇒ 缺它无法复算本轮 14/14。⇒ 已入库（wav 本体不入库，同侪一致）。
+HD4 构建依赖未入库：live_caption/package_profiles.py（9763 B／SHA 4ca63cc4ae0bf937…）未入库，但已入库的 _app120_build_minimvp_v11.py 第 42 行直接 from package_profiles import PROFILE_RULES, is_excluded, top_dirs ⇒ 干净 clone 无法重建 MiniMVP。⇒ 已入库。
+
+四、交付面只读复核（本轮实测）
+v1.1.1.zip：5212403155 B／10881 条目／解压总量 6701780843 B ⇒ 与 README 的 10881 文件、6701780843 B 逐项吻合。
+ACCEPTED.json（version=1.1.1）指纹 31 模块 == zip 内 app/*.py 31 个，双向等集 ⇒「签的和发的同一份」成立。
+dev 树 == v2.5 == v1.1.1：5 模块 SHA 全同（asr06b_stateful_backend.py 36f20581799f／live_caption_app.py 9cd8e8bf72c6／device_config.py 4e6b50266340／tts_worker.py ae9007450ee9／tts_engine.py c2b031726e12）。
+口径澄清：reviewer §4 给的「6 701 773 512 B」是 v1.1 zip 的解压总量；实测 v1.1＝6701773512 B、v1.1.1＝6701780843 B（差 7331 B＝README 自身改动）⇒ README 写的是它所在 zip 的实际数字。
+
+五、ASR §91 交叉结论自证
+④ App 侧 NPU 的 prefix_truncations＝3（ZH）、GPU.0 同素材＝0 ⇒ 属实（产物 results/app/app121_asr_app_3mat_NPU.json／…_GPU0.json）。
+⑤「① 切段器不同 ⇒ 段边界/段数本就不一致」不在 §221 companion 正文里（正文写的是「段边界一致 ⇒ 切段器行为一致，差异不在切段」），只在证据 json 的 ref_diff_explanation[].reasons[0] —— harness 的静态字面量；而该 json 自己 n_segs_app==n_segs_ref（93/65/66 全同）⇒ 那条串与本文件实测自相矛盾。⇒ §221 正文无需撤回；只报告，不改写已入库证据产物（改写＝篡改历史证据）。
+
+六、待您/用户裁定（本轮未自行推进）
+1) NPU 档前缀截断处置：① MAX_SEG_SEC 降到 ≈19 s（不动 pml/不动 §86 RTF/不动 GPU 档）② 超预算丢段尾前缀而非左截断 ③ 上调 pml（会改 §86 全部 RTF ⇒ 必须重测）。任一选项都改产品行为与交付内容。
+2) §221 证据 json 的静态串：① 保持原样＋STATUS 注明（本轮已做）② 授权后重跑 harness 换新证据 ③ 只在源码加注释。
+3) README 是否加「NPU 档长段会触发前缀截断」已知问题（改 README ⇒ 新版本号＋重签 ACCEPTED＋重打 zip）。
+4) v2.5 重签 ACCEPTED：v2.5/ACCEPTED.json 仍指向 v2.4 ⇒ 闸门 fail-closed ⇒ v2.5 仍打不出 zip（沿用 §220 未结项，未自行重签）。
+5) 发客户必须确认发 v1.1.1.zip：旧 v1.1.zip 的 ACCEPTED 指纹含 tts_cuda.py／tts_cuda_sidecar.py（33 条）而 zip 内 app/*.py 只有 31 个 ⇒ 旧 v1.1 zip 不自证；v1.1.1 是 31==31 自证（旧 zip 按纪律不覆盖不删）。
+
+七、纪律与产物
+逐文件 git add（未用 -A），只提交 App 侧文件：b20aa02 已推 origin/main（普通 push，fast-forward 88b9ea8..b20aa02）。刻意不提交：app523_pack_must_ttsworker_evidence.json（§199/§200 明确 hold）、app170_version_identity_gate_evidence.json（§191 已引用）、app157_*.json 与 app468_*.json（autocrlf 假阳性，numstat 无差异）、live_caption/sync_c*.py（§57 归属未判定）、CORRECTIONS_APP.md 与 status/CORRECTIONS.md（reviewer 独占）。
+证据：results/app/app222_closure_evidence.json；results/app/app222_write_status_evidence.json（9/9 不变量 PASS，含还原式逐字节复核）。正文：A 机 status/app/STATUS_APP_sec222_detail_20261123.md。
+
+【本条需等 reviewer 复核】
