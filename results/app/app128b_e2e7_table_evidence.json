@@ -1,0 +1,197 @@
+{
+  "correction": "APP-128 补充（reviewer 2026-11-23 12:52:07Z 邮件：STATUS 正文被截断，请单独补发 e2e7 三臂表）",
+  "mail_subject": "[C4][A][STATUS][APP] APP-128 e2e7 三臂表",
+  "arms": [
+    {
+      "arm": "off",
+      "source_rel": "shared/bgkeep/e2e7/off/bgkeep_e2e.json",
+      "source_bytes": 30897,
+      "source_sha256": "04ccb407e7206acf703b85fc19b4177497b0e85f35d2d2a7a54fdbbcaa2944e4",
+      "source_mtime": "2026-11-23 16:54:51",
+      "dubs": 123,
+      "dub_late_max": 2.43,
+      "dub_late_p90": -1.54,
+      "n_late": 7,
+      "bg_late_blocks": 0,
+      "sep_rtf_p50": null,
+      "sep_rtf_p90": null,
+      "bg_state": "off",
+      "bg_keep": false,
+      "sep_device": null,
+      "n_speakers": 0,
+      "raw_text_crosscheck": [
+        {
+          "field": "dubs",
+          "value": 123,
+          "literal": "123",
+          "literal_in_raw": true
+        },
+        {
+          "field": "dub_late_max",
+          "value": 2.43,
+          "literal": "2.43",
+          "literal_in_raw": true
+        },
+        {
+          "field": "dub_late_p90",
+          "value": -1.54,
+          "literal": "-1.54",
+          "literal_in_raw": true
+        },
+        {
+          "field": "n_late",
+          "value": 7,
+          "literal": "7",
+          "literal_in_raw": true
+        },
+        {
+          "field": "bg_late_blocks",
+          "value": 0,
+          "literal": "0",
+          "literal_in_raw": true
+        },
+        {
+          "field": "sep_rtf_p50",
+          "value": null,
+          "literal_in_raw": true,
+          "note": "未开分离，JSON 里是 null"
+        },
+        {
+          "field": "sep_rtf_p90",
+          "value": null,
+          "literal_in_raw": true,
+          "note": "未开分离，JSON 里是 null"
+        }
+      ]
+    },
+    {
+      "arm": "on_gpu",
+      "source_rel": "shared/bgkeep/e2e7/on_gpu/bgkeep_e2e.json",
+      "source_bytes": 31432,
+      "source_sha256": "1fb2ef9578dc26cba66dbbc3080aa15ddd0c3209c368bb3a9a84b2e32b8fe1b0",
+      "source_mtime": "2026-11-23 17:06:52",
+      "dubs": 123,
+      "dub_late_max": 3.41,
+      "dub_late_p90": -1.43,
+      "n_late": 8,
+      "bg_late_blocks": 0,
+      "sep_rtf_p50": 0.215,
+      "sep_rtf_p90": 0.25,
+      "bg_state": "ok",
+      "bg_keep": true,
+      "sep_device": "GPU.0",
+      "n_speakers": 0,
+      "raw_text_crosscheck": [
+        {
+          "field": "dubs",
+          "value": 123,
+          "literal": "123",
+          "literal_in_raw": true
+        },
+        {
+          "field": "dub_late_max",
+          "value": 3.41,
+          "literal": "3.41",
+          "literal_in_raw": true
+        },
+        {
+          "field": "dub_late_p90",
+          "value": -1.43,
+          "literal": "-1.43",
+          "literal_in_raw": true
+        },
+        {
+          "field": "n_late",
+          "value": 8,
+          "literal": "8",
+          "literal_in_raw": true
+        },
+        {
+          "field": "bg_late_blocks",
+          "value": 0,
+          "literal": "0",
+          "literal_in_raw": true
+        },
+        {
+          "field": "sep_rtf_p50",
+          "value": 0.215,
+          "literal": "0.215",
+          "literal_in_raw": true
+        },
+        {
+          "field": "sep_rtf_p90",
+          "value": 0.25,
+          "literal": "0.25",
+          "literal_in_raw": true
+        }
+      ]
+    },
+    {
+      "arm": "on_cpu",
+      "source_rel": "shared/bgkeep/e2e7/on_cpu/bgkeep_e2e.json",
+      "source_bytes": 31403,
+      "source_sha256": "47bb7ca952fcf421cc5875c41f72024a473bd9d36094a03a55806ba0f04a195b",
+      "source_mtime": "2026-11-23 17:18:54",
+      "dubs": 123,
+      "dub_late_max": 3.41,
+      "dub_late_p90": -1.69,
+      "n_late": 8,
+      "bg_late_blocks": 0,
+      "sep_rtf_p50": 0.458,
+      "sep_rtf_p90": 0.589,
+      "bg_state": "ok",
+      "bg_keep": true,
+      "sep_device": "CPU",
+      "n_speakers": 0,
+      "raw_text_crosscheck": [
+        {
+          "field": "dubs",
+          "value": 123,
+          "literal": "123",
+          "literal_in_raw": true
+        },
+        {
+          "field": "dub_late_max",
+          "value": 3.41,
+          "literal": "3.41",
+          "literal_in_raw": true
+        },
+        {
+          "field": "dub_late_p90",
+          "value": -1.69,
+          "literal": "-1.69",
+          "literal_in_raw": true
+        },
+        {
+          "field": "n_late",
+          "value": 8,
+          "literal": "8",
+          "literal_in_raw": true
+        },
+        {
+          "field": "bg_late_blocks",
+          "value": 0,
+          "literal": "0",
+          "literal_in_raw": true
+        },
+        {
+          "field": "sep_rtf_p50",
+          "value": 0.458,
+          "literal": "0.458",
+          "literal_in_raw": true
+        },
+        {
+          "field": "sep_rtf_p90",
+          "value": 0.589,
+          "literal": "0.589",
+          "literal_in_raw": true
+        }
+      ]
+    }
+  ],
+  "email_body": "| 臂 | dubs | dub_late max | dub_late p90 | n_late | bg_late_blocks | sep_rtf p50/p90 |\n|---|---|---|---|---|---|---|\n| off | 123 | 2.43 | -1.54 | 7 | 0 | —（bg off，未分离） |\n| on_gpu | 123 | 3.41 | -1.43 | 8 | 0 | 0.215 / 0.25 |\n| on_cpu | 123 | 3.41 | -1.69 | 8 | 0 | 0.458 / 0.589 |\n\n来源：shared/bgkeep/e2e7/{off,on_gpu,on_cpu}/bgkeep_e2e.json\n字段：dub_late_vs_play_s.max / p90 / n_late；bg_late_blocks；stats_bg.sep_rtf_p50 / sep_rtf_p90",
+  "email_body_bytes": 462,
+  "email_body_sha256": "3fc385027894c62dfb95d67f8c0fef9f389b9ba419c5b7cf02b78bc0bd4f5fbb",
+  "read_only": true,
+  "notes": "数字全部来自 reviewer 自己的 e2e7 产物；每个值都在原始 JSON 文本里逐字命中（raw_text_crosscheck）。"
+}

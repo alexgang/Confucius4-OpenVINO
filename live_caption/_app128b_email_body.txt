@@ -1,0 +1,8 @@
+| 臂 | dubs | dub_late max | dub_late p90 | n_late | bg_late_blocks | sep_rtf p50/p90 |
+|---|---|---|---|---|---|---|
+| off | 123 | 2.43 | -1.54 | 7 | 0 | —（bg off，未分离） |
+| on_gpu | 123 | 3.41 | -1.43 | 8 | 0 | 0.215 / 0.25 |
+| on_cpu | 123 | 3.41 | -1.69 | 8 | 0 | 0.458 / 0.589 |
+
+来源：shared/bgkeep/e2e7/{off,on_gpu,on_cpu}/bgkeep_e2e.json
+字段：dub_late_vs_play_s.max / p90 / n_late；bg_late_blocks；stats_bg.sep_rtf_p50 / sep_rtf_p90

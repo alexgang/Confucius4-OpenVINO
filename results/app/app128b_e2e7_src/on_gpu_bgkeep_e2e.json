@@ -1,0 +1,1480 @@
+{
+ "media": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+ "duration_s": 600.0,
+ "delay_sec": 20.0,
+ "hello_ack": {
+  "delay_sec": 20.0,
+  "bg_supported": true,
+  "bg_model": true,
+  "bg": {
+   "state": "starting",
+   "device": null,
+   "reason": "",
+   "rtf": null,
+   "lead_sec": null
+  },
+  "mode": "real"
+ },
+ "bg_blocks": 600,
+ "bg_contiguous": true,
+ "bg_covered_s": 600.0,
+ "bg_margin_min_s": 9.27,
+ "bg_margin_p10_s": 9.97,
+ "bg_margin_median_s": 12.34,
+ "bg_late_blocks": 0,
+ "bg_late_at": [],
+ "bg_status_seq": [
+  [
+   "starting",
+   null,
+   0.01
+  ],
+  [
+   "starting",
+   "GPU.0",
+   0.01
+  ],
+  [
+   "ok",
+   "GPU.0",
+   2.62
+  ],
+  [
+   "ok",
+   "GPU.0",
+   12.7
+  ],
+  [
+   "ok",
+   "GPU.0",
+   22.71
+  ],
+  [
+   "ok",
+   "GPU.0",
+   32.7
+  ],
+  [
+   "ok",
+   "GPU.0",
+   42.72
+  ],
+  [
+   "ok",
+   "GPU.0",
+   52.71
+  ],
+  [
+   "ok",
+   "GPU.0",
+   62.72
+  ],
+  [
+   "ok",
+   "GPU.0",
+   72.71
+  ],
+  [
+   "ok",
+   "GPU.0",
+   82.71
+  ],
+  [
+   "ok",
+   "GPU.0",
+   92.72
+  ]
+ ],
+ "bg_status_last": {
+  "state": "ok",
+  "device": "GPU.0",
+  "reason": "",
+  "rtf": 0.215,
+  "lead_sec": 0.0,
+  "at": 686.25
+ },
+ "dubs": 123,
+ "dub_late_vs_play_s": {
+  "max": 3.41,
+  "p90": -1.43,
+  "n_late": 8
+ },
+ "stats_bg": {
+  "bg_keep": true,
+  "bg_state": "ok",
+  "bg_blocks_sent": 600,
+  "bg_up_frames": 6000,
+  "bg_up_gaps": 0,
+  "sep_device": "GPU.0",
+  "sep_rtf_p50": 0.215,
+  "sep_rtf_p90": 0.25,
+  "sep_compile_s": 2.39,
+  "bg_lead_sec": 0.0,
+  "bg_clone_from_vocals": 0,
+  "bg_clone_fallback_orig": 0,
+  "bg_onset_shifted": 100,
+  "bg_onset_shift_sum_sec": 38.12,
+  "bg_onset_no_vocals": 10
+ },
+ "stats_misc": {
+  "n_frames": 6000,
+  "n_dropped": 0,
+  "proc_cpu_pct": 0.0,
+  "igpu_pct": 0.1,
+  "npu_pct": 0.0,
+  "rss_mb": null
+ },
+ "stats_full": {
+  "type": "stats",
+  "n_frames": 6000,
+  "n_dropped": 0,
+  "buffered_sec": 0.0,
+  "bg_keep": true,
+  "bg_state": "ok",
+  "bg_blocks_sent": 600,
+  "bg_up_frames": 6000,
+  "bg_up_gaps": 0,
+  "sep_device": "GPU.0",
+  "sep_rtf_p50": 0.215,
+  "sep_rtf_p90": 0.25,
+  "sep_compile_s": 2.39,
+  "bg_lead_sec": 0.0,
+  "bg_clone_from_vocals": 0,
+  "bg_clone_fallback_orig": 0,
+  "bg_onset_shifted": 100,
+  "bg_onset_shift_sum_sec": 38.12,
+  "bg_onset_no_vocals": 10,
+  "capture_mode": "tabCapture",
+  "client_source": "player",
+  "source_rate": null,
+  "client_target_lang": "en",
+  "client_voice": "A",
+  "applied_target_lang": "en",
+  "asr_segments": 123,
+  "mt_segments": 123,
+  "tts_segments": 123,
+  "speaker": {
+   "n_speakers": 0,
+   "n_pending_unassigned": 123,
+   "n_final_without_spk": 246,
+   "clean_sec_required": 3.0,
+   "preset_voice": "A",
+   "blocking_diarization": false
+  },
+  "spk_bypass": {
+   "enabled": false,
+   "spk_queue_drop": 0,
+   "spk_worker_busy_ms": 0.0,
+   "note": "本会话未接说话人旁路（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）"
+  },
+  "margin": {
+   "n_segments": 123,
+   "n_negative": 10,
+   "min": -4.2739,
+   "p50": 4.968,
+   "p95": 9.3697,
+   "max": 10.6354,
+   "mean": 4.8258,
+   "basis": "deadline",
+   "definition": "排程余量 = (t0 + t_start + D) − TTS就绪时刻；负数 = 该句赶不上自己的播放时刻（滞后）",
+   "last_segment_lag_sec": 0.0,
+   "max_lag_sec": 4.2739,
+   "lag_growth_slope_sec_per_sec": -0.002031,
+   "lag_growth_intercept_sec": 5.4235,
+   "lag_growth_r2": 0.013085,
+   "lag_n_fit_points": 123,
+   "lag_growth_slope_all_sec_per_sec": -0.002031,
+   "lag_growth_intercept_all_sec": 5.4235,
+   "lag_growth_r2_all": 0.013085,
+   "lag_n_fit_points_all": 123,
+   "lag_growth_slope_note": "★ EXT-036 ③：顶层 `lag_growth_slope_sec_per_sec` = **只用「有 TTS 的段」**拟合 (t_start, 排程余量)。旧的全段口径（含没有 TTS 的空段，其 lag 是直线外推值）保留在 `lag_growth_slope_all_sec_per_sec`，**已作废**，不得用于归因。",
+   "lag_definition": "last_segment_lag_sec = 末句 max(0, −排程余量)；lag_growth_slope_sec_per_sec = 对 (t_start, 排程余量) 线性拟合的斜率（负数 = 滞后随时间累积）；max_lag_sec = 各句滞后的最大值。⚠️ 不再有「余量求和」量（EXT-008 判定它没有物理含义，已删除）。★ EXT-036 ③：斜率**只用有 TTS 的段**拟合（见 lag_growth_slope_note）。",
+   "deadline": {
+    "n_negative": 10,
+    "last_segment_lag_sec": 0.0,
+    "max_lag_sec": 4.2739,
+    "lag_growth_slope_sec_per_sec": -0.002031,
+    "min": -4.2739,
+    "p50": 4.968,
+    "p95": 9.3697,
+    "max": 10.6354,
+    "mean": 4.8258
+   },
+   "ready_after_orig_end": {
+    "n_negative": 0,
+    "min": 5.8646,
+    "p50": 10.1724,
+    "p95": 13.8078,
+    "max": 16.2739,
+    "mean": 10.2961,
+    "definition": "就绪延迟 = TTS就绪时刻 − (t0 + t_end)；正数 = 配音比原声结束晚多久可用（不是滞后）"
+   }
+  },
+  "adaptive_speed": {
+   "n_segments": 123,
+   "speed_time_share": {
+    "1.00": 0.3076,
+    "1.00-1.10": 0.134,
+    "1.10-1.20": 0.0413,
+    "1.20-1.30": 0.1775,
+    ">1.30": 0.3396
+   },
+   "speed_count_share": {
+    "1.00": 38,
+    "1.00-1.10": 19,
+    "1.10-1.20": 6,
+    "1.20-1.30": 21,
+    ">1.30": 39
+   },
+   "total_audio_sec": 600.0,
+   "lag_curve": {
+    "start_sec": 0.0,
+    "peak_sec": 3.108,
+    "peak_at_t_start": 339.73,
+    "end_sec": 0.0,
+    "series_t_start": [
+     0.0,
+     3.5,
+     9.59,
+     13.51,
+     20.91,
+     24.86,
+     30.29,
+     33.5,
+     36.81,
+     40.3,
+     47.48,
+     50.63,
+     56.42,
+     62.7,
+     67.0,
+     73.49,
+     76.68,
+     80.72,
+     84.89,
+     88.08,
+     91.79,
+     97.61,
+     102.02,
+     106.8,
+     113.52,
+     118.6,
+     123.28,
+     129.08,
+     133.13,
+     136.78,
+     140.63,
+     147.11,
+     154.42,
+     158.0,
+     162.33,
+     165.5,
+     168.82,
+     173.13,
+     176.41,
+     181.12,
+     184.52,
+     188.9,
+     193.52,
+     200.3,
+     203.49,
+     208.39,
+     213.01,
+     216.19,
+     219.71,
+     224.3,
+     227.59,
+     234.28,
+     238.92,
+     242.1,
+     247.5,
+     251.92,
+     255.1,
+     263.1,
+     269.42,
+     274.83,
+     280.4,
+     286.68,
+     292.61,
+     295.99,
+     299.52,
+     307.52,
+     313.81,
+     318.63,
+     323.9,
+     329.1,
+     335.42,
+     339.73,
+     343.51,
+     351.51,
+     357.21,
+     362.83,
+     366.08,
+     372.38,
+     375.99,
+     381.6,
+     386.52,
+     392.81,
+     400.81,
+     404.09,
+     408.41,
+     416.41,
+     419.9,
+     427.9,
+     432.88,
+     437.81,
+     445.63,
+     452.63,
+     456.51,
+     460.02,
+     463.59,
+     467.4,
+     474.5,
+     478.91,
+     483.41,
+     486.59,
+     491.02,
+     495.78,
+     500.48,
+     504.9,
+     509.42,
+     514.0,
+     519.81,
+     526.31,
+     531.42,
+     536.71,
+     540.88,
+     545.43,
+     548.6,
+     556.43,
+     560.41,
+     563.81,
+     570.42,
+     574.4,
+     578.11,
+     583.21,
+     587.22,
+     592.72,
+     595.91
+    ],
+    "series_lag_sec": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.45,
+     1.1,
+     0.0,
+     0.0,
+     0.96,
+     0.0,
+     0.0,
+     2.29,
+     0.857,
+     0.0,
+     0.0,
+     0.0,
+     1.16,
+     0.0,
+     0.17,
+     0.7,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.28,
+     0.08,
+     1.08,
+     0.701,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.186,
+     0.656,
+     0.0,
+     0.84,
+     0.0,
+     0.0,
+     2.09,
+     1.184,
+     0.381,
+     0.0,
+     0.0,
+     0.81,
+     0.334,
+     0.0,
+     0.0,
+     0.407,
+     0.857,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.36,
+     0.0,
+     0.0,
+     0.0,
+     0.24,
+     0.35,
+     2.78,
+     0.923,
+     0.0,
+     0.0,
+     0.0,
+     0.773,
+     3.066,
+     1.776,
+     0.6,
+     0.0,
+     0.0,
+     3.108,
+     1.008,
+     0.0,
+     0.761,
+     0.0,
+     0.11,
+     1.65,
+     0.0,
+     0.0,
+     0.317,
+     0.354,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.877,
+     0.0,
+     0.0,
+     0.0,
+     0.518,
+     0.0,
+     0.75,
+     0.0,
+     0.229,
+     0.0,
+     1.1,
+     0.602,
+     0.0,
+     0.0,
+     0.0,
+     1.5,
+     0.0,
+     0.0,
+     0.166,
+     0.0,
+     0.0,
+     0.71,
+     0.0,
+     1.222,
+     0.0,
+     0.0,
+     0.0,
+     1.109,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     1.83,
+     0.142,
+     0.0
+    ]
+   },
+   "n_dropped_dub": 0,
+   "n_silent_fill_segments": 0,
+   "definition": "lag_est_sec = −deadline_margin_sec = (这句最早能开播的时刻) − (t0 + t_start + D)；speed = 时长适配倍率 × 自适应加速倍率，总倍率封顶 1.30×。"
+  },
+  "lag_decomposition": {
+   "n_segments": 123,
+   "definition": "feed_lag_sec = 音频完整到达服务端的时刻 − 该句应播时刻(t0+t_start+D)；>0 = 音频送晚了（上行/反压）。intrinsic_lag_sec = max(0, 管线耗时 − (D − 段长))= 即使准时送到也赶不上的部分（引擎慢）。",
+   "n_segments_audio_ready_reconstructed": 0,
+   "reconstruction_note": "audio_ready_rel_sec 缺失时按 (ready_at − 管线耗时) − t0 重建（服务端消息循环单线程串行 ⇒ 推理紧接帧到达开始）。重建段数 >0 ⇒ 该值为推算而非直接实测。",
+   "last_segment": {
+    "id": "seg_9534560",
+    "t_start": 595.91,
+    "lag_sec": 0.0,
+    "feed_lag_sec": -15.006,
+    "intrinsic_lag_sec": 0.0,
+    "proc_sec": 6.6179,
+    "audio_ready_rel_sec": 600.904
+   },
+   "sum_feed_lag_sec": -1726.224,
+   "sum_intrinsic_lag_sec": 7.326,
+   "mean_feed_lag_sec": -14.0343,
+   "mean_intrinsic_lag_sec": 0.0596,
+   "sum_lag_sec": 16.8507,
+   "n_segments_feed_lagged": 0,
+   "n_segments_intrinsic_lagged": 7,
+   "per_segment": [
+    {
+     "id": "seg_0",
+     "t_start": 0.0,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.606,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_56000",
+     "t_start": 3.5,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -12.794,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_153440",
+     "t_start": 9.59,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.992,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_216160",
+     "t_start": 13.51,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -11.535,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_334560",
+     "t_start": 20.91,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.907,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_397760",
+     "t_start": 24.86,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.465,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_484640",
+     "t_start": 30.29,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.681,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_536000",
+     "t_start": 33.5,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.594,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_588960",
+     "t_start": 36.81,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.401,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_644800",
+     "t_start": 40.3,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -11.704,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_759680",
+     "t_start": 47.48,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.783,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_810080",
+     "t_start": 50.63,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.13,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_902720",
+     "t_start": 56.42,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -12.608,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_1003200",
+     "t_start": 62.7,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.597,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_1072000",
+     "t_start": 67.0,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -12.404,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_1175840",
+     "t_start": 73.49,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.681,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_1226880",
+     "t_start": 76.68,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.88,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_1291520",
+     "t_start": 80.72,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.711,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_1358240",
+     "t_start": 84.89,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.694,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_1409280",
+     "t_start": 88.08,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.174,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_1468640",
+     "t_start": 91.79,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.088,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_1561760",
+     "t_start": 97.61,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.508,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_1632320",
+     "t_start": 102.02,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.111,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_1708800",
+     "t_start": 106.8,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -12.196,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_1816320",
+     "t_start": 113.52,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.824,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_1897600",
+     "t_start": 118.6,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.202,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_1972480",
+     "t_start": 123.28,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.083,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_2065280",
+     "t_start": 129.08,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.873,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_2130080",
+     "t_start": 133.13,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.227,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_2188480",
+     "t_start": 136.78,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.08,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_2250080",
+     "t_start": 140.63,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -12.423,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_2353760",
+     "t_start": 147.11,
+     "lag_sec": 0.5994,
+     "feed_lag_sec": -11.607,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_2470720",
+     "t_start": 154.42,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.315,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_2528000",
+     "t_start": 158.0,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.59,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_2597280",
+     "t_start": 162.33,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.724,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_2648000",
+     "t_start": 165.5,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.606,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_2701120",
+     "t_start": 168.82,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.612,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_2770080",
+     "t_start": 173.13,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.635,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_2822560",
+     "t_start": 176.41,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.204,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_2897920",
+     "t_start": 181.12,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.516,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_2952320",
+     "t_start": 184.52,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.525,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_3022400",
+     "t_start": 188.9,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.291,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_3096320",
+     "t_start": 193.52,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -12.123,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_3204800",
+     "t_start": 200.3,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.704,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_3255840",
+     "t_start": 203.49,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.998,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_3334240",
+     "t_start": 208.39,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.29,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_3408160",
+     "t_start": 213.01,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.714,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_3459040",
+     "t_start": 216.19,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.384,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_3515360",
+     "t_start": 219.71,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.306,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_3588800",
+     "t_start": 224.3,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.594,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_3641440",
+     "t_start": 227.59,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -12.193,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_3748480",
+     "t_start": 234.28,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.289,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_3822720",
+     "t_start": 238.92,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.724,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_3873600",
+     "t_start": 242.1,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.498,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_3960000",
+     "t_start": 247.5,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.5,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_4030720",
+     "t_start": 251.92,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.709,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_4081600",
+     "t_start": 255.1,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -11.001,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_4209600",
+     "t_start": 263.1,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -12.591,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_4310720",
+     "t_start": 269.42,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.513,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_4397280",
+     "t_start": 274.83,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.329,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_4486400",
+     "t_start": 280.4,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -12.592,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_4586880",
+     "t_start": 286.68,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -12.978,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_4681760",
+     "t_start": 292.61,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.512,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_4735840",
+     "t_start": 295.99,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.382,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_4792320",
+     "t_start": 299.52,
+     "lag_sec": 4.2739,
+     "feed_lag_sec": -11.018,
+     "intrinsic_lag_sec": 3.289
+    },
+    {
+     "id": "seg_4920320",
+     "t_start": 307.52,
+     "lag_sec": 2.324,
+     "feed_lag_sec": -12.614,
+     "intrinsic_lag_sec": 0.4718
+    },
+    {
+     "id": "seg_5020960",
+     "t_start": 313.81,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.106,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_5098080",
+     "t_start": 318.63,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.628,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_5182400",
+     "t_start": 323.9,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.692,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_5265600",
+     "t_start": 329.1,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -12.6,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_5366720",
+     "t_start": 335.42,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.618,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_5435680",
+     "t_start": 339.73,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.135,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_5496160",
+     "t_start": 343.51,
+     "lag_sec": 1.2848,
+     "feed_lag_sec": -11.011,
+     "intrinsic_lag_sec": 0.2912
+    },
+    {
+     "id": "seg_5624160",
+     "t_start": 351.51,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.211,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_5715360",
+     "t_start": 357.21,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.309,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_5805280",
+     "t_start": 362.83,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.621,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_5857280",
+     "t_start": 366.08,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -12.574,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_5958080",
+     "t_start": 372.38,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.273,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_6015840",
+     "t_start": 375.99,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.289,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_6105600",
+     "t_start": 381.6,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.006,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_6184320",
+     "t_start": 386.52,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -12.62,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_6284960",
+     "t_start": 392.81,
+     "lag_sec": 1.9128,
+     "feed_lag_sec": -11.005,
+     "intrinsic_lag_sec": 0.9123
+    },
+    {
+     "id": "seg_6412960",
+     "t_start": 400.81,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.604,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_6465440",
+     "t_start": 404.09,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.592,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_6534560",
+     "t_start": 408.41,
+     "lag_sec": 2.1231,
+     "feed_lag_sec": -11.001,
+     "intrinsic_lag_sec": 1.1199
+    },
+    {
+     "id": "seg_6662560",
+     "t_start": 416.41,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.406,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_6718400",
+     "t_start": 419.9,
+     "lag_sec": 1.8078,
+     "feed_lag_sec": -10.998,
+     "intrinsic_lag_sec": 0.803
+    },
+    {
+     "id": "seg_6846400",
+     "t_start": 427.9,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.904,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_6926080",
+     "t_start": 432.88,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.971,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_7004960",
+     "t_start": 437.81,
+     "lag_sec": 0.5709,
+     "feed_lag_sec": -11.106,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_7130080",
+     "t_start": 445.63,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -11.947,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_7242080",
+     "t_start": 452.63,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.031,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_7304160",
+     "t_start": 456.51,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.404,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_7360320",
+     "t_start": 460.02,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.323,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_7417440",
+     "t_start": 463.59,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.087,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_7478400",
+     "t_start": 467.4,
+     "lag_sec": 1.5406,
+     "feed_lag_sec": -11.801,
+     "intrinsic_lag_sec": 0.4388
+    },
+    {
+     "id": "seg_7592000",
+     "t_start": 474.5,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.518,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_7662560",
+     "t_start": 478.91,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.409,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_7734560",
+     "t_start": 483.41,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.716,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_7785440",
+     "t_start": 486.59,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.49,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_7856320",
+     "t_start": 491.02,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.119,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_7932480",
+     "t_start": 495.78,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.183,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_8007680",
+     "t_start": 500.48,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.472,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_8078400",
+     "t_start": 504.9,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.402,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_8150720",
+     "t_start": 509.42,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.321,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_8224000",
+     "t_start": 514.0,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.097,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_8316960",
+     "t_start": 519.81,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -12.406,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_8420960",
+     "t_start": 526.31,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.814,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_8502720",
+     "t_start": 531.42,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.616,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_8587360",
+     "t_start": 536.71,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.709,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_8654080",
+     "t_start": 540.88,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.382,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_8726880",
+     "t_start": 545.43,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.734,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_8777600",
+     "t_start": 548.6,
+     "lag_sec": 0.4134,
+     "feed_lag_sec": -11.109,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_8902880",
+     "t_start": 556.43,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.925,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_8966560",
+     "t_start": 560.41,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.505,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_9020960",
+     "t_start": 563.81,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -12.313,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_9126720",
+     "t_start": 570.42,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.911,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_9190400",
+     "t_start": 574.4,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.202,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_9249760",
+     "t_start": 578.11,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.813,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_9331360",
+     "t_start": 583.21,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -14.912,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_9395520",
+     "t_start": 587.22,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -13.413,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_9483520",
+     "t_start": 592.72,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.717,
+     "intrinsic_lag_sec": 0.0
+    },
+    {
+     "id": "seg_9534560",
+     "t_start": 595.91,
+     "lag_sec": 0.0,
+     "feed_lag_sec": -15.006,
+     "intrinsic_lag_sec": 0.0
+    }
+   ]
+  },
+  "feed_arrival_delay": {
+   "n_frames_measured": 6000,
+   "n_frames_late_gt_1s": 3724,
+   "late_ratio": 0.6207,
+   "max_delay_sec": 1.0393,
+   "mean_delay_sec": 1.0019,
+   "last_delay_sec": 1.0018,
+   "history_window": 2000,
+   "history_kept": 2000,
+   "definition": "arrival_delay_sec = 帧到达服务端的墙钟时刻 − (t0 + sample_index/16000)；>0 ⇒ 这一帧的音频**送晚了**。"
+  },
+  "pipeline": {
+   "n_submitted": 123,
+   "n_emitted": 123,
+   "n_error": 0,
+   "n_pending": 0,
+   "stage_wall_sec": {
+    "asr": 451.832,
+    "mt": 171.052,
+    "tts": 396.038
+   },
+   "emit_sec": 1.566,
+   "gpu_serial_stages": [
+    "asr",
+    "mt"
+   ],
+   "definition": "stage_wall_sec = 各阶段线程的墙钟（含等 GPU 互斥锁的时间）；emit_sec = 主机侧收口（含 WSOLA 变速）的总耗时。"
+  },
+  "thread_limits": {
+   "enabled": true,
+   "value": "1",
+   "applied": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1"
+   },
+   "previous": {
+    "OMP_NUM_THREADS": null,
+    "MKL_NUM_THREADS": null,
+    "OPENBLAS_NUM_THREADS": null,
+    "NUMEXPR_NUM_THREADS": null
+   },
+   "note": "已生效：OMP_NUM_THREADS, MKL_NUM_THREADS, OPENBLAS_NUM_THREADS, NUMEXPR_NUM_THREADS = 1（必须在 numpy/openvino import 之前调用）"
+  },
+  "proc_cpu_pct": 0.0,
+  "proc_mem_mb": 5451.0,
+  "igpu_pct": 0.1,
+  "npu_pct": 0.0,
+  "dub_dropped": 0,
+  "seg_skipped": 0
+ },
+ "dub_shift_msgs": 100,
+ "dub_shift_applied": 37,
+ "fallback_to_orig_s": 0.0,
+ "dub_items": [
+  {
+   "t": 0.0,
+   "shift_to": 0.89,
+   "src": "Good morning, everyone.",
+   "tgt": "Good morning, everyone."
+  },
+  {
+   "t": 3.5,
+   "shift_to": null,
+   "src": "Good morning. Let's get started. So welc",
+   "tgt": "Good morning. Let’s get started. Welcome"
+  },
+  {
+   "t": 9.59,
+   "shift_to": 10.45,
+   "src": "Agenda topics today, we'll talk about th",
+   "tgt": "Today’s agenda topics: we’ll discuss thr"
+  },
+  {
+   "t": 13.51,
+   "shift_to": 13.92,
+   "src": "One, I want to share our engineering str",
+   "tgt": "First, I want to share our engineering s"
+  },
+  {
+   "t": 20.91,
+   "shift_to": 21.56,
+   "src": "We'll then talk about engineering priori",
+   "tgt": "Then we’ll discuss engineering prioritie"
+  },
+  {
+   "t": 24.86,
+   "shift_to": null,
+   "src": "execution and then Lisa will join me and",
+   "tgt": "After execution, Lisa will join me and t"
+  },
+  {
+   "t": 30.29,
+   "shift_to": 30.58,
+   "src": "Who I think is probably one of the large",
+   "tgt": "I think it’s probably one of the biggest"
+  },
+  {
+   "t": 33.5,
+   "shift_to": 33.76,
+   "src": "to go enable the growth ahead of us that",
+   "tgt": "To enable the growth ahead of us, which "
+  }
+ ]
+}
