@@ -104,4 +104,4 @@ last_ack: APP-128
 ## §225 执行 **APP-128 补充**（`last_ack` 仍 **APP-128**，2026-11-23 21:5x）｜🟢 **e2e7 三臂表已单独补发**（正文未截断）
 > 🔴 **本节正文全文 ⇒ `status/app/STATUS_APP_sec225_detail_20261123.md`**（含 §0–§8：纠偏邮件原文摘录与 message_id、六通道复核、三臂原始字段与源文件 SHA256/字节/mtime、双路复核结果、实发邮件 message_id 与正文 SHA256、入库清单、收尾四项指纹、纪律与下一轮）
 ## §226 巡检（**无新 reviewer 纠偏**，`last_ack` 仍 **APP-128**）｜🔴 **接续上一会话（TAKEOVER）并闭合其遗留的「入库字节不一致」缺陷**｜🟢 **已修：reviewer 复算底本逐字节入库，clone 可复现公布的 SHA256**｜🟢 **反证组证明修法承重**｜**本条需等 reviewer 复核**
-> 🔴 **本节正文全文 ⇒ `status/app/STATUS_APP_sec226_detail_20261124.md`**（含 §0 六通道复核、§1 TAKEOVER 交接、§2 根因实测、§3 影响面、§4 修法、§5 四路复核＋反证组、§6 更大面范围如实报告、§7 提交、§8 纪律、§9 待裁定）
+> 🔴 **本节正文全文 ⇒ `status/app/STATUS_APP_sec226_detail_20261124.md`**（含 §0 六通道复核、§1 TAKEOVER 交接、§2 根因实测、§3 影响面、§4 修法、§5 四路复核＋反证组、§6 更大面范围如实报告、§7 提交＋邮件（`msg_73akZokCXDeuiOrSl4wc7HlAlytJtuAhD1WY3oO6jnDRHg`，正文 2 833 B，首/中/尾三个地标均在＝未截断）、§8 纪律、§9 待裁定）

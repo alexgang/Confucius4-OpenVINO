@@ -76,10 +76,26 @@
 - 🔴 **4–5 本轮一律不动**：① 属 **APP-115（§214）已闭合轮次**的历史产物，reviewer 早已复核过；改其 blob 等于改写**已复核历史条目的入库字节**；② 不是 reviewer 源文件；③ 修法虽同（精确路径 `-text` ＋ `--renormalize`），但**须 reviewer 明确裁定后再做**，本轮**只如实报告，不自行执行**。
 - 🔴 **其余 849 个文件同理不动**：大量属**其它模块**（ASR/MT/TTS）的产物，App 线程**不得越界改写**；真正要根治需**仓库根 `.gitattributes`（或统一 `text=auto`）** ＋ 一次性 `--renormalize` 全仓 ⇒ 那是**跨模块、影响面 851 文件**的变更，**须 reviewer 裁定后再做**，本轮只把事实与建议写进 STATUS 与邮件，**不自行执行**。
 
-## §7 提交
+## §7 提交 ＋ 邮件
 
 - **`73a2e22`**（main）：5 个文件 ＝ `results/app/app128b_e2e7_src/.gitattributes`（新）＋ 3 份 reviewer 底本（blob 重规整为 CRLF）＋ `live_caption/_app226_eol_verify.py`（复核脚本）。
-- 逐文件 `git add`（**禁 `-A`**）；**未 add** `status/app/CORRECTIONS_APP.md`；**未吞** ASR/MT/TTS 其它模块的未提交改动。
+- **`55edcf4`**（main）：STATUS §226 ＋ companion ＋ 归档 ＋ 证据 json ＋ 写入/复核脚本。
+- **`633e760`**（main）：实发邮件正文留档 ＋ 生成脚本。
+- 逐文件 `git add`（**禁 `-A`**）；**未 add** `status/app/CORRECTIONS_APP.md`；**未吞** ASR/MT/TTS 其它模块的未提交改动。**均已 push `origin/main`**（`a236fa2..633e760`）。
+
+### §7.1 邮件（T-MAIL-003「STATUS 邮件必须发」）
+
+| 项 | 值 |
+|---|---|
+| message_id | **`msg_73akZokCXDeuiOrSl4wc7HlAlytJtuAhD1WY3oO6jnDRHg`** |
+| 发出时间 | **2026-11-24 00:42:21**（＝2026-11-23T16:42:21Z） |
+| 方式 | **回复 APP-128 补充原邮件**（`msg_fGIsiLHODyOPwNYqu7_98Pa_yjPt80xLFhbTGTT26hLfvA`）—— T-MAIL-003 §5 允许用「回复」；正文首行写明应有主题 |
+| 两步 token 流程 | ① 无 token 首发 ⇒ 42801 + `ctk_ef78fdd4-caa2-4a7c-a9b4-2b904cd18206`；② **原样**带 token 重发 ⇒ `queued:true` ⇒ **一次成功** |
+| 正文 | **2 833 B**／SHA256 `975e76a5a637807fb09768635bd094a468e4de6957f3684846f731632f1cd96a`／26 行 |
+| 入库 | `live_caption/_app226_email_body.txt`（**由脚本生成** ⇒ 与实发逐字节相同）＋ 生成脚本 `live_caption/_app226_email_body.py` |
+| 附件 | **0 个**（base64 人工转写必错 ⇒ 不走附件） |
+
+**🟢 未截断复核（针对 §224 的投诉点）**：在**已发箱**用内容检索逐个命中三个地标 —— ① 首行「……§226：reviewer 复算底本入库字节不一致已修（待复核）」② **中段**「更大面如实报告 全仓 854 个跟踪文件」③ **末行**「—— App 线程」⇒ **首/中/尾全在 ⇒ 中间没丢**（§224 那次是 11 KB 正文中间丢失）。
 
 ## §8 纪律登记
 
