@@ -1,0 +1,106 @@
+{
+  "check": "§226 reviewer 复算底本入库字节一致性（四路复核 + 反证组）",
+  "clone_method": "git -c core.autocrlf=false clone --no-hardlinks（模拟 Linux reviewer，配置作用于 clone 本身 ⇒ checkout 即按 autocrlf=false 落盘）",
+  "gitattributes": {
+    "path": "results/app/app128b_e2e7_src/.gitattributes",
+    "exists": true,
+    "attr_-text_applied": true,
+    "ls_files_eol": [
+      "i/lf    w/lf    attr/                 \tresults/app/app128b_e2e7_src/.gitattributes",
+      "i/crlf  w/crlf  attr/-text            \tresults/app/app128b_e2e7_src/off_bgkeep_e2e.json",
+      "i/crlf  w/crlf  attr/-text            \tresults/app/app128b_e2e7_src/on_cpu_bgkeep_e2e.json",
+      "i/crlf  w/crlf  attr/-text            \tresults/app/app128b_e2e7_src/on_gpu_bgkeep_e2e.json"
+    ]
+  },
+  "per_arm": [
+    {
+      "arm": "off",
+      "bytes": 30897,
+      "reviewer_sha256": "04ccb407e7206acf703b85fc19b4177497b0e85f35d2d2a7a54fdbbcaa2944e4",
+      "worktree_sha256": "04ccb407e7206acf703b85fc19b4177497b0e85f35d2d2a7a54fdbbcaa2944e4",
+      "index_blob_sha256": "04ccb407e7206acf703b85fc19b4177497b0e85f35d2d2a7a54fdbbcaa2944e4",
+      "published_sha256": "04ccb407e7206acf703b85fc19b4177497b0e85f35d2d2a7a54fdbbcaa2944e4",
+      "worktree_bytes_equal_reviewer": true,
+      "index_blob_bytes_equal_reviewer": true,
+      "index_blob_sha_equal_published": true
+    },
+    {
+      "arm": "on_gpu",
+      "bytes": 31432,
+      "reviewer_sha256": "1fb2ef9578dc26cba66dbbc3080aa15ddd0c3209c368bb3a9a84b2e32b8fe1b0",
+      "worktree_sha256": "1fb2ef9578dc26cba66dbbc3080aa15ddd0c3209c368bb3a9a84b2e32b8fe1b0",
+      "index_blob_sha256": "1fb2ef9578dc26cba66dbbc3080aa15ddd0c3209c368bb3a9a84b2e32b8fe1b0",
+      "published_sha256": "1fb2ef9578dc26cba66dbbc3080aa15ddd0c3209c368bb3a9a84b2e32b8fe1b0",
+      "worktree_bytes_equal_reviewer": true,
+      "index_blob_bytes_equal_reviewer": true,
+      "index_blob_sha_equal_published": true
+    },
+    {
+      "arm": "on_cpu",
+      "bytes": 31403,
+      "reviewer_sha256": "47bb7ca952fcf421cc5875c41f72024a473bd9d36094a03a55806ba0f04a195b",
+      "worktree_sha256": "47bb7ca952fcf421cc5875c41f72024a473bd9d36094a03a55806ba0f04a195b",
+      "index_blob_sha256": "47bb7ca952fcf421cc5875c41f72024a473bd9d36094a03a55806ba0f04a195b",
+      "published_sha256": "47bb7ca952fcf421cc5875c41f72024a473bd9d36094a03a55806ba0f04a195b",
+      "worktree_bytes_equal_reviewer": true,
+      "index_blob_bytes_equal_reviewer": true,
+      "index_blob_sha_equal_published": true
+    }
+  ],
+  "clone_verification": {
+    "error": null,
+    "rows": [
+      {
+        "arm": "off",
+        "clone_bytes": 30897,
+        "clone_sha256": "04ccb407e7206acf703b85fc19b4177497b0e85f35d2d2a7a54fdbbcaa2944e4",
+        "published_sha256": "04ccb407e7206acf703b85fc19b4177497b0e85f35d2d2a7a54fdbbcaa2944e4",
+        "matches_published": true
+      },
+      {
+        "arm": "on_gpu",
+        "clone_bytes": 31432,
+        "clone_sha256": "1fb2ef9578dc26cba66dbbc3080aa15ddd0c3209c368bb3a9a84b2e32b8fe1b0",
+        "published_sha256": "1fb2ef9578dc26cba66dbbc3080aa15ddd0c3209c368bb3a9a84b2e32b8fe1b0",
+        "matches_published": true
+      },
+      {
+        "arm": "on_cpu",
+        "clone_bytes": 31403,
+        "clone_sha256": "47bb7ca952fcf421cc5875c41f72024a473bd9d36094a03a55806ba0f04a195b",
+        "published_sha256": "47bb7ca952fcf421cc5875c41f72024a473bd9d36094a03a55806ba0f04a195b",
+        "matches_published": true
+      }
+    ]
+  },
+  "negative_control": {
+    "done": true,
+    "buggy_revision": "a236fa2f8fb316a91a82fec4ad80118119ec7b80",
+    "rows": [
+      {
+        "arm": "off",
+        "clone_bytes": 29473,
+        "clone_sha256": "22361b4e6dac6bf313786e77d6586aed99b64ea55ee24d531436c7cd039baad2",
+        "published_sha256": "04ccb407e7206acf703b85fc19b4177497b0e85f35d2d2a7a54fdbbcaa2944e4",
+        "matches_published": false
+      },
+      {
+        "arm": "on_gpu",
+        "clone_bytes": 29953,
+        "clone_sha256": "5754da4a3d95277b701ed97a94c6106c81a743c10823022713504366155bf9b5",
+        "published_sha256": "1fb2ef9578dc26cba66dbbc3080aa15ddd0c3209c368bb3a9a84b2e32b8fe1b0",
+        "matches_published": false
+      },
+      {
+        "arm": "on_cpu",
+        "clone_bytes": 29924,
+        "clone_sha256": "fa8f7baba0ba26fb51cf89e434da8a2fae408f3944f6ff40056a834d33b71469",
+        "published_sha256": "47bb7ca952fcf421cc5875c41f72024a473bd9d36094a03a55806ba0f04a195b",
+        "matches_published": false
+      }
+    ],
+    "all_mismatch_as_expected": true,
+    "note": "修前提交上同一口径应全部对不上（证明修法承重）"
+  },
+  "all_pass": true
+}
