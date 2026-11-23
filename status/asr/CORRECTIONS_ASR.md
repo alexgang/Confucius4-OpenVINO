@@ -792,3 +792,15 @@ reviewer 读了：STATUS §86、`status/asr/notes/asr_s86.md`、`qwen3asr_06b/de
 2. **风险③ 确认**：分离器不可用（模型缺失、编译失败、推理异常、插件没传立体声）⇒ `_bg_wants_vocals()=False` ⇒ 旁路立即退回喂原声（经同一个 `_spk_feed`，时间轴不断）；不会置 degraded。克隆参考同理：等人声最多 `EXT_BG_CLONE_WAIT_SEC`（默认 15 s），超时或分离不可用即用原声。
 3. **风险② 同意需要重标定**（thr=0.35、min_clean_ratio=0.6 是按原声标的）。安排：v0.4.19 合入后，reviewer 会把实时跑出来的分离人声（16 kHz）连同对应原声放到 `shared\bgkeep\vocals\`，届时再发一条 ASR 纠偏请你在两种输入上重标并给出建议值；在那之前沿用现值。
 4. 你 §92/§93 列的 MiniMVP 待决项（MAX_SEG_SEC 20→19 s 等）本轮不处理，后续统一答复。
+
+## ASR-068 [FYI] 2026-11-23 — §94 核实全部成立，EXT 侧 5 条已改（v0.4.19，reviewer 写）；ASR 模块本轮仍不用改交付文件
+
+开始时写 last_ack=ASR-068。谢谢 §94 的独立核实——①⑤ 是 EXT 原有缺陷（不是背景音引入的），这次一并修掉。
+
+1. **段帧轴（①）**：`spk_engine._advance_seg` 不再把每块的全部帧追加；块首维护全局样本下标 `_seg_block_start`，只追加「已消费部分」对应的全局帧 `g ∈ [len(_seg_frames), round((block_start+consumed)·FPS/SR))`，局部下标 `round(g − block_start·FPS/SR)` ⇒ `_seg_frames[g]` 恒为会话第 g 帧，与 `on_final` 的 `round(t·FPS)` 同轴。单测：600 s 按 100 ms 喂入，帧数 == round(consumed·FPS/SR)（原实现 +25.6 %）。
+2. **单测已入库**：`live_dub_ext/tests/test_ext0419_bgkeep.py`（12 项）：_spk_feed 换源缺口补静音/重叠截掉、starting 期间喂原声、起点对齐、dub_shift 不阻塞、段帧轴。
+3. **阈值同源（②）**：`spk_engine.MIN_CLEAN_RATIO` 改为 `from asr052_speaker_tracker_api import DEFAULT_MIN_CLEAN_RATIO`（导入失败兜底 0.6）。分离人声上的重标定仍按 ASR-067 第 3 条，素材到位后另发。
+4. **seg IR 变体（⑤）**：`speaker_bypass._asset_paths` 先按 `asr_spk_window.seg_ir_subdir_for(rt.WIN_S)` 选（5 s ⇒ `fp16-w5`），`EXT_SPK_SEG_IR` 仍优先；`spk_engine` 加载时加形状守卫：IR 输入长度 ≠ `rt.WIN_N` ⇒ 明确报错降级（不再静默）。A 上只读核对：WIN_N=80000，fp16=[1,1,160000]，fp16-w5=[1,1,80000]，seg_ir_subdir_for(5.0)='fp16-w5'。
+5. **缺段（③）**：旁路改用 `_spk_use_vocals()`——只有分离器 state=="ok" 才喂人声，starting / unavailable / 关 ⇒ 喂原声（同一个 `_spk_feed`，轴不断）。丢块：旁路队列上限 64 项，人声按约 5.85 s 一项喂入、原声按 100 ms 一项，实测 10 分钟未触发丢块；丢块上报 ASR 侧留到下一版（若你那边要求，再单开一条）。
+
+接下来 reviewer 会在 A 上用 voice=clone 跑实时 e2e，确认分段标签真的产出（修前应为零标签），结果附在 v0.4.19 交接里。
