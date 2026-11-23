@@ -1,0 +1,105 @@
+[C4][A][STATUS][ASR] ASR-068 已读并核实完毕（§96）：三项「待 A 机自证」全部结清（单测 12/12、阈值同源、段帧轴）；但发现 2 条新缺陷 —— e2e 从未启用说话人旁路 ＋ seg IR 变体解析失败（开了也零标签）
+
+■ 0. 应回主题与编号
+本邮件回复主题：「[C4][A][CORRECTION][ASR] ASR-068 [FYI] 2026-11-23 — §94 核实全部成立，EXT 侧 5 条已改（v0.4.19，reviewer 写）；ASR 模块本轮仍不用改交付文件」
+应回编号：ASR-068（若另开新纠偏，编号请顺延 ASR-069）。
+ASR 模块 last_ack 保持 ASR-068（纠偏文件 CORRECTIONS_ASR.md 本轮未更新：109 822 B / md5 3d25680748cf7934fe172f3bb372ec1a / mtime 2026-11-23 16:55，与我上一轮读到的逐字相同；38 个 ## ASR- 标题，最大编号 ASR-068）。
+
+■ 1. 前提变化：EXT v0.4.19 已在本机落地 ⇒ 上一轮的三项待办可核了
+live_dub_ext HEAD 由 ee45ce5（v0.4.18 ＋ 未提交草稿）变为 5121d99「EXT v0.4.19: keep background audio (Demucs on OpenVINO) …」（已提交、工作区干净，15 文件 +1759/−21；该 commit 即 App 线程记入 5f4d1c0 的那个）。
+⇒ 上一轮 §95 的「⓪ A 机才是权威现场」不再成立 ⇒ 上一轮列的三项「待 A 机自证」本轮全部结清（下面 §2）。
+本轮我只读核实，未改 EXT 源码一个字节。
+
+■ 2. 三项「待 A 机自证」逐项核实结果
+② 单测 12 项 ⇒ ✅ 本机实测 12/12 PASS
+   miniforge3\python.exe tests/test_ext0419_bgkeep.py ⇒ RESULT: PASS (12/12)
+   （只跑现成测试、不改它、不跑模型、不跑推理）
+   5 组分别覆盖：_spk_feed 单轴（缺口补静音/重叠截掉，samples fed == 8000、t_end == 0.5 s）、
+   starting 期间喂原声（starting→原声 / ok→人声 / unavailable→原声）、起点对齐（14.75 s 长语音胜过 11.0 s 短爆发）、
+   dub_shift 不阻塞（无 vocals 时保留 pending、vocals 到达才下发、过晚丢弃）、段帧轴（frames == round(consumed·FPS/SR)）。
+
+③ 阈值同源 ⇒ ✅ 成立
+   ext/spk_engine.py L60–65 已是
+     try: from asr052_speaker_tracker_api import DEFAULT_MIN_CLEAN_RATIO as MIN_CLEAN_RATIO
+     except Exception: MIN_CLEAN_RATIO = 0.6
+   实测（app/asr_spk 在 sys.path 上时）：spk_engine.MIN_CLEAN_RATIO = 0.6 == ASR 源 DEFAULT_MIN_CLEAN_RATIO = 0.6。
+   ⇒ ASR-068 第 3 条成立。我方维持 thr=0.35 / min_clean_ratio=0.6 / overlap_ratio_max=0.02（分离人声素材未到位前不重标定）。
+
+① 段帧轴 ⇒ ✅ 代码已落地且与 ASR-068 描述逐字对应
+   ext/spk_engine.py L170 self._seg_block_start = 0（注释「global sample index of _pending[0]（frame-axis anchor）」）；
+   L380–385 bs_f = _seg_block_start / SR * FPS、want_end = round((_seg_block_start + consumed) / SR * FPS)、_seg_block_start += consumed。
+   （该修法的数学正确性我上一轮已用纯算术证明：600 s ⇒ 新实现 34 868 帧 vs 真值 35 160 ⇒ −0.83 %。）
+
+■ 3. 🔴 发现 A：reviewer 的 e2e 从未启用说话人旁路 ⇒「实时 e2e 确认分段标签真的产出」这条验收至今零证据
+① 启动参数：shared\bgkeep\run_bgkeep_v3.ps1 / v4 / v5 / v5_app / v5_app_arm.ps1 这 5 个脚本全部用同一行启动 bridge：
+     -m ext.bridge --real --pipeline --port 8765 --delay 20 --target-lang zh
+   —— 没有 --spk-bypass。
+② 默认值：ext/bridge.py L4574 ap.set_defaults(spk_bypass=False)；L4570 --spk-bypass 是 store_true（默认关）。
+③ 无环境变量开关：ext/*.py 与 tools/*.py 里 grep spk_bypass × environ/getenv ⇒ 0 命中。
+④ 产物实测：e2e5(5 臂) + e2e7(7 臂) + e2e8(7 臂) = 19 个臂的 bgkeep_e2e.json，
+   stats_full.spk_bypass.enabled 全部 false、stats_full.speaker.n_speakers 全部 0。
+⑤ 代码自述：ext/bridge.py L3078–3084 未接旁路时固定输出 note「本会话未接说话人旁路（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）」。
+
+🟡 顺带一提：⑤ 那句 note 与事实不符 —— 这 19 臂跑的是 --pipeline（即 PipelineSession，L3337–3345 的 if self.spk_bypass_enabled: 是支持旁路的），
+   真实原因只是命令行没加开关。该 note 已经把 App 线程 §223 的判断带偏了（那边写的是「n_speakers = 0 是计数器口径不同，不是功能缺陷」）；
+   我认为那个判断的前提不成立，建议把 note 措辞改成「本次会话未开启 --spk-bypass」之类。
+
+🔴 另：ASR-068 第 5 条末尾那条验收（「修前应为零标签」）需要「修前 vs 修后」两个臂才能成立；现有 19 臂没有修前对照臂（当时 EXT 还没落地，也就没有修前的可用产物）。
+   ⇒ 建议补跑时带 --spk-bypass，并至少留一臂 v0.4.18 作对照。
+
+■ 4. 🔴 发现 B（比发现 A 更致命）：即使加上 --spk-bypass，旁路仍会拿不到任何标签 ⇒ 仍是零标签
+机制（调用顺序错）：
+  ext/speaker_bypass.py 的 _load()：
+    L212  d = self._app_spk_dir()              → <root>/app/asr_spk
+    L217  seg_ir, wes_ir = self._asset_paths() ← 此时 app/asr_spk 还没进 sys.path
+    L225–226  os.sys.path.insert(0, d)        ← 路径注入在 _asset_paths() 之后
+  而 _find_seg_for_window()（L85–104）靠 import asr052_spk_runtime 取 WIN_S ＋ from asr_spk_window import seg_ir_subdir_for 选变体，
+  这两个模块只存在于 <root>/app/asr_spk/（实测 app\asr052_spk_runtime.py 不存在、app\asr_spk\ 下存在）。
+  ⇒ L217 那一刻 import asr052_spk_runtime 抛 ModuleNotFoundError（实测 No module named 'asr052_spk_runtime'，且 sys.path 里没有任何 LiveCaption 路径）
+  ⇒ 被 _find_seg_for_window 的 except Exception: return "" 静默吞掉
+  ⇒ 回落 _find() 的旧顺序 ("fp32","fp16") ⇒ 选中 fp16（10 s 窗）
+
+后果链（实测）：
+  fp16 的 seg IR 输入长度 = 160000，而 rt.WIN_N = 80000（5 s 窗）
+  ⇒ ASR-068 第 4 条新加的形状守卫直接拒绝（ext/spk_engine.py L224–227 RuntimeError）
+  ⇒ 被 L252–254 的 except Exception 捕获 ⇒ _seg_error 置位、_seg_ready 永假
+  ⇒ _advance_seg() 首行 if not self._ensure_seg(): return ⇒ 全程零分段帧 ⇒ 零标签
+
+只读复刻 _load() 真实顺序的实测输出：
+  STEP1 _app_spk_dir = …\app\asr_spk
+  STEP2 _asset_paths seg = …\models\spk\pyannote_seg_3_0\fp16   ← 错，应为 fp16-w5
+  STEP3 asr052_spk_runtime now importable, WIN_N = 80000
+
+🟢 对照：App 侧同机器上是正确的 —— Confucius4_LiveCaption_v2.5\app\speaker_assets.py 的 find_seg_ir() 用 importlib 按文件路径加载
+   app\asr_spk\asr_spk_window.py（不依赖 sys.path）⇒ 实测返回 fp16-w5（窗口 5.000 s，来源 asr_spk_window）⇒ App 对、EXT 错。
+
+🟢 现成 workaround（我已实测有效）：_find_seg_for_window L88–90 让 EXT_SPK_SEG_IR 优先于所有探测
+   ⇒ 设 EXT_SPK_SEG_IR=<包根>\models\spk\pyannote_seg_3_0\fp16-w5 ⇒ 实测 _asset_paths() 返回 fp16-w5、IR 输入长 80000 ⇒ 形状守卫放行。
+
+🔴 建议修法（两处，任选或都做）：
+   ① 把 sys.path.insert(0, d) 提到 _asset_paths() 之前（最小改动，直接修根因）；
+   ② 或让 _find_seg_for_window() 改用 App 同款 importlib 按文件路径加载 asr_spk_window.py / asr052_spk_runtime.py（不依赖 sys.path）。
+   这两处都在 ext/ 下，属你的分工，我方不代改。
+
+■ 5. 🟡 附带一条：EXT-029 回归单测测不到发现 B
+   tests/test_ext029_spk_bypass.py L759–760 把 bp._app_spk_dir 和 bp._asset_paths 整个 mock 掉了（lambda: ("seg_ir","wes_ir")）
+   ⇒ 发现 B 这条路径在回归单测里永远测不到 ⇒ 建议补 1 条针对 _find_seg_for_window() 的真实路径用例。
+
+■ 6. 本轮结论与待办
+   ✅ §95 三项待办全部结清（单测 12/12、阈值同源、段帧轴）。
+   🔴 新开 2 条待你做（EXT 代码由你写）：
+     ① 补跑「开了旁路」的实时 e2e（加 --spk-bypass ＋ 留一臂 v0.4.18 对照）—— 这条验收至今零证据；
+     ② 修 seg IR 变体解析的调用顺序（§4 的两处建议）；临时可用 EXT_SPK_SEG_IR 绕过。
+   🟡 顺带：修 ext/bridge.py L3078–3084 的 note 措辞 ＋ 补 1 条不 mock _asset_paths() 的回归用例。
+   🟡 沿用未闭环：丢块计数上报 ASR 侧（EXT 只在自家 stats() 计 spk_queue_drop，ASR 侧看不到）；请明确「旁路 64 项」与
+     「ext/bg_separator.py L242 maxsize=4000」两层丢块语义及丢块后的轴处理。
+   🟡 仍等你提供：10 分钟片段的分离人声 16 kHz wav（shared\bgkeep\vocals\ 实测仍不存在）⇒ 拿到后我方做「原声 vs 分离人声」WER 对比
+     （两侧须同一 ASR 臂 pml=320 NPU 档 ＋ OV 2026.4.1；质量由你用 MiniMax 回转写判定，我方不自己调 MiniMax）。
+   🟡 e2e 场地我方确认过：v2.5 全集有 models/spk\（pyannote_seg_3_0\{fp16,fp16-w5} ＋ wespeaker-resnet34-fp16）⇒ 用 v2.5 是对的；
+     MiniMVP 包内无 models/spk\ ⇒ 不能用 MiniMVP 跑这条验收。
+
+■ 7. 产物与纪律
+   产物：status\asr\STATUS_ASR.md §96（37 304 B / 127 行）+ status\asr\notes\asr_s96.md + status\archive\STATUS_ASR_sec95_upto_20261123.md（§95 逐字归档）
+   提交：f7b3cf8（仅本模块 3 文件）
+   纪律：本轮未跑 ASR 推理/NPU·GPU 计时/WER/Demucs 分离，未取 MACHINE_LOCK，未改 4 个 ASR 交付文件，未改 live_caption\，未改 EXT 源码，未改纠偏文件内容，未打包。
+   唯一「执行」＝跑你已入库的测试文件。
