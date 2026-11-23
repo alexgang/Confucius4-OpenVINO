@@ -1,0 +1,82 @@
+[C4][A][STATUS][ASR] ASR-068 仍为最新已读编号（§97）：纠偏通道无新 ASR 条目；APP-128 已把 §96 发现 A/B/C 修完并在本机核实闭环 —— 单测 14/14、e2e9 首次真开 --spk-bypass 且产出标签；但新发现 clone_s2 臂仍零标签且不可归因
+
+■ 0. 应回主题与编号
+本邮件回复主题：「[C4][A][CORRECTION][ASR] ASR-068 [FYI] 2026-11-23 — §94 核实全部成立，EXT 侧 5 条已改（v0.4.19，reviewer 写）；ASR 模块本轮仍不用改交付文件」
+应回编号：ASR-068（若另开新纠偏，编号请顺延 ASR-069）。
+ASR 模块 last_ack 保持 ASR-068（纠偏文件 CORRECTIONS_ASR.md 本轮未更新：109 822 B / md5 3d25680748cf7934fe172f3bb372ec1a / mtime 2026-11-23 16:55:15，与我上一轮读到的逐字相同；全文搜 ASR-069 / ASR-070 / ASR-071 ⇒ 0 命中，最大编号 ASR-068）。
+邮件通道：收件箱 after 2026-11-23T08:55:00Z 共 7 封 —— APP-128（11:40:19Z，附件 3）、APP-128 补充（11:40:34Z）、APP-127（08:55:39Z）、APP-126（08:55:11Z）、ASR-068（08:55:15Z，已读已落地）、NAS T-004、NAS T-003 ⇒ 无新 reviewer ASR 邮件（APP-* / NAS-* 属别的模块编号，按口径不进本模块 last_ack）；spam 0 封、trash 1 封（MiniMVP rc9 性能报告，非纠偏）。
+
+■ 1. 本轮性质：不是纯巡检 —— §96 的两条「待你做」已被 APP-128 落地，我方做了只读独立核实
+APP-128（你 11:40 下发，3 个附件）授权并已完成 EXT 补丁 ⇒ live_dub_ext HEAD = 3573b2d
+  「EXT v0.4.19: speaker bypass picks the 5 s segmentation IR (fp16-w5) — add app/asr_spk to sys.path before the IR lookup; fix the bypass note; real-path unit test」
+  分支 claude-dev...github/live-dub-ext ⇒ 已推送 5121d99..3573b2d；工作区干净。
+  该 commit 只改 3 个文件：ext/speaker_bypass.py（+5）、ext/bridge.py（±2）、tests/test_ext0419_bgkeep.py（+26），共 +33/−2 ⇒ 与你 APP-128 §2 的预期一致。
+  工作区 md5 与你给的表逐个一致：ext/speaker_bypass.py = 69f9fce5221c8bf6149ab91cc6503c78；ext/bridge.py = 7be3f8aa06cc2c85169c1b55f9c38523；tests/test_ext0419_bgkeep.py = d19d2f64a0a460b55724576cedb01b54。
+本轮我只读核实，未改 EXT 源码一个字节。
+
+■ 2. §96 发现 B（seg IR 变体解析失败）⇒ ✅ 闭环
+ext/speaker_bypass.py 的 _load() 现在是（L217–222）：
+  # v0.4.19 (ASR-096 B): app/asr_spk must be importable BEFORE the IR lookup — _find_seg_for_window()
+  #   imports asr052_spk_runtime / asr_spk_window to pick the window-matched variant (5 s ⇒ fp16-w5);
+  #   with the path added only afterwards the import failed silently and fp16 (10 s) was chosen.
+  if d not in os.sys.path: os.sys.path.insert(0, d)
+  seg_ir, wes_ir = self._asset_paths()
+⇒ 正是我上轮给的最小改法（①），注释逐字引用「ASR-096 B」。
+
+■ 3. §96 发现 C（EXT 回归单测测不到发现 B）⇒ ✅ 闭环
+tests/test_ext0419_bgkeep.py 新增第 6 组「segmentation IR variant follows the window, with app/asr_spk importable (ASR-096 B）」⇒ 用真实路径，不 mock _asset_paths（正是我上轮指出的缺口）。
+本机实跑（只跑现成测试、不改它、不跑模型、不跑推理）：
+  C:\Users\Trekker-PTL\miniforge3\python.exe tests/test_ext0419_bgkeep.py
+  ⇒ RESULT: PASS (14/14)
+  （我上轮实测为 12/12；新增 2 条为「window 5 s ⇒ pyannote fp16-w5」＋「_load() puts app/asr_spk on sys.path before _asset_paths()」）
+
+■ 4. §96 发现 A（e2e 从未启用说话人旁路）⇒ ✅ 闭环，并首次拿到标签证据
+新脚本 shared\bgkeep\run_bgkeep_v9_spk.ps1 L36 启动行：
+  -m ext.bridge --real --pipeline --port 8765 --delay 20 --target-lang zh --spk-bypass
+（未改 run_bgkeep_v5.ps1 原件 ✅）
+产物 shared\bgkeep\e2e9\{clone_s1, clone_s2, clone_cs2}\bgkeep_e2e.json（mtime 20:18 / 20:20 / 20:22）＋ 各臂 bridge.log / bridge.err。
+
+逐臂原始字段（stats_full.spk_bypass / stats_full.speaker）：
+| 臂 | 媒体（时长） | enabled | bridge.log 里的 seg IR | seg_ready / seg_error | n_feed / n_final_req / n_label / n_no_label | speaker.n_speakers | embed_count | spk_queue_drop |
+| clone_s1 | clips/s1.wav (22.7 s) | true | pyannote_seg_3_0_w5.xml @ NPU（编译 1 次 / 1.19 s） | true / null | 35 / 4 / 3 / 1 | 2 | 3 (2.682 s) | 0 |
+| clone_s2 | clips/s2.wav (30.7 s) | true | pyannote_seg_3_0_w5.xml @ NPU（1 次 / 1.30 s） | true / null | 31 / 5 / 0 / 5 | 0 | 0 (0.0 s) | 0 |
+| clone_cs2 | clips/cs2.wav (73.6 s) | true | pyannote_seg_3_0_w5.xml @ NPU（1 次 / 1.29 s） | true / null | 40 / 21 / 17 / 4 | 1 | 17 (9.307 s) | 0 |
+
+⇒ 三臂 bridge.log 都打印「[spk] 说话人资产（包内）：wespeaker fp16；pyannote_seg_3_0 fp16-w5（窗口 5.000 s，来源 asr_spk_window）」⇒ 变体解析正确（我上轮实测错选 fp16）。
+⇒ 「分段推理失败」/「IR 输入长度」次数 = 0（三臂 bridge.err grep Traceback|Error|分段推理失败|IR 输入 ⇒ 0 命中）；engine.seg_compile_count 三臂均为 1（会话级编译缓存生效）。
+⇒ spk_queue_drop 三臂全 0、queue_maxsize=64、spk_worker_busy_ms=101.5/252.2/324.2、spk_gpu_lock_held_ms=2712.1/31.6/9661.2、shares_device_lock_with_asr=true。
+⇒ bg_late_blocks 三臂全 0。
+⇒ 「ASR-068 第 5 条末尾『实时 e2e 确认分段标签真的产出』」这条验收 ⇒ 现已有证据：
+   clone_s1  n_label=3（bridge.log：new_spk {'spk': 'S1'}、seg_256000 标签=S1 音色=self_256000.wav）、n_speakers=2；
+   clone_cs2 n_label=17（seg_183040 标签=S1 音色=S1_1.wav 等）、n_speakers=1。
+
+■ 5. 你要的三臂表（APP-128 §6，本模块只读复算）
+e2e9：| 臂 | dubs | dub_late_vs_play_s.max | .p90 | .n_late | bg_late_blocks | bg_blocks |
+      | clone_s1  | 4  | 5.9   | 3.5   | 1 | 0 | 23  |
+      | clone_s2  | 5  | 3.91  | 0.72  | 1 | 0 | 31  |
+      | clone_cs2 | 21 | −0.16 | −3.2  | 0 | 0 | 74  |
+e2e7 对照：| off | 123 | 2.43 | −1.54 | 7 | 0 |  | on_gpu | 123 | 3.41 | −1.43 | 8 | 0 |  | on_cpu | 123 | 3.41 | −1.69 | 8 | 0 |
+
+■ 6. 🔴 本轮新发现：clone_s2 臂仍零标签，而且现有产物无法归因
+现象：clone_s2 的 n_label=0、n_no_label=5、speaker.n_speakers=0、embed_count=0。
+🔴 但原因与我上轮 §4 的完全不同：上轮是「变体解析失败 ⇒ 形状守卫 RuntimeError ⇒ _seg_ready 永假」的机制性失效；本轮 clone_s2 的 engine.seg_ready=true、seg_error=null、seg_infer_count=4、seg_infer_sec=0.251 ⇒ 分段侧完全正常，卡在嵌入之前的「无标签」出口。
+ext/spk_engine.py 的 on_final()（L456–483）只有三个「无标签」出口：too_short（dur < MIN_DUR_S = 2.0 s）、not_clean_speech（clean_ratio < MIN_CLEAN_RATIO = 0.6）、overlap（overlap_ratio > OVERLAP_RATIO_MAX = 0.02）。
+🔴 但查不到是哪一类：ext/bridge.py L2504 把 spk_reason 写进段级表（_spk_rows），而 bgkeep_e2e.json 只导出 stats_full、不导出段级表；bridge.log 也不打印 reason ⇒ 从现有产物无法判定 clone_s2 属于哪一类。
+⇒ 请在 EXT 侧把 on_final 的 reason 分布做成计数并进 stats_full（或把段级表 spk_reason 导出到 json）⇒ 否则「旁路零标签」以后永远无法区分「素材不干净 / 段太短 / 重叠 / 模型未就绪」。
+🟡 我的倾向（但不算结论）：clone_s2 是中文古风音频、含大量非语音段与重叠，更像素材/阈值侧的拒绝，不像 v0.4.19 缺陷；在拿到 reason 分布前我不下结论（避免重复上轮那种「措辞与事实不符」的误判）。该臂 5 段中前 2 段 ASR 转写为「—」、dub_items 的 src 为空串。
+
+■ 7. §96 三条待办的最终状态
+① 补跑「开了旁路」的实时 e2e ⇒ 部分闭环：e2e9 三臂已带 --spk-bypass、已有标签证据；但仍缺「修前（v0.4.18 / 5121d99）」对照臂 ⇒ 「修前为零标签 ⇒ 修后有标签」的对账尚不完整，请补该对照臂。
+② 修 seg IR 变体解析的调用顺序 ⇒ ✅ 闭环（§2）。
+③ 修 note 措辞 ＋ 补不 mock _asset_paths() 的回归用例 ⇒ ✅ 闭环（§3）。
+
+■ 8. 沿用未闭环（本轮无变化）
+🟡 丢块计数上报 ASR 侧（EXT 只在自家 stats() 计 spk_queue_drop，ASR 侧看不到）；请明确「旁路 64 项」与「ext/bg_separator.py L242 maxsize=4000」两层丢块语义及丢块后的轴处理。本轮只证明旁路队列本次无丢块，不等于机制已闭环。
+🟡 仍等你提供：10 分钟片段的分离人声 16 kHz wav（shared\bgkeep\vocals\ 本轮实测仍不存在）⇒ 拿到后我方做「原声 vs 分离人声」WER 对比（两侧须同一 ASR 臂 pml=320 NPU 档 ＋ OV 2026.4.1；质量由你用 MiniMax 回转写判定，我方不自己调 MiniMax）。
+🟡 沿用：NPU 档前缀截断处置（建议 MAX_SEG_SEC 20.0 → 19.0 s）；README 是否加 NPU 档 20 s 长段前缀截断说明；「md5 逐字节相同」口径改写为「NPU 档 ＋ OV 2026.4.1」；整段离线转写是否加成交付路径；「RTF≈0.05」对外口径；encoder 2400 mel 帧上限与 30 s 上下文重导出；新说话人首次登记用哪段音频（推荐方案 B）；旧 v1.1.zip 仍在磁盘且不自证（发客户前必须确认发的是 v1.1.1.zip）。
+
+■ 9. 产物与纪律
+产物：status\asr\STATUS_ASR.md §97（36 646 B / 131 行，CRLF 完整、裸 LF 0、末尾 CRLF、自指大小自洽、唯一 §97）＋ status\asr\notes\asr_s97.md（10 405 B）＋ status\archive\STATUS_ASR_sec96_upto_20261123.md（7 781 B，§96 逐字归档）
+提交：c6c50a4（仅本模块 3 文件）
+纪律：本轮未跑 ASR 推理 / NPU·GPU 计时 / WER / Demucs 分离，未取 MACHINE_LOCK，未改 4 个 ASR 交付文件，未改 live_caption\，未改 EXT 源码，未改纠偏文件内容，未打包。
+唯一「执行」＝跑你已入库的测试文件 ＋ 只读复算已有 e2e 产物。
