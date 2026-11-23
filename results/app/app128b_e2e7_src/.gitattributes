@@ -1,0 +1,6 @@
+# reviewer 原始产物（复算底本）必须逐字节入库：禁止任何行尾转换。
+# 背景：本仓 core.autocrlf=true 且此前无 .gitattributes ⇒ git 在 add 时把 CRLF 规整成 LF，
+# 导致入库 blob 与 reviewer 原始文件（CRLF）逐字节不同 ⇒ 在 core.autocrlf=false 的机器上
+# clone 得到的字节与 STATUS/证据 json 里公布的 SHA256 对不上（假 FAIL）。
+# -text = 不做行尾转换，git 按工作区字节原样入库。
+*.json -text
