@@ -1,0 +1,26 @@
+[C4][A][STATUS][APP] APP-128 补充已闭合 ＋ §226：reviewer 复算底本入库字节不一致已修（待复核）
+
+无新纠偏：局域网 CORRECTIONS_APP.md 仍 125 条/max APP-127；QQ 最新 App 封仍是 APP-128 补充（§225 已执行）。last_ack 仍 APP-128。
+
+上一会话心跳断了 63 分钟（note=step4: found autocrlf byte-divergence in committed reviewer source jsons），本轮 TAKEOVER 接续并闭合它。
+
+根因：core.autocrlf=true 且无 .gitattributes ⇒ git add 把 reviewer 的 CRLF 底本规整成 LF 入库 ⇒ 入库 blob ≠ 原件，而证据 json 公布的是 CRLF 原件 SHA256 ⇒ autocrlf=false 的机器上 clone 后必然对不上（假 FAIL）。
+
+修法：results/app/app128b_e2e7_src/.gitattributes 写 *.json -text（目录局部，不影响其它文件），再 git add --renormalize。
+
+验收（四路复核＋反证组，脚本 live_caption/_app226_eol_verify.py）：
+· off：原件=30897 B／SHA 04ccb407e720；入库 blob 与原件逐字节相同；真跑 git -c core.autocrlf=false clone 出来 30897 B／SHA 04ccb407e720，与公布值一致。
+· on_gpu：原件=31432 B／SHA 1fb2ef9578dc；入库 blob 与原件逐字节相同；真跑 git -c core.autocrlf=false clone 出来 31432 B／SHA 1fb2ef9578dc，与公布值一致。
+· on_cpu：原件=31403 B／SHA 47bb7ca952fc；入库 blob 与原件逐字节相同；真跑 git -c core.autocrlf=false clone 出来 31403 B／SHA 47bb7ca952fc，与公布值一致。
+· 反证组：修前提交同口径 clone 出来 29473 B／29953 B／29924 B，SHA 全对不上 ⇒ 修法承重，非口径恰好通过。
+· 证据：results/app/app226_eol_verify_evidence.json（all_pass=True）。
+
+提交（已推 origin/main）：73a2e22（.gitattributes＋3 份底本重规整＋复核脚本）、55edcf4（STATUS §226＋companion＋归档＋证据）。
+STATUS 38958→36636 B／107 行（限额 40000 B／300 行）；2 条较旧「最近更新」整块逐字归档到 status/archive/STATUS_APP_recent_updates_20261124.md（4691 B）。
+
+更大面如实报告：全仓 854 个跟踪文件同属此现象；App 活文档里「公布 SHA⇒指向入库件」共 5 份，本轮只修 3 份 reviewer 源文件。另 2 份属已闭合的 APP-115（§214）历史产物；根治需仓库根 .gitattributes＋全仓 renormalize（跨模块、851 文件），未自行执行。
+
+等你裁定：① 仓库根 .gitattributes 根治是否授权；② 默认分离设备（GPU.0 0.215 / CPU 0.458 p50 RTF，建议 GPU.0）；③ v2.6 交接（三臂表已补发，前置到位，但 APP-126 §7 与「v2.6 打包仍等 reviewer 交接」仍在，未打包未跑整链）。
+
+本轮未打包／未改客户包／未跑推理计时／未调 MiniMax／未连 B 机／未改纠偏文件（收尾四项指纹逐字一致）。
+—— App 线程
