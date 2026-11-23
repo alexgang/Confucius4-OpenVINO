@@ -111,9 +111,19 @@ App 在 `app121_asr_app_3mat_*.json` 的 `ref_diff_explanation` 里列了 3 条�
 🟢 **写入器**：`_asr070_write_status.py`（v16，从 v15 派生：归档目标改为 **§90**）＋ 载荷 `_asr070_payload_final.py` / `_asr070_payload.json`（均在**仓库外** `qwen3asr_06b/scripts/_asr065/`，按纪律未入库）。
 🟢 **归档副作用（已核）**：本轮新增 `status/archive/STATUS_ASR_sec90_upto_20261123.md`（**3 622 B**，§90 逐字）⇒ **归档目录新增 1 个文件**。
 
+## 五之三、§91 STATUS 邮件的发出过程与 2 个连接器坑（T-MAIL-003）
+
+🟢 **已发出**：回复 reviewer 的 APP-121 线程（`message_id=msg_Nz6bxdO7DCc6M5vrw3fbQIdOWwXuYdRjFVGNmdYk1VS8iQ`）⇒ 已发送副本 **`msg_GrtJXa-DQf7RcZKeWdHUS8fAsATzWiYDQIPowyIyGho_IA`**（`created_at=2026-11-23T03:26:39Z`、收件人 `alexchen7694@agent.qq.com`、`has_attachments=false`）。正文首行「应回主题：…」＋ 含 §91 全部结论与原始字段（**约 6.9 KB / 66 行**）。
+
+🔴 **坑 1：`mcp__agent-mail__ReplyMessage` 不可用** ⇒ 返回 `{"_agentmail_meta":{"status":"not_bound"}}`（Agent 邮箱未开通）⇒ 改用已连接的 **QQ Mail** 连接器。
+🔴 **坑 2：QQ Mail 桥接层的 schema 校验对复合字段失效** —— `attachments`（array）、`reply_all`（boolean）、`skip_confirmation`（boolean）**都会被拒**，报错形如 `check input schema type error field_name: attachments schema_type: array field_type: string` ⇒ ⇒ **附件发不出去**（`asr091_compact.json.gz`，958 B / SHA1 `7cd6442e7e2aaa304867a95005e2a7ab6a641bf9`）。🔴 **处置：把附件的全部字段直接写进正文**，并在正文里注明「附件因连接器 schema 异常未能附上，字段已全部列出」⇒ **信息不丢失**。
+🟡 **坑 3（协议侧）**：`confirmation_token` **与请求内容绑定**（`Request content modified since confirmation`）⇒ **必须先用最终 body 取 token，再用同一 body 带 token 重发**；换 body（含加附件）会失效。
+🟡 **坑 4（时间窗）**：`Agent Mail` 通道 `not_bound`；`QQ Mail` 的 token 有效期约 5 分钟 ⇒ 取 token 到重发要快。
+
 ## 六、留给下一轮的动作清单
 
 1. 🔴 **改 handoff `qwen3asr_06b/dev/asr065_handoff.md` 的 §三之二 / §四 前提表述**（ASR 模块自己的文档，本模块职责）：「正常素材不会触发」⇒ 按 §3.2/§3.3 改写；余量约束补上「段内累积前缀」。
-2. 🟡 **给 App 线程的 NPU 截断问题**（§3.4 建议 2/3）⇒ 走**邮件**通道给 reviewer（§3.4 建议 1 落地后一并报）。
+2. 🟡 **给 App 线程的 NPU 截断问题**（§3.4 建议 2/3）⇒ **已于 §91 邮件发出**（§五之三）⇒ 下一轮只需跟踪 reviewer 回应。
 3. 🟡 **待用户/reviewer 决定**：README 是否加「NPU 档会截断前缀 ⇒ 句首可能丢字」。
 4. ⚠️ **交付纪律**：发客户前确认发的是 **`v1.1.1.zip`**（自证通过），**不是** `v1.1.zip`（`CONTENT_MISMATCH`）。
+5. 🟡 **连接器侧待修（可报 IT/工具侧）**：QQ Mail 的 `attachments`/`reply_all`/`skip_confirmation` schema 校验失效 ⇒ 附件通道目前不可用。
