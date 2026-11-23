@@ -1,0 +1,110 @@
+[C4][A][STATUS][APP] APP-126 保留背景音 v0.4.19 已落地：15/15 md5、7 臂实时 e2e 全过、已提交推送 5121d99；附 APP-123 c13 接入进度与 APP-125 分工确认
+
+■ §2 落码与 md5 核对
+shared\bgkeep\v0419_stage\ 的 15 个文件按相同相对路径复制到 live_dub_ext\，逐个核 MD5SUMS.txt：
+15/15 一致（.gitignore / ext{ bg_separator, bridge, speaker_bypass, spk_engine, version }.py /
+extension{ capture-worklet.js, manifest.json, player.js, popup.html, popup.js, sw.js } /
+tests{ ext0419_bg_harness.js, test_ext0419_bgkeep.py } / tools\bgkeep_e2e.py）。
+git diff --stat 只出现这 15 个文件（11 改 + 4 新，+1759 / −21）。
+models/（107 MB Demucs IR）未入库（.gitignore 排除）；bridge_token.txt / *.log / 音色 / 录音均未入库。
+开工前已备份到 %TEMP%\live_dub_ext_pre126_bak_20261123_175750\。
+
+■ §3 单测与回归（不需要锁）—— 10/10 全过，无一项失败
+node tests/ext0419_bg_harness.js            18/18 PASS
+python tests/test_ext0419_bgkeep.py         RESULT: PASS (12/12)（包内 python）
+test_ext029_spk_bypass.py 70 / test_ext010_pipeline.py 25 / test_ext026_e2e_behaviors.py 21 /
+test_t1_capture_mode_stats.py 38 / test_ext028_dub_audio_chain.py 42（均 0 FAIL）
+node t3_settings 26 / t4_lang 28 / t5_t6_bounds_persist 16 / ext026_segid 13（均 0 FAIL）
+
+■ §4 §5 实时 e2e v5：7 臂全部跑完（shared\bgkeep\e2e8\，35 个文件）
+臂 | bg_blocks | contig | late | fallback_s | dubs | shift msgs/applied | sep_rtf p50/p90 | 设备
+clip_cs2   | 74 | True | 0 | 0.0 | 15 | 10/2  | 0.209/0.228 | GPU.0
+clip_s1    | 23 | True | 0 | 0.0 |  4 |  0/0  | 0.221/0.229 | GPU.0
+clip_s2    | 31 | True | 0 | 0.0 |  5 |  1/1  | 0.219/0.231 | GPU.0
+clip_tuffy | 46 | True | 0 | 0.0 |  7 |  2/1  | 0.234/0.266 | GPU.0
+clone_s1   | 23 | True | 0 | 0.0 |  4 |  0/0  | 0.215/0.227 | GPU.0
+clone_s2   | 31 | True | 0 | 0.0 |  5 |  1/1  | 0.215/0.237 | GPU.0
+clone_cs2  | 74 | True | 0 | 0.0 | 21 | 18/11 | 0.200/0.232 | GPU.0
+· clip_s2 首句 shift_to = 14.77 s（APP-126 §5 要求 ≈14.7–14.8 s；修前 8.0 s）——达成
+· 克隆：bg_clone_from_vocals = 20 / 3 / 4（克隆参考确实取自分离人声），bg_clone_fallback_orig = 0（无一路退回原声）
+· bg_up_gaps = 0；clip_cs2 背景覆盖 73.6 s = 素材全长
+
+reviewer 的 e2e7（只读）对照：off = blocks 0 / fallback 600.0 s；on_gpu = 600 / 0.0 / rtf 0.215·0.250；
+on_cpu = 600 / 0.0 / rtf 0.458·0.589；clip 四臂与我们的逐项吻合（blocks 74/23/31/46、contig True、late 0、fallback 0.0）⇒ 互为交叉验证。
+据此建议默认分离设备 = GPU.0（CPU 慢约 2.1×），但等 reviewer 定。
+
+■ §5 一处必须如实报告的计数器口径（按 §5「若仍为 0 或报错，原样贴日志片段，不要自行改代码」——本轮未改任何 live_dub_ext 代码）
+stats_full.speaker.n_speakers = 0、spk_bypass.enabled = false（note：本会话未接说话人旁路），
+但日志里标签是真的有：[spk] 段 seg_183040 标签=S1 音色=S1_1.wav —— clone_cs2 9 段带真实标签、clone_s1 1 段、clone_s2 0 段。
+已读源码定位（不是猜测）：ext/bridge.py L65 from .speaker import SpeakerTracker ⇒ stats_full["speaker"] 是 ext/speaker.py 那个
+tracker，其 profile 只由 _on_spk_label 灌，而 _on_spk_label 属于 --spk-bypass 那条路（ext/speaker_bypass.py，EXT-029），
+本会话没接。克隆真正用的标签来自另一套实现：ext/clone_voice.py 从 App 包
+（Confucius4_LiveCaption_v2.5\app\speaker_tracker.py 的 SpeakerBridge，ASR 侧 cluster v2）导入，
+打印 [spk] 段 ... 标签=S1 的就是它，而它的 stats 没有被 ext/bridge.py 收进 stats_full。
+⇒ n_speakers = 0 是「计数器口径不同」，不是功能缺陷：分离确实跑了、标签确实产生了并被应用。
+⇒ reviewer 自己的 e2e7 同口径也是 n_speakers = 0（clip_cs2/clip_s1/clip_s2/clip_tuffy 全部 0）⇒ 不是 v0.4.19 引入的回归。
+· 分段模型确认：说话人资产（包内）：wespeaker fp16；pyannote_seg_3_0 fp16-w5（窗口 5.000 s，来源 asr_spk_window）
+· 「分段推理失败」0 次；「形状」/「IR 输入长度」错 0 次（3 个 clone 臂全部）
+⇒ 是否要把 App 侧 SpeakerBridge 的 stats 收进 stats_full，请 reviewer 定（改 ext/ 属 reviewer 分工，App 线程未动）。
+
+■ §6 提交与推送
+只 git add 那 15 个文件（逐文件 add，未用 -A；git diff --cached --stat 复核 = 15 个文件；staged 内容扫过敏感模式，
+只命中代码里的字面量 token/wav 变量名，无真实凭据）。
+提交号 5121d99，提交信息原样：
+EXT v0.4.19: keep background audio (Demucs on OpenVINO) — background replaces the ducked original, speaker/clone use separated vocals, dubs start at the real speech onset; fix speaker frame axis and segmentation IR
+推送成功：ee45ce5..5121d99  claude-dev -> live-dub-ext（推前 fetch，本地与远端无分叉 0/0）；推后工作区干净，远端已是 5121d99。
+
+■ §7 APP-127 陈旧锁判定
+开工时 shared\MACHINE_LOCK 与 C:\MACHINE_LOCK 都不存在 ⇒ reviewer 的 run_bgkeep_v4.ps1 已正常结束并删了锁
+⇒ APP-127 的三条判定均不适用，本轮未删除任何锁。
+（本轮自己泄漏过一次：后台任务被约 2 min 的执行上限杀掉 ⇒ 脚本 finally 来不及删锁 ⇒ 残留 shared\MACHINE_LOCK；
+回收前用 ctypes OpenProcess + GetExitCodeProcess 证 owner 真死（err=87 = PID 不存在）后才删，并修掉了我自己回收脚本里的
+一个 fail-open（探测失败时 alive=None 会被当成可删 ⇒ 改为 alive is not False 才删）。）
+
+■ APP-125 分工确认（回这条）
+1) 是否动过 live_dub_ext：没有。开工时工作区那批未提交改动全部是 reviewer 自己的（9 改 + 3 新），App 线程本轮未写入任何字节，
+也未提交、未 stash。App 线程对 live_dub_ext 的唯一改动就是按 APP-126 §2 落的这 15 个 stage 文件（md5 已核）。
+2) APP-123 进度：开发层已完成（见下），按 APP-126 §7 未打包、未跑 10 分钟整链。
+
+■ APP-123 c13 接入 App OV TTS 路径（开发完成，按 §7 不进包）
+架构事实（读代码得出）：TTS 模块的 c13 是自己驱动裸 OV IR（静态窗口 [1,16,38]）；
+而 App 的 OV 路径走 BabelVox + 本仓库 tts_engine_patch.py（MultiDecoderBabelVox），它本来就有左上下文、
+长度守恒（切片 wav_full[start:end]，end = start + num_frames*1920）和小静态窗口。
+⇒ App 侧真正缺的不是另起一套 IR 驱动（那是重写），而是：窗口口径没做成可配的 c13 口径、以及没有 TTS-076 的限幅与削波计数。
+另一个要如实说的发现：babelvox 的 _yield_chunk 在 not split_on_silence 时直接走「No crossfade — simple pass-through」
+分支（不裁 wav[:-ol]），而 App 恒传 split_on_silence=False ⇒ App 的 OV 路径本来就是「直接拼接」，
+没有 TTS-075 在 TTS 模块里发现的「每边界丢 50 ms / 共丢 7.3%」那个缺陷。
+⇒ crossfade_samples=0 因此是显式化/加固（今天不改变行为，但能防止将来改 split_on_silence 时静默失真），不是修掉了 App 侧丢音频的缺陷。
+代码改动（只在 dev 树 live_caption\，未动任何客户包目录）：
+· tts_engine.py：新增 c13 口径（说话人每轮 8 帧 = c13 的 n1/n_next；ctx 25；声码器静态窗口 38 = c13 的 decoder_window_len），
+  chunk/ctx/桶表全部环境变量可配（LIVECAP_TTS_CHUNK_FRAMES / _CTX_FRAMES / _DECODER_BUCKETS / _DIRECT_CONCAT），
+  DIRECT_CONCAT 默认开，引擎日志显式打印 chunk= ctx= window= buckets= join=。
+· tts_worker.py：逐块统计 n_clipped（|x|≥1.0）与 n_near_fs（|x|≥0.999）；新增整句峰值限幅（peak>0.98 ⇒ gain=0.98/peak，TTS-076 口径）；
+  遥测新增 n_clipped / n_near_full_scale / peak_before_limit / limiter_gain。
+· tts_cuda.py 与 tts_engine_patch.py 零改动（CUDA 路径不动；tts_cuda.py sha256 7fe6e44cc34bc56f）。
+验收（已做）：
+· 静态与行为验证 33/33 PASS（含 3 个反证组：改坏必须变红）——live_caption\_app123_verify.py
+· 真跑实测（包内 python + 包内 IR，NPU = 生产档）：长度守恒成立（zh 78 720 = 41×1920、en 26 880 = 14×1920，
+  每块都是 1920 的整数倍，clipped = 0、near_fs = 0）；窗口 A/B（同 seed ⇒ 同一批 token）样本数相同、SNR = 56.44 dB (zh) / 57.99 dB (en)；
+  GPU.0 臂 SNR = ∞（逐字节相同）——因为桶只在 NPU 生效（GPU 走动态形状解码器）；NPU 首包 0.55–0.90 s、RTF 0.856–0.948。
+· EXT 侧：EXT 通过 ext\engine_runtime.py 调 App 的 tts_engine.stream ⇒ 同一份代码，自动用上 c13；
+  extension\player.js 没有固定 0.64 s（全仓 grep 无此常量），配音按 b64ToAudioBuffer(msg.pcm24k, sr.rate) 得到的实际采样数排程。
+我自己修正的一处错（实测发现）：初版把 CHUNK_FRAMES 设成 13（误把 c13 的「块容量」当成「每轮产出帧数」）
+⇒ 说话人要攒够 13 帧才吐第一块 ⇒ 首包从 2.9 s 劣化到 4.5 s（同 seed 同文本，zh 句）⇒ 已改回 8，首包恢复。
+未做（按 §7 与纪律如实列出）：不进包（未同步进任何客户包目录、未生成新目录/新 zip、未重签 ACCEPTED）；
+未跑 10 分钟整链 c13 开/关两轮；未做 MiniMax 回转写抽查（质量判定按纪律由 reviewer 用 MiniMax 回转写，App 线程不自己调用）；
+未准备 app123_listen 的 6 段样片（需先跑整链）。
+限幅的诚实边界：OV 路径每块的硬削在 babelvox\pipeline.py L637（np.clip(wav,-1,1)），那在块级、在我们看到整句之前
+⇒ 块内已越界的采样无法恢复；本轮做的是整句层面保证成品 ≤ 0.98（不再叠加失真）并如实报出 n_clipped / n_near_fs / peak_before / limiter_gain。
+
+■ 待 reviewer 裁定 / 交接
+1) n_speakers = 0 的口径（是否把 App 侧 SpeakerBridge 的 stats 收进 stats_full）；
+2) 默认分离设备：实测 GPU.0 0.215 / CPU 0.458（p50 RTF）⇒ 建议 GPU.0；
+3) APP-123 的「进 v2.6 + 10 分钟整链 + MiniMax 抽查 + 抽听样片」与 APP-122 的「打包进 v2.6 + §验收」：
+   等你复核本条（APP-126 结果 + APP-123 开发）后再交接执行（§7 已明确不要开始 v2.6 打包）。
+本轮未打包、未改任何客户包既有文件、未连 B 机、未调 MiniMax、未改 status/app/CORRECTIONS_APP.md
+（开工/收尾 SHA fafecf085792cdc0fcecbf85e00be64ff93dc0ea77a1caf8f12a6595a6d97a48 / 429 255 B / 125 条四项一致 ⇒ SHA 零改动）。
+App 仓提交 5f4d1c0 已 push origin/main；EXT 提交 5121d99 已推 github。
+证据：results/app/app126_bgkeep_e2e8_evidence.json（含 e2e8 全量 + e2e7 只读 + speaker_mode_analysis 段）、
+results/app/app123_c13_window_ab.json、results/app/app123_c13_ov_probe.json；
+STATUS §223 正文见 status/app/STATUS_APP_sec223_detail_20261123.md。
