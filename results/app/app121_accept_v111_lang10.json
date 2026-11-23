@@ -1,0 +1,21 @@
+{
+  "step": "lang10",
+  "cmd": [
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\diag_app118_lang10.py",
+    "--pkg",
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1",
+    "--live",
+    "--device",
+    "GPU.0",
+    "--mt-device",
+    "GPU.0",
+    "--tts-device",
+    "NPU",
+    "--out",
+    "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app120_accept_v11_lang10_evidence.json"
+  ],
+  "rc": 0,
+  "wall_s": 38.5,
+  "stdout_tail": "[pkg] 用**客户包内**的代码做验收：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app\n=== APP-118 §3 10 语种冒烟（live=True）===\n  [PASS] A1 目标语言 = 10 种  — 10 种 ['zh', 'en', 'ja', 'ko', 'de', 'fr', 'es', 'pt', 'it', 'ru']\n  [PASS] A2 每种语言的 MT 目标名可解析\n  [PASS] A3 每种语言的 TTS language id 可解析\n  [PASS] A4 每种语言的界面标签存在\n  [PASS] A5 三张表的目标语言名一致（MT/TTS/界面）\n  ── 真跑：每种 1 句（字幕 + 配音）──\n[10:16:18] 已取机器锁：app 29704 2026-11-23 10:16:18 app118-v25-lang10\n[10:16:18] TTS 引擎加载（device=NPU）…\n[10:16:31] 引擎就绪：13.3 s\n[10:16:31] 算预设 A 的 speaker embedding：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\models\\qwen3tts\\voices\\preset_A.wav\n[10:16:31] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\models\\qwen3tts\\voices\\preset_A.wav -> (1, 1024)\n[10:16:31] embedding=ok\n    zh  1.68    rtf=0.835  OK\n    en  1.6     rtf=0.731  OK\n    ja  1.52    rtf=0.717  OK\n    ko  2.08    rtf=0.737  OK\n    de  2.0     rtf=0.727  OK\n    fr  1.76    rtf=0.702  OK\n    es  1.76    rtf=0.703  OK\n    pt  1.68    rtf=0.699  OK\n    it  2.56    rtf=0.693  OK\n    ru  2.4     rtf=0.707  OK\n  [PASS] B2 10 语种**没有**触发 language-agnostic 回落（映射正确）  — 引擎未报任何 not recognized\n  [PASS] B3 10 语种映射后的 id 都在引擎支持列表内\n  [PASS] B 10 语种配音全部出声  — 10/10\n[10:16:45] MT 模型加载（device=GPU.0）…\n加载翻译模型（GPU.0）…\n[10:16:49] MT 引擎就绪：3.3 s（模型 C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\models\\mt\\mt2-int8sym-cw-q）\n    zh  Chinese    今天天气很好，我们可以去公园散步。 OK\n    en  English    The weather is nice toda OK\n    ja  Japanese   今日は天気が良く、公園で散歩に行けます。 OK\n    ko  Korean     오늘 날씨가 좋으니 공원에서 산책을 할 수  OK\n    de  German     Das Wetter ist heute sch OK\n    fr  French     Le temps est agréable au OK\n    es  Spanish    El clima está bueno hoy  OK\n    pt  Portuguese O clima está bom hoje e  OK\n    it  Italian    Oggi il tempo è bello e  OK\n    ru  Russian    Сегодня хорошая погода,  OK\n  [PASS] C 10 语种字幕（MT）全部出译文  — 10/10\n  [PASS] D 反证组：未知语种必须被**产品两道闸**拦住（证明 B 组可判失败）  — {\"strict_raised\": true, \"strict_msg\": \"未知目标语言 'xx'；支持：Chinese, English, French, German, Italian, Japanese, Korean, Portuguese, Russian, Spanish\", \"language_supported_xx\": false, \"map_nonstrict_xx\": \"English\", \"engine_fallback_note\": \"引擎对未知语言会告警并回落 language-agnostic ⇒ 必须靠产品两道闸拦\", \"latent_note\": \"🔴 `m\n\n结论：10 PASS / 0 FAIL  →  C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app120_accept_v11_lang10_evidence.json\n[10:16:54] 已放机器锁\n\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\nThe tokenizer you are loading from 'C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\models\\qwen3tts\\tokenizer' with an incorrect regex pattern: https://huggingface.co/mistralai/Mistral-Small-3.1-24B-Instruct-2503/discussions/84#69121093e8b480e709447d5e. This will lead to incorrect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.\n"
+}

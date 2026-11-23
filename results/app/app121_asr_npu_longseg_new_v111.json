@@ -1,0 +1,84 @@
+{
+  "script": "_app121_asr_npu_longseg.py",
+  "ts": "2026-11-23 09:30:32",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1",
+  "tag": "new_v111",
+  "wav": {
+    "out": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Temp\\app121\\longseg_continuous.wav",
+    "bytes": 832044,
+    "duration_s": 26.0,
+    "p90_db": -25.09,
+    "sil_rel_drop_db": 12.0,
+    "detector": "App 自己的 live_caption_app._frame_db_series + seg_stream.find_silence_in_range（30 ms/10 ms，相对门限 p90−12 dB，min_silence_ms=300）",
+    "verify_no_300ms_silence": true,
+    "verify_silence_cut_sample": null,
+    "sha256": "e585b6cf96b10117c1fa3b06ad0bee6b5c94c9a957d83fdbf75e543b943a5b2c",
+    "reused": true
+  },
+  "cli": {
+    "cmd": [
+      "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\python\\python.exe",
+      "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app\\live_caption_app.py",
+      "--cli",
+      "--file",
+      "C:\\Users\\Trekker-PTL\\AppData\\Local\\Temp\\app121\\longseg_continuous.wav",
+      "--asr-device",
+      "NPU",
+      "--translate",
+      "off",
+      "--tts",
+      "off",
+      "--out",
+      "C:\\Users\\Trekker-PTL\\AppData\\Local\\Temp\\app121\\longseg_new_v111.txt"
+    ],
+    "cwd": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1",
+    "rc": 0,
+    "wall_s": 72.3,
+    "log_path": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Temp\\app121\\longseg_new_v111.log",
+    "out_txt": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Temp\\app121\\longseg_new_v111.txt",
+    "has_valueerror": false,
+    "valueerror_lines": [],
+    "has_audio_too_long": false,
+    "n_final_lines": 2,
+    "n_chars": 514,
+    "first_line": "Alright. Good morning, everyone. Morning. Let's get started. Um. So welcome to our Q three twenty six agenda topics toda",
+    "last_line": "The work that's done when the software team, who I think is probably one of the largest pivots to do, to go enable the.",
+    "stdout_tail": "ut three. One. I want to share our engineering strategy to real.\n[实时] l talk about three. One. I want to share our engineering strategy to realize the business.\n[实时] about three. One. I want to share our engineering strategy to realize the business growth.\n[实时] e. One. I want to share our engineering strategy to realize the business growth that Alex.\n[实时] to share our engineering strategy to realize the business growth that Alex spoke about in.\n[实时] r engineering strategy to realize the business growth that Alex spoke about in his last Q.\n[实时] ing strategy to realize the business growth that Alex spoke about in his last Q three. Uh.\n[实时] y to realize the business growth that Alex spoke about in his last Q three. Uh. We'll then\n[实时] ss growth that Alex spoke about in his last Q three. Uh. We'll then talk about engineering\n[实时] lex spoke about in his last Q three. Uh. We'll then talk about engineering priorities and.\n[实时] ut in his last Q three. Uh. We'll then talk about engineering priorities and just general.[asr06b-stateful] 320 上界：前缀截断 T 325→320 dropped=5（累计 prefix_truncations=1，总截断=1 次）\n\n[实时]  three. Uh. We'll then talk about engineering priorities and just general action and then.[asr06b-stateful] 320 上界：前缀截断 T 337→320 dropped=17（累计 prefix_truncations=2，总截断=2 次）\n\n[实时] then talk about engineering priorities and just general execution, and then Lisa will join[asr06b-stateful] 320 上界：前缀截断 T 348→320 dropped=28（累计 prefix_truncations=3，总截断=3 次）\n\n[实时] about engineering priorities and just general execution, and then Lisa will join me and go[asr06b-stateful] 320 上界：前缀截断 T 359→320 dropped=39（累计 prefix_truncations=4，总截断=4 次）\n[asr06b-stateful] 320 上界：前缀截断 T 362→320 dropped=42（累计 prefix_truncations=5，总截断=5 次）\n\n[实时] ng priorities and just general execution, and then Lisa will join me and go through all of\n[定稿] Alright. Good morning, everyone. Morning. Let's get started. Um. So welcome to our Q three twenty six agenda topics today. We'll talk about three. One. I want to share our engineering strategy to realize the business growth that Alex spoke about in his last Q three. Uh. We'll then talk about engineering priorities and just general execution, and then Lisa will join me and go through all of.\n  [spk] 第 0 段无说话人标签：speaker_disabled\n\n[实时] The work that's.\n[实时] The work that's done when the.\n[实时] The work that's done when the software team.\n[实时] The work that's done when the software team. We think is\n[实时] The work that's done when the software team, who I think is probably one\n[实时] The work that's done when the software team, who I think is probably one of the largest\n[实时] k that's done when the software team, who I think is probably one of the largest pivots to\n[实时] done when the software team, who I think is probably one of the largest pivots to do to go\n[定稿] The work that's done when the software team, who I think is probably one of the largest pivots to do, to go enable the.\n\n[npu_int8] 音频 26.0s  墙钟 26.5s  RTF(计算) 0.498  出字延迟中位 314 ms  最大积压 0.4s  段 2\n",
+    "stderr_tail": "[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=NPU）—— 那是 MiniMVP rc9 之前的出厂默认 ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+  },
+  "segment_probe": {
+    "engine_key": "npu_int8",
+    "device": "NPU",
+    "max_seg_sec": 20.0,
+    "n_segs": 2,
+    "seg_durations_s": [
+      20.48,
+      0.0
+    ],
+    "max_seg_duration_s": 20.48,
+    "n_forced_cuts": 1,
+    "forced_cut_durations_s": [
+      20.48
+    ],
+    "prefix_truncations": 5,
+    "truncations": 5,
+    "exception": null,
+    "wall_s": 11.76,
+    "segments": [
+      {
+        "start_s": 0.0,
+        "end_s": 20.48,
+        "duration_s": 20.48,
+        "n_chars": 393,
+        "text_head": "Alright. Good morning, everyone. Morning. Let's get started. Um. So welcome to o"
+      },
+      {
+        "start_s": 25.6,
+        "end_s": 25.6,
+        "duration_s": 0.0,
+        "n_chars": 106,
+        "text_head": "The work that's done when the software team, who I think is probably one of the "
+      }
+    ]
+  }
+}

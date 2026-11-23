@@ -1,0 +1,294 @@
+{
+  "pass": 10,
+  "fail": 0,
+  "checks": [
+    {
+      "name": "A1 目标语言 = 10 种",
+      "ok": true,
+      "detail": "10 种 ['zh', 'en', 'ja', 'ko', 'de', 'fr', 'es', 'pt', 'it', 'ru']"
+    },
+    {
+      "name": "A2 每种语言的 MT 目标名可解析",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "A3 每种语言的 TTS language id 可解析",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "A4 每种语言的界面标签存在",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "A5 三张表的目标语言名一致（MT/TTS/界面）",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "B2 10 语种**没有**触发 language-agnostic 回落（映射正确）",
+      "ok": true,
+      "detail": "引擎未报任何 not recognized"
+    },
+    {
+      "name": "B3 10 语种映射后的 id 都在引擎支持列表内",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "B 10 语种配音全部出声",
+      "ok": true,
+      "detail": "10/10"
+    },
+    {
+      "name": "C 10 语种字幕（MT）全部出译文",
+      "ok": true,
+      "detail": "10/10"
+    },
+    {
+      "name": "D 反证组：未知语种必须被**产品两道闸**拦住（证明 B 组可判失败）",
+      "ok": true,
+      "detail": "{\"strict_raised\": true, \"strict_msg\": \"未知目标语言 'xx'；支持：Chinese, English, French, German, Italian, Japanese, Korean, Portuguese, Russian, Spanish\", \"language_supported_xx\": false, \"map_nonstrict_xx\": \"English\", \"engine_fallback_note\": \"引擎对未知语言会告警并回落 language-agnostic ⇒ 必须靠产品两道闸拦\", \"latent_note\": \"🔴 `m"
+    }
+  ],
+  "langs": [
+    "zh",
+    "en",
+    "ja",
+    "ko",
+    "de",
+    "fr",
+    "es",
+    "pt",
+    "it",
+    "ru"
+  ],
+  "live_tts": {
+    "zh": {
+      "lang": "zh",
+      "text": "今天天气很好。",
+      "blang": "Chinese",
+      "supported": true,
+      "wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app118_lang10\\lang10_zh.wav",
+      "seconds": 1.68,
+      "peak": 0.5405,
+      "wall_s": 1.4,
+      "rtf": 0.835,
+      "ok": true
+    },
+    "en": {
+      "lang": "en",
+      "text": "The weather is nice today.",
+      "blang": "English",
+      "supported": true,
+      "wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app118_lang10\\lang10_en.wav",
+      "seconds": 1.6,
+      "peak": 0.5737,
+      "wall_s": 1.17,
+      "rtf": 0.731,
+      "ok": true
+    },
+    "ja": {
+      "lang": "ja",
+      "text": "今日はいい天気ですね。",
+      "blang": "Japanese",
+      "supported": true,
+      "wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app118_lang10\\lang10_ja.wav",
+      "seconds": 1.52,
+      "peak": 0.3584,
+      "wall_s": 1.09,
+      "rtf": 0.717,
+      "ok": true
+    },
+    "ko": {
+      "lang": "ko",
+      "text": "오늘 날씨가 좋네요.",
+      "blang": "Korean",
+      "supported": true,
+      "wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app118_lang10\\lang10_ko.wav",
+      "seconds": 2.08,
+      "peak": 0.5679,
+      "wall_s": 1.53,
+      "rtf": 0.737,
+      "ok": true
+    },
+    "de": {
+      "lang": "de",
+      "text": "Das Wetter ist heute schoen.",
+      "blang": "German",
+      "supported": true,
+      "wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app118_lang10\\lang10_de.wav",
+      "seconds": 2.0,
+      "peak": 0.375,
+      "wall_s": 1.45,
+      "rtf": 0.727,
+      "ok": true
+    },
+    "fr": {
+      "lang": "fr",
+      "text": "Aujourd'hui, il fait beau.",
+      "blang": "French",
+      "supported": true,
+      "wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app118_lang10\\lang10_fr.wav",
+      "seconds": 1.76,
+      "peak": 0.5776,
+      "wall_s": 1.24,
+      "rtf": 0.702,
+      "ok": true
+    },
+    "es": {
+      "lang": "es",
+      "text": "Hoy hace buen tiempo.",
+      "blang": "Spanish",
+      "supported": true,
+      "wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app118_lang10\\lang10_es.wav",
+      "seconds": 1.76,
+      "peak": 0.4202,
+      "wall_s": 1.24,
+      "rtf": 0.703,
+      "ok": true
+    },
+    "pt": {
+      "lang": "pt",
+      "text": "O tempo esta bom hoje.",
+      "blang": "Portuguese",
+      "supported": true,
+      "wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app118_lang10\\lang10_pt.wav",
+      "seconds": 1.68,
+      "peak": 0.4453,
+      "wall_s": 1.17,
+      "rtf": 0.699,
+      "ok": true
+    },
+    "it": {
+      "lang": "it",
+      "text": "Il tempo e bello oggi.",
+      "blang": "Italian",
+      "supported": true,
+      "wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app118_lang10\\lang10_it.wav",
+      "seconds": 2.56,
+      "peak": 0.4866,
+      "wall_s": 1.78,
+      "rtf": 0.693,
+      "ok": true
+    },
+    "ru": {
+      "lang": "ru",
+      "text": "Сегодня хорошая погода.",
+      "blang": "Russian",
+      "supported": true,
+      "wav": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app118_lang10\\lang10_ru.wav",
+      "seconds": 2.4,
+      "peak": 0.5972,
+      "wall_s": 1.7,
+      "rtf": 0.707,
+      "ok": true
+    }
+  },
+  "live_mt": {
+    "zh": {
+      "lang": "zh",
+      "tgt": "zh",
+      "tgt_name": "Chinese",
+      "src": "The weather is nice today and we can go for a walk in the park.",
+      "out": "今天天气很好，我们可以去公园散步。",
+      "skipped": false,
+      "lat_ms": 442.40900001022965,
+      "ok": true
+    },
+    "en": {
+      "lang": "en",
+      "tgt": "en",
+      "tgt_name": "English",
+      "src": "The weather is nice today and we can go for a walk in the park.",
+      "out": "The weather is nice today, and we can go for a walk in the park.",
+      "skipped": false,
+      "lat_ms": 481.18569992948323,
+      "ok": true
+    },
+    "ja": {
+      "lang": "ja",
+      "tgt": "ja",
+      "tgt_name": "Japanese",
+      "src": "The weather is nice today and we can go for a walk in the park.",
+      "out": "今日は天気が良く、公園で散歩に行けます。",
+      "skipped": false,
+      "lat_ms": 539.5565000362694,
+      "ok": true
+    },
+    "ko": {
+      "lang": "ko",
+      "tgt": "ko",
+      "tgt_name": "Korean",
+      "src": "The weather is nice today and we can go for a walk in the park.",
+      "out": "오늘 날씨가 좋으니 공원에서 산책을 할 수 있어요.",
+      "skipped": false,
+      "lat_ms": 581.5855000400916,
+      "ok": true
+    },
+    "de": {
+      "lang": "de",
+      "tgt": "de",
+      "tgt_name": "German",
+      "src": "The weather is nice today and we can go for a walk in the park.",
+      "out": "Das Wetter ist heute schön, und wir können einen Spaziergang im Park machen.",
+      "skipped": false,
+      "lat_ms": 603.1127000460401,
+      "ok": true
+    },
+    "fr": {
+      "lang": "fr",
+      "tgt": "fr",
+      "tgt_name": "French",
+      "src": "The weather is nice today and we can go for a walk in the park.",
+      "out": "Le temps est agréable aujourd’hui, nous pouvons aller nous promener dans le parc.",
+      "skipped": false,
+      "lat_ms": 688.0555999232456,
+      "ok": true
+    },
+    "es": {
+      "lang": "es",
+      "tgt": "es",
+      "tgt_name": "Spanish",
+      "src": "The weather is nice today and we can go for a walk in the park.",
+      "out": "El clima está bueno hoy y podemos ir a dar un paseo al parque.",
+      "skipped": false,
+      "lat_ms": 642.6782000344247,
+      "ok": true
+    },
+    "pt": {
+      "lang": "pt",
+      "tgt": "pt",
+      "tgt_name": "Portuguese",
+      "src": "The weather is nice today and we can go for a walk in the park.",
+      "out": "O clima está bom hoje e podemos dar uma caminhada no parque.",
+      "skipped": false,
+      "lat_ms": 556.5958999795839,
+      "ok": true
+    },
+    "it": {
+      "lang": "it",
+      "tgt": "it",
+      "tgt_name": "Italian",
+      "src": "The weather is nice today and we can go for a walk in the park.",
+      "out": "Oggi il tempo è bello e possiamo fare una passeggiata nel parco.",
+      "skipped": false,
+      "lat_ms": 536.7047999752685,
+      "ok": true
+    },
+    "ru": {
+      "lang": "ru",
+      "tgt": "ru",
+      "tgt_name": "Russian",
+      "src": "The weather is nice today and we can go for a walk in the park.",
+      "out": "Сегодня хорошая погода, и мы можем прогуляться в парке.",
+      "skipped": false,
+      "lat_ms": 607.2865000460297,
+      "ok": true
+    }
+  },
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app",
+  "at": "2026-11-23 10:16:54"
+}

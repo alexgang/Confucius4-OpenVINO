@@ -1,0 +1,40 @@
+{
+  "script": "_app121_write_readme.py",
+  "ts": "2026-11-23 10:25:25",
+  "pkg": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_MiniMVP_v1.1.1",
+  "version": "1.1.1",
+  "accept": "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app121_readme_accept.json",
+  "n_files_zip_content": 10881,
+  "bytes_zip_content": 6701780843,
+  "iterations": [
+    {
+      "iter": 0,
+      "files": 10881,
+      "bytes_used": 6701778571,
+      "bytes_on_disk": 6701780843,
+      "stable": false
+    },
+    {
+      "iter": 1,
+      "files": 10881,
+      "bytes_used": 6701780843,
+      "bytes_on_disk": 6701780843,
+      "stable": true
+    }
+  ],
+  "fixed_point": true,
+  "readme_zh_bytes": 7290,
+  "readme_en_bytes": 7268,
+  "top": {
+    "models": 5926971291,
+    "python": 770508864,
+    "app": 1829544,
+    ".runtime_deps": 1283883,
+    "ext": 882048,
+    "docs": 210065,
+    "tools": 44696,
+    "(根文件)": 41717,
+    "results": 8735
+  },
+  "zip_bytes": null
+}

@@ -1,0 +1,143 @@
+{
+  "step": "devswitch",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1",
+  "runs": [
+    {
+      "tag": "allnpu",
+      "cmd": [
+        "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\python\\python.exe",
+        "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app\\live_caption_app.py",
+        "--cli",
+        "--file",
+        "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\app119_clip_0_60.wav",
+        "--tts",
+        "on",
+        "--tts-voice",
+        "A",
+        "--out",
+        "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app120_v11_allnpu.txt",
+        "--asr-device",
+        "NPU",
+        "--mt-device",
+        "NPU",
+        "--tts-device",
+        "NPU"
+      ],
+      "rc": 0,
+      "wall_s": 68.4,
+      "stdout_tail": "at's done with the software team.\n[定稿] Priorities and just general execution, and then Lisa will join me and go through all of the work that's done with the software team.\n\n[实时] I think is.\n[实时] I think is probably one of the\n[实时] I think is probably one of the largest pivot.\n[实时] I think is probably one of the largest pivots to do.\n[实时] I think is probably one of the largest pivots to do, to go enable.\n[实时] I think is probably one of the largest pivots to do, to go enable the growth.\n[实时] I think is probably one of the largest pivots to do, to go enable the growth ahead of us.\n[实时] ably one of the largest pivots to do, to go enable the growth ahead of us that Alex spoke.\n[实时] y one of the largest pivots to do, to go enable the growth ahead of us that Alex spoke to.\n[定稿] I think is probably one of the largest pivots to do, to go enable the growth ahead of us that Alex spoke to.\n\n[实时] And then at the end\n[实时] And then at the end we'll have\n[实时] And then at the end we'll have plenty of time\n[实时] And then at the end we'll have plenty of time for Q and\n[实时] And then at the end we'll have plenty of time for Q and A, both\n[实时] And then at the end we'll have plenty of time for Q and A both in room and on\n[实时] And then at the end we'll have plenty of time for Q and A, both in room and online.\n[实时] And then at the end we'll have plenty of time for Q and A, both in room and online. Okay.\n[定稿] And then at the end we'll have plenty of time for Q and A, both in room and online. Okay.\n\n[实时] So.\n[实时] So you recall.\n[实时] So you recall Alex spoke.\n[实时] So you recall Alex spoke about business.\n[实时] So you recall Alex spoke about business growth.\n[实时] So you recall Alex spoke about business growth about client.\n[实时] So you recall Alex spoke about business growth, about client.\n[实时] So you recall Alex spoke about business growth, about client, agentic.\n[实时] So you recall Alex spoke about business growth, about client, agentic edge, and.\n[实时] you recall Alex spoke about business growth, about client, agentic, edge, and physical AI.\n[定稿] So you recall Alex spoke about business growth, about client, agentic, edge, and physical AI.\n\n[实时] Hi.\n[实时] So the goal.\n[实时] So the goal is to fly.\n[实时] So the goal of this slide is to describe.\n[实时] So the goal of this slide is to describe our strategy.\n[实时] So the goal of this slide is to describe our strategy on a.\n[实时] So the goal of this slide is to describe our strategy on a page. How.\n[实时] So the goal of this slide is to describe our strategy on a page: how we as a\n[实时]  goal of this slide is to describe our strategy on a page: how we as an engineering group.\n[实时]  this slide is to describe our strategy on a page: how we, as an engineering organization.\n[实时] is slide is to describe our strategy on a page: how we, as an engineering organization, in\n[定稿] So the goal of this slide is to describe our strategy on a page: how we, as an engineering organization, in\n\n[实时] Enable that.\n[实时] Enable that growth again.\n[实时] Enable that growth again. We are the.\n[定稿] Enable that growth again. We are the scale function.\n\n[npu_int8] 音频 60.0s  墙钟 60.3s  RTF(计算) 0.460  出字延迟中位 300 ms  最大积压 0.5s  段 10\n[TTS] 首包 —s  积压 当前 0.00s / 最大 0.00s  提交 0  播完 0  丢弃 0  重启 0  state=ready\n[APP-113] 就绪前排队=0 溢出丢弃=0 已补发=0 ｜ worker失败丢弃=0 ｜ TTS就绪=17.6s 积压清空=— 积压清空口径=— ｜ 并行=off ｜ ASR就绪=3.9s MT就绪=— 进程已运行=64.5s\n[TTS] 收尾（close 前）：结尾滞后 —s  关闭作废 0  空句 0  积压 最大 0.00s\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\tts_backlog_curve.csv（41 个采样点）\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n[TTS] 最终统计（close 后）：提交 0  播完 0  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 —s  积压 最大 0.00s\n\n[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=NPU）—— 那是 MiniMVP rc9 之前的出厂默认 ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\n[device] NPU 共用：MT 与 TTS 同在 NPU ⇒ 合成可能变慢 25–30 ％（APP-119 §2：不再自动改设备）\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+    },
+    {
+      "tag": "tts_gpu0",
+      "cmd": [
+        "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\python\\python.exe",
+        "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app\\live_caption_app.py",
+        "--cli",
+        "--file",
+        "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\app119_clip_0_60.wav",
+        "--tts",
+        "on",
+        "--tts-voice",
+        "A",
+        "--out",
+        "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app120_v11_tts_gpu0.txt",
+        "--asr-device",
+        "GPU.0",
+        "--mt-device",
+        "GPU.0",
+        "--tts-device",
+        "GPU.0"
+      ],
+      "rc": 0,
+      "wall_s": 68.6,
+      "stdout_tail": "e with the software team.\n[定稿] Priorities and just general execution, and then Lisa will join me and go through all of the work that's done with the software team.\n\n[实时] I think is.\n[实时] I think is probably one of the\n[实时] I think is probably one of the largest pivot.\n[实时] I think is probably one of the largest pivots to do.\n[实时] I think is probably one of the largest pivots to do, to go enable.\n[实时] I think is probably one of the largest pivots to do, to go enable the growth.\n[实时] I think is probably one of the largest pivots to do, to go enable the growth ahead of us.\n[实时] ably one of the largest pivots to do, to go enable the growth ahead of us that I'll expect\n[实时]  one of the largest pivots to do, to go enable the growth ahead of us that I'll expect to.\n[定稿] I think is probably one of the largest pivots to do, to go enable the growth ahead of us that I'll expect to.\n\n[实时] And then at the end\n[实时] And then at the end we'll have\n[实时] And then at the end we'll have plenty of time\n[实时] And then at the end we'll have plenty of time for Q and\n[实时] And then at the end we'll have plenty of time for Q and A, both\n[实时] And then at the end we'll have plenty of time for Q and A both in room and on\n[实时] And then at the end we'll have plenty of time for Q and A, both in room and online.\n[实时] And then at the end we'll have plenty of time for Q and A, both in room and online. Okay.\n[定稿] And then at the end we'll have plenty of time for Q and A, both in room and online. Okay.\n\n[实时] So.\n[实时] So you recall.\n[实时] So you recall Alex spoke.\n[实时] So you recall Alex spoke about.\n[实时] So you recall Alex spoke about business growth.\n[实时] So you recall Alex spoke about business growth about client.\n[实时] So you recall Alex spoke about business growth, about client.\n[实时] So you recall Alex spoke about business growth, about client, agentic.\n[实时] So you recall Alex spoke about business growth, about client, agentic edge and.\n[实时]  you recall Alex spoke about business growth, about client, agentic edge, and physicality.\n[定稿] So you recall Alex spoke about business growth, about client, agentic edge, and physical AI.\n\n[实时] Hi.\n[实时] So the goal.\n[实时] So the goal is to fly.\n[实时] So the goal of this slide is to describe.\n[实时] So the goal of this slide is to describe our strategy.\n[实时] So the goal of this slide is to describe our strategy on a.\n[实时] So the goal of this slide is to describe our strategy on a page. How.\n[实时] So the goal of this slide is to describe our strategy on a page. How we as a\n[实时]  goal of this slide is to describe our strategy on a page: how we as an engineering group.\n[实时]  this slide is to describe our strategy on a page: how we, as an engineering organization.\n[实时] s slide is to describe our strategy on a page: how we, as an engineering organization, in.\n[定稿] So the goal of this slide is to describe our strategy on a page: how we, as an engineering organization, in.\n\n[实时] Enable that.\n[实时] Enable that growth again.\n[实时] Enable that growth again. We are the.\n[定稿] Enable that growth again. We are the scale function.\n\n[gpu_int8] 音频 60.0s  墙钟 60.4s  RTF(计算) 0.510  出字延迟中位 249 ms  最大积压 0.8s  段 10\n[TTS] 首包 —s  积压 当前 0.00s / 最大 0.00s  提交 0  播完 0  丢弃 0  重启 0  state=ready\n[APP-113] 就绪前排队=0 溢出丢弃=0 已补发=0 ｜ worker失败丢弃=0 ｜ TTS就绪=18.5s 积压清空=— 积压清空口径=— ｜ 并行=off ｜ ASR就绪=5.3s MT就绪=— 进程已运行=66.0s\n[TTS] 收尾（close 前）：结尾滞后 —s  关闭作废 0  空句 0  积压 最大 0.00s\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\tts_backlog_curve.csv（41 个采样点）\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n[TTS] 最终统计（close 后）：提交 0  播完 0  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 —s  积压 最大 0.00s\n\n[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=NPU）—— 那是 MiniMVP rc9 之前的出厂默认 ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\n[device] ASR 与 MT 同在 GPU.0（stateful 解码器负载约为旧解码器的 1/3；rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+    },
+    {
+      "tag": "headphone",
+      "cmd": [
+        "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\python\\python.exe",
+        "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app\\live_caption_app.py",
+        "--cli",
+        "--file",
+        "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\app119_clip_0_60.wav",
+        "--tts",
+        "on",
+        "--tts-voice",
+        "A",
+        "--out",
+        "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app120_v11_headphone.txt",
+        "--asr-device",
+        "GPU.0",
+        "--mt-device",
+        "GPU.0",
+        "--tts-device",
+        "GPU.0",
+        "--tts-out-device",
+        "{0.0.0.00000000}.{2e4a781d-034e-4531-926c-cc620edf6d93}"
+      ],
+      "rc": 0,
+      "wall_s": 69.2,
+      "stdout_tail": "e with the software team.\n[定稿] Priorities and just general execution, and then Lisa will join me and go through all of the work that's done with the software team.\n\n[实时] I think is.\n[实时] I think is probably one of the\n[实时] I think is probably one of the largest pivot.\n[实时] I think is probably one of the largest pivots to do.\n[实时] I think is probably one of the largest pivots to do, to go enable.\n[实时] I think is probably one of the largest pivots to do, to go enable the growth.\n[实时] I think is probably one of the largest pivots to do, to go enable the growth ahead of us.\n[实时] ably one of the largest pivots to do, to go enable the growth ahead of us that I'll expect\n[实时]  one of the largest pivots to do, to go enable the growth ahead of us that I'll expect to.\n[定稿] I think is probably one of the largest pivots to do, to go enable the growth ahead of us that I'll expect to.\n\n[实时] And then at the end\n[实时] And then at the end we'll have\n[实时] And then at the end we'll have plenty of time\n[实时] And then at the end we'll have plenty of time for Q and\n[实时] And then at the end we'll have plenty of time for Q and A, both\n[实时] And then at the end we'll have plenty of time for Q and A both in room and on\n[实时] And then at the end we'll have plenty of time for Q and A, both in room and online.\n[实时] And then at the end we'll have plenty of time for Q and A, both in room and online. Okay.\n[定稿] And then at the end we'll have plenty of time for Q and A, both in room and online. Okay.\n\n[实时] So.\n[实时] So you recall.\n[实时] So you recall Alex spoke.\n[实时] So you recall Alex spoke about.\n[实时] So you recall Alex spoke about business growth.\n[实时] So you recall Alex spoke about business growth about client.\n[实时] So you recall Alex spoke about business growth, about client.\n[实时] So you recall Alex spoke about business growth, about client, agentic.\n[实时] So you recall Alex spoke about business growth, about client, agentic edge and.\n[实时]  you recall Alex spoke about business growth, about client, agentic edge, and physicality.\n[定稿] So you recall Alex spoke about business growth, about client, agentic edge, and physical AI.\n\n[实时] Hi.\n[实时] So the goal.\n[实时] So the goal is to fly.\n[实时] So the goal of this slide is to describe.\n[实时] So the goal of this slide is to describe our strategy.\n[实时] So the goal of this slide is to describe our strategy on a.\n[实时] So the goal of this slide is to describe our strategy on a page. How.\n[实时] So the goal of this slide is to describe our strategy on a page. How we as a\n[实时]  goal of this slide is to describe our strategy on a page: how we as an engineering group.\n[实时]  this slide is to describe our strategy on a page: how we, as an engineering organization.\n[实时] s slide is to describe our strategy on a page: how we, as an engineering organization, in.\n[定稿] So the goal of this slide is to describe our strategy on a page: how we, as an engineering organization, in.\n\n[实时] Enable that.\n[实时] Enable that growth again.\n[实时] Enable that growth again. We are the.\n[定稿] Enable that growth again. We are the scale function.\n\n[gpu_int8] 音频 60.0s  墙钟 60.3s  RTF(计算) 0.418  出字延迟中位 204 ms  最大积压 0.7s  段 10\n[TTS] 首包 —s  积压 当前 0.00s / 最大 0.00s  提交 0  播完 0  丢弃 0  重启 0  state=ready\n[APP-113] 就绪前排队=0 溢出丢弃=0 已补发=0 ｜ worker失败丢弃=0 ｜ TTS就绪=16.2s 积压清空=— 积压清空口径=— ｜ 并行=off ｜ ASR就绪=5.3s MT就绪=— 进程已运行=66.0s\n[TTS] 收尾（close 前）：结尾滞后 —s  关闭作废 0  空句 0  积压 最大 0.00s\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\tts_backlog_curve.csv（41 个采样点）\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n[TTS] 最终统计（close 后）：提交 0  播完 0  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 —s  积压 最大 0.00s\n\n[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=NPU）—— 那是 MiniMVP rc9 之前的出厂默认 ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\n[device] ASR 与 MT 同在 GPU.0（stateful 解码器负载约为旧解码器的 1/3；rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n",
+      "out_device_lines": [
+        "  [TTS] [TTS] 启动 worker：--out-device='{0.0.0.00000000}.{2e4a781d-034e-4531-926c-cc620edf6d93}'",
+        "  [TTS] [TTS] [tts_worker] 启动参数：--out-device='{0.0.0.00000000}.{2e4a781d-034e-4531-926c-cc620edf6d93}'",
+        "  [TTS] [TTS] [tts_worker] 输出设备解析：'{0.0.0.00000000}.{2e4a781d-034e-4531-926c-cc620edf6d93}' ⇒ 端点 id → 「头戴式耳机 (Plantronics C320-M)」→ 播放索引 5",
+        "  [TTS] [TTS] [tts_worker] 输出设备解析：'{0.0.0.00000000}.{2e4a781d-034e-4531-926c-cc620edf6d93}' ⇒ 端点 id → 「头戴式耳机 (Plantronics C320-M)」→ 播放索引 5（缓存）"
+      ],
+      "picked_out_device": {
+        "id": "{0.0.0.00000000}.{2e4a781d-034e-4531-926c-cc620edf6d93}",
+        "name": "头戴式耳机 (Plantronics C320-M)（2 声道）"
+      }
+    }
+  ],
+  "checks": [
+    {
+      "tag": "allnpu",
+      "name": "全 NPU 退出码 0（启动不崩）",
+      "pass": true,
+      "detail": "rc 见 runs"
+    },
+    {
+      "tag": "allnpu",
+      "name": "全 NPU：日志出现 NPU 设备（未静默换设备）",
+      "pass": true,
+      "detail": "g organization, in\n[定稿] So the goal of this slide is to describe our strategy on a page: how we, as an engineering organization, in\n\n[实时] Enable that.\n[实时] Enable that growth again.\n[实时] Enable that growth again. We are the.\n[定稿] Enable that growth again. We are the scale function.\n\n[npu_int8] 音频 60.0s  墙钟 60.3s  RTF(计算) 0.460  出字延迟中位 300 ms  最大积压 0.5s  段 10\n[TTS] 首包 —s  积压 当前 0.00s / 最大 0.00s  提交 0  播完 0  丢弃 0  重启 0  state=ready\n[APP-113] 就绪前排队=0 溢出丢弃=0 已补发=0 ｜ worker失败丢弃=0 ｜ TTS就绪=17.6s 积压清空=— 积压清空口径=— ｜ 并行=off ｜ ASR就绪=3.9s MT就绪=— 进程已运行=64.5s\n[TTS] 收尾（close 前）：结尾滞后 —s  关闭作废 0  空句 0  积压 最大 0.00s\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\tts_backlog_curve.csv（41 个采样点）\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n[TTS] 最终统计（close 后）：提交 0  播完 0  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 —s  积压 最大 0.00s\n\n[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=NPU）—— 那是 MiniMVP rc9 之前的出厂默认 ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\n[device] NPU 共用：MT 与 TTS 同在 NPU ⇒ 合成可能变慢 25–30 ％（APP-119 §2：不再自动改设备）\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+    },
+    {
+      "tag": "allnpu",
+      "name": "全 NPU：未静默降级成 CUDA",
+      "pass": true,
+      "detail": "g organization, in\n[定稿] So the goal of this slide is to describe our strategy on a page: how we, as an engineering organization, in\n\n[实时] Enable that.\n[实时] Enable that growth again.\n[实时] Enable that growth again. We are the.\n[定稿] Enable that growth again. We are the scale function.\n\n[npu_int8] 音频 60.0s  墙钟 60.3s  RTF(计算) 0.460  出字延迟中位 300 ms  最大积压 0.5s  段 10\n[TTS] 首包 —s  积压 当前 0.00s / 最大 0.00s  提交 0  播完 0  丢弃 0  重启 0  state=ready\n[APP-113] 就绪前排队=0 溢出丢弃=0 已补发=0 ｜ worker失败丢弃=0 ｜ TTS就绪=17.6s 积压清空=— 积压清空口径=— ｜ 并行=off ｜ ASR就绪=3.9s MT就绪=— 进程已运行=64.5s\n[TTS] 收尾（close 前）：结尾滞后 —s  关闭作废 0  空句 0  积压 最大 0.00s\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\tts_backlog_curve.csv（41 个采样点）\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n[TTS] 最终统计（close 后）：提交 0  播完 0  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 —s  积压 最大 0.00s\n\n[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=NPU）—— 那是 MiniMVP rc9 之前的出厂默认 ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\n[device] NPU 共用：MT 与 TTS 同在 NPU ⇒ 合成可能变慢 25–30 ％（APP-119 §2：不再自动改设备）\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+    },
+    {
+      "tag": "tts_gpu0",
+      "name": "TTS=GPU.0：日志出现 GPU.0 的语音输出设备",
+      "pass": true,
+      "detail": "\n[定稿] So the goal of this slide is to describe our strategy on a page: how we, as an engineering organization, in.\n\n[实时] Enable that.\n[实时] Enable that growth again.\n[实时] Enable that growth again. We are the.\n[定稿] Enable that growth again. We are the scale function.\n\n[gpu_int8] 音频 60.0s  墙钟 60.4s  RTF(计算) 0.510  出字延迟中位 249 ms  最大积压 0.8s  段 10\n[TTS] 首包 —s  积压 当前 0.00s / 最大 0.00s  提交 0  播完 0  丢弃 0  重启 0  state=ready\n[APP-113] 就绪前排队=0 溢出丢弃=0 已补发=0 ｜ worker失败丢弃=0 ｜ TTS就绪=18.5s 积压清空=— 积压清空口径=— ｜ 并行=off ｜ ASR就绪=5.3s MT就绪=— 进程已运行=66.0s\n[TTS] 收尾（close 前）：结尾滞后 —s  关闭作废 0  空句 0  积压 最大 0.00s\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\tts_backlog_curve.csv（41 个采样点）\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n[TTS] 最终统计（close 后）：提交 0  播完 0  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 —s  积压 最大 0.00s\n\n[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=NPU）—— 那是 MiniMVP rc9 之前的出厂默认 ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\n[device] ASR 与 MT 同在 GPU.0（stateful 解码器负载约为旧解码器的 1/3；rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+    },
+    {
+      "tag": "tts_gpu0",
+      "name": "TTS=GPU.0：未出现 CUDA",
+      "pass": true,
+      "detail": "\n[定稿] So the goal of this slide is to describe our strategy on a page: how we, as an engineering organization, in.\n\n[实时] Enable that.\n[实时] Enable that growth again.\n[实时] Enable that growth again. We are the.\n[定稿] Enable that growth again. We are the scale function.\n\n[gpu_int8] 音频 60.0s  墙钟 60.4s  RTF(计算) 0.510  出字延迟中位 249 ms  最大积压 0.8s  段 10\n[TTS] 首包 —s  积压 当前 0.00s / 最大 0.00s  提交 0  播完 0  丢弃 0  重启 0  state=ready\n[APP-113] 就绪前排队=0 溢出丢弃=0 已补发=0 ｜ worker失败丢弃=0 ｜ TTS就绪=18.5s 积压清空=— 积压清空口径=— ｜ 并行=off ｜ ASR就绪=5.3s MT就绪=— 进程已运行=66.0s\n[TTS] 收尾（close 前）：结尾滞后 —s  关闭作废 0  空句 0  积压 最大 0.00s\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\tts_backlog_curve.csv（41 个采样点）\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n[TTS] 最终统计（close 后）：提交 0  播完 0  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 —s  积压 最大 0.00s\n\n[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=NPU）—— 那是 MiniMVP rc9 之前的出厂默认 ⇒ 改用本包出厂默认（asr=GPU.0，mt=GPU.0，tts=NPU）；配置文件本身不会被删除，你在本版里重新选一次设备后会按你的选择保留。\n[device] ASR 与 MT 同在 GPU.0（stateful 解码器负载约为旧解码器的 1/3；rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）\nNone of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.\n"
+    },
+    {
+      "tag": "headphone",
+      "name": "耳机输出设备 {0.0.0.00000000}.{2e4a781d-034e-4531-926c-cc620edf6d93}（头戴式耳机 (Plantronics C320-M)（2 声道））生效（日志含该 id）",
+      "pass": true,
+      "detail": " How we as a\n[实时]  goal of this slide is to describe our strategy on a page: how we as an engineering group.\n[实时]  this slide is to describe our strategy on a page: how we, as an engineering organization.\n[实时] s slide is to describe our strategy on a page: how we, as an engineering organization, in.\n[定稿] So the goal of this slide is to describe our strategy on a page: how we, as an engineering organization, in.\n\n[实时] Enable that.\n[实时] Enable that growth again.\n[实时] Enable that growth again. We are the.\n[定稿] Enable that growth again. We are the scale function.\n\n[gpu_int8] 音频 60.0s  墙钟 60.3s  RTF(计算) 0.418  出字延迟中位 204 ms  最大积压 0.7s  段 10\n[TTS] 首包 —s  积压 当前 0.00s / 最大 0.00s  提交 0  播完 0  丢弃 0  重启 0  state=ready\n[APP-113] 就绪前排队=0 溢出丢弃=0 已补发=0 ｜ worker失败丢弃=0 ｜ TTS就绪=16.2s 积压清空=— 积压清空口径=— ｜ 并行=off ｜ ASR就绪=5.3s MT就绪=— 进程已运行=66.0s\n[TTS] 收尾（close 前）：结尾滞后 —s  关闭作废 0  空句 0  积压 最大 0.00s\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\tts_backlog_curve.csv（41 个采样点）\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n[TTS] 最终统计（close 后）：提交 0  播完 0  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 —s  积压 最大 0.00s\n\n[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=NPU）—— 那是 MiniMVP rc9 之前的出厂默认 ⇒ 改用本包出厂默认（asr=GPU."
+    },
+    {
+      "tag": "headphone",
+      "name": "耳机输出设备：日志出现「输出设备」字样",
+      "pass": true,
+      "detail": " How we as a\n[实时]  goal of this slide is to describe our strategy on a page: how we as an engineering group.\n[实时]  this slide is to describe our strategy on a page: how we, as an engineering organization.\n[实时] s slide is to describe our strategy on a page: how we, as an engineering organization, in.\n[定稿] So the goal of this slide is to describe our strategy on a page: how we, as an engineering organization, in.\n\n[实时] Enable that.\n[实时] Enable that growth again.\n[实时] Enable that growth again. We are the.\n[定稿] Enable that growth again. We are the scale function.\n\n[gpu_int8] 音频 60.0s  墙钟 60.3s  RTF(计算) 0.418  出字延迟中位 204 ms  最大积压 0.7s  段 10\n[TTS] 首包 —s  积压 当前 0.00s / 最大 0.00s  提交 0  播完 0  丢弃 0  重启 0  state=ready\n[APP-113] 就绪前排队=0 溢出丢弃=0 已补发=0 ｜ worker失败丢弃=0 ｜ TTS就绪=16.2s 积压清空=— 积压清空口径=— ｜ 并行=off ｜ ASR就绪=5.3s MT就绪=— 进程已运行=66.0s\n[TTS] 收尾（close 前）：结尾滞后 —s  关闭作废 0  空句 0  积压 最大 0.00s\n[TTS] 积压曲线已写 C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\tts_backlog_curve.csv（41 个采样点）\n  [TTS] [TTS] [tts_worker] 说话人音色表已清空（会话结束）\n[TTS] 最终统计（close 后）：提交 0  播完 0  丢弃 0  关闭作废 0  空句 0  失败 0  结尾滞后 —s  积压 最大 0.00s\n\n[device] 已忽略旧配置里的设备项（asr=GPU.0，mt=GPU.0，tts=NPU）—— 那是 MiniMVP rc9 之前的出厂默认 ⇒ 改用本包出厂默认（asr=GPU."
+    }
+  ],
+  "out_devices": [
+    "{0.0.0.00000000}.{05fde43c-4ab6-4b3f-bf39-397ffc978640}",
+    "{0.0.0.00000000}.{2e4a781d-034e-4531-926c-cc620edf6d93}"
+  ],
+  "n_fail": 0,
+  "result": "PASS"
+}

@@ -1,0 +1,83 @@
+{
+  "script": "_app121_gui_smoke.py",
+  "ts": "2026-11-23 10:37:07",
+  "pkg": "C:\\Users\\Trekker-PTL\\AppData\\Local\\Temp\\app121_extract\\Confucius4_LiveCaption_MiniMVP_v1.1.1",
+  "cmd": [
+    "C:\\Users\\Trekker-PTL\\AppData\\Local\\Temp\\app121_extract\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\AppData\\Local\\Temp\\app121_extract\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app\\live_caption_app.py"
+  ],
+  "pid": 14192,
+  "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app121_gui_shots\\app121_gui_stdout.log",
+  "n_windows": 3,
+  "windows": [
+    {
+      "hwnd": 462460,
+      "title": "实时字幕 MiniMVP v1.0",
+      "rect": [
+        205,
+        1034,
+        1843,
+        1191
+      ]
+    },
+    {
+      "hwnd": 264312,
+      "title": "实时字幕 MiniMVP v1.0",
+      "rect": [
+        0,
+        0,
+        15,
+        25
+      ]
+    },
+    {
+      "hwnd": 1117882,
+      "title": "实时字幕 MiniMVP v1.0",
+      "rect": [
+        130,
+        130,
+        1585,
+        1262
+      ]
+    }
+  ],
+  "window_titles": [
+    "实时字幕 MiniMVP v1.0",
+    "实时字幕 MiniMVP v1.0",
+    "实时字幕 MiniMVP v1.0"
+  ],
+  "capture_target": {
+    "hwnd": 1117882,
+    "title": "实时字幕 MiniMVP v1.0",
+    "rect": [
+      130,
+      130,
+      1585,
+      1262
+    ]
+  },
+  "capture_target_note": "面积最大的顶层窗口（避免抓到无字幕时全黑的字幕浮条）",
+  "capture": {
+    "width": 1455,
+    "height": 1132,
+    "printwindow_ret": 1,
+    "gray_mean": 245.012,
+    "gray_variance": 1380.436,
+    "all_black": false,
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app121_gui_shots\\app121_gui_v111.png",
+    "bytes": 45555
+  },
+  "capture_ok": true,
+  "verdict": "PASS",
+  "capture_overlay": {
+    "width": 1638,
+    "height": 157,
+    "printwindow_ret": 1,
+    "gray_mean": 17.0,
+    "gray_variance": 0.0,
+    "all_black": true,
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app121_gui_shots\\app121_gui_v111_overlay.png",
+    "bytes": 1153
+  },
+  "gui_exit_code": 1
+}

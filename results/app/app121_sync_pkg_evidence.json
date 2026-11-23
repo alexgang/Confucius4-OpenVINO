@@ -1,0 +1,68 @@
+{
+  "script": "_app121_sync_pkg.py",
+  "ts": "2026-11-23 09:22:42",
+  "applied": true,
+  "targets": [
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5\\app",
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app"
+  ],
+  "files": [
+    "asr06b_stateful_backend.py",
+    "live_caption_app.py"
+  ],
+  "rows": [
+    {
+      "file": "asr06b_stateful_backend.py",
+      "target_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5\\app",
+      "target_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5\\app\\asr06b_stateful_backend.py",
+      "sha_before": "07fff3964618956d260a96e66a85bf65c42db92a376bc05d1b94f1c8554b3d7e",
+      "bytes_before": 32864,
+      "precond_ok": true,
+      "n_hunks": 3,
+      "undo_check": "PASS",
+      "written": true,
+      "sha_after": "36f20581799f0b16404721f296535312b25a2a397e051901409c8fbf07439a22",
+      "bytes_after": 35466
+    },
+    {
+      "file": "live_caption_app.py",
+      "target_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5\\app",
+      "target_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5\\app\\live_caption_app.py",
+      "sha_before": "4701e5bd81ffbb65e6d2feefe7e06ae0703cb55a8143720c60da4dcc4663bd46",
+      "bytes_before": 532377,
+      "precond_ok": true,
+      "n_hunks": 3,
+      "undo_check": "PASS",
+      "written": true,
+      "sha_after": "9cd8e8bf72c68dcd47e155cb23f30ebd7cb1f3c1a5f2fef29863bac9622f253b",
+      "bytes_after": 534213
+    },
+    {
+      "file": "asr06b_stateful_backend.py",
+      "target_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app",
+      "target_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app\\asr06b_stateful_backend.py",
+      "sha_before": "07fff3964618956d260a96e66a85bf65c42db92a376bc05d1b94f1c8554b3d7e",
+      "bytes_before": 32864,
+      "precond_ok": true,
+      "n_hunks": 3,
+      "undo_check": "PASS",
+      "written": true,
+      "sha_after": "36f20581799f0b16404721f296535312b25a2a397e051901409c8fbf07439a22",
+      "bytes_after": 35466
+    },
+    {
+      "file": "live_caption_app.py",
+      "target_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app",
+      "target_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app\\live_caption_app.py",
+      "sha_before": "4701e5bd81ffbb65e6d2feefe7e06ae0703cb55a8143720c60da4dcc4663bd46",
+      "bytes_before": 532377,
+      "precond_ok": true,
+      "n_hunks": 3,
+      "undo_check": "PASS",
+      "written": true,
+      "sha_after": "9cd8e8bf72c68dcd47e155cb23f30ebd7cb1f3c1a5f2fef29863bac9622f253b",
+      "bytes_after": 534213
+    }
+  ],
+  "all_ok": true
+}

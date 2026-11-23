@@ -1,0 +1,21 @@
+{
+  "chain": {
+    "device_combo": "ASR=GPU.0 / MT=GPU.0 / TTS=NPU（出厂默认）",
+    "subtitle_first_token_ms": 317,
+    "subtitle_first_token_src": "run 日志 `[gpu_int8] … 出字延迟中位 317 ms`（**识别**侧）",
+    "tts_first_packet_s": 0.42,
+    "tts_first_packet_src": "run 日志 `[TTS] 首包 0.42s`（**配音**侧，与字幕出字延迟**不是一个数**）",
+    "synth_rtf_median": 0.9459,
+    "synth_rtf_p90": 1.1126,
+    "backlog_peak_s": 124.938,
+    "backlog_final_s": 114.295,
+    "n_sentences": 164,
+    "n_played": 164,
+    "n_dropped": 0
+  },
+  "source_acc": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app591_acceptance_app121_v111_default_run20261123-1000.json",
+  "source_log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app591_app121_v111_default_run20261123-1000.log",
+  "timing_valid": false,
+  "timing_invalid_reason": "synth_rtf P90=1.113 > 0.75（合成 RTF 异常 ⇒ 机器被占） ⇒ **计时类结论不成立**（计数类结论不受影响）",
+  "zip_bytes": null
+}

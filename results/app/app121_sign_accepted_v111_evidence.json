@@ -1,0 +1,36 @@
+{
+  "pkg": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_MiniMVP_v1.1.1",
+  "version": "1.1.1",
+  "n_modules": 31,
+  "aggregate": "b7f4fd14f5b265dd212f402b074767e758bc60fe20071af317d6813d5b5713bc",
+  "checks": {
+    "accepted=True": true,
+    "version=1.1.1": true,
+    "pkg_dir 目录名一致": true,
+    "code_fingerprints 非空": true,
+    "逐条指纹一致": true,
+    "集合一致（无缺/多）": true,
+    "聚合指纹一致": true
+  },
+  "gate5_ok": true,
+  "gate5_reason": "OK",
+  "gate5_detail": {
+    "package_dir": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_MiniMVP_v1.1.1",
+    "expect_version": "1.1.1",
+    "accepted_path": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_MiniMVP_v1.1.1\\ACCEPTED.json",
+    "accepted_version": "1.1.1",
+    "accepted_pkg_dir": "<HOME>\\Confucius4_LiveCaption_MiniMVP_v1.1.1",
+    "package_version": "1.1.1",
+    "package_basename": "Confucius4_LiveCaption_MiniMVP_v1.1.1",
+    "n_registered": 31,
+    "n_current": 31,
+    "n_changed": 0,
+    "changed": [],
+    "n_missing": 0,
+    "missing": [],
+    "n_extra": 0,
+    "extra": [],
+    "current_code_fingerprint": "b7f4fd14f5b265dd212f402b074767e758bc60fe20071af317d6813d5b5713bc"
+  },
+  "bytes": 4775
+}

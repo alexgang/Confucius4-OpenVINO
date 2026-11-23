@@ -1,0 +1,14 @@
+{
+  "script": "_app121_zip_v111.py",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1",
+  "zip": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1.zip",
+  "ts": "2026-11-23 10:32:23",
+  "n_files": 10881,
+  "raw_bytes": 6701780843,
+  "zip_bytes": 5212403155,
+  "zip_gib": 4.854,
+  "compress_ratio_pct": 77.8,
+  "wall_s": 401.0,
+  "prefix": "Confucius4_LiveCaption_MiniMVP_v1.1.1",
+  "missing_must": []
+}

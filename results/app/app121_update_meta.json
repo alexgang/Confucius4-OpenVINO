@@ -1,0 +1,235 @@
+{
+  "script": "_app121_update_meta.py",
+  "ts": "2026-11-23 09:55:21",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1",
+  "version": "1.1.1",
+  "applied": true,
+  "steps": [
+    {
+      "step": "move_out_tts_cuda",
+      "rows": [
+        {
+          "file": "tts_cuda.py",
+          "action": "absent（已不在包目录）"
+        },
+        {
+          "file": "tts_cuda_sidecar.py",
+          "action": "absent（已不在包目录）"
+        }
+      ]
+    },
+    {
+      "step": "release.json",
+      "before": {
+        "release": true,
+        "version": "1.1.1",
+        "asr_model": "Qwen3-ASR-0.6B",
+        "asr_recipe": "stateful INT8 with KV cache（NPU 上用 NPUW 运行时）；NPU 档 prompt 上界 320 + 超长前缀按 token 左截断（prefix_truncations 计数）",
+        "asr_engines": [
+          "gpu_int8",
+          "npu_int8"
+        ],
+        "package_profile": "package_profile.json",
+        "ext": {
+          "version": "0.4.18",
+          "note": "照 rc11 口径：EXT 嵌在包内 ext/（ASR 在 MiniMVP 里是否可用见 README「已知问题」）"
+        },
+        "corrections": [
+          "APP-120",
+          "APP-121"
+        ],
+        "v1.1_changes": [
+          "APP-120 §0：ASR-065/066 优化接入（pml 320 + 前缀左截断 + asr_enc_tiers 默认 off + 分档失败自动退回 2400 单档）",
+          "APP-120 §1：从 v2.5 全集按 minimvp profile 裁剪（ASR 只 0.6B / MT 只 INT8-CW / TTS 只 OV / 只预设 A / 无克隆）",
+          "APP-120 §1：出厂默认 ASR=GPU.0 / MT=GPU.0 / TTS=NPU（APP-119 自由配置）",
+          "APP-120 §1：APP-116/117 界面改动（耳机输出修复、去掉 4 个选项、去掉总状态灯）全部带上",
+          "APP-120 §2：验收（自检 + 洁净度 + 模型身份 + 10 分钟整链 + 10 语种 + 设备切换 + 全新目录/旧配置迁移）"
+        ],
+        "v1.1.1_changes": [
+          "修掉 **NPU 档长段崩溃**：≥18.3 s 的段不再让识别线程退出（NPU 档 prompt 上界按 handoff 口径只算 prompt，不把生成预留算进去）",
+          "单段解码出错**不再中断整条识别**（记日志 + 计数 + 跳过该段）",
+          "重打 zip 并做**解压自检**（全新目录 + 全新用户目录跑 --check + GUI 冒烟）",
+          "ACCEPTED 的模块清单与 zip 实际内容**完全一致**（无 CUDA 的包不再带 CUDA 后端模块）",
+          "README 面向客户改写：去内部编号、补「密集讲话时配音滞后」已知问题、区分「配音首包」与「字幕出字延迟」两个数"
+        ]
+      },
+      "after": {
+        "release": true,
+        "version": "1.1.1",
+        "asr_model": "Qwen3-ASR-0.6B",
+        "asr_recipe": "stateful INT8 with KV cache（NPU 上用 NPUW 运行时）；NPU 档 prompt 上界 320 + 超长前缀按 token 左截断（prefix_truncations 计数）",
+        "asr_engines": [
+          "gpu_int8",
+          "npu_int8"
+        ],
+        "package_profile": "package_profile.json",
+        "ext": {
+          "version": "0.4.18",
+          "note": "照 rc11 口径：EXT 嵌在包内 ext/（ASR 在 MiniMVP 里是否可用见 README「已知问题」）"
+        },
+        "corrections": [
+          "APP-120",
+          "APP-121"
+        ],
+        "v1.1_changes": [
+          "APP-120 §0：ASR-065/066 优化接入（pml 320 + 前缀左截断 + asr_enc_tiers 默认 off + 分档失败自动退回 2400 单档）",
+          "APP-120 §1：从 v2.5 全集按 minimvp profile 裁剪（ASR 只 0.6B / MT 只 INT8-CW / TTS 只 OV / 只预设 A / 无克隆）",
+          "APP-120 §1：出厂默认 ASR=GPU.0 / MT=GPU.0 / TTS=NPU（APP-119 自由配置）",
+          "APP-120 §1：APP-116/117 界面改动（耳机输出修复、去掉 4 个选项、去掉总状态灯）全部带上",
+          "APP-120 §2：验收（自检 + 洁净度 + 模型身份 + 10 分钟整链 + 10 语种 + 设备切换 + 全新目录/旧配置迁移）"
+        ],
+        "v1.1.1_changes": [
+          "修掉 **NPU 档长段崩溃**：≥18.3 s 的段不再让识别线程退出（NPU 档 prompt 上界按 handoff 口径只算 prompt，不把生成预留算进去）",
+          "单段解码出错**不再中断整条识别**（记日志 + 计数 + 跳过该段）",
+          "重打 zip 并做**解压自检**（全新目录 + 全新用户目录跑 --check + GUI 冒烟）",
+          "ACCEPTED 的模块清单与 zip 实际内容**完全一致**（无 CUDA 的包不再带 CUDA 后端模块）",
+          "README 面向客户改写：去内部编号、补「密集讲话时配音滞后」已知问题、区分「配音首包」与「字幕出字延迟」两个数"
+        ]
+      },
+      "sha_before": "8bcbf91ad414e96daba630a89673aa868d00f1ee0c5b5d9b618bdc4687b399b5",
+      "sha_after": "8bcbf91ad414e96daba630a89673aa868d00f1ee0c5b5d9b618bdc4687b399b5"
+    },
+    {
+      "step": "app/MANIFEST.json",
+      "before": {
+        "files": 10880,
+        "bytes": 6701776786,
+        "version": "1.1.1",
+        "notes": "MiniMVP v1.1.1：ASR=Qwen3-ASR 0.6B stateful INT8、MT=Hy-MT2 INT8-CW、TTS=OpenVINO（无 CUDA）、音色只有预设 A、无克隆、10 语种、出厂默认 ASR=GPU.0/MT=GPU.0/TTS=NPU。files/bytes 与 zip 内容同一口径（不含 MANIFEST 自身）。",
+        "packages": {
+          "av": "19.0.1",
+          "certifi": "2026.7.22",
+          "cffi": "2.1.1",
+          "charset-normalizer": "3.5.2",
+          "colorama": "0.4.6",
+          "filelock": "4.0.12",
+          "fsspec": "2026.9.0",
+          "huggingface_hub": "0.36.2",
+          "idna": "3.20",
+          "Jinja2": "3.1.6",
+          "MarkupSafe": "3.0.4",
+          "numpy": "2.4.6",
+          "openvino": "2026.4.1",
+          "openvino-genai": "2026.4.1",
+          "openvino-telemetry": "2025.2.0",
+          "openvino-tokenizers": "2026.4.1",
+          "packaging": "26.3",
+          "pillow": "12.3.0",
+          "pycparser": "3.11",
+          "PyYAML": "6.0.3",
+          "regex": "2026.9.29",
+          "requests": "2.34.2",
+          "safetensors": "0.8.0",
+          "soundcard": "0.4.6",
+          "sounddevice": "0.5.6",
+          "soundfile": "0.14.0",
+          "tokenizers": "0.22.2",
+          "tqdm": "4.70.1",
+          "transformers": "4.57.6",
+          "typing_extensions": "4.16.0",
+          "urllib3": "2.8.0",
+          "babelvox": "1.7.1",
+          "charset_normalizer": "3.5.2",
+          "cloudpickle": "3.1.2",
+          "decorator": "5.3.1",
+          "defusedxml": "0.7.1",
+          "joblib": "1.6.0",
+          "lazy_loader": "0.6",
+          "librosa": "1.0.0",
+          "llvmlite": "0.50.0",
+          "msgpack": "1.2.3",
+          "num2words": "0.5.14",
+          "numba": "0.68.0",
+          "openvino_genai": "2026.4.1.0",
+          "openvino_telemetry": "2025.2.0",
+          "openvino_tokenizers": "2026.4.1.0",
+          "pip": "25.0.1",
+          "platformdirs": "4.13.5",
+          "pooch": "1.9.0",
+          "scipy": "1.18.1",
+          "soxr": "1.1.0"
+        }
+      },
+      "after": {
+        "files": 10880,
+        "bytes": 6701776786,
+        "version": "1.1.1",
+        "notes": "MiniMVP v1.1.1：ASR=Qwen3-ASR 0.6B stateful INT8、MT=Hy-MT2 INT8-CW、TTS=OpenVINO（无 CUDA）、音色只有预设 A、无克隆、10 语种、出厂默认 ASR=GPU.0/MT=GPU.0/TTS=NPU。files/bytes 与 zip 内容同一口径（不含 MANIFEST 自身）。",
+        "packages": {
+          "av": "19.0.1",
+          "certifi": "2026.7.22",
+          "cffi": "2.1.1",
+          "charset-normalizer": "3.5.2",
+          "colorama": "0.4.6",
+          "filelock": "4.0.12",
+          "fsspec": "2026.9.0",
+          "huggingface_hub": "0.36.2",
+          "idna": "3.20",
+          "Jinja2": "3.1.6",
+          "MarkupSafe": "3.0.4",
+          "numpy": "2.4.6",
+          "openvino": "2026.4.1",
+          "openvino-genai": "2026.4.1",
+          "openvino-telemetry": "2025.2.0",
+          "openvino-tokenizers": "2026.4.1",
+          "packaging": "26.3",
+          "pillow": "12.3.0",
+          "pycparser": "3.11",
+          "PyYAML": "6.0.3",
+          "regex": "2026.9.29",
+          "requests": "2.34.2",
+          "safetensors": "0.8.0",
+          "soundcard": "0.4.6",
+          "sounddevice": "0.5.6",
+          "soundfile": "0.14.0",
+          "tokenizers": "0.22.2",
+          "tqdm": "4.70.1",
+          "transformers": "4.57.6",
+          "typing_extensions": "4.16.0",
+          "urllib3": "2.8.0",
+          "babelvox": "1.7.1",
+          "charset_normalizer": "3.5.2",
+          "cloudpickle": "3.1.2",
+          "decorator": "5.3.1",
+          "defusedxml": "0.7.1",
+          "joblib": "1.6.0",
+          "lazy_loader": "0.6",
+          "librosa": "1.0.0",
+          "llvmlite": "0.50.0",
+          "msgpack": "1.2.3",
+          "num2words": "0.5.14",
+          "numba": "0.68.0",
+          "openvino_genai": "2026.4.1.0",
+          "openvino_telemetry": "2025.2.0",
+          "openvino_tokenizers": "2026.4.1.0",
+          "pip": "25.0.1",
+          "platformdirs": "4.13.5",
+          "pooch": "1.9.0",
+          "scipy": "1.18.1",
+          "soxr": "1.1.0"
+        }
+      },
+      "sha_before": "2b06cf6daa1fe1fcccd42040247a8f811944e847ddc827d2c061b1f20ff44faf",
+      "sha_after": "2b06cf6daa1fe1fcccd42040247a8f811944e847ddc827d2c061b1f20ff44faf"
+    }
+  ],
+  "consistency": {
+    "n_production_modules": 31,
+    "n_zip_app_root_py": 31,
+    "n_zip_app_py_all": 37,
+    "zip_app_subdir_py": [
+      "asr_spk/asr052_speaker_tracker_api.py",
+      "asr_spk/asr052_spk_runtime.py",
+      "asr_spk/asr_runtime_switches.py",
+      "asr_spk/asr_spk_cluster_v2.py",
+      "asr_spk/asr_spk_window.py",
+      "asr_spk/asr_thread_defaults.py"
+    ],
+    "only_production": [],
+    "only_zip_root": [],
+    "fingerprint_subset_of_zip": true,
+    "tts_cuda_in_zip": [],
+    "tts_cuda_in_fingerprints": [],
+    "consistent": true
+  }
+}

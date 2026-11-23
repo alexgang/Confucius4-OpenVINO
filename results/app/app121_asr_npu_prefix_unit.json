@@ -1,0 +1,483 @@
+{
+  "script": "_app121_asr_npu_prefix_unit.py",
+  "ts": "2026-11-23 10:38:25",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1",
+  "target_file": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app\\asr06b_stateful_backend.py",
+  "target_sha256": "36f20581799f0b16404721f296535312b25a2a397e051901409c8fbf07439a22",
+  "target_file_in_pkg": true,
+  "no_inference": true,
+  "n_left_template_tokens": 18,
+  "cases": [
+    {
+      "case": "npu_a238_r32",
+      "device": "NPU",
+      "limit": 320,
+      "n_audio": 238,
+      "reserve": 32,
+      "n_prefix": 100,
+      "expect_ok": true,
+      "got_ok": true,
+      "pass": true,
+      "detail": {
+        "raised": null,
+        "skeleton": 256,
+        "emb_rows": 320,
+        "prompt_le_limit": true,
+        "total_le_cap": true,
+        "prefix_truncations": 1,
+        "truncations": 1,
+        "prefix_kept": 64,
+        "drop": 36
+      }
+    },
+    {
+      "case": "npu_a238_r64",
+      "device": "NPU",
+      "limit": 320,
+      "n_audio": 238,
+      "reserve": 64,
+      "n_prefix": 100,
+      "expect_ok": true,
+      "got_ok": true,
+      "pass": true,
+      "detail": {
+        "raised": null,
+        "skeleton": 256,
+        "emb_rows": 320,
+        "prompt_le_limit": true,
+        "total_le_cap": true,
+        "prefix_truncations": 1,
+        "truncations": 1,
+        "prefix_kept": 64,
+        "drop": 36
+      }
+    },
+    {
+      "case": "npu_a260_r32",
+      "device": "NPU",
+      "limit": 320,
+      "n_audio": 260,
+      "reserve": 32,
+      "n_prefix": 100,
+      "expect_ok": true,
+      "got_ok": true,
+      "pass": true,
+      "detail": {
+        "raised": null,
+        "skeleton": 278,
+        "emb_rows": 320,
+        "prompt_le_limit": true,
+        "total_le_cap": true,
+        "prefix_truncations": 1,
+        "truncations": 1,
+        "prefix_kept": 42,
+        "drop": 58
+      }
+    },
+    {
+      "case": "npu_a260_r64",
+      "device": "NPU",
+      "limit": 320,
+      "n_audio": 260,
+      "reserve": 64,
+      "n_prefix": 100,
+      "expect_ok": true,
+      "got_ok": true,
+      "pass": true,
+      "detail": {
+        "raised": null,
+        "skeleton": 278,
+        "emb_rows": 320,
+        "prompt_le_limit": true,
+        "total_le_cap": true,
+        "prefix_truncations": 1,
+        "truncations": 1,
+        "prefix_kept": 42,
+        "drop": 58
+      }
+    },
+    {
+      "case": "npu_a266_r32",
+      "device": "NPU",
+      "limit": 320,
+      "n_audio": 266,
+      "reserve": 32,
+      "n_prefix": 100,
+      "expect_ok": true,
+      "got_ok": true,
+      "pass": true,
+      "detail": {
+        "raised": null,
+        "skeleton": 284,
+        "emb_rows": 320,
+        "prompt_le_limit": true,
+        "total_le_cap": true,
+        "prefix_truncations": 1,
+        "truncations": 1,
+        "prefix_kept": 36,
+        "drop": 64
+      }
+    },
+    {
+      "case": "npu_a266_r64",
+      "device": "NPU",
+      "limit": 320,
+      "n_audio": 266,
+      "reserve": 64,
+      "n_prefix": 100,
+      "expect_ok": true,
+      "got_ok": true,
+      "pass": true,
+      "detail": {
+        "raised": null,
+        "skeleton": 284,
+        "emb_rows": 320,
+        "prompt_le_limit": true,
+        "total_le_cap": true,
+        "prefix_truncations": 1,
+        "truncations": 1,
+        "prefix_kept": 36,
+        "drop": 64
+      }
+    },
+    {
+      "case": "npu_a303_r32_skel321",
+      "device": "NPU",
+      "limit": 320,
+      "n_audio": 303,
+      "reserve": 32,
+      "n_prefix": 10,
+      "expect_ok": false,
+      "got_ok": false,
+      "pass": true,
+      "detail": {
+        "raised": "ValueError",
+        "msg": "prompt 骨架 321 > stateful 上界 320（音频过长）",
+        "skeleton": 321
+      }
+    },
+    {
+      "case": "npu_a303_r64_skel321",
+      "device": "NPU",
+      "limit": 320,
+      "n_audio": 303,
+      "reserve": 64,
+      "n_prefix": 10,
+      "expect_ok": false,
+      "got_ok": false,
+      "pass": true,
+      "detail": {
+        "raised": "ValueError",
+        "msg": "prompt 骨架 321 > stateful 上界 320（音频过长）",
+        "skeleton": 321
+      }
+    },
+    {
+      "case": "npu_a238_r64_short_prefix",
+      "device": "NPU",
+      "limit": 320,
+      "n_audio": 238,
+      "reserve": 64,
+      "n_prefix": 10,
+      "expect_ok": true,
+      "got_ok": true,
+      "pass": true,
+      "detail": {
+        "raised": null,
+        "skeleton": 256,
+        "emb_rows": 266,
+        "prompt_le_limit": true,
+        "total_le_cap": true,
+        "prefix_truncations": 0,
+        "truncations": 0,
+        "prefix_kept": 10,
+        "drop": 0
+      }
+    },
+    {
+      "case": "gpu_a238_r64",
+      "device": "GPU.0",
+      "limit": 512,
+      "n_audio": 238,
+      "reserve": 64,
+      "n_prefix": 100,
+      "expect_ok": true,
+      "got_ok": true,
+      "pass": true,
+      "detail": {
+        "raised": null,
+        "skeleton": 256,
+        "emb_rows": 356,
+        "prompt_le_limit": true,
+        "total_le_cap": true,
+        "prefix_truncations": 0,
+        "truncations": 0,
+        "prefix_kept": 100,
+        "drop": 0
+      }
+    },
+    {
+      "case": "gpu_a500_r64_toolong",
+      "device": "GPU.0",
+      "limit": 512,
+      "n_audio": 500,
+      "reserve": 64,
+      "n_prefix": 10,
+      "expect_ok": false,
+      "got_ok": false,
+      "pass": true,
+      "detail": {
+        "raised": "ValueError",
+        "msg": "prompt 骨架 518 + 预留 64 > stateful 上界 512（音频过长）",
+        "skeleton": 518
+      }
+    }
+  ],
+  "n_cases": 11,
+  "n_fail": 0,
+  "truncation_consistency": [
+    {
+      "n_audio": 238,
+      "kept_r32": 64,
+      "kept_r64": 64,
+      "consistent": true
+    },
+    {
+      "n_audio": 260,
+      "kept_r32": 42,
+      "kept_r64": 42,
+      "consistent": true
+    },
+    {
+      "n_audio": 266,
+      "kept_r32": 36,
+      "kept_r64": 36,
+      "consistent": true
+    }
+  ],
+  "n_consistency_fail": 0,
+  "anti_group": {
+    "old_file": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app121_bak\\old\\asr06b_stateful_backend.py",
+    "old_file_sha256": "07fff3964618956d260a96e66a85bf65c42db92a376bc05d1b94f1c8554b3d7e",
+    "n_npu_cases": 9,
+    "n_npu_raised": 4,
+    "n_npu_should_not_raise": 7,
+    "old_raised_on_should_pass": 2,
+    "rows": [
+      {
+        "case": "npu_a238_r32",
+        "device": "NPU",
+        "limit": 320,
+        "n_audio": 238,
+        "reserve": 32,
+        "n_prefix": 100,
+        "expect_ok": true,
+        "got_ok": true,
+        "pass": true,
+        "detail": {
+          "raised": null,
+          "skeleton": 256,
+          "emb_rows": 288,
+          "prompt_le_limit": true,
+          "total_le_cap": true,
+          "prefix_truncations": 1,
+          "truncations": 1,
+          "prefix_kept": 32,
+          "drop": 68
+        }
+      },
+      {
+        "case": "npu_a238_r64",
+        "device": "NPU",
+        "limit": 320,
+        "n_audio": 238,
+        "reserve": 64,
+        "n_prefix": 100,
+        "expect_ok": true,
+        "got_ok": true,
+        "pass": true,
+        "detail": {
+          "raised": null,
+          "skeleton": 256,
+          "emb_rows": 256,
+          "prompt_le_limit": true,
+          "total_le_cap": true,
+          "prefix_truncations": 1,
+          "truncations": 1,
+          "prefix_kept": 0,
+          "drop": 100
+        }
+      },
+      {
+        "case": "npu_a260_r32",
+        "device": "NPU",
+        "limit": 320,
+        "n_audio": 260,
+        "reserve": 32,
+        "n_prefix": 100,
+        "expect_ok": true,
+        "got_ok": true,
+        "pass": true,
+        "detail": {
+          "raised": null,
+          "skeleton": 278,
+          "emb_rows": 288,
+          "prompt_le_limit": true,
+          "total_le_cap": true,
+          "prefix_truncations": 1,
+          "truncations": 1,
+          "prefix_kept": 10,
+          "drop": 90
+        }
+      },
+      {
+        "case": "npu_a260_r64",
+        "device": "NPU",
+        "limit": 320,
+        "n_audio": 260,
+        "reserve": 64,
+        "n_prefix": 100,
+        "expect_ok": true,
+        "got_ok": false,
+        "pass": false,
+        "detail": {
+          "raised": "ValueError",
+          "msg": "prompt 骨架 278 + 预留 64 > stateful 上界 320（音频过长）",
+          "skeleton": 278
+        }
+      },
+      {
+        "case": "npu_a266_r32",
+        "device": "NPU",
+        "limit": 320,
+        "n_audio": 266,
+        "reserve": 32,
+        "n_prefix": 100,
+        "expect_ok": true,
+        "got_ok": true,
+        "pass": true,
+        "detail": {
+          "raised": null,
+          "skeleton": 284,
+          "emb_rows": 288,
+          "prompt_le_limit": true,
+          "total_le_cap": true,
+          "prefix_truncations": 1,
+          "truncations": 1,
+          "prefix_kept": 4,
+          "drop": 96
+        }
+      },
+      {
+        "case": "npu_a266_r64",
+        "device": "NPU",
+        "limit": 320,
+        "n_audio": 266,
+        "reserve": 64,
+        "n_prefix": 100,
+        "expect_ok": true,
+        "got_ok": false,
+        "pass": false,
+        "detail": {
+          "raised": "ValueError",
+          "msg": "prompt 骨架 284 + 预留 64 > stateful 上界 320（音频过长）",
+          "skeleton": 284
+        }
+      },
+      {
+        "case": "npu_a303_r32_skel321",
+        "device": "NPU",
+        "limit": 320,
+        "n_audio": 303,
+        "reserve": 32,
+        "n_prefix": 10,
+        "expect_ok": false,
+        "got_ok": false,
+        "pass": true,
+        "detail": {
+          "raised": "ValueError",
+          "msg": "prompt 骨架 321 + 预留 32 > stateful 上界 320（音频过长）",
+          "skeleton": 321
+        }
+      },
+      {
+        "case": "npu_a303_r64_skel321",
+        "device": "NPU",
+        "limit": 320,
+        "n_audio": 303,
+        "reserve": 64,
+        "n_prefix": 10,
+        "expect_ok": false,
+        "got_ok": false,
+        "pass": true,
+        "detail": {
+          "raised": "ValueError",
+          "msg": "prompt 骨架 321 + 预留 64 > stateful 上界 320（音频过长）",
+          "skeleton": 321
+        }
+      },
+      {
+        "case": "npu_a238_r64_short_prefix",
+        "device": "NPU",
+        "limit": 320,
+        "n_audio": 238,
+        "reserve": 64,
+        "n_prefix": 10,
+        "expect_ok": true,
+        "got_ok": true,
+        "pass": true,
+        "detail": {
+          "raised": null,
+          "skeleton": 256,
+          "emb_rows": 256,
+          "prompt_le_limit": true,
+          "total_le_cap": true,
+          "prefix_truncations": 1,
+          "truncations": 1,
+          "prefix_kept": 0,
+          "drop": 10
+        }
+      },
+      {
+        "case": "gpu_a238_r64",
+        "device": "GPU.0",
+        "limit": 512,
+        "n_audio": 238,
+        "reserve": 64,
+        "n_prefix": 100,
+        "expect_ok": true,
+        "got_ok": true,
+        "pass": true,
+        "detail": {
+          "raised": null,
+          "skeleton": 256,
+          "emb_rows": 356,
+          "prompt_le_limit": true,
+          "total_le_cap": true,
+          "prefix_truncations": 0,
+          "truncations": 0,
+          "prefix_kept": 100,
+          "drop": 0
+        }
+      },
+      {
+        "case": "gpu_a500_r64_toolong",
+        "device": "GPU.0",
+        "limit": 512,
+        "n_audio": 500,
+        "reserve": 64,
+        "n_prefix": 10,
+        "expect_ok": false,
+        "got_ok": false,
+        "pass": true,
+        "detail": {
+          "raised": "ValueError",
+          "msg": "prompt 骨架 518 + 预留 64 > stateful 上界 512（音频过长）",
+          "skeleton": 518
+        }
+      }
+    ],
+    "verdict_ok": true
+  },
+  "result": "PASS"
+}

@@ -2536,6 +2536,11 @@ class Session:
         self.audio_s = 0.0
         self.running = False
         self.error = None
+        # 🔴🔴🔳 **APP-121 §1**：单段解码异常的**计数**（旧行为：异常冒到
+        #   `_loop` 的外层 except ⇒ `self.error=e` / `running=False`
+        #   ⇒ **本次会话的字幕整条停掉**）。
+        #   ⇒ 现在：记日志 + 计数 + **跳过这一段继续**，ASR 线程不停。
+        self.asr_seg_errors = 0
         self.ended = threading.Event()
         # 🔴🔴🔴 APP-036 C3：**源音频结束的时刻**（主进程时钟）
         #   ⇒ `end_lag_s` = 「最后一句播完（或写完）」−「源音频结束」
@@ -2555,6 +2560,25 @@ class Session:
     @property
     def backlog_s(self):
         return self.q.qsize() * BLOCK_MS / 1000.0
+
+    def _note_seg_error(self, exc):
+        """🔴🔴🔳 **APP-121 §1**：记一次「单段解码异常」（**不抛、不停 ASR**）。
+
+        🔴 **旧行为**：`Session._loop` 里 `engine.feed()` 抛出的异常会冒到
+          外层 `except Exception as e:` ⇒ `self.error = e` / `self.running = False`
+          ⇒ **本次会话的字幕整条停掉**（APP-121 §1 的 [HIGH] 缺陷）。
+        🔴 **新行为**：**记日志 + 计数 + 跳过这一段继续**。
+          ⇒ 单段坏掉（例如某段音频过长触发解码失败）不再拖垮整条 ASR。
+        """
+        self.asr_seg_errors = int(getattr(self, 'asr_seg_errors', 0)) + 1
+        print('[asr-loop] ⚠ 单段解码异常（跳过本段，ASR 继续，累计 %d 次）：%r'
+              % (self.asr_seg_errors, exc), flush=True)
+        try:
+            stats = getattr(self.engine, 'stats', None)
+            if isinstance(stats, dict):
+                stats['seg_errors'] = self.asr_seg_errors
+        except Exception:
+            pass
 
     def _loop(self):
         try:
@@ -2589,10 +2613,20 @@ class Session:
                         self.on_audio_span(pcm, _chunk_start, self.audio_s)
                     except Exception:
                         pass
-                final = self.engine.feed(pcm, t_cap)
+                # 🔴🔴🔳 **APP-121 §1**：**单段解码异常不许停掉整条 ASR**
+                #   ⇒ 记日志 + 计数 + **跳过这一段继续**。
+                try:
+                    final = self.engine.feed(pcm, t_cap)
+                except Exception as e:
+                    self._note_seg_error(e)
+                    continue
                 if final:
                     self.on_final(*_split_spk(final))
-            tail = self.engine.flush()
+            try:
+                tail = self.engine.flush()
+            except Exception as e:
+                self._note_seg_error(e)
+                tail = None
             if tail:
                 self.on_final(*_split_spk(tail))
         except Exception as e:

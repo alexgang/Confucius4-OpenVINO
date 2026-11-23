@@ -76,6 +76,14 @@ NPUW_PROPS = {
     'NPUW_LLM_MIN_RESPONSE_LEN': '64',
 }
 
+#: 🔴🔴🔳 **APP-121 §1：NPU 档「总量检查」的余量**
+#:   = NPUW 的 `NPUW_LLM_MIN_RESPONSE_LEN`（**64**，**单一事实来源**取自
+#:   `NPUW_PROPS` 本身，不另写一个字面量）。
+#:   口径（handoff §三/§四）：`NPUW_LLM_MAX_PROMPT_LEN=320` 约束的是
+#:   **prompt**（骨架 + 音频 token + 前缀），**生成部分另算**
+#:   ⇒ KV 容量 = **320 + 64 = 384**。
+NPUW_MIN_RESPONSE_LEN = int(NPUW_PROPS['NPUW_LLM_MIN_RESPONSE_LEN'])
+
 #: 🔴🔴🔳 **APP-118 §1：encoder 分档开关（`asr_enc_tiers`），默认 OFF。**
 #:
 #: 🔴 **默认必须 off** ⇒ 不设置时**行为与 ASR-065 之前完全一致**
@@ -545,16 +553,49 @@ class ASR06BStatefulBackend(ASRBackend):
         `self._max_prompt_tok`（构造时按设备定：NPU ⇒ 320，GPU ⇒ 512）。
         ⇒ 截断**从左**（保留右端＝最近的内容；前缀右端才是最新内容）
         ⇒ **不抛错、不回退 512**（用户 11-20 定）。
+
+        🔴🔴🔳 **APP-121 §1**：**NPU 档的 `allowed_prefix` 不再减 `reserve`**
+        （生成部分另算 ⇒ KV = 320 + 64 = 384）；
+        **只有 `skeleton > limit` 才报错**；
+        总量检查 = `prompt + reserve ≤ limit + 64`（NPU）/ `≤ 512`（GPU）。
+        🔴 **GPU 档逻辑一字不动。**
         """
         prefix_ids = list(prefix_ids or [])
         limit = int(getattr(self, '_max_prompt_tok', MAX_STATEFUL_TOK))
+        reserve_n = max(1, int(reserve))
         skeleton = (len(self._ids_left) + int(audio_emb.shape[0])
                     + len(self._right_ids(force_language)))
-        allowed_prefix = limit - skeleton - max(1, int(reserve))
-        if allowed_prefix < 0:
-            raise ValueError(
-                'prompt 骨架 %d + 预留 %d > stateful 上界 %d（音频过长）'
-                % (skeleton, reserve, limit))
+        # 🔴🔴🔳 **APP-121 §1：NPU 档的 `allowed_prefix` 不再减 reserve**
+        #   🔴 **根因**：handoff §三/§四 的约束是 **prompt ≤ 320**
+        #     （= 骨架 + 音频 token + 前缀），**生成部分另算**
+        #     （KV = 320 + 64 = 384）；只有 `base_len > pml` 才报错。
+        #   🔴 **旧写法把 64 个生成 token 也算进了 320**
+        #     ⇒ `skeleton + 64 > 320` ⇒ 抛 ValueError
+        #     ⇒ **ASR=NPU 时，凡是 20 s 强制切段的段、以及 18.3–20 s 之间
+        #       靠静音切的段，都会让 ASR 线程退出（本次会话字幕整条停掉）**。
+        #   🔴 **修法**：NPU 档 `allowed_prefix = limit − skeleton`（**不减 reserve**），
+        #     **只有 `skeleton > limit` 才报错**（= handoff 的 `base_len > pml`）；
+        #     再保留一条**总量检查** `prompt + reserve ≤ limit + 64`。
+        #   🔴 **GPU 档（512）的逻辑一字不动**。
+        #   🔴 附带修正：流式档 reserve=32、段尾 reserve=64 ⇒ 旧写法两者
+        #     **前缀截断口径不同**（多砍 32 个 token）⇒ 转写与 ASR 参照口径不一致；
+        #     现在 NPU 档两者口径一致。
+        is_npu = (str(getattr(self, 'device', '')) == 'NPU')
+        if is_npu:
+            allowed_prefix = limit - skeleton
+            if skeleton > limit:
+                raise ValueError(
+                    'prompt 骨架 %d > stateful 上界 %d（音频过长）'
+                    % (skeleton, limit))
+            # 总量检查：prompt + reserve ≤ limit + NPUW 的 MIN_RESPONSE_LEN(64)
+            total_cap = limit + NPUW_MIN_RESPONSE_LEN
+        else:
+            allowed_prefix = limit - skeleton - reserve_n
+            if allowed_prefix < 0:
+                raise ValueError(
+                    'prompt 骨架 %d + 预留 %d > stateful 上界 %d（音频过长）'
+                    % (skeleton, reserve, limit))
+            total_cap = MAX_STATEFUL_TOK
         if len(prefix_ids) > allowed_prefix:
             drop = len(prefix_ids) - allowed_prefix
             # 🔴 **从左截断**（保留右端＝最近的内容）—— 前缀的**右端才是最新内容**
@@ -577,9 +618,9 @@ class ASR06BStatefulBackend(ASRBackend):
             parts.append(np.ascontiguousarray(self._W[prefix_ids],
                                               dtype=np.float32))
         emb = np.concatenate(parts, axis=0)
-        if emb.shape[0] + max(1, int(reserve)) > MAX_STATEFUL_TOK:
+        if emb.shape[0] + reserve_n > total_cap:
             raise ValueError(
-                f"sequence {emb.shape[0]} + reserve {reserve} > {MAX_STATEFUL_TOK}")
+                f"sequence {emb.shape[0]} + reserve {reserve} > {total_cap}")
         return emb
 
     # ── stateful greedy（照 bk_run._decode_logits_stateful）──────────

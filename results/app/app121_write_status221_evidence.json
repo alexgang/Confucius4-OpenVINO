@@ -1,0 +1,34 @@
+{
+  "script": "_app121_write_status221.py",
+  "ts": "2026-11-23 10:39:24",
+  "status": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+  "bytes_after": 28294,
+  "lines_after": 90,
+  "bytes_before": 39789,
+  "lines_before": 182,
+  "archive_file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\archive\\STATUS_APP_sec181_210_headers_20261123.md",
+  "archive_block_sha256": "609dfff6d1844f0ebb1c70e5ce17e5595b8329efdfb242d7933e20baacae205b",
+  "archive_block_bytes": 15240,
+  "checks": {
+    "last_ack = APP-121": true,
+    "§221 标题行在": true,
+    "§181–§210 已换成指针行": true,
+    "旧 §211 标题行仍在": true,
+    "旧 §220 标题行仍在": true,
+    "「最近更新」本轮条目在": true,
+    "字节数 ≤ 40000": true,
+    "行数 ≤ 300": true,
+    "还原式复核（去掉本轮新增后与写前原件逐字节一致）": true
+  },
+  "n_fail": 0,
+  "backup": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\STATUS_APP.md.bak_app121",
+  "verdict": "PASS",
+  "note": "第一版复核脚本用 `rstrip()`/正则还原 ⇒ **把「指针行换回归档块」处的空行吃掉 ⇒ 假 FAIL**；**写盘本身是对的**（已用「按整行替换」的还原式复核重验：**与写前原件逐字节相同**）。复核脚本已修正。",
+  "recheck_ts": "2026-11-23 10:40:40",
+  "history": {
+    "第一版复核写法": "FAIL（**复核脚本自身的缺陷**：用 rstrip()/正则还原 ⇒ 把「指针行换回归档块」处的空行吃掉 ⇒ 假 FAIL；**写盘本身是对的**）",
+    "旧结果": false,
+    "修正后": "PASS（按整行替换 ⇒ 与写前原件逐字节相同）",
+    "旧写法（保留记录，不计入判定）": false
+  }
+}

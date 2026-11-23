@@ -1,0 +1,60 @@
+{
+  "script": "_app121_sync_pkg.py",
+  "ts": "2026-11-23 09:22:36",
+  "applied": false,
+  "targets": [
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5\\app",
+    "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app"
+  ],
+  "files": [
+    "asr06b_stateful_backend.py",
+    "live_caption_app.py"
+  ],
+  "rows": [
+    {
+      "file": "asr06b_stateful_backend.py",
+      "target_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5\\app",
+      "target_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5\\app\\asr06b_stateful_backend.py",
+      "sha_before": "07fff3964618956d260a96e66a85bf65c42db92a376bc05d1b94f1c8554b3d7e",
+      "bytes_before": 32864,
+      "precond_ok": true,
+      "n_hunks": 3,
+      "undo_check": "PASS",
+      "dry_run": "PASS（未写盘）"
+    },
+    {
+      "file": "live_caption_app.py",
+      "target_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5\\app",
+      "target_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5\\app\\live_caption_app.py",
+      "sha_before": "4701e5bd81ffbb65e6d2feefe7e06ae0703cb55a8143720c60da4dcc4663bd46",
+      "bytes_before": 532377,
+      "precond_ok": true,
+      "n_hunks": 3,
+      "undo_check": "PASS",
+      "dry_run": "PASS（未写盘）"
+    },
+    {
+      "file": "asr06b_stateful_backend.py",
+      "target_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app",
+      "target_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app\\asr06b_stateful_backend.py",
+      "sha_before": "07fff3964618956d260a96e66a85bf65c42db92a376bc05d1b94f1c8554b3d7e",
+      "bytes_before": 32864,
+      "precond_ok": true,
+      "n_hunks": 3,
+      "undo_check": "PASS",
+      "dry_run": "PASS（未写盘）"
+    },
+    {
+      "file": "live_caption_app.py",
+      "target_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app",
+      "target_path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1\\app\\live_caption_app.py",
+      "sha_before": "4701e5bd81ffbb65e6d2feefe7e06ae0703cb55a8143720c60da4dcc4663bd46",
+      "bytes_before": 532377,
+      "precond_ok": true,
+      "n_hunks": 3,
+      "undo_check": "PASS",
+      "dry_run": "PASS（未写盘）"
+    }
+  ],
+  "all_ok": true
+}
