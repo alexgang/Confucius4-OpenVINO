@@ -118,6 +118,53 @@ _APP027_JSONL_KEYS = (
     'read_delta', 'cb_delta',
 )
 
+
+# 🔴🔴🔴 **APP-123 §3 / TTS-076：峰值限幅（整句缩放）+ 削波计数**
+#
+# TTS-076 的做法：旧版用 `np.clip(-1, 1)` **硬削** ⇒ 削平段失真；
+# 新版改成**整句缩放**（peak > 0.98 ⇒ gain = 0.98 / peak）
+# ⇒ wav 里 |x| >= 0.999 的采样数从 33 降到 **0**。
+#
+# ⚠️ **本 App 的诚实边界**（写清楚，别让 reviewer 误读）：
+#   OV 路径的**每块**硬削发生在 `babelvox/pipeline.py` L637（`np.clip(wav, -1.0, 1.0)`），
+#   那在**块级**、在我们看到整句之前 ⇒ 块内已越界的采样**无法恢复**。
+#   本函数做的是：**整句**层面保证成品不超过 0.98（不再叠加失真），
+#   并如实报出 `n_clipped` / `n_near_fs` / `peak_before` / `limiter_gain`，
+#   让 reviewer 能判断「信号是否过热」。
+APP123_PEAK_LIMIT = 0.98
+
+
+def app123_peak_limit(wav, peak_limit=None):
+    """整句峰值限幅（TTS-076 口径）。返回 (wav_limited, info)。
+
+    info 里有 peak_before / peak_after / limiter_gain / n_clipped /
+    n_near_full_scale / limited 六个字段。
+    """
+    info = dict(peak_before=0.0, peak_after=0.0, limiter_gain=1.0,
+                n_clipped=0, n_near_full_scale=0, limited=False)
+    if wav is None:
+        return wav, info
+    try:
+        import numpy as _np
+        arr = _np.asarray(wav, dtype=_np.float32).reshape(-1)
+    except Exception:
+        return wav, info
+    if arr.size == 0:
+        return wav, info
+    lim = APP123_PEAK_LIMIT if peak_limit is None else float(peak_limit)
+    absarr = _np.abs(arr)
+    peak_before = float(absarr.max())
+    info['peak_before'] = round(peak_before, 6)
+    info['n_clipped'] = int(_np.count_nonzero(absarr > 1.0))
+    info['n_near_full_scale'] = int(_np.count_nonzero(absarr >= 0.999))
+    if peak_before > lim and peak_before > 0:
+        gain = lim / peak_before
+        arr = (arr * gain).astype(_np.float32)
+        info['limiter_gain'] = round(float(gain), 6)
+        info['limited'] = True
+    info['peak_after'] = round(float(_np.abs(arr).max()) if arr.size else 0.0, 6)
+    return arr, info
+
 # 🔴🔴🔴 APP-028②：**队列水位 / 语音滞后 / 队列峰值**（逐句 jsonl）。
 #   APP-028 验收明文要求：「报告 5 分钟测试里队列的**峰值（秒和 MB）**」
 #   ⇒ 必须**逐句落盘** ⇒ 否则验收只能翻会话日志（散文）。
@@ -2113,6 +2160,11 @@ class TTSWorker:
         #   ⇒ 失控句的「出事段」一定在里面 ⇒ reviewer 能拿到音频。
         _anom_buf = deque(maxlen=48)
         # 🔴🔴 APP-021②：本句的**幅度/数值**统计（用于判定「合成出来是不是静音」）。
+        # 🔴🔴🔴 APP-123 / TTS-076：**削波计数**（|x| >= 1.0，会被削平）与
+        #   **近满量程计数**（|x| >= 0.999，软性指标）
+        #   ⇒ reviewer 可直接核对「限幅有没有触发、削得多硬」。
+        n_clipped = 0
+        n_near_fs = 0
         #   ⚠️ 必须逐块累计，不能只在最后算一次（分块流式），
         #   也不能 import numpy 到模块顶层（numpy 预导入见 main()）。
         peak = 0.0
@@ -2385,6 +2437,12 @@ class TTSWorker:
                             sum_sq += float((wf ** 2).sum())
                             n_nan += int(np.count_nonzero(np.isnan(wf)))
                             n_inf += int(np.count_nonzero(np.isinf(wf)))
+                            # 🔴 APP-123 / TTS-076：削波计数（|x| >= 1.0）
+                            n_clipped += int(np.count_nonzero(
+                                np.abs(wf) >= 1.0))
+                            # 🔴 近满量程（>= 0.999）：软性指标
+                            n_near_fs += int(np.count_nonzero(
+                                np.abs(wf) >= 0.999))
                     except Exception:
                         pass
                     if self.out_wav or self.dump_dir:
@@ -2597,6 +2655,22 @@ class TTSWorker:
         # 🔴🔴 APP-027②：`dur` 必须在遥测**之前**算好
         #   （`synth_rtf` 的分母就是它）。
         dur = n_samples / float(self.sr if self.sr else SR)
+        # 🔴🔴🔴 APP-123 §3 / TTS-076：整句峰值限幅
+        #   （OV 路径；CUDA 路径不经过这里 ⇒ CUDA 行为逐字不变）
+        _app123_limiter = None
+        try:
+            _sent = (np.concatenate(out_parts) if len(out_parts) > 1
+                     else (out_parts[0] if out_parts else None))
+            if _sent is not None and len(_sent):
+                _sent_lim, _app123_limiter = app123_peak_limit(_sent)
+                if _app123_limiter.get('limited'):
+                    # 整句缩放 ⇒ 回写到逐块列表（保持各块相对时长不变）
+                    _g = float(_app123_limiter['limiter_gain'])
+                    out_parts = [np.asarray(p, dtype=np.float32) * _g
+                                 for p in out_parts]
+        except Exception as e:
+            log('[tts_worker] APP-123 峰值限幅失败（忽略）：%s' % e)
+            _app123_limiter = None
         tel = self._telemetry_snapshot(n_samples, n_parts, peak, rms_dbfs,
                                        n_nan + n_inf, base_cb, base_read,
                                        base_underflow)
@@ -3013,6 +3087,12 @@ class TTSWorker:
         """
         tel = dict(n_samples=int(n_samples), n_parts=int(n_parts),
                    peak=round(float(peak), 6),
+                   # 🔴 APP-123 §3 / TTS-076：限幅与削波计数
+                   **({'n_clipped': int(_app123_limiter['n_clipped']),
+                       'n_near_full_scale': int(_app123_limiter['n_near_full_scale']),
+                       'peak_before_limit': float(_app123_limiter['peak_before']),
+                       'limiter_gain': float(_app123_limiter['limiter_gain'])}
+                      if _app123_limiter else {}),
                    rms_dbfs=round(float(rms_dbfs), 2),
                    n_nan_inf=int(n_nan_inf),
                    cb_delta=0, read_delta=0, underflow_delta=0,

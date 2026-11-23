@@ -1,0 +1,1387 @@
+{
+ "generated_by": "_app126_collect.py",
+ "e8_our_run": {
+  "clip_cs2": {
+   "status": "OK",
+   "media": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\clips\\cs2.wav",
+   "duration_s": 73.6,
+   "delay_sec": 20.0,
+   "bg_blocks": 74,
+   "bg_contiguous": true,
+   "bg_covered_s": 73.6,
+   "bg_late_blocks": 0,
+   "bg_late_at": [],
+   "fallback_to_orig_s": 0.0,
+   "dubs": 15,
+   "dub_late_vs_play_s": {
+    "max": -0.21,
+    "p90": -1.26,
+    "n_late": 0
+   },
+   "dub_shift_msgs": 10,
+   "dub_shift_applied": 2,
+   "bg_margin_min_s": 9.36,
+   "bg_margin_p10_s": 10.29,
+   "bg_margin_median_s": 12.54,
+   "sep_device": "GPU.0",
+   "sep_rtf_p50": 0.209,
+   "sep_rtf_p90": 0.228,
+   "sep_compile_s": 1.61,
+   "bg_up_gaps": 0,
+   "bg_blocks_sent": 74,
+   "bg_state": "ok",
+   "bg_lead_sec": 0.0,
+   "bg_clone_from_vocals": 0,
+   "bg_clone_fallback_orig": 0,
+   "bg_onset_shifted": 10,
+   "bg_onset_no_vocals": 1,
+   "bg_status_last": {
+    "state": "ok",
+    "device": "GPU.0",
+    "reason": "",
+    "rtf": 0.209,
+    "lead_sec": 0.0,
+    "at": 93.57
+   },
+   "stats_full_spk_fields": {
+    "speaker": {
+     "n_speakers": 0,
+     "n_pending_unassigned": 15,
+     "n_final_without_spk": 30,
+     "clean_sec_required": 3.0,
+     "preset_voice": "A",
+     "blocking_diarization": false
+    },
+    "spk_bypass": {
+     "enabled": false,
+     "spk_queue_drop": 0,
+     "spk_worker_busy_ms": 0.0,
+     "note": "本会话未接说话人旁路（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）"
+    }
+   },
+   "n_dub_items": 8,
+   "first_dub": {
+    "k": null,
+    "t_start": null,
+    "shift_to": null,
+    "voice": null
+   },
+   "n_items_with_shift_to": 4,
+   "shift_to_list": [
+    [
+     null,
+     3.3
+    ],
+    [
+     null,
+     6.5
+    ],
+    [
+     null,
+     11.52
+    ],
+    [
+     null,
+     15.26
+    ]
+   ]
+  },
+  "clip_s1": {
+   "status": "OK",
+   "media": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\clips\\s1.wav",
+   "duration_s": 22.7,
+   "delay_sec": 20.0,
+   "bg_blocks": 23,
+   "bg_contiguous": true,
+   "bg_covered_s": 22.7,
+   "bg_late_blocks": 0,
+   "bg_late_at": [],
+   "fallback_to_orig_s": 0.0,
+   "dubs": 4,
+   "dub_late_vs_play_s": {
+    "max": -3.73,
+    "p90": -4.23,
+    "n_late": 0
+   },
+   "dub_shift_msgs": 0,
+   "dub_shift_applied": 0,
+   "bg_margin_min_s": 9.87,
+   "bg_margin_p10_s": 10.64,
+   "bg_margin_median_s": 12.85,
+   "sep_device": "GPU.0",
+   "sep_rtf_p50": 0.221,
+   "sep_rtf_p90": 0.229,
+   "sep_compile_s": 1.54,
+   "bg_up_gaps": 0,
+   "bg_blocks_sent": 23,
+   "bg_state": "ok",
+   "bg_lead_sec": 0.0,
+   "bg_clone_from_vocals": 0,
+   "bg_clone_fallback_orig": 0,
+   "bg_onset_shifted": 0,
+   "bg_onset_no_vocals": 0,
+   "bg_status_last": {
+    "state": "ok",
+    "device": "GPU.0",
+    "reason": "",
+    "rtf": 0.221,
+    "lead_sec": 0.0,
+    "at": 42.72
+   },
+   "stats_full_spk_fields": {
+    "speaker": {
+     "n_speakers": 0,
+     "n_pending_unassigned": 4,
+     "n_final_without_spk": 8,
+     "clean_sec_required": 3.0,
+     "preset_voice": "A",
+     "blocking_diarization": false
+    },
+    "spk_bypass": {
+     "enabled": false,
+     "spk_queue_drop": 0,
+     "spk_worker_busy_ms": 0.0,
+     "note": "本会话未接说话人旁路（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）"
+    }
+   },
+   "n_dub_items": 4,
+   "first_dub": {
+    "k": null,
+    "t_start": null,
+    "shift_to": null,
+    "voice": null
+   },
+   "n_items_with_shift_to": 0,
+   "shift_to_list": []
+  },
+  "clip_s2": {
+   "status": "OK",
+   "media": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\clips\\s2.wav",
+   "duration_s": 30.7,
+   "delay_sec": 20.0,
+   "bg_blocks": 31,
+   "bg_contiguous": true,
+   "bg_covered_s": 30.7,
+   "bg_late_blocks": 0,
+   "bg_late_at": [],
+   "fallback_to_orig_s": 0.0,
+   "dubs": 5,
+   "dub_late_vs_play_s": {
+    "max": 4.41,
+    "p90": 1.21,
+    "n_late": 1
+   },
+   "dub_shift_msgs": 1,
+   "dub_shift_applied": 1,
+   "bg_margin_min_s": 9.88,
+   "bg_margin_p10_s": 10.26,
+   "bg_margin_median_s": 12.85,
+   "sep_device": "GPU.0",
+   "sep_rtf_p50": 0.219,
+   "sep_rtf_p90": 0.231,
+   "sep_compile_s": 1.67,
+   "bg_up_gaps": 0,
+   "bg_blocks_sent": 31,
+   "bg_state": "ok",
+   "bg_lead_sec": 0.0,
+   "bg_clone_from_vocals": 0,
+   "bg_clone_fallback_orig": 0,
+   "bg_onset_shifted": 1,
+   "bg_onset_no_vocals": 0,
+   "bg_status_last": {
+    "state": "ok",
+    "device": "GPU.0",
+    "reason": "",
+    "rtf": 0.219,
+    "lead_sec": 0.0,
+    "at": 52.8
+   },
+   "stats_full_spk_fields": {
+    "speaker": {
+     "n_speakers": 0,
+     "n_pending_unassigned": 5,
+     "n_final_without_spk": 10,
+     "clean_sec_required": 3.0,
+     "preset_voice": "A",
+     "blocking_diarization": false
+    },
+    "spk_bypass": {
+     "enabled": false,
+     "spk_queue_drop": 0,
+     "spk_worker_busy_ms": 0.0,
+     "note": "本会话未接说话人旁路（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）"
+    }
+   },
+   "n_dub_items": 5,
+   "first_dub": {
+    "k": null,
+    "t_start": null,
+    "shift_to": null,
+    "voice": null
+   },
+   "n_items_with_shift_to": 1,
+   "shift_to_list": [
+    [
+     null,
+     14.77
+    ]
+   ]
+  },
+  "clip_tuffy": {
+   "status": "OK",
+   "media": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\clips\\tuffy.wav",
+   "duration_s": 45.1,
+   "delay_sec": 20.0,
+   "bg_blocks": 46,
+   "bg_contiguous": true,
+   "bg_covered_s": 45.1,
+   "bg_late_blocks": 0,
+   "bg_late_at": [],
+   "fallback_to_orig_s": 0.0,
+   "dubs": 7,
+   "dub_late_vs_play_s": {
+    "max": 13.3,
+    "p90": 8.51,
+    "n_late": 3
+   },
+   "dub_shift_msgs": 2,
+   "dub_shift_applied": 1,
+   "bg_margin_min_s": 9.68,
+   "bg_margin_p10_s": 10.28,
+   "bg_margin_median_s": 12.75,
+   "sep_device": "GPU.0",
+   "sep_rtf_p50": 0.234,
+   "sep_rtf_p90": 0.266,
+   "sep_compile_s": 1.64,
+   "bg_up_gaps": 0,
+   "bg_blocks_sent": 46,
+   "bg_state": "ok",
+   "bg_lead_sec": 0.0,
+   "bg_clone_from_vocals": 0,
+   "bg_clone_fallback_orig": 0,
+   "bg_onset_shifted": 2,
+   "bg_onset_no_vocals": 2,
+   "bg_status_last": {
+    "state": "ok",
+    "device": "GPU.0",
+    "reason": "",
+    "rtf": 0.234,
+    "lead_sec": 0.0,
+    "at": 73.21
+   },
+   "stats_full_spk_fields": {
+    "speaker": {
+     "n_speakers": 0,
+     "n_pending_unassigned": 7,
+     "n_final_without_spk": 14,
+     "clean_sec_required": 3.0,
+     "preset_voice": "A",
+     "blocking_diarization": false
+    },
+    "spk_bypass": {
+     "enabled": false,
+     "spk_queue_drop": 0,
+     "spk_worker_busy_ms": 0.0,
+     "note": "本会话未接说话人旁路（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）"
+    }
+   },
+   "n_dub_items": 7,
+   "first_dub": {
+    "k": null,
+    "t_start": null,
+    "shift_to": null,
+    "voice": null
+   },
+   "n_items_with_shift_to": 2,
+   "shift_to_list": [
+    [
+     null,
+     3.85
+    ],
+    [
+     null,
+     11.29
+    ]
+   ]
+  },
+  "clone_s1": {
+   "status": "OK",
+   "media": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\clips\\s1.wav",
+   "duration_s": 22.7,
+   "delay_sec": 20.0,
+   "bg_blocks": 23,
+   "bg_contiguous": true,
+   "bg_covered_s": 22.7,
+   "bg_late_blocks": 0,
+   "bg_late_at": [],
+   "fallback_to_orig_s": 0.0,
+   "dubs": 4,
+   "dub_late_vs_play_s": {
+    "max": 5.86,
+    "p90": 3.46,
+    "n_late": 1
+   },
+   "dub_shift_msgs": 0,
+   "dub_shift_applied": 0,
+   "bg_margin_min_s": 9.88,
+   "bg_margin_p10_s": 10.63,
+   "bg_margin_median_s": 12.95,
+   "sep_device": "GPU.0",
+   "sep_rtf_p50": 0.215,
+   "sep_rtf_p90": 0.227,
+   "sep_compile_s": 1.66,
+   "bg_up_gaps": 0,
+   "bg_blocks_sent": 23,
+   "bg_state": "ok",
+   "bg_lead_sec": 0.0,
+   "bg_clone_from_vocals": 3,
+   "bg_clone_fallback_orig": 0,
+   "bg_onset_shifted": 0,
+   "bg_onset_no_vocals": 0,
+   "bg_status_last": {
+    "state": "ok",
+    "device": "GPU.0",
+    "reason": "",
+    "rtf": 0.215,
+    "lead_sec": 0.0,
+    "at": 52.73
+   },
+   "stats_full_spk_fields": {
+    "speaker": {
+     "n_speakers": 0,
+     "n_pending_unassigned": 4,
+     "n_final_without_spk": 8,
+     "clean_sec_required": 3.0,
+     "preset_voice": "A",
+     "blocking_diarization": false
+    },
+    "spk_bypass": {
+     "enabled": false,
+     "spk_queue_drop": 0,
+     "spk_worker_busy_ms": 0.0,
+     "note": "本会话未接说话人旁路（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）"
+    }
+   },
+   "n_dub_items": 4,
+   "first_dub": {
+    "k": null,
+    "t_start": null,
+    "shift_to": null,
+    "voice": null
+   },
+   "n_items_with_shift_to": 0,
+   "shift_to_list": []
+  },
+  "clone_s2": {
+   "status": "OK",
+   "media": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\clips\\s2.wav",
+   "duration_s": 30.7,
+   "delay_sec": 20.0,
+   "bg_blocks": 31,
+   "bg_contiguous": true,
+   "bg_covered_s": 30.7,
+   "bg_late_blocks": 0,
+   "bg_late_at": [],
+   "fallback_to_orig_s": 0.0,
+   "dubs": 5,
+   "dub_late_vs_play_s": {
+    "max": 4.39,
+    "p90": 1.2,
+    "n_late": 1
+   },
+   "dub_shift_msgs": 1,
+   "dub_shift_applied": 1,
+   "bg_margin_min_s": 9.87,
+   "bg_margin_p10_s": 10.25,
+   "bg_margin_median_s": 12.81,
+   "sep_device": "GPU.0",
+   "sep_rtf_p50": 0.215,
+   "sep_rtf_p90": 0.237,
+   "sep_compile_s": 1.51,
+   "bg_up_gaps": 0,
+   "bg_blocks_sent": 31,
+   "bg_state": "ok",
+   "bg_lead_sec": 0.0,
+   "bg_clone_from_vocals": 4,
+   "bg_clone_fallback_orig": 0,
+   "bg_onset_shifted": 1,
+   "bg_onset_no_vocals": 0,
+   "bg_status_last": {
+    "state": "ok",
+    "device": "GPU.0",
+    "reason": "",
+    "rtf": 0.215,
+    "lead_sec": 0.0,
+    "at": 62.83
+   },
+   "stats_full_spk_fields": {
+    "speaker": {
+     "n_speakers": 0,
+     "n_pending_unassigned": 5,
+     "n_final_without_spk": 10,
+     "clean_sec_required": 3.0,
+     "preset_voice": "A",
+     "blocking_diarization": false
+    },
+    "spk_bypass": {
+     "enabled": false,
+     "spk_queue_drop": 0,
+     "spk_worker_busy_ms": 0.0,
+     "note": "本会话未接说话人旁路（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）"
+    }
+   },
+   "n_dub_items": 5,
+   "first_dub": {
+    "k": null,
+    "t_start": null,
+    "shift_to": null,
+    "voice": null
+   },
+   "n_items_with_shift_to": 1,
+   "shift_to_list": [
+    [
+     null,
+     14.77
+    ]
+   ]
+  },
+  "clone_cs2": {
+   "status": "OK",
+   "media": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\clips\\cs2.wav",
+   "duration_s": 73.6,
+   "delay_sec": 20.0,
+   "bg_blocks": 74,
+   "bg_contiguous": true,
+   "bg_covered_s": 73.6,
+   "bg_late_blocks": 0,
+   "bg_late_at": [],
+   "fallback_to_orig_s": 0.0,
+   "dubs": 21,
+   "dub_late_vs_play_s": {
+    "max": -0.47,
+    "p90": -2.89,
+    "n_late": 0
+   },
+   "dub_shift_msgs": 18,
+   "dub_shift_applied": 11,
+   "bg_margin_min_s": 9.17,
+   "bg_margin_p10_s": 10.19,
+   "bg_margin_median_s": 12.65,
+   "sep_device": "GPU.0",
+   "sep_rtf_p50": 0.2,
+   "sep_rtf_p90": 0.232,
+   "sep_compile_s": 1.63,
+   "bg_up_gaps": 0,
+   "bg_blocks_sent": 74,
+   "bg_state": "ok",
+   "bg_lead_sec": 0.0,
+   "bg_clone_from_vocals": 20,
+   "bg_clone_fallback_orig": 0,
+   "bg_onset_shifted": 18,
+   "bg_onset_no_vocals": 1,
+   "bg_status_last": {
+    "state": "ok",
+    "device": "GPU.0",
+    "reason": "",
+    "rtf": 0.2,
+    "lead_sec": 0.0,
+    "at": 103.65
+   },
+   "stats_full_spk_fields": {
+    "speaker": {
+     "n_speakers": 0,
+     "n_pending_unassigned": 21,
+     "n_final_without_spk": 42,
+     "clean_sec_required": 3.0,
+     "preset_voice": "A",
+     "blocking_diarization": false
+    },
+    "spk_bypass": {
+     "enabled": false,
+     "spk_queue_drop": 0,
+     "spk_worker_busy_ms": 0.0,
+     "note": "本会话未接说话人旁路（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）"
+    }
+   },
+   "n_dub_items": 8,
+   "first_dub": {
+    "k": null,
+    "t_start": null,
+    "shift_to": null,
+    "voice": null
+   },
+   "n_items_with_shift_to": 7,
+   "shift_to_list": [
+    [
+     null,
+     3.3
+    ],
+    [
+     null,
+     6.5
+    ],
+    [
+     null,
+     11.52
+    ],
+    [
+     null,
+     15.23
+    ],
+    [
+     null,
+     17.33
+    ],
+    [
+     null,
+     19.6
+    ],
+    [
+     null,
+     26.35
+    ]
+   ]
+  }
+ },
+ "e7_reviewer_run_readonly": {
+  "off": {
+   "status": "OK",
+   "media": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+   "duration_s": 600.0,
+   "delay_sec": 20.0,
+   "bg_blocks": 0,
+   "bg_contiguous": true,
+   "bg_covered_s": 0.0,
+   "bg_late_blocks": 0,
+   "bg_late_at": [],
+   "fallback_to_orig_s": 600.0,
+   "dubs": 123,
+   "dub_late_vs_play_s": {
+    "max": 2.43,
+    "p90": -1.54,
+    "n_late": 7
+   },
+   "dub_shift_msgs": 0,
+   "dub_shift_applied": 0,
+   "bg_margin_min_s": null,
+   "bg_margin_p10_s": null,
+   "bg_margin_median_s": null,
+   "sep_device": null,
+   "sep_rtf_p50": null,
+   "sep_rtf_p90": null,
+   "sep_compile_s": null,
+   "bg_up_gaps": 0,
+   "bg_blocks_sent": 0,
+   "bg_state": "off",
+   "bg_lead_sec": null,
+   "bg_clone_from_vocals": 0,
+   "bg_clone_fallback_orig": 0,
+   "bg_onset_shifted": 0,
+   "bg_onset_no_vocals": 0,
+   "bg_status_last": {
+    "state": "off",
+    "device": null,
+    "reason": "",
+    "rtf": null,
+    "lead_sec": null,
+    "at": 0.0
+   },
+   "stats_full_spk_fields": {
+    "speaker": {
+     "n_speakers": 0,
+     "n_pending_unassigned": 123,
+     "n_final_without_spk": 246,
+     "clean_sec_required": 3.0,
+     "preset_voice": "A",
+     "blocking_diarization": false
+    },
+    "spk_bypass": {
+     "enabled": false,
+     "spk_queue_drop": 0,
+     "spk_worker_busy_ms": 0.0,
+     "note": "本会话未接说话人旁路（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）"
+    }
+   },
+   "n_dub_items": 8,
+   "first_dub": {
+    "k": null,
+    "t_start": null,
+    "shift_to": null,
+    "voice": null
+   },
+   "n_items_with_shift_to": 0,
+   "shift_to_list": []
+  },
+  "on_gpu": {
+   "status": "OK",
+   "media": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+   "duration_s": 600.0,
+   "delay_sec": 20.0,
+   "bg_blocks": 600,
+   "bg_contiguous": true,
+   "bg_covered_s": 600.0,
+   "bg_late_blocks": 0,
+   "bg_late_at": [],
+   "fallback_to_orig_s": 0.0,
+   "dubs": 123,
+   "dub_late_vs_play_s": {
+    "max": 3.41,
+    "p90": -1.43,
+    "n_late": 8
+   },
+   "dub_shift_msgs": 100,
+   "dub_shift_applied": 37,
+   "bg_margin_min_s": 9.27,
+   "bg_margin_p10_s": 9.97,
+   "bg_margin_median_s": 12.34,
+   "sep_device": "GPU.0",
+   "sep_rtf_p50": 0.215,
+   "sep_rtf_p90": 0.25,
+   "sep_compile_s": 2.39,
+   "bg_up_gaps": 0,
+   "bg_blocks_sent": 600,
+   "bg_state": "ok",
+   "bg_lead_sec": 0.0,
+   "bg_clone_from_vocals": 0,
+   "bg_clone_fallback_orig": 0,
+   "bg_onset_shifted": 100,
+   "bg_onset_no_vocals": 10,
+   "bg_status_last": {
+    "state": "ok",
+    "device": "GPU.0",
+    "reason": "",
+    "rtf": 0.215,
+    "lead_sec": 0.0,
+    "at": 686.25
+   },
+   "stats_full_spk_fields": {
+    "speaker": {
+     "n_speakers": 0,
+     "n_pending_unassigned": 123,
+     "n_final_without_spk": 246,
+     "clean_sec_required": 3.0,
+     "preset_voice": "A",
+     "blocking_diarization": false
+    },
+    "spk_bypass": {
+     "enabled": false,
+     "spk_queue_drop": 0,
+     "spk_worker_busy_ms": 0.0,
+     "note": "本会话未接说话人旁路（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）"
+    }
+   },
+   "n_dub_items": 8,
+   "first_dub": {
+    "k": null,
+    "t_start": null,
+    "shift_to": 0.89,
+    "voice": null
+   },
+   "n_items_with_shift_to": 6,
+   "shift_to_list": [
+    [
+     null,
+     0.89
+    ],
+    [
+     null,
+     10.45
+    ],
+    [
+     null,
+     13.92
+    ],
+    [
+     null,
+     21.56
+    ],
+    [
+     null,
+     30.58
+    ],
+    [
+     null,
+     33.76
+    ]
+   ]
+  },
+  "on_cpu": {
+   "status": "OK",
+   "media": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+   "duration_s": 600.0,
+   "delay_sec": 20.0,
+   "bg_blocks": 600,
+   "bg_contiguous": true,
+   "bg_covered_s": 600.0,
+   "bg_late_blocks": 0,
+   "bg_late_at": [],
+   "fallback_to_orig_s": 0.0,
+   "dubs": 123,
+   "dub_late_vs_play_s": {
+    "max": 3.41,
+    "p90": -1.69,
+    "n_late": 8
+   },
+   "dub_shift_msgs": 100,
+   "dub_shift_applied": 35,
+   "bg_margin_min_s": 6.98,
+   "bg_margin_p10_s": 8.47,
+   "bg_margin_median_s": 10.84,
+   "sep_device": "CPU",
+   "sep_rtf_p50": 0.458,
+   "sep_rtf_p90": 0.589,
+   "sep_compile_s": 0.89,
+   "bg_up_gaps": 0,
+   "bg_blocks_sent": 600,
+   "bg_state": "ok",
+   "bg_lead_sec": 0.0,
+   "bg_clone_from_vocals": 0,
+   "bg_clone_fallback_orig": 0,
+   "bg_onset_shifted": 100,
+   "bg_onset_no_vocals": 11,
+   "bg_status_last": {
+    "state": "ok",
+    "device": "CPU",
+    "reason": "",
+    "rtf": 0.458,
+    "lead_sec": 0.0,
+    "at": 684.2
+   },
+   "stats_full_spk_fields": {
+    "speaker": {
+     "n_speakers": 0,
+     "n_pending_unassigned": 123,
+     "n_final_without_spk": 246,
+     "clean_sec_required": 3.0,
+     "preset_voice": "A",
+     "blocking_diarization": false
+    },
+    "spk_bypass": {
+     "enabled": false,
+     "spk_queue_drop": 0,
+     "spk_worker_busy_ms": 0.0,
+     "note": "本会话未接说话人旁路（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）"
+    }
+   },
+   "n_dub_items": 8,
+   "first_dub": {
+    "k": null,
+    "t_start": null,
+    "shift_to": 0.89,
+    "voice": null
+   },
+   "n_items_with_shift_to": 6,
+   "shift_to_list": [
+    [
+     null,
+     0.89
+    ],
+    [
+     null,
+     10.45
+    ],
+    [
+     null,
+     13.92
+    ],
+    [
+     null,
+     21.56
+    ],
+    [
+     null,
+     30.58
+    ],
+    [
+     null,
+     33.76
+    ]
+   ]
+  },
+  "clip_cs2": {
+   "status": "OK",
+   "media": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\clips\\cs2.wav",
+   "duration_s": 73.6,
+   "delay_sec": 20.0,
+   "bg_blocks": 74,
+   "bg_contiguous": true,
+   "bg_covered_s": 73.6,
+   "bg_late_blocks": 0,
+   "bg_late_at": [],
+   "fallback_to_orig_s": 0.0,
+   "dubs": 15,
+   "dub_late_vs_play_s": {
+    "max": 0.42,
+    "p90": -1.43,
+    "n_late": 1
+   },
+   "dub_shift_msgs": 10,
+   "dub_shift_applied": 4,
+   "bg_margin_min_s": 9.47,
+   "bg_margin_p10_s": 10.24,
+   "bg_margin_median_s": 12.65,
+   "sep_device": "GPU.0",
+   "sep_rtf_p50": 0.194,
+   "sep_rtf_p90": 0.218,
+   "sep_compile_s": 1.95,
+   "bg_up_gaps": 0,
+   "bg_blocks_sent": 74,
+   "bg_state": "ok",
+   "bg_lead_sec": 0.0,
+   "bg_clone_from_vocals": 0,
+   "bg_clone_fallback_orig": 0,
+   "bg_onset_shifted": 10,
+   "bg_onset_no_vocals": 1,
+   "bg_status_last": {
+    "state": "ok",
+    "device": "GPU.0",
+    "reason": "",
+    "rtf": 0.194,
+    "lead_sec": 0.0,
+    "at": 93.59
+   },
+   "stats_full_spk_fields": {
+    "speaker": {
+     "n_speakers": 0,
+     "n_pending_unassigned": 15,
+     "n_final_without_spk": 30,
+     "clean_sec_required": 3.0,
+     "preset_voice": "A",
+     "blocking_diarization": false
+    },
+    "spk_bypass": {
+     "enabled": false,
+     "spk_queue_drop": 0,
+     "spk_worker_busy_ms": 0.0,
+     "note": "本会话未接说话人旁路（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）"
+    }
+   },
+   "n_dub_items": 8,
+   "first_dub": {
+    "k": null,
+    "t_start": null,
+    "shift_to": null,
+    "voice": null
+   },
+   "n_items_with_shift_to": 4,
+   "shift_to_list": [
+    [
+     null,
+     3.3
+    ],
+    [
+     null,
+     6.5
+    ],
+    [
+     null,
+     11.52
+    ],
+    [
+     null,
+     15.26
+    ]
+   ]
+  },
+  "clip_s1": {
+   "status": "OK",
+   "media": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\clips\\s1.wav",
+   "duration_s": 22.7,
+   "delay_sec": 20.0,
+   "bg_blocks": 23,
+   "bg_contiguous": true,
+   "bg_covered_s": 22.7,
+   "bg_late_blocks": 0,
+   "bg_late_at": [],
+   "fallback_to_orig_s": 0.0,
+   "dubs": 4,
+   "dub_late_vs_play_s": {
+    "max": 3.79,
+    "p90": 1.4,
+    "n_late": 1
+   },
+   "dub_shift_msgs": 0,
+   "dub_shift_applied": 0,
+   "bg_margin_min_s": 9.78,
+   "bg_margin_p10_s": 10.61,
+   "bg_margin_median_s": 12.85,
+   "sep_device": "GPU.0",
+   "sep_rtf_p50": 0.225,
+   "sep_rtf_p90": 0.231,
+   "sep_compile_s": 1.76,
+   "bg_up_gaps": 0,
+   "bg_blocks_sent": 23,
+   "bg_state": "ok",
+   "bg_lead_sec": 0.0,
+   "bg_clone_from_vocals": 0,
+   "bg_clone_fallback_orig": 0,
+   "bg_onset_shifted": 0,
+   "bg_onset_no_vocals": 0,
+   "bg_status_last": {
+    "state": "ok",
+    "device": "GPU.0",
+    "reason": "",
+    "rtf": 0.225,
+    "lead_sec": 0.0,
+    "at": 42.65
+   },
+   "stats_full_spk_fields": {
+    "speaker": {
+     "n_speakers": 0,
+     "n_pending_unassigned": 4,
+     "n_final_without_spk": 8,
+     "clean_sec_required": 3.0,
+     "preset_voice": "A",
+     "blocking_diarization": false
+    },
+    "spk_bypass": {
+     "enabled": false,
+     "spk_queue_drop": 0,
+     "spk_worker_busy_ms": 0.0,
+     "note": "本会话未接说话人旁路（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）"
+    }
+   },
+   "n_dub_items": 4,
+   "first_dub": {
+    "k": null,
+    "t_start": null,
+    "shift_to": null,
+    "voice": null
+   },
+   "n_items_with_shift_to": 0,
+   "shift_to_list": []
+  },
+  "clip_s2": {
+   "status": "OK",
+   "media": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\clips\\s2.wav",
+   "duration_s": 30.7,
+   "delay_sec": 20.0,
+   "bg_blocks": 31,
+   "bg_contiguous": true,
+   "bg_covered_s": 30.7,
+   "bg_late_blocks": 0,
+   "bg_late_at": [],
+   "fallback_to_orig_s": 0.0,
+   "dubs": 5,
+   "dub_late_vs_play_s": {
+    "max": 3.94,
+    "p90": 0.75,
+    "n_late": 1
+   },
+   "dub_shift_msgs": 1,
+   "dub_shift_applied": 1,
+   "bg_margin_min_s": 9.87,
+   "bg_margin_p10_s": 10.23,
+   "bg_margin_median_s": 12.85,
+   "sep_device": "GPU.0",
+   "sep_rtf_p50": 0.215,
+   "sep_rtf_p90": 0.234,
+   "sep_compile_s": 1.66,
+   "bg_up_gaps": 0,
+   "bg_blocks_sent": 31,
+   "bg_state": "ok",
+   "bg_lead_sec": 0.0,
+   "bg_clone_from_vocals": 0,
+   "bg_clone_fallback_orig": 0,
+   "bg_onset_shifted": 1,
+   "bg_onset_no_vocals": 0,
+   "bg_status_last": {
+    "state": "ok",
+    "device": "GPU.0",
+    "reason": "",
+    "rtf": 0.215,
+    "lead_sec": 0.0,
+    "at": 52.8
+   },
+   "stats_full_spk_fields": {
+    "speaker": {
+     "n_speakers": 0,
+     "n_pending_unassigned": 5,
+     "n_final_without_spk": 10,
+     "clean_sec_required": 3.0,
+     "preset_voice": "A",
+     "blocking_diarization": false
+    },
+    "spk_bypass": {
+     "enabled": false,
+     "spk_queue_drop": 0,
+     "spk_worker_busy_ms": 0.0,
+     "note": "本会话未接说话人旁路（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）"
+    }
+   },
+   "n_dub_items": 5,
+   "first_dub": {
+    "k": null,
+    "t_start": null,
+    "shift_to": null,
+    "voice": null
+   },
+   "n_items_with_shift_to": 1,
+   "shift_to_list": [
+    [
+     null,
+     14.77
+    ]
+   ]
+  },
+  "clip_tuffy": {
+   "status": "OK",
+   "media": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\clips\\tuffy.wav",
+   "duration_s": 45.1,
+   "delay_sec": 20.0,
+   "bg_blocks": 46,
+   "bg_contiguous": true,
+   "bg_covered_s": 45.1,
+   "bg_late_blocks": 0,
+   "bg_late_at": [],
+   "fallback_to_orig_s": 0.0,
+   "dubs": 7,
+   "dub_late_vs_play_s": {
+    "max": 12.37,
+    "p90": 7.58,
+    "n_late": 3
+   },
+   "dub_shift_msgs": 2,
+   "dub_shift_applied": 1,
+   "bg_margin_min_s": 9.67,
+   "bg_margin_p10_s": 10.28,
+   "bg_margin_median_s": 12.8,
+   "sep_device": "GPU.0",
+   "sep_rtf_p50": 0.214,
+   "sep_rtf_p90": 0.246,
+   "sep_compile_s": 1.67,
+   "bg_up_gaps": 0,
+   "bg_blocks_sent": 46,
+   "bg_state": "ok",
+   "bg_lead_sec": 0.0,
+   "bg_clone_from_vocals": 0,
+   "bg_clone_fallback_orig": 0,
+   "bg_onset_shifted": 2,
+   "bg_onset_no_vocals": 2,
+   "bg_status_last": {
+    "state": "ok",
+    "device": "GPU.0",
+    "reason": "",
+    "rtf": 0.214,
+    "lead_sec": 0.0,
+    "at": 73.18
+   },
+   "stats_full_spk_fields": {
+    "speaker": {
+     "n_speakers": 0,
+     "n_pending_unassigned": 7,
+     "n_final_without_spk": 14,
+     "clean_sec_required": 3.0,
+     "preset_voice": "A",
+     "blocking_diarization": false
+    },
+    "spk_bypass": {
+     "enabled": false,
+     "spk_queue_drop": 0,
+     "spk_worker_busy_ms": 0.0,
+     "note": "本会话未接说话人旁路（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）"
+    }
+   },
+   "n_dub_items": 7,
+   "first_dub": {
+    "k": null,
+    "t_start": null,
+    "shift_to": null,
+    "voice": null
+   },
+   "n_items_with_shift_to": 2,
+   "shift_to_list": [
+    [
+     null,
+     3.85
+    ],
+    [
+     null,
+     11.29
+    ]
+   ]
+  }
+ },
+ "clone_log_checks": {
+  "clip_cs2": {
+   "log_bytes": 5903,
+   "seg_model_line": [],
+   "seg_model_line_count": 0,
+   "seg_infer_fail": [],
+   "seg_infer_fail_count": 0,
+   "shape_err": [],
+   "shape_err_count": 0,
+   "fp16_w5": [],
+   "fp16_w5_count": 0,
+   "bg_start": [
+    "背景分离器启动（模型 C:\\Users\\Trekker-PTL\\live_dub_ext\\models\\bgsep\\htdemucs_core.xml，设备 GPU.0）"
+   ],
+   "bg_start_count": 1,
+   "bg_keep": [
+    "保留背景音：开"
+   ],
+   "bg_keep_count": 1,
+   "n_seg_lines": 15,
+   "n_spk_label_lines": 0
+  },
+  "clip_s1": {
+   "log_bytes": 2867,
+   "seg_model_line": [],
+   "seg_model_line_count": 0,
+   "seg_infer_fail": [],
+   "seg_infer_fail_count": 0,
+   "shape_err": [],
+   "shape_err_count": 0,
+   "fp16_w5": [],
+   "fp16_w5_count": 0,
+   "bg_start": [
+    "背景分离器启动（模型 C:\\Users\\Trekker-PTL\\live_dub_ext\\models\\bgsep\\htdemucs_core.xml，设备 GPU.0）"
+   ],
+   "bg_start_count": 1,
+   "bg_keep": [
+    "保留背景音：开"
+   ],
+   "bg_keep_count": 1,
+   "n_seg_lines": 4,
+   "n_spk_label_lines": 0
+  },
+  "clip_s2": {
+   "log_bytes": 3034,
+   "seg_model_line": [],
+   "seg_model_line_count": 0,
+   "seg_infer_fail": [],
+   "seg_infer_fail_count": 0,
+   "shape_err": [],
+   "shape_err_count": 0,
+   "fp16_w5": [],
+   "fp16_w5_count": 0,
+   "bg_start": [
+    "背景分离器启动（模型 C:\\Users\\Trekker-PTL\\live_dub_ext\\models\\bgsep\\htdemucs_core.xml，设备 GPU.0）"
+   ],
+   "bg_start_count": 1,
+   "bg_keep": [
+    "保留背景音：开"
+   ],
+   "bg_keep_count": 1,
+   "n_seg_lines": 5,
+   "n_spk_label_lines": 0
+  },
+  "clip_tuffy": {
+   "log_bytes": 3763,
+   "seg_model_line": [],
+   "seg_model_line_count": 0,
+   "seg_infer_fail": [],
+   "seg_infer_fail_count": 0,
+   "shape_err": [],
+   "shape_err_count": 0,
+   "fp16_w5": [],
+   "fp16_w5_count": 0,
+   "bg_start": [
+    "背景分离器启动（模型 C:\\Users\\Trekker-PTL\\live_dub_ext\\models\\bgsep\\htdemucs_core.xml，设备 GPU.0）"
+   ],
+   "bg_start_count": 1,
+   "bg_keep": [
+    "保留背景音：开"
+   ],
+   "bg_keep_count": 1,
+   "n_seg_lines": 7,
+   "n_spk_label_lines": 0
+  },
+  "clone_s1": {
+   "log_bytes": 3927,
+   "seg_model_line": [],
+   "seg_model_line_count": 0,
+   "seg_infer_fail": [],
+   "seg_infer_fail_count": 0,
+   "shape_err": [],
+   "shape_err_count": 0,
+   "fp16_w5": [
+    "fp16-w5（窗口 5.000 s，来源 asr_spk_window）"
+   ],
+   "fp16_w5_count": 1,
+   "bg_start": [
+    "背景分离器启动（模型 C:\\Users\\Trekker-PTL\\live_dub_ext\\models\\bgsep\\htdemucs_core.xml，设备 GPU.0）"
+   ],
+   "bg_start_count": 1,
+   "bg_keep": [
+    "保留背景音：开"
+   ],
+   "bg_keep_count": 1,
+   "n_seg_lines": 8,
+   "n_spk_label_lines": 24
+  },
+  "clone_s2": {
+   "log_bytes": 4267,
+   "seg_model_line": [],
+   "seg_model_line_count": 0,
+   "seg_infer_fail": [],
+   "seg_infer_fail_count": 0,
+   "shape_err": [],
+   "shape_err_count": 0,
+   "fp16_w5": [
+    "fp16-w5（窗口 5.000 s，来源 asr_spk_window）"
+   ],
+   "fp16_w5_count": 1,
+   "bg_start": [
+    "背景分离器启动（模型 C:\\Users\\Trekker-PTL\\live_dub_ext\\models\\bgsep\\htdemucs_core.xml，设备 GPU.0）"
+   ],
+   "bg_start_count": 1,
+   "bg_keep": [
+    "保留背景音：开"
+   ],
+   "bg_keep_count": 1,
+   "n_seg_lines": 10,
+   "n_spk_label_lines": 26
+  },
+  "clone_cs2": {
+   "log_bytes": 10486,
+   "seg_model_line": [],
+   "seg_model_line_count": 0,
+   "seg_infer_fail": [],
+   "seg_infer_fail_count": 0,
+   "shape_err": [],
+   "shape_err_count": 0,
+   "fp16_w5": [
+    "fp16-w5（窗口 5.000 s，来源 asr_spk_window）"
+   ],
+   "fp16_w5_count": 1,
+   "bg_start": [
+    "背景分离器启动（模型 C:\\Users\\Trekker-PTL\\live_dub_ext\\models\\bgsep\\htdemucs_core.xml，设备 GPU.0）"
+   ],
+   "bg_start_count": 1,
+   "bg_keep": [
+    "保留背景音：开"
+   ],
+   "bg_keep_count": 1,
+   "n_seg_lines": 42,
+   "n_spk_label_lines": 64
+  }
+ },
+ "speaker_mode_analysis": {
+  "question": "APP-126 section 5: confirm the segmentation model is fp16-w5, no 'segmentation inference failed', and the speaker label count > 0",
+  "raw_counter": {
+   "note": "stats_full.speaker.n_speakers (from ext/speaker.py SpeakerTracker)",
+   "values": {
+    "clip_cs2": 0,
+    "clip_s1": 0,
+    "clip_s2": 0,
+    "clip_tuffy": 0,
+    "clone_s1": 0,
+    "clone_s2": 0,
+    "clone_cs2": 0
+   }
+  },
+  "reviewer_e2e7_raw_counter": {
+   "note": "the reviewer's own e2e7 run shows the same 0 -> not a regression introduced by v0.4.19",
+   "values": {
+    "clip_cs2": 0,
+    "clip_s1": 0,
+    "clip_s2": 0,
+    "clip_tuffy": 0
+   }
+  },
+  "ground_truth_from_logs": {
+   "clip_cs2": {
+    "segments_with_real_label": 0,
+    "segments_without_label": 0,
+    "labels_seen": [],
+    "voices_seen": [],
+    "speaker_assets_line": null,
+    "seg_infer_failed_count": 0,
+    "shape_or_ir_len_error_count": 0,
+    "new_spk_count": 0,
+    "examples": []
+   },
+   "clip_s1": {
+    "segments_with_real_label": 0,
+    "segments_without_label": 0,
+    "labels_seen": [],
+    "voices_seen": [],
+    "speaker_assets_line": null,
+    "seg_infer_failed_count": 0,
+    "shape_or_ir_len_error_count": 0,
+    "new_spk_count": 0,
+    "examples": []
+   },
+   "clip_s2": {
+    "segments_with_real_label": 0,
+    "segments_without_label": 0,
+    "labels_seen": [],
+    "voices_seen": [],
+    "speaker_assets_line": null,
+    "seg_infer_failed_count": 0,
+    "shape_or_ir_len_error_count": 0,
+    "new_spk_count": 0,
+    "examples": []
+   },
+   "clip_tuffy": {
+    "segments_with_real_label": 0,
+    "segments_without_label": 0,
+    "labels_seen": [],
+    "voices_seen": [],
+    "speaker_assets_line": null,
+    "seg_infer_failed_count": 0,
+    "shape_or_ir_len_error_count": 0,
+    "new_spk_count": 0,
+    "examples": []
+   },
+   "clone_s1": {
+    "segments_with_real_label": 1,
+    "segments_without_label": 3,
+    "labels_seen": [
+     "S1"
+    ],
+    "voices_seen": [
+     "self_256000.wav（等标签"
+    ],
+    "speaker_assets_line": "wespeaker fp16；pyannote_seg_3_0 fp16-w5（窗口 5.000 s，来源 asr_spk_window",
+    "seg_infer_failed_count": 0,
+    "shape_or_ir_len_error_count": 0,
+    "new_spk_count": 1,
+    "examples": [
+     "段 seg_256000 标签=S1 音色=self_256000.wav（等标签"
+    ]
+   },
+   "clone_s2": {
+    "segments_with_real_label": 0,
+    "segments_without_label": 5,
+    "labels_seen": [],
+    "voices_seen": [],
+    "speaker_assets_line": "wespeaker fp16；pyannote_seg_3_0 fp16-w5（窗口 5.000 s，来源 asr_spk_window",
+    "seg_infer_failed_count": 0,
+    "shape_or_ir_len_error_count": 0,
+    "new_spk_count": 0,
+    "examples": []
+   },
+   "clone_cs2": {
+    "segments_with_real_label": 9,
+    "segments_without_label": 12,
+    "labels_seen": [
+     "S1"
+    ],
+    "voices_seen": [
+     "S1_1.wav（等标签"
+    ],
+    "speaker_assets_line": "wespeaker fp16；pyannote_seg_3_0 fp16-w5（窗口 5.000 s，来源 asr_spk_window",
+    "seg_infer_failed_count": 0,
+    "shape_or_ir_len_error_count": 0,
+    "new_spk_count": 1,
+    "examples": [
+     "段 seg_183040 标签=S1 音色=S1_1.wav（等标签",
+     "段 seg_236640 标签=S1 音色=S1_1.wav（等标签",
+     "段 seg_275520 标签=S1 音色=S1_1.wav（等标签",
+     "段 seg_414560 标签=S1 音色=S1_1.wav（等标签",
+     "段 seg_569440 标签=S1 音色=S1_1.wav（等标签",
+     "段 seg_635520 标签=S1 音色=S1_1.wav（等标签"
+    ]
+   }
+  },
+  "verified_cause": {
+   "stats_source": "ext/bridge.py:65 `from .speaker import SpeakerTracker` -> stats_full['speaker'] is ext/speaker.py's tracker",
+   "filled_only_by": "ext/bridge.py `_on_spk_label` -> the --spk-bypass path (ext/speaker_bypass.py, EXT-029); that path is NOT attached here (spk_bypass.enabled == false)",
+   "actual_clone_path": "ext/clone_voice.py imports `speaker_tracker` from the APP package (Confucius4_LiveCaption_v2.5/app/speaker_tracker.py, SpeakerBridge = ASR-side cluster v2) via `_ensure_app_on_path()`; that is what emits '[spk] segment ... label=S1 voice=S1_1.wav' and '[spk] new_spk {...}'",
+   "conclusion": "n_speakers == 0 is a STATS-SCOPE artifact (two different counters), NOT a functional defect: diarization ran, fp16-w5 was loaded, 0 segmentation failures, labels were assigned and applied.",
+   "action": "NO code changed (per APP-126 section 5: report verbatim, do not self-fix)"
+  }
+ }
+}

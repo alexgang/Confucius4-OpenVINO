@@ -242,17 +242,120 @@ MAX_TALKER_SEQ = 512
 #   边界跳变    中位 0.0574 → 0.0075（−7.6×），20/20 条全部改善
 #
 # ⚠️ 25 是官方 CUDA 的取值；改小会退回边界失真，改大只增解码开销。
-CTX_FRAMES = 25
+
+# =============================================================================
+# APP-123: TTS-075 c13 small-window streaming vocoder (window/context configurable)
+# =============================================================================
+# WHAT c13 IS (TTS module product `qwen3tts_genai_rc2/_tts075_stream_core.py`):
+#     decoder_chunk_frames = 13    (new frames per block)
+#     decoder_ctx_frames   = 25    (left context frames)
+#     decoder_window_len   = 38    (= 13 + 25, the static decoder window)
+#     overlap_mode = "decoder_left_context + direct_concat", crossfade_applied = False
+#     => LENGTH CONSERVATION: samples == n_frames * 1920
+#     (TTS-075/TTS-076 measured 36/36 rows satisfying it)
+#
+# ARCHITECTURE FACT (read from the code, not assumed):
+#   The TTS module's c13 drives the raw OV IR itself (static window [1,16,38]).
+#   The App's OV path goes through BabelVox + this repo's `tts_engine_patch.py`
+#   (`MultiDecoderBabelVox`), which ALREADY has:
+#     (1) left context (`ctx_frames`, default 25): re-decodes (ctx ++ chunk)
+#         and keeps ONLY this chunk's samples;
+#     (2) length conservation: the patch slices `wav_full[start:end]` with
+#         `end = start + num_frames * 1920`;
+#     (3) a SMALL static decoder window via `decoder_buckets` + `_select_decoder`.
+#   What was MISSING in the App:
+#     (a) chunk size: App had chunk=8 -> window 8+25 = 33, not 38;
+#     (b) the JOIN: BabelVox `generate_stream` defaults to
+#         `crossfade_samples=1200` -> overlap-add branch trims `wav[:-ol]`
+#         -> EVERY BOUNDARY LOSES 50 ms of real audio
+#         (TTS-075 measured 12.85 s / 175.0 s = 7.3% on the small-window arm,
+#          and that is why the "length conservation" conclusion was withdrawn).
+#         c13 requires DIRECT CONCAT (no crossfade, no tail trim).
+#
+# ENV VARS (reviewer can A/B with one variable):
+#   LIVECAP_TTS_CHUNK_FRAMES    new frames per block          (default 13 = c13)
+#   LIVECAP_TTS_CTX_FRAMES      left context frames            (default 25 = c13)
+#   LIVECAP_TTS_DECODER_BUCKETS comma-separated static buckets
+#                               (default "13,26,38" = covers 13 / 13+13 / 25+13)
+#   LIVECAP_TTS_DIRECT_CONCAT   1 = direct concat (default, c13 semantics)
+#                               0 = old crossfade behaviour (regression A/B)
+#
+# NOTE: the CUDA TTS path is NOT touched (APP-123 requirement).
+
+CTX_FRAMES_C13 = 25
+
+# 🔴🔴🔴 **修正（实测后）**：TTS 模块 c13 的三个参数**不是一回事**，别混：
+#   * `decoder_chunk_frames = 13` = 声码器**静态窗口的块容量**
+#     （`decoder_window_len = 13 + 25 = 38` = 声码器静态形状）
+#   * `n1 = n_next = 8` = **说话人每轮产出多少帧**（= 送进声码器的"块"）
+#   ⇒ c13 的真正含义是：**声码器固定 38 帧静态窗口**（未来帧补 0 = 去 look-ahead），
+#     说话人仍然每轮只出 8 帧。
+#
+# 🔴 **本 App 的架构映射**（BabelVox + `tts_engine_patch.py`）：
+#   * 说话人每轮产出帧数 = `CHUNK_FRAMES`（babelvox `chunk_frames`）
+#     ⇒ 对应 c13 的 `n1/n_next` = **8**（**不是 13**！）
+#   * 声码器静态窗口 = `DECODER_BUCKETS_CTX` 里**选中的那个桶**
+#     （NPU 上按 `_select_decoder(total)` 取**最小够用的桶**，并补 0 到桶大小）
+#     ⇒ 对应 c13 的 `decoder_window_len` = **38**
+#
+# 🔴 **实测踩坑并修正**：初版把 `CHUNK_FRAMES` 设成 13（误把"块容量"当成
+#   "每轮产出帧数"）⇒ 说话人要攒够 13 帧才吐第一块 ⇒ **首包从 2.9 s 劣化到 4.5 s**
+#   （实测 zh 句，同 seed 同文本）⇒ **已改回 8**，首包恢复。
+#
+# ⇒ **c13 的正确落地 = 说话人每轮 8 帧（不变）+ 声码器固定 38 帧静态窗口**。
+#   固定窗口还有一个额外好处：NPU 上只需**编译 1 个形状**（38），
+#   而不是现在的 4 个（8/16/32/33）⇒ 冷启动编译更少。
+TTS_CHUNK_FRAMES_C13 = 8      # 说话人每轮产出帧数（= c13 的 n1/n_next）
+TTS_DECODER_WINDOW_C13 = 38   # 声码器静态窗口（= c13 的 decoder_window_len）
+
+
+def _env_int(name, default):
+    """Env var int; invalid value falls back to the default (never raises)."""
+    try:
+        v = os.environ.get(name)
+        if v is None or str(v).strip() == "":
+            return int(default)
+        return int(str(v).strip())
+    except (TypeError, ValueError):
+        return int(default)
+
+
+def _env_buckets(default):
+    """Env var bucket list (comma separated); invalid falls back to default."""
+    raw = os.environ.get("LIVECAP_TTS_DECODER_BUCKETS")
+    if raw is None or str(raw).strip() == "":
+        return list(default)
+    out = []
+    for part in str(raw).split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            n = int(part)
+        except ValueError:
+            return list(default)
+        if n > 0:
+            out.append(n)
+    return sorted(set(out)) if out else list(default)
+
+
+# 🔴 Direct-concat switch (c13 semantics). 0 = fall back to the old crossfade.
+#   (the App was ALREADY direct-concat because babelvox takes its
+#    pass-through branch when split_on_silence=False; this makes it explicit)
+DIRECT_CONCAT = os.environ.get("LIVECAP_TTS_DIRECT_CONCAT", "1").strip().lower() not in (
+    "0", "false", "no")
+# =============================================================================
+CTX_FRAMES = _env_int("LIVECAP_TTS_CTX_FRAMES", CTX_FRAMES_C13)
 # 🔴 chunk 大小（babelvox `generate_stream(chunk_frames=...)`，单位=帧）
 # 官方 12 帧/秒 ⇒ chunk_frames=8 ≈ 0.67 s 一次解码。
-CHUNK_FRAMES = 8
+CHUNK_FRAMES = _env_int("LIVECAP_TTS_CHUNK_FRAMES", TTS_CHUNK_FRAMES_C13)
 # 🔴 解码器静态桶：必须覆盖「左上下文 + 一个 chunk」的最大帧数
 #    （8 + 25 = 33）以及「历史满 + 末块」的组合（25 + 12 = 37 ⇒ 取 40）。
 #    ⇒ 新增 33 / 40 两个桶，其余沿用。
 # reviewer 2026-11-07: streaming (chunk 8, ctx 25) only ever decodes 8 / 16 / 24->32 / 33
 #   frames => the 40/64/128/256 buckets were compiled (~3-4 min cold) but never used.
 #   Anything larger falls back to the lazily compiled base decoder (same output).
-DECODER_BUCKETS_CTX = [8, 16, 32, 33]
+DECODER_BUCKETS_CTX = _env_buckets([TTS_DECODER_WINDOW_C13])
 
 # 🔴🔴🔴 **cp_decode 的静态形状**（APP-018 第 1 条 —— 补上从未实现的生产配置）
 #
@@ -792,6 +895,13 @@ def make_engine(device: str = 'NPU',
             kwargs['ctx_frames'] = CTX_FRAMES
             on_log(f'[tts_engine] 使用 MultiDecoderBabelVox'
                    f'（解码器多桶 + 左上下文 {CTX_FRAMES} 帧）')
+            # 🔴🔴🔴 APP-123：把 c13 的窗口口径**显式记进日志**
+            #   （reviewer 只需看这一行就能确认跑的是哪套窗口）
+            on_log(f'[tts_engine] APP-123 声码器窗口：'
+                   f'chunk={CHUNK_FRAMES} ctx={CTX_FRAMES} '
+                   f'window={CHUNK_FRAMES + CTX_FRAMES} '
+                   f'buckets={DECODER_BUCKETS_CTX} '
+                   f'join={"direct_concat" if DIRECT_CONCAT else "crossfade"}')
         else:
             kwargs['decoder_buckets'] = DECODER_BUCKETS
             on_log('[tts_engine] ⚠️ tts_engine_patch.py **不支持左上下文**'
@@ -1886,6 +1996,21 @@ def stream(eng, text: str, language: str = 'English',
         _has_chunk = False
     if _has_chunk:
         kwargs['chunk_frames'] = CHUNK_FRAMES
+    # 🔴🔴🔴 APP-123：**直接拼接**（c13 语义）⇒ 不做交叉淡化。
+    #   BabelVox 默认 `crossfade_samples=1200` ⇒ 走 overlap-add 分支，
+    #   块尾 `wav[:-ol]` 被裁掉 ⇒ **每个边界丢 50 ms 真实音频**
+    #   （TTS-075 §99.3：小窗口臂共丢 12.85 s / 175.0 s = 7.3%，
+    #    并因此撤回「长度守恒」结论）。
+    #   ⇒ 传 0 ⇒ babelvox 走「No crossfade — simple pass-through」分支，
+    #      整块返回、不裁尾 ⇒ 每块采样数 = 帧数 × 1920。
+    #   ⚠️ 老版本 babelvox 不认这个参数 ⇒ 签名探测，不认就不传（保持旧行为）。
+    if DIRECT_CONCAT:
+        try:
+            _sig_cf = inspect.signature(eng.generate_stream)
+            if 'crossfade_samples' in _sig_cf.parameters:
+                kwargs['crossfade_samples'] = 0
+        except Exception:
+            pass
     # 🔴🔴🔴 APP-030②：**生成帧数上限**（失控守卫的第一道闸）。
     #   旧实现**从不传** ⇒ 用库默认 512（babelvox）/ 2048（边车）
     #   ⇒ 一句失控能拖 100 秒（reviewer 实测 163.0 s 音频）。

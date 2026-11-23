@@ -1,0 +1,170 @@
+{
+ "c13_direct_concat": {
+  "arm": "c13_direct_concat",
+  "load_s": 3.846,
+  "seed": 20261023,
+  "chunk_frames": 13,
+  "ctx_frames": 25,
+  "window": 38,
+  "buckets": [
+   13,
+   26,
+   38
+  ],
+  "direct_concat": true,
+  "rows": [
+   {
+    "lang": "zh",
+    "text": "你好，这是实时字幕的测试。",
+    "sr": 24000,
+    "n_chunks": 4,
+    "chunk_samples": [
+     24960,
+     24960,
+     24960,
+     1920
+    ],
+    "n_samples_total": 76800,
+    "dur_s": 3.2,
+    "frames_implied": 40.0,
+    "frames_implied_is_integer": true,
+    "every_chunk_multiple_of_1920": true,
+    "first_packet_s": 4.548553,
+    "wall_s": 21.267832,
+    "rtf": 6.646197
+   },
+   {
+    "lang": "en",
+    "text": "Yes, good.",
+    "sr": 24000,
+    "n_chunks": 2,
+    "chunk_samples": [
+     24960,
+     13440
+    ],
+    "n_samples_total": 38400,
+    "dur_s": 1.6,
+    "frames_implied": 20.0,
+    "frames_implied_is_integer": true,
+    "every_chunk_multiple_of_1920": true,
+    "first_packet_s": 3.375243,
+    "wall_s": 6.603953,
+    "rtf": 4.12747
+   }
+  ]
+ },
+ "old_chunk8_crossfade": {
+  "arm": "old_chunk8_crossfade",
+  "load_s": 1.944,
+  "seed": 20261023,
+  "chunk_frames": 8,
+  "ctx_frames": 25,
+  "window": 33,
+  "buckets": [
+   8,
+   16,
+   32,
+   33
+  ],
+  "direct_concat": false,
+  "rows": [
+   {
+    "lang": "zh",
+    "text": "你好，这是实时字幕的测试。",
+    "sr": 24000,
+    "n_chunks": 5,
+    "chunk_samples": [
+     15360,
+     15360,
+     15360,
+     15360,
+     15360
+    ],
+    "n_samples_total": 76800,
+    "dur_s": 3.2,
+    "frames_implied": 40.0,
+    "frames_implied_is_integer": true,
+    "every_chunk_multiple_of_1920": true,
+    "first_packet_s": 2.911107,
+    "wall_s": 18.18343,
+    "rtf": 5.682322
+   },
+   {
+    "lang": "en",
+    "text": "Yes, good.",
+    "sr": 24000,
+    "n_chunks": 3,
+    "chunk_samples": [
+     15360,
+     15360,
+     7680
+    ],
+    "n_samples_total": 38400,
+    "dur_s": 1.6,
+    "frames_implied": 20.0,
+    "frames_implied_is_integer": true,
+    "every_chunk_multiple_of_1920": true,
+    "first_packet_s": 2.103836,
+    "wall_s": 6.66354,
+    "rtf": 4.164713
+   }
+  ]
+ },
+ "old_chunk8_direct_concat": {
+  "arm": "old_chunk8_direct_concat",
+  "load_s": 1.89,
+  "seed": 20261023,
+  "chunk_frames": 8,
+  "ctx_frames": 25,
+  "window": 33,
+  "buckets": [
+   8,
+   16,
+   32,
+   33
+  ],
+  "direct_concat": true,
+  "rows": [
+   {
+    "lang": "zh",
+    "text": "你好，这是实时字幕的测试。",
+    "sr": 24000,
+    "n_chunks": 5,
+    "chunk_samples": [
+     15360,
+     15360,
+     15360,
+     15360,
+     15360
+    ],
+    "n_samples_total": 76800,
+    "dur_s": 3.2,
+    "frames_implied": 40.0,
+    "frames_implied_is_integer": true,
+    "every_chunk_multiple_of_1920": true,
+    "first_packet_s": 2.905719,
+    "wall_s": 17.941931,
+    "rtf": 5.606853
+   },
+   {
+    "lang": "en",
+    "text": "Yes, good.",
+    "sr": 24000,
+    "n_chunks": 3,
+    "chunk_samples": [
+     15360,
+     15360,
+     7680
+    ],
+    "n_samples_total": 38400,
+    "dur_s": 1.6,
+    "frames_implied": 20.0,
+    "frames_implied_is_integer": true,
+    "every_chunk_multiple_of_1920": true,
+    "first_packet_s": 2.098717,
+    "wall_s": 6.644778,
+    "rtf": 4.152986
+   }
+  ]
+ }
+}

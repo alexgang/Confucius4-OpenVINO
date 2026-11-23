@@ -1,0 +1,137 @@
+{
+ "A_multi_bucket_prod": {
+  "arm": "A_multi_bucket_prod",
+  "seed": 20261023,
+  "chunk_frames": 8,
+  "ctx_frames": 25,
+  "buckets": [
+   8,
+   16,
+   32,
+   33
+  ],
+  "direct_concat": true,
+  "rows": [
+   {
+    "lang": "zh",
+    "text": "你好，这是实时字幕的测试。",
+    "sr": 24000,
+    "n_chunks": 6,
+    "chunk_samples": [
+     15360,
+     15360,
+     15360,
+     15360,
+     15360,
+     1920
+    ],
+    "n_samples_total": 78720,
+    "dur_s": 3.28,
+    "frames_implied": 41.0,
+    "frames_is_integer": true,
+    "every_chunk_x1920": true,
+    "first_packet_s": 0.768615,
+    "wall_s": 2.948367,
+    "rtf": 0.898892,
+    "peak": 0.20314089953899384,
+    "n_clipped": 0,
+    "n_near_fs": 0
+   },
+   {
+    "lang": "en",
+    "text": "Yes, good.",
+    "sr": 24000,
+    "n_chunks": 2,
+    "chunk_samples": [
+     15360,
+     11520
+    ],
+    "n_samples_total": 26880,
+    "dur_s": 1.12,
+    "frames_implied": 14.0,
+    "frames_is_integer": true,
+    "every_chunk_x1920": true,
+    "first_packet_s": 0.593845,
+    "wall_s": 0.958872,
+    "rtf": 0.856136,
+    "peak": 0.28515625,
+    "n_clipped": 0,
+    "n_near_fs": 0
+   }
+  ]
+ },
+ "B_c13_fixed_38": {
+  "arm": "B_c13_fixed_38",
+  "seed": 20261023,
+  "chunk_frames": 8,
+  "ctx_frames": 25,
+  "buckets": [
+   38
+  ],
+  "direct_concat": true,
+  "rows": [
+   {
+    "lang": "zh",
+    "text": "你好，这是实时字幕的测试。",
+    "sr": 24000,
+    "n_chunks": 6,
+    "chunk_samples": [
+     15360,
+     15360,
+     15360,
+     15360,
+     15360,
+     1920
+    ],
+    "n_samples_total": 78720,
+    "dur_s": 3.28,
+    "frames_implied": 41.0,
+    "frames_is_integer": true,
+    "every_chunk_x1920": true,
+    "first_packet_s": 0.90235,
+    "wall_s": 3.110578,
+    "rtf": 0.948347,
+    "peak": 0.20303913950920105,
+    "n_clipped": 0,
+    "n_near_fs": 0
+   },
+   {
+    "lang": "en",
+    "text": "Yes, good.",
+    "sr": 24000,
+    "n_chunks": 2,
+    "chunk_samples": [
+     15360,
+     11520
+    ],
+    "n_samples_total": 26880,
+    "dur_s": 1.12,
+    "frames_implied": 14.0,
+    "frames_is_integer": true,
+    "every_chunk_x1920": true,
+    "first_packet_s": 0.54849,
+    "wall_s": 0.971384,
+    "rtf": 0.867307,
+    "peak": 0.2849767804145813,
+    "n_clipped": 0,
+    "n_near_fs": 0
+   }
+  ]
+ },
+ "ab_waveform_compare": [
+  {
+   "lang": "zh",
+   "a_samples": 78720,
+   "b_samples": 78720,
+   "same_len": true,
+   "snr_db": 56.436
+  },
+  {
+   "lang": "en",
+   "a_samples": 26880,
+   "b_samples": 26880,
+   "same_len": true,
+   "snr_db": 57.9938
+  }
+ ]
+}
