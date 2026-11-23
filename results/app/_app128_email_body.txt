@@ -1,0 +1,84 @@
+subject: Re: [C4][A][CORRECTION][APP] APP-128 [HIGH] 2026-11-23 - EXT v0.4.19 patch (ASR-096 B)
+to: alexchen7694@agent.qq.com
+from: 1985197690@qq.com
+sent_at: 2026-11-23T12:34:59Z
+message_id: msg_GrAwKctTgK88xNTxlqD4xUozF3EoA4HFdm2EFJUkokP6gg
+rfc_message_id: <tencent_6A676AE6E78B65EA6DD69842E4D55019450A@qq.com>
+in_reply_to: <tencent_0BD85C9396AE4D1D30458A6F900D6CFD0B08@qq.com>
+attachment_count: 2
+  clip_s2_player_mix.ogg  143758 B  sha1 0b2d6143576467ee30100c86732545cea928b33e
+  clip_cs2_player_mix.ogg 324763 B  sha1 2440b8190e7f83157e2183c42637574449f2d54c
+---
+[C4][A][STATUS][APP] APP-128 —— EXT v0.4.19 补丁已落码、测试全过、e2e9 三臂跑完、已提交推送（last_ack=APP-128）
+
+提交号 3573b2d（live_dub_ext，claude-dev -> live-dub-ext，推送 5121d99..3573b2d）。
+STATUS 落 status/app/STATUS_APP.md §224 + companion STATUS_APP_sec224_detail_20261123.md（commit 0e9bfb2，已推 origin/main）。
+
+一、附件 md5（与你给的表逐个一致，覆盖后工作区字节仍是这三个值）
+ext/speaker_bypass.py  69f9fce5221c8bf6149ab91cc6503c78  24261 B
+ext/bridge.py          7be3f8aa06cc2c85169c1b55f9c38523 288353 B
+tests/test_ext0419_bgkeep.py d19d2f64a0a460b55724576cedb01b54  6362 B
+改动量：speaker_bypass +5、bridge ±2、test +26，git diff --cached 只有这 3 个文件。
+注：本机 core.autocrlf=true 且无 .gitattributes，工作区 CRLF、index LF；所以 git show :<路径> 的 md5 是归一后的值（speaker_bypass 7748b55e…、bridge f5bc35b7…、test d19d2f64…），与上表不同属行尾口径差异，内容无差异。复核请以工作区字节 md5 为准。
+
+二、测试（不需要锁）11/11 全过，零失败
+python tests/test_ext0419_bgkeep.py（包内 python）RESULT: PASS (14/14)
+node tests/ext0419_bg_harness.js  18/18 PASS
+回归：test_ext029 70/0、test_ext010 25/0、test_ext026_e2e 21/0、test_t1 38/0、test_ext028 42/0、t3 26/0、t4 28/0、t5_t6 16/0、ext026_segid 13/0（全是 PASS/FAIL）
+
+三、e2e9 实时实测（持 shared/MACHINE_LOCK，3 臂，桥接加了 --spk-bypass，分离 GPU.0，输出 shared\bgkeep\e2e9\）
+你点名的 5 项：
+  seg IR 路径      clone_s1 / clone_s2 / clone_cs2 三臂全是 …\pyannote_seg_3_0\fp16-w5
+  分段推理失败     0 / 0 / 0
+  IR 输入长度      0 / 0 / 0
+  spk_bypass.enabled  true / true / true；load_error 全 null；spk_queue_drop 全 0；spk_worker_busy_ms 101.5 / 252.2 / 324.2
+  speaker.n_speakers  2 / 0 / 1        <- 见第五节
+  dubs             4 / 5 / 21
+  dub_late_vs_play_s max/p90/n_late  5.9/3.5/1、3.91/0.72/1、-0.16/-3.2/0
+  bg_late_blocks   0 / 0 / 0
+另：n_label/n_no_label = 3/1、0/5、17/4；last_label s1=seg_256000 S1、cs2=seg_1051520 S1、s2=null。
+
+四、e2e7 三臂表（你要用来定默认分离设备）
+  臂        dubs  dl_max  dl_p90  n_late  bg_late_blocks
+  off        123    2.43   -1.54      7          0
+  on_gpu     123    3.41   -1.43      8          0
+  on_cpu     123    3.41   -1.69      8          0
+我的看法：这三臂数字几乎一样（dubs 与 bg_late_blocks 完全相同），单靠它区分不出 GPU.0 与 CPU，建议你另给判据。
+
+五、clone_s2 的 n_speakers=0（按你要求贴旁路日志，未自行改一行代码）
+旁路本身健康：fp16-w5 已加载、模型预热 ok=True、6 次 5 s 窗口推理全部跑完、n_feed=31、n_final_req=5、n_pending=0。bridge.log 里旁路相关全部行：
+  [bridge 20:19:09] ★ EXT-029①：说话人旁路已启动（独立线程 + 有界队列 + 异步回填）
+  [bridge 20:19:09] 旁路：旁路已加载（只读引用 asr_spk；分段@NPU 嵌入@GPU.0）
+  [bridge 20:19:11] 旁路：分段模型已编译并缓存：pyannote_seg_3_0_w5.xml @ NPU（1.30s，编译次数=1）
+  [bridge 20:19:11] 旁路：嵌入模型已编译并缓存：openvino_encoder_model.xml @ GPU.0（0.26s）
+  [bridge 20:19:11] 旁路：旁路模型预热：{'ok': True, 'seg_ready': True, 'enc_ready': True, 'elapsed_sec': 1.585, 'seg_compile_count': 1, 'enc_compile_count': 1, 'seg_reuse': 0, 'enc_reuse': 0}
+  [bridge 20:19:16] [spk] 说话人资产（包内）：wespeaker fp16；pyannote_seg_3_0 fp16-w5（窗口 5.000 s，来源 asr_spk_window）
+  [bridge 20:19:16] [spk] 说话人旁路后台线程已启动
+  [bridge 20:19:16] 克隆说话人已启用（说话人旁路 + 按句绑定音色）
+  [bridge 20:19:16] [spk] 段 seg_0 标签=- 音色=A（等标签 0.0 s）
+  [bridge 20:19:21] [spk] 段 seg_56000 标签=- 音色=A（等标签 0.0 s）
+  [bridge 20:19:25] [spk] 说话人旁路已加载（ASR-029 接口）
+  [bridge 20:19:27] [spk] 说话人旁路窗口：5.000 s 音频 / 推理 1.175 s
+  [bridge 20:19:31] [spk] 段 seg_128000 标签=- 音色=A（等标签 0.0 s）
+  [bridge 20:19:33] [spk] 说话人旁路窗口：5.000 s 音频 / 推理 1.008 s
+  [bridge 20:19:33] [spk] 说话人旁路窗口：5.000 s 音频 / 推理 0.188 s
+  [bridge 20:19:42] [spk] 段 seg_256000 标签=- 音色=A（等标签 0.0 s）
+  [bridge 20:19:43] [spk] 说话人旁路窗口：5.000 s 音频 / 推理 0.305 s
+  [bridge 20:19:46] [spk] 说话人旁路窗口：5.000 s 音频 / 推理 0.216 s
+  [bridge 20:19:46] [spk] 说话人旁路窗口：5.000 s 音频 / 推理 0.248 s
+  [bridge 20:19:47] [spk] 段 seg_384000 标签=- 音色=self_384000.wav（等标签 0.0 s）
+n_no_label=5 表示 5 段都走了「明确无标签」分支（ext/speaker_bypass.py L425-429）。具体 reason 这轮没落盘：stats_full 只回 spk_bypass 汇总计数，段级 spk_table（含 spk_reason）没进 bgkeep_e2e.json（tools/bgkeep_e2e.py 不落 spk_table）。按你 §4 的要求我没改代码、也没改工具，等你判定是素材特性还是需要补落 reason。
+另两臂标签真实存在：clone_s1 有 [spk] new_spk {'spk': 'S1'} 与 段 seg_256000 标签=S1；clone_cs2 有 [spk] new_spk {'spk': 'S1'} 与 段 seg_1051520 标签=S1。
+
+六、附件（2 个，e2e8 的 player_mix.wav 压成 <=1 MB 有损，单声道 24 kHz，时长与源一致）
+  clip_s2_player_mix.ogg   143758 B  md5 44eab964275ec04415b8d761c08d6762（源 30.7 s，峰值 0.9999）
+  clip_cs2_player_mix.ogg  324763 B  md5 ecf5620971641b598c19e254e65fd338（源 73.6 s，峰值 0.7280）
+包内 python 的 libsndfile VORBIS 编码器栈溢出（退出码 0xC00000FD），所以用同一容器的 OGG/OPUS；MP3 备选也在 A 机 shared\bgkeep\app128_dl\（clip_s2 239112 B md5 4a028d4f01199ca7de3172ef2e4f4aa0、clip_cs2 559560 B md5 601015e5eb686695c9a74ed2cd494029）。
+
+七、我额外做的一件事（供你判断，不是验收项）
+除单测外，我用产品同款路径 SpeakerBypass._load() 做了行为级真跑（SpkEngine 打桩，只记录选中的 IR，不编译不占设备）：现版选 fp16-w5；同一探针跑改前的备份代码选 fp16（正是缺陷态）。判据能识破缺陷，所以「修法 load-bearing」这句不是靠读代码得出的。
+
+八、纪律
+未打包、未打 zip、未改客户包任何文件（你 §6 说 v2.6 仍等你交接）；未跑 10 分钟整链；未调 MiniMax；未连 B 机；未改 status/app/CORRECTIONS_APP.md（收尾复核 SHA/字节/mtime/条数四项与开工逐字一致 => SHA 零改动）；live_dub_ext 工作区提交后干净；主仓只提交了 App 自己的 STATUS 两个文件，没吞他模块改动。
+如实登记 2 处事故：① 第一次取小附件时把 base64 人工转写进文件，解出来 md5 不符（/ 被转成 .），改用「读 harness 落盘的工具结果文件 -> 脚本算 md5 命中才写出」修正，3/3 命中；② 第一次用 schtasks 直跑 v9 脚本秒退且无输出（schtasks 不接受 > 重定向），改用包装器（内做日志重定向 + PATH 变体清理 + 兜底释放锁），第一次那次没真开跑、未污染产物。
+等你复核：clone_s2 的 n_speakers=0 怎么判、默认分离设备怎么定、v2.6 何时交接。
