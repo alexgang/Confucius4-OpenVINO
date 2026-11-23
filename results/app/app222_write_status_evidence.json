@@ -1,0 +1,40 @@
+{
+  "script": "_app222_write_status.py",
+  "ts": "2026-11-23 12:19:39",
+  "date_source": "Get-Date (powershell.exe)",
+  "status": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+  "backup": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\STATUS_APP.md.bak_app222",
+  "pre_invariants": {
+    "n_ack": 1,
+    "old_sections_unchanged": true,
+    "recent_anchor": 1,
+    "bytes_before": 28433,
+    "lines_before": 90,
+    "bytes_after": 31276,
+    "lines_after": 94,
+    "bytes_ok": true,
+    "lines_ok": true,
+    "title_present": true,
+    "recent_present": true
+  },
+  "bytes_before": 28433,
+  "lines_before": 90,
+  "bytes_after": 31276,
+  "lines_after": 94,
+  "title_block_sha256": "5f931d6dbbc7fce3891efe6497c4bf90cdb65329a981bd1b5e241b4ce35035c7",
+  "recent_line_sha256": "b8a67194c0fc8c1cb696d144303b42890d8a14cea3a0297d7ba379047b7b9f8b",
+  "checks": {
+    "last_ack 仍为 APP-121（唯一）": true,
+    "「更新时间」已更新为 Get-Date 实测值": true,
+    "§222 标题行在": true,
+    "§221 标题行仍在（未回头改旧章节）": true,
+    "§211/§212/§213/§214/§215/§219/§220 标题行仍在": true,
+    "「最近更新」本轮条目在": true,
+    "字节数 ≤ 40000": true,
+    "行数 ≤ 300": true,
+    "还原式复核（去掉本轮新增后与写前原件逐字节一致）": true
+  },
+  "n_fail": 0,
+  "note": "本轮**没有新的 reviewer 纠偏** ⇒ `last_ack` 保持 APP-121；§222 只追加，不回头改任何旧章节。",
+  "verdict": "PASS"
+}

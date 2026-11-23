@@ -1,24 +1,24 @@
 [C4][A][STATUS][APP] APP-121 STATUS（MiniMVP v1.1.1）
 
-结论：五项全部执行完毕，未通知用户。详见附件 companion + STATUS §221。
+五项全部执行完毕，未通知用户，请复核。正文见 A 机 status/app/STATUS_APP_sec221_detail_20261123.md（24085 B，SHA bf176bdbddb7fb2b）。
 
 §1 [HIGH] ASR=NPU 长段 ValueError —— 已修
-根因：allowed_prefix=limit−skeleton−reserve 把 64 个生成 token 也算进 320（handoff 口径：prompt≤320、生成另算，KV=320+64=384）。
-修法：NPU 档 allowed_prefix=limit−skeleton，只有 skeleton>limit 才报错；加总量检查 prompt+reserve≤limit+64；GPU 档(512)一字未动。_loop 改成：单段解码异常→记日志+计数+跳过该段，不再停掉整条 ASR。
-验收①单测(不推理，跑包内文件)11/11＋截断口径 3/3；反证组＝git HEAD 旧文件在同用例上 2 例抛错 ⇒ 判据能识破。
-验收②A/B＝两个真实客户包(v1.1 旧/v1.1.1 新)、素材按 App 自己的判据抠静音＝26.0 s 连续语音：旧包 rc=1、ValueError「骨架 281+64>320」、字幕 0 行；新包 rc=0、无 ValueError、强制切段 20.48 s、字幕 2 行 514 字符。
-验收③GPU：旧包与新包 GPU.0 三素材 transcript md5 逐字节相同（spe d68715dfbc／en fbe91f2a3b／zh 57ce6bc177）。
+根因：allowed_prefix 把 64 个生成 token 也算进 320（handoff 口径：prompt≤320、生成另算）。
+修法：NPU 档 allowed_prefix=limit−skeleton，只有 skeleton>limit 才报错；加总量检查 prompt+reserve≤limit+64；GPU 档一字未动。_loop：单段解码异常→记日志+计数+跳过该段，不再停掉整条 ASR。
+验收①单测 11/11＋口径 3/3；反证组＝git HEAD 旧文件同用例 2 例抛错 ⇒ 判据能识破。
+验收②A/B＝两个真实客户包(v1.1 旧/v1.1.1 新)、26.0 s 连续语音：旧包 rc=1、ValueError「骨架 281+64>320」、字幕 0 行；新包 rc=0、无 ValueError、强制切段 20.48 s、字幕 2 行 514 字符。
+验收③GPU：旧包/新包三素材 transcript md5 逐字节相同（spe d68715dfbc／en fbe91f2a3b／zh 57ce6bc177）。
 
-§2 [HIGH] 撤回 §220 两句结论（「App 侧 NPU 逐字节复现参照」「对 GPU.0 零回归」——那两个测试没跑 App 代码）。补测用 App 后端 OVEngine、包内 python、OV 2026.4.1-22982：
-NPU：spe 2d7218ae43(段93,prefix_trunc 0,RTF 0.4318)/en 8a7e64cf26(65,0,0.4286)/zh e4efbe483f(66,3,0.4045)
-GPU.0：spe d68715dfbc(93,0,0.3256)/en fbe91f2a3b(65,0,0.2841)/zh 57ce6bc177(66,0,0.2814)
-与 §86 参照(cd67417e/ed3f52aa/d93062a6)都不同，但段数完全一致(93/65/66)⇒切段器一致，差异在解码/拼接路径；去空白后 spe 52/93、en 47/65、zh 51/66 段逐字相同。
+§2 [HIGH] 撤回 §220 两句结论（「App 侧 NPU 逐字节复现参照」「对 GPU.0 零回归」——那两个测试没跑 App 代码）。补测用 App 后端 OVEngine、包内 python、OV 2026.4.1：
+NPU spe 2d7218ae43(93,0,0.4318)/en 8a7e64cf26(65,0,0.4286)/zh e4efbe483f(66,3,0.4045)
+GPU.0 spe d68715dfbc(93,0,0.3256)/en fbe91f2a3b(65,0,0.2841)/zh 57ce6bc177(66,0,0.2814)
+（段数,prefix_trunc,RTF）段数与参照一致(93/65/66)⇒切段器一致，差异在解码/拼接路径。
 
-§3 tts_cuda.py/tts_cuda_sidecar.py 改名挪到包外（未删）⇒ ACCEPTED 指纹 31 模块 == zip 内 app/ 根目录 .py 31 个。解压自检已做：全新目录＋全新 %LOCALAPPDATA% 跑 --check＋GUI 冒烟（Win32 PrintWindow 抓窗口、非全黑）＝PASS。
+§3 tts_cuda* 改名挪到包外（未删）⇒ ACCEPTED 指纹 31 模块 == zip 内 app/ .py 31 个。解压自检（全新目录＋全新 %LOCALAPPDATA% --check＋GUI 冒烟 Win32 PrintWindow 非全黑）＝PASS 17/17。
 
-§4 README 按 zip 清单写实际数字（10881 文件/6701780843 B，自指大小迭代到不动点）；去掉 APP-119/120、ASR-065/066、v2.5 全集、R2T2、handoff；加「密集讲话配音滞后（峰值约 43 s、收尾约 30 s，自动加速最高 1.7×）」；「配音首包 0.42 s」与「字幕出字延迟中位 317 ms」分列；§220 companion 行号订正（278-280→325-327、485-507→549-571、489-493→553-557）；timing_valid=false 保留，归因改为「判定线来自 CUDA 臂、不适用于 NPU 合成」，撤回无证据的「机器被占」。
+§4 README 改：按 zip 清单写实际数字（10881 文件/6701780843 B）；去内部编号与研发用语；加「密集讲话配音滞后（峰值约 43 s、收尾约 30 s，自动加速最高 1.7×）」；「配音首包 0.42 s」与「字幕出字延迟中位 317 ms」分列；§220 companion 行号订正（278-280→325-327、485-507→549-571、489-493→553-557）；timing_valid=false 保留，归因改为「判定线来自 CUDA 臂、不适用于 NPU 合成」，撤回无证据的「机器被占」。
 
-§5 整链 14/14 PASS（164 句、丢弃 0、语速 max 1.3186≤1.70）；自检 9/9、洁净度 0 违规、lang10 10/10、devswitch 7/7、迁移 3/3。🔴 计时类不作数：synth_rtf 中位 0.9459/P90 1.1126、积压峰值 124.9 s（v1.1 臂 43.1 s）⇒ 本轮不碰 TTS 路径、ASR 档是 GPU.0（RTF 0.563 比上轮 0.624 更快）⇒ 差异在 NPU 合成侧，原因未定位。
+§5 整链 14/14 PASS（164 句、丢弃 0、语速 max 1.3186≤1.70）；自检 9/9、洁净度 0、lang10 10/10、devswitch 7/7、迁移 3/3。🔴 计时类不作数：synth_rtf 中位 0.9459/P90 1.1126、积压峰值 124.9 s（v1.1 臂 43.1 s）⇒ 本轮不碰 TTS 路径、ASR 档是 GPU.0（RTF 0.563 比上轮 0.624 更快）⇒ 差异在 NPU 合成侧，原因未定位。
 
-版本：新目录 v1.1.1＋新 zip 5212403155 B/10881 文件；v1.1 目录与 zip 未覆盖未删；ACCEPTED 重签 1.1.1（闸门⑤ PASS）。提交 COMMIT_SHA（main）。
-遗留：① NPU 合成吞吐两轮差异未定位；② v1.1 的 lang10 证据曾被本轮覆盖，已用 v1.1 包重跑恢复（SHA 与原引用不同，如实登记）；③ 待您复核。
+版本：新目录 v1.1.1＋新 zip 5212403155 B/10881 文件；v1.1 未覆盖未删；ACCEPTED 重签 1.1.1（闸门⑤ PASS）。提交 88b9ea8（main）。
+遗留：① NPU 合成吞吐两轮差异未定位；② GUI 标题仍「实时字幕 MiniMVP v1.0」（APP-069 产品名，非本条授权，未改）；③ ASR 侧 §90 曾报 CONTENT_MISMATCH/VERSION_MISMATCH（我处理中），现已消除。

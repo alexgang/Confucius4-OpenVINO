@@ -1,0 +1,269 @@
+{
+  "script": "_app222_closure_evidence.py",
+  "ts": "2026-11-23 12:18:34",
+  "read_only": true,
+  "device_job": false,
+  "machine_lock_taken": false,
+  "corrections_fingerprint": {
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\CORRECTIONS_APP.md",
+    "sha256": "784474d0deed33caa8568bf8dded7550c31b4efd26414cf02c4afdfad8ffcf8a",
+    "bytes": 407531,
+    "mtime": "2026-11-23 09:04:26",
+    "n_headings": 119,
+    "max_heading": "APP-121",
+    "note": "只读 fingerprint；本脚本不改该文件（reviewer 独占）"
+  },
+  "status_doc": {
+    "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+    "exists": true,
+    "bytes": 28433,
+    "sha256": "b0579d4f6fe726f14af341ebecd1b538707f1e31037767d1e4c92c7b760cab3a",
+    "mtime": "2026-11-23 10:41:55",
+    "lines": 90
+  },
+  "half_deliveries": [
+    {
+      "id": "HD1",
+      "desc": "results/app/_app121_email_body.txt：已提交版是**发信前草稿**",
+      "file": {
+        "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app121_email_body.txt",
+        "exists": true,
+        "bytes": 3120,
+        "sha256": "d6d2f4b65d27acb07eb36ed921d5876fdbe19f9833cf60ff383d85d0b5cf4618",
+        "mtime": "2026-11-23 10:44:02"
+      },
+      "head_version": {
+        "bytes": 3398,
+        "sha256": "b4c26fc6b10f734bd77767c72339031cab2a54c4a6a6ec6cf06c6ad52bd1aec0",
+        "has_placeholder_COMMIT_SHA": true,
+        "says_see_attachment": true,
+        "mentions_real_commit_sha": false
+      },
+      "worktree_version": {
+        "has_placeholder_COMMIT_SHA": false,
+        "mentions_real_commit_sha": true,
+        "mentions_companion_sha": true
+      },
+      "actually_sent_mail": "[C4][A][STATUS][APP] APP-121 STATUS（MiniMVP v1.1.1）…正文见 A 机 status/app/STATUS_APP_sec221_detail_20261123.md（24085 B，SHA bf176bdbddb7fb2b）…提交 88b9ea8（main）",
+      "note": "那封邮件 has_attachments=false（**无附件**）⇒ HEAD 版的「详见附件」与「COMMIT_SHA（main）」占位符**都不成立**；**实际发出**的是工作区版本 ⇒ 本轮提交工作区版本。"
+    },
+    {
+      "id": "HD2",
+      "desc": "live_caption/_app121_zip_extract_check.py 未入库，但其产物 json 已入库并被引用",
+      "script": {
+        "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\_app121_zip_extract_check.py",
+        "exists": true,
+        "bytes": 10207,
+        "sha256": "a3736074c00065af2761bcd3f0a93712343b61c6c1c178ff82c6fdd297e57f40",
+        "mtime": "2026-11-23 09:37:39"
+      },
+      "product_json": {
+        "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app121_zip_extract_check.json",
+        "exists": true,
+        "bytes": 7995,
+        "sha256": "1c59a0d873e9f3883d1bf28964b6bc1484a5b10e7074dd4e01a24fe8627e5e01",
+        "mtime": "2026-11-23 10:34:40"
+      },
+      "product_json_tracked": true,
+      "cited_by": "status/app/STATUS_APP_sec221_detail_20261123.md §3（解压自检）",
+      "sibling_producers_tracked": 14
+    },
+    {
+      "id": "HD3",
+      "desc": "本轮 10 分钟整链的逐句 jsonl ＋ 积压曲线未入库（验收 json 已入库）",
+      "jsonl": {
+        "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app591_app121_v111_default_run20261123-1000_tts_out.wav.tts.jsonl",
+        "exists": true,
+        "bytes": 258211,
+        "sha256": "09483ca4a2a8b7c8d8f1a42285afc0aaac468996f6734435077c3d9a3b1a8f7b",
+        "mtime": "2026-11-23 10:07:27"
+      },
+      "backlog_csv": {
+        "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\_app591_app121_v111_default_run20261123-1000_tts_out.wav.backlog_curve.csv",
+        "exists": true,
+        "bytes": 22759,
+        "sha256": "4fc56a18b2ca7c5e5ae60bf8fcb92c65b7fa6e466c290410111f2b27ef7dd0c2",
+        "mtime": "2026-11-23 10:07:26"
+      },
+      "acceptance_json_tracked": true,
+      "peer_arm_jsonl_tracked": true,
+      "reviewer_recompute_basis": "reviewer 对 APP-120 的 10 分钟整链就是用 jsonl 复算（§221 §0 引 review 原话「reviewer 本机用 jsonl 复算（SHA b3a72990…）」）⇒ jsonl 是复算底本"
+    },
+    {
+      "id": "HD4",
+      "desc": "live_caption/package_profiles.py 未入库，但已入库的构建脚本直接 import 它",
+      "file": {
+        "path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\package_profiles.py",
+        "exists": true,
+        "bytes": 9763,
+        "sha256": "4ca63cc4ae0bf9371ed7f427e9190b95f602e61f00282bee8d52748b593d536b",
+        "mtime": "2026-11-20 16:01:15"
+      },
+      "importer": "live_caption/_app120_build_minimvp_v11.py（**已入库**）",
+      "import_line": "from package_profiles import PROFILE_RULES, is_excluded, top_dirs",
+      "importer_tracked": true,
+      "consequence": "干净 clone 跑 MiniMVP 构建 ⇒ ImportError（无法重建包）"
+    }
+  ],
+  "delivery_surface_readonly": {
+    "zip": {
+      "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.1.1.zip",
+      "exists": true,
+      "bytes": 5212403155,
+      "sha256": "c4b58676da761d6c9377e7fd7112d2a0c20a31672dd5b9a22d5190124a7eadf0",
+      "mtime": "2026-11-23 10:31:48"
+    },
+    "zip_file_entries": 10881,
+    "zip_uncompressed_bytes": 6701780843,
+    "readme_claims_bytes": 6701780843,
+    "readme_bytes_match_zip": true,
+    "readme_claims_files": 10881,
+    "readme_files_match_zip": true,
+    "v1_1_zip_uncompressed_bytes": 6701773512,
+    "note": "reviewer APP-121 §4 给的「6 701 773 512 B」＝ **v1.1** zip 的解压总量；**v1.1.1** zip 的解压总量实测 6 701 780 843 B（README 写的即是此数）",
+    "accepted_version": "1.1.1",
+    "accepted_n_fingerprints": 31,
+    "zip_app_py_count": 31,
+    "fingerprint_keys_equal_zip_app_py": true,
+    "fp_not_in_zip": [],
+    "zip_not_in_fp": []
+  },
+  "dev_v25_v1111_identical": [
+    {
+      "module": "asr06b_stateful_backend.py",
+      "dev": "36f20581799f",
+      "v2_5": "36f20581799f",
+      "v1_1_1": "36f20581799f",
+      "all_same": true
+    },
+    {
+      "module": "live_caption_app.py",
+      "dev": "9cd8e8bf72c6",
+      "v2_5": "9cd8e8bf72c6",
+      "v1_1_1": "9cd8e8bf72c6",
+      "all_same": true
+    },
+    {
+      "module": "device_config.py",
+      "dev": "4e6b50266340",
+      "v2_5": "4e6b50266340",
+      "v1_1_1": "4e6b50266340",
+      "all_same": true
+    },
+    {
+      "module": "tts_worker.py",
+      "dev": "ae9007450ee9",
+      "v2_5": "ae9007450ee9",
+      "v1_1_1": "ae9007450ee9",
+      "all_same": true
+    },
+    {
+      "module": "tts_engine.py",
+      "dev": "c2b031726e12",
+      "v2_5": "c2b031726e12",
+      "v1_1_1": "c2b031726e12",
+      "all_same": true
+    }
+  ],
+  "v25_acceptance_still_unresigned": {
+    "path": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5\\ACCEPTED.json",
+    "version": "2.4",
+    "pkg_dir": "<HOME>\\Confucius4_LiveCaption_v2.4",
+    "v25_zip_exists": false,
+    "note": "**仍指向 v2.4** ⇒ 闸门 check_acceptance_binding fail-closed ⇒ **v2.5 打不出 zip**（沿用 §220 的未结项；本轮未改）"
+  },
+  "asr_s91_crosscheck": {
+    "ASR-91-4_prefix_truncations": {
+      "materials": {
+        "NPU": [
+          {
+            "material": "spe",
+            "n_segs": 93,
+            "prefix_truncations": 0,
+            "transcript_md5": "2d7218ae43a66e45eb0ba1708f9c35a7"
+          },
+          {
+            "material": "en",
+            "n_segs": 65,
+            "prefix_truncations": 0,
+            "transcript_md5": "8a7e64cf262f63ff077c0c3d5d1a31ec"
+          },
+          {
+            "material": "zh",
+            "n_segs": 66,
+            "prefix_truncations": 3,
+            "transcript_md5": "e4efbe483f8c768bef5841e52d48d875"
+          }
+        ],
+        "GPU0": [
+          {
+            "material": "spe",
+            "n_segs": 93,
+            "prefix_truncations": 0,
+            "transcript_md5": "d68715dfbcf3545a8f3684a34119037c"
+          },
+          {
+            "material": "en",
+            "n_segs": 65,
+            "prefix_truncations": 0,
+            "transcript_md5": "fbe91f2a3b2e5971ffae0201ac9382a8"
+          },
+          {
+            "material": "zh",
+            "n_segs": 66,
+            "prefix_truncations": 0,
+            "transcript_md5": "57ce6bc17768fa6081cd13b970b93a31"
+          }
+        ]
+      },
+      "npu_zh_nonzero": [
+        {
+          "material": "zh",
+          "n_segs": 66,
+          "prefix_truncations": 3,
+          "transcript_md5": "e4efbe483f8c768bef5841e52d48d875"
+        }
+      ],
+      "gpu0_all_zero": true,
+      "verdict": "**属实**（App 侧 NPU 的 ZH 素材 prefix_truncations=3；GPU.0 同素材=0）⇒ 与 ASR §91 ④ 一致",
+      "own_artifact": "results/app/app121_asr_app_3mat_NPU.json / …_GPU0.json"
+    },
+    "ASR-91-5_attribution": {
+      "where_the_sentence_lives": "**只在**证据 json 的 ref_diff_explanation[].reasons[0]（harness 里的**静态字面量**）",
+      "not_in_companion_prose": "§221 companion §2 正文写的是「段边界一致 ⇒ 切段器行为一致，差异不在切段」",
+      "n_segs_app_vs_ref": [
+        {
+          "material": "spe",
+          "app": 93,
+          "ref": 93,
+          "equal": true
+        },
+        {
+          "material": "en",
+          "app": 65,
+          "ref": 65,
+          "equal": true
+        },
+        {
+          "material": "zh",
+          "app": 66,
+          "ref": 66,
+          "equal": true
+        }
+      ],
+      "contradiction": "**同一个 json 自己的 n_segs_app == n_segs_ref**（93/65/66 三素材全同）⇒ reasons[0] 的「段边界与段数本就不一致」**与本文件实测自相矛盾**",
+      "verdict": "**§221 的正文结论不需要撤回**；缺陷只在 harness 的静态串",
+      "own_artifact": "results/app/app121_asr_app_3mat_{NPU,GPU0,GPU0_OLD_v11}.json"
+    }
+  },
+  "left_uncommitted_on_purpose": {
+    "results/app/app523_pack_must_ttsworker_evidence.json": "**明确 hold**：§199/§200「仍保持未提交（等 reviewer 对 app523 裁定，不预判）」⇒ 本轮不碰",
+    "results/app/app170_version_identity_gate_evidence.json": "早期轮次残留（v2.3→v2.5 刷新从未入库）；无 hold，但 §191 已引用它 ⇒ **不擅自替换被引用的证据产物**，列为待 reviewer 裁定",
+    "results/app/app157_follow_speaker_regression_evidence_pkg.json": "autocrlf 假阳性（`git diff --numstat` 无内容差异）⇒ 非实质改动",
+    "results/app/app468_status_git_halfdelivery.json": "autocrlf 假阳性（`git diff --numstat` 无内容差异）⇒ 非实质改动",
+    "status/app/CORRECTIONS_APP.md": "reviewer 独占 ⇒ **永不 add**",
+    "status/CORRECTIONS.md / status/STATUS_ARCHIVE_2026-10.md": "**非 App 模块**文件 ⇒ 不吞他模块改动",
+    "live_caption/sync_c*.py": "§57 历史遗留未跟踪文件，**归属未判定** ⇒ 不提交"
+  },
+  "verdict": "PASS"
+}
