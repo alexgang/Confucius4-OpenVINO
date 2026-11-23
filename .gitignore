@@ -32,3 +32,6 @@ chrome_profile/
 # reviewer 独占写入的纠偏文件：只读，绝不入库
 # （沿用 App 模块约定：status/app/CORRECTIONS_APP.md 不提交）
 status/CORRECTIONS_EXT.md
+
+# v0.4.19 保留背景音：开发机上的分离模型（107 MB）不入库；产品里由 App 打进 models/bgsep/
+models/

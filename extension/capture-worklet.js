@@ -196,3 +196,50 @@ class CaptureProcessor extends AudioWorkletProcessor {
 }
 
 registerProcessor('capture-processor', CaptureProcessor);
+
+/**
+ * v0.4.19「保留背景音」：48 kHz **立体声** PCM16 上行（交错 L/R），给桥接服务做背景分离。
+ *   与上面的 16 kHz 单声道处理器接在**同一个 source 上、同一个 JS 任务里 connect**
+ *   ⇒ 两者从同一个渲染量子开始 ⇒ sampleIndexBg / 48000 与 sampleIndex / 16000 是同一时间原点。
+ *   帧长 100 ms（4800 帧）；sampleIndexBg = 本帧第一帧在 48 kHz 下的序号（跨帧连续，便于服务端查丢帧）。
+ *   单声道输入 ⇒ 复制成两声道。
+ */
+class CaptureBgProcessor extends AudioWorkletProcessor {
+  constructor(options) {
+    super();
+    const opt = (options && options.processorOptions) || {};
+    this.frame = Math.max(480, Math.round(sampleRate * (opt.frameMs || 100) / 1000));
+    this.buf = new Int16Array(this.frame * 2);
+    this.len = 0;               // frames in buf
+    this.total = 0;             // frames already posted
+    this.seq = 0;
+  }
+
+  _post() {
+    if (this.len === 0) return;
+    const pcm = this.buf.slice(0, this.len * 2);
+    this.port.postMessage({ pcm: pcm.buffer, sampleIndexBg: this.total, seq: this.seq++,
+                            rate: sampleRate, ch: 2 }, [pcm.buffer]);
+    this.total += this.len;
+    this.len = 0;
+  }
+
+  process(inputs) {
+    const input = inputs[0];
+    if (!input || input.length === 0 || !input[0] || input[0].length === 0) return true;
+    const l = input[0];
+    const r = input.length > 1 ? input[1] : input[0];
+    for (let i = 0; i < l.length; i++) {
+      let a = l[i], b = r[i];
+      if (a > 1) a = 1; else if (a < -1) a = -1;
+      if (b > 1) b = 1; else if (b < -1) b = -1;
+      this.buf[this.len * 2] = Math.round(a * 32767);
+      this.buf[this.len * 2 + 1] = Math.round(b * 32767);
+      this.len++;
+      if (this.len >= this.frame) this._post();
+    }
+    return true;
+  }
+}
+
+registerProcessor('capture-bg-processor', CaptureBgProcessor);

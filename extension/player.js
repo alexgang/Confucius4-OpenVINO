@@ -157,6 +157,9 @@ let flashFallbackCount = 0;
 let flashBuf = null;
 
 const metrics = {
+  // v0.4.19 保留背景音
+  bg: { keep: true, state: null, device: null, reason: '', blocks: 0, late: 0, dropped: 0,
+        upFrames: 0, upSent: 0, leadSec: null, rtf: null },
   queued: 0, encoded: 0, decoded: 0, dropped: 0, drawn: 0,
   lipSyncMs: null, schedErrMs: null, schedErrP50: null, schedErrP95: null,
   codecUsed: null, hwAcceleration: null,
@@ -393,6 +396,22 @@ let capturedStream = null;
 let duckDb = -15;
 //   字幕开关：true = 显示译文字幕；false = 完全不写 DOM。
 let subsOn = true;
+// ── v0.4.19「保留背景音」（用户 11-23：默认打开）──────────────────────────
+//   桥接服务用 Demucs 把 48 kHz 立体声原声分成「背景（音乐+音效）」和「人声」，
+//   背景按与配音同一条时间轴下发（`bg`）⇒ 这里替代「原声压低」播放；配音期间背景再压低 4 dB。
+//   某段背景没在播放时刻前到 ⇒ 这一段退回原来的「原声压低」（origMix 打开），不留空白、不重复。
+let bgKeep = true;               // 用户设置（chrome.storage.local.bgKeep，缺省 = 开）
+let bgServer = null;             // 桥接回报的最近一次 bg_status / hello_ack.bg
+let bgDuck = null;               // 背景：配音期间压低 4 dB
+let bgGate = null;               // 背景：有背景块覆盖时 = 1，否则 0（与 origMix 互补）
+let origMix = null;              // 原声压低总线的开关：被背景覆盖时 = 0
+let bgCoveredUntil = 0;          // 已排程背景覆盖到的 audioCtx 时刻
+let bgDuckUntil = 0;
+const bgSources = new Set();
+const BG_DUCK_DB = -4;
+// v0.4.19 起点对齐：已排程配音的登记（id → {src, buf, when}），供桥接后发的 `dub_shift` 挪位
+const dubMeta = new Map();
+const DUB_META_CAP = 200;
 //   ★ 记住「用户**实际**设的值」，与「引擎实际生效的值」区分开。
 //   duckDb 只在**新设置生效时**写入 origGain.gain（见 applyDuckDb），
 //   而 origGain 在抓流成功后才存在 ⇒ 设置值与生效值可能短暂不同。
@@ -1352,6 +1371,127 @@ function resolvePcmSampleRate(msg) {
  *     只负责：① 记录/显示倍率与滞后；② 按 EXT-009 的公式**本地复核**一遍，
  *     便于发现「服务端算的 lag」与「插件实测的 lag」差多少。
  */
+// ── v0.4.19 保留背景音：背景块排程 / 覆盖切换 / 配音期间压低 ─────────────────
+function b64ToMultiBuffer(b64, sampleRate, channels) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const i16 = new Int16Array(bytes.buffer, 0, bytes.length >> 1);
+  const ch = Math.max(1, channels || 2);
+  const frames = Math.floor(i16.length / ch);
+  const buf = audioCtx.createBuffer(ch, frames, sampleRate || 48000);
+  for (let c = 0; c < ch; c++) {
+    const d = buf.getChannelData(c);
+    for (let i = 0; i < frames; i++) d[i] = i16[i * ch + c] / 32768;
+  }
+  return buf;
+}
+
+// 背景覆盖 [start, end)：这段时间放背景、关掉原声压低总线（12 ms 交叉淡化）；
+//   与上一块首尾相接 ⇒ 取消上一块排好的「交还原声」，继续保持背景。
+function bgCover(start, end) {
+  const now = audioCtx.currentTime;
+  const og = origMix.gain, bg = bgGate.gain, X = 0.012;
+  if (bgCoveredUntil > now && start <= bgCoveredUntil + 0.002) {
+    const t = Math.max(now, bgCoveredUntil - X - 0.001);
+    og.cancelScheduledValues(t); bg.cancelScheduledValues(t);
+    og.setValueAtTime(0, t); bg.setValueAtTime(1, t);
+  } else {
+    const t = Math.max(now, start - X);
+    og.cancelScheduledValues(t); bg.cancelScheduledValues(t);
+    og.setValueAtTime(1, t); bg.setValueAtTime(0, t);
+    og.linearRampToValueAtTime(0, t + X); bg.linearRampToValueAtTime(1, t + X);
+  }
+  const t2 = Math.max(now, end - X);
+  og.setValueAtTime(0, t2); bg.setValueAtTime(1, t2);
+  og.linearRampToValueAtTime(1, end); bg.linearRampToValueAtTime(0, end);
+  bgCoveredUntil = end;
+}
+
+function scheduleBg(m) {
+  if (!audioCtx || !bgDuck || !origMix || !bgKeep || !m || !m.pcm) return;
+  const sr = Number(m.sample_rate) || 48000;
+  const buf = b64ToMultiBuffer(m.pcm, sr, Number(m.channels) || 2);
+  const when = dubT0() + Number(m.t_start || 0) + delaySec;
+  const end = when + buf.duration;
+  const now = audioCtx.currentTime;
+  metrics.bg.blocks++;
+  let start = when, offset = 0;
+  if (when < now + 0.03) {
+    if (end <= now + 0.05) { metrics.bg.dropped++; return; }    // 整块都晚了 ⇒ 这段继续放原声压低
+    offset = now + 0.03 - when;
+    start = now + 0.03;
+    metrics.bg.late++;
+  }
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  src.connect(bgDuck);
+  src.onended = () => { bgSources.delete(src); };
+  bgSources.add(src);
+  src.start(start, offset);
+  bgCover(start, end);
+}
+
+// 配音 [when, when+dur) 期间背景压低 BG_DUCK_DB；相邻配音连成一段（不在两句之间抬起又压下）
+function bgDuckDub(when, dur) {
+  if (!audioCtx || !bgDuck) return;
+  const g = bgDuck.gain, now = audioCtx.currentTime;
+  const a = Math.max(now, when - 0.08), b = when + dur + 0.05;
+  if (a <= bgDuckUntil && bgDuckUntil > now) {
+    g.cancelScheduledValues(Math.max(now, bgDuckUntil - 0.0001));
+  } else {
+    g.setTargetAtTime(dbToGain(BG_DUCK_DB), a, 0.03);
+  }
+  g.setTargetAtTime(1, b, 0.1);
+  bgDuckUntil = Math.max(bgDuckUntil, b);
+}
+
+// 关开关 / 桥接报不可用 ⇒ 停掉已排程的背景，20 ms 内交还原声压低
+function bgStopAll(why) {
+  for (const s of bgSources) { try { s.stop(); } catch (e) { /* ignore */ } }
+  bgSources.clear();
+  if (audioCtx && origMix && bgGate) {
+    const t = audioCtx.currentTime;
+    for (const g of [origMix.gain, bgGate.gain]) g.cancelScheduledValues(t);
+    origMix.gain.setValueAtTime(origMix.gain.value, t);
+    origMix.gain.linearRampToValueAtTime(1, t + 0.02);
+    bgGate.gain.setValueAtTime(bgGate.gain.value, t);
+    bgGate.gain.linearRampToValueAtTime(0, t + 0.02);
+  }
+  bgCoveredUntil = 0;
+  if (why) metrics.bg.reason = why;
+}
+
+// v0.4.19 起点对齐（用户 11-23：clip_s2 配音比演员开口早）：断句在原声上做，配乐不停时切点会落在
+//   开口之前；桥接拿到这一段的分离人声后发 `dub_shift`（真实开口时刻）。还没开播就挪过去，
+//   最多挪到「不撞下一句」为止；已开播 / 太晚 ⇒ 不动。
+function shiftDub(m) {
+  if (!audioCtx || !m) return;
+  const meta = dubMeta.get(String(m.id || ''));
+  if (!meta) return;
+  const now = audioCtx.currentTime;
+  if (meta.when - now < 0.15) { metrics.dubShiftTooLate = (metrics.dubShiftTooLate || 0) + 1; return; }
+  const want = dubT0() + Number(m.t_start || 0) + delaySec;
+  let limit = Infinity;
+  for (const o of dubMeta.values()) {
+    if (o !== meta && o.when > meta.when && o.when < limit) limit = o.when;
+  }
+  const newWhen = Math.min(want, limit - meta.buf.duration - 0.02);
+  if (!(newWhen > meta.when + 0.02)) return;
+  try { meta.src.stop(); } catch (e) { /* ignore */ }
+  const src = audioCtx.createBufferSource();
+  src.buffer = meta.buf;
+  src.connect(dubBus);
+  src.start(newWhen);
+  const shift = newWhen - meta.when;
+  meta.src = src;
+  meta.when = newWhen;
+  if (newWhen + meta.buf.duration > dubPlaybackEnd) dubPlaybackEnd = newWhen + meta.buf.duration;
+  try { bgDuckDub(newWhen, meta.buf.duration); } catch (e) { /* ignore */ }
+  metrics.dubShifted = (metrics.dubShifted || 0) + 1;
+  metrics.dubShiftSec = Math.round(((metrics.dubShiftSec || 0) + shift) * 1000) / 1000;
+}
+
 function scheduleDub(msg) {
   if (!audioCtx || !msg.pcm24k) return null;
   // ★★★★ EXT-028 ①：采样率**以服务端声明为准**（见 resolvePcmSampleRate）。
@@ -1430,6 +1570,11 @@ function scheduleDub(msg) {
     if (end > dubPlaybackEnd) dubPlaybackEnd = end;
   }
   src.start(when);
+  if (!isProbe) { try { bgDuckDub(when, buf.duration); } catch (e) { /* ignore */ } }
+  if (!isProbe && msg.id != null) {
+    dubMeta.set(String(msg.id), { src, buf, when });
+    while (dubMeta.size > DUB_META_CAP) dubMeta.delete(dubMeta.keys().next().value);
+  }
 
   // ★★ EXT-009：自适应加速播放的**播放侧记录**（不改变音频波形）
   //   - `msg.speed` 是服务端算好的**总倍率**（时长适配 × 自适应加速，封顶 1.30×）
@@ -1698,6 +1843,8 @@ async function startUplink(stream, wsUrl, token, captureMode) {
         ws.send(JSON.stringify({
           type: 'hello', token, role: 'uplink', sample_rate: 16000,
           source: 'player', delay_sec: delaySec,
+          // v0.4.19 保留背景音：另有一路 48 kHz 立体声上行（pcm_bg）
+          bg_keep: bgKeep, bg_sample_rate: 48000, bg_channels: 2,
           // ★★ T-1：把**抓流方式**上报给桥接服务。
           //   服务端会把它记进会话 ⇒ stats 回包与 margin.json 都带上
           //   ⇒ EXT-005 ①「tabCapture 生产路径到底有没有被实测过」
@@ -1758,10 +1905,26 @@ async function startUplink(stream, wsUrl, token, captureMode) {
     const source = ac.createMediaStreamSource(new MediaStream([track]));
     upState.source = source;
     source.connect(node);
+    // v0.4.19 保留背景音：同一个 source、同一个 JS 任务里接 48 kHz 立体声处理器
+    //   ⇒ 与 16 kHz 处理器从同一渲染量子开始 ⇒ sample_index_bg/48000 与 sample_index/16000 同一时间原点。
+    try {
+      const bgNode = new AudioWorkletNode(ac, 'capture-bg-processor', {
+        numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2],
+        channelCount: 2, channelCountMode: 'explicit', channelInterpretation: 'speakers',
+        processorOptions: { frameMs: 100 },
+      });
+      source.connect(bgNode);
+      upState.bgNode = bgNode;
+      bgNode.port.onmessage = (ev) => onUplinkBgFrame(ev.data);
+    } catch (e) {
+      upState.bgNode = null;
+      metrics.bg.reason = '立体声上行创建失败：' + String((e && e.message) || e);
+    }
     const mute = ac.createGain();
     mute.gain.value = 0;
     node.connect(mute);
     mute.connect(ac.destination);
+    if (upState.bgNode) upState.bgNode.connect(mute);
 
     node.port.onmessage = (ev) => onUplinkFrame(ev.data);
     upState.t0 = 0;   // ★ 由首帧的 inSamples 反推真实基准点
@@ -2201,6 +2364,24 @@ async function requestMarginDump(timeoutMs) {
     report({ kind: 'margin_dump_error', error: err });
     return { ok: false, error: err };
   }
+}
+
+// v0.4.19 保留背景音：48 kHz 立体声帧 → `pcm_bg`（开关关 / 桥接报不可用时不发）
+function onUplinkBgFrame(d) {
+  metrics.bg.upFrames = (metrics.bg.upFrames || 0) + 1;
+  if (!bgKeep) return;
+  if (bgServer && bgServer.state === 'unavailable') return;
+  const w = upState.ws;
+  if (!w || w.readyState !== WebSocket.OPEN) return;
+  const bytes = new Uint8Array(d.pcm);
+  let bin = '';
+  const CH = 0x8000;
+  for (let i = 0; i < bytes.length; i += CH) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+  }
+  w.send(JSON.stringify({ type: 'pcm_bg', seq: d.seq, sample_index_bg: d.sampleIndexBg,
+                          rate: d.rate || 48000, ch: d.ch || 2, pcm: btoa(bin) }));
+  metrics.bg.upSent = (metrics.bg.upSent || 0) + 1;
 }
 
 function onUplinkFrame(d) {
@@ -2684,7 +2865,17 @@ function setupOriginalAudio(stream) {
   applyDuckDb();
   origSource.connect(origDelay);
   origDelay.connect(origGain);
-  origGain.connect(audioCtx.destination);
+  // v0.4.19 保留背景音：原声压低总线后加一道开关 origMix；背景走 bgDuck → bgGate（二者互补）
+  origMix = audioCtx.createGain();
+  origMix.gain.value = 1;
+  origGain.connect(origMix);
+  origMix.connect(audioCtx.destination);
+  bgDuck = audioCtx.createGain();
+  bgDuck.gain.value = 1;
+  bgGate = audioCtx.createGain();
+  bgGate.gain.value = 0;
+  bgDuck.connect(bgGate);
+  bgGate.connect(audioCtx.destination);
   // ★ 原声 onset 检测（唇音同步参考点）
   makeOnsetDetector(origGain, onOrigOnset, 0.02).then(n => { origOnsetNode = n; });
 }
@@ -2885,6 +3076,16 @@ function handleBridgeMessage(m) {
       report({ kind: 'session_reset', session_id: sid, cleared: n });
     }
     if (sid) currentSessionId = sid;
+    // v0.4.19 保留背景音：旧桥接（无 bg_supported）⇒ 这一功能不可用，照旧放原声压低
+    if (!m.bg_supported) {
+      bgServer = { state: 'unavailable', reason: '桥接服务版本不支持保留背景音' };
+    } else if (m.bg) {
+      bgServer = m.bg;
+    }
+    if (bgServer && metrics.bg) {
+      metrics.bg.state = bgServer.state || null;
+      metrics.bg.reason = bgServer.reason || '';
+    }
     report({ kind: 'hello_ack', delay_sec: m.delay_sec,
              sample_rate: m.sample_rate, segmentation: m.segmentation,
              mode: m.mode, engines_ready: m.engines_ready,
@@ -2963,6 +3164,20 @@ function handleBridgeMessage(m) {
     report({ kind: 'dub', id: m.id, t_start: m.t_start, t_end: m.t_end,
              planned: r && r.planned, requested: r && r.requested,
              isTts: kind === 'tts' });
+  } else if (kind === 'bg') {
+    scheduleBg(m);
+  } else if (kind === 'dub_shift') {
+    shiftDub(m);
+  } else if (kind === 'bg_status') {
+    bgServer = m;
+    metrics.bg.state = m.state || null;
+    metrics.bg.device = m.device || null;
+    metrics.bg.reason = m.reason || '';
+    metrics.bg.leadSec = (typeof m.lead_sec === 'number') ? m.lead_sec : null;
+    metrics.bg.rtf = (typeof m.rtf === 'number') ? m.rtf : null;
+    if (m.state === 'unavailable') bgStopAll('');
+    report({ kind: 'bg_status', state: m.state, device: m.device, reason: m.reason,
+             lead_sec: m.lead_sec, rtf: m.rtf, late: metrics.bg.late, dropped: metrics.bg.dropped });
   } else if (kind === 'stats') {
     // ★★ EXT-024 E：服务端报的段数/滞后 ⇒ 记进状态条。
     metrics.link.lastStatsAt = performance.now();
@@ -3079,6 +3294,7 @@ const REPORT_SCALARS = [
   'schedClamped', 'probeSchedClamped', 'encodeSkipped', 'encodeBacklogSkipped',
   // ★★ T-3：把设置的实际生效值也带上去（跨上下文可见）
   'duckDb', 'duckGain', 'duckDbApplied', 'subsOn',
+  'bg', 'dubShifted', 'dubShiftSec', 'dubShiftTooLate',
   // ★★★ EXT-033 B/D：录音完整性与 player 端实测同步误差
   'dubPcmTapped', 'dubPcmError', 'dubPcmStored', 'dubPcmDropped',
   'dubSyncP50', 'dubSyncP95', 'dubSyncMax', 'dubSyncMin',
@@ -3536,7 +3752,10 @@ async function boot() {
     // ★★ T-4：把目标语言 / 音色也读出来（此前 player 从不读
     //   ⇒ 服务端拿不到 ⇒ 面板上的选择在这条路径上完全丢失）。
     targetLang: 'zh', voice: 'A',
+    bgKeep: true,          // v0.4.19：缺省（含老用户升级）= 开；用户手动关过就保持关
   });
+  bgKeep = (cfg.bgKeep === undefined || cfg.bgKeep === null) ? true : !!cfg.bgKeep;
+  metrics.bg.keep = bgKeep;
   delaySec = isNaN(D_OVERRIDE) ? (cfg.delaySec || 20) : D_OVERRIDE;
   recomputeEncCap();
   // ★★ T-3：应用原声压低量与字幕开关。
@@ -3563,6 +3782,17 @@ async function boot() {
           applyDuckDb();
           report({ kind: 'settings', duckDb, duckGain: metrics.duckGain,
                    duckDbApplied: duckDbApplied });
+        }
+        if ('bgKeep' in changes) {
+          const v = changes.bgKeep.newValue;
+          bgKeep = (v === undefined || v === null) ? true : !!v;
+          metrics.bg.keep = bgKeep;
+          const w = upState.ws;
+          if (w && w.readyState === WebSocket.OPEN) {
+            try { w.send(JSON.stringify({ type: 'bg_keep', on: bgKeep })); } catch (e) { /* ignore */ }
+          }
+          if (!bgKeep) bgStopAll('');
+          report({ kind: 'settings', bgKeep });
         }
         if ('subsOn' in changes) {
           const v = changes.subsOn.newValue;

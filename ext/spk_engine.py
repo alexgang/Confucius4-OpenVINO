@@ -57,8 +57,12 @@ CLUSTER_THR = 0.35
 CLUSTER_ALPHA = 0.5
 #: 说话人数上限（与 ASR 侧默认 `max_speakers=6` 一致）
 MAX_SPEAKERS = 6
-#: 干净语音占比下限（与 ASR 侧默认 `min_clean_ratio=0.8` 一致）
-MIN_CLEAN_RATIO = 0.8
+#: 干净语音占比下限 —— 与 ASR 交付同源（asr052_speaker_tracker_api.DEFAULT_MIN_CLEAN_RATIO；
+#:   ASR-050 用户决定 0.8→0.6；v0.4.19 前这里写死 0.8，ASR-094 指出不同源）
+try:
+    from asr052_speaker_tracker_api import DEFAULT_MIN_CLEAN_RATIO as MIN_CLEAN_RATIO
+except Exception:
+    MIN_CLEAN_RATIO = 0.6
 #: 重叠占比上限（与 ASR 侧默认 `overlap_ratio_max=0.02` 一致）
 OVERLAP_RATIO_MAX = 0.02
 #: 段最短时长（与 ASR 侧默认 `min_dur_s=2.0` 一致）
@@ -163,6 +167,7 @@ class SpkEngine:
         self._archive_cap = int(ARCHIVE_SEC * SR)
         self._pending: List[np.ndarray] = []
         self._pending_len = 0
+        self._seg_block_start = 0      # v0.4.19: global sample index of _pending[0] (frame-axis anchor)
         self._total = 0                   # 累计喂入样本数（全局时间轴）
         self._t0 = 0.0                    # 音频起点在全局时间轴上的位置
         self._seg_frame_base = 0          # 已产出的分段帧数（全局帧号）
@@ -210,6 +215,15 @@ class SpkEngine:
                 xml = xmls[0]
             else:
                 xml = self.seg_ir
+            # v0.4.19 (ASR-094 ⑤): IR input length must equal the window (5 s ⇒ 80000 = fp16-w5); the 10 s
+            #   IR [1,1,160000] made every inference throw ⇒ no speaker segmentation at all.
+            try:
+                _n_in = int(ov.Core().read_model(xml).inputs[0].partial_shape[-1].get_length())
+            except Exception:
+                _n_in = None
+            if _n_in is not None and _n_in != int(rt.WIN_N):
+                raise RuntimeError("分段 IR 输入长度 %s ≠ 窗口 WIN_N=%d（%s）——需与窗口配套的变体"
+                                   % (_n_in, rt.WIN_N, xml))
             key = ("seg", xml, self.seg_device)
             cm = _cached_compiled(key)
             if cm is not None:
@@ -352,13 +366,23 @@ class SpkEngine:
             return
         self.seg_infer_sec += time.perf_counter() - t0
         self.n_seg_infer += 1
-        if frames is not None and len(frames):
-            self._seg_frames.extend(frames)
         # ★ 消费掉已推理的部分（保留一点尾巴，保证下一块的窗口连续）
         keep = self._seg_stride_samples
         consumed = audio.size - keep
         if consumed <= 0:
             return
+        # v0.4.19 (ASR-094 ①): consecutive blocks overlap by `keep` samples; appending every frame of every
+        #   block double-counted that overlap (+25.6 % frames ⇒ 600 s drifted 123 s). Append only frames of
+        #   the CONSUMED part on the global axis (frame g ↔ sample g·SR/FPS) so _seg_frames[g] is frame g
+        #   of the session — the axis on_final() slices with round(t·FPS).
+        if frames is not None and len(frames):
+            import asr052_spk_runtime as rt
+            bs_f = self._seg_block_start / float(SR) * rt.FPS
+            want_end = int(round((self._seg_block_start + consumed) / float(SR) * rt.FPS))
+            for g in range(len(self._seg_frames), want_end):
+                li = min(max(int(round(g - bs_f)), 0), len(frames) - 1)
+                self._seg_frames.append(frames[li])
+        self._seg_block_start += consumed
         self._pending = [audio[consumed:]] if keep > 0 else []
         self._pending_len = keep if keep > 0 else 0
 

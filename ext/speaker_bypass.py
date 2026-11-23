@@ -81,6 +81,28 @@ def _log(msg: str) -> None:
     print("[ext-spk] %s" % msg, flush=True)
 
 
+
+def _find_seg_for_window(root: str) -> str:
+    """v0.4.19 (ASR-094 ⑤): the pyannote IR variant matching the ASR speaker window
+    (asr_spk_window.seg_ir_subdir_for(WIN_S): 5 s ⇒ 'fp16-w5'). EXT_SPK_SEG_IR still wins if set."""
+    v = os.environ.get("EXT_SPK_SEG_IR")
+    if v and os.path.isdir(v):
+        return v
+    if not root:
+        return ""
+    try:
+        import asr052_spk_runtime as rt
+        win_s = float(getattr(rt, "WIN_S", rt.WIN_N / 16000.0))
+        try:
+            from asr_spk_window import seg_ir_subdir_for
+            sub = seg_ir_subdir_for(win_s)
+        except Exception:
+            sub = "fp16-w5" if abs(win_s - 5.0) < 1e-6 else "fp16"
+        cand = os.path.join(root, "models", "spk", "pyannote_seg_3_0", sub)
+        return cand if os.path.isdir(cand) else ""
+    except Exception:
+        return ""
+
 class SpeakerBypass:
     """★ EXT-029：说话人旁路（**独立线程 + 有界队列 + 异步回填**）。
 
@@ -176,7 +198,8 @@ class SpeakerBypass:
                     return cand
             return ""
 
-        seg = _find("EXT_SPK_SEG_IR", os.path.join("pyannote_seg_3_0", "%s"))
+        # v0.4.19 (ASR-094 ⑤): the pyannote variant must match the speaker window (5 s ⇒ fp16-w5)
+        seg = _find_seg_for_window(root) or _find("EXT_SPK_SEG_IR", os.path.join("pyannote_seg_3_0", "%s"))
         wes = _find("EXT_SPK_WES_IR", "wespeaker-resnet34-%s")
         return seg, wes
 

@@ -215,6 +215,7 @@ function readCfg() {
     voice: normalizeVoice($('voice').value),
     duckDb: Number($('duck').value),
     subsOn: $('subs').checked,
+    bgKeep: $('bgkeep') ? $('bgkeep').checked : true,   // v0.4.19 保留背景音
     playerOpen: $('player').checked,
     slowdownOn: false,   // v0.4.3：用户去掉「视频轻微降速」⇒ 永远不改视频速度
   };
@@ -247,7 +248,7 @@ function schedulePersistCfg() {
 function bindPersistListeners() {
   if (bindPersistListeners._bound) return;
   bindPersistListeners._bound = true;
-  const ids = ['ws', 'token', 'delay', 'lang', 'voice', 'duck', 'subs', 'player'];
+  const ids = ['ws', 'token', 'delay', 'lang', 'voice', 'duck', 'subs', 'bgkeep', 'player'];
   for (const id of ids) {
     const el = $(id);
     if (!el) continue;
@@ -271,6 +272,7 @@ async function loadCfg() {
     voice: 'A',
     duckDb: -15,
     subsOn: true,
+    bgKeep: true,          // v0.4.19：缺省（含升级）= 开
     playerOpen: false,
     // ★★★ EXT-041：媒体降速**默认开**（reviewer 明文）。
     slowdownOn: false,   // 11-08 用户：不调画面速度
@@ -284,6 +286,7 @@ async function loadCfg() {
   $('voice').value = normalizeVoice(cfg.voice);
   $('duck').value = cfg.duckDb;
   $('subs').checked = !!cfg.subsOn;
+  if ($('bgkeep')) $('bgkeep').checked = (cfg.bgKeep === undefined || cfg.bgKeep === null) ? true : !!cfg.bgKeep;
   $('player').checked = !!cfg.playerOpen;
 }
 
@@ -676,6 +679,20 @@ async function refreshStatus() {
     } else {
       me.textContent = '正在加载模型…';
     }
+  }
+
+  // v0.4.19 保留背景音：分离状态
+  const mb = $('mBg');
+  if (mb) {
+    const on = $('bgkeep') ? $('bgkeep').checked : true;
+    const b = st.bg || null;
+    if (!on) mb.textContent = '已关闭（原声压低）';
+    else if (!b) mb.textContent = st.has_session ? '桥接未报告（旧版本？按原声压低播放）' : '待开始';
+    else if (b.state === 'ok') mb.textContent = '正常' + (b.device ? '（' + b.device + '）' : '');
+    else if (b.state === 'starting') mb.textContent = '启动中（加载分离模型）…';
+    else if (b.state === 'degraded') mb.textContent = '跟不上（部分时段退回原声压低）';
+    else if (b.state === 'unavailable') mb.textContent = '不可用：' + (b.reason || '未知原因') + '（按原声压低播放）';
+    else mb.textContent = '已关闭（原声压低）';
   }
 
   // ★★ EXT-024 F：显示连接模式（真实引擎 / 回声）

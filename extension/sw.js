@@ -120,6 +120,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     voice: 'A',
     duckDb: -15,
     subsOn: true,
+    bgKeep: true,          // v0.4.19 保留背景音：缺省开；已有设置（含用户手动关）不覆盖
     token: '',
   };
   const cur = await chrome.storage.local.get(defaults);

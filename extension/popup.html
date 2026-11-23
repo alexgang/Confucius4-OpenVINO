@@ -79,6 +79,7 @@
   <label for="duck">原声压低量（dB）</label>
   <input id="duck" type="number" min="-60" max="0" value="-15">
 
+  <label><input type="checkbox" id="bgkeep" checked> 保留背景音（保留原片的背景音乐和音效，去掉原对白；需要桥接服务 v0.4.19+）</label>
   <label><input type="checkbox" id="subs" checked> 字幕开关</label>
   <label><input type="checkbox" id="player"> 打开延迟画面播放器窗口</label>
 
@@ -93,6 +94,11 @@
   <div class="mcard" style="margin:8px 0;">
     <div class="k">引擎状态</div>
     <div class="v" id="mEngine">—</div>
+  </div>
+  <!-- v0.4.19 保留背景音：分离状态（正常 / 启动中 / 不可用 + 原因） -->
+  <div class="mcard" style="margin:8px 0;">
+    <div class="k">背景音</div>
+    <div class="v" id="mBg">—</div>
   </div>
 
   <!-- ★★ EXT-024 F：当前连接模式（真实引擎 / 回声）——

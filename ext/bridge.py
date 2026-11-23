@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import base64
+import collections
 import contextlib
 import json
 import os
@@ -62,6 +63,7 @@ from .segmenter import (plan_segments, describe as describe_segmenter,
                        split_first_segment,
                        split_first_segment_streaming)
 from .speaker import SpeakerTracker
+from . import bg_separator as _bgsep
 from .time_stretch import wsola
 # ★★ EXT-029：说话人旁路（**独立线程 + 有界队列** ⇒ 不反压 ASR）。
 #   注意：这里**不 import 引擎/模型**，只 import 纯 Python 的旁路壳子
@@ -1342,6 +1344,29 @@ class Session:
         self._spk_table_lock = threading.Lock()
         self.sample_index = 0
         self._buf = np.zeros((0,), dtype=np.float32)
+        # v0.4.19 「保留背景音」: separator + its downlink queue + separated vocals for speaker/clone
+        self.bg_keep = False
+        self._bg_sep = None
+        self._bg_fail = ""                     # set when the client asked for bg but it cannot run
+        self._bg_tasks = collections.deque()
+        self._bg_seq = 0
+        self._bg_status_at = 0.0
+        self._bg_status_key = None
+        self._bg_n_up = 0
+        self._bg_on_frame = 0                  # n_frames when 保留背景音 was (re)enabled
+        self._spk_fed_until = None             # 16 kHz sample index the speaker bypass has been fed up to
+        self._spk_feed_lock = threading.Lock()
+        self._voc_lock = threading.Lock()
+        self._voc16 = np.zeros((0,), dtype=np.float32)
+        self._voc16_base = 0                   # 16 kHz sample index of _voc16[0]
+        self._clone_pending = collections.deque()
+        self._clone_pending_lock = threading.Lock()
+        self.bg_clone_from_vocals = 0
+        self.bg_clone_fallback_orig = 0
+        self._onset_pending = collections.deque()   # (dub id, t_start, t_end, play_deadline_perf)
+        self.bg_onset_shifted = 0              # dubs whose start was moved to the speech onset in the vocals
+        self.bg_onset_shift_sum = 0.0
+        self.bg_onset_no_vocals = 0
         self.tracker = SpeakerTracker(
             clean_sec_required=C.SPK_CLEAN_SEC_REQUIRED,
             max_late_lag_sec=C.SPK_LATE_UPDATE_MAX_LAG_SEC,
@@ -1838,6 +1863,273 @@ class Session:
         return self.tracker.voice_for(spk)
 
     # ── 接收一帧 ────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════
+    # v0.4.19「保留背景音」(user 11-23): Demucs separation of the 48 kHz stereo uplink.
+    #   background -> player (`bg`); vocals -> speaker bypass / voice clone (ASR keeps the original).
+    # ══════════════════════════════════════════════════════════
+    def set_bg_keep(self, on) -> None:
+        on = bool(on)
+        if on == self.bg_keep:
+            return
+        self.bg_keep = on
+        self._bg_on_frame = self.n_frames
+        self._bg_fail = "" if on else self._bg_fail
+        if not on and self._bg_sep is not None:
+            try:
+                self._bg_sep.stop()
+            except Exception:
+                pass
+            self._bg_sep = None
+        _log("保留背景音：%s" % ("开" if on else "关"))
+        self._bg_status_key = None             # push a fresh bg_status
+
+    def _bg_wants_vocals(self) -> bool:
+        """Speaker/clone paths should wait for separated vocals (instead of the original audio)."""
+        if not self.bg_keep or self._bg_fail:
+            return False
+        sep = self._bg_sep
+        return sep is None or sep.state in ("starting", "ok")
+
+    def _spk_use_vocals(self) -> bool:
+        """Speaker bypass takes separated vocals only once the separator is actually running (ASR-094 ③):
+        while it is still starting the original keeps feeding, so the bypass never misses a stretch."""
+        sep = self._bg_sep
+        return bool(self.bg_keep and not self._bg_fail and sep is not None and sep.state == "ok")
+
+    def _ensure_bg_sep(self):
+        if self._bg_sep is None and self.bg_keep and not self._bg_fail:
+            self._bg_sep = _bgsep.StreamingSeparator(self._on_bg_block, self._on_bg_vocals).start()
+            _log("背景分离器启动（模型 %s，设备 %s）" % (self._bg_sep.model_path, self._bg_sep.device))
+        return self._bg_sep
+
+    def on_pcm_bg(self, msg: dict) -> None:
+        if not self.bg_keep:
+            return
+        sep = self._ensure_bg_sep()
+        if sep is None:
+            return
+        try:
+            raw = base64.b64decode(msg.get("pcm") or "")
+            sep.push(int(msg.get("sample_index_bg", 0)), raw,
+                     channels=int(msg.get("ch", 2)), rate=int(msg.get("rate", _bgsep.SR_IN)))
+            self._bg_n_up += 1
+        except Exception as e:
+            _log("pcm_bg 处理失败（忽略）：%s" % e)
+
+    def bg_flush(self) -> None:
+        if self._bg_sep is not None:
+            self._bg_sep.flush()
+
+    def _on_bg_block(self, t_start: float, pcm: bytes, n_frames: int) -> None:   # separator thread
+        self._bg_seq += 1
+        self._bg_tasks.append({
+            "type": "bg", "seq": self._bg_seq, "t_start": round(float(t_start), 6),
+            "sample_rate": _bgsep.SR_IN, "channels": 2, "n_frames": int(n_frames),
+            "pcm": base64.b64encode(pcm).decode("ascii"),
+        })
+
+    def _on_bg_vocals(self, t_start: float, v16) -> None:                       # separator thread
+        v16 = np.asarray(v16, dtype=np.float32)
+        with self._voc_lock:
+            i0 = int(round(t_start * C.SAMPLE_RATE))
+            if self._voc16.size == 0:
+                self._voc16_base = i0
+            self._voc16 = np.concatenate([self._voc16, v16])
+            keep = int(120 * C.SAMPLE_RATE)
+            if self._voc16.size > keep:
+                cut = self._voc16.size - keep
+                self._voc16 = self._voc16[cut:]
+                self._voc16_base += cut
+        if self.spk_bypass is not None and self._spk_use_vocals():
+            try:
+                self._spk_feed(v16, int(round(t_start * C.SAMPLE_RATE)))
+            except Exception as e:
+                _log("说话人旁路喂人声失败（忽略）：%s" % e)
+        self._pump_clone_pending()
+
+    def _spk_feed(self, arr, start_idx: int) -> None:
+        """Feed the speaker bypass on ONE continuous 16 kHz time axis (ASR-093 risk 1/3): the tracker
+        slices audio by cumulative sample count, so when the source switches between the original and
+        the separated vocals (toggle, separator failure) gaps are filled with silence and overlaps trimmed."""
+        if self.spk_bypass is None:
+            return
+        arr = np.asarray(arr, dtype=np.float32)
+        with self._spk_feed_lock:
+            if self._spk_fed_until is None:
+                self._spk_fed_until = int(start_idx)
+            gap = int(start_idx) - self._spk_fed_until
+            if gap > 0:
+                z = np.zeros(gap, dtype=np.float32)
+                self.spk_bypass.feed(z, (self._spk_fed_until + gap) / float(C.SAMPLE_RATE))
+                self._spk_fed_until += gap
+            elif gap < 0:
+                arr = arr[-gap:]
+                if arr.size == 0:
+                    return
+            self._spk_fed_until += arr.size
+            self.spk_bypass.feed(arr, self._spk_fed_until / float(C.SAMPLE_RATE))
+
+    def vocals_slice(self, t0: float, t1: float):
+        """Separated vocals (16 kHz mono) for [t0, t1), or None if not (yet) available."""
+        with self._voc_lock:
+            a = int(round(t0 * C.SAMPLE_RATE)) - self._voc16_base
+            b = int(round(t1 * C.SAMPLE_RATE)) - self._voc16_base
+            if a < 0 or b > self._voc16.size or b <= a:
+                return None
+            return self._voc16[a:b].copy()
+
+    def _speech_onset(self, t_start: float, t_end: float, wait: Optional[float] = None) -> float:
+        """v0.4.19 (user 11-23: clip_s2 dub came before the actor spoke): segmentation runs on the
+        original mix, and with background music it often has no silence to cut at ⇒ fixed-length cuts
+        whose start is well before the speech. When separated vocals are available, start the dub at
+        the first voiced frame of this segment's vocals. ASR cut points and text are unchanged.
+        Waits for the vocals only while the dub still has slack; otherwise keeps t_start."""
+        if wait is None:
+            wait = float(os.environ.get("EXT_BG_ONSET_WAIT_SEC", "0"))
+        deadline = time.perf_counter() + max(0.0, min(
+            wait, (self.t0 + t_start + self.delay_sec) - time.perf_counter() - 4.0))
+        voc = self.vocals_slice(t_start, t_end)
+        while voc is None and time.perf_counter() < deadline and self._bg_wants_vocals():
+            time.sleep(0.1)
+            voc = self.vocals_slice(t_start, t_end)
+        if voc is None or voc.size < int(0.3 * C.SAMPLE_RATE):
+            self.bg_onset_no_vocals += 1
+            return t_start
+        hop = int(0.03 * C.SAMPLE_RATE)
+        n = voc.size // hop
+        rms = np.sqrt(np.mean(voc[:n * hop].reshape(n, hop) ** 2, axis=1) + 1e-12)
+        db = 20 * np.log10(rms + 1e-9)
+        p95 = float(np.percentile(db, 95))
+        if p95 < -45.0:                        # no speech in this segment's vocals: leave it alone
+            return t_start
+        # sustained voicing (≥ 0.15 s within 0.3 s) at most 20 dB under this segment's speech level:
+        #   short breaths / music bleed in the vocals stem must not count as the onset (clip_s2: a 0.1 s
+        #   -41 dB burst at 11.0 s vs. speech at -11 dB from 15.0 s)
+        voiced = (db > max(p95 - 20.0, -45.0)).astype(np.int32)
+        win = np.convolve(voiced, np.ones(10, dtype=np.int32), mode="full")[9:9 + voiced.size]
+        on = np.where(win >= 5)[0]
+        if on.size == 0:
+            return t_start
+        first = int(on[0])
+        first = first + int(np.argmax(voiced[first:first + 10]))      # first voiced frame of that window
+        shift = max(0.0, first * 0.03 - 0.1)
+        new = min(t_start + shift, t_end - 0.5)
+        if new > t_start + 0.05:
+            self.bg_onset_shifted += 1
+            self.bg_onset_shift_sum += new - t_start
+            return round(new, 3)
+        return t_start
+
+    def _check_onsets(self) -> list:
+        """`dub_shift` for emitted dubs whose vocals have arrived (event-loop thread, never blocks)."""
+        out = []
+        if not self._onset_pending:
+            return out
+        now = time.perf_counter()
+        keep = collections.deque()
+        with self._clone_pending_lock:
+            items = list(self._onset_pending)
+            self._onset_pending.clear()
+        for did, t0, t1, deadline in items:
+            if now > deadline - 0.3 or not self._bg_wants_vocals():
+                self.bg_onset_no_vocals += 1          # too late to move it / separation off: stays put
+                continue
+            if self.vocals_slice(t0, t1) is None:
+                keep.append((did, t0, t1, deadline))
+                continue
+            new = self._speech_onset(t0, t1, wait=0.0)
+            if new > t0 + 0.05:
+                out.append({"type": "dub_shift", "id": did, "t_start": new, "orig_t_start": t0})
+        with self._clone_pending_lock:
+            self._onset_pending.extendleft(reversed(keep))
+        return out
+
+    def _pump_clone_pending(self) -> None:
+        """Hand queued sentences to the clone manager in order, with separated vocals once they have
+        arrived; fall back to the original audio if separation is off/failed or later than the wait."""
+        if not self._clone_pending:
+            return
+        cv = self._clone_mgr()
+        if cv is None:
+            return
+        wait = float(os.environ.get("EXT_BG_CLONE_WAIT_SEC", "15"))
+        with self._clone_pending_lock:
+            while self._clone_pending:
+                seg_id, audio, t0, t1, text, queued = self._clone_pending[0]
+                voc = self.vocals_slice(t0, t1)
+                if voc is not None:
+                    use = voc
+                    self.bg_clone_from_vocals += 1
+                elif (not self._bg_wants_vocals()) or (time.monotonic() - queued > wait):
+                    use = audio
+                    self.bg_clone_fallback_orig += 1
+                else:
+                    break
+                self._clone_pending.popleft()
+                try:
+                    cv.on_segment(seg_id, use, t0, t1, text=text)
+                except Exception as e:
+                    _log("克隆旁路失败（段 %s）: %s" % (seg_id, e))
+
+    def pop_bg_tasks(self) -> list:
+        """Downlink `bg` blocks + a `bg_status` on change / every 10 s (event-loop thread)."""
+        out = []
+        while self._bg_tasks:
+            try:
+                out.append(self._bg_tasks.popleft())
+            except IndexError:
+                break
+        self._pump_clone_pending()
+        out.extend(self._check_onsets())
+        if not self.bg_keep and self._bg_status_key == "off":
+            return out
+        st = self.bg_status()
+        key = (st["state"], st["device"], st["reason"])
+        now = time.monotonic()
+        if key != self._bg_status_key or now - self._bg_status_at >= 10.0:
+            self._bg_status_key = key if self.bg_keep else "off"
+            self._bg_status_at = now
+            out.append({"type": "bg_status", **st})
+        return out
+
+    def bg_status(self) -> dict:
+        if not self.bg_keep:
+            return {"state": "off", "device": None, "reason": "", "rtf": None, "lead_sec": None}
+        if self._bg_fail:
+            return {"state": "unavailable", "device": None, "reason": self._bg_fail,
+                    "rtf": None, "lead_sec": None}
+        if self._bg_sep is None:
+            ok = _bgsep.default_model_path() is not None
+            return {"state": "starting" if ok else "unavailable", "device": None,
+                    "reason": "" if ok else "背景分离模型缺失（models/bgsep/htdemucs_core.xml）",
+                    "rtf": None, "lead_sec": None}
+        st = self._bg_sep.status()
+        state = st["state"] if st["state"] in ("starting", "ok", "unavailable") else "ok"
+        if state == "ok" and st.get("lead_sec") is not None and st["lead_sec"] < -(self.delay_sec - 2.0):
+            state = "degraded"                  # background would miss its play time
+        return {"state": state, "device": st["device"], "reason": st["reason"],
+                "rtf": st["rtf"], "lead_sec": st["lead_sec"]}
+
+    def bg_stats(self) -> dict:
+        st = self._bg_sep.status() if self._bg_sep is not None else {}
+        return {
+            "bg_keep": bool(self.bg_keep),
+            "bg_state": self.bg_status()["state"],
+            "bg_blocks_sent": st.get("bg_blocks_sent", 0),
+            "bg_up_frames": self._bg_n_up,
+            "bg_up_gaps": st.get("bg_up_gaps", 0),
+            "sep_device": st.get("device"),
+            "sep_rtf_p50": st.get("rtf"),
+            "sep_rtf_p90": st.get("rtf_p90"),
+            "sep_compile_s": st.get("compile_s"),
+            "bg_lead_sec": st.get("lead_sec"),
+            "bg_clone_from_vocals": self.bg_clone_from_vocals,
+            "bg_clone_fallback_orig": self.bg_clone_fallback_orig,
+            "bg_onset_shifted": self.bg_onset_shifted,
+            "bg_onset_shift_sum_sec": round(float(self.bg_onset_shift_sum), 2),
+            "bg_onset_no_vocals": self.bg_onset_no_vocals,
+        }
+
     def on_pcm_frame(self, msg: dict, *,
                      recv_at: Optional[float] = None) -> Optional[dict]:
         """处理一帧上行 PCM。
@@ -1885,10 +2177,14 @@ class Session:
         #     段音频 ⇒ 旁路才能拿到**连续**的时间轴（它自己按 10 s 窗口
         #     增量推进分段）。
         #   ⚠️ `t_end` 用**采样点**换算 ⇒ 与 `t_start` 同一时间轴。
-        if self.spk_bypass is not None:
+        if (self.bg_keep and self._bg_sep is None and not self._bg_fail
+                and self.n_frames - self._bg_on_frame > 100):
+            # client asked for 保留背景音 but sent no stereo uplink for ~5-10 s => run without it
+            self._bg_fail = "插件没有上传立体声原声（pcm_bg）"
+            _log("保留背景音不可用：%s" % self._bg_fail)
+        if self.spk_bypass is not None and not self._spk_use_vocals():
             try:
-                _t_end = sidx / float(C.SAMPLE_RATE) + len(arr) / float(C.SAMPLE_RATE)
-                self.spk_bypass.feed(arr, _t_end)
+                self._spk_feed(arr, sidx)          # same continuous axis as the vocals path
             except Exception as e:
                 _log(f"说话人旁路喂帧失败（忽略）：{e}")
         if recv_at is None:
@@ -2747,6 +3043,7 @@ class Session:
             "n_frames": self.n_frames,
             "n_dropped": self.n_dropped,
             "buffered_sec": round(self._buf.shape[0] / C.SAMPLE_RATE, 2),
+            **self.bg_stats(),
             # ★★ T-1：抓流方式（'tabCapture' | 'getDisplayMedia' | None）
             #   ⇒ EXT-005 ①「tabCapture 生产路径有没有被实测过」
             #     **终于可以从数据核对**，不用人读日志猜。
@@ -3088,10 +3385,18 @@ class PipelineSession(Session):
         # 11-08 reviewer: 克隆说话人——把定稿段喂给说话人旁路（不阻塞，失败只记日志）
         _cv = self._clone_mgr()
         if _cv is not None:
-            try:
-                _cv.on_segment(job.seg_id, job.audio, job.t_start, job.t_end, text=job.text)
-            except Exception as e:
-                _log(f"克隆旁路失败（段 {job.seg_id}）: {e}")
+            if self._bg_wants_vocals():
+                # v0.4.19: clone / voice guard use the separated vocals of this sentence (they arrive a
+                #   few seconds later); queued in order, never blocks ASR; falls back to the original.
+                with self._clone_pending_lock:
+                    self._clone_pending.append((job.seg_id, job.audio, job.t_start, job.t_end,
+                                                job.text, time.monotonic()))
+                self._pump_clone_pending()
+            else:
+                try:
+                    _cv.on_segment(job.seg_id, job.audio, job.t_start, job.t_end, text=job.text)
+                except Exception as e:
+                    _log(f"克隆旁路失败（段 {job.seg_id}）: {e}")
 
     def _stage_mt(self, job) -> None:
         """MT 阶段（在 MT 线程里跑）。"""
@@ -3228,9 +3533,15 @@ class PipelineSession(Session):
             ready_at=job.ready_at, error=job.error)
         # `_finalize_segment` 返回 **list**（串行路径直接 extend 用），
         # 而流水线的收口阶段要的是**单个**任务 dict ⇒ 这里拆开。
-        if isinstance(result, list):
-            return result[0] if result else None
-        return result
+        _task = (result[0] if result else None) if isinstance(result, list) else result
+        if (isinstance(_task, dict) and _task.get("type") == "tts" and _task.get("pcm24k")
+                and self._bg_wants_vocals()):
+            # v0.4.19 onset alignment, NON-blocking: the dub goes out now; when this segment's separated
+            #   vocals arrive (before its play time) pop_bg_tasks sends a `dub_shift` with the real onset.
+            with self._clone_pending_lock:
+                self._onset_pending.append((str(_task.get("id")), float(job.t_start), float(job.t_end),
+                                            self.t0 + float(job.t_start) + float(self.delay_sec)))
+        return _task
 
     # ── 派发钩子：提交到流水线 ──────────────────────────────────
     def _dispatch_segment(self, seq: int, abs0: int, abs1: int,
@@ -3306,6 +3617,11 @@ class PipelineSession(Session):
     def close(self) -> None:
         try:
             self._pipeline.stop()
+        except Exception:
+            pass
+        try:
+            if self._bg_sep is not None:
+                self._bg_sep.stop()
         except Exception:
             pass
         # ★ EXT-029：停掉旁路 worker（**优雅**：先放哨兵再 join）。
@@ -3868,6 +4184,8 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                 #   （旧的客户端不带这个字段 ⇒ 记成 None ⇒ 输出 null，
                 #     **向后兼容**：不改 hello_ack 的结构，旧客户端不受影响。）
                 session.note_client(msg)
+                if not echo_mode and "bg_keep" in msg:
+                    session.set_bg_keep(bool(msg.get("bg_keep")))
                 # ★★ EXT-024 A：hello 里的 role 才是**权威**的角色来源
                 #   （浏览器端不能自定义请求头 ⇒ token 走首个 hello；
                 #    而用请求头带 token 的客户端（Python 探针）首个消息
@@ -3928,7 +4246,23 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                     #   ⇒ 双保险（旧服务端没有前缀时也能自愈）。
                     #   ⚠️ 向后兼容：只是**新增**字段。
                     "session_id": getattr(session, "_session_epoch", None),
+                    # v0.4.19 保留背景音: supported by this server? model present? current state
+                    "bg_supported": (not echo_mode),
+                    "bg_model": bool(_bgsep.default_model_path()),
+                    "bg": session.bg_status(),
                 }))
+                continue
+            if mtype == "pcm_bg":
+                if not echo_mode:
+                    session.on_pcm_bg(msg)
+                    for task in session.pop_bg_tasks():
+                        await _broadcast_task(task)
+                continue
+            if mtype == "bg_keep":
+                if not echo_mode:
+                    session.set_bg_keep(bool(msg.get("on")))
+                    for task in session.pop_bg_tasks():
+                        await _broadcast_task(task)
                 continue
             if mtype == "capture_info":
                 # ★★ T-1：客户端补报**实际抓流方式**。
@@ -3967,6 +4301,9 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                     {"type": "stats", **(_sess.stats() if _sess is not None
                                          else session.stats()), **_proc_usage(),
                      **_dub_drops(_sess if _sess is not None else session)}))
+                if not echo_mode:                  # v0.4.19: background blocks also flow when no audio arrives
+                    for task in session.pop_bg_tasks():
+                        await _broadcast_task(task)
                 continue
             if mtype == "pcm":
                 # ★ EXT-008：记下**这一帧到达消息循环**的墙钟时刻。
@@ -3999,6 +4336,9 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                 #   （未就绪的继续在流水线里跑，稍后由下一帧/flush/stats 取走。）
                 if isinstance(session, PipelineSession):
                     for task in session._pipeline.pop_ready(block=False):
+                        await _broadcast_task(task)
+                if not echo_mode:
+                    for task in session.pop_bg_tasks():
                         await _broadcast_task(task)
                 continue
             if mtype == "dump_margin":
@@ -4043,8 +4383,11 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                 #   否则时间表缺最后一段，reviewer 回转写时对不上。
                 #   回声模式不适用（echo 是逐帧原样返回，无需切段）。
                 if not echo_mode:
+                    session.bg_flush()
                     # ★ 同上：尾段也要走线程，避免尾段推理阻塞心跳
                     out = await asyncio.to_thread(session.flush)
+                    for task in session.pop_bg_tasks():     # v0.4.19: don't hold background behind the drain
+                        await _broadcast_task(task)
                     if out:
                         for task in out:
                             await _broadcast_task(task)
@@ -4052,8 +4395,15 @@ async def _handle_messages(websocket, *, session: "Session", first: Optional[dic
                     #   ⇒ flush 之后必须**等流水线把剩下的段都跑完**，
                     #   否则尾段的配音任务来不及下发（客户端会等不到段数达标）。
                     if isinstance(session, PipelineSession):
-                        for task in await asyncio.to_thread(session.drain):
+                        _dr = asyncio.ensure_future(asyncio.to_thread(session.drain))
+                        while not _dr.done():                  # keep delivering background while dubs drain
+                            await asyncio.sleep(0.5)
+                            for task in session.pop_bg_tasks():
+                                await _broadcast_task(task)
+                        for task in _dr.result():
                             await _broadcast_task(task)
+                    for task in session.pop_bg_tasks():
+                        await _broadcast_task(task)
                 continue
     except Exception as e:
         _log(f"连接异常: {e}")
@@ -4760,6 +5110,10 @@ def _pair_status(holder: dict) -> dict:
     out["has_session"] = True
     try:
         out["delay_sec"] = float(getattr(sess, "delay_sec", 0) or 0) or None
+    except Exception:
+        pass
+    try:
+        out["bg"] = sess.bg_status()          # v0.4.19 保留背景音 (popup shows state / reason)
     except Exception:
         pass
     try:
