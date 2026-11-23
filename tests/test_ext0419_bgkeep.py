@@ -122,6 +122,32 @@ check("frames == round(consumed·FPS/SR) (no overlap double-count)",
       (len(eng._seg_frames), int(round(consumed / SE.SR * rt.FPS))))
 check("consumed covers the session minus one window", total - consumed <= eng._block_min, (total, consumed))
 
+print("6. segmentation IR variant follows the window, with app/asr_spk importable (ASR-096 B)")
+import shutil  # noqa: E402
+import tempfile  # noqa: E402
+from ext import speaker_bypass as SB  # noqa: E402
+tmp = tempfile.mkdtemp()
+prev = os.environ.pop("EXT_SPK_SEG_IR", None)
+try:
+    spk = os.path.join(tmp, "app", "asr_spk")
+    os.makedirs(spk)
+    for sub in ("fp16", "fp16-w5"):
+        os.makedirs(os.path.join(tmp, "models", "spk", "pyannote_seg_3_0", sub))
+    with open(os.path.join(spk, "asr_spk_window.py"), "w") as f:
+        f.write("def seg_ir_subdir_for(w):\n    return 'fp16-w5' if abs(w - 5.0) < 1e-6 else 'fp16'\n")
+    sys.modules.pop("asr_spk_window", None)
+    rt.WIN_S = 5.0
+    sys.path.insert(0, spk)
+    got = SB._find_seg_for_window(tmp)
+    check("window 5 s ⇒ pyannote fp16-w5", got.replace("\\", "/").endswith("pyannote_seg_3_0/fp16-w5"), got)
+    src = open(SB.__file__, encoding="utf-8").read()
+    i_ins = src.find("os.sys.path.insert(0, d)\n        seg_ir, wes_ir = self._asset_paths()")
+    check("_load() puts app/asr_spk on sys.path before _asset_paths()", i_ins > 0)
+finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+    if prev is not None:
+        os.environ["EXT_SPK_SEG_IR"] = prev
+
 ok = all(RES)
 print("RESULT:", "PASS" if ok else "FAIL", f"({sum(RES)}/{len(RES)})")
 sys.exit(0 if ok else 1)

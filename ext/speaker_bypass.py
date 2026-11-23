@@ -214,6 +214,11 @@ class SpeakerBypass:
             self.available = False
             self._on_log("旁路不可用：找不到 App 的 app/asr_spk/（降级）")
             return False
+        # v0.4.19 (ASR-096 B): app/asr_spk must be importable BEFORE the IR lookup — _find_seg_for_window()
+        #   imports asr052_spk_runtime / asr_spk_window to pick the window-matched variant (5 s ⇒ fp16-w5);
+        #   with the path added only afterwards the import failed silently and fp16 (10 s) was chosen.
+        if d not in os.sys.path:
+            os.sys.path.insert(0, d)
         seg_ir, wes_ir = self._asset_paths()
         if not seg_ir or not wes_ir:
             self.load_error = "no_spk_ir"

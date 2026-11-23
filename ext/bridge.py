@@ -3080,8 +3080,8 @@ class Session:
                            {"enabled": False,
                             "spk_queue_drop": 0,
                             "spk_worker_busy_ms": 0.0,
-                            "note": "本会话未接说话人旁路"
-                            "（EXT-029：串行会话无 GPU 互斥锁 ⇒ 不接）"}),
+                            "note": "本会话未开启说话人旁路（桥接未带 --spk-bypass；"
+                            "克隆模式的说话人标签来自 clone_voice 的 SpeakerBridge）"}),
             "margin": self.margin_summary(),
             # ★ EXT-009：自适应加速的**各倍率时间占比**与滞后曲线
             #   （EXT-009 验收：「报告滞后随时间的曲线（起点、峰值、结尾）
