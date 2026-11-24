@@ -1,0 +1,158 @@
+{
+  "byte_exact_files": [
+    {
+      "file": "results/app/app037_seam_mechanism.json",
+      "bytes_disk": 21847,
+      "bytes_blob": 21847,
+      "disk_sha256": "120dabe5421c1fb0cc49239eeecb858d418b019bec10731477f78247417b042b",
+      "blob_sha256": "120dabe5421c1fb0cc49239eeecb858d418b019bec10731477f78247417b042b",
+      "published_sha256": [
+        "120dabe5421c1fb0cc49239eeecb858d418b019bec10731477f78247417b042b"
+      ],
+      "attr": "-text",
+      "c1_blob_eq_disk": true,
+      "c2_blob_eq_published": true,
+      "c3_len_eq": true,
+      "c4_attr_text": true,
+      "ok": true
+    },
+    {
+      "file": "results/app/app037_segcount_effect.json",
+      "bytes_disk": 2208,
+      "bytes_blob": 2208,
+      "disk_sha256": "2e7e775f8fc9d7ac6bf0494c8ba80ba7a748f8f34aee286c38fc65933c90d999",
+      "blob_sha256": "2e7e775f8fc9d7ac6bf0494c8ba80ba7a748f8f34aee286c38fc65933c90d999",
+      "published_sha256": [
+        "2e7e775f8fc9d7ac6bf0494c8ba80ba7a748f8f34aee286c38fc65933c90d999"
+      ],
+      "attr": "-text",
+      "c1_blob_eq_disk": true,
+      "c2_blob_eq_published": true,
+      "c3_len_eq": true,
+      "c4_attr_text": true,
+      "ok": true
+    },
+    {
+      "file": "results/app/app037_wer_gap_maincause.json",
+      "bytes_disk": 35927,
+      "bytes_blob": 35927,
+      "disk_sha256": "d6e688148307a95a0c872e8081e3cf1a4d0590f2227b61862580538280f725be",
+      "blob_sha256": "d6e688148307a95a0c872e8081e3cf1a4d0590f2227b61862580538280f725be",
+      "published_sha256": [
+        "d6e688148307a95a0c872e8081e3cf1a4d0590f2227b61862580538280f725be"
+      ],
+      "attr": "-text",
+      "c1_blob_eq_disk": true,
+      "c2_blob_eq_published": true,
+      "c3_len_eq": true,
+      "c4_attr_text": true,
+      "ok": true
+    },
+    {
+      "file": "results/app/app582_specialmvp_sp3_acceptance.run1.json",
+      "bytes_disk": 13468,
+      "bytes_blob": 13468,
+      "disk_sha256": "151311efd10a3ad8154f3374172a79ae55123b3cd8631e98b2d33878b7cc0a1a",
+      "blob_sha256": "151311efd10a3ad8154f3374172a79ae55123b3cd8631e98b2d33878b7cc0a1a",
+      "published_sha256": [
+        "151311efd10a3ad8154f3374172a79ae55123b3cd8631e98b2d33878b7cc0a1a"
+      ],
+      "attr": "-text",
+      "c1_blob_eq_disk": true,
+      "c2_blob_eq_published": true,
+      "c3_len_eq": true,
+      "c4_attr_text": true,
+      "ok": true
+    },
+    {
+      "file": "results/app/_app581_sp1_rerun_tts_out.wav.tts.jsonl",
+      "bytes_disk": 201099,
+      "bytes_blob": 201099,
+      "disk_sha256": "d83b9d00619984a7fc4f8a83cc7c5a0268d26e7f675232ee09e4cd8a33437db2",
+      "blob_sha256": "d83b9d00619984a7fc4f8a83cc7c5a0268d26e7f675232ee09e4cd8a33437db2",
+      "published_sha256": [
+        "d83b9d00619984a7fc4f8a83cc7c5a0268d26e7f675232ee09e4cd8a33437db2"
+      ],
+      "attr": "-text",
+      "c1_blob_eq_disk": true,
+      "c2_blob_eq_published": true,
+      "c3_len_eq": true,
+      "c4_attr_text": true,
+      "ok": true
+    },
+    {
+      "file": "results/app/_app581_sp1_rerun_tts_out.wav.backlog_curve.csv",
+      "bytes_disk": 17115,
+      "bytes_blob": 17115,
+      "disk_sha256": "a878ce432519f815f79f602128d1b4cb9ade867eb9e5ff8676945f4c39508a69",
+      "blob_sha256": "a878ce432519f815f79f602128d1b4cb9ade867eb9e5ff8676945f4c39508a69",
+      "published_sha256": [
+        "a878ce432519f815f79f602128d1b4cb9ade867eb9e5ff8676945f4c39508a69"
+      ],
+      "attr": "-text",
+      "c1_blob_eq_disk": true,
+      "c2_blob_eq_published": true,
+      "c3_len_eq": true,
+      "c4_attr_text": true,
+      "ok": true
+    },
+    {
+      "file": "results/app/_app582_sp3_tts_out.wav.tts.jsonl",
+      "bytes_disk": 218009,
+      "bytes_blob": 218009,
+      "disk_sha256": "7d2776f980984c7cf5483f545530f2367febe8a8171927fbdb21043bdfdd54ae",
+      "blob_sha256": "7d2776f980984c7cf5483f545530f2367febe8a8171927fbdb21043bdfdd54ae",
+      "published_sha256": [
+        "7d2776f980984c7cf5483f545530f2367febe8a8171927fbdb21043bdfdd54ae"
+      ],
+      "attr": "-text",
+      "c1_blob_eq_disk": true,
+      "c2_blob_eq_published": true,
+      "c3_len_eq": true,
+      "c4_attr_text": true,
+      "ok": true
+    },
+    {
+      "file": "results/app/_app582_sp3_tts_out.wav.backlog_curve.csv",
+      "bytes_disk": 16736,
+      "bytes_blob": 16736,
+      "disk_sha256": "ae804d0b64ef93ab16d9038da793cbd0d343d67d9cf6cbe818c79650ba1cdbe0",
+      "blob_sha256": "ae804d0b64ef93ab16d9038da793cbd0d343d67d9cf6cbe818c79650ba1cdbe0",
+      "published_sha256": [
+        "ae804d0b64ef93ab16d9038da793cbd0d343d67d9cf6cbe818c79650ba1cdbe0"
+      ],
+      "attr": "-text",
+      "c1_blob_eq_disk": true,
+      "c2_blob_eq_published": true,
+      "c3_len_eq": true,
+      "c4_attr_text": true,
+      "ok": true
+    }
+  ],
+  "producers": [
+    "results/app/_app260_tk_geometry_probe.py",
+    "results/app/_app385_run_acceptance_all.py",
+    "results/app/_app534_special_profile_check.py",
+    "results/app/_app589_three_forms_defaults_check.py",
+    "results/app/app372_app091_gui_subtitle_shot.py"
+  ],
+  "all_ok": true,
+  "counterproof_all_ok": true,
+  "counterproof": [
+    {
+      "name": "R1_autocrlf_normalized_differs",
+      "expect": "FAIL",
+      "ok": true
+    },
+    {
+      "name": "R2_blob_eq_disk_but_not_published",
+      "expect": "FAIL",
+      "ok": true
+    },
+    {
+      "name": "R3_text_attr_is_necessary",
+      "expect": "NECESSARY",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "targets": [
+    {
+      "evidence": "results/app/app260_tk_geometry_probe.json",
+      "script": "results/app/_app260_tk_geometry_probe.py",
+      "checks": {
+        "syntax": true,
+        "imports_committed": true,
+        "no_secret": true,
+        "no_danger": true
+      },
+      "reasons": {},
+      "ok": true,
+      "bytes": 3975
+    },
+    {
+      "evidence": "results/app/app385_app089_accept_runs_after.json",
+      "script": "results/app/_app385_run_acceptance_all.py",
+      "checks": {
+        "syntax": true,
+        "imports_committed": true,
+        "no_secret": true,
+        "no_danger": true
+      },
+      "reasons": {},
+      "ok": true,
+      "bytes": 7396
+    },
+    {
+      "evidence": "results/app/app534_special_profile_check.json",
+      "script": "results/app/_app534_special_profile_check.py",
+      "checks": {
+        "syntax": true,
+        "imports_committed": true,
+        "no_secret": true,
+        "no_danger": true
+      },
+      "reasons": {},
+      "ok": true,
+      "bytes": 4065
+    },
+    {
+      "evidence": "results/app/app589_three_forms_defaults.json",
+      "script": "results/app/_app589_three_forms_defaults_check.py",
+      "checks": {
+        "syntax": true,
+        "imports_committed": true,
+        "no_secret": true,
+        "no_danger": true
+      },
+      "reasons": {},
+      "ok": true,
+      "bytes": 7296
+    },
+    {
+      "evidence": "results/app/app372_app091_subtitle_shot/subtitle_layout.json",
+      "script": "results/app/app372_app091_gui_subtitle_shot.py",
+      "checks": {
+        "syntax": true,
+        "imports_committed": true,
+        "no_secret": true,
+        "no_danger": true
+      },
+      "reasons": {},
+      "ok": true,
+      "bytes": 9532
+    }
+  ],
+  "all_pass": true,
+  "counterproof_all_ok": true,
+  "counterproof": [
+    {
+      "name": "R5_danger_rmtree_foreign",
+      "expect": "DETECTED",
+      "ok": true,
+      "detail": [
+        "删除调用 shutil.rmtree 目标=?"
+      ]
+    },
+    {
+      "name": "R6_benign_rmtree_own_tmp",
+      "expect": "CLEAN",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "R7_write_to_pkg_detected",
+      "expect": "DETECTED",
+      "ok": true,
+      "detail": [
+        "写模式打开客户包路径 {'os', 'PKG'} (mode='w')"
+      ]
+    },
+    {
+      "name": "R8_read_pkg_benign",
+      "expect": "CLEAN",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "R9_secret_detect",
+      "expect": "DETECTED",
+      "ok": true
+    }
+  ]
+}

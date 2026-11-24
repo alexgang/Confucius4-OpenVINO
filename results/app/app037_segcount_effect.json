@@ -1,0 +1,99 @@
+{
+  "ref": {
+    "words": 11725,
+    "nsegs": 226
+  },
+  "arms": {
+    "BASE_delivery_226seg": {
+      "path": "reports\\c086_full61\\transcript_all_npu_full.txt",
+      "nsegs": 226,
+      "words": 11683,
+      "wer_pct": 1.7569296375266525,
+      "ins": 18,
+      "rep": 118,
+      "dele": 70
+    },
+    "APP_A_realtime": {
+      "path": "reports\\asr004_ab\\transcript_A.txt",
+      "nsegs": 538,
+      "words": 11879,
+      "wer_pct": 6.0554371002132195,
+      "ins": 232,
+      "rep": 378,
+      "dele": 100,
+      "ins_per_seg": 0.4312267657992565,
+      "reagg": {
+        "nsegs": 225,
+        "words": 11879,
+        "wer_pct": 6.0554371002132195,
+        "ins": 232,
+        "rep": 378,
+        "dele": 100,
+        "delta_pp": 0.0
+      }
+    },
+    "APP_B_realtime": {
+      "path": "reports\\asr004_ab\\transcript_B.txt",
+      "nsegs": 558,
+      "words": 11841,
+      "wer_pct": 5.850746268656716,
+      "ins": 225,
+      "rep": 357,
+      "dele": 104,
+      "ins_per_seg": 0.4032258064516129,
+      "reagg": {
+        "nsegs": 225,
+        "words": 11841,
+        "wer_pct": 5.850746268656716,
+        "ins": 225,
+        "rep": 357,
+        "dele": 104,
+        "delta_pp": 0.0
+      }
+    }
+  },
+  "table": [
+    {
+      "arm": "参照 transcript_adaptive",
+      "nsegs": 226,
+      "words": 11725,
+      "wer_pct": 0.0,
+      "ins": 0
+    },
+    {
+      "arm": "BASE 交付基准(226段)",
+      "nsegs": 226,
+      "words": 11683,
+      "wer_pct": 1.7569296375266525,
+      "ins": 18
+    },
+    {
+      "arm": "APP_A_realtime (538段)",
+      "nsegs": 538,
+      "words": 11879,
+      "wer_pct": 6.0554371002132195,
+      "ins": 232
+    },
+    {
+      "arm": "  └ 反事实·225段",
+      "nsegs": 225,
+      "words": 11879,
+      "wer_pct": 6.0554371002132195,
+      "ins": 232
+    },
+    {
+      "arm": "APP_B_realtime (558段)",
+      "nsegs": 558,
+      "words": 11841,
+      "wer_pct": 5.850746268656716,
+      "ins": 225
+    },
+    {
+      "arm": "  └ 反事实·225段",
+      "nsegs": 225,
+      "words": 11841,
+      "wer_pct": 5.850746268656716,
+      "ins": 225
+    }
+  ]
+}

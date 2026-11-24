@@ -1,0 +1,85 @@
+{
+  "committed_evidence_files": 647,
+  "disk_py_scanned": 1479,
+  "producer_pairs_found": 451,
+  "producer_not_committed": 11,
+  "detail": [
+    {
+      "evidence": "app042_soak.wav.tts.jsonl",
+      "producer": "results\\app\\app148_archive_run3.py",
+      "producer_basename": "app148_archive_run3.py",
+      "score": 2,
+      "producer_committed": false
+    },
+    {
+      "evidence": "app246_app067_spk_gender_segment_evidence.json",
+      "producer": "results\\app\\_app283_app071_spk_voice_diag.py",
+      "producer_basename": "_app283_app071_spk_voice_diag.py",
+      "score": 2,
+      "producer_committed": false
+    },
+    {
+      "evidence": "app260_tk_geometry_probe.json",
+      "producer": "results\\app\\_app260_tk_geometry_probe.py",
+      "producer_basename": "_app260_tk_geometry_probe.py",
+      "score": 5,
+      "producer_committed": false
+    },
+    {
+      "evidence": "app385_app089_accept_runs_after.json",
+      "producer": "results\\app\\_app385_run_acceptance_all.py",
+      "producer_basename": "_app385_run_acceptance_all.py",
+      "score": 2,
+      "producer_committed": false
+    },
+    {
+      "evidence": "app388_app089_scores_after_all.json",
+      "producer": "results\\app\\_app392_write_status162.py",
+      "producer_basename": "_app392_write_status162.py",
+      "score": 2,
+      "producer_committed": false
+    },
+    {
+      "evidence": "app389_app089_voice_margin_after_dialog3.json",
+      "producer": "results\\app\\_app392_write_status162.py",
+      "producer_basename": "_app392_write_status162.py",
+      "score": 2,
+      "producer_committed": false
+    },
+    {
+      "evidence": "app522_gate4_fallback_scope_evidence.json",
+      "producer": "results\\app\\_app522_write_status.py",
+      "producer_basename": "_app522_write_status.py",
+      "score": 2,
+      "producer_committed": false
+    },
+    {
+      "evidence": "app523_pack_must_ttsworker_evidence.json",
+      "producer": "results\\app\\_app522_write_status.py",
+      "producer_basename": "_app522_write_status.py",
+      "score": 2,
+      "producer_committed": false
+    },
+    {
+      "evidence": "app534_special_profile_check.json",
+      "producer": "results\\app\\_app534_special_profile_check.py",
+      "producer_basename": "_app534_special_profile_check.py",
+      "score": 5,
+      "producer_committed": false
+    },
+    {
+      "evidence": "app589_three_forms_defaults.json",
+      "producer": "results\\app\\_app589_three_forms_defaults_check.py",
+      "producer_basename": "_app589_three_forms_defaults_check.py",
+      "score": 5,
+      "producer_committed": false
+    },
+    {
+      "evidence": "subtitle_layout.json",
+      "producer": "results\\app\\app372_app091_gui_subtitle_shot.py",
+      "producer_basename": "app372_app091_gui_subtitle_shot.py",
+      "score": 2,
+      "producer_committed": false
+    }
+  ]
+}

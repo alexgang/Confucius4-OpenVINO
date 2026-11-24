@@ -1,0 +1,49 @@
+{
+  "committed_json": 636,
+  "committed_py": 1341,
+  "A_producer_exists_but_uncommitted": 2,
+  "A_detail": [
+    {
+      "evidence": "results/app/app260_tk_geometry_probe.json",
+      "producer": "_app260_tk_geometry_probe.py",
+      "on_disk": true
+    },
+    {
+      "evidence": "results/app/app534_special_profile_check.json",
+      "producer": "_app534_special_profile_check.py",
+      "on_disk": true
+    }
+  ],
+  "B_local_import_total": 0,
+  "B_local_module_not_committed": 0,
+  "B_detail": [],
+  "counterproof_all_ok": true,
+  "counterproof": [
+    {
+      "name": "R1_fake_missing_producer",
+      "expect": "NOT_MISSING",
+      "input": "__init__.py",
+      "judged_missing": false,
+      "ok": true
+    },
+    {
+      "name": "R2_fake_committed_script",
+      "expect": "NOT_COMMITTED",
+      "input": "zzz_app236_probe_never_committed.py",
+      "actually_committed": false,
+      "ok": true
+    },
+    {
+      "name": "R3_checks_name_not_producer",
+      "expect": "EMPTY",
+      "extracted": [],
+      "ok": true
+    },
+    {
+      "name": "R4_subdir_module_found",
+      "expect": "FOUND",
+      "module": "asr052_speaker_tracker_api.py",
+      "ok": true
+    }
+  ]
+}

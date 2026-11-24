@@ -1,0 +1,19 @@
+{
+  "scripts_scanned": 1084,
+  "n_gaps": 0,
+  "gaps": [],
+  "counterproof_all_ok": true,
+  "counterproof": [
+    {
+      "name": "R1_tracked_local_not_gap",
+      "expect": "NOT_GAP",
+      "ok": true,
+      "module": "asr06b_backend"
+    },
+    {
+      "name": "R2_nonexistent_module_not_gap",
+      "expect": "NOT_GAP",
+      "ok": true
+    }
+  ]
+}

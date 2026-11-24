@@ -1,0 +1,158 @@
+{
+  "real_producers": [
+    {
+      "evidence": "app260_tk_geometry_probe.json",
+      "producer": "results/app/_app260_tk_geometry_probe.py",
+      "producer_committed": false,
+      "verdict": "PRODUCER",
+      "reason": "AST：open(OUT, 'w') 写出"
+    },
+    {
+      "evidence": "app385_app089_accept_runs_after.json",
+      "producer": "results/app/_app385_run_acceptance_all.py",
+      "producer_committed": false,
+      "verdict": "PRODUCER",
+      "reason": "AST：open(out_path, 'w') 写出"
+    },
+    {
+      "evidence": "app534_special_profile_check.json",
+      "producer": "results/app/_app534_special_profile_check.py",
+      "producer_committed": false,
+      "verdict": "PRODUCER",
+      "reason": "AST：open() 路径参数里直接出现文件名（字面量）"
+    },
+    {
+      "evidence": "app589_three_forms_defaults.json",
+      "producer": "results/app/_app589_three_forms_defaults_check.py",
+      "producer_committed": false,
+      "verdict": "PRODUCER",
+      "reason": "AST：open(OUT, 'w') 写出"
+    },
+    {
+      "evidence": "subtitle_layout.json",
+      "producer": "results/app/app372_app091_gui_subtitle_shot.py",
+      "producer_committed": false,
+      "verdict": "PRODUCER",
+      "reason": "AST：open(LAYOUT, 'w') 写出"
+    }
+  ],
+  "not_producers": [
+    {
+      "evidence": "app042_soak.wav.tts.jsonl",
+      "producer": "results/app/app148_archive_run3.py",
+      "producer_committed": false,
+      "verdict": "NOT_PRODUCER",
+      "reason": "AST：变量 WANT 赋值了但从未写出"
+    },
+    {
+      "evidence": "app246_app067_spk_gender_segment_evidence.json",
+      "producer": "results/app/_app283_app071_spk_voice_diag.py",
+      "producer_committed": false,
+      "verdict": "NOT_PRODUCER",
+      "reason": "AST：变量 APP246 赋值了但从未写出"
+    },
+    {
+      "evidence": "app388_app089_scores_after_all.json",
+      "producer": "results/app/_app392_write_status162.py",
+      "producer_committed": false,
+      "verdict": "NOT_PRODUCER",
+      "reason": "AST：变量 scores,sec162 赋值了但从未写出"
+    },
+    {
+      "evidence": "app389_app089_voice_margin_after_dialog3.json",
+      "producer": "results/app/_app392_write_status162.py",
+      "producer_committed": false,
+      "verdict": "NOT_PRODUCER",
+      "reason": "AST：变量 margin,sec162 赋值了但从未写出"
+    },
+    {
+      "evidence": "app522_gate4_fallback_scope_evidence.json",
+      "producer": "results/app/_app522_write_status.py",
+      "producer_committed": false,
+      "verdict": "NOT_PRODUCER",
+      "reason": "AST：变量 EVID 赋值了但从未写出"
+    },
+    {
+      "evidence": "app523_pack_must_ttsworker_evidence.json",
+      "producer": "results/app/_app522_write_status.py",
+      "producer_committed": false,
+      "verdict": "NOT_PRODUCER",
+      "reason": "AST：变量 EVID2 赋值了但从未写出"
+    }
+  ],
+  "real_producer_not_committed": [
+    {
+      "evidence": "app260_tk_geometry_probe.json",
+      "producer": "results/app/_app260_tk_geometry_probe.py",
+      "producer_committed": false,
+      "verdict": "PRODUCER",
+      "reason": "AST：open(OUT, 'w') 写出"
+    },
+    {
+      "evidence": "app385_app089_accept_runs_after.json",
+      "producer": "results/app/_app385_run_acceptance_all.py",
+      "producer_committed": false,
+      "verdict": "PRODUCER",
+      "reason": "AST：open(out_path, 'w') 写出"
+    },
+    {
+      "evidence": "app534_special_profile_check.json",
+      "producer": "results/app/_app534_special_profile_check.py",
+      "producer_committed": false,
+      "verdict": "PRODUCER",
+      "reason": "AST：open() 路径参数里直接出现文件名（字面量）"
+    },
+    {
+      "evidence": "app589_three_forms_defaults.json",
+      "producer": "results/app/_app589_three_forms_defaults_check.py",
+      "producer_committed": false,
+      "verdict": "PRODUCER",
+      "reason": "AST：open(OUT, 'w') 写出"
+    },
+    {
+      "evidence": "subtitle_layout.json",
+      "producer": "results/app/app372_app091_gui_subtitle_shot.py",
+      "producer_committed": false,
+      "verdict": "PRODUCER",
+      "reason": "AST：open(LAYOUT, 'w') 写出"
+    }
+  ],
+  "counterproof_all_ok": true,
+  "counterproof": [
+    {
+      "name": "R1_comment_only",
+      "expect": "NOT_PRODUCER",
+      "got": "NOT_PRODUCER",
+      "reason": "AST 里没有把该文件名赋给任何变量",
+      "ok": true
+    },
+    {
+      "name": "R2_docstring_only",
+      "expect": "NOT_PRODUCER",
+      "got": "NOT_PRODUCER",
+      "reason": "AST 里没有把该文件名赋给任何变量",
+      "ok": true
+    },
+    {
+      "name": "R3_json_dump_output",
+      "expect": "PRODUCER",
+      "got": "PRODUCER",
+      "reason": "AST：open(OUT, 'w') 写出",
+      "ok": true
+    },
+    {
+      "name": "R4_multiline_join",
+      "expect": "PRODUCER",
+      "got": "PRODUCER",
+      "reason": "AST：open(OUT, 'w') 写出",
+      "ok": true
+    },
+    {
+      "name": "R5_assigned_but_never_written",
+      "expect": "NOT_PRODUCER",
+      "got": "NOT_PRODUCER",
+      "reason": "AST：变量 NAME 赋值了但从未写出",
+      "ok": true
+    }
+  ]
+}

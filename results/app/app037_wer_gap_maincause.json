@@ -1,0 +1,1540 @@
+{
+  "ref": {
+    "path": "reports\\c048_61min_adaptive\\transcript_adaptive.txt",
+    "words": 11725,
+    "nsegs": 226
+  },
+  "self_check": [
+    "组 A：transcript 行数 == segments 段数",
+    "组 A：逐行文本与分段 text 逐字一致",
+    "组 A：按段拼接词序列 == 整文件分词（口径一致）",
+    "组 B：transcript 行数 == segments 段数",
+    "组 B：逐行文本与分段 text 逐字一致",
+    "组 B：按段拼接词序列 == 整文件分词（口径一致）"
+  ],
+  "self_check_failed": [],
+  "groups": {
+    "A": {
+      "group": "A",
+      "n_segs": 538,
+      "ref_words": 11725,
+      "hyp_words": 11879,
+      "ins": 232,
+      "rep": 378,
+      "dele": 100,
+      "buckets": {
+        "head3": 49,
+        "tail3": 126,
+        "mid": 57
+      },
+      "rep_buckets": {
+        "head3": 79,
+        "tail3": 80,
+        "mid": 165
+      },
+      "del_buckets": {
+        "head3": 0,
+        "tail3": 0,
+        "mid": 0
+      },
+      "seam_dup": 16,
+      "seam_dup_head3": 16,
+      "seam_dup_tail3": 0,
+      "seam_dup_mid": 0,
+      "adjacent_dup": 23,
+      "ins_examples": [
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "welcome",
+          "seg": 0,
+          "pos": 10,
+          "seg_len": 11
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "engine",
+          "seg": 3,
+          "pos": 18,
+          "seg_len": 19
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "in",
+          "seg": 8,
+          "pos": 20,
+          "seg_len": 22
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "this",
+          "seg": 8,
+          "pos": 21,
+          "seg_len": 22
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "energy",
+          "seg": 16,
+          "pos": 0,
+          "seg_len": 15
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "pretty",
+          "seg": 18,
+          "pos": 19,
+          "seg_len": 20
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "on",
+          "seg": 20,
+          "pos": 0,
+          "seg_len": 16
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "is",
+          "seg": 27,
+          "pos": 0,
+          "seg_len": 20
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "scale",
+          "seg": 27,
+          "pos": 19,
+          "seg_len": 20
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "the",
+          "seg": 37,
+          "pos": 19,
+          "seg_len": 20
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "want",
+          "seg": 39,
+          "pos": 0,
+          "seg_len": 12
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "will",
+          "seg": 46,
+          "pos": 0,
+          "seg_len": 41
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "opportunity",
+          "seg": 49,
+          "pos": 0,
+          "seg_len": 21
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "to",
+          "seg": 51,
+          "pos": 12,
+          "seg_len": 28
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "win",
+          "seg": 51,
+          "pos": 26,
+          "seg_len": 28
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "share",
+          "seg": 51,
+          "pos": 27,
+          "seg_len": 28
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "last",
+          "seg": 54,
+          "pos": 17,
+          "seg_len": 18
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "the",
+          "seg": 56,
+          "pos": 12,
+          "seg_len": 28
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "and",
+          "seg": 59,
+          "pos": 23,
+          "seg_len": 24
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "partners",
+          "seg": 67,
+          "pos": 18,
+          "seg_len": 19
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "have",
+          "seg": 70,
+          "pos": 21,
+          "seg_len": 22
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "as",
+          "seg": 73,
+          "pos": 18,
+          "seg_len": 21
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "an",
+          "seg": 73,
+          "pos": 19,
+          "seg_len": 21
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "organization",
+          "seg": 73,
+          "pos": 20,
+          "seg_len": 21
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "control",
+          "seg": 74,
+          "pos": 0,
+          "seg_len": 18
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "technology",
+          "seg": 74,
+          "pos": 17,
+          "seg_len": 18
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "a",
+          "seg": 87,
+          "pos": 0,
+          "seg_len": 17
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "in",
+          "seg": 94,
+          "pos": 0,
+          "seg_len": 19
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "with",
+          "seg": 94,
+          "pos": 9,
+          "seg_len": 19
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "see",
+          "seg": 97,
+          "pos": 0,
+          "seg_len": 15
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "continue",
+          "seg": 101,
+          "pos": 0,
+          "seg_len": 15
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "e",
+          "seg": 111,
+          "pos": 22,
+          "seg_len": 23
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "look",
+          "seg": 118,
+          "pos": 28,
+          "seg_len": 30
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "at",
+          "seg": 118,
+          "pos": 29,
+          "seg_len": 30
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "to",
+          "seg": 132,
+          "pos": 0,
+          "seg_len": 19
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "it",
+          "seg": 132,
+          "pos": 18,
+          "seg_len": 19
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "whole",
+          "seg": 134,
+          "pos": 23,
+          "seg_len": 30
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "schema",
+          "seg": 134,
+          "pos": 24,
+          "seg_len": 30
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "about",
+          "seg": 134,
+          "pos": 25,
+          "seg_len": 30
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "how",
+          "seg": 134,
+          "pos": 26,
+          "seg_len": 30
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "we",
+          "seg": 134,
+          "pos": 27,
+          "seg_len": 30
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "do",
+          "seg": 134,
+          "pos": 28,
+          "seg_len": 30
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "that",
+          "seg": 134,
+          "pos": 29,
+          "seg_len": 30
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "a",
+          "seg": 135,
+          "pos": 0,
+          "seg_len": 23
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "and",
+          "seg": 142,
+          "pos": 0,
+          "seg_len": 19
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "deploying",
+          "seg": 143,
+          "pos": 14,
+          "seg_len": 16
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "a",
+          "seg": 155,
+          "pos": 4,
+          "seg_len": 18
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "making",
+          "seg": 156,
+          "pos": 17,
+          "seg_len": 23
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "good",
+          "seg": 156,
+          "pos": 18,
+          "seg_len": 23
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "progress",
+          "seg": 156,
+          "pos": 19,
+          "seg_len": 23
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "and",
+          "seg": 156,
+          "pos": 20,
+          "seg_len": 23
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "is",
+          "seg": 156,
+          "pos": 21,
+          "seg_len": 23
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "now",
+          "seg": 156,
+          "pos": 22,
+          "seg_len": 23
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "have",
+          "seg": 159,
+          "pos": 19,
+          "seg_len": 20
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "basically",
+          "seg": 169,
+          "pos": 0,
+          "seg_len": 33
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": true,
+          "seam_dup": false,
+          "word": "the",
+          "seg": 172,
+          "pos": 25,
+          "seg_len": 26
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "what",
+          "seg": 175,
+          "pos": 20,
+          "seg_len": 21
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "s",
+          "seg": 179,
+          "pos": 17,
+          "seg_len": 20
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "it",
+          "seg": 179,
+          "pos": 18,
+          "seg_len": 20
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "s",
+          "seg": 179,
+          "pos": 19,
+          "seg_len": 20
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "but",
+          "seg": 180,
+          "pos": 22,
+          "seg_len": 30
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "abilities",
+          "seg": 182,
+          "pos": 0,
+          "seg_len": 22
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "agents",
+          "seg": 183,
+          "pos": 20,
+          "seg_len": 28
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "with",
+          "seg": 183,
+          "pos": 21,
+          "seg_len": 28
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "the",
+          "seg": 183,
+          "pos": 22,
+          "seg_len": 28
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "right",
+          "seg": 183,
+          "pos": 23,
+          "seg_len": 28
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "get",
+          "seg": 188,
+          "pos": 0,
+          "seg_len": 41
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "going",
+          "seg": 188,
+          "pos": 38,
+          "seg_len": 41
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "to",
+          "seg": 188,
+          "pos": 39,
+          "seg_len": 41
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "get",
+          "seg": 188,
+          "pos": 40,
+          "seg_len": 41
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "us",
+          "seg": 191,
+          "pos": 23,
+          "seg_len": 24
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": true,
+          "seam_dup": false,
+          "word": "where",
+          "seg": 194,
+          "pos": 25,
+          "seg_len": 26
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "going",
+          "seg": 195,
+          "pos": 22,
+          "seg_len": 23
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "line",
+          "seg": 197,
+          "pos": 0,
+          "seg_len": 24
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "just",
+          "seg": 198,
+          "pos": 21,
+          "seg_len": 22
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "so",
+          "seg": 199,
+          "pos": 30,
+          "seg_len": 31
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "verticals",
+          "seg": 201,
+          "pos": 0,
+          "seg_len": 16
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "more",
+          "seg": 203,
+          "pos": 22,
+          "seg_len": 28
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "of",
+          "seg": 203,
+          "pos": 23,
+          "seg_len": 28
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "a",
+          "seg": 203,
+          "pos": 24,
+          "seg_len": 28
+        }
+      ],
+      "wer_pct": 6.0554371002132195,
+      "ins_pct_of_err": 32.67605633802817,
+      "rep_pct_of_err": 53.23943661971831,
+      "dele_pct_of_err": 14.084507042253522,
+      "ins_per_seg": 0.4312267657992565,
+      "ref_nsegs": 226,
+      "seg_ratio": 2.3805309734513274,
+      "ins_if_same_density": 97.45724907063197,
+      "excess_ins_vs_density": 134.54275092936803,
+      "excess_ins_pp": 1.1474861486513266
+    },
+    "B": {
+      "group": "B",
+      "n_segs": 558,
+      "ref_words": 11725,
+      "hyp_words": 11841,
+      "ins": 225,
+      "rep": 357,
+      "dele": 104,
+      "buckets": {
+        "head3": 66,
+        "tail3": 117,
+        "mid": 42
+      },
+      "rep_buckets": {
+        "head3": 80,
+        "tail3": 69,
+        "mid": 147
+      },
+      "del_buckets": {
+        "head3": 0,
+        "tail3": 0,
+        "mid": 0
+      },
+      "seam_dup": 21,
+      "seam_dup_head3": 21,
+      "seam_dup_tail3": 0,
+      "seam_dup_mid": 0,
+      "adjacent_dup": 27,
+      "ins_examples": [
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "welcome",
+          "seg": 0,
+          "pos": 10,
+          "seg_len": 11
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "engine",
+          "seg": 3,
+          "pos": 18,
+          "seg_len": 19
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "in",
+          "seg": 8,
+          "pos": 20,
+          "seg_len": 22
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "this",
+          "seg": 8,
+          "pos": 21,
+          "seg_len": 22
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "has",
+          "seg": 17,
+          "pos": 0,
+          "seg_len": 21
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "performance",
+          "seg": 17,
+          "pos": 20,
+          "seg_len": 21
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "excellence",
+          "seg": 22,
+          "pos": 16,
+          "seg_len": 17
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "scale",
+          "seg": 27,
+          "pos": 22,
+          "seg_len": 23
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "the",
+          "seg": 37,
+          "pos": 19,
+          "seg_len": 20
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "want",
+          "seg": 39,
+          "pos": 0,
+          "seg_len": 6
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "table",
+          "seg": 42,
+          "pos": 0,
+          "seg_len": 14
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "ve",
+          "seg": 44,
+          "pos": 20,
+          "seg_len": 22
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "lost",
+          "seg": 44,
+          "pos": 21,
+          "seg_len": 22
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "opportunity",
+          "seg": 50,
+          "pos": 0,
+          "seg_len": 21
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "to",
+          "seg": 52,
+          "pos": 12,
+          "seg_len": 28
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "win",
+          "seg": 52,
+          "pos": 26,
+          "seg_len": 28
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "share",
+          "seg": 52,
+          "pos": 27,
+          "seg_len": 28
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "last",
+          "seg": 55,
+          "pos": 17,
+          "seg_len": 18
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "the",
+          "seg": 57,
+          "pos": 12,
+          "seg_len": 28
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "market",
+          "seg": 65,
+          "pos": 0,
+          "seg_len": 20
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "for",
+          "seg": 66,
+          "pos": 18,
+          "seg_len": 19
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "second",
+          "seg": 69,
+          "pos": 0,
+          "seg_len": 20
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "shape",
+          "seg": 69,
+          "pos": 19,
+          "seg_len": 20
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "have",
+          "seg": 72,
+          "pos": 21,
+          "seg_len": 22
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "as",
+          "seg": 75,
+          "pos": 18,
+          "seg_len": 21
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "an",
+          "seg": 75,
+          "pos": 19,
+          "seg_len": 21
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "organization",
+          "seg": 75,
+          "pos": 20,
+          "seg_len": 21
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "control",
+          "seg": 76,
+          "pos": 0,
+          "seg_len": 9
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "right",
+          "seg": 78,
+          "pos": 22,
+          "seg_len": 23
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "a",
+          "seg": 90,
+          "pos": 0,
+          "seg_len": 17
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "in",
+          "seg": 97,
+          "pos": 0,
+          "seg_len": 19
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "with",
+          "seg": 97,
+          "pos": 9,
+          "seg_len": 19
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "see",
+          "seg": 100,
+          "pos": 0,
+          "seg_len": 15
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "continue",
+          "seg": 104,
+          "pos": 0,
+          "seg_len": 20
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "apps",
+          "seg": 106,
+          "pos": 18,
+          "seg_len": 19
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "arkite",
+          "seg": 107,
+          "pos": 19,
+          "seg_len": 20
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": true,
+          "seam_dup": false,
+          "word": "our",
+          "seg": 112,
+          "pos": 13,
+          "seg_len": 14
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "a",
+          "seg": 116,
+          "pos": 31,
+          "seg_len": 33
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "grind",
+          "seg": 116,
+          "pos": 32,
+          "seg_len": 33
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "was",
+          "seg": 117,
+          "pos": 0,
+          "seg_len": 22
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "and",
+          "seg": 117,
+          "pos": 21,
+          "seg_len": 22
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "scale",
+          "seg": 125,
+          "pos": 19,
+          "seg_len": 20
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "to",
+          "seg": 135,
+          "pos": 0,
+          "seg_len": 19
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "it",
+          "seg": 135,
+          "pos": 18,
+          "seg_len": 19
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "whole",
+          "seg": 137,
+          "pos": 23,
+          "seg_len": 30
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "schema",
+          "seg": 137,
+          "pos": 24,
+          "seg_len": 30
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "about",
+          "seg": 137,
+          "pos": 25,
+          "seg_len": 30
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "how",
+          "seg": 137,
+          "pos": 26,
+          "seg_len": 30
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "we",
+          "seg": 137,
+          "pos": 27,
+          "seg_len": 30
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "do",
+          "seg": 137,
+          "pos": 28,
+          "seg_len": 30
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "that",
+          "seg": 137,
+          "pos": 29,
+          "seg_len": 30
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "a",
+          "seg": 138,
+          "pos": 0,
+          "seg_len": 23
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "congratulations",
+          "seg": 140,
+          "pos": 13,
+          "seg_len": 14
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "and",
+          "seg": 145,
+          "pos": 0,
+          "seg_len": 19
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "deploying",
+          "seg": 146,
+          "pos": 14,
+          "seg_len": 16
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "do",
+          "seg": 155,
+          "pos": 0,
+          "seg_len": 16
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "ship",
+          "seg": 157,
+          "pos": 0,
+          "seg_len": 22
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "a",
+          "seg": 158,
+          "pos": 5,
+          "seg_len": 15
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "congress",
+          "seg": 160,
+          "pos": 0,
+          "seg_len": 19
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "for",
+          "seg": 169,
+          "pos": 26,
+          "seg_len": 28
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "the",
+          "seg": 169,
+          "pos": 27,
+          "seg_len": 28
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "we",
+          "seg": 177,
+          "pos": 0,
+          "seg_len": 20
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "re",
+          "seg": 177,
+          "pos": 1,
+          "seg_len": 20
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "continue",
+          "seg": 179,
+          "pos": 0,
+          "seg_len": 22
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "the",
+          "seg": 179,
+          "pos": 21,
+          "seg_len": 22
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "s",
+          "seg": 183,
+          "pos": 17,
+          "seg_len": 20
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "it",
+          "seg": 183,
+          "pos": 18,
+          "seg_len": 20
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "s",
+          "seg": 183,
+          "pos": 19,
+          "seg_len": 20
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "but",
+          "seg": 184,
+          "pos": 22,
+          "seg_len": 30
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "abilities",
+          "seg": 186,
+          "pos": 0,
+          "seg_len": 22
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "agents",
+          "seg": 187,
+          "pos": 20,
+          "seg_len": 28
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "with",
+          "seg": 187,
+          "pos": 21,
+          "seg_len": 28
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "the",
+          "seg": 187,
+          "pos": 22,
+          "seg_len": 28
+        },
+        {
+          "bucket": "mid",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "right",
+          "seg": 187,
+          "pos": 23,
+          "seg_len": 28
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "get",
+          "seg": 192,
+          "pos": 0,
+          "seg_len": 27
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "if",
+          "seg": 195,
+          "pos": 18,
+          "seg_len": 20
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "looking",
+          "seg": 202,
+          "pos": 0,
+          "seg_len": 24
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "talking",
+          "seg": 202,
+          "pos": 23,
+          "seg_len": 24
+        },
+        {
+          "bucket": "tail3",
+          "adj_dup": false,
+          "seam_dup": false,
+          "word": "so",
+          "seg": 203,
+          "pos": 30,
+          "seg_len": 31
+        },
+        {
+          "bucket": "head3",
+          "adj_dup": true,
+          "seam_dup": true,
+          "word": "verticals",
+          "seg": 205,
+          "pos": 0,
+          "seg_len": 16
+        }
+      ],
+      "wer_pct": 5.850746268656716,
+      "ins_pct_of_err": 32.798833819241985,
+      "rep_pct_of_err": 52.04081632653061,
+      "dele_pct_of_err": 15.160349854227405,
+      "ins_per_seg": 0.4032258064516129,
+      "ref_nsegs": 226,
+      "seg_ratio": 2.4690265486725664,
+      "ins_if_same_density": 91.12903225806451,
+      "excess_ins_vs_density": 133.8709677419355,
+      "excess_ins_pp": 1.1417566545154414
+    }
+  }
+}

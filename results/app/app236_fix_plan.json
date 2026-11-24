@@ -1,0 +1,214 @@
+{
+  "producers": [
+    {
+      "script": "results/app/_app260_tk_geometry_probe.py",
+      "evidence": "app260_tk_geometry_probe.json",
+      "bytes": 3975
+    },
+    {
+      "script": "results/app/_app385_run_acceptance_all.py",
+      "evidence": "app385_app089_accept_runs_after.json",
+      "bytes": 7396
+    },
+    {
+      "script": "results/app/_app534_special_profile_check.py",
+      "evidence": "app534_special_profile_check.json",
+      "bytes": 4065
+    },
+    {
+      "script": "results/app/_app589_three_forms_defaults_check.py",
+      "evidence": "app589_three_forms_defaults.json",
+      "bytes": 7296
+    },
+    {
+      "script": "results/app/app372_app091_gui_subtitle_shot.py",
+      "evidence": "subtitle_layout.json",
+      "bytes": 9532
+    }
+  ],
+  "baselines": {
+    "_app581_sp1_rerun_tts_out.wav.backlog_curve.csv": {
+      "path": "results/app/_app581_sp1_rerun_tts_out.wav.backlog_curve.csv",
+      "bytes": 17115,
+      "crlf": 0,
+      "lf_only": 403,
+      "disk_sha256": "a878ce432519f815f79f602128d1b4cb9ade867eb9e5ff8676945f4c39508a69",
+      "published_sha256": [
+        "a878ce432519f815f79f602128d1b4cb9ade867eb9e5ff8676945f4c39508a69"
+      ],
+      "reasons": [
+        "path_field",
+        "sha256_field"
+      ],
+      "cited_by": [
+        "results/app/app581_open1_sp1_rerun.v2.json"
+      ],
+      "byte_exact_required": true,
+      "sha_mismatch": false
+    },
+    "_app581_sp1_rerun_tts_out.wav.tts.jsonl": {
+      "path": "results/app/_app581_sp1_rerun_tts_out.wav.tts.jsonl",
+      "bytes": 201099,
+      "crlf": 134,
+      "lf_only": 0,
+      "disk_sha256": "d83b9d00619984a7fc4f8a83cc7c5a0268d26e7f675232ee09e4cd8a33437db2",
+      "published_sha256": [
+        "d83b9d00619984a7fc4f8a83cc7c5a0268d26e7f675232ee09e4cd8a33437db2"
+      ],
+      "reasons": [
+        "path_field",
+        "sha256_field"
+      ],
+      "cited_by": [
+        "results/app/app581_open1_sp1_rerun.v2.json"
+      ],
+      "byte_exact_required": true,
+      "sha_mismatch": false
+    },
+    "_app582_sp3_tts_out.wav.backlog_curve.csv": {
+      "path": "results/app/_app582_sp3_tts_out.wav.backlog_curve.csv",
+      "bytes": 16736,
+      "crlf": 0,
+      "lf_only": 403,
+      "disk_sha256": "ae804d0b64ef93ab16d9038da793cbd0d343d67d9cf6cbe818c79650ba1cdbe0",
+      "published_sha256": [
+        "ae804d0b64ef93ab16d9038da793cbd0d343d67d9cf6cbe818c79650ba1cdbe0"
+      ],
+      "reasons": [
+        "path_field",
+        "sha256_field"
+      ],
+      "cited_by": [
+        "results/app/app582_specialmvp_sp3_acceptance.v2.json"
+      ],
+      "byte_exact_required": true,
+      "sha_mismatch": false
+    },
+    "_app582_sp3_tts_out.wav.tts.jsonl": {
+      "path": "results/app/_app582_sp3_tts_out.wav.tts.jsonl",
+      "bytes": 218009,
+      "crlf": 139,
+      "lf_only": 0,
+      "disk_sha256": "7d2776f980984c7cf5483f545530f2367febe8a8171927fbdb21043bdfdd54ae",
+      "published_sha256": [
+        "7d2776f980984c7cf5483f545530f2367febe8a8171927fbdb21043bdfdd54ae"
+      ],
+      "reasons": [
+        "path_field",
+        "sha256_field"
+      ],
+      "cited_by": [
+        "results/app/app582_specialmvp_sp3_acceptance.v2.json"
+      ],
+      "byte_exact_required": true,
+      "sha_mismatch": false
+    },
+    "app037_seam_mechanism.json": {
+      "path": "results/app/app037_seam_mechanism.json",
+      "bytes": 21847,
+      "crlf": 805,
+      "lf_only": 0,
+      "disk_sha256": "120dabe5421c1fb0cc49239eeecb858d418b019bec10731477f78247417b042b",
+      "published_sha256": [
+        "120dabe5421c1fb0cc49239eeecb858d418b019bec10731477f78247417b042b"
+      ],
+      "reasons": [
+        "path_field",
+        "sha256_field"
+      ],
+      "cited_by": [
+        "results/app/app056_wer_gap_attribution.json"
+      ],
+      "byte_exact_required": true,
+      "sha_mismatch": false
+    },
+    "app037_segcount_effect.json": {
+      "path": "results/app/app037_segcount_effect.json",
+      "bytes": 2208,
+      "crlf": 98,
+      "lf_only": 0,
+      "disk_sha256": "2e7e775f8fc9d7ac6bf0494c8ba80ba7a748f8f34aee286c38fc65933c90d999",
+      "published_sha256": [
+        "2e7e775f8fc9d7ac6bf0494c8ba80ba7a748f8f34aee286c38fc65933c90d999"
+      ],
+      "reasons": [
+        "path_field",
+        "sha256_field"
+      ],
+      "cited_by": [
+        "results/app/app056_wer_gap_attribution.json"
+      ],
+      "byte_exact_required": true,
+      "sha_mismatch": false
+    },
+    "app037_wer_gap_maincause.json": {
+      "path": "results/app/app037_wer_gap_maincause.json",
+      "bytes": 35927,
+      "crlf": 1539,
+      "lf_only": 0,
+      "disk_sha256": "d6e688148307a95a0c872e8081e3cf1a4d0590f2227b61862580538280f725be",
+      "published_sha256": [
+        "d6e688148307a95a0c872e8081e3cf1a4d0590f2227b61862580538280f725be"
+      ],
+      "reasons": [
+        "path_field",
+        "sha256_field"
+      ],
+      "cited_by": [
+        "results/app/app056_wer_gap_attribution.json"
+      ],
+      "byte_exact_required": true,
+      "sha_mismatch": false
+    },
+    "app582_specialmvp_sp3_acceptance.run1.json": {
+      "path": "results/app/app582_specialmvp_sp3_acceptance.run1.json",
+      "bytes": 13468,
+      "crlf": 185,
+      "lf_only": 0,
+      "disk_sha256": "151311efd10a3ad8154f3374172a79ae55123b3cd8631e98b2d33878b7cc0a1a",
+      "published_sha256": [
+        "151311efd10a3ad8154f3374172a79ae55123b3cd8631e98b2d33878b7cc0a1a"
+      ],
+      "reasons": [
+        "path_field",
+        "sha256_field"
+      ],
+      "cited_by": [
+        "results/app/app582_specialmvp_sp3_acceptance.v2.json"
+      ],
+      "byte_exact_required": true,
+      "sha_mismatch": false
+    }
+  },
+  "byte_exact": [
+    "_app581_sp1_rerun_tts_out.wav.backlog_curve.csv",
+    "_app581_sp1_rerun_tts_out.wav.tts.jsonl",
+    "_app582_sp3_tts_out.wav.backlog_curve.csv",
+    "_app582_sp3_tts_out.wav.tts.jsonl",
+    "app037_seam_mechanism.json",
+    "app037_segcount_effect.json",
+    "app037_wer_gap_maincause.json",
+    "app582_specialmvp_sp3_acceptance.run1.json"
+  ],
+  "normalize_ok": [],
+  "sha_mismatch": [],
+  "hold_hit": [],
+  "counterproof_all_ok": true,
+  "counterproof": [
+    {
+      "name": "R1_prose_only_not_baseline",
+      "expect": "NOT_BASELINE",
+      "ok": true
+    },
+    {
+      "name": "R2_already_tracked_not_candidate",
+      "expect": "NOT_CANDIDATE",
+      "ok": true
+    },
+    {
+      "name": "R3_real_sample_sha_match",
+      "expect": "BYTE_EXACT",
+      "ok": true
+    }
+  ]
+}

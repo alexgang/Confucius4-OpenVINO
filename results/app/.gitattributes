@@ -1,0 +1,31 @@
+# §222③「复算底本」必须**逐字节入库**（APP-236，2026-11-25）。
+#
+# 背景（与 results/app/app128b_e2e7_src/.gitattributes 同一判据、同一条理由）：
+#   本仓 core.autocrlf=true 且仓库根**无** .gitattributes ⇒ git 在 `add` 时把
+#   **CRLF 规整成 LF** ⇒ 入库 blob 与磁盘上的原始文件**逐字节不同**。
+#   ⇒ 在 core.autocrlf=false 的机器上 clone 出来的字节，
+#     与「已入库证据 json 里公布的 SHA256」对不上 ⇒ **假 FAIL**。
+#
+# 本目录（results/app/）下**被已入库证据用 sha256 显式引用**的复算底本，
+#   公布的 SHA256 是按**磁盘原始字节（CRLF）**算的 ⇒ 必须 `-text` 原样入库。
+#   -text = 不做行尾转换，git 按工作区字节原样入库。
+#
+# 🔴 只列**逐文件路径**，**不用通配符**：
+#   本目录另有大量**普通** .json（不需要逐字节、也不该被 -text 波及）。
+#   用通配符会把它们全部改成 i/crlf ⇒ 改变**已入库文件**的入库形态 ⇒ 越权。
+#   ⇒ 逐文件列举 ⇒ 只影响本轮新加的这几个文件，其余文件**一字未动**。
+#
+# 逐个文件都满足：被已入库证据引用 ＋ 证据里公布了它的 sha256 ＋
+#                 磁盘字节的 sha256 == 公布的 sha256（见 results/app/app236_fix_plan.json）。
+
+# ── §222③ 复算底本（json：被证据以 path/sha256 字段引用）────────────────
+/app037_seam_mechanism.json -text
+/app037_segcount_effect.json -text
+/app037_wer_gap_maincause.json -text
+/app582_specialmvp_sp3_acceptance.run1.json -text
+
+# ── §222③ 复算底本（jsonl/csv：10 分钟整链的逐句时间线与积压曲线）────────
+/_app581_sp1_rerun_tts_out.wav.tts.jsonl -text
+/_app581_sp1_rerun_tts_out.wav.backlog_curve.csv -text
+/_app582_sp3_tts_out.wav.tts.jsonl -text
+/_app582_sp3_tts_out.wav.backlog_curve.csv -text

@@ -1,0 +1,32 @@
+{
+  "current_candidates": 48,
+  "current_missing": [
+    "results/app/app118_pkg_size.json",
+    "results/app/app231_pack_lock_events.json"
+  ],
+  "extended_candidates": 49,
+  "extended_missing": [
+    "results/app/app118_pkg_size.json",
+    "results/app/app231_pack_lock_events.json",
+    "results/app/app231_pack_lock_events.jsonl"
+  ],
+  "counterproof_all_ok": false,
+  "counterproof": [
+    {
+      "name": "R1_current_truncates_jsonl",
+      "expect": "TRUNCATED",
+      "got": [
+        "results/app/app231_pack_lock_events.json"
+      ],
+      "ok": true
+    },
+    {
+      "name": "R2_extended_full_match",
+      "expect": "FULL",
+      "got": [
+        "results/app/app231_pack_lock_events.json"
+      ],
+      "ok": false
+    }
+  ]
+}
