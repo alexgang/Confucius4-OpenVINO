@@ -1930,6 +1930,13 @@ class Session:
 
     def _on_bg_vocals(self, t_start: float, v16) -> None:                       # separator thread
         v16 = np.asarray(v16, dtype=np.float32)
+        _dump = os.environ.get("EXT_BG_DUMP_VOCALS")      # v0.4.21 (ASR-099): raw 16 kHz s16 dump for offline WER
+        if _dump:
+            try:
+                with open(_dump, "ab") as _f:
+                    _f.write((np.clip(v16, -1, 1) * 32767).astype("<i2").tobytes())
+            except Exception:
+                pass
         with self._voc_lock:
             i0 = int(round(t_start * C.SAMPLE_RATE))
             if self._voc16.size == 0:
@@ -2128,7 +2135,24 @@ class Session:
             "bg_onset_shifted": self.bg_onset_shifted,
             "bg_onset_shift_sum_sec": round(float(self.bg_onset_shift_sum), 2),
             "bg_onset_no_vocals": self.bg_onset_no_vocals,
+            # v0.4.21 (ASR-099): label-source / gender-gate counters and bypass reasons were log-only
+            "clone_reasons": (dict(getattr(self._clone, "_reasons", {}) or {})
+                              if getattr(self, "_clone", None) is not None else {}),
+            "spk_reason_hist": self._spk_reason_hist(),
+            "n_gender_splits": int(getattr(self, "n_gender_splits", 0)),
         }
+
+    def _spk_reason_hist(self) -> dict:
+        h = {}
+        try:
+            with self._spk_table_lock:
+                rows = list(self._spk_rows.values())
+            for r in rows:
+                k = str(r.get("spk_reason") or ("label" if r.get("spk") else "none"))
+                h[k] = h.get(k, 0) + 1
+        except Exception:
+            pass
+        return h
 
     def on_pcm_frame(self, msg: dict, *,
                      recv_at: Optional[float] = None) -> Optional[dict]:
@@ -2319,6 +2343,16 @@ class Session:
                     ready = _cvs.split_by_speaker(self._buf, ready)
                 except Exception as e:
                     _log(f"说话人切分失败（按停顿切）: {e}")
+                # v0.4.21 (user 11-24): also split where the pitch gender flips (fixed-length cuts under music
+                #   spanned male/female turns ⇒ the other speaker's lines got the wrong voice)
+                try:
+                    from .clone_voice import split_by_gender
+                    _n0 = len(ready)
+                    ready = split_by_gender(self._buf, ready)
+                    if len(ready) > _n0:
+                        self.n_gender_splits = getattr(self, "n_gender_splits", 0) + (len(ready) - _n0)
+                except Exception as e:
+                    _log(f"性别切分失败（忽略）: {e}")
         tasks = []
         # ★ 段索引是相对**当前缓冲区**的 ⇒ 换算成会话绝对样本偏移。
         #   旧实现每处理一段就把 self._buf 裁掉前段，却继续用旧的 (s0, s1)

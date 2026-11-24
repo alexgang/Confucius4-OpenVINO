@@ -107,6 +107,61 @@ def gender_of(f0) -> Optional[str]:
     return None
 
 
+def split_by_gender(buf, segs, sr: int = SR, min_piece_s: float = 1.0, hold_s: float = 1.0):
+    """v0.4.21 (user 11-24: short sentences of the other gender inside one segment kept the wrong voice).
+    With music under the speech the cutter often has no silence and makes fixed-length segments that span a
+    speaker turn (one segment = one dub = one voice). Split a segment where the pitch gender flips and the new
+    gender holds for >= hold_s (after >= hold_s of the old one); cut at the quietest 20 ms within +-0.3 s.
+    Pieces stay >= min_piece_s. Unclear gender (between thresholds / unvoiced) never causes a split."""
+    out = []
+    win, hop = int(1.0 * sr), int(0.5 * sr)
+    need = int(round(hold_s / 0.5))
+    for s0, s1 in segs:
+        if s1 - s0 < 2 * int(min_piece_s * sr) + win:
+            out.append((s0, s1))
+            continue
+        x = np.asarray(buf[s0:s1], dtype=np.float32)
+        gs = []
+        for i in range(0, max(1, x.size - win + 1), hop):
+            gs.append(gender_of(f0_median(x[i:i + win], sr)))
+        cuts, cur, run_old, k = [], None, 0, 0
+        while k < len(gs):
+            g = gs[k]
+            if g is None:
+                k += 1
+                continue
+            if cur is None or g == cur:
+                run_old = run_old + 1 if g == cur else 1
+                cur = g
+                k += 1
+                continue
+            j = k                                  # g != cur: does the new gender hold?
+            while j < len(gs) and gs[j] in (g, None):
+                j += 1
+            held = sum(1 for q in gs[k:j] if q == g)
+            if run_old >= need and held >= need:
+                c = k * hop + win // 2             # centre of the first window of the new gender ~ change
+                c = max(int(min_piece_s * sr), min(x.size - int(min_piece_s * sr), c - win // 4))
+                lo, hi = max(0, c - int(0.3 * sr)), min(x.size, c + int(0.3 * sr))
+                fr = int(0.02 * sr)
+                if hi - lo > 2 * fr:
+                    e = [float(np.mean(x[t:t + fr] ** 2)) for t in range(lo, hi - fr, fr // 2)]
+                    c = lo + int(np.argmin(e)) * (fr // 2) + fr // 2
+                if not cuts or c - cuts[-1] >= int(min_piece_s * sr):
+                    cuts.append(c)
+                cur, run_old = g, held
+                k = j
+            else:
+                k += 1
+        prev = s0
+        for c in cuts:
+            if (s0 + c) - prev >= int(min_piece_s * sr) and s1 - (s0 + c) >= int(min_piece_s * sr):
+                out.append((prev, s0 + c))
+                prev = s0 + c
+        out.append((prev, s1))
+    return out
+
+
 SPLIT_MIN_SEG_S = 3.2
 SPLIT_WIN_S = (1.6, 2.0, 2.5)
 SPLIT_MIN_SIM = 0.30

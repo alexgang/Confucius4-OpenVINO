@@ -100,6 +100,17 @@ check("nearest = the female reference for a female sentence", p == female_ref, (
 p, sim = m._nearest_voice(1, min_sim=1.01)
 check("min_sim respected", p is None)
 
+print("4. split at gender changes (v0.4.21)")
+mx = np.concatenate([voice(120, [1, .6, .4, .3], 3.0, 7), voice(230, [1, .5, .3], 3.0, 8)])
+r = CV.split_by_gender(mx, [(0, mx.size)])
+check("male 3 s + female 3 s ⇒ split near 3 s", len(r) == 2 and abs(r[0][1] / SR - 3.0) < 0.6, [(a / SR, b / SR) for a, b in r])
+one = voice(120, [1, .6, .4, .3], 6.0, 9)
+check("one gender ⇒ no split", CV.split_by_gender(one, [(0, one.size)]) == [(0, one.size)])
+amb = np.concatenate([voice(120, [1, .6, .4, .3], 3.0, 10), voice(170, [1, .5, .3], 3.0, 11)])
+check("male + ambiguous ⇒ no split", CV.split_by_gender(amb, [(0, amb.size)]) == [(0, amb.size)])
+blip = np.concatenate([voice(120, [1, .6, .4, .3], 3.0, 12), voice(230, [1, .5, .3], 0.6, 13), voice(120, [1, .6, .4, .3], 3.0, 14)])
+check("0.6 s female blip ⇒ no split (must hold >= 1 s)", len(CV.split_by_gender(blip, [(0, blip.size)])) == 1)
+
 ok = all(RES)
 print("RESULT:", "PASS" if ok else "FAIL", f"({sum(RES)}/{len(RES)})")
 sys.exit(0 if ok else 1)
