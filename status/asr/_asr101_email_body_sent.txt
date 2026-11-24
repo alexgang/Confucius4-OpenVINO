@@ -1,0 +1,51 @@
+ASR 模块 STATUS 回报（§101，2026-11-24 19:05）
+
+last_ack: ASR-068（本轮无新 ASR 纠偏）
+
+一、双通道检查结论
+1) 纠偏文件通道：无新条目。CORRECTIONS_ASR.md 109 822 B，md5 3d25680748cf7934fe172f3bb372ec1a，mtime 2026-11-23 16:55:15，与 §96–§100 逐字相同；最大编号 ASR-068；搜 ASR-069 / ASR-070 / ASR-071 均 0 命中 ⇒ last_ack 保持 ASR-068。
+2) 邮件通道：新增 5 封全部非 ASR 编号（APP-132、APP-133、QQ 邮箱通知、NPU 性能报告、H-028）⇒ 不进 last_ack，不产生 ASR 动作项。spam 0、trash 1（非纠偏）。
+
+二、本轮实质变化（有变化，不是纯巡检）
+1) EXT v0.4.21 已提交：HEAD b2a4978e2f671836c2e464db528e02d138884df9，commit 2026-11-24 13:54:52，5 文件 / +102 −2，工作区干净。
+   ⇒ 撤回 §100「v0.4.21 未提交、HEAD 仍 4740b06」一句（按纪律只在 §101 撤回，不改旧章节正文）⇒ §100 遗留 reviewer 事项 ①（提交 v0.4.21）已闭。
+2) 新三臂 shared/bgkeep/e2e_v26_r2（App 模块产出，本模块只读复算；EXT v0.4.21；素材 clip_10min_0_600.wav，600 s，delay=20；产物 28 文件）：
+   - 三臂 spk_bypass.enabled 全 true ⇒ §100 遗留事项 ②（开旁路臂）已闭。
+   - 段数 asr/mt/tts = 94/94/94、89/89/89、111/111/111；dubs 95/90/114，dub_dropped 全 0；n_dropped / spk_queue_drop 全 0；n_frames 5951。
+   - bg_clone_from_vocals 只在 clone 臂 = 167；两开臂 bg_late_blocks = 0。
+   - dub_late_vs_play_s max = 115.42 / 139.22 / 182.62 s ⇒ 配音仍严重迟到（属 App/TTS 排队时延口径，本模块只记录不归因）。
+
+三、撤回 §100.1「spk_reason_hist 零缺口 / 100% 覆盖」结论
+事实：r2 三臂 spk_reason_hist 合计 = 119 / 118 / 159，而 asr_segments = 94 / 89 / 111 ⇒ 对不上。
+机理（读 HEAD b2a4978）：
+ - ext/bridge.py L2145–2153 _spk_reason_hist() 统计 self._spk_rows（段级说话人表）行数；该表两个写入点：L2533 _on_spk_label()（旁路产出标签时才写，带 spk_reason）、L2915 _finalize_segment()（每段收口都写，不带 spk_reason）⇒ 收口路径的行被并进 label 桶 ⇒ 与 asr_segments（L2864，只统计有文本的段）无结构性相等关系。
+ - 更关键：旁路失败原因结构上进不了该表。spk_reason 全仓只有一个写入点（L2538）；ext/speaker_bypass.py 的 _emit_label() 只在 if spk: 分支触发（L420–422），失败分支只做 n_no_label += 1（L431）、不写任何行 ⇒ ext/spk_engine.py on_final() 的 7 个否定 reason（models_not_ready / audio_not_buffered / too_short / seg_pending / not_clean_speech / overlap / embed_shape_out_of_range）结构上不可达。实测：shared/bgkeep/ 下全部 7 个带该字段的臂取值域只有 {label, none}。
+ - 量化缺口（r2 clone 臂）：n_no_label = 27，但直方图 none 只有 3 ⇒ 24 段「为什么没标签」被丢掉；label = 156 > 旁路 n_label = 139（多 17）⇒ 再证收口路径的行被并进 label 桶。
+ - §100 那次能对上（89 = 89）是巧合：那个 gender_ab2/v0421 臂 spk_bypass.enabled = false ⇒ 直方图全由收口路径构成，恰好等于 asr_segments（89）；r2 三臂旁路全开 ⇒ 两种来源混在一起。
+ ⇒ §100.1「零缺口 ⇒ 旁路零标签不可归因不再是死结」的结论撤回；§97/§98 原始诉求（旁路零标签为什么，要能归因）仍开口。
+ 给 reviewer 的最小修法（本模块不代改）：让失败路径也写进段级表 —— ext/speaker_bypass.py 失败分支（L429–431）也回调一次 on_label（带 spk=None ＋ reason），或让 spk_bypass.stats() 直接导出否定 reason 计数（旁路侧本来就有 res["reason"]）。只调 _spk_reason_hist() 的聚合口径解决不了，因为数据压根没进表。
+
+四、clone_reasons 与 APP-131 三字段（r2 clone 臂）
+- clone_reasons 12 键，事件数合计 348（12 键全量见 notes）。
+- APP-131 验收第 2 项要的三个字段：tts_nearest_voice = 1（有值）；gender_switch = 键不存在（不是值为 0）；gender_selfref = 键不存在 ⇒ 10 分钟臂上性别守门一次都没触发。
+- 与 §100 的 v0421 臂（7 分钟 bili_420.wav：tts_nearest_voice=9、gender_switch=3、gender_selfref=1）媒体不同，不可直接对比。
+- clone_reasons 是事件计数、spk_reason_hist 是行数 ⇒ 两口径不同、不能相加。
+
+五、待办
+1) 待 reviewer（新）：旁路失败原因的归因缺口仍未闭 ⇒ 需旁路失败路径也写进段级表（或由 spk_bypass.stats() 导出否定 reason 计数）。
+2) 待 reviewer（沿用）：修前（v0.4.18 / 5121d99）对照臂仍缺（shared/bgkeep/ 下无 v0418* 目录）⇒ §96 ① 未闭。
+3) 待 App/reviewer 提供：10 分钟片段分离人声 16 kHz wav。EXT_BG_DUMP_VOCALS（bridge.py L1933）已实现且已提交，但 shared/bgkeep/vocals/ 仍不存在、全盘搜 *vocal* 0 命中 ⇒ 「原声 vs 分离人声」WER 对比仍做不了（两侧须同一 ASR 臂：pml=320 NPU 档 ＋ OV 2026.4.1；本模块不自行调 MiniMax）。
+4) 待 reviewer 拍板（新）：对外《NPU 性能测试与精度报告》（07:46:40Z）的 ASR 数字口径 —— 报告写 RTF 0.067、英文 WER 0 / 中文 CER 0；与本模块 §83 / ASR-060～061 实测不是同一计分器（本模块 NPU 流式 RTF 0.3094/0.2912/0.3165、离线 0.0496/0.0448/0.0665；SPE 全局 WER 9.74%/6.30%）⇒ 请说明 0.067 的口径；报告称完整表在 results/npu_benchmark/，本机未找到该路径。
+5) 待 App 线程决定：NPU 档前缀截断处置（建议 MAX_SEG_SEC 20.0 → 19.0 s）；配音迟到（max 182.62 s）按 App/TTS 排队时延口径处置。
+6) 待用户/reviewer 决定：README 是否加「NPU 档 20 s 长段会触发前缀截断」；「md5 逐字节相同」是否改标注；整段离线转写是否加成交付路径；「RTF≈0.05」对外口径；encoder 静态上限 2400 mel 帧（30 s 上下文得重导出）；新说话人首次登记用哪段音频。
+7) 待 App 侧落地：README --asr-device NPU 示例能否给客户（发客户前必须确认发的是 v1.1.1.zip）。
+8) 丢块计数上报 ASR 侧（§95 单开）：EXT 只在自家 stats() 计 spk_queue_drop；另请明确「旁路 64 项」与 ext/bg_separator.py L242 maxsize=4000 两层丢块语义。
+
+六、纪律
+本轮全部为只读复算既有产物（未跑推理 / 计时 / WER / 分离器）⇒ 不需 MACHINE_LOCK；复核前后各查 shared/MACHINE_LOCK，均不存在 ⇒ 本模块始终未取锁、未干扰 App/reviewer 作业。未改 4 个 ASR 交付文件；未动 live_caption/；未改 EXT 源码（只读）；未改纠偏文件内容；未打包。
+
+七、产物
+- status/asr/STATUS_ASR.md（39 997 B / 157 行，md5 6be9ab7e1ca7fa2cf89fd9477d578c0f，含 §101）
+- status/asr/notes/asr_s101.md（13 872 B，2026-11-24 19:02）
+- status/archive/STATUS_ASR_sec101_upto_20261124.md（7 358 B，§100 全文逐字）
+- status/asr/_asr101_email_body_sent.txt（本邮件正文）
