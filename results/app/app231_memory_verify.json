@@ -1,0 +1,103 @@
+{
+  "checks": [
+    {
+      "check": "当日日志：本轮段存在",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "当日日志：本轮段**在末尾**（append-only）",
+      "pass": true,
+      "detail": "tail rounds=1"
+    },
+    {
+      "check": "当日日志：旧段**逐字未变**（是写前备份的前缀）",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "当日日志：轮次计数 +1",
+      "pass": true,
+      "detail": "3 → 4"
+    },
+    {
+      "check": "MEMORY.md：**≤ 9 700 字符**（自声明上限）",
+      "pass": true,
+      "detail": "9655 字符（余 45）"
+    },
+    {
+      "check": "MEMORY.md：行数 +1",
+      "pass": true,
+      "detail": "68 → 69"
+    },
+    {
+      "check": "MEMORY.md：**纯 LF**（未被改成 CRLF）",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "MEMORY.md：新指针行存在",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "MEMORY.md：指针行**落在「二、机器锁」小节内**",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "MEMORY.md：`last_ack` 已更新为 **APP-133**",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "MEMORY.md：压缩的三行**判据关键词未丢失**",
+      "pass": true,
+      "detail": "lost=[]"
+    },
+    {
+      "check": "MEMORY.md：除新增指针行外**其余行逐字未变**",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "MEMORY.md：除**被压缩的 3 行**外**逐行逐字未变**（且差异行都在 §十二 内）",
+      "pass": true,
+      "detail": "diff lines=[59, 60, 62]（§十二 范围 58..63）"
+    },
+    {
+      "check": "MODULES：新小节在**末尾**",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "MODULES：旧正文**逐字未变**（是写前备份的前缀）",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "MODULES：围栏**仍配对**（计数为偶数）",
+      "pass": true,
+      "detail": "fences=22"
+    },
+    {
+      "check": "CORRECTIONS_APP.md：**SHA 零改动**（与开工时一致）",
+      "pass": true,
+      "detail": "2db65bf13f23a7015160704f"
+    },
+    {
+      "check": "CORRECTIONS_APP.md：字节数一致",
+      "pass": true,
+      "detail": "440181"
+    },
+    {
+      "check": "CORRECTIONS_APP.md：`## APP-xxx` 条数一致",
+      "pass": true,
+      "detail": "130"
+    }
+  ],
+  "n_pass": 19,
+  "n_fail": 0,
+  "memory_chars": 9655,
+  "corr_sha256": "2db65bf13f23a7015160704f66b32dfa6ebea427d06e3d99f73b1b777e9d1eda"
+}

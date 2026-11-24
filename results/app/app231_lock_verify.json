@@ -1,0 +1,136 @@
+{
+  "ts": "2026-11-24 20:19:11",
+  "target": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\_app116_build_v25.py",
+  "checks": [
+    {
+      "check": "并发原子建锁（6 进程同瞬间）：**恰好 1 个**成功（新实现）",
+      "pass": true,
+      "detail": "n_created=1 [{'tag': 'T0', 'created': False, 'content': 'app 8248 1795522717.3121324 race-T0'}, {'tag': 'T1', 'created': False, 'content': 'app 26460 1795522717.312075 race-T1'}, {'tag': 'T2', 'created': True, 'content': 'app 21508 1795522717.306503 race-T2'}, {'tag': 'T3', 'created': False, 'content': 'app 31836 1795522717.3121526 race-T3'}, {'tag': 'T4', 'created': False, 'content': 'app 8892 1795522717.3120482 race-T4'}, {'tag': 'T5', 'created': False, 'content': 'app 9400 1795522717.3063672 race-T5'}]"
+    },
+    {
+      "check": "反证组：旧实现（os.replace 非原子）多个进程都「建锁成功」⇒ 缺陷可复现",
+      "pass": true,
+      "detail": "old n_created=2"
+    },
+    {
+      "check": "判据能识破有缺陷的旧实现（新=1，旧=2）",
+      "pass": true,
+      "detail": "new=1 old=2"
+    },
+    {
+      "check": "端到端并发 acquire_lock：持锁期间**没有**锁被别人改写（无两把锁并存）",
+      "pass": true,
+      "detail": "n_overlap=0 [{'tag': 'A', 'got': True, 'overlapped': False, 'seen': []}, {'tag': 'B', 'got': True, 'overlapped': False, 'seen': []}]"
+    },
+    {
+      "check": "别人先建锁 ⇒ 我方独占创建失败",
+      "pass": true,
+      "detail": "ok=False"
+    },
+    {
+      "check": "别人先建锁 ⇒ 锁内容**未被覆盖**",
+      "pass": true,
+      "detail": "after='app 999999 2026-11-24 00:00:00 other-module'"
+    },
+    {
+      "check": "看门狗：锁被抢 ⇒ 记 lock_lost 事件",
+      "pass": true,
+      "detail": "events=['lock_lost']"
+    },
+    {
+      "check": "看门狗：锁被抢 ⇒ **不覆盖**别人的锁",
+      "pass": true,
+      "detail": "after='app 999999 2026-11-24 00:00:00 other-module'"
+    },
+    {
+      "check": "放锁：内容不是自己的 ⇒ 不删别人的锁",
+      "pass": true,
+      "detail": "after='app 999999 2026-11-24 00:00:00 other-module'"
+    }
+  ],
+  "n_pass": 9,
+  "n_fail": 0,
+  "race_create_new": {
+    "n_created": 1,
+    "children": [
+      {
+        "tag": "T0",
+        "created": false,
+        "content": "app 8248 1795522717.3121324 race-T0"
+      },
+      {
+        "tag": "T1",
+        "created": false,
+        "content": "app 26460 1795522717.312075 race-T1"
+      },
+      {
+        "tag": "T2",
+        "created": true,
+        "content": "app 21508 1795522717.306503 race-T2"
+      },
+      {
+        "tag": "T3",
+        "created": false,
+        "content": "app 31836 1795522717.3121526 race-T3"
+      },
+      {
+        "tag": "T4",
+        "created": false,
+        "content": "app 8892 1795522717.3120482 race-T4"
+      },
+      {
+        "tag": "T5",
+        "created": false,
+        "content": "app 9400 1795522717.3063672 race-T5"
+      }
+    ]
+  },
+  "race_create_old": {
+    "n_created": 2,
+    "children": [
+      {
+        "tag": "T0",
+        "error": "PermissionError(13, '另一个程序正在使用此文件，进程无法访问。')"
+      },
+      {
+        "tag": "T1",
+        "created": true,
+        "content": "app 28776 1795522718.9294858 race-T1"
+      },
+      {
+        "tag": "T2",
+        "error": "FileNotFoundError(2, '系统找不到指定的文件。')"
+      },
+      {
+        "tag": "T3",
+        "created": true,
+        "content": "app 17588 1795522718.9263434 race-T3"
+      },
+      {
+        "tag": "T4",
+        "error": "PermissionError(13, 'Permission denied')"
+      },
+      {
+        "tag": "T5",
+        "error": "PermissionError(13, '另一个程序正在使用此文件，进程无法访问。')"
+      }
+    ]
+  },
+  "race_hold": {
+    "n_overlap": 0,
+    "children": [
+      {
+        "tag": "A",
+        "got": true,
+        "overlapped": false,
+        "seen": []
+      },
+      {
+        "tag": "B",
+        "got": true,
+        "overlapped": false,
+        "seen": []
+      }
+    ]
+  }
+}

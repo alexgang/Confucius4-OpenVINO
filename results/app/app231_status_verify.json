@@ -1,0 +1,84 @@
+{
+  "checks": [
+    {
+      "check": "§231 标题在**文末**（且只出现一次）",
+      "pass": true,
+      "detail": "idx=[111]（写前行数 111）"
+    },
+    {
+      "check": "「最近更新」：新条目**插在块首**、旧条目仍在",
+      "pass": true,
+      "detail": "new@[10] 旧条目 new@[11] old@[10]"
+    },
+    {
+      "check": "头部「更新时间」只有 1 行",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "头部「更新时间」已换成**实测值**（旧值 18:29:37 已消失）",
+      "pass": true,
+      "detail": "new='更新时间: 2026-11-24 20:27:19'"
+    },
+    {
+      "check": "旧正文**逐行逐字节未变**（含行尾；仅 3 处允许变更已扣除）",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "**旧行的行尾一个都没改**",
+      "pass": true,
+      "detail": "old_lf=12 new_lf=12"
+    },
+    {
+      "check": "新增「最近更新」行行尾 == 该区域既有行尾（LF）",
+      "pass": true,
+      "detail": "'\\n'"
+    },
+    {
+      "check": "新增 §231 两行行尾 == 文末既有行尾（LF）",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "`last_ack` **仍是 APP-133**（本轮无新纠偏 ⇒ 值不变）",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "companion 正文文件存在",
+      "pass": true,
+      "detail": "11415 B"
+    },
+    {
+      "check": "限额：≤ 40 000 B",
+      "pass": true,
+      "detail": "38082 B"
+    },
+    {
+      "check": "限额：≤ 300 行",
+      "pass": true,
+      "detail": "114 行"
+    },
+    {
+      "check": "CORRECTIONS_APP.md：**SHA 零改动**",
+      "pass": true,
+      "detail": "2db65bf13f23a7015160704f"
+    },
+    {
+      "check": "CORRECTIONS_APP.md：字节数一致",
+      "pass": true,
+      "detail": "440181"
+    },
+    {
+      "check": "CORRECTIONS_APP.md：`## APP-xxx` 条数一致",
+      "pass": true,
+      "detail": "130"
+    }
+  ],
+  "n_pass": 15,
+  "n_fail": 0,
+  "status_bytes": 38082,
+  "status_lines": 114,
+  "status_sha256": "e0b8413cab6bc570a1f74b2e451d840dcb889e328924710e97fb926c8b495d23"
+}
