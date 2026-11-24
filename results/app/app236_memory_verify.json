@@ -1,0 +1,47 @@
+{
+  "chars": 8771,
+  "checks": [
+    {
+      "name": "字符数 8771 ≤ 9700",
+      "ok": true
+    },
+    {
+      "name": "关键事实 47 条逐字全在",
+      "ok": true
+    },
+    {
+      "name": "§编号 20 个（≥20）",
+      "ok": true
+    },
+    {
+      "name": "章节数 = 14",
+      "ok": true
+    },
+    {
+      "name": "无 U+FFFD",
+      "ok": true
+    },
+    {
+      "name": "无控制字符",
+      "ok": true
+    },
+    {
+      "name": "§236 指针在位",
+      "ok": true
+    }
+  ],
+  "all_ok": true,
+  "counterproof_all_ok": true,
+  "counterproof": [
+    {
+      "name": "R1_key_removed_detected",
+      "expect": "FAIL",
+      "ok": true
+    },
+    {
+      "name": "R2_over_limit_detected",
+      "expect": "FAIL",
+      "ok": true
+    }
+  ]
+}
