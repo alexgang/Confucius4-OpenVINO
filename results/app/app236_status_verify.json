@@ -1,0 +1,89 @@
+{
+  "checks": [
+    {
+      "name": "旧正文除「更新时间」一行外逐字未变（replace 只允许它 + 其余纯 insert）",
+      "ok": true
+    },
+    {
+      "name": "last_ack 唯一且仍 APP-133（n=1）",
+      "ok": true
+    },
+    {
+      "name": "更新时间 = 实测值 2026-11-25 07:38:13",
+      "ok": true
+    },
+    {
+      "name": "§236 只追加在文末（其后无其它 §N 节）",
+      "ok": true
+    },
+    {
+      "name": "最近更新：§236 新条目在 ＋ §235 旧条目仍在（未删）",
+      "ok": true
+    },
+    {
+      "name": "限额内（37730 B／93 行 ≤ 40000 B／300 行）",
+      "ok": true
+    },
+    {
+      "name": "CORRECTIONS_APP.md SHA 零改动（2db65bf13f23…）",
+      "ok": true
+    },
+    {
+      "name": "行尾结构不变：CRLF 57→57（须相等）／LF 33→36（+3 新增行）",
+      "ok": true
+    }
+  ],
+  "edit_detail": {
+    "n_ts_replace": 1,
+    "n_insert": 2
+  },
+  "before_bytes": 34128,
+  "after_bytes": 37730,
+  "all_ok": true,
+  "counterproof_all_ok": true,
+  "counterproof": [
+    {
+      "name": "R1_modified_before_detected",
+      "expect": "FAIL",
+      "ok": true
+    },
+    {
+      "name": "R2_tampered_old_body_detected",
+      "expect": "FAIL",
+      "ok": true
+    },
+    {
+      "name": "R3_tampered_old_section_detected",
+      "expect": "FAIL",
+      "ok": true,
+      "detail": [
+        {
+          "tag": "replace",
+          "before": [
+            "## §235 接续上一会话（**TAKEOVER**）｜**六通道复核 ⇒ 仍无新 App 纠偏**（`last_ack` 仍 **APP-133**）｜🟢 **闭合上一会话遗留**（§234 已写 STATUS，但**未提交/未推送/未发信/未写日志**）｜🟢 **独立复现** §234 的 3 处修法（**11/11 ＋ 17/17 ＋ 16/16 全 PASS**）｜🟢 **修掉 2 处新真缺陷**：① 判据自身缺陷（还原式复核丢掉 `更新时间: ` 前缀 ⇒ **恒 FAIL 假 FAIL**）② 🔴 **生产路径缺陷**（`sync_pkg_identity.py` 会用**影子包**结果**覆盖**交付包的 app170 闸门证据 ⇒ **审计链断**）｜🟢 独立行为级复核 **25/25 PASS**（含**反证组**与**非空洞**检查）｜🟢 **未改任何客户包**（真包 48 792 文件 0 变化）｜🟢 **未打包 zip**／未跑推理·计时（**未取 MACHINE_LOCK**）／未调 MiniMax／未连 B 机｜🟢 **未改 `CORRECTIONS_APP.md`**（收尾四项指纹逐字一致）｜🔴 **如实登记 8 处未修/待裁定项**｜**本条需等 reviewer 复核**"
+          ],
+          "after": [
+            "## §235 接续上一会唔（**TAKEOVER**）｜**六通道复核 ⇒ 仍无新 App 纠偏**（`last_ack` 仍 **APP-133**）｜🟢 **闭合上一会话遗留**（§234 已写 STATUS，但**未提交/未推送/未发信/未写日志**）｜🟢 **独立复现** §234 的 3 处修法（**11/11 ＋ 17/17 ＋ 16/16 全 PASS**）｜🟢 **修掉 2 处新真缺陷**：① 判据自身缺陷（还原式复核丢掉 `更新时间: ` 前缀 ⇒ **恒 FAIL 假 FAIL**）② 🔴 **生产路径缺陷**（`sync_pkg_identity.py` 会用**影子包**结果**覆盖**交付包的 app170 闸门证据 ⇒ **审计链断**）｜🟢 独立行为级复核 **25/25 PASS**（含**反证组**与**非空洞**检查）｜🟢 **未改任何客户包**（真包 48 792 文件 0 变化）｜🟢 **未打包 zip**／未跑推理·计时（**未取 MACHINE_LOCK**）／未调 MiniMax／未连 B 机｜🟢 **未改 `CORRECTIONS_APP.md`**（收尾四项指纹逐字一致）｜🔴 **如实登记 8 处未修/待裁定项**｜**本条需等 reviewer 复核**"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "R4_deleted_old_line_detected",
+      "expect": "FAIL",
+      "ok": true,
+      "detail": [
+        {
+          "tag": "replace",
+          "before": [
+            "> 🔴 **本节正文全文 ⇒ `status/app/STATUS_APP_sec235_detail_20261125.md`**（含 §0 租约 TAKEOVER、§1 六通道逐通道证据、§2 独立复核 §234 的 3 处修法、§3 本轮修掉的 2 处新真缺陷（含根因/修法/25/25 判据表）、§4 交付面只读复核、§5 未修项如实登记、§6 纪律自查、§7 下一轮）"
+          ],
+          "after": [
+            "## §236 待命轮（**六通道复核 ⇒ 仍无新 App 纠偏**，`last_ack` 仍 **APP-133**）｜🔴 **修掉 3 处真缺陷 ＋ 1 处安全缺口**：① **app049 打包闸门从 §233 起一直红着 ⇒ v2.7 打不出来**｜🟢 **闭合 §222 入库完整性缺口**（②5 个生产者脚本 ＋ ③9 个复算底本，**逐字节入库**）｜🔴 **修 app187 闸门的正则截断假 FAIL**｜🔴 **堵住活的 EXT bridge 明文 token 的入库风险**",
+            "> 🔴 **本节正文全文 ⇒ `status/app/STATUS_APP_sec236_detail_20261125.md`**（含 §0 本轮性质与依据、§1 六通道逐通道证据、§2 app049 打包闸门红着的根因与修法、§3 §222②③ 两类缺口的逐条清单与逐字节入库判据（含 clone 端到端）、§4 app187 正则截断、§5 活 token 的入库风险与安全扫描、§6 本轮新学的 5 个判据坑、§7 未修/待裁定项、§8 纪律自查、§9 下一轮）"
+          ]
+        }
+      ]
+    }
+  ]
+}
