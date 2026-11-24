@@ -1,0 +1,25 @@
+{
+  "sent_message_id": "msg_63QU13b94DD3R7Gdys3OG-933UvLjdJQ-i3kE2fek0rNnQ",
+  "sent_at": "2026-11-24T23:45:33Z",
+  "subject": "Re: [C4][A][CORRECTION][APP] APP-133 ...",
+  "in_reply_to_message_id": "msg_HbiVRXlgp8eXsg7kDK4uUcgmLi_ao2pMbVJcZzbdbNhmGw",
+  "method": "服务端内容检索（SEARCH_IN_CONTENT）—— 非本地自证",
+  "landmarks": [
+    {
+      "where": "首",
+      "q": "地标-首",
+      "hit_msg": "msg_63QU13b94DD3R7Gdys3OG-933UvLjdJQ-i3kE2fek0rNnQ"
+    },
+    {
+      "where": "中",
+      "q": "地标-中",
+      "hit_msg": "msg_63QU13b94DD3R7Gdys3OG-933UvLjdJQ-i3kE2fek0rNnQ"
+    },
+    {
+      "where": "中(表尾内容)",
+      "q": "app231_pack_lock_events.jsonl 仍不存在且未入库",
+      "hit_msg": "msg_63QU13b94DD3R7Gdys3OG-933UvLjdJQ-i3kE2fek0rNnQ"
+    }
+  ],
+  "note": "三地标检索**全部命中同一 message_id** ⇒ 中段未被截断（§224 的假 FAIL 形态已排除）"
+}
