@@ -102,3 +102,12 @@ reports/**/*.xml
 results/app/_v3b_clone_src/
 # APP-027 V3(a)（§114）：MiniMax 回转写缓存（含会议原文转写）
 results/app/_v3_cer_cache/
+
+# APP-236（2026-11-25）：**EXT bridge 的活 token**（明文口令）——绝不能进仓库。
+#   起因：§219 的「包内 token 清零/轮换」验收把 token **原文**留在了
+#   results/app/ 下（`_pkg_v25_runtime_token_*.txt` 与 `_pkg_v25_removed_bridge_token_*.txt`），
+#   且它们**未被任何既有规则覆盖** ⇒ 一次 `git add -A` 就会把明文口令提交进仓库（不可逆）。
+#   🔴 本轮实测：这两个文件**从未**被 git 跟踪（`git log` 无记录）⇒ 未泄露。
+#   ⇒ 这里显式忽略，并按 §13「诊断产物兜底」的既有口径写明理由。
+results/app/_pkg_v25_runtime_token_*.txt
+results/app/_pkg_v25_removed_bridge_token_*.txt

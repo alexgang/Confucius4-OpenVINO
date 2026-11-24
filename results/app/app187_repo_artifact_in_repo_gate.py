@@ -214,11 +214,26 @@ def scan_hardcoded_repo(repo_files):
 
 
 #: 从反引号 / Markdown 链接 / 裸路径里提取「仓库内相对路径」
+#:
+#: 🔴 APP-236（2026-11-25）修正：扩展名表里**漏了 `jsonl`**
+#:   ⇒ `results/app/app231_pack_lock_events.jsonl` 被**截断成**
+#:      `results/app/app231_pack_lock_events.json`
+#:   ⇒ 闸门去查一个**从来不存在**的文件名 ⇒ 报出一个**假的** MISSING
+#:      （真 MISSING 是 `.jsonl` 那个；而且 `.jsonl` 是 §222③ 的**复算底本**
+#:        ⇒ 必须在候选提取里被认出来）。
+#:   ⇒ 补 `jsonl`；`csv` 在 `_PATH_RE` 里本来就有，但 `_BARE_RE` 里没有 ⇒ 一并补齐
+#:      （否则「不带反引号的裸路径 csv」会被漏掉）。
+#: 🔴🔴 **扩展名必须按「长在前」排序**（`jsonl` 在 `json` 之前、`yaml` 在 `yml` 之前）：
+#:   正则的**分支按书写顺序**尝试 ⇒ `json` 写在前面时，`xxx.jsonl` 会先匹配到 `json`
+#:   （后面的 `l` 不在模式里，不影响匹配成功）⇒ **又截断了**。
+#:   ⇒ 用 `(?![A-Za-z0-9])` 收尾做「扩展名边界」断言，双保险。
 _PATH_RE = re.compile(
-    r'`([A-Za-z0-9_./\\-]+\.(?:py|json|md|txt|log|patch|sh|bat|yaml|yml|csv))`'
+    r'`([A-Za-z0-9_./\\-]+\.(?:jsonl|yaml|json|csv|yml|md|txt|log|patch|sh|bat|py))`'
 )
 _LINK_RE = re.compile(r'\]\(([^)\s]+?)\)')
-_BARE_RE = re.compile(r'(?<![\w/\\])([A-Za-z0-9_.-]+/[A-Za-z0-9_./\\-]+\.(?:py|json|md|txt|log|patch|sh|bat))')
+_BARE_RE = re.compile(
+    r'(?<![\w/\\])([A-Za-z0-9_.-]+/[A-Za-z0-9_./\\-]+'
+    r'\.(?:jsonl|yaml|json|csv|yml|md|txt|log|patch|sh|bat|py))(?![A-Za-z0-9])')
 
 
 def extract_candidates(text):

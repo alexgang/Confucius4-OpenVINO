@@ -1,0 +1,89 @@
+{
+  "root": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.5",
+  "total_bytes": 26048403469,
+  "total_files": 48789,
+  "at": "2026-11-20 18:03:52",
+  "elapsed_s": 1.0,
+  "parts": {
+    "models": {
+      "bytes": 20090013347,
+      "files": 170
+    },
+    "cuda_env": {
+      "bytes": 5105789206,
+      "files": 34126
+    },
+    "python": {
+      "bytes": 842064347,
+      "files": 14046
+    },
+    "app": {
+      "bytes": 3933803,
+      "files": 78
+    },
+    "ext": {
+      "bytes": 3701492,
+      "files": 207
+    },
+    ".runtime_deps": {
+      "bytes": 2493677,
+      "files": 144
+    },
+    "docs": {
+      "bytes": 214506,
+      "files": 4
+    },
+    "README_en.md": {
+      "bytes": 60959,
+      "files": 1
+    },
+    "README_zh.md": {
+      "bytes": 54857,
+      "files": 1
+    },
+    "tools": {
+      "bytes": 44696,
+      "files": 1
+    },
+    "NOTICE": {
+      "bytes": 10327,
+      "files": 1
+    },
+    "results": {
+      "bytes": 8735,
+      "files": 2
+    },
+    "README_插件.md": {
+      "bytes": 4697,
+      "files": 1
+    },
+    "THIRD_PARTY.md": {
+      "bytes": 3784,
+      "files": 1
+    },
+    "ACCEPTED.json": {
+      "bytes": 3604,
+      "files": 1
+    },
+    "Start_Bridge.bat": {
+      "bytes": 486,
+      "files": 1
+    },
+    "package_profile.json": {
+      "bytes": 418,
+      "files": 1
+    },
+    "Diagnose.bat": {
+      "bytes": 281,
+      "files": 1
+    },
+    "Start_LiveCaption.bat": {
+      "bytes": 225,
+      "files": 1
+    },
+    "release.json": {
+      "bytes": 22,
+      "files": 1
+    }
+  }
+}

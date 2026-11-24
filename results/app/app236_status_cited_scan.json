@@ -1,0 +1,71 @@
+{
+  "docs_scanned": 40,
+  "n_referenced": 339,
+  "not_tracked": 48,
+  "on_disk_gaps": [
+    "live_caption/_app069_patch_tts_worker_dump.py",
+    "results/app/_app133_write_memory.py",
+    "results/app/_app588_zh_run1_cold_runner.log",
+    "results/app/_app591_spsp5_zh_run20261117-140853.log",
+    "results/app/_pkg_v25_removed_bridge_token_20261121.txt",
+    "results/app/_pkg_v25_runtime_token_20261121_0428.txt",
+    "results/app/app116_preset_eval/preset_eval.json",
+    "results/app/app117_global_light_evidence_100.json",
+    "results/app/app117_global_light_evidence_150.json",
+    "results/app/app118_asr_engines_evidence.json",
+    "results/app/app118_assets_to_v25_evidence.json",
+    "results/app/app118_ext_to_v25_evidence.json",
+    "results/app/app118_lang10_evidence.json",
+    "results/app/app118_pkg_size.json",
+    "results/app/app120_accept_v11_chain.json",
+    "results/app/app120_accept_v11_devswitch.json",
+    "results/app/app120_accept_v11_freshdir.json",
+    "results/app/app120_accept_v11_lang10.json",
+    "results/app/app120_accept_v11_lang10_evidence.json",
+    "results/app/app120_accept_v11_selfcheck.json",
+    "results/app/app120_asr_gpu0_vs_asrmodule_baseline.json",
+    "results/app/app120_build_minimvp_v11.json",
+    "results/app/app120_lang10_evidence_harnessbug_venvpython_20261122-1447.json",
+    "results/app/app120_model_identity_v11.json",
+    "results/app/app120_sign_accepted_v11_evidence.json",
+    "results/app/app120_zip_v11.json",
+    "results/app/app129_build_v26.log",
+    "results/app/app280_rc3_gui/gui_rc3.log",
+    "results/app/app591_acceptance_app118_v25_zh_run20261120-162601.json",
+    "results/app/app591_app115_ext_contention_forensics.json",
+    "results/app/pack_v13_app051_repack4.log"
+  ],
+  "not_on_disk": [
+    "results/app/_app591_spsp5_zh_run20261117-140853_tts_out.wav.tts.json",
+    "results/app/app132_lock_events.json",
+    "results/app/app231_pack_lock_events.json",
+    "results/app/app231_pack_lock_events.jsonl",
+    "results/app/app264_app191_on_rc2.json",
+    "results/app/app591_acceptance_app120_v11_default_run.json",
+    "results/mt2_accuracy.json",
+    "results/mt2_accuracy.json/.md",
+    "shared/NOTICE_app_to_asr_app054_spk_recompile.md",
+    "shared/NOTICE_tts_lock_atomic_20261026.md",
+    "shared/app_listen/v23_clone/seg_voice_table_by_seg.csv",
+    "shared/bgkeep/app128_dl/_behav.py",
+    "shared/bgkeep/app128_dl/_regress.py",
+    "shared/bgkeep/e2e9/clone_s2/bridge.log",
+    "shared/bgkeep/gender_ab2/v0420/bridge.log",
+    "shared/bgkeep/gender_ab2/v0421/bridge.log",
+    "status/archive/STATUS_APP_sec133_upto_20261104.md"
+  ],
+  "byte_exact": [],
+  "counterproof_all_ok": true,
+  "counterproof": [
+    {
+      "name": "R1_tracked_not_missing",
+      "expect": "NOT_MISSING",
+      "ok": true
+    },
+    {
+      "name": "R2_nonexistent_not_missing",
+      "expect": "NOT_MISSING",
+      "ok": true
+    }
+  ]
+}

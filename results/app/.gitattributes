@@ -29,3 +29,9 @@
 /_app581_sp1_rerun_tts_out.wav.backlog_curve.csv -text
 /_app582_sp3_tts_out.wav.tts.jsonl -text
 /_app582_sp3_tts_out.wav.backlog_curve.csv -text
+
+# ── §222③ 复算底本（app187 闸门点名的第 1 个缺口）────────────────────
+#   `results/app/app118_pkg_size.json`（1628 B）
+#   —— 被**活文档** STATUS_APP.md 的「交付配置」表引用为 v2.5 包规模的来源，
+#      且 §217 companion 里公布了它的 sha256（87081f0d19c101e5…）⇒ 必须逐字节入库。
+/app118_pkg_size.json -text
