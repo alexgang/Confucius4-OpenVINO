@@ -1,0 +1,34 @@
+{
+  "round": "APP-232",
+  "target": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\.workbuddy\\memory\\MEMORY.md",
+  "cap_chars": 9700,
+  "before": {
+    "chars": 9915,
+    "bytes": 17889,
+    "sha256": "43000d5b1ce7eb4b4a1b76e6f9961e06e3bdac336876c0fd17f6520c61759d96",
+    "backup": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\MEMORY.md.bak_app232"
+  },
+  "after": {
+    "chars": 9652,
+    "bytes": 17464,
+    "sha256": "aecc9452dd3d13f703e68f652d75cec82976686bb532e4cc423da99db90fa845",
+    "margin_chars": 48
+  },
+  "checks": {
+    "after_pass": true,
+    "after_errors": [],
+    "counterproof_old_rejected": true,
+    "counterproof_old_errors": [
+      "压缩前: 超上限 9915 > 9700",
+      "压缩前: 缺关键事实 '发客户发 `v1.1.1.zip`'",
+      "压缩前: 缺关键事实 '全仓 854 个 `i/lf+w/crlf` 须 reviewer 裁定'",
+      "压缩前: 缺关键事实 '无新纠偏 ⇒ `last_ack` 不变'",
+      "压缩前: 缺关键事实 '跨模块共享'",
+      "压缩前: 缺关键事实 '写完必重跑上限断言'"
+    ],
+    "facts_checked": 38,
+    "negations_checked": 9
+  },
+  "diff_lines": 53,
+  "result": "PASS"
+}
