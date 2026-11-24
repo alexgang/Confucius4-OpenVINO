@@ -1,0 +1,35 @@
+[C4][A][STATUS][APP] APP-130 —— NPU 配音杂音根因已按要求修：cp NPU 自检兜底 + 运行时保险；A 机实测自检通过、cp 仍在 NPU；单测 34/34
+
+■ 0. 本条对应 reviewer 纠偏 APP-130（QQ 邮箱 msg_Yyrg-pvMdtPKf1VeqUKgcQuNp_2U35aZPYNyVIE6GqqdQA，2026-11-24 08:58:20 GMT+8；局域网同一条 ⇒ 只执行一次）。last_ack：APP-129 → APP-130。
+
+■ 1. 根因（承接 reviewer 的对照实验，本轮原样实现兜底）
+· cp_prefill / cp_decode 编到 NPU 后，在**这类机型/驱动上输出 NaN** ⇒ talker 每步 15 组码被污染 ⇒ 永远走不到 EOS ⇒ 一句拖到 492 帧 = 39.36 s 乱说；A 机（Panther Lake）NPU 正常 ⇒ 机型/驱动相关，原本无任何兜底。
+
+■ 2. 代码改动（live_caption/tts_engine.py ＋ live_caption/tts_worker.py）
+· ①**自检兜底**：_move_cp_prefill_to_npu / _move_cp_decode_to_npu 在 NPU 编译成功后、**替换 eng.cp_* 之前**自检 —— 固定种子（20261124）造 3 组输入（幅度 0.02 / 0.1 / 1.0；cp_prefill 用 (1,2,1024)，cp_decode 按 CP_DECODE_NPU_SHAPE 造零 KV + 合法 attention_mask），NPU 版与现有 CPU 版各跑一遍 ⇒ 任一输出含 NaN/Inf、或与 CPU 余弦 < 0.99 ⇒ **不替换、保留 CPU** + 日志「NPU 自检失败（原因）⇒ 留在 CPU」，并在 execution_devices() 里如实体现。
+· ②**运行时保险**：_CPNaNGuard 包裹 code predictor ⇒ 输出 NaN/Inf **立刻抛 CPNaNError** ⇒ 本句立刻停 + 记 **tts_runaway** 计数；另加失控阈值保险（阈值 = runaway_threshold_s(estimate_sec(text, lang)) = max(3×估计秒数, 估计秒数+8 s)）。
+· ③**计数唯一权威点**：_mark_runaway(eng, reason) + eng._runaway_counted（每句重置）⇒ worker 侧第三道闸与引擎侧保险**同一句只记一次**。
+
+■ 3. A 机（NPU 正常机型）实测 —— **自检通过、cp 仍在 NPU**（证据 results/app/app129_selfcheck_evidence.json）
+· 取自整链实跑的臂 `bgkeep_off` 的 bridge.err（stderr）——**不是**手填数字。
+· cp_prefill：**NPU 自检通过**，耗时 **0.072 s**（reviewer 要求 1 s 内），逐用例余弦 0.998595 / 0.999310 / 0.999953
+· cp_decode：**NPU 自检通过**，耗时 **0.054 s**（reviewer 要求 1 s 内），逐用例余弦 0.999438 / 0.999718 / 0.999952
+· 落点：EXECUTION_DEVICES talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU(lazy)
+· 落点统计：NPU 上 9 个组件、**CPU 上 0 个组件** ⇒ **cp 未被打回 CPU**。
+· 判据：**11/11 项 PASS**（含反证组：一旦出现「NPU 自检失败 ⇒ 留在 CPU」即判 FAIL）
+
+■ 4. 单测（不需要 NPU）
+· results/app/test_app130_cp_selfcheck.py：**34/34**（覆盖：自检走「保留 CPU」/「替换」两条路；运行时保险在假 NaN 输出下 **1 步内停**；失控阈值保险；🔴 OV 真实返回形态 OVDict 的回归用例）
+
+■ 5. 🔴 如实登记：判据错误（最严重）＋ 事故
+· 判据错误：自检首版把 OV 输出当 dict 处理，而本机 OV 2026.4.1 的 CompiledModel.__call__ 返回 **OVDict**（collections.abc.Mapping，**不是 dict**），np.asarray(OVDict) 得到 **object 数组** ⇒ 余弦恒 0.0000 ⇒ **A 机上自检恒判失败、cp 被误打回 CPU**；同一根因还让**运行时 NaN 守卫形同虚设**。⇒ 修法＝归一化 helper（_ov_out_to_dict）＋ 用 ConstOutput.get_names() 取名（**不能带形状**：CPU 动态维 IR 的键是 names[hidden_states] shape[1,?,1024]，NPU 静态形状的是 shape[1,2,1024]）⇒ 修后 A 机余弦 0.998595 ~ 0.999953。
+· 事故：第一次整链因设备口径用 EXT 的 AUTO 解析（MT=NPU/TTS=CUDA）而重跑（已按 reviewer 明文钉死 GPU.0/GPU.0/NPU）。
+· 事故：本轮自检证据抽取首版有**组号坑**（正则 group(1) 不含 `cp_` 前缀 ⇒ 恒 miss ⇒ 假 FAIL）+ EXECUTION_DEVICES 非贪婪正则只截到第一个逗号 ⇒ 同为假 FAIL，已修。
+· 教训：「FAIL 先怀疑判据/环境」本轮再次被证实 —— 余弦**恰好 0.0000** 是「形状不匹配」的特征，不是「数值无关」的特征。
+
+■ 6. 🔴 留白
+· **B 机复现验证留给 reviewer**：期望自检失败 ⇒ cp 留 CPU ⇒ 句长正常（B 机本轮未连，APP-109 ④）。
+· 音质判定由 reviewer 回转写；本轮未调 MiniMax。
+· 长表已放进附件：STATUS_APP_sec229_detail_20261124.md。
+
+■ 7. 纪律：未通知用户；未连 B 机；未调 MiniMax；未改 status/app/CORRECTIONS_APP.md；未覆盖/未删除任何旧版本目录与 zip。

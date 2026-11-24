@@ -1,0 +1,78 @@
+[C4][A][STATUS][APP] APP-129 v2.6 —— 保留背景音进完整版 v2.6：包内离线 14/14 + 18/18 + 12/12；10 分钟固定片段整链 关/开/克隆 三臂；默认值 4/4；已签 ACCEPTED 并出包
+
+■ 0. 本条对应 reviewer 纠偏 APP-129（QQ 邮箱 msg_q0jVtk6ULegXcLBzg8BFsYXiFbRJc44DScfxqr_CZaxwkQ，2026-11-24 08:58:16 GMT+8；局域网 status/app/CORRECTIONS_APP.md 同一编号 ⇒ 同一编号只执行一次）。last_ack：APP-128 → APP-129。
+
+■ 1. 打包内容（证据 results/app/app129_build_v26_evidence.json）
+· 包目录：C:\Users\Trekker-PTL\Confucius4_LiveCaption_v2.6（自 v2.5 复制）
+· EXT：**按 commit 4740b06（v0.4.20）取内容**（不是工作树）——ext/bridge/*.py 24 个（含 __main__.py）＋ ext/extension/* 19 个；manifest.json version=**0.4.20**、liveDub.release=true；Start_Bridge.bat（CRLF + 纯 ASCII）
+· Demucs 模型：models/bgsep/htdemucs_core.xml 1341298 B / sha256 eb62037b77c34fb8fd3adfb96758952fbd104d414243e47859f1cd0bc2b7b4ef；htdemucs_core.bin 106628066 B / sha256 62ad36576041af56f0829db54a1b5fe62d10de3a1a223a549e05078deef5a336（与源 shared\bgkeep\htdemucs_core.* 逐字节一致）
+· app/tts_engine.py 125450 B / sha256 bbbc166a8351dd52cd36e3826189fa23cba5c087e6b968cc1e4256fa2f9f2962；app/tts_worker.py 292462 B / sha256 8efd010df6b4529b328aaafd3e680aec51e52108b9f501751b4b3a3fc2eb8961（写后逐字节一致）
+· 包内污染扫描（bridge_token.txt / *.log / *.pid / e2e 产物 / clips）：**0 项**；EXT 版本自洽=True
+
+■ 2. §3.1 离线一致性 —— **包内 python / 包内 EXT**（证据 results/app/app129_pkg_tests_evidence.json）
+· tests/test_ext0419_bgkeep.py：**14/14 PASS**（rc=0）
+· tests/ext0419_bg_harness.js：**18/18 PASS**（rc=0，node v22.22.2；player.js 取自**包内** ext/extension/player.js）
+· tests/test_ext0420_clone_gender.py（**APP-131 追加**）：**12/12 PASS**（rc=0）
+· 适配只有 2 处、测试逻辑一行未改：ROOT 改由 EXT_TEST_ROOT 指定（测试文件不进包）；包内 ext 是**包** ext/bridge/ ⇒ sys.modules["ext"] 指向 ext.bridge。
+· 🔴 测试文件**按 commit 4740b06 取**（不是工作树）：工作树的 0420 测试已被 reviewer 加到 v0.4.21 在制品（多一节 `split_by_gender`）⇒ 会 AttributeError 假 FAIL。
+
+■ 3. §3.2 10 分钟固定片段整链（出厂默认 ASR/MT GPU.0、TTS NPU；EXT 默认设备；分离 GPU.0）—— 保留背景音 **开 / 关各一轮，每轮单独起桥接**
+· 媒体：`C:\Users\Trekker-PTL\shared\bgkeep\clips\bili_600s.wav`（**reviewer e2e7 基线那一条** ⇒ dubs/dub_late 可与 reviewer 引用的 off 123 句 / max 2.43 s 直接比）
+· 设备口径按 reviewer 明文钉死（EXT_MT_DEVICE=GPU.0 + EXT_TTS_DEVICE=NPU）：实测 ASR@GPU.0、MT@GPU.0、TTS@NPU
+
+| 指标 | 关 | 开 |
+|---|---|---|
+| 跑到媒体时长 s | 600.000 | （未取到） |
+| dubs 配音条数 | 54 | （未取到） |
+| bg_blocks 背景块 | 0 | （未取到） |
+| bg_late_blocks 迟到块 | 0 | （未取到） |
+| fallback_to_orig_s 退回原声秒 | 600.000 | （未取到） |
+| dub_late max s | 244.740 | （未取到） |
+| dub_late p90 s | 215.110 | （未取到） |
+| dub_late n_late | 52 | （未取到） |
+| bg_state | off | （未取到） |
+| sep_device 分离设备 | （未取到） | （未取到） |
+
+· 桥接进程峰值内存（reviewer 对照值约 +1.9 GB）：关 9426.7 MB ／ 开 （未取到） MB
+
+· 计时类数字（语速 max / synth_rtf / 积压峰值与收尾积压）来自桥接落盘的 **margin.json**（--margin-out）⇒ `per_segment` 逐段自算：
+
+| 计时口径 | 关 | 开 |
+|---|---|---|
+| 语速 max | （未取到） | （未取到） |
+| synth_rtf 中位 | （未取到） | （未取到） |
+| synth_rtf P90 | （未取到） | （未取到） |
+| 积压峰值 s | （未取到） | （未取到） |
+| 收尾积压 s | （未取到） | （未取到） |
+| 排程余量 p50 s | （未取到） | （未取到） |
+| 排程余量 p95 s | （未取到） | （未取到） |
+| 余量为负的段数 | （未取到） | （未取到） |
+
+■ 4. §3.3 默认值检查（证据 results/app/app129_defaults_evidence.json）
+· 判定**执行包内 ext/extension/popup.js 的真实表达式**（不是复述）：`(cfg.bgKeep === undefined || cfg.bgKeep === null) ? true : !!cfg.bgKeep`
+· 全新 Chrome profile 安装：期望 True ／ 实得 True ／ popup 显示「正常（GPU.0）」⇒ **PASS**
+· 从 v0.4.18 升级（v0.4.18 没有 bgKeep 键）：期望 True ／ 实得 True ／ popup 显示「正常（GPU.0）」⇒ **PASS**
+· 手动关后重启浏览器：期望 False ／ 实得 False ／ popup 显示「已关闭（原声压低）」⇒ **PASS**
+· 手动开后重启浏览器（反证组）：期望 True ／ 实得 True ／ popup 显示「正常（GPU.0）」⇒ **PASS**
+· 总结：**ALL PASS**（4/4 项 PASS）
+· 🔴 口径限制：⚠️ 本检查在 node 里**执行包内 popup.js 的真实表达式**（不是复述），但**没有**在真 Chrome 里点开关 ⇒ 覆盖「存储初态 ⇒ 默认值/文案」这一层；浏览器端 UI 交互本身由 reviewer 复核。
+
+■ 5. §3.4 不可用降级 ＋ §3.5 抽听样片（证据 results/app/app129_clips_v26_evidence.json）
+· （本轮未取到 ⇒ 不写「已通过」）
+
+■ 6. §3.6 签 ACCEPTED ＋ 出包
+
+■ 7. 🔴 如实登记（本轮自查抓出的判据/口径问题）
+· ①**上一会话的整链媒体用错了**：用的是 shared/bgkeep/clips/bili_600s.wav（B 站视频，48 kHz 立体声）⇒ dubs 只有 54、dub_late max 244 s ⇒ **与 reviewer 的 e2e7 基线（dubs 123 / max 2.43 s）不可比** ⇒ 本轮改回 **reviewer e2e7 用的那一条** test_audio/clip_10min_0_600.wav（600.0 s / 单声道 / 16 kHz），三臂全部重跑。
+· ②**e2e 工具命中了旧缓存**：文件名固定为 bgkeep_e2e_0419.py ⇒ 复用了上一会话缓存的 3573b2d 版 ⇒ 改名为带 commit 的 bgkeep_e2e_4740b06.py（并每次重新按 commit 取）。
+· ③**自检日志在 stderr（bridge.err）不在 stdout（bridge.log）** ⇒ 首版自检证据抽取漏抓 ⇒ 单独写 results/app/_app129_selfcheck_evidence.py 扫 bridge.err。
+· ④**自检证据抽取的首版有组号坑**：正则 `cp_(prefill|decode)` 的 group(1) 不含 `cp_` 前缀 ⇒ 查表恒 miss ⇒ **假 FAIL**；EXECUTION_DEVICES 的非贪婪正则只截到第一个逗号 ⇒ 同样假 FAIL。两处都已修（判据本身会错 ⇒ 先怀疑判据）。
+· ⑤**顶层目录改名被系统拒绝**（PermissionError 13；嵌套目录改名/删除正常 ⇒ 目录自身 OS 句柄未释放）⇒ 改为直接 robocopy 到正式目录，staging 残留待清理。
+· ⑥**EXT 源码仓工作树是 v0.4.21 在制品**（M ext/bridge.py / ext/clone_voice.py 等，未提交）⇒ 一律**按 commit 取**（4740b06），绝不取工作树（包内已核：clone_voice.py 有 gender_switch、无 split_by_gender）。
+
+■ 8. 🔴 留白（未取到的数字不写「已通过」）
+· **B 机（复现机型）的 APP-130 验证留给 reviewer**：期望自检失败 ⇒ cp 留 CPU ⇒ 句长正常（B 机本轮未连，APP-109 ④）。
+· 音质/音色判定由 reviewer 回转写；本轮未调 MiniMax。
+· 长表已放进附件：STATUS_APP_sec228_detail_20261124.md。
+
+■ 9. 纪律：未通知用户（等 reviewer 复核后再通知）；未连 B 机；未调 MiniMax；未改 status/app/CORRECTIONS_APP.md；未覆盖/未删除任何旧版本目录与 zip；只进完整版 v2.6（MiniMVP / SpecialMVP 不带）。

@@ -1,0 +1,106 @@
+{
+  "ts": "2026-11-24 12:36:24",
+  "arm_root": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\e2e_v26",
+  "arms": {
+    "bgkeep_off": {
+      "err_file": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\e2e_v26\\bgkeep_off\\bridge.err",
+      "err_bytes": 4253,
+      "err_sha256": "57cff74ecf966af272b044ad2ef1470e1956a3a16efb5b6f0d6ff4ef08e82e3a",
+      "selfcheck_pass": {
+        "cp_decode": {
+          "ok": true,
+          "elapsed_s": 0.054,
+          "cosines": [
+            0.999438,
+            0.999718,
+            0.999952
+          ],
+          "raw_case_str": "(0.02, 0.999438), (0.1, 0.999718), (1.0, 0.999952)",
+          "line": "cp_decode: NPU 自检通过（耗时 0.054 s，用例 [(0.02, 0.999438), (0.1, 0.999718), (1.0, 0.999952)]）"
+        },
+        "cp_prefill": {
+          "ok": true,
+          "elapsed_s": 0.072,
+          "cosines": [
+            0.998595,
+            0.99931,
+            0.999953
+          ],
+          "raw_case_str": "(0.02, 0.998595), (0.1, 0.99931), (1.0, 0.999953)",
+          "line": "cp_prefill: NPU 自检通过（耗时 0.072 s，用例 [(0.02, 0.998595), (0.1, 0.99931), (1.0, 0.999953)]）"
+        }
+      },
+      "selfcheck_fail": {},
+      "execution_devices": "talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU(lazy)",
+      "landing": {
+        "npu_n": 9,
+        "npu_list": "['cp_decode', 'cp_prefill', 'decoder_bucket@38', 'speaker_enc', 'talker_bucket@128', 'talker_bucket@256', 'talker_bucket@384', 'talker_bucket@512', 'talker_bucket@64']",
+        "cpu_n": 0,
+        "cpu_list": "[]"
+      },
+      "checks": [
+        {
+          "name": "cp_prefill 自检有「通过」记录",
+          "ok": true,
+          "detail": "cp_prefill: NPU 自检通过（耗时 0.072 s，用例 [(0.02, 0.998595), (0.1, 0.99931), (1.0, 0.999953)]）"
+        },
+        {
+          "name": "cp_prefill 自检耗时 < 1.0 s",
+          "ok": true,
+          "detail": "0.072 s"
+        },
+        {
+          "name": "cp_prefill 逐用例余弦全 ≥ 0.99",
+          "ok": true,
+          "detail": "[0.998595, 0.99931, 0.999953]"
+        },
+        {
+          "name": "cp_prefill 无「自检失败」记录（反证组）",
+          "ok": true,
+          "detail": "无"
+        },
+        {
+          "name": "cp_decode 自检有「通过」记录",
+          "ok": true,
+          "detail": "cp_decode: NPU 自检通过（耗时 0.054 s，用例 [(0.02, 0.999438), (0.1, 0.999718), (1.0, 0.999952)]）"
+        },
+        {
+          "name": "cp_decode 自检耗时 < 1.0 s",
+          "ok": true,
+          "detail": "0.054 s"
+        },
+        {
+          "name": "cp_decode 逐用例余弦全 ≥ 0.99",
+          "ok": true,
+          "detail": "[0.999438, 0.999718, 0.999952]"
+        },
+        {
+          "name": "cp_decode 无「自检失败」记录（反证组）",
+          "ok": true,
+          "detail": "无"
+        },
+        {
+          "name": "cp_prefill 落点仍是 NPU",
+          "ok": true,
+          "detail": "talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU(lazy)"
+        },
+        {
+          "name": "cp_decode 落点仍是 NPU",
+          "ok": true,
+          "detail": "talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU(lazy)"
+        },
+        {
+          "name": "落点统计 CPU 上组件数 == 0",
+          "ok": true,
+          "detail": "NPU 9 个 / CPU 0 个"
+        }
+      ],
+      "all_pass": true
+    }
+  },
+  "criteria": {
+    "cos_min": 0.99,
+    "max_elapsed_s": 1.0
+  },
+  "any_arm_pass": true
+}

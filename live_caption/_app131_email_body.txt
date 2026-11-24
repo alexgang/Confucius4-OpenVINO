@@ -1,0 +1,19 @@
+[C4][A][STATUS][APP] APP-131 —— v2.6 的 EXT 已由 v0.4.19(3573b2d) 改为 **v0.4.20(4740b06)**；新增 test_ext0420_clone_gender.py 12/12；已加一臂 voice=clone
+
+■ 0. 本条对应 reviewer 纠偏 APP-131（QQ 邮箱 msg_ikwZH3hFJQ84g3LmdIwtlowZhpr-vcalHHNyyG-DtX1QAA，2026-11-24 10:47:12 GMT+8；局域网 status/app/CORRECTIONS_APP.md 同一编号 mtime 10:47:15 ⇒ 同一编号只执行一次）。last_ack：APP-130 → APP-131。
+
+■ 1. 按 APP-131 改的内容
+· ①**EXT：3573b2d → 4740b06（v0.4.20）**：包内 ext/bridge/version.py 的 EXT_VERSION = "0.4.20"、ext/extension/manifest.json 的 version = "0.4.20"；包内逐文件取自 **commit 4740b06**（不是工作树）⇒ 包内 clone_voice.py 有 `gender_switch` / `_nearest_voice`，**没有**工作树里的 v0.4.21 在制品 `split_by_gender`。
+· ②**验收第 1 项加了** `python tests/test_ext0420_clone_gender.py` ⇒ **12/12 PASS**（包内 python / 包内 EXT）。
+· ③**第 2 项加了一臂 voice=clone（保留背景音开）** ⇒ 见下表。
+· ④其余（默认分离 GPU.0、只进完整版、同版带 APP-123、OGG 抽听附件、长表拆封防截断）照 APP-129 执行。
+
+■ 2. voice=clone 臂（保留背景音开）—— 证据 results/app/app129_chain_v26_evidence.json
+· （本轮未取到 ⇒ 不写「已通过」）
+
+■ 3. 🔴 如实登记
+· reviewer 说「`stats_full` 里克隆相关计数」——实测 **EXT v0.4.20 并不把这三个计数放进 stats_full**（它们在 ext/clone_voice.py 的 `_reasons` 里，只经桥接日志行 `[spk] 标签来源统计：{…}` 暴露）⇒ 本封**如实注明来源是桥接日志解析**，不谎称来自 stats_full。若 reviewer 要求进 stats_full ⇒ 需要 EXT 侧加一个导出字段（**属 EXT 模块改动，本轮未做**）。
+· 克隆音色质量（性别错配率）按 reviewer 的口径应由其回转写判定；本轮只报计数，不自评音质。
+· 本机 `tts_speakers` 目录**0 个已登记音色** ⇒ clone 臂主要走「按本句自克隆 / 最近音色」路径，性别守门的「同性别已登记音色」分支在 A 机上样本有限。
+
+■ 4. 纪律：未通知用户；未连 B 机；未调 MiniMax；未改 status/app/CORRECTIONS_APP.md；未覆盖/未删除任何旧版本目录与 zip。

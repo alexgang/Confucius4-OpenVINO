@@ -1,15 +1,15 @@
 {
-  "ts": "2026-11-24 10:28:58",
+  "ts": "2026-11-24 12:28:27",
   "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6",
-  "ext_version": "0.4.19",
-  "ext_commit": "3573b2d",
+  "ext_version": "0.4.20",
+  "ext_commit": "4740b06",
   "files": [
     {
       "rel": "app/tts_engine.py",
-      "bytes": 122549,
-      "sha256": "3e0696a0d6b0c0fc3f741c8b96466c8c62a25170bb87bb730e3e8b21fae682df",
+      "bytes": 125450,
+      "sha256": "bbbc166a8351dd52cd36e3826189fa23cba5c087e6b968cc1e4256fa2f9f2962",
       "identical": true,
-      "src_sha256": "3e0696a0d6b0c0fc3f741c8b96466c8c62a25170bb87bb730e3e8b21fae682df",
+      "src_sha256": "bbbc166a8351dd52cd36e3826189fa23cba5c087e6b968cc1e4256fa2f9f2962",
       "ast": "OK"
     },
     {
@@ -23,15 +23,15 @@
     {
       "rel": "ext/bridge/bridge.py",
       "exists": true,
-      "bytes": 288353,
-      "sha256": "921ff68156bf29909a2f9d6e8bddbf8873d89b0c622769d251ea2ccb2cbaa7c2",
+      "bytes": 289084,
+      "sha256": "b7c8c8ea65133a1622fd42395c34a8f4c59a02658e05c2d1cc4cd64552ceecf3",
       "ast": "OK"
     },
     {
       "rel": "ext/bridge/version.py",
       "exists": true,
       "bytes": 333,
-      "sha256": "c768ffddda0b29e24c37f6987440d3672bfa8176aefc493a95567340eaafb6b3",
+      "sha256": "af8aa0f1a8c2261a4b92a35f392b52301664b4384a13ac2d782429a044df2705",
       "ast": "OK"
     },
     {
@@ -45,7 +45,7 @@
       "rel": "ext/extension/manifest.json",
       "exists": true,
       "bytes": 2552,
-      "sha256": "0be7385a29b196dd0e0b2f61eed68408e2d85acd90f0ced8ddff55e7466a2756",
+      "sha256": "a0a251b2f755fac65bf47f11333532eb1919bf4924cad0e0da20d15f9de1fa5a",
       "json": "OK"
     },
     {
@@ -59,7 +59,7 @@
       "rel": "Start_Bridge.bat",
       "exists": true,
       "bytes": 486,
-      "sha256": "aedeac45c84dde0ad0c05f792026b05b3288e329e1ee7126f02ed58035b4e9d2"
+      "sha256": "669cfddc30af03e928532ede2efff396713889d567d04f3f1306a6f329d40d34"
     }
   ],
   "errors": [],

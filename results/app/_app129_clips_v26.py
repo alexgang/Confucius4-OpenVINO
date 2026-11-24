@@ -56,6 +56,8 @@ BGSEP_OFF = os.path.join(PKG, 'models', 'bgsep_disabled_probe')
 CLIP_ORDER = ['s2', 'cs2', 'tuffy', 's1']
 MAX_CLIPS = 3
 MAX_OGG_BYTES = 1024 * 1024
+#: 🔴 桥接端口（reviewer 并发作业占用 8765 ⇒ 本轮用 8775，避免互杀）
+PORT = 8775
 
 
 def log(msg):
@@ -71,11 +73,10 @@ def log(msg):
 
 
 def e2e_tool():
-    out = os.path.join(os.environ.get('TEMP', HOME), 'bgkeep_e2e_0419.py')
-    if os.path.isfile(out):
-        return out
+    """按 **commit 4740b06** 取 e2e 工具（🔴 不取工作树——工作树是 v0.4.21 在制品）。"""
+    out = os.path.join(os.environ.get('TEMP', HOME), 'bgkeep_e2e_0420.py')
     p = subprocess.run(['git', '-C', EXT_REPO, 'show',
-                        '3573b2d:tools/bgkeep_e2e.py'], capture_output=True)
+                        '4740b06:tools/bgkeep_e2e.py'], capture_output=True)
     if p.returncode != 0:
         return None
     with open(out, 'wb') as f:
@@ -121,9 +122,11 @@ def make_ext_shim():
 def start_bridge(cwd, logname='bridge.log'):
     os.makedirs(cwd, exist_ok=True)
     env = bridge_env()
+    # 🔴 `--token-file` 显式指到**包外**（臂目录）⇒ 包内不留 bridge_token.txt
     args = [PKG_PY, '-X', 'utf8', '-m', 'ext.bridge', '--real', '--pipeline',
-            '--port', '8765', '--delay', '20', '--target-lang', 'zh',
-            '--spk-bypass']
+            '--port', str(PORT), '--delay', '20', '--target-lang', 'zh',
+            '--spk-bypass',
+            '--token-file', os.path.join(cwd, 'bridge_token.txt')]
     p = subprocess.Popen(args, cwd=cwd, env=env,
                          stdout=open(os.path.join(cwd, logname), 'wb'),
                          stderr=open(os.path.join(cwd, 'bridge.err'), 'wb'))
@@ -134,7 +137,7 @@ def start_bridge(cwd, logname='bridge.log'):
         try:
             txt = open(os.path.join(cwd, logname), encoding='utf-8',
                        errors='replace').read()
-            if 'ws://127.0.0.1:8765' in txt:
+            if ('ws://127.0.0.1:%d' % PORT) in txt:
                 return p, True, round(time.time() - t0, 1)
         except Exception:
             pass
@@ -164,7 +167,8 @@ def hello_probe(cwd):
         'import websockets\n'
         'async def main():\n'
         '    tok = open(sys.argv[1], encoding="utf-8").read().strip()\n'
-        '    async with websockets.connect("ws://127.0.0.1:8765") as ws:\n'
+        '    async with websockets.connect("ws://127.0.0.1:%d") as ws:\n'
+        % PORT +
         '        await ws.send(json.dumps({"type": "hello", "role": "uplink",\n'
         '            "bg_keep": True, "bg_sample_rate": 48000, "bg_channels": 2,\n'
         '            "target_lang": "zh", "voice": "A", "token": tok}))\n'
@@ -302,7 +306,7 @@ def make_clip(name):
         return rec
     tool = e2e_tool()
     env = bridge_env()
-    cmd = [PKG_PY, '-X', 'utf8', tool, '--media', wav, '--port', '8765',
+    cmd = [PKG_PY, '-X', 'utf8', tool, '--media', wav, '--port', str(PORT),
            '--delay', '20', '--target-lang', 'zh', '--voice', 'A',
            '--token-file', os.path.join(cwd, 'bridge_token.txt'),
            '--out', cwd, '--tail-wait', '40']

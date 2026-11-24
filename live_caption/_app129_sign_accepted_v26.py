@@ -36,6 +36,11 @@ EXPECT_MODEL = {
     'models/bgsep/htdemucs_core.xml': 1341298,
     'models/bgsep/htdemucs_core.bin': 106628066,
 }
+
+#: 🔴🔴 **APP-131**：EXT 由 **3573b2d（v0.4.19）改为 4740b06（v0.4.20）**
+#:   （reviewer：「APP-129 第 2 节的「EXT：3573b2d」改为「4740b06」」）
+EXT_COMMIT = '4740b06'
+EXT_VERSION = '0.4.20'
 SRC_BG = os.path.join(HOME, 'shared', 'bgkeep')
 
 
@@ -133,15 +138,16 @@ def main():
             'scope = app/ production modules'),
         'n_production_modules': len(mods),
         'code_fingerprints': per,
-        'ext': {'version': ext_ver, 'commit': '3573b2d',
+        'ext': {'version': ext_ver, 'commit': EXT_COMMIT,
                 'layout': 'ext/bridge/*.py（包内是**包**，模块 = '
                           'ext/bridge/bridge.py）',
                 'plugin': 'ext/extension/*'},
         'model_manifest': model_manifest,
         'delivery_scope': (
             'v2.6（完整版全集，MiniMVP / SpecialMVP 不带）：'
-            '(1) EXT v0.4.19（3573b2d）——「保留背景音」默认**开**、'
-            '默认分离设备 **GPU.0(FP32)**（可用 EXT_BG_DEVICE=CPU 改）；'
+            '(1) EXT **v0.4.20（4740b06）**——「保留背景音」默认**开**、'
+            '默认分离设备 **GPU.0(FP32)**（可用 EXT_BG_DEVICE=CPU 改）、'
+            '克隆音色跟随男女切换（v0.4.20，APP-131）；'
             '(2) Demucs 分离模型随包（models/bgsep/，身份见 model_manifest）；'
             '(3) APP-123 c13 小窗 + 直接拼接（38 帧窗口 / 25 帧左上下文 / '
             'crossfade=0）；'
@@ -180,7 +186,7 @@ def main():
         ('聚合指纹一致', back.get('code_fingerprint') == agg2),
         ('模型清单齐全且逐条 OK',
          bool(model_manifest) and all(v.get('ok') for v in model_manifest.values())),
-        ('EXT 版本 = 0.4.19', ext_ver == '0.4.19'),
+        ('EXT 版本 = %s（APP-131）' % EXT_VERSION, ext_ver == EXT_VERSION),
     ]
     print('=== v%s ACCEPTED.json 签名 ===' % args.version)
     print('  生产模块 %d 个；聚合指纹 %s' % (len(mods), agg2))

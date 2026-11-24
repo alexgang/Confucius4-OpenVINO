@@ -1,0 +1,62 @@
+{
+  "ts": "2026-11-24 12:35:02",
+  "pkg": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.6",
+  "popup_js": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.6\\ext\\extension\\popup.js",
+  "popup_js_bytes": 32511,
+  "popup_js_sha256": "a764af38655a1f8af75f65687fbd5e3eebd81c82c4e7f3f3988fada8ec42ae87",
+  "node_version": "v22.22.2",
+  "expr_keep": "(cfg.bgKeep === undefined || cfg.bgKeep === null) ? true : !!cfg.bgKeep",
+  "expr_display": {
+    "off": "'已关闭（原声压低）'",
+    "on": "'正常' + (b.device ? '（' + b.device + '）' : '')",
+    "other": "'已关闭（原声压低）'"
+  },
+  "scenarios": [
+    {
+      "scenario": "fresh_install",
+      "desc": "全新 Chrome profile 安装",
+      "storage_init": {},
+      "expected_bgKeep": true,
+      "got_bgKeep": true,
+      "popup_display": "正常（GPU.0）",
+      "ok": true,
+      "rc": 0
+    },
+    {
+      "scenario": "upgrade_from_v0418",
+      "desc": "从 v0.4.18 升级（v0.4.18 没有 bgKeep 键）",
+      "storage_init": {},
+      "expected_bgKeep": true,
+      "got_bgKeep": true,
+      "popup_display": "正常（GPU.0）",
+      "ok": true,
+      "rc": 0
+    },
+    {
+      "scenario": "manual_off_restart",
+      "desc": "手动关后重启浏览器",
+      "storage_init": {
+        "bgKeep": false
+      },
+      "expected_bgKeep": false,
+      "got_bgKeep": false,
+      "popup_display": "已关闭（原声压低）",
+      "ok": true,
+      "rc": 0
+    },
+    {
+      "scenario": "manual_on_restart",
+      "desc": "手动开后重启浏览器（反证组）",
+      "storage_init": {
+        "bgKeep": true
+      },
+      "expected_bgKeep": true,
+      "got_bgKeep": true,
+      "popup_display": "正常（GPU.0）",
+      "ok": true,
+      "rc": 0
+    }
+  ],
+  "all_ok": true,
+  "limitation": "⚠️ 本检查在 node 里**执行包内 popup.js 的真实表达式**（不是复述），但**没有**在真 Chrome 里点开关 ⇒ 覆盖「存储初态 ⇒ 默认值/文案」这一层；浏览器端 UI 交互本身由 reviewer 复核。"
+}

@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""APP-129 §3.1：**在包内 python / 包内 EXT 上**跑离线一致性测试。
+"""APP-129 §3.1 + APP-131：**在包内 python / 包内 EXT 上**跑离线一致性测试。
 
 - `tests/test_ext0419_bgkeep.py`（reviewer 口径：**14/14**）
 - `tests/ext0419_bg_harness.js`（reviewer 口径：**18/18**）
+- `tests/test_ext0420_clone_gender.py`（**APP-131** 追加，reviewer 口径：**12/12**）
 
 ## 为什么 python 侧要做两处**最小适配**（其余逐字不动）
 
@@ -42,6 +43,28 @@ HOME = r'C:\Users\Trekker-PTL'
 REPO = os.path.join(HOME, 'confucius4-openvino')
 SRC_EXT = os.path.join(HOME, 'live_dub_ext')
 RESULTS = os.path.join(REPO, 'results', 'app')
+
+#: 🔴🔴 **测试文件也必须按 commit 取**（不是工作树）——与
+#:   `_app129_build_v26.py` 的成包口径**同一条纪律**：
+#:   2026-11-24 12:3x 实测：`live_dub_ext` 工作树的
+#:   `tests/test_ext0420_clone_gender.py` 已被 reviewer 加到 **v0.4.21 在制品**
+#:   （多出「4. split at gender changes」一节 ⇒ 用到 `CV.split_by_gender`
+#:   ⇒ 而本包按 APP-131 装的是 **4740b06（v0.4.20）** ⇒ 该属性不存在
+#:   ⇒ **AttributeError ⇒ rc=1**（假 FAIL：不是包缺陷，是测试取错了版本）。
+#:   ⇒ 一律 `git show <commit>:<path>` 取**被测的那个版本**的测试。
+EXT_COMMIT = '4740b06'
+
+
+def git_show(relpath):
+    """按 EXT_COMMIT 取文件内容（不是工作树）。"""
+    p = subprocess.run(['git', '-C', SRC_EXT, 'show',
+                        '%s:%s' % (EXT_COMMIT, relpath)],
+                       capture_output=True)
+    if p.returncode != 0:
+        raise RuntimeError('git show %s:%s 失败：%s'
+                           % (EXT_COMMIT, relpath,
+                              (p.stderr or b'').decode('utf-8', 'replace')[-300:]))
+    return p.stdout.decode('utf-8')
 
 
 def log(msg):
@@ -118,8 +141,8 @@ def main():
     tmp = tempfile.mkdtemp(prefix='app129_pkg_tests_')
     try:
         # ── ① python 侧 ────────────────────────────────────────────
-        src_py = os.path.join(SRC_EXT, 'tests', 'test_ext0419_bgkeep.py')
-        text = open(src_py, encoding='utf-8').read()
+        src_py = 'tests/test_ext0419_bgkeep.py'
+        text = git_show(src_py)
         adapted, notes = adapt_py_test(text)
         tmp_py = os.path.join(tmp, 'test_ext0419_bgkeep.py')
         with open(tmp_py, 'w', encoding='utf-8', newline='\n') as f:
@@ -150,7 +173,10 @@ def main():
         }
 
         # ── ② node 侧 ──────────────────────────────────────────────
-        harness = os.path.join(SRC_EXT, 'tests', 'ext0419_bg_harness.js')
+        harness_rel = 'tests/ext0419_bg_harness.js'
+        harness = os.path.join(tmp, 'ext0419_bg_harness.js')
+        with open(harness, 'w', encoding='utf-8', newline='\n') as f:
+            f.write(git_show(harness_rel))
         player = os.path.join(pkg, 'ext', 'extension', 'player.js')
         log('② node 侧：harness=%s  player=%s' % (harness, player))
         try:
@@ -186,6 +212,52 @@ def main():
             'ok': (tot_fail == 0 and tot_pass > 0 and p2.returncode == 0),
             'log': 'results/app/app129_pkg_test_node.log',
         }
+
+        # ── ③ python 侧（APP-131 追加）：clone 音色性别守门 ─────────
+        #   reviewer APP-131 明文：「验收第 1 项再加
+        #   `python tests/test_ext0420_clone_gender.py`（应 **12/12**）」
+        src_py2 = 'tests/test_ext0420_clone_gender.py'
+        log('③ APP-131 侧：%s@%s' % (src_py2, EXT_COMMIT))
+        try:
+            text2 = git_show(src_py2)
+            adapted2, notes2 = adapt_py_test(text2)
+            tmp_py2 = os.path.join(tmp, 'test_ext0420_clone_gender.py')
+            with open(tmp_py2, 'w', encoding='utf-8', newline='\n') as f:
+                f.write(adapted2)
+            log('   适配 %d 处：%s' % (len(notes2), '；'.join(notes2)))
+            log('   测试源码 check() 条数：%d' % count_checks(text2))
+            p3 = subprocess.run([pkg_py, tmp_py2], capture_output=True, text=True,
+                                timeout=600, cwd=tmp, env=env)
+            out3 = (p3.stdout or '') + (p3.stderr or '')
+            with open(os.path.join(RESULTS, 'app129_pkg_test_py2.log'), 'w',
+                      encoding='utf-8') as f:
+                f.write(out3)
+            n_pass3 = out3.count('[PASS]')
+            n_fail3 = out3.count('[FAIL]')
+            log('③ python 侧（0420）：PASS=%d FAIL=%d rc=%d'
+                % (n_pass3, n_fail3, p3.returncode))
+            print(out3[-4000:])
+            # 🔴 0420 的 `check()` 有 **5 处在 for 循环里** ⇒ 源码 call site 8 个
+            #   ⇒ 运行时实际 **12** 个断言（reviewer 口径 12/12）
+            #   ⇒ 分母取**运行时 PASS+FAIL**，不取源码 call site 数。
+            den3 = n_pass3 + n_fail3
+            rep['results']['python_clone_gender'] = {
+                'src': src_py2, 'adaptations': notes2,
+                'n_check_call_sites_in_src': count_checks(text2),
+                'n_check_runtime': den3,
+                'n_pass': n_pass3, 'n_fail': n_fail3, 'rc': p3.returncode,
+                'ok': (n_fail3 == 0 and n_pass3 > 0 and p3.returncode == 0
+                       and den3 == 12),
+                'required_by': 'APP-131',
+                'expected': '12/12',
+                'log': 'results/app/app129_pkg_test_py2.log',
+            }
+        except Exception as e:
+            log('③ APP-131 侧失败：%r' % (e,))
+            rep['results']['python_clone_gender'] = {
+                'src': src_py2, 'ok': False, 'error': repr(e),
+                'required_by': 'APP-131',
+            }
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

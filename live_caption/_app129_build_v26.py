@@ -58,8 +58,12 @@ RESULTS = os.path.join(REPO, 'results', 'app')
 LOG = os.path.join(RESULTS, 'app129_build_v26.log')
 EVID = os.path.join(RESULTS, 'app129_build_v26_evidence.json')
 
-EXT_VERSION = '0.4.19'
-EXT_COMMIT = '3573b2d'
+#: 🔴🔴 APP-131（reviewer 2026-11-24 10:47 邮件）**改写 APP-129 §2**：
+#:   「EXT：live_dub_ext **3573b2d**」⇒ 改为「**4740b06**」（EXT v0.4.20，
+#:   克隆音色跟随男女切换）。
+#:   ⇒ 本包（v2.6）**只出这一版**（v0.4.19 的中间产物不再交付）。
+EXT_VERSION = '0.4.20'
+EXT_COMMIT = '4740b06'
 
 #: dev 树 → 包内 `app/` 的**整文件**同步清单（v2.6 是新版本 ⇒ 直接落当前 dev 版本）
 APP_FILES = [
@@ -124,6 +128,9 @@ def copy_tree(src_dir, dst_dir, exts, skip_names=()):
 #   （`M ext/bridge.py` / `M ext/version.py` / `M extension/manifest.json` …）
 #   ⇒ 而 APP-129 明文要求「EXT：live_dub_ext **3573b2d**（v0.4.19）」
 #   ⇒ **必须按 commit 取内容**，否则会把 reviewer 的在制品打进客户包。
+# 2026-11-24 12:3x 更新（APP-131）：要求改为 **4740b06（v0.4.20）**；
+#   工作树此后又出现 **v0.4.21 在制品**（`split_by_gender` 等，未提交）
+#   ⇒ **仍然只按 commit 取**（4740b06），**绝不取工作树**。
 def git_show(commit: str, relpath: str):
     p = subprocess.run(['git', '-C', SRC_EXT, 'show', '%s:%s' % (commit, relpath)],
                        capture_output=True)
