@@ -1,0 +1,33 @@
+{
+ "script": "app170_version_identity_gate.py",
+ "pkg": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app234_id_klh3m45v\\Confucius4_LiveCaption_v2.10",
+ "pkg_version": "2.10",
+ "target_version": "2.10",
+ "pass": 20,
+ "fail": 0,
+ "verdict": "PASS",
+ "advisories": [
+  {
+   "name": "D5 README_en 有 v2.10 段（恰好 1 次）",
+   "detail": "count=0"
+  }
+ ],
+ "fails": [],
+ "files": {
+  "README_zh.md": {
+   "bytes": 60006,
+   "sha256": "43b26eb10a2d021e93f546b3d7c1930a0e45f4e7a4088561006bf1dfd8696d47",
+   "mtime": 1795556817.1795692
+  },
+  "README_en.md": {
+   "bytes": 64783,
+   "sha256": "5cd09e0de960e06fceaa494019952820d0801559d2c28234cb051297dd7dc553",
+   "mtime": 1795556817.1795692
+  },
+  "NOTICE": {
+   "bytes": 10328,
+   "sha256": "03cc7e9da776e064944b7198d8db2d4498b2819b11398784f2ef94ac40d86560",
+   "mtime": 1795556817.1795692
+  }
+ }
+}

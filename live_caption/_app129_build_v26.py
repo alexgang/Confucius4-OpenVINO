@@ -226,6 +226,39 @@ def stage_copy():
     return True
 
 
+def stage_identity():
+    """🔴 版本标识一致（**生产路径**）：README / NOTICE / MANIFEST。
+
+    ## 为什么必须有这一步（APP-234 轮实测的真缺陷）
+    `stage=sync` 只写 `app/*.py` 与 `ext/**` ⇒ **从不碰**
+    `README_zh.md` / `README_en.md` / `NOTICE` / `app/MANIFEST.json`；
+    而唯一会调 `sync_c172` 的是 `pack_v13.py` 的 `main()` ⇒
+    **完整版线（v2.x）从来不出 zip**（用户规则「不通知 ⇒ 不打包」）
+    ⇒ `stage=pack` **不执行** ⇒ 版本标识**永不自动同步**。
+
+    **实测证据**：`results/app/app129_build_v26.log` 全文只有
+    `stage=copy`（×2）与 `stage=sync`（×5），**没有一行 `stage=pack`**；
+    v2.6 的 `README_zh.md` mtime = 2026-11-24 13:14:55
+    ⇒ 版本标识是**人工带外**做的。
+
+    ⇒ 本 stage 把「sync_c172 + app170 闸门 + 硬断言」接进成包流程
+    ⇒ 下一版**不需要**再人工带外做这一步。
+    """
+    tool = os.path.join(HERE, 'sync_pkg_identity.py')
+    if not os.path.isfile(tool):
+        log('🔴 找不到 sync_pkg_identity.py ⇒ 版本标识同步失败')
+        return False
+    cmd = [sys.executable, tool, '--pkg', DST]
+    log('① 版本标识同步 + app170 闸门 + 硬断言')
+    p = subprocess.run(cmd, capture_output=True, text=True,
+                       timeout=1800)
+    log(p.stdout[-6000:])
+    if p.stderr.strip():
+        log('stderr: %s' % p.stderr[-2000:])
+    log('版本标识同步 rc=%d' % p.returncode)
+    return p.returncode == 0
+
+
 def stage_cleanup():
     """清理 staging 残留（**尽力而为**；本机删除 shim 可能拦 ⇒ 失败只记录）。"""
     if not os.path.exists(STAGING):
@@ -455,7 +488,7 @@ def stage_pack():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--stage', default='all',
-                    choices=['copy', 'sync', 'pack', 'cleanup', 'all'])
+                    choices=['copy', 'sync', 'identity', 'pack', 'cleanup', 'all'])
     args = ap.parse_args()
     log('=== APP-129 构建 v2.6 · stage=%s ===' % args.stage)
     if args.stage in ('copy', 'all'):
@@ -464,6 +497,9 @@ def main():
     if args.stage in ('sync', 'all'):
         if not stage_sync():
             return 3
+    if args.stage in ('identity', 'all'):
+        if not stage_identity():
+            return 6
     if args.stage == 'cleanup':
         return 0 if stage_cleanup() else 5
     if args.stage in ('pack', 'all'):

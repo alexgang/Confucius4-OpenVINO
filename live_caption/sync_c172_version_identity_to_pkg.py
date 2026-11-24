@@ -119,6 +119,40 @@ def section_versions(text, rx):
     return out
 
 
+def unique_anchor(text, anchor, pos):
+    """把插入锚点扩展成在 `text` 中**恰好出现 1 次**的字符串。
+
+    🔴 背景（APP-234 轮实测到的**阻断**缺陷）
+    `build_blocks()` 用**行锚定正则**挑锚点，而 `apply_file()` 的
+    唯一性判据用的是 **`text.count(old)`（子串计数）** ⇒ 两者口径
+    不一致。历史包（如 v2.6）的 README 里同一版本的章节标题会出现
+    **两次**（一次是**空段**、一次才是正文段 —— APP-233 登记的
+    缺陷②，真包按 APP-055 未动）；而**下一版**是 robocopy 上一版
+    ⇒ 原样继承 ⇒ 锚点 `## v2.6 改动说明` 命中 **2 次**
+    ⇒ `apply_file` 报「命中 2 次」⇒ **插入失败**。
+
+    🔴 修法（**窄口径**：只扩展锚点，**不改任何既有章节标题**）
+    本脚本的既定原则是「**绝不**重写 / 重命名「## vX.Y 改动说明」
+    这类章节标题」⇒ 本函数**不动**既有内容：只把锚点**逐行向后
+    扩展**（扩展部分是**既有原文**，会原样保留）到全文中恰好出现
+    **1 次**为止。
+    - 锚点本来就唯一 ⇒ **一个字节都不改**（幂等、零影响）；
+    - 锚点不唯一 ⇒ 逐行扩展（先空行、再下一个标题行）⇒ 唯一即停。
+
+    返回扩展后的锚点（**原样回填**，故正文一字不变）。
+    """
+    if text.count(anchor) == 1:
+        return anchor
+    ext = pos + len(anchor)
+    acc = anchor
+    # 逐行向后扩展（最多 60 行 ⇒ 足够覆盖空行 + 下一个标题行）
+    for ln in text[ext:].split('\n')[:60]:
+        acc = acc + ln + '\n'
+        if text.count(acc) == 1:
+            return acc
+    return anchor
+
+
 def strip_leading_heading(body, ver, heading):
     """剥离 changelog 正文**自带**的、与将要插入的标题**重复**的首行标题。
 
@@ -198,7 +232,8 @@ def build_blocks(texts, ver, changelogs):
                 if k and (best is None or k > best[0]):
                     best = (k, mm)
             anchor_m = best[1]
-            anchor = anchor_m.group(0)
+            anchor = unique_anchor(zh, anchor_m.group(0),
+                                   anchor_m.start())
             # 🔴 剥离正文自带、与本标题重复的首行标题（否则 README 出现空标题段）
             body_txt, _stripped, _stripped_line = strip_leading_heading(
                 body, ver, '## v%s 改动说明' % ver)
@@ -235,7 +270,8 @@ def build_blocks(texts, ver, changelogs):
             if k and (best is None or k > best[0]):
                 best = (k, mm)
         if best:
-            anchor = best[1].group(0)
+            anchor = unique_anchor(en, best[1].group(0),
+                                   best[1].start())
             # 🔴 剥离正文自带、与本标题重复的首行标题（英文正文首行是
             #    `## v2.6 changes`，与插入的 `## What's new in v2.6` 文字不同
             #    但语义是同一个标题 ⇒ 按「含本版本号」判定）
