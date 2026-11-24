@@ -62,8 +62,14 @@ EVID = os.path.join(RESULTS, 'app129_build_v26_evidence.json')
 #:   「EXT：live_dub_ext **3573b2d**」⇒ 改为「**4740b06**」（EXT v0.4.20，
 #:   克隆音色跟随男女切换）。
 #:   ⇒ 本包（v2.6）**只出这一版**（v0.4.19 的中间产物不再交付）。
-EXT_VERSION = '0.4.20'
-EXT_COMMIT = '4740b06'
+#:
+#: 🔴🔴 **APP-133**（reviewer 2026-11-24 13:56 邮件）：EXT **再升到**
+#:   **b2a4978（v0.4.21）**——按音高把男女混在一起的段切开（音乐下 8 s 硬切
+#:   会跨换人）；`stats_full` 新增 `clone_reasons` / `spk_reason_hist` /
+#:   `n_gender_splits`；可选 `EXT_BG_DUMP_VOCALS` 落盘分离人声。
+#:   ⇒ **b2a4978 替代 4740b06**（v0.4.20 是中间产物，不再交付）。
+EXT_VERSION = '0.4.21'
+EXT_COMMIT = 'b2a4978'
 
 #: dev 树 → 包内 `app/` 的**整文件**同步清单（v2.6 是新版本 ⇒ 直接落当前 dev 版本）
 APP_FILES = [

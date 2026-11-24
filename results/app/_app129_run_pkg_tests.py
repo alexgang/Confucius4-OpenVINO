@@ -4,7 +4,8 @@
 
 - `tests/test_ext0419_bgkeep.py`（reviewer 口径：**14/14**）
 - `tests/ext0419_bg_harness.js`（reviewer 口径：**18/18**）
-- `tests/test_ext0420_clone_gender.py`（**APP-131** 追加，reviewer 口径：**12/12**）
+- `tests/test_ext0420_clone_gender.py`（**APP-131** 追加；reviewer 口径：
+  APP-131 = **12/12**、**APP-133（后发，覆盖）= 16/16** ⇒ 本轮按 **16**）
 
 ## 为什么 python 侧要做两处**最小适配**（其余逐字不动）
 
@@ -52,7 +53,7 @@ RESULTS = os.path.join(REPO, 'results', 'app')
 #:   ⇒ 而本包按 APP-131 装的是 **4740b06（v0.4.20）** ⇒ 该属性不存在
 #:   ⇒ **AttributeError ⇒ rc=1**（假 FAIL：不是包缺陷，是测试取错了版本）。
 #:   ⇒ 一律 `git show <commit>:<path>` 取**被测的那个版本**的测试。
-EXT_COMMIT = '4740b06'
+EXT_COMMIT = 'b2a4978'
 
 
 def git_show(relpath):
@@ -216,6 +217,10 @@ def main():
         # ── ③ python 侧（APP-131 追加）：clone 音色性别守门 ─────────
         #   reviewer APP-131 明文：「验收第 1 项再加
         #   `python tests/test_ext0420_clone_gender.py`（应 **12/12**）」
+        #   ⇒ 🔴 **APP-133（2026-11-24 13:56，后发 ⇒ 覆盖 APP-131）**：
+        #      「验收第 1 项 `tests/test_ext0420_clone_gender.py` 应 **16/16**」
+        #      （EXT 同时升到 b2a4978 ⇒ 该 commit 的测试文件多了
+        #        「4. split at gender changes」一节 ⇒ 运行时断言 12 → 16）
         src_py2 = 'tests/test_ext0420_clone_gender.py'
         log('③ APP-131 侧：%s@%s' % (src_py2, EXT_COMMIT))
         try:
@@ -237,9 +242,11 @@ def main():
             log('③ python 侧（0420）：PASS=%d FAIL=%d rc=%d'
                 % (n_pass3, n_fail3, p3.returncode))
             print(out3[-4000:])
-            # 🔴 0420 的 `check()` 有 **5 处在 for 循环里** ⇒ 源码 call site 8 个
-            #   ⇒ 运行时实际 **12** 个断言（reviewer 口径 12/12）
+            # 🔴 0420 的 `check()` 有 **5 处在 for 循环里** ⇒ 源码 call site 12 个
+            #   ⇒ **运行时**断言数：APP-131 口径 = 12；**APP-133 口径 = 16**
+            #     （b2a4978 多了「4. split at gender changes」4 条 ⇒ 12 → 16）
             #   ⇒ 分母取**运行时 PASS+FAIL**，不取源码 call site 数。
+            #   ⇒ 🔴 **期望值取 APP-133（后发 ⇒ 覆盖 APP-131）= 16**。
             den3 = n_pass3 + n_fail3
             rep['results']['python_clone_gender'] = {
                 'src': src_py2, 'adaptations': notes2,
@@ -247,9 +254,10 @@ def main():
                 'n_check_runtime': den3,
                 'n_pass': n_pass3, 'n_fail': n_fail3, 'rc': p3.returncode,
                 'ok': (n_fail3 == 0 and n_pass3 > 0 and p3.returncode == 0
-                       and den3 == 12),
-                'required_by': 'APP-131',
-                'expected': '12/12',
+                       and den3 == 16),
+                'required_by': 'APP-133（覆盖 APP-131）',
+                'expected': '16/16',
+                'expected_by_app131': '12/12',
                 'log': 'results/app/app129_pkg_test_py2.log',
             }
         except Exception as e:

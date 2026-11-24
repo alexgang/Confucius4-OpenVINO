@@ -1,0 +1,39 @@
+[C4][A][STATUS][APP] APP-133 v2.6 交付 —— EXT 升到 v0.4.21(b2a4978)；包内离线 14/14 + 18/18 + 16/16；机器锁修掉两处真缺陷并一次持锁到底重跑整链
+
+■ 1. 🔴 纠偏来源（同一编号两个通道都到 ⇒ 只执行一次）
+· 局域网 status/app/CORRECTIONS_APP.md：APP-131 / APP-132 / APP-133 三条同在
+· QQ 邮箱 alexchen7694@agent.qq.com：
+  - APP-131 msg_ikwZH3hFJQ84g3LmdIwtlowZhpr-vcalHHNyyG-DtX1QAA
+  - APP-132 msg_WCFDSHflL8ZKI41A6vd5NXSixhH-AAdKoCmtSjLtkZlU5g
+  - APP-133 msg_HbiVRXlgp8eXsg7kDK4uUcgmLi_ao2pMbVJcZzbdbNhmGw
+
+■ 2. 🟢 APP-133：v2.6 的 EXT = b2a4978（v0.4.21）
+· 版本链：APP-129 3573b2d（v0.4.19）→ APP-131 4740b06（v0.4.20）→ **APP-133 b2a4978（v0.4.21）＝ 本轮交付**
+· 独立复核（results/app/app133_pkg_ext_verify.json）：核对 **44** 个文件（ext/bridge/*.py ＋ ext/extension/* ＋ tools/ext_launcher.py ＋ manifest），**逐字节一致**，错误 **0** 项
+  - ext/bridge/version.py = 0.4.21；manifest version = 0.4.21；liveDub.release = True
+  - **反证组**：故意改坏一个文件 ⇒ 判据报错 ⇒ 判据承重 = True
+· 成包（results/app/app129_build_v26_evidence.json）：ext_commit=b2a4978；包内污染扫描 **0** 项；EXT 版本一致性 = True
+  - models/bgsep/htdemucs_core.xml：**1341298 B**，sha256 eb62037b77c34fb8（源 sha256 eb62037b77c34fb8，逐字节一致 = True）
+  - models/bgsep/htdemucs_core.bin：**106628066 B**，sha256 62ad36576041af56（源 sha256 62ad36576041af56，逐字节一致 = True）
+
+■ 3. 🟢 离线一致性（APP-129 §3.1 ＋ APP-131 ＋ APP-133）—— **包内 python / 包内 EXT**
+· tests/test_ext0419_bgkeep.py（包内 python ＋ 包内 EXT）：**14/14 PASS**（rc=0）
+· tests/ext0419_bg_harness.js（node v22.22.2 ＋ 包内 player.js）：**18/18 PASS**（rc=0）
+· tests/test_ext0420_clone_gender.py（包内 python ＋ 包内 EXT b2a4978）：**16/16 PASS**（rc=0）
+  - reviewer 口径：APP-131 说 12/12，**APP-133 说 16/16**（后发 ⇒ 覆盖）⇒ 实测 **16/16**，与 APP-133 一致。
+
+■ 4. 🟢 APP-132：机器锁（**两处真缺陷已修** ＋ 本轮一次持锁到底）
+· 缺陷①：上一版用 os.replace(tmp, LOCK) 写锁 ⇒ **不是原子创建** ⇒ reviewer 的 CreateNew 在 12:44:18 成功 ⇒ 我方**实际没在持锁**
+· 缺陷②：看门狗只在「锁是我的或锁没了」时才写回 ⇒ **一旦被抢就彻底放弃** ⇒ 链继续跑但不再持锁 ⇒ 计时作废且无人知晓
+· 修法（results/app/_app132_lock.py）：**O_CREAT|O_EXCL 原子创建** ＋ **每 10 s 复核**（锁不再是我的 ⇒ 立刻记 lock_lost 事件）＋ **锁内容写明起止** ＋ 只删自己的锁
+· 本轮持锁：起 **2026-11-24 17:45:04** ／止 **2026-11-24 18:25:10** ／**中途丢锁 = False**（app132_lock_events.jsonl 里 lock_lost 事件 **0** 条）
+  - 三臂后复核持锁：[True, True, True]；默认值检查后：True；抽听样片后：True
+· reviewer 桥接日志重叠核对：v0.4.20 臂 **13:28:21–13:37:03**、v0.4.21 臂 **13:37:09–13:45:36**（shared/bgkeep/gender_ab2/*/bridge.log）⇒ 与我方上一轮三臂（12:33:38–13:07:39）时间上不重叠；但按 reviewer 要求 **本轮全部重跑**。
+
+■ 5. 🔴 如实登记：本轮踩到并修掉的 4 处真缺陷
+1. **就绪判据假 PASS**：本轮首跑用「日志出现『引擎预热完成』」当桥接就绪判据 ⇒ 横幅在**开始监听之前**就打出 ⇒ e2e 立刻 ConnectionRefusedError (WinError 1225) ⇒ 三臂全废 ⇒ 已改为「**日志出现 ws:// 监听地址** ＋ **端口真能建连**」（旧脚本的正确判据）。
+2. **OGG 编码器不可用**：包内 python 的 **PyAV 19.0.1** 上 add_stream("vorbis", …) 直接抛 ExperimentalError(avcodec_open2("vorbis", {})) ⇒ 上一轮**四个样片的 OGG 一个都没生成** (ogg_ok=false) ⇒ 一条附件都发不出去 ⇒ 已改为**按优先级逐个真开一次**（vorbis → libopus → opus），且**成功判据＝回读产出文件并能重新解码**。
+3. **降级探针被拒**：§3.4 的 hello 探针**没发 Origin 头** ⇒ 桥接 check_origin() 判空 ⇒ close(1008, "bad origin") ⇒ 拿不到 hello_ack ⇒ 已按 EXT 官方 e2e 的口径补上 Origin。
+4. **包测试分母过期**：runner 里分母还写 APP-131 的 12 ⇒ 实测 16/16 PASS 却被判 FAIL ⇒ **判据过期、不是产品缺陷** ⇒ 已按 APP-133 改为 16。
+
+■ 6. 纪律：未通知用户；未连 B 机；未调 MiniMax；未改 status/app/CORRECTIONS_APP.md；未覆盖/未删除任何旧版本目录与 zip；**未打 zip**（用户级纪律「不通知 ⇒ 不打包」；完整版 v2.x 历来无 zip）。

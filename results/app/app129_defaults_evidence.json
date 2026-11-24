@@ -1,7 +1,7 @@
 {
-  "ts": "2026-11-24 12:35:02",
-  "pkg": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.6",
-  "popup_js": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.6\\ext\\extension\\popup.js",
+  "ts": "2026-11-24 18:19:19",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6",
+  "popup_js": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\popup.js",
   "popup_js_bytes": 32511,
   "popup_js_sha256": "a764af38655a1f8af75f65687fbd5e3eebd81c82c4e7f3f3988fada8ec42ae87",
   "node_version": "v22.22.2",

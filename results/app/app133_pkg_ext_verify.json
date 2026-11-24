@@ -1,0 +1,469 @@
+{
+  "ts": "2026-11-24 17:31:35",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6",
+  "ext_commit": "b2a4978",
+  "files": [
+    {
+      "group": "bridge",
+      "rel": "ext/__init__.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\__init__.py",
+      "bytes": 474,
+      "sha256": "aef2644af049ae095efe2efa05cca9d46dde2f737225a09fcf7784e49b28630f",
+      "commit_sha256": "68a915ab192cf16d857c589678d11a14b26295398418c6e4298f14555af8f05a",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/accel_usage.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\accel_usage.py",
+      "bytes": 4089,
+      "sha256": "8b95174d7920df60802a52688d79f995270a0dbe0808083bf3a75c4b0047c2b2",
+      "commit_sha256": "e47ba253fd2bdc43864e14617bf093c921e05a527b0d485df8f6ef20223a29a8",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/adaptive_speed.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\adaptive_speed.py",
+      "bytes": 9909,
+      "sha256": "eee24deae0650efc3dbb77d3d295cc217e2f090dfc2499bedd82d9f7c3ff10c6",
+      "commit_sha256": "c50e41e9ca637f8916d806319fc02a92f0ebfe0d935a3b8b147167ef1341d551",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/app_root.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\app_root.py",
+      "bytes": 6178,
+      "sha256": "7c70d92762d3c8170641d3987d094f5af0a7b9b8c1854e5e1d894b2a83f73e30",
+      "commit_sha256": "96b4d9d33b546bc3cee9b9fe289358caed469230e2919073844e8fd76b5320c9",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/audio_dump.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\audio_dump.py",
+      "bytes": 10661,
+      "sha256": "15fa0e5e23a74fe05c693472187266b1862f11a94758b0d1134462ba12bf5be3",
+      "commit_sha256": "e622f0cd0d9efc8b6cb918dba21bcff4bcd3d9bedbc721ff36654cc5f465296d",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/bg_separator.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\bg_separator.py",
+      "bytes": 23569,
+      "sha256": "7916e1201a77c5b441fd7d7449ce6364b2a1c484397dd6d81cf0ec91db50e038",
+      "commit_sha256": "d47daf7443f276797e08c0eae1cc83e4c6b779a6e22125836675686765b256ce",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/bridge.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\bridge.py",
+      "bytes": 290855,
+      "sha256": "982557879e70f99b45dcd6292828c65a656349646488bbab58c504ec6e93dbcf",
+      "commit_sha256": "7fcc1e52889391940e3e34f006ff2c7e0091a93bf7a3b4ea7ab2b4b13f44992b",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/clone_voice.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\clone_voice.py",
+      "bytes": 44824,
+      "sha256": "c7d8d0b9f2f61eb2727e940c072cb512cec6d67c838539d144fa8ceaec1220bb",
+      "commit_sha256": "e12f64d080fa5ab2a5cfd2e1bf7471cf7fd91c1bf24f05d848cc220ab3e50c62",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/config.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\config.py",
+      "bytes": 17446,
+      "sha256": "3191a56f40fd63fc24cb248f1b1a82164523c83725734f5e9ef04bc793dec0a3",
+      "commit_sha256": "cbbd319cc1001c8207378fa46b8056c3b0634c9dc9f88ae5076f7a2f466ea0e8",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/duration.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\duration.py",
+      "bytes": 3113,
+      "sha256": "65c552dc980f76ce41eb7ffbfc54ca3beef52e05f23b7e475eab19ccffd16c59",
+      "commit_sha256": "5cdfd711f63e6b308db7dd9ff1226e761e23e8dc4a61747b4036f359b852cd48",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/engine_runtime.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\engine_runtime.py",
+      "bytes": 44005,
+      "sha256": "1bfa0f17a12cbcc212c7e126ef0e011bfbc3c9b5a9ca9293223a68ee1ab80a53",
+      "commit_sha256": "d225b34e6466e4ba0c9eb0fe1c1eec7808ad8cc76df8479f4cab579f3dee5ee3",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/engines.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\engines.py",
+      "bytes": 9260,
+      "sha256": "8e703ba48b9a1864533ef36752196f604f1b1d91693465d5c458e0610d68bbd9",
+      "commit_sha256": "6e9e9ddd5c779069012925d6fb8d285d5edb3b1c4d6981e3979d74bc85591fd5",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/extension_id.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\extension_id.py",
+      "bytes": 4254,
+      "sha256": "a92bc1e625f94a5e5024997262a9bee66df8cfe7cc5b480512d5b9c3f8932ca9",
+      "commit_sha256": "e4b8cdef0f4a9156821678d1814d6a59b544e620963b52405d629530596eec4d",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/media_slowdown.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\media_slowdown.py",
+      "bytes": 12515,
+      "sha256": "964a3446c180e16b417cf65cbb373266f1d298fbc51c37088dece9572f1aae79",
+      "commit_sha256": "c6e48e5b8cb44459b237f1bdd65317448b42b1d0b296cc086dbdafbc81515d90",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/pair_server.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\pair_server.py",
+      "bytes": 8589,
+      "sha256": "53e3dea18c536197752f30a6e69bec7f37b3e2205a6903700323ac2da5518aea",
+      "commit_sha256": "a2a0bddcbdd0330e9b165745a6faccab0aa35985b81ba740f9bf1e9fc8969336",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/pipeline.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\pipeline.py",
+      "bytes": 19032,
+      "sha256": "9ab7ee5d76ef86ab1acd12903d018debe53ddab5039f101ee653049a21b2c5a2",
+      "commit_sha256": "4cfb648876dda0b781a34fb23dab7ee427ae13f8f6dde8bcb436a94c8bb07027",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/segmenter.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\segmenter.py",
+      "bytes": 21235,
+      "sha256": "4c9dbbda6a32693f7aecee377acaaffe5c688ca60b0842c0e242e1c6e4d12b00",
+      "commit_sha256": "3a2ed1d09372a0b717c1f9ac23fa6bf3df8c77be25f98d91c4895cf3f8d41158",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/speaker.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\speaker.py",
+      "bytes": 8754,
+      "sha256": "b15e75adc3fc1cd1a66de3435192864b71ce8ce74fe59d65660e038746a758dd",
+      "commit_sha256": "cbd84b42d8bbc70ffeb4202c8f7567ef29d5a2e99c2bd9a20fc66643b8a41a29",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/speaker_bypass.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\speaker_bypass.py",
+      "bytes": 24261,
+      "sha256": "5a84b9669a5624f1a03b6ff8a188230d4c8df658ec9afdacfb363d5f4a2ee7f2",
+      "commit_sha256": "b4d08f278ee18c9ff99582ee1e8f2ec7d2356254d3b2934775efa70399c266e6",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/spk_engine.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\spk_engine.py",
+      "bytes": 33500,
+      "sha256": "de6e1b483727ff834bec8ed944a571d8cd6081136eb85e0df81817abcbb234e1",
+      "commit_sha256": "e6a52ade258b8284e3ba9f0e86e5abfc64c1de6f7a18be39ed30459abe18ca10",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/thread_limits.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\thread_limits.py",
+      "bytes": 4968,
+      "sha256": "af1845ee39bb340263bbd59987d61f13db1d12b1d142a68dee330afc0ed97e58",
+      "commit_sha256": "bad1921af2ab17874d8b21bae682085b1a9e51ab2338393cee0096b301f3a87f",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/time_stretch.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\time_stretch.py",
+      "bytes": 7396,
+      "sha256": "b860fb688e46e58557e7a58ea225a2f917fce0eec8d73a1cffd878232dead02d",
+      "commit_sha256": "a34f55081464568f23d9de871eeadb69280e785f8b0120758cc314fa72e02574",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/utf8_io.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\utf8_io.py",
+      "bytes": 6645,
+      "sha256": "e2023751fa62eeba084f365f7f35da1155997945ee8bd93934a5315d52f1864a",
+      "commit_sha256": "d626e7315b491088e597c337c81023f7b68edb43bf46c86c8d28ebd0f2140644",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "bridge",
+      "rel": "ext/version.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\bridge\\version.py",
+      "bytes": 333,
+      "sha256": "e14a2e86d7fcb3638202518979ee6758997ed1c94a213daeb48acb910d9889fb",
+      "commit_sha256": "ddc6a0e743c1696c00adc7be993c2dd4c5426f131f3752a8b7931c44353705d7",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/USER_GUIDE.md",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\USER_GUIDE.md",
+      "bytes": 14650,
+      "sha256": "b6a5785f1554081e1540e64754b9ac03759dfa13e9f11f4e6f63b030d296470e",
+      "commit_sha256": "e649c2e6d91ef9039f5fb490d8c67329d4e4d6f7e610cd8a305dc475a9a3cd74",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/capture-worklet.js",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\capture-worklet.js",
+      "bytes": 10445,
+      "sha256": "93818e57de2cb179be035911c9768757232995f8779df158fe3510380be36faa",
+      "commit_sha256": "1a35a3fe71bc4a1ae8c8bd6fff96f3ffb45e784d9d4b730d0ff18c78cad1e9be",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/dub-pcm-worklet.js",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\dub-pcm-worklet.js",
+      "bytes": 7825,
+      "sha256": "a9dbc844117d52bdeb0fe91de1f63f2bb54ab5285447e763a46dc36be04420a3",
+      "commit_sha256": "8ee24c06f46c15388805c1356480e5db380fd367c6a6f2dd68decb4e5d444a6c",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/guide.html",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\guide.html",
+      "bytes": 921,
+      "sha256": "fa4f1dab6edc474d842d5c7dbde15eabb329e4813dc945d88e7afa4f5a87d007",
+      "commit_sha256": "3c9a85fd53059b12df15d517c3a93dee5ebc8b65e0912119447408a7bb73d2d0",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/guide.js",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\guide.js",
+      "bytes": 3133,
+      "sha256": "eb714432e895248b2801145851d5c1838ee2ef38eb60a5221c6dcab570933454",
+      "commit_sha256": "268365cf6f7e9bb24101d1d1b102e18bbb4dc1cbb5db7e389f68dde3fdcdf954",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/icons/icon128.png",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\icons\\icon128.png",
+      "bytes": 443,
+      "sha256": "7b34197e6e8cd56d5e5e83c582f26538a9cb01d06e4f099a96be71aa33ae56f5",
+      "commit_sha256": "7b34197e6e8cd56d5e5e83c582f26538a9cb01d06e4f099a96be71aa33ae56f5",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/icons/icon16.png",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\icons\\icon16.png",
+      "bytes": 116,
+      "sha256": "f6fbd09a6d127e9b869479a44aeec7479b668e4ee69a720c808b779f108a9526",
+      "commit_sha256": "f6fbd09a6d127e9b869479a44aeec7479b668e4ee69a720c808b779f108a9526",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/icons/icon32.png",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\icons\\icon32.png",
+      "bytes": 152,
+      "sha256": "1e1f118bc33cb0308c87a2cb9443f2dfec1c5aeb5f271b6b5744c5112a8ccf05",
+      "commit_sha256": "1e1f118bc33cb0308c87a2cb9443f2dfec1c5aeb5f271b6b5744c5112a8ccf05",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/icons/icon48.png",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\icons\\icon48.png",
+      "bytes": 180,
+      "sha256": "5fbae5b9e7422140aea8f53c0b6b5a4d9d4f6539026bfde8ca8f2adb9264dbbb",
+      "commit_sha256": "5fbae5b9e7422140aea8f53c0b6b5a4d9d4f6539026bfde8ca8f2adb9264dbbb",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/offscreen.html",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\offscreen.html",
+      "bytes": 166,
+      "sha256": "2b39fc0aab66b0422a6d027a9c77bab09d122035ef99f2aabbb9b6c24f7ac0e0",
+      "commit_sha256": "a3ecd75af77f52d587af28634dc553211d15e45a7af6edbe5a48d33b00e7c157",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/offscreen.js",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\offscreen.js",
+      "bytes": 25064,
+      "sha256": "9689d245777041c9fed0f96b8ec5036780fa29b6b35e1bfac754f646afa6bcbd",
+      "commit_sha256": "a2ec0113b28788a8cdc6c55f8ac254a538e98b5fb6675eeb1e7eb93c79b3a4f8",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/onset-worklet.js",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\onset-worklet.js",
+      "bytes": 2873,
+      "sha256": "5ce18a8044f705e3db62ffbcc2fb2d8a42a7796a46408b859c50dd5ef3836736",
+      "commit_sha256": "74bd2b3a8a914c10d1fb7e1ddb43673ecde909abb812a64fb2afb003d9881747",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/player.html",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\player.html",
+      "bytes": 4837,
+      "sha256": "2c5447da759c73a65d7e4614596dd129972c8e4825f8a600aea998ee71fa4d1f",
+      "commit_sha256": "248a376811f89ead34e5bf9225663ebf9328bf43c9a63991ce539729991113c6",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/player.js",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\player.js",
+      "bytes": 203894,
+      "sha256": "eacdb3c1a384b5cd0222fca7b3e0dfd65ec740dd97fa9c30fefd2def5468cb37",
+      "commit_sha256": "313e4bdc63b7610a8edcb4635506821c3554ac58a088cb0991070e580fcb7035",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/popup.html",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\popup.html",
+      "bytes": 6472,
+      "sha256": "6bfe88b68a4af274c6557f62e40d7f3b79a5b82632c4e55abb5ef5cdc294832d",
+      "commit_sha256": "09eaccf9f95a47ed7f5c434af05e5660d96c4ec72569f2d0c6b72bd0f27f8fb5",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/popup.js",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\popup.js",
+      "bytes": 32511,
+      "sha256": "a764af38655a1f8af75f65687fbd5e3eebd81c82c4e7f3f3988fada8ec42ae87",
+      "commit_sha256": "1622f4db50c37b029837c37344ce82f863ecb159ccabd86595f3ec7b31c1b82b",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/slowdown.js",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\slowdown.js",
+      "bytes": 7416,
+      "sha256": "976405d5cedc24d2ec97519952673d5d360767c1c7831a97b093f5ae02f1542f",
+      "commit_sha256": "4fc2a44d799a4d0d2aba1462e17fa4212f5b9aaac7ffca7d782b1397cbc43947",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "extension",
+      "rel": "extension/sw.js",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\sw.js",
+      "bytes": 14535,
+      "sha256": "d5f054269e7c8a66ff4aa478629cef288ae86f7d52aa39505ea74d8f7c00389e",
+      "commit_sha256": "1291f0ab8881cf399b30da36ba2fafeddd75cb9d5b1997b4d9d50ae0224e6e81",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    },
+    {
+      "group": "manifest",
+      "rel": "extension/manifest.json",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\manifest.json",
+      "bytes": 2552,
+      "sha256": "cf38e1e663c385fcc3d9de34a6e4c69078ccfebdbe562b260e5091d20309209a",
+      "commit_sha256": "0dafe40468bead6e166559893580f3f40ae70b825f5bb244e4a920ea48847b01",
+      "diffs": [
+        {
+          "path": "/liveDub/release",
+          "commit": false,
+          "pkg": true
+        }
+      ],
+      "allowed_release_bump": true,
+      "unexpected_diffs": 0,
+      "identical_crlf_norm": true
+    },
+    {
+      "group": "launcher",
+      "rel": "tools/ext_launcher.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\tools\\ext_launcher.py",
+      "bytes": 44696,
+      "sha256": "006df4d9cb3c7acdae466a8b5a919f3a829452574864fd16cece70e36ad2c525",
+      "commit_sha256": "e85877feef4b78a56c48b1b6f847dfd363c396565e5714607b8b411836311712",
+      "identical_crlf_norm": true,
+      "is_crlf": true
+    }
+  ],
+  "errors": [],
+  "ext_version_py": "0.4.21",
+  "manifest_version": "0.4.21",
+  "manifest_release": true,
+  "version_consistent": true,
+  "counterfactual": {
+    "errors_before": 0,
+    "passed_before": true,
+    "bad_file_detected": true,
+    "mutation_is_real": true,
+    "judgement_load_bearing": true
+  },
+  "n_files": 44,
+  "all_ok": true
+}

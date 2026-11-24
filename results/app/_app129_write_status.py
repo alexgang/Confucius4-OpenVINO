@@ -326,6 +326,14 @@ def main():
     A('5. **OV 输出形态判据错误（最严重）**：自检首版把 OV 输出当 `dict` 处理，而本机 OV 2026.4.1 的 `CompiledModel.__call__` 返回 **`OVDict`**（`collections.abc.Mapping`，**不是 dict**），`np.asarray(OVDict)` 得到 **object 数组** ⇒ 余弦恒 0.0000 ⇒ **A 机上自检恒判失败、cp 被误打回 CPU**；同一根因还让**运行时 NaN 守卫形同虚设**。⇒ 修法 ＝ 归一化 helper（`_ov_out_to_dict`）＋ 用 `ConstOutput.get_names()` 取名（**不能带形状**：CPU 动态维 IR 的键是 `names[hidden_states] shape[1,?,1024]`，NPU 静态形状的是 `shape[1,2,1024]`）⇒ 修后 A 机余弦 0.998595 ~ 0.999953。')
     A('6. **EXT 源码仓工作树是 v0.4.21 在制品**（`M ext/bridge.py` / `ext/clone_voice.py` 等，未提交）⇒ 一律**按 commit 取**（4740b06），绝不取工作树。')
     A('7. **顶层目录改名被系统拒绝**（PermissionError 13；嵌套目录改名/删除正常 ⇒ 目录自身 OS 句柄未释放）⇒ 改为直接 robocopy 到正式目录，staging 残留待清理。')
+    A('8. 🔴 **机器并发占用（计时有效性）**：本机 **12:44:18** 起有 reviewer 的作业在跑'
+      '（`shared\\MACHINE_LOCK` 内容 `reviewer gender ab 2026-11-24T12:44:18`，'
+      '对应 conhost 进程 12:44:18 启动；该锁于 **13:07:49** 被写回）'
+      '⇒ 本轮「关 / 开 / 克隆」三臂**与 reviewer 并发** ⇒ 按 APP-115 口径，'
+      '**这三臂的计时类数字（dub_late / synth_rtf / 积压）不作数**；'
+      '**计数类结论**（dubs / 丢句 / bg_blocks / bg_late_blocks / fallback_to_orig_s / '
+      'sep_rtf / 桥接峰值内存）不受并发影响。'
+      '⇒ 另跑的「关（旁路关＝e2e7 基线口径）」臂是**拿到锁之后**跑的 ⇒ 那一臂才是干净的同口径锚点。')
     A('')
     A('## §5 🔴 留白（未取到的数字不写「已通过」）')
     A('')

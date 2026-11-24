@@ -1,0 +1,51 @@
+[C4][A][STATUS][APP] APP-133 v2.6 整链三臂数字 ＋ 抽听样片 OGG 附件（10 分钟固定片段；dubs／丢句／语速 max／dub_late／bg_blocks／synth_rtf／积压峰值与收尾积压；clone 臂 clone_reasons 与 n_gender_splits）
+
+■ 1. 🟢 10 分钟固定片段整链（APP-129 §3.2 ＋ APP-131 clone 臂 ＋ APP-133 clone 计数）
+· 媒体：test_audio/clip_10min_0_600.wav（600 s）；**每臂单独起桥接**；出厂默认 ASR/MT **GPU.0**、TTS **NPU**；分离 **GPU.0**（EXT 默认）
+
+| 指标 | bgkeep 关 | bgkeep 开 | bgkeep 开 ＋ voice=clone |
+|---|---|---|---|
+| 媒体时长 s | 600.000 | 600.000 | 600.000 |
+| **dubs** | 95 | 90 | 114 |
+| **丢句**（须 0） | 0 | 0 | 0 |
+| 语速 max | 1.700 | 1.700 | 1.700 |
+| dub_late max s | 115.420 | 139.220 | 182.620 |
+| dub_late p90 s | 105.560 | 122.580 | 161.250 |
+| dub_late n_late | 90 | 87 | 110 |
+| **bg_blocks** | 0 | 600 | 600 |
+| **bg_late_blocks** | 0 | 0 | 0 |
+| **fallback_to_orig_s** | 600.000 | 0.000 | 0.000 |
+| **synth_rtf** | 1.051 | 1.108 | 1.127 |
+| 积压峰值 max_lag_sec | 123.492 | 143.774 | 200.537 |
+| 收尾积压 lag_curve end_sec | 0.000 | 0.000 | 0.000 |
+| 分离设备 | 关（未启用，bg_state=off） | GPU.0 | GPU.0 |
+
+· **桥接进程峰值内存（开关差值对照）**：bgkeep_off 9468.8 MB、bgkeep_on 11470.2 MB、bgkeep_clone 11894.5 MB
+  （reviewer 实测约 **+1.9 GB** 作对照）
+· 证据：results/app/app133_chain_v26_evidence.json ＋ shared/bgkeep/e2e_v26_r2/*/
+
+■ 2. 🟢 APP-133 要的克隆计数（clone 臂）
+· stats_full.clone_reasons = {'self_ref_unvoiced': 2, 'self_ref': 1, 'guard_no_emb': 2, 'timeout': 6, 'label': 61, 'provisional': 159, 'tts_nearest_voice': 1, 'guard_keep': 66, 'fallback': 2, 'tts_nearest': 1, 'guard_short': 45, 'gender_keep': 2}
+· stats_full.spk_reason_hist = {'none': 3, 'label': 156}
+· stats_full.n_gender_splits = 4
+· stats_full.tts_nearest_voice = 顶层**无此字段**（EXT v0.4.21 只在 `clone_reasons` 里导出 ⇒ 见上一行）
+· stats_full.gender_switch = 顶层**无此字段**（EXT v0.4.21 只在 `clone_reasons` 里导出 ⇒ 见上一行）
+· stats_full.gender_selfref = 顶层**无此字段**（EXT v0.4.21 只在 `clone_reasons` 里导出 ⇒ 见上一行）
+
+■ 3. 🟢 默认值检查（§3.3）＋ 不可用降级（§3.4）
+· fresh_install：期望 True ／ 实测 True ／ popup 显示「正常（GPU.0）」 ⇒ PASS
+· upgrade_from_v0418：期望 True ／ 实测 True ／ popup 显示「正常（GPU.0）」 ⇒ PASS
+· manual_off_restart：期望 False ／ 实测 False ／ popup 显示「已关闭（原声压低）」 ⇒ PASS
+· manual_on_restart：期望 True ／ 实测 True ／ popup 显示「正常（GPU.0）」 ⇒ PASS
+  - 🔴 **口径**：本机无可控的 Chrome 自动化环境 ⇒ 本检查在 node 里**执行包内 popup.js 的真实表达式**（覆盖「存储初态 ⇒ 默认值/文案」这一层）；**浏览器端 UI 交互本身由 reviewer 复核**。
+· 降级（models\bgsep 改名）：bridge_ready=True（20.0 s）／bg.state=unavailable／bg.reason=背景分离模型缺失（models/bgsep/htdemucs_core.xml）／恢复=True
+
+■ 4. 🟢 抽听样片（§3.5）—— 附件见本封附件列表
+· s2：player_mix 5902744 B → OGG 328411 B（codec libopus，解码帧数 1538，≤1 MB = 是）
+· cs2：player_mix 14128180 B → OGG 852817 B（codec libopus，解码帧数 3680，≤1 MB = 是）
+· tuffy：player_mix 8666848 B → OGG 580867 B（codec libopus，解码帧数 2258，≤1 MB = 是）
+
+■ 5. 🔴 如实登记
+· 克隆音色质量（性别错配率）按 reviewer 口径由其回转写判定；本轮只报计数，不自评音质。
+· 本轮计时类数字的前提是**一次持锁到底**（lock_lost 事件 0 条）；若 reviewer 的 v0.4.21 对比臂与本轮仍有重叠，请以 reviewer 自己的锁记录为准。
+· 纪律：未通知用户；未连 B 机；未调 MiniMax；未改 status/app/CORRECTIONS_APP.md。

@@ -2,12 +2,12 @@
  "script": "app523_pack_must_ttsworker_probe.py",
  "note": "「包内缺 app/tts_worker.py」在改前是否被放行；探针在临时目录；客户包只读",
  "prefix_facts": {
-  "head_must_count": 39,
-  "head_has_tts_worker": false,
-  "head_gate4_missing_file_is_skip": true,
-  "head_gate4_missing_file_returns_0": true
+  "head_must_count": 42,
+  "head_has_tts_worker": true,
+  "head_gate4_missing_file_is_skip": false,
+  "head_gate4_missing_file_returns_0": false
  },
- "prefix_facts_ok": true,
+ "prefix_facts_ok": false,
  "probe": {
   "gate4_rc": 1,
   "gate4_refuses": true,
@@ -43,6 +43,15 @@
   },
   {
    "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc10",
+   "files": {
+    "app/tts_worker.py": 271993,
+    "app/tts_service.py": 138950,
+    "app/tts_engine.py": 93114
+   },
+   "all_present": true
+  },
+  {
+   "pkg": "Confucius4_LiveCaption_MiniMVP_v1.0-rc11",
    "files": {
     "app/tts_worker.py": 271993,
     "app/tts_service.py": 138950,
@@ -186,11 +195,11 @@
    "all_present": true
   }
  ],
- "packages_total": 18,
+ "packages_total": 19,
  "packages_all_present": true,
  "e2e": {
   "verify_fail_condition": "missing or stale or stale_prefix or (not mt_dirs_ok) or (not files_ok) or (not bytes_ok) or spoken_hit or internal_hit or tts_bad or noise_hit or certain or (not content_ok) or (not ver_ok)",
   "zip_verify_fail_closed": true
  },
- "verdict": "PASS"
+ "verdict": "FAIL"
 }

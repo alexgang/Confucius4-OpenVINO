@@ -1,28 +1,41 @@
 {
  "script": "app170_version_identity_gate.py",
- "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.3",
- "pkg_version": "2.3",
- "target_version": "2.3",
- "pass": 20,
+ "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6",
+ "pkg_version": "2.6",
+ "target_version": "2.6",
+ "pass": 19,
  "fail": 0,
  "verdict": "PASS",
- "advisories": [],
+ "advisories": [
+  {
+   "name": "I1b MANIFEST.version == 目标版本 2.6（升版未刷新，zip 级断言兜底）",
+   "detail": "manifest=2.5 target=2.6"
+  },
+  {
+   "name": "D4 README_zh 有 v2.6 改动说明段（恰好 1 次）",
+   "detail": "count=0"
+  },
+  {
+   "name": "D5 README_en 有 v2.6 段（恰好 1 次）",
+   "detail": "count=0"
+  }
+ ],
  "fails": [],
  "files": {
   "README_zh.md": {
-   "bytes": 52319,
-   "sha256": "c99d4b3a12288c9e13885737f24c38f359f676f3f78689046e12d4ad262d7699",
-   "mtime": 1794036238.4642687
+   "bytes": 55968,
+   "sha256": "6f8b933e1dcb4f925ada969492741cf57cf77aa876cd005cad5d1784e58e442f",
+   "mtime": 1795497263.5061085
   },
   "README_en.md": {
-   "bytes": 58413,
-   "sha256": "10284872aa8b2debda82c9f8262f8f8e4d7983b4ebb554b7e2f2f27d990c4994",
-   "mtime": 1794036238.4642687
+   "bytes": 62308,
+   "sha256": "fd912d87d0343abc1777ab4c133b4e9ad98d1265279b29bd1acdaf128bac800c",
+   "mtime": 1795497263.5073204
   },
   "NOTICE": {
    "bytes": 10327,
-   "sha256": "f320168a242980879e093894fbae22905bea3ac2d2c6e5d73aa6da9c09e79d6d",
-   "mtime": 1794035977.5622475
+   "sha256": "22d70a34316d4e492f479b2c54c6fcfe6b06120d39b07874e17b3931fa14f88b",
+   "mtime": 1795497263.508495
   }
  }
 }

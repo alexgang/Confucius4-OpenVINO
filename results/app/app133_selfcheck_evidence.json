@@ -1,0 +1,274 @@
+{
+  "ts": "2026-11-24 18:08:39",
+  "out_root": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\e2e_v26_r2",
+  "arms": {
+    "bgkeep_off": {
+      "selfcheck_pass": {
+        "cp_decode": {
+          "ok": true,
+          "elapsed_s": 0.068,
+          "cosines": [
+            0.999438,
+            0.999718,
+            0.999952
+          ],
+          "raw_case_str": "(0.02, 0.999438), (0.1, 0.999718), (1.0, 0.999952)",
+          "line": "[ext-engine] [tts_engine] cp_decode: NPU 自检通过（耗时 0.068 s，用例 [(0.02, 0.999438), (0.1, 0.999718), (1.0, 0.999952)]）"
+        },
+        "cp_prefill": {
+          "ok": true,
+          "elapsed_s": 0.075,
+          "cosines": [
+            0.998595,
+            0.99931,
+            0.999953
+          ],
+          "raw_case_str": "(0.02, 0.998595), (0.1, 0.99931), (1.0, 0.999953)",
+          "line": "[ext-engine] [tts_engine] cp_prefill: NPU 自检通过（耗时 0.075 s，用例 [(0.02, 0.998595), (0.1, 0.99931), (1.0, 0.999953)]）"
+        }
+      },
+      "selfcheck_fail": {},
+      "execution_devices": "talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU(lazy)",
+      "landing": {
+        "npu_n": 9
+      },
+      "err_file": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\e2e_v26_r2\\bgkeep_off\\bridge.err",
+      "err_bytes": 4253,
+      "err_sha256": "e417869594fadd5368eb8c742adfd835d4fc91f9021d40b4fd30901fe3f8128e",
+      "checks": [
+        {
+          "name": "cp_prefill 自检有「通过」记录",
+          "ok": true,
+          "detail": "[ext-engine] [tts_engine] cp_prefill: NPU 自检通过（耗时 0.075 s，用例 [(0.02, 0.998595), (0.1, 0.99931), (1.0, 0.999953)]）"
+        },
+        {
+          "name": "cp_prefill 自检耗时 < 1.0 s",
+          "ok": true,
+          "detail": "0.075"
+        },
+        {
+          "name": "cp_prefill 逐用例余弦全 ≥ 0.99",
+          "ok": true,
+          "detail": "[0.998595, 0.99931, 0.999953]"
+        },
+        {
+          "name": "cp_prefill 无「自检失败」记录（反证组）",
+          "ok": true,
+          "detail": "无"
+        },
+        {
+          "name": "cp_decode 自检有「通过」记录",
+          "ok": true,
+          "detail": "[ext-engine] [tts_engine] cp_decode: NPU 自检通过（耗时 0.068 s，用例 [(0.02, 0.999438), (0.1, 0.999718), (1.0, 0.999952)]）"
+        },
+        {
+          "name": "cp_decode 自检耗时 < 1.0 s",
+          "ok": true,
+          "detail": "0.068"
+        },
+        {
+          "name": "cp_decode 逐用例余弦全 ≥ 0.99",
+          "ok": true,
+          "detail": "[0.999438, 0.999718, 0.999952]"
+        },
+        {
+          "name": "cp_decode 无「自检失败」记录（反证组）",
+          "ok": true,
+          "detail": "无"
+        },
+        {
+          "name": "cp_prefill 落点仍是 NPU",
+          "ok": true,
+          "detail": "talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU(lazy)"
+        },
+        {
+          "name": "cp_decode 落点仍是 NPU",
+          "ok": true,
+          "detail": "talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU(lazy)"
+        }
+      ],
+      "all_pass": true
+    },
+    "bgkeep_on": {
+      "selfcheck_pass": {
+        "cp_decode": {
+          "ok": true,
+          "elapsed_s": 0.062,
+          "cosines": [
+            0.999438,
+            0.999718,
+            0.999952
+          ],
+          "raw_case_str": "(0.02, 0.999438), (0.1, 0.999718), (1.0, 0.999952)",
+          "line": "[ext-engine] [tts_engine] cp_decode: NPU 自检通过（耗时 0.062 s，用例 [(0.02, 0.999438), (0.1, 0.999718), (1.0, 0.999952)]）"
+        },
+        "cp_prefill": {
+          "ok": true,
+          "elapsed_s": 0.081,
+          "cosines": [
+            0.998595,
+            0.99931,
+            0.999953
+          ],
+          "raw_case_str": "(0.02, 0.998595), (0.1, 0.99931), (1.0, 0.999953)",
+          "line": "[ext-engine] [tts_engine] cp_prefill: NPU 自检通过（耗时 0.081 s，用例 [(0.02, 0.998595), (0.1, 0.99931), (1.0, 0.999953)]）"
+        }
+      },
+      "selfcheck_fail": {},
+      "execution_devices": "talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU(lazy)",
+      "landing": {
+        "npu_n": 9
+      },
+      "err_file": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\e2e_v26_r2\\bgkeep_on\\bridge.err",
+      "err_bytes": 4253,
+      "err_sha256": "ca3c0fdcba0ba2b94ecfb30e9d7f11c7380da056baf0426f9bd8673337875e99",
+      "checks": [
+        {
+          "name": "cp_prefill 自检有「通过」记录",
+          "ok": true,
+          "detail": "[ext-engine] [tts_engine] cp_prefill: NPU 自检通过（耗时 0.081 s，用例 [(0.02, 0.998595), (0.1, 0.99931), (1.0, 0.999953)]）"
+        },
+        {
+          "name": "cp_prefill 自检耗时 < 1.0 s",
+          "ok": true,
+          "detail": "0.081"
+        },
+        {
+          "name": "cp_prefill 逐用例余弦全 ≥ 0.99",
+          "ok": true,
+          "detail": "[0.998595, 0.99931, 0.999953]"
+        },
+        {
+          "name": "cp_prefill 无「自检失败」记录（反证组）",
+          "ok": true,
+          "detail": "无"
+        },
+        {
+          "name": "cp_decode 自检有「通过」记录",
+          "ok": true,
+          "detail": "[ext-engine] [tts_engine] cp_decode: NPU 自检通过（耗时 0.062 s，用例 [(0.02, 0.999438), (0.1, 0.999718), (1.0, 0.999952)]）"
+        },
+        {
+          "name": "cp_decode 自检耗时 < 1.0 s",
+          "ok": true,
+          "detail": "0.062"
+        },
+        {
+          "name": "cp_decode 逐用例余弦全 ≥ 0.99",
+          "ok": true,
+          "detail": "[0.999438, 0.999718, 0.999952]"
+        },
+        {
+          "name": "cp_decode 无「自检失败」记录（反证组）",
+          "ok": true,
+          "detail": "无"
+        },
+        {
+          "name": "cp_prefill 落点仍是 NPU",
+          "ok": true,
+          "detail": "talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU(lazy)"
+        },
+        {
+          "name": "cp_decode 落点仍是 NPU",
+          "ok": true,
+          "detail": "talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU(lazy)"
+        }
+      ],
+      "all_pass": true
+    },
+    "bgkeep_clone": {
+      "selfcheck_pass": {
+        "cp_decode": {
+          "ok": true,
+          "elapsed_s": 0.059,
+          "cosines": [
+            0.999438,
+            0.999718,
+            0.999952
+          ],
+          "raw_case_str": "(0.02, 0.999438), (0.1, 0.999718), (1.0, 0.999952)",
+          "line": "[ext-engine] [tts_engine] cp_decode: NPU 自检通过（耗时 0.059 s，用例 [(0.02, 0.999438), (0.1, 0.999718), (1.0, 0.999952)]）"
+        },
+        "cp_prefill": {
+          "ok": true,
+          "elapsed_s": 0.075,
+          "cosines": [
+            0.998595,
+            0.99931,
+            0.999953
+          ],
+          "raw_case_str": "(0.02, 0.998595), (0.1, 0.99931), (1.0, 0.999953)",
+          "line": "[ext-engine] [tts_engine] cp_prefill: NPU 自检通过（耗时 0.075 s，用例 [(0.02, 0.998595), (0.1, 0.99931), (1.0, 0.999953)]）"
+        }
+      },
+      "selfcheck_fail": {},
+      "execution_devices": "talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU(lazy)",
+      "landing": {
+        "npu_n": 9
+      },
+      "err_file": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\e2e_v26_r2\\bgkeep_clone\\bridge.err",
+      "err_bytes": 4529,
+      "err_sha256": "39743ea1110903ce3e2a241152b4886b635b86153a7fc88bd08006bcee721cd3",
+      "checks": [
+        {
+          "name": "cp_prefill 自检有「通过」记录",
+          "ok": true,
+          "detail": "[ext-engine] [tts_engine] cp_prefill: NPU 自检通过（耗时 0.075 s，用例 [(0.02, 0.998595), (0.1, 0.99931), (1.0, 0.999953)]）"
+        },
+        {
+          "name": "cp_prefill 自检耗时 < 1.0 s",
+          "ok": true,
+          "detail": "0.075"
+        },
+        {
+          "name": "cp_prefill 逐用例余弦全 ≥ 0.99",
+          "ok": true,
+          "detail": "[0.998595, 0.99931, 0.999953]"
+        },
+        {
+          "name": "cp_prefill 无「自检失败」记录（反证组）",
+          "ok": true,
+          "detail": "无"
+        },
+        {
+          "name": "cp_decode 自检有「通过」记录",
+          "ok": true,
+          "detail": "[ext-engine] [tts_engine] cp_decode: NPU 自检通过（耗时 0.059 s，用例 [(0.02, 0.999438), (0.1, 0.999718), (1.0, 0.999952)]）"
+        },
+        {
+          "name": "cp_decode 自检耗时 < 1.0 s",
+          "ok": true,
+          "detail": "0.059"
+        },
+        {
+          "name": "cp_decode 逐用例余弦全 ≥ 0.99",
+          "ok": true,
+          "detail": "[0.999438, 0.999718, 0.999952]"
+        },
+        {
+          "name": "cp_decode 无「自检失败」记录（反证组）",
+          "ok": true,
+          "detail": "无"
+        },
+        {
+          "name": "cp_prefill 落点仍是 NPU",
+          "ok": true,
+          "detail": "talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU(lazy)"
+        },
+        {
+          "name": "cp_decode 落点仍是 NPU",
+          "ok": true,
+          "detail": "talker=NPU，cp_prefill=NPU，cp_decode=NPU，decoder=NPU/NPU(lazy)"
+        }
+      ],
+      "all_pass": true
+    }
+  },
+  "counterfactual": {
+    "mutation": "把 cp_prefill 的一行「自检通过」改成「自检失败」",
+    "target": "cp_prefill",
+    "judgement_detects": true,
+    "load_bearing": true
+  },
+  "all_ok": true
+}

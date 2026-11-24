@@ -37,10 +37,12 @@ EXPECT_MODEL = {
     'models/bgsep/htdemucs_core.bin': 106628066,
 }
 
-#: 🔴🔴 **APP-131**：EXT 由 **3573b2d（v0.4.19）改为 4740b06（v0.4.20）**
-#:   （reviewer：「APP-129 第 2 节的「EXT：3573b2d」改为「4740b06」」）
-EXT_COMMIT = '4740b06'
-EXT_VERSION = '0.4.20'
+#: 🔴🔴 **EXT 版本链**（reviewer 逐条覆盖）：
+#:   APP-129 `3573b2d`（v0.4.19）→ APP-131 `4740b06`（v0.4.20）
+#:   → **APP-133 `b2a4978`（v0.4.21）＝ 本轮交付口径**
+#:   （reviewer：「v2.6 的 EXT 改用 b2a4978（替代 APP-131 的 4740b06）」）
+EXT_COMMIT = 'b2a4978'
+EXT_VERSION = '0.4.21'
 SRC_BG = os.path.join(HOME, 'shared', 'bgkeep')
 
 
@@ -126,10 +128,11 @@ def main():
         'pkg_dir': '<HOME>\\Confucius4_LiveCaption_v%s' % args.version,
         'accepted_at': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'built_by': ('App module / APP-129 + APP-130 (2026-11-24): '
-                     'EXT v0.4.19 (3573b2d) + Demucs 分离模型 + APP-123 c13 '
+                     'EXT v0.4.21 (b2a4978) + Demucs 分离模型 + APP-123 c13 '
                      '+ APP-130 code-predictor NPU 自检兜底；'
                      'acceptance run on this package before signing'),
-        'corrections': ['APP-129', 'APP-130', 'APP-123'],
+        'corrections': ['APP-129', 'APP-130', 'APP-131',
+                         'APP-132', 'APP-133', 'APP-123'],
         'binding_gate': 'app191',
         'code_fingerprint': agg,
         'code_fingerprint_alg': (
@@ -145,9 +148,10 @@ def main():
         'model_manifest': model_manifest,
         'delivery_scope': (
             'v2.6（完整版全集，MiniMVP / SpecialMVP 不带）：'
-            '(1) EXT **v0.4.20（4740b06）**——「保留背景音」默认**开**、'
+            '(1) EXT **v0.4.21（b2a4978）**——「保留背景音」默认**开**、'
             '默认分离设备 **GPU.0(FP32)**（可用 EXT_BG_DEVICE=CPU 改）、'
-            '克隆音色跟随男女切换（v0.4.20，APP-131）；'
+            '克隆音色跟随男女切换（v0.4.20，APP-131）＋'
+            '按音高把男女混在一起的段切开（v0.4.21，APP-133）；'
             '(2) Demucs 分离模型随包（models/bgsep/，身份见 model_manifest）；'
             '(3) APP-123 c13 小窗 + 直接拼接（38 帧窗口 / 25 帧左上下文 / '
             'crossfade=0）；'
@@ -186,7 +190,7 @@ def main():
         ('聚合指纹一致', back.get('code_fingerprint') == agg2),
         ('模型清单齐全且逐条 OK',
          bool(model_manifest) and all(v.get('ok') for v in model_manifest.values())),
-        ('EXT 版本 = %s（APP-131）' % EXT_VERSION, ext_ver == EXT_VERSION),
+        ('EXT 版本 = %s（APP-133）' % EXT_VERSION, ext_ver == EXT_VERSION),
     ]
     print('=== v%s ACCEPTED.json 签名 ===' % args.version)
     print('  生产模块 %d 个；聚合指纹 %s' % (len(mods), agg2))

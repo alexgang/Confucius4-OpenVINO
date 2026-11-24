@@ -1,0 +1,196 @@
+{
+  "ts": "2026-11-24 18:19:20",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6",
+  "clips": [
+    {
+      "clip": "s2",
+      "media": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\clips\\s2.wav",
+      "dir": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\e2e_v26\\clip_s2",
+      "ts": "2026-11-24T18:19:42",
+      "bridge_ready": true,
+      "bridge_ready_s": 15.0,
+      "e2e_rc": 0,
+      "player_mix_exists": true,
+      "player_mix_bytes": 5902744,
+      "ogg": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app129_listen_s2.ogg",
+      "ogg_ok": true,
+      "ogg_info": {
+        "bytes": 328411,
+        "bitrate": 96000,
+        "dur_s": 30.7,
+        "sample_rate": 48000,
+        "channels": 2,
+        "codec_used": "libopus",
+        "codec": "opus",
+        "decodable": true,
+        "duration_s": 30.75,
+        "n_decoded_frames": 1538
+      },
+      "metrics": {
+        "duration_s": 30.7,
+        "dubs": 5,
+        "bg_blocks": 31,
+        "bg_late_blocks": 0,
+        "fallback_to_orig_s": 0.0,
+        "dub_late_vs_play_s": {
+          "max": 5.4,
+          "p90": 2.2,
+          "n_late": 1
+        },
+        "bg_status_last": {
+          "state": "ok",
+          "device": "GPU.0",
+          "reason": "",
+          "rtf": 0.198,
+          "lead_sec": 0.0,
+          "at": 64.89
+        }
+      }
+    },
+    {
+      "clip": "cs2",
+      "media": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\clips\\cs2.wav",
+      "dir": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\e2e_v26\\clip_cs2",
+      "ts": "2026-11-24T18:21:12",
+      "bridge_ready": true,
+      "bridge_ready_s": 15.0,
+      "e2e_rc": 0,
+      "player_mix_exists": true,
+      "player_mix_bytes": 14128180,
+      "ogg": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app129_listen_cs2.ogg",
+      "ogg_ok": true,
+      "ogg_info": {
+        "bytes": 852817,
+        "bitrate": 96000,
+        "dur_s": 73.6,
+        "sample_rate": 48000,
+        "channels": 2,
+        "codec_used": "libopus",
+        "codec": "opus",
+        "decodable": true,
+        "duration_s": 73.59,
+        "n_decoded_frames": 3680
+      },
+      "metrics": {
+        "duration_s": 73.6,
+        "dubs": 15,
+        "bg_blocks": 74,
+        "bg_late_blocks": 0,
+        "fallback_to_orig_s": 0.0,
+        "dub_late_vs_play_s": {
+          "max": 25.02,
+          "p90": 16.9,
+          "n_late": 10
+        },
+        "bg_status_last": {
+          "state": "ok",
+          "device": "GPU.0",
+          "reason": "",
+          "rtf": 0.203,
+          "lead_sec": 0.0,
+          "at": 105.69
+        }
+      }
+    },
+    {
+      "clip": "tuffy",
+      "media": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\clips\\tuffy.wav",
+      "dir": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\e2e_v26\\clip_tuffy",
+      "ts": "2026-11-24T18:23:25",
+      "bridge_ready": true,
+      "bridge_ready_s": 15.0,
+      "e2e_rc": 0,
+      "player_mix_exists": true,
+      "player_mix_bytes": 8666848,
+      "ogg": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app129_listen_tuffy.ogg",
+      "ogg_ok": true,
+      "ogg_info": {
+        "bytes": 580867,
+        "bitrate": 96000,
+        "dur_s": 45.1,
+        "sample_rate": 48000,
+        "channels": 2,
+        "codec_used": "libopus",
+        "codec": "opus",
+        "decodable": true,
+        "duration_s": 45.15,
+        "n_decoded_frames": 2258
+      },
+      "metrics": {
+        "duration_s": 45.1,
+        "dubs": 7,
+        "bg_blocks": 46,
+        "bg_late_blocks": 0,
+        "fallback_to_orig_s": 0.0,
+        "dub_late_vs_play_s": {
+          "max": 14.35,
+          "p90": 9.55,
+          "n_late": 3
+        },
+        "bg_status_last": {
+          "state": "ok",
+          "device": "GPU.0",
+          "reason": "",
+          "rtf": 0.201,
+          "lead_sec": 0.0,
+          "at": 75.25
+        }
+      }
+    }
+  ],
+  "degradation": {
+    "name": "degradation_models_bgsep_missing",
+    "ts": "2026-11-24T18:19:20",
+    "before": {
+      "dir": true,
+      "files": [
+        "htdemucs_core.bin",
+        "htdemucs_core.xml"
+      ]
+    },
+    "renamed": true,
+    "bridge_ready": true,
+    "bridge_ready_s": 20.0,
+    "hello_ack": {
+      "type": "hello_ack",
+      "delay_sec": 20.0,
+      "sample_rate": 16000,
+      "segmentation": {
+        "segmentation_source": "R2T2 import",
+        "r2t2_root": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\app",
+        "strategy": "vad",
+        "min_segment_sec": 3.0,
+        "max_segment_sec": 8.0,
+        "silence_db": -40.0,
+        "min_silence_ms": 300,
+        "pyannote_used_for_segmentation": false
+      },
+      "capture_mode": null,
+      "mode": "real",
+      "engines_ready": true,
+      "pipeline": true,
+      "session_id": "15477766",
+      "bg_supported": true,
+      "bg_model": false,
+      "bg": {
+        "state": "unavailable",
+        "device": null,
+        "reason": "背景分离模型缺失（models/bgsep/htdemucs_core.xml）",
+        "rtf": null,
+        "lead_sec": null
+      }
+    },
+    "bg_state": "unavailable",
+    "bg_reason": "背景分离模型缺失（models/bgsep/htdemucs_core.xml）",
+    "bg_supported": true,
+    "bg_model": false,
+    "after": {
+      "dir": true,
+      "files": [
+        "htdemucs_core.bin",
+        "htdemucs_core.xml"
+      ]
+    },
+    "restored": true
+  }
+}

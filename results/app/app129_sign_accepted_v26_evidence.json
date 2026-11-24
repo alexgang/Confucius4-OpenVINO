@@ -1,0 +1,55 @@
+{
+  "pkg": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.6",
+  "version": "2.6",
+  "n_modules": 33,
+  "aggregate": "1a3a849f562a9d28ea028767dff03cd251f44e5d55801b6ccfa34c4b489571b1",
+  "checks": {
+    "accepted=True": true,
+    "version=2.6": true,
+    "pkg_dir 目录名一致": true,
+    "code_fingerprints 非空": true,
+    "逐条指纹一致": true,
+    "集合一致（无缺/多）": true,
+    "聚合指纹一致": true,
+    "模型清单齐全且逐条 OK": true,
+    "EXT 版本 = 0.4.21（APP-133）": true
+  },
+  "model_manifest": {
+    "models/bgsep/htdemucs_core.xml": {
+      "bytes": 1341298,
+      "sha256": "eb62037b77c34fb8fd3adfb96758952fbd104d414243e47859f1cd0bc2b7b4ef",
+      "expect_bytes": 1341298,
+      "source": "shared\\bgkeep\\htdemucs_core.xml",
+      "ok": true
+    },
+    "models/bgsep/htdemucs_core.bin": {
+      "bytes": 106628066,
+      "sha256": "62ad36576041af56f0829db54a1b5fe62d10de3a1a223a549e05078deef5a336",
+      "expect_bytes": 106628066,
+      "source": "shared\\bgkeep\\htdemucs_core.bin",
+      "ok": true
+    }
+  },
+  "ext_version": "0.4.21",
+  "gate5_ok": true,
+  "gate5_reason": "OK",
+  "gate5_detail": {
+    "package_dir": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.6",
+    "expect_version": "2.6",
+    "accepted_path": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.6\\ACCEPTED.json",
+    "accepted_version": "2.6",
+    "accepted_pkg_dir": "<HOME>\\Confucius4_LiveCaption_v2.6",
+    "package_version": "2.6",
+    "package_basename": "Confucius4_LiveCaption_v2.6",
+    "n_registered": 33,
+    "n_current": 33,
+    "n_changed": 0,
+    "changed": [],
+    "n_missing": 0,
+    "missing": [],
+    "n_extra": 0,
+    "extra": [],
+    "current_code_fingerprint": "1a3a849f562a9d28ea028767dff03cd251f44e5d55801b6ccfa34c4b489571b1"
+  },
+  "bytes": 5352
+}

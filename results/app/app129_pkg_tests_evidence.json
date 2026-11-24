@@ -1,5 +1,5 @@
 {
-  "ts": "2026-11-24 12:29:36",
+  "ts": "2026-11-24 17:32:52",
   "pkg": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.6",
   "pkg_python": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.6\\python\\python.exe",
   "results": {
@@ -17,7 +17,7 @@
       "log": "results/app/app129_pkg_test_py.log"
     },
     "node": {
-      "harness": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app129_pkg_tests_89w3fc8g\\ext0419_bg_harness.js",
+      "harness": "C:\\Users\\TREKKE~1\\AppData\\Local\\Temp\\app129_pkg_tests_lvks0954\\ext0419_bg_harness.js",
       "player_js": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.6\\ext\\extension\\player.js",
       "node_version": "v22.22.2",
       "n_pass": 18,
@@ -34,14 +34,15 @@
         "ROOT ← EXT_TEST_ROOT 环境变量",
         "sys.modules[\"ext\"] ← ext.bridge（包内布局）"
       ],
-      "n_check_call_sites_in_src": 8,
-      "n_check_runtime": 12,
-      "n_pass": 12,
+      "n_check_call_sites_in_src": 12,
+      "n_check_runtime": 16,
+      "n_pass": 16,
       "n_fail": 0,
       "rc": 0,
       "ok": true,
-      "required_by": "APP-131",
-      "expected": "12/12",
+      "required_by": "APP-133（覆盖 APP-131）",
+      "expected": "16/16",
+      "expected_by_app131": "12/12",
       "log": "results/app/app129_pkg_test_py2.log"
     }
   }

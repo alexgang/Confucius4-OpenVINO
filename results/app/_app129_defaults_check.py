@@ -59,6 +59,11 @@ HOME = r'C:\Users\Trekker-PTL'
 REPO = os.path.join(HOME, 'confucius4-openvino')
 RESULTS = os.path.join(REPO, 'results', 'app')
 
+#: 🔴 **不写死客户包版本号**（§48「包路径写死」闸门）⇒ 用单一数据源
+#:   `pkg_paths.discover_pkg_dir()`（找**最大版本**且含 `app/` 的包目录）。
+sys.path.insert(0, REPO)
+import pkg_paths  # noqa: E402
+
 
 def sha256(p):
     h = hashlib.sha256()
@@ -188,10 +193,10 @@ def extract_exprs(popup_js: str):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--pkg', default=os.path.join(
-        HOME, 'Confucius4_LiveCaption_v2.6'))
+    ap.add_argument('--pkg', default=None,
+                    help='包根目录（默认＝pkg_paths.discover_pkg_dir()）')
     args = ap.parse_args()
-    pkg = args.pkg
+    pkg = args.pkg or pkg_paths.discover_pkg_dir()
     popup = os.path.join(pkg, 'ext', 'extension', 'popup.js')
     if not os.path.isfile(popup):
         log('FAIL: 包内 popup.js 不存在：%s' % popup)

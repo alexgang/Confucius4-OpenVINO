@@ -67,6 +67,11 @@ E2E_TOOL = os.path.join(tempfile.gettempdir(), 'bgkeep_e2e_0420.py')
 #:      ⇒ 那是**另一条**媒体（48 kHz 立体声、旁白密度不同）
 #:      ⇒ dubs 只有 54、dub_late max 244 s ⇒ **与基线不可比**。
 MEDIA_10MIN = os.path.join(REPO, 'test_audio', 'clip_10min_0_600.wav')
+#: 🔴 **B 站视频**（男女多次切换）—— reviewer APP-131 的 clone 性别守门
+#:   就是在这条素材上测的（用户给的 B 站视频前 7 分钟）⇒
+#:   canonical clip 是**单人旁白** ⇒ 性别守门不会被触发 ⇒
+#:   要让 `gender_switch` / `gender_selfref` 真正走到，必须用这条。
+MEDIA_BILI = os.path.join(HOME, 'shared', 'bgkeep', 'clips', 'bili_600s.wav')
 #: 🔴 桥接端口（**可配**）⇒ reviewer 并发作业占用 8765 时可换端口，避免互杀
 PORT = 8765
 
@@ -145,7 +150,7 @@ def ensure_e2e_tool():
     out = os.path.join(os.environ.get('TEMP', os.path.dirname(MEDIA_10MIN)),
                        'bgkeep_e2e_4740b06.py')
     p = subprocess.run(['git', '-C', EXT_REPO, 'show',
-                        '4740b06:tools/bgkeep_e2e.py'], capture_output=True)
+                        'b2a4978:tools/bgkeep_e2e.py'], capture_output=True)
     if p.returncode != 0:
         log('🔴 取 bgkeep_e2e.py 失败：%s' % p.stderr[-500:])
         return None
@@ -256,7 +261,7 @@ def run_arm(name, bg_off, media, tail_wait=45.0, timeout=1800, voice='A',
     rec = {'arm': name, 'bg_off': bool(bg_off), 'voice': voice,
            'spk_bypass': bool(spk_bypass),
            'pid': proc.pid,
-           'media': media, 'pkg': PKG, 'ext_commit': '4740b06',
+           'media': media, 'pkg': PKG, 'ext_commit': 'b2a4978',
            'started': datetime.datetime.now().isoformat(timespec='seconds')}
 
     ready = False
@@ -356,7 +361,7 @@ def main():
     lock = B.acquire_lock('app bgkeep v2.6 chain')
     ev_path = os.path.join(RESULTS, 'app129_chain_v26_evidence.json')
     rep = {'ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-           'pkg': PKG, 'ext_commit': '4740b06', 'media': media, 'arms': []}
+           'pkg': PKG, 'ext_commit': 'b2a4978', 'media': media, 'arms': []}
     if args.merge and os.path.isfile(ev_path):
         try:
             old = json.load(open(ev_path, encoding='utf-8'))
@@ -377,6 +382,10 @@ def main():
             #   （reviewer：「另请加一臂 voice=clone（保留背景音开）」）
             if a == 'clone':
                 rec = run_arm('bgkeep_clone', False, media, voice='clone')
+            elif a == 'clone_bili':
+                # 🔴 reviewer 自己的 clone 性别守门测试素材（男女多次切换）
+                rec = run_arm('bgkeep_clone_bili', False, MEDIA_BILI,
+                              voice='clone')
             elif a == 'off_nb':
                 # 🔴 与 reviewer e2e7 基线**同口径**：保留背景音关 ＋ 旁路关
                 rec = run_arm('bgkeep_off_nb', True, media, spk_bypass=False)

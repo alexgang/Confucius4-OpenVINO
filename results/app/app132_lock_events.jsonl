@@ -1,0 +1,10 @@
+{"ts": "2026-11-24 17:29:09", "event": "acquired", "pid": 18812, "content": "app 18812 2026-11-24 17:29:09 RUNNING probe"}
+{"ts": "2026-11-24 17:29:10", "event": "released", "pid": 18812, "started": "2026-11-24 17:29:09", "ended": "2026-11-24 17:29:09", "lost": false}
+{"ts": "2026-11-24 17:29:15", "event": "acquired", "pid": 21556, "content": "app 21556 2026-11-24 17:29:15 RUNNING app test chain"}
+{"ts": "2026-11-24 17:29:25", "event": "lock_lost", "why": "file_missing", "pid": 21556}
+{"ts": "2026-11-24 17:29:28", "event": "lock_check_failed", "owner_raw": null}
+{"ts": "2026-11-24 17:29:28", "event": "release_error", "error": "FileNotFoundError(2, '系统找不到指定的文件。')"}
+{"ts": "2026-11-24 17:34:50", "event": "acquired", "pid": 9584, "content": "app 9584 2026-11-24 17:34:50 RUNNING app bgkeep v2.6 chain (APP-132 一次持锁到底)"}
+{"ts": "2026-11-24 17:41:15", "event": "released", "pid": 9584, "started": "2026-11-24 17:34:50", "ended": "2026-11-24 17:41:15", "lost": false}
+{"ts": "2026-11-24 17:45:04", "event": "acquired", "pid": 15364, "content": "app 15364 2026-11-24 17:45:04 RUNNING app bgkeep v2.6 chain (APP-132 一次持锁到底)"}
+{"ts": "2026-11-24 18:25:10", "event": "released", "pid": 15364, "started": "2026-11-24 17:45:04", "ended": "2026-11-24 18:25:10", "lost": false}

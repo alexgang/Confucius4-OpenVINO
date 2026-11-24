@@ -209,6 +209,13 @@ def main():
     A('· ③**自检日志在 stderr（bridge.err）不在 stdout（bridge.log）** ⇒ 首版自检证据抽取漏抓 ⇒ 单独写 results/app/_app129_selfcheck_evidence.py 扫 bridge.err。')
     A('· ④**自检证据抽取的首版有组号坑**：正则 `cp_(prefill|decode)` 的 group(1) 不含 `cp_` 前缀 ⇒ 查表恒 miss ⇒ **假 FAIL**；EXECUTION_DEVICES 的非贪婪正则只截到第一个逗号 ⇒ 同样假 FAIL。两处都已修（判据本身会错 ⇒ 先怀疑判据）。')
     A('· ⑤**顶层目录改名被系统拒绝**（PermissionError 13；嵌套目录改名/删除正常 ⇒ 目录自身 OS 句柄未释放）⇒ 改为直接 robocopy 到正式目录，staging 残留待清理。')
+    A('· ⑥🔴**机器并发占用（计时有效性）**：本机 12:44:18 起有 reviewer 的作业在跑'
+      '（`shared\\MACHINE_LOCK` 内容 `reviewer gender ab 2026-11-24T12:44:18`，'
+      '对应 conhost 进程 12:44:18 启动）⇒ 本轮的「关/开/克隆」三臂**与 reviewer 并发**'
+      '⇒ 按 APP-115 口径，**这三臂的计时类数字（dub_late / synth_rtf / 积压）不作数**；'
+      '第四臂「关（旁路关）」是在**拿到锁之后**跑的 ⇒ 那一臂才是干净的同口径锚点。'
+      '⇒ 「dubs / 丢句 / bg_blocks / bg_late_blocks / fallback_to_orig_s / sep_rtf / 峰值内存」'
+      '这些**计数类**结论不受并发影响。')
     A('· ⑥**EXT 源码仓工作树是 v0.4.21 在制品**（M ext/bridge.py / ext/clone_voice.py 等，未提交）⇒ 一律**按 commit 取**（4740b06），绝不取工作树（包内已核：clone_voice.py 有 gender_switch、无 split_by_gender）。')
     A('')
     A('■ 8. 🔴 留白（未取到的数字不写「已通过」）')

@@ -76,7 +76,7 @@ def e2e_tool():
     """按 **commit 4740b06** 取 e2e 工具（🔴 不取工作树——工作树是 v0.4.21 在制品）。"""
     out = os.path.join(os.environ.get('TEMP', HOME), 'bgkeep_e2e_0420.py')
     p = subprocess.run(['git', '-C', EXT_REPO, 'show',
-                        '4740b06:tools/bgkeep_e2e.py'], capture_output=True)
+                        'b2a4978:tools/bgkeep_e2e.py'], capture_output=True)
     if p.returncode != 0:
         return None
     with open(out, 'wb') as f:
@@ -167,7 +167,14 @@ def hello_probe(cwd):
         'import websockets\n'
         'async def main():\n'
         '    tok = open(sys.argv[1], encoding="utf-8").read().strip()\n'
-        '    async with websockets.connect("ws://127.0.0.1:%d") as ws:\n'
+        '    # 🔴🔴 APP-133：**必须带 Origin** ⇒ 否则桥接 `check_origin()`\n'
+        '    #   判空 ⇒ `close(code=1008, reason="bad origin")` ⇒ 探针拿不到\n'
+        '    #   `hello_ack`（本轮首跑实测：`hello_ack.raw=""`）。\n'
+        '    #   ⇒ 口径与 EXT 官方 `tools/bgkeep_e2e.py` **完全一致**。\n'
+        '    sys.path.insert(0, sys.argv[2])\n'
+        '    from ext.extension_id import resolve_extension_id\n'
+        '    origin = "chrome-extension://" + str(resolve_extension_id())\n'
+        '    async with websockets.connect("ws://127.0.0.1:%d", origin=origin) as ws:\n'
         % PORT +
         '        await ws.send(json.dumps({"type": "hello", "role": "uplink",\n'
         '            "bg_keep": True, "bg_sample_rate": 48000, "bg_channels": 2,\n'
@@ -183,7 +190,7 @@ def hello_probe(cwd):
         f.write(code)
     try:
         p = subprocess.run([PKG_PY, '-X', 'utf8', tp,
-                            os.path.join(cwd, 'bridge_token.txt')],
+                            os.path.join(cwd, 'bridge_token.txt'), PKG],
                            capture_output=True, text=True, timeout=120,
                            cwd=cwd, env=env)
         txt = (p.stdout or '').strip().splitlines()
@@ -205,42 +212,125 @@ def wav_to_ogg(wav, ogg, max_bytes=MAX_OGG_BYTES):
         n = f.getnframes()
         dur = n / float(sr)
     bitrate = 96000
+    last_err = None
     for _try in range(6):
-        rc = _encode_av(wav, ogg, sr, ch, bitrate)
-        if rc is None:
-            return False, {'error': 'PyAV 编码失败'}
+        ok_enc, enc_info = _encode_av(wav, ogg, sr, ch, bitrate)
+        if not ok_enc:
+            last_err = enc_info
+            break
         sz = os.path.getsize(ogg)
         if sz <= max_bytes:
-            return True, {'bytes': sz, 'bitrate': bitrate, 'dur_s': round(dur, 1),
-                          'sample_rate': sr, 'channels': ch}
+            info = {'bytes': sz, 'bitrate': bitrate,
+                    'dur_s': round(dur, 1), 'sample_rate': sr,
+                    'channels': ch}
+            for k in ('codec_used', 'codec', 'decodable', 'duration_s',
+                      'n_decoded_frames'):
+                if k in enc_info:
+                    info[k] = enc_info[k]
+            return True, info
         bitrate = max(24000, int(bitrate * 0.6))
-    sz = os.path.getsize(ogg)
-    return sz <= max_bytes, {'bytes': sz, 'bitrate': bitrate,
-                             'dur_s': round(dur, 1)}
+    sz = os.path.getsize(ogg) if os.path.isfile(ogg) else 0
+    info = {'bytes': sz, 'bitrate': bitrate, 'dur_s': round(dur, 1)}
+    if last_err:
+        info['error'] = last_err.get('error', 'PyAV 编码失败')
+        if last_err.get('tried'):
+            info['tried'] = last_err['tried']
+    return bool(sz > 0 and sz <= max_bytes), info
+
+
+#: 🔴🔴 **APP-133（本轮实测修）**：OGG 编码器的**优先级表**。
+#:
+#: 实测：包内 python 的 PyAV **19.0.1** 上 `add_stream('vorbis', ...)` 直接抛
+#: `ExperimentalError(..., 'avcodec_open2("vorbis", {})')`
+#: ⇒ **四个样片的 OGG 全都没生成**（`ogg_ok=false`）⇒ 一条附件都发不出去。
+#:
+#: 🔴 **判据纪律**：`av.codecs_available` 里**列得出** `vorbis`/`speex`
+#: **不等于**「能开」⇒ **不能用编码器列表当判据** ⇒ 必须**逐个真开一次**。
+#:
+#: 优先级：
+#:   1. `vorbis`   —— reviewer 原意（Vorbis in OGG）；
+#:   2. `libopus`  —— **Opus in OGG**（**仍是 .ogg 容器**；Chrome/Firefox/
+#:                    ffmpeg/VLC 都能放）⇒ 兜底首选；
+#:   3. `opus`     —— 同一 codec 的另一个名字。
+#:
+#: 实际用上的 codec 名**写进证据** ⇒ reviewer 可自行核对「这是不是 OGG」。
+OGG_ENCODERS = ('vorbis', 'libopus', 'opus')
+
+
+def _encode_one(wav, ogg, sr, ch, bitrate, codec):
+    """用**指定** codec 编码一次。成功 ⇒ True。"""
+    import av
+    with av.open(wav) as inp:
+        in_stream = inp.streams.audio[0]
+        resampler = av.audio.resampler.AudioResampler(
+            format='s16', layout='stereo' if ch == 2 else 'mono',
+            rate=sr)
+        with av.open(ogg, 'w', format='ogg') as out:
+            out_stream = out.add_stream(codec, rate=sr)
+            out_stream.bit_rate = bitrate
+            for frame in inp.decode(in_stream):
+                for rf in resampler.resample(frame):
+                    for pkt in out_stream.encode(rf):
+                        out.mux(pkt)
+            for pkt in out_stream.encode(None):
+                out.mux(pkt)
+    return True
+
+
+def _verify_ogg(ogg):
+    """🔴 **成功判据不能只看「没抛异常」** ⇒ 必须**回读并重新解码**。
+
+    ⇒ 返回 (ok, info)；ok=True 表示「文件存在 ＋ 大小>0 ＋ 能被解回来」。
+    """
+    info = {'bytes': 0, 'decodable': False, 'codec': None,
+            'duration_s': None}
+    try:
+        import av
+        if not os.path.isfile(ogg):
+            return False, info
+        info['bytes'] = os.path.getsize(ogg)
+        if info['bytes'] <= 0:
+            return False, info
+        with av.open(ogg) as inp:
+            st = inp.streams.audio[0]
+            cc = getattr(st, 'codec_context', None)
+            info['codec'] = getattr(cc, 'name', None)
+            n = 0
+            for _f in inp.decode(st):
+                n += 1
+            info['n_decoded_frames'] = n
+            info['decodable'] = (n > 0)
+            if st.duration and st.time_base:
+                info['duration_s'] = round(
+                    float(st.duration * st.time_base), 2)
+    except Exception as e:
+        info['error'] = repr(e)[:200]
+        return False, info
+    return bool(info['decodable']), info
 
 
 def _encode_av(wav, ogg, sr, ch, bitrate):
-    try:
-        import av
-        import numpy as np
-        with av.open(wav) as inp:
-            in_stream = inp.streams.audio[0]
-            resampler = av.audio.resampler.AudioResampler(
-                format='s16', layout='stereo' if ch == 2 else 'mono',
-                rate=sr)
-            with av.open(ogg, 'w', format='ogg') as out:
-                out_stream = out.add_stream('vorbis', rate=sr)
-                out_stream.bit_rate = bitrate
-                for frame in inp.decode(in_stream):
-                    for rf in resampler.resample(frame):
-                        for pkt in out_stream.encode(rf):
-                            out.mux(pkt)
-                for pkt in out_stream.encode(None):
-                    out.mux(pkt)
-        return True
-    except Exception as e:
-        print('av encode fail:', repr(e))
-        return None
+    """按优先级逐个试编码器 ⇒ 第一个「真能开 ＋ 产出可解码文件」的胜出。
+
+    🔴 **返回 (ok, info)**（旧版是 `True/None` ⇒ 调用方同步改）。
+    """
+    tried = []
+    for codec in OGG_ENCODERS:
+        try:
+            _encode_one(wav, ogg, sr, ch, bitrate, codec)
+            ok, info = _verify_ogg(ogg)
+            tried.append({'codec': codec, 'opened': True,
+                          'verified': ok, 'info': info})
+            if ok:
+                info['codec_used'] = codec
+                info['tried'] = tried
+                return True, info
+        except Exception as e:
+            tried.append({'codec': codec, 'opened': False,
+                          'error': repr(e)[:200]})
+    print('av encode fail: %s' % json.dumps(tried, ensure_ascii=False)[:600])
+    return False, {'error': 'PyAV 编码失败（已试 %s）'
+                          % ','.join(OGG_ENCODERS), 'tried': tried}
 
 
 # ── §3.4 不可用降级 ──────────────────────────────────────────────────
@@ -350,10 +440,14 @@ def make_clip(name):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--skip-degrade', action='store_true')
+    # 🔴 APP-132：整链脚本已持锁时用 --no-lock ⇒ 本脚本**不再自己取锁**
+    #   （否则会与整链的锁并存 ⇒ 两个锁实现 ⇒ 又回到「不原子」的老缺陷）
+    ap.add_argument('--no-lock', action='store_true')
     args = ap.parse_args()
     rep = {'ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
            'pkg': PKG, 'clips': [], 'degradation': None}
-    lock = B.acquire_lock('app bgkeep v2.6 clips+degrade')
+    lock = None if args.no_lock else \
+        B.acquire_lock('app bgkeep v2.6 clips+degrade')
     try:
         if not args.skip_degrade:
             rep['degradation'] = check_degradation()
@@ -365,7 +459,8 @@ def main():
                       'w', encoding='utf-8') as f:
                 json.dump(rep, f, ensure_ascii=False, indent=2)
     finally:
-        B.release_lock(lock)
+        if lock is not None:
+            B.release_lock(lock)
     log('证据：results/app/app129_clips_v26_evidence.json')
     return 0
 
