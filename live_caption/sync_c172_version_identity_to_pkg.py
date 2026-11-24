@@ -62,6 +62,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import os
 import re
 import sys
@@ -118,6 +119,46 @@ def section_versions(text, rx):
     return out
 
 
+def strip_leading_heading(body, ver, heading):
+    """剥离 changelog 正文**自带**的、与将要插入的标题**重复**的首行标题。
+
+    🔴 背景（APP-233 轮实测到的真缺陷）
+    - 本脚本插入新章节时**自己**写一个标题（`## vX.Y 改动说明` /
+      `## What's new in vX.Y`），随后把**人撰写的正文**接在标题下面。
+    - 但人撰写的正文文件（`_app129_changelog_2.6_zh.md` 等）**自身首行就是**
+      同一个标题 ⇒ 结果 README 里出现**两个标题**，其中前一个是**空段**
+      （`## v2.6 改动说明` 后面紧跟 `## v2.6 改动说明`）。
+    - v2.6 实测：`README_zh.md` 的 `## v2.6 改动说明` 出现 **2 次**；
+      `README_en.md` 出现空的 `## What's new in v2.6` ＋ `## v2.6 changes`。
+
+    🔴 剥离规则（**窄口径**，避免误伤正文）
+    只剥离**首行**且**同时**满足：
+      ① 是**二级标题**（恰好 `## `，**不是** `###`）——`### 1. xxx` 属于
+         正文小节，**绝不能**剥；
+      ② 要么与本次插入标题**文字相同**（忽略 `#` 级数与首尾空白），
+         要么**含本版本号** `v<ver>`（英文正文的 `## v2.6 changes` 即属此类，
+         它与插入的 `## What's new in v2.6` 文字不同但**语义是同一个标题**）。
+    其余情况**一个字都不动**（幂等：正文不带标题时本函数是 no-op）。
+
+    返回 (剥离后的正文, 是否剥离过, 被剥离的行)。
+    """
+    if not body:
+        return body, False, None
+    b = body.strip('\n')
+    first_nl = b.find('\n')
+    first = (b if first_nl < 0 else b[:first_nl]).strip()
+    m = re.match(r'^(##)\s+(.*)$', first)      # 恰好二级；`###` 不匹配
+    if not m:
+        return b, False, None
+    text = m.group(2).strip()
+    same_text = (text.lower() == heading.lstrip('#').strip().lower())
+    same_ver = ('v%s' % ver) in text.lower()
+    if not (same_text or same_ver):
+        return b, False, None
+    rest = '' if first_nl < 0 else b[first_nl + 1:]
+    return rest.strip('\n'), True, first
+
+
 def build_blocks(texts, ver, changelogs):
     """按**文件当前内容**派生替换块（不写死任何版本号）。
 
@@ -158,7 +199,10 @@ def build_blocks(texts, ver, changelogs):
                     best = (k, mm)
             anchor_m = best[1]
             anchor = anchor_m.group(0)
-            new = ('## v%s 改动说明\n\n%s\n\n%s' % (ver, body.strip('\n'), anchor))
+            # 🔴 剥离正文自带、与本标题重复的首行标题（否则 README 出现空标题段）
+            body_txt, _stripped, _stripped_line = strip_leading_heading(
+                body, ver, '## v%s 改动说明' % ver)
+            new = ('## v%s 改动说明\n\n%s\n\n%s' % (ver, body_txt, anchor))
             b.append((anchor,
                       new,
                       'README_zh 插入 v%s 改动说明段（内容由人撰写）' % ver,
@@ -192,8 +236,13 @@ def build_blocks(texts, ver, changelogs):
                 best = (k, mm)
         if best:
             anchor = best[1].group(0)
+            # 🔴 剥离正文自带、与本标题重复的首行标题（英文正文首行是
+            #    `## v2.6 changes`，与插入的 `## What's new in v2.6` 文字不同
+            #    但语义是同一个标题 ⇒ 按「含本版本号」判定）
+            body_txt, _stripped, _stripped_line = strip_leading_heading(
+                body, ver, "## What's new in v%s" % ver)
             new = ("## What's new in v%s\n\n%s\n\n%s"
-                   % (ver, body.strip('\n'), anchor))
+                   % (ver, body_txt, anchor))
             b.append((anchor,
                       new,
                       "README_en 插入 'What's new in v%s' 段（内容由人撰写）" % ver,
@@ -273,6 +322,68 @@ def read_changelog(path):
     return norm(open(path, 'rb').read().decode('utf-8'))
 
 
+#: 包内 `app/MANIFEST.json` 的相对路径（与 pack_v13.py 的 MANIFEST_REL 同口径）
+MANIFEST_REL = os.path.join('app', 'MANIFEST.json')
+
+
+def sync_manifest_version(pkg_dir: str, ver: str, dry_run: bool):
+    """把包内 `app/MANIFEST.json` 的 `version` 字段同步到目标版本。
+
+    🔴 为什么要在这里做（APP-233 轮实测到的真缺陷）
+    - `app/MANIFEST.json` 的 `version` 是**客户核对版本号的第二个来源**
+      （第一个是目录名）⇒ 它必须与目录名一致。
+    - 但**完整版线（v2.x）从来不出 zip** ⇒ `pack_v13.py` 里的
+      `refresh_manifest()`（唯一会写这个字段的地方）**永远不会被执行**
+      ⇒ 目录名升到 v2.6，而 MANIFEST 仍写着 v2.5。
+    - v2.6 实测：`app/MANIFEST.json` 与 v2.5 的**逐字节相同**
+      （md5 `239ea82a4b1a12f9ad2e8cf55f244097`）⇒ 它是 robocopy 复制过来的
+      原件，**从未被刷新**。
+    - `app170_version_identity_gate.py` 的 I1b 会把这种不一致降级为
+      「提醒」，并写明「**zip 级断言兜底**」⇒ 但完整版线**没有 zip**
+      ⇒ **兜底不存在** ⇒ 这个提醒实际无人兜底。
+
+    🔴 为什么只改 `version` 一个字段
+    - `files` / `bytes` 是**打包净载荷**口径（`pkg_exclude.package_stats`），
+      由 `pack_v13.refresh_manifest()` 负责；本脚本**不碰**它们
+      （避免与打包口径打架，也避免在非打包流程里写错统计）。
+    - 写盘格式与 `refresh_manifest()` 一致（`indent=1`、
+      `ensure_ascii=False`、`newline=''`）⇒ **逐字节可复现**，
+      且**只改 version 不会让其它字段漂移**。
+
+    🔴 幂等：已经是目标版本 ⇒ **一个字节都不写**（不改 mtime）。
+    返回 (状态, 明细)；状态 ∈ {'APPLIED', 'ALREADY', 'MISSING'}。
+    """
+    path = os.path.join(pkg_dir, MANIFEST_REL)
+    if not os.path.isfile(path):
+        return 'MISSING', {'note': '包内无 %s' % MANIFEST_REL,
+                           'changed': False}
+    raw = open(path, 'rb').read()
+    try:
+        data = json.loads(raw.decode('utf-8'))
+    except Exception as e:
+        raise SystemExit('[FAIL] %s 不是合法 JSON：%r' % (MANIFEST_REL, e))
+    old = data.get('version')
+    if old == ver:
+        return 'ALREADY', {'old': old, 'new': ver, 'changed': False,
+                           'sha256_before': sha256_bytes(raw),
+                           'sha256_after': sha256_bytes(raw),
+                           'bytes_before': len(raw), 'bytes_after': len(raw)}
+    data['version'] = ver
+    out = json.dumps(data, ensure_ascii=False, indent=1).encode('utf-8')
+    if not dry_run:
+        # 写盘一律「临时文件 → os.replace」（不截断原文件）
+        tmp = path + '.tmp'
+        with open(tmp, 'wb') as f:
+            f.write(out)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    return 'APPLIED', {'old': old, 'new': ver, 'changed': True,
+                       'sha256_before': sha256_bytes(raw),
+                       'sha256_after': sha256_bytes(out),
+                       'bytes_before': len(raw), 'bytes_after': len(out)}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
         description='**通用**定点同步版本标识到客户包（不写死任何版本号）')
@@ -327,11 +438,28 @@ def main() -> int:
         for adv in advisories.get(fn, []):
             print('  [提醒] %s' % adv)
 
+    # ── app/MANIFEST.json → version（客户核对版本号的第二个来源）────
+    #    🔴 完整版线（v2.x）从来不出 zip ⇒ pack_v13.refresh_manifest()
+    #       永远不执行 ⇒ 这里**必须**补上，否则目录名与 MANIFEST 版本号不一致。
+    mf_status, mf_detail = sync_manifest_version(pkg, ver, args.dry_run)
+    print('\n[%s] %s' % (mf_status, MANIFEST_REL))
+    if mf_status == 'MISSING':
+        print('  [warn] 包内没有 %s ⇒ 跳过' % MANIFEST_REL)
+    elif mf_status == 'ALREADY':
+        print('  ALREADY  MANIFEST.version 已是 %r ⇒ 未写盘' % mf_detail['old'])
+    else:
+        print('  APPLIED  MANIFEST.version: %r -> %r'
+              % (mf_detail['old'], mf_detail['new']))
+    if mf_detail.get('changed'):
+        print('  字节 %d -> %d ；SHA256 %s -> %s'
+              % (mf_detail['bytes_before'], mf_detail['bytes_after'],
+                 mf_detail['sha256_before'][:16], mf_detail['sha256_after'][:16]))
+
     print()
     print('结论：%s' % ('FAIL' if rc else ('DRY-RUN OK' if args.dry_run else 'OK')))
-    if rc == 0 and not args.dry_run:
+    if rc == 0:
         print()
-        print('⚠️ 提醒：本脚本只同步**版本标识**（标题 / NOTICE）。')
+        print('⚠️ 提醒：本脚本只同步**版本标识**（标题 / NOTICE / MANIFEST.version）。')
         print('   「改动说明」章节**正文由人撰写** ⇒ 脚本只负责**插入**，不改正文。')
         print('   若本版本有新功能，请用 --changelog-zh / --changelog-en 插入对应章节。')
         print('   验收：python results/app/app170_version_identity_gate.py --pkg "%s"' % pkg)

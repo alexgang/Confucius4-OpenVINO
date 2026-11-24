@@ -188,14 +188,19 @@ def run_group(group, pkg_dir, ver, expect_version=None):
                 'dir=%s target=%s' % (detect_version(pkg_dir), target))
     # I1b：MANIFEST.version == 目标版本
     #   🔴 升版未刷新前**允许不一致**（refresh_manifest 稍后修正）
-    #      ⇒ 降级为**提醒**；zip 级硬断言在 pack_v13.py 里做。
+    #      ⇒ 降级为**提醒**。
+    #   🔴 APP-233 轮修正提醒措辞：原文写「zip 级断言兜底」，
+    #      但**完整版线（v2.x）从来不出 zip**（用户规则「不通知 ⇒ 不打包」）
+    #      ⇒ 那个兜底**对完整版不存在** ⇒ 提醒必须指向**真实**的修法。
+    #      真实修法：`live_caption/sync_c172_version_identity_to_pkg.py --pkg <包目录>`
+    #      （该脚本已同步 `app/MANIFEST.json` 的 `version`，见 APP-233 §3）。
     if man_ver == target:
         check_group(group, 'INV', 'I1b MANIFEST.version == 目标版本 %s' % target,
                     True, 'manifest=%s' % man_ver)
     else:
         check_group(group, 'ADV',
-                    'I1b MANIFEST.version == 目标版本 %s（升版未刷新，'
-                    'zip 级断言兜底）' % target,
+                    'I1b MANIFEST.version == 目标版本 %s（升版未刷新；'
+                    '修法：sync_c172_version_identity_to_pkg.py --pkg <包目录>）' % target,
                     False, 'manifest=%s target=%s' % (man_ver, target))
     check_group(group, 'INV', 'I2 NOTICE 仍含 wespeaker 署名',
                 'wespeaker' in nt, '')

@@ -8,29 +8,25 @@
  "verdict": "PASS",
  "advisories": [
   {
-   "name": "I1b MANIFEST.version == 目标版本 2.6（升版未刷新，zip 级断言兜底）",
+   "name": "I1b MANIFEST.version == 目标版本 2.6（升版未刷新；修法：sync_c172_version_identity_to_pkg.py --pkg <包目录>）",
    "detail": "manifest=2.5 target=2.6"
   },
   {
    "name": "D4 README_zh 有 v2.6 改动说明段（恰好 1 次）",
-   "detail": "count=0"
-  },
-  {
-   "name": "D5 README_en 有 v2.6 段（恰好 1 次）",
-   "detail": "count=0"
+   "detail": "count=2"
   }
  ],
  "fails": [],
  "files": {
   "README_zh.md": {
-   "bytes": 55968,
-   "sha256": "6f8b933e1dcb4f925ada969492741cf57cf77aa876cd005cad5d1784e58e442f",
-   "mtime": 1795497263.5061085
+   "bytes": 57986,
+   "sha256": "0bb23e7cfa39f24dbc567d84a0612d0977b02384dd8939132e65bb162ad3421a",
+   "mtime": 1795497295.3024967
   },
   "README_en.md": {
-   "bytes": 62308,
-   "sha256": "fd912d87d0343abc1777ab4c133b4e9ad98d1265279b29bd1acdaf128bac800c",
-   "mtime": 1795497263.5073204
+   "bytes": 64782,
+   "sha256": "6d67d4d690b2fc0ca52f78e0783be5ad233ee1336f352aa434e4f99e955287e4",
+   "mtime": 1795497295.3035977
   },
   "NOTICE": {
    "bytes": 10327,
