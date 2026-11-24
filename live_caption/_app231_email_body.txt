@@ -1,0 +1,43 @@
+[C4][A][STATUS][APP] APP-231 接续上一会话（TAKEOVER）—— 六通道复核无新 App 纠偏（last_ack 仍 APP-133）；补上 APP-132 的生产路径补漏（成包脚本的机器锁仍是 os.replace 非原子建锁）
+
+■ 1. 🟢 六通道复核 ⇒ 无新 App 纠偏（last_ack 仍 APP-133）
+· 局域网 status/app/CORRECTIONS_APP.md：130 条／max APP-133／SHA 2db65bf1…／440 181 B／mtime 2026-11-24 13:56:42
+· QQ 收件箱最新 App 封仍 = APP-133（msg_HbiVRXlg…，05:56:40Z）；spam 0；trash 1（无关旧件）
+· 根 status/CORRECTIONS.md max C-135（已冻结）；shared/NOTICE* 仍 ≤11-05；agent-mail not_bound
+· 收件箱整体最新 = H-028 [MT]（10:11:12Z）＝ MT 模块，其正文明确「App 接入等本条验收后另发 APP 纠偏」⇒ 本轮不据此动 App 代码
+· 结论：本地 max ＝ QQ max ＝ last_ack ＝ APP-133 ⇒ 无新条目 ⇒ last_ack 不变
+
+■ 2. 🟢 本轮主发现：APP-132 的修法只落在侧写 harness，成包路径原封不动
+· 上一轮 §230 的修法在 results/app/_app132_lock.py（专供 v2.6 整链三臂跑的 harness）⇒ 那一轮的验收目标确实达成（整链一次持锁到底，lock_lost 0 条）
+· 但真正成包的路径 live_caption/_app116_build_v25.py（⇒ _app129_build_v26.py 第 216 行 B.acquire_lock）仍是旧代码：
+  ① acquire_lock() 末行 os.replace(tmp, LOCK) —— 不是原子创建 ⇒ 两个进程可同时「拿到」锁，且会覆盖别人刚建的锁
+  ② 看门狗条件 own is None or own.get('pid') == os.getpid() ⇒ 锁被抢后彻底放弃写回，且写回又用 os.replace ⇒ 链继续跑但不再持锁且无人知晓，还会静默覆盖别人的锁
+· 通用判据：「修了 harness」≠「修了产品」—— 交付路径与验收路径是两条路 ⇒ 修锁/修闸门前必须问「生产上真正跑的是哪个文件」
+
+■ 3. 🟢 已修（只改这一个文件：10 820 B → 15 749 B，ast.parse OK，纯 LF）
+· 新增 _create_lock_exclusive()：tmp 写全 + os.link ⇒ 原子 + 独占，且别的模块永远看不到半成品锁（同仓库根 machine_lock_app._write_lock_atomically 的正解；NOTICE_tts_lock_atomic_20261026.md 记录过 os.replace 覆盖活锁的事故）
+· acquire_lock() 把「探测 ⇒ 创建」合并进同一个 while 循环 ⇒ 消除 TOCTOU 窗口；别人抢先则不覆盖、继续等
+· 看门狗改为只自检不盲写：锁被删 ⇒ 原子+独占地补建；被抢 ⇒ 记 lock_lost 事件；仍是自己的 ⇒ 不动文件
+· release_lock() 加事件登记；新增 results/app/app231_pack_lock_events.jsonl
+
+■ 4. 🟢 独立行为级复核 9/9 PASS（results/app/_app231_verify_lock.py）
+· 纯 CPU 逻辑测试：不跑推理·不测速、用临时目录做锁 ⇒ 不碰真 shared\MACHINE_LOCK
+· 判据①确定性：6 进程经文件栅栏同瞬间并发建锁 ⇒ 恰好 1 个成功
+· 反证组：同测试跑在旧 os.replace 实现上 ⇒ 2 个成功 ⇒ 缺陷可复现 ⇒ 判据能识破有缺陷的旧代码（非假 PASS）
+· 判据②端到端重叠：两进程走完 acquire_lock，持锁期间轮询锁内容 ⇒ 无「两把锁并存」
+· ＋别人先建锁 ⇒ 创建失败且不覆盖；＋看门狗 ⇒ 记 lock_lost 且不覆盖；＋放锁只删自己的
+· 证据 results/app/app231_lock_verify.json（产生它的脚本一并入库）
+
+■ 5. 🟢 上一会话遗留项已闭合（TAKEOVER 接续，从断点继续，未从头重做）
+· 上一会话（token 47796b43，last_beat 18:34:37 ＝ 78 min 前 ＝ 死会话）已提交 19d9369 并推送（origin/main 0/0）、已发 3 封邮件，但其「写记忆文件」这步没做完 ⇒ 它的 _app133_write_memory.py 从未运行
+· 本轮补写：当日日志第 126 轮（append-only，旧段逐字未变）、MEMORY.md 机器锁指针（9 700 → 9 655 字符，仍 ≤ 9 700 上限；并把过期的 last_ack=APP-128 修正为 APP-133）、MEMORY_MODULES.md 五十节 ⇒ 独立复核 19/19 PASS
+
+■ 6. 🔴 如实登记：本轮新学的两个判据坑
+· ① 「两个进程都拿到锁」≠「两把锁并存」—— 进程 A 可能先放锁再轮到 B ⇒ 那是合法串行；⇒ 判据必须测「持锁期间锁内容被别人改写」这个重叠现象，不能数「拿到锁的进程数」（本轮初版判据就是错在这儿）
+· ② 判据写文本计数 ⇒ 必假 FAIL（os.replace(tmp, LOCK) 这个串在新 docstring 里本来就要出现）⇒ 改用 AST 判定「代码里不得有 os.replace 调用」
+
+■ 7. 纪律
+· 未打包 zip（用户级纪律：不通知 ⇒ 不打包）；未覆盖/未删除任何旧版本目录与 zip；未通知用户；未连 B 机；未调 MiniMax；未跑推理·未测速（纯逻辑测试，不占机器锁）；未改 status/app/CORRECTIONS_APP.md（收尾四项指纹逐字一致 ⇒ SHA 零改动）；未进 MiniMVP 包
+· 提交 eb82d17（12 个文件，只 App 侧）⇒ 已推送 origin/main（0/0）
+· STATUS §231（正文全文 ⇒ status/app/STATUS_APP_sec231_detail_20261124.md）；本条需等 reviewer 复核
+· 待裁定（沿用）：仓库根 .gitattributes 根治（跨模块）／默认分离设备／n_speakers=0 口径／v2.6 交接与是否出 zip／v2.5 重签 ACCEPTED
