@@ -254,7 +254,7 @@ if DEVICE_MT == "GPU":
 LATE_DROP_SEC = float(_os.environ.get("EXT_LATE_DROP_SEC", "0"))
 # 11-08: clone - wait up to this long in the TTS stage for the sentence speaker label,
 #   only while the sentence still has more than CLONE_LABEL_RESERVE_SEC of slack.
-CLONE_LABEL_WAIT_SEC = float(os.environ.get("EXT_CLONE_LABEL_WAIT_SEC", "0"))   # 11-09: waits blocked the TTS thread 50 s / 6 min
+CLONE_LABEL_WAIT_SEC = float(os.environ.get("EXT_CLONE_LABEL_WAIT_SEC", "3"))   # v0.4.20: 0 -> 3 s, only while slack > CLONE_LABEL_RESERVE_SEC   # 11-09: waits blocked the TTS thread 50 s / 6 min
 # 11-08: CUDA sidecar wall time per second of dub audio (measured 0.6-0.8 live) - used to
 #   predict whether a sentence can still make its slot before synthesizing it.
 TTS_EST_RTF = 0.8

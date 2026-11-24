@@ -3388,6 +3388,12 @@ class PipelineSession(Session):
             if self._bg_wants_vocals():
                 # v0.4.19: clone / voice guard use the separated vocals of this sentence (they arrive a
                 #   few seconds later); queued in order, never blocks ASR; falls back to the original.
+                # v0.4.20: the TTS-time decisions (label fallback, gender gate) must not wait for the
+                #   vocals ⇒ hand the original audio over right away; registration still uses vocals.
+                try:
+                    _cv.note_audio(job.seg_id, job.audio, job.t_start, job.t_end, text=job.text)
+                except Exception as e:
+                    _log(f"克隆预登记失败（段 {job.seg_id}）: {e}")
                 with self._clone_pending_lock:
                     self._clone_pending.append((job.seg_id, job.audio, job.t_start, job.t_end,
                                                 job.text, time.monotonic()))
@@ -3467,6 +3473,10 @@ class PipelineSession(Session):
                 # v0.4.15: voice guard - never dub a sentence with a voice it clearly does not match
                 if job.voice and job.voice != C.PRESET_VOICE:
                     job.voice, _g = _cv.guard_voice(job.seg_id, job.voice)
+                # v0.4.20 (user 11-24): male/female gate — never dub a clearly female sentence with a
+                #   male voice (or the reverse), including the preset
+                if job.voice:
+                    job.voice, _gg = _cv.gender_gate(job.seg_id, job.voice)
                 if job.voice and job.voice != C.PRESET_VOICE:
                     self._last_clone_voice = job.voice
                 job.spk = job.spk or (_cv.spk_of(job.seg_id) or None)

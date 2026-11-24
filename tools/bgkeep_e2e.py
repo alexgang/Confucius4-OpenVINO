@@ -218,6 +218,13 @@ def report(a, x48, dur, got):
     out["fallback_to_orig_s"] = round(float((~cover[:x48.shape[1]]).sum()) / 48000, 1)
     out["dub_items"] = [{"t": round(float(t["t_start"]), 2), "shift_to": (round(got["shift"][t["id"]][0], 2) if t["id"] in got["shift"] else None), "src": (t["src"] or "")[:40], "tgt": (t["tgt"] or "")[:40]}
                         for t in got["tts"][:8]]
+    try:   # per-dub audio for offline checks (e.g. dub gender vs. source gender)
+        np.savez_compressed(os.path.join(a.out, "dubs.npz"),
+                            t_start=np.array([float(t["t_start"]) for t in tts]), t_end=np.array([float(t["t_end"] or 0) for t in tts]),
+                            sr=np.array([int(t["sr"] or 24000) for t in tts]),
+                            **{f"pcm_{i}": np.frombuffer(base64.b64decode(t["pcm"]), "<i2") for i, t in enumerate(tts)})
+    except Exception as e:
+        out["dubs_npz_error"] = repr(e)[:200]
     json.dump(out, open(os.path.join(a.out, "bgkeep_e2e.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print(json.dumps({k: v for k, v in out.items() if k != "dub_items"}, ensure_ascii=False))
 

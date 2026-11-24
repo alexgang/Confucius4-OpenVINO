@@ -58,6 +58,55 @@ def voiced_seconds(pcm, sr: int = SR) -> float:
             n += 1
     return n * hop / float(sr)
 # 11-09 speaker-change split (calibrated on dialog3 tight/normal: 24/32 change segments cut, 0/66 false)
+def f0_median(pcm, sr: int = SR) -> Optional[float]:
+    """v0.4.20: median F0 (Hz) of the pitched frames of a sentence, or None.
+    40 ms frames, 10 ms hop, 70-400 Hz, frame RMS > 0.1 x the sentence's loudest frame, normalized
+    autocorrelation peak > 0.5. Octave-safe: the SMALLEST lag whose peak is within 90 % of the best is
+    taken (a female voice must not read as half its pitch)."""
+    x = np.asarray(pcm, dtype=np.float64).reshape(-1)
+    fr, hop = int(0.04 * sr), int(0.01 * sr)
+    lo, hi = int(sr / 400), int(sr / 70)
+    if x.size < fr + hi:
+        return None
+    n = (x.size - fr - hi) // hop
+    if n <= 0:
+        return None
+    idx = np.arange(fr + hi)[None, :] + hop * np.arange(n)[:, None]
+    seg = x[idx]
+    seg = seg - seg.mean(axis=1, keepdims=True)
+    rms = np.sqrt(np.mean(seg[:, :fr] ** 2, axis=1))
+    keep = rms > 0.1 * float(rms.max() + 1e-12)
+    f0s = []
+    nfft = 1
+    while nfft < 2 * (fr + hi):
+        nfft *= 2
+    for k in np.where(keep)[0]:
+        w = seg[k]
+        sp = np.fft.rfft(w, nfft)
+        ac = np.fft.irfft(sp * np.conj(sp), nfft)[:hi + 1]
+        if ac[0] <= 0:
+            continue
+        r = ac[lo:hi + 1] / ac[0]
+        best = float(r.max())
+        if best < 0.5:
+            continue
+        cand = np.where(r >= 0.9 * best)[0]
+        f0s.append(sr / float(lo + int(cand[0])))
+    if len(f0s) < GENDER_MIN_VOICED_FRAMES:
+        return None
+    return float(np.median(f0s))
+
+
+def gender_of(f0) -> Optional[str]:
+    if f0 is None:
+        return None
+    if f0 <= GENDER_MALE_MAX_HZ:
+        return "m"
+    if f0 >= GENDER_FEMALE_MIN_HZ:
+        return "f"
+    return None
+
+
 SPLIT_MIN_SEG_S = 3.2
 SPLIT_WIN_S = (1.6, 2.0, 2.5)
 SPLIT_MIN_SIM = 0.30
@@ -73,6 +122,10 @@ GUARD_MIN_S = 2.0          # sentence length that may decide (calibration chunks
 GUARD_MIN_VOICED_S = 1.0
 GUARD_MAX_VOICES = 8
 GUARD_MAX_PENDING = 4         # v0.4.18: unconfirmed one-sentence candidates kept
+GENDER_GATE = os.environ.get("EXT_CLONE_GENDER_GATE", "1").strip() != "0"
+GENDER_MALE_MAX_HZ = 155.0      # median F0 ≤ ⇒ male; ≥ GENDER_FEMALE_MIN_HZ ⇒ female; between ⇒ unknown (no action)
+GENDER_FEMALE_MIN_HZ = 190.0      # calibrated 11-24: session refs male 122/125 Hz, female 250 Hz; male preset B 136/162 Hz
+GENDER_MIN_VOICED_FRAMES = 15   # ≥ 0.15 s of pitched frames to judge at all
 NEAREST_MIN_SIM = 0.40      # v0.4.15: was 0.25 (different speakers reach 0.26 => a man matched the only woman)
 
 
@@ -359,6 +412,99 @@ class CloneVoices:
                       % (spk, pcm.size / float(SR)))
 
     # ── TTS 线程：合成前调用 ──────────────────────────────────
+    def note_audio(self, seg_id, audio, t_start: float, t_end: float, text: str = "") -> None:
+        """v0.4.20: make this sentence's audio known right away (label fallback / gender gate at TTS
+        time) without feeding the bypass or registering anything. on_segment() later replaces it."""
+        a = np.asarray(audio)
+        if a.dtype == np.int16:
+            a = a.astype(np.float32) / 32768.0
+        s = _seg_int(seg_id)
+        self._span.setdefault(s, (float(t_start), float(t_end)))
+        if s not in self._seg_pcm:
+            self._seg_pcm[s] = (a.astype(np.float32).reshape(-1), str(text or ""))
+
+    def _voice_paths(self) -> list:
+        out = [p for p in self.paths.values() if p and os.path.exists(p)]
+        for p in getattr(self, "_guard_voices", []) or []:
+            if p and os.path.exists(p) and p not in out:
+                out.append(p)
+        return out
+
+    def _nearest_voice(self, seg: int, paths=None, min_sim: float = NEAREST_MIN_SIM):
+        """v0.4.20: nearest registered voice by the sentence's own embedding (needs no bypass
+        centroids — exactly the case when labels are missing). Returns (path, sim) or (None, best)."""
+        e = self._embed(self._seg_audio(seg))
+        if e is None:
+            return None, None
+        best, best_p = -1.0, None
+        for p in (paths if paths is not None else self._voice_paths()):
+            v = self._voice_emb(p)
+            if v is None:
+                continue
+            sim = float(np.dot(e, v))
+            if sim > best:
+                best, best_p = sim, p
+        return (best_p, best) if best_p is not None and best >= min_sim else (None, best)
+
+    def _gender_of_path(self, path) -> Optional[str]:
+        cache = self.__dict__.setdefault("_vgender", {})
+        if path in cache:
+            return cache[path]
+        g = None
+        try:
+            with wave.open(path, "rb") as w:
+                x = np.frombuffer(w.readframes(w.getnframes()), "<i2").astype(np.float32) / 32768.0
+                sr = w.getframerate()
+            g = gender_of(f0_median(x, sr))
+        except Exception:
+            g = None
+        cache[path] = g
+        return g
+
+    def _preset_path(self) -> Optional[str]:
+        try:
+            import tts_engine as _te
+            p = _te.preset_voice_path()
+            return p if p and os.path.exists(p) else None
+        except Exception:
+            return None
+
+    def gender_gate(self, seg_id, voice: Optional[str]):
+        """v0.4.20 (user 11-24: male/female switches were dubbed with the previous speaker's voice).
+        If the sentence clearly has the other gender than `voice`, switch to the most similar registered
+        voice of the sentence's gender; none ⇒ clone from this sentence; can't ⇒ keep. Returns
+        (voice, reason)."""
+        if not GENDER_GATE or not voice:
+            return voice, None
+        seg = _seg_int(seg_id)
+        pcm = self._seg_audio(seg)
+        if pcm is None:
+            return voice, None
+        gs = gender_of(f0_median(pcm))
+        if gs is None:
+            return voice, None
+        vpath = voice if os.path.exists(str(voice)) else (self._preset_path() if str(voice) == "A" else None)
+        gv = self._gender_of_path(vpath) if vpath else None
+        if gv is None or gv == gs:
+            return voice, None
+        r = self._reasons
+        same = [p for p in self._voice_paths() if self._gender_of_path(p) == gs]
+        if same:
+            p, sim = self._nearest_voice(seg, paths=same, min_sim=-1.0)
+            if p:
+                r["gender_switch"] = r.get("gender_switch", 0) + 1
+                self._log("[spk] 段 %d 性别守门：句子=%s、音色 %s=%s ⇒ 改用同性别最像的 %s（%.2f）" % (
+                    seg, gs, os.path.basename(str(voice)), gv, os.path.basename(p), sim if sim is not None else -1))
+                return p, "gender_switch"
+        own = self.self_ref(seg_id)
+        if own:
+            r["gender_selfref"] = r.get("gender_selfref", 0) + 1
+            self._log("[spk] 段 %d 性别守门：句子=%s、音色 %s=%s、没有同性别已登记音色 ⇒ 用本句自己克隆" % (
+                seg, gs, os.path.basename(str(voice)), gv))
+            return own, "gender_selfref"
+        r["gender_keep"] = r.get("gender_keep", 0) + 1
+        return voice, None
+
     def voice_for(self, seg_id, wait: float = 0.0) -> Optional[str]:
         import time as _t
         end = _t.perf_counter() + max(0.0, wait)
@@ -377,6 +523,12 @@ class CloneVoices:
             if spk and spk in self.paths:
                 self._reasons["tts_nearest"] = self._reasons.get("tts_nearest", 0) + 1
                 return self.paths[spk]
+            # v0.4.20: the bypass tracker often has no centroids (no labels at all) ⇒ compare with the
+            #   registered voices' own reference audio instead
+            p, _sim = self._nearest_voice(_seg_int(seg_id))
+            if p:
+                self._reasons["tts_nearest_voice"] = self._reasons.get("tts_nearest_voice", 0) + 1
+                return p
         return None
 
     def _seg_audio(self, seg: int):
