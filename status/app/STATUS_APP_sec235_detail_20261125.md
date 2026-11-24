@@ -146,6 +146,29 @@
 
 ---
 
+## §4.5 邮件（T-MAIL-003「STATUS 邮件**必须发**」）
+
+- **实发件**：`msg_9isWCRk5Y4qxZVwUqvdHp9h2CMVYD3buNLS7Sg4WbotueA`
+  （**2026-11-24T21:58:41Z ＝ 2026-11-25 05:58:41 GMT+8**，
+  **回复 APP-133 原邮件线程**，收件人 `alexchen7694@agent.qq.com`，**无附件**）。
+- **入库件**：`live_caption/_app235_email_body.txt`（**3 925 B／2 085 字符**）
+  ⇒ **正文由脚本生成**（`results/app/_app235_email_body.py`）⇒ 入库件与实发件**同源**。
+- **未截断取证（服务端内容检索，§226 的三地标法 + 首/中/尾特征句）**：
+  6 次 `SearchMessages(dir='sent', search_in=SEARCH_IN_CONTENT, q=…)`
+  （`地标-首`／`地标-中`／`地标-尾`／`本轮无人追加`／`审计链断`／`仅作审计痕迹`）
+  ⇒ **全部只命中同一 message_id** ⇒ 服务端存件正文**首/中/尾俱全**
+  ⇒ **未截断**。取证记录落盘：`results/app/_app235_email_hits.txt`（1 062 B）。
+- **独立复核**：`results/app/_app235_verify_email.py` ⇒ **17/17 PASS**（含反证组：
+  模拟「中段截断」⇒ 长度判据与中段内容判据**必须 FAIL**）。
+- 🟡 **工具侧的一个坑（可复用）**：`mcp__qq-mail__SendMessage` 在本轮**始终**报
+  `check input schema type error field_name: to schema_type: array field_type: object`
+  （`to` 传对象数组、传字符串数组都**同样**报错 ⇒ 是**服务端校验**问题，不是参数写法）
+  ⇒ 改用 **`ReplyMessage`**（`message_id` + `body`，**无 `to` 字段**）
+  ⇒ **一次成功**（`queued:true`）。
+  ⇒ **「回复 reviewer 纠偏邮件」这条路径本来就该用 `ReplyMessage`**（§233 同款）
+  ⇒ 以后发 STATUS 邮件**直接用 `ReplyMessage`**，不必再试 `SendMessage`。
+  ⇒ 另注：`skip_confirmation=true` 在 `ReplyMessage` 上可用（本次未走两步 token 流程）。
+
 ## §5 🔴 如实登记：**未修** / **待裁定**项
 
 1. 🔴 **真包 v2.6 的两处缺陷仍在** ⇒ 按 APP-055 **不原地改已签 ACCEPTED 的包**
@@ -164,6 +187,13 @@
 8. 🟡 `live_caption/release_notes/` 约定 vs 历史私有命名
    （`_appNNN_changelog_vX.Y_{zh,en}.md`）**不一致** ⇒ `sync_pkg_identity` 两条都支持
    ⇒ **不强制迁移**；**下一版建议**按约定放 `release_notes/vX.Y_{zh,en}.md`。
+9. 🟡 **automation memory 里有一段历史遗留的控制字符**：旧条目里的
+   `shared\bgkeep\e2e8\` 路径中 `\b` 被 Python 解释成**退格（0x08）**
+   ⇒ 该文件**只许追加、禁覆盖** ⇒ **不回头改历史**（改了就破坏 append-only 语义）；
+   本轮**新增**的片段已单独做**控制字符自检**（**0 个**）。
+   ⇒ 🔴 **本轮自己踩到并当场修掉的同族坑**：用 heredoc 写含 `\a` 的正文时，
+   Python 会把它解释成 **BEL（0x07）** ⇒ 本轮在 `MEMORY_MODULES.md` 附录里
+   **实测踩到并修掉**（⇒ 今后含反斜杠的正文**必须用 `chr(92)` 或 raw string**）。
 
 ---
 

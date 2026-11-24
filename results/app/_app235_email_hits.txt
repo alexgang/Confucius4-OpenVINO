@@ -1,0 +1,9 @@
+【地标-首】 SearchMessages(dir=sent, search_in=SEARCH_IN_CONTENT, q=地标-首) ⇒ 命中 msg_9isWCRk5Y4qxZVwUqvdHp9h2CMVYD3buNLS7Sg4WbotueA
+【地标-中】 SearchMessages(dir=sent, search_in=SEARCH_IN_CONTENT, q=地标-中) ⇒ 命中 msg_9isWCRk5Y4qxZVwUqvdHp9h2CMVYD3buNLS7Sg4WbotueA
+【地标-尾】 SearchMessages(dir=sent, search_in=SEARCH_IN_CONTENT, q=地标-尾) ⇒ 命中 msg_9isWCRk5Y4qxZVwUqvdHp9h2CMVYD3buNLS7Sg4WbotueA
+首段特征句「本轮无人追加」 SearchMessages ⇒ 命中 msg_9isWCRk5Y4qxZVwUqvdHp9h2CMVYD3buNLS7Sg4WbotueA
+中段特征句「审计链断」 SearchMessages ⇒ 命中 msg_9isWCRk5Y4qxZVwUqvdHp9h2CMVYD3buNLS7Sg4WbotueA
+尾段特征句「仅作审计痕迹」 SearchMessages ⇒ 命中 msg_9isWCRk5Y4qxZVwUqvdHp9h2CMVYD3buNLS7Sg4WbotueA
+（以上 6 次检索**全部只命中同一封** ⇒ 服务端存件正文**首/中/尾俱全** ⇒ 未截断；
+ 发送时间 2026-11-24T21:58:41Z ＝ 2026-11-25 05:58:41 GMT+8；收件人 alexchen7694@agent.qq.com；
+ 主题＝回复 APP-133 原邮件线程；无附件）
