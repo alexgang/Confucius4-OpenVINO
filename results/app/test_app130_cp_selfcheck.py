@@ -25,6 +25,7 @@ from __future__ import annotations
 import os
 import sys
 import tempfile
+import collections.abc
 
 import numpy as np
 
@@ -42,6 +43,61 @@ def check(name, cond, detail=''):
     print('%s %s%s' % ('PASS' if cond else 'FAIL', name,
                        ('  — ' + detail) if detail else ''))
     return bool(cond)
+
+
+# ══════════════════════════════════════════════════════════════════════
+# 🔴🔴 复现 **OV 2026.4.1 的真实返回形态**（补丁④⑤ 的根因，必须有回归用例）
+#
+# `CompiledModel.__call__` 返回的是 `openvino.utils.data_helpers.wrappers.OVDict`：
+#   · **不是 dict**（是 `collections.abc.Mapping`）⇒ `isinstance(out, dict)` 为 False；
+#   · `.items()` 的**键是 ConstOutput 对象**（不是字符串名）；
+#   · 值是 `ConstOutput`（取 `.data` 才是 numpy 数组）；
+#   · `ConstOutput.get_names()` ⇒ **set**（`{'hidden_states'}`）；
+#   · `ConstOutput.node.get_names()` 在**动态形状**上抛 RuntimeError。
+#
+# ⇒ 判据若用 `isinstance(out, dict)` / `str(key)` / `np.asarray(out)`，
+#   就会拿到 **object 数组** ⇒ 余弦恒 0 ⇒ **恒判失败（假 FAIL）**，
+#   且 NaN 守卫**永远不触发**。
+# ══════════════════════════════════════════════════════════════════════
+class FakeConstOutput:
+    """模拟 `ConstOutput`（有 `.data` 与 `.get_names()`）。"""
+
+    def __init__(self, arr, names):
+        self.data = np.asarray(arr)
+        self._names = set(names)
+
+    def get_names(self):
+        return self._names
+
+
+class FakeOVDict(collections.abc.Mapping):
+    """模拟 `OVDict`：**不是 dict**，键是 ConstOutput，值是 ConstOutput。"""
+
+    def __init__(self, d):
+        self._d = dict(d)
+
+    def __getitem__(self, k):
+        return self._d[k]
+
+    def __iter__(self):
+        return iter(self._d)
+
+    def __len__(self):
+        return len(self._d)
+
+    def items(self):
+        return self._d.items()
+
+    def keys(self):
+        return self._d.keys()
+
+    def values(self):
+        return self._d.values()
+
+
+def as_ovdict(d):
+    """把 {名字: ndarray} 变成 OV 的返回形态（键/值都包一层 ConstOutput）。"""
+    return FakeOVDict({FakeConstOutput(v, {k}): v for k, v in d.items()})
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -313,6 +369,58 @@ def test_nan_guard_basics():
     check('守卫-NaN ⇒ 抛 CPNaNError', raised, 'n_bad=%r' % g2.n_bad)
 
 
+def test_ovdict_shape():
+    """⑦ 🔴 **OV 返回形态**（OVDict，不是 dict）下的判据正确性。
+
+    回归背景：11-24 10:36 A 机上自检报「余弦 0.0000」⇒ 根因是判据把
+    `OVDict` 当 dict ⇒ `np.asarray(OVDict)` 得到 object 数组 ⇒ 恒不相等。
+    ⇒ 这组用例必须保证：**OVDict 形态下自检能通过、NaN 能被抓到**。
+    """
+    good = {'hidden_states': np.ones((1, 2, 4), dtype=np.float32),
+            'present_keys': np.full((2, 1, 1, 2, 4), 0.5, dtype=np.float32)}
+    ok, reason, _el, detail = tts_engine._cp_selfcheck(
+        'cp_prefill', FakeCM('good'), FakeCM('good'))
+    check('OVDict-自检（dict 形态）⇒ ok=True', ok, 'reason=%r' % reason)
+
+    # 直接比两个 OVDict
+    cos, desc = tts_engine._cp_compare_outputs(as_ovdict(good),
+                                                as_ovdict(good))
+    check('OVDict-逐键比较 ⇒ 余弦 ≈ 1.0', abs(cos - 1.0) < 1e-6,
+          'cos=%r desc=%r' % (cos, desc))
+    check('OVDict-逐键比较 ⇒ 无报错', desc == '', 'desc=%r' % desc)
+
+    # NaN 在 OVDict 里必须被抓到
+    bad = {'hidden_states': np.array([[[np.nan, 1.0, 2.0, 3.0]]],
+                                     dtype=np.float32)}
+    r = tts_engine._find_nonfinite(as_ovdict(bad))
+    check('OVDict-NaN ⇒ _find_nonfinite 抓得到', bool(r) and 'NaN' in r,
+          'r=%r' % r)
+    r2 = tts_engine._find_nonfinite(as_ovdict(good))
+    check('OVDict-正常 ⇒ _find_nonfinite 返回 None', r2 is None, 'r=%r' % r2)
+
+    # 守卫：模型返回 OVDict 且含 NaN ⇒ 必须抛 CPNaNError
+    class OvNaNModel:
+        def __call__(self, inputs):
+            return as_ovdict(bad)
+
+    g = tts_engine._CPNaNGuard(OvNaNModel(), 'cp_prefill')
+    raised = False
+    try:
+        g({'inputs_embeds': np.zeros((1, 2, 4), dtype=np.float32)})
+    except tts_engine.CPNaNError:
+        raised = True
+    check('OVDict-守卫抓到 NaN ⇒ 抛 CPNaNError', raised)
+
+    # 反证：OVDict 但**没有 NaN** ⇒ 守卫不得误报
+    class OvGoodModel:
+        def __call__(self, inputs):
+            return as_ovdict(good)
+
+    g2 = tts_engine._CPNaNGuard(OvGoodModel(), 'cp_prefill')
+    out2 = g2({'inputs_embeds': np.zeros((1, 2, 4), dtype=np.float32)})
+    check('OVDict-反证：无 NaN ⇒ 不抛异常', g2.n_bad == 0 and out2 is not None)
+
+
 def main():
     test_selfcheck_pass_path()
     test_selfcheck_fail_paths()
@@ -320,6 +428,7 @@ def main():
     test_runtime_insurance_nan()
     test_runtime_insurance_threshold()
     test_nan_guard_basics()
+    test_ovdict_shape()
     n_ok = sum(1 for _n, ok, _d in _RESULTS if ok)
     n_all = len(_RESULTS)
     print('\n==== %d/%d PASS ====' % (n_ok, n_all))

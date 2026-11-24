@@ -1,0 +1,190 @@
+{
+  "ts": "2026-11-24 12:26:15",
+  "test": "results/app/test_app130_cp_selfcheck.py",
+  "python": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\.venv\\Scripts\\python.exe",
+  "rc": 0,
+  "summary": "34/34",
+  "n_pass": 34,
+  "n_total": 34,
+  "asserts": [
+    {
+      "name": "自检-一致 ⇒ ok=True",
+      "ok": true,
+      "detail": "reason='' elapsed=0.0147 detail=[(0.02, 1.0), (0.1, 1.0), (1.0, 1.0)]"
+    },
+    {
+      "name": "自检-一致 ⇒ 3 组用例",
+      "ok": true,
+      "detail": "detail=[(0.02, 1.0), (0.1, 1.0), (1.0, 1.0)]"
+    },
+    {
+      "name": "自检-一致 ⇒ 余弦全为 1.0",
+      "ok": true,
+      "detail": "detail=[(0.02, 1.0), (0.1, 1.0), (1.0, 1.0)]"
+    },
+    {
+      "name": "自检-cp_decode ⇒ ok=True",
+      "ok": true,
+      "detail": "reason='' detail=[(0.02, 1.0), (0.1, 1.0), (1.0, 1.0)]"
+    },
+    {
+      "name": "自检-NaN ⇒ ok=False",
+      "ok": true,
+      "detail": "reason='用例 amp=0.02 NPU 输出 hidden_states 含 NaN'"
+    },
+    {
+      "name": "自检-NaN ⇒ 原因含 NaN",
+      "ok": true,
+      "detail": "reason='用例 amp=0.02 NPU 输出 hidden_states 含 NaN'"
+    },
+    {
+      "name": "自检-余弦不足 ⇒ ok=False",
+      "ok": true,
+      "detail": "reason='用例 amp=0.02 hidden_states 与 CPU 余弦 -1.0000 < 0.99'"
+    },
+    {
+      "name": "自检-余弦不足 ⇒ 原因含余弦",
+      "ok": true,
+      "detail": "reason='用例 amp=0.02 hidden_states 与 CPU 余弦 -1.0000 < 0.99'"
+    },
+    {
+      "name": "搬运-自检通过 ⇒ 返回 True",
+      "ok": true,
+      "detail": "ret=True"
+    },
+    {
+      "name": "搬运-自检通过 ⇒ eng.cp_prefill 被替换",
+      "ok": true,
+      "detail": "type=FakeCM"
+    },
+    {
+      "name": "搬运-自检失败 ⇒ 返回 False",
+      "ok": true,
+      "detail": "ret=False"
+    },
+    {
+      "name": "搬运-自检失败 ⇒ eng.cp_prefill 原样不动（保留 CPU）",
+      "ok": true,
+      "detail": "type=FakeCM"
+    },
+    {
+      "name": "搬运-cp_decode 自检失败 ⇒ 返回 False",
+      "ok": true,
+      "detail": "ret=False"
+    },
+    {
+      "name": "搬运-cp_decode 自检失败 ⇒ eng.cp_decode 原样不动",
+      "ok": true,
+      "detail": "type=FakeCM"
+    },
+    {
+      "name": "自检报告已记录 cp_prefill",
+      "ok": true,
+      "detail": "report={'cp_prefill': {'which': 'cp_prefill', 'ok': False, 'reason': '用例 amp=0.02 NPU 输出 hidden_states 含 NaN', 'elapsed_s': 0.0001, 'detail': []}, 'cp_decode': {'which': 'cp_decode', 'ok': False, 'reason': '用例 amp=0.02 NPU 输出 hidden_states 含 NaN', 'elapsed_s': 0.0007, 'detail': []}}"
+    },
+    {
+      "name": "运行时保险-NaN ⇒ 1 步内停（产出 ≤1 块）",
+      "ok": true,
+      "detail": "产出 0 块"
+    },
+    {
+      "name": "运行时保险-NaN ⇒ tts_runaway 计数 = 1",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "运行时保险-NaN ⇒ 归类为 cp_nan",
+      "ok": true,
+      "detail": "stats={'tts_runaway': 1, 'tts_runaway_cp_nan': 1, 'tts_runaway_threshold': 0}"
+    },
+    {
+      "name": "运行时保险-NaN ⇒ 引擎打了 _cp_nan_hit 标记",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "运行时保险-阈值 ⇒ 在阈值处停（< 50 块）",
+      "ok": true,
+      "detail": "产出 9 块，阈值 9.0 s"
+    },
+    {
+      "name": "运行时保险-阈值 ⇒ tts_runaway 计数 = 1",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "运行时保险-阈值 ⇒ 归类为 threshold",
+      "ok": true,
+      "detail": "stats={'tts_runaway': 1, 'tts_runaway_cp_nan': 0, 'tts_runaway_threshold': 1}"
+    },
+    {
+      "name": "反证-未超阈值 ⇒ 不计数",
+      "ok": true,
+      "detail": "count=0 产出 3 块"
+    },
+    {
+      "name": "守卫-正常输出透传",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "守卫-正常不抛异常",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "守卫-转发 get_property",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "守卫-NaN ⇒ 抛 CPNaNError",
+      "ok": true,
+      "detail": "n_bad=1"
+    },
+    {
+      "name": "OVDict-自检（dict 形态）⇒ ok=True",
+      "ok": true,
+      "detail": "reason=''"
+    },
+    {
+      "name": "OVDict-逐键比较 ⇒ 余弦 ≈ 1.0",
+      "ok": true,
+      "detail": "cos=0.9999999999999998 desc=''"
+    },
+    {
+      "name": "OVDict-逐键比较 ⇒ 无报错",
+      "ok": true,
+      "detail": "desc=''"
+    },
+    {
+      "name": "OVDict-NaN ⇒ _find_nonfinite 抓得到",
+      "ok": true,
+      "detail": "r='hidden_states 含 NaN'"
+    },
+    {
+      "name": "OVDict-正常 ⇒ _find_nonfinite 返回 None",
+      "ok": true,
+      "detail": "r=None"
+    },
+    {
+      "name": "OVDict-守卫抓到 NaN ⇒ 抛 CPNaNError",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "OVDict-反证：无 NaN ⇒ 不抛异常",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "groups": [
+    "OVDict",
+    "反证",
+    "守卫",
+    "搬运",
+    "自检",
+    "自检报告已记录 cp_prefill",
+    "运行时保险"
+  ]
+}

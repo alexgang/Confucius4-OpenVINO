@@ -1206,11 +1206,103 @@ class CPNaNError(RuntimeError):
     """🔴🔴🔳 APP-130：code predictor 输出 NaN/Inf ⇒ 本句立刻停。"""
 
 
-def _find_nonfinite(out):
-    """在 OV 输出（dict / ndarray）里找 NaN / Inf。返回描述串或 None。"""
+def _as_array(v):
+    """把 OV 的输出值转成 numpy 数组。
+
+    🔴 **OV 2026.4.1 的 `CompiledModel.__call__` 返回 `OVDict`**，
+       它的**值是 `ConstOutput` 对象** ⇒ 必须取 `.data` 才是真数组。
+       （`np.asarray(ConstOutput)` 恰好也能work，但 `np.asarray(OVDict)`
+       会得到 **object 数组** ⇒ 必须先归一化再比。）
+    """
     try:
         import numpy as np
     except Exception:
+        return None
+    d = getattr(v, 'data', None)
+    if d is not None:
+        try:
+            return np.asarray(d)
+        except Exception:
+            pass
+    try:
+        return np.asarray(v)
+    except Exception:
+        return None
+
+
+def _out_name(k) -> str:
+    """把 OV 的输出键（`ConstOutput`）还原成输出名（如 `hidden_states`）。
+
+    🔴 **必须只取名字、不能带形状**（本机 OV 2026.4.1 实测）：
+       CPU（动态维 IR）的键 repr 是 `names[hidden_states] shape[1,?,1024]`，
+       NPU（reshape 成静态形状）的是 `names[hidden_states] shape[1,2,1024]`
+       ⇒ 若用 `str(k)` 当键 ⇒ **两边键对不上** ⇒ 比不了。
+
+    🔴 `ConstOutput.get_names()` ⇒ **set**（`{'hidden_states'}`）✅ 两边一致；
+       `ConstOutput.node.get_names()` 在**动态形状**上会抛 RuntimeError
+       （`to_shape was called on a dynamic shape`）⇒ 不能当首选。
+    """
+    try:
+        names = k.get_names()
+        if names:
+            return sorted(str(n) for n in names)[0]
+    except Exception:
+        pass
+    try:
+        names = k.node.get_names()
+        if names:
+            return str(list(names)[0])
+    except Exception:
+        pass
+    return str(k)
+
+
+def _ov_out_to_dict(out):
+    """把 OV 的输出**统一归一**成 `{输出名: np.ndarray}`。
+
+    🔴 为什么要这一步（APP-130 补丁④ 的根因）：
+       `OVDict` **不是 `dict`**（是 `collections.abc.Mapping`），
+       `isinstance(out, dict)` 为 **False**；
+       而 `np.asarray(OVDict)` 得到 shape `(N,) object` 的**对象数组**
+       ⇒ 直接拿去比大小/比余弦 ⇒ **恒不相等** ⇒ 自检恒判失败（假 FAIL），
+       NaN 守卫也**永远不触发**。
+    """
+    if out is None:
+        return None
+    d = _ov_items(out)
+    if d:
+        return d
+    a = _as_array(out)
+    return {'__out__': a} if a is not None else None
+
+
+def _ov_items(out):
+    """OV 输出（`OVDict` / `dict`）⇒ `{输出名: ndarray}`；不是映射 ⇒ 空 dict。"""
+    if out is None or not hasattr(out, 'items'):
+        return {}
+    d = {}
+    try:
+        for k, v in out.items():
+            a = _as_array(v)
+            if a is not None:
+                d[_out_name(k)] = a
+    except Exception:
+        return {}
+    return d
+
+
+def _find_nonfinite(out):
+    """在 OV 输出里找 NaN / Inf。返回描述串或 None。
+
+    🔴 **先归一化**（OVDict / ConstOutput / ndarray 都要处理）⇒ 见 `_ov_out_to_dict`。
+    """
+    try:
+        import numpy as np
+    except Exception:
+        return None
+
+    d = _ov_out_to_dict(out)
+    if not d:
         return None
 
     def _one(arr):
@@ -1224,14 +1316,11 @@ def _find_nonfinite(out):
             return 'NaN' if bool(np.isnan(a).any()) else 'Inf'
         return None
 
-    if isinstance(out, dict):
-        for k in sorted(out.keys(), key=str):
-            r = _one(out[k])
-            if r:
-                return '%s 含 %s' % (k, r)
-        return None
-    r = _one(out)
-    return ('含 %s' % r) if r else None
+    for k in sorted(d.keys()):
+        r = _one(d[k])
+        if r:
+            return '%s 含 %s' % (k, r)
+    return None
 
 
 def _cosine(a, b) -> float:
@@ -1294,27 +1383,28 @@ def _cp_selfcheck_inputs(which: str):
 
 
 def _cp_compare_outputs(cpu_out, npu_out):
-    """逐键比较 CPU / NPU 输出。返回 `(min_cos, bad_desc)`。"""
-    if isinstance(cpu_out, dict) and isinstance(npu_out, dict):
-        keys = [k for k in cpu_out.keys() if k in npu_out]
-        if not keys:
-            return 0.0, '输出键不匹配（CPU %s / NPU %s）' % (
-                sorted(map(str, cpu_out.keys())),
-                sorted(map(str, npu_out.keys())))
-        min_cos = 1.0
-        desc = ''
-        for k in sorted(keys, key=str):
-            c = _cosine(cpu_out[k], npu_out[k])
-            if c < min_cos:
-                min_cos = c
-            if c < CP_SELFCHECK_COS_MIN and not desc:
-                desc = '%s 与 CPU 余弦 %.4f < %.2f' % (
-                    k, c, CP_SELFCHECK_COS_MIN)
-        return min_cos, desc
-    c = _cosine(cpu_out, npu_out)
-    if c < CP_SELFCHECK_COS_MIN:
-        return c, '与 CPU 余弦 %.4f < %.2f' % (c, CP_SELFCHECK_COS_MIN)
-    return c, ''
+    """逐键比较 CPU / NPU 输出。返回 `(min_cos, bad_desc)`。
+
+    🔴 **两侧都先归一化**（OV 的 `OVDict` 不是 `dict`）⇒ 见 `_ov_out_to_dict`。
+    """
+    c = _ov_out_to_dict(cpu_out)
+    n = _ov_out_to_dict(npu_out)
+    if c is None or n is None:
+        return 0.0, '输出无法归一化（CPU %r / NPU %r）' % (type(cpu_out),
+                                                         type(npu_out))
+    keys = [k for k in c.keys() if k in n.keys()]
+    if not keys:
+        return 0.0, '输出键不匹配（CPU %s / NPU %s）' % (
+            sorted(map(str, c.keys())), sorted(map(str, n.keys())))
+    min_cos = 1.0
+    desc = ''
+    for k in sorted(keys):
+        v = _cosine(c[k], n[k])
+        if v < min_cos:
+            min_cos = v
+        if v < CP_SELFCHECK_COS_MIN and not desc:
+            desc = '%s 与 CPU 余弦 %.4f < %.2f' % (k, v, CP_SELFCHECK_COS_MIN)
+    return min_cos, desc
 
 
 def _cp_selfcheck(which: str, cpu_cm, npu_cm, on_log=print):
