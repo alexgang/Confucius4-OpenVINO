@@ -1,0 +1,52 @@
+[C4][A][STATUS][APP] APP-236 — 六通道全空 ⇒ 无新 App 纠偏（last_ack 仍 APP-133）；🔴 修掉 3 处真缺陷 ＋ 1 处安全缺口：app049 打包闸门曾一直红 ⇒ v2.7 打不出来（已解红）／§222 入库完整性已闭合／app187 正则截断已修／活的 EXT bridge 明文 token 已 gitignore
+
+【地标-首】
+一、纠偏复核：六通道全空 ⇒ 无新 App 纠偏 ⇒ last_ack 仍 APP-133（值不变）
+  1) 局域网 status/app/CORRECTIONS_APP.md：130 条／max APP-133／SHA 2db65bf13f23a701…／440181 B／mtime 11-24 13:56:42（与 §232–§235 逐字一致 ⇒ 本轮无人追加）
+  2) QQ 收件箱最新 App 封仍 = APP-133（msg_HbiVRXlg…，05:56:40Z，已执行）；其后仅 H-028 [MT]（11-24 18:11），正文明写「不要改 App 代码和任何客户包」⇒ 不据此动 App 代码
+  3) 垃圾箱 0／已删除 1（MiniMVP rc9 报告，无关）／全库 APP-134+ 命中 0／根 status/CORRECTIONS.md max C-135／shared/NOTICE* ≤11-05／agent-mail not_bound
+
+【地标-中】
+二、🔴 真缺陷①（最严重）：app049「包路径写死」打包闸门从 §233 起一直红着 ⇒ v2.7 打不出来
+  · 事实：results/app/app049_pkg_path_hardcode_gate.py 实测 exit=1（总判定 FAIL，10 处违规）。它是 pack_v13.py 的打包前置闸门（pack_v13.py:711 ⇒ returncode≠0 ⇒ 「拒绝打包」）⇒ 下一个包根本打不出来。
+  · 为何没人发现：该闸门只在打包时跑；而完整版线自 v2.5 起从未打过 zip（用户规则「不通知 ⇒ 不打包」）⇒ 闸门一直红着没人触发。
+  · 起因：APP-133／§233／§234／§235 四轮新增的 9 个一次性历史诊断脚本按设计写死当时的包版本（v2.5/v2.6/v2.7/v2.8/v2.9/v2.10）⇒ 被 ACTIVE_RE（_verify／_probe）判成「活跃验收脚本」。
+  · 修法：按该闸门既有的「一次性历史诊断脚本」白名单口径放行（已有 11 条先例），理由逐条写明（哪个 APP 轮次、核对哪个版本、为何必须写死）；不用通配符、不改 ACTIVE_RE、不放松任何判定逻辑。类别 B（会进包的生产模块 live_caption/*.py）实测 0 违规 ⇒ 不削弱交付保证。
+  · 独立复核：闸门 exit=0（0 违规）；过期白名单 0 条（§86 防腐烂机制仍生效）；反证：新增一个未白名单的写死脚本 ⇒ 闸门仍 exit=1 且点名该文件 ⇒ 不是把闸门放水放成永远绿（反证文件已删，复测 exit=0）。
+  · 通用判据（已下沉 MEMORY）：闸门只在打包时跑 ⇒ 打包长期不跑 ⇒ 闸门长期红着没人发现 ⇒ 凡被打包路径调用的闸门，都要单独跑一遍验它现在是绿的，不能因为「上次跑过是绿的」就放心。
+  · 我自己的脚本也不写死版本：_app236_check_producers.py 的反证样本改用 PKG_NAME_PREFIX + '2.6' 构造 ⇒ 该脚本不再被闸门判违规；同时把判据升级为同时识别「字面量包名」与「前缀常量+版本」两种形态（否则判据会漏判仓库要求的写法）。
+
+三、🟢 真缺陷②：§222 入库完整性缺口（②③ 两类）⇒ 已闭合
+  · ②「证据 json 入库 ⇒ 其产生脚本也要入库」5 个：app260_tk_geometry_probe.json←_app260_tk_geometry_probe.py｜app385_app089_accept_runs_after.json←_app385_run_acceptance_all.py｜app534_special_profile_check.json←_app534_special_profile_check.py｜app589_three_forms_defaults.json←_app589_three_forms_defaults_check.py｜app372_app091_subtitle_shot/subtitle_layout.json←app372_app091_gui_subtitle_shot.py。
+  · ③「复算底本（jsonl／csv／源 json）必须入库」9 个：app037_seam_mechanism.json（21847 B）／app037_segcount_effect.json（2208 B）／app037_wer_gap_maincause.json（35927 B）／app582_specialmvp_sp3_acceptance.run1.json（13468 B）／_app581_sp1_rerun_tts_out.wav.tts.jsonl（201099 B）／_app581_sp1_rerun_tts_out.wav.backlog_curve.csv（17115 B）／_app582_sp3_tts_out.wav.tts.jsonl（218009 B）／_app582_sp3_tts_out.wav.backlog_curve.csv（16736 B）／app118_pkg_size.json（1628 B，被活文档引用为 v2.5 包规模来源）。
+  · 修法：逐字节入库。本仓 core.autocrlf=true 且仓库根无 .gitattributes ⇒ git 在 add 时把 CRLF 规整成 LF ⇒ 入库 blob 与磁盘原始字节不同 ⇒ reviewer 在 core.autocrlf=false 的机器上 clone 出来与已公布 sha256 对不上 ⇒ 假 FAIL（§226 同一判据同一理由）。⇒ 新建 results/app/.gitattributes 逐文件写 -text（不用通配符：本目录另有大量普通 .json，通配会把它们全改成 i/crlf ⇒ 改变已入库文件的入库形态 ⇒ 越权）。
+  · 判据 4 项全 PASS（9/9）：① 入库 blob sha256 == 磁盘 sha256 ② == 已入库证据公布的 sha256 ③ 长度一致 ④ attr == -text（明细见 results/app/app236_byteexact_verify.json）。
+  · 反证 3/3：R1「经 autocrlf 规整的 blob 与磁盘必不同」⇒ 判据须 FAIL（证明判据真在比对，不是恒 PASS）｜R2「blob==disk 但 !=公布 sha」⇒ 须 FAIL｜R3「含 CRLF 的复算底本若不 -text 就会被规整」⇒ -text 是必要条件。
+  · 端到端：真跑 git -c core.autocrlf=false clone --no-hardlinks 到干净目录 ⇒ clone 出来的 8 个复算底本 sha256 与证据公布的逐个一致（a878ce4325…／d83b9d0061…／ae804d0b64…／7d2776f980…／120dabe542…／2e7e775f8fc…／d6e688148307…／151311efd10…）⇒ reviewer 在任何机器上 clone 都能复算出同一个 sha256；干净 clone 里 5 个生产者脚本都在，审计脚本也能直接跑通。
+
+四、🔴 真缺陷③：app187 闸门的正则截断 ⇒ 报出一个从未存在过的路径
+  · 事实：app187_repo_artifact_in_repo_gate.py 的 _PATH_RE／_BARE_RE 扩展名表漏 jsonl ⇒ STATUS 里的 results/app/app231_pack_lock_events.jsonl 被截断成 results/app/app231_pack_lock_events.json ⇒ 闸门去查一个从未存在的文件名 ⇒ 报出假 MISSING（真 MISSING 是 .jsonl 那个）。
+  · 修法三处缺一不可：① 补扩展名（jsonl；csv 在 _PATH_RE 里本有、_BARE_RE 里没有 ⇒ 一并补）② 🔴 扩展名必须「长在前」排序（正则分支按书写顺序尝试 ⇒ json 在前时 xxx.jsonl 会先匹配 json，后面的 l 不在模式里不影响匹配成功 ⇒ 又截断；实测只补扩展名表不够）③ 加扩展名边界断言 (?![A-Za-z0-9])。
+  · 独立复核：修复后闸门报的是真实路径 .jsonl ⇒ 那个从未存在的 .json 消失。反证 3/3：R1「修复前的正则必须截断 .jsonl」⇒ PASS（复现旧缺陷，证明缺陷真实存在过）｜R2「修复后必须完整命中」⇒ PASS｜R3「修复后不得再出现那个从未存在的 .json」⇒ PASS。
+
+五、🔴 安全缺口：活的 EXT bridge 明文 token 未被 .gitignore 覆盖
+  · results/app/_pkg_v25_runtime_token_20261121_0428.txt（M62uqacuZKo2…）与 _pkg_v25_removed_bridge_token_20261121.txt（vXLN8S1m0lXR…）是 §219「包内 token 清零/轮换」验收时留下的明文口令。
+  · 🔴 二者此前未被任何 .gitignore 规则覆盖 ⇒ 一次 git add -A / git add . 就会把明文口令提交进仓库（提交后不可逆，需改写历史）。
+  · 🟢 实测未泄露：git log --all -- <两个文件> 无任何记录 ⇒ 二者从未被跟踪。
+  · 修法：.gitignore 显式忽略 results/app/_pkg_v25_runtime_token_*.txt 与 results/app/_pkg_v25_removed_bridge_token_*.txt（理由写明）；复核 git check-ignore -v 命中，且 git status 不再列出它们。
+  · 顺带做了一次「入库前安全扫描」（results/app/_app236_secret_scan.py）：对「被 STATUS 引用但未入库」的 31 个磁盘候选分类 ⇒ SECRET 2（上述两个 token 文件，永不入库）／RUNTIME 5（.log，.gitignore 已约定 *.log 不入库）／SAFE 24；反证 3/3（含「高熵裸 token 也必须命中」）。
+
+【地标-尾】
+六、🔴 本轮踩到并当场修掉的坑：Edit 工具会把整份文件统一规整成 LF ⇒ 破坏「行尾风格不变」
+  · STATUS_APP.md 是混合行尾（行 1-2 CRLF、行 3-4 LF、行 5-10 CRLF、行 11-91 LF ⇒ 共 57 CRLF + 33 LF）。用 Edit 工具改 1 行 ⇒ 57 个 CRLF 全部消失（变成纯 LF）⇒ ①违反「行尾风格不变」②使本文件与 HEAD 的差异从「3 处」放大成「整份文件」③「旧正文逐字未变」这条判据失效。
+  · 修法：results/app/_app236_rebuild_status.py —— 以写前备份为基底在字节层重做 3 处改动（保留每行原有行尾；新增行按所在区域既有行尾写入）⇒ 写前跑真不变量断言（CRLF 数必须一个不少／LF 数 = 旧 + 新增行数／difflib opcodes 只允许「更新时间 行的 replace + 其余纯 insert」）⇒ 全过才临时文件 + os.replace（原子）落盘。实测重建后 CRLF 57→57（不变）、LF 33→36（+3 新增行）⇒ 行尾结构原样保留。
+  · 另：反证也不能用「删末行」（difflib 把它算成 insert ⇒ 反证无效）⇒ 改用篡改旧正文一行。STATUS 写入独立复核 8/8 PASS ＋ 反证 4/4（results/app/app236_status_verify.json）。
+
+七、STATUS §236 写入（活文档只留标题行＋指针行，正文在 companion）
+  · status/app/STATUS_APP.md：37730 B／93 行（限额 40000 B／300 行）；头「更新时间」= Get-Date 实测值 2026-11-25 07:38:13；last_ack 仍 APP-133（值不变）；「最近更新」+1 条（旧条下移未删）；§236 只追加在文末；旧正文除「更新时间」一行外逐字未变。
+  · 正文全文：status/app/STATUS_APP_sec236_detail_20261125.md（17403 B）。
+  · 记忆：MEMORY_MODULES.md ＋附录·五十四（396994 B／3288 行）；MEMORY.md 9884 → 8771 字符（限额 9700）⇒ 只压从句、不删判据（47 条关键事实＋否定式表述逐字在）⇒ 写后复核 7/7 PASS ＋ 反证 2/2。
+
+八、如实登记（未修／不擅自修）：app231_pack_lock_events.jsonl 仍不存在且未入库 ⇒ app187 闸门仍 FAIL 1 项（根因：它由 §231 修好的生产路径 live_caption/_app116_build_v25.py 的 _lock_event() 在运行时创建，而 v2.6 那次构建跑在该修复提交 eb82d17 之前 ⇒ 尚未被生产路径产出）⇒ 正确处置＝如实记录不伪造（建空文件＝制造证据）⇒ 下轮真跑成包路径时自动出现、届时一并入库｜仓库根 .gitattributes 根治（854→875 个 i/lf+w/crlf）跨模块 ⇒ 待 reviewer 裁定（本轮只做 results/app 局部逐文件 -text，未碰仓库根）｜真包 v2.6 两处包内缺陷（README 双标题／MANIFEST.version 仍 2.5）修法已落开发树、真包未动 ⇒ 是否出 v2.7 待裁定｜v2.5 的 ACCEPTED.json 仍指向 v2.4｜Confucius4_LiveCaption_v2.6.staging 残留 25 GB ⇒ 未删（破坏性，待授权）｜其余 22 个「companion 引用但未入库」的 SAFE 候选留待下轮｜默认分离设备、n_speakers=0 口径 ⇒ 待裁定。
+
+九、纪律：未打包 zip（用户规则「不通知 ⇒ 不打包」）／未覆盖未删任何旧目录与 zip／未改任何客户包（v2.6 实测 48792 文件／26156520495 B；ACCEPTED.json 逐字未动：version=2.6／accepted_at=2026-11-24 18:26:21／ext=0.4.21(b2a4978)／corrections=[APP-129..133,123]／n_production_modules=33；完整版 v2.x 无 zip）／未跑推理·计时（未取 MACHINE_LOCK）／未调 MiniMax／未连 B 机／未改 CORRECTIONS_APP.md（收尾四项指纹逐字一致，SHA 零改动）／只 add App 侧文件／普通 push 未 force。提交 94f95f6、c8aa352、e2badbc、06fa224 已推 origin/main（0/0）。
