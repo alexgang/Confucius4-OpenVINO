@@ -73,6 +73,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import threading
 import time
 from typing import Iterator, List, Optional, Tuple
 
@@ -954,6 +955,18 @@ def make_engine(device: str = 'NPU',
         on_log(f'[tts_engine] cp_prefill: CPU'
                f'（回落原因：搬运时异常 {e}）')
 
+    # 🔴🔴🔳 APP-130②：**code predictor 的 NaN/Inf 守卫**
+    #   ⚠️ 必须在 `execution_devices()` **之前**装 ⇒ 守卫转发 `get_property`
+    #      ⇒ 设备落点仍能测到（cp_* 显示真实落点）。
+    try:
+        _ng = _install_cp_nan_guard(eng, on_log=on_log)
+        if _ng:
+            on_log('[tts_engine] 🔴 APP-130：code predictor NaN 守卫已装 %d 个'
+                   % _ng)
+    except Exception as e:
+        on_log('[tts_engine] ⚠️ APP-130：NaN 守卫安装失败（%s）⇒ 不影响主链路'
+               % e)
+
     # 🔴🔴 **必须挂 SpeakerLibrary**，否则按名查内置音色会直接抛
     #   `ValueError: speaker_library not set; cannot look up named speaker`
     #   （babelvox/pipeline.py:782 —— `speaker_library` 默认是 None）。
@@ -1134,6 +1147,417 @@ def _cp_decode_ir_path(eng) -> Optional[str]:
     """定位 cp_decode 的 IR 路径（兼容旧调用方）。"""
     return _cp_ir_path(eng, 'cp_decode')
 
+# ══════════════════════════════════════════════════════════════════════
+# 🔴🔴🔳 APP-130：**code predictor 的 NPU 自检兜底 + 运行时保险**
+# ══════════════════════════════════════════════════════════════════════
+#
+# ## 背景（reviewer 在 B 机 Meteor Lake 一代 NPU 上做的 4 组对照实验）
+#
+# | 臂 | 结果 |
+# |---|---|
+# | 产品 NPU 引擎原样 | 每句生成到 492 帧 = 39.36 s（GPU.0 引擎同句 5.84 s） |
+# | 声码器同一组码 NPU / GPU.0 / CPU 解码 | 精度差正常 ⇒ **不是声码器** |
+# | talker 全改 CPU / NPU 显式 f16 | 仍 492 帧 ⇒ **不是 talker** |
+# | 说话人向量换 GPU.0 算的 | 仍 492 帧 ⇒ **不是 speaker encoder** |
+# | **cp_prefill / cp_decode 改到 CPU** | **5.44 s / 68 帧，正常收尾** |
+# | 同一个 cp_prefill 输入在 NPU vs CPU | **比较结果为 NaN（输出含 NaN）** |
+#
+# ⇒ 根因：`_move_cp_prefill_to_npu` / `_move_cp_decode_to_npu` 把 code predictor
+#   编到 NPU 后，在**这类机型/驱动上输出 NaN** ⇒ talker 每步拿到的 15 组码
+#   被污染 ⇒ **永远走不到 EOS** ⇒ 一句拖到帧上限（39 s 乱说）。
+#   A 机（Panther Lake）NPU 正常 ⇒ 这是**机型/驱动相关**的数值问题，
+#   代码里**原本没有任何兜底**。
+#
+# ## 本模块的两道保险
+#
+# 1. **自检兜底**（启动时）：NPU 版编译成功后、替换 `eng.cp_*` **之前**，
+#    用固定种子造 2–3 组输入，在 NPU 版与**现有 CPU 版**上各跑一遍；
+#    任一输出含 NaN/Inf、或与 CPU 的余弦 < 0.99 ⇒ **不替换、保留 CPU**。
+# 2. **运行时保险**（生成时）：code predictor 输出 NaN/Inf ⇒ **本句立刻停**
+#    并记 `tts_runaway` 计数（不再一路生成到帧上限）。
+#
+# 🔴 **口径写清楚**（reviewer 要求「阈值沿用 tts_engine 现有的估计函数，
+#    写清口径」）：
+#   - 失控阈值 = `runaway_threshold_s(estimate_sec(text, lang))`
+#     = `max(3×估计秒数, 估计秒数 + 8 s)`（`RUNAWAY_FACTOR=3.0` /
+#     `RUNAWAY_EXTRA_S=8.0`，见本模块 `runaway_threshold_s`）。
+#   - 估计秒数 = `estimate_sec(text, lang)` = **非空白字符数 × 每字秒数
+#     + 尾部常数**（`_SEC_PER_CHAR` / `_LANG_TAIL_S`）。
+#   - **NaN 判据与阈值无关**：只要 code predictor 输出含 NaN/Inf ⇒ 立刻停。
+
+#: 自检随机种子（固定 ⇒ 可复现；reviewer 要求「用固定种子构造输入」）
+CP_SELFCHECK_SEED = 20261124
+
+#: 自检的三组输入幅度（reviewer 明文：0.02 / 0.1 / 1.0）
+CP_SELFCHECK_AMPS = (0.02, 0.1, 1.0)
+
+#: 自检判据：与 CPU 的余弦下限（reviewer 明文：< 0.99 ⇒ 不替换）
+CP_SELFCHECK_COS_MIN = 0.99
+
+#: code predictor 的形状常量（与 babelvox `pipeline.py` L110-113 一致：
+#: CP_NUM_LAYERS=5 / CP_NUM_KV_HEADS=8 / CP_HEAD_DIM=128 / CP_MAX_KV_LEN=20）
+CP_NUM_LAYERS = 5
+CP_NUM_KV_HEADS = 8
+CP_MAX_KV_LEN = 20
+CP_HEAD_DIM = 128
+
+
+class CPNaNError(RuntimeError):
+    """🔴🔴🔳 APP-130：code predictor 输出 NaN/Inf ⇒ 本句立刻停。"""
+
+
+def _find_nonfinite(out):
+    """在 OV 输出（dict / ndarray）里找 NaN / Inf。返回描述串或 None。"""
+    try:
+        import numpy as np
+    except Exception:
+        return None
+
+    def _one(arr):
+        try:
+            a = np.asarray(arr)
+        except Exception:
+            return None
+        if a.dtype.kind not in 'fc':
+            return None
+        if not bool(np.all(np.isfinite(a))):
+            return 'NaN' if bool(np.isnan(a).any()) else 'Inf'
+        return None
+
+    if isinstance(out, dict):
+        for k in sorted(out.keys(), key=str):
+            r = _one(out[k])
+            if r:
+                return '%s 含 %s' % (k, r)
+        return None
+    r = _one(out)
+    return ('含 %s' % r) if r else None
+
+
+def _cosine(a, b) -> float:
+    """两组数组的余弦（展平）。任一方范数≈0 ⇒ 1.0（两者都≈0）/ 0.0（只有一方）。"""
+    try:
+        import numpy as np
+    except Exception:
+        return 0.0
+    try:
+        x = np.asarray(a, dtype=np.float64).reshape(-1)
+        y = np.asarray(b, dtype=np.float64).reshape(-1)
+    except Exception:
+        return 0.0
+    if x.size != y.size or x.size == 0:
+        return 0.0
+    nx = float(np.linalg.norm(x))
+    ny = float(np.linalg.norm(y))
+    if nx < 1e-12 and ny < 1e-12:
+        return 1.0
+    if nx < 1e-12 or ny < 1e-12:
+        return 0.0
+    return float(np.dot(x, y) / (nx * ny))
+
+
+def _cp_selfcheck_inputs(which: str):
+    """构造 code predictor 自检输入（**固定种子** ⇒ 可复现）。
+
+    - `cp_prefill`：运行时输入**恒为** `(1, 2, 1024)`
+      （babelvox `pipeline.py`：`cp_input = np.concatenate([hidden, code_0_embed], axis=1)`
+      ⇒ `hidden`(1,1,1024) + `code_0_embed`(1,1,1024)）⇒ 按此造。
+    - `cp_decode`：按 `CP_DECODE_NPU_SHAPE` 造**零 KV + 合法 attention_mask**
+      （mask 前 `pos+1` 位为 0、其余为 float32 min ⇒ 与 babelvox
+      `_run_cp_decode` L570-572 同语义）。
+
+    返回 `[(amp, inputs_dict), ...]`。
+    """
+    import numpy as np
+    rng = np.random.default_rng(CP_SELFCHECK_SEED)
+    cases = []
+    if which == 'cp_prefill':
+        for amp in CP_SELFCHECK_AMPS:
+            x = (rng.standard_normal((1, 2, 1024)) * float(amp)).astype(np.float32)
+            cases.append((amp, {'inputs_embeds': x}))
+    else:
+        for amp in CP_SELFCHECK_AMPS:
+            x = (rng.standard_normal((1, 1, 1024)) * float(amp)).astype(np.float32)
+            mask = np.full((1, 1, 1, CP_MAX_KV_LEN),
+                           np.finfo(np.float32).min, dtype=np.float32)
+            mask[:, :, :, :1] = 0.0
+            kv_k = np.zeros((CP_NUM_LAYERS, 1, CP_NUM_KV_HEADS,
+                             CP_MAX_KV_LEN, CP_HEAD_DIM), dtype=np.float32)
+            cases.append((amp, {
+                'inputs_embeds': x,
+                'cache_position': np.array([0], dtype=np.int64),
+                'attention_mask': mask,
+                'past_keys': kv_k,
+                'past_values': kv_k.copy(),
+            }))
+    return cases
+
+
+def _cp_compare_outputs(cpu_out, npu_out):
+    """逐键比较 CPU / NPU 输出。返回 `(min_cos, bad_desc)`。"""
+    if isinstance(cpu_out, dict) and isinstance(npu_out, dict):
+        keys = [k for k in cpu_out.keys() if k in npu_out]
+        if not keys:
+            return 0.0, '输出键不匹配（CPU %s / NPU %s）' % (
+                sorted(map(str, cpu_out.keys())),
+                sorted(map(str, npu_out.keys())))
+        min_cos = 1.0
+        desc = ''
+        for k in sorted(keys, key=str):
+            c = _cosine(cpu_out[k], npu_out[k])
+            if c < min_cos:
+                min_cos = c
+            if c < CP_SELFCHECK_COS_MIN and not desc:
+                desc = '%s 与 CPU 余弦 %.4f < %.2f' % (
+                    k, c, CP_SELFCHECK_COS_MIN)
+        return min_cos, desc
+    c = _cosine(cpu_out, npu_out)
+    if c < CP_SELFCHECK_COS_MIN:
+        return c, '与 CPU 余弦 %.4f < %.2f' % (c, CP_SELFCHECK_COS_MIN)
+    return c, ''
+
+
+def _cp_selfcheck(which: str, cpu_cm, npu_cm, on_log=print):
+    """🔴🔴🔳 APP-130①：**NPU 自检**（编译成功后、替换 `eng.cp_*` 之前）。
+
+    返回 `(ok, reason, elapsed_s, detail)`：
+    - `ok=False` ⇒ **不替换 `eng.cp_*`，保留 CPU**（机型/驱动相关 NaN 不进生产）。
+    - `detail` = 逐用例的 `(amp, min_cos)` 列表（供 STATUS / 邮件报数字）。
+    """
+    import time as _t
+    t0 = _t.perf_counter()
+    detail = []
+    if cpu_cm is None:
+        return False, '没有可比的 CPU 版（cpu_cm is None）', 0.0, detail
+    try:
+        cases = _cp_selfcheck_inputs(which)
+    except Exception as e:
+        return (False, '自检输入构造失败：%s: %s' % (type(e).__name__, e),
+                0.0, detail)
+    for amp, inp in cases:
+        try:
+            npu_out = npu_cm(inp)
+        except Exception as e:
+            return (False, '用例 amp=%s NPU 推理异常：%s: %s'
+                    % (amp, type(e).__name__, e),
+                    _t.perf_counter() - t0, detail)
+        bad = _find_nonfinite(npu_out)
+        if bad:
+            return (False, '用例 amp=%s NPU 输出 %s' % (amp, bad),
+                    _t.perf_counter() - t0, detail)
+        try:
+            cpu_out = cpu_cm(inp)
+        except Exception as e:
+            return (False, '用例 amp=%s CPU 推理异常：%s: %s'
+                    % (amp, type(e).__name__, e),
+                    _t.perf_counter() - t0, detail)
+        badc = _find_nonfinite(cpu_out)
+        if badc:
+            return (False, '用例 amp=%s **CPU** 输出 %s（基线自身异常）'
+                    % (amp, badc), _t.perf_counter() - t0, detail)
+        min_cos, desc = _cp_compare_outputs(cpu_out, npu_out)
+        detail.append((amp, round(min_cos, 6)))
+        if desc:
+            return (False, '用例 amp=%s %s' % (amp, desc),
+                    _t.perf_counter() - t0, detail)
+    return True, '', _t.perf_counter() - t0, detail
+
+
+#: 🔴🔴🔳 APP-130②：**自检报告**（最近一次结果；供 STATUS / 遥测取）
+_CP_SELFCHECK_REPORT: dict = {}
+
+
+def cp_selfcheck_report() -> dict:
+    """取 code predictor 自检报告（dict 的副本）。
+
+    每项形如：`{'which': 'cp_prefill', 'ok': bool, 'reason': str,
+    'elapsed_s': float, 'detail': [(amp, cos), ...]}`。
+    """
+    return {k: (dict(v) if isinstance(v, dict) else v)
+            for k, v in _CP_SELFCHECK_REPORT.items()}
+
+
+def _record_selfcheck(which: str, ok: bool, reason: str,
+                      elapsed_s: float, detail) -> None:
+    _CP_SELFCHECK_REPORT[which] = {
+        'which': which, 'ok': bool(ok), 'reason': str(reason or ''),
+        'elapsed_s': round(float(elapsed_s), 4),
+        'detail': [(float(a), float(c)) for a, c in (detail or [])],
+    }
+
+
+class _CPNaNGuard:
+    """🔴🔴🔳 APP-130②：包裹 code predictor 的 compiled model。
+
+    输出含 NaN/Inf ⇒ **立刻抛 `CPNaNError`** ⇒ 生成循环当场停止本句
+    （不再一路生成到帧上限 ⇒ 不再出现 39 s 乱说）。
+
+    ⚠️ **必须转发 `get_property`** ⇒ `execution_devices()` 靠它取
+    `EXECUTION_DEVICES` ⇒ 守卫不能把设备落点搞成「取不到」。
+    """
+
+    def __init__(self, inner, name: str):
+        self._inner = inner
+        self._name = name
+        self.n_calls = 0
+        self.n_bad = 0
+        self.last_reason = None
+
+    def __call__(self, *a, **k):
+        out = self._inner(*a, **k)
+        self.n_calls += 1
+        bad = _find_nonfinite(out)
+        if bad:
+            self.n_bad += 1
+            self.last_reason = bad
+            raise CPNaNError('%s 输出 %s（APP-130 运行时保险）'
+                             % (self._name, bad))
+        return out
+
+    def get_property(self, key):
+        return self._inner.get_property(key)
+
+    def __getattr__(self, name):
+        if name.startswith('_'):
+            raise AttributeError(name)
+        inner = self.__dict__.get('_inner')
+        if inner is None:
+            raise AttributeError(name)
+        return getattr(inner, name)
+
+
+def _install_cp_nan_guard(eng, on_log=print) -> int:
+    """给 `eng.cp_prefill` / `eng.cp_decode` 套 NaN/Inf 守卫。返回套上的个数。"""
+    n = 0
+    for name in ('cp_prefill', 'cp_decode'):
+        cur = getattr(eng, name, None)
+        if cur is None or isinstance(cur, _CPNaNGuard):
+            continue
+        try:
+            setattr(eng, name, _CPNaNGuard(cur, name))
+            n += 1
+        except Exception as e:
+            on_log('[tts_engine] ⚠️ APP-130：%s 守卫安装失败（%s）'
+                   % (name, e))
+    return n
+
+
+#: 🔴🔴🔳 APP-130②：**`tts_runaway` 计数**（模块级；进程内有效）
+_RUNAWAY_LOCK = threading.Lock()
+_RUNAWAY_STATS = {
+    'tts_runaway': 0,
+    'tts_runaway_cp_nan': 0,
+    'tts_runaway_threshold': 0,
+}
+
+
+def bump_tts_runaway(reason: str = 'threshold') -> int:
+    """🔴🔴🔳 APP-130②：记一次 `tts_runaway`（本句因失控被中止）。
+
+    `reason`：`'cp_nan'`（code predictor 出 NaN/Inf）/ `'threshold'`（超失控阈值）。
+    返回累计次数。
+    """
+    with _RUNAWAY_LOCK:
+        _RUNAWAY_STATS['tts_runaway'] = int(
+            _RUNAWAY_STATS.get('tts_runaway', 0)) + 1
+        if reason == 'cp_nan':
+            _RUNAWAY_STATS['tts_runaway_cp_nan'] = int(
+                _RUNAWAY_STATS.get('tts_runaway_cp_nan', 0)) + 1
+        else:
+            _RUNAWAY_STATS['tts_runaway_threshold'] = int(
+                _RUNAWAY_STATS.get('tts_runaway_threshold', 0)) + 1
+        return int(_RUNAWAY_STATS['tts_runaway'])
+
+
+def _mark_runaway(eng, reason: str = 'threshold') -> int:
+    """🔴🔴🔳 APP-130②：记一次 `tts_runaway`，**同一句只记一次**。
+
+    - `eng._runaway_counted` 是**本句**的守卫标记（由 `stream()` 每句重置）；
+    - worker 侧第三道闸与 `tts_engine` 的运行时保险**同阈值**
+      ⇒ 两边都判 ⇒ 用本守卫**去重**（否则一句记 2 次）。
+    """
+    try:
+        if getattr(eng, '_runaway_counted', False):
+            return tts_runaway_count()
+        eng._runaway_counted = True
+    except Exception:
+        pass
+    return bump_tts_runaway(reason)
+
+
+def tts_runaway_count() -> int:
+    """🔴 APP-130②：取 `tts_runaway` 累计次数。"""
+    return int(_RUNAWAY_STATS.get('tts_runaway', 0))
+
+
+def tts_runaway_stats() -> dict:
+    """🔴 APP-130②：取 `tts_runaway` 明细（给状态/遥测用）。"""
+    return dict(_RUNAWAY_STATS)
+
+
+def _guarded_stream(gen, eng, text, language, est_sec, on_log=print):
+    """🔴🔴🔳 APP-130②：**运行时保险**（生成循环级）。
+
+    两道判据：
+    1. **code predictor 输出 NaN/Inf**（`_CPNaNGuard` 抛 `CPNaNError`）
+       ⇒ **本句立刻停** ＋ 记 `tts_runaway`（`reason='cp_nan'`）。
+    2. **已收音频秒数 > `runaway_threshold_s(estimate_sec(text, lang))`**
+       ⇒ 本句立刻停（`reason='threshold'`）。
+       口径：`max(3×估计秒数, 估计秒数 + 8 s)`；估计秒数按**非空白字符数**
+       × 每字秒数 + 尾部常数（`estimate_sec`）。
+
+    ⚠️ **计数只在这里加一次**：`tts_worker.py` 的 worker 侧第三道闸
+    （同阈值）**不再重复计数** ⇒ 一句只记 1 次。
+    """
+    try:
+        thr = runaway_threshold_s(
+            est_sec if est_sec is not None else estimate_sec(text, language))
+    except Exception:
+        thr = None
+    got_s = 0.0
+    sr = 24000
+    try:
+        for item in gen:
+            try:
+                wav, s = item
+            except Exception:
+                wav, s = item, sr
+            try:
+                sr = int(s) or sr
+            except Exception:
+                pass
+            try:
+                import numpy as np
+                n = int(np.asarray(wav).size)
+            except Exception:
+                n = 0
+            got_s += n / float(sr or 24000)
+            # 🔴🔴🔳 APP-130②：**阈值判据放在 `yield` 之前**
+            #   ⇒ 计数与「停句」**必然发生**
+            #   （放在 `yield` 之后 ⇒ 消费方提前 break 时生成器不会被 resume
+            #     ⇒ 那段代码根本不执行 ⇒ 计数丢失）。
+            if thr is not None and got_s > thr:
+                on_log('[tts_engine] 🔴 APP-130 运行时保险：本句已收 %.1f s > '
+                       '阈值 %.1f s ⇒ 停止本句（记 tts_runaway）'
+                       % (got_s, thr))
+                _mark_runaway(eng, 'threshold')
+                try:
+                    eng._last_end_reason = 'runaway'
+                except Exception:
+                    pass
+                break
+            yield item
+    except CPNaNError as e:
+        on_log('[tts_engine] 🔴 APP-130 运行时保险：%s ⇒ 停止本句（记 tts_runaway）'
+               % e)
+        _mark_runaway(eng, 'cp_nan')
+        try:
+            eng._cp_nan_hit = True
+            eng._last_end_reason = 'runaway'
+        except Exception:
+            pass
+        return
+
 
 def _move_cp_prefill_to_npu(eng, on_log=print) -> bool:
     """🔴🔴 把 `cp_prefill` 从 CPU 搬到 **NPU**（TTS-017① 的交付配置）。
@@ -1192,6 +1616,20 @@ def _move_cp_prefill_to_npu(eng, on_log=print) -> bool:
                f'⇒ 引擎仍可用，仅较慢')
         return False
 
+    # 🔴🔴🔳 APP-130①：**NPU 自检兜底**
+    #   编译成功后、**替换 `eng.cp_prefill` 之前** ⇒ 自检不过就**保留 CPU**
+    #   （B 机那类 NPU 上 cp_prefill 输出 NaN ⇒ 保留 CPU 即恢复 5.44 s / 68 帧）。
+    _cpu_cm = getattr(eng, 'cp_prefill', None)
+    _ok, _reason, _elapsed, _detail = _cp_selfcheck(
+        'cp_prefill', _cpu_cm, cm, on_log=on_log)
+    _record_selfcheck('cp_prefill', _ok, _reason, _elapsed, _detail)
+    if not _ok:
+        on_log('[tts_engine] cp_prefill: NPU 自检失败（%s）⇒ 留在 CPU'
+               % _reason)
+        return False
+    on_log('[tts_engine] cp_prefill: NPU 自检通过（耗时 %.3f s，用例 %s）'
+           % (_elapsed, _detail))
+
     eng.cp_prefill = cm
     # `cp_on_cpu` 在 babelvox 里**只被写、从不被读**（pipeline L181/L356）
     # ⇒ 纯信息标志，置 False 安全（用于日志/诊断）
@@ -1245,6 +1683,19 @@ def _move_cp_decode_to_npu(eng, on_log=print) -> bool:
                f'（回落原因：{type(e).__name__}: {e}）'
                f'⇒ 引擎仍可用，仅较慢')
         return False
+
+    # 🔴🔴🔳 APP-130①：**NPU 自检兜底**
+    #   编译成功后、**替换 `eng.cp_decode` 之前** ⇒ 自检不过就**保留 CPU**
+    _cpu_cm = getattr(eng, 'cp_decode', None)
+    _ok, _reason, _elapsed, _detail = _cp_selfcheck(
+        'cp_decode', _cpu_cm, cm, on_log=on_log)
+    _record_selfcheck('cp_decode', _ok, _reason, _elapsed, _detail)
+    if not _ok:
+        on_log('[tts_engine] cp_decode: NPU 自检失败（%s）⇒ 留在 CPU'
+               % _reason)
+        return False
+    on_log('[tts_engine] cp_decode: NPU 自检通过（耗时 %.3f s，用例 %s）'
+           % (_elapsed, _detail))
 
     eng.cp_decode = cm
     # `cp_on_cpu` 在 babelvox 里**只被写、从不被读**（pipeline L181/L356）
@@ -2033,7 +2484,15 @@ def stream(eng, text: str, language: str = 'English',
                 kwargs['est_sec'] = float(est_sec)
         except Exception:
             pass
-    return eng.generate_stream(**kwargs)
+    # 🔴🔴🔳 APP-130②：**运行时保险**（生成循环级）
+    #   ⇒ code predictor 出 NaN/Inf ⇒ 本句立刻停；已收音频超失控阈值 ⇒ 本句停。
+    #   ⚠️ **每句重置「本句已计数」标记** ⇒ 同一句只记 1 次 `tts_runaway`。
+    try:
+        eng._runaway_counted = False
+    except Exception:
+        pass
+    return _guarded_stream(eng.generate_stream(**kwargs), eng, text,
+                            language, est_sec, on_log=on_log)
 
 
 def _estimate_sec(s: str) -> float:

@@ -2379,6 +2379,13 @@ class TTSWorker:
                     try:
                         _got_s = n_samples / float(self.sr or SR)
                         if _runaway_s is not None and _got_s > _runaway_s:
+                            # 🔴🔴🔳 APP-130②：记 `tts_runaway`
+                            #   （与 `tts_engine` 的运行时保险**同一句只记一次**
+                            #     ⇒ 由 `engine._runaway_counted` 守卫去重）
+                            try:
+                                _te._mark_runaway(self.engine, 'threshold')
+                            except Exception:
+                                pass
                             runaway = True
                             self._last_end_reason = 'runaway'
                             log('[tts_worker] 🔴 RUNAWAY id=%d lang=%s len=%d '
@@ -2509,6 +2516,17 @@ class TTSWorker:
                                                    t_dequeue, t_first, t_last,
                                                    prebuffer_s, prebuffer_short))
                             return
+                # 🔴🔴🔳 APP-130②：**引擎侧运行时保险触发的 RUNAWAY**
+                #   （`tts_engine._guarded_stream` 在「超失控阈值」或
+                #     「code predictor 出 NaN」时会停句并把
+                #     `engine._last_end_reason` 置成 `runaway`
+                #     ⇒ 这里把它反映到逐句遥测的 `runaway` 标记上）
+                try:
+                    if getattr(self.engine, '_runaway_counted', False):
+                        runaway = True
+                        self._last_end_reason = 'runaway'
+                except Exception:
+                    pass
                 # 🔴🔴🔴 APP-042：变速器的**收尾块**（最后一帧的尾巴）
                 #   ⇒ 必须在本句**所有块都处理完**之后、预缓冲判定**之前**
                 #     追加 ⇒ 否则尾块会**丢**（⇒ 句尾被截 ⇒ 可懂度下降）。

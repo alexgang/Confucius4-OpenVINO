@@ -1,0 +1,32 @@
+{
+  "ts": "2026-11-24 10:29:43",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6",
+  "pkg_python": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\python\\python.exe",
+  "results": {
+    "python": {
+      "src": "C:\\Users\\Trekker-PTL\\live_dub_ext\\tests\\test_ext0419_bgkeep.py",
+      "adaptations": [
+        "ROOT ← EXT_TEST_ROOT 环境变量",
+        "sys.modules[\"ext\"] ← ext.bridge（包内布局）"
+      ],
+      "n_check_in_src": 14,
+      "n_pass": 14,
+      "n_fail": 0,
+      "rc": 0,
+      "ok": true,
+      "log": "results/app/app129_pkg_test_py.log"
+    },
+    "node": {
+      "harness": "C:\\Users\\Trekker-PTL\\live_dub_ext\\tests\\ext0419_bg_harness.js",
+      "player_js": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\ext\\extension\\player.js",
+      "node_version": "v22.22.2",
+      "n_pass": 18,
+      "n_fail": 0,
+      "denominator": 18,
+      "n_check_lines": 18,
+      "rc": 0,
+      "ok": true,
+      "log": "results/app/app129_pkg_test_node.log"
+    }
+  }
+}

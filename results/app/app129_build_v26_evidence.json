@@ -1,0 +1,82 @@
+{
+  "ts": "2026-11-24 10:28:58",
+  "pkg": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6",
+  "ext_version": "0.4.19",
+  "ext_commit": "3573b2d",
+  "files": [
+    {
+      "rel": "app/tts_engine.py",
+      "bytes": 122549,
+      "sha256": "3e0696a0d6b0c0fc3f741c8b96466c8c62a25170bb87bb730e3e8b21fae682df",
+      "identical": true,
+      "src_sha256": "3e0696a0d6b0c0fc3f741c8b96466c8c62a25170bb87bb730e3e8b21fae682df",
+      "ast": "OK"
+    },
+    {
+      "rel": "app/tts_worker.py",
+      "bytes": 292462,
+      "sha256": "8efd010df6b4529b328aaafd3e680aec51e52108b9f501751b4b3a3fc2eb8961",
+      "identical": true,
+      "src_sha256": "8efd010df6b4529b328aaafd3e680aec51e52108b9f501751b4b3a3fc2eb8961",
+      "ast": "OK"
+    },
+    {
+      "rel": "ext/bridge/bridge.py",
+      "exists": true,
+      "bytes": 288353,
+      "sha256": "921ff68156bf29909a2f9d6e8bddbf8873d89b0c622769d251ea2ccb2cbaa7c2",
+      "ast": "OK"
+    },
+    {
+      "rel": "ext/bridge/version.py",
+      "exists": true,
+      "bytes": 333,
+      "sha256": "c768ffddda0b29e24c37f6987440d3672bfa8176aefc493a95567340eaafb6b3",
+      "ast": "OK"
+    },
+    {
+      "rel": "ext/bridge/__main__.py",
+      "exists": true,
+      "bytes": 561,
+      "sha256": "e64064d0c26e0bada9164ae9ecd0e8063563004a0b575288ea40978cef73d130",
+      "ast": "OK"
+    },
+    {
+      "rel": "ext/extension/manifest.json",
+      "exists": true,
+      "bytes": 2552,
+      "sha256": "0be7385a29b196dd0e0b2f61eed68408e2d85acd90f0ced8ddff55e7466a2756",
+      "json": "OK"
+    },
+    {
+      "rel": "tools/ext_launcher.py",
+      "exists": true,
+      "bytes": 44696,
+      "sha256": "006df4d9cb3c7acdae466a8b5a919f3a829452574864fd16cece70e36ad2c525",
+      "ast": "OK"
+    },
+    {
+      "rel": "Start_Bridge.bat",
+      "exists": true,
+      "bytes": 486,
+      "sha256": "aedeac45c84dde0ad0c05f792026b05b3288e329e1ee7126f02ed58035b4e9d2"
+    }
+  ],
+  "errors": [],
+  "models": [
+    {
+      "file": "models/bgsep/htdemucs_core.xml",
+      "bytes": 1341298,
+      "sha256": "eb62037b77c34fb8fd3adfb96758952fbd104d414243e47859f1cd0bc2b7b4ef",
+      "src_sha256": "eb62037b77c34fb8fd3adfb96758952fbd104d414243e47859f1cd0bc2b7b4ef"
+    },
+    {
+      "file": "models/bgsep/htdemucs_core.bin",
+      "bytes": 106628066,
+      "sha256": "62ad36576041af56f0829db54a1b5fe62d10de3a1a223a549e05078deef5a336",
+      "src_sha256": "62ad36576041af56f0829db54a1b5fe62d10de3a1a223a549e05078deef5a336"
+    }
+  ],
+  "banned_found": [],
+  "ext_version_consistent": true
+}
