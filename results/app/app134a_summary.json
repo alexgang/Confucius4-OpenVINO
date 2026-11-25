@@ -1,0 +1,148 @@
+{
+ "script": "_app134a_collect.py",
+ "task": "APP-134 a：两臂（bgkeep_on TTS=NPU / bgkeep_on AUTO）结果汇总",
+ "ts": "2026-11-25 15:38:15",
+ "root": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app134a",
+ "arms": [
+  {
+   "arm": "bgkeep_on_auto",
+   "json": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app134a\\bgkeep_on_auto\\bgkeep_e2e.json",
+   "json_bytes": 58467,
+   "json_mtime": "2026-11-25 15:34:02",
+   "media": "C:/Users/Trekker-PTL/confucius4-openvino/test_audio/clip_10min_0_600.wav",
+   "duration_s": 600.0,
+   "dubs": 123,
+   "n_submitted_at_media_end": 121,
+   "n_emitted_at_media_end": 120,
+   "n_pending_at_media_end": 1,
+   "n_submitted_after_drain": 123,
+   "n_emitted_after_drain": 123,
+   "n_pending_after_drain": 0,
+   "drained_to_zero": true,
+   "drain_elapsed_s": 4.01,
+   "drain_disconnected": null,
+   "dub_late_max": 2.329,
+   "dub_late_p90": -1.147,
+   "dub_late_p50": -6.152,
+   "dub_late_n": 123,
+   "last_segment_lag": 0.0,
+   "lag_slope_sec_per_sec": -0.001543,
+   "lag_r2": 0.007121,
+   "synth_rtf": 0.5907,
+   "synth_rtf_cross_check_ok": true,
+   "synth_rtf_n_segments": 123,
+   "speech_over_src": 1.1784,
+   "tts_over_src": 0.6961,
+   "bg_late_blocks": 0,
+   "proc_mem_mb": 7442.2,
+   "sep_device": "GPU.0",
+   "npu_pct": 0.0,
+   "igpu_pct": 0.0,
+   "clone_reasons": {},
+   "n_gender_splits": 0,
+   "devices_parsed": {
+    "asr": "R2T2 INT8 @ GPU.0，9.4s",
+    "mt": "NPU"
+   }
+  },
+  {
+   "arm": "bgkeep_on_npu",
+   "json": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app134a\\bgkeep_on_npu\\bgkeep_e2e.json",
+   "json_bytes": 73464,
+   "json_mtime": "2026-11-25 15:22:45",
+   "media": "C:/Users/Trekker-PTL/confucius4-openvino/test_audio/clip_10min_0_600.wav",
+   "duration_s": 600.0,
+   "dubs": 123,
+   "n_submitted_at_media_end": 121,
+   "n_emitted_at_media_end": 72,
+   "n_pending_at_media_end": 49,
+   "n_submitted_after_drain": 123,
+   "n_emitted_after_drain": 123,
+   "n_pending_after_drain": 0,
+   "drained_to_zero": true,
+   "drain_elapsed_s": 292.77,
+   "drain_disconnected": null,
+   "dub_late_max": 530.835,
+   "dub_late_p90": 464.442,
+   "dub_late_p50": 179.707,
+   "dub_late_n": 123,
+   "last_segment_lag": 279.1193,
+   "lag_slope_sec_per_sec": -0.534037,
+   "lag_r2": 0.943061,
+   "synth_rtf": 1.2792,
+   "synth_rtf_cross_check_ok": true,
+   "synth_rtf_n_segments": 123,
+   "speech_over_src": 1.1472,
+   "tts_over_src": 1.4675,
+   "bg_late_blocks": 0,
+   "proc_mem_mb": 3937.4,
+   "sep_device": "GPU.0",
+   "npu_pct": 76.4,
+   "igpu_pct": 7.4,
+   "clone_reasons": {},
+   "n_gender_splits": 0,
+   "devices_parsed": {
+    "asr": "R2T2 INT8 @ GPU.0，26.1s",
+    "mt": "GPU.0",
+    "tts_exec_devices": "NPU/NPU(lazy)",
+    "tts_load_device": "NPU",
+    "cp_decode_selfcheck": "0.105 s，用例 [(0.02, 0.999438), (0.1, 0.999718), (1.0, 0.999952)]",
+    "cp_prefill_selfcheck": "0.169 s，用例 [(0.02, 0.998595), (0.1, 0.99931), (1.0, 0.999953)]",
+    "vocoder_window": "chunk=8 ctx=25 window=33 buckets=[38] join=direct_concat",
+    "decoder": "MultiDecoderBabelVox",
+    "na_guard": "2"
+   }
+  }
+ ],
+ "caliber_correction": [
+  {
+   "arm": "bgkeep_on_auto",
+   "旧口径「丢句 0／收尾积压 0」": "不成立",
+   "媒体结束时未配音句数_n_pending": 1,
+   "占总句数_pct": 0.8,
+   "排空耗时_s": 4.01,
+   "排空后_n_pending": 0,
+   "最终是否都配上音": true,
+   "滞后是否回落（斜率≤0 且 r² 高 ⇒ 不回落）": "见斜率",
+   "dub_late_max_s": 2.329
+  },
+  {
+   "arm": "bgkeep_on_npu",
+   "旧口径「丢句 0／收尾积压 0」": "不成立",
+   "媒体结束时未配音句数_n_pending": 49,
+   "占总句数_pct": 40.5,
+   "排空耗时_s": 292.77,
+   "排空后_n_pending": 0,
+   "最终是否都配上音": true,
+   "滞后是否回落（斜率≤0 且 r² 高 ⇒ 不回落）": "否（线性增长）",
+   "dub_late_max_s": 530.835
+  }
+ ],
+ "lock_events": [
+  {
+   "ev": "lock_acquired",
+   "ts": "2026-11-25T15:06:53",
+   "tag": "app e2e drain 2026-11-25T15:06:53 pid=7940",
+   "waited_s": 0
+  },
+  {
+   "ev": "arm_done",
+   "arm": "bgkeep_on_npu",
+   "rc": 0,
+   "elapsed_s": 953,
+   "lock_lost": 0
+  },
+  {
+   "ev": "arm_done",
+   "arm": "bgkeep_on_auto",
+   "rc": 0,
+   "elapsed_s": 677,
+   "lock_lost": 0
+  },
+  {
+   "ev": "lock_released",
+   "ts": "2026-11-25T15:34:04"
+  }
+ ],
+ "n_lock_lost_events": 0
+}

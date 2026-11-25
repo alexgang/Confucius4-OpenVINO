@@ -1,0 +1,101 @@
+{
+ "script": "_app238_compress_status.py",
+ "task": "压缩 STATUS_APP.md 的「最近更新」较旧条目（APP-052④ 限额 ≤40000 B）",
+ "ts": "2026-11-25 15:40:51",
+ "status_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+ "archive": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\archive\\STATUS_APP_recent_updates_20261125.md",
+ "backup": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md.bak_app238_compress",
+ "bytes_before": 42093,
+ "bytes_after": 37317,
+ "limit": 40000,
+ "archived_entries": [
+  {
+   "marker": "> 🔴 2026-11-25 03:49:52",
+   "bytes": 1558
+  },
+  {
+   "marker": "> 🔴 2026-11-25 02:04:46",
+   "bytes": 1653
+  },
+  {
+   "marker": "> 🔴 2026-11-24 22:02:37",
+   "bytes": 929
+  },
+  {
+   "marker": "> 🔴 2026-11-24 20:3x",
+   "bytes": 903
+  }
+ ],
+ "archive_bytes": 5504,
+ "archive_sha256": "a68a902830cd702c302264bc0b7e35ff45d618d659dbcd3cf7185c4ce35113db",
+ "pre_write_invariants": [
+  {
+   "name": "bytes_under_limit",
+   "ok": true,
+   "detail": "37317 B ≤ 40000 B（压前 42093 B）"
+  },
+  {
+   "name": "crlf_count_unchanged",
+   "ok": true,
+   "detail": "57 -> 57"
+  },
+  {
+   "name": "section_count_unchanged",
+   "ok": true,
+   "detail": "20 -> 20"
+  },
+  {
+   "name": "head_unchanged",
+   "ok": true,
+   "detail": "头部（含 last_ack/更新时间）逐字未变"
+  },
+  {
+   "name": "tail_unchanged",
+   "ok": true,
+   "detail": "「当前有效结论」及之后逐字未变"
+  },
+  {
+   "name": "archive_content_verbatim",
+   "ok": true,
+   "detail": "4 条标记逐字在归档块里"
+  },
+  {
+   "name": "counterexample_detected",
+   "ok": true,
+   "detail": "篡改归档块里某条时间戳后标记校验 FAIL（符合预期）⇒ 判据有鉴别力"
+  }
+ ],
+ "post_write_selfcheck": [
+  {
+   "name": "bytes_equal_expected",
+   "ok": true,
+   "detail": "37317 B"
+  },
+  {
+   "name": "under_limit",
+   "ok": true,
+   "detail": "37317 B ≤ 40000 B（余量 2683 B）"
+  },
+  {
+   "name": "crlf_preserved",
+   "ok": true,
+   "detail": "57 -> 57"
+  },
+  {
+   "name": "bak_sha_matches_old",
+   "ok": true,
+   "detail": "c6b15d1c6c5aba34"
+  },
+  {
+   "name": "archive_written",
+   "ok": true,
+   "detail": "5504 B / sha a68a902830cd702c"
+  },
+  {
+   "name": "archive_contains_all_markers",
+   "ok": true,
+   "detail": "4 条逐字在归档里"
+  }
+ ],
+ "post_write_ok": true
+}

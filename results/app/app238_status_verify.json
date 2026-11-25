@@ -1,0 +1,109 @@
+{
+ "script": "_app238_append_status.py",
+ "task": "APP-137/APP-134a/APP-135 §238 追加 ＋ 修掉 APP-134 问题⑦ 的过时结论",
+ "ts": "2026-11-25 15:39:47",
+ "status_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+ "backup": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md.bak_app238_sec238",
+ "bytes_before": 39238,
+ "bytes_after": 42093,
+ "crlf_before": 57,
+ "crlf_after": 57,
+ "lines_before": 95,
+ "lines_after": 97,
+ "old_ack": "last_ack: APP-136",
+ "new_ack": "last_ack: APP-137",
+ "old_timestamp": "更新时间: 2026-11-25 13:42:53",
+ "new_timestamp": "更新时间: 2026-11-25 15:39:47",
+ "point_fixes": [
+  {
+   "tag": "app134_outdated_default_fail",
+   "old_len": 69,
+   "new_len": 267
+  }
+ ],
+ "pre_write_invariants": [
+  {
+   "name": "unique_hit_app134_outdated_default_fail",
+   "ok": true,
+   "detail": "命中 1 次（要求 1 次）"
+  },
+  {
+   "name": "crlf_count_unchanged",
+   "ok": true,
+   "detail": "57 -> 57"
+  },
+  {
+   "name": "line_delta_expected",
+   "ok": true,
+   "detail": "实际 2 / 预期 2"
+  },
+  {
+   "name": "section_count_plus_one",
+   "ok": true,
+   "detail": "15 -> 16"
+  },
+  {
+   "name": "last_ack_unique",
+   "ok": true,
+   "detail": "last_ack 字段出现 1 次"
+  },
+  {
+   "name": "last_ack_value_correct",
+   "ok": true,
+   "detail": "last_ack: APP-137"
+  },
+  {
+   "name": "block_has_no_crlf",
+   "ok": true,
+   "detail": "追加块全 LF"
+  },
+  {
+   "name": "block_ends_with_newline",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "reverse_reconstruct_old_body",
+   "ok": true,
+   "detail": "还原后 24413 B vs 原 24413 B"
+  },
+  {
+   "name": "counterexample_detected",
+   "ok": true,
+   "detail": "篡改定点替换后还原式复核 FAIL ⇒ 判据有鉴别力"
+  }
+ ],
+ "post_write_selfcheck": [
+  {
+   "name": "bytes_equal_expected",
+   "ok": true,
+   "detail": "42093 B"
+  },
+  {
+   "name": "crlf_preserved",
+   "ok": true,
+   "detail": "57 -> 57"
+  },
+  {
+   "name": "bak_sha_matches_old",
+   "ok": true,
+   "detail": "a089633883ed6ceb"
+  },
+  {
+   "name": "last_ack_is_app137",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "section_238_present",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "outdated_fixed",
+   "ok": true,
+   "detail": ""
+  }
+ ],
+ "post_write_ok": true
+}
