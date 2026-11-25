@@ -322,7 +322,26 @@ def main():
     ap.add_argument('--bg-off', action='store_true')
     ap.add_argument('--lock', default=os.path.join(HOME, 'shared', 'MACHINE_LOCK'))
     ap.add_argument('--lock-wait-s', type=int, default=7200)
+    ap.add_argument('--arm-pkg', default='',
+                    help='每臂的包路径："name=path;name2=path"（**不写进臂规格** —— '
+                         'Windows 路径自带 ":" ⇒ 与 env 分隔符歧义）')
     args = ap.parse_args()
+
+    # 🔴 解析「每臂的包路径」
+    arm_pkgs = {}
+    for item in (args.arm_pkg or '').split(';'):
+        item = item.strip()
+        if not item:
+            continue
+        nm, _, p = item.partition('=')
+        nm, p = nm.strip(), p.strip()
+        if not nm or not p:
+            print('FAIL: --arm-pkg 格式错：%r（应为 name=path）' % item)
+            return 2
+        arm_pkgs[nm] = os.path.abspath(p)
+        if not os.path.isdir(arm_pkgs[nm]):
+            print('FAIL: --arm-pkg 指向的目录不存在：%s' % arm_pkgs[nm])
+            return 2
 
     app = os.path.abspath(args.app)
     root = os.path.abspath(args.root)
@@ -347,16 +366,13 @@ def main():
             spec = spec.strip()
             if not spec:
                 continue
-            # 🔴 **臂规格**：`name[@包路径]:ENV=VAL|ENV=VAL`
-            #    `@包路径` ⇒ 本臂用**自己的包**（APP-134 b/c 需要：一臂真包、
-            #    一臂影子包 ⇒ 两个包根）⇒ **不带 `@` 时用默认 `--app`**。
+            # 🔴 **臂规格**：`name:ENV=VAL|ENV=VAL`
+            #    🔴 **包路径不写在臂规格里**（Windows 路径自带 `:` ⇒ 与 env 分隔符
+            #    **歧义** ⇒ 实测把 `name@C:/...` 解析成了 `C` ⇒ 路径被截断）
+            #    ⇒ 包路径走**独立的** `--arm-pkg "name=path;name2=path"` 选项。
             name, _, rest = spec.partition(':')
-            arm_app = app
-            arm_bridge = bridge_root
-            if '@' in name:
-                name, _, pkg = name.partition('@')
-                arm_app = os.path.abspath(pkg)
-                arm_bridge = arm_app
+            arm_app = arm_pkgs.get(name, app)
+            arm_bridge = arm_app if name in arm_pkgs else bridge_root
             env_extra = {}
             if rest:
                 for kv in rest.split('|'):

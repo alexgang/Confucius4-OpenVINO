@@ -1,0 +1,60 @@
+{
+ "script": "_app137_bgsep_missing_test.py",
+ "task": "APP-137 §3：缺模型降级测试的**离线前置检查**",
+ "ts": "2026-11-25 15:55:16",
+ "bgsep_files": {
+  "v2.6": {
+   "dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6\\models\\bgsep",
+   "n_files": 2,
+   "bytes": 107969364,
+   "files": [
+    {
+     "file": "htdemucs_core.bin",
+     "bytes": 106628066
+    },
+    {
+     "file": "htdemucs_core.xml",
+     "bytes": 1341298
+    }
+   ]
+  },
+  "candidate_v1.2": {
+   "dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\models\\bgsep",
+   "n_files": 2,
+   "bytes": 107969364,
+   "files": [
+    {
+     "file": "htdemucs_core.bin",
+     "bytes": 106628066
+    },
+    {
+     "file": "htdemucs_core.xml",
+     "bytes": 1341298
+    }
+   ]
+  }
+ },
+ "bgsep_degrade_logic": [
+  {
+   "file": "ext/bridge/bg_separator.py",
+   "line": 304,
+   "text": "raise RuntimeError(\"background model not found (models/bgsep/htdemucs_core.xml)\")"
+  },
+  {
+   "file": "ext/bridge/bridge.py",
+   "line": 2111,
+   "text": "\"reason\": \"\" if ok else \"背景分离模型缺失（models/bgsep/htdemucs_core.xml）\","
+  }
+ ],
+ "missing_model_test_plan": {
+  "why_junction": "降级测试要「拿掉 models\\bgsep」⇒ 用**目录联接**把 `models/bgsep` 指到一个**空目录** ⇒ **零拷贝**，且**真包一个字节都不动**（联接只在候选目录里）",
+  "steps": [
+   "① 在候选目录里把 `models/bgsep` **联接**指向一个空目录（而不是删真目录）",
+   "② 起桥接 ⇒ 观察 `bg_status` 的 `state`/`reason` 与 popup 文案",
+   "③ 断言 popup 显示 **unavailable** ＋ **原因**",
+   "④ 恢复联接（改回指向真 bgsep）⇒ 候选目录复原"
+  ],
+  "tmp_root": "C:\\Users\\Trekker-PTL\\shared\\shadow_pkgs"
+ },
+ "limitation": "🔴 **离线无法证明 popup 显示了什么** —— popup 的 UI 文案**必须实机跑一次**才算数 ⇒ 本脚本只报「前置条件齐备」，**不把「降级可用」当成已验证**。"
+}
