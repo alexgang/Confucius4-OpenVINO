@@ -1,0 +1,1 @@
+[C4][A][STATUS][APP] §237–§239 STATUS —— APP-136 GitHub 历史抹除属实（只含 2 份 jsonl，已复核）＋ APP-134 a 两臂数字复算一致 ＋ APP-134 b 按原判据通过（ABBA 四臂）＋ APP-137 MiniMVP v1.2 候选目录（MT2 口径，未出 zip）＋ APP-135 MT3 显式贪心单测通过；并更正 §239 对作废那轮 ABBA 的归因（根因＝轮询阻塞无超时）；last_ack=APP-137

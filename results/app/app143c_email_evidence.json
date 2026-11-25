@@ -1,0 +1,38 @@
+{
+ "script": "_app143c_email_body.py",
+ "task": "APP-143 c：补发 §237–§239 的 STATUS 邮件",
+ "ts": "2026-11-25 22:26:09",
+ "message_id": "msg_O1lwRCO7ikKE4FdsNTlrClho_rFjQwPCaHSKfvqg8W4aDA",
+ "sent_at": "2026-11-25T14:25:27Z",
+ "from": "1985197690@qq.com",
+ "to": "alexchen7694@agent.qq.com",
+ "subject": "[C4][A][STATUS][APP] §237–§239 STATUS —— APP-136 GitHub 历史抹除属实（只含 2 份 jsonl，已复核）＋ APP-134 a 两臂数字复算一致 ＋ APP-134 b 按原判据通过（ABBA 四臂）＋ APP-137 MiniMVP v1.2 候选目录（MT2 口径，未出 zip）＋ APP-135 MT3 显式贪心单测通过；并更正 §239 对作废那轮 ABBA 的归因（根因＝轮询阻塞无超时）；last_ack=APP-137",
+ "subject_bytes": 416,
+ "body_bytes": 5405,
+ "body_lines": 39,
+ "attachment_count": 0,
+ "inbox_file": "live_caption/_app143c_email_body.txt",
+ "inbox_file_sha256": "074967885c7a70fef45ad6c122b2cbcf08c13142b14347ab5c37bf569d6d39e5",
+ "truncation_check": {
+  "method": "在已发箱用 GetMessage 取全文，逐个核对首/中/尾三个地标",
+  "landmarks": [
+   {
+    "pos": "首",
+    "text": "# §237–§239 STATUS —— App 模块（Confucius4 LiveCaption）",
+    "hit": true
+   },
+   {
+    "pos": "中",
+    "text": "## 提交号（main）",
+    "hit": true
+   },
+   {
+    "pos": "尾",
+    "text": "**本轮起每一节都发 STATUS 邮件**（APP-143 c）。",
+    "hit": true
+   }
+  ],
+  "conclusion": "首/中/尾全在 ⇒ 中间没丢"
+ },
+ "note": "🔴 正文**由脚本生成** ⇒ 入库件与实发件**逐字节相同**；🔴 **未引用会议原文或译文**（只写文件名/编号）；🔴 **无附件**；本轮起每一节都发。"
+}
