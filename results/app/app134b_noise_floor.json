@@ -1,0 +1,200 @@
+{
+ "script": "_app134b_noise_floor.py",
+ "task": "APP-134 b：ABBA 噪声地板分析（区分「配置效应」与「顺序效应」）",
+ "ts": "2026-11-25 19:14:52",
+ "root": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app134b_abba",
+ "order": [
+  "guard_off_2",
+  "guard_off_3",
+  "guard_on_1",
+  "guard_on_4"
+ ],
+ "arms": [
+  {
+   "arm": "guard_off_2",
+   "arm_config": "guard_off",
+   "json": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app134b_abba\\guard_off_2\\bgkeep_e2e.json",
+   "json_bytes": 68946,
+   "json_mtime": "2026-11-25 18:44:52",
+   "synth_rtf_ext": 1.1622,
+   "synth_rtf_p50": 1.1774,
+   "synth_rtf_p90": 1.2902399999999998,
+   "tts_sec_p50": 6.2066,
+   "n_segments": 123,
+   "max_lag": 203.2756,
+   "last_segment_lag": 201.8863,
+   "n_pending_at_media_end": 37,
+   "drain_elapsed_s": 214.9,
+   "drained_to_zero": true,
+   "npu_pct": 69.3,
+   "igpu_pct": 0.2,
+   "asr_load_s": 11.1
+  },
+  {
+   "arm": "guard_off_3",
+   "arm_config": "guard_off",
+   "json": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app134b_abba\\guard_off_3\\bgkeep_e2e.json",
+   "json_bytes": 69251,
+   "json_mtime": "2026-11-25 18:59:12",
+   "synth_rtf_ext": 1.1801,
+   "synth_rtf_p50": 1.2025,
+   "synth_rtf_p90": 1.27868,
+   "tts_sec_p50": 6.0901,
+   "n_segments": 123,
+   "max_lag": 208.3086,
+   "last_segment_lag": 206.9205,
+   "n_pending_at_media_end": 37,
+   "drain_elapsed_s": 220.84,
+   "drained_to_zero": true,
+   "npu_pct": 34.2,
+   "igpu_pct": 0.0,
+   "asr_load_s": 10.6
+  },
+  {
+   "arm": "guard_on_1",
+   "arm_config": "guard_on",
+   "json": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app134b_abba\\guard_on_1\\bgkeep_e2e.json",
+   "json_bytes": 69526,
+   "json_mtime": "2026-11-25 18:30:38",
+   "synth_rtf_ext": 1.1742,
+   "synth_rtf_p50": 1.1805,
+   "synth_rtf_p90": 1.50068,
+   "tts_sec_p50": 6.1693,
+   "n_segments": 123,
+   "max_lag": 214.3393,
+   "last_segment_lag": 212.2523,
+   "n_pending_at_media_end": 42,
+   "drain_elapsed_s": 224.79,
+   "drained_to_zero": true,
+   "npu_pct": 59.7,
+   "igpu_pct": 2.6,
+   "asr_load_s": 10.0
+  },
+  {
+   "arm": "guard_on_4",
+   "arm_config": "guard_on",
+   "json": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app134b_abba\\guard_on_4\\bgkeep_e2e.json",
+   "json_bytes": 64514,
+   "json_mtime": "2026-11-25 19:13:03",
+   "synth_rtf_ext": 1.0369,
+   "synth_rtf_p50": 1.0592,
+   "synth_rtf_p90": 1.1775799999999998,
+   "tts_sec_p50": 5.2966,
+   "n_segments": 123,
+   "max_lag": 120.145,
+   "last_segment_lag": 112.6741,
+   "n_pending_at_media_end": 26,
+   "drain_elapsed_s": 126.48,
+   "drained_to_zero": true,
+   "npu_pct": 50.7,
+   "igpu_pct": 0.0,
+   "asr_load_s": 10.4
+  }
+ ],
+ "same_config_spread": {
+  "guard_off": {
+   "synth_rtf_p50": {
+    "values": [
+     1.1774,
+     1.2025
+    ],
+    "rel_diff": 0.020873180873180793,
+    "abs_diff": 0.0250999999999999
+   },
+   "synth_rtf_p90": {
+    "values": [
+     1.2902399999999998,
+     1.27868
+    ],
+    "rel_diff": 0.008959573412698252,
+    "abs_diff": 0.011559999999999793
+   },
+   "max_lag": {
+    "values": [
+     203.2756,
+     208.3086
+    ],
+    "rel_diff": 0.024161268425787582,
+    "abs_diff": 5.0330000000000155
+   }
+  },
+  "guard_on": {
+   "synth_rtf_p50": {
+    "values": [
+     1.1805,
+     1.0592
+    ],
+    "rel_diff": 0.10275307073274051,
+    "abs_diff": 0.12130000000000019
+   },
+   "synth_rtf_p90": {
+    "values": [
+     1.50068,
+     1.1775799999999998
+    ],
+    "rel_diff": 0.2153023962470348,
+    "abs_diff": 0.32310000000000016
+   },
+   "max_lag": {
+    "values": [
+     214.3393,
+     120.145
+    ],
+    "rel_diff": 0.4394635048262265,
+    "abs_diff": 94.19430000000001
+   }
+  }
+ },
+ "noise_floor_rel_diff": {
+  "synth_rtf_p50": 0.10275307073274051,
+  "synth_rtf_p90": 0.2153023962470348,
+  "max_lag": 0.4394635048262265
+ },
+ "config_effect": {
+  "synth_rtf_p50": {
+   "guard_on_mean": 1.11985,
+   "guard_off_mean": 1.18995,
+   "rel_diff": 0.05891003823690075
+  },
+  "synth_rtf_p90": {
+   "guard_on_mean": 1.33913,
+   "guard_off_mean": 1.28446,
+   "rel_diff": 0.040825013254874434
+  },
+  "max_lag": {
+   "guard_on_mean": 167.24215,
+   "guard_off_mean": 205.7921,
+   "rel_diff": 0.18732473209613
+  }
+ },
+ "tolerance": 0.05,
+ "checks": [
+  {
+   "name": "compare_synth_rtf_p50",
+   "ok": true,
+   "detail": "配置效应 5.89% vs 噪声地板 10.28% ⇒ **不变差**（在噪声内）"
+  },
+  {
+   "name": "compare_synth_rtf_p90",
+   "ok": true,
+   "detail": "配置效应 4.08% vs 噪声地板 21.53% ⇒ **不变差**（在噪声内）"
+  },
+  {
+   "name": "compare_max_lag",
+   "ok": true,
+   "detail": "配置效应 18.73% vs 噪声地板 43.95% ⇒ **不变差**（在噪声内）"
+  },
+  {
+   "name": "tolerance_5pct_reachable",
+   "ok": false,
+   "detail": "噪声地板：{'synth_rtf_p50': 10.28, 'synth_rtf_p90': 21.53, 'max_lag': 43.95} ⇒ 🔴 **5% 判据在本轮不可达**（噪声地板本身就 >5%）⇒ 本轮**测不出「≤5%」的结论**；能说的是「配置效应落在噪声地板内 ⇒ 未见守卫导致变差」"
+  },
+  {
+   "name": "asr_load_recorded",
+   "ok": true,
+   "detail": "各臂 ASR 加载耗时（拥挤度代理）：{'guard_off_2': 11.1, 'guard_off_3': 10.6, 'guard_on_1': 10.0, 'guard_on_4': 10.4}"
+  }
+ ],
+ "all_pass": false,
+ "n_lock_lost_events": 0
+}

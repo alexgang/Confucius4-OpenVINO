@@ -205,6 +205,21 @@ def main():
                           '**不变差**（在噪声内）' if ok
                           else '**超出噪声**（需更多证据，不能直接归因）'))})
 
+    # 🔴🔴 **reviewer 的「≤5%」判据本轮是否可达**？
+    #    噪声地板 = **同配置两次**的差 ⇒ 若它本身就 >5% ⇒
+    #    ⇒ **单次/两次测量根本达不到 5%** ⇒ 必须如实说「测不出 ≤5% 的结论」。
+    unreachable = {k: (v is not None and v > TOLERANCE)
+                   for k, v in floor.items()}
+    checks.append({
+        'name': 'tolerance_5pct_reachable',
+        'ok': not any(unreachable.values()),
+        'detail': ('噪声地板：%s ⇒ %s'
+                   % ({k: round(v * 100, 2) for k, v in floor.items() if v is not None},
+                      '**5% 判据可达**' if not any(unreachable.values())
+                      else '🔴 **5% 判据在本轮不可达**（噪声地板本身就 >5%）'
+                           '⇒ 本轮**测不出「≤5%」的结论**；'
+                           '能说的是「配置效应落在噪声地板内 ⇒ 未见守卫导致变差」'))})
+
     # 🔴 机器拥挤度：ASR 加载时间（代理指标）—— 用来**佐证**噪声来源
     loads = {a['arm']: a['asr_load_s'] for a in arms}
     checks.append({'name': 'asr_load_recorded', 'ok': all(v is not None for v in loads.values()),
