@@ -139,8 +139,17 @@ def start_bridge(app: str, out_dir: str, env_extra: dict, ready_timeout_s: int =
     env['PYTHONIOENCODING'] = 'utf-8'
     env['EXT_APP_ROOT'] = app
     env['EXT_APP_SEARCH_ROOT'] = app
-    env['PYTHONPATH'] = os.pathsep.join(
-        [app, os.path.join(app, 'ext', '.runtime_deps')])
+    # 🔴🔴🔳 **两处 .runtime_deps 都要加**：
+    #   ① `<包根>/.runtime_deps` —— **包根那一份**（v2.6 与 MiniMVP 候选都有）
+    #   ② `<包根>/ext/.runtime_deps` —— ext 里的那份（**v2.6 有；MiniMVP 候选
+    #      按 rc11 口径排除了它** ⇒ 只加①会 `import websockets` 失败）
+    #   ⇒ 之前只加了② ⇒ **MiniMVP 候选起不来**（`缺少依赖：websockets`）。
+    _rp = [app]
+    for _sub in ('.runtime_deps', os.path.join('ext', '.runtime_deps')):
+        _d = os.path.join(app, _sub)
+        if os.path.isdir(_d) and _d not in _rp:
+            _rp.append(_d)
+    env['PYTHONPATH'] = os.pathsep.join(_rp)
     env['EXT_BG_CACHE_DIR'] = os.path.join(os.path.dirname(out_dir), '_bg_ov_cache')
     # 每个臂先清掉上一臂的设备环境变量
     for k in ('EXT_TTS_DEVICE', 'EXT_MT_DEVICE', 'EXT_ASR_DEVICE', 'EXT_BG_DEVICE'):
