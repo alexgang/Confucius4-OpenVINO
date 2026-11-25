@@ -1,0 +1,110 @@
+{
+ "script": "_app240_append_status.py",
+ "task": "APP-134 b 的 §239 追加 ＋ 「最近更新」压缩（限额 ≤40000 B）",
+ "ts": "2026-11-25 21:55:29",
+ "status_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+ "archive": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\archive\\STATUS_APP_recent_updates_20261125c.md",
+ "backup": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md.bak_app239_sec239",
+ "bytes_before": 35331,
+ "bytes_after": 38457,
+ "limit": 40000,
+ "timestamp_updated": "2026-11-25 21:55:30",
+ "archived_entries": 0,
+ "archive_bytes": 381,
+ "archive_sha256": "2ee5c4e2ef556b8cd59eaa1a044e808d25620c133ab6a3a33a64e7fe5c2d0260",
+ "pre_write_invariants": [
+  {
+   "name": "archive_markers_found",
+   "ok": true,
+   "detail": "归档 0 条（期望 0）"
+  },
+  {
+   "name": "bytes_under_limit",
+   "ok": true,
+   "detail": "38457 B ≤ 40000 B（追加前 35331 B）"
+  },
+  {
+   "name": "crlf_count_unchanged",
+   "ok": true,
+   "detail": "57 -> 57"
+  },
+  {
+   "name": "section_count_plus_one",
+   "ok": true,
+   "detail": "21 -> 22"
+  },
+  {
+   "name": "head_unchanged",
+   "ok": true,
+   "detail": "头部（含 last_ack/更新时间）逐字未变"
+  },
+  {
+   "name": "tail_unchanged",
+   "ok": true,
+   "detail": "「当前有效结论」及之后逐字未变"
+  },
+  {
+   "name": "last_ack_unchanged",
+   "ok": true,
+   "detail": "last_ack 仍 APP-137（APP-134 整条未复核通过 ⇒ 不推编号）"
+  },
+  {
+   "name": "block_has_no_crlf",
+   "ok": true,
+   "detail": "追加块全 LF"
+  },
+  {
+   "name": "archive_content_verbatim",
+   "ok": true,
+   "detail": "0 条标记逐字在归档块里"
+  },
+  {
+   "name": "counterexample_detected",
+   "ok": true,
+   "detail": "删掉追加块里的章节标题后章节计数判据 FAIL（符合预期）⇒ 判据有鉴别力"
+  }
+ ],
+ "post_write_selfcheck": [
+  {
+   "name": "bytes_equal_expected",
+   "ok": true,
+   "detail": "38457 B"
+  },
+  {
+   "name": "under_limit",
+   "ok": true,
+   "detail": "38457 B ≤ 40000 B（余量 1543 B）"
+  },
+  {
+   "name": "crlf_preserved",
+   "ok": true,
+   "detail": "57 -> 57"
+  },
+  {
+   "name": "bak_sha_matches_old",
+   "ok": true,
+   "detail": "695f20c8e809d51e"
+  },
+  {
+   "name": "archive_written",
+   "ok": true,
+   "detail": "381 B / sha 2ee5c4e2ef556b8c"
+  },
+  {
+   "name": "archive_contains_all_markers",
+   "ok": true,
+   "detail": "0 条逐字在归档里"
+  },
+  {
+   "name": "section_239_present",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "last_ack_still_app137",
+   "ok": true,
+   "detail": ""
+  }
+ ],
+ "post_write_ok": true
+}
