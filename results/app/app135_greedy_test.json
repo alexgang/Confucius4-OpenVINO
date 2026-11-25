@@ -1,0 +1,64 @@
+{
+ "script": "_app135_greedy_test.py",
+ "task": "APP-135 §2：单测断言实际生效的是贪心（真跑 + 桩 + 反证组）",
+ "ts": "2026-11-25 15:11:08",
+ "checks": [
+  {
+   "name": "translate_ran",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "do_sample_is_greedy",
+   "ok": true,
+   "detail": "do_sample=False"
+  },
+  {
+   "name": "temperature_neutral",
+   "ok": true,
+   "detail": "temperature=1.0"
+  },
+  {
+   "name": "top_k_neutral",
+   "ok": true,
+   "detail": "top_k=0"
+  },
+  {
+   "name": "top_p_neutral",
+   "ok": true,
+   "detail": "top_p=1.0"
+  },
+  {
+   "name": "repetition_penalty_1_05",
+   "ok": true,
+   "detail": "repetition_penalty=1.05"
+  },
+  {
+   "name": "apply_chat_template_false",
+   "ok": true,
+   "detail": "apply_chat_template=False"
+  },
+  {
+   "name": "app_overrides_model_defaults",
+   "ok": true,
+   "detail": "{\"do_sample\": {\"model_default\": true, \"app_value\": false, \"differs\": true}, \"temperature\": {\"model_default\": 0.7, \"app_value\": 1.0, \"differs\": true}, \"top_k\": {\"model_default\": 20, \"app_value\": 0, \"differs\": true}, \"top_p\": {\"model_default\": 0.8, \"app_value\": 1.0, \"differs\": true}}"
+  },
+  {
+   "name": "counterexample_must_fail",
+   "ok": true,
+   "detail": "反证组（do_sample=True）实测 FAIL（符合预期） ⇒ 判据有鉴别力"
+  }
+ ],
+ "all_pass": true,
+ "mt3_model_defaults": {
+  "do_sample": true,
+  "temperature": 0.7,
+  "top_k": 20,
+  "top_p": 0.8
+ },
+ "real_genai_probe": {
+  "available": true,
+  "raw_generation_config_do_sample": false
+ },
+ "note": "🔴 **真跑**：用桩 `openvino_genai` 让 `translator.translate()` 真走一遍 ⇒ 断言 App **实际传给 generate() 的** GenerationConfig 是 `do_sample=False` + 中性采样参数（不是断言源码里有那行）。反证组把 `do_sample` 改成 True ⇒ 单测必须 FAIL。"
+}

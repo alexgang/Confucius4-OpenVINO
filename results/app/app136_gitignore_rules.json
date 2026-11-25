@@ -1,0 +1,72 @@
+{
+  "file": ".gitignore",
+  "bytes_before": 3597,
+  "bytes_after": 5545,
+  "crlf_before": 96,
+  "crlf_after": 96,
+  "lf_before": 113,
+  "lf_after": 140,
+  "block_bytes": 1948,
+  "backup": ".gitignore.overwritten_app136",
+  "backup_sha256": "457a073c8799328131fc98d7349bcb74f34643748557159dfd0653fcf388fd67",
+  "after_sha256": "02a251bcca4153bd9d14ee00ba280cd3a71bec579e25f3304cd07bb5a067756b",
+  "patterns_added": [
+    "*.tts.jsonl",
+    "*.mt.txt",
+    "*.transcript.txt",
+    "results/app/app273_mt_int4_vs_int8.tsv",
+    "results/app/app273_mt_int4_vs_int8_evidence.json",
+    "results/app/app312_rc5_out/npu/transcript.mt.txt",
+    "results/app/app458_app100_device/gpu_control_asr_npu.mt.txt",
+    "results/app/app461_app100_device/gpu_control_asr_npu.mt.txt",
+    "results/app/app501_app105_rc10_acceptance/chain10min.mt.txt",
+    "results/app/_app551_*.mt.txt",
+    "results/app/_app591_*.tts.jsonl",
+    "results/app/app458_app100_device/*.tts.jsonl",
+    "results/app/app461_app100_device/*.tts.jsonl"
+  ],
+  "pre_write_invariants": [
+    {
+      "name": "old_bytes_unchanged_prefix",
+      "ok": true,
+      "detail": "new[:len(old)] == old"
+    },
+    {
+      "name": "crlf_count_unchanged",
+      "ok": true,
+      "detail": "96 -> 96"
+    },
+    {
+      "name": "lf_delta_equals_block_lf",
+      "ok": true,
+      "detail": "delta=27 block_lf=27"
+    },
+    {
+      "name": "old_lines_prefix_verbatim",
+      "ok": true,
+      "detail": "first 114 lines verbatim"
+    },
+    {
+      "name": "byte_delta_equals_block_len",
+      "ok": true,
+      "detail": "delta=1948 block=1948"
+    },
+    {
+      "name": "block_has_no_crlf",
+      "ok": true,
+      "detail": "block uses LF only"
+    },
+    {
+      "name": "block_ends_with_lf",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no_duplicate_rule",
+      "ok": true,
+      "detail": "no duplicate pattern lines"
+    }
+  ],
+  "post_write_selfcheck_ok": true,
+  "ts": "2026-11-25 10:17:41"
+}

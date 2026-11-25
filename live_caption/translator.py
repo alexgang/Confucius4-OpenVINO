@@ -55,12 +55,34 @@ _HY_ROOT = os.environ.get(
         os.path.join(os.path.expanduser('~'), 'hy_bench', 'ov'),
         os.path.join(ROOT, 'hy_bench', 'ov'),
     ))
+# 🔴🔴🔳 **APP-135（2026-11-25，用户决定）**：完整版的翻译模型
+#   **Hy-MT2-1.8B → Hy-MT3-1.8B**（ModelScope `Tencent-Hunyuan/Hy-MT3-1.8B`）。
+#   * MT3 与 MT2 **同口径**（INT8 对称按通道 `int8sym-cw-q`）⇒ 速度/内存持平
+#     （GPU 38.7 vs 38.9 tok/s，NPU 29.8 vs 29.8；~2.47 GB）。
+#   * MT3 的 `xml` / `tokenizer.json` / `chat_template.jinja` / tokenizer IR
+#     与 MT2 **逐字节相同** ⇒ **现有 tokenizer/模板代码可直接用，只换模型目录**。
+#
+# 🔴 **切回 MT2 的开关**：`LIVECAP_MT_VARIANT=mt2`（默认 `mt3`）。
+#   * `LIVECAP_MT_MODEL`（显式指定目录）**优先级更高**，不变。
+#   * 老客户包里**只有 MT2** ⇒ 回落链会自动落到 MT2 ⇒ **不会因为这次改动而跑不起来**。
+_MT_VARIANT = os.environ.get('LIVECAP_MT_VARIANT', 'mt3').strip().lower()
+if _MT_VARIANT not in ('mt2', 'mt3'):
+    _MT_VARIANT = 'mt3'          # 未知取值 ⇒ 保守按**默认**（mt3），不静默改成别的
+#: 当前变体的目录名（INT8-CW 口径；INT4 目录只有 MT2 有 ⇒ 见 `_MT_CANDIDATES`）
+_MT_DIR = 'mt3-int8sym-cw-q' if _MT_VARIANT == 'mt3' else 'mt2-int8sym-cw-q'
+_MT_OTHER_DIR = 'mt2-int8sym-cw-q' if _MT_VARIANT == 'mt3' else 'mt3-int8sym-cw-q'
+
 DEFAULT_MODEL = os.environ.get(
     'LIVECAP_MT_MODEL',
     _first_existing(
-        os.path.join(MODELS, 'mt', 'mt2-int8sym-cw-q'),   # 客户包自带（per-channel，GPU/NPU 通吃）
-        os.path.join(MODELS, 'mt2-int8sym-cw-q'),
-        os.path.join(_HY_ROOT, 'mt2-int8sym-cw-q'),       # 开发机导出产物
+        # ① 当前变体（客户包自带 / 开发机导出产物）
+        os.path.join(MODELS, 'mt', _MT_DIR),
+        os.path.join(MODELS, _MT_DIR),
+        os.path.join(_HY_ROOT, _MT_DIR),
+        # ② 🔴 **回退到另一变体**（老包 / 未拷贝时仍能跑）
+        os.path.join(MODELS, 'mt', _MT_OTHER_DIR),
+        os.path.join(MODELS, _MT_OTHER_DIR),
+        os.path.join(_HY_ROOT, _MT_OTHER_DIR),
         # ↓ 回退到 INT4：INT8 目录不存在时（老包 / 未拷贝）仍能跑
         os.path.join(MODELS, 'mt', 'mt2-int4sym-cw-q'),
         os.path.join(MODELS, 'mt2-int4sym-cw-q'),
@@ -128,15 +150,22 @@ _LEGACY_INT4 = None
 #                     NPU   44.0 tok/s / TTFT 292 ms / 加载 15.7 s，零乱码
 #   mt2-int8sym-cw-q  GPU.0 37.5 tok/s / TTFT 44 ms
 #                     NPU   29.6 tok/s / TTFT 300 ms
+# 🔴🔴🔳 **APP-135（2026-11-25，用户决定）**：INT8-CW 档**默认走 Hy-MT3-1.8B**
+#   （MT3 与 MT2 同口径：INT8 对称按通道，GPU/NPU 通吃，~2.47 GB；
+#     速度/内存与 MT2 持平：GPU 38.7 vs 38.9 tok/s，NPU 29.8 vs 29.8）。
+#   * 🔴 **INT4 档仍指 MT2** —— 仓库里**没有** MT3 的 INT4 产物
+#     ⇒ 写 MT3 会让该档**永远「缺模型」** ⇒ 保持 MT2（且它本来就只在显存吃紧时选）。
+#   * `LIVECAP_MT_VARIANT=mt2` ⇒ INT8-CW 档也切回 MT2（**保留切回开关**）。
+_MT_INT8_DIR = _MT_DIR
 _MT_CANDIDATES = [
-    ('gpu_int8cw', 'Intel GPU · INT8-CW', 'GPU.0', 'mt2-int8sym-cw-q',
-     'Hy-MT2 INT8_SYM 按通道，1.7 GB。**默认**：37.5 tok/s，TTFT 44 ms，'
-     '质量与 BF16 统计等价（ΔchrF ≤0.32）；显存 +0.75 GB', True),
+    ('gpu_int8cw', 'Intel GPU · INT8-CW', 'GPU.0', _MT_INT8_DIR,
+     'Hy-MT3 INT8_SYM 按通道，1.7 GB。**默认**：38.7 tok/s，TTFT 约 44 ms，'
+     '速度/内存与上一代持平；模型自带的采样默认值已被显式覆盖为贪心', True),
     ('gpu_int4cw', 'Intel GPU · INT4-CW', 'GPU.0', 'mt2-int4sym-cw-q',
      'Hy-MT2 INT4_SYM 按通道，约 993 MB。更小更快（57.9 tok/s），但质量**显著低于** '
      'INT8（ΔchrF −2.3，H-001），仅在显存吃紧时选', True),
-    ('npu_int8cw', 'Intel NPU · INT8-CW', 'NPU', 'mt2-int8sym-cw-q',
-     'NPU：29.6 tok/s、1.7 GB，质量不劣化；ASR 请留在 GPU 以免争抢', True),
+    ('npu_int8cw', 'Intel NPU · INT8-CW', 'NPU', _MT_INT8_DIR,
+     'NPU：29.8 tok/s、1.7 GB；ASR 请留在 GPU 以免争抢', True),
     ('npu_int4cw', 'Intel NPU · INT4-CW', 'NPU', 'mt2-int4sym-cw-q',
      'NPU 备用：44.0 tok/s、零乱码，约 993 MB，但质量显著低于 INT8（ΔchrF++ −1.5）', True),
 ]
@@ -898,8 +927,19 @@ class HunyuanTranslator:
                                    PERFORMANCE_HINT='LATENCY', CACHE_DIR=cache_dir)
         self.tok = load_mt_tokenizer(AutoTokenizer, self.model_dir)
         self.gc = og.GenerationConfig()
-        self.gc.do_sample = False
-        self.gc.repetition_penalty = 1.05          # MT2 官方推荐值
+        # 🔴🔴🔳 **APP-135 §2（必须显式设，不能吃模型默认值）**：
+        #   MT3 目录里的 `generation_config.json` 带
+        #   `do_sample=true` / `temperature 0.7` / `top_k 20` / `top_p 0.8`。
+        #   🔴 **实测（`_app135_probe_gencfg.py`）**：
+        #      `LLMPipeline.get_generation_config()` **确实会吃到模型的默认值**
+        #      （实测 `do_sample=true` / `temperature=0.7` / `top_k=20` / `top_p=0.8`）
+        #      ⇒ 只靠 `og.GenerationConfig()` 的**裸默认**（`do_sample=False`）**不够**
+        #      ⇒ 这里**逐项显式写死**，让采样参数**无论模型自带什么都是中性值**。
+        self.gc.do_sample = False                   # 🔴 **贪心**（不采样）
+        self.gc.temperature = 1.0                   # 贪心下不参与采样；写中性值防漏
+        self.gc.top_k = 0                           # 🔴 0 = 不限（贪心下同样不参与）
+        self.gc.top_p = 1.0                         # 同上
+        self.gc.repetition_penalty = 1.05           # 官方推荐值
         self.gc.apply_chat_template = False       # prompt 自己渲染
         # C-102：旧 Instruct 模型译文被 <answer> 标签包裹，靠 stop_strings 截；
         # MT2 直接输出译文正文，EOS 自停即可（extract_answer 仍保留防御性清洗）。

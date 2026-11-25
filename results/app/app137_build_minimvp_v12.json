@@ -1,0 +1,144 @@
+{
+ "script": "_app137_build_minimvp_v12.py",
+ "task": "APP-137 §2：生成 MiniMVP v1.2 候选目录（不打 zip、不签 ACCEPTED）",
+ "ts": "2026-11-25 14:12:20",
+ "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6",
+ "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate",
+ "version": "1.2",
+ "excludes": [
+  "models/decoder-gpu-int4",
+  "models/decoder-gpu-int8",
+  "models/decoder-npu-int4",
+  "models/decoder-npu-int8",
+  "models/encoder-fp16",
+  "models/encoder-int4",
+  "models/encoder-int8",
+  "models/embed_tokens_f16.npy",
+  "models/mt/mt2-int4sym-cw-q",
+  "cuda_env",
+  "models/tts_cuda",
+  "models/tokenizer",
+  "ext/.runtime_deps",
+  "docs/CUDA_TTS.md",
+  "ACCEPTED.json"
+ ],
+ "extra_exclude": [
+  "models/tokenizer",
+  "ext/.runtime_deps",
+  "docs/CUDA_TTS.md",
+  "ACCEPTED.json"
+ ],
+ "kept_files": 10891,
+ "kept_bytes": 6829593278,
+ "dropped_files": 37901,
+ "dropped_bytes": 19326927217,
+ "drop_reasons": {
+  "pycache": 3525,
+  "profile_exclude": 34338,
+  "bak_or_pyc": 2,
+  "compiled_blob_cache": 14,
+  "media_file": 22
+ },
+ "marker": {
+  "profile": "minimvp",
+  "allow_cuda": false,
+  "allow_clone_voice": true,
+  "allow_bgkeep": true,
+  "tts_c13": false,
+  "mt_model": "mt2-int8sym-cw-q",
+  "target_langs": 10,
+  "note": "MiniMVP v1.2（APP-137，2026-11-25，用户决定）：EXT 的全部功能（含「保留背景音」bgkeep）＋ 音色克隆并入 MiniMVP；仍只有 iGPU/NPU（无 CUDA）；出厂默认 ASR=GPU.0 / MT=GPU.0 / TTS=NPU；MT 暂时用 Hy-MT2（切 MT3 的开关已留好）；APP-123 的 c13 尚未验收 ⇒ 本包不启用 c13。包内不含任何录音、克隆音色、同事声音或测试媒体；克隆音色在首次使用时现场采集。"
+ },
+ "release": {
+  "release": true,
+  "version": "1.2",
+  "asr_model": "Qwen3-ASR-0.6B",
+  "asr_recipe": "stateful INT8 with KV cache（KV cache，NPU 档 prompt 上界 320 + 超长前缀按 token 左截断）",
+  "asr_engines": [
+   "gpu_int8",
+   "npu_int8"
+  ],
+  "package_profile": "package_profile.json",
+  "ext": {
+   "version": "0.4.21",
+   "note": "与完整版一致（EXT v0.4.21）：桥接 + 插件（含「保留背景音」）"
+  },
+  "corrections": [
+   "APP-137"
+  ],
+  "v1.2_changes": [
+   "并入 EXT 的全部功能（含「保留背景音」）：带分离模型，默认开启，与完整版一致",
+   "并入音色克隆：克隆所需的模型与代码全部带上；包内克隆音色目录为空，首次使用时现场采集",
+   "仍只有 iGPU/NPU（无 CUDA）；出厂默认设备不变：ASR=GPU.0 / MT=GPU.0 / TTS=NPU",
+   "翻译模型暂时沿用上一版；切换到新版翻译模型的开关已预留",
+   "声码器仍用上一版的窗口口径（新窗口方案尚未验收，暂不启用）"
+  ]
+ },
+ "manifest": {
+  "version": "1.2",
+  "files": 10891,
+  "bytes": 6829594548
+ },
+ "ext_version": "0.4.21",
+ "voices_in_pkg": [
+  "models/qwen3tts/voices/preset_A.wav"
+ ],
+ "top_dirs": [
+  {
+   "name": "models",
+   "files": 92,
+   "bytes": 6054472674,
+   "gib": 5.639
+  },
+  {
+   "name": "python",
+   "files": 10616,
+   "bytes": 770508864,
+   "gib": 0.718
+  },
+  {
+   "name": "app",
+   "files": 40,
+   "bytes": 1966720,
+   "gib": 0.002
+  },
+  {
+   "name": ".runtime_deps",
+   "files": 82,
+   "bytes": 1283883,
+   "gib": 0.001
+  },
+  {
+   "name": "ext",
+   "files": 45,
+   "bytes": 954633,
+   "gib": 0.001
+  },
+  {
+   "name": "docs",
+   "files": 3,
+   "bytes": 210065,
+   "gib": 0.0
+  },
+  {
+   "name": "(根文件)",
+   "files": 10,
+   "bytes": 143008,
+   "gib": 0.0
+  },
+  {
+   "name": "tools",
+   "files": 1,
+   "bytes": 44696,
+   "gib": 0.0
+  },
+  {
+   "name": "results",
+   "files": 2,
+   "bytes": 8735,
+   "gib": 0.0
+  }
+ ],
+ "signed_accepted": false,
+ "zip_built": false
+}

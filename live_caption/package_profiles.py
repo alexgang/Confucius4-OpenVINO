@@ -79,11 +79,36 @@ PROFILE_RULES = {
             # 🔴 **不带 CUDA**
             'cuda_env',
             'models/tts_cuda',
+            # 🔴🔴🔴 **APP-137（2026-11-25，用户决定）**：MiniMVP v1.2 起
+            #   **并入 EXT 的全部功能（含「保留背景音」）+ 音色克隆** ⇒
+            #   下面两行**从排除清单里去掉**：
+            #   ① `models/spk` ＝ **克隆链 IR**（pyannote 说话人分段 +
+            #      wespeaker x-vector 声纹）⇒ 克隆功能必需；
+            #   ② `models/bgsep` ＝ **Demucs OV IR**（GPU.0 FP32）
+            #      ⇒ 「保留背景音」必需。
+            #   🔴 **客户包铁律不变**：`models/qwen3tts/voices/` 里**只留
+            #      预设 A**；**不带**任何录音/克隆音色/同事声音/babelvox 样例/
+            #      测试媒体 ⇒ 包内克隆音色目录**必须是空的**（首次使用现场采集）。
+            #   ⚠️ **只去掉「模型目录」的排除**；**代码**在 `app/` 下 ⇒
+            #      随 app/ 整树带入（clone_voice.py / clone_collector.py /
+            #      speaker_*.py）⇒ 无需额外排除。
         ],
         'marker': {
             'profile': 'minimvp',
             'allow_cuda': False,
-            'allow_clone_voice': False,
+            # 🔴 APP-137：MiniMVP v1.2 **并入音色克隆** ⇒ 标记写 True。
+            #    🔴 **老 MiniMVP 包（v1.1.1）的 marker 里是 false**
+            #    ⇒ 读同一份 `package_profile.py` 逻辑时行为**不变**。
+            'allow_clone_voice': True,
+            # 🔴 APP-137：「保留背景音」**默认开**（与完整版一致）。
+            'allow_bgkeep': True,
+            # 🔴 APP-137：**APP-123 的 c13 不进 MiniMVP**（还没验收）
+            #    ⇒ TTS 走 v2.6 的 APP-130 版（cp NPU 自检 + NaN 守卫），
+            #      但**声码器窗口用 c13 之前的旧口径**。
+            'tts_c13': False,
+            # 🔴 APP-137：**MT 暂时用 Hy-MT2**（MT3 是否替换取决于 H-029）。
+            #    这里**留好切换项**：改成 'mt3-int8sym-cw-q' 即可切 MT3。
+            'mt_model': 'mt2-int8sym-cw-q',
             'target_langs': 10,
         },
     },

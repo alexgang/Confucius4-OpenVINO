@@ -111,3 +111,30 @@ results/app/_v3_cer_cache/
 #   ⇒ 这里显式忽略，并按 §13「诊断产物兜底」的既有口径写明理由。
 results/app/_pkg_v25_runtime_token_*.txt
 results/app/_pkg_v25_removed_bridge_token_*.txt
+
+# APP-136（2026-11-25）：**含 ASR/MT 文本的结果文件** —— 绝不能进仓库。
+#   起因：§236 的 94f95f6 把两份「10 分钟内部会议片段逐句中文译文全文」的
+#   `.tts.jsonl` 推到了 GitHub ⇒ 用户决定改写历史抹掉（APP-136 ①，已执行）。
+#   🔴 实测：**同一份内部会议译文不止那两份** —— 用 `git grep -F` 拿译文里的
+#   特征句做探针，在 **21 个已入库文件**里命中（`*_mt.txt` / `*.tts.jsonl` /
+#   `app273_*.tsv` / `app273_*_evidence.json` 等）⇒ 本规则按**类别**兜底，
+#   不是只堵那两份。
+#   ⚠️ 已入库的同类文件**仍然被跟踪**（.gitignore 只挡新增、不动存量）⇒
+#   存量是否一并清理**须由 reviewer 单独裁定**（见 STATUS_APP.md §237）。
+# ── 逐句译文/合成时间线（.tts.jsonl）──────────────────────────────────
+*.tts.jsonl
+# ── MT 译文正文（*.mt.txt）────────────────────────────────────────────
+*.mt.txt
+# ── 通用转写正文 ─────────────────────────────────────────────────────
+*.transcript.txt
+# ── 已知携带会议译文的**一次性**产物（存量已跟踪；此处只挡新增/重新入库）──
+results/app/app273_mt_int4_vs_int8.tsv
+results/app/app273_mt_int4_vs_int8_evidence.json
+results/app/app312_rc5_out/npu/transcript.mt.txt
+results/app/app458_app100_device/gpu_control_asr_npu.mt.txt
+results/app/app461_app100_device/gpu_control_asr_npu.mt.txt
+results/app/app501_app105_rc10_acceptance/chain10min.mt.txt
+results/app/_app551_*.mt.txt
+results/app/_app591_*.tts.jsonl
+results/app/app458_app100_device/*.tts.jsonl
+results/app/app461_app100_device/*.tts.jsonl

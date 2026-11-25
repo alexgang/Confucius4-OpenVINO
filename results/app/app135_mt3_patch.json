@@ -1,0 +1,123 @@
+{
+ "script": "_app135_mt3_patch.py",
+ "task": "APP-135 §1–§3：dev 树 MT2 → MT3（默认 MT3，保留切回开关；显式贪心）",
+ "ts": "2026-11-25 15:09:51",
+ "file": "live_caption\\translator.py",
+ "old_sha256": "fb34b36c49fc918b34cb10f855089daf0b213cfb1ec08bcf0de716b2fe083e5b",
+ "new_sha256": "f6b9d89ec08c49e5a9e7e06986f6ecb9a2352e4cb1bec3ada89e7378f582b1ed",
+ "old_bytes": 96701,
+ "new_bytes": 99732,
+ "replacements": [
+  {
+   "tag": "default_model_chain",
+   "old_len": 495,
+   "new_len": 1562
+  },
+  {
+   "tag": "mt_candidates",
+   "old_len": 664,
+   "new_len": 1011
+  },
+  {
+   "tag": "explicit_greedy",
+   "old_len": 200,
+   "new_len": 936
+  }
+ ],
+ "pre_write_invariants": [
+  {
+   "name": "unique_hit_default_model_chain",
+   "ok": true,
+   "detail": "命中 1 次（要求恰好 1 次）"
+  },
+  {
+   "name": "unique_hit_mt_candidates",
+   "ok": true,
+   "detail": "命中 1 次（要求恰好 1 次）"
+  },
+  {
+   "name": "unique_hit_explicit_greedy",
+   "ok": true,
+   "detail": "命中 1 次（要求恰好 1 次）"
+  },
+  {
+   "name": "crlf_preserved",
+   "ok": true,
+   "detail": "0 -> 0"
+  },
+  {
+   "name": "line_delta_expected",
+   "ok": true,
+   "detail": "实际 40 / 预期 40"
+  },
+  {
+   "name": "byte_delta_expected",
+   "ok": true,
+   "detail": "实际 3031 / 预期 3031"
+  },
+  {
+   "name": "reverse_reconstruct",
+   "ok": true,
+   "detail": "还原后 70539 B vs 原 70539 B"
+  },
+  {
+   "name": "content_present_all",
+   "ok": true,
+   "detail": "3 块新内容逐字在位"
+  },
+  {
+   "name": "ast_ok",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "explicit_do_sample_false",
+   "ok": true,
+   "detail": "源码里 `self.gc.do_sample = False` 在位"
+  },
+  {
+   "name": "explicit_temperature_neutral",
+   "ok": true,
+   "detail": "`self.gc.temperature = 1.0` 在位"
+  },
+  {
+   "name": "explicit_top_k_neutral",
+   "ok": true,
+   "detail": "`self.gc.top_k = 0` 在位"
+  },
+  {
+   "name": "explicit_top_p_neutral",
+   "ok": true,
+   "detail": "`self.gc.top_p = 1.0` 在位"
+  },
+  {
+   "name": "counterexample_detected",
+   "ok": true,
+   "detail": "把 do_sample 改成 True 后判据 FAIL（符合预期）⇒ 有鉴别力"
+  }
+ ],
+ "post_write_selfcheck": [
+  {
+   "name": "written_matches_planned",
+   "ok": true,
+   "detail": "f6b9d89ec08c49e5"
+  },
+  {
+   "name": "bak_matches_old",
+   "ok": true,
+   "detail": "fb34b36c49fc918b"
+  },
+  {
+   "name": "crlf_preserved",
+   "ok": true,
+   "detail": "0 -> 0"
+  },
+  {
+   "name": "ast_ok",
+   "ok": true,
+   "detail": ""
+  }
+ ],
+ "post_write_ok": true,
+ "note": "🔴 **只改 dev 树**；客户包一个字节都没动。EXT bridge 的 MT 默认路径走 `LIVECAP_MT_MODEL`（App 侧透传）⇒ 一处改动两处生效。"
+}

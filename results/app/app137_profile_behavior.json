@@ -1,0 +1,328 @@
+{
+ "script": "_app137_profile_behavior_test.py",
+ "task": "APP-137 §1：package_profile 四个读取口的行为级复核（含反证组）",
+ "cases": [
+  {
+   "case": "A_full_v26_marker",
+   "got": {
+    "allow_clone_voice": true,
+    "allow_bgkeep": true,
+    "allow_tts_c13": true,
+    "is_minimvp": false
+   },
+   "expect": {
+    "allow_clone_voice": true,
+    "allow_bgkeep": true,
+    "allow_tts_c13": true,
+    "is_minimvp": false
+   },
+   "checks": [
+    {
+     "name": "A_full_v26_marker.allow_clone_voice",
+     "ok": true,
+     "detail": "期望 True / 实测 True"
+    },
+    {
+     "name": "A_full_v26_marker.allow_bgkeep",
+     "ok": true,
+     "detail": "期望 True / 实测 True"
+    },
+    {
+     "name": "A_full_v26_marker.allow_tts_c13",
+     "ok": true,
+     "detail": "期望 True / 实测 True"
+    },
+    {
+     "name": "A_full_v26_marker.is_minimvp",
+     "ok": true,
+     "detail": "期望 False / 实测 False"
+    }
+   ],
+   "ok": true
+  },
+  {
+   "case": "B_new_minimvp_v12",
+   "got": {
+    "allow_clone_voice": true,
+    "allow_bgkeep": true,
+    "allow_tts_c13": false,
+    "is_minimvp": true
+   },
+   "expect": {
+    "allow_clone_voice": true,
+    "allow_bgkeep": true,
+    "allow_tts_c13": false,
+    "is_minimvp": true
+   },
+   "checks": [
+    {
+     "name": "B_new_minimvp_v12.allow_clone_voice",
+     "ok": true,
+     "detail": "期望 True / 实测 True"
+    },
+    {
+     "name": "B_new_minimvp_v12.allow_bgkeep",
+     "ok": true,
+     "detail": "期望 True / 实测 True"
+    },
+    {
+     "name": "B_new_minimvp_v12.allow_tts_c13",
+     "ok": true,
+     "detail": "期望 False / 实测 False"
+    },
+    {
+     "name": "B_new_minimvp_v12.is_minimvp",
+     "ok": true,
+     "detail": "期望 True / 实测 True"
+    }
+   ],
+   "ok": true
+  },
+  {
+   "case": "C_old_minimvp_v111",
+   "got": {
+    "allow_clone_voice": false,
+    "allow_bgkeep": false,
+    "allow_tts_c13": false,
+    "is_minimvp": true
+   },
+   "expect": {
+    "allow_clone_voice": false,
+    "allow_bgkeep": false,
+    "allow_tts_c13": false,
+    "is_minimvp": true
+   },
+   "checks": [
+    {
+     "name": "C_old_minimvp_v111.allow_clone_voice",
+     "ok": true,
+     "detail": "期望 False / 实测 False"
+    },
+    {
+     "name": "C_old_minimvp_v111.allow_bgkeep",
+     "ok": true,
+     "detail": "期望 False / 实测 False"
+    },
+    {
+     "name": "C_old_minimvp_v111.allow_tts_c13",
+     "ok": true,
+     "detail": "期望 False / 实测 False"
+    },
+    {
+     "name": "C_old_minimvp_v111.is_minimvp",
+     "ok": true,
+     "detail": "期望 True / 实测 True"
+    }
+   ],
+   "ok": true
+  },
+  {
+   "case": "D_broken_marker",
+   "got": {
+    "allow_clone_voice": true,
+    "allow_bgkeep": true,
+    "allow_tts_c13": true,
+    "is_minimvp": false
+   },
+   "expect": {
+    "allow_clone_voice": true,
+    "allow_bgkeep": true,
+    "allow_tts_c13": true,
+    "is_minimvp": false
+   },
+   "checks": [
+    {
+     "name": "D_broken_marker.allow_clone_voice",
+     "ok": true,
+     "detail": "期望 True / 实测 True"
+    },
+    {
+     "name": "D_broken_marker.allow_bgkeep",
+     "ok": true,
+     "detail": "期望 True / 实测 True"
+    },
+    {
+     "name": "D_broken_marker.allow_tts_c13",
+     "ok": true,
+     "detail": "期望 True / 实测 True"
+    },
+    {
+     "name": "D_broken_marker.is_minimvp",
+     "ok": true,
+     "detail": "期望 False / 实测 False"
+    }
+   ],
+   "ok": true
+  },
+  {
+   "case": "X_counterexample_hardcoded_false",
+   "got": {
+    "allow_clone_voice": false,
+    "allow_bgkeep": true,
+    "allow_tts_c13": false,
+    "is_minimvp": true
+   },
+   "expect": {
+    "allow_clone_voice": true,
+    "allow_bgkeep": true,
+    "allow_tts_c13": false,
+    "is_minimvp": true
+   },
+   "checks": [
+    {
+     "name": "X_counterexample_hardcoded_false.allow_clone_voice",
+     "ok": false,
+     "detail": "期望 True / 实测 False"
+    },
+    {
+     "name": "X_counterexample_hardcoded_false.allow_bgkeep",
+     "ok": true,
+     "detail": "期望 True / 实测 True"
+    },
+    {
+     "name": "X_counterexample_hardcoded_false.allow_tts_c13",
+     "ok": true,
+     "detail": "期望 False / 实测 False"
+    },
+    {
+     "name": "X_counterexample_hardcoded_false.is_minimvp",
+     "ok": true,
+     "detail": "期望 True / 实测 True"
+    }
+   ],
+   "ok": false
+  },
+  {
+   "case": "Y_counterexample_c13_default_true",
+   "got": {
+    "allow_clone_voice": false,
+    "allow_bgkeep": false,
+    "allow_tts_c13": true,
+    "is_minimvp": true
+   },
+   "expect": {
+    "allow_clone_voice": false,
+    "allow_bgkeep": false,
+    "allow_tts_c13": false,
+    "is_minimvp": true
+   },
+   "checks": [
+    {
+     "name": "Y_counterexample_c13_default_true.allow_clone_voice",
+     "ok": true,
+     "detail": "期望 False / 实测 False"
+    },
+    {
+     "name": "Y_counterexample_c13_default_true.allow_bgkeep",
+     "ok": true,
+     "detail": "期望 False / 实测 False"
+    },
+    {
+     "name": "Y_counterexample_c13_default_true.allow_tts_c13",
+     "ok": false,
+     "detail": "期望 False / 实测 True"
+    },
+    {
+     "name": "Y_counterexample_c13_default_true.is_minimvp",
+     "ok": true,
+     "detail": "期望 True / 实测 True"
+    }
+   ],
+   "ok": false
+  }
+ ],
+ "checks": [
+  {
+   "name": "A_full_v26_marker.allow_clone_voice",
+   "ok": true,
+   "detail": "期望 True / 实测 True"
+  },
+  {
+   "name": "A_full_v26_marker.allow_bgkeep",
+   "ok": true,
+   "detail": "期望 True / 实测 True"
+  },
+  {
+   "name": "A_full_v26_marker.allow_tts_c13",
+   "ok": true,
+   "detail": "期望 True / 实测 True"
+  },
+  {
+   "name": "A_full_v26_marker.is_minimvp",
+   "ok": true,
+   "detail": "期望 False / 实测 False"
+  },
+  {
+   "name": "B_new_minimvp_v12.allow_clone_voice",
+   "ok": true,
+   "detail": "期望 True / 实测 True"
+  },
+  {
+   "name": "B_new_minimvp_v12.allow_bgkeep",
+   "ok": true,
+   "detail": "期望 True / 实测 True"
+  },
+  {
+   "name": "B_new_minimvp_v12.allow_tts_c13",
+   "ok": true,
+   "detail": "期望 False / 实测 False"
+  },
+  {
+   "name": "B_new_minimvp_v12.is_minimvp",
+   "ok": true,
+   "detail": "期望 True / 实测 True"
+  },
+  {
+   "name": "C_old_minimvp_v111.allow_clone_voice",
+   "ok": true,
+   "detail": "期望 False / 实测 False"
+  },
+  {
+   "name": "C_old_minimvp_v111.allow_bgkeep",
+   "ok": true,
+   "detail": "期望 False / 实测 False"
+  },
+  {
+   "name": "C_old_minimvp_v111.allow_tts_c13",
+   "ok": true,
+   "detail": "期望 False / 实测 False"
+  },
+  {
+   "name": "C_old_minimvp_v111.is_minimvp",
+   "ok": true,
+   "detail": "期望 True / 实测 True"
+  },
+  {
+   "name": "D_broken_marker.allow_clone_voice",
+   "ok": true,
+   "detail": "期望 True / 实测 True"
+  },
+  {
+   "name": "D_broken_marker.allow_bgkeep",
+   "ok": true,
+   "detail": "期望 True / 实测 True"
+  },
+  {
+   "name": "D_broken_marker.allow_tts_c13",
+   "ok": true,
+   "detail": "期望 True / 实测 True"
+  },
+  {
+   "name": "D_broken_marker.is_minimvp",
+   "ok": true,
+   "detail": "期望 False / 实测 False"
+  },
+  {
+   "name": "counterexample_must_fail",
+   "ok": true,
+   "detail": "反证组（minimvp 硬编码 False）实测 FAIL（符合预期） ⇒ 判据有鉴别力"
+  },
+  {
+   "name": "counterexample2_must_fail",
+   "ok": true,
+   "detail": "反证组 2（minimvp 的 c13 默认改 True）实测 FAIL（符合预期） ⇒ 有鉴别力"
+  }
+ ],
+ "all_pass": true,
+ "note": "🔴 **真跑**：每个用例都在临时「包根」里放一份 marker，再 import 真的 `package_profile` ⇒ 断言的是**真跑出来的值**。C 组（老 minimvp marker）承重：证明老包行为逐字不变。"
+}

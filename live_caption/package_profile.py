@@ -134,17 +134,56 @@ def allow_cuda() -> bool:
 def allow_clone_voice() -> bool:
     """本包**是否提供**音色克隆（follow_speaker）。
 
-    🔴 MiniMVP ⇒ False（APP-098 一.3：「MiniMVP 不提供音色克隆」）。
     🔴 完整版 ⇒ True（APP-039/040/089 的克隆能力**必须保留**）。
-    ⇒ 这里是**两个包真的不同**的一处 ⇒ **靠标记文件区分**（而不是复制代码）。
+    🔴🔴🔳 **APP-137（2026-11-25，用户决定）**：MiniMVP **v1.2 起并入
+       音色克隆** ⇒ 「minimvp ⇒ 一律 False」的**硬编码被去掉**，
+       改成**读标记文件的 `allow_clone_voice` 字段**：
+         * 新 MiniMVP v1.2 的 marker 写 `true` ⇒ **克隆可用**；
+         * **老 MiniMVP 包（v1.1.1）的 marker 里是 `false`**
+           ⇒ **行为逐字不变**（仍不可用）。
+    ⇒ 仍是**靠标记文件区分**（而不是复制代码）。
     """
     if is_minimvp():
-        return False
+        # 🔴 MiniMVP：读标记；**缺字段 ⇒ False**（保守 ⇒ 不会静默放开克隆）。
+        return bool(_MARKER.get('allow_clone_voice', False))
     return bool(_MARKER.get('allow_clone_voice', True))
 
 
+def allow_bgkeep() -> bool:
+    """本包**是否提供** EXT 的「保留背景音」（bgkeep / Demucs 分离）。
+
+    🔴 **APP-137（2026-11-25，用户决定）**：MiniMVP v1.2 起
+       **并入 EXT 的全部功能（含「保留背景音」）** ⇒ 标记写 `allow_bgkeep: true`。
+    🔴 老 MiniMVP 包（v1.1.1）**没有这个字段** ⇒ 缺字段 ⇒ **False**
+       ⇒ **行为逐字不变**（v1.1.1 包本来就没有 `models/bgsep`）。
+    🔴 完整版 ⇒ True（APP-122/129 的 bgkeep 已在 v2.6 落地）。
+    """
+    if is_minimvp():
+        return bool(_MARKER.get('allow_bgkeep', False))
+    return bool(_MARKER.get('allow_bgkeep', True))
+
+
+def allow_tts_c13() -> bool:
+    """本包**是否启用** APP-123 的 **c13** 小窗口流式声码器。
+
+    🔴 **APP-137（2026-11-25，用户决定）**：**c13 不进 MiniMVP**（还没验收）
+       ⇒ MiniMVP 的 marker 写 `tts_c13: false`。
+    🔴 完整版 ⇒ True（c13 已在 v2.6 落地，等 APP-134 c 验收）。
+    🔴 缺字段时的默认值：
+       * 完整版 ⇒ **True**（v2.6 的 marker 没有这个字段 ⇒ 行为不变）；
+       * MiniMVP ⇒ **False**（保守 ⇒ 老包行为不变）。
+    """
+    if is_minimvp():
+        return bool(_MARKER.get('tts_c13', False))
+    return bool(_MARKER.get('tts_c13', True))
+
+
 def clone_voice_unavailable_reason() -> str:
-    """克隆音色不可用的原因（给 GUI 置灰项显示）。"""
+    """克隆音色不可用的原因（给 GUI 置灰项显示）。
+
+    🔴 **APP-137**：MiniMVP v1.2 起克隆**可用** ⇒ 只有**真的不可用**时
+       才给 MiniMVP 专属文案；否则用通用文案。
+    """
     if is_minimvp():
         return 'MiniMVP 不提供音色克隆'
     return '本包不提供音色克隆'
@@ -165,6 +204,9 @@ def describe() -> dict:
         'is_minimvp': is_minimvp(),
         'allow_cuda': allow_cuda(),
         'allow_clone_voice': allow_clone_voice(),
+        # 🔴 APP-137：新增两个读取口（bgkeep / c13）。
+        'allow_bgkeep': allow_bgkeep(),
+        'allow_tts_c13': allow_tts_c13(),
         'target_langs': target_lang_count(),
         'marker_file': PROFILE_FILE,
         'marker_present': bool(_MARKER),

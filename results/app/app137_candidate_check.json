@@ -1,0 +1,230 @@
+{
+ "script": "_app137_candidate_check.py",
+ "task": "APP-137 §3：MiniMVP v1.2 候选目录的包内容核对（离线只读）",
+ "ts": "2026-11-25 15:08:15",
+ "candidate": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate",
+ "source": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6",
+ "checks": [
+  {
+   "group": "A",
+   "name": "model_weights_identical:models/bgsep",
+   "ok": true,
+   "detail": "2/2 文件 SHA256 相同"
+  },
+  {
+   "group": "A",
+   "name": "model_weights_identical:models/spk/pyannote_seg_3_0",
+   "ok": true,
+   "detail": "4/4 文件 SHA256 相同"
+  },
+  {
+   "group": "A",
+   "name": "model_weights_identical:models/spk/wespeaker-resnet34-fp16",
+   "ok": true,
+   "detail": "2/2 文件 SHA256 相同"
+  },
+  {
+   "group": "A",
+   "name": "model_weights_identical:models/mt/mt2-int8sym-cw-q",
+   "ok": true,
+   "detail": "12/12 文件 SHA256 相同"
+  },
+  {
+   "group": "A",
+   "name": "model_weights_identical:models/qwen3tts/weights",
+   "ok": true,
+   "detail": "37/37 文件 SHA256 相同"
+  },
+  {
+   "group": "A",
+   "name": "model_weights_identical:models/qwen3tts/tokenizer",
+   "ok": true,
+   "detail": "4/4 文件 SHA256 相同"
+  },
+  {
+   "group": "A",
+   "name": "config_dims_identical:models/mt/mt2-int8sym-cw-q/config.json",
+   "ok": true,
+   "detail": "维度键 ['hidden_size', 'num_hidden_layers', 'vocab_size', 'num_attention_heads', 'intermediate_size']"
+  },
+  {
+   "group": "B",
+   "name": "clone_chain_models_present",
+   "ok": true,
+   "detail": "models/spk 下两个 IR"
+  },
+  {
+   "group": "B",
+   "name": "clone_chain_code_present",
+   "ok": true,
+   "detail": "缺：无"
+  },
+  {
+   "group": "B",
+   "name": "clone_voice_dir_only_preset_a",
+   "ok": true,
+   "detail": "克隆音色目录内容：['preset_A.wav']"
+  },
+  {
+   "group": "C",
+   "name": "no_media_files_except_preset_a",
+   "ok": true,
+   "detail": "违规媒体文件 0 个：[]"
+  },
+  {
+   "group": "D",
+   "name": "no_cuda_env_dir",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "D",
+   "name": "no_tts_cuda_models",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "D",
+   "name": "no_cuda_dll",
+   "ok": true,
+   "detail": "CUDA DLL：无"
+  },
+  {
+   "group": "E",
+   "name": "profile_minimvp",
+   "ok": true,
+   "detail": "minimvp"
+  },
+  {
+   "group": "E",
+   "name": "allow_clone_voice_true",
+   "ok": true,
+   "detail": "True"
+  },
+  {
+   "group": "E",
+   "name": "allow_bgkeep_true",
+   "ok": true,
+   "detail": "True"
+  },
+  {
+   "group": "E",
+   "name": "tts_c13_false",
+   "ok": true,
+   "detail": "False"
+  },
+  {
+   "group": "E",
+   "name": "allow_cuda_false",
+   "ok": true,
+   "detail": "False"
+  },
+  {
+   "group": "E",
+   "name": "mt_model_is_mt2",
+   "ok": true,
+   "detail": "mt2-int8sym-cw-q"
+  },
+  {
+   "group": "F",
+   "name": "no_accepted_json",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "F",
+   "name": "no_v12_zip",
+   "ok": true,
+   "detail": "zip：无"
+  }
+ ],
+ "n_pass": 22,
+ "n_total": 22,
+ "detail": {
+  "model_identity": [
+   {
+    "dir": "models/bgsep",
+    "n_compared": 2,
+    "n_same": 2,
+    "mismatches": []
+   },
+   {
+    "dir": "models/spk/pyannote_seg_3_0",
+    "n_compared": 4,
+    "n_same": 4,
+    "mismatches": []
+   },
+   {
+    "dir": "models/spk/wespeaker-resnet34-fp16",
+    "n_compared": 2,
+    "n_same": 2,
+    "mismatches": []
+   },
+   {
+    "dir": "models/mt/mt2-int8sym-cw-q",
+    "n_compared": 12,
+    "n_same": 12,
+    "mismatches": []
+   },
+   {
+    "dir": "models/qwen3tts/weights",
+    "n_compared": 37,
+    "n_same": 37,
+    "mismatches": []
+   },
+   {
+    "dir": "models/qwen3tts/tokenizer",
+    "n_compared": 4,
+    "n_same": 4,
+    "mismatches": []
+   }
+  ],
+  "config_dims": [
+   {
+    "file": "models/mt/mt2-int8sym-cw-q/config.json",
+    "keys": {
+     "hidden_size": [
+      2048,
+      2048
+     ],
+     "num_hidden_layers": [
+      32,
+      32
+     ],
+     "vocab_size": [
+      120818,
+      120818
+     ],
+     "num_attention_heads": [
+      16,
+      16
+     ],
+     "intermediate_size": [
+      6144,
+      6144
+     ]
+    },
+    "same": true
+   }
+  ],
+  "clone": {
+   "voices": [
+    "preset_A.wav"
+   ],
+   "missing_code": []
+  },
+  "media_violations": [],
+  "cuda_dll": [],
+  "profile": {
+   "profile": "minimvp",
+   "allow_cuda": false,
+   "allow_clone_voice": true,
+   "allow_bgkeep": true,
+   "tts_c13": false,
+   "mt_model": "mt2-int8sym-cw-q",
+   "target_langs": 10,
+   "note": "MiniMVP v1.2（APP-137，2026-11-25，用户决定）：EXT 的全部功能（含「保留背景音」bgkeep）＋ 音色克隆并入 MiniMVP；仍只有 iGPU/NPU（无 CUDA）；出厂默认 ASR=GPU.0 / MT=GPU.0 / TTS=NPU；MT 暂时用 Hy-MT2（切 MT3 的开关已留好）；APP-123 的 c13 尚未验收 ⇒ 本包不启用 c13。包内不含任何录音、克隆音色、同事声音或测试媒体；克隆音色在首次使用时现场采集。"
+  }
+ },
+ "all_pass": true
+}

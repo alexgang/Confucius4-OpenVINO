@@ -1,0 +1,82 @@
+{
+ "script": "_app137_sync_to_candidate.py",
+ "task": "APP-137：把 dev 树的 profile 改动定点同步进 v1.2 候选目录",
+ "ts": "2026-11-25 15:07:43",
+ "candidate_app": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app",
+ "files": [
+  {
+   "file": "package_profile.py",
+   "n_hunks": 5,
+   "old_sha256": "97aea72a168491e8c41ac6fc9dc70acd5120c1d18e6fa7ef044df8d35e21ec16",
+   "new_sha256": "22de563d784b1628b5863a59ae8afc8f2b7625b6438db02bb046738f0ebdb4ad",
+   "dev_sha256": "22de563d784b1628b5863a59ae8afc8f2b7625b6438db02bb046738f0ebdb4ad",
+   "old_bytes": 7068,
+   "new_bytes": 9177
+  }
+ ],
+ "pre_write_invariants": [
+  {
+   "name": "unique_hits_package_profile.py",
+   "ok": true,
+   "detail": "5 块全部在原件上唯一命中"
+  },
+  {
+   "name": "equals_dev_package_profile.py",
+   "ok": true,
+   "detail": "改写后 9177 B vs dev 9177 B"
+  },
+  {
+   "name": "reverse_reconstruct_package_profile.py",
+   "ok": true,
+   "detail": "还原后 4896 B vs 原 4896 B"
+  },
+  {
+   "name": "content_matches_package_profile.py",
+   "ok": true,
+   "detail": "5 块内容逐字相等"
+  },
+  {
+   "name": "crlf_preserved_package_profile.py",
+   "ok": true,
+   "detail": "0 -> 0"
+  },
+  {
+   "name": "ast_ok_package_profile.py",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "counterexample_detected",
+   "ok": true,
+   "detail": "篡改内容后内容级校验 FAIL（符合预期）⇒ 判据有鉴别力；原判据说：块[insert] 内容不等：期望 959 B / 实测 961 B"
+  },
+  {
+   "name": "note_positional_reverse_is_trivially_true",
+   "ok": true,
+   "detail": "「按行号反推」恒为真 ⇒ 鉴别力由 content_matches 承担"
+  }
+ ],
+ "post_write_selfcheck": [
+  {
+   "name": "equals_dev_package_profile.py",
+   "ok": true,
+   "detail": "sha 22de563d784b1628"
+  },
+  {
+   "name": "bak_sha_matches_old_package_profile.py",
+   "ok": true,
+   "detail": "97aea72a168491e8"
+  },
+  {
+   "name": "crlf_preserved_package_profile.py",
+   "ok": true,
+   "detail": "0 -> 0"
+  },
+  {
+   "name": "ast_ok_package_profile.py",
+   "ok": true,
+   "detail": ""
+  }
+ ],
+ "post_write_ok": true
+}

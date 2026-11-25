@@ -1,0 +1,169 @@
+{
+ "script": "_app137_profile_patch.py",
+ "task": "APP-137 §1：dev 树 minimvp profile 改造（并入 EXT 全部功能 + 音色克隆；c13 不进 MiniMVP）",
+ "ts": "2026-11-25 13:50:10",
+ "files": [
+  {
+   "file": "live_caption\\package_profiles.py",
+   "old_sha256": "4ca63cc4ae0bf9371ed7f427e9190b95f602e61f00282bee8d52748b593d536b",
+   "new_sha256": "881bf3daa3473396898120109faeef08400f9997f8c043b599cd3da48e450b7b",
+   "old_bytes": 9763,
+   "new_bytes": 11688,
+   "new_lines": 292,
+   "n_replacements": 1,
+   "tags": [
+    "minimvp_exclude_marker"
+   ]
+  },
+  {
+   "file": "live_caption\\package_profile.py",
+   "old_sha256": "97aea72a168491e8c41ac6fc9dc70acd5120c1d18e6fa7ef044df8d35e21ec16",
+   "new_sha256": "22de563d784b1628b5863a59ae8afc8f2b7625b6438db02bb046738f0ebdb4ad",
+   "old_bytes": 7068,
+   "new_bytes": 9177,
+   "new_lines": 219,
+   "n_replacements": 3,
+   "tags": [
+    "allow_clone_voice",
+    "clone_reason",
+    "describe"
+   ]
+  }
+ ],
+ "pre_write_invariants": [
+  {
+   "name": "unique_hit_minimvp_exclude_marker",
+   "ok": true,
+   "detail": "唯一命中"
+  },
+  {
+   "name": "reverse_reconstruct_package_profiles.py",
+   "ok": true,
+   "detail": "还原后 8254 B vs 原 8254 B"
+  },
+  {
+   "name": "crlf_count_unchanged_package_profiles.py",
+   "ok": true,
+   "detail": "0 -> 0"
+  },
+  {
+   "name": "line_delta_expected_package_profiles.py",
+   "ok": true,
+   "detail": "实际 25 / 预期 25"
+  },
+  {
+   "name": "byte_delta_expected_package_profiles.py",
+   "ok": true,
+   "detail": "实际 1925 / 预期 1925"
+  },
+  {
+   "name": "counterexample_detected_package_profiles.py",
+   "ok": true,
+   "detail": "篡改后还原式复核不等 ⇒ 判据有鉴别力"
+  },
+  {
+   "name": "ast_ok_package_profiles.py",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "unique_hit_allow_clone_voice",
+   "ok": true,
+   "detail": "唯一命中"
+  },
+  {
+   "name": "unique_hit_clone_reason",
+   "ok": true,
+   "detail": "唯一命中"
+  },
+  {
+   "name": "unique_hit_describe",
+   "ok": true,
+   "detail": "唯一命中"
+  },
+  {
+   "name": "reverse_reconstruct_package_profile.py",
+   "ok": true,
+   "detail": "还原后 4896 B vs 原 4896 B"
+  },
+  {
+   "name": "crlf_count_unchanged_package_profile.py",
+   "ok": true,
+   "detail": "0 -> 0"
+  },
+  {
+   "name": "line_delta_expected_package_profile.py",
+   "ok": true,
+   "detail": "实际 42 / 预期 42"
+  },
+  {
+   "name": "byte_delta_expected_package_profile.py",
+   "ok": true,
+   "detail": "实际 2109 / 预期 2109"
+  },
+  {
+   "name": "counterexample_detected_package_profile.py",
+   "ok": true,
+   "detail": "篡改后还原式复核不等 ⇒ 判据有鉴别力"
+  },
+  {
+   "name": "ast_ok_package_profile.py",
+   "ok": true,
+   "detail": ""
+  }
+ ],
+ "post_write_selfcheck": [
+  {
+   "name": "written_sha_matches_package_profiles.py",
+   "ok": true,
+   "detail": "881bf3daa3473396"
+  },
+  {
+   "name": "bak_sha_matches_old_package_profiles.py",
+   "ok": true,
+   "detail": "4ca63cc4ae0bf937"
+  },
+  {
+   "name": "crlf_preserved_package_profiles.py",
+   "ok": true,
+   "detail": "0 -> 0"
+  },
+  {
+   "name": "lines_match_planned_package_profiles.py",
+   "ok": true,
+   "detail": "写入 292 行 / 计划 292 行"
+  },
+  {
+   "name": "ast_ok_package_profiles.py",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "written_sha_matches_package_profile.py",
+   "ok": true,
+   "detail": "22de563d784b1628"
+  },
+  {
+   "name": "bak_sha_matches_old_package_profile.py",
+   "ok": true,
+   "detail": "97aea72a168491e8"
+  },
+  {
+   "name": "crlf_preserved_package_profile.py",
+   "ok": true,
+   "detail": "0 -> 0"
+  },
+  {
+   "name": "lines_match_planned_package_profile.py",
+   "ok": true,
+   "detail": "写入 219 行 / 计划 219 行"
+  },
+  {
+   "name": "ast_ok_package_profile.py",
+   "ok": true,
+   "detail": ""
+  }
+ ],
+ "post_write_ok": true,
+ "note": "🔴 **只改 dev 树**；客户包一个字节都没动。老 MiniMVP 包（v1.1.1）marker 里 `allow_clone_voice=false`、无 `allow_bgkeep` ⇒ **行为逐字不变**。"
+}
