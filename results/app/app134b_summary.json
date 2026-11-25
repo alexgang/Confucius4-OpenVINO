@@ -1,0 +1,136 @@
+{
+ "script": "_app134b_collect.py",
+ "task": "APP-134 b：自检+NaN 守卫「开 vs 关」的对照（synth_rtf 中位/P90 与 max_lag）",
+ "ts": "2026-11-25 16:32:27",
+ "root": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app134b",
+ "tolerance": 0.05,
+ "arms": [
+  {
+   "arm": "guard_off",
+   "json": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app134b\\guard_off\\bgkeep_e2e.json",
+   "json_bytes": 64414,
+   "json_mtime": "2026-11-25 16:27:34",
+   "pkg": "player",
+   "dubs": 123,
+   "n_pending_at_media_end": 27,
+   "n_pending_after_drain": 0,
+   "drained_to_zero": true,
+   "drain_elapsed_s": 124.43,
+   "synth_rtf_ext": 1.0378,
+   "synth_rtf_p50_median": 1.0531,
+   "synth_rtf_p90": 1.20978,
+   "synth_rtf_n_segments": 123,
+   "synth_rtf_cross_check_ok": true,
+   "max_lag": 122.0722,
+   "last_segment_lag": 110.7615,
+   "lag_slope": -0.240421,
+   "lag_r2": 0.961525,
+   "dub_late_max": 238.441,
+   "dub_late_p90": 178.606,
+   "bg_late_blocks": 0,
+   "proc_mem_mb": 8402.8,
+   "selfcheck": {
+    "na_guard_installed": null,
+    "cp_decode_selfcheck": null,
+    "cp_prefill_selfcheck": null,
+    "cp_decode_cos": null,
+    "cp_prefill_cos": null
+   },
+   "devices": {
+    "asr": "R2T2 INT8 @ GPU.0，10.3s",
+    "mt": "Hy-MT2 INT8 @ GPU.0，7.9s",
+    "tts": "Qwen3-TTS @ NPU，8.7s"
+   }
+  },
+  {
+   "arm": "guard_on",
+   "json": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app134b\\guard_on\\bgkeep_e2e.json",
+   "json_bytes": 66572,
+   "json_mtime": "2026-11-25 16:14:48",
+   "pkg": "player",
+   "dubs": 123,
+   "n_pending_at_media_end": 36,
+   "n_pending_after_drain": 0,
+   "drained_to_zero": true,
+   "drain_elapsed_s": 166.6,
+   "synth_rtf_ext": 1.0963,
+   "synth_rtf_p50_median": 1.1489,
+   "synth_rtf_p90": 1.31712,
+   "synth_rtf_n_segments": 123,
+   "synth_rtf_cross_check_ok": true,
+   "max_lag": 168.6722,
+   "last_segment_lag": 153.0003,
+   "lag_slope": -0.321279,
+   "lag_r2": 0.924982,
+   "dub_late_max": 328.429,
+   "dub_late_p90": 264.371,
+   "bg_late_blocks": 0,
+   "proc_mem_mb": 8391.0,
+   "selfcheck": {
+    "na_guard_installed": 2,
+    "cp_decode_selfcheck": "0.108 s",
+    "cp_prefill_selfcheck": "0.160 s",
+    "cp_decode_cos": "[(0.02, 0.999438), (0.1, 0.999718), (1.0, 0.999952)]",
+    "cp_prefill_cos": "[(0.02, 0.998595), (0.1, 0.99931), (1.0, 0.999953)]"
+   },
+   "devices": {
+    "asr": "R2T2 INT8 @ GPU.0，19.3s",
+    "mt": "Hy-MT2 INT8 @ GPU.0，2.7s",
+    "tts": "Qwen3-TTS @ NPU，9.1s"
+   }
+  }
+ ],
+ "checks": [
+  {
+   "name": "rel_diff_synth_rtf_p50_median",
+   "value": 0.08338410653668736,
+   "ok": false,
+   "detail": "synth_rtf 中位：on=1.1489 off=1.0531 ⇒ 相对差 8.34%（判据 ≤5%）"
+  },
+  {
+   "name": "rel_diff_synth_rtf_p90",
+   "value": 0.0814959912536443,
+   "ok": false,
+   "detail": "synth_rtf P90：on=1.31712 off=1.20978 ⇒ 相对差 8.15%（判据 ≤5%）"
+  },
+  {
+   "name": "rel_diff_max_lag",
+   "value": 0.2762755213959384,
+   "ok": false,
+   "detail": "max_lag：on=168.6722 off=122.0722 ⇒ 相对差 27.63%（判据 ≤5%）"
+  },
+  {
+   "name": "guard_off_has_no_nan_guard",
+   "ok": true,
+   "detail": "guard_on 装 2 个 / guard_off 装 None 个（⇒ 两臂确实「开 vs 关」）"
+  }
+ ],
+ "verdict": "DIFFERENT（超出 5% 或两臂不可比）",
+ "lock_events": [
+  {
+   "ev": "lock_acquired",
+   "ts": "2026-11-25T16:01:15",
+   "tag": "app e2e drain 2026-11-25T16:01:15 pid=26976",
+   "waited_s": 0
+  },
+  {
+   "ev": "arm_done",
+   "arm": "guard_on",
+   "rc": 0,
+   "elapsed_s": 815,
+   "lock_lost": 0
+  },
+  {
+   "ev": "arm_done",
+   "arm": "guard_off",
+   "rc": 0,
+   "elapsed_s": 766,
+   "lock_lost": 0
+  },
+  {
+   "ev": "lock_released",
+   "ts": "2026-11-25T16:27:37"
+  }
+ ],
+ "n_lock_lost_events": 0
+}
