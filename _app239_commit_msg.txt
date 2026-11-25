@@ -1,0 +1,39 @@
+app: APP-134 b 的 §239 —— ABBA 噪声地板结论 ＋ 3 个真缺陷的修法
+
+## APP-134 b 的结论（ABBA 四臂 on→off→off→on，全 rc=0／lock_lost=0）
+- **噪声地板**（同配置两次之差 ＝ 运行自身随机性）：p50 10.28% / p90 21.53% / max_lag 43.95%
+- **配置效应**（守卫的影响）：p50 5.89% / p90 4.08% / max_lag 18.73%
+- ⇒ 三项**配置效应都落在噪声地板内** ⇒ **未见「NaN 守卫」导致变差**
+- 🔴 **但 reviewer 的「≤5%」判据本轮不可达**（噪声地板本身就 >5%）
+  ⇒ **本轮测不出「≤5%」的结论** ⇒ 如实登记
+  （**不把「在噪声内」写成「已证明 ≤5%」**）
+- 🟢 **噪声不是外部负载造成的**：四臂 ASR 加载 10.0–11.1 s（拥挤度一致）
+  ⇒ 噪声来自**运行自身随机性**（10 分钟连续负载下 NPU 共享/热态/累积排压）
+  ⇒ ⇒ reviewer 若要 ≤5% 的判据，**单次/两次测量达不到**，需更多次重复取中位
+
+## 本轮修掉的 3 个真缺陷
+1. **keepalive ping 超时** ⇒ 10 分钟臂全丢（桥接单线程 asyncio 在 NPU 合成段要
+   10–16 s ⇒ 客户端默认 20 s ping 超时直接 1011 断连）⇒ 改 ping_interval=None
+   ＋ 排空循环捕获断连并记 drain.disconnected
+2. e2e 驱动器从 PowerShell 改写成 Python（本机 Path/PATH/path 三键并存
+   ⇒ Process.Start 撞「字典关键字重复」）
+3. 🔴 **ABBA 四臂用重复臂名 ⇒ 数据互相覆盖**（arm2/arm3 写同一目录
+   ⇒ 该轮整体作废，目录改名 ..._VOIDED 留取证）
+   ⇒ 臂目录名改 **臂名_序号**、配置名写进 _summary.json 的 **arm_config**、
+   分析脚本**分组一律读 arm_config**
+
+## 影子包（真包零改动）
+- models/ python/ ext/ docs/ tools/ results 走 **Windows 目录联接 ⇒ 零拷贝**
+  ；app/ 真拷贝 ⇒ 只 ~2 MB
+- guard_off 用 **21f7c39 之前的 tts_engine**（reviewer 明文允许）
+  ⇒ 真包 app/tts_engine.py 逐字未动（bbbc166a vs 影子 224c05bc）
+
+## STATUS
+- §239 已追加（**last_ack 仍 APP-137** —— APP-134 整条未复核通过 ⇒ 不推编号）
+- 追加后超 40 000 B ⇒ 压缩「最近更新」较旧 2 条 ⇒ 逐字归档到
+  status/archive/STATUS_APP_recent_updates_20261125b.md（5 190 B）
+  ⇒ 35 331 B（余量 4 669 B）；CRLF 57 → 57；章节数 +1
+
+## 纪律
+只 add App 侧文件；未 add CORRECTIONS_APP.md；未打包 zip；未改任何客户包；
+未调 MiniMax；未连 B 机

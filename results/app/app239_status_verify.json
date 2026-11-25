@@ -1,0 +1,110 @@
+{
+ "script": "_app239_append_status.py",
+ "task": "APP-134 b 的 §239 追加 ＋ 「最近更新」压缩（限额 ≤40000 B）",
+ "ts": "2026-11-25 19:15:50",
+ "status_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md",
+ "archive": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\archive\\STATUS_APP_recent_updates_20261125b.md",
+ "backup": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\status\\app\\STATUS_APP.md.bak_app239_sec239",
+ "bytes_before": 37317,
+ "bytes_after": 35331,
+ "limit": 40000,
+ "timestamp_updated": "2026-11-25 19:15:50",
+ "archived_entries": 2,
+ "archive_bytes": 5190,
+ "archive_sha256": "8ac51382f663064f0be2798ec8d12cbc8bda0276cb46bf21e63f55d19af66c2b",
+ "pre_write_invariants": [
+  {
+   "name": "archive_markers_found",
+   "ok": true,
+   "detail": "归档 2 条（期望 2）"
+  },
+  {
+   "name": "bytes_under_limit",
+   "ok": true,
+   "detail": "35331 B ≤ 40000 B（追加前 37317 B）"
+  },
+  {
+   "name": "crlf_count_unchanged",
+   "ok": true,
+   "detail": "57 -> 57"
+  },
+  {
+   "name": "section_count_plus_one",
+   "ok": true,
+   "detail": "20 -> 21"
+  },
+  {
+   "name": "head_unchanged",
+   "ok": true,
+   "detail": "头部（含 last_ack/更新时间）逐字未变"
+  },
+  {
+   "name": "tail_unchanged",
+   "ok": true,
+   "detail": "「当前有效结论」及之后逐字未变"
+  },
+  {
+   "name": "last_ack_unchanged",
+   "ok": true,
+   "detail": "last_ack 仍 APP-137（APP-134 整条未复核通过 ⇒ 不推编号）"
+  },
+  {
+   "name": "block_has_no_crlf",
+   "ok": true,
+   "detail": "追加块全 LF"
+  },
+  {
+   "name": "archive_content_verbatim",
+   "ok": true,
+   "detail": "2 条标记逐字在归档块里"
+  },
+  {
+   "name": "counterexample_detected",
+   "ok": true,
+   "detail": "篡改归档块时间戳后校验 FAIL（符合预期）⇒ 判据有鉴别力"
+  }
+ ],
+ "post_write_selfcheck": [
+  {
+   "name": "bytes_equal_expected",
+   "ok": true,
+   "detail": "35331 B"
+  },
+  {
+   "name": "under_limit",
+   "ok": true,
+   "detail": "35331 B ≤ 40000 B（余量 4669 B）"
+  },
+  {
+   "name": "crlf_preserved",
+   "ok": true,
+   "detail": "57 -> 57"
+  },
+  {
+   "name": "bak_sha_matches_old",
+   "ok": true,
+   "detail": "9322adda94afac5b"
+  },
+  {
+   "name": "archive_written",
+   "ok": true,
+   "detail": "5190 B / sha 8ac51382f663064f"
+  },
+  {
+   "name": "archive_contains_all_markers",
+   "ok": true,
+   "detail": "2 条逐字在归档里"
+  },
+  {
+   "name": "section_239_present",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "last_ack_still_app137",
+   "ok": true,
+   "detail": ""
+  }
+ ],
+ "post_write_ok": true
+}
