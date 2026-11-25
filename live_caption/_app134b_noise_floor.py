@@ -61,6 +61,18 @@ def arm_stats(arm_dir):
         return None
     with open(jf, encoding='utf-8') as fh:
         j = json.load(fh)
+    # 🔴 **臂配置名**：优先读驱动器的 `_summary.json`（避免靠目录名猜）
+    cfg = None
+    sp = os.path.join(os.path.dirname(arm_dir), '_summary.json')
+    if os.path.isfile(sp):
+        try:
+            with open(sp, encoding='utf-8') as fh:
+                for row in json.load(fh):
+                    if row.get('json') == jf:
+                        cfg = row.get('arm_config')
+                        break
+        except Exception:
+            pass
     sy = j.get('synth_rtf') or {}
     per = sy.get('per_segment') or []
     rtfs = sorted(float(p['rtf']) for p in per if p.get('rtf') is not None)
@@ -88,6 +100,7 @@ def arm_stats(arm_dir):
 
     return {
         'arm': os.path.basename(arm_dir),
+        'arm_config': cfg,
         'json': jf,
         'json_bytes': os.path.getsize(jf),
         'json_mtime': time.strftime('%Y-%m-%d %H:%M:%S',
@@ -135,7 +148,12 @@ def main():
 
     groups = {}
     for a in arms:
-        cfg = 'guard_on' if 'guard_on' in a['arm'] else 'guard_off'
+        # 🔴 **分组用 `arm_config`**（驱动器写入的配置名）⇒ **不靠目录名猜**
+        #    （臂目录名已加序号后缀 `_1`/`_2`…；靠目录名猜会分组错）
+        cfg = a.get('arm_config')
+        if not cfg:
+            cfg = 'guard_on' if 'guard_on' in a['arm'] else 'guard_off'
+        a['arm_config'] = cfg
         groups.setdefault(cfg, []).append(a)
 
     checks = []

@@ -362,7 +362,7 @@ def main():
 
     summary = []
     try:
-        for spec in args.arms.split(','):
+        for idx, spec in enumerate(args.arms.split(',')):
             spec = spec.strip()
             if not spec:
                 continue
@@ -381,11 +381,21 @@ def main():
                     k, _, v = kv.partition('=')
                     env_extra[k] = v
             extra = ['--bg-off'] if args.bg_off else []
-            print('== arm %s pkg=%s env=%s' % (name, arm_app, env_extra), flush=True)
-            r = run_arm(arm_app, root, name, env_extra, args.media, args.drain_cap,
+            # 🔴🔴🔴 **臂目录名必须唯一**（ABBA 需要同名配置跑两次！）
+            #    实测：四臂用了**重复臂名** ⇒ arm2/arm3 写**同一个目录**
+            #    ⇒ 后一个臂把前一个臂的 `bgkeep_e2e.json`/`margin.json` 覆盖
+            #    ⇒ **数据互相污染**（本次已作废该轮数据）。
+            #    ⇒ 目录名 = `臂名_序号`（序号 = 本次执行序，从 1 起）
+            #       ⇒ **配置名仍保留在 `arm` 字段里**（供分析脚本分组）。
+            dir_name = '%s_%d' % (name, idx + 1)
+            print('== arm %s pkg=%s env=%s dir=%s'
+                  % (name, arm_app, env_extra, dir_name), flush=True)
+            r = run_arm(arm_app, root, dir_name, env_extra, args.media, args.drain_cap,
                         args.tail_wait, args.max_sec, args.voice, extra,
                         arm_bridge, tool, events_path)
             r['pkg'] = arm_app
+            r['arm_config'] = name
+            r['arm_seq'] = idx + 1
             summary.append(r)
             print(json.dumps(r, ensure_ascii=False, indent=1), flush=True)
     finally:

@@ -174,8 +174,16 @@ def main():
             a['devices'] = parse_devices(os.path.join(d, 'bridge.err'))
             arms.append(a)
 
-    on = next((a for a in arms if a.get('arm', '').startswith('guard_on')), None)
-    off = next((a for a in arms if a.get('arm', '').startswith('guard_off')), None)
+    # 🔴 **分组用 `arm_config`**（驱动器写入的配置名）⇒ **不靠目录名猜**
+    #    （臂目录名已加序号后缀 `_1`/`_2`…）
+    def cfg_of(a):
+        c = a.get('arm_config')
+        if c:
+            return c
+        return 'guard_on' if 'guard_on' in a.get('arm', '') else 'guard_off'
+
+    on = next((a for a in arms if cfg_of(a) == 'guard_on'), None)
+    off = next((a for a in arms if cfg_of(a) == 'guard_off'), None)
 
     verdict = None
     checks = []
