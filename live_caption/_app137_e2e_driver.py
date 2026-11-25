@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import os
 import shutil
 import signal
@@ -307,6 +308,34 @@ def run_arm(app, root, name, env_extra, media, drain_cap, tail_wait, max_sec,
     return res
 
 
+def split_arms(spec: str):
+    r"""🔴🔴🔳 **按「顶层逗号」切臂规格**（**不是**简单 split(',')）。
+
+    ## 为什么不能用简单 split
+    env 的**值里可以合法含逗号**（例如 APP-134 c 要设
+    LIVECAP_TTS_DECODER_BUCKETS=8,16,32,33）⇒
+    简单 split(',') 会把它切成**三个假臂**
+    （实测：c13_off 臂被拆成 c13_off / 16 / 32 / 33 四个臂
+    ⇒ 真正的 c13_off 从没跑过 ⇒ bridge.err 里仍是 buckets=[38]）。
+
+    ## 规则（**正则：顶层逗号 = 「逗号 + 臂名 + 冒号」**）
+    臂规格形如 `name:K1=V1|K2=V2`，臂之间用 `,`。
+    🔴 **顶层逗号**的判据：这个逗号之后（跳过空白）出现
+    **「臂名:」**，且**臂名里不含 `=`**（否则是 env 值的一部分）。
+    ⇒ 用 `re` 从**右往左**找所有 `,(?=\s*[A-Za-z_][\w]*:)` 的位置来切。
+    """
+    # 🔴 臂名 ⇒ 标识符（字母/下划线开头）⇒ 其后紧跟 `:` ⇒ 顶层逗号
+    marks = [m.start() for m in re.finditer(r',(?=\s*[A-Za-z_][A-Za-z0-9_]*:)', spec)]
+    if not marks:
+        return [spec]
+    out, prev = [], 0
+    for mpos in marks:
+        out.append(spec[prev:mpos])
+        prev = mpos + 1
+    out.append(spec[prev:])
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--app', required=True, help='客户包目录（不修改它）')
@@ -362,7 +391,7 @@ def main():
 
     summary = []
     try:
-        for idx, spec in enumerate(args.arms.split(',')):
+        for idx, spec in enumerate(split_arms(args.arms)):
             spec = spec.strip()
             if not spec:
                 continue
