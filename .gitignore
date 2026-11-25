@@ -138,3 +138,12 @@ results/app/_app551_*.mt.txt
 results/app/_app591_*.tts.jsonl
 results/app/app458_app100_device/*.tts.jsonl
 results/app/app461_app100_device/*.tts.jsonl
+
+# 🔴🔴🔳 **提交信息临时文件**（APP-143 第 5 项小问题）
+#   教训：`git commit -m "…"` 的正文里写**反引号** ⇒ 在 **bash 双引号**里
+#   会被当命令替换 ⇒ 标识符被吃空 ⇒ 改用 `-F <文件>`；
+#   而 `-F` 用的临时文件**被误提交进仓库**（`_app239_commit_msg.txt`）。
+#   ⇒ 这类文件一律**不入库**。
+_app*_commit_msg.txt
+_app*_msg.txt
+*.commit_msg.txt
