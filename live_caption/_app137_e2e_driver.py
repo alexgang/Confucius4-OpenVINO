@@ -347,19 +347,29 @@ def main():
             spec = spec.strip()
             if not spec:
                 continue
-            name, _, envspec = spec.partition(':')
+            # 🔴 **臂规格**：`name[@包路径]:ENV=VAL|ENV=VAL`
+            #    `@包路径` ⇒ 本臂用**自己的包**（APP-134 b/c 需要：一臂真包、
+            #    一臂影子包 ⇒ 两个包根）⇒ **不带 `@` 时用默认 `--app`**。
+            name, _, rest = spec.partition(':')
+            arm_app = app
+            arm_bridge = bridge_root
+            if '@' in name:
+                name, _, pkg = name.partition('@')
+                arm_app = os.path.abspath(pkg)
+                arm_bridge = arm_app
             env_extra = {}
-            if envspec:
-                for kv in envspec.split('|'):
+            if rest:
+                for kv in rest.split('|'):
                     if not kv:
                         continue
                     k, _, v = kv.partition('=')
                     env_extra[k] = v
             extra = ['--bg-off'] if args.bg_off else []
-            print('== arm %s env=%s' % (name, env_extra), flush=True)
-            r = run_arm(app, root, name, env_extra, args.media, args.drain_cap,
+            print('== arm %s pkg=%s env=%s' % (name, arm_app, env_extra), flush=True)
+            r = run_arm(arm_app, root, name, env_extra, args.media, args.drain_cap,
                         args.tail_wait, args.max_sec, args.voice, extra,
-                        bridge_root, tool, events_path)
+                        arm_bridge, tool, events_path)
+            r['pkg'] = arm_app
             summary.append(r)
             print(json.dumps(r, ensure_ascii=False, indent=1), flush=True)
     finally:

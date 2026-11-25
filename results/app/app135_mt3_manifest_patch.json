@@ -1,0 +1,96 @@
+{
+ "script": "_app135_mt3_manifest_patch.py",
+ "task": "APP-135 §4：MT 条目改 MT3 ＋ 唯一事实来源模块 ＋ 列出 README 的 MT2 引用",
+ "ts": "2026-11-25 15:54:30",
+ "files": [
+  {
+   "file": "live_caption/mt_model_identity.py",
+   "action": "create",
+   "bytes": 3655,
+   "sha256": "22a596e589fff35502d62b092f54440de44bfd7698da5736273a1ae3b2f3046e"
+  },
+  {
+   "file": "live_caption/_app118_model_identity.py",
+   "action": "point-fix",
+   "old_bytes": 10004,
+   "new_bytes": 10038,
+   "old_sha256": "64cc22e956799ae7308e753523f0dff2a84e1dc67227269d2caa252f903d7d72",
+   "new_sha256": "c2e22f5290fede1171f9a4621c71dc45972af2af8bee87a9534dfd611cb7a791"
+  }
+ ],
+ "mt3_identity": {
+  "name": "Hy-MT3-1.8B",
+  "source": "ModelScope Tencent-Hunyuan/Hy-MT3-1.8B",
+  "src_safetensors_sha256": "60f9eeed302c887606f4fee9e96a3113b751123a5132651fdcfd39f2a82bf9f6",
+  "src_safetensors_bytes": 3582202056,
+  "ir_bin_sha256": "ce1911275929d30612cddbde27f707aac8498f58df9f1c47dcf38d2ca5db1285",
+  "ir_bin_bytes": 1792991738,
+  "dir_name": "mt3-int8sym-cw-q",
+  "measured_this_round": true,
+  "matches_reviewer_values": true
+ },
+ "pre_write_invariants": [
+  {
+   "name": "identity_ast_ok",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "counterexample_identity_sha",
+   "ok": true,
+   "detail": "篡改 safetensors SHA 后校验 FAIL（符合预期）⇒ 有鉴别力"
+  },
+  {
+   "name": "unique_hit_self_contained_mt",
+   "ok": true,
+   "detail": "命中 1 次（要求 1 次）"
+  },
+  {
+   "name": "reverse_reconstruct_model_identity",
+   "ok": true,
+   "detail": "还原后 8809 B vs 原 8809 B"
+  },
+  {
+   "name": "crlf_preserved_model_identity",
+   "ok": true,
+   "detail": "0 -> 0"
+  },
+  {
+   "name": "model_identity_ast_ok",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "readme_mt2_refs_scanned",
+   "ok": true,
+   "detail": "列出 185 处 MT2 引用（**未改任何已签的包**）"
+  }
+ ],
+ "post_write_selfcheck": [
+  {
+   "name": "identity_written",
+   "ok": true,
+   "detail": "22a596e589fff355"
+  },
+  {
+   "name": "model_identity_written",
+   "ok": true,
+   "detail": "c2e22f5290fede11"
+  },
+  {
+   "name": "bak_matches_old",
+   "ok": true,
+   "detail": "64cc22e956799ae7"
+  },
+  {
+   "name": "identity_import_mt3",
+   "ok": true,
+   "detail": "{\"name\": \"Hy-MT3-1.8B\", \"source\": \"ModelScope Tencent-Hunyuan/Hy-MT3-1.8B\", \"dir_name\": \"mt3-int8sym-cw-q\", \"quantization\": \"INT8_SYM per-channel（按通道）\", \"src_sa"
+  }
+ ],
+ "post_write_ok": true,
+ "readme_mt2_refs": {
+  "count": 185,
+  "file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app135_readme_mt2_refs.json"
+ }
+}

@@ -1,0 +1,29 @@
+{
+ "tag": "app134b_guard_off",
+ "shadow": "C:\\Users\\Trekker-PTL\\shared\\shadow_pkgs\\Confucius4_LiveCaption_v2.6_shadow_app134b_guard_off",
+ "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v2.6",
+ "ts": "2026-11-25 15:42:04",
+ "links": [
+  "models",
+  "python",
+  ".runtime_deps",
+  "ext",
+  "docs",
+  "tools",
+  "results"
+ ],
+ "copied": [
+  "app",
+  "Start_Bridge.bat",
+  "Start_LiveCaption.bat",
+  "Diagnose.bat",
+  "package_profile.json",
+  "release.json",
+  "README_zh.md",
+  "README_en.md",
+  "NOTICE",
+  "THIRD_PARTY.md"
+ ],
+ "n_files": 14664,
+ "n_bytes": 21050721240
+}

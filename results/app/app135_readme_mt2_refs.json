@@ -1,0 +1,934 @@
+{
+ "script": "_app135_mt3_manifest_patch.py",
+ "task": "APP-135 §4：列出 README/生成脚本里写 MT2 的地方（**未改已签的包**）",
+ "ts": "2026-11-25 15:54:30",
+ "n_refs": 185,
+ "refs": [
+  {
+   "file": "live_caption/compress_c171_app049_status.py",
+   "line": 70,
+   "text": "('APP-002', '默认翻译模型改为 Hy-MT2 INT8-CW', '已完成'),"
+  },
+  {
+   "file": "live_caption/device_config.py",
+   "line": 103,
+   "text": "#   **ASR = GPU.0（Intel 集显）／MT = NPU（Hy-MT2 INT8-CW）／TTS = CUDA（NV5050）**"
+  },
+  {
+   "file": "live_caption/diag_c111_cache_evict.py",
+   "line": 37,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_final_view.py",
+   "line": 56,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_gui_render.py",
+   "line": 36,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_oracle_delta.py",
+   "line": 52,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_oracle_delta_v3.py",
+   "line": 55,
+   "text": "ENGINE_INT8 = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_pend_limit_patch.py",
+   "line": 64,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_revert_verify.py",
+   "line": 34,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_sent_unit.py",
+   "line": 43,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_tokenizer_regex.py",
+   "line": 7,
+   "text": "App 日志里的 `fix_mistral_regex` 警告来自 **Hy-MT2 的 tokenizer**（不是 TTS）。"
+  },
+  {
+   "file": "live_caption/diag_c111_tokenizer_regex.py",
+   "line": 33,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_unit_big.py",
+   "line": 36,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_unit_seg.py",
+   "line": 49,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_unit_verify.py",
+   "line": 48,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_v21_eval.py",
+   "line": 45,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_v37_eval.py",
+   "line": 61,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_v3_verify.py",
+   "line": 35,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_v4_eval.py",
+   "line": 48,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_v7_tts_chain.py",
+   "line": 32,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_v7_verify.py",
+   "line": 45,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_variant.py",
+   "line": 45,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_variants.py",
+   "line": 68,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_variants2.py",
+   "line": 41,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/diag_c111_variant_v4.py",
+   "line": 45,
+   "text": "ENGINE = r'C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/gen_c172_app049_status_slim.py",
+   "line": 64,
+   "text": "| 默认翻译模型 | Hy-MT2 INT8-CW，设备 GPU.0（Intel 集显） | `status/app/CORRECTIONS_APP.md` → APP-002（用户决定）；设备实测见 `app048_layout_1920x1080.png` |"
+  },
+  {
+   "file": "live_caption/live_caption_app.py",
+   "line": 41,
+   "text": "实时翻译（C-102 起翻译模型为 Hy-MT2-1.8B）："
+  },
+  {
+   "file": "live_caption/live_caption_app.py",
+   "line": 1224,
+   "text": "翻译模型（Hy-MT2 INT8/INT4-CW）**GPU / NPU 通吃**（per-channel 产物，"
+  },
+  {
+   "file": "live_caption/live_caption_app.py",
+   "line": 1229,
+   "text": "（mt2-int8sym-cw-q），只是 engine 默认设备不同 ⇒ 若按 engine × device"
+  },
+  {
+   "file": "live_caption/live_caption_app.py",
+   "line": 9288,
+   "text": "print('── 翻译后端（Hy-MT2-1.8B）──')"
+  },
+  {
+   "file": "live_caption/live_caption_app.py",
+   "line": 9418,
+   "text": "help='实时翻译目标语言（Hy-MT2-1.8B）；off=不翻译')"
+  },
+  {
+   "file": "live_caption/manifest_gen.py",
+   "line": 61,
+   "text": "('mt/mt2-int4sym-cw-q', {"
+  },
+  {
+   "file": "live_caption/manifest_gen.py",
+   "line": 62,
+   "text": "'source_path': r'hy_bench\\ov\\mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/manifest_gen.py",
+   "line": 63,
+   "text": "'source_model': 'Hy-MT2-1.8B',"
+  },
+  {
+   "file": "live_caption/manifest_gen.py",
+   "line": 70,
+   "text": "('mt/mt2-int8sym-cw-q', {"
+  },
+  {
+   "file": "live_caption/manifest_gen.py",
+   "line": 71,
+   "text": "'source_path': r'hy_bench\\ov\\mt2-int8sym-cw-q',"
+  },
+  {
+   "file": "live_caption/manifest_gen.py",
+   "line": 72,
+   "text": "'source_model': 'Hy-MT2-1.8B',"
+  },
+  {
+   "file": "live_caption/manifest_gen.py",
+   "line": 76,
+   "text": "'（拷贝源 `hy_bench\\\\ov\\\\mt2-int8sym-cw-q`，12 文件 / 1 812 121 487 B）'"
+  },
+  {
+   "file": "live_caption/package_profile.py",
+   "line": 62,
+   "text": "#:    ASR 走 iGPU（GPU.0）、MT 走 NPU（Hy-MT2）。"
+  },
+  {
+   "file": "live_caption/package_profile.py",
+   "line": 105,
+   "text": "⇒ TTS 用**真 CUDA** 推理；ASR 用 iGPU（GPU.0）、MT 用 NPU（Hy-MT2）。"
+  },
+  {
+   "file": "live_caption/package_profiles.py",
+   "line": 78,
+   "text": "'models/mt/mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/package_profiles.py",
+   "line": 109,
+   "text": "# 🔴 APP-137：**MT 暂时用 Hy-MT2**（MT3 是否替换取决于 H-029）。"
+  },
+  {
+   "file": "live_caption/package_profiles.py",
+   "line": 111,
+   "text": "'mt_model': 'mt2-int8sym-cw-q',"
+  },
+  {
+   "file": "live_caption/package_profiles.py",
+   "line": 126,
+   "text": "'models/mt/mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 7,
+   "text": "翻译默认量化由 **INT4 按通道** 改为 **INT8 按通道**（`mt2-int8sym-cw-q`）。"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 23,
+   "text": "1. `DEFAULT_MODEL` —— 默认模型目录由 `mt2-int4sym-cw-q` 改为 `mt2-int8sym-cw-q`，"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 48,
+   "text": "os.path.join(MODELS, 'mt', 'mt2-int4sym-cw-q'),   # 客户包自带（per-channel，GPU/NPU 通吃）"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 49,
+   "text": "os.path.join(MODELS, 'mt2-int4sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 50,
+   "text": "os.path.join(_HY_ROOT, 'mt2-int4sym-cw-q'),       # 开发机导出产物"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 56,
+   "text": "os.path.join(MODELS, 'mt', 'mt2-int8sym-cw-q'),   # 客户包自带（per-channel，GPU/NPU 通吃）"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 57,
+   "text": "os.path.join(MODELS, 'mt2-int8sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 58,
+   "text": "os.path.join(_HY_ROOT, 'mt2-int8sym-cw-q'),       # 开发机导出产物"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 60,
+   "text": "os.path.join(MODELS, 'mt', 'mt2-int4sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 61,
+   "text": "os.path.join(MODELS, 'mt2-int4sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 62,
+   "text": "os.path.join(_HY_ROOT, 'mt2-int4sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 67,
+   "text": "OLD_HY_ROOT = \"\"\"        os.path.join(MODELS, 'mt'),                 # 客户包：models/mt/mt2-int4sym-cw-q\"\"\""
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 69,
+   "text": "NEW_HY_ROOT = \"\"\"        os.path.join(MODELS, 'mt'),                 # 客户包：models/mt/mt2-int8sym-cw-q\"\"\""
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 75,
+   "text": "# v1.3：客户包**只附带 INT4**（mt2-int4sym-cw-q，993 MB）。"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 102,
+   "text": "('gpu_int4cw', 'Intel GPU · INT4-CW', 'GPU.0', 'mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 103,
+   "text": "'Hy-MT2 INT4_SYM 按通道，约 993 MB。57.9 tok/s，TTFT 35 ms；GPU/NPU 通吃', True),"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 104,
+   "text": "('gpu_int8cw', 'Intel GPU · INT8-CW', 'GPU.0', 'mt2-int8sym-cw-q',"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 105,
+   "text": "'Hy-MT2 INT8_SYM 按通道，1.7 GB。37.5 tok/s，质量与 INT4 持平；显存充足时可用，'"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 107,
+   "text": "('npu_int4cw', 'Intel NPU · INT4-CW', 'NPU', 'mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 109,
+   "text": "('npu_int8cw', 'Intel NPU · INT8-CW', 'NPU', 'mt2-int8sym-cw-q',"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 114,
+   "text": "('gpu_int8cw', 'Intel GPU · INT8-CW（默认）', 'GPU.0', 'mt2-int8sym-cw-q',"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 115,
+   "text": "'Hy-MT2 INT8_SYM 按通道，1.7 GB。**默认**：37.5 tok/s，TTFT 44 ms，'"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 117,
+   "text": "('gpu_int4cw', 'Intel GPU · INT4-CW', 'GPU.0', 'mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 118,
+   "text": "'Hy-MT2 INT4_SYM 按通道，约 993 MB。更小更快（57.9 tok/s），但质量**显著低于** '"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 120,
+   "text": "('npu_int8cw', 'Intel NPU · INT8-CW', 'NPU', 'mt2-int8sym-cw-q',"
+  },
+  {
+   "file": "live_caption/sync_c134_to_pkg.py",
+   "line": 122,
+   "text": "('npu_int4cw', 'Intel NPU · INT4-CW', 'NPU', 'mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/sync_c135_to_pkg.py",
+   "line": 522,
+   "text": "('mt2-int8sym-cw-q', 'C-134 默认 INT8-CW')):"
+  },
+  {
+   "file": "live_caption/sync_c143_to_pkg.py",
+   "line": 101,
+   "text": "\\\"\\\"\\\"加载 Hy-MT2 的 tokenizer，**消掉 `fix_mistral_regex` 警告**。"
+  },
+  {
+   "file": "live_caption/sync_c143_to_pkg.py",
+   "line": 104,
+   "text": "Hy-MT2 tokenizer（`transformers/tokenization_utils_base.py` 的"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 1,
+   "text": "r\"\"\"live_caption/translator.py — Hy-MT2-1.8B 按句实时翻译（C-102 模型替换）"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 4,
+   "text": "Hunyuan-1.8B-Instruct 换成**翻译专用** Hy-MT2-1.8B（tencent/Hy-MT2-1.8B，"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 11,
+   "text": "· mt2-int4sym-cw-q：GPU.0 57.9 tok/s / TTFT 35 ms；NPU 44.0 tok/s / TTFT 292 ms，"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 54,
+   "text": "os.path.join(MODELS, 'mt'),                 # 客户包：models/mt/mt2-int8sym-cw-q"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 59,
+   "text": "#   **Hy-MT2-1.8B → Hy-MT3-1.8B**（ModelScope `Tencent-Hunyuan/Hy-MT3-1.8B`）。"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 72,
+   "text": "_MT_DIR = 'mt3-int8sym-cw-q' if _MT_VARIANT == 'mt3' else 'mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 73,
+   "text": "_MT_OTHER_DIR = 'mt2-int8sym-cw-q' if _MT_VARIANT == 'mt3' else 'mt3-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 87,
+   "text": "os.path.join(MODELS, 'mt', 'mt2-int4sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 88,
+   "text": "os.path.join(MODELS, 'mt2-int4sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 89,
+   "text": "os.path.join(_HY_ROOT, 'mt2-int4sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 125,
+   "text": "# C-102：Hunyuan-1.8B-Instruct 的所有产物已全部由 Hy-MT2 对应产物替换（下表），"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 149,
+   "text": "#   mt2-int4sym-cw-q  GPU.0 57.9 tok/s / TTFT 35 ms / 加载 6.9 s"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 151,
+   "text": "#   mt2-int8sym-cw-q  GPU.0 37.5 tok/s / TTFT 44 ms"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 164,
+   "text": "('gpu_int4cw', 'Intel GPU · INT4-CW', 'GPU.0', 'mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 165,
+   "text": "'Hy-MT2 INT4_SYM 按通道，约 993 MB。更小更快（57.9 tok/s），但质量**显著低于** '"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 169,
+   "text": "('npu_int4cw', 'Intel NPU · INT4-CW', 'NPU', 'mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 181,
+   "text": "#     ⇒ `DEFAULT_MODEL` 命中 `models/mt/mt2-int8sym-cw-q`"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 267,
+   "text": "#   `models/mt/` 下只有 `mt2-int8sym-cw-q`），"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 736,
+   "text": "# C-102：Hy-MT2 **没有默认 system prompt**，官方指令直接放 user 消息里"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 737,
+   "text": "# （Default Translation 模板，见 tencent/Hy-MT2-1.8B README）。原先给通用"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 883,
+   "text": "\"\"\"加载 Hy-MT2 的 tokenizer，**消掉 `fix_mistral_regex` 警告**。"
+  },
+  {
+   "file": "live_caption/translator.py",
+   "line": 886,
+   "text": "Hy-MT2 tokenizer（`transformers/tokenization_utils_base.py` 的"
+  },
+  {
+   "file": "live_caption/_app106_write_status.py",
+   "line": 41,
+   "text": "`models/mt/mt2-int8sym-cw-q/openvino_model.bin` 1 792 991 738 B /"
+  },
+  {
+   "file": "live_caption/_app118_model_identity.py",
+   "line": 66,
+   "text": "'models/mt/mt2-int8sym-cw-q', 'models/mt/mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_app120_build_minimvp_v11.py",
+   "line": 7,
+   "text": "- MT：只带 Hy-MT2 INT8-CW"
+  },
+  {
+   "file": "live_caption/_app120_build_minimvp_v11.py",
+   "line": 204,
+   "text": "'MT=Hy-MT2 INT8-CW、TTS=OpenVINO（无 CUDA）、音色只有预设 A、'"
+  },
+  {
+   "file": "live_caption/_app120_model_identity_v11.py",
+   "line": 13,
+   "text": "- MT INT8-CW ← `hy_bench/ov/mt2-int8sym-cw-q`"
+  },
+  {
+   "file": "live_caption/_app120_model_identity_v11.py",
+   "line": 52,
+   "text": "('models/mt/mt2-int8sym-cw-q', HY, 'mt2-int8sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/_app120_model_identity_v11.py",
+   "line": 73,
+   "text": "('models/mt/mt2-int4sym-cw-q', 'MT INT4（MiniMVP 只带 INT8-CW）'),"
+  },
+  {
+   "file": "live_caption/_app120_model_identity_v11.py",
+   "line": 272,
+   "text": "'models/mt/mt2-int8sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_app120_sec220_body.py",
+   "line": 256,
+   "text": "A('| MT | 只带 Hy-MT2 INT8-CW | 排除 `models/mt/mt2-int4sym-cw-q` |')"
+  },
+  {
+   "file": "live_caption/_app120_sign_accepted_v11.py",
+   "line": 85,
+   "text": "'(2) MT 只带 Hy-MT2 INT8-CW（无 INT4）；'"
+  },
+  {
+   "file": "live_caption/_app120_write_readme.py",
+   "line": 101,
+   "text": "A('| 翻译 | **Hy-MT2-1.8B**（**INT8-CW**） | **INT8**（对称 · 按通道 weight） '"
+  },
+  {
+   "file": "live_caption/_app120_write_readme.py",
+   "line": 141,
+   "text": "A('* **Hy-MT2-1.8B**，**INT8-CW**（**INT8_SYM · 按通道**，'"
+  },
+  {
+   "file": "live_caption/_app120_write_readme.py",
+   "line": 142,
+   "text": "'`mt2-int8sym-cw-q`；hidden_size 2048 / 32 层）'"
+  },
+  {
+   "file": "live_caption/_app120_write_readme.py",
+   "line": 231,
+   "text": "A('见 `NOTICE`（Qwen3-ASR / Qwen3-TTS / Hy-MT2 / OpenVINO / **babelvox** / '"
+  },
+  {
+   "file": "live_caption/_app120_write_readme.py",
+   "line": 256,
+   "text": "A('| Translation | **Hy-MT2-1.8B** (**INT8-CW**) '"
+  },
+  {
+   "file": "live_caption/_app120_write_readme.py",
+   "line": 305,
+   "text": "A('* **Hy-MT2-1.8B**, **INT8-CW** (**INT8_SYM, per-channel**, '"
+  },
+  {
+   "file": "live_caption/_app120_write_readme.py",
+   "line": 306,
+   "text": "'`mt2-int8sym-cw-q`; hidden_size 2048 / 32 layers) => **this package '"
+  },
+  {
+   "file": "live_caption/_app120_zip_v11.py",
+   "line": 54,
+   "text": "'models/mt/mt2-int8sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_app120_zip_v11.py",
+   "line": 71,
+   "text": "目录本身**不会**单独出现 ⇒ 目录型 MUST（如 `models/mt/mt2-int8sym-cw-q`）"
+  },
+  {
+   "file": "live_caption/_app121_sign_accepted_v111.py",
+   "line": 89,
+   "text": "'(2) MT 只带 Hy-MT2 INT8-CW（无 INT4）；'"
+  },
+  {
+   "file": "live_caption/_app121_update_meta.py",
+   "line": 151,
+   "text": "'MT=Hy-MT2 INT8-CW、TTS=OpenVINO（无 CUDA）、'"
+  },
+  {
+   "file": "live_caption/_app121_write_readme.py",
+   "line": 96,
+   "text": "A('| 翻译 | **Hy-MT2-1.8B**（**INT8-CW**） | **INT8**（对称 · 按通道 weight） '"
+  },
+  {
+   "file": "live_caption/_app121_write_readme.py",
+   "line": 137,
+   "text": "A('* **Hy-MT2-1.8B**，**INT8-CW**（**INT8_SYM · 按通道**，'"
+  },
+  {
+   "file": "live_caption/_app121_write_readme.py",
+   "line": 138,
+   "text": "'`mt2-int8sym-cw-q`；hidden_size 2048 / 32 层）'"
+  },
+  {
+   "file": "live_caption/_app121_write_readme.py",
+   "line": 245,
+   "text": "A('见 `NOTICE`（Qwen3-ASR / Qwen3-TTS / Hy-MT2 / OpenVINO / **babelvox** / '"
+  },
+  {
+   "file": "live_caption/_app121_write_readme.py",
+   "line": 268,
+   "text": "A('| Translation | **Hy-MT2-1.8B** (**INT8-CW**) '"
+  },
+  {
+   "file": "live_caption/_app121_write_readme.py",
+   "line": 320,
+   "text": "A('* **Hy-MT2-1.8B**, **INT8-CW** (**INT8_SYM, per-channel**, '"
+  },
+  {
+   "file": "live_caption/_app121_write_readme.py",
+   "line": 321,
+   "text": "'`mt2-int8sym-cw-q`; hidden_size 2048 / 32 layers) => **this package '"
+  },
+  {
+   "file": "live_caption/_app121_zip_v111.py",
+   "line": 54,
+   "text": "'models/mt/mt2-int8sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_app121_zip_v111.py",
+   "line": 71,
+   "text": "目录本身**不会**单独出现 ⇒ 目录型 MUST（如 `models/mt/mt2-int8sym-cw-q`）"
+  },
+  {
+   "file": "live_caption/_app129_write_status.py",
+   "line": 309,
+   "text": "'`ASR 就绪（R2T2 INT8 @ GPU.0）`／`MT 就绪（Hy-MT2 INT8 @ GPU.0）`／`TTS 就绪（Qwen3-TTS @ NPU）`。')"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 84,
+   "text": "os.path.join(MODELS, 'mt', 'mt2-int8sym-cw-q'),   # 客户包自带（per-channel，GPU/NPU 通吃）"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 85,
+   "text": "os.path.join(MODELS, 'mt2-int8sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 86,
+   "text": "os.path.join(_HY_ROOT, 'mt2-int8sym-cw-q'),       # 开发机导出产物"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 88,
+   "text": "os.path.join(MODELS, 'mt', 'mt2-int4sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 89,
+   "text": "os.path.join(MODELS, 'mt2-int4sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 90,
+   "text": "os.path.join(_HY_ROOT, 'mt2-int4sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 93,
+   "text": "#   **Hy-MT2-1.8B → Hy-MT3-1.8B**（ModelScope `Tencent-Hunyuan/Hy-MT3-1.8B`）。"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 106,
+   "text": "_MT_DIR = 'mt3-int8sym-cw-q' if _MT_VARIANT == 'mt3' else 'mt2-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 107,
+   "text": "_MT_OTHER_DIR = 'mt2-int8sym-cw-q' if _MT_VARIANT == 'mt3' else 'mt3-int8sym-cw-q'"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 121,
+   "text": "os.path.join(MODELS, 'mt', 'mt2-int4sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 122,
+   "text": "os.path.join(MODELS, 'mt2-int4sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 123,
+   "text": "os.path.join(_HY_ROOT, 'mt2-int4sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 129,
+   "text": "('gpu_int8cw', 'Intel GPU · INT8-CW', 'GPU.0', 'mt2-int8sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 130,
+   "text": "'Hy-MT2 INT8_SYM 按通道，1.7 GB。**默认**：37.5 tok/s，TTFT 44 ms，'"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 132,
+   "text": "('gpu_int4cw', 'Intel GPU · INT4-CW', 'GPU.0', 'mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 133,
+   "text": "'Hy-MT2 INT4_SYM 按通道，约 993 MB。更小更快（57.9 tok/s），但质量**显著低于** '"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 135,
+   "text": "('npu_int8cw', 'Intel NPU · INT8-CW', 'NPU', 'mt2-int8sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 137,
+   "text": "('npu_int4cw', 'Intel NPU · INT4-CW', 'NPU', 'mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 151,
+   "text": "('gpu_int4cw', 'Intel GPU · INT4-CW', 'GPU.0', 'mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 152,
+   "text": "'Hy-MT2 INT4_SYM 按通道，约 993 MB。更小更快（57.9 tok/s），但质量**显著低于** '"
+  },
+  {
+   "file": "live_caption/_app135_mt3_patch.py",
+   "line": 156,
+   "text": "('npu_int4cw', 'Intel NPU · INT4-CW', 'NPU', 'mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_app137_build_minimvp_v12.py",
+   "line": 20,
+   "text": "| MT | 只 Hy-MT2 INT8-CW（**留好切 MT3 的开关**） | APP-137 §1 |"
+  },
+  {
+   "file": "live_caption/_app137_build_minimvp_v12.py",
+   "line": 169,
+   "text": "'MT 暂时用 Hy-MT2（切 MT3 的开关已留好）；'"
+  },
+  {
+   "file": "live_caption/_app137_build_minimvp_v12.py",
+   "line": 235,
+   "text": "'与音色克隆；ASR=Qwen3-ASR 0.6B stateful INT8、MT=Hy-MT2 INT8-CW、'"
+  },
+  {
+   "file": "live_caption/_app137_build_minimvp_v12.py",
+   "line": 299,
+   "text": "('MT INT4', 'models/mt/mt2-int4sym-cw-q', False),"
+  },
+  {
+   "file": "live_caption/_app137_candidate_check.py",
+   "line": 21,
+   "text": "* `models/mt/mt2-int8sym-cw-q` ⇒ 源 = **完整版 v2.6**（MT3 的事属 APP-135，不在本条）；"
+  },
+  {
+   "file": "live_caption/_app137_candidate_check.py",
+   "line": 90,
+   "text": "'models/mt/mt2-int8sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_app137_candidate_check.py",
+   "line": 128,
+   "text": "for rel in ('models/mt/mt2-int8sym-cw-q/config.json',):"
+  },
+  {
+   "file": "live_caption/_app137_candidate_check.py",
+   "line": 199,
+   "text": "chk('E', 'mt_model_is_mt2', prof.get('mt_model') == 'mt2-int8sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_app137_profile_behavior_test.py",
+   "line": 61,
+   "text": "'allow_bgkeep': True, 'tts_c13': False, 'mt_model': 'mt2-int8sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_app137_profile_patch.py",
+   "line": 18,
+   "text": "> - MT 暂时用 Hy-MT2（MT3 是否替换取决于 H-029 的结果，reviewer 另行通知；"
+  },
+  {
+   "file": "live_caption/_app137_profile_patch.py",
+   "line": 113,
+   "text": "'models/mt/mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_app137_profile_patch.py",
+   "line": 126,
+   "text": "'models/mt/mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_app137_profile_patch.py",
+   "line": 157,
+   "text": "# 🔴 APP-137：**MT 暂时用 Hy-MT2**（MT3 是否替换取决于 H-029）。"
+  },
+  {
+   "file": "live_caption/_app137_profile_patch.py",
+   "line": 159,
+   "text": "'mt_model': 'mt2-int8sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_app217_write_status.py",
+   "line": 54,
+   "text": "'MT＝Hy-MT2 **INT8-CW**（默认，INT4 保留可选）｜'"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 1,
+   "text": "r\"\"\"live_caption/translator.py — Hy-MT2-1.8B 按句实时翻译（C-102 模型替换）"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 4,
+   "text": "Hunyuan-1.8B-Instruct 换成**翻译专用** Hy-MT2-1.8B（tencent/Hy-MT2-1.8B，"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 11,
+   "text": "· mt2-int4sym-cw-q：GPU.0 57.9 tok/s / TTFT 35 ms；NPU 44.0 tok/s / TTFT 292 ms，"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 54,
+   "text": "os.path.join(MODELS, 'mt'),                 # 客户包：models/mt/mt2-int8sym-cw-q"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 61,
+   "text": "os.path.join(MODELS, 'mt', 'mt2-int8sym-cw-q'),   # 客户包自带（per-channel，GPU/NPU 通吃）"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 62,
+   "text": "os.path.join(MODELS, 'mt2-int8sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 63,
+   "text": "os.path.join(_HY_ROOT, 'mt2-int8sym-cw-q'),       # 开发机导出产物"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 65,
+   "text": "os.path.join(MODELS, 'mt', 'mt2-int4sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 66,
+   "text": "os.path.join(MODELS, 'mt2-int4sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 67,
+   "text": "os.path.join(_HY_ROOT, 'mt2-int4sym-cw-q'),"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 95,
+   "text": "# C-102：Hunyuan-1.8B-Instruct 的所有产物已全部由 Hy-MT2 对应产物替换（下表），"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 119,
+   "text": "#   mt2-int4sym-cw-q  GPU.0 57.9 tok/s / TTFT 35 ms / 加载 6.9 s"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 121,
+   "text": "#   mt2-int8sym-cw-q  GPU.0 37.5 tok/s / TTFT 44 ms"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 124,
+   "text": "('gpu_int8cw', 'Intel GPU · INT8-CW（默认）', 'GPU.0', 'mt2-int8sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 125,
+   "text": "'Hy-MT2 INT8_SYM 按通道，1.7 GB。**默认**：37.5 tok/s，TTFT 44 ms，'"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 127,
+   "text": "('gpu_int4cw', 'Intel GPU · INT4-CW', 'GPU.0', 'mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 128,
+   "text": "'Hy-MT2 INT4_SYM 按通道，约 993 MB。更小更快（57.9 tok/s），但质量**显著低于** '"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 130,
+   "text": "('npu_int8cw', 'Intel NPU · INT8-CW', 'NPU', 'mt2-int8sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 132,
+   "text": "('npu_int4cw', 'Intel NPU · INT4-CW', 'NPU', 'mt2-int4sym-cw-q',"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 501,
+   "text": "# C-102：Hy-MT2 **没有默认 system prompt**，官方指令直接放 user 消息里"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 502,
+   "text": "# （Default Translation 模板，见 tencent/Hy-MT2-1.8B README）。原先给通用"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 648,
+   "text": "\"\"\"加载 Hy-MT2 的 tokenizer，**消掉 `fix_mistral_regex` 警告**。"
+  },
+  {
+   "file": "live_caption/_tmp_check/translator_C.py",
+   "line": 651,
+   "text": "Hy-MT2 tokenizer（`transformers/tokenization_utils_base.py` 的"
+  }
+ ],
+ "note": "🔴 reviewer 要求「README 里写 MT2 的地方**列出来**（先不改已签的包）」⇒ 本轮**只列**，未改任何 README 生成脚本的正文，也未动任何已签的包。"
+}
