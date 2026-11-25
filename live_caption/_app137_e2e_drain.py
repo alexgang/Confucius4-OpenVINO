@@ -67,6 +67,68 @@ def _np(st):
     return p.get('n_pending'), p.get('n_emitted'), p.get('n_submitted')
 
 
+async def drain_until_zero(ws, got, a, t0, npend_end):
+    """🔴🔴🔳 **排空到 `n_pending==0`**（**独立函数** ⇒ 可被反证脚本直接真跑）。
+
+    ## APP-143 b 的三条要求（都在这里）
+    ① **每次 stats 请求加接收超时**（默认 10 s）⇒ 桥接不回就**立刻**知道
+       （旧实现**没有**超时 ⇒ 一次 stats 轮询可以阻塞 65 分钟而客户端毫无察觉
+        ⇒ 作业一直持着机器锁；实测 drain_elapsed 3924 s vs drain_cap 300 s）。
+    ② **排空硬上限按墙钟执行**（`drain_cap + stats_timeout + 2 s`）
+       ⇒ 旧实现按「轮询次数」判 ⇒ 一次阻塞就超了 13 倍。
+    ③ 超时/断连 ⇒ **如实记录**（`disconnected` / `stats_timeout_count`）后**退出**。
+
+    Returns
+    -------
+    (series, drained, disconnected, npend, stats_timeout_s, hard_cap, n_timeouts)
+    """
+    series = []
+    drain_start = time.perf_counter()
+    drained = False
+    disconnected = None
+    npend = npend_end
+    stats_timeout_s = float(getattr(a, 'stats_timeout_s', 10.0))
+    hard_cap = float(a.drain_cap) + stats_timeout_s + 2.0
+    n_timeouts = 0
+    while True:
+        # 🔴 **每次 stats 请求加接收超时** ⇒ 桥接不回就**立刻**知道
+        _sent = time.perf_counter()
+        try:
+            await ws.send(json.dumps({"type": "stats"}))
+            # 等「新 stats 到达」或「超时」⇒ **不等固定 poll_sec**
+            _deadline = _sent + stats_timeout_s
+            while True:
+                _at = got.get('_last_stats_at')
+                if _at is not None and _at >= _sent:
+                    break                      # 收到本轮的 stats
+                if time.perf_counter() > _deadline:
+                    raise asyncio.TimeoutError(
+                        'stats 未在 %.1f s 内返回（桥接可能卡住）'
+                        % stats_timeout_s)
+                await asyncio.sleep(0.05)
+        except Exception as e:
+            if isinstance(e, asyncio.TimeoutError):
+                n_timeouts += 1
+                disconnected = repr(e)
+                got['stats_timeout_count'] = n_timeouts
+                break
+            disconnected = repr(e)
+            break
+        st = got.get('stats')
+        npend, nemit, nsub = _np(st)
+        series.append({
+            'rel_sec': round(time.perf_counter() - t0, 2),
+            'n_pending': npend, 'n_emitted': nemit, 'n_submitted': nsub})
+        if npend is not None and npend == 0:
+            drained = True
+            break
+        if time.perf_counter() - drain_start >= hard_cap:
+            got['drain_hard_cap_hit'] = True
+            break
+        await asyncio.sleep(a.poll_sec)
+    return (series, drained, disconnected, npend, stats_timeout_s, hard_cap, n_timeouts)
+
+
 async def run_drain(a, ext):
     """与 EXT `run()` 同流程，但媒体结束后**排空到 n_pending==0**。"""
     x48 = ext.load_media(a.media, a.ffmpeg)
@@ -152,6 +214,11 @@ async def run_drain(a, ext):
                         "at": round(now - t0, 2) if t0 else None})
                 elif k == 'stats':
                     got['stats'] = m
+                    # 🔴🔴🔳 **APP-143 b**：记录「最后一次收到 stats 的时刻」
+                    #    ⇒ 客户端**自己**能判断「桥接是否还活着」
+                    #    （v0.4.22 之前**没有**这个 ⇒ 一次 stats 轮询可以阻塞
+                    #     **65 分钟**而客户端毫无察觉 ⇒ 作业一直持着机器锁）
+                    got['_last_stats_at'] = time.perf_counter()
                 elif k == 'margin_dumped':
                     got['margin_dumped'] = True
                     got['margin_dump_path'] = m.get('path')
@@ -190,6 +257,17 @@ async def run_drain(a, ext):
         await ws.send(json.dumps({"type": "flush"}))
         t_end = time.perf_counter()
         media_end_rel = t_end - t0
+        # 🔴🔴🔳 **APP-143 b**：**媒体送入时长超过 1.2 倍片长** ⇒ 标 `timing_valid=false`
+        #   （实测过审那轮：10 分钟片段送了 21 分钟 ⇒ 送入被拖慢 ⇒ 时间类结论无效）
+        _media_dur = None
+        try:
+            import wave as _w
+            with _w.open(a.media, 'rb') as _wf:
+                _media_dur = _wf.getnframes() / float(_wf.getframerate())
+        except Exception:
+            _media_dur = None
+        _send_ratio = (media_end_rel / _media_dur) if (_media_dur and _media_dur > 0) else None
+        timing_valid = (True if _send_ratio is None else (_send_ratio <= 1.2))
         await asyncio.sleep(a.settle_wait)
         await ws.send(json.dumps({"type": "stats"}))
         await asyncio.sleep(1.0)
@@ -198,28 +276,9 @@ async def run_drain(a, ext):
 
         # ── 排空：直到 n_pending == 0 或用满 drain_cap ───────────────────
         # 🔴 **连接断了也要如实记录**（不能一断就崩 ⇒ 丢已采到的数据）
-        series = []
         drain_start = time.perf_counter()
-        drained = False
-        disconnected = None
-        npend = npend_end
-        while True:
-            try:
-                await ws.send(json.dumps({"type": "stats"}))
-                await asyncio.sleep(a.poll_sec)
-            except Exception as e:
-                disconnected = repr(e)
-                break
-            st = got.get('stats')
-            npend, nemit, nsub = _np(st)
-            series.append({
-                'rel_sec': round(time.perf_counter() - t0, 2),
-                'n_pending': npend, 'n_emitted': nemit, 'n_submitted': nsub})
-            if npend is not None and npend == 0:
-                drained = True
-                break
-            if time.perf_counter() - drain_start >= a.drain_cap:
-                break
+        series, drained, disconnected, npend, stats_timeout_s, hard_cap, n_timeouts = \
+            await drain_until_zero(ws, got, a, t0, npend_end)
         drain_elapsed = round(time.perf_counter() - drain_start, 2)
         drain_rel = round(time.perf_counter() - t0, 2)
         stats_after_drain = got.get('stats')
@@ -248,6 +307,10 @@ async def run_drain(a, ext):
 
     got['drain'] = {
         'media_end_rel_sec': round(media_end_rel, 2),
+        # 🔴🔴🔳 **APP-143 b**：时间类结论的有效性
+        'timing_valid': timing_valid,
+        'media_file_duration_sec': round(_media_dur, 2) if _media_dur else None,
+        'media_send_ratio': round(_send_ratio, 3) if _send_ratio is not None else None,
         'drain_elapsed_sec': drain_elapsed,
         'drain_rel_sec': drain_rel,
         'drained_to_zero': drained,
@@ -262,6 +325,11 @@ async def run_drain(a, ext):
         'n_pending_series': series,
         # 🔴 如实记录「连接断了」这件事（不静默）
         'disconnected': disconnected,
+        # 🔴🔴🔳 **APP-143 b**：新增字段
+        'stats_timeout_s': stats_timeout_s,
+        'stats_timeout_count': got.get('stats_timeout_count', 0),
+        'drain_hard_cap_sec': hard_cap,
+        'drain_hard_cap_hit': got.get('drain_hard_cap_hit', False),
         'definition': 'n_pending = 管线里还没出配音的句子数；排空 = 等到它归零。',
     }
     return x48, dur, got
@@ -373,6 +441,11 @@ def main():
     ap.add_argument('--drain-cap', type=float, default=300.0,
                     help='排空上限（秒）；默认 300（APP-134 a 口径）')
     ap.add_argument('--poll-sec', type=float, default=2.0)
+    # 🔴🔴🔳 **APP-143 b**：每次 stats 请求的**接收超时**（秒）
+    #   旧实现**没有**超时 ⇒ 一次 stats 轮询可以阻塞 65 分钟而客户端毫无察觉
+    #   ⇒ 作业一直持着机器锁（实测：drain_elapsed 3924 s vs drain_cap 300 s）
+    ap.add_argument('--stats-timeout-s', type=float, default=10.0,
+                    help='每次 stats 请求的接收超时（秒）')
     ap.add_argument('--settle-wait', type=float, default=2.0,
                     help='媒体结束后到「排空前」快照之间的等待（秒）')
     ap.add_argument('--bg-off', action='store_true')

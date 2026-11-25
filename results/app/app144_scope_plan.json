@@ -1,0 +1,241 @@
+{
+ "script": "_app144_plan_scope.py",
+ "task": "APP-144 ①：查清 14 个命中文件的范围并分类处理方式",
+ "ts": "2026-11-25 22:04:15",
+ "pattern_file": "C:\\Users\\Trekker-PTL\\shared\\gitfilter\\mt_meeting_pattern.txt",
+ "replace_file": "C:\\Users\\Trekker-PTL\\shared\\gitfilter\\mt_meeting_replace.txt",
+ "phrases": 3,
+ "n_files": 14,
+ "files": [
+  "results/app/_app551_A_mt_npu_tts_off_out.mt.txt",
+  "results/app/_app551_B_mt_gpu0_tts_cuda_out.mt.txt",
+  "results/app/_app551_B_mt_gpu0_tts_cuda_tts.wav.tts.jsonl",
+  "results/app/_app551_C_mt_npu_tts_cuda_out.mt.txt",
+  "results/app/_app551_C_mt_npu_tts_cuda_tts.wav.tts.jsonl",
+  "results/app/_app591_app119_allnpu_run20261121-040755_tts_out.wav.tts.jsonl",
+  "results/app/_app591_app121_v111_default_run20261123-1000_tts_out.wav.tts.jsonl",
+  "results/app/_app591_sp5_cold_zh_run20261117-093348_tts_out.wav.tts.jsonl",
+  "results/app/_app591_sp5_zh_run20261117-094715_tts_out.wav.tts.jsonl",
+  "results/app/_app591_sp5_zh_run20261117-100823_tts_out.wav.tts.jsonl",
+  "results/app/_app591_spsp5_zh_run20261117-140853_tts_out.wav.tts.jsonl",
+  "results/app/app273_mt_int4_vs_int8.tsv",
+  "results/app/app273_mt_int4_vs_int8_evidence.json",
+  "status/app/STATUS_APP_sec237_detail_20261125.md"
+ ],
+ "detail": [
+  {
+   "path": "results/app/_app551_A_mt_npu_tts_off_out.mt.txt",
+   "n_commits_touching": 106,
+   "bytes": 10370,
+   "n_lines_nonempty": 94,
+   "n_hit_lines": 1,
+   "hit_ratio": 0.011,
+   "n_rest_nonempty_after_removing_hits": 93,
+   "treatment": "invert_paths",
+   "category": "A_转写或译文产物",
+   "why": "逐句产物（.mt.txt / .tts.jsonl）"
+  },
+  {
+   "path": "results/app/_app551_B_mt_gpu0_tts_cuda_out.mt.txt",
+   "n_commits_touching": 106,
+   "bytes": 10358,
+   "n_lines_nonempty": 94,
+   "n_hit_lines": 1,
+   "hit_ratio": 0.011,
+   "n_rest_nonempty_after_removing_hits": 93,
+   "treatment": "invert_paths",
+   "category": "A_转写或译文产物",
+   "why": "逐句产物（.mt.txt / .tts.jsonl）"
+  },
+  {
+   "path": "results/app/_app551_B_mt_gpu0_tts_cuda_tts.wav.tts.jsonl",
+   "n_commits_touching": 106,
+   "bytes": 236402,
+   "n_lines_nonempty": 154,
+   "n_hit_lines": 1,
+   "hit_ratio": 0.006,
+   "n_rest_nonempty_after_removing_hits": 153,
+   "treatment": "invert_paths",
+   "category": "A_转写或译文产物",
+   "why": "逐句产物（.mt.txt / .tts.jsonl）"
+  },
+  {
+   "path": "results/app/_app551_C_mt_npu_tts_cuda_out.mt.txt",
+   "n_commits_touching": 106,
+   "bytes": 10370,
+   "n_lines_nonempty": 94,
+   "n_hit_lines": 1,
+   "hit_ratio": 0.011,
+   "n_rest_nonempty_after_removing_hits": 93,
+   "treatment": "invert_paths",
+   "category": "A_转写或译文产物",
+   "why": "逐句产物（.mt.txt / .tts.jsonl）"
+  },
+  {
+   "path": "results/app/_app551_C_mt_npu_tts_cuda_tts.wav.tts.jsonl",
+   "n_commits_touching": 106,
+   "bytes": 237193,
+   "n_lines_nonempty": 155,
+   "n_hit_lines": 1,
+   "hit_ratio": 0.006,
+   "n_rest_nonempty_after_removing_hits": 154,
+   "treatment": "invert_paths",
+   "category": "A_转写或译文产物",
+   "why": "逐句产物（.mt.txt / .tts.jsonl）"
+  },
+  {
+   "path": "results/app/_app591_app119_allnpu_run20261121-040755_tts_out.wav.tts.jsonl",
+   "n_commits_touching": 74,
+   "bytes": 254909,
+   "n_lines_nonempty": 162,
+   "n_hit_lines": 1,
+   "hit_ratio": 0.006,
+   "n_rest_nonempty_after_removing_hits": 161,
+   "treatment": "invert_paths",
+   "category": "A_转写或译文产物",
+   "why": "逐句产物（.mt.txt / .tts.jsonl）"
+  },
+  {
+   "path": "results/app/_app591_app121_v111_default_run20261123-1000_tts_out.wav.tts.jsonl",
+   "n_commits_touching": 65,
+   "bytes": 258047,
+   "n_lines_nonempty": 164,
+   "n_hit_lines": 1,
+   "hit_ratio": 0.006,
+   "n_rest_nonempty_after_removing_hits": 163,
+   "treatment": "invert_paths",
+   "category": "A_转写或译文产物",
+   "why": "逐句产物（.mt.txt / .tts.jsonl）"
+  },
+  {
+   "path": "results/app/_app591_sp5_cold_zh_run20261117-093348_tts_out.wav.tts.jsonl",
+   "n_commits_touching": 94,
+   "bytes": 256640,
+   "n_lines_nonempty": 164,
+   "n_hit_lines": 1,
+   "hit_ratio": 0.006,
+   "n_rest_nonempty_after_removing_hits": 163,
+   "treatment": "invert_paths",
+   "category": "A_转写或译文产物",
+   "why": "逐句产物（.mt.txt / .tts.jsonl）"
+  },
+  {
+   "path": "results/app/_app591_sp5_zh_run20261117-094715_tts_out.wav.tts.jsonl",
+   "n_commits_touching": 94,
+   "bytes": 257534,
+   "n_lines_nonempty": 164,
+   "n_hit_lines": 1,
+   "hit_ratio": 0.006,
+   "n_rest_nonempty_after_removing_hits": 163,
+   "treatment": "invert_paths",
+   "category": "A_转写或译文产物",
+   "why": "逐句产物（.mt.txt / .tts.jsonl）"
+  },
+  {
+   "path": "results/app/_app591_sp5_zh_run20261117-100823_tts_out.wav.tts.jsonl",
+   "n_commits_touching": 94,
+   "bytes": 257703,
+   "n_lines_nonempty": 164,
+   "n_hit_lines": 1,
+   "hit_ratio": 0.006,
+   "n_rest_nonempty_after_removing_hits": 163,
+   "treatment": "invert_paths",
+   "category": "A_转写或译文产物",
+   "why": "逐句产物（.mt.txt / .tts.jsonl）"
+  },
+  {
+   "path": "results/app/_app591_spsp5_zh_run20261117-140853_tts_out.wav.tts.jsonl",
+   "n_commits_touching": 93,
+   "bytes": 256562,
+   "n_lines_nonempty": 164,
+   "n_hit_lines": 1,
+   "hit_ratio": 0.006,
+   "n_rest_nonempty_after_removing_hits": 163,
+   "treatment": "invert_paths",
+   "category": "A_转写或译文产物",
+   "why": "逐句产物（.mt.txt / .tts.jsonl）"
+  },
+  {
+   "path": "results/app/app273_mt_int4_vs_int8.tsv",
+   "n_commits_touching": 205,
+   "bytes": 14513,
+   "n_lines_nonempty": 47,
+   "n_hit_lines": 2,
+   "hit_ratio": 0.043,
+   "n_rest_nonempty_after_removing_hits": 45,
+   "treatment": "invert_paths",
+   "category": "A_转写或译文产物",
+   "why": "TSV 数据行 46/46 的原文列是英文散文 ⇒ 整份是会议转写"
+  },
+  {
+   "path": "results/app/app273_mt_int4_vs_int8_evidence.json",
+   "n_commits_touching": 205,
+   "bytes": 9312,
+   "n_lines_nonempty": 171,
+   "n_hit_lines": 3,
+   "hit_ratio": 0.018,
+   "n_rest_nonempty_after_removing_hits": 168,
+   "treatment": "replace_text",
+   "category": "B_正常结果或说明文件",
+   "why": "结构化指标/证据/文档 ⇒ 只替换句子"
+  },
+  {
+   "path": "status/app/STATUS_APP_sec237_detail_20261125.md",
+   "n_commits_touching": 13,
+   "bytes": 11499,
+   "n_lines_nonempty": 129,
+   "n_hit_lines": 1,
+   "hit_ratio": 0.008,
+   "n_rest_nonempty_after_removing_hits": 128,
+   "treatment": "replace_text",
+   "category": "B_正常结果或说明文件",
+   "why": "结构化指标/证据/文档 ⇒ 只替换句子"
+  }
+ ],
+ "invert_paths_list": [
+  "results/app/_app551_A_mt_npu_tts_off_out.mt.txt",
+  "results/app/_app551_B_mt_gpu0_tts_cuda_out.mt.txt",
+  "results/app/_app551_B_mt_gpu0_tts_cuda_tts.wav.tts.jsonl",
+  "results/app/_app551_C_mt_npu_tts_cuda_out.mt.txt",
+  "results/app/_app551_C_mt_npu_tts_cuda_tts.wav.tts.jsonl",
+  "results/app/_app591_app119_allnpu_run20261121-040755_tts_out.wav.tts.jsonl",
+  "results/app/_app591_app121_v111_default_run20261123-1000_tts_out.wav.tts.jsonl",
+  "results/app/_app591_sp5_cold_zh_run20261117-093348_tts_out.wav.tts.jsonl",
+  "results/app/_app591_sp5_zh_run20261117-094715_tts_out.wav.tts.jsonl",
+  "results/app/_app591_sp5_zh_run20261117-100823_tts_out.wav.tts.jsonl",
+  "results/app/_app591_spsp5_zh_run20261117-140853_tts_out.wav.tts.jsonl",
+  "results/app/app273_mt_int4_vs_int8.tsv"
+ ],
+ "replace_text_list": [
+  "results/app/app273_mt_int4_vs_int8_evidence.json",
+  "status/app/STATUS_APP_sec237_detail_20261125.md"
+ ],
+ "checks": [
+  {
+   "name": "no_evidence_json_in_invert_list",
+   "ok": true,
+   "detail": "invert 清单里的 evidence.json：无（应为空）"
+  },
+  {
+   "name": "evidence_json_in_replace_list",
+   "ok": true,
+   "detail": "evidence.json 在 replace 清单里：True"
+  },
+  {
+   "name": "doc_in_replace_list",
+   "ok": true,
+   "detail": "replace 清单里有 .md（§237 正文）：True"
+  },
+  {
+   "name": "total_files_is_14",
+   "ok": true,
+   "detail": "命中文件数 = 14（期望 14）"
+  },
+  {
+   "name": "classifier_has_discriminating_power",
+   "ok": true,
+   "detail": "阈值降到 0 ⇒ 14 个都判 A（而真判据只判 12 个）⇒ 判据有鉴别力"
+  }
+ ],
+ "ok": true
+}
