@@ -1,0 +1,193 @@
+{
+ "script": "_app134c_collect.py",
+ "task": "APP-134 c：c13 开/关 两轮 ＋ TTS=GPU.0 一轮 的三臂汇总",
+ "ts": "2026-11-25 21:53:43",
+ "root": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app134c",
+ "arms": [
+  {
+   "arm": "c13_off_2",
+   "json": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app134c\\c13_off_2\\bgkeep_e2e.json",
+   "json_bytes": 62909,
+   "json_mtime": "2026-11-25 21:35:12",
+   "dubs": 123,
+   "n_pending_at_media_end": 21,
+   "n_pending_after_drain": 0,
+   "drained_to_zero": true,
+   "drain_elapsed_s": 94.43,
+   "synth_rtf": 0.9796,
+   "synth_rtf_cross_check_ok": true,
+   "synth_rtf_n_segments": 123,
+   "first_pack_tts_sec": 1.5108,
+   "dub_late_max": 179.443,
+   "dub_late_p90": 118.08,
+   "max_lag": 89.0238,
+   "last_segment_lag": 79.8383,
+   "lag_slope": -0.175774,
+   "lag_r2": 0.945645,
+   "n_emitted": 123,
+   "n_submitted": 123,
+   "pipeline_n_pending": 0,
+   "proc_mem_mb": 8850.4,
+   "npu_pct": 66.4,
+   "igpu_pct": 0.0,
+   "c13": {
+    "window_line": "chunk=8 ctx=25 window=33 buckets=[8, 16, 32, 33] join=crossfade",
+    "buckets": [
+     "8",
+     "16",
+     "32",
+     "33"
+    ],
+    "join": "crossfade",
+    "runaway_aborts": 0,
+    "tts_device": "NPU/NPU(lazy)",
+    "na_guard": 2
+   },
+   "listen_clips_dir": "results/app/app123_listen"
+  },
+  {
+   "arm": "c13_on_1",
+   "json": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app134c\\c13_on_1\\bgkeep_e2e.json",
+   "json_bytes": 65056,
+   "json_mtime": "2026-11-25 21:23:04",
+   "dubs": 123,
+   "n_pending_at_media_end": 28,
+   "n_pending_after_drain": 0,
+   "drained_to_zero": true,
+   "drain_elapsed_s": 136.59,
+   "synth_rtf": 1.0469,
+   "synth_rtf_cross_check_ok": true,
+   "synth_rtf_n_segments": 123,
+   "first_pack_tts_sec": 1.3555,
+   "dub_late_max": 253.911,
+   "dub_late_p90": 196.475,
+   "max_lag": 127.3163,
+   "last_segment_lag": 122.4232,
+   "lag_slope": -0.244975,
+   "lag_r2": 0.965732,
+   "n_emitted": 123,
+   "n_submitted": 123,
+   "pipeline_n_pending": 0,
+   "proc_mem_mb": 8371.4,
+   "npu_pct": 68.2,
+   "igpu_pct": 0.0,
+   "c13": {
+    "window_line": "chunk=8 ctx=25 window=33 buckets=[38] join=direct_concat",
+    "buckets": [
+     "38"
+    ],
+    "join": "direct_concat",
+    "runaway_aborts": 0,
+    "tts_device": "NPU/NPU(lazy)",
+    "na_guard": 2
+   },
+   "listen_clips_dir": "results/app/app123_listen"
+  },
+  {
+   "arm": "tts_gpu0_3",
+   "json": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app134c\\tts_gpu0_3\\bgkeep_e2e.json",
+   "json_bytes": 41447,
+   "json_mtime": "2026-11-25 21:50:42",
+   "dubs": 41,
+   "n_pending_at_media_end": 95,
+   "n_pending_after_drain": 82,
+   "drained_to_zero": false,
+   "drain_elapsed_s": 301.15,
+   "synth_rtf": 22.2353,
+   "synth_rtf_cross_check_ok": true,
+   "synth_rtf_n_segments": 42,
+   "first_pack_tts_sec": 7.8197,
+   "dub_late_max": 756.857,
+   "dub_late_p90": 739.507,
+   "max_lag": 673.5514,
+   "last_segment_lag": 673.5514,
+   "lag_slope": -3.667668,
+   "lag_r2": 0.995488,
+   "n_emitted": 41,
+   "n_submitted": 123,
+   "pipeline_n_pending": 82,
+   "proc_mem_mb": 8636.2,
+   "npu_pct": 0.0,
+   "igpu_pct": 19.7,
+   "c13": {
+    "window_line": "chunk=8 ctx=25 window=33 buckets=[38] join=direct_concat",
+    "buckets": [
+     "38"
+    ],
+    "join": "direct_concat",
+    "runaway_aborts": 33,
+    "tts_device": "GPU.0",
+    "na_guard": 2
+   },
+   "listen_clips_dir": "results/app/app123_listen"
+  }
+ ],
+ "checks": [
+  {
+   "name": "c13_off_really_off",
+   "ok": true,
+   "detail": "c13_off 臂的窗口：chunk=8 ctx=25 window=33 buckets=[8, 16, 32, 33] join=crossfade ⇒ **真的关了**"
+  },
+  {
+   "name": "c13_on_really_on",
+   "ok": true,
+   "detail": "c13_on 臂的窗口：chunk=8 ctx=25 window=33 buckets=[38] join=direct_concat ⇒ **真的开着**"
+  },
+  {
+   "name": "tts_gpu0_really_gpu0",
+   "ok": true,
+   "detail": "tts_gpu0 臂的实测执行设备：GPU.0 ⇒ **真的在 GPU.0**"
+  }
+ ],
+ "all_pass": true,
+ "history_reference": {
+  "v1.1": {
+   "first_pack_s": 43.1,
+   "second_pack_s": 29.9,
+   "note": "v1.1 MiniMVP 的首包/次包（reviewer 给的历史值）"
+  },
+  "v2.5": {
+   "first_pack_s": 88.8,
+   "note": "v2.5 完整版的累计口径（reviewer 给的历史值）"
+  }
+ },
+ "listen_clips": {
+  "dir": "results/app/app123_listen",
+  "n_per_arm": 6,
+  "evidence": "results/app/app134c_listen_clips.json"
+ },
+ "lock_events": [
+  {
+   "ev": "lock_acquired",
+   "ts": "2026-11-25T21:10:14",
+   "tag": "app e2e drain 2026-11-25T21:10:14 pid=27840",
+   "waited_s": 0
+  },
+  {
+   "ev": "arm_done",
+   "arm": "c13_on_1",
+   "rc": 0,
+   "elapsed_s": 772,
+   "lock_lost": 0
+  },
+  {
+   "ev": "arm_done",
+   "arm": "c13_off_2",
+   "rc": 0,
+   "elapsed_s": 727,
+   "lock_lost": 0
+  },
+  {
+   "ev": "arm_done",
+   "arm": "tts_gpu0_3",
+   "rc": 2,
+   "elapsed_s": 929,
+   "lock_lost": 0
+  },
+  {
+   "ev": "lock_released",
+   "ts": "2026-11-25T21:50:44"
+  }
+ ],
+ "n_lock_lost_events": 0
+}
