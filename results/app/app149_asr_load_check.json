@@ -1,0 +1,15 @@
+{
+  "generated_at": "2026-11-26 18:11:05",
+  "candidate": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_MiniMVP_v1.2.candidate",
+  "python": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\python\\python.exe",
+  "engine_runtime_file": "C:\\Users/Trekker-PTL/Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\ext\\bridge\\engine_runtime.py",
+  "asr_family": "06b",
+  "asr_label": "Qwen3-ASR 0.6B INT8",
+  "asr_loaded": true,
+  "asr_load_sec": 12.4,
+  "backend_class": "ASR06BStatefulBackend",
+  "missing_interface": [],
+  "logs": [
+    "ASR 就绪（Qwen3-ASR 0.6B INT8 @ GPU.0，12.3s）"
+  ]
+}
