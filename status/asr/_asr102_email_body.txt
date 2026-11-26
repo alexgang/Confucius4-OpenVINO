@@ -1,0 +1,206 @@
+# §102 STATUS —— ASR 模块（R2T2 / Qwen3-ASR 精度与量化、GPU/NPU 摆放、流式与切段、RTF）
+
+**模块**：ASR（`C:\Users\Trekker-PTL\confucius4-openvino\status\asr`）
+**本机时间**：2026-11-26 14:55 (GMT+8)
+**当前 last_ack**：**ASR-068** —— 本轮**无新 ASR 纠偏 ⇒ 不变**
+**本轮性质**：巡检 ＋ **2 条新发现**（ASR 域，影响 App-146/147 发版）⇒ 写 §102 ＋ 发本邮件
+
+---
+
+## 一、纠偏来源（双通道去重）
+
+### 1.1 文件通道（局域网）—— 无新 ASR 条目
+
+- `C:\Users\Trekker-PTL\confucius4-openvino\status\asr\CORRECTIONS_ASR.md`
+  **109 822 B** / md5 `3d25680748cf7934fe172f3bb372ec1a` / mtime **2026-11-23 16:55:15**
+  ⇒ 与 §96 / §97 / §98 / §99 / §100 / §101 **逐字相同**。
+- `^## ASR-` 标题共 **37** 条，**最大编号 ASR-068**；全文搜 `ASR-069` ⇒ **0 命中**。
+- 根 `status\CORRECTIONS.md`（**262 907 B** / mtime 2026-11-25 22:04:31）内含 ASR 编号条目 **0**
+  （唯一 `ASR-` 命中在 L216，是 C-019 正文里的产品名 `Qwen3-ASR-1.7B`，**不是纠偏编号**）。
+
+### 1.2 邮件通道（QQ 邮箱）—— 无新 reviewer ASR 邮件
+
+收件箱 after **2026-11-24T12:00:00Z** 共 **3 封，全部不是 ASR 编号** ⇒ 不进本模块 `last_ack`：
+
+| 时间(Z) | 邮件 | 归属 |
+|---|---|---|
+| 11-25 00:56:56 | **T-008** `[FQ][B][CORRECTION][GEN]` | FQ（通用） |
+| 11-25 10:29:26 | **H-030** `[C4][A][CORRECTION][MT]` | MT |
+| 11-25 10:29:30 | **APP-140** `[C4][A][CORRECTION][APP]` | App |
+
+主题含 `[CORRECTION][ASR]` 的最大编号仍 **ASR-068**（11-23 08:55:15Z）；spam **0** 封；trash **1** 封（MiniMVP rc9 性能报告，非纠偏）。
+
+⇒ **结论：`last_ack` 保持 `ASR-068`**，本轮无 ASR 纠偏动作项。
+
+---
+
+## 二、🔴🔴 新发现 1：MiniMVP v1.2 候选包**插件侧（EXT）ASR 引擎 100% 加载失败** ⇒ App-146 三轮的 ASR 侧数字全部无效
+
+> 这一条请 App 线程 / reviewer 优先看：**它直接影响 APP-147 的三轮 e2e 与打 zip 的自查条件。**
+
+### 2.1 事实（App 产出的产物，本模块只读复算）
+
+产物根 `shared\bgkeep\e2e_app146\`（App 模块 APP-146，**本机时间 14:01–14:49**）：
+
+| 臂 | 起止 | ASR 失败次数 |
+|---|---|---|
+| `smoke/bgkeep_on_1` | 14:01 | **13** |
+| `smoke2/bgkeep_on_1` | 14:05 | **13** |
+| `three_arms/bgkeep_off/bgkeep_off_1` | 14:28–14:39（600 s 整段） | **123**（＝全部段） |
+| `three_arms/bgkeep_on/bgkeep_on_1` | 14:39–14:49 | **120** |
+
+**失败原文**（`three_arms/bgkeep_off/bgkeep_off_1/bridge.log` L6–L13）：
+
+```
+[bridge 14:28:50] (1/3) 正在加载 ASR（R2T2 INT8） @ GPU.0 ……
+[bridge 14:28:54] (1/3) ASR（R2T2 INT8） 加载失败 ⇒ EngineNeedsChange: [R2T2] SegmentEncoderOVBackend 构造失败（device=GPU.0）:
+    ir: Could not open the file: "C:\Users\Trekker-PTL\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\models\encoder-int8\openvino_encoder_model.xml"
+[bridge 14:29:11] 引擎预热完成：成功 2/3，总耗时 20.9 秒
+[bridge 14:29:11] ❌ 部分引擎加载失败：{'asr': 'EngineNeedsChange: [R2T2] SegmentEncoderOVBackend 构造失败 …'}
+```
+
+⇒ **MT（Hy-MT3）与 TTS 正常加载，只有 ASR 起不来**；桥接**不中止**（预热失败只告警）⇒ **每段都走 ASR 异常分支**，段级日志全是 `ASR='—' | MT='—' | TTS=0.00s`。
+
+**`stats_full` 原始字段**（`three_arms/bgkeep_off/bgkeep_off_1/bgkeep_e2e.json`，**44 846 B** / mtime 11-26 14:39）：
+
+```
+asr_segments = 0    mt_segments = 0    tts_segments = 0
+pipeline = {"n_submitted":123,"n_emitted":123,"n_error":123,"n_pending":0,
+            "stage_wall_sec":{"asr":8.168,"mt":0.001,"tts":0.003},"emit_sec":0.008}
+spk_bypass = {"enabled":false,"spk_queue_drop":0,...}
+spk_reason_hist = {"none":123}
+clone_reasons = {}    n_gender_splits = 0
+speaker = {"n_speakers":0,"n_pending_unassigned":123,"n_final_without_spk":26,...}
+```
+
+⇒ 🔴 **`n_error` = 123 = `n_submitted`** ⇒ **整条链路的 123 段全是错误**，只有收口/计时统计还在跑。
+
+### 2.2 根因（读代码确认）
+
+- EXT 的 ASR 模型目录是**写死**的（`ext/bridge/engine_runtime.py` L85–86，**v0.4.22 与 v0.4.21 逐字相同**）：
+
+  ```python
+  ASR_ENCODER_DIR = os.path.join(MODELS_DIR, "encoder-int8")
+  ASR_DECODER_DIR = os.path.join(MODELS_DIR, "decoder-gpu-int8")
+  ```
+
+  ⇒ EXT 只支持 **R2T2 1.7B**。
+- 🟡 而 MiniMVP 包只带 **Qwen3-ASR-0.6B**（`app/live_caption_app.py` L774 / L895–922 的 `asr06b` 族：`ov-encoder-06b-fp16-static` ＋ `ov-dec-06b-stateful-int8sym`）
+  ⇒ **EXT 侧没有任何 06B 接线代码**（全仓 `ext/` 搜 `06b` / `stateful` ⇒ **0 命中**）。
+- 🔴 包内 `models/` 实测只有：`asr06b-decoder-int8` / `asr06b-encoder-fp16` / `asr06b-tokenizer` / `bgsep` / `mt` / `qwen3tts` / `spk`
+  ⇒ **`encoder-int8` 与 `decoder-gpu-int8` 都不存在** ⇒ 加载必然失败。
+- 🟢 **不是 EXT 新回归，是「EXT 只支持 R2T2」与「MiniMVP 只带 06B」的固有错配**：对照完整版 v2.6 的 App134b / App134c 臂，`pkg` 都是 `Confucius4_LiveCaption_v2.6`（有 `encoder-int8` ＋ `decoder-gpu-int8`）⇒ ASR 正常。
+
+### 2.3 影响面（含**已发客户**的包）
+
+| 包 | EXT ASR | 是否已写明 |
+|---|---|---|
+| `MiniMVP_v1.2.candidate`（本轮 APP-146 重做） | ❌ 不可用 | ✅ **已明写**（`README_zh.md` L387–390「插件（EXT）侧的语音识别在本包不可用」）—— 该段是 **11-26 14:04 本轮重写时新增**（`README_zh.md.bak_app146_readme` 与 `bak_app146_docs` 里都没有） |
+| 🔴 `MiniMVP_v1.1.1.zip`（**发客户的就是它**，5 212 403 155 B / 2026-11-23 10:31:48） | ❌ 不可用 | ✅ **已明写**（zip 内 `README_zh.md`「已知问题 4. ⚠️ EXT 的 ASR 在本版不可用」＋「配音桥接（EXT）」整节） |
+
+对 v1.1.1.zip 的只读实测：zip 内 `models/encoder-int8/openvino_encoder_model.xml` **ABSENT**、`models/asr06b-encoder-fp16/ov-encoder-06b-fp16-static.xml` **PRESENT**、`ext/bridge/` **24** 个文件 ⇒ 错配确实在包里。
+
+⇒ 🟢 **两版 MiniMVP README 都已把这条限制写在明面上 ⇒ 不是「悄悄坏了」。**
+
+### 2.4 🔴 但对 App 发版流程有实质影响（请 App/reviewer 拍板）
+
+1. APP-146 第 4 步的三轮 e2e 是在「ASR 引擎起不来」的前提下跑的
+   ⇒ **三轮的 ASR 侧数字（段数、dubs、`clone_reasons`、`spk_reason_hist`、`dub_late`）全部无效**
+   （该臂 `dub_late_max` = **−11.883 s**，负值＝因为根本没有内容）。
+2. ⇒ **APP-147 的自查条件 1「没有模块起不来」按字面已不满足** ⇒ 建议**打 zip 前**：
+   - 要么**补一轮「ASR 引擎可用」的臂**；要么
+   - **明确把「插件侧 ASR 不可用」写进自查条件**（即承认该限制并接受）。
+3. 🟢 **不涉及 ASR 模型本身的精度/性能**（06B 后端在 App 侧 `live_caption_app.py` 的 `asr06b` 族是通的；本轮未改 4 个 ASR 交付文件）。
+   🔴 但它使 §96–§101 的旁路/说话人链路结论**在新候选包上无法复算**
+   ⇒ App146 臂的 `spk_reason_hist` / `clone_reasons` / `n_gender_splits` **不能**作为 §101.3 归因缺口的证据。
+4. 🔴 **EXT 侧适配 0.6B（stateful）是 EXT/App 的事，本模块不代改 EXT 源码**（EXT 源码由 reviewer 写）。
+
+---
+
+## 三、🔴 新发现 2：README「四种 ASR 后端」表与 MiniMVP 包内实际引擎集不符（ASR 域，需拍板）
+
+- 🔴 v1.2 候选 `README_zh.md` L140–158 **仍保留完整版 v2.x 的「四种 ASR 后端」表**：
+
+  | 后端 | 模型 | README 给的 RTF |
+  |---|---|---|
+  | Intel GPU · INT8 | 编码器 INT8 ＋ 解码器 INT8 | 0.70 |
+  | Intel GPU · INT4 | 编码器 INT4 ＋ 解码器 INT4 | 0.73 |
+  | Intel NPU · INT8 | 编码器 FP16 ＋ 解码器 INT8 | 0.86 |
+  | Intel NPU · INT4（实验） | 编码器 FP16 ＋ 解码器 INT4 | 0.75 |
+
+  并写「61 分钟英文会议录音的完整测试中，Intel NPU · INT8 的整体 RTF 为 **0.77**」。
+- 🔴 **但包内实际只有 06B 的两个后端**（`app/live_caption_app.py` L914–922 `ENGINES_ASR06B`：
+  `gpu_int8` =「Intel GPU · INT8 (stateful)」、`npu_int8` =「Intel NPU · INT8 (stateful)」）
+  ⇒ **没有 INT4 档**（`asr06b_gpu_int4` / `asr06b_npu_int4` 全仓 **0 命中**）；
+  🔴 **包内也没有任何 INT4 模型目录**（`models/` 下无 `*int4*`）。
+- 🔴 **那四个 RTF 的口径也与本包不符**：它们是 **R2T2（完整版）** 的编码器/解码器组合口径，而本包跑 **06B stateful**；
+  🔴 **与本模块 §83 / ASR-060～061 也不是同一计分器**
+  （本模块 NPU 流式 RTF **0.3094 / 0.2912 / 0.3165**、离线 **0.0496 / 0.0448 / 0.0665**）
+  ⇒ **与 §101.5 已挂的「对外 NPU 报告 RTF 0.067 口径」属同一类问题、但来源不同**
+  （那封是 reviewer 自发报告，**这份是客户包 README**）。
+- 🟢 **v1.1.1（已发客户）无此问题**：其 `README_zh.md` **不含**「四种 ASR 后端」/「0.70」/「61 分钟」，
+  且明确 `--engine` 只有 `gpu_int8` / `npu_int8` ⇒ **该表是 11-26 本轮重写时从完整版 README 带入的**。
+- 🔴 **需拍板**：① 删除该表、改为按 06B 两档重写；② 或逐行标注「此表为完整版 R2T2 数据，本包（MiniMVP 06B）不适用」；
+  ③ 并给出 06B 档**同口径**的 RTF/延迟数字
+  ⇒ 🔴 **本模块不给该数字**（需 reviewer 用同一计分器测，且与 §83 不可混用）。
+
+---
+
+## 四、🟢 EXT 已推进到 v0.4.22 ⇒ 撤回 §101「HEAD 仍 `b2a4978`」；🔴 §101.3 归因缺口仍在
+
+- 🟢 **EXT v0.4.22**：HEAD = **`e901cad`**（`EXT v0.4.22 补完：MT 模型名按实际加载的目录推导`），
+  前一提交 **`d548285`**（`EXT v0.4.22: MT3 优先 + NPU turbo 统一判定 + 过期断言改现行契约`）
+  ⇒ §101 记录的「HEAD 仍 `b2a4978`」**已过时、撤回该句**（不改旧章节正文）。
+- 🔴 **§101.3 归因缺口仍在**（只读确认）：v0.4.22 的 `ext/speaker_bypass.py`
+  （失败分支只 `n_no_label += 1`、**不写行**）与 `ext/bridge.py` 的 `_spk_reason_hist()`（L2145–2153）**逐字未改**
+  ⇒ **旁路失败原因仍结构上进不了段级表**
+  ⇒ 仍需 reviewer 让**失败路径也写行**（或由 `spk_bypass.stats()` 导出否定 reason 计数）。
+- 🟡 **修前 v0.4.18 / `5121d99` 对照臂仍缺**（`shared/bgkeep/` 下无 `v0418*` 目录）⇒ §96 ① 未闭。
+- 🟡 **分离人声 16 kHz wav 仍 0 产出**（全盘搜 `*vocal*` 0 命中）⇒「原声 vs 分离人声」WER 对比仍做不了。
+- 🟡 **对外 NPU 报告 RTF 0.067 口径仍待 reviewer 说明**（§101.5 挂项，未闭）。
+- 🔴 **配音迟到的有效数字仍以 §101 的 r2 臂为准**（max **182.62 s**）；App146 臂的 `dub_late_max` 因 ASR 全失败**无效**。
+
+---
+
+## 五、待办（等用户 / 等 App / 等 reviewer，ASR 不代做）
+
+### 🔴 新增（ASR 域，优先）
+1. **MiniMVP v1.2 候选包的插件侧 ASR 引擎 100% 加载失败** ⇒ ① APP-147 三轮 e2e 数字全部无效，
+   自查条件 1「没有模块起不来」按字面已不满足 ⇒ 打 zip 前补「ASR 引擎可用」的臂，或把该限制写进自查条件；
+   ② 已发客户的 `v1.1.1.zip` 同样错配（README 已明写）⇒ 是否追加说明请 reviewer 定；
+   ③ EXT 侧适配 0.6B（stateful）由 EXT/App 处理。
+2. **README「四种 ASR 后端」表与包内实际引擎集不符** ⇒ 删除该表 / 逐行标注「本包不适用」 / 补 06B 档同口径数字
+   （🔴 本模块不给该数字）。
+
+### 🔴 沿用（未闭）
+3. **§101.3 旁路失败原因的归因缺口**（需 reviewer 让失败路径也写段级表）。
+4. **修前 v0.4.18 / `5121d99` 对照臂**（§96 ①）。
+5. **10 分钟片段分离人声 16 kHz wav**（`EXT_BG_DUMP_VOCALS` 已实现且已提交，但 `shared/bgkeep/vocals/` 仍不存在、
+   全盘搜 `*vocal*` 0 命中）⇒ 两侧须同一 ASR 臂：`pml=320` NPU 档 ＋ OV **2026.4.1**；**本模块不自己调 MiniMax**。
+6. **对外 NPU 报告 RTF 0.067 的口径**（与本模块 §83 / ASR-060～061 不是同一计分器）；
+   报告称完整表在 `results/npu_benchmark/`，本机未找到该路径。
+
+### 🟡 沿用
+7. NPU 档前缀截断处置（建议 ① `MAX_SEG_SEC` 20.0 → 19.0 s）；配音迟到按 App/TTS 排队时延口径处置。
+8. README 是否加「NPU 档 20 s 长段会触发前缀截断」；「md5 逐字节相同」是否改标注；整段离线转写是否加成交付路径；
+   「RTF≈0.05」对外口径；encoder 静态上限 2400 mel 帧 ⇒ 30 s 上下文得重导出；新说话人首次登记用哪段音频。
+9. README `--asr-device NPU` 示例能否给客户（发客户前必须确认发的是 `v1.1.1.zip`）。
+10. 丢块计数上报 ASR 侧（§95 单开；EXT 只在自家 `stats()` 计 `spk_queue_drop`；
+    另请明确「旁路 64 项」与 `ext/bg_separator.py` L242 `maxsize=4000` 两层丢块语义）。
+
+---
+
+## 六、产物与纪律
+
+**产物**
+- `status/asr/STATUS_ASR.md` —— **39 927 B / 152 行**（自指大小已收敛；CRLF 完整、裸 LF 0、末尾 CRLF）
+- `status/asr/notes/asr_s102.md` —— 明细（**12 706 B** / LF）
+- `status/archive/STATUS_ASR_sec102_upto_20261126.md` —— §101 全文逐字归档（**9 762 B**）
+- 提交：**`e9cfac8`**（已推 `origin/main`）
+
+**纪律**
+- 本轮**全程只读复算**：未跑推理 / 未跑计时 / 未跑 WER / 未跑分离器
+  ⇒ **不取 `shared\MACHINE_LOCK`**（复核时锁由 **App 模块**持有：`app e2e drain 2026-11-26T14:39:25 pid=28448`）
+  ⇒ 本模块**始终未取锁、未干扰**。
+- 未改 4 个 ASR 交付文件；未改 `live_caption/`；未改 EXT 源码（**只读**）；未改纠偏文件内容；
+  未改客户包；未打包；未调 MiniMax；未连 B 机；未自行开新实验（ASR-038）。
