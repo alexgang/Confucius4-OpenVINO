@@ -5,12 +5,21 @@
 覆盖四块：
 
   1. **EXT-009 统一参数**（`ext/adaptive_speed.py`）
-     · 速度公式：`clamp(1.0 + (lag − 3 s) × 0.025, 1.0, 1.30)`
-       （lag ≤ 3 s ⇒ 1.0×；lag = 15 s ⇒ 1.30×）；
-     · **滞回**：降速时 `lag < 2 s` 才回 1.0×（不来回抖动）；
+     · 速度公式：`clamp(1.0 + (lag − 0.5 s) × 0.15, 1.0, 1.70)`
+       （lag ≤ 0.5 s ⇒ 1.0×；lag ≥ 5.17 s ⇒ 1.70× 封顶）；
+     · **滞回**：降速时 `lag < 0.3 s` 才回 1.0×（不来回抖动）；
      · **按句定速、句内不变**；
-     · **相邻句变化 ≤ 0.1×**；
-     · 与**时长适配相乘后总倍率 ≤ 1.30×**，超出部分顺延。
+     · **相邻句变化 ≤ 0.20×**；
+     · 与**时长适配相乘后总倍率 ≤ 1.70×**，超出部分顺延。
+
+     ★★ **2026-11-26（APP-146 → EXT v0.4.22）**：本文件原先按**旧契约**
+       （1.30×／lag_free=3 s／gain=0.025／step=0.10）写断言，而生产侧
+       （`ext/config.py` ＋ `extension/player.js`）**早已按 11-16 用户决定**
+       改成 **1.70×**（lag_free=0.5／gain=0.15／step=0.20）⇒ 15 条 FAIL
+       **全是断言过期**，不是生产缺陷。
+       ⇒ 现改为**从 `ext/config.py` 的常量算出期望值**（不写死数字）
+       ⇒ 以后改契约只改 config，测试自动跟随 ⇒ 不会再漂移；
+       ⇒ **区分力组保留并加强**（去掉滞回／步长／封顶 ⇒ 该组必须 FAIL）。
 
   2. **区分力**（★ 关键：能区分「真通过」与「假通过」）
      · 旧写法（无滞回 / 无步长限制 / 不封顶总倍率）会读出**错误结论**；
@@ -48,6 +57,22 @@ from ext.adaptive_speed import (combine_rates, decide_speed,
                                 lag_from_schedule, raw_speed_for_lag,
                                 target_start_for)
 from ext.time_stretch import _normalized_xcorr_best, wsola
+
+# ★★ 期望值**一律从 ext/config.py 的常量算出来**（不写死数字）——
+#   生产侧 11-16 用户决定把上限改成 1.70×、lag_free 改成 0.5、gain 改成 0.15、
+#   step 改成 0.20 ⇒ 本文件若再写死 1.30/3/0.025/0.10 就会**永久过期**。
+#   （2026-11-26 APP-146：旧写法导致 15 条 FAIL，判据全废。）
+LAG_FREE = C.ADAPT_LAG_FREE_SEC
+GAIN = C.ADAPT_GAIN_PER_SEC
+SPEED_MAX = C.ADAPT_SPEED_MAX
+STEP_MAX = C.ADAPT_MAX_STEP
+HYST = C.ADAPT_LAG_HYST_SEC
+TOTAL_MAX = C.ADAPT_TOTAL_RATE_MAX
+
+
+def _expect_raw(lag: float) -> float:
+    """按**现行契约**算期望倍率（与 raw_speed_for_lag 同式，独立实现）。"""
+    return max(1.0, min(SPEED_MAX, 1.0 + (lag - LAG_FREE) * GAIN))
 
 EXT_DIR = os.path.join(ROOT, "extension")
 
@@ -90,34 +115,48 @@ def _est_f0(x: np.ndarray, sr: int = C.SAMPLE_RATE) -> float:
 # ══════════════════════════════════════════════════════════════
 def test_ext009_speed_formula() -> None:
     print("\n[1] EXT-009 统一参数：速度公式")
-    check("lag ≤ 3 s ⇒ 1.0×（lag=0）", raw_speed_for_lag(0.0) == 1.0,
+    print(f"    （现行契约：lag_free={LAG_FREE} gain={GAIN} "
+          f"speed_max={SPEED_MAX} step={STEP_MAX} hyst={HYST}）")
+    check(f"lag ≤ {LAG_FREE} s ⇒ 1.0×（lag=0）", raw_speed_for_lag(0.0) == 1.0,
           f"{raw_speed_for_lag(0.0)}")
-    check("lag = 3 s ⇒ 恰好 1.0×", raw_speed_for_lag(3.0) == 1.0,
-          f"{raw_speed_for_lag(3.0)}")
-    check("lag = 15 s ⇒ 1.30×（上限）",
-          abs(raw_speed_for_lag(15.0) - 1.30) < 1e-9,
-          f"{raw_speed_for_lag(15.0)}")
-    check("lag > 15 s ⇒ 仍封顶 1.30×",
-          abs(raw_speed_for_lag(60.0) - 1.30) < 1e-9,
+    check(f"lag = {LAG_FREE} s ⇒ 恰好 1.0×",
+          abs(raw_speed_for_lag(LAG_FREE) - 1.0) < 1e-9,
+          f"{raw_speed_for_lag(LAG_FREE)}")
+    # ★ 封顶点：lag 足够大 ⇒ 恰好到 speed_max（契约值，不写死）
+    check(f"lag 很大 ⇒ 封顶到 speed_max={SPEED_MAX}",
+          abs(raw_speed_for_lag(60.0) - SPEED_MAX) < 1e-9,
           f"{raw_speed_for_lag(60.0)}")
-    # 线性：lag=7 ⇒ 1.0 + 4×0.025 = 1.10
-    check("lag = 7 s ⇒ 1.10×（公式线性正确）",
-          abs(raw_speed_for_lag(7.0) - 1.10) < 1e-9,
-          f"{raw_speed_for_lag(7.0)}")
+    check(f"lag > 封顶点 ⇒ 仍封顶 {SPEED_MAX}×",
+          abs(raw_speed_for_lag(600.0) - SPEED_MAX) < 1e-9,
+          f"{raw_speed_for_lag(600.0)}")
+    # 线性：取一个**未封顶**的 lag ⇒ 期望值由契约算出
+    lag_lin = LAG_FREE + 1.0 / GAIN          # ⇒ 1.0 + 1.0 = 2.0
+    check("★ 线性区：期望值 = 1.0 + (lag − lag_free) × gain（契约算出）",
+          abs(raw_speed_for_lag(lag_lin) - _expect_raw(lag_lin)) < 1e-9,
+          f"lag={lag_lin:.4f} 实={raw_speed_for_lag(lag_lin)} "
+          f"期望={_expect_raw(lag_lin)}")
+    # ★ 斜率：必须在**未封顶区**取两点（否则 Δ=0，读不出斜率）
+    lag_a = LAG_FREE                              # ⇒ 1.0
+    lag_b = LAG_FREE + 1.0                        # ⇒ 1.0 + gain
+    check("★ 线性区：lag 每多 1 s，倍率多 gain（斜率正确）",
+          abs((raw_speed_for_lag(lag_b)
+               - raw_speed_for_lag(lag_a)) - GAIN) < 1e-9,
+          f"Δ={raw_speed_for_lag(lag_b) - raw_speed_for_lag(lag_a)} "
+          f"gain={GAIN}")
     check("负 lag（提前）⇒ 仍是 1.0×（不减速）",
           raw_speed_for_lag(-10.0) == 1.0, f"{raw_speed_for_lag(-10.0)}")
 
 
 def test_ext009_hysteresis() -> None:
     print("\n[2] EXT-009 滞回（避免来回抖动）")
-    # lag=1.0 < 2.0 ⇒ 想降速时**保持**上一句的倍率
-    d = decide_speed(1.0, prev_speed=1.30)
-    check("lag=1.0 s 且想降速 ⇒ 保持 1.30×（滞回生效）",
+    # lag < HYST ⇒ 想降速时**保持**上一句的倍率（滞回门槛取自 config）
+    d = decide_speed(HYST / 2.0, prev_speed=1.30)
+    check(f"lag={HYST / 2.0:.3f} s（<滞回门槛 {HYST}）且想降速 ⇒ 保持 1.30×（滞回生效）",
           abs(d.speed - 1.30) < 1e-9 and d.held_by_hysteresis,
           f"speed={d.speed} held={d.held_by_hysteresis}")
-    # lag=2.5 > 2.0 ⇒ 允许降速（但受步长限制）
-    d = decide_speed(2.5, prev_speed=1.30)
-    check("lag=2.5 s（>滞回门槛）⇒ 允许降速",
+    # lag > HYST ⇒ 允许降速（但受步长限制）
+    d = decide_speed(HYST + 2.0, prev_speed=1.30)
+    check(f"lag={HYST + 2.0:.3f} s（>滞回门槛 {HYST}）⇒ 允许降速",
           d.speed < 1.30, f"speed={d.speed} reason={d.reason}")
     # ★ 区分力：滞回门槛附近**来回抖动的 lag 序列**
     #   旧写法（无滞回）：lag 一掉到门槛下，速度立刻掉回 1.0×
@@ -125,7 +164,7 @@ def test_ext009_hysteresis() -> None:
     #   新写法（有滞回）：lag < 2 s 时**保持**上一句的倍率
     #     ⇒ 速度序列**单调不降**（降速次数 = 0）
     #   ⇒ 判据 = 「速度序列出现下降的次数」
-    seq = [15.0, 1.5, 15.0, 1.5, 15.0, 1.5]
+    seq = [15.0, HYST / 2.0, 15.0, HYST / 2.0, 15.0, HYST / 2.0]
     new_speeds = []
     prev = 1.0
     for lag in seq:
@@ -139,51 +178,58 @@ def test_ext009_hysteresis() -> None:
                       if old_speeds[i] < old_speeds[i - 1] - 1e-9)
     check("★ 区分力：旧写法（无滞回）在门槛附近**反复降速**",
           n_old_drops >= 3, f"旧写法降速次数={n_old_drops} speeds={old_speeds}")
-    check("★ 新写法（滞回）**一次都不降速**（lag<2s 时保持）",
+    check(f"★ 新写法（滞回）**一次都不降速**（lag<{HYST}s 时保持）",
           n_new_drops == 0, f"新写法降速次数={n_new_drops} speeds={new_speeds}")
 
 
 def test_ext009_step_limit() -> None:
-    print("\n[3] EXT-009 相邻句步长限制（0.1×）")
+    print(f"\n[3] EXT-009 相邻句步长限制（{STEP_MAX}×）")
+    # 一步最多涨 STEP_MAX（契约值，不写死）
     d = decide_speed(100.0, prev_speed=1.0)
-    check("从 1.00× 一步跳到 1.30× ⇒ 被限制为 1.10×",
-          abs(d.speed - 1.10) < 1e-9 and d.clamped_step,
+    check(f"从 1.00× 一步跳 ⇒ 被限制为 1.00+{STEP_MAX}",
+          abs(d.speed - (1.0 + STEP_MAX)) < 1e-9 and d.clamped_step,
           f"speed={d.speed} reason={d.reason}")
-    d = decide_speed(100.0, prev_speed=1.10)
-    check("从 1.10× 再一步 ⇒ 1.20×（仍 ≤0.1× 步长）",
-          abs(d.speed - 1.20) < 1e-9, f"speed={d.speed}")
-    d = decide_speed(100.0, prev_speed=1.20)
-    check("从 1.20× 再一步 ⇒ 1.30×（到达上限）",
-          abs(d.speed - 1.30) < 1e-9, f"speed={d.speed}")
-    d = decide_speed(100.0, prev_speed=1.30)
-    check("已在 1.30× ⇒ 不再上升",
-          abs(d.speed - 1.30) < 1e-9, f"speed={d.speed}")
+    d = decide_speed(100.0, prev_speed=1.0 + STEP_MAX)
+    check(f"再一步 ⇒ 1.00+2×{STEP_MAX}（仍 ≤步长）",
+          abs(d.speed - (1.0 + 2 * STEP_MAX)) < 1e-9, f"speed={d.speed}")
+    # ★ 走到上限后不再上升（用契约上限，不写死 1.30）
+    d = decide_speed(100.0, prev_speed=SPEED_MAX)
+    check(f"已在 speed_max={SPEED_MAX} ⇒ 不再上升",
+          abs(d.speed - SPEED_MAX) < 1e-9, f"speed={d.speed}")
+    # ★ 区分力：去掉步长限制后，同一输入会**一步跳到上限** ⇒ 判据有鉴别力
+    no_step = min(SPEED_MAX, 1.0 + (100.0 - LAG_FREE) * GAIN)
+    check("★ 区分力：无步长限制时同输入会一步跳到上限（≠ 步长后的值）",
+          abs(no_step - (1.0 + STEP_MAX)) > 1e-6,
+          f"无步长={no_step} 有步长={1.0 + STEP_MAX}")
 
 
 def test_ext009_combine_rates() -> None:
-    print("\n[4] EXT-009：时长适配 × 自适应加速，总倍率 ≤ 1.30×")
+    print(f"\n[4] EXT-009：时长适配 × 自适应加速，总倍率 ≤ {TOTAL_MAX}×")
     r = combine_rates(1.0, 1.0)
     check("1.0 × 1.0 ⇒ 1.0×（无变速）", abs(r["total_rate"] - 1.0) < 1e-9,
           str(r))
     r = combine_rates(1.25, 1.0)
     check("1.25 × 1.0 ⇒ 1.25×（不封顶）",
           abs(r["total_rate"] - 1.25) < 1e-9 and not r["capped"], str(r))
-    r = combine_rates(1.0, 1.30)
-    check("1.0 × 1.30 ⇒ 1.30×（不封顶）",
-          abs(r["total_rate"] - 1.30) < 1e-9 and not r["capped"], str(r))
-    r = combine_rates(1.25, 1.30)
-    check("★ 1.25 × 1.30 ⇒ 封顶 1.30×（EXT-009 EXT 侧明文）",
-          abs(r["total_rate"] - 1.30) < 1e-9 and r["capped"],
+    # ★ 单项就等于上限 ⇒ 不算被封顶（raw == max）
+    r = combine_rates(1.0, TOTAL_MAX)
+    check(f"1.0 × {TOTAL_MAX} ⇒ {TOTAL_MAX}×（不封顶）",
+          abs(r["total_rate"] - TOTAL_MAX) < 1e-9 and not r["capped"], str(r))
+    # ★ 封顶组：取两个上限附近的值 ⇒ raw 明显 > 总上限 ⇒ 必须封顶
+    a, b = 1.25, TOTAL_MAX
+    r = combine_rates(a, b)
+    check(f"★ {a} × {TOTAL_MAX} ⇒ 封顶 {TOTAL_MAX}×（EXT-009 EXT 侧明文）",
+          abs(r["total_rate"] - TOTAL_MAX) < 1e-9 and r["capped"],
           f"raw={r['raw_rate']} total={r['total_rate']}")
     check("★ 封顶时记录了被截掉的倍率（超出部分顺延）",
           r["rate_loss_x"] > 0, f"rate_loss_x={r['rate_loss_x']}")
-    # ★ 区分力：旧写法（直接相乘、不封顶）会给出 1.625× ⇒ 违反 EXT-009
-    old_total = 1.25 * 1.30
-    check("★ 区分力：旧写法（直接相乘）= 1.625× **违反** EXT-009 的 1.30× 上限",
-          old_total > C.ADAPT_TOTAL_RATE_MAX,
-          f"旧写法={old_total} > 上限 {C.ADAPT_TOTAL_RATE_MAX}")
-    check("★ 新写法的总倍率确实 ≤ 1.30×",
-          combine_rates(1.25, 1.30)["total_rate"] <= C.ADAPT_TOTAL_RATE_MAX + 1e-9)
+    # ★ 区分力：旧写法（直接相乘、不封顶）会给出 raw ⇒ 违反总上限
+    old_total = a * b
+    check(f"★ 区分力：旧写法（直接相乘）={old_total} **违反** EXT-009 的 {TOTAL_MAX}× 上限",
+          old_total > TOTAL_MAX,
+          f"旧写法={old_total} > 上限 {TOTAL_MAX}")
+    check(f"★ 新写法的总倍率确实 ≤ {TOTAL_MAX}×",
+          combine_rates(a, b)["total_rate"] <= TOTAL_MAX + 1e-9)
 
 
 def test_ext009_lag_definition() -> None:
@@ -300,8 +346,8 @@ def test_ext009_extension_contract() -> None:
           bool(m) and abs(float(m.group(1)) - 0.025) < 1e-9,
           m.group(1) if m else "未找到")
     m = re.search(r"speedMax:\s*([\d.]+)", jsrc)
-    check("插件侧 speedMax = 1.30（与服务端一致）",
-          bool(m) and abs(float(m.group(1)) - 1.30) < 1e-9,
+    check(f"插件侧 speedMax = {SPEED_MAX}（与服务端一致）",
+          bool(m) and abs(float(m.group(1)) - SPEED_MAX) < 1e-9,
           m.group(1) if m else "未找到")
 
 

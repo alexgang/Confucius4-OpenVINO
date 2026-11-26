@@ -96,7 +96,14 @@ def _first_existing(*paths: str) -> Optional[str]:
 
 
 def _resolve_mt_model_dir() -> Optional[str]:
-    r"""定位 Hy-MT2 的模型目录（**照抄 App 的 `translator.DEFAULT_MODEL` 顺序**）。
+    r"""定位 Hy-MT3 / Hy-MT2 的模型目录（**先 mt3，再回退 mt2**）。
+
+    🔴🔴🔳 **EXT v0.4.22（APP-138 第 2 项）**：MT3（`Hy-MT3-1.8B`）**全面替换** MT2
+    ⇒ 查找顺序改为 **mt3 → mt2**；`LIVECAP_MT_MODEL` 显式指定仍然**优先级最高**。
+
+    ★ 与 App 的 `translator.DEFAULT_MODEL` **同口径**（同模块、同回退链）：
+      App 侧 `translator.py` 的 `_MT_DIR`（默认 mt3）→ `_MT_OTHER_DIR`（回退 mt2）
+      ⇒ 两边**必须**一起改，否则会出现「App 用 mt3、EXT 用 mt2」的分裂。
 
     ★ 本轮修掉的真实缺陷：原来直接用 `models/mt`（**父目录**），
       而 openvino_genai 要求目录里**直接**放 `openvino_model.xml` 等 IR 文件
@@ -108,6 +115,10 @@ def _resolve_mt_model_dir() -> Optional[str]:
     """
     return _first_existing(
         os.environ.get("LIVECAP_MT_MODEL", ""),
+        # ★ v0.4.22：**先 mt3**（APP-138 / APP-141：MT2 不进任何客户包）
+        os.path.join(MODELS_DIR, "mt", "mt3-int8sym-cw-q"),
+        os.path.join(MODELS_DIR, "mt3-int8sym-cw-q"),
+        # ↓ 回退 mt2（老包 / 未拷贝时仍能跑）
         os.path.join(MODELS_DIR, "mt", "mt2-int8sym-cw-q"),
         os.path.join(MODELS_DIR, "mt2-int8sym-cw-q"),
         os.path.join(MODELS_DIR, "mt", "mt2-int4sym-cw-q"),
@@ -119,6 +130,22 @@ def _resolve_mt_model_dir() -> Optional[str]:
 # 且 `LIVECAP_MT_MODEL` 环境变量可能在 import 之后才被设置。
 # ★ 但 `available()` 之类的**探测**接口要一个立即可用的值 ⇒ 保留一份
 #   import 时的快照；真正加载模型时用 `_resolve_mt_model_dir()` 重新解析。
+def _mt_model_name(model_dir: Optional[str]) -> str:
+    """**按实际加载的目录**写模型名（EXT v0.4.22）。
+
+    🔴 旧写法在日志/报错里写死 "Hy-MT2" ⇒ 实际加载的是 mt3 时**日志会说谎**
+    ⇒ 日志与报错一律按**目录名**推导。
+    """
+    if not model_dir:
+        return "Hy-MT3"          # 默认口径（mt3 优先）
+    base = os.path.basename(str(model_dir).rstrip("/\\"))
+    if "mt3" in base:
+        return "Hy-MT3"
+    if "int4" in base:
+        return "Hy-MT2 (INT4)"
+    return "Hy-MT2"
+
+
 MT_MODEL_DIR = _resolve_mt_model_dir()
 
 # ── ASR 行为参数（照抄 App：live_caption_app.py CHUNK_SEC=0.64） ────
@@ -216,6 +243,31 @@ TTS_RUNAWAY_SEC = 30.0
 TTS_MAX_AUDIO_SEC = 60.0
 # 墙钟闸的硬上限（秒）—— 即便阈值算出来更大，也不允许超过这个值。
 TTS_WALL_CLOCK_CAP_SEC = 60.0
+
+
+# ══════════════════════════════════════════════════════════════
+# NPU turbo（APP-139）—— **复用 App 的 `npu_turbo`**（一处判定、两边同口径）
+# ══════════════════════════════════════════════════════════════
+def npu_turbo_props(core=None, base=None, on_log=None) -> dict:
+    """NPU 编译的**编译期属性**（含 turbo 的实际值）。
+
+    🔴 EXT 已把 App 的 `app/` 挂到 `sys.path`（`_ensure_app_on_path()`）
+    ⇒ 直接 `import npu_turbo` ⇒ **与 App 侧同一份实现** ⇒ 口径不会漂移。
+
+    🔴 `NPU_TURBO` **只能**进 `compile_model` 的第三参数（编译期 config）
+    ⇒ 绝不能 `core.set_property()`（会被 CPU/AUTO 插件拒）。
+    """
+    props = dict(base or {})
+    try:
+        _ensure_app_on_path()
+        from npu_turbo import turbo_props as _tp
+    except Exception:
+        return props
+    try:
+        props.update(_tp(core=core, on_log=on_log))
+    except Exception:
+        pass
+    return props
 
 
 class EngineNeedsChange(Exception):
