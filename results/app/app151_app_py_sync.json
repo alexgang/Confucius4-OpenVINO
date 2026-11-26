@@ -1,0 +1,288 @@
+{
+  "generated_at": "2026-11-26 17:29:06",
+  "candidate_app_py_count": 34,
+  "rows": [
+    {
+      "label": "候选←dev  asr06b_stateful_backend.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\asr06b_stateful_backend.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\asr06b_stateful_backend.py",
+      "status": "already_identical",
+      "sha256": "36f20581799f0b16404721f296535312b25a2a397e051901409c8fbf07439a22",
+      "bytes": 35466
+    },
+    {
+      "label": "候选←dev  assert_pkg_clean.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\assert_pkg_clean.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\assert_pkg_clean.py",
+      "status": "already_identical",
+      "sha256": "9469b33f879cf1c699cb0d5caf8cd889e7391aa314d269d4b8be1096fe2ee255",
+      "bytes": 4823
+    },
+    {
+      "label": "候选←dev  audio_check.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\audio_check.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\audio_check.py",
+      "status": "already_identical",
+      "sha256": "30332dfbb70414d27265ae213ab9403262a88c99f01741d13e403f1e52e49d51",
+      "bytes": 4341
+    },
+    {
+      "label": "候选←dev  audio_source.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\audio_source.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\audio_source.py",
+      "status": "already_identical",
+      "sha256": "92671ddade41708dc77458625ad556c6cf775d59ff86f94b86a286ad43327e74",
+      "bytes": 26386
+    },
+    {
+      "label": "候选←dev  backends.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\backends.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\backends.py",
+      "status": "already_identical",
+      "sha256": "e6dbeb5d103c3d56db5b9ec18c919a4f2acef1a9c514bb05c5edabbeeed576fb",
+      "bytes": 18324
+    },
+    {
+      "label": "候选←dev  caption_render.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\caption_render.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\caption_render.py",
+      "status": "already_identical",
+      "sha256": "be9e1d43918424c3bdbda5d512f7a567bb6a783887b744f530d0c5006975064c",
+      "bytes": 28044
+    },
+    {
+      "label": "候选←dev  clone_collector.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\clone_collector.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\clone_collector.py",
+      "status": "already_identical",
+      "sha256": "f1a0f0bc8f5e7a3a8465576b5d4b51780fe570348740877a8de1bfb337cfd34a",
+      "bytes": 10703
+    },
+    {
+      "label": "候选←dev  clone_voice.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\clone_voice.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\clone_voice.py",
+      "status": "already_identical",
+      "sha256": "e3281c41708932767d43c047c351ac06122d073177bdd0d3d9d47892552a79af",
+      "bytes": 40526
+    },
+    {
+      "label": "候选←dev  device_config.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\device_config.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\device_config.py",
+      "status": "already_identical",
+      "sha256": "4e6b50266340c07d00882a3e2f62b1a84ffaefd23eb4626434c7d66c1f5690e0",
+      "bytes": 48828
+    },
+    {
+      "label": "候选←dev  gui_status.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\gui_status.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\gui_status.py",
+      "status": "already_identical",
+      "sha256": "c78813b5bdb6e99ef0b8843824c8a59c05d2f4a355cd5ff0911d49f7646de494",
+      "bytes": 8320
+    },
+    {
+      "label": "候选←dev  live_caption_app.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\live_caption_app.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\live_caption_app.py",
+      "status": "already_identical",
+      "sha256": "63b6c71a033a3b94351ef587f91a05a9992f8b2d1de8d855b71e3ff95d7adfb4",
+      "bytes": 534213
+    },
+    {
+      "label": "候选←dev  npu_delivery_backend.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\npu_delivery_backend.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\npu_delivery_backend.py",
+      "status": "already_identical",
+      "sha256": "356422f67bad4662956f89e0966f5ba6770f37fcee328f3234c5a4f25fe4a89e",
+      "bytes": 10166
+    },
+    {
+      "label": "候选←dev  npu_embeds_backend.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\npu_embeds_backend.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\npu_embeds_backend.py",
+      "status": "already_identical",
+      "sha256": "a33c8e7a0e4a728997e2bfa22fbc6dfb24c1284fdd87a2bd6fe6ad743af770bc",
+      "bytes": 14941
+    },
+    {
+      "label": "候选←dev  npu_turbo.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\npu_turbo.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\npu_turbo.py",
+      "status": "already_identical",
+      "sha256": "1df7068de5b0a6ab281f2efec12f577594c97cb9fc9879d8e992488ddbb8954a",
+      "bytes": 7774
+    },
+    {
+      "label": "候选←dev  offline_reader.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\offline_reader.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\offline_reader.py",
+      "status": "already_identical",
+      "sha256": "94e0c839d05c2fe58d8695859af08d394a5e2a72d4d1f700c2aa06d7bdea8b4b",
+      "bytes": 25316
+    },
+    {
+      "label": "候选←dev  offline_reader_gui.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\offline_reader_gui.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\offline_reader_gui.py",
+      "status": "already_identical",
+      "sha256": "a442b45a2e717dcba01cf22c0b119b6d185f843ec26e8e7c3d4b27b12ffa3db9",
+      "bytes": 27317
+    },
+    {
+      "label": "候选←dev  package_profile.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\package_profile.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\package_profile.py",
+      "status": "already_identical",
+      "sha256": "22de563d784b1628b5863a59ae8afc8f2b7625b6438db02bb046738f0ebdb4ad",
+      "bytes": 9177
+    },
+    {
+      "label": "候选←dev  seg_stream.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\seg_stream.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\seg_stream.py",
+      "status": "already_identical",
+      "sha256": "9d006500793139f5e76b4c906bcf6a9a78b65cac9bc03b84c683d74e127c8edc",
+      "bytes": 15940
+    },
+    {
+      "label": "候选←dev  segment_encoder_backend.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\segment_encoder_backend.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\segment_encoder_backend.py",
+      "status": "already_identical",
+      "sha256": "c2c701dd928cff61b76df78f2b5b01e343871347a849924f73bbf99e50c0123a",
+      "bytes": 12668
+    },
+    {
+      "label": "候选←dev  selftest_audio_sources.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\selftest_audio_sources.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\selftest_audio_sources.py",
+      "status": "already_identical",
+      "sha256": "a6f8bd1f763a138396cedfeb8d95fb4b46512b983e5f0090ec2f508f12b80f6d",
+      "bytes": 4381
+    },
+    {
+      "label": "候选←dev  speaker_assets.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\speaker_assets.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\speaker_assets.py",
+      "status": "already_identical",
+      "sha256": "f39137277b8f27699a926291379cfe1d7b5c57bd7fc70baa73f457f5270ad0de",
+      "bytes": 15820
+    },
+    {
+      "label": "候选←dev  speaker_tracker.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\speaker_tracker.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\speaker_tracker.py",
+      "status": "already_identical",
+      "sha256": "6c8719c3f454cbe682f1f16ec33c2c15844ea5274942ef6ec03dc2428f303a20",
+      "bytes": 62428
+    },
+    {
+      "label": "候选←dev  speaker_voice.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\speaker_voice.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\speaker_voice.py",
+      "status": "already_identical",
+      "sha256": "0da76b62278789df3867bfb9d340d398df5d921c0d050cec03009fa3d7c0c55b",
+      "bytes": 53653
+    },
+    {
+      "label": "候选←dev  streaming_asr.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\streaming_asr.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\streaming_asr.py",
+      "status": "already_identical",
+      "sha256": "a807635124607361afa0ce334ed964a6aea1d531da17cabd4c358ec73f6f4e39",
+      "bytes": 25485
+    },
+    {
+      "label": "候选←dev  time_stretch.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\time_stretch.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\time_stretch.py",
+      "status": "already_identical",
+      "sha256": "3e4c7ebef54fca5f10048a1950f2e78949041ffa45d3d201e80e0023cdbf2037",
+      "bytes": 25649
+    },
+    {
+      "label": "候选←dev  translator.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\translator.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\translator.py",
+      "status": "already_identical",
+      "sha256": "f6b9d89ec08c49e5a9e7e06986f6ecb9a2352e4cb1bec3ada89e7378f582b1ed",
+      "bytes": 99732
+    },
+    {
+      "label": "候选←dev  tts_cuda.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_cuda.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\tts_cuda.py",
+      "status": "already_identical",
+      "sha256": "7fe6e44cc34bc56f19e701b15ea5bd11f8f5e665a95c783ad95e89ed76e4cac3",
+      "bytes": 53865
+    },
+    {
+      "label": "候选←dev  tts_cuda_sidecar.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_cuda_sidecar.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\tts_cuda_sidecar.py",
+      "status": "already_identical",
+      "sha256": "cf4841b74b5e69f7e72a76290ff6cd9e600261947711d8b60d199d0585d132cd",
+      "bytes": 27056
+    },
+    {
+      "label": "候选←dev  tts_engine.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_engine.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\tts_engine.py",
+      "status": "already_identical",
+      "sha256": "113e6938f211e1d1b4e434c1a4047a5a34f7464b6d3cb6ffe6696a3f33f4ad4f",
+      "bytes": 127442
+    },
+    {
+      "label": "候选←dev  tts_service.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_service.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\tts_service.py",
+      "status": "already_identical",
+      "sha256": "66d841888be3ad819edcc18517423698073caa55f4b1fbc9d87d3be1f1cd5b91",
+      "bytes": 144080
+    },
+    {
+      "label": "候选←dev  tts_worker.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_worker.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\tts_worker.py",
+      "status": "already_identical",
+      "sha256": "8efd010df6b4529b328aaafd3e680aec51e52108b9f501751b4b3a3fc2eb8961",
+      "bytes": 292462
+    },
+    {
+      "label": "候选←dev  v23_preset_only.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\v23_preset_only.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\v23_preset_only.py",
+      "status": "already_identical",
+      "sha256": "362825e644d2edc42ef662505aaaa8dbd07cad5522da642d36cef8266dd043c7",
+      "bytes": 17260
+    },
+    {
+      "label": "候选←dev  win_clickthrough.py",
+      "src": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\win_clickthrough.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\win_clickthrough.py",
+      "status": "already_identical",
+      "sha256": "db376c52bfe20f2665954bee133a3f20e325d0916559083884b8e6d50ab3e9d1",
+      "bytes": 7817
+    },
+    {
+      "label": "dev←候选  tts_engine_patch.py",
+      "src": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\tts_engine_patch.py",
+      "dst": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\tts_engine_patch.py",
+      "status": "already_identical",
+      "sha256": "3b8281ab992a9f6aba82e6e5508dfa1d8f177c7684f16d0774ea2ad8c15ebecb",
+      "bytes": 27099
+    }
+  ],
+  "remaining_diffs": [],
+  "translator_mt3_lines": [
+    65,
+    68,
+    69,
+    70,
+    72,
+    73
+  ],
+  "translator_mt3_line_count": 6
+}

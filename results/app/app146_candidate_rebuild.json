@@ -1,0 +1,166 @@
+{
+  "generated_at": "2026-11-26 17:13:50",
+  "mode": "dry-run",
+  "candidate": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate",
+  "steps": [
+    {
+      "label": "EXT engine_runtime.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\ext\\bridge\\engine_runtime.py",
+      "status": "already_identical",
+      "sha256": "ddbb0f3c31b3ee40c1a3f045ad47eac5250acf50efc927352801374f03673936",
+      "bytes": 46008
+    },
+    {
+      "label": "EXT version.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\ext\\bridge\\version.py",
+      "status": "already_identical",
+      "sha256": "025b99b7a1f2e8c1c754af5bd20d0e3d9d94c869e3a63e619bfb6713a8f51371",
+      "bytes": 333
+    },
+    {
+      "label": "EXT manifest.json",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\ext\\extension\\manifest.json",
+      "status": "already_identical",
+      "sha256": "222e4cda50fedc6d55561934dfeb5a7120905f13055dc1c5dd34a52a6c8c707f",
+      "bytes": 2475
+    },
+    {
+      "label": "App npu_turbo.py（新文件）",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\npu_turbo.py",
+      "status": "already_identical",
+      "sha256": "1df7068de5b0a6ab281f2efec12f577594c97cb9fc9879d8e992488ddbb8954a",
+      "bytes": 7774
+    },
+    {
+      "label": "App tts_engine.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\tts_engine.py",
+      "status": "already_identical",
+      "sha256": "113e6938f211e1d1b4e434c1a4047a5a34f7464b6d3cb6ffe6696a3f33f4ad4f",
+      "bytes": 127442
+    },
+    {
+      "label": "App npu_delivery_backend.py",
+      "dst": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\app\\npu_delivery_backend.py",
+      "status": "already_identical",
+      "sha256": "356422f67bad4662956f89e0966f5ba6770f37fcee328f3234c5a4f25fe4a89e",
+      "bytes": 10166
+    },
+    {
+      "label": "MT mt3 替换 mt2",
+      "mt_info": {
+        "mt3_src": "C:\\Users\\Trekker-PTL\\hy_bench\\ov\\mt3-int8sym-cw-q",
+        "mt2_present_before": false,
+        "mt3_present_after": true,
+        "mt2_present_after": false
+      }
+    },
+    {
+      "label": "package_profile.json",
+      "mt_model": "mt3-int8sym-cw-q",
+      "ext_version": "0.4.22",
+      "npu_turbo": true
+    },
+    {
+      "label": "Start_Bridge.bat turbo 开关",
+      "has_turbo": true
+    },
+    {
+      "label": "自检",
+      "checks": [
+        {
+          "name": "models/mt 只有 mt3（无 mt2）",
+          "ok": true,
+          "detail": "['mt3-int8sym-cw-q']"
+        },
+        {
+          "name": "克隆音色目录为空（唯一 wav 是 preset_A.wav）",
+          "ok": true,
+          "detail": "['models\\\\qwen3tts\\\\voices\\\\preset_A.wav']"
+        },
+        {
+          "name": "除 preset_A.wav 外无媒体文件",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "无 CUDA DLL",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "profile mt_model = mt3",
+          "ok": true,
+          "detail": "mt3-int8sym-cw-q"
+        },
+        {
+          "name": "profile tts_c13 = false（不带 c13）",
+          "ok": true,
+          "detail": "False"
+        },
+        {
+          "name": "profile allow_cuda = false",
+          "ok": true,
+          "detail": "False"
+        },
+        {
+          "name": "profile allow_clone_voice = true",
+          "ok": true,
+          "detail": "True"
+        },
+        {
+          "name": "profile allow_bgkeep = true（保留背景音）",
+          "ok": true,
+          "detail": "True"
+        },
+        {
+          "name": "候选目录 EXT = 0.4.22",
+          "ok": true,
+          "detail": "\"0.4.22\"\r"
+        },
+        {
+          "name": "EXT 查找链含 mt3",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "EXT 有 npu_turbo_props（turbo 复用 App）",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "候选目录 app/npu_turbo.py 存在",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "app/tts_engine.py 已接 turbo",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "app/npu_delivery_backend.py 已接 turbo",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "Start_Bridge.bat 有 LIVECAP_NPU_TURBO",
+          "ok": true,
+          "detail": ""
+        }
+      ]
+    }
+  ],
+  "log": [
+    "模式：DRY-RUN（不落盘）",
+    "候选目录：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate",
+    "  [EXT] engine_runtime.py      already_identical  ",
+    "  [EXT] version.py             already_identical  ",
+    "  [EXT] manifest.json        already_identical  ",
+    "  [APP] npu_turbo.py         already_identical  ",
+    "  [APP] tts_engine.py        already_identical  ",
+    "  [APP] npu_delivery_backend.py already_identical  ",
+    "  [MT ] 将把 mt2 移出到 quarantine，并把 mt3 拷入 models/mt/",
+    "  [PROF] 改前 mt_model=mt3-int8sym-cw-q",
+    "  [BAT ] Start_Bridge.bat 已有 LIVECAP_NPU_TURBO"
+  ]
+}

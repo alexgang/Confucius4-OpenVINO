@@ -1,0 +1,278 @@
+{
+  "generated_at": "2026-11-26 17:09:47",
+  "candidate": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate",
+  "media": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\test_audio\\clip_10min_0_600.wav",
+  "media_duration_sec": 600,
+  "drain_cap_sec": 300,
+  "arms": [
+    {
+      "arm": "bgkeep_off",
+      "bg_off": true,
+      "voice": "A",
+      "rc": 0,
+      "elapsed_s": 1049.1,
+      "json": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\e2e_app146\\three_arms\\bgkeep_off\\bgkeep_off_1\\bgkeep_e2e.json",
+      "dubs": 123,
+      "n_pending_at_media_end": 0,
+      "n_pending_after_drain": 0,
+      "drained_to_zero": true,
+      "drain_elapsed_sec": 0.07,
+      "timing_valid": true,
+      "stats_timeout_count": 0,
+      "n_emitted": 123,
+      "n_error": 123,
+      "dub_late_max": -11.89,
+      "dub_late_p90": -12.859,
+      "synth_rtf": {
+        "definition": "synth_rtf = Σtts_sec ÷ Σspeech_sec（EXT 的 RTF_out）= TTS 自身的 RTF；只统计「有 TTS 的段」",
+        "margin_json": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\e2e_app146\\three_arms\\bgkeep_off\\bgkeep_off_1\\margin.json",
+        "n_segments_with_tts": 0,
+        "sum_tts_sec": 0.0,
+        "sum_speech_sec": 0.0,
+        "synth_rtf": null,
+        "synth_rtf_recomputed": null,
+        "ext_rtf_out": null,
+        "ext_speech_over_src": null,
+        "ext_tts_over_src": null,
+        "cross_check_ok": false,
+        "per_segment": []
+      },
+      "peak_ws_mb": null,
+      "clone_reasons": {},
+      "devices": null,
+      "bg_state": "off",
+      "lock_events": [
+        {
+          "ev": "lock_acquired",
+          "ts": "2026-11-26T15:16:33",
+          "tag": "app e2e drain 2026-11-26T15:09:33 pid=11148",
+          "waited_s": 420
+        },
+        {
+          "ev": "arm_done",
+          "arm": "bgkeep_off_1",
+          "rc": 0,
+          "elapsed_s": 632,
+          "lock_lost": 0
+        },
+        {
+          "ev": "lock_released",
+          "ts": "2026-11-26T15:27:06"
+        },
+        {
+          "ev": "lock_acquired",
+          "ts": "2026-11-26T16:38:22",
+          "tag": "app e2e drain 2026-11-26T16:31:22 pid=23024",
+          "waited_s": 420
+        },
+        {
+          "ev": "arm_done",
+          "arm": "bgkeep_off_1",
+          "rc": 0,
+          "elapsed_s": 628,
+          "lock_lost": 0
+        },
+        {
+          "ev": "lock_released",
+          "ts": "2026-11-26T16:48:51"
+        }
+      ],
+      "log_mt_ready": [],
+      "log_turbo": [],
+      "log_engine_fail": [
+        "[bridge 16:38:28] (1/3) ASR（R2T2 INT8） 加载失败 ⇒ EngineNeedsChange: [R2T2] SegmentEncoderOVBackend 构造失败（device=GPU.0）: Exception from src\\inference\\src\\cpp\\core.cpp:84:",
+        "[bridge 16:38:39] ❌ 部分引擎加载失败：{'asr': 'EngineNeedsChange: [R2T2] SegmentEncoderOVBackend 构造失败（device=GPU.0）: Exception from src\\\\inference\\\\src\\\\cpp\\\\core.cpp:84:\\nCheck \\'util::directory_exists(path) || util::file_exists(path)\\' failed at src\\\\frontends\\\\common\\\\src\\\\frontend.cpp:120:\\nFrontEnd API failed with GeneralFailure:\\nir: Could not open the file: \"C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\\\models\\\\encoder-int8\\\\openvino_encoder_model.xml\"\\n\\n'}"
+      ],
+      "log_tts_ready": [],
+      "stdout_tail": [
+        "}",
+        "lock released",
+        "driver done"
+      ],
+      "stderr_tail": []
+    },
+    {
+      "arm": "bgkeep_on",
+      "bg_off": false,
+      "voice": "A",
+      "rc": 0,
+      "elapsed_s": 627.3,
+      "json": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\e2e_app146\\three_arms\\bgkeep_on\\bgkeep_on_1\\bgkeep_e2e.json",
+      "dubs": 123,
+      "n_pending_at_media_end": 0,
+      "n_pending_after_drain": 0,
+      "drained_to_zero": true,
+      "drain_elapsed_sec": 0.05,
+      "timing_valid": true,
+      "stats_timeout_count": 0,
+      "n_emitted": 123,
+      "n_error": 123,
+      "dub_late_max": -11.516,
+      "dub_late_p90": -12.848,
+      "synth_rtf": {
+        "definition": "synth_rtf = Σtts_sec ÷ Σspeech_sec（EXT 的 RTF_out）= TTS 自身的 RTF；只统计「有 TTS 的段」",
+        "margin_json": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\e2e_app146\\three_arms\\bgkeep_on\\bgkeep_on_1\\margin.json",
+        "n_segments_with_tts": 0,
+        "sum_tts_sec": 0.0,
+        "sum_speech_sec": 0.0,
+        "synth_rtf": null,
+        "synth_rtf_recomputed": null,
+        "ext_rtf_out": null,
+        "ext_speech_over_src": null,
+        "ext_tts_over_src": null,
+        "cross_check_ok": false,
+        "per_segment": []
+      },
+      "peak_ws_mb": null,
+      "clone_reasons": {},
+      "devices": null,
+      "bg_state": "ok",
+      "lock_events": [
+        {
+          "ev": "lock_acquired",
+          "ts": "2026-11-26T15:27:06",
+          "tag": "app e2e drain 2026-11-26T15:27:06 pid=21588",
+          "waited_s": 0
+        },
+        {
+          "ev": "arm_done",
+          "arm": "bgkeep_on_1",
+          "rc": 0,
+          "elapsed_s": 632,
+          "lock_lost": 0
+        },
+        {
+          "ev": "lock_released",
+          "ts": "2026-11-26T15:37:39"
+        },
+        {
+          "ev": "lock_acquired",
+          "ts": "2026-11-26T16:48:51",
+          "tag": "app e2e drain 2026-11-26T16:48:51 pid=29180",
+          "waited_s": 0
+        },
+        {
+          "ev": "arm_done",
+          "arm": "bgkeep_on_1",
+          "rc": 0,
+          "elapsed_s": 626,
+          "lock_lost": 0
+        },
+        {
+          "ev": "lock_released",
+          "ts": "2026-11-26T16:59:18"
+        }
+      ],
+      "log_mt_ready": [],
+      "log_turbo": [],
+      "log_engine_fail": [
+        "[bridge 16:48:56] (1/3) ASR（R2T2 INT8） 加载失败 ⇒ EngineNeedsChange: [R2T2] SegmentEncoderOVBackend 构造失败（device=GPU.0）: Exception from src\\inference\\src\\cpp\\core.cpp:84:",
+        "[bridge 16:49:05] ❌ 部分引擎加载失败：{'asr': 'EngineNeedsChange: [R2T2] SegmentEncoderOVBackend 构造失败（device=GPU.0）: Exception from src\\\\inference\\\\src\\\\cpp\\\\core.cpp:84:\\nCheck \\'util::directory_exists(path) || util::file_exists(path)\\' failed at src\\\\frontends\\\\common\\\\src\\\\frontend.cpp:120:\\nFrontEnd API failed with GeneralFailure:\\nir: Could not open the file: \"C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\\\models\\\\encoder-int8\\\\openvino_encoder_model.xml\"\\n\\n'}"
+      ],
+      "log_tts_ready": [],
+      "stdout_tail": [
+        "}",
+        "lock released",
+        "driver done"
+      ],
+      "stderr_tail": []
+    },
+    {
+      "arm": "bgkeep_on_clone",
+      "bg_off": false,
+      "voice": "clone",
+      "rc": 0,
+      "elapsed_s": 628.8,
+      "json": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\e2e_app146\\three_arms\\bgkeep_on_clone\\bgkeep_on_clone_1\\bgkeep_e2e.json",
+      "dubs": 170,
+      "n_pending_at_media_end": 1,
+      "n_pending_after_drain": 0,
+      "drained_to_zero": true,
+      "drain_elapsed_sec": 1.72,
+      "timing_valid": true,
+      "stats_timeout_count": 0,
+      "n_emitted": 170,
+      "n_error": 170,
+      "dub_late_max": -8.114,
+      "dub_late_p90": -9.275,
+      "synth_rtf": {
+        "definition": "synth_rtf = Σtts_sec ÷ Σspeech_sec（EXT 的 RTF_out）= TTS 自身的 RTF；只统计「有 TTS 的段」",
+        "margin_json": "C:\\Users\\Trekker-PTL\\shared\\bgkeep\\e2e_app146\\three_arms\\bgkeep_on_clone\\bgkeep_on_clone_1\\margin.json",
+        "n_segments_with_tts": 0,
+        "sum_tts_sec": 0.0,
+        "sum_speech_sec": 0.0,
+        "synth_rtf": null,
+        "synth_rtf_recomputed": null,
+        "ext_rtf_out": null,
+        "ext_speech_over_src": null,
+        "ext_tts_over_src": null,
+        "cross_check_ok": false,
+        "per_segment": []
+      },
+      "peak_ws_mb": null,
+      "clone_reasons": {
+        "self_ref_unvoiced": 30,
+        "self_ref": 2,
+        "guard_no_emb": 2,
+        "timeout": 6,
+        "guard_keep": 103,
+        "label": 61,
+        "provisional": 164,
+        "fallback": 2,
+        "guard_short": 64,
+        "gender_keep": 2
+      },
+      "devices": null,
+      "bg_state": "ok",
+      "lock_events": [
+        {
+          "ev": "lock_acquired",
+          "ts": "2026-11-26T15:37:39",
+          "tag": "app e2e drain 2026-11-26T15:37:39 pid=10548",
+          "waited_s": 0
+        },
+        {
+          "ev": "arm_done",
+          "arm": "bgkeep_on_clone_1",
+          "rc": 0,
+          "elapsed_s": 633,
+          "lock_lost": 0
+        },
+        {
+          "ev": "lock_released",
+          "ts": "2026-11-26T15:48:13"
+        },
+        {
+          "ev": "lock_acquired",
+          "ts": "2026-11-26T16:59:19",
+          "tag": "app e2e drain 2026-11-26T16:59:19 pid=27520",
+          "waited_s": 0
+        },
+        {
+          "ev": "arm_done",
+          "arm": "bgkeep_on_clone_1",
+          "rc": 0,
+          "elapsed_s": 628,
+          "lock_lost": 0
+        },
+        {
+          "ev": "lock_released",
+          "ts": "2026-11-26T17:09:47"
+        }
+      ],
+      "log_mt_ready": [],
+      "log_turbo": [],
+      "log_engine_fail": [
+        "[bridge 16:59:23] (1/3) ASR（R2T2 INT8） 加载失败 ⇒ EngineNeedsChange: [R2T2] SegmentEncoderOVBackend 构造失败（device=GPU.0）: Exception from src\\inference\\src\\cpp\\core.cpp:84:",
+        "[bridge 16:59:32] ❌ 部分引擎加载失败：{'asr': 'EngineNeedsChange: [R2T2] SegmentEncoderOVBackend 构造失败（device=GPU.0）: Exception from src\\\\inference\\\\src\\\\cpp\\\\core.cpp:84:\\nCheck \\'util::directory_exists(path) || util::file_exists(path)\\' failed at src\\\\frontends\\\\common\\\\src\\\\frontend.cpp:120:\\nFrontEnd API failed with GeneralFailure:\\nir: Could not open the file: \"C:\\\\Users\\\\Trekker-PTL\\\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\\\models\\\\encoder-int8\\\\openvino_encoder_model.xml\"\\n\\n'}"
+      ],
+      "log_tts_ready": [],
+      "stdout_tail": [
+        "}",
+        "lock released",
+        "driver done"
+      ],
+      "stderr_tail": []
+    }
+  ]
+}

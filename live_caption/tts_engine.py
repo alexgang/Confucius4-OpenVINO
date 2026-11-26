@@ -906,6 +906,14 @@ def make_engine(device: str = 'NPU',
     )
 
     patch = _load_patch_class()
+    # 🔴🔴🔳 APP-139：把 `on_log` 注入 patch 模块 ⇒ turbo 的日志走**同一条**
+    #   on_log 通道（babelvox 的 logger 级别是 WARNING ⇒ 走 logger 的日志会被过滤；
+    #   桥接用 pythonw ⇒ 裸 print 也无处可去 ⇒ **只有 on_log 能落盘**）。
+    if patch is not None and hasattr(patch, 'set_turbo_logger'):
+        try:
+            patch.set_turbo_logger(on_log)
+        except Exception:
+            pass
     cls = BabelVox
     if patch is not None and hasattr(patch, 'MultiDecoderBabelVox'):
         cls = patch.MultiDecoderBabelVox

@@ -1,0 +1,69 @@
+{
+  "generated_at": "2026-11-26 17:32:09",
+  "candidate": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_MiniMVP_v1.2.candidate",
+  "python": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\python\\python.exe",
+  "mt_engines": {
+    "auto": {
+      "label": "自动 · INT8-CW 模型（默认）",
+      "avail": true,
+      "model": null
+    },
+    "gpu_int8cw": {
+      "label": "Intel GPU · INT8-CW（默认）",
+      "avail": true,
+      "model": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\models\\mt\\mt3-int8sym-cw-q"
+    },
+    "npu_int8cw": {
+      "label": "Intel NPU · INT8-CW",
+      "avail": true,
+      "model": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\models\\mt\\mt3-int8sym-cw-q"
+    }
+  },
+  "asr_engines_06b": {
+    "gpu_int8": "Intel GPU · INT8 (stateful)",
+    "npu_int8": "Intel NPU · INT8 (stateful)"
+  },
+  "default_model": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\models\\mt\\mt3-int8sym-cw-q",
+  "sentences": [
+    {
+      "src": "Hello, welcome to the live caption demo.",
+      "tgt_lang": "zh",
+      "out": {
+        "text": "你好，欢迎来到实时字幕演示。",
+        "lat_ms": 586.3161999732256,
+        "ttft_ms": 354.3859999626875,
+        "n_in": 33,
+        "n_out": 10,
+        "skipped": false
+      },
+      "sec": 0.59
+    },
+    {
+      "src": "The meeting starts in ten minutes.",
+      "tgt_lang": "zh",
+      "out": {
+        "text": "会议将在十分钟后开始。",
+        "lat_ms": 272.8140999097377,
+        "ttft_ms": 144.1170999314636,
+        "n_in": 31,
+        "n_out": 7,
+        "skipped": false
+      },
+      "sec": 0.27
+    },
+    {
+      "src": "Please make sure the background music is kept.",
+      "tgt_lang": "zh",
+      "out": {
+        "text": "请确保背景音乐保持不变。",
+        "lat_ms": 246.05760001577437,
+        "ttft_ms": 147.71749987266958,
+        "n_in": 33,
+        "n_out": 6,
+        "skipped": false
+      },
+      "sec": 0.25
+    }
+  ],
+  "n_ok": 3
+}

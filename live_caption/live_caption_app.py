@@ -38,7 +38,7 @@ LSP 前缀回滚，自适应生成预算）；分段规则与 mic_asr_app.py 相
   python live_caption_app.py --list-devices
   python live_caption_app.py --check                # 环境检查（Diagnose.bat）
 
-实时翻译（C-102 起翻译模型为 Hy-MT2-1.8B）：
+实时翻译（C-102 起翻译模型为 Hy-MT3-1.8B）：
   python live_caption_app.py --cli --engine gpu_int8 --file x.wav --translate zh
   python live_caption_app.py --translate en --mt-device NPU
 
@@ -9285,7 +9285,7 @@ def run_check():
     print()
 
     # ── 4. 翻译后端 ────────────────────────────────────────────────
-    print('── 翻译后端（Hy-MT2-1.8B）──')
+    print('── 翻译后端（Hy-MT3-1.8B）──')
     for key, cfg in MT_ALL_CANDIDATES.items():
         ok = cfg.get('available')
         bundled = cfg.get('bundled', True)
@@ -9415,7 +9415,7 @@ def main():
                          '可显著降低语种误判；语种名用模型的英文名，'
                          '如 Chinese / English / Japanese / Korean')
     ap.add_argument('--translate', choices=list(TARGETS), default='off',
-                    help='实时翻译目标语言（Hy-MT2-1.8B）；off=不翻译')
+                    help='实时翻译目标语言（Hy-MT3-1.8B）；off=不翻译')
     ap.add_argument('--mt-engine', choices=list(MT_ENGINES), default=MT_DEFAULT,
                     help='翻译后端（设备 × 量化）；auto = 用 --mt-device + LIVECAP_MT_MODEL')
     ap.add_argument('--mt-ctx', action='store_true',

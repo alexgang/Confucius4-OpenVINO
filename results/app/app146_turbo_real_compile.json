@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-11-26 15:07:25",
+  "ir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\models\\qwen3tts\\int8\\speaker_encoder.xml",
+  "ov_version": "2026.4.1-22982-e213a147257-releases/2026/4",
+  "with_turbo": {
+    "seconds": 1.3,
+    "readback": {
+      "NPU_TURBO": "True",
+      "EXECUTION_DEVICES": "NPU",
+      "PERFORMANCE_HINT": "PerformanceMode.LATENCY"
+    },
+    "props_in": {
+      "NPU_TURBO": "YES"
+    }
+  },
+  "without_turbo": {
+    "seconds": 1.3,
+    "readback": {
+      "NPU_TURBO": "<RuntimeError>",
+      "EXECUTION_DEVICES": "NPU",
+      "PERFORMANCE_HINT": "PerformanceMode.LATENCY"
+    },
+    "props_in": {}
+  },
+  "checks": [
+    {
+      "name": "默认开 ⇒ 注入 NPU_TURBO=YES",
+      "ok": true
+    },
+    {
+      "name": "带 turbo 的编译**成功**",
+      "ok": true
+    },
+    {
+      "name": "★ 编译产物上**读回** NPU_TURBO（真进了编译期 config）",
+      "ok": true
+    },
+    {
+      "name": "EXECUTION_DEVICES = NPU（真编到 NPU）",
+      "ok": true
+    },
+    {
+      "name": "关闭 ⇒ **不注入** NPU_TURBO",
+      "ok": true
+    },
+    {
+      "name": "★ 反证：关掉后编译产物上**读不到** NPU_TURBO（证明上条判据有鉴别力）",
+      "ok": true
+    }
+  ],
+  "n_pass": 6,
+  "n_fail": 0
+}

@@ -129,9 +129,52 @@ class MultiDecoderBabelVox(BabelVox):
     # ------------------------------------------------------------------
     # reviewer 2026-11-07: base max_decoder_frames vocoder is compiled lazily (see _LazyCompiled)
     def _compile_npu(self, core, model, name):
+        _turbo_log('[tts_engine_patch] >>> _compile_npu 被调用：%s' % name)
         if (name == 'tokenizer_decoder' and self.decoder_buckets
                 and os.environ.get('LIVECAP_TTS_EAGER_DEC512') != '1'):
             return _LazyCompiled(core, model, super()._compile_npu, name), 'NPU'
+        # 🔴🔴🔳 **APP-139（2026-11-26）：NPU turbo 注入点**
+        #
+        # ★ 为什么必须在这里注入（实测定位）：
+        #   真正的 NPU 编译在 `babelvox/pipeline.py::_compile_npu`：
+        #       `return core.compile_model(model, "NPU"), "NPU"`
+        #   ⇒ **不传任何属性** ⇒ turbo 无处可注入
+        #   （`NPU_TURBO` 只在 `compile_model` 的**第三参数（编译期 config）**里生效；
+        #     `set_property` 会被 CPU/AUTO 插件拒 —— TTS 模块 2026-11-02 实测）。
+        #
+        # ★ 口径：**默认开**；设备/驱动不支持 ⇒ **退回不带 turbo**；
+        #   编译失败 ⇒ 退回 `super()._compile_npu`（保持原行为，**不让 turbo 拖垮 TTS**）。
+        # ★ 日志打**实际值**（APP-139 的验收项）。
+        try:
+            # 🔴🔴 **不能直接 `from npu_turbo import ...`** —— 本文件是用
+            #   `importlib.util.spec_from_file_location` 加载的 ⇒ **不在 sys.path 里**
+            #   ⇒ 同目录的 npu_turbo **import 不到**（实测：分支被静默跳过，
+            #   三轮 e2e 的日志里一条 turbo 都没有）⇒ 按**本文件所在目录**显式加载。
+            import importlib.util as _ilu
+            _spec = _ilu.spec_from_file_location(
+                'npu_turbo', os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                           'npu_turbo.py'))
+            _mod = _ilu.module_from_spec(_spec)
+            _spec.loader.exec_module(_mod)
+            _turbo_props = _mod.turbo_props
+        except Exception as _e:
+            _turbo_props = None
+            try:
+                _turbo_log('[tts_engine_patch] turbo 模块加载失败：%s: %s ⇒ 不注入'
+                           % (type(_e).__name__, _e))
+            except Exception:
+                pass
+        if _turbo_props is not None:
+            try:
+                props = _turbo_props(core=core, on_log=_turbo_log)
+                if props:
+                    cm = core.compile_model(model, "NPU", props)
+                    _turbo_log('[tts_engine_patch] NPU turbo 已生效：%s（%s）'
+                               % (props.get('NPU_TURBO'), name))
+                    return cm, "NPU"
+            except Exception as e:
+                _turbo_log('[tts_engine_patch] NPU turbo 编译失败（%s: %s）⇒ 退回原路径（不带 turbo）'
+                           % (type(e).__name__, e))
         return super()._compile_npu(core, model, name)
 
     def _load_npu_models(self, core, export_dir):
@@ -459,3 +502,52 @@ class QuantEvalBabelVox(MultiDecoderBabelVox):
                 self._dec_bucket_models[n] = cm
                 logger.info("    Tok decoder @%3d: %.1fs (%s)",
                             n, _t.time() - t1, dev)
+
+
+#: APP-139：turbo 的日志回调（由 `tts_engine.make_engine` 通过
+#: `set_turbo_logger(on_log)` 注入 ⇒ 走 EXT 的 on_log 通道
+#: ⇒ 能进 `%LOCALAPPDATA%\\LiveDubEXT\\bridge.log` 与臂目录的 bridge.log）。
+#:
+#: 🔴 **为什么不能只靠 logger/print**：
+#:   ① `babelvox.pipeline.logger` 的 level=WARNING、handlers=[]
+#:      ⇒ `logger.info(...)` **被级别过滤** ⇒ 一条都输出不了；
+#:   ② 桥接进程用 `pythonw.exe`（**无 console**）⇒ 裸 `print` **无处可去**。
+_TURBO_LOG = None
+
+
+def set_turbo_logger(fn):
+    """APP-139：注入日志回调（`tts_engine.make_engine` 调用）。"""
+    global _TURBO_LOG
+    _TURBO_LOG = fn
+
+
+def _turbo_log(msg):
+    """APP-139：turbo 的日志。
+
+    🔴 **必须走 babelvox 的 logger** —— 桥接进程用 `pythonw.exe`（**无 console**）
+       ⇒ 裸 `print` 的输出**无处可去**（实测：整轮 e2e 的 bridge.log 里一条 turbo 都没有，
+       而 tts_engine 自己的 `on_log` 行能进 `%LOCALAPPDATA%\\LiveDubEXT\\bridge.log`）。
+    """
+    # ① 首选：EXT 的 on_log 通道（**唯一真能落盘**的通道）
+    fn = _TURBO_LOG
+    if fn is not None:
+        try:
+            fn(msg)
+            return
+        except Exception:
+            pass
+    # ② 退回 logger（babelvox 的 logger 级别是 WARNING ⇒ info 可能被过滤）
+    try:
+        from babelvox.pipeline import logger as _lg
+        _lg.warning(msg)
+    except Exception:
+        pass
+    # ③ 退回 print（pythonw 下无效，但总比没有强）
+    try:
+        print(msg, flush=True)
+    except Exception:
+        pass
+    try:
+        print(msg, flush=True)
+    except Exception:
+        pass

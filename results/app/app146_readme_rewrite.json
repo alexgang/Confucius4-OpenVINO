@@ -1,0 +1,24 @@
+{
+  "generated_at": "2026-11-26 14:04:36",
+  "steps": [
+    {
+      "file": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\README_zh.md",
+      "status": "already_applied",
+      "applied": [
+        "（幂等跳过）"
+      ]
+    },
+    {
+      "file": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\README_en.md",
+      "status": "patched",
+      "applied": [
+        "改动说明整段替换",
+        "已知限制·EXT ASR 不可用"
+      ],
+      "bytes_before": 64998,
+      "bytes_after": 33572,
+      "sha256": "e1e4848af1fb6eb11f2f6653c1903b921b82fe6adbc68c3678b65acf15354ecc",
+      "old_segment_bytes": 33454
+    }
+  ]
+}
