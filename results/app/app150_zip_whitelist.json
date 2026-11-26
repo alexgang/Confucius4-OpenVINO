@@ -1,0 +1,118 @@
+{
+  "generated_at": "2026-11-26 18:08:05",
+  "candidate": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_MiniMVP_v1.2.candidate",
+  "checks": [
+    {
+      "name": "clone 目录为空（无克隆音色文件）",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "无运行产物（bridge_token/log/bridge.err/ov_cache/npu_cache/__pycache__）",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "包内文本文件搜 `Trekker-PLT` 为 0 处",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "包内没有 device_config.json（它是用户级配置，不入包）",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "出厂默认 ASR=GPU.0",
+      "ok": true,
+      "detail": "GPU.0"
+    },
+    {
+      "name": "出厂默认 MT=GPU.0",
+      "ok": true,
+      "detail": "GPU.0"
+    },
+    {
+      "name": "出厂默认 TTS=NPU",
+      "ok": true,
+      "detail": "NPU"
+    },
+    {
+      "name": "profile: NPU_TURBO 开",
+      "ok": true,
+      "detail": "True"
+    },
+    {
+      "name": "profile: 保留背景音开（allow_bgkeep）",
+      "ok": true,
+      "detail": "True"
+    },
+    {
+      "name": "profile: 不带 CUDA",
+      "ok": true,
+      "detail": "False"
+    },
+    {
+      "name": "profile: 不带 c13",
+      "ok": true,
+      "detail": "False"
+    },
+    {
+      "name": "profile: MT=mt3",
+      "ok": true,
+      "detail": "mt3-int8sym-cw-q"
+    },
+    {
+      "name": "profile: EXT v0.4.23",
+      "ok": true,
+      "detail": "0.4.23"
+    },
+    {
+      "name": "插件侧「保留背景音」默认开",
+      "ok": true,
+      "detail": "True"
+    },
+    {
+      "name": "插件侧「克隆」默认关（默认音色是预设 A，不是 clone）",
+      "ok": true,
+      "detail": "A"
+    },
+    {
+      "name": "除 preset_A.wav 外无音视频文件",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "无 CUDA DLL",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "ACCEPTED.json 不在包内",
+      "ok": true,
+      "detail": "[]"
+    }
+  ],
+  "default_devices_minimvp": {
+    "asr": "GPU.0",
+    "mt": "GPU.0",
+    "tts": "NPU"
+  },
+  "package_profile": {
+    "profile": "minimvp",
+    "allow_cuda": false,
+    "allow_clone_voice": true,
+    "allow_bgkeep": true,
+    "tts_c13": false,
+    "mt_model": "mt3-int8sym-cw-q",
+    "target_langs": 10,
+    "note": "MiniMVP v1.2（APP-137，2026-11-25，用户决定）：EXT 的全部功能（含「保留背景音」bgkeep）＋ 音色克隆并入 MiniMVP；仍只有 iGPU/NPU（无 CUDA）；出厂默认 ASR=GPU.0 / MT=GPU.0 / TTS=NPU；MT 暂时用 Hy-MT2（切 MT3 的开关已留好）；APP-123 的 c13 尚未验收 ⇒ 本包不启用 c13。包内不含任何录音、克隆音色、同事声音或测试媒体；克隆音色在首次使用时现场采集。 MT 已换 Hy-MT3（APP-138/APP-141：MT2 不进包）；EXT v0.4.23；NPU turbo 默认开（APP-139）。 MT 已换 Hy-MT3（包内只带 mt3）；EXT v0.4.23；NPU turbo 默认开。",
+    "ext_version": "0.4.23",
+    "npu_turbo": true
+  },
+  "bgkeep_default": true,
+  "voice_default": "A",
+  "n_pass": 18,
+  "n_fail": 0,
+  "verdict": "PASS（白名单全过；仍需 APP-149 第 6/7 项的冒烟与三轮门禁）"
+}

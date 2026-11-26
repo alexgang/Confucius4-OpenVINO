@@ -210,7 +210,17 @@ MT 引擎列表（`translator.MT_ENGINES`）：**auto / gpu_int8cw / npu_int8cw�
    （job 在后台排队，尚未拿到锁）。
 2. 🔴 **APP-149 第 7 项 ＋ APP-146/147/148 三轮重跑**（冒烟通过后）；
    门禁新增：**三轮的 `n_error` 必须为 0**、`asr_segments` 等于提交段数量级。
-3. 🔴 **APP-150 §1 的打 zip 白名单检查**（运行产物不入包、ACCEPTED 不进包、
+3. 🔴 **APP-150 §1 的打 zip 白名单检查（已做，18/18 PASS）**
+   （脚本 `live_caption/_app150_zip_whitelist.py`，结果 `results/app/app150_zip_whitelist.json`）：
+   clone 目录**为空**／**无运行产物**（bridge_token/log/bridge.err/ov_cache/npu_cache/__pycache__）／
+   包内文本搜 `Trekker-PLT` **0 处**／**包内没有 device_config.json**（它是**用户级配置**，
+   路径 `%LOCALAPPDATA%\Confucius4LiveCaption\`，不入包）／代码里的 MiniMVP 出厂默认
+   **ASR=GPU.0 / MT=GPU.0 / TTS=NPU**／profile：NPU_TURBO 开、保留背景音开、
+   不带 CUDA、不带 c13、MT=mt3、EXT **v0.4.23**／插件侧「保留背景音」**默认开**、
+   「克隆」**默认关**（默认音色＝预设 A）／除 `preset_A.wav` 外**无音视频**／**无 CUDA DLL**／
+   **ACCEPTED.json 不在包内**。
+   🔴 本轮顺带修掉一个真缺陷：候选包 `package_profile.json` 的 `ext_version` 还写着 **0.4.22** ⇒ 已改 **0.4.23**。
+（运行产物不入包、ACCEPTED 不进包、
    包内文本搜 `Trekker-PTL` 为 0 处、`device_config.json` 是出厂默认…）。
 4. 🔴 **APP-148 §1b（zip 一致性）与 §1c（抽听样片）**：等有真实配音后再做
    （上一轮因 ASR 失败 ⇒ 混音是静音，样片无可听内容 ⇒ 已如实登记未硬造）。
