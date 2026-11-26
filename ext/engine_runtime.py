@@ -84,6 +84,38 @@ MODELS_DIR = os.path.join(APP_ROOT, "models")
 # ⇒ EXT-001 要求的「R2T2 INT8」= encoder-int8 + decoder-gpu-int8
 ASR_ENCODER_DIR = os.path.join(MODELS_DIR, "encoder-int8")
 ASR_DECODER_DIR = os.path.join(MODELS_DIR, "decoder-gpu-int8")
+# ★ v0.4.23：MiniMVP / SpecialMVP 只带 Qwen3-ASR 0.6B（stateful INT8），没有 R2T2 ⇒
+#   以前 EXT 在这两种包里 ASR 100% 加载失败（ASR §102：123/123 段全错）。
+#   照抄 App `live_caption_app.py` 的 0.6B 别名与 `OVEngine` 的构造方式。
+ASR06B_ENCODER_DIR = os.path.join(MODELS_DIR, "asr06b-encoder-fp16")
+ASR06B_DECODER_DIR = os.path.join(MODELS_DIR, "asr06b-decoder-int8")
+ASR06B_TOKENIZER_DIR = os.path.join(MODELS_DIR, "asr06b-tokenizer")
+ASR06B_EMBED_NPY = os.path.join(MODELS_DIR, "embed_tokens_06b_f16.npy")
+
+
+def _asr_family() -> Optional[str]:
+    """包里实际带的 ASR 模型族：'r2t2'（完整版）/ '06b'（MiniMVP/SpecialMVP）/ None。
+
+    两族都在时默认 R2T2（与 App 合并表的默认一致）；环境变量
+    `EXT_ASR_FAMILY=06b|r2t2` 可以强制指定（指定的族缺文件时返回 None，由调用方报缺模型）。
+    """
+    has_r2t2 = os.path.isdir(ASR_ENCODER_DIR) and os.path.isdir(ASR_DECODER_DIR)
+    has_06b = (os.path.isdir(ASR06B_ENCODER_DIR) and os.path.isdir(ASR06B_DECODER_DIR)
+               and os.path.isdir(ASR06B_TOKENIZER_DIR) and os.path.isfile(ASR06B_EMBED_NPY))
+    want = (os.environ.get("EXT_ASR_FAMILY") or "").strip().lower()
+    if want in ("06b", "0.6b", "asr06b"):
+        return "06b" if has_06b else None
+    if want == "r2t2":
+        return "r2t2" if has_r2t2 else None
+    if has_r2t2:
+        return "r2t2"
+    if has_06b:
+        return "06b"
+    return None
+
+
+def _asr_label(fam: Optional[str]) -> str:
+    return {"r2t2": "R2T2 INT8", "06b": "Qwen3-ASR 0.6B INT8"}.get(fam or "", "R2T2 INT8")
 TTS_MODEL_DIR = os.path.join(MODELS_DIR, "qwen3tts")
 
 
@@ -341,9 +373,11 @@ class RuntimeEngine:
     # ── 可用性探测（静态，不加载权重） ───────────────────────────
     def available(self) -> dict:
         return {
-            "asr": {"root": ASR_ENCODER_DIR, "device": self.asr_device,
-                    "probe_ok": os.path.isdir(ASR_ENCODER_DIR)
-                    and os.path.isdir(ASR_DECODER_DIR)},
+            "asr": {"root": (ASR06B_ENCODER_DIR if _asr_family() == "06b"
+                             else ASR_ENCODER_DIR),
+                    "device": self.asr_device,
+                    "family": _asr_family(),
+                    "probe_ok": _asr_family() is not None},
             "mt": {"root": MT_MODEL_DIR, "device": self.mt_device,
                    "probe_ok": os.path.isdir(MT_MODEL_DIR)},
             "tts": {"root": TTS_MODEL_DIR, "device": self.tts_device,
@@ -415,7 +449,7 @@ class RuntimeEngine:
 
         total = len(stages)
         for i, stage in enumerate(stages, 1):
-            label = {"asr": "ASR（R2T2 INT8）", "mt": "MT（%s INT8）" % _mt_model_name(_resolve_mt_model_dir()),
+            label = {"asr": "ASR（%s）" % _asr_label(_asr_family()), "mt": "MT（%s INT8）" % _mt_model_name(_resolve_mt_model_dir()),
                      "tts": "TTS（Qwen3-TTS）"}.get(stage, stage)
             device = {"asr": self.asr_device, "mt": self.mt_device,
                       "tts": self.tts_device}.get(stage, "?")
@@ -452,29 +486,63 @@ class RuntimeEngine:
             return
         _ensure_app_on_path()
         t0 = time.perf_counter()
-        try:
-            from segment_encoder_backend import SegmentEncoderOVBackend
-        except Exception as e:
-            raise EngineNeedsChange("R2T2", "import SegmentEncoderOVBackend 失败: %s" % e)
-        try:
-            # ★ device=GPU.0（Intel iGPU）⇒ strict_intel 的断言成立，不绕过
-            self._asr_backend = SegmentEncoderOVBackend(
-                encoder_dir=ASR_ENCODER_DIR,
-                decoder_dir=ASR_DECODER_DIR,
-                device=self.asr_device,
-                precision="f16",
-                cache_dir=os.path.join(os.environ.get("LOCALAPPDATA", "."),
-                                       "Confucius4LiveCaption", "ext_ov_cache"),
-                strict_intel=True,
-            )
-        except Exception as e:
+        fam = _asr_family()
+        if fam is None:
             raise EngineNeedsChange(
-                "R2T2", "SegmentEncoderOVBackend 构造失败（device=%s）: %s"
-                % (self.asr_device, e))
+                "ASR", "找不到 ASR 模型（已查 R2T2：%s + %s；Qwen3-ASR 0.6B：%s + %s + %s + %s）"
+                % (ASR_ENCODER_DIR, ASR_DECODER_DIR, ASR06B_ENCODER_DIR,
+                   ASR06B_DECODER_DIR, ASR06B_TOKENIZER_DIR, ASR06B_EMBED_NPY))
+        cache_root = os.path.join(os.environ.get("LOCALAPPDATA", "."), "Confucius4LiveCaption")
+        if fam == "06b":
+            # ★ 与 App `OVEngine`（kind == 'asr06b'）同一构造方式：
+            #   NPU 档 decoder 的 NPUW 属性、encoder 档位等都在后端内部处理。
+            try:
+                import importlib
+                _mod = importlib.import_module(
+                    os.environ.get("LIVECAP_ASR_BACKEND_MODULE", "asr06b_stateful_backend"))
+                _cls = _mod.BACKEND_CLASS
+            except Exception as e:
+                raise EngineNeedsChange("Qwen3-ASR 0.6B", "import asr06b_stateful_backend 失败: %s" % e)
+            try:
+                self._asr_backend = _cls(
+                    encoder_dir=ASR06B_ENCODER_DIR,
+                    decoder_dir=ASR06B_DECODER_DIR,
+                    tokenizer_dir=ASR06B_TOKENIZER_DIR,
+                    embed_npy=ASR06B_EMBED_NPY,
+                    device=self.asr_device,
+                    precision="f16",
+                    cache_dir=os.path.join(
+                        cache_root, "ext_npu_cache" if str(self.asr_device).upper() == "NPU"
+                        else "ext_ov_cache"),
+                )
+            except Exception as e:
+                raise EngineNeedsChange(
+                    "Qwen3-ASR 0.6B", "ASR06BStatefulBackend 构造失败（device=%s）: %s"
+                    % (self.asr_device, e))
+        else:
+            try:
+                from segment_encoder_backend import SegmentEncoderOVBackend
+            except Exception as e:
+                raise EngineNeedsChange("R2T2", "import SegmentEncoderOVBackend 失败: %s" % e)
+            try:
+                # ★ device=GPU.0（Intel iGPU）⇒ strict_intel 的断言成立，不绕过
+                self._asr_backend = SegmentEncoderOVBackend(
+                    encoder_dir=ASR_ENCODER_DIR,
+                    decoder_dir=ASR_DECODER_DIR,
+                    device=self.asr_device,
+                    precision="f16",
+                    cache_dir=os.path.join(cache_root, "ext_ov_cache"),
+                    strict_intel=True,
+                )
+            except Exception as e:
+                raise EngineNeedsChange(
+                    "R2T2", "SegmentEncoderOVBackend 构造失败（device=%s）: %s"
+                    % (self.asr_device, e))
+        self.asr_family = fam
         self._asr_state = self._make_asr_state()
         self.load_s["asr"] = time.perf_counter() - t0
-        self.on_log("ASR 就绪（R2T2 INT8 @ %s，%.1fs）"
-                    % (self.asr_device, self.load_s["asr"]))
+        self.on_log("ASR 就绪（%s @ %s，%.1fs）"
+                    % (_asr_label(fam), self.asr_device, self.load_s["asr"]))
 
     def _make_asr_state(self):
         from seg_stream import _make_segment_state

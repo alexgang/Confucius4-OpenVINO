@@ -10,7 +10,7 @@ r"""test_ext0422_mt3_turbo.py —— **EXT v0.4.22**（APP-138 第 2 项 ＋ APP
 2. **模型名按实际目录**：`_mt_model_name()` 对 mt3 / mt2 / int4 / None 各自的输出。
 3. **turbo 复用 App 的 `npu_turbo`**：`npu_turbo_props()` 与 App 侧**同一份实现**
    ⇒ 一处判定、两边同口径（APP-139）。
-4. **版本号一致**：`ext/version.py` 与 `extension/manifest.json` 同为 0.4.22。
+4. **版本号一致**：`ext/version.py` 与 `extension/manifest.json` 一致且 **≥ 0.4.22**。
 
 ## 🔴 判据必须有鉴别力
 
@@ -144,12 +144,19 @@ def test_turbo_reuses_app_module():
 def test_version_consistency():
     print("\n[4] 版本号一致（ext/version.py ＋ extension/manifest.json）")
     from ext.version import EXT_VERSION
-    check("ext/version.py = 0.4.22", EXT_VERSION == '0.4.22', EXT_VERSION)
+    # 🔴 **不写死具体版本号**（v0.4.23 起）—— 否则每次升版本都误报；
+    #    判据：① 两处**一致** ② 版本 **≥ 0.4.22**（本文件引入的能力下限）
+    def _ver(v):
+        try:
+            return tuple(int(x) for x in str(v).split('.'))
+        except Exception:
+            return (0,)
+    check("ext/version.py ≥ 0.4.22", _ver(EXT_VERSION) >= (0, 4, 22), EXT_VERSION)
     mp = os.path.join(ROOT, 'extension', 'manifest.json')
     d = json.loads(io.open(mp, encoding='utf-8').read())
-    check("extension/manifest.json = 0.4.22", d.get('version') == '0.4.22',
+    check("extension/manifest.json ≥ 0.4.22", _ver(d.get('version')) >= (0, 4, 22),
           str(d.get('version')))
-    check("两处一致", d.get('version') == EXT_VERSION,
+    check("★ 两处一致", d.get('version') == EXT_VERSION,
           f"{d.get('version')} vs {EXT_VERSION}")
 
 
