@@ -192,6 +192,18 @@ MT 引擎列表（`translator.MT_ENGINES`）：**auto / gpu_int8cw / npu_int8cw�
   （NPU 配音有杂音/异常 ⇒ 改 TTS=GPU.0，或设 `LIVECAP_NPU_TURBO=0`），
   **用客户能看懂的话**，不出现内部编号。
 
+## §5＋ §6 APP-149 第6 项的前半：ASR 0.6B 加载验证通过
+
+| 项 | 结果 |
+|---|---|
+| `_asr_family()` | **06b**（正确识别包里带的是Qwen3-ASR 0.6B，不是R2T2） |
+| ASR 加载 | 成功，**12.4 s**，backend = **ASR06BStatefulBackend** |
+| 就绪日志原文 | **ASR 就绪（Qwen3-ASR 0.6B INT8 @ GPU.0，12.3s）** |
+| 落点 | encoder=GPU.0，decoder=GPU.0 |
+| EXT 调用链需要的接口 | 全部具备（missing interface = **[]**） |
+
+执行方式：用**候选目录自带 python**， + 包内 `ext/bridge/engine_runtime.py`（不是开发树的 EXT） ⇒ 验的就女拿到的那份代码。本项只加载模型、不跑推理 ⇒ 不占推理资源 ⇒ 可在等机器锁期间独立验证；「端到端出数据」仍需 APP-149 第6 项的 60 s 冒烟（等LFM 让锁）。脚本： `live_caption/_app149_asr_load_check.py`；结果： `results/app/app149_asr_load_check.json`
+
 ## §6 本轮的提交
 
 | 仓库 | commit | 内容 |
