@@ -217,6 +217,26 @@ MT 引擎列表（`translator.MT_ENGINES`）：**auto / gpu_int8cw / npu_int8cw�
 
 The one missing file is `tts_cuda_sidecar_ext.py` - **CUDA sidecar only**; it is referenced only from the CUDA branch of `engine_runtime.py`, and MiniMVP ships no CUDA => not needed. Method: compare **content after normalizing line endings** (otherwise the autocrlf EOL difference would look like a content difference - the §226 lesson). Script: `live_caption/_app149_ext_sync_check.py`; result: `results/app/app149_ext_sync_check.json`
 
+## §5＋＋＋ §6 APP-149 item6: 60 s smoke on the candidate package (EXT v0.4.23) - **PASS**
+
+| gate | result |
+|---|---|
+| `n_error` = 0 | **0** (was 123 in the v0.4.22 run) |
+| `asr_segments` > 0 | **13** |
+| `mt_segments` > 0 | **13** |
+| `tts_segments` > 0 | **13** |
+| `dubs` > 0 | **13** |
+| **all gates** | **PASS (5/5)** |
+
+| other metric | value |
+|---|---|
+| `synth_rtf` | **0.9113** (`n_segments_with_tts` = 13) |
+| `n_submitted` / `n_emitted` | 13 / 13 |
+| `bg_state` | ok |
+| `timing_valid` | True |
+
+Ready lines (verbatim, from the arm's `bridge.err`): `ASR ji-ready (Qwen3-ASR 0.6B INT8 @ GPU.0, 5.6s)` and `MT ji-ready (Hy-MT3 INT8 @ GPU.0, 4.1s)`; **32 turbo lines** - every NPU model reports `NPU turbo yi-sheng-xiao: YES` (`speaker_encoder`, `talker@64/128/256/384/512`, `tokenizer_decoder@38`, ...). The smoke used a 60 s clip with `--drain-cap 120`; the 3 pending segments at the end are because that drain window was short - the full three-arm run (APP-149 item 7) uses a 10 min clip with a 300 s drain cap. Evidence: `results/app/app149_smoke_60s.json`; raw: `shared/bgkeep/e2e_app149/smoke/smoke_1/`
+
 ## §6 本轮的提交
 
 | 仓库 | commit | 内容 |
