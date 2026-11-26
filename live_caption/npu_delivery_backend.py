@@ -45,6 +45,12 @@ import time
 from typing import List, Optional
 
 import numpy as np
+# 🔴🔴🔳 APP-139（2026-11-26）：NPU turbo 的**统一判定**在 npu_turbo.py
+#   ⇒ `NPU_TURBO` 只作为 **compile_model 的第三参数（编译期 config）** 注入
+try:  # ★ 包内 app/ 目录与源码树同构 ⇒ 同目录导入
+    from npu_turbo import turbo_props as _turbo_props
+except Exception:  # pragma: no cover - 兜底：拿不到就不注入
+    _turbo_props = None
 
 WORK = os.path.dirname(os.path.abspath(__file__))
 
@@ -76,6 +82,22 @@ def _freeze_encoder_for_npu(core, model, max_frames: int):
     }
     frozen = model.reshape(smap)
     return frozen if frozen is not None else model
+
+
+def _turbo_compile_props(core, base=None):
+    """APP-139：NPU 编译的**编译期属性**（含 turbo 的实际值）。
+
+    🔴 `NPU_TURBO` **只能**进 `compile_model` 的第三参数 ⇒ 绝不能 `set_property`。
+    🔴 拿不到 `npu_turbo`（导入失败）⇒ 原样返回 base（照常编译，不注入）。
+    """
+    props = dict(base or {})
+    if _turbo_props is None:
+        return props
+    try:
+        props.update(_turbo_props(core=core))
+    except Exception:      # pragma: no cover - 探测失败不许拖垮编译
+        pass
+    return props
 
 
 def make_delivery_all_npu_backend(
@@ -156,7 +178,7 @@ def make_delivery_all_npu_backend(
         weights=os.path.join(encoder_dir, 'openvino_encoder_model.bin'))
     frozen = _freeze_encoder_for_npu(core, enc_model, max_frames)
     t0 = time.perf_counter()
-    be.enc = core.compile_model(frozen, 'NPU', {'CACHE_DIR': npu_cache})
+    be.enc = core.compile_model(frozen, 'NPU', _turbo_compile_props(core, {'CACHE_DIR': npu_cache}))
     be.npu_enc_compile_s = round(time.perf_counter() - t0, 1)
     be.enc_infer = be.enc.create_infer_request()
 
@@ -171,7 +193,7 @@ def make_delivery_all_npu_backend(
     be._npu_props = props
     xml = os.path.join(decoder_dir, 'openvino_model.xml')
     t0 = time.perf_counter()
-    be.dec = core.compile_model(xml, 'NPU', props)
+    be.dec = core.compile_model(xml, 'NPU', _turbo_compile_props(core, props))
     be.npu_compile_s = round(time.perf_counter() - t0, 1)
     be.dec_xml = xml
     be._port_names = {p.get_any_name() for p in be.dec.inputs}

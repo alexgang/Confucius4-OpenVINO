@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-11-26 13:57:55",
+  "ov_version": "2026.4.1-22982-e213a147257-releases/2026/4",
+  "devices": [
+    "CPU",
+    "GPU.0",
+    "GPU.1",
+    "NPU"
+  ],
+  "npu_supported_props_count": 49,
+  "npu_turbo_in_supported_props": true,
+  "n_pass": 9,
+  "n_fail": 0,
+  "n_total": 9,
+  "checks": [
+    {
+      "name": "本机 NPU 存在",
+      "ok": true
+    },
+    {
+      "name": "真实 Core：默认开 ⇒ actual=True",
+      "ok": true
+    },
+    {
+      "name": "真实 Core：注入了 NPU_TURBO=YES",
+      "ok": true
+    },
+    {
+      "name": "理由非空（能说明为什么）",
+      "ok": true
+    },
+    {
+      "name": "真实 Core：LIVECAP_NPU_TURBO=0 ⇒ 不注入",
+      "ok": true
+    },
+    {
+      "name": "★ 反证：无 NPU 的 Core ⇒ 退回（不注入）",
+      "ok": true
+    },
+    {
+      "name": "★ 反证：属性表无 NPU_TURBO ⇒ 退回（不注入）",
+      "ok": true
+    },
+    {
+      "name": "turbo_props 保留基础属性",
+      "ok": true
+    },
+    {
+      "name": "turbo_props 日志打了实际值",
+      "ok": true
+    }
+  ]
+}

@@ -76,10 +76,35 @@ import os
 import threading
 import time
 from typing import Iterator, List, Optional, Tuple
+# 🔴🔴🔳 APP-139（2026-11-26）：NPU turbo 的**统一判定**在 npu_turbo.py
+#   （默认开；设备不支持 ⇒ 退回；日志打**实际值**）
+#   ⇒ `NPU_TURBO` 只作为 **compile_model 的第三参数（编译期 config）** 注入
+#   （TTS 模块 2026-11-02 实测：`set_property` 会被 CPU/AUTO 插件拒）
+try:  # ★ 包内 app/ 目录与源码树同构 ⇒ 同目录导入
+    from npu_turbo import turbo_props as _turbo_props
+except Exception:  # pragma: no cover - 兜底：拿不到就不注入
+    _turbo_props = None
 
 # ── 目录 ──────────────────────────────────────────────────────────────
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 PKG_ROOT = os.path.dirname(APP_DIR)
+
+
+def _npu_compile_props(core, on_log=None) -> dict:
+    """APP-139：NPU 编译的**编译期属性**（含 turbo 的实际值）。
+
+    🔴 `NPU_TURBO` **只能**进 `compile_model` 的第三参数 ⇒ 绝不能 `set_property`。
+    🔴 拿不到 `npu_turbo` 模块（导入失败）⇒ 返回空 dict（照常编译，不注入）。
+    """
+    if _turbo_props is None:
+        return {}
+    try:
+        return _turbo_props(core=core, on_log=on_log)
+    except Exception as e:      # pragma: no cover - 探测失败不许拖垮编译
+        if on_log:
+            on_log('[tts_engine] NPU turbo 判定失败（%s）⇒ 不注入'
+                   % type(e).__name__)
+        return {}
 
 
 def _cache_dir(name: str = 'tts_npu_cache') -> str:
@@ -1698,7 +1723,8 @@ def _move_cp_prefill_to_npu(eng, on_log=print) -> bool:
         #   ⇒ 不 reshape 直接编到 NPU 会失败（Reshape bounds 算不出）。
         #   运行时输入**恒为 (1,2,1024)** ⇒ 这个静态形状是安全的。
         m.reshape(CP_PREFILL_NPU_SHAPE)
-        cm = core.compile_model(m, 'NPU')
+        # 🔴🔴🔳 APP-139：turbo 属性**只**走编译期 config（第三参数）
+        cm = core.compile_model(m, 'NPU', _npu_compile_props(core, on_log))
     except Exception as e:
         # 🔴 **绝不抛异常**：NPU 编译失败应降级，不应让 TTS 不可用
         on_log(f'[tts_engine] cp_prefill: CPU'
@@ -1767,7 +1793,8 @@ def _move_cp_decode_to_npu(eng, on_log=print) -> bool:
         m = core.read_model(ir)
         # 🔴🔴 必须 reshape：动态维 IR 直接编到 NPU 会 Segfault
         m.reshape(CP_DECODE_NPU_SHAPE)
-        cm = core.compile_model(m, 'NPU')
+        # 🔴🔴🔳 APP-139：turbo 属性**只**走编译期 config（第三参数）
+        cm = core.compile_model(m, 'NPU', _npu_compile_props(core, on_log))
     except Exception as e:
         on_log(f'[tts_engine] cp_decode: CPU'
                f'（回落原因：{type(e).__name__}: {e}）'
