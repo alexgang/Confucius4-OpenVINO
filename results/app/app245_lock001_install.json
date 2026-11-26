@@ -1,0 +1,117 @@
+{
+  "generated_at": "2026-11-26 21:42:46",
+  "interpreter": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\python\\python.exe",
+  "tool": "C:\\Users\\Trekker-PTL\\shared\\tools\\machine_lock.py",
+  "cases": {
+    "c0_status_free": {
+      "argv": [
+        "status"
+      ],
+      "rc": 0,
+      "out": "FREE",
+      "err": "",
+      "elapsed_s": 0.17,
+      "ok": true
+    },
+    "c1_single_run": {
+      "argv": [
+        "run",
+        "--module",
+        "app",
+        "--note",
+        "LOCK-001 自检 c1",
+        "--",
+        "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\python\\python.exe",
+        "-c",
+        "import time;time.sleep(2);print(\"job ok\")"
+      ],
+      "rc": 0,
+      "out": "[machine_lock] acquired: app 12188 2026-11-26 21:42:46 machine_lock.py LOCK-001 自检 c1\njob ok\n[machine_lock] released (rc=0)",
+      "err": "",
+      "elapsed_s": 2.55,
+      "ok": true
+    },
+    "c2_status_held": {
+      "argv": [
+        "status"
+      ],
+      "rc": 0,
+      "out": "HELD (live job) age 0 min\napp 23732 2026-11-26 21:42:49 machine_lock.py LOCK-001 自检 c2/c3\njob_pid 1952 timeout_min 240",
+      "err": "",
+      "elapsed_s": 0.19,
+      "ok": true,
+      "lock_text_holder": 23732
+    },
+    "c3_queue": {
+      "argv": [
+        "run",
+        "--module",
+        "asr",
+        "--note",
+        "LOCK-001 自检 c3 排队",
+        "--",
+        "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\python\\python.exe",
+        "-c",
+        "print(\"2nd ok\")"
+      ],
+      "rc": 0,
+      "out": "[machine_lock] waiting; holder: app 23732 2026-11-26 21:42:49 machine_lock.py LOCK-001 自检 c2/c3\njob_pid 1952 timeout_min 240\n[machine_lock] acquired: asr 26688 2026-11-26 21:43:04 machine_lock.py LOCK-001 自检 c3 排队\n2nd ok\n[machine_lock] released (rc=0)",
+      "err": "",
+      "elapsed_s": 15.57,
+      "ok": true,
+      "waited_s": 15.6
+    },
+    "c4_kill_release": {
+      "pre_status": {
+        "argv": [
+          "status"
+        ],
+        "rc": 0,
+        "out": "HELD (live job) age 0 min\napp 17068 2026-11-26 21:43:05 machine_lock.py LOCK-001 自检 c4 被杀\njob_pid 29492 timeout_min 240",
+        "err": "",
+        "elapsed_s": 0.18
+      },
+      "kill": {
+        "pid": 17068,
+        "rc": 0,
+        "out": "�ɹ�: ����ֹ PID 29492 (���� PID 17068 �ӽ���)�Ľ��̡�\n�ɹ�: ����ֹ PID 17068 (���� PID 3312 �ӽ���)�Ľ��̡�"
+      },
+      "after_kill_status": {
+        "argv": [
+          "status"
+        ],
+        "rc": 0,
+        "out": "STALE text lock (no live job) age 0 min\napp 17068 2026-11-26 21:43:05 machine_lock.py LOCK-001 自检 c4 被杀\njob_pid 29492 timeout_min 240",
+        "err": "",
+        "elapsed_s": 0.17
+      },
+      "reclaim": {
+        "argv": [
+          "reclaim"
+        ],
+        "rc": 0,
+        "out": "[machine_lock] archived stale lock -> MACHINE_LOCK.released_stale_1795700589",
+        "err": "",
+        "elapsed_s": 0.19
+      },
+      "final_status": {
+        "argv": [
+          "status"
+        ],
+        "rc": 0,
+        "out": "FREE",
+        "err": "",
+        "elapsed_s": 0.17
+      },
+      "ok": true
+    }
+  },
+  "all_pass": true,
+  "install": {
+    "path": "C:\\Users\\Trekker-PTL\\shared\\tools\\machine_lock.py",
+    "bytes": 8831,
+    "sha256": "c8eb39be7438043d99fed086b49d2e70ef07af8945680a72969f99ca2b500571",
+    "sha1": "feb97559894e21a93ce7df2db68e661420df8f9f",
+    "mtime": "2026-11-26 21:41:12"
+  }
+}

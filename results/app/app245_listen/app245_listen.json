@@ -24,7 +24,9 @@
           "sr": 16000,
           "bytes": 117114
         }
-      ]
+      ],
+      "_sha1": "78ec8a839a1fd993c1b40b2c0e5ee6b6890c67ea",
+      "_bytes": 117114
     },
     {
       "idx": 2,
@@ -43,7 +45,9 @@
           "sr": 16000,
           "bytes": 120347
         }
-      ]
+      ],
+      "_sha1": "6bcbc1565e9e66fbc81702ccecf1cd79799307f8",
+      "_bytes": 120347
     },
     {
       "idx": 3,
@@ -62,7 +66,9 @@
           "sr": 16000,
           "bytes": 122633
         }
-      ]
+      ],
+      "_sha1": "c0df094b89774ebd3936954d08dcf51c2b5cc93b",
+      "_bytes": 122633
     }
   ],
   "mix_clipping": {
@@ -79,5 +85,6 @@
     "speed_max": 1.7,
     "note": "撞上限按 per_segment.tts_sec ≥ 39.0；NaN/Inf 按 tts_sec/speech_sec/proc_sec 任一非有限；语速取 speed/adapt_speed 最大"
   },
-  "note": "🔴 只切片段、不做音质判定（质量由 reviewer/用户抽听）；🔴 无逐段性别标签 ⇒ 早/中/晚等距取段，未定向挑「男女声切换」段。"
+  "note": "🔴 只切片段、不做音质判定（质量由 reviewer/用户抽听）；🔴 无逐段性别标签 ⇒ 早/中/晚等距取段，未定向挑「男女声切换」段。",
+  "sha1_filled_at": "2026-11-26 21:44:39"
 }
