@@ -415,7 +415,7 @@ class RuntimeEngine:
 
         total = len(stages)
         for i, stage in enumerate(stages, 1):
-            label = {"asr": "ASR（R2T2 INT8）", "mt": "MT（Hy-MT2 INT8）",
+            label = {"asr": "ASR（R2T2 INT8）", "mt": "MT（%s INT8）" % _mt_model_name(_resolve_mt_model_dir()),
                      "tts": "TTS（Qwen3-TTS）"}.get(stage, stage)
             device = {"asr": self.asr_device, "mt": self.mt_device,
                       "tts": self.tts_device}.get(stage, "?")
@@ -533,7 +533,7 @@ class RuntimeEngine:
         try:
             from translator import HunyuanTranslator
         except Exception as e:
-            raise EngineNeedsChange("Hy-MT2", "import HunyuanTranslator 失败: %s" % e)
+            raise EngineNeedsChange("Hy-MT", "import HunyuanTranslator 失败: %s" % e)
         # 11-08 reviewer: MT AUTO => NPU when TTS will use the CUDA sidecar (frees GPU.0 for ASR)
         if str(self.mt_device or "").upper() == "AUTO":
             _cuda = False
@@ -550,8 +550,9 @@ class RuntimeEngine:
         model_dir = _resolve_mt_model_dir()
         if not model_dir:
             raise EngineNeedsChange(
-                "Hy-MT2",
-                "找不到 MT 模型目录（已查：LIVECAP_MT_MODEL / models/mt/mt2-int8sym-cw-q "
+                "Hy-MT",
+                "找不到 MT 模型目录（已查：LIVECAP_MT_MODEL / models/mt/mt3-int8sym-cw-q "
+                "/ models/mt3-int8sym-cw-q / models/mt/mt2-int8sym-cw-q "
                 "/ models/mt2-int8sym-cw-q / models/mt/mt2-int4sym-cw-q）")
         try:
             self._mt = HunyuanTranslator(
@@ -561,11 +562,15 @@ class RuntimeEngine:
                 on_log=self.on_log)
         except Exception as e:
             raise EngineNeedsChange(
-                "Hy-MT2", "HunyuanTranslator 构造失败（device=%s, dir=%s）: %s"
+                _mt_model_name(model_dir),
+                "HunyuanTranslator 构造失败（device=%s, dir=%s）: %s"
                 % (self.mt_device, model_dir, e))
         self.load_s["mt"] = time.perf_counter() - t0
-        self.on_log("MT 就绪（Hy-MT2 INT8 @ %s，%.1fs）"
-                    % (self.mt_device, self.load_s["mt"]))
+        # 🔴🔴🔳 **EXT v0.4.22（APP-138）**：模型名按**实际加载的目录**推导
+        #   （旧写法写死 "Hy-MT2" ⇒ 实际加载 mt3 时**日志会说谎**）
+        self.on_log("MT 就绪（%s INT8 @ %s，%.1fs）"
+                    % (_mt_model_name(model_dir), self.mt_device,
+                       self.load_s["mt"]))
 
     def mt(self, text: str, *, target_lang: Optional[str] = None) -> str:
         """翻译一句。`target_lang` 走 MT 的 `tgt` 参数。
