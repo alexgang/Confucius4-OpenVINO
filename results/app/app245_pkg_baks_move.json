@@ -1,0 +1,237 @@
+{
+ "generated_at": "2026-11-26 20:22:51",
+ "candidate": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate",
+ "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126",
+ "n_moved": 32,
+ "n_failed": 0,
+ "n_left_in_pkg": 0,
+ "moved": [
+  {
+   "rel": "README_en.md.bak_app146_docs",
+   "bytes": 64782,
+   "sha256": "6d67d4d690b2fc0ca52f78e0783be5ad233ee1336f352aa434e4f99e955287e4",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\README_en.md.bak_app146_docs",
+   "verified": true
+  },
+  {
+   "rel": "README_en.md.bak_app146_readme",
+   "bytes": 64998,
+   "sha256": "4a452233cd9413964bb8776e5e5ee59710b57ee4ada24f22f039234c6c2fdc75",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\README_en.md.bak_app146_readme",
+   "verified": true
+  },
+  {
+   "rel": "README_en.md.bak_app149_readme",
+   "bytes": 33572,
+   "sha256": "e1e4848af1fb6eb11f2f6653c1903b921b82fe6adbc68c3678b65acf15354ecc",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\README_en.md.bak_app149_readme",
+   "verified": true
+  },
+  {
+   "rel": "README_en.md.bak_app245_lag",
+   "bytes": 33975,
+   "sha256": "ec6035841b7a0b823832f4bd37ece357288d9c918564fed4aa96dd914dca394d",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\README_en.md.bak_app245_lag",
+   "verified": true
+  },
+  {
+   "rel": "README_zh.md.bak_app146_docs",
+   "bytes": 57986,
+   "sha256": "0bb23e7cfa39f24dbc567d84a0612d0977b02384dd8939132e65bb162ad3421a",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\README_zh.md.bak_app146_docs",
+   "verified": true
+  },
+  {
+   "rel": "README_zh.md.bak_app146_readme",
+   "bytes": 58201,
+   "sha256": "f683ddbc1e4aaf4f76b7d00883bce3d6df38e409c9efad85c6ffecf8b1573d5a",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\README_zh.md.bak_app146_readme",
+   "verified": true
+  },
+  {
+   "rel": "README_zh.md.bak_app149_readme",
+   "bytes": 30751,
+   "sha256": "fe14f25c9c9dfdac269e71a767a2c622ea8ca4a76d1a63d8d6056d89330c7c70",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\README_zh.md.bak_app149_readme",
+   "verified": true
+  },
+  {
+   "rel": "README_zh.md.bak_app245_lag",
+   "bytes": 31264,
+   "sha256": "9147cf741f42f8cb7fd5625c93f98407c7b8cf40a3d266e59479cf52cd2b36fc",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\README_zh.md.bak_app245_lag",
+   "verified": true
+  },
+  {
+   "rel": "release.json.bak_app146_docs",
+   "bytes": 1058,
+   "sha256": "32a0cfa6a502db9fab3729369468619f600b9b512908541700a6c3848e936162",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\release.json.bak_app146_docs",
+   "verified": true
+  },
+  {
+   "rel": "release.json.bak_app149_v0423",
+   "bytes": 1375,
+   "sha256": "67701db461e24867623ce3f8fd2e1ecda47252f657a2bf70139f18091bee37e6",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\release.json.bak_app149_v0423",
+   "verified": true
+  },
+  {
+   "rel": "app/MANIFEST.json.bak_app146_docs",
+   "bytes": 1851,
+   "sha256": "a047c08ff8152a17c589d277452d35914195dec1880532c0eba491a9190a96d7",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\app\\MANIFEST.json.bak_app146_docs",
+   "verified": true
+  },
+  {
+   "rel": "app/npu_delivery_backend.py.bak_app146",
+   "bytes": 9132,
+   "sha256": "983c39f209e80bff1b68f8e8b87dc7da5977ba5014c6ca0c281e3a08c203550f",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\app\\npu_delivery_backend.py.bak_app146",
+   "verified": true
+  },
+  {
+   "rel": "app/npu_delivery_backend.py.bak_app146_resync",
+   "bytes": 10164,
+   "sha256": "a1d7d60da130e55c35cd0021387c1642d2cf405118bb8822e0874491f914d60e",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\app\\npu_delivery_backend.py.bak_app146_resync",
+   "verified": true
+  },
+  {
+   "rel": "app/npu_delivery_backend.py.bak_app146_resync2",
+   "bytes": 10166,
+   "sha256": "356422f67bad4662956f89e0966f5ba6770f37fcee328f3234c5a4f25fe4a89e",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\app\\npu_delivery_backend.py.bak_app146_resync2",
+   "verified": true
+  },
+  {
+   "rel": "app/package_profile.py.bak_app137",
+   "bytes": 7068,
+   "sha256": "97aea72a168491e8c41ac6fc9dc70acd5120c1d18e6fa7ef044df8d35e21ec16",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\app\\package_profile.py.bak_app137",
+   "verified": true
+  },
+  {
+   "rel": "app/translator.py.bak_app151",
+   "bytes": 96701,
+   "sha256": "fb34b36c49fc918b34cb10f855089daf0b213cfb1ec08bcf0de716b2fe083e5b",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\app\\translator.py.bak_app151",
+   "verified": true
+  },
+  {
+   "rel": "app/tts_engine.py.bak_app146",
+   "bytes": 125450,
+   "sha256": "bbbc166a8351dd52cd36e3826189fa23cba5c087e6b968cc1e4256fa2f9f2962",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\app\\tts_engine.py.bak_app146",
+   "verified": true
+  },
+  {
+   "rel": "app/tts_engine.py.bak_app146_resync",
+   "bytes": 126972,
+   "sha256": "30201c0b1fcd8b48a552fc7c75c4bd7df7a5d32652ddbaabe0bffa5fdc020a03",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\app\\tts_engine.py.bak_app146_resync",
+   "verified": true
+  },
+  {
+   "rel": "app/tts_engine.py.bak_app146_resync2",
+   "bytes": 109133,
+   "sha256": "01acbdeb18e5879323eb8b46e7f31692ae5eb7d5d19eed68fd29da1fdc3a9ca4",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\app\\tts_engine.py.bak_app146_resync2",
+   "verified": true
+  },
+  {
+   "rel": "app/tts_engine.py.bak_app146_turbo_onlog",
+   "bytes": 126976,
+   "sha256": "e357e985dec73fc8483d57847cffc61626204428a2b45c867209b41a28074615",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\app\\tts_engine.py.bak_app146_turbo_onlog",
+   "verified": true
+  },
+  {
+   "rel": "app/tts_engine_patch.py.bak_app146_probe",
+   "bytes": 27018,
+   "sha256": "9fe3c89b818f8fe6bcf5aa5af01533de108e70f7d7bddeefd750f76db2407107",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\app\\tts_engine_patch.py.bak_app146_probe",
+   "verified": true
+  },
+  {
+   "rel": "app/tts_engine_patch.py.bak_app146_turbo_import3",
+   "bytes": 24896,
+   "sha256": "4bb2980d7945d56fcb9c994f1bc817d62e05d9adfdff4ecceac9dba0d82d41b4",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\app\\tts_engine_patch.py.bak_app146_turbo_import3",
+   "verified": true
+  },
+  {
+   "rel": "app/tts_engine_patch.py.bak_app146_turbo_logger",
+   "bytes": 24448,
+   "sha256": "c13e36f2677906242253dbc0b28daac5d306872f3de8df2bd10feba4edce2abe",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\app\\tts_engine_patch.py.bak_app146_turbo_logger",
+   "verified": true
+  },
+  {
+   "rel": "app/tts_engine_patch.py.bak_app146_turbo_onlog",
+   "bytes": 25841,
+   "sha256": "5f75bbfc4da24d243b7d3fd4856294d9dd01a96fcbb4bda81a13dbcb383a8ff2",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\app\\tts_engine_patch.py.bak_app146_turbo_onlog",
+   "verified": true
+  },
+  {
+   "rel": "app/tts_engine_patch.py.bak_app146_turbo_patch",
+   "bytes": 22702,
+   "sha256": "a188bcfdb38a89f310645f617b84be466e22a8eb9d2119dd50b164c5e2fc7008",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\app\\tts_engine_patch.py.bak_app146_turbo_patch",
+   "verified": true
+  },
+  {
+   "rel": "ext/bridge/engine_runtime.py.bak_app146",
+   "bytes": 44005,
+   "sha256": "1bfa0f17a12cbcc212c7e126ef0e011bfbc3c9b5a9ca9293223a68ee1ab80a53",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\ext\\bridge\\engine_runtime.py.bak_app146",
+   "verified": true
+  },
+  {
+   "rel": "ext/bridge/engine_runtime.py.bak_app146_mtname",
+   "bytes": 45634,
+   "sha256": "f6a4f7371956797ee5b4615cffbacbdb91b0c681fd3bce41e860f51b51dd9aaa",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\ext\\bridge\\engine_runtime.py.bak_app146_mtname",
+   "verified": true
+  },
+  {
+   "rel": "ext/bridge/engine_runtime.py.bak_app149_v0423",
+   "bytes": 46008,
+   "sha256": "ddbb0f3c31b3ee40c1a3f045ad47eac5250acf50efc927352801374f03673936",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\ext\\bridge\\engine_runtime.py.bak_app149_v0423",
+   "verified": true
+  },
+  {
+   "rel": "ext/bridge/version.py.bak_app146",
+   "bytes": 333,
+   "sha256": "e14a2e86d7fcb3638202518979ee6758997ed1c94a213daeb48acb910d9889fb",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\ext\\bridge\\version.py.bak_app146",
+   "verified": true
+  },
+  {
+   "rel": "ext/bridge/version.py.bak_app149_v0423",
+   "bytes": 333,
+   "sha256": "025b99b7a1f2e8c1c754af5bd20d0e3d9d94c869e3a63e619bfb6713a8f51371",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\ext\\bridge\\version.py.bak_app149_v0423",
+   "verified": true
+  },
+  {
+   "rel": "ext/extension/manifest.json.bak_app146",
+   "bytes": 2552,
+   "sha256": "cf38e1e663c385fcc3d9de34a6e4c69078ccfebdbe562b260e5091d20309209a",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\ext\\extension\\manifest.json.bak_app146",
+   "verified": true
+  },
+  {
+   "rel": "ext/extension/manifest.json.bak_app149_v0423",
+   "bytes": 2475,
+   "sha256": "222e4cda50fedc6d55561934dfeb5a7120905f13055dc1c5dd34a52a6c8c707f",
+   "dest": "C:\\Users\\Trekker-PTL\\shared\\pkg_baks_20261126\\ext\\extension\\manifest.json.bak_app149_v0423",
+   "verified": true
+  }
+ ],
+ "failed": [],
+ "left": [],
+ "note": "🔴 只移不删；每个文件移动前后比 size+sha256。"
+}

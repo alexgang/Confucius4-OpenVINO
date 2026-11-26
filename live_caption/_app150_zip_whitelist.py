@@ -40,6 +40,8 @@ if not CAND:
     CAND = os.path.join(os.path.dirname(REPO),
                         'Confucius4_LiveCaption_MiniMVP_v1.2.candidate')
 OUT = os.path.join(REPO, 'results', 'app', 'app150_zip_whitelist.json')
+# 🔴 §245：允许换输出路径 ⇒ 重跑不覆盖上一轮证据（APP150_OUT=...）
+OUT = os.environ.get('APP150_OUT') or OUT
 
 MEDIA_EXT = ('.wav', '.ogg', '.mp3', '.mp4', '.flac')
 RUNTIME_PAT = re.compile(
@@ -180,6 +182,16 @@ for dp, dns, fns in os.walk(CAND):
         if fn.upper() == 'ACCEPTED.JSON':
             accepted.append(os.path.relpath(os.path.join(dp, fn), CAND))
 chk('ACCEPTED.json 不在包内', not accepted, accepted)
+
+# ── ⑦ §245 新增：不得带备份/临时文件（原 18 项漏查，实测漏了 32 个 *.bak_*）──
+baks = []
+for dp, dns, fns in os.walk(CAND):
+    for fn in fns:
+        low = fn.lower()
+        if '.bak' in low or '.overwritten' in low or low.endswith('.tmp'):
+            baks.append(os.path.relpath(os.path.join(dp, fn), CAND).replace('\\', '/'))
+chk('无备份/临时文件（*.bak* / *.overwritten* / *.tmp）', not baks,
+    '%d 个：%s' % (len(baks), baks[:6]))
 
 n_fail = sum(1 for c in res['checks'] if not c['ok'])
 res['n_pass'] = len(res['checks']) - n_fail

@@ -1,0 +1,44 @@
+{
+ "script": "_app245_verify_drain_timeout.py",
+ "task": "§245：单次 stats 超时不再中止排空（APP-150 §2 门禁可判）",
+ "ts": "2026-11-26 19:40:00",
+ "target": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\_app137_e2e_drain.py",
+ "cases": [
+  {
+   "name": "tolerate_one_timeout_then_drain",
+   "ok": true,
+   "detail": "drained=True n_timeouts=1 disconnected=None n_pending=0 elapsed=1.21s hard_cap=33.0s"
+  },
+  {
+   "name": "old_code_fails_same_scenario",
+   "ok": true,
+   "detail": "old: drained=False n_timeouts=1 n_pending=2 disconnected=\"TimeoutError('stats 未在 1.0 s 内返回（桥接可能卡住）')\" elapsed=1.01s（新逻辑同场景 drained=True）"
+  },
+  {
+   "name": "hard_cap_still_enforced",
+   "ok": true,
+   "detail": "drained=False hard_cap_hit=True n_timeouts=6 elapsed=4.07s ≤ hard_cap 3.5s + 1.5s"
+  },
+  {
+   "name": "real_disconnect_exits_fast",
+   "ok": true,
+   "detail": "drained=False n_timeouts=0 disconnected=\"ConnectionResetError('模拟对端断开')\" elapsed=0.00s"
+  },
+  {
+   "name": "field_passthrough_drain_timeout_events",
+   "ok": true,
+   "detail": "run_drain 的 drain{} 字典含该字段"
+  }
+ ],
+ "case1_detail": {
+  "case1_timeout_events": [
+   {
+    "rel_sec": 1.01,
+    "elapsed_in_drain_sec": 1.01,
+    "msg": "TimeoutError('stats 未在 1.0 s 内返回（桥接可能卡住）')"
+   }
+  ]
+ },
+ "all_pass": true,
+ "note": "🔴 假 ws（内存），不连桥接、不占机器锁；反证组＝把 continue 还原成 break。"
+}

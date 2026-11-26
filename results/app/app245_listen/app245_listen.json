@@ -1,0 +1,83 @@
+{
+  "generated_at": "2026-11-26 20:21:39",
+  "script": "_app245_extract_samples.py",
+  "task": "APP-148 §1c：抽听样片（保留背景音开 + clone 那轮的播放端混音）",
+  "source_mix": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app149/three_arms_r245/bgkeep_on_clone/bgkeep_on_clone_1\\player_mix.wav",
+  "sample_rate": 48000,
+  "channels": 2,
+  "total_sec": 600.0,
+  "clips": [
+    {
+      "idx": 1,
+      "wav": "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app245_listen\\app245_listen_clone_1.wav",
+      "ogg": "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app245_listen\\app245_listen_clone_1.ogg",
+      "ogg_bytes": 117114,
+      "start_sec": 93.33,
+      "duration_sec": 40.0,
+      "rms": 0.03255,
+      "peak": 0.4713,
+      "n_clipped_samples": 0,
+      "clipped_ratio": 0.0,
+      "encode_attempts": [
+        {
+          "subtype": "OPUS",
+          "sr": 16000,
+          "bytes": 117114
+        }
+      ]
+    },
+    {
+      "idx": 2,
+      "wav": "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app245_listen\\app245_listen_clone_2.wav",
+      "ogg": "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app245_listen\\app245_listen_clone_2.ogg",
+      "ogg_bytes": 120347,
+      "start_sec": 280.0,
+      "duration_sec": 40.0,
+      "rms": 0.03476,
+      "peak": 0.56963,
+      "n_clipped_samples": 0,
+      "clipped_ratio": 0.0,
+      "encode_attempts": [
+        {
+          "subtype": "OPUS",
+          "sr": 16000,
+          "bytes": 120347
+        }
+      ]
+    },
+    {
+      "idx": 3,
+      "wav": "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app245_listen\\app245_listen_clone_3.wav",
+      "ogg": "C:/Users/Trekker-PTL/confucius4-openvino/results/app/app245_listen\\app245_listen_clone_3.ogg",
+      "ogg_bytes": 122633,
+      "start_sec": 466.67,
+      "duration_sec": 40.0,
+      "rms": 0.03313,
+      "peak": 0.39882,
+      "n_clipped_samples": 0,
+      "clipped_ratio": 0.0,
+      "encode_attempts": [
+        {
+          "subtype": "OPUS",
+          "sr": 16000,
+          "bytes": 122633
+        }
+      ]
+    }
+  ],
+  "mix_clipping": {
+    "n_samples_ge_0999": 0,
+    "n_samples": 28800000,
+    "ratio": 0.0
+  },
+  "synth_stats": {
+    "source": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app149/three_arms_r245/bgkeep_on_clone/bgkeep_on_clone_1\\margin.json",
+    "n_segments": 170,
+    "n_synth_ge_39s": 0,
+    "n_nan_or_inf_segments": 0,
+    "tts_sec_max": 15.262,
+    "speed_max": 1.7,
+    "note": "撞上限按 per_segment.tts_sec ≥ 39.0；NaN/Inf 按 tts_sec/speech_sec/proc_sec 任一非有限；语速取 speed/adapt_speed 最大"
+  },
+  "note": "🔴 只切片段、不做音质判定（质量由 reviewer/用户抽听）；🔴 无逐段性别标签 ⇒ 早/中/晚等距取段，未定向挑「男女声切换」段。"
+}

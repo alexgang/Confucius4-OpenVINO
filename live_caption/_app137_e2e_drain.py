@@ -76,7 +76,9 @@ async def drain_until_zero(ws, got, a, t0, npend_end):
         ⇒ 作业一直持着机器锁；实测 drain_elapsed 3924 s vs drain_cap 300 s）。
     ② **排空硬上限按墙钟执行**（`drain_cap + stats_timeout + 2 s`）
        ⇒ 旧实现按「轮询次数」判 ⇒ 一次阻塞就超了 13 倍。
-    ③ 超时/断连 ⇒ **如实记录**（`disconnected` / `stats_timeout_count`）后**退出**。
+    ③ 超时/断连 ⇒ **如实记录**（`disconnected` / `stats_timeout_count` /
+       `drain_timeout_events`）；🔴 **单次 stats 超时不退出**（继续排空，
+       墙钟硬上限兜底），**真断连才退出**（§245 实测根因见文件头注释）。
 
     Returns
     -------
@@ -86,6 +88,7 @@ async def drain_until_zero(ws, got, a, t0, npend_end):
     drain_start = time.perf_counter()
     drained = False
     disconnected = None
+    last_timeout = None
     npend = npend_end
     stats_timeout_s = float(getattr(a, 'stats_timeout_s', 10.0))
     hard_cap = float(a.drain_cap) + stats_timeout_s + 2.0
@@ -109,9 +112,26 @@ async def drain_until_zero(ws, got, a, t0, npend_end):
         except Exception as e:
             if isinstance(e, asyncio.TimeoutError):
                 n_timeouts += 1
-                disconnected = repr(e)
+                last_timeout = repr(e)
                 got['stats_timeout_count'] = n_timeouts
-                break
+                # 🔴 §245：**单次 stats 超时 ≠ 桥接卡死**。19:14 三轮实测：
+                #   片尾清 backlog 时 NPU TTS 把 WS 应答压在 10 s 之外
+                #   （bridge.log 同刻仍在出段、dubs 最终 = n_submitted）
+                #   ⇒ 旧逻辑把「一次超时」当断连 ⇒ 排空整段放弃
+                #   ⇒ n_pending 停在 8/26/47、drained_to_zero 恒 False。
+                #   现在：如实记录后**继续排空**；墙钟硬上限
+                #   （APP-143 b ②）仍然兜底 ⇒ 真卡死最迟 hard_cap 秒退出。
+                got.setdefault('drain_timeout_events', []).append({
+                    'rel_sec': round(time.perf_counter() - t0, 2),
+                    'elapsed_in_drain_sec': round(
+                        time.perf_counter() - drain_start, 2),
+                    'msg': repr(e)})
+                if time.perf_counter() - drain_start >= hard_cap:
+                    got['drain_hard_cap_hit'] = True
+                    disconnected = last_timeout
+                    break
+                await asyncio.sleep(a.poll_sec)
+                continue
             disconnected = repr(e)
             break
         st = got.get('stats')
@@ -328,6 +348,8 @@ async def run_drain(a, ext):
         # 🔴🔴🔳 **APP-143 b**：新增字段
         'stats_timeout_s': stats_timeout_s,
         'stats_timeout_count': got.get('stats_timeout_count', 0),
+        # 🔴 §245：每次超时的时刻/位置（排空成功也可能有，不代表失败）
+        'drain_timeout_events': got.get('drain_timeout_events', []),
         'drain_hard_cap_sec': hard_cap,
         'drain_hard_cap_hit': got.get('drain_hard_cap_hit', False),
         'definition': 'n_pending = 管线里还没出配音的句子数；排空 = 等到它归零。',

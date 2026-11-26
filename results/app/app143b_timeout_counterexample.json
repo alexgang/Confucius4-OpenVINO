@@ -1,11 +1,11 @@
 {
  "script": "_app143b_timeout_counterexample.py",
  "task": "APP-143 b：人为让 stats 不回 ⇒ 驱动器要在 cap+10 s 内退出",
- "ts": "2026-11-25 22:24:01",
+ "ts": "2026-11-26 19:40:46",
  "drain_cap_sec": 30.0,
  "stats_timeout_sec": 10.0,
  "limit_sec": 50.0,
- "new_elapsed_sec": 10.03,
+ "new_elapsed_sec": 43.12,
  "old_elapsed_sec": null,
  "new_drain_result": [
   [],
@@ -14,18 +14,18 @@
   0,
   10.0,
   42.0,
-  1
+  4
  ],
  "checks": [
   {
    "name": "exits_within_cap_plus_10s",
    "ok": true,
-   "detail": "实际 10.0 s ≤ 上限 50.0 s（cap 30 + timeout 10 + 10）"
+   "detail": "实际 43.1 s ≤ 上限 50.0 s（cap 30 + timeout 10 + 10）"
   },
   {
    "name": "reported_timeout",
    "ok": true,
-   "detail": "drain.disconnected=\"TimeoutError('stats 未在 10.0 s 内返回（桥接可能卡住）')\"  stats_timeout_count=1"
+   "detail": "drain.disconnected=\"TimeoutError('stats 未在 10.0 s 内返回（桥接可能卡住）')\"  stats_timeout_count=4"
   },
   {
    "name": "hard_cap_field_present",

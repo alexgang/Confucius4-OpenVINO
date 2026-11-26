@@ -1,0 +1,369 @@
+{
+  "generated_at": "2026-11-26 20:19:10",
+  "candidate": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_MiniMVP_v1.2.candidate",
+  "media": "C:/Users/Trekker-PTL/confucius4-openvino/test_audio/clip_10min_0_600.wav",
+  "media_duration_sec": 600,
+  "drain_cap_sec": 300,
+  "drain_tool": "live_caption/_app137_e2e_drain.py (§245 版)",
+  "arms": [
+    {
+      "arm": "bgkeep_off",
+      "bg_off": true,
+      "voice": "A",
+      "rc": 0,
+      "elapsed_s": 715.3,
+      "env": "EXT_TTS_DEVICE=NPU|EXT_MT_DEVICE=GPU.0",
+      "json": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app149\\three_arms_r245\\bgkeep_off\\bgkeep_off_1\\bgkeep_e2e.json",
+      "dubs": 123,
+      "n_submitted": 123,
+      "n_emitted": 123,
+      "n_error": 0,
+      "n_pending": 0,
+      "asr_segments": 123,
+      "mt_segments": 123,
+      "tts_segments": 123,
+      "n_pending_at_media_end": 18,
+      "n_pending_after_drain": 0,
+      "drained_to_zero": true,
+      "drain_elapsed_sec": 84.31,
+      "timing_valid": true,
+      "stats_timeout_count": 7,
+      "drain_hard_cap_hit": false,
+      "drain_timeout_events": [
+        {
+          "rel_sec": 612.95,
+          "elapsed_in_drain_sec": 10.03,
+          "msg": "TimeoutError('stats 未在 10.0 s 内返回（桥接可能卡住）')"
+        },
+        {
+          "rel_sec": 624.99,
+          "elapsed_in_drain_sec": 22.07,
+          "msg": "TimeoutError('stats 未在 10.0 s 内返回（桥接可能卡住）')"
+        },
+        {
+          "rel_sec": 637.02,
+          "elapsed_in_drain_sec": 34.11,
+          "msg": "TimeoutError('stats 未在 10.0 s 内返回（桥接可能卡住）')"
+        },
+        {
+          "rel_sec": 649.06,
+          "elapsed_in_drain_sec": 46.15,
+          "msg": "TimeoutError('stats 未在 10.0 s 内返回（桥接可能卡住）')"
+        },
+        {
+          "rel_sec": 661.1,
+          "elapsed_in_drain_sec": 58.18,
+          "msg": "TimeoutError('stats 未在 10.0 s 内返回（桥接可能卡住）')"
+        }
+      ],
+      "drain_timeout_events_n": 7,
+      "dub_late_max": 160.756,
+      "dub_late_p90": 100.617,
+      "dub_late_p50": 29.224,
+      "synth_rtf": 0.9834,
+      "n_segments_with_tts": 123,
+      "peak_ws_mb": null,
+      "clone_reasons": {},
+      "bg_state": "off",
+      "speaker": {
+        "n_speakers": 0,
+        "n_pending_unassigned": 123,
+        "n_final_without_spk": 246,
+        "clean_sec_required": 3.0,
+        "preset_voice": "A",
+        "blocking_diarization": false
+      },
+      "log_ready": [
+        "[bridge 19:41:35] ✅ 模型加载完成（ASR/MT/TTS 就绪，耗时 15.16 秒）"
+      ],
+      "err_ready": [
+        "[ext-engine] ASR 就绪（Qwen3-ASR 0.6B INT8 @ GPU.0，3.8s）",
+        "[ext-engine] MT 就绪（Hy-MT3 INT8 @ GPU.0，2.1s）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（speaker_encoder）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（talker@64）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（talker@128）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（talker@256）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（talker@384）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（talker@512）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（tokenizer_decoder@38）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine] SpeakerLibrary 就绪：C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_speakers（0 个音色：无；内置音色走**只读回退**，**不复制**到用户目录）",
+        "[ext-engine] TTS 就绪（Qwen3-TTS @ NPU，8.9s）",
+        "[ext-engine] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\models\\qwen3tts\\voices\\preset_A.wav -> (1, 1024)",
+        "[ext-engine] 预设音色 A embedding 就绪：shape=(1, 1024)"
+      ],
+      "lock_events": [
+        {
+          "ev": "lock_acquired",
+          "ts": "2026-11-26T19:41:18",
+          "tag": "app e2e drain 2026-11-26T19:41:18 pid=23260",
+          "waited_s": 0
+        },
+        {
+          "ev": "arm_done",
+          "arm": "bgkeep_off_1",
+          "rc": 0,
+          "elapsed_s": 714,
+          "lock_lost": 0
+        },
+        {
+          "ev": "lock_released",
+          "ts": "2026-11-26T19:53:14"
+        }
+      ],
+      "gate_pass": true
+    },
+    {
+      "arm": "bgkeep_on",
+      "bg_off": false,
+      "voice": "A",
+      "rc": 0,
+      "elapsed_s": 747.5,
+      "env": "EXT_TTS_DEVICE=NPU|EXT_MT_DEVICE=GPU.0",
+      "json": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app149\\three_arms_r245\\bgkeep_on\\bgkeep_on_1\\bgkeep_e2e.json",
+      "dubs": 123,
+      "n_submitted": 123,
+      "n_emitted": 123,
+      "n_error": 0,
+      "n_pending": 0,
+      "asr_segments": 123,
+      "mt_segments": 123,
+      "tts_segments": 123,
+      "n_pending_at_media_end": 26,
+      "n_pending_after_drain": 0,
+      "drained_to_zero": true,
+      "drain_elapsed_sec": 116.62,
+      "timing_valid": true,
+      "stats_timeout_count": 9,
+      "drain_hard_cap_hit": false,
+      "drain_timeout_events": [
+        {
+          "rel_sec": 612.97,
+          "elapsed_in_drain_sec": 10.03,
+          "msg": "TimeoutError('stats 未在 10.0 s 内返回（桥接可能卡住）')"
+        },
+        {
+          "rel_sec": 625.01,
+          "elapsed_in_drain_sec": 22.08,
+          "msg": "TimeoutError('stats 未在 10.0 s 内返回（桥接可能卡住）')"
+        },
+        {
+          "rel_sec": 637.05,
+          "elapsed_in_drain_sec": 34.11,
+          "msg": "TimeoutError('stats 未在 10.0 s 内返回（桥接可能卡住）')"
+        },
+        {
+          "rel_sec": 649.08,
+          "elapsed_in_drain_sec": 46.15,
+          "msg": "TimeoutError('stats 未在 10.0 s 内返回（桥接可能卡住）')"
+        },
+        {
+          "rel_sec": 661.14,
+          "elapsed_in_drain_sec": 58.2,
+          "msg": "TimeoutError('stats 未在 10.0 s 内返回（桥接可能卡住）')"
+        }
+      ],
+      "drain_timeout_events_n": 9,
+      "dub_late_max": 224.814,
+      "dub_late_p90": 166.936,
+      "dub_late_p50": 51.236,
+      "synth_rtf": 1.0408,
+      "n_segments_with_tts": 123,
+      "peak_ws_mb": null,
+      "clone_reasons": {},
+      "bg_state": "ok",
+      "speaker": {
+        "n_speakers": 0,
+        "n_pending_unassigned": 123,
+        "n_final_without_spk": 246,
+        "clean_sec_required": 3.0,
+        "preset_voice": "A",
+        "blocking_diarization": false
+      },
+      "log_ready": [
+        "[bridge 19:53:30] ✅ 模型加载完成（ASR/MT/TTS 就绪，耗时 14.88 秒）"
+      ],
+      "err_ready": [
+        "[ext-engine] ASR 就绪（Qwen3-ASR 0.6B INT8 @ GPU.0，3.4s）",
+        "[ext-engine] MT 就绪（Hy-MT3 INT8 @ GPU.0，2.1s）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（speaker_encoder）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（talker@64）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（talker@128）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（talker@256）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（talker@384）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（talker@512）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（tokenizer_decoder@38）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine] SpeakerLibrary 就绪：C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_speakers（0 个音色：无；内置音色走**只读回退**，**不复制**到用户目录）",
+        "[ext-engine] TTS 就绪（Qwen3-TTS @ NPU，9.0s）",
+        "[ext-engine] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\models\\qwen3tts\\voices\\preset_A.wav -> (1, 1024)",
+        "[ext-engine] 预设音色 A embedding 就绪：shape=(1, 1024)"
+      ],
+      "lock_events": [
+        {
+          "ev": "lock_acquired",
+          "ts": "2026-11-26T19:53:14",
+          "tag": "app e2e drain 2026-11-26T19:53:14 pid=5040",
+          "waited_s": 0
+        },
+        {
+          "ev": "arm_done",
+          "arm": "bgkeep_on_1",
+          "rc": 0,
+          "elapsed_s": 747,
+          "lock_lost": 0
+        },
+        {
+          "ev": "lock_released",
+          "ts": "2026-11-26T20:05:41"
+        }
+      ],
+      "gate_pass": true
+    },
+    {
+      "arm": "bgkeep_on_clone",
+      "bg_off": false,
+      "voice": "clone",
+      "rc": 0,
+      "elapsed_s": 809.1,
+      "env": "EXT_TTS_DEVICE=NPU|EXT_MT_DEVICE=GPU.0",
+      "json": "C:/Users/Trekker-PTL/shared/bgkeep/e2e_app149\\three_arms_r245\\bgkeep_on_clone\\bgkeep_on_clone_1\\bgkeep_e2e.json",
+      "dubs": 170,
+      "n_submitted": 170,
+      "n_emitted": 170,
+      "n_error": 0,
+      "n_pending": 0,
+      "asr_segments": 168,
+      "mt_segments": 168,
+      "tts_segments": 167,
+      "n_pending_at_media_end": 47,
+      "n_pending_after_drain": 0,
+      "drained_to_zero": true,
+      "drain_elapsed_sec": 177.79,
+      "timing_valid": true,
+      "stats_timeout_count": 14,
+      "drain_hard_cap_hit": false,
+      "drain_timeout_events": [
+        {
+          "rel_sec": 612.97,
+          "elapsed_in_drain_sec": 10.04,
+          "msg": "TimeoutError('stats 未在 10.0 s 内返回（桥接可能卡住）')"
+        },
+        {
+          "rel_sec": 624.99,
+          "elapsed_in_drain_sec": 22.06,
+          "msg": "TimeoutError('stats 未在 10.0 s 内返回（桥接可能卡住）')"
+        },
+        {
+          "rel_sec": 637.04,
+          "elapsed_in_drain_sec": 34.11,
+          "msg": "TimeoutError('stats 未在 10.0 s 内返回（桥接可能卡住）')"
+        },
+        {
+          "rel_sec": 649.08,
+          "elapsed_in_drain_sec": 46.14,
+          "msg": "TimeoutError('stats 未在 10.0 s 内返回（桥接可能卡住）')"
+        },
+        {
+          "rel_sec": 661.14,
+          "elapsed_in_drain_sec": 58.21,
+          "msg": "TimeoutError('stats 未在 10.0 s 内返回（桥接可能卡住）')"
+        }
+      ],
+      "drain_timeout_events_n": 14,
+      "dub_late_max": 337.9,
+      "dub_late_p90": 274.231,
+      "dub_late_p50": 95.01,
+      "synth_rtf": 1.0547,
+      "n_segments_with_tts": 168,
+      "peak_ws_mb": null,
+      "clone_reasons": {
+        "self_ref_unvoiced": 2,
+        "self_ref": 1,
+        "guard_no_emb": 1,
+        "timeout": 6,
+        "label": 61,
+        "guard_keep": 104,
+        "fallback": 2,
+        "provisional": 164,
+        "guard_short": 64,
+        "gender_keep": 2
+      },
+      "bg_state": "ok",
+      "speaker": {
+        "n_speakers": 0,
+        "n_pending_unassigned": 170,
+        "n_final_without_spk": 340,
+        "clean_sec_required": 3.0,
+        "preset_voice": "A",
+        "blocking_diarization": false
+      },
+      "log_ready": [
+        "[bridge 20:05:58] ✅ 模型加载完成（ASR/MT/TTS 就绪，耗时 15.41 秒）"
+      ],
+      "err_ready": [
+        "[ext-engine] ASR 就绪（Qwen3-ASR 0.6B INT8 @ GPU.0，3.7s）",
+        "[ext-engine] MT 就绪（Hy-MT3 INT8 @ GPU.0，2.6s）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（speaker_encoder）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（talker@64）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（talker@128）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（talker@256）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（talker@384）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（talker@512）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine_patch] NPU turbo 已生效：YES（tokenizer_decoder@38）",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [npu_turbo] NPU_TURBO=True（已开启（NPU_TURBO=YES））",
+        "[ext-engine] [tts_engine] SpeakerLibrary 就绪：C:\\Users\\Trekker-PTL\\AppData\\Local\\Confucius4LiveCaption\\tts_speakers（0 个音色：无；内置音色走**只读回退**，**不复制**到用户目录）",
+        "[ext-engine] TTS 就绪（Qwen3-TTS @ NPU，8.7s）",
+        "[ext-engine] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\models\\qwen3tts\\voices\\preset_A.wav -> (1, 1024)",
+        "[ext-engine] 预设音色 A embedding 就绪：shape=(1, 1024)",
+        "[ext-engine] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\AppData\\Local\\LiveDubEXT\\clone_voices\\self_27200.wav -> (1, 1024)",
+        "[ext-engine] [tts_engine] speaker embedding 就绪：C:\\Users\\Trekker-PTL\\AppData\\Local\\LiveDubEXT\\clone_voices\\S1_1.wav -> (1, 1024)"
+      ],
+      "lock_events": [
+        {
+          "ev": "lock_acquired",
+          "ts": "2026-11-26T20:05:41",
+          "tag": "app e2e drain 2026-11-26T20:05:41 pid=23120",
+          "waited_s": 0
+        },
+        {
+          "ev": "arm_done",
+          "arm": "bgkeep_on_clone_1",
+          "rc": 0,
+          "elapsed_s": 808,
+          "lock_lost": 0
+        },
+        {
+          "ev": "lock_released",
+          "ts": "2026-11-26T20:19:10"
+        }
+      ],
+      "gate_pass": true
+    }
+  ],
+  "gate_all_pass": true
+}

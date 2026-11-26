@@ -1,0 +1,85 @@
+{
+ "cases": [
+  {
+   "sr": 48000,
+   "sec": 5.0,
+   "subtype": "VORBIS",
+   "rc": 0,
+   "ok": true,
+   "stdout": "OK BYTES=11620",
+   "stderr_tail": []
+  },
+  {
+   "sr": 48000,
+   "sec": 10.0,
+   "subtype": "VORBIS",
+   "rc": 0,
+   "ok": true,
+   "stdout": "OK BYTES=21207",
+   "stderr_tail": []
+  },
+  {
+   "sr": 48000,
+   "sec": 20.0,
+   "subtype": "VORBIS",
+   "rc": 3221225725,
+   "ok": false,
+   "stdout": "",
+   "stderr_tail": []
+  },
+  {
+   "sr": 48000,
+   "sec": 30.0,
+   "subtype": "VORBIS",
+   "rc": 3221225725,
+   "ok": false,
+   "stdout": "",
+   "stderr_tail": []
+  },
+  {
+   "sr": 48000,
+   "sec": 40.0,
+   "subtype": "VORBIS",
+   "rc": 3221225725,
+   "ok": false,
+   "stdout": "",
+   "stderr_tail": []
+  },
+  {
+   "sr": 16000,
+   "sec": 30.0,
+   "subtype": "VORBIS",
+   "rc": 0,
+   "ok": true,
+   "stdout": "OK BYTES=25190",
+   "stderr_tail": []
+  },
+  {
+   "sr": 16000,
+   "sec": 40.0,
+   "subtype": "VORBIS",
+   "rc": 3221225725,
+   "ok": false,
+   "stdout": "",
+   "stderr_tail": []
+  },
+  {
+   "sr": 16000,
+   "sec": 40.0,
+   "subtype": "OPUS",
+   "rc": 0,
+   "ok": true,
+   "stdout": "OK BYTES=120030",
+   "stderr_tail": []
+  },
+  {
+   "sr": 8000,
+   "sec": 40.0,
+   "subtype": "VORBIS",
+   "rc": 0,
+   "ok": true,
+   "stdout": "OK BYTES=24057",
+   "stderr_tail": []
+  }
+ ]
+}
