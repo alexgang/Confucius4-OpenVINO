@@ -1,0 +1,33 @@
+{
+  "generated_at": "2026-11-26 22:40:16",
+  "zip": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2.zip",
+  "candidate_dir": "C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_MiniMVP_v1.2",
+  "method": "zipfile.infolist() central directory vs directory walk (relative path + file_size) + testzip() CRC (NO SHA)",
+  "n_zip_entries": 10893,
+  "top_prefix": "Confucius4_LiveCaption_MiniMVP_v1.2/",
+  "entries_without_prefix": {
+    "count": 0,
+    "sample": []
+  },
+  "n_dir_files": 10893,
+  "only_in_zip": {
+    "count": 0,
+    "sample": []
+  },
+  "only_in_dir": {
+    "count": 0,
+    "sample": []
+  },
+  "size_differs": {
+    "count": 0,
+    "sample": []
+  },
+  "testzip_result": null,
+  "testzip_ok": true,
+  "verdict": {
+    "three_counts_zero": true,
+    "all_entries_have_top_prefix": true,
+    "crc_ok": true,
+    "n_entries_equal": true
+  }
+}

@@ -43,12 +43,26 @@ def main(zip_path=CAND + '.zip', cand=CAND):
         return 2
 
     zf = zipfile.ZipFile(zip_path, 'r')
+    # 🔴 §247 修判据：交付 zip 的条目**带顶层目录前缀**
+    #    （`Confucius4_LiveCaption_MiniMVP_v1.2/...`，与 v1.1.1 的 zip 结构一致），
+    #    而目录侧是**相对路径**（无前缀）⇒ 原脚本直接比对 ⇒ 10893 条全不匹配 = **假 FAIL**。
+    #    现在：先把前缀剥掉；且**所有条目都必须带该前缀**（不带 ⇒ 结构不合惯例 ⇒ 判 FAIL）。
+    prefix = os.path.basename(os.path.normpath(cand)) + '/'
     zmap = {}
+    no_prefix = []
     for info in zf.infolist():
         if info.is_dir():
             continue
-        zmap[info.filename.replace('\\', '/')] = info.file_size
+        name = info.filename.replace('\\', '/')
+        if name.startswith(prefix):
+            name = name[len(prefix):]
+        else:
+            no_prefix.append(name)
+        zmap[name] = info.file_size
     out['n_zip_entries'] = len(zmap)
+    out['top_prefix'] = prefix
+    out['entries_without_prefix'] = {'count': len(no_prefix),
+                                     'sample': sorted(no_prefix)[:20]}
 
     dmap = scan_dir(cand)
     out['n_dir_files'] = len(dmap)
@@ -70,10 +84,12 @@ def main(zip_path=CAND + '.zip', cand=CAND):
     out['verdict'] = {
         'three_counts_zero': (len(only_zip) == 0 and len(only_dir) == 0
                               and len(size_diff) == 0),
+        'all_entries_have_top_prefix': (len(no_prefix) == 0),
         'crc_ok': out['testzip_ok'],
         'n_entries_equal': (len(zmap) == len(dmap)),
     }
     print('zip 条目数 = %d，目录文件数 = %d' % (len(zmap), len(dmap)))
+    print('顶层前缀 = %r；不带前缀的条目 = %d' % (prefix, len(no_prefix)))
     print('只在 zip 里 = %d；只在目录里 = %d；大小不同 = %d'
           % (len(only_zip), len(only_dir), len(size_diff)))
     for nm, lst in (('only_in_zip', only_zip), ('only_in_dir', only_dir),
@@ -87,7 +103,9 @@ def main(zip_path=CAND + '.zip', cand=CAND):
     with open(OUT, 'w', encoding='utf-8', newline='\n') as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
     print('落盘 ->', OUT)
-    ok = out['verdict']['three_counts_zero'] and out['verdict']['crc_ok']
+    ok = (out['verdict']['three_counts_zero'] and out['verdict']['crc_ok']
+          and out['verdict']['all_entries_have_top_prefix']
+          and out['verdict']['n_entries_equal'])
     return 0 if ok else 1
 
 

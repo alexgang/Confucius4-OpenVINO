@@ -1,0 +1,79 @@
+{
+  "generated_at": "2026-11-26 22:41:35",
+  "target": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\live_caption\\_app148_zip_consistency.py",
+  "cases": [
+    {
+      "case": "c1 正常",
+      "expect": "PASS",
+      "rc": 0,
+      "verdict": {
+        "three_counts_zero": true,
+        "all_entries_have_top_prefix": true,
+        "crc_ok": true,
+        "n_entries_equal": true
+      }
+    },
+    {
+      "case": "c2 zip 多一个文件",
+      "expect": "FAIL",
+      "rc": 1,
+      "only_in_zip": 1,
+      "verdict": {
+        "three_counts_zero": false,
+        "all_entries_have_top_prefix": true,
+        "crc_ok": true,
+        "n_entries_equal": false
+      }
+    },
+    {
+      "case": "c3 zip 缺一个文件",
+      "expect": "FAIL",
+      "rc": 1,
+      "only_in_dir": 1,
+      "verdict": {
+        "three_counts_zero": false,
+        "all_entries_have_top_prefix": true,
+        "crc_ok": true,
+        "n_entries_equal": false
+      }
+    },
+    {
+      "case": "c4 同名不同大小",
+      "expect": "FAIL",
+      "rc": 1,
+      "size_differs": 1,
+      "verdict": {
+        "three_counts_zero": false,
+        "all_entries_have_top_prefix": true,
+        "crc_ok": true,
+        "n_entries_equal": true
+      }
+    },
+    {
+      "case": "c5 zip 无顶层前缀",
+      "expect": "FAIL",
+      "rc": 1,
+      "entries_without_prefix": 2,
+      "verdict": {
+        "three_counts_zero": true,
+        "all_entries_have_top_prefix": false,
+        "crc_ok": true,
+        "n_entries_equal": true
+      }
+    },
+    {
+      "case": "c6 真实 v1.2 zip",
+      "expect": "PASS",
+      "rc": 0,
+      "n_zip": 10893,
+      "n_dir": 10893,
+      "verdict": {
+        "three_counts_zero": true,
+        "all_entries_have_top_prefix": true,
+        "crc_ok": true,
+        "n_entries_equal": true
+      }
+    }
+  ],
+  "all_as_expected": true
+}

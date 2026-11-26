@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-26 13:59:33",
+  "generated_at": "2026-11-26 22:29:27",
   "method": "fixed-offset 32-byte hex comparison (NO SHA)",
   "read_bytes": 32,
   "offsets_rule": [
