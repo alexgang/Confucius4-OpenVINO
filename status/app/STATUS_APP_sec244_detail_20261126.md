@@ -204,6 +204,19 @@ MT 引擎列表（`translator.MT_ENGINES`）：**auto / gpu_int8cw / npu_int8cw�
 
 执行方式：用**候选目录自带 python**， + 包内 `ext/bridge/engine_runtime.py`（不是开发树的 EXT） ⇒ 验的就女拿到的那份代码。本项只加载模型、不跑推理 ⇒ 不占推理资源 ⇒ 可在等机器锁期间独立验证；「端到端出数据」仍需 APP-149 第6 项的 60 s 冒烟（等LFM 让锁）。脚本： `live_caption/_app149_asr_load_check.py`；结果： `results/app/app149_asr_load_check.json`
 
+## §5＋＋ §6 APP-149 item5 (final check): candidate ext/bridge is content-identical to the EXT source (real content difference = 0)
+
+| item | count |
+|---|---|
+| EXT src .py | 25 |
+| candidate ext/bridge/*.py | 25 |
+| byte-identical | 13 |
+| EOL-only difference (autocrlf) | 11 |
+| **real content difference** | **0** |
+| missing in candidate (CUDA-only) | 1 |
+
+The one missing file is `tts_cuda_sidecar_ext.py` - **CUDA sidecar only**; it is referenced only from the CUDA branch of `engine_runtime.py`, and MiniMVP ships no CUDA => not needed. Method: compare **content after normalizing line endings** (otherwise the autocrlf EOL difference would look like a content difference - the §226 lesson). Script: `live_caption/_app149_ext_sync_check.py`; result: `results/app/app149_ext_sync_check.json`
+
 ## §6 本轮的提交
 
 | 仓库 | commit | 内容 |

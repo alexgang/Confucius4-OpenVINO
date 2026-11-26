@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-11-26 18:17:19",
+  "ext_src": "C:/Users/Trekker-PTL/live_dub_ext/ext",
+  "candidate_bridge": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_MiniMVP_v1.2.candidate\\ext\\bridge",
+  "method": "compare content after normalizing line endings (CRLF->LF); report EOL-only differences separately (no SHA)",
+  "n_src": 25,
+  "n_cand": 25,
+  "identical": [
+    "app_root.py",
+    "audio_dump.py",
+    "bg_separator.py",
+    "bridge.py",
+    "clone_voice.py",
+    "config.py",
+    "engine_runtime.py",
+    "media_slowdown.py",
+    "pipeline.py",
+    "segmenter.py",
+    "speaker_bypass.py",
+    "spk_engine.py",
+    "version.py"
+  ],
+  "eol_only": [
+    "__init__.py",
+    "accel_usage.py",
+    "adaptive_speed.py",
+    "duration.py",
+    "engines.py",
+    "extension_id.py",
+    "pair_server.py",
+    "speaker.py",
+    "thread_limits.py",
+    "time_stretch.py",
+    "utf8_io.py"
+  ],
+  "real_diff": [],
+  "missing_in_candidate": [
+    "tts_cuda_sidecar_ext.py"
+  ],
+  "extra_in_candidate": [
+    "__main__.py"
+  ],
+  "n_identical": 13,
+  "n_eol_only": 11,
+  "n_real_diff": 0,
+  "missing_notes": {
+    "tts_cuda_sidecar_ext.py": {
+      "referenced_by": [
+        "engine_runtime.py"
+      ],
+      "note": "CUDA sidecar only; MiniMVP ships no CUDA => not needed"
+    }
+  },
+  "verdict": {
+    "no_real_content_diff": true,
+    "eol_only_differences_are_expected": true,
+    "missing_are_cuda_only": true
+  }
+}
