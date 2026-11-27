@@ -266,15 +266,19 @@ def _patch_app_langs() -> None:
     except Exception as e:
         _log("补配音语言表失败（新语言的配音会退成英文）：%s" % e)
 
-# 失控中止：单句合成墙钟上限（秒）。超过 ⇒ 中止该句并记录。
-# ★ 与 App 的 RUNAWAY 判据口径一致：`runaway_threshold_s(est_sec)` =
-#   `max(3×est, est + 8s)`（APP-030②）。这里取**上限封顶**：墙钟闸取该阈值，
-#   但不超过硬上限 TTS_WALL_CLOCK_CAP_SEC（防止 est 估偏大时闸门形同虚设）。
-TTS_RUNAWAY_SEC = 30.0
 # 失控中止：单句生成音频上限（秒）。超过 ⇒ 中止该句并记录。
+# ★ 这是**绝对上限**（不是失控判据）⇒ 与「失控」是两件事。
 TTS_MAX_AUDIO_SEC = 60.0
-# 墙钟闸的硬上限（秒）—— 即便阈值算出来更大，也不允许超过这个值。
-TTS_WALL_CLOCK_CAP_SEC = 60.0
+# 🔴🔴🔳 APP-154 §1：**失控判据只看音频长度，不看墙钟**。
+#   墙钟**只**保留一个很宽的兜底：≥ 60 s，或估算时长的 6 倍（取大的那个）。
+#   ⇒ 机器忙时合成慢**不算失控**（APP-153 §1b 实测：clone 臂 17 字句
+#     墙钟 15.26 s > 旧阈值 14.55 s，但**音频长度正常** ⇒ 旧墙钟闸
+#     把一句**慢但正常**的句子误杀 ⇒ 空配音 ⇒ 丢句）。
+#   ⇒ 墙钟兜底**只记日志**，不丢句。
+TTS_WALL_CLOCK_FALLBACK_SEC = 60.0
+TTS_WALL_CLOCK_FALLBACK_FACTOR = 6.0
+# 🔴 APP-154 §1：兜底截短用的**语速上限**（用户 11-16 定的 1.70×）。
+TTS_RATE_CAP = 1.70
 
 
 # ══════════════════════════════════════════════════════════════
@@ -369,6 +373,13 @@ class RuntimeEngine:
         #   加载完 TTS 后由 `_report_tts_exec_devices()` 填。
         #   ⚠️ 初始 None（**没加载就是没测过**）⇒ 绝不臆造。
         self.tts_exec_devices: Optional[dict] = None
+        # 🔴🔴🔳 APP-154 §1：**失控/重合成**的可观测计数（门禁要看这三个数）。
+        #   * `tts_runaway`      —— 本句被**音频长度**判据判失控的次数；
+        #   * `tts_resynth`      —— 因失控而**用预设音色 A 重合成**的次数；
+        #   * `tts_wall_fallback` —— 墙钟宽兜底触发次数（**只记日志，不丢句**）。
+        self.tts_runaway = 0
+        self.tts_resynth = 0
+        self.tts_wall_fallback = 0
 
     # ── 可用性探测（静态，不加载权重） ───────────────────────────
     def available(self) -> dict:
@@ -916,13 +927,44 @@ class RuntimeEngine:
         #   —— 后者在语言全称（如 'Japanese'）下会因 `_SEC_PER_CHAR`
         #   的键不匹配而落到英文口径，阈值被低估。
         est_sec = float(estimate_sec(text, language))
-        # ★ 墙钟闸用 App 的 RUNAWAY 判据：`max(3×est, est+8s)`，
-        #   再用硬上限封顶（防止 est 估偏大时闸门形同虚设）。
-        wall_limit = min(runaway_threshold_s(est_sec), TTS_WALL_CLOCK_CAP_SEC)
+        # 🔴🔴🔳 APP-154 §1：**失控阈值 = 已收音频秒数 > `runaway_threshold_s(est)`**
+        #   （APP-030② 原本的设计：max(3×估计, 估计+8 s)）。
+        #   ⚠️ **不再用墙钟判失控** ⇒ 机器忙（合成慢）不算失控。
+        audio_limit = float(runaway_threshold_s(est_sec))
+        # 🔴 墙钟**只**作很宽的兜底（≥60 s 或 est×6，取大者）⇒ **只记日志**。
+        wall_fallback = max(TTS_WALL_CLOCK_FALLBACK_SEC,
+                            est_sec * TTS_WALL_CLOCK_FALLBACK_FACTOR)
 
         spk_embed = self._apply_voice(voice)
-        pcm = self._collect_tts(text, language=language, max_tok=max_tok,
-                                wall_limit=wall_limit, speaker_embed=spk_embed)
+        pcm, why = self._collect_tts(text, language=language, max_tok=max_tok,
+                                     audio_limit=audio_limit,
+                                     wall_fallback=wall_fallback,
+                                     speaker_embed=spk_embed)
+        if pcm is None and why:
+            # 🔴🔴🔳 APP-154 §1：真被判失控（**音频长度**超限）⇒
+            #   **用预设音色 A 重合成一次**（克隆音色可能正是失控的诱因）。
+            self.tts_runaway += 1
+            self.on_log("🔴 TTS 失控（%s）⇒ 用预设音色 A 重合成一次" % why)
+            self.tts_resynth += 1
+            pcm2, _why2 = self._collect_tts(
+                text, language=language, max_tok=max_tok,
+                audio_limit=audio_limit, wall_fallback=wall_fallback,
+                speaker_embed=self._preset_embed())
+            if pcm2 is not None:
+                pcm = pcm2
+                self.on_log("✅ TTS 预设音色 A 重合成成功（%.1fs 音频）"
+                            % (len(pcm) / 2.0 / 24000.0))
+            else:
+                # 🔴 重合成也失败 ⇒ **按 1.7× 语速上限截短**后照样下发
+                #   （**绝不留下发空音频、不丢句**；用户规则：跳句阈值 0）。
+                pcm = self._collect_tts_truncated(
+                    text, language=language, max_tok=max_tok,
+                    audio_limit=audio_limit, wall_fallback=wall_fallback,
+                    speaker_embed=spk_embed)
+                if pcm is not None:
+                    self.on_log("⚠️ TTS 重合成仍失败 ⇒ 按 1.7× 语速上限截短后下发"
+                                "（%.1fs 音频，**不丢句**）"
+                                % (len(pcm) / 2.0 / 24000.0))
         if pcm is None:
             return (None, 0.0)
         speech_sec = len(pcm) / 2.0 / 24000.0
@@ -953,9 +995,33 @@ class RuntimeEngine:
                 cache[path] = None
         return cache[path] if cache[path] is not None else self._tts_spk_embed
 
+    def _preset_embed(self):
+        """**预设音色 A** 的 speaker embedding（重合成时用；CUDA 侧车返回 None）。
+
+        ⚠️ 真方法名是 `_prepare_preset_voice()`（EXT 原文件里就是这个名字）
+           —— 调错名字会让重合成**根本没换音色**（等于白做）。
+        """
+        try:
+            self._prepare_preset_voice()
+        except Exception as e:
+            self.on_log("⚠️ 预设音色 A embedding 不可用：%s" % e)
+            return None
+        return self._tts_spk_embed
+
     def _collect_tts(self, text: str, *, language: str, max_tok: int,
-                     wall_limit: float, speaker_embed=None) -> Optional[bytes]:
-        """跑 TTS 流式合成并收集 PCM，同时执行两道失控中止。"""
+                     audio_limit: float, wall_fallback: float,
+                     speaker_embed=None) -> Tuple[Optional[bytes], Optional[str]]:
+        """跑 TTS 流式合成并收集 PCM。
+
+        🔴🔴🔳 APP-154 §1：**失控判据只看音频长度**（`audio_limit`），
+           墙钟**只**作很宽的兜底（`wall_fallback`）⇒ 触发时**只记日志**、
+           **不丢句**。
+
+        Returns
+        -------
+        (pcm_bytes, reason)
+            `reason` 非 None ⇒ 因**音频长度**超限而中止（⇒ 上层应重合成）。
+        """
         from tts_engine import stream as tts_stream
 
         chunks: List[np.ndarray] = []
@@ -976,29 +1042,86 @@ class RuntimeEngine:
                 arr = np.asarray(wave, dtype=np.float32).reshape(-1)
                 if arr.shape[0]:
                     chunks.append(arr)
-                # 失控闸 1：墙钟上限（App RUNAWAY 判据）
-                elapsed = time.perf_counter() - t0
-                if elapsed > wall_limit:
-                    aborted = "wall_clock>%.1fs (limit %.1fs)" % (
-                        elapsed, wall_limit)
-                    break
-                # 失控闸 2：累计音频上限
+                # 🔴🔴🔳 APP-154 §1：**失控闸 = 已收音频秒数 > 阈值**
+                #   （机器忙 ⇒ 合成慢，但音频长度正常 ⇒ **不算失控**）。
                 total = sum(c.shape[0] for c in chunks) / float(sr)
+                if total > audio_limit:
+                    aborted = "audio>%.1fs (limit %.1fs)" % (total, audio_limit)
+                    break
+                # 🔴 失控闸 2：绝对音频上限（60 s）—— 真跑飞了就停。
                 if total > TTS_MAX_AUDIO_SEC:
                     aborted = "audio>%.0fs" % TTS_MAX_AUDIO_SEC
                     break
+                # 🔴🔴🔳 APP-154 §1：墙钟**只**作很宽的兜底 ⇒ **只记日志**。
+                elapsed = time.perf_counter() - t0
+                if elapsed > wall_fallback:
+                    self.tts_wall_fallback += 1
+                    self.on_log("⚠️ TTS 墙钟兜底触发（>%.0fs）⇒ **只记日志，不丢句**"
+                                % wall_fallback)
+                    wall_fallback = float('inf')   # 只提醒一次
         except Exception as e:
             self.last_error["tts"] = "%s: %s" % (type(e).__name__, e)
             self.on_log("TTS 调用失败: %s" % e)
-            return None
+            # 🔴🔴🔳 APP-154 §1：**任何**失败都要带 reason ⇒ 上层一律走
+            #   「用预设音色 A 重合成 ⇒ 仍失败则兜底截短」⇒ **不留下发空音频**。
+            return (None, "error: %s: %s" % (type(e).__name__, e))
         if aborted:
             self.last_error["tts"] = "runaway_abort: %s" % aborted
-            self.on_log("🔴 TTS 失控中止：%s（已丢弃该句）" % aborted)
+            self.on_log("🔴 TTS 失控中止：%s（音频长度超限）" % aborted)
+            return (None, aborted)
+        if not chunks:
+            return (None, None)
+        audio = np.concatenate(chunks)
+        # float [-1,1] → int16
+        audio = np.clip(audio, -1.0, 1.0)
+        return ((audio * 32767.0).astype("<i2").tobytes(), None)
+
+    def _collect_tts_truncated(self, text: str, *, language: str, max_tok: int,
+                               audio_limit: float, wall_fallback: float,
+                               speaker_embed=None) -> Optional[bytes]:
+        """🔴🔴🔳 APP-154 §1：**兜底**——按 1.7× 语速上限截短后照样下发。
+
+        用途：真失控 ⇒ 预设音色 A 重合成**也**失败 ⇒ 绝不能留下发空音频、
+        绝不能丢句（用户规则：跳句阈值 0）⇒ 取「按语速上限截短」的音频。
+
+        口径：`1.7×` = App/EXT 的**语速上限**（`ADAPT_TOTAL_RATE_MAX` = 1.70，
+        用户 11-16 定的 1.70×）⇒ 截短后的音频秒数上限 = `audio_limit / 1.7`
+        ⇒ 截短后仍能在 1.7× 内放回原槽位。
+        """
+        from tts_engine import stream as tts_stream
+
+        chunks: List[np.ndarray] = []
+        sr = 24000
+        cap_sec = max(0.5, audio_limit / TTS_RATE_CAP)
+        t0 = time.perf_counter()
+        try:
+            for wave, sample_rate in tts_stream(
+                    self._tts_eng, text, language=language,
+                    speaker_embed=speaker_embed, speaker=None,
+                    max_new_tokens=max_tok, on_log=self.on_log):
+                if sample_rate:
+                    sr = int(sample_rate)
+                if wave is None:
+                    continue
+                arr = np.asarray(wave, dtype=np.float32).reshape(-1)
+                if arr.shape[0]:
+                    chunks.append(arr)
+                total = sum(c.shape[0] for c in chunks) / float(sr)
+                if total >= cap_sec:
+                    break
+                if (time.perf_counter() - t0) > wall_fallback:
+                    break
+        except Exception as e:
+            self.on_log("TTS 兜底截短也失败: %s" % e)
             return None
         if not chunks:
             return None
         audio = np.concatenate(chunks)
-        # float [-1,1] → int16
+        # 🔴 按 1.7× 语速上限**精确**截短（块是整块来的 ⇒ 必须再切一刀，
+        #   否则会超出 cap 一个块）。
+        cap_n = int(cap_sec * float(sr))
+        if cap_n > 0 and audio.shape[0] > cap_n:
+            audio = audio[:cap_n]
         audio = np.clip(audio, -1.0, 1.0)
         return (audio * 32767.0).astype("<i2").tobytes()
 
@@ -1016,6 +1139,10 @@ class RuntimeEngine:
                        "tts": self._tts_eng is not None},
             "load_s": {k: round(v, 2) for k, v in self.load_s.items()},
             "n_calls": dict(self.n_calls),
+            # 🔴🔴🔳 APP-154 §1：失控/重合成计数（门禁要看这三个数）。
+            "tts_runaway": self.tts_runaway,
+            "tts_resynth": self.tts_resynth,
+            "tts_wall_fallback": self.tts_wall_fallback,
             "last_error": dict(self.last_error),
             "needs_change": list(self.needs_change),
         }
