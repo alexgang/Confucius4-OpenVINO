@@ -2,9 +2,9 @@
 
 EXT-001 总原则：
   * 引擎复用现有交付版本，**不改其他模块的文件**：
-      - ASR  R2T2 INT8 @ GPU.0     → C:\\Users\\Trekker-PTL\\confucius4-openvino
-      - MT   Hy-MT2 INT8 @ GPU.0    → C:\\Users\\Trekker-PTL\\hy_bench
-      - TTS  Qwen3-TTS 全 NPU       → C:\\Users\\Trekker-PTL\\confucius4-tts
+      - ASR  R2T2 INT8 @ GPU.0     → <开发目录>\\confucius4-openvino
+      - MT   Hy-MT2 INT8 @ GPU.0    → <开发目录>\\hy_bench
+      - TTS  Qwen3-TTS 全 NPU       → <开发目录>\\confucius4-tts
   * 只在 import 或**复制适配层**的范围内复用；
   * 发现引擎需要改动，**写进 status/STATUS_EXT.md**，由主会话转给对应模块。
 
@@ -27,7 +27,7 @@ def _resolve_roots() -> dict:
     """解析三个引擎的**代码根**（只读引用；**不加载**任何模型）。
 
     ★★ EXT-031 ②：**去掉写死的开发机绝对路径**
-      （原 `C:\\Users\\Trekker-PTL\\confucius4-openvino` /
+      （原 `<开发目录>\\confucius4-openvino` /
         `…\\hy_bench` / `…\\confucius4-tts`）
       ⇒ 改成「**App 包内**相对解析」：
 

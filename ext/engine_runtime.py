@@ -379,6 +379,9 @@ class RuntimeEngine:
         #   * `tts_wall_fallback` —— 墙钟宽兜底触发次数（**只记日志，不丢句**）。
         self.tts_runaway = 0
         self.tts_resynth = 0
+        # v0.4.25 (APP-156 §1): resynth with preset A also failed => last-resort short audio
+        self.tts_resynth_failed = 0
+        self.tts_nan_cut = 0
         self.tts_wall_fallback = 0
 
     # ── 可用性探测（静态，不加载权重） ───────────────────────────
@@ -965,6 +968,11 @@ class RuntimeEngine:
                     self.on_log("⚠️ TTS 重合成仍失败 ⇒ 按 1.7× 语速上限截短后下发"
                                 "（%.1fs 音频，**不丢句**）"
                                 % (len(pcm) / 2.0 / 24000.0))
+                self.tts_resynth_failed += 1
+                if pcm is None:
+                    # v0.4.25: last resort - a short silence so the sentence slot is never empty
+                    pcm = np.zeros(int(0.3 * 24000), dtype="<i2").tobytes()
+                    self.on_log("⚠️ TTS 截短兜底也无有效音频 ⇒ 下发 0.3 s 静音占位（不丢句）")
         if pcm is None:
             return (None, 0.0)
         speech_sec = len(pcm) / 2.0 / 24000.0
@@ -1008,6 +1016,16 @@ class RuntimeEngine:
             return None
         return self._tts_spk_embed
 
+    def _finite_prefix(self, arr):
+        """v0.4.25 (APP-156 §1): keep only the samples before the first NaN/Inf.
+        Returns (arr_prefix, had_nonfinite). Never lets NaN reach the speed changer."""
+        ok = np.isfinite(arr)
+        if ok.all():
+            return arr, False
+        bad = int(np.argmin(ok))
+        self.tts_nan_cut += 1
+        return arr[:bad], True
+
     def _collect_tts(self, text: str, *, language: str, max_tok: int,
                      audio_limit: float, wall_fallback: float,
                      speaker_embed=None) -> Tuple[Optional[bytes], Optional[str]]:
@@ -1040,8 +1058,13 @@ class RuntimeEngine:
                 if wave is None:
                     continue
                 arr = np.asarray(wave, dtype=np.float32).reshape(-1)
+                arr, _nan = self._finite_prefix(arr)
                 if arr.shape[0]:
                     chunks.append(arr)
+                if _nan:
+                    # v0.4.25: NaN/Inf => treat as runaway (caller re-synthesizes with preset A)
+                    aborted = "nan/inf in TTS output"
+                    break
                 # 🔴🔴🔳 APP-154 §1：**失控闸 = 已收音频秒数 > 阈值**
                 #   （机器忙 ⇒ 合成慢，但音频长度正常 ⇒ **不算失控**）。
                 total = sum(c.shape[0] for c in chunks) / float(sr)
@@ -1070,7 +1093,8 @@ class RuntimeEngine:
             self.on_log("🔴 TTS 失控中止：%s（音频长度超限）" % aborted)
             return (None, aborted)
         if not chunks:
-            return (None, None)
+            # v0.4.25: an empty result is a failure too => caller re-synthesizes; never an empty dub
+            return (None, "empty audio")
         audio = np.concatenate(chunks)
         # float [-1,1] → int16
         audio = np.clip(audio, -1.0, 1.0)
@@ -1104,8 +1128,11 @@ class RuntimeEngine:
                 if wave is None:
                     continue
                 arr = np.asarray(wave, dtype=np.float32).reshape(-1)
+                arr, _nan = self._finite_prefix(arr)
                 if arr.shape[0]:
                     chunks.append(arr)
+                if _nan:
+                    break   # v0.4.25: keep the finite part only
                 total = sum(c.shape[0] for c in chunks) / float(sr)
                 if total >= cap_sec:
                     break
@@ -1141,7 +1168,17 @@ class RuntimeEngine:
             "n_calls": dict(self.n_calls),
             # 🔴🔴🔳 APP-154 §1：失控/重合成计数（门禁要看这三个数）。
             "tts_runaway": self.tts_runaway,
+            "tts_resynth_failed": self.tts_resynth_failed,
+            "tts_nan_cut": self.tts_nan_cut,
             "tts_resynth": self.tts_resynth,
+            # 🔴 APP-156 §1：reviewer 要求的门禁字段名（**别名**，旧名保留兼容）。
+            "n_resynth_triggered": self.tts_resynth,
+            "n_resynth_failed": self.tts_resynth_failed,
+            "n_nan_cut": self.tts_nan_cut,
+            # 🔴 APP-156 §1：reviewer 要求的门禁字段名（**别名**，旧名保留兼容）。
+            "n_resynth_triggered": self.tts_resynth,
+            "n_resynth_failed": self.tts_resynth_failed,
+            "n_nan_cut": self.tts_nan_cut,
             "tts_wall_fallback": self.tts_wall_fallback,
             "last_error": dict(self.last_error),
             "needs_change": list(self.needs_change),

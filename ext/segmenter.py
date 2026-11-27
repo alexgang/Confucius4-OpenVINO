@@ -32,7 +32,7 @@ from .config import (
 
 # 现有交付版本（R2T2）所在目录。只读引用。
 # ★★ EXT-031 ②：**去掉写死的开发机绝对路径**（原
-#   `C:\Users\Trekker-PTL\confucius4-openvino`）⇒ 改成：
+#   `<开发目录>\confucius4-openvino`）⇒ 改成：
 #   ① 环境变量 `EXT_R2T2_ROOT`（显式覆盖永远优先）；
 #   ② **App 包内 `app/`**（发行包里 R2T2 原件的真实位置 ——
 #      App 自带 `seg_stream.py` + `backends.py`，**不另带一份**）；

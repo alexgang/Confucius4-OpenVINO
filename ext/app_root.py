@@ -3,7 +3,7 @@
 ## 为什么需要这个文件（★ 缺陷 22，本轮实测抓到的真缺陷）
 
 本模块原先把 App 路径**硬编码**成
-`C:\\Users\\Trekker-PTL\\Confucius4_LiveCaption_v1.6`（`ext/engine_runtime.py`
+`<安装目录>\\Confucius4_LiveCaption_v1.6`（`ext/engine_runtime.py`
 与 4 个 `tools/*.py` 各写一份）。
 
 **实测**：2026-10-29 App 升级到 **v1.7**（`v1.6` 目录**已被删除**，
@@ -17,7 +17,7 @@
 ⇒ 修法：**按目录实际存在情况解析**，不再硬编码版本号。
    规则（照抄 App 的目录命名）：
    1. 环境变量 `EXT_APP_ROOT` 显式指定 ⇒ 优先（**显式覆盖永远优先**）；
-   2. 否则在 `C:\\Users\\Trekker-PTL` 下找 `Confucius4_LiveCaption_v*` 目录，
+   2. 否则在**用户目录**下找 `Confucius4_LiveCaption_v*` / `LiveCaption_MiniMVP_v*` 目录，
    **按版本号从大到小**挑第一个**结构完整**的
    （结构完整 = 同时有 `app/`、`models/`、`python/python.exe`）；
    3. 找不到 ⇒ 返回 `None`（调用方**显式报错**，绝不静默用旧路径）。
@@ -40,8 +40,10 @@ from typing import List, Optional
 #   环境变量 `EXT_APP_SEARCH_ROOT` 可显式指定搜索根（离线复现 / CI）。
 _USER_ROOT = (os.environ.get("EXT_APP_SEARCH_ROOT", "").strip()
               or os.path.expanduser("~"))
-_PREFIX = "Confucius4_LiveCaption_v"
-_VER_RE = re.compile(r"^Confucius4_LiveCaption_v(\d+(?:\.\d+)*)$")
+# 🔴 APP-154 §2（v0.4.25）：发行包改名为 `LiveCaption_MiniMVP_v1.2.1` ⇒
+#   前缀白名单**同时**认新旧两种包名（旧名保留：兼容已装旧包的用户）。
+_PREFIXES = ("Confucius4_LiveCaption_v", "LiveCaption_MiniMVP_v")
+_VER_RE = re.compile(r"^(?:Confucius4_LiveCaption_v|LiveCaption_MiniMVP_v)(\d+(?:\.\d+)*)$")
 
 
 def _ver_key(name: str) -> tuple:
