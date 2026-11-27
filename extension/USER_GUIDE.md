@@ -57,7 +57,7 @@
 
 * 只接受**本机**和 **A 所在网段**的连接，别的网段一律拒绝；
 * 只接受**本插件**发起的连接（浏览器会带上插件的身份，网页冒充不了）；
-* A 机防火墙已放行本网段的 TCP **8765 / 8766** 入站；
+* 本机防火墙已放行本网段的 TCP **8765 / 8766** 入站；
 * 传输是**不加密**的 `ws://`，只适合在公司内网使用。
 
 > **v0.4.0 起已取消 token 配对**，不需要复制任何 token。
@@ -66,13 +66,13 @@
 <summary>高级：不用快捷方式，命令行启动</summary>
 
 ```
-cd C:\Users\Trekker-PTL\live_dub_ext
+cd <插件目录>
 set EXT_BRIDGE_LAN=1
-"C:\Users\Trekker-PTL\Confucius4_LiveCaption_v<版本号>\python\python.exe" -m ext.bridge --real --pipeline --target-lang zh --port 8765
+"<安装目录>\python\python.exe" -m ext.bridge --real --pipeline --target-lang zh --port 8765
 ```
 
 * `set EXT_BRIDGE_LAN=1` 这一行等于勾「允许局域网访问」，只在本机用就去掉这一行；
-* 允许的网段默认取 A 网卡的真实网段，可用 `set EXT_LAN_ALLOW=10.188.192.0/21` 指定（逗号分隔多个）；
+* 允许的网段默认取本机网卡的真实网段，可用 `set EXT_LAN_ALLOW=10.188.192.0/21` 指定（逗号分隔多个）；
 * 必须用实时字幕 App 自带的 Python（openvino 等库只在那里），否则会报「真实引擎接线失败」。
 
 </details>
@@ -83,10 +83,10 @@ set EXT_BRIDGE_LAN=1
 
 ### 3.1 拿到插件文件夹
 
-插件本体是 A 机上的这个文件夹：
+插件本体是安装目录下的这个文件夹：
 
 ```
-C:\Users\Trekker-PTL\live_dub_ext\extension
+<安装目录>\extension
 ```
 
 * **本机用**：直接用这个文件夹；
@@ -227,9 +227,9 @@ C:\Users\Trekker-PTL\live_dub_ext\extension
 
 | 路径 | 是什么 |
 |---|---|
-| `C:\Users\Trekker-PTL\live_dub_ext\extension\` | 插件本体（加载扩展时选这一层；拷给别的电脑也是拷这个） |
-| `C:\Users\Trekker-PTL\live_dub_ext\ext\` | 桥接服务与推理适配层 |
-| `C:\Users\Trekker-PTL\live_dub_ext\tools\ext_launcher.py` | 桥接启动器（桌面快捷方式指向它） |
+| `<安装目录>\extension\` | 插件本体（加载扩展时选这一层；拷给别的电脑也是拷这个） |
+| `<安装目录>\ext\` | 桥接服务与推理适配层 |
+| `<安装目录>\tools\ext_launcher.py` | 桥接启动器（桌面快捷方式指向它） |
 | `%LOCALAPPDATA%\LiveDubEXT\bridge.log` | 桥接服务日志（排查问题先看这里） |
 | `%LOCALAPPDATA%\LiveDubEXT\clone_voices\` | 克隆参考音频（每次会话开始时清空） |
 
