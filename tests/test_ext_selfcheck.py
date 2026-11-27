@@ -561,7 +561,10 @@ def test_ext005_ext006_behaviors() -> None:
         check("未知目标语言的 MT 也必须抛异常", True)
 
     print("\n[10] EXT-006 — 失控闸阈值口径（与 App RUNAWAY 判据一致）")
-    from ext.engine_runtime import TTS_WALL_CLOCK_CAP_SEC
+    from ext.engine_runtime import (
+        TTS_WALL_CLOCK_FALLBACK_SEC,
+        TTS_WALL_CLOCK_FALLBACK_FACTOR,
+    )
     # App 的判据：runaway_threshold_s(est) = max(3×est, est+8s)
     # 短句 ⇒ est 小 ⇒ 阈值取 est+8s（≥8 s）
     # 长句 ⇒ 阈值取 3×est
@@ -582,8 +585,18 @@ def test_ext005_ext006_behaviors() -> None:
     else:
         check("App 的 tts_engine 可 import（失控闸口径来源）", False,
               "未能加载 tts_engine.py")
-    check("墙钟闸有硬上限（防止 est 估偏大时闸门失效）",
-          TTS_WALL_CLOCK_CAP_SEC > 0, f"cap={TTS_WALL_CLOCK_CAP_SEC}s")
+    # 🔴 APP-154 §1：墙钟不再是失控判据，降级为「max(60 s, 6×est)」宽兜底，
+    #    只记日志、不丢句；失控改按已收音频秒数 > runaway_threshold_s(est)。
+    from ext import engine_runtime as _er
+    import inspect
+    _er_src = inspect.getsource(_er)
+    check("墙钟仅宽兜底 max(60s,6×est)（失控按音频长度，只记日志不丢句）",
+          TTS_WALL_CLOCK_FALLBACK_SEC > 0
+          and TTS_WALL_CLOCK_FALLBACK_FACTOR > 0
+          and "TTS_WALL_CLOCK_CAP_SEC" not in _er_src
+          and "wall_limit = min(" not in _er_src
+          and "wall_fallback = max(" in _er_src,
+          f"sec={TTS_WALL_CLOCK_FALLBACK_SEC}s factor={TTS_WALL_CLOCK_FALLBACK_FACTOR}")
 
 
 # ── 11. EXT-006 P1 收口：flush 尾段 / stats marker / 同步误差口径 ──
