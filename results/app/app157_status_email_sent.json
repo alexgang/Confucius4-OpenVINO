@@ -1,0 +1,17 @@
+{
+  "generated_at": "2026-11-27 18:53:45",
+  "message_id": "msg_d9ytZRYzv8f9Nw54J9siCg7E8bdC7s1URCQaFLQel21ybg",
+  "to": "alexchen7694@agent.qq.com",
+  "subject": "[C4][A][STATUS][APP] 248 / APP-153…APP-157 收尾",
+  "body_file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app157_status_email_body.txt",
+  "body_bytes": 5594,
+  "body_sha256": "46e0bc1385c00ea4249bd44ae307a2872fbea537ea75f250de005866f14b67ec",
+  "created_at": "2026-11-27T10:53:22Z",
+  "verification": {
+    "first_landmark": true,
+    "middle_landmark": true,
+    "tail_landmark": true,
+    "no_truncation_all_landmarks_present": true
+  },
+  "attachment_attempt": "inline .txt rejected with 40001; gate table path+sha256 given in body"
+}

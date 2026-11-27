@@ -1,0 +1,39 @@
+reviewer 好，
+
+【地标-首】APP 线程 §248 回报：APP-153 / 154 / 155 / 156 / 157 ＋ LOCK-002 已闭合，last_ack 由 APP-151 更新为 APP-157（＋LOCK-002）。STATUS_APP.md 只追加 §248 指针行，正文全文在 status/app/STATUS_APP_sec248_detail_20261127.md。
+
+一、v1.2.1 zip（重打完成）
+路径：C:\Users\Trekker-PTL\LiveCaption_MiniMVP_v1.2.1.zip
+字节：5 323 331 317；mtime：2026-11-27 18:45:56；条目：12 448；压缩率 77.5%；源目录 12 448 文件 / 6 864 755 281 B。
+有缺陷的旧 zip 没有覆盖或删除，移到 LiveCaption_MiniMVP_v1.2.1.defective_20261127_1634.zip（5 322 697 359 B，sha256 de2289ec8afeae213280635d1ed51af669f3883192ee6c1979fb57fd74b8de9f），理由：含 8 个 .bak_* 且 README 数字过期。证据 results/app/app157_defective_zip_quarantine.json。
+
+二、APP-157 问的“多出来的 2 个测试失败”：2×2 真跑归因
+矩阵（EXT 代码版本 × 包内 python，证据 results/app/app157_test_matrix.json）：
+  v0.4.23 + v1.2    selfcheck 117/2/119   p1_plumbing 52/6/58
+  v0.4.23 + v1.2.1  selfcheck 117/2/119   p1_plumbing 52/6/58
+  v0.4.25 + v1.2    selfcheck 114/3/117   p1_plumbing 52/6/58
+  v0.4.25 + v1.2.1  selfcheck 114/3/117   p1_plumbing 52/6/58
+结论：与包路径/python 无关。selfcheck 第三处失败是 v0.4.25 代码线里测试仍 import 已在 v0.4.24 删除的 TTS_WALL_CLOCK_CAP_SEC，ImportError 中断整段函数，3 个断言未执行、异常计成 1 个 FAIL。已改为新 API 并把断言改成行为级（禁止 CAP_SEC / wall_limit=min，必须 wall_fallback=max）；包内 python 复跑回到 117 PASS / 2 FAIL / 共 119，新断言 PASS（app157_selfcheck_after_fix.txt）。commit 9b8ade4 已 git push github HEAD:live-dub-ext，同 commit 补入库 test_ext0425_tts_fallback.py（5/5）。
+p1_plumbing 四格都是 52/6，当前干净 commit 未复现你看到的 50/7；判为 15:07 前后未提交中间工作树／包路径环境，不归因 v0.4.25。这是“未复现”，不是“已证明无缺陷”。
+
+【地标-中】三、出包判据加固（两处恒 PASS 的假判据）
+1. 包内 8 个 .bak_*（README/NOTICE/Start_Bridge/release.json/package_profile/MANIFEST 的 .bak_app154_docclean 与 .bak_app156_v0425）原第 ⑬ 项只判 endswith('.bak') ⇒ 假 PASS。已移出到 results/app/app157_removed_bak/（逐文件 sha256/字节/mtime 见 app157_removed_bak.json），判据改为 '.bak' in fl 并加反证组。
+2. 第 ⑰ 项原为 subprocess.run(['python','-c','pass']) ⇒ 死判据。改为真逐字节比仓库 live_dub_ext/ext/ 与包内 ext/bridge/：25 个文件相同，diff=[]，允许缺 tts_cuda_sidecar_ext.py（MiniMVP 无 CUDA）。
+3. 重跑 results/app/app157_zip_gate.py：45 PASS / 0 FAIL。门禁表 .txt 因邮件通道拒收内联附件（40001）改为路径自取，见文末。
+
+四、README / MANIFEST
+README_zh/en 滞后说明改为你指定的 v1.2.1 口径：关背景音中位 3 s／最大 51 s；开背景音中位 12 s／最大 88 s；开背景音＋克隆中位约 4 分钟／最大约 9.5 分钟，媒体结束后还要约 7 分钟播完；写明克隆在 NPU 上合成较慢、密集讲话建议不开克隆、停顿能让配音追上。
+app/MANIFEST.json：files/bytes 由 12 469 / 6 865 794 123 改为实测 12 448 / 6 864 755 281。
+如实登记差异：你指定的数字来自 app154_three_arms.json（off p50 3.221/max 51.045；on p50 11.516/max 88.06）；app156_three_arms.json 在同一包重跑为 off p50 41.125/max 196.528、on p50 74.111/max 286.59（聚合约慢 14%），计数类结论不变。README 按你明文写 app154 口径，STATUS 同时保留 app156 数字。
+
+五、zip 一致性与隔离解压自检（不做 SHA）
+app157_zip_consistency.json：zip 12 448 条目 / 目录 12 448 文件；只在 zip 0、只在目录 0、大小不同 0；.bak 条目 0；testzip()=None；顶层前缀全覆盖。
+app157_zip_extract_check.json：解压到 C:\Temp\verify_v121_app157\LiveCaption_MiniMVP_v1.2.1\（与开发目录无父子/兄弟关系；本机删除 shim ⇒ 临时目录未删，路径写进证据）；解压文件 12 448；包内 python --check rc=0（30.7 s），GUI 标题字符串 v1.2.1=True，Traceback=False。
+app157_bridge_check.json/.log：在解压出的那份上按产品同款 -m ext.bridge --real --pipeline 起一次，包内 python，machine_lock.py run --module app --timeout-min 2 持锁；日志有 ASR 就绪（Qwen3-ASR 0.6B INT8 @ GPU.0，8.4s）、MT 就绪（Hy-MT3 INT8 @ NPU，3.1s），Traceback=False，判定 PASS。第一次尝试因脚本 cwd/PYTHONPATH 设置有误报 ModuleNotFoundError: ext（判据/环境错，非产品缺陷），已按 ext_launcher.py 同款方式修正后重跑通过；失败日志未删，可复算。
+
+【地标-尾】六、提交与留白
+EXT：live_dub_ext commit 9b8ade4 已推 github/live-dub-ext（上一批 32ff975 也在远端）。
+主仓：本地 commit c51c556（§248 + 本轮证据/脚本），按 APP-156 §3 在脱敏前不推 GitHub。
+未做：B 机复验、APP-144 ① 历史改写、ACCEPTED 重签、未调 MiniMax、未通知用户。CORRECTIONS_APP.md 只读未改：46 642 B / sha256 cc1067b7c4908e1583d7b6537f4f1c6e01b8a3831f1996f7272c0682f517ebae / mtime 2026-11-27 15:08:17 / 15 条 / max APP-157。
+
+门禁表（邮件通道拒收内联附件，Error 40001 ⇒ 按路径自取）：results/app/app157_zip_whitelist.txt，3 797 B，mtime 2026-11-27 18:38:06，sha256 211103a4da024b5b247d65cc174f50423a737ac66c88c88065d266b5db6e09ba。同目录 app157_zip_whitelist.json 为可机读版。

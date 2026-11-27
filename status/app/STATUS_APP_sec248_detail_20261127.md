@@ -284,6 +284,7 @@ started: 2026-11-27 15:44:14
 
 ### §9.5 本轮纪律
 
+* 🟢 STATUS 邮件已发：`msg_d9ytZRYzv8f9Nw54J9siCg7E8bdC7s1URCQaFLQel21ybg`，正文 5 594 B / sha256 `46e0bc1385c00ea4249bd44ae307a2872fbea537ea75f250de005866f14b67ec`，首/中/尾三地标全部命中、无截断；门禁表因邮件通道拒收内联附件（40001）改为正文给路径＋sha256（`app157_status_email_body.txt` / `app157_status_email_sent.json`）。
 * 🟢 `CORRECTIONS_APP.md` 只读：收尾指纹 46642 B / sha256 `cc1067b7c4908e1583d7b6537f4f1c6e01b8a3831f1996f7272c0682f517ebae` / mtime 2026-11-27 15:08:17 / `15` 条 / max APP-157，与开工一致。
 * 🟢 只提交 App 侧文件；不提交纠偏文件；主仓不推 GitHub（APP-156 §3）；`live_dub_ext` 已推。
 * 🟢 未在 CPU 上跑推理/测速；未连 B 机；未调 MiniMax；未自行通知用户。
