@@ -1,0 +1,78 @@
+[C4][A][STATUS] §249 待命轮（无新 App 纠偏，last_ack 仍 APP-157）：修掉 §248 的 2 处真缺陷
+
+本轮性质：待命轮。六通道复核 ⇒ 无编号 > last_ack(=APP-157) 的新条目 ⇒ last_ack 不变。
+但复核 §248 的交付面时发现 2 处真缺陷，已修掉并独立复核。
+
+═══ 六通道复核（⇒ 无新 App 纠偏）═══
+1 局域网 status/app/CORRECTIONS_APP.md：46642 B / sha256 cc1067b7…17ebae / 15 条 / max APP-157（= last_ack）
+2 QQ 收件箱：全部 App 封 max = APP-157（msg_8s6eELs8…，2026-11-27T07:08:16Z）= 已执行；其后仅 H-028[MT]、R-029[FQ] 等非 App 封
+3 QQ spam：空
+4 QQ trash：1 封（MiniMVP rc9 性能报告，2026-11-13，与 App 纠偏无关）
+5 agent-mail：not_bound（该通道本会话不可用）
+6 全库检索 APP-15x/16x/17x/18x/19x：命中全是 _dead_session_think_dump.txt（死会话思考转储）与 win_capture.py:49 / §233-235 里的「APP-178」历史注释（别的模块编号）⇒ 无真命中
+
+═══ 🔴 真缺陷①：§248 登记「脱敏完成」，而它自己的证据 verdict 就是 FAIL ═══
+证据：results/app/app155_desens_verify.json（2026-11-27 15:36:44）verdict = FAIL（n_pass 33 / n_fail 43，含 1 个 FAIL_JSON）。§248 §3.2「812 处替换 / 76 个文件；穷尽重扫仍命中 0 个文件」与 §8/§9.5「脱敏完成」与证据不符，§248 未写这一条。
+
+根因（我独立查清，未采信任一方）：
+· hits 每文件只记 14 行（抽样），apply 只遍历 hits 记到的行 ⇒ 每文件另外 ~45 行从未被访问、从未被替换
+  （实测 results/app/app332_v23_cli_output.txt：HEAD 含会议原句的行 59 行，hits 只记 14 行 ⇒ 漏 45 行）
+· 「穷尽重扫」按整句切 ⇒ 嵌在更大句子里的会议原句判不出 ⇒ 报 0 命中（假绿）
+  例：HEAD 第 34 行「[实时] Agenda topics today」整句归一化后 ≠ GT 的「agenda topics today」⇒ 漏
+· 更严重：apply 的 target 是剥掉日志前缀后的整句，在 JSON 字符串里替换时连收尾引号一起吞掉
+  ⇒ 12 个 JSON 由「HEAD 可解析」变成「不可解析」
+  （app121_asr_app_3mat_GPU0.json / _OLD_v11.json / _NPU.json、app418_rc6_tts_direct.json + {de,en,es,fr,it,ko,pt,ru}/wavs.json）
+
+修法：先 git restore --source=HEAD 还原 121 个文件（把 12 个被弄坏的 JSON 一并还原回合法状态）⇒ 基线可信；
+再按「归一化 + 索引映射」重做（归一化时记录每个字符对应的原文下标 ⇒ 命中 span 换算回原文再替换 ⇒ 既完整又精确，只动命中 span）。
+判据换成子串粒度（原为整句相等 ⇒ 漏）；ground truth = 39 个受控逐句产物的 571 条句。
+
+结果对比：
+              §248        本轮
+  处理文件       76          121
+  替换处数      812        1987
+  改坏的 JSON   12           0
+  改后 JSON 可解析 —      63/63
+另补上 §248 完全没碰的 2 个 .tts.jsonl（app294_rc4_npu_out/npu_full/tts.jsonl 51 处、app415_rc6_langs/ja/tts.jsonl 8 处）。
+
+独立终检（results/app/app249_desen_final_verify.json，4 判据全 PASS）：
+§1 彻底：说明类逐行子串扫描 1251 个文件 ⇒ GT 命中 0 个文件
+§2 无损：diff 法（与施加算法无关）⇒ 删除段必属 GT 句、插入段只有占位 ⇒ 121 PASS / 0 FAIL
+§3 结构：.json 改后不可解析 0（其中新坏 0）
+§4 反证组：把一处占位改回真会议句 ⇒ §1 扫描命中 True（判据有鉴别力）
+如实登记两次判据自身缺陷（非产品缺陷）：① 我第一版「占位还原⇒与 HEAD 逐字节相等」判据假 FAIL 75 个（还原时多加了空格）⇒ 改用 diff 法；② diff 法第一版用字符级对齐报「插入非占位 x」（difflib 把 Good morning 里的 x 对齐到别处）⇒ 假 FAIL ⇒ 改用词级对齐后全 PASS。
+
+═══ 🔴 真缺陷②：APP-153 §5 的修复只在包副本里，生产路径（dev 树）没有 ═══
+包 LiveCaption_MiniMVP_v1.2.1 里已带 APP-153 §3/§5 修复（GUI 标题 v1.2.1、--check 中性措辞、开发机路径脱敏、黑名单正则泛化），
+但 dev 树 live_caption/ 没有；而打包路径是 dev→包（_app151_sync_app_py.py / pack_v13.py 都从 dev 取 app/*.py）
+⇒ 下一次打包会把这些修复全部丢掉。与 §234 修掉的缺陷同类（§233 的修法没接进生产路径）。
+
+修法：定点回灌（精确字符串替换 + 唯一命中断断，不整目录覆盖）：
+  live_caption_app.py 6 块 / device_config.py 3 块 / asr06b_stateful_backend.py 1 块 / v23_preset_only.py 1 块
+  ⇒ dev 与包内 app/*.py 共有 34 个、内容不同 4 → 0
+  ⇒ 复核：dev 树 GUI 标题 = 实时字幕 MiniMVP v1.2.1；Trekker-PTL 残留 0；「rc5 在 B 机」措辞 0；黑名单正则 r'(?i)C:\\Users\\[^\\\\]+'
+证据：results/app/app249_pkg_to_dev_sync.json
+
+═══ 提交 ═══
+12b87f2（本地，未推 GitHub：APP-156 §3「脱敏完成前主仓不推」）
+主仓本地现有 3 个未推送提交：c51c556 / a661844 / 12b87f2
+
+═══ 🔴 未做 / 待裁定（如实登记）═══
+1 APP-144 ①（GitHub 历史改写）本轮未做：reviewer 队列里它排在 v1.2.1 之后，v1.2.1 已完成 ⇒ 本轮已解锁；
+  但方法被 APP-148 §2 改过（必须逐文件通读 git log -p --all -- [文件] 的完整上下文建替换表），
+  且 APP-155/156 §3 要求扫描范围扩大到 status/ 下全部模块 ⇒ 本轮先把工作树侧做完整并验证，历史改写留下一轮按新方法做。
+  🔴 历史改写是 --force-with-lease 强推（不可逆）⇒ 需 reviewer 明确放行再做。
+2 §222 入库完整性：app155_desens_*.json 三个旧证据已被本轮覆盖（app249_* 为新证据），而产生它们的脚本仍未入库 ⇒ 下一轮一并入库。
+3 .gitignore 的 *.tts.jsonl 规则不覆盖 */tts.jsonl（无点前缀）⇒ 该类文件仍可能被再次提交 ⇒ 规则本身待补。
+4 根 .gitattributes（§226 根治项）仍未做，等 reviewer 裁定（跨模块）。
+5 §244/§248 其它待裁定项（v2.7 是否出、.staging、v2.5 重签 ACCEPTED、默认分离设备、n_speakers=0 口径）本轮未动。
+
+═══ 纪律 ═══
+只提交 App 侧文件；未提交 status/app/CORRECTIONS_APP.md（reviewer 独占，收尾四项指纹零改动：
+46642 B / sha256 cc1067b7c4908e1583d7b6537f4f1c6e01b8a3831f1996f7272c0682f517ebae / mtime 2026-11-27 15:08:17 / 15 条 / max 157）；
+未打包、未改任何客户包目录、未跑推理/计时（未取 MACHINE_LOCK）、未调 MiniMax、未连 B 机、未通知用户。
+
+正文全文：status/app/STATUS_APP_sec249_detail_20261127.md
+证据：results/app/app249_desen_final_verify.json（551 B，sha256 47801e0194217442…）
+　　　results/app/app249_pkg_to_dev_sync.json（4086 B，sha256 f0018b21389ca243…）
+　　　results/app/app249_desen_apply_full.json / app249_desen_scan_full.json / app249_desen_analysis.json

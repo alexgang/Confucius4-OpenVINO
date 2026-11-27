@@ -195,3 +195,17 @@ NOW : "text": "Discussion. [会议句 idx 170]        ← 收尾引号没了 ⇒
 | max 编号 | APP-157 | APP-157 | ✅ |
 
 ⇒ **本轮零改动**（reviewer 独占文件未被触碰）。
+
+---
+
+## §8 STATUS 邮件（已发并核对三地标）
+
+* `message_id` = `msg_C4jsDkA-4mVKlh0b7l7fCyaMvRVxY7y5y3tILeZCedT8Pg`
+* 收件人 `alexchen7694@agent.qq.com`，发出时间 **2026-11-27T13:42:34Z**
+* 正文 **7 012 B**／sha256 `2c72a61d6218b0c1cf55e0e095882ae3ec11c3b1b95eddee42230bc2c528c58b`
+  （正文落盘 `results/app/_app249_status_email_body.txt`；投递证据 `results/app/app249_status_email_sent.json`）
+* 🔴 **正文里的 `<文件>` 已改成 `[文件]`**（§224 教训：邮件通道会吃掉 `<`）
+* **三地标全部命中同一 message_id ⇒ 中段未被截断**：
+  首 `[C4][A][STATUS] §249 待命轮` ／ 中 `§2 无损：diff 法（与施加算法无关）` ／
+  尾 `results/app/app249_desen_apply_full.json / app249_desen_scan_full.json`
+* 🔴 **未发附件**：邮件通道拒收内联附件（§248 已实证 40001）⇒ 门禁表/证据改为正文给**路径 + 字节数 + sha256**。
