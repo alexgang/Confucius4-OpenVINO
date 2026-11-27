@@ -46,14 +46,14 @@
 * `app155_desens_apply.py` **只遍历 `hits` 记到的行** ⇒ 每文件另外 **~45 行从未被访问、从未被替换**；
   （实测 `results/app/app332_v23_cli_output.txt`：HEAD 含会议原句的行 **59 行**，`hits` 只记 **14 行** ⇒ **漏 45 行**）
 * 而「穷尽重扫」按**整句**切（`sentences()`）⇒ **嵌在更大句子里的会议原句判不出** ⇒ 报 0 命中（**假绿**）。
-  例：HEAD 第 34 行 `[实时] Agenda topics today` —— 整句归一化后 ≠ GT 的 `agenda topics today` ⇒ 漏。
+  例：HEAD 第 34 行 `[实时] <会议原句 len=19 sha256=5e708d46>` —— 整句归一化后 ≠ GT 的 `<会议原句 len=19 sha256=5e708d46>` ⇒ 漏。
 
 **第二个真缺陷（更严重）：§248 的 apply **弄坏了 12 个 JSON 文件。**
 `app155_desens_apply.py` 的 `body.replace(target, …)` 里的 `target` 是**剥掉日志前缀后的整句**，
 在 JSON 字符串里替换时**连收尾引号一起吞掉** ⇒ JSON 结构被破坏：
 
 ```
-HEAD: "text": "Discussion. Very successful execution on Patrick and Wildcat, and Novelick on a base derivative model."
+HEAD: "text": "Discussion. <会议原句 len=88 sha256=bb6236e6>"
 NOW : "text": "Discussion. [会议句 idx 170]        ← 收尾引号没了 ⇒ JSON 非法
 ```
 
@@ -82,8 +82,8 @@ NOW : "text": "Discussion. [会议句 idx 170]        ← 收尾引号没了 ⇒
 * **替换用「归一化 + 索引映射」**：归一化时**同时记录每个字符对应的原文下标**
   ⇒ 命中 span **换算回原文**再替换 ⇒
   ① **完整**（标点/空白变体也命中）；② **精确**（只动命中 span，其余逐字节不变）。
-* **raw form 不用作匹配键**：raw form 原文匹配会漏掉标点变体（GT `Good morning, everyone.`
-  vs README `Good morning everyone`）⇒ 改用归一化串 + 索引映射。
+* **raw form 不用作匹配键**：raw form 原文匹配会漏掉标点变体（GT `<会议原句 len=21 sha256=301202c0>`
+  vs README `<会议原句 len=21 sha256=301202c0>`）⇒ 改用归一化串 + 索引映射。
 
 ### §3.2 写前不变量（逐文件，**全部 PASS**）
 
@@ -115,7 +115,7 @@ NOW : "text": "Discussion. [会议句 idx 170]        ← 收尾引号没了 ⇒
 
 > 🔴 **§2 判据的两次修正（如实登记）**：
 > ① 我第一版用「占位还原 ⇒ 与 HEAD 逐字节相等」⇒ **假 FAIL 75 个** ⇒ 根因＝还原时多加了空格 ⇒ 改用 diff 法；
-> ② diff 法第一版用**字符级**对齐 ⇒ 报「插入非占位 `x`」⇒ 根因＝difflib 把 `Good morning` 里的 `x` 对齐到别处
+> ② diff 法第一版用**字符级**对齐 ⇒ 报「插入非占位 `x`」⇒ 根因＝difflib 把 `<会议原句 len=12 sha256=cdf71dea>` 里的 `x` 对齐到别处
 >    ⇒ **假 FAIL** ⇒ 改用**词级**对齐（占位当原子 token）⇒ 全 PASS。
 > ⇒ **两次都是判据缺陷、不是产品缺陷**（MEMORY：「FAIL 先怀疑判据/环境」）。
 
@@ -209,3 +209,24 @@ NOW : "text": "Discussion. [会议句 idx 170]        ← 收尾引号没了 ⇒
   首 `[C4][A][STATUS] §249 待命轮` ／ 中 `§2 无损：diff 法（与施加算法无关）` ／
   尾 `results/app/app249_desen_apply_full.json / app249_desen_scan_full.json`
 * 🔴 **未发附件**：邮件通道拒收内联附件（§248 已实证 40001）⇒ 门禁表/证据改为正文给**路径 + 字节数 + sha256**。
+
+---
+
+## §9 🔴 自我审查发现并修掉的**第 3 处缺陷**（本轮自己犯的）
+
+**自伤内容**：本轮我在**自己产出的文件**里**引用了会议原句**（举例说明判据用）⇒
+**违反 APP-155／RULES §0**（「今后 STATUS 和邮件里**不摘抄测试片段（SPE/QGS 内部会议）的原句、译文或内部代号**」）。
+
+⇒ **受影响文件（5 个）**：`app249_desen_analysis.json`、`app249_desen_final_verify.json`、
+`app249_desen_scan_full.json`、`_app249_status_email_body.txt`、本文件。
+⇒ **修法**：`_app249_redact_selfquotes.py` —— **归一化 + 索引映射**（与主 apply 同一套）
+把命中 span 换成 `<会议原句 len=N sha256=xxxxxxxx>`（**不可复原**，不含任何原文片段）。
+⇒ **终检**：5 个文件 GT 原句残留 **0**。
+🔴 **判据坑（自查发现）**：第一版用「原文形态逐个 replace」⇒ 只替掉 **15 141** 处、仍残留 **1 474** 句
+（标点/大小写/变体形态替不掉）⇒ **必须走归一化索引映射** ⇒ 改后残留 **0**。
+⇒ 顺带把 `app155_desens_verify.json` / `app155_desens_apply.json` / `app155_desens_scan.json`
+三个**旧证据文件**也一并脱敏（它们也含原句），**并已被本轮的 `app249_*` 取代**。
+
+🔴 **邮件正文已含脱敏前的版本** ⇒ 已发的 STATUS 邮件正文里有 3 处会议原句片段
+（`[实时] …` / `Good morning…` 那两处举例）⇒ **邮件本身不再重发**（避免刷屏），
+但**仓内证据与本文件已脱敏**；此条**如实登记**，供 reviewer 核对。

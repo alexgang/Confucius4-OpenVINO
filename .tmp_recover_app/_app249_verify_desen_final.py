@@ -185,9 +185,14 @@ def main():
                 continue
             hit = [s for s in ordered if s in n]
             if hit:
+                # 🔴 **不写原文**（APP-155／RULES §0：证据文件里也不摘抄会议原句）
+                #    ⇒ 只写长度 + sha256 前 8 位（不可复原）
+                import hashlib as _h
+                _lg = max(hit, key=len)
                 hh.append({'line': i, 'n_gt': len(hit),
-                           'longest': max(hit, key=len)[:100],
-                           'text': line.strip()[:180]})
+                           'longest_len': len(_lg),
+                           'longest_sha256_8': _h.sha256(_lg.encode('utf-8')).hexdigest()[:8],
+                           'text_sha256_8': _h.sha256(line.strip().encode('utf-8')).hexdigest()[:8]})
         if hh:
             residual[rel] = hh
     log('§1 彻底（说明类逐行子串扫描，%d 个文件）：仍命中 %d 个文件'
@@ -220,6 +225,7 @@ def main():
         orig = io.open(p, encoding='utf-8', errors='replace', newline='').read()
         inj = max(sents, key=len)
         bad = PLACEHOLDER.sub(inj, orig, count=1)
+        # （inj 只用于**内存里**的判据自检，不写进证据文件）
         hit = False
         for line in bad.splitlines():
             n = norm(line)
@@ -227,7 +233,8 @@ def main():
                 hit = True
                 break
         counter = {'ok': bool(hit), 'detail': '注入真会议句后 §1 扫描命中=%s（须 True）' % hit,
-                   'file': target}
+                   'file': target,
+                   'injected_len': len(inj)}
         log('§4 反证组：%s' % counter['detail'])
 
     verdict = 'PASS' if (n_fail2 == 0 and not residual and not newly_broken
